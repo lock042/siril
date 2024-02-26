@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 
+#include "algos/siril_wcs.h"
 #include "algos/astrometry_solver.h"
 #include "core/siril_date.h"
 
@@ -113,6 +114,16 @@ static void siril_string_append_double(GString *str, float value, const char *ke
 	char card[FLEN_CARD] = { 0 };
 	int status = 0;
 	sprintf(valstring, "%g", value);
+	fits_make_key(key, valstring, comment, card, &status);
+	if (!status)
+		g_string_append_printf(str, "%s\n", card);
+}
+
+static void siril_string_append_double_exp(GString *str, float value, const char *key, const char *comment) {
+	char valstring[FLEN_VALUE];
+	char card[FLEN_CARD] = { 0 };
+	int status = 0;
+	sprintf(valstring, "%+18.12E", value);
 	fits_make_key(key, valstring, comment, card, &status);
 	if (!status)
 		g_string_append_printf(str, "%s\n", card);
@@ -277,13 +288,7 @@ gchar *AstroTiff_build_header(fits *fit) {
 	if (fit->siteelev != 0.0)
 		siril_string_append_double(str, fit->siteelev, "SITEELEV", "[m] Observation site elevation");
 
-	if (fit->wcsdata.equinox > 0.0) {
-		siril_string_append_str(str, "RA---TAN", "CTYPE1", "Coordinate type for the first axis");
-		siril_string_append_str(str, "DEC--TAN", "CTYPE2", "Coordinate type for the second axis");
-		siril_string_append_str(str, "deg", "CUNIT1", "Unit of coordinates");
-		siril_string_append_str(str, "deg", "CUNIT2", "Unit of coordinates");
-		siril_string_append_double(str, fit->wcsdata.equinox, "EQUINOX", "Equatorial equinox");
-	}
+
 	/* Needed for Aladin compatibility */
 	if (fit->naxes[2] == 3 && com.pref.rgb_aladin) {
 		siril_string_append_str(str, "RGB", "CTYPE3", "RGB image");
@@ -297,37 +302,84 @@ gchar *AstroTiff_build_header(fits *fit) {
 		siril_string_append_double(str, fit->wcsdata.ra, "RA", "Image center Right Ascension (deg)");
 		siril_string_append_double(str, fit->wcsdata.dec, "DEC", "Image center Declination (deg)");
 	}
-	if (fit->wcsdata.crpix[0] != '\0') {
-		siril_string_append_double(str, fit->wcsdata.crpix[0], "CRPIX1", "Axis1 reference pixel");
-		siril_string_append_double(str, fit->wcsdata.crpix[1], "CRPIX2", "Axis2 reference pixel");
-	}
-	if (fit->wcsdata.crval[0] != '\0') {
-		siril_string_append_double(str, fit->wcsdata.crval[0], "CRVAL1", "Axis1 reference value (deg)");
-		siril_string_append_double(str, fit->wcsdata.crval[1], "CRVAL2", "Axis2 reference value (deg)");
-	}
-
-	/* check if pc matrix exists */
-	if ((fit->wcsdata.pc[0][0] * fit->wcsdata.pc[1][1] - fit->wcsdata.pc[1][0] * fit->wcsdata.pc[0][1]) != 0.0) {
-		if (com.pref.wcs_formalism == WCS_FORMALISM_1) {
-			siril_string_append_double(str, fit->wcsdata.cdelt[0], "CDELT1", "X pixel size (deg)");
-			siril_string_append_double(str, fit->wcsdata.cdelt[1], "CDELT2", "Y pixel size (deg)");
-			siril_string_append_double(str, fit->wcsdata.pc[0][0], "PC1_1", "Linear transformation matrix (1, 1)");
-			siril_string_append_double(str, fit->wcsdata.pc[0][1], "PC1_2", "Linear transformation matrix (1, 2)");
-			siril_string_append_double(str, fit->wcsdata.pc[1][0], "PC2_1", "Linear transformation matrix (2, 1)");
-			siril_string_append_double(str, fit->wcsdata.pc[1][1], "PC2_2", "Linear transformation matrix (2, 2)");
-
+	if (fit->wcslib) {
+		gboolean has_sip = fit->wcslib->lin.dispre != NULL; // we don't handle the disseq terms for now
+		if (!has_sip) {
+			siril_string_append_str(str, "RA---TAN", "CTYPE1", "TAN (gnomic) projection");
+			siril_string_append_str(str, "DEC--TAN", "CTYPE2", "TAN (gnomic) projection");
 		} else {
-			double cd[2][2];
-
-			wcs_pc_to_cd(fit->wcsdata.pc, fit->wcsdata.cdelt, cd);
-			siril_string_append_double(str, cd[0][0], "CD1_1", "Scale matrix (1, 1)");
-			siril_string_append_double(str, cd[0][1], "CD1_2", "Scale matrix (1, 2)");
-			siril_string_append_double(str, cd[1][0], "CD2_1", "Scale matrix (2, 1)");
-			siril_string_append_double(str, cd[1][1], "CD2_2", "Scale matrix (2, 2)");
+			siril_string_append_str(str, "RA---TAN-SIP", "CTYPE1", "TAN (gnomic) projection + SIP distortions");
+			siril_string_append_str(str, "DEC--TAN-SIP", "CTYPE2", "TAN (gnomic) projection + SIP distortions");
+		}
+		siril_string_append_str(str, "deg", "CUNIT1", "Unit of coordinates");
+		siril_string_append_str(str, "deg", "CUNIT2", "Unit of coordinates");
+		siril_string_append_double(str, fit->wcslib->equinox, "EQUINOX", "Equatorial equinox");
+		siril_string_append_double(str, fit->wcslib->crpix[0], "CRPIX1", "Axis1 reference pixel");
+		siril_string_append_double(str, fit->wcslib->crpix[1], "CRPIX2", "Axis2 reference pixel");
+		siril_string_append_double(str, fit->wcslib->crval[0], "CRVAL1", "Axis1 reference value (deg)");
+		siril_string_append_double(str, fit->wcslib->crval[1], "CRVAL2", "Axis2 reference value (deg)");
+		if (fit->wcslib->lonpole) {
+			siril_string_append_double(str, fit->wcslib->lonpole, "LONPOLE", "Native longitude of celestial pole");
+		}
+		if (com.pref.wcs_formalism == WCS_FORMALISM_1) {
+			siril_string_append_double(str, fit->wcslib->cdelt[0], "CDELT1", "X pixel size (deg)");
+			siril_string_append_double(str, fit->wcslib->cdelt[1], "CDELT2", "Y pixel size (deg)");
+			siril_string_append_double(str, fit->wcslib->pc[0], "PC1_1", "Linear transformation matrix (1, 1)");
+			siril_string_append_double(str, fit->wcslib->pc[1], "PC1_2", "Linear transformation matrix (1, 2)");
+			siril_string_append_double(str, fit->wcslib->pc[2], "PC2_1", "Linear transformation matrix (2, 1)");
+			siril_string_append_double(str, fit->wcslib->pc[3], "PC2_2", "Linear transformation matrix (2, 2)");
+		} else {
+			siril_string_append_double(str, fit->wcslib->cd[0], "CD1_1", "Scale matrix (1, 1)");
+			siril_string_append_double(str, fit->wcslib->cd[1], "CD1_2", "Scale matrix (1, 2)");
+			siril_string_append_double(str, fit->wcslib->cd[2], "CD2_1", "Scale matrix (2, 1)");
+			siril_string_append_double(str, fit->wcslib->cd[3], "CD2_2", "Scale matrix (2, 2)");
+		}
+		if (has_sip) {
+			// we deal with images up to order 6, we need 7 to hold 0_6 terms
+			double A[MAX_SIP_SIZE][MAX_SIP_SIZE] = {{ 0. }};
+			double B[MAX_SIP_SIZE][MAX_SIP_SIZE] = {{ 0. }};
+			double AP[MAX_SIP_SIZE][MAX_SIP_SIZE] = {{ 0. }};
+			double BP[MAX_SIP_SIZE][MAX_SIP_SIZE] = {{ 0. }};
+			struct disprm *dis = fit->wcslib->lin.dispre;
+			int order = extract_SIP_order_and_matrices(dis, A, B, AP, BP);
+			// we know the order of the distortions, we can now write them
+			siril_string_append_int(str, order, "A_ORDER", "SIP polynomial degree, axis 1, pixel-to-sky");
+			for (int i = 0; i <= order; i++) {
+				for (int j = 0; j <= order - i; j++) {
+					char key[6];
+					g_snprintf(key, 6, "A_%d_%d", i, j);
+					// we add the key name as comment, otherwise wcspih fails to read the value (if no comment present)
+					siril_string_append_double_exp(str, A[i][j], key, key);
+				}
+			}
+			siril_string_append_int(str, order, "B_ORDER", "SIP polynomial degree, axis 2, pixel-to-sky");
+			for (int i = 0; i <= order; i++) {
+				for (int j = 0; j <= order - i; j++) {
+					char key[6];
+					g_snprintf(key, 6, "B_%d_%d", i, j);
+					siril_string_append_double_exp(str, B[i][j], key, key);
+				}
+			}
+			siril_string_append_int(str, order, "AP_ORDER", "SIP polynomial degree, axis 1, sky-to-pixel");
+			for (int i = 0; i <= order; i++) {
+				for (int j = 0; j <= order - i; j++) {
+					char key[7];
+					g_snprintf(key, 7, "AP_%d_%d", i, j);
+					siril_string_append_double_exp(str, AP[i][j], key, key);
+				}
+			}
+			siril_string_append_int(str, order, "BP_ORDER", "SIP polynomial degree, axis 2, sky-to-pixel");
+			for (int i = 0; i <= order; i++) {
+				for (int j = 0; j <= order - i; j++) {
+					char key[7];
+					g_snprintf(key, 7, "BP_%d_%d", i, j);
+					siril_string_append_double_exp(str, BP[i][j], key, key);
+				}
+			}
 		}
 	}
 	if (fit->wcsdata.pltsolvd) {
-		siril_string_append_logical(str, "T", "PLTSOLVD", "Siril internal solve");
+		siril_string_append_logical(str, "T", "PLTSOLVD", fit->wcsdata.pltsolvd_comment);
 	}
 
 	if (fit->airmass != 0.0)

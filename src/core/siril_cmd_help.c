@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,12 +27,11 @@
 
 void siril_cmd_help_keyboard_shortcuts(GtkWindow *window) {
 	static GtkWidget *shortcuts_window;
-	char *shortcutfile = g_build_filename(siril_get_system_data_dir(), SHORTCUTS_UI, NULL);
 
 	if (shortcuts_window == NULL) {
 		GtkBuilder *s_builder;
 
-		s_builder = gtk_builder_new_from_file(shortcutfile);
+		s_builder = gtk_builder_new_from_resource("/org/siril/ui/siril-shortcuts.ui");
 		shortcuts_window = GTK_WIDGET(gtk_builder_get_object (s_builder, "shortcuts-siril"));
 
 		g_signal_connect(shortcuts_window, "destroy",

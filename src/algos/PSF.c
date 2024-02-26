@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -396,7 +396,7 @@ static int psf_Gaussian_df_ang(const gsl_vector * x, void *PSF_data,
 	size_t NbRows = ((struct PSF_data *) PSF_data)->NbRows;
 	size_t NbCols = ((struct PSF_data *) PSF_data)->NbCols;
 	size_t i, j, k = 0;
-	gboolean *mask = ((struct PSF_data *) PSF_data)->mask;
+	const gboolean *mask = ((struct PSF_data *) PSF_data)->mask;
 	double A = gsl_vector_get(x, 1);
 	double x0 = gsl_vector_get(x, 2);
 	double y0 = gsl_vector_get(x, 3);
@@ -440,8 +440,8 @@ static int psf_Moffat_f_ang(const gsl_vector * x, void *PSF_data, gsl_vector * f
 	size_t NbCols = ((struct PSF_data *) PSF_data)->NbCols;
 	size_t n = ((struct PSF_data *) PSF_data)->n;
 	size_t i, j, k = 0;
-	double *y = ((struct PSF_data *) PSF_data)->y;
-	gboolean *mask = ((struct PSF_data *) PSF_data)->mask;
+	const double *y = ((struct PSF_data *) PSF_data)->y;
+	const gboolean *mask = ((struct PSF_data *) PSF_data)->mask;
 	double B = gsl_vector_get(x, 0);
 	double A = gsl_vector_get(x, 1);
 	double x0 = gsl_vector_get(x, 2);
@@ -481,7 +481,7 @@ static int psf_Moffat_df_ang(const gsl_vector * x, void *PSF_data, gsl_matrix * 
 	size_t NbRows = ((struct PSF_data *) PSF_data)->NbRows;
 	size_t NbCols = ((struct PSF_data *) PSF_data)->NbCols;
 	size_t i, j, k = 0;
-	gboolean *mask = ((struct PSF_data *) PSF_data)->mask;
+	const gboolean *mask = ((struct PSF_data *) PSF_data)->mask;
 	double A = gsl_vector_get(x, 1);
 	double x0 = gsl_vector_get(x, 2);
 	double y0 = gsl_vector_get(x, 3);
@@ -970,7 +970,7 @@ static const char *SNR_quality(double SNR) {
 	else return _("N/A");
 }
 
-gchar *format_psf_result(psf_star *result, rectangle *area, fits *fit, gchar **url) {
+gchar *format_psf_result(psf_star *result, const rectangle *area, fits *fit, gchar **url) {
 	gchar *msg, *coordinates;
 	char buffer2[50];
 	const char *str;
@@ -986,7 +986,7 @@ gchar *format_psf_result(psf_star *result, rectangle *area, fits *fit, gchar **u
 	if (has_wcs(&gfit)) {
 		// coordinates of the star in FITS/WCS coordinates
 		double fx, fy;
-		display_to_fits(xpos, ypos, &fx, &fy, gfit.ry);
+		display_to_siril(xpos, ypos, &fx, &fy, gfit.ry);
 
 		double ra, dec;
 		pix2wcs(&gfit, fx, fy, &ra, &dec);

@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1283,10 +1283,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 			if (retval) break;
 
 			// update progress bar
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-			cur_nb++;
+			g_atomic_int_inc(&cur_nb);
 
 			if (!get_thread_run()) {
 				retval = ST_CANCEL;

@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -53,7 +53,7 @@
 #include "gui/utils.h"
 
 // This list defines the columns that can possibly be found in any catalogue
-const gchar *cat_columns[] = { 
+const gchar *cat_columns[] = {
 	[CAT_FIELD_RA] = "ra",
 	[CAT_FIELD_DEC] = "dec",
 	[CAT_FIELD_PMRA] = "pmra",
@@ -71,7 +71,10 @@ const gchar *cat_columns[] = {
 	[CAT_FIELD_SITEELEV] = "siteelev",
 	[CAT_FIELD_VRA] = "vra",
 	[CAT_FIELD_VDEC] = "vdec",
-	[CAT_FIELD_TYPE] = "type"
+	[CAT_FIELD_TYPE] = "type",
+	[CAT_FIELD_TEFF] = "teff",
+	[CAT_FIELD_XPSAMP] = "xpsamp",
+	[CAT_FIELD_GAIASOURCEID] = "source_id"
 };
 
 const gchar **get_cat_colums_names() {
@@ -125,6 +128,10 @@ static gchar *get_field_to_str(cat_item *item, cat_fields field) {
 			return (item->alias) ? g_strdup(item->alias) : "";
 		case CAT_FIELD_TYPE:
 			return (item->type) ? g_strdup(item->type) : "";
+		case CAT_FIELD_TEFF:
+			return (item->teff) ? g_strdup_printf("%.6f", item->teff) : "";
+		case CAT_FIELD_GAIASOURCEID:
+			return (item->gaiasourceid) ? g_strdup_printf("%" G_GUINT64_FORMAT, item->gaiasourceid) : "";
 		default:
 			return NULL;
 	}
@@ -135,9 +142,14 @@ uint32_t siril_catalog_columns(siril_cat_index cat) {
 	switch (cat) {
 		case CAT_TYCHO2:
 		case CAT_NOMAD:
-		case CAT_GAIADR3:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG);
+		case CAT_GAIADR3:
+			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG) | (1 << CAT_FIELD_TEFF);
+		case CAT_GAIADR3_DIRECT:
+			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG) | (1 << CAT_FIELD_TEFF) |
+			(1 << CAT_FIELD_GAIASOURCEID);
 		case CAT_PPMXL:
+			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG);
 		case CAT_BSC:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME);
 		case CAT_APASS:
@@ -147,6 +159,8 @@ uint32_t siril_catalog_columns(siril_cat_index cat) {
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME);
 		case CAT_SIMBAD:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG) | (1 << CAT_FIELD_NAME);
+		case CAT_VARISUM:
+			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME);
 		case CAT_PGC:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_DIAMETER);
 		case CAT_EXOPLANETARCHIVE:
@@ -170,7 +184,7 @@ uint32_t siril_catalog_columns(siril_cat_index cat) {
 		case CAT_AN_USER_SSO:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_ALIAS) | (1 << CAT_FIELD_DATEOBS) | (1 << CAT_FIELD_SITELAT) | (1 << CAT_FIELD_SITELON) | (1 << CAT_FIELD_SITEELEV) | (1 << CAT_FIELD_VRA) | (1 << CAT_FIELD_VDEC) | (1 << CAT_FIELD_TYPE);
 		case CAT_COMPSTARS:
-			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_TYPE);
+			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_TYPE);
 		case CAT_LOCAL:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG);
 		case CAT_AN_USER_TEMP:
@@ -192,7 +206,7 @@ static int compare_items_by_mag(const void* item1, const void* item2) {
 	return 0;
 }
 
-// This function sorts the *cat_item list of a siril_catalogue by magnitude 
+// This function sorts the *cat_item list of a siril_catalogue by magnitude
 void sort_cat_items_by_mag(siril_catalogue *siril_cat) {
 	if (siril_cat && siril_cat->nbitems > 0 && (siril_cat->columns&(1 << CAT_FIELD_MAG)))
 		qsort(siril_cat->cat_items, siril_cat->nbitems, sizeof(cat_item), compare_items_by_mag);
@@ -221,7 +235,9 @@ const char *catalog_to_str(siril_cat_index cat) {
 		case CAT_NOMAD:
 			return _("NOMAD");
 		case CAT_GAIADR3:
-			return _("Gaia DR3");
+			return _("Gaia DR3 (via Vizier)");
+		case CAT_GAIADR3_DIRECT:
+			return _("Gaia DR3 (direct)");
 		case CAT_PPMXL:
 			return _("PPMXL");
 		case CAT_BSC:
@@ -234,6 +250,8 @@ const char *catalog_to_str(siril_cat_index cat) {
 			return _("GCVS");
 		case CAT_SIMBAD:
 			return _("SIMBAD");
+		case CAT_VARISUM:
+			return _("Gaia DR3 Variability");
 		case CAT_PGC:
 			return _("PGC");
 		case CAT_EXOPLANETARCHIVE:
@@ -275,7 +293,7 @@ const char *catalog_to_str(siril_cat_index cat) {
 // Used to set display diameters
 gboolean is_star_catalogue(siril_cat_index Catalog) {
 	switch (Catalog) {
-		case CAT_TYCHO2 ...	CAT_SIMBAD:
+		case CAT_TYCHO2 ...	CAT_VARISUM:
 		case CAT_EXOPLANETARCHIVE:
 		case CAT_AAVSO_CHART:
 		case CAT_AN_STARS:
@@ -315,7 +333,7 @@ static gboolean find_and_check_cat_columns(gchar **fields, int nbcols, siril_cat
 		if (val < 0) {
 			siril_debug_print("Unknown column %s found in the catalog, ignoring\n", fields[i]);
 			continue;
-		} 
+		}
 		indexes[i] = val;
 		res |= (1 << val);
 	}
@@ -397,9 +415,35 @@ static void fill_cat_item(cat_item *item, const gchar *input, cat_fields index) 
 		case CAT_FIELD_TYPE:
 			item->type = g_strdup(input);
 			break;
+		case CAT_FIELD_TEFF:
+			item->teff = g_ascii_strtod(input, NULL);
+			break;
+		case CAT_FIELD_GAIASOURCEID:
+			item->gaiasourceid = g_ascii_strtoull(input, NULL, 10);
+			break;
 		case CAT_FIELD_UNDEF: // columns with unknown headers
 		default:
 			break;
+	}
+}
+
+// copies all the data from an item to another item
+void siril_catalogue_copy(siril_catalogue *from, siril_catalogue *to) {
+	if (!from || !to) {
+		siril_debug_print("no catalogue to copy from or to\n");
+		return;
+	}
+	memcpy(to, from, sizeof(siril_catalogue));
+	if (from->header)
+		to->header = g_strdup(from->header);
+	if (from->IAUcode)
+		to->IAUcode = g_strdup(from->IAUcode);
+	if (from->dateobs)
+		to->dateobs = g_date_time_add(from->dateobs, 0); // makes a copy
+	if (from->cat_items) {
+		to->cat_items = calloc(to->nbitems, sizeof(cat_item));
+		for (int i = 0; i < to->nbitems; i++ )
+			siril_catalogue_copy_item(from->cat_items + i, to->cat_items + i);
 	}
 }
 
@@ -456,9 +500,6 @@ void siril_catalog_reset_projection(siril_catalogue *siril_cat) {
 
 // returns a siril_catalogue structure with center
 siril_catalogue *siril_catalog_fill_from_fit(fits *fit, siril_cat_index cat, float limit_mag) {
-#ifndef HAVE_WCSLIB
-	return NULL;
-#endif
 	if (!fit) {
 		return NULL;
 	}
@@ -486,7 +527,7 @@ siril_catalogue *siril_catalog_fill_from_fit(fits *fit, siril_cat_index cat, flo
 }
 
 /* This is the entry point to query the catalogues
- * It will call the necessary functions whether the query 
+ * It will call the necessary functions whether the query
  * is for a local catalogue or an online one
  *
  * Then these raw catalogues can be used in different ways:
@@ -512,21 +553,26 @@ siril_catalogue *siril_catalog_fill_from_fit(fits *fit, siril_cat_index cat, flo
 
 int siril_catalog_conesearch(siril_catalogue *siril_cat) {
 	int nbstars = 0;
-	if (siril_cat->cat_index < CAT_AN_MESSIER) // online
-#ifndef HAVE_NETWORKING
-	siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
-	return 0;
+
+	if (siril_cat->cat_index < CAT_AN_MESSIER) {
+#ifndef HAVE_LIBCURL
+		siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
+		return 0;
+#else
+        nbstars = siril_catalog_get_stars_from_online_catalogues(siril_cat);
+        return nbstars;
 #endif
-		nbstars = siril_catalog_get_stars_from_online_catalogues(siril_cat);
-	else if (siril_cat->cat_index == CAT_LOCAL)
+	} else if (siril_cat->cat_index == CAT_LOCAL) {
 		nbstars = siril_catalog_get_stars_from_local_catalogues(siril_cat);
-	else if (siril_cat->cat_index == CAT_SHOW) { // for the show command
+	} else if (siril_cat->cat_index == CAT_SHOW) { // for the show command
 		nbstars = siril_cat->nbitems;
 	} else {
 		siril_debug_print("trying to conesearch an invalid catalog type\n");
 	}
+
 	return nbstars;
 }
+
 
 // This is the generic parser for all csv catalogues used by Siril
 // (annotation, downloaded, nina lists...)
@@ -557,7 +603,7 @@ int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filena
 	gchar *line;
 	gboolean header_read = FALSE, has_error = FALSE;
 	int *indexes = NULL;
-	int nbcols;
+	int nbcols = 0;
 	GString *header = NULL;
 	while ((line = g_data_input_stream_read_line_utf8(data_input, NULL, NULL, NULL))) {
 		if (line[0] == '\0') {
@@ -668,12 +714,10 @@ gboolean siril_catalog_write_to_output_stream(siril_catalogue *siril_cat, GOutpu
 	gsize n;
 	GError *error = NULL;
 	if (siril_cat->header && !g_output_stream_printf(output_stream, &n, NULL, NULL, "%s\n", siril_cat->header)) {
-		g_warning("%s\n", error->message);
-		g_clear_error(&error);
+		g_error_free(error);
 		return FALSE;
 	}
-	
-	
+
 	// we write the line containing the columns names based on catalog spec
 	GString *columns = NULL;
 	int nbcols = 0;
@@ -698,6 +742,7 @@ gboolean siril_catalog_write_to_output_stream(siril_catalogue *siril_cat, GOutpu
 		g_free(columns_str);
 	} else {
 		siril_debug_print("no columns to write");
+		g_error_free(error);
 		return FALSE;
 	}
 	for (int j = 0; j < siril_cat->nbitems; j++) {
@@ -708,12 +753,13 @@ gboolean siril_catalog_write_to_output_stream(siril_catalogue *siril_cat, GOutpu
 		gchar *newline = g_strjoinv(",", tokens);
 		if (!g_output_stream_printf(output_stream, &n, NULL, &error, "\n%s", newline)) {
 			g_warning("%s\n", error->message);
-			g_clear_error(&error);
+			g_error_free(error);
 			g_free(newline);
 			return FALSE;
 		}
 		g_free(newline);
 	}
+	g_error_free(error);
 	return TRUE;
 }
 
@@ -771,7 +817,7 @@ gboolean siril_catalog_append_item(siril_catalogue *siril_cat, cat_item *item) {
 	siril_catalogue_copy_item(item, &siril_cat->cat_items[siril_cat->nbitems]);
 	siril_cat->nbitems++;
 	// we can't have a catalogue only partially projected so we reset its projection if any
-	if (siril_cat->projected > CAT_PROJ_NONE) 
+	if (siril_cat->projected > CAT_PROJ_NONE)
 		siril_catalog_reset_projection(siril_cat);
 	return TRUE;
 }
@@ -812,15 +858,14 @@ static gboolean can_use_velocity(fits *fit, siril_catalogue *siril_cat) {
 // corrects for object velocity if the flag is true and if necessary data is included
 // in the catalogue (vra and vdec fields)
 int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboolean use_proper_motion, gboolean use_velocity) {
-#ifndef HAVE_WCSLIB
-	return 1
-#endif
 	if (!has_field(siril_cat, RA) || !has_field(siril_cat, DEC)) {
 		siril_debug_print("catalogue %s does not have the necessary columns\n", catalog_to_str(siril_cat->cat_index));
 		return 1;
 	}
 	int nbincluded = 0;
 	double jyears = 0.;
+	double *world = NULL, *x = NULL, *y = NULL;
+	int *status = NULL;
 	double tobs = 0., deltahours = 0.;
 	gboolean use_tcat = FALSE;
 	use_proper_motion = use_proper_motion && can_use_proper_motion(fit, siril_cat);
@@ -849,6 +894,14 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 			}
 		}
 	}
+	world = malloc(2 * siril_cat->nbitems * sizeof(double));
+	x = malloc(siril_cat->nbitems * sizeof(double));
+	y = malloc(siril_cat->nbitems * sizeof(double));
+	if (!world || !x || !y) {
+		PRINT_ALLOC_ERR;
+		goto clean_and_exit;
+	}
+	int ind = 0;
 	for (int i = 0; i < siril_cat->nbitems; i++) {
 		double ra = siril_cat->cat_items[i].ra;
 		double dec = siril_cat->cat_items[i].dec;
@@ -863,21 +916,31 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 			ra += siril_cat->cat_items[i].vra / cos(decrad) * deltahours * 2.77777778e-4;
 			dec += siril_cat->cat_items[i].vdec * deltahours * 2.77777778e-4;
 		}
-		double x, y;
-		int status = wcs2pix(fit, ra, dec, &x, &y);
-		if (!status) {
-			siril_cat->cat_items[i].x = x;
-			siril_cat->cat_items[i].y = y;
+		world[ind++] = ra;
+		world[ind++] = dec;
+	}
+	status = wcs2pix_array(fit, siril_cat->nbitems, world, x, y);
+	if (!status)
+		goto clean_and_exit;
+	for (int i = 0; i < siril_cat->nbitems; i++) {
+		if (!status[i]) {
+			siril_cat->cat_items[i].x = x[i];
+			siril_cat->cat_items[i].y = y[i];
 			siril_cat->cat_items[i].included = TRUE;
 			nbincluded++;
 		} else {
 			siril_cat->cat_items[i].included = FALSE;
 		}
 	}
+clean_and_exit:
 	siril_cat->nbincluded = nbincluded;
+	free(status);
+	free(world);
+	free(x);
+	free(y);
 	siril_cat->projected = CAT_PROJ_WCS;
 	return !(nbincluded > 0);
-} 
+}
 
 // projects passed catalogue wrt to the center ra0 and dec0 coordinates
 // corrects for proper motions if the flag is TRUE and the necessary data is passed
@@ -1192,89 +1255,3 @@ void free_conesearch(conesearch_args *args) {
 	free(args);
 }
 
-// TODO: this version of siril_catalog_project_with_WCS does not currently work
-// for images platesolved with distorsion, due to a bug fixed in wcslib 7.12
-// which causes wcs2pix_array to fail
-// will be reinstated when we update the lib
-// #if 0
-// int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboolean use_proper_motion, gboolean use_velocity) {
-// #ifndef HAVE_WCSLIB
-// 	return 1
-// #endif
-//	if (!has_field(siril_cat, RA) || !has_field(siril_cat, DEC)) {
-// 		siril_debug_print("catalogue %s does not have the necessary columns\n");
-// 		return 1;
-// 	}
-// 	int nbincluded = 0;
-// 	double jyears = 0.;
-// 	double *world = NULL, *x = NULL, *y = NULL;
-// 	int *status = NULL;
-// 	double tobs = 0., deltahours = 0.;
-// 	gboolean use_tcat = FALSE;
-// 	use_proper_motion = use_proper_motion && can_use_proper_motion(fit, siril_cat);
-// 	use_velocity = use_velocity && can_use_velocity(fit, siril_cat);
-// 	if (use_proper_motion) {
-// 		GDateTime *dt = g_date_time_ref(fit->date_obs);
-// 		gdouble jd = date_time_to_Julian(dt);
-// 		g_date_time_unref(dt);
-// 		double J2000 = 2451545.0;
-// 		jyears = (jd - J2000) / 365.25;
-// 	}
-// 	if (use_velocity) {
-// 		GDateTime *dt = g_date_time_ref(fit->date_obs);
-// 		tobs = date_time_to_Julian(dt);
-// 		g_date_time_unref(dt);
-// 		// for IMCCE conesearch, the dateobs is common to the whole catalogue
-// 		// the time of the catalogue will be used instead of individual records
-//		if (!has_field(siril_cat, DATEOBS)) {
-// 			deltahours = (tobs - date_time_to_Julian(siril_cat->dateobs)) * 24.;
-// 			use_tcat = TRUE;
-// 		}
-// 	}
-// 	world = malloc( 2 * siril_cat->nbitems * sizeof(double));
-// 	x = malloc(siril_cat->nbitems * sizeof(double));
-// 	y = malloc(siril_cat->nbitems * sizeof(double));
-// 	if (!world || !x || !y) {
-// 		PRINT_ALLOC_ERR;
-// 		goto clean_and_exit;
-// 	}
-// 	int ind = 0;
-// 	for (int i = 0; i < siril_cat->nbitems; i++) {
-// 		double ra = siril_cat->cat_items[i].ra;
-// 		double dec = siril_cat->cat_items[i].dec;
-// 		double decrad = dec * DEGTORAD;
-// 		if (use_proper_motion) {
-// 			ra += siril_cat->cat_items[i].pmra / cos(decrad) * jyears * 2.77777778e-7;
-// 			dec += siril_cat->cat_items[i].pmdec * jyears * 2.77777778e-7;
-// 		}
-// 		if (use_velocity) {
-// 			if (!use_tcat)
-// 				deltahours = (tobs - siril_cat->cat_items[i].dateobs) * 24.;
-// 			ra += siril_cat->cat_items[i].vra / cos(decrad) * deltahours * 2.77777778e-4;
-// 			dec += siril_cat->cat_items[i].vdec * deltahours * 2.77777778e-4;
-// 		}
-// 		world[ind++] = ra;
-// 		world[ind++] = dec;
-// 	}
-// 	status = wcs2pix_array(fit, siril_cat->nbitems, world, x, y);
-// 	if (!status)
-// 		goto clean_and_exit;
-// 	for (int i = 0; i < siril_cat->nbitems; i++) {
-// 		if (!status[i]) {
-// 			siril_cat->cat_items[i].x = x[i];
-// 			siril_cat->cat_items[i].y = y[i];
-// 			siril_cat->cat_items[i].included = TRUE;
-// 			nbincluded++;
-// 		} else {
-// 			siril_cat->cat_items[i].included = FALSE;
-// 		}
-// 	}
-// clean_and_exit:
-// 	siril_cat->nbincluded = nbincluded;
-// 	free(world);
-// 	free(x);
-// 	free(y);
-// 	siril_cat->projected = CAT_PROJ_WCS;
-// 	return !(nbincluded > 0);
-// }
-// #endif

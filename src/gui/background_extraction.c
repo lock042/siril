@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -101,12 +101,7 @@ gboolean end_background(gpointer p) {
 	struct background_data *args = (struct background_data *)p;
 	stop_processing_thread();
 	if (args) {
-		invalidate_stats_from_fit(args->fit);
 		background_computed = TRUE;
-		if (!args->from_ui) {
-			free_background_sample_list(com.grad_samples);
-			com.grad_samples = NULL;
-		}
 		notify_gfit_modified();
 		gtk_widget_set_sensitive(lookup_widget("background_ok_button"), TRUE);
 		gtk_widget_set_sensitive(lookup_widget("bkg_show_original"), TRUE);

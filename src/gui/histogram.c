@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -360,19 +360,15 @@ static int is_histogram_visible() {
 // sets the channel names of the toggle buttons in the histogram window, based on
 // the number of layers of gfit
 static void set_histo_toggles_names() {
-	gchar *image;
-
 	init_toggles();
 
 	if (fit->naxis == 2) {
 		gtk_widget_set_tooltip_text(GTK_WIDGET(toggles[0]), _("Toggles whether to apply the stretch to the monochrome channel"));
 		GtkWidget *w;
 		if (com.pref.gui.combo_theme == 0) {
-			image = g_build_filename(siril_get_system_data_dir(), "pixmaps", "monochrome_dark.svg", NULL);
-			w = gtk_image_new_from_file(image);
+			w = gtk_image_new_from_resource("/org/siril/ui/pixmaps/monochrome_dark.svg");
 		} else {
-			image = g_build_filename(siril_get_system_data_dir(), "pixmaps", "monochrome.svg", NULL);
-			w = gtk_image_new_from_file(image);
+			w = gtk_image_new_from_resource("/org/siril/ui/pixmaps/monochrome.svg");
 		}
 		gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(toggles[0]), w);
 		gtk_widget_show(w);
@@ -387,9 +383,8 @@ static void set_histo_toggles_names() {
 			gtk_widget_set_visible(GTK_WIDGET(toggles[3]), FALSE);
 
 	} else {
-		image = g_build_filename(siril_get_system_data_dir(), "pixmaps", "r.svg", NULL);
 		gtk_widget_set_tooltip_text(GTK_WIDGET(toggles[0]), _("Red channel"));
-		GtkWidget *w = gtk_image_new_from_file(image);
+		GtkWidget* w = gtk_image_new_from_resource("/org/siril/ui/pixmaps/r.svg");
 		gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(toggles[0]), w);
 		gtk_widget_show(w);
 		gtk_widget_set_sensitive(GTK_WIDGET(toggles[1]), TRUE);
@@ -401,7 +396,6 @@ static void set_histo_toggles_names() {
 			gtk_toggle_tool_button_set_active(toggles[3], TRUE);
 		}
 	}
-	g_free(image);
 }
 
 static double get_histoZoomValueH() {
@@ -1355,18 +1349,14 @@ void setup_ght_dialog() {
 			// Make visible and configure the GHT controls
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("box_ghtcontrols")), TRUE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_button")), TRUE);
-			gchar *image;
 			GtkWidget *w;
 			if (com.pref.gui.combo_theme == 0) {
-				image = g_build_filename(siril_get_system_data_dir(), "pixmaps", "eyedropper_dark.svg", NULL);
-				w = gtk_image_new_from_file(image);
+				w = gtk_image_new_from_resource("/org/siril/ui/pixmaps/eyedropper_dark.svg");
 			} else {
-				image = g_build_filename(siril_get_system_data_dir(), "pixmaps", "eyedropper.svg", NULL);
-				w = gtk_image_new_from_file(image);
+				w = gtk_image_new_from_resource("/org/siril/ui/pixmaps/eyedropper.svg");
 			}
 			gtk_button_set_image(GTK_BUTTON(lookup_widget("eyedropper_button")), w);
 			gtk_widget_show(w);
-			g_free(image);
 			// Set default parameters
 			_D = 0.0f;
 			_B = 0.0f;

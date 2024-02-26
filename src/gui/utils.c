@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -297,4 +297,24 @@ point closest_point_on_line(point in, point p1, point p2) {
 		out.y = y;
 	}
 	return out;
+}
+
+// Add the GtkFileFilter filter_name to the GtkFileChooser widget_name
+// If the widget already obeys the filter then it is not added a second time
+void siril_set_file_filter(const gchar* widget_name, const gchar* filter_name) {
+	GtkFileChooser* chooser = GTK_FILE_CHOOSER(lookup_widget(widget_name));
+	GtkFileFilter* filter = GTK_FILE_FILTER(lookup_gobject(filter_name));
+	GSList* filter_list = gtk_file_chooser_list_filters(chooser);
+	GSList* iterator = filter_list;
+	gboolean add_filter = TRUE;
+	while (iterator) {
+		if (iterator->data == filter) {
+			add_filter = FALSE;
+			break;
+		}
+		iterator++;
+	}
+	g_slist_free(filter_list);
+	if (add_filter)
+		gtk_file_chooser_add_filter(chooser, filter);
 }

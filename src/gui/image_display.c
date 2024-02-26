@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,10 +51,8 @@
 #include "opencv/opencv.h"
 #include "git-version.h"
 
-#ifdef HAVE_WCSLIB
 #include <wcslib.h>
 #include <wcsfix.h>
-#endif
 
 #include "image_display.h"
 
@@ -358,6 +356,7 @@ static void remap_all_vports() {
 		return;
 	}
 
+	lock_display_transform();
 	if (gfit.color_managed) {
 		// Set the transform in case it is missing
 		if (!gui.icc.proofing_transform) {
@@ -383,6 +382,7 @@ static void remap_all_vports() {
 			index[i] = gui.remap_index[i];
 		}
 	}
+	unlock_display_transform();
 
 	gui.icc.profile_changed = FALSE;
 	set_viewer_mode_widgets_sensitive(TRUE);
@@ -400,6 +400,8 @@ static void remap_all_vports() {
 	int norm = (int) get_normalized_value(&gfit);
 	{
 		siril_debug_print((gui.icc.proofing_transform && !identical && (!gui.icc.same_primaries || gui.icc.profile_changed)) ? "Non-identical primaries: doing expensive color transform\n" : "");
+		if (gui.icc.proofing_transform && !identical && (!gui.icc.same_primaries || gui.icc.profile_changed))
+			lock_display_transform();
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) private(y) schedule(static)
 #endif
@@ -425,7 +427,7 @@ static void remap_all_vports() {
 			} else if (norm == UCHAR_MAX) {
 				for (int c = 0 ; c < 3 ; c++) {
 					WORD *line = linebuf[c];
-					WORD *source = src[c];
+					const WORD *source = src[c];
 #pragma omp simd
 					for (x = 0 ; x < gfit.rx ; x++)
 						line[x] = source[src_i + x] << 8;
@@ -435,10 +437,6 @@ static void remap_all_vports() {
 // No omp simd here as memcpy should already be highly optimized
 					memcpy(linebuf[c], src[c] + src_i, gfit.rx * sizeof(WORD));
 			}
-/*			if (gui.icc.proofing_transform && !identical && (!gui.icc.same_primaries || gui.icc.profile_changed)) {
-				cmsDoTransformLineStride(gui.icc.proofing_transform,
-								pixelbuf, pixelbuf, gfit.rx, 1, gfit.rx * 6, gfit.rx * 6, gfit.rx * 2, gfit.rx * 2);
-			}*/
 			if (gfit.type == DATA_USHORT && norm == UCHAR_MAX) {
 				for (int c = 0 ; c < 3 ; c++) {
 					WORD *line = linebuf[c];
@@ -491,6 +489,8 @@ static void remap_all_vports() {
 			free(pixelbuf);
 			free(pixelbuf_byte);
 		}
+		if (gui.icc.proofing_transform && !identical && (!gui.icc.same_primaries || gui.icc.profile_changed))
+			unlock_display_transform();
 	}
 	// flush to ensure all writing to the image was done and redraw the surface
 	for (int vport = 0 ; vport < 3 ; vport++) {
@@ -623,7 +623,7 @@ static int make_index_for_current_display(int vport) {
 			index[i] = UCHAR_MAX;
 		}
 	}
-	if (gui.icc.same_primaries && gui.rendering_mode != STF_DISPLAY)
+	if (gfit.color_managed && gui.icc.same_primaries && gui.rendering_mode != STF_DISPLAY)
 		display_index_transform(index, vport);
 
 	last_pente = slope;
@@ -686,9 +686,7 @@ static void draw_empty_image(const draw_data_t* dd) {
 
 	/* Create pixbuf from siril.svg file */
 	if (siril_pix == NULL) {
-		gchar *image = g_build_filename(siril_get_system_data_dir(), "pixmaps", "siril.svg", NULL);
-		siril_pix = gdk_pixbuf_new_from_file_at_size(image, 256, 256, NULL);
-		g_free(image);
+		siril_pix = gdk_pixbuf_new_from_resource_at_scale("/org/siril/ui/pixmaps/siril.svg", 256, 256, FALSE, NULL);
 	}
 
 	GdkPixbuf *pixbuf = gdk_pixbuf_scale_simple(siril_pix, pix_size, pix_size, GDK_INTERP_BILINEAR);
@@ -1183,13 +1181,15 @@ static void draw_stars(const draw_data_t* dd) {
 
 static void draw_brg_boxes(const draw_data_t* dd) {
 	GSList *list;
+	GdkRGBA gdk_color;
 	for (list = com.grad_samples; list; list = list->next) {
 		background_sample *sample = (background_sample *)list->data;
 		if (sample && background_sample_is_valid(sample)) {
 			int radius = (int) (background_sample_get_size(sample) / 2);
 			point position = background_sample_get_position(sample);
 			cairo_set_line_width(dd->cr, 1.5 / dd->zoom);
-			cairo_set_source_rgba(dd->cr, 1.0,  0.2, 0.3, 1.0);
+			gdk_rgba_parse(&gdk_color, com.pref.gui.config_colors.color_bkg_samples);
+			cairo_set_source_rgba(dd->cr, gdk_color.red, gdk_color.green, gdk_color.blue, gdk_color.alpha);
 			cairo_rectangle(dd->cr, position.x - radius - 1, position.y - radius,
 					radius * 2, radius * 2);
 			cairo_stroke(dd->cr);
@@ -1197,7 +1197,7 @@ static void draw_brg_boxes(const draw_data_t* dd) {
 	}
 }
 
-#ifdef HAVE_WCSLIB
+
 static void draw_compass(const draw_data_t* dd) {
 	int pos = com.pref.gui.position_compass;
 	if (!pos) return; // User chose None
@@ -1207,14 +1207,14 @@ static void draw_compass(const draw_data_t* dd) {
 	double ra0, dec0;
 	double xN, yN, xE, yE;
 
-	double xpos = -1 + (fit->rx + 1) / 2.0;
-	double ypos = -1 + (fit->ry + 1) / 2.0;
+	double xpos = fit->rx * 0.5;
+	double ypos = fit->ry * 0.5;
 	pix2wcs(fit, xpos, ypos, &ra0, &dec0);
 	if (ra0 == -1) return; // checks implicitly that wcslib member exists
-	double len = (double) fit->ry / 20.;
+	if (90. - fabs(dec0) < 2.78e-3) return;// center is less than 10"off from a pole
+	double len = (double)fit->ry / 20.;
 	wcs2pix(fit, ra0, dec0 + 0.1, &xN, &yN);
 	wcs2pix(fit, ra0 + 0.1, dec0, &xE, &yE);
-	if (fabs(dec0 - 90.) < len * get_wcs_image_resolution(fit)) return; //If within one arrow length of the North Pole, do not plot
 	double angleN = -atan2(yN - ypos, xN - xpos);
 	double angleE = -atan2(yE - ypos, xE - xpos);
 
@@ -1306,7 +1306,7 @@ static gboolean get_line_intersection(double p0_x, double p0_y, double p1_x,
 	return FALSE; // No collision
 }
 
-static gint border_compare(label_point *a, label_point *b) {
+static gint border_compare(const label_point *a, const label_point *b) {
 	if (a->border > b->border) return 1;
 	if (a->border < b->border) return -1;
 	return 0;
@@ -1314,11 +1314,9 @@ static gint border_compare(label_point *a, label_point *b) {
 
 static double ra_values[] = { 45, 30, 15, 10, 7.5, 5, 3.75, 2.5, 1.5, 1.25, 1, 3. / 4., 1.
 		/ 2., 1. / 4., 1. / 6., 1. / 8., 1. / 12., 1. / 16., 1. / 24., 1. / 40., 1. / 48. };
-#endif
 
 
 static void draw_wcs_grid(const draw_data_t* dd) {
-#ifdef HAVE_WCSLIB
 	if (!gui.show_wcs_grid) return;
 	fits *fit = &gfit;
 	if (!has_wcs(fit)) return;
@@ -1341,11 +1339,11 @@ static void draw_wcs_grid(const draw_data_t* dd) {
 	if (ra0 == -1.) return;
 	dec0 *= (M_PI / 180.0);
 	ra0  *= (M_PI / 180.0);
-	double range = fit->wcsdata.cdelt[1] * sqrt(pow((width / 2.0), 2) + pow((height / 2.0), 2)); // range in degrees, FROM CENTER
+	double range = get_wcs_image_resolution(fit) * sqrt(pow((width / 2.0), 2) + pow((height / 2.0), 2)); // range in degrees, FROM CENTER
 	double step;
 
 	/* Compute borders in pixel for tags*/
-	double pixbox[5][2] = { { 0., 0. }, { width, 0. }, { width, height }, { 0., height }, { 0., 0. } };
+	const double pixbox[5][2] = { { 0., 0. }, { width, 0. }, { width, height }, { 0., height }, { 0., 0. } };
 	const double pixval[4] = { 0., width, height, 0. }; // bottom, right, top, left with ref bottom left
 	int pixtype[4] = { 1, 0, 1, 0 }; // y, x, y, x
 	int polesign = has_pole(fit);
@@ -1537,7 +1535,46 @@ static void draw_wcs_grid(const draw_data_t* dd) {
 	g_slist_free_full(existingtags, (GDestroyNotify) g_free);
 
 	draw_compass(dd);
-#endif
+}
+
+static void draw_wcs_disto(const draw_data_t* dd) {
+	if (!gui.show_wcs_disto) return;
+	fits *fit = &gfit;
+	if (!has_wcs(fit) || !fit->wcslib->lin.dispre) return; // no platesolve or no distortions
+	cairo_t *cr = dd->cr;
+	cairo_set_dash(cr, NULL, 0, 0);
+	cairo_set_line_width(cr, 3. / dd->zoom);
+	cairo_set_source_rgb(cr, 0.8, 0.0, 0.0);
+
+	int nbpoints = 20;
+	double radius = (dd->zoom < 1. )?  3. : 3. / dd->zoom;
+
+	double paceX = (double)fit->rx / (double)(nbpoints - 1);
+	double paceY = (double)fit->ry / (double)(nbpoints - 1);
+	double currX = 0.5; // coords in fits/wcs conventions start at (0.5, 0.5) for the bottom left corner
+	double currY = 0.5;
+	for (int i = 0; i < nbpoints; i++) {
+		currY = 0.5;
+		for (int j = 0; j < nbpoints; j++) {
+			double rawcrd[2] = { currX, currY };
+			double discrd[2] = {0., 0.};
+			int status = disp2x(fit->wcslib->lin.dispre, rawcrd, discrd);
+			if (!status) {
+				double disX = (discrd[0] - rawcrd[0]) * 5. +  rawcrd[0];
+				double disY = (discrd[1] - rawcrd[1]) * 5. +  rawcrd[1];
+				double startX, startY, endX, endY;
+				fits_to_display(currX, currY, &startX, &startY, fit->ry);
+				fits_to_display(disX, disY, &endX, &endY, fit->ry);
+				cairo_arc(cr, startX, startY, radius,  0., 2. * M_PI);
+				cairo_fill(cr);
+				cairo_move_to(cr, startX, startY);
+				cairo_line_to(cr, endX, endY);
+				cairo_stroke(cr);
+			}
+			currY += paceY;
+		}
+		currX += paceX;
+	}
 }
 
 static gdouble x_circle(gdouble x, gdouble radius, gdouble angle) {
@@ -1571,25 +1608,30 @@ static void draw_annotates(const draw_data_t* dd) {
 		gboolean revert = FALSE;
 		double angle = ANGLE_TOP;
 		double addoffset = 0.;
+		GdkRGBA gdk_color;
 
 		switch (catalog) {
 		case CAT_AN_USER_DSO:
-			cairo_set_source_rgba(cr, 1.0, 0.5, 0.0, 0.9);
+			gdk_rgba_parse(&gdk_color, com.pref.gui.config_colors.color_dso_annotations);
+			cairo_set_source_rgba(cr, gdk_color.red, gdk_color.green, gdk_color.blue, gdk_color.alpha);
 			break;
 		case CAT_AN_USER_SSO:
-			cairo_set_source_rgba(cr, 1.0, 1.0, 0.0, 0.9);
+			gdk_rgba_parse(&gdk_color, com.pref.gui.config_colors.color_sso_annotations);
+			cairo_set_source_rgba(cr, gdk_color.red, gdk_color.green, gdk_color.blue, gdk_color.alpha);
 			break;
 		case CAT_AN_USER_TEMP:
-			cairo_set_source_rgba(cr, 1.0, 0.0, 0.0, 0.9); // will need to be changed that anyway
+			gdk_rgba_parse(&gdk_color, com.pref.gui.config_colors.color_tmp_annotations);
+			cairo_set_source_rgba(cr, gdk_color.red, gdk_color.green, gdk_color.blue, gdk_color.alpha);
 			revert = TRUE;
 			angle = ANGLE_BOT;
 			break;
 		default:
 		case 0:
+			gdk_rgba_parse(&gdk_color, com.pref.gui.config_colors.color_std_annotations);
 			if (dd->neg_view) {
-				cairo_set_source_rgba(cr, 0.5, 0.0, 0.7, 0.9);
+				cairo_set_source_rgba(cr, 1.0 - gdk_color.red, 1.0 - gdk_color.green, 1.0 - gdk_color.blue, gdk_color.alpha);
 			} else {
-				cairo_set_source_rgba(cr, 0.5, 1.0, 0.3, 0.9);
+				cairo_set_source_rgba(cr, gdk_color.red, gdk_color.green, gdk_color.blue, gdk_color.alpha);
 			}
 			break;
 		}
@@ -1894,7 +1936,7 @@ void copy_roi_into_gfit() {
 #endif
 		for (uint32_t c = 0 ; c < gui.roi.fit.naxes[2] ; c++) {
 			for (uint32_t y = 0; y < gui.roi.selection.h ; y++) {
-				float *rowindex = gui.roi.fit.fdata + (y * gui.roi.fit.rx) + (c * npixels_roi);
+				const float *rowindex = gui.roi.fit.fdata + (y * gui.roi.fit.rx) + (c * npixels_roi);
 				float *destindex = gfit.fdata + (c * npixels_gfit) + ((gfit.ry - gui.roi.selection.y - y) * gfit.rx) + gui.roi.selection.x;
 				memcpy(destindex, rowindex, gui.roi.selection.w * sizeof(float));
 			}
@@ -1905,7 +1947,7 @@ void copy_roi_into_gfit() {
 #endif
 		for (uint32_t c = 0 ; c < gui.roi.fit.naxes[2] ; c++) {
 			for (uint32_t y = 0; y < gui.roi.selection.h ; y++) {
-				WORD *rowindex = gui.roi.fit.data + (y * gui.roi.fit.rx) + (c * npixels_roi);
+				const WORD *rowindex = gui.roi.fit.data + (y * gui.roi.fit.rx) + (c * npixels_roi);
 				WORD *destindex = gfit.data + (npixels_gfit * c) + ((gfit.ry - gui.roi.selection.y - y) * gfit.rx) + gui.roi.selection.x;
 				memcpy(destindex, rowindex, gui.roi.selection.w * sizeof(WORD));
 			}
@@ -2035,6 +2077,9 @@ gboolean redraw_drawingarea(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	/* celestial grid */
 	draw_wcs_grid(&dd);
 
+	/* distortions */
+	draw_wcs_disto(&dd);
+
 	/* detected objects */
 	draw_annotates(&dd);
 
@@ -2091,6 +2136,10 @@ void add_image_and_label_to_cairo(cairo_t *cr, int vport) {
 
 	/* RGB or gray images */
 	draw_main_image(&dd);
+	/* detected stars and highlight the selected star */
+	g_mutex_lock(&com.mutex);
+	draw_stars(&dd);
+	g_mutex_unlock(&com.mutex);
 	/* wcs_grid */
 	draw_wcs_grid(&dd);
 	/* detected objects */

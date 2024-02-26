@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,57 +26,41 @@
 
 #define CSS_FILENAME "siril.css"
 
-static gchar *get_buffer_from_css_file(gchar *css) {
-	GFile *file = g_file_new_for_path(css);
-	GError *error = NULL;
-	gchar *str;
-
-	if (!g_file_load_contents(file, NULL, &str, NULL, NULL, &error)) {
-		printf("Error loading %s: %s\n", g_file_peek_path(file), error->message);
-		g_clear_error(&error);
-	}
-	g_object_unref(file);
-	return str;
-}
-
 /**
  * Loads the css sheet
  */
 void load_css_style_sheet () {
-	gchar *CSSFile = g_build_filename(siril_get_system_data_dir(), CSS_FILENAME, NULL);
-	if (!g_file_test (CSSFile, G_FILE_TEST_EXISTS)) {
-		g_error (_("Unable to load CSS style sheet file: %s. Please reinstall Siril\n"), CSSFile);
+	GError *error;
+	GBytes *css_buffer = g_resource_lookup_data(com.resource, "/org/siril/ui/siril.css", G_RESOURCE_LOOKUP_FLAGS_NONE , &error);
+	if (css_buffer) {
+		/* make sure that scale is ok */
+		if (com.pref.gui.font_scale < 70.0) com.pref.gui.font_scale = 100;
+
+		GString *string = g_string_new_len(NULL, 0);
+		string = g_string_append_len(string, g_bytes_get_data(css_buffer, NULL), g_bytes_get_size(css_buffer));
+
+		gchar *first_line = g_strdup_printf("* { font-size: %lfem; -gtk-icon-style: %s; }",
+				1.0 + (com.pref.gui.font_scale - 100.0) / 1000.0, com.pref.gui.icon_symbolic ? "symbolic" : "regular");
+
+		g_string_replace(string, "* { font-size: 1.0em; -gtk-icon-style: regular; }", first_line, 1);
+		gchar *updated_css = g_string_free(string, FALSE);
+
+		GtkCssProvider *css_provider = gtk_css_provider_new();
+		GdkDisplay *display = gdk_display_get_default();
+		GdkScreen *screen = gdk_display_get_default_screen(display);
+		gtk_style_context_add_provider_for_screen(screen,
+				GTK_STYLE_PROVIDER(css_provider),
+				GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+
+		gtk_css_provider_load_from_data(css_provider, updated_css, -1, NULL);
+
+		siril_debug_print("Successfully loaded /org/siril/ui/siril.css\n");
+		g_free(first_line);
+		g_bytes_unref(css_buffer);
+		g_free(updated_css);
+		g_object_unref(css_provider);
+	} else {
+		g_print(_("Failed to load CSS sheet: %s.\n"), error->message);
 	}
-	else {
-		gchar *css_buffer = get_buffer_from_css_file(CSSFile);
-		if (css_buffer) {
-			/* make sure that scale is ok */
-			if (com.pref.gui.font_scale < 70.0) com.pref.gui.font_scale = 100;
-
-			GString *string = g_string_new(css_buffer);
-
-			gchar *first_line = g_strdup_printf("* { font-size: %lfem; -gtk-icon-style: %s; }",
-					1.0 + (com.pref.gui.font_scale - 100.0) / 1000.0, com.pref.gui.icon_symbolic ? "symbolic" : "regular");
-
-			g_string_replace(string, "* { font-size: 1.0em; -gtk-icon-style: regular; }", first_line, 1);
-			gchar *updated_css = g_string_free(string, FALSE);
-
-			GtkCssProvider *css_provider = gtk_css_provider_new();
-			GdkDisplay *display = gdk_display_get_default();
-			GdkScreen *screen = gdk_display_get_default_screen(display);
-			gtk_style_context_add_provider_for_screen(screen,
-					GTK_STYLE_PROVIDER(css_provider),
-					GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-
-			gtk_css_provider_load_from_data(css_provider, updated_css, -1, NULL);
-
-			g_print(_("Successfully loaded '%s'\n"), CSSFile);
-			g_free(first_line);
-			g_free(css_buffer);
-			g_free(updated_css);
-			g_object_unref(css_provider);
-		}
-	}
-	g_free(CSSFile);
 }
 

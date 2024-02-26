@@ -43,9 +43,7 @@ struct astrometry_data {
 	int rx_solver;		// width of the image being solved (accounting for downscale if any)
 	int ry_solver;		// height of the image being solved (accounting for downscale if any)
 	double scalefactor;	// scale factor accounting for downscale if any
-
-	gboolean for_photometry_cc;	// proceeed to PCC after a successful plate solve
-	struct photometric_cc_data *pcc;// PCC configuration
+	int trans_order; // order of the polynomial fit (if > 1, it includes distortions)
 
 	/* program-processed input, by process_plate_solver_input() */
 	double scale;		// scale (resolution) in arcsec per pixel
@@ -66,14 +64,13 @@ struct astrometry_data {
 };
 
 void open_astrometry_dialog();
+void close_astrometry_dialog();
 void process_plate_solver_input(struct astrometry_data *args);
 int fill_plate_solver_structure_from_GUI(struct astrometry_data *args);
-void wcs_cd_to_pc(double cd[][2], double pc[][2], double cdelt[2]);
 void wcs_pc_to_cd(double pc[][2], const double cdelt[2], double cd[][2]);
 gpointer plate_solver(gpointer p);
 double compute_mag_limit_from_fov(double fov_degrees);
 gboolean confirm_delete_wcs_keywords(fits *fit);
-void flip_bottom_up_astrometry_data(fits *fit);
 void reframe_astrometry_data(fits *fit, Homography H);
 
 void set_focal_and_pixel_pitch();
@@ -81,6 +78,7 @@ void set_focal_and_pixel_pitch();
 void start_sequence_astrometry(sequence *seq, struct astrometry_data *args);
 
 gboolean asnet_is_available();
+void reset_asnet_version();
 
 /* for the GUI */
 double get_resolution(double focal, double pixel);
@@ -98,6 +96,5 @@ void update_coords();
 gboolean end_plate_solver(gpointer p);
 
 void on_GtkButton_IPS_metadata_clicked(GtkButton *button, gpointer user_data);
-void get_mag_settings_from_GUI(limit_mag_mode *mag_mode, double *magnitude_arg);
 
 #endif /* SRC_ALGOS_ASTROMETRY_SOLVER_H_ */

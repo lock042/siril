@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@
 #  include <config.h>
 #endif
 
+#include <gsl/gsl_errno.h>
 #include <gtk/gtk.h>
 #include <stdio.h>
 #include <string.h>
@@ -40,6 +41,7 @@
 #include <windows.h>
 #endif
 
+#include "siril_resource.h"
 #include "git-version.h"
 #include "core/siril.h"
 #include "core/icc_profile.h"
@@ -57,7 +59,7 @@
 #include "core/OS_utils.h"
 #include "algos/star_finder.h"
 #include "io/sequence.h"
-#include "io/gitscripts.h"
+#include "io/siril_git.h"
 #include "io/conversion.h"
 #include "io/single_image.h"
 #include "gui/ui_files.h"
@@ -126,38 +128,33 @@ static GActionEntry app_entries[] = {
 	{ "about", about_action_activate }
 };
 
-
 void load_ui_files() {
 	GError *err = NULL;
-	gchar* uifile;
 	gboolean retval;
 
 	/* try to load the first UI file, from the sources defined above */
-	uifile = g_build_filename(siril_get_system_data_dir(), ui_files[0], NULL);
-	gui.builder = gtk_builder_new_from_file(uifile);
+	gui.builder = gtk_builder_new_from_resource(ui_files[0]);
 	if (!gui.builder) {
 		g_error(_("%s was not found or contains errors, "
-					"cannot render GUI.\n Exiting.\n"), uifile);
+					"cannot render GUI.\n Exiting.\n"), ui_files[0]);
 		exit(EXIT_FAILURE);
 	}
-	siril_debug_print("Successfully loaded '%s'\n", uifile);
+	siril_debug_print("Successfully loaded '%s'\n", ui_files[0]);
 
 	uint32_t i = 1;
 	while (*ui_files[i]) {
-		uifile = g_build_filename(siril_get_system_data_dir(), ui_files[i], NULL);
 
 		/* try to load each successive UI file, from the sources defined above */
 		// TODO: the following gtk_builder_add_from_file call is the source
 		// of libfontconfig memory leaks.
-		retval = gtk_builder_add_from_file(gui.builder, uifile, &err);
+		retval = gtk_builder_add_from_resource(gui.builder, ui_files[i], &err);
 		if (!retval) {
 			g_error(_("%s was not found or contains errors, "
-						"cannot render GUI:\n%s\n Exiting.\n"), uifile, err->message);
+						"cannot render GUI:\n%s\n Exiting.\n"), ui_files[i], err->message);
 			g_clear_error(&err);
 			exit(EXIT_FAILURE);
 		}
-		siril_debug_print("Successfully loaded '%s'\n", uifile);
-		g_free(uifile);
+		siril_debug_print("Successfully loaded '%s'\n", ui_files[i]);
 		i++;
 	}
 }
@@ -172,6 +169,7 @@ void parallel_loop(void *(*work)(char *), char *jobdata, size_t elsize, int njob
 #endif
 
 static void global_initialization() {
+	gsl_set_error_handler_off();
 	com.star_is_seqdata = FALSE;
 	com.stars = NULL;
 	com.tilt = NULL;
@@ -180,6 +178,7 @@ static void global_initialization() {
 	com.kernel = NULL;
 	com.kernelsize = 0;
 	com.kernelchannels = 0;
+	memset(&com.spcc_data, 0, sizeof(struct spcc_data_store));
 #ifdef _WIN32
 	com.childhandle = NULL;
 #else
@@ -298,6 +297,12 @@ static void siril_app_activate(GApplication *application) {
 		auto_update_gitscripts(com.pref.auto_script_update);
 	else
 		siril_log_message(_("Online scripts repository not enabled. Not fetching or updating siril-scripts...\n"));
+	if (com.pref.spcc.use_spcc_repository)
+		auto_update_gitspcc(com.pref.spcc.auto_spcc_update);
+	else
+		siril_log_message(_("Online SPCC-database repository not enabled. Not fetching or updating siril-spcc-database...\n"));
+#else
+	siril_log_message(_("Siril was compiled without libgit2 support. Remote repositories cannot be automatically fetched...\n"));
 #endif
 
 	if (com.headless) {
@@ -333,6 +338,8 @@ static void siril_app_activate(GApplication *application) {
 		}
 	}
 	if (!com.headless) {
+		/* Load GResource */
+		com.resource = siril_resource_get_resource();
 		/* Load preferred theme */
 		load_prefered_theme(com.pref.gui.combo_theme);
 		/* Load the css sheet for general style */
@@ -343,7 +350,7 @@ static void siril_app_activate(GApplication *application) {
 		gtk_window_set_application(GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window"))), GTK_APPLICATION(application));
 		/* Load state of the main windows (position and maximized) */
 		load_main_window_state();
-#if defined(HAVE_JSON_GLIB) && defined(HAVE_NETWORKING)
+#if defined(HAVE_LIBCURL)
 		/* Check for update */
 		if (com.pref.check_update) {
 			siril_check_updates(FALSE);

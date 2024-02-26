@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -195,7 +195,7 @@ int unsharp(fits *fit, double sigma, double amount, gboolean verbose) {
  * sigma value, and when it is given, the entropy will only be computed for
  * pixels with values above background + 1 * sigma. It must be NULL otherwise.
  */
-float entropy(fits *fit, int layer, rectangle *area, imstats *opt_stats) {
+float entropy(fits *fit, int layer, rectangle *area, const imstats *opt_stats) {
 	float e = 0.f;
 	double threshold = 0.0;
 	gsl_histogram *histo;
@@ -316,7 +316,7 @@ int visu(fits *fit, int low, int high) {
 }
 
 /* fill an image or selection with the value 'level' */
-int fill(fits *fit, int level, rectangle *arearg) {
+int fill(fits *fit, int level, const rectangle *arearg) {
 	rectangle area;
 
 	if (arearg) {

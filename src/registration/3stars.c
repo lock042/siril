@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -183,6 +183,10 @@ void on_select_star_button_clicked(GtkButton *button, gpointer user_data) {
 
 	int index;
 	int layer = get_registration_layer(&com.seq);
+	if (layer < 0) {
+		fprintf(stderr, "invalid registration layer\n");
+		return;
+	}
 	add_star(&gfit, layer, &index);
 	if (index == -1) {
 		update_label(_("No star found, make another selection"));

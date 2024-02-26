@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -124,17 +124,13 @@ void full_stats_invalidation_from_fit(fits *fit) {
         fprintf(stderr, "ERROR: calling undefined function full_stats_invalidation_from_fit\n");
 }
 
-gboolean load_WCS_from_file(fits* fit) {
-        fprintf(stderr, "ERROR: calling undefined function load_WCS_from_file\n");
+gboolean load_WCS_from_fits(fits* fit) {
+        fprintf(stderr, "ERROR: calling undefined function load_WCS_from_fits\n");
 	return FALSE;
 }
 
-gboolean load_WCS_from_memory(fits* fit) {
-        fprintf(stderr, "ERROR: calling undefined function load_WCS_from_memory\n");
-	return FALSE;
-}
 
-void free_wcs(fits *fit, gboolean keep_RADEC) {
+void free_wcs(fits *fit) {
         fprintf(stderr, "ERROR: calling undefined function free_wcs\n");
 }
 
@@ -166,9 +162,6 @@ void gui_log_message(const char* msg, const char* color) {
         fprintf(stderr, "ERROR: calling undefined function gui_log_message\n");
 }
 
-void wcs_cd_to_pc(double cd[2][2], double pc[2][2], double cdelt[2]) {
-        fprintf(stderr, "ERROR: calling undefined function wcs_cd_to_pc\n");
-}
 
 void wcs_pc_to_cd(double pc[2][2], double cdelt[2], double cd[2][2]) {
         fprintf(stderr, "ERROR: calling undefined function wcs_pc_to_cd\n");

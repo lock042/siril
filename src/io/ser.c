@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -410,7 +410,7 @@ static int get_SER_Bayer_Pattern(ser_color pattern) {
 /* once a buffer (data) has been acquired from the file, with frame_size pixels
  * read in it, depending on ser_file's endianess and pixel depth, data is
  * reorganized to match Siril's data format . */
-static void ser_manage_endianess_and_depth(struct ser_struct *ser_file,
+static void ser_manage_endianess_and_depth(const struct ser_struct *ser_file,
 		WORD *data, gint64 frame_size) {
 	int i;
 	if (ser_file->byte_pixel_depth == SER_PIXEL_DEPTH_8) {
@@ -455,7 +455,7 @@ static int ser_alloc_ts(struct ser_struct *ser_file, int frame_no) {
  * Public functions
  */
 
-gboolean ser_is_cfa(struct ser_struct *ser_file) {
+gboolean ser_is_cfa(const struct ser_struct *ser_file) {
 	return ser_file && (ser_file->color_id == SER_BAYER_RGGB ||
 			ser_file->color_id == SER_BAYER_GRBG ||
 			ser_file->color_id == SER_BAYER_GBRG ||
@@ -571,7 +571,7 @@ int ser_write_and_close(struct ser_struct *ser_file) {
 /* ser_file must be allocated and initialised with ser_init_struct()
  * the file is created with no image size, the first image added will set it. */
 int ser_create_file(const char *filename, struct ser_struct *ser_file,
-		gboolean overwrite, struct ser_struct *copy_from) {
+		gboolean overwrite, const struct ser_struct *copy_from) {
 	if (overwrite)
 		if (g_unlink(filename))
 			siril_debug_print("g_unlink() failed\n");
@@ -702,7 +702,7 @@ void ser_init_struct(struct ser_struct *ser_file) {
 	memset(ser_file, 0, sizeof(struct ser_struct));
 }
 
-int ser_metadata_as_fits(struct ser_struct *ser_file, fits *fit) {
+int ser_metadata_as_fits(const struct ser_struct *ser_file, fits *fit) {
 	ser_color type_ser = ser_file->color_id;
 	if (!com.pref.debayer.open_debayer && type_ser != SER_RGB && type_ser != SER_BGR) {
 		type_ser = SER_MONO;
@@ -926,7 +926,7 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 /* multi-type cropping, works in constant space if needed */
 #define crop_area_from_lines(BUFFER_TYPE) { \
 	int x, y, src, dst = 0; \
-	BUFFER_TYPE *inbuf = (BUFFER_TYPE *)read_buffer; \
+	const BUFFER_TYPE *inbuf = (BUFFER_TYPE *)read_buffer; \
 	BUFFER_TYPE *out = (BUFFER_TYPE *)outbuf; \
 	for (y = 0; y < area->h; y++) { \
 		src = y * ser_file->image_width + area->x; \
@@ -938,7 +938,7 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 /* multi-type RGB reordering, works in constant space if needed */
 #define crop_area_from_color_lines(BUFFER_TYPE) { \
 	int x, y, src, dst = 0; \
-	BUFFER_TYPE *inbuf = (BUFFER_TYPE *)read_buffer; \
+	const BUFFER_TYPE *inbuf = (BUFFER_TYPE *)read_buffer; \
 	BUFFER_TYPE *out = (BUFFER_TYPE *)outbuf; \
 	int color_offset; \
 	if (ser_file->color_id == SER_BGR) { \
@@ -1265,10 +1265,7 @@ static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *
 		}
 	}
 
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-	ser_file->frame_count++;
+	g_atomic_int_inc(&ser_file->frame_count);
 
 	if (fit->date_obs && !ser_alloc_ts(ser_file, frame_no)) {
 		guint64 utc;
@@ -1282,7 +1279,7 @@ free_and_quit:
 	return retval;
 }
 
-gint64 ser_compute_file_size(struct ser_struct *ser_file, int nb_frames) {
+gint64 ser_compute_file_size(const struct ser_struct *ser_file, int nb_frames) {
 	gint64 frame_size, size = ser_file->filesize;
 
 	if (nb_frames != ser_file->frame_count) {
@@ -1292,7 +1289,7 @@ gint64 ser_compute_file_size(struct ser_struct *ser_file, int nb_frames) {
 	return size;
 }
 
-int import_metadata_from_serfile(struct ser_struct *ser_file, fits *to) {
+int import_metadata_from_serfile(const struct ser_struct *ser_file, fits *to) {
 	strncpy(to->instrume, ser_file->instrument, FLEN_VALUE - 1);
 	strncpy(to->observer, ser_file->observer, FLEN_VALUE - 1);
 	strncpy(to->telescop, ser_file->telescope, FLEN_VALUE - 1);
@@ -1312,7 +1309,7 @@ static GdkPixbufDestroyNotify free_preview_data(guchar *pixels, gpointer data) {
  * @param filename
  * @return a GdkPixbuf containing the preview or NULL
  */
-GdkPixbuf* get_thumbnail_from_ser(char *filename, gchar **descr) {
+GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
 	GdkPixbuf *pixbuf = NULL;
 	int MAX_SIZE = com.pref.gui.thumbnail_size;
 	gchar *description = NULL;

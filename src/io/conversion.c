@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -127,11 +127,15 @@ void list_format_available() {
 #ifdef HAVE_LIBJPEG
 	puts("JPEG\t(*.jpg, *.jpeg)");
 #endif
+#ifdef HAVE_LIBJXL
+	puts("JPEG XL\t(*.jxl)");
+#endif
 #ifdef HAVE_LIBPNG
 	puts("PNG\t(*.png)");
 #endif
 #ifdef HAVE_LIBHEIF
 	puts("HEIF\t(*.heic, *.heif)");
+	puts("AVIF\t(*.avif)");
 #endif
 }
 
@@ -230,6 +234,13 @@ gchar *initialize_converters() {
 	supported_extensions[count_ext++] = ".jpeg";
 #endif
 
+#ifdef HAVE_LIBJXL
+	supported_filetypes |= TYPEJXL;
+	string = g_string_append(string, ", ");
+	string = g_string_append(string, _("JPEG XL images"));
+	supported_extensions[count_ext++] = ".jxl";
+#endif
+
 #ifdef HAVE_LIBPNG
 	supported_filetypes |= TYPEPNG;
 	string = g_string_append(string, ", ");
@@ -239,10 +250,12 @@ gchar *initialize_converters() {
 
 #ifdef HAVE_LIBHEIF
 	supported_filetypes |= TYPEHEIF;
+	supported_filetypes |= TYPEAVIF;
 	string = g_string_append(string, ", ");
-	string = g_string_append(string, _("HEIF images"));
+	string = g_string_append(string, _("HEIF images, AVIF images"));
 	supported_extensions[count_ext++] = ".heic";
 	supported_extensions[count_ext++] = ".heif";
+	supported_extensions[count_ext++] = ".avif";
 #endif
 	supported_extensions[count_ext++] = NULL;		// NULL-terminated array
 
@@ -283,9 +296,15 @@ image_type get_type_for_extension(const char *extension) {
 	} else if ((supported_filetypes & TYPEJPG) &&
 			(!g_ascii_strcasecmp(extension, "jpg") || !g_ascii_strcasecmp(extension, "jpeg"))) {
 		return TYPEJPG;
+	} else if ((supported_filetypes & TYPEJXL) &&
+			(!g_ascii_strcasecmp(extension, "jxl"))) {
+		return TYPEJXL;
 	} else if ((supported_filetypes & TYPEHEIF) &&
 			(!g_ascii_strcasecmp(extension, "heic") || !g_ascii_strcasecmp(extension, "heif"))) {
 		return TYPEHEIF;
+	} else if ((supported_filetypes & TYPEAVIF) &&
+			(!g_ascii_strcasecmp(extension, "avif"))) {
+		return TYPEAVIF;
 	} else if ((supported_filetypes & TYPETIFF) &&
 			(!g_ascii_strcasecmp(extension, "tif") || !g_ascii_strcasecmp(extension, "tiff"))) {
 		return TYPETIFF;
@@ -350,8 +369,14 @@ int any_to_fits(image_type imagetype, const char *source, fits *dest,
 			retval = (readjpg(source, dest) < 0);
 			break;
 #endif
+#ifdef HAVE_LIBJXL
+		case TYPEJXL:
+			retval = (readjxl(source, dest) < 0);
+			break;
+#endif
 #ifdef HAVE_LIBHEIF
 		case TYPEHEIF:
+		case TYPEAVIF:
 			/* need to retrieve all return values */
 			retval = readheif(source, dest, interactive);
 			break;
@@ -540,7 +565,7 @@ typedef struct {
 static void pool_worker(gpointer data, gpointer user_data);
 static void open_next_input_seq(convert_status *conv);
 static seqread_status open_next_input_sequence(const char *src_filename, convert_status *convert, gboolean test_only);
-static seqwrite_status open_next_output_seq(struct _convert_data *args, convert_status *conv);
+static seqwrite_status open_next_output_seq(const struct _convert_data *args, convert_status *conv);
 static seqread_status get_next_read_details(convert_status *conv, struct reader_data *reader);
 static seqwrite_status get_next_write_details(struct _convert_data *args, convert_status *conv,
 		struct writer_data *writer, gboolean end_of_input_seq, gboolean last_file_and_image);
@@ -1141,7 +1166,7 @@ static seqwrite_status get_next_write_details(struct _convert_data *args, conver
 	return GOT_WRITE_ERROR;
 }
 
-static seqwrite_status open_next_output_seq(struct _convert_data *args, convert_status *conv) {
+static seqwrite_status open_next_output_seq(const struct _convert_data *args, convert_status *conv) {
 	if (args->multiple_output) {
 		if (args->output_type == SEQ_SER) {
 			if (conv->next_file != conv->args->total) {

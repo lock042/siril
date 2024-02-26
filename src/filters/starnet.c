@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -198,6 +198,7 @@ starnet_version starnet_executablecheck(gchar* executable) {
 	if (retval2) {
 		retval = NIL;
 		g_free(dir);
+		g_free(v1dir);
 		g_free(currentdir);
 		return retval;
 	}
@@ -217,6 +218,7 @@ starnet_version starnet_executablecheck(gchar* executable) {
 	if (error != NULL) {
 		siril_log_color_message(_("Spawning starnet failed during version check: %s\n"), "red", error->message);
 		g_free(versionarg);
+		g_free(v1dir);
 		return NIL;
 	}
 

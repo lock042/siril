@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -233,7 +233,8 @@ int register_shift_dft(struct registration_args *args) {
 	fftwf_plan p, q;
 	int ret;
 	int abort = 0;
-	float nb_frames, cur_nb;
+	float nb_frames;
+	int cur_nb = 0;
 	int ref_image;
 	regdata *current_regdata;
 	double q_max = 0, q_min = DBL_MAX;
@@ -347,8 +348,6 @@ int register_shift_dft(struct registration_args *args) {
 	q_min = q_max = current_regdata[ref_image].quality;
 	q_index = ref_image;
 
-	cur_nb = 0.f;
-
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(guided) \
 	if (args->seq->type == SEQ_SER || ((args->seq->type == SEQ_REGULAR || args->seq->type == SEQ_FITSEQ) && fits_is_reentrant()))
@@ -448,11 +447,8 @@ int register_shift_dft(struct registration_args *args) {
 					current_regdata[frame].shiftx, current_regdata[frame].shifty,
 					current_regdata[frame].quality);
 #endif
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-			cur_nb += 1.f;
-			set_progress_bar_data(NULL, cur_nb / nb_frames);
+			g_atomic_int_inc(&cur_nb);
+			set_progress_bar_data(NULL, (float)cur_nb / nb_frames);
 			fftwf_free(img);
 			fftwf_free(out2);
 		} else {
@@ -490,10 +486,7 @@ int register_shift_dft(struct registration_args *args) {
 void _register_kombat_disable_frame(struct registration_args *args, regdata *current_regdata, int frame) {
 	args->seq->imgparam[frame].incl = FALSE;
 	current_regdata[frame].quality = -1;
-	#ifdef _OPENMP
-	#pragma omp atomic
-	#endif
-	args->seq->selnum--;
+	g_atomic_int_dec_and_test(&args->seq->selnum);
 }
 
 /* register images using KOMBAT algorithm: calculate shift in images to be
@@ -514,7 +507,8 @@ int register_kombat(struct registration_args *args) {
 
 	regdata *current_regdata;
 	struct timeval t_start, t_end;
-	float nb_frames, cur_nb = 0;
+	float nb_frames;
+	int cur_nb = 0;
 	double q_max = 0, q_min = DBL_MAX;
 	double qual;
 	int frame;
@@ -653,11 +647,8 @@ int register_kombat(struct registration_args *args) {
 						(ref_align.dy - cur_align.dy), cur_fit.top_down);
 			}
 
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-			cur_nb += 1.f;
-			set_progress_bar_data(NULL, cur_nb / nb_frames);
+			g_atomic_int_inc(&cur_nb);
+			set_progress_bar_data(NULL, (float)cur_nb / nb_frames);
 
 			// We don't need fit anymore, we can destroy it.
 			clearfits(&cur_fit);
@@ -827,7 +818,7 @@ void on_comboreg_sel_all_combobox_changed(GtkComboBox *box, gpointer user_data) 
 	update_reg_interface(TRUE);
 }
 
-int get_registration_layer(sequence *seq) {
+int get_registration_layer(const sequence *seq) {
 	if (!com.script && seq == &com.seq) {
 		GtkComboBox *registbox = GTK_COMBO_BOX(lookup_widget("comboboxreglayer"));
 		int reglayer = gtk_combo_box_get_active(registbox);
@@ -855,7 +846,7 @@ int get_first_selected(sequence *seq) {
 	return -1;
 }
 
-gboolean layer_has_registration(sequence *seq, int layer) {
+gboolean layer_has_registration(const sequence *seq, int layer) {
 	if (!seq || layer < 0 || !seq->regparam || seq->nb_layers < 0 || layer >= seq->nb_layers || !seq->regparam[layer] ) return FALSE;
 	return TRUE;
 }
@@ -867,7 +858,7 @@ gboolean layer_has_usable_registration(sequence *seq, int layer) {
 	return TRUE;
 }
 
-int seq_has_any_regdata(sequence *seq) {
+int seq_has_any_regdata(const sequence *seq) {
 	if (!seq || !seq->regparam || seq->nb_layers < 0)
 		return -1;
 	int i;
@@ -1326,8 +1317,7 @@ void compute_fitting_selection(rectangle *area, int hsteps, int vsteps, int pres
 	return compute_fitting_selection(area, hsteps, vsteps, preserve_square);
 }
 
-void get_the_registration_area(struct registration_args *reg_args,
-		struct registration_method *method) {
+void get_the_registration_area(struct registration_args *reg_args, const struct registration_method *method) {
 	int max;
 	switch (method->sel) {
 		/* even in the case of REQUIRES_NO_SELECTION selection is needed for MatchSelection of starAlignment */
@@ -1701,8 +1691,8 @@ void on_comboreg_framing_changed(GtkComboBox *box, gpointer user_data) {
 	int i = gtk_combo_box_get_active(box);
 
 	if (i >= 0 && i < G_N_ELEMENTS(reg_frame_registration)) {
-		name = g_build_filename(siril_get_system_data_dir(), "pixmaps", reg_frame_registration[i], NULL);
-		gtk_image_set_from_file(image, name);
+		name = g_strdup_printf("/org/siril/ui/pixmaps/%s", reg_frame_registration[i]);
+		gtk_image_set_from_resource(image, name);
 
 		g_free(name);
 	}

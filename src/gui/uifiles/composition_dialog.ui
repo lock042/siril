@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019-2023
 
@@ -216,7 +216,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
               <object class="GtkFileChooserButton" id="filechooser_lum">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="filter">filefilter1</property>
                 <property name="width-chars">16</property>
                 <signal name="file-set" handler="on_filechooser_file_set" swapped="no"/>
               </object>
@@ -400,14 +399,16 @@ Modifying parameters in this windows afterward will void the colour balance, and
               </packing>
             </child>
             <child>
-              <object class="GtkCheckButton" id="compositing_pcc_active">
-                <property name="label" translatable="yes">photometric</property>
+              <object class="GtkComboBoxText" id="rgbcomp_cc_method">
                 <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">False</property>
-                <property name="tooltip-text" translatable="yes">When checked, photometric color calibration is used.</property>
-                <property name="active">True</property>
-                <property name="draw-indicator">True</property>
+                <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">Pick the color calibration method. Spectrophotometric is the most accurate, but requires an internet connection. Photometric is next best for non-networked users, and manual offers basic background neutralisation and manual white balance and may be useful for planetary or lunar images.</property>
+                <property name="active">2</property>
+                <items>
+                  <item translatable="yes">Manual</item>
+                  <item translatable="yes">Photometric</item>
+                  <item translatable="yes">Spectrophotometric</item>
+                </items>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -558,5 +559,4 @@ COG - frame to the centre of gravity of the pixels in the set of aligned images.
       <action-widget response="0">compositing_cancel</action-widget>
     </action-widgets>
   </object>
-
 </interface>

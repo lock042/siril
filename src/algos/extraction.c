@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -706,7 +706,7 @@ int split_cfa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 static int cfa_extract_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
 	unsigned int MB_per_input_image, MB_per_output_image, MB_avail, required;
 	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_input_image, NULL, &MB_avail);
-	struct split_cfa_data *cfa_args = (struct split_cfa_data *) args->user;
+	const struct split_cfa_data *cfa_args = (struct split_cfa_data *) args->user;
 
 	if (args->image_hook == extractHa_image_hook || args->image_hook == extractGreen_image_hook) {
 		MB_per_output_image = min(1, MB_per_input_image / 4);

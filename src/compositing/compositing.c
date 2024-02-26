@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -85,6 +85,8 @@ static unsigned int orig_rx[MAX_LAYERS] = { 0 }; // these are used to hold the o
 static unsigned int orig_ry[MAX_LAYERS] = { 0 }; // dimensions before any upscaling
 
 static int luminance_mode = 0;		// 0 if luminance is not used
+
+static gboolean timespan_warning_given = FALSE;
 
 static struct registration_method *reg_methods[5];
 
@@ -219,7 +221,8 @@ layer *create_layer(int index) {
 			GTK_FILE_FILTER(gtk_builder_get_object(gui.builder, "filefilter1")));
 			gtk_file_chooser_button_set_width_chars(ret->chooser, 16);
 	gtk_file_chooser_set_local_only(GTK_FILE_CHOOSER(ret->chooser), FALSE);
-	g_signal_connect(ret->chooser, "file-set", G_CALLBACK(on_filechooser_file_set), NULL);	g_object_ref(G_OBJECT(ret->chooser));	// don't destroy it on removal from grid
+	g_signal_connect(ret->chooser, "file-set", G_CALLBACK(on_filechooser_file_set), NULL);
+	g_object_ref(G_OBJECT(ret->chooser));	// don't destroy it on removal from grid
 
 	ret->label = GTK_LABEL(gtk_label_new(_("not loaded")));
 	gtk_widget_set_tooltip_text(GTK_WIDGET(ret->label), _("not loaded"));
@@ -264,11 +267,14 @@ layer *create_layer(int index) {
 	}
 	memset(&ret->the_fit, 0, sizeof(fits));
 	assert(index >= 2);	// 1 is luminance
-	if (index <= 7)		// copy default RGB colours
+	if (index <= 7) {		// copy default RGB colours
 		memcpy(&ret->color,
 				&list_of_12_palette_colors[(index-2)*2],
 				sizeof(GdkRGBA));
-	else clear_pixel(&ret->color);
+		memcpy(&ret->display_color, &ret->color, sizeof(GdkRGBA));
+	} else {
+		clear_pixel(&ret->color);
+	}
 	clear_pixel(&ret->saturated_color);
 	return ret;
 }
@@ -408,6 +414,7 @@ void open_compositing_window() {
 		register_selection_update_callback(update_compositing_registration_interface);
 
 		gtk_builder_connect_signals(gui.builder, NULL);
+		siril_set_file_filter("filechooser_lum", "filefilter1");
 
 		/* parse the default palette */
 		for (i=0; i<sizeof(list_of_12_color_names)/sizeof(const char*); i++)
@@ -466,15 +473,15 @@ void open_compositing_window() {
 		/* not the first load, update the CWD just in case it changed in the meantime */
 		i = 0;
 
-		close_sequence(FALSE);
-		close_single_image();
+//		close_sequence(FALSE);
+//		close_single_image();
 		do {
 			gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(layers[i]->chooser), com.wd);
 			if (!reference)
 				reference = copyICCProfile(layers[i]->the_fit.icc_profile);
 			i++;
 		} while (layers[i]);
-		update_result(1);
+//		update_result(1);
 		update_MenuItem();
 	}
 	if (compositing_loaded == 1)
@@ -597,8 +604,6 @@ static void update_metadata() {
 	f[j] = NULL;
 
 	merge_fits_headers_to_result2(&gfit, f);
-	if (firstlayer >= 0)
-		load_WCS_from_memory(&layers[firstlayer]->the_fit);
 	free(f);
 }
 
@@ -613,7 +618,6 @@ static void update_comp_metadata(fits *fit) {
 	f[j] = NULL;
 
 	merge_fits_headers_to_result2(&gfit, f);
-	load_WCS_from_memory(fit);
 	free(f);
 }
 
@@ -1138,6 +1142,36 @@ void on_composition_combo_coloringtype_changed(GtkComboBox *widget, gpointer use
 static void colors_align_and_compose() {
 	int x, y;
 	if (no_color_available()) return;
+	// Sort the date_obs and pic the earliest one
+	GList *date_obs_list = NULL;
+	for (int layer = 1 ; layers[layer]; layer++) {
+		if (has_fit(layer) && layers[layer]->the_fit.date_obs) {
+			date_obs_list = g_list_append(date_obs_list, layers[layer]->the_fit.date_obs);
+		}
+	}
+	int len = g_list_length(date_obs_list);
+	if (len > 0) {
+		date_obs_list = g_list_sort(date_obs_list, g_date_time_compare);
+		GDateTime *earliest = (GDateTime*) g_list_nth(date_obs_list, 0)->data;
+		GDateTime *latest = (GDateTime*) g_list_nth(date_obs_list, len-1)->data;
+		GTimeSpan timespan = g_date_time_difference(latest, earliest);
+		timespan /= 3600000000;
+		if (timespan > 24 && !timespan_warning_given) {
+			siril_log_message(_("Attention: channels are dated more than 24 hours apart. DATE_OBS "
+								"set to the earliest observation start date but for "
+								"some purposes this field may be of limited use (e.g. solar "
+								"system objects may have moved significantly between channels).\n"));
+			timespan_warning_given = TRUE;
+		} else {
+			timespan_warning_given = FALSE;
+		}
+		if (gfit.date_obs) {
+			g_date_time_unref(gfit.date_obs);
+		}
+		g_date_time_ref(earliest);
+		gfit.date_obs = earliest;
+	}
+	g_list_free(date_obs_list);
 	fprintf(stdout, "colour layers only composition\n");
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) private(y,x) schedule(static)
@@ -1173,7 +1207,14 @@ static void luminance_and_colors_align_and_compose() {
 	 * luminance layer's value and transformed back to RGB. */
 	guint x, y;
 	assert(has_fit(0));
-
+	// Copy the date_obs field from the luminance layer
+	if (layers[0]->the_fit.date_obs) {
+		if (gfit.date_obs) {
+			g_date_time_unref(gfit.date_obs);
+		}
+		g_date_time_ref(layers[0]->the_fit.date_obs);
+		gfit.date_obs = layers[0]->the_fit.date_obs;
+	}
 	if (no_color_available()) {
 		/* luminance only: we copy its data to all result layers */
 		int i;
@@ -1337,7 +1378,45 @@ void on_colordialog_response(GtkColorChooserDialog *chooser, gint response_id, g
 	}
 
 	if (current_layer_color_choosing > 0 && layers[current_layer_color_choosing]) {
-		gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(chooser), &layers[current_layer_color_choosing]->color);
+		gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(chooser), &layers[current_layer_color_choosing]->display_color);
+
+		// The color chooser returns a RGBA in the monitor color profile. We need to change this to
+		// the image color profile to set it accurately for the composition
+		float disp[3] = { (float) layers[current_layer_color_choosing]->display_color.red,
+						  (float) layers[current_layer_color_choosing]->display_color.green,
+						  (float) layers[current_layer_color_choosing]->display_color.blue };
+		float img[3];
+		cmsHPROFILE image_profile = NULL;
+		if (gfit.icc_profile)
+			image_profile = copyICCProfile(gfit.icc_profile);
+		else if ((com.pref.icc.autoassignment & ICC_ASSIGN_ON_COMPOSITION) && com.icc.working_standard)
+			image_profile = copyICCProfile(com.icc.working_standard);
+		if (image_profile) {
+			// We use the NONEGATIVES flag to bound the transform, otherwise the
+			// negative components play havoc with the compositing.
+			cmsHTRANSFORM transform = cmsCreateTransformTHR(com.icc.context_single,
+															gui.icc.monitor,
+															TYPE_RGB_FLT_PLANAR,
+															image_profile,
+															TYPE_RGB_FLT_PLANAR,
+															INTENT_RELATIVE_COLORIMETRIC,
+															cmsFLAGS_NONEGATIVES);
+			cmsCloseProfile(image_profile);
+			if (transform) {
+				cmsDoTransform(transform, disp, img, 1);
+				cmsDeleteTransform(transform);
+				siril_debug_print("Color picker transform (display to image): R: %f -> %f, G: %f -> %f, B: %f -> %f\n", disp[0], img[0], disp[1], img[1], disp[2], img[2]);
+			} else {
+				memcpy(&img, &disp, 3 * sizeof(float));
+				siril_debug_print("Unable to complete color picker transform\n");
+			}
+		} else {
+			memcpy(&img, &disp, 3 * sizeof(float));
+		}
+		layers[current_layer_color_choosing]->color.red = img[0];
+		layers[current_layer_color_choosing]->color.green = img[1];
+		layers[current_layer_color_choosing]->color.blue = img[2];
+
 		color_has_been_updated(current_layer_color_choosing);
 		gtk_widget_queue_draw(GTK_WIDGET(layers[current_layer_color_choosing]->color_w));
 		gtk_widget_hide(GTK_WIDGET(chooser));
@@ -1358,8 +1437,8 @@ gboolean draw_layer_color(GtkDrawingArea *widget, cairo_t *cr, gpointer data) {
 
 	w = gtk_widget_get_allocated_width(GTK_WIDGET(widget));
 	h = gtk_widget_get_allocated_height(GTK_WIDGET(widget));
-	cairo_set_source_rgb(cr, layers[layer]->color.red,
-			layers[layer]->color.green, layers[layer]->color.blue);
+	cairo_set_source_rgb(cr, layers[layer]->display_color.red,
+			layers[layer]->display_color.green, layers[layer]->display_color.blue);
 	//cairo_rectangle(cr, (double)w*0.33, 1, (double)w*0.33, (double)h-2.0);
 	cairo_rectangle(cr, 1, 1, w-2.0, h-2.0);
 	cairo_fill(cr);
@@ -1390,7 +1469,6 @@ gboolean on_color_button_release_event(const GtkDrawingArea *widget, GdkEventBut
 		if (layers[layer]->color_w == widget)
 			break;
 	if (!layers[layer]) return FALSE;
-
 	if (event->button == GDK_BUTTON_PRIMARY) {	// left click
 		current_layer_color_choosing = layer;
 		gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(color_dialog), &layers[layer]->color);
@@ -1454,11 +1532,12 @@ void on_wavelength_changed(GtkEditable *editable, gpointer user_data){
 	GdkRGBA color;
 	double wavelength = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(editable)), NULL);
 	if (wavelength < 380.0 || wavelength > 780.0) return;
-	wavelength_to_RGB(wavelength, &color);
+	wavelength_to_display_RGB(wavelength, &color);
 	gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(color_dialog), &color);
 }
 
 void reset_compositing_module() {
+	timespan_warning_given = FALSE;
 	gui.comp_layer_centering = NULL;
 	if (!compositing_loaded)
 		return;
@@ -1617,14 +1696,20 @@ static void coeff_clear() {
 }
 
 void on_composition_rgbcolor_clicked(GtkButton *button, gpointer user_data){
-	gboolean photometric = gtk_toggle_button_get_active((GtkToggleButton*) lookup_widget("compositing_pcc_active"));
+	int photometric = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("rgbcomp_cc_method")));
 	GtkWidget *win = NULL;
-	if (photometric) {
-		win = lookup_widget("ImagePlateSolver_Dial");
-		initialize_photometric_cc_dialog();
-	} else {
-		win = lookup_widget("color_calibration");
-		initialize_calibration_interface();
+	switch (photometric) {
+		case 0:
+			win = lookup_widget("color_calibration");
+			initialize_calibration_interface();
+		break;
+		case 1:
+			win = lookup_widget("s_pcc_dialog");
+			initialize_photometric_cc_dialog();
+		break;
+		case 2:
+			win = lookup_widget("s_pcc_dialog");
+			initialize_spectrophotometric_cc_dialog();
 	}
 	gtk_window_set_transient_for(GTK_WINDOW(win), GTK_WINDOW(lookup_widget("composition_dialog")));
 	/* Here this is wanted that we do not use siril_open_dialog */

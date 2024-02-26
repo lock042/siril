@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -239,7 +239,7 @@ static int star_match_and_checks(psf_star **ref_stars, psf_star **stars, int nb_
 	/* make a loop with different tries in order to align the two sets of data */
 	while (failure && attempt < NB_OF_MATCHING_TRY) {
 		failure = new_star_match(stars, ref_stars, nb_stars, nobj,
-				scale_min, scale_max, H, FALSE, regargs->type,
+				scale_min, scale_max, H, NULL, FALSE, regargs->type, AT_TRANS_UNDEFINED,
 				NULL, NULL);
 		if (attempt == 1) {
 			scale_min = -1.0;
@@ -542,10 +542,11 @@ int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 		if (!args->has_output || (!is_scaled && !is_color)) {
 			required = MB_per_orig_image + MB_per_float_channel;
 		}
-		else if (args->has_output && !is_color && is_scaled) {
+		// here args->has_output is TRUE
+		else if (!is_color && is_scaled) {
 			required = MB_per_orig_image + 4 * MB_per_orig_channel;
 		}
-		else if (args->has_output && is_color && !is_scaled) {
+		else if (is_color && !is_scaled) {
 			required = 2 * MB_per_orig_image;
 		}
 		else {
@@ -706,7 +707,7 @@ static void print_alignment_results(Homography H, int filenum, float fwhm, float
 	siril_log_message(_("roundness:%*.2f\n"), 8, roundness);
 }
 
-static int compute_transform(struct registration_args *regargs, struct starfinder_data *sf_args, gboolean *included, int *failed, float *fwhm, float *roundness, const float *B, gboolean verbose) {
+static int compute_transform(struct registration_args *regargs, struct starfinder_data *sf_args, gboolean *included, int *failed, const float *fwhm, const float *roundness, const float *B, gboolean verbose) {
 	regdata *current_regdata = star_align_get_current_regdata(regargs); // clean the structure if it exists, allocates otherwise
 	if (!current_regdata) return -1;
 	int nb_ref_stars = sf_args->nb_stars[regargs->seq->reference_image];
@@ -726,10 +727,7 @@ static int compute_transform(struct registration_args *regargs, struct starfinde
 			int not_matched = star_match_and_checks(sf_args->stars[regargs->seq->reference_image], sf_args->stars[i],
 					sf_args->nb_stars[i], regargs, filenum, &H);
 			if (not_matched) {
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-				nbfail++;
+				g_atomic_int_inc(&nbfail);
 				included[i] = FALSE;
 				continue;
 			}
@@ -739,10 +737,7 @@ static int compute_transform(struct registration_args *regargs, struct starfinde
 			if (verbose) print_alignment_results(H, filenum, fwhm[i], roundness[i], "px");
 
 		}
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-		nb_aligned++;
+		g_atomic_int_inc(&nb_aligned);
 		current_regdata[i].roundness = roundness[i];
 		current_regdata[i].fwhm = fwhm[i];
 		current_regdata[i].weighted_fwhm = 2 * fwhm[i]

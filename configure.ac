@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 m4_define([siril_major_version], [1])
 m4_define([siril_minor_version], [3])
-m4_define([siril_micro_version], [0])
+m4_define([siril_micro_version], [1])
 m4_define([siril_prerelease_version], [alpha-dev])
 m4_define([siril_version],
           [siril_major_version.siril_minor_version.siril_micro_version])
@@ -135,6 +135,9 @@ PKG_CHECK_MODULES(LCMS2, lcms2 >= 2.14)
 dnl check cairo
 PKG_CHECK_MODULES(CAIRO, cairo)
 
+dnl check wcslib
+PKG_CHECK_MODULES(WCSLIB, wcslib >= 7.12)
+
 dnl check fftw3 and its threading capabilities
 m4_include([m4/fftw.m4])
 
@@ -147,6 +150,10 @@ PKG_CHECK_MODULES(GSL, [gsl < 2],
 
 dnl check cfitsio
 PKG_CHECK_MODULES(CFITSIO, [cfitsio])
+
+dnl Check for json-glib
+PKG_CHECK_MODULES(JSON_GLIB, [json-glib-1.0 >= 1.2.6])
+
 
 dnl check opencv
 AC_PROG_CXX
@@ -263,61 +270,11 @@ PKG_CHECK_MODULES(FFMPEG, [libavformat libavutil >= 55.20 libavcodec libswscale 
 		  [AC_DEFINE([HAVE_FFMPEG], [1], [film export supported])],
 		  AC_MSG_WARN([ffmpeg libav libraries not found or too old. Not using film export formats.]))
 
-dnl checking glib-networking and its capability to handle TLS
-AC_MSG_CHECKING([for glib-networking (GIO HTTPS implementation)])
-siril_save_CFLAGS="$CFLAGS"
-siril_save_LIBS="$LIBS"
-CFLAGS="$CFLAGS $GIO_CFLAGS"
-LIBS="$LIBS $GIO_LIBS"
-AC_LANG([C])
-AC_RUN_IFELSE([AC_LANG_PROGRAM([#include <gio/gio.h>],
-			       [if (!g_tls_backend_supports_tls (g_tls_backend_get_default ()))
-					return 1;
-				GFile *file = g_file_new_for_uri("https://localhost/test");
-				GError *error = NULL;
-				gchar *content = NULL;
-				g_file_load_contents(file, NULL, &content, NULL, NULL, &error);
-				return error->code == G_IO_ERROR_NOT_SUPPORTED;])],
-              [have_glib_networking="yes"],
-              [have_glib_networking="no"],
-              [have_glib_networking="unknown (cross-compiling)"])
-CFLAGS="$siril_save_CFLAGS"
-LIBS="$siril_save_LIBS"
-AC_MSG_RESULT($have_glib_networking)
-AC_LANG([C++])
-
-if test "x$have_glib_networking" = "xno"; then
-  AC_MSG_NOTICE([glib-networking not found])
-elif test "x$have_glib_networking" != "xyes"; then
-  AC_MSG_WARN([Test for glib-networking cannot be performed while cross-compiling.
-         Make sure glib-networking is installed, otherwise Siril will not be able
-         to open remote HTTPS (or other protocol using SSL/TLS) files.
-         HTTPS is becoming the expected standard and should not be considered
-         optional anymore.])
-fi
-
 dnl checking libcurl
 curl_avail=no
 m4_include([m4/libcurl.m4])
 LIBCURL_CHECK_CONFIG([yes], [7.10.0],
 		     [AC_DEFINE([HAVE_LIBCURL], [1], [Using Libcurl])] curl_avail=yes, [])
-
-if test "x$curl_avail" = "xno" && test "x$have_glib_networking" != "xyes"; then
-	AC_MSG_WARN([no networking library found, either glib-networking or curl are required])
-else
-	AC_MSG_NOTICE([networking solution found with either glib-networking or curl])
-	AC_DEFINE(HAVE_NETWORKING, 1, [Using networking])
-fi
-
-dnl check wcslib
-PKG_CHECK_MODULES(WCSLIB, [wcslib],
-		  [AC_DEFINE([HAVE_WCSLIB], [1], [Using WCSLIB])],
-		  AC_MSG_WARN([wcslib not found. Not using astrometry.]))
-
-dnl Check for json-glib
-PKG_CHECK_MODULES(JSON_GLIB, [json-glib-1.0 >= 1.2.6],
-		  [AC_DEFINE([HAVE_JSON_GLIB], [1], [Using automatic update])],
-		  AC_MSG_WARN([json-glib not found. Not using automatic updates.]))
 
 dnl Check for libgit
 PKG_CHECK_MODULES([LIBGIT], [libgit2],

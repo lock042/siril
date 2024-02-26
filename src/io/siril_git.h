@@ -3,6 +3,7 @@
 
 #ifdef HAVE_LIBGIT2
 int auto_update_gitscripts(gboolean sync);
+int auto_update_gitspcc(gboolean sync);
 void on_disable_gitscripts();
 void fill_script_repo_list(gboolean as_idle);
 #else

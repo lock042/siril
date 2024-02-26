@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -467,8 +467,8 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 					area.y = zoomed.y - s;
 					area.w = s * 2;
 					area.h = s * 2;
-					if (area.x - area.w > 0 && area.x + area.w < gfit.rx
-							&& area.y - area.h > 0 && area.y + area.h < gfit.ry) {
+					if (zoomed.x - area.w > 0 && zoomed.x + area.w < gfit.rx
+							&& zoomed.y - area.h > 0 && zoomed.y + area.h < gfit.ry) {
 						ps = phot_set_adjusted_for_image(&gfit);
 						gui.qphot = psf_get_minimisation(&gfit, select_vport(gui.cvport), &area, TRUE, ps, TRUE, com.pref.starfinder_conf.profile, NULL);
 						free(ps);
@@ -534,8 +534,8 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 				if (sequence_is_loaded()) {
 					int s = com.pref.phot_set.outer * 1.2;
 					rectangle area = { zoomed.x - s, zoomed.y - s, s * 2, s * 2 };
-					if (area.x - area.w > 0 && area.x + area.w < gfit.rx
-							&& area.y - area.h > 0 && area.y + area.h < gfit.ry) {
+					if (zoomed.x - area.w > 0 && zoomed.x + area.w < gfit.rx
+							&& zoomed.y - area.h > 0 && zoomed.y + area.h < gfit.ry) {
 						memcpy(&com.selection, &area, sizeof(rectangle));
 						process_seq_psf(0);
 						delete_selected_area();
@@ -1037,7 +1037,7 @@ gboolean on_drawingarea_scroll_event(GtkWidget *widget, GdkEventScroll *event, g
 		return FALSE;
 
 	if (gui.icc.iso12646)
-		disable_iso12646_conditions(FALSE, TRUE);
+		disable_iso12646_conditions(FALSE, TRUE, TRUE);
 
 	if (event->state & get_primary()) {
 		point delta;

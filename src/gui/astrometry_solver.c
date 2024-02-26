@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -55,52 +55,24 @@ static void unselect_all_items();
 void on_GtkTreeViewIPS_cursor_changed(GtkTreeView *tree_view, gpointer user_data);
 
 static void initialize_ips_dialog() {
-	GtkWidget *button_ips_ok, *button_cc_ok, *catalog_label, *catalog_box_ips,
-			*catalog_box_pcc, *catalog_auto, *frame_cc_bkg,
-			*catalog_label_pcc, *force_platesolve, *flip_image, *lasnet;
-	GtkWindow *parent;
+	GtkWidget *flip_image;
+	GtkWidget *catalog_box_ips = lookup_widget("ComboBoxIPSCatalog");
 
-	button_ips_ok = lookup_widget("buttonIPS_ok");
-	button_cc_ok = lookup_widget("button_cc_ok");
-	catalog_label = lookup_widget("GtkLabelCatalog");
-	catalog_label_pcc = lookup_widget("GtkLabelCatalogPCC");
-	catalog_box_ips = lookup_widget("ComboBoxIPSCatalog");
-	catalog_box_pcc = lookup_widget("ComboBoxPCCCatalog");
-	catalog_auto = lookup_widget("GtkCheckButton_OnlineCat");
-	frame_cc_bkg = lookup_widget("frame_cc_background");
-	force_platesolve = lookup_widget("force_astrometry_button");
 	flip_image = lookup_widget("checkButton_IPS_flip");
-	lasnet = lookup_widget("localasnet_check_button");
 
-	parent = GTK_WINDOW(lookup_widget("ImagePlateSolver_Dial"));
-
-	gtk_widget_set_visible(button_ips_ok, TRUE);
-	gtk_widget_set_visible(button_cc_ok, FALSE);
-	gtk_widget_set_visible(catalog_label, TRUE);
-	gtk_widget_set_visible(catalog_label_pcc, FALSE);
-	gtk_widget_set_visible(catalog_box_ips, TRUE);
-	gtk_widget_set_visible(catalog_box_pcc, FALSE);
-	gtk_widget_set_visible(catalog_auto, TRUE);
-	gtk_widget_set_visible(frame_cc_bkg, FALSE);
-	gtk_widget_set_visible(force_platesolve, FALSE);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(flip_image), single_image_is_loaded());
-	gtk_widget_set_visible(lasnet, TRUE);
-	gtk_widget_grab_focus(button_ips_ok);
-
-	gtk_window_set_title(parent, _("Image Plate Solver"));
 
 	on_comboastro_catalog_changed(GTK_COMBO_BOX(catalog_box_ips), NULL);
 	gtk_label_set_text(GTK_LABEL(lookup_widget("photometric_catalog_label")), "");
 }
 
-void get_mag_settings_from_GUI(limit_mag_mode *mag_mode, double *magnitude_arg) {
+static void get_mag_settings_from_GUI(limit_mag_mode *mag_mode, double *magnitude_arg) {
 	GtkToggleButton *autobutton = GTK_TOGGLE_BUTTON(lookup_widget("GtkCheckButton_Mag_Limit"));
 	gboolean autob = gtk_toggle_button_get_active(autobutton);
 	if (autob)
 		*mag_mode = LIMIT_MAG_AUTO;
 	else {
-		GtkSpinButton *magButton = GTK_SPIN_BUTTON(
-				lookup_widget("GtkSpinIPS_Mag_Limit"));
+		GtkSpinButton *magButton = GTK_SPIN_BUTTON(lookup_widget("GtkSpinIPS_Mag_Limit"));
 		*magnitude_arg = gtk_spin_button_get_value(magButton);
 		*mag_mode = LIMIT_MAG_ABSOLUTE;
 	}
@@ -118,6 +90,11 @@ static double get_pixel() {
 	GtkEntry *pixel_entry = GTK_ENTRY(lookup_widget("GtkEntry_IPS_pixels"));
 	const gchar *value = gtk_entry_get_text(pixel_entry);
 	return g_ascii_strtod(value, NULL);	// 0 is parse error
+}
+
+static int get_order() {
+	GtkComboBox *box = GTK_COMBO_BOX(lookup_widget("ComboBoxIPS_order"));
+	return gtk_combo_box_get_active(GTK_COMBO_BOX(box)) + 1;
 }
 
 static int get_server_from_combobox() {
@@ -320,24 +297,15 @@ gboolean end_plate_solver(gpointer p) {
 	set_cursor_waiting(FALSE);
 
 	if (args->ret) {
-		char *title;
-		if (args->ret == ERROR_PHOTOMETRY) {
-			title = siril_log_color_message(_("Photometry failed.\n"), "red");
-			if (!args->message) {
-				args->message = g_strdup(_("Photometry could not be performed. "
-						"You can try to adjust the settings in the Siril preferences."));
-			}
-		} else {
-			title = siril_log_color_message(_("Plate Solving failed. "
+		char *title = siril_log_color_message(_("Plate Solving failed. "
 					"The image could not be aligned with the reference stars.\n"), "red");
-			if (!args->message) {
-				args->message = g_strdup(_("This is usually because the initial parameters (pixel size, focal length, initial coordinates) "
-						"are too far from the real metadata of the image.\n\n"
-						"You could also try to look into another catalogue, or try to click on the \"Downsampling\" button, especially for image done with Drizzle.\n\n"
-						"Finally, keep in mind that plate solving algorithm should only be applied on linear image."));
-			}
-		}
+		if (!args->message) {
+			args->message = g_strdup(_("This is usually because the initial parameters (pixel size, focal length, initial coordinates) "
+					"are too far from the real metadata of the image.\n\n"
+					"You could also try to look into another catalogue, or try to click on the \"Downsampling\" button, especially for image done with Drizzle.\n\n"
+					"Finally, keep in mind that plate solving algorithm should only be applied on linear image."));
 
+		}
 		siril_message_dialog(GTK_MESSAGE_ERROR, title, args->message);
 		g_free(args->message);
 	} else {
@@ -346,12 +314,12 @@ gboolean end_plate_solver(gpointer p) {
 		set_GUI_CAMERA();
 		update_coordinates(args->new_center);
 		delete_selected_area();
+		refresh_annotations(FALSE);
+		close_astrometry_dialog();
 		/* ****** */
-
-		if (args->flip_image || args->for_photometry_cc)
+		if (args->flip_image)
 			redraw(REMAP_ALL);
 		else redraw(REDRAW_OVERLAY);
-
 		siril_world_cs_unref(args->new_center);
 	}
 	if (args->image_flipped)
@@ -363,7 +331,6 @@ gboolean end_plate_solver(gpointer p) {
 
 static void start_image_plate_solve() {
 	struct astrometry_data *args = calloc(1, sizeof(struct astrometry_data));
-	args->for_photometry_cc = FALSE;
 	args->verbose = TRUE;
 	set_cursor_waiting(TRUE);
 	control_window_switch_to_tab(OUTPUT_LOGS);
@@ -533,9 +500,8 @@ void on_GtkEntry_IPS_insert_text(GtkEntry *entry, const gchar *text, gint length
 }
 
 void on_buttonIPS_close_clicked(GtkButton *button, gpointer user_data) {
-	siril_close_dialog("ImagePlateSolver_Dial");
+	siril_close_dialog("astrometry_dialog");
 }
-
 void on_GtkTreeViewIPS_cursor_changed(GtkTreeView *tree_view, gpointer user_data) {
 	GtkTreeModel *treeModel = gtk_tree_view_get_model(tree_view);
 	GtkTreeSelection *selection = gtk_tree_view_get_selection (tree_view);
@@ -616,30 +582,41 @@ void on_localasnet_check_button_toggled(GtkToggleButton *button, gpointer user) 
 	GtkWidget *downsample = lookup_widget("downsample_ips_button");
 	GtkWidget *autocrop = lookup_widget("autocrop_ips_button");
 	GtkExpander *catalogues = GTK_EXPANDER(lookup_widget("labelIPSCatalogParameters"));
+	GtkWidget *order_box = lookup_widget("ComboBoxIPS_order");
+	GtkWidget *order_label = lookup_widget("label_IPS_order");
 	if (gtk_toggle_button_get_active(button)) {
 		// gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(downsample), FALSE);
 		// gtk_widget_set_sensitive(downsample, FALSE);
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(autocrop), FALSE);
 		gtk_widget_set_sensitive(autocrop, FALSE);
 		gtk_expander_set_expanded(catalogues, FALSE);
+		gtk_widget_set_visible(order_box, FALSE);
+		gtk_widget_set_visible(order_label, FALSE);
 	}
 	else {
 		gtk_widget_set_sensitive(downsample, TRUE);
 		gtk_widget_set_sensitive(autocrop, TRUE);
 		gtk_expander_set_expanded(catalogues, TRUE);
+		gtk_widget_set_visible(order_box, TRUE);
+		gtk_widget_set_visible(order_label, TRUE);
 	}
 }
 
 void open_astrometry_dialog() {
 	if (single_image_is_loaded() || sequence_is_loaded()) {
 		initialize_ips_dialog();
-		siril_open_dialog("ImagePlateSolver_Dial");
+		siril_open_dialog("astrometry_dialog");
 		on_GtkButton_IPS_metadata_clicked(NULL, NULL);	// fill it automatically
 	}
 }
 
+void close_astrometry_dialog() {
+	siril_close_dialog("astrometry_dialog");
+}
+
 int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 	args->fit = &gfit;
+	args->trans_order = 3; // TODO add the GUI element
 	args->pixel_size = get_pixel();
 	args->focal_length = get_focal();
 	args->manual = is_detection_manual();
@@ -648,12 +625,13 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 	args->flip_image = flip_image_after_ps();
 	get_mag_settings_from_GUI(&args->mag_mode, &args->magnitude_arg);
 	args->ref_stars = calloc(1, sizeof(siril_catalogue));
-	args->ref_stars->phot = args->for_photometry_cc;
 
 	process_plate_solver_input(args);
 
 	GtkToggleButton *lasnet = GTK_TOGGLE_BUTTON(lookup_widget("localasnet_check_button"));
 	gboolean use_local_asnet = gtk_toggle_button_get_active(lasnet);
+
+	args->trans_order = (use_local_asnet) ? -1 : get_order();
 
 	SirilWorldCS *catalog_center = get_center_of_catalog();
 	if (siril_world_cs_get_alpha(catalog_center) == 0.0 &&
@@ -674,7 +652,7 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 		args->ref_stars->center_dec = siril_world_cs_get_delta(catalog_center);
 	}
 
-	if (!args->for_photometry_cc && use_local_asnet) {
+	if (use_local_asnet) {
 		// non-cropped version of the fov
 		args->used_fov = get_fov_arcmin(args->scale, args->fit->rx, args->fit->ry);
 		args->uncentered = FALSE;
@@ -697,11 +675,8 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 	GtkToggleButton *auto_button = GTK_TOGGLE_BUTTON(lookup_widget("GtkCheckButton_OnlineCat"));
 	gboolean auto_cat = gtk_toggle_button_get_active(auto_button);
 
-	args->ref_stars->cat_index = args->for_photometry_cc ?
-		get_photometry_catalog_from_GUI() :
-		get_astrometry_catalog(args->used_fov, args->ref_stars->limitmag, auto_cat);
+	args->ref_stars->cat_index = get_astrometry_catalog(args->used_fov, args->ref_stars->limitmag, auto_cat);
 	gboolean has_local_cat = local_catalogues_available();
-
 
 	if (auto_cat) {
 		if (has_local_cat) {
@@ -721,7 +696,7 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 gboolean confirm_delete_wcs_keywords(fits *fit) {
 	gboolean erase = TRUE;
 
-	if (has_wcsdata(fit)) {
+	if (has_wcs(fit)) {
 		erase = siril_confirm_dialog(_("Astrometric solution detected"),
 				_("The astrometric solution contained in "
 				"the image will be erased by the geometric transformation and no undo "

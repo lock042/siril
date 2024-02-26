@@ -51,6 +51,7 @@ int	process_calibrate(int nb);
 int	process_calibrate_single(int nb);
 int	process_capabilities(int nb);
 int	process_catsearch(int nb);
+int	process_ccm(int nb);
 int	process_cd(int nb);
 int	process_cdg(int nb);
 int	process_crop(int nb);
@@ -63,6 +64,7 @@ int	process_convert(int nb);
 int	process_cosme(int nb);
 
 int	process_ddp(int nb);
+int	process_disto(int nb);
 int	process_dumpheader(int nb);
 
 int	process_entropy(int nb);
@@ -128,6 +130,7 @@ int	process_modasinh(int nb);
 
 int	process_parse(int nb);
 int	process_pcc(int nb);
+int	process_platesolve(int nb);
 int	process_pm(int nb);
 int	process_preprocess(int nb);
 int	process_preprocess_single(int nb);
@@ -147,9 +150,18 @@ int	process_rotatepi(int nb);
 
 int	process_satu(int nb);
 int	process_save(int nb);
+#ifdef HAVE_LIBHEIF
+int process_saveavif(int nb);
+#endif
 int	process_savebmp(int nb);
+#ifdef HAVE_LIBHEIF
+int process_saveheif(int nb);
+#endif
 #ifdef HAVE_LIBJPEG
 int	process_savejpg(int nb);
+#endif
+#ifdef HAVE_LIBJXL
+int	process_savejxl(int nb);
 #endif
 #ifdef HAVE_LIBPNG
 int	process_savepng(int nb);
@@ -204,6 +216,8 @@ int	process_set_mem(int nb);
 int	process_set_photometry(int nb);
 int	process_set_ref(int nb);
 int	process_subsky(int nb);
+int process_spcc(int nb);
+int process_spcc_list(int nb);
 int	process_split(int nb);
 int	process_split_cfa(int nb);
 int	process_stat(int nb);

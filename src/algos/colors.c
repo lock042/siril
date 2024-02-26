@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@
 #include <assert.h>
 #include <float.h>
 
+#include "algos/cie_standard_observer.h" // Do not include this from anywhere else
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/icc_profile.h"
@@ -635,7 +636,8 @@ void xyz_to_rgbf(float x, float y, float z, float *r, float *g, float *b) {
 	*b = (*b > 0.0031308f) ? 1.055f * (powf(*b, (1.f / 2.4f))) - 0.055f : 12.92f * (*b);
 }
 
-// color index to temperature in kelvin
+// Reference: https://en.wikipedia.org/wiki/Color_index and https://arxiv.org/abs/1201.1809 (Ballesteros, F. J., 2012)
+// Uses Ballesteros' formula based on considering stars as black bodies
 double BV_to_T(double BV) {
 	double T;
 
@@ -651,6 +653,83 @@ double BV_to_T(double BV) {
 
 	return T;
 }
+
+// CIE XYZ Color Matching Functions
+float x1931(float w) {
+	int index = w - 360;
+	float w2_w = w - (float) w;
+	float w1_w = 1.f - w2_w;
+	index = max(min(index, 470), 0);
+	float retval = xyz1931_1nm[index][0] * w1_w + xyz1931_1nm[index+1][0] * w2_w;
+	return retval;
+}
+
+float y1931(float w) {
+	int index = w - 360;
+	float w2_w = w - (float) w;
+	float w1_w = 1.f - w2_w;
+	index = max(min(index, 470), 0);
+	float retval = xyz1931_1nm[index][1] * w1_w + xyz1931_1nm[index+1][1] * w2_w;
+	return retval;
+}
+
+float z1931(float w) {
+	int index = w - 360;
+	float w2_w = w - (float) w;
+	float w1_w = 1.f - w2_w;
+	index = max(min(index, 470), 0);
+	float retval = xyz1931_1nm[index][2] * w1_w + xyz1931_1nm[index+1][2] * w2_w;
+	return retval;
+}
+
+float x1964(float w) {
+	int index = w - 360;
+	float w2_w = w - (float) w;
+	float w1_w = 1.f - w2_w;
+	index = max(min(index, 470), 0);
+	float retval = xyz1964_1nm[index][0] * w1_w + xyz1964_1nm[index+1][0] * w2_w;
+	return retval;
+}
+
+float y1964(float w) {
+	int index = w - 360;
+	float w2_w = w - (float) w;
+	float w1_w = 1.f - w2_w;
+	index = max(min(index, 470), 0);
+	float retval = xyz1964_1nm[index][1] * w1_w + xyz1964_1nm[index+1][1] * w2_w;
+	return retval;
+}
+
+float z1964(float w) {
+	int index = w - 360;
+	float w2_w = w - (float) w;
+	float w1_w = 1.f - w2_w;
+	index = max(min(index, 470), 0);
+	float retval = xyz1964_1nm[index][2] * w1_w + xyz1964_1nm[index+1][2] * w2_w;
+	return retval;
+}
+
+cmsCIExyY wl_to_xyY(double wl) {
+	cmsCIEXYZ XYZ;
+	cmsCIExyY xyY;
+	if (com.pref.icc.cmf == CMF_1931_2DEG) {
+		XYZ = (cmsCIEXYZ) { x1931(wl), y1931(wl), z1931(wl) };
+	} else {
+		XYZ = (cmsCIEXYZ) { x1964(wl), y1964(wl), z1964(wl) };
+	}
+	cmsXYZ2xyY(&xyY, &XYZ);
+	return xyY;
+}
+
+// Returns the emittance of a Planckian black body spectrum at wavelength
+// wl and temperature bbTemp
+// from "Colour Rendering of Spectra", John Walker, Fourmilab. Public domain code, last updated March 9 2003
+/*
+float bb_spectrum(float wl, float bbTemp) {
+	float wlm = wl * 1e-9;   // Wavelength in meters
+	return (3.74183e-16f * pow(wlm, -5.f)) / (expf(1.4388e-2f / (wlm * bbTemp)) - 1.f);
+}
+*/
 
 int equalize_cfa_fit_with_coeffs(fits *fit, float coeff1, float coeff2, const char *cfa_string) {
 	unsigned int row, col, pat_cell;
@@ -718,9 +797,11 @@ static gpointer extract_channels_ushort(gpointer p) {
 	cmsUInt32Number datasize;
 	cmsUInt32Number bytesperline;
 	cmsUInt32Number bytesperplane;
-	gchar *desc = siril_color_profile_get_description(args->fit->icc_profile);
-	if(args->fit->icc_profile)
+	gchar *desc = NULL;
+	if(args->fit->icc_profile) {
+		desc = siril_color_profile_get_description(args->fit->icc_profile);
 		cmsCloseProfile(args->fit->icc_profile);
+	}
 	/* The extracted channels are considered raw data, and are not color
 		* managed. It is up to the user to ensure that future use of them is
 		* with similar data and an appropriate color profile is assigned.
@@ -1164,3 +1245,42 @@ int pos_to_neg(fits *fit) {
 	return 0;
 }
 
+void ccm_float(fits *fit, ccm matrix, float power) {
+	size_t npixels = fit->rx * fit->ry;
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#endif
+	for (size_t i = 0 ; i < npixels ; i++) {
+		float r = fit->fpdata[RLAYER][i] * matrix[0][0] + fit->fpdata[GLAYER][i] * matrix[0][1] + fit->fpdata[BLAYER][i] * matrix[0][2];
+		float g = fit->fpdata[RLAYER][i] * matrix[1][0] + fit->fpdata[GLAYER][i] * matrix[1][1] + fit->fpdata[BLAYER][i] * matrix[1][2];
+		float b = fit->fpdata[RLAYER][i] * matrix[2][0] + fit->fpdata[GLAYER][i] * matrix[2][1] + fit->fpdata[BLAYER][i] * matrix[2][2];
+		fit->fpdata[RLAYER][i] = powf(r, 1.f / power);
+		fit->fpdata[GLAYER][i] = powf(g, 1.f / power);
+		fit->fpdata[BLAYER][i] = powf(b, 1.f / power);
+	}
+}
+
+void ccm_ushort(fits *fit, ccm matrix, float power) {
+	size_t npixels = fit->rx * fit->ry;
+	float norm = USHRT_MAX_SINGLE;
+	float invnorm = 1.f / norm;
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#endif
+	for (size_t i = 0 ; i < npixels ; i++) {
+		float r = (float) fit->pdata[RLAYER][i] * matrix[0][0] + (float) fit->pdata[GLAYER][i] * matrix[0][1] + (float) fit->pdata[BLAYER][i] * matrix[0][2];
+		float g = (float) fit->pdata[RLAYER][i] * matrix[1][0] + (float) fit->pdata[GLAYER][i] * matrix[1][1] + (float) fit->pdata[BLAYER][i] * matrix[1][2];
+		float b = (float) fit->pdata[RLAYER][i] * matrix[2][0] + (float) fit->pdata[GLAYER][i] * matrix[2][1] + (float) fit->pdata[BLAYER][i] * matrix[2][2];
+		fit->pdata[RLAYER][i] = roundf_to_WORD(norm * powf(r * invnorm, 1.f / power));
+		fit->pdata[GLAYER][i] = roundf_to_WORD(norm * powf(g * invnorm, 1.f/ power));
+		fit->pdata[BLAYER][i] = roundf_to_WORD(norm * powf(b * invnorm, 1.f / power));
+	}
+}
+
+int ccm_calc(fits *fit, ccm matrix, float power) {
+	// We require a 3-channel FITS
+	if (!isrgb(fit))
+		return 1;
+	fit->type == DATA_FLOAT ? ccm_float(fit, matrix, power) : ccm_ushort(fit, matrix, power);
+	return 0;
+}

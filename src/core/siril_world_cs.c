@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -58,6 +58,14 @@ void siril_world_cs_unref(SirilWorldCS *world_cs) {
 	if (g_atomic_int_dec_and_test(&world_cs->ref_count)) {
 		g_slice_free(SirilWorldCS, world_cs);
 	}
+}
+
+SirilWorldCS *siril_world_cs_copy(SirilWorldCS *world_cs) {
+	g_return_val_if_fail(world_cs != NULL, NULL);
+	SirilWorldCS *world_cs_new = siril_world_cs_alloc();
+	world_cs_new->alpha = world_cs->alpha;
+	world_cs_new->delta = world_cs->delta;
+	return world_cs_new;
 }
 
 SirilWorldCS* siril_world_cs_new_from_a_d(gdouble alpha, gdouble delta) {

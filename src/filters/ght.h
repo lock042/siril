@@ -27,8 +27,8 @@ typedef struct ght_compute_params {
 
 int GHTsetup(ght_compute_params* compute_params, float B, float D, float LP, float SP, float HP, int stretchtype);
 
-float GHT(float in, float B, float D, float LP, float SP, float HP, float BP, int stretchtype, ght_compute_params *compute_params);
-float GHTp(float in, ght_params *params, ght_compute_params *compute_params);
+float GHT(float in, float B, float D, float LP, float SP, float HP, float BP, int stretchtype, const ght_compute_params *compute_params);
+float GHTp(float in, const ght_params *params, const ght_compute_params *compute_params);
 void apply_linked_ght_to_fits(fits *from, fits *to, ght_params *params, gboolean multithreaded);
 void apply_sat_ght_to_fits(fits *from, fits *to, ght_params *params, gboolean multithreaded);
 void apply_linked_ght_to_fbuf_indep(float* in, float* out, size_t layersize, size_t nchans, ght_params *params, gboolean multithreaded);

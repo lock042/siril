@@ -17,7 +17,6 @@
 #include <fitsio.h>	// fitsfile
 
 #include "core/settings.h"
-#include "core/atomic.h"
 
 #define _(String) gettext (String)
 #define gettext_noop(String) String
@@ -131,8 +130,10 @@ typedef enum {
 	TYPEPIC = (1 << 9),
 	TYPERAW = (1 << 10),
 	TYPEXISF = (1 << 11),
+	TYPEJXL = (1 << 12),
+	TYPEAVIF = (1 << 13),
 	TYPEAVI = (1 << 20),
-	TYPESER = (1 << 21),
+	TYPESER = (1 << 21)
 } image_type;
 
 /* indices of the image data layers */
@@ -275,6 +276,7 @@ typedef struct {
 	int filenum;		/* real file index in the sequence, i.e. for mars9.fit = 9 */
 	gboolean incl;		/* selected in the sequence, included for future processings? */
 	GDateTime *date_obs;	/* date of the observation, processed and copied from the header */
+	double airmass;     /* airmass of the image, used in photometry */
 	int rx, ry;
 } imgdata;
 
@@ -284,7 +286,7 @@ typedef struct {
 	     ngoodpix;	// number of non-zero pixels
 	double mean, median, sigma, avgDev, mad, sqrtbwmv,
 	       location, scale, min, max, normValue, bgnoise;
-	atomic_int* _nb_refs;	// reference counting for data management
+	gint _nb_refs;	// reference counting for data management
 } imstats;
 
 typedef struct {
@@ -376,11 +378,6 @@ typedef struct {
 } single;
 
 typedef struct {
-	double equinox;
-	double crpix[2];
-	double crval[2];
-	double cdelt[2];
-	double pc[2][2];
 	char objctra[FLEN_VALUE];
 	char objctdec[FLEN_VALUE];
 	double ra;
@@ -450,9 +447,7 @@ struct ffit {
 
 	/* Plate Solving data */
 	wcs_info wcsdata;		// data from the header
-#ifdef HAVE_WCSLIB
 	struct wcsprm *wcslib;		// struct of the lib
-#endif
 
 	/* data used in the Fourier space */
 	dft_info dft;
@@ -478,6 +473,48 @@ struct ffit {
 	gboolean color_managed; // Whether color management applies to this FITS
 	cmsHPROFILE icc_profile; // ICC color management profile
 };
+
+/* Filter spectral responses are defined by unevenly spaced frequency samples
+ * and accompanying spectral responses corresponding to the sampling points. */
+typedef struct _spcc_object {
+	gchar *model;
+	gchar *name;
+	gchar *filepath;
+	gchar *comment; // optional comment
+	gboolean is_dslr; // optional flag to indicate if a DSLR, defaults to FALSE
+	int index; // index in the JSON file
+	int type;
+	int quality;
+	int channel;
+	gchar *manufacturer;
+	gchar *source;
+	int version;
+	gboolean arrays_loaded;
+	double *x;  // Wavelength array
+	double *y;  // Quantity array
+	int n; // Number of points in x and y
+} spcc_object;
+
+typedef struct _osc_sensor {
+	spcc_object channel[3];
+} osc_sensor;
+
+struct spcc_data_store {
+	GList *mono_sensors;
+	GList *osc_sensors;
+	GList *mono_filters[4]; // R, G, B, Lum
+	GList *osc_lpf;
+	GList *osc_filters;
+	GList *wb_ref;
+};
+
+/* xpsampdata provides a fixed size struct matched to hold 2nm-spaced data between
+ * 336-1020nm for use with Gaia DR3 xp_sampled data products. */
+#define XPSAMPLED_LEN 343
+typedef struct _xpsampdata {
+	const double *x;
+	double y[XPSAMPLED_LEN];
+} xpsampled;
 
 typedef struct {
 	double x, y;
@@ -530,8 +567,10 @@ struct historic_struct {
 	int rx, ry, nchans;
 	data_type type;
 	wcs_info wcsdata;
+	struct wcsprm *wcslib;
 	double focal_length;
 	cmsHPROFILE icc_profile;
+	gboolean spcc_applied;
 };
 
 /* the structure storing information for each layer to be composed
@@ -550,8 +589,9 @@ typedef struct {
 	double spinbutton_y_value;
 	double spinbutton_r_value;
 	/* useful data */
-	GdkRGBA color;					// real color of the layer
-	GdkRGBA saturated_color;		// saturated color of the layer
+	GdkRGBA color;					// real color of the layer in the image colorspace
+	GdkRGBA saturated_color;		// saturated color of the layer in the image colorspace
+	GdkRGBA display_color;			// color of the layer in the display colorspace
 	fits the_fit;					// the fits for layers
 	point center;
 } layer;
@@ -628,6 +668,7 @@ struct guiinf {
 	int selected_star;		// current selected star in the GtkListStore
 
 	gboolean show_wcs_grid;		// show the equatorial grid over the image
+	gboolean show_wcs_disto;		// show the distortions (if present) include in the wcs solution
 
 	psf_star *qphot;		// quick photometry result, highlight a star
 
@@ -640,6 +681,7 @@ struct guiinf {
 	GList* repo_scripts; // the list of selected scripts is in com.pref
 	/* gboolean to confirm the script repository has been opened without error */
 	gboolean script_repo_available;
+	gboolean spcc_repo_available;
 
 	/*********** Color mapping **********/
 	WORD lo, hi;			// the values of the cutoff sliders
@@ -703,6 +745,7 @@ struct common_icc {
 
 /* The global data structure of siril core */
 struct cominf {
+	GResource *resource; // resources
 	gchar *wd;			// current working directory, where images and sequences are
 
 	preferences pref;		// some variables are stored in settings
@@ -743,6 +786,8 @@ struct cominf {
 	GSList *grad_samples;		// list of samples for the background extraction
 
 	GSList *found_object;		// list of objects found in the image from catalogues
+
+	struct spcc_data_store spcc_data; // library of SPCC filters, sensors
 
 	sensor_tilt *tilt;		// computed tilt information
 

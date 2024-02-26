@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -94,8 +94,8 @@ static void update_theme_button(const gchar *button_name, const gchar *path) {
 	gchar *image;
 	GtkWidget *w_image;
 
-	image = g_build_filename(siril_get_system_data_dir(), "pixmaps", path, NULL);
-	w_image = gtk_image_new_from_file(image);
+	image = g_strdup_printf("/org/siril/ui/pixmaps/%s", path);
+	w_image = gtk_image_new_from_resource(image);
 	gtk_widget_show(w_image);
 	gtk_tool_button_set_icon_widget(GTK_TOOL_BUTTON(lookup_widget(button_name)), w_image);
 	gtk_widget_show(lookup_widget(button_name));
@@ -124,10 +124,10 @@ void handle_owner_change(GtkClipboard *clipboard, GdkEvent *event, gpointer data
 	if (single_image_is_loaded()) {
 		gchar *filename = g_path_get_basename(com.uniq->filename);
 		if ((strcmp(filename, clipboard_content) == 0)) {
-			markup = g_markup_printf_escaped (format_green, "Image: ");
+			markup = g_markup_printf_escaped (format_green, _("Image: "));
 			gtk_label_set_markup(label_name_of_seq, markup);
 		} else {
-			markup = g_markup_printf_escaped (format_white, "Image: ");
+			markup = g_markup_printf_escaped (format_white, _("Image: "));
 			gtk_label_set_markup(label_name_of_seq, markup);
 		}
 		g_free(filename);
@@ -138,10 +138,10 @@ void handle_owner_change(GtkClipboard *clipboard, GdkEvent *event, gpointer data
 	if (sequence_is_loaded()) {
 		gchar *seq_basename = g_path_get_basename(com.seq.seqname);
 		if ((strcmp(seq_basename, clipboard_content) == 0)) {
-			markup = g_markup_printf_escaped (format_green, "Sequence: ");
+			markup = g_markup_printf_escaped (format_green, _("Sequence: "));
 			gtk_label_set_markup(label_name_of_seq, markup);
 		} else {
-			markup = g_markup_printf_escaped (format_white, "Sequence: ");
+			markup = g_markup_printf_escaped (format_white, _("Sequence: "));
 			gtk_label_set_markup(label_name_of_seq, markup);
 		}
 		g_free(seq_basename);
@@ -196,7 +196,6 @@ static void update_icons_to_theme(gboolean is_dark) {
 		update_theme_button("mirrory_button", "mirrory_dark.svg");
 
 		update_theme_button("process_starfinder_button", "starfinder_dark.svg");
-		update_theme_button("tilt_button", "tilt_dark.svg");
 		update_theme_button("sum_button", "sum_dark.svg");
 		update_theme_button("export_button", "export_dark.svg");
 
@@ -213,7 +212,6 @@ static void update_icons_to_theme(gboolean is_dark) {
 		update_theme_button("mirrory_button", "mirrory.svg");
 
 		update_theme_button("process_starfinder_button", "starfinder.svg");
-		update_theme_button("tilt_button", "tilt.svg");
 		update_theme_button("sum_button", "sum.svg");
 		update_theme_button("export_button", "export.svg");
 
@@ -333,30 +331,43 @@ void roi_supported(gboolean state) {
 	redraw(REDRAW_OVERLAY);
 }
 
+static GMutex roi_mutex;
+
 gpointer on_set_roi() {
-	if (gui.roi.operation_supports_roi && com.pref.gui.enable_roi_warning)
-		roi_info_message_if_needed();
-	// Ensure any pending ROI changes are overwritten by the backup
-	// Must copy the whole backup to gfit and gui.roi.fit to account
-	// for switching between full image and ROI
-	memcpy(&gui.roi.selection, &com.selection, sizeof(rectangle));
-	gui.roi.active = TRUE;
-	if (gui.roi.selection.w > 0 && gui.roi.selection.h > 0 && is_preview_active())
-		copy_backup_to_gfit();
-	populate_roi();
-	backup_roi();
-	// Call any callbacks that need calling
-	call_roi_callbacks();
-	return GINT_TO_POINTER(0);
+	gboolean val = g_mutex_trylock(&roi_mutex);
+	if (val) {
+		if (gui.roi.operation_supports_roi && com.pref.gui.enable_roi_warning)
+			roi_info_message_if_needed();
+		// Ensure any pending ROI changes are overwritten by the backup
+		// Must copy the whole backup to gfit and gui.roi.fit to account
+		// for switching between full image and ROI
+		memcpy(&gui.roi.selection, &com.selection, sizeof(rectangle));
+		gui.roi.active = TRUE;
+		if (gui.roi.selection.w > 0 && gui.roi.selection.h > 0 && is_preview_active())
+			copy_backup_to_gfit();
+		populate_roi();
+		backup_roi();
+		// Call any callbacks that need calling
+		call_roi_callbacks();
+		g_mutex_unlock(&roi_mutex);
+	}
+	return GINT_TO_POINTER((int) ~val);
 }
 
 gpointer on_clear_roi() {
-	clearfits(&gui.roi.fit);
-	memset(&gui.roi, 0, sizeof(roi_t));
-	// Call any callbacks that need calling
-	call_roi_callbacks();
-	redraw(REDRAW_OVERLAY);
-	return GINT_TO_POINTER(0);
+	if (!gui.roi.active)
+		return GINT_TO_POINTER(0);
+
+	gboolean val = g_mutex_trylock(&roi_mutex);
+	if (val) {
+		clearfits(&gui.roi.fit);
+		memset(&gui.roi, 0, sizeof(roi_t));
+		// Call any callbacks that need calling
+		call_roi_callbacks();
+		queue_redraw(REDRAW_OVERLAY);
+		g_mutex_unlock(&roi_mutex);
+	}
+	return GINT_TO_POINTER((int) ~val);
 }
 
 static void initialize_theme_GUI() {
@@ -403,11 +414,9 @@ void set_cutoff_sliders_max_values() {
 		adj2 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemin"));// scalemin
 	}
 	/* set max value for range according to number of bits of original image
-	 * We should use gfit.bitpix for this, but it's currently always USHORT_IMG.
-	 * Since 0.9.8 we have orig_bitpix, but it's not filled for SER and other images.
 	 */
 
-	max_val = (gfit.type == DATA_FLOAT ? USHRT_MAX_DOUBLE : (double)get_normalized_value(&gfit));
+	max_val = (gfit.type == DATA_FLOAT ? USHRT_MAX_DOUBLE : (gfit.orig_bitpix == BYTE_IMG ? UCHAR_MAX_DOUBLE : USHRT_MAX_DOUBLE));
 	siril_debug_print(_("Setting MAX value for cutoff sliders adjustments (%f)\n"), max_val);
 	gtk_adjustment_set_lower(adj1, 0.0);
 	gtk_adjustment_set_lower(adj2, 0.0);
@@ -635,9 +644,10 @@ void update_MenuItem() {
 
 	gboolean enable_button = any_image_is_loaded && has_wcs(&gfit);
 	GAction *action_annotate = g_action_map_lookup_action(G_ACTION_MAP(app_win), "annotate-object");
-	g_simple_action_set_enabled(G_SIMPLE_ACTION(action_annotate), enable_button);
 	GAction *action_grid = g_action_map_lookup_action(G_ACTION_MAP(app_win), "wcs-grid");
-	g_simple_action_set_enabled(G_SIMPLE_ACTION(action_grid), enable_button);
+
+	/* any image with wcs information is needed */
+	siril_window_enable_wcs_proc_actions(app_win, enable_button);
 
 	/* untoggle if disabled */
 	if (!enable_button) {
@@ -678,6 +688,9 @@ void update_MenuItem() {
 	/* search SOLAR object */
 	GAction *action_search_solar = g_action_map_lookup_action (G_ACTION_MAP(app_win), "search-solar");
 	g_simple_action_set_enabled(G_SIMPLE_ACTION(action_search_solar), any_image_is_loaded && has_wcs(&gfit));
+	/* Lightcurve process */
+	GAction *action_nina_light_curve = g_action_map_lookup_action (G_ACTION_MAP(app_win), "nina_light_curve");
+	g_simple_action_set_enabled(G_SIMPLE_ACTION(action_nina_light_curve), sequence_is_loaded() && has_wcs(&gfit));
 	/* selection is needed */
 	siril_window_enable_if_selection_actions(app_win, com.selection.w && com.selection.h);
 	/* selection and sequence is needed */
@@ -689,6 +702,8 @@ void update_MenuItem() {
 
 	/* single RGB image is needed */
 	siril_window_enable_rgb_proc_actions(app_win, is_a_singleRGB_image_loaded);
+	/* single RGB image with wcs information is needed */
+	siril_window_enable_rgb_wcs_proc_actions(app_win, is_a_singleRGB_image_loaded && has_wcs(&gfit));
 	/* any image is needed */
 	siril_window_enable_any_proc_actions(app_win, any_image_is_loaded);
 	/* any mono image is needed */
@@ -957,12 +972,16 @@ void display_filename() {
 	}
 	vport = nb_layers > 1 ? nb_layers + 1 : nb_layers;
 
-	gchar *	base_name = g_path_get_basename(filename);
+	gchar *base_name = g_path_get_basename(filename);
+	if (strlen(base_name) > 4096) // Prevent manifestly excessive lengths
+		base_name[4095] = 0;
 	gchar *orig_base_name = NULL;
 	GString *concat_base_name = NULL;
 	if (orig_filename && orig_filename[0] != '\0') {
-		orig_base_name = g_path_get_basename(orig_filename);
+		orig_base_name = g_path_get_basename(orig_filename); // taints orig_filename
 		concat_base_name = g_string_new(orig_base_name);
+		if (concat_base_name->len > 4096) // Sanitize length of tainted string
+			g_string_truncate(concat_base_name, 4096);
 		concat_base_name = g_string_append(concat_base_name, " <==> ");
 		concat_base_name = g_string_append(concat_base_name, base_name);
 	}
@@ -1298,12 +1317,13 @@ static void load_accels() {
 		"win.zoom-one",               "<Primary>1", NULL,
 
 		"win.search-object",          "<Primary>slash", NULL,
-		"win.search-solar",          "<Primary>slash", NULL,
+		"win.search-solar",           "<Primary>slash", NULL,
 		"win.astrometry",             "<Primary><Shift>a", NULL,
 		"win.pcc-processing",         "<Primary><Shift>p", NULL,
+		"win.spcc-processing",        "<Primary><Shift>c", NULL,
 		"win.pickstar",               "<Primary>space", NULL,
 		"win.dyn-psf",                "<Primary>F6", NULL,
-		"win.clipboard",              "<Primary><Shift>c", NULL,
+		"win.clipboard",              "<Primary><Shift>x", NULL,
 
 		"win.negative-processing",    "<Primary>i", NULL,
 		"win.rotation90-processing",  "<Primary>Right", NULL,
@@ -1599,6 +1619,14 @@ void initialize_all_GUI(gchar *supported_files) {
 	/* every 0.5sec update memory display */
 	g_timeout_add(500, update_displayed_memory, NULL);
 
+#ifndef HAVE_LIBCURL
+	// SPCC is not available if compiled without networking
+	gtk_widget_set_visible(lookup_widget("proc_spcc"), FALSE);
+	// Remove it from the RGB composition color calibration methods list too
+	gtk_combo_box_text_remove(GTK_COMBO_BOX_TEXT(lookup_widget("rgbcomp_cc_method")), 2);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("rgbcomp_cc_method")), 1);
+#endif
+
 	/* now that everything is loaded we can connect these signals
 	 * Doing it in the glade file is a bad idea because they are called too many times during loading */
 	g_signal_connect(lookup_widget("control_window"), "configure-event", G_CALLBACK(on_control_window_configure_event), NULL);
@@ -1676,8 +1704,12 @@ void on_checkcut_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 }
 /* gamut check was toggled. */
 void on_gamutcheck_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
-	if (gfit.color_managed && gui.icc.proofing_transform) {
+	if (gfit.color_managed) {
+		lock_display_transform();
+		if (gui.icc.proofing_transform)
+			cmsDeleteTransform(gui.icc.proofing_transform);
 		gui.icc.proofing_transform = initialize_proofing_transform();
+		unlock_display_transform();
 	}
 	redraw(REMAP_ALL);
 	redraw_previews();

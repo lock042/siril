@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -245,7 +245,8 @@ int apply_reg_prepare_hook(struct generic_seq_args *args) {
 	}
 	if (fit.naxes[2] == 1 && fit.bayer_pattern[0] != '\0')
 		siril_log_color_message(_("Applying transformation on a sequence opened as CFA is a bad idea.\n"), "red");
-	free_wcs(&fit, FALSE);
+	free_wcs(&fit);
+	reset_wcsdata(&fit);
 	return apply_reg_prepare_results(args);
 }
 
@@ -285,7 +286,6 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	regargs->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
 	regargs->imgparam[out_index].rx = rx_out;
 	regargs->imgparam[out_index].ry = ry_out;
-	regargs->imgparam[out_index].date_obs = args->seq->imgparam[in_index].date_obs;
 	regargs->regparam[out_index].fwhm = sadata->current_regdata[in_index].fwhm;
 	regargs->regparam[out_index].weighted_fwhm = sadata->current_regdata[in_index].weighted_fwhm;
 	regargs->regparam[out_index].roundness = sadata->current_regdata[in_index].roundness;

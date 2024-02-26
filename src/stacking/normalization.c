@@ -235,10 +235,7 @@ static int compute_normalization(struct stacking_args *args) {
 				retval = 1;
 				continue;
 			}
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-			cur_nb++;	// only used for progress bar
+			g_atomic_int_inc(&cur_nb);	// only used for progress bar
 			set_progress_bar_data(NULL, cur_nb / (double)args->nb_images_to_stack);
 		}
 	}

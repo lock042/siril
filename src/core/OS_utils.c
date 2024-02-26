@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -203,7 +203,7 @@ static guint64 get_used_RAM_memory() {
  * @param the path of the folder to be checked
  * @return TRUE if free space disk is available, FALSE otherwise
  */
-gboolean is_space_disk_available(gchar *disk) {
+gboolean is_space_disk_available(const gchar *disk) {
 	return (!(find_space(disk) < 1L));
 }
 

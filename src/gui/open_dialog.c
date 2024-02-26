@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -121,9 +121,14 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 		s_pattern = g_string_append(s_pattern, "*.jpg;*.JPG;*.jpeg;*.JPEG;");
 #endif
 
+#ifdef HAVE_LIBJXL
+		s_supported_graph = g_string_append(s_supported_graph, ", *.jxl");
+		s_pattern = g_string_append(s_pattern, "*.jxl;*.JXL;");
+#endif
+
 #ifdef HAVE_LIBHEIF
-		s_supported_graph = g_string_append(s_supported_graph, ", *.heic, *.heif");
-		s_pattern = g_string_append(s_pattern, "*.heic;*.HEIC;*.heif;*.HEIF;");
+		s_supported_graph = g_string_append(s_supported_graph, ", *.heic, *.heif, *.avif");
+		s_pattern = g_string_append(s_pattern, "*.heic;*.HEIC;*.heif;*.HEIF;*.avif;*.AVIF;");
 #endif
 
 #ifdef HAVE_LIBPNG

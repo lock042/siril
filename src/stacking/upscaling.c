@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,6 +46,7 @@ void remove_tmp_drizzle_files(struct stacking_args *args) {
 	gchar *basename = g_path_get_basename(args->seq->seqname);
 	if (!g_str_has_prefix(basename, TMP_UPSCALED_PREFIX)) {
 		remove_prefixed_sequence_files(args->seq, TMP_UPSCALED_PREFIX);
+		g_free(basename);
 		return;
 	}
 	// else means that we are removing files after processing and that

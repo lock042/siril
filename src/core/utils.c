@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -297,8 +297,8 @@ BYTE float_to_uchar_range(float f) {
  * @param fit the image the data is from
  * @return a float [0, 1] value for the given integer value
  */
-float ushort_to_float_bitpix(fits *fit, WORD value) {
-	float fval = (float)value;
+float ushort_to_float_bitpix(const fits *fit,const WORD value) {
+	const float fval = (float)value;
 	return fit->orig_bitpix == BYTE_IMG ?
 		fval * INV_UCHAR_MAX_SINGLE :
 		fval * INV_USHRT_MAX_SINGLE;
@@ -310,7 +310,7 @@ float ushort_to_float_bitpix(fits *fit, WORD value) {
  * @param ndata
  * @return
  */
-WORD *float_buffer_to_ushort(float *buffer, size_t ndata) {
+WORD *float_buffer_to_ushort(const float *buffer, size_t ndata) {
 	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
 	WORD *buf = malloc(ndata * sizeof(WORD));
 	if (!buf) {
@@ -329,7 +329,7 @@ WORD *float_buffer_to_ushort(float *buffer, size_t ndata) {
  * @param ndata
  * @return
  */
-signed short *float_buffer_to_short(float *buffer, size_t ndata) {
+signed short *float_buffer_to_short(const float *buffer, size_t ndata) {
 	if (!buffer) { siril_debug_print("buffer is NULL in data format conversion\n"); return NULL; }
 	signed short *buf = malloc(ndata * sizeof(signed short));
 	if (!buf) {
@@ -482,7 +482,7 @@ uint16_t be16_to_cpu(uint16_t x) {
     return cpu_to_be16(x);
 }
 
-uint32_t be24_to_cpu(BYTE x[3]) {
+uint32_t be24_to_cpu(const BYTE x[3]) {
 #ifdef __BIG_ENDIAN__
 	uint32_t r = ((x[2] << 16) | (x[1] << 8) | x[0]);
 #else
@@ -610,7 +610,7 @@ uint64_t be64_to_cpu(uint64_t x) {
  * @param fit input FITS image
  * @return TRUE if fit image has 3 channels
  */
-gboolean isrgb(fits *fit) {
+gboolean isrgb(const fits *fit) {
 	return (fit->naxis == 3);
 }
 
@@ -686,10 +686,10 @@ const char *get_filename_ext(const char *filename) {
  * @return the type of the file from its filename
  */
 image_type get_type_from_filename(const gchar *filename) {
-	const char *ext = get_filename_ext(filename);
-	if (!ext)
+	const char *extension = get_filename_ext(filename);
+	if (!extension)
 		return TYPEUNDEF;
-	return get_type_for_extension(ext);
+	return get_type_for_extension(extension);
 }
 
 /**
@@ -809,20 +809,20 @@ void replace_invalid_chars(char *name, char repl) {
  */
 int stat_file(const char *filename, image_type *type, char **realname) {
 	int k;
-	const char *ext;
+	const char *extension;
 	*type = TYPEUNDEF;	// default value
 
 	/* check for an extension in filename and isolate it, including the . */
 	if (filename[0] == '\0')
 		return 1;
 
-	ext = get_filename_ext(filename);
+	extension = get_filename_ext(filename);
 	/* if filename has an extension, we only test for it */
-	if (ext) {
+	if (extension) {
 		if (is_readable_file(filename)) {
 			if (realname)
 				*realname = strdup(filename);
-			*type = get_type_for_extension(ext);
+			*type = get_type_for_extension(extension);
 			return 0;
 		}
 		return 1;
@@ -1185,8 +1185,7 @@ gchar* siril_get_file_info(const gchar *filename, GdkPixbuf *pixbuf) {
 	int width, height;
 	int n_channel = 0;
 
-	GdkPixbufFormat *pixbuf_file_info = gdk_pixbuf_get_file_info(filename,
-			&width, &height);
+	const GdkPixbufFormat *pixbuf_file_info = gdk_pixbuf_get_file_info(filename, &width, &height);
 
 	if (pixbuf) {
 		n_channel = gdk_pixbuf_get_n_channels(pixbuf);
@@ -1215,7 +1214,7 @@ gchar *siril_truncate_str(gchar *str, gint size) {
 	if (len > size) {
 		gint pos = len - size;
 		/* locate first "/" */
-		char *ptr = strchr(str + pos, G_DIR_SEPARATOR);
+		const char *ptr = strchr(str + pos, G_DIR_SEPARATOR);
 		if (ptr != NULL) {
 			pos = ptr - str;
 		}
@@ -1405,7 +1404,7 @@ g_string_replace (GString     *string,
  * function to free.
  */
 
-char *str_replace(char *orig, char *rep, char *with) {
+char *str_replace(char *orig, const char *rep, char *with) {
     char *result; // the return string
     char *ins;    // the next insert point
     char *tmp;    // varies
@@ -1525,11 +1524,7 @@ void append_elements_to_array(char **array, char **elements) {
  * Returns: The UTF-8 string as described above.
  **/
 
-gchar *
-	siril_any_to_utf8 (const gchar  *str,
-						gssize        len,
-						const gchar  *warning_format,
-						...) {
+gchar * siril_any_to_utf8 (const gchar *str, gssize len, const gchar *warning_format, ...) {
 	const gchar *start_invalid;
 	gchar *utf8;
 
@@ -1583,23 +1578,37 @@ const gchar *get_com_ext(gboolean fz) {
     return com.pref.ext;
 }
 
-/* converts FITS or WCS coordinates to display coordinates */
-int fits_to_display(double fx, double fy, double *dx, double *dy, int ry) {
-       if (fx < 0.0 || fy < 1.0 || fy > ry)
+/*
+  We have 4 conventions to handle:
+  - siril: origin bottom left, y up, (0,0) at the corner of first bottom left pixel
+  - display/cairo: origin top left, y down, (0,0) at the corner of first top left pixel
+  - WCS/FITS: origin bottom left, y up, (1,1) at the center point of first bottom left pixel (https://www.atnf.csiro.au/people/mcalabre/WCS/Intro/WCS04.html, that is a pixel-one-based (FORTRAN) system)
+  - OPENCV: origin top left, y down, (0,0) at the center point of first top left pixel
+  (Both WCS/FITS and OPENCV are pixel-based while Siril and display/cairo are grid-based)
+*/
+
+/* converts Siril coordinates to display coordinates */
+int siril_to_display(double sx, double sy, double *dx, double *dy, int ry) {
+       if (sx < 0.0 || sy < 0.0 || sy > ry)
                return 1;
-       // TODO: does ROWORDER change this?
-       *dx = fx;
-       *dy = ry - fy;
+       *dx = sx;
+       *dy = ry - sy;
        return 0;
 }
 
-/* converts display coordinates to FITS or WCS coordinates */
-int display_to_fits(double dx, double dy, double *fx, double *fy, int ry) {
-       if (dx < 0.0 || dy < 0.0 || dy > ry - 1)
+/* converts display coordinates to Siril */
+int display_to_siril(double dx, double dy, double *sx, double *sy, int ry) {
+       if (dx < 0.0 || dy < 0.0 || dy > ry)
                return 1;
-       // TODO: does ROWORDER change this?
-       *fx = dx;
-       *fy = ry - dy;
+       *sx = dx;
+       *sy = ry - dy;
+       return 0;
+}
+
+/* converts FITS/WCS coordinates to display coordinates */
+int fits_to_display(double fx, double fy, double *dx, double *dy, int ry) {
+       *dx = fx - 0.5;
+       *dy = ry - fy + 0.5;
        return 0;
 }
 
@@ -1640,4 +1649,173 @@ GSList *siril_file_chooser_get_filenames(GtkFileChooser *chooser) {
     g_slist_free(uris);
 
     return filenames;
+}
+
+// This function turns planar data into interleaved RGB or RRGGBB depending on the max_bitdepth passed.
+// It returns 0 on success and a non-zero value on failure.
+int interleave(fits *fit, int max_bitdepth, void **interleaved_buffer, int *bit_depth, gboolean force_even) {
+	if (max_bitdepth < 8 || (fit->type == DATA_USHORT && max_bitdepth > 16) || (fit->type == DATA_FLOAT && (!(max_bitdepth == 32 || max_bitdepth < 17)))) {
+		siril_debug_print("Error: inappropriate max_bitdepth. Setting max_bitdepth to 8 for safety. Report this as a bug.\n");
+		max_bitdepth = 8;
+	}
+	uint8_t *image_buffer = NULL;
+	WORD *image_bufferW = NULL;
+	float *image_bufferf = NULL;
+	void *buffer = NULL;
+	size_t datalength;
+	int bitdepth;
+	WORD *gbuf[3] = { fit->pdata[RLAYER], fit->pdata[GLAYER], fit->pdata[BLAYER] };
+	float *gbuff[3] = { fit->fpdata[RLAYER], fit->fpdata[GLAYER], fit->fpdata[BLAYER] };
+	size_t width = fit->rx, height = fit->ry;
+	if (force_even) {
+		if (width % 2) width--;
+		if (height % 2) height--;
+	}
+
+	if (fit->type == DATA_USHORT) {
+		if (fit->orig_bitpix == BYTE_IMG || max_bitdepth == 8) {
+			datalength = width * height * fit->naxes[2] * sizeof(BYTE);
+			buffer = malloc(datalength);
+			image_buffer = (uint8_t*) buffer;
+			if (!image_buffer) {
+				PRINT_ALLOC_ERR;
+				return 1;
+			}
+			int rshift = fit->orig_bitpix == BYTE_IMG ? 0 : 8;
+			for (int i = (height - 1); i >= 0; i--) {
+				for (int j = 0; j < width; j++) {
+					int pixelIdx = ((i * fit->rx) + j) * fit->naxes[2]; // fit->rx is correct here, it refers to original data full width
+					WORD red = *gbuf[RLAYER]++;
+					image_buffer[pixelIdx + 0] = truncate_to_BYTE(red >> rshift); // r |-- Set r,g,b components to
+					if (fit->naxes[2] == 3) {
+						WORD green = *gbuf[GLAYER]++;
+						WORD blue = *gbuf[BLAYER]++;
+						image_buffer[pixelIdx + 1] = truncate_to_BYTE(green >> rshift); // g |   make this pixel
+						image_buffer[pixelIdx + 2] = truncate_to_BYTE(blue >> rshift); // b |
+					}
+				}
+			}
+			bitdepth = 8;
+		} else {
+			datalength = width * height * fit->naxes[2] * sizeof(WORD);
+			buffer = malloc(datalength);
+			image_bufferW = (uint16_t*) buffer;
+			if (!image_bufferW) {
+				PRINT_ALLOC_ERR;
+				return 1;
+			}
+			for (int i = (height - 1); i >= 0; i--) {
+				for (int j = 0; j < width; j++) {
+					int pixelIdx = ((i * fit->rx) + j) * fit->naxes[2]; // fit->rx correct here as above
+					WORD red = *gbuf[RLAYER]++;
+					image_bufferW[pixelIdx + 0] = red; // r |-- Set r,g,b components to
+					if (fit->naxes[2] == 3) {
+						WORD green = *gbuf[GLAYER]++;
+						WORD blue = *gbuf[BLAYER]++;
+						image_bufferW[pixelIdx + 1] = green; // g |   make this pixel
+						image_bufferW[pixelIdx + 2] = blue; // b |
+					}
+				}
+			}
+			bitdepth = min(max_bitdepth, 16);
+		}
+	} else {
+		if (max_bitdepth == 8) {
+			datalength = width * height * fit->naxes[2];
+			buffer = malloc(datalength);
+			image_buffer = (uint8_t*) buffer;
+			if (!image_buffer) {
+				PRINT_ALLOC_ERR;
+				return 1;
+			}
+			for (int i = (height - 1); i >= 0; i--) {
+				for (int j = 0; j < width; j++) {
+					int pixelIdx = ((i * fit->rx) + j) * fit->naxes[2];
+					float red = *gbuff[RLAYER]++;
+					image_buffer[pixelIdx + 0] = roundf_to_BYTE(red * UCHAR_MAX_SINGLE); // r |-- Set r,g,b components to
+					if (fit->naxes[2] == 3) {
+						float green = *gbuff[GLAYER]++;
+						float blue = *gbuff[BLAYER]++;
+						image_buffer[pixelIdx + 1] = roundf_to_BYTE(green * UCHAR_MAX_SINGLE); // g |   make this pixel
+						image_buffer[pixelIdx + 2] = roundf_to_BYTE(blue * UCHAR_MAX_SINGLE); // b |
+					}
+				}
+			}
+			bitdepth = 8;
+		} else if (max_bitdepth < 17) {
+			datalength = width * height * fit->naxes[2] * 2;
+			buffer = malloc(datalength);
+			image_bufferW = (uint16_t*) buffer;
+			if (!image_bufferW) {
+				PRINT_ALLOC_ERR;
+				return 1;
+			}
+			for (int i = (height - 1); i >= 0; i--) {
+				for (int j = 0; j < width; j++) {
+					int pixelIdx = ((i * fit->rx) + j) * fit->naxes[2];
+					float red = *gbuff[RLAYER]++;
+					image_bufferW[pixelIdx + 0] = roundf_to_WORD(red * USHRT_MAX_SINGLE); // r |-- Set r,g,b components to
+					if (fit->naxes[2] == 3) {
+						float green = *gbuff[GLAYER]++;
+						float blue = *gbuff[BLAYER]++;
+						image_bufferW[pixelIdx + 1] = roundf_to_WORD(green * USHRT_MAX_SINGLE); // g |   make this pixel
+						image_bufferW[pixelIdx + 2] = roundf_to_WORD(blue * USHRT_MAX_SINGLE); // b |
+					}
+				}
+			}
+			bitdepth = max_bitdepth;
+		} else {
+			datalength = width * height * fit->naxes[2] * sizeof(float);
+			buffer = malloc(datalength);
+			image_bufferf = (float*) buffer;
+			if (!image_bufferf) {
+				PRINT_ALLOC_ERR;
+				return 1;
+			}
+			for (int i = (height - 1); i >= 0; i--) {
+				for (int j = 0; j < width; j++) {
+					int pixelIdx = ((i * fit->rx) + j) * fit->naxes[2];
+					float red = *gbuff[RLAYER]++;
+					image_bufferf[pixelIdx + 0] = red; // r |-- Set r,g,b components to
+					if (fit->naxes[2] == 3) {
+						float green = *gbuff[GLAYER]++;
+						float blue = *gbuff[BLAYER]++;
+						image_bufferf[pixelIdx + 1] = green; // g |   make this pixel
+						image_bufferf[pixelIdx + 2] = blue; // b |
+					}
+				}
+			}
+			bitdepth = 32;
+		}
+	}
+	*interleaved_buffer = buffer;
+	*bit_depth = bitdepth;
+	return 0;
+}
+
+int count_lines_in_textfile(const gchar *filename) {
+    GError *error = NULL;
+    gchar *contents;
+    gsize length;
+    gint line_count = 0;
+
+    // Read the contents of the file
+    if (!g_file_get_contents(filename, &contents, &length, &error)) {
+        g_printerr("Error reading file: %s\n", error->message);
+        g_error_free(error);
+        return -1;
+    }
+
+    // Count the lines in the CSV file
+    gchar **lines = g_strsplit_set(contents, "\n", 0);
+    for (gchar **line = lines; *line; ++line) {
+        if (**line != '\0')  // Non-empty line
+            ++line_count;
+    }
+
+    // Free allocated memory
+    g_strfreev(lines);
+    g_free(contents);
+
+    return line_count;
 }

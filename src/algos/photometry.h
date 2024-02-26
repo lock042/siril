@@ -20,11 +20,14 @@ typedef struct {
 	float x, y;	// in FITS/WCS coordinates
 	float mag;	// visible magnitude (V filter), for sorting and debug
 	float BV;	// B magnitude - V magnitude, -99.9 if not available
+	float teff; // Gaia Teff
+	uint64_t index; // Order in the Gaia results table. This is used to match
+					// HDUs in the FITS, in case of excluded stars
 } pcc_star;
 
-struct phot_config *phot_set_adjusted_for_image(fits *fit);
+struct phot_config *phot_set_adjusted_for_image(const fits *fit);
 
-photometry *getPhotometryData(gsl_matrix* z, psf_star *psf,
+photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 		struct phot_config *phot_set, gboolean verbose, psf_error *error);
 
 void initialize_photometric_param();
@@ -61,7 +64,7 @@ void free_light_curve_args(struct light_curve_args *args);
 
 gpointer light_curve_worker(gpointer arg);
 
-int new_light_curve(sequence *seq, const char *filename, const char *target_descr, gboolean display_graph, struct light_curve_args *lcargs);
+int new_light_curve(const char *filename, struct light_curve_args *lcargs);
 
 
 #endif /* SRC_ALGOS_PHOTOMETRY_H_ */

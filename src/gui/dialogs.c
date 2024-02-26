@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,11 +34,14 @@
 
 static const SirilDialogEntry entries[] =
 {
+	{"aavso_dialog", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"asinh_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_asinh_cancel},
+	{"astrometry_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"denoise_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"background_extraction_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_background_cancel},
 	{"binxy_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"canon_fixbanding_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"ccm_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"CLAHE_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_clahe_cancel},
 	{"composition_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"compstars", get_compstars_dialog, OTHER_DIALOG, FALSE, NULL},
@@ -57,7 +60,7 @@ static const SirilDialogEntry entries[] =
 	{"file_information", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"histogram_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_histo_cancel},
 	{"icc_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
-	{"ImagePlateSolver_Dial", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"astrometry_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"linearmatch_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"Median_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"merge_cfa_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
@@ -66,6 +69,7 @@ static const SirilDialogEntry entries[] =
 	{"resample_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"rgradient_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"rotation_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"s_pcc_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"satu_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_satu_cancel},
 	{"SCNR_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"script_contents_dialog", NULL, INFORMATION_DIALOG, FALSE, NULL},
