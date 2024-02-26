@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-02-14 11:04+0100\n"
-"PO-Revision-Date: 2024-01-18 13:50+0000\n"
-"Last-Translator: Garth TianBo <g-art-h@outlook.com>\n"
+"PO-Revision-Date: 2024-02-20 09:37+0000\n"
+"Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application/zh_Hans/>\n"
 "Language: zh_CN\n"
@@ -17,12 +17,11 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 4.14\n"
+"X-Generator: Weblate 5.4.1\n"
 
 #: src/gui/uifiles/aavso_dialog.ui:7
-#, fuzzy
 msgid "AAVSO parameters"
-msgstr "无变星选择\n"
+msgstr "AAVSO 参数"
 
 #: src/gui/uifiles/aavso_dialog.ui:22 src/gui/uifiles/astrometry_dialog.ui:106
 #: src/gui/uifiles/background_extraction_dialog.ui:73
@@ -103,9 +102,8 @@ msgid "Filter: "
 msgstr ""
 
 #: src/gui/uifiles/aavso_dialog.ui:124
-#, fuzzy
 msgid "The filter used for the observation."
-msgstr "旋转所用的算法"
+msgstr "观测所用滤镜。"
 
 #: src/gui/uifiles/aavso_dialog.ui:171
 msgid "Cname: "
@@ -129,9 +127,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/aavso_dialog.ui:229
-#, fuzzy
 msgid "Starid: "
-msgstr "第一颗星:"
+msgstr "恒星id: "
 
 #: src/gui/uifiles/aavso_dialog.ui:240
 msgid ""
@@ -148,14 +145,12 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/aavso_dialog.ui:275
-#, fuzzy
 msgid "Comparaison star: "
-msgstr "比较星"
+msgstr "比较星 "
 
 #: src/gui/uifiles/aavso_dialog.ui:286
-#, fuzzy
 msgid "The number of the comparison star."
-msgstr "输入目标恒星的名称"
+msgstr "比较星的数量。"
 
 #: src/gui/uifiles/aavso_dialog.ui:299
 msgid "Cstd: "
@@ -190,9 +185,8 @@ msgid "Check star: "
 msgstr ""
 
 #: src/gui/uifiles/aavso_dialog.ui:339
-#, fuzzy
 msgid "The number of the check star."
-msgstr "输入目标恒星的名称"
+msgstr "检查星数量。"
 
 #: src/gui/uifiles/aavso_dialog.ui:351
 msgid ""
@@ -533,7 +527,6 @@ msgid "Online Star Catalogue: "
 msgstr "在线星表: "
 
 #: src/gui/uifiles/astrometry_dialog.ui:773
-#, fuzzy
 msgid ""
 "Choose the online catalogue against one want to compare the image.\n"
 "* TYCHO-2 catalogue contains positions, proper motions, and two-color "
@@ -556,22 +549,26 @@ msgid ""
 "V, plus Sloan u', g′, r′, i′, z_s and Z. It is valid from about 7th "
 "magnitude to about 17th magnitude for over 37 million stars."
 msgstr ""
-"选择以下在线星表用于图像解析。 \n"
+"选择以下在线星表用于图像解析。\n"
 "* TYCHO-2 catalogue contains positions, proper motions, and two-color "
-"photometric data for 2,539,913 of the brightest stars in the Milky Way. \n"
+"photometric data for 2,539,913 of the brightest stars in the Milky Way.\n"
 "* NOMAD is a simple merge of data from the Hipparcos, Tycho-2, UCAC2, Yellow-"
 "Blue 6, and USNO-B catalogs for astrometry and optical photometry, "
 "supplemented by 2MASS near-infrared. The almost 100 GB dataset contains "
-"astrometric and photometric data for about 1.1 billion stars. \n"
+"astrometric and photometric data for about 1.1 billion stars.\n"
 "* Gaia Data Release 3 was released on 13 June 2022. The five-parameter "
 "astrometric solution, positions on the sky (α, δ), parallaxes, and proper "
 "motions, are given for around 1.46 billion sources, with a limiting "
-"magnitude of G = 21. \n"
+"magnitude of G = 21.\n"
 "* PPMXL is a catalog of positions, proper motions, 2MASS- and optical "
-"photometry of 900 million stars and galaxies. \n"
+"photometry of 900 million stars and galaxies.\n"
 "* The Bright Star Catalogue is a star catalogue that lists all stars of "
 "stellar magnitude 6.5 or brighter, which is roughly every star visible to "
-"the naked eye from Earth. The catalog contains 9,110 objects."
+"the naked eye from Earth. The catalog contains 9,110 objects.\n"
+"* APASS, the AAVSO Photometric All Sky Survey, is performing an all-sky "
+"photometric survey. This survey is conducted in eight filters: Johnson B and "
+"V, plus Sloan u', g′, r′, i′, z_s and Z. It is valid from about 7th "
+"magnitude to about 17th magnitude for over 37 million stars."
 
 #: src/gui/uifiles/astrometry_dialog.ui:802
 msgid ""
@@ -1539,9 +1536,8 @@ msgid "Prefix of the image names resulting from the unband process."
 msgstr "去条纹处理后输出的文件名前缀。"
 
 #: src/gui/uifiles/ccm_dialog.ui:13 src/gui/uifiles/ccm_dialog.ui:248
-#, fuzzy
 msgid "Color Conversion Matrix"
-msgstr "内核估算完成。\n"
+msgstr "色彩转换矩阵"
 
 #: src/gui/uifiles/ccm_dialog.ui:27
 msgid "Restore ICC"
@@ -1598,9 +1594,8 @@ msgid "XYZ to Simplified sRGB (gamma = 2.2)"
 msgstr ""
 
 #: src/gui/uifiles/ccm_dialog.ui:343
-#, fuzzy
 msgid "Settings"
-msgstr "设置…"
+msgstr "设置"
 
 #: src/gui/uifiles/CLAHE_dialog.ui:49 src/gui/uifiles/siril.ui:1347
 msgid "Contrast-Limited Adaptive Histogram Equalization..."
@@ -5611,24 +5606,20 @@ msgid "Background extraction samples:"
 msgstr "背景提取"
 
 #: src/gui/uifiles/settings_window.ui:3617
-#, fuzzy
 msgid "Standard annotations:"
-msgstr "在标记中显示恒星"
+msgstr "标准标注："
 
 #: src/gui/uifiles/settings_window.ui:3629
-#, fuzzy
 msgid "Deep Sky Object (user) annotations:"
-msgstr "在标记中显示SH2天体"
+msgstr "深空天体（用户）标注："
 
 #: src/gui/uifiles/settings_window.ui:3641
-#, fuzzy
 msgid "Solar System Object (user) annotations:"
-msgstr "搜索观测日期%s的太阳系天体\n"
+msgstr "太阳系天体（用户）标注："
 
 #: src/gui/uifiles/settings_window.ui:3653
-#, fuzzy
 msgid "Temporary Object (user) annotations:"
-msgstr "在标记中显示用户天体"
+msgstr "临时天体（用户）标注："
 
 #: src/gui/uifiles/settings_window.ui:3724
 msgid "Overlay Colors"
@@ -5646,9 +5637,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:3809
-#, fuzzy
 msgid "Preferred Color Space:"
-msgstr "色彩空间:"
+msgstr "首选的色彩空间:"
 
 #: src/gui/uifiles/settings_window.ui:3820
 msgid ""
@@ -5726,9 +5716,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:3925
-#, fuzzy
 msgid "Working Color Spaces"
-msgstr "色彩空间:"
+msgstr "工作色彩空间"
 
 #: src/gui/uifiles/settings_window.ui:3958
 msgid "Custom monitor profile:"
@@ -5771,9 +5760,8 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:4026
 #: src/gui/uifiles/settings_window.ui:4224
-#, fuzzy
 msgid "Saturation"
-msgstr "饱和: "
+msgstr "饱和"
 
 #: src/gui/uifiles/settings_window.ui:4027
 #: src/gui/uifiles/settings_window.ui:4225
@@ -7025,9 +7013,8 @@ msgstr ""
 "输出为与NINA系外行星兼容的csv文件"
 
 #: src/gui/uifiles/siril.ui:2392
-#, fuzzy
 msgid "Create Comparison Stars File..."
-msgstr "创建比较星列表"
+msgstr "创建比较星文件..."
 
 #: src/gui/uifiles/siril.ui:2405
 #, fuzzy
@@ -7045,9 +7032,8 @@ msgid "This is the button for outputting photometric data."
 msgstr ""
 
 #: src/gui/uifiles/siril.ui:2421
-#, fuzzy
 msgid "Create Output"
-msgstr "输出"
+msgstr "创建输出"
 
 #: src/gui/uifiles/siril.ui:2447 src/gui/uifiles/siril.ui:2464
 #: src/gui/uifiles/siril.ui:2479
@@ -7073,18 +7059,16 @@ msgid "Open the CCM dialog"
 msgstr "打开降噪对话框"
 
 #: src/gui/uifiles/siril.ui:2575
-#, fuzzy
 msgid "Color Conversion Matrix..."
-msgstr "内核估算完成。\n"
+msgstr "色彩转换矩阵..."
 
 #: src/gui/uifiles/siril.ui:2589
 msgid "FITS Header..."
 msgstr "FITS 文件头..."
 
 #: src/gui/uifiles/siril.ui:2603
-#, fuzzy
 msgid "Image Information..."
-msgstr "图像信息"
+msgstr "图像信息..."
 
 #: src/gui/uifiles/siril.ui:2655
 msgid "current red file"
@@ -9196,9 +9180,8 @@ msgid "Start the photometric color calibration algorithm."
 msgstr "开始测光法色彩校准。"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:179
-#, fuzzy
 msgid "White Point Reference:"
-msgstr "参考白色：\n"
+msgstr "白点参考："
 
 #: src/gui/uifiles/s_pcc_dialog.ui:191
 msgid "Mono Sensor:"
@@ -10264,13 +10247,12 @@ msgid "Run “%s --help” to see a full list of available command line options.
 msgstr "执行 “%s --help” 来得到一个完整的命令行参数列表。"
 
 #: src/main.c:138
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "%s was not found or contains errors, cannot render GUI.\n"
 " Exiting.\n"
 msgstr ""
-"找不到%s或包含错误，无法渲染GUI：\n"
-"%s\n"
+"未找到 %s 或包含错误，无法渲染 GUI。\n"
 "已退出。\n"
 
 #: src/main.c:152
@@ -10365,9 +10347,9 @@ msgid "Cancelled"
 msgstr "已取消"
 
 #: src/algos/astrometry_solver.c:774
-#, fuzzy, c-format
+#, c-format
 msgid "Fetched %d stars from %s catalogue\n"
-msgstr "无法匹配星表中的星（%s）"
+msgstr "从 %s 星表中获取 %d 颗恒星\n"
 
 #: src/algos/astrometry_solver.c:812
 #, fuzzy, c-format
@@ -10439,9 +10421,8 @@ msgid "Transformation matrix is invalid, solve failed"
 msgstr "变换矩阵无效，解析失败"
 
 #: src/algos/astrometry_solver.c:1084
-#, fuzzy
 msgid "Reprojecting catalog failed."
-msgstr "预处理失败\n"
+msgstr "重投影星表失败。"
 
 #: src/algos/astrometry_solver.c:1092
 #, fuzzy
@@ -10610,9 +10591,9 @@ msgid "%s: extract HSV channel"
 msgstr ""
 
 #: src/algos/colors.c:851 src/algos/colors.c:986
-#, fuzzy, c-format
+#, c-format
 msgid "%s: extract LAB channel"
-msgstr "每个CFA通道"
+msgstr "%s：提取LAB通道"
 
 #: src/algos/colors.c:856 src/algos/colors.c:991
 msgid "Image is not color managed. Assuming sRGB.\n"
@@ -10662,9 +10643,9 @@ msgid ""
 msgstr "在图像中寻找目标恒星时出现问题，无法继续使用光变曲线\n"
 
 #: src/algos/comparison_stars.c:146
-#, fuzzy, c-format
+#, c-format
 msgid "star %s [%s] added as a reference star\n"
-msgstr "添加星 %s 作为参考星\n"
+msgstr "星点 %s [%s] 添加为参考星\n"
 
 #: src/algos/comparison_stars.c:148
 #, c-format
@@ -10691,16 +10672,16 @@ msgid "Not enough stars available\n"
 msgstr "没有足够可用的星点\n"
 
 #: src/algos/comparison_stars.c:283
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Filtering parameters: delta_Vmag: %1.2lf, delta_BV: %1.2lf, max e_Vmag: "
 "%1.3lf\n"
-msgstr "排序参数：delta_Vmag: %1.2lf, delta_BV: %1.2lf\n"
+msgstr "过滤参数：delta_Vmag: %1.2lf, delta_BV: %1.2lf, max e_Vmag: %1.3lf\n"
 
 #: src/algos/comparison_stars.c:285
-#, fuzzy, c-format
+#, c-format
 msgid "Target star: Vmag = %2.2lf, B-V = %+2.2lf\n"
-msgstr "目标星：Vmag=%2.2lf, Bmag=%2.2lf\n"
+msgstr "目标星：Vmag = %2.2lf, B-V = %+2.2lf\n"
 
 #: src/algos/comparison_stars.c:329
 #, c-format
@@ -10717,10 +10698,10 @@ msgid "e_Vmag and e_Bmag are photometric errors supplied from %s\n"
 msgstr "e_Vmag 和 e_Bmag 是从 %s 提供的固有秒错误\n"
 
 #: src/algos/comparison_stars.c:360
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Comp star %3d: %4.2lf, %+4.2lf, %+5.3lf, %+5.3lf, %4.3lf, %4.3lf, %5.2lf\n"
-msgstr "%s  %d: %2.2lf, %2.2lf, %1.3lf, %1.3lf, %1.3lf, %1.3lf\n"
+msgstr "比较星 %3d: %4.2lf, %+4.2lf, %+5.3lf, %+5.3lf, %4.3lf, %4.3lf, %5.2lf\n"
 
 #. and log results
 #: src/algos/comparison_stars.c:376
@@ -10735,9 +10716,9 @@ msgstr "无CSV输出文件创建\n"
 #. and retrieving its results
 #. returns the nb of stars
 #: src/algos/comparison_stars.c:420
-#, fuzzy, c-format
+#, c-format
 msgid "No stars retrieved from the catalog %s\n"
-msgstr "图像中未侦测到星点。\n"
+msgstr "未能从星表 %s 中检索到星点\n"
 
 #: src/algos/comparison_stars.c:427
 #, fuzzy, c-format
@@ -11292,9 +11273,8 @@ msgid ""
 msgstr ""
 
 #: src/algos/photometric_cc.c:526
-#, fuzzy
 msgid "Error: failed to set up colorspace transform.\n"
-msgstr "无法创建配置目录 %s\n"
+msgstr "错误：未能设置色彩空间变换。\n"
 
 #: src/algos/photometric_cc.c:611
 msgid "No valid stars found.\n"
@@ -11544,9 +11524,9 @@ msgid " (aka %s)"
 msgstr ""
 
 #: src/algos/search_objects.c:221
-#, fuzzy, c-format
+#, c-format
 msgid " at coordinates: %s, %s\n"
-msgstr "找到 %s 于坐标：%s,%s\n"
+msgstr " 于座标：%s,%s\n"
 
 #: src/algos/search_objects.c:248
 #, fuzzy, c-format
@@ -12429,9 +12409,8 @@ msgid "Error in step size parameter: must be between 0 and 1, aborting.\n"
 msgstr "步长参数错误：必须介于 0 和 1 之间，异常终止。\n"
 
 #: src/core/command.c:1737
-#, fuzzy
 msgid "Color Conversion Matrices can only be applied to 3-channel images.\n"
-msgstr "该操作无法应用于8位图像\n"
+msgstr "色彩转换矩阵只能应用于3通道图像。\n"
 
 #: src/core/command.c:1748
 #, fuzzy, c-format
@@ -14121,9 +14100,8 @@ msgid ""
 msgstr ""
 
 #: src/core/command.c:9710
-#, fuzzy
 msgid "Color space conversion complete.\n"
-msgstr "内核估算完成。\n"
+msgstr "色彩空间转换完成。\n"
 
 #: src/core/command.c:9746
 msgid "OSC Sensors"
@@ -16866,7 +16844,6 @@ msgstr ""
 "号，从1开始，而不是文件名中的编号"
 
 #: src/core/command_def.h:181
-#, fuzzy
 msgid ""
 "Shows a point on the loaded plate solved image using the temporary user "
 "annotations catalogue, based on its equatorial coordinates. The <b>-clear</"
@@ -16881,10 +16858,14 @@ msgid ""
 msgstr ""
 "Shows a point on the loaded plate solved image using the temporary user "
 "annotations catalogue, based on its equatorial coordinates. The <b>-clear</"
-"b> option clears this catalogue first and can be used alone. Several points "
-"can be passed using a CSV file with the option <b>-file=</b> containing a "
-"name (cannot start with a digit), RA and Dec. This is only available from "
-"the GUI of Siril"
+"b> option clears this catalogue first and can be used alone.\n"
+"Several points can be passed using a CSV file with the option <b>-list=</b> "
+"containing at least ra and dec columns. If the passed file also contains a "
+"column name, names will be used as tags in the image and listed in the "
+"Console, unless toggled off with the options <b>-notag</b> and <b>-nolog</b>."
+"\n"
+"\n"
+"This is only available from the GUI of Siril"
 
 #: src/core/command_def.h:182
 msgid ""
@@ -17664,9 +17645,8 @@ msgid "Converted to ICC profile: %s"
 msgstr "转化为16位"
 
 #: src/core/icc_profile.c:1181
-#, fuzzy
 msgid "Failed to create colorspace transform."
-msgstr "无法创建配置目录 %s\n"
+msgstr "无法创建色彩空间变换。"
 
 #: src/core/icc_profile.c:1204
 msgid ""
@@ -17774,9 +17754,8 @@ msgid "Color profile assignment"
 msgstr "彩色图像目标"
 
 #: src/core/icc_profile.c:1698 src/core/icc_profile.c:1751
-#, fuzzy
 msgid "Color space not supported"
-msgstr "文件格式不支持。"
+msgstr "色彩空间不支持"
 
 #: src/core/icc_profile.c:1698 src/core/icc_profile.c:1751
 msgid ""
@@ -17785,9 +17764,8 @@ msgid ""
 msgstr ""
 
 #: src/core/icc_profile.c:1702
-#, fuzzy
 msgid "Transform not supported"
-msgstr "文件格式不支持。"
+msgstr "变换不支持"
 
 #: src/core/icc_profile.c:1702
 msgid ""
@@ -19053,37 +19031,35 @@ msgstr "网格上罗盘位置的指标"
 
 #: src/core/settings.c:496
 msgid "show Messier objects in annotations"
-msgstr "在标记中显示梅西叶天体"
+msgstr "在标注中显示梅西叶天体"
 
 #: src/core/settings.c:497
 msgid "show NGC objects in annotations"
-msgstr "在标记中显示NGC天体"
+msgstr "在标记注显示NGC天体"
 
 #: src/core/settings.c:498
 msgid "show IC objects in annotations"
-msgstr "在标记中显示IC天体"
+msgstr "在标注中显示IC天体"
 
 #: src/core/settings.c:499
 msgid "show LDN objects in annotations"
-msgstr "在标记中显示LDN天体"
+msgstr "在标注中显示LDN天体"
 
 #: src/core/settings.c:500
 msgid "show SH2 objects in annotations"
-msgstr "在标记中显示SH2天体"
+msgstr "在标注中显示SH2天体"
 
 #: src/core/settings.c:501
 msgid "show stars in annotations"
-msgstr "在标记中显示恒星"
+msgstr "在标注中显示恒星"
 
 #: src/core/settings.c:502
-#, fuzzy
 msgid "show user DSO objects in annotations"
-msgstr "在标记中显示用户天体"
+msgstr "在标注中显示用户深空天体"
 
 #: src/core/settings.c:503
-#, fuzzy
 msgid "show user SSO objects in annotations"
-msgstr "在标记中显示用户天体"
+msgstr "在标注中显示用户太阳系天体"
 
 #: src/core/settings.c:505
 msgid "list of pixel math presets"
@@ -21237,9 +21213,8 @@ msgid "one-shot color (OSC)"
 msgstr ""
 
 #: src/gui/photometric_cc.c:692
-#, fuzzy
 msgid "No selection made: no details to show."
-msgstr "未加载图层：无保存文件"
+msgstr "未做出选择：没有可显示的详细信息。"
 
 #: src/gui/photometric_cc.c:730
 #, fuzzy
@@ -21303,9 +21278,8 @@ msgid "You must select a comparison star and a check star."
 msgstr ""
 
 #: src/gui/plot.c:1358
-#, fuzzy
 msgid "Wrong data"
-msgstr "错误的日期： "
+msgstr "错误数据"
 
 #: src/gui/plot.c:1358
 msgid "The comparison star and the check star must be different."
@@ -22838,9 +22812,8 @@ msgid ""
 msgstr "保存JPG：文件名 %s, quality=%d%%, %ld layer(s), %ux%u pixels\n"
 
 #: src/io/image_formats_libraries.c:3064
-#, fuzzy
 msgid "Save complete.\n"
-msgstr "叠加完成。"
+msgstr "保存完成。\n"
 
 #: src/io/image_format_fits.c:375
 #, c-format
@@ -23686,9 +23659,9 @@ msgid ""
 msgstr ""
 
 #: src/io/siril_catalogues.c:587 src/io/siril_catalogues.c:590
-#, fuzzy, c-format
+#, c-format
 msgid "Could not open the catalog (%s)\n"
-msgstr "无法载入星表（%s）。"
+msgstr "无法打开星表（%s）\n"
 
 #: src/io/siril_catalogues.c:631
 msgid "No columns found in the catalogue\n"
@@ -23890,9 +23863,8 @@ msgstr ""
 
 #. Merge cannot be fast forwarded
 #: src/io/siril_git.c:916 src/io/siril_git.c:966
-#, fuzzy
 msgid "Warning!"
-msgstr "警告"
+msgstr "警告！"
 
 #: src/io/siril_git.c:916
 msgid ""
