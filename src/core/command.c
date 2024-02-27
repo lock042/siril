@@ -8715,13 +8715,13 @@ int process_platesolve(int nb) {
 	while (nb > next_arg && word[next_arg]) {
 		if (!strcmp(word[next_arg], "-noflip"))
 			noflip = TRUE;
-		if (!strcmp(word[next_arg], "-nocrop"))
+		else if (!strcmp(word[next_arg], "-nocrop"))
 			autocrop = FALSE;
 		else if (!seqps && !strcmp(word[next_arg], "-platesolve"))
 			plate_solve = TRUE;
 		else if (!strcmp(word[next_arg], "-downscale"))
 			downsample = TRUE;
-		if (!strcmp(word[next_arg], "-nocache"))
+		else if (!strcmp(word[next_arg], "-nocache"))
 			nocache = TRUE;
 		else if (g_str_has_prefix(word[next_arg], "-focal=")) {
 			char *arg = word[next_arg] + 7;
