@@ -38,6 +38,7 @@ xx/xx/xx
 * Added auto remove variable stars (VSX, GCVS, GaDR3-Varisum) from compstars list (!608)
 * If directory does not exist during script execution, CMD_DIR_NOT_FOUND is returned (!628)
 * Fix issue where ICC profile with wrong channel count could be assigned if no previous ICC profile was assigned to an image (#1267)
+* Added near solve in Siril internal solver (#1154::4 and !631)
 
 siril 1.2.2
 xx/xx/24
