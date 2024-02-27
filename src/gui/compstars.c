@@ -228,6 +228,8 @@ static void manual_photometry_data (sequence *seq) {
 	write_nina_file(args);
 	// and free the stuff
 	siril_catalog_free(comp_sta);
+	g_free(args->nina_file);
+
 	free(args);
 }
 
