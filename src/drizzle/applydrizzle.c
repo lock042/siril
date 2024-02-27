@@ -82,14 +82,14 @@ static regdata *apply_driz_get_ref_regdata(struct driz_args_t *driz) {
 	return ref_regdata;
 }
 
-static gboolean compute_framing(struct registration_args *regargs) {
+static gboolean driz_compute_framing(struct driz_args_t *driz) {
 	// validity of matrices has already been checked before this call
 	// and null matrices have been discarded
-	Homography Href = regargs->seq->regparam[regargs->layer][regargs->reference_image].H;
+	Homography Href = driz->seq->regparam[0][driz->reference_image].H;
 	Homography Hshift = {0};
 	cvGetEye(&Hshift);
-	int rx = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
-	int ry = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
+	int rx = (driz->seq->is_variable) ? driz->seq->imgparam[driz->reference_image].rx : driz->seq->rx;
+	int ry = (driz->seq->is_variable) ? driz->seq->imgparam[driz->reference_image].ry : driz->seq->ry;
 	int x0, y0, rx_0 = rx, ry_0 = ry, n;
 	double xmin, xmax, ymin, ymax, cogx, cogy;
 
@@ -103,7 +103,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 	framing.pt[3].x = 0.;
 	framing.pt[3].y = (double)ry;
 
-	switch (regargs->framing) {
+	switch (driz->framing) {
 		case FRAMING_CURRENT:
 			break;
 		case FRAMING_MAX:
@@ -111,22 +111,22 @@ static gboolean compute_framing(struct registration_args *regargs) {
 			xmax = -DBL_MAX;
 			ymin = DBL_MAX;
 			ymax = -DBL_MAX;
-			for (int i = 0; i < regargs->seq->number; i++) {
-				if (!regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
+			for (int i = 0; i < driz->seq->number; i++) {
+				if (!driz->filtering_criterion(driz->seq, i, driz->filtering_parameter))
 					continue;
 				siril_debug_print("Image #%d:\n", i);
 				regframe current_framing = {0};
 				memcpy(&current_framing, &framing, sizeof(regframe));
-				if (regargs->seq->is_variable) {
-					double rx2 = (double)regargs->seq->imgparam[i].rx;
-					double ry2 = (double)regargs->seq->imgparam[i].ry;
+				if (driz->seq->is_variable) {
+					double rx2 = (double)driz->seq->imgparam[i].rx;
+					double ry2 = (double)driz->seq->imgparam[i].ry;
 					current_framing.pt[1].x = rx2;
 					current_framing.pt[2].x = rx2;
 					current_framing.pt[2].y = ry2;
 					current_framing.pt[3].y = ry2;
 				}
 				for (int j = 0; j < 4; j++) {
-					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y, regargs->seq->regparam[regargs->layer][i].H, Href);
+					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y, driz->seq->regparam[0][i].H, Href);
 					if (xmin > current_framing.pt[j].x) xmin = current_framing.pt[j].x;
 					if (ymin > current_framing.pt[j].y) ymin = current_framing.pt[j].y;
 					if (xmax < current_framing.pt[j].x) xmax = current_framing.pt[j].x;
@@ -148,15 +148,15 @@ static gboolean compute_framing(struct registration_args *regargs) {
 			xmax = DBL_MAX;
 			ymin = -DBL_MAX;
 			ymax = DBL_MAX;
-			for (int i = 0; i < regargs->seq->number; i++) {
-				if (!regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
+			for (int i = 0; i < driz->seq->number; i++) {
+				if (!driz->filtering_criterion(driz->seq, i, driz->filtering_parameter))
 					continue;
 				siril_debug_print("Image #%d:\n", i);
 				regframe current_framing = {0};
 				memcpy(&current_framing, &framing, sizeof(regframe));
-				if (regargs->seq->is_variable) {
-					double rx2 = (double)regargs->seq->imgparam[i].rx;
-					double ry2 = (double)regargs->seq->imgparam[i].ry;
+				if (driz->seq->is_variable) {
+					double rx2 = (double)driz->seq->imgparam[i].rx;
+					double ry2 = (double)driz->seq->imgparam[i].ry;
 					current_framing.pt[1].x = rx2;
 					current_framing.pt[2].x = rx2;
 					current_framing.pt[2].y = ry2;
@@ -164,7 +164,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 				}
 				double xs[4], ys[4];
 				for (int j = 0; j < 4; j++) {
-					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y,regargs->seq->regparam[regargs->layer][i].H, Href);
+					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y,driz->seq->regparam[0][i].H, Href);
 					siril_debug_print("Point #%d: %3.2f %3.2f\n", j, current_framing.pt[j].x, current_framing.pt[j].y);
 					xs[j] = current_framing.pt[j].x;
 					ys[j] = current_framing.pt[j].y;
@@ -189,15 +189,15 @@ static gboolean compute_framing(struct registration_args *regargs) {
 			cogx = 0.;
 			cogy = 0;
 			n = 0;
-			for (int i = 0; i < regargs->seq->number; i++) {
-				if (!regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
+			for (int i = 0; i < driz->seq->number; i++) {
+				if (!driz->filtering_criterion(driz->seq, i, driz->filtering_parameter))
 					continue;
 				siril_debug_print("Image #%d:\n", i);
 				regframe current_framing = {0};
 				memcpy(&current_framing, &framing, sizeof(regframe));
 				double currcogx = 0., currcogy = 0.;
 				for (int j = 0; j < 4; j++) {
-					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y,regargs->seq->regparam[regargs->layer][i].H, Href);
+					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y,driz->seq->regparam[0][i].H, Href);
 					siril_debug_print("Point #%d: %3.2f %3.2f\n", j, current_framing.pt[j].x, current_framing.pt[j].y);
 					currcogx += current_framing.pt[j].x;
 					currcogy += current_framing.pt[j].y;
@@ -218,8 +218,8 @@ static gboolean compute_framing(struct registration_args *regargs) {
 			return FALSE;
 	}
 	cvMultH(Href, Hshift, &Htransf);
-	rx_out = rx_0 * ((regargs->x2upscale) ? 2. : 1.);
-	ry_out = ry_0 * ((regargs->x2upscale) ? 2. : 1.);
+	rx_out = rx_0 * driz->scale;
+	ry_out = ry_0 * driz->scale;
 	return TRUE;
 }
 
@@ -254,6 +254,8 @@ int apply_drz_prepare_results(struct generic_seq_args *args) {
 int apply_drz_prepare_hook(struct generic_seq_args *args) {
 	struct driz_args_t *driz = args->user;
 
+	driz_param_dump(driz);
+
 	fits fit = { 0 };
 
 	/* preparing reference data from reference fit and making sanity checks*/
@@ -266,14 +268,10 @@ int apply_drz_prepare_hook(struct generic_seq_args *args) {
 	}
 
 	driz->is_bayer = (fit.bayer_pattern[0] != '\0'); // If there is a CFA pattern we need to CFA drizzle
-	sensor_pattern pattern;
+	sensor_pattern pattern = com.pref.debayer.use_bayer_header ? get_cfa_pattern_index_from_string(fit.bayer_pattern) : com.pref.debayer.bayer_pattern;
 	if (driz->is_bayer) {
-		sensor_pattern tmp_pattern = com.pref.debayer.bayer_pattern;
-		if (com.pref.debayer.use_bayer_header) {
-			pattern = get_cfa_pattern_index_from_string(fit.bayer_pattern);
-		}
-		// Copied from debayer.c, this appears to set up a uint32_t that allows mapping pixel to color
-		// using FC()
+		// Copied from debayer.c, this sets up a uint32_t that allows mapping pixel to color
+		// using FC(). Note: it doesn't cover X-Trans patterns
 		switch (pattern) {
 			case BAYER_FILTER_BGGR:
 				driz->cfa = 0x16161616;
@@ -327,6 +325,7 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	p->driz = driz;
 	p->error = malloc(sizeof(struct driz_error_t));
 	p->scale = driz->scale;
+	p->pixel_fraction = driz->pixel_fraction;
 	p->cfa = driz->cfa;
 
 	// Set bounds. TODO: make this account for a selection
@@ -399,7 +398,7 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	out.rx = out.naxes[0] = (int) (fit->rx * p->scale);
 	out.ry = out.naxes[1] = (int) (fit->ry * p->scale);
 	out.naxes[2] = driz->is_bayer ? 3 : 1;
-	siril_debug_print("Output image %d x %d x %d\n", out.rx, out.ry, out.naxes[2]);
+	siril_debug_print("Output image %d x %d x %ld\n", out.rx, out.ry, out.naxes[2]);
 	size_t chansize = out.rx * out.ry * sizeof(float);
 	out.fdata = calloc(out.naxes[2] * chansize, 1);
 	out.fpdata[0] = out.fdata;
@@ -410,14 +409,13 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	// Set up the output_counts fits to store pixel hit counts
 	fits output_counts = { 0 };
 	copyfits(&out, &output_counts, CP_FORMAT, -1);
-	siril_debug_print("Output counts image %d x %d x %d\n", out.rx, out.ry, out.naxes[2]);
+	siril_debug_print("Output counts image %d x %d x %ld\n", out.rx, out.ry, out.naxes[2]);
 	output_counts.fdata = calloc(output_counts.rx * output_counts.ry * output_counts.naxes[2], sizeof(float));
 	p->output_counts = &output_counts;
 
 	/* NOTE: on the first pass there is no weights file, everything is evenly
 	 *       weighted. This will be used to remove outliers after drz_medstack.
 	 *       So we don't need to initialize driz->weights here */
-
 	gettimeofday(&t_start, NULL);
 	if (dobox(p)) // Do the drizzle
 		return 1;
@@ -470,22 +468,22 @@ int apply_drz_finalize_hook(struct generic_seq_args *args) {
 	fix_selnum(args->seq, FALSE);
 
 	if (!args->retval) {
-/*		for (int i = 0; i < args->nb_filtered_images; i++)
-//			if (!sadata->success[i])
-//				failed++;
-		regargs->new_total = args->nb_filtered_images - failed;
+		for (int i = 0; i < args->nb_filtered_images; i++)
+			if (!driz->success[i])
+				failed++;
+		driz->new_total = args->nb_filtered_images - failed;
 		if (failed) {
-			// regargs->imgparam and regargs->regparam may have holes caused by images
+			// driz->imgparam and driz->regparam may have holes caused by images
 			// that failed to be registered - compact them
-			for (int i = 0, j = 0; i < regargs->new_total; i++, j++) {
-				while (!sadata->success[j] && j < args->nb_filtered_images) j++;
-				g_assert(sadata->success[j]);
+			for (int i = 0, j = 0; i < driz->new_total; i++, j++) {
+				while (!driz->success[j] && j < args->nb_filtered_images) j++;
+				g_assert(driz->success[j]);
 				if (i != j) {
-					regargs->imgparam[i] = regargs->imgparam[j];
-					regargs->regparam[i] = regargs->regparam[j];
+					driz->imgparam[i] = driz->imgparam[j];
+					driz->regparam[i] = driz->regparam[j];
 				}
 			}
-		}*/
+		}
 		seq_finalize_hook(args);
 	} else {
 		driz->new_total = 0;
@@ -601,6 +599,12 @@ gboolean check_before_applydrizzle(struct driz_args_t *driz);
 
 int apply_drizzle(struct driz_args_t *driz) {
 	struct generic_seq_args *args = create_default_seqargs(driz->seq);
+
+	if (!check_before_applydrizzle(driz)) {
+		free(args);
+		return -1;
+	}
+
 	args->seq = driz->seq;
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = driz->seq->selnum;
@@ -662,32 +666,16 @@ static void create_output_sequence_for_apply_driz(struct driz_args_t *args) {
 	new_ref_index = -1; // resetting
 }
 
-/*gboolean check_before_applydrizzle(struct driz_args_t *driz) {
-		// check the reference image matrix is not null
-	transformation_type checkH = guess_transform_from_H(regargs->seq->regparam[regargs->layer][regargs->seq->reference_image].H);
+gboolean check_before_applydrizzle(struct driz_args_t *driz) {
+	// check the reference image matrix is not null
+	transformation_type checkH = guess_transform_from_H(driz->seq->regparam[0][driz->seq->reference_image].H);
 	if (checkH == NULL_TRANSFORMATION) {
 		siril_log_color_message(_("The reference image has a null matrix and was not previously aligned, choose another one, aborting\n"), "red");
 		return FALSE;
 	}
-	// check the number of dof if -interp=none
+
 	transformation_type min, max;
-	guess_transform_from_seq(regargs->seq, regargs->layer, &min, &max, TRUE);
-	if (max > SHIFT_TRANSFORMATION && regargs->interpolation == OPENCV_NONE) {
-		siril_log_color_message(_("Applying registration computed with higher degree of freedom (%d) than shift is not allowed when interpolation is set to none, aborting\n"), "red", ((int)max + 1) * 2);
-		return FALSE;
-	}
-
-	// check the consistency of output images size if -interp=none
-	if (regargs->interpolation == OPENCV_NONE && (regargs->x2upscale || regargs->framing == FRAMING_MAX || regargs->framing == FRAMING_MIN)) {
-		siril_log_color_message(_("Applying registration with changes in output image sizeis not allowed when interpolation is set to none , aborting\n"), "red");
-		return FALSE;
-	}
-
-	// check the consistency of images size if -interp=none
-	if (regargs->interpolation == OPENCV_NONE && regargs->seq->is_variable) {
-		siril_log_color_message(_("Applying registration on images with different sizes when interpolation is set to none is not allowed, aborting\n"), "red");
-		return FALSE;
-	}
+	guess_transform_from_seq(driz->seq, 0, &min, &max, TRUE);
 
 	// check that we are not trying to apply identity transform to all the images
 	if (max == IDENTITY_TRANSFORMATION) {
@@ -696,7 +684,7 @@ static void create_output_sequence_for_apply_driz(struct driz_args_t *args) {
 	}
 
 	// check that we are not trying to apply null transform to all the images
-	if (max == NULL_TRANSFORMATION || (regargs->seq->selnum <= 1) ) {
+	if (max == NULL_TRANSFORMATION || (driz->seq->selnum <= 1) ) {
 		siril_log_color_message(_("Existing registration data is a set of null matrices, no transformation would be applied, aborting\n"), "red");
 		return FALSE;
 	}
@@ -704,39 +692,39 @@ static void create_output_sequence_for_apply_driz(struct driz_args_t *args) {
 	// force -selected if some matrices were null
 	if (min == NULL_TRANSFORMATION) {
 		siril_log_color_message(_("Some images were not registered, excluding them\n"), "salmon");
-		regargs->filters.filter_included = TRUE;
+		driz->filters.filter_included = TRUE;
 	}
 
-	// cog frmaing method requires all images to be of same size
-	if (regargs->framing == FRAMING_COG && regargs->seq->is_variable) {
+	// cog framing method requires all images to be of same size
+	if (driz->framing == FRAMING_COG && driz->seq->is_variable) {
 		siril_log_color_message(_("Framing method \"cog\" requires all images to be of same size, aborting\n"), "red");
 		return FALSE;
 	}
 
 	// compute_framing uses the filtered list of images, so we compute the filter here
-	if (!regargs->filtering_criterion &&
-			convert_parsed_filter_to_filter(&regargs->filters,
-				regargs->seq, &regargs->filtering_criterion,
-				&regargs->filtering_parameter)) {
+	if (!driz->filtering_criterion &&
+			convert_parsed_filter_to_filter(&driz->filters,
+				driz->seq, &driz->filtering_criterion,
+				&driz->filtering_parameter)) {
 		return FALSE;
 	}
-	int nb_frames = compute_nb_filtered_images(regargs->seq,
-			regargs->filtering_criterion, regargs->filtering_parameter);
-	regargs->new_total = nb_frames;	// to avoid recomputing it later
-	gchar *str = describe_filter(regargs->seq, regargs->filtering_criterion,
-			regargs->filtering_parameter);
+	int nb_frames = compute_nb_filtered_images(driz->seq,
+			driz->filtering_criterion, driz->filtering_parameter);
+	driz->new_total = nb_frames;	// to avoid recomputing it later
+	gchar *str = describe_filter(driz->seq, driz->filtering_criterion,
+			driz->filtering_parameter);
 	siril_log_message(str);
 	g_free(str);
 
 	// determines the reference homography (including framing shift) and output size
-	if (!compute_framing(regargs)) {
+	if (!driz_compute_framing(driz)) {
 		siril_log_color_message(_("Unknown framing method, aborting\n"), "red");
 		return FALSE;
 	}
 
 	// make sure we apply registration only if the output sequence has a meaningful size
-	int rx0 = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
-	int ry0 = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
+	int rx0 = (driz->seq->is_variable) ? driz->seq->imgparam[driz->reference_image].rx : driz->seq->rx;
+	int ry0 = (driz->seq->is_variable) ? driz->seq->imgparam[driz->reference_image].ry : driz->seq->ry;
 	if (rx_out < rx0 * MIN_RATIO || ry_out < ry0 * MIN_RATIO) {
 		siril_log_color_message(_("The output sequence is too small compared to reference image (too much rotation or little overlap?)\n"), "red");
 		siril_log_color_message(_("You should change framing method, aborting\n"), "red");
@@ -745,13 +733,13 @@ static void create_output_sequence_for_apply_driz(struct driz_args_t *args) {
 
 	// cannot use seq_compute_size as rx_out/ry_out are not necessarily consistent with seq->rx/ry
 	// rx_out/ry_out already account for 2x upscale if any
-	int64_t size = (int64_t) rx_out * ry_out * regargs->seq->nb_layers;
-	if (regargs->seq->type == SEQ_SER) {
-		size *= regargs->seq->ser_file->byte_pixel_depth;
+	int64_t size = (int64_t) rx_out * ry_out * driz->seq->nb_layers;
+	if (driz->seq->type == SEQ_SER) {
+		size *= driz->seq->ser_file->byte_pixel_depth;
 		size *= nb_frames;
 		size += SER_HEADER_LEN;
 	} else {
-		size *= (get_data_type(regargs->seq->bitpix) == DATA_USHORT) ? sizeof(WORD) : sizeof(float);
+		size *= (get_data_type(driz->seq->bitpix) == DATA_USHORT) ? sizeof(WORD) : sizeof(float);
 		size += 5760; // FITS double HDU size
 		size *= nb_frames;
 	}
@@ -764,4 +752,4 @@ static void create_output_sequence_for_apply_driz(struct driz_args_t *args) {
 	}
 	return TRUE;
 }
-*/
+

@@ -32,14 +32,27 @@
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 
+void on_drizzleTab_show(GtkWidget *widget, gpointer user_data) {
+	if (com.seq.cfa_opened_monochrome) {
+		gtk_label_set_text(GTK_LABEL(lookup_widget("label_driz_bayer")), "active");
+	} else {
+		gtk_label_set_text(GTK_LABEL(lookup_widget("label_driz_bayer")), "inactive");
+	}
+}
+
 void on_apply_drizzle_clicked(GtkButton *button, gpointer user_data) {
 	struct driz_args_t *driz = calloc(1, sizeof(struct driz_args_t));
 	driz->seq = &com.seq;
 	driz->reference_image = sequence_find_refimage(&com.seq);
 	driz->is_bayer = FALSE;
-	driz->use_wcs = FALSE;
-	driz->scale = 1.2f;
-	driz->kernel = kernel_turbo;
+	driz->use_wcs = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_driz_method"))) == 1;
+	driz->scale = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_driz_scale")));
+	driz->weight_scale = 1.f; // Not used for now
+	driz->kernel = (enum e_kernel_t) gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_driz_kernel")));
+	driz->pixel_fraction = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_driz_dropsize")));
+	driz->filtering_criterion = seq_filter_all; // Needs a GUI element
+	driz->filtering_parameter = 1.0; // Needs a GUI element
+	driz->framing = FRAMING_MAX; // for testing purposes, this is probably the one that best shows any shifts / rotation between frames. Needs a GUI element
 	apply_drizzle(driz);
 }
 

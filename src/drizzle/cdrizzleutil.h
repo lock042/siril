@@ -49,6 +49,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 #include <stdlib.h>
 
+#include "core/sequence_filtering.h" // for seq_image_filter
+#include "registration/registration.h" // for framing_type
+
 /*****************************************************************
  ERROR HANDLING
 */
@@ -157,7 +160,6 @@ struct driz_args_t {
   /* Siril sequence data */
   sequence *seq; /* Sequence to operate on */
   int reference_image; /* reference image */
-  enum e_kernel_t kernel; /* Kernel shape and size */
   bool_t is_bayer; /* Is this a Bayer drizzle? */
   bool_t use_wcs; /* Use WCS mapping? If not, Homography mapping will be used */
   regdata *ref_regdata; /* Reference reg data */
@@ -166,10 +168,18 @@ struct driz_args_t {
   gchar *new_seq_name;
   imgdata *imgparam;
   regdata *regparam;
+  struct seq_filter_config filters; // parsed image filters (.filter_included always used)
+  seq_image_filter filtering_criterion; // the filter, (seqapplyreg only)
+  double filtering_parameter;	// and its parameter (seqapplyreg only)
+  framing_type framing;	// used by seqapplyreg to determine framing
+  BYTE* success;
   int new_total;
   gboolean load_new_sequence;
+  /* Parameters to be copied into the driz_param_t for each frame */
+  enum e_kernel_t kernel; /* Kernel shape and size */
   float scale;
-  BYTE* success;
+  float weight_scale; /* Weight scale */
+  float pixel_fraction;
   uint32_t cfa;
 };
 
@@ -233,7 +243,7 @@ void
 driz_param_init(struct driz_param_t* p);
 
 void
-driz_param_dump(struct driz_param_t* p);
+driz_param_dump(struct driz_args_t* p);
 
 
 /****************************************************************************/

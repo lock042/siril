@@ -66,6 +66,21 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="step-increment">0.10</property>
     <property name="page-increment">10</property>
   </object>
+  <object class="GtkAdjustment" id="adj_driz_dropsize">
+    <property name="lower">0.10</property>
+    <property name="upper">10</property>
+    <property name="value">1</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">0.10</property>
+    <property name="page-size">0.5</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_driz_scale">
+    <property name="lower">0.25</property>
+    <property name="upper">8</property>
+    <property name="value">1</property>
+    <property name="step-increment">0.10</property>
+    <property name="page-increment">0.5</property>
+  </object>
   <object class="GtkAdjustment" id="adj_highlights">
     <property name="upper">1</property>
     <property name="value">1</property>
@@ -2642,7 +2657,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
                   <object class="GtkNotebook" id="notebook1">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
-                    <signal name="switch-page" handler="on_notebook1_switch_page" swapped="no"/>
+                    <signal name="switch-page" handler="on_drizzleTab_show" swapped="no"/>
                     <child>
                       <object class="GtkBox" id="vbox_r">
                         <property name="visible">True</property>
@@ -7489,6 +7504,7 @@ Cross marker: the value for the currently loaded frame.</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
                                     <property name="shadow-type">in</property>
+                                    <signal name="show" handler="on_drizzleTab_show" swapped="no"/>
                                     <child>
                                       <object class="GtkViewport">
                                         <property name="visible">True</property>
@@ -7518,7 +7534,7 @@ Cross marker: the value for the currently loaded frame.</property>
                                                         <property name="row-spacing">6</property>
                                                         <property name="column-spacing">6</property>
                                                         <child>
-                                                          <object class="GtkComboBoxText">
+                                                          <object class="GtkComboBoxText" id="combo_driz_method">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="tooltip-markup" translatable="yes">Choose Homography or WCS for the drizzle mapping method. For Homography, the sequence must contain registration data; for WCS, all images in the sequence must be plate solved (e.g. using the &lt;b&gt;seqplatesolve&lt;/b&gt; command)</property>
@@ -7558,10 +7574,11 @@ Cross marker: the value for the currently loaded frame.</property>
                                                           </packing>
                                                         </child>
                                                         <child>
-                                                          <object class="GtkSpinButton">
+                                                          <object class="GtkSpinButton" id="spin_driz_scale">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="tooltip-text" translatable="yes">Drizzle scale</property>
+                                                            <property name="adjustment">adj_driz_scale</property>
                                                             <property name="digits">1</property>
                                                             <property name="value">1</property>
                                                           </object>
@@ -7583,10 +7600,11 @@ Cross marker: the value for the currently loaded frame.</property>
                                                           </packing>
                                                         </child>
                                                         <child>
-                                                          <object class="GtkSpinButton">
+                                                          <object class="GtkSpinButton" id="spin_driz_dropsize">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="tooltip-text" translatable="yes">Droplet size</property>
+                                                            <property name="adjustment">adj_driz_dropsize</property>
                                                             <property name="digits">1</property>
                                                             <property name="value">1</property>
                                                           </object>
@@ -7608,7 +7626,7 @@ Cross marker: the value for the currently loaded frame.</property>
                                                           </packing>
                                                         </child>
                                                         <child>
-                                                          <object class="GtkComboBoxText">
+                                                          <object class="GtkComboBoxText" id="combo_driz_kernel">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="tooltip-text" translatable="yes">Select the droplet model. See the documentation for details
@@ -7641,7 +7659,7 @@ Note that the Gaussian and Lanczos models do not conserve flux.</property>
                                                           </packing>
                                                         </child>
                                                         <child>
-                                                          <object class="GtkLabel">
+                                                          <object class="GtkLabel" id="label_driz_bayer">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="tooltip-text" translatable="yes">Bayer drizzle will automatically be performed if a CFA pattern is detected in the input sequence</property>
@@ -7691,15 +7709,15 @@ Note that the Gaussian and Lanczos models do not conserve flux.</property>
                                                         <property name="row-spacing">6</property>
                                                         <property name="column-spacing">6</property>
                                                         <child>
-                                                          <object class="GtkCheckButton">
+                                                          <object class="GtkCheckButton" id="toggle_driz_blot">
                                                             <property name="label" translatable="yes">Blot outlier suppression active</property>
                                                             <property name="visible">True</property>
+                                                            <property name="sensitive">False</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
                                                             <property name="tooltip-text" translatable="yes">If active, an intermediate stack will be created and then blotted back to the reference frames of each input image for outlier pixel rejection. A second drizzle will be performed post outlier rejection and finally stacked.
 The initial drizzle will always use the turbo droplet model to create the intermediate stack, and the selected droplet model will be used for the final drizzle.</property>
                                                             <property name="halign">start</property>
-                                                            <property name="active">True</property>
                                                             <property name="draw-indicator">True</property>
                                                           </object>
                                                           <packing>

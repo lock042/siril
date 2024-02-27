@@ -39,6 +39,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cdrizzlemap.h"
 #include "cdrizzleutil.h"
 
+#include "core/siril_log.h"
+
 #include <assert.h>
 #define _USE_MATH_DEFINES       /* needed for MS Windows to define M_PI */
 #include <math.h>
@@ -115,27 +117,17 @@ driz_error_unset(struct driz_error_t* error) {
  DATA TYPES
 */
 void
-driz_param_dump(struct driz_param_t* p) {
+driz_param_dump(struct driz_args_t* p) {
   assert(p);
 
-  printf("DRIZZLING PARAMETERS:\n"
-         "kernel:               %s\n"
-         "pixel_fraction:       %f\n"
-         "exposure_time:        %f\n"
-         "weight_scale:         %f\n"
-         "fill_value:           %f\n"
-         "do_fill:              %s\n"
-         "in_units:             %s\n"
-         "out_units:            %s\n"
-         "scale:                %f\n",
+  siril_log_message(_("DRIZZLING PARAMETERS:\n"
+         "kernel:         %s\n"
+         "pixel_fraction: %f\n"
+         "weight_scale:   %f\n"
+         "scale:          %f\n"),
          kernel_enum2str(p->kernel),
          p->pixel_fraction,
-         p->exposure_time,
          p->weight_scale,
-         p->fill_value,
-         bool2str(p->do_fill),
-         unit_enum2str(p->in_units),
-         unit_enum2str(p->out_units),
          p->scale
          );
 }
@@ -146,23 +138,23 @@ driz_param_init(struct driz_param_t* p) {
 
   /* Kernel shape and size */
   p->kernel = kernel_square;
-  p->pixel_fraction = 1.0;
+  p->pixel_fraction = 1.f;
 
   /* Exposure time */
-  p->exposure_time = 1.0;
+  p->exposure_time = 1.f;
 
   /* Weight scale */
-  p->weight_scale = 1.0;
+  p->weight_scale = 1.f;
 
   /* Filling */
-  p->fill_value = 0.0;
+  p->fill_value = 0.f;
   p->do_fill = 0;
 
   /* CPS / Counts */
   p->in_units = unit_counts;
   p->out_units = unit_counts;
 
-  p->scale = 1.0;
+  p->scale = 1.f;
 
   /* Input data */
   p->data = NULL;
