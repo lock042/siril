@@ -1298,7 +1298,7 @@ static int siril_platesolve(psf_star **stars, int nb_stars, struct astrometry_da
 					strncpy(prm->ctype[i], &CTYPE[i][0], 71); // 72 byte buffer, leave 1 byte for the NULL
 				}
 		} else {
-				const char CTYPE[2][12] = { "RA---TAN-SIP", "DEC--TAN-SIP" };
+				const char CTYPE[2][13] = { "RA---TAN-SIP", "DEC--TAN-SIP" };
 				const char CUNIT[2][4] = { "deg", "deg" };
 				for (int i = 0; i < NAXIS; i++) {
 					strncpy(prm->cunit[i], &CUNIT[i][0], 71); // 72 char fixed buffer, keep 1 for the NULL
