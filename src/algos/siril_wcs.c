@@ -208,6 +208,8 @@ int wcs2pix(fits *fit, double ra, double dec, double *x, double *y) {
 	if (!status) {
 		double xx = pixcrd[0];
 		double yy = pixcrd[1];
+		if (isnan(xx) || isnan(yy))
+			return WCSERR_NO_SOLUTION;
 		// return values even if outside (required for celestial grid display)
 		// In WCS convention, origin of the grid is at (-0.5, -0.5) wrt siril grid
 		if (x) *x = xx - 0.5;
