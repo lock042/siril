@@ -1585,7 +1585,6 @@ gboolean asnet_is_available() {
 static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrometry_data *args, solve_results *solution) {
 #ifdef _WIN32
 	gchar *asnet_shell = siril_get_asnet_bash();
-	int ret = SOLVE_OK;
 	if (!asnet_shell) {
 		return SOLVE_ASNET_PROC;
 		return 1;
@@ -1797,18 +1796,18 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 			solution->wcslib->lin.dispre = NULL;
 			solution->wcslib->flag = 0;
 			wcsset(solution->wcslib);
-			ret = SOLVE_LINONLY;
+			return SOLVE_LINONLY;
 		}
 	}
 	// In other cases, the dis struct is empyty, we still need to warn the user
 	if (args->trans_order > 1 && !solution->wcslib->lin.dispre) {
-		ret = SOLVE_LINONLY;
+		return SOLVE_LINONLY;
 	}
-	return ret;
+	return SOLVE_OK;
 }
 
 // inputs: focal length, pixel size, manual, fit, autocrop, downsample, mag_mode and mag_arg
-// outputs: scale, used_fov, uncentered, solvearea, limit_mag
+// outputs: scale, used_fov, uncentered, solvearea, limit_mag, blind, catalogue
 void process_plate_solver_input(struct astrometry_data *args) {
 	args->scale = get_resolution(args->focal_length, args->pixel_size);
 	gboolean selected = FALSE;
@@ -1885,9 +1884,6 @@ void process_plate_solver_input(struct astrometry_data *args) {
 		else if (args->ref_stars->limitmag <= 17.0 || args->used_fov > 180.) // we should probably limit the use of GAIA to smaller fov, <60 as it is very long to query
 			args->ref_stars->cat_index = CAT_NOMAD;
 		else args->ref_stars->cat_index = CAT_GAIADR3;
-	// TODO: not sure about this one, but could be we can't solve long focals with local cats installed
-	// } else if (args->ref_stars->cat_index == CAT_LOCAL && args->ref_stars->limitmag > 17.0) {
-	// 	args->ref_stars->cat_index = CAT_GAIADR3;
 	}
 	if (selected)
 		args->blind = FALSE;
