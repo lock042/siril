@@ -33,15 +33,17 @@ static GtkWidget *delta_vmag_entry = NULL;
 static GtkWidget *delta_bv_entry = NULL;
 static GtkWidget *emag_entry = NULL;
 static GtkWidget *target_entry = NULL;
+static GtkWidget *manu_target_entry = NULL;
 static GtkWidget *apass_radio = NULL;
 static GtkWidget *check_narrow = NULL;
-static GtkWidget *auto_mode, *mode_grp, *manual_mode;
+static GtkWidget *auto_mode, *mode_grp, *manual_mode, *sub_manu_box;
 static GtkWidget *auto_data_grp;
 
 static void on_compstars_response(GtkDialog* self, gint response_id, gpointer user_data);
 
 static void output_state(GtkToggleButton *source, gpointer user_data) {
     gtk_widget_set_sensitive(auto_data_grp, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(auto_mode)));
+	gtk_widget_set_sensitive(sub_manu_box, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(manual_mode)));
 }
 
 static void build_the_dialog() {
@@ -63,6 +65,30 @@ static void build_the_dialog() {
 	g_signal_connect (manual_mode, "toggled",G_CALLBACK (output_state), NULL);
 	gtk_container_add(GTK_CONTAINER(mode_grp), manual_mode);
 
+	// Name of the output file in manu mode
+	// Definition of the 3 elements horizontal sub-box
+	sub_manu_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
+	gtk_box_set_homogeneous(GTK_BOX(sub_manu_box), TRUE);
+	gtk_widget_set_tooltip_text(sub_manu_box, _("Enter your own target name"));
+	// 1st element, a label
+	GtkWidget *label1_user_name = gtk_label_new(_("Output file name: "));
+	gtk_widget_set_halign(label1_user_name, GTK_ALIGN_END);
+	gtk_container_add(GTK_CONTAINER(sub_manu_box), label1_user_name);
+	// 2nd element, the target user name
+	manu_target_entry = gtk_entry_new();
+	gtk_entry_set_placeholder_text(GTK_ENTRY(manu_target_entry), "V_SirilstarList_user");
+	gtk_widget_set_halign(manu_target_entry, GTK_ALIGN_CENTER);
+	gtk_entry_set_alignment(manu_target_entry, 0.5);	// Rises a warning, but makes the job. Is there another solution? 
+	g_object_set(G_OBJECT(manu_target_entry), "margin-top", 0, NULL);
+	g_object_set(G_OBJECT(manu_target_entry), "margin-bottom", 0, NULL);
+	gtk_container_add(GTK_CONTAINER(sub_manu_box), manu_target_entry);
+	// 3rd element, another label
+	GtkWidget *label2_user_name = gtk_label_new(_(".csv"));
+	gtk_widget_set_halign(label2_user_name, GTK_ALIGN_START);
+	gtk_container_add(GTK_CONTAINER(sub_manu_box), label2_user_name);
+	// and finally include that box to the upper level box
+	gtk_container_add(GTK_CONTAINER(mode_grp), sub_manu_box);
+
 	auto_mode = gtk_radio_button_new_with_label_from_widget (GTK_RADIO_BUTTON(manual_mode), _("Find comparison stars from catalogue requests"));
 	g_signal_connect (auto_mode, "toggled",G_CALLBACK (output_state), NULL);
 	gtk_container_add(GTK_CONTAINER(mode_grp), auto_mode);
@@ -80,7 +106,7 @@ static void build_the_dialog() {
 	// Defines the parameters of the automatic mode
 	target_entry = gtk_entry_new();
 	gtk_entry_set_placeholder_text(GTK_ENTRY(target_entry), "Target star name");
-	gtk_widget_set_tooltip_text(target_entry, _("Enter the target star name to search in cataloges"));
+	gtk_widget_set_tooltip_text(target_entry, _("Enter the target star name to search in catalogues"));
 	g_object_set(G_OBJECT(target_entry), "margin", 15, NULL);
 	g_object_set(G_OBJECT(target_entry), "margin-top", 0, NULL);
 	g_object_set(G_OBJECT(target_entry), "margin-bottom", 0, NULL);
@@ -93,13 +119,6 @@ static void build_the_dialog() {
 	g_object_set(G_OBJECT(check_narrow), "margin-top", 0, NULL);
 	g_object_set(G_OBJECT(check_narrow), "margin-bottom", 0, NULL);
 	gtk_container_add(GTK_CONTAINER(auto_data_grp), check_narrow);
-
-	GtkWidget *labelvmag = gtk_label_new(_("Allowed visual magnitude range:"));
-	gtk_widget_set_halign(labelvmag, GTK_ALIGN_START);
-	g_object_set(G_OBJECT(labelvmag), "margin-left", 15, NULL);
-	g_object_set(G_OBJECT(labelvmag), "margin-top", 0, NULL);
-	g_object_set(G_OBJECT(labelvmag), "margin-bottom", 0, NULL);
-	gtk_container_add(GTK_CONTAINER(auto_data_grp), labelvmag);
 	
 	delta_vmag_entry = gtk_entry_new();
 	gtk_entry_set_text(GTK_ENTRY(delta_vmag_entry), "3.0");
@@ -168,6 +187,12 @@ static void build_the_dialog() {
 
 // The process to perform a **Manual** Compstar List
 static void manual_photometry_data (sequence *seq) {
+	const gchar *entered_target_name = gtk_entry_get_text(GTK_ENTRY(manu_target_entry));
+	if (entered_target_name [0] == '\0') entered_target_name = gtk_entry_get_placeholder_text(GTK_ENTRY(manu_target_entry));
+	gchar *target_name = g_strdup(entered_target_name);
+	g_strstrip(target_name);
+	target_name = g_strdup_printf("%s.csv", target_name);
+
 	double ra, dec;
 	// Gather the selected stars by hand
 	int nb_ref_stars = 0;
@@ -218,7 +243,7 @@ static void manual_photometry_data (sequence *seq) {
 	struct compstars_arg *args = calloc(1, sizeof(struct compstars_arg));
 
 	args->comp_stars = comp_sta;
-	args->nina_file = g_strdup("V_SirilstarList_user.csv");
+	args->nina_file = g_strdup(target_name);
 	args->target_star = &result[0];
 	args->delta_Vmag = 0.0;		// Explicitely set these three variables
 	args->delta_BV = 0.0;
@@ -229,6 +254,7 @@ static void manual_photometry_data (sequence *seq) {
 	// and free the stuff
 	siril_catalog_free(comp_sta);
 	g_free(args->nina_file);
+	g_free(target_name);
 
 	free(args);
 }
