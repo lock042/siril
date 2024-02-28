@@ -1440,13 +1440,13 @@ double **darray /* array of distances between stars */
 		tri->ba = 1.0;
 		tri->ca = 1.0;
 	}
-	tri->side_a_angle = atan2(
-			star_array[tri->a_index].y - star_array[tri->b_index].y,
-			star_array[tri->a_index].x - star_array[tri->b_index].x);
-#ifdef DEBUG2
-	printf(" triangle %5d  has side_a_angle %f = %f deg \n",
-			tri->id, tri->side_a_angle, tri->side_a_angle*(180/3.14159));
-#endif
+// 	tri->side_a_angle = atan2(
+// 			star_array[tri->a_index].y - star_array[tri->b_index].y,
+// 			star_array[tri->a_index].x - star_array[tri->b_index].x);
+// #ifdef DEBUG2
+// 	printf(" triangle %5d  has side_a_angle %f = %f deg \n",
+// 			tri->id, tri->side_a_angle, tri->side_a_angle*(180/3.14159));
+// #endif
 
 	tri->match_id = -1;
 	tri->next = (s_triangle *) NULL;
