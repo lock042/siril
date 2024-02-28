@@ -119,7 +119,14 @@ static void build_the_dialog() {
 	g_object_set(G_OBJECT(check_narrow), "margin-top", 0, NULL);
 	g_object_set(G_OBJECT(check_narrow), "margin-bottom", 0, NULL);
 	gtk_container_add(GTK_CONTAINER(auto_data_grp), check_narrow);
-	
+
+	GtkWidget *labelvmag = gtk_label_new(_("Allowed visual magnitude range:"));
+	gtk_widget_set_halign(labelvmag, GTK_ALIGN_START);
+	g_object_set(G_OBJECT(labelvmag), "margin-left", 15, NULL);
+	g_object_set(G_OBJECT(labelvmag), "margin-top", 0, NULL);
+	g_object_set(G_OBJECT(labelvmag), "margin-bottom", 0, NULL);
+	gtk_container_add(GTK_CONTAINER(auto_data_grp), labelvmag);
+
 	delta_vmag_entry = gtk_entry_new();
 	gtk_entry_set_text(GTK_ENTRY(delta_vmag_entry), "3.0");
 	gtk_widget_set_tooltip_text(delta_vmag_entry, _("Allowed range of visual magnitude between the target star and the comparison stars"));
