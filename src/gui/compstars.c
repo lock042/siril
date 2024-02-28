@@ -78,7 +78,7 @@ static void build_the_dialog() {
 	manu_target_entry = gtk_entry_new();
 	gtk_entry_set_placeholder_text(GTK_ENTRY(manu_target_entry), "V_SirilstarList_user");
 	gtk_widget_set_halign(manu_target_entry, GTK_ALIGN_CENTER);
-	gtk_entry_set_alignment(manu_target_entry, 0.5);	// Rises a warning, but makes the job. Is there another solution? 
+	gtk_entry_set_alignment(GTK_ENTRY (manu_target_entry), 0.5);
 	g_object_set(G_OBJECT(manu_target_entry), "margin-top", 0, NULL);
 	g_object_set(G_OBJECT(manu_target_entry), "margin-bottom", 0, NULL);
 	gtk_container_add(GTK_CONTAINER(sub_manu_box), manu_target_entry);
