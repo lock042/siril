@@ -32,6 +32,7 @@ static GtkWidget *dialog = NULL;	// the window, a GtkDialog
 static GtkWidget *delay_cam = NULL;
 static GtkWidget *sep = NULL;
 static GtkWidget *apply_offset = NULL;
+static double delay = 0.0;
 //static GtkWidget *delta_vmag_entry = NULL;
 //static GtkWidget *delta_bv_entry = NULL;
 //static GtkWidget *emag_entry = NULL;
@@ -40,6 +41,7 @@ static GtkWidget *apply_offset = NULL;
 //static GtkWidget *check_narrow = NULL;
 
 static void on_occult_response(GtkDialog* self, gint response_id, gpointer user_data);
+static void on_find_clicked(GtkDialog* self, gint response_id, gpointer user_data);
 
 static void build_the_dialog() {
 	dialog = gtk_dialog_new_with_buttons(_("Calibrate Timestamps over PPS"), NULL,
@@ -85,6 +87,7 @@ static void build_the_dialog() {
 //	g_object_set(G_OBJECT(delay_cam), "margin-top", 0, NULL);
 
 	GtkWidget *find_delay = gtk_button_new_with_mnemonic (_("Find Delay"));
+	g_signal_connect (find_delay, "clicked", G_CALLBACK (on_find_clicked), NULL);
 
 	sep = gtk_separator_new (GTK_ORIENTATION_HORIZONTAL);
 	gtk_widget_set_size_request (sep, 1, 5);
@@ -194,6 +197,23 @@ GtkWidget *get_occult_dialog() {
 	return dialog;
 }
 
+static void on_find_clicked(GtkDialog* self, gint response_id, gpointer user_data){
+	control_window_switch_to_tab(OUTPUT_LOGS);
+	siril_log_message(_("Find button clicked \n"));		//c'est ici que la procedure de calcul doit etre lancée
+	gchar *end;
+	const gchar *text = gtk_entry_get_text(GTK_ENTRY(delay_cam));
+	delay = g_ascii_strtod(text, &end);
+	if (text == end || delay <= -10.0 || delay > 50.7) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("DELAY range not accepted (should be ]0, 0.7]"));
+		return;
+	}
+	siril_log_message(_("Delay value: %lf \n"), delay);
+	delay += 1.0;
+
+	gtk_entry_set_text(GTK_ENTRY(delay_cam), g_strdup_printf("%0.2lf", delay));
+}
+
+
 static void on_occult_response(GtkDialog* self, gint response_id, gpointer user_data) {
 	siril_debug_print("got response event\n");
 	if (response_id != GTK_RESPONSE_ACCEPT) {
@@ -238,8 +258,11 @@ static void on_occult_response(GtkDialog* self, gint response_id, gpointer user_
 */
 //	gboolean use_apass = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apass_radio));
 //	gboolean narrow = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(check_narrow));
-	siril_log_message(_("-> stars found within the image from \n"));
 	control_window_switch_to_tab(OUTPUT_LOGS);
+	gboolean use_offset = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apply_offset));
+	if (use_offset) siril_log_message(_("Applied offset: %lf \n"), delay);
+	else siril_log_message(_("No offset applied \n"));
+	gtk_widget_hide(dialog);
 
 //	struct compstars_arg *args = calloc(1, sizeof(struct compstars_arg));
 /*	args->fit = &gfit;
