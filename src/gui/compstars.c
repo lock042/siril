@@ -57,9 +57,12 @@ static void build_the_dialog() {
 	g_signal_connect(G_OBJECT(dialog), "response", G_CALLBACK(on_compstars_response), NULL);
 
 	// Sets the "OK" button as default one
-	gtk_widget_set_can_default(gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT), TRUE);
-	gtk_widget_grab_default(gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT));
-	gtk_widget_grab_focus(gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT));
+	GtkWidget *OK_button = gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT);
+	gtk_widget_set_can_default(OK_button, TRUE);
+	gtk_widget_grab_default(OK_button);
+	gtk_widget_grab_focus(OK_button);
+	gtk_style_context_add_class(gtk_widget_get_style_context(OK_button), "suggested-action");
+
 
 	/* Mode (Auto/Manu) choice */
 	mode_grp = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
