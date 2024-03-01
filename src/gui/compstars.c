@@ -59,7 +59,7 @@ static void build_the_dialog() {
 	/* Mode (Auto/Manu) choice */
 	mode_grp = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
 	gtk_box_set_homogeneous(GTK_BOX(mode_grp), TRUE);
-	gtk_widget_set_tooltip_text(mode_grp, _("Toggle Manual mode or Auromatic mode for Comparison stars list"));
+	gtk_widget_set_tooltip_text(mode_grp, _("Toggle Manual mode or Automatic mode for Comparison stars list"));
 
 	manual_mode = gtk_radio_button_new_with_label_from_widget(NULL, _("Use the stars selected in the currently loaded image"));
 	g_signal_connect (manual_mode, "toggled",G_CALLBACK (output_state), NULL);
@@ -76,7 +76,8 @@ static void build_the_dialog() {
 	gtk_container_add(GTK_CONTAINER(sub_manu_box), label1_user_name);
 	// 2nd element, the target user name
 	manu_target_entry = gtk_entry_new();
-	gtk_entry_set_placeholder_text(GTK_ENTRY(manu_target_entry), "V_SirilstarList_user");
+	gtk_entry_set_text(GTK_ENTRY(manu_target_entry), "V_SirilstarList_user");
+	gtk_widget_set_tooltip_text(manu_target_entry, _("Change the default file name if needed"));
 	gtk_widget_set_halign(manu_target_entry, GTK_ALIGN_CENTER);
 	gtk_entry_set_alignment(GTK_ENTRY (manu_target_entry), 0.5);
 	g_object_set(G_OBJECT(manu_target_entry), "margin-top", 0, NULL);
@@ -195,7 +196,11 @@ static void build_the_dialog() {
 // The process to perform a **Manual** Compstar List
 static void manual_photometry_data (sequence *seq) {
 	const gchar *entered_target_name = gtk_entry_get_text(GTK_ENTRY(manu_target_entry));
-	if (entered_target_name [0] == '\0') entered_target_name = gtk_entry_get_placeholder_text(GTK_ENTRY(manu_target_entry));
+	if (entered_target_name [0] == '\0') {
+		entered_target_name = g_strdup("V_SirilstarList_user");
+		gtk_entry_set_text(GTK_ENTRY(manu_target_entry), "V_SirilstarList_user");
+	}
+
 	gchar *target_name = g_strdup(entered_target_name);
 	g_strstrip(target_name);
 	target_name = g_strdup_printf("%s.csv", target_name);
