@@ -89,7 +89,7 @@ static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 				memcpy(ref_naxes, naxes, sizeof naxes);
 				siril_debug_print("found reference HDU %ldx%ldx%d (%d)\n", naxes[0], naxes[1], naxis, bitpix);
 			} else {
-				printf("naxes[2]=%ld, ref_naxes[2]=%ld\n", naxes[2], ref_naxes[2]);
+				//printf("naxes[2]=%ld, ref_naxes[2]=%ld\n", naxes[2], ref_naxes[2]);
 				if (naxes[2] != ref_naxes[2]) {
 					char extension[FLEN_VALUE], comment[FLEN_COMMENT];
 					fits_read_key(fptr, TSTRING, "EXTNAME", &extension, comment, &status);
