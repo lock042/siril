@@ -56,7 +56,7 @@ static void build_the_dialog() {
 	g_signal_connect(G_OBJECT(dialog), "delete-event", G_CALLBACK(gtk_widget_hide_on_delete), NULL);
 	g_signal_connect(G_OBJECT(dialog), "response", G_CALLBACK(on_compstars_response), NULL);
 
-	// Sets the "OK" button as defaukt one
+	// Sets the "OK" button as default one
 	gtk_widget_set_can_default(gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT), TRUE);
 	gtk_widget_grab_default(gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT));
 	gtk_widget_grab_focus(gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT));
@@ -334,6 +334,7 @@ static void on_compstars_response(GtkDialog* self, gint response_id, gpointer us
 //	auto_manu =gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(auto_mode))
 	siril_debug_print("got response event\n");
 	if (response_id != GTK_RESPONSE_ACCEPT) {
+		gtk_widget_grab_focus(gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT));
 		gtk_widget_hide(dialog);
 		return;
 	}
