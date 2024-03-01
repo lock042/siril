@@ -418,10 +418,10 @@ static int add_disto_to_wcslib(struct wcsprm *wcslib, TRANS *trans, int rx, int 
 	int ipx = 0;
 	int dpmax = 10 + 2 * (N + 1) * (N + 2);
 	dis->flag = -1;
-	// thread-safe version of disini as per WCSLIB documentation.
+	// thread-safe version of lindis as per WCSLIB documentation.
 	// Anyway, dpmax should not change if we solve multiple images in parralel
 	// as the trans order should be the same for all images of the sequence
-	disinit(1, 2, dis, dpmax);
+	lindist(1, &wcslib->lin, dis, dpmax);
 	char keyword[4];
 	char field[30];
 	for (int i = 0; i < 2; i++) {
@@ -453,7 +453,6 @@ static int add_disto_to_wcslib(struct wcsprm *wcslib, TRANS *trans, int rx, int 
 	dis->ndp = dpmax;
 	dis->flag = 0;
 	disset(dis);
-	lindist(1, &wcslib->lin, dis, dpmax);
 	wcslib->lin.flag = 0;
 	linset(&wcslib->lin);
 	free_stars(&uvgrid);
