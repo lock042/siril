@@ -36,11 +36,67 @@ extern "C" {
 #include <libintl.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <cstdint>
+#include <algorithm>
 
 #include "io/SirilXISFWraper.h"
 #include "io/SirilXISFReader.h"
 #include "libxisf.h"
 
+typedef struct {
+	const char *PCL_key;
+	const char *FITS_key;
+	const char *FITS_comment;
+} supported_PCL_keywords;
+
+static supported_PCL_keywords supported_PCL[] = {
+	{ "PCL:CFASourcePattern", "BAYERPAT", "Bayer color pattern" },
+	{ NULL },
+};
+
+static GHashTable *pclToFitsTable = NULL;
+
+static void initializePclToFitsTable() {
+	pclToFitsTable = g_hash_table_new(g_str_hash, g_str_equal);
+
+	for (int i = 0; supported_PCL[i].PCL_key != NULL; ++i) {
+		g_hash_table_insert(pclToFitsTable, (gpointer) supported_PCL[i].PCL_key, (gpointer) supported_PCL[i].FITS_key);
+	}
+}
+
+static void freePclToFitsTable() {
+	if (pclToFitsTable != NULL) {
+		g_hash_table_destroy(pclToFitsTable);
+		pclToFitsTable = NULL;
+	}
+}
+
+const char* getFitsNameFromPcl(const char *pclName) {
+	if (pclToFitsTable == NULL) {
+		initializePclToFitsTable();
+	}
+
+	return (const char*) g_hash_table_lookup(pclToFitsTable, pclName);
+}
+
+const char* getFitsCommentFromPcl(const char *pclName) {
+	if (pclToFitsTable == NULL) {
+		initializePclToFitsTable();
+	}
+
+	gpointer fitsNamePointer = g_hash_table_lookup(pclToFitsTable, pclName);
+
+	if (fitsNamePointer != NULL) {
+		const char *fitsName = (const char*) fitsNamePointer;
+
+		for (int i = 0; supported_PCL[i].PCL_key != NULL; ++i) {
+			if (strcmp(supported_PCL[i].FITS_key, fitsName) == 0) {
+				return supported_PCL[i].FITS_comment;
+			}
+		}
+	}
+
+	return "";
+}
 
 int siril_get_xisf_buffer(const char *filename, struct xisf_data *xdata) {
 	try {
@@ -91,9 +147,11 @@ int siril_get_xisf_buffer(const char *filename, struct xisf_data *xdata) {
 		std::ostringstream fitsHeaderStream;
 		xdata->fitsHeader = NULL;
 
+		fitsHeaderStream << "SIMPLE  =                    T / file does conform to FITS standard" << std::endl;
+
+		std::vector<std::string> processedKeys;
 		const auto& fitsKeywords = image.fitsKeywords();
 		if (!image.fitsKeywords().empty()) {
-			fitsHeaderStream << "SIMPLE  =                    T / file does conform to FITS standard" << std::endl;
 			for (const auto& fitsKeyword : fitsKeywords) {
 				if (fitsKeyword.name == "SIMPLE") continue;
 				if (fitsKeyword.name == "COMMENT") continue;
@@ -102,10 +160,31 @@ int siril_get_xisf_buffer(const char *filename, struct xisf_data *xdata) {
 				fitsHeaderStream << std::setw(8) << std::left << fitsKeyword.name;
 				fitsHeaderStream << "= " << std::setw(20) << fitsKeyword.value;
 				fitsHeaderStream << " / " << fitsKeyword.comment << std::endl;
+				processedKeys.push_back(fitsKeyword.name);
 			}
-			fitsHeaderStream << "END";
-			xdata->fitsHeader = strdup(fitsHeaderStream.str().c_str());
 		}
+
+	    const auto &imageProperties = image.imageProperties();
+	    if (!imageProperties.empty()) {
+	        for (const auto &imageProperty : imageProperties) {
+	            const char *fitsName = getFitsNameFromPcl(imageProperty.id.c_str());
+				if (fitsName != NULL && !(std::find(processedKeys.begin(), processedKeys.end(), std::string(fitsName)) != processedKeys.end())) {
+	                fitsHeaderStream << std::setw(8) << std::left << fitsName;
+	                String val;
+	                if (imageProperty.value.type() == Variant::Type::String) {
+	                	val = "'" + imageProperty.value.toString() + "'";
+	                } else {
+	                	val = imageProperty.value.toString();
+	                }
+	                fitsHeaderStream << std::setw(20) << std::left << "= " << val;
+					fitsHeaderStream << " / " << getFitsCommentFromPcl(imageProperty.id.c_str()) << std::endl;
+					processedKeys.push_back(std::string(fitsName));
+	            }
+	        }
+	    }
+
+		fitsHeaderStream << "END";
+		xdata->fitsHeader = strdup(fitsHeaderStream.str().c_str());
 
 		xdata->width = image.width();
 		xdata->height = image.height();
@@ -128,6 +207,7 @@ int siril_get_xisf_buffer(const char *filename, struct xisf_data *xdata) {
 		}
 
 		xisfReader.close();
+		freePclToFitsTable();
 
 	} catch (const LibXISF::Error &error) {
 		std::cout << error.what() << std::endl;
