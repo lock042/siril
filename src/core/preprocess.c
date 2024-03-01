@@ -177,8 +177,25 @@ static int darkOptimization(fits *raw, struct preprocessing_data *args, int in_i
 	if (copyfits(dark, &dark_tmp, CP_ALLOC | CP_COPYA | CP_FORMAT, 0))
 		return 1;
 
-	/* Minimization of background noise to find better k */
-	k0 = goldenSectionSearch(raw, &dark_tmp, lo, up, 0.001f, args->allow_32bit_output);
+	if (args->use_exposure) {
+		if (dark->exposure <= 0.0) {
+			siril_log_color_message(_("The dark frame contains no exposure data or incorrect exposure data.\n"), "red");
+			return 1;
+		}
+		if (raw->exposure <= 0.0) {
+			siril_log_color_message(_("The light frame (%d) contains no exposure data or incorrect exposure data.\n"), "red", in_index);
+			return 1;
+		}
+		/* linear scale with time */
+		k0 = raw->exposure / dark->exposure;
+		if (k0 > 1.f) {
+			siril_log_color_message(_("Warning: master dark is shorter than lights. It is "
+						"recommended that the master dark be at least as long as the lights.\n"), "salmon");
+		}
+	} else {
+		/* Minimization of background noise to find better k */
+		k0 = goldenSectionSearch(raw, &dark_tmp, lo, up, 0.001f, args->allow_32bit_output);
+	}
 	if (k0 < 0.f) {
 		siril_log_message(_("Dark optimization of image %d failed\n"), in_index);
 		ret = -1;
@@ -780,8 +797,9 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 
 		if (args->use_dark) {
 			// dark optimization
-			tbutton = GTK_TOGGLE_BUTTON(lookup_widget("checkDarkOptimize"));
-			args->use_dark_optim = gtk_toggle_button_get_active(tbutton);
+			int optim = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("comboDarkOptimize")));
+			args->use_dark_optim = optim != 0;
+			args->use_exposure = optim == 2;
 			const char *error = NULL;
 			if ((gfit.orig_bitpix == BYTE_IMG) && args->use_dark_optim) {
 				error = _("Dark optimization: This process cannot be applied to 8b images");
