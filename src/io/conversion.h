@@ -25,6 +25,10 @@ struct _convert_data {
 	sequence_type output_type;
 	gboolean multiple_output;	// multiple SER output
 
+	GThreadPool *pool;		// for memory adjust
+	GCond pool_cond;
+	GMutex pool_mutex;
+
 	int retval;
 	int nb_converted_files;
 	gchar **report;			// for file to file conversion report
