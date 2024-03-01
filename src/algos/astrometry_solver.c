@@ -451,10 +451,10 @@ static int add_disto_to_wcslib(struct wcsprm *wcslib, TRANS *trans, int rx, int 
 		}
 	}
 	dis->ndp = dpmax;
-	wcslib->lin.dispre = dis;
 	dis->flag = 0;
-	wcslib->lin.flag = 0;
 	disset(dis);
+	lindist(1, &wcslib->lin, dis, dpmax);
+	wcslib->lin.flag = 0;
 	linset(&wcslib->lin);
 	free_stars(&uvgrid);
 	free_stars(&xygrid);
