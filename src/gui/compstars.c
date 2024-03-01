@@ -48,7 +48,7 @@ static void output_state(GtkToggleButton *source, gpointer user_data) {
 
 static void build_the_dialog() {
 	dialog = gtk_dialog_new_with_buttons(_("Create a comparison stars list"), NULL,
-			0, _("_OK"), GTK_RESPONSE_ACCEPT, _("_Close"), GTK_RESPONSE_REJECT, NULL);
+			0, _("_Close"), GTK_RESPONSE_REJECT, _("_OK"), GTK_RESPONSE_ACCEPT, NULL);
 	// If the user clicks one of these dialog buttons, GtkDialog will emit
 	// the GtkDialog::response signal with the corresponding response ID
 	gtk_window_set_default_size(GTK_WINDOW(dialog), 400, 200);
@@ -57,9 +57,11 @@ static void build_the_dialog() {
 	g_signal_connect(G_OBJECT(dialog), "response", G_CALLBACK(on_compstars_response), NULL);
 
 	// Sets the "OK" button as defaukt one
-	gtk_widget_set_can_default(gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT), TRUE);
-	gtk_widget_grab_default(gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT));
-	gtk_widget_grab_focus(gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT));
+	GtkWidget *OK_button = gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT);
+	gtk_widget_set_can_default(OK_button, TRUE);
+	gtk_widget_grab_default(OK_button);
+	gtk_widget_grab_focus(OK_button);
+	gtk_style_context_add_class(gtk_widget_get_style_context(OK_button), "suggested-action");
 
 	/* Mode (Auto/Manu) choice */
 	mode_grp = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
@@ -230,6 +232,8 @@ static void manual_photometry_data (sequence *seq) {
 		sel_item[r].y = dec;
 		nb_ref_stars++;
 	}
+
+	control_window_switch_to_tab(OUTPUT_LOGS);
 
 	siril_catalogue *comp_sta = calloc(1, sizeof(siril_catalogue));
 	comp_sta->cat_index = CAT_COMPSTARS;
