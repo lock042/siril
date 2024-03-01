@@ -319,6 +319,11 @@ gboolean end_plate_solver(gpointer p) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, title, msg);
 		g_free(msg);
 	} else {
+		if (args->ret) {
+			gchar *msg = platesolve_msg(args);
+			siril_log_color_message(msg, "salmon");
+			g_free(msg);
+		}
 		/* update UI */
 		update_image_parameters_GUI();
 		set_GUI_CAMERA();
