@@ -48,7 +48,7 @@ static void output_state(GtkToggleButton *source, gpointer user_data) {
 
 static void build_the_dialog() {
 	dialog = gtk_dialog_new_with_buttons(_("Create a comparison stars list"), NULL,
-			0, _("_OK"), GTK_RESPONSE_ACCEPT, _("_Close"), GTK_RESPONSE_REJECT, NULL);
+			0, _("_Close"), GTK_RESPONSE_REJECT, _("_OK"), GTK_RESPONSE_ACCEPT, NULL);
 	// If the user clicks one of these dialog buttons, GtkDialog will emit
 	// the GtkDialog::response signal with the corresponding response ID
 	gtk_window_set_default_size(GTK_WINDOW(dialog), 400, 200);
@@ -230,6 +230,8 @@ static void manual_photometry_data (sequence *seq) {
 		sel_item[r].y = dec;
 		nb_ref_stars++;
 	}
+
+	control_window_switch_to_tab(OUTPUT_LOGS);
 
 	siril_catalogue *comp_sta = calloc(1, sizeof(siril_catalogue));
 	comp_sta->cat_index = CAT_COMPSTARS;
