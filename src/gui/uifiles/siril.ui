@@ -4669,6 +4669,13 @@ This value is the mean of the master flat calibrated with the master offset.</pr
                                                       <object class="GtkComboBoxText" id="comboDarkOptimize">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
+                                                        <property name="tooltip-markup" translatable="yes">Dark subtraction can be optimized. Siril offers two ways of doing this.
+- The first method automatically evaluates the coefficients to be applied so that the noise of the resulting image (light image minus dark image) is minimized. 
+- The second method takes into account exposure times if these have been entered by the capture software.
+
+Dark optimization is useful when dark images have not been captured under optimal conditions. It compensates for differences in temperature and/or exposure time between dark and light images.
+
+&lt;b&gt;WARNING:&lt;/b&gt; Do not apply dark optimization to the master-dark if the master-bias has not been subtracted beforehand.</property>
                                                         <property name="active">0</property>
                                                         <items>
                                                           <item translatable="yes">No dark optimization</item>
