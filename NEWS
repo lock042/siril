@@ -38,6 +38,7 @@ siril 1.4.0 xx xx, xx
 * Added auto remove variable stars (VSX, GCVS, GaDR3-Varisum) from compstars list (!608)
 * If directory does not exist during script execution, CMD_DIR_NOT_FOUND is returned (!628)
 * Fix issue where ICC profile with wrong channel count could be assigned if no previous ICC profile was assigned to an image (#1267)
+* Added dark scaling to match exposure time (#1269)
 
 siril 1.2.2 xx xx, 2024
 * Removed bakground extraction samples after using it in script (#1265)
