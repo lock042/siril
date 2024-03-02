@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-02-14 11:04+0100\n"
-"PO-Revision-Date: 2024-03-02 12:23+0000\n"
+"PO-Revision-Date: 2024-03-03 12:37+0000\n"
 "Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application/zh_Hans/>\n"
@@ -10721,9 +10721,9 @@ msgid "No stars retrieved from the catalog %s\n"
 msgstr "未能从星表 %s 中检索到星点\n"
 
 #: src/algos/comparison_stars.c:427
-#, fuzzy, c-format
+#, c-format
 msgid "-> %i %s stars found within the image from %s\n"
-msgstr "无法在第一幅图像中找到星点，异常中止。\n"
+msgstr "->找到 %i %s 星点于来自 %s 的图像中\n"
 
 #: src/algos/comparison_stars.c:428
 #, fuzzy
