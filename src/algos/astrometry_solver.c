@@ -480,7 +480,7 @@ gchar *platesolve_msg(struct astrometry_data *args) {
 	switch (args->ret) {
 	// warnings
 		case SOLVE_LINONLY:
-			return g_strdup_printf(_("%s could not find distortion polynomials for the order specified (%d) and returned a linear solution, try with a lower order\n"), 
+			return g_strdup_printf(_("%s could not find distortion polynomials for the order specified (%d) and returned a linear solution, try with a lower order or increase magnitude\n"), 
 			solvername, args->trans_order);
 		case SOLVE_LASTSOLVE:
 			return g_strdup(_("Siril solver could not find a final solution at the updated center, solution may be inaccurate\n"));
@@ -977,7 +977,7 @@ gpointer plate_solver(gpointer p) {
 			stars[s]->xpos -= x0;
 			stars[s]->ypos = y0 - stars[s]->ypos;
 		}
-		if ((args->ret = siril_platesolve(stars, nb_stars, args, &solution) > 0)) {
+		if ((args->ret = siril_platesolve(stars, nb_stars, args, &solution)) > 0) {
 			if (args->blind) {
 				if (args->verbose) {
 					siril_log_color_message(_("Initial solve failed\n"), "salmon", "salmon");
@@ -1243,14 +1243,14 @@ static int siril_platesolve(psf_star **stars, int nb_stars, struct astrometry_da
 	if (!args->ref_stars->cat_items)
 		get_catalog_stars(args->ref_stars);
 	TRANS t = { 0 };
-	int ret = 1;
+	int ret = SOLVE_NO_MATCH;
 	double ra = -1., dec = -1.;
 	double ra0 = args->ref_stars->center_ra;
 	double dec0 = args->ref_stars->center_dec;
 	ret = match_catalog(stars, nb_stars, args->ref_stars, args->scale, args->trans_order, &t, &ra, &dec);
-	if (!ret) { // we update the solution - but if blind, we do a last solve with a new catalogue fetched at the center if it was too far away
+	if (ret <= 0) { // we update the solution - but if blind, we do a last solve with a new catalogue fetched at the center if it was too far away
 		double dist = compute_coords_distance(ra0, dec0, ra, dec) * 60.; // distance from last fetched catalogue and solution center in arcmin
-		if (args->blind && dist > 0.3 * args->ref_stars->radius) {
+		if (!ret && args->blind && dist > 0.3 * args->ref_stars->radius) {
 			siril_catalog_free_items(args->ref_stars);
 			args->ref_stars->center_ra = ra;
 			args->ref_stars->center_dec = dec;
@@ -1274,6 +1274,7 @@ static int siril_platesolve(psf_star **stars, int nb_stars, struct astrometry_da
 				cd[i][j] *= ASECTODEG;
 			}
 		}
+		siril_log_message("order: %d, nmatched: %d, sigx:%g, sigy:%g\n", t.order, t.nr, t.sx, t.sy);
 		/**** Fill solution wcslib structure ***/
 		wcsprm_t *prm = calloc(1, sizeof(wcsprm_t));
 		prm->flag = -1;
@@ -1308,7 +1309,7 @@ static int siril_platesolve(psf_star **stars, int nb_stars, struct astrometry_da
 			}
 		// we pass cd and let wcslib decompose it
 		wcs_decompose_cd(prm, cd);
-		if (t.order > AT_TRANS_LINEAR && add_disto_to_wcslib(prm, &t, args->rx_solver, args->ry_solver))
+		if (args->trans_order > AT_TRANS_LINEAR && t.order > AT_TRANS_LINEAR && add_disto_to_wcslib(prm, &t, args->rx_solver, args->ry_solver))
 			ret = SOLVE_LINONLY;
 		wcs_print(prm);
 		solution->wcslib = prm;
@@ -1319,19 +1320,12 @@ static int siril_platesolve(psf_star **stars, int nb_stars, struct astrometry_da
 static int match_catalog(psf_star **stars, int nb_stars, siril_catalogue *siril_cat, double scale, int order, TRANS *trans_out, double *ra_out, double *dec_out) {
 	TRANS trans = { 0 };
 	int nobj = AT_MATCH_CATALOG_NBRIGHT;
-	int max_trials = 0;
+	int max_trials = 5;
 	s_star *star_list_A = NULL, *star_list_B = NULL;
 	psf_star **cstars = NULL;
-	int n_cat = siril_cat->nbitems;
 	double ra0 = siril_cat->center_ra;
 	double dec0 = siril_cat->center_dec;
-	int ret = 1;
-
-	max_trials = 5; //always try to converge to the center
-
-	/* make sure that arrays are not too small
-	 * make sure that the max of stars is BRIGHTEST_STARS */
-	int n = min(min(nb_stars, n_cat), BRIGHTEST_STARS);
+	int ret = SOLVE_NO_MATCH;
 
 	double a = 1.0 + (com.pref.astrometry.percent_scale_range / 100.0);
 	double b = 1.0 - (com.pref.astrometry.percent_scale_range / 100.0);
@@ -1344,9 +1338,7 @@ static int match_catalog(psf_star **stars, int nb_stars, siril_catalogue *siril_
 		return SOLVE_PROJ;
 	}
 	while (ret && attempt <= 1) {
-		free_stars(&star_list_A);
-		free_stars(&star_list_B);
-		ret = new_star_match(stars, cstars, n, nobj,
+		ret = new_star_match(stars, cstars, nb_stars, siril_cat->nbitems, nobj,
 				scale_min, scale_max, NULL, &trans, TRUE,
 				UNDEFINED_TRANSFORMATION, AT_TRANS_LINEAR, &star_list_A, &star_list_B);
 		if (attempt == 2) {
@@ -1410,8 +1402,9 @@ static int match_catalog(psf_star **stars, int nb_stars, siril_catalogue *siril_
 		double dec1 = dec0;
 		siril_debug_print("starting non linear match at order %d\n", order);
 		TRANS newtrans = { 0 }; // we will fall back on the linear solution if not successfull at higher order
+		memcpy(&newtrans, &trans, sizeof(TRANS));
 		newtrans.order = order;
-		int ret2 = atRecalcTrans(num_matched, star_list_A, num_matched, star_list_B, AT_MATCH_MAXITER, AT_MATCH_HALTSIGMA, &newtrans);
+		int ret2 = re_star_match(stars, cstars, nb_stars, siril_cat->nbitems, &newtrans, NULL, NULL);
 		if (!ret2) {
 			conv = get_center_offset_from_trans(&newtrans);
 			trial = 0;
@@ -1424,16 +1417,14 @@ static int match_catalog(psf_star **stars, int nb_stars, siril_catalogue *siril_
 					siril_world_cs_alpha_format_from_double(ra1, "%02d %02d %.3lf"),
 					siril_world_cs_delta_format_from_double(dec1, "%c%02d %02d %.3lf"));
 
-				// Uses the indexes in star_list_B to update the stars positions according to the new projection
 				free_fitted_stars(cstars);
 				cstars = project_catalog_stars(siril_cat, ra1, dec1);
 				if (!cstars) {
 					ret2 = SOLVE_PROJ;
 					break;
 				}
-				update_stars_positions(&star_list_B, num_matched, cstars);
-				// and recompute the trans structure
-				if (atRecalcTrans(num_matched, star_list_A, num_matched, star_list_B, AT_MATCH_MAXITER, AT_MATCH_HALTSIGMA, &newtrans)) {
+				// and recompute the trans structure with all the stars
+				if (re_star_match(stars, cstars, nb_stars, siril_cat->nbitems, &newtrans, NULL, NULL)) {
 					ret2 = SOLVE_TRANS_UPDATE;
 					break;
 				}

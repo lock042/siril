@@ -136,7 +136,7 @@
     * The user can modify this value via the "halt_sigma"
     * command-line argument.
     */
-#define AT_MATCH_HALTSIGMA    1.0e-12
+#define AT_MATCH_HALTSIGMA    1.0e-1
 
 
    /*
