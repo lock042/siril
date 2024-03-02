@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-02-14 11:04+0100\n"
-"PO-Revision-Date: 2024-02-20 09:37+0000\n"
+"PO-Revision-Date: 2024-03-02 12:23+0000\n"
 "Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application/zh_Hans/>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 5.4.1\n"
+"X-Generator: Weblate 5.4.2\n"
 
 #: src/gui/uifiles/aavso_dialog.ui:7
 msgid "AAVSO parameters"
@@ -7017,11 +7017,11 @@ msgid "Create Comparison Stars File..."
 msgstr "创建比较星文件..."
 
 #: src/gui/uifiles/siril.ui:2405
-#, fuzzy
 msgid ""
 "Process a light curve using a list of stars in the format produced by Siril "
 "(Create Comparison Stars File) or by the NINA exoplanet plugin."
-msgstr "使用来自NINA系外行星插件的恒星列表处理光变曲线"
+msgstr "使用 Siril（创建比较恒星文档）或 NINA "
+"系外行星插件生成的格式的恒星列表来处理光曲线。"
 
 #: src/gui/uifiles/siril.ui:2407
 msgid "Automated Light Curve..."
@@ -11093,9 +11093,8 @@ msgid "image is invalid"
 msgstr "图像无效"
 
 #: src/algos/photometry.c:268
-#, fuzzy
 msgid "flux ratio failed"
-msgstr "归一化失败。"
+msgstr "通量比失败"
 
 #: src/algos/photometry.c:270
 msgid "unknown error"
