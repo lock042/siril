@@ -7664,7 +7664,7 @@ failure:
 	return CMD_ARG_ERROR;
 }
 
-/* preprocess sequencename [-bias=filename|value] [-dark=filename] [-flat=filename] [-cc=dark [siglo sighi] || -cc=bpm bpmfile] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=] [-fitseq]
+/* preprocess sequencename [-bias=filename|value] [-dark=filename] [-flat=filename] [-cc=dark [siglo sighi] || -cc=bpm bpmfile] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt[=exp]] [-prefix=] [-fitseq]
  * preprocess_single filename [-bias=filename|value] [-dark=filename] [-flat=filename] [-cc=dark [siglo sighi] || -cc=bpm bpmfile] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=]
  */
 struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
@@ -7813,13 +7813,21 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 				break;
 			}
 			args->ppprefix = strdup(value);
-		} else if (!strcmp(word[i], "-opt")) {
+		} else if (!strcmp(word[i], "-opt") || !strcmp(word[i], "-opt=")) {
 			if (bitpix == BYTE_IMG) {
 				siril_log_color_message(_("Dark optimization: This process cannot be applied to 8b images\n"), "red");
 				retvalue = CMD_INVALID_IMAGE;
 				break;
 			}
+			char *current = word[i], *value;
+			value = current + 5;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+				retvalue = CMD_ARG_ERROR;
+				break;
+			}
 			args->use_dark_optim = TRUE;
+			args->use_exposure = (!strcmp(value, "exp"));
 		} else if (!strcmp(word[i], "-fix_xtrans")) {
 			args->fix_xtrans = TRUE;
 		} else if (!strcmp(word[i], "-all")) {
