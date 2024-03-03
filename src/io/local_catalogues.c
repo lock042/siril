@@ -170,6 +170,10 @@ static int read_trixels_from_catalogue(const char *path, double ra, double dec, 
 /* returns the complete list of stars for a catalogue's list of trixels */
 static int read_trixelID_from_catalogue(const char *path, int ID, deepStarData **trixel_stars, uint32_t *trixel_nb_stars) {
 	siril_debug_print("reading data from catalogue %s\n", path);
+	if (ID < 0 || ID > 512) {
+		siril_log_message(_("Wrong trixel ID\n"));
+		return 1;
+	}
 	FILE *f = g_fopen(path, "rb");
 	if (!f) {
 		siril_log_message(_("Could not open local NOMAD catalogue\n"));
@@ -183,7 +187,6 @@ static int read_trixelID_from_catalogue(const char *path, int ID, deepStarData *
 		return 1;
 	}
 
-	//if (read_trixel_of_target(ra, dec, cat, &trixel_stars, &trixel_nb_stars)) {
 	if (read_trixels_by_ID(ID, cat, trixel_stars, trixel_nb_stars)) {
 		free(cat);
 		fclose(f);
@@ -404,7 +407,7 @@ static int read_trixels_by_ID(int ID, struct catalogue_file *cat, deepStarData *
 	} else {
 		*stars = NULL;
 		*nb_stars = 0;
-		return 0;
+		return 1;
 	}
 
 	siril_debug_print("trixel search found %d trixels\n", nb_trixels);
@@ -412,11 +415,13 @@ static int read_trixels_by_ID(int ID, struct catalogue_file *cat, deepStarData *
 	uint32_t *nb_stars_list;
 	stars_list = malloc(nb_trixels * sizeof(deepStarData *));
 	if (!stars_list) {
+		free(trixels);
 		PRINT_ALLOC_ERR;
 		return -1;
 	}
 	nb_stars_list = malloc(nb_trixels * sizeof(uint32_t));
 	if (!nb_stars_list) {
+		free(trixels);
 		free(stars_list);
 		PRINT_ALLOC_ERR;
 		return -1;
@@ -745,7 +750,11 @@ gpointer write_trixels(gpointer p) {
 		siril_cat->columns = siril_catalog_columns(CAT_LOCAL_TRIX);
 		siril_cat->trixel = i;
 		siril_cat->limitmag = 25;
-		siril_catalog_conesearch(siril_cat);
+		if (!siril_catalog_conesearch(siril_cat)) {
+			siril_catalog_free(siril_cat);
+			siril_add_idle(end_generic, NULL);
+			return GINT_TO_POINTER(1);
+		}
 		sort_cat_items_by_mag(siril_cat);
 		siril_log_message("trixel #%4d - nbstars: %8d - ra: %5.1f, dec: %+5.1f\n", i, siril_cat->nbitems, siril_cat->center_ra, siril_cat->center_dec);
 		nb[i] = siril_cat->nbitems;

@@ -577,9 +577,11 @@ static void print_platesolving_results_from_wcs(struct astrometry_data *args) {
 	fov_in_DHMS(resolution * (double)args->fit->ry / 3600.0, field_y);
 	siril_log_message(_("Field of view:    %s x %s\n"), field_x, field_y);
 	siril_log_message(_("Image center: alpha: %s, delta: %s\n"), args->fit->wcsdata.objctra, args->fit->wcsdata.objctdec);
-	double dist = compute_coords_distance(args->fit->wcsdata.ra, args->fit->wcsdata.dec,
-										siril_world_cs_get_alpha(args->cat_center), siril_world_cs_get_delta(args->cat_center));
-	siril_log_message(_("Was %.2f arcmin from initial value\n"), dist * 60.);
+	if (args->cat_center) { // not true for asnet blind solve
+		double dist = compute_coords_distance(args->fit->wcsdata.ra, args->fit->wcsdata.dec,
+											siril_world_cs_get_alpha(args->cat_center), siril_world_cs_get_delta(args->cat_center));
+		siril_log_message(_("Was %.2f arcmin from initial value\n"), dist * 60.);
+	}
 }
 
 // binomial coeffs up to n=6
@@ -967,7 +969,8 @@ gpointer plate_solver(gpointer p) {
 	if (args->solver == SOLVER_LOCALASNET) {
 		if (!args->for_sequence) {
 			com.child_is_running = EXT_ASNET;
-			g_unlink("stop"); // make sure the flag file for cancel is not already in the folder
+			if (g_unlink("stop")) // make sure the flag file for cancel is not already in the folder
+				siril_debug_print("g_unlink() failed\n");
 		}
 		args->ret = local_asnet_platesolve(stars, nb_stars, args, &solution);
 	} else {
@@ -1045,6 +1048,7 @@ clearup:
 			siril_log_color_message("%s", "green", msg);
 		g_free(msg);
 	}
+	int ret = args->ret;
 	if (!args->for_sequence) {
 		if (com.child_is_running == EXT_ASNET && g_unlink("stop"))
 			siril_debug_print("g_unlink() failed\n");
@@ -1054,7 +1058,7 @@ clearup:
 	else free(args);
 	if (args->verbose)
 		set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
-	return GINT_TO_POINTER(args->ret > 0);
+	return GINT_TO_POINTER(ret > 0);
 }
 
 static void nearsolve_pool_worker(gpointer data, gpointer user_data) {
@@ -1854,6 +1858,11 @@ void process_plate_solver_input(struct astrometry_data *args) {
 		if (com.selection.w != 0 && com.selection.h != 0)
 			siril_log_message(_("Selection is not used in manual star selection mode\n"));
 		// TODO: we could actually check if stars are in the selection
+	}
+
+	if (args->solver == SOLVER_LOCALASNET) {
+		args->blind = TRUE;
+		return;
 	}
 	args->ref_stars->radius = args->used_fov * 0.5;
 

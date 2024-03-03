@@ -9099,7 +9099,7 @@ int process_conesearch(int nb) {
 
 	if (cat == CAT_AUTO) {
 		cat = (local_cat) ? CAT_LOCAL : CAT_NOMAD;
-		if (trixel >= 0 && CAT_LOCAL)
+		if (trixel >= 0 && cat == CAT_LOCAL)
 			cat = CAT_LOCAL_TRIX;
 	}
 
