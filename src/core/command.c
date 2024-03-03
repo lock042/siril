@@ -7824,7 +7824,7 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 				char *current = word[i], *value;
 				value = current + 5;
 				if (value[0] == '\0' || strcmp(value, "exp")) {
-					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+					siril_log_message(_("Missing or wrong argument to %s, aborting.\n"), current);
 					retvalue = CMD_ARG_ERROR;
 					break;
 				}
