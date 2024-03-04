@@ -4594,24 +4594,6 @@ Instead of an image, you can also specify a uniform level to be subtracted, star
                                                       </packing>
                                                     </child>
                                                     <child>
-                                                      <object class="GtkCheckButton" id="checkDarkOptimize">
-                                                        <property name="label" translatable="yes">Dark Optimization</property>
-                                                        <property name="visible">True</property>
-                                                        <property name="sensitive">False</property>
-                                                        <property name="can-focus">True</property>
-                                                        <property name="receives-default">False</property>
-                                                        <property name="tooltip-text" translatable="yes">Dark subtraction can be optionally optimized so that the noise of the resulting picture (light frame minus dark frame) is minimized by applying a coefficient to the dark frame. This option is useful when dark frames have not been taken in optimal conditions. This can compensate for differences in temperature and / or exposure time between the darks and the lights.
-
-WARNING: Do not apply dark optimization on master-dark if master-bias has not been subtracted previously.</property>
-                                                        <property name="halign">start</property>
-                                                        <property name="draw-indicator">True</property>
-                                                      </object>
-                                                      <packing>
-                                                        <property name="left-attach">3</property>
-                                                        <property name="top-attach">1</property>
-                                                      </packing>
-                                                    </child>
-                                                    <child>
                                                       <object class="GtkCheckButton" id="checkbutton_equalize_cfa">
                                                         <property name="label" translatable="yes">Equalize CFA</property>
                                                         <property name="visible">True</property>
@@ -4681,6 +4663,29 @@ This value is the mean of the master flat calibrated with the master offset.</pr
                                                         <property name="left-attach">0</property>
                                                         <property name="top-attach">4</property>
                                                         <property name="width">3</property>
+                                                      </packing>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkComboBoxText" id="comboDarkOptimize">
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">False</property>
+                                                        <property name="tooltip-markup" translatable="yes">Dark subtraction can be optimized. Siril offers two ways of doing this.
+- The first method automatically evaluates the coefficients to be applied so that the noise of the resulting image (light image minus dark image) is minimized. 
+- The second method takes into account exposure times if these have been entered by the capture software.
+
+Dark optimization is useful when dark images have not been captured under optimal conditions. It compensates for differences in temperature and/or exposure time between dark and light images.
+
+&lt;b&gt;WARNING:&lt;/b&gt; Do not apply dark optimization to the master-dark if the master-bias has not been subtracted beforehand.</property>
+                                                        <property name="active">0</property>
+                                                        <items>
+                                                          <item translatable="yes">No dark optimization</item>
+                                                          <item translatable="yes">Auto-evaluation</item>
+                                                          <item translatable="yes">Use Exposure</item>
+                                                        </items>
+                                                      </object>
+                                                      <packing>
+                                                        <property name="left-attach">3</property>
+                                                        <property name="top-attach">1</property>
                                                       </packing>
                                                     </child>
                                                     <child>
