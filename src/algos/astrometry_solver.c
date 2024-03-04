@@ -1278,7 +1278,7 @@ static int siril_platesolve(psf_star **stars, int nb_stars, struct astrometry_da
 				cd[i][j] *= ASECTODEG;
 			}
 		}
-		siril_log_message("order: %d, nmatched: %d, sigx:%g, sigy:%g\n", t.order, t.nr, t.sx, t.sy);
+		siril_debug_print("order: %d, nmatched: %d, sigx:%g, sigy:%g\n", t.order, t.nr, t.sx, t.sy);
 		/**** Fill solution wcslib structure ***/
 		wcsprm_t *prm = calloc(1, sizeof(wcsprm_t));
 		prm->flag = -1;
