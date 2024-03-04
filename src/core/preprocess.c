@@ -515,7 +515,7 @@ void start_sequence_preprocessing(struct preprocessing_data *prepro) {
 }
 
 /********** SINGLE IMAGE (from com.uniq) ************/
-int preprocess_single_image(struct preprocessing_data *args) {
+int calibrate_single_image(struct preprocessing_data *args) {
 	gchar *msg;
 	fits fit = { 0 };
 	int ret = 0;
@@ -973,7 +973,7 @@ void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 		set_cursor_waiting(TRUE);
 		control_window_switch_to_tab(OUTPUT_LOGS);
 
-		retval = preprocess_single_image(args);
+		retval = calibrate_single_image(args);
 
 		free(args);
 
