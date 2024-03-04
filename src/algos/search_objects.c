@@ -158,8 +158,8 @@ int parse_buffer(const gchar *buffer, double lim_mag) {
 					sscanf(part[1], "%lf", &degres);
 					sscanf(part[2], "%lf", &min);
 					sscanf(part[3], "%lf", &seconds);
-					if (degres < 0.0)
-						dec = degres - min/60.0 - seconds/3600.0;
+					if (part[1][0] == '-')
+						dec = degres - min / 60.0 - seconds / 3600.0;
 					else dec = degres + min/60.0 + seconds/3600.0;
 				}
 				else valid = FALSE;
@@ -233,8 +233,8 @@ int parse_buffer(const gchar *buffer, double lim_mag) {
 						sscanf(part[1], "%lf", &degres);
 						sscanf(part[2], "%lf", &min);
 						sscanf(part[3], "%lf", &seconds);
-						if (degres < 0.0)
-							dec = degres - min/60.0 - seconds/3600.0;
+						if (part[1][0] == '-')
+							dec = degres - min / 60.0 - seconds / 3600.0;
 						else dec = degres + min/60.0 + seconds/3600.0;
 					}
 					else valid = FALSE;
