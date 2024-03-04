@@ -1427,6 +1427,9 @@ static int match_catalog(psf_star **stars, int nb_stars, siril_catalogue *siril_
 					ret2 = SOLVE_PROJ;
 					break;
 				}
+				// we have reprojected at the center, the shift terms should very close to null
+				newtrans.x00 = 0.;
+				newtrans.y00 = 0.;
 				// and recompute the trans structure with all the stars
 				if (re_star_match(stars, cstars, nb_stars, siril_cat->nbitems, &newtrans, NULL, NULL)) {
 					ret2 = SOLVE_TRANS_UPDATE;

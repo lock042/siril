@@ -190,8 +190,7 @@ int new_star_match(psf_star **s1, psf_star **s2, int n1, int n2, int nobj_overri
 	}
 
 	/* we start with an "empty" TRANS; atFindTrans will try to fill it */
-	atTransOrderSet(trans_order);
-	trans = atTransNew();
+	trans = calloc(1, sizeof(TRANS));
 	trans->order = trans_order;
 
 #ifdef DEBUG
