@@ -936,9 +936,8 @@ gpointer plate_solver(gpointer p) {
 	} else {
 		if (args->stars) {
 			stars = args->stars;
-			if (stars)
-				while (stars[nb_stars])
-					nb_stars++;
+			while (stars[nb_stars])
+				nb_stars++;
 		} else { // we need to make a copy of com.stars as we will alter the coordinates
 			stars = com.stars;
 			if (stars) {
