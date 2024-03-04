@@ -80,7 +80,7 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 				sscanf(fields[5], "%lf", &degres);
 				sscanf(fields[6], "%lf", &min);
 				sscanf(fields[7], "%lf", &seconds);
-				if (degres < 0.0)
+				if (fields[5][0] == '-')
 					dec = degres - min / 60.0 - seconds / 3600.0;
 				else dec = degres + min / 60.0 + seconds / 3600.0;
 				g_strfreev(fields);
