@@ -188,14 +188,14 @@
               <object class="GtkShortcutsShortcut">
                 <property name="visible">1</property>
                 <property name="accelerator">&lt;Primary&gt;&lt;shift&gt;b</property>
-                <property name="title" translatable="yes" context="shortcut window">Open the Comparison Stars dialog</property>
+                <property name="title" translatable="yes" context="shortcut window">Open comparison stars dialog</property>
               </object>
             </child>
             <child>
               <object class="GtkShortcutsShortcut">
                 <property name="visible">1</property>
                 <property name="accelerator">&lt;Primary&gt;&lt;shift&gt;n</property>
-                <property name="title" translatable="yes" context="shortcut window">Open Light Curve dialog</property>
+                <property name="title" translatable="yes" context="shortcut window">Open light curve dialog</property>
               </object>
             </child>
             <child>

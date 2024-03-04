@@ -2398,9 +2398,6 @@ Output is a csv file compatible with NINA Exoplanet</property>
           </packing>
         </child>
         <child>
-          <placeholder/>
-        </child>
-        <child>
           <object class="GtkModelButton" id="nina_button">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
