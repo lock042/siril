@@ -1429,6 +1429,36 @@ static void save_wcs_keywords(fits *fit) {
 	}
 }
 
+// updates the header string from fit->header
+// by creating an in-memory fits file (as oppsed to on-disk file)
+void update_fits_header(fits *fit) {
+	void *memptr;
+	size_t memsize = 5760;
+	int status = 0;
+	fitsfile *fptr = NULL;
+	memptr = malloc(memsize);
+	if (!memptr) {
+		PRINT_ALLOC_ERR;
+		return;
+	}
+	fits_create_memfile(&fptr, &memptr, &memsize, 2880, realloc, &status);
+	if (status) {
+		report_fits_error(status);
+		if (fptr)
+			fits_close_file(fptr, &status);
+		free(memptr);
+		return;
+	}
+	fit->fptr = fptr;
+	save_fits_header(fit);
+	if (fit->header)
+		free(fit->header);
+	fit->header = copy_header(fit);
+	fits_close_file(fptr, &status);
+	fit->fptr = NULL;
+	free(memptr);
+}
+
 void save_fits_header(fits *fit) {
 	int i, status = 0;
 	double zero, scale;

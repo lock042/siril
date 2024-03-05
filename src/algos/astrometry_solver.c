@@ -1032,6 +1032,11 @@ gpointer plate_solver(gpointer p) {
 		args->image_flipped = TRUE;
 	}
 
+	/* 6. updating header */
+	if (!args->for_sequence) {
+		update_fits_header(args->fit);
+	}
+
 clearup:
 	if (stars) {
 		for (int i = 0; i < nb_stars; i++)
