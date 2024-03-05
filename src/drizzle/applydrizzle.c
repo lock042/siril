@@ -291,6 +291,8 @@ int apply_drz_prepare_hook(struct generic_seq_args *args) {
 			}
 	}
 
+/*
+ * This needs to be moved into check_before_applydrizzle and aligned with the framing computation
 	if (driz->use_wcs) {
 		if (!fit.wcslib) {
 			// TODO: Attempt to platesolve the reference image
@@ -301,12 +303,8 @@ int apply_drz_prepare_hook(struct generic_seq_args *args) {
 			}
 		}
 		driz->refwcs = fit.wcslib;
-	} else {
-		driz->ref_regdata = apply_driz_get_ref_regdata(driz);
-		if (!driz->ref_regdata)
-			return -2;
-		Htransf = driz->ref_regdata->H;
 	}
+*/
 	return apply_drz_prepare_results(args);
 }
 
@@ -360,8 +358,7 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 			return 1; // in case H is null and -selected was not passed
 		cvTransfH(Himg, Htransf, &H);
 	}
-//	H.h00 *= driz->scale;
-//	H.h11 *= driz->scale;
+	siril_debug_print("H: %f %f %f\n   %f %f %f\n   %f %f %f\n", H.h00, H.h01, H.h02, H.h10, H.h11, H.h12, H.h20, H.h21, H.h22);
 	/* Populate the mapping array. This maps pixels from the current frame to
 	 * the reference frame. Either a Homography mapping can be used based on
 	 * image registration or a WCS mapping can be used based on plate solving */
@@ -500,7 +497,7 @@ int apply_drz_finalize_hook(struct generic_seq_args *args) {
 		}
 	}
 
-//	if (sadata->success) free(sadata->success);
+	if (driz->success) free(driz->success);
 //	Do not free driz here as it will be needed for blot and second drizzle
 	args->user = NULL;
 
