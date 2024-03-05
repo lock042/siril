@@ -279,6 +279,7 @@ int map_image_coordinates_h(fits *fit, Homography H, imgmap_t *p, float scale) {
 	/* Doing the calculations manually rather than using
 	 * cvTransformImageRefPoint() achieves a speedup of 2 orders of
 	 * magnitude! */
+    cvApplyFlips(&H, ry, ry);
 	float Harr[9] = { (float) H.h00, (float) H.h01, (float) H.h02,
 		(float) H.h10, (float) H.h11, (float) H.h12,
 		(float) H.h20, (float) H.h21, (float) H.h22 };
