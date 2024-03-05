@@ -121,6 +121,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="label" translatable="yes">OK</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
+                <property name="has-focus">True</property>
                 <property name="receives-default">True</property>
                 <property name="tooltip-text" translatable="yes">Start the plate solving algorithm.</property>
                 <signal name="clicked" handler="on_buttonIPS_ok_clicked" swapped="no"/>

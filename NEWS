@@ -39,6 +39,7 @@ siril 1.4.0 xx xx, xx
 * If directory does not exist during script execution, CMD_DIR_NOT_FOUND is returned (!628)
 * Fixed issue where ICC profile with wrong channel count could be assigned if no previous ICC profile was assigned to an image (#1267)
 * Added dark scaling to match exposure time (#1269)
+* Added manual photometry output comparison stars file creation from UI (!614)
 * Added near solve in Siril internal solver (#1154::4 and !631)
 
 siril 1.2.2 xx xx, 2024

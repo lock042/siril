@@ -353,14 +353,6 @@ static gboolean find_and_check_cat_columns(gchar **fields, int nbcols, siril_cat
 	return FALSE;
 }
 
-void siril_catalog_free_item(cat_item *item) {
-	if (!item)
-		return;
-	g_free(item->name);
-	g_free(item->alias);
-	g_free(item->type);
-}
-
 static void fill_cat_item(cat_item *item, const gchar *input, cat_fields index) {
 	switch (index) {
 		case CAT_FIELD_RA:
@@ -469,6 +461,17 @@ void siril_catalogue_copy_item(cat_item *from, cat_item *to) {
 		to->type = g_strdup(from->type);
 }
 
+// frees a siril_catalogue
+void siril_catalog_free(siril_catalogue *siril_cat) {
+	if (!siril_cat)
+		return;
+	siril_catalog_free_items(siril_cat);
+	g_free(siril_cat->IAUcode);
+	g_free(siril_cat->header);
+	free(siril_cat);
+	siril_cat = NULL;
+}
+
 // frees the member cat_items of a catalogue
 // This is useful to launch the same query again, updating simply the catalog center for instance
 void siril_catalog_free_items(siril_catalogue *siril_cat) {
@@ -483,15 +486,13 @@ void siril_catalog_free_items(siril_catalogue *siril_cat) {
 	siril_cat->projected = CAT_PROJ_NONE;
 }
 
-// frees a siril_catalogue
-void siril_catalog_free(siril_catalogue *siril_cat) {
-	if (!siril_cat)
+// frees only one cat_items
+void siril_catalog_free_item(cat_item *item) {
+	if (!item)
 		return;
-	siril_catalog_free_items(siril_cat);
-	g_free(siril_cat->IAUcode);
-	g_free(siril_cat->header);
-	free(siril_cat);
-	siril_cat = NULL;
+	g_free(item->name);
+	g_free(item->alias);
+	g_free(item->type);
 }
 
 void siril_catalog_reset_projection(siril_catalogue *siril_cat) {
@@ -765,13 +766,13 @@ gboolean siril_catalog_write_to_output_stream(siril_catalogue *siril_cat, GOutpu
 		gchar *newline = g_strjoinv(",", tokens);
 		if (!g_output_stream_printf(output_stream, &n, NULL, &error, "\n%s", newline)) {
 			g_warning("%s\n", error->message);
-			g_error_free(error);
+			g_clear_error(&error);
 			g_free(newline);
 			return FALSE;
 		}
 		g_free(newline);
 	}
-	g_error_free(error);
+	g_clear_error(&error);
 	return TRUE;
 }
 
