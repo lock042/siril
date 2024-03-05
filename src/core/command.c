@@ -8710,7 +8710,7 @@ int process_platesolve(int nb) {
 			siril_log_message(_("Could not parse target coordinates\n"));
 			return CMD_ARG_ERROR;
 		}
-		forced_metadata[0] = TRUE;
+		forced_metadata[FORCED_CENTER] = TRUE;
 	}
 
 	while (nb > next_arg && word[next_arg]) {
@@ -8734,7 +8734,7 @@ int process_platesolve(int nb) {
 					siril_world_cs_unref(target_coords);
 				return CMD_ARG_ERROR;
 			}
-			forced_metadata[2] = TRUE;
+			forced_metadata[FORCED_FOCAL] = TRUE;
 		}
 		else if (g_str_has_prefix(word[next_arg], "-pixelsize=")) {
 			char *arg = word[next_arg] + 11;
@@ -8746,7 +8746,7 @@ int process_platesolve(int nb) {
 					siril_world_cs_unref(target_coords);
 				return CMD_ARG_ERROR;
 			}
-			forced_metadata[1] = TRUE;
+			forced_metadata[FORCED_PIXEL] = TRUE;
 		}
 		else if (g_str_has_prefix(word[next_arg], "-limitmag=")) {
 			char *arg = word[next_arg] + 10;

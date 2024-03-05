@@ -1385,7 +1385,7 @@ static void save_wcs_keywords(fits *fit) {
 			// A terms
 			fits_update_key(fit->fptr, TINT, "A_ORDER", &order, "SIP polynomial degree, axis 1, pixel-to-sky", &status);
 			for (int i = 0; i <= order; i++) {
-				for (int j = i; j >=0; j--) {
+				for (int j = i; j >= 0; j--) {
 					int k = i - j;
 					char key[6];
 					g_snprintf(key, 6, "A_%d_%d", j, k);
@@ -1395,7 +1395,7 @@ static void save_wcs_keywords(fits *fit) {
 			// B terms
 			fits_update_key(fit->fptr, TINT, "B_ORDER", &order, "SIP polynomial degree, axis 2, pixel-to-sky", &status);
 			for (int i = 0; i <= order; i++) {
-				for (int j = i; j >=0; j--) {
+				for (int j = i; j >= 0; j--) {
 					int k = i - j;
 					char key[6];
 					g_snprintf(key, 6, "B_%d_%d", j, k);
@@ -1405,7 +1405,7 @@ static void save_wcs_keywords(fits *fit) {
 			// AP terms
 			fits_update_key(fit->fptr, TINT, "AP_ORDER", &order, "SIP polynomial degree, axis 1, sky-to-pixel", &status);
 			for (int i = 0; i <= order; i++) {
-				for (int j = i; j >=0; j--) {
+				for (int j = i; j >= 0; j--) {
 					int k = i - j;
 					char key[7];
 					g_snprintf(key, 7, "AP_%d_%d", j, k);
@@ -1415,7 +1415,7 @@ static void save_wcs_keywords(fits *fit) {
 			// BP terms
 			fits_update_key(fit->fptr, TINT, "BP_ORDER", &order, "SIP polynomial degree, axis 2, sky-to-pixel", &status);
 			for (int i = 0; i <= order; i++) {
-				for (int j = i; j >=0; j--) {
+				for (int j = i; j >= 0; j--) {
 					int k = i - j;
 					char key[7];
 					g_snprintf(key, 7, "BP_%d_%d", j, k);

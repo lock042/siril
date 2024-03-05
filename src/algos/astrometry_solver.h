@@ -23,6 +23,12 @@ typedef enum {
 } platesolve_solver;
 
 typedef enum {
+	FORCED_CENTER,
+	FORCED_PIXEL,
+	FORCED_FOCAL
+} forced_metadata_t;
+
+typedef enum {
 	SOLVE_LINONLY = -2, // siril or asnet solvers returned a linear solution only instead of the required SIP order
 	SOLVE_LASTSOLVE = -1, // siril internal solver found a solution but the last centered solve did not succeed
 	// generic
@@ -68,7 +74,7 @@ struct astrometry_data {
 	int ry_solver;		// height of the image being solved (accounting for downscale if any)
 	double scalefactor;	// scale factor accounting for downscale if any
 	int trans_order; // order of the polynomial fit (if > 1, it includes distortions)
-	double searchradius; // radius of the cone if blind in degrees
+	double searchradius; // radius of the cone if nearsearch in degrees
 	gboolean forced_metadata[3]; // flags using for seq, to indicate if center, pixel and focal where forced
 
 	/* program-processed input, by process_plate_solver_input() */
@@ -77,7 +83,7 @@ struct astrometry_data {
 	rectangle solvearea;	// area in case of manual selection or autocrop
 	gboolean uncentered;	// solvearea is not centered with image
 	gboolean asnet_checked;	// local asnet availability already checked
-	gboolean blind; // if this flag is false, ref_stars conesearch is done once (mainly when catalogs are not local)
+	gboolean near_solve; // if this flag is false, ref_stars conesearch is done once (mainly when catalogs are not local)
 	int numthreads; //nb of threads that can be used
 
 	/* results */

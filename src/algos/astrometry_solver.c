@@ -160,6 +160,10 @@ double get_radius_deg(double resolution, int rx, int ry) {
 	return radius / 3600.0;	// in degrees
 }
 
+/* computes the limiting magnitude to have approx Nstars within fov 
+   this accounts for the position in the sky (converted to galactic coordinates)
+   as star density is much scarcer when close to the galactic pole
+*/
 double compute_mag_limit_from_position_and_fov(double ra, double dec, double fov_degrees, int Nstars) {
 	// Formulas as per https://siril-contrib-doc.readthedocs.io/en/latest/UsefulStuff.html#limit-magnitude
 	// computing galactic coordinates
@@ -188,6 +192,8 @@ static void compute_limit_mag(struct astrometry_data *args) {
 	if (args->mag_mode == LIMIT_MAG_ABSOLUTE)
 		args->ref_stars->limitmag = args->magnitude_arg;
 	else {
+		// compute limit mag to have approx BRIGHTEST_STARS (i.e. 500) stars in the fov
+		// same as the number of stars detected in an image
 		args->ref_stars->limitmag = compute_mag_limit_from_position_and_fov(
 		siril_world_cs_get_alpha(args->cat_center), 
 		siril_world_cs_get_delta(args->cat_center),
@@ -198,8 +204,8 @@ static void compute_limit_mag(struct astrometry_data *args) {
 	siril_debug_print("using limit magnitude %f\n", args->ref_stars->limitmag);
 }
 
-static void solve_is_blind(struct astrometry_data *args) {
-	args-> blind = args->solver == SOLVER_LOCALASNET || (args->ref_stars && args->ref_stars->cat_index == CAT_LOCAL && args->searchradius > 0);
+static gboolean solve_is_near(struct astrometry_data *args) {
+	return args->solver == SOLVER_LOCALASNET || (args->ref_stars && args->ref_stars->cat_index == CAT_LOCAL && args->searchradius > 0);
 }
 
 SirilWorldCS *get_eqs_from_header(fits *fit) {
@@ -980,7 +986,7 @@ gpointer plate_solver(gpointer p) {
 			stars[s]->ypos = y0 - stars[s]->ypos;
 		}
 		if ((args->ret = siril_platesolve(stars, nb_stars, args, &solution)) > 0) {
-			if (args->blind) {
+			if (args->near_solve) {
 				if (args->verbose) {
 					siril_log_color_message(_("Initial solve failed\n"), "salmon", "salmon");
 					siril_log_color_message(_("Attempting a near solve with a radius of %3.1f degrees\n"), "salmon", args->searchradius);
@@ -1062,8 +1068,7 @@ clearup:
 
 static void nearsolve_pool_worker(gpointer data, gpointer user_data) {
 	near_solve_data *nswdata = (near_solve_data *)data;
-	g_atomic_int_inc(&nswdata->progress);
-	int n = g_atomic_int_get(&nswdata->progress);
+	int n = g_atomic_int_add(&nswdata->progress, 1) + 1; // g_atomic_int_add returns the atomic before the add
 	if (!get_thread_run() || g_atomic_int_get(&nswdata->solved) || n == nswdata->N) {
 		return;
 	}
@@ -1089,7 +1094,7 @@ static void nearsolve_pool_worker(gpointer data, gpointer user_data) {
 	}
 	siril_catalog_free(siril_cat);
 	if (nswdata->verbose) {
-		double percent = (double)g_atomic_int_get(&nswdata->progress) / (double)nswdata->N;
+		double percent = (double)n / (double)nswdata->N;
 		set_progress_bar_data(NULL, percent);
 	}
 }
@@ -1158,7 +1163,7 @@ static int siril_near_platesolve(psf_star **stars, int nb_stars, struct astromet
 	double ra0 = siril_world_cs_get_alpha(args->cat_center);
 	double dec0 = siril_world_cs_get_delta(args->cat_center);
 	// We prepare the larger catalogue containing the search cone
-	// we limit the magnitude as we don't want as many stars
+	// we limit the magnitude as we don't want as many stars (50 instead of 500 per fov)
 	// we just want to have a good enough linear solution to resend a normal solve afterwards
 	siril_catalogue *siril_search_cat = calloc(1, sizeof(siril_catalogue));
 	siril_catalogue_copy(args->ref_stars, siril_search_cat, TRUE);
@@ -1251,17 +1256,16 @@ static int siril_platesolve(psf_star **stars, int nb_stars, struct astrometry_da
 	double ra0 = args->ref_stars->center_ra;
 	double dec0 = args->ref_stars->center_dec;
 	ret = match_catalog(stars, nb_stars, args->ref_stars, args->scale, args->trans_order, &t, &ra, &dec);
-	if (ret <= 0) { // we update the solution - but if blind, we do a last solve with a new catalogue fetched at the center if it was too far away
+	if (ret <= 0) { // we update the solution - but if near_solve, we do a last solve with a new catalogue fetched at the center if it was too far away
 		double dist = compute_coords_distance(ra0, dec0, ra, dec) * 60.; // distance from last fetched catalogue and solution center in arcmin
-		if (!ret && args->blind && dist > 0.3 * args->ref_stars->radius) {
+		if (!ret && args->near_solve && dist > 0.15 * args->used_fov) {
 			siril_catalog_free_items(args->ref_stars);
 			args->ref_stars->center_ra = ra;
 			args->ref_stars->center_dec = dec;
 			get_catalog_stars(args->ref_stars);
-			int ret2;
 			TRANS t2 = { 0 };
 			double ra2 = -1., dec2 = -1.;
-			ret2 = match_catalog(stars, nb_stars, args->ref_stars, args->scale, args->trans_order, &t2, &ra2, &dec2);
+			int ret2 = match_catalog(stars, nb_stars, args->ref_stars, args->scale, args->trans_order, &t2, &ra2, &dec2);
 			if (!ret2) {
 				t = t2;
 				ra = ra2;
@@ -1373,9 +1377,7 @@ static int match_catalog(psf_star **stars, int nb_stars, siril_catalogue *siril_
 		apply_match(ra0, dec0, 0., 0., &trans, &ra0, &dec0);
 
 		// we will reproject the catalog at the new image center
-		siril_debug_print("Reprojecting to: alpha: %s, delta: %s\n",
-				siril_world_cs_alpha_format_from_double(ra0, "%02d %02d %.3lf"),
-				siril_world_cs_delta_format_from_double(dec0, "%c%02d %02d %.3lf"));
+		siril_debug_print("Reprojecting to: alpha: %.4f, delta: %+.4f\n", ra0, dec0);
 
 		// Uses the indexes in star_list_B to update the stars positions according to the new projection
 		free_fitted_stars(cstars);
@@ -1416,9 +1418,7 @@ static int match_catalog(psf_star **stars, int nb_stars, siril_catalogue *siril_
 				// we get the new projection center
 				apply_match(ra1, dec1, 0., 0., &newtrans, &ra1, &dec1);
 				// we will reproject the catalog at the new image center
-				siril_debug_print("Reprojecting to: alpha: %s, delta: %s\n",
-					siril_world_cs_alpha_format_from_double(ra1, "%02d %02d %.3lf"),
-					siril_world_cs_delta_format_from_double(dec1, "%c%02d %02d %.3lf"));
+				siril_debug_print("Reprojecting to: alpha: %.4f, delta: %+.4f\n", ra1, dec1);
 
 				free_fitted_stars(cstars);
 				cstars = project_catalog_stars(siril_cat, ra1, dec1);
@@ -1803,7 +1803,7 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 }
 
 // inputs: focal length, pixel size, manual, fit, autocrop, downsample, mag_mode and mag_arg
-// outputs: scale, used_fov, uncentered, solvearea, limit_mag, blind, catalogue
+// outputs: scale, used_fov, uncentered, solvearea, limit_mag, near_solve, catalogue
 void process_plate_solver_input(struct astrometry_data *args) {
 	args->scale = get_resolution(args->focal_length, args->pixel_size);
 	gboolean selected = FALSE;
@@ -1863,7 +1863,7 @@ void process_plate_solver_input(struct astrometry_data *args) {
 	}
 
 	if (args->solver == SOLVER_LOCALASNET) {
-		args->blind = TRUE;
+		args->near_solve = TRUE;
 		return;
 	}
 	args->ref_stars->radius = args->used_fov * 0.5;
@@ -1887,9 +1887,9 @@ void process_plate_solver_input(struct astrometry_data *args) {
 		else args->ref_stars->cat_index = CAT_GAIADR3;
 	}
 	if (selected)
-		args->blind = FALSE;
+		args->near_solve = FALSE;
 	else
-		solve_is_blind(args); // sets flag to check if the catalogue needs to be fetched at the start or if it will be fetched on demand
+		args->near_solve = solve_is_near(args); // sets flag to check if the catalogue needs to be fetched at the start or if it will be fetched on demand
 }
 
 static int astrometry_prepare_hook(struct generic_seq_args *arg) {
@@ -1929,7 +1929,7 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 	}
 
 	if (aargs->nocache) {
-		if (!aargs->forced_metadata[0] && aargs->cat_center) { // center coordinates where not forced, we need to read new ones from header or skip if blind for asnet
+		if (!aargs->forced_metadata[FORCED_CENTER] && aargs->cat_center) { // center coordinates where not forced, we need to read new ones from header or skip if blind for asnet
 			siril_world_cs_unref(aargs->cat_center);
 			SirilWorldCS *target_coords = get_eqs_from_header(fit);
 			if (!target_coords) {
@@ -1944,7 +1944,7 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 				aargs->ref_stars->center_dec = siril_world_cs_get_delta(target_coords);
 			}
 		}
-		if (!aargs->forced_metadata[1]) { // pixel size was not forced, we need to read new one from header/settings
+		if (!aargs->forced_metadata[FORCED_PIXEL]) { // pixel size was not forced, we need to read new one from header/settings
 			aargs->pixel_size = max(fit->pixel_size_x, fit->pixel_size_y);
 			if (aargs->pixel_size <= 0.) {
 				aargs->pixel_size = com.pref.starfinder_conf.pixel_size_x;
@@ -1958,7 +1958,7 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 				}
 			}
 		}
-		if (!aargs->forced_metadata[2]) { // focal was not forced, we need to read new one from header/settings
+		if (!aargs->forced_metadata[FORCED_FOCAL]) { // focal was not forced, we need to read new one from header/settings
 			aargs->focal_length = fit->focal_length;
 			if (aargs->focal_length <= 0.0) {
 				aargs->focal_length = com.pref.starfinder_conf.focal_length;
