@@ -51,6 +51,7 @@ int	process_calibrate(int nb);
 int	process_calibrate_single(int nb);
 int	process_capabilities(int nb);
 int	process_catsearch(int nb);
+int	process_ccm(int nb);
 int	process_cd(int nb);
 int	process_cdg(int nb);
 int	process_crop(int nb);
@@ -131,8 +132,6 @@ int	process_parse(int nb);
 int	process_pcc(int nb);
 int	process_platesolve(int nb);
 int	process_pm(int nb);
-int	process_preprocess(int nb);
-int	process_preprocess_single(int nb);
 int	process_profile(int nb);
 int	process_psf(int nb);
 

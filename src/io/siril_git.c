@@ -938,7 +938,7 @@ void on_manual_script_sync_button_clicked(GtkButton* button, gpointer user_data)
 	if (git_pending_commit_buffer != NULL) {
 		if (siril_confirm_data_dialog(GTK_MESSAGE_QUESTION, _("Manual Update"), _("Read and confirm the pending changes to be synced"), _("Confirm"), git_pending_commit_buffer->str)) {
 			if (reset_scripts_repository()) {
-				siril_message_dialog(GTK_MESSAGE_ERROR, _("Manual Update"), _("Error! SPCC database failed to update."));
+				siril_message_dialog(GTK_MESSAGE_ERROR, _("Manual Update"), _("Error! Script database failed to update."));
 			}
 			fill_script_repo_list(FALSE);
 		} else {
@@ -946,7 +946,7 @@ void on_manual_script_sync_button_clicked(GtkButton* button, gpointer user_data)
 		}
 		g_string_free(git_pending_commit_buffer, TRUE);
 	} else {
-		siril_message_dialog(GTK_MESSAGE_INFO, _("Manual Update"), _("The spcc-database repository is up to date."));
+		siril_message_dialog(GTK_MESSAGE_INFO, _("Manual Update"), _("The script repository is up to date."));
 	}
 	fill_script_repo_list(TRUE);
 	set_cursor_waiting(FALSE);

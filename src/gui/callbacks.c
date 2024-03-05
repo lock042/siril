@@ -688,6 +688,9 @@ void update_MenuItem() {
 	/* search SOLAR object */
 	GAction *action_search_solar = g_action_map_lookup_action (G_ACTION_MAP(app_win), "search-solar");
 	g_simple_action_set_enabled(G_SIMPLE_ACTION(action_search_solar), any_image_is_loaded && has_wcs(&gfit));
+	/* Lightcurve process */
+	GAction *action_nina_light_curve = g_action_map_lookup_action (G_ACTION_MAP(app_win), "nina_light_curve");
+	g_simple_action_set_enabled(G_SIMPLE_ACTION(action_nina_light_curve), sequence_is_loaded() && has_wcs(&gfit));
 	/* selection is needed */
 	siril_window_enable_if_selection_actions(app_win, com.selection.w && com.selection.h);
 	/* selection and sequence is needed */
@@ -795,7 +798,7 @@ void update_prepro_interface(gboolean allow_debayer) {
 		output_type = GTK_COMBO_BOX(lookup_widget("prepro_output_type_combo"));
 		prepro_button = lookup_widget("prepro_button");
 		cosme_grid = lookup_widget("grid24");
-		dark_optim = lookup_widget("checkDarkOptimize");
+		dark_optim = lookup_widget("comboDarkOptimize");
 		equalize = lookup_widget("checkbutton_equalize_cfa");
 		auto_eval = lookup_widget("checkbutton_auto_evaluate");
 		flat_norm = lookup_widget("entry_flat_norm");
@@ -1315,6 +1318,8 @@ static void load_accels() {
 		"win.astrometry",             "<Primary><Shift>a", NULL,
 		"win.pcc-processing",         "<Primary><Shift>p", NULL,
 		"win.spcc-processing",        "<Primary><Shift>c", NULL,
+		"win.compstars",              "<Primary><Shift>b", NULL,
+		"win.nina_light_curve",       "<Primary><Shift>n", NULL,
 		"win.pickstar",               "<Primary>space", NULL,
 		"win.dyn-psf",                "<Primary>F6", NULL,
 		"win.clipboard",              "<Primary><Shift>x", NULL,

@@ -136,5 +136,6 @@ void merge_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 void icc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void set_roi(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void clear_roi(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void ccm_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 
 #endif /* SRC_CORE_SIRIL_ACTIONS_H_ */
