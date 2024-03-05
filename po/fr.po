@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-02-02 10:41+0100\n"
-"PO-Revision-Date: 2024-02-18 14:02+0000\n"
+"PO-Revision-Date: 2024-03-05 08:50+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.pixls.us/projects/siril/"
 "siril-application-1-2/fr/>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 5.4\n"
+"X-Generator: Weblate 5.4.2\n"
 
 #: src/gui/siril3.glade:149 src/gui/siril3.glade:7998
 #: src/filters/cosmetic_correction.c:434 src/filters/cosmetic_correction.c:605
@@ -658,7 +658,7 @@ msgstr "RBF"
 
 #: src/gui/siril3.glade:3490
 msgid "Polynomial"
-msgstr "Polynomial"
+msgstr "Polynomiale"
 
 #: src/gui/siril3.glade:3520
 msgid "Smoothing"
