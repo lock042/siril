@@ -8663,16 +8663,18 @@ int process_spcc(int nb) {
 #endif
 }
 
-// used for PCC and SPCC commands
+// used for platesolve and seqplatesolve commands
 int process_platesolve(int nb) {
-	gboolean noflip = FALSE, plate_solve, downsample = FALSE, autocrop = TRUE;
+	gboolean noflip = FALSE, plate_solve, downsample = FALSE, autocrop = TRUE, nocache = FALSE;
+	gboolean forced_metadata[3] = { 0 }; // used for sequences in the image hook, for center, pixel and focal
 	SirilWorldCS *target_coords = NULL;
 	double forced_focal = -1.0, forced_pixsize = -1.0;
-	double mag_offset = 0.0, target_mag = -1.0;
-	int order = 3; // we default to cubic
+	double mag_offset = 0.0, target_mag = -1.0, searchradius = com.pref.astrometry.radius_degrees;
+	int order = com.pref.astrometry.sip_correction_order; // we default to the pref value
 	siril_cat_index cat = CAT_AUTO;
 	gboolean seqps = word[0][0] == 's';
 	sequence *seq = NULL;
+	platesolve_solver solver = SOLVER_SIRIL;
 
 	gboolean local_cat = local_catalogues_available();
 	int next_arg = 1;
@@ -8708,17 +8710,20 @@ int process_platesolve(int nb) {
 			siril_log_message(_("Could not parse target coordinates\n"));
 			return CMD_ARG_ERROR;
 		}
+		forced_metadata[FORCED_CENTER] = TRUE;
 	}
 
 	while (nb > next_arg && word[next_arg]) {
 		if (!strcmp(word[next_arg], "-noflip"))
 			noflip = TRUE;
-		if (!strcmp(word[next_arg], "-nocrop"))
+		else if (!strcmp(word[next_arg], "-nocrop"))
 			autocrop = FALSE;
 		else if (!seqps && !strcmp(word[next_arg], "-platesolve"))
 			plate_solve = TRUE;
 		else if (!strcmp(word[next_arg], "-downscale"))
 			downsample = TRUE;
+		else if (!strcmp(word[next_arg], "-nocache"))
+			nocache = TRUE;
 		else if (g_str_has_prefix(word[next_arg], "-focal=")) {
 			char *arg = word[next_arg] + 7;
 			gchar *end;
@@ -8729,6 +8734,7 @@ int process_platesolve(int nb) {
 					siril_world_cs_unref(target_coords);
 				return CMD_ARG_ERROR;
 			}
+			forced_metadata[FORCED_FOCAL] = TRUE;
 		}
 		else if (g_str_has_prefix(word[next_arg], "-pixelsize=")) {
 			char *arg = word[next_arg] + 11;
@@ -8740,6 +8746,7 @@ int process_platesolve(int nb) {
 					siril_world_cs_unref(target_coords);
 				return CMD_ARG_ERROR;
 			}
+			forced_metadata[FORCED_PIXEL] = TRUE;
 		}
 		else if (g_str_has_prefix(word[next_arg], "-limitmag=")) {
 			char *arg = word[next_arg] + 10;
@@ -8760,13 +8767,24 @@ int process_platesolve(int nb) {
 			char *arg = word[next_arg] + 7;
 			gchar *end;
 			int value = g_ascii_strtoull(arg, &end, 10);
-			if (end == arg || value < 1 || value > 4) {
+			if (end == arg || value < 1 || value > 5) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
 				if (target_coords)
 					siril_world_cs_unref(target_coords);
 				return CMD_ARG_ERROR;
 			}
 			order = value;
+		}
+		else if (g_str_has_prefix(word[next_arg], "-radius=")) {
+			char *arg = word[next_arg] + 8;
+			gchar *end;
+			searchradius = g_ascii_strtod(arg, &end);
+			if (end == arg || searchradius < 0.0 || searchradius > 180.0) {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
+				if (target_coords)
+					siril_world_cs_unref(target_coords);
+				return CMD_ARG_ERROR;
+			}
 		}
 		else if (g_str_has_prefix(word[next_arg], "-catalog=")) {
 			char *arg = word[next_arg] + 9;
@@ -8792,8 +8810,7 @@ int process_platesolve(int nb) {
 		else if (!g_ascii_strcasecmp(word[next_arg], "-localasnet")) {
 			if (cat != CAT_AUTO)
 				siril_log_message(_("Specifying a catalog has no effect for astrometry.net solving\n"));
-			cat = CAT_ASNET;
-			local_cat = TRUE;
+			solver = SOLVER_LOCALASNET;
 		} else {
 			siril_log_message(_("Invalid argument %s, aborting.\n"), word[next_arg]);
 			if (target_coords)
@@ -8812,15 +8829,19 @@ int process_platesolve(int nb) {
 
 	if (local_cat && cat == CAT_AUTO) {
 		cat = CAT_LOCAL;
+		autocrop = FALSE; // we don't crop fov when using local catalogues
+		siril_debug_print("forced no crop when using local catalogues\n");
+		nocache = TRUE; // we solve each image individually when using local catalogues
+		siril_debug_print("forced no cache when using local catalogues\n");
 	}
 
-	if (local_cat && cat != CAT_LOCAL && cat != CAT_ASNET) {
+	if (local_cat && cat != CAT_LOCAL && solver == SOLVER_SIRIL) {
 		siril_log_color_message(_("Using remote %s instead of local NOMAD catalogue\n"),
 				"salmon", catalog_to_str(cat));
 		local_cat = FALSE;
 	}
 
-	if (cat == CAT_ASNET && !asnet_is_available()) {
+	if (solver == SOLVER_LOCALASNET && !asnet_is_available()) {
 		siril_log_color_message(_("The local astrometry.net solver was not found, aborting. Please check the settings.\n"), "red");
 		if (target_coords)
 			siril_world_cs_unref(target_coords);
@@ -8840,7 +8861,7 @@ int process_platesolve(int nb) {
 
 	if (!target_coords) {
 		target_coords = get_eqs_from_header(preffit);
-		if (cat != CAT_ASNET && !target_coords) {
+		if (solver != SOLVER_LOCALASNET && !target_coords) {
 				siril_log_color_message(_("Cannot plate solve, no target coordinates passed and image header doesn't contain any either\n"), "red");
 				if (seqps)
 					clearfits(preffit);
@@ -8899,14 +8920,14 @@ int process_platesolve(int nb) {
 	}
 
 	if (target_mag > -1.0) {
-		if (cat == CAT_ASNET)
+		if (solver != SOLVER_SIRIL)
 			siril_log_message(_("Magnitude alteration arguments are useless for astrometry.net plate solving\n"));
 		else {
 			args->mag_mode = LIMIT_MAG_ABSOLUTE;
 			args->magnitude_arg = target_mag;
 		}
 	} else if (mag_offset != 0.0) {
-		if (cat == CAT_ASNET)
+		if (solver != SOLVER_SIRIL)
 			siril_log_message(_("Magnitude alteration arguments are useless for astrometry.net plate solving\n"));
 		else {
 			args->mag_mode = LIMIT_MAG_AUTO_WITH_OFFSET;
@@ -8918,11 +8939,19 @@ int process_platesolve(int nb) {
 
 	if (seqps)
 		clearfits(preffit);
+	args->solver = solver;
 	args->downsample = downsample;
 	args->autocrop = autocrop;
+	args->nocache = nocache;
+	if (solver == SOLVER_SIRIL && searchradius > 30.) {
+		siril_log_message(_("Limiting search radius to 30 degrres for internal solver near solve\n"));
+		searchradius = 30.;
+	}
+	args->searchradius = searchradius;
+	memcpy(&args->forced_metadata, forced_metadata, 3 * sizeof(gboolean));
 	if (!seqps && sequence_is_loaded()) { // we are platesolving an image from a sequence, we can't allow to flip (may be registered)
 		noflip = TRUE;
-		siril_debug_print("forced no flip for solving an image from a sequence");
+		siril_debug_print("forced no flip for solving an image from a sequence\n");
 	}
 	args->flip_image = !noflip;
 	args->manual = FALSE;
@@ -8931,11 +8960,11 @@ int process_platesolve(int nb) {
 		args->cat_center = target_coords;
 	}
 	// catalog query parameters
-	args->ref_stars = calloc(1, sizeof(siril_catalogue));
-	args->ref_stars->cat_index = cat;
-	args->ref_stars->columns =  siril_catalog_columns(cat);
-	args->ref_stars->phot = FALSE;
-	if (target_coords) {
+	if (solver == SOLVER_SIRIL) {
+		args->ref_stars = calloc(1, sizeof(siril_catalogue));
+		args->ref_stars->cat_index = cat;
+		args->ref_stars->columns =  siril_catalog_columns(cat);
+		args->ref_stars->phot = FALSE;
 		args->ref_stars->center_ra = siril_world_cs_get_alpha(target_coords);
 		args->ref_stars->center_dec = siril_world_cs_get_delta(target_coords);
 	}
@@ -8950,9 +8979,10 @@ int process_platesolve(int nb) {
 		return CMD_OK;
 	}
 	// single-image
-	if (cat == CAT_ASNET)
+	if (solver == SOLVER_LOCALASNET)
 		args->filename = g_strdup(com.uniq->filename);
 	args->fit = &gfit;
+	args->numthreads = com.max_thread;
 	process_plate_solver_input(args);
 	start_in_new_thread(plate_solver, args);
 	return CMD_OK;
@@ -8965,6 +8995,10 @@ int process_conesearch(int nb) {
 	super_bool display_log = BOOL_NOT_SET;
 	siril_cat_index cat = CAT_AUTO;
 	gchar *obscode = NULL;
+	int trixel = -1;
+	gchar *outfilename = NULL;
+	gboolean local_cat = local_catalogues_available();
+
 	if (!has_wcs(&gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
 		return CMD_FOR_PLATE_SOLVED;
@@ -9016,6 +9050,18 @@ int process_conesearch(int nb) {
 				return CMD_ARG_ERROR;
 			}
 			obscode = g_strdup(arg);
+		} else if (g_str_has_prefix(word[arg_idx], "-trix=")) {
+			if (!local_cat) {
+				siril_log_color_message(_("No local catalogues found, ignoring -trix option\n"), "red");
+				continue;
+			}
+			gchar *end;
+			int trix = (int)g_ascii_strtoull(word[arg_idx] + 6, &end, 10);
+			if (trix < 0 || trix > 511) {
+				siril_log_color_message(_("Trixel number must be between 0 and 511\n"), "red");
+				return CMD_ARG_ERROR;
+			}
+			trixel = trix;
 		} else if (!strcmp(word[arg_idx], "-phot")) {
 			photometric = TRUE;
 		} else if (g_str_has_prefix(word[arg_idx], "-log=")) {
@@ -9038,6 +9084,13 @@ int process_conesearch(int nb) {
 				siril_log_message(_("Wrong parameter values. Tag must be set to on or off, aborting.\n"));
 				return CMD_ARG_ERROR;
 			}
+		} else if (g_str_has_prefix(word[arg_idx], "-out=")) {
+			char *arg = word[arg_idx] + 5;
+			if (arg[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), word[arg_idx]);
+				return CMD_ARG_ERROR;
+			}
+			outfilename = g_strdup(arg);
 		} else {
 			gchar *end;
 			limit_mag = g_ascii_strtod(word[arg_idx], &end);
@@ -9049,9 +9102,11 @@ int process_conesearch(int nb) {
 		arg_idx++;
 	}
 
-	gboolean local_cat = local_catalogues_available();
-	if (cat == CAT_AUTO)
+	if (cat == CAT_AUTO) {
 		cat = (local_cat) ? CAT_LOCAL : CAT_NOMAD;
+		if (trixel >= 0 && cat == CAT_LOCAL)
+			cat = CAT_LOCAL_TRIX;
+	}
 
 	// preparing the catalogue query
 	siril_catalogue *siril_cat = siril_catalog_fill_from_fit(&gfit, cat, limit_mag);
@@ -9064,6 +9119,9 @@ int process_conesearch(int nb) {
 			siril_log_color_message(_("Did not specify an observatory code, using geocentric by default, positions may not be accurate\n"), "salmon");
 		}
 	}
+	if (cat == CAT_LOCAL_TRIX)
+		siril_cat->trixel = trixel;
+
 	siril_debug_print("centre coords: %f, %f, radius: %f arcmin\n", siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius);
 	conesearch_args *args = init_conesearch();
 	args->fit = &gfit;
@@ -9071,6 +9129,7 @@ int process_conesearch(int nb) {
 	args->has_GUI = !com.script;
 	args->display_log = (display_log == BOOL_NOT_SET) ? display_names_for_catalogue(cat) : (gboolean)display_log;
 	args->display_tag = (display_tag == BOOL_NOT_SET) ? display_names_for_catalogue(cat) : (gboolean)display_tag;
+	args->outfilename = outfilename;
 	if (check_conesearch_args(args)) {// can't fail for now
 		free_conesearch(args);
 		return CMD_GENERIC_ERROR;
@@ -9797,6 +9856,24 @@ int process_disto(int nb) {
 		return CMD_OK;
 	} else {
 		siril_log_message(_("Unknown parameter %s, aborting.\n"), word[1]);
+		return CMD_ARG_ERROR;
+	}
+	return CMD_OK;
+}
+
+int process_trixel(int nb) {
+	if (nb > 3)
+		return CMD_WRONG_N_ARG;
+	if (nb == 1) {
+		if (!single_image_is_loaded())
+			return CMD_LOAD_IMAGE_FIRST;
+		if (!has_wcs(&gfit))
+			return CMD_FOR_PLATE_SOLVED;
+		start_in_new_thread(list_trixels, NULL);
+	} else if (!strcmp(word[2], "-p"))
+		start_in_new_thread(write_trixels, NULL);
+	else {
+		siril_log_message(_("Unknown parameter %s, aborting.\n"), word[2]);
 		return CMD_ARG_ERROR;
 	}
 	return CMD_OK;
