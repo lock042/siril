@@ -8943,6 +8943,10 @@ int process_platesolve(int nb) {
 	args->downsample = downsample;
 	args->autocrop = autocrop;
 	args->nocache = nocache;
+	if (solver == SOLVER_SIRIL && searchradius > 30.) {
+		siril_log_message(_("Limiting search radius to 30 degrres for internal solver near solve\n"));
+		searchradius = 30.;
+	}
 	args->searchradius = searchradius;
 	memcpy(&args->forced_metadata, forced_metadata, 3 * sizeof(gboolean));
 	if (!seqps && sequence_is_loaded()) { // we are platesolving an image from a sequence, we can't allow to flip (may be registered)
