@@ -392,8 +392,8 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	/* Set up output fits */
 	fits out;
 	copyfits(fit, &out, CP_FORMAT, -1);
-	out.rx = out.naxes[0] = (int) (fit->rx * p->scale);
-	out.ry = out.naxes[1] = (int) (fit->ry * p->scale);
+	out.rx = out.naxes[0] = rx_out;
+	out.ry = out.naxes[1] = ry_out;
 	out.naxes[2] = driz->is_bayer ? 3 : 1;
 	siril_debug_print("Output image %d x %d x %ld\n", out.rx, out.ry, out.naxes[2]);
 	size_t chansize = out.rx * out.ry * sizeof(float);
