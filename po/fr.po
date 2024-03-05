@@ -8,16 +8,16 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-03-04 21:46+0100\n"
-"PO-Revision-Date: 2024-02-18 16:37+0000\n"
+"PO-Revision-Date: 2024-03-05 08:50+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
-"Language-Team: French <https://weblate.pixls.us/projects/siril/siril-"
-"application/fr/>\n"
+"Language-Team: French <https://weblate.pixls.us/projects/siril/"
+"siril-application/fr/>\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 5.4\n"
+"X-Generator: Weblate 5.4.2\n"
 
 #: src/gui/uifiles/aavso_dialog.ui:7
 msgid "AAVSO parameters"
@@ -722,7 +722,7 @@ msgstr "RBF"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:132
 msgid "Polynomial"
-msgstr "Polynomial"
+msgstr "Polynomiale"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:162
 msgid "Smoothing"
@@ -7763,7 +7763,6 @@ msgstr ""
 "La sortie est un fichier csv compatible avec NINA Exoplanet"
 
 #: src/gui/uifiles/siril.ui:2392
-#, fuzzy
 msgid "Create Comparison Stars File ..."
 msgstr "Créer un fichier d'étoiles de comparaison..."
 
@@ -8325,7 +8324,6 @@ msgstr ""
 "photosites spécifiques donnant un carré visible au milieu des darks/offsets."
 
 #: src/gui/uifiles/siril.ui:4672
-#, fuzzy
 msgid ""
 "Dark subtraction can be optimized. Siril offers two ways of doing this.\n"
 "- The first method automatically evaluates the coefficients to be applied so "
@@ -8341,30 +8339,31 @@ msgid ""
 "<b>WARNING:</b> Do not apply dark optimization to the master-dark if the "
 "master-bias has not been subtracted beforehand."
 msgstr ""
-"La soustraction des darks peut optionnellement être optimisée afin que le "
-"bruit de l'image résultante (image - dark) soit minimisé en appliquant un "
-"coefficient au master dark. Cette option est utile lorsque les darks n'ont "
-"pas été pris dans des conditions optimales. Cela permet de compenser les "
-"différences de température et/ou de temps d'exposition entre les darks et "
-"les images.\n"
+"La soustraction des darks peut être optimisée. Siril propose deux façons de "
+"procéder.\n"
+"- La première méthode évalue automatiquement les coefficients à appliquer "
+"pour que le bruit de l'image résultante (image - dark) soit minimisé.\n"
+"- La deuxième méthode prend en compte les temps de pose si ceux-ci ont été "
+"renseignés par le logiciel de capture.\n"
 "\n"
-"ATTENTION : appliquer l'optimisation des darks sur un master-dark, "
-"uniquement si un master-bias a été soustrait précédemment."
+"L'optimisation des darks est utile lorsque les darks n'ont pas été capturées "
+"dans des conditions optimales. Il compense les différences de température et/"
+"ou de temps d'exposition entre les darks et les images à calibrer.\n"
+"\n"
+"<b>AVERTISSEMENT :</b> N'appliquez pas d'optimisation des darks au master-"
+"dark si le master-bias n'a pas été soustrait au préalable."
 
 #: src/gui/uifiles/siril.ui:4681
-#, fuzzy
 msgid "No dark optimization"
-msgstr "Optimisation des darks"
+msgstr "Aucune optimisation des darks"
 
 #: src/gui/uifiles/siril.ui:4682
-#, fuzzy
 msgid "Auto-evaluation"
-msgstr "Évaluation du tilt"
+msgstr "Auto-évaluation"
 
 #: src/gui/uifiles/siril.ui:4683
-#, fuzzy
 msgid "Use Exposure"
-msgstr "Utiliser offset"
+msgstr "Utiliser exposition"
 
 #: src/gui/uifiles/siril.ui:4703
 msgid "Image calibration"
@@ -11149,16 +11148,14 @@ msgid "Open spectrophotometric color calibration dialog"
 msgstr "Ouvrir la fenêtre d'étalonnage des couleurs par spectrophotométrie"
 
 #: src/gui/siril-shortcuts.ui:191
-#, fuzzy
 msgctxt "shortcut window"
 msgid "Open comparison stars dialog"
-msgstr "Créer une liste d'étoiles de comparaison"
+msgstr "Ouvrir la boîte de dialogue de comparaison des étoiles"
 
 #: src/gui/siril-shortcuts.ui:198
-#, fuzzy
 msgctxt "shortcut window"
 msgid "Open light curve dialog"
-msgstr "Ouvrir la fenêtre de résolution astrométrique"
+msgstr "Ouvrir la boîte de dialogue de la courbe de lumière"
 
 #: src/gui/siril-shortcuts.ui:205
 msgctxt "shortcut window"
@@ -15074,9 +15071,9 @@ msgstr ""
 "8b\n"
 
 #: src/core/command.c:7827
-#, fuzzy, c-format
+#, c-format
 msgid "Missing or wrong argument to %s, aborting.\n"
-msgstr "Argument manquant dans %s, abandon.\n"
+msgstr "Argument manquant ou erroné pour %s, interruption.\n"
 
 #: src/core/command.c:7857
 msgid ""
@@ -15770,7 +15767,6 @@ msgstr ""
 "passé, la sélection courante est imprimée"
 
 #: src/core/command_def.h:16
-#, fuzzy
 msgid ""
 "Calibrates the sequence <b>sequencename</b> using bias, dark and flat given "
 "in argument.\n"
@@ -15819,17 +15815,17 @@ msgstr ""
 "Par défaut, la correction cosmétique n'est pas activée. Si vous souhaitez en "
 "appliquer, vous devrez le spécifier avec l'option <b>-cc=</b>.\n"
 "Vous pouvez utiliser <b>-cc=dark</b> pour détecter les pixels chauds et "
-"froids du masterdark (un masterdark doit être donné avec l'option <b>-dark=</"
-"b>), éventuellement suivi de <b> siglo</b> et <b>sighi</b> pour les pixels "
-"froids et chauds respectivement. Une valeur de 0 désactive la correction. Si "
-"les sigmas ne sont pas fournis, seule la détection des pixels chauds avec un "
-"sigma de 3 sera appliquée.\n"
+"froids du masterdark (un masterdark doit être donné avec l'option "
+"<b>-dark=</b>), éventuellement suivi de <b> siglo</b> et <b>sighi</b> pour "
+"les pixels froids et chauds respectivement. Une valeur de 0 désactive la "
+"correction. Si les sigmas ne sont pas fournis, seule la détection des pixels "
+"chauds avec un sigma de 3 sera appliquée.\n"
 "Alternativement, vous pouvez utiliser <b>-cc=bpm</b> suivi du chemin vers "
 "votre carte des mauvais pixels pour spécifier quels pixels doivent être "
 "corrigés. Un fichier d'exemple peut être obtenu avec une commande "
 "<i>find_hot</i> sur un masterdark.\n"
 "\n"
-"Trois options s'appliquent aux images couleur (au format CFA) : <b>-cfa</b> "
+"Trois options s'appliquent aux images couleur (au format CFA) : <b>-cfa</b> "
 "à des fins de correction esthétique, <b>-debayer</b> pour les images de "
 "dématriçage avant de les enregistrer et <b>-equalize_cfa</b> d'égaliser "
 "l'intensité moyenne des couches RVB du master flat, pour éviter de teinter "
@@ -15837,19 +15833,19 @@ msgstr ""
 "L'option <b>-fix_xtrans</b> est dédiée aux images X-Trans en appliquant une "
 "correction sur les darks et les offsets pour supprimer un motif carré causé "
 "par l'autofocus.\n"
-"Il est également possible d'optimiser la soustraction des darks avec <b>-"
-"opt</b>, ce qui nécessite de fournir à la fois des offsets et des darks "
-"maîtres.\n"
+"Il est également possible d'optimiser la soustraction des darks avec "
+"<b>-opt</b>, ce qui nécessite de fournir à la fois des offsets et des darks "
+"maîtres et calcule automatiquement le coefficient à appliquer au dark, ou de "
+"calculer le coefficient grâce au mot clé EXPOSURE avec <b>-opt=exp</b>.\n"
 "Par défaut, les images marqués comme exclus ne seront pas traités. "
 "L'argument <b>-all</b> peut être utilisé pour forcer le traitement de toutes "
 "les images même si elles sont marquées comme exclues.\n"
 "Le nom de la séquence de sortie commence par le préfixe \"pp_\" sauf "
 "indication contraire avec l'option <b>-prefix=</b>.\n"
-"Si <b>-fitseq</b> est fourni, la séquence de sortie sera une séquence FITS "
-"(fichier unique)"
+"Si <b>-fitseq</b> est fourni, la séquence de sortie sera une séquence FITS ("
+"fichier unique)"
 
 #: src/core/command_def.h:17
-#, fuzzy
 msgid ""
 "Calibrates the image <b>imagename</b> using bias, dark and flat given in "
 "argument.\n"
@@ -15893,17 +15889,17 @@ msgstr ""
 "Par défaut, la correction cosmétique n'est pas activée. Si vous souhaitez en "
 "appliquer, vous devrez le spécifier avec l'option <b>-cc=</b>.\n"
 "Vous pouvez utiliser <b>-cc=dark</b> pour détecter les pixels chauds et "
-"froids du masterdark (un masterdark doit être donné avec l'option <b>-dark=</"
-"b>), éventuellement suivi de <b> siglo</b> et <b>sighi</b> pour les pixels "
-"froids et chauds respectivement. Une valeur de 0 désactive la correction. Si "
-"les sigmas ne sont pas fournis, seule la détection des pixels chauds avec un "
-"sigma de 3 sera appliquée.\n"
+"froids du masterdark (un masterdark doit être donné avec l'option "
+"<b>-dark=</b>), éventuellement suivi de <b> siglo</b> et <b>sighi</b> pour "
+"les pixels froids et chauds respectivement. Une valeur de 0 désactive la "
+"correction. Si les sigmas ne sont pas fournis, seule la détection des pixels "
+"chauds avec un sigma de 3 sera appliquée.\n"
 "Alternativement, vous pouvez utiliser <b>-cc=bpm</b> suivi du chemin vers "
 "votre carte des mauvais pixels pour spécifier quels pixels doivent être "
 "corrigés. Un fichier d'exemple peut être obtenu avec une commande "
 "<i>find_hot</i> sur un masterdark.\n"
 "\n"
-"Trois options s'appliquent aux images couleur (au format CFA) : <b>-cfa</b> "
+"Trois options s'appliquent aux images couleur (au format CFA) : <b>-cfa</b> "
 "à des fins de correction esthétique, <b>-debayer</b> pour les images de "
 "dématriçage avant de les enregistrer et <b>-equalize_cfa</b> d'égaliser "
 "l'intensité moyenne des couches RVB du master flat, pour éviter de teinter "
@@ -15911,9 +15907,10 @@ msgstr ""
 "L'option <b>-fix_xtrans</b> est dédiée aux images X-Trans en appliquant une "
 "correction sur les darks et les offsets pour supprimer un motif carré causé "
 "par l'autofocus.\n"
-"Il est également possible d'optimiser la soustraction des darks avec <b>-"
-"opt</b>, ce qui nécessite de fournir à la fois des offsets et des darks "
-"maîtres.\n"
+"Il est également possible d'optimiser la soustraction des darks avec "
+"<b>-opt</b>, ce qui nécessite de fournir à la fois des offsets et des darks "
+"maîtres et calcule automatiquement le coefficient à appliquer au dark, ou de "
+"calculer le coefficient grâce au mot clé EXPOSURE avec <b>-opt=exp</b>.\n"
 "Le nom du fichier de sortie commence par le préfixe \"pp_\" sauf indication "
 "contraire avec l'option <b>-prefix=</b>"
 
@@ -20346,18 +20343,24 @@ msgstr "Les images doivent avoir les mêmes dimensions\n"
 #: src/core/preprocess.c:182
 msgid "The dark frame contains no exposure data or incorrect exposure data.\n"
 msgstr ""
+"L'image dark ne contient pas de données d'exposition ou des données "
+"d'exposition incorrectes.\n"
 
 #: src/core/preprocess.c:187
 #, c-format
 msgid ""
 "The light frame (%d) contains no exposure data or incorrect exposure data.\n"
 msgstr ""
+"L'image (%d) ne contient pas de données d'exposition ou des données "
+"d'exposition incorrectes.\n"
 
 #: src/core/preprocess.c:194
 msgid ""
 "Warning: master dark is shorter than lights. It is recommended that the "
 "master dark be at least as long as the lights.\n"
 msgstr ""
+"Attention : le master dark a un temps d'exposition plus court que celui des "
+"images. Il est recommandé que le master dark soit au moins aussi long.\n"
 
 #: src/core/preprocess.c:202 src/core/preprocess.c:214
 #, c-format
@@ -22652,42 +22655,42 @@ msgstr "_OK"
 #: src/gui/compstars.c:70
 msgid "Toggle Manual mode or Automatic mode for Comparison stars list"
 msgstr ""
+"Basculer entre le mode manuel et le mode automatique pour la liste d'étoiles "
+"de comparaison"
 
 #: src/gui/compstars.c:72
-#, fuzzy
 msgid "Use the stars selected in the currently loaded image"
-msgstr "Applique la fonction de transfert des tons moyens à l'image chargée"
+msgstr "Utiliser les étoiles sélectionnées dans l'image actuellement chargée"
 
 #: src/gui/compstars.c:80
 msgid "Enter your own target name"
-msgstr ""
+msgstr "Saisissez votre propre nom de cible"
 
 #. 1st element, a label
 #: src/gui/compstars.c:82
-#, fuzzy
 msgid "Output file name: "
-msgstr "Fichiers de sortie (*%s)"
+msgstr "Nom du fichier de sortie : "
 
 #: src/gui/compstars.c:88
 msgid "Change the default file name if needed"
-msgstr ""
+msgstr "Modifier le nom du fichier par défaut si nécessaire"
 
 #. 3rd element, another label
 #: src/gui/compstars.c:95
 msgid ".csv"
-msgstr ""
+msgstr ".csv"
 
 #: src/gui/compstars.c:101
-#, fuzzy
 msgid "Find comparison stars from catalogue requests"
-msgstr "%d étoiles de comparaison après le tri.\n"
+msgstr "Trouver des étoiles de comparaison à partir des requêtes de catalogue"
 
 #: src/gui/compstars.c:113
 msgid "Variable star data and sorting parameters for catalogue request"
 msgstr ""
+"Données sur les étoiles variables et paramètres de tri pour la requête de "
+"catalogue"
 
 #: src/gui/compstars.c:118
-#, fuzzy
 msgid "Enter the target star name to search in catalogues"
 msgstr "Entrez le nom de l'étoile cible à rechercher dans les catalogues"
 
@@ -22753,33 +22756,36 @@ msgid ""
 "One Variable star and one comparison star at least are required. Cannot "
 "create any file\n"
 msgstr ""
+"Une étoile variable et une étoile de comparaison au moins sont requises. "
+"Aucun fichier ne peut être créé\n"
 
 #: src/gui/compstars.c:221
 msgid ""
 "One Variable star and one comparison star at least are required. Cannot "
 "create any file"
 msgstr ""
+"Une étoile variable et une étoile de comparaison au moins sont requises. "
+"Aucun fichier ne peut être créé"
 
 #: src/gui/compstars.c:228
-#, fuzzy
 msgid "Problem with convertion\n"
-msgstr "Problème de chemin : "
+msgstr "Problème de conversion :\n"
 
 #. Header for the console display
 #: src/gui/compstars.c:243
-#, fuzzy, c-format
+#, c-format
 msgid "-> %i comparison stars selected\n"
-msgstr "%d étoiles de comparaison après le tri.\n"
+msgstr "-> %i étoiles de comparaison sélectionnées\n"
 
 #: src/gui/compstars.c:251
-#, fuzzy, c-format
+#, c-format
 msgid "Target star  : %4.3lf, %+4.3lf\n"
-msgstr "Étoile cible : Vmag = %2.2lf, B-V = %+2.2lf\n"
+msgstr "Étoile cible : %4.3lf, %+4.3lf\n"
 
 #: src/gui/compstars.c:257
 #, c-format
 msgid "Comp star %3d: %4.3lf, %+4.3lf\n"
-msgstr ""
+msgstr "Étoile de comparaison %3d : %4.3lf, %+4.3lf\n"
 
 #: src/gui/compstars.c:290
 msgid "Enter the name of the target star"
@@ -23714,9 +23720,8 @@ msgstr ""
 "place"
 
 #: src/gui/nina_light_curve.c:110
-#, fuzzy
 msgid "Choose a comparison stars file"
-msgstr "Créer une liste d'étoiles de comparaison"
+msgstr "Choisir un fichier d'étoiles de comparaison"
 
 #: src/gui/nina_light_curve.c:115
 msgid "The currently loaded image must be plate solved"
@@ -26763,18 +26768,16 @@ msgid "Confirm"
 msgstr "Confirmer"
 
 #: src/io/siril_git.c:941
-#, fuzzy
 msgid "Error! Script database failed to update."
-msgstr "Erreur ! La mise à jour de la base de données SPCC a échoué."
+msgstr "Erreur ! La mise à jour de la base de données des scripts a échoué."
 
 #: src/io/siril_git.c:945 src/io/siril_git.c:994
 msgid "Update cancelled. Updates have not been applied."
 msgstr "Mise à jour annulée. Les mises à jour n'ont pas été appliquées."
 
 #: src/io/siril_git.c:949
-#, fuzzy
 msgid "The script repository is up to date."
-msgstr "Le dépôt de la base de données SPCC est à jour."
+msgstr "Le dépôt de scripts est à jour."
 
 #: src/io/siril_git.c:966
 msgid ""
