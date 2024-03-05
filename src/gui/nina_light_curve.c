@@ -39,7 +39,9 @@ static GtkWidget *optim_rad = NULL;
 
 static void on_nina_lc_response(GtkDialog* self, gint response_id, gpointer user_data);
 
+
 static void build_the_dialog() {
+	if (dialog) gtk_widget_destroy(dialog);
 	dialog = gtk_dialog_new_with_buttons(_("Automated light curve"), NULL,
 			0, _("_Close"), GTK_RESPONSE_REJECT, _("_OK"), GTK_RESPONSE_ACCEPT, NULL);
 	// If the user clicks one of these dialog buttons, GtkDialog will emit
@@ -63,6 +65,8 @@ static void build_the_dialog() {
 	gtk_widget_grab_default(OK_button);
 	gtk_widget_grab_focus(OK_button);
 	gtk_style_context_add_class(gtk_widget_get_style_context(OK_button), "suggested-action");
+
+	siril_log_message(_("com.pref.phot_set.force_radius3: %i\n"), com.pref.phot_set.force_radius);
 
 	// Definition of all the graphical items
 	// Top label
@@ -106,10 +110,7 @@ static void build_the_dialog() {
 	GtkWidget *label1 = gtk_label_new(_("Process a sequence to get a light curve on a star using the list of reference stars created by Siril "));
 	gtk_label_set_line_wrap(GTK_LABEL(label1), TRUE);
 	g_object_set(G_OBJECT(label1), "margin", 15, NULL);
-//	g_object_set(G_OBJECT(label1), "margin-left", 15, NULL);
-//	g_object_set(G_OBJECT(label1), "margin-right", 15, NULL);
 	g_object_set(G_OBJECT(label1), "margin-top", 0, NULL);
-//	g_object_set(G_OBJECT(label1), "margin-bottom", 0, NULL);
 
 	// Optimization radio
 	optim_rad = gtk_check_button_new_with_label(_("Optimization o fthe radius"));
@@ -119,8 +120,9 @@ static void build_the_dialog() {
 	g_object_set(G_OBJECT(optim_rad), "margin-top", 0, NULL);
 	g_object_set(G_OBJECT(optim_rad), "margin-bottom", 0, NULL);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(optim_rad), FALSE);
-
-
+//	g_signal_connect (optim_rad, "toggled", G_CALLBACK (output_state), NULL);
+	siril_log_message(_("com.pref.phot_set.force_radius1: %i\n"), com.pref.phot_set.force_radius);
+	gtk_widget_set_sensitive(GTK_WIDGET(optim_rad), com.pref.phot_set.force_radius);
 
 	GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
 	gtk_box_set_spacing(GTK_BOX(content_area), 20);
@@ -133,7 +135,7 @@ static void build_the_dialog() {
 	gtk_container_add(GTK_CONTAINER(content_area), label1);
 	gtk_container_add(GTK_CONTAINER(content_area), optim_rad);
 	gtk_widget_show_all(GTK_WIDGET(content_area));
-	}
+}
 
 // the public getter
 GtkWidget *get_nina_lc_dialog() {
@@ -144,8 +146,13 @@ GtkWidget *get_nina_lc_dialog() {
 
 static void on_nina_lc_response(GtkDialog* self, gint response_id, gpointer user_data) {
 	siril_debug_print("got response event\n");
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(optim_rad), FALSE);
+	gtk_widget_set_sensitive(GTK_WIDGET(optim_rad), com.pref.phot_set.force_radius);
+	siril_log_message(_("com.pref.phot_set.force_radius2: %i\n"), com.pref.phot_set.force_radius);
 	gtk_widget_hide(dialog);
 	if (response_id != GTK_RESPONSE_ACCEPT) {
+		gtk_widget_set_sensitive(GTK_WIDGET(optim_rad), com.pref.phot_set.force_radius);
+		gtk_widget_hide(dialog);
 		return;
 	}
 	gchar *nina_file = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(file_chooser));
@@ -201,6 +208,7 @@ static void on_nina_lc_response(GtkDialog* self, gint response_id, gpointer user
 	args->seq = &com.seq;
 	args->layer = layer;
 	args->display_graph = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(display_curve));
+	args->optimize_radius = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(optim_rad));
 	siril_debug_print("starting PSF analysis of %d stars\n", args->nb);
 
 	start_in_new_thread(light_curve_worker, args);
