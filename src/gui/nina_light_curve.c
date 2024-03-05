@@ -34,6 +34,8 @@ static GtkWidget *file_chooser = NULL;
 static GtkWidget *use_comp1 = NULL;
 static GtkWidget *use_comp2 = NULL;
 static GtkWidget *display_curve = NULL;
+static GtkWidget *sep = NULL;
+static GtkWidget *optim_rad = NULL;
 
 static void on_nina_lc_response(GtkDialog* self, gint response_id, gpointer user_data);
 
@@ -62,25 +64,63 @@ static void build_the_dialog() {
 	gtk_widget_grab_focus(OK_button);
 	gtk_style_context_add_class(gtk_widget_get_style_context(OK_button), "suggested-action");
 
-
+	// Definition of all the graphical items
+	// Top label
 	GtkWidget *label = gtk_label_new(_("Process a sequence to get a light curve on a star using the list of reference stars created by Siril or the NINA exoplanet plugin"));
 	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
 	g_object_set(G_OBJECT(label), "margin", 15, NULL);
 
+	// Comp1 radio
 	use_comp1 = gtk_check_button_new_with_label(_("Use comparative stars selected for their color"));
-	use_comp2 = gtk_check_button_new_with_label(_("Use comparative stars selected by the AAVSO"));
-	display_curve = gtk_check_button_new_with_label(_("Display the light curve"));
-	g_object_set(G_OBJECT(use_comp1), "margin-left", 6, NULL);
-	g_object_set(G_OBJECT(use_comp1), "margin-right", 6, NULL);
-	g_object_set(G_OBJECT(use_comp2), "margin-left", 6, NULL);
-	g_object_set(G_OBJECT(use_comp2), "margin-right", 6, NULL);
-	g_object_set(G_OBJECT(display_curve), "margin", 6, NULL);
 	gtk_widget_set_tooltip_text(use_comp1, _("Color similar to the target mean they will get extincted the same way by the changing atmosphere"));
-	gtk_widget_set_tooltip_text(use_comp2, _("The AAVSO gives stars that are known to not be variable"));
-	gtk_widget_set_tooltip_text(display_curve, _("if not checked, a PNG image of the graph will be generated instead"));
+	g_object_set(G_OBJECT(use_comp1), "margin-left", 15, NULL);
+	g_object_set(G_OBJECT(use_comp1), "margin-right", 15, NULL);
+	g_object_set(G_OBJECT(use_comp1), "margin-top", 0, NULL);
+	g_object_set(G_OBJECT(use_comp1), "margin-bottom", 0, NULL);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(use_comp1), TRUE);
+
+	// Comp2 radio
+	use_comp2 = gtk_check_button_new_with_label(_("Use comparative stars selected by the AAVSO"));
+	gtk_widget_set_tooltip_text(use_comp2, _("The AAVSO gives stars that are known to not be variable"));
+	g_object_set(G_OBJECT(use_comp2), "margin-left", 15, NULL);
+	g_object_set(G_OBJECT(use_comp2), "margin-right", 15, NULL);
+	g_object_set(G_OBJECT(use_comp2), "margin-top", 0, NULL);
+	g_object_set(G_OBJECT(use_comp2), "margin-bottom", 0, NULL);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(use_comp2), TRUE);
+
+	// Display radio
+	display_curve = gtk_check_button_new_with_label(_("Display the light curve"));
+	gtk_widget_set_tooltip_text(display_curve, _("if not checked, a PNG image of the graph will be generated instead"));
+	g_object_set(G_OBJECT(display_curve), "margin-left", 15, NULL);
+	g_object_set(G_OBJECT(display_curve), "margin-right", 15, NULL);
+	g_object_set(G_OBJECT(display_curve), "margin-top", 0, NULL);
+	g_object_set(G_OBJECT(display_curve), "margin-bottom", 0, NULL);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(display_curve), TRUE);
+
+	// Horizontal Separator
+	sep = gtk_separator_new (GTK_ORIENTATION_HORIZONTAL);
+	g_object_set(G_OBJECT(sep), "margin-top", 5, NULL);
+	g_object_set(G_OBJECT(sep), "margin-bottom", 5, NULL);
+
+	// Optimization Label
+	GtkWidget *label1 = gtk_label_new(_("Process a sequence to get a light curve on a star using the list of reference stars created by Siril "));
+	gtk_label_set_line_wrap(GTK_LABEL(label1), TRUE);
+	g_object_set(G_OBJECT(label1), "margin", 15, NULL);
+//	g_object_set(G_OBJECT(label1), "margin-left", 15, NULL);
+//	g_object_set(G_OBJECT(label1), "margin-right", 15, NULL);
+	g_object_set(G_OBJECT(label1), "margin-top", 0, NULL);
+//	g_object_set(G_OBJECT(label1), "margin-bottom", 0, NULL);
+
+	// Optimization radio
+	optim_rad = gtk_check_button_new_with_label(_("Optimization o fthe radius"));
+	gtk_widget_set_tooltip_text(optim_rad, _("The option in the Photometry tab must be checked"));
+	g_object_set(G_OBJECT(optim_rad), "margin-left", 15, NULL);
+	g_object_set(G_OBJECT(optim_rad), "margin-right", 15, NULL);
+	g_object_set(G_OBJECT(optim_rad), "margin-top", 0, NULL);
+	g_object_set(G_OBJECT(optim_rad), "margin-bottom", 0, NULL);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(optim_rad), FALSE);
+
+
 
 	GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
 	gtk_box_set_spacing(GTK_BOX(content_area), 20);
@@ -89,8 +129,11 @@ static void build_the_dialog() {
 	gtk_container_add(GTK_CONTAINER(content_area), use_comp1);
 	gtk_container_add(GTK_CONTAINER(content_area), use_comp2);
 	gtk_container_add(GTK_CONTAINER(content_area), display_curve);
+	gtk_container_add(GTK_CONTAINER(content_area), sep);
+	gtk_container_add(GTK_CONTAINER(content_area), label1);
+	gtk_container_add(GTK_CONTAINER(content_area), optim_rad);
 	gtk_widget_show_all(GTK_WIDGET(content_area));
-}
+	}
 
 // the public getter
 GtkWidget *get_nina_lc_dialog() {
