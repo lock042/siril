@@ -1449,6 +1449,13 @@ void update_fits_header(fits *fit) {
 		free(memptr);
 		return;
 	}
+	if (fits_create_img(fptr, fit->bitpix, fit->naxis, fit->naxes, &status)) {
+		report_fits_error(status);
+		if (fptr)
+			fits_close_file(fptr, &status);
+		free(memptr);
+		return;
+	}
 	fit->fptr = fptr;
 	save_fits_header(fit);
 	if (fit->header)
