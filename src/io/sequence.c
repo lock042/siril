@@ -689,7 +689,7 @@ int64_t seq_compute_size(sequence *seq, int nb_frames, data_type depth) {
 			frame_size *= sizeof(WORD);
 		else if (depth == DATA_FLOAT)
 			frame_size *= sizeof(float);
-		frame_size += 5760; // FITS double HDU size
+		frame_size += FITS_DOUBLE_BLOC_SIZE; // FITS double HDU size
 		size = frame_size * nb_frames;
 		break;
 #ifdef HAVE_FFMS2

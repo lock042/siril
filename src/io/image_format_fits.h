@@ -4,6 +4,9 @@
 #include <fitsio.h>
 #include "core/siril.h"
 
+#define FITS_BLOC_SIZE 2880
+#define FITS_DOUBLE_BLOC_SIZE 2 * FITS_BLOC_SIZE
+
 /****************** image_format_fits.h ******************/
 void read_fits_header(fits *fit);
 int fits_parse_header_string(fits *fit, gchar *description);
