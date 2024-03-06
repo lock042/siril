@@ -8949,7 +8949,7 @@ int process_platesolve(int nb) {
 	}
 	args->searchradius = searchradius;
 	memcpy(&args->forced_metadata, forced_metadata, 3 * sizeof(gboolean));
-	if (!seqps && sequence_is_loaded()) { // we are platesolving an image from a sequence, we can't allow to flip (may be registered)
+	if (seqps || sequence_is_loaded()) { // we are platesolving an image from a sequence or a sequence, we can't allow to flip (may be registered)
 		noflip = TRUE;
 		siril_debug_print("forced no flip for solving an image from a sequence\n");
 	}

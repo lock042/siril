@@ -1903,7 +1903,8 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 	// load ref metadata in fit
 	if (seq_read_frame_metadata(arg->seq, sequence_find_refimage(arg->seq), &fit))
 		return 1;
-	seq_prepare_hook(arg);
+	if (arg->has_output)
+		seq_prepare_hook(arg);
 	args->fit = &fit;
 	process_plate_solver_input(args); // compute required data to get the catalog
 	clearfits(&fit);
@@ -1986,12 +1987,27 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 
 	if (retval)
 		siril_log_color_message(_("Image %s did not solve\n"), "salmon", root);
+
+	if (!retval && !arg->has_output) {
+		fit_sequence_get_image_filename(arg->seq, i, root, TRUE);
+		int status = 0;
+		siril_fits_open_diskfile_img(&(fit->fptr), root, READWRITE, &status); // opening in READWRITE mode will save the update header upon closing
+		if (!status) {
+			save_fits_header(fit);
+			fits_close_file(fit->fptr, &status);
+			siril_log_color_message(_("Image %s platesolved and updated\n"), "salmon", root);
+		} else {
+			siril_log_color_message(_("Image %s platesolved but could not be saved\n"), "red", root);
+			report_fits_error(status);
+		}
+	}
 	return retval;
 }
 
 static int astrometry_finalize_hook(struct generic_seq_args *arg) {
 	struct astrometry_data *aargs = (struct astrometry_data *)arg->user;
-	seq_finalize_hook(arg);
+	if (arg->has_output)
+		seq_finalize_hook(arg);
 	if (aargs->cat_center)
 		siril_world_cs_unref(aargs->cat_center);
 	if (aargs->ref_stars)
@@ -2017,7 +2033,7 @@ void start_sequence_astrometry(sequence *seq, struct astrometry_data *args) {
 	seqargs->prepare_hook = astrometry_prepare_hook;
 	seqargs->image_hook = astrometry_image_hook;
 	seqargs->finalize_hook = astrometry_finalize_hook;
-	seqargs->has_output = TRUE;
+	seqargs->has_output = (seq->type != SEQ_REGULAR); // we don't save a new sequence for sequence of fits files
 	seqargs->output_type = get_data_type(seq->bitpix);
 	seqargs->new_seq_prefix = strdup("ps_");
 	seqargs->load_new_sequence = TRUE;
