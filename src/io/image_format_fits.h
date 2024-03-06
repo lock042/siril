@@ -4,8 +4,7 @@
 #include <fitsio.h>
 #include "core/siril.h"
 
-#define FITS_BLOC_SIZE 2880
-#define FITS_DOUBLE_BLOC_SIZE 2 * FITS_BLOC_SIZE
+#define FITS_DOUBLE_BLOC_SIZE 2 * IOBUFLEN // 2 * 2880, the size of a double FITS block, used to allocate bigger chunk and avoid reallocating
 
 /****************** image_format_fits.h ******************/
 void read_fits_header(fits *fit);
