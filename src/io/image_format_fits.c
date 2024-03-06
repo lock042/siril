@@ -3818,12 +3818,12 @@ int get_xpsampled(xpsampled *xps, gchar *filename, int i) {
 	// Convert from flux in W m^-2 nm^-1 to relative photon count normalised at 550nm
 	// for consistency with how we handle white references and camera photon counting
 	// behaviour.
-	for (int i = 0 ; i < XPSAMPLED_LEN; i++) {
-		xps->y[i] *= xps->x[i];
+	for (int j = 0 ; j < XPSAMPLED_LEN; j++) {
+		xps->y[j] *= xps->x[j];
 	}
 	double norm = xps->y[82];
-	for (int i = 0 ; i < XPSAMPLED_LEN; i++) {
-		xps->y[i] /= norm;
+	for (int j = 0 ; j < XPSAMPLED_LEN; j++) {
+		xps->y[j] /= norm;
 	}
 
 	if (fits_close_file(fptr, &status))
@@ -3833,3 +3833,78 @@ error:
 	fits_close_file(fptr, &status);
 	return 1;
 }
+
+int updateFITSKeyword(fits *fit, const gchar *key, gchar *value) {
+	char card[FLEN_CARD], newcard[FLEN_CARD];
+	char oldvalue[FLEN_VALUE], comment[FLEN_COMMENT];
+	int keytype;
+	void *memptr;
+	size_t memsize = 5760;
+	int status = 0;
+	fitsfile *fptr = NULL;
+	memptr = malloc(memsize);
+	if (!memptr) {
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+	fits_create_memfile(&fptr, &memptr, &memsize, 2880, realloc, &status);
+	if (status) {
+		report_fits_error(status);
+		if (fptr)
+			fits_close_file(fptr, &status);
+		free(memptr);
+		return 1;
+	}
+	fit->fptr = fptr;
+	save_fits_header(fit);
+
+	if (fits_read_card(fptr, key, card, &status)) {
+		siril_log_color_message("Keyword does not exist\n", "red");
+		goto cleanup;
+	} else
+		siril_debug_print("%s\n", card);
+
+	/* check if this is a protected keyword that must not be changed */
+	if (*card && fits_get_keyclass(card) == TYP_STRUC_KEY) {
+		siril_log_color_message("Protected keyword cannot be modified.\n", "salmon");
+	} else {
+		/* get the comment string */
+		if (*card)
+			fits_parse_value(card, oldvalue, comment, &status);
+
+		/* construct template for new keyword */
+		strcpy(newcard, key); /* copy keyword name */
+		strcat(newcard, " = "); /* '=' value delimiter */
+		strcat(newcard, value); /* new value */
+		if (*comment) {
+			strcat(newcard, " / "); /* comment delimiter */
+			strcat(newcard, comment); /* append the comment */
+		}
+
+		/* reformat the keyword string to conform to FITS rules */
+		fits_parse_template(newcard, card, &keytype, &status);
+
+		/* overwrite the keyword with the new value */
+		fits_update_card(fptr, key, card, &status);
+
+		siril_log_message("Keyword has been changed to:\n");
+		siril_log_message("%s\n", card);
+
+		if (fit->header)
+			free(fit->header);
+		fit->header = copy_header(fit);
+	}
+
+	/* if error occured, print out error message */
+	if (status)
+		fits_report_error(stderr, status);
+
+cleanup:
+	fits_close_file(fptr, &status);
+	fit->fptr = NULL;
+	free(memptr);
+
+	return status;
+}
+
+

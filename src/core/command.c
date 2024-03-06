@@ -1723,6 +1723,17 @@ int process_unsharp(int nb) {
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
+int process_update_key(int nb) {
+	gchar *FITS_key, *value;
+
+	FITS_key = g_strdup(word[1]);
+	value = g_strdup(word[2]);
+
+	updateFITSKeyword(&gfit, FITS_key, value);
+
+	return CMD_OK;
+}
+
 static gboolean crop_command_idle(gpointer arg) {
 	// operations that are not in the generic idle of notify_gfit_modified()
 	clear_stars_list(TRUE);

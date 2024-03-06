@@ -204,6 +204,7 @@
 #define STR_UNSELECT N_("Allows easy mass unselection of images in the sequence <b>sequencename</b> (from <b>from</b> to <b>to</b> included). See SELECT")
 #define STR_UNSETMAG N_("Resets the magnitude calibration to 0. See SETMAG")
 #define STR_UNSHARP N_("Applies an unsharp mask, actually a Gaussian filtered image  with sigma <b>sigma</b> and a blend with the parameter <b>amount</b> used as such: out = in * (1 + amount) + filtered * (-amount).\n\nSee also GAUSS, the same without blending")
+#define STR_UPDATE_KEY N_("blabla")
 
 #define STR_VISU N_("Displays the loaded image with <b>low</b> and <b>high</b> as the low and high threshold, GUI only")
 
