@@ -387,25 +387,6 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 			gui.start.y = (int)(event->y);
 			return TRUE;
 		}
-		/* Ctrl middle-click to set the photometry box */
-		else if ((event->state & get_primary()) && event->button == GDK_BUTTON_MIDDLE) {
-			double dX = 1.5 * com.pref.phot_set.outer;
-			double dY = dX;
-			double w = 3 * com.pref.phot_set.outer;
-			double h = w;
-
-			if ((dX <= zoomed.x) && (dY <= zoomed.y)
-					&& (zoomed.x - dX + w < gfit.rx)
-					&& (zoomed.y - dY + h < gfit.ry)) {
-
-				com.selection.x = zoomed.x - dX;
-				com.selection.y = zoomed.y - dY;
-				com.selection.w = w;
-				com.selection.h = h;
-
-				new_selection_zone();
-			}
-		}
 
 		/* else, click on gray image */
 		else if (event->button == GDK_BUTTON_PRIMARY) {	// left click
@@ -574,7 +555,7 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 
 	// same as evpos but rounded to integer and clamped to image bounds
 	pointi zoomed = { (int)(evpos.x), (int)(evpos.y) };
-//	gboolean inside = clamp2image(&zoomed);
+	gboolean inside = clamp2image(&zoomed);
 
 	if (event->button == GDK_BUTTON_PRIMARY && gui.measure_start.x != -1.) {
 		gui.measure_end.x = zoomed.x;
@@ -704,7 +685,25 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 		if (gui.translating) {
 			gui.translating = FALSE;
 		}
+		/* Ctrl middle-click to set the photometry box */
+		else if (inside && event->state & get_primary()) {
+			double dX = 1.5 * com.pref.phot_set.outer;
+			double dY = dX;
+			double w = 3 * com.pref.phot_set.outer;
+			double h = w;
 
+			if ((dX <= zoomed.x) && (dY <= zoomed.y)
+					&& (zoomed.x - dX + w < gfit.rx)
+					&& (zoomed.y - dY + h < gfit.ry)) {
+
+				com.selection.x = zoomed.x - dX;
+				com.selection.y = zoomed.y - dY;
+				com.selection.w = w;
+				com.selection.h = h;
+
+				new_selection_zone();
+			}
+		}
 	} else if (event->button == GDK_BUTTON_SECONDARY) {	// right click
 		if (mouse_status != MOUSE_ACTION_DRAW_SAMPLES && mouse_status != MOUSE_ACTION_PHOTOMETRY) {
 			do_popup_graymenu(widget, NULL);
