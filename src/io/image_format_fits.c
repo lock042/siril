@@ -1435,7 +1435,7 @@ void update_fits_header(fits *fit) {
 	void *memptr;
 	size_t memsize = FITS_DOUBLE_BLOC_SIZE;
 	int status = 0;
-	fitsfile *fptr = NULL;
+	fitsfile *fptr = NULL, *oldptr = NULL;
 	memptr = malloc(memsize);
 	if (!memptr) {
 		PRINT_ALLOC_ERR;
@@ -1456,13 +1456,15 @@ void update_fits_header(fits *fit) {
 		free(memptr);
 		return;
 	}
+	if (fit->fptr)
+		oldptr = fit->fptr;
 	fit->fptr = fptr;
 	save_fits_header(fit);
 	if (fit->header)
 		free(fit->header);
 	fit->header = copy_header(fit);
 	fits_close_file(fptr, &status);
-	fit->fptr = NULL;
+	fit->fptr = oldptr;
 	free(memptr);
 }
 

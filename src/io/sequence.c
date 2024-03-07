@@ -418,7 +418,7 @@ static sequence *check_seq_one_file(const char* name, gboolean check_for_fitseq)
 
 		fitseq *fitseq_file = malloc(sizeof(fitseq));
 		fitseq_init_struct(fitseq_file);
-		if (fitseq_open(name, fitseq_file)) {
+		if (fitseq_open(name, fitseq_file, READONLY)) {
 			free(fitseq_file);
 			return NULL;
 		}

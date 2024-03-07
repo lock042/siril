@@ -1903,12 +1903,24 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 	// load ref metadata in fit
 	if (seq_read_frame_metadata(arg->seq, sequence_find_refimage(arg->seq), &fit))
 		return 1;
-	if (arg->has_output)
-		seq_prepare_hook(arg);
 	args->fit = &fit;
 	process_plate_solver_input(args); // compute required data to get the catalog
 	clearfits(&fit);
 	args->fit = NULL;
+	if (arg->has_output)
+		seq_prepare_hook(arg);
+	else if (arg->seq->type == SEQ_FITSEQ) {
+		int test;
+		gchar *filename = g_strdup(arg->seq->fitseq_file->filename);
+		// it was opened in READONLY mode, we close it
+		test = fitseq_close_file(arg->seq->fitseq_file);
+		siril_debug_print("test close:%d\n", test);
+		arg->seq->fitseq_file->fptr = NULL;
+		// and we reopen in READWRITE mode to update it
+		test = fitseq_open(filename, arg->seq->fitseq_file, READWRITE);
+		siril_debug_print("test reopen:%d\n", test);
+		g_free(filename);
+	}
 	if (args->solver == SOLVER_LOCALASNET) {
 		com.child_is_running = EXT_ASNET;
 		g_unlink("stop"); // make sure the flag file for cancel is not already in the folder
@@ -1989,16 +2001,23 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 		siril_log_color_message(_("Image %s did not solve\n"), "salmon", root);
 
 	if (!retval && !arg->has_output) {
-		fit_sequence_get_image_filename(arg->seq, i, root, TRUE);
-		int status = 0;
-		siril_fits_open_diskfile_img(&(fit->fptr), root, READWRITE, &status); // opening in READWRITE mode will save the update header upon closing
-		if (!status) {
+		if (arg->seq->type == SEQ_REGULAR) { // regular sequence, fit->fptr has been closed after loading the frame, we can reopen to update
+			fit_sequence_get_image_filename(arg->seq, i, root, TRUE);
+			int status = 0;
+			siril_fits_open_diskfile_img(&(fit->fptr), root, READWRITE, &status); // opening in READWRITE mode will save the update header upon closing
+			if (!status) {
+				save_fits_header(fit);
+				fits_close_file(fit->fptr, &status);
+				siril_log_color_message(_("Image %s platesolved and updated\n"), "salmon", root);
+			} else {
+				siril_log_color_message(_("Image %s platesolved but could not be saved\n"), "red", root);
+				report_fits_error(status);
+				free(aargs);
+				return 1;
+			}
+		} else if (arg->seq->type == SEQ_FITSEQ) { // case SEQ_FITSEQ, fit already holds its fptr, we just update
 			save_fits_header(fit);
-			fits_close_file(fit->fptr, &status);
-			siril_log_color_message(_("Image %s platesolved and updated\n"), "salmon", root);
-		} else {
-			siril_log_color_message(_("Image %s platesolved but could not be saved\n"), "red", root);
-			report_fits_error(status);
+			siril_log_color_message(_("Image %d platesolved and updated\n"), "salmon", i + 1);
 		}
 	}
 	return retval;
@@ -2008,6 +2027,16 @@ static int astrometry_finalize_hook(struct generic_seq_args *arg) {
 	struct astrometry_data *aargs = (struct astrometry_data *)arg->user;
 	if (arg->has_output)
 		seq_finalize_hook(arg);
+	else if (arg->seq->type == SEQ_FITSEQ) {
+		gchar *filename = g_strdup(arg->seq->fitseq_file->filename);
+		// it was opened in READWRITE mode, we close it to save everything
+		int test = fitseq_close_file(arg->seq->fitseq_file);
+		siril_debug_print("test close:%d\n", test);
+		arg->seq->fitseq_file->fptr = NULL;
+		siril_log_color_message(_("File %s updated\n"), "salmon", filename);
+		arg->seq->fitseq_file->filename = filename; // we may need to reopen in the idle so we save it here
+		arg->seq->fitseq_file->hdu_index = NULL;
+	}
 	if (aargs->cat_center)
 		siril_world_cs_unref(aargs->cat_center);
 	if (aargs->ref_stars)
@@ -2019,27 +2048,52 @@ static int astrometry_finalize_hook(struct generic_seq_args *arg) {
 	return 0;
 }
 
+gboolean end_platesolve_sequence(gpointer p) {
+	struct generic_seq_args *args = (struct generic_seq_args *) p;
+	if (args->has_output && args->load_new_sequence &&
+			args->new_seq_prefix && !args->retval) {
+		gchar *basename = g_path_get_basename(args->seq->seqname);
+		gchar *seqname = g_strdup_printf("%s%s.seq", args->new_seq_prefix, basename);
+		check_seq();
+		update_sequences_list(seqname);
+		g_free(seqname);
+		g_free(basename);
+	} else if (check_seq_is_comseq(args->seq) && !args->retval) {
+		if (args->seq->type == SEQ_FITSEQ) {
+			int test = fitseq_open(args->seq->fitseq_file->filename, args->seq->fitseq_file, READONLY);
+			siril_debug_print("test reopen:%d\n", test);
+		}
+		update_sequences_list(args->seq->seqname);
+	}
+	if (!check_seq_is_comseq(args->seq))
+		free_sequence(args->seq, TRUE);
+	free(p);
+	return end_generic(NULL);
+}
+
 void start_sequence_astrometry(sequence *seq, struct astrometry_data *args) {
 	struct generic_seq_args *seqargs = create_default_seqargs(seq);
 	seqargs->filtering_criterion = seq_filter_included;
 	seqargs->nb_filtered_images = seq->selnum;
 	seqargs->stop_on_error = FALSE;
 #ifdef _WIN32
-	seqargs->parallel = args->solver != SOLVER_LOCALASNET;		// for now crashes on Cancel if parallel is enabled for asnet on windows
+	seqargs->parallel = args->solver != SOLVER_LOCALASNET && seq->type != SEQ_FITSEQ;		// for now crashes on Cancel if parallel is enabled for asnet on windows
 #else
-	seqargs->parallel = TRUE;
+	seqargs->parallel = seq->type != SEQ_FITSEQ;
 #endif
 	args->numthreads = (seqargs->parallel) ? 1 : com.max_thread;
 	seqargs->prepare_hook = astrometry_prepare_hook;
 	seqargs->image_hook = astrometry_image_hook;
 	seqargs->finalize_hook = astrometry_finalize_hook;
-	seqargs->has_output = (seq->type != SEQ_REGULAR); // we don't save a new sequence for sequence of fits files
+	seqargs->idle_function = end_platesolve_sequence;
+	seqargs->has_output = (seq->type == SEQ_SER); // we don't save a new sequence for sequence of fits files or fitseq
 	seqargs->output_type = get_data_type(seq->bitpix);
-	seqargs->new_seq_prefix = strdup("ps_");
-	seqargs->load_new_sequence = TRUE;
 	seqargs->description = "plate solving";
-	if (seq->type == SEQ_SER)
+	if (seq->type == SEQ_SER) {
 		seqargs->force_fitseq_output = TRUE;
+		seqargs->new_seq_prefix = strdup("ps_");
+		seqargs->load_new_sequence = TRUE;
+	}
 	seqargs->user = args;
 
 	siril_log_message(_("Running sequence plate solving using the %s catalogue\n"),

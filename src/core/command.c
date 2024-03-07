@@ -8686,6 +8686,10 @@ int process_platesolve(int nb) {
 		}
 		next_arg++;
 		plate_solve = TRUE;
+		if (check_seq_is_comseq(seq)) {
+			free_sequence(seq, TRUE);
+			seq = &com.seq;
+		}
 	} else {
 		plate_solve = !has_wcs(&gfit);
 	}
