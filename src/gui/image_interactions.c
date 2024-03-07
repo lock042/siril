@@ -1040,26 +1040,24 @@ gboolean on_drawingarea_scroll_event(GtkWidget *widget, GdkEventScroll *event, g
 	if (gui.icc.iso12646)
 		disable_iso12646_conditions(FALSE, TRUE, TRUE);
 
-	if (event->state & get_primary()) {
-		point delta;
+	point delta;
 
-		switch (event->direction) {
-		case GDK_SCROLL_SMOOTH:	// what's that?
-			gdk_event_get_scroll_deltas((GdkEvent*) event, &delta.x, &delta.y);
-			if (delta.y < 0) {
-				return update_zoom(event->x, event->y, ZOOM_IN);
-			}
-			if (delta.y > 0) {
-				return update_zoom(event->x, event->y, ZOOM_OUT);
-			}
-			break;
-		case GDK_SCROLL_DOWN:
-			return update_zoom(event->x, event->y, ZOOM_OUT);
-		case GDK_SCROLL_UP:
+	switch (event->direction) {
+	case GDK_SCROLL_SMOOTH:	// what's that?
+		gdk_event_get_scroll_deltas((GdkEvent*) event, &delta.x, &delta.y);
+		if (delta.y < 0) {
 			return update_zoom(event->x, event->y, ZOOM_IN);
-		default:
-			handled = FALSE;
 		}
+		if (delta.y > 0) {
+			return update_zoom(event->x, event->y, ZOOM_OUT);
+		}
+		break;
+	case GDK_SCROLL_DOWN:
+		return update_zoom(event->x, event->y, ZOOM_OUT);
+	case GDK_SCROLL_UP:
+		return update_zoom(event->x, event->y, ZOOM_IN);
+	default:
+		handled = FALSE;
 	}
 	return handled;
 }
