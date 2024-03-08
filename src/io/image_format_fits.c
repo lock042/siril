@@ -1435,7 +1435,7 @@ void update_fits_header(fits *fit) {
 	void *memptr;
 	size_t memsize = FITS_DOUBLE_BLOC_SIZE;
 	int status = 0;
-	fitsfile *fptr = NULL, *oldptr = NULL;
+	fitsfile *fptr = NULL;
 	memptr = malloc(memsize);
 	if (!memptr) {
 		PRINT_ALLOC_ERR;
@@ -1456,19 +1456,19 @@ void update_fits_header(fits *fit) {
 		free(memptr);
 		return;
 	}
-	if (fit->fptr)
-		oldptr = fit->fptr;
-	fit->fptr = fptr;
-	save_fits_header(fit);
+	fits tmpfit = { 0 };
+	copy_fits_metadata(fit, &tmpfit);
+	tmpfit.fptr = fptr;
+	save_fits_header(&tmpfit);
 	if (fit->header)
 		free(fit->header);
-	fit->header = copy_header(fit);
+	fit->header = copy_header(&tmpfit);
 	fits_close_file(fptr, &status);
-	fit->fptr = oldptr;
+	clearfits(&tmpfit);
 	free(memptr);
 }
 
-void save_fits_header(fits *fit) {
+void  save_fits_header(fits *fit) {
 	int i, status = 0;
 	double zero, scale;
 	char comment[FLEN_COMMENT];
@@ -3059,11 +3059,13 @@ void copy_fits_metadata(fits *from, fits *to) {
 	memcpy(&to->dft, &from->dft, sizeof(dft_info));
 	memcpy(&to->wcsdata, &from->wcsdata, sizeof(wcs_info));
 	// don't copy ICC profile, if that is needed it should be done separately
-	int status = -1;
-	to->wcslib = wcs_deepcopy(from->wcslib, &status);
-	if (status) {
-		wcsfree(to->wcslib);
-		siril_debug_print("could not copy wcslib struct\n");
+	if (from->wcslib) {
+		int status = -1;
+		to->wcslib = wcs_deepcopy(from->wcslib, &status);
+		if (status) {
+			wcsfree(to->wcslib);
+			siril_debug_print("could not copy wcslib struct\n");
+		}
 	}
 
 	// copy from->history?
