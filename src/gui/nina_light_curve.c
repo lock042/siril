@@ -35,7 +35,6 @@ static GtkWidget *use_comp1 = NULL;
 static GtkWidget *use_comp2 = NULL;
 static GtkWidget *display_curve = NULL;
 static GtkWidget *sep = NULL;
-static GtkWidget *optim_rad = NULL;
 
 static void on_nina_lc_response(GtkDialog* self, gint response_id, gpointer user_data);
 
@@ -45,6 +44,7 @@ static void build_the_dialog() {
 	// If the user clicks one of these dialog buttons, GtkDialog will emit
 	// the GtkDialog::response signal with the corresponding response ID
 	gtk_window_set_default_size(GTK_WINDOW(dialog), 400, 200);
+	gtk_window_set_resizable(GTK_WINDOW(dialog), FALSE);
 	g_signal_connect(G_OBJECT(dialog), "delete-event", G_CALLBACK(gtk_widget_hide_on_delete), NULL);
 	g_signal_connect(G_OBJECT(dialog), "response", G_CALLBACK(on_nina_lc_response), NULL);
 
@@ -66,7 +66,7 @@ static void build_the_dialog() {
 
 	// Definition of all the graphical items
 	// Top label
-	GtkWidget *label = gtk_label_new(_("Process a sequence to get a light curve on a star using the list of reference stars created by Siril or the NINA exoplanet plugin"));
+	GtkWidget *label = gtk_label_new(_("Process a sequence to get a light curve on a star using the list\nof reference stars created by Siril or the NINA exoplanet plugin"));
 	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
 	g_object_set(G_OBJECT(label), "margin", 15, NULL);
 
@@ -102,73 +102,81 @@ static void build_the_dialog() {
 	g_object_set(G_OBJECT(sep), "margin-top", 5, NULL);
 	g_object_set(G_OBJECT(sep), "margin-bottom", 5, NULL);
 
-	// Optimization Label
-	GtkWidget *label1 = gtk_label_new(_("The current aperture parameters are as follow (they can be checked/set in the Preferences/Photometry tab):"));
+	// Aperture Label
+	GtkWidget *label1 = gtk_label_new(_("The current aperture parameters are as follow:\n(they can be checked/set in the Preferences/Photometry tab)"));
 	gtk_label_set_line_wrap(GTK_LABEL(label1), TRUE);
 	g_object_set(G_OBJECT(label1), "margin", 15, NULL);
 	g_object_set(G_OBJECT(label1), "margin-top", 0, NULL);
+	gtk_widget_set_halign(label1, GTK_ALIGN_START);
 
-	// Optimization radio
-	/* catalogue choice */
+	// Aperture parameters
+	/* Defines the 3 boxes */
 	GtkWidget *aperture_box, *inner_box, *outer_box;
 	aperture_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
 	gtk_box_set_homogeneous(GTK_BOX(aperture_box), TRUE);
-//	gtk_widget_set_tooltip_text(cat_choice_box, _("Recommended catalogue for this feature is APASS"));
 	inner_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
 	gtk_box_set_homogeneous(GTK_BOX(inner_box), TRUE);
-//	gtk_widget_set_tooltip_text(cat_choice_box, _("Recommended catalogue for this feature is APASS"));
 	outer_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
 	gtk_box_set_homogeneous(GTK_BOX(outer_box), TRUE);
-//	gtk_widget_set_tooltip_text(cat_choice_box, _("Recommended catalogue for this feature is APASS"));
 
-	GtkWidget *apert = gtk_label_new(_("Aperture radius or Radius/half-FWHM:"));
+	/* Fill the 1st box */
+	/* The label */
+	gchar *radius_label = NULL;
+	siril_log_message(_("com.pref.phot_set.force_radius: %d\n"), com.pref.phot_set.force_radius);
+	radius_label = com.pref.phot_set.force_radius ? g_strdup("Radius/half-FWHM ratio:") : g_strdup("Aperture radius (px):");
+	GtkWidget *apert = gtk_label_new(radius_label);	// The label depends on the "force_radius" value
+	g_free(radius_label);
 	gtk_label_set_line_wrap(GTK_LABEL(apert), TRUE);
 	g_object_set(G_OBJECT(apert), "margin-left", 15, NULL);
-	g_object_set(G_OBJECT(apert), "margin-top", 0, NULL);
+	g_object_set(G_OBJECT(apert), "margin-top", 0, NULL);	
+	gtk_widget_set_halign(apert, GTK_ALIGN_START);
 	gtk_container_add(GTK_CONTAINER(aperture_box), apert);
+	/* The entry */
 	GtkWidget *apert_value = gtk_entry_new();
 	gtk_widget_set_sensitive(apert_value, FALSE);
 	g_object_set(G_OBJECT(apert_value), "margin-left", 15, NULL);
 	g_object_set(G_OBJECT(apert_value), "margin-top", 0, NULL);
-	gtk_entry_set_text(GTK_ENTRY(apert_value), g_strdup_printf("%1.2lf", com.pref.phot_set.auto_aperture_factor));
+	gtk_widget_set_halign(apert_value, GTK_ALIGN_START);
+	double radius_value = 0.;
+	radius_value = com.pref.phot_set.force_radius ? com.pref.phot_set.auto_aperture_factor : com.pref.phot_set.aperture;
+	gtk_entry_set_text(GTK_ENTRY(apert_value), g_strdup_printf("%1.2lf", radius_value));
 	gtk_container_add(GTK_CONTAINER(aperture_box), apert_value);
 
-	GtkWidget *inn = gtk_label_new(_("Inner radius of the annulus:"));
+	/* Fill the 2nd box */
+	/* The label */
+	GtkWidget *inn = gtk_label_new(_("Inner radius of the annulus (px):"));
 	gtk_label_set_line_wrap(GTK_LABEL(inn), TRUE);
 	g_object_set(G_OBJECT(inn), "margin-left", 15, NULL);
 	g_object_set(G_OBJECT(inn), "margin-top", 0, NULL);
+	gtk_widget_set_halign(inn, GTK_ALIGN_START);
 	gtk_container_add(GTK_CONTAINER(inner_box), inn);
+	/* The entry */
 	GtkWidget *inner_value = gtk_entry_new();
 	gtk_widget_set_sensitive(inner_value, FALSE);
 	g_object_set(G_OBJECT(inner_value), "margin-left", 15, NULL);
 	g_object_set(G_OBJECT(inner_value), "margin-top", 0, NULL);
-	gtk_entry_set_text(GTK_ENTRY(inner_value), g_strdup_printf("%1.2lf", com.pref.phot_set.auto_aperture_factor));
+	gtk_widget_set_halign(inner_value, GTK_ALIGN_START);
+	gtk_entry_set_text(GTK_ENTRY(inner_value), g_strdup_printf("%1.2lf", com.pref.phot_set.inner));
 	gtk_container_add(GTK_CONTAINER(inner_box), inner_value);
 
-	GtkWidget *oute = gtk_label_new(_("Outer radius of the annulus:"));
+	/* Fill the 3rd box */
+	/* The label */
+	GtkWidget *oute = gtk_label_new(_("Outer radius of the annulus (px):"));
 	gtk_label_set_line_wrap(GTK_LABEL(oute), TRUE);
 	g_object_set(G_OBJECT(oute), "margin-left", 15, NULL);
 	g_object_set(G_OBJECT(oute), "margin-top", 0, NULL);
+	gtk_widget_set_halign(oute, GTK_ALIGN_START);
 	gtk_container_add(GTK_CONTAINER(outer_box), oute);
+	/* The entry */
 	GtkWidget *outer_value = gtk_entry_new();
 	gtk_widget_set_sensitive(outer_value, FALSE);
 	g_object_set(G_OBJECT(outer_value), "margin-left", 15, NULL);
 	g_object_set(G_OBJECT(outer_value), "margin-top", 0, NULL);
-	gtk_entry_set_text(GTK_ENTRY(outer_value), g_strdup_printf("%1.2lf", com.pref.phot_set.auto_aperture_factor));
+	gtk_widget_set_halign(outer_value, GTK_ALIGN_START);
+	gtk_entry_set_text(GTK_ENTRY(outer_value), g_strdup_printf("%1.2lf", com.pref.phot_set.outer));
 	gtk_container_add(GTK_CONTAINER(outer_box), outer_value);
 
-
-// A virer à la fin
-	optim_rad = gtk_check_button_new_with_label(_("Optimization o fthe radius"));
-	gtk_widget_set_tooltip_text(optim_rad, _("The option in the Photometry tab must be checked"));
-	g_object_set(G_OBJECT(optim_rad), "margin-left", 15, NULL);
-	g_object_set(G_OBJECT(optim_rad), "margin-right", 15, NULL);
-	g_object_set(G_OBJECT(optim_rad), "margin-top", 0, NULL);
-	g_object_set(G_OBJECT(optim_rad), "margin-bottom", 0, NULL);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(optim_rad), FALSE);
-	gtk_widget_set_sensitive(GTK_WIDGET(optim_rad), com.pref.phot_set.force_radius);
-///
-
+	// Gather the graphical elements //
 	GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
 	gtk_box_set_spacing(GTK_BOX(content_area), 20);
 	gtk_container_add(GTK_CONTAINER(content_area), label);
