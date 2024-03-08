@@ -179,11 +179,11 @@ preferences pref_init = {
 	.astrometry = {
 		.update_default_scale = TRUE,
 		.percent_scale_range = 20,
-		.sip_correction_order = 0,
+		.sip_correction_order = 3,
 		.radius_degrees = 10.0,
 		.keep_xyls_files = FALSE,
 		.keep_wcs_files = FALSE,
-		.max_seconds_run = 10,
+		.max_seconds_run = 30,
 		.show_asnet_output = FALSE,
 	},
 	.analysis = {
@@ -388,13 +388,13 @@ struct settings_access all_settings[] = {
 	{ "photometry", "b_wl", STYPE_DOUBLE, N_("blue NB filter wavelength"), &com.pref.spcc.blue_wl },
 	{ "photometry", "b_bw", STYPE_DOUBLE, N_("blue NB filter bandwidth"), &com.pref.spcc.blue_bw },
 
-	{ "astrometry", "asnet_sip_order", STYPE_INT, N_("degrees of the polynomial correction"), &com.pref.astrometry.sip_correction_order, { .range_int = { 0, 6 } } },
-	{ "astrometry", "asnet_radius", STYPE_DOUBLE, N_("radius around the target coordinates (degrees)"), &com.pref.astrometry.radius_degrees, { .range_double = { 0.01, 180.0 } } },
 	{ "astrometry", "asnet_keep_xyls", STYPE_BOOL, N_("do not delete .xyls FITS tables"), &com.pref.astrometry.keep_xyls_files },
 	{ "astrometry", "asnet_keep_wcs", STYPE_BOOL, N_("do not delete .wcs result files"), &com.pref.astrometry.keep_wcs_files },
-	{ "astrometry", "asnet_max_seconds_run", STYPE_INT, N_("maximum seconds to try solving"), &com.pref.astrometry.max_seconds_run, { .range_int = { 0, 100000 } } },
 	{ "astrometry", "asnet_show_output", STYPE_BOOL, N_("show solve-field output in main log"), &com.pref.astrometry.show_asnet_output },
 
+	{ "astrometry", "sip_order", STYPE_INT, N_("degrees of the polynomial correction"), &com.pref.astrometry.sip_correction_order, { .range_int = { 0, 5 } } },
+	{ "astrometry", "radius", STYPE_DOUBLE, N_("radius around the target coordinates (degrees)"), &com.pref.astrometry.radius_degrees, { .range_double = { 0.01, 180.0 } } },
+	{ "astrometry", "max_seconds_run", STYPE_INT, N_("maximum seconds to try solving"), &com.pref.astrometry.max_seconds_run, { .range_int = { 0, 100000 } } },
 	{ "astrometry", "update_default_scale", STYPE_BOOL, N_("update default focal length and pixel size from the result"), &com.pref.astrometry.update_default_scale },
 	{ "astrometry", "percent_scale_range", STYPE_INT, N_("percent below and above the expected sampling to allow"), &com.pref.astrometry.percent_scale_range, { .range_int = { 0, 50 } } },
 
