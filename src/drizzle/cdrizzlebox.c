@@ -50,7 +50,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 //static char buf[1024];
 
 
-/** --------------------------------------------------------------------------------------------------
+/** ------------------------------------------------------------------------------
  * Update the flux and counts in the output image using a weighted average
  *
  * p:   structure containing options, input, and output

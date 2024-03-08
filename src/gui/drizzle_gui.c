@@ -52,7 +52,7 @@ void on_apply_drizzle_clicked(GtkButton *button, gpointer user_data) {
 	driz->pixel_fraction = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_driz_dropsize")));
 	driz->filtering_criterion = seq_filter_all; // Needs a GUI element
 	driz->filtering_parameter = 1.0; // Needs a GUI element
-	driz->framing = FRAMING_COG; // for testing purposes, this is probably the one that best shows any shifts / rotation between frames. Needs a GUI element
+	driz->framing = FRAMING_MAX; // for testing purposes, this is probably the one that best shows any shifts / rotation between frames. Needs a GUI element
 	apply_drizzle(driz);
 }
 

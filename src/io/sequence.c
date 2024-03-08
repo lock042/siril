@@ -2004,9 +2004,10 @@ void free_reference_image() {
  * on the configured memory ratio */
 static int compute_nb_images_fit_memory_from_dimensions(int rx, int ry, int nb_layers, data_type type, double factor, gboolean force_float, unsigned int *MB_per_orig_image, unsigned int *MB_per_scaled_image, unsigned int *max_mem_MB) {
 	int max_memory_MB = get_max_memory_in_MB();
-	if (factor < 1.0 || factor > 2.0) {
-		fprintf(stderr, "############ FACTOR UNINIT (set to 1) ############\n");
-		factor = 1.0;
+
+	factor = max(factor, 1.0);
+	if (factor > 3.0) {
+		siril_debug_print("Info: image scaling is very large! (> 3.0)\n");
 	}
 	uint64_t newx = round_to_int((double) rx * factor);
 	uint64_t newy = round_to_int((double) ry * factor);

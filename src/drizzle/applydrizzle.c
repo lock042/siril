@@ -68,20 +68,6 @@ static regdata *apply_driz_get_current_regdata(struct driz_args_t *driz) {
 	return current_regdata;
 }
 
-static regdata *apply_driz_get_ref_regdata(struct driz_args_t *driz) {
-	regdata *ref_regdata;
-	if (driz->seq->regparam[0]) {
-		siril_log_message(
-				_("Applying existing registration from layer #%d to transform the images\n"), 0);
-		ref_regdata = &driz->seq->regparam[0][driz->reference_image];
-	} else {
-		siril_log_message(
-				_("No registration data exists for this layer\n"));
-		return NULL;
-	}
-	return ref_regdata;
-}
-
 static gboolean driz_compute_framing(struct driz_args_t *driz) {
 	// validity of matrices has already been checked before this call
 	// and null matrices have been discarded
@@ -210,7 +196,7 @@ static gboolean driz_compute_framing(struct driz_args_t *driz) {
 			cogy /= (double)n;
 			x0 = (int)(cogx - (double)rx * 0.5);
 			y0 = (int)(cogy - (double)ry * 0.5);
-			siril_log_message(_("Framing: Shift from reference origin: %d, %d\n"), x0, y0);
+			siril_log_message(_("Framing for drizzle: shift from reference origin: %d, %d\n"), x0, y0);
 			Hshift.h02 = (double)x0;
 			Hshift.h12 = (double)y0;
 			break;
@@ -221,12 +207,6 @@ static gboolean driz_compute_framing(struct driz_args_t *driz) {
 	rx_out = rx_0 * driz->scale;
 	ry_out = ry_0 * driz->scale;
 	return TRUE;
-}
-
-static int apply_drz_medstack(gpointer args) {
-	//struct driz_args_t *driz = args->user;
-	// TODO! Might be able to use the existing median stacking routine but it may need modifying to avoid zero-elements
-	return 0;
 }
 
 int apply_drz_prepare_results(struct generic_seq_args *args) {
@@ -250,6 +230,12 @@ int apply_drz_prepare_results(struct generic_seq_args *args) {
 	}
 	return 0;
 }
+
+struct _drizzle_pair {
+	int index;
+	fits *out;
+	fits *output_counts;
+};
 
 int apply_drz_prepare_hook(struct generic_seq_args *args) {
 	struct driz_args_t *driz = args->user;
