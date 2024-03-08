@@ -66,10 +66,14 @@ static void build_the_dialog() {
 
 	// Definition of all the graphical items
 	// Top label
-	GtkWidget *label = gtk_label_new(_("Process a sequence to get a light curve on a star using the list\nof reference stars created by Siril or the NINA exoplanet plugin"));
-	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
-	g_object_set(G_OBJECT(label), "margin", 15, NULL);
+	GtkWidget *win_label = gtk_label_new(_("Process a sequence to get a light curve on a star using the list\nof reference stars created by Siril or the NINA exoplanet plugin"));
+	gtk_label_set_line_wrap(GTK_LABEL(win_label), TRUE);
+	g_object_set(G_OBJECT(win_label), "margin", 15, NULL);
 
+	/* Defines the options boxe */
+	GtkWidget *options_box;
+	options_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 3);
+	gtk_box_set_homogeneous(GTK_BOX(options_box), TRUE);
 	// Comp1 radio
 	use_comp1 = gtk_check_button_new_with_label(_("Use comparative stars selected for their color"));
 	gtk_widget_set_tooltip_text(use_comp1, _("Color similar to the target mean they will get extincted the same way by the changing atmosphere"));
@@ -78,7 +82,7 @@ static void build_the_dialog() {
 	g_object_set(G_OBJECT(use_comp1), "margin-top", 0, NULL);
 	g_object_set(G_OBJECT(use_comp1), "margin-bottom", 0, NULL);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(use_comp1), TRUE);
-
+	gtk_container_add(GTK_CONTAINER(options_box), use_comp1);
 	// Comp2 radio
 	use_comp2 = gtk_check_button_new_with_label(_("Use comparative stars selected by the AAVSO"));
 	gtk_widget_set_tooltip_text(use_comp2, _("The AAVSO gives stars that are known to not be variable"));
@@ -87,7 +91,7 @@ static void build_the_dialog() {
 	g_object_set(G_OBJECT(use_comp2), "margin-top", 0, NULL);
 	g_object_set(G_OBJECT(use_comp2), "margin-bottom", 0, NULL);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(use_comp2), TRUE);
-
+	gtk_container_add(GTK_CONTAINER(options_box), use_comp2);
 	// Display radio
 	display_curve = gtk_check_button_new_with_label(_("Display the light curve"));
 	gtk_widget_set_tooltip_text(display_curve, _("if not checked, a PNG image of the graph will be generated instead"));
@@ -96,6 +100,7 @@ static void build_the_dialog() {
 	g_object_set(G_OBJECT(display_curve), "margin-top", 0, NULL);
 	g_object_set(G_OBJECT(display_curve), "margin-bottom", 0, NULL);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(display_curve), TRUE);
+	gtk_container_add(GTK_CONTAINER(options_box), display_curve);
 
 	// Horizontal Separator
 	sep = gtk_separator_new (GTK_ORIENTATION_HORIZONTAL);
@@ -103,11 +108,11 @@ static void build_the_dialog() {
 	g_object_set(G_OBJECT(sep), "margin-bottom", 5, NULL);
 
 	// Aperture Label
-	GtkWidget *label1 = gtk_label_new(_("The current aperture parameters are as follow:\n(they can be checked/set in the Preferences/Photometry tab)"));
-	gtk_label_set_line_wrap(GTK_LABEL(label1), TRUE);
-	g_object_set(G_OBJECT(label1), "margin", 15, NULL);
-	g_object_set(G_OBJECT(label1), "margin-top", 0, NULL);
-	gtk_widget_set_halign(label1, GTK_ALIGN_START);
+	GtkWidget *aperture_label = gtk_label_new(_("The current aperture parameters are as follow:\n(they can be managed in the Preferences/Photometry tab)"));
+	gtk_label_set_line_wrap(GTK_LABEL(aperture_label), TRUE);
+	g_object_set(G_OBJECT(aperture_label), "margin", 15, NULL);
+	g_object_set(G_OBJECT(aperture_label), "margin-top", 0, NULL);
+	gtk_widget_set_halign(aperture_label, GTK_ALIGN_START);
 
 	// Aperture parameters
 	/* Defines the 3 boxes */
@@ -179,13 +184,11 @@ static void build_the_dialog() {
 	// Gather the graphical elements //
 	GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
 	gtk_box_set_spacing(GTK_BOX(content_area), 20);
-	gtk_container_add(GTK_CONTAINER(content_area), label);
+	gtk_container_add(GTK_CONTAINER(content_area), win_label);
 	gtk_container_add(GTK_CONTAINER(content_area), file_chooser);
-	gtk_container_add(GTK_CONTAINER(content_area), use_comp1);
-	gtk_container_add(GTK_CONTAINER(content_area), use_comp2);
-	gtk_container_add(GTK_CONTAINER(content_area), display_curve);
+	gtk_container_add(GTK_CONTAINER(content_area), options_box);
 	gtk_container_add(GTK_CONTAINER(content_area), sep);
-	gtk_container_add(GTK_CONTAINER(content_area), label1);
+	gtk_container_add(GTK_CONTAINER(content_area), aperture_label);
 	gtk_container_add(GTK_CONTAINER(content_area), aperture_box);
 	gtk_container_add(GTK_CONTAINER(content_area), inner_box);
 	gtk_container_add(GTK_CONTAINER(content_area), outer_box);
