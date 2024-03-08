@@ -52,7 +52,6 @@ struct light_curve_args {
 	int layer;
 	char *target_descr;	// the description to put in the data file and graph
 	gboolean display_graph;	// if true, show it, if false, generate png
-	gboolean optimize_radius;	// optimize_radius
 
 	// metadata from the NINA file created by Siril
 	struct compstars_arg *metadata;

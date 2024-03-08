@@ -111,7 +111,7 @@ photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 	r1 = phot_set->inner;
 	r2 = phot_set->outer;
 //	appRadius = phot_set->force_radius ? phot_set->aperture : psf->fwhmx * 2.0;
-	appRadius = phot_set->force_radius ? phot_set->aperture : 0.5 * psf->fwhmx * phot_set->auto_aperture_factor;
+	appRadius = !phot_set->force_radius ? phot_set->aperture : 0.5 * psf->fwhmx * phot_set->auto_aperture_factor;
 	if (appRadius >= r1 && !phot_set->force_radius) {
 		if (verbose) {
 			/* Translator note: radii is plural for radius */
@@ -417,6 +417,7 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 	double *date = calloc(nbImages, sizeof(double));	// X is the julian date
 	double *vmag = calloc(nbImages, sizeof(double));	// Y is the calibrated magnitude
 	double *err = calloc(nbImages, sizeof(double));		// Y error bar
+	double *snr_opt = calloc(nbImages, sizeof(double));		// SNR
 	if (!date || !vmag || !err) {
 		PRINT_ALLOC_ERR;
 		free(date); free(vmag); free(err);
@@ -474,6 +475,7 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 
 			vmag[j] = target_mag - cmag;
 			err[j] = fmin(9.999, sqrt(target_err * target_err + cerr * cerr));
+			snr_opt[j] = seq->photometry[0][i]->SNR;
 			j++;
 		}
 	}
@@ -486,11 +488,23 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 		median_err = gsl_stats_median_from_sorted_data (err, 1, nb_valid_images);
 		largest_err = gsl_stats_max (err, 1, nb_valid_images);
 		smallest_err = gsl_stats_min (err, 1, nb_valid_images);
+
+		double median_snr, largest_snr, smallest_snr;
+		gsl_sort (snr_opt, 1, nb_valid_images);
+		median_snr = gsl_stats_median_from_sorted_data (snr_opt, 1, nb_valid_images);
+		largest_snr = gsl_stats_max (snr_opt, 1, nb_valid_images);
+		smallest_snr = gsl_stats_min (snr_opt, 1, nb_valid_images);
+
 		siril_log_color_message(_("Error bars-- (%d images) median: %.2lfmmag, max: %.2lfmmag, min: %.2lfmmag\n"), "blue",
 			nb_valid_images,
 			1000 * median_err,
 			1000 * largest_err,
 			1000 * smallest_err);
+		siril_log_color_message(_("Variable star SNR-- (%d images) median: %.2lf, max: %.2lf, min: %.2lf\n"), "blue",
+			nb_valid_images,
+			median_snr,
+			largest_snr,
+			smallest_snr);
 	}
 
 	if (min_date != DBL_MAX)
@@ -585,8 +599,6 @@ gpointer light_curve_worker(gpointer arg) {
 	framing_mode framing = REGISTERED_FRAME;
 	if (framing == REGISTERED_FRAME && !args->seq->regparam[args->layer])
 		framing = FOLLOW_STAR_FRAME;
-	if (args->optimize_radius)
-		siril_log_message(_("WAS HERE!!!!\n"));
 	// someday we should move the area in the seqpsf args, not needed for now
 	for (int star_index = 0; star_index < args->nb; star_index++) {
 		com.selection = args->areas[star_index];
