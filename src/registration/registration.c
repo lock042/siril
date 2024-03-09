@@ -31,6 +31,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_log.h"
+#include "algos/demosaicing.h"
 #include "gui/callbacks.h"
 #include "gui/utils.h"
 #include "gui/image_display.h"
@@ -1208,10 +1209,20 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 			ready = _3stars_check_selection(); // checks that the right image is loaded based on doall and dofollow
 		}
 		else if (gfit.naxes[2] == 1 && gfit.bayer_pattern[0] != '\0') {
-			gtk_label_set_text(labelreginfo, _("Debayer the sequence for registration"));
-			ready = FALSE;
+			sensor_pattern pattern = get_bayer_pattern(&gfit);
+			if (pattern <= BAYER_FILTER_MAX) {
+				gtk_label_set_text(labelreginfo, _("Supported Bayer pattern detected"));
+				gtk_widget_set_tooltip_text(GTK_WIDGET(labelreginfo), _("This sequence can be registered with the Bayer pattern intact based on registering the green layer with red and blue pixels interpolated"));
+			} else {
+				gtk_label_set_text(labelreginfo, _("Unsupported CFA pattern detected"));
+				gtk_widget_set_tooltip_text(GTK_WIDGET(labelreginfo), _("This sequence cannot be registered with the CFA pattern intact. You must debayer it prior to registration"));
+				ready = FALSE;
+			}
 		}
-		else gtk_label_set_text(labelreginfo, "");
+		else {
+			gtk_label_set_text(labelreginfo, "");
+			gtk_widget_set_tooltip_text(GTK_WIDGET(labelreginfo), "");
+		}
 		// the 3 stars method has special GUI requirements
 		if (method->method_ptr == &register_3stars) {
 			if (!ready) gtk_widget_set_sensitive(go_register,FALSE);
@@ -1431,6 +1442,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 
 	reg_args->func = method->method_ptr;
 	reg_args->seq = &com.seq;
+	reg_args->bayer = ((gfit.naxes[2] == 1 && gfit.bayer_pattern[0] != '\0' && get_bayer_pattern(&gfit) <= BAYER_FILTER_MAX));
 	reg_args->reference_image = sequence_find_refimage(&com.seq);
 	reg_args->follow_star = gtk_toggle_button_get_active(follow);
 	reg_args->matchSelection = gtk_toggle_button_get_active(matchSel);

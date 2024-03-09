@@ -407,7 +407,8 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 
 	// Copy driz->output_data to fit so that it is saved as the output sequence frame
 	clearfits(fit);
-	copyfits(&out, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+//	copyfits(&out, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+	copyfits(&output_counts, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 
 	// TODO: do we still need the mapping file for the blot or the second drizzle or is it
 	//       cheaper to recalculate it (if needed) than to save / load it?

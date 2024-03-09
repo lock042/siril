@@ -1685,6 +1685,15 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 	}
 	data->image_index = index;
 
+	/* Backup the original pointer to fit. If there is a Bayer pattern we need
+	 * to interpolate non-green pixels, so make a copy we can work on. */
+	fits *orig_fit = fit;
+	if (spsfargs->bayer) {
+		fit = calloc(1, sizeof(fits));
+		copyfits(orig_fit, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+		interpolate_nongreen(fit);
+	}
+
 	rectangle psfarea = { .x = 0, .y = 0, .w = fit->rx, .h = fit->ry };
 	psf_error error;
 	struct phot_config *ps = NULL;
@@ -1730,7 +1739,13 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 				"red", index, area->x, area->y, psf_error_to_string(error));
 		}
 	}
-
+	if (spsfargs->bayer) {
+		// Get rid of the temporary copy and restore the original frame fits
+		// now that we have computed the actual registration data
+		clearfits(fit);
+		free(fit);
+		fit = orig_fit;
+	}
 #ifdef _OPENMP
 	omp_set_lock(&args->lock);
 #endif

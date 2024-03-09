@@ -54,6 +54,7 @@ typedef enum {
 struct registration_args {
 	registration_function func;	// the registration function
 	sequence *seq;			// the sequence to register
+	gboolean bayer;			// whether we are dealing with a Bayer pattern
 	int reference_image;		// reference image index
 	struct seq_filter_config filters; // parsed image filters (.filter_included always used)
 	int layer;			// layer of images on which the registration is computed

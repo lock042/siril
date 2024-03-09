@@ -22,6 +22,7 @@
 #include "core/proto.h"
 #include <glib.h>
 
+#include "algos/demosaicing.h"
 #include "utils.h"
 #include "message_dialog.h"
 
@@ -317,4 +318,89 @@ void siril_set_file_filter(const gchar* widget_name, const gchar* filter_name) {
 	g_slist_free(filter_list);
 	if (add_filter)
 		gtk_file_chooser_add_filter(chooser, filter);
+}
+
+/** Calculate the bayer pattern color from the row and column **/
+static inline int FC(const size_t row, const size_t col, const uint32_t filters) {
+	return filters >> (((row << 1 & 14) + (col & 1)) << 1) & 3;
+}
+
+static void interpolate_nongreen_float(fits *fit) {
+	sensor_pattern pattern = get_bayer_pattern(fit);
+	for (int row = 0; row < fit->ry - 1; row++) {
+		for (int col = 0; col < fit->rx - 1; col++) {
+			if (FC(row, col, pattern) == 1)
+				continue;
+			uint32_t index = col + row * fit->rx;
+			float interp = 0.f;
+			float weight = 0.f;
+			gboolean first_y = (index / fit->rx == 0) ? TRUE : FALSE;
+			gboolean last_y = (index / fit->rx == fit->ry - 1) ? TRUE : FALSE;
+			gboolean first_x = (index % fit->rx == 0) ? TRUE : FALSE;
+			gboolean last_x = (index % fit->rx == fit->rx - 1) ? TRUE : FALSE;
+			if (!first_y) {
+				interp += fit->fdata[index - fit->rx];
+				weight++;
+			}
+			if (!first_x) {
+				interp += fit->fdata[index - 1];
+				weight++;
+			}
+			if (!last_x) {
+				interp += fit->fdata[index + 1];
+				weight++;
+			}
+			if (!last_y) {
+				interp += fit->fdata[index + fit->rx];
+				weight ++;
+			}
+			interp /= weight;
+			fit->fdata[index] = interp;
+		}
+	}
+	fit->bayer_pattern[0] = '\0'; // Mark this as no longer having a Bayer pattern
+}
+
+static void interpolate_nongreen_ushort(fits *fit) {
+	sensor_pattern pattern = get_bayer_pattern(fit);
+	for (int row = 0; row < fit->ry - 1; row++) {
+		for (int col = 0; col < fit->rx - 1; col++) {
+			if (FC(row, col, pattern) == 1)
+				continue;
+			uint32_t index = col + row * fit->rx;
+			float interp = 0.f;
+			float weight = 0.f;
+			gboolean first_y = (index / fit->rx == 0) ? TRUE : FALSE;
+			gboolean last_y = (index / fit->rx == fit->ry - 1) ? TRUE : FALSE;
+			gboolean first_x = (index % fit->rx == 0) ? TRUE : FALSE;
+			gboolean last_x = (index % fit->rx == fit->rx - 1) ? TRUE : FALSE;
+			if (!first_y) {
+				interp += (float) fit->data[index - fit->rx];
+				weight++;
+			}
+			if (!first_x) {
+				interp += (float) fit->data[index - 1];
+				weight++;
+			}
+			if (!last_x) {
+				interp += (float) fit->data[index + 1];
+				weight++;
+			}
+			if (!last_y) {
+				interp += (float) fit->data[index + fit->rx];
+				weight++;
+			}
+			interp /= weight;
+			fit->data[index] = roundf_to_WORD(interp);
+		}
+	}
+	fit->bayer_pattern[0] = '\0'; // Mark this as no longer having a Bayer pattern
+}
+
+void interpolate_nongreen(fits *fit) {
+	if (fit->type == DATA_FLOAT) {
+		interpolate_nongreen_float(fit);
+	} else {
+		interpolate_nongreen_ushort(fit);
+	}
 }
