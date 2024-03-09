@@ -230,7 +230,7 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	return star_align_prepare_results(args);
 }
 
-static int star_match_and_checks(psf_star **ref_stars, psf_star **stars, int nb_stars, struct registration_args *regargs, int filenum, Homography *H) {
+static int star_match_and_checks(psf_star **ref_stars, psf_star **stars, int nb_ref_stars, int nb_stars, struct registration_args *regargs, int filenum, Homography *H) {
 	double scale_min = 0.9;
 	double scale_max = 1.1;
 	int attempt = 1;
@@ -238,7 +238,7 @@ static int star_match_and_checks(psf_star **ref_stars, psf_star **stars, int nb_
 	int failure = 1;
 	/* make a loop with different tries in order to align the two sets of data */
 	while (failure && attempt < NB_OF_MATCHING_TRY) {
-		failure = new_star_match(stars, ref_stars, nb_stars, nobj,
+		failure = new_star_match(stars, ref_stars, nb_ref_stars, nb_stars, nobj,
 				scale_min, scale_max, H, NULL, FALSE, regargs->type, AT_TRANS_UNDEFINED,
 				NULL, NULL);
 		if (attempt == 1) {
@@ -292,7 +292,7 @@ static int star_match_and_checks(psf_star **ref_stars, psf_star **stars, int nb_
 int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads) {
 	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
-	int nbpoints, nb_stars = 0;
+	int nb_stars = 0;
 	float FWHMx, FWHMy, B;
 	char *units;
 	Homography H = { 0 };
@@ -347,19 +347,9 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 			return 1;
 		}
 
-		if (nb_stars >= sadata->fitted_stars) {
-			if (nb_stars >= MAX_STARS_FITTED) {
-				siril_log_color_message(_("Target Image: Limiting to %d brightest stars\n"), "green", MAX_STARS_FITTED);
-			}
-			nbpoints = sadata->fitted_stars;
-		}
-		else {
-			nbpoints = nb_stars;
-		}
-
-		int not_matched = star_match_and_checks(sadata->refstars, stars, nbpoints, regargs, filenum, &H);
+		int not_matched = star_match_and_checks(sadata->refstars, stars, sadata->fitted_stars, nb_stars, regargs, filenum, &H);
 		if (!not_matched)
-			FWHM_stats(stars, nbpoints, args->seq->bitpix, &FWHMx, &FWHMy, &units, &B, NULL, 0.);
+			FWHM_stats(stars, nb_stars, args->seq->bitpix, &FWHMx, &FWHMy, &units, &B, NULL, 0.);
 		free_fitted_stars(stars);
 		if (not_matched) {
 			args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
@@ -746,7 +736,7 @@ static int compute_transform(struct registration_args *regargs, struct starfinde
 		} else {
 			int filenum = regargs->seq->imgparam[i].filenum;	// for display purposes
 			int not_matched = star_match_and_checks(sf_args->stars[regargs->seq->reference_image], sf_args->stars[i],
-					sf_args->nb_stars[i], regargs, filenum, &H);
+					sf_args->nb_stars[regargs->seq->reference_image], sf_args->nb_stars[i], regargs, filenum, &H);
 			if (not_matched) {
 				g_atomic_int_inc(&nbfail);
 				included[i] = FALSE;

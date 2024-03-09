@@ -1286,34 +1286,6 @@ static void save_dialog(const gchar *format, int (export_function)(pldata *, seq
 	siril_widget_destroy(widgetdialog);
 }
 
-void on_ButtonCompStars_clicked(GtkButton *button, gpointer user_data) {
-	set_cursor_waiting(TRUE);
-
-	if (!has_wcs(&gfit)) {
-		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
-		return;
-	}
-
-	/* TODO
-	if (!com.target_star) {
-		siril_log_color_message(_("You have to identify the Variable star (Search in GUI or catsearch in ClI)\n"), "red");
-		return;
-	}
-
-	com.wide_field = FALSE;
-	com.used_cat = CAT_AAVSO;
-	get_compstars();
-
-	double dmag = 6.0;
-	do {		// This is the auto-sort process for GUI use
-		dmag = dmag * 0.9;
-	} while (sort_compstars (dmag, 0.5) > 8);
-
-	chk_compstars();
-	*/
-	set_cursor_waiting(FALSE);
-}
-
 void on_ButtonSaveCSV_clicked(GtkButton *button, gpointer user_data) {
 	gchar *error = NULL;
 	set_cursor_waiting(TRUE);
@@ -1328,7 +1300,6 @@ void on_ButtonSaveCSV_clicked(GtkButton *button, gpointer user_data) {
 void on_button_aavso_close_clicked(GtkButton *button, gpointer user_data) {
 	gtk_widget_hide(lookup_widget("aavso_dialog"));
 }
-
 
 void on_button_aavso_apply_clicked(GtkButton *button, gpointer user_data) {
 	gchar *error = NULL;

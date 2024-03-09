@@ -12,4 +12,6 @@ void set_iter_of_clicked_psf(double x, double y);
 
 void popup_psf_result(psf_star *result, rectangle *area, fits *fit);
 
+int get_ra_and_dec_from_star_pos(psf_star *star, gdouble *alpha, gdouble *delta);
+
 #endif

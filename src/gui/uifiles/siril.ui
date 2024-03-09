@@ -2404,7 +2404,7 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
             <property name="tooltip-text" translatable="yes">Generate a list of comparison stars (APASS, NOMAD) contained in the FOV.
 Output is a csv file compatible with NINA Exoplanet</property>
             <property name="action-name">win.compstars</property>
-            <property name="text" translatable="yes">Create Comparison Stars File...</property>
+            <property name="text" translatable="yes">Create Comparison Stars File ...</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -2424,7 +2424,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">2</property>
+            <property name="position">3</property>
           </packing>
         </child>
         <child>
@@ -2439,7 +2439,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">3</property>
+            <property name="position">4</property>
           </packing>
         </child>
       </object>
