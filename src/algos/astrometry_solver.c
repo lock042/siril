@@ -2123,6 +2123,7 @@ void start_sequence_astrometry(sequence *seq, struct astrometry_data *args) {
 		seqargs->force_fitseq_output = TRUE;
 		seqargs->new_seq_prefix = strdup("ps_");
 		seqargs->load_new_sequence = TRUE;
+		args->force = TRUE;
 	}
 	seqargs->user = args;
 	if (args->solver == SOLVER_SIRIL)

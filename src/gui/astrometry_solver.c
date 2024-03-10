@@ -158,6 +158,12 @@ void initialize_ips_dialog() {
 	on_comboastro_catalog_changed(NULL, NULL);
 }
 
+static gboolean use_local_catalogue() {
+	int cat = gtk_combo_box_get_active(catalogbox);
+	gboolean autocat = gtk_toggle_button_get_active(autocatbutton);
+	return have_local_cat && (autocat || (cat != CAT_GAIADR3 && cat != CAT_PPMXL && cat != CAT_APASS));
+}
+
 static void get_mag_settings_from_GUI(limit_mag_mode *mag_mode, double *magnitude_arg) {
 	gboolean autob = gtk_toggle_button_get_active(automagbutton);
 	if (autob)
@@ -621,9 +627,7 @@ void on_GtkCheckButton_solveseq_toggled(GtkToggleButton *button, gpointer user) 
 	gboolean solveseq = gtk_toggle_button_get_active(seqsolvebutton);
 	gboolean shownocache = FALSE;
 	if (!gtk_combo_box_get_active(solverbox)) { // SOLVER_SIRIL
-		int cat = gtk_combo_box_get_active(catalogbox);
-		gboolean autocat = gtk_toggle_button_get_active(autocatbutton);
-		gboolean uselocal = have_local_cat && (autocat || (cat != 2 && cat != 3)); // 2 = GAIA, 3 = PPMXL
+		gboolean uselocal = use_local_catalogue();
 		shownocache = (!uselocal) && (has_coords || has_pixel || has_focal);
 	}
 	gtk_widget_set_visible(GTK_WIDGET(seqnocache), solveseq && shownocache);
@@ -677,7 +681,7 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 		}
 		int cat = gtk_combo_box_get_active(catalogbox);
 		gboolean autocat = gtk_toggle_button_get_active(autocatbutton);
-		gboolean uselocal = have_local_cat && (autocat || (cat != 2 && cat != 3)); // 2 = GAIA, 3 = PPMXL
+		gboolean uselocal = use_local_catalogue();
 		args->autocrop = (uselocal) ? FALSE : is_autocrop_activated();
 		get_mag_settings_from_GUI(&args->mag_mode, &args->magnitude_arg);
 		if (uselocal && !gtk_toggle_button_get_active(nonearbutton)) {
@@ -765,8 +769,7 @@ void init_astrometry() {
 }
 
 void on_comboastro_catalog_changed(GtkComboBox *combo, gpointer user_data) {
-	int cat = gtk_combo_box_get_active(catalogbox);
-	if (!have_local_cat || (!gtk_toggle_button_get_active(autocatbutton) && (cat == 2 || cat == 3))) // 2 = GAIA, 3 = PPMXL
+	if (!use_local_catalogue())
 		gtk_label_set_text(cataloglabel, _("(online catalogue)"));
 	else gtk_label_set_text(cataloglabel, _("(local catalogue)"));
 	on_comboastro_solver_changed(NULL, NULL);
@@ -779,9 +782,7 @@ void on_comboastro_solver_changed(GtkComboBox *combo, gpointer user_data) {
 	gtk_widget_set_visible(GTK_WIDGET(blindresbutton), !is_siril);
 	gtk_widget_set_visible(GTK_WIDGET(cataloguesexp), is_siril);
 	if (is_siril) {
-		int cat = gtk_combo_box_get_active(catalogbox);
-		gboolean autocat = gtk_toggle_button_get_active(autocatbutton);
-		gboolean uselocal = have_local_cat && (autocat || (cat != 2 && cat != 3)); // 2 = GAIA, 3 = PPMXL
+		gboolean uselocal = use_local_catalogue();
 		gtk_widget_set_visible(GTK_WIDGET(radiuslabel), uselocal);
 		gtk_widget_set_visible(GTK_WIDGET(radiusspin), uselocal);
 		gtk_widget_set_visible(GTK_WIDGET(nonearbutton), uselocal);

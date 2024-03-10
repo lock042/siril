@@ -8835,7 +8835,7 @@ int process_platesolve(int nb) {
 		return CMD_OK;
 	}
 
-	if (local_cat && (cat == CAT_AUTO || (cat != CAT_GAIADR3 && cat != CAT_PPMXL))) {
+	if (local_cat && (cat == CAT_AUTO || (cat != CAT_GAIADR3 && cat != CAT_PPMXL && cat != CAT_APASS))) {
 		cat = CAT_LOCAL;
 		autocrop = FALSE; // we don't crop fov when using local catalogues
 		siril_debug_print("forced no crop when using local catalogues\n");
