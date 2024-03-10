@@ -1541,7 +1541,7 @@ void initialize_all_GUI(gchar *supported_files) {
 	initialize_stacking_methods();
 
 	/* set focal and pixel pitch */
-	set_focal_and_pixel_pitch();
+	init_astrometry();
 
 	initialize_FITS_name_entries();
 

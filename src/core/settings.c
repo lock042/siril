@@ -390,11 +390,11 @@ struct settings_access all_settings[] = {
 	{ "astrometry", "asnet_keep_wcs", STYPE_BOOL, N_("do not delete .wcs result files"), &com.pref.astrometry.keep_wcs_files },
 	{ "astrometry", "asnet_show_output", STYPE_BOOL, N_("show solve-field output in main log"), &com.pref.astrometry.show_asnet_output },
 
-	{ "astrometry", "sip_order", STYPE_INT, N_("degrees of the polynomial correction"), &com.pref.astrometry.sip_correction_order, { .range_int = { 0, 5 } } },
-	{ "astrometry", "radius", STYPE_DOUBLE, N_("radius around the target coordinates (degrees)"), &com.pref.astrometry.radius_degrees, { .range_double = { 0.01, 180.0 } } },
+	{ "astrometry", "sip_order", STYPE_INT, N_("degrees of the polynomial correction"), &com.pref.astrometry.sip_correction_order, { .range_int = { 1, 5 } } },
+	{ "astrometry", "radius", STYPE_DOUBLE, N_("radius around the target coordinates (degrees)"), &com.pref.astrometry.radius_degrees, { .range_double = { 0.01, 30.0 } } },
 	{ "astrometry", "max_seconds_run", STYPE_INT, N_("maximum seconds to try solving"), &com.pref.astrometry.max_seconds_run, { .range_int = { 0, 100000 } } },
 	{ "astrometry", "update_default_scale", STYPE_BOOL, N_("update default focal length and pixel size from the result"), &com.pref.astrometry.update_default_scale },
-	{ "astrometry", "percent_scale_range", STYPE_INT, N_("percent below and above the expected sampling to allow"), &com.pref.astrometry.percent_scale_range, { .range_int = { 0, 50 } } },
+	{ "astrometry", "percent_scale_range", STYPE_INT, N_("percent below and above the expected sampling to allow"), &com.pref.astrometry.percent_scale_range, { .range_int = { 10, 50 } } },
 
 	{ "analysis", "panel", STYPE_INT, N_("panel size of aberration inspector"), &com.pref.analysis.mosaic_panel, { .range_int = { 127, 1024 } } },
 	{ "analysis", "window", STYPE_INT, N_("window size of aberration inspector"), &com.pref.analysis.mosaic_window, { .range_int = { 300, 1600 } } },

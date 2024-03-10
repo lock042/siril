@@ -1615,11 +1615,7 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 		g_free(table_filename);
 		return SOLVE_ASNET_PROC;
 	}
-	char low_scale[16], high_scale[16];
-	double a = 1.0 + (com.pref.astrometry.percent_scale_range / 100.0);
-	double b = 1.0 - (com.pref.astrometry.percent_scale_range / 100.0);
-	sprintf(low_scale, "%.3f", args->scale * b);
-	sprintf(high_scale, "%.3f", args->scale * a);
+
 #ifndef _WIN32
 	gchar *asnet_path = siril_get_asnet_bin();
 	g_assert(asnet_path);
@@ -1636,7 +1632,17 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 #endif
 		"-p", "-O", "-N", "none", "-R", "none", "-M", "none", "-B", "none",
 		"-U", "none", "-S", "none", "--crpix-center",
-		"-u", "arcsecperpix", "-L", low_scale, "-H", high_scale, "-s", "FLUX", NULL };
+		"-s", "FLUX", NULL };
+
+	char low_scale[16], high_scale[16];
+	if (!args->asnet_blind_res) {
+		double a = 1.0 + (com.pref.astrometry.percent_scale_range / 100.0);
+		double b = 1.0 - (com.pref.astrometry.percent_scale_range / 100.0);
+		sprintf(low_scale, "%.3f", args->scale * b);
+		sprintf(high_scale, "%.3f", args->scale * a);
+		char *scale_args[] = { "-u", "arcsecperpix", "-L", low_scale, "-H", high_scale, NULL };
+		append_elements_to_array(sfargs, scale_args);
+	}
 
 	if (com.pref.astrometry.max_seconds_run > 0) {
 		char time_limit[16];
@@ -1655,20 +1661,30 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 	}
 
 	char start_ra[16], start_dec[16], radius[16];
-	if (args->cat_center) {
+	if (!args->asnet_blind_pos) {
 		sprintf(start_ra, "%f", siril_world_cs_get_alpha(args->cat_center));
 		sprintf(start_dec, "%f", siril_world_cs_get_delta(args->cat_center));
-		sprintf(radius, "%.1f", com.pref.astrometry.radius_degrees);
+		sprintf(radius, "%.1f", args->searchradius);
 		char *additional_args[] = { "--ra", start_ra, "--dec", start_dec,
 			"--radius", radius, NULL};
 		append_elements_to_array(sfargs, additional_args);
-		siril_log_message(_("Astrometry.net solving with a search field at RA: %s, Dec: %s,"
-					" within a %s degrees radius for scales [%s, %s]\n"),
-				start_ra, start_dec, radius, low_scale, high_scale);
-	} else {
-		siril_log_message(_("Astrometry.net solving blindly for scales [%s, %s]\n"),
-				low_scale, high_scale);
 	}
+
+	if (!args->asnet_blind_pos && !args->asnet_blind_res)
+		siril_log_message(_("Astrometry.net solving with a search field at RA: %s, Dec: %s,"
+			" within a %s degrees radius for scales [%s, %s]\n"),
+		start_ra, start_dec, radius, low_scale, high_scale);
+	else if (!args->asnet_blind_pos && args->asnet_blind_res)
+		siril_log_message(_("Astrometry.net solving with a search field at RA: %s, Dec: %s,"
+			" within a %s degrees radius, blindly for scale\n"),
+			start_ra, start_dec, radius);
+	else if (args->asnet_blind_pos && !args->asnet_blind_res)
+		siril_log_message(_("Astrometry.net solving blindly in position for scales [%s, %s]\n"),
+				low_scale, high_scale);
+	else
+		siril_log_message(_("Astrometry.net solving blindly\n"),
+				low_scale, high_scale);
+
 #ifdef _WIN32
 	char *file_args[] = { "\"$p\"", NULL };
 #else
@@ -1815,8 +1831,8 @@ void process_plate_solver_input(struct astrometry_data *args) {
 
 	rectangle croparea = { 0 };
 	if (!args->manual) {
-		// first checking if there is a selection or if the full field is to be used
-		if (com.selection.w != 0 && com.selection.h != 0) {
+		// first checking if there is a selection or if the full field is to be used (siril only)
+		if (args->solver == SOLVER_SIRIL && com.selection.w != 0 && com.selection.h != 0) {
 			memcpy(&croparea, &com.selection, sizeof(rectangle));
 			siril_log_color_message(_("Warning: using the current selection to detect stars\n"), "salmon");
 			selected = TRUE;
@@ -1830,7 +1846,7 @@ void process_plate_solver_input(struct astrometry_data *args) {
 		siril_debug_print("image fov for given sampling: %f arcmin\n", fov_arcmin);
 
 		// then apply or not autocropping to 5deg (300 arcmin)
-		args->used_fov = args->autocrop ? min(fov_arcmin, 300.) : fov_arcmin;
+		args->used_fov = args->autocrop ? min(fov_arcmin, 300.) : fov_arcmin; // autocrop is false for asnet or siril with local cat
 		double cropfactor = (args->used_fov < fov_arcmin) ? args->used_fov / fov_arcmin : 1.0;
 		if (cropfactor != 1.0) {
 			croparea.x += (int) ((croparea.w - croparea.w * cropfactor) / 2);
@@ -1840,7 +1856,7 @@ void process_plate_solver_input(struct astrometry_data *args) {
 			siril_debug_print("Auto-crop factor: %.2f\n", cropfactor);
 		}
 
-		if (com.selection.w != 0 && com.selection.h != 0) {
+		if (args->solver == SOLVER_SIRIL && com.selection.w != 0 && com.selection.h != 0) {
 			// detect if the selection is not centered enough that it matters
 			double thr = max(args->fit->rx, args->fit->ry) / 10.0;
 			args->uncentered =
@@ -1891,6 +1907,7 @@ void process_plate_solver_input(struct astrometry_data *args) {
 			args->ref_stars->cat_index = CAT_NOMAD;
 		else args->ref_stars->cat_index = CAT_GAIADR3;
 	}
+	args->ref_stars->columns = siril_catalog_columns(args->ref_stars->cat_index);
 	if (selected)
 		args->near_solve = FALSE;
 	else
@@ -1927,12 +1944,20 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 	}
 	if (!args->nocache)
 		return get_catalog_stars(args->ref_stars);
+	args->seqprogress = 0; // initialize success counter
+	args->seqskipped = 0; // initialize skipped counter
 	return 0;
 }
 
 static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fits *fit, rectangle *area, int threads) {
-	struct astrometry_data *aargs = (struct astrometry_data *)arg->user;
-	aargs = copy_astrometry_args(aargs);
+	struct astrometry_data *aargs_master = (struct astrometry_data *)arg->user;
+	if (!aargs_master->force && has_wcs(fit)) {
+		g_atomic_int_inc(&aargs_master->seqskipped);
+		g_atomic_int_inc(&aargs_master->seqprogress);
+		siril_log_color_message(_("Image %d already platesolved, skipping\n"), "salmon", i + 1);
+		return 0;
+	}
+	struct astrometry_data *aargs = copy_astrometry_args(aargs_master);
 	if (!aargs)
 		return 1;
 	aargs->fit = fit;
@@ -2020,11 +2045,16 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 			siril_log_color_message(_("Image %d platesolved and updated\n"), "salmon", i + 1);
 		}
 	}
+	if (!retval)
+		g_atomic_int_inc(&aargs_master->seqprogress);
 	return retval;
 }
 
 static int astrometry_finalize_hook(struct generic_seq_args *arg) {
 	struct astrometry_data *aargs = (struct astrometry_data *)arg->user;
+	siril_log_color_message(_("%d images successfully platesolved out of %d included\n"), "green", aargs->seqprogress, arg->nb_filtered_images);
+	if (aargs->seqskipped > 0)
+		siril_log_color_message(_("(%d were already solved and skipped)\n"), "green", aargs->seqskipped);
 	if (arg->has_output)
 		seq_finalize_hook(arg);
 	else if (arg->seq->type == SEQ_FITSEQ) {
@@ -2059,7 +2089,7 @@ gboolean end_platesolve_sequence(gpointer p) {
 		g_free(seqname);
 		g_free(basename);
 	} else if (check_seq_is_comseq(args->seq) && !args->retval) {
-		if (args->seq->type == SEQ_FITSEQ) {
+		if (args->seq->type == SEQ_FITSEQ) { // if FITSEQ, we need to repoen in READONLY mode
 			int test = fitseq_open(args->seq->fitseq_file->filename, args->seq->fitseq_file, READONLY);
 			siril_debug_print("test reopen:%d\n", test);
 		}
@@ -2095,9 +2125,9 @@ void start_sequence_astrometry(sequence *seq, struct astrometry_data *args) {
 		seqargs->load_new_sequence = TRUE;
 	}
 	seqargs->user = args;
-
-	siril_log_message(_("Running sequence plate solving using the %s catalogue\n"),
-			catalog_to_str(args->ref_stars->cat_index));
+	if (args->solver == SOLVER_SIRIL)
+		siril_log_message(_("Running sequence plate solving using the %s catalogue\n"),
+				catalog_to_str(args->ref_stars->cat_index));
 	start_in_new_thread(generic_sequence_worker, seqargs);
 }
 
