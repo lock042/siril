@@ -70,6 +70,8 @@ void on_GtkCheckButton_solveseq_toggled(GtkToggleButton *button, gpointer user);
 extern struct sky_object platedObject[RESOLVER_NUMBER];
 
 static void unselect_all_items();
+static void block_all_user_signals();
+static void unblock_all_user_signals();
 void on_GtkTreeViewIPS_cursor_changed(GtkTreeView *tree_view, gpointer user_data);
 
 void reset_astrometry_checks() {
@@ -275,7 +277,7 @@ static void update_coordinates(SirilWorldCS *world_cs) {
 	gint ra_h, ra_m;
 	gint dec_deg, dec_m;
 	gdouble ra_s, dec_s;
-
+	block_all_user_signals();
 	if (world_cs) {
 		siril_world_cs_get_ra_hour_min_sec(world_cs, &ra_h, &ra_m, &ra_s);
 		siril_world_cs_get_dec_deg_min_sec(world_cs, &dec_deg, &dec_m, &dec_s);
@@ -299,6 +301,7 @@ static void update_coordinates(SirilWorldCS *world_cs) {
 
 	g_free(RA_sec);
 	g_free(Dec_sec);
+	unblock_all_user_signals();
 }
 
 void update_coords() {
@@ -518,10 +521,12 @@ static void add_object_in_tree_view(const gchar *object) {
 
 void on_GtkEntry_IPS_focal_changed(GtkEditable *editable, gpointer user_data) {
 	update_resolution_field();
+	has_focal = FALSE;
 }
 
 void on_GtkEntry_IPS_pixels_changed(GtkEditable *editable, gpointer user_data) {
 	update_resolution_field();
+	has_pixel = FALSE;
 }
 
 void on_GtkEntry_IPS_insert_text(GtkEntry *entry, const gchar *text, gint length,
@@ -597,7 +602,9 @@ void on_GtkButton_IPS_metadata_clicked(GtkButton *button, gpointer user_data) {
 		char *msg = siril_log_message(_("There are no keywords stored in the FITS header.\n"));
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("No metadata"), msg);
 	} else {
+		block_all_user_signals();
 		update_image_parameters_GUI();
+		unblock_all_user_signals();
 	}
 	siril_debug_print("metadata loaded\n");
 }
@@ -637,6 +644,56 @@ void on_GtkCheckButton_solveseq_toggled(GtkToggleButton *button, gpointer user) 
 void on_GtkCheckButton_nonear_toggled(GtkToggleButton *button, gpointer user) {
 	gtk_widget_set_sensitive(GTK_WIDGET(radiusspin), !gtk_toggle_button_get_active(nonearbutton));
 }
+
+void on_spinbuttoncoords_changed(GtkSpinButton* button, gpointer user) {
+	has_coords = FALSE;
+}
+
+void on_entrycoords_changed(GtkEditable *entry, gpointer user) {
+	has_coords = FALSE;
+}
+
+void on_togglecoords_changed(GtkToggleButton *button, gpointer user) {
+	has_coords = FALSE;
+}
+
+static void block_all_user_signals() {
+	g_signal_handlers_block_by_func(RA_h, on_spinbuttoncoords_changed, NULL);
+	g_signal_handlers_block_by_func(RA_m, on_spinbuttoncoords_changed, NULL);
+	g_signal_handlers_block_by_func(DEC_d, on_spinbuttoncoords_changed, NULL);
+	g_signal_handlers_block_by_func(DEC_m, on_spinbuttoncoords_changed, NULL);
+	g_signal_handlers_block_by_func(RA_h, on_entrycoords_changed, NULL);
+	g_signal_handlers_block_by_func(RA_m, on_entrycoords_changed, NULL);
+	g_signal_handlers_block_by_func(DEC_d, on_entrycoords_changed, NULL);
+	g_signal_handlers_block_by_func(DEC_m, on_entrycoords_changed, NULL);
+	g_signal_handlers_block_by_func(RA_s, on_entrycoords_changed, NULL);
+	g_signal_handlers_block_by_func(DEC_s, on_entrycoords_changed, NULL);
+	g_signal_handlers_block_by_func(DEC_S, on_togglecoords_changed, NULL);
+	g_signal_handlers_block_by_func(focalentry, on_GtkEntry_IPS_focal_changed, NULL);
+	g_signal_handlers_block_by_func(pixelentry, on_GtkEntry_IPS_pixels_changed, NULL);
+	g_signal_handlers_block_by_func(focalentry, on_GtkEntry_IPS_insert_text, NULL);
+	g_signal_handlers_block_by_func(pixelentry, on_GtkEntry_IPS_insert_text, NULL);
+}
+
+static void unblock_all_user_signals() {
+	g_signal_handlers_unblock_by_func(RA_h, on_spinbuttoncoords_changed, NULL);
+	g_signal_handlers_unblock_by_func(RA_m, on_spinbuttoncoords_changed, NULL);
+	g_signal_handlers_unblock_by_func(DEC_d, on_spinbuttoncoords_changed, NULL);
+	g_signal_handlers_unblock_by_func(DEC_m, on_spinbuttoncoords_changed, NULL);
+	g_signal_handlers_unblock_by_func(RA_h, on_entrycoords_changed, NULL);
+	g_signal_handlers_unblock_by_func(RA_m, on_entrycoords_changed, NULL);
+	g_signal_handlers_unblock_by_func(DEC_d, on_entrycoords_changed, NULL);
+	g_signal_handlers_unblock_by_func(DEC_m, on_entrycoords_changed, NULL);
+	g_signal_handlers_unblock_by_func(RA_s, on_entrycoords_changed, NULL);
+	g_signal_handlers_unblock_by_func(DEC_s, on_entrycoords_changed, NULL);
+	g_signal_handlers_unblock_by_func(DEC_S, on_togglecoords_changed, NULL);
+	g_signal_handlers_unblock_by_func(focalentry, on_GtkEntry_IPS_focal_changed, NULL);
+	g_signal_handlers_unblock_by_func(pixelentry, on_GtkEntry_IPS_pixels_changed, NULL);
+	g_signal_handlers_unblock_by_func(focalentry, on_GtkEntry_IPS_insert_text, NULL);
+	g_signal_handlers_unblock_by_func(pixelentry, on_GtkEntry_IPS_insert_text, NULL);
+}
+
+
 void on_GtkCheckButton_blindpos_toggled(GtkToggleButton *button, gpointer user) {
 	gtk_widget_set_sensitive(GTK_WIDGET(radiusspin), !gtk_toggle_button_get_active(blindposbutton));
 }

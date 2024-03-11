@@ -182,6 +182,8 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                         <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                         <property name="adjustment">AdjIPS_RA_h</property>
                         <property name="numeric">True</property>
+                        <signal name="value-changed" handler="on_spinbuttoncoords_changed" swapped="no"/>
+                        <signal name="changed" handler="on_entrycoords_changed" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
@@ -202,6 +204,8 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                         <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                         <property name="adjustment">AdjIPS_RA_m</property>
                         <property name="numeric">True</property>
+                        <signal name="value-changed" handler="on_spinbuttoncoords_changed" swapped="no"/>
+                        <signal name="changed" handler="on_entrycoords_changed" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left-attach">2</property>
@@ -222,6 +226,8 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                         <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                         <property name="adjustment">AdjIPS_Dec_deg</property>
                         <property name="numeric">True</property>
+                        <signal name="value-changed" handler="on_spinbuttoncoords_changed" swapped="no"/>
+                        <signal name="changed" handler="on_entrycoords_changed" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
@@ -242,6 +248,8 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                         <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                         <property name="adjustment">AdjIPS_Dec_m</property>
                         <property name="numeric">True</property>
+                        <signal name="value-changed" handler="on_spinbuttoncoords_changed" swapped="no"/>
+                        <signal name="changed" handler="on_entrycoords_changed" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left-attach">2</property>
@@ -259,6 +267,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                         <property name="text">0.0000</property>
                         <property name="input-purpose">number</property>
                         <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                        <signal name="changed" handler="on_entrycoords_changed" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left-attach">3</property>
@@ -276,6 +285,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                         <property name="text">0.0000</property>
                         <property name="input-purpose">number</property>
                         <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                        <signal name="changed" handler="on_entrycoords_changed" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left-attach">3</property>
@@ -313,6 +323,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                         <property name="tooltip-text" translatable="yes">This button is checked for negative declination (southern hemisphere).</property>
                         <property name="halign">start</property>
                         <property name="draw-indicator">True</property>
+                        <signal name="toggled" handler="on_togglecoords_changed" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left-attach">4</property>
