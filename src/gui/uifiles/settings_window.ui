@@ -1117,6 +1117,7 @@ It depends on the acquistion software used to create the FITS.</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
                                     <property name="margin-start">12</property>
+                                    <property name="margin-end">12</property>
                                     <property name="orientation">vertical</property>
                                     <property name="spacing">5</property>
                                     <child>
