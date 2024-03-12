@@ -150,7 +150,8 @@ preferences pref_init = {
 		.config_colors.color_std_annotations = NULL,
 		.config_colors.color_dso_annotations = NULL,
 		.config_colors.color_sso_annotations = NULL,
-		.config_colors.color_tmp_annotations = NULL
+		.config_colors.color_tmp_annotations = NULL,
+		.mmb_action = MMB_ZOOM_FIT
 	},
 	.debayer = {
 		.open_debayer = FALSE,
@@ -173,7 +174,7 @@ preferences pref_init = {
 		.minval = -1500.0,
 		.maxval = 60000.0,
 		.discard_var_catalogues = 4,
-		
+
 	},
 	.astrometry = {
 		.update_default_scale = TRUE,
@@ -469,6 +470,7 @@ struct settings_access all_settings[] = {
 	{ "gui", "display_histogram_mode", STYPE_INT, N_("default histogram display mode"), &com.pref.gui.display_histogram_mode, { .range_int = { 0, 1 } } },
 	{ "gui", "roi_mode", STYPE_INT, N_("ROI selection mode"), &com.pref.gui.roi_mode },
 	{ "gui", "roi_warning", STYPE_BOOL, N_("enable ROI dialog warning"), &com.pref.gui.enable_roi_warning },
+	{ "gui", "mmb_zoom_action", STYPE_INT, N_("Middle mouse button double click zoom action"), &com.pref.gui.mmb_action },
 	{ "gui", "color_bkg_samples", STYPE_STR, N_("configure background samples color"), &com.pref.gui.config_colors.color_bkg_samples },
 	{ "gui", "color_std_annotations", STYPE_STR, N_("configure standard annotation color"), &com.pref.gui.config_colors.color_std_annotations },
 	{ "gui", "color_dso_annotations", STYPE_STR, N_("configure dso annotation color"), &com.pref.gui.config_colors.color_dso_annotations },

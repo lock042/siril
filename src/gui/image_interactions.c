@@ -386,16 +386,32 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 		/* Double middle-click toggles between zoom to fit and zoom 1:1 centred on the click */
 		else if (event->button == GDK_BUTTON_MIDDLE && event->type == GDK_DOUBLE_BUTTON_PRESS) {
 			update_zoom_fit_button();
-			if (double_middle_click_zooms_to_fit) {
-				gui.zoom_value = ZOOM_FIT;
-				reset_display_offset();
-			} else {
-				gui.zoom_value = ZOOM_NONE;
-				double x = evpos.x;
-				double y = evpos.y;
-				cairo_matrix_transform_point(&gui.display_matrix, &evpos.x, &evpos.y);
-				gui.display_offset.x = evpos.x - x;
-				gui.display_offset.y = evpos.y - y;
+			switch (com.pref.gui.mmb_action) {
+				case MMB_ZOOM_FIT:
+					gui.zoom_value = ZOOM_FIT;
+					reset_display_offset();
+					break;
+				case MMB_ZOOM_100:
+					gui.zoom_value = ZOOM_NONE;
+					double x = evpos.x;
+					double y = evpos.y;
+					cairo_matrix_transform_point(&gui.display_matrix, &evpos.x, &evpos.y);
+					gui.display_offset.x = evpos.x - x;
+					gui.display_offset.y = evpos.y - y;
+					break;
+				case MMB_ZOOM_TOGGLE:
+					if (double_middle_click_zooms_to_fit) {
+						gui.zoom_value = ZOOM_FIT;
+						reset_display_offset();
+					} else {
+						gui.zoom_value = ZOOM_NONE;
+						double x = evpos.x;
+						double y = evpos.y;
+						cairo_matrix_transform_point(&gui.display_matrix, &evpos.x, &evpos.y);
+						gui.display_offset.x = evpos.x - x;
+						gui.display_offset.y = evpos.y - y;
+					}
+					break;
 			}
 			update_zoom_label();
 			redraw(REDRAW_IMAGE);
