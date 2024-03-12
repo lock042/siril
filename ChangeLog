@@ -41,7 +41,9 @@ xx/xx/xx
 * Added dark scaling to match exposure time (#1269)
 * Added manual photometry output comparison stars file creation from UI (!614)
 * Added near solve in Siril internal solver (#1154::4 and !631)
-
+* Added full blindsolve with Astrometry.net (#1154::5 and !636)
+* Added avoiding to create a new sequence when platesolving sequences (#1154::6 and !636)
+* Refactored astrometry GUI (#1154::6 and !636)
 
 siril 1.2.2
 xx/xx/24
