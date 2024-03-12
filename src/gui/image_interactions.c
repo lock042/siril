@@ -48,6 +48,10 @@
 mouse_status_enum mouse_status;
 cut_method cutting;
 
+static gboolean double_middle_click_zooms_to_fit = FALSE;
+// Tracks whether double middle click will zoom to fit or zoom to 1:1, for the
+// toggle
+
 // caching widgets
 static GtkWidget *rotation_dlg = NULL;
 static GtkWidget *cut_dialog = NULL, *dynpsf_dlg = NULL;
@@ -377,6 +381,25 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 			gui.measure_start.y = zoomed.y;
 			gui.measure_end.x = zoomed.x;
 			gui.measure_end.y = zoomed.y;
+		}
+
+		/* Double middle-click toggles between zoom to fit and zoom 1:1 centred on the click */
+		else if (event->button == GDK_BUTTON_MIDDLE && event->type == GDK_DOUBLE_BUTTON_PRESS) {
+			update_zoom_fit_button();
+			if (double_middle_click_zooms_to_fit) {
+				gui.zoom_value = ZOOM_FIT;
+				reset_display_offset();
+			} else {
+				gui.zoom_value = ZOOM_NONE;
+				double x = evpos.x;
+				double y = evpos.y;
+				cairo_matrix_transform_point(&gui.display_matrix, &evpos.x, &evpos.y);
+				gui.display_offset.x = evpos.x - x;
+				gui.display_offset.y = evpos.y - y;
+			}
+			update_zoom_label();
+			redraw(REDRAW_IMAGE);
+			double_middle_click_zooms_to_fit = !double_middle_click_zooms_to_fit;
 		}
 
 		/* Ctrl click or middle click to drag */
