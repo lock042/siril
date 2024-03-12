@@ -1017,6 +1017,8 @@ gpointer plate_solver(gpointer p) {
 	args->fit->focal_length = focal_length;
 	args->fit->pixel_size_x = args->pixel_size;
 	args->fit->pixel_size_y = args->pixel_size;
+	args->fit->pixelkey = TRUE;
+	args->fit->focalkey = TRUE;
 	if (!args->for_sequence && com.pref.astrometry.update_default_scale) {
 		com.pref.starfinder_conf.focal_length = focal_length;
 		com.pref.starfinder_conf.pixel_size_x = args->pixel_size;

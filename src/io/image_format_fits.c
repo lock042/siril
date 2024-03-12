@@ -415,6 +415,8 @@ void read_fits_header(fits *fit) {
 
 	status = 0;
 	__tryToFindKeywords(fit->fptr, TFLOAT, PIXELSIZEX, &fit->pixel_size_x, &status);
+	if (!status)
+		fit->pixelkey = TRUE;
 	status = 0;
 	__tryToFindKeywords(fit->fptr, TFLOAT, PIXELSIZEY, &fit->pixel_size_y, &status);
 #ifdef _WIN32 //TODO: remove after cfitsio is fixed
@@ -462,6 +464,8 @@ void read_fits_header(fits *fit) {
 
 	status = 0;
 	__tryToFindKeywords(fit->fptr, TDOUBLE, FOCAL, &fit->focal_length, &status);
+	if (!status)
+		fit->focalkey = TRUE;
 	if (fit->focal_length <= 0.0) {
 		/* this keyword is seen in some professional images, FLENGTH is in m. */
 		double flength;
@@ -469,6 +473,7 @@ void read_fits_header(fits *fit) {
 		fits_read_key(fit->fptr, TDOUBLE, "FLENGTH", &flength, NULL, &status);
 		if (!status) {
 			fit->focal_length = flength * 1000.0; // convert m to mm
+			fit->focalkey = TRUE;
 		}
 	}
 
@@ -619,6 +624,7 @@ int fits_parse_header_string(fits *fit, gchar *header) {
 			break;
 		} else if (siril_str_has_prefix(card, PIXELSIZEX)) {
 			fit->pixel_size_x = g_ascii_strtod(value, NULL);
+			fit->pixelkey = TRUE;
 		} else if (siril_str_has_prefix(card, PIXELSIZEY)) {
 			fit->pixel_size_y = g_ascii_strtod(value, NULL);
 		} else if (siril_str_has_prefix(card, BINX)) {
@@ -654,6 +660,7 @@ int fits_parse_header_string(fits *fit, gchar *header) {
 			fit->focal_length = g_ascii_strtod(value, NULL);
 		} else if (g_str_has_prefix(card, "FLENGTH =")) {
 			fit->focal_length = g_ascii_strtod(value, NULL) * 1000.0;
+			fit->focal_length = TRUE;
 		} else if (siril_str_has_prefix(card, CCD_TEMP)) {
 			fit->ccd_temp = g_ascii_strtod(value, NULL);
 		} else if (g_str_has_prefix(card, "SET-TEMP=")) {
@@ -3055,6 +3062,8 @@ void copy_fits_metadata(fits *from, fits *to) {
 	to->sitelat = from->sitelat;
 	to->sitelong = from->sitelong;
 	to->siteelev = from->siteelev;
+	to->pixelkey = (from->pixel_size_x > 0.);
+	to->focalkey = (from->focal_length > 0.);
 
 	memcpy(&to->dft, &from->dft, sizeof(dft_info));
 	memcpy(&to->wcsdata, &from->wcsdata, sizeof(wcs_info));

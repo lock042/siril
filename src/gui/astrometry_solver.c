@@ -70,8 +70,6 @@ void on_GtkCheckButton_solveseq_toggled(GtkToggleButton *button, gpointer user);
 extern struct sky_object platedObject[RESOLVER_NUMBER];
 
 static void unselect_all_items();
-static void block_all_user_signals();
-static void unblock_all_user_signals();
 void on_GtkTreeViewIPS_cursor_changed(GtkTreeView *tree_view, gpointer user_data);
 
 void reset_astrometry_checks() {
@@ -160,6 +158,48 @@ void initialize_ips_dialog() {
 	on_comboastro_catalog_changed(NULL, NULL);
 }
 
+static void add_style_class(GtkWidget *widget, const char *class) {
+	GtkStyleContext *context;
+	context = gtk_widget_get_style_context(widget);
+	gtk_style_context_add_class(context, class);
+}
+
+static void remove_style_class(GtkWidget *widget, const char *class) {
+	GtkStyleContext *context;
+	context = gtk_widget_get_style_context(widget);
+	gtk_style_context_remove_class(context, class);
+}
+
+static void change_coords_colors_to_unset() {
+	add_style_class(GTK_WIDGET(RA_h), "header_unset");
+	add_style_class(GTK_WIDGET(RA_m), "header_unset");
+	add_style_class(GTK_WIDGET(RA_s), "header_unset");
+	add_style_class(GTK_WIDGET(DEC_d), "header_unset");
+	add_style_class(GTK_WIDGET(DEC_m), "header_unset");
+	add_style_class(GTK_WIDGET(DEC_s), "header_unset");
+}
+
+static void change_coords_colors_to_set() {
+	remove_style_class(GTK_WIDGET(RA_h), "header_unset");
+	remove_style_class(GTK_WIDGET(RA_m), "header_unset");
+	remove_style_class(GTK_WIDGET(RA_s), "header_unset");
+	remove_style_class(GTK_WIDGET(DEC_d), "header_unset");
+	remove_style_class(GTK_WIDGET(DEC_m), "header_unset");
+	remove_style_class(GTK_WIDGET(DEC_s), "header_unset");
+}
+
+static void change_entry_colors_to_unset() {
+	change_coords_colors_to_unset();
+	add_style_class(GTK_WIDGET(focalentry), "header_unset");
+	add_style_class(GTK_WIDGET(pixelentry), "header_unset");
+}
+
+static void change_entry_colors_to_set() {
+	change_coords_colors_to_set();
+	remove_style_class(GTK_WIDGET(focalentry), "header_unset");
+	remove_style_class(GTK_WIDGET(pixelentry), "header_unset");
+}
+
 static gboolean use_local_catalogue() {
 	int cat = gtk_combo_box_get_active(catalogbox);
 	gboolean autocat = gtk_toggle_button_get_active(autocatbutton);
@@ -246,9 +286,13 @@ static void update_pixel_size() {
 		gchar *cpixels = g_strdup_printf("%.2lf", (double) pixel);
 		gtk_entry_set_text(pixelentry, cpixels);
 		g_free(cpixels);
-		has_pixel = TRUE;
+		has_pixel = gfit.pixelkey;
 	} else
 		has_pixel = FALSE;
+	if (!has_pixel)
+		add_style_class(GTK_WIDGET(pixelentry), "header_unset");
+	else
+		remove_style_class(GTK_WIDGET(pixelentry), "header_unset");
 }
 
 static void update_focal() {
@@ -258,9 +302,13 @@ static void update_focal() {
 		gchar *cfocal = g_strdup_printf("%.1lf", focal);
 		gtk_entry_set_text(focalentry, cfocal);
 		g_free(cfocal);
-		has_focal = TRUE;
+		has_focal = gfit.focalkey;
 	} else
 		has_focal = FALSE;
+	if (!has_focal)
+		add_style_class(GTK_WIDGET(focalentry), "header_unset");
+	else
+		remove_style_class(GTK_WIDGET(focalentry), "header_unset");
 }
 
 static void update_resolution_field() {
@@ -277,7 +325,6 @@ static void update_coordinates(SirilWorldCS *world_cs) {
 	gint ra_h, ra_m;
 	gint dec_deg, dec_m;
 	gdouble ra_s, dec_s;
-	block_all_user_signals();
 	if (world_cs) {
 		siril_world_cs_get_ra_hour_min_sec(world_cs, &ra_h, &ra_m, &ra_s);
 		siril_world_cs_get_dec_deg_min_sec(world_cs, &dec_deg, &dec_m, &dec_s);
@@ -301,7 +348,10 @@ static void update_coordinates(SirilWorldCS *world_cs) {
 
 	g_free(RA_sec);
 	g_free(Dec_sec);
-	unblock_all_user_signals();
+	if (world_cs)
+		change_coords_colors_to_set();
+	else
+		change_coords_colors_to_unset();
 }
 
 void update_coords() {
@@ -522,11 +572,13 @@ static void add_object_in_tree_view(const gchar *object) {
 void on_GtkEntry_IPS_focal_changed(GtkEditable *editable, gpointer user_data) {
 	update_resolution_field();
 	has_focal = FALSE;
+	remove_style_class(GTK_WIDGET(focalentry), "header_unset");
 }
 
 void on_GtkEntry_IPS_pixels_changed(GtkEditable *editable, gpointer user_data) {
 	update_resolution_field();
 	has_pixel = FALSE;
+	remove_style_class(GTK_WIDGET(pixelentry), "header_unset");
 }
 
 void on_GtkEntry_IPS_insert_text(GtkEntry *entry, const gchar *text, gint length,
@@ -550,7 +602,7 @@ void on_GtkEntry_IPS_insert_text(GtkEntry *entry, const gchar *text, gint length
 				G_CALLBACK (on_GtkEntry_IPS_insert_text), data);
 	}
 	g_signal_stop_emission_by_name(G_OBJECT(editable), "insert_text");
-
+	remove_style_class(GTK_WIDGET(entry), "header_unset");
 	g_free(result);
 }
 
@@ -598,13 +650,13 @@ void on_GtkTreeViewIPS_cursor_changed(GtkTreeView *tree_view, gpointer user_data
 }
 
 void on_GtkButton_IPS_metadata_clicked(GtkButton *button, gpointer user_data) {
+	change_entry_colors_to_set();
 	if (!has_any_keywords()) {
 		char *msg = siril_log_message(_("There are no keywords stored in the FITS header.\n"));
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("No metadata"), msg);
+		change_entry_colors_to_unset();
 	} else {
-		block_all_user_signals();
 		update_image_parameters_GUI();
-		unblock_all_user_signals();
 	}
 	siril_debug_print("metadata loaded\n");
 }
@@ -647,51 +699,18 @@ void on_GtkCheckButton_nonear_toggled(GtkToggleButton *button, gpointer user) {
 
 void on_spinbuttoncoords_changed(GtkSpinButton* button, gpointer user) {
 	has_coords = FALSE;
+	remove_style_class(GTK_WIDGET(button), "header_unset");
 }
 
 void on_entrycoords_changed(GtkEditable *entry, gpointer user) {
 	has_coords = FALSE;
+	remove_style_class(GTK_WIDGET(entry), "header_unset");
 }
 
 void on_togglecoords_changed(GtkToggleButton *button, gpointer user) {
 	has_coords = FALSE;
 }
 
-static void block_all_user_signals() {
-	g_signal_handlers_block_by_func(RA_h, on_spinbuttoncoords_changed, NULL);
-	g_signal_handlers_block_by_func(RA_m, on_spinbuttoncoords_changed, NULL);
-	g_signal_handlers_block_by_func(DEC_d, on_spinbuttoncoords_changed, NULL);
-	g_signal_handlers_block_by_func(DEC_m, on_spinbuttoncoords_changed, NULL);
-	g_signal_handlers_block_by_func(RA_h, on_entrycoords_changed, NULL);
-	g_signal_handlers_block_by_func(RA_m, on_entrycoords_changed, NULL);
-	g_signal_handlers_block_by_func(DEC_d, on_entrycoords_changed, NULL);
-	g_signal_handlers_block_by_func(DEC_m, on_entrycoords_changed, NULL);
-	g_signal_handlers_block_by_func(RA_s, on_entrycoords_changed, NULL);
-	g_signal_handlers_block_by_func(DEC_s, on_entrycoords_changed, NULL);
-	g_signal_handlers_block_by_func(DEC_S, on_togglecoords_changed, NULL);
-	g_signal_handlers_block_by_func(focalentry, on_GtkEntry_IPS_focal_changed, NULL);
-	g_signal_handlers_block_by_func(pixelentry, on_GtkEntry_IPS_pixels_changed, NULL);
-	g_signal_handlers_block_by_func(focalentry, on_GtkEntry_IPS_insert_text, NULL);
-	g_signal_handlers_block_by_func(pixelentry, on_GtkEntry_IPS_insert_text, NULL);
-}
-
-static void unblock_all_user_signals() {
-	g_signal_handlers_unblock_by_func(RA_h, on_spinbuttoncoords_changed, NULL);
-	g_signal_handlers_unblock_by_func(RA_m, on_spinbuttoncoords_changed, NULL);
-	g_signal_handlers_unblock_by_func(DEC_d, on_spinbuttoncoords_changed, NULL);
-	g_signal_handlers_unblock_by_func(DEC_m, on_spinbuttoncoords_changed, NULL);
-	g_signal_handlers_unblock_by_func(RA_h, on_entrycoords_changed, NULL);
-	g_signal_handlers_unblock_by_func(RA_m, on_entrycoords_changed, NULL);
-	g_signal_handlers_unblock_by_func(DEC_d, on_entrycoords_changed, NULL);
-	g_signal_handlers_unblock_by_func(DEC_m, on_entrycoords_changed, NULL);
-	g_signal_handlers_unblock_by_func(RA_s, on_entrycoords_changed, NULL);
-	g_signal_handlers_unblock_by_func(DEC_s, on_entrycoords_changed, NULL);
-	g_signal_handlers_unblock_by_func(DEC_S, on_togglecoords_changed, NULL);
-	g_signal_handlers_unblock_by_func(focalentry, on_GtkEntry_IPS_focal_changed, NULL);
-	g_signal_handlers_unblock_by_func(pixelentry, on_GtkEntry_IPS_pixels_changed, NULL);
-	g_signal_handlers_unblock_by_func(focalentry, on_GtkEntry_IPS_insert_text, NULL);
-	g_signal_handlers_unblock_by_func(pixelentry, on_GtkEntry_IPS_insert_text, NULL);
-}
 
 
 void on_GtkCheckButton_blindpos_toggled(GtkToggleButton *button, gpointer user) {
@@ -815,14 +834,6 @@ gboolean confirm_delete_wcs_keywords(fits *fit) {
 void init_astrometry() {
 	load_all_ips_statics();
 	reset_astrometry_checks();
-	char buf[20];
-	double fl = gfit.focal_length > 0.0 ? gfit.focal_length : com.pref.starfinder_conf.focal_length;
-	sprintf(buf, "%.1f", fl);
-	gtk_entry_set_text(focalentry, buf);
-
-	double pixsz = gfit.pixel_size_x > 0.0 ? gfit.pixel_size_x: com.pref.starfinder_conf.pixel_size_x;
-	sprintf(buf, "%.2f", pixsz);
-	gtk_entry_set_text(pixelentry, buf);
 }
 
 void on_comboastro_catalog_changed(GtkComboBox *combo, gpointer user_data) {
