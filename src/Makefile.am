@@ -256,6 +256,8 @@ siril_common_SOURCES = \
 	gui/fix_xtrans_af.h \
 	gui/histogram.c \
 	gui/histogram.h \
+	gui/keywords_tree.c \
+	gui/keywords_tree.h \
 	gui/image_display.c \
 	gui/image_display.h \
 	gui/image_interactions.c \
