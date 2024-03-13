@@ -66,5 +66,9 @@ gpointer light_curve_worker(gpointer arg);
 
 int new_light_curve(const char *filename, struct light_curve_args *lcargs);
 
+void free_occultation_args(struct light_curve_args *args);
+
+gpointer occultation_worker(gpointer arg);
+
 
 #endif /* SRC_ALGOS_PHOTOMETRY_H_ */

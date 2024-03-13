@@ -598,3 +598,64 @@ gpointer light_curve_worker(gpointer arg) {
 	return GINT_TO_POINTER(retval);
 }
 
+
+// All the stuff for occultation
+
+static gboolean end_occultation_worker(gpointer p) {
+	if (sequence_is_loaded()) {
+		drawPlot();
+		notify_new_photometry();	// switch to and update plot tab
+		redraw(REDRAW_OVERLAY);
+	}
+	return end_generic(NULL);
+}
+
+void free_occultation_args(struct light_curve_args *args) {
+	if (args->seq && !check_seq_is_comseq(args->seq))
+		free_sequence(args->seq, TRUE);
+	free(args->areas);
+	g_free(args->target_descr);
+	if (args->metadata)
+		free(args->metadata);
+	free(args);
+	return;
+}
+
+gpointer occultation_worker(gpointer arg) {
+	int retval = 0;
+	struct light_curve_args *args = (struct light_curve_args *)arg;
+
+	framing_mode framing = REGISTERED_FRAME;
+	if (framing == REGISTERED_FRAME && !args->seq->regparam[args->layer])
+		framing = FOLLOW_STAR_FRAME;
+
+	// someday we should move the area in the seqpsf args, not needed for now
+//	for (int star_index = 0; star_index < args->nb; star_index++) {					// not needed as we have only 1 "star"
+		com.selection = args->areas[0];
+
+/*		if (seqpsf(args->seq, args->layer, FALSE, FALSE, framing, FALSE, TRUE)) {
+			if (star_index == 0) {
+				siril_log_message(_("Failed to analyse the variable star photometry\n"));
+				retval = 1;
+				break;
+			}
+			else siril_log_message(_("Failed to analyse the photometry of reference star %d\n"),
+					star_index);
+		}
+*/
+		if (args->seq == &com.seq)
+			queue_redraw(REDRAW_OVERLAY);
+//	}
+	memset(&com.selection, 0, sizeof(rectangle));
+
+	/* analyse data and create the light curve */
+	if (!retval)
+		retval = new_light_curve("light_curve.dat", args);
+/*	if (!retval && args->display_graph && args->spl_data) {					// not accurate here!!
+		siril_add_idle(create_new_siril_plot_window, args->spl_data);
+	}
+*/
+	free_occultation_args(args); // this will not free args->spl_data which is free by siril_plot window upon closing
+	siril_add_idle(end_occultation_worker, NULL);
+	return GINT_TO_POINTER(retval);
+}

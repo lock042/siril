@@ -23,6 +23,7 @@
 #include "core/siril_log.h"
 #include "core/processing.h"
 #include "algos/siril_wcs.h"
+#include "algos/photometry.h"
 #include "algos/comparison_stars.h"
 #include "occultation.h"
 #include "gui/message_dialog.h"
@@ -79,7 +80,7 @@ static void build_the_dialog() {
 	delay_cam = gtk_entry_new();
 	gtk_entry_set_text(GTK_ENTRY(delay_cam), "0.0");
 //	delay_cam.props.xalign = 0.5;
-	gtk_entry_set_alignment (delay_cam, 0.5);		// it works well, despite the warning during the compilation. Is there another solution?
+	gtk_entry_set_alignment (GTK_ENTRY (delay_cam), 0.5);
 	gtk_widget_set_tooltip_text(delay_cam, _("Camera delay"));
 	gtk_widget_set_halign(delay_cam, GTK_ALIGN_CENTER);
 //	g_object_set(G_OBJECT(delay_cam), "margin-left", 35, NULL);
@@ -274,5 +275,5 @@ static void on_occult_response(GtkDialog* self, gint response_id, gpointer user_
 	args->max_emag = emag;
 	args->nina_file = g_strdup("auto");
 */
-//	start_in_new_thread(compstars_worker, args);
+	start_in_new_thread(occultation_worker, NULL);
 }
