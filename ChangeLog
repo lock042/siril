@@ -41,12 +41,12 @@ xx/xx/xx
 * Added dark scaling to match exposure time (#1269)
 * Added manual photometry output comparison stars file creation from UI (!614)
 * Added near solve in Siril internal solver (#1154::4 and !631)
-
+* Improved mouse pan and zoom control to enable one-handed operation (!638, fixes #1271)
 
 siril 1.2.2
 xx/xx/24
 
-* Removed bakground extraction samples after using it in script (#1265)
+* Removed background extraction samples after using it in script (#1265)
 * Fixed catalog parser problem with negative declination (less than 1°) (#1270)
 
 siril 1.2.1
