@@ -458,11 +458,6 @@ double background(fits* fit, int reqlayer, rectangle *selection, threading_type 
 	return bg;
 }
 
-void show_FITS_header(fits *fit) {
-	if (fit->header)
-		show_data_dialog(fit->header, "FITS Header", NULL, NULL);
-}
-
 void compute_grey_flat(fits *fit) {
 	float coeff1, coeff2;
 	double mean[36] = {0};

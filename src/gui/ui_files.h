@@ -45,6 +45,7 @@ const char* ui_files[] = {
 	"/org/siril/ui/extract_wavelet_layers_dialog.ui",
 	"/org/siril/ui/file_information_dialog.ui",
 	"/org/siril/ui/histogram_dialog.ui",
+	"/org/siril/ui/keywords_dialog.ui",
 	"/org/siril/ui/icc_dialog.ui",
 	"/org/siril/ui/icc_gamut_dialog.ui",
 	"/org/siril/ui/linearmatch_dialog.ui",
