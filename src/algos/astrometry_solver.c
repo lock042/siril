@@ -1345,25 +1345,17 @@ static int match_catalog(psf_star **stars, int nb_stars, siril_catalogue *siril_
 	double b = 1.0 - (com.pref.astrometry.percent_scale_range / 100.0);
 	double scale_min = 1.0 / (scale * a);
 	double scale_max = 1.0 / (scale * b);
-	int attempt = 1; // TODO: increasing number of object or releasing the scale does nor really help convergence and takes time
 
 	cstars = project_catalog_stars(siril_cat, ra0, dec0);
 	if (!cstars) {
 		return SOLVE_PROJ;
 	}
-	while (ret && attempt <= 1) {
-		ret = new_star_match(stars, cstars, nb_stars, siril_cat->nbitems, nobj,
-				scale_min, scale_max, NULL, &trans, TRUE,
-				UNDEFINED_TRANSFORMATION, AT_TRANS_LINEAR, &star_list_A, &star_list_B);
-		if (attempt == 2) {
-			scale_min = -1.0;
-			scale_max = -1.0;
-		} else {
-			nobj += 50;
-		}
-		attempt++;
-		CHECK_FOR_CANCELLATION;
-	}
+	ret = new_star_match(stars, cstars, nb_stars, siril_cat->nbitems, nobj,
+			scale_min, scale_max, NULL, &trans, TRUE,
+			UNDEFINED_TRANSFORMATION, AT_TRANS_LINEAR, &star_list_A, &star_list_B);
+
+	CHECK_FOR_CANCELLATION;
+
 	if (ret) {
 		goto clearup;
 	}
@@ -1590,7 +1582,6 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 	gchar *asnet_shell = siril_get_asnet_bash();
 	if (!asnet_shell) {
 		return SOLVE_ASNET_PROC;
-		return 1;
 	}
 #else
 	if (!args->asnet_checked) {
