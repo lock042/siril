@@ -944,10 +944,14 @@ static int compute_nbstars_weights(struct stacking_args *args) {
 		double norm = 0.0;
 		pweights[layer] = args->weights + layer * nb_frames;
 		for (int i = 0; i < args->nb_images_to_stack; ++i) {
-			int idx = args->image_indices[i];
-			pweights[layer][i] = (double)(args->seq->regparam[args->reglayer][idx].number_of_stars - starmin) *
-				(double)(args->seq->regparam[args->reglayer][idx].number_of_stars - starmin) *
-				invdenom * invdenom;
+			if (starmax == starmin)
+				pweights[layer][i] = 1.;
+			else {
+				int idx = args->image_indices[i];
+				pweights[layer][i] = (double)(args->seq->regparam[args->reglayer][idx].number_of_stars - starmin) *
+					(double)(args->seq->regparam[args->reglayer][idx].number_of_stars - starmin) *
+					invdenom * invdenom;
+			}
 			norm += pweights[layer][i];
 		}
 		norm /= (double) nb_frames;
