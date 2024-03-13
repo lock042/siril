@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-03-04 21:46+0100\n"
-"PO-Revision-Date: 2024-03-03 12:37+0000\n"
-"Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
+"PO-Revision-Date: 2024-03-13 19:43+0000\n"
+"Last-Translator: Garth TianBo <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application/zh_Hans/>\n"
 "Language: zh_CN\n"
@@ -4890,7 +4890,7 @@ msgstr "通过删除文件来清除深空用户星表。该操作无法撤销"
 
 #: src/gui/uifiles/settings_window.ui:1227
 msgid "Annotations"
-msgstr "标注"
+msgstr "标记"
 
 #: src/gui/uifiles/settings_window.ui:1251
 msgid ""
@@ -5601,13 +5601,12 @@ msgid "Region of Interest"
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:3605
-#, fuzzy
 msgid "Background extraction samples:"
-msgstr "背景提取"
+msgstr "背景提取的采样点："
 
 #: src/gui/uifiles/settings_window.ui:3617
 msgid "Standard annotations:"
-msgstr "标准标注："
+msgstr "标准标记："
 
 #: src/gui/uifiles/settings_window.ui:3629
 msgid "Deep Sky Object (user) annotations:"
@@ -5623,7 +5622,7 @@ msgstr "临时天体（用户）标注："
 
 #: src/gui/uifiles/settings_window.ui:3724
 msgid "Overlay Colors"
-msgstr ""
+msgstr "蒙版预览颜色"
 
 #: src/gui/uifiles/settings_window.ui:3791
 msgid "This section contains options relating to working color spaces"
@@ -10329,7 +10328,7 @@ msgstr "无法找到序列 %s。\n"
 #. center is less than 10" off from a pole
 #: src/algos/astrometry_solver.c:222
 msgid "Up position wrt. N is undetermined (too close to a Pole)\n"
-msgstr ""
+msgstr "上端位置wrt. N无法确定（离天极太近）\n"
 
 #: src/algos/astrometry_solver.c:244
 #, c-format
@@ -10537,7 +10536,7 @@ msgstr "RBF 提取：处理通道 %d…\n"
 msgid ""
 "There are not enough background samples. The background to be extracted "
 "cannot be computed.\n"
-msgstr "没有足够的背景采样。所需提取的背景无法被计算。\n"
+msgstr "没有足够的背景采样点。无法进行背景提取。\n"
 
 #: src/algos/background_extraction.c:829
 #, c-format
@@ -13057,9 +13056,8 @@ msgid "Missing argument to command\n"
 msgstr "缺少命令参数\n"
 
 #: src/core/command.c:4157
-#, fuzzy
 msgid "Could not find stars in the reference image, aborting.\n"
-msgstr "无法在第一幅图像中找到星点，异常中止。\n"
+msgstr "无法在参考帧中找到星点，异常中止。\n"
 
 #: src/core/command.c:4167
 #, c-format
@@ -13074,13 +13072,12 @@ msgid ""
 msgstr "使用预设的测光圆环内外半径%.1f和%.1f\n"
 
 #: src/core/command.c:4200
-#, fuzzy
 msgid ""
 "No image in the sequence was found with the WCS information required for "
 "star selection by equatorial coordinates, plate solve the reference or the "
 "current\n"
-msgstr ""
-"在序列中未找到具有赤道坐标选择恒星所需的WCS信息的图像，解析参考帧或第一幅\n"
+msgstr "在序列中未找到具有WCS信息的图像，这些信息用于按赤道坐标来选择星点、"
+"解析参考帧或当前图像\n"
 
 #: src/core/command.c:4322
 #, c-format
@@ -18994,13 +18991,12 @@ msgid "enable ROI dialog warning"
 msgstr ""
 
 #: src/core/settings.c:472
-#, fuzzy
 msgid "configure background samples color"
-msgstr "背景样本数不足。\n"
+msgstr "配置背景提取采样点的颜色"
 
 #: src/core/settings.c:473
 msgid "configure standard annotation color"
-msgstr ""
+msgstr "配置标准标记的颜色"
 
 #: src/core/settings.c:474
 msgid "configure dso annotation color"
@@ -19088,27 +19084,27 @@ msgstr "网格上罗盘位置的指标"
 
 #: src/core/settings.c:496
 msgid "show Messier objects in annotations"
-msgstr "在标注中显示梅西叶天体"
+msgstr "标记梅西耶天体"
 
 #: src/core/settings.c:497
 msgid "show NGC objects in annotations"
-msgstr "在标记注显示NGC天体"
+msgstr "标记NGC天体"
 
 #: src/core/settings.c:498
 msgid "show IC objects in annotations"
-msgstr "在标注中显示IC天体"
+msgstr "标记IC天体"
 
 #: src/core/settings.c:499
 msgid "show LDN objects in annotations"
-msgstr "在标注中显示LDN天体"
+msgstr "标记LDN天体"
 
 #: src/core/settings.c:500
 msgid "show SH2 objects in annotations"
-msgstr "在标注中显示SH2天体"
+msgstr "标记SH2天体"
 
 #: src/core/settings.c:501
 msgid "show stars in annotations"
-msgstr "在标注中显示恒星"
+msgstr "标记恒星"
 
 #: src/core/settings.c:502
 msgid "show user DSO objects in annotations"
