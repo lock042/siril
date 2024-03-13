@@ -3868,12 +3868,12 @@ int get_xpsampled(xpsampled *xps, gchar *filename, int i) {
 	// Convert from flux in W m^-2 nm^-1 to relative photon count normalised at 550nm
 	// for consistency with how we handle white references and camera photon counting
 	// behaviour.
-	for (int i = 0 ; i < XPSAMPLED_LEN; i++) {
-		xps->y[i] *= xps->x[i];
+	for (int j = 0 ; j < XPSAMPLED_LEN; j++) {
+		xps->y[j] *= xps->x[j];
 	}
 	double norm = xps->y[82];
-	for (int i = 0 ; i < XPSAMPLED_LEN; i++) {
-		xps->y[i] /= norm;
+	for (int j = 0 ; j < XPSAMPLED_LEN; j++) {
+		xps->y[j] /= norm;
 	}
 
 	if (fits_close_file(fptr, &status))
@@ -3883,3 +3883,90 @@ error:
 	fits_close_file(fptr, &status);
 	return 1;
 }
+
+int updateFITSKeyword(fits *fit, const gchar *key, const gchar *value) {
+	char card[FLEN_CARD], newcard[FLEN_CARD];
+	char oldvalue[FLEN_VALUE], comment[FLEN_COMMENT];
+	int keytype;
+	void *memptr;
+	size_t memsize = IOBUFLEN;
+	int status = 0;
+	fitsfile *fptr = NULL;
+
+	memptr = malloc(memsize);
+	if (!memptr) {
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+	fits_create_memfile(&fptr, &memptr, &memsize, IOBUFLEN, realloc, &status);
+	if (status) {
+		report_fits_error(status);
+		if (fptr)
+			fits_close_file(fptr, &status);
+		free(memptr);
+		return 1;
+	}
+
+	if (fits_create_img(fptr, fit->bitpix, fit->naxis, fit->naxes, &status)) {
+		report_fits_error(status);
+		if (fptr)
+			fits_close_file(fptr, &status);
+		free(memptr);
+		return 1;
+	}
+
+	fits tmpfit = { 0 };
+	copy_fits_metadata(fit, &tmpfit);
+	tmpfit.fptr = fptr;
+	save_fits_header(&tmpfit);
+
+	if (fits_read_card(fptr, key, card, &status)) {
+		siril_log_color_message("Keyword does not exist or is not managed by Siril\n", "red");
+		goto cleanup;
+	} else
+		siril_debug_print("%s\n", card);
+
+	/* check if this is a protected keyword that must not be changed */
+	if (*card && fits_get_keyclass(card) == TYP_STRUC_KEY) {
+		siril_log_color_message("Protected keyword cannot be modified.\n", "red");
+	} else {
+		/* get the comment string */
+		if (*card)
+			fits_parse_value(card, oldvalue, comment, &status);
+
+		/* construct template for new keyword */
+		strcpy(newcard, key);
+		strcat(newcard, " = ");
+		strcat(newcard, value);
+		if (*comment) { /* Restore comment if exist */
+			strcat(newcard, " / ");
+			strcat(newcard, comment);
+		}
+
+		fits_parse_template(newcard, card, &keytype, &status);
+		fits_update_card(tmpfit.fptr, key, card, &status);
+
+		siril_log_color_message("Keyword has been changed to:\n", "green");
+		siril_log_message("%s\n", card);
+
+		/* populate all structures */
+		read_fits_header(&tmpfit);
+		copy_fits_metadata(&tmpfit, fit);
+
+		if (fit->header)
+			free(fit->header);
+		fit->header = copy_header(&tmpfit);
+	}
+
+	if (status)
+		fits_report_error(stderr, status);
+
+cleanup:
+	fits_close_file(tmpfit.fptr, &status);
+	clearfits(&tmpfit);
+	free(memptr);
+
+	return status;
+}
+
+
