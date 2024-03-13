@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated with glade 3.40.0 -->
+<interface>
+  <requires lib="gtk+" version="3.24"/>
+  <object class="GtkListStore" id="key_liststore">
+    <columns>
+      <!-- column-name Keyword -->
+      <column type="gchararray"/>
+      <!-- column-name Value -->
+      <column type="gchararray"/>
+      <!-- column-name Comment -->
+      <column type="gchararray"/>
+      <!-- column-name Dtype -->
+      <column type="gchar"/>
+      <!-- column-name Protected -->
+      <column type="gboolean"/>
+      <!-- column-name Color -->
+      <column type="gchararray"/>
+      <!-- column-name Editable -->
+      <column type="gboolean"/>
+    </columns>
+  </object>
+  <object class="GtkDialog" id="keywords_dialog">
+    <property name="width-request">800</property>
+    <property name="height-request">500</property>
+    <property name="can-focus">False</property>
+    <property name="title" translatable="yes">FITS Header</property>
+    <property name="type-hint">dialog</property>
+    <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+    <signal name="show" handler="on_keywords_dialog_show" swapped="no"/>
+    <child internal-child="vbox">
+      <object class="GtkBox">
+        <property name="can-focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">6</property>
+        <child internal-child="action_area">
+          <object class="GtkButtonBox">
+            <property name="can-focus">False</property>
+            <property name="layout-style">end</property>
+            <child>
+              <object class="GtkButton" id="export_keywords_button">
+                <property name="label" translatable="yes">Copy Selection</property>
+                <property name="visible">True</property>
+                <property name="sensitive">False</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Copy selected keywords to clipboard.</property>
+                <signal name="clicked" handler="on_export_keywords_button_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="key_close_btn">
+                <property name="label" translatable="yes">Close</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <signal name="clicked" handler="on_key_close_btn_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">False</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkScrolledWindow">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="shadow-type">in</property>
+            <child>
+              <object class="GtkTreeView" id="key_treeview">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="model">key_liststore</property>
+                <property name="headers-clickable">False</property>
+                <child internal-child="selection">
+                  <object class="GtkTreeSelection" id="key_selection">
+                    <signal name="changed" handler="on_key_selection_changed" swapped="no"/>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn">
+                    <property name="title" translatable="yes">Keyword</property>
+                    <property name="sort-column-id">0</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="key"/>
+                      <attributes>
+                        <attribute name="foreground">5</attribute>
+                        <attribute name="text">0</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn">
+                    <property name="title" translatable="yes">Value</property>
+                    <property name="sort-column-id">1</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="val">
+                        <signal name="edited" handler="on_val_edited" swapped="no"/>
+                      </object>
+                      <attributes>
+                        <attribute name="editable">6</attribute>
+                        <attribute name="text">1</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn">
+                    <property name="title" translatable="yes">Comment</property>
+                    <property name="sort-column-id">2</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="com"/>
+                      <attributes>
+                        <attribute name="text">2</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn">
+                    <property name="visible">False</property>
+                    <property name="title" translatable="yes">Dtype</property>
+                    <property name="sort-column-id">3</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="dtype"/>
+                      <attributes>
+                        <attribute name="text">3</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkTreeViewColumn">
+                    <property name="visible">False</property>
+                    <property name="title" translatable="yes">Protected</property>
+                    <property name="sort-column-id">4</property>
+                    <child>
+                      <object class="GtkCellRendererToggle" id="protected"/>
+                      <attributes>
+                        <attribute name="active">4</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkLabel">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="halign">end</property>
+            <property name="label" translatable="yes">In &lt;span foreground="salmon"&gt;salmon&lt;/span&gt;, these are protected keywords, which cannot be modified.</property>
+            <property name="use-markup">True</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

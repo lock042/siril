@@ -59,6 +59,7 @@ static const SirilDialogEntry entries[] =
 	{"extract_wavelets_layers_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
 	{"file_information", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"histogram_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_histo_cancel},
+	{"keywords_dialog", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"icc_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"astrometry_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"linearmatch_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
