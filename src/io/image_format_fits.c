@@ -1440,7 +1440,7 @@ static void save_wcs_keywords(fits *fit) {
 // by creating an in-memory fits file (as oppsed to on-disk file)
 void update_fits_header(fits *fit) {
 	void *memptr;
-	size_t memsize = FITS_DOUBLE_BLOC_SIZE;
+	size_t memsize = IOBUFLEN;
 	int status = 0;
 	fitsfile *fptr = NULL;
 	memptr = malloc(memsize);
@@ -1448,7 +1448,7 @@ void update_fits_header(fits *fit) {
 		PRINT_ALLOC_ERR;
 		return;
 	}
-	fits_create_memfile(&fptr, &memptr, &memsize, FITS_DOUBLE_BLOC_SIZE, realloc, &status);
+	fits_create_memfile(&fptr, &memptr, &memsize, IOBUFLEN, realloc, &status);
 	if (status) {
 		report_fits_error(status);
 		if (fptr)
