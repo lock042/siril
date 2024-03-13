@@ -41,6 +41,7 @@ siril 1.4.0 xx xx, xx
 * Added dark scaling to match exposure time (#1269)
 * Added manual photometry output comparison stars file creation from UI (!614)
 * Added near solve in Siril internal solver (#1154::4 and !631)
+* Added FITS keyword update on single loaded images (#72)
 
 siril 1.2.2 xx xx, 2024
 * Removed bakground extraction samples after using it in script (#1265)
