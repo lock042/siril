@@ -127,7 +127,7 @@ src/gui/colors.c
 src/gui/dialog_preview.c
 src/gui/documentation.c
 src/gui/histogram.c
-src/gui/keywords_dialog.c
+src/gui/keywords_tree.c
 src/gui/image_display.c
 src/gui/image_interactions.c
 src/gui/linear_match.c
