@@ -8,10 +8,10 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-03-13 22:33+0100\n"
-"PO-Revision-Date: 2024-03-05 08:50+0000\n"
+"PO-Revision-Date: 2024-03-14 22:37+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
-"Language-Team: French <https://weblate.pixls.us/projects/siril/siril-"
-"application/fr/>\n"
+"Language-Team: French <https://weblate.pixls.us/projects/siril/"
+"siril-application/fr/>\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -542,7 +542,6 @@ msgstr ""
 "lieu du solveur interne de Siril"
 
 #: src/gui/uifiles/astrometry_dialog.ui:623
-#, fuzzy
 msgid ""
 "Select the order of the solution:\n"
 "Linear assumes no distortion is present in the image\n"
@@ -551,10 +550,10 @@ msgid ""
 "When selecting an order with distortions, additional terms are added to the "
 "solution, using SIP convention"
 msgstr ""
-"Sélectionnez l'ordre de la solution :\n"
+"Sélectionnez l'ordre de la solution :\n"
 "Linéaire suppose qu'aucune distorsion n'est présente dans l'image\n"
-"Quadratique, Cubique et Quartique incluront des distorsions polynomiales de "
-"deuxième, troisième ou quatrième ordre.\n"
+"Quadratique, Cubique, Quartique et Quintique incluront des distorsions "
+"polynomiales de deuxième, troisième, quatrième ou cinquième ordre.\n"
 "Lors de la sélection d'un ordre avec distorsions, des termes supplémentaires "
 "sont ajoutés à la solution, en utilisant la convention SIP"
 
@@ -3707,28 +3706,24 @@ msgstr ""
 "pixels, auquel cas cette transformation n'est pas réversible."
 
 #: src/gui/uifiles/keywords_dialog.ui:27
-#, fuzzy
 msgid "FITS Header"
-msgstr "Entête FITS..."
+msgstr "Entête FITS"
 
 #: src/gui/uifiles/keywords_dialog.ui:42
-#, fuzzy
 msgid "Copy Selection"
-msgstr "Aucune sélection"
+msgstr "Copier la sélection"
 
 #: src/gui/uifiles/keywords_dialog.ui:47
-#, fuzzy
 msgid "Copy selected keywords to clipboard."
-msgstr "Copier l’instantané vers le presse-papier"
+msgstr "Copier les mots-clés sélectionnés dans le presse-papiers."
 
 #: src/gui/uifiles/keywords_dialog.ui:95
 msgid "Keyword"
-msgstr ""
+msgstr "Mot clé"
 
 #: src/gui/uifiles/keywords_dialog.ui:108
-#, fuzzy
 msgid "Value"
-msgstr "Valeur : "
+msgstr "Valeur"
 
 #: src/gui/uifiles/keywords_dialog.ui:123 src/gui/uifiles/spcc_details.ui:223
 msgid "Comment"
@@ -3736,18 +3731,19 @@ msgstr "Commentaire"
 
 #: src/gui/uifiles/keywords_dialog.ui:136
 msgid "Dtype"
-msgstr ""
+msgstr "Dtype"
 
 #: src/gui/uifiles/keywords_dialog.ui:149
-#, fuzzy
 msgid "Protected"
-msgstr "Méthode de protection : "
+msgstr "Protégé"
 
 #: src/gui/uifiles/keywords_dialog.ui:173
 msgid ""
 "In <span foreground=\"salmon\">salmon</span>, these are protected keywords, "
 "which cannot be modified."
 msgstr ""
+"En <span foreground=\"salmon\">saumon</span>, il s'agit de mots-clés "
+"protégés, qui ne peuvent pas être modifiés."
 
 #: src/gui/uifiles/icc_dialog.ui:33 src/gui/uifiles/settings_window.ui:3888
 #: src/gui/uifiles/settings_window.ui:4704 src/core/icc_profile.c:1250
@@ -5659,30 +5655,26 @@ msgstr ""
 "l'échantillonnage à autoriser."
 
 #: src/gui/uifiles/settings_window.ui:1561
-#, fuzzy
 msgid "Default degree of the polynomial correction:"
-msgstr "Degrés de la correction polynomiale :"
+msgstr "Degré par défaut de la correction polynomiale :"
 
 #: src/gui/uifiles/settings_window.ui:1573
-#, fuzzy
 msgid ""
 "Astrometry solvers can use a polynomial correction (SIP) to work with "
 "optical aberrations, this is the default order of the polynomial model. 0 or "
 "1 disable it."
 msgstr ""
-"Astrometry.net peut utiliser une correction polynomiale (SIP) pour "
-"travailler avec les aberrations optiques, c'est l'ordre du modèle "
-"polynomial. 0 le désactive."
+"Les solveurs astrométriques peuvent utiliser une correction polynomiale (SIP)"
+" pour travailler avec les aberrations optiques, c'est l'ordre par défaut du "
+"modèle polynomial. 0 ou 1 le désactive."
 
 #: src/gui/uifiles/settings_window.ui:1576
-#, fuzzy
 msgid "3"
-msgstr "0"
+msgstr "3"
 
 #: src/gui/uifiles/settings_window.ui:1605
-#, fuzzy
 msgid "Target radius (degrees)"
-msgstr "Rayon de la cible (degré)"
+msgstr "Rayon de la cible (degrés)"
 
 #: src/gui/uifiles/settings_window.ui:1617
 msgid ""
@@ -5695,12 +5687,13 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:1620
 msgid "10.00"
-msgstr ""
+msgstr "10.00"
 
 #: src/gui/uifiles/settings_window.ui:1651
-#, fuzzy
 msgid "Maximum seconds to try solving. 0 to disable it"
-msgstr "Maximum de secondes pour essayer de résoudre l'image :"
+msgstr ""
+"Nombre maximum de secondes avant d'essayer de résoudre le problème. 0 pour "
+"le désactiver"
 
 #: src/gui/uifiles/settings_window.ui:1663
 msgid ""
@@ -5713,9 +5706,8 @@ msgstr ""
 "configuré pour le faire dans son fichier de configuration."
 
 #: src/gui/uifiles/settings_window.ui:1666
-#, fuzzy
 msgid "30"
-msgstr "0"
+msgstr "30"
 
 #: src/gui/uifiles/settings_window.ui:1692
 msgid "General Platesolving"
@@ -6268,24 +6260,23 @@ msgstr "Région d'intérêt (ROI)"
 
 #: src/gui/uifiles/settings_window.ui:3644
 msgid "Middle button double click"
-msgstr ""
+msgstr "Double clic sur le bouton du milieu"
 
 #: src/gui/uifiles/settings_window.ui:3657
-#, fuzzy
 msgid "Zoom to fit"
-msgstr "Dézoomer"
+msgstr "Zoomer pour ajuster"
 
 #: src/gui/uifiles/settings_window.ui:3658
 msgid "Zoom 100% centred on mouse"
-msgstr ""
+msgstr "Zoom 100% centré sur la souris"
 
 #: src/gui/uifiles/settings_window.ui:3659
 msgid "Zoom toggles between fit and 100%"
-msgstr ""
+msgstr "Le zoom permet de basculer entre l'ajustement et 100 %"
 
 #: src/gui/uifiles/settings_window.ui:3674
 msgid "Mouse Behaviour"
-msgstr ""
+msgstr "Comportement de la souris"
 
 #: src/gui/uifiles/settings_window.ui:3718
 msgid "Background extraction samples:"
@@ -11457,63 +11448,58 @@ msgstr ""
 "un ordre inférieur ou une solution linéaire\n"
 
 #: src/algos/astrometry_solver.c:489
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "%s could not find distortion polynomials for the order specified (%d) and "
 "returned a linear solution, try with a lower order or increase magnitude\n"
 msgstr ""
 "%s n'a pas pu trouver de polynômes de distorsion pour l'ordre spécifié (%d) "
-"et a retourné une solution linéaire, essayez avec un ordre inférieur\n"
+"et a retourné une solution linéaire, essayez avec un ordre inférieur ou "
+"augmentez la magnitude.\n"
 
 #: src/algos/astrometry_solver.c:492
 msgid ""
 "Siril solver could not find a final solution at the updated center, solution "
 "may be inaccurate\n"
 msgstr ""
+"Le solveur Siril n'a pas pu trouver une solution finale au centre mis à "
+"jour, la solution peut être inexacte.\n"
 
 #: src/algos/astrometry_solver.c:495
-#, fuzzy, c-format
+#, c-format
 msgid "%s solve succeeded.\n"
-msgstr "La résolution locale de astrometry.net a réussi.\n"
+msgstr "La résolution de %s a réussi.\n"
 
 #: src/algos/astrometry_solver.c:498
-#, fuzzy
 msgid "The image could not be aligned with the reference stars\n"
-msgstr ""
-"La résolution astrométrique a échoué. L'image n'a pas pu être alignée sur "
-"les étoiles de référence.\n"
+msgstr "L'image n'a pas pu être alignée avec les étoiles de référence\n"
 
 #: src/algos/astrometry_solver.c:500
-#, fuzzy
 msgid "Cancelled\n"
-msgstr "Annulé"
+msgstr "Annulé\n"
 
 #: src/algos/astrometry_solver.c:502
-#, fuzzy
 msgid "Not enough memory\n"
-msgstr "Mémoire insuffisante"
+msgstr "Pas assez de mémoire\n"
 
 #: src/algos/astrometry_solver.c:504
-#, fuzzy, c-format
+#, c-format
 msgid "There are not enough stars picked in the image. least %d are needed\n"
 msgstr ""
 "Il n'y a pas assez d'étoiles sélectionnées dans l'image. Au moins %d sont "
-"nécessaires."
+"nécessaires.\n"
 
 #: src/algos/astrometry_solver.c:507
-#, fuzzy
 msgid "Transformation matrix is invalid, solve failed\n"
-msgstr "La matrice de transformation n'est pas valide, la résolution a échoué"
+msgstr "La matrice de transformation n'est pas valide, la résolution a échoué\n"
 
 #: src/algos/astrometry_solver.c:509
-#, fuzzy
 msgid "Reprojecting catalog failed\n"
-msgstr "La reprojection du catalogue a échoué."
+msgstr "La reprojection du catalogue a échoué.\n"
 
 #: src/algos/astrometry_solver.c:511
-#, fuzzy
 msgid "Updating trans failed\n"
-msgstr "La mise à jour de trans a échoué."
+msgstr "La mise à jour de trans a échoué.\n"
 
 #: src/algos/astrometry_solver.c:513
 #, c-format
@@ -11521,20 +11507,26 @@ msgid ""
 "Siril near solver could not find a solution over the search radius (%.1f "
 "deg)\n"
 msgstr ""
+"Le solveur Siril de proximité n'a pas pu trouver de solution dans le rayon "
+"de recherche (%.1f deg)\n"
 
 #: src/algos/astrometry_solver.c:515
 #, c-format
 msgid "Siril near solver time-out after %ds\n"
-msgstr ""
+msgstr "Le solveur Siril de proximité ne répond pas après %ds\n"
 
 #: src/algos/astrometry_solver.c:517
 msgid "Siril near solver encountered a problem when allocating threads\n"
 msgstr ""
+"Le solver Siril de proximité a rencontré un problème lors de l'allocation "
+"des threads\n"
 
 #: src/algos/astrometry_solver.c:519
 msgid ""
 "Local Astrometry.net encountered a problem while launching its process\n"
 msgstr ""
+"Astrometry.net local a rencontré un problème lors du lancement de son "
+"processus\n"
 
 #. center is less than 10" off from a pole
 #: src/algos/astrometry_solver.c:551
@@ -11582,7 +11574,7 @@ msgstr "Centre de l'image : alpha : %s, delta : %s\n"
 #: src/algos/astrometry_solver.c:589
 #, c-format
 msgid "Was %.2f arcmin from initial value\n"
-msgstr ""
+msgstr "était de %.2f arcmin par rapport à la valeur initiale\n"
 
 #: src/algos/astrometry_solver.c:847
 #, c-format
@@ -11635,9 +11627,8 @@ msgid "Using %d detected stars from image.\n"
 msgstr "Utilisation de %d étoiles détectées dans l'image.\n"
 
 #: src/algos/astrometry_solver.c:991
-#, fuzzy
 msgid "Initial solve failed\n"
-msgstr "Échec de l'ouverture de l'image\n"
+msgstr "La résolution initiale a échoué\n"
 
 #: src/algos/astrometry_solver.c:992
 #, c-format
