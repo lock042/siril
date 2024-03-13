@@ -15,6 +15,7 @@ struct preprocessing_data {
 	float normalisation;	// the flat normalization level
 	gboolean equalize_cfa;	// convert the master flat to gray
 	gboolean fix_xtrans;
+	gboolean use_exposure; // dark optimization with exposure
 
 	/* input and output file or sequence */
 	gboolean is_sequence;

@@ -33,6 +33,7 @@
 #include "gui/image_display.h"
 #include "gui/PSF_list.h"
 
+
 #define BORDER_RATIO 0.10 // the amount of image that is considered at border
 #define MAX_VAR_CAT 3 // max number of variable stars catalogues
 #define MAX_SEPARATION  2 * 0.000277778 // the max sepration to consider stars are the same
@@ -197,7 +198,7 @@ static gboolean end_compstars(gpointer p) {
 	return end_generic(NULL);
 }
 
-static void write_nina_file(struct compstars_arg *args) {
+void write_nina_file(struct compstars_arg *args) {
 	if (!args->nina_file)
 		return;
 	if (!g_strcmp0(args->nina_file, "auto")) {
@@ -235,7 +236,7 @@ static gboolean is_same_star(cat_item *s1, cat_item *s2){
 			(fabs(s1->dec - s2->dec) < MAX_SEPARATION);
 }
 
-static void fill_compstar_item(cat_item *item, double ra, double dec, float mag, gchar *name, const gchar *type) {
+void fill_compstar_item(cat_item *item, double ra, double dec, float mag, gchar *name, const gchar *type) {
 	item->ra = ra;
 	item->dec = dec;
 	item->mag = mag;
@@ -466,7 +467,7 @@ gpointer compstars_worker(gpointer p) {
 		retval = 1;
 		goto end;
 	}
-
+	free_sky_object_query(query_args);
 	// 2. get a catalogue of stars for the field
 	double radius;
 	args->cat_stars = get_catstars(args, args->cat, &radius);
@@ -497,7 +498,6 @@ gpointer compstars_worker(gpointer p) {
 	retval = sort_compstars(args);
 
 end:
-	free_sky_object_query(query_args);
 	args->retval = retval;
 	args->has_GUI = TRUE;
 	if (!siril_add_idle(end_compstars, args)) {
