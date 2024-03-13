@@ -76,7 +76,7 @@ static void build_the_dialog() {
 	gtk_label_set_line_wrap(GTK_LABEL(win_label), TRUE);
 	g_object_set(G_OBJECT(win_label), "margin", 15, NULL);
 
-	/* Defines the options boxe */
+	/* Defines the options box */
 	GtkWidget *options_box;
 	options_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 3);
 	gtk_box_set_homogeneous(GTK_BOX(options_box), TRUE);
@@ -274,7 +274,7 @@ static void on_nina_lc_response(GtkDialog* self, gint response_id, gpointer user
 
 	start_in_new_thread(light_curve_worker, args);
 
-		// To update 
+	// Update of the UI
 	radius_label = com.pref.phot_set.force_radius ? g_strdup("Radius/half-FWHM ratio:") : g_strdup("Aperture radius (px):");
 	gtk_label_set_text(GTK_LABEL(apert), radius_label);
 	radius_value = com.pref.phot_set.force_radius ? com.pref.phot_set.auto_aperture_factor : com.pref.phot_set.aperture;

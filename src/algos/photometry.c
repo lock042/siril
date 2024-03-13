@@ -110,7 +110,6 @@ photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 
 	r1 = phot_set->inner;
 	r2 = phot_set->outer;
-//	appRadius = phot_set->force_radius ? phot_set->aperture : psf->fwhmx * 2.0;
 	appRadius = !phot_set->force_radius ? phot_set->aperture : 0.5 * psf->fwhmx * phot_set->auto_aperture_factor;
 	if (appRadius >= r1 && !phot_set->force_radius) {
 		if (verbose) {
@@ -417,7 +416,7 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 	double *date = calloc(nbImages, sizeof(double));	// X is the julian date
 	double *vmag = calloc(nbImages, sizeof(double));	// Y is the calibrated magnitude
 	double *err = calloc(nbImages, sizeof(double));		// Y error bar
-	double *snr_opt = calloc(nbImages, sizeof(double));		// SNR
+	double *snr_opt = calloc(nbImages, sizeof(double));	// SNR
 	if (!date || !vmag || !err) {
 		PRINT_ALLOC_ERR;
 		free(date); free(vmag); free(err);
@@ -482,7 +481,9 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 	int nb_valid_images = j;
 	int julian0 = 0;
 
-	if (com.pref.phot_set.force_radius) {		// Additionnal information on the error bars distributionif the auto aperture option is set
+	// Additionnal information on the error bars and variable SNR 
+	// distributions if the auto aperture option is set
+	if (com.pref.phot_set.force_radius) {
 		double median_err, largest_err, smallest_err;
 		gsl_sort (err, 1, nb_valid_images);
 		median_err = gsl_stats_median_from_sorted_data (err, 1, nb_valid_images);
@@ -500,7 +501,7 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 			1000 * median_err,
 			1000 * largest_err,
 			1000 * smallest_err);
-		siril_log_color_message(_("Variable star SNR-- (%d images) median: %.2lf, max: %.2lf, min: %.2lf\n"), "blue",
+		siril_log_color_message(_("Variable star SNR-- (%d images) median: %.2lfdB, max: %.2lfdB, min: %.2lfdB\n"), "blue",
 			nb_valid_images,
 			median_snr,
 			largest_snr,
