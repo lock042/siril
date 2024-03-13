@@ -1920,15 +1920,18 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 	if (arg->has_output)
 		seq_prepare_hook(arg);
 	else if (arg->seq->type == SEQ_FITSEQ) {
-		int test;
 		gchar *filename = g_strdup(arg->seq->fitseq_file->filename);
 		// it was opened in READONLY mode, we close it
-		test = fitseq_close_file(arg->seq->fitseq_file);
-		siril_debug_print("test close:%d\n", test);
+		if (fitseq_close_file(arg->seq->fitseq_file)) {
+			siril_debug_print("error when closing fitseq\n");
+			return 1;
+		}	
 		arg->seq->fitseq_file->fptr = NULL;
 		// and we reopen in READWRITE mode to update it
-		test = fitseq_open(filename, arg->seq->fitseq_file, READWRITE);
-		siril_debug_print("test reopen:%d\n", test);
+		if(fitseq_open(filename, arg->seq->fitseq_file, READWRITE)) {
+			siril_debug_print("error when reopening fitseq\n");
+			return 1;
+		}
 		g_free(filename);
 	}
 	if (args->solver == SOLVER_LOCALASNET) {
@@ -2045,6 +2048,7 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 
 static int astrometry_finalize_hook(struct generic_seq_args *arg) {
 	struct astrometry_data *aargs = (struct astrometry_data *)arg->user;
+	int retval = 0;
 	siril_log_color_message(_("%d images successfully platesolved out of %d included\n"), "green", aargs->seqprogress, arg->nb_filtered_images);
 	if (aargs->seqskipped > 0)
 		siril_log_color_message(_("(%d were already solved and skipped)\n"), "green", aargs->seqskipped);
@@ -2053,13 +2057,17 @@ static int astrometry_finalize_hook(struct generic_seq_args *arg) {
 	else if (arg->seq->type == SEQ_FITSEQ) {
 		gchar *filename = g_strdup(arg->seq->fitseq_file->filename);
 		// it was opened in READWRITE mode, we close it to save everything
-		int test = fitseq_close_file(arg->seq->fitseq_file);
-		siril_debug_print("test close:%d\n", test);
+		if (fitseq_close_file(arg->seq->fitseq_file)) {
+			siril_debug_print("error when closing again fitseq\n");
+			retval = 1;
+			goto finish;
+		}
 		arg->seq->fitseq_file->fptr = NULL;
 		siril_log_color_message(_("File %s updated\n"), "salmon", filename);
 		arg->seq->fitseq_file->filename = filename; // we may need to reopen in the idle so we save it here
 		arg->seq->fitseq_file->hdu_index = NULL;
 	}
+finish:
 	if (aargs->cat_center)
 		siril_world_cs_unref(aargs->cat_center);
 	if (aargs->ref_stars)
@@ -2068,7 +2076,7 @@ static int astrometry_finalize_hook(struct generic_seq_args *arg) {
 	if (com.child_is_running == EXT_ASNET && g_unlink("stop"))
 		siril_debug_print("g_unlink() failed\n");
 	com.child_is_running = EXT_NONE;
-	return 0;
+	return retval;
 }
 
 gboolean end_platesolve_sequence(gpointer p) {
@@ -2083,8 +2091,9 @@ gboolean end_platesolve_sequence(gpointer p) {
 		g_free(basename);
 	} else if (check_seq_is_comseq(args->seq) && !args->retval) {
 		if (args->seq->type == SEQ_FITSEQ) { // if FITSEQ, we need to repoen in READONLY mode
-			int test = fitseq_open(args->seq->fitseq_file->filename, args->seq->fitseq_file, READONLY);
-			siril_debug_print("test reopen:%d\n", test);
+			if (fitseq_open(args->seq->fitseq_file->filename, args->seq->fitseq_file, READONLY)) {
+				siril_debug_print("error when finally re-opening fitseq\n");
+			}
 		}
 		update_sequences_list(args->seq->seqname);
 	}
