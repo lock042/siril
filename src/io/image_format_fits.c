@@ -415,7 +415,7 @@ void read_fits_header(fits *fit) {
 
 	status = 0;
 	__tryToFindKeywords(fit->fptr, TFLOAT, PIXELSIZEX, &fit->pixel_size_x, &status);
-	if (!status)
+	if (!status && fit->pixel_size_x > 0.)
 		fit->pixelkey = TRUE;
 	status = 0;
 	__tryToFindKeywords(fit->fptr, TFLOAT, PIXELSIZEY, &fit->pixel_size_y, &status);
@@ -464,14 +464,14 @@ void read_fits_header(fits *fit) {
 
 	status = 0;
 	__tryToFindKeywords(fit->fptr, TDOUBLE, FOCAL, &fit->focal_length, &status);
-	if (!status)
+	if (!status && fit->focal_length > 0.)
 		fit->focalkey = TRUE;
 	if (fit->focal_length <= 0.0) {
 		/* this keyword is seen in some professional images, FLENGTH is in m. */
 		double flength;
 		status = 0;
 		fits_read_key(fit->fptr, TDOUBLE, "FLENGTH", &flength, NULL, &status);
-		if (!status) {
+		if (!status && fit->focal_length > 0.) {
 			fit->focal_length = flength * 1000.0; // convert m to mm
 			fit->focalkey = TRUE;
 		}
