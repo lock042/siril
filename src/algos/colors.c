@@ -1288,7 +1288,11 @@ int ccm_calc(fits *fit, ccm matrix, float power) {
 static int ccm_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 		rectangle *_, int threads) {
 	struct ccm_data *c_args = (struct ccm_data*) args->user;
-	return ccm_calc(fit, c_args->matrix, c_args->power);
+	int ret = ccm_calc(fit, c_args->matrix, c_args->power);
+	if (ret) {
+		siril_log_color_message(_("Color Conversion Matrices can only be applied to 3-channel images.\n"), "red");
+	}
+	return ret;
 }
 
 static int ccm_finalize_hook(struct generic_seq_args *args) {
