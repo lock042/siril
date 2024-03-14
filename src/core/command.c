@@ -8679,7 +8679,7 @@ int process_spcc(int nb) {
 
 // used for platesolve and seqplatesolve commands
 int process_platesolve(int nb) {
-	gboolean noflip = FALSE, force, downsample = FALSE, autocrop = TRUE, nocache = FALSE,
+	gboolean noflip = FALSE, force = FALSE, downsample = FALSE, autocrop = TRUE, nocache = FALSE,
 		asnet_blind_pos = FALSE, asnet_blind_res = FALSE;
 	gboolean forced_metadata[3] = { 0 }; // used for sequences in the image hook, for center, pixel and focal
 	SirilWorldCS *target_coords = NULL;
@@ -8736,7 +8736,7 @@ int process_platesolve(int nb) {
 			noflip = TRUE;
 		else if (!strcmp(word[next_arg], "-nocrop"))
 			autocrop = FALSE;
-		else if (!seqps && !strcmp(word[next_arg], "-force"))
+		else if (!strcmp(word[next_arg], "-force"))
 			force = TRUE;
 		else if (!strcmp(word[next_arg], "-downscale"))
 			downsample = TRUE;
