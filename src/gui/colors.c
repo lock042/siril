@@ -425,7 +425,7 @@ void on_ccm_apply_clicked(GtkButton* button, gpointer user_data) {
 
 	GtkToggleButton *btn = GTK_TOGGLE_BUTTON(lookup_widget("check_apply_seq_ccm"));
 
-	if (gtk_toggle_button_get_active(btn)) {
+	if (gtk_toggle_button_get_active(btn) && sequence_is_loaded()) {
 		GtkEntry *ccmSeqEntry = GTK_ENTRY(lookup_widget("entryCCMSeq"));
 		args->seqEntry = strdup(gtk_entry_get_text(ccmSeqEntry));
 
