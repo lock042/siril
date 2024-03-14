@@ -23,6 +23,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "algos/colors.h"
 #include "core/icc_profile.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
@@ -407,42 +408,6 @@ void on_extract_channel_button_ok_clicked(GtkButton *button, gpointer user_data)
 	}
 }
 
-static int ccm_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
-		rectangle *_, int threads) {
-	struct ccm_data *c_args = (struct ccm_data*) args->user;
-	return ccm_calc(fit, c_args->matrix, c_args->power);
-}
-
-static int ccm_finalize_hook(struct generic_seq_args *args) {
-	int retval = seq_finalize_hook(args);
-	struct ccm_data *c_args = (struct ccm_data*) args->user;
-
-	free(c_args->seqEntry);
-
-	free(args->user);
-	return retval;
-}
-
-void apply_ccm_to_sequence(struct ccm_data *ccm_args) {
-	struct generic_seq_args *args = create_default_seqargs(ccm_args->seq);
-	args->filtering_criterion = seq_filter_included;
-	args->nb_filtered_images = ccm_args->seq->selnum;
-	args->compute_mem_limits_hook = NULL;
-	args->prepare_hook = seq_prepare_hook;
-	args->finalize_hook = ccm_finalize_hook;
-	args->image_hook = ccm_image_hook;
-	args->stop_on_error = FALSE;
-	args->description = _("Color Conversion Matrices");
-	args->has_output = TRUE;
-	args->output_type = get_data_type(args->seq->bitpix);
-	args->new_seq_prefix = ccm_args->seqEntry;
-	args->load_new_sequence = TRUE;
-	args->user = ccm_args;
-
-	ccm_args->fit = NULL;	// not used here
-
-	start_in_new_thread(generic_sequence_worker, args);
-}
 
 void on_ccm_apply_clicked(GtkButton* button, gpointer user_data) {
 	struct ccm_data *args = malloc(sizeof(struct ccm_data));
@@ -460,14 +425,6 @@ void on_ccm_apply_clicked(GtkButton* button, gpointer user_data) {
 
 	GtkToggleButton *btn = GTK_TOGGLE_BUTTON(lookup_widget("check_apply_seq_ccm"));
 
-	if (gfit.icc_profile && gfit.color_managed) {
-		siril_message_dialog(GTK_MESSAGE_WARNING, _("ICC Profile"), _("This image has an attached ICC profile. Applying the CCM will invalidate the "
-					"ICC profile therefore color management will be disabled. When you have completed low-level color manipulation and returned the image "
-					"to the color space described by its ICC profile you can re-enable it using the button at the bottom of this dialog."));
-		color_manage(&gfit, FALSE);
-		gtk_widget_set_sensitive(lookup_widget("ccm_restore_icc"), TRUE);
-	}
-
 	if (gtk_toggle_button_get_active(btn)) {
 		GtkEntry *ccmSeqEntry = GTK_ENTRY(lookup_widget("entryCCMSeq"));
 		args->seqEntry = strdup(gtk_entry_get_text(ccmSeqEntry));
@@ -475,6 +432,14 @@ void on_ccm_apply_clicked(GtkButton* button, gpointer user_data) {
 		args->seq = &com.seq;
 		apply_ccm_to_sequence(args);
 	} else {
+		if (gfit.icc_profile && gfit.color_managed) {
+			siril_message_dialog(GTK_MESSAGE_WARNING, _("ICC Profile"), _("This image has an attached ICC profile. Applying the CCM will invalidate the "
+						"ICC profile therefore color management will be disabled. When you have completed low-level color manipulation and returned the image "
+						"to the color space described by its ICC profile you can re-enable it using the button at the bottom of this dialog."));
+			color_manage(&gfit, FALSE);
+			gtk_widget_set_sensitive(lookup_widget("ccm_restore_icc"), TRUE);
+		}
+
 		gchar *buf = g_strdup_printf(_("CCM: [[%.2f %.2f %.2f][%.2f %.2f %.2f][%.2f %.2f %.2f]], pwr: %.2f"),
 					args->matrix[0][0], args->matrix[0][1], args->matrix[0][2],
 					args->matrix[1][0], args->matrix[1][1], args->matrix[1][2],
