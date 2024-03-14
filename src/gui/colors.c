@@ -30,6 +30,7 @@
 #include "core/undo.h"
 #include "core/OS_utils.h"
 #include "io/single_image.h"
+#include "io/sequence.h"
 #include "io/image_format_fits.h"
 #include "algos/colors.h"
 #include "algos/statistics.h"
