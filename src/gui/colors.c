@@ -425,15 +425,18 @@ void on_ccm_apply_clicked(GtkButton* button, gpointer user_data) {
 	args->power = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_ccm_power")));
 
 	GtkToggleButton *btn = GTK_TOGGLE_BUTTON(lookup_widget("check_apply_seq_ccm"));
-
-	if (gtk_toggle_button_get_active(btn) && sequence_is_loaded()) {
+	gboolean seq_toggle = gtk_toggle_button_get_active(btn);
+	if (seq_toggle && sequence_is_loaded()) {
 		GtkEntry *ccmSeqEntry = GTK_ENTRY(lookup_widget("entryCCMSeq"));
 		args->seqEntry = strdup(gtk_entry_get_text(ccmSeqEntry));
 
 		args->seq = &com.seq;
 		apply_ccm_to_sequence(args);
 	} else {
-		if (gfit.icc_profile && gfit.color_managed) {
+		if (seq_toggle) {
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("No sequence is loaded"));
+			return;
+		} else if (gfit.icc_profile && gfit.color_managed) {
 			siril_message_dialog(GTK_MESSAGE_WARNING, _("ICC Profile"), _("This image has an attached ICC profile. Applying the CCM will invalidate the "
 						"ICC profile therefore color management will be disabled. When you have completed low-level color manipulation and returned the image "
 						"to the color space described by its ICC profile you can re-enable it using the button at the bottom of this dialog."));
