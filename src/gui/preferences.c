@@ -227,6 +227,7 @@ static void update_user_interface_preferences() {
 	com.pref.gui.default_rendering_mode = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_default_stf")));
 	com.pref.gui.display_histogram_mode = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_default_histo_mode")));
 	com.pref.gui.roi_mode = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_ui_roimode")));
+	com.pref.gui.mmb_action = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_ui_mmb_zoom")));
 	update_roi_config();
 	/* Configure colors */
 	GdkRGBA color;
@@ -721,6 +722,7 @@ void update_preferences_from_model() {
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_default_stf")), pref->gui.default_rendering_mode);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_default_histo_mode")), pref->gui.display_histogram_mode);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_ui_roimode")), pref->gui.roi_mode);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_ui_mmb_zoom_action")), pref->gui.mmb_action);
 
 	GdkRGBA color;
 	gdk_rgba_parse(&color, pref->gui.config_colors.color_bkg_samples);

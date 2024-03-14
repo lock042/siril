@@ -21,416 +21,46 @@
 #include "core/siril.h"
 #include "core/proto.h"
 
-#include "algos/siril_wcs.h"
-#include "algos/astrometry_solver.h"
-#include "core/siril_date.h"
-
-/*--------------------------------------------------------------------------*/
-static int ffs2c(const char *instr, /* I - null terminated input string  */
-          char *outstr,      /* O - null terminated quoted output string */
-          const int *status)       /* IO - error status */
-/*
-  convert an input string to a quoted string. Leading spaces
-  are significant.  FITS string keyword values must be at least
-  8 chars long so pad out string with spaces if necessary.
-      Example:   km/s ==> 'km/s    '
-  Single quote characters in the input string will be replace by
-  two single quote characters. e.g., o'brian ==> 'o''brian'
-*/
-{
-    size_t len, ii, jj;
-
-    if (*status > 0)           /* inherit input status value if > 0 */
-        return(*status);
-
-    if (!instr)            /* a null input pointer?? */
-    {
-       strcpy(outstr, "''");   /* a null FITS string */
-       return(*status);
-    }
-
-    outstr[0] = '\'';      /* start output string with a quote */
-
-    len = strlen(instr);
-    if (len > 68)
-        len = 68;    /* limit input string to 68 chars */
-
-    for (ii=0, jj=1; ii < len && jj < 69; ii++, jj++)
-    {
-        outstr[jj] = instr[ii];  /* copy each char from input to output */
-        if (instr[ii] == '\'')
-        {
-            jj++;
-            outstr[jj]='\'';   /* duplicate any apostrophies in the input */
-        }
-    }
-
-    for (; jj < 9; jj++)       /* pad string so it is at least 8 chars long */
-        outstr[jj] = ' ';
-
-    if (jj == 70)   /* only occurs if the last char of string was a quote */
-        outstr[69] = '\0';
-    else
-    {
-        outstr[jj] = '\'';         /* append closing quote character */
-        outstr[jj+1] = '\0';          /* terminate the string */
-    }
-
-    return(*status);
-}
-
-static void siril_string_append_str(GString *str, char *value, const char *key, const char *comment) {
-	char valstring[FLEN_VALUE];
-	char card[FLEN_CARD] = { 0 };
-	int status = 0;
-	ffs2c(value, valstring, &status);
-	fits_make_key(key, valstring, comment, card, &status);
-	if (!status)
-		g_string_append_printf(str, "%s\n", card);
-}
-
-static void siril_string_append_logical(GString *str, char *value, const char *key, const char *comment) {
-	char valstring[FLEN_VALUE];
-	char card[FLEN_CARD] = { 0 };
-	int status = 0;
-	sprintf(valstring, "%s", value);
-	fits_make_key(key, valstring, comment, card, &status);
-	if (!status)
-		g_string_append_printf(str, "%s\n", card);
-}
-
-static void siril_string_append_float(GString *str, float value, const char *key, const char *comment) {
-	char valstring[FLEN_VALUE];
-	char card[FLEN_CARD] = { 0 };
-	int status = 0;
-	sprintf(valstring, "%g", value);
-	fits_make_key(key, valstring, comment, card, &status);
-	if (!status)
-		g_string_append_printf(str, "%s\n", card);
-}
-
-static void siril_string_append_double(GString *str, float value, const char *key, const char *comment) {
-	char valstring[FLEN_VALUE];
-	char card[FLEN_CARD] = { 0 };
-	int status = 0;
-	sprintf(valstring, "%g", value);
-	fits_make_key(key, valstring, comment, card, &status);
-	if (!status)
-		g_string_append_printf(str, "%s\n", card);
-}
-
-static void siril_string_append_double_exp(GString *str, float value, const char *key, const char *comment) {
-	char valstring[FLEN_VALUE];
-	char card[FLEN_CARD] = { 0 };
-	int status = 0;
-	sprintf(valstring, "%+18.12E", value);
-	fits_make_key(key, valstring, comment, card, &status);
-	if (!status)
-		g_string_append_printf(str, "%s\n", card);
-}
-
-static void siril_string_append_int(GString *str, int value, const char *key, const char *comment) {
-	char valstring[FLEN_VALUE];
-	char card[FLEN_CARD] = { 0 };
-	int status = 0;
-	sprintf(valstring, "%d", value);
-	fits_make_key(key, valstring, comment, card, &status);
-	if (!status)
-		g_string_append_printf(str, "%s\n", card);
-}
-
-static void siril_string_append_unsigned(GString *str, WORD value, const char *key, const char *comment) {
-	char valstring[FLEN_VALUE];
-	char card[FLEN_CARD] = { 0 };
-	int status = 0;
-	sprintf(valstring, "%u", value);
-	fits_make_key(key, valstring, comment, card, &status);
-	if (!status)
-		g_string_append_printf(str, "%s\n", card);
-}
-
-static void siril_string_append_long(GString *str, long value, const char *key, const char *comment) {
-	char valstring[FLEN_VALUE];
-	char card[FLEN_CARD] = { 0 };
-	int status = 0;
-	sprintf(valstring, "%ld", value);
-	fits_make_key(key, valstring, comment, card, &status);
-	if (!status)
-		g_string_append_printf(str, "%s\n", card);
-}
-
-/*
- *
-    Mandatory FITS keywords are as follows:
-
-    SIMPLE – always ”T”, indicating a FITS header.
-    BITPIX – indicates array format. Options include unsigned 8-bit (8), signed 16 bit (16), signed 32 bit (32), 32-bit IEEE float (-32), and 64-bit IEEE float (-64). The standard format is 16; -64 can be read by MaxIm DL but is not written.
-    NAXIS – number of axes in the data array. MaxIm DL uses 2 for monochrome images, and 3 for color images.
-    NAXIS1 – corresponds to the X axis.
-    NAXIS2 – corresponds to the Y axis.
-    NAXIS3 – present only for color images; value is always 3 (red, green, blue color planes are present in that order).
-
-    Optional keywords defined by the FITS standard and used in MaxIm DL:
-
-    BSCALE – this value should be multiplied by the data array values when reading the FITS file. MaxIm DL always writes a value of 1 for this keyword.
-    BZERO – this value should be added to the data array values when reading the FITS file. For 16-bit integer files, MaxIm DL writes 32768 (unless overridden by the Settings dialog).
-    DATE-OBS – date of observation in the ISO standard 8601 format (Y2K compliant FITS): CCYY-MM-DDThh:mm:ss.sss. The Universal time at the start of the exposure is used. Note: the alternate format using DATE-OBS and TIME-OBS is not written, but MaxIm DL will correctly interpret it when read. The time is written to 10 ms resolution. The default behavior is to report the start of observation time, but individual camera drivers can change this.  As of Version 6.24 the DL Imaging driver sets the time to exposure midpoint.
-    HISTORY – indicates the processing history of the image. This keyword may be repeated as many times as necessary.
-    INSTRUME – camera information. Either user entered or obtained from the camera driver.
-    OBJECT – name or catalog number of object being imaged, if available from Observatory Control window or specified by the user in Settings.
-    OBSERVER – user-entered information; the observer’s name.
-    TELESCOP – user-entered information about the telescope used.
- *
- *
- */
+#include "io/image_format_fits.h"
 
 gchar *AstroTiff_build_header(fits *fit) {
-	double bscale = 1.0, bzero = 0.0;
+	void *memptr;
+	size_t memsize = IOBUFLEN;
 	int status = 0;
-	GString *str = g_string_new(NULL);
-	siril_string_append_logical(str, "T", "SIMPLE", "file does conform to FITS standard");
-	siril_string_append_int(str, fit->bitpix, "BITPIX", "number of bits per data pixel");
-	siril_string_append_int(str, fit->naxis, "NAXIS", "number of data axes");
-	siril_string_append_long(str, fit->naxes[0], "NAXIS1", "length of data axis 1");
-	siril_string_append_long(str, fit->naxes[1], "NAXIS2", "length of data axis 2");
-	siril_string_append_long(str, fit->naxes[2], "NAXIS3", "length of data axis 3");
-
-	siril_string_append_logical(str, "T", "EXTEND", "FITS dataset may contain extensions");
-	str = g_string_append(str, "COMMENT   FITS (Flexible Image Transport System) format is defined in 'Astronomy\n");
-	str = g_string_append(str, "COMMENT   and Astrophysics', volume 376, page 359; bibcode: 2001A&A...376..359H\n");
-
-	if (fit->hi) { /* may not be initialized */
-		if (fit->type == DATA_USHORT) {
-			siril_string_append_unsigned(str, fit->hi, "MIPS-HI", "Upper visualization cutoff");
-			siril_string_append_unsigned(str, fit->lo, "MIPS-LO", "Lower visualization cutoff");
-		} else if (fit->type == DATA_FLOAT) {
-			float fhi = ushort_to_float_range(fit->hi);
-			float flo = ushort_to_float_range(fit->lo);
-			siril_string_append_float(str, fhi, "MIPS-FHI", "Upper visualization cutoff");
-			siril_string_append_float(str, flo, "MIPS-FLO", "Lower visualization cutoff");
-		}
+	fitsfile *fptr = NULL;
+	memptr = malloc(memsize);
+	if (!memptr) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
+	fits_create_memfile(&fptr, &memptr, &memsize, IOBUFLEN, realloc, &status);
+	if (status) {
+		report_fits_error(status);
+		if (fptr)
+			fits_close_file(fptr, &status);
+		free(memptr);
+		return NULL;
 	}
 
-	siril_string_append_double(str, bzero, "BZERO", "offset data range to that of unsigned short");
-	siril_string_append_double(str, bscale, "BSCALE", "default scaling factor");
-
-	int itmp;
-	status = 0;
-	char fit_date[40];
-	fits_get_system_time(fit_date, &itmp, &status);
-	siril_string_append_str(str, fit_date, "DATE", "UTC date that FITS file was created");
-
-	if (fit->date_obs) {
-		gchar *formatted_date = date_time_to_FITS_date(fit->date_obs);
-		siril_string_append_str(str, formatted_date, "DATE-OBS", "YYYY-MM-DDThh:mm:ss observation start, UT");
-
-		g_free(formatted_date);
+	if (fits_create_img(fptr, fit->bitpix, fit->naxis, fit->naxes, &status)) {
+		report_fits_error(status);
+		if (fptr)
+			fits_close_file(fptr, &status);
+		free(memptr);
+		return NULL;
 	}
 
-	siril_string_append_str(str, fit->instrume, "INSTRUME", "instrument name");
-	siril_string_append_str(str, fit->observer, "OBSERVER", "observer name");
-	siril_string_append_str(str, fit->telescop, "TELESCOP", "telescope used to acquire this image");
+	fits tmpfit = { 0 };
+	copy_fits_metadata(fit, &tmpfit);
+	tmpfit.fptr = fptr;
+	save_fits_header(&tmpfit);
 
-	if (!g_strcmp0(fit->row_order, "BOTTOM-UP") || !g_strcmp0(fit->row_order, "TOP-DOWN")) {
-		siril_string_append_str(str, fit->row_order, "ROWORDER", "Order of the rows in image array");
-	}
+	if (fit->header)
+		free(fit->header);
+	fit->header = copy_header(&tmpfit);
 
-	if (fit->pixel_size_x > 0)
-		siril_string_append_float(str, fit->pixel_size_x, "XPIXSZ", "X pixel size microns");
-	if (fit->pixel_size_y > 0)
-		siril_string_append_float(str, fit->pixel_size_x, "YPIXSZ", "Y pixel size microns");
-	if (fit->binning_x > 0)
-		siril_string_append_unsigned(str, fit->binning_x, "XBINNING", "Camera binning mode");
-	if (fit->binning_y > 0)
-		siril_string_append_unsigned(str, fit->binning_y, "YBINNING", "Camera binning mode");
-	if (fit->bayer_pattern[0] != '\0')
-		siril_string_append_str(str, fit->bayer_pattern, "BAYERPAT", "Bayer color pattern");
-	if (fit->bayer_xoffset > 0)
-		siril_string_append_int(str, fit->bayer_xoffset, "XBAYROFF", "X offset of Bayer array");
-	if (fit->bayer_yoffset > 0)
-		siril_string_append_int(str, fit->bayer_yoffset, "YBAYROFF", "Y offset of Bayer array");
-	if (fit->focal_length > 0)
-		siril_string_append_double(str, fit->focal_length, "FOCALLEN", "Camera focal length");
-	if (fit->ccd_temp > -999.0)
-		siril_string_append_double(str, fit->ccd_temp, "CCD-TEMP", "CCD temp in C");
-	if (fit->set_temp > -999.0)
-		siril_string_append_double(str, fit->set_temp, "SET-TEMP", "Temperature setting in C");
-	if (fit->exposure > 0.0)
-		siril_string_append_double(str, fit->exposure, "EXPTIME", "Exposure time [s]");
-	if (fit->stackcnt)
-		siril_string_append_unsigned(str, fit->stackcnt, "STACKCNT", "Stack frames");
-	if (fit->livetime > 0.0)
-		siril_string_append_double(str, fit->livetime, "LIVETIME", "Exposure time after deadtime correction");
-	if (fit->expstart > 0.0)
-		siril_string_append_double(str, fit->expstart, "EXPSTART", "Exposure start time (standard Julian date)");
-	if (fit->expend > 0.0)
-		siril_string_append_double(str, fit->expend, "EXPEND", "Exposure end time (standard Julian date)");
-	if (fit->filter[0] !='\0')
-		siril_string_append_str(str, fit->filter, "FILTER", "Active filter name");
-	if (fit->image_type[0] !='\0')
-		siril_string_append_str(str, fit->image_type, "IMAGETYP", "Type of image");
-	if (fit->object[0] !='\0')
-		siril_string_append_str(str, fit->object, "OBJECT", "Name of the object of interest");
-	if (fit->aperture > 0.0)
-		siril_string_append_double(str, fit->aperture, "APERTURE", "Aperture of the instrument");
-	if (fit->iso_speed > 0.0)
-		siril_string_append_double(str, fit->iso_speed, "ISOSPEED", "ISO camera setting");
-	if (fit->cvf > 0.0)
-		siril_string_append_double(str, fit->cvf, "CVF", "Conversion factor (e-/adu)");
-	if (fit->key_gain > 0)
-		siril_string_append_int(str, fit->key_gain, "GAIN", "Camera gain");
-	if (fit->key_offset > 0)
-		siril_string_append_int(str, fit->key_offset, "OFFSET", "Camera offset");
-	if (fit->sitelat != 0.0)
-		siril_string_append_double(str, fit->sitelat, "SITELAT", "[deg] Observation site latitude");
-	if (fit->sitelong != 0.0)
-		siril_string_append_double(str, fit->sitelong, "SITELONG", "[deg] Observation site longitude");
-	if (fit->siteelev != 0.0)
-		siril_string_append_double(str, fit->siteelev, "SITEELEV", "[m] Observation site elevation");
+	fits_close_file(tmpfit.fptr, &status);
+	free(memptr);
 
-
-	/* Needed for Aladin compatibility */
-	if (fit->naxes[2] == 3 && com.pref.rgb_aladin) {
-		siril_string_append_str(str, "RGB", "CTYPE3", "RGB image");
-	}
-
-	if (fit->wcsdata.objctra[0] !='\0') {
-		siril_string_append_str(str, fit->wcsdata.objctra, "OBJCTRA", "Image center Right Ascension (hms)");
-		siril_string_append_str(str, fit->wcsdata.objctdec, "OBJCTDEC", "Image center Declination (dms)");
-	}
-	if (fit->wcsdata.ra > 0.0) {
-		siril_string_append_double(str, fit->wcsdata.ra, "RA", "Image center Right Ascension (deg)");
-		siril_string_append_double(str, fit->wcsdata.dec, "DEC", "Image center Declination (deg)");
-	}
-	if (fit->wcslib) {
-		gboolean has_sip = fit->wcslib->lin.dispre != NULL; // we don't handle the disseq terms for now
-		if (!has_sip) {
-			siril_string_append_str(str, "RA---TAN", "CTYPE1", "TAN (gnomic) projection");
-			siril_string_append_str(str, "DEC--TAN", "CTYPE2", "TAN (gnomic) projection");
-		} else {
-			siril_string_append_str(str, "RA---TAN-SIP", "CTYPE1", "TAN (gnomic) projection + SIP distortions");
-			siril_string_append_str(str, "DEC--TAN-SIP", "CTYPE2", "TAN (gnomic) projection + SIP distortions");
-		}
-		siril_string_append_str(str, "deg", "CUNIT1", "Unit of coordinates");
-		siril_string_append_str(str, "deg", "CUNIT2", "Unit of coordinates");
-		siril_string_append_double(str, fit->wcslib->equinox, "EQUINOX", "Equatorial equinox");
-		siril_string_append_double(str, fit->wcslib->crpix[0], "CRPIX1", "Axis1 reference pixel");
-		siril_string_append_double(str, fit->wcslib->crpix[1], "CRPIX2", "Axis2 reference pixel");
-		siril_string_append_double(str, fit->wcslib->crval[0], "CRVAL1", "Axis1 reference value (deg)");
-		siril_string_append_double(str, fit->wcslib->crval[1], "CRVAL2", "Axis2 reference value (deg)");
-		if (fit->wcslib->lonpole) {
-			siril_string_append_double(str, fit->wcslib->lonpole, "LONPOLE", "Native longitude of celestial pole");
-		}
-		if (com.pref.wcs_formalism == WCS_FORMALISM_1) {
-			siril_string_append_double(str, fit->wcslib->cdelt[0], "CDELT1", "X pixel size (deg)");
-			siril_string_append_double(str, fit->wcslib->cdelt[1], "CDELT2", "Y pixel size (deg)");
-			siril_string_append_double(str, fit->wcslib->pc[0], "PC1_1", "Linear transformation matrix (1, 1)");
-			siril_string_append_double(str, fit->wcslib->pc[1], "PC1_2", "Linear transformation matrix (1, 2)");
-			siril_string_append_double(str, fit->wcslib->pc[2], "PC2_1", "Linear transformation matrix (2, 1)");
-			siril_string_append_double(str, fit->wcslib->pc[3], "PC2_2", "Linear transformation matrix (2, 2)");
-		} else {
-			siril_string_append_double(str, fit->wcslib->cd[0], "CD1_1", "Scale matrix (1, 1)");
-			siril_string_append_double(str, fit->wcslib->cd[1], "CD1_2", "Scale matrix (1, 2)");
-			siril_string_append_double(str, fit->wcslib->cd[2], "CD2_1", "Scale matrix (2, 1)");
-			siril_string_append_double(str, fit->wcslib->cd[3], "CD2_2", "Scale matrix (2, 2)");
-		}
-		if (has_sip) {
-			// we deal with images up to order 6, we need 7 to hold 0_6 terms
-			double A[MAX_SIP_SIZE][MAX_SIP_SIZE] = {{ 0. }};
-			double B[MAX_SIP_SIZE][MAX_SIP_SIZE] = {{ 0. }};
-			double AP[MAX_SIP_SIZE][MAX_SIP_SIZE] = {{ 0. }};
-			double BP[MAX_SIP_SIZE][MAX_SIP_SIZE] = {{ 0. }};
-			struct disprm *dis = fit->wcslib->lin.dispre;
-			int order = extract_SIP_order_and_matrices(dis, A, B, AP, BP);
-			// we know the order of the distortions, we can now write them
-			siril_string_append_int(str, order, "A_ORDER", "SIP polynomial degree, axis 1, pixel-to-sky");
-			for (int i = 0; i <= order; i++) {
-				for (int j = 0; j <= order - i; j++) {
-					char key[6];
-					g_snprintf(key, 6, "A_%d_%d", i, j);
-					// we add the key name as comment, otherwise wcspih fails to read the value (if no comment present)
-					siril_string_append_double_exp(str, A[i][j], key, key);
-				}
-			}
-			siril_string_append_int(str, order, "B_ORDER", "SIP polynomial degree, axis 2, pixel-to-sky");
-			for (int i = 0; i <= order; i++) {
-				for (int j = 0; j <= order - i; j++) {
-					char key[6];
-					g_snprintf(key, 6, "B_%d_%d", i, j);
-					siril_string_append_double_exp(str, B[i][j], key, key);
-				}
-			}
-			siril_string_append_int(str, order, "AP_ORDER", "SIP polynomial degree, axis 1, sky-to-pixel");
-			for (int i = 0; i <= order; i++) {
-				for (int j = 0; j <= order - i; j++) {
-					char key[7];
-					g_snprintf(key, 7, "AP_%d_%d", i, j);
-					siril_string_append_double_exp(str, AP[i][j], key, key);
-				}
-			}
-			siril_string_append_int(str, order, "BP_ORDER", "SIP polynomial degree, axis 2, sky-to-pixel");
-			for (int i = 0; i <= order; i++) {
-				for (int j = 0; j <= order - i; j++) {
-					char key[7];
-					g_snprintf(key, 7, "BP_%d_%d", i, j);
-					siril_string_append_double_exp(str, BP[i][j], key, key);
-				}
-			}
-		}
-	}
-	if (fit->wcsdata.pltsolvd) {
-		siril_string_append_logical(str, "T", "PLTSOLVD", fit->wcsdata.pltsolvd_comment);
-	}
-
-	if (fit->airmass != 0.0)
-		siril_string_append_double(str, fit->airmass, "AIRMASS", "Airmass");
-	if (fit->dft.norm[0] > 0)
-		siril_string_append_double(str, fit->dft.norm[0], "DFTNORM0", "Normalisation value for channel #0");
-	if (fit->dft.norm[1] > 0)
-		siril_string_append_double(str, fit->dft.norm[1], "DFTNORM1", "Normalisation value for channel #1");
-	if (fit->dft.norm[2] > 0)
-		siril_string_append_double(str, fit->dft.norm[2], "DFTNORM2", "Normalisation value for channel 2");
-	if (fit->dft.ord[0] !='\0') {
-		char comment[FLEN_COMMENT] = { 0 };
-		if (fit->dft.ord[0] == 'C')
-			g_strlcpy(comment, "Low spatial freq. are located at image center", FLEN_COMMENT);
-		else if (fit->dft.ord[0] == 'R')
-			g_strlcpy(comment, "High spatial freq. are located at image center", FLEN_COMMENT);
-		siril_string_append_str(str, fit->dft.ord, "DFTORD", comment);
-	}
-	if (fit->dft.type[0] !='\0') {
-		char comment[FLEN_COMMENT] = { 0 };
-
-		if (fit->dft.type[0] == 'S')
-			g_strlcpy(comment, "Module of a Discrete Fourier Transform", FLEN_COMMENT);
-		else if (fit->dft.type[0] == 'P')
-			g_strlcpy(comment, "Phase of a Discrete Fourier Transform", FLEN_COMMENT);
-		siril_string_append_str(str, fit->dft.type, "DFTTYPE", comment);
-	}
-
-	/** write history **/
-	status = 0;
-	if (fit->history) {
-		GSList *list;
-		for (list = fit->history; list; list = list->next) {
-			char history[FLEN_COMMENT] = { 0 };
-			g_strlcpy(history, (char *)list->data, FLEN_COMMENT);
-			g_string_append_printf(str, "HISTORY %s\n", history);
-		}
-	}
-
-	status = 0;
-	if (com.history) {
-		for (int i = 0; i < com.hist_display; i++) {
-			if (com.history[i].history[0] != '\0') {
-				char history[FLEN_COMMENT] = { 0 };
-				g_strlcpy(history, com.history[i].history, FLEN_COMMENT);
-				g_string_append_printf(str, "HISTORY %s\n", history);
-			}
-		}
-	}
-
-
-	str = g_string_append(str, "END");
-	return g_string_free(str, FALSE);
+	return strdup(fit->header);
 }

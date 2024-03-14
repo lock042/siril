@@ -88,6 +88,12 @@ typedef enum {
 } starnet_version;
 
 typedef enum {
+	MMB_ZOOM_FIT,
+	MMB_ZOOM_100,
+	MMB_ZOOM_TOGGLE
+} mmb_action_t;
+
+typedef enum {
 	CMF_1931_2DEG = 0,
 	CMF_1964_10DEG = 1
 } cmf_pref;
@@ -226,6 +232,7 @@ struct gui_config {
 	roi_mode_t roi_mode; // Whether to set the ROI manually or auto from selection
 	gboolean enable_roi_warning; // Whether to notify when a ROI-enabled dialog starts
 	configurable_colors config_colors; // This used to configure some colors in Siril
+	mmb_action_t mmb_action; // Defines middle mouse button double click behaviour
 };
 
 // TODO: is any of the following used for something else than providing the default GUI value?

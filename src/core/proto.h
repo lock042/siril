@@ -200,7 +200,6 @@ int visu(fits *fit, int low, int high);
 int fill(fits *fit, int level, const rectangle *arearg);
 int off(fits *a, float level);
 double background(fits* fit, int reqlayer, rectangle *selection, threading_type threads);
-void show_FITS_header(fits*);
 void compute_grey_flat(fits *fit);
 
 /****************** seqfile.h ******************/
