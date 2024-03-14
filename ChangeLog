@@ -43,6 +43,7 @@ xx/xx/xx
 * Added near solve in Siril internal solver (#1154::4 and !631)
 * Improved mouse pan and zoom control to enable one-handed operation (!638, fixes #1271)
 * Added FITS keyword update on single loaded images (#72)
+* Added flexible aperture size depending in FWHM (#1278 !639)
 
 siril 1.2.2
 xx/xx/24
