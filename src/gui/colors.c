@@ -160,14 +160,10 @@ void on_button_white_selection_clicked(GtkButton *button, gpointer user_data) {
 	static GtkSpinButton *selection_white_value[4] = { NULL, NULL, NULL, NULL };
 
 	if (!selection_white_value[0]) {
-		selection_white_value[0] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(gui.builder, "spin_white_x"));
-		selection_white_value[1] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(gui.builder, "spin_white_y"));
-		selection_white_value[2] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(gui.builder, "spin_white_w"));
-		selection_white_value[3] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(gui.builder, "spin_white_h"));
+		selection_white_value[0] = GTK_SPIN_BUTTON(lookup_widget("spin_white_x"));
+		selection_white_value[1] = GTK_SPIN_BUTTON(lookup_widget("spin_white_y"));
+		selection_white_value[2] = GTK_SPIN_BUTTON(lookup_widget("spin_white_w"));
+		selection_white_value[3] = GTK_SPIN_BUTTON(lookup_widget("spin_white_h"));
 	}
 
 	if ((!com.selection.h) || (!com.selection.w)) {
@@ -411,26 +407,49 @@ void on_extract_channel_button_ok_clicked(GtkButton *button, gpointer user_data)
 	}
 }
 
+static int ccm_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
+		rectangle *_, int threads) {
+	struct ccm_data *c_args = (struct ccm_data*) args->user;
+	return ccm_calc(fit, c_args->matrix, c_args->power);
+}
+
+void apply_ccm_to_sequence(struct ccm_data *ccm_args) {
+	struct generic_seq_args *args = create_default_seqargs(ccm_args->seq);
+	args->filtering_criterion = seq_filter_included;
+	args->nb_filtered_images = ccm_args->seq->selnum;
+	args->compute_mem_limits_hook = NULL;
+	args->prepare_hook = seq_prepare_hook;
+	args->finalize_hook = seq_finalize_hook;
+	args->image_hook = ccm_image_hook;
+	args->stop_on_error = FALSE;
+	args->description = _("Color Conversion Matrices");
+	args->has_output = TRUE;
+	args->output_type = get_data_type(args->seq->bitpix);
+	args->new_seq_prefix = ccm_args->seqEntry;
+	args->load_new_sequence = TRUE;
+	args->user = ccm_args;
+
+	ccm_args->fit = NULL;	// not used here
+
+	start_in_new_thread(generic_sequence_worker, args);
+}
+
 void on_ccm_apply_clicked(GtkButton* button, gpointer user_data) {
-	ccm matrix;
-	float power;
-	matrix[0][0] = g_ascii_strtod(gtk_entry_buffer_get_text(GTK_ENTRY_BUFFER(gtk_entry_get_buffer(GTK_ENTRY(lookup_widget("entry_m00"))))), NULL);
-	matrix[0][1] = g_ascii_strtod(gtk_entry_buffer_get_text(GTK_ENTRY_BUFFER(gtk_entry_get_buffer(GTK_ENTRY(lookup_widget("entry_m01"))))), NULL);
-	matrix[0][2] = g_ascii_strtod(gtk_entry_buffer_get_text(GTK_ENTRY_BUFFER(gtk_entry_get_buffer(GTK_ENTRY(lookup_widget("entry_m02"))))), NULL);
-	matrix[1][0] = g_ascii_strtod(gtk_entry_buffer_get_text(GTK_ENTRY_BUFFER(gtk_entry_get_buffer(GTK_ENTRY(lookup_widget("entry_m10"))))), NULL);
-	matrix[1][1] = g_ascii_strtod(gtk_entry_buffer_get_text(GTK_ENTRY_BUFFER(gtk_entry_get_buffer(GTK_ENTRY(lookup_widget("entry_m11"))))), NULL);
-	matrix[1][2] = g_ascii_strtod(gtk_entry_buffer_get_text(GTK_ENTRY_BUFFER(gtk_entry_get_buffer(GTK_ENTRY(lookup_widget("entry_m12"))))), NULL);
-	matrix[2][0] = g_ascii_strtod(gtk_entry_buffer_get_text(GTK_ENTRY_BUFFER(gtk_entry_get_buffer(GTK_ENTRY(lookup_widget("entry_m20"))))), NULL);
-	matrix[2][1] = g_ascii_strtod(gtk_entry_buffer_get_text(GTK_ENTRY_BUFFER(gtk_entry_get_buffer(GTK_ENTRY(lookup_widget("entry_m21"))))), NULL);
-	matrix[2][2] = g_ascii_strtod(gtk_entry_buffer_get_text(GTK_ENTRY_BUFFER(gtk_entry_get_buffer(GTK_ENTRY(lookup_widget("entry_m22"))))), NULL);
-	power = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_ccm_power")));
-	gchar *buf = g_strdup_printf(_("CCM: [[%.2f %.2f %.2f][%.2f %.2f %.2f][%.2f %.2f %.2f]], pwr: %.2f"),
-				matrix[0][0], matrix[0][1], matrix[0][2],
-				matrix[1][0], matrix[1][1], matrix[1][2],
-				matrix[2][0], matrix[2][1], matrix[2][2],
-				power);
-	undo_save_state(&gfit, buf);
-	g_free(buf);
+	struct ccm_data *args = malloc(sizeof(struct ccm_data));
+
+	args->matrix[0][0] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m00"))), NULL);
+	args->matrix[0][1] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m01"))), NULL);
+	args->matrix[0][2] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m02"))), NULL);
+	args->matrix[1][0] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m10"))), NULL);
+	args->matrix[1][1] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m11"))), NULL);
+	args->matrix[1][2] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m12"))), NULL);
+	args->matrix[2][0] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m20"))), NULL);
+	args->matrix[2][1] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m21"))), NULL);
+	args->matrix[2][2] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m22"))), NULL);
+	args->power = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_ccm_power")));
+
+	GtkToggleButton *btn = GTK_TOGGLE_BUTTON(lookup_widget("check_apply_seq_ccm"));
+
 	if (gfit.icc_profile && gfit.color_managed) {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("ICC Profile"), _("This image has an attached ICC profile. Applying the CCM will invalidate the "
 					"ICC profile therefore color management will be disabled. When you have completed low-level color manipulation and returned the image "
@@ -438,9 +457,28 @@ void on_ccm_apply_clicked(GtkButton* button, gpointer user_data) {
 		color_manage(&gfit, FALSE);
 		gtk_widget_set_sensitive(lookup_widget("ccm_restore_icc"), TRUE);
 	}
-	ccm_calc(&gfit, matrix, power);
-	invalidate_stats_from_fit(&gfit);
-	notify_gfit_modified();
+
+	if (gtk_toggle_button_get_active(btn)) {
+		GtkEntry *ccmSeqEntry = GTK_ENTRY(lookup_widget("entryCCMSeq"));
+		args->seqEntry = strdup(gtk_entry_get_text(ccmSeqEntry));
+
+		args->seq = &com.seq;
+		apply_ccm_to_sequence(args);
+	} else {
+		gchar *buf = g_strdup_printf(_("CCM: [[%.2f %.2f %.2f][%.2f %.2f %.2f][%.2f %.2f %.2f]], pwr: %.2f"),
+					args->matrix[0][0], args->matrix[0][1], args->matrix[0][2],
+					args->matrix[1][0], args->matrix[1][1], args->matrix[1][2],
+					args->matrix[2][0], args->matrix[2][1], args->matrix[2][2],
+					args->power);
+
+		undo_save_state(&gfit, buf);
+		g_free(buf);
+
+		ccm_calc(&gfit, args->matrix, args->power);
+		invalidate_stats_from_fit(&gfit);
+		notify_gfit_modified();
+		free(args);
+	}
 }
 
 void on_ccm_restore_icc_clicked(GtkButton *button, gpointer user_data) {
@@ -452,15 +490,15 @@ void on_ccm_restore_icc_clicked(GtkButton *button, gpointer user_data) {
 
 static void update_ccm_matrix(ccm matrix) {
 	gchar buf[G_ASCII_DTOSTR_BUF_SIZE+1];
-	gtk_entry_buffer_set_text(GTK_ENTRY_BUFFER(gtk_entry_get_buffer(GTK_ENTRY(lookup_widget("entry_m00")))), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[0][0]), -1);
-	gtk_entry_buffer_set_text(GTK_ENTRY_BUFFER(gtk_entry_get_buffer(GTK_ENTRY(lookup_widget("entry_m01")))), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[0][1]), -1);
-	gtk_entry_buffer_set_text(GTK_ENTRY_BUFFER(gtk_entry_get_buffer(GTK_ENTRY(lookup_widget("entry_m02")))), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[0][2]), -1);
-	gtk_entry_buffer_set_text(GTK_ENTRY_BUFFER(gtk_entry_get_buffer(GTK_ENTRY(lookup_widget("entry_m10")))), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[1][0]), -1);
-	gtk_entry_buffer_set_text(GTK_ENTRY_BUFFER(gtk_entry_get_buffer(GTK_ENTRY(lookup_widget("entry_m11")))), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[1][1]), -1);
-	gtk_entry_buffer_set_text(GTK_ENTRY_BUFFER(gtk_entry_get_buffer(GTK_ENTRY(lookup_widget("entry_m12")))), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[1][2]), -1);
-	gtk_entry_buffer_set_text(GTK_ENTRY_BUFFER(gtk_entry_get_buffer(GTK_ENTRY(lookup_widget("entry_m20")))), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[2][0]), -1);
-	gtk_entry_buffer_set_text(GTK_ENTRY_BUFFER(gtk_entry_get_buffer(GTK_ENTRY(lookup_widget("entry_m21")))), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[2][1]), -1);
-	gtk_entry_buffer_set_text(GTK_ENTRY_BUFFER(gtk_entry_get_buffer(GTK_ENTRY(lookup_widget("entry_m22")))), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[2][2]), -1);
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entry_m00")), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[0][0]));
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entry_m01")), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[0][1]));
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entry_m02")), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[0][2]));
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entry_m10")), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[1][0]));
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entry_m11")), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[1][1]));
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entry_m12")), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[1][2]));
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entry_m20")), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[2][0]));
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entry_m21")), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[2][1]));
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entry_m22")), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[2][2]));
 }
 
 void on_ccm_reset_clicked(GtkButton* button, gpointer user_data) {
