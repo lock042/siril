@@ -61,7 +61,6 @@ preferences pref_init = {
 	.copyright = NULL,
 	.starnet_exe = NULL,
 	.starnet_weights = NULL,
-	.gnuplot_dir = NULL,
 	.asnet_dir = NULL,
 	.selected_scripts = NULL,
 	.use_scripts_repository = TRUE,
@@ -150,7 +149,8 @@ preferences pref_init = {
 		.config_colors.color_std_annotations = NULL,
 		.config_colors.color_dso_annotations = NULL,
 		.config_colors.color_sso_annotations = NULL,
-		.config_colors.color_tmp_annotations = NULL
+		.config_colors.color_tmp_annotations = NULL,
+		.mmb_action = MMB_ZOOM_FIT
 	},
 	.debayer = {
 		.open_debayer = FALSE,
@@ -173,7 +173,7 @@ preferences pref_init = {
 		.minval = -1500.0,
 		.maxval = 60000.0,
 		.discard_var_catalogues = 4,
-		
+
 	},
 	.astrometry = {
 		.update_default_scale = TRUE,
@@ -266,8 +266,6 @@ void free_preferences(preferences *pref) {
 	pref->starnet_exe = NULL;
 	g_free(pref->starnet_weights);
 	pref->starnet_weights = NULL;
-	g_free(pref->gnuplot_dir);
-	pref->gnuplot_dir = NULL;
 	g_free(pref->asnet_dir);
 	pref->asnet_dir = NULL;
 	g_free(pref->lang);
@@ -336,8 +334,6 @@ struct settings_access all_settings[] = {
 	{ "core", "copyright", STYPE_STR, N_("user copyright to put in file header"), &com.pref.copyright },
 	{ "core", "starnet_exe", STYPE_STR, N_("location of the StarNet executable"), &com.pref.starnet_exe },
 	{ "core", "starnet_weights", STYPE_STR, N_("location of the StarNet-torch weights file"), &com.pref.starnet_weights },
-// TODO: remove when we release 1.4. For now, it's kept to avoid having the key removed when switching back and forth to 1.2/1.3
-	{ "core", "gnuplot_dir", STYPE_STR, N_("directory of the gnuplot installation"), &com.pref.gnuplot_dir },
 #ifdef _WIN32
 	{ "core", "asnet_dir", STYPE_STR, N_("directory of the asnet_ansvr installation"), &com.pref.asnet_dir },
 #else
@@ -469,6 +465,7 @@ struct settings_access all_settings[] = {
 	{ "gui", "display_histogram_mode", STYPE_INT, N_("default histogram display mode"), &com.pref.gui.display_histogram_mode, { .range_int = { 0, 1 } } },
 	{ "gui", "roi_mode", STYPE_INT, N_("ROI selection mode"), &com.pref.gui.roi_mode },
 	{ "gui", "roi_warning", STYPE_BOOL, N_("enable ROI dialog warning"), &com.pref.gui.enable_roi_warning },
+	{ "gui", "mmb_zoom_action", STYPE_INT, N_("Middle mouse button double click zoom action"), &com.pref.gui.mmb_action },
 	{ "gui", "color_bkg_samples", STYPE_STR, N_("configure background samples color"), &com.pref.gui.config_colors.color_bkg_samples },
 	{ "gui", "color_std_annotations", STYPE_STR, N_("configure standard annotation color"), &com.pref.gui.config_colors.color_std_annotations },
 	{ "gui", "color_dso_annotations", STYPE_STR, N_("configure dso annotation color"), &com.pref.gui.config_colors.color_dso_annotations },

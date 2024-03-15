@@ -41,10 +41,15 @@ siril 1.4.0 xx xx, xx
 * Added dark scaling to match exposure time (#1269)
 * Added manual photometry output comparison stars file creation from UI (!614)
 * Added near solve in Siril internal solver (#1154::4 and !631)
+* Improved mouse pan and zoom control to enable one-handed operation (!638, fixes #1271)
+* Added FITS keyword update on single loaded images (#72)
+* Added Color Conversion Matrices for single images and sequences (!630 and !641) 
+* Added versionning for init files (#1274)
 
 siril 1.2.2 xx xx, 2024
-* Removed bakground extraction samples after using it in script (#1265)
+* Removed background extraction samples after using it in script (#1265)
 * Fixed catalog parser problem with negative declination (less than 1°) (#1270)
+* Fixes weighing by number of stars during stacking if number of stars is the same accross the sequence (#1273)
 
 siril 1.2.1 January 26, 2024
 

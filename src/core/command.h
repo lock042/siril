@@ -234,6 +234,7 @@ int	process_unset_mag(int nb);
 int	process_unset_mag_seq(int nb);
 int	process_unselect(int nb);
 int	process_unsharp(int nb);
+int process_update_key(int nb);
 
 int	process_visu(int nb);
 

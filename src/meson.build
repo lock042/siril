@@ -207,6 +207,7 @@ src_files = [
   'gui/drizzle_gui.c',
   'gui/fix_xtrans_af.c',
   'gui/histogram.c',
+  'gui/keywords_tree.c',
   'gui/image_display.c',
   'gui/image_interactions.c',
   'gui/linear_match.c',
