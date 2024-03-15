@@ -182,10 +182,12 @@ static int listFITSKeywords(fits *fit, gboolean editable) {
 	if (status == END_OF_FILE)
 		status = 0; /* Reset after normal error */
 
+	fits_movabs_hdu(tmpfit.fptr, 1, NULL, &status);
+
 	if (status)
 		fits_report_error(stderr, status); /* print any error message */
 
-
+	fits_movabs_hdu(fptr, 0, NULL, &status);
 	fits_close_file(fptr, &status);
 	clearfits(&tmpfit);
 
