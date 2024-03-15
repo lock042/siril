@@ -37,7 +37,10 @@
 
 #include "initfile.h"
 
-#define GLIB_CONFIG_FILE "config.ini"
+#define STR_INDIR(x) #x
+#define STR(x) STR_INDIR(x)
+#define GLIB_CONFIG_FILE "config." STR(SIRIL_MAJOR_VERSION) "." STR(SIRIL_MINOR_VERSION) ".ini"
+static char *configfiles[] = { GLIB_CONFIG_FILE, "config.ini" };
 
 static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 	GError *error = NULL;
@@ -139,6 +142,23 @@ static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 	return 0;
 }
 
+static gchar *get_initfile(const gchar *pathname) {
+	for (int i = 0; i < G_N_ELEMENTS(configfiles); i++) {
+		gchar *current = g_build_filename(pathname, configfiles[i], NULL);
+		if (g_file_test(current, G_FILE_TEST_EXISTS)) {
+			if (i > 0)
+				siril_log_message(_("Converting previous initfile: %s\n"), current);
+			return current;
+		}
+		g_free(current);
+	}
+	return NULL;
+}
+
+/**
+ * Public functions
+ */
+
 int read_keyfile(GKeyFile *kf) {
 	gsize nb_keys_read = 0;
 	gsize nb_groups;
@@ -180,10 +200,6 @@ int readinitfile(gchar *fname) {
 	return 0;
 }
 
-/**
- * Public functions
- */
-
 
 int checkinitfile() {
 	/* com.initfile will contain the path passed with -i if any, NULL else */
@@ -197,7 +213,8 @@ int checkinitfile() {
 	/* set com.initfile to default location */
 	gchar *pathname = g_build_filename(siril_get_config_dir(), PACKAGE, NULL);
 	gchar *config_file = g_build_filename(pathname, GLIB_CONFIG_FILE, NULL);
-	if (!g_file_test(config_file, G_FILE_TEST_EXISTS)) {
+	gchar *existing_config_file = get_initfile(pathname);
+	if (!existing_config_file) {
 			/* neither files found, create the directory and load defaults */
 			initialize_default_settings();
 
@@ -215,8 +232,10 @@ int checkinitfile() {
 			}
 	}
 	else {
-		com.initfile = config_file;
+		com.initfile = existing_config_file;
 		retval = readinitfile(com.initfile);
+		g_free(existing_config_file);
+		com.initfile = config_file;
 	}
 	g_free(pathname);
 	return retval;
