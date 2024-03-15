@@ -181,6 +181,11 @@ struct driz_args_t {
   float weight_scale; /* Weight scale */
   float pixel_fraction;
   uint32_t cfa;
+  GList *processed_images;
+  struct ser_struct *new_ser_drz;
+  fitseq *new_fitseq_drz;
+  struct ser_struct *new_ser_pxcnt;
+  fitseq *new_fitseq_pxcnt;
 };
 
 struct driz_param_t {

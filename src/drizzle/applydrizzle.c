@@ -237,45 +237,28 @@ struct _drizzle_pair {
 	fits *output_counts;
 };
 
-int apply_drz_prepare_hook(struct generic_seq_args *args) {
+static int apply_drz_prepare_hook(struct generic_seq_args *args) {
 	struct driz_args_t *driz = args->user;
-
-	driz_param_dump(driz);
-
-	fits fit = { 0 };
-
-	/* preparing reference data from reference fit and making sanity checks*/
-
-	/* fit will now hold the reference frame */
-	if (seq_read_frame_metadata(args->seq, driz->reference_image, &fit)) {
-		siril_log_message(_("Could not load reference image\n"));
-		args->seq->regparam[0] = NULL;
+	// we call the generic prepare twice with different prefixes
+	args->new_seq_prefix = driz->prefix;
+	if (apply_drz_prepare_results(args))
 		return 1;
-	}
+	// but we copy the result between each call
+	driz->new_ser_drz = args->new_ser;
+	driz->new_fitseq_drz = args->new_fitseq;
 
-	driz->is_bayer = (fit.bayer_pattern[0] != '\0'); // If there is a CFA pattern we need to CFA drizzle
-	sensor_pattern pattern = com.pref.debayer.use_bayer_header ? get_cfa_pattern_index_from_string(fit.bayer_pattern) : com.pref.debayer.bayer_pattern;
-	if (driz->is_bayer) {
-		// Copied from debayer.c, this sets up a uint32_t that allows mapping pixel to color
-		// using FC(). Note: it doesn't cover X-Trans patterns
-		switch (pattern) {
-			case BAYER_FILTER_BGGR:
-				driz->cfa = 0x16161616;
-				break;
-			case BAYER_FILTER_GRBG:
-				driz->cfa = 0x61616161;
-				break;
-			case BAYER_FILTER_RGGB:
-				driz->cfa = 0x94949494;
-				break;
-			case BAYER_FILTER_GBRG:
-				driz->cfa = 0x49494949;
-				break;
-			default:
-				siril_log_color_message(_("Error: cannot drizzle this CFA pattern\n"), "red");
-				return -1;
-			}
-	}
+	args->new_seq_prefix = "pxcnt_"; // This is OK here, it does not get freed in the
+	// end_generic_sequence later
+	if (seq_prepare_hook(args))
+		return 1;
+	driz->new_ser_pxcnt = args->new_ser;
+	driz->new_fitseq_pxcnt = args->new_fitseq;
+
+	args->new_seq_prefix = NULL;
+	args->new_ser = NULL;
+	args->new_fitseq = NULL;
+
+	seqwriter_set_number_of_outputs(2);
 
 /*
  * This needs to be moved into check_before_applydrizzle and aligned with the framing computation
@@ -291,14 +274,20 @@ int apply_drz_prepare_hook(struct generic_seq_args *args) {
 		driz->refwcs = fit.wcslib;
 	}
 */
-	return apply_drz_prepare_results(args);
+	return 0;
 }
+
+struct _double_driz {
+	int index;
+	fits *output;
+	fits *pixel_count;
+};
 
 /* reads the image and apply existing transformation */
 int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads) {
 	struct driz_args_t *driz = args->user;
 	struct wcsprm *refwcs = driz->refwcs;
-
+	gboolean keep_counts = TRUE; // TODO: this should be set more intelligently
 	/* Set up the per-image drizzle parameters */
 	struct driz_param_t *p = calloc(1, sizeof(struct driz_param_t));
 
@@ -390,11 +379,11 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	p->output_data = &out;
 
 	// Set up the output_counts fits to store pixel hit counts
-	fits output_counts = { 0 };
-	copyfits(&out, &output_counts, CP_FORMAT, -1);
+	fits *output_counts = calloc(1, sizeof(fits));
+	copyfits(&out, output_counts, CP_FORMAT, -1);
 	siril_debug_print("Output counts image %d x %d x %ld\n", out.rx, out.ry, out.naxes[2]);
-	output_counts.fdata = calloc(output_counts.rx * output_counts.ry * output_counts.naxes[2], sizeof(float));
-	p->output_counts = &output_counts;
+	output_counts->fdata = calloc(output_counts->rx * output_counts->ry * output_counts->naxes[2], sizeof(float));
+	p->output_counts = output_counts;
 
 	/* NOTE: on the first pass there is no weights file, everything is evenly
 	 *       weighted. This will be used to remove outliers after drz_medstack.
@@ -408,15 +397,31 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	// Copy driz->output_data to fit so that it is saved as the output sequence frame
 	clearfits(fit);
 	copyfits(&out, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
-//	copyfits(&output_counts, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 
 	// TODO: do we still need the mapping file for the blot or the second drizzle or is it
 	//       cheaper to recalculate it (if needed) than to save / load it?
 	free(p->pixmap->pixmap);
 	free(p->pixmap);
 
-	// TODO: do we need to save driz->output_counts? Or just discard it once dobox() is done?
-	clearfits(&output_counts);
+	// Get rid of the output_counts if not required
+	if (!keep_counts) {
+		clearfits(output_counts);
+		free(output_counts);
+		output_counts = NULL;
+	}
+
+	struct _double_driz *double_data = calloc(1, sizeof(struct _double_driz));
+	double_data->index = out_index;
+	double_data->output = fit;
+	double_data->pixel_count = output_counts;
+#ifdef _OPENMP
+	omp_set_lock(&args->lock);
+#endif
+	driz->processed_images = g_list_append(driz->processed_images, double_data);
+#ifdef _OPENMP
+	omp_unset_lock(&args->lock);
+#endif
+	siril_debug_print("drizzle: processed image and output_counts (if specified) added to the save list (index %d)\n", out_index);
 
 	if (in_index == driz->reference_image)
 		new_ref_index = out_index; // keeping track of the new ref index in output sequence
@@ -444,8 +449,102 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	return 0;
 }
 
+static int apply_drz_save_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit) {
+	struct driz_args_t *driz = (struct driz_args_t*) args->user;;
+	struct _double_driz *double_data = NULL;
+	// images are passed from the image_hook to the save in a list, because
+	// there are two, which is unsupported by the generic arguments
+#ifdef _OPENMP
+	omp_set_lock(&args->lock);
+#endif
+	GList *list = driz->processed_images;
+	while (list) {
+		if (((struct _double_driz *)list->data)->index == out_index) {
+			double_data = list->data;
+			break;
+		}
+		list = g_list_next(driz->processed_images);
+	}
+	if (double_data)
+		driz->processed_images = g_list_remove(driz->processed_images, double_data);
+#ifdef _OPENMP
+	omp_unset_lock(&args->lock);
+#endif
+	if (!double_data) {
+		siril_log_color_message(_("Image %d not found for writing\n"), "red", in_index);
+		return 1;
+	}
+
+	siril_debug_print("Drizzle: images to be saved (index %d)\n", out_index);
+	if (double_data->output->naxes[0] == 0) {
+		siril_debug_print("empty drizzle data\n");
+		return 1;
+	}
+
+	int retval1 = 0, retval2 = 0;
+	if (args->force_ser_output || args->seq->type == SEQ_SER) {
+		if (double_data->output)
+			retval1 = ser_write_frame_from_fit(driz->new_ser_drz, double_data->output, out_index);
+		if (double_data->pixel_count)
+			retval2 = ser_write_frame_from_fit(driz->new_ser_pxcnt, double_data->pixel_count, out_index);
+		// the two fits are freed by the writing thread
+		if (!retval1 && !retval2) {
+			/* special case because it's not done in the generic */
+			clearfits(fit);
+			free(fit);
+		}
+	} else if (args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) {
+		if (double_data->output)
+			retval1 = fitseq_write_image(driz->new_fitseq_drz, double_data->output, out_index);
+		if (double_data->pixel_count)
+			retval2 = fitseq_write_image(driz->new_fitseq_pxcnt, double_data->pixel_count, out_index);
+		// the two fits are freed by the writing thread
+		if (!retval1 && !retval2) {
+			/* special case because it's not done in the generic */
+			clearfits(fit);
+			free(fit);
+		}
+	} else {
+		char *dest = fit_sequence_get_image_filename_prefixed(args->seq, driz->prefix, in_index);
+		if (double_data->output) {
+			retval1 = savefits(dest, double_data->output);
+		}
+		free(dest);
+		gchar *ocprefix = g_strdup_printf("oc_%s", driz->prefix);
+		dest = fit_sequence_get_image_filename_prefixed(args->seq, ocprefix, in_index);
+		g_free(ocprefix);
+		if (double_data->pixel_count) {
+			retval2 = savefits(dest, double_data->pixel_count);
+		}
+		free(dest);
+	}
+	if (!driz->new_fitseq_drz && !driz->new_ser_drz) { // detect if there is a seqwriter
+		clearfits(double_data->output);
+		// Don't free double_data->output as this == fit and needs to be freed by the sequence worker
+		clearfits(double_data->pixel_count);
+		free(double_data->pixel_count);
+	}
+	free(double_data);
+	return retval1 || retval2;
+}
+
 int apply_drz_finalize_hook(struct generic_seq_args *args) {
-	struct driz_args_t *driz = args->user;
+	struct driz_args_t *driz = (struct driz_args_t*) args->user;
+
+	// We deal with the pixel_count sequence first
+	args->new_ser = driz->new_ser_pxcnt;
+	args->new_fitseq = driz->new_fitseq_pxcnt;
+	int retval = 0;
+	if (args->new_ser || args->new_fitseq) {
+		retval = seq_finalize_hook(args);
+	}
+	driz->new_ser_pxcnt = NULL;
+	driz->new_fitseq_pxcnt = NULL;
+
+	// We deal with the drizzled sequence next
+	args->new_ser = driz->new_ser_drz;
+	args->new_fitseq = driz->new_fitseq_drz;
+
 	int failed = 0;
 
 	// images may have been excluded but selnum wasn't updated
@@ -485,11 +584,11 @@ int apply_drz_finalize_hook(struct generic_seq_args *args) {
 	}
 
 	if (driz->success) free(driz->success);
-//	Do not free driz here as it will be needed for blot and second drizzle
+	//	Do not free driz here as it will be needed for blot and second drizzle
 	args->user = NULL;
 
 	if (!args->retval) {
-		siril_log_message(_("Applying registration completed.\n"));
+		siril_log_message(_("Applying drizzle completed.\n"));
 		gchar *str = ngettext("%d image processed.\n", "%d images processed.\n", args->nb_filtered_images);
 		str = g_strdup_printf(str, args->nb_filtered_images);
 		siril_log_color_message(str, "green");
@@ -504,9 +603,15 @@ int apply_drz_finalize_hook(struct generic_seq_args *args) {
 		}
 	}
 	else {
-		siril_log_message(_("Transformation aborted.\n"));
+		siril_log_message(_("Drizzle aborted.\n"));
 	}
-	return driz->new_total == 0;
+
+	if (driz->new_total != 0)
+		return 1;
+	driz->new_ser_drz = NULL;
+	driz->new_fitseq_drz = NULL;
+
+	return retval;
 }
 
 int apply_drz_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
@@ -595,11 +700,8 @@ int apply_drizzle(struct driz_args_t *driz) {
 	args->compute_mem_limits_hook = apply_drz_compute_mem_limits;
 	args->prepare_hook = apply_drz_prepare_hook;
 	args->image_hook = apply_drz_image_hook;
+	args->save_hook = apply_drz_save_hook; // TODO: write this to handle the dual sequences
 	args->finalize_hook = apply_drz_finalize_hook;
-//	args->idle_function = apply_drz_medstack;
-	/* When this sequence finishes,
-		it kicks off another one to perform a median stack of the drizzled
-		images. */
 	args->description = _("Apply drizzle");
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
@@ -608,6 +710,41 @@ int apply_drizzle(struct driz_args_t *driz) {
 	args->load_new_sequence = TRUE;
 	args->force_float = FALSE;
 	args->user = driz;
+
+	driz_param_dump(driz); // Print some info to the log
+	fits fit = { 0 };
+
+	/* preparing reference data from reference fit and making sanity checks*/
+	/* fit will now hold the reference frame */
+	if (seq_read_frame_metadata(args->seq, driz->reference_image, &fit)) {
+		siril_log_message(_("Could not load reference image\n"));
+		args->seq->regparam[0] = NULL;
+		return 1;
+	}
+
+	driz->is_bayer = (fit.bayer_pattern[0] != '\0'); // If there is a CFA pattern we need to CFA drizzle
+	sensor_pattern pattern = com.pref.debayer.use_bayer_header ? get_cfa_pattern_index_from_string(fit.bayer_pattern) : com.pref.debayer.bayer_pattern;
+	if (driz->is_bayer) {
+		// Copied from debayer.c, this sets up a uint32_t that allows mapping pixel to color
+		// using FC(). Note: it doesn't cover X-Trans patterns
+		switch (pattern) {
+			case BAYER_FILTER_BGGR:
+				driz->cfa = 0x16161616;
+				break;
+			case BAYER_FILTER_GRBG:
+				driz->cfa = 0x61616161;
+				break;
+			case BAYER_FILTER_RGGB:
+				driz->cfa = 0x94949494;
+				break;
+			case BAYER_FILTER_GBRG:
+				driz->cfa = 0x49494949;
+				break;
+			default:
+				siril_log_color_message(_("Error: cannot drizzle this CFA pattern\n"), "red");
+				return -1;
+			}
+	}
 
 	start_in_new_thread(generic_sequence_worker, args);
 	return 0;
@@ -652,6 +789,10 @@ static void create_output_sequence_for_apply_driz(struct driz_args_t *args) {
 
 gboolean check_before_applydrizzle(struct driz_args_t *driz) {
 	// check the reference image matrix is not null
+	if (!(driz && driz->seq && driz->seq->regparam[0])) {
+		siril_log_color_message(_("Error: registration parameters not found, aborting\n"), "red");
+		return FALSE;
+	}
 	transformation_type checkH = guess_transform_from_H(driz->seq->regparam[0][driz->seq->reference_image].H);
 	if (checkH == NULL_TRANSFORMATION) {
 		siril_log_color_message(_("The reference image has a null matrix and was not previously aligned, choose another one, aborting\n"), "red");
