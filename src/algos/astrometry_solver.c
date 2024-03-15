@@ -2025,14 +2025,24 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 		if (arg->seq->type == SEQ_REGULAR) { // regular sequence, fit->fptr has been closed after loading the frame, we can reopen to update
 			fit_sequence_get_image_filename(arg->seq, i, root, TRUE);
 			int status = 0;
-			siril_fits_open_diskfile_img(&(fit->fptr), root, READWRITE, &status); // opening in READWRITE mode will save the update header upon closing
+			// we don't want to overwrite original files, so we test for symlinks 
+			if (is_symlink_file(root)) {
+				siril_debug_print("Image %s was a symlink, creating a new file to keep original untouched\n", root);
+				status = savefits(root, fit);
+			} else {
+				siril_fits_open_diskfile_img(&(fit->fptr), root, READWRITE, &status); // opening in READWRITE mode will save the update header upon closing
+				if (!status) {
+					save_fits_header(fit);
+					int statuscl = 0;
+					fits_close_file(fit->fptr, &statuscl);
+				} else {
+					report_fits_error(status);
+				}
+			}
 			if (!status) {
-				save_fits_header(fit);
-				fits_close_file(fit->fptr, &status);
 				siril_log_color_message(_("Image %s platesolved and updated\n"), "salmon", root);
 			} else {
 				siril_log_color_message(_("Image %s platesolved but could not be saved\n"), "red", root);
-				report_fits_error(status);
 				free(aargs);
 				return 1;
 			}
