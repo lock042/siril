@@ -209,11 +209,18 @@ void siril_window_enable_rgb_proc_actions(GtkApplicationWindow *window, gboolean
 		"saturation-processing",
 		"color-calib-processing",
 		"split-channel-processing",
-		"ccm-processing",
 		"align-global",
 		NULL,
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), rgb_processing_actions, enable);
+}
+
+void siril_window_enable_any_rgb_proc_actions(GtkApplicationWindow *window, gboolean enable) {
+	static const gchar *any_rgb_processing_actions[] = {
+		"ccm-processing",
+		NULL,
+	};
+	_siril_window_enable_action_group(G_ACTION_MAP(window), any_rgb_processing_actions, enable);
 }
 
 void siril_window_enable_rgb_wcs_proc_actions(GtkApplicationWindow *window, gboolean enable) {
