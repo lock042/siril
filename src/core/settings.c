@@ -61,7 +61,6 @@ preferences pref_init = {
 	.copyright = NULL,
 	.starnet_exe = NULL,
 	.starnet_weights = NULL,
-	.gnuplot_dir = NULL,
 	.asnet_dir = NULL,
 	.selected_scripts = NULL,
 	.use_scripts_repository = TRUE,
@@ -267,8 +266,6 @@ void free_preferences(preferences *pref) {
 	pref->starnet_exe = NULL;
 	g_free(pref->starnet_weights);
 	pref->starnet_weights = NULL;
-	g_free(pref->gnuplot_dir);
-	pref->gnuplot_dir = NULL;
 	g_free(pref->asnet_dir);
 	pref->asnet_dir = NULL;
 	g_free(pref->lang);
@@ -337,8 +334,6 @@ struct settings_access all_settings[] = {
 	{ "core", "copyright", STYPE_STR, N_("user copyright to put in file header"), &com.pref.copyright },
 	{ "core", "starnet_exe", STYPE_STR, N_("location of the StarNet executable"), &com.pref.starnet_exe },
 	{ "core", "starnet_weights", STYPE_STR, N_("location of the StarNet-torch weights file"), &com.pref.starnet_weights },
-// TODO: remove when we release 1.4. For now, it's kept to avoid having the key removed when switching back and forth to 1.2/1.3
-	{ "core", "gnuplot_dir", STYPE_STR, N_("directory of the gnuplot installation"), &com.pref.gnuplot_dir },
 #ifdef _WIN32
 	{ "core", "asnet_dir", STYPE_STR, N_("directory of the asnet_ansvr installation"), &com.pref.asnet_dir },
 #else
