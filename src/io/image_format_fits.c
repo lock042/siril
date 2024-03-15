@@ -471,7 +471,7 @@ void read_fits_header(fits *fit) {
 		double flength;
 		status = 0;
 		fits_read_key(fit->fptr, TDOUBLE, "FLENGTH", &flength, NULL, &status);
-		if (!status && fit->focal_length > 0.) {
+		if (!status && flength > 0.) {
 			fit->focal_length = flength * 1000.0; // convert m to mm
 			fit->focalkey = TRUE;
 		}
