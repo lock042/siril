@@ -110,8 +110,8 @@ photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 
 	r1 = phot_set->inner;
 	r2 = phot_set->outer;
-	appRadius = phot_set->force_radius ? phot_set->aperture : psf->fwhmx * 2.0;
-//	appRadius = !phot_set->force_radius ? phot_set->aperture : 0.5 * psf->fwhmx * phot_set->auto_aperture_factor;
+//	appRadius = phot_set->force_radius ? phot_set->aperture : psf->fwhmx * 2.0;
+	appRadius = phot_set->force_radius ? phot_set->aperture : 0.5 * psf->fwhmx * phot_set->auto_aperture_factor;
 	if (appRadius >= r1 && !phot_set->force_radius) {
 		if (verbose) {
 			/* Translator note: radii is plural for radius */
