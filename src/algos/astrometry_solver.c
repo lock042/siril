@@ -179,7 +179,7 @@ double compute_mag_limit_from_position_and_fov(double ra, double dec, double fov
 	// fov area in deg^2
 	double S = 2 * (1 - cos(0.5 * fov_degrees * DEGTORAD)) * 180. * 180. / M_PI;
 	// mag intercept
-	double m0 = 11.68 + 2.66 * sin(abs(mb) * DEGTORAD);
+	double m0 = 11.68 + 2.66 * sin(fabs(mb) * DEGTORAD);
 	// mag slope
 	double a = 2.36 + (fabs(ml) - 90) * 0.0073 * (fabs(ml) < 90.);
 	double b = 0.88 - (fabs(ml) - 90) * 0.0065 * (fabs(ml) < 90.);
