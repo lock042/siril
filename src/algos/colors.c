@@ -1284,3 +1284,42 @@ int ccm_calc(fits *fit, ccm matrix, float power) {
 	fit->type == DATA_FLOAT ? ccm_float(fit, matrix, power) : ccm_ushort(fit, matrix, power);
 	return 0;
 }
+
+static int ccm_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
+		rectangle *_, int threads) {
+	struct ccm_data *c_args = (struct ccm_data*) args->user;
+	int ret = ccm_calc(fit, c_args->matrix, c_args->power);
+	if (ret) {
+		siril_log_color_message(_("Color Conversion Matrices can only be applied to 3-channel images.\n"), "red");
+	}
+	return ret;
+}
+
+static int ccm_finalize_hook(struct generic_seq_args *args) {
+	struct ccm_data *c_args = (struct ccm_data*) args->user;
+	int retval = seq_finalize_hook(args);
+
+	free(c_args);
+	return retval;
+}
+
+void apply_ccm_to_sequence(struct ccm_data *ccm_args) {
+	struct generic_seq_args *args = create_default_seqargs(ccm_args->seq);
+	args->filtering_criterion = seq_filter_included;
+	args->nb_filtered_images = ccm_args->seq->selnum;
+	args->compute_mem_limits_hook = NULL;
+	args->prepare_hook = seq_prepare_hook;
+	args->finalize_hook = ccm_finalize_hook;
+	args->image_hook = ccm_image_hook;
+	args->stop_on_error = FALSE;
+	args->description = _("Color Conversion Matrices");
+	args->has_output = TRUE;
+	args->output_type = get_data_type(args->seq->bitpix);
+	args->new_seq_prefix = ccm_args->seqEntry;
+	args->load_new_sequence = TRUE;
+	args->user = ccm_args;
+
+	ccm_args->fit = NULL;	// not used here
+
+	start_in_new_thread(generic_sequence_worker, args);
+}
