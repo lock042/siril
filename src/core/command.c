@@ -1746,49 +1746,101 @@ static gboolean crop_command_idle(gpointer arg) {
 	return FALSE;
 }
 
+
 int process_ccm(int nb) {
-	if (!isrgb(&gfit)) {
-		siril_log_color_message(_("Color Conversion Matrices can only be applied to 3-channel images.\n"), "red");
-		return CMD_INVALID_IMAGE;
+	sequence *seq = NULL;
+	char *prefix = NULL;
+
+	int arg_index = 1, offset;
+	gboolean is_sequence = (word[0][2] == 'q');
+
+	if (is_sequence) {
+		arg_index = 2;
+		offset = 1;
+		seq = load_sequence(word[1], NULL);
+		if (!seq) {
+			return CMD_SEQUENCE_NOT_FOUND;
+		}
+	} else {
+		offset = 0;
+		if (!single_image_is_loaded()) return CMD_IMAGE_NOT_FOUND;
 	}
-	float power = 1.f;
+
+	arg_index++;
+	while (arg_index < nb && word[arg_index]) {
+		char *arg = word[arg_index];
+		if (is_sequence && g_str_has_prefix(arg, "-prefix=")) {
+			if (prefix) {
+				siril_log_message(_("There can be only one prefix argument"));
+				free(prefix);
+				return CMD_ARG_ERROR;
+			}
+			char *value = arg + 8;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), arg);
+				return CMD_ARG_ERROR;
+			}
+			prefix = strdup(value);
+		}
+		arg_index++;
+	}
+	struct ccm_data *args = calloc(1, sizeof(struct ccm_data));
+
+	args->power = 1.f;
 	gchar *end;
-	ccm matrix = { { 0.f } };
 	for (int i = 0 ; i < 3 ; i++) {
 		for (int j = 0 ; j < 3 ; j++) {
-			int word_index = 3 * i + j + 1;
-			matrix[i][j] = g_ascii_strtod(word[word_index], &end);
+			int word_index = 3 * i + j + 1 + offset;
+			args->matrix[i][j] = g_ascii_strtod(word[word_index], &end);
 			if (end == word[word_index]) {
 				siril_log_message(_("Invalid matrix element (%d, %d) %s, aborting.\n"), i, j, word[word_index]);
 				return CMD_ARG_ERROR;
 			}
 		}
 	}
-	if (word[10]) {
-		power = g_ascii_strtod(word[10], &end);
-			if (end == word[10] || power < 0.f || power > 10.f) {
-				siril_log_message(_("Invalid power %s, must be between 0.0 and 10.0: aborting.\n"), word[10]);
+	if (word[10 + offset]) {
+		args->power = g_ascii_strtod(word[10 + offset], &end);
+			if (end == word[10 + offset] || args->power < 0.f || args->power > 10.f) {
+				siril_log_message(_("Invalid power %s, must be between 0.0 and 10.0: aborting.\n"), word[10 + offset]);
 				return CMD_ARG_ERROR;
 			}
 	}
 	siril_log_message(_("Applying CCM with coefficients %f, %f, %f, %f, %f, %f, %f, %f, %f and power %f\n"),
-						matrix[0][0], matrix[0][1], matrix[0][2],
-						matrix[1][0], matrix[1][1], matrix[1][2],
-						matrix[2][0], matrix[2][1], matrix[2][2], power);
+						args->matrix[0][0], args->matrix[0][1], args->matrix[0][2],
+						args->matrix[1][0], args->matrix[1][1], args->matrix[1][2],
+						args->matrix[2][0], args->matrix[2][1], args->matrix[2][2], args->power);
 
-	ccm_calc(&gfit, matrix, power);
-	char log[90];
-	snprintf(log, 89, "Color correction matrix applied:");
-	gfit.history = g_slist_append(gfit.history, strdup(log));
-	snprintf(log, 89, "[ [%.4f %.4f %.4f ] [%.4f %.4f %.4f] [%.4f %.4f %.4f ] ]",
-				matrix[0][0], matrix[0][1], matrix[0][2],
-				matrix[1][0], matrix[1][1], matrix[1][2],
-				matrix[2][0], matrix[2][1], matrix[2][2]);
-	gfit.history = g_slist_append(gfit.history, strdup(log));
-	snprintf(log, 89, "Power: %.4f", power);
-	gfit.history = g_slist_append(gfit.history, strdup(log));
 
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	printf("args->power=%lf\n", args->power);
+	if (is_sequence) {
+
+		args->seq = seq;
+		args->seqEntry = prefix ? prefix : strdup("ccm_");
+
+		apply_ccm_to_sequence(args);
+	} else {
+		if (!isrgb(&gfit)) {
+			siril_log_color_message(_("Color Conversion Matrices can only be applied to 3-channel images.\n"), "red");
+			return CMD_INVALID_IMAGE;
+		}
+
+		ccm_calc(&gfit, args->matrix, args->power);
+		char log[90];
+		snprintf(log, 89, "Color correction matrix applied:");
+		gfit.history = g_slist_append(gfit.history, strdup(log));
+		snprintf(log, 89, "[ [%.4f %.4f %.4f ] [%.4f %.4f %.4f] [%.4f %.4f %.4f ] ]",
+					args->matrix[0][0], args->matrix[0][1], args->matrix[0][2],
+					args->matrix[1][0], args->matrix[1][1], args->matrix[1][2],
+					args->matrix[2][0], args->matrix[2][1], args->matrix[2][2]);
+		gfit.history = g_slist_append(gfit.history, strdup(log));
+		snprintf(log, 89, "Power: %.4f", args->power);
+		gfit.history = g_slist_append(gfit.history, strdup(log));
+
+		return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+
+	}
+
+	return CMD_OK;
 }
 
 
