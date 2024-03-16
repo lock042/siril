@@ -159,9 +159,6 @@ void test_photometry_float() {
 	cr_assert(psf->phot, "photometry failed");
 	cr_assert(psf->phot_is_valid, "photometry is not valid");
 
-	cr_assert(com.pref.phot_set.force_radius, "Aperture Manu mode");
-	cr_assert(!com.pref.phot_set.force_radius, "Aperture AUTO mode");
-
 	cr_expect_float_eq(psf->mag, -3.451f, 1e-3, "Mag: Value was %.7f vs %.7f at %3.1e\n", psf->mag, -3.451, 1e-3);
 	cr_expect_float_eq(psf->s_mag, 0.146f, 1e-3, "SMag: Value was %.7f vs %.7f at %3.1e\n", psf->s_mag, 0.146f, 1e-3);
 
