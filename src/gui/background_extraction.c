@@ -101,12 +101,7 @@ gboolean end_background(gpointer p) {
 	struct background_data *args = (struct background_data *)p;
 	stop_processing_thread();
 	if (args) {
-		invalidate_stats_from_fit(args->fit);
 		background_computed = TRUE;
-		if (!args->from_ui) {
-			free_background_sample_list(com.grad_samples);
-			com.grad_samples = NULL;
-		}
 		notify_gfit_modified();
 		gtk_widget_set_sensitive(lookup_widget("background_ok_button"), TRUE);
 		gtk_widget_set_sensitive(lookup_widget("bkg_show_original"), TRUE);

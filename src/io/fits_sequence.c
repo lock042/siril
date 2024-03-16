@@ -33,7 +33,7 @@
 #include "fits_sequence.h"
 
 static int fitseq_write_image_for_writer(struct seqwriter_data *writer, fits *image, int index);
-static int fitseq_prepare_for_multiple_read(fitseq *fitseq);
+static int fitseq_prepare_for_multiple_read(fitseq *fitseq, int iomode);
 static int fitseq_multiple_close(fitseq *fitseq);
 
 static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
@@ -89,7 +89,7 @@ static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 				memcpy(ref_naxes, naxes, sizeof naxes);
 				siril_debug_print("found reference HDU %ldx%ldx%d (%d)\n", naxes[0], naxes[1], naxis, bitpix);
 			} else {
-				printf("naxes[2]=%ld, ref_naxes[2]=%ld\n", naxes[2], ref_naxes[2]);
+				//printf("naxes[2]=%ld, ref_naxes[2]=%ld\n", naxes[2], ref_naxes[2]);
 				if (naxes[2] != ref_naxes[2]) {
 					char extension[FLEN_VALUE], comment[FLEN_COMMENT];
 					fits_read_key(fptr, TSTRING, "EXTNAME", &extension, comment, &status);
@@ -162,14 +162,16 @@ void fitseq_init_struct(fitseq *fitseq) {
 	fitseq->writer = NULL;
 }
 
-int fitseq_open(const char *filename, fitseq *fitseq) {
+// opens a fitseq with iomode set to 0 (READONLY in most cases) or
+// 1 (READWRITE when the fitseq needs updating without creating a new file)
+int fitseq_open(const char *filename, fitseq *fitseq, int iomode) {
 	if (fitseq->fptr) {
 		fprintf(stderr, "FITS sequence: file already opened, or badly closed\n");
 		return -1;
 	}
 
 	int status = 0;
-	siril_fits_open_diskfile_img(&(fitseq->fptr), filename, READONLY, &status);
+	siril_fits_open_diskfile_img(&(fitseq->fptr), filename, iomode, &status);
 	if (status) {
 		report_fits_error(status);
 		siril_log_color_message(_("Cannot open FITS file %s\n"), "red", filename);
@@ -217,7 +219,7 @@ int fitseq_open(const char *filename, fitseq *fitseq) {
 		fitseq->is_mt_capable = TRUE;
 		fprintf(stdout, "cfitsio was compiled with multi-thread support,"
 				" parallel read of images will be possible\n");
-		fitseq_prepare_for_multiple_read(fitseq);
+		fitseq_prepare_for_multiple_read(fitseq, iomode);
 	} else {
 		fitseq->is_mt_capable = FALSE;
 		fprintf(stdout, "cfitsio was compiled without multi-thread support,"
@@ -426,14 +428,14 @@ int fitseq_close_file(fitseq *fitseq) {
 }
 
 // to call after open to read with several threads in the file
-static int fitseq_prepare_for_multiple_read(fitseq *fitseq) {
+static int fitseq_prepare_for_multiple_read(fitseq *fitseq, int iomode) {
 	if (fitseq->thread_fptr) return 0;
 	if (!fitseq->is_mt_capable) return 0;
 	fitseq->num_threads = g_get_num_processors();
 	fitseq->thread_fptr = malloc(fitseq->num_threads * sizeof(fitsfile *));
 	for (guint i = 0; i < fitseq->num_threads; i++) {
 		int status = 0;
-		if (siril_fits_open_diskfile_img(&fitseq->thread_fptr[i], fitseq->filename, READONLY, &status)) {
+		if (siril_fits_open_diskfile_img(&fitseq->thread_fptr[i], fitseq->filename, iomode, &status)) {
 			report_fits_error(status);
 			return -1;
 		}
@@ -448,8 +450,10 @@ static int fitseq_multiple_close(fitseq *fitseq) {
 	for (guint i = 0; i < fitseq->num_threads; i++) {
 		int status = 0;
 		fits_close_file(fitseq->thread_fptr[i], &status);
-		if (status)
+		if (status) {
 			retval = 1;
+			report_fits_error(status);
+		}
 	}
 	free(fitseq->thread_fptr);
 	fitseq->thread_fptr = NULL;

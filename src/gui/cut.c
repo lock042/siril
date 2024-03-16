@@ -388,7 +388,6 @@ static void build_profile_filenames(cut_struct *arg, gchar **filename, gchar **i
 			timestamp = build_timestamp_filename();
 			*filename = g_strdup_printf("profile_%s_%s.dat", temp, timestamp);
 			g_free(temp);
-			temp = NULL;
 		} else if (arg->seq) {
 			char seq_image_canonical_name[256] = "";
 			seq_get_image_filename(arg->seq, arg->imgnumber, seq_image_canonical_name);
@@ -524,10 +523,13 @@ gpointer cut_profile(gpointer p) {
 	siril_plot_set_title(spl_data, title);
 	siril_plot_set_xlabel(spl_data, xlabel);
 	siril_plot_add_xydata(spl_data, spl_legend, nbr_points, x, r, NULL, NULL);
+	siril_plot_set_nth_color(spl_data, 1, (double[3]){1., 0., 0.});
 	siril_plot_set_savename(spl_data, "profile");
 	if (arg->fit->naxes[2] == 3 && arg->mode != CUT_MONO) {
 		siril_plot_add_xydata(spl_data, "G", nbr_points, x, g, NULL, NULL);
 		siril_plot_add_xydata(spl_data, "B", nbr_points, x, b, NULL, NULL);
+		siril_plot_set_nth_color(spl_data, 2, (double[3]){0., 1., 0.});
+		siril_plot_set_nth_color(spl_data, 3, (double[3]){0., 0., 1.});
 	}
 	if (arg->save_dat)
 		siril_plot_save_dat(spl_data, filename, FALSE);

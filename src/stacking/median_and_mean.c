@@ -773,24 +773,32 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 		else {
 			if (args->apply_noise_weights || args->apply_nbstack_weights || args->apply_wfwhm_weights || args->apply_nbstars_weights) {
 				double *pweights = args->weights + layer * stack_size;
-				WORD pmin = 65535, pmax = 0; /* min and max computed here instead of rejection step to avoid dealing with too many particular cases */
+				/* min and max computed here instead of rejection step to avoid dealing
+				 * with too many particular cases. For rejection, the original stack
+				 * (o_stack) is used to keep the weight order, stack being sorted, we can
+				 * check for min and max values to weight the kept pixels */
+				WORD pmin = 65535, pmax = 0;
 				for (int frame = 0; frame < kept_pixels; ++frame) {
-					if (pmin > ((WORD*)data->stack)[frame]) pmin = ((WORD*)data->stack)[frame];
-					if (pmax < ((WORD*)data->stack)[frame]) pmax = ((WORD*)data->stack)[frame];
+					WORD pixel = ((WORD*)data->stack)[frame];
+					if (pmin > pixel) pmin = pixel;
+					if (pmax < pixel) pmax = pixel;
 				}
+
 				double sum = 0.0;
 				double norm = 0.0;
-				WORD val;
 
 				for (int frame = 0; frame < stack_size; ++frame) {
-					val = ((WORD*)data->o_stack)[frame];
+					WORD val = ((WORD*)data->o_stack)[frame];
 					if (val >= pmin && val <= pmax && val > 0) {
 						sum += (float)val * pweights[frame];
 						norm += pweights[frame];
 					}
 				}
-				if (norm == 0.0)
-					mean = sum / (double)kept_pixels;
+				if (norm <= 1.e-2) { // if norm is 0, sum is 0 too
+					// if the kept pixel has a weight of 0, bad luck, still take it,
+					// that will not look good, but it's better than a black pixel
+					mean = ((WORD*)data->stack)[0];
+				}
 				else mean = sum / norm;
 			} else {
 				gint64 sum = 0L;
@@ -944,10 +952,14 @@ static int compute_nbstars_weights(struct stacking_args *args) {
 		double norm = 0.0;
 		pweights[layer] = args->weights + layer * nb_frames;
 		for (int i = 0; i < args->nb_images_to_stack; ++i) {
-			int idx = args->image_indices[i];
-			pweights[layer][i] = (double)(args->seq->regparam[args->reglayer][idx].number_of_stars - starmin) *
-				(double)(args->seq->regparam[args->reglayer][idx].number_of_stars - starmin) *
-				invdenom * invdenom;
+			if (starmax == starmin)
+				pweights[layer][i] = 1.;
+			else {
+				int idx = args->image_indices[i];
+				pweights[layer][i] = (double)(args->seq->regparam[args->reglayer][idx].number_of_stars - starmin) *
+					(double)(args->seq->regparam[args->reglayer][idx].number_of_stars - starmin) *
+					invdenom * invdenom;
+			}
 			norm += pweights[layer][i];
 		}
 		norm /= (double) nb_frames;

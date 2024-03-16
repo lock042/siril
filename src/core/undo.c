@@ -268,6 +268,7 @@ static int undo_get_data(fits *fit, historic *hist) {
 	fit->icc_profile = copyICCProfile(hist->icc_profile);
 	color_manage(fit, (fit->icc_profile != NULL));
 	fits_change_depth(fit, hist->nchans);
+
 	if (hist->type == DATA_USHORT) {
 		if (gfit.type != DATA_USHORT) {
 			size_t ndata = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
@@ -352,6 +353,7 @@ int undo_display_data(int dir) {
 			close_tab(); // These 2 lines account for possible change from mono to RGB
 			init_right_tab();
 			redraw(REMAP_ALL);
+			update_fits_header(&gfit);
 		}
 		break;
 	case REDO:
@@ -378,6 +380,7 @@ int undo_display_data(int dir) {
 			init_right_tab();
 			redraw(REMAP_ALL);
 			gui.roi.active = tmp_roi_active;
+			update_fits_header(&gfit);
 		}
 		break;
 	default:

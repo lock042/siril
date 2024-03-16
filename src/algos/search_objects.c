@@ -80,7 +80,7 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 				sscanf(fields[5], "%lf", &degres);
 				sscanf(fields[6], "%lf", &min);
 				sscanf(fields[7], "%lf", &seconds);
-				if (degres < 0.0)
+				if (fields[5][0] == '-')
 					dec = degres - min / 60.0 - seconds / 3600.0;
 				else dec = degres + min / 60.0 + seconds / 3600.0;
 				g_strfreev(fields);
@@ -479,8 +479,8 @@ gchar *search_in_online_catalogs(sky_object_query_args *args) {
 	gchar *cleaned_url = url_cleanup(url);
 	g_free(url);
 	siril_debug_print("URL: %s\n", cleaned_url);
-
-	char *result = fetch_url(cleaned_url);
+	gsize length;
+	char *result = fetch_url(cleaned_url, &length);
 
 	g_free(cleaned_url);
 	return result;

@@ -1062,11 +1062,20 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
             <property name="visible">True</property>
             <property name="can-focus">False</property>
             <child>
-              <object class="GtkMenuItem" id="rgb_align_dft">
+              <object class="GtkMenuItem" id="rgb_align_global">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="action-name">win.align-dft</property>
-                <property name="label" translatable="yes">Image pattern alignment (planetary/deep-sky)</property>
+                <property name="action-name">win.align-global</property>
+                <property name="label" translatable="yes">2-pass global star alignment (deep-sky)</property>
+                <property name="use-underline">True</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkMenuItem" id="rgb_align_kombat">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="action-name">win.align-kombat</property>
+                <property name="label" translatable="yes">KOMBAT alignment (planetary/deep-sky)</property>
                 <property name="use-underline">True</property>
               </object>
             </child>
@@ -1076,6 +1085,15 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="can-focus">False</property>
                 <property name="action-name">win.align-psf</property>
                 <property name="label" translatable="yes">One star registration (deep-sky)</property>
+                <property name="use-underline">True</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkMenuItem" id="rgb_align_dft">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="action-name">win.align-dft</property>
+                <property name="label" translatable="yes">Image pattern alignment (planetary/deep-sky)</property>
                 <property name="use-underline">True</property>
               </object>
             </child>
@@ -1748,7 +1766,9 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
-            <property name="tooltip-text" translatable="yes">Open the photometric color calibration dialog</property>
+            <property name="tooltip-markup" translatable="yes">Open the photometric color calibration dialog.
+
+&lt;b&gt;WARNING: image must be platesolved before.&lt;/b&gt;</property>
             <property name="action-name">win.pcc-processing</property>
             <property name="text" translatable="yes">Photometric Color Calibration...</property>
           </object>
@@ -1756,6 +1776,23 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
             <property name="expand">False</property>
             <property name="fill">True</property>
             <property name="position">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="proc_spcc">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="tooltip-markup" translatable="yes">Open the spectrophotometric color calibration dialog.
+
+&lt;b&gt;WARNING: image must be platesolved before.&lt;/b&gt;</property>
+            <property name="action-name">win.spcc-processing</property>
+            <property name="text" translatable="yes">Spectrophotometric Color Calibration...</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">3</property>
           </packing>
         </child>
       </object>
@@ -2349,10 +2386,10 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
-            <property name="tooltip-text" translatable="yes">Generate a list of comparison stars (AAVSO, APASS) contained in the FOV.
+            <property name="tooltip-text" translatable="yes">Generate a list of comparison stars (APASS, NOMAD) contained in the FOV.
 Output is a csv file compatible with NINA Exoplanet</property>
             <property name="action-name">win.compstars</property>
-            <property name="text" translatable="yes">Create Comparison Stars File...</property>
+            <property name="text" translatable="yes">Create Comparison Stars File ...</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -2372,7 +2409,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">2</property>
+            <property name="position">3</property>
           </packing>
         </child>
         <child>
@@ -2387,7 +2424,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">3</property>
+            <property name="position">4</property>
           </packing>
         </child>
       </object>
@@ -2529,6 +2566,21 @@ Output is a csv file compatible with NINA Exoplanet</property>
           </packing>
         </child>
         <child>
+          <object class="GtkModelButton" id="proc_ccm">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Open the CCM dialog</property>
+            <property name="action-name">win.ccm-processing</property>
+            <property name="text" translatable="yes">Color Conversion Matrix...</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">5</property>
+          </packing>
+        </child>
+        <child>
           <object class="GtkModelButton" id="info_menu_headers">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
@@ -2539,7 +2591,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">5</property>
+            <property name="position">6</property>
           </packing>
         </child>
         <child>
@@ -2553,7 +2605,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">6</property>
+            <property name="position">7</property>
           </packing>
         </child>
       </object>
@@ -4542,24 +4594,6 @@ Instead of an image, you can also specify a uniform level to be subtracted, star
                                                       </packing>
                                                     </child>
                                                     <child>
-                                                      <object class="GtkCheckButton" id="checkDarkOptimize">
-                                                        <property name="label" translatable="yes">Optimization</property>
-                                                        <property name="visible">True</property>
-                                                        <property name="sensitive">False</property>
-                                                        <property name="can-focus">True</property>
-                                                        <property name="receives-default">False</property>
-                                                        <property name="tooltip-text" translatable="yes">Dark subtraction can be optionally optimized so that the noise of the resulting picture (light frame minus dark frame) is minimized by applying a coefficient to the dark frame. This option is useful when dark frames have not been taken in optimal conditions.
-
-WARNING: Do not apply dark optimization on master-dark if master-bias has not been subtracted previously.</property>
-                                                        <property name="halign">start</property>
-                                                        <property name="draw-indicator">True</property>
-                                                      </object>
-                                                      <packing>
-                                                        <property name="left-attach">3</property>
-                                                        <property name="top-attach">1</property>
-                                                      </packing>
-                                                    </child>
-                                                    <child>
                                                       <object class="GtkCheckButton" id="checkbutton_equalize_cfa">
                                                         <property name="label" translatable="yes">Equalize CFA</property>
                                                         <property name="visible">True</property>
@@ -4629,6 +4663,29 @@ This value is the mean of the master flat calibrated with the master offset.</pr
                                                         <property name="left-attach">0</property>
                                                         <property name="top-attach">4</property>
                                                         <property name="width">3</property>
+                                                      </packing>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkComboBoxText" id="comboDarkOptimize">
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">False</property>
+                                                        <property name="tooltip-markup" translatable="yes">Dark subtraction can be optimized. Siril offers two ways of doing this.
+- The first method automatically evaluates the coefficients to be applied so that the noise of the resulting image (light image minus dark image) is minimized. 
+- The second method takes into account exposure times if these have been entered by the capture software.
+
+Dark optimization is useful when dark images have not been captured under optimal conditions. It compensates for differences in temperature and/or exposure time between dark and light images.
+
+&lt;b&gt;WARNING:&lt;/b&gt; Do not apply dark optimization to the master-dark if the master-bias has not been subtracted beforehand.</property>
+                                                        <property name="active">0</property>
+                                                        <items>
+                                                          <item translatable="yes">No dark optimization</item>
+                                                          <item translatable="yes">Auto-evaluation</item>
+                                                          <item translatable="yes">Use Exposure</item>
+                                                        </items>
+                                                      </object>
+                                                      <packing>
+                                                        <property name="left-attach">3</property>
+                                                        <property name="top-attach">1</property>
                                                       </packing>
                                                     </child>
                                                     <child>
@@ -9850,7 +9907,7 @@ WARNING: This option should not be checked for master stacking.</property>
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
-            <property name="tooltip-text" translatable="yes">Menu of the image processing tools. It contains all suitable functions for image enhancement.</property>
+            <property name="tooltip-text" translatable="yes">Siril tools menu. It contains all the functions required for image analysis.</property>
             <property name="popover">tools_menu</property>
             <child>
               <object class="GtkBox" id="image_tools_button_box">

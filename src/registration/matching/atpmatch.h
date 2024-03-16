@@ -86,6 +86,7 @@
 #define AT_MATCH_REQUIRE_QUADRATIC   6
 #define AT_MATCH_REQUIRE_CUBIC      10
 #define AT_MATCH_REQUIRE_QUARTIC    15
+#define AT_MATCH_REQUIRE_QUINTIC    21
 
 
    /*
@@ -97,6 +98,7 @@
 #define AT_MATCH_STARTN_QUADRATIC  12
 #define AT_MATCH_STARTN_CUBIC      20
 #define AT_MATCH_STARTN_QUARTIC    30
+#define AT_MATCH_STARTN_QUINTIC    42
 
    /*
     * when iterating to throw out mis-matched pairs of stars,
@@ -134,7 +136,7 @@
     * The user can modify this value via the "halt_sigma"
     * command-line argument.
     */
-#define AT_MATCH_HALTSIGMA    1.0e-12
+#define AT_MATCH_HALTSIGMA    1.0e-1
 
 
    /*

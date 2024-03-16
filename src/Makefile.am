@@ -85,6 +85,8 @@ siril_common_SOURCES = \
 	algos/siril_wcs.c \
 	algos/sorting.c \
 	algos/sorting.h \
+	algos/spcc.c \
+	algos/spcc.h \
 	algos/star_finder.c \
 	algos/star_finder.h \
 	algos/statistics.c \
@@ -254,6 +256,8 @@ siril_common_SOURCES = \
 	gui/fix_xtrans_af.h \
 	gui/histogram.c \
 	gui/histogram.h \
+	gui/keywords_tree.c \
+	gui/keywords_tree.h \
 	gui/image_display.c \
 	gui/image_display.h \
 	gui/image_interactions.c \
@@ -325,8 +329,6 @@ siril_common_SOURCES = \
 	io/fits_sequence.h \
 	io/FITS_symlink.c \
 	io/FITS_symlink.h \
-	io/gitscripts.c \
-	io/gitscripts.h \
 	io/image_format_fits.c \
 	io/image_format_fits.h \
 	io/image_formats_internal.c \
@@ -351,8 +353,11 @@ siril_common_SOURCES = \
 	io/single_image.h \
 	io/siril_catalogues.c \
 	io/siril_catalogues.h \
+	io/siril_git.c \
+	io/siril_git.h \
 	io/siril_plot.c \
 	io/siril_plot.h \
+	io/spcc_json.c \
 	livestacking/livestacking.c \
 	livestacking/livestacking.h \
 	livestacking/gui.c \

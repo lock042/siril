@@ -106,12 +106,11 @@ wcsprm_t *load_WCS_from_hdr(char *header, int nkeyrec) {
 				if (!status) {
 					if (wcs->altlin & 2) { // header contains CD info
 						double cd[2][2] = {{ 0. }};
-						// we copy cd to pc and set cdelt to unity
 						wcs_cd2mat(wcs, cd);
-						wcs_mat2pc(wcs, cd);
-						wcs_cdelt2unity(wcs);
-						wcs->altlin = 2;
-						wcspcx(wcs, 0, 0, NULL); // decompose CD to CDELT and PC
+						wcs_decompose_cd(wcs, cd);
+						wcs->altlin = 1;
+						wcs->flag = 0;
+						wcsset(wcs);
 						printf("contains CD\n");
 					} else if (wcs->altlin & 1) { // header contains PC info
 						double pc[2][2] = {{ 0. }}, cd[2][2] = {{ 0. }};
@@ -209,6 +208,8 @@ int wcs2pix(fits *fit, double ra, double dec, double *x, double *y) {
 	if (!status) {
 		double xx = pixcrd[0];
 		double yy = pixcrd[1];
+		if (isnan(xx) || isnan(yy))
+			return WCSERR_NO_SOLUTION;
 		// return values even if outside (required for celestial grid display)
 		// In WCS convention, origin of the grid is at (-0.5, -0.5) wrt siril grid
 		if (x) *x = xx - 0.5;
@@ -291,15 +292,6 @@ void center2wcs(fits *fit, double *r, double *d) {
 	*d = world[1];
 }
 
-void wcs_cdelt2unity(wcsprm_t *prm) {
-	if (!prm || !prm->pc)
-		return;
-	double *cdelt = prm->cdelt;
-	for (int i = 0; i < NAXIS; i++) {
-		cdelt[i] = 1.;
-	}
-}
-
 void wcs_pc2mat(wcsprm_t *prm, double pc[NAXIS][NAXIS]) {
 	if (!prm || !prm->pc)
 		return;
@@ -340,6 +332,31 @@ void wcs_mat2cd(wcsprm_t *prm, double cd[NAXIS][NAXIS]) {
 			*(cdij++) = cd[i][j];
 		}
 	}
+}
+
+void wcs_mat2cdelt(wcsprm_t *prm, double cdelt[NAXIS]) {
+	if (!prm || !prm->cdelt)
+		return;
+	double *cdelti = prm->cdelt;
+	for (int i = 0; i < NAXIS; i++) {
+		*(cdelti++) = cdelt[i];
+	}
+}
+
+void wcs_decompose_cd(wcsprm_t *prm, double cd[NAXIS][NAXIS]) {
+	if (!prm)
+		return;
+	double cdelt[NAXIS];
+	double pc[NAXIS][NAXIS];
+	cdelt[0] = -sqrt(cd[0][0] * cd[0][0] + cd[0][1] * cd[0][1]); // by convention cdelt1 is < 0
+	cdelt[1] =  sqrt(cd[1][0] * cd[1][0] + cd[1][1] * cd[1][1]); // by convention cdelt2 is > 0
+	pc[0][0] = cd[0][0] / cdelt[0];
+	pc[0][1] = cd[0][1] / cdelt[0];
+	pc[1][0] = cd[1][0] / cdelt[1];
+	pc[1][1] = cd[1][1] / cdelt[1];
+	wcs_mat2cd(prm, cd);
+	wcs_mat2pc(prm, pc);
+	wcs_mat2cdelt(prm, cdelt);
 }
 
 /* get resolution in degree/pixel */

@@ -53,7 +53,7 @@
 #include "gui/utils.h"
 
 // This list defines the columns that can possibly be found in any catalogue
-const gchar *cat_columns[] = { 
+const gchar *cat_columns[] = {
 	[CAT_FIELD_RA] = "ra",
 	[CAT_FIELD_DEC] = "dec",
 	[CAT_FIELD_PMRA] = "pmra",
@@ -71,7 +71,10 @@ const gchar *cat_columns[] = {
 	[CAT_FIELD_SITEELEV] = "siteelev",
 	[CAT_FIELD_VRA] = "vra",
 	[CAT_FIELD_VDEC] = "vdec",
-	[CAT_FIELD_TYPE] = "type"
+	[CAT_FIELD_TYPE] = "type",
+	[CAT_FIELD_TEFF] = "teff",
+	[CAT_FIELD_XPSAMP] = "xpsamp",
+	[CAT_FIELD_GAIASOURCEID] = "source_id"
 };
 
 const gchar **get_cat_colums_names() {
@@ -125,6 +128,10 @@ static gchar *get_field_to_str(cat_item *item, cat_fields field) {
 			return (item->alias) ? g_strdup(item->alias) : "";
 		case CAT_FIELD_TYPE:
 			return (item->type) ? g_strdup(item->type) : "";
+		case CAT_FIELD_TEFF:
+			return (item->teff) ? g_strdup_printf("%.6f", item->teff) : "";
+		case CAT_FIELD_GAIASOURCEID:
+			return (item->gaiasourceid) ? g_strdup_printf("%" G_GUINT64_FORMAT, item->gaiasourceid) : "";
 		default:
 			return NULL;
 	}
@@ -135,8 +142,12 @@ uint32_t siril_catalog_columns(siril_cat_index cat) {
 	switch (cat) {
 		case CAT_TYCHO2:
 		case CAT_NOMAD:
-		case CAT_GAIADR3:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG);
+		case CAT_GAIADR3:
+			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG) | (1 << CAT_FIELD_TEFF);
+		case CAT_GAIADR3_DIRECT:
+			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG) | (1 << CAT_FIELD_TEFF) |
+			(1 << CAT_FIELD_GAIASOURCEID);
 		case CAT_PPMXL:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG);
 		case CAT_BSC:
@@ -148,6 +159,8 @@ uint32_t siril_catalog_columns(siril_cat_index cat) {
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME);
 		case CAT_SIMBAD:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG) | (1 << CAT_FIELD_NAME);
+		case CAT_VARISUM:
+			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_NAME);
 		case CAT_PGC:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_DIAMETER);
 		case CAT_EXOPLANETARCHIVE:
@@ -173,6 +186,7 @@ uint32_t siril_catalog_columns(siril_cat_index cat) {
 		case CAT_COMPSTARS:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_NAME) | (1 << CAT_FIELD_TYPE);
 		case CAT_LOCAL:
+		case CAT_LOCAL_TRIX:
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG);
 		case CAT_AN_USER_TEMP:
 		case CAT_SHOW:
@@ -193,7 +207,7 @@ static int compare_items_by_mag(const void* item1, const void* item2) {
 	return 0;
 }
 
-// This function sorts the *cat_item list of a siril_catalogue by magnitude 
+// This function sorts the *cat_item list of a siril_catalogue by magnitude
 void sort_cat_items_by_mag(siril_catalogue *siril_cat) {
 	if (siril_cat && siril_cat->nbitems > 0 && (siril_cat->columns&(1 << CAT_FIELD_MAG)))
 		qsort(siril_cat->cat_items, siril_cat->nbitems, sizeof(cat_item), compare_items_by_mag);
@@ -222,7 +236,9 @@ const char *catalog_to_str(siril_cat_index cat) {
 		case CAT_NOMAD:
 			return _("NOMAD");
 		case CAT_GAIADR3:
-			return _("Gaia DR3");
+			return _("Gaia DR3 (via Vizier)");
+		case CAT_GAIADR3_DIRECT:
+			return _("Gaia DR3 (direct)");
 		case CAT_PPMXL:
 			return _("PPMXL");
 		case CAT_BSC:
@@ -235,6 +251,8 @@ const char *catalog_to_str(siril_cat_index cat) {
 			return _("GCVS");
 		case CAT_SIMBAD:
 			return _("SIMBAD");
+		case CAT_VARISUM:
+			return _("Gaia DR3 Variability");
 		case CAT_PGC:
 			return _("PGC");
 		case CAT_EXOPLANETARCHIVE:
@@ -245,8 +263,6 @@ const char *catalog_to_str(siril_cat_index cat) {
 			return _("AAVSO VSP Chart");
 		case CAT_LOCAL:
 			return _("local Tycho-2+NOMAD");
-		case CAT_ASNET:
-			return _("local astrometry.net");
 		case CAT_AN_MESSIER:
 			return "Messier";
 		case CAT_AN_NGC:
@@ -267,6 +283,8 @@ const char *catalog_to_str(siril_cat_index cat) {
 			return "user-temp";
 		case CAT_SHOW:
 			return "input";
+		case CAT_LOCAL_TRIX:
+			return "trixel";
 		default:
 			return _("unknown");
 	}
@@ -276,11 +294,12 @@ const char *catalog_to_str(siril_cat_index cat) {
 // Used to set display diameters
 gboolean is_star_catalogue(siril_cat_index Catalog) {
 	switch (Catalog) {
-		case CAT_TYCHO2 ...	CAT_SIMBAD:
+		case CAT_TYCHO2 ...	CAT_VARISUM:
 		case CAT_EXOPLANETARCHIVE:
 		case CAT_AAVSO_CHART:
 		case CAT_AN_STARS:
 		case CAT_LOCAL:
+		case CAT_LOCAL_TRIX:
 		case CAT_AN_USER_SSO:
 			return TRUE;
 	default:
@@ -316,7 +335,7 @@ static gboolean find_and_check_cat_columns(gchar **fields, int nbcols, siril_cat
 		if (val < 0) {
 			siril_debug_print("Unknown column %s found in the catalog, ignoring\n", fields[i]);
 			continue;
-		} 
+		}
 		indexes[i] = val;
 		res |= (1 << val);
 	}
@@ -332,14 +351,6 @@ static gboolean find_and_check_cat_columns(gchar **fields, int nbcols, siril_cat
 	}
 	siril_log_color_message(_("Did not find the minimal set of columns necessary for the catalog %s, aborting\n"), "red", catalog_to_str(Catalog));
 	return FALSE;
-}
-
-void siril_catalog_free_item(cat_item *item) {
-	if (!item)
-		return;
-	g_free(item->name);
-	g_free(item->alias);
-	g_free(item->type);
 }
 
 static void fill_cat_item(cat_item *item, const gchar *input, cat_fields index) {
@@ -398,9 +409,40 @@ static void fill_cat_item(cat_item *item, const gchar *input, cat_fields index) 
 		case CAT_FIELD_TYPE:
 			item->type = g_strdup(input);
 			break;
+		case CAT_FIELD_TEFF:
+			item->teff = g_ascii_strtod(input, NULL);
+			break;
+		case CAT_FIELD_GAIASOURCEID:
+			item->gaiasourceid = g_ascii_strtoull(input, NULL, 10);
+			break;
 		case CAT_FIELD_UNDEF: // columns with unknown headers
 		default:
 			break;
+	}
+}
+
+// copies all the data from a catalogue to another
+void siril_catalogue_copy(siril_catalogue *from, siril_catalogue *to, gboolean metadata_only) {
+	if (!from || !to) {
+		siril_debug_print("no catalogue to copy from or to\n");
+		return;
+	}
+	memcpy(to, from, sizeof(siril_catalogue));
+	if (from->header)
+		to->header = g_strdup(from->header);
+	if (from->IAUcode)
+		to->IAUcode = g_strdup(from->IAUcode);
+	if (from->dateobs)
+		to->dateobs = g_date_time_add(from->dateobs, 0); // makes a copy
+	if (!metadata_only && from->cat_items) {
+		to->cat_items = calloc(to->nbitems, sizeof(cat_item));
+		for (int i = 0; i < to->nbitems; i++ )
+			siril_catalogue_copy_item(from->cat_items + i, to->cat_items + i);
+	} else {
+		to->cat_items = NULL;
+		to->nbitems = 0;
+		to->nbincluded = -1;
+		to->projected = CAT_PROJ_NONE;
 	}
 }
 
@@ -419,19 +461,6 @@ void siril_catalogue_copy_item(cat_item *from, cat_item *to) {
 		to->type = g_strdup(from->type);
 }
 
-// frees the member cat_items of a catalogue
-// This is useful to launch the same query again, updating simply the catalog center for instance
-void siril_catalog_free_items(siril_catalogue *siril_cat) {
-	if (!siril_cat || !siril_cat->cat_items)
-		return;
-	for (int i = 0; i < siril_cat->nbitems; i++)
-		siril_catalog_free_item(&siril_cat->cat_items[i]);
-	siril_cat->cat_items = NULL;
-	siril_cat->nbitems = 0;
-	siril_cat->nbincluded = -1;
-	siril_cat->projected = CAT_PROJ_NONE;
-}
-
 // frees a siril_catalogue
 void siril_catalog_free(siril_catalogue *siril_cat) {
 	if (!siril_cat)
@@ -441,6 +470,29 @@ void siril_catalog_free(siril_catalogue *siril_cat) {
 	g_free(siril_cat->header);
 	free(siril_cat);
 	siril_cat = NULL;
+}
+
+// frees the member cat_items of a catalogue
+// This is useful to launch the same query again, updating simply the catalog center for instance
+void siril_catalog_free_items(siril_catalogue *siril_cat) {
+	if (!siril_cat || !siril_cat->cat_items)
+		return;
+	for (int i = 0; i < siril_cat->nbitems; i++)
+		siril_catalog_free_item(&siril_cat->cat_items[i]);
+	free(siril_cat->cat_items);
+	siril_cat->cat_items = NULL;
+	siril_cat->nbitems = 0;
+	siril_cat->nbincluded = -1;
+	siril_cat->projected = CAT_PROJ_NONE;
+}
+
+// frees only one cat_items
+void siril_catalog_free_item(cat_item *item) {
+	if (!item)
+		return;
+	g_free(item->name);
+	g_free(item->alias);
+	g_free(item->type);
 }
 
 void siril_catalog_reset_projection(siril_catalogue *siril_cat) {
@@ -484,7 +536,7 @@ siril_catalogue *siril_catalog_fill_from_fit(fits *fit, siril_cat_index cat, flo
 }
 
 /* This is the entry point to query the catalogues
- * It will call the necessary functions whether the query 
+ * It will call the necessary functions whether the query
  * is for a local catalogue or an online one
  *
  * Then these raw catalogues can be used in different ways:
@@ -510,16 +562,19 @@ siril_catalogue *siril_catalog_fill_from_fit(fits *fit, siril_cat_index cat, flo
 
 int siril_catalog_conesearch(siril_catalogue *siril_cat) {
 	int nbstars = 0;
-
+	if (siril_cat->cat_items) {
+		siril_debug_print("trying to fetch a catalog while a list already exists, should not happen\n");
+		return 0;
+	}
 	if (siril_cat->cat_index < CAT_AN_MESSIER) {
 #ifndef HAVE_LIBCURL
 		siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
 		return 0;
 #else
-        nbstars = siril_catalog_get_stars_from_online_catalogues(siril_cat);
-        return nbstars;
+		nbstars = siril_catalog_get_stars_from_online_catalogues(siril_cat);
+		return nbstars;
 #endif
-	} else if (siril_cat->cat_index == CAT_LOCAL) {
+	} else if (siril_cat->cat_index == CAT_LOCAL || siril_cat->cat_index == CAT_LOCAL_TRIX) {
 		nbstars = siril_catalog_get_stars_from_local_catalogues(siril_cat);
 	} else if (siril_cat->cat_index == CAT_SHOW) { // for the show command
 		nbstars = siril_cat->nbitems;
@@ -635,6 +690,7 @@ int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filena
 		}
 		g_free(line);
 		line = NULL;
+		g_strfreev(vals);
 	}
 	if (nb_items == 0) {
 		siril_log_color_message(_("Catalog %s was read but no items were found in the view cone, nothing to show\n"), "salmon", filename);
@@ -671,12 +727,10 @@ gboolean siril_catalog_write_to_output_stream(siril_catalogue *siril_cat, GOutpu
 	gsize n;
 	GError *error = NULL;
 	if (siril_cat->header && !g_output_stream_printf(output_stream, &n, NULL, NULL, "%s\n", siril_cat->header)) {
-		g_warning("%s\n", error->message);
-		g_clear_error(&error);
+		g_error_free(error);
 		return FALSE;
 	}
-	
-	
+
 	// we write the line containing the columns names based on catalog spec
 	GString *columns = NULL;
 	int nbcols = 0;
@@ -701,6 +755,7 @@ gboolean siril_catalog_write_to_output_stream(siril_catalogue *siril_cat, GOutpu
 		g_free(columns_str);
 	} else {
 		siril_debug_print("no columns to write");
+		g_error_free(error);
 		return FALSE;
 	}
 	for (int j = 0; j < siril_cat->nbitems; j++) {
@@ -717,6 +772,7 @@ gboolean siril_catalog_write_to_output_stream(siril_catalogue *siril_cat, GOutpu
 		}
 		g_free(newline);
 	}
+	g_clear_error(&error);
 	return TRUE;
 }
 
@@ -774,7 +830,7 @@ gboolean siril_catalog_append_item(siril_catalogue *siril_cat, cat_item *item) {
 	siril_catalogue_copy_item(item, &siril_cat->cat_items[siril_cat->nbitems]);
 	siril_cat->nbitems++;
 	// we can't have a catalogue only partially projected so we reset its projection if any
-	if (siril_cat->projected > CAT_PROJ_NONE) 
+	if (siril_cat->projected > CAT_PROJ_NONE)
 		siril_catalog_reset_projection(siril_cat);
 	return TRUE;
 }
@@ -899,10 +955,11 @@ clean_and_exit:
 	return !(nbincluded > 0);
 }
 
-// projects passed catalogue wrt to the center ra0 and dec0 coordinates
+// projects passed catalogue wrt to the point ra0 and dec0 coordinates
+// according to gnomonic (a.k.a TAN) projection
 // corrects for proper motions if the flag is TRUE and the necessary data is passed
 // (dateobs) and found in the catalogue (pmra and pmdec fields)
-int siril_catalog_project_at_center(siril_catalogue *siril_cat, double ra0, double dec0, gboolean use_proper_motion, GDateTime *date_obs) {
+int siril_catalog_project_gnomonic(siril_catalogue *siril_cat, double ra0, double dec0, gboolean use_proper_motion, GDateTime *date_obs) {
 	if (!has_field(siril_cat, RA) || !has_field(siril_cat, DEC))
 		return 1;
 	double jyears = 0.;
@@ -944,7 +1001,7 @@ int siril_catalog_project_at_center(siril_catalogue *siril_cat, double ra0, doub
 		siril_cat->cat_items[i].included = TRUE;
 	}
 	siril_cat->nbincluded = siril_cat->nbitems;
-	siril_cat->projected = CAT_PROJ_PLATE;
+	siril_cat->projected = CAT_PROJ_TAN;
 	return 0;
 }
 
@@ -1006,7 +1063,7 @@ gpointer conesearch_worker(gpointer p) {
 	if (!check) {// conesearch has failed
 		goto exit_conesearch;
 	}
-	if (siril_cat->cat_index != CAT_LOCAL)
+	if (siril_cat->cat_index != CAT_LOCAL && siril_cat->cat_index != CAT_LOCAL_TRIX)
 		siril_log_message(_("The %s catalog has been successfully downloaded\n"), catalog_to_str(siril_cat->cat_index));
 	if (check == -1) { // conesearch was succesful but field was empty
 		retval = -1;
@@ -1025,7 +1082,7 @@ gpointer conesearch_worker(gpointer p) {
 		sort_cat_items_by_mag(siril_cat);
 	int j = 0;
 	// preparing the annotation temp catalog if has_GUI
-	if (args->has_GUI) {
+	if (args->has_GUI || args->outfilename) {
 		temp_cat = calloc(1, sizeof(siril_catalogue));
 		temp_cat->cat_index = CAT_AN_USER_TEMP;
 		temp_cat->columns = siril_catalog_columns(siril_cat->cat_index);
@@ -1102,14 +1159,18 @@ gpointer conesearch_worker(gpointer p) {
 		temp_cat->cat_items = final_items;
 		temp_cat->nbitems = j;
 	}
+	if (args->outfilename) {
+		if (siril_catalog_write_to_file(temp_cat, args->outfilename))
+			siril_log_message(_("List saved to %s\n"), args->outfilename);
+	}
 	retval = 0;
 exit_conesearch:;
 	gboolean go_idle = args->has_GUI;
-	free_conesearch(args);
-	if (retval && temp_cat) {
+	if ((retval || !args->has_GUI) && temp_cat) {
 		siril_catalog_free(temp_cat);
 		temp_cat = NULL;
 	}
+	free_conesearch(args);
 	if (go_idle) {
 		siril_add_idle(end_conesearch, temp_cat);
 	} else {
@@ -1124,21 +1185,65 @@ exit_conesearch:;
 // https://en.wikipedia.org/wiki/Haversine_formula
 // dec is phi, ra is lambda
 // in degrees
-double compute_coords_distance(double ra1, double dec1, double ra2, double dec2) {
+
+double compute_coords_distance_h(double ra1, double dec1, double ra2, double dec2) {
 	double dec1_r = dec1 * DEGTORAD, dec2_r = dec2 * DEGTORAD;
 	double dra_2 = 0.5 * (ra2 - ra1) * DEGTORAD;
 	double ddec_2 = 0.5 * (dec2_r - dec1_r);
 	double sin_ddec = sin(ddec_2), sin_dra = sin(dra_2);
 	double h = sin_ddec * sin_ddec + cos(dec1_r) * cos(dec2_r) * sin_dra * sin_dra;
 	if (h > 1.)
+		return 1.;   // h = 1, asin(1) is pi/2
+	return h;
+}
+
+double compute_coords_distance(double ra1, double dec1, double ra2, double dec2) {
+	double h = compute_coords_distance_h(ra1, dec1, ra2, dec2);
+	if (h > 1.)
 		return 180.0;   // h = 1, asin(1) is pi/2
 	return 2.0 * asin(sqrt(h)) * RADTODEG;
 }
+
+int siril_catalog_inner_conesearch(siril_catalogue *siril_cat_in, siril_catalogue *siril_cat_out) {
+	if (!siril_cat_in)
+		return 0;
+	int nb_alloc = 1200, nb_items = 0;
+	cat_item *cat_items = calloc(nb_alloc, sizeof(cat_item));
+	if (!cat_items) {
+		PRINT_ALLOC_ERR;
+		return -1;
+	}
+	double ra = siril_cat_out->center_ra;
+	double dec = siril_cat_out->center_dec;
+
+	double radius_h = pow(sin(0.5 * siril_cat_out->radius / 60. * DEGTORAD), 2);
+	for (int i = 0; i < siril_cat_in->nbitems; i++) {
+		if (nb_items >= nb_alloc) { // re-allocating if there is more to read
+			nb_alloc *= 2;
+			cat_item *new_array = realloc(cat_items, nb_alloc * sizeof(cat_item));
+			if (!new_array) {
+				PRINT_ALLOC_ERR;
+				return -1;
+			}
+			cat_items = new_array;
+		}
+		double dist_h = compute_coords_distance_h(ra, dec, siril_cat_in->cat_items[i].ra, siril_cat_in->cat_items[i].dec);
+		if (dist_h <= radius_h) {
+			siril_catalogue_copy_item(siril_cat_in->cat_items + i, cat_items + nb_items);
+			nb_items++;
+		}
+	}
+	cat_item *final_array = realloc(cat_items, nb_items * sizeof(cat_item));
+	siril_cat_out->cat_items = final_array;
+	siril_cat_out->nbitems = nb_items;
+	siril_cat_out->nbincluded = nb_items;
+	return nb_items;
+}
+
 // TODO: using this for the moment to avoid chaging too many files
 // This copies the info contained in the catalogue to a psf_star** list
 // only the included items are copied over
-psf_star **convert_siril_cat_to_psf_stars(siril_catalogue *siril_cat, int *nbstars) {
-	*nbstars = 0;
+psf_star **convert_siril_cat_to_psf_stars(siril_catalogue *siril_cat) {
 	if (!siril_cat)
 		return NULL;
 	if (siril_cat->projected == CAT_PROJ_NONE) {
@@ -1150,11 +1255,11 @@ psf_star **convert_siril_cat_to_psf_stars(siril_catalogue *siril_cat, int *nbsta
 
 	int n = 0;
 	for (int i = 0; i < siril_cat->nbitems; i++) {
-		if (n >= siril_cat->nbincluded) {
-			siril_debug_print("problem when converting siril_cat to psf_stars, more than allocated");
-			break;
-		}
 		if (siril_cat->cat_items[i].included) {
+			if (n >= siril_cat->nbincluded) {
+				siril_debug_print("problem when converting siril_cat to psf_stars, more than allocated");
+				break;
+			}
 			results[n] = new_psf_star();
 			results[n]->xpos = siril_cat->cat_items[i].x;
 			results[n]->ypos = siril_cat->cat_items[i].y;
@@ -1173,7 +1278,6 @@ psf_star **convert_siril_cat_to_psf_stars(siril_catalogue *siril_cat, int *nbsta
 		free_fitted_stars(results);
 		return NULL;
 	}
-	*nbstars = n;
 	return results;
 }
 
@@ -1209,6 +1313,7 @@ void free_conesearch(conesearch_args *args) {
 	if (!args)
 		return;
 	siril_catalog_free(args->siril_cat);
+	g_free(args->outfilename);
 	free(args);
 }
 

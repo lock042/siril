@@ -159,6 +159,8 @@ void free_image_data() {
 	siril_debug_print("free_image_data() called, clearing loaded image\n");
 	/* WARNING: single_image.fit references the actual fits image,
 	 * shouldn't it be used here instead of gfit? */
+	cmsCloseProfile(gfit.icc_profile);
+	gfit.icc_profile = NULL;
 	reset_icc_transforms();
 	if (!single_image_is_loaded() && sequence_is_loaded())
 		save_stats_from_fit(&gfit, &com.seq, com.seq.current);
@@ -223,6 +225,8 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 		retval = any_to_fits(imagetype, realname, dest, allow_dialogs, force_float, com.pref.debayer.open_debayer);
 		if (!retval)
 			debayer_if_needed(imagetype, dest, FALSE);
+		if (com.pref.debayer.open_debayer || imagetype != TYPEFITS)
+			update_fits_header(dest);
 	}
 	if (is_sequence) {
 		*is_sequence = single_sequence;

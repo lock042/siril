@@ -94,6 +94,7 @@ void remove_green_activate(GSimpleAction *action, GVariant *parameter, gpointer 
 void saturation_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void color_calib_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void pcc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void spcc_activate(GSimpleAction *action, GVariant *parameter,gpointer user_data);
 void split_channel_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void negative_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void histo_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
@@ -127,11 +128,14 @@ void compstars_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 void denoise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void star_desaturate_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void star_synthetic_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void align_global_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void align_kombat_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void align_dft_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void align_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void merge_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void icc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void set_roi(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void clear_roi(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void ccm_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 
 #endif /* SRC_CORE_SIRIL_ACTIONS_H_ */

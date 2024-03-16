@@ -48,6 +48,10 @@
 mouse_status_enum mouse_status;
 cut_method cutting;
 
+static gboolean double_middle_click_zooms_to_fit = FALSE;
+// Tracks whether double middle click will zoom to fit or zoom to 1:1, for the
+// toggle
+
 // caching widgets
 static GtkWidget *rotation_dlg = NULL;
 static GtkWidget *cut_dialog = NULL, *dynpsf_dlg = NULL;
@@ -379,15 +383,48 @@ gboolean on_drawingarea_button_press_event(GtkWidget *widget,
 			gui.measure_end.y = zoomed.y;
 		}
 
-		/* Ctrl click to drag */
-		else if (event->state & get_primary()) {
-			if (event->button == GDK_BUTTON_PRIMARY) {
-				// viewport translation
-				gui.translating = TRUE;
-				gui.start.x = (int)(event->x);
-				gui.start.y = (int)(event->y);
-				return TRUE;
+		/* Double middle-click toggles between zoom to fit and zoom 1:1 centred on the click */
+		else if (event->button == GDK_BUTTON_MIDDLE && event->type == GDK_DOUBLE_BUTTON_PRESS) {
+			update_zoom_fit_button();
+			switch (com.pref.gui.mmb_action) {
+				case MMB_ZOOM_FIT:
+					gui.zoom_value = ZOOM_FIT;
+					reset_display_offset();
+					break;
+				case MMB_ZOOM_100:
+					gui.zoom_value = ZOOM_NONE;
+					double x = evpos.x;
+					double y = evpos.y;
+					cairo_matrix_transform_point(&gui.display_matrix, &evpos.x, &evpos.y);
+					gui.display_offset.x = evpos.x - x;
+					gui.display_offset.y = evpos.y - y;
+					break;
+				case MMB_ZOOM_TOGGLE:
+					if (double_middle_click_zooms_to_fit) {
+						gui.zoom_value = ZOOM_FIT;
+						reset_display_offset();
+					} else {
+						gui.zoom_value = ZOOM_NONE;
+						double x = evpos.x;
+						double y = evpos.y;
+						cairo_matrix_transform_point(&gui.display_matrix, &evpos.x, &evpos.y);
+						gui.display_offset.x = evpos.x - x;
+						gui.display_offset.y = evpos.y - y;
+					}
+					break;
 			}
+			update_zoom_label();
+			redraw(REDRAW_IMAGE);
+			double_middle_click_zooms_to_fit = !double_middle_click_zooms_to_fit;
+		}
+
+		/* Ctrl click or middle click to drag */
+		else if (((event->state & get_primary()) && (event->button == GDK_BUTTON_PRIMARY)) || (event->button == GDK_BUTTON_MIDDLE && !(event->state & get_primary()))) {
+			// viewport translation
+			gui.translating = TRUE;
+			gui.start.x = (int)(event->x);
+			gui.start.y = (int)(event->y);
+			return TRUE;
 		}
 
 		/* else, click on gray image */
@@ -683,8 +720,12 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 			set_cursor("default");
 			mouse_status = MOUSE_ACTION_NONE;
 		}
-	} else if (event->button == GDK_BUTTON_MIDDLE) {	// middle click
-		if (inside) {
+	} else if (event->button == GDK_BUTTON_MIDDLE) {	// middle click, stop translating the image
+		if (gui.translating) {
+			gui.translating = FALSE;
+		}
+		/* Ctrl middle-click to set the photometry box */
+		else if (inside && event->state & get_primary()) {
 			double dX = 1.5 * com.pref.phot_set.outer;
 			double dY = dX;
 			double w = 3 * com.pref.phot_set.outer;
@@ -702,7 +743,6 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 				new_selection_zone();
 			}
 		}
-
 	} else if (event->button == GDK_BUTTON_SECONDARY) {	// right click
 		if (mouse_status != MOUSE_ACTION_DRAW_SAMPLES && mouse_status != MOUSE_ACTION_PHOTOMETRY) {
 			do_popup_graymenu(widget, NULL);
@@ -1039,26 +1079,24 @@ gboolean on_drawingarea_scroll_event(GtkWidget *widget, GdkEventScroll *event, g
 	if (gui.icc.iso12646)
 		disable_iso12646_conditions(FALSE, TRUE, TRUE);
 
-	if (event->state & get_primary()) {
-		point delta;
+	point delta;
 
-		switch (event->direction) {
-		case GDK_SCROLL_SMOOTH:	// what's that?
-			gdk_event_get_scroll_deltas((GdkEvent*) event, &delta.x, &delta.y);
-			if (delta.y < 0) {
-				return update_zoom(event->x, event->y, ZOOM_IN);
-			}
-			if (delta.y > 0) {
-				return update_zoom(event->x, event->y, ZOOM_OUT);
-			}
-			break;
-		case GDK_SCROLL_DOWN:
-			return update_zoom(event->x, event->y, ZOOM_OUT);
-		case GDK_SCROLL_UP:
+	switch (event->direction) {
+	case GDK_SCROLL_SMOOTH:	// what's that?
+		gdk_event_get_scroll_deltas((GdkEvent*) event, &delta.x, &delta.y);
+		if (delta.y < 0) {
 			return update_zoom(event->x, event->y, ZOOM_IN);
-		default:
-			handled = FALSE;
 		}
+		if (delta.y > 0) {
+			return update_zoom(event->x, event->y, ZOOM_OUT);
+		}
+		break;
+	case GDK_SCROLL_DOWN:
+		return update_zoom(event->x, event->y, ZOOM_OUT);
+	case GDK_SCROLL_UP:
+		return update_zoom(event->x, event->y, ZOOM_IN);
+	default:
+		handled = FALSE;
 	}
 	return handled;
 }

@@ -86,6 +86,8 @@ static unsigned int orig_ry[MAX_LAYERS] = { 0 }; // dimensions before any upscal
 
 static int luminance_mode = 0;		// 0 if luminance is not used
 
+static gboolean timespan_warning_given = FALSE;
+
 static struct registration_method *reg_methods[5];
 
 static sequence *seq = NULL;		// the sequence of layers, for alignments and normalization
@@ -219,7 +221,8 @@ layer *create_layer(int index) {
 			GTK_FILE_FILTER(gtk_builder_get_object(gui.builder, "filefilter1")));
 			gtk_file_chooser_button_set_width_chars(ret->chooser, 16);
 	gtk_file_chooser_set_local_only(GTK_FILE_CHOOSER(ret->chooser), FALSE);
-	g_signal_connect(ret->chooser, "file-set", G_CALLBACK(on_filechooser_file_set), NULL);	g_object_ref(G_OBJECT(ret->chooser));	// don't destroy it on removal from grid
+	g_signal_connect(ret->chooser, "file-set", G_CALLBACK(on_filechooser_file_set), NULL);
+	g_object_ref(G_OBJECT(ret->chooser));	// don't destroy it on removal from grid
 
 	ret->label = GTK_LABEL(gtk_label_new(_("not loaded")));
 	gtk_widget_set_tooltip_text(GTK_WIDGET(ret->label), _("not loaded"));
@@ -1139,6 +1142,36 @@ void on_composition_combo_coloringtype_changed(GtkComboBox *widget, gpointer use
 static void colors_align_and_compose() {
 	int x, y;
 	if (no_color_available()) return;
+	// Sort the date_obs and pic the earliest one
+	GList *date_obs_list = NULL;
+	for (int layer = 1 ; layers[layer]; layer++) {
+		if (has_fit(layer) && layers[layer]->the_fit.date_obs) {
+			date_obs_list = g_list_append(date_obs_list, layers[layer]->the_fit.date_obs);
+		}
+	}
+	int len = g_list_length(date_obs_list);
+	if (len > 0) {
+		date_obs_list = g_list_sort(date_obs_list, g_date_time_compare);
+		GDateTime *earliest = (GDateTime*) g_list_nth(date_obs_list, 0)->data;
+		GDateTime *latest = (GDateTime*) g_list_nth(date_obs_list, len-1)->data;
+		GTimeSpan timespan = g_date_time_difference(latest, earliest);
+		timespan /= 3600000000;
+		if (timespan > 24 && !timespan_warning_given) {
+			siril_log_message(_("Attention: channels are dated more than 24 hours apart. DATE_OBS "
+								"set to the earliest observation start date but for "
+								"some purposes this field may be of limited use (e.g. solar "
+								"system objects may have moved significantly between channels).\n"));
+			timespan_warning_given = TRUE;
+		} else {
+			timespan_warning_given = FALSE;
+		}
+		if (gfit.date_obs) {
+			g_date_time_unref(gfit.date_obs);
+		}
+		g_date_time_ref(earliest);
+		gfit.date_obs = earliest;
+	}
+	g_list_free(date_obs_list);
 	fprintf(stdout, "colour layers only composition\n");
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) private(y,x) schedule(static)
@@ -1174,7 +1207,14 @@ static void luminance_and_colors_align_and_compose() {
 	 * luminance layer's value and transformed back to RGB. */
 	guint x, y;
 	assert(has_fit(0));
-
+	// Copy the date_obs field from the luminance layer
+	if (layers[0]->the_fit.date_obs) {
+		if (gfit.date_obs) {
+			g_date_time_unref(gfit.date_obs);
+		}
+		g_date_time_ref(layers[0]->the_fit.date_obs);
+		gfit.date_obs = layers[0]->the_fit.date_obs;
+	}
 	if (no_color_available()) {
 		/* luminance only: we copy its data to all result layers */
 		int i;
@@ -1497,6 +1537,7 @@ void on_wavelength_changed(GtkEditable *editable, gpointer user_data){
 }
 
 void reset_compositing_module() {
+	timespan_warning_given = FALSE;
 	gui.comp_layer_centering = NULL;
 	if (!compositing_loaded)
 		return;
@@ -1655,14 +1696,20 @@ static void coeff_clear() {
 }
 
 void on_composition_rgbcolor_clicked(GtkButton *button, gpointer user_data){
-	gboolean photometric = gtk_toggle_button_get_active((GtkToggleButton*) lookup_widget("compositing_pcc_active"));
+	int photometric = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("rgbcomp_cc_method")));
 	GtkWidget *win = NULL;
-	if (photometric) {
-		win = lookup_widget("ImagePlateSolver_Dial");
-		initialize_photometric_cc_dialog();
-	} else {
-		win = lookup_widget("color_calibration");
-		initialize_calibration_interface();
+	switch (photometric) {
+		case 0:
+			win = lookup_widget("color_calibration");
+			initialize_calibration_interface();
+		break;
+		case 1:
+			win = lookup_widget("s_pcc_dialog");
+			initialize_photometric_cc_dialog();
+		break;
+		case 2:
+			win = lookup_widget("s_pcc_dialog");
+			initialize_spectrophotometric_cc_dialog();
 	}
 	gtk_window_set_transient_for(GTK_WINDOW(win), GTK_WINDOW(lookup_widget("composition_dialog")));
 	/* Here this is wanted that we do not use siril_open_dialog */

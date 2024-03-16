@@ -131,7 +131,7 @@ void scripts_action_activate(GSimpleAction *action, GVariant *parameter, gpointe
 }
 
 void updates_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-#if defined(HAVE_JSON_GLIB) && defined(HAVE_LIBCURL)
+#if defined(HAVE_LIBCURL)
 	siril_check_updates(TRUE);
 #else
 	siril_log_message(_("Cannot check for updates with this version, missing dependency\n"));
@@ -527,7 +527,7 @@ void image_information_activate(GSimpleAction *action, GVariant *parameter, gpoi
 }
 
 void image_fits_header_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	show_FITS_header(&gfit);
+	siril_open_dialog("keywords_dialog");
 }
 
 /******* processing menu **************/
@@ -547,8 +547,12 @@ void color_calib_activate(GSimpleAction *action, GVariant *parameter, gpointer u
 
 void pcc_activate(GSimpleAction *action, GVariant *parameter,gpointer user_data) {
 	initialize_photometric_cc_dialog();
-	siril_open_dialog("ImagePlateSolver_Dial");
-	on_GtkButton_IPS_metadata_clicked(NULL, NULL);	// fill it automatically
+	siril_open_dialog("s_pcc_dialog");
+}
+
+void spcc_activate(GSimpleAction *action, GVariant *parameter,gpointer user_data) {
+	initialize_spectrophotometric_cc_dialog();
+	siril_open_dialog("s_pcc_dialog");
 }
 
 void split_channel_activate(GSimpleAction *action, GVariant *parameter,gpointer user_data) {
@@ -714,6 +718,16 @@ void align_dft_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 	rgb_align(1);
 }
 
+void align_global_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	undo_save_state(&gfit, _("RGB alignment (Global stars)"));
+	rgb_align(2);
+}
+
+void align_kombat_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	undo_save_state(&gfit, _("RGB alignment (KOMBAT)"));
+	rgb_align(3);
+}
+
 void align_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	undo_save_state(&gfit, _("RGB alignment (PSF)"));
 	if (com.selection.w > 300 || com.selection.h > 300) {
@@ -748,3 +762,6 @@ void set_roi(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	on_set_roi();
 }
 
+void ccm_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("ccm_dialog");
+}

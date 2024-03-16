@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 m4_define([siril_major_version], [1])
 m4_define([siril_minor_version], [3])
-m4_define([siril_micro_version], [0])
+m4_define([siril_micro_version], [1])
 m4_define([siril_prerelease_version], [alpha-dev])
 m4_define([siril_version],
           [siril_major_version.siril_minor_version.siril_micro_version])
@@ -151,6 +151,10 @@ PKG_CHECK_MODULES(GSL, [gsl < 2],
 dnl check cfitsio
 PKG_CHECK_MODULES(CFITSIO, [cfitsio])
 
+dnl Check for json-glib
+PKG_CHECK_MODULES(JSON_GLIB, [json-glib-1.0 >= 1.2.6])
+
+
 dnl check opencv
 AC_PROG_CXX
 if test -n "$CXX" && ( test "X$CXX" != "Xno" &&
@@ -271,11 +275,6 @@ curl_avail=no
 m4_include([m4/libcurl.m4])
 LIBCURL_CHECK_CONFIG([yes], [7.10.0],
 		     [AC_DEFINE([HAVE_LIBCURL], [1], [Using Libcurl])] curl_avail=yes, [])
-
-dnl Check for json-glib
-PKG_CHECK_MODULES(JSON_GLIB, [json-glib-1.0 >= 1.2.6],
-		  [AC_DEFINE([HAVE_JSON_GLIB], [1], [Using automatic update])],
-		  AC_MSG_WARN([json-glib not found. Not using automatic updates.]))
 
 dnl Check for libgit
 PKG_CHECK_MODULES([LIBGIT], [libgit2],

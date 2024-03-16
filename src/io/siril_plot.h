@@ -43,7 +43,8 @@ typedef struct siril_plot_xydata_struct {
 	struct kpair *data; // data
 	int nb;		// number of points in the plot
 	gchar *label; // the name of the series
-	double x_offset;
+	double x_offset; // the offset to be added in x
+	enum kplottype pl_type; // the plot type (-1 if undefined)
 } splxydata;
 
 typedef struct siril_plot_xyerrdata_struct {
@@ -57,6 +58,12 @@ typedef struct siril_plot_legend_struct {
 	double color[3];
 } spllegend;
 
+typedef struct siril_plot_bkg_struct {
+	gchar *bkgfilepath;
+	GdkPixbuf *img;
+	double width, height;
+} splbkg;
+
 typedef struct siril_plot_data_struct {
 	GList *plot; // a list of splxydata structures to hold simple data plot (only data)
 	GList *plots; // a list of splxydata structures to hold data plots (data and errors)
@@ -66,7 +73,7 @@ typedef struct siril_plot_data_struct {
 	gchar *xfmt; // x axis number format
 	gchar *yfmt; // y axis number format
 	gchar *savename; // chain to be prepended when interactively saving (png, dat)
-	gboolean forsequence; // using for saving 
+	gboolean forsequence; // using for saving
 	enum kplottype plottype;
 	enum kplotstype plotstype;
 	enum kplottype plotstypes[3];
@@ -79,7 +86,10 @@ typedef struct siril_plot_data_struct {
 	gboolean revertX;
 	gboolean revertY;
 	plot_draw_data_t pdd; // data for display interaction
-	gboolean interactive; // true if GUI display
+	gboolean zoomable; // true if GUI display (unless there is a backgroung set)
+	splbkg *bkg; // background image structure
+	int width; // width of the display area (if 0, uses SIRIL_PLOT_DISPLAY_WIDTH)
+	int height; // height of the display area (if 0, uses SIRIL_PLOT_DISPLAY_HEIGHT)
 } siril_plot_data;
 
 void init_siril_plot_data(siril_plot_data *spl_data);
@@ -92,6 +102,10 @@ void siril_plot_set_ylabel(siril_plot_data *spl_data, const gchar *ylabel);
 void siril_plot_set_xfmt(siril_plot_data *spl_data, const gchar *xfmt);
 void siril_plot_set_yfmt(siril_plot_data *spl_data, const gchar *yfmt);
 void siril_plot_set_savename(siril_plot_data *spl_data, const gchar *savename);
+void siril_plot_set_nth_color(siril_plot_data *spl_data, int n, double color[3]);
+void siril_plot_set_nth_plot_type(siril_plot_data *spl_data, int n, enum kplottype pl_type);
+void siril_plot_set_nth_plots_types(siril_plot_data *spl_data, int n, enum kplottype pl_type[3]);
+gboolean siril_plot_set_background(siril_plot_data *spl_data, const gchar *bkgfilepath);
 
 gboolean siril_plot_add_xydata(siril_plot_data *spl_data, const gchar *label, size_t nb, const double *x, const double *y, const double *errp, const double *errm);
 gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, double height, gboolean for_svg);

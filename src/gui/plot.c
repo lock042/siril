@@ -64,8 +64,7 @@
 static GtkWidget *drawingPlot = NULL, *sourceCombo = NULL, *combo = NULL,
 		*photometry_output1 = NULL, *photometry_output2 = NULL, *photo_clear_button = NULL, *buttonClearAll = NULL,
 		*buttonClearLatest = NULL, *arcsec = NULL, *julianw = NULL, *label_display_plot = NULL,
-		*comboX = NULL, *layer_selector = NULL, *buttonSaveCSV = NULL,
-		*buttonNINA = NULL, *buttonCompStars = NULL;
+		*comboX = NULL, *layer_selector = NULL, *buttonSaveCSV = NULL;
 static pldata *plot_data;
 static struct kpair ref, curr;
 static gboolean use_photometry = FALSE, requires_seqlist_update = FALSE;
@@ -1035,8 +1034,6 @@ static void fill_plot_statics() {
 		buttonClearAll = lookup_widget("clearAllPhotometry");
 		buttonClearLatest = lookup_widget("clearLastPhotometry");
 		layer_selector = lookup_widget("seqlist_dialog_combo");
-		buttonNINA = lookup_widget("nina_button");
-		buttonCompStars = lookup_widget("comp_stars_button");
 	}
 }
 
@@ -1050,9 +1047,6 @@ static void validate_combos() {
 	}
 	gtk_widget_set_sensitive(photometry_output1, use_photometry);
 	gtk_widget_set_sensitive(photometry_output2, use_photometry);
-	gtk_widget_set_sensitive(buttonNINA, sequence_is_loaded());
-	gtk_widget_set_visible(buttonCompStars, TRUE);
-	gtk_widget_set_sensitive(buttonCompStars, sequence_is_loaded());
 	gtk_widget_set_visible(buttonSaveCSV, !(plot_data == NULL));
 	g_signal_handlers_block_by_func(julianw, on_JulianPhotometry_toggled, NULL);
 	gtk_widget_set_visible(julianw, use_photometry);
@@ -1292,34 +1286,6 @@ static void save_dialog(const gchar *format, int (export_function)(pldata *, seq
 	siril_widget_destroy(widgetdialog);
 }
 
-void on_ButtonCompStars_clicked(GtkButton *button, gpointer user_data) {
-	set_cursor_waiting(TRUE);
-
-	if (!has_wcs(&gfit)) {
-		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
-		return;
-	}
-
-	/* TODO
-	if (!com.target_star) {
-		siril_log_color_message(_("You have to identify the Variable star (Search in GUI or catsearch in ClI)\n"), "red");
-		return;
-	}
-
-	com.wide_field = FALSE;
-	com.used_cat = CAT_AAVSO;
-	get_compstars();
-
-	double dmag = 6.0;
-	do {		// This is the auto-sort process for GUI use
-		dmag = dmag * 0.9;
-	} while (sort_compstars (dmag, 0.5) > 8);
-
-	chk_compstars();
-	*/
-	set_cursor_waiting(FALSE);
-}
-
 void on_ButtonSaveCSV_clicked(GtkButton *button, gpointer user_data) {
 	gchar *error = NULL;
 	set_cursor_waiting(TRUE);
@@ -1334,7 +1300,6 @@ void on_ButtonSaveCSV_clicked(GtkButton *button, gpointer user_data) {
 void on_button_aavso_close_clicked(GtkButton *button, gpointer user_data) {
 	gtk_widget_hide(lookup_widget("aavso_dialog"));
 }
-
 
 void on_button_aavso_apply_clicked(GtkButton *button, gpointer user_data) {
 	gchar *error = NULL;

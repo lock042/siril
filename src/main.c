@@ -23,6 +23,7 @@
 #  include <config.h>
 #endif
 
+#include <gsl/gsl_errno.h>
 #include <gtk/gtk.h>
 #include <stdio.h>
 #include <string.h>
@@ -58,7 +59,7 @@
 #include "core/OS_utils.h"
 #include "algos/star_finder.h"
 #include "io/sequence.h"
-#include "io/gitscripts.h"
+#include "io/siril_git.h"
 #include "io/conversion.h"
 #include "io/single_image.h"
 #include "gui/ui_files.h"
@@ -168,6 +169,7 @@ void parallel_loop(void *(*work)(char *), char *jobdata, size_t elsize, int njob
 #endif
 
 static void global_initialization() {
+	gsl_set_error_handler_off();
 	com.star_is_seqdata = FALSE;
 	com.stars = NULL;
 	com.tilt = NULL;
@@ -176,6 +178,7 @@ static void global_initialization() {
 	com.kernel = NULL;
 	com.kernelsize = 0;
 	com.kernelchannels = 0;
+	memset(&com.spcc_data, 0, sizeof(struct spcc_data_store));
 #ifdef _WIN32
 	com.childhandle = NULL;
 #else
@@ -294,6 +297,12 @@ static void siril_app_activate(GApplication *application) {
 		auto_update_gitscripts(com.pref.auto_script_update);
 	else
 		siril_log_message(_("Online scripts repository not enabled. Not fetching or updating siril-scripts...\n"));
+	if (com.pref.spcc.use_spcc_repository)
+		auto_update_gitspcc(com.pref.spcc.auto_spcc_update);
+	else
+		siril_log_message(_("Online SPCC-database repository not enabled. Not fetching or updating siril-spcc-database...\n"));
+#else
+	siril_log_message(_("Siril was compiled without libgit2 support. Remote repositories cannot be automatically fetched...\n"));
 #endif
 
 	if (com.headless) {
@@ -341,7 +350,7 @@ static void siril_app_activate(GApplication *application) {
 		gtk_window_set_application(GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window"))), GTK_APPLICATION(application));
 		/* Load state of the main windows (position and maximized) */
 		load_main_window_state();
-#if defined(HAVE_JSON_GLIB) && defined(HAVE_LIBCURL)
+#if defined(HAVE_LIBCURL)
 		/* Check for update */
 		if (com.pref.check_update) {
 			siril_check_updates(FALSE);

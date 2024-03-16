@@ -34,6 +34,7 @@
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
 #include "gui/cut.h"
+#include "gui/keywords_tree.h"
 #include "algos/siril_wcs.h"
 #include "algos/star_finder.h"
 #include "io/annotation_catalogues.h"
@@ -124,10 +125,10 @@ void handle_owner_change(GtkClipboard *clipboard, GdkEvent *event, gpointer data
 	if (single_image_is_loaded()) {
 		gchar *filename = g_path_get_basename(com.uniq->filename);
 		if ((strcmp(filename, clipboard_content) == 0)) {
-			markup = g_markup_printf_escaped (format_green, "Image: ");
+			markup = g_markup_printf_escaped (format_green, _("Image: "));
 			gtk_label_set_markup(label_name_of_seq, markup);
 		} else {
-			markup = g_markup_printf_escaped (format_white, "Image: ");
+			markup = g_markup_printf_escaped (format_white, _("Image: "));
 			gtk_label_set_markup(label_name_of_seq, markup);
 		}
 		g_free(filename);
@@ -138,10 +139,10 @@ void handle_owner_change(GtkClipboard *clipboard, GdkEvent *event, gpointer data
 	if (sequence_is_loaded()) {
 		gchar *seq_basename = g_path_get_basename(com.seq.seqname);
 		if ((strcmp(seq_basename, clipboard_content) == 0)) {
-			markup = g_markup_printf_escaped (format_green, "Sequence: ");
+			markup = g_markup_printf_escaped (format_green, _("Sequence: "));
 			gtk_label_set_markup(label_name_of_seq, markup);
 		} else {
-			markup = g_markup_printf_escaped (format_white, "Sequence: ");
+			markup = g_markup_printf_escaped (format_white, _("Sequence: "));
 			gtk_label_set_markup(label_name_of_seq, markup);
 		}
 		g_free(seq_basename);
@@ -644,9 +645,10 @@ void update_MenuItem() {
 
 	gboolean enable_button = any_image_is_loaded && has_wcs(&gfit);
 	GAction *action_annotate = g_action_map_lookup_action(G_ACTION_MAP(app_win), "annotate-object");
-	g_simple_action_set_enabled(G_SIMPLE_ACTION(action_annotate), enable_button);
 	GAction *action_grid = g_action_map_lookup_action(G_ACTION_MAP(app_win), "wcs-grid");
-	g_simple_action_set_enabled(G_SIMPLE_ACTION(action_grid), enable_button);
+
+	/* any image with wcs information is needed */
+	siril_window_enable_wcs_proc_actions(app_win, enable_button);
 
 	/* untoggle if disabled */
 	if (!enable_button) {
@@ -687,6 +689,9 @@ void update_MenuItem() {
 	/* search SOLAR object */
 	GAction *action_search_solar = g_action_map_lookup_action (G_ACTION_MAP(app_win), "search-solar");
 	g_simple_action_set_enabled(G_SIMPLE_ACTION(action_search_solar), any_image_is_loaded && has_wcs(&gfit));
+	/* Lightcurve process */
+	GAction *action_nina_light_curve = g_action_map_lookup_action (G_ACTION_MAP(app_win), "nina_light_curve");
+	g_simple_action_set_enabled(G_SIMPLE_ACTION(action_nina_light_curve), sequence_is_loaded() && has_wcs(&gfit));
 	/* selection is needed */
 	siril_window_enable_if_selection_actions(app_win, com.selection.w && com.selection.h);
 	/* selection and sequence is needed */
@@ -698,6 +703,10 @@ void update_MenuItem() {
 
 	/* single RGB image is needed */
 	siril_window_enable_rgb_proc_actions(app_win, is_a_singleRGB_image_loaded);
+	/* single RGB image with wcs information is needed */
+	siril_window_enable_rgb_wcs_proc_actions(app_win, is_a_singleRGB_image_loaded && has_wcs(&gfit));
+	/* single or sequence RGB is needed */
+	siril_window_enable_any_rgb_proc_actions(app_win, is_a_singleRGB_image_loaded|| sequence_is_loaded());
 	/* any image is needed */
 	siril_window_enable_any_proc_actions(app_win, any_image_is_loaded);
 	/* any mono image is needed */
@@ -712,6 +721,9 @@ void update_MenuItem() {
 
 	/* auto-stretch actions */
 	siril_window_autostretch_actions(app_win, gui.rendering_mode == STF_DISPLAY && gfit.naxes[2] == 3);
+
+	/* keywords list */
+	refresh_keywords_dialog();
 }
 
 void sliders_mode_set_state(sliders_mode sliders) {
@@ -792,7 +804,7 @@ void update_prepro_interface(gboolean allow_debayer) {
 		output_type = GTK_COMBO_BOX(lookup_widget("prepro_output_type_combo"));
 		prepro_button = lookup_widget("prepro_button");
 		cosme_grid = lookup_widget("grid24");
-		dark_optim = lookup_widget("checkDarkOptimize");
+		dark_optim = lookup_widget("comboDarkOptimize");
 		equalize = lookup_widget("checkbutton_equalize_cfa");
 		auto_eval = lookup_widget("checkbutton_auto_evaluate");
 		flat_norm = lookup_widget("entry_flat_norm");
@@ -963,12 +975,16 @@ void display_filename() {
 	}
 	vport = nb_layers > 1 ? nb_layers + 1 : nb_layers;
 
-	gchar *	base_name = g_path_get_basename(filename);
+	gchar *base_name = g_path_get_basename(filename);
+	if (strlen(base_name) > 4096) // Prevent manifestly excessive lengths
+		base_name[4095] = 0;
 	gchar *orig_base_name = NULL;
 	GString *concat_base_name = NULL;
 	if (orig_filename && orig_filename[0] != '\0') {
-		orig_base_name = g_path_get_basename(orig_filename);
+		orig_base_name = g_path_get_basename(orig_filename); // taints orig_filename
 		concat_base_name = g_string_new(orig_base_name);
+		if (concat_base_name->len > 4096) // Sanitize length of tainted string
+			g_string_truncate(concat_base_name, 4096);
 		concat_base_name = g_string_append(concat_base_name, " <==> ");
 		concat_base_name = g_string_append(concat_base_name, base_name);
 	}
@@ -1304,12 +1320,15 @@ static void load_accels() {
 		"win.zoom-one",               "<Primary>1", NULL,
 
 		"win.search-object",          "<Primary>slash", NULL,
-		"win.search-solar",          "<Primary>slash", NULL,
+		"win.search-solar",           "<Primary>slash", NULL,
 		"win.astrometry",             "<Primary><Shift>a", NULL,
 		"win.pcc-processing",         "<Primary><Shift>p", NULL,
+		"win.spcc-processing",        "<Primary><Shift>c", NULL,
+		"win.compstars",              "<Primary><Shift>b", NULL,
+		"win.nina_light_curve",       "<Primary><Shift>n", NULL,
 		"win.pickstar",               "<Primary>space", NULL,
 		"win.dyn-psf",                "<Primary>F6", NULL,
-		"win.clipboard",              "<Primary><Shift>c", NULL,
+		"win.clipboard",              "<Primary><Shift>x", NULL,
 
 		"win.negative-processing",    "<Primary>i", NULL,
 		"win.rotation90-processing",  "<Primary>Right", NULL,
@@ -1528,7 +1547,7 @@ void initialize_all_GUI(gchar *supported_files) {
 	initialize_stacking_methods();
 
 	/* set focal and pixel pitch */
-	set_focal_and_pixel_pitch();
+	init_astrometry();
 
 	initialize_FITS_name_entries();
 
@@ -1604,6 +1623,14 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	/* every 0.5sec update memory display */
 	g_timeout_add(500, update_displayed_memory, NULL);
+
+#ifndef HAVE_LIBCURL
+	// SPCC is not available if compiled without networking
+	gtk_widget_set_visible(lookup_widget("proc_spcc"), FALSE);
+	// Remove it from the RGB composition color calibration methods list too
+	gtk_combo_box_text_remove(GTK_COMBO_BOX_TEXT(lookup_widget("rgbcomp_cc_method")), 2);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("rgbcomp_cc_method")), 1);
+#endif
 
 	/* now that everything is loaded we can connect these signals
 	 * Doing it in the glade file is a bad idea because they are called too many times during loading */

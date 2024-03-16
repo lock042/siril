@@ -55,6 +55,14 @@ static void build_the_dialog() {
 	gtk_file_filter_add_pattern(f, "*.csv");
 	gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(file_chooser), f);
 
+	// Sets the "OK" button as default one
+	GtkWidget *OK_button = gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT);
+	gtk_widget_set_can_default(OK_button, TRUE);
+	gtk_widget_grab_default(OK_button);
+	gtk_widget_grab_focus(OK_button);
+	gtk_style_context_add_class(gtk_widget_get_style_context(OK_button), "suggested-action");
+
+
 	GtkWidget *label = gtk_label_new(_("Process a sequence to get a light curve on a star using the list of reference stars created by Siril or the NINA exoplanet plugin"));
 	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
 	g_object_set(G_OBJECT(label), "margin", 15, NULL);
@@ -98,8 +106,10 @@ static void on_nina_lc_response(GtkDialog* self, gint response_id, gpointer user
 		return;
 	}
 	gchar *nina_file = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(file_chooser));
-	if (!nina_file)
+	if (!nina_file){
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Choose a comparison stars file"));
 		return;
+	}
 
 	if (!has_wcs(&gfit)) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("The currently loaded image must be plate solved"));
