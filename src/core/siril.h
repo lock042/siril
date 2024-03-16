@@ -466,6 +466,7 @@ struct ffit {
 	float *fpdata[3];	// same with float
 
 	gboolean top_down;	// image data is stored top-down, normally false for FITS, true for SER
+	gboolean focalkey, pixelkey; // flag to define if pixel and focal lengths were read from prefs or from the header keys
 
 	GSList *history;	// Former HISTORY comments of FITS file
 
