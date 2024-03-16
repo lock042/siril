@@ -6,13 +6,16 @@
 
 typedef struct deconvolution_sequence_data {
 	sequence *seq;
-	const gchar* seqEntry;
+	char* seqEntry;
 	estk_data *deconv_data;
+	gboolean from_command;
 } deconvolution_sequence_data;
 
 void reset_conv_args(estk_data* args);
+void reset_conv_kernel();
 
 int load_kernel(gchar* filename);
+int save_kernel(gchar* filename);
 void on_bdeconv_savekernel_clicked(GtkButton *button, gpointer user_data);
 gpointer deconvolve(gpointer p);
 gpointer estimate_only(gpointer p);

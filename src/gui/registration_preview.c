@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -102,9 +102,10 @@ gboolean redraw_preview(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	}
 	cairo_translate(cr, area_width / 2.0 - com.seq.previewX[current_preview],
 			area_height/2.0-com.seq.previewY[current_preview]);
-	if (com.seq.regparam && com.seq.regparam[gui.cvport]) {
+	int cvport = select_vport(gui.cvport);
+	if (com.seq.regparam && com.seq.regparam[cvport]) {
 		double dx, dy;
-		translation_from_H(com.seq.regparam[gui.cvport][com.seq.current].H, &dx, &dy);
+		translation_from_H(com.seq.regparam[cvport][com.seq.current].H, &dx, &dy);
 		shiftx = round_to_int(dx);
 		shifty = round_to_int(dy);
 	}
@@ -192,6 +193,9 @@ void clear_previews() {
 			gui.preview_surface[i] = NULL;
 		}
 	}
+
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("togglebutton2")), FALSE);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("togglebutton3")), FALSE);
 }
 
 void set_preview_area(int preview_area, int centerX, int centerY) {

@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,6 +36,7 @@
 #include "io/sequence.h"
 #include "algos/geometry.h"
 #include "algos/sorting.h"
+#include "algos/statistics.h"
 #include "gui/message_dialog.h"
 #include "opencv/opencv.h"
 #include "background_extraction.h"
@@ -144,12 +145,12 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 	int scaling_factor = 4;
 	int width_scaled = round_to_int(width / scaling_factor);
 	int height_scaled = round_to_int(height / scaling_factor);
-	
+
 	double *background_scaled = calloc(width_scaled * height_scaled, sizeof(double));
 	double *kernel_scaled = calloc(width_scaled * height_scaled, sizeof(double));
 	double x_scaling = (double)height_scaled / (double)height;
 	double y_scaling = (double)width_scaled / (double)width;
-	
+
 	/* Copy linked list into array */
 	list_array = malloc(n * sizeof(double[3]));
 	l_i = list;
@@ -185,12 +186,9 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 		}
 	}
 
-	// Must turn off error handler or it aborts on error
-	gsl_set_error_handler_off();
-
 	/* Smoothing */
 	smoothing = 1e-4 * pow(10.0, (smoothing-0.5) * 3);
-	
+
 	for (int i = 0; i < n; i++) {
 		gsl_matrix_set(K, i, i, smoothing * mean);
 	}
@@ -270,7 +268,7 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 #endif
 					{
 						++progress;
-						if (!(progress % 32)) {
+						if (!(progress % 1024)) {
 							set_progress_bar_data(NULL,	(double) progress / total);
 						}
 					}
@@ -382,9 +380,6 @@ static gboolean computeBackground_Polynom(GSList *list, double *background, int 
 		k++;
 	}
 
-	// Must turn off error handler or it aborts on error
-	gsl_set_error_handler_off();
-
 	gsl_multifit_linear_workspace *work = gsl_multifit_linear_alloc(n, nbParam);
 	int status = gsl_multifit_wlinear(J, w, y, c, cov, &chisq, work);
 	if (status != GSL_SUCCESS) {
@@ -433,7 +428,7 @@ static background_sample *get_sample(float *buf, const int xx,
 		const int yy, const int w, const int h) {
 	size_t size = SAMPLE_SIZE * SAMPLE_SIZE;
 	int radius = SAMPLE_SIZE / 2;
-	background_sample *sample = (background_sample *) g_malloc(sizeof(background_sample));
+	background_sample *sample = malloc(sizeof(background_sample));
 	if (!sample) {
 		PRINT_ALLOC_ERR;
 		return NULL;
@@ -504,14 +499,14 @@ static double get_background_mean(GSList *list, int num_channels) {
 	GSList *l;
 	guint n = g_slist_length(list);
 	double mean = 0.0;
-	
+
 	for (int channel = 0; channel < num_channels; channel++) {
 		for (l = list; l; l = l->next) {
 			background_sample *sample = (background_sample *) l->data;
 			mean += sample->median[channel];
 		}
 	}
-	
+
 	return mean / n / num_channels;
 }
 
@@ -643,6 +638,7 @@ static GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, in
 	if (median <= 0.0f) {
 		if (error)
 			*error = "removing the gradient on negative images is not supported";
+		free(image);
 		return NULL;
 	}
 
@@ -657,6 +653,7 @@ static GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, in
 	if (nb_per_column == 0) {
 		if (error)
 			*error = "image is smaller than the sample size of the background extraction";
+		free(image);
 		return NULL;
 	}
 
@@ -689,7 +686,7 @@ static GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, in
 		/* Store next element's pointer before removing it */
 		GSList *next = g_slist_next(l);
 		if (sample->median[RLAYER] <= 0.0 || sample->median[RLAYER] >= threshold) {
-			g_free(sample);
+			free(sample);
 			list = g_slist_delete_link(list, l);
 		}
 		l = next;
@@ -764,7 +761,7 @@ int get_background_sample_radius() {
 
 void free_background_sample_list(GSList *list) {
 	if (list == NULL) return;
-	g_slist_free_full(list, g_free);
+	g_slist_free_full(list, free);
 }
 
 GSList *add_background_sample(GSList *orig, fits *fit, point pt) {
@@ -815,6 +812,7 @@ GSList *remove_background_sample(GSList *orig, fits *fit, point pt) {
 		if (radius == min_radius) {
 			orig = g_slist_remove(orig, sample);
 			g_free((background_sample *) sample);
+			break;
 		}
 	}
 	free(image);
@@ -844,12 +842,14 @@ gboolean end_background(gpointer p);	// in gui/background_extraction.c
 /* uses samples from com.grad_samples */
 gpointer remove_gradient_from_image(gpointer p) {
 	struct background_data *args = (struct background_data *)p;
-	gchar *error;
+	gchar *error = NULL;
 	double *background = malloc(gfit.ry * gfit.rx * sizeof(double));
 
-	if (!background && !com.script) {
+	if (!background) {
 		PRINT_ALLOC_ERR;
-		set_cursor_waiting(FALSE);
+		if (!com.script) {
+			set_cursor_waiting(FALSE);
+		}
 		return GINT_TO_POINTER(1);
 	}
 
@@ -882,6 +882,10 @@ gpointer remove_gradient_from_image(gpointer p) {
 			free(image);
 			free(background);
 			queue_error_message_dialog(_("Not enough samples."), error);
+			if (!args->from_ui) {
+				free_background_sample_list(com.grad_samples);
+				com.grad_samples = NULL;
+			}
 			free(args);
 			siril_add_idle(end_background, NULL);
 			return GINT_TO_POINTER(1);
@@ -904,6 +908,11 @@ gpointer remove_gradient_from_image(gpointer p) {
 	/* free memory */
 	free(image);
 	free(background);
+	invalidate_stats_from_fit(&gfit);
+	if (!args->from_ui) {
+		free_background_sample_list(com.grad_samples);
+		com.grad_samples = NULL;
+	}
 	siril_add_idle(end_background, args);
 	return GINT_TO_POINTER(0);
 }
@@ -995,6 +1004,8 @@ static int background_mem_limits_hook(struct generic_seq_args *args, gboolean fo
 		 */
 		uint64_t double_channel_size = args->seq->rx * args->seq->ry * sizeof(double);
 		unsigned int double_channel_size_MB = double_channel_size / BYTES_IN_A_MB;
+		if (double_channel_size_MB == 0)
+			double_channel_size_MB = 1;
 		required = MB_per_image + double_channel_size_MB * 2;
 		int thread_limit = MB_avail / required;
 		if (thread_limit > com.max_thread)
@@ -1036,13 +1047,20 @@ static int background_mem_limits_hook(struct generic_seq_args *args, gboolean fo
 	return limit;
 }
 
+int bg_extract_finalize_hook(struct generic_seq_args *args) {
+	struct background_data *data = (struct background_data *) args->user;
+	int retval = seq_finalize_hook(args);
+	free(data);
+	return retval;
+}
+
 void apply_background_extraction_to_sequence(struct background_data *background_args) {
 	struct generic_seq_args *args = create_default_seqargs(background_args->seq);
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = background_args->seq->selnum;
 	args->compute_mem_limits_hook = background_mem_limits_hook;
 	args->prepare_hook = seq_prepare_hook;
-	args->finalize_hook = seq_finalize_hook;
+	args->finalize_hook = bg_extract_finalize_hook;
 	args->image_hook = background_image_hook;
 	args->stop_on_error = FALSE;
 	args->description = _("Background Extraction");

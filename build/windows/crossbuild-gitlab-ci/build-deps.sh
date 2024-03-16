@@ -5,16 +5,17 @@ mkdir _deps && cd _deps
 crossroad install lcms2 \
                   gtk3 \
                   fftw \
+                  libjxl \
                   exiv2 \
-                  libconfig \
                   gsl \
                   opencv\
                   libheif \
                   ffms2 \
                   cfitsio \
+                  libgit2 \
 # need to uninstall crt-git
 # probably same root cause as https://github.com/msys2/MINGW-packages/issues/10837
-# otherwise, it's messing up all the subsequent builds 
+# otherwise, it's messing up all the subsequent builds
 crossroad uninstall crt-git
 
 # Build LibRaw from github
@@ -26,6 +27,13 @@ crossroad ./configure --disable-examples --disable-static && \
 make install || exit 1
 cd ..
 
+# Build libXISF from git rep
+git clone https://gitea.nouspiro.space/nou/libXISF.git
+cd libXISF
+mkdir -p build && cd build
+crossroad cmake ..
+make install || exit 1
+cd ../..
 
 if [ $? -ne 0 ]; then
   echo "Installation of pre-built dependencies failed.";

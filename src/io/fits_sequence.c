@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
  */
 
 #include "core/siril.h"
-
+#include "core/icc_profile.h"
 #include "io/image_format_fits.h"
 #include "gui/progress_and_log.h"
 #include "core/siril_log.h"
@@ -33,13 +33,13 @@
 #include "fits_sequence.h"
 
 static int fitseq_write_image_for_writer(struct seqwriter_data *writer, fits *image, int index);
-static int fitseq_prepare_for_multiple_read(fitseq *fitseq);
+static int fitseq_prepare_for_multiple_read(fitseq *fitseq, int iomode);
 static int fitseq_multiple_close(fitseq *fitseq);
 
 static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 	int status = 0;
 	int nb_hdu, ref_naxis = -1, ref_bitpix = 0, nb_images = 0;
-	long ref_naxes[3] = { 0l };
+	long ref_naxes[3] = { 0L };
 	gboolean homogeneous = TRUE;
 
 	fits_get_num_hdus(fptr, &nb_hdu, &status);
@@ -64,7 +64,16 @@ static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 
 		if (type != IMAGE_HDU) continue;
 
-		long naxes[3];
+		// Skip image HDUs named as ICC profiles or thumbnails
+		char extname[FLEN_VALUE], comment[FLEN_COMMENT];
+		int status2 = 0;
+		fits_read_key(fptr, TSTRING, "EXTNAME", &extname, comment, &status2);
+		if (g_str_has_prefix(extname, "ICCProfile")
+			|| g_str_has_prefix(extname, "Thumbnail")) {
+			continue; /* next HDU */
+		}
+
+		long naxes[3] = { 0L };
 		int naxis;
 		int bitpix;
 		fits_get_img_param(fptr, 3, &bitpix, &naxis, naxes, &status);
@@ -80,7 +89,17 @@ static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 				memcpy(ref_naxes, naxes, sizeof naxes);
 				siril_debug_print("found reference HDU %ldx%ldx%d (%d)\n", naxes[0], naxes[1], naxis, bitpix);
 			} else {
-				if (naxis != ref_naxis || naxes[0] != ref_naxes[0] || naxes[1] != ref_naxes[1] || bitpix != ref_bitpix) {
+				//printf("naxes[2]=%ld, ref_naxes[2]=%ld\n", naxes[2], ref_naxes[2]);
+				if (naxes[2] != ref_naxes[2]) {
+					char extension[FLEN_VALUE], comment[FLEN_COMMENT];
+					fits_read_key(fptr, TSTRING, "EXTNAME", &extension, comment, &status);
+					if (!g_str_has_prefix(extension, "ICCProfile"))
+						continue;
+					siril_log_message(_("Several images were found in the FITS file but they have different number of layers, which is not allowed.\n"));
+					status = 1;
+					break;
+				}
+				if (naxes[0] != ref_naxes[0] || naxes[1] != ref_naxes[1] || bitpix != ref_bitpix) {
 					if (com.pref.allow_heterogeneous_fitseq)
 						homogeneous = FALSE;
 					else {
@@ -105,7 +124,7 @@ static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 	else {
 		if (!homogeneous)
 			siril_log_message(_("Several images were found in the FITS file but they have different parameters.\n"));
-		// this ^ is printed too often, maybe we can add a verbose flag?
+		// this is printed too often, maybe we can add a verbose flag?
 		*nb_im = nb_images;
 		siril_debug_print("found %d images in the FITS sequence\n", nb_images);
 		// we could realloc *hdus, but it's not much useful
@@ -113,12 +132,11 @@ static int _find_hdus(fitsfile *fptr, int **hdus, int *nb_im) {
 	return status;
 }
 
-
 // test if a file is a multi-extension FITS, a.k.a FITS cube or FITS sequence
 int fitseq_is_fitseq(const char *filename, int *frames) {
 	fitsfile *fptr;
 	int status = 0;
-	if (siril_fits_open_diskfile(&fptr, filename, READONLY, &status))
+	if (siril_fits_open_diskfile_img(&fptr, filename, READONLY, &status))
 		return 0;
 
 	int nb_images;
@@ -144,14 +162,16 @@ void fitseq_init_struct(fitseq *fitseq) {
 	fitseq->writer = NULL;
 }
 
-int fitseq_open(const char *filename, fitseq *fitseq) {
+// opens a fitseq with iomode set to 0 (READONLY in most cases) or
+// 1 (READWRITE when the fitseq needs updating without creating a new file)
+int fitseq_open(const char *filename, fitseq *fitseq, int iomode) {
 	if (fitseq->fptr) {
 		fprintf(stderr, "FITS sequence: file already opened, or badly closed\n");
 		return -1;
 	}
 
 	int status = 0;
-	siril_fits_open_diskfile(&(fitseq->fptr), filename, READONLY, &status);
+	siril_fits_open_diskfile_img(&(fitseq->fptr), filename, iomode, &status);
 	if (status) {
 		report_fits_error(status);
 		siril_log_color_message(_("Cannot open FITS file %s\n"), "red", filename);
@@ -199,7 +219,7 @@ int fitseq_open(const char *filename, fitseq *fitseq) {
 		fitseq->is_mt_capable = TRUE;
 		fprintf(stdout, "cfitsio was compiled with multi-thread support,"
 				" parallel read of images will be possible\n");
-		fitseq_prepare_for_multiple_read(fitseq);
+		fitseq_prepare_for_multiple_read(fitseq, iomode);
 	} else {
 		fitseq->is_mt_capable = FALSE;
 		fprintf(stdout, "cfitsio was compiled without multi-thread support,"
@@ -236,6 +256,8 @@ static int fitseq_read_frame_internal(fitseq *fitseq, int index, fits *dest, gbo
 	if (read_fits_with_convert(dest, fitseq->filename, force_float)) {
 		return -1;
 	}
+	dest->icc_profile = NULL;
+	color_manage(dest, FALSE);
 
 	return 0;
 }
@@ -277,6 +299,8 @@ int fitseq_read_partial_fits(fitseq *fitseq, int layer, int index, fits *dest, c
 	status = internal_read_partial_fits(fptr, fitseq->naxes[1], fitseq->bitpix,
 			dest->type == DATA_USHORT ? (void *)dest->data : (void *)dest->fdata,
 			layer, area);
+	dest->icc_profile = NULL;
+	color_manage(dest, FALSE);
 	return status;
 }
 
@@ -309,7 +333,8 @@ int fitseq_read_partial(fitseq *fitseq, int layer, int index, void *buffer, cons
 int fitseq_create_file(const char *filename, fitseq *fitseq, int frame_count) {
 	gchar *new_filename = set_right_extension(filename);
 
-	g_unlink(new_filename); /* Delete old file if it already exists */
+	if (g_unlink(new_filename))
+		siril_debug_print("g_unlink() failed\n");/* Delete old file if it already exists */
 	fitseq_init_struct(fitseq);
 
 	int status = 0;
@@ -324,6 +349,7 @@ int fitseq_create_file(const char *filename, fitseq *fitseq, int frame_count) {
 	fitseq->writer = malloc(sizeof(struct seqwriter_data));
 	fitseq->writer->write_image_hook = fitseq_write_image_for_writer;
 	fitseq->writer->sequence = fitseq;
+	fitseq->writer->output_type = SEQ_FITSEQ;
 	siril_debug_print("Successfully created the FITS sequence file %s, for %d images, waiting for data\n",
 			fitseq->filename, fitseq->frame_count);
 
@@ -369,14 +395,23 @@ int fitseq_write_image(fitseq *fitseq, fits *image, int index) {
 
 static int fitseq_destroy(fitseq *fitseq, gboolean abort) {
 	int retval = 0;
+	int frame_count = -1;
 	if (fitseq->writer) {
 		retval = stop_writer(fitseq->writer, abort);
+		frame_count = fitseq->writer->frame_count;
 		free(fitseq->writer);
 		fitseq->writer = NULL;
 	}
+	if (frame_count == -1)
+		frame_count = fitseq->frame_count;
 	retval |= fitseq_multiple_close(fitseq);
 	int status = 0;
 	fits_close_file(fitseq->fptr, &status);
+	if ((retval || !frame_count) && fitseq->filename) {
+		siril_log_message(_("Removing failed FITS sequence file: %s\n"), fitseq->filename);
+		if (g_unlink(fitseq->filename))
+			siril_debug_print("g_unlink() failed\n");
+	}
 	if (fitseq->filename)
 		free(fitseq->filename);
 	if (fitseq->hdu_index)
@@ -385,11 +420,7 @@ static int fitseq_destroy(fitseq *fitseq, gboolean abort) {
 }
 
 void fitseq_close_and_delete_file(fitseq *fitseq) {
-	char *filename = fitseq->filename;
-	fitseq->filename = NULL;
 	fitseq_destroy(fitseq, TRUE);
-	siril_log_message(_("Removing failed FITS sequence file: %s\n"), filename);
-	g_unlink(filename);
 }
 
 int fitseq_close_file(fitseq *fitseq) {
@@ -397,14 +428,14 @@ int fitseq_close_file(fitseq *fitseq) {
 }
 
 // to call after open to read with several threads in the file
-static int fitseq_prepare_for_multiple_read(fitseq *fitseq) {
+static int fitseq_prepare_for_multiple_read(fitseq *fitseq, int iomode) {
 	if (fitseq->thread_fptr) return 0;
 	if (!fitseq->is_mt_capable) return 0;
 	fitseq->num_threads = g_get_num_processors();
 	fitseq->thread_fptr = malloc(fitseq->num_threads * sizeof(fitsfile *));
 	for (guint i = 0; i < fitseq->num_threads; i++) {
 		int status = 0;
-		if (siril_fits_open_diskfile(&fitseq->thread_fptr[i], fitseq->filename, READONLY, &status)) {
+		if (siril_fits_open_diskfile_img(&fitseq->thread_fptr[i], fitseq->filename, iomode, &status)) {
 			report_fits_error(status);
 			return -1;
 		}
@@ -419,8 +450,10 @@ static int fitseq_multiple_close(fitseq *fitseq) {
 	for (guint i = 0; i < fitseq->num_threads; i++) {
 		int status = 0;
 		fits_close_file(fitseq->thread_fptr[i], &status);
-		if (status)
+		if (status) {
 			retval = 1;
+			report_fits_error(status);
+		}
 	}
 	free(fitseq->thread_fptr);
 	fitseq->thread_fptr = NULL;

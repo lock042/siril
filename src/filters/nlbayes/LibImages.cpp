@@ -26,7 +26,6 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <math.h>
-#include <omp.h>
 
  using namespace std;
 

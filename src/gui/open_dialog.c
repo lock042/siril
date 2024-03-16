@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,6 +29,7 @@
 #include "core/proto.h"
 #include "core/OS_utils.h"
 #include "core/initfile.h"
+#include "core/icc_profile.h"
 #include "algos/sorting.h"
 #include "io/conversion.h"
 #include "io/films.h"
@@ -101,13 +102,10 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 			g_free(upcase);
 		}
 		raw[strlen(raw) - 1] = '\0';
-		if (whichdial != OD_CONVERT && whichdial != OD_OPEN) {
-			gtk_filter_add(chooser, _("RAW DSLR Camera Files"), raw,
-				gui.file_ext_filter == TYPERAW);
-		} else {
-			all_filter = g_string_append(all_filter, ";");
-			all_filter = g_string_append(all_filter, raw);
-		}
+
+		all_filter = g_string_append(all_filter, ";");
+		all_filter = g_string_append(all_filter, raw);
+
 
 		free(raw);
 
@@ -123,9 +121,14 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 		s_pattern = g_string_append(s_pattern, "*.jpg;*.JPG;*.jpeg;*.JPEG;");
 #endif
 
+#ifdef HAVE_LIBJXL
+		s_supported_graph = g_string_append(s_supported_graph, ", *.jxl");
+		s_pattern = g_string_append(s_pattern, "*.jxl;*.JXL;");
+#endif
+
 #ifdef HAVE_LIBHEIF
-		s_supported_graph = g_string_append(s_supported_graph, ", *.heic, *.heif");
-		s_pattern = g_string_append(s_pattern, "*.heic;*.HEIC;*.heif;*.HEIF;");
+		s_supported_graph = g_string_append(s_supported_graph, ", *.heic, *.heif, *.avif");
+		s_pattern = g_string_append(s_pattern, "*.heic;*.HEIC;*.heif;*.HEIF;*.avif;*.AVIF;");
 #endif
 
 #ifdef HAVE_LIBPNG
@@ -135,7 +138,12 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 
 #ifdef HAVE_LIBTIFF
 		s_supported_graph = g_string_append(s_supported_graph, ", *.tif, *.tiff");
-		s_pattern = g_string_append(s_pattern, "*.tif;*.TIF;*.tiff;*.TIFF");
+		s_pattern = g_string_append(s_pattern, "*.tif;*.TIF;*.tiff;*.TIFF;");
+#endif
+
+#ifdef HAVE_LIBXISF
+		s_supported_graph = g_string_append(s_supported_graph, ", *.xisf");
+		s_pattern = g_string_append(s_pattern, "*.xisf;*.XISF");
 #endif
 		s_supported_graph = g_string_append(s_supported_graph, ")");
 
@@ -144,7 +152,8 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 		if (whichdial != OD_CONVERT && whichdial != OD_OPEN) {
 			gtk_filter_add(chooser, graphics_supported, graphics_filter,
 					gui.file_ext_filter == TYPEBMP || gui.file_ext_filter == TYPEJPG ||
-					gui.file_ext_filter == TYPEPNG || gui.file_ext_filter == TYPETIFF);
+					gui.file_ext_filter == TYPEPNG || gui.file_ext_filter == TYPETIFF ||
+					gui.file_ext_filter == TYPEXISF);
 
 			/* NETPBM FILES */
 			gtk_filter_add(chooser, _("Netpbm Files (*.ppm, *.pnm, *.pgm)"),
@@ -187,7 +196,8 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 			g_free(ext);
 			g_free(upcase);
 		}
-		film_filter[strlen(film_filter) - 1] = '\0';
+		if (strlen(film_filter) > 0)
+			film_filter[strlen(film_filter) - 1] = '\0';
 
 		if (whichdial != OD_CONVERT && whichdial != OD_OPEN) {
 		gtk_filter_add(chooser, _("Film Files (*.avi, *.mpg, ...)"), film_filter,
@@ -248,6 +258,7 @@ static void opendial(int whichdial) {
 		widgetdialog = siril_file_chooser_open(control_window, GTK_FILE_CHOOSER_ACTION_OPEN);
 		dialog = GTK_FILE_CHOOSER(widgetdialog);
 		gtk_file_chooser_set_current_folder(dialog, com.wd);
+		gtk_file_chooser_set_local_only(dialog, FALSE);
 		if (whichdial == OD_FLATLIB) {
 			if (com.pref.prepro.flat_lib != NULL) {
 				gchar *path = g_path_get_dirname(com.pref.prepro.flat_lib);
@@ -275,12 +286,14 @@ static void opendial(int whichdial) {
 		widgetdialog = siril_file_chooser_open(control_window, GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER);
 		dialog = GTK_FILE_CHOOSER(widgetdialog);
 		gtk_file_chooser_set_current_folder(dialog, com.wd);
+		gtk_file_chooser_set_local_only(dialog, FALSE);
 		gtk_file_chooser_set_select_multiple(dialog, FALSE);
 		break;
 	case OD_OPEN:
 		widgetdialog = siril_file_chooser_open(control_window, GTK_FILE_CHOOSER_ACTION_OPEN);
 		dialog = GTK_FILE_CHOOSER(widgetdialog);
 		gtk_file_chooser_set_current_folder(dialog, com.wd);
+		gtk_file_chooser_set_local_only(dialog, FALSE);
 		gtk_file_chooser_set_select_multiple(dialog, FALSE);
 		set_filters_dialog(dialog, whichdial);
 		siril_file_chooser_add_preview(dialog, preview);
@@ -290,6 +303,7 @@ static void opendial(int whichdial) {
 		widgetdialog = siril_file_chooser_add(control_window, GTK_FILE_CHOOSER_ACTION_OPEN);
 		dialog = GTK_FILE_CHOOSER(widgetdialog);
 		gtk_file_chooser_set_current_folder(dialog, com.wd);
+		gtk_file_chooser_set_local_only(dialog, FALSE);
 		gtk_file_chooser_set_select_multiple(dialog, TRUE);
 		set_filters_dialog(dialog, whichdial);
 		break;
@@ -297,6 +311,7 @@ static void opendial(int whichdial) {
 		widgetdialog = siril_file_chooser_add(control_window, GTK_FILE_CHOOSER_ACTION_OPEN);
 		dialog = GTK_FILE_CHOOSER(widgetdialog);
 		gtk_file_chooser_set_current_folder(dialog, com.wd);
+		gtk_file_chooser_set_local_only(dialog, FALSE);
 		gtk_file_chooser_set_select_multiple(dialog, FALSE);
 		set_single_filter_dialog(dialog, _("Cosmetic correction file (*.lst)"), "*.lst;*.LST");
 	}
@@ -317,7 +332,7 @@ static void opendial(int whichdial) {
 		GtkToggleButton *flat_button, *dark_button, *bias_button;
 		GtkWidget *pbutton;
 
-		filename = gtk_file_chooser_get_filename(chooser);
+		filename = siril_file_chooser_get_filename(chooser);
 		if (!filename)
 			goto wait;
 
@@ -389,12 +404,13 @@ static void opendial(int whichdial) {
 		case OD_OPEN:
 			set_cursor_waiting(TRUE);
 			retval = open_single_image(filename);
+			icc_auto_assign_or_convert(&gfit, ICC_ASSIGN_ON_LOAD);
 			set_cursor_waiting(FALSE);
 			if (retval == OPEN_IMAGE_CANCEL) goto wait;
 			break;
 
 		case OD_CONVERT:
-			list = gtk_file_chooser_get_filenames(chooser);
+			list = siril_file_chooser_get_filenames(chooser);
 			list = g_slist_sort(list, (GCompareFunc) strcompare);
 			fill_convert_list(list);
 			g_slist_free(list);
@@ -472,6 +488,7 @@ void on_open_recent_action_item_activated(GtkRecentChooser *chooser,
 	}
 
 	open_single_image(path);
+	icc_auto_assign_or_convert(&gfit, ICC_ASSIGN_ON_LOAD);
 
 	g_free(uri);
 	g_free(path);

@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 #define SRC_GUI_PLOT_H_
 
 #include "core/siril.h"
+#include "kplot.h"
 
 void clear_all_photometry_and_plot();
 void reset_plot();
@@ -31,13 +32,16 @@ void init_plot_colors();
 
 /* for one curve */
 typedef struct plot_data_struct {
-	double *julian, *frame;
+	double *frame;
 	struct kpair *data, *err;
 	int nb;		// number of points in the plot (= number of images)
-
 	struct plot_data_struct *next;
 } pldata;
 
+typedef struct phot_data_struct {
+	int frame;
+	struct kpair data, err;
+} photdata_t;
 
 /* has to be the same as in the glade file */
 enum photometry_source {
@@ -119,5 +123,7 @@ typedef struct plot_draw_data {
 	gboolean *selected; // array same length as data array stating if point is within selection
 	int nbselected;
 } plot_draw_data_t;
+
+gboolean is_inside_grid(double x, double y, plot_draw_data_t *pddstruct);
 
 #endif /* SRC_GUI_PLOT_H_ */

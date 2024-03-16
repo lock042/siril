@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Copyright 2012-2021 Free-astro team -->
 <component type="desktop">
-  <id>org.free_astro.siril.desktop</id>
+  <id>org.free_astro.siril</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0+</project_license>
   <developer_name>Free-astro Team</developer_name>
@@ -84,13 +84,136 @@
     <binary>siril</binary>
   </provides>
   <url type="homepage">https://www.siril.org</url>
-  <url type="bugtracker">https://gitlab.com/free-astro/siril/issues</url>
+  <url type="bugtracker">https://gitlab.com/free-astro/siril/-/issues</url>
   <url type="donation">https://siril.org/donate/</url>
   <url type="help">https://free-astro.org/siril_doc-en/</url>
   <update_contact>cyril_at_free-astro.org</update_contact>
   <content_rating type="oars-1.0"/>
   <releases>
-      <release version="1.0.6" type="stable" date="2022-10-18">
+    <release version="1.2.1" type="stable" date="2024-01-26">
+      <url type="details">https://siril.org/download/1.2.1</url>
+      <description>
+        <p>
+          Siril 1.2.1 is a bug fix release, containing dozens of fixes.
+          The most important fixes are:
+        </p>
+        <ul>
+          <li>
+          Added configurable color for background extraction sample and standard annotations
+          </li>
+          <li>
+          Fixed Noise Reduction Anscombe VST bug with mono images
+          </li>
+          <li>
+          Fixed HEIF import
+          </li>
+          <li>
+          Fixed crash in findstar when detecting stars close to the border
+          </li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.2.0" type="stable" date="2023-09-15">
+      <url type="details">https://siril.org/download/1.2.0</url>
+      <description>
+        <p>
+          First stable release of the 1.2.0 series. Many bug fixes
+          have been implemented in this version.
+          The most outstanding fixes are:
+        </p>
+        <ul>
+          <li>
+          Fixed crash in background extraction samples removing
+          </li>
+          <li>
+          Fixed crash in findstar when a large saturated patch was close to border
+          </li>
+          <li>
+          Fixed memory leaks in deconvolution code
+          </li>
+          <li>
+          Fixed HaOiii script failure if input image has odd dimensions
+          </li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.2.0~rc1" date="2023-06-01">
+      <url type="details">https://siril.org/download/1.2.0-rc1</url>
+      <description>
+        <p>
+          First release candidate release, of the 1.2.0 series. A few feature and many bug fixes
+          have been implemented in this version.
+          The most outstanding fixes are:
+        </p>
+        <ul>
+          <li>
+          Added GHS saturation stretch mode
+          </li>
+          <li>
+          Added Astro-TIFF in sequence export
+          </li>
+          <li>
+          Added read of datetime in jpeg and png file with exiv2
+          </li>
+          <li>
+          Added special formatter to parse date-time in path parsing
+          </li>
+          <li>
+          Fixed many crashes
+          </li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.2.0~beta2" date="2023-03-12">
+      <url type="details">https://siril.org/download/1.2.0-beta2</url>
+      <description>
+        <p>
+          Second beta release, of the 1.2.0 series. Many improvement and bug fixes
+          have been implemented in this version.
+          The most outstanding fixes are:
+        </p>
+        <ul>
+          <li>
+          Fixed crash when converting sequence to SER
+          </li>
+          <li>
+          Fixed PCC progress bar which never terminated
+          </li>
+          <li>
+          Fixed crash when using deconvolution on a sequence
+          </li>
+          <li>
+          Fixed a lot of StarNet bugs
+          </li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.2.0~beta1" date="2023-02-24">
+      <url type="details">https://siril.org/download/1.2.0-beta1</url>
+      <description>
+        <p>
+          First beta release, of the 1.2.0 series. Many improvement, bug fixes
+          and new features have been implemented in this version. GUI has been
+          redrawn at some points for a better user experience.
+          The most outstanding changes are:
+        </p>
+        <ul>
+          <li>
+          Refactoring of the Generalized Hyperbolic Transformation tool
+          </li>
+          <li>
+          Refactoring of the deconvolution tool
+          </li>
+          <li>
+          Addition of a lot of star processing tools
+          </li>
+          <li>
+          Astrometry was greatly improved
+          </li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.0.6" type="stable" date="2022-10-18">
       <url type="details">https://www.siril.org/download/1.0.6</url>
       <description>
         <p>

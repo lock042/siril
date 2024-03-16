@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,8 +26,9 @@
 #include "core/siril.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
+#include "core/icc_profile.h"
 #include "algos/statistics.h"
-#include "algos/annotate.h"
+#include "io/annotation_catalogues.h"
 #include "algos/ccd-inspector.h"
 #include "algos/background_extraction.h"
 #include "algos/astrometry_solver.h"
@@ -35,6 +36,7 @@
 #include "gui/image_interactions.h"
 #include "gui/image_display.h"
 #include "gui/utils.h"
+#include "gui/cut.h"
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
 #include "gui/message_dialog.h"
@@ -60,16 +62,21 @@
 void close_single_image() {
 	if (sequence_is_loaded() && com.seq.current >= 0)
 		return;
+	/* We need to clear display and soft proofing transforms and a few other
+	 * color management data */
+
 	siril_debug_print("MODE: closing single image\n");
 	undo_flush();
 	/* we need to close all dialogs in order to avoid bugs
 	 * with previews
 	 */
+	on_clear_roi();
 	free_image_data();
 }
 
 static gboolean free_image_data_idle(gpointer p) {
 	siril_debug_print("free_image_data_gui_idle() called\n");
+	disable_iso12646_conditions(TRUE, TRUE, FALSE);
 	//reset_compositing_module();
 	delete_selected_area();
 	reset_plot(); // clear existing plot if any
@@ -82,6 +89,8 @@ static gboolean free_image_data_idle(gpointer p) {
 	update_MenuItem();
 	reset_3stars();
 	close_tab();	// close Green and Blue tabs
+	free_cut_args(&gui.cut);
+	initialize_cut_struct(&gui.cut);
 
 	GtkComboBox *binning = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combobinning"));
 	GtkEntry* focal_entry = GTK_ENTRY(lookup_widget("focal_entry"));
@@ -96,12 +105,12 @@ static gboolean free_image_data_idle(gpointer p) {
 	clear_sampling_setting_box();	// clear focal and pixel pitch info
 	free_background_sample_list(com.grad_samples);
 	com.grad_samples = NULL;
-	g_slist_free_full(com.found_object, (GDestroyNotify)free_catalogue_object);
-	com.found_object = NULL;
+	cleanup_annotation_catalogues(TRUE);
 	reset_display_offset();
 	reset_zoom_default();
 	free(gui.qphot);
 	gui.qphot = NULL;
+	gui.show_wcs_disto = FALSE;
 	clear_sensor_tilt();
 	g_signal_handlers_unblock_by_func(focal_entry, on_focal_entry_changed, NULL);
 	g_signal_handlers_unblock_by_func(pitchX_entry, on_pitchX_entry_changed, NULL);
@@ -141,7 +150,6 @@ static void free_image_data_gui() {
 		view->view_width = -1;
 		view->view_height= -1;
 	}
-
 	clear_previews();
 	free_reference_image();
 }
@@ -151,9 +159,11 @@ void free_image_data() {
 	siril_debug_print("free_image_data() called, clearing loaded image\n");
 	/* WARNING: single_image.fit references the actual fits image,
 	 * shouldn't it be used here instead of gfit? */
+	cmsCloseProfile(gfit.icc_profile);
+	gfit.icc_profile = NULL;
+	reset_icc_transforms();
 	if (!single_image_is_loaded() && sequence_is_loaded())
 		save_stats_from_fit(&gfit, &com.seq, com.seq.current);
-	clearfits(&gfit);
 
 	invalidate_gfit_histogram();
 
@@ -167,6 +177,8 @@ void free_image_data() {
 
 	if (!com.headless)
 		free_image_data_gui();
+
+	clearfits(&gfit);
 }
 
 static gboolean end_read_single_image(gpointer p) {
@@ -213,6 +225,8 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 		retval = any_to_fits(imagetype, realname, dest, allow_dialogs, force_float, com.pref.debayer.open_debayer);
 		if (!retval)
 			debayer_if_needed(imagetype, dest, FALSE);
+		if (com.pref.debayer.open_debayer || imagetype != TYPEFITS)
+			update_fits_header(dest);
 	}
 	if (is_sequence) {
 		*is_sequence = single_sequence;
@@ -230,6 +244,7 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 }
 
 static gboolean end_open_single_image(gpointer arg) {
+	com.icc.srgb_hint = FALSE;
 	open_single_image_from_gfit();
 	return FALSE;
 }
@@ -255,7 +270,7 @@ int create_uniq_from_gfit(char *filename, gboolean exists) {
  */
 int open_single_image(const char* filename) {
 	int retval = 0;
-	char *realname;
+	char *realname = NULL;
 	gboolean is_single_sequence;
 
 	/* Check we aren't running a processing thread otherwise it will clobber gfit
@@ -277,6 +292,7 @@ int open_single_image(const char* filename) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error opening file"),
 				_("There was an error when opening this image. "
 						"See the log for more information."));
+		free(realname);
 		return 1;
 	}
 
@@ -297,7 +313,12 @@ int open_single_image(const char* filename) {
 				execute_idle_and_wait_for_it(end_open_single_image, NULL);
 			else end_open_single_image(NULL);
 		}
+	} else {
+		free(realname);
 	}
+	if (!com.script)
+		reset_cut_gui_filedependent();
+	check_gfit_profile_identical_to_monitor();
 	return retval;
 }
 
@@ -439,4 +460,3 @@ void notify_gfit_modified() {
 
 	siril_add_idle(end_gfit_operation, NULL);
 }
-

@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -129,7 +129,7 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	float FWHMx, FWHMy, B;
 	char *units;
 	fits fit = { 0 };
-	int i, nb_stars = 0;
+	int nb_stars = 0;
 
 	sadata->current_regdata = star_align_get_current_regdata(regargs);
 	if (!sadata->current_regdata) return -2;
@@ -165,12 +165,18 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 		clearfits(&fit);
 		return 1;
 	}
-	if (!com.script && &com.seq == args->seq && com.seq.current == regargs->reference_image)
-		queue_redraw(REDRAW_OVERLAY); // draw stars
 
 	sadata->ref.x = fit.rx;
 	sadata->ref.y = fit.ry;
 
+	// For internal sequences the data / fdata pointer still
+	// points to the original memory in seq->internal_fits.
+	// It must not be freed by clearfits here so we set the
+	// pointers in fit to NULL
+	if (args->seq->type == SEQ_INTERNAL) {
+		fit.data = NULL;
+		fit.fdata = NULL;
+	}
 	clearfits(&fit);
 
 	if (regargs->x2upscale) {
@@ -188,23 +194,22 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	}
 
 	/* copying refstars to com.stars for display */
-	if (sequence_is_loaded()) {
-		com.stars = new_fitted_stars(MAX_STARS);
-		if (com.stars) {
-			i = 0;
-			while (i < MAX_STARS && sadata->refstars[i]) {
+	if (!com.script && &com.seq == args->seq && com.seq.current == regargs->reference_image) {
+		psf_star **stars = new_fitted_stars(MAX_STARS);
+		if (stars) {
+			for (int i = 0; i < nb_stars && sadata->refstars[i]; i++) {
 				psf_star *tmp = new_psf_star();
 				if (!tmp) {
 					PRINT_ALLOC_ERR;
-					com.stars[i] = NULL;
+					stars[i] = NULL;
 					break;
 				}
 				memcpy(tmp, sadata->refstars[i], sizeof(psf_star));
-				com.stars[i] = tmp;
-				com.stars[i+1] = NULL;
-				i++;
+				stars[i] = tmp;
+				stars[i+1] = NULL;
 			}
 		}
+		update_star_list(stars, FALSE);
 	}
 
 	if (nb_stars >= MAX_STARS_FITTED) {
@@ -225,7 +230,7 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	return star_align_prepare_results(args);
 }
 
-int star_match_and_checks(psf_star **ref_stars, psf_star **stars, int nb_stars, struct registration_args *regargs, int filenum, Homography *H) {
+int star_match_and_checks(psf_star **ref_stars, psf_star **stars, int nb_ref_stars, int nb_stars, struct registration_args *regargs, int filenum, Homography *H) {
 	double scale_min = 0.9;
 	double scale_max = 1.1;
 	int attempt = 1;
@@ -233,8 +238,8 @@ int star_match_and_checks(psf_star **ref_stars, psf_star **stars, int nb_stars, 
 	int failure = 1;
 	/* make a loop with different tries in order to align the two sets of data */
 	while (failure && attempt < NB_OF_MATCHING_TRY) {
-		failure = new_star_match(stars, ref_stars, nb_stars, nobj,
-				scale_min, scale_max, H, FALSE, NULL, NULL, regargs->type,
+		failure = new_star_match(stars, ref_stars, nb_ref_stars, nb_stars, nobj,
+				scale_min, scale_max, H, NULL, FALSE, regargs->type, AT_TRANS_UNDEFINED,
 				NULL, NULL);
 		if (attempt == 1) {
 			scale_min = -1.0;
@@ -287,7 +292,7 @@ int star_match_and_checks(psf_star **ref_stars, psf_star **stars, int nb_stars, 
 int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads) {
 	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
-	int nbpoints, nb_stars = 0;
+	int nb_stars = 0;
 	float FWHMx, FWHMy, B;
 	char *units;
 	Homography H = { 0 };
@@ -334,19 +339,9 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 			return 1;
 		}
 
-		if (nb_stars >= sadata->fitted_stars) {
-			if (nb_stars >= MAX_STARS_FITTED) {
-				siril_log_color_message(_("Target Image: Limiting to %d brightest stars\n"), "green", MAX_STARS_FITTED);
-			}
-			nbpoints = sadata->fitted_stars;
-		}
-		else {
-			nbpoints = nb_stars;
-		}
-
-		int not_matched = star_match_and_checks(sadata->refstars, stars, nbpoints, regargs, filenum, &H);
+		int not_matched = star_match_and_checks(sadata->refstars, stars, sadata->fitted_stars, nb_stars, regargs, filenum, &H);
 		if (!not_matched)
-			FWHM_stats(stars, nbpoints, args->seq->bitpix, &FWHMx, &FWHMy, &units, &B, NULL, 0.);
+			FWHM_stats(stars, nb_stars, args->seq->bitpix, &FWHMx, &FWHMy, &units, &B, NULL, 0.);
 		free_fitted_stars(stars);
 		if (not_matched) {
 			args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
@@ -480,7 +475,7 @@ int star_align_finalize_hook(struct generic_seq_args *args) {
 		siril_log_color_message(_("Total: %d failed, %d registered.\n"), "green", failed, regargs->new_total);
 
 		g_free(str);
-		if (!regargs->no_output) {
+		if (!regargs->no_output && (args->seq->type != SEQ_INTERNAL)) {
 			// explicit sequence creation to copy imgparam and regparam
 			create_output_sequence_for_global_star(regargs);
 			// will be loaded in the idle function if (load_new_sequence)
@@ -537,10 +532,11 @@ int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 		if (!args->has_output || (!is_scaled && !is_color)) {
 			required = MB_per_orig_image + MB_per_float_channel;
 		}
-		else if (args->has_output && !is_color && is_scaled) {
+		// here args->has_output is TRUE
+		else if (!is_color && is_scaled) {
 			required = MB_per_orig_image + 4 * MB_per_orig_channel;
 		}
-		else if (args->has_output && is_color && !is_scaled) {
+		else if (is_color && !is_scaled) {
 			required = 2 * MB_per_orig_image;
 		}
 		else {
@@ -701,7 +697,7 @@ static void print_alignment_results(Homography H, int filenum, float fwhm, float
 	siril_log_message(_("roundness:%*.2f\n"), 8, roundness);
 }
 
-static int compute_transform(struct registration_args *regargs, struct starfinder_data *sf_args, gboolean *included, int *failed, float *fwhm, float *roundness, const float *B, gboolean verbose) {
+static int compute_transform(struct registration_args *regargs, struct starfinder_data *sf_args, gboolean *included, int *failed, const float *fwhm, const float *roundness, const float *B, gboolean verbose) {
 	regdata *current_regdata = star_align_get_current_regdata(regargs); // clean the structure if it exists, allocates otherwise
 	if (!current_regdata) return -1;
 	int nb_ref_stars = sf_args->nb_stars[regargs->seq->reference_image];
@@ -719,12 +715,9 @@ static int compute_transform(struct registration_args *regargs, struct starfinde
 		} else {
 			int filenum = regargs->seq->imgparam[i].filenum;	// for display purposes
 			int not_matched = star_match_and_checks(sf_args->stars[regargs->seq->reference_image], sf_args->stars[i],
-					sf_args->nb_stars[i], regargs, filenum, &H);
+					sf_args->nb_stars[regargs->seq->reference_image], sf_args->nb_stars[i], regargs, filenum, &H);
 			if (not_matched) {
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-				nbfail++;
+				g_atomic_int_inc(&nbfail);
 				included[i] = FALSE;
 				continue;
 			}
@@ -734,10 +727,7 @@ static int compute_transform(struct registration_args *regargs, struct starfinde
 			if (verbose) print_alignment_results(H, filenum, fwhm[i], roundness[i], "px");
 
 		}
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-		nb_aligned++;
+		g_atomic_int_inc(&nb_aligned);
 		current_regdata[i].roundness = roundness[i];
 		current_regdata[i].fwhm = fwhm[i];
 		current_regdata[i].weighted_fwhm = 2 * fwhm[i]
@@ -777,8 +767,8 @@ static void compute_dist(struct registration_args *regargs, float *dist, const g
 		cogy += currcenter.y;
 		n++;
 	}
-	cogx /= (double)n;
-	cogy /= (double)n;
+	cogx /= (n == 0 ? 1. : (double)n);
+	cogy /= (n == 0 ? 1. : (double)n);
 	x0 = (int)(cogx - (double)rx * 0.5);
 	y0 = (int)(cogy - (double)ry * 0.5);
 	Hshift.h02 = (double)x0;
@@ -829,30 +819,36 @@ int minidx(const float *arr, const gboolean *mask, int nb, float *val) {
 
 int register_multi_step_global(struct registration_args *regargs) {
 	// 1. finding stars
+	int retval = 0;
 	struct starfinder_data *sf_args = calloc(1, sizeof(struct starfinder_data));
 	sf_args->im.from_seq = regargs->seq;
 	sf_args->layer = regargs->layer;
 	sf_args->max_stars_fitted = regargs->max_stars_candidates;
-	sf_args->stars = calloc(regargs->seq->number, sizeof(psf_star **));
-	sf_args->nb_stars = calloc(regargs->seq->number, sizeof(int));
-	sf_args->update_GUI = FALSE;
-	sf_args->already_in_thread = TRUE;
-	sf_args->process_all_images = !regargs->filters.filter_included;
-	sf_args->save_to_file = !regargs->no_starlist;
 	float *fwhm = NULL, *roundness = NULL, *A = NULL, *B = NULL, *Acut = NULL, *scores = NULL;
 	float *dist = NULL;
 	// local flag (and its copy)accounting both for process_all_frames flag and collecting failures along the process
 	gboolean *included = NULL, *tmp_included = NULL;
 	// local flag to make checks only on frames that matter
 	gboolean *meaningful = NULL;
-	int retval = 0;
-	struct timeval t_start, t_end;
-
-	if (!sf_args->stars || !sf_args->nb_stars) {
+	sf_args->stars = calloc(regargs->seq->number, sizeof(psf_star **));
+	if (!sf_args->stars) {
 		PRINT_ALLOC_ERR;
 		retval = 1;
 		goto free_all;
 	}
+	sf_args->nb_stars = calloc(regargs->seq->number, sizeof(int));
+	if (!sf_args->nb_stars) {
+		PRINT_ALLOC_ERR;
+		retval = 1;
+		goto free_all;
+	}
+	sf_args->update_GUI = FALSE;
+	sf_args->already_in_thread = TRUE;
+	sf_args->process_all_images = !regargs->filters.filter_included;
+	sf_args->save_to_file = !regargs->no_starlist;
+	sf_args->save_eqcoords = FALSE;
+	struct timeval t_start, t_end;
+
 	gettimeofday(&t_start, NULL);
 	if (apply_findstar_to_sequence(sf_args)) {
 		siril_debug_print("finding stars failed\n");	// aborted probably
@@ -923,7 +919,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 			char *units;
 			FWHM_stats(sf_args->stars[i], sf_args->nb_stars[i], regargs->seq->bitpix, &FWHMx, &FWHMy, &units, B + i, NULL, 0.);
 			// we only rank images with at least half the maximum number of stars (and we count them as meaningful)
-			scores[i]  = (sf_args->nb_stars[i] >= maxstars / 2) ? 2. * FWHMx * (maxstars - sf_args->nb_stars[i]) / maxstars + FWHMx : FLT_MAX;
+			scores[i]  = (sf_args->nb_stars[i] >= maxstars / 2) ? 2. * FWHMx * (maxstars - sf_args->nb_stars[i]) / (maxstars == 0 ? 1 : maxstars) + FWHMx : FLT_MAX;
 			if (sf_args->nb_stars[i] >= maxstars / 2) meaningful[i] = TRUE;
 			fwhm[i] = FWHMx;
 			roundness[i] = FWHMy/FWHMx;
@@ -935,7 +931,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 			if (!included[i]) continue;
 			FWHMx = fwhm[i];
 			// we only rank images with at least half the maximum number of stars (and we count them as meaningful)
-			scores[i]  = (sf_args->nb_stars[i] >= maxstars / 2) ? 2. * FWHMx * (maxstars - sf_args->nb_stars[i]) / maxstars + FWHMx : FLT_MAX;
+			scores[i]  = (sf_args->nb_stars[i] >= maxstars / 2) ? 2. * FWHMx * (maxstars - sf_args->nb_stars[i]) / (maxstars == 0 ? 1 : maxstars) + FWHMx : FLT_MAX;
 			if (sf_args->nb_stars[i] >= maxstars / 2) meaningful[i] = TRUE;
 		}
 		best_index = minidx(scores, included, regargs->seq->number, NULL);
@@ -1055,8 +1051,10 @@ int register_multi_step_global(struct registration_args *regargs) {
 	show_time(t_start, t_end);
 
 free_all:
-	for (int i = 0; i < regargs->seq->number; i++)
-		free_fitted_stars(sf_args->stars[i]);
+	if (sf_args->stars) {
+		for (int i = 0; i < regargs->seq->number; i++)
+			free_fitted_stars(sf_args->stars[i]);
+	}
 	free(sf_args->stars);
 	free(sf_args->nb_stars);
 	free(sf_args);

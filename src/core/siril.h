@@ -17,7 +17,6 @@
 #include <fitsio.h>	// fitsfile
 
 #include "core/settings.h"
-#include "core/atomic.h"
 
 #define _(String) gettext (String)
 #define gettext_noop(String) String
@@ -29,6 +28,10 @@
 #define DEBUG_TEST 0
 #endif
 
+#if defined (HAVE_FFTW3F_OMP) || defined (HAVE_FFTW3F_THREADS)
+#define HAVE_FFTW3F_MULTITHREAD
+#endif
+
 #define GLADE_FILE "siril3.glade"
 
 /* https://stackoverflow.com/questions/1644868/define-macro-for-debug-printing-in-c */
@@ -38,7 +41,8 @@
 #define PRINT_ALLOC_ERR fprintf(stderr, "Out of memory in %s (%s:%d) - aborting\n", __func__, __FILE__, __LINE__)
 #define PRINT_ANOTHER_THREAD_RUNNING siril_log_message(_("Another task is already in progress, ignoring new request.\n"))
 
-#ifndef RT_INCLUDE
+#ifndef __cplusplus
+// excluding from C++ because it conflicts with stl
 #undef max
 #define max(a,b) \
    ({ __typeof__ (a) _a = (a); \
@@ -51,11 +55,16 @@
        __typeof__ (b) _b = (b); \
      _a < _b ? _a : _b; })
 
+
 #define SWAPD(a,b) { double temp = (a); (a) = (b); (b) = temp; }
 
 #define SQR(x) ((x)*(x))
 #endif
-#define RADCONV ((3600.0 * 180.0) / M_PI) / 1.0E3
+#define RADCONV (((3600.0 * 180.0) / M_PI) / 1.0E3)
+
+// Used for sanity checking reported sizes from image files.
+// Not a guarantee that the file will fit in memory
+#define MAX_IMAGE_DIM 100000
 
 #define USHRT_MAX_DOUBLE ((double)USHRT_MAX)
 #define SHRT_MAX_DOUBLE ((double)SHRT_MAX)
@@ -120,8 +129,11 @@ typedef enum {
 	TYPEPNM = (1 << 8),
 	TYPEPIC = (1 << 9),
 	TYPERAW = (1 << 10),
+	TYPEXISF = (1 << 11),
+	TYPEJXL = (1 << 12),
+	TYPEAVIF = (1 << 13),
 	TYPEAVI = (1 << 20),
-	TYPESER = (1 << 21),
+	TYPESER = (1 << 21)
 } image_type;
 
 /* indices of the image data layers */
@@ -159,10 +171,10 @@ typedef enum {
 #define SCALED_IMAGE -3		// the single image has a different size than
 				// the loaded sequence
 
-#define MAX_STARS 200000		// maximum length of com.stars
+#define MAX_STARS 200000	// maximum length of com.stars
 #define MAX_STARS_FITTED 2000	// maximum number of stars fitted for registration
 #define MIN_STARS_FITTED 100	// minimum number of stars fitted for registration
-#define DEF_BOX_RADIUS 5 // default radius of the box in starfinder_conf
+#define DEF_BOX_RADIUS 5	// default radius of the box in starfinder_conf
 
 #define INDEX_MAX 65535		// maximum index for images
 
@@ -172,6 +184,7 @@ typedef struct guiinf guiinfo;
 typedef struct cominf cominfo;
 typedef struct historic_struct historic;
 typedef struct fwhm_struct psf_star;
+typedef struct photometry_struct photometry;
 typedef struct tilt_struct sensor_tilt;
 
 /* global structures */
@@ -252,11 +265,18 @@ typedef enum {
 	HCOMPRESS_COMP
 } compression_mode;
 
+typedef enum {
+	EXT_NONE,
+	EXT_STARNET,
+	EXT_ASNET,
+} external_program;
+
 /* image data, exists once for each image */
 typedef struct {
 	int filenum;		/* real file index in the sequence, i.e. for mars9.fit = 9 */
 	gboolean incl;		/* selected in the sequence, included for future processings? */
 	GDateTime *date_obs;	/* date of the observation, processed and copied from the header */
+	double airmass;     /* airmass of the image, used in photometry */
 	int rx, ry;
 } imgdata;
 
@@ -266,8 +286,7 @@ typedef struct {
 	     ngoodpix;	// number of non-zero pixels
 	double mean, median, sigma, avgDev, mad, sqrtbwmv,
 	       location, scale, min, max, normValue, bgnoise;
-
-	atomic_int* _nb_refs;	// reference counting for data management
+	gint _nb_refs;	// reference counting for data management
 } imstats;
 
 typedef struct {
@@ -359,11 +378,6 @@ typedef struct {
 } single;
 
 typedef struct {
-	double equinox;
-	double crpix[2];
-	double crval[2];
-	double cdelt[2];
-	double pc[2][2];
 	char objctra[FLEN_VALUE];
 	char objctdec[FLEN_VALUE];
 	double ra;
@@ -409,10 +423,9 @@ struct ffit {
 	double data_min;	// used to check if 32b float is in the [0, 1] range
 	float pixel_size_x, pixel_size_y;	// XPIXSZ and YPIXSZ keys
 	unsigned int binning_x, binning_y;	// XBINNING and YBINNING keys
-	gboolean unbinned;
 	char row_order[FLEN_VALUE];
-	GDateTime *date, *date_obs;
-	double expstart, expend;
+	GDateTime *date, *date_obs;		// creation and acquisition UTC dates
+	double expstart, expend;		// Julian dates
 	char filter[FLEN_VALUE];		// FILTER key
 	char image_type[FLEN_VALUE];		// IMAGETYP key
 	char object[FLEN_VALUE];		// OBJECT key
@@ -426,17 +439,15 @@ struct ffit {
 	int bayer_xoffset, bayer_yoffset;
 	double airmass;                   // relative optical path length through atmosphere.
 	/* data obtained from FITS or RAW files */
-	double focal_length, iso_speed, exposure, aperture, ccd_temp;
-	double livetime;		// total exposure
+	double focal_length, iso_speed, exposure, aperture, ccd_temp, set_temp;
+	double livetime;		// sum of exposures (s)
 	guint stackcnt;			// number of stacked frame
 	double cvf;			// Conversion factor (e-/adu)
 	int key_gain, key_offset;	// Gain, Offset values read in camera headers.
 
 	/* Plate Solving data */
 	wcs_info wcsdata;		// data from the header
-#ifdef HAVE_WCSLIB
 	struct wcsprm *wcslib;		// struct of the lib
-#endif
 
 	/* data used in the Fourier space */
 	dft_info dft;
@@ -455,9 +466,56 @@ struct ffit {
 	float *fpdata[3];	// same with float
 
 	gboolean top_down;	// image data is stored top-down, normally false for FITS, true for SER
+	gboolean focalkey, pixelkey; // flag to define if pixel and focal lengths were read from prefs or from the header keys
 
 	GSList *history;	// Former HISTORY comments of FITS file
+
+	/* ICC Color Management data */
+	gboolean color_managed; // Whether color management applies to this FITS
+	cmsHPROFILE icc_profile; // ICC color management profile
 };
+
+/* Filter spectral responses are defined by unevenly spaced frequency samples
+ * and accompanying spectral responses corresponding to the sampling points. */
+typedef struct _spcc_object {
+	gchar *model;
+	gchar *name;
+	gchar *filepath;
+	gchar *comment; // optional comment
+	gboolean is_dslr; // optional flag to indicate if a DSLR, defaults to FALSE
+	int index; // index in the JSON file
+	int type;
+	int quality;
+	int channel;
+	gchar *manufacturer;
+	gchar *source;
+	int version;
+	gboolean arrays_loaded;
+	double *x;  // Wavelength array
+	double *y;  // Quantity array
+	int n; // Number of points in x and y
+} spcc_object;
+
+typedef struct _osc_sensor {
+	spcc_object channel[3];
+} osc_sensor;
+
+struct spcc_data_store {
+	GList *mono_sensors;
+	GList *osc_sensors;
+	GList *mono_filters[4]; // R, G, B, Lum
+	GList *osc_lpf;
+	GList *osc_filters;
+	GList *wb_ref;
+};
+
+/* xpsampdata provides a fixed size struct matched to hold 2nm-spaced data between
+ * 336-1020nm for use with Gaia DR3 xp_sampled data products. */
+#define XPSAMPLED_LEN 343
+typedef struct _xpsampdata {
+	const double *x;
+	double y[XPSAMPLED_LEN];
+} xpsampled;
 
 typedef struct {
 	double x, y;
@@ -471,14 +529,73 @@ typedef struct {
 	int x, y;
 } pointi;
 
+typedef enum {
+	CUT_MONO,
+	CUT_COLOR
+} cut_mode;
+
+typedef struct cut_struct {
+	point cut_start;			// point marking start of cut line
+	point cut_end;			// point dragged while selecting the cut line
+	point cut_wn1;				// point for wavenumber 1 for spectroscopic cut
+	point cut_wn2;				// point for wavenumber 2 for spectroscopic cut
+	gboolean cut_measure;		// Whether or not to measure cuts
+	double wavenumber1;
+	double wavenumber2;
+	gboolean plot_as_wavenumber; // If true, plot as wavenumber; if false, plot as wavelength
+	gboolean tri;
+	gboolean cfa;
+	cut_mode mode;
+	int width;
+	int step;
+	gboolean display_graph;
+	gboolean save_png_too; // Only takes effect if display_graph == TRUE - ignored otherwise
+	char* filename;
+	gchar* title; // this is the working copy of the title
+	gchar* user_title; // this is the title set by the user, may include brackets
+	gboolean title_has_sequence_numbers;
+	fits* fit;
+	sequence* seq;
+	int imgnumber;
+	gboolean save_dat;
+	gboolean pref_as;
+	int vport;
+} cut_struct;
+
 struct historic_struct {
 	char *filename;
 	char history[FLEN_VALUE];
-	int rx, ry;
+	int rx, ry, nchans;
 	data_type type;
 	wcs_info wcsdata;
+	struct wcsprm *wcslib;
 	double focal_length;
+	cmsHPROFILE icc_profile;
+	gboolean spcc_applied;
 };
+
+/* the structure storing information for each layer to be composed
+ * (one layer = one source image) and one associated colour */
+typedef struct {
+	/* widgets data */
+	GtkButton *remove_button;
+	GtkDrawingArea *color_w;		// the simulated color chooser
+	GtkFileChooserButton *chooser;	// the file choosers
+	GtkLabel *label;				// the labels
+	GtkSpinButton *spinbutton_x;	// the X spin button
+	GtkSpinButton *spinbutton_y;	// the Y spin button
+	GtkSpinButton *spinbutton_r;	// the rotation spin button
+	GtkToggleButton *centerbutton;	// the button to set the center
+	double spinbutton_x_value;
+	double spinbutton_y_value;
+	double spinbutton_r_value;
+	/* useful data */
+	GdkRGBA color;					// real color of the layer in the image colorspace
+	GdkRGBA saturated_color;		// saturated color of the layer in the image colorspace
+	GdkRGBA display_color;			// color of the layer in the display colorspace
+	fits the_fit;					// the fits for layers
+	point center;
+} layer;
 
 /* The rendering of the main image is cached. As it can be much larger than the
  * widget in which it's displayed, it can take a lot of time to transform it
@@ -501,6 +618,36 @@ struct image_view {
 	cairo_surface_t *disp_surface;	// the cache
 };
 
+typedef struct roi {
+	fits fit;
+	rectangle selection;
+	gboolean active;
+	gboolean operation_supports_roi;
+} roi_t;
+
+typedef struct draw_data {
+	cairo_t *cr;	// the context to draw to
+	int vport;	// the viewport index to draw
+	double zoom;	// the current zoom value
+	gboolean neg_view;	// negative view
+	cairo_filter_t filter;	// the type of image filtering to use
+	guint image_width, image_height;	// image size
+	guint window_width, window_height;	// drawing area size
+} draw_data_t;
+
+struct gui_icc {
+	cmsHPROFILE monitor;
+	cmsHPROFILE soft_proof;
+	cmsHTRANSFORM proofing_transform;
+	cmsUInt32Number proofing_flags;
+	gboolean same_primaries;
+	gboolean profile_changed;
+	guint sh_r;
+	guint sh_g;
+	guint sh_b;
+	guint sh_rgb;
+	gboolean iso12646;
+};
 
 /* The global data structure of siril gui */
 struct guiinf {
@@ -522,8 +669,20 @@ struct guiinf {
 	int selected_star;		// current selected star in the GtkListStore
 
 	gboolean show_wcs_grid;		// show the equatorial grid over the image
+	gboolean show_wcs_disto;		// show the distortions (if present) include in the wcs solution
 
 	psf_star *qphot;		// quick photometry result, highlight a star
+
+	point measure_start;	// quick alt-drag measurement
+	point measure_end;
+
+	void (*draw_extra)(draw_data_t *dd);
+
+	/* List of all scripts from the repository */
+	GList* repo_scripts; // the list of selected scripts is in com.pref
+	/* gboolean to confirm the script repository has been opened without error */
+	gboolean script_repo_available;
+	gboolean spcc_repo_available;
 
 	/*********** Color mapping **********/
 	WORD lo, hi;			// the values of the cutoff sliders
@@ -531,13 +690,16 @@ struct guiinf {
 	sliders_mode sliders;		// lo/hi, minmax, user
 	display_mode rendering_mode;	// pixel value scaling, defaults to LINEAR_DISPLAY or default_rendering_mode if set in preferences
 	gboolean unlink_channels;	// only for autostretch
-	BYTE remap_index[3][USHRT_MAX];	// abstracted here so it can be used for previews and is easier to change the bit depth
-	BYTE *hd_remap_index[3]; // HD remap indexes for the high precision LUTs.
+	BYTE remap_index[3][USHRT_MAX + 1];	// abstracted here so it can be used for previews and is easier to change the bit depth
+	BYTE *hd_remap_index[3];	// HD remap indexes for the high precision LUTs.
 	guint hd_remap_max;		// the maximum index value to use for the HD LUT. Default is 2^22
-	gboolean use_hd_remap; // Boolean set by the menu check box to indicate whether HD LUT should be used for AutoStretch
+	gboolean use_hd_remap;		// use high definition LUT for auto-stretch
+	struct gui_icc icc;
 
 	/* selection rectangle for registration, FWHM, PSF, coords in com.selection */
 	gboolean drawing;		// true if the rectangle is being set (clicked motion)
+	cut_struct cut;				// Struct to hold data relating to intensity
+								// profile cuts
 	pointi start;			// where the mouse was originally clicked to
 	pointi origin;			// where the selection was originally located
 	gboolean freezeX, freezeY;	// locked axis during modification of a selection
@@ -560,10 +722,31 @@ struct guiinf {
 	int cmd_hist_size;		// allocated size
 	int cmd_hist_current;		// current command index
 	int cmd_hist_display;		// displayed command index
+	layer* comp_layer_centering;	// pointer to the layer to center in RGB compositing tool
+
+	roi_t roi; // Region of interest struct
+};
+
+struct common_icc {
+	cmsHPROFILE mono_linear;
+	cmsHPROFILE working_standard;
+	cmsHPROFILE mono_standard;
+	cmsHPROFILE srgb_profile;
+	cmsHPROFILE srgb_out;
+	cmsHPROFILE working_out;
+	cmsHPROFILE mono_out;
+	cmsContext context_single;
+	cmsContext context_threaded;
+	/* This sets BPC for rendering. It is in com. because it
+	 * is also used as the processing intent for non-rendering
+	 * color transforms. */
+	cmsUInt32Number rendering_flags;
+	gboolean srgb_hint; // Hint that FITS has been stretched, for use with file/open
 };
 
 /* The global data structure of siril core */
 struct cominf {
+	GResource *resource; // resources
 	gchar *wd;			// current working directory, where images and sequences are
 
 	preferences pref;		// some variables are stored in settings
@@ -573,6 +756,7 @@ struct cominf {
 	single *uniq;			// currently loaded image, if outside sequence
 
 	gsl_histogram *layers_hist[MAXVPORT]; // current image's histograms
+	gsl_histogram *sat_hist;
 					      // TODO: move in ffit?
 
 	gboolean headless;		// pure console, no GUI
@@ -604,16 +788,20 @@ struct cominf {
 
 	GSList *found_object;		// list of objects found in the image from catalogues
 
+	struct spcc_data_store spcc_data; // library of SPCC filters, sensors
+
 	sensor_tilt *tilt;		// computed tilt information
 
-	gboolean child_is_running;	// boolean to check if there is a child process running
+	external_program child_is_running;	// external_program id to check if there is a child process running
 
 	float* kernel;			// float* to hold kernel for new deconvolution process
-	unsigned kernelsize;	// Holds size of kernel (kernel is square kernelsize * kernelsize)
+	unsigned kernelsize;		// Holds size of kernel (kernel is square kernelsize * kernelsize)
+	unsigned kernelchannels;	// Holds number of channels for the kernel
+	struct common_icc icc;		// Holds common ICC color profile data
 #ifdef _WIN32
-void* childhandle;			// For Windows, handle of a child process
+	void* childhandle;		// For Windows, handle of a child process
 #else
-pid_t childpid;				// For other OSes, PID of a child process
+	pid_t childpid;			// For other OSes, PID of a child process
 #endif
 };
 

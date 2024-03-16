@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,16 +22,18 @@
 #include "core/proto.h"
 #include "core/command.h"
 #include "core/undo.h"
+#include "core/icc_profile.h"
 #include "core/command.h"
 #include "core/siril_update.h"
 #include "core/siril_cmd_help.h"
 #include "core/siril_log.h"
 #include "core/initfile.h"
 #include "compositing/align_rgb.h"
-#include "algos/annotate.h"
+#include "io/annotation_catalogues.h"
 #include "algos/astrometry_solver.h"
 #include "algos/noise.h"
 #include "algos/geometry.h"
+#include "algos/photometry.h"
 #include "algos/siril_wcs.h"
 #include "algos/ccd-inspector.h"
 #include "compositing/compositing.h"
@@ -58,6 +60,7 @@
 #include "gui/remixer.h"
 #include "livestacking/livestacking.h"
 #include "registration/registration.h"
+#include "io/siril_catalogues.h"
 
 #include "siril_actions.h"
 
@@ -122,12 +125,16 @@ void close_action_activate(GSimpleAction *action, GVariant *parameter, gpointer 
 }
 
 void scripts_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	siril_get_on_script_pages();
+	siril_open_dialog("settings_window");
+	gtk_stack_set_visible_child((GtkStack*) lookup_widget("stack_pref"), lookup_widget("scripts_page"));
+//	siril_get_on_script_pages();
 }
 
 void updates_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-#ifdef HAVE_JSON_GLIB
+#if defined(HAVE_LIBCURL)
 	siril_check_updates(TRUE);
+#else
+	siril_log_message(_("Cannot check for updates with this version, missing dependency\n"));
 #endif
 }
 
@@ -176,6 +183,8 @@ void panel_activate(GSimpleAction *action, GVariant *parameter, gpointer user_da
 
 	if (!is_visible) {
 		gtk_image_set_from_icon_name(image, "pan-end-symbolic", GTK_ICON_SIZE_BUTTON);
+		if (gui.icc.iso12646)
+			disable_iso12646_conditions(TRUE, FALSE, TRUE);
 	} else {
 		gtk_image_set_from_icon_name(image, "pan-start-symbolic", GTK_ICON_SIZE_BUTTON);
 	}
@@ -229,6 +238,8 @@ void toolbar_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 void change_zoom_fit_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	if (g_variant_get_boolean(state)) {
 		gui.zoom_value = ZOOM_FIT;
+		if (gui.icc.iso12646)
+			disable_iso12646_conditions(FALSE, TRUE, TRUE);
 		reset_display_offset();
 		redraw(REDRAW_IMAGE);
 	} else {
@@ -249,11 +260,15 @@ void zoom_fit_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 void zoom_in_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	point center = get_center_of_vport();
 	update_zoom(center.x, center.y, ZOOM_IN);
+	if (gui.icc.iso12646)
+		disable_iso12646_conditions(FALSE, TRUE, TRUE);
 }
 
 void zoom_out_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	point center = get_center_of_vport();
 	update_zoom(center.x, center.y, ZOOM_OUT);
+	if (gui.icc.iso12646)
+		disable_iso12646_conditions(FALSE, TRUE, TRUE);
 }
 
 void zoom_one_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -326,7 +341,13 @@ void astrometry_activate(GSimpleAction *action, GVariant *parameter,gpointer use
 }
 
 void dyn_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	siril_open_dialog("stars_list_window");
+	int confirm = TRUE;
+	if (gfit.naxes[2] == 1 && gfit.bayer_pattern[0] != '\0') {
+		confirm = siril_confirm_dialog(_("Undebayered CFA image loaded"),
+				_("The star detection functions in the Dynamic PSF dialog may produce results for this CFA image but will not perform optimally and star parameters may be inaccurate. Are you sure you wish to proceed?"), _("Proceed"));
+	}
+	if (confirm)
+		siril_open_dialog("stars_list_window");
 }
 
 void pick_star_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -334,6 +355,8 @@ void pick_star_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 }
 
 void psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (!check_ok_if_cfa())
+		return;
 	psf_star *result = NULL;
 	int layer = select_vport(gui.cvport);
 
@@ -357,6 +380,8 @@ void psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 }
 
 void seq_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (!check_ok_if_cfa())
+		return;
 	process_seq_psf(0);
 }
 
@@ -374,20 +399,29 @@ void search_object_activate(GSimpleAction *action, GVariant *parameter, gpointer
 }
 
 void search_object_solar_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (has_wcs(&gfit))
-		process_sso();
+	if (has_wcs(&gfit)) {
+		siril_catalogue *siril_cat = siril_catalog_fill_from_fit(&gfit, CAT_IMCCE, -1.f);
+		siril_cat->IAUcode = g_strdup("500");
+		conesearch_args *args = init_conesearch();
+		args->fit = &gfit;
+		args->has_GUI = TRUE;
+		args->siril_cat = siril_cat;
+		args->display_log = TRUE;
+		args->display_tag = TRUE;
+		start_in_new_thread(conesearch_worker, args);
+	}
 }
 
 void annotate_object_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
 	if (g_variant_get_boolean(state)) {
 		if (has_wcs(&gfit)) {
-			com.found_object = find_objects(&gfit);
+			com.found_object = find_objects_in_field(&gfit);
 		}
 	} else {
-		purge_temp_user_catalogue();
-		force_to_refresh_catalogue_list();
-		g_slist_free_full(com.found_object, (GDestroyNotify) free_catalogue_object);
+		g_slist_free(com.found_object);
 		com.found_object = NULL;
+		purge_user_catalogue(CAT_AN_USER_TEMP);
+		refresh_annotation_visibility();
 	}
 	g_simple_action_set_state(action, state);
 	redraw(REDRAW_OVERLAY);
@@ -458,6 +492,8 @@ void statistics_activate(GSimpleAction *action, GVariant *parameter, gpointer us
 }
 
 void noise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (!check_ok_if_cfa())
+		return;
 	evaluate_noise_in_image();
 }
 
@@ -465,12 +501,33 @@ void ccd_inspector_activate(GSimpleAction *action, GVariant *parameter, gpointer
 	compute_aberration_inspector();
 }
 
+void show_tilt_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	GVariant *state;
+
+	state = g_action_get_state(G_ACTION(action));
+	g_action_change_state(G_ACTION(action), g_variant_new_boolean(!g_variant_get_boolean(state)));
+	g_variant_unref(state);
+}
+
+void show_tilt_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
+	set_cursor_waiting(TRUE);
+	if (g_variant_get_boolean(state)) {
+		draw_sensor_tilt(&gfit);
+
+	} else {
+		clear_sensor_tilt();
+		redraw(REDRAW_OVERLAY);
+	}
+	g_simple_action_set_state(action, state);
+	set_cursor_waiting(FALSE);
+}
+
 void image_information_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("file_information");
 }
 
 void image_fits_header_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	show_FITS_header(&gfit);
+	siril_open_dialog("keywords_dialog");
 }
 
 /******* processing menu **************/
@@ -490,8 +547,12 @@ void color_calib_activate(GSimpleAction *action, GVariant *parameter, gpointer u
 
 void pcc_activate(GSimpleAction *action, GVariant *parameter,gpointer user_data) {
 	initialize_photometric_cc_dialog();
-	siril_open_dialog("ImagePlateSolver_Dial");
-	on_GtkButton_IPS_metadata_clicked(NULL, NULL);	// fill it automatically
+	siril_open_dialog("s_pcc_dialog");
+}
+
+void spcc_activate(GSimpleAction *action, GVariant *parameter,gpointer user_data) {
+	initialize_spectrophotometric_cc_dialog();
+	siril_open_dialog("s_pcc_dialog");
 }
 
 void split_channel_activate(GSimpleAction *action, GVariant *parameter,gpointer user_data) {
@@ -566,6 +627,8 @@ void mirrory_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 }
 
 void wavelets_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (!check_ok_if_cfa())
+		return;
 	siril_open_dialog("wavelets_dialog");
 }
 
@@ -586,6 +649,7 @@ void clahe_activate(GSimpleAction *action, GVariant *parameter, gpointer user_da
 }
 
 void linearmatch_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_set_file_filter("reference_filechooser_linearmatch", "filefilter_fits");
 	siril_open_dialog("linearmatch_dialog");
 }
 
@@ -596,6 +660,8 @@ void fft_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data
 	phasebutton = GTK_FILE_CHOOSER_BUTTON(lookup_widget("filechooser_phase"));
 	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(magbutton), com.wd);
 	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(phasebutton), com.wd);
+	siril_set_file_filter("filechooser_mag", "filefilter_fits");
+	siril_set_file_filter("filechooser_phase", "filefilter_fits");
 	siril_open_dialog("dialog_FFT");
 }
 
@@ -619,6 +685,10 @@ void nina_lc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_
 	siril_open_dialog("nina_light_curve");
 }
 
+void compstars_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("compstars");
+}
+
 void denoise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("denoise_dialog");
 }
@@ -628,12 +698,16 @@ void merge_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 }
 
 void star_desaturate_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (!check_ok_if_cfa())
+		return;
 	undo_save_state(&gfit, "Synthetic stars: desaturate clipped stars");
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	start_in_new_thread(fix_saturated_stars, NULL);
 }
 
 void star_synthetic_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (!check_ok_if_cfa())
+		return;
 	undo_save_state(&gfit, "Synthetic stars: full replacement");
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	start_in_new_thread(do_synthstar, NULL);
@@ -644,6 +718,16 @@ void align_dft_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 	rgb_align(1);
 }
 
+void align_global_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	undo_save_state(&gfit, _("RGB alignment (Global stars)"));
+	rgb_align(2);
+}
+
+void align_kombat_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	undo_save_state(&gfit, _("RGB alignment (KOMBAT)"));
+	rgb_align(3);
+}
+
 void align_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	undo_save_state(&gfit, _("RGB alignment (PSF)"));
 	if (com.selection.w > 300 || com.selection.h > 300) {
@@ -651,4 +735,33 @@ void align_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 		return;
 	}
 	rgb_align(0);
+}
+
+void icc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("icc_dialog");
+}
+
+void cut_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	GtkToggleToolButton *button = (GtkToggleToolButton*) lookup_widget("cut_button");
+	if (gtk_toggle_tool_button_get_active(button)) {
+		mouse_status = MOUSE_ACTION_CUT_SELECT;
+		siril_open_dialog("cut_dialog");
+	} else {
+		mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
+		siril_close_dialog("cut_coords_dialog");
+		siril_close_dialog("cut_spectroscopy_dialog");
+		siril_close_dialog("cut_dialog");
+	}
+}
+
+void clear_roi(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	on_clear_roi();
+}
+
+void set_roi(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	on_set_roi();
+}
+
+void ccm_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("ccm_dialog");
 }

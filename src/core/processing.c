@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -52,6 +52,9 @@ gpointer generic_sequence_worker(gpointer p) {
 	int *index_mapping = NULL;
 	int nb_frames, excluded_frames = 0, progress = 0;
 	int abort = 0;	// variable for breaking out of loop
+#ifdef _OPENMP
+	int* threads_per_image = NULL;
+#endif
 	gboolean have_seqwriter = FALSE;
 
 	assert(args);
@@ -94,7 +97,7 @@ gpointer generic_sequence_worker(gpointer p) {
 			args->description, args->max_parallel_images);
 
 	// remaining threads distribution per image thread
-	int *threads_per_image = compute_thread_distribution(args->max_parallel_images, com.max_thread);
+	threads_per_image = compute_thread_distribution(args->max_parallel_images, com.max_thread);
 #endif
 
 	if (args->prepare_hook && args->prepare_hook(args)) {
@@ -131,7 +134,7 @@ gpointer generic_sequence_worker(gpointer p) {
 		}
 	}
 
-	if (args->has_output && !args->partial_image) {
+	if (args->has_output && !args->partial_image && !(args->seq->type == SEQ_INTERNAL)) {
 		gint64 size;
 		if (args->compute_size_hook)
 			size = args->compute_size_hook(args, nb_frames);
@@ -249,15 +252,26 @@ gpointer generic_sequence_worker(gpointer p) {
 			}
 			// TODO: for seqwriter, we need to notify the failed frame
 		}
-
+		// checking nb layers consistency, not for partial image
+		if (!args->partial_image && (fit->naxes[2] != args->seq->nb_layers)) {
+			siril_log_color_message(_("Image #%d: number of layers (%d) is not consistent with sequence (%d), aborting\n"),
+						"red", input_idx + 1, fit->naxes[2], args->seq->nb_layers);
+			abort = 1;
+			clearfits(fit);
+			free(fit);
+			continue;
+		}
 		if (args->image_hook(args, frame, input_idx, fit, &area, nb_subthreads)) {
 			if (args->stop_on_error)
 				abort = 1;
 			else {
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-				excluded_frames++;
+				g_atomic_int_inc(&excluded_frames);
+				g_atomic_int_inc(&progress);
+				set_progress_bar_data(NULL, (float)progress / nb_framesf);
+			}
+			if (args->seq->type == SEQ_INTERNAL) {
+				fit->data = NULL;
+				fit->fdata = NULL;
 			}
 			clearfits(fit);
 			free(fit);
@@ -293,14 +307,16 @@ gpointer generic_sequence_worker(gpointer p) {
 		}
 
 		if (!have_seqwriter) {
-			clearfits(fit);
-			free(fit);
+			if (!(args->seq->type == SEQ_INTERNAL)) {
+				clearfits(fit);
+				free(fit);
+			} else {
+				clearfits_header(fit);
+				free(fit);
+			}
 		}
 
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-		progress++;
+		g_atomic_int_inc(&progress);
 		gchar *msg = g_strdup_printf(_("%s. Processing image %d (%s)"), args->description, input_idx + 1, filename);
 		set_progress_bar_data(msg, (float)progress / nb_framesf);
 		g_free(msg);
@@ -332,16 +348,18 @@ gpointer generic_sequence_worker(gpointer p) {
 	}
 
 #ifdef _OPENMP
-	free(threads_per_image);
 	omp_destroy_lock(&args->lock);
 #endif
 the_end:
+#ifdef _OPENMP
+	free(threads_per_image);
+#endif
+
 	if (index_mapping) free(index_mapping);
 	if (!have_seqwriter && args->finalize_hook && args->finalize_hook(args)) {
 		siril_log_message(_("Finalizing sequence processing failed.\n"));
 		args->retval = 1;
 	}
-
 	int retval = args->retval;	// so we can free args if needed in the idle
 
 	if (!args->already_in_a_thread) {
@@ -353,6 +371,7 @@ the_end:
 		if (!run_idle) {
 			// some generic cleanup for scripts
 			// should we check for seq = com.seq?
+			free(args->new_seq_prefix);
 			free_sequence(args->seq, TRUE);
 			free(args);
 		}
@@ -373,6 +392,13 @@ gboolean end_generic_sequence(gpointer p) {
 		g_free(seqname);
 		g_free(basename);
 	}
+	// frees new_seq_prefix. This means that new_seq_prefix (or the seqEntry
+	// string in function-specific structs) *must* always be allocated using
+	// a freeable function, i.e. char* seqEntry = strdup("prefix_"); rather
+	// than char* seqEntry = "prefix_";
+	free(args->new_seq_prefix);
+	if (!check_seq_is_comseq(args->seq))
+		free_sequence(args->seq, TRUE);
 	free(p);
 	return end_generic(NULL);
 }
@@ -426,6 +452,11 @@ int seq_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
 int seq_prepare_hook(struct generic_seq_args *args) {
 	int retval = 0;
 	g_assert(args->has_output); // don't call this hook otherwise
+	if (!(args->seq->type == SEQ_INTERNAL))
+		g_assert(args->new_seq_prefix); // don't call this hook otherwise
+	//removing existing files
+	remove_prefixed_sequence_files(args->seq, args->new_seq_prefix);
+	remove_prefixed_star_files(args->seq, args->new_seq_prefix);
 	if (args->force_ser_output || (args->seq->type == SEQ_SER && !args->force_fitseq_output)) {
 		gchar *dest;
 		const char *ptr = strrchr(args->seq->seqname, G_DIR_SEPARATOR);
@@ -500,6 +531,40 @@ int seq_finalize_hook(struct generic_seq_args *args) {
 	return retval;
 }
 
+	/* Internal sequences work differently to all other sequence types.
+	 * Where other sequence types save their results to a new file,
+	 * internal sequences update their results in the internal_fits[]
+	 * array. They therefore need different handling within the save hook.
+	 *
+	 * We copy the fits metadata back to the internal_fits[in_index]
+	 * pointer.
+	 * Only the pointer to data / fdata was copied across in seq_read_frame
+	 * We re-copy the pointers back, because they are set to NULL in
+	 * copyfits. We then set the pointers in fit to NULL so that the memory
+	 * doesn't get freed by the generic sequence worker.
+	*/
+
+static int generic_save_internal(struct generic_seq_args *args, int in_index, fits *fit) {
+	clearfits_header(args->seq->internal_fits[in_index]);
+	copyfits(fit, args->seq->internal_fits[in_index], CP_FORMAT, -1);
+	copy_fits_metadata(fit, args->seq->internal_fits[in_index]);
+	if (fit->type == DATA_USHORT) {
+		args->seq->internal_fits[in_index]->data = fit->data;
+		args->seq->internal_fits[in_index]->pdata[0] = fit->pdata[0];
+		args->seq->internal_fits[in_index]->pdata[1] = fit->pdata[1];
+		args->seq->internal_fits[in_index]->pdata[2] = fit->pdata[2];
+	} else if (fit->type == DATA_FLOAT) {
+		args->seq->internal_fits[in_index]->fdata = fit->fdata;
+		args->seq->internal_fits[in_index]->fpdata[0] = fit->fpdata[0];
+		args->seq->internal_fits[in_index]->fpdata[1] = fit->fpdata[1];
+		args->seq->internal_fits[in_index]->fpdata[2] = fit->fpdata[2];
+	}
+	fit->data = NULL;
+	fit->fdata = NULL;
+	clearfits(fit);
+	return 0;
+}
+
 /* In SER, all images must be in a contiguous sequence, so we use the out_index.
  * In FITS sequences, to keep track of image across processings, we keep the
  * input file number all along (in_index is the index in the sequence, not the name).
@@ -507,17 +572,21 @@ int seq_finalize_hook(struct generic_seq_args *args) {
  * input-type condition
  */
 int generic_save(struct generic_seq_args *args, int out_index, int in_index, fits *fit) {
-	if (args->force_ser_output || (args->seq->type == SEQ_SER && !args->force_fitseq_output)) {
-		return ser_write_frame_from_fit(args->new_ser, fit, out_index);
-	} else if (args->force_fitseq_output || (args->seq->type == SEQ_FITSEQ && !args->force_ser_output)) {
-		return fitseq_write_image(args->new_fitseq, fit, out_index);
+	if (args->seq->type == SEQ_INTERNAL) {
+		return generic_save_internal(args, in_index, fit);
 	} else {
-		char *dest = fit_sequence_get_image_filename_prefixed(args->seq,
-				args->new_seq_prefix, in_index);
-		fit->bitpix = fit->orig_bitpix;
-		int retval = savefits(dest, fit);
-		free(dest);
-		return retval;
+		if (args->force_ser_output || (args->seq->type == SEQ_SER && !args->force_fitseq_output)) {
+			return ser_write_frame_from_fit(args->new_ser, fit, out_index);
+		} else if (args->force_fitseq_output || (args->seq->type == SEQ_FITSEQ && !args->force_ser_output)) {
+			return fitseq_write_image(args->new_fitseq, fit, out_index);
+		} else {
+			char *dest = fit_sequence_get_image_filename_prefixed(args->seq,
+					args->new_seq_prefix, in_index);
+			fit->bitpix = fit->orig_bitpix;
+			int retval = savefits(dest, fit);
+			free(dest);
+			return retval;
+		}
 	}
 }
 
@@ -619,13 +688,14 @@ void unreserve_thread() {
  */
 gboolean end_generic(gpointer arg) {
 	stop_processing_thread();
-
 	set_cursor_waiting(FALSE);
 	return FALSE;
 }
 
 /* wrapper for gdk_threads_add_idle that deactivates idle functions when
- * running in script/console mode */
+ * running in script/console mode
+ * return 0 if idle was not added
+ */
 guint siril_add_idle(GSourceFunc idle_function, gpointer data) {
 	if (!com.script && !com.headless)
 		return gdk_threads_add_idle(idle_function, data);
@@ -645,24 +715,44 @@ void wait_for_script_thread() {
 	}
 }
 
-void kill_child_process() {
-	if (com.child_is_running) {
+// kills external calls
+// if onexit is TRUE, also do some cleaning
+void kill_child_process(gboolean onexit) {
+	if (onexit)
+		printf("making sure no child is left behind\n");
+	// abort starnet by killing the process
+	if (com.child_is_running == EXT_STARNET) {
 #ifdef _WIN32
 		TerminateProcess(com.childhandle, 1);
-		CloseHandle(com.childhandle);
 		com.childhandle = NULL;
 #else
 		kill(com.childpid, SIGINT);
 		com.childpid = 0;
 #endif
-		com.child_is_running = FALSE;
+		com.child_is_running = EXT_NONE;
+		if (onexit)
+			printf("starnet has been stopped on exit\n");
 	}
+	// abort asnet by writing a file named stop in wd
+	if (com.child_is_running == EXT_ASNET) {
+		FILE* fp = fopen("stop", "w");
+		if (fp != NULL)
+			fclose(fp);
+		if (onexit) {
+			g_usleep(1000);
+			if (g_unlink("stop"))
+				siril_debug_print("g_unlink() failed\n");
+			printf("asnet has been stopped on exit\n");
+		}
+	}
+	if (onexit)
+		printf("done\n");
 }
 
 void on_processes_button_cancel_clicked(GtkButton *button, gpointer user_data) {
 	if (com.thread != NULL)
 		siril_log_color_message(_("Process aborted by user\n"), "red");
-	kill_child_process();
+	kill_child_process(FALSE);
 	com.stop_script = TRUE;
 	stop_processing_thread();
 	wait_for_script_thread();
@@ -686,8 +776,6 @@ gpointer generic_sequence_metadata_worker(gpointer arg) {
 	gettimeofday(&t_start, NULL);
 	for (int frame = 0; frame < args->seq->number; frame++) {
 		fits fit = { 0 };
-		//if (seq_read_frame_metadata(args->seq, i, &fit))
-		//	return 1;
 		if (seq_open_image(args->seq, frame))
 			return GINT_TO_POINTER(1);
 		if (args->seq->type == SEQ_REGULAR)
@@ -700,6 +788,8 @@ gpointer generic_sequence_metadata_worker(gpointer arg) {
 	show_time(t_start, t_end);
 	free_sequence(args->seq, TRUE);
 	g_free(args->key);
+	if (args->output_stream)
+		g_object_unref(args->output_stream);
 	free(args);
 	siril_add_idle(end_generic, NULL);
 	return 0;
@@ -739,6 +829,10 @@ int limit_threading(threading_type *threads, int min_iterations_per_thread, size
  */
 int *compute_thread_distribution(int nb_workers, int max) {
 	int *threads = malloc(nb_workers * sizeof(int));
+	if (!threads) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
 	int base = max / nb_workers;
 	int rem = max % nb_workers;
 	siril_debug_print("distributing %d threads to %d workers\n", max, nb_workers);

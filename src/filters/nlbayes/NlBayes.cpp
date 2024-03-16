@@ -175,7 +175,7 @@ vector<float> sanitize(vector<float> input, const ImageSize size) {
 				input[i] = input[i-size.width];
 		}
 		if (input[i] < 0.0) {
-			input[i] = max(EPSILON, input[i]);
+			input[i] = fmaxf(EPSILON, input[i]);
 		}
 	}
 	siril_debug_print("\n");
@@ -418,6 +418,7 @@ int processNlBayes(
 			else {
 				nSimP = estimateSimilarPatchesStep2(i_imNoisy, io_imBasic, group3dNoisy,
 					group3dBasic, index, ij, p_imSize, p_params);
+				nSimP = (nSimP < 1 ? 1 : nSimP);
 			}
 
 			//! Initialization

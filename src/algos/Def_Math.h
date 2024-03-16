@@ -9,7 +9,7 @@
 **    Author: Jean-Luc Starck
 **
 **    Date:  03/02/25
-**    
+**
 **    File:  Def_Math.h
 **
 *****************************************************************************
@@ -28,7 +28,7 @@
 #define STRING_SIZE 80
 
 #ifndef PI
-#define PI 3.1415926536 
+#define PI 3.1415926536
 #endif
 
 #define	ZERO	1.0e-20
@@ -42,9 +42,9 @@
 #define	GREATEST(x,y)  ( ((x) > (y)) ? (x) : (y) )
 	/* Returns the largest of its arguments	 */
 
-#define INT_POW(x,y,z) { int l,xx,yy; xx = (x) ; yy = (y);  for (l=0,(z)=1;l<yy;++ l,z *= xx); } 
+#define INT_POW(x,y,z) { int l,xx,yy; xx = (x) ; yy = (y);  for (l=0,(z)=1;l<yy;++ l,z *= xx); }
 	/*Finds the value of x raised to the power y, x and y are integer
- 	expressions, z MUST be an integer VARIABLE 
+ 	expressions, z MUST be an integer VARIABLE
 	x or y are permitted to equal z  */
 
 #define MAX_ABS(a,b) ((abs(a) > abs(b)) ? a : b)
@@ -142,26 +142,26 @@
    { \
 	z.re = x.re * y.re - x.im * y.im ; \
 	z.im = x.re * y.im + x.im * y.re ; \
-   } 
+   }
 
 #undef CF_DIF
 #define CF_DIF(x,y,z) \
    { \
 	z.re = x.re - y.re; \
 	z.im = x.im - y.im ; \
-   } 
+   }
 
 #define CF_ADD(x,y,z) \
    { \
 	z.re = x.re + y.re; \
 	z.im = x.im + y.im ; \
-   } 
+   }
 
 #define CF_ASS(x,y) \
    { \
 	y.re = x.re; \
 	y.im = x.im; \
-   } 
+   }
 
 
 #define CF_DIV(x,y,ret) \
@@ -174,7 +174,7 @@
 	    ret.re = (x.re*y.re +x.im*y.im) / mod;  \
 	    ret.im = (x.im*y.re -x.re*y.im) / mod; \
 	} \
-  } 
+  }
 
 /* Compute the module from the real and imainary parts */
 #define MOD(a,b) (sqrt((float)(a*a+b*b)))
@@ -213,7 +213,7 @@
                      }\
    }
 
-typedef char string[80];
+typedef char string[STRING_SIZE];
 
 enum    direction       {FORWARD, REVERSE};
 
@@ -224,17 +224,17 @@ extern int ft_cf_any_power_of_2(dat,direction,length)
         complex_float   *dat;
         int             direction;
         int             length;
- 
+
  Takes the array pointed to by dat which is assumed to be of side-length
 length and performs a fourier transform of its contents
 
 External function calls
         None
- 
+
 Return codes
 0 :     No problems encountered.
 1 :     Length was not a power of 2 FATAL_ERROR
- 
+
 */
 
 
@@ -248,6 +248,6 @@ double	gaussian_num(mean,std,finesse)
 Generates a gaussian number of the requested mean and standard deviation by
 repeated summation of linear random variables.
 The parameter finesse indicates the number of linear random numbers to be summed,
-a value of 9 will give excellent gaussian statistics. 
+a value of 9 will give excellent gaussian statistics.
 */
 

@@ -5,7 +5,7 @@
 #include "algos/PSF.h"
 #include "core/processing.h"
 
-#define NUMBER_OF_METHODS 8
+#define NUMBER_OF_METHODS 10
 
 struct registration_args;
 typedef int (*registration_function)(struct registration_args *);
@@ -78,7 +78,7 @@ struct registration_args {
 	int new_total;                  // remaining images after registration
 	imgdata *imgparam;		// imgparam for the new sequence
 	regdata *regparam;		// regparam for the new sequence
-	const gchar *prefix;		// prefix of the created sequence if any
+	char *prefix;		// prefix of the created sequence if any
 	gboolean load_new_sequence;	// load the new sequence if success
 	gchar *new_seq_name;
 	opencv_interpolation interpolation; // type of rotation interpolation
@@ -123,6 +123,8 @@ int register_multi_step_global(struct registration_args *regargs);
 int register_comet(struct registration_args *regargs);
 int register_3stars(struct registration_args *regargs);
 int register_apply_reg(struct registration_args *regargs);
+int register_kombat(struct registration_args *args);
+int register_manual(struct registration_args *regargs); // defined in compositing/compositing.c
 int register_mosaic(struct registration_args *regargs);
 
 void reset_3stars();
@@ -132,14 +134,13 @@ gboolean _3stars_check_selection();
 pointf get_velocity();
 void update_reg_interface(gboolean dont_change_reg_radio);
 void compute_fitting_selection(rectangle *area, int hsteps, int vsteps, int preserve_square);
-void get_the_registration_area(struct registration_args *reg_args,
-		struct registration_method *method); // for compositing
+void get_the_registration_area(struct registration_args *reg_args, const struct registration_method *method); // for compositing
 void fill_comboboxregmethod();
 gpointer register_thread_func(gpointer p);
 
 /** getter */
-int get_registration_layer(sequence *seq);
-int seq_has_any_regdata(sequence *seq); // same as get_registration_layer but does not rely on GUI for com.seq
+int get_registration_layer(const sequence *seq);
+int seq_has_any_regdata(const sequence *seq); // same as get_registration_layer but does not rely on GUI for com.seq
 
 /**** star alignment (global and 3-star) registration ****/
 
@@ -156,7 +157,7 @@ regdata *star_align_get_current_regdata(struct registration_args *regargs);
 int star_align_prepare_results(struct generic_seq_args *args);
 int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads);
 int star_align_finalize_hook(struct generic_seq_args *args);
-int star_match_and_checks(psf_star **ref_stars, psf_star **stars, int nb_stars, struct registration_args *regargs, int filenum, Homography *H);
+int star_match_and_checks(psf_star **ref_stars, psf_star **stars, int nb_ref_stars, int nb_stars, struct registration_args *regargs, int filenum, Homography *H);
 
 const char *describe_transformation_type(transformation_type type);
 
@@ -165,7 +166,7 @@ void guess_transform_from_seq(sequence *seq, int layer,
 		transformation_type *min, transformation_type *max, gboolean excludenull);
 transformation_type guess_transform_from_H(Homography H);
 gboolean check_before_applyreg(struct registration_args *regargs);
-gboolean layer_has_registration(sequence *seq, int layer);
+gboolean layer_has_registration(const sequence *seq, int layer);
 gboolean layer_has_usable_registration(sequence *seq, int layer);
 int get_first_selected(sequence *seq);
 

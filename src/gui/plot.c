@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,6 +33,7 @@
 #include "core/proto.h"
 #include "core/siril_date.h"
 #include "core/processing.h"
+#include "core/siril_world_cs.h"
 #include "core/siril_log.h"
 #include "gui/utils.h"
 #include "gui/image_display.h"
@@ -40,14 +41,18 @@
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
 #include "gui/sequence_list.h"
+#include "gui/siril_plot.h"
 #include "registration/registration.h"
-#include "kplot.h"
 #include "algos/PSF.h"
+#include "algos/siril_wcs.h"
+#include "io/aavso_extended.h"
 #include "io/ser.h"
 #include "io/sequence.h"
-#include "io/gnuplot_i.h"
+#include "io/siril_plot.h"
 #include "gui/PSF_list.h"
 #include "opencv/opencv.h"
+#include "algos/astrometry_solver.h"
+#include "algos/comparison_stars.h"
 
 // TODO: Would probably be more efficient to cache plot surface and add selection as an overlay
 
@@ -57,10 +62,9 @@
 #define SEL_TOLERANCE 3. // toerance in pixels for grabbing the selection borders
 
 static GtkWidget *drawingPlot = NULL, *sourceCombo = NULL, *combo = NULL,
-		*varCurve = NULL, *buttonClearAll = NULL,
-		*buttonClearLatest = NULL, *arcsec = NULL, *julianw = NULL,
-		*comboX = NULL, *layer_selector = NULL, *buttonSavePrt = NULL, *buttonSaveCSV = NULL,
-		*buttonNINA = NULL;
+		*photometry_output1 = NULL, *photometry_output2 = NULL, *photo_clear_button = NULL, *buttonClearAll = NULL,
+		*buttonClearLatest = NULL, *arcsec = NULL, *julianw = NULL, *label_display_plot = NULL,
+		*comboX = NULL, *layer_selector = NULL, *buttonSaveCSV = NULL;
 static pldata *plot_data;
 static struct kpair ref, curr;
 static gboolean use_photometry = FALSE, requires_seqlist_update = FALSE;
@@ -72,7 +76,6 @@ static enum registration_source X_selected_source = r_FRAME;
 static int julian0 = 0;
 static int reglayer = 0;
 static gboolean is_fwhm = TRUE;
-static gnuplot_ctrl *gplot = NULL;
 static gboolean is_arcsec = FALSE;
 static gboolean force_Julian = FALSE;
 static plot_draw_data_t pdd = { 0 };
@@ -139,13 +142,11 @@ static const gchar *registration_labels[] = {
 pldata *alloc_plot_data(int size) {
 	pldata *plot = malloc(sizeof(pldata));
 	plot->frame = calloc(size, sizeof(double));
-	plot->julian = calloc(size, sizeof(double));
 	plot->data = calloc(size, sizeof(struct kpair));
 	plot->err = calloc(size, sizeof(struct kpair));
-	if (!plot->frame || !plot->julian || !plot->data || !plot->err) {
+	if (!plot->data || !plot->err) {
 		PRINT_ALLOC_ERR;
 		free(plot->frame);
-		free(plot->julian);
 		free(plot->data);
 		free(plot->err);
 		free(plot);
@@ -193,11 +194,11 @@ static gboolean is_inside_selection(double x, double y) {
 	return FALSE;
 }
 
-static gboolean is_inside_grid(double x, double y) {
-	if (x <= pdd.offset.x + pdd.range.x + SEL_TOLERANCE &&
-		x >= pdd.offset.x - SEL_TOLERANCE &&
-		y <= pdd.offset.y + pdd.range.y + SEL_TOLERANCE &&
-		y >= pdd.offset.y - SEL_TOLERANCE)
+gboolean is_inside_grid(double x, double y, plot_draw_data_t *pddstruct) {
+	if (x <= pddstruct->offset.x + pddstruct->range.x + SEL_TOLERANCE &&
+		x >= pddstruct->offset.x - SEL_TOLERANCE &&
+		y <= pddstruct->offset.y + pddstruct->range.y + SEL_TOLERANCE &&
+		y >= pddstruct->offset.y - SEL_TOLERANCE)
 			return TRUE;
 	return FALSE;
 }
@@ -246,7 +247,7 @@ static gboolean is_over_marker(double x, double y, enum marker_type marker_t) {
 	}
 }
 
-static int get_closest_marker(double x, double y, enum slider_type slider_t, double *valrange) {
+static int get_closest_marker(double x, double y, enum slider_type slider_t, const double *valrange) {
 	double val = (slider_t == SLIDER_X) ? (x - pdd.offset.x) / pdd.range.x : (pdd.offset.y + pdd.range.y - y) / pdd.range.y;
 	// should not be outside of [0, 1] but just in case
 	val = min(1., val);
@@ -430,7 +431,7 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 	pdd.datamin = (point){ DBL_MAX, DBL_MAX};
 	pdd.datamax = (point){ -DBL_MAX, -DBL_MAX};
 
-	for (i = 0, j = 0; i < plot->nb; i++) {
+	for (i = 0, j = 0; i < seq->number; i++) {
 		if (!seq->imgparam[i].incl)
 			continue;
 		switch (X_selected_source) {
@@ -439,7 +440,7 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 				break;
 			case r_FWHM:
 				if (is_arcsec) {
-					double bin = gfit.unbinned ? (double) gfit.binning_x : 1.0;
+					double bin = com.pref.binning_update ? (double) gfit.binning_x : 1.0;
 					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].fwhm, bin, (double) gfit.pixel_size_x, gfit.focal_length, &fwhm);
 				} else {
 					fwhm = seq->regparam[layer][i].fwhm;
@@ -460,7 +461,7 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 				break;
 			case r_WFWHM:
 				if (is_arcsec) {
-					double bin = gfit.unbinned ? (double) gfit.binning_x : 1.0;
+					double bin = com.pref.binning_update ? (double) gfit.binning_x : 1.0;
 					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].weighted_fwhm, bin, (double) gfit.pixel_size_x, gfit.focal_length, &fwhm);
 				} else {
 					fwhm = seq->regparam[layer][i].weighted_fwhm;
@@ -489,7 +490,7 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 				break;
 			case r_FWHM:
 				if (is_arcsec) {
-					double bin = gfit.unbinned ? (double) gfit.binning_x : 1.0;
+					double bin = com.pref.binning_update ? (double) gfit.binning_x : 1.0;
 					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].fwhm, bin, (double) gfit.pixel_size_x, gfit.focal_length, &fwhm);
 				} else {
 					fwhm = seq->regparam[layer][i].fwhm;
@@ -510,7 +511,7 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 				break;
 			case r_WFWHM:
 				if (is_arcsec) {
-					double bin = gfit.unbinned ? (double) gfit.binning_x : 1.0;
+					double bin = com.pref.binning_update ? (double) gfit.binning_x : 1.0;
 					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].weighted_fwhm, bin, (double) gfit.pixel_size_x, gfit.focal_length, &fwhm);
 				} else {
 					fwhm = seq->regparam[layer][i].weighted_fwhm;
@@ -554,8 +555,8 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 }
 
 static void set_x_photometry_values(sequence *seq, pldata *plot, int image_index, int point_index) {
+	double julian = 0.;
 	if (seq->imgparam[image_index].date_obs) {
-		double julian;
 		GDateTime *tsi = g_date_time_ref(seq->imgparam[image_index].date_obs);
 		if (seq->exposure > 0.0) {
 			GDateTime *new_dt = g_date_time_add_seconds(tsi, seq->exposure * 0.5);
@@ -565,26 +566,23 @@ static void set_x_photometry_values(sequence *seq, pldata *plot, int image_index
 			julian = date_time_to_Julian(tsi);
 		}
 
-		plot->julian[point_index] = julian - (double)julian0;
-
+		julian -= (double)julian0;
 		g_date_time_unref(tsi);
 	} else {
-		plot->julian[point_index] = (double) image_index + 1; // should not happen
+		julian = (double) image_index + 1; // should not happen
 		siril_debug_print("no DATE-OBS information for frame %d\n", image_index);
 	}
 	plot->frame[point_index] = (double) image_index + 1;
 
 	if (julian0 && force_Julian) {
-		plot->data[point_index].x = plot->julian[point_index];
+		plot->data[point_index].x = julian;
 	} else {
-		plot->data[point_index].x = plot->frame[point_index];
+		plot->data[point_index].x = (double)image_index + 1;
 	}
-
 	plot->err[point_index].x = plot->data[point_index].x;
 }
 
-static void build_photometry_dataset(sequence *seq, int dataset, int size,
-		int ref_image, pldata *plot) {
+static void build_photometry_dataset(sequence *seq, int dataset, int ref_image, pldata *plot) {
 	int i, j;
 	double offset = -1001.0;
 	double fwhm;
@@ -592,7 +590,7 @@ static void build_photometry_dataset(sequence *seq, int dataset, int size,
 	if (seq->reference_star >= 0 && !seq->photometry[seq->reference_star])
 		seq->reference_star = -1;
 
-	for (i = 0, j = 0; i < size; i++) {
+	for (i = 0, j = 0; i < seq->number; i++) {
 		if (!seq->imgparam[i].incl || !psfs[i])
 			continue;
 		if (!julian0 && !xlabel) {
@@ -680,8 +678,8 @@ static void build_photometry_dataset(sequence *seq, int dataset, int size,
 		// caching the data range
 		if (pdd.datamin.x > plot->data[j].x) pdd.datamin.x = plot->data[j].x;
 		if (pdd.datamax.x < plot->data[j].x) pdd.datamax.x = plot->data[j].x;
-		if (pdd.datamin.y > plot->data[j].y) pdd.datamin.y = plot->data[j].y;
-		if (pdd.datamax.y < plot->data[j].y) pdd.datamax.y = plot->data[j].y;
+		if (pdd.datamin.y > plot->data[j].y - plot->err[j].y) pdd.datamin.y = plot->data[j].y - plot->err[j].y;
+		if (pdd.datamax.y < plot->data[j].y + plot->err[j].y) pdd.datamax.y = plot->data[j].y + plot->err[j].y;
 		j++;
 	}
 	plot->nb = j;
@@ -691,155 +689,45 @@ static void build_photometry_dataset(sequence *seq, int dataset, int size,
 	pdd.pdatamax.y = pdd.datamin.y + (pdd.datamax.y - pdd.datamin.y) * pdd.yrange[1];
 }
 
-static double get_error_for_time(pldata *plot, double time) {
-	/* when data are sorted we need to check order by matching
-	 * timestamps in order to sort uncertainties as well
-	 */
-	for (int k = 0; k < plot->nb; k++) {
-		if (plot->err[k].x == time)
-			return plot->err[k].y;
+static int get_number_of_stars(const sequence *seq) {
+	int count = 0;
+	for (int i = 0; i < MAX_SEQPSF && seq->photometry[i]; i++) {
+		if (seq->photometry[i][seq->reference_image])
+			count++;
 	}
-	return 0.0;
+	return count;
 }
 
 // call after having filled the plot data of the multiple stars with either
 // generate_magnitude_data() from the command or build_photometry_dataset() from the GUI
 // the first will be the target
-int light_curve(pldata *plot, sequence *seq, gchar *filename) {
-	int i, j, nbImages = 0;
-	double *vmag, *err, *x, *real_x;
-	gboolean use_gnuplot = gnuplot_is_available();
-	if (!use_gnuplot) {
-		siril_log_color_message(_("Gnuplot was not found, the light curve data will be "
-				"produced in %s but no image will be created. "
-				"You can specify the path to gnuplot in the Siril preferences.\n"), "red", filename);
-	}
-	if (!seq->photometry[0]) {
-		siril_log_color_message(_("No photometry data found, error\n"), "red");
-		return -1;
-	}
+static int light_curve(pldata *plot, sequence *seq, gchar *filename, gchar **error, void *ptr) {
+	struct light_curve_args *lcargs = calloc(1, sizeof(struct light_curve_args));
 
-	/* get number of valid frames for each star */
-	int ref_valid_count[MAX_SEQPSF] = { 0 };
-	gboolean ref_valid[MAX_SEQPSF] = { FALSE };
-	for (i = 0; i < plot->nb; i++) {
-		if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid)
-			continue;
-		++nbImages;
-		for (int r = 1; r < MAX_SEQPSF && seq->photometry[r]; r++) {
-			if (seq->photometry[r][i] && seq->photometry[r][i]->phot_is_valid)
-				ref_valid_count[r]++;
-		}
-	}
-	siril_debug_print("we have %d images with a valid photometry for the variable star\n", nbImages);
-	if (nbImages < 1)
-		return -1;
+	lcargs->seq = seq;
+	lcargs->layer = 0; // We don't care. This is not used in our case
+	lcargs->display_graph = TRUE;
+	lcargs->target_descr = NULL;
 
-	int nb_ref_stars = 0;
-	// select reference stars that are only available at least 3/4 of the time
-	for (int r = 1; r < MAX_SEQPSF && seq->photometry[r]; r++) {
-		ref_valid[r] = ref_valid_count[r] >= nbImages * 3 / 4;
-		siril_debug_print("reference star %d has %d/%d valid measures, %s\n", r, ref_valid_count[r], nbImages, ref_valid[r] ? "including" : "discarding");
-		if (ref_valid[r])
-			nb_ref_stars++;
-	}
-
-	if (nb_ref_stars == 0) {
-		siril_log_color_message(_("The reference stars are not good enough, probably out of the configured valid pixel range, cannot calibrate the light curve\n"), "red");
-		return -1;
-	}
-	if (nb_ref_stars < 1)
-		siril_log_color_message(_("Only one reference star was validated, this will not result in an accurate light curve. Try to add more reference stars or check the configured valid pixel range\n"), "salmon");
-	else siril_log_message(_("Using %d stars to calibrate the light curve\n"), nb_ref_stars);
-
-	vmag = calloc(nbImages, sizeof(double));
-	err = calloc(nbImages, sizeof(double));
-	x = calloc(nbImages, sizeof(double));
-	real_x = calloc(nbImages, sizeof(double));
-	if (!vmag || !err || !x || !real_x) {
-		PRINT_ALLOC_ERR;
-		return -1;
-	}
-	// i is index in dataset, j is index in output
-	for (i = 0, j = 0; i < plot->nb; i++) {
-		if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid)
-			continue;
-		double cmag = 0.0, cerr = 0.0;
-
-		x[j] = plot->data[j].x;			// relative date
-		real_x[j] = x[j] + (double)julian0;	// absolute date
-		vmag[j] = plot->data[j].y;		// magnitude
-		err[j] = get_error_for_time(plot, x[j]);// error of the magnitude
-
-		int nb_ref = 0;
-		pldata *cur_plot = plot->next;
-		/* First data plotted are variable data, others are references
-		 * Variable is done above, now we compute references */
-		for (int r = 1; r < MAX_SEQPSF && seq->photometry[r]; r++) {
-			if (ref_valid[r] && seq->photometry[r][i] && seq->photometry[r][i]->phot_is_valid) {
-				/* variable data, inversion of Pogson's law
-				 * Flux = 10^(-0.4 * mag)
-				 */
-				cmag += pow(10, -0.4 * cur_plot->data[j].y);
-				cerr += get_error_for_time(cur_plot, x[j]);
-				++nb_ref;
-			}
-			cur_plot = cur_plot->next;
-		}
-		/* Converting back to magnitude */
-		if (nb_ref == nb_ref_stars) {
-			/* we consider an image to be invalid if all references are not valid,
-			 * because it changes the mean otherwise and makes nonsense data */
-			cmag = -2.5 * log10(cmag / nb_ref);
-			cerr = (cerr / nb_ref) / sqrt((double) nb_ref);
-
-			vmag[j] = vmag[j] - cmag;
-			err[j] = fmin(9.999, sqrt(err[j] * err[j] + cerr * cerr));
-			j++;
-		}
-	}
-	int nb_valid_images = j;
-
-	siril_log_message(_("Calibrated data for %d points of the light curve, %d excluded because of invalid calibration\n"), nb_valid_images, plot->nb - nb_valid_images);
-
-	/*  data are computed, now plot the graph. */
-
-	if (use_gnuplot) {
-		/* First, close the graph if already exists */
-		if (gplot != NULL) {
-			gnuplot_close(gplot);
-		}
-
-		if ((gplot = gnuplot_init())) {
-			/* Plotting light curve */
-			gnuplot_set_title(gplot, _("Light Curve"));
-			gnuplot_set_xlabel(gplot, xlabel);
-			gnuplot_reverse_yaxis(gplot);
-			gnuplot_setstyle(gplot, "errorbars");
-			gnuplot_plot_xyyerr(gplot, x, vmag, err, nb_valid_images, "", 0);
-		}
-		else siril_log_message(_("Communicating with gnuplot failed, still creating the data file\n"));
-	}
-
-	/* Exporting data in a dat file */
-	if ((gnuplot_write_xyyerr_dat(filename, real_x, vmag, err, nb_valid_images, "JD_UT V-C err"))) {
-		if (com.script)
-			siril_log_color_message(_("Failed to create the light curve data file %s\n"), "red", filename);
-		else siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Something went wrong while saving plot"));
+	int retval = new_light_curve(filename, lcargs);
+	if (!retval && lcargs->spl_data) {
+		create_new_siril_plot_window(lcargs->spl_data);
 	} else {
-		siril_log_message(_("%s has been saved.\n"), filename);
+		if (retval)
+			control_window_switch_to_tab(OUTPUT_LOGS);
 	}
+	free_light_curve_args(lcargs); // this will not free args->spl_data which is free by siril_plot window upon closing
 
-	free(vmag);
-	free(err);
-	free(x);
-	free(real_x);
-	return 0;
+	return retval;
 }
 
-static int exportCSV(pldata *plot, sequence *seq, gchar *filename) {
-	GError *error = NULL;
+static int exportCSV(pldata *plot, sequence *seq, gchar *filename, gchar **err, void *ptr) {
+	if (!plot) {
+		fprintf(stderr, "exportCSV: Nothing to export\n");
+		return 1;
+	}
 
+	GError *error = NULL;
 	GFile *file = g_file_new_for_path(filename);
 	GOutputStream *output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE,
 			G_FILE_CREATE_NONE, NULL, &error);
@@ -847,6 +735,7 @@ static int exportCSV(pldata *plot, sequence *seq, gchar *filename) {
 	if (output_stream == NULL) {
 		if (error != NULL) {
 			g_warning("%s\n", error->message);
+			*err = g_strdup(error->message);
 			g_clear_error(&error);
 			fprintf(stderr, "exportCSV: Cannot export\n");
 		}
@@ -856,7 +745,7 @@ static int exportCSV(pldata *plot, sequence *seq, gchar *filename) {
 
 	if (use_photometry) {
 		pldata *tmp_plot = plot;
-		for (int i = 0, j = 0; i < plot->nb; i++) {
+		for (int i = 0, j = 0; i < seq->number; i++) {
 			if (!seq->imgparam[i].incl)
 				continue;
 			int x = 0;
@@ -867,6 +756,7 @@ static int exportCSV(pldata *plot, sequence *seq, gchar *filename) {
 			gchar *buffer = g_strdup_printf("%.10lf", date);
 			if (!g_output_stream_write_all(output_stream, buffer, strlen(buffer), NULL, NULL, &error)) {
 				g_warning("%s\n", error->message);
+				*err = g_strdup(error->message);
 				g_free(buffer);
 				g_clear_error(&error);
 				g_object_unref(output_stream);
@@ -874,10 +764,12 @@ static int exportCSV(pldata *plot, sequence *seq, gchar *filename) {
 				return 1;
 			}
 			g_free(buffer);
+			buffer = NULL;
 			while (x < MAX_SEQPSF && seq->photometry[x]) {
 				buffer = g_strdup_printf(", %g", tmp_plot->data[j].y);
 				if (!g_output_stream_write_all(output_stream, buffer, strlen(buffer), NULL, NULL, &error)) {
 					g_warning("%s\n", error->message);
+					*err = g_strdup(error->message);
 					g_free(buffer);
 					g_clear_error(&error);
 					g_object_unref(output_stream);
@@ -887,10 +779,13 @@ static int exportCSV(pldata *plot, sequence *seq, gchar *filename) {
 				tmp_plot = tmp_plot->next;
 				++x;
 				g_free(buffer);
+				buffer = NULL;
 			}
 			if (!g_output_stream_write_all(output_stream, "\n", 1, NULL, NULL, &error)) {
 				g_warning("%s\n", error->message);
+				*err = g_strdup(error->message);
 				g_free(buffer);
+				buffer = NULL;
 				g_clear_error(&error);
 				g_object_unref(output_stream);
 				g_object_unref(file);
@@ -900,7 +795,7 @@ static int exportCSV(pldata *plot, sequence *seq, gchar *filename) {
 			j++;
 		}
 	} else {
-		for (int i = 0, j = 0; i < plot->nb; i++) {
+		for (int i = 0, j = 0; i < seq->number; i++) {
 			if (!seq->imgparam[i].incl)
 				continue;
 			double date = plot->data[j].x;
@@ -910,6 +805,7 @@ static int exportCSV(pldata *plot, sequence *seq, gchar *filename) {
 			gchar *buffer = g_strdup_printf("%.10lf, %g\n", date, plot->data[j].y);
 			if (!g_output_stream_write_all(output_stream, buffer, strlen(buffer), NULL, NULL, &error)) {
 				g_warning("%s\n", error->message);
+				*err = g_strdup(error->message);
 				g_free(buffer);
 				g_clear_error(&error);
 				g_object_unref(output_stream);
@@ -927,11 +823,161 @@ static int exportCSV(pldata *plot, sequence *seq, gchar *filename) {
 	return 0;
 }
 
+static double get_error_for_time(pldata *plot, double time) {
+	/* when data are sorted we need to check order by matching
+	 * timestamps in order to sort uncertainties as well
+	 */
+	for (int k = 0; k < plot->nb; k++) {
+		if (plot->err[k].x == time)
+			return plot->err[k].y;
+	}
+	return 0.0;
+}
+
+void on_ButtonSwitch_Siril_plot_clicked(GtkButton *button, gpointer user_data) {
+	const sequence *seq = &com.seq;
+	pldata *plot = plot_data;
+	int nb_plot = 0;
+
+	if (!plot) {
+		fprintf(stderr, "Siril plot: Nothing to export\n");
+		return;
+	}
+
+	siril_plot_data *spl_data = malloc(sizeof(siril_plot_data));
+	init_siril_plot_data(spl_data);
+	siril_plot_set_xlabel(spl_data, xlabel);
+	siril_plot_set_ylabel(spl_data, ylabel);
+
+	if (use_photometry) {
+		const gchar *title = photometry_labels[photometry_selected_source];
+		siril_plot_set_title(spl_data, title);
+		siril_plot_set_savename(spl_data, title);
+
+		if (photometry_selected_source == MAGNITUDE) {
+			spl_data->revertY = TRUE;
+		}
+
+		pldata *tmp_plot = plot;
+
+		double **x = malloc(MAX_SEQPSF * sizeof(double*));
+		double **y = malloc(MAX_SEQPSF * sizeof(double*));
+		double **yerr = malloc(MAX_SEQPSF * sizeof(double*));
+		double **real_x = malloc(MAX_SEQPSF * sizeof(double*));
+
+		for (int i = 0; i < MAX_SEQPSF; i++) {
+			x[i] = calloc(seq->number, sizeof(double));
+			y[i] = calloc(seq->number, sizeof(double));
+			yerr[i] = calloc(seq->number, sizeof(double));
+			real_x[i] = calloc(seq->number, sizeof(double));
+		}
+		int j = 0;
+		for (int i = 0; i < seq->number; i++) {
+			if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid)
+				continue;
+
+			x[0][j] = tmp_plot->data[j].x;			// relative date
+			real_x[0][j] = x[0][j];
+			if (force_Julian)
+				real_x[0][j] += (double) julian0;	// absolute date
+
+			for (int r = 0; r < MAX_SEQPSF && seq->photometry[r]; r++) {
+				if (seq->photometry[r][i] && seq->photometry[r][i]->phot_is_valid) {
+					y[r][j] = tmp_plot->data[j].y;
+					yerr[r][j] += get_error_for_time(plot, x[r][j]);
+					nb_plot = r;
+				}
+				tmp_plot = tmp_plot->next;
+			}
+			tmp_plot = plot;
+			j++;
+		}
+		for (int r = 0; r < nb_plot + 1; r++) {
+			if (j != seq->number) {
+				double *xtmp = realloc(x[r], j * sizeof(double));
+				if (xtmp) {
+					x[r] = xtmp;
+				}
+				double *ytmp = realloc(y[r], j * sizeof(double));
+				if (ytmp) {
+					y[r] = ytmp;
+				}
+				double *yerrtmp = realloc(yerr[r], j * sizeof(double));
+				if (yerrtmp) {
+					yerr[r] = yerrtmp;
+				}
+				double *real_xtmp = realloc(real_x[r], j * sizeof(double));
+				if (real_xtmp) {
+					real_x[r] = real_xtmp;
+				}
+			}
+			gchar *label = (r == 0) ? g_strdup("v") : g_strdup_printf("%d", r);
+			if (photometry_selected_source == MAGNITUDE) {
+				siril_plot_add_xydata(spl_data, label, j, x[0], y[r], yerr[r], NULL);
+			} else {
+				siril_plot_add_xydata(spl_data, label, j, x[0], y[r], NULL, NULL);
+			}
+			free(label);
+		}
+		for (int i = 0; i < MAX_SEQPSF; i++) {
+			free(x[i]);
+			free(y[i]);
+			free(yerr[i]);
+			free(real_x[i]);
+		}
+
+		free(x);
+		free(y);
+		free(yerr);
+		free(real_x);
+
+	} else {
+		const gchar *title = registration_labels[registration_selected_source];
+		siril_plot_set_title(spl_data, _("Registration"));
+		siril_plot_set_savename(spl_data, _("Registration"));
+
+		double *x = calloc(seq->number, sizeof(double));
+		double *y = calloc(seq->number, sizeof(double));
+
+		if (X_selected_source != r_FRAME) {
+			spl_data->plottype = KPLOT_POINTS;
+		}
+
+		int j = 0;
+		for (int i = 0; i < seq->number; i++) {
+			if (!seq->imgparam[i].incl)
+				continue;
+			x[j] = plot->data[j].x;
+			if (julian0) {
+				x[j] += julian0;
+			}
+			y[j] = plot->data[j].y;
+			j++;
+		}
+		if (j != seq->number) {
+			double *xtmp = realloc(x, j * sizeof(double));
+			if (xtmp) {
+				x = xtmp;
+			}
+			double *ytmp = realloc(y, j * sizeof(double));
+			if (ytmp) {
+				y = ytmp;
+			}
+		}
+		siril_plot_add_xydata(spl_data, title, j, x, y, NULL, NULL);
+
+		free(x);
+		free(y);
+	}
+	create_new_siril_plot_window(spl_data);
+
+	return;
+}
+
 void free_plot_data() {
 	pldata *plot = plot_data;
 	while (plot) {
 		pldata *next = plot->next;
-		free(plot->julian);
 		free(plot->frame);
 		free(plot->data);
 		free(plot->err);
@@ -955,7 +1001,7 @@ static void set_sensitive(GtkCellLayout *cell_layout,
 	if (!use_photometry) {
 		GtkTreePath* path = gtk_tree_model_get_path(tree_model, iter);
 		if (!path) return;
-		gint *index = gtk_tree_path_get_indices(path); // search by index to avoid translation problems
+		const gint *index = gtk_tree_path_get_indices(path); // search by index to avoid translation problems
 		if (index) {
 			if (!is_fwhm) {
 				sensitive = (index[0] == r_FRAME || index[0] == r_QUALITY ||
@@ -977,16 +1023,17 @@ static void fill_plot_statics() {
 		drawingPlot = lookup_widget("DrawingPlot");
 		combo = lookup_widget("plotCombo");
 		comboX = lookup_widget("plotComboX");
-		varCurve = lookup_widget("varCurvePhotometry");
+		photometry_output1 = lookup_widget("varCurvePhotometry");
+		photometry_output2 = lookup_widget("exportAAVSO_button");
 		buttonSaveCSV = lookup_widget("ButtonSaveCSV");
-		buttonSavePrt = lookup_widget("ButtonSavePlot");
 		arcsec = lookup_widget("arcsecPhotometry");
 		julianw = lookup_widget("JulianPhotometry");
+		label_display_plot = lookup_widget("label_display_plot");
 		sourceCombo = lookup_widget("plotSourceCombo");
+		photo_clear_button = lookup_widget("photo_clear_button");
 		buttonClearAll = lookup_widget("clearAllPhotometry");
 		buttonClearLatest = lookup_widget("clearLastPhotometry");
 		layer_selector = lookup_widget("seqlist_dialog_combo");
-		buttonNINA = lookup_widget("nina_button");
 	}
 }
 
@@ -998,13 +1045,13 @@ static void validate_combos() {
 		if (!(com.seq.regparam) || !(com.seq.regparam[reglayer]))
 			reglayer = get_registration_layer(&com.seq);
 	}
-	gtk_widget_set_visible(varCurve, use_photometry);
-	gtk_widget_set_visible(buttonNINA, sequence_is_loaded());
-	gtk_widget_set_visible(buttonSaveCSV, TRUE);
-	gtk_widget_set_visible(buttonSavePrt, TRUE);
+	gtk_widget_set_sensitive(photometry_output1, use_photometry);
+	gtk_widget_set_sensitive(photometry_output2, use_photometry);
+	gtk_widget_set_visible(buttonSaveCSV, !(plot_data == NULL));
 	g_signal_handlers_block_by_func(julianw, on_JulianPhotometry_toggled, NULL);
 	gtk_widget_set_visible(julianw, use_photometry);
 	g_signal_handlers_unblock_by_func(julianw, on_JulianPhotometry_toggled, NULL);
+	gtk_widget_set_visible(label_display_plot, !use_photometry && !gtk_widget_get_visible(arcsec));
 
 	g_signal_handlers_block_by_func(combo, on_plotCombo_changed, NULL);
 	g_signal_handlers_block_by_func(comboX, on_plotComboX_changed, NULL);
@@ -1018,6 +1065,7 @@ static void validate_combos() {
 		gtk_combo_box_set_active(GTK_COMBO_BOX(comboX), r_FRAME);
 		X_selected_source = r_FRAME;
 		gtk_widget_set_sensitive(comboX, FALSE);
+		gtk_widget_set_sensitive(combo, TRUE);
 	} else {
 		while (i < (G_N_ELEMENTS(registration_labels)) - 1) { // do not write 'Frame' as possible Y value
 			gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo), _(registration_labels[i]));
@@ -1054,10 +1102,10 @@ static void validate_combos() {
 }
 
 void on_plotSourceCombo_changed(GtkComboBox *box, gpointer user_data) {
-	validate_combos();
 	requires_seqlist_update = TRUE;
 	reset_plot_zoom();
 	drawPlot();
+	validate_combos();
 }
 
 void reset_plot() {
@@ -1070,24 +1118,22 @@ void reset_plot() {
 		gtk_combo_box_set_active(GTK_COMBO_BOX(comboX), r_FRAME);
 		gtk_widget_set_sensitive(comboX, FALSE);
 		gtk_widget_set_sensitive(sourceCombo, FALSE);
-		gtk_widget_set_visible(varCurve, FALSE);
-		gtk_widget_set_visible(buttonNINA, FALSE);
 		gtk_widget_set_sensitive(buttonSaveCSV, FALSE);
-		gtk_widget_set_sensitive(buttonSavePrt, FALSE);
 		gtk_widget_set_visible(julianw, FALSE);
 		gtk_widget_set_sensitive(buttonClearLatest, FALSE);
 		gtk_widget_set_sensitive(buttonClearAll, FALSE);
+		gtk_widget_set_sensitive(photo_clear_button, FALSE);
 		layer = get_registration_layer(&com.seq);
 		update_seqlist(layer);
 	}
 }
 
 static int comparex(const void *a, const void *b) {
-	struct kpair datax_a = * ((struct kpair *) a);
-	struct kpair datax_b = * ((struct kpair *) b);
+	photdata_t data_a = *(photdata_t *) a;
+	photdata_t data_b = *(photdata_t *) b;
 
-	if (datax_a.x > datax_b.x) return 1;
-	if (datax_a.x < datax_b.x) return -1;
+	if (data_a.data.x > data_b.data.x) return 1;
+	if (data_a.data.x < data_b.data.x) return -1;
 	return 0;
 }
 
@@ -1111,6 +1157,24 @@ static int comparey_desc(const void *a, const void *b) {
 	if (datax_a.y > datax_b.y) return 1;
 	if (datax_a.y < datax_b.y) return -1;
 	return 0;
+}
+
+static void sort_photometry_dataset(pldata *plot) {
+	if (julian0 && force_Julian) {
+		photdata_t *photdata = calloc(plot->nb, sizeof(photdata_t));
+		for (int i = 0; i < plot->nb; i++) {
+			photdata[i].data = plot->data[i];
+			photdata[i].err = plot->err[i];
+			photdata[i].frame = (int)plot->frame[i];
+		}
+		qsort(photdata, plot->nb, sizeof(photdata_t), comparex);
+		for (int i = 0; i < plot->nb; i++) {
+			plot->data[i] = photdata[i].data;
+			plot->err[i] = photdata[i].err;
+			plot->frame[i] = (double)photdata[i].frame;
+		}
+		free(photdata);
+	}
 }
 
 void drawPlot() {
@@ -1144,6 +1208,7 @@ void drawPlot() {
 		// photometry data display
 		pldata *plot;
 		gtk_widget_set_visible(arcsec, current_selected_source == FWHM && arcsec_is_ok);
+		gtk_widget_set_visible(label_display_plot, !gtk_widget_get_visible(julianw) && !gtk_widget_get_visible(arcsec));
 		update_ylabel();
 
 		plot = alloc_plot_data(seq->number);
@@ -1157,8 +1222,8 @@ void drawPlot() {
 				plot = plot->next;
 			}
 
-			build_photometry_dataset(seq, i, seq->number, ref_image, plot);
-			qsort(plot->data, plot->nb, sizeof(struct kpair), comparex);
+			build_photometry_dataset(seq, i, ref_image, plot);
+			sort_photometry_dataset(plot);
 		}
 		if (requires_seqlist_update) { // update seq list if combo or arcsec changed
 			update_seqlist(reglayer);
@@ -1171,6 +1236,7 @@ void drawPlot() {
 
 		is_fwhm = (seq->regparam[reglayer][ref_image].fwhm > 0.0f);
 		gtk_widget_set_visible(arcsec, (current_selected_source == r_FWHM || current_selected_source == r_WFWHM || X_selected_source == r_FWHM || X_selected_source == r_WFWHM) && arcsec_is_ok);
+		gtk_widget_set_visible(label_display_plot, !gtk_widget_get_visible(julianw) && !gtk_widget_get_visible(arcsec));
 
 		update_ylabel();
 		/* building data array */
@@ -1198,7 +1264,7 @@ static void set_filter(GtkFileChooser *dialog, const gchar *format) {
 	g_free(pattern);
 }
 
-static void save_dialog(const gchar *format, int (export_function)(pldata *, sequence *, gchar *)) {
+static void save_dialog(const gchar *format, int (export_function)(pldata *, sequence *, gchar *, gchar **, void *), gchar **error, void *ptr) {
 	GtkWindow *control_window = GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
 	SirilWidget *widgetdialog = siril_file_chooser_save(control_window, GTK_FILE_CHOOSER_ACTION_SAVE);
 	GtkFileChooser *dialog = GTK_FILE_CHOOSER(widgetdialog);
@@ -1207,12 +1273,13 @@ static void save_dialog(const gchar *format, int (export_function)(pldata *, seq
 	gtk_file_chooser_set_select_multiple(dialog, FALSE);
 	gtk_file_chooser_set_do_overwrite_confirmation(dialog, TRUE);
 	gtk_file_chooser_set_current_name(dialog, format);
+	gtk_file_chooser_set_local_only(dialog, FALSE);
 	set_filter(dialog, format);
 
 	gint res = siril_dialog_run(widgetdialog);
 	if (res == GTK_RESPONSE_ACCEPT) {
-		gchar *file = gtk_file_chooser_get_filename(dialog);
-		export_function(plot_data, &com.seq, file);
+		gchar *file = siril_file_chooser_get_filename(dialog);
+		export_function(plot_data, &com.seq, file, error, ptr);
 
 		g_free(file);
 	}
@@ -1220,15 +1287,90 @@ static void save_dialog(const gchar *format, int (export_function)(pldata *, seq
 }
 
 void on_ButtonSaveCSV_clicked(GtkButton *button, gpointer user_data) {
+	gchar *error = NULL;
 	set_cursor_waiting(TRUE);
-	save_dialog(".csv", exportCSV);
+	save_dialog(".csv", exportCSV, &error, NULL);
+	if (error) {
+		siril_message_dialog(GTK_MESSAGE_WARNING, _("Cannot output data"), error);
+		g_free(error);
+	}
+	set_cursor_waiting(FALSE);
+}
+
+void on_button_aavso_close_clicked(GtkButton *button, gpointer user_data) {
+	gtk_widget_hide(lookup_widget("aavso_dialog"));
+}
+
+void on_button_aavso_apply_clicked(GtkButton *button, gpointer user_data) {
+	gchar *error = NULL;
+	// we want get some information from a dialog
+	/* temporary code */
+	aavso_dlg *aavso_ptr = calloc(1, sizeof(aavso_dlg));
+
+	aavso_ptr->obscode = gtk_entry_get_text(GTK_ENTRY(lookup_widget("obscode_entry")));
+	aavso_ptr->obstype = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(lookup_widget("obstype_combo")));
+	aavso_ptr->starid = gtk_entry_get_text(GTK_ENTRY(lookup_widget("starid_entry")));
+	aavso_ptr->cname = gtk_entry_get_text(GTK_ENTRY(lookup_widget("cname_entry")));
+	aavso_ptr->filter = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(lookup_widget("aavso_filter_combo")));
+	aavso_ptr->kname = gtk_entry_get_text(GTK_ENTRY(lookup_widget("kname_entry")));
+	aavso_ptr->c_std = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("cstd_entry"))), NULL);
+	aavso_ptr->c_idx = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("cstar_combo")));
+	aavso_ptr->k_idx = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("kstar_combo")));
+	aavso_ptr->chart = gtk_entry_get_text(GTK_ENTRY(lookup_widget("chart_entry")));
+	aavso_ptr->notes = gtk_entry_get_text(GTK_ENTRY(lookup_widget("notes_entry")));
+
+	if (aavso_ptr->c_idx == -1 || aavso_ptr->k_idx == -1) {
+		siril_message_dialog(GTK_MESSAGE_WARNING, _("Incomplete data"), _("You must select a comparison star and a check star."));
+		free(aavso_ptr);
+		return;
+	}
+
+	if (aavso_ptr->c_idx == aavso_ptr->k_idx) {
+		siril_message_dialog(GTK_MESSAGE_WARNING, _("Wrong data"), _("The comparison star and the check star must be different."));
+		free(aavso_ptr);
+		return;
+	}
+
+	set_cursor_waiting(TRUE);
+	save_dialog(".csv", export_AAVSO, &error, aavso_ptr);
+	if (error) {
+		siril_message_dialog(GTK_MESSAGE_WARNING, _("Cannot output data"), error);
+		g_free(error);
+		control_window_switch_to_tab(OUTPUT_LOGS);
+	}
+	gtk_widget_hide(lookup_widget("aavso_dialog"));
+
 	set_cursor_waiting(FALSE);
 }
 
 void on_varCurvePhotometry_clicked(GtkButton *button, gpointer user_data) {
+	gchar *error = NULL;
 	set_cursor_waiting(TRUE);
-	save_dialog(".dat", light_curve);
+	save_dialog(".dat", light_curve, &error, NULL);
+	if (error) {
+		siril_message_dialog(GTK_MESSAGE_WARNING, _("Cannot output data"), error);
+		g_free(error);
+	}
 	set_cursor_waiting(FALSE);
+}
+
+static void fill_combo_boxes() {
+	gtk_combo_box_text_remove_all(GTK_COMBO_BOX_TEXT(lookup_widget("cstar_combo")));
+	gtk_combo_box_text_remove_all(GTK_COMBO_BOX_TEXT(lookup_widget("kstar_combo")));
+	int n = get_number_of_stars(&com.seq);
+
+	for (int i = 1; i < n; i++) {
+		gchar *txt = g_strdup_printf("%d", i);
+		gtk_combo_box_text_insert(GTK_COMBO_BOX_TEXT(lookup_widget("cstar_combo")), i, NULL, txt);
+		gtk_combo_box_text_insert(GTK_COMBO_BOX_TEXT(lookup_widget("kstar_combo")), i, NULL, txt);
+
+		g_free(txt);
+	}
+}
+
+void on_exportAAVSO_button_clicked(GtkButton *button, gpointer user_data) {
+	fill_combo_boxes();
+	gtk_widget_show_all(lookup_widget("aavso_dialog"));
 }
 
 void on_clearLatestPhotometry_clicked(GtkButton *button, gpointer user_data) {
@@ -1259,16 +1401,16 @@ void on_clearAllPhotometry_clicked(GtkButton *button, gpointer user_data) {
 	clear_all_photometry_and_plot();
 }
 
-void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
+void drawing_the_graph(GtkWidget *widget, cairo_t *cr) {
 	guint width, height;
 	struct kplotcfg cfgplot;
 	struct kdatacfg cfgdata;
-	struct kdata *d1, *ref_d, *mean_d, *curr_d;
+	struct kdata *d1 = NULL, *ref_d = NULL, *mean_d = NULL, *curr_d = NULL, *d2[3];
+	struct kplotctx ctx = { 0 };
 
 	if (!plot_data || !widget)
 		return;
 	pldata *plot = plot_data;
-	d1 = ref_d = mean_d = NULL;
 
 	double color = (com.pref.gui.combo_theme == 0) ? 0.0 : 1.0;
 
@@ -1297,28 +1439,50 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 	cfgplot.extrema_ymin = pdd.pdatamin.y;
 	cfgplot.extrema_ymax = pdd.pdatamax.y;
 
+	gboolean use_mag_plot = use_photometry && photometry_selected_source == MAGNITUDE;
 	struct kplot *p = kplot_alloc(&cfgplot);
 
 	// data plots
 	int nb_graphs = 0;
+	double mean = 0.;
+	int min_data = 0, max_data = 0;
 
 	while (plot) {
-		d1 = kdata_array_alloc(plot->data, plot->nb);
-		if (X_selected_source == r_FRAME) {
-			kplot_attach_data(p, d1,
-					plot_data->nb <= 100 ? KPLOT_LINESPOINTS : KPLOT_LINES,
-					NULL);
+		if (!use_mag_plot) {
+			d1 = kdata_array_alloc(plot->data, plot->nb);
+			if (X_selected_source == r_FRAME) {
+				kplot_attach_data(p, d1,
+						plot_data->nb <= 100 ? KPLOT_LINESPOINTS : KPLOT_LINES,
+						NULL);
+			} else {
+				kplot_attach_data(p, d1, KPLOT_POINTS, NULL);
+			}
+			/* mean and min/max */
+			mean = kdata_ymean(d1);
+			min_data = kdata_xmin(d1, NULL);
+			max_data = kdata_xmax(d1, NULL);
+			kdata_destroy(d1);
 		} else {
-			kplot_attach_data(p, d1, KPLOT_POINTS, NULL);
+			const struct kdatacfg *cfgs[3];
+			enum kplottype plotstypes[3];
+			cfgdata.point.radius = 3;
+			for (int i = 0; i < 3; i++) {
+				d2[i] = kdata_array_alloc((!i) ? plot->data : plot->err, plot->nb);
+				cfgs[i] = &cfgdata;
+				plotstypes[i] = (!i) ?  KPLOT_POINTS : KPLOT_HYPHENS;
+			}
+			kplot_attach_datas(p, 3, d2, plotstypes, cfgs, KPLOTS_YERRORBAR);
+			/* mean and min/max */
+			mean = kdata_ymean(d2[0]);
+			min_data = kdata_xmin(d2[0], NULL);
+			max_data = kdata_xmax(d2[0], NULL);
+			for (int i = 0; i < 3; i++)
+				kdata_destroy(d2[i]);
 		}
 		plot = plot->next;
 		nb_graphs++;
 	}
 
-	/* mean and min/max */
-	double mean = kdata_ymean(d1);
-	int min_data = kdata_xmin(d1, NULL);
-	int max_data = kdata_xmax(d1, NULL);
 
 	if (nb_graphs == 1 && plot_data->nb > 0) {
 		if (!use_photometry && (registration_selected_source == r_FWHM || registration_selected_source == r_WFWHM ||
@@ -1343,6 +1507,7 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 				d1 = kdata_array_alloc(sorted_data, plot_data->nb);
 				kplot_attach_data(p, d1, KPLOT_LINES, NULL);
 				free(sorted_data);
+				kdata_destroy(d1);
 			}
 		} else if (use_photometry){
 			int nb_data = max_data - min_data + 1;
@@ -1354,15 +1519,18 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 			mean_d = kdata_array_alloc(avg, nb_data);
 			kplot_attach_data(p, mean_d, KPLOT_LINES, NULL);	// mean plot
 			free(avg);
+			kdata_destroy(mean_d);
 		}
 
 		if (ref.x > -DBL_MAX && ref.y > -DBL_MAX) {
 			ref_d = kdata_array_alloc(&ref, 1);
 			kplot_attach_data(p, ref_d, KPLOT_POINTS, &cfgdata);	// ref image dot
+			kdata_destroy(ref_d);
 		}
 		if (curr.x > -DBL_MAX && curr.y > -DBL_MAX) {
 			curr_d = kdata_array_alloc(&curr, 1);
 			kplot_attach_data(p, curr_d, KPLOT_MARKS, &cfgdata);	// ref image dot
+			kdata_destroy(curr_d);
 		}
 	}
 
@@ -1370,74 +1538,50 @@ void drawing_the_graph(GtkWidget *widget, cairo_t *cr, gboolean for_saving) {
 	height = gtk_widget_get_allocated_height(widget);
 	pdd.surf_w = (double)width;
 	pdd.surf_h = (double)height;
-	cairo_surface_t *surface = NULL;
-
-	if (for_saving) {
-		surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
-		cr = cairo_create(surface);
-	}
 
 	cairo_set_source_rgb(cr, color, color, color);
 	cairo_rectangle(cr, 0.0, 0.0, width, height);
 	cairo_fill(cr);
-	kplot_draw(p, width, height, cr);
+	kplot_draw(p, width, height, cr, &ctx);
 
-	if (for_saving) {
-		gchar *timestamp, *filename;
-		timestamp = build_timestamp_filename();
-		filename = g_strdup_printf("%s.png", timestamp);
-		g_free(timestamp);
+	// caching more data
+	pdd.range = (point){ ctx.dims.x, ctx.dims.y};
+	pdd.scale = (point){ (pdd.pdatamax.x - pdd.pdatamin.x) / pdd.range.x, (pdd.pdatamax.y - pdd.pdatamin.y) / pdd.range.y};
+	pdd.offset = (point){ ctx.offs.x, ctx.offs.y};
+	// dealing with selection here after plot specifics have been updated. Otherwise change of scale is flawed (when arsec/julian state are changed)
+	if (pdd.selected) free(pdd.selected);
+	pdd.selected = calloc(com.seq.number, sizeof(gboolean));
+	if (selection_is_active()) {
+		double xmin, ymin, xmax, ymax;
+		int n = 0;
+		convert_surface_to_plot_coords(pdd.selection.x, pdd.selection.y, &xmin, &ymax);
+		convert_surface_to_plot_coords(pdd.selection.x + pdd.selection.w, pdd.selection.y + pdd.selection.h, &xmax, &ymin);
 
-		cairo_surface_write_to_png(surface, filename);
-		cairo_surface_destroy(surface);
-		siril_log_message(_("Saved plot to image %s\n"), filename);
-		g_free(filename);
-	} else {
-		// caching more data
-		pdd.range = (point){ get_dimx(),  get_dimy()};
-		pdd.scale = (point){ (pdd.pdatamax.x - pdd.pdatamin.x) / pdd.range.x, (pdd.pdatamax.y - pdd.pdatamin.y) / pdd.range.y};
-		pdd.offset = (point){ get_offsx(),  get_offsy()};
-		// dealing with selection here after plot specifics have been updated. Otherwise change of scale is flawed (when arsec/julian state are changed)
-		pdd.selected = calloc(com.seq.number, sizeof(gboolean));
-		if (selection_is_active()) {
-			double xmin, ymin, xmax, ymax;
-			int n = 0;
-			convert_surface_to_plot_coords(pdd.selection.x, pdd.selection.y, &xmin, &ymax);
-			convert_surface_to_plot_coords(pdd.selection.x + pdd.selection.w, pdd.selection.y + pdd.selection.h, &xmax, &ymin);
-			int i, j;
-			for (i = 0, j = 0; i < com.seq.number; i++) {
-				if (!com.seq.imgparam[i].incl) continue;
-				if (plot_data->data[j].x >= xmin && plot_data->data[j].x <= xmax && plot_data->data[j].y >= ymin && plot_data->data[j].y <= ymax) {
-					n++;
-					pdd.selected[i] = TRUE;
-				}
-				j++;
+		for (int i = 0, j = 0; i < com.seq.number; i++) {
+			if (!com.seq.imgparam[i].incl) continue;
+			if (plot_data->data[j].x >= xmin && plot_data->data[j].x <= xmax && plot_data->data[j].y >= ymin && plot_data->data[j].y <= ymax) {
+				n++;
+				pdd.selected[i] = TRUE;
 			}
-			pdd.nbselected = n;
-		} else {
-			pdd.nbselected = 0;
+			j++;
 		}
-		//drawing the sliders and markers
-		plot_draw_all_sliders(cr);
-		plot_draw_all_sliders_fill(cr);
-		plot_draw_all_markers(cr);
-		plot_draw_selection(cr);
+		pdd.nbselected = n;
+	} else {
+		pdd.nbselected = 0;
 	}
+	//drawing the sliders and markers
+	plot_draw_all_sliders(cr);
+	plot_draw_all_sliders_fill(cr);
+	plot_draw_all_markers(cr);
+	plot_draw_selection(cr);
+
 	free_colors(&cfgplot);
 	kplot_free(p);
-	kdata_destroy(d1);
-	kdata_destroy(ref_d);
-	if (mean_d)
-		kdata_destroy(mean_d);
 }
 
 gboolean on_DrawingPlot_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
-	drawing_the_graph(widget, cr, FALSE);
+	drawing_the_graph(widget, cr);
 	return FALSE;
-}
-
-void on_ButtonSavePlot_clicked(GtkButton *button, gpointer user_data) {
-	drawing_the_graph((GtkWidget *)user_data, NULL, TRUE);
 }
 
 void on_plotCombo_changed(GtkComboBox *box, gpointer user_data) {
@@ -1470,10 +1614,8 @@ void on_JulianPhotometry_toggled(GtkToggleButton *button, gpointer user_data) {
 
 static void update_ylabel() {
 	int current_selected_source = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));
-	gtk_widget_set_sensitive(buttonSavePrt, TRUE);
 	if (use_photometry) {
 		gtk_widget_set_sensitive(buttonSaveCSV, TRUE);
-		gtk_widget_set_sensitive(varCurve, current_selected_source == MAGNITUDE);
 		switch (current_selected_source) {
 			case ROUNDNESS:
 				ylabel = _("Star roundness (1 is round)");
@@ -1582,6 +1724,7 @@ void init_plot_colors() {
 		com.seq.photometry_colors[i][1] = cfgplot.clrs[i].rgba[1];
 		com.seq.photometry_colors[i][2] = cfgplot.clrs[i].rgba[2];
 	}
+	free_colors(&cfgplot);
 }
 
 void notify_new_photometry() {
@@ -1591,6 +1734,7 @@ void notify_new_photometry() {
 	gtk_combo_box_set_active(GTK_COMBO_BOX(sourceCombo), 1);
 	gtk_widget_set_sensitive(buttonClearLatest, TRUE);
 	gtk_widget_set_sensitive(buttonClearAll, TRUE);
+	gtk_widget_set_sensitive(photo_clear_button, TRUE);
 	gtk_widget_set_sensitive(comboX, FALSE);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(comboX), r_FRAME);
 }
@@ -1814,7 +1958,7 @@ gboolean on_DrawingPlot_motion_notify_event(GtkWidget *widget,
 	} else {
 		set_cursor("tcross");
 	}
-	if (is_inside_grid(x, y)) {
+	if (is_inside_grid(x, y, &pdd)) {
 		double index, xpos, ypos;
 		gboolean getvals = get_index_of_frame(x, y, FALSE, &index, &xpos, &ypos);
 		gchar *tooltip_text;
@@ -1852,7 +1996,7 @@ gboolean on_DrawingPlot_leave_notify_event(GtkWidget *widget, GdkEvent *event,
 	return TRUE;
 }
 
-static void do_popup_singleframemenu(GtkWidget *my_widget, GdkEventButton *event) {
+static void do_popup_singleframemenu(GtkWidget *my_widget, const GdkEventButton *event) {
 	if (!event) {
 		return;
 	}
@@ -1896,7 +2040,7 @@ static void do_popup_singleframemenu(GtkWidget *my_widget, GdkEventButton *event
 #endif
 }
 
-static void do_popup_selectionmenu(GtkWidget *my_widget, GdkEventButton *event) {
+static void do_popup_selectionmenu(GtkWidget *my_widget, const GdkEventButton *event) {
 	if (!event) {
 		return;
 	}
@@ -1941,7 +2085,7 @@ gboolean on_DrawingPlot_button_press_event(GtkWidget *widget,
 			return TRUE;
 		}
 		// open or exclude image (if close enough to a data point)
-		if (is_inside_grid(x, y) && event->button == GDK_BUTTON_SECONDARY) {
+		if (is_inside_grid(x, y, &pdd) && event->button == GDK_BUTTON_SECONDARY) {
 			do_popup_singleframemenu(widget, event);
 			return TRUE;
 		}
@@ -2041,7 +2185,7 @@ void on_menu_plot_item1_activate(GtkMenuItem *menuitem, gpointer user_data) {
 		if (index > 0) {
 			index--;
 
-			exclude_single_frame(index);
+			exclude_include_single_frame(index);
 			update_seqlist(use_photometry ? 0 : reglayer);
 		}
 	} else { // Zoom to selection

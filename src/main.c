@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@
 #  include <config.h>
 #endif
 
+#include <gsl/gsl_errno.h>
 #include <gtk/gtk.h>
 #include <stdio.h>
 #include <string.h>
@@ -40,8 +41,10 @@
 #include <windows.h>
 #endif
 
+#include "siril_resource.h"
 #include "git-version.h"
 #include "core/siril.h"
+#include "core/icc_profile.h"
 #include "core/proto.h"
 #include "core/siril_actions.h"
 #include "core/initfile.h"
@@ -56,8 +59,10 @@
 #include "core/OS_utils.h"
 #include "algos/star_finder.h"
 #include "io/sequence.h"
+#include "io/siril_git.h"
 #include "io/conversion.h"
 #include "io/single_image.h"
+#include "gui/ui_files.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/progress_and_log.h"
@@ -65,8 +70,8 @@
 #include "registration/registration.h"
 
 /* the global variables of the whole project */
-cominfo com;	// the core data struct
-guiinfo gui;	// the gui data struct
+cominfo com = { 0 };	// the core data struct
+guiinfo gui = { 0 };	// the gui data struct
 fits gfit;	// currently loaded image
 
 static gchar *main_option_directory = NULL;
@@ -123,34 +128,57 @@ static GActionEntry app_entries[] = {
 	{ "about", about_action_activate }
 };
 
-
-void load_glade_file() {
+void load_ui_files() {
 	GError *err = NULL;
-	gchar* gladefile;
+	gboolean retval;
 
-	gladefile = g_build_filename(siril_get_system_data_dir(), GLADE_FILE, NULL);
-
-	/* try to load the glade file, from the sources defined above */
-	gui.builder = gtk_builder_new();
-
-	if (!gtk_builder_add_from_file(gui.builder, gladefile, &err)) {
+	/* try to load the first UI file, from the sources defined above */
+	gui.builder = gtk_builder_new_from_resource(ui_files[0]);
+	if (!gui.builder) {
 		g_error(_("%s was not found or contains errors, "
-					"cannot render GUI:\n%s\n Exiting.\n"), gladefile, err->message);
-		g_clear_error(&err);
+					"cannot render GUI.\n Exiting.\n"), ui_files[0]);
 		exit(EXIT_FAILURE);
 	}
-	g_printf(_("Successfully loaded '%s'\n"), gladefile);
-	g_free(gladefile);
+	siril_debug_print("Successfully loaded '%s'\n", ui_files[0]);
+
+	uint32_t i = 1;
+	while (*ui_files[i]) {
+
+		/* try to load each successive UI file, from the sources defined above */
+		// TODO: the following gtk_builder_add_from_file call is the source
+		// of libfontconfig memory leaks.
+		retval = gtk_builder_add_from_resource(gui.builder, ui_files[i], &err);
+		if (!retval) {
+			g_error(_("%s was not found or contains errors, "
+						"cannot render GUI:\n%s\n Exiting.\n"), ui_files[i], err->message);
+			g_clear_error(&err);
+			exit(EXIT_FAILURE);
+		}
+		siril_debug_print("Successfully loaded '%s'\n", ui_files[i]);
+		i++;
+	}
 }
 
+#if defined (HAVE_FFTW3F_THREADS) && (_OPENMP)
+void parallel_loop(void *(*work)(char *), char *jobdata, size_t elsize, int njobs, void *data)
+{
+#pragma omp parallel for
+	for (int i = 0; i < njobs; ++i)
+		work(jobdata + elsize * i);
+}
+#endif
+
 static void global_initialization() {
+	gsl_set_error_handler_off();
 	com.star_is_seqdata = FALSE;
 	com.stars = NULL;
 	com.tilt = NULL;
 	com.uniq = NULL;
-	com.child_is_running = FALSE;
+	com.child_is_running = EXT_NONE;
 	com.kernel = NULL;
 	com.kernelsize = 0;
+	com.kernelchannels = 0;
+	memset(&com.spcc_data, 0, sizeof(struct spcc_data_store));
 #ifdef _WIN32
 	com.childhandle = NULL;
 #else
@@ -158,9 +186,10 @@ static void global_initialization() {
 #endif
 	memset(&com.selection, 0, sizeof(rectangle));
 	memset(com.layers_hist, 0, sizeof(com.layers_hist));
-
 	gui.selected_star = -1;
+	gui.repo_scripts = NULL;
 	gui.qphot = NULL;
+	gui.draw_extra = NULL;
 	gui.cvport = RED_VPORT;
 	gui.show_excluded = TRUE;
 	gui.sliders = MINMAX;
@@ -171,8 +200,17 @@ static void global_initialization() {
 		gui.hd_remap_index[i] = NULL;
 
 	initialize_default_settings();	// com.pref
-#ifdef HAVE_FFTW3F_OMP
+#ifdef HAVE_FFTW3F_MULTITHREAD
+	fprintf(stdout, _("Initializing FFTW multithreading support...\n"));
 	fftwf_init_threads(); // Should really only be called once so do it at startup
+#endif
+#if defined (HAVE_FFTW3F_THREADS) && (_OPENMP)
+	// If we are using FFTW built against pthreads but are using OpenMP for other aspects of the
+	// program, replace the parallel loop to avoid competing threads.
+	// See https://www.fftw.org/fftw3_doc/Usage-of-Multi_002dthreaded-FFTW.html
+	void fftw_threads_set_callback(
+		void (*parallel_loop)(void *(*work)(char *), char *jobdata, size_t elsize, int njobs,
+		void *data), void *data);
 #endif
 
 }
@@ -201,6 +239,9 @@ static void siril_app_activate(GApplication *application) {
 		com.script = TRUE;
 		com.headless = TRUE;
 	}
+#if defined(_WIN32) && !defined(SIRIL_UNSTABLE)
+	ShowWindow(GetConsoleWindow(), SW_MINIMIZE); //hiding the console
+#endif
 
 	global_initialization();
 
@@ -222,7 +263,6 @@ static void siril_app_activate(GApplication *application) {
 	}
 
 	// After this point com.pref is populated
-
 	siril_language_parser_init();
 	if (com.pref.lang)
 		language_init(com.pref.lang);
@@ -250,6 +290,20 @@ static void siril_app_activate(GApplication *application) {
 	}
 
 	init_num_procs();
+	initialize_profiles_and_transforms(); // color management
+
+#ifdef HAVE_LIBGIT2
+	if (com.pref.use_scripts_repository)
+		auto_update_gitscripts(com.pref.auto_script_update);
+	else
+		siril_log_message(_("Online scripts repository not enabled. Not fetching or updating siril-scripts...\n"));
+	if (com.pref.spcc.use_spcc_repository)
+		auto_update_gitspcc(com.pref.spcc.auto_spcc_update);
+	else
+		siril_log_message(_("Online SPCC-database repository not enabled. Not fetching or updating siril-spcc-database...\n"));
+#else
+	siril_log_message(_("Siril was compiled without libgit2 support. Remote repositories cannot be automatically fetched...\n"));
+#endif
 
 	if (com.headless) {
 		if (main_option_script) {
@@ -284,17 +338,19 @@ static void siril_app_activate(GApplication *application) {
 		}
 	}
 	if (!com.headless) {
+		/* Load GResource */
+		com.resource = siril_resource_get_resource();
 		/* Load preferred theme */
 		load_prefered_theme(com.pref.gui.combo_theme);
 		/* Load the css sheet for general style */
 		load_css_style_sheet();
-		/* Load glade file */
-		load_glade_file();
+		/* Load UI files */
+		load_ui_files();
 		/* Passing GApplication to the control center */
 		gtk_window_set_application(GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window"))), GTK_APPLICATION(application));
 		/* Load state of the main windows (position and maximized) */
 		load_main_window_state();
-#ifdef HAVE_JSON_GLIB
+#if defined(HAVE_LIBCURL)
 		/* Check for update */
 		if (com.pref.check_update) {
 			siril_check_updates(FALSE);
@@ -376,17 +432,18 @@ static void siril_macos_setenv(const char *progname) {
 		/* we define the relocated resources path */
 		g_setenv("SIRIL_RELOCATED_RES_DIR", tmp, TRUE);
 
+		g_snprintf(tmp, sizeof(tmp), "%s/../Resources/bin", app_dir);
 		path_len = strlen(g_getenv("PATH") ? g_getenv("PATH") : "")
-			+ strlen(app_dir) + 2;
+			+ strlen(tmp) + 2;
 		path = g_try_malloc(path_len);
 		if (path == NULL) {
 			g_warning("Failed to allocate memory");
 			exit(EXIT_FAILURE);
 		}
 		if (g_getenv("PATH"))
-			g_snprintf(path, path_len, "%s:%s", app_dir, g_getenv("PATH"));
+			g_snprintf(path, path_len, "%s:%s", tmp, g_getenv("PATH"));
 		else
-			g_snprintf(path, path_len, "%s", app_dir);
+			g_snprintf(path, path_len, "%s", tmp);
 		/* the relocated path is storred in this env. variable in order to be reused if needed */
 		g_free(app_dir);
 		g_setenv("PATH", path, TRUE);
@@ -446,6 +503,12 @@ int main(int argc, char *argv[]) {
 	SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
 #endif
 
+#ifdef _WIN32
+	// Turn off buffering for output to console on MSYS terminal on Windows
+	setvbuf(stdout, NULL, _IONBF, 0);
+	setvbuf(stderr, NULL, _IONBF, 0);
+#endif
+
 	initialize_siril_directories();
 
 	dir = siril_get_locale_dir();
@@ -462,6 +525,17 @@ int main(int argc, char *argv[]) {
 
 	g_application_set_option_context_summary(G_APPLICATION(app), _("Siril - A free astronomical image processing software."));
 	g_application_add_main_option_entries(G_APPLICATION(app), main_option);
+
+	{	/* Setting the 'register-session' property is for macOS
+		 * - to enable DnD via dock icon
+		 * - to enable system menu "Quit"
+		 */
+		GValue value = G_VALUE_INIT;
+		g_value_init(&value, G_TYPE_BOOLEAN);
+		g_value_set_boolean(&value, TRUE);
+		g_object_set_property(G_OBJECT(app), "register-session", &value);
+		g_value_unset(&value);
+	}
 
 	status = g_application_run(G_APPLICATION(app), argc, argv);
 	if (status) {

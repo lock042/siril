@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/icc_profile.h"
 #include "core/processing.h"
 #include "core/command.h"
 #include "core/siril_log.h"
@@ -818,8 +819,10 @@ static WORD *debayer_buffer_siril(WORD *buf, int *width, int *height,
 		retval = 0;
 		break;
 	case XTRANS:
-		if (!xtrans)
+		if (!xtrans) {
+			free(newbuf);
 			return NULL;
+		}
 		retval = fast_xtrans_interpolate(buf, newbuf, *width, *height, xtrans);
 		break;
 	}
@@ -1153,6 +1156,17 @@ static int debayer_ushort(fits *fit, interpolation_method interpolation, sensor_
 	}
 	/* we remove Bayer header because not needed now */
 	clear_Bayer_information(fit);
+
+	/* The data is no longer mono. It's almost certainly linear, but we will
+	 * not assign a color profile to it at this stage, it is likely one of
+	 * many subs to be sequence processed along with others and it is more
+	 * efficient to ignore color managemet until the final stacked image is
+	 * available, and the user can then assign a profile as they choose.
+	 */
+	if (fit->icc_profile)
+		cmsCloseProfile(fit->icc_profile);
+	fit->icc_profile = NULL;
+	color_manage(fit, FALSE);
 	return 0;
 }
 
@@ -1188,6 +1202,18 @@ static int debayer_float(fits* fit, interpolation_method interpolation, sensor_p
 	}
 	/* we remove Bayer header because not needed now */
 	clear_Bayer_information(fit);
+
+	/* The data is no longer mono. It's almost certainly linear, but we will
+	 * not assign a color profile to it at this stage, it is likely one of
+	 * many subs to be sequence processed along with others and it is more
+	 * efficient to ignore color managemet until the final stacked image is
+	 * available, and the user can then assign a profile as they choose.
+	 */
+	if (fit->icc_profile)
+		cmsCloseProfile(fit->icc_profile);
+	fit->icc_profile = NULL;
+	color_manage(fit, FALSE);
+
 	return 0;
 }
 
@@ -1212,7 +1238,7 @@ int get_cfa_pattern_index_from_string(const char *bayer) {
 // debayers the image if it's a FITS image and if debayer is activated globally
 // or if the force argument is passed
 int debayer_if_needed(image_type imagetype, fits *fit, gboolean force_debayer) {
-	if ((imagetype != TYPEFITS && imagetype != TYPETIFF)|| (!com.pref.debayer.open_debayer && !force_debayer))
+	if ((imagetype != TYPEFITS && imagetype != TYPETIFF && imagetype != TYPEXISF)|| (!com.pref.debayer.open_debayer && !force_debayer))
 		return 0;
 
 	/* Siril's FITS are stored bottom-up, debayering will give wrong results.
@@ -1387,6 +1413,14 @@ CLEANUP_MERGECFA:
 	return retval;
 }
 
+int mergecfa_finalize_hook(struct generic_seq_args *args) {
+	struct merge_cfa_data *data = (struct merge_cfa_data *) args->user;
+	int retval = seq_finalize_hook(args);
+	free((char*) data->seqEntryIn);
+	free(data);
+	return retval;
+}
+
 void apply_mergecfa_to_sequence(struct merge_cfa_data *merge_cfa_args) {
 	struct generic_seq_args *args = create_default_seqargs(merge_cfa_args->seq);
 	args->seq = merge_cfa_args->seq;
@@ -1396,7 +1430,7 @@ void apply_mergecfa_to_sequence(struct merge_cfa_data *merge_cfa_args) {
 	args->compute_size_hook = mergecfa_compute_size_hook;
 	args->prepare_hook = seq_prepare_hook;
 	args->image_hook = mergecfa_image_hook;
-	args->finalize_hook = seq_finalize_hook;
+	args->finalize_hook = mergecfa_finalize_hook;
 	args->description = _("Merge CFA");
 	args->has_output = TRUE;
 	args->new_seq_prefix = merge_cfa_args->seqEntryOut;
@@ -1440,7 +1474,11 @@ fits* merge_cfa (fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3, sensor_pattern 
 	int datatype = cfa0->type;
 
 	// Create output fits twice the width and height of the cfa fits files
-	new_fit_image(&out, cfa0->rx << 1, cfa0->ry << 1, 1, datatype);
+	if (new_fit_image(&out, cfa0->rx << 1, cfa0->ry << 1, 1, datatype)) {
+		siril_log_color_message(_("Error creating output image\n"), "red");
+		return NULL;
+	}
+
 //	out->header = copy_header(cfa0);
 	copy_fits_metadata(cfa0, out);
 	if (out->header)
@@ -1515,7 +1553,7 @@ static unsigned int compile_bayer_pattern(sensor_pattern pattern) {
 /* from the header description of the color filter array, we create a mask that
  * contains filter values for top-down reading */
 static int get_compiled_pattern(fits *fit, int layer, BYTE pattern[36], int *pattern_size) {
-	g_assert(layer >= 0 || layer < 3);
+	g_assert(layer >= 0 && layer < 3);
 	sensor_pattern idx = get_cfa_pattern_index_from_string(fit->bayer_pattern);
 
 	if (idx >= BAYER_FILTER_MIN && idx <= BAYER_FILTER_MAX) {
@@ -1570,7 +1608,14 @@ WORD *extract_CFA_buffer_ushort(fits *fit, int layer, size_t *newsize) {
 		pattern_y = (pattern_y + 1) % pattern_size;
 	}
 
-	buf = realloc(buf, j * sizeof(WORD));
+	void * tmp = realloc(buf, j * sizeof(WORD));
+	if (!tmp) {
+		PRINT_ALLOC_ERR;
+		free(buf);
+		return NULL;
+	} else {
+		buf = tmp;
+	}
 	*newsize = j;
 	return buf;
 }
@@ -1607,7 +1652,14 @@ WORD *extract_CFA_buffer_area_ushort(fits *fit, int layer, rectangle *bounds, si
 		pattern_y = (pattern_y + 1) % pattern_size;
 	}
 
-	buf = realloc(buf, j * sizeof(float));
+	void *tmp = realloc(buf, j * sizeof(WORD));
+	if (!tmp) {
+		free(buf);
+		PRINT_ALLOC_ERR;
+		return NULL;
+	} else {
+		buf = tmp;
+	}
 	*newsize = j;
 	return buf;
 }
@@ -1641,7 +1693,58 @@ float *extract_CFA_buffer_float(fits *fit, int layer, size_t *newsize) {
 		pattern_y = (pattern_y + 1) % pattern_size;
 	}
 
-	buf = realloc(buf, j * sizeof(float));
+	void *tmp = realloc(buf, j * sizeof(float));
+	if (!tmp) {
+		free(buf);
+		PRINT_ALLOC_ERR;
+		return NULL;
+	} else {
+		buf = tmp;
+	}
+	*newsize = j;
+	return buf;
+}
+
+float *extract_CFA_buffer_area_float(fits *fit, int layer, rectangle *bounds, size_t *newsize) {
+	BYTE pattern[36];	// red is 0, green is 1, blue is 2
+	int pattern_size;	// 2 or 6
+	if (get_compiled_pattern(fit, layer, pattern, &pattern_size))
+		return NULL;
+	siril_debug_print("CFA buffer extraction with area\n");
+
+	// alloc buffer
+	size_t npixels = bounds->w * bounds->h;
+	float *buf = malloc(npixels * sizeof(float));
+	if (!buf) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
+	float *input = fit->fdata;
+
+	// copy the pixels top-down
+	size_t j = 0;
+	int start_y = fit->ry - bounds->y - bounds-> h;
+	int pattern_y = start_y % pattern_size;
+	for (int y = start_y; y < fit->ry - bounds->y; y++) {
+		int pattern_idx_y = pattern_y * pattern_size;
+		size_t i = y * fit->rx + bounds->x;
+		for (int x = bounds->x; x < bounds->x + bounds->w; x++) {
+			int pattern_idx = pattern_idx_y + x % pattern_size;
+			if (pattern[pattern_idx] == layer)
+				buf[j++] = input[i];
+			i++;
+		}
+		pattern_y = (pattern_y + 1) % pattern_size;
+	}
+
+	void *tmp = realloc(buf, j * sizeof(float));
+	if (!tmp) {
+		free(buf);
+		PRINT_ALLOC_ERR;
+		return NULL;
+	} else {
+		buf = tmp;
+	}
 	*newsize = j;
 	return buf;
 }

@@ -43,9 +43,16 @@ int readpic(const char *name, fits *fit);
 
 /****************** image_formats_libraries.h ******************/
 #ifdef HAVE_LIBTIFF
-int readtif(const char *name, fits *fit, gboolean force_float);
-void get_tif_data_from_ui(fits *fit, gchar **description, gchar **copyright, gboolean *embeded_icc);
-int savetif(const char *name, fits *fit, uint16_t bitspersample, const char *description, const char *copyright, gboolean embeded_icc);
+gboolean get_tiff_compression();
+int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose);
+void get_tif_data_from_ui(fits *fit, gchar **description, gchar **copyright);
+int savetif(const char *name, fits *fit, uint16_t bitspersample,
+		const char *description, const char *copyright,
+		gboolean tiff_compression, gboolean embeded_icc, gboolean verbose);
+#endif
+
+#ifdef HAVE_LIBXISF
+int readxisf(const char *name, fits *fit, gboolean force_float);
 #endif
 
 #ifdef HAVE_LIBJPEG
@@ -65,8 +72,13 @@ int open_raw_files(const char*, fits*, gboolean);
 
 #ifdef HAVE_LIBHEIF
 int readheif(const char* name, fits *fit, gboolean interactive);
+int saveheifavif(const char* name, fits *fit, int quality, gboolean lossless, gboolean is_av1f, int max_bitdepth);
 #endif
 
+#ifdef HAVE_LIBJXL
+int readjxl(const char* name, fits *fit);
+int savejxl(const char* name, fits* fit, int effort, double quality, gboolean force_8bit);
+#endif
 /****************** utils.h ******************/
 int round_to_int(double x);
 int roundf_to_int(float x);
@@ -90,9 +102,9 @@ float double_ushort_to_float_range(double d);
 WORD float_to_ushort_range(float f);
 signed short float_to_short_range(float f);
 BYTE float_to_uchar_range(float f);
-float ushort_to_float_bitpix(fits *fit, WORD value);
-WORD *float_buffer_to_ushort(float *buffer, size_t ndata);
-signed short *float_buffer_to_short(float *buffer, size_t ndata);
+float ushort_to_float_bitpix(const fits *fit, const WORD value);
+WORD *float_buffer_to_ushort(const float *buffer, size_t ndata);
+signed short *float_buffer_to_short(const float *buffer, size_t ndata);
 signed short *ushort_buffer_to_short(const WORD *buffer, size_t ndata);
 float *uchar_buffer_to_float(BYTE *buffer, size_t ndata);
 float *ushort_buffer_to_float(WORD *buffer, size_t ndata);
@@ -108,12 +120,13 @@ uint32_t cpu_to_le32(uint32_t x);
 uint32_t cpu_to_be32(uint32_t x);
 uint32_t le32_to_cpu(uint32_t x);
 uint32_t be32_to_cpu(uint32_t x);
+uint32_t be24_to_cpu(const BYTE x[3]);
 uint64_t change_endianness64(uint64_t x);
 uint64_t cpu_to_le64(uint64_t x);
 uint64_t cpu_to_be64(uint64_t x);
 uint64_t le64_to_cpu(uint64_t x);
 uint64_t be64_to_cpu(uint64_t x);
-gboolean isrgb(fits *fit);
+gboolean isrgb(const fits *fit);
 const char *channel_number_to_name(int channel);
 int get_extension_index(const char *filename);
 image_type get_type_from_filename(const gchar *filename);
@@ -121,8 +134,10 @@ char* remove_ext_from_filename(const char *basename);
 gchar *replace_ext(const char *path, const char *new_ext);
 gboolean string_is_a_path(const char *file);
 int is_readable_file(const char *filename);
+int is_symlink_file(const char *filename);
 gboolean is_forbiden_in_filename(gchar c);
 gboolean file_name_has_invalid_chars(const char *name);
+void replace_invalid_chars(char *name, char repl);
 int stat_file(const char *filename2, image_type *type, char **realname);
 const char* get_filename_ext(const char *filename);
 
@@ -146,9 +161,20 @@ gboolean string_is_a_number(const char *str);
 guint g_string_replace(GString *string, const gchar *find, const gchar *replace,
 		guint limit);
 #endif
-char *str_replace(char *orig, char *rep, char *with);
+char *str_replace(char *orig, const char *rep, char *with);
 void replace_spaces_from_str(gchar *s, char c);
+gchar *build_string_from_words(char **words);
+void append_elements_to_array(char **array, char **elements);
 const gchar *get_com_ext(gboolean fz);
+gchar *siril_any_to_utf8 (const gchar  *str, gssize len, const gchar *warning_format, ...);
+
+int siril_to_display(double fx, double fy, double *dx, double *dy, int ry);
+int display_to_siril(double dx, double dy, double *fx, double *fy, int ry);
+int fits_to_display(double fx, double fy, double *dx, double *dy, int ry);
+gchar *siril_file_chooser_get_filename(GtkFileChooser *chooser);
+GSList *siril_file_chooser_get_filenames(GtkFileChooser *chooser);
+int interleave(fits *fit, int max_bitdepth, void **interleaved_buffer, int *bit_depth, gboolean force_even);
+int count_lines_in_textfile(const gchar *filename);
 
 /****************** quantize.h ***************/
 int siril_fits_img_stats_ushort(WORD *array, long nx, long ny, int nullcheck,
@@ -168,14 +194,13 @@ int threshhi(fits *fit, WORD level);
 int nozero(fits *fit, WORD level);
 int gaussian_blur_RT(fits *fit, double sigma, int threads);
 int unsharp(fits*, double sigma, double mult, gboolean verbose);
-float entropy(fits *fit, int layer, rectangle *area, imstats *opt_stats);
+float entropy(fits *fit, int layer, rectangle *area, const imstats *opt_stats);
 int loglut(fits *fit);
-int ddp(fits *a, int lev, float coef, float sig);
+int ddp(fits *a, float lev, float coef, float sig);
 int visu(fits *fit, int low, int high);
-int fill(fits *fit, int level, rectangle *arearg);
+int fill(fits *fit, int level, const rectangle *arearg);
 int off(fits *a, float level);
 double background(fits* fit, int reqlayer, rectangle *selection, threading_type threads);
-void show_FITS_header(fits*);
 void compute_grey_flat(fits *fit);
 
 /****************** seqfile.h ******************/
@@ -186,6 +211,10 @@ int buildseqfile(sequence *seq, int force_recompute);
 
 /****************** statistics_list.h ******************/
 void computeStat();
+
+/****************** chelperfuncs.h *********************/
+float bilinear(float *x, int w, int h, float i, float j);
+float bilinear_ushort(WORD *x, int w, int h, float i, float j);
 
 #ifdef __cplusplus
 }

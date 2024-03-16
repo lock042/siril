@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -272,7 +272,7 @@ static int fill_rgb_image(AVFrame *pict, int frame_index,
 
 	BYTE map[USHRT_MAX + 1];
 	int i;
-	
+
 	float slope = (fit->orig_bitpix == BYTE_IMG) ? 1.0f : UCHAR_MAX_SINGLE / USHRT_MAX_SINGLE;
 
 	for (i = 0; i <= USHRT_MAX; i++) {
@@ -285,7 +285,7 @@ static int fill_rgb_image(AVFrame *pict, int frame_index,
 		for (++i; i <= USHRT_MAX; i++)
 			map[i] = UCHAR_MAX;
 	}
-	
+
 	/* doing the WORD to BYTE conversion, bottom-up */
 	if (fit->naxes[2] == 1) {
 		int x, y;
@@ -473,16 +473,17 @@ struct mp4_struct *mp4_create(const char *filename, int dst_w, int dst_h, int fp
 	video_st->fmt = (AVOutputFormat *)video_st->oc->oformat;
 	video_st->quality = quality;
 	/* disable unwanted features, is this the correct way? */
-	video_st->fmt->audio_codec = AV_CODEC_ID_NONE;
+	// video_st->fmt->audio_codec = AV_CODEC_ID_NONE;
+	enum AVCodecID codecid;
 	switch(type) {
 	case EXPORT_WEBM_VP9:
-		video_st->fmt->video_codec = AV_CODEC_ID_VP9;
+		codecid = AV_CODEC_ID_VP9;
 		break;
 	case EXPORT_MP4:
-		video_st->fmt->video_codec = AV_CODEC_ID_H264;
+		codecid = AV_CODEC_ID_H264;
 		break;
 	case EXPORT_MP4_H265:
-		video_st->fmt->video_codec = AV_CODEC_ID_H265;
+		codecid = AV_CODEC_ID_H265;
 		break;
 	default:
 		free(video_st);
@@ -494,7 +495,7 @@ struct mp4_struct *mp4_create(const char *filename, int dst_w, int dst_h, int fp
 
 	/* Add the video stream and initialize the codecs. */
 	if (video_st->fmt->video_codec != AV_CODEC_ID_NONE) {
-		if (add_stream(video_st, &video_codec, video_st->fmt->video_codec, dst_w, dst_h, fps)) {
+		if (add_stream(video_st, &video_codec, codecid, dst_w, dst_h, fps)) {
 			avformat_free_context(video_st->oc);
 			free(video_st);
 			siril_log_message("Could not add the video stream in the output film, aborting\n");
@@ -502,6 +503,7 @@ struct mp4_struct *mp4_create(const char *filename, int dst_w, int dst_h, int fp
 		}
 	} else {
 		avformat_free_context(video_st->oc);
+		free(video_st);
 		siril_log_message("Error setting video codec for output file.");
 		return NULL;
 	}

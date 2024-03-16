@@ -29,7 +29,7 @@ int cvRotateImage(fits *image, int angle); // only for fast rotations
 int cvCalculH_exact(double *X, double *Y, int indref, int indimg, Homography *Hom);
 
 unsigned char *cvCalculH(s_star *star_array_img,
-		struct s_star *star_array_ref, int n, Homography *H, transformation_type type);
+		struct s_star *star_array_ref, int n, Homography *H, transformation_type type, float offset);
 
 
 int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homography Hom, gboolean upscale2x, int interpolation, gboolean clamp);
@@ -52,6 +52,7 @@ double cvCalculRigidTransform(s_star *star_array_img,
 void cvMultH(Homography H1, Homography H2, Homography *Hout);
 void cvInvertH(Homography *Hom);
 void cvApplyFlips(Homography *Hom, int source_ry, int target_ry);
+void cvdisplay2ocv(Homography *Hom);
 
 void cvGetMatrixReframe(double x, double y, int w, int h, double angle, Homography *Hom);
 void cvGetBoundingRectSize(fits *image, point center, double angle, int *w, int *h);

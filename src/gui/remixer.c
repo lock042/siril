@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/icc_profile.h"
 #include "algos/statistics.h"
 #include "algos/colors.h"
 #include "io/single_image.h"
@@ -58,7 +59,7 @@ static float leftSP = 0.0f, rightSP = 0.0f;
 static float leftHP = 1.0f, rightHP = 1.0f;
 static float leftBP = 0.0f, rightBP = 0.0f;
 static int type_left = STRETCH_PAYNE_NORMAL, type_right = STRETCH_ASINH;
-static int colour_left = COL_INDEP, colour_right = COL_INDEP;
+static int colour_left = COL_HUMANLUM, colour_right = COL_HUMANLUM;
 static fits fit_left;
 static fits fit_right;
 static fits fit_left_calc;
@@ -79,6 +80,11 @@ static gboolean remixer_show_preview;
 static gboolean left_loaded = FALSE;
 static gboolean right_loaded = FALSE;
 static gboolean remix_log_scale = FALSE;
+
+static cmsHTRANSFORM *to_lab = NULL;
+static cmsHTRANSFORM *from_lab = NULL;
+static cmsHPROFILE *linrgb_profile = NULL;
+static cmsHPROFILE *lab_profile = NULL;
 
 ////////////////////////////////////////////
 // Remixer histogram functionality        //
@@ -467,30 +473,28 @@ int remixer() {
 
 	params_left = (ght_params) { leftB, leftD, leftLP, leftSP, leftHP, leftBP, type_left, colour_left, TRUE, TRUE, TRUE };
 	params_right = (ght_params) { rightB, rightD, rightLP, rightSP, rightHP, rightBP, type_right, colour_right, TRUE, TRUE, TRUE };
-	ght_compute_params cp_left = { 0.0f };
-	ght_compute_params cp_right = { 0.0f };
 
 	// Process left image
 	if (left_loaded && (left_changed || leftBP_changed)) {
-		apply_linked_ght_to_fits(&fit_left, &fit_left_calc, params_left, cp_left, TRUE);
+		apply_linked_ght_to_fits(&fit_left, &fit_left_calc, &params_left, TRUE);
 	}
 		// Now do the linear BP shift, if needed. The only parameter that matters is BP so
 		// we just need to change the stretch type, no need to recompute params.
 	if (left_loaded && (leftBP_changed || (left_changed && leftBP != 0.0f))) {
 		params_left.stretchtype = STRETCH_LINEAR;
-		apply_linked_ght_to_fits(&fit_left_calc, &fit_left_calc, params_left, cp_left, TRUE);
+		apply_linked_ght_to_fits(&fit_left_calc, &fit_left_calc, &params_left, TRUE);
 		leftBP_changed = FALSE;
 	}
 	left_changed = FALSE;
 
 	// Process right image
 	if (right_loaded && (right_changed || rightBP_changed)) {
-		apply_linked_ght_to_fits(&fit_right, &fit_right_calc, params_right, cp_right, TRUE);
+		apply_linked_ght_to_fits(&fit_right, &fit_right_calc, &params_right, TRUE);
 	}
 		// As above, BP shift if required.
 	if (right_loaded && (rightBP_changed || (right_changed && rightBP != 0.0f))) {
 		params_right.stretchtype = STRETCH_LINEAR;
-		apply_linked_ght_to_fits(&fit_right_calc, &fit_right_calc, params_right, cp_right, TRUE);
+		apply_linked_ght_to_fits(&fit_right_calc, &fit_right_calc, &params_right, TRUE);
 		rightBP_changed = FALSE;
 	}
 	right_changed = FALSE;
@@ -528,39 +532,31 @@ int remixer() {
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
 				for (size_t i = 0 ; i < npixels ; i++) {
-					float rinl, ginl, binl, rinr, ginr, binr, xl, yl, zl, xr, yr, zr;
-					float Ll, Al, Bl, Lr, Ar, Br, xo, yo, zo, rout, gout, bout;
+					float inl[3] = { 0.f }, inr[3] = { 0.f }, labl[3], labr[3], labo[3], rgbo[3];
 					if (left_loaded) {
-						rinl = fit_left_calc.fpdata[0][i];
-						ginl = fit_left_calc.fpdata[1][i];
-						binl = fit_left_calc.fpdata[2][i];
-					} else {
-						rinl = 0.f;
-						ginl = 0.f;
-						binl = 0.f;
+						inl[0] = fit_left_calc.fpdata[0][i];
+						inl[1] = fit_left_calc.fpdata[1][i];
+						inl[2] = fit_left_calc.fpdata[2][i];
 					}
 					if (right_loaded) {
-						rinr = fit_right_calc.fpdata[0][i];
-						ginr = fit_right_calc.fpdata[1][i];
-						binr = fit_right_calc.fpdata[2][i];
-					} else {
-						rinr = 0.f;
-						ginr = 0.f;
-						binr = 0.f;
+						inr[0] = fit_right_calc.fpdata[0][i];
+						inr[1] = fit_right_calc.fpdata[1][i];
+						inr[2] = fit_right_calc.fpdata[2][i];
 					}
-					rgb_to_xyzf(rinl, ginl, binl, &xl, &yl, &zl);
-					xyz_to_LABf(xl, yl, zl, &Ll, &Al, &Bl);
-					rgb_to_xyzf(rinr, ginr, binr, &xr, &yr, &zr);
-					xyz_to_LABf(xr, yr, zr, &Lr, &Ar, &Br);
-					float divisor = (Ll + Lr == 0.f) ? 1.f : Ll + Lr;
-					float ao = (Ll * Al + Lr * Ar) / divisor;
-					float bo = (Ll * Bl + Lr * Br) / divisor;
-					float Lo = Ll + Lr - Ll * Lr * 0.01f;
-					LAB_to_xyzf(Lo, ao, bo, &xo, &yo, &zo);
-					xyz_to_rgbf(xo, yo, zo, &rout, &gout, &bout);
-					gfit.fpdata[0][i] = rout;
-					gfit.fpdata[1][i] = gout;
-					gfit.fpdata[2][i] = bout;
+					// TODO: This is inefficient, it is threaded but fails to make use of SIMD
+					cmsDoTransform(to_lab, inl, labl, 1);
+					cmsDoTransform(to_lab, inr, labr, 1);
+
+					float divisor = (labl[0] + labr[0] == 0.f) ? 1.f : labl[0] + labr[0];
+					labo[0] = labl[0] + labr[0] - labl[0] * labr[0] * 0.01f;
+					labo[1] = (labl[0] * labl[1] + labr[0] * labr[1]) / divisor;
+					labo[2] = (labl[0] * labl[2] + labr[0] * labr[2]) / divisor;
+
+					cmsDoTransform(from_lab, labo, rgbo, 1);
+
+					gfit.fpdata[0][i] = rgbo[0];
+					gfit.fpdata[1][i] = rgbo[1];
+					gfit.fpdata[2][i] = rgbo[2];
 				}
 				break;
 			case DATA_USHORT:
@@ -568,39 +564,31 @@ int remixer() {
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
 				for (size_t i = 0 ; i < npixels ; i++) {
-					float rinl, ginl, binl, rinr, ginr, binr, xl, yl, zl, xr, yr, zr;
-					float Ll, Al, Bl, Lr, Ar, Br, xo, yo, zo, rout, gout, bout;
+					float inl[3] = { 0.f }, inr[3] = { 0.f }, labl[3], labr[3], labo[3], rgbo[3];
 					if (left_loaded) {
-						rinl = fit_left_calc.pdata[0][i] * invnorm;
-						ginl = fit_left_calc.pdata[1][i] * invnorm;
-						binl = fit_left_calc.pdata[2][i] * invnorm;
-					} else {
-						rinl = 0.f;
-						ginl = 0.f;
-						binl = 0.f;
+						inl[0] = fit_left_calc.pdata[0][i] * invnorm;
+						inl[1] = fit_left_calc.pdata[1][i] * invnorm;
+						inl[2] = fit_left_calc.pdata[2][i] * invnorm;
 					}
 					if (right_loaded) {
-						rinr = fit_right_calc.pdata[0][i] * invnorm;
-						ginr = fit_right_calc.pdata[1][i] * invnorm;
-						binr = fit_right_calc.pdata[2][i] * invnorm;
-					} else {
-						rinr = 0.f;
-						ginr = 0.f;
-						binr = 0.f;
+						inr[0] = fit_right_calc.pdata[0][i] * invnorm;
+						inr[1] = fit_right_calc.pdata[1][i] * invnorm;
+						inr[2] = fit_right_calc.pdata[2][i] * invnorm;
 					}
-					rgb_to_xyzf(rinl, ginl, binl, &xl, &yl, &zl);
-					xyz_to_LABf(xl, yl, zl, &Ll, &Al, &Bl);
-					rgb_to_xyzf(rinr, ginr, binr, &xr, &yr, &zr);
-					xyz_to_LABf(xr, yr, zr, &Lr, &Ar, &Br);
-					float divisor = (Ll + Lr == 0.f) ? 1.f : Ll + Lr;
-					float ao = (Ll * Al + Lr * Ar) / divisor;
-					float bo = (Ll * Bl + Lr * Br) / divisor;
-					float Lo = Ll + Lr - Ll * Lr * 0.01f;
-					LAB_to_xyzf(Lo, ao, bo, &xo, &yo, &zo);
-					xyz_to_rgbf(xo, yo, zo, &rout, &gout, &bout);
-					gfit.pdata[0][i] = roundf_to_WORD(rout * norm);
-					gfit.pdata[1][i] = roundf_to_WORD(gout * norm);
-					gfit.pdata[2][i] = roundf_to_WORD(bout * norm);
+
+					cmsDoTransform(to_lab, inl, labl, 1);
+					cmsDoTransform(to_lab, inr, labr, 1);
+
+					float divisor = (labl[0] + labr[0] == 0.f) ? 1.f : labl[0] + labr[0];
+					labo[0] = labl[0] + labr[0] - labl[0] * labr[0] * 0.01f;
+					labo[1] = (labl[0] * labl[1] + labr[0] * labr[1]) / divisor;
+					labo[2] = (labl[0] * labl[2] + labr[0] * labr[2]) / divisor;
+
+					cmsDoTransform(from_lab, labo, rgbo, 1);
+
+					gfit.pdata[0][i] = roundf_to_WORD(rgbo[0] * norm);
+					gfit.pdata[1][i] = roundf_to_WORD(rgbo[1] * norm);
+					gfit.pdata[2][i] = roundf_to_WORD(rgbo[2] * norm);
 				}
 				break;
 			default:
@@ -621,14 +609,23 @@ static int remixer_update_preview() {
 	return 0;
 }
 
-void reset_values() {
+void reset_values_left() {
 	leftD = leftB = leftLP = leftSP = leftBP = 0.0f;
 	leftHP = 1.0f;
+	type_left = STRETCH_PAYNE_NORMAL;
+	colour_left = COL_HUMANLUM;
+}
+
+void reset_values_right() {
 	rightD = rightB = rightLP = rightSP = rightBP = 0.0f;
 	rightHP = 1.0f;
-	type_left = STRETCH_PAYNE_NORMAL;
 	type_right = STRETCH_ASINH;
-	colour_left = colour_right = COL_INDEP;
+	colour_right = COL_HUMANLUM;
+}
+
+void reset_values() {
+	reset_values_left();
+	reset_values_right();
 }
 
 void reset_filechoosers() {
@@ -636,39 +633,49 @@ void reset_filechoosers() {
 	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("remix_filechooser_right")));
 }
 
-void reset_controls_and_values() {
+void reset_left() {
 	GtkSpinButton *spin_remix_D_left = GTK_SPIN_BUTTON(lookup_widget("spin_remix_D_left"));
-	GtkSpinButton *spin_remix_D_right = GTK_SPIN_BUTTON(lookup_widget("spin_remix_D_right"));
 	GtkSpinButton *spin_remix_B_left = GTK_SPIN_BUTTON(lookup_widget("spin_remix_B_left"));
-	GtkSpinButton *spin_remix_B_right = GTK_SPIN_BUTTON(lookup_widget("spin_remix_B_right"));
 	GtkSpinButton *spin_remix_LP_left = GTK_SPIN_BUTTON(lookup_widget("spin_remix_LP_left"));
-	GtkSpinButton *spin_remix_LP_right = GTK_SPIN_BUTTON(lookup_widget("spin_remix_LP_right"));
 	GtkSpinButton *spin_remix_SP_left = GTK_SPIN_BUTTON(lookup_widget("spin_remix_SP_left"));
-	GtkSpinButton *spin_remix_SP_right = GTK_SPIN_BUTTON(lookup_widget("spin_remix_SP_right"));
 	GtkSpinButton *spin_remix_HP_left = GTK_SPIN_BUTTON(lookup_widget("spin_remix_HP_left"));
-	GtkSpinButton *spin_remix_HP_right = GTK_SPIN_BUTTON(lookup_widget("spin_remix_HP_right"));
 	GtkSpinButton *spin_remix_BP_left = GTK_SPIN_BUTTON(lookup_widget("spin_remix_BP_left"));
-	GtkSpinButton *spin_remix_BP_right = GTK_SPIN_BUTTON(lookup_widget("spin_remix_BP_right"));
-	reset_values();
-
+	reset_values_left();
 	set_notify_block(TRUE);
 	gtk_spin_button_set_value(spin_remix_D_left, leftD);
-	gtk_spin_button_set_value(spin_remix_D_right, rightD);
 	gtk_spin_button_set_value(spin_remix_B_left, leftB);
-	gtk_spin_button_set_value(spin_remix_B_right, rightB);
 	gtk_spin_button_set_value(spin_remix_LP_left, leftLP);
-	gtk_spin_button_set_value(spin_remix_LP_right, rightLP);
 	gtk_spin_button_set_value(spin_remix_SP_left, leftSP);
-	gtk_spin_button_set_value(spin_remix_SP_right, rightSP);
 	gtk_spin_button_set_value(spin_remix_HP_left, leftHP);
-	gtk_spin_button_set_value(spin_remix_HP_right, rightHP);
 	gtk_spin_button_set_value(spin_remix_BP_left, leftBP);
-	gtk_spin_button_set_value(spin_remix_BP_right, rightBP);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_type_left")), STRETCH_PAYNE_NORMAL);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_type_right")), STRETCH_PAYNE_NORMAL);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_colour_left")), COL_INDEP);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_colour_right")), COL_INDEP);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_colour_left")), COL_HUMANLUM);
 	set_notify_block(FALSE);
+}
+
+void reset_right() {
+	GtkSpinButton *spin_remix_D_right = GTK_SPIN_BUTTON(lookup_widget("spin_remix_D_right"));
+	GtkSpinButton *spin_remix_B_right = GTK_SPIN_BUTTON(lookup_widget("spin_remix_B_right"));
+	GtkSpinButton *spin_remix_LP_right = GTK_SPIN_BUTTON(lookup_widget("spin_remix_LP_right"));
+	GtkSpinButton *spin_remix_SP_right = GTK_SPIN_BUTTON(lookup_widget("spin_remix_SP_right"));
+	GtkSpinButton *spin_remix_HP_right = GTK_SPIN_BUTTON(lookup_widget("spin_remix_HP_right"));
+	GtkSpinButton *spin_remix_BP_right = GTK_SPIN_BUTTON(lookup_widget("spin_remix_BP_right"));
+	reset_values_right();
+	set_notify_block(TRUE);
+	gtk_spin_button_set_value(spin_remix_D_right, rightD);
+	gtk_spin_button_set_value(spin_remix_B_right, rightB);
+	gtk_spin_button_set_value(spin_remix_LP_right, rightLP);
+	gtk_spin_button_set_value(spin_remix_SP_right, rightSP);
+	gtk_spin_button_set_value(spin_remix_HP_right, rightHP);
+	gtk_spin_button_set_value(spin_remix_BP_right, rightBP);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_type_right")), STRETCH_ASINH);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("remix_colour_right")), COL_HUMANLUM);
+	set_notify_block(FALSE);
+}
+
+void reset_controls_and_values() {
+	reset_left();
+	reset_right();
 }
 
 static void remixer_close() {
@@ -682,23 +689,46 @@ static void remixer_close() {
 	reset_filechoosers();
 	permit_calculation = FALSE;
 	gtk_button_set_label(GTK_BUTTON(lookup_widget("remix_advanced")), _("Advanced"));
-	gtk_widget_set_tooltip_text(GTK_WIDGET(lookup_widget("remix_advanced")), _("Show advanced stretch options."));
+	gtk_widget_set_tooltip_text(lookup_widget("remix_advanced"), _("Show advanced stretch options."));
 	advanced_interface = FALSE;
+
 	siril_close_dialog("dialog_star_remix");
 }
 
 void apply_remix_cancel() {
-	set_cursor_waiting(TRUE);
 	remixer_close();
-	if (left_loaded || right_loaded) {
+	if (left_loaded || right_loaded || (!single_image_is_loaded() && !sequence_is_loaded())) {
 		close_single_image();
 	}
 	set_cursor_waiting(FALSE);
 }
 
+void initialize_remixer_transforms(fits* fit) {
+	cmsColorSpaceSignature sig, ref_sig;
+	cmsUInt32Number src_type, dest_type;
+	if (!linrgb_profile) {
+		linrgb_profile = fit->naxes[2] == 1 ? gray_linear() : rec2020_linear();
+	}
+	sig = cmsGetColorSpace(linrgb_profile);
+	if(!lab_profile) {
+		lab_profile = cmsCreateLab4Profile(NULL);
+	}
+	ref_sig = cmsGetColorSpace(lab_profile);
+	src_type = get_planar_formatter_type(sig, fit->type, FALSE);
+	dest_type = get_planar_formatter_type(ref_sig, fit->type, FALSE);
+	if (to_lab)
+		cmsDeleteTransform(to_lab);
+	to_lab = cmsCreateTransformTHR(com.icc.context_single, linrgb_profile, src_type, lab_profile, dest_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
+	if (from_lab)
+		cmsDeleteTransform(from_lab);
+	from_lab = cmsCreateTransformTHR(com.icc.context_single, lab_profile, dest_type, linrgb_profile, src_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
+}
+
 /*** callbacks **/
 
 void on_dialog_star_remix_show(GtkWidget *widget, gpointer user_data) {
+	siril_set_file_filter("remix_filechooser_left", "filefilter_fits");
+	siril_set_file_filter("remix_filechooser_right", "filefilter_fits");
 	remixer_startup();
 	reset_controls_and_values();
 	remixer_show_preview = TRUE;
@@ -710,22 +740,36 @@ void on_dialog_star_remix_show(GtkWidget *widget, gpointer user_data) {
 	notify_update((gpointer) param);
 }
 
-int toggle_remixer_window_visibility(int _invocation, const fits* _fit_left, const fits* _fit_right) {
+int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fit_right) {
 	invocation = _invocation;
 	if (gtk_widget_get_visible(lookup_widget("dialog_star_remix"))) {
 		set_cursor_waiting(TRUE);
 		reset_controls_and_values();
+		if (to_lab) {
+			cmsDeleteTransform(to_lab);
+			to_lab = NULL;
+		}
+		if (from_lab) {
+			cmsDeleteTransform(from_lab);
+			from_lab = NULL;
+		}
 		remixer_close();
 		set_cursor_waiting(FALSE);
 		siril_close_dialog("dialog_star_remix");
 	} else {
+		if (gui.rendering_mode == LINEAR_DISPLAY)
+			setup_stretch_sliders(); // In linear mode, set sliders to 0 / 65535
 		left_loaded = FALSE;
 		right_loaded = FALSE;
 		remix_log_scale = (com.pref.gui.display_histogram_mode == LOG_DISPLAY ? TRUE : FALSE);
 		GtkToggleButton *toggle_log = GTK_TOGGLE_BUTTON(lookup_widget("toggle_remixer_log_histograms"));
 		gtk_toggle_button_set_active(toggle_log, remix_log_scale);
 		if (invocation == CALL_FROM_STARNET) {
-			fit_left = *_fit_left;
+			copyfits(_fit_left, &fit_left, (CP_ALLOC | CP_COPYA | CP_FORMAT), 0);
+			copy_fits_metadata(_fit_left, &fit_left);
+			clearfits(_fit_left);
+			free(_fit_left);
+			_fit_left = NULL;
 			close_histograms(TRUE, TRUE);
 			remix_histo_startup_left();
 			copyfits(&fit_left, &fit_left_calc, (CP_ALLOC | CP_INIT | CP_FORMAT), 0);
@@ -734,77 +778,122 @@ int toggle_remixer_window_visibility(int _invocation, const fits* _fit_left, con
 			left_loaded = TRUE; // Mark LHS image as loaded
 			left_changed = TRUE; // Force update on initial draw
 			permit_calculation = TRUE;
-			fit_right = *_fit_right;
+			copyfits(_fit_right, &fit_right, (CP_ALLOC | CP_COPYA | CP_FORMAT), 0);
+			copy_fits_metadata(_fit_right, &fit_right);
 			remix_histo_startup_right();
+			clearfits(_fit_right);
+			free(_fit_right);
+			_fit_right = NULL;
 			copyfits(&fit_right, &fit_right_calc, (CP_ALLOC | CP_INIT | CP_FORMAT), 0);
 			right_loaded = TRUE; // Mark RHS image as loaded
 			right_changed = TRUE; // Force update on initial draw
+			initialize_remixer_transforms(&fit_left);
+			merge_fits_headers_to_result(&gfit, &fit_left, &fit_right, NULL);
+			// Avoid doubling STACKCNT and LIVETIME as we are merging starless and star parts of a single image
+			gfit.stackcnt = fit_left.stackcnt;
+			gfit.livetime = fit_left.livetime;
 			initialise_image();
 
-			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("remix_filechooser_left")), FALSE);
-			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("remix_filechooser_right")), FALSE);
+			gtk_widget_set_visible(lookup_widget("remix_filechooser_left"), FALSE);
+			gtk_widget_set_visible(lookup_widget("remix_filechooser_right"), FALSE);
 			update_image *param = malloc(sizeof(update_image));
 			param->update_preview_fn = remixer_update_preview;
 			param->show_preview = TRUE;
 			notify_update((gpointer) param);
 
 		} else {
-			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("remix_filechooser_left")), TRUE);
-			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("remix_filechooser_right")), TRUE);
+			gtk_widget_set_visible(lookup_widget("remix_filechooser_left"), TRUE);
+			gtk_widget_set_visible(lookup_widget("remix_filechooser_right"), TRUE);
 			gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(lookup_widget("remix_filechooser_left")), com.wd);
 			gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(lookup_widget("remix_filechooser_right")), com.wd);
 		}
 		// Set eyedropper icons to light or dark according to theme
-		gchar *image;
-		GtkWidget *v, *w;
+		GtkWidget *v = NULL, *w = NULL;
 		if (com.pref.gui.combo_theme == 0) {
-			image = g_build_filename(siril_get_system_data_dir(), "pixmaps", "eyedropper_dark.svg", NULL);
-			v = gtk_image_new_from_file(image);
-			w = gtk_image_new_from_file(image);
+			v = gtk_image_new_from_resource("/org/siril/ui/pixmaps/eyedropper_dark.svg");
+			w = gtk_image_new_from_resource("/org/siril/ui/pixmaps/eyedropper_dark.svg");
 		} else {
-			image = g_build_filename(siril_get_system_data_dir(), "pixmaps", "eyedropper.svg", NULL);
-			v = gtk_image_new_from_file(image);
-			w = gtk_image_new_from_file(image);
+			v = gtk_image_new_from_resource("/org/siril/ui/pixmaps/eyedropper.svg");
+			w = gtk_image_new_from_resource("/org/siril/ui/pixmaps/eyedropper.svg");
 		}
 		gtk_button_set_image(GTK_BUTTON(lookup_widget("eyedropper_SP_left")), v);
 		gtk_button_set_image(GTK_BUTTON(lookup_widget("eyedropper_SP_right")), w);
 		gtk_widget_show(v);
 		gtk_widget_show(w);
-		g_free(image);
 
 		// Hide the advanced widgets, these can be show using the Advanced button for full control
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtStretchTypecontrols3")), FALSE);
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtColourmodelcontrols2")), FALSE);
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtLPcontrols2")), FALSE);
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtHPcontrols2")), FALSE);
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBPcontrols2")), FALSE);
+		gtk_widget_set_visible(lookup_widget("ghtStretchTypecontrols3"), FALSE);
+		gtk_widget_set_visible(lookup_widget("ghtColourmodelcontrols2"), FALSE);
+		gtk_widget_set_visible(lookup_widget("ghtLPcontrols2"), FALSE);
+		gtk_widget_set_visible(lookup_widget("ghtHPcontrols2"), FALSE);
 
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtStretchTypecontrols1")), FALSE);
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtColourmodelcontrols1")), FALSE);
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtLPcontrols1")), FALSE);
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBPcontrols1")), FALSE);
+		gtk_widget_set_visible(lookup_widget("ghtStretchTypecontrols1"), FALSE);
+		gtk_widget_set_visible(lookup_widget("ghtColourmodelcontrols1"), FALSE);
+		gtk_widget_set_visible(lookup_widget("ghtLPcontrols1"), FALSE);
+		gtk_widget_set_visible(lookup_widget("ghtBcontrols1"), FALSE);
 
 		siril_open_dialog("dialog_star_remix");
 	}
 	return 0;
 }
 
-void on_remix_cancel_clicked(GtkButton *button, gpointer user_data) {
-	apply_remix_cancel();
+void on_remix_close_clicked(GtkButton *button, gpointer user_data) {
+	close_histograms(TRUE, TRUE);
+	remixer_close();
+	set_cursor_waiting(FALSE);
 }
 
-void on_remix_reset_clicked(GtkButton *button, gpointer user_data) {
-	reset_controls_and_values();
+void on_remix_reset_left_clicked(GtkButton *button, gpointer user_data) {
+	reset_left();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE;
 	notify_update((gpointer) param);
 }
 
-void on_remix_apply_clicked(GtkButton *button, gpointer user_data) {
-	close_histograms(TRUE, TRUE);
-	remixer_close();
-	set_cursor_waiting(FALSE);
+void on_remix_reset_right_clicked(GtkButton *button, gpointer user_data) {
+	reset_right();
+	update_image *param = malloc(sizeof(update_image));
+	param->update_preview_fn = remixer_update_preview;
+	param->show_preview = TRUE;
+	notify_update((gpointer) param);
+}
+
+void on_remix_apply_left_clicked(GtkButton *button, gpointer user_data) {
+	switch (fit_left.type) {
+		case DATA_FLOAT:
+			memcpy(fit_left.fdata, fit_left_calc.fdata, fit_left.rx * fit_left.ry * fit_left.naxes[2] * sizeof(float));
+			break;
+		case DATA_USHORT:
+			memcpy(fit_left.data, fit_left_calc.data, fit_left.rx * fit_left.ry * fit_left.naxes[2] * sizeof(WORD));
+			break;
+		default:
+			break;
+	}
+	reset_left();
+	close_histograms(TRUE, FALSE);
+	remix_histo_startup_left();
+	update_image *param = malloc(sizeof(update_image));
+	param->update_preview_fn = remixer_update_preview;
+	param->show_preview = TRUE;
+	notify_update((gpointer) param);
+
+}
+
+void on_remix_apply_right_clicked(GtkButton *button, gpointer user_data) {
+	switch (fit_right.type) {
+		case DATA_FLOAT:
+			memcpy(fit_right.fdata, fit_right_calc.fdata, fit_right.rx * fit_right.ry * fit_right.naxes[2] * sizeof(float));
+			break;
+		case DATA_USHORT:
+			memcpy(fit_right.data, fit_right_calc.data, fit_right.rx * fit_right.ry * fit_right.naxes[2] * sizeof(WORD));
+			break;
+		default:
+			break;
+	}
+	reset_right();
+	close_histograms(FALSE, TRUE);
+	remix_histo_startup_right();
 }
 
 /*** adjusters **/
@@ -949,6 +1038,13 @@ void on_spin_remix_BP_left_value_changed(GtkSpinButton *button, gpointer user_da
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE;
 	notify_update((gpointer) param);
+	if (leftBP == 0) {
+		gtk_widget_set_sensitive(lookup_widget("eyedropper_SP_left"), TRUE);
+		gtk_widget_set_tooltip_text(lookup_widget("eyedropper_SP_left"), _("This dropper allows you to set the background stretch symmetry point  based on the average value of the current selection. This helps in picking out faint detail above the dark background."));
+	} else {
+		gtk_widget_set_sensitive(lookup_widget("eyedropper_SP_left"), FALSE);
+		gtk_widget_set_tooltip_text(lookup_widget("eyedropper_SP_left"), _("Eyedropper disabled with unapplied BP shift"));
+	}
 }
 
 void on_spin_remix_BP_right_value_changed(GtkSpinButton *button, gpointer user_data) {
@@ -959,6 +1055,13 @@ void on_spin_remix_BP_right_value_changed(GtkSpinButton *button, gpointer user_d
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE;
 	notify_update((gpointer) param);
+	if (rightBP == 0) {
+		gtk_widget_set_sensitive(lookup_widget("eyedropper_SP_right"), TRUE);
+		gtk_widget_set_tooltip_text(lookup_widget("eyedropper_SP_right"), _("This dropper allows you to set the background stretch symmetry point  based on the average value of the current selection. This helps in picking out faint detail above the dark background."));
+	} else {
+		gtk_widget_set_sensitive(lookup_widget("eyedropper_SP_right"), FALSE);
+		gtk_widget_set_tooltip_text(lookup_widget("eyedropper_SP_right"), _("Eyedropper disabled with unapplied BP shift"));
+	}
 }
 
 void on_remix_colour_left_changed(GtkComboBox *combo, gpointer user_data) {
@@ -985,9 +1088,9 @@ void on_remix_type_left_changed(GtkComboBox *combo, gpointer user_data) {
 	left_changed = TRUE;
 	type_left = gtk_combo_box_get_active(combo);
 	if (type_left == STRETCH_ASINH || type_left == STRETCH_INVASINH)
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBcontrols2")), FALSE);
+		gtk_widget_set_visible(lookup_widget("ghtBcontrols2"), FALSE);
 	else
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBcontrols2")), TRUE);
+		gtk_widget_set_visible(lookup_widget("ghtBcontrols2"), TRUE);
 	update_remix_histo_left();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
@@ -999,9 +1102,9 @@ void on_remix_type_right_changed(GtkComboBox *combo, gpointer user_data) {
 	right_changed = TRUE;
 	type_right = gtk_combo_box_get_active(combo);
 	if (type_right == STRETCH_ASINH || type_right == STRETCH_INVASINH)
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBcontrols1")), FALSE);
+		gtk_widget_set_visible(lookup_widget("ghtBcontrols1"), FALSE);
 	else
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBcontrols1")), TRUE);
+		gtk_widget_set_visible(lookup_widget("ghtBcontrols1"), TRUE);
 	update_remix_histo_right();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
@@ -1016,7 +1119,7 @@ void on_remix_filechooser_left_file_set(GtkFileChooser *filechooser, gpointer us
 		clearfits(&fit_left_calc);
 		left_loaded = FALSE;
 	}
-	filename_left = g_strdup(gtk_file_chooser_get_filename(filechooser));
+	filename_left = siril_file_chooser_get_filename(filechooser);
 	if (readfits(filename_left, &fit_left, NULL, FALSE)) {
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: image could not be loaded"),
 			_("Image loading failed"));
@@ -1039,12 +1142,49 @@ void on_remix_filechooser_left_file_set(GtkFileChooser *filechooser, gpointer us
 		}
 		else {
 			left_loaded = TRUE;
+			/* We are the second image to be loaded so we convert to the first
+			* image's color profile */
+			if (!profiles_identical(fit_left.icc_profile, fit_right.icc_profile)) {
+				if (fit_right.icc_profile) {
+					siril_colorspace_transform(&fit_left, fit_right.icc_profile);
+					siril_log_message(_("Color profiles did not match: left-hand image has been converted to right-hand image color profile.\n"));
+				} else {
+					fit_right.icc_profile = copyICCProfile(fit_left.icc_profile);
+					siril_log_message(_("Color profiles did not match: right-hand image has been assigned the left-hand image color profile.\n"));
+				}
+			}
+			merge_fits_headers_to_result(&gfit, &fit_left, &fit_right, NULL);
+			if (fit_left.filter[0] != '\0' && fit_right.filter[0] != '\0' && strlen(fit_left.filter) >= 8 && strlen(fit_right.filter) >= 8) {
+				gchar *temp_l = g_malloc(strlen(fit_left.filter) - 7);
+				g_strlcpy(temp_l, fit_left.filter, strlen(fit_left.filter) - 8);
+				gchar *temp_r = g_malloc(strlen(fit_right.filter) - 7);
+				g_strlcpy(temp_r, fit_right.filter, strlen(fit_right.filter) - 8);
+				if (strlen(fit_left.filter) == 8)
+					temp_l[0] = '\0';
+				if (strlen(fit_right.filter) == 8)
+					temp_r[0] = '\0';
+				if (!strcmp(temp_l, temp_r)) {
+					if (fit_left.livetime >= fit_right.livetime) {
+						gfit.livetime = fit_left.livetime;
+						gfit.stackcnt = fit_left.stackcnt;
+					} else {
+						gfit.livetime = fit_right.livetime;
+						gfit.stackcnt = fit_right.stackcnt;
+					}
+				}
+				g_free(temp_l);
+				g_free(temp_r);
+			} // Otherwise the addition from merge_fits_headers_to_result is probably the best
+			  // value to use as the image is probably being combined from 2 different stacks
 		}
 	} else {
+		check_profile_correct(&fit_left);
+		initialize_remixer_transforms(&fit_left);
 		close_single_image();
 		close_sequence(FALSE);
 		clearfits(&gfit);
 		copyfits(&fit_left, &gfit, (CP_ALLOC | CP_COPYA | CP_FORMAT), 0);
+		siril_log_message(_("Setting the output image ICC profile to the working color space.\n"));
 		initialise_image();
 		left_loaded = TRUE;
 		clearfits(&fit_right_calc);
@@ -1071,7 +1211,7 @@ void on_remix_filechooser_right_file_set(GtkFileChooser *filechooser, gpointer u
 		clearfits(&fit_right_calc);
 		right_loaded = FALSE;
 	}
-	filename_right = g_strdup(gtk_file_chooser_get_filename(filechooser));
+	filename_right = siril_file_chooser_get_filename(filechooser);
 	if (readfits(filename_right, &fit_right, NULL, FALSE)) {
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: image could not be loaded"),
 				_("Image loading failed"));
@@ -1094,8 +1234,48 @@ void on_remix_filechooser_right_file_set(GtkFileChooser *filechooser, gpointer u
 		}
 		else {
 			right_loaded = TRUE;
+			/* We are the second image to be loaded so we convert to the first
+			* image's color profile */
+			if (!profiles_identical(fit_left.icc_profile, fit_right.icc_profile)) {
+				if (fit_left.icc_profile) {
+					siril_colorspace_transform(&fit_right, fit_left.icc_profile);
+					siril_log_message(_("Color profiles did not match: right-hand image has been converted to left-hand image color profile.\n"));
+				} else {
+					fit_left.icc_profile = copyICCProfile(fit_right.icc_profile);
+					siril_log_message(_("Color profiles did not match: left-hand image has been assigned the right-hand image color profile.\n"));
+				}
+			}
+			if (!profiles_identical(fit_left.icc_profile, fit_right.icc_profile)) {
+				siril_colorspace_transform(&fit_right, fit_left.icc_profile);
+				siril_log_message(_("Color profiles did not match: right-hand image has been converted to left-hand image color profile.\n"));
+			}
+			merge_fits_headers_to_result(&gfit, &fit_left, &fit_right, NULL);
+			if (fit_left.filter[0] != '\0' && fit_right.filter[0] != '\0' && strlen(fit_left.filter) >= 8 && strlen(fit_right.filter) >= 8) {
+				gchar *temp_l = g_malloc(strlen(fit_left.filter) - 7);
+				g_strlcpy(temp_l, fit_left.filter, strlen(fit_left.filter) - 8);
+				gchar *temp_r = g_malloc(strlen(fit_right.filter) - 7);
+				g_strlcpy(temp_r, fit_right.filter, strlen(fit_right.filter) - 8);
+				if (strlen(fit_left.filter) == 8)
+					temp_l[0] = '\0';
+				if (strlen(fit_right.filter) == 8)
+					temp_r[0] = '\0';
+				if (!strcmp(temp_l, temp_r)) {
+					if (fit_left.livetime >= fit_right.livetime) {
+						gfit.livetime = fit_left.livetime;
+						gfit.stackcnt = fit_left.stackcnt;
+					} else {
+						gfit.livetime = fit_right.livetime;
+						gfit.stackcnt = fit_right.stackcnt;
+					}
+				}
+				g_free(temp_l);
+				g_free(temp_r);
+			} // Otherwise the addition from merge_fits_headers_to_result is probably the best
+			  // value to use as the image is probably being combined from 2 different stacks
 		}
 	} else {
+		check_profile_correct(&fit_right);
+		initialize_remixer_transforms(&fit_right);
 		close_single_image();
 		close_sequence(FALSE);
 		clearfits(&gfit);
@@ -1132,6 +1312,11 @@ void on_eyedropper_SP_left_clicked(GtkButton *button, gpointer user_data) {
 	if (!com.selection.w || !com.selection.h) {
 		siril_message_dialog( GTK_MESSAGE_WARNING, _("There is no selection"),
 				_("Make a selection of the point or area to set SP"));
+		return;
+	}
+	if (!left_loaded) {
+		siril_message_dialog( GTK_MESSAGE_WARNING, _("There is no starless image loaded"),
+				_("Load an image using the left-hand file chooser before attempting to set SP using the eyedropper"));
 		return;
 	}
 	for (chan = 0; chan < fit_left.naxes[2]; chan++) {
@@ -1177,6 +1362,11 @@ void on_eyedropper_SP_right_clicked(GtkButton *button, gpointer user_data) {
 				_("Make a selection of the point or area to set SP"));
 		return;
 	}
+	if (!right_loaded) {
+		siril_message_dialog( GTK_MESSAGE_WARNING, _("There is no starless image loaded"),
+				_("Load an image using the right-hand file chooser before attempting to set SP using the eyedropper"));
+		return;
+	}
 	for (chan = 0; chan < fit_right.naxes[2]; chan++) {
 		stats[chan] = statistics(NULL, -1, &fit_right, chan, &com.selection, STATS_BASIC, MULTI_THREADED);
 		if (!stats[chan]) {
@@ -1209,35 +1399,35 @@ void on_eyedropper_SP_right_clicked(GtkButton *button, gpointer user_data) {
 void on_remix_advanced_clicked(GtkButton *button, gpointer user_data) {
 	// Show all the widgets
 	if (!advanced_interface) {
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtStretchTypecontrols3")), TRUE);
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtColourmodelcontrols2")), TRUE);
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtLPcontrols2")), TRUE);
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtHPcontrols2")), TRUE);
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBPcontrols2")), TRUE);
+		gtk_widget_set_visible(lookup_widget("ghtStretchTypecontrols3"), TRUE);
+		gtk_widget_set_visible(lookup_widget("ghtColourmodelcontrols2"), TRUE);
+		gtk_widget_set_visible(lookup_widget("ghtLPcontrols2"), TRUE);
+		gtk_widget_set_visible(lookup_widget("ghtHPcontrols2"), TRUE);
+//		gtk_widget_set_visible(lookup_widget("ghtBPcontrols2"), TRUE);
 
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtStretchTypecontrols1")), TRUE);
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtColourmodelcontrols1")), TRUE);
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtLPcontrols1")), TRUE);
+		gtk_widget_set_visible(lookup_widget("ghtStretchTypecontrols1"), TRUE);
+		gtk_widget_set_visible(lookup_widget("ghtColourmodelcontrols1"), TRUE);
+		gtk_widget_set_visible(lookup_widget("ghtLPcontrols1"), TRUE);
 
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBPcontrols1")), TRUE);
+//		gtk_widget_set_visible(lookup_widget("ghtBPcontrols1"), TRUE);
 		gtk_button_set_label(GTK_BUTTON(lookup_widget("remix_advanced")), _("Simple"));
-		gtk_widget_set_tooltip_text(GTK_WIDGET(lookup_widget("remix_advanced")), _("Show only simple stretch options. Note that any parameters that have been set while in advanced mode will remain set."));
+		gtk_widget_set_tooltip_text(lookup_widget("remix_advanced"), _("Show only simple stretch options. Note that any parameters that have been set while in advanced mode will remain set."));
 		advanced_interface = TRUE;
 	}
 	else {
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtStretchTypecontrols3")), FALSE);
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtColourmodelcontrols2")), FALSE);
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtLPcontrols2")), FALSE);
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtHPcontrols2")), FALSE);
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBPcontrols2")), FALSE);
+		gtk_widget_set_visible(lookup_widget("ghtStretchTypecontrols3"), FALSE);
+		gtk_widget_set_visible(lookup_widget("ghtColourmodelcontrols2"), FALSE);
+		gtk_widget_set_visible(lookup_widget("ghtLPcontrols2"), FALSE);
+		gtk_widget_set_visible(lookup_widget("ghtHPcontrols2"), FALSE);
+//		gtk_widget_set_visible(lookup_widget("ghtBPcontrols2"), FALSE);
 
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtStretchTypecontrols1")), FALSE);
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtColourmodelcontrols1")), FALSE);
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtLPcontrols1")), FALSE);
+		gtk_widget_set_visible(lookup_widget("ghtStretchTypecontrols1"), FALSE);
+		gtk_widget_set_visible(lookup_widget("ghtColourmodelcontrols1"), FALSE);
+		gtk_widget_set_visible(lookup_widget("ghtLPcontrols1"), FALSE);
 
-		gtk_widget_set_visible(GTK_WIDGET(lookup_widget("ghtBPcontrols1")), FALSE);
+//		gtk_widget_set_visible(lookup_widget("ghtBPcontrols1"), FALSE);
 		gtk_button_set_label(GTK_BUTTON(lookup_widget("remix_advanced")), _("Advanced"));
-		gtk_widget_set_tooltip_text(GTK_WIDGET(lookup_widget("remix_advanced")), _("Show advanced stretch options."));
+		gtk_widget_set_tooltip_text(lookup_widget("remix_advanced"), _("Show advanced stretch options."));
 		advanced_interface = FALSE;
 	}
 }

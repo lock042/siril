@@ -31,28 +31,28 @@ export PATH="${HERE}/usr/bin:${PATH}"
 # Run experimental bundle that bundles everything if a private ld-linux-x86-64.so.2 is there
 ############################################################################################
 
-if [ -e "$HERE/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2" ] ; then
-  echo "Run experimental bundle that bundles everything"
-  export GCONV_PATH="$HERE/usr/lib/x86_64-linux-gnu/gconv"
-  export FONTCONFIG_FILE="$HERE/etc/fonts/fonts.conf"
-  export LIBRARY_PATH="$HERE/usr/lib":$LIBRARY_PATH
-  export LIBRARY_PATH="$HERE/lib":$LIBRARY_PATH
-  export LIBRARY_PATH="$HERE/usr/lib/i386-linux-gnu":$LIBRARY_PATH
-  export LIBRARY_PATH="$HERE/lib/i386-linux-gnu":$LIBRARY_PATH
-  export LIBRARY_PATH="$HERE/usr/lib/i386-linux-gnu/pulseaudio":$LIBRARY_PATH
-  export LIBRARY_PATH="$HERE/usr/lib/i386-linux-gnu/alsa-lib":$LIBRARY_PATH
-  export LIBRARY_PATH="$HERE/usr/lib/x86_64-linux-gnu":$LIBRARY_PATH
-  export LIBRARY_PATH="$HERE/lib/x86_64-linux-gnu":$LIBRARY_PATH
-  export LIBRARY_PATH="$HERE/usr/lib/x86_64-linux-gnu/pulseaudio":$LIBRARY_PATH
-  export LIBRARY_PATH="$HERE/usr/lib/x86_64-linux-gnu/alsa-lib":$LIBRARY_PATH
-  export GTK_EXE_PREFIX="$HERE/usr"
-  export GDK_PIXBUF_MODULEDIR=$(readlink -f "$HERE"/usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders/ )
-  export GDK_PIXBUF_MODULE_FILE=$(readlink -f "$HERE"/usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders.cache ) # Patched to contain no paths
-  export GI_TYPELIB_PATH="${HERE}/usr/lib/x86_64-linux-gnu/girepository-1.0"
-  export LIBRARY_PATH=$GDK_PIXBUF_MODULEDIR:$LIBRARY_PATH # Otherwise getting "Unable to load image-loading module"
-  export LD_LIBRARY_PATH="$LIBRARY_PATH" # Required for python-gtk (pixbuf shared libs)
-  exec "${HERE}/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2" --inhibit-cache --library-path "${LIBRARY_PATH}" "${MAIN}" "$@"
-else
-  exec "${MAIN}" "$@"
-fi
+PLATFORM=x86_64-linux-gnu
 
+
+# Glib/Gtk environment
+export GCONV_PATH="$HERE/usr/lib/x86_64-linux-gnu/gconv"
+export FONTCONFIG_FILE="$HERE/etc/fonts/fonts.conf"
+export GTK_EXE_PREFIX="$HERE/usr"
+export GDK_PIXBUF_MODULEDIR=$(readlink -f "$HERE"/usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders/ )
+export GDK_PIXBUF_MODULE_FILE=$(readlink -f "$HERE"/usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders.cache ) # Patched to contain no paths
+export GI_TYPELIB_PATH="${HERE}/usr/lib/x86_64-linux-gnu/girepository-1.0"
+
+# For bundled shares
+export XDG_DATA_DIRS="$HERE/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+
+# Shared library path
+LIBRARY_PATH="$HERE/lib/$PLATFORM"
+LIBRARY_PATH+=":$HERE/usr/lib/$PLATFORM"
+LIBRARY_PATH+=":$HERE/usr/lib"
+LIBRARY_PATH+=":$GDK_PIXBUF_MODULEDIR" # Otherwise getting "Unable to load image-loading module"
+
+
+# Otherwise getting "Unable to load image-loading module" when opening extension manager
+export LD_LIBRARY_PATH="$GDK_PIXBUF_MODULEDIR"
+
+exec "$HERE/lib/$PLATFORM/ld-linux-x86-64.so.2" --inhibit-cache --library-path "$LIBRARY_PATH" "$MAIN" "$@"

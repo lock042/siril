@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@ typedef enum {
 	SEQ_INCOMPLETE
 } seq_error;
 
-static void init_images(struct seqwriter_data *writer, fits *example) {
+static void init_images(struct seqwriter_data *writer, const fits *example) {
 	writer->bitpix = example->bitpix;
 	memcpy(writer->naxes, example->naxes, sizeof writer->naxes);
 }
@@ -64,7 +64,7 @@ int seqwriter_append_write(struct seqwriter_data *writer, fits *image, int index
 		return -1;
 	struct _pending_write *newtask = malloc(sizeof(struct _pending_write));
 	if (!newtask)
-		return -1;
+		return 1;
 	newtask->image = image;
 	newtask->index = index;
 
@@ -100,14 +100,24 @@ static void *write_worker(void *a) {
 					retval = SEQ_INCOMPLETE;
 					break;
 				}
-
+				// allowable cases:
+				// - different naxes[0] and naxes[1] if com.pref.core.allow_heterogeneous_fitseq is TRUE
+				// forbidden cases:
+				// - different naxes[0] and naxes[1] if com.pref.core.allow_heterogeneous_fitseq is FALSE
+				// - different naxes[0] and naxes[1] for a SER
+				// - different naxes[2]
+				// - different bitpix
 				if (writer->bitpix && task->image &&
-						(memcmp(task->image->naxes, writer->naxes, sizeof writer->naxes) ||
-						 task->image->bitpix != writer->bitpix)) {
+					((writer->output_type == SEQ_FITSEQ && !com.pref.allow_heterogeneous_fitseq && memcmp(task->image->naxes, writer->naxes, 2 * sizeof writer->naxes[0])) ||
+					(writer->output_type == SEQ_SER && memcmp(task->image->naxes, writer->naxes, 2 * sizeof writer->naxes[0])) ||
+					task->image->naxes[2] != writer->naxes[2] ||
+					task->image->bitpix != writer->bitpix)) {
 					siril_log_color_message(_("Cannot add an image with different properties to an existing sequence.\n"), "red");
 					retval = SEQ_WRITE_ERROR;
 					break;
 				}
+				if (!writer->bitpix && task->image)
+					init_images(writer, task->image);
 
 				if (task->index >= 0 && task->index != current_index) {
 					if (task->index < current_index) {
@@ -131,6 +141,7 @@ static void *write_worker(void *a) {
 			if (task->image)
 				clearfits(task->image);
 			notify_data_freed(writer, task->index);
+			free(task);
 			break;
 		}
 		if (!task->image) {
@@ -139,12 +150,9 @@ static void *write_worker(void *a) {
 			notify_data_freed(writer, task->index);
 			current_index++;
 			writer->frame_count--;
+			free(task);
 			continue;
 		}
-
-		// from here on, we have a valid task and we will write an image
-		if (!writer->bitpix)
-			init_images(writer, task->image);
 
 		siril_log_message(_("writer: Saving image %d, %ld layer(s), %ux%u pixels, %d bits\n"),
 				task->index, task->image->naxes[2],

@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,635 +18,112 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
 #include <float.h>
-#include <gsl/gsl_statistics.h>
 
-#include "core/siril.h"
-#include "core/proto.h"
-#include "core/processing.h"
-#include "core/undo.h"
-#include "core/OS_utils.h"
 #include "core/siril_log.h"
-#include "algos/sorting.h"
-#include "algos/statistics.h"
-#include "algos/statistics_float.h"
-#include "algos/photometry.h"
-#include "algos/PSF.h"
-#include "algos/astrometry_solver.h"
-#include "algos/star_finder.h"
+#include "core/processing.h"
+#include "algos/photometric_cc.h"
+#include "algos/spcc.h"
+#include "algos/siril_wcs.h"
 #include "gui/image_display.h"
 #include "gui/image_interactions.h"
 #include "gui/message_dialog.h"
+#include "gui/siril_plot.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "gui/histogram.h"
 #include "gui/dialogs.h"
 #include "gui/registration_preview.h"
-#include "io/single_image.h"
-#include "io/catalogues.h"
+#include "io/remote_catalogues.h"
+#include "io/local_catalogues.h"
 #include "photometric_cc.h"
-#include "registration/matching/misc.h" // for catalogue parsing helpers
-#include "algos/siril_wcs.h"
+#include "io/image_format_fits.h"
 
-enum {
-	RED, GREEN, BLUE
-};
+#define MIN_PLOT 336.0
+#define MAX_PLOT 1020.0
 
+// (note using the Black Body locus gives a slightly different result than using the Daylight locus but
+// is *probably* what is wanted here.
+static gboolean spcc_filters_initialized = FALSE;
 static rectangle get_bkg_selection();
+void on_combophoto_catalog_changed(GtkComboBox *combo, gpointer user_data);
+static void set_bg_sigma(struct photometric_cc_data *args);
+static int set_spcc_args(struct photometric_cc_data *args);
+void populate_spcc_combos();
+void on_spcc_toggle_nb_toggled(GtkToggleButton *button, gpointer user_data);
+void on_spcc_sensor_switch_state_set(GtkSwitch *widget, gboolean state, gpointer user_data);
 
-static void start_photometric_cc() {
+void reset_spcc_filters() {
+	spcc_filters_initialized = FALSE;
+}
+
+void on_buttonPCC_close_clicked(GtkButton *button, gpointer user_data) {
+	siril_close_dialog("s_pcc_dialog");
+}
+
+static void get_mag_settings_from_GUI(limit_mag_mode *mag_mode, double *magnitude_arg) {
+	GtkToggleButton *autobutton = GTK_TOGGLE_BUTTON(lookup_widget("S_PCC_Mag_Limit"));
+	gboolean autob = gtk_toggle_button_get_active(autobutton);
+	if (autob)
+		*mag_mode = LIMIT_MAG_AUTO;
+	else {
+		GtkSpinButton *magButton = GTK_SPIN_BUTTON(lookup_widget("GtkSpinPCC_Mag_Limit"));
+		*magnitude_arg = gtk_spin_button_get_value(magButton);
+		*mag_mode = LIMIT_MAG_ABSOLUTE;
+	}
+}
+
+void on_S_PCC_Mag_Limit_toggled(GtkToggleButton *button, gpointer user) {
+	GtkWidget *spinmag;
+
+	spinmag = lookup_widget("GtkSpinPCC_Mag_Limit");
+	gtk_widget_set_sensitive(spinmag, !gtk_toggle_button_get_active(button));
+}
+
+
+static void start_photometric_cc(gboolean spcc) {
 	GtkToggleButton *auto_bkg = GTK_TOGGLE_BUTTON(lookup_widget("button_cc_bkg_auto"));
-	GtkToggleButton *force_platesolve_button = GTK_TOGGLE_BUTTON(lookup_widget("force_astrometry_button"));
-	gboolean plate_solve;
 
 	if (!has_wcs(&gfit)) {
-		siril_log_color_message(_("There is no valid WCS information in the header. Let's make a plate solving.\n"), "salmon");
-		plate_solve = TRUE;
-	} else {
-		plate_solve = gtk_toggle_button_get_active(force_platesolve_button);
-		if (plate_solve)
-			siril_log_message(_("Plate solving will be recomputed for image\n"));
-		else siril_log_message(_("Existing plate solve (WCS information) will be resused for image\n"));
+		siril_log_color_message(_("There is no valid WCS information in the header. Please platesolve first.\n"), "red");
+		return;
 	}
 
-	struct astrometry_data *args = NULL;
 	struct photometric_cc_data *pcc_args = calloc(1, sizeof(struct photometric_cc_data));
-	if (local_catalogues_available()) {
-		siril_debug_print("using local star catalogues\n");
-		pcc_args->use_local_cat = TRUE;
-	}
-	if (plate_solve) {
-		args = calloc(1, sizeof(struct astrometry_data));
-		args->fit = &gfit;
-
-		args->for_photometry_cc = TRUE;
-		args->use_local_cat = pcc_args->use_local_cat;
-
-		args->pcc = pcc_args;
-		args->pcc->fit = &gfit;
-		args->pcc->bg_auto = gtk_toggle_button_get_active(auto_bkg);
-		args->pcc->bg_area = get_bkg_selection();
+	set_bg_sigma(pcc_args);
+	if (spcc) {
+		pcc_args->catalog = CAT_GAIADR3_DIRECT;
+		siril_log_message(_("Using Gaia DR3 for SPCC\n"));
+		pcc_args->spcc = TRUE;
+		if (set_spcc_args(pcc_args)) {
+			free(pcc_args);
+			return;
+		}
+	} else {
+		pcc_args->catalog = get_photometry_catalog_from_GUI();
+		pcc_args->spcc = FALSE;
+		if (local_catalogues_available()) {
+			if (pcc_args->catalog == CAT_NOMAD) {
+				pcc_args->catalog = CAT_LOCAL;
+				siril_debug_print("using local star catalogs\n");
+			}
+			else siril_log_message(_("Using remote APASS instead of local NOMAD catalog\n"));
+		}
 	}
 
 	pcc_args->fit = &gfit;
 	pcc_args->bg_auto = gtk_toggle_button_get_active(auto_bkg);
-	pcc_args->catalog = pcc_args->use_local_cat ? NOMAD : get_photometry_catalog();
+	pcc_args->bg_area = get_bkg_selection();
+	pcc_args->mag_mode = LIMIT_MAG_AUTO;
 
 	set_cursor_waiting(TRUE);
 
-	if (plate_solve) {
-		if (!fill_plate_solver_structure_from_GUI(args)) {
-			start_in_new_thread(match_catalog, args);
-		}
-	} else {
-		control_window_switch_to_tab(OUTPUT_LOGS);
-		start_in_new_thread(photometric_cc_standalone, pcc_args);
-	}
-}
-
-static void bv2rgb(float *r, float *g, float *b, float bv) { // RGB <0,1> <- BV <-0.4,+2.0> [-]
-	float t;
-	*r = 0.f;
-	*g = 0.f;
-	*b = 0.f;
-	if (bv < -0.4f)
-		bv = -0.4f;
-	if (bv > 2.f)
-		bv = 2.f;
-	if ((bv >= -0.4f) && (bv < 0.0f)) {
-		t = (bv + 0.4f) / (0.f + 0.4f);
-		*r = 0.61f + (0.11f * t) + (0.1f * t * t);
-	} else if ((bv >= 0.f) && (bv < 0.4f)) {
-		t = (bv - 0.0f) / (0.4f - 0.f);
-		*r = 0.83f + (0.17f * t);
-	} else if ((bv >= 0.4f) && (bv < 2.1f)) {
-		*r = 1.f;
-	}
-	if ((bv >= -0.4f) && (bv < 0.f)) {
-		t = (bv + 0.4f) / (0.f + 0.4f);
-		*g = 0.7f + (0.07f * t) + (0.1f * t * t);
-	} else if ((bv >= 0.f) && (bv < 0.4f)) {
-		t = (bv - 0.f) / (0.4f - 0.f);
-		*g = 0.87f + (0.11f * t);
-	} else if ((bv >= 0.4f) && (bv < 1.6f)) {
-		t = (bv - 0.4f) / (1.6f - 0.4f);
-		*g = 0.98f - (0.16f * t);
-	} else if ((bv >= 1.6f) && (bv < 2.f)) {
-		t = (bv - 1.6f) / (2.f - 1.6f);
-		*g = 0.82f - (0.5f * t * t);
-	}
-	if ((bv >= -0.4f) && (bv < 0.4f)) {
-		*b = 1.f;
-	} else if ((bv >= 0.4f) && (bv < 1.5f)) {
-		t = (bv - 0.4f) / (1.5f - 0.4f);
-		*b = 1.f - (0.47f * t) + (0.1f * t * t);
-	} else if ((bv >= 1.5f) && (bv < 1.94f)) {
-		t = (bv - 1.5f) / (1.94f - 1.5f);
-		*b = 0.63f - (0.6f * t * t);
-	}
-}
-
-static int make_selection_around_a_star(pcc_star star, rectangle *area, fits *fit) {
-	/* make a selection around the star */
-	double outer = com.pref.phot_set.outer;
-	area->x = round_to_int(star.x - outer);
-	area->y = round_to_int(star.y - outer);
-	area->w = area->h = (int)ceil(outer * 2.0);
-
-	/* Don't want stars too close to the edge */
-	if (area->x <= 0 || area->x + area->w >= fit->rx - 1)
-		return 1;
-	if (area->y <= 0 || area->y + area->h >= fit->ry - 1)
-		return 1;
-
-	return 0;
-}
-
-static int get_white_balance_coeff(pcc_star *stars, int nb_stars, fits *fit, float *kw, int norm_channel) {
-	float *data[3];
-	data[RED] = malloc(sizeof(float) * nb_stars);
-	data[GREEN] = malloc(sizeof(float) * nb_stars);
-	data[BLUE] = malloc(sizeof(float) * nb_stars);
-	if (!data[RED] || !data[GREEN] || !data[BLUE]) {
-		PRINT_ALLOC_ERR;
-		return 1;
-	}
-
-	for (int k = 0; k < nb_stars; k++) {
-		data[RED][k] = FLT_MAX;
-		data[GREEN][k] = FLT_MAX;
-		data[BLUE][k] = FLT_MAX;
-	}
-
-	gchar *str = ngettext("Applying aperture photometry to %d star.\n", "Applying aperture photometry to %d stars.\n", nb_stars);
-	str = g_strdup_printf(str, nb_stars);
-	siril_log_message(str);
-	g_free(str);
-
-	struct phot_config *ps = phot_set_adjusted_for_image(fit);
-	gint ngood = 0, progress = 0;
-	gint errors[PSF_ERR_MAX_VALUE] = { 0 };
-
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(guided) shared(progress, ngood)
-#endif
-	for (int i = 0; i < nb_stars; i++) {
-		if (!get_thread_run())
-			continue;
-		rectangle area = { 0 };
-		float flux[3] = { 0.f, 0.f, 0.f };
-		float r, g, b, bv;
-		if (!(i % 16))	// every 16 iterations
-			set_progress_bar_data(NULL, (double) progress / (double) nb_stars);
-		g_atomic_int_inc(&progress);
-
-		if (make_selection_around_a_star(stars[i], &area, fit)) {
-			siril_debug_print("star %d is outside image or too close to border\n", i);
-			g_atomic_int_inc(errors+PSF_ERR_OUT_OF_WINDOW);
-			continue;
-		}
-
-		gboolean no_phot = FALSE;
-		psf_error error = PSF_NO_ERR;
-		for (int chan = 0; chan < 3 && !no_phot; chan ++) {
-			psf_star *photometry = psf_get_minimisation(fit, chan, &area, TRUE, ps, FALSE, com.pref.starfinder_conf.profile, &error);
-			g_atomic_int_inc(errors+error);
-			if (!photometry || !photometry->phot_is_valid || error != PSF_NO_ERR)
-				no_phot = TRUE;
-			else flux[chan] = powf(10.f, -0.4f * (float) photometry->mag);
-			if (photometry)
-				free_psf(photometry);
-		}
-		if (no_phot) {
-			siril_debug_print("photometry failed for star %d, error %d\n", i, error);
-			continue;
-		}
-		/* get r g b coefficient from bv color index */
-		bv = stars[i].BV;
-		bv2rgb(&r, &g, &b, bv);
-
-		/* get Color calibration factors for current star */
-		data[RED][i] = (flux[norm_channel] / flux[RED]) * r;
-		data[GREEN][i] = (flux[norm_channel] / flux[GREEN]) * g;
-		data[BLUE][i] = (flux[norm_channel] / flux[BLUE]) * b;
-
-		if (xisnanf(data[RED][i]) || xisnanf(data[GREEN][i]) || xisnanf(data[BLUE][i])) {
-			data[RED][i] = FLT_MAX;
-			data[GREEN][i] = FLT_MAX;
-			data[BLUE][i] = FLT_MAX;
-			continue;
-		}
-		g_atomic_int_inc(&ngood);
-	}
-
-	free(ps);
-	if (!get_thread_run()) {
-		free(data[RED]);
-		free(data[GREEN]);
-		free(data[BLUE]);
-		return 1;
-	}
-	int excl = nb_stars - ngood;
-	str = ngettext("%d star excluded from the calculation\n", "%d stars excluded from the calculation\n", excl);
-	str = g_strdup_printf(str, excl);
-	siril_log_message(str);
-	g_free(str);
-	if (excl > 0)
-		print_psf_error_summary(errors);
-
-	if (ngood == 0) {
-		siril_log_message(_("No valid stars found.\n"));
-		free(data[RED]);
-		free(data[GREEN]);
-		free(data[BLUE]);
-		return 1;
-	}
-	/* sort in ascending order before using siril_stats_mean_from_linearFit
-	 * Hence, DBL_MAX are at the end of the tab */
-	quicksort_f(data[RED], nb_stars);
-	quicksort_f(data[GREEN], nb_stars);
-	quicksort_f(data[BLUE], nb_stars);
-
-	double deviation[3];
-	/* we do not take into account FLT_MAX values */
-	kw[RED] = siril_stats_robust_mean(data[RED], 1, ngood, &(deviation[RED]));
-	kw[GREEN] = siril_stats_robust_mean(data[GREEN], 1, ngood, &(deviation[GREEN]));
-	kw[BLUE] = siril_stats_robust_mean(data[BLUE], 1, ngood, &(deviation[BLUE]));
-	if (kw[RED] < 0.f || kw[GREEN] < 0.f || kw[BLUE] < 0.f) {
-		free(data[RED]);
-		free(data[GREEN]);
-		free(data[BLUE]);
-		return 1;
-	}
-
-	/* normalize factors */
-	kw[RED] /= (kw[norm_channel]);
-	kw[GREEN] /= (kw[norm_channel]);
-	kw[BLUE] /= (kw[norm_channel]);
-	siril_log_message(_("Found a solution for color calibration using %d stars. Factors:\n"), ngood);
-	for (int chan = 0; chan < 3; chan++) {
-		siril_log_message("K%d: %5.3lf\t(deviation: %.3f)\n", chan, kw[chan], deviation[chan]);
-	}
-
-	if (ngood < 20)
-		siril_log_color_message(_("The photometric color correction has found a solution which may not be perfect because it did not rely on many stars\n"), "salmon");
-	else if (deviation[RED] > 0.1 || deviation[GREEN] > 0.1 || deviation[BLUE] > 0.1)
-		siril_log_message(_("The photometric color correction seem to have found an imprecise solution, consider correcting the image gradient first\n"));
-	free(data[RED]);
-	free(data[GREEN]);
-	free(data[BLUE]);
-
-	return
-	0;
-}
-
-static int cmp_coeff(const void *a, const void *b) {
-	coeff *a1 = (coeff *) a;
-	coeff *a2 = (coeff *) b;
-	if (a1->value > a2->value)
-		return 1;
-	if (a1->value < a2->value)
-		return -1;
-	return 0;
-}
-
-/*
-Gets bg, min and max values per channel and sets the chennel with middle bg value
-*/
-static int get_stats_coefficients(fits *fit, rectangle *area, coeff *bg, float *mins, float *maxs, int *norm_channel) {
-	// we cannot use compute_all_channels_statistics_single_image because of the area
-	for (int chan = 0; chan < 3; chan++) {
-		imstats *stat = statistics(NULL, -1, fit, chan, area, STATS_BASIC, MULTI_THREADED);
-		if (!stat) {
-			siril_log_message(_("Error: statistics computation failed.\n"));
-			return 1;
-		}
-		bg[chan].value = stat->median;
-		bg[chan].channel = chan;
-		if (!area) {
-			mins[chan] = stat->min;
-			maxs[chan] = stat->max;
-		}
-		free_stats(stat);
-	}
-	coeff tmp[3];
-	memcpy(tmp, bg, 3 * sizeof(coeff));
-	/* ascending order */
-	qsort(tmp, 3, sizeof(tmp[0]), cmp_coeff);
-	//selecting middle channel for norm
-	*norm_channel = tmp[1].channel;
-
-	// if no selection for background we have all the stats required
-	if (!area) return 0;
-
-	// otherwise, we compute image min/max
-	for (int chan = 0; chan < 3; chan++) {
-		imstats *stat = statistics(NULL, -1, fit, chan, NULL, STATS_MINMAX, MULTI_THREADED);
-		if (!stat) {
-			siril_log_message(_("Error: statistics computation failed.\n"));
-			return 1;
-		}
-		mins[chan] = stat->min;
-		maxs[chan] = stat->max;
-	}
-	return 0;
-}
-
-static int apply_photometric_color_correction(fits *fit, const float *kw, const coeff *bg, const float *mins, const float *maxs, int norm_channel) {
-	float maximum = -FLT_MAX;
-	float minimum = FLT_MAX;
-	float scale[3];
-	float offset[3];
-	float invrange;
-
-	for (int chan = 0; chan < 3; chan++) {
-		maximum = max(maximum, kw[chan] * (maxs[chan] - bg[chan].value) + bg[norm_channel].value);
-		minimum = min(minimum, kw[chan] * (mins[chan] - bg[chan].value) + bg[norm_channel].value);
-	}
-	invrange = ((fit->type == DATA_USHORT) ? USHRT_MAX_SINGLE : 1.f) / (maximum - minimum);
-
-	for (int chan = 0; chan < 3; chan++) {
-		scale[chan] = kw[chan] * invrange;
-		offset[chan] = (-bg[chan].value * kw[chan] + bg[norm_channel].value  - minimum) * invrange;
-	}
-
-	siril_log_message("After renormalization, the following coefficients are applied\n");
-	siril_log_color_message(_("White balance factors:\n"), "green");
-	for (int chan = 0; chan < 3; chan++) {
-		siril_log_message("K%d: %5.3f\n", chan, scale[chan]);
-	}
-	siril_log_color_message(_("Background reference:\n"), "green");
-	for (int chan = 0; chan < 3; chan++) {
-		siril_log_message("B%d: %+.5e\n", chan, offset[chan]);
-	}
-
-	for (int chan = 0; chan < 3; chan++) {
-		size_t n = fit->naxes[0] * fit->naxes[1];
-		if (fit->type == DATA_USHORT) {
-			WORD *buf = fit->pdata[chan];
-			for (size_t i = 0; i < n; ++i) {
-				buf[i] = roundf_to_WORD((float)buf[i] * scale[chan] + offset[chan]);
-			}
-		}
-		else if (fit->type == DATA_FLOAT) {
-			float *buf = fit->fpdata[chan];
-			for (size_t i = 0; i < n; ++i) {
-				buf[i] = buf[i] * scale[chan] + offset[chan];
-			}
-		}
-		else return 1;
-	}
-	invalidate_stats_from_fit(fit);
-	return 0;
-}
-
-/* run the PCC using the existing star list of the image from the provided file */
-int photometric_cc(struct photometric_cc_data *args) {
-	float kw[3];
-	coeff bg[3];
-	float mins[3];
-	float maxs[3];
-	int norm_channel;
-
-	if (!isrgb(args->fit)) {
-		siril_log_message(_("Photometric color correction will do nothing for monochrome images\n"));
-		return 0;
-	}
-
-	for (int i = 0; i < args->nb_stars && i < 40; i++)
-		siril_debug_print("star %d: %.2f, %.2f\tmag %.3f, BV %3f\n", i,
-				args->stars[i].x, args->stars[i].y,
-				args->stars[i].mag, args->stars[i].BV);
-
-	rectangle *bkg_sel = NULL;
-	if (!args->bg_auto)
-		bkg_sel = &(args->bg_area);
-
-	/* we use the median of each channel to sort them by level and select
-	 * the reference channel expressed in terms of order of middle median value */
-	if (get_stats_coefficients(args->fit, bkg_sel, bg, mins, maxs, &norm_channel)) {
-		siril_log_message(_("failed to compute statistics on image, aborting\n"));
-		free(args);
-		return 1;
-	}
-	siril_log_message(_("Normalizing on %s channel.\n"), (norm_channel == 0) ? _("red") : ((norm_channel == 1) ? _("green") : _("blue")));
-
-	/* set photometry parameters to values adapted to the image */
-	struct phot_config backup = com.pref.phot_set;
-	com.pref.phot_set.force_radius = FALSE;
-	com.pref.phot_set.inner = max(7.0, 3.0 * args->fwhm);
-	com.pref.phot_set.outer = com.pref.phot_set.inner + 10;
-	siril_debug_print("set photometry inner radius to %.2f\n", com.pref.phot_set.inner);
-
-	set_progress_bar_data(_("Photometry color calibration in progress..."), PROGRESS_RESET);
-	int ret = get_white_balance_coeff(args->stars, args->nb_stars, args->fit, kw, norm_channel);
-
-	if (!ret) {
-		apply_photometric_color_correction(args->fit, kw, bg, mins, maxs, norm_channel);
-	} else {
-		set_progress_bar_data(_("Photometric Color Calibration failed"), PROGRESS_DONE);
-	}
-
-	com.pref.phot_set = backup;
-	free(args);
-	return ret;
-}
-
-float measure_image_FWHM(fits *fit) {
-	float fwhm[3];
-	/*fits downsampled = { 0 };
-	copyfits(fit, &downsampled, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
-	cvResizeGaussian(&downsampled, DOWNSAMPLE_FACTOR * args->fit->rx, DOWNSAMPLE_FACTOR * args->fit->ry, OPENCV_AREA, FALSE, 0.0);*/
-	image im = { .fit = fit, .from_seq = NULL, .index_in_seq = -1 };
-	gboolean failed = FALSE;
-#ifdef _OPENMP
-	int *threads = compute_thread_distribution(3, com.max_thread);
-#pragma omp parallel for num_threads(com.max_thread)
-#endif
-	for (int chan = 0; chan < 3; chan++) {
-		int nb_stars;
-		int nb_subthreads;
-#ifdef _OPENMP
-		nb_subthreads = threads[chan];
-#else
-		nb_subthreads = com.max_thread;
-#endif
-		psf_star **stars = peaker(&im, chan, &com.pref.starfinder_conf, &nb_stars, NULL, FALSE, TRUE, 200, com.pref.starfinder_conf.profile, nb_subthreads);
-		if (stars) {
-			fwhm[chan] = filtered_FWHM_average(stars, nb_stars);
-			siril_debug_print("FWHM for channel %d: %.3f\n", chan, fwhm[chan]);
-
-			for (int i = 0; i < nb_stars; i++)
-				free_psf(stars[i]);
-			free(stars);
-		}
-		else failed = TRUE;
-	}
-	// clearfits(&downsampled);
-	if (failed)
-		return 0.0f;
-	return max(fwhm[0], max(fwhm[1], fwhm[2]));
-}
-
-/* photometric_cc is the entry point for the PCC following the call to the
- * plate solver which gives the star list. We can also run the PCC on a
- * plate-solved image without running plate solving again, this is what this
- * function does.
- */
-gpointer photometric_cc_standalone(gpointer p) {
-	struct photometric_cc_data *args = (struct photometric_cc_data *)p;
-	if (!has_wcs(args->fit)) {
-		siril_log_color_message(_("Cannot run the standalone photometric color correction on this image because it has no WCS data or it is not supported\n"), "red");
-		siril_add_idle(end_generic, NULL);
-		return GINT_TO_POINTER(1);
-	}
-
-	/* run peaker to measure FWHM of the image to adjust photometry settings */
-	args->fwhm = measure_image_FWHM(args->fit);
-	if (args->fwhm <= 0.0f) {
-		siril_log_message(_("Error computing FWHM for photometry settings adjustment\n"));
-		siril_add_idle(end_generic, NULL);
-		return GINT_TO_POINTER(1);
-	}
-
-	/* get stars from a photometric catalog */
-	double ra, dec;
-	center2wcs(args->fit, &ra, &dec);
-	double resolution = get_wcs_image_resolution(args->fit);
-	if ((ra == -1.0 && dec == -1.0) || resolution == -1.0) {
-		siril_log_color_message(_("Cannot run the standalone photometric color correction on this image because it has no WCS data or it is not supported\n"), "red");
-		siril_add_idle(end_generic, NULL);
-		return GINT_TO_POINTER(1);
-	}
-
-	pcc_star *stars = NULL;
-	int nb_stars = 0;
-	gboolean image_is_gfit = args->fit == &gfit;
-
-	double radius = get_radius_deg(resolution / 3600.0, args->fit->rx, args->fit->ry);
-	double mag = compute_mag_limit_from_fov(radius * 2.0);
-
-	int retval = 0;
-	if (args->use_local_cat) {
-		if (get_stars_from_local_catalogues(ra, dec, radius, args->fit, mag, &stars, &nb_stars)) {
-			siril_log_color_message(_("Failed to get data from the local catalogue, is it installed?\n"), "red");
-			retval = 1;
-		}
-	} else {
-		const gchar *cat = NULL;
-		switch (args->catalog) {
-			case APASS:
-				cat = "APASS";
-				mag = min(mag, 17.0);	// in APASS, B is available for V < 17
-				break;
-			case NOMAD:
-				cat = "NOMAD";
-				mag = min(mag, 18.0);	// in NOMAD, B is available for V < 18
-				break;
-			default:
-				siril_log_color_message(_("No valid catalog found.\n"), "red");
-				return GINT_TO_POINTER(1);
-		}
-		siril_log_message(_("Image has a field of view of %.2f degrees, using a limit magnitude of %.2f\n"), radius * 2.0, mag);
-
-		SirilWorldCS *center = siril_world_cs_new_from_a_d(ra, dec);
-		GFile *catalog_file = download_catalog(args->catalog, center, radius * 60.0, mag);
-		siril_world_cs_unref(center);
-		if (!catalog_file) {
-			siril_log_message(_("Could not download the online star catalog.\n"));
-			siril_add_idle(end_generic, NULL);
-			return GINT_TO_POINTER(1);
-		}
-		siril_log_message(_("The %s catalog has been successfully downloaded.\n"), cat);
-
-		/* project using WCS */
-		retval = project_catalog_with_WCS(catalog_file, args->fit, &stars, &nb_stars);
-	}
-
-	if (!retval) {
-		if (!com.script) {
-			undo_save_state(args->fit, _("Photometric CC"));
-		}
-		args->stars = stars;
-		args->nb_stars = nb_stars;
-		retval = photometric_cc(args);	// args is freed from here
-	}
-	free(stars);
-	args = NULL;
-
-	if (!retval && image_is_gfit)
-		notify_gfit_modified();
-	else siril_add_idle(end_generic, NULL);
-	return GINT_TO_POINTER(retval);
-}
-
-int project_catalog_with_WCS(GFile *catalog_file, fits *fit, pcc_star **ret_stars, int *ret_nb_stars) {
-	GError *error = NULL;
-	GInputStream *input_stream = NULL;
-	/* catalog format should be 5 columns: distance from centre, RA, Dec, V, B */
-	if (!(input_stream = (GInputStream*) g_file_read(catalog_file, NULL, &error))) {
-		if (error) {
-			siril_log_message(_("Can't open catalog file %s for PCC: %s\n"), g_file_peek_path(catalog_file), error->message);
-			g_clear_error(&error);
-		}
-		*ret_stars = NULL;
-		*ret_nb_stars = 0;
-		return 1;
-	}
-
-	int nb_alloc = 1200, nb_stars = 0;
-	pcc_star *stars = malloc(nb_alloc * sizeof(pcc_star));
-
-	/* see also proc_star_file() or read_NOMAD_catalog() */
-	// TODO: merge the three codes? they are not quite the same
-	GDataInputStream *data_input = g_data_input_stream_new(input_stream);
-	gchar *line;
-	while ((line = g_data_input_stream_read_line_utf8(data_input, NULL, NULL, NULL))) {
-		if (line[0] == COMMENT_CHAR || is_blank(line) || g_str_has_prefix(line, "---")) {
-			g_free(line);
-			continue;
-		}
-		double r = 0.0, ra = 0.0, dec = 0.0, Vmag = 0.0, Bmag = 0.0;
-		int n = sscanf(line, "%lf %lf %lf %lf %lf", &r, &ra, &dec, &Vmag, &Bmag);
-		g_free(line);
-		if (n == 5 && Bmag < 30.0) {	// 30 sometimes means not available in NOMAD
-			if (nb_stars >= nb_alloc) {
-				nb_alloc *= 2;
-				pcc_star *new_array = realloc(stars, nb_alloc * sizeof(pcc_star));
-				if (!new_array) {
-					PRINT_ALLOC_ERR;
-					g_object_unref(data_input);
-					free(stars);
-					*ret_stars = NULL;
-					*ret_nb_stars = 0;
-					return 1;
-				}
-				stars = new_array;
-			}
-
-			double x, y;
-			if (!wcs2pix(fit, ra, dec, &x, &y)) {
-				stars[nb_stars].x = x;
-				stars[nb_stars].y = fit->ry - y - 1;
-				stars[nb_stars].mag = Vmag;
-				stars[nb_stars].BV = Bmag - Vmag;
-				nb_stars++;
-			}
-		}
-	}
-
-	g_object_unref(data_input);
-	siril_debug_print("projected %d stars from the provided catalogue\n", nb_stars);
-	*ret_stars = stars;
-	*ret_nb_stars = nb_stars;
-	return 0;
+	get_mag_settings_from_GUI(&pcc_args->mag_mode, &pcc_args->magnitude_arg);
+	control_window_switch_to_tab(OUTPUT_LOGS);
+	start_in_new_thread(photometric_cc_standalone, pcc_args);
 }
 
 static rectangle get_bkg_selection() {
@@ -676,38 +153,43 @@ static gboolean is_selection_ok() {
  */
 
 void initialize_photometric_cc_dialog() {
-	GtkWidget *button_ips_ok, *button_cc_ok, *catalog_label, *catalog_box_ips,
-			*catalog_box_pcc, *catalog_auto, *frame_cc_bkg,
-			*catalog_label_pcc, *force_platesolve;
+	GtkWidget *button_cc_ok, *button_spcc_ok, *catalog_label,
+			*pcc_catalog_label, *catalog_box_pcc, *frame_cc_bkg,
+			*catalog_label_pcc, *spcc_options, *spcc_do_plot, *spcc_nb_controls,
+			*spcc_toggle_nb;
 	GtkWindow *parent;
 	GtkAdjustment *selection_cc_black_adjustment[4];
 
-	button_ips_ok = lookup_widget("buttonIPS_ok");
 	button_cc_ok = lookup_widget("button_cc_ok");
+	button_spcc_ok = lookup_widget("button_spcc_ok");
 	catalog_label = lookup_widget("GtkLabelCatalog");
+	pcc_catalog_label = lookup_widget("photometric_catalog_label");
 	catalog_label_pcc = lookup_widget("GtkLabelCatalogPCC");
-	catalog_box_ips = lookup_widget("ComboBoxIPSCatalog");
 	catalog_box_pcc = lookup_widget("ComboBoxPCCCatalog");
-	catalog_auto = lookup_widget("GtkCheckButton_OnlineCat");
 	frame_cc_bkg = lookup_widget("frame_cc_background");
-	force_platesolve = lookup_widget("force_astrometry_button");
+	spcc_options = lookup_widget("spcc_options");
+	spcc_do_plot = lookup_widget("spcc_plot_fits");
+	spcc_nb_controls = lookup_widget("spcc_nb_controls");
+	spcc_toggle_nb = lookup_widget("spcc_toggle_nb");
 
-	parent = GTK_WINDOW(lookup_widget("ImagePlateSolver_Dial"));
+	parent = GTK_WINDOW(lookup_widget("s_pcc_dialog"));
 
 	selection_cc_black_adjustment[0] = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment_cc_bkg_x"));
 	selection_cc_black_adjustment[1] = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment_cc_bkg_y"));
 	selection_cc_black_adjustment[2] = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment_cc_bkg_w"));
 	selection_cc_black_adjustment[3] = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment_cc_bkg_h"));
 
-	gtk_widget_set_visible(button_ips_ok, FALSE);
 	gtk_widget_set_visible(button_cc_ok, TRUE);
+	gtk_widget_set_visible(button_spcc_ok, FALSE);
 	gtk_widget_set_visible(catalog_label, FALSE);
+	gtk_widget_set_visible(pcc_catalog_label, TRUE);
 	gtk_widget_set_visible(catalog_label_pcc, TRUE);
-	gtk_widget_set_visible(catalog_box_ips, FALSE);
 	gtk_widget_set_visible(catalog_box_pcc, TRUE);
-	gtk_widget_set_visible(catalog_auto, FALSE);
 	gtk_widget_set_visible(frame_cc_bkg, TRUE);
-	gtk_widget_set_visible(force_platesolve, TRUE);
+	gtk_widget_set_visible(spcc_options, FALSE);
+	gtk_widget_set_visible(spcc_do_plot, FALSE);
+	gtk_widget_set_visible(spcc_nb_controls, FALSE);
+	gtk_widget_set_visible(spcc_toggle_nb, FALSE);
 	gtk_widget_grab_focus(button_cc_ok);
 
 	gtk_window_set_title(parent, _("Photometric Color Calibration"));
@@ -721,15 +203,100 @@ void initialize_photometric_cc_dialog() {
 	gtk_adjustment_set_value(selection_cc_black_adjustment[2], 0);
 	gtk_adjustment_set_value(selection_cc_black_adjustment[3], 0);
 
-	// not sure about this one. Fails for a lot of images
-	//gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("downsample_ips_button")), gfit.rx > 6000);
+	on_combophoto_catalog_changed(GTK_COMBO_BOX(catalog_box_pcc), NULL);
+	gtk_label_set_text(GTK_LABEL(lookup_widget("astrometry_catalog_label")), "");
 }
 
-int get_photometry_catalog() {
+void populate_nb_spinbuttons() {
+	GtkSpinButton *button = GTK_SPIN_BUTTON(lookup_widget("spcc_nb_r_wl"));
+	gtk_spin_button_set_value(button, com.pref.spcc.red_wl);
+	button = GTK_SPIN_BUTTON(lookup_widget("spcc_nb_g_wl"));
+	gtk_spin_button_set_value(button, com.pref.spcc.green_wl);
+	button = GTK_SPIN_BUTTON(lookup_widget("spcc_nb_b_wl"));
+	gtk_spin_button_set_value(button, com.pref.spcc.blue_wl);
+	button = GTK_SPIN_BUTTON(lookup_widget("spcc_nb_r_bw"));
+	gtk_spin_button_set_value(button, com.pref.spcc.red_bw);
+	button = GTK_SPIN_BUTTON(lookup_widget("spcc_nb_g_bw"));
+	gtk_spin_button_set_value(button, com.pref.spcc.green_bw);
+	button = GTK_SPIN_BUTTON(lookup_widget("spcc_nb_b_bw"));
+	gtk_spin_button_set_value(button, com.pref.spcc.blue_bw);
+}
+
+void initialize_spectrophotometric_cc_dialog() {
+	GtkWidget *button_cc_ok, *button_spcc_ok, *catalog_label,
+			*pcc_catalog_label, *catalog_box_pcc, *frame_cc_bkg,
+			*catalog_label_pcc, *spcc_options, *spcc_do_plot, *spcc_nb_controls,
+			*spcc_toggle_nb;
+	GtkSwitch *monoselector;
+	GtkWindow *parent;
+	GtkAdjustment *selection_cc_black_adjustment[4];
+
+	button_cc_ok = lookup_widget("button_cc_ok");
+	button_spcc_ok = lookup_widget("button_spcc_ok");
+	catalog_label = lookup_widget("GtkLabelCatalog");
+	pcc_catalog_label = lookup_widget("photometric_catalog_label");
+	catalog_label_pcc = lookup_widget("GtkLabelCatalogPCC");
+	catalog_box_pcc = lookup_widget("ComboBoxPCCCatalog");
+	frame_cc_bkg = lookup_widget("frame_cc_background");
+	spcc_options = lookup_widget("spcc_options");
+	spcc_do_plot = lookup_widget("spcc_plot_fits");
+	spcc_nb_controls = lookup_widget("spcc_nb_controls");
+	spcc_toggle_nb = lookup_widget("spcc_toggle_nb");
+	monoselector = GTK_SWITCH(lookup_widget("spcc_sensor_switch"));
+
+	parent = GTK_WINDOW(lookup_widget("s_pcc_dialog"));
+
+	selection_cc_black_adjustment[0] = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment_cc_bkg_x"));
+	selection_cc_black_adjustment[1] = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment_cc_bkg_y"));
+	selection_cc_black_adjustment[2] = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment_cc_bkg_w"));
+	selection_cc_black_adjustment[3] = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustment_cc_bkg_h"));
+
+	gtk_widget_set_visible(button_cc_ok, FALSE);
+	gtk_widget_set_visible(button_spcc_ok, TRUE);
+	gtk_widget_set_visible(catalog_label, FALSE);
+	gtk_widget_set_visible(pcc_catalog_label, FALSE);
+	gtk_widget_set_visible(catalog_label_pcc, FALSE);
+	gtk_widget_set_visible(catalog_box_pcc, FALSE);
+	gtk_widget_set_visible(frame_cc_bkg, TRUE);
+	gtk_widget_set_visible(spcc_options, TRUE);
+	gtk_widget_set_visible(spcc_do_plot, TRUE);
+	gtk_widget_grab_focus(button_cc_ok);
+	gtk_widget_set_visible(spcc_nb_controls, com.pref.spcc.nb_mode);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(spcc_toggle_nb), com.pref.spcc.nb_mode);
+	gtk_widget_set_visible(spcc_toggle_nb, TRUE);
+	gtk_expander_set_expanded(GTK_EXPANDER(spcc_options), TRUE);
+
+	gtk_window_set_title(parent, _("Spectrophotometric Color Calibration"));
+
+	gtk_adjustment_set_upper(selection_cc_black_adjustment[0], gfit.rx);
+	gtk_adjustment_set_upper(selection_cc_black_adjustment[1], gfit.ry);
+	gtk_adjustment_set_upper(selection_cc_black_adjustment[2], gfit.rx);
+	gtk_adjustment_set_upper(selection_cc_black_adjustment[3], gfit.ry);
+	gtk_adjustment_set_value(selection_cc_black_adjustment[0], 0);
+	gtk_adjustment_set_value(selection_cc_black_adjustment[1], 0);
+	gtk_adjustment_set_value(selection_cc_black_adjustment[2], 0);
+	gtk_adjustment_set_value(selection_cc_black_adjustment[3], 0);
+
+	populate_spcc_combos();
+	on_combophoto_catalog_changed(GTK_COMBO_BOX(catalog_box_pcc), NULL);
+	gtk_label_set_text(GTK_LABEL(lookup_widget("astrometry_catalog_label")), "");
+	g_signal_handlers_block_by_func(G_OBJECT(monoselector), on_spcc_sensor_switch_state_set, NULL);
+	gtk_switch_set_active(monoselector, com.pref.spcc.is_mono);
+	g_signal_handlers_unblock_by_func(G_OBJECT(monoselector), on_spcc_sensor_switch_state_set, NULL);
+	on_spcc_sensor_switch_state_set(monoselector, com.pref.spcc.is_mono, lookup_widget("spcc_label_switch"));
+	g_signal_handlers_block_by_func(G_OBJECT(spcc_toggle_nb), on_spcc_toggle_nb_toggled, NULL);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(spcc_toggle_nb), com.pref.spcc.nb_mode);
+	g_signal_handlers_unblock_by_func(G_OBJECT(spcc_toggle_nb), on_spcc_toggle_nb_toggled, NULL);
+	populate_nb_spinbuttons();
+}
+
+int get_photometry_catalog_from_GUI() {
 	GtkComboBox *box = GTK_COMBO_BOX(lookup_widget("ComboBoxPCCCatalog"));
-	if (gtk_combo_box_get_active(box) == 1)
-		return APASS;
-	return NOMAD;
+	if (gtk_combo_box_get_active(box) == 2)
+		return CAT_GAIADR3;
+	else if (gtk_combo_box_get_active(box) == 1)
+		return CAT_APASS;
+	return CAT_NOMAD;
 }
 
 /*****
@@ -745,7 +312,19 @@ void on_button_cc_ok_clicked(GtkButton *button, gpointer user_data) {
 		siril_message_dialog(GTK_MESSAGE_WARNING, _("There is no selection"),
 				_("Make a selection of the background area"));
 	}
-	else start_photometric_cc();
+	else start_photometric_cc(FALSE);
+}
+
+void on_button_spcc_ok_clicked(GtkButton *button, gpointer user_data) {
+	GtkToggleButton *auto_bkg;
+
+	auto_bkg = GTK_TOGGLE_BUTTON(lookup_widget("button_cc_bkg_auto"));
+
+	if ((!gtk_toggle_button_get_active(auto_bkg)) && (!is_selection_ok())) {
+		siril_message_dialog(GTK_MESSAGE_WARNING, _("There is no selection"),
+				_("Make a selection of the background area"));
+	}
+	else start_photometric_cc(TRUE);
 }
 
 void on_button_cc_bkg_auto_toggled(GtkToggleButton *button,
@@ -778,4 +357,607 @@ void on_button_cc_bkg_selection_clicked(GtkButton *button, gpointer user_data) {
 	gtk_spin_button_set_value(selection_cc_bkg_value[3], com.selection.h);
 
 	delete_selected_area(); // needed because we don't want the selection being used for astrometry
+}
+
+void on_combophoto_catalog_changed(GtkComboBox *combo, gpointer user_data) {
+	static gboolean have_local_cat = FALSE;
+	static GtkLabel *photocat_label = NULL;
+	if (!photocat_label) {
+		photocat_label = GTK_LABEL(lookup_widget("photometric_catalog_label"));
+		have_local_cat = local_catalogues_available();
+	}
+	if (gtk_combo_box_get_active(combo) > 0 || !have_local_cat) // 1 = APASS
+		gtk_label_set_text(photocat_label, _("(online catalogue)"));
+	else gtk_label_set_text(photocat_label, _("(local catalogue)"));
+}
+
+static void set_bg_sigma(struct photometric_cc_data *args) {
+	GtkWidget *lower_widget = lookup_widget("bg_tol_lower");
+	GtkWidget *upper_widget = lookup_widget("bg_tol_upper");
+	args->t0 = 0.f - gtk_spin_button_get_value(GTK_SPIN_BUTTON(lower_widget));
+	args->t1 = gtk_spin_button_get_value(GTK_SPIN_BUTTON(upper_widget));
+}
+
+static int set_spcc_args(struct photometric_cc_data *args) {
+	GtkWidget *mono_sensor_check = lookup_widget("spcc_sensor_switch");
+	GtkWidget *whiteref = lookup_widget("combo_spcc_whitepoint");
+	GtkWidget *monosensor = lookup_widget("combo_spcc_sensors_mono");
+	GtkWidget *oscsensor = lookup_widget("combo_spcc_sensors_osc");
+	GtkWidget *filters_r = lookup_widget("combo_spcc_filters_r");
+	GtkWidget *filters_g = lookup_widget("combo_spcc_filters_g");
+	GtkWidget *filters_b = lookup_widget("combo_spcc_filters_b");
+	GtkWidget *filters_osc = lookup_widget("combo_spcc_filters_osc");
+	GtkWidget *filters_lpf = lookup_widget("combo_spcc_filters_lpf");
+	GtkWidget *spcc_plot = lookup_widget("spcc_plot_fits");
+	GtkWidget *nb_mode = lookup_widget("spcc_toggle_nb");
+	GtkWidget *nb_r_wl = lookup_widget("spcc_nb_r_wl");
+	GtkWidget *nb_g_wl = lookup_widget("spcc_nb_g_wl");
+	GtkWidget *nb_b_wl = lookup_widget("spcc_nb_b_wl");
+	GtkWidget *nb_r_bw = lookup_widget("spcc_nb_r_bw");
+	GtkWidget *nb_g_bw = lookup_widget("spcc_nb_g_bw");
+	GtkWidget *nb_b_bw = lookup_widget("spcc_nb_b_bw");
+
+	args->spcc_mono_sensor = gtk_switch_get_active(GTK_SWITCH(mono_sensor_check));
+	args->selected_white_ref = gtk_combo_box_get_active(GTK_COMBO_BOX(whiteref));
+	args->selected_sensor_m = gtk_combo_box_get_active(GTK_COMBO_BOX(monosensor));
+	args->selected_sensor_osc = gtk_combo_box_get_active(GTK_COMBO_BOX(oscsensor));
+	args->selected_filter_r = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_r));
+	args->selected_filter_g = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_g));
+	args->selected_filter_b = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_b));
+	args->selected_filter_osc = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_osc));
+	GList *osc = g_list_nth(com.spcc_data.osc_sensors, args->selected_sensor_osc);
+	if (osc) {
+		osc_sensor *oscsen = (osc_sensor*) osc->data;
+		args->is_dslr = oscsen->channel[0].is_dslr;
+	} else {
+		args->is_dslr = com.pref.spcc.is_dslr;
+	}
+
+	args->selected_filter_lpf = gtk_combo_box_get_active(GTK_COMBO_BOX(filters_lpf));
+	args->do_plot = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(spcc_plot));
+	args->nb_mode = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(nb_mode));
+	args->nb_center[RLAYER] = gtk_spin_button_get_value(GTK_SPIN_BUTTON(nb_r_wl));
+	args->nb_center[GLAYER] = gtk_spin_button_get_value(GTK_SPIN_BUTTON(nb_g_wl));
+	args->nb_center[BLAYER] = gtk_spin_button_get_value(GTK_SPIN_BUTTON(nb_b_wl));
+	args->nb_bandwidth[RLAYER] = gtk_spin_button_get_value(GTK_SPIN_BUTTON(nb_r_bw));
+	args->nb_bandwidth[GLAYER] = gtk_spin_button_get_value(GTK_SPIN_BUTTON(nb_g_bw));
+	args->nb_bandwidth[BLAYER] = gtk_spin_button_get_value(GTK_SPIN_BUTTON(nb_b_bw));
+	// Check for problems
+	if (args->spcc_mono_sensor) {
+		if (args->selected_sensor_m == -1 || args->selected_filter_r == -1 ||
+						args->selected_filter_g == -1 || args->selected_filter_b == -1 ||
+						args->selected_white_ref == -1) {
+			siril_log_color_message(_("Error: ensure mono sensor, R, G and B filters and white reference are selected.\n"), "red");
+			return 1;
+		}
+	} else {
+		if (args->selected_sensor_osc == -1 || args->selected_filter_osc == -1 ||
+						(args->selected_filter_lpf == -1 && args->is_dslr == TRUE) ||
+						args->selected_white_ref == -1) {
+			siril_log_color_message(_("Error: ensure OSC sensor, OSC filter and white reference are selected.\n"), "red");
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int get_favourite_spccobject(GList *list, const gchar *favourite) {
+	if (!list)
+		return 0;
+
+	GList *current = list;
+	while (current != NULL) {
+		spcc_object *haystack = current->data;
+		if (g_strcmp0(haystack->name, favourite) == 0) {
+			return g_list_position(list, current);  // Found a match, return the GList node
+		}
+		current = current->next;
+	}
+	return -1;  // No match found
+}
+
+int get_favourite_oscsensor(GList *list, const gchar *favourite) {
+	if (!list)
+		return 0;
+
+	GList *current = list;
+	while (current != NULL) {
+		osc_sensor *haystack = current->data;
+		if (g_strcmp0(haystack->channel[0].model, favourite) == 0) {
+			return g_list_position(list, current);  // Found a match, return the GList node
+		}
+		current = current->next;
+	}
+	return -1;  // No match found
+}
+
+void on_spcc_combo_changed(GtkComboBox *combo, gpointer user_data);
+
+void fill_combo_from_glist(gchar *comboname, GList *list, int channel, const gchar *favourite) {
+    GtkComboBoxText *combo;
+
+    combo = GTK_COMBO_BOX_TEXT(lookup_widget(comboname));
+	g_signal_handlers_block_by_func(G_OBJECT(combo), on_spcc_combo_changed, NULL);
+    // Clear the model
+    gtk_combo_box_text_remove_all(combo);
+
+    GList *iterator = list;
+
+    if (list == com.spcc_data.osc_sensors) {
+        while (iterator) {
+            osc_sensor *object = (osc_sensor *)iterator->data;
+            gtk_combo_box_text_append_text(combo, object->channel[0].model);
+            iterator = iterator->next;
+        }
+		g_signal_handlers_unblock_by_func(G_OBJECT(combo), on_spcc_combo_changed, NULL);
+        gtk_combo_box_set_active(GTK_COMBO_BOX(combo), get_favourite_oscsensor(list, favourite));
+    } else {
+        while (iterator) {
+            spcc_object *object = (spcc_object *)iterator->data;
+            gtk_combo_box_text_append_text(combo, object->name);
+            iterator = iterator->next;
+        }
+		g_signal_handlers_unblock_by_func(G_OBJECT(combo), on_spcc_combo_changed, NULL);
+        gtk_combo_box_set_active(GTK_COMBO_BOX(combo), get_favourite_spccobject(list, favourite));
+    }
+}
+
+void populate_spcc_combos() {
+	// Initialize filters if required
+	if (!spcc_filters_initialized) {
+		load_all_spcc_metadata();
+		fill_combo_from_glist("combo_spcc_filters_osc", com.spcc_data.osc_filters, -1, com.pref.spcc.oscfilterpref);
+		fill_combo_from_glist("combo_spcc_filters_r", com.spcc_data.mono_filters[RLAYER], RLAYER, com.pref.spcc.redpref);
+		fill_combo_from_glist("combo_spcc_filters_g", com.spcc_data.mono_filters[GLAYER], GLAYER, com.pref.spcc.greenpref);
+		fill_combo_from_glist("combo_spcc_filters_b", com.spcc_data.mono_filters[BLAYER], BLAYER, com.pref.spcc.bluepref);
+		fill_combo_from_glist("combo_spcc_filters_lpf", com.spcc_data.osc_lpf, -1, com.pref.spcc.lpfpref);
+		fill_combo_from_glist("combo_spcc_sensors_mono", com.spcc_data.mono_sensors, -1, com.pref.spcc.monosensorpref);
+		fill_combo_from_glist("combo_spcc_sensors_osc", com.spcc_data.osc_sensors, -1, com.pref.spcc.oscsensorpref);
+		fill_combo_from_glist("combo_spcc_whitepoint", com.spcc_data.wb_ref, -1, "Average Spiral Galaxy");
+		GtkSwitch *switch_widget = GTK_SWITCH(lookup_widget("spcc_sensor_switch"));
+		gtk_switch_set_active(switch_widget, com.pref.spcc.is_mono);
+		spcc_filters_initialized = TRUE;
+	}
+}
+
+static void set_osc_lpf_visibility() {
+	gboolean sensor_is_osc = !gtk_switch_get_active(GTK_SWITCH(lookup_widget("spcc_sensor_switch")));
+	gboolean is_dslr;
+	GList *osc = g_list_nth(com.spcc_data.osc_sensors, gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_spcc_sensors_osc"))));
+	if (osc) {
+		osc_sensor *oscsensor = (osc_sensor*) osc->data;
+		is_dslr = oscsensor->channel[0].is_dslr;
+	} else {
+		is_dslr = com.pref.spcc.is_dslr;
+	}
+	GtkWidget *widget = lookup_widget("label_spcc_filters_lpf");
+	gtk_widget_set_visible(widget, (is_dslr && sensor_is_osc));
+	widget = lookup_widget("combo_spcc_filters_lpf");
+	gtk_widget_set_visible(widget, (is_dslr && sensor_is_osc));
+	widget = lookup_widget("details_spcc_filters_lpf");
+	gtk_widget_set_visible(widget, (is_dslr && sensor_is_osc));
+}
+
+void on_spcc_sensor_switch_state_set(GtkSwitch *widget, gboolean state, gpointer user_data) {
+	com.pref.spcc.is_mono = state;
+	GtkLabel *label = GTK_LABEL(user_data);
+    GtkWidget *w;
+
+    state ? gtk_label_set_text(label, _("mono")) : gtk_label_set_text(label, _("one-shot color (OSC)"));
+
+	w = lookup_widget("label_spcc_sensors_osc");
+	gtk_widget_set_visible(w, !state);
+	w = lookup_widget("combo_spcc_sensors_osc");
+	gtk_widget_set_visible(w, !state);
+	w = lookup_widget("details_spcc_sensors_osc");
+	gtk_widget_set_visible(w, !state);
+	w = lookup_widget("label_spcc_filters_osc");
+	gtk_widget_set_visible(w, !state && !com.pref.spcc.nb_mode);
+	w = lookup_widget("combo_spcc_filters_osc");
+	gtk_widget_set_visible(w, !state && !com.pref.spcc.nb_mode);
+	w = lookup_widget("details_spcc_filters_osc");
+	gtk_widget_set_visible(w, !state && !com.pref.spcc.nb_mode);
+	w = lookup_widget("combo_spcc_sensors_mono");
+	gtk_widget_set_visible(w, state);
+	w = lookup_widget("label_spcc_sensors_mono");
+	gtk_widget_set_visible(w, state);
+	w = lookup_widget("details_spcc_sensors_mono");
+	gtk_widget_set_visible(w, state);
+	w = lookup_widget("combo_spcc_filters_r");
+	gtk_widget_set_visible(w, state && !com.pref.spcc.nb_mode);
+	w = lookup_widget("label_spcc_filters_r");
+	gtk_widget_set_visible(w, state && !com.pref.spcc.nb_mode);
+	w = lookup_widget("details_spcc_filters_r");
+	gtk_widget_set_visible(w, state && !com.pref.spcc.nb_mode);
+	w = lookup_widget("combo_spcc_filters_g");
+	gtk_widget_set_visible(w, state && !com.pref.spcc.nb_mode);
+	w = lookup_widget("label_spcc_filters_g");
+	gtk_widget_set_visible(w, state && !com.pref.spcc.nb_mode);
+	w = lookup_widget("details_spcc_filters_g");
+	gtk_widget_set_visible(w, state && !com.pref.spcc.nb_mode);
+	w = lookup_widget("combo_spcc_filters_b");
+	gtk_widget_set_visible(w, state && !com.pref.spcc.nb_mode);
+	w = lookup_widget("label_spcc_filters_b");
+	gtk_widget_set_visible(w, state && !com.pref.spcc.nb_mode);
+	w = lookup_widget("details_spcc_filters_b");
+	gtk_widget_set_visible(w, state && !com.pref.spcc.nb_mode);
+	set_osc_lpf_visibility();
+}
+
+void on_osc_filter_enable_toggled(GtkToggleButton *button, gpointer user_data) {
+	int state = gtk_toggle_button_get_active(button);
+	GtkWidget *widget = lookup_widget("combo_spcc_filters_osc");
+	gtk_widget_set_sensitive(widget, state);
+}
+
+static spcc_object *cbdata = NULL;
+
+void on_spcc_details_plot_clicked(GtkButton *button, gpointer user_data);
+
+void on_spcc_details_clicked(GtkButton *button, gpointer user_data) {
+	GtkWidget *win = lookup_widget("spcc_details");
+	gtk_widget_set_visible(win, FALSE);
+	GtkWidget *widget = GTK_WIDGET(button);
+	GtkComboBox *combo = NULL;
+	int n;
+	GList *list = NULL;
+	spcc_object *object = NULL;
+	if (widget == lookup_widget("details_spcc_sensors_osc")) {
+		combo = GTK_COMBO_BOX(lookup_widget("combo_spcc_sensors_osc"));
+		n = gtk_combo_box_get_active(combo);
+		if (n == -1)
+			goto no_selection;
+		list = g_list_nth(com.spcc_data.osc_sensors, n);
+	} else if (widget == lookup_widget("details_spcc_sensors_mono")) {
+		combo = GTK_COMBO_BOX(lookup_widget("combo_spcc_sensors_mono"));
+		n = gtk_combo_box_get_active(combo);
+		if (n == -1)
+			goto no_selection;
+		list = g_list_nth(com.spcc_data.mono_sensors, n);
+	} else if (widget == lookup_widget("details_spcc_filters_osc")) {
+		combo = GTK_COMBO_BOX(lookup_widget("combo_spcc_filters_osc"));
+		n = gtk_combo_box_get_active(combo);
+		if (n == -1)
+			goto no_selection;
+		list = g_list_nth(com.spcc_data.osc_filters, n);
+	} else if (widget == lookup_widget("details_spcc_filters_r")) {
+		combo = GTK_COMBO_BOX(lookup_widget("combo_spcc_filters_r"));
+		n = gtk_combo_box_get_active(combo);
+		if (n == -1)
+			goto no_selection;
+		list = g_list_nth(com.spcc_data.mono_filters[RLAYER], n);
+	} else if (widget == lookup_widget("details_spcc_filters_g")) {
+		combo = GTK_COMBO_BOX(lookup_widget("combo_spcc_filters_g"));
+		n = gtk_combo_box_get_active(combo);
+		if (n == -1)
+			goto no_selection;
+		list = g_list_nth(com.spcc_data.mono_filters[GLAYER], n);
+	} else if (widget == lookup_widget("details_spcc_filters_b")) {
+		combo = GTK_COMBO_BOX(lookup_widget("combo_spcc_filters_b"));
+		n = gtk_combo_box_get_active(combo);
+		if (n == -1)
+			goto no_selection;
+		list = g_list_nth(com.spcc_data.mono_filters[BLAYER], n);
+	} else if (widget == lookup_widget("details_spcc_filters_lpf")) {
+		combo = GTK_COMBO_BOX(lookup_widget("combo_spcc_filters_lpf"));
+		n = gtk_combo_box_get_active(combo);
+		if (n == -1)
+			goto no_selection;
+		list = g_list_nth(com.spcc_data.osc_lpf, n);
+	} else if (widget == lookup_widget("details_spcc_wb")) {
+		combo = GTK_COMBO_BOX(lookup_widget("combo_spcc_whitepoint"));
+		n = gtk_combo_box_get_active(combo);
+		if (n == -1)
+			goto no_selection;
+		list = g_list_nth(com.spcc_data.wb_ref, n);
+	}
+	if (!list)
+		goto no_selection;
+	// For OSC sensors which use the osc_sensor data structure this is a bit cheeky
+	// but it works because the first element of the struct is a spcc_object, and
+	// saves handling them differently.
+	object = (spcc_object*) list->data;
+
+	GtkLabel *label = GTK_LABEL(lookup_widget("spcc_details_name"));
+	gtk_label_set_text(label, object->type == OSC_SENSORS ? object->model : object->name);
+	label = GTK_LABEL(lookup_widget("spcc_details_mfr"));
+	gtk_label_set_text(label, object->manufacturer);
+	label = GTK_LABEL(lookup_widget("spcc_details_version"));
+	gchar *version_text = g_strdup_printf("%d", object->version);
+	gtk_label_set_text(label, version_text);
+	g_free(version_text);
+	label = GTK_LABEL(lookup_widget("spcc_details_source"));
+	gtk_label_set_text(label, object->source);
+	label = GTK_LABEL(lookup_widget("spcc_details_nsamples"));
+	gchar *nsamples_text = g_strdup_printf("%d", object->n);
+	gtk_label_set_text(label, nsamples_text);
+	g_free(nsamples_text);
+	label = GTK_LABEL(lookup_widget("spcc_details_comment"));
+	gboolean comment_visible;
+	if (object->comment != NULL) {
+		gtk_label_set_text(label, object->comment);
+		comment_visible = TRUE;
+	} else {
+		comment_visible = FALSE;
+	}
+	gtk_widget_set_visible(GTK_WIDGET(label), comment_visible);
+	gtk_widget_set_visible(GTK_WIDGET(lookup_widget("spcc_details_comment_label")), comment_visible);
+	cbdata = object;
+
+	gtk_window_set_transient_for(GTK_WINDOW(win), GTK_WINDOW(lookup_widget("s_pcc_dialog")));
+	/* Here this is wanted that we do not use siril_open_dialog */
+	gtk_widget_show(win);
+	return;
+	no_selection:
+	siril_message_dialog( GTK_MESSAGE_WARNING, _("Warning"), _("No selection made: no details to show."));
+	return;
+}
+
+static void normalize_y(spcc_object *object, double min_wl, double max_wl) {
+	int i = 0, j = 0;
+	double maximum = -DBL_MAX;
+	if (min_wl < object->x[0] || max_wl > object->x[object->n-1])
+		return;
+
+	while (object->x[i] < min_wl)
+		i++;
+	while (object->x[j] < max_wl)
+		j++;
+	for (int k = i ; k < j ; k++) {
+		if (object->y[k] > maximum)
+			maximum = object->y[k];
+	}
+	for (int k = 0 ; k < object->n ; k++)
+		object->y[k] /= maximum;
+}
+
+void on_spcc_plot_all_clicked(GtkButton *button, gpointer user_data) {
+	struct photometric_cc_data args = { 0 };
+	if (set_spcc_args(&args))
+		return;
+	GList *sensor_list = args.spcc_mono_sensor ? com.spcc_data.mono_sensors : com.spcc_data.osc_sensors;
+	GList *filter_list_r = com.spcc_data.mono_filters[RLAYER];
+	GList *filter_list_g = com.spcc_data.mono_filters[GLAYER];
+	GList *filter_list_b = com.spcc_data.mono_filters[BLAYER];
+	GList *filter_list_lpf = com.spcc_data.osc_lpf;
+	GList *filter_list_osc = com.spcc_data.osc_filters;
+	GList *whiteref_list = com.spcc_data.wb_ref;
+	siril_plot_data *spl_data = NULL;
+	spl_data = malloc(sizeof(siril_plot_data));
+	init_siril_plot_data(spl_data);
+	siril_plot_set_xlabel(spl_data, _("Wavelength / nm"));
+	siril_plot_set_savename(spl_data, "SPCC_data");
+	siril_plot_set_title(spl_data, _("SPCC Data"));
+	siril_plot_set_ylabel(spl_data, _("Quantum Efficiency / Transmittance / Rel. Photon Count"));
+	if (args.spcc_mono_sensor) {
+		spcc_object *sensor = NULL, *filter_r = NULL, *filter_g = NULL, *filter_b = NULL, *whiteref = NULL;
+		if (args.selected_sensor_m >= 0 && args.selected_sensor_m < g_list_length (sensor_list))
+			sensor = (spcc_object*) g_list_nth(sensor_list, args.selected_sensor_m)->data;
+		if (args.selected_filter_r >= 0 && args.selected_filter_r < g_list_length (filter_list_r))
+			filter_r = (spcc_object*) g_list_nth(filter_list_r, args.selected_filter_r)->data;
+		if (args.selected_filter_g >= 0 && args.selected_filter_g < g_list_length (filter_list_g))
+			filter_g = (spcc_object*) g_list_nth(filter_list_g, args.selected_filter_g)->data;
+		if (args.selected_filter_b >= 0 && args.selected_filter_b < g_list_length (filter_list_b))
+			filter_b = (spcc_object*) g_list_nth(filter_list_b, args.selected_filter_b)->data;
+		if (args.selected_white_ref >= 0 && args.selected_white_ref < g_list_length (whiteref_list))
+			whiteref = (spcc_object*) g_list_nth(whiteref_list, args.selected_white_ref)->data;
+		spcc_object* structs[5] = {  whiteref, sensor, filter_r, filter_g, filter_b };
+		for (int i = 0 ; i <5 ; i++) {
+			if (structs[i]) {
+				load_spcc_object_arrays(structs[i]);
+				if (structs[i] == whiteref)
+					normalize_y(structs[i], 400, 700);
+				gchar *spl_legend = g_strdup(structs[i]->name);
+				siril_plot_add_xydata(spl_data, spl_legend, structs[i]->n, structs[i]->x, structs[i]->y, NULL, NULL);
+				siril_plot_set_nth_color(spl_data, i+1, (double[3]){(double) (i == 2), (double) ((i == 3) + ((i == 1) * 0.5)), (double) ((i == 4) + ((i == 1) * 0.5)) });
+				g_free(spl_legend);
+				spcc_object_free_arrays(structs[i]);
+			}
+		}
+	} else {
+		gboolean is_dslr;
+		GList *osc = g_list_nth(com.spcc_data.osc_sensors, gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_spcc_sensors_osc"))));
+		if (osc) {
+			osc_sensor *oscsensor = (osc_sensor*) osc->data;
+			is_dslr = oscsensor->channel[0].is_dslr;
+		} else {
+			is_dslr = com.pref.spcc.is_dslr;
+		}
+		spcc_object *sensor_r = NULL, *sensor_g = NULL, *sensor_b = NULL, *filter_osc = NULL, *filter_lpf = NULL, *whiteref = NULL;
+		if (args.selected_sensor_osc >= 0 && args.selected_sensor_osc < g_list_length (sensor_list)) {
+			osc_sensor *osc = (osc_sensor*) g_list_nth(sensor_list, args.selected_sensor_osc)->data;
+			sensor_r = &osc->channel[RLAYER];
+			sensor_g = &osc->channel[GLAYER];
+			sensor_b = &osc->channel[BLAYER];
+		}
+		if (args.selected_filter_osc >= 0 && args.selected_filter_osc < g_list_length (filter_list_osc))
+			filter_osc = (spcc_object*) g_list_nth(filter_list_osc, args.selected_filter_osc)->data;
+		if (args.selected_filter_lpf >= 0 && args.selected_filter_lpf < g_list_length (filter_list_lpf))
+			filter_lpf = (spcc_object*) g_list_nth(filter_list_lpf, args.selected_filter_lpf)->data;
+		if (args.selected_white_ref >= 0 && args.selected_white_ref < g_list_length (whiteref_list))
+			whiteref = (spcc_object*) g_list_nth(whiteref_list, args.selected_white_ref)->data;
+		spcc_object* structs[6] = { whiteref, sensor_r, sensor_g, sensor_b, filter_osc, filter_lpf };
+		int max_plot = is_dslr ? 6 : 5;
+		for (int i = 0 ; i < max_plot ; i++) {
+			if (structs[i]) {
+				load_spcc_object_arrays(structs[i]);
+				if (structs[i] == whiteref)
+					normalize_y(structs[i], 400, 700);
+				gchar *spl_legend = g_strdup(structs[i]->name);
+				siril_plot_add_xydata(spl_data, spl_legend, structs[i]->n, structs[i]->x, structs[i]->y, NULL, NULL);
+				siril_plot_set_nth_color(spl_data, i+1, (double[3]){(double) (i == 1 || i == 4), (double) ((i == 2) + ((i == 5) * 0.5)), (double) ((i == 3 || i == 4) + ((i == 5) * 0.5)) });
+				g_free(spl_legend);
+				spcc_object_free_arrays(structs[i]);
+			}
+		}
+	}
+	spl_data->datamin.x = MIN_PLOT;
+	spl_data->datamax.x = MAX_PLOT;
+	spl_data->datamax.y = min(spl_data->datamax.y, 1.2);
+	spl_data->cfgdata.line.sz = 2;
+	siril_add_idle(create_new_siril_plot_window, spl_data);
+	siril_add_idle(end_generic, NULL);
+}
+
+void on_spcc_details_plot_clicked(GtkButton *button, gpointer user_data) {
+	siril_plot_data *spl_data = NULL;
+	gboolean is_osc_sensor = (cbdata->type == OSC_SENSORS);
+	spl_data = malloc(sizeof(siril_plot_data));
+	init_siril_plot_data(spl_data);
+	siril_plot_set_xlabel(spl_data, _("Wavelength / nm"));
+	siril_plot_set_savename(spl_data, "SPCC_data");
+	if (is_osc_sensor) {
+		osc_sensor *osc = (osc_sensor*) cbdata;
+		gchar *title = g_strdup_printf(_("SPCC Data: %s"), osc->channel[0].model);
+		siril_plot_set_title(spl_data, title);
+		siril_plot_set_ylabel(spl_data, _("Quantum Efficiency"));
+		for (int i = 0 ; i <3 ; i++) {
+			load_spcc_object_arrays(&osc->channel[i]);
+			gchar *spl_legend = g_strdup(osc->channel[i].name);
+			siril_plot_add_xydata(spl_data, spl_legend, osc->channel[i].n, osc->channel[i].x, osc->channel[i].y, NULL, NULL);
+			siril_plot_set_nth_color(spl_data, i+1, (double[3]){(double) i == 0, (double) i == 1, (double) i == 2});
+			g_free(spl_legend);
+			spcc_object_free_arrays(&osc->channel[i]);
+		}
+		g_free(title);
+	} else {
+		spcc_object *object = (spcc_object*) cbdata;
+		load_spcc_object_arrays(object);
+		gchar *title = g_strdup_printf(_("SPCC Data: %s"), object->name);
+		siril_plot_set_title(spl_data, title);
+		g_free(title);
+		siril_plot_set_ylabel(spl_data, (object->type == MONO_SENSORS || object->type == OSC_SENSORS) ? _("Quantum Efficiency") : object->type == WB_REFS ? _("Relative photon count") : _("Transmittance"));
+
+		gchar *spl_legend = g_strdup(object->name);
+
+		siril_plot_add_xydata(spl_data, spl_legend, object->n, object->x, object->y, NULL, NULL);
+		spcc_object_free_arrays(object);
+	}
+	spl_data->datamin.x = MIN_PLOT;
+	if (cbdata->type != WB_REFS)
+		spl_data->datamax.x = MAX_PLOT;
+	spl_data->cfgdata.line.sz = 2;
+	siril_add_idle(create_new_siril_plot_window, spl_data);
+	siril_add_idle(end_generic, NULL);
+}
+
+void on_spcc_details_close_clicked(GtkButton *button, gpointer user_data) {
+	GtkWidget *win = lookup_widget("spcc_details");
+	gtk_widget_hide(win);
+}
+
+void on_spcc_combo_changed(GtkComboBox *combo, gpointer user_data) {
+	if (combo == GTK_COMBO_BOX(lookup_widget("combo_spcc_sensors_osc"))) {
+		int index = gtk_combo_box_get_active(combo);
+		if (com.pref.spcc.oscsensorpref) {
+			g_free(com.pref.spcc.oscsensorpref);
+			com.pref.spcc.oscsensorpref = NULL;
+		}
+		GList *list = g_list_nth(com.spcc_data.osc_sensors, index);
+		if (list) {
+			spcc_object* object = (spcc_object*) list->data;
+			com.pref.spcc.oscsensorpref = g_strdup(object->model);
+		}
+	} else if (combo == GTK_COMBO_BOX(lookup_widget("combo_spcc_sensors_mono"))) {
+		int index = gtk_combo_box_get_active(combo);
+		if (com.pref.spcc.monosensorpref) {
+			g_free(com.pref.spcc.monosensorpref);
+			com.pref.spcc.monosensorpref = NULL;
+		}
+		GList *list = g_list_nth(com.spcc_data.mono_sensors, index);
+		if (list) {
+			spcc_object* object = (spcc_object*) list->data;
+			com.pref.spcc.monosensorpref = g_strdup(object->name);
+		}
+	} else if (combo == GTK_COMBO_BOX(lookup_widget("combo_spcc_filters_osc"))) {
+		int index = gtk_combo_box_get_active(combo);
+		if (com.pref.spcc.oscfilterpref) {
+			g_free(com.pref.spcc.oscfilterpref);
+			com.pref.spcc.oscfilterpref = NULL;
+		}
+		GList *list = g_list_nth(com.spcc_data.osc_filters, index);
+		if (list) {
+			spcc_object* object = (spcc_object*) list->data;
+			com.pref.spcc.oscfilterpref = g_strdup(object->name);
+		}
+	} else if (combo == GTK_COMBO_BOX(lookup_widget("combo_spcc_filters_r"))) {
+		int index = gtk_combo_box_get_active(combo);
+		if (com.pref.spcc.redpref) {
+			g_free(com.pref.spcc.redpref);
+			com.pref.spcc.redpref = NULL;
+		}
+		GList *list = g_list_nth(com.spcc_data.mono_filters[RLAYER], index);
+		if (list) {
+			spcc_object* object = (spcc_object*) list->data;
+			com.pref.spcc.redpref = g_strdup(object->name);
+		}
+	} else if (combo == GTK_COMBO_BOX(lookup_widget("combo_spcc_filters_g"))) {
+		int index = gtk_combo_box_get_active(combo);
+		if (com.pref.spcc.greenpref) {
+			g_free(com.pref.spcc.greenpref);
+			com.pref.spcc.greenpref = NULL;
+		}
+		GList *list = g_list_nth(com.spcc_data.mono_filters[GLAYER], index);
+		if (list) {
+			spcc_object* object = (spcc_object*) list->data;
+			com.pref.spcc.greenpref = g_strdup(object->name);
+		}
+	} else if (combo == GTK_COMBO_BOX(lookup_widget("combo_spcc_filters_b"))) {
+		int index = gtk_combo_box_get_active(combo);
+		if (com.pref.spcc.bluepref) {
+			g_free(com.pref.spcc.bluepref);
+			com.pref.spcc.bluepref = NULL;
+		}
+		GList *list = g_list_nth(com.spcc_data.mono_filters[BLAYER], index);
+		if (list) {
+			spcc_object* object = (spcc_object*) list->data;
+			com.pref.spcc.bluepref = g_strdup(object->name);
+		}
+	} else if (combo == GTK_COMBO_BOX(lookup_widget("combo_spcc_filters_lpf"))) {
+		int index = gtk_combo_box_get_active(combo);
+		if (com.pref.spcc.lpfpref) {
+			g_free(com.pref.spcc.lpfpref);
+			com.pref.spcc.lpfpref = NULL;
+		}
+		GList *list = g_list_nth(com.spcc_data.osc_lpf, index);
+		if (list) {
+			spcc_object* object = (spcc_object*) list->data;
+			com.pref.spcc.lpfpref = g_strdup(object->name);
+		}
+	}
+	set_osc_lpf_visibility();
+}
+
+void on_spcc_toggle_nb_toggled(GtkToggleButton *button, gpointer user_data) {
+	gboolean state = gtk_toggle_button_get_active(button);
+	com.pref.spcc.nb_mode = state;
+	gtk_widget_set_visible(lookup_widget("spcc_nb_controls"), state);
+	gtk_widget_set_visible(lookup_widget("label_spcc_filters_r"), !state && com.pref.spcc.is_mono);
+	gtk_widget_set_visible(lookup_widget("combo_spcc_filters_r"), !state && com.pref.spcc.is_mono);
+	gtk_widget_set_visible(lookup_widget("details_spcc_filters_r"), !state && com.pref.spcc.is_mono);
+	gtk_widget_set_visible(lookup_widget("label_spcc_filters_g"), !state && com.pref.spcc.is_mono);
+	gtk_widget_set_visible(lookup_widget("combo_spcc_filters_g"), !state && com.pref.spcc.is_mono);
+	gtk_widget_set_visible(lookup_widget("details_spcc_filters_g"), !state && com.pref.spcc.is_mono);
+	gtk_widget_set_visible(lookup_widget("label_spcc_filters_b"), !state && com.pref.spcc.is_mono);
+	gtk_widget_set_visible(lookup_widget("combo_spcc_filters_b"), !state && com.pref.spcc.is_mono);
+	gtk_widget_set_visible(lookup_widget("details_spcc_filters_b"), !state && com.pref.spcc.is_mono);
+	gtk_widget_set_visible(lookup_widget("label_spcc_filters_osc"), !state && !com.pref.spcc.is_mono);
+	gtk_widget_set_visible(lookup_widget("combo_spcc_filters_osc"), !state && !com.pref.spcc.is_mono);
+	gtk_widget_set_visible(lookup_widget("details_spcc_filters_osc"), !state && !com.pref.spcc.is_mono);
+}
+
+void on_nb_spin_changed(GtkSpinButton *button, gpointer user_data) {
+	if (button == GTK_SPIN_BUTTON(lookup_widget("spcc_nb_r_wl"))) {
+		com.pref.spcc.red_wl = gtk_spin_button_get_value(button);
+	} else if (button == GTK_SPIN_BUTTON(lookup_widget("spcc_nb_g_wl"))) {
+		com.pref.spcc.green_wl = gtk_spin_button_get_value(button);
+	} else if (button == GTK_SPIN_BUTTON(lookup_widget("spcc_nb_b_wl"))) {
+		com.pref.spcc.blue_wl = gtk_spin_button_get_value(button);
+	} else if (button == GTK_SPIN_BUTTON(lookup_widget("spcc_nb_r_bw"))) {
+		com.pref.spcc.red_bw = gtk_spin_button_get_value(button);
+	} else if (button == GTK_SPIN_BUTTON(lookup_widget("spcc_nb_g_bw"))) {
+		com.pref.spcc.green_bw = gtk_spin_button_get_value(button);
+	} else if (button == GTK_SPIN_BUTTON(lookup_widget("spcc_nb_b_bw"))) {
+		com.pref.spcc.blue_bw = gtk_spin_button_get_value(button);
+	}
 }

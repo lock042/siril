@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -101,7 +101,7 @@ static void set_sensitive_layers(GtkCellLayout *cell_layout,
 	if (sequence_is_loaded() && !use_photometry) {
 		GtkTreePath *path = gtk_tree_model_get_path(tree_model, iter);
 		if (!path) return;
-		gint *index = gtk_tree_path_get_indices(path); // search by index to avoid translation problems
+		const gint *index = gtk_tree_path_get_indices(path); // search by index to avoid translation problems
 		if (!(com.seq.regparam))
 			return;
 		if (com.seq.regparam[*index] == NULL)
@@ -196,7 +196,7 @@ static void add_image_to_sequence_list(sequence *seq, int index, int layer) {
 			switch (selected_source) {
 				case r_FWHM:
 					if (is_arcsec) {
-						bin = gfit.unbinned ? (double) gfit.binning_x : 1.0;
+						bin = com.pref.binning_update ? (double) gfit.binning_x : 1.0;
 						convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][index].fwhm, bin, (double) gfit.pixel_size_x, gfit.focal_length, &fwhm);
 					} else {
 						fwhm = seq->regparam[layer][index].fwhm;
@@ -204,7 +204,7 @@ static void add_image_to_sequence_list(sequence *seq, int index, int layer) {
 					break;
 				case r_WFWHM:
 					if (is_arcsec) {
-						bin = gfit.unbinned ? (double) gfit.binning_x : 1.0;
+						bin = com.pref.binning_update ? (double) gfit.binning_x : 1.0;
 						convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][index].weighted_fwhm, bin, (double) gfit.pixel_size_x, gfit.focal_length, &fwhm);
 					} else {
 						fwhm = seq->regparam[layer][index].weighted_fwhm;
@@ -222,7 +222,7 @@ static void add_image_to_sequence_list(sequence *seq, int index, int layer) {
 				case r_NBSTARS:
 					fwhm = seq->regparam[layer][index].number_of_stars;
 					break;
-				default: 
+				default:
 					break;
 			}
 		}
@@ -329,7 +329,7 @@ static void unselect_select_frame_from_list(GtkTreeView *tree_view) {
 	for (list = references; list; list = list->next) {
 		GtkTreePath *path = gtk_tree_row_reference_get_path((GtkTreeRowReference*)list->data);
 		if (path) {
-			gint *new_index = gtk_tree_path_get_indices(path);
+			const gint *new_index = gtk_tree_path_get_indices(path);
 			GtkTreeIter iter;
 			gtk_tree_model_get_iter(GTK_TREE_MODEL(list_store), &iter, path);
 			gint real_index = get_real_index_from_index_in_list(model, &iter);
@@ -340,6 +340,10 @@ static void unselect_select_frame_from_list(GtkTreeView *tree_view) {
 			toggle_image_selection(new_index[0], real_index, initvalue);
 			gtk_tree_path_free(path);
 		}
+	}
+	if (!com.seq.imgparam[com.seq.reference_image].incl) {
+		com.seq.reference_image = -1; // reinit to -1 in order to find new reference
+		com.seq.reference_image = sequence_find_refimage(&com.seq);
 	}
 	g_list_free(references);
 	update_reg_interface(FALSE);
@@ -424,7 +428,8 @@ void on_treeview1_cursor_changed(GtkTreeView *tree_view, gpointer user_data) {
 		idx = g_value_get_int(&value) - 1;
 		if (idx != com.seq.current) {
 			fprintf(stdout, "loading image %d\n", idx);
-			seq_load_image(&com.seq, idx, TRUE);
+			if (seq_load_image(&com.seq, idx, TRUE)) // if loading fails, we fall back reloading the reference image
+				seq_load_image(&com.seq, com.seq.reference_image, TRUE);
 		}
 		g_value_unset(&value);
 	}
@@ -477,7 +482,12 @@ void fill_sequence_list(sequence *seq, int layer, gboolean as_idle) {
 static gboolean fill_sequence_list_idle(gpointer p) {
 	int i;
 	struct _seq_list *args = (struct _seq_list *)p;
-
+	if (!args)
+		return FALSE;
+	if (!args->seq) {
+		g_free(args);
+		return FALSE;
+	}
 	if (combo == NULL) combo = lookup_widget("plotCombo");
 	if (sourceCombo == NULL) sourceCombo = lookup_widget("plotSourceCombo");
 	if (arcsec == NULL) arcsec = lookup_widget("arcsecPhotometry");
@@ -509,7 +519,7 @@ static gboolean fill_sequence_list_idle(gpointer p) {
 				case r_NBSTARS:
 					gtk_tree_view_column_set_title(GTK_TREE_VIEW_COLUMN(gtk_builder_get_object(gui.builder, "treeviewcolumn5")), _("#Stars"));
 					break;
-				default: 
+				default:
 					break;
 			}
 		} else {
@@ -572,7 +582,7 @@ static gboolean fill_sequence_list_idle(gpointer p) {
 	return FALSE;
 }
 
-void exclude_single_frame(int index) {
+void exclude_include_single_frame(int index) {
 	siril_log_message(_("%s image %d in sequence %s\n"),
 			com.seq.imgparam[index].incl ? _("Excluding") : _("Including"),
 			index + 1, com.seq.seqname);
@@ -582,12 +592,16 @@ void exclude_single_frame(int index) {
 		com.seq.selnum++;
 	else {
 		com.seq.selnum--;
+	}
+	if (com.seq.selnum == 1 || com.seq.reference_image == index) {
 		if (com.seq.reference_image == index) {
 			com.seq.reference_image = -1;
 			com.seq.reference_image = sequence_find_refimage(&com.seq);
-			adjust_refimage(index);
-			sequence_list_change_reference();
+		} else {
+			com.seq.reference_image = index;
 		}
+		adjust_refimage(index);
+		sequence_list_change_reference();
 	}
 	update_reg_interface(FALSE);
 	update_stack_interface(FALSE);
@@ -600,7 +614,7 @@ void exclude_single_frame(int index) {
 void select_unselect_frames_from_list(gboolean *selected, gboolean keep) {
 	gboolean need_ref_update = FALSE;
 
-	for (int i = 0; i <= com.seq.number; i++) { // use real index
+	for (int i = 0; i < com.seq.number; i++) { // use real index
 		com.seq.imgparam[i].incl = (keep) ? selected[i] : !selected[i] && com.seq.imgparam[i].incl;
 		if (!com.seq.imgparam[i].incl && com.seq.reference_image == i) { // reference image is not included anymore
 			need_ref_update = TRUE;
@@ -631,7 +645,7 @@ void on_seqlist_image_selection_toggled(GtkCellRendererToggle *cell_renderer,
 	fprintf(stdout, "toggle selection index = %d\n", index);
 
 	sequence_list_change_selection(char_path, !com.seq.imgparam[index].incl);
-	exclude_single_frame(index);
+	exclude_include_single_frame(index);
 }
 
 void toggle_image_selection(int index_in_list, int real_index, gboolean initvalue) {
@@ -640,7 +654,7 @@ void toggle_image_selection(int index_in_list, int real_index, gboolean initvalu
 	if (initvalue) {
 		com.seq.imgparam[real_index].incl = FALSE;
 		if (before_change != com.seq.imgparam[real_index].incl) { // decrement only on value change
-			--com.seq.selnum; 
+			--com.seq.selnum;
 			msg = g_strdup_printf(_("Image %d has been unselected from sequence\n"), real_index + 1);
 			if (com.seq.reference_image == real_index) {
 				com.seq.reference_image = -1;  // invalidate to trigger new reference search if ref frame is deselected
@@ -836,21 +850,19 @@ void sequence_list_select_row_from_index(int index, gboolean do_load_image) {
 	gtk_tree_path_free(path);
 
 	if (do_load_image) {
-		seq_load_image(&com.seq, index, TRUE);
+		if (seq_load_image(&com.seq, index, TRUE)) // if loading fails, we fall back reloading the reference image
+			seq_load_image(&com.seq, com.seq.reference_image, TRUE);
 		update_reg_interface(FALSE);
 		redraw(REDRAW_OVERLAY);
 	}
 }
 
 void update_icons_sequence_list(gboolean is_dark) {
-	gchar *image;
 	GtkWidget *w;
 	if (is_dark) {
-		image = g_build_filename(siril_get_system_data_dir(), "pixmaps", "frame_dark.svg", NULL);
-		w = gtk_image_new_from_file(image);
+		w = gtk_image_new_from_resource("/org/siril/ui/pixmaps/frame_dark.svg");
 	} else {
-		image = g_build_filename(siril_get_system_data_dir(), "pixmaps", "frame.svg", NULL);
-		w = gtk_image_new_from_file(image);
+		w = gtk_image_new_from_resource("/org/siril/ui/pixmaps/frame.svg");
 	}
 	gtk_button_set_image(GTK_BUTTON(GTK_TOGGLE_BUTTON(lookup_widget("drawframe_check"))), w);
 	gtk_widget_show(w);
@@ -862,7 +874,7 @@ void update_icons_sequence_list(gboolean is_dark) {
 
 #ifdef _WIN32
 static int ListSequences(const gchar *sDir, const char *sequence_name_to_select,
-		GtkComboBoxText *seqcombo, int *index_of_seq_to_load) {
+		GtkComboBoxText *seqcombo, int *index_of_seq_to_load, gboolean *found) {
 	WIN32_FIND_DATAW fdFile;
 	HANDLE hFind = NULL;
 	char sPath[2048];
@@ -900,6 +912,7 @@ static int ListSequences(const gchar *sDir, const char *sequence_name_to_select,
 						&& !strncmp(filename, sequence_name_to_select,
 							strlen(filename))) {
 					*index_of_seq_to_load = number_of_loaded_sequences;
+					*found = TRUE;
 				}
 				++number_of_loaded_sequences;
 			}
@@ -925,6 +938,7 @@ int update_sequences_list(const char *sequence_name_to_select) {
 	int number_of_loaded_sequences = 0;
 	int index_of_seq_to_load = -1;
 	char *seqname = NULL;
+	gboolean found = FALSE;
 
 	// clear the previous list
 	seqcombo = GTK_COMBO_BOX_TEXT(lookup_widget("sequence_list_combobox"));
@@ -940,10 +954,11 @@ int update_sequences_list(const char *sequence_name_to_select) {
 	}
 
 #ifdef _WIN32
-	number_of_loaded_sequences = ListSequences(com.wd, seqname, seqcombo, &index_of_seq_to_load);
+	number_of_loaded_sequences = ListSequences(com.wd, seqname, seqcombo, &index_of_seq_to_load, &found);
 #else
 	struct dirent **list;
 	int i, n;
+
 
 	n = scandir(com.wd, &list, 0, alphasort);
 	if (n < 0)
@@ -958,8 +973,10 @@ int update_sequences_list(const char *sequence_name_to_select) {
 				free_sequence(seq, TRUE);
 				char *filename = list[i]->d_name;
 				gtk_combo_box_text_append_text(seqcombo, filename);
-				if (seqname && !strcmp(filename, seqname))
+				if (seqname && !strcmp(filename, seqname)) {
 					index_of_seq_to_load = number_of_loaded_sequences;
+					found = TRUE;
+				}
 				++number_of_loaded_sequences;
 			}
 		}
@@ -969,15 +986,16 @@ int update_sequences_list(const char *sequence_name_to_select) {
 	free(list);
 #endif
 
-	if (seqname) free(seqname);
-
 	if (!number_of_loaded_sequences) {
 		fprintf(stderr, "No valid sequence found in CWD.\n");
+		if (seqname) free(seqname);
 		return -1;
-	} else {
+	} else if (!seqname || found) {
 		fprintf(stdout, "Loaded %d %s\n", number_of_loaded_sequences,
 				ngettext("sequence", "sequences", number_of_loaded_sequences));
-	}
+	} else return -1;
+
+	if (seqname) free(seqname);
 
 	if (number_of_loaded_sequences > 1 && index_of_seq_to_load < 0) {
 		gtk_combo_box_popup(GTK_COMBO_BOX(seqcombo));

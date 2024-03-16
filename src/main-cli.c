@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,11 +23,13 @@
 #  include <config.h>
 #endif
 
+#include <gsl/gsl_errno.h>
 #include <gtk/gtk.h>
 #include <stdio.h>
 #include <string.h>
 #include <locale.h>
 #include <unistd.h>
+#include <fftw3.h>
 #ifdef OS_OSX
 #import <AppKit/AppKit.h>
 #if defined(ENABLE_RELOCATABLE_RESOURCES)
@@ -41,6 +43,7 @@
 
 #include "git-version.h"
 #include "core/siril.h"
+#include "core/icc_profile.h"
 #include "core/proto.h"
 #include "core/siril_actions.h"
 #include "core/initfile.h"
@@ -112,14 +115,26 @@ static GOptionEntry main_option[] = {
 };
 
 static void global_initialization() {
+	gsl_set_error_handler_off();
 	com.star_is_seqdata = FALSE;
 	com.stars = NULL;
 	com.tilt = NULL;
 	com.uniq = NULL;
+	com.child_is_running = EXT_NONE;
+	com.kernel = NULL;
+	com.kernelsize = 0;
+	com.kernelchannels = 0;
+#ifdef _WIN32
+	com.childhandle = NULL;
+#else
+	com.childpid = 0;
+#endif
 	memset(&com.selection, 0, sizeof(rectangle));
 	memset(com.layers_hist, 0, sizeof(com.layers_hist));
-
 	initialize_default_settings();	// com.pref
+#ifdef HAVE_FFTW3F_OMP
+	fftwf_init_threads(); // Should really only be called once so do it at startup
+#endif
 }
 
 static void siril_app_activate(GApplication *application) {
@@ -178,6 +193,7 @@ static void siril_app_activate(GApplication *application) {
 	}
 
 	init_num_procs();
+	initialize_profiles_and_transforms(); // color management
 
 	if (main_option_script) {
 		GInputStream *input_stream = NULL;
@@ -239,17 +255,18 @@ static void siril_macos_setenv(const char *progname) {
 		/* we define the relocated resources path */
 		g_setenv("SIRIL_RELOCATED_RES_DIR", tmp, TRUE);
 
+		g_snprintf(tmp, sizeof(tmp), "%s/../Resources/bin", app_dir);
 		path_len = strlen(g_getenv("PATH") ? g_getenv("PATH") : "")
-			+ strlen(app_dir) + 2;
+			+ strlen(tmp) + 2;
 		path = g_try_malloc(path_len);
 		if (path == NULL) {
 			g_warning("Failed to allocate memory");
 			exit(EXIT_FAILURE);
 		}
 		if (g_getenv("PATH"))
-			g_snprintf(path, path_len, "%s:%s", app_dir, g_getenv("PATH"));
+			g_snprintf(path, path_len, "%s:%s", tmp, g_getenv("PATH"));
 		else
-			g_snprintf(path, path_len, "%s", app_dir);
+			g_snprintf(path, path_len, "%s", tmp);
 		/* the relocated path is storred in this env. variable in order to be reused if needed */
 		g_free(app_dir);
 		g_setenv("PATH", path, TRUE);
@@ -335,6 +352,8 @@ int main(int argc, char *argv[]) {
 		g_printerr("%s\n", help_msg);
 		g_free(help_msg);
 	}
+
+	cmsUnregisterPlugins(); // unregister any lcms2 plugins
 
 	pipe_stop();		// close the pipes and their threads
 	g_object_unref(app);

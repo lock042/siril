@@ -2,6 +2,7 @@
 #define ATPMATCH_H
 
 #include "core/siril.h"
+#include "algos/photometry.h"
 #include "registration/registration.h"
 #include "misc.h"
 
@@ -81,9 +82,12 @@
     * calculate a TRANS structure; fail if we are given fewer,
     * or if we discard so many that we have fewer than this many
     */
-#define AT_MATCH_REQUIRE_LINEAR     3
-#define AT_MATCH_REQUIRE_QUADRATIC  6
-#define AT_MATCH_REQUIRE_CUBIC      8
+#define AT_MATCH_REQUIRE_LINEAR      3
+#define AT_MATCH_REQUIRE_QUADRATIC   6
+#define AT_MATCH_REQUIRE_CUBIC      10
+#define AT_MATCH_REQUIRE_QUARTIC    15
+#define AT_MATCH_REQUIRE_QUINTIC    21
+
 
    /*
     * We start with the top "AT_MATCH_STARTN" candidates of
@@ -92,7 +96,9 @@
     */
 #define AT_MATCH_STARTN_LINEAR      6
 #define AT_MATCH_STARTN_QUADRATIC  12
-#define AT_MATCH_STARTN_CUBIC      16
+#define AT_MATCH_STARTN_CUBIC      20
+#define AT_MATCH_STARTN_QUARTIC    30
+#define AT_MATCH_STARTN_QUINTIC    42
 
    /*
     * when iterating to throw out mis-matched pairs of stars,
@@ -130,7 +136,7 @@
     * The user can modify this value via the "halt_sigma"
     * command-line argument.
     */
-#define AT_MATCH_HALTSIGMA    1.0e-12
+#define AT_MATCH_HALTSIGMA    1.0e-1
 
 
    /*
@@ -237,8 +243,7 @@ atRecalcTrans(int numA, struct s_star *listA,
               int max_iter, double halt_sigma, TRANS *trans);
 
 int atPrepareHomography(int numA, struct s_star *listA, int numB,
-		struct s_star *listB, Homography *H, gboolean save_photometric_data,
-		pcc_star *photometric_data, int *nb_photometric_stars,
+		struct s_star *listB, Homography *H, gboolean for_astrometry,
 		transformation_type type);
 
 int

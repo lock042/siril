@@ -272,7 +272,7 @@ static const te_variable *find_lookup(const state *s, const char *name, int len)
 static double add(double a, double b) {return a + b;}
 static double sub(double a, double b) {return a - b;}
 static double mul(double a, double b) {return a * b;}
-static double divide(double a, double b) {return a / b;}
+static double divide(double a, double b) {return (b == 0.0) ? 1.0 : a / b;}
 static double negate(double a) {return -a;}
 static double inverse(double a) {return 1 - a;}
 static double comma(double a, double b) {(void)a; return b;}
@@ -329,7 +329,7 @@ void next_token(state *s) {
                         case TE_CLOSURE0: case TE_CLOSURE1: case TE_CLOSURE2: case TE_CLOSURE3:
                         case TE_CLOSURE4: case TE_CLOSURE5: case TE_CLOSURE6: case TE_CLOSURE7:
                             s->context = var->context;
-
+						// Intentionally no break; here
                         case TE_FUNCTION0: case TE_FUNCTION1: case TE_FUNCTION2: case TE_FUNCTION3:
                         case TE_FUNCTION4: case TE_FUNCTION5: case TE_FUNCTION6: case TE_FUNCTION7:
                             s->type = var->type;

@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@
  * only newline. It is an allocated string and must not be freed. It can be
  * reused until next call to this function.
  */
-char* siril_log_internal(const char* format, const char* color, va_list arglist) {
+static char* siril_log_internal(const char* format, const char* color, va_list arglist) {
 	static char *msg = NULL;
 
 	if (msg == NULL) {
@@ -51,7 +51,7 @@ char* siril_log_internal(const char* format, const char* color, va_list arglist)
 		return NULL;
 	}
 
-	fprintf(stdout, "log: %s", msg);
+	g_print("log: %s", msg);
 	pipe_send_message(PIPE_LOG, PIPE_NA, msg);
 	gui_log_message(msg, color);
 

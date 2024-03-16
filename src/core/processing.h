@@ -83,7 +83,6 @@ struct generic_seq_args {
 	/** function called after iterating through the sequence, or on
 	 *  clean-up, even in case of error */
 	int (*finalize_hook)(struct generic_seq_args *);
-
 	/** idle function to register at the end, if not already_in_a_thread and
 	 *  not when the generic function is used from a script. If NULL, the
 	 *  default idle function that stops the thread is used.
@@ -106,7 +105,7 @@ struct generic_seq_args {
 	/** size ratio of output images for memory evaluation */
 	double upscale_ratio;
 	/** output files: prefix for the new sequence and automatic loading */
-	const char *new_seq_prefix;
+	char *new_seq_prefix;
 	/** flag to load or not a new sequence */
 	gboolean load_new_sequence;
 	/** flag to force output to be SER file */
@@ -164,7 +163,7 @@ void wait_for_script_thread();
 gboolean end_generic(gpointer arg);
 guint siril_add_idle(GSourceFunc idle_function, gpointer data);
 
-struct generic_seq_args *create_default_seqargs();
+struct generic_seq_args *create_default_seqargs(sequence *seq);
 
 int check_threading(threading_type *threads);
 int limit_threading(threading_type *threads, int min_iterations_per_thread, size_t total_iterations);
@@ -178,8 +177,13 @@ struct generic_seq_metadata_args {
 
 	/** function called for each image with image index in sequence */
 	int (*image_hook)(struct generic_seq_metadata_args *, fitsfile *, int);
+
+	/** instead of outputing to the log, output to a file */
+	GOutputStream *output_stream;
 };
 
 gpointer generic_sequence_metadata_worker(gpointer args);
+
+void kill_child_process(gboolean on_exit);
 
 #endif

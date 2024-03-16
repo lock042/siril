@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -282,7 +282,7 @@ int stack_compute_parallel_blocks(struct _image_block **blocksptr, long max_numb
 	return ST_OK;
 }
 
-static int stack_read_block_data(struct stacking_args *args, int use_regdata,
+static int stack_read_block_data(struct stacking_args *args,
 		struct _image_block *my_block, struct _data_block *data,
 		long *naxes, data_type itype, int thread_id) {
 
@@ -299,7 +299,7 @@ static int stack_read_block_data(struct stacking_args *args, int use_regdata,
 		if (!get_thread_run())
 			return ST_CANCEL;
 
-		if (use_regdata && args->reglayer >= 0) {
+		if (args->reglayer >= 0) {
 			/* Load registration data for current image and modify area.
 			 * Here, only the y shift is managed. If possible, the remaining part
 			 * of the original area is read, the rest is filled with zeros. The x
@@ -343,7 +343,7 @@ static int stack_read_block_data(struct stacking_args *args, int use_regdata,
 			}
 		}
 
-		if (!use_regdata || readdata) {
+		if (args->reglayer < 0 || readdata) {
 			// reading pixels from current frame
 			void *buffer;
 			if (itype == DATA_FLOAT)
@@ -385,6 +385,8 @@ static void norm_to_0_1_range(fits *fit) {
 #endif
 	for (int i = 1; i < n; i++) {
 		float tmp = fit->fdata[i];
+		if (tmp == 0.f)
+			continue;
 		if (tmp < mini)
 			mini = tmp;
 		if (tmp > maxi)
@@ -395,7 +397,7 @@ static void norm_to_0_1_range(fits *fit) {
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
 	for (int i = 0; i < n; i++) {
-		fit->fdata[i] = (fit->fdata[i] - mini) / (maxi - mini);
+		fit->fdata[i] = (fit->fdata[i] == 0.f) ? 0.f : (fit->fdata[i] - mini) / (maxi - mini);
 	}
 }
 
@@ -771,24 +773,32 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 		else {
 			if (args->apply_noise_weights || args->apply_nbstack_weights || args->apply_wfwhm_weights || args->apply_nbstars_weights) {
 				double *pweights = args->weights + layer * stack_size;
-				WORD pmin = 65535, pmax = 0; /* min and max computed here instead of rejection step to avoid dealing with too many particular cases */
+				/* min and max computed here instead of rejection step to avoid dealing
+				 * with too many particular cases. For rejection, the original stack
+				 * (o_stack) is used to keep the weight order, stack being sorted, we can
+				 * check for min and max values to weight the kept pixels */
+				WORD pmin = 65535, pmax = 0;
 				for (int frame = 0; frame < kept_pixels; ++frame) {
-					if (pmin > ((WORD*)data->stack)[frame]) pmin = ((WORD*)data->stack)[frame];
-					if (pmax < ((WORD*)data->stack)[frame]) pmax = ((WORD*)data->stack)[frame];
+					WORD pixel = ((WORD*)data->stack)[frame];
+					if (pmin > pixel) pmin = pixel;
+					if (pmax < pixel) pmax = pixel;
 				}
+
 				double sum = 0.0;
 				double norm = 0.0;
-				WORD val;
 
 				for (int frame = 0; frame < stack_size; ++frame) {
-					val = ((WORD*)data->o_stack)[frame];
+					WORD val = ((WORD*)data->o_stack)[frame];
 					if (val >= pmin && val <= pmax && val > 0) {
 						sum += (float)val * pweights[frame];
 						norm += pweights[frame];
 					}
 				}
-				if (norm == 0.0)
-					mean = sum / (double)kept_pixels;
+				if (norm <= 1.e-2) { // if norm is 0, sum is 0 too
+					// if the kept pixel has a weight of 0, bad luck, still take it,
+					// that will not look good, but it's better than a black pixel
+					mean = ((WORD*)data->stack)[0];
+				}
 				else mean = sum / norm;
 			} else {
 				gint64 sum = 0L;
@@ -942,10 +952,14 @@ static int compute_nbstars_weights(struct stacking_args *args) {
 		double norm = 0.0;
 		pweights[layer] = args->weights + layer * nb_frames;
 		for (int i = 0; i < args->nb_images_to_stack; ++i) {
-			int idx = args->image_indices[i];
-			pweights[layer][i] = (double)(args->seq->regparam[args->reglayer][idx].number_of_stars - starmin) *
-				(double)(args->seq->regparam[args->reglayer][idx].number_of_stars - starmin) *
-				invdenom * invdenom;
+			if (starmax == starmin)
+				pweights[layer][i] = 1.;
+			else {
+				int idx = args->image_indices[i];
+				pweights[layer][i] = (double)(args->seq->regparam[args->reglayer][idx].number_of_stars - starmin) *
+					(double)(args->seq->regparam[args->reglayer][idx].number_of_stars - starmin) *
+					invdenom * invdenom;
+			}
 			norm += pweights[layer][i];
 		}
 		norm /= (double) nb_frames;
@@ -992,7 +1006,6 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	// data for mean/rej only
 	guint64 irej[3][2] = {{0,0}, {0,0}, {0,0}};
 	regdata *layerparam = NULL;
-	gboolean use_regdata = is_mean;
 
 	int nb_frames = args->nb_images_to_stack; // number of frames actually used
 	naxes[0] = naxes[1] = 0; naxes[2] = 1;
@@ -1006,13 +1019,10 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	}
 	g_assert(nb_frames <= args->seq->number);
 
-	if (use_regdata) {
-		if (args->reglayer < 0) {
-			siril_log_message(_("No registration layer passed, ignoring registration data!\n"));
-			use_regdata = FALSE;
-		}
-		else layerparam = args->seq->regparam[args->reglayer];
+	if (args->reglayer < 0) {
+		siril_log_message(_("No registration layer passed, ignoring registration data!\n"));
 	}
+	else layerparam = args->seq->regparam[args->reglayer];
 
 	set_progress_bar_data(NULL, PROGRESS_RESET);
 
@@ -1119,7 +1129,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	g_assert(npixels_in_block > 0);
 	int ielem_size = itype == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
 
-	fprintf(stdout, "allocating data for %d threads (each %'lu MB)\n", pool_size,
+	fprintf(stdout, "allocating data for %d threads (each %lu MB)\n", pool_size,
 			(unsigned long)(nb_frames * npixels_in_block * ielem_size) / BYTES_IN_A_MB);
 	data_pool = calloc(pool_size, sizeof(struct _data_block));
 	size_t bufferSize = ielem_size * nb_frames * (npixels_in_block + 1ul) + 4ul; // buffer for tmp and stack, added 4 byte for alignment
@@ -1258,7 +1268,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 		data = &data_pool[data_idx];
 
 		/**** Step 2: load image data for the corresponding image block ****/
-		retval = stack_read_block_data(args, use_regdata, my_block, data, naxes, itype, data_idx);
+		retval = stack_read_block_data(args, my_block, data, naxes, itype, data_idx);
 		if (retval) continue;
 
 #if defined _OPENMP && defined STACK_DEBUG
@@ -1285,10 +1295,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 			if (retval) break;
 
 			// update progress bar
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-			cur_nb++;
+			g_atomic_int_inc(&cur_nb);
 
 			if (!get_thread_run()) {
 				retval = ST_CANCEL;
@@ -1302,14 +1309,12 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 				 * to optimize caching and improve readability */
 				for (int frame = 0; frame < nb_frames; ++frame) {
 					int pix_idx = line_idx + x;
-					if (use_regdata) {
+					if (layerparam) {
 						int shiftx = 0;
-						if (layerparam) {
-							double scale = args->seq->upscale_at_stacking;
-							double dx, dy;
-							translation_from_H(layerparam[args->image_indices[frame]].H, &dx, &dy);
-							shiftx = round_to_int(dx * scale);
-						}
+						double scale = args->seq->upscale_at_stacking;
+						double dx, dy;
+						translation_from_H(layerparam[args->image_indices[frame]].H, &dx, &dy);
+						shiftx = round_to_int(dx * scale);
 
 						if (shiftx && (x - shiftx >= naxes[0] || x - shiftx < 0)) {
 							/* outside bounds, images are black. We could
@@ -1397,9 +1402,16 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 				}
 
 				if (args->use_32bit_output) {
+					// if we renormalize afterwards, we keep the data as is
+					// otherwise, we clamp in the [0,1] range
 					if (itype == DATA_USHORT)
-						fit.fpdata[my_block->channel][pdata_idx] = min(double_ushort_to_float_range(result), 1.f);
-					else	fit.fpdata[my_block->channel][pdata_idx] = (args->output_norm) ? (float)result : min((float)result, 1.f); // no clipping if 32b output with output_norm activated
+						fit.fpdata[my_block->channel][pdata_idx] = (args->output_norm) ?
+																	double_ushort_to_float_range(result) :
+																	set_float_in_interval(double_ushort_to_float_range(result), 0.f, 1.f);
+					else
+						fit.fpdata[my_block->channel][pdata_idx] = (args->output_norm) ?
+																	(float)result :
+																	set_float_in_interval((float)result, 0.f, 1.f);
 				} else {
 					/* in case of 8bit data we may want to normalize to 16bits */
 					if (args->output_norm) {

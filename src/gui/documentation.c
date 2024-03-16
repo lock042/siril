@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "gui/message_dialog.h"
+#include "core/siril_log.h"
 #include "gui/utils.h"
 
 
@@ -31,7 +32,7 @@
 void siril_get_documentation() {
 	gboolean ret;
 	const char *locale;
-	const char *supported_languages[] = { NULL }; // en is NULL: default language
+	const char *supported_languages[] = { "de", "fr", "it", "ru", NULL };  // en is NULL: default language
 	gchar *lang = NULL;
 	int i = 0;
 
@@ -50,8 +51,18 @@ void siril_get_documentation() {
 			i++;
 		}
 	}
-	/* Use the tag when documentation will be tagged */
-	gchar *url = g_build_path("/", GET_DOCUMENTATION_URL, "/", lang, "/latest", NULL);
+	if (!lang) {
+		lang = g_strdup_printf("en"); // Last gasp fallback in case there is an error with the locale
+	}
+	const gchar *version = NULL;
+#ifdef SIRIL_UNSTABLE
+	version = "latest";
+#else
+	version = "stable";
+#endif
+	gchar *url = g_build_path (G_DIR_SEPARATOR_S, GET_DOCUMENTATION_URL, lang, version, NULL);
+	control_window_switch_to_tab(OUTPUT_LOGS);
+	siril_log_message(_("Siril documentation URL: %s\n"), url);
 
 #if GTK_CHECK_VERSION(3, 22, 0)
 	GtkWidget* win = lookup_widget("control_window");

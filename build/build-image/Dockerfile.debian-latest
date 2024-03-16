@@ -8,19 +8,22 @@ RUN apt-get update -qyy \
         hicolor-icon-theme \
         git \
         intltool \
+        glib-networking \
         libexiv2-dev \
         libgtk-3-dev \
         libcfitsio-dev \
         libfftw3-dev \
         libgsl-dev \
-        libconfig-dev \
         libopencv-dev \
         librsvg2-dev \
         libraw-dev \
         libffms2-dev \
         libtiff-dev \
         libjpeg-dev \
+        libjxl-dev \
         libheif-dev \
+        heif-thumbnailer \
+        heif-gdk-pixbuf \
         libpng-dev \
         libavformat-dev \
         libavutil-dev \
@@ -28,11 +31,16 @@ RUN apt-get update -qyy \
         libswscale-dev \
         libswresample-dev \
         libcurl4-gnutls-dev \
+        libgit2-dev \
         wcslib-dev \
+        meson \
         python3 \
         python3-pip \
         libjson-glib-dev \
         gcovr \
+        libzstd-dev \
+        liblz4-dev \
+        libpugixml-dev \
+        libxisf-dev \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* 
-RUN python3 -m pip install meson ninja
+    && rm -rf /var/lib/apt/lists/*

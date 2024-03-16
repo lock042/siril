@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -162,7 +162,7 @@ void apply_linear_to_fits(fits *fit, double *a, double *b) {
 
 static gchar *get_reference_filename() {
 	GtkFileChooser *linearmatch_ref = GTK_FILE_CHOOSER(lookup_widget("reference_filechooser_linearmatch"));
-	return gtk_file_chooser_get_filename(linearmatch_ref);
+	return siril_file_chooser_get_filename(linearmatch_ref);
 }
 
 static gdouble get_high_rejection() {
@@ -184,7 +184,10 @@ void on_linearmatch_close_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_linearmatch_apply_clicked(GtkButton *button, gpointer user_data) {
-	if (!single_image_is_loaded()) return;
+	if (!check_ok_if_cfa())
+		return;
+	if (!single_image_is_loaded())
+		return;
 	gchar *filename = get_reference_filename();
 	if (filename) {
 		gchar *error;

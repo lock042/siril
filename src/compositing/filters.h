@@ -17,6 +17,6 @@ extern narrow_filter narrow_band_filters[];
 extern int get_nb_narrow_filters();
 extern broad_filter broad_band_filters[];
 
-void wavelength_to_RGB(double wavelength, GdkRGBA *rgb);
+void wavelength_to_display_RGB(double wavelength, GdkRGBA *rgb);
 
 #endif

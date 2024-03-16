@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@
 #include "io/path_parse.h"
 #include "io/sequence.h"
 
-static void display_path_parse_error(pathparse_errors err, gchar *addstr) {
+static void display_path_parse_error(pathparse_errors err, const gchar *addstr) {
 	if (!err) return;
 	gchar *startstr = (err < 0) ? _("Warning code:"): _("Error code:");
 	gchar *endstr = (err < 0) ? _("going on") : _("aborting");
@@ -70,6 +70,10 @@ static void display_path_parse_error(pathparse_errors err, gchar *addstr) {
 		case PATHPARSE_ERR_NOSEQLOADED_NOFAIL:
 			msg = _("No sequence loaded");
 			break;
+		case PATHPARSE_ERR_BADSTRING:
+		case PATHPARSE_ERR_BADSTRING_NOFAIL:
+			msg = _("Wrongly formatted string: ");
+			break;
 		case PATHPARSE_ERR_MORE_THAN_ONE_HIT:
 			msg = _("More than one match for: ");
 			break;
@@ -92,29 +96,33 @@ static void display_path_parse_error(pathparse_errors err, gchar *addstr) {
 
 static pathparse_errors read_key_from_header_text(gchar **headers, gchar *key, double *numvalue, gchar *strvalue) {
 	pathparse_errors status = PATHPARSE_ERR_OK;
+	if (!headers)
+		return PATHPARSE_ERR_HEADER_NULL;
 	gboolean keyfound = FALSE;
 	char searchstr[10];
 	g_sprintf(searchstr, "%-8s=", key);
 	for (int i = 0; i < g_strv_length(headers); i++) {
 		if (g_str_has_prefix(headers[i], searchstr)) {
+			char val[FLEN_VALUE];
+			int fstatus = 0;
+			fits_parse_value(headers[i], val, NULL, &fstatus);
+			if (fstatus) {
+				return PATHPARSE_ERR_BADSTRING;
+			}
 			keyfound = TRUE;
-			gchar **subs = g_strsplit(headers[i], "=", 2);
-			gchar **valsubs = g_strsplit(subs[1], "/", 2);
 			if (numvalue) {
-				*numvalue = g_ascii_strtod(valsubs[0], NULL); 
+				*numvalue = g_ascii_strtod(val, NULL);
 			} else if (strvalue) {
-				gchar *currstr = g_strdup(valsubs[0]);
-				currstr = g_shell_unquote(currstr, NULL);
-				strncpy(strvalue, currstr, FLEN_VALUE - 1);
-				g_free(currstr);
+				gchar *ucurrstr = g_shell_unquote(val, NULL);
+				if (ucurrstr)
+					strncpy(strvalue, ucurrstr, FLEN_VALUE - 1);
+				else
+					status = PATHPARSE_ERR_BADSTRING;
+				g_free(ucurrstr);
 			} else {
-				g_free(valsubs);
-				g_free(subs);
 				status = PATHPARSE_ERR_WRONG_CALL; // internal error, should not be thrown
 				return status;
 			}
-			g_strfreev(subs);
-			g_strfreev(valsubs);
 			break;
 		}
 	}
@@ -161,13 +169,16 @@ static gchar *wildcard_check(gchar *expression, int *status) {
 #endif
 			if (!count) {
 				out = g_build_filename(dirname, file, NULL);
-				stat(out, &fileInfo);
+					if (stat(out, &fileInfo))
+						siril_debug_print("stat() failed\n");
 			} else {
 				currfile = g_build_filename(dirname, file, NULL);
-				stat(currfile, &currfileInfo);
+				if (stat(currfile, &currfileInfo))
+						siril_debug_print("stat() failed\n");
 				if (currfileInfo.st_ctime > fileInfo.st_ctime) { // currfile is more recent
 					out = g_build_filename(dirname, file, NULL);
-					stat(out, &fileInfo);
+					if (stat(out, &fileInfo))
+						siril_debug_print("stat() failed\n");
 				}
 			}
 			count++;
@@ -181,6 +192,7 @@ static gchar *wildcard_check(gchar *expression, int *status) {
 		*status = PATHPARSE_ERR_NO_HIT_FOUND;
 		display_path_parse_error(*status, expression);
 	}
+	g_dir_close(dir);
 	g_free(dirname);
 	g_free(basename);
 	g_free(currfile);
@@ -202,7 +214,7 @@ In read mode, it also replaces * by searching the directory for a file matching 
 In write mode, the * is omitted and the token is parsed as per specifier
 In write mode "nofail", it will try to return something no matter what
 */
-gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status) {
+gchar *path_parse(fits *fit, const gchar *expression, pathparse_mode mode, int *status) {
 	*status = PATHPARSE_ERR_OK;
 	if (!g_utf8_strchr(expression, -1, '$')) { // nothing to parse, return original string
 		return g_strdup(expression);
@@ -215,7 +227,7 @@ gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status
 			display_path_parse_error(*status, NULL);
 			return out;
 		}
-	} 
+	}
 	if (g_str_has_prefix(expression, "$def")) { // using reserved keywords $defbias, $defdark, $defflat, $defstack
 		if (!g_strcmp0(expression + 4, "bias")) {
 			localexpression = g_strdup(com.pref.prepro.bias_lib);
@@ -253,7 +265,7 @@ gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status
 			continue;
 		gchar **subs = g_strsplit(tokens[i], ":", 2);
 		gchar buf[FLEN_VALUE];
-		gchar key[9];
+		gchar key[9] = "";
 		buf[0] = '\0';
 		if (g_strv_length(subs) == 1) {
 			if (!g_strcmp0(subs[0], "seqname")) { // reserved keyword $seqname$
@@ -278,7 +290,7 @@ gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status
 			g_strfreev(subs);
 			continue;
 		}
-		if (strlen(subs[0]) == 1 && subs[1][0] == '\\') { // dealing with Windows drive letter "C:"
+		if (strlen(subs[0]) == 1 && (subs[1][0] == '\\' || subs[1][0] == '/')) {// dealing with Windows drive letter "C:"
 			g_strfreev(subs);
 			continue;
 		}
@@ -297,7 +309,7 @@ gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status
 			printf("Wildcard in READ mode\n");
 		} else if (subs[1][0] == '%' && (g_str_has_suffix(subs[1], "d") || g_str_has_suffix(subs[1], "f"))) { // case %d or %f
 			gboolean isint = g_str_has_suffix(subs[1], "d");
-			double val;
+			double val = 0.;
 			*status = nofail * read_key_from_header_text(headerkeys, key,&val, NULL);
 			display_path_parse_error(*status, key);
 			if (*status > 0) {
@@ -318,8 +330,12 @@ gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status
 			}
 		} else if (subs[1][0] == '%' && g_str_has_suffix(subs[1], "s")) { // case %s
 			char val[FLEN_VALUE];
-			*status = nofail * read_key_from_header_text(headerkeys, key, NULL, val);
-			display_path_parse_error(*status, key);
+			if (!headerkeys) // ensure null pointer isn't passed to read_key_from_header_text()
+				*status = 1;
+			else {
+				*status = nofail * read_key_from_header_text(headerkeys, key, NULL, val);
+				display_path_parse_error(*status, key);
+			}
 			if (*status > 0) {
 				g_strfreev(subs);
 				goto free_and_exit;
@@ -336,12 +352,17 @@ gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status
 				}
 				g_strstrip(buf);
 				replace_spaces_from_str(buf, '_');
+				replace_invalid_chars(buf ,'_');
 			}
 		} else if (g_str_has_prefix(subs[1],"dm")) { // case dm12 - date minus 12hrs or dm0
 			double minus_hour = -1. * g_ascii_strtod(subs[1] + 2, NULL);
 			char val[FLEN_VALUE];
-			*status = nofail * read_key_from_header_text(headerkeys, key, NULL, val);
-			display_path_parse_error(*status, key);
+			if (!headerkeys) {
+				*status = 1;
+			} else {
+				*status = nofail * read_key_from_header_text(headerkeys, key, NULL, val);
+				display_path_parse_error(*status, key);
+			}
 			if (*status > 0) {
 				g_strfreev(subs);
 				goto free_and_exit;
@@ -365,17 +386,56 @@ gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status
 					g_free(fmtdate);
 				}
 			}
+		} else if (g_str_has_prefix(subs[1],"dt")) { // case dt (datetime)
+			char val[FLEN_VALUE];
+			if (!headerkeys) {
+				*status = 1;
+			} else {
+				*status = nofail * read_key_from_header_text(headerkeys, key, NULL, val);
+				display_path_parse_error(*status, key);
+			}
+			if (*status > 0) {
+				g_strfreev(subs);
+				goto free_and_exit;
+			}
+			if (*status == 0) {
+				GDateTime *read_time = FITS_date_to_date_time(val);
+				if (!read_time) {
+					*status = nofail * PATHPARSE_ERR_WRONG_DATE;
+					display_path_parse_error(*status, key);
+					if (status > 0) {
+						g_strfreev(subs);
+						goto free_and_exit;
+					}
+				}
+				if (*status == 0) {
+					gchar *fmtdate = date_time_to_date_time(read_time);
+					strncpy(buf, fmtdate, FLEN_VALUE - 1);
+					g_date_time_unref(read_time);
+					g_free(fmtdate);
+				}
+			}
 		} else if (g_str_has_prefix(subs[1], "ra") || g_str_has_prefix(subs[1], "dec")) { // case ra and dec (str), ran and decn (num)
 			gboolean is_ra = g_str_has_prefix(subs[1],"ra");
 			gboolean is_float = g_str_has_suffix(subs[1],"n");
 			SirilWorldCS *target_coords = NULL;
 			char val[FLEN_VALUE];
-			double valf;
-			if (is_float)
-				*status = nofail * read_key_from_header_text(headerkeys, key,&valf, NULL);
-			else
-				*status = nofail * read_key_from_header_text(headerkeys, key, NULL, val);
-			display_path_parse_error(*status, key);
+			double valf = 0.f;
+			if (is_float) {
+				if (!headerkeys) {
+					*status = 1;
+				} else {
+					*status = nofail * read_key_from_header_text(headerkeys, key,&valf, NULL);
+					display_path_parse_error(*status, key);
+				}
+			} else {
+				if (!headerkeys) {
+					*status = 1;
+				} else {
+					*status = nofail * read_key_from_header_text(headerkeys, key, NULL, val);
+					display_path_parse_error(*status, key);
+				}
+			}
 			if (*status > 0) {
 				g_strfreev(subs);
 				goto free_and_exit;
@@ -447,36 +507,24 @@ Same as path_parse but makes sure the header is updated before parsing
 A copy of the fits metadata is made into a temporary fit that gets updated
 and its header string generated.
 This temporary fit is then called by path_parse.
+If creatdir is TRUE, creates directory if required
 */
-gchar *update_header_and_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status) {
+gchar *update_header_and_parse(fits *fit, gchar *expression, pathparse_mode mode, gboolean createdir, int *status) {
 	*status = PATHPARSE_ERR_OK;
 	if (!g_utf8_strchr(expression, -1, '$')) { // nothing to parse, return original string
 		return g_strdup(expression);
 	}
-	fits tmpfit = { 0 };
-	fitsfile *fptr;
-	int fstatus = 0;
-	gchar *parsedname = NULL;
-	copyfits(fit, &tmpfit, CP_FORMAT, 0);
-	copy_fits_metadata(fit, &tmpfit); // otherwise some fields get wiped out like date-obs
-	const gchar *tmpdir = g_get_tmp_dir();
-	gchar *tmpheadername = g_build_filename(tmpdir, "header.fit", NULL);
-	unlink(tmpheadername);
-	fits_create_diskfile(&fptr, tmpheadername, &fstatus);
-	if (fstatus) {
-		char tbuf[30];
-		fits_get_errstatus(fstatus, tbuf);
-		*status = PATHPARSE_ERR_TMPFIT;
-		display_path_parse_error(*status, tbuf);
-		goto free_and_exit;
+	gchar *parsedname = NULL, *dirname = NULL;
+	update_fits_header(fit);
+	parsedname = path_parse(fit, expression, mode, status);
+	if (parsedname && createdir) {
+		dirname = g_path_get_dirname(parsedname);
+		if (g_mkdir_with_parents(dirname, 0755) < 0) {
+			siril_log_color_message(_("Cannot create output folder: %s\n"), "red", dirname);
+			g_free(parsedname);
+			parsedname = NULL;
+		}
 	}
-	tmpfit.fptr = fptr;
-	save_fits_header(&tmpfit);
-	tmpfit.header = copy_header(&tmpfit);
-	parsedname = path_parse(&tmpfit, expression, mode, status);
-	fits_close_file(fptr, &fstatus);
-free_and_exit:
-	g_free(tmpheadername);
-	clearfits(&tmpfit);
+	g_free(dirname);
 	return parsedname;
 }

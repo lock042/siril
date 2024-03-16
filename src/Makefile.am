@@ -20,13 +20,26 @@ AM_CPPFLAGS = \
 	$(FFMS2_CFLAGS) \
 	$(WCSLIB_CFLAGS) \
 	$(LIBCONFIG_CFLAGS) \
+	$(LCMS2_CFLAGS)  \
+	$(LIBGIT_CFLAGS) \
 	-I$(top_builddir)/subprojects/kplot
+
+
+siril_resource.c: siril_resource.h
+	$(AM_V_GEN)
+	glib-compile-resources \
+	--sourcedir=$(top_builddir) \
+	--sourcedir=$(sourcedir) \
+	--target=$@ \
+	--generate-source \
+	--c-name siril_resource \
+	$(srcdir)/siril_resource.xml
+
+siril_common_SOURCES: siril_resource.h
 
 siril_common_SOURCES = \
 	core/siril.h \
 	core/proto.h \
-	algos/annotate.c \
-	algos/annotate.h \
 	algos/anscombe.c \
 	algos/anscombe.h \
 	algos/astrometry_solver.c \
@@ -37,6 +50,8 @@ siril_common_SOURCES = \
 	algos/ccd-inspector.h \
 	algos/colors.c \
 	algos/colors.h \
+	algos/comparison_stars.c \
+	algos/comparison_stars.h \
 	algos/Def_Math.h \
 	algos/Def_Wavelet.h \
 	algos/Def_Mem.h \
@@ -55,6 +70,8 @@ siril_common_SOURCES = \
 	algos/pave.c \
 	algos/photometry.c \
 	algos/photometry.h \
+	algos/photometric_cc.c \
+	algos/photometric_cc.h \
 	algos/PSF.c \
 	algos/PSF.h \
 	algos/quality.c \
@@ -62,8 +79,14 @@ siril_common_SOURCES = \
 	algos/quality.h \
 	algos/quantize.c \
 	algos/reconstr.c \
-	algos/sorting.h \
+	algos/search_objects.c \
+	algos/search_objects.h \
+	algos/siril_wcs.h \
+	algos/siril_wcs.c \
 	algos/sorting.c \
+	algos/sorting.h \
+	algos/spcc.c \
+	algos/spcc.h \
 	algos/star_finder.c \
 	algos/star_finder.h \
 	algos/statistics.c \
@@ -71,9 +94,25 @@ siril_common_SOURCES = \
 	algos/statistics_float.c \
 	algos/statistics_float.h \
 	algos/transform.c \
-	algos/search_objects.c \
-	algos/siril_wcs.h \
-	algos/siril_wcs.c \
+	algos/lcms_acceleration/fast_16_tethra.c \
+	algos/lcms_acceleration/fast_8_curves.c \
+	algos/lcms_acceleration/fast_8_matsh.c \
+	algos/lcms_acceleration/fast_8_matsh_sse.c \
+	algos/lcms_acceleration/fast_8_tethra.c \
+	algos/lcms_acceleration/fast_float_15bits.c \
+	algos/lcms_acceleration/fast_float_15mats.c \
+	algos/lcms_acceleration/fast_float_cmyk.c \
+	algos/lcms_acceleration/fast_float_curves.c \
+	algos/lcms_acceleration/fast_float_internal.h \
+	algos/lcms_acceleration/fast_float_lab.c \
+	algos/lcms_acceleration/fast_float_matsh.c \
+	algos/lcms_acceleration/fast_float_separate.c \
+	algos/lcms_acceleration/fast_float_sup.c \
+	algos/lcms_acceleration/fast_float_tethra.c \
+	algos/lcms_acceleration/threaded_core.c \
+	algos/lcms_acceleration/threaded_main.c \
+	algos/lcms_acceleration/threaded_scheduler.c \
+	algos/lcms_acceleration/threaded_split.c \
 	compositing/align_rgb.c \
 	compositing/align_rgb.h \
 	compositing/compositing.c \
@@ -82,8 +121,6 @@ siril_common_SOURCES = \
 	compositing/filters.h \
 	core/arithm.c \
 	core/arithm.h \
-	core/atomic.cpp \
-	core/atomic.h \
 	core/command.c \
 	core/command.h \
 	core/command_def.h \
@@ -163,6 +200,28 @@ siril_common_SOURCES = \
 	filters/da3d/Utils.hpp \
 	filters/da3d/WeightMap.cpp \
 	filters/da3d/WeightMap.hpp \
+	filters/deconvolution/angleSet.cpp \
+	filters/deconvolution/angleSet.hpp \
+	filters/deconvolution/better_than_std.hpp \
+	filters/deconvolution/chelperfuncs.c \
+	filters/deconvolution/chelperfuncs.h \
+	filters/deconvolution/deconvolution.h \
+	filters/deconvolution/deconvolve.cpp \
+	filters/deconvolution/deconvolve.hpp \
+	filters/deconvolution/edgetaper.hpp \
+	filters/deconvolution/estimate_kernel.cpp \
+	filters/deconvolution/estimate_kernel.hpp \
+	filters/deconvolution/fft.hpp \
+	filters/deconvolution/fftw_allocator.hpp \
+	filters/deconvolution/gf_estimate.cpp \
+	filters/deconvolution/gf_estimate.hpp \
+	filters/deconvolution/image_expr.hpp \
+	filters/deconvolution/image.hpp \
+	filters/deconvolution/labeling.hpp \
+	filters/deconvolution/optimization.hpp \
+	filters/deconvolution/options.hpp \
+	filters/deconvolution/utils.hpp \
+	filters/deconvolution/vec2.hpp \
 	filters/nlbayes/call_nlbayes.cpp \
 	filters/nlbayes/call_nlbayes.h \
 	filters/nlbayes/LibImages.cpp \
@@ -172,41 +231,6 @@ siril_common_SOURCES = \
 	filters/nlbayes/NlBayes.h \
 	filters/nlbayes/Utilities.cpp \
 	filters/nlbayes/Utilities.h \
-	filters/deconvolution/angleSet.cpp \
-	filters/decnvolution/angleSet.hpp \
-	filters/deconvolution/args.hxx \
-	filters/deconvolution/better_than_std.hpp \
-	filters/deconvolution/chelperfuncs.c \
-	filters/deconvolution/chelperfuncs.h \
-	filters/deconvolution/computeProjectionsAutocorrelation.cpp \
-	filters/deconvolution/computeProjectionsAutocorrelation.hpp \
-	filters/deconvolution/conjugate_gradient.hpp \
-	filters/deconvolution/deblur.cpp \
-	filters/deconvolution/deblur.hpp \
-	filters/deconvolution/deconvBregman.cpp \
-	filters/deconvolution/deconvBregman.hpp \
-	filters/deconvolution/deconvolution.h \
-	filters/deconvolution/edgetaper.hpp \
-	filters/deconvolution/estimate_kernel.cpp \
-	filters/deconvolution/estimate_kernel.hpp \
-	filters/deconvolution/fft.hpp \
-	filters/deconvolution/fftw_allocator.hpp \
-	filters/deconvolution/gf_estimate.cpp \
-	filters/deconvolution/gf_estimate.hpp \
-	filters/deconvolution/image.hpp \
-	filters/deconvolution/labeling.hpp \
-	filters/deconvolution/optimization.hpp \
-	filters/deconvolution/options.hpp \
-	filters/deconvolution/phaseRetrieval.hpp \
-	filters/deconvolution/projectImage.hpp \
-	filters/deconvolution/rl.cpp \
-	filters/deconvolution/rl.hpp \
-	filters/deconvolution/wiener.cpp \
-	filtes/deconvolution/wiener.hpp \
-	filters/deconvolution/utils.hpp \
-	filters/deconvolution/vec2.hpp \
-	filters/deconvolution/imscript/upsa.c \
-	filters/deconvolution/imscript/downscale.c \
 	gui/about_dialog.c \
 	gui/about_dialog.h \
 	gui/annotations_pref.c \
@@ -215,10 +239,13 @@ siril_common_SOURCES = \
 	gui/background_extraction.c \
 	gui/callbacks.c \
 	gui/callbacks.h \
+	gui/compstars.c \
+	gui/compstars.h \
 	gui/conversion.c \
 	gui/conversion.h \
 	gui/colors.c \
 	gui/colors.h \
+	gui/cut.c \
 	gui/dialog_preview.c \
 	gui/dialog_preview.h \
 	gui/dialogs.c \
@@ -229,6 +256,8 @@ siril_common_SOURCES = \
 	gui/fix_xtrans_af.h \
 	gui/histogram.c \
 	gui/histogram.h \
+	gui/keywords_tree.c \
+	gui/keywords_tree.h \
 	gui/image_display.c \
 	gui/image_display.h \
 	gui/image_interactions.c \
@@ -237,7 +266,7 @@ siril_common_SOURCES = \
 	gui/linear_match.h \
 	gui/menu_gray_geometry.c \
 	gui/menu_gray_geometry.h \
-	gui/menu_gray_psf.c \
+	gui/menu_gray_selection.c \
 	gui/merge_cfa.c \
 	gui/message_dialog.c \
 	gui/message_dialog.h \
@@ -273,6 +302,8 @@ siril_common_SOURCES = \
 	gui/siril_intro.h \
 	gui/siril_preview.c \
 	gui/siril_preview.h \
+	gui/siril_plot.c \
+	gui/siril_plot.h \
 	gui/siril-window.c \
 	gui/siril-window.h \
 	gui/split_cfa.c \
@@ -282,8 +313,10 @@ siril_common_SOURCES = \
 	gui/statistics_list.c \
 	gui/utils.c \
 	gui/utils.h \
-	io/catalogues.c \
-	io/catalogues.h \
+	io/annotation_catalogues.c \
+	io/annotation_catalogues.h \
+	io/aavso_extended.c \
+	io/aavso_extended.h \
 	io/Astro-TIFF.c \
 	io/Astro-TIFF.h \
 	io/kstars/binfile.h \
@@ -296,16 +329,18 @@ siril_common_SOURCES = \
 	io/fits_sequence.h \
 	io/FITS_symlink.c \
 	io/FITS_symlink.h \
-	io/gnuplot_i.c \
-	io/gnuplot_i.h \
 	io/image_format_fits.c \
 	io/image_format_fits.h \
 	io/image_formats_internal.c \
 	io/image_formats_libraries.c \
+	io/local_catalogues.c \
+	io/local_catalogues.h \
 	io/mp4_output.c \
 	io/mp4_output.h \
 	io/path_parse.c \
 	io/path_parse.h \
+	io/remote_catalogues.c \
+	io/remote_catalogues.h \
 	io/seqfile.c \
 	io/sequence.c \
 	io/sequence.h \
@@ -316,6 +351,13 @@ siril_common_SOURCES = \
 	io/ser.h \
 	io/single_image.c \
 	io/single_image.h \
+	io/siril_catalogues.c \
+	io/siril_catalogues.h \
+	io/siril_git.c \
+	io/siril_git.h \
+	io/siril_plot.c \
+	io/siril_plot.h \
+	io/spcc_json.c \
 	livestacking/livestacking.c \
 	livestacking/livestacking.h \
 	livestacking/gui.c \
@@ -331,8 +373,6 @@ siril_common_SOURCES = \
 	registration/matching/match.c \
 	registration/matching/atpmatch.c \
 	registration/matching/misc.c \
-	registration/matching/project_coords.c \
-	registration/matching/project_coords.h \
 	registration/matching/degtorad.h \
 	registration/matching/apply_match.c \
 	registration/mosaic.c \
@@ -378,8 +418,10 @@ siril_common_LDADD = \
 	$(LIBHEIF_LIBS) \
 	$(LIBTIFF_LIBS) \
 	$(LIBPNG_LIBS) \
+	$(LIBXISF_LIBS) \
 	$(FFTW_LIBS) \
 	$(CFITSIO_LIBS) \
+	$(LCMS2_LIBS) \
 	$(GSL_LIBS) \
 	$(JSON_GLIB_LIBS) \
 	$(FFMS2_LIBS) \
@@ -389,7 +431,8 @@ siril_common_LDADD = \
 	$(EXTRA_LIBS) \
 	$(LIBATOMIC_LIBS) \
 	$(libdbghelp) \
-	$(librtprocesslibs)
+	$(librtprocesslibs) \
+	$(LIBGIT_LIBS)
 
 siril_common_SOURCES += \
 	algos/demosaicing_rtp.cpp \
@@ -403,6 +446,9 @@ siril_common_SOURCES += \
 	io/avi_pipp/pipp_video_write.h \
 	io/avi_pipp/avi_writer.cpp \
 	io/avi_pipp/avi_writer.h \
+	io/SirilXISFReader.cpp \
+	io/SirilXISFReader.h \
+	io/SirilXISFWraper.h \
 	opencv/opencv.cpp \
 	opencv/opencv.h \
 	opencv/kombat/kombat.cpp \
@@ -416,15 +462,10 @@ siril_common_LDADD += $(OPENCV_LIBS) \
 		      $(EXIV2_LIBS) \
 		      $(libhtmeshlibs)
 
-siril_SOURCES = $(siril_common_SOURCES) main.c
+siril_SOURCES = $(siril_common_SOURCES) siril_resource.c siril_resource.h main.c
 siril_cli_SOURCES = $(siril_common_SOURCES) main-cli.c
 siril_LDADD = $(siril_common_LDADD)
 siril_cli_LDADD = $(siril_common_LDADD)
-
-pkgdata_DATA = \
-	gui/siril3.glade \
-	gui/siril-shortcuts.ui \
-	gui/siril.css
 
 if PLATFORM_WIN32
 AM_LDFLAGS += -Wl,--export-all-symbols

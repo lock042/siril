@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -225,12 +225,6 @@ static int compute_tilt_to_image(image *im, struct tilt_data *t_args) {
 	return 0;
 }
 
-void on_tilt_button_clicked(GtkButton *button, gpointer user_data) {
-	set_cursor_waiting(TRUE);
-	confirm_peaker_GUI();
-	draw_sensor_tilt(&gfit);
-	set_cursor_waiting(FALSE);
-}
 
 /** Tilt on sequence **/
 
@@ -329,7 +323,7 @@ static void set_edge_square(gchar **panel) {
 		return;
 	}
 	int widget_size = com.pref.analysis.mosaic_window / 3;
-	double scale = com.pref.analysis.mosaic_panel / widget_size;
+	double scale = (double) com.pref.analysis.mosaic_panel / widget_size;
 	if (scale < 1.0) scale = 1.0;
 	cairo_surface_set_device_scale(edge_surface, scale, scale);
 	image_width = (int) ((double)image_width / scale);

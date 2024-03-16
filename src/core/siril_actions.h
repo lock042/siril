@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -59,6 +59,7 @@ void negative_view_state(GSimpleAction *action, GVariant *state, gpointer user_d
 void negative_view_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void photometry_state(GSimpleAction *action, GVariant *state, gpointer user_data);
 void photometry_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void cut_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void color_map_state(GSimpleAction *action, GVariant *state, gpointer user_data);
 void color_map_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void chain_channels_state_change(GSimpleAction *action, GVariant *state, gpointer user_data);
@@ -84,6 +85,8 @@ void seq_list_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 void statistics_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void noise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void ccd_inspector_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void show_tilt_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void show_tilt_state(GSimpleAction *action, GVariant *state, gpointer user_data);
 void image_information_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void image_fits_header_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 
@@ -91,6 +94,7 @@ void remove_green_activate(GSimpleAction *action, GVariant *parameter, gpointer 
 void saturation_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void color_calib_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void pcc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void spcc_activate(GSimpleAction *action, GVariant *parameter,gpointer user_data);
 void split_channel_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void negative_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void histo_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
@@ -120,12 +124,18 @@ void pixel_math_activate(GSimpleAction *action, GVariant *parameter, gpointer us
 void split_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void payne_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void nina_lc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void compstars_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void denoise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void star_desaturate_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void star_synthetic_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void align_global_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void align_kombat_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void align_dft_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void align_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void merge_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
-
+void icc_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void set_roi(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void clear_roi(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void ccm_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 
 #endif /* SRC_CORE_SIRIL_ACTIONS_H_ */

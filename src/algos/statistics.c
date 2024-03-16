@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,6 +38,7 @@
 #include <float.h>
 #include <assert.h>
 #include <gsl/gsl_statistics.h>
+#include "algos/sorting.h"
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/processing.h"
@@ -287,6 +288,7 @@ static imstats* statistics_internal_ushort(fits *fit, int layer, rectangle *sele
 		stat->total = nx * ny;
 		if (stat->total == 0L) {
 			if (stat_is_local) free(stat);
+			if (free_data) free(data);
 			return NULL;
 		}
 	}
@@ -476,14 +478,14 @@ imstats* statistics(sequence *seq, int image_index, fits *fit, int super_layer, 
 		g_assert(layer < fit->naxes[2]);
 		if (fit->stats && fit->stats[layer]) {
 			oldstat = fit->stats[layer];
-			atomic_int_incref(oldstat->_nb_refs);
+			g_atomic_int_inc(&oldstat->_nb_refs);
 		}
 		stat = statistics_internal(fit, layer, NULL, option, oldstat, fit->bitpix, threads);
 		if (!stat) {
 			fprintf(stderr, "- stats failed for fit %p (%d)\n", fit, layer);
 			if (oldstat) {
 				stats_set_default_values(oldstat);
-				atomic_int_decref(oldstat->_nb_refs);
+				g_atomic_int_dec_and_test(&oldstat->_nb_refs);
 			}
 			return NULL;
 		}
@@ -495,7 +497,7 @@ imstats* statistics(sequence *seq, int image_index, fits *fit, int super_layer, 
 		if (seq->stats && seq->stats[layer]) {
 			oldstat = seq->stats[layer][image_index];
 			if (oldstat)	// can be NULL here
-				atomic_int_incref(oldstat->_nb_refs);
+				g_atomic_int_inc(&oldstat->_nb_refs);
 		}
 		stat = statistics_internal(fit, layer, NULL, option, oldstat, seq->bitpix, threads);
 		if (!stat) {
@@ -504,7 +506,7 @@ imstats* statistics(sequence *seq, int image_index, fits *fit, int super_layer, 
 						image_index, layer);
 			if (oldstat) {
 				stats_set_default_values(oldstat);
-				atomic_int_decref(oldstat->_nb_refs);
+				g_atomic_int_dec_and_test(&oldstat->_nb_refs);
 			}
 			return NULL;
 		}
@@ -578,7 +580,7 @@ void add_stats_to_fit(fits *fit, int layer, imstats *stat) {
 		} else return;
 	}
 	fit->stats[layer] = stat;
-	atomic_int_incref(stat->_nb_refs);
+	g_atomic_int_inc(&stat->_nb_refs);
 	siril_debug_print("- stats %p saved to fit %p (%d)\n", stat, fit, layer);
 }
 
@@ -607,7 +609,7 @@ static void add_stats_to_stats(sequence *seq, int nb_layers, imstats ****stats, 
 	siril_debug_print("- stats %p, %d in seq (%d): saving data\n", stat, image_index, layer);
 	(*stats)[layer][image_index] = stat;
 	seq->needs_saving = TRUE;
-	atomic_int_incref(stat->_nb_refs);
+	g_atomic_int_inc(&stat->_nb_refs);
 }
 
 void add_stats_to_seq(sequence *seq, int image_index, int layer, imstats *stat) {
@@ -681,7 +683,7 @@ void allocate_stats(imstats **stat) {
 			*stat = malloc(sizeof(imstats));
 		if (!*stat) { PRINT_ALLOC_ERR; return; } // OOM
 		stats_set_default_values(*stat);
-		(*stat)->_nb_refs = atomic_int_alloc();
+		(*stat)->_nb_refs = 1;
 		siril_debug_print("- stats %p allocated\n", *stat);
 	}
 }
@@ -689,8 +691,7 @@ void allocate_stats(imstats **stat) {
 /* frees an imstats struct if there are no more references to it.
  * returns NULL if it was freed, the argument otherwise. */
 imstats* free_stats(imstats *stat) {
-	int n;
-	if (stat && (n = atomic_int_decref(stat->_nb_refs)) == 0) {
+	if (stat && (g_atomic_int_dec_and_test(&stat->_nb_refs)) == TRUE) {
 		siril_debug_print("- stats %p has no more refs, freed\n", stat);
 		free(stat);
 		return NULL;
@@ -739,7 +740,8 @@ static void free_stat_list(gchar **list, int nb) {
 
 static int stat_prepare_hook(struct generic_seq_args *args) {
 	struct stat_data *s_args = (struct stat_data*) args->user;
-	if (s_args->option != (STATS_BASIC) && s_args->option != (STATS_MAIN) && s_args->option != (STATS_NORM | STATS_MAIN)) {
+	if (s_args->option != STATS_BASIC && s_args->option != STATS_MAIN &&
+			s_args->option != (STATS_NORM | STATS_MAIN)) {
 		siril_log_color_message(_("Bad argument to stats option\n"), "red");
 		return 1;
 	}
@@ -773,7 +775,7 @@ static int stat_image_hook(struct generic_seq_args *args, int o, int i, fits *fi
 		}
 
 		int new_index = o * nb_data_layers;
-		if (s_args->option == (STATS_BASIC)) {
+		if (s_args->option == STATS_BASIC) {
 			s_args->list[new_index + layer] = g_strdup_printf("%d\t%d\t%e\t%e\t%e\t%e\t%e\t%e\n",
 					i + 1,
 					layer,
@@ -784,7 +786,7 @@ static int stat_image_hook(struct generic_seq_args *args, int o, int i, fits *fi
 					stat->max,
 					stat->bgnoise
 			);
-		} else if (s_args->option == (STATS_MAIN)){
+		} else if (s_args->option == STATS_MAIN){
 			s_args->list[new_index + layer] = g_strdup_printf("%d\t%d\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n",
 					i + 1,
 					layer,
@@ -815,7 +817,8 @@ static int stat_image_hook(struct generic_seq_args *args, int o, int i, fits *fi
 					stat->scale
 			);
 		}
-		free_stats(stat);
+		if (free_stats(stat))
+			siril_debug_print("Error freeing stats in seqstat...\n");
 	}
 	return 0;
 }
@@ -845,9 +848,9 @@ static int stat_finalize_hook(struct generic_seq_args *args) {
 		return 1;
 	}
 	const gchar *header;
-	if (s_args->option == (STATS_BASIC)) {
+	if (s_args->option == STATS_BASIC) {
 		header = "image\tchan\tmean\tmedian\tsigma\tmin\tmax\tnoise\n";
-	} else if (s_args->option == (STATS_MAIN)){
+	} else if (s_args->option == STATS_MAIN){
 		header = "image\tchan\tmean\tmedian\tsigma\tmin\tmax\tnoise\tavgDev\tmad\tsqrtbwmv\n";
 	} else {
 		header = "image\tchan\tmean\tmedian\tsigma\tmin\tmax\tnoise\tavgDev\tmad\tsqrtbwmv\tlocation\tscale\n";
@@ -926,7 +929,6 @@ static int stat_compute_mem_limit(struct generic_seq_args *args, gboolean for_wr
 
 void apply_stats_to_sequence(struct stat_data *stat_args) {
 	struct generic_seq_args *args = create_default_seqargs(stat_args->seq);
-	args->seq = stat_args->seq;
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = stat_args->seq->selnum;
 	args->compute_mem_limits_hook = stat_compute_mem_limit;
@@ -935,7 +937,6 @@ void apply_stats_to_sequence(struct stat_data *stat_args) {
 	args->image_hook = stat_image_hook;
 	args->description = _("Statistics");
 	args->has_output = FALSE;
-	args->output_type = get_data_type(args->seq->bitpix);
 	args->new_seq_prefix = NULL;
 	args->user = stat_args;
 
@@ -1121,7 +1122,7 @@ int copy_cached_stats_for_image(sequence *seq, int image, imstats **channels) {
 	for (int i = 0; i < seq->nb_layers; i++) {
 		if (all_copied && seq->stats[i] && seq->stats[i][image]) {
 			imstats *stats = seq->stats[i][image];
-			atomic_int_incref(stats->_nb_refs);
+			g_atomic_int_inc(&stats->_nb_refs);
 			channels[i] = stats;
 		} else {
 			all_copied = 0;
@@ -1156,5 +1157,47 @@ int sos_update_noise_float(float *array, long nx, long ny, long nchans, double *
 		}
 		*noise = fSigma / nchans;
 	}
+	return retval;
+}
+
+double robust_median_w(fits *fit, rectangle *area, int chan, float lower, float upper) {
+	uint32_t x0, y0, x1,y1;
+	if (area) {
+		x0 = area->x;
+		y0 = area->y;
+		x1 = area->x + area->w;
+		y1 = area->y + area->h;
+	} else {
+		x0 = y0 = 0;
+		x1 = fit->rx;
+		y1 = fit->ry;
+	}
+	size_t npixels = (x1 - x0) * (y1 - y0);
+	WORD *data = fit->pdata[chan];
+	WORD *filtered_data = malloc(npixels * sizeof(WORD));
+	size_t count = 0;
+	WORD lowerw = roundf_to_WORD(lower);
+	WORD upperw = roundf_to_WORD(upper);
+	for (uint32_t y = y0 ; y < y1 ; y++) {
+		size_t j = y * fit->rx;
+		for (uint32_t x = x0 ; x < x1 ; x++) {
+			size_t i = x + j;
+			if (data[i] >= lowerw && data[i] <= upperw) {
+				filtered_data[count++] = data[i];
+			}
+		}
+	}
+
+	// Check if there are any elements in the specified range
+	if (count == 0) {
+		free(filtered_data);
+		return 0.0; // No elements in the range, return 0 as median
+	}
+
+	double retval = quickmedian(filtered_data, count);
+
+	// Free the allocated memory for filtered_data
+	free(filtered_data);
+
 	return retval;
 }

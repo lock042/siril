@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -171,8 +171,7 @@ static gboolean idle_messaging(gpointer p) {
 }
 
 // Send a log message to the console in the UI
-void gui_log_message(const char* msg, const char* color)
-{
+void gui_log_message(const char* msg, const char* color) {
 	if (com.headless)
 		return;
 	time_t now_sec = time(NULL);
@@ -267,11 +266,12 @@ static void save_log_dialog() {
 	gtk_file_chooser_set_select_multiple(dialog, FALSE);
 	gtk_file_chooser_set_do_overwrite_confirmation(dialog, TRUE);
 	gtk_file_chooser_set_current_name(dialog, filename);
+	gtk_file_chooser_set_local_only(dialog, FALSE);
 	set_filter(dialog);
 
 	res = siril_dialog_run(widgetdialog);
 	if (res == GTK_RESPONSE_ACCEPT) {
-		gchar *file = gtk_file_chooser_get_filename(dialog);
+		gchar *file = siril_file_chooser_get_filename(dialog);
 		save_log_file(file);
 
 		g_free(file);

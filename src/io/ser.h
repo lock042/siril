@@ -62,6 +62,11 @@ typedef enum {
 	SER_BGR = 101	// SER v3
 } ser_color;
 
+typedef enum {
+	SER_GENERIC_ERROR = -1,
+	SER_OK = 0,
+} ser_error;
+
 /* Endianness of the frame data for 16-bit images */
 typedef enum {
 //	SER_BIG_ENDIAN = 0 /* = FALSE */, SER_LITTLE_ENDIAN = 1 /* = TRUE */
@@ -122,7 +127,7 @@ struct ser_struct {			// size and offset from header
 	struct seqwriter_data *writer;
 };
 
-gboolean ser_is_cfa(struct ser_struct *ser_file);
+gboolean ser_is_cfa(const struct ser_struct *ser_file);
 int ser_reset_to_monochrome(struct ser_struct *ser_file);
 void ser_convertTimeStamp(struct ser_struct *ser_file, GSList *timestamp);
 void ser_init_struct(struct ser_struct *ser_file);
@@ -131,9 +136,9 @@ void ser_display_info(struct ser_struct *ser_file);
 int ser_open_file(const char *filename, struct ser_struct *ser_file);
 int ser_close_and_delete_file(struct ser_struct *ser_file);
 int ser_write_and_close(struct ser_struct *ser_file);
-int ser_create_file(const char *filename, struct ser_struct *ser_file, gboolean overwrite, struct ser_struct *copy_from);
+int ser_create_file(const char *filename, struct ser_struct *ser_file, gboolean overwrite, const struct ser_struct *copy_from);
 int ser_close_file(struct ser_struct *ser_file);
-int ser_metadata_as_fits(struct ser_struct *ser_file, fits *fit);
+int ser_metadata_as_fits(const struct ser_struct *ser_file, fits *fit);
 
 int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolean force_float, gboolean open_debayer);
 int ser_read_opened_partial_fits(struct ser_struct *ser_file, int layer,
@@ -141,9 +146,9 @@ int ser_read_opened_partial_fits(struct ser_struct *ser_file, int layer,
 int ser_read_opened_partial(struct ser_struct *ser_file, int layer,
 		int frame_no, WORD *buffer, const rectangle *area);
 int ser_write_frame_from_fit(struct ser_struct *ser_file, fits *fit, int frame);
-gint64 ser_compute_file_size(struct ser_struct *ser_file, int nb_frames);
-int import_metadata_from_serfile(struct ser_struct *ser_file, fits *to);
-GdkPixbuf* get_thumbnail_from_ser(char *filename, gchar **descr);
+gint64 ser_compute_file_size(const struct ser_struct *ser_file, int nb_frames);
+int import_metadata_from_serfile(const struct ser_struct *ser_file, fits *to);
+GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr);
 GDateTime *ser_read_frame_date(struct ser_struct *ser_file, int frame_no);
 
 #endif

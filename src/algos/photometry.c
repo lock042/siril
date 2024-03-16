@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,14 +28,18 @@
 #include "core/siril_log.h"
 #include "algos/PSF.h"
 #include "algos/photometry.h"
+#include "algos/astrometry_solver.h"
 #include "algos/statistics_float.h"
 #include "algos/siril_wcs.h"
-#include "io/sequence.h"
-#include "opencv/opencv.h"
+#include "algos/search_objects.h"
+#include "algos/comparison_stars.h"
 #include "gui/PSF_list.h"
 #include "gui/plot.h"
 #include "gui/image_display.h"
-#include "io/gnuplot_i.h"
+#include "gui/siril_plot.h"
+#include "io/sequence.h"
+#include "io/siril_plot.h"
+#include "opencv/opencv.h"
 
 #define MIN_SKY    5	// min number of backgroun pixels for valid photometry
 
@@ -56,7 +60,7 @@ static double getMagErr(double intensity, double area, int nsky, double skysig, 
 	return fmin(9.999, 1.0857 * noise / intensity);
 }
 
-struct phot_config *phot_set_adjusted_for_image(fits *fit) {
+struct phot_config *phot_set_adjusted_for_image(const fits *fit) {
 	struct phot_config *retval = malloc(sizeof(struct phot_config));
 	if (!retval) {
 		PRINT_ALLOC_ERR;
@@ -76,32 +80,8 @@ struct phot_config *phot_set_adjusted_for_image(fits *fit) {
 	return retval;
 }
 
-// dynamic radius: aperture = 2*fwhm, inner = 3*fwhm, outer = 4*fwhm
-rectangle compute_dynamic_area_for_psf(psf_star *psf, struct phot_config *original, struct phot_config *phot_set, Homography H, Homography Href) {
-	phot_set->gain = original->gain;
-	phot_set->aperture = psf->fwhmx * 2.0;
-	phot_set->inner = psf->fwhmx * 3.0;
-	phot_set->outer = psf->fwhmx * 4.0;
-	phot_set->force_radius = TRUE;
-	phot_set->minval = original->minval;
-	phot_set->maxval = original->maxval;
-
-	double start = 1.5 * phot_set->outer;
-	double size = 3 * phot_set->outer;
-	double x = psf->xpos, y = psf->ypos;
-	cvTransfPoint(&x, &y, Href, H);
-
-	rectangle area = {
-		.x = x - start,
-		.y = y - start,
-		.w = size,
-		.h = size
-	};
-	return area;
-}
-
 /* Function that compute all photometric data. The result must be freed */
-photometry *getPhotometryData(gsl_matrix* z, psf_star *psf,
+photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 		struct phot_config *phot_set, gboolean verbose, psf_error *error) {
 	int width = z->size2;
 	int height = z->size1;
@@ -243,14 +223,16 @@ photometry *getPhotometryData(gsl_matrix* z, psf_star *psf,
 	return phot;
 }
 
-/* used only be the old (libconfig) settings file reading and unit tests */
+/* used only by unit tests */
 void initialize_photometric_param() {
 	com.pref.phot_set.inner = 20;
 	com.pref.phot_set.outer = 30;
 	com.pref.phot_set.aperture = 10;
 	com.pref.phot_set.force_radius = FALSE;
+	com.pref.phot_set.auto_inner_factor = 4.2;
+	com.pref.phot_set.auto_outer_factor = 6.3;
 	com.pref.phot_set.gain = 2.3;
-	com.pref.phot_set.minval = 0;
+	com.pref.phot_set.minval = -1000;
 	com.pref.phot_set.maxval = 60000;
 }
 
@@ -282,8 +264,8 @@ const char *psf_error_to_string(psf_error err) {
 			return _("area too small");
 		case PSF_ERR_INVALID_IMAGE:
 			return _("image is invalid");
-		case PSF_ERR_OUT_OF_IMAGE:
-			return _("not in image");
+		case PSF_ERR_FLUX_RATIO:
+			return _("flux ratio failed");
 		default:
 			return _("unknown error");
 	}
@@ -306,18 +288,85 @@ void print_psf_error_summary(gint *code_sums) {
 	g_free(str);
 }
 
-/****************** making a light curve from sequence-stored data ****************/
-/* contrary to light_curve() in gui/plot.c, this one does not use preprocessed data and the
- * kplot data structure. It only uses data stored in the sequence, in seq->photometry, which is
- * populated by successive calls to seqpsf on the opened sequence;
- * TODO: replace light_curve() by this?
- */
-int new_light_curve(sequence *seq, const char *filename, const char *target_descr, gboolean display_graph) {
-	int i, j;
-	gboolean use_gnuplot = gnuplot_is_available();
-	if (!use_gnuplot) {
-		siril_log_message(_("Gnuplot was not found, the light curve data will be produced in %s but no image will be created.\n"), filename);
+// save the light curve to a dat file
+// with formatting compatible with ETD
+static gboolean siril_plot_save_ETD_light_curve(siril_plot_data *spl_data, const char *datfilename, gboolean add_title) {
+	GString *header = NULL;
+	FILE* fileout = NULL;
+	gboolean retval = TRUE;
+	double *data = NULL;
+	if (g_list_length(spl_data->plots) > 1) {
+		siril_debug_print("Light curve should not hold more than one data series, aborting\n");
+		return FALSE;
 	}
+
+	int nbpoints = 0, nbcols = 3;
+	if (add_title && spl_data->title) {
+		// spl_data->title is assumed to have the # signs at each line start as necessary
+		// and to finish by a \n character
+		header = g_string_new(spl_data->title);
+		g_string_append_printf(header, "# JD_UT V-C err");
+	} else
+		header = g_string_new("# JD_UT V-C err");
+
+	// xy points with y error bars
+	splxyerrdata *plots = (splxyerrdata *)spl_data->plots->data;
+	nbpoints = plots->nb;
+
+	// gathering all the data
+	data = malloc(nbpoints * nbcols * sizeof(double));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		retval = FALSE;
+		goto clean_and_exit;
+	}
+
+	// writing JD
+	int index = 0;
+	for (int i = 0; i < nbpoints; i++) {
+		data[index] = plots->plots[0]->data[i].x + plots->plots[0]->x_offset; // adding JD
+		index += nbcols;
+	}
+
+	// writing V-C and error
+	index = 1;
+	for (int i = 0; i < nbpoints; i++) {
+		for (int k = 0; k < 2; k++)
+			data[index + k] = plots->plots[k]->data[i].y;
+		index += nbcols;
+	}
+
+	fileout = g_fopen(datfilename, "w");
+	if (fileout == NULL) {
+		siril_log_message(_("Could not create %s, aborting\n"));
+		retval = FALSE;
+		goto clean_and_exit;
+	}
+	fprintf(fileout, "%s", header->str);
+	index = 0;
+	for (int r = 0 ; r < nbpoints ; r++) {
+		fprintf(fileout, "\n%f", data[index++]); // print newline and x
+		for (int c = 1 ; c < nbcols ; c++)
+			fprintf(fileout, " %g", data[index++]);
+	}
+	fclose(fileout);
+	siril_log_message(_("%s has been saved.\n"), datfilename);
+
+clean_and_exit:
+	g_string_free(header, TRUE);
+	free(data);
+	return retval;
+}
+
+/****************** making a light curve from sequence-stored data ****************/
+/* It uses data stored in the sequence, in seq->photometry, which is
+ * populated by successive calls to seqpsf on the opened sequence;
+ */
+int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
+	int i, j;
+	siril_plot_data *spl_data = NULL;
+	sequence *seq = lcargs->seq;
+
 	if (!seq->photometry[0]) {
 		siril_log_color_message(_("No photometry data found, error\n"), "red");
 		return -1;
@@ -355,7 +404,7 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 		siril_log_color_message(_("The reference stars are not good enough, probably out of the configured valid pixel range, cannot calibrate the light curve\n"), "red");
 		return -1;
 	}
-	if (nb_ref_stars < 1)
+	if (nb_ref_stars == 1)
 		siril_log_color_message(_("Only one reference star was validated, this will not result in an accurate light curve. Try to add more reference stars or check the configured valid pixel range\n"), "salmon");
 	else siril_log_message(_("Using %d stars to calibrate the light curve\n"), nb_ref_stars);
 
@@ -431,39 +480,59 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 
 	siril_log_message(_("Calibrated data for %d points of the light curve, %d excluded because of invalid photometry\n"), nb_valid_images, seq->selnum - nb_valid_images);
 
-	/* Exporting data in a dat file */
-	int ret = gnuplot_write_xyyerr_dat(filename, date, vmag, err, nb_valid_images, "JD_UT V-C err");
-	if (ret) {
-		if (com.script)
-			siril_log_color_message(_("Failed to create the light curve data file %s\n"), "red", filename);
+	gchar *subtitleimg = generate_lc_subtitle(lcargs->metadata, TRUE);
+	gchar *titleimg;
+	if (!lcargs->target_descr) {
+		titleimg = g_strdup_printf("%s %s", _("Light curve of star"), subtitleimg);
 	} else {
-		siril_log_message(_("%s has been saved.\n"), filename);
+		titleimg = g_strdup_printf("%s %s%s", _("Light curve of star"), lcargs->target_descr, subtitleimg);
+	}
+	gchar *subtitledat = generate_lc_subtitle(lcargs->metadata, FALSE);
+	gchar *titledat = g_strdup_printf("%s#JD_UT (+ %d)\n", subtitledat, julian0);
+	gchar *xlabel = g_strdup_printf("JD_UT (+ %d)", julian0);
 
-		/*  data are computed, now plot the graph. */
-		if (use_gnuplot) {
-			gnuplot_ctrl *gplot = gnuplot_init();
-			if (gplot) {
-				/* Plotting light curve */
-				gchar *title = g_strdup_printf("Light curve of star %s", target_descr);
-				gnuplot_set_title(gplot, title);
-				gchar *xlabel = g_strdup_printf("Julian date (+ %d)", julian0);
-				gnuplot_set_xlabel(gplot, xlabel);
-				gnuplot_reverse_yaxis(gplot);
-				gnuplot_setstyle(gplot, "errorbars");
-				if (display_graph) {
-					gnuplot_plot_xyyerr_from_datfile(gplot, filename, "relative magnitude", julian0);
-				} else {
-					gchar *image_name = replace_ext(filename, ".png");
-					gnuplot_plot_datfile_to_png(gplot, filename, "relative magnitude", julian0, image_name);
-					siril_log_message(_("%s has been generated.\n"), image_name);
-					g_free(image_name);
-				}
-				g_free(title);
-				g_free(xlabel);
-			}
-			else siril_log_message(_("Communicating with gnuplot failed, still creating the data file\n"));
+	spl_data = malloc(sizeof(siril_plot_data));
+	init_siril_plot_data(spl_data);
+	siril_plot_set_title(spl_data, titledat);
+	siril_plot_set_xlabel(spl_data, xlabel);
+	spl_data->revertY = TRUE;
+	siril_plot_set_savename(spl_data, "light_curve");
+	spl_data->forsequence = TRUE;
+	double *date0 = malloc(nb_valid_images * sizeof(double));
+	for (int k = 0; k < nb_valid_images; k++)
+		date0[k] = date[k] - julian0;
+	siril_plot_add_xydata(spl_data, _("V-C"), nb_valid_images, date0, vmag, err, NULL);
+	splxyerrdata *lc = (splxyerrdata *)spl_data->plots->data;
+	lc->plots[0]->x_offset = (double)julian0;
+	free(date0);
+
+	// now we sort to have all dates ascending
+	siril_plot_sort_x(spl_data);
+	// saving dat
+	int ret = 0;
+	if (!siril_plot_save_ETD_light_curve(spl_data, filename, TRUE)) {
+		ret = 1;
+		free_siril_plot_data(spl_data);
+		spl_data = NULL; // just in case we try to use it later on
+	} else {
+		// now saving the plot if required
+		siril_plot_set_title(spl_data, titleimg);
+		if (!lcargs->display_graph) { // if not used for display we can free spl_data now
+			gchar *image_name = replace_ext(filename, ".png");
+			siril_plot_save_png(spl_data, image_name, 0, 0);
+			free_siril_plot_data(spl_data);
+			spl_data = NULL; // just in case we try to use it later on
+			g_free(image_name);
 		}
 	}
+	g_free(xlabel);
+	g_free(subtitleimg);
+	g_free(titleimg);
+	g_free(subtitledat);
+	g_free(titledat);
+
+	if (lcargs->display_graph && spl_data)
+		lcargs->spl_data = spl_data;
 
 	free(date);
 	free(vmag);
@@ -471,203 +540,24 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 	return ret;
 }
 
-static int get_photo_area_from_ra_dec(fits *fit, double ra, double dec, rectangle *ret_area) {
-	double x, y;
-	if (wcs2pix(fit, ra, dec, &x, &y)) {
-		siril_debug_print("star is outside image\n");
-		return 1;
-	}
-	y = fit->ry - y - 1;
-	double start = 1.5 * com.pref.phot_set.outer;
-	double size = 3 * com.pref.phot_set.outer;
-	rectangle area;
-	area.x = x - start;
-	area.y = y - start;
-	area.w = size;
-	area.h = size;
-	if (area.x < 0 || area.y < 0 ||
-			area.h <= 0 || area.w <= 0 ||
-			area.x + area.w >= fit->rx ||
-			area.y + area.h >= fit->ry) {
-		siril_debug_print("star is outside image\n");
-		return 1;
-	}
-	*ret_area = area;
-	siril_debug_print("Pixel coordinates of a star: %.1f, %.1f\n", x, y);
-	return 0;
-}
-
-// area is not recovering another at least half their size (assumed square and identical)
-static int area_is_unique(rectangle *area, rectangle *areas, int nb_areas) {
-	int half_size = area->w / 2;
-	for (int i = 0; i < nb_areas; i++) {
-		if (abs(area->x - areas[i].x) < half_size && abs(area->y - areas[i].y) < half_size)
-			return 0;
-	}
-	return 1;
-}
-
-int parse_nina_stars_file_using_WCS(struct light_curve_args *args, const char *file_path, gboolean use_comp1, gboolean use_comp2, fits *first) {
-	/* The file is a CSV with these fields:
-	 * Type,Name,HFR,xPos,yPos,AvgBright,MaxBright,Background,Ra,Dec
-	 *
-	 * Type can be 'Target' for the variable star to analyse, 'Var' for variable stars to
-	 * absolutely exclude as calibration reference, 'Comp1' are reference stars obtained
-	 * from SIMBAD based on color, 'Comp2' are stars obtained from the AAVSO site.
-	 * We just need this and Ra,Dec. xPos and yPos are in pixels, but we'll use wcs2pix
-	 * to get them with our plate solve and our star fitting.
-	 */
-	FILE *fd = g_fopen(file_path, "r");
-	if (!fd) {
-		siril_log_message(_("Could not open file %s: %s\n"), file_path, strerror(errno));
-		return 1;
-	}
-	char buf[512];
-	rectangle *areas = malloc(MAX_REF_STARS * sizeof(rectangle));
-	areas[0].x = 0; areas[0].y = 0;
-	int ra_index = -1, dec_index = -1, name_index = 2;
-	int stars_count = 0;
-	gboolean ready_to_parse = FALSE, target_acquired = FALSE;
-	while (fgets(buf, 512, fd)) {
-		if (buf[0] == '\0' || buf[0] == '\r' || buf[0] == '\n' || buf[0] == '#')
-			continue;
-		remove_trailing_eol(buf);
-		gchar **tokens = g_strsplit(buf, ",", -1);
-		int length = g_strv_length(tokens);
-		if (!tokens[0] || length <= ra_index || length <= dec_index) {
-			siril_debug_print("malformed line: %s\n", buf);
-			g_strfreev(tokens);
-			continue;
-		}
-		gchar *type = tokens[0];
-		if (!ready_to_parse) {
-			if (!strcasecmp(type, "type")) {
-				siril_debug_print("header from the NINA file: %s\n", buf);
-				for (int i = 1; tokens[i]; i++) {
-					if (!strcasecmp(tokens[i], "ra"))
-						ra_index = i;
-					else if (!strcasecmp(tokens[i], "dec"))
-						dec_index = i;
-					else if (!strcasecmp(tokens[i], "name"))
-						name_index = i;
-				}
-				g_strfreev(tokens);
-
-				if (ra_index < 1 || dec_index < 1) {
-					siril_log_message(_("The NINA star information file did not contain all expected data (RA and Dec)\n"));
-					fclose(fd);
-					return 1;
-				}
-				siril_debug_print("Found RA and Dec indices in file: %d and %d\n", ra_index, dec_index);
-				ready_to_parse = TRUE;
-				continue;
-			}
-			else {
-				siril_debug_print("malformed line: %s\n", buf);
-				siril_log_message(_("The NINA star information file did not contain all expected data (RA and Dec)\n"));
-				g_strfreev(tokens);
-				fclose(fd);
-				return 1;
-			}
-		}
-
-		if (!strcasecmp(type, "target")) {
-			gchar *end1, *end2;
-			double ra = g_ascii_strtod(tokens[ra_index], &end1);
-			double dec = g_ascii_strtod(tokens[dec_index], &end2);
-			if (end1 == tokens[ra_index] || end2 == tokens[dec_index]) {
-				siril_debug_print("malformed line: %s\n", buf);
-				siril_log_message(_("The NINA star information file did not contain all expected data (RA and Dec)\n"));
-				g_strfreev(tokens);
-				fclose(fd);
-				return 1;
-			}
-
-			args->target_descr = g_strdup(tokens[name_index]);
-			if (!get_photo_area_from_ra_dec(first, ra, dec, &areas[0])) {
-				target_acquired = TRUE;
-				stars_count++;
-				siril_log_message(_("Target star identified: %s\n"), tokens[name_index]);
-			} else {
-				siril_log_message(_("There was a problem finding the target star in the image, cannot continue with the light curve\n"));
-			}
-		}
-		else if (!strcasecmp(type, "var")) {
-			// we don't use them for this, but we could add them in the
-			// user catalogue for annotations, or a local database
-		}
-		else if (!strcasecmp(type, "comp1")) {
-			if (!use_comp1) {
-				siril_debug_print("ignoring comp1 star\n");
-				g_strfreev(tokens);
-				continue;
-			}
-			gchar *end1, *end2;
-			double ra = g_ascii_strtod(tokens[ra_index], &end1);
-			double dec = g_ascii_strtod(tokens[dec_index], &end2);
-			if (end1 == tokens[ra_index] || end2 == tokens[dec_index]) {
-				siril_debug_print("malformed line: %s\n", buf);
-				siril_log_message(_("The NINA star information file did not contain all expected data (RA and Dec)\n"));
-				g_strfreev(tokens);
-				fclose(fd);
-				return 1;
-			}
-			int index = target_acquired ? stars_count : stars_count + 1;
-			if (!get_photo_area_from_ra_dec(first, ra, dec, &areas[index])) {
-				if (area_is_unique(&areas[index], areas, index)) {
-					stars_count++;
-					siril_log_message(_("Star %s added as a reference star\n"), tokens[name_index]);
-				}
-				else siril_log_message(_("Star %s ignored because it was too close to another\n"), tokens[name_index]);
-			}
-			else siril_log_message(_("Star %s could not be used because it's on the borders or outside\n"), tokens[name_index]);
-		}
-		else if (!strcasecmp(type, "comp2")) {
-			if (!use_comp2) {
-				siril_debug_print("ignoring comp2 star\n");
-				g_strfreev(tokens);
-				continue;
-			}
-			gchar *end1, *end2;
-			double ra = g_ascii_strtod(tokens[ra_index], &end1);
-			double dec = g_ascii_strtod(tokens[dec_index], &end2);
-			if (end1 == tokens[ra_index] || end2 == tokens[dec_index]) {
-				siril_debug_print("malformed line: %s\n", buf);
-				siril_log_message(_("The NINA star information file did not contain all expected data (RA and Dec)\n"));
-				g_strfreev(tokens);
-				fclose(fd);
-				return 1;
-			}
-			int index = target_acquired ? stars_count : stars_count + 1;
-			if (!get_photo_area_from_ra_dec(first, ra, dec, &areas[index])) {
-				if (area_is_unique(&areas[index], areas, index)) {
-					stars_count++;
-					siril_log_message(_("Star %s added as a reference star\n"), tokens[name_index]);
-				}
-				else siril_log_message(_("Star %s ignored because it was too close to another\n"), tokens[name_index]);
-			}
-			else siril_log_message(_("Star %s could not be used because it's on the borders or outside\n"), tokens[name_index]);
-		}
-		else {
-			siril_debug_print("malformed line: %s\n", buf);
-		}
-		g_strfreev(tokens);
-		if (stars_count >= MAX_REF_STARS)
-			break;
-	}
-	if (target_acquired) {
-		args->areas = areas;
-		args->nb = stars_count;
-	}
-	fclose(fd);
-	return !target_acquired;
-}
-
 static gboolean end_light_curve_worker(gpointer p) {
-	drawPlot();
-	notify_new_photometry();	// switch to and update plot tab
-	redraw(REDRAW_OVERLAY);
+	if (sequence_is_loaded()) {
+		drawPlot();
+		notify_new_photometry();	// switch to and update plot tab
+		redraw(REDRAW_OVERLAY);
+	}
 	return end_generic(NULL);
+}
+
+void free_light_curve_args(struct light_curve_args *args) {
+	if (args->seq && !check_seq_is_comseq(args->seq))
+		free_sequence(args->seq, TRUE);
+	free(args->areas);
+	g_free(args->target_descr);
+	if (args->metadata)
+		free(args->metadata);
+	free(args);
+	return;
 }
 
 gpointer light_curve_worker(gpointer arg) {
@@ -678,9 +568,7 @@ gpointer light_curve_worker(gpointer arg) {
 	if (framing == REGISTERED_FRAME && !args->seq->regparam[args->layer])
 		framing = FOLLOW_STAR_FRAME;
 
-	/* for now, we use seqpsf as many times as needed and the GUI way of
-	 * generating the light curve. Maybe someday it would be wise to move to
-	 * all_stars_psf instead, depending on the number of reference stars */
+	// someday we should move the area in the seqpsf args, not needed for now
 	for (int star_index = 0; star_index < args->nb; star_index++) {
 		com.selection = args->areas[star_index];
 
@@ -690,20 +578,22 @@ gpointer light_curve_worker(gpointer arg) {
 				retval = 1;
 				break;
 			}
-			else siril_log_message(_("Failed to analyse the photometry of reference star %d\n"), star_index);
+			else siril_log_message(_("Failed to analyse the photometry of reference star %d\n"),
+					star_index);
 		}
 
 		if (args->seq == &com.seq)
 			queue_redraw(REDRAW_OVERLAY);
 	}
+	memset(&com.selection, 0, sizeof(rectangle));
 
 	/* analyse data and create the light curve */
 	if (!retval)
-		retval = new_light_curve(args->seq, "light_curve.dat", args->target_descr, args->display_graph);
-
-	if (args->seq != &com.seq)
-		free_sequence(args->seq, TRUE);
-	free(args);
+		retval = new_light_curve("light_curve.dat", args);
+	if (!retval && args->display_graph && args->spl_data) {
+		siril_add_idle(create_new_siril_plot_window, args->spl_data);
+	}
+	free_light_curve_args(args); // this will not free args->spl_data which is free by siril_plot window upon closing
 	siril_add_idle(end_light_curve_worker, NULL);
 	return GINT_TO_POINTER(retval);
 }

@@ -180,6 +180,27 @@
             <child>
               <object class="GtkShortcutsShortcut">
                 <property name="visible">1</property>
+                <property name="accelerator">&lt;Primary&gt;&lt;shift&gt;c</property>
+                <property name="title" translatable="yes" context="shortcut window">Open spectrophotometric color calibration dialog</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="visible">1</property>
+                <property name="accelerator">&lt;Primary&gt;&lt;shift&gt;b</property>
+                <property name="title" translatable="yes" context="shortcut window">Open comparison stars dialog</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="visible">1</property>
+                <property name="accelerator">&lt;Primary&gt;&lt;shift&gt;n</property>
+                <property name="title" translatable="yes" context="shortcut window">Open light curve dialog</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="visible">1</property>
                 <property name="accelerator">&lt;Primary&gt;slash</property>
                 <property name="title" translatable="yes" context="shortcut window">Search an object in the image</property>
               </object>
@@ -194,7 +215,7 @@
             <child>
               <object class="GtkShortcutsShortcut">
                 <property name="visible">1</property>
-                <property name="accelerator">&lt;Primary&gt;&lt;shift&gt;c</property>
+                <property name="accelerator">&lt;Primary&gt;&lt;shift&gt;x</property>
                 <property name="title" translatable="yes" context="shortcut window">Copy snapshot to clipboard</property>
               </object>
             </child>

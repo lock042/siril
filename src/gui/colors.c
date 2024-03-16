@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,11 +23,14 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "algos/colors.h"
+#include "core/icc_profile.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
 #include "core/undo.h"
 #include "core/OS_utils.h"
 #include "io/single_image.h"
+#include "io/sequence.h"
 #include "io/image_format_fits.h"
 #include "algos/colors.h"
 #include "algos/statistics.h"
@@ -146,6 +149,7 @@ void on_button_bkg_neutralization_clicked(GtkButton *button, gpointer user_data)
 
 	set_cursor_waiting(TRUE);
 	background_neutralize(&gfit, black_selection);
+	populate_roi();
 	delete_selected_area();
 
 	update_gfit_histogram_if_needed();
@@ -158,14 +162,10 @@ void on_button_white_selection_clicked(GtkButton *button, gpointer user_data) {
 	static GtkSpinButton *selection_white_value[4] = { NULL, NULL, NULL, NULL };
 
 	if (!selection_white_value[0]) {
-		selection_white_value[0] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(gui.builder, "spin_white_x"));
-		selection_white_value[1] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(gui.builder, "spin_white_y"));
-		selection_white_value[2] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(gui.builder, "spin_white_w"));
-		selection_white_value[3] = GTK_SPIN_BUTTON(
-				gtk_builder_get_object(gui.builder, "spin_white_h"));
+		selection_white_value[0] = GTK_SPIN_BUTTON(lookup_widget("spin_white_x"));
+		selection_white_value[1] = GTK_SPIN_BUTTON(lookup_widget("spin_white_y"));
+		selection_white_value[2] = GTK_SPIN_BUTTON(lookup_widget("spin_white_w"));
+		selection_white_value[3] = GTK_SPIN_BUTTON(lookup_widget("spin_white_h"));
 	}
 
 	if ((!com.selection.h) || (!com.selection.w)) {
@@ -279,6 +279,7 @@ void on_calibration_apply_button_clicked(GtkButton *button, gpointer user_data) 
 
 	show_time(t_start, t_end);
 
+	populate_roi();
 	delete_selected_area();
 
 	redraw(REMAP_ALL);
@@ -406,4 +407,149 @@ void on_extract_channel_button_ok_clicked(GtkButton *button, gpointer user_data)
 		free(args->channel[2]);
 		free(args);
 	}
+}
+
+
+void on_ccm_apply_clicked(GtkButton* button, gpointer user_data) {
+	struct ccm_data *args = malloc(sizeof(struct ccm_data));
+
+	args->matrix[0][0] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m00"))), NULL);
+	args->matrix[0][1] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m01"))), NULL);
+	args->matrix[0][2] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m02"))), NULL);
+	args->matrix[1][0] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m10"))), NULL);
+	args->matrix[1][1] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m11"))), NULL);
+	args->matrix[1][2] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m12"))), NULL);
+	args->matrix[2][0] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m20"))), NULL);
+	args->matrix[2][1] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m21"))), NULL);
+	args->matrix[2][2] = g_ascii_strtod(gtk_entry_get_text(GTK_ENTRY(lookup_widget("entry_m22"))), NULL);
+	args->power = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_ccm_power")));
+
+	GtkToggleButton *btn = GTK_TOGGLE_BUTTON(lookup_widget("check_apply_seq_ccm"));
+	gboolean seq_toggle = gtk_toggle_button_get_active(btn);
+	if (seq_toggle && sequence_is_loaded()) {
+		GtkEntry *ccmSeqEntry = GTK_ENTRY(lookup_widget("entryCCMSeq"));
+		args->seqEntry = strdup(gtk_entry_get_text(ccmSeqEntry));
+
+		args->seq = &com.seq;
+		apply_ccm_to_sequence(args);
+	} else {
+		if (seq_toggle) {
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("No sequence is loaded"));
+			return;
+		} else if (gfit.icc_profile && gfit.color_managed) {
+			siril_message_dialog(GTK_MESSAGE_WARNING, _("ICC Profile"), _("This image has an attached ICC profile. Applying the CCM will invalidate the "
+						"ICC profile therefore color management will be disabled. When you have completed low-level color manipulation and returned the image "
+						"to the color space described by its ICC profile you can re-enable it using the button at the bottom of this dialog."));
+			color_manage(&gfit, FALSE);
+			gtk_widget_set_sensitive(lookup_widget("ccm_restore_icc"), TRUE);
+		}
+
+		gchar *buf = g_strdup_printf(_("CCM: [[%.2f %.2f %.2f][%.2f %.2f %.2f][%.2f %.2f %.2f]], pwr: %.2f"),
+					args->matrix[0][0], args->matrix[0][1], args->matrix[0][2],
+					args->matrix[1][0], args->matrix[1][1], args->matrix[1][2],
+					args->matrix[2][0], args->matrix[2][1], args->matrix[2][2],
+					args->power);
+
+		undo_save_state(&gfit, buf);
+		g_free(buf);
+
+		ccm_calc(&gfit, args->matrix, args->power);
+		invalidate_stats_from_fit(&gfit);
+		notify_gfit_modified();
+		free(args);
+	}
+}
+
+void on_ccm_restore_icc_clicked(GtkButton *button, gpointer user_data) {
+	if (gfit.icc_profile) {
+		color_manage(&gfit, TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(button), FALSE);
+	}
+}
+
+static void update_ccm_matrix(ccm matrix) {
+	gchar buf[G_ASCII_DTOSTR_BUF_SIZE+1];
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entry_m00")), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[0][0]));
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entry_m01")), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[0][1]));
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entry_m02")), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[0][2]));
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entry_m10")), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[1][0]));
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entry_m11")), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[1][1]));
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entry_m12")), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[1][2]));
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entry_m20")), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[2][0]));
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entry_m21")), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[2][1]));
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entry_m22")), g_ascii_dtostr(buf, G_ASCII_DTOSTR_BUF_SIZE, matrix[2][2]));
+}
+
+void on_ccm_reset_clicked(GtkButton* button, gpointer user_data) {
+	ccm matrix = { { 0.f } };
+	matrix[0][0] = matrix[1][1] = matrix[2][2] = 1.0f;
+	update_ccm_matrix(matrix);
+}
+
+void on_combo_ccm_preset_changed(GtkComboBox *combo, gpointer user_data) {
+	ccm matrix;
+	float power;
+	int index = gtk_combo_box_get_active(combo);
+	switch (index) {
+		case 0:
+			// Custom - does nothing
+			return;
+		case 1: // Linear Rec.709 to XYZ
+			matrix[0][0] = 0.4124564f;
+			matrix[0][1] = 0.3575761f;
+			matrix[0][2] = 0.1804375f;
+			matrix[1][0] = 0.2126729f;
+			matrix[1][1] = 0.7151522f;
+			matrix[1][2] = 0.0721750f;
+			matrix[2][0] = 0.0193339f;
+			matrix[2][1] = 0.1191920f;
+			matrix[2][2] = 0.9503041f;
+			power = 1.f;
+			break;
+		case 3:
+			matrix[0][0] = 0.4124564f;
+			matrix[0][1] = 0.3575761f;
+			matrix[0][2] = 0.1804375f;
+			matrix[1][0] = 0.2126729f;
+			matrix[1][1] = 0.7151522f;
+			matrix[1][2] = 0.0721750f;
+			matrix[2][0] = 0.0193339f;
+			matrix[2][1] = 0.1191920f;
+			matrix[2][2] = 0.9503041f;
+			power = 2.2f;
+			break;
+		case 2: // XYZ to Linear Rec.709
+			matrix[0][0] = 3.2404542f;
+			matrix[0][1] = -1.5371385f;
+			matrix[0][2] = -0.4985314f;
+			matrix[1][0] = -0.9692660f;
+			matrix[1][1] = 1.8760108f;
+			matrix[1][2] = 0.0415560f;
+			matrix[2][0] = 0.0556434f;
+			matrix[2][1] = -0.2040259f;
+			matrix[2][2] = 1.0572253f;
+			power = 1.f;
+			break;
+		case 4:
+			matrix[0][0] = 3.2404542f;
+			matrix[0][1] = -1.5371385f;
+			matrix[0][2] = -0.4985314f;
+			matrix[1][0] = -0.9692660f;
+			matrix[1][1] = 1.8760108f;
+			matrix[1][2] = 0.0415560f;
+			matrix[2][0] = 0.0556434f;
+			matrix[2][1] = -0.2040259f;
+			matrix[2][2] = 1.0572253f;
+			power = 1.f / 2.2f;
+			break;
+		default:
+			siril_message_dialog(GTK_MESSAGE_WARNING, _("Warning"), _("This case is not handled yet"));
+			return;
+	}
+	update_ccm_matrix(matrix);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_ccm_power")), power);
+}
+
+void on_ccm_close_clicked(GtkButton* button, gpointer user_data) {
+	siril_close_dialog("ccm_dialog");
 }

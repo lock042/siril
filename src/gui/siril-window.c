@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,6 @@
 
 #include <gtk/gtk.h>
 #include "core/siril_actions.h"
-#include "gui/nina_light_curve.h"
 
 static GActionEntry win_entries[] = {
 	{ "close", close_action_activate },
@@ -60,8 +59,10 @@ static GActionEntry image_entries[] = {
 	{ "statistics", statistics_activate },
 	{ "evaluate-noise", noise_activate },
 	{ "ccd-inspector", ccd_inspector_activate },
+	{ "show-tilt", show_tilt_activate, NULL, "false", show_tilt_state },
 	{ "astrometry", astrometry_activate },
 	{ "photometry", photometry_activate, NULL, "false", photometry_state },
+	{ "cut", cut_activate },
 	{ "image-information", image_information_activate },
 	{ "dyn-psf", dyn_psf_activate },
 	{ "annotate-object", annotate_object_activate, NULL, "false", annotate_object_state },
@@ -69,13 +70,16 @@ static GActionEntry image_entries[] = {
 	{ "search-object", search_object_activate },
 	{ "search-solar", search_object_solar_activate },
 	{ "seq-list", seq_list_activate },
-	{ "regframe", regframe_activate , NULL, "true", regframe_state }
+	{ "regframe", regframe_activate , NULL, "true", regframe_state },
+	{ "nina_light_curve", nina_lc_activate },
+	{ "compstars", compstars_activate }
 };
 
 static GActionEntry selection_entries[] = {
 	{ "pickstar", pick_star_activate },
 	{ "psf", psf_activate },
-	{ "crop", crop_activate }
+	{ "crop", crop_activate },
+	{ "set_roi", set_roi }
 };
 
 static GActionEntry selection_sequence_entries[] = {
@@ -88,9 +92,13 @@ static GActionEntry rgb_processing_entries[] = {
 	{ "saturation-processing", saturation_activate },
 	{ "color-calib-processing", color_calib_activate },
 	{ "pcc-processing", pcc_activate },
+	{ "spcc-processing", spcc_activate },
 	{ "align-dft", align_dft_activate },
 	{ "align-psf", align_psf_activate },
-	{ "split-channel-processing", split_channel_activate }
+	{ "align-global", align_global_activate },
+	{ "align-kombat", align_kombat_activate },
+	{ "split-channel-processing", split_channel_activate },
+	{ "ccm-processing", ccm_activate }
 };
 
 static GActionEntry any_processing_entries[] = {
@@ -98,9 +106,12 @@ static GActionEntry any_processing_entries[] = {
 	{ "deconvolution-processing", deconvolution_activate },
 	{ "histo-processing", histo_activate },
 	{ "payne-processing", payne_activate },
+	{ "starnet-processing", starnet_activate },
 	{ "fix-banding-processing", fix_banding_activate },
 	{ "cosmetic-processing", cosmetic_activate },
-	{ "background-extr-processing", background_extr_activate }
+	{ "background-extr-processing", background_extr_activate },
+	{ "icc-tool", icc_activate },
+	{ "clear_roi", clear_roi }
 };
 
 static GActionEntry any_mono_processing_entries[] = {
@@ -118,7 +129,6 @@ static GActionEntry single_processing_entries[] = {
 	{ "mirrorx-processing", mirrorx_activate },
 	{ "mirrory-processing", mirrory_activate },
 	{ "wavelets-processing", wavelets_activate },
-	{ "starnet-processing", starnet_activate },
 	{ "split-wavelets-processing", split_wavelets_activate },
 	{ "medianfilter-processing", medianfilter_activate },
 	{ "rgradient-processing", rgradient_activate },
@@ -133,8 +143,7 @@ static GActionEntry none_processing_entries[] = {
 	{ "rgb-compositing-processing", rgb_compositing_activate },
 	{ "star-remix-processing", star_remix_activate },
 	{ "merge-cfa-processing", merge_cfa_activate },
-	{ "pixel-math", pixel_math_activate },
-	{ "nina_light_curve", nina_lc_activate }
+	{ "pixel-math", pixel_math_activate }
 };
 
 static void _siril_window_enable_action_group(GActionMap *map,
@@ -164,6 +173,7 @@ void siril_window_enable_image_actions(GtkApplicationWindow *window, gboolean en
 		"statistics",
 		"evaluate-noise",
 		"ccd-inspector",
+		"show-tilt",
 		"astrometry",
 		"photometry",
 		"image-information",
@@ -173,6 +183,16 @@ void siril_window_enable_image_actions(GtkApplicationWindow *window, gboolean en
 		NULL,
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), image_actions, enable);
+}
+
+void siril_window_enable_wcs_proc_actions(GtkApplicationWindow *window, gboolean enable) {
+	static const gchar *wcs_processing_actions[] = {
+		"annotate-object",
+		"wcs-grid",
+		"compstars",
+		NULL,
+	};
+	_siril_window_enable_action_group(G_ACTION_MAP(window), wcs_processing_actions, enable);
 }
 
 void siril_window_autostretch_actions(GtkApplicationWindow *window, gboolean enable) {
@@ -188,11 +208,28 @@ void siril_window_enable_rgb_proc_actions(GtkApplicationWindow *window, gboolean
 		"remove-green-processing",
 		"saturation-processing",
 		"color-calib-processing",
-		"pcc-processing",
 		"split-channel-processing",
+		"align-global",
 		NULL,
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), rgb_processing_actions, enable);
+}
+
+void siril_window_enable_any_rgb_proc_actions(GtkApplicationWindow *window, gboolean enable) {
+	static const gchar *any_rgb_processing_actions[] = {
+		"ccm-processing",
+		NULL,
+	};
+	_siril_window_enable_action_group(G_ACTION_MAP(window), any_rgb_processing_actions, enable);
+}
+
+void siril_window_enable_rgb_wcs_proc_actions(GtkApplicationWindow *window, gboolean enable) {
+	static const gchar *rgb_wcs_processing_actions[] = {
+		"pcc-processing",
+		"spcc-processing",
+		NULL,
+	};
+	_siril_window_enable_action_group(G_ACTION_MAP(window), rgb_wcs_processing_actions, enable);
 }
 
 void siril_window_enable_any_proc_actions(GtkApplicationWindow *window, gboolean enable) {
@@ -202,8 +239,11 @@ void siril_window_enable_any_proc_actions(GtkApplicationWindow *window, gboolean
 		"histo-processing",
 		"payne-processing",
 		"fix-banding-processing",
+		"starnet-processing",
 		"cosmetic-processing",
 		"background-extr-processing",
+		"icc-tool",
+		"clear_roi",
 		NULL,
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), any_processing_actions, enable);
@@ -229,7 +269,6 @@ void siril_window_enable_single_proc_actions(GtkApplicationWindow *window, gbool
 		"mirrorx-processing",
 		"mirrory-processing",
 		"wavelets-processing",
-		"starnet-processing",
 		"split-wavelets-processing",
 		"medianfilter-processing",
 		"rgradient-processing",
@@ -259,6 +298,8 @@ void siril_window_enable_if_selection_actions(GtkApplicationWindow *window, gboo
 		"pickstar",
 		"psf",
 		"crop",
+		"set_roi",
+
 		NULL,
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), selection_actions, enable);
@@ -268,6 +309,7 @@ void siril_window_enable_if_selection_rgb_actions(GtkApplicationWindow *window, 
 	static const gchar *selection_rgb_actions[] = {
 		"align-dft",
 		"align-psf",
+		"align-kombat",
 		NULL,
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), selection_rgb_actions, enable);

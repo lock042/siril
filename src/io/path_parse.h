@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,6 +35,7 @@ typedef enum {
 	PATHPARSE_ERR_WRONG_WCS_NOFAIL = -6,
 	PATHPARSE_ERR_UNSUPPORTED_FORMAT_NOFAIL = -7,
 	PATHPARSE_ERR_NOSEQLOADED_NOFAIL = -8,
+	PATHPARSE_ERR_BADSTRING_NOFAIL = -9,
 	// no error
 	PATHPARSE_ERR_OK = 0,
 	// parsing errors for classic read or write modes
@@ -46,6 +47,7 @@ typedef enum {
 	PATHPARSE_ERR_WRONG_WCS = 6,
 	PATHPARSE_ERR_UNSUPPORTED_FORMAT = 7,
 	PATHPARSE_ERR_NOSEQLOADED = 8,
+	PATHPARSE_ERR_BADSTRING = 9,
 	// errors for read mode with wildcards
 	PATHPARSE_ERR_NO_HIT_FOUND = 10,
 	PATHPARSE_ERR_NO_DIR = 11,
@@ -60,7 +62,7 @@ typedef enum {
 	PATHPARSE_MODE_WRITE_NOFAIL
 } pathparse_mode;
 
-gchar *path_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status);
-gchar *update_header_and_parse(fits *fit, gchar *expression, pathparse_mode mode, int *status);
+gchar *path_parse(fits *fit, const gchar *expression, pathparse_mode mode, int *status);
+gchar *update_header_and_parse(fits *fit, gchar *expression, pathparse_mode mode, gboolean createdir, int *status);
 
 #endif /* SRC_IO_PATH_PARSE_H_ */

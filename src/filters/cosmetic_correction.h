@@ -13,7 +13,7 @@ struct cosmetic_data {
 	double amount;
 	gboolean is_cfa;
 	threading_type threading;
-	const gchar *seqEntry;
+	char *seqEntry;
 };
 
 /* structure for cosme command */

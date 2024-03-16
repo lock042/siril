@@ -1,8 +1,8 @@
 dnl Process this file with autoconf to produce a configure script.
 m4_define([siril_major_version], [1])
-m4_define([siril_minor_version], [1])
-m4_define([siril_micro_version], [0])
-m4_define([siril_prerelease_version], [alpha1])
+m4_define([siril_minor_version], [3])
+m4_define([siril_micro_version], [1])
+m4_define([siril_prerelease_version], [alpha-dev])
 m4_define([siril_version],
           [siril_major_version.siril_minor_version.siril_micro_version])
 m4_define([siril_version_full],
@@ -14,8 +14,8 @@ m4_define([siril_stable],
           m4_if(m4_eval(siril_minor_version % 2), [0], [yes], [no]))
 
 dnl change siril_version_full by siril_version for stable release
-dnl AC_INIT([siril], [siril_version_full],
-AC_INIT([siril], [siril_version],
+AC_INIT([siril], [siril_version_full],
+dnl AC_INIT([siril], [siril_version],
         [https://gitlab.com/free-astro/siril/issues],
         [siril],
         [https://www.siril.org])
@@ -54,10 +54,7 @@ if test "x$remember_set_CFLAGS" = "x"; then
 fi
 
 CFLAGS="-D_FILE_OFFSET_BITS=64 -Werror=unknown-pragmas -Werror=unused-label -fno-common -ftree-vectorize -fno-math-errno $CFLAGS $OPENMP_CFLAGS"
-CXXFLAGS="$CFLAGS -std=c++14"
-
-m4_include([m4/ax_cxx_compile_stdcxx.m4])
-AX_CXX_COMPILE_STDCXX(14, noext, mandatory)
+CXXFLAGS="$CFLAGS -std=c++17"
 
 if test "x$SIRIL_UNSTABLE" = "xyes"; then
   AC_DEFINE(SIRIL_UNSTABLE, 1,
@@ -129,17 +126,20 @@ case "$host_os" in
     ;;
 esac
 
-dnl check libexiv2
-PKG_CHECK_MODULES(EXIV2, exiv2 >= 0.25)
-
 dnl check GTK
 PKG_CHECK_MODULES(GTK, gtk+-3.0 >= 3.20.0)
+
+dnl check lcms2
+PKG_CHECK_MODULES(LCMS2, lcms2 >= 2.14)
 
 dnl check cairo
 PKG_CHECK_MODULES(CAIRO, cairo)
 
-dnl check fftw3
-PKG_CHECK_MODULES(FFTW, [fftw3f])
+dnl check wcslib
+PKG_CHECK_MODULES(WCSLIB, wcslib >= 7.12)
+
+dnl check fftw3 and its threading capabilities
+m4_include([m4/fftw.m4])
 
 dnl check GNU Scientific Library
 PKG_CHECK_MODULES(GSL, [gsl < 2],
@@ -150,6 +150,10 @@ PKG_CHECK_MODULES(GSL, [gsl < 2],
 
 dnl check cfitsio
 PKG_CHECK_MODULES(CFITSIO, [cfitsio])
+
+dnl Check for json-glib
+PKG_CHECK_MODULES(JSON_GLIB, [json-glib-1.0 >= 1.2.6])
+
 
 dnl check opencv
 AC_PROG_CXX
@@ -171,7 +175,7 @@ if test -n "$CXX" && ( test "X$CXX" != "Xno" &&
 					     AC_MSG_ERROR([opencv not found.]))])
 else
 	AC_MSG_ERROR([no C++ compiler found])
-	fi
+fi
 
 PKG_CHECK_MODULES(LIBRTPROCESS, [rtprocess], have_rtprocess="yes", have_rtprocess="no")
 if test "x$have_rtprocess" = "xno"; then
@@ -226,6 +230,11 @@ PKG_CHECK_MODULES(LIBRAW, [libraw >= 0.17],
 		  [AC_DEFINE([HAVE_LIBRAW], [1], [Using RAW images])],
 		  AC_MSG_WARN([libraw not found. Not using RAW importer.]))
 
+dnl check libexiv2
+PKG_CHECK_MODULES(EXIV2, [exiv2 >= 0.25],
+		  [AC_DEFINE([HAVE_EXIV2], [1], [Using exif previews])],
+		  AC_MSG_WARN([exiv2 not found. Not extracting image previews.]))
+
 dnl check tiff lib
 PKG_CHECK_MODULES(LIBTIFF, [libtiff-4],
 		  [AC_DEFINE([HAVE_LIBTIFF], [1], [Using TIFF images])],
@@ -246,6 +255,11 @@ PKG_CHECK_MODULES(LIBHEIF, [libheif],
 		  [AC_DEFINE([HAVE_LIBHEIF], [1], [Using HEIF images])],
 		  AC_MSG_WARN([libheif not found. Not using HEIF importer and exporter.]))
 
+dnl check heif lib
+PKG_CHECK_MODULES(LIBXISF, [libxisf],
+		  [AC_DEFINE([HAVE_LIBXISF], [1], [Using XISF images >= 0.2.7])],
+		  AC_MSG_WARN([libxisf not found. Not using XISF importer and exporter.]))
+
 dnl check ffms2
 PKG_CHECK_MODULES(FFMS2, [ffms2],
 		  [AC_DEFINE([HAVE_FFMS2], [1], [Using FFMS2])],
@@ -257,25 +271,15 @@ PKG_CHECK_MODULES(FFMPEG, [libavformat libavutil >= 55.20 libavcodec libswscale 
 		  AC_MSG_WARN([ffmpeg libav libraries not found or too old. Not using film export formats.]))
 
 dnl checking libcurl
+curl_avail=no
 m4_include([m4/libcurl.m4])
 LIBCURL_CHECK_CONFIG([yes], [7.10.0],
-		     [AC_DEFINE([HAVE_LIBCURL], [1], [Using Libcurl])],
-		     AC_MSG_WARN([libcurl not found. Not using web interaction.]))
+		     [AC_DEFINE([HAVE_LIBCURL], [1], [Using Libcurl])] curl_avail=yes, [])
 
-dnl check wcslib
-PKG_CHECK_MODULES(WCSLIB, [wcslib],
-		  [AC_DEFINE([HAVE_WCSLIB], [1], [Using WCSLIB])],
-		  AC_MSG_WARN([wcslib not found. Not using WCS API and PCC.]))
-
-dnl Check for json-glib
-PKG_CHECK_MODULES(JSON_GLIB, [json-glib-1.0 >= 1.2.6],
-		  [AC_DEFINE([HAVE_JSON_GLIB], [1], [Using automatic update])],
-		  AC_MSG_WARN([json-glib not found. not using automatic update.]))
-
-dnl check libconfig
-PKG_CHECK_MODULES([LIBCONFIG], [libconfig >= 1.4],
-		  [AC_DEFINE([HAVE_LIBCONFIG], [1], [Using libconfig])],
-		  AC_MSG_WARN([libconfig not found. Old configuration file will not be read.]))
+dnl Check for libgit
+PKG_CHECK_MODULES([LIBGIT], [libgit2],
+		  [AC_DEFINE([HAVE_LIBGIT2], [1], [Using online scripts])],
+		  AC_MSG_WARN([libgit2 was not found. Not using online scripts.]))
 
 dnl ================================================================
 dnl Collect some arguments.

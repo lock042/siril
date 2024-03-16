@@ -17,12 +17,12 @@ configure_file(output : 'config.h',
 # Generate Siril static library with all sources
 
 src_files = [
-  'algos/annotate.c',
   'algos/anscombe.c',
   'algos/astrometry_solver.c',
   'algos/background_extraction.c',
   'algos/ccd-inspector.c',
   'algos/colors.c',
+  'algos/comparison_stars.c',
   'algos/demosaicing.c',
   'algos/demosaicing_rtp.cpp',
   'algos/extraction.c',
@@ -33,6 +33,8 @@ src_files = [
   'algos/noise.c',
   'algos/pave.c',
   'algos/photometry.c',
+  'algos/photometric_cc.c',
+  'algos/spcc.c',
   'algos/PSF.c',
   'algos/quality.c',
   'algos/quality_float.c',
@@ -45,13 +47,30 @@ src_files = [
   'algos/statistics_float.c',
   'algos/transform.c',
   'algos/search_objects.c',
+  'algos/lcms_acceleration/fast_16_tethra.c',
+  'algos/lcms_acceleration/fast_8_curves.c',
+  'algos/lcms_acceleration/fast_8_matsh.c',
+  'algos/lcms_acceleration/fast_8_matsh_sse.c',
+  'algos/lcms_acceleration/fast_8_tethra.c',
+  'algos/lcms_acceleration/fast_float_15bits.c',
+  'algos/lcms_acceleration/fast_float_15mats.c',
+  'algos/lcms_acceleration/fast_float_cmyk.c',
+  'algos/lcms_acceleration/fast_float_curves.c',
+  'algos/lcms_acceleration/fast_float_lab.c',
+  'algos/lcms_acceleration/fast_float_matsh.c',
+  'algos/lcms_acceleration/fast_float_separate.c',
+  'algos/lcms_acceleration/fast_float_sup.c',
+  'algos/lcms_acceleration/fast_float_tethra.c',
+  'algos/lcms_acceleration/threaded_core.c',
+  'algos/lcms_acceleration/threaded_main.c',
+  'algos/lcms_acceleration/threaded_scheduler.c',
+  'algos/lcms_acceleration/threaded_split.c',
 
   'compositing/align_rgb.c',
   'compositing/compositing.c',
   'compositing/filters.c',
 
   'core/arithm.c',
-  'core/atomic.cpp',
   'core/command.c',
   'core/command_line_processor.c',
   'core/exif.cpp',
@@ -100,33 +119,27 @@ src_files = [
   'filters/nlbayes/NlBayes.cpp',
   'filters/nlbayes/Utilities.cpp',
 
-  'filters/deconvolution/args.hxx',
+  'filters/deconvolution/angleSet.cpp',
   'filters/deconvolution/better_than_std.hpp',
-  'filters/deconvolution/deblur.cpp',
-  'filters/deconvolution/deblur.hpp',
-  'filters/deconvolution/rl.cpp',
-  'filters/deconvolution/rl.hpp',
-  'filters/deconvolution/wiener.cpp',
-  'filters/deconvolution/wiener.hpp',
+  'filters/deconvolution/chelperfuncs.c',
+  'filters/deconvolution/deconvolution.h',
+  'filters/deconvolution/deconvolve.cpp',
+  'filters/deconvolution/deconvolve.hpp',
   'filters/deconvolution/edgetaper.hpp',
   'filters/deconvolution/estimate_kernel.cpp',
   'filters/deconvolution/fft.hpp',
   'filters/deconvolution/fftw_allocator.hpp',
   'filters/deconvolution/gf_estimate.cpp',
-  'filters/deconvolution/angleSet.cpp',
   'filters/deconvolution/image_expr.hpp',
   'filters/deconvolution/image.hpp',
   'filters/deconvolution/labeling.hpp',
-  'filters/deconvolution/chelperfuncs.c',
-  'gui/newdeconv.c',
   'filters/deconvolution/optimization.hpp',
   'filters/deconvolution/options.hpp',
   'filters/deconvolution/utils.hpp',
-  'filters/deconvolution/chelperfuncs.c',
   'filters/deconvolution/vec2.hpp',
-  'filters/deconvolution/imscript/upsa.c',
-  'filters/deconvolution/imscript/downscale.c',
 
+  'io/aavso_extended.c',
+  'io/annotation_catalogues.c',
   'io/Astro-TIFF.c',
   'io/avi_pipp/pipp_avi_write.cpp',
   'io/avi_pipp/pipp_avi_write.h',
@@ -139,23 +152,29 @@ src_files = [
   'io/avi_pipp/avi_writer.cpp',
   'io/avi_pipp/avi_writer.h',
   'io/kstars/htmesh_wrapper.cpp',
-  'io/catalogues.c',
   'io/conversion.c',
   'io/films.c',
   'io/fits_sequence.c',
   'io/FITS_symlink.c',
-  'io/gnuplot_i.c',
   'io/image_format_fits.c',
   'io/image_formats_internal.c',
   'io/image_formats_libraries.c',
+  'io/local_catalogues.c',
   'io/mp4_output.c',
   'io/path_parse.c',
+  'io/remote_catalogues.c',
   'io/seqfile.c',
   'io/sequence.c',
   'io/sequence_export.c',
   'io/seqwriter.c',
   'io/ser.c',
   'io/single_image.c',
+  'io/siril_catalogues.c',
+  'io/siril_git.c',
+  'io/siril_plot.c',
+  'io/SirilXISFReader.cpp',
+  'io/SirilJpegXLWrapper.cpp',
+  'io/spcc_json.c',
 
   'livestacking/gui.c',
   'livestacking/livestacking.c',
@@ -172,19 +191,23 @@ src_files = [
   'gui/background_extraction.c',
   'gui/callbacks.c',
   'gui/colors.c',
+  'gui/compstars.c',
   'gui/conversion.c',
+  'gui/cut.c',
   'gui/dialog_preview.c',
   'gui/dialogs.c',
   'gui/documentation.c',
   'gui/fix_xtrans_af.c',
   'gui/histogram.c',
+  'gui/keywords_tree.c',
   'gui/image_display.c',
   'gui/image_interactions.c',
   'gui/linear_match.c',
   'gui/menu_gray_geometry.c',
-  'gui/menu_gray_psf.c',
+  'gui/menu_gray_selection.c',
   'gui/merge_cfa.c',
   'gui/message_dialog.c',
+  'gui/newdeconv.c',
   'gui/nina_light_curve.c',
   'gui/open_dialog.c',
   'gui/photometric_cc.c',
@@ -201,6 +224,7 @@ src_files = [
   'gui/siril_css.c',
   'gui/siril_intro.c',
   'gui/siril_preview.c',
+  'gui/siril_plot.c',
   'gui/siril-window.c',
   'gui/split_cfa.c',
   'gui/star_finder.c',
@@ -217,7 +241,6 @@ src_files = [
   'registration/matching/match.c',
   'registration/matching/atpmatch.c',
   'registration/matching/misc.c',
-  'registration/matching/project_coords.c',
   'registration/matching/apply_match.c',
   'registration/mosaic.c',
   'registration/registration.c',
@@ -237,8 +260,15 @@ src_files = [
   'rt/rt_algo.cc'
 ]
 
+# Define the resource file
+gnome = import('gnome')
+siril_resources = gnome.compile_resources(
+  'siril_resource', 'siril_resource.xml',
+  source_dir : [ '..', '.' ],
+  c_name : 'siril_resource')
+
 siril_lib = static_library('siril',
-                           src_files,
+                           siril_resources[0], src_files,
                            dependencies: externals_dep,
                            include_directories: siril_inc_dir,
                            c_args : siril_c_flag,
@@ -248,18 +278,19 @@ siril_dep = declare_dependency(link_with: siril_lib,
                                dependencies: externals_dep,
                                include_directories: siril_inc_dir)
 
+# Custom target for glib-compile-resources
 
 ################################################################################
 # Build gui executable
 
-siril_gui = executable('siril', 'main.c', win_res,
+siril_gui = executable('siril', siril_resources[1], 'main.c', win_res,
                        dependencies: siril_dep,
                        link_whole: siril_lib,
                        link_args : siril_link_arg,
                        c_args : siril_c_flag,
                        cpp_args : siril_cpp_flag,
                        install : true,
-                       win_subsystem : stable ? 'windows' : 'console',
+                       win_subsystem : 'console',
                       )
 
 ################################################################################
@@ -273,13 +304,6 @@ siril_cli = executable('siril-cli', 'main-cli.c', win_res,
                        cpp_args : siril_cpp_flag,
                        install : true
                       )
-
-################################################################################
-# Install GUI files
-
-install_data(['gui/siril.css', 'gui/siril3.glade', 'gui/siril-shortcuts.ui'],
-             install_dir : siril_datadir)
-
 
 ################################################################################
 # Tests

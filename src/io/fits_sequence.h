@@ -3,6 +3,7 @@
 
 #include <fitsio.h>
 #include <glib.h>
+#include <lcms2.h>
 #include "core/siril.h"
 #include "io/seqwriter.h"
 
@@ -28,7 +29,7 @@ typedef struct fits_sequence fitseq;
 void fitseq_init_struct(fitseq *fitseq);
 int fitseq_is_fitseq(const char *filename, int *frames);
 
-int fitseq_open(const char *filename, fitseq *fitseq);
+int fitseq_open(const char *filename, fitseq *fitseq, int iomode);
 int fitseq_read_frame(fitseq *fitseq, int index, fits *dest, gboolean force_float, int thread);
 int fitseq_read_partial_fits(fitseq *fitseq, int layer, int index, fits *dest, const rectangle *area, gboolean do_photometry, int thread);
 int fitseq_read_partial(fitseq *fitseq, int layer, int index, void *buffer, const rectangle *area, int thread);

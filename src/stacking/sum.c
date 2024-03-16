@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -93,7 +93,7 @@ static int sum_stacking_image_hook(struct generic_seq_args *args, int o, int i, 
 #pragma omp atomic
 #endif
 	ssdata->livetime += fit->exposure;
-	
+
 	if (fit->date_obs) {
 		GDateTime *date = g_date_time_ref(fit->date_obs);
 		ssdata->list_date = g_list_prepend(ssdata->list_date, new_date_item(date, fit->exposure));
@@ -207,7 +207,7 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 				}
 			}
 		} else {
-			double ratio = 1.0 / (double)max;
+			double ratio = 1.0 / (max == 0 ? 1 : (double)max);
 			for (layer=0; layer<args->seq->nb_layers; ++layer){
 				guint64 *from = ssdata->sum[layer];
 				float *to = fit->fpdata[layer];

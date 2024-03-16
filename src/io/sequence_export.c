@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@
 #include "core/proto.h"
 #include "core/siril_date.h"
 #include "core/siril_log.h"
+#include "core/icc_profile.h"
 #include "sequence.h"
 #include "ser.h"
 #include "stacking/stacking.h"
@@ -32,6 +33,7 @@
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
 #include "io/image_format_fits.h"
+#include "io/Astro-TIFF.h"
 #ifdef HAVE_FFMS2
 #include "io/films.h"
 #endif
@@ -58,6 +60,8 @@ struct exportseq_args {
 	char *basename;
 	export_format output;
 	gboolean normalize;
+
+	gboolean tiff_compression; // compression of TIFF files
 
 	int film_fps;		// has to be int for avi or ffmpeg
 	int film_quality;	// [1, 5], for mp4 and webm
@@ -301,6 +305,9 @@ static gpointer export_sequence(gpointer ptr) {
 	size_t nbpix = 0;
 	set_progress_bar_data(NULL, PROGRESS_RESET);
 
+//	gboolean first_profile_read = FALSE;
+//	cmsHPROFILE master_profile = NULL;
+
 	for (int i = 0, skipped = 0; i < args->seq->number; ++i) {
 		if (!get_thread_run()) {
 			retval = -1;
@@ -322,7 +329,7 @@ static gpointer export_sequence(gpointer ptr) {
 			goto free_and_reset_progress_bar;
 		}
 		gchar *tmpmsg = g_strdup_printf(_("Processing image %s"), filename);
-		set_progress_bar_data(tmpmsg, (double)cur_nb / (double)nb_frames);
+		set_progress_bar_data(tmpmsg, (double)cur_nb / (nb_frames == 0 ? 1 : (double)nb_frames));
 		g_free(tmpmsg);
 
 		/* we read the full frame */
@@ -334,6 +341,30 @@ static gpointer export_sequence(gpointer ptr) {
 			goto free_and_reset_progress_bar;
 		}
 
+/*		if (fit.icc_profile) {
+			if (!first_profile_read) {
+				master_profile = copyICCProfile(fit.icc_profile);
+				first_profile_read = TRUE;
+			} else {
+				cmsHPROFILE profile = copyICCProfile(fit.icc_profile);
+				if (!profiles_identical(master_profile, profile)) {
+					if (profile && master_profile) {
+						siril_log_color_message(_("An image of the sequence doesn't have the same ICC profile. Converting...\n"), "salmon");
+						convert_fit_colorspace(&fit, profile, master_profile);
+					} else {
+						siril_log_color_message(_("Mismatch of ICC profiles within the sequence. Can't decide what to do. Aborting..."), "red");
+						if (master_profile)
+							cmsCloseProfile(master_profile);
+						if (profile)
+							cmsCloseProfile(profile);
+						seqwriter_release_memory();
+						retval = -3;
+						goto free_and_reset_progress_bar;
+					}
+				}
+			}
+		}
+*/
 		/* destfit is allocated to the full size. Data will be copied from fit,
 		 * image buffers are duplicated. It will be cropped after the copy if
 		 * needed */
@@ -344,7 +375,7 @@ static gpointer export_sequence(gpointer ptr) {
 			}
 			else {
 				if (memcmp(naxes, fit.naxes, sizeof naxes)) {
-					fprintf(stderr, "An image of the sequence doesn't have the same dimensions\n");
+					siril_log_color_message(_("An image of the sequence doesn't have the same dimensions\n"), "red");
 					retval = -3;
 					clearfits(&fit);
 					seqwriter_release_memory();
@@ -395,7 +426,15 @@ static gpointer export_sequence(gpointer ptr) {
 				}
 			}
 		}
-		/* we copy the header */
+
+		if (destfit->icc_profile) {
+			cmsCloseProfile(destfit->icc_profile);
+		}
+		// Copy the ICC profile from fit if available
+		destfit->icc_profile = copyICCProfile(fit.icc_profile);
+		color_manage(destfit, fit.color_managed);
+
+		// we copy the header
 		copy_fits_metadata(&fit, destfit);
 
 		int shiftx, shifty;
@@ -471,7 +510,9 @@ static gpointer export_sequence(gpointer ptr) {
 #ifdef HAVE_LIBTIFF
 			case EXPORT_TIFF:
 				snprintf(dest, 255, "%s%05d", args->basename, i + 1);
-				retval = savetif(dest, destfit, 16, NULL, com.pref.copyright, TRUE);
+				gchar *astro_tiff = AstroTiff_build_header(destfit);
+				retval = savetif(dest, destfit, 16, astro_tiff, com.pref.copyright, args->tiff_compression, TRUE, TRUE);
+				g_free(astro_tiff);
 				break;
 #endif
 			case EXPORT_SER:
@@ -588,7 +629,6 @@ void on_buttonExportSeq_clicked(GtkButton *button, gpointer user_data) {
 	GtkEntry *entry = GTK_ENTRY(lookup_widget("entryExportSeq"));
 	const char *bname = gtk_entry_get_text(entry);
 	gboolean normalize = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("exportNormalize")));
-	struct exportseq_args *args;
 
 	if (bname[0] == '\0') {
 		widget_set_class(GTK_WIDGET(entry), "warning", "");
@@ -596,7 +636,17 @@ void on_buttonExportSeq_clicked(GtkButton *button, gpointer user_data) {
 	}
 	if (selected == -1) return;
 
-	args = malloc(sizeof(struct exportseq_args));
+	// checking regdata is absent, or if present, is only shift
+	if (!test_regdata_is_valid_and_shift(&com.seq, get_registration_layer(&com.seq))) {
+		int confirm = siril_confirm_dialog(_("Registration data found"),
+			_("Export has detected registration data with more than simple shifts.\n"
+			"Normally, you should apply existing registration before exporting."),
+			_("Export anyway"));
+		if (!confirm)
+			return;
+	}
+
+	struct exportseq_args *args = malloc(sizeof(struct exportseq_args));
 	args->seq = &com.seq;
 	get_sequence_filtering_from_gui(&args->filtering_criterion, &args->filtering_parameter);
 	args->basename = g_str_to_ascii(bname, NULL);
@@ -635,6 +685,11 @@ void on_buttonExportSeq_clicked(GtkButton *button, gpointer user_data) {
 	else if (args->output == EXPORT_FITS || args->output == EXPORT_TIFF) {
 		// add a trailing '_' for multiple-files sequences
 		args->basename = format_basename(args->basename, TRUE);
+		if (args->output == EXPORT_TIFF) {
+#ifdef HAVE_LIBTIFF
+			args->tiff_compression = get_tiff_compression();
+#endif
+		}
 	}
 	// Display a useful warning because I always forget to remove selection
 	if (args->crop) {

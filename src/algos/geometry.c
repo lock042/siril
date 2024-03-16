@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,6 +35,7 @@
 #include "io/image_format_fits.h"
 #include "gui/PSF_list.h"
 #include "gui/utils.h"
+#include "gui/callbacks.h"
 
 #include "geometry.h"
 
@@ -137,6 +138,7 @@ static void fits_rotate_pi_float(fits *fit) {
 }
 
 static void fits_rotate_pi(fits *fit) {
+	on_clear_roi(); // ROI is cleared on geometry-altering operations
 	if (fit->type == DATA_USHORT) {
 		fits_rotate_pi_ushort(fit);
 	} else if (fit->type == DATA_FLOAT) {
@@ -154,16 +156,16 @@ static void fit_update_buffer(fits *fit, void *newbuf, int width, int height, in
 			free(fit->data);
 		fit->data = (WORD *)newbuf;
 		fit->pdata[RLAYER] = fit->data;
-		fit->pdata[GLAYER] = fit->data + nbdata;
-		fit->pdata[BLAYER] = fit->data + nbdata * 2;
+		fit->pdata[GLAYER] = fit->naxes[2] == 3 ? fit->data + nbdata : fit->data;
+		fit->pdata[BLAYER] = fit->naxes[2] == 3 ? fit->data + nbdata * 2 : fit->data;
 	}
 	else if (fit->type == DATA_FLOAT) {
 		if (fit->fdata)
 			free(fit->fdata);
 		fit->fdata = (float *)newbuf;
 		fit->fpdata[RLAYER] = fit->fdata;
-		fit->fpdata[GLAYER] = fit->fdata + nbdata;
-		fit->fpdata[BLAYER] = fit->fdata + nbdata * 2;
+		fit->fpdata[GLAYER] = fit->naxes[2] == 3 ? fit->fdata + nbdata : fit->fdata;
+		fit->fpdata[BLAYER] = fit->naxes[2] == 3 ? fit->fdata + nbdata * 2 : fit->fdata;
 	}
 	/* update size */
 	fit->naxes[0] = width;
@@ -178,9 +180,15 @@ static void fit_update_buffer(fits *fit, void *newbuf, int width, int height, in
 		fit->binning_x *= bin_factor;
 		fit->binning_y *= bin_factor;
 	}
+	if (!com.pref.binning_update) {
+		fit->pixel_size_x *= bin_factor;
+		fit->pixel_size_y *= bin_factor;
+	}
 }
 
 static void fits_binning_float(fits *fit, int bin_factor, gboolean mean) {
+	if (bin_factor == 0) // Bin 0 would be nonsensical.
+		return;
 	int width = fit->rx;
 	int height = fit->ry;
 	int new_width = width / bin_factor;
@@ -195,7 +203,7 @@ static void fits_binning_float(fits *fit, int bin_factor, gboolean mean) {
 	}
 
 	for (int channel = 0; channel < fit->naxes[2]; channel++) {
-		float *buf = fit->fdata + (width * height) * channel;
+		const float *buf = fit->fdata + (width * height) * channel;
 
 		long k = 0 + channel * npixels;
 		for (int row = 0, nrow = 0; row < height - bin_factor + 1; row += bin_factor, nrow++) {
@@ -214,9 +222,12 @@ static void fits_binning_float(fits *fit, int bin_factor, gboolean mean) {
 		}
 	}
 	fit_update_buffer(fit, newbuf, new_width, new_height, bin_factor);
+	return;
 }
 
 static void fits_binning_ushort(fits *fit, int bin_factor, gboolean mean) {
+	if (bin_factor == 0) // Bin 0 would be nonsensical.
+		return;
 	int width = fit->rx;
 	int height = fit->ry;
 	int new_width = width / bin_factor;
@@ -231,10 +242,10 @@ static void fits_binning_ushort(fits *fit, int bin_factor, gboolean mean) {
 	}
 
 	for (int channel = 0; channel < fit->naxes[2]; channel++) {
-		WORD *buf = fit->data + (width * height) * channel;
+		const WORD *buf = fit->data + (width * height) * channel;
 
 		long k = 0 + channel * npixels;
-		for (int row = 0, nrow = 0; row < height ; row += bin_factor, nrow++) {
+		for (int row = 0, nrow = 0; row < height - bin_factor + 1; row += bin_factor, nrow++) {
 			for (int col = 0, ncol = 0; col < width - bin_factor + 1; col += bin_factor, ncol++) {
 				int c = 0;
 				int tmp = 0;
@@ -258,62 +269,65 @@ int fits_binning(fits *fit, int factor, gboolean mean) {
 
 	siril_log_color_message(_("Binning x%d: processing...\n"), "green", factor);
 	gettimeofday(&t_start, NULL);
-
+	on_clear_roi(); // ROI is cleared on geometry-altering operations
 	if (fit->type == DATA_USHORT) {
 		fits_binning_ushort(fit, factor, mean);
 	} else if (fit->type == DATA_FLOAT) {
 		fits_binning_float(fit, factor, mean);
 	}
 
-	free_wcs(fit, TRUE); // we keep RA/DEC to initialize platesolve
-	load_WCS_from_memory(fit);
+	free_wcs(fit);
+	reset_wcsdata(fit);
+	refresh_annotations(TRUE);
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
+
+	char log[90];
+	sprintf(log, "Binned x%d (%s)", factor, mean ? "mean" : "sum");
+	fit->history = g_slist_append(fit->history, strdup(log));
 
 	siril_log_message(_("New image size: %dx%d pixels.\n"), fit->rx, fit->ry);
 
 	return 0;
 }
 
+const char *interp_to_str(opencv_interpolation interpolation) {
+	switch (interpolation) {
+		case OPENCV_NEAREST:
+			return _("Nearest-Neighbor");
+		default:
+		case OPENCV_LINEAR:
+			return _("Bilinear");
+		case OPENCV_AREA:
+			return _("Pixel Area Relation");
+		case OPENCV_CUBIC:
+			return _("Bicubic");
+		case OPENCV_LANCZOS4:
+			return _("Lanczos4");
+	}
+}
+
 /* These functions do not more than resize_gaussian and rotate_image
  * except for console outputs.
  * Indeed, siril_log_message seems not working in a cpp file */
-int verbose_resize_gaussian(fits *image, int toX, int toY, int interpolation, gboolean clamp) {
+int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation interpolation, gboolean clamp) {
 	int retvalue;
-	const char *str_inter;
 	struct timeval t_start, t_end;
 	float factor_X = (float)image->rx / (float)toX;
 	float factor_Y = (float)image->ry / (float)toY;
 
-	switch (interpolation) {
-		case OPENCV_NEAREST:
-			str_inter = _("Nearest-Neighbor");
-			break;
-		default:
-		case OPENCV_LINEAR:
-			str_inter = _("Bilinear");
-			break;
-		case OPENCV_AREA:
-			str_inter = _("Pixel Area Relation");
-			break;
-		case OPENCV_CUBIC:
-			str_inter = _("Bicubic");
-			break;
-		case OPENCV_LANCZOS4:
-			str_inter = _("Lanczos4");
-			break;
-	}
-
-	siril_log_color_message(_("Resample (%s interpolation): processing...\n"), "green", str_inter);
+	siril_log_color_message(_("Resample (%s interpolation): processing...\n"),
+			"green", interp_to_str(interpolation));
 
 	gettimeofday(&t_start, NULL);
-
+	on_clear_roi(); // ROI is cleared on geometry-altering operations
 	retvalue = cvResizeGaussian(image, toX, toY, interpolation, clamp);
 	if (image->pixel_size_x > 0) image->pixel_size_x *= factor_X;
 	if (image->pixel_size_y > 0) image->pixel_size_y *= factor_Y;
-	free_wcs(image, TRUE); // we keep RA/DEC to initialize platesolve
-	load_WCS_from_memory(image);
+	free_wcs(image);
+	reset_wcsdata(image);
+	refresh_annotations(TRUE);
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
@@ -328,7 +342,7 @@ static void GetMatrixReframe(fits *image, rectangle area, double angle, int crop
 	double orig_x = (double)area.x;
 	double orig_y = (double)area.y;
 	if (!cropped) {
-		point center = {orig_x + (double)*target_rx * 0.5, orig_y + (double)*target_rx * 0.5 };
+		point center = {orig_x + (double)*target_rx * 0.5, orig_y + (double)*target_ry * 0.5};
 		cvGetBoundingRectSize(image, center, angle, target_rx, target_ry);
 		orig_x = (double)((int)image->rx - *target_rx) * 0.5;
 		orig_y = (double)((int)image->ry - *target_ry) * 0.5;
@@ -341,29 +355,26 @@ int verbose_rotate_fast(fits *image, int angle) {
 	if (angle % 90 != 0) return 1;
 	struct timeval t_start, t_end;
 	gettimeofday(&t_start, NULL);
+	on_clear_roi(); // ROI is cleared on geometry-altering operations
 	siril_log_color_message(
 			_("Rotation (%s interpolation, angle=%g): processing...\n"), "green",
 			_("No"), (double)angle);
 
-#ifdef HAVE_WCSLIB // needs to be done prior to modifying the image
 	int orig_ry = image->ry; // required to compute flips afterwards
 	int target_rx, target_ry;
 	Homography H = { 0 };
 	rectangle area = {0, 0, image->rx, image->ry};
 	GetMatrixReframe(image, area, (double)angle, 0, &target_rx, &target_ry, &H);
-#endif
 
 	if (cvRotateImage(image, angle)) return 1;
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
-#ifdef HAVE_WCSLIB
 	if (has_wcs(image)) {
 		cvApplyFlips(&H, orig_ry, target_ry);
 		reframe_astrometry_data(image, H);
-		load_WCS_from_memory(image);
+		refresh_annotations(FALSE);
 	}
-#endif
 	return 0;
 }
 
@@ -398,25 +409,27 @@ int verbose_rotate_image(fits *image, rectangle area, double angle, int interpol
 			_("Rotation (%s interpolation, angle=%g): processing...\n"), "green",
 			str_inter, angle);
 	gettimeofday(&t_start, NULL);
+	on_clear_roi(); // ROI is cleared on geometry-altering operations
 
-#ifdef HAVE_WCSLIB
 	int orig_ry = image->ry; // required to compute flips afterwards
-#endif
 	int target_rx, target_ry;
-	Homography H = { 0 };
+	Homography H = { 0 }, Hocv = { 0 };
 	GetMatrixReframe(image, area, angle, cropped, &target_rx, &target_ry, &H);
-	if (cvTransformImage(image, target_rx, target_ry, H, FALSE, interpolation, clamp)) return 1;
+	// The matrix has been written in display convention (i.e, siril flipped)
+	// We need to convert to opencv convention (pixel-based) before applying to the image
+	// The original matrix will still be used to reframe astrometry data
+	Hocv = H;
+	cvdisplay2ocv(&Hocv);
+	if (cvTransformImage(image, target_rx, target_ry, Hocv, FALSE, interpolation, clamp)) return 1;
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
 
-#ifdef HAVE_WCSLIB
 	if (has_wcs(image)) {
 		cvApplyFlips(&H, orig_ry, target_ry);
 		reframe_astrometry_data(image, H);
-		load_WCS_from_memory(image);
+		refresh_annotations(FALSE);
 	}
-#endif
 	return 0;
 }
 
@@ -489,6 +502,7 @@ static void mirrorx_float(fits *fit, gboolean verbose) {
 }
 
 void mirrorx(fits *fit, gboolean verbose) {
+	on_clear_roi(); // ROI is cleared on geometry-altering operations
 	if (fit->type == DATA_USHORT) {
 		mirrorx_ushort(fit, verbose);
 	} else if (fit->type == DATA_FLOAT) {
@@ -501,19 +515,18 @@ void mirrorx(fits *fit, gboolean verbose) {
 		sprintf(fit->row_order, "BOTTOM-UP");
 	}
 	fit->history = g_slist_append(fit->history, strdup("TOP-DOWN mirror"));
-#ifdef HAVE_WCSLIB
 	if (has_wcs(fit)) {
 		Homography H = { 0 };
 		cvGetEye(&H);
 		H.h11 = -1.;
-		H.h12 = (double)fit->ry - 1.;
+		H.h12 = (double)fit->ry;
 		reframe_astrometry_data(fit, H);
-		load_WCS_from_memory(fit);
+		refresh_annotations(FALSE);
 	}
-#endif
 }
 
 void mirrory(fits *fit, gboolean verbose) {
+	on_clear_roi(); // ROI is cleared on geometry-altering operations
 	struct timeval t_start, t_end;
 
 	if (verbose) {
@@ -529,16 +542,15 @@ void mirrory(fits *fit, gboolean verbose) {
 		show_time(t_start, t_end);
 	}
 
-#ifdef HAVE_WCSLIB
+	fit->history = g_slist_append(fit->history, strdup("Left-right mirror"));
 	if (has_wcs(fit)) {
 		Homography H = { 0 };
 		cvGetEye(&H);
 		H.h00 = -1.;
-		H.h02 = (double)fit->rx - 1.;
+		H.h02 = (double)fit->rx;
 		reframe_astrometry_data(fit, H);
-		load_WCS_from_memory(fit);
+		refresh_annotations(FALSE);
 	}
-#endif
 }
 
 /* inplace cropping of the image in fit
@@ -607,38 +619,31 @@ static int crop_float(fits *fit, rectangle *bounds) {
 }
 
 int crop(fits *fit, rectangle *bounds) {
+	on_clear_roi(); // ROI is cleared on geometry-altering operations
 	if (bounds->w <= 0 || bounds->h <= 0 || bounds->x < 0 || bounds->y < 0) return -1;
 	if (bounds->x + bounds->w > fit->rx) return -1;
 	if (bounds->y + bounds->h > fit->ry) return -1;
-#ifdef HAVE_WCSLIB
 	int orig_ry = fit->ry; // required to compute flips afterwards
 	int target_rx, target_ry;
 	Homography H = { 0 };
 	gboolean wcs = has_wcs(fit);
 	if (wcs)
 		GetMatrixReframe(fit, *bounds, 0., 1, &target_rx, &target_ry, &H);
-#endif
 
 	if (fit->type == DATA_USHORT) {
-		if (crop_ushort(fit, bounds)) {
-			return -1;
-		}
+		crop_ushort(fit, bounds);
 	} else if (fit->type == DATA_FLOAT) {
-		if (crop_float(fit, bounds)) {
-			return -1;
-		}
+		crop_float(fit, bounds);
 	} else {
 		return -1;
 	}
 
 	invalidate_stats_from_fit(fit);
-#ifdef HAVE_WCSLIB
 	if (wcs) {
 		cvApplyFlips(&H, orig_ry, target_ry);
 		reframe_astrometry_data(fit, H);
-		load_WCS_from_memory(fit);
+		refresh_annotations(FALSE);
 	}
-#endif
 	return 0;
 }
 
@@ -656,6 +661,13 @@ int crop_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 	return crop(fit, &(c_args->area));
 }
 
+int crop_finalize_hook(struct generic_seq_args *args) {
+	struct crop_sequence_data *data = (struct crop_sequence_data *) args->user;
+	int retval = seq_finalize_hook(args);
+	free(data);
+	return retval;
+}
+
 /* TODO: should we use the partial image? */
 gpointer crop_sequence(struct crop_sequence_data *crop_sequence_data) {
 	struct generic_seq_args *args = create_default_seqargs(crop_sequence_data->seq);
@@ -663,7 +675,7 @@ gpointer crop_sequence(struct crop_sequence_data *crop_sequence_data) {
 	args->nb_filtered_images = crop_sequence_data->seq->selnum;
 	args->compute_size_hook = crop_compute_size_hook;
 	args->prepare_hook = seq_prepare_hook;
-	args->finalize_hook = seq_finalize_hook;
+	args->finalize_hook = crop_finalize_hook;
 	args->image_hook = crop_image_hook;
 	args->stop_on_error = FALSE;
 	args->description = _("Crop Sequence");
@@ -673,7 +685,6 @@ gpointer crop_sequence(struct crop_sequence_data *crop_sequence_data) {
 	args->load_new_sequence = TRUE;
 	args->user = crop_sequence_data;
 
-	remove_prefixed_sequence_files(crop_sequence_data->seq, crop_sequence_data->prefix);
 	start_in_new_thread(generic_sequence_worker, args);
 
 	return 0;

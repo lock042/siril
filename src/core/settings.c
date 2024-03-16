@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,10 @@
 #include "core/settings.h"
 #include "core/siril.h"
 #include "core/siril_log.h"
-#include "io/catalogues.h"
+#include "core/icc_profile.h"
+#include "io/local_catalogues.h"
+#include "io/remote_catalogues.h"
+#include "stacking/stacking.h"
 
 /* the settings as initialized in static.
  * the dynamic fields are set in initialize_default_settings() */
@@ -41,15 +44,14 @@ preferences pref_init = {
 	.hd_bitdepth = 20,
 	.script_check_requires = TRUE,
 	.pipe_check_requires = FALSE,
-#ifdef HAVE_JSON_GLIB
-	.check_update = !SIRIL_UNSTABLE,
-#else
+ #ifdef SIRIL_UNSTABLE
 	.check_update = FALSE,
-#endif
+ #else
+	.check_update = TRUE,
+ #endif
 	.lang = 0,
 	.swap_dir = NULL,
-	.focal = 1000,
-	.pitch = 5,
+	.binning_update = TRUE,
 	.wcs_formalism = WCS_FORMALISM_1,
 	.catalogue_paths[0] = NULL,
 	.catalogue_paths[1] = NULL,
@@ -57,8 +59,12 @@ preferences pref_init = {
 	.catalogue_paths[3] = NULL,
 	.rgb_aladin = FALSE,
 	.copyright = NULL,
-	.starnet_dir = NULL,
-	.gnuplot_dir = NULL,
+	.starnet_exe = NULL,
+	.starnet_weights = NULL,
+	.asnet_dir = NULL,
+	.selected_scripts = NULL,
+	.use_scripts_repository = TRUE,
+	.auto_script_update = FALSE,
 	.starfinder_conf = { // starfinder_conf
 		.radius = DEF_BOX_RADIUS,
 		.sigma = 1.0,
@@ -68,7 +74,10 @@ preferences pref_init = {
 		.convergence = 1,
 		.relax_checks = FALSE,
 		.profile = PSF_GAUSSIAN,
-		.min_beta = 1.5
+		.min_beta = 1.5,
+		.min_A = 0.0,
+		.max_A = 0.0,
+		.max_r = 1.0	// min_r is .roundness
 	},
 	.prepro = {
 		.cfa = FALSE,
@@ -96,7 +105,7 @@ preferences pref_init = {
 		.use_stack_default = TRUE,
 	},
 	.gui = {
-		.first_start = TRUE,
+		.first_start = NULL,
 		.silent_quit = FALSE,
 		.silent_linear = FALSE,
 		.remember_windows = TRUE,
@@ -129,10 +138,19 @@ preferences pref_init = {
 		.catalog[8] = TRUE,
 		.position_compass = 1,
 		.selection_guides = 0,
+		.show_deciasec = FALSE,
 		.reg_settings = 0,
 		.reg_interpolation = OPENCV_LANCZOS4,
 		.reg_clamping = TRUE,
-		.pm_presets = NULL
+		.pm_presets = NULL,
+		.roi_mode = ROI_MANUAL,
+		.enable_roi_warning = TRUE,
+		.config_colors.color_bkg_samples = NULL,
+		.config_colors.color_std_annotations = NULL,
+		.config_colors.color_dso_annotations = NULL,
+		.config_colors.color_sso_annotations = NULL,
+		.config_colors.color_tmp_annotations = NULL,
+		.mmb_action = MMB_ZOOM_FIT
 	},
 	.debayer = {
 		.open_debayer = FALSE,
@@ -148,18 +166,33 @@ preferences pref_init = {
 		.gain = 2.3,
 		.inner = 20.0,
 		.outer = 30.0,
+		.auto_inner_factor = 4.2,
+		.auto_outer_factor = 6.3,
 		.aperture = 10.0,
-		.force_radius = FALSE,
-		.minval = -500.0,
+		.force_radius = TRUE,
+		.minval = -1500.0,
 		.maxval = 60000.0,
+		.discard_var_catalogues = 4,
+
+	},
+	.astrometry = {
+		.update_default_scale = TRUE,
+		.percent_scale_range = 20,
+		.sip_correction_order = 3,
+		.radius_degrees = 10.0,
+		.keep_xyls_files = FALSE,
+		.keep_wcs_files = FALSE,
+		.max_seconds_run = 30,
+		.show_asnet_output = FALSE,
 	},
 	.analysis = {
 		.mosaic_panel = 256,
 		.mosaic_window = 381,
 	},
 	.stack = {
-		.method = 0,
+		.method = STACK_SUM,
 		.normalisation_method = ADDITIVE_SCALING,
+		.weighting_method = NO_WEIGHT,
 		.rej_method = WINSORIZED,
 		.sigma_low = 3.0, .sigma_high = 3.0,
 		.linear_low = 5.0, .linear_high = 5.0,
@@ -173,9 +206,52 @@ preferences pref_init = {
 	},
 	.fftw_conf = {
 		.timelimit = 60,
-		.strategy = 2,
-		.multithreaded = FALSE,
+		.strategy = 0,
+		.multithreaded = TRUE,
 		.wisdom_file = NULL,
+		.fft_cutoff = 15,
+	},
+	.fits_save_icc = TRUE,
+	.icc = {
+		.rendering_intent = INTENT_RELATIVE_COLORIMETRIC,
+		.proofing_intent = INTENT_RELATIVE_COLORIMETRIC,
+		.export_intent = INTENT_RELATIVE_COLORIMETRIC,
+		.processing_intent = INTENT_PERCEPTUAL,
+		.working_gamut = TYPE_SRGB,
+		.icc_path_monitor = NULL,
+		.icc_path_soft_proof = NULL,
+		.custom_monitor_profile_active = FALSE,
+		.soft_proofing_profile_active = FALSE,
+		.custom_icc_trc = NULL,
+		.custom_icc_gray = NULL,
+		.export_8bit_method = EXPORT_SRGB,
+		.export_16bit_method = EXPORT_WORKING,
+		.default_to_srgb = TRUE,
+		.rendering_bpc = TRUE,
+		.autoconversion = ICC_NEVER_AUTOCONVERT,
+		.autoassignment = ICC_ASSIGN_ON_STRETCH,
+		.pedantic_linear = FALSE,
+		.cmf = CMF_1931_2DEG
+	},
+	.spcc = {
+		.use_spcc_repository = TRUE,
+		.auto_spcc_update = TRUE,
+		.redpref = NULL,
+		.greenpref = NULL,
+		.bluepref = NULL,
+		.lpfpref = NULL,
+		.oscfilterpref = NULL,
+		.monosensorpref = NULL,
+		.oscsensorpref = NULL,
+		.is_mono = TRUE,
+		.is_dslr = FALSE,
+		.nb_mode = FALSE,
+		.red_wl = 656.28,
+		.green_wl = 500.70,
+		.blue_wl = 500.70,
+		.red_bw = 6.0,
+		.green_bw = 6.0,
+		.blue_bw = 6.0
 	}
 };
 
@@ -186,33 +262,46 @@ void free_preferences(preferences *pref) {
 	pref->swap_dir = NULL;
 	g_free(pref->copyright);
 	pref->copyright = NULL;
-	g_free(pref->starnet_dir);
-	pref->starnet_dir = NULL;
-	g_free(pref->gnuplot_dir);
-	pref->gnuplot_dir = NULL;
+	g_free(pref->starnet_exe);
+	pref->starnet_exe = NULL;
+	g_free(pref->starnet_weights);
+	pref->starnet_weights = NULL;
+	g_free(pref->asnet_dir);
+	pref->asnet_dir = NULL;
 	g_free(pref->lang);
 	pref->lang = NULL;
-	g_slist_free_full(pref->gui.script_path, g_free);
+	g_slist_free_full(g_steal_pointer(&pref->gui.script_path), g_free);
 	pref->gui.script_path = NULL;
 	g_free(pref->fftw_conf.wisdom_file);
 	pref->fftw_conf.wisdom_file = NULL;
 }
 
 void set_wisdom_file() {
+	if (com.pref.fftw_conf.wisdom_file)
+		g_free(com.pref.fftw_conf.wisdom_file);
 	if (com.pref.fftw_conf.multithreaded)
 		com.pref.fftw_conf.wisdom_file = g_build_filename(g_get_user_cache_dir(), "siril_fftw_threaded.wisdom", NULL);
 	else
 		com.pref.fftw_conf.wisdom_file = g_build_filename(g_get_user_cache_dir(), "siril_fftw.wisdom", NULL);
 }
 
+static void initialize_configurable_colors() {
+	com.pref.gui.config_colors.color_bkg_samples = g_strdup("rgba(255, 51, 26, 1.0)");
+	com.pref.gui.config_colors.color_std_annotations = g_strdup("rgba(128, 255, 77, 0.9)");
+	com.pref.gui.config_colors.color_dso_annotations = g_strdup("rgba(255, 128, 0, 0.9)");
+	com.pref.gui.config_colors.color_sso_annotations = g_strdup("rgba(255, 255, 0, 0.9)");
+	com.pref.gui.config_colors.color_tmp_annotations = g_strdup("rgba(255, 0, 0, 0.9)");
+}
+
 /* static + dynamic settings initialization */
 void initialize_default_settings() {
 	com.pref = pref_init;
+	com.pref.spcc.oscfilterpref = g_strdup("No filter");
 	com.pref.ext = g_strdup(".fit");
 	com.pref.prepro.stack_default = g_strdup("$seqname$stacked");
 	com.pref.swap_dir = g_strdup(g_get_tmp_dir());
 	initialize_local_catalogues_paths();
-	set_wisdom_file();
+	initialize_configurable_colors();
 }
 
 void update_gain_from_gfit() {
@@ -224,6 +313,7 @@ struct settings_access all_settings[] = {
 	{ "core", "wd", STYPE_STRDIR, N_("current working directory"), &com.pref.wd },
 	{ "core", "extension", STYPE_STR, N_("FITS file extension"), &com.pref.ext },
 	{ "core", "force_16bit", STYPE_BOOL, N_("don't use 32 bits for pixel depth"), &com.pref.force_16bit },
+	{ "core", "fits_save_icc", STYPE_BOOL, N_("embed ICC profiles in FITS when saving"), &com.pref.fits_save_icc },
 	{ "core", "allow_heterogeneous_fitseq", STYPE_BOOL, N_("allow FITS cubes to have different sizes"), &com.pref.allow_heterogeneous_fitseq },
 	{ "core", "mem_mode", STYPE_INT, N_("memory mode (0 ratio, 1 amount)"), &com.pref.mem_mode, { .range_int = { 0, 1 } } },
 	{ "core", "mem_ratio", STYPE_DOUBLE, N_("memory ratio of available"), &com.pref.memory_ratio, { .range_double = { 0.05, 4.0 } } },
@@ -234,6 +324,7 @@ struct settings_access all_settings[] = {
 	{ "core", "check_updates", STYPE_BOOL, N_("check update at start-up"), &com.pref.check_update },
 	{ "core", "lang", STYPE_STR, N_("active siril language"), &com.pref.lang },
 	{ "core", "swap_dir", STYPE_STRDIR, N_("swap directory"), &com.pref.swap_dir },
+	{ "core", "binning_update", STYPE_BOOL, N_("update pixel size of binned images"), &com.pref.binning_update },
 	{ "core", "wcs_formalism", STYPE_INT, N_("WCS formalism used in FITS header"), &com.pref.wcs_formalism, { .range_int = { 0, 1 } } },
 	{ "core", "catalogue_namedstars", STYPE_STR, N_("Path of the namedstars.dat catalogue"), &com.pref.catalogue_paths[0] },
 	{ "core", "catalogue_unnamedstars", STYPE_STR, N_("Path of the unnamedstars.dat catalogue"), &com.pref.catalogue_paths[1] },
@@ -241,16 +332,22 @@ struct settings_access all_settings[] = {
 	{ "core", "catalogue_nomad", STYPE_STR, N_("Path of the USNO-NOMAD-1e8.dat catalogue"), &com.pref.catalogue_paths[3] },
 	{ "core", "rgb_aladin", STYPE_BOOL, N_("add CTYPE3='RGB' in the FITS header"), &com.pref.rgb_aladin },
 	{ "core", "copyright", STYPE_STR, N_("user copyright to put in file header"), &com.pref.copyright },
-	{ "core", "starnet_dir", STYPE_STR, N_("directory of the starnet++ installation"), &com.pref.starnet_dir },
-	{ "core", "gnuplot_dir", STYPE_STR, N_("directory of the gnuplot installation"), &com.pref.gnuplot_dir },
+	{ "core", "starnet_exe", STYPE_STR, N_("location of the StarNet executable"), &com.pref.starnet_exe },
+	{ "core", "starnet_weights", STYPE_STR, N_("location of the StarNet-torch weights file"), &com.pref.starnet_weights },
+#ifdef _WIN32
+	{ "core", "asnet_dir", STYPE_STR, N_("directory of the asnet_ansvr installation"), &com.pref.asnet_dir },
+#else
+	{ "core", "asnet_dir", STYPE_STR, N_("directory containing the solve-field executable"), &com.pref.asnet_dir },
+#endif
 	{ "core", "fftw_timelimit", STYPE_DOUBLE, N_("FFTW planning timelimit"), &com.pref.fftw_conf.timelimit },
-	{ "core", "fftw_strategy", STYPE_INT, N_("FFTW planning strategy"), &com.pref.fftw_conf.strategy },
-	{ "core", "fftw_timeout", STYPE_BOOL, N_("multithreaded FFTW"), &com.pref.fftw_conf.multithreaded },
+	{ "core", "fftw_conv_fft_cutoff", STYPE_INT, N_("Convolution minimum kernel size to use FFTW"), &com.pref.fftw_conf.fft_cutoff },
+	{ "core", "fftwf_strategy", STYPE_INT, N_("FFTW planning strategy"), &com.pref.fftw_conf.strategy },
+	{ "core", "fftw_multithreaded", STYPE_BOOL, N_("multithreaded FFTW"), &com.pref.fftw_conf.multithreaded },
 
 	{ "starfinder", "focal_length", STYPE_DOUBLE, N_("focal length in mm for radius adjustment"), &com.pref.starfinder_conf.focal_length, { .range_double = { 0., 999999. } } },
 	{ "starfinder", "pixel_size", STYPE_DOUBLE, N_("pixel size in µm for radius adjustment"), &com.pref.starfinder_conf.pixel_size_x, { .range_double = { 0., 99. } } },
 
-	{ "debayer", "use_debayer_header", STYPE_BOOL, N_("use pattern from the file header"), &com.pref.debayer.use_bayer_header },
+	{ "debayer", "use_bayer_header", STYPE_BOOL, N_("use pattern from the file header"), &com.pref.debayer.use_bayer_header },
 	{ "debayer", "pattern", STYPE_INT, N_("index of the Bayer pattern"), &com.pref.debayer.bayer_pattern, { .range_int = { 0, XTRANS_FILTER_4 } } },
 	{ "debayer", "interpolation", STYPE_INT, N_("type of interpolation"), &com.pref.debayer.bayer_inter, { .range_int = { 0, XTRANS } } },
 	{ "debayer", "top_down", STYPE_BOOL, N_("force debayer top-down"), &com.pref.debayer.top_down },
@@ -261,10 +358,39 @@ struct settings_access all_settings[] = {
 	{ "photometry", "gain", STYPE_DOUBLE, N_("electrons per ADU for noise estimation"), &com.pref.phot_set.gain, { .range_double = { 0., 10. } } },
 	{ "photometry", "inner", STYPE_DOUBLE, N_("inner radius for background annulus"), &com.pref.phot_set.inner, { .range_double = { 2., 100. } } },
 	{ "photometry", "outer", STYPE_DOUBLE, N_("outer radius for background annulus"), &com.pref.phot_set.outer, { .range_double = { 3., 200. } } },
+	{ "photometry", "inner_factor", STYPE_DOUBLE, N_("factor for inner radius automatic computation"), &com.pref.phot_set.auto_inner_factor, { .range_double = { 2.0, 50.0 } } },
+	{ "photometry", "outer_factor", STYPE_DOUBLE, N_("factor for outer radius automatic computation"), &com.pref.phot_set.auto_outer_factor, { .range_double = { 2.0, 50.0 } } },
 	{ "photometry", "force_radius", STYPE_BOOL, N_("force flux aperture value"), &com.pref.phot_set.force_radius },
 	{ "photometry", "aperture", STYPE_DOUBLE, N_("forced aperture for flux computation"), &com.pref.phot_set.aperture, { .range_double = { 1., 100. } } },
 	{ "photometry", "minval", STYPE_DOUBLE, N_("minimum valid pixel value for photometry"), &com.pref.phot_set.minval, { .range_double = { -65536.0, 65534.0 } } },
 	{ "photometry", "maxval", STYPE_DOUBLE, N_("maximum valid pixel value for photometry"), &com.pref.phot_set.maxval, { .range_double = { 1.0, 65535.0 } } },
+	{ "photometry", "discard_var_catalogues", STYPE_INT, N_("catalogues to be used to discard the variable stars from the comparison stars list"), &com.pref.phot_set.discard_var_catalogues, { .range_int = { 0, 7 } } },
+	{ "photometry", "redpref", STYPE_STR, N_("preferred SPCC red filter"), &com.pref.spcc.redpref },
+	{ "photometry", "greenpref", STYPE_STR, N_("preferred SPCC green filter"), &com.pref.spcc.greenpref },
+	{ "photometry", "bluepref", STYPE_STR, N_("preferred SPCC blue filter"), &com.pref.spcc.bluepref },
+	{ "photometry", "lpfpref", STYPE_STR, N_("preferred SPCC DSLR LPF filter"), &com.pref.spcc.lpfpref },
+	{ "photometry", "oscfilterpref", STYPE_STR, N_("preferred SPCC OSC filter"), &com.pref.spcc.oscfilterpref },
+	{ "photometry", "monosensorpref", STYPE_STR, N_("preferred SPCC mono sensor"), &com.pref.spcc.monosensorpref },
+	{ "photometry", "oscsensorpref", STYPE_STR, N_("preferred SPCC OSC sensor"), &com.pref.spcc.oscsensorpref },
+	{ "photometry", "is_mono", STYPE_BOOL, N_("is the SPCC sensor mono?"), &com.pref.spcc.is_mono },
+	{ "photometry", "is_dslr", STYPE_BOOL, N_("is the SPCC OSC sensor a DSLR?"), &com.pref.spcc.is_dslr },
+	{ "photometry", "nb_mode", STYPE_BOOL, N_("are we in narrowband mode?"), &com.pref.spcc.nb_mode },
+	{ "photometry", "r_wl", STYPE_DOUBLE, N_("red NB filter wavelength"), &com.pref.spcc.red_wl },
+	{ "photometry", "r_bw", STYPE_DOUBLE, N_("red NB filter bandwidth"), &com.pref.spcc.red_bw },
+	{ "photometry", "g_wl", STYPE_DOUBLE, N_("green NB filter wavelength"), &com.pref.spcc.green_wl },
+	{ "photometry", "g_bw", STYPE_DOUBLE, N_("green NB filter bandwidth"), &com.pref.spcc.green_bw },
+	{ "photometry", "b_wl", STYPE_DOUBLE, N_("blue NB filter wavelength"), &com.pref.spcc.blue_wl },
+	{ "photometry", "b_bw", STYPE_DOUBLE, N_("blue NB filter bandwidth"), &com.pref.spcc.blue_bw },
+
+	{ "astrometry", "asnet_keep_xyls", STYPE_BOOL, N_("do not delete .xyls FITS tables"), &com.pref.astrometry.keep_xyls_files },
+	{ "astrometry", "asnet_keep_wcs", STYPE_BOOL, N_("do not delete .wcs result files"), &com.pref.astrometry.keep_wcs_files },
+	{ "astrometry", "asnet_show_output", STYPE_BOOL, N_("show solve-field output in main log"), &com.pref.astrometry.show_asnet_output },
+
+	{ "astrometry", "sip_order", STYPE_INT, N_("degrees of the polynomial correction"), &com.pref.astrometry.sip_correction_order, { .range_int = { 1, 5 } } },
+	{ "astrometry", "radius", STYPE_DOUBLE, N_("radius around the target coordinates (degrees)"), &com.pref.astrometry.radius_degrees, { .range_double = { 0.01, 30.0 } } },
+	{ "astrometry", "max_seconds_run", STYPE_INT, N_("maximum seconds to try solving"), &com.pref.astrometry.max_seconds_run, { .range_int = { 0, 100000 } } },
+	{ "astrometry", "update_default_scale", STYPE_BOOL, N_("update default focal length and pixel size from the result"), &com.pref.astrometry.update_default_scale },
+	{ "astrometry", "percent_scale_range", STYPE_INT, N_("percent below and above the expected sampling to allow"), &com.pref.astrometry.percent_scale_range, { .range_int = { 10, 50 } } },
 
 	{ "analysis", "panel", STYPE_INT, N_("panel size of aberration inspector"), &com.pref.analysis.mosaic_panel, { .range_int = { 127, 1024 } } },
 	{ "analysis", "window", STYPE_INT, N_("window size of aberration inspector"), &com.pref.analysis.mosaic_window, { .range_int = { 300, 1600 } } },
@@ -299,9 +425,10 @@ struct settings_access all_settings[] = {
 	{ "gui_registration", "interpolation", STYPE_INT, N_("index of the selected interpolation method"), &com.pref.gui.reg_interpolation, { .range_int = { 0, 5 } } },
 	{ "gui_registration", "clamping", STYPE_BOOL, N_("use clamping method with Lanczos and Cubic interpolation"), &com.pref.gui.reg_clamping },
 
-	{ "gui_stack", "method", STYPE_INT, N_("index of the selected method"), &com.pref.stack.method, { .range_int = { 0, 4 } } },
+	{ "gui_stack", "method", STYPE_INT, N_("index of the selected method"), &com.pref.stack.method, { .range_int = { 0, STACK_MIN } } },
 	{ "gui_stack", "normalization", STYPE_INT, N_("index of the normalization method"), &com.pref.stack.normalisation_method, { .range_int = { 0, MULTIPLICATIVE_SCALING } } },
 	{ "gui_stack", "rejection", STYPE_INT, N_("index of the rejection method"), &com.pref.stack.rej_method, { .range_int = { 0, GESDT } } },
+	{ "gui_stack", "weighting", STYPE_INT, N_("index of the weighting method"), &com.pref.stack.weighting_method, { .range_int = { 0, NBSTACK_WEIGHT } } },
 	{ "gui_stack", "sigma_low", STYPE_DOUBLE, N_("sigma low value for rejection"), &com.pref.stack.sigma_low, { .range_double = { 0., 20. } } },
 	{ "gui_stack", "sigma_high", STYPE_DOUBLE, N_("sigma high value for rejection"), &com.pref.stack.sigma_high, { .range_double = { 0., 20. } } },
 	{ "gui_stack", "linear_low", STYPE_DOUBLE, N_("linear low value for rejection"), &com.pref.stack.linear_low, { .range_double = { 0., 20. } } },
@@ -309,7 +436,7 @@ struct settings_access all_settings[] = {
 	{ "gui_stack", "percentile_low", STYPE_DOUBLE, N_("percentile low value for rejection"), &com.pref.stack.percentile_low, { .range_double = { 0., 100. } } },
 	{ "gui_stack", "percentile_high", STYPE_DOUBLE, N_("percentile high value for rejection"), &com.pref.stack.percentile_high, { .range_double = { 0., 100. } } },
 
-	{ "gui", "first_start", STYPE_BOOL, N_("first start of siril"), &com.pref.gui.first_start },
+	{ "gui", "first_start", STYPE_STR, N_("first start of siril"), &com.pref.gui.first_start },
 	{ "gui", "silent_quit", STYPE_BOOL, N_("don't confirm quit when exiting"), &com.pref.gui.silent_quit },
 	{ "gui", "silent_linear", STYPE_BOOL, N_("don't confirm save when non linear mode"), &com.pref.gui.silent_linear },
 	{ "gui", "remember_windows", STYPE_BOOL, N_("remember window position"), &com.pref.gui.remember_windows },
@@ -324,12 +451,43 @@ struct settings_access all_settings[] = {
 	{ "gui", "font_scale", STYPE_DOUBLE, N_("font scale in percent"), &com.pref.gui.font_scale },
 	{ "gui", "icon_symbolic", STYPE_BOOL, N_("icon style"), &com.pref.gui.icon_symbolic },
 	{ "gui", "script_path", STYPE_STRLIST, N_("list of script directories"), &com.pref.gui.script_path },
+	{ "gui", "use_scripts_repository", STYPE_BOOL, N_("use and sync online scripts repository"), &com.pref.use_scripts_repository },
+	{ "gui", "use_spcc_repository", STYPE_BOOL, N_("use and sync spcc-database repository"), &com.pref.spcc.use_spcc_repository },
+	{ "gui", "auto_update_scripts", STYPE_BOOL, N_("auto sync online scripts repository"), &com.pref.auto_script_update },
+	{ "gui", "auto_update_spcc", STYPE_BOOL, N_("auto sync spcc-database repository"), &com.pref.spcc.auto_spcc_update },
+	{ "gui", "selected_scripts", STYPE_STRLIST, N_("list of scripts selected from the repository"), &com.pref.selected_scripts },
 	{ "gui", "warn_script_run", STYPE_BOOL, N_("warn when launching a script"), &com.pref.gui.warn_script_run },
 	{ "gui", "show_thumbnails", STYPE_BOOL, N_("show thumbnails in open dialog"), &com.pref.gui.show_thumbnails },
 	{ "gui", "thumbnail_size", STYPE_INT, N_("size of the thumbnails"), &com.pref.gui.thumbnail_size },
 	{ "gui", "selection_guides", STYPE_INT, N_("number of elements of the grid guides"), &com.pref.gui.selection_guides },
+	{ "gui", "show_deciasec", STYPE_BOOL, N_("show tenths of arcseconds on hover"), &com.pref.gui.show_deciasec },
 	{ "gui", "default_rendering_mode", STYPE_INT, N_("default display mode"), &com.pref.gui.default_rendering_mode, { .range_int = { 0, 6 } } },
 	{ "gui", "display_histogram_mode", STYPE_INT, N_("default histogram display mode"), &com.pref.gui.display_histogram_mode, { .range_int = { 0, 1 } } },
+	{ "gui", "roi_mode", STYPE_INT, N_("ROI selection mode"), &com.pref.gui.roi_mode },
+	{ "gui", "roi_warning", STYPE_BOOL, N_("enable ROI dialog warning"), &com.pref.gui.enable_roi_warning },
+	{ "gui", "mmb_zoom_action", STYPE_INT, N_("Middle mouse button double click zoom action"), &com.pref.gui.mmb_action },
+	{ "gui", "color_bkg_samples", STYPE_STR, N_("configure background samples color"), &com.pref.gui.config_colors.color_bkg_samples },
+	{ "gui", "color_std_annotations", STYPE_STR, N_("configure standard annotation color"), &com.pref.gui.config_colors.color_std_annotations },
+	{ "gui", "color_dso_annotations", STYPE_STR, N_("configure dso annotation color"), &com.pref.gui.config_colors.color_dso_annotations },
+	{ "gui", "color_sso_annotations", STYPE_STR, N_("configure sso annotation color"), &com.pref.gui.config_colors.color_sso_annotations },
+	{ "gui", "color_tmp_annotations", STYPE_STR, N_("configure tmp annotation color"), &com.pref.gui.config_colors.color_tmp_annotations },
+	{ "gui", "custom_monitor_profile", STYPE_STR, N_("path to custom monitor ICC profile"), &com.pref.icc.icc_path_monitor },
+	{ "gui", "soft_proofing_profile", STYPE_STR, N_("path to soft proofing ICC profile"), &com.pref.icc.icc_path_soft_proof },
+	{ "gui", "icc_custom_monitor_active", STYPE_BOOL, N_("custom monitor profile active"), &com.pref.icc.custom_monitor_profile_active },
+	{ "gui", "icc_soft_proofing_active", STYPE_BOOL, N_("output proofing profile active"), &com.pref.icc.soft_proofing_profile_active },
+	{ "gui", "custom_RGB_ICC_profile", STYPE_STR, N_("path to custom RGB ICC profile"), &com.pref.icc.custom_icc_trc },
+	{ "gui", "custom_gray_ICC_profile", STYPE_STR, N_("path to custom gray ICC profile"), &com.pref.icc.custom_icc_gray },
+	{ "gui", "rendering_intent", STYPE_INT, N_("color management rendering intent"), &com.pref.icc.rendering_intent },
+	{ "gui", "proofing_intent", STYPE_INT, N_("color management soft proofing intent"), &com.pref.icc.proofing_intent },
+	{ "gui", "export_intent", STYPE_INT, N_("color mangement export intent"), &com.pref.icc.export_intent },
+	{ "gui", "default_to_srgb", STYPE_BOOL, N_("default to sRGB when exporting non color managed images"), &com.pref.icc.default_to_srgb },
+	{ "gui", "working_gamut", STYPE_INT, N_("color mangement working gamut"), &com.pref.icc.working_gamut },
+	{ "gui", "export_8bit_method", STYPE_INT, N_("color mangement export profile for 8bit files"), &com.pref.icc.export_8bit_method },
+	{ "gui", "export_16bit_method", STYPE_INT, N_("color mangement export profile for 16bit files"), &com.pref.icc.export_16bit_method },
+	{ "gui", "icc_autoconversion", STYPE_INT, N_("autoconvert images with an ICC profile to the working color space"), &com.pref.icc.autoconversion },
+	{ "gui", "icc_autoassignment", STYPE_INT, N_("encodes ICC profile auto-assignment options"), &com.pref.icc.autoassignment },
+	{ "gui", "icc_rendering_bpc", STYPE_BOOL, N_("enable rendering BPC"), &com.pref.icc.rendering_bpc },
+	{ "gui", "icc_pedantic_linear", STYPE_BOOL, N_("pedantically assign linear ICC profiles"), &com.pref.icc.pedantic_linear },
 
 	{ "gui_astrometry", "compass_position", STYPE_INT, N_("index of the compass position over grid"), &com.pref.gui.position_compass, { .range_int = { 0, 5 } } },
 	{ "gui_astrometry", "cat_messier", STYPE_BOOL, N_("show Messier objects in annotations"), &com.pref.gui.catalog[0] },
@@ -338,7 +496,8 @@ struct settings_access all_settings[] = {
 	{ "gui_astrometry", "cat_ldn", STYPE_BOOL, N_("show LDN objects in annotations"), &com.pref.gui.catalog[3] },
 	{ "gui_astrometry", "cat_sh2", STYPE_BOOL, N_("show SH2 objects in annotations"), &com.pref.gui.catalog[4] },
 	{ "gui_astrometry", "cat_stars", STYPE_BOOL, N_("show stars in annotations"), &com.pref.gui.catalog[5] },
-	{ "gui_astrometry", "cat_user", STYPE_BOOL, N_("show user objects in annotations"), &com.pref.gui.catalog[6] },
+	{ "gui_astrometry", "cat_user_dso", STYPE_BOOL, N_("show user DSO objects in annotations"), &com.pref.gui.catalog[6] },
+	{ "gui_astrometry", "cat_user_sso", STYPE_BOOL, N_("show user SSO objects in annotations"), &com.pref.gui.catalog[7] },
 
 	{ "gui_pixelmath", "pm_presets", STYPE_STRLIST, N_("list of pixel math presets"), &com.pref.gui.pm_presets },
 

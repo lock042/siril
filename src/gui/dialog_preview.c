@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,7 +31,12 @@
 #ifdef HAVE_LIBHEIF
 #include <libheif/heif.h>
 #endif
-
+#ifdef HAVE_LIBXISF
+#include "io/SirilXISFWraper.h"
+#endif
+#ifdef HAVE_LIBJXL
+#include "io/SirilJpegXLWrapper.h"
+#endif
 #include "dialog_preview.h"
 
 static gboolean preview_allocated = FALSE; // flag needed when user load image before preview was displayed.
@@ -81,6 +86,7 @@ static gboolean end_update_preview_cb(gpointer p) {
 	name_str = g_path_get_basename(args->filename);
 
 	if (!args->file_info) {
+		g_free(name_str);
 		set_cursor_waiting(FALSE);
 		return FALSE;
 	}
@@ -109,7 +115,11 @@ static gboolean end_update_preview_cb(gpointer p) {
 		if (im_type == TYPEAVI || im_type == TYPESER ||
 				(im_type == TYPEFITS && fitseq_is_fitseq(args->filename, NULL)))
 			gtk_image_set_from_icon_name(GTK_IMAGE(preview->image), "video", GTK_ICON_SIZE_DIALOG);
-		else gtk_image_set_from_icon_name(GTK_IMAGE(preview->image), "image", GTK_ICON_SIZE_DIALOG);
+		else {
+			gtk_image_set_from_icon_name(GTK_IMAGE(preview->image), "image", GTK_ICON_SIZE_DIALOG);
+			if (args->description)
+				info_str = args->description;
+		}
 		gtk_image_set_pixel_size(GTK_IMAGE(preview->image), com.pref.gui.thumbnail_size);
 	}
 
@@ -157,14 +167,69 @@ static gpointer update_preview(gpointer p) {
 	if (im_type == TYPEFITS) {
 		/* try FITS file */
 		pixbuf = get_thumbnail_from_fits(args->filename, &args->description);
-	} else if (im_type == TYPESER) {
+	}
+#ifdef HAVE_LIBXISF
+	else if (im_type == TYPEXISF) {
+		GdkPixbuf *pixtmp = get_thumbnail_from_xisf(args->filename, &args->description);
+
+		if (pixtmp) {
+			/* The size of the XISF thumbnails is different. We want to resize it */
+			const int MAX_SIZE = com.pref.gui.thumbnail_size;
+
+			int w = gdk_pixbuf_get_width(pixtmp);
+			int h = gdk_pixbuf_get_height(pixtmp);
+
+			const int x = (int) ceil((float) w / MAX_SIZE);
+			const int y = (int) ceil((float) h / MAX_SIZE);
+			const int pixScale = (x > y) ? x : y;	// picture scale factor
+			const int Ws = w / pixScale; 			// picture width in pixScale blocks
+			const int Hs = h / pixScale; 			// -//- height pixScale
+
+			pixbuf = gdk_pixbuf_scale_simple(pixtmp, Ws, Hs, GDK_INTERP_BILINEAR);
+
+			g_object_unref(pixtmp);
+		}
+	}
+#endif
+#ifdef HAVE_LIBJXL
+	else if (im_type == TYPEJXL) {
+		size_t jxl_size = 0;
+		uint8_t* jxl_data = NULL;
+		GError *error = NULL;
+		gboolean success = g_file_get_contents(args->filename, (gchar**) &jxl_data, &jxl_size, &error);
+		if (!success) {
+			g_error_free(error);
+			goto cleanup2;
+		}
+		siril_debug_print("Generating JXL preview, filesize %lu\n", jxl_size);
+		GdkPixbuf *pixtmp = get_thumbnail_from_jxl(jxl_data, &args->description, jxl_size);
+		if (pixtmp) {
+		/* The size of the JXL thumbnails is different. We want to resize it */
+			const int MAX_SIZE = com.pref.gui.thumbnail_size;
+
+			int w = gdk_pixbuf_get_width(pixtmp);
+			int h = gdk_pixbuf_get_height(pixtmp);
+
+			const int x = (int) ceil((float) w / MAX_SIZE);
+			const int y = (int) ceil((float) h / MAX_SIZE);
+			const int pixScale = (x > y) ? x : y;	// picture scale factor
+			const int Ws = w / pixScale; 			// picture width in pixScale blocks
+			const int Hs = h / pixScale; 			// -//- height pixScale
+
+			pixbuf = gdk_pixbuf_scale_simple(pixtmp, Ws, Hs, GDK_INTERP_BILINEAR);
+
+			g_object_unref(pixtmp);
+		}
+	}
+#endif
+	else if (im_type == TYPESER) {
 		pixbuf = get_thumbnail_from_ser(args->filename, &args->description);
 	} else {
 		if (im_type != TYPEUNDEF && !siril_get_thumbnail_exiv(args->filename, &buffer, &size,
 				&mime_type)) {
 			// Scale the image to the correct size
 			GdkPixbuf *tmp;
-			GdkPixbufLoader *loader = gdk_pixbuf_loader_new();
+				GdkPixbufLoader *loader = gdk_pixbuf_loader_new();
 			if (!gdk_pixbuf_loader_write(loader, buffer, size, NULL))
 				goto cleanup;
 			// Calling gdk_pixbuf_loader_close forces the data to be parsed by the
@@ -179,7 +244,6 @@ static gpointer update_preview(gpointer p) {
 			args->description = siril_get_file_info(args->filename, pixbuf);
 
 			cleanup: gdk_pixbuf_loader_close(loader, NULL);
-			free(mime_type);
 			free(buffer);
 			g_object_unref(loader); // This should clean up tmp as well
 		}
@@ -197,7 +261,10 @@ static gpointer update_preview(gpointer p) {
 			args->description = siril_get_file_info(args->filename, pixbuf);
 		}
 	}
-
+#ifdef HAVE_LIBJXL
+	cleanup2:
+#endif
+	free(mime_type);
 	args->pixbuf = pixbuf;
 	siril_add_idle(end_update_preview_cb, args);
 	return GINT_TO_POINTER(0);

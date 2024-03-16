@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -195,7 +195,7 @@ int unsharp(fits *fit, double sigma, double amount, gboolean verbose) {
  * sigma value, and when it is given, the entropy will only be computed for
  * pixels with values above background + 1 * sigma. It must be NULL otherwise.
  */
-float entropy(fits *fit, int layer, rectangle *area, imstats *opt_stats) {
+float entropy(fits *fit, int layer, rectangle *area, const imstats *opt_stats) {
 	float e = 0.f;
 	double threshold = 0.0;
 	gsl_histogram *histo;
@@ -272,17 +272,19 @@ int loglut(fits *fit) {
 	return -1;
 }
 
-int ddp(fits *a, int level, float coeff, float sigma) {
+int ddp(fits *a, float level, float coeff, float sigma) {
 	fits fit = { 0 };
 	if (a->orig_bitpix == BYTE_IMG) {
 		siril_log_color_message(_("This process cannot be applied to 8b images\n"), "red");
 		return 1;
 	}
-	if (level < 0 || level > USHRT_MAX) {
+	if (level < 0.f || level > USHRT_MAX_SINGLE) {
 		siril_log_color_message(_("ddp level argument must be [0, 65535]\n"), "green");
 		return 1;
 	}
-	float l = ushort_to_float_range(level);
+	if (level < 1.f && a->type == DATA_FLOAT)
+		level *= USHRT_MAX_SINGLE;
+	float l = ushort_to_float_range((WORD) level);
 
 	int ret = copyfits(a, &fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 	if (!ret) ret = unsharp(&fit, sigma, 0, FALSE);
@@ -292,6 +294,11 @@ int ddp(fits *a, int level, float coeff, float sigma) {
 	if (!ret) ret = soper(a, coeff, OPER_MUL, TRUE);
 	clearfits(&fit);
 	invalidate_stats_from_fit(a);
+	if (!ret) {
+		char log[90];
+		sprintf(log, "DDP stretch, threshold: %.2f, multiplier: %.2f, sigma: %.1f", level, coeff, sigma);
+		a->history = g_slist_append(a->history, strdup(log));
+	}
 	return ret;
 }
 
@@ -309,7 +316,7 @@ int visu(fits *fit, int low, int high) {
 }
 
 /* fill an image or selection with the value 'level' */
-int fill(fits *fit, int level, rectangle *arearg) {
+int fill(fits *fit, int level, const rectangle *arearg) {
 	rectangle area;
 
 	if (arearg) {
@@ -449,11 +456,6 @@ double background(fits* fit, int reqlayer, rectangle *selection, threading_type 
 	double bg = stat->median;
 	free_stats(stat);
 	return bg;
-}
-
-void show_FITS_header(fits *fit) {
-	if (fit->header)
-		show_data_dialog(fit->header, "FITS Header", NULL, NULL);
 }
 
 void compute_grey_flat(fits *fit) {

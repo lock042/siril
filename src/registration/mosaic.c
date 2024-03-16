@@ -96,8 +96,8 @@ static gboolean get_scales_and_framing(struct wcsprm *WCSDATA, Homography *K, do
 			cd[i][j] = *(cdij++);
 		}
 	}
-	if (cdelt[0] == 1. && cdelt[1] == 1.)// CD formalism
-		wcs_cd_to_pc(cd, pc, cdelt);
+	// if (cdelt[0] == 1. && cdelt[1] == 1.)// CD formalism
+	// 	wcs_cd_to_pc(cd, pc, cdelt);
 
 	K->h00 = -RADTODEG / cdelt[0];
 	K->h11 = RADTODEG / cdelt[1];

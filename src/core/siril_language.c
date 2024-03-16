@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,6 +40,7 @@ static GHashTable *full_lang_list = NULL;
 parsed_code locale_str[] = {
 	{"ar_DZ", "العربية"},
 	{"ca", "Català"},
+	{"da", "Dansk"},
 	{"de", "Deutsch"},
 	{"el", "Ελληνικά"},
 	{"en", "English"},
@@ -47,11 +48,14 @@ parsed_code locale_str[] = {
 	{"fr", "Français"},
 	{"it_IT", "Italiano"},
 	{"ja_JP", "日本語"},
+	{"ko_KR", "한국어"},
 	{"nl_BE", "Nederlands"},
 	{"pl_PL", "Polish"},
-	{"pt_BR", "Brasileiro"},
+	{"pt_BR", "Português brasileiro"},
 	{"pt_PT", "Português"},
 	{"ru", "русский"},
+	{"tl_PH", "Tagalog"},
+	{"uk", "Українська"},
 	{"zh_CN", "汉语"},
 	{NULL, NULL}
 };
@@ -176,9 +180,11 @@ void language_init(const gchar *language) {
 
 	/* This is default language */
 	if (!g_ascii_strcasecmp(language, "en")) {
-		g_setenv("LANGUAGE", "C", TRUE);
+		if (g_setenv("LANGUAGE", "C", TRUE))
+			siril_debug_print("Error setting LANGUAGE to C\n");
 	} else {
-		g_setenv("LANGUAGE", language, TRUE);
+		if (g_setenv("LANGUAGE", language, TRUE))
+			siril_debug_print("Error setting LANGUAGE\n");
 	}
 	setlocale(LC_ALL, "");
 	setlocale(LC_NUMERIC, "C");

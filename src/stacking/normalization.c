@@ -42,7 +42,7 @@ int do_normalization(struct stacking_args *args) {
 		writeseqfile(args->seq);
 
 	gettimeofday(&t_end, NULL);
-	show_time_msg(t_start, t_end, "Normalization computation time");
+	show_time_msg(t_start, t_end, _("Normalization computation time"));
 	return ST_OK;
 }
 
@@ -137,7 +137,7 @@ static int normalization_get_max_number_of_threads(sequence *seq) {
 	 * For DATA_FLOAT, we have: the image O(n), rewrite without zeros O(m),
 	 * used directly for IKSS and a copy for MAD O(m).
 	 */
-	guint64 memory_per_image = seq->rx * seq->ry;
+	guint64 memory_per_image = (guint64) seq->rx * seq->ry;
 	if (get_data_type(seq->bitpix) == DATA_FLOAT)
 		memory_per_image *= (seq->nb_layers + 2) * sizeof(float);
 	else memory_per_image *= (seq->nb_layers + 1) * sizeof(WORD) + 2 * sizeof(float);
@@ -235,10 +235,7 @@ static int compute_normalization(struct stacking_args *args) {
 				retval = 1;
 				continue;
 			}
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-			cur_nb++;	// only used for progress bar
+			g_atomic_int_inc(&cur_nb);	// only used for progress bar
 			set_progress_bar_data(NULL, cur_nb / (double)args->nb_images_to_stack);
 		}
 	}

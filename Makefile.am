@@ -20,7 +20,10 @@ scripts_DATA = scripts/OSC_Preprocessing.ssf \
 	3rdparty/scripts/en/OSC_Preprocessing_WithDrizzle.ssf
 
 doc_DATA = AUTHORS \
-	LICENSE.md
+	LICENSE.md \
+	3rdparty_licenses/LICENSE_sleef.txt \
+	3rdparty_licenses/LICENSE_zlib.txt \
+	3rdparty_licenses/GPL-2.0-or-later.txt
 
 man_MANS = siril.1
 
@@ -36,11 +39,13 @@ endif
 
 ACLOCAL_AMFLAGS = -I m4
 EXTRA_DIST = config.rpath \
-             git-version.h
+             git-version.h \
+             siril_resource.h
 AUTOMAKE_OPTIONS = foreign
 
 generated_sources = \
-	git-version.h
+	git-version.h \
+	siril_resource.h
 
 # Build git-version.h before anything in the subdirs as this is needed
 # in the about and debug dialog (app/) and in the debug tool (tools/).
@@ -71,4 +76,14 @@ git-version.h: update-git-version-header
 	  echo "  git HEAD changed: $@ regenerated"; \
 	fi
 
-.PHONY: update-git-version-header
+siril_resource.h: src/siril_resource.xml
+	$(AM_V_GEN)
+	glib-compile-resources \
+	--sourcedir=$(top_builddir) \
+	--sourcedir=src \
+	--target=src/$@ \
+	--generate-header \
+	--c-name siril_resource \
+	$(srcdir)/src/siril_resource.xml
+
+.PHONY: update-git-version-header siril_resource.h

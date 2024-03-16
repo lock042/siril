@@ -15,6 +15,7 @@ struct seqwriter_data {
 
 	int (*write_image_hook)(struct seqwriter_data *writer, fits *image, int index);
 	void *sequence;
+	sequence_type output_type;
 };
 
 void start_writer(struct seqwriter_data *writer, int frame_count);

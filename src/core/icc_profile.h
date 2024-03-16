@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,8 +19,81 @@
  */
 #ifndef SRC_CORE_ICC_PROFILE_H_
 #define SRC_CORE_ICC_PROFILE_H_
+#include <stdint.h>
+#include <lcms2.h>
 
-const unsigned char* get_sRGB_profile_data(guint32 *len);
-const unsigned char* get_gray_profile_data(guint32 *len);
+// Define some additional formatters that aren't defined in lcms2.h
+#define TYPE_RGB_FLT_PLANAR (FLOAT_SH(1)|COLORSPACE_SH(PT_RGB)|CHANNELS_SH(3)|BYTES_SH(4)|PLANAR_SH(1))
+#define TYPE_XYZ_FLT_PLANAR (FLOAT_SH(1)|COLORSPACE_SH(PT_XYZ)|CHANNELS_SH(3)|BYTES_SH(4)|PLANAR_SH(1))
+#define TYPE_Lab_FLT_PLANAR (FLOAT_SH(1)|COLORSPACE_SH(PT_Lab)|CHANNELS_SH(3)|BYTES_SH(4)|PLANAR_SH(1))
+#define TYPE_Luv_FLT_PLANAR (FLOAT_SH(1)|COLORSPACE_SH(PT_YUV)|CHANNELS_SH(3)|BYTES_SH(4)|PLANAR_SH(1))
+#define TYPE_YCbCr_FLT_PLANAR (FLOAT_SH(1)|COLORSPACE_SH(PT_YCbCr)|CHANNELS_SH(3)|BYTES_SH(4)|PLANAR_SH(1))
+#define TYPE_Yxy_FLT_PLANAR (FLOAT_SH(1)|COLORSPACE_SH(PT_Yxy)|CHANNELS_SH(3)|BYTES_SH(4)|PLANAR_SH(1))
+#define TYPE_HSV_FLT_PLANAR (FLOAT_SH(1)|COLORSPACE_SH(PT_HSV)|CHANNELS_SH(3)|BYTES_SH(4)|PLANAR_SH(1))
+#define TYPE_HLS_FLT_PLANAR (FLOAT_SH(1)|COLORSPACE_SH(PT_HLS)|CHANNELS_SH(3)|BYTES_SH(4)|PLANAR_SH(1))
+#define TYPE_CMY_FLT_PLANAR (FLOAT_SH(1)|COLORSPACE_SH(PT_CMY)|CHANNELS_SH(3)|BYTES_SH(4)|PLANAR_SH(1))
+
+#define TYPE_XYZ_16_PLANAR (COLORSPACE_SH(PT_XYZ)|CHANNELS_SH(3)|BYTES_SH(2)|PLANAR_SH(1))
+#define TYPE_Lab_16_PLANAR (COLORSPACE_SH(PT_Lab)|CHANNELS_SH(3)|BYTES_SH(2)|PLANAR_SH(1))
+#define TYPE_Luv_16_PLANAR (COLORSPACE_SH(PT_YUV)|CHANNELS_SH(3)|BYTES_SH(2)|PLANAR_SH(1))
+#define TYPE_Yxy_16_PLANAR (COLORSPACE_SH(PT_Yxy)|CHANNELS_SH(3)|BYTES_SH(2)|PLANAR_SH(1))
+
+typedef enum {
+	NONE,
+	SRGB_LINEAR,
+	SRGB_TRC,
+	REC2020_LINEAR,
+	REC2020_TRC,
+	GRAY_LINEAR,
+	GRAY_SRGBTRC,
+	GRAY_REC709TRC
+} internal_icc;
+
+typedef struct SirilMatrix3_d {
+	gdouble coeff[3][3];
+} SirilMatrix3_d;
+
+void icc_profile_set_tag (cmsHPROFILE profile, cmsTagSignature sig, const gchar *tag);
+
+cmsHPROFILE srgb_linear();
+cmsHPROFILE gray_srgbtrc();
+cmsHPROFILE srgb_trc();
+cmsHPROFILE gray_linear();
+cmsHPROFILE rec2020_trc();
+cmsHPROFILE rec2020_linear();
+cmsHPROFILE gray_rec709trc();
+
+void color_manage(fits *fit, gboolean active);
+void lock_display_transform();
+void unlock_display_transform();
+void display_index_transform(BYTE* index, int vport);
+gboolean same_primaries(cmsHPROFILE a, cmsHPROFILE b, cmsHPROFILE c);
+void reset_icc_transforms();
+void validate_custom_profiles();
+void initialize_profiles_and_transforms();
+cmsUInt32Number get_planar_formatter_type(cmsColorSpaceSignature tgt, data_type t, gboolean force_16);
+cmsHTRANSFORM initialize_export8_transform(fits* fit, gboolean threaded);
+cmsHTRANSFORM initialize_proofing_transform();
+void refresh_icc_transforms();
+char* siril_color_profile_get_description (cmsHPROFILE profile);
+unsigned char* get_icc_profile_data(cmsHPROFILE profile, guint32 *len);
+cmsBool fit_icc_is_linear(fits *fit);
+cmsHPROFILE siril_color_profile_linear_from_color_profile (cmsHPROFILE profile);
+void check_profile_correct(fits* fit);
+cmsHPROFILE copyICCProfile(cmsHPROFILE profile);
+void fits_initialize_icc(fits *fit, cmsUInt8Number* EmbedBuffer, cmsUInt32Number EmbedLen);
+cmsBool profiles_identical(cmsHPROFILE a, cmsHPROFILE b);
+void siril_colorspace_transform(fits *fit, cmsHPROFILE profile);
+void set_icc_description_in_TIFF();
+void icc_auto_assign_or_convert(fits *fit, icc_assign_type occasion);
+void icc_auto_assign(fits *fit, icc_assign_type occasion);
+const char* default_system_icc_path();
+cmsHTRANSFORM sirilCreateTransformTHR(cmsContext Context, cmsHPROFILE Input, cmsUInt32Number InputFormat, cmsHPROFILE Output, cmsUInt32Number OutputFormat, cmsUInt32Number Intent, cmsUInt32Number dwFlags);
+void update_profiles_after_gamut_change();
+void initialize_icc_preferences_widgets();
+gboolean on_icc_main_window_button_clicked(GtkWidget *btn, GdkEventButton *event, gpointer userdata);
+void enable_iso12646_conditions();
+void disable_iso12646_conditions(gboolean revert_zoom, gboolean revert_panel, gboolean revert_rendering_mode);
+void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb);
 
 #endif /* SRC_CORE_ICC_PROFILE_H_ */

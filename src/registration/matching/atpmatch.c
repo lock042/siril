@@ -156,7 +156,7 @@
  * as a check for very very small numbers which might cause
  * the matrix solution to be unstable.
  */
-#define MATRIX_TOL     1.0e-12
+#define MATRIX_TOL     1.0e-4
 
 /*
  * To evaluate the quality of a match between two sets of stars,
@@ -307,6 +307,14 @@ static int calc_trans_cubic(int nbright, s_star *star_array_A, int num_stars_A,
 		s_star *star_array_B, int num_stars_B, int *winner_votes,
 		int *winner_index_A, int *winner_index_B, TRANS *trans);
 
+static int calc_trans_quartic(int nbright, s_star *star_array_A, int num_stars_A,
+		s_star *star_array_B, int num_stars_B, int *winner_votes,
+		int *winner_index_A, int *winner_index_B, TRANS *trans);
+
+static int calc_trans_quintic(int nbright, s_star *star_array_A, int num_stars_A,
+		s_star *star_array_B, int num_stars_B, int *winner_votes,
+		int *winner_index_A, int *winner_index_B, TRANS *trans);
+
 /************************************************************************
  * <AUTO EXTRACT>
  *
@@ -392,6 +400,12 @@ TRANS *trans /* O: place into this TRANS structure's fields */
 		break;
 	case AT_TRANS_CUBIC:
 		start_pairs = AT_MATCH_STARTN_CUBIC;
+		break;
+	case AT_TRANS_QUARTIC:
+		start_pairs = AT_MATCH_STARTN_QUARTIC;
+		break;
+	case AT_TRANS_QUINTIC:
+		start_pairs = AT_MATCH_STARTN_QUINTIC;
 		break;
 	default:
 		shError("atFindTrans: invalid trans->order %d ", trans->order);
@@ -602,9 +616,7 @@ int atPrepareHomography(int numA, /* I: number of stars in list A */
 		int numB, /* I: number of stars in list B */
 		struct s_star *listB, /* I: match this set of objects with list A */
 		Homography *H,
-		gboolean save_photometric_data,
-		pcc_star *photometric_data,
-		int *nb_photometric_stars,
+		gboolean for_astrometry,
 		transformation_type type
 ) {
 	s_star *star_array_A;
@@ -617,26 +629,8 @@ int atPrepareHomography(int numA, /* I: number of stars in list A */
 	g_assert(star_array_A != NULL);
 	g_assert(star_array_B != NULL);
 
-	mask = cvCalculH(star_array_A, star_array_B, numB, H, type);
+	mask = cvCalculH(star_array_A, star_array_B, numB, H, type, (for_astrometry) ? 0.f : -0.5f);
 	int ret = mask == NULL;
-
-	if (!ret && save_photometric_data) {
-		int n = 0;
-		for (int i = 0; i < numB; i++) {
-			s_star *starA = star_array_A + i;
-			s_star *starB = star_array_B + i;
-			g_assert(starA != NULL);
-			g_assert(starB != NULL);
-			if (mask && mask[i] && starB->BV != -99.9) {
-				photometric_data[n].x = (float)starA->x;
-				photometric_data[n].y = (float)starA->y;
-				photometric_data[n].mag = (float)starB->mag;
-				photometric_data[n].BV = (float)starB->BV;
-				n++;
-			}
-		}
-		*nb_photometric_stars = n;
-	}
 
 	/*
 	 * clean up memory we allocated during the matching process
@@ -708,6 +702,12 @@ TRANS *trans /* O: place into this TRANS structure's fields */
 		break;
 	case AT_TRANS_CUBIC:
 		start_pairs = AT_MATCH_STARTN_CUBIC;
+		break;
+	case AT_TRANS_QUARTIC:
+		start_pairs = AT_MATCH_STARTN_QUARTIC;
+		break;
+	case AT_TRANS_QUINTIC:
+		start_pairs = AT_MATCH_STARTN_QUINTIC;
 		break;
 	default:
 		shError("atRecalcTrans: invalid trans->order %d ", trans->order);
@@ -1440,13 +1440,13 @@ double **darray /* array of distances between stars */
 		tri->ba = 1.0;
 		tri->ca = 1.0;
 	}
-	tri->side_a_angle = atan2(
-			star_array[tri->a_index].y - star_array[tri->b_index].y,
-			star_array[tri->a_index].x - star_array[tri->b_index].x);
-#ifdef DEBUG2
-	printf(" triangle %5d  has side_a_angle %f = %f deg \n",
-			tri->id, tri->side_a_angle, tri->side_a_angle*(180/3.14159));
-#endif
+// 	tri->side_a_angle = atan2(
+// 			star_array[tri->a_index].y - star_array[tri->b_index].y,
+// 			star_array[tri->a_index].x - star_array[tri->b_index].x);
+// #ifdef DEBUG2
+// 	printf(" triangle %5d  has side_a_angle %f = %f deg \n",
+// 			tri->id, tri->side_a_angle, tri->side_a_angle*(180/3.14159));
+// #endif
 
 	tri->match_id = -1;
 	tri->next = (s_triangle *) NULL;
@@ -2489,6 +2489,24 @@ TRANS *trans /* O: place solved coefficients into this */
 			return (SH_GENERIC_ERROR);
 		}
 		break;
+	
+	case AT_TRANS_QUARTIC:
+		if (calc_trans_quartic(nbright, star_array_A, num_stars_A, star_array_B,
+				num_stars_B, winner_votes, winner_index_A, winner_index_B,
+				trans) != SH_SUCCESS) {
+			shError("calc_trans: calc_trans_quartic returns with error");
+			return (SH_GENERIC_ERROR);
+		}
+		break;
+
+	case AT_TRANS_QUINTIC:
+		if (calc_trans_quintic(nbright, star_array_A, num_stars_A, star_array_B,
+				num_stars_B, winner_votes, winner_index_A, winner_index_B,
+				trans) != SH_SUCCESS) {
+			shError("calc_trans: calc_trans_quintic returns with error");
+			return (SH_GENERIC_ERROR);
+		}
+		break;
 
 	default:
 		shFatal("calc_trans: called with invalid trans->order %d \n",
@@ -2800,6 +2818,14 @@ TRANS *trans /* O: place solved coefficients into this */
 	case AT_TRANS_CUBIC:
 		required_pairs = AT_MATCH_REQUIRE_CUBIC;
 		start_pairs = AT_MATCH_STARTN_CUBIC;
+		break;
+	case AT_TRANS_QUARTIC:
+		required_pairs = AT_MATCH_REQUIRE_QUARTIC;
+		start_pairs = AT_MATCH_STARTN_QUARTIC;
+		break;
+	case AT_TRANS_QUINTIC:
+		required_pairs = AT_MATCH_REQUIRE_QUINTIC;
+		start_pairs = AT_MATCH_STARTN_QUINTIC;
 		break;
 	default:
 		shFatal("iter_trans: invalid trans->order %d \n", trans->order);
@@ -3252,37 +3278,72 @@ TRANS *trans, /* I: contains coefficients of transformation */
 double *newx, /* O: contains output x coord */
 double *newy /* O: contains output y coord */
 ) {
-	double rsquared;
 
 	g_assert(star != NULL);
 	g_assert(trans != NULL);
 
 	switch (trans->order) {
 	case AT_TRANS_LINEAR:
-		*newx = trans->a + trans->b * star->x + trans->c * star->y;
-		*newy = trans->d + trans->e * star->x + trans->f * star->y;
+		*newx = trans->x00 + trans->x10 * star->x + trans->x01 * star->y;
+		*newy = trans->y00 + trans->y10 * star->x + trans->y01 * star->y;
 		break;
 
 	case AT_TRANS_QUADRATIC:
-		*newx = trans->a + trans->b * star->x + trans->c * star->y
-				+ trans->d * star->x * star->x + trans->e * star->x * star->y
-				+ trans->f * star->y * star->y;
-		*newy = trans->g + trans->h * star->x + trans->i * star->y
-				+ trans->j * star->x * star->x + trans->k * star->x * star->y
-				+ trans->l * star->y * star->y;
+		*newx = trans->x00 + trans->x10 * star->x + trans->x01 * star->y
+			  + trans->x20 * star->x * star->x + trans->x11 * star->x * star->y + trans->x02 * star->y * star->y;
+		*newy = trans->y00 + trans->y10 * star->x + trans->y01 * star->y
+			  + trans->y20 * star->x * star->x + trans->y11 * star->x * star->y + trans->y02 * star->y * star->y;
 		break;
 
 	case AT_TRANS_CUBIC:
-		rsquared = star->x * star->x + star->y * star->y;
-		*newx = trans->a + trans->b * star->x + trans->c * star->y
-				+ trans->d * star->x * star->x + trans->e * star->x * star->y
-				+ trans->f * star->y * star->y + trans->g * star->x * rsquared
-				+ trans->h * star->y * rsquared;
+		*newx = trans->x00 + trans->x10 * star->x + trans->x01 * star->y
+			  + trans->x20 * star->x * star->x + trans->x11 * star->x * star->y + trans->x02 * star->y * star->y
+			  + trans->x30 * star->x * star->x * star->x + trans->x21 * star->x * star->x * star->y
+			  + trans->x12 * star->x * star->y * star->y + trans->x03 * star->y * star->y * star->y;
+		*newy = trans->y00 + trans->y10 * star->x + trans->y01 * star->y
+			  + trans->y20 * star->x * star->x + trans->y11 * star->x * star->y + trans->y02 * star->y * star->y
+			  + trans->y30 * star->x * star->x * star->x + trans->y21 * star->x * star->x * star->y
+			  + trans->y12 * star->x * star->y * star->y + trans->y03 * star->y * star->y * star->y;
+		break;
 
-		*newy = trans->i + trans->j * star->x + trans->k * star->y
-				+ trans->l * star->x * star->x + trans->m * star->x * star->y
-				+ trans->n * star->y * star->y + trans->o * star->x * rsquared
-				+ trans->p * star->y * rsquared;
+	case AT_TRANS_QUARTIC:
+		*newx = trans->x00 + trans->x10 * star->x + trans->x01 * star->y
+			  + trans->x20 * star->x * star->x + trans->x11 * star->x * star->y + trans->x02 * star->y * star->y
+			  + trans->x30 * star->x * star->x * star->x + trans->x21 * star->x * star->x * star->y
+			  + trans->x12 * star->x * star->y * star->y + trans->x03 * star->y * star->y * star->y
+			  + trans->x40 * star->x * star->x * star->x * star->x + trans->x31 * star->x * star->x * star->x * star->y
+			  + trans->x22 * star->x * star->x * star->y * star->y + trans->x13 * star->x * star->y * star->y * star->y
+			  + trans->x04 * star->y * star->y * star->y * star->y;
+		*newy = trans->y00 + trans->y10 * star->x + trans->y01 * star->y
+			  + trans->y20 * star->x * star->x + trans->y11 * star->x * star->y + trans->y02 * star->y * star->y
+			  + trans->y30 * star->x * star->x * star->x + trans->y21 * star->x * star->x * star->y
+			  + trans->y12 * star->x * star->y * star->y + trans->y03 * star->y * star->y * star->y
+			  + trans->y40 * star->x * star->x * star->x * star->x + trans->y31 * star->x * star->x * star->x * star->y
+			  + trans->y22 * star->x * star->x * star->y * star->y + trans->y13 * star->x * star->y * star->y * star->y
+			  + trans->y04 * star->y * star->y * star->y * star->y;
+		break;
+
+	case AT_TRANS_QUINTIC:
+		*newx = trans->x00 + trans->x10 * star->x + trans->x01 * star->y
+			  + trans->x20 * star->x * star->x + trans->x11 * star->x * star->y + trans->x02 * star->y * star->y
+			  + trans->x30 * star->x * star->x * star->x + trans->x21 * star->x * star->x * star->y
+			  + trans->x12 * star->x * star->y * star->y + trans->x03 * star->y * star->y * star->y
+			  + trans->x40 * star->x * star->x * star->x * star->x + trans->x31 * star->x * star->x * star->x * star->y
+			  + trans->x22 * star->x * star->x * star->y * star->y + trans->x13 * star->x * star->y * star->y * star->y
+			  + trans->x04 * star->y * star->y * star->y * star->y
+			  + trans->x50 * star->x * star->x * star->x * star->x * star->x + trans->x41 * star->x * star->x * star->x * star->x * star->y
+			  + trans->x32 * star->x * star->x * star->x * star->y * star->y + trans->x23 * star->x * star->x * star->y * star->y * star->y
+			  + trans->x14 * star->x * star->y * star->y * star->y * star->y + trans->x05 * star->y * star->y * star->y * star->y * star->y;
+		*newy = trans->y00 + trans->y10 * star->x + trans->y01 * star->y
+			  + trans->y20 * star->x * star->x + trans->y11 * star->x * star->y + trans->y02 * star->y * star->y
+			  + trans->y30 * star->x * star->x * star->x + trans->y21 * star->x * star->x * star->y
+			  + trans->y12 * star->x * star->y * star->y + trans->y03 * star->y * star->y * star->y
+			  + trans->y40 * star->x * star->x * star->x * star->x + trans->y31 * star->x * star->x * star->x * star->y
+			  + trans->y22 * star->x * star->x * star->y * star->y + trans->y13 * star->x * star->y * star->y * star->y
+			  + trans->y04 * star->y * star->y * star->y * star->y
+			  + trans->y50 * star->x * star->x * star->x * star->x * star->x + trans->y41 * star->x * star->x * star->x * star->x * star->y
+			  + trans->y32 * star->x * star->x * star->x * star->y * star->y + trans->y23 * star->x * star->x * star->y * star->y * star->y
+			  + trans->y14 * star->x * star->y * star->y * star->y * star->y + trans->y05 * star->y * star->y * star->y * star->y * star->y;
 		break;
 
 	default:
@@ -3488,7 +3549,7 @@ int *num_stars_M /* O: number of stars in output array M */
 	int current_num_J, current_num_K;
 	double deltax, deltay;
 	double Axm, Axp, Aym, Ayp;
-	s_star *sa, *sb;
+	s_star *sa = NULL, *sb = NULL;
 
 #ifdef DEBUG
 	printf("entering match_arrays_slow ");
@@ -3562,7 +3623,8 @@ int *num_stars_M /* O: number of stars in output array M */
 
 	for (posA = 0; posA < num_stars_A; posA++) {
 
-		g_assert((sa = &(star_array_A[posA])) != NULL);
+		sa = &(star_array_A[posA]);
+		g_assert(sa != NULL);
 		Ax = sa->x;
 		Ay = sa->y;
 
@@ -3573,7 +3635,8 @@ int *num_stars_M /* O: number of stars in output array M */
 
 		for (posB = 0; posB < num_stars_B; posB++) {
 
-			g_assert((sb = &(star_array_B[posB])) != NULL);
+			sb = &(star_array_B[posB]);
+			g_assert(sb != NULL);
 			Bx = sb->x;
 			By = sb->y;
 
@@ -4273,31 +4336,23 @@ struct s_star *star_array /* I/O: reset 'id' fields in this array */
  * where (x,y) are coords in set A and (x',y') are corresponding
  * coords in set B.
  *
- * Internally, I'm going to solve for the very similar equations
- *
- *                x' = Ax + By + C
- *                y' = Dx + Ey + F
- *
- * and then just re-arrange the coefficients at the very end.  OK?
- *
- *
  * What we do is to treat each of the two equations above
  * separately.  We can write down 3 equations relating quantities
  * in the two sets of points (there are more than 3 such equations,
  * but we don't seek an exhaustive list).  For example,
  *
- *       a.       x'    =  Ax     + By    +  C
- *       b.       x'x   =  Ax^2   + Bxy   +  Cx      (mult both sides by x)
- *       c.       x'y   =  Axy    + By^2  +  Cy      (mult both sides by y)
+ *       a.       x'    =  A  + Bx   + Cy    
+ *       b.       x'x   =  Ax + Bx^2 + Cxy         (mult both sides by x)
+ *       c.       x'y   =  Ay + Bxy  + Cy^2        (mult both sides by y)
  *
  * Now, since we have "nbright" matched pairs, we can take each of
  * the above 3 equations and form the sums on both sides, over
  * all "nbright" points.  So, if S(x) represents the sum of the quantity
  * "x" over all nbright points, and if we let N=nbright, then
  *
- *       a.     S(x')   =  AS(x)   + BS(y)   +  CN
- *       b.     S(x'x)  =  AS(x^2) + BS(xy)  +  CS(x)
- *       c.     S(x'y)  =  AS(xy)  + BS(y^2) +  CS(y)
+ *       a.     S(x')   =  AN    + BS(x)   + CS(y)  
+ *       b.     S(x'x)  =  AS(x) + BS(x^2) + CS(xy) 
+ *       c.     S(x'y)  =  AS(y) + BS(xy)  + CS(y^2)
  *
  * At this point, we have a set of three equations, and 3 unknowns: A, B, C.
  * We can write this set of equations as a matrix equation
@@ -4308,9 +4363,9 @@ struct s_star *star_array /* I/O: reset 'id' fields in this array */
  *
  *        vector b = ( S(x'), S(x'x), S(x'y) )
  *
- *        matrix M = ( S(x)   S(y)    1      )
- *                   ( S(x^2) S(xy)   S(x)   )
- *                   ( S(xy)  S(y^2)  S(y)   )
+ *        matrix M = ( 1    S(x)   S(y)  )
+ *                   ( S(x) S(x^2) S(xy) )
+ *                   ( S(y) S(xy)  S(y^2))
  *
  *
  * and we want to FIND the unknown
@@ -4360,10 +4415,13 @@ TRANS *trans /* O: place solved coefficients into this */
 	double solved_a, solved_b, solved_c, solved_d, solved_e, solved_f;
 	s_star *s1, *s2;
 	/* */
-	double sum, sumx1, sumy1, sumx2, sumy2;
-	double sumx1sq, sumy1sq;
-	double sumx1y1, sumx1x2, sumx1y2;
-	double sumy1x2, sumy1y2;
+	double sumx0y0;
+	double sumx1y0, sumx0y1;
+	double sumx2y0, sumx1y1, sumx0y2;
+
+	double sumxpx0y0, sumypx0y0;
+	double sumxpx1y0, sumypx1y0;
+	double sumxpx0y1, sumypx0y1;
 
 	g_assert(nbright >= AT_MATCH_REQUIRE_LINEAR);
 	g_assert(trans->order == AT_TRANS_LINEAR);
@@ -4377,18 +4435,19 @@ TRANS *trans /* O: place solved coefficients into this */
 	 * first, we consider the coefficients A, B, C in the trans.
 	 * we form the sums that make up the elements of matrix M
 	 */
-	sum = 0.0;
-	sumx1 = 0.0;
-	sumy1 = 0.0;
-	sumx2 = 0.0;
-	sumy2 = 0.0;
-	sumx1sq = 0.0;
-	sumy1sq = 0.0;
-	sumx1x2 = 0.0;
+	sumx0y0 = 0.0;
+	sumx1y0 = 0.0;
+	sumx0y1 = 0.0;
+	sumx2y0 = 0.0;
+	sumx0y2 = 0.0;
 	sumx1y1 = 0.0;
-	sumx1y2 = 0.0;
-	sumy1x2 = 0.0;
-	sumy1y2 = 0.0;
+
+	sumxpx0y0 = 0.0;
+	sumypx0y0 = 0.0;
+	sumxpx1y0 = 0.0;
+	sumypx1y0 = 0.0;
+	sumxpx0y1 = 0.0;
+	sumypx0y1 = 0.0;
 
 	for (i = 0; i < nbright; i++) {
 		/* sanity checks */
@@ -4404,36 +4463,38 @@ TRANS *trans /* O: place solved coefficients into this */
 		s2 = &(star_array_B[winner_index_B[i]]);
 
 		/* elements of the matrix */
-		sum += 1.0;
-		sumx1 += s1->x;
-		sumx2 += s2->x;
-		sumy1 += s1->y;
-		sumy2 += s2->y;
-		sumx1sq += s1->x * s1->x;
-		sumy1sq += s1->y * s1->y;
-		sumx1x2 += s1->x * s2->x;
+		sumx0y0 += 1.0;
+		sumx1y0 += s1->x;
+		sumx0y1 += s1->y;
+		sumx2y0 += s1->x * s1->x;
 		sumx1y1 += s1->x * s1->y;
-		sumx1y2 += s1->x * s2->y;
-		sumy1x2 += s1->y * s2->x;
-		sumy1y2 += s1->y * s2->y;
+		sumx0y2 += s1->y * s1->y;
+
+		/* elements of the vectors */
+		sumxpx0y0 += s2->x;
+		sumxpx1y0 += s2->x * s1->x;
+		sumxpx0y1 += s2->x * s1->y;
+		sumypx0y0 += s2->y;
+		sumypx1y0 += s2->y * s1->x;
+		sumypx0y1 += s2->y * s1->y;
 	}
 
 	/*
 	 * now turn these sums into a matrix and a vector
 	 */
-	matrix[0][0] = sumx1sq;
-	matrix[0][1] = sumx1y1;
-	matrix[0][2] = sumx1;
-	matrix[1][0] = sumx1y1;
-	matrix[1][1] = sumy1sq;
-	matrix[1][2] = sumy1;
-	matrix[2][0] = sumx1;
-	matrix[2][1] = sumy1;
-	matrix[2][2] = sum;
+	matrix[0][0] = sumx0y0;
+	matrix[0][1] = sumx1y0;
+	matrix[0][2] = sumx0y1;
+	matrix[1][0] = sumx1y0;
+	matrix[1][1] = sumx2y0;
+	matrix[1][2] = sumx1y1;
+	matrix[2][0] = sumx0y1;
+	matrix[2][1] = sumx1y1;
+	matrix[2][2] = sumx0y2;
 
-	vector[0] = sumx1x2;
-	vector[1] = sumy1x2;
-	vector[2] = sumx2;
+	vector[0] = sumxpx0y0;
+	vector[1] = sumxpx1y0;
+	vector[2] = sumxpx0y1;
 
 #ifdef DEBUG
 	printf("before calling solution routines for ABC, here's matrix\n");
@@ -4464,24 +4525,24 @@ TRANS *trans /* O: place solved coefficients into this */
 	 * Okay, now we solve for TRANS coefficients D, E, F, using the
 	 * set of equations that relates y' to (x,y)
 	 *
-	 *       a.       y'    =  Dx     + Ey    +  F
-	 *       b.       y'x   =  Dx^2   + Exy   +  Fx      (mult both sides by x)
-	 *       c.       y'y   =  Dxy    + Ey^2  +  Fy      (mult both sides by y)
+	 *       a.       y'    =  D  + Dx     + Fy   
+	 *       b.       y'x   =  Dx + Dx^2   + Fxy        (mult both sides by x)
+	 *       c.       y'y   =  Dy + Dxy    + Fy^2       (mult both sides by y)
 	 *
 	 */
-	matrix[0][0] = sumx1sq;
-	matrix[0][1] = sumx1y1;
-	matrix[0][2] = sumx1;
-	matrix[1][0] = sumx1y1;
-	matrix[1][1] = sumy1sq;
-	matrix[1][2] = sumy1;
-	matrix[2][0] = sumx1;
-	matrix[2][1] = sumy1;
-	matrix[2][2] = sum;
+	matrix[0][0] = sumx0y0;
+	matrix[0][1] = sumx1y0;
+	matrix[0][2] = sumx0y1;
+	matrix[1][0] = sumx1y0;
+	matrix[1][1] = sumx2y0;
+	matrix[1][2] = sumx1y1;
+	matrix[2][0] = sumx0y1;
+	matrix[2][1] = sumx1y1;
+	matrix[2][2] = sumx0y2;
 
-	vector[0] = sumx1y2;
-	vector[1] = sumy1y2;
-	vector[2] = sumy2;
+	vector[0] = sumypx0y0;
+	vector[1] = sumypx1y0;
+	vector[2] = sumypx0y1;
 
 #ifdef DEBUG
 	printf("before calling solution routines for DEF, here's matrix\n");
@@ -4522,12 +4583,12 @@ TRANS *trans /* O: place solved coefficients into this */
 	 *
 	 * so, here, we have to re-arrange the coefficients a bit.
 	 */
-	trans->a = solved_c;
-	trans->b = solved_a;
-	trans->c = solved_b;
-	trans->d = solved_f;
-	trans->e = solved_d;
-	trans->f = solved_e;
+	trans->x00 = solved_a;
+	trans->x10 = solved_b;
+	trans->x01 = solved_c;
+	trans->y00 = solved_d;
+	trans->y10 = solved_e;
+	trans->y01 = solved_f;
 
 	/*
 	 * free up memory we allocated for this function
@@ -4653,15 +4714,14 @@ TRANS *trans /* O: place solved coefficients into this */
 	 *                      and a '2' refers to coordinate of star s2
 	 *   (which appears only on left hand side of matrix equation)    o
 	 */
-	double sumx2, sumx2x1, sumx2y1, sumx2x1sq, sumx2x1y1, sumx2y1sq;
-	double sumy2, sumy2x1, sumy2y1, sumy2x1sq, sumy2x1y1, sumy2y1sq;
+	double sumxpx0y0, sumxpx1y0, sumxpx0y1, sumxpx2y0, sumxpx1y1, sumxpx0y2;
+	double sumypx0y0, sumypx1y0, sumypx0y1, sumypx2y0, sumypx1y1, sumypx0y2;
 
-	double sum, sumx1, sumy1, sumx1sq, sumx1y1, sumy1sq;
-	double sumx1cu, sumx1sqy1, sumx1y1sq;
-	double sumy1cu;
-	double sumx1qu, sumx1cuy1, sumx1sqy1sq;
-	double sumx1y1cu;
-	double sumy1qu;
+	double sumx0y0;
+	double sumx1y0, sumx0y1;
+	double sumx2y0, sumx1y1, sumx0y2;
+	double sumx3y0, sumx2y1, sumx1y2, sumx0y3;
+	double sumx4y0, sumx3y1, sumx2y2, sumx1y3, sumx0y4;
 
 	g_assert(nbright >= AT_MATCH_REQUIRE_QUADRATIC);
 	g_assert(trans->order == AT_TRANS_QUADRATIC);
@@ -4676,34 +4736,34 @@ TRANS *trans /* O: place solved coefficients into this */
 	 * we form the sums that make up the elements of matrix M
 	 */
 
-	sum = 0.0;
-	sumx1 = 0.0;
-	sumy1 = 0.0;
-	sumx1sq = 0.0;
+	sumx0y0 = 0.0;
+	sumx1y0 = 0.0;
+	sumx0y1 = 0.0;
+	sumx2y0 = 0.0;
 	sumx1y1 = 0.0;
-	sumy1sq = 0.0;
-	sumx1cu = 0.0;
-	sumx1sqy1 = 0.0;
-	sumx1y1sq = 0.0;
-	sumy1cu = 0.0;
-	sumx1qu = 0.0;
-	sumx1cuy1 = 0.0;
-	sumx1sqy1sq = 0.0;
-	sumx1y1cu = 0.0;
-	sumy1qu = 0.0;
-
-	sumx2 = 0.0;
-	sumx2x1 = 0.0;
+	sumx0y2 = 0.0;
+	sumx3y0 = 0.0;
 	sumx2y1 = 0.0;
-	sumx2x1sq = 0.0;
-	sumx2x1y1 = 0.0;
-	sumx2y1sq = 0.0;
-	sumy2 = 0.0;
-	sumy2x1 = 0.0;
-	sumy2y1 = 0.0;
-	sumy2x1sq = 0.0;
-	sumy2x1y1 = 0.0;
-	sumy2y1sq = 0.0;
+	sumx1y2 = 0.0;
+	sumx0y3 = 0.0;
+	sumx4y0 = 0.0;
+	sumx3y1 = 0.0;
+	sumx2y2 = 0.0;
+	sumx1y3 = 0.0;
+	sumx0y4 = 0.0;
+
+	sumxpx0y0 = 0.0;
+	sumxpx1y0 = 0.0;
+	sumxpx0y1 = 0.0;
+	sumxpx2y0 = 0.0;
+	sumxpx1y1 = 0.0;
+	sumxpx0y2 = 0.0;
+	sumypx0y0 = 0.0;
+	sumypx1y0 = 0.0;
+	sumypx0y1 = 0.0;
+	sumypx2y0 = 0.0;
+	sumypx1y1 = 0.0;
+	sumypx0y2 = 0.0;
 
 	for (i = 0; i < nbright; i++) {
 
@@ -4714,93 +4774,93 @@ TRANS *trans /* O: place solved coefficients into this */
 		s2 = &(star_array_B[winner_index_B[i]]);
 
 		/* elements of the vectors */
-		sumx2 += s2->x;
-		sumx2x1 += s2->x * s1->x;
-		sumx2y1 += s2->x * s1->y;
-		sumx2x1sq += s2->x * s1->x * s1->x;
-		sumx2x1y1 += s2->x * s1->x * s1->y;
-		sumx2y1sq += s2->x * s1->y * s1->y;
+		sumxpx0y0 += s2->x;
+		sumxpx1y0 += s2->x * s1->x;
+		sumxpx0y1 += s2->x * s1->y;
+		sumxpx2y0 += s2->x * s1->x * s1->x;
+		sumxpx1y1 += s2->x * s1->x * s1->y;
+		sumxpx0y2 += s2->x * s1->y * s1->y;
 
-		sumy2 += s2->y;
-		sumy2x1 += s2->y * s1->x;
-		sumy2y1 += s2->y * s1->y;
-		sumy2x1sq += s2->y * s1->x * s1->x;
-		sumy2x1y1 += s2->y * s1->x * s1->y;
-		sumy2y1sq += s2->y * s1->y * s1->y;
+		sumypx0y0 += s2->y;
+		sumypx1y0 += s2->y * s1->x;
+		sumypx0y1 += s2->y * s1->y;
+		sumypx2y0 += s2->y * s1->x * s1->x;
+		sumypx1y1 += s2->y * s1->x * s1->y;
+		sumypx0y2 += s2->y * s1->y * s1->y;
 
 		/* elements of the matrix */
-		sum += 1.0;
-		sumx1 += s1->x;
-		sumy1 += s1->y;
+		sumx0y0 += 1.0;
+		sumx1y0 += s1->x;
+		sumx0y1 += s1->y;
 
-		sumx1sq += s1->x * s1->x;
+		sumx2y0 += s1->x * s1->x;
 		sumx1y1 += s1->x * s1->y;
-		sumy1sq += s1->y * s1->y;
+		sumx0y2 += s1->y * s1->y;
 
-		sumx1cu += s1->x * s1->x * s1->x;
-		sumx1sqy1 += s1->x * s1->x * s1->y;
-		sumx1y1sq += s1->x * s1->y * s1->y;
-		sumy1cu += s1->y * s1->y * s1->y;
+		sumx3y0 += s1->x * s1->x * s1->x;
+		sumx2y1 += s1->x * s1->x * s1->y;
+		sumx1y2 += s1->x * s1->y * s1->y;
+		sumx0y3 += s1->y * s1->y * s1->y;
 
-		sumx1qu += s1->x * s1->x * s1->x * s1->x;
-		sumx1cuy1 += s1->x * s1->x * s1->x * s1->y;
-		sumx1sqy1sq += s1->x * s1->x * s1->y * s1->y;
-		sumx1y1cu += s1->x * s1->y * s1->y * s1->y;
-		sumy1qu += s1->y * s1->y * s1->y * s1->y;
+		sumx4y0 += s1->x * s1->x * s1->x * s1->x;
+		sumx3y1 += s1->x * s1->x * s1->x * s1->y;
+		sumx2y2 += s1->x * s1->x * s1->y * s1->y;
+		sumx1y3 += s1->x * s1->y * s1->y * s1->y;
+		sumx0y4 += s1->y * s1->y * s1->y * s1->y;
 
 	}
 
 	/*
 	 * now turn these sums into a matrix and a vector
 	 */
-	matrix[0][0] = sum;
-	matrix[0][1] = sumx1;
-	matrix[0][2] = sumy1;
-	matrix[0][3] = sumx1sq;
+	matrix[0][0] = sumx0y0;
+	matrix[0][1] = sumx1y0;
+	matrix[0][2] = sumx0y1;
+	matrix[0][3] = sumx2y0;
 	matrix[0][4] = sumx1y1;
-	matrix[0][5] = sumy1sq;
+	matrix[0][5] = sumx0y2;
 
-	matrix[1][0] = sumx1;
-	matrix[1][1] = sumx1sq;
+	matrix[1][0] = sumx1y0;
+	matrix[1][1] = sumx2y0;
 	matrix[1][2] = sumx1y1;
-	matrix[1][3] = sumx1cu;
-	matrix[1][4] = sumx1sqy1;
-	matrix[1][5] = sumx1y1sq;
+	matrix[1][3] = sumx3y0;
+	matrix[1][4] = sumx2y1;
+	matrix[1][5] = sumx1y2;
 
-	matrix[2][0] = sumy1;
+	matrix[2][0] = sumx0y1;
 	matrix[2][1] = sumx1y1;
-	matrix[2][2] = sumy1sq;
-	matrix[2][3] = sumx1sqy1;
-	matrix[2][4] = sumx1y1sq;
-	matrix[2][5] = sumy1cu;
+	matrix[2][2] = sumx0y2;
+	matrix[2][3] = sumx2y1;
+	matrix[2][4] = sumx1y2;
+	matrix[2][5] = sumx0y3;
 
-	matrix[3][0] = sumx1sq;
-	matrix[3][1] = sumx1cu;
-	matrix[3][2] = sumx1sqy1;
-	matrix[3][3] = sumx1qu;
-	matrix[3][4] = sumx1cuy1;
-	matrix[3][5] = sumx1sqy1sq;
+	matrix[3][0] = sumx2y0;
+	matrix[3][1] = sumx3y0;
+	matrix[3][2] = sumx2y1;
+	matrix[3][3] = sumx4y0;
+	matrix[3][4] = sumx3y1;
+	matrix[3][5] = sumx2y2;
 
 	matrix[4][0] = sumx1y1;
-	matrix[4][1] = sumx1sqy1;
-	matrix[4][2] = sumx1y1sq;
-	matrix[4][3] = sumx1cuy1;
-	matrix[4][4] = sumx1sqy1sq;
-	matrix[4][5] = sumx1y1cu;
+	matrix[4][1] = sumx2y1;
+	matrix[4][2] = sumx1y2;
+	matrix[4][3] = sumx3y1;
+	matrix[4][4] = sumx2y2;
+	matrix[4][5] = sumx1y3;
 
-	matrix[5][0] = sumy1sq;
-	matrix[5][1] = sumx1y1sq;
-	matrix[5][2] = sumy1cu;
-	matrix[5][3] = sumx1sqy1sq;
-	matrix[5][4] = sumx1y1cu;
-	matrix[5][5] = sumy1qu;
+	matrix[5][0] = sumx0y2;
+	matrix[5][1] = sumx1y2;
+	matrix[5][2] = sumx0y3;
+	matrix[5][3] = sumx2y2;
+	matrix[5][4] = sumx1y3;
+	matrix[5][5] = sumx0y4;
 
-	vector[0] = sumx2;
-	vector[1] = sumx2x1;
-	vector[2] = sumx2y1;
-	vector[3] = sumx2x1sq;
-	vector[4] = sumx2x1y1;
-	vector[5] = sumx2y1sq;
+	vector[0] = sumxpx0y0;
+	vector[1] = sumxpx1y0;
+	vector[2] = sumxpx0y1;
+	vector[3] = sumxpx2y0;
+	vector[4] = sumxpx1y1;
+	vector[5] = sumxpx0y2;
 
 #ifdef DEBUG
 	printf("before calling solution routines for ABCDEF, here's matrix\n");
@@ -4842,54 +4902,54 @@ TRANS *trans /* O: place solved coefficients into this */
 	 *      y'yy  =  Gyy  + Hxyy + Iyyy  + Jxxyy + Kxyyy +  Lyyyy
 	 *
 	 */
-	matrix[0][0] = sum;
-	matrix[0][1] = sumx1;
-	matrix[0][2] = sumy1;
-	matrix[0][3] = sumx1sq;
+	matrix[0][0] = sumx0y0;
+	matrix[0][1] = sumx1y0;
+	matrix[0][2] = sumx0y1;
+	matrix[0][3] = sumx2y0;
 	matrix[0][4] = sumx1y1;
-	matrix[0][5] = sumy1sq;
+	matrix[0][5] = sumx0y2;
 
-	matrix[1][0] = sumx1;
-	matrix[1][1] = sumx1sq;
+	matrix[1][0] = sumx1y0;
+	matrix[1][1] = sumx2y0;
 	matrix[1][2] = sumx1y1;
-	matrix[1][3] = sumx1cu;
-	matrix[1][4] = sumx1sqy1;
-	matrix[1][5] = sumx1y1sq;
+	matrix[1][3] = sumx3y0;
+	matrix[1][4] = sumx2y1;
+	matrix[1][5] = sumx1y2;
 
-	matrix[2][0] = sumy1;
+	matrix[2][0] = sumx0y1;
 	matrix[2][1] = sumx1y1;
-	matrix[2][2] = sumy1sq;
-	matrix[2][3] = sumx1sqy1;
-	matrix[2][4] = sumx1y1sq;
-	matrix[2][5] = sumy1cu;
+	matrix[2][2] = sumx0y2;
+	matrix[2][3] = sumx2y1;
+	matrix[2][4] = sumx1y2;
+	matrix[2][5] = sumx0y3;
 
-	matrix[3][0] = sumx1sq;
-	matrix[3][1] = sumx1cu;
-	matrix[3][2] = sumx1sqy1;
-	matrix[3][3] = sumx1qu;
-	matrix[3][4] = sumx1cuy1;
-	matrix[3][5] = sumx1sqy1sq;
+	matrix[3][0] = sumx2y0;
+	matrix[3][1] = sumx3y0;
+	matrix[3][2] = sumx2y1;
+	matrix[3][3] = sumx4y0;
+	matrix[3][4] = sumx3y1;
+	matrix[3][5] = sumx2y2;
 
 	matrix[4][0] = sumx1y1;
-	matrix[4][1] = sumx1sqy1;
-	matrix[4][2] = sumx1y1sq;
-	matrix[4][3] = sumx1cuy1;
-	matrix[4][4] = sumx1sqy1sq;
-	matrix[4][5] = sumx1y1cu;
+	matrix[4][1] = sumx2y1;
+	matrix[4][2] = sumx1y2;
+	matrix[4][3] = sumx3y1;
+	matrix[4][4] = sumx2y2;
+	matrix[4][5] = sumx1y3;
 
-	matrix[5][0] = sumy1sq;
-	matrix[5][1] = sumx1y1sq;
-	matrix[5][2] = sumy1cu;
-	matrix[5][3] = sumx1sqy1sq;
-	matrix[5][4] = sumx1y1cu;
-	matrix[5][5] = sumy1qu;
+	matrix[5][0] = sumx0y2;
+	matrix[5][1] = sumx1y2;
+	matrix[5][2] = sumx0y3;
+	matrix[5][3] = sumx2y2;
+	matrix[5][4] = sumx1y3;
+	matrix[5][5] = sumx0y4;
 
-	vector[0] = sumy2;
-	vector[1] = sumy2x1;
-	vector[2] = sumy2y1;
-	vector[3] = sumy2x1sq;
-	vector[4] = sumy2x1y1;
-	vector[5] = sumy2y1sq;
+	vector[0] = sumypx0y0;
+	vector[1] = sumypx1y0;
+	vector[2] = sumypx0y1;
+	vector[3] = sumypx2y0;
+	vector[4] = sumypx1y1;
+	vector[5] = sumypx0y2;
 
 #ifdef DEBUG
 	printf("before calling solution routines for GHIJKL, here's matrix\n");
@@ -4923,18 +4983,18 @@ TRANS *trans /* O: place solved coefficients into this */
 	 * assign the coefficients we've just calculated to the output
 	 * TRANS structure.
 	 */
-	trans->a = solved_a;
-	trans->b = solved_b;
-	trans->c = solved_c;
-	trans->d = solved_d;
-	trans->e = solved_e;
-	trans->f = solved_f;
-	trans->g = solved_g;
-	trans->h = solved_h;
-	trans->i = solved_i;
-	trans->j = solved_j;
-	trans->k = solved_k;
-	trans->l = solved_l;
+	trans->x00 = solved_a;
+	trans->x10 = solved_b;
+	trans->x01 = solved_c;
+	trans->x20 = solved_d;
+	trans->x11 = solved_e;
+	trans->x02 = solved_f;
+	trans->y00 = solved_g;
+	trans->y10 = solved_h;
+	trans->y01 = solved_i;
+	trans->y20 = solved_j;
+	trans->y11 = solved_k;
+	trans->y02 = solved_l;
 
 	/*
 	 * free up memory we allocated for this function
@@ -4944,65 +5004,61 @@ TRANS *trans /* O: place solved coefficients into this */
 	return (SH_SUCCESS);
 }
 
+
 /************************************************************************
  *
  *
- * ROUTINE: calc_trans_cubic
+ * ROUTINE: calc_trans_cubic (modified to use 10 terms without radial symmetry)
  *
  * DESCRIPTION:
  * Given a set of "nbright" matched pairs of stars, which we can
  * extract from the "winner_index" and "star_array" arrays,
  * figure out a TRANS structure which takes coordinates of
  * objects in set A and transforms then into coords for set B.
- * In this case, a TRANS contains the sixteen coefficients in the equations
+ * In this case, a TRANS contains the twenty coefficients in the equations
  *
- *      x' =  A + Bx + Cy + Dxx + Exy + Fyy + Gx(xx+yy) + Hy(xx+yy)
- *      y' =  I + Jx + Ky + Lxx + Mxy + Nyy + Ox(xx+yy) + Py(xx+yy)
+ *      x' =  A + Bx + Cy + Dxx + Exy + Fyy + Gxxx + Hxxy + Ixyy + Jyyy
+ *      y' =  K + Lx + My + Nxx + Oxy + Pyy + Qxxx + Rxxy + Sxyy + Tyyy
  *
  * where (x,y) are coords in set A and (x',y') are corresponding
  * coords in set B.
  *
  *
  * What we do is to treat each of the two equations above
- * separately.  We can write down 8 equations relating quantities
- * in the two sets of points (there are more than 8 such equations,
+ * separately.  We can write down 10 equations relating quantities
+ * in the two sets of points (there are more than 10 such equations,
  * but we don't seek an exhaustive list).  For example,
  *
- *   x'    =  A    + Bx   + Cy    + Dxx   + Exy   +  Fyy   + GxR   + HyR
- *   x'x   =  Ax   + Bxx  + Cxy   + Dxxx  + Exxy  +  Fxyy  + GxxR  + HxyR
- *   x'y   =  Ay   + Bxy  + Cyy   + Dxxy  + Exyy  +  Fyyy  + GxyR  + HyyR
- *   x'xx  =  Axx  + Bxxx + Cxxy  + Dxxxx + Exxxy +  Fxxyy + GxxxR + HxxyR
- *   x'xy  =  Axy  + Bxxy + Cxyy  + Dxxxy + Exxyy +  Fxyyy + GxxyR + HxyyR
- *   x'yy  =  Ayy  + Bxyy + Cyyy  + Dxxyy + Exyyy +  Fyyyy + GxyyR + HyyyR
- *   x'xR  =  AxR  + BxxR + CxyR  + DxxxR + ExxyR +  FxyyR + GxxRR + HxyRR
- *   x'yR  =  AyR  + BxyR + CyyR  + DxxyR + ExyyR +  FyyyR + GxyRR + HyyRR
- *
- * (where we have used 'R' as an abbreviation for (xx + yy))
+ *   x'       =  A    + Bx    + Cy    + Dxx    + Exy    + Fyy    + Gxxx    + Hxxy    + Ixyy    + Jyyy   
+ *   x'x      =  Ax   + Bxx   + Cyx   + Dxxx   + Exyx   + Fyyx   + Gxxxx   + Hxxyx   + Ixyyx   + Jyyyx  
+ *   x'y      =  Ay   + Bxy   + Cyy   + Dxxy   + Exyy   + Fyyy   + Gxxxy   + Hxxyy   + Ixyyy   + Jyyyy  
+ *   x'xx     =  Axx  + Bxxx  + Cyxx  + Dxxxx  + Exyxx  + Fyyxx  + Gxxxxx  + Hxxyxx  + Ixyyxx  + Jyyyxx 
+ *   x'xy     =  Axy  + Bxxy  + Cyxy  + Dxxxy  + Exyxy  + Fyyxy  + Gxxxxy  + Hxxyxy  + Ixyyxy  + Jyyyxy 
+ *   x'yy     =  Ayy  + Bxyy  + Cyyy  + Dxxyy  + Exyyy  + Fyyyy  + Gxxxyy  + Hxxyyy  + Ixyyyy  + Jyyyyy 
+ *   x'xxx    =  Axxx + Bxxxx + Cyxxx + Dxxxxx + Exyxxx + Fyyxxx + Gxxxxxx + Hxxyxxx + Ixyyxxx + Jyyyxxx
+ *   x'xxy    =  Axxy + Bxxxy + Cyxxy + Dxxxxy + Exyxxy + Fyyxxy + Gxxxxxy + Hxxyxxy + Ixyyxxy + Jyyyxxy
+ *   x'xyy    =  Axyy + Bxxyy + Cyxyy + Dxxxyy + Exyxyy + Fyyxyy + Gxxxxyy + Hxxyxyy + Ixyyxyy + Jyyyxyy
+ *   x'yyy    =  Ayyy + Bxyyy + Cyyyy + Dxxyyy + Exyyyy + Fyyyyy + Gxxxyyy + Hxxyyyy + Ixyyyyy + Jyyyyyy
+ * 
  *
  * Now, since we have "nbright" matched pairs, we can take each of
- * the above 8 equations and form the sums on both sides, over
+ * the above 10 equations and form the sums on both sides, over
  * all "nbright" points.  So, if S(x) represents the sum of the quantity
  * "x" over all nbright points, and if we let N=nbright, then
  *
- *  S(x')   =  AN     + BS(x)   + CS(y)   + DS(xx)   + ES(xy)   +  FS(yy)
- *                                                + GS(xR)   +  HS(yR)
- *  S(x'x)  =  AS(x)  + BS(xx)  + CS(xy)  + DS(xxx)  + ES(xxy)  +  FS(xyy)
- *                                                + GS(xxR)  +  HS(xyR)
- *  S(x'y)  =  AS(y)  + BS(xy)  + CS(yy)  + DS(xxy)  + ES(xyy)  +  FS(yyy)
- *                                                + GS(xyR)  +  HS(yyR)
- *  S(x'xx) =  AS(xx) + BS(xxx) + CS(xxy) + DS(xxxx) + ES(xxxy) +  FS(xxyy)
- *                                                + GS(xxxR) +  HS(xxyR)
- *  S(x'xy) =  AS(xy) + BS(xxy) + CS(xyy) + DS(xxxy) + ES(xxyy) +  FS(xyyy)
- *                                                + GS(xxyR) +  HS(xyyR)
- *  S(x'yy) =  AS(yy) + BS(xyy) + CS(yyy) + DS(xxyy) + ES(xyyy) +  FS(yyyy)
- *                                                + GS(xyyR) +  HS(yyyR)
- *  S(x'xR) =  AS(xR) + BS(xxR) + CS(xyR) + DS(xxxR) + ES(xxyR) +  FS(xyyR)
- *                                                + GS(xxRR) +  HS(xyRR)
- *  S(x'yR) =  AS(yR) + BS(xyR) + CS(yyR) + DS(xxyR) + ES(xyyR) +  FS(yyyR)
- *                                                + GS(xyRR) +  HS(yyRR)
+ *   S(x'   ) =  AN      + BS(x   ) + CS(y   ) + DS(xx   ) + ES(xy   ) + FS(yy   ) + GS(xxx   ) + HS(xxy   ) + IS(xyy   ) + JS(yyy   )
+ *   S(x'x  ) =  AS(x  ) + BS(xx  ) + CS(yx  ) + DS(xxx  ) + ES(xyx  ) + FS(yyx  ) + GS(xxxx  ) + HS(xxyx  ) + IS(xyyx  ) + JS(yyyx  )
+ *   S(x'y  ) =  AS(y  ) + BS(xy  ) + CS(yy  ) + DS(xxy  ) + ES(xyy  ) + FS(yyy  ) + GS(xxxy  ) + HS(xxyy  ) + IS(xyyy  ) + JS(yyyy  )
+ *   S(x'xx ) =  AS(xx ) + BS(xxx ) + CS(yxx ) + DS(xxxx ) + ES(xyxx ) + FS(yyxx ) + GS(xxxxx ) + HS(xxyxx ) + IS(xyyxx ) + JS(yyyxx )
+ *   S(x'xy ) =  AS(xy ) + BS(xxy ) + CS(yxy ) + DS(xxxy ) + ES(xyxy ) + FS(yyxy ) + GS(xxxxy ) + HS(xxyxy ) + IS(xyyxy ) + JS(yyyxy )
+ *   S(x'yy ) =  AS(yy ) + BS(xyy ) + CS(yyy ) + DS(xxyy ) + ES(xyyy ) + FS(yyyy ) + GS(xxxyy ) + HS(xxyyy ) + IS(xyyyy ) + JS(yyyyy )
+ *   S(x'xxx) =  AS(xxx) + BS(xxxx) + CS(yxxx) + DS(xxxxx) + ES(xyxxx) + FS(yyxxx) + GS(xxxxxx) + HS(xxyxxx) + IS(xyyxxx) + JS(yyyxxx)
+ *   S(x'xxy) =  AS(xxy) + BS(xxxy) + CS(yxxy) + DS(xxxxy) + ES(xyxxy) + FS(yyxxy) + GS(xxxxxy) + HS(xxyxxy) + IS(xyyxxy) + JS(yyyxxy)
+ *   S(x'xyy) =  AS(xyy) + BS(xxyy) + CS(yxyy) + DS(xxxyy) + ES(xyxyy) + FS(yyxyy) + GS(xxxxyy) + HS(xxyxyy) + IS(xyyxyy) + JS(yyyxyy)
+ *   S(x'yyy) =  AS(yyy) + BS(xyyy) + CS(yyyy) + DS(xxyyy) + ES(xyyyy) + FS(yyyyy) + GS(xxxyyy) + HS(xxyyyy) + IS(xyyyyy) + JS(yyyyyy)
  *
- * At this point, we have a set of 8 equations, and 8 unknowns:
- *        A, B, C, D, E, F, G, H
+ * At this point, we have a set of 10 equations, and 10 unknowns:
+ *        A, B, C, D, E, F, G, H, I, J
  *
  * We can write this set of equations as a matrix equation
  *
@@ -5010,24 +5066,26 @@ TRANS *trans /* O: place solved coefficients into this */
  *
  * where we KNOW the quantities
  *
- *  b = ( S(x'), S(x'x), S(x'y), S(x'xx), S(x'xy), S(x'yy), S(x'xR), S(x'rR) )
+ *  b = ( S(x'), S(x'x), S(x'y), S(x'xx), S(x'xy), S(x'yy), S(x'xxx), S(x'xxy), S(x'xyy), S(x'yyy) )
  *
- * matr M = [ N      S(x)    S(y)   S(xx)   S(xy)   S(yy)   S(xR)   S(yR)   ]
- *          [ S(x)   S(xx)   S(xy)  S(xxx)  S(xxy)  S(xyy)  S(xxR)  S(xyR)  ]
- *          [ S(y)   S(xy)   S(yy)  S(xxy)  S(xyy)  S(yyy)  S(xyR)  S(yyR)  ]
- *          [ S(xx)  S(xxx)  S(xxy) S(xxxx) S(xxxy) S(xxyy) S(xxxR) S(xxyR) ]
- *          [ S(xy)  S(xxy)  S(xyy) S(xxxy) S(xxyy) S(xyyy) S(xxyR) S(xyyR) ]
- *          [ S(yy)  S(xyy)  S(yyy) S(xxyy) S(xyyy) S(yyyy) S(xyyR) S(yyyR) ]
- *          [ S(xR)  S(xxR)  S(xyR) S(xxxR) S(xxyR) S(xyyR) S(xxRR) S(xyRR) ]
- *          [ S(yR)  S(xyR)  S(yyR) S(xxyR) S(xyyR) S(yyyR) S(xyRR) S(yyRR) ]
+ * matr M = [ N      S(x   ) S(y   ) S(xx   ) S(xy   ) S(yy   ) S(xxx   ) S(xxy   ) S(xyy   ) S(yyy   ) ]
+ *          [ S(x  ) S(xx  ) S(yx  ) S(xxx  ) S(xyx  ) S(yyx  ) S(xxxx  ) S(xxyx  ) S(xyyx  ) S(yyyx  ) ]
+ *          [ S(y  ) S(xy  ) S(yy  ) S(xxy  ) S(xyy  ) S(yyy  ) S(xxxy  ) S(xxyy  ) S(xyyy  ) S(yyyy  ) ]
+ *          [ S(xx ) S(xxx ) S(yxx ) S(xxxx ) S(xyxx ) S(yyxx ) S(xxxxx ) S(xxyxx ) S(xyyxx ) S(yyyxx ) ]
+ *          [ S(xy ) S(xxy ) S(yxy ) S(xxxy ) S(xyxy ) S(yyxy ) S(xxxxy ) S(xxyxy ) S(xyyxy ) S(yyyxy ) ]
+ *          [ S(yy ) S(xyy ) S(yyy ) S(xxyy ) S(xyyy ) S(yyyy ) S(xxxyy ) S(xxyyy ) S(xyyyy ) S(yyyyy ) ]
+ *          [ S(xxx) S(xxxx) S(yxxx) S(xxxxx) S(xyxxx) S(yyxxx) S(xxxxxx) S(xxyxxx) S(xyyxxx) S(yyyxxx) ]
+ *          [ S(xxy) S(xxxy) S(yxxy) S(xxxxy) S(xyxxy) S(yyxxy) S(xxxxxy) S(xxyxxy) S(xyyxxy) S(yyyxxy) ]
+ *          [ S(xyy) S(xxyy) S(yxyy) S(xxxyy) S(xyxyy) S(yyxyy) S(xxxxyy) S(xxyxyy) S(xyyxyy) S(yyyxyy) ]
+ *          [ S(yyy) S(xyyy) S(yyyy) S(xxyyy) S(xyyyy) S(yyyyy) S(xxxyyy) S(xxyyyy) S(xyyyyy) S(yyyyyy) ]
  *
  * and we want to FIND the unknown
  *
- *        vector v = ( A,     B,      C,     D,      E,      F,     G,     H )
+ *        vector v = ( A, B, C, D, E, F, G, H, I, J )
  *
  * So, how to solve this matrix equation?  We use a Gaussian-elimination
  * method (see notes in 'gauss_matrix' function).   We solve
- * for A, B, C, D, E, F, G, H (and equivalently for I, J, K, L, M, N, O, P),
+ * for A, B, C, D, E, F, G, H, I, J (and equivalently for K, L, M, N, O, P, Q, R, S, T),
  * then fill in the fields
  * of the given TRANS structure argument.
  *
@@ -5065,39 +5123,29 @@ TRANS *trans /* O: place solved coefficients into this */
 ) {
 	int i;
 	double **matrix;
-	double vector[8];
-	double solved_a, solved_b, solved_c, solved_d, solved_e, solved_f;
-	double solved_g, solved_h;
-	double solved_i, solved_j, solved_k, solved_l, solved_m, solved_n;
-	double solved_o, solved_p;
+	double vector[10];
+	double solved_a, solved_b, solved_c, solved_d, solved_e, solved_f, solved_g, solved_h, solved_i, solved_j;
+	double solved_k, solved_l, solved_m, solved_n, solved_o, solved_p, solved_q, solved_r, solved_s, solved_t;
 	s_star *s1, *s2;
 
-	/*
-	 * the variable 'R' will hold the value (x1*x1 + y1*y1);
-	 *   in other words, the square of the distance of (x1, y1)
-	 *   from the origin.
-	 */
-	double R;
 	/*
 	 * in variable names below, a '1' refers to coordinate of star s1
 	 *   (which appear on both sides of the matrix equation)
 	 *                      and a '2' refers to coordinate of star s2
 	 *   (which appears only on left hand side of matrix equation)    o
 	 */
-	double sumx2, sumx2x1, sumx2y1, sumx2x1sq, sumx2x1y1, sumx2y1sq;
-	double sumx2x1R, sumx2y1R;
-	double sumy2, sumy2x1, sumy2y1, sumy2x1sq, sumy2x1y1, sumy2y1sq;
-	double sumy2x1R, sumy2y1R;
+	double sumxpx0y0, sumxpx1y0, sumxpx0y1, sumxpx2y0, sumxpx1y1, sumxpx0y2;
+	double sumxpx3y0, sumxpx2y1, sumxpx1y2, sumxpx0y3;
+	double sumypx0y0, sumypx1y0, sumypx0y1, sumypx2y0, sumypx1y1, sumypx0y2;
+	double sumypx3y0, sumypx2y1, sumypx1y2, sumypx0y3;
 
-	double sum, sumx1, sumy1, sumx1sq, sumx1y1, sumy1sq;
-	double sumx1cu, sumx1sqy1, sumx1y1sq;
-	double sumy1cu;
-	double sumx1R, sumy1R, sumx1sqR, sumx1y1R, sumy1sqR;
-	double sumx1cuR, sumx1sqy1R, sumx1y1sqR, sumy1cuR;
-	double sumx1qu, sumx1cuy1, sumx1sqy1sq;
-	double sumx1y1cu;
-	double sumy1qu;
-	double sumx1sqRsq, sumx1y1Rsq, sumy1sqRsq;
+	double sumx0y0;
+	double sumx1y0, sumx0y1;
+	double sumx2y0, sumx1y1, sumx0y2;
+	double sumx3y0, sumx2y1, sumx1y2, sumx0y3;
+	double sumx4y0, sumx3y1, sumx2y2, sumx1y3, sumx0y4;
+	double sumx5y0, sumx4y1, sumx3y2, sumx2y3, sumx1y4, sumx0y5;
+	double sumx6y0, sumx5y1, sumx4y2, sumx3y3, sumx2y4, sumx1y5, sumx0y6;
 
 	g_assert(nbright >= AT_MATCH_REQUIRE_CUBIC);
 	g_assert(trans->order == AT_TRANS_CUBIC);
@@ -5105,57 +5153,70 @@ TRANS *trans /* O: place solved coefficients into this */
 	/*
 	 * allocate a matrix we'll need for this function
 	 */
-	matrix = alloc_matrix(8);
+	matrix = alloc_matrix(10);
 
 	/*
-	 * first, we consider the coefficients A, B, C, D, E, F, G, H in the trans.
+	 * first, we consider the coefficients A, B, C, D, E, F, G, H, I, J in the trans.
 	 * we form the sums that make up the elements of matrix M
 	 */
 
-	sum = 0.0;
-	sumx1 = 0.0;
-	sumy1 = 0.0;
-	sumx1sq = 0.0;
-	sumx1y1 = 0.0;
-	sumy1sq = 0.0;
-	sumx1cu = 0.0;
-	sumx1sqy1 = 0.0;
-	sumx1y1sq = 0.0;
-	sumy1cu = 0.0;
-	sumx1qu = 0.0;
-	sumx1cuy1 = 0.0;
-	sumx1sqy1sq = 0.0;
-	sumx1y1cu = 0.0;
-	sumy1qu = 0.0;
-	sumx1R = 0.0;
-	sumy1R = 0.0;
-	sumx1sqR = 0.0;
-	sumx1y1R = 0.0;
-	sumy1sqR = 0.0;
-	sumx1cuR = 0.0;
-	sumx1sqy1R = 0.0;
-	sumx1y1sqR = 0.0;
-	sumy1cuR = 0.0;
-	sumx1sqRsq = 0.0;
-	sumx1y1Rsq = 0.0;
-	sumy1sqRsq = 0.0;
+	sumx0y0 = 0.0;
 
-	sumx2 = 0.0;
-	sumx2x1 = 0.0;
+	sumx1y0 = 0.0;
+	sumx0y1 = 0.0;
+
+	sumx2y0 = 0.0;
+	sumx1y1 = 0.0;
+	sumx0y2 = 0.0;
+
+	sumx3y0 = 0.0;
 	sumx2y1 = 0.0;
-	sumx2x1sq = 0.0;
-	sumx2x1y1 = 0.0;
-	sumx2y1sq = 0.0;
-	sumx2x1R = 0.0;
-	sumx2y1R = 0.0;
-	sumy2 = 0.0;
-	sumy2x1 = 0.0;
-	sumy2y1 = 0.0;
-	sumy2x1sq = 0.0;
-	sumy2x1y1 = 0.0;
-	sumy2y1sq = 0.0;
-	sumy2x1R = 0.0;
-	sumy2y1R = 0.0;
+	sumx1y2 = 0.0;
+	sumx0y3 = 0.0;
+
+	sumx4y0 = 0.0;
+	sumx3y1 = 0.0;
+	sumx2y2 = 0.0;
+	sumx1y3 = 0.0;
+	sumx0y4 = 0.0;
+
+	sumx5y0 = 0.0;
+	sumx4y1 = 0.0;
+	sumx3y2 = 0.0;
+	sumx2y3 = 0.0;
+	sumx1y4 = 0.0;
+	sumx0y5 = 0.0;
+
+	sumx6y0 = 0.0;
+	sumx5y1 = 0.0;
+	sumx4y2 = 0.0;
+	sumx3y3 = 0.0;
+	sumx2y4 = 0.0;
+	sumx1y5 = 0.0;
+	sumx0y6 = 0.0;
+
+	sumxpx0y0 = 0.0;
+	sumxpx1y0 = 0.0;
+	sumxpx0y1 = 0.0;
+	sumxpx2y0 = 0.0;
+	sumxpx1y1 = 0.0;
+	sumxpx0y2 = 0.0;
+	sumxpx3y0 = 0.0;
+	sumxpx2y1 = 0.0;
+	sumxpx1y2 = 0.0;
+	sumxpx0y3 = 0.0;
+
+	sumypx0y0 = 0.0;
+	sumypx1y0 = 0.0;
+	sumypx0y1 = 0.0;
+	sumypx2y0 = 0.0;
+	sumypx1y1 = 0.0;
+	sumypx0y2 = 0.0;
+	sumypx3y0 = 0.0;
+	sumypx2y1 = 0.0;
+	sumypx1y2 = 0.0;
+	sumypx0y3 = 0.0;
+
 
 	for (i = 0; i < nbright; i++) {
 
@@ -5165,167 +5226,183 @@ TRANS *trans /* O: place solved coefficients into this */
 		g_assert(winner_index_B[i] < num_stars_B);
 		s2 = &(star_array_B[winner_index_B[i]]);
 
-		/* elements of the vectors */
-		R = (s1->x * s1->x + s1->y * s1->y);
+		sumxpx0y0 += s2->x;
+		sumxpx1y0 += s2->x * s1->x;
+		sumxpx0y1 += s2->x * s1->y;
+		sumxpx2y0 += s2->x * s1->x * s1->x;
+		sumxpx1y1 += s2->x * s1->x * s1->y;
+		sumxpx0y2 += s2->x * s1->y * s1->y;
+		sumxpx3y0 += s2->x * s1->x * s1->x * s1->x;
+		sumxpx2y1 += s2->x * s1->x * s1->x * s1->y;
+		sumxpx1y2 += s2->x * s1->x * s1->y * s1->y;
+		sumxpx0y3 += s2->x * s1->y * s1->y * s1->y;
 
-		sumx2 += s2->x;
-		sumx2x1 += s2->x * s1->x;
-		sumx2y1 += s2->x * s1->y;
-		sumx2x1sq += s2->x * s1->x * s1->x;
-		sumx2x1y1 += s2->x * s1->x * s1->y;
-		sumx2y1sq += s2->x * s1->y * s1->y;
-		sumx2x1R += s2->x * s1->x * R;
-		sumx2y1R += s2->x * s1->y * R;
+		sumypx0y0 += s2->y;
+		sumypx1y0 += s2->y * s1->x;
+		sumypx0y1 += s2->y * s1->y;
+		sumypx2y0 += s2->y * s1->x * s1->x;
+		sumypx1y1 += s2->y * s1->x * s1->y;
+		sumypx0y2 += s2->y * s1->y * s1->y;
+		sumypx3y0 += s2->y * s1->x * s1->x * s1->x;
+		sumypx2y1 += s2->y * s1->x * s1->x * s1->y;
+		sumypx1y2 += s2->y * s1->x * s1->y * s1->y;
+		sumypx0y3 += s2->y * s1->y * s1->y * s1->y;
 
-		sumy2 += s2->y;
-		sumy2x1 += s2->y * s1->x;
-		sumy2y1 += s2->y * s1->y;
-		sumy2x1sq += s2->y * s1->x * s1->x;
-		sumy2x1y1 += s2->y * s1->x * s1->y;
-		sumy2y1sq += s2->y * s1->y * s1->y;
-		sumy2x1R += s2->y * s1->x * R;
-		sumy2y1R += s2->y * s1->y * R;
 
 		/* elements of the matrix */
-		sum += 1.0;
-		sumx1 += s1->x;
-		sumy1 += s1->y;
+		sumx0y0 += 1.0;
+		sumx1y0 += s1->x;
+		sumx0y1 += s1->y;
 
-		sumx1sq += s1->x * s1->x;
+		sumx2y0 += s1->x * s1->x;
 		sumx1y1 += s1->x * s1->y;
-		sumy1sq += s1->y * s1->y;
+		sumx0y2 += s1->y * s1->y;
 
-		sumx1cu += s1->x * s1->x * s1->x;
-		sumx1sqy1 += s1->x * s1->x * s1->y;
-		sumx1y1sq += s1->x * s1->y * s1->y;
-		sumy1cu += s1->y * s1->y * s1->y;
+		sumx3y0 += s1->x * s1->x * s1->x;
+		sumx2y1 += s1->x * s1->x * s1->y;
+		sumx1y2 += s1->x * s1->y * s1->y;
+		sumx0y3 += s1->y * s1->y * s1->y;
 
-		sumx1qu += s1->x * s1->x * s1->x * s1->x;
-		sumx1cuy1 += s1->x * s1->x * s1->x * s1->y;
-		sumx1sqy1sq += s1->x * s1->x * s1->y * s1->y;
-		sumx1y1cu += s1->x * s1->y * s1->y * s1->y;
-		sumy1qu += s1->y * s1->y * s1->y * s1->y;
+		sumx4y0 += s1->x * s1->x * s1->x * s1->x;
+		sumx3y1 += s1->x * s1->x * s1->x * s1->y;
+		sumx2y2 += s1->x * s1->x * s1->y * s1->y;
+		sumx1y3 += s1->x * s1->y * s1->y * s1->y;
+		sumx0y4 += s1->y * s1->y * s1->y * s1->y;
 
-		sumx1R += s1->x * R;
-		sumy1R += s1->y * R;
-		sumx1sqR += s1->x * s1->x * R;
-		sumx1y1R += s1->x * s1->y * R;
-		sumy1sqR += s1->y * s1->y * R;
+		sumx5y0 += s1->x * s1->x * s1->x * s1->x * s1->x;
+		sumx4y1 += s1->x * s1->x * s1->x * s1->x * s1->y;
+		sumx3y2 += s1->x * s1->x * s1->x * s1->y * s1->y;
+		sumx2y3 += s1->x * s1->x * s1->y * s1->y * s1->y;
+		sumx1y4 += s1->x * s1->y * s1->y * s1->y * s1->y;
+		sumx0y5 += s1->y * s1->y * s1->y * s1->y * s1->y;
 
-		sumx1cuR += s1->x * s1->x * s1->x * R;
-		sumx1sqy1R += s1->x * s1->x * s1->y * R;
-		sumx1y1sqR += s1->x * s1->y * s1->y * R;
-		sumy1cuR += s1->y * s1->y * s1->y * R;
-
-		sumx1sqRsq += s1->x * s1->x * R * R;
-		sumx1y1Rsq += s1->x * s1->y * R * R;
-		sumy1sqRsq += s1->y * s1->y * R * R;
-
+		sumx6y0 += s1->x * s1->x * s1->x * s1->x * s1->x * s1->x;
+		sumx5y1 += s1->x * s1->x * s1->x * s1->x * s1->x * s1->y;
+		sumx4y2 += s1->x * s1->x * s1->x * s1->x * s1->y * s1->y;
+		sumx3y3 += s1->x * s1->x * s1->x * s1->y * s1->y * s1->y;
+		sumx2y4 += s1->x * s1->x * s1->y * s1->y * s1->y * s1->y;
+		sumx1y5 += s1->x * s1->y * s1->y * s1->y * s1->y * s1->y;
+		sumx0y6 += s1->y * s1->y * s1->y * s1->y * s1->y * s1->y;
 	}
 
 	/*
 	 * now turn these sums into a matrix and a vector
 	 */
-	matrix[0][0] = sum;
-	matrix[0][1] = sumx1;
-	matrix[0][2] = sumy1;
-	matrix[0][3] = sumx1sq;
-	matrix[0][4] = sumx1y1;
-	matrix[0][5] = sumy1sq;
-	matrix[0][6] = sumx1R;
-	matrix[0][7] = sumy1R;
 
-	matrix[1][0] = sumx1;
-	matrix[1][1] = sumx1sq;
-	matrix[1][2] = sumx1y1;
-	matrix[1][3] = sumx1cu;
-	matrix[1][4] = sumx1sqy1;
-	matrix[1][5] = sumx1y1sq;
-	matrix[1][6] = sumx1sqR;
-	matrix[1][7] = sumx1y1R;
+	// For the matrix, we fill the lower triangle and then transpose for the upper one
 
-	matrix[2][0] = sumy1;
-	matrix[2][1] = sumx1y1;
-	matrix[2][2] = sumy1sq;
-	matrix[2][3] = sumx1sqy1;
-	matrix[2][4] = sumx1y1sq;
-	matrix[2][5] = sumy1cu;
-	matrix[2][6] = sumx1y1R;
-	matrix[2][7] = sumy1sqR;
-
-	matrix[3][0] = sumx1sq;
-	matrix[3][1] = sumx1cu;
-	matrix[3][2] = sumx1sqy1;
-	matrix[3][3] = sumx1qu;
-	matrix[3][4] = sumx1cuy1;
-	matrix[3][5] = sumx1sqy1sq;
-	matrix[3][6] = sumx1cuR;
-	matrix[3][7] = sumx1sqy1R;
-
+	//rows 0-9 - column 0
+	matrix[0][0] = sumx0y0;
+	matrix[1][0] = sumx1y0;
+	matrix[2][0] = sumx0y1;
+	matrix[3][0] = sumx2y0;
 	matrix[4][0] = sumx1y1;
-	matrix[4][1] = sumx1sqy1;
-	matrix[4][2] = sumx1y1sq;
-	matrix[4][3] = sumx1cuy1;
-	matrix[4][4] = sumx1sqy1sq;
-	matrix[4][5] = sumx1y1cu;
-	matrix[4][6] = sumx1sqy1R;
-	matrix[4][7] = sumx1y1sqR;
+	matrix[5][0] = sumx0y2;
+	matrix[6][0] = sumx3y0;
+	matrix[7][0] = sumx2y1;
+	matrix[8][0] = sumx1y2;
+	matrix[9][0] = sumx0y3;
 
-	matrix[5][0] = sumy1sq;
-	matrix[5][1] = sumx1y1sq;
-	matrix[5][2] = sumy1cu;
-	matrix[5][3] = sumx1sqy1sq;
-	matrix[5][4] = sumx1y1cu;
-	matrix[5][5] = sumy1qu;
-	matrix[5][6] = sumx1y1sqR;
-	matrix[5][7] = sumy1cuR;
+	//rows 1-9 - column 1
+	matrix[1][1] = sumx2y0;
+	matrix[2][1] = sumx1y1;
+	matrix[3][1] = sumx3y0;
+	matrix[4][1] = sumx2y1;
+	matrix[5][1] = sumx1y2;
+	matrix[6][1] = sumx4y0;
+	matrix[7][1] = sumx3y1;
+	matrix[8][1] = sumx2y2;
+	matrix[9][1] = sumx1y3;
 
-	matrix[6][0] = sumx1R;
-	matrix[6][1] = sumx1sqR;
-	matrix[6][2] = sumx1y1R;
-	matrix[6][3] = sumx1cuR;
-	matrix[6][4] = sumx1sqy1R;
-	matrix[6][5] = sumx1y1sqR;
-	matrix[6][6] = sumx1sqRsq;
-	matrix[6][7] = sumx1y1Rsq;
+	//rows 2-9 - column 2
+	matrix[2][2] = sumx0y2;
+	matrix[3][2] = sumx2y1;
+	matrix[4][2] = sumx1y2;
+	matrix[5][2] = sumx0y3;
+	matrix[6][2] = sumx3y1;
+	matrix[7][2] = sumx2y2;
+	matrix[8][2] = sumx1y3;
+	matrix[9][2] = sumx0y4;
 
-	matrix[7][0] = sumy1R;
-	matrix[7][1] = sumx1y1R;
-	matrix[7][2] = sumy1sqR;
-	matrix[7][3] = sumx1sqy1R;
-	matrix[7][4] = sumx1y1sqR;
-	matrix[7][5] = sumy1cuR;
-	matrix[7][6] = sumx1y1Rsq;
-	matrix[7][7] = sumy1sqRsq;
+	//rows 3-9 - column 3
+	matrix[3][3] = sumx4y0;
+	matrix[4][3] = sumx3y1;
+	matrix[5][3] = sumx2y2;
+	matrix[6][3] = sumx5y0;
+	matrix[7][3] = sumx4y1;
+	matrix[8][3] = sumx3y2;
+	matrix[9][3] = sumx2y3;
 
-	vector[0] = sumx2;
-	vector[1] = sumx2x1;
-	vector[2] = sumx2y1;
-	vector[3] = sumx2x1sq;
-	vector[4] = sumx2x1y1;
-	vector[5] = sumx2y1sq;
-	vector[6] = sumx2x1R;
-	vector[7] = sumx2y1R;
+	//rows 4-9 - column 4
+	matrix[4][4] = sumx2y2;
+	matrix[5][4] = sumx1y3;
+	matrix[6][4] = sumx4y1;
+	matrix[7][4] = sumx3y2;
+	matrix[8][4] = sumx2y3;
+	matrix[9][4] = sumx1y4;
+
+	//rows 5-9 - column 5
+	matrix[5][5] = sumx0y4;
+	matrix[6][5] = sumx3y2;
+	matrix[7][5] = sumx2y3;
+	matrix[8][5] = sumx1y4;
+	matrix[9][5] = sumx0y5;
+
+	//rows 6-9 - column 6
+	matrix[6][6] = sumx6y0;
+	matrix[7][6] = sumx5y1;
+	matrix[8][6] = sumx4y2;
+	matrix[9][6] = sumx3y3;
+
+	//rows 7-9 - column 7
+	matrix[7][7] = sumx4y2;
+	matrix[8][7] = sumx3y3;
+	matrix[9][7] = sumx2y4;
+
+	//rows 8-9 - column 8
+	matrix[8][8] = sumx2y4;
+	matrix[9][8] = sumx1y5;
+
+	//rows 9 - column 9
+	matrix[9][9] = sumx0y6;
+
+	// and we transpose
+	for (int r = 0; r < 9; r++) {
+		for (int c = r + 1; c < 10; c++) {
+			matrix[r][c] = matrix[c][r];
+		}
+	}
+
+	vector[0] = sumxpx0y0;
+	vector[1] = sumxpx1y0;
+	vector[2] = sumxpx0y1;
+	vector[3] = sumxpx2y0;
+	vector[4] = sumxpx1y1;
+	vector[5] = sumxpx0y2;
+	vector[6] = sumxpx3y0;
+	vector[7] = sumxpx2y1;
+	vector[8] = sumxpx1y2;
+	vector[9] = sumxpx0y3;
 
 #ifdef DEBUG
-	printf("before calling solution routines for ABCDEFGH, here's matrix\n");
-	print_matrix(matrix, 8);
+	printf("before calling solution routines for ABCDEFGHIJ, here's matrix\n");
+	print_matrix(matrix, 10);
 #endif
 
 	/*
 	 * and now call the Gaussian-elimination routines to solve the matrix.
-	 * The solution for TRANS coefficients A, B, C, D, E, F will be placed
+	 * The solution for TRANS coefficients A, B, C, D, E, F, I, J will be placed
 	 * into the elements on "vector" after "gauss_matrix" finishes.
 	 */
-	if (gauss_matrix(matrix, 8, vector) != SH_SUCCESS) {
-		shError("calc_trans_cubic: can't solve for coeffs A,B,C,D,E,F,G,H ");
-		free_matrix(matrix, 8);
+	if (gauss_matrix(matrix, 10, vector) != SH_SUCCESS) {
+		shError("calc_trans_cubic: can't solve for coeffs A,B,C,D,E,F,G,H,I,J");
+		free_matrix(matrix, 10);
 		return (SH_GENERIC_ERROR);
 	}
 
 #ifdef DEBUG
-	printf("after  calling solution routines, here's matrix\n");
-	print_matrix(matrix, 8);
+	printf("after calling solution routines, here's matrix\n");
+	print_matrix(matrix, 10);
 #endif
 
 	solved_a = vector[0];
@@ -5336,157 +5413,1618 @@ TRANS *trans /* O: place solved coefficients into this */
 	solved_f = vector[5];
 	solved_g = vector[6];
 	solved_h = vector[7];
+	solved_i = vector[8];
+	solved_j = vector[9];
 
 	/*
-	 * Okay, now we solve for TRANS coefficients I, J, K, L, M, N, O, P
+	 * Okay, now we solve for TRANS coefficients K, L, M, N, O, P, Q, R, S, T
 	 * using the * set of equations that relates y' to (x,y)
-	 *
-	 *  y'    =  I    + Jx   + Ky    + Lxx   + Mxy   +  Nyy   + OxR   + PyR
-	 *  y'x   =  Ix   + Jxx  + Kxy   + Lxxx  + Mxxy  +  Nxyy  + OxxR  + PxyR
-	 *  y'y   =  Iy   + Jxy  + Kyy   + Lxxy  + Mxyy  +  Nyyy  + OxyR  + PyyR
-	 *  y'xx  =  Ixx  + Jxxx + Kxxy  + Lxxxx + Mxxxy +  Nxxyy + OxxxR + PxxyR
-	 *  y'xy  =  Ixy  + Jxxy + Kxyy  + Lxxxy + Mxxyy +  Nxyyy + OxxyR + PxyyR
-	 *  y'yy  =  Iyy  + Jxyy + Kyyy  + Lxxyy + Mxyyy +  Nyyyy + OxyyR + PyyyR
-	 *  y'xR  =  IxR  + JxxR + KxyR  + LxxxR + MxxyR +  NxyyR + OxxRR + PxyRR
-	 *  y'yR  =  IyR  + JxyR + KyyR  + LxxyR + MxyyR +  NyyyR + OxyRR + PyyRR
-	 *
 	 */
-	matrix[0][0] = sum;
-	matrix[0][1] = sumx1;
-	matrix[0][2] = sumy1;
-	matrix[0][3] = sumx1sq;
-	matrix[0][4] = sumx1y1;
-	matrix[0][5] = sumy1sq;
-	matrix[0][6] = sumx1R;
-	matrix[0][7] = sumy1R;
 
-	matrix[1][0] = sumx1;
-	matrix[1][1] = sumx1sq;
-	matrix[1][2] = sumx1y1;
-	matrix[1][3] = sumx1cu;
-	matrix[1][4] = sumx1sqy1;
-	matrix[1][5] = sumx1y1sq;
-	matrix[1][6] = sumx1sqR;
-	matrix[1][7] = sumx1y1R;
-
-	matrix[2][0] = sumy1;
-	matrix[2][1] = sumx1y1;
-	matrix[2][2] = sumy1sq;
-	matrix[2][3] = sumx1sqy1;
-	matrix[2][4] = sumx1y1sq;
-	matrix[2][5] = sumy1cu;
-	matrix[2][6] = sumx1y1R;
-	matrix[2][7] = sumy1sqR;
-
-	matrix[3][0] = sumx1sq;
-	matrix[3][1] = sumx1cu;
-	matrix[3][2] = sumx1sqy1;
-	matrix[3][3] = sumx1qu;
-	matrix[3][4] = sumx1cuy1;
-	matrix[3][5] = sumx1sqy1sq;
-	matrix[3][6] = sumx1cuR;
-	matrix[3][7] = sumx1sqy1R;
-
+	//rows 0-9 - column 0
+	matrix[0][0] = sumx0y0;
+	matrix[1][0] = sumx1y0;
+	matrix[2][0] = sumx0y1;
+	matrix[3][0] = sumx2y0;
 	matrix[4][0] = sumx1y1;
-	matrix[4][1] = sumx1sqy1;
-	matrix[4][2] = sumx1y1sq;
-	matrix[4][3] = sumx1cuy1;
-	matrix[4][4] = sumx1sqy1sq;
-	matrix[4][5] = sumx1y1cu;
-	matrix[4][6] = sumx1sqy1R;
-	matrix[4][7] = sumx1y1sqR;
+	matrix[5][0] = sumx0y2;
+	matrix[6][0] = sumx3y0;
+	matrix[7][0] = sumx2y1;
+	matrix[8][0] = sumx1y2;
+	matrix[9][0] = sumx0y3;
 
-	matrix[5][0] = sumy1sq;
-	matrix[5][1] = sumx1y1sq;
-	matrix[5][2] = sumy1cu;
-	matrix[5][3] = sumx1sqy1sq;
-	matrix[5][4] = sumx1y1cu;
-	matrix[5][5] = sumy1qu;
-	matrix[5][6] = sumx1y1sqR;
-	matrix[5][7] = sumy1cuR;
+	//rows 1-9 - column 1
+	matrix[1][1] = sumx2y0;
+	matrix[2][1] = sumx1y1;
+	matrix[3][1] = sumx3y0;
+	matrix[4][1] = sumx2y1;
+	matrix[5][1] = sumx1y2;
+	matrix[6][1] = sumx4y0;
+	matrix[7][1] = sumx3y1;
+	matrix[8][1] = sumx2y2;
+	matrix[9][1] = sumx1y3;
 
-	matrix[6][0] = sumx1R;
-	matrix[6][1] = sumx1sqR;
-	matrix[6][2] = sumx1y1R;
-	matrix[6][3] = sumx1cuR;
-	matrix[6][4] = sumx1sqy1R;
-	matrix[6][5] = sumx1y1sqR;
-	matrix[6][6] = sumx1sqRsq;
-	matrix[6][7] = sumx1y1Rsq;
+	//rows 2-9 - column 2
+	matrix[2][2] = sumx0y2;
+	matrix[3][2] = sumx2y1;
+	matrix[4][2] = sumx1y2;
+	matrix[5][2] = sumx0y3;
+	matrix[6][2] = sumx3y1;
+	matrix[7][2] = sumx2y2;
+	matrix[8][2] = sumx1y3;
+	matrix[9][2] = sumx0y4;
 
-	matrix[7][0] = sumy1R;
-	matrix[7][1] = sumx1y1R;
-	matrix[7][2] = sumy1sqR;
-	matrix[7][3] = sumx1sqy1R;
-	matrix[7][4] = sumx1y1sqR;
-	matrix[7][5] = sumy1cuR;
-	matrix[7][6] = sumx1y1Rsq;
-	matrix[7][7] = sumy1sqRsq;
+	//rows 3-9 - column 3
+	matrix[3][3] = sumx4y0;
+	matrix[4][3] = sumx3y1;
+	matrix[5][3] = sumx2y2;
+	matrix[6][3] = sumx5y0;
+	matrix[7][3] = sumx4y1;
+	matrix[8][3] = sumx3y2;
+	matrix[9][3] = sumx2y3;
 
-	vector[0] = sumy2;
-	vector[1] = sumy2x1;
-	vector[2] = sumy2y1;
-	vector[3] = sumy2x1sq;
-	vector[4] = sumy2x1y1;
-	vector[5] = sumy2y1sq;
-	vector[6] = sumy2x1R;
-	vector[7] = sumy2y1R;
+	//rows 4-9 - column 4
+	matrix[4][4] = sumx2y2;
+	matrix[5][4] = sumx1y3;
+	matrix[6][4] = sumx4y1;
+	matrix[7][4] = sumx3y2;
+	matrix[8][4] = sumx2y3;
+	matrix[9][4] = sumx1y4;
+
+	//rows 5-9 - column 5
+	matrix[5][5] = sumx0y4;
+	matrix[6][5] = sumx3y2;
+	matrix[7][5] = sumx2y3;
+	matrix[8][5] = sumx1y4;
+	matrix[9][5] = sumx0y5;
+
+	//rows 6-9 - column 6
+	matrix[6][6] = sumx6y0;
+	matrix[7][6] = sumx5y1;
+	matrix[8][6] = sumx4y2;
+	matrix[9][6] = sumx3y3;
+
+	//rows 7-9 - column 7
+	matrix[7][7] = sumx4y2;
+	matrix[8][7] = sumx3y3;
+	matrix[9][7] = sumx2y4;
+
+	//rows 8-9 - column 8
+	matrix[8][8] = sumx2y4;
+	matrix[9][8] = sumx1y5;
+
+	//rows 9 - column 9
+	matrix[9][9] = sumx0y6;
+
+	// and we transpose
+	for (int r = 0; r < 9; r++) {
+		for (int c = r + 1; c < 10; c++) {
+			matrix[r][c] = matrix[c][r];
+		}
+	}
+
+	vector[0] = sumypx0y0;
+	vector[1] = sumypx1y0;
+	vector[2] = sumypx0y1;
+	vector[3] = sumypx2y0;
+	vector[4] = sumypx1y1;
+	vector[5] = sumypx0y2;
+	vector[6] = sumypx3y0;
+	vector[7] = sumypx2y1;
+	vector[8] = sumypx1y2;
+	vector[9] = sumypx0y3;
 
 #ifdef DEBUG
-	printf("before calling solution routines for IJKLMNOP, here's matrix\n");
-	print_matrix(matrix, 8);
+	printf("before calling solution routines for KLMNOPQRST, here's matrix\n");
+	print_matrix(matrix, 10);
 #endif
 
 	/*
 	 * and now call the Gaussian-elimination routines to solve the matrix.
-	 * The solution for TRANS coefficients I, J, K, L, M, N, O, P will be placed
+	 * The solution for TRANS coefficients K, L, M, N, O, P, Q, R, S, T will be placed
 	 * into the elements on "vector" after "gauss_matrix" finishes.
 	 */
-	if (gauss_matrix(matrix, 8, vector) != SH_SUCCESS) {
-		shError("calc_trans_cubic: can't solve for coeffs I,J,K,L,M,N,O,P ");
-		free_matrix(matrix, 8);
+	if (gauss_matrix(matrix, 10, vector) != SH_SUCCESS) {
+		shError("calc_trans_cubic: can't solve for coeffs K,L,M,N,O,P,Q,R,S,T ");
+		free_matrix(matrix, 10);
 		return (SH_GENERIC_ERROR);
 	}
 
 #ifdef DEBUG
 	printf("after  calling solution routines, here's matrix\n");
-	print_matrix(matrix, 8);
+	print_matrix(matrix, 10);
 #endif
 
-	solved_i = vector[0];
-	solved_j = vector[1];
-	solved_k = vector[2];
-	solved_l = vector[3];
-	solved_m = vector[4];
-	solved_n = vector[5];
-	solved_o = vector[6];
-	solved_p = vector[7];
+	solved_k = vector[0];
+	solved_l = vector[1];
+	solved_m = vector[2];
+	solved_n = vector[3];
+	solved_o = vector[4];
+	solved_p = vector[5];
+	solved_q = vector[6];
+	solved_r = vector[7];
+	solved_s = vector[8];
+	solved_t = vector[9];
 
 	/*
 	 * assign the coefficients we've just calculated to the output
 	 * TRANS structure.
 	 */
-	trans->a = solved_a;
-	trans->b = solved_b;
-	trans->c = solved_c;
-	trans->d = solved_d;
-	trans->e = solved_e;
-	trans->f = solved_f;
-	trans->g = solved_g;
-	trans->h = solved_h;
-	trans->i = solved_i;
-	trans->j = solved_j;
-	trans->k = solved_k;
-	trans->l = solved_l;
-	trans->m = solved_m;
-	trans->n = solved_n;
-	trans->o = solved_o;
-	trans->p = solved_p;
+	trans->x00 = solved_a;
+	trans->x10 = solved_b;
+	trans->x01 = solved_c;
+	trans->x20 = solved_d;
+	trans->x11 = solved_e;
+	trans->x02 = solved_f;
+	trans->x30 = solved_g;
+	trans->x21 = solved_h;
+	trans->x12 = solved_i;
+	trans->x03 = solved_j;
+	trans->y00 = solved_k;
+	trans->y10 = solved_l;
+	trans->y01 = solved_m;
+	trans->y20 = solved_n;
+	trans->y11 = solved_o;
+	trans->y02 = solved_p;
+	trans->y30 = solved_q;
+	trans->y21 = solved_r;
+	trans->y12 = solved_s;
+	trans->y03 = solved_t;
 
 	/*
 	 * free up memory we allocated for this function
 	 */
-	free_matrix(matrix, 8);
+	free_matrix(matrix, 10);
+
+	return (SH_SUCCESS);
+}
+
+static int calc_trans_quartic(int nbright, /* I: max number of stars we use in calculating */
+/*      the transformation; we may cut down to */
+/*      a more well-behaved subset. */
+s_star *star_array_A, /* I: first array of s_star structure we match */
+/*      the output TRANS takes their coords */
+/*      into those of array B */
+int num_stars_A, /* I: total number of stars in star_array_A */
+s_star *star_array_B, /* I: second array of s_star structure we match */
+int num_stars_B, /* I: total number of stars in star_array_B */
+int *winner_votes, /* I: number of votes gotten by the top 'nbright' */
+/*      matched pairs of stars */
+int *winner_index_A, /* I: index into "star_array_A" of top */
+/*      vote-getters */
+int *winner_index_B, /* I: index into "star_array_B" of top */
+/*      vote-getters */
+TRANS *trans /* O: place solved coefficients into this */
+/*      existing structure's fields */
+) {
+	int i;
+	double **matrix;
+	double vector[15];
+	double solved_x00, solved_x10, solved_x01, solved_x20, solved_x11, solved_x02, solved_x30, solved_x21, solved_x12, solved_x03, solved_x40, solved_x31, solved_x22, solved_x13, solved_x04;
+	double solved_y00, solved_y10, solved_y01, solved_y20, solved_y11, solved_y02, solved_y30, solved_y21, solved_y12, solved_y03, solved_y40, solved_y31, solved_y22, solved_y13, solved_y04;
+	s_star *s1, *s2;
+
+	/*
+	 * in variable names below, a `xayb` means x^a*y^b for with (x,Y) the coords of star s1
+	 *   (which appear on both sides of the matrix equation)
+	 *                      and a 'p' refers to coordinates of star s2
+	 *   (which appears only on left hand side of matrix equation)
+	 */
+	double sumxpx0y0, sumxpx1y0, sumxpx0y1, sumxpx2y0, sumxpx1y1, sumxpx0y2;
+	double sumxpx3y0, sumxpx2y1, sumxpx1y2, sumxpx0y3;
+	double sumxpx4y0, sumxpx3y1, sumxpx2y2, sumxpx1y3, sumxpx0y4;
+	double sumypx0y0, sumypx1y0, sumypx0y1, sumypx2y0, sumypx1y1, sumypx0y2;
+	double sumypx3y0, sumypx2y1, sumypx1y2, sumypx0y3;
+	double sumypx4y0, sumypx3y1, sumypx2y2, sumypx1y3, sumypx0y4;
+
+	double sumx0y0;
+	double sumx1y0, sumx0y1;
+	double sumx2y0, sumx1y1, sumx0y2;
+	double sumx3y0, sumx2y1, sumx1y2, sumx0y3;
+	double sumx4y0, sumx3y1, sumx2y2, sumx1y3, sumx0y4;
+	double sumx5y0, sumx4y1, sumx3y2, sumx2y3, sumx1y4, sumx0y5;
+	double sumx6y0, sumx5y1, sumx4y2, sumx3y3, sumx2y4, sumx1y5, sumx0y6;
+	double sumx7y0, sumx6y1, sumx5y2, sumx4y3, sumx3y4, sumx2y5, sumx1y6, sumx0y7;
+	double sumx8y0, sumx7y1, sumx6y2, sumx5y3, sumx4y4, sumx3y5, sumx2y6, sumx1y7, sumx0y8;
+
+	g_assert(nbright >= AT_MATCH_REQUIRE_QUARTIC);
+	g_assert(trans->order == AT_TRANS_QUARTIC);
+
+	/*
+	 * allocate a matrix we'll need for this function
+	 */
+	matrix = alloc_matrix(15);
+
+	/*
+	 * first, we consider the coefficients Xij in the trans.
+	 * we form the sums that make up the elements of matrix M
+	 */
+
+	sumx0y0 = 0.0;
+
+	sumx1y0 = 0.0;
+	sumx0y1 = 0.0;
+
+	sumx2y0 = 0.0;
+	sumx1y1 = 0.0;
+	sumx0y2 = 0.0;
+
+	sumx3y0 = 0.0;
+	sumx2y1 = 0.0;
+	sumx1y2 = 0.0;
+	sumx0y3 = 0.0;
+
+	sumx4y0 = 0.0;
+	sumx3y1 = 0.0;
+	sumx2y2 = 0.0;
+	sumx1y3 = 0.0;
+	sumx0y4 = 0.0;
+
+	sumx5y0 = 0.0;
+	sumx4y1 = 0.0;
+	sumx3y2 = 0.0;
+	sumx2y3 = 0.0;
+	sumx1y4 = 0.0;
+	sumx0y5 = 0.0;
+
+	sumx6y0 = 0.0;
+	sumx5y1 = 0.0;
+	sumx4y2 = 0.0;
+	sumx3y3 = 0.0;
+	sumx2y4 = 0.0;
+	sumx1y5 = 0.0;
+	sumx0y6 = 0.0;
+
+	sumx7y0 = 0.0;
+	sumx6y1 = 0.0;
+	sumx5y2 = 0.0;
+	sumx4y3 = 0.0;
+	sumx3y4 = 0.0;
+	sumx2y5 = 0.0;
+	sumx1y6 = 0.0;
+	sumx0y7 = 0.0;
+
+	sumx8y0 = 0.0;
+	sumx7y1 = 0.0;
+	sumx6y2 = 0.0;
+	sumx5y3 = 0.0;
+	sumx4y4 = 0.0;
+	sumx3y5 = 0.0;
+	sumx2y6 = 0.0;
+	sumx1y7 = 0.0;
+	sumx0y8 = 0.0;
+
+	sumxpx0y0 = 0.0;
+	sumxpx1y0 = 0.0;
+	sumxpx0y1 = 0.0;
+	sumxpx2y0 = 0.0;
+	sumxpx1y1 = 0.0;
+	sumxpx0y2 = 0.0;
+	sumxpx3y0 = 0.0;
+	sumxpx2y1 = 0.0;
+	sumxpx1y2 = 0.0;
+	sumxpx0y3 = 0.0;
+	sumxpx4y0 = 0.0;
+	sumxpx3y1 = 0.0;
+	sumxpx2y2 = 0.0;
+	sumxpx1y3 = 0.0;
+	sumxpx0y4 = 0.0;
+
+	sumypx0y0 = 0.0;
+	sumypx1y0 = 0.0;
+	sumypx0y1 = 0.0;
+	sumypx2y0 = 0.0;
+	sumypx1y1 = 0.0;
+	sumypx0y2 = 0.0;
+	sumypx3y0 = 0.0;
+	sumypx2y1 = 0.0;
+	sumypx1y2 = 0.0;
+	sumypx0y3 = 0.0;
+	sumypx4y0 = 0.0;
+	sumypx3y1 = 0.0;
+	sumypx2y2 = 0.0;
+	sumypx1y3 = 0.0;
+	sumypx0y4 = 0.0;
+
+
+	for (i = 0; i < nbright; i++) {
+
+		/* sanity checks */
+		g_assert(winner_index_A[i] < num_stars_A);
+		s1 = &(star_array_A[winner_index_A[i]]);
+		g_assert(winner_index_B[i] < num_stars_B);
+		s2 = &(star_array_B[winner_index_B[i]]);
+
+		sumxpx0y0 += s2->x;
+		sumxpx1y0 += s2->x * s1->x;
+		sumxpx0y1 += s2->x * s1->y;
+		sumxpx2y0 += s2->x * s1->x * s1->x;
+		sumxpx1y1 += s2->x * s1->x * s1->y;
+		sumxpx0y2 += s2->x * s1->y * s1->y;
+		sumxpx3y0 += s2->x * s1->x * s1->x * s1->x;
+		sumxpx2y1 += s2->x * s1->x * s1->x * s1->y;
+		sumxpx1y2 += s2->x * s1->x * s1->y * s1->y;
+		sumxpx0y3 += s2->x * s1->y * s1->y * s1->y;
+		sumxpx4y0 += s2->x * s1->x * s1->x * s1->x * s1->x;
+		sumxpx3y1 += s2->x * s1->x * s1->x * s1->x * s1->y;
+		sumxpx2y2 += s2->x * s1->x * s1->x * s1->y * s1->y;
+		sumxpx1y3 += s2->x * s1->x * s1->y * s1->y * s1->y;
+		sumxpx0y4 += s2->x * s1->y * s1->y * s1->y * s1->y;
+
+		sumypx0y0 += s2->y;
+		sumypx1y0 += s2->y * s1->x;
+		sumypx0y1 += s2->y * s1->y;
+		sumypx2y0 += s2->y * s1->x * s1->x;
+		sumypx1y1 += s2->y * s1->x * s1->y;
+		sumypx0y2 += s2->y * s1->y * s1->y;
+		sumypx3y0 += s2->y * s1->x * s1->x * s1->x;
+		sumypx2y1 += s2->y * s1->x * s1->x * s1->y;
+		sumypx1y2 += s2->y * s1->x * s1->y * s1->y;
+		sumypx0y3 += s2->y * s1->y * s1->y * s1->y;
+		sumypx4y0 += s2->y * s1->x * s1->x * s1->x * s1->x;
+		sumypx3y1 += s2->y * s1->x * s1->x * s1->x * s1->y;
+		sumypx2y2 += s2->y * s1->x * s1->x * s1->y * s1->y;
+		sumypx1y3 += s2->y * s1->x * s1->y * s1->y * s1->y;
+		sumypx0y4 += s2->y * s1->y * s1->y * s1->y * s1->y;
+
+
+		/* elements of the matrix */
+		sumx0y0 += 1.0;
+		sumx1y0 += s1->x;
+		sumx0y1 += s1->y;
+
+		sumx2y0 += s1->x * s1->x;
+		sumx1y1 += s1->x * s1->y;
+		sumx0y2 += s1->y * s1->y;
+
+		sumx3y0 += s1->x * s1->x * s1->x;
+		sumx2y1 += s1->x * s1->x * s1->y;
+		sumx1y2 += s1->x * s1->y * s1->y;
+		sumx0y3 += s1->y * s1->y * s1->y;
+
+		sumx4y0 += s1->x * s1->x * s1->x * s1->x;
+		sumx3y1 += s1->x * s1->x * s1->x * s1->y;
+		sumx2y2 += s1->x * s1->x * s1->y * s1->y;
+		sumx1y3 += s1->x * s1->y * s1->y * s1->y;
+		sumx0y4 += s1->y * s1->y * s1->y * s1->y;
+
+		sumx5y0 += s1->x * s1->x * s1->x * s1->x * s1->x;
+		sumx4y1 += s1->x * s1->x * s1->x * s1->x * s1->y;
+		sumx3y2 += s1->x * s1->x * s1->x * s1->y * s1->y;
+		sumx2y3 += s1->x * s1->x * s1->y * s1->y * s1->y;
+		sumx1y4 += s1->x * s1->y * s1->y * s1->y * s1->y;
+		sumx0y5 += s1->y * s1->y * s1->y * s1->y * s1->y;
+
+		sumx6y0 += s1->x * s1->x * s1->x * s1->x * s1->x * s1->x;
+		sumx5y1 += s1->x * s1->x * s1->x * s1->x * s1->x * s1->y;
+		sumx4y2 += s1->x * s1->x * s1->x * s1->x * s1->y * s1->y;
+		sumx3y3 += s1->x * s1->x * s1->x * s1->y * s1->y * s1->y;
+		sumx2y4 += s1->x * s1->x * s1->y * s1->y * s1->y * s1->y;
+		sumx1y5 += s1->x * s1->y * s1->y * s1->y * s1->y * s1->y;
+		sumx0y6 += s1->y * s1->y * s1->y * s1->y * s1->y * s1->y;
+
+		sumx7y0 += s1->x * s1->x * s1->x * s1->x * s1->x * s1->x * s1->x;
+		sumx6y1 += s1->x * s1->x * s1->x * s1->x * s1->x * s1->x * s1->y;
+		sumx5y2 += s1->x * s1->x * s1->x * s1->x * s1->x * s1->y * s1->y;
+		sumx4y3 += s1->x * s1->x * s1->x * s1->x * s1->y * s1->y * s1->y;
+		sumx3y4 += s1->x * s1->x * s1->x * s1->y * s1->y * s1->y * s1->y;
+		sumx2y5 += s1->x * s1->x * s1->y * s1->y * s1->y * s1->y * s1->y;
+		sumx1y6 += s1->x * s1->y * s1->y * s1->y * s1->y * s1->y * s1->y;
+		sumx0y7 += s1->y * s1->y * s1->y * s1->y * s1->y * s1->y * s1->y;
+
+		sumx8y0 += s1->x * s1->x * s1->x * s1->x * s1->x * s1->x * s1->x * s1->x;
+		sumx7y1 += s1->x * s1->x * s1->x * s1->x * s1->x * s1->x * s1->x * s1->y;
+		sumx6y2 += s1->x * s1->x * s1->x * s1->x * s1->x * s1->x * s1->y * s1->y;
+		sumx5y3 += s1->x * s1->x * s1->x * s1->x * s1->x * s1->y * s1->y * s1->y;
+		sumx4y4 += s1->x * s1->x * s1->x * s1->x * s1->y * s1->y * s1->y * s1->y;
+		sumx3y5 += s1->x * s1->x * s1->x * s1->y * s1->y * s1->y * s1->y * s1->y;
+		sumx2y6 += s1->x * s1->x * s1->y * s1->y * s1->y * s1->y * s1->y * s1->y;
+		sumx1y7 += s1->x * s1->y * s1->y * s1->y * s1->y * s1->y * s1->y * s1->y;
+		sumx0y8 += s1->y * s1->y * s1->y * s1->y * s1->y * s1->y * s1->y * s1->y;
+	}
+
+	/*
+	 * now turn these sums into a matrix and a vector
+	 */
+
+	matrix[ 0][ 0] = sumx0y0;
+	matrix[ 1][ 0] = sumx1y0;
+	matrix[ 2][ 0] = sumx0y1;
+	matrix[ 3][ 0] = sumx2y0;
+	matrix[ 4][ 0] = sumx1y1;
+	matrix[ 5][ 0] = sumx0y2;
+	matrix[ 6][ 0] = sumx3y0;
+	matrix[ 7][ 0] = sumx2y1;
+	matrix[ 8][ 0] = sumx1y2;
+	matrix[ 9][ 0] = sumx0y3;
+	matrix[10][ 0] = sumx4y0;
+	matrix[11][ 0] = sumx3y1;
+	matrix[12][ 0] = sumx2y2;
+	matrix[13][ 0] = sumx1y3;
+	matrix[14][ 0] = sumx0y4;
+
+	matrix[ 0][ 1] = sumx1y0;
+	matrix[ 1][ 1] = sumx2y0;
+	matrix[ 2][ 1] = sumx1y1;
+	matrix[ 3][ 1] = sumx3y0;
+	matrix[ 4][ 1] = sumx2y1;
+	matrix[ 5][ 1] = sumx1y2;
+	matrix[ 6][ 1] = sumx4y0;
+	matrix[ 7][ 1] = sumx3y1;
+	matrix[ 8][ 1] = sumx2y2;
+	matrix[ 9][ 1] = sumx1y3;
+	matrix[10][ 1] = sumx5y0;
+	matrix[11][ 1] = sumx4y1;
+	matrix[12][ 1] = sumx3y2;
+	matrix[13][ 1] = sumx2y3;
+	matrix[14][ 1] = sumx1y4;
+
+	matrix[ 0][ 2] = sumx0y1;
+	matrix[ 1][ 2] = sumx1y1;
+	matrix[ 2][ 2] = sumx0y2;
+	matrix[ 3][ 2] = sumx2y1;
+	matrix[ 4][ 2] = sumx1y2;
+	matrix[ 5][ 2] = sumx0y3;
+	matrix[ 6][ 2] = sumx3y1;
+	matrix[ 7][ 2] = sumx2y2;
+	matrix[ 8][ 2] = sumx1y3;
+	matrix[ 9][ 2] = sumx0y4;
+	matrix[10][ 2] = sumx4y1;
+	matrix[11][ 2] = sumx3y2;
+	matrix[12][ 2] = sumx2y3;
+	matrix[13][ 2] = sumx1y4;
+	matrix[14][ 2] = sumx0y5;
+
+	matrix[ 0][ 3] = sumx2y0;
+	matrix[ 1][ 3] = sumx3y0;
+	matrix[ 2][ 3] = sumx2y1;
+	matrix[ 3][ 3] = sumx4y0;
+	matrix[ 4][ 3] = sumx3y1;
+	matrix[ 5][ 3] = sumx2y2;
+	matrix[ 6][ 3] = sumx5y0;
+	matrix[ 7][ 3] = sumx4y1;
+	matrix[ 8][ 3] = sumx3y2;
+	matrix[ 9][ 3] = sumx2y3;
+	matrix[10][ 3] = sumx6y0;
+	matrix[11][ 3] = sumx5y1;
+	matrix[12][ 3] = sumx4y2;
+	matrix[13][ 3] = sumx3y3;
+	matrix[14][ 3] = sumx2y4;
+
+	matrix[ 0][ 4] = sumx1y1;
+	matrix[ 1][ 4] = sumx2y1;
+	matrix[ 2][ 4] = sumx1y2;
+	matrix[ 3][ 4] = sumx3y1;
+	matrix[ 4][ 4] = sumx2y2;
+	matrix[ 5][ 4] = sumx1y3;
+	matrix[ 6][ 4] = sumx4y1;
+	matrix[ 7][ 4] = sumx3y2;
+	matrix[ 8][ 4] = sumx2y3;
+	matrix[ 9][ 4] = sumx1y4;
+	matrix[10][ 4] = sumx5y1;
+	matrix[11][ 4] = sumx4y2;
+	matrix[12][ 4] = sumx3y3;
+	matrix[13][ 4] = sumx2y4;
+	matrix[14][ 4] = sumx1y5;
+
+	matrix[ 0][ 5] = sumx0y2;
+	matrix[ 1][ 5] = sumx1y2;
+	matrix[ 2][ 5] = sumx0y3;
+	matrix[ 3][ 5] = sumx2y2;
+	matrix[ 4][ 5] = sumx1y3;
+	matrix[ 5][ 5] = sumx0y4;
+	matrix[ 6][ 5] = sumx3y2;
+	matrix[ 7][ 5] = sumx2y3;
+	matrix[ 8][ 5] = sumx1y4;
+	matrix[ 9][ 5] = sumx0y5;
+	matrix[10][ 5] = sumx4y2;
+	matrix[11][ 5] = sumx3y3;
+	matrix[12][ 5] = sumx2y4;
+	matrix[13][ 5] = sumx1y5;
+	matrix[14][ 5] = sumx0y6;
+
+	matrix[ 0][ 6] = sumx3y0;
+	matrix[ 1][ 6] = sumx4y0;
+	matrix[ 2][ 6] = sumx3y1;
+	matrix[ 3][ 6] = sumx5y0;
+	matrix[ 4][ 6] = sumx4y1;
+	matrix[ 5][ 6] = sumx3y2;
+	matrix[ 6][ 6] = sumx6y0;
+	matrix[ 7][ 6] = sumx5y1;
+	matrix[ 8][ 6] = sumx4y2;
+	matrix[ 9][ 6] = sumx3y3;
+	matrix[10][ 6] = sumx7y0;
+	matrix[11][ 6] = sumx6y1;
+	matrix[12][ 6] = sumx5y2;
+	matrix[13][ 6] = sumx4y3;
+	matrix[14][ 6] = sumx3y4;
+
+	matrix[ 0][ 7] = sumx2y1;
+	matrix[ 1][ 7] = sumx3y1;
+	matrix[ 2][ 7] = sumx2y2;
+	matrix[ 3][ 7] = sumx4y1;
+	matrix[ 4][ 7] = sumx3y2;
+	matrix[ 5][ 7] = sumx2y3;
+	matrix[ 6][ 7] = sumx5y1;
+	matrix[ 7][ 7] = sumx4y2;
+	matrix[ 8][ 7] = sumx3y3;
+	matrix[ 9][ 7] = sumx2y4;
+	matrix[10][ 7] = sumx6y1;
+	matrix[11][ 7] = sumx5y2;
+	matrix[12][ 7] = sumx4y3;
+	matrix[13][ 7] = sumx3y4;
+	matrix[14][ 7] = sumx2y5;
+
+	matrix[ 0][ 8] = sumx1y2;
+	matrix[ 1][ 8] = sumx2y2;
+	matrix[ 2][ 8] = sumx1y3;
+	matrix[ 3][ 8] = sumx3y2;
+	matrix[ 4][ 8] = sumx2y3;
+	matrix[ 5][ 8] = sumx1y4;
+	matrix[ 6][ 8] = sumx4y2;
+	matrix[ 7][ 8] = sumx3y3;
+	matrix[ 8][ 8] = sumx2y4;
+	matrix[ 9][ 8] = sumx1y5;
+	matrix[10][ 8] = sumx5y2;
+	matrix[11][ 8] = sumx4y3;
+	matrix[12][ 8] = sumx3y4;
+	matrix[13][ 8] = sumx2y5;
+	matrix[14][ 8] = sumx1y6;
+
+	matrix[ 0][ 9] = sumx0y3;
+	matrix[ 1][ 9] = sumx1y3;
+	matrix[ 2][ 9] = sumx0y4;
+	matrix[ 3][ 9] = sumx2y3;
+	matrix[ 4][ 9] = sumx1y4;
+	matrix[ 5][ 9] = sumx0y5;
+	matrix[ 6][ 9] = sumx3y3;
+	matrix[ 7][ 9] = sumx2y4;
+	matrix[ 8][ 9] = sumx1y5;
+	matrix[ 9][ 9] = sumx0y6;
+	matrix[10][ 9] = sumx4y3;
+	matrix[11][ 9] = sumx3y4;
+	matrix[12][ 9] = sumx2y5;
+	matrix[13][ 9] = sumx1y6;
+	matrix[14][ 9] = sumx0y7;
+
+	matrix[ 0][10] = sumx4y0;
+	matrix[ 1][10] = sumx5y0;
+	matrix[ 2][10] = sumx4y1;
+	matrix[ 3][10] = sumx6y0;
+	matrix[ 4][10] = sumx5y1;
+	matrix[ 5][10] = sumx4y2;
+	matrix[ 6][10] = sumx7y0;
+	matrix[ 7][10] = sumx6y1;
+	matrix[ 8][10] = sumx5y2;
+	matrix[ 9][10] = sumx4y3;
+	matrix[10][10] = sumx8y0;
+	matrix[11][10] = sumx7y1;
+	matrix[12][10] = sumx6y2;
+	matrix[13][10] = sumx5y3;
+	matrix[14][10] = sumx4y4;
+
+	matrix[ 0][11] = sumx3y1;
+	matrix[ 1][11] = sumx4y1;
+	matrix[ 2][11] = sumx3y2;
+	matrix[ 3][11] = sumx5y1;
+	matrix[ 4][11] = sumx4y2;
+	matrix[ 5][11] = sumx3y3;
+	matrix[ 6][11] = sumx6y1;
+	matrix[ 7][11] = sumx5y2;
+	matrix[ 8][11] = sumx4y3;
+	matrix[ 9][11] = sumx3y4;
+	matrix[10][11] = sumx7y1;
+	matrix[11][11] = sumx6y2;
+	matrix[12][11] = sumx5y3;
+	matrix[13][11] = sumx4y4;
+	matrix[14][11] = sumx3y5;
+
+	matrix[ 0][12] = sumx2y2;
+	matrix[ 1][12] = sumx3y2;
+	matrix[ 2][12] = sumx2y3;
+	matrix[ 3][12] = sumx4y2;
+	matrix[ 4][12] = sumx3y3;
+	matrix[ 5][12] = sumx2y4;
+	matrix[ 6][12] = sumx5y2;
+	matrix[ 7][12] = sumx4y3;
+	matrix[ 8][12] = sumx3y4;
+	matrix[ 9][12] = sumx2y5;
+	matrix[10][12] = sumx6y2;
+	matrix[11][12] = sumx5y3;
+	matrix[12][12] = sumx4y4;
+	matrix[13][12] = sumx3y5;
+	matrix[14][12] = sumx2y6;
+
+	matrix[ 0][13] = sumx1y3;
+	matrix[ 1][13] = sumx2y3;
+	matrix[ 2][13] = sumx1y4;
+	matrix[ 3][13] = sumx3y3;
+	matrix[ 4][13] = sumx2y4;
+	matrix[ 5][13] = sumx1y5;
+	matrix[ 6][13] = sumx4y3;
+	matrix[ 7][13] = sumx3y4;
+	matrix[ 8][13] = sumx2y5;
+	matrix[ 9][13] = sumx1y6;
+	matrix[10][13] = sumx5y3;
+	matrix[11][13] = sumx4y4;
+	matrix[12][13] = sumx3y5;
+	matrix[13][13] = sumx2y6;
+	matrix[14][13] = sumx1y7;
+
+	matrix[ 0][14] = sumx0y4;
+	matrix[ 1][14] = sumx1y4;
+	matrix[ 2][14] = sumx0y5;
+	matrix[ 3][14] = sumx2y4;
+	matrix[ 4][14] = sumx1y5;
+	matrix[ 5][14] = sumx0y6;
+	matrix[ 6][14] = sumx3y4;
+	matrix[ 7][14] = sumx2y5;
+	matrix[ 8][14] = sumx1y6;
+	matrix[ 9][14] = sumx0y7;
+	matrix[10][14] = sumx4y4;
+	matrix[11][14] = sumx3y5;
+	matrix[12][14] = sumx2y6;
+	matrix[13][14] = sumx1y7;
+	matrix[14][14] = sumx0y8;
+
+	vector[ 0] = sumxpx0y0;
+	vector[ 1] = sumxpx1y0;
+	vector[ 2] = sumxpx0y1;
+	vector[ 3] = sumxpx2y0;
+	vector[ 4] = sumxpx1y1;
+	vector[ 5] = sumxpx0y2;
+	vector[ 6] = sumxpx3y0;
+	vector[ 7] = sumxpx2y1;
+	vector[ 8] = sumxpx1y2;
+	vector[ 9] = sumxpx0y3;
+	vector[10] = sumxpx4y0;
+	vector[11] = sumxpx3y1;
+	vector[12] = sumxpx2y2;
+	vector[13] = sumxpx1y3;
+	vector[14] = sumxpx0y4;
+
+#ifdef DEBUG
+	printf("before calling solution routines for ABCDEFGHIJ, here's matrix\n");
+	print_matrix(matrix, 15);
+#endif
+
+	/*
+	 * and now call the Gaussian-elimination routines to solve the matrix.
+	 * The solution for TRANS coefficients will be placed
+	 * into the elements on "vector" after "gauss_matrix" finishes.
+	 */
+	if (gauss_matrix(matrix, 15, vector) != SH_SUCCESS) {
+		shError("calc_trans_order: can't solve for coeffs xij");
+		free_matrix(matrix, 15);
+		return (SH_GENERIC_ERROR);
+	}
+
+#ifdef DEBUG
+	printf("after calling solution routines, here's matrix\n");
+	print_matrix(matrix, 15);
+#endif
+
+	solved_x00 = vector[ 0];
+	solved_x10 = vector[ 1];
+	solved_x01 = vector[ 2];
+	solved_x20 = vector[ 3];
+	solved_x11 = vector[ 4];
+	solved_x02 = vector[ 5];
+	solved_x30 = vector[ 6];
+	solved_x21 = vector[ 7];
+	solved_x12 = vector[ 8];
+	solved_x03 = vector[ 9];
+	solved_x40 = vector[10];
+	solved_x31 = vector[11];
+	solved_x22 = vector[12];
+	solved_x13 = vector[13];
+	solved_x04 = vector[14];
+
+	/*
+	 * Okay, now we solve for TRANS coefficients on y'
+	 * using the * set of equations that relates y' to (x,y)
+	 */
+	/*
+	 * now turn these sums into a matrix and a vector
+	 */
+
+	matrix[ 0][ 0] = sumx0y0;
+	matrix[ 1][ 0] = sumx1y0;
+	matrix[ 2][ 0] = sumx0y1;
+	matrix[ 3][ 0] = sumx2y0;
+	matrix[ 4][ 0] = sumx1y1;
+	matrix[ 5][ 0] = sumx0y2;
+	matrix[ 6][ 0] = sumx3y0;
+	matrix[ 7][ 0] = sumx2y1;
+	matrix[ 8][ 0] = sumx1y2;
+	matrix[ 9][ 0] = sumx0y3;
+	matrix[10][ 0] = sumx4y0;
+	matrix[11][ 0] = sumx3y1;
+	matrix[12][ 0] = sumx2y2;
+	matrix[13][ 0] = sumx1y3;
+	matrix[14][ 0] = sumx0y4;
+
+	matrix[ 0][ 1] = sumx1y0;
+	matrix[ 1][ 1] = sumx2y0;
+	matrix[ 2][ 1] = sumx1y1;
+	matrix[ 3][ 1] = sumx3y0;
+	matrix[ 4][ 1] = sumx2y1;
+	matrix[ 5][ 1] = sumx1y2;
+	matrix[ 6][ 1] = sumx4y0;
+	matrix[ 7][ 1] = sumx3y1;
+	matrix[ 8][ 1] = sumx2y2;
+	matrix[ 9][ 1] = sumx1y3;
+	matrix[10][ 1] = sumx5y0;
+	matrix[11][ 1] = sumx4y1;
+	matrix[12][ 1] = sumx3y2;
+	matrix[13][ 1] = sumx2y3;
+	matrix[14][ 1] = sumx1y4;
+
+	matrix[ 0][ 2] = sumx0y1;
+	matrix[ 1][ 2] = sumx1y1;
+	matrix[ 2][ 2] = sumx0y2;
+	matrix[ 3][ 2] = sumx2y1;
+	matrix[ 4][ 2] = sumx1y2;
+	matrix[ 5][ 2] = sumx0y3;
+	matrix[ 6][ 2] = sumx3y1;
+	matrix[ 7][ 2] = sumx2y2;
+	matrix[ 8][ 2] = sumx1y3;
+	matrix[ 9][ 2] = sumx0y4;
+	matrix[10][ 2] = sumx4y1;
+	matrix[11][ 2] = sumx3y2;
+	matrix[12][ 2] = sumx2y3;
+	matrix[13][ 2] = sumx1y4;
+	matrix[14][ 2] = sumx0y5;
+
+	matrix[ 0][ 3] = sumx2y0;
+	matrix[ 1][ 3] = sumx3y0;
+	matrix[ 2][ 3] = sumx2y1;
+	matrix[ 3][ 3] = sumx4y0;
+	matrix[ 4][ 3] = sumx3y1;
+	matrix[ 5][ 3] = sumx2y2;
+	matrix[ 6][ 3] = sumx5y0;
+	matrix[ 7][ 3] = sumx4y1;
+	matrix[ 8][ 3] = sumx3y2;
+	matrix[ 9][ 3] = sumx2y3;
+	matrix[10][ 3] = sumx6y0;
+	matrix[11][ 3] = sumx5y1;
+	matrix[12][ 3] = sumx4y2;
+	matrix[13][ 3] = sumx3y3;
+	matrix[14][ 3] = sumx2y4;
+
+	matrix[ 0][ 4] = sumx1y1;
+	matrix[ 1][ 4] = sumx2y1;
+	matrix[ 2][ 4] = sumx1y2;
+	matrix[ 3][ 4] = sumx3y1;
+	matrix[ 4][ 4] = sumx2y2;
+	matrix[ 5][ 4] = sumx1y3;
+	matrix[ 6][ 4] = sumx4y1;
+	matrix[ 7][ 4] = sumx3y2;
+	matrix[ 8][ 4] = sumx2y3;
+	matrix[ 9][ 4] = sumx1y4;
+	matrix[10][ 4] = sumx5y1;
+	matrix[11][ 4] = sumx4y2;
+	matrix[12][ 4] = sumx3y3;
+	matrix[13][ 4] = sumx2y4;
+	matrix[14][ 4] = sumx1y5;
+
+	matrix[ 0][ 5] = sumx0y2;
+	matrix[ 1][ 5] = sumx1y2;
+	matrix[ 2][ 5] = sumx0y3;
+	matrix[ 3][ 5] = sumx2y2;
+	matrix[ 4][ 5] = sumx1y3;
+	matrix[ 5][ 5] = sumx0y4;
+	matrix[ 6][ 5] = sumx3y2;
+	matrix[ 7][ 5] = sumx2y3;
+	matrix[ 8][ 5] = sumx1y4;
+	matrix[ 9][ 5] = sumx0y5;
+	matrix[10][ 5] = sumx4y2;
+	matrix[11][ 5] = sumx3y3;
+	matrix[12][ 5] = sumx2y4;
+	matrix[13][ 5] = sumx1y5;
+	matrix[14][ 5] = sumx0y6;
+
+	matrix[ 0][ 6] = sumx3y0;
+	matrix[ 1][ 6] = sumx4y0;
+	matrix[ 2][ 6] = sumx3y1;
+	matrix[ 3][ 6] = sumx5y0;
+	matrix[ 4][ 6] = sumx4y1;
+	matrix[ 5][ 6] = sumx3y2;
+	matrix[ 6][ 6] = sumx6y0;
+	matrix[ 7][ 6] = sumx5y1;
+	matrix[ 8][ 6] = sumx4y2;
+	matrix[ 9][ 6] = sumx3y3;
+	matrix[10][ 6] = sumx7y0;
+	matrix[11][ 6] = sumx6y1;
+	matrix[12][ 6] = sumx5y2;
+	matrix[13][ 6] = sumx4y3;
+	matrix[14][ 6] = sumx3y4;
+
+	matrix[ 0][ 7] = sumx2y1;
+	matrix[ 1][ 7] = sumx3y1;
+	matrix[ 2][ 7] = sumx2y2;
+	matrix[ 3][ 7] = sumx4y1;
+	matrix[ 4][ 7] = sumx3y2;
+	matrix[ 5][ 7] = sumx2y3;
+	matrix[ 6][ 7] = sumx5y1;
+	matrix[ 7][ 7] = sumx4y2;
+	matrix[ 8][ 7] = sumx3y3;
+	matrix[ 9][ 7] = sumx2y4;
+	matrix[10][ 7] = sumx6y1;
+	matrix[11][ 7] = sumx5y2;
+	matrix[12][ 7] = sumx4y3;
+	matrix[13][ 7] = sumx3y4;
+	matrix[14][ 7] = sumx2y5;
+
+	matrix[ 0][ 8] = sumx1y2;
+	matrix[ 1][ 8] = sumx2y2;
+	matrix[ 2][ 8] = sumx1y3;
+	matrix[ 3][ 8] = sumx3y2;
+	matrix[ 4][ 8] = sumx2y3;
+	matrix[ 5][ 8] = sumx1y4;
+	matrix[ 6][ 8] = sumx4y2;
+	matrix[ 7][ 8] = sumx3y3;
+	matrix[ 8][ 8] = sumx2y4;
+	matrix[ 9][ 8] = sumx1y5;
+	matrix[10][ 8] = sumx5y2;
+	matrix[11][ 8] = sumx4y3;
+	matrix[12][ 8] = sumx3y4;
+	matrix[13][ 8] = sumx2y5;
+	matrix[14][ 8] = sumx1y6;
+
+	matrix[ 0][ 9] = sumx0y3;
+	matrix[ 1][ 9] = sumx1y3;
+	matrix[ 2][ 9] = sumx0y4;
+	matrix[ 3][ 9] = sumx2y3;
+	matrix[ 4][ 9] = sumx1y4;
+	matrix[ 5][ 9] = sumx0y5;
+	matrix[ 6][ 9] = sumx3y3;
+	matrix[ 7][ 9] = sumx2y4;
+	matrix[ 8][ 9] = sumx1y5;
+	matrix[ 9][ 9] = sumx0y6;
+	matrix[10][ 9] = sumx4y3;
+	matrix[11][ 9] = sumx3y4;
+	matrix[12][ 9] = sumx2y5;
+	matrix[13][ 9] = sumx1y6;
+	matrix[14][ 9] = sumx0y7;
+
+	matrix[ 0][10] = sumx4y0;
+	matrix[ 1][10] = sumx5y0;
+	matrix[ 2][10] = sumx4y1;
+	matrix[ 3][10] = sumx6y0;
+	matrix[ 4][10] = sumx5y1;
+	matrix[ 5][10] = sumx4y2;
+	matrix[ 6][10] = sumx7y0;
+	matrix[ 7][10] = sumx6y1;
+	matrix[ 8][10] = sumx5y2;
+	matrix[ 9][10] = sumx4y3;
+	matrix[10][10] = sumx8y0;
+	matrix[11][10] = sumx7y1;
+	matrix[12][10] = sumx6y2;
+	matrix[13][10] = sumx5y3;
+	matrix[14][10] = sumx4y4;
+
+	matrix[ 0][11] = sumx3y1;
+	matrix[ 1][11] = sumx4y1;
+	matrix[ 2][11] = sumx3y2;
+	matrix[ 3][11] = sumx5y1;
+	matrix[ 4][11] = sumx4y2;
+	matrix[ 5][11] = sumx3y3;
+	matrix[ 6][11] = sumx6y1;
+	matrix[ 7][11] = sumx5y2;
+	matrix[ 8][11] = sumx4y3;
+	matrix[ 9][11] = sumx3y4;
+	matrix[10][11] = sumx7y1;
+	matrix[11][11] = sumx6y2;
+	matrix[12][11] = sumx5y3;
+	matrix[13][11] = sumx4y4;
+	matrix[14][11] = sumx3y5;
+
+	matrix[ 0][12] = sumx2y2;
+	matrix[ 1][12] = sumx3y2;
+	matrix[ 2][12] = sumx2y3;
+	matrix[ 3][12] = sumx4y2;
+	matrix[ 4][12] = sumx3y3;
+	matrix[ 5][12] = sumx2y4;
+	matrix[ 6][12] = sumx5y2;
+	matrix[ 7][12] = sumx4y3;
+	matrix[ 8][12] = sumx3y4;
+	matrix[ 9][12] = sumx2y5;
+	matrix[10][12] = sumx6y2;
+	matrix[11][12] = sumx5y3;
+	matrix[12][12] = sumx4y4;
+	matrix[13][12] = sumx3y5;
+	matrix[14][12] = sumx2y6;
+
+	matrix[ 0][13] = sumx1y3;
+	matrix[ 1][13] = sumx2y3;
+	matrix[ 2][13] = sumx1y4;
+	matrix[ 3][13] = sumx3y3;
+	matrix[ 4][13] = sumx2y4;
+	matrix[ 5][13] = sumx1y5;
+	matrix[ 6][13] = sumx4y3;
+	matrix[ 7][13] = sumx3y4;
+	matrix[ 8][13] = sumx2y5;
+	matrix[ 9][13] = sumx1y6;
+	matrix[10][13] = sumx5y3;
+	matrix[11][13] = sumx4y4;
+	matrix[12][13] = sumx3y5;
+	matrix[13][13] = sumx2y6;
+	matrix[14][13] = sumx1y7;
+
+	matrix[ 0][14] = sumx0y4;
+	matrix[ 1][14] = sumx1y4;
+	matrix[ 2][14] = sumx0y5;
+	matrix[ 3][14] = sumx2y4;
+	matrix[ 4][14] = sumx1y5;
+	matrix[ 5][14] = sumx0y6;
+	matrix[ 6][14] = sumx3y4;
+	matrix[ 7][14] = sumx2y5;
+	matrix[ 8][14] = sumx1y6;
+	matrix[ 9][14] = sumx0y7;
+	matrix[10][14] = sumx4y4;
+	matrix[11][14] = sumx3y5;
+	matrix[12][14] = sumx2y6;
+	matrix[13][14] = sumx1y7;
+	matrix[14][14] = sumx0y8;
+
+	vector[ 0] = sumypx0y0;
+	vector[ 1] = sumypx1y0;
+	vector[ 2] = sumypx0y1;
+	vector[ 3] = sumypx2y0;
+	vector[ 4] = sumypx1y1;
+	vector[ 5] = sumypx0y2;
+	vector[ 6] = sumypx3y0;
+	vector[ 7] = sumypx2y1;
+	vector[ 8] = sumypx1y2;
+	vector[ 9] = sumypx0y3;
+	vector[10] = sumypx4y0;
+	vector[11] = sumypx3y1;
+	vector[12] = sumypx2y2;
+	vector[13] = sumypx1y3;
+	vector[14] = sumypx0y4;
+
+#ifdef DEBUG
+	printf("before calling solution routines for ABCDEFGHIJ, here's matrix\n");
+	print_matrix(matrix, 15);
+#endif
+
+	/*
+	 * and now call the Gaussian-elimination routines to solve the matrix.
+	 * The solution for TRANS coefficients will be placed
+	 * into the elements on "vector" after "gauss_matrix" finishes.
+	 */
+	if (gauss_matrix(matrix, 15, vector) != SH_SUCCESS) {
+		shError("calc_trans_order: can't solve for coeffs yij");
+		free_matrix(matrix, 15);
+		return (SH_GENERIC_ERROR);
+	}
+
+#ifdef DEBUG
+	printf("after calling solution routines, here's matrix\n");
+	print_matrix(matrix, 15);
+#endif
+
+	solved_y00 = vector[ 0];
+	solved_y10 = vector[ 1];
+	solved_y01 = vector[ 2];
+	solved_y20 = vector[ 3];
+	solved_y11 = vector[ 4];
+	solved_y02 = vector[ 5];
+	solved_y30 = vector[ 6];
+	solved_y21 = vector[ 7];
+	solved_y12 = vector[ 8];
+	solved_y03 = vector[ 9];
+	solved_y40 = vector[10];
+	solved_y31 = vector[11];
+	solved_y22 = vector[12];
+	solved_y13 = vector[13];
+	solved_y04 = vector[14];
+
+	/*
+	 * assign the coefficients we've just calculated to the output
+	 * TRANS structure.
+	 */
+	trans->x00 = solved_x00;
+	trans->x10 = solved_x10;
+	trans->x01 = solved_x01;
+	trans->x20 = solved_x20;
+	trans->x11 = solved_x11;
+	trans->x02 = solved_x02;
+	trans->x30 = solved_x30;
+	trans->x21 = solved_x21;
+	trans->x12 = solved_x12;
+	trans->x03 = solved_x03;
+	trans->x40 = solved_x40;
+	trans->x31 = solved_x31;
+	trans->x22 = solved_x22;
+	trans->x13 = solved_x13;
+	trans->x04 = solved_x04;
+
+	trans->y00 = solved_y00;
+	trans->y10 = solved_y10;
+	trans->y01 = solved_y01;
+	trans->y20 = solved_y20;
+	trans->y11 = solved_y11;
+	trans->y02 = solved_y02;
+	trans->y30 = solved_y30;
+	trans->y21 = solved_y21;
+	trans->y12 = solved_y12;
+	trans->y03 = solved_y03;
+	trans->y40 = solved_y40;
+	trans->y31 = solved_y31;
+	trans->y22 = solved_y22;
+	trans->y13 = solved_y13;
+	trans->y04 = solved_y04;
+
+	/*
+	 * free up memory we allocated for this function
+	 */
+	free_matrix(matrix, 15);
+
+	return (SH_SUCCESS);
+}
+
+static int calc_trans_quintic(int nbright, /* I: max number of stars we use in calculating */
+/*      the transformation; we may cut down to */
+/*      a more well-behaved subset. */
+s_star *star_array_A, /* I: first array of s_star structure we match */
+/*      the output TRANS takes their coords */
+/*      into those of array B */
+int num_stars_A, /* I: total number of stars in star_array_A */
+s_star *star_array_B, /* I: second array of s_star structure we match */
+int num_stars_B, /* I: total number of stars in star_array_B */
+int *winner_votes, /* I: number of votes gotten by the top 'nbright' */
+/*      matched pairs of stars */
+int *winner_index_A, /* I: index into "star_array_A" of top */
+/*      vote-getters */
+int *winner_index_B, /* I: index into "star_array_B" of top */
+/*      vote-getters */
+TRANS *trans /* O: place solved coefficients into this */
+/*      existing structure's fields */
+) {
+	int i;
+	double **matrix;
+	double vector[21];
+	double solved_x00, solved_x10, solved_x01, solved_x20, solved_x11, solved_x02, solved_x30, solved_x21, solved_x12, solved_x03, solved_x40, solved_x31, solved_x22, solved_x13, solved_x04;
+	double solved_y00, solved_y10, solved_y01, solved_y20, solved_y11, solved_y02, solved_y30, solved_y21, solved_y12, solved_y03, solved_y40, solved_y31, solved_y22, solved_y13, solved_y04;
+	double solved_x50, solved_x41, solved_x32, solved_x23, solved_x14, solved_x05;
+	double solved_y50, solved_y41, solved_y32, solved_y23, solved_y14, solved_y05;
+	s_star *s1, *s2;
+
+	/*
+	 * in variable names below, a `xayb` means x^a*y^b for with (x,Y) the coords of star s1
+	 *   (which appear on both sides of the matrix equation)
+	 *                      and a 'p' refers to coordinates of star s2
+	 *   (which appears only on left hand side of matrix equation)
+	 */
+	double sumxpx0y0, sumxpx1y0, sumxpx0y1, sumxpx2y0, sumxpx1y1, sumxpx0y2;
+	double sumxpx3y0, sumxpx2y1, sumxpx1y2, sumxpx0y3;
+	double sumxpx4y0, sumxpx3y1, sumxpx2y2, sumxpx1y3, sumxpx0y4;
+	double sumxpx5y0, sumxpx4y1, sumxpx3y2, sumxpx2y3, sumxpx1y4, sumxpx0y5;
+	double sumypx0y0, sumypx1y0, sumypx0y1, sumypx2y0, sumypx1y1, sumypx0y2;
+	double sumypx3y0, sumypx2y1, sumypx1y2, sumypx0y3;
+	double sumypx4y0, sumypx3y1, sumypx2y2, sumypx1y3, sumypx0y4;
+	double sumypx5y0, sumypx4y1, sumypx3y2, sumypx2y3, sumypx1y4, sumypx0y5;
+
+	double sumx0y0;
+	double sumx1y0, sumx0y1;
+	double sumx2y0, sumx1y1, sumx0y2;
+	double sumx3y0, sumx2y1, sumx1y2, sumx0y3;
+	double sumx4y0, sumx3y1, sumx2y2, sumx1y3, sumx0y4;
+	double sumx5y0, sumx4y1, sumx3y2, sumx2y3, sumx1y4, sumx0y5;
+	double sumx6y0, sumx5y1, sumx4y2, sumx3y3, sumx2y4, sumx1y5, sumx0y6;
+	double sumx7y0, sumx6y1, sumx5y2, sumx4y3, sumx3y4, sumx2y5, sumx1y6, sumx0y7;
+	double sumx8y0, sumx7y1, sumx6y2, sumx5y3, sumx4y4, sumx3y5, sumx2y6, sumx1y7, sumx0y8;
+	double sumx9y0, sumx8y1, sumx7y2, sumx6y3, sumx5y4, sumx4y5, sumx3y6, sumx2y7, sumx1y8, sumx0y9;
+	double sumx10y0, sumx9y1, sumx8y2, sumx7y3, sumx6y4, sumx5y5, sumx4y6, sumx3y7, sumx2y8, sumx1y9, sumx0y10;
+
+	g_assert(nbright >= AT_MATCH_REQUIRE_QUINTIC);
+	g_assert(trans->order == AT_TRANS_QUINTIC);
+
+	/*
+	 * allocate a matrix we'll need for this function
+	 */
+	matrix = alloc_matrix(21);
+
+	/*
+	 * first, we consider the coefficients Xij in the trans.
+	 * we form the sums that make up the elements of matrix M
+	 */
+
+	sumx0y0 = 0.0;
+
+	sumx1y0 = 0.0;
+	sumx0y1 = 0.0;
+
+	sumx2y0 = 0.0;
+	sumx1y1 = 0.0;
+	sumx0y2 = 0.0;
+
+	sumx3y0 = 0.0;
+	sumx2y1 = 0.0;
+	sumx1y2 = 0.0;
+	sumx0y3 = 0.0;
+
+	sumx4y0 = 0.0;
+	sumx3y1 = 0.0;
+	sumx2y2 = 0.0;
+	sumx1y3 = 0.0;
+	sumx0y4 = 0.0;
+
+	sumx5y0 = 0.0;
+	sumx4y1 = 0.0;
+	sumx3y2 = 0.0;
+	sumx2y3 = 0.0;
+	sumx1y4 = 0.0;
+	sumx0y5 = 0.0;
+
+	sumx6y0 = 0.0;
+	sumx5y1 = 0.0;
+	sumx4y2 = 0.0;
+	sumx3y3 = 0.0;
+	sumx2y4 = 0.0;
+	sumx1y5 = 0.0;
+	sumx0y6 = 0.0;
+
+	sumx7y0 = 0.0;
+	sumx6y1 = 0.0;
+	sumx5y2 = 0.0;
+	sumx4y3 = 0.0;
+	sumx3y4 = 0.0;
+	sumx2y5 = 0.0;
+	sumx1y6 = 0.0;
+	sumx0y7 = 0.0;
+
+	sumx8y0 = 0.0;
+	sumx7y1 = 0.0;
+	sumx6y2 = 0.0;
+	sumx5y3 = 0.0;
+	sumx4y4 = 0.0;
+	sumx3y5 = 0.0;
+	sumx2y6 = 0.0;
+	sumx1y7 = 0.0;
+	sumx0y8 = 0.0;
+
+	sumx9y0 = 0.0;
+	sumx8y1 = 0.0;
+	sumx7y2 = 0.0;
+	sumx6y3 = 0.0;
+	sumx5y4 = 0.0;
+	sumx4y5 = 0.0;
+	sumx3y6 = 0.0;
+	sumx2y7 = 0.0;
+	sumx1y8 = 0.0;
+	sumx0y9 = 0.0;
+
+	sumx10y0 = 0.0;
+	sumx9y1 = 0.0;
+	sumx8y2 = 0.0;
+	sumx7y3 = 0.0;
+	sumx6y4 = 0.0;
+	sumx5y5 = 0.0;
+	sumx4y6 = 0.0;
+	sumx3y7 = 0.0;
+	sumx2y8 = 0.0;
+	sumx1y9 = 0.0;
+	sumx0y10 = 0.0;
+
+	sumxpx0y0 = 0.0;
+	sumxpx1y0 = 0.0;
+	sumxpx0y1 = 0.0;
+	sumxpx2y0 = 0.0;
+	sumxpx1y1 = 0.0;
+	sumxpx0y2 = 0.0;
+	sumxpx3y0 = 0.0;
+	sumxpx2y1 = 0.0;
+	sumxpx1y2 = 0.0;
+	sumxpx0y3 = 0.0;
+	sumxpx4y0 = 0.0;
+	sumxpx3y1 = 0.0;
+	sumxpx2y2 = 0.0;
+	sumxpx1y3 = 0.0;
+	sumxpx0y4 = 0.0;
+	sumxpx5y0 = 0.0;
+	sumxpx4y1 = 0.0;
+	sumxpx3y2 = 0.0;
+	sumxpx2y3 = 0.0;
+	sumxpx1y4 = 0.0;
+	sumxpx0y5 = 0.0;
+
+	sumypx0y0 = 0.0;
+	sumypx1y0 = 0.0;
+	sumypx0y1 = 0.0;
+	sumypx2y0 = 0.0;
+	sumypx1y1 = 0.0;
+	sumypx0y2 = 0.0;
+	sumypx3y0 = 0.0;
+	sumypx2y1 = 0.0;
+	sumypx1y2 = 0.0;
+	sumypx0y3 = 0.0;
+	sumypx4y0 = 0.0;
+	sumypx3y1 = 0.0;
+	sumypx2y2 = 0.0;
+	sumypx1y3 = 0.0;
+	sumypx0y4 = 0.0;
+	sumypx5y0 = 0.0;
+	sumypx4y1 = 0.0;
+	sumypx3y2 = 0.0;
+	sumypx2y3 = 0.0;
+	sumypx1y4 = 0.0;
+	sumypx0y5 = 0.0;
+
+
+	for (i = 0; i < nbright; i++) {
+
+		/* sanity checks */
+		g_assert(winner_index_A[i] < num_stars_A);
+		s1 = &(star_array_A[winner_index_A[i]]);
+		g_assert(winner_index_B[i] < num_stars_B);
+		s2 = &(star_array_B[winner_index_B[i]]);
+
+		sumxpx0y0 += s2->x;
+		sumxpx1y0 += s2->x * s1->x;
+		sumxpx0y1 += s2->x * s1->y;
+		sumxpx2y0 += s2->x * s1->x * s1->x;
+		sumxpx1y1 += s2->x * s1->x * s1->y;
+		sumxpx0y2 += s2->x * s1->y * s1->y;
+		sumxpx3y0 += s2->x * s1->x * s1->x * s1->x;
+		sumxpx2y1 += s2->x * s1->x * s1->x * s1->y;
+		sumxpx1y2 += s2->x * s1->x * s1->y * s1->y;
+		sumxpx0y3 += s2->x * s1->y * s1->y * s1->y;
+		sumxpx4y0 += s2->x * s1->x * s1->x * s1->x * s1->x;
+		sumxpx3y1 += s2->x * s1->x * s1->x * s1->x * s1->y;
+		sumxpx2y2 += s2->x * s1->x * s1->x * s1->y * s1->y;
+		sumxpx1y3 += s2->x * s1->x * s1->y * s1->y * s1->y;
+		sumxpx0y4 += s2->x * s1->y * s1->y * s1->y * s1->y;
+		sumxpx5y0 += s2->x * s1->x * s1->x * s1->x * s1->x * s1->x;
+		sumxpx4y1 += s2->x * s1->x * s1->x * s1->x * s1->x * s1->y;
+		sumxpx3y2 += s2->x * s1->x * s1->x * s1->x * s1->y * s1->y;
+		sumxpx2y3 += s2->x * s1->x * s1->x * s1->y * s1->y * s1->y;
+		sumxpx1y4 += s2->x * s1->x * s1->y * s1->y * s1->y * s1->y;
+		sumxpx0y5 += s2->x * s1->y * s1->y * s1->y * s1->y * s1->y;
+
+		sumypx0y0 += s2->y;
+		sumypx1y0 += s2->y * s1->x;
+		sumypx0y1 += s2->y * s1->y;
+		sumypx2y0 += s2->y * s1->x * s1->x;
+		sumypx1y1 += s2->y * s1->x * s1->y;
+		sumypx0y2 += s2->y * s1->y * s1->y;
+		sumypx3y0 += s2->y * s1->x * s1->x * s1->x;
+		sumypx2y1 += s2->y * s1->x * s1->x * s1->y;
+		sumypx1y2 += s2->y * s1->x * s1->y * s1->y;
+		sumypx0y3 += s2->y * s1->y * s1->y * s1->y;
+		sumypx4y0 += s2->y * s1->x * s1->x * s1->x * s1->x;
+		sumypx3y1 += s2->y * s1->x * s1->x * s1->x * s1->y;
+		sumypx2y2 += s2->y * s1->x * s1->x * s1->y * s1->y;
+		sumypx1y3 += s2->y * s1->x * s1->y * s1->y * s1->y;
+		sumypx0y4 += s2->y * s1->y * s1->y * s1->y * s1->y;
+		sumypx5y0 += s2->y * s1->x * s1->x * s1->x * s1->x * s1->x;
+		sumypx4y1 += s2->y * s1->x * s1->x * s1->x * s1->x * s1->y;
+		sumypx3y2 += s2->y * s1->x * s1->x * s1->x * s1->y * s1->y;
+		sumypx2y3 += s2->y * s1->x * s1->x * s1->y * s1->y * s1->y;
+		sumypx1y4 += s2->y * s1->x * s1->y * s1->y * s1->y * s1->y;
+		sumypx0y5 += s2->y * s1->y * s1->y * s1->y * s1->y * s1->y;
+
+
+		/* elements of the matrix */
+		sumx0y0 += 1.0;
+		sumx1y0 += s1->x;
+		sumx0y1 += s1->y;
+
+		sumx2y0 += s1->x * s1->x;
+		sumx1y1 += s1->x * s1->y;
+		sumx0y2 += s1->y * s1->y;
+
+		sumx3y0 += s1->x * s1->x * s1->x;
+		sumx2y1 += s1->x * s1->x * s1->y;
+		sumx1y2 += s1->x * s1->y * s1->y;
+		sumx0y3 += s1->y * s1->y * s1->y;
+
+		sumx4y0 += s1->x * s1->x * s1->x * s1->x;
+		sumx3y1 += s1->x * s1->x * s1->x * s1->y;
+		sumx2y2 += s1->x * s1->x * s1->y * s1->y;
+		sumx1y3 += s1->x * s1->y * s1->y * s1->y;
+		sumx0y4 += s1->y * s1->y * s1->y * s1->y;
+
+		sumx5y0 += s1->x * s1->x * s1->x * s1->x * s1->x;
+		sumx4y1 += s1->x * s1->x * s1->x * s1->x * s1->y;
+		sumx3y2 += s1->x * s1->x * s1->x * s1->y * s1->y;
+		sumx2y3 += s1->x * s1->x * s1->y * s1->y * s1->y;
+		sumx1y4 += s1->x * s1->y * s1->y * s1->y * s1->y;
+		sumx0y5 += s1->y * s1->y * s1->y * s1->y * s1->y;
+
+		sumx6y0 += s1->x * s1->x * s1->x * s1->x * s1->x * s1->x;
+		sumx5y1 += s1->x * s1->x * s1->x * s1->x * s1->x * s1->y;
+		sumx4y2 += s1->x * s1->x * s1->x * s1->x * s1->y * s1->y;
+		sumx3y3 += s1->x * s1->x * s1->x * s1->y * s1->y * s1->y;
+		sumx2y4 += s1->x * s1->x * s1->y * s1->y * s1->y * s1->y;
+		sumx1y5 += s1->x * s1->y * s1->y * s1->y * s1->y * s1->y;
+		sumx0y6 += s1->y * s1->y * s1->y * s1->y * s1->y * s1->y;
+
+		sumx7y0 += s1->x * s1->x * s1->x * s1->x * s1->x * s1->x * s1->x;
+		sumx6y1 += s1->x * s1->x * s1->x * s1->x * s1->x * s1->x * s1->y;
+		sumx5y2 += s1->x * s1->x * s1->x * s1->x * s1->x * s1->y * s1->y;
+		sumx4y3 += s1->x * s1->x * s1->x * s1->x * s1->y * s1->y * s1->y;
+		sumx3y4 += s1->x * s1->x * s1->x * s1->y * s1->y * s1->y * s1->y;
+		sumx2y5 += s1->x * s1->x * s1->y * s1->y * s1->y * s1->y * s1->y;
+		sumx1y6 += s1->x * s1->y * s1->y * s1->y * s1->y * s1->y * s1->y;
+		sumx0y7 += s1->y * s1->y * s1->y * s1->y * s1->y * s1->y * s1->y;
+
+		sumx8y0 += s1->x * s1->x * s1->x * s1->x * s1->x * s1->x * s1->x * s1->x;
+		sumx7y1 += s1->x * s1->x * s1->x * s1->x * s1->x * s1->x * s1->x * s1->y;
+		sumx6y2 += s1->x * s1->x * s1->x * s1->x * s1->x * s1->x * s1->y * s1->y;
+		sumx5y3 += s1->x * s1->x * s1->x * s1->x * s1->x * s1->y * s1->y * s1->y;
+		sumx4y4 += s1->x * s1->x * s1->x * s1->x * s1->y * s1->y * s1->y * s1->y;
+		sumx3y5 += s1->x * s1->x * s1->x * s1->y * s1->y * s1->y * s1->y * s1->y;
+		sumx2y6 += s1->x * s1->x * s1->y * s1->y * s1->y * s1->y * s1->y * s1->y;
+		sumx1y7 += s1->x * s1->y * s1->y * s1->y * s1->y * s1->y * s1->y * s1->y;
+		sumx0y8 += s1->y * s1->y * s1->y * s1->y * s1->y * s1->y * s1->y * s1->y;
+
+		sumx9y0 += s1->x * s1->x * s1->x * s1->x * s1->x * s1->x * s1->x * s1->x * s1->x;
+		sumx8y1 += s1->x * s1->x * s1->x * s1->x * s1->x * s1->x * s1->x * s1->x * s1->y;
+		sumx7y2 += s1->x * s1->x * s1->x * s1->x * s1->x * s1->x * s1->x * s1->y * s1->y;
+		sumx6y3 += s1->x * s1->x * s1->x * s1->x * s1->x * s1->x * s1->y * s1->y * s1->y;
+		sumx5y4 += s1->x * s1->x * s1->x * s1->x * s1->x * s1->y * s1->y * s1->y * s1->y;
+		sumx4y5 += s1->x * s1->x * s1->x * s1->x * s1->y * s1->y * s1->y * s1->y * s1->y;
+		sumx3y6 += s1->x * s1->x * s1->x * s1->y * s1->y * s1->y * s1->y * s1->y * s1->y;
+		sumx2y7 += s1->x * s1->x * s1->y * s1->y * s1->y * s1->y * s1->y * s1->y * s1->y;
+		sumx1y8 += s1->x * s1->y * s1->y * s1->y * s1->y * s1->y * s1->y * s1->y * s1->y;
+		sumx0y9 += s1->y * s1->y * s1->y * s1->y * s1->y * s1->y * s1->y * s1->y * s1->y;
+
+	   sumx10y0 += s1->x * s1->x * s1->x * s1->x * s1->x * s1->x * s1->x * s1->x * s1->x * s1->x;
+		sumx9y0 += s1->x * s1->x * s1->x * s1->x * s1->x * s1->x * s1->x * s1->x * s1->x * s1->y;
+		sumx8y1 += s1->x * s1->x * s1->x * s1->x * s1->x * s1->x * s1->x * s1->x * s1->y * s1->y;
+		sumx7y2 += s1->x * s1->x * s1->x * s1->x * s1->x * s1->x * s1->x * s1->y * s1->y * s1->y;
+		sumx6y3 += s1->x * s1->x * s1->x * s1->x * s1->x * s1->x * s1->y * s1->y * s1->y * s1->y;
+		sumx5y4 += s1->x * s1->x * s1->x * s1->x * s1->x * s1->y * s1->y * s1->y * s1->y * s1->y;
+		sumx4y5 += s1->x * s1->x * s1->x * s1->x * s1->y * s1->y * s1->y * s1->y * s1->y * s1->y;
+		sumx3y6 += s1->x * s1->x * s1->x * s1->y * s1->y * s1->y * s1->y * s1->y * s1->y * s1->y;
+		sumx2y7 += s1->x * s1->x * s1->y * s1->y * s1->y * s1->y * s1->y * s1->y * s1->y * s1->y;
+		sumx1y8 += s1->x * s1->y * s1->y * s1->y * s1->y * s1->y * s1->y * s1->y * s1->y * s1->y;
+	   sumx0y10 += s1->y * s1->y * s1->y * s1->y * s1->y * s1->y * s1->y * s1->y * s1->y * s1->y;
+	}
+
+	/*
+	 * now turn these sums into a matrix and a vector
+	 */
+
+	matrix[0][0] = sumx0y0;  matrix[0][1] = sumx1y0; matrix[0][2] = sumx0y1; matrix[0][3] = sumx2y0; matrix[0][4] = sumx1y1; matrix[0][5] = sumx0y2; matrix[0][6] = sumx3y0; matrix[0][7] = sumx2y1; matrix[0][8] = sumx1y2; matrix[0][9] = sumx0y3; matrix[0][10] = sumx4y0; matrix[0][11] = sumx3y1; matrix[0][12] = sumx2y2; matrix[0][13] = sumx1y3; matrix[0][14] = sumx0y4; matrix[0][15] = sumx5y0; matrix[0][16] = sumx4y1; matrix[0][17] = sumx3y2; matrix[0][18] = sumx2y3; matrix[0][19] = sumx1y4; matrix[0][20] = sumx0y5; 
+	matrix[1][0] = sumx1y0;  matrix[1][1] = sumx2y0; matrix[1][2] = sumx1y1; matrix[1][3] = sumx3y0; matrix[1][4] = sumx2y1; matrix[1][5] = sumx1y2; matrix[1][6] = sumx4y0; matrix[1][7] = sumx3y1; matrix[1][8] = sumx2y2; matrix[1][9] = sumx1y3; matrix[1][10] = sumx5y0; matrix[1][11] = sumx4y1; matrix[1][12] = sumx3y2; matrix[1][13] = sumx2y3; matrix[1][14] = sumx1y4; matrix[1][15] = sumx6y0; matrix[1][16] = sumx5y1; matrix[1][17] = sumx4y2; matrix[1][18] = sumx3y3; matrix[1][19] = sumx2y4; matrix[1][20] = sumx1y5; 
+	matrix[2][0] = sumx0y1;  matrix[2][1] = sumx1y1; matrix[2][2] = sumx0y2; matrix[2][3] = sumx2y1; matrix[2][4] = sumx1y2; matrix[2][5] = sumx0y3; matrix[2][6] = sumx3y1; matrix[2][7] = sumx2y2; matrix[2][8] = sumx1y3; matrix[2][9] = sumx0y4; matrix[2][10] = sumx4y1; matrix[2][11] = sumx3y2; matrix[2][12] = sumx2y3; matrix[2][13] = sumx1y4; matrix[2][14] = sumx0y5; matrix[2][15] = sumx5y1; matrix[2][16] = sumx4y2; matrix[2][17] = sumx3y3; matrix[2][18] = sumx2y4; matrix[2][19] = sumx1y5; matrix[2][20] = sumx0y6; 
+	matrix[3][0] = sumx2y0;  matrix[3][1] = sumx3y0; matrix[3][2] = sumx2y1; matrix[3][3] = sumx4y0; matrix[3][4] = sumx3y1; matrix[3][5] = sumx2y2; matrix[3][6] = sumx5y0; matrix[3][7] = sumx4y1; matrix[3][8] = sumx3y2; matrix[3][9] = sumx2y3; matrix[3][10] = sumx6y0; matrix[3][11] = sumx5y1; matrix[3][12] = sumx4y2; matrix[3][13] = sumx3y3; matrix[3][14] = sumx2y4; matrix[3][15] = sumx7y0; matrix[3][16] = sumx6y1; matrix[3][17] = sumx5y2; matrix[3][18] = sumx4y3; matrix[3][19] = sumx3y4; matrix[3][20] = sumx2y5; 
+	matrix[4][0] = sumx1y1;  matrix[4][1] = sumx2y1; matrix[4][2] = sumx1y2; matrix[4][3] = sumx3y1; matrix[4][4] = sumx2y2; matrix[4][5] = sumx1y3; matrix[4][6] = sumx4y1; matrix[4][7] = sumx3y2; matrix[4][8] = sumx2y3; matrix[4][9] = sumx1y4; matrix[4][10] = sumx5y1; matrix[4][11] = sumx4y2; matrix[4][12] = sumx3y3; matrix[4][13] = sumx2y4; matrix[4][14] = sumx1y5; matrix[4][15] = sumx6y1; matrix[4][16] = sumx5y2; matrix[4][17] = sumx4y3; matrix[4][18] = sumx3y4; matrix[4][19] = sumx2y5; matrix[4][20] = sumx1y6; 
+	matrix[5][0] = sumx0y2;  matrix[5][1] = sumx1y2; matrix[5][2] = sumx0y3; matrix[5][3] = sumx2y2; matrix[5][4] = sumx1y3; matrix[5][5] = sumx0y4; matrix[5][6] = sumx3y2; matrix[5][7] = sumx2y3; matrix[5][8] = sumx1y4; matrix[5][9] = sumx0y5; matrix[5][10] = sumx4y2; matrix[5][11] = sumx3y3; matrix[5][12] = sumx2y4; matrix[5][13] = sumx1y5; matrix[5][14] = sumx0y6; matrix[5][15] = sumx5y2; matrix[5][16] = sumx4y3; matrix[5][17] = sumx3y4; matrix[5][18] = sumx2y5; matrix[5][19] = sumx1y6; matrix[5][20] = sumx0y7; 
+	matrix[6][0] = sumx3y0;  matrix[6][1] = sumx4y0; matrix[6][2] = sumx3y1; matrix[6][3] = sumx5y0; matrix[6][4] = sumx4y1; matrix[6][5] = sumx3y2; matrix[6][6] = sumx6y0; matrix[6][7] = sumx5y1; matrix[6][8] = sumx4y2; matrix[6][9] = sumx3y3; matrix[6][10] = sumx7y0; matrix[6][11] = sumx6y1; matrix[6][12] = sumx5y2; matrix[6][13] = sumx4y3; matrix[6][14] = sumx3y4; matrix[6][15] = sumx8y0; matrix[6][16] = sumx7y1; matrix[6][17] = sumx6y2; matrix[6][18] = sumx5y3; matrix[6][19] = sumx4y4; matrix[6][20] = sumx3y5; 
+	matrix[7][0] = sumx2y1;  matrix[7][1] = sumx3y1; matrix[7][2] = sumx2y2; matrix[7][3] = sumx4y1; matrix[7][4] = sumx3y2; matrix[7][5] = sumx2y3; matrix[7][6] = sumx5y1; matrix[7][7] = sumx4y2; matrix[7][8] = sumx3y3; matrix[7][9] = sumx2y4; matrix[7][10] = sumx6y1; matrix[7][11] = sumx5y2; matrix[7][12] = sumx4y3; matrix[7][13] = sumx3y4; matrix[7][14] = sumx2y5; matrix[7][15] = sumx7y1; matrix[7][16] = sumx6y2; matrix[7][17] = sumx5y3; matrix[7][18] = sumx4y4; matrix[7][19] = sumx3y5; matrix[7][20] = sumx2y6; 
+	matrix[8][0] = sumx1y2;  matrix[8][1] = sumx2y2; matrix[8][2] = sumx1y3; matrix[8][3] = sumx3y2; matrix[8][4] = sumx2y3; matrix[8][5] = sumx1y4; matrix[8][6] = sumx4y2; matrix[8][7] = sumx3y3; matrix[8][8] = sumx2y4; matrix[8][9] = sumx1y5; matrix[8][10] = sumx5y2; matrix[8][11] = sumx4y3; matrix[8][12] = sumx3y4; matrix[8][13] = sumx2y5; matrix[8][14] = sumx1y6; matrix[8][15] = sumx6y2; matrix[8][16] = sumx5y3; matrix[8][17] = sumx4y4; matrix[8][18] = sumx3y5; matrix[8][19] = sumx2y6; matrix[8][20] = sumx1y7; 
+	matrix[9][0] = sumx0y3;  matrix[9][1] = sumx1y3; matrix[9][2] = sumx0y4; matrix[9][3] = sumx2y3; matrix[9][4] = sumx1y4; matrix[9][5] = sumx0y5; matrix[9][6] = sumx3y3; matrix[9][7] = sumx2y4; matrix[9][8] = sumx1y5; matrix[9][9] = sumx0y6; matrix[9][10] = sumx4y3; matrix[9][11] = sumx3y4; matrix[9][12] = sumx2y5; matrix[9][13] = sumx1y6; matrix[9][14] = sumx0y7; matrix[9][15] = sumx5y3; matrix[9][16] = sumx4y4; matrix[9][17] = sumx3y5; matrix[9][18] = sumx2y6; matrix[9][19] = sumx1y7; matrix[9][20] = sumx0y8; 
+	matrix[10][0] = sumx4y0; matrix[10][1] = sumx5y0; matrix[10][2] = sumx4y1; matrix[10][3] = sumx6y0; matrix[10][4] = sumx5y1; matrix[10][5] = sumx4y2; matrix[10][6] = sumx7y0; matrix[10][7] = sumx6y1; matrix[10][8] = sumx5y2; matrix[10][9] = sumx4y3; matrix[10][10] = sumx8y0; matrix[10][11] = sumx7y1; matrix[10][12] = sumx6y2; matrix[10][13] = sumx5y3; matrix[10][14] = sumx4y4; matrix[10][15] = sumx9y0; matrix[10][16] = sumx8y1; matrix[10][17] = sumx7y2; matrix[10][18] = sumx6y3; matrix[10][19] = sumx5y4; matrix[10][20] = sumx4y5; 
+	matrix[11][0] = sumx3y1; matrix[11][1] = sumx4y1; matrix[11][2] = sumx3y2; matrix[11][3] = sumx5y1; matrix[11][4] = sumx4y2; matrix[11][5] = sumx3y3; matrix[11][6] = sumx6y1; matrix[11][7] = sumx5y2; matrix[11][8] = sumx4y3; matrix[11][9] = sumx3y4; matrix[11][10] = sumx7y1; matrix[11][11] = sumx6y2; matrix[11][12] = sumx5y3; matrix[11][13] = sumx4y4; matrix[11][14] = sumx3y5; matrix[11][15] = sumx8y1; matrix[11][16] = sumx7y2; matrix[11][17] = sumx6y3; matrix[11][18] = sumx5y4; matrix[11][19] = sumx4y5; matrix[11][20] = sumx3y6; 
+	matrix[12][0] = sumx2y2; matrix[12][1] = sumx3y2; matrix[12][2] = sumx2y3; matrix[12][3] = sumx4y2; matrix[12][4] = sumx3y3; matrix[12][5] = sumx2y4; matrix[12][6] = sumx5y2; matrix[12][7] = sumx4y3; matrix[12][8] = sumx3y4; matrix[12][9] = sumx2y5; matrix[12][10] = sumx6y2; matrix[12][11] = sumx5y3; matrix[12][12] = sumx4y4; matrix[12][13] = sumx3y5; matrix[12][14] = sumx2y6; matrix[12][15] = sumx7y2; matrix[12][16] = sumx6y3; matrix[12][17] = sumx5y4; matrix[12][18] = sumx4y5; matrix[12][19] = sumx3y6; matrix[12][20] = sumx2y7; 
+	matrix[13][0] = sumx1y3; matrix[13][1] = sumx2y3; matrix[13][2] = sumx1y4; matrix[13][3] = sumx3y3; matrix[13][4] = sumx2y4; matrix[13][5] = sumx1y5; matrix[13][6] = sumx4y3; matrix[13][7] = sumx3y4; matrix[13][8] = sumx2y5; matrix[13][9] = sumx1y6; matrix[13][10] = sumx5y3; matrix[13][11] = sumx4y4; matrix[13][12] = sumx3y5; matrix[13][13] = sumx2y6; matrix[13][14] = sumx1y7; matrix[13][15] = sumx6y3; matrix[13][16] = sumx5y4; matrix[13][17] = sumx4y5; matrix[13][18] = sumx3y6; matrix[13][19] = sumx2y7; matrix[13][20] = sumx1y8; 
+	matrix[14][0] = sumx0y4; matrix[14][1] = sumx1y4; matrix[14][2] = sumx0y5; matrix[14][3] = sumx2y4; matrix[14][4] = sumx1y5; matrix[14][5] = sumx0y6; matrix[14][6] = sumx3y4; matrix[14][7] = sumx2y5; matrix[14][8] = sumx1y6; matrix[14][9] = sumx0y7; matrix[14][10] = sumx4y4; matrix[14][11] = sumx3y5; matrix[14][12] = sumx2y6; matrix[14][13] = sumx1y7; matrix[14][14] = sumx0y8; matrix[14][15] = sumx5y4; matrix[14][16] = sumx4y5; matrix[14][17] = sumx3y6; matrix[14][18] = sumx2y7; matrix[14][19] = sumx1y8; matrix[14][20] = sumx0y9; 
+	matrix[15][0] = sumx5y0; matrix[15][1] = sumx6y0; matrix[15][2] = sumx5y1; matrix[15][3] = sumx7y0; matrix[15][4] = sumx6y1; matrix[15][5] = sumx5y2; matrix[15][6] = sumx8y0; matrix[15][7] = sumx7y1; matrix[15][8] = sumx6y2; matrix[15][9] = sumx5y3; matrix[15][10] = sumx9y0; matrix[15][11] = sumx8y1; matrix[15][12] = sumx7y2; matrix[15][13] = sumx6y3; matrix[15][14] = sumx5y4; matrix[15][15] = sumx10y0; matrix[15][16] = sumx9y1; matrix[15][17] = sumx8y2; matrix[15][18] = sumx7y3; matrix[15][19] = sumx6y4; matrix[15][20] = sumx5y5; 
+	matrix[16][0] = sumx4y1; matrix[16][1] = sumx5y1; matrix[16][2] = sumx4y2; matrix[16][3] = sumx6y1; matrix[16][4] = sumx5y2; matrix[16][5] = sumx4y3; matrix[16][6] = sumx7y1; matrix[16][7] = sumx6y2; matrix[16][8] = sumx5y3; matrix[16][9] = sumx4y4; matrix[16][10] = sumx8y1; matrix[16][11] = sumx7y2; matrix[16][12] = sumx6y3; matrix[16][13] = sumx5y4; matrix[16][14] = sumx4y5; matrix[16][15] = sumx9y1; matrix[16][16] = sumx8y2; matrix[16][17] = sumx7y3; matrix[16][18] = sumx6y4; matrix[16][19] = sumx5y5; matrix[16][20] = sumx4y6; 
+	matrix[17][0] = sumx3y2; matrix[17][1] = sumx4y2; matrix[17][2] = sumx3y3; matrix[17][3] = sumx5y2; matrix[17][4] = sumx4y3; matrix[17][5] = sumx3y4; matrix[17][6] = sumx6y2; matrix[17][7] = sumx5y3; matrix[17][8] = sumx4y4; matrix[17][9] = sumx3y5; matrix[17][10] = sumx7y2; matrix[17][11] = sumx6y3; matrix[17][12] = sumx5y4; matrix[17][13] = sumx4y5; matrix[17][14] = sumx3y6; matrix[17][15] = sumx8y2; matrix[17][16] = sumx7y3; matrix[17][17] = sumx6y4; matrix[17][18] = sumx5y5; matrix[17][19] = sumx4y6; matrix[17][20] = sumx3y7; 
+	matrix[18][0] = sumx2y3; matrix[18][1] = sumx3y3; matrix[18][2] = sumx2y4; matrix[18][3] = sumx4y3; matrix[18][4] = sumx3y4; matrix[18][5] = sumx2y5; matrix[18][6] = sumx5y3; matrix[18][7] = sumx4y4; matrix[18][8] = sumx3y5; matrix[18][9] = sumx2y6; matrix[18][10] = sumx6y3; matrix[18][11] = sumx5y4; matrix[18][12] = sumx4y5; matrix[18][13] = sumx3y6; matrix[18][14] = sumx2y7; matrix[18][15] = sumx7y3; matrix[18][16] = sumx6y4; matrix[18][17] = sumx5y5; matrix[18][18] = sumx4y6; matrix[18][19] = sumx3y7; matrix[18][20] = sumx2y8; 
+	matrix[19][0] = sumx1y4; matrix[19][1] = sumx2y4; matrix[19][2] = sumx1y5; matrix[19][3] = sumx3y4; matrix[19][4] = sumx2y5; matrix[19][5] = sumx1y6; matrix[19][6] = sumx4y4; matrix[19][7] = sumx3y5; matrix[19][8] = sumx2y6; matrix[19][9] = sumx1y7; matrix[19][10] = sumx5y4; matrix[19][11] = sumx4y5; matrix[19][12] = sumx3y6; matrix[19][13] = sumx2y7; matrix[19][14] = sumx1y8; matrix[19][15] = sumx6y4; matrix[19][16] = sumx5y5; matrix[19][17] = sumx4y6; matrix[19][18] = sumx3y7; matrix[19][19] = sumx2y8; matrix[19][20] = sumx1y9; 
+	matrix[20][0] = sumx0y5; matrix[20][1] = sumx1y5; matrix[20][2] = sumx0y6; matrix[20][3] = sumx2y5; matrix[20][4] = sumx1y6; matrix[20][5] = sumx0y7; matrix[20][6] = sumx3y5; matrix[20][7] = sumx2y6; matrix[20][8] = sumx1y7; matrix[20][9] = sumx0y8; matrix[20][10] = sumx4y5; matrix[20][11] = sumx3y6; matrix[20][12] = sumx2y7; matrix[20][13] = sumx1y8; matrix[20][14] = sumx0y9; matrix[20][15] = sumx5y5; matrix[20][16] = sumx4y6; matrix[20][17] = sumx3y7; matrix[20][18] = sumx2y8; matrix[20][19] = sumx1y9; matrix[20][20] = sumx0y10; 
+
+
+	vector[ 0] = sumxpx0y0;
+	vector[ 1] = sumxpx1y0;
+	vector[ 2] = sumxpx0y1;
+	vector[ 3] = sumxpx2y0;
+	vector[ 4] = sumxpx1y1;
+	vector[ 5] = sumxpx0y2;
+	vector[ 6] = sumxpx3y0;
+	vector[ 7] = sumxpx2y1;
+	vector[ 8] = sumxpx1y2;
+	vector[ 9] = sumxpx0y3;
+	vector[10] = sumxpx4y0;
+	vector[11] = sumxpx3y1;
+	vector[12] = sumxpx2y2;
+	vector[13] = sumxpx1y3;
+	vector[14] = sumxpx0y4;
+	vector[15] = sumxpx5y0;
+	vector[16] = sumxpx4y1;
+	vector[17] = sumxpx3y2;
+	vector[18] = sumxpx2y3;
+	vector[19] = sumxpx1y4;
+	vector[20] = sumxpx0y5;
+
+#ifdef DEBUG
+	printf("before calling solution routines for ABCDEFGHIJ, here's matrix\n");
+	print_matrix(matrix, 21);
+#endif
+
+	/*
+	 * and now call the Gaussian-elimination routines to solve the matrix.
+	 * The solution for TRANS coefficients will be placed
+	 * into the elements on "vector" after "gauss_matrix" finishes.
+	 */
+	if (gauss_matrix(matrix, 21, vector) != SH_SUCCESS) {
+		shError("calc_trans_order: can't solve for coeffs xij");
+		free_matrix(matrix, 21);
+		return (SH_GENERIC_ERROR);
+	}
+
+#ifdef DEBUG
+	printf("after calling solution routines, here's matrix\n");
+	print_matrix(matrix, 21);
+#endif
+
+	solved_x00 = vector[ 0];
+	solved_x10 = vector[ 1];
+	solved_x01 = vector[ 2];
+	solved_x20 = vector[ 3];
+	solved_x11 = vector[ 4];
+	solved_x02 = vector[ 5];
+	solved_x30 = vector[ 6];
+	solved_x21 = vector[ 7];
+	solved_x12 = vector[ 8];
+	solved_x03 = vector[ 9];
+	solved_x40 = vector[10];
+	solved_x31 = vector[11];
+	solved_x22 = vector[12];
+	solved_x13 = vector[13];
+	solved_x04 = vector[14];
+	solved_x50 = vector[15];
+	solved_x41 = vector[16];
+	solved_x32 = vector[17];
+	solved_x23 = vector[18];
+	solved_x14 = vector[19];
+	solved_x05 = vector[20];
+
+	/*
+	 * Okay, now we solve for TRANS coefficients on y'
+	 * using the * set of equations that relates y' to (x,y)
+	 */
+	/*
+	 * now turn these sums into a matrix and a vector
+	 */
+
+	matrix[0][0] = sumx0y0;  matrix[0][1] = sumx1y0; matrix[0][2] = sumx0y1; matrix[0][3] = sumx2y0; matrix[0][4] = sumx1y1; matrix[0][5] = sumx0y2; matrix[0][6] = sumx3y0; matrix[0][7] = sumx2y1; matrix[0][8] = sumx1y2; matrix[0][9] = sumx0y3; matrix[0][10] = sumx4y0; matrix[0][11] = sumx3y1; matrix[0][12] = sumx2y2; matrix[0][13] = sumx1y3; matrix[0][14] = sumx0y4; matrix[0][15] = sumx5y0; matrix[0][16] = sumx4y1; matrix[0][17] = sumx3y2; matrix[0][18] = sumx2y3; matrix[0][19] = sumx1y4; matrix[0][20] = sumx0y5; 
+	matrix[1][0] = sumx1y0;  matrix[1][1] = sumx2y0; matrix[1][2] = sumx1y1; matrix[1][3] = sumx3y0; matrix[1][4] = sumx2y1; matrix[1][5] = sumx1y2; matrix[1][6] = sumx4y0; matrix[1][7] = sumx3y1; matrix[1][8] = sumx2y2; matrix[1][9] = sumx1y3; matrix[1][10] = sumx5y0; matrix[1][11] = sumx4y1; matrix[1][12] = sumx3y2; matrix[1][13] = sumx2y3; matrix[1][14] = sumx1y4; matrix[1][15] = sumx6y0; matrix[1][16] = sumx5y1; matrix[1][17] = sumx4y2; matrix[1][18] = sumx3y3; matrix[1][19] = sumx2y4; matrix[1][20] = sumx1y5; 
+	matrix[2][0] = sumx0y1;  matrix[2][1] = sumx1y1; matrix[2][2] = sumx0y2; matrix[2][3] = sumx2y1; matrix[2][4] = sumx1y2; matrix[2][5] = sumx0y3; matrix[2][6] = sumx3y1; matrix[2][7] = sumx2y2; matrix[2][8] = sumx1y3; matrix[2][9] = sumx0y4; matrix[2][10] = sumx4y1; matrix[2][11] = sumx3y2; matrix[2][12] = sumx2y3; matrix[2][13] = sumx1y4; matrix[2][14] = sumx0y5; matrix[2][15] = sumx5y1; matrix[2][16] = sumx4y2; matrix[2][17] = sumx3y3; matrix[2][18] = sumx2y4; matrix[2][19] = sumx1y5; matrix[2][20] = sumx0y6; 
+	matrix[3][0] = sumx2y0;  matrix[3][1] = sumx3y0; matrix[3][2] = sumx2y1; matrix[3][3] = sumx4y0; matrix[3][4] = sumx3y1; matrix[3][5] = sumx2y2; matrix[3][6] = sumx5y0; matrix[3][7] = sumx4y1; matrix[3][8] = sumx3y2; matrix[3][9] = sumx2y3; matrix[3][10] = sumx6y0; matrix[3][11] = sumx5y1; matrix[3][12] = sumx4y2; matrix[3][13] = sumx3y3; matrix[3][14] = sumx2y4; matrix[3][15] = sumx7y0; matrix[3][16] = sumx6y1; matrix[3][17] = sumx5y2; matrix[3][18] = sumx4y3; matrix[3][19] = sumx3y4; matrix[3][20] = sumx2y5; 
+	matrix[4][0] = sumx1y1;  matrix[4][1] = sumx2y1; matrix[4][2] = sumx1y2; matrix[4][3] = sumx3y1; matrix[4][4] = sumx2y2; matrix[4][5] = sumx1y3; matrix[4][6] = sumx4y1; matrix[4][7] = sumx3y2; matrix[4][8] = sumx2y3; matrix[4][9] = sumx1y4; matrix[4][10] = sumx5y1; matrix[4][11] = sumx4y2; matrix[4][12] = sumx3y3; matrix[4][13] = sumx2y4; matrix[4][14] = sumx1y5; matrix[4][15] = sumx6y1; matrix[4][16] = sumx5y2; matrix[4][17] = sumx4y3; matrix[4][18] = sumx3y4; matrix[4][19] = sumx2y5; matrix[4][20] = sumx1y6; 
+	matrix[5][0] = sumx0y2;  matrix[5][1] = sumx1y2; matrix[5][2] = sumx0y3; matrix[5][3] = sumx2y2; matrix[5][4] = sumx1y3; matrix[5][5] = sumx0y4; matrix[5][6] = sumx3y2; matrix[5][7] = sumx2y3; matrix[5][8] = sumx1y4; matrix[5][9] = sumx0y5; matrix[5][10] = sumx4y2; matrix[5][11] = sumx3y3; matrix[5][12] = sumx2y4; matrix[5][13] = sumx1y5; matrix[5][14] = sumx0y6; matrix[5][15] = sumx5y2; matrix[5][16] = sumx4y3; matrix[5][17] = sumx3y4; matrix[5][18] = sumx2y5; matrix[5][19] = sumx1y6; matrix[5][20] = sumx0y7; 
+	matrix[6][0] = sumx3y0;  matrix[6][1] = sumx4y0; matrix[6][2] = sumx3y1; matrix[6][3] = sumx5y0; matrix[6][4] = sumx4y1; matrix[6][5] = sumx3y2; matrix[6][6] = sumx6y0; matrix[6][7] = sumx5y1; matrix[6][8] = sumx4y2; matrix[6][9] = sumx3y3; matrix[6][10] = sumx7y0; matrix[6][11] = sumx6y1; matrix[6][12] = sumx5y2; matrix[6][13] = sumx4y3; matrix[6][14] = sumx3y4; matrix[6][15] = sumx8y0; matrix[6][16] = sumx7y1; matrix[6][17] = sumx6y2; matrix[6][18] = sumx5y3; matrix[6][19] = sumx4y4; matrix[6][20] = sumx3y5; 
+	matrix[7][0] = sumx2y1;  matrix[7][1] = sumx3y1; matrix[7][2] = sumx2y2; matrix[7][3] = sumx4y1; matrix[7][4] = sumx3y2; matrix[7][5] = sumx2y3; matrix[7][6] = sumx5y1; matrix[7][7] = sumx4y2; matrix[7][8] = sumx3y3; matrix[7][9] = sumx2y4; matrix[7][10] = sumx6y1; matrix[7][11] = sumx5y2; matrix[7][12] = sumx4y3; matrix[7][13] = sumx3y4; matrix[7][14] = sumx2y5; matrix[7][15] = sumx7y1; matrix[7][16] = sumx6y2; matrix[7][17] = sumx5y3; matrix[7][18] = sumx4y4; matrix[7][19] = sumx3y5; matrix[7][20] = sumx2y6; 
+	matrix[8][0] = sumx1y2;  matrix[8][1] = sumx2y2; matrix[8][2] = sumx1y3; matrix[8][3] = sumx3y2; matrix[8][4] = sumx2y3; matrix[8][5] = sumx1y4; matrix[8][6] = sumx4y2; matrix[8][7] = sumx3y3; matrix[8][8] = sumx2y4; matrix[8][9] = sumx1y5; matrix[8][10] = sumx5y2; matrix[8][11] = sumx4y3; matrix[8][12] = sumx3y4; matrix[8][13] = sumx2y5; matrix[8][14] = sumx1y6; matrix[8][15] = sumx6y2; matrix[8][16] = sumx5y3; matrix[8][17] = sumx4y4; matrix[8][18] = sumx3y5; matrix[8][19] = sumx2y6; matrix[8][20] = sumx1y7; 
+	matrix[9][0] = sumx0y3;  matrix[9][1] = sumx1y3; matrix[9][2] = sumx0y4; matrix[9][3] = sumx2y3; matrix[9][4] = sumx1y4; matrix[9][5] = sumx0y5; matrix[9][6] = sumx3y3; matrix[9][7] = sumx2y4; matrix[9][8] = sumx1y5; matrix[9][9] = sumx0y6; matrix[9][10] = sumx4y3; matrix[9][11] = sumx3y4; matrix[9][12] = sumx2y5; matrix[9][13] = sumx1y6; matrix[9][14] = sumx0y7; matrix[9][15] = sumx5y3; matrix[9][16] = sumx4y4; matrix[9][17] = sumx3y5; matrix[9][18] = sumx2y6; matrix[9][19] = sumx1y7; matrix[9][20] = sumx0y8; 
+	matrix[10][0] = sumx4y0; matrix[10][1] = sumx5y0; matrix[10][2] = sumx4y1; matrix[10][3] = sumx6y0; matrix[10][4] = sumx5y1; matrix[10][5] = sumx4y2; matrix[10][6] = sumx7y0; matrix[10][7] = sumx6y1; matrix[10][8] = sumx5y2; matrix[10][9] = sumx4y3; matrix[10][10] = sumx8y0; matrix[10][11] = sumx7y1; matrix[10][12] = sumx6y2; matrix[10][13] = sumx5y3; matrix[10][14] = sumx4y4; matrix[10][15] = sumx9y0; matrix[10][16] = sumx8y1; matrix[10][17] = sumx7y2; matrix[10][18] = sumx6y3; matrix[10][19] = sumx5y4; matrix[10][20] = sumx4y5; 
+	matrix[11][0] = sumx3y1; matrix[11][1] = sumx4y1; matrix[11][2] = sumx3y2; matrix[11][3] = sumx5y1; matrix[11][4] = sumx4y2; matrix[11][5] = sumx3y3; matrix[11][6] = sumx6y1; matrix[11][7] = sumx5y2; matrix[11][8] = sumx4y3; matrix[11][9] = sumx3y4; matrix[11][10] = sumx7y1; matrix[11][11] = sumx6y2; matrix[11][12] = sumx5y3; matrix[11][13] = sumx4y4; matrix[11][14] = sumx3y5; matrix[11][15] = sumx8y1; matrix[11][16] = sumx7y2; matrix[11][17] = sumx6y3; matrix[11][18] = sumx5y4; matrix[11][19] = sumx4y5; matrix[11][20] = sumx3y6; 
+	matrix[12][0] = sumx2y2; matrix[12][1] = sumx3y2; matrix[12][2] = sumx2y3; matrix[12][3] = sumx4y2; matrix[12][4] = sumx3y3; matrix[12][5] = sumx2y4; matrix[12][6] = sumx5y2; matrix[12][7] = sumx4y3; matrix[12][8] = sumx3y4; matrix[12][9] = sumx2y5; matrix[12][10] = sumx6y2; matrix[12][11] = sumx5y3; matrix[12][12] = sumx4y4; matrix[12][13] = sumx3y5; matrix[12][14] = sumx2y6; matrix[12][15] = sumx7y2; matrix[12][16] = sumx6y3; matrix[12][17] = sumx5y4; matrix[12][18] = sumx4y5; matrix[12][19] = sumx3y6; matrix[12][20] = sumx2y7; 
+	matrix[13][0] = sumx1y3; matrix[13][1] = sumx2y3; matrix[13][2] = sumx1y4; matrix[13][3] = sumx3y3; matrix[13][4] = sumx2y4; matrix[13][5] = sumx1y5; matrix[13][6] = sumx4y3; matrix[13][7] = sumx3y4; matrix[13][8] = sumx2y5; matrix[13][9] = sumx1y6; matrix[13][10] = sumx5y3; matrix[13][11] = sumx4y4; matrix[13][12] = sumx3y5; matrix[13][13] = sumx2y6; matrix[13][14] = sumx1y7; matrix[13][15] = sumx6y3; matrix[13][16] = sumx5y4; matrix[13][17] = sumx4y5; matrix[13][18] = sumx3y6; matrix[13][19] = sumx2y7; matrix[13][20] = sumx1y8; 
+	matrix[14][0] = sumx0y4; matrix[14][1] = sumx1y4; matrix[14][2] = sumx0y5; matrix[14][3] = sumx2y4; matrix[14][4] = sumx1y5; matrix[14][5] = sumx0y6; matrix[14][6] = sumx3y4; matrix[14][7] = sumx2y5; matrix[14][8] = sumx1y6; matrix[14][9] = sumx0y7; matrix[14][10] = sumx4y4; matrix[14][11] = sumx3y5; matrix[14][12] = sumx2y6; matrix[14][13] = sumx1y7; matrix[14][14] = sumx0y8; matrix[14][15] = sumx5y4; matrix[14][16] = sumx4y5; matrix[14][17] = sumx3y6; matrix[14][18] = sumx2y7; matrix[14][19] = sumx1y8; matrix[14][20] = sumx0y9; 
+	matrix[15][0] = sumx5y0; matrix[15][1] = sumx6y0; matrix[15][2] = sumx5y1; matrix[15][3] = sumx7y0; matrix[15][4] = sumx6y1; matrix[15][5] = sumx5y2; matrix[15][6] = sumx8y0; matrix[15][7] = sumx7y1; matrix[15][8] = sumx6y2; matrix[15][9] = sumx5y3; matrix[15][10] = sumx9y0; matrix[15][11] = sumx8y1; matrix[15][12] = sumx7y2; matrix[15][13] = sumx6y3; matrix[15][14] = sumx5y4; matrix[15][15] = sumx10y0; matrix[15][16] = sumx9y1; matrix[15][17] = sumx8y2; matrix[15][18] = sumx7y3; matrix[15][19] = sumx6y4; matrix[15][20] = sumx5y5; 
+	matrix[16][0] = sumx4y1; matrix[16][1] = sumx5y1; matrix[16][2] = sumx4y2; matrix[16][3] = sumx6y1; matrix[16][4] = sumx5y2; matrix[16][5] = sumx4y3; matrix[16][6] = sumx7y1; matrix[16][7] = sumx6y2; matrix[16][8] = sumx5y3; matrix[16][9] = sumx4y4; matrix[16][10] = sumx8y1; matrix[16][11] = sumx7y2; matrix[16][12] = sumx6y3; matrix[16][13] = sumx5y4; matrix[16][14] = sumx4y5; matrix[16][15] = sumx9y1; matrix[16][16] = sumx8y2; matrix[16][17] = sumx7y3; matrix[16][18] = sumx6y4; matrix[16][19] = sumx5y5; matrix[16][20] = sumx4y6; 
+	matrix[17][0] = sumx3y2; matrix[17][1] = sumx4y2; matrix[17][2] = sumx3y3; matrix[17][3] = sumx5y2; matrix[17][4] = sumx4y3; matrix[17][5] = sumx3y4; matrix[17][6] = sumx6y2; matrix[17][7] = sumx5y3; matrix[17][8] = sumx4y4; matrix[17][9] = sumx3y5; matrix[17][10] = sumx7y2; matrix[17][11] = sumx6y3; matrix[17][12] = sumx5y4; matrix[17][13] = sumx4y5; matrix[17][14] = sumx3y6; matrix[17][15] = sumx8y2; matrix[17][16] = sumx7y3; matrix[17][17] = sumx6y4; matrix[17][18] = sumx5y5; matrix[17][19] = sumx4y6; matrix[17][20] = sumx3y7; 
+	matrix[18][0] = sumx2y3; matrix[18][1] = sumx3y3; matrix[18][2] = sumx2y4; matrix[18][3] = sumx4y3; matrix[18][4] = sumx3y4; matrix[18][5] = sumx2y5; matrix[18][6] = sumx5y3; matrix[18][7] = sumx4y4; matrix[18][8] = sumx3y5; matrix[18][9] = sumx2y6; matrix[18][10] = sumx6y3; matrix[18][11] = sumx5y4; matrix[18][12] = sumx4y5; matrix[18][13] = sumx3y6; matrix[18][14] = sumx2y7; matrix[18][15] = sumx7y3; matrix[18][16] = sumx6y4; matrix[18][17] = sumx5y5; matrix[18][18] = sumx4y6; matrix[18][19] = sumx3y7; matrix[18][20] = sumx2y8; 
+	matrix[19][0] = sumx1y4; matrix[19][1] = sumx2y4; matrix[19][2] = sumx1y5; matrix[19][3] = sumx3y4; matrix[19][4] = sumx2y5; matrix[19][5] = sumx1y6; matrix[19][6] = sumx4y4; matrix[19][7] = sumx3y5; matrix[19][8] = sumx2y6; matrix[19][9] = sumx1y7; matrix[19][10] = sumx5y4; matrix[19][11] = sumx4y5; matrix[19][12] = sumx3y6; matrix[19][13] = sumx2y7; matrix[19][14] = sumx1y8; matrix[19][15] = sumx6y4; matrix[19][16] = sumx5y5; matrix[19][17] = sumx4y6; matrix[19][18] = sumx3y7; matrix[19][19] = sumx2y8; matrix[19][20] = sumx1y9; 
+	matrix[20][0] = sumx0y5; matrix[20][1] = sumx1y5; matrix[20][2] = sumx0y6; matrix[20][3] = sumx2y5; matrix[20][4] = sumx1y6; matrix[20][5] = sumx0y7; matrix[20][6] = sumx3y5; matrix[20][7] = sumx2y6; matrix[20][8] = sumx1y7; matrix[20][9] = sumx0y8; matrix[20][10] = sumx4y5; matrix[20][11] = sumx3y6; matrix[20][12] = sumx2y7; matrix[20][13] = sumx1y8; matrix[20][14] = sumx0y9; matrix[20][15] = sumx5y5; matrix[20][16] = sumx4y6; matrix[20][17] = sumx3y7; matrix[20][18] = sumx2y8; matrix[20][19] = sumx1y9; matrix[20][20] = sumx0y10; 
+
+
+	vector[ 0] = sumypx0y0;
+	vector[ 1] = sumypx1y0;
+	vector[ 2] = sumypx0y1;
+	vector[ 3] = sumypx2y0;
+	vector[ 4] = sumypx1y1;
+	vector[ 5] = sumypx0y2;
+	vector[ 6] = sumypx3y0;
+	vector[ 7] = sumypx2y1;
+	vector[ 8] = sumypx1y2;
+	vector[ 9] = sumypx0y3;
+	vector[10] = sumypx4y0;
+	vector[11] = sumypx3y1;
+	vector[12] = sumypx2y2;
+	vector[13] = sumypx1y3;
+	vector[14] = sumypx0y4;
+	vector[15] = sumypx5y0;
+	vector[16] = sumypx4y1;
+	vector[17] = sumypx3y2;
+	vector[18] = sumypx2y3;
+	vector[19] = sumypx1y4;
+	vector[20] = sumypx0y5;
+
+#ifdef DEBUG
+	printf("before calling solution routines for ABCDEFGHIJ, here's matrix\n");
+	print_matrix(matrix, 21);
+#endif
+
+	/*
+	 * and now call the Gaussian-elimination routines to solve the matrix.
+	 * The solution for TRANS coefficients will be placed
+	 * into the elements on "vector" after "gauss_matrix" finishes.
+	 */
+	if (gauss_matrix(matrix, 21, vector) != SH_SUCCESS) {
+		shError("calc_trans_order: can't solve for coeffs xij");
+		free_matrix(matrix, 21);
+		return (SH_GENERIC_ERROR);
+	}
+
+#ifdef DEBUG
+	printf("after calling solution routines, here's matrix\n");
+	print_matrix(matrix, 21);
+#endif
+
+	solved_y00 = vector[ 0];
+	solved_y10 = vector[ 1];
+	solved_y01 = vector[ 2];
+	solved_y20 = vector[ 3];
+	solved_y11 = vector[ 4];
+	solved_y02 = vector[ 5];
+	solved_y30 = vector[ 6];
+	solved_y21 = vector[ 7];
+	solved_y12 = vector[ 8];
+	solved_y03 = vector[ 9];
+	solved_y40 = vector[10];
+	solved_y31 = vector[11];
+	solved_y22 = vector[12];
+	solved_y13 = vector[13];
+	solved_y04 = vector[14];
+	solved_y50 = vector[15];
+	solved_y41 = vector[16];
+	solved_y32 = vector[17];
+	solved_y23 = vector[18];
+	solved_y14 = vector[19];
+	solved_y05 = vector[20];
+
+	/*
+	 * assign the coefficients we've just calculated to the output
+	 * TRANS structure.
+	 */
+	trans->x00 = solved_x00;
+	trans->x10 = solved_x10;
+	trans->x01 = solved_x01;
+	trans->x20 = solved_x20;
+	trans->x11 = solved_x11;
+	trans->x02 = solved_x02;
+	trans->x30 = solved_x30;
+	trans->x21 = solved_x21;
+	trans->x12 = solved_x12;
+	trans->x03 = solved_x03;
+	trans->x40 = solved_x40;
+	trans->x31 = solved_x31;
+	trans->x22 = solved_x22;
+	trans->x13 = solved_x13;
+	trans->x04 = solved_x04;
+	trans->x50 = solved_x50;
+	trans->x41 = solved_x41;
+	trans->x32 = solved_x32;
+	trans->x23 = solved_x23;
+	trans->x14 = solved_x14;
+	trans->x05 = solved_x05;
+
+	trans->y00 = solved_y00;
+	trans->y10 = solved_y10;
+	trans->y01 = solved_y01;
+	trans->y20 = solved_y20;
+	trans->y11 = solved_y11;
+	trans->y02 = solved_y02;
+	trans->y30 = solved_y30;
+	trans->y21 = solved_y21;
+	trans->y12 = solved_y12;
+	trans->y03 = solved_y03;
+	trans->y40 = solved_y40;
+	trans->y31 = solved_y31;
+	trans->y22 = solved_y22;
+	trans->y13 = solved_y13;
+	trans->y04 = solved_y04;
+	trans->y50 = solved_y50;
+	trans->y41 = solved_y41;
+	trans->y32 = solved_y32;
+	trans->y23 = solved_y23;
+	trans->y14 = solved_y14;
+	trans->y05 = solved_y05;
+
+	/*
+	 * free up memory we allocated for this function
+	 */
+	free_matrix(matrix, 21);
 
 	return (SH_SUCCESS);
 }
@@ -5536,14 +7074,30 @@ double *vector /* I/O: vector which holds "b" values in input */
 	double *solution_vector;
 	double factor;
 	double sum;
+	double maxtol;
 
 #ifdef DEBUG
 	print_matrix(matrix, num);
 #endif
+	int order = 0;
+	if (num == 3)
+		order = 1;
+	else if (num == 6)
+		order = 2;
+	else if (num == 10)
+		order = 3;
+	else if (num == 15)
+		order = 4;
+	else if (num == 21)
+		order = 5;
+	else {
+		shError("gauss_matrix: wrong vector length (%d)", num);
+		return (SH_GENERIC_ERROR);
+	}
+	maxtol = pow(MATRIX_TOL, order);
 
 	biggest_val = (double *) shMalloc(num * sizeof(double));
 	solution_vector = (double *) shMalloc(num * sizeof(double));
-
 	/*
 	 * step 1: we find the largest value in each row of matrix,
 	 *         and store those values in 'biggest_val' array.
@@ -5579,7 +7133,7 @@ double *vector /* I/O: vector which holds "b" values in input */
 			return (SH_GENERIC_ERROR);
 		}
 
-		if (fabs(matrix[i][i] / biggest_val[i]) < MATRIX_TOL) {
+		if (fabs(matrix[i][i] / biggest_val[i]) < maxtol) {
 			shError("gauss_matrix: Y: row %d has tiny value %f / %f", i,
 					matrix[i][i], biggest_val[i]);
 			shFree(biggest_val);
@@ -5603,7 +7157,7 @@ double *vector /* I/O: vector which holds "b" values in input */
 	 * make sure that the last row's single remaining element
 	 * isn't too tiny
 	 */
-	if (fabs(matrix[num - 1][num - 1] / biggest_val[num - 1]) < MATRIX_TOL) {
+	if (fabs(matrix[num - 1][num - 1] / biggest_val[num - 1]) < maxtol) {
 		shError("gauss_matrix: Z: row %d has tiny value %f / %f", num,
 				matrix[num - 1][num - 1], biggest_val[num - 1]);
 		shFree(biggest_val);

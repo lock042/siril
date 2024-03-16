@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@
 #include <ctype.h>
 
 #include "core/siril.h"
+#include "algos/statistics.h"
 #include "core/proto.h"
 #include "core/initfile.h"
 #include "core/OS_utils.h"
@@ -33,6 +34,7 @@
 #include "gui/image_interactions.h"
 #include "gui/image_display.h"
 #include "gui/callbacks.h"
+#include "gui/histogram.h"
 #include "gui/preferences.h"
 #include "core/processing.h"
 #include "core/command_list.h"
@@ -41,6 +43,7 @@
 #include "io/ser.h"
 #include "livestacking/livestacking.h"
 
+#include "command.h"
 #include "command_line_processor.h"
 
 static const char *cmd_err_to_str(cmd_errors err) {
@@ -92,6 +95,8 @@ static const char *cmd_err_to_str(cmd_errors err) {
 			return _("memory allocation error");
 		case CMD_THREAD_RUNNING:
 			return _("a processing is already running");
+        case CMD_DIR_NOT_FOUND:
+			return _("directory not found");
 	}
 }
 
@@ -196,7 +201,14 @@ int execute_command(int wordnb) {
 	// process the command
 	siril_log_color_message(_("Running command: %s\n"), "salmon", word[0]);
 	fprintf(stdout, "%lu: running command %s\n", time(NULL), word[0]);
-	return commands[i].process(wordnb);
+	int retval = commands[i].process(wordnb);
+	if (gui.roi.active)
+		populate_roi();
+	if (retval & CMD_NOTIFY_GFIT_MODIFIED) {
+		notify_gfit_modified();
+		retval = retval & ~CMD_NOTIFY_GFIT_MODIFIED;
+	}
+	return (int) retval;
 }
 
 static void update_log_icon(gboolean is_running) {
@@ -572,9 +584,7 @@ int processcommand(const char *line) {
 			g_object_unref(file);
 			return 1;
 		}
-		/* ensure that everything is closed */
-		process_close(0);
-		/* Then, run script */
+		/* Run the script */
 		siril_log_message(_("Starting script %s\n"), filename);
 		com.script_thread = g_thread_new("script", execute_script, input_stream);
 		g_object_unref(file);
@@ -584,6 +594,8 @@ int processcommand(const char *line) {
 
 		gchar *myline = strdup(line);
 		int len = strlen(line);
+		if (len > 0)
+			g_print("input command:%s\n", myline);
 		parse_line(myline, len, &wordnb);
 		int ret = execute_command(wordnb);
 		if (ret) {
@@ -601,14 +613,18 @@ int processcommand(const char *line) {
 
 // loads the sequence from com.wd
 sequence *load_sequence(const char *name, char **get_filename) {
-	gchar *file = g_strdup(name);
+	gchar *file = NULL;
 	gchar *altfile = NULL;
-	if (!g_str_has_suffix(name, ".seq")) {
-		str_append(&file, ".seq");
-		if (!g_str_has_suffix(name, "_"))
-			altfile = g_strdup_printf("%s_.seq", name);
+	if (name[0] == '.' && g_utf8_strlen(name, -1) == 1 && sequence_is_loaded())
+		file = g_strdup(com.seq.seqname);
+	else {
+		file = g_strdup(name);
+		if (!g_str_has_suffix(name, ".seq")) {
+			str_append(&file, ".seq");
+			if (!g_str_has_suffix(name, "_"))
+				altfile = g_strdup_printf("%s_.seq", name);
+		}
 	}
-
 	if (!is_readable_file(file) && (!altfile || !is_readable_file(altfile))) {
 		if (check_seq()) {
 			siril_log_color_message(_("No sequence `%s' found.\n"), "red", name);
@@ -618,7 +634,7 @@ sequence *load_sequence(const char *name, char **get_filename) {
 		}
 	}
 
-	sequence *seq;
+	sequence *seq = NULL;
 	if ((seq = readseqfile(file))) {
 		if (get_filename) {
 			*get_filename = file;
@@ -658,17 +674,11 @@ static gboolean on_match_selected(GtkEntryCompletion *widget, GtkTreeModel *mode
 	gint cur_pos = gtk_editable_get_position(e);
 	gint p = cur_pos;
 	gchar *end;
-	gint del_end_pos = -1;
 
 	gtk_tree_model_get(model, iter, COMPLETION_COLUMN, &cmd, -1);
 
 	end = s + cur_pos;
-
-	if (end) {
-		del_end_pos = end - s + 1;
-	} else {
-		del_end_pos = cur_pos;
-	}
+	gint del_end_pos = end - s + 1;
 
 	gtk_editable_delete_text(e, 0, del_end_pos);
 	gtk_editable_insert_text(e, cmd, -1, &p);

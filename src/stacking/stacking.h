@@ -141,7 +141,6 @@ struct outliers {
 };
 
 
-void initialize_stacking_default();
 void initialize_stacking_methods();
 gboolean evaluate_stacking_should_output_32bits(const stack_method method,
 		sequence *seq, int nb_img_to_stack, gchar **err);
@@ -150,7 +149,7 @@ int stack_median(struct stacking_args *args);
 int stack_mean_with_rejection(struct stacking_args *args);
 int stack_addmax(struct stacking_args *args);
 int stack_addmin(struct stacking_args *args);
-gboolean stack_regdata_is_valid(struct stacking_args args);
+gboolean stack_regdata_is_valid(struct stacking_args *args);
 void main_stack(struct stacking_args *args);
 void clean_end_stacking(struct stacking_args *args);
 

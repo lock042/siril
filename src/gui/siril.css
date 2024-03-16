@@ -55,8 +55,8 @@ toolbar {
 }
 
 GtkProgressBar {
-    -GtkProgressBar-min-vertical-bar-width: 10;
-    -GtkProgressBar-min-horizontal-bar-height: 10;
+    -min-width: 10;
+    -min-height: 10;
 }
 
 GtkDrawingArea {
@@ -103,7 +103,7 @@ GtkButton {
   text-shadow: 1px 1px 2px black;
 }
 
-@keyframes blinker {  
+@keyframes blinker {
   50% { opacity: 0; }
 }
 
@@ -126,4 +126,9 @@ entry.siril-intro-highlight,
 label.siril-intro-highlight,
 toolbar.siril-intro-highlight {
   animation: widget-highlight 1s infinite alternate;
+}
+
+entry.header_unset,
+spinbutton.header_unset {
+  color: salmon;
 }

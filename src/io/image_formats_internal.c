@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,6 +31,8 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_log.h"
+#include "core/icc_profile.h"
+#include "core/processing.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "io/image_format_fits.h"
@@ -207,12 +209,12 @@ int readbmp(const char *name, fits *fit) {
 	unsigned short nbplane = 0;
 
 	if ((file = g_fopen(name, "rb")) == NULL) {
-		siril_log_message(_("Error opening BMP.\n"));
+		siril_log_color_message(_("Error opening BMP.\n"), "red");
 		return -1;
 	}
 
 	if ((count = fread(header, 1, 54, file)) != 54) {
-		fprintf(stderr, "readbmp: %ld header bytes read instead of 54\n", count);
+		siril_log_color_message(_("readbmp: %ld header bytes read instead of 54\n"), "red", count);
 		perror("readbmp");
 		fclose(file);
 		return -1;
@@ -221,6 +223,12 @@ int readbmp(const char *name, fits *fit) {
 	/*	memcpy(&compression, header + 30, 4);*/
 
 	get_image_size(header, &width, &height);
+	if (width < 1 || height < 1 || width > MAX_IMAGE_DIM || height > MAX_IMAGE_DIM) {
+		siril_log_color_message(_("readbmp: file reports negative, zero or excessive dimensions\n"), "red");
+		perror("readbmp");
+		fclose(file);
+		return -1;
+	}
 	memcpy(&nbplane, header + 28, 2);
 	nbplane = nbplane / 8;
 	memcpy(&data_offset, header + 10, 4);
@@ -229,7 +237,7 @@ int readbmp(const char *name, fits *fit) {
 	size_t nbdata = width * height * nbplane + height * padsize;
 
 	if (fseek(file, data_offset, SEEK_SET) == -1) {
-		perror("BMP fseek for data");
+		siril_debug_print("BMP fseek for data");
 		fclose(file);
 		return -1;
 	}
@@ -242,7 +250,7 @@ int readbmp(const char *name, fits *fit) {
 	}
 	unsigned long f;
 	if (nbdata != (f = fread(buf, 1, nbdata, file))) {
-		fprintf(stderr, "readbmp: could not read all data: (%zu, %lu)\n", nbdata, f);
+		siril_log_color_message(_("readbmp: could not read all data: (%zu, %lu)\n"), "red", nbdata, f);
 		free(buf);
 		fclose(file);
 		return -1;
@@ -263,11 +271,15 @@ int readbmp(const char *name, fits *fit) {
 			bmp32tofits48(buf, width, height, fit);
 			break;
 		default:
-			siril_log_message(_("Sorry but Siril cannot "
-						"open this kind of BMP. Try to convert it before.\n"));
+			siril_log_color_message(_("Sorry but Siril cannot "
+						"open this kind of BMP. Try to convert it before.\n"), "red");
 	}
 	fit->type = DATA_USHORT;
 	free(buf);
+	// Initialize ICC profile. As the buffer is set to NULL, this sets the
+	// profile as sRGB (or Gray g22) which is what we want for 8-bit BMPs
+	fits_initialize_icc(fit, NULL, 0);
+
 	char *basename = g_path_get_basename(name);
 	siril_log_message(_("Reading BMP: file %s, %ld layer(s), %ux%u pixels\n"),
 			basename, fit->naxes[2], fit->rx, fit->ry);
@@ -299,6 +311,42 @@ int savebmp(const char *name, fits *fit) {
 
 	WORD *gbuf[3] = { fit->pdata[RLAYER], fit->pdata[GLAYER], fit->pdata[BLAYER] };
 	float *gbuff[3] = { fit->fpdata[RLAYER], fit->fpdata[GLAYER], fit->fpdata[BLAYER] };
+	// Apply the colorspace transform
+	void *buf = NULL;
+	void *dest = NULL;
+	gboolean src_is_float = (fit->type == DATA_FLOAT);
+
+	// Transform the data
+	if (fit->icc_profile && fit->color_managed) {
+		buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
+		size_t npixels = fit->rx * fit->ry;
+		size_t nchans = fit->naxes[2];
+		cmsUInt32Number trans_type;
+		if (src_is_float) {
+			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
+			trans_type = nchans == 1 ? TYPE_GRAY_FLT : TYPE_RGB_FLT_PLANAR;
+		} else {
+			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
+			trans_type = nchans == 1 ? TYPE_GRAY_16 : TYPE_RGB_16_PLANAR;
+		}
+		gboolean threaded = !get_thread_run();
+		cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, (nchans == 1 ? com.icc.mono_out : com.icc.srgb_out), trans_type, com.pref.icc.export_intent, 0);
+		cmsUInt32Number data_format_size = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+		cmsUInt32Number bytesperline = gfit.rx * data_format_size;
+		cmsUInt32Number bytesperplane = npixels * data_format_size;
+		cmsDoTransformLineStride(save_transform, buf, dest, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
+		cmsDeleteTransform(save_transform);
+		gbuf[0] = (WORD *) dest;
+		gbuf[1] = (WORD *) dest + (fit->rx * fit->ry);
+		gbuf[2] = (WORD *) dest + (fit->rx * fit->ry * 2);
+		gbuff[0] = (float *) dest;
+		gbuff[1] = (float *) dest + (fit->rx * fit->ry);
+		gbuff[2] = (float *) dest + (fit->rx * fit->ry * 2);
+		// No profile will be embedded as the version of BITMAPINFOHEADER
+		// we use does not support them: the assumption is that the data is
+		// sRGB (or possibly "Windows color space" which seems to be more or
+		// less the same thing).
+	}
 
 	unsigned int padsize = (4 - (width * 3) % 4) % 4;
 	size_t datasize = width * height * 3 + padsize * height;
@@ -335,7 +383,7 @@ int savebmp(const char *name, fits *fit) {
 
 	f = g_fopen(filename, "wb");
 	if (f == NULL) {
-		siril_log_message(_("Can't create BMP file.\n"));
+		siril_log_color_message(_("Can't create BMP file.\n"), "red");
 		free(filename);
 		return 1;
 	}
@@ -393,6 +441,7 @@ int savebmp(const char *name, fits *fit) {
 	siril_log_message(_("Saving BMP: file %s, %ld layer(s), %ux%u pixels\n"), filename,
 			fit->naxes[2], fit->rx, fit->ry);
 	free(filename);
+	free(dest);
 	return 0;
 }
 
@@ -413,7 +462,7 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 	size_t stride;
 
 	if ((file = g_fopen(filename, "rb")) == NULL) {
-		siril_log_message(_("Sorry but Siril cannot open this file.\n"));
+		siril_log_color_message(_("Sorry but Siril cannot open this file.\n"), "red");
 		return -1;
 	}
 	if (fgets(buf, 256, file) == NULL) {
@@ -422,9 +471,9 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 		return -1;
 	}
 	if (buf[0] != 'P' || buf[1] < '5' || buf[1] > '6' || buf[2] != '\n') {
-		siril_log_message(
+		siril_log_color_message(
 				_("Wrong magic cookie in PNM file, ASCII types and"
-					" b&w bitmaps are not supported.\n"));
+					" b&w bitmaps are not supported.\n"), "red");
 		fclose(file);
 		return -1;
 	}
@@ -450,7 +499,7 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 		return -1;
 	}
 	buf[i] = '\0';
-	fit->rx = g_ascii_strtoull(buf, NULL, 10);
+	fit->rx = fit->naxes[0] = g_ascii_strtoull(buf, NULL, 10);
 	j = ++i;
 	while (buf[j] >= '0' && buf[j] <= '9')
 		j++;
@@ -463,7 +512,7 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 		return -1;
 	}
 	buf[j] = '\0';
-	fit->ry = g_ascii_strtoull(buf + i, NULL, 10);
+	fit->ry = fit->naxes[1] = g_ascii_strtoull(buf + i, NULL, 10);
 
 	do {
 		if (fgets(buf, 256, file) == NULL) {
@@ -487,26 +536,27 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 	if (max_val == UCHAR_MAX) {
 		/* 8-bit file */
 		unsigned char *tmpbuf = NULL;
-		WORD *olddata;
 		if (fit->naxes[2] == 1)
 			stride = fit->rx;
 		else
 			stride = fit->rx * 3;
 		tmpbuf = malloc(stride * fit->ry);
-		olddata = fit->data;
-		fit->data = realloc(fit->data, stride * fit->ry * sizeof(WORD));
-		if (fit->data == NULL || tmpbuf == NULL) {
+		WORD *tmp = realloc(fit->data, stride * fit->ry * sizeof(WORD));
+		if (tmp == NULL || tmpbuf == NULL) {
 			PRINT_ALLOC_ERR;
 			fclose(file);
-			if (olddata && !fit->data)
-				free(olddata);
+			if (fit->data && !tmp)
+				free(fit->data);
 			if (tmpbuf)
 				free(tmpbuf);
+			if (tmp)
+				free(tmp);
 			fit->data = NULL;
 			return -1;
 		}
+		fit->data = tmp;
 		if (fread(tmpbuf, stride, fit->ry, file) < fit->ry) {
-			siril_log_message(_("Error reading 8-bit PPM image data.\n"));
+			siril_log_color_message(_("Error reading 8-bit PPM image data.\n"), "red");
 			fclose(file);
 			free(tmpbuf);
 			free(fit->data);
@@ -535,8 +585,8 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 				return -1;
 			}
 			if (fread(fit->data, stride, fit->ry, file) < fit->ry) {
-				siril_log_message(
-						_("Error reading 16-bit gray PPM image data.\n"));
+				siril_log_color_message(
+						_("Error reading 16-bit gray PPM image data.\n"), "red");
 				fclose(file);
 				free(fit->data);
 				fit->data = NULL;
@@ -552,23 +602,25 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 
 		} else {
 			/* RGB 16-bit image */
-			WORD *tmpbuf, *olddata = fit->data;
+			WORD *tmpbuf;
 			stride = fit->rx * 3 * sizeof(WORD);
 			tmpbuf = malloc(stride * fit->ry);
-			fit->data = realloc(fit->data, stride * fit->ry * sizeof(WORD));
-			if (fit->data == NULL || tmpbuf == NULL) {
+			WORD *tmp = realloc(fit->data, stride * fit->ry * sizeof(WORD));
+			if (tmp == NULL || tmpbuf == NULL) {
 				PRINT_ALLOC_ERR;
 				fclose(file);
-				if (olddata && !fit->data)
-					free(olddata);
+				if (fit->data && !tmp)
+					free(fit->data);
 				if (tmpbuf)
 					free(tmpbuf);
-				fit->data = NULL;
+				if (tmp)
+					free(tmp);
 				return -1;
 			}
+			fit->data = tmp;
 			if (fread(tmpbuf, stride, fit->ry, file) < fit->ry) {
-				siril_log_message(
-						_("Error reading 16-bit color PPM image data.\n"));
+				siril_log_color_message(
+						_("Error reading 16-bit color PPM image data.\n"), "red");
 				fclose(file);
 				free(tmpbuf);
 				free(fit->data);
@@ -582,13 +634,17 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 		fit->binning_x = fit->binning_y = 1;
 		fits_flip_top_to_bottom(fit);
 	} else {
-		siril_log_message(_("Not handled max value for PNM: %d.\n"),
+		siril_log_color_message(_("Not handled max value for PNM: %d.\n"), "red",
 				max_val);
 		fclose(file);
 		return -1;
 	}
 	fit->type = DATA_USHORT;
 	g_snprintf(fit->row_order, FLEN_VALUE, "%s", "TOP-DOWN");
+
+	// Initialize ICC profile. As the buffer is set to NULL, this sets the
+	// profile as sRGB (or Gray g22) which is what we want
+	fits_initialize_icc(fit, NULL, 0);
 
 	fclose(file);
 	char *basename = g_path_get_basename(filename);
@@ -600,6 +656,10 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 
 static int saveppm(const char *name, fits *fit) {
 	FILE *fp = g_fopen(name, "wb");
+	if (!fp) {
+		siril_log_color_message(_("Error opening file %s\n"), "red", name);
+		return 1;
+	}
 	size_t i, ndata = fit->rx * fit->ry;
 	double norm;
 	const char *comment = "# CREATOR : SIRIL";
@@ -607,6 +667,38 @@ static int saveppm(const char *name, fits *fit) {
 	fprintf(fp, "P6\n%s\n%u %u\n%u\n", comment, fit->rx, fit->ry, USHRT_MAX);
 	WORD *gbuf[3] = { fit->pdata[RLAYER], fit->pdata[GLAYER], fit->pdata[BLAYER] };
 	float *gbuff[3] = { fit->fpdata[RLAYER], fit->fpdata[GLAYER], fit->fpdata[BLAYER] };
+
+	// Apply the colorspace transform
+	gboolean src_is_float = (fit->type == DATA_FLOAT);
+	void *buf = NULL;
+	void *dest = NULL;
+
+	// Colorspace transform the data
+	if (fit->color_managed && fit->icc_profile) {
+		buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
+		const size_t npixels = fit->rx * fit->ry;
+		if (src_is_float) {
+			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
+		} else {
+			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
+		}
+		gboolean threaded = !get_thread_run();
+		cmsColorSpaceSignature sig = cmsGetColorSpace(fit->icc_profile);
+		cmsUInt32Number trans_type = get_planar_formatter_type(sig, fit->type, FALSE);
+		cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.srgb_out, trans_type, com.pref.icc.export_intent, 0);
+		cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+		cmsUInt32Number bytesperline = gfit.rx * datasize;
+		cmsUInt32Number bytesperplane = npixels * datasize;
+		cmsDoTransformLineStride(save_transform, buf, dest, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
+		cmsDeleteTransform(save_transform);
+		gbuf[0] = (WORD *) dest;
+		gbuf[1] = (WORD *) dest + (fit->rx * fit->ry);
+		gbuf[2] = (WORD *) dest + (fit->rx * fit->ry * 2);
+		gbuff[0] = (float *) dest;
+		gbuff[1] = (float *) dest + (fit->rx * fit->ry);
+		gbuff[2] = (float *) dest + (fit->rx * fit->ry * 2);
+	}
+
 	fits_flip_top_to_bottom(fit);
 	norm = (fit->orig_bitpix != BYTE_IMG) ? 1.0 : USHRT_MAX_DOUBLE / UCHAR_MAX_DOUBLE;
 	if (fit->type == DATA_USHORT) {
@@ -638,6 +730,7 @@ static int saveppm(const char *name, fits *fit) {
 	fits_flip_top_to_bottom(fit);
 	siril_log_message(_("Saving NetPBM: file %s, %ld layer(s), %ux%u pixels\n"),
 			name, fit->naxes[2], fit->rx, fit->ry);
+	free(dest);
 	return 0;
 }
 
@@ -647,6 +740,34 @@ static int savepgm(const char *name, fits *fit) {
 	double norm;
 	WORD *gbuf = fit->pdata[RLAYER];
 	float *gbuff = fit->fpdata[RLAYER];
+
+	// Apply the colorspace transform
+	void *buf = NULL;
+	void *dest = NULL;
+	gboolean src_is_float = (fit->type == DATA_FLOAT);
+
+	// Colorspace transform the data
+	if (fit->color_managed && fit->icc_profile) {
+		buf = src_is_float ? (void *) fit->fdata : (void *) fit->data;
+		const size_t npixels = fit->rx * fit->ry;
+		if (src_is_float) {
+			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
+		} else {
+			dest = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(WORD));
+		}
+		gboolean threaded = get_thread_run();
+		cmsColorSpaceSignature sig = cmsGetColorSpace(fit->icc_profile);
+		cmsUInt32Number trans_type = get_planar_formatter_type(sig, fit->type, FALSE);
+		cmsHTRANSFORM save_transform = sirilCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), fit->icc_profile, trans_type, com.icc.mono_out, trans_type, com.pref.icc.export_intent, 0);
+		cmsUInt32Number datasize = gfit.type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+		cmsUInt32Number bytesperline = gfit.rx * datasize;
+		cmsUInt32Number bytesperplane = npixels * datasize;
+		cmsDoTransformLineStride(save_transform, buf, dest, gfit.rx, gfit.ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
+		cmsDeleteTransform(save_transform);
+		gbuf = (WORD *) dest;
+		gbuff = (float *) dest;
+	}
+
 	const char *comment = "# CREATOR : SIRIL";
 
 	fp = g_fopen(name, "wb");
@@ -677,6 +798,7 @@ static int savepgm(const char *name, fits *fit) {
 	fits_flip_top_to_bottom(fit);
 	siril_log_message(_("Saving NetPBM: file %s, %ld layer(s), %ux%u pixels\n"),
 			name, fit->naxes[2], fit->rx, fit->ry);
+	free(dest);
 	return 0;
 }
 
@@ -777,8 +899,8 @@ static int _pic_read_header(struct pic_struct *pic_file) {
 	memcpy(&pic_file->magic, header, 4);
 
 	if (pic_file->magic != 0x12231fc) {
-		siril_log_message(_("Wrong magic cookie in PIC file. "
-					"This image is not supported.\n"));
+		siril_log_color_message(_("Wrong magic cookie in PIC file. "
+					"This image is not supported.\n"), "red");
 		return -1;
 	}
 
@@ -817,8 +939,8 @@ int readpic(const char *name, fits *fit) {
 	pic_file = calloc(1, sizeof(struct pic_struct));
 
 	if ((pic_file->file = g_fopen(name, "rb")) == NULL) {
-		siril_log_message(
-				_("Sorry but Siril cannot open the PIC file: %s.\n"), name);
+		siril_log_color_message(
+				_("Sorry but Siril cannot open the PIC file: %s.\n"), "red", name);
 		free(pic_file);
 		return -1;
 	}
@@ -838,12 +960,21 @@ int readpic(const char *name, fits *fit) {
 
 	size_t nbdata = fit->rx * fit->ry;
 
-	fseek(pic_file->file, 290, SEEK_SET);
+	if (fseek(pic_file->file, 290, SEEK_SET)) {
+		siril_log_color_message(_("Error: seek failure in file.\n"), "red");
+		_pic_close_file(pic_file);
+		return -1;
+	}
 	buf = malloc(nbdata * pic_file->nbplane * sizeof(WORD));
+	if (!buf) {
+		siril_log_color_message(_("Error: memory allocation failure.\n"), "red");
+		_pic_close_file(pic_file);
+		return -1;
+	}
 
 	if ((fread(buf, 1, nbdata * pic_file->nbplane * sizeof(WORD), pic_file->file))
 			!= nbdata * pic_file->nbplane * sizeof(WORD)) {
-		siril_log_message(_("Cannot Read the data\n"));
+		siril_log_color_message(_("Error: Cannot read the data\n"), "red");
 		free(buf);
 		_pic_close_file(pic_file);
 		return -1;
@@ -858,7 +989,7 @@ int readpic(const char *name, fits *fit) {
 			break;
 		default:
 			retval = -1;
-			siril_log_message(_("Sorry but Siril cannot open this file.\n"));
+			siril_log_color_message(_("Sorry but Siril cannot open this file.\n"), "red");
 	}
 	free(buf);
 
@@ -882,6 +1013,12 @@ int readpic(const char *name, fits *fit) {
 		g_strchug(pic_file->time);	// removing left white spaces if exist
 		siril_log_message(_("Time (of observation): %s\n"), pic_file->time);
 	}
+
+	// Initialize ICC profile. As the buffer is set to NULL, this sets the
+	// profile as sRGB (or Gray g22) which *I think* is what we want for
+	// PIC files. If anyone is still using them, please correct me if I'm
+	// wrong!
+	fits_initialize_icc(fit, NULL, 0);
 
 	_pic_close_file(pic_file);
 	g_free(basename);

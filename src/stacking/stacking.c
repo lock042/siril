@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/icc_profile.h"
 #include "core/initfile.h"
 #include "core/OS_utils.h"
 #include "core/siril_date.h"
@@ -46,6 +47,7 @@
 #include "registration/registration.h"
 #include "algos/noise.h"
 #include "algos/sorting.h"
+#include "algos/siril_wcs.h"
 #include "stacking/sum.h"
 #include "opencv/opencv.h"
 
@@ -79,22 +81,15 @@ static gboolean end_stacking(gpointer p);
 static void stacking_args_deep_copy(struct stacking_args *from, struct stacking_args *to);
 static void stacking_args_deep_free(struct stacking_args *args);
 
-void initialize_stacking_default() {
-	com.pref.stack.sigma_low = 4.0;
-	com.pref.stack.sigma_high = 3.0;
-	com.pref.stack.linear_low = 5.0;
-	com.pref.stack.linear_high = 5.0;
-	com.pref.stack.percentile_low = 0.2;
-	com.pref.stack.percentile_high = 0.1;
-}
-
 void initialize_stacking_methods() {
 	GtkComboBoxText *stackcombo = GTK_COMBO_BOX_TEXT(lookup_widget("comboboxstack_methods"));
 	GtkComboBoxText *rejectioncombo = GTK_COMBO_BOX_TEXT(lookup_widget("comborejection"));
+	GtkComboBoxText *weightingcombo = GTK_COMBO_BOX_TEXT(lookup_widget("comboweighing"));
 	GtkSpinButton *low = GTK_SPIN_BUTTON(lookup_widget("stack_siglow_button"));
 	GtkSpinButton *high = GTK_SPIN_BUTTON(lookup_widget("stack_sighigh_button"));
 	gtk_combo_box_set_active(GTK_COMBO_BOX(stackcombo), com.pref.stack.method);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(rejectioncombo), com.pref.stack.rej_method);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(weightingcombo), com.pref.stack.weighting_method);
 	switch (gtk_combo_box_get_active(GTK_COMBO_BOX(rejectioncombo))) {
 	case PERCENTILE:
 		gtk_spin_button_set_value(low, com.pref.stack.percentile_low);
@@ -118,7 +113,6 @@ void initialize_stacking_methods() {
 	default:
 		return;
 	}
-
 }
 
 gboolean evaluate_stacking_should_output_32bits(const stack_method method,
@@ -194,20 +188,6 @@ gpointer stack_function_handler(gpointer p) {
 	return GINT_TO_POINTER(args->retval);
 }
 
-// Checks that the number of degrees of freedoms is not more than shift
-// returns FALSE if not
-gboolean stack_regdata_is_valid(struct stacking_args args) {
-	if (!layer_has_registration(args.seq, args.reglayer)) return TRUE;
-	transformation_type regmin, regmax;
-	guess_transform_from_seq(args.seq, args.reglayer, &regmin, &regmax, FALSE);
-	if (regmax > SHIFT_TRANSFORMATION)
-		return FALSE;
-	else if (regmax == SHIFT_TRANSFORMATION) {
-		siril_log_color_message(_("Stacking will use registration data of layer %d\n"), "salmon", args.reglayer);
-	}
-	return TRUE;
-}
-
 /* starts a summing operation using data stored in the stackparam structure
  * function is not reentrant but can be called again after it has returned and the thread is running */
 static void start_stacking() {
@@ -253,10 +233,11 @@ static void start_stacking() {
 	stackparam.coeff.mul = NULL;
 	stackparam.coeff.scale = NULL;
 	stackparam.method =	stacking_methods[gtk_combo_box_get_active(method_combo)];
-	stackparam.apply_noise_weights = (gtk_combo_box_get_active(weighing_combo) == NOISE_WEIGHT) && (gtk_combo_box_get_active(norm_combo) != NO_NORM);
-	stackparam.apply_nbstars_weights = (gtk_combo_box_get_active(weighing_combo) == NBSTARS_WEIGHT);
-	stackparam.apply_wfwhm_weights = (gtk_combo_box_get_active(weighing_combo) == WFWHM_WEIGHT);
-	stackparam.apply_nbstack_weights = (gtk_combo_box_get_active(weighing_combo) == NBSTACK_WEIGHT) && (gtk_combo_box_get_active(norm_combo) != NO_NORM);
+	gboolean weighing_is_enabled = gtk_widget_get_visible(GTK_WIDGET(weighing_combo));
+	stackparam.apply_noise_weights = weighing_is_enabled && (gtk_combo_box_get_active(weighing_combo) == NOISE_WEIGHT) && (gtk_combo_box_get_active(norm_combo) != NO_NORM);
+	stackparam.apply_nbstars_weights = weighing_is_enabled && (gtk_combo_box_get_active(weighing_combo) == NBSTARS_WEIGHT);
+	stackparam.apply_wfwhm_weights = weighing_is_enabled && (gtk_combo_box_get_active(weighing_combo) == WFWHM_WEIGHT);
+	stackparam.apply_nbstack_weights = weighing_is_enabled && (gtk_combo_box_get_active(weighing_combo) == NBSTACK_WEIGHT) && (gtk_combo_box_get_active(norm_combo) != NO_NORM);
 	stackparam.equalizeRGB = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(RGB_equal)) && gtk_widget_is_visible(RGB_equal)  && (gtk_combo_box_get_active(norm_combo) != NO_NORM);
 	stackparam.lite_norm = gtk_toggle_button_get_active(fast_norm);
 
@@ -273,7 +254,7 @@ static void start_stacking() {
 	stackparam.seq = &com.seq;
 	stackparam.reglayer = get_registration_layer(stackparam.seq);
 	// checking regdata is absent, or if present, is only shift
-	if (!stack_regdata_is_valid(stackparam)) {
+	if (!test_regdata_is_valid_and_shift(stackparam.seq, stackparam.reglayer)) {
 		int confirm = siril_confirm_dialog(_("Registration data found"),
 			_("Stacking has detected registration data with more than simple shifts.\n"
 			"Normally, you should apply existing registration before stacking."),
@@ -562,7 +543,8 @@ static gboolean end_stacking(gpointer p) {
 		/* copy result to gfit if success */
 		clearfits(&gfit);
 		memcpy(&gfit, &args->result, sizeof(fits));
-
+		if (!com.script)
+			icc_auto_assign(&gfit, ICC_ASSIGN_ON_STACK);
 		clear_stars_list(TRUE);
 		/* check in com.seq, because args->seq may have been replaced */
 		if (com.seq.upscale_at_stacking > 1.05)
@@ -584,7 +566,7 @@ static gboolean end_stacking(gpointer p) {
 		// and parse the name
 		int status = PATHPARSE_ERR_OK;
 		gchar *expression = g_strdup(args->output_filename);
-		gchar *parsedname = update_header_and_parse(&gfit, expression, PATHPARSE_MODE_WRITE_NOFAIL, &status);
+		gchar *parsedname = update_header_and_parse(&gfit, expression, PATHPARSE_MODE_WRITE_NOFAIL, TRUE, &status);
 
 		if (!parsedname || parsedname[0] == '\0') { // we cannot handout a NULL filename
 			args->output_parsed_filename = g_strdup("unknown");
@@ -611,12 +593,7 @@ static gboolean end_stacking(gpointer p) {
 				}
 			}
 			else {
-				gchar *dirname = g_path_get_dirname(args->output_parsed_filename);
-				if (g_mkdir_with_parents(dirname, 0755) < 0) {
-					siril_log_color_message(_("Cannot create output folder: %s\n"), "red", dirname);
-					failed = 1;
-				}
-				g_free(dirname);
+				// output folder (if any) was already created by update_header_and_parse
 				if (!savefits(args->output_parsed_filename, &gfit)) {
 					com.uniq->filename = strdup(args->output_parsed_filename);
 					com.uniq->fileexist = TRUE;
@@ -723,7 +700,6 @@ void on_comboboxstack_methods_changed (GtkComboBox *box, gpointer user_data) {
 
 	gtk_notebook_set_current_page(notebook, com.pref.stack.method);
 	update_stack_interface(TRUE);
-	writeinitfile();
 }
 
 void on_combonormalize_changed (GtkComboBox *box, gpointer user_data) {
@@ -732,6 +708,10 @@ void on_combonormalize_changed (GtkComboBox *box, gpointer user_data) {
 	GtkWidget *fast_norm = lookup_widget("checkfastnorm");
 	gtk_widget_set_sensitive(force_norm, gtk_combo_box_get_active(GTK_COMBO_BOX(widgetnormalize)) != 0);
 	gtk_widget_set_sensitive(fast_norm, gtk_combo_box_get_active(GTK_COMBO_BOX(widgetnormalize)) != 0);
+}
+
+void on_comboweighing_changed (GtkComboBox *box, gpointer user_data) {
+	com.pref.stack.weighting_method = gtk_combo_box_get_active(box);
 }
 
 void on_stack_siglow_button_value_changed(GtkSpinButton *button, gpointer user_data) {
@@ -755,7 +735,6 @@ void on_stack_siglow_button_value_changed(GtkSpinButton *button, gpointer user_d
 	default:
 		return;
 	}
-	writeinitfile();
 }
 
 void on_stack_sighigh_button_value_changed(GtkSpinButton *button, gpointer user_data) {
@@ -779,7 +758,6 @@ void on_stack_sighigh_button_value_changed(GtkSpinButton *button, gpointer user_
 	default:
 		return;
 	}
-	writeinitfile();
 }
 
 void on_comborejection_changed(GtkComboBox *box, gpointer user_data) {
@@ -883,7 +861,6 @@ void on_comborejection_changed(GtkComboBox *box, gpointer user_data) {
 	g_signal_handlers_unblock_by_func(GTK_SPIN_BUTTON(sighigh), on_stack_sighigh_button_value_changed, NULL);
 
 	com.pref.stack.rej_method = gtk_combo_box_get_active(box);
-	writeinitfile();
 }
 
 void on_rejmaps_toggled(GtkToggleButton *button, gpointer user_data) {

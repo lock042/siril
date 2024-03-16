@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@
 #include <glib.h>
 
 #include "utils.h"
+#include "message_dialog.h"
 
 struct _label_data {
 	const char *label_name;
@@ -71,6 +72,15 @@ GtkWidget* lookup_widget(const gchar *widget_name) {
 	return GTK_WIDGET(gtk_builder_get_object(gui.builder, widget_name));
 }
 
+GObject* lookup_gobject(const gchar *gobject_name) {
+	return ((GObject*) gtk_builder_get_object(gui.builder, gobject_name));
+}
+
+GtkAdjustment* lookup_adjustment(const gchar *adjustment_name) {
+	return GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, adjustment_name));
+}
+
+
 void control_window_switch_to_tab(main_tabs tab) {
 	if (com.script)
 		return;
@@ -106,18 +116,16 @@ GtkWidget* popover_new_with_image(GtkWidget *widget, const gchar *text, GdkPixbu
 	if (pixbuf) {
 		float ratio = 1.0 * gdk_pixbuf_get_height(pixbuf) / gdk_pixbuf_get_width(pixbuf);
 		int width = 128, height = 128 * ratio;
-		GdkPixbuf *new_pixbuf = gdk_pixbuf_scale_simple(pixbuf, width, height,
-				GDK_INTERP_BILINEAR);
+		GdkPixbuf *new_pixbuf = gdk_pixbuf_scale_simple(pixbuf, width, height, GDK_INTERP_BILINEAR);
 		image = gtk_image_new_from_pixbuf(new_pixbuf);
 		g_object_unref(new_pixbuf);
 	} else {
-		image = gtk_image_new_from_icon_name("dialog-information-symbolic",
-					GTK_ICON_SIZE_DIALOG);
+		image = gtk_image_new_from_icon_name("dialog-information-symbolic", GTK_ICON_SIZE_DIALOG);
 	}
 
 	gtk_label_set_markup(GTK_LABEL(label), text);
 	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
-	gtk_label_set_max_width_chars(GTK_LABEL(label), 80);
+	gtk_label_set_max_width_chars(GTK_LABEL(label), 100);
 
 	gtk_box_pack_start(GTK_BOX(box), image, FALSE, FALSE, 10);
 	gtk_box_pack_start(GTK_BOX(box), label, FALSE, FALSE, 10);
@@ -171,13 +179,14 @@ void set_GUI_DiskSpace(gint64 space, const gchar *label) {
 	gboolean set_class = FALSE;
 
 	if (space > 0) {
-		if (space < 1073741824) { // we want to warn user of space is less than 1GiB
+		if (space < 1073741824) { // we want to warn user if space is less than 1GiB
 			set_class = TRUE;
 		}
 		gchar *mem = g_format_size_full(space, G_FORMAT_SIZE_IEC_UNITS);
 		str = g_strdup_printf(_("Disk Space: %s"), mem);
 		g_free(mem);
 	} else {
+		set_class = TRUE;
 		str = g_strdup(_("Disk Space: N/A"));
 	}
 	set_label_text_from_main_thread(label, str,
@@ -198,7 +207,7 @@ void unset_suggested(GtkWidget *widget) {
 
 /* Managing GUI calls *
  * We try to separate core concerns from GUI (GTK+) concerns to keep the core
- * code efficient and clean, and avoir calling GTK+ functions in threads other
+ * code efficient and clean, and avoid calling GTK+ functions in threads other
  * than the main GTK+ thread.
  * GTK+ functions calls should be grouped in idle functions: these are
  * functions called by the GTK+ main thread whenever it's idle. The problem is
@@ -251,4 +260,61 @@ void execute_idle_and_wait_for_it(gboolean (* idle)(gpointer), gpointer arg) {
 
 int select_vport(int vport) {
 	return vport == RGB_VPORT ? GREEN_VPORT : vport;
+}
+
+gboolean check_ok_if_cfa() {
+	gboolean retval;
+	if (gfit.naxes[2] == 1 && gfit.bayer_pattern[0] != '\0') {
+		int confirm = siril_confirm_dialog(_("Undebayered CFA image loaded"),
+				_("You are about to apply a function that is not intended for use on an undebayered CFA image. Are you sure you wish to proceed?"), _("Proceed"));
+		retval = confirm ? TRUE : FALSE;
+	} else {
+		retval = TRUE;
+	}
+	return retval;
+}
+
+point closest_point_on_line(point in, point p1, point p2) {
+	point out = { 0 };
+	if (p1.x == p2.x) {
+		out.x = p1.x;
+		out.y = in.y;
+	} else if (p1.y == p2.y) {
+		out.x = in.x;
+		out.y = p1.y;
+	} else {
+		double a = in.x;
+		double b = in.y;
+		double x1 = p1.x;
+		double y1 = p1.y;
+		double x2 = p2.x;
+		double y2 = p2.y;
+		double m1 = (y2-y1)/(x2-x1);
+		double m2 = -1.0 / m1;
+		double x = (m1*x1-m2*a+b-y1)/(m1-m2);
+		double y = m2*(x-a)+b;
+		out.x = x;
+		out.y = y;
+	}
+	return out;
+}
+
+// Add the GtkFileFilter filter_name to the GtkFileChooser widget_name
+// If the widget already obeys the filter then it is not added a second time
+void siril_set_file_filter(const gchar* widget_name, const gchar* filter_name) {
+	GtkFileChooser* chooser = GTK_FILE_CHOOSER(lookup_widget(widget_name));
+	GtkFileFilter* filter = GTK_FILE_FILTER(lookup_gobject(filter_name));
+	GSList* filter_list = gtk_file_chooser_list_filters(chooser);
+	GSList* iterator = filter_list;
+	gboolean add_filter = TRUE;
+	while (iterator) {
+		if (iterator->data == filter) {
+			add_filter = FALSE;
+			break;
+		}
+		iterator++;
+	}
+	g_slist_free(filter_list);
+	if (add_filter)
+		gtk_file_chooser_add_filter(chooser, filter);
 }

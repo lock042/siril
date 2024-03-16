@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -80,7 +80,7 @@ static void background_startup() {
 static void copy_gfit_to_bkg_backup() {
 	if (!background_computed) return;
 	if (copyfits(&gfit, &background_backup, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)) {
-		siril_log_message(_("Image copy error in previews\n"));
+		siril_debug_print("Image copy error in previews\n");
 		return;
 	}
 }
@@ -91,7 +91,7 @@ static int copy_bkg_backup_to_gfit() {
 	if (!gfit.data && !gfit.fdata)
 		retval = 1;
 	else if (copyfits(&background_backup, &gfit, CP_COPYA, -1)) {
-		siril_log_message(_("Image copy error in previews\n"));
+		siril_debug_print("Image copy error in previews\n");
 		retval = 1;
 	}
 	return retval;
@@ -101,13 +101,7 @@ gboolean end_background(gpointer p) {
 	struct background_data *args = (struct background_data *)p;
 	stop_processing_thread();
 	if (args) {
-		invalidate_stats_from_fit(args->fit);
 		background_computed = TRUE;
-		if (!args->from_ui) {
-			free_background_sample_list(com.grad_samples);
-			com.grad_samples = NULL;
-		}
-
 		notify_gfit_modified();
 		gtk_widget_set_sensitive(lookup_widget("background_ok_button"), TRUE);
 		gtk_widget_set_sensitive(lookup_widget("bkg_show_original"), TRUE);
@@ -123,9 +117,10 @@ void on_background_generate_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
 	int nb_of_samples;
 	double tolerance;
-
+	GtkToggleButton* keep_all_button = (GtkToggleButton*) lookup_widget("subsky_keep_samples");
+	gboolean keep_all = gtk_toggle_button_get_active(keep_all_button);
 	nb_of_samples = get_nb_samples_per_line();
-	tolerance = get_tolerance_value();
+	tolerance = keep_all ? -1. : get_tolerance_value();
 
 	if (generate_background_samples(nb_of_samples, tolerance))
 		control_window_switch_to_tab(OUTPUT_LOGS);
@@ -147,6 +142,11 @@ void on_bkg_compute_bkg_clicked(GtkButton *button, gpointer user_data) {
 	}
 	set_cursor_waiting(TRUE);
 	copy_backup_to_gfit();
+
+	if (!check_ok_if_cfa()) {
+		set_cursor_waiting(FALSE);
+		return;
+	}
 
 	background_correction correction = get_correction_type();
 	poly_order degree = get_poly_order();
@@ -206,9 +206,9 @@ void on_background_ok_button_clicked(GtkButton *button, gpointer user_data) {
 
 		set_cursor_waiting(TRUE);
 
-		args->seqEntry = gtk_entry_get_text(GTK_ENTRY(lookup_widget("entryBkgSeq")));
+		args->seqEntry = strdup( gtk_entry_get_text(GTK_ENTRY(lookup_widget("entryBkgSeq"))));
 		if (args->seqEntry && args->seqEntry[0] == '\0')
-			args->seqEntry = "bkg_";
+			args->seqEntry = strdup("bkg_");
 		args->seq = &com.seq;
 		/* now we uncheck the button */
 		gtk_toggle_button_set_active(seq_button, FALSE);

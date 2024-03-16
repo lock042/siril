@@ -9,6 +9,7 @@
 void populate_seqcombo(const gchar *realname);
 int	read_single_sequence(char *realname, image_type imagetype);
 int	seqsetnum(int image_number);
+char *normalize_seqname(char *name, gboolean add_underscore);
 int	check_seq();
 int	seq_check_basic_data(sequence *seq, gboolean load_ref_into_gfit);
 int	set_seq(const char *);
@@ -28,6 +29,7 @@ char *	fit_sequence_get_image_filename_prefixed(sequence *seq, const char *prefi
 char *	get_possible_image_filename(sequence *seq, int image_number, char *name_buffer);
 int	get_index_and_basename(const char *filename, char **basename, int *index, int *fixed, const gchar *com_ext);
 void	remove_prefixed_sequence_files(sequence *seq, const char *prefix);
+void	remove_prefixed_star_files(sequence *seq, const char *prefix);
 void	initialize_sequence(sequence *seq, gboolean is_zeroed);
 void	free_sequence(sequence *seq, gboolean free_seq_too);
 void	free_photometry_set(sequence *seq, int set);
@@ -35,6 +37,7 @@ void	sequence_free_preprocessing_data(sequence *seq);
 void	close_sequence(int loading_another);
 gboolean check_seq_is_comseq(sequence *seq);
 gboolean sequence_is_loaded();
+gboolean check_starfile_date(sequence *seq, int index, gchar *star_filename) ;
 
 typedef enum {
 	ORIGINAL_FRAME,
@@ -61,6 +64,7 @@ int	sequence_find_refimage(sequence *seq);
 void	check_or_allocate_regparam(sequence *seq, int layer);
 void	set_shifts(sequence *seq, int frame, int layer, double shiftx, double shifty, gboolean data_is_top_down);
 void 	cum_shifts(sequence *seq, int frame, int layer, double shiftx, double shifty, gboolean data_is_top_down);
+gboolean test_regdata_is_valid_and_shift(sequence *seq, int reglayer);
 sequence *create_internal_sequence(int size);
 void	internal_sequence_set(sequence *seq, int index, fits *fit);
 int	internal_sequence_find_index(sequence *seq, const fits *fit);
@@ -78,9 +82,11 @@ void	update_export_crop_label();
 
 int compute_nb_images_fit_memory(sequence *seq, double factor, gboolean force_float, unsigned int *MB_per_orig_image, unsigned int *MB_per_scaled_image, unsigned int *max_mem_MB);
 
+int compute_nb_images_fit_memory_from_fit(fits *fit, double factor, gboolean force_float, unsigned int *MB_per_orig_image, unsigned int *MB_per_scaled_image, unsigned int *max_mem_MB);
+
 void fix_selnum(sequence *seq, gboolean warn);
 
-gboolean sequence_has_wcs(sequence *seq, int *index);
+gboolean sequence_ref_has_wcs(sequence *seq);
 
 gboolean sequence_drifts(sequence *seq, int reglayer, int threshold);
 

@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/icc_profile.h"
 #include "core/processing.h"
 #include "core/OS_utils.h"
 #include "core/initfile.h"
@@ -162,6 +163,7 @@ enum {
 };
 
 static fits var_fit[MAX_IMAGES] = { 0 };
+static gboolean var_fit_mask[MAX_IMAGES] = { 0 };
 
 static GtkListStore *pixel_math_list_store = NULL;
 static GtkListStore *pixel_math_list_store_functions = NULL;
@@ -327,7 +329,7 @@ static gboolean end_pixel_math_operation(gpointer p) {
 		invalidate_gfit_histogram();
 
 		memcpy(&gfit, args->fit, sizeof(fits));
-
+		icc_auto_assign(&gfit, ICC_ASSIGN_ON_COMPOSITION);
 		com.seq.current = UNRELATED_IMAGE;
 		create_uniq_from_gfit(strdup(_("Pixel Math result")), FALSE);
 		open_single_image_from_gfit();
@@ -467,12 +469,16 @@ static void update_metadata(fits *fit) {
 	fits **f = malloc((MAX_IMAGES + 1) * sizeof(fits *));
 	int j = 0;
 	for (int i = 0; i < MAX_IMAGES ; i++)
-		if (var_fit[i].rx > 0)
+		if (var_fit[i].rx > 0 && var_fit_mask[i])
 			f[j++] = &var_fit[i];
 	f[j] = NULL;
 
-	merge_fits_headers_to_result2(fit, f);
-	load_WCS_from_memory(fit);
+	if (!f[0])
+		// if no fit used (only constants),
+		// we copy the metadata from first image of the list
+		copy_fits_metadata(var_fit, fit);
+	else
+		merge_fits_headers_to_result2(fit, f);
 	free(f);
 }
 
@@ -580,7 +586,7 @@ static gchar *parse_image_functions(gpointer p, int idx, int c) {
 									expression = g_string_free(string, FALSE);
 									total_len = strlen(expression);
 									pos = pos + strlen(replace);
-
+									g_free(replace);
 									siril_debug_print("Expression%d: %s\n", c, expression);
 								}
 							}
@@ -591,9 +597,15 @@ static gchar *parse_image_functions(gpointer p, int idx, int c) {
 			}
 		}
 	}
+	for (int j = 0; j < nb_images; j++) {
+		const gchar *test =  g_strrstr(expression, image[j]);
+		if (test) {
+			var_fit_mask[j] = TRUE;
+			siril_debug_print("found image name %s in the expression %s\n", image[j], expression);
+		}
+	}
 	return expression;
 }
-
 gpointer apply_pixel_math_operation(gpointer p) {
 	struct pixel_math_data *args = (struct pixel_math_data *)p;
 
@@ -742,7 +754,6 @@ failure: // failure before the eval loop
 		if (!failed) {
 			clearfits(&gfit);
 			memcpy(&gfit, args->fit, sizeof(fits));
-
 			com.seq.current = UNRELATED_IMAGE;
 			create_uniq_from_gfit(strdup(_("Pixel Math result")), FALSE);
 		}
@@ -863,10 +874,11 @@ static int parse_parameters(gchar **expression1, gchar **expression2, gchar **ex
 }
 
 int load_pm_var(const gchar *var, int index, int *w, int *h, int *c) {
-	if (index > MAX_IMAGES) {
+	if (index > MAX_IMAGES - 1) {
 		siril_log_message(_("A maximum of %d images can be used in a single expression.\n"), MAX_IMAGES);
 		return 1;
 	}
+
 	if (readfits(var, &var_fit[index], NULL, TRUE)) {
 		*w = *h = *c = -1;
 		return 1;
@@ -880,6 +892,7 @@ int load_pm_var(const gchar *var, int index, int *w, int *h, int *c) {
 void free_pm_var(int nb) {
 	for (int i = 0; i < nb; i++) {
 		clearfits(&var_fit[i]);
+		var_fit_mask[i] = FALSE;
 	}
 }
 
@@ -890,6 +903,7 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 	int height = -1;
 	int channel = -1;
 
+	gboolean icc_warning_given = FALSE;
 	gboolean single_rgb = is_pm_use_rgb_button_checked();
 	gboolean rescale = is_pm_rescale_checked();
 	float min = get_min_rescale_value();
@@ -898,6 +912,27 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 	while (nb_rows < get_pixel_math_number_of_rows() && nb_rows < MAX_IMAGES) {
 		const gchar *path = get_pixel_math_var_paths(nb_rows);
 		if (readfits(path, &var_fit[nb_rows], NULL, TRUE)) return -1;
+
+		// Check ICC profiles are defined and the same
+		if (nb_rows > 0) {
+			if (!profiles_identical(var_fit[nb_rows].icc_profile, var_fit[0].icc_profile)) {
+				if (!icc_warning_given) {
+					siril_log_color_message(_("ICC profiles are inconsistent. The output color profile will be based on the first layer to be loaded.\n"), "salmon");
+					icc_warning_given = TRUE;
+				}
+				if (var_fit[0].icc_profile)
+					siril_log_color_message(_("ICC profile of layer %d does not match the first image. Converting it to match.\n"), "salmon", nb_rows + 1);
+				else
+					siril_log_color_message(_("The first layer loaded had no color profile. All input layers will be treated as raw data.\n"), "salmon");
+				// This also takes care of the stuation where a file doesn't have an
+				// ICC profile - in that case it is assigned a profile to match.
+				// Ultimately it is much better to use images that all have the same
+				// color profile - when they don't we're reduced to guesswork about the
+				// user's intention.
+				siril_colorspace_transform(&var_fit[nb_rows], var_fit[0].icc_profile);
+			}
+		}
+		// Check channels are compatible
 		if (channel == - 1) {
 			width = var_fit[nb_rows].rx;
 			height = var_fit[nb_rows].ry;
@@ -1059,6 +1094,7 @@ static void select_image(int nb) {
 			_("_Cancel"), GTK_RESPONSE_CANCEL, _("_Open"), GTK_RESPONSE_ACCEPT,	NULL);
 	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), com.wd);
 	gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER(dialog), TRUE);
+	gtk_file_chooser_set_local_only(GTK_FILE_CHOOSER(dialog), FALSE);
 	gtk_filter_add(GTK_FILE_CHOOSER(dialog), _("FITS Files (*.fit, *.fits, *.fts, *.fit.fz, *.fits.fz, *.fts.fz)"), FITS_EXTENSIONS);
 	siril_file_chooser_add_preview(GTK_FILE_CHOOSER(dialog), preview);
 
@@ -1071,7 +1107,7 @@ static void select_image(int nb) {
 		guint channel = 0;
 
 		GtkFileChooser *chooser = GTK_FILE_CHOOSER(dialog);
-		GSList *filenames = gtk_file_chooser_get_filenames(chooser);
+		GSList *filenames = siril_file_chooser_get_filenames(chooser);
 
 		for (l = filenames; l; l = l->next) {
 			char *filename;
@@ -1080,8 +1116,9 @@ static void select_image(int nb) {
 			if (filename) {
 				gchar filter[FLEN_VALUE] = { 0 };
 				fits f = { 0 };
-				read_fits_metadata_from_path(filename, &f);
-				if (check_files_dimensions(&width, &height, &channel)) {
+				if (read_fits_metadata_from_path(filename, &f)) {
+					siril_log_color_message(_("Could not open file: %s\n"), "red", filename);
+				} else if (check_files_dimensions(&width, &height, &channel)) {
 					if (width != 0 && (channel != f.naxes[2] ||
 							width != f.naxes[0] ||
 							height != f.naxes[1])) {
@@ -1223,7 +1260,7 @@ void on_pixel_math_treeview_row_activated(GtkTreeView *tree_view,
 	GtkEntry *entry = get_entry_with_focus();
 
 	GtkEntryBuffer *buffer = gtk_entry_get_buffer(entry);
-	gint *i = gtk_tree_path_get_indices(path);
+	const gint *i = gtk_tree_path_get_indices(path);
 	const gchar *str = get_pixel_math_var_name(i[0]);
 
 	if (str) {
@@ -1254,8 +1291,10 @@ gboolean query_tooltip_tree_view_cb(GtkWidget *widget, gint x, gint y,
 	char buffer[512];
 
 	if (!gtk_tree_view_get_tooltip_context(tree_view, &x, &y, keyboard_tip,
-			&model, &path, &iter))
+			&model, &path, &iter)) {
+		free(all_functions);
 		return FALSE;
+	}
 
 	gint real_index = get_real_index_from_index_in_list(model, &iter);
 
@@ -1345,7 +1384,7 @@ void on_pixel_math_treeview_functions_row_activated(GtkTreeView *tree_view,
 		GtkTreePath *path, GtkTreeViewColumn *column) {
 	GtkEntry *entry = get_entry_with_focus();
 	GtkEntryBuffer *buffer = gtk_entry_get_buffer(entry);
-	gint *i = gtk_tree_path_get_indices(path);
+	const gint *i = gtk_tree_path_get_indices(path);
 	const gchar *str = get_function_name(i[0]);
 
 	if (str) {
@@ -1362,7 +1401,7 @@ void on_pixel_math_treeview_operators_row_activated(GtkTreeView *tree_view,
 		GtkTreePath *path, GtkTreeViewColumn *column) {
 	GtkEntry *entry = get_entry_with_focus();
 	GtkEntryBuffer *buffer = gtk_entry_get_buffer(entry);
-	gint *i = gtk_tree_path_get_indices(path);
+	const gint *i = gtk_tree_path_get_indices(path);
 	const gchar *str = get_operator_name(i[0]);
 
 	if (str) {
@@ -1507,7 +1546,7 @@ void on_pixel_math_treeview_presets_row_activated(GtkTreeView *tree_view,
 	GtkEntry *entry = get_entry_with_focus();
 
 	GtkEntryBuffer *buffer = gtk_entry_get_buffer(entry);
-	gint *i = gtk_tree_path_get_indices(path);
+	const gint *i = gtk_tree_path_get_indices(path);
 	const gchar *str = get_preset_expr(i[0]);
 
 	if (str) {

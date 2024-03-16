@@ -3,119 +3,145 @@
 
 #include "core/siril.h"
 #include "core/siril_world_cs.h"
-
+#include "io/remote_catalogues.h"
+#include "algos/search_objects.h"
 #include "registration/matching/degtorad.h"
 
-#define BRIGHTEST_STARS 2500
-#define AT_MATCH_CATALOG_NBRIGHT   60
-//#define CROP_ALLOWANCE 1.20
-
-#define RADtoASEC (3600.0 * 180.0 / M_PI)
-
-#define CDSSESAME "http://cdsweb.u-strasbg.fr/cgi-bin/nph-sesame"
-#define VIZIERSESAME "http://vizier.cfa.harvard.edu/viz-bin/nph-sesame"
-#define SIMBADSESAME "http://simbad.u-strasbg.fr/simbad/sim-tap/sync?request=doQuery&lang=adql&format=TSV&query=SELECT basic.OID, ra, dec, main_id FROM basic JOIN ident ON ident.oidref = oid WHERE id ='"
-#define EPHEMCC "https://ssp.imcce.fr/webservices/miriade/api/ephemcc.php?"
-#define SKYBOT "https://vo.imcce.fr/webservices/skybot/skybotconesearch_query.php?"
+#define BRIGHTEST_STARS 500
+#define AT_MATCH_CATALOG_NBRIGHT 60
 
 
 typedef enum {
-	TYCHO2,
-	NOMAD,
-	GAIADR3,
-	PPMXL,
-	BRIGHT_STARS,
-	APASS,
-	LOCAL = 99
-} online_catalog;
+	LIMIT_MAG_AUTO,
+	LIMIT_MAG_AUTO_WITH_OFFSET,
+	LIMIT_MAG_ABSOLUTE
+} limit_mag_mode;
 
 typedef enum {
-	RESOLVER_UNSET = -1,
-	RESOLVER_NED = 0,
-	RESOLVER_SIMBAD,
-	RESOLVER_VIZIER,
-	RESOLVER_NUMBER,
-} resolver_t;
-
+	SOLVER_SIRIL,
+	SOLVER_LOCALASNET
+} platesolve_solver;
 
 typedef enum {
-	QUERY_SERVER_CDS,
-	QUERY_SERVER_VIZIER,
-	QUERY_SERVER_SIMBAD,
-	QUERY_SERVER_EPHEMCC,
-	QUERY_SERVER_SKYBOT,
-} query_server;
+	FORCED_CENTER,
+	FORCED_PIXEL,
+	FORCED_FOCAL
+} forced_metadata_t;
+
+typedef enum {
+	SOLVE_LINONLY = -2, // siril or asnet solvers returned a linear solution only instead of the required SIP order
+	SOLVE_LASTSOLVE = -1, // siril internal solver found a solution but the last centered solve did not succeed
+	// generic
+	SOLVE_OK,
+	SOLVE_NO_MATCH, //solution->message = g_strdup(_("Could not match stars from the catalogue"));
+	SOLVE_CANCELLED, //solution->message = g_strdup(_("Cancelled"));
+	// platesolve common errors
+	SOLVE_DOWNSAMPLE, //args->message = g_strdup(_("Not enough memory"));
+	SOLVE_NOTENOUGHSTARS, //		args->message = g_strdup_printf(_("There are not enough stars picked in the image. least %d are needed."), AT_MATCH_STARTN_LINEAR);
+	// siril solver
+	SOLVE_INVALID_TRANS, 		//solution->message = g_strdup(_("Transformation matrix is invalid, solve failed"));
+	SOLVE_PROJ, //solution->message = g_strdup(_("Reprojecting catalog failed."));
+	SOLVE_TRANS_UPDATE, //g_strdup(_("Updating trans failed."));
+	SOLVE_NEAR_NO_MATCH, // siril internal solver did not find a solution using near solver
+	SOLVE_NEAR_TIMEOUT, // siril internal near solver timed out
+	SOLVE_NEAR_THREADS, // siril internal near solver problem allocating threads
+
+	// asnet solver
+	SOLVE_ASNET_PROC, // asnet errors prior to solve
+
+} siril_solve_errcode;
 
 struct astrometry_data {
 	/* user input */
 	fits *fit;		// the image
 	double pixel_size;	// pixel size in µm
 	double focal_length;	// focal length in mm
-	online_catalog onlineCatalog;	// choice of catalog for the plate solve
+	platesolve_solver solver;	// the solver being used (siril or localasnet for now)
+	siril_catalogue *ref_stars; // siril_catalogue containing query parameters and results
 	SirilWorldCS *cat_center;	// starting point for the search
-	gboolean downsample;	// downsample mage before solving
+	gboolean downsample;	// downsample image before solving
 	gboolean autocrop;	// crop image if fov is larger than 5 degrees
 	gboolean flip_image;	// Flip at the end if detected mirrored
 	gboolean manual;	// use stars already detected by user, in com.stars
-	gboolean auto_magnitude;// automatically limit magnitude of the catalog
-	double forced_magnitude;// if not automatic, use this limit magnitude
-	gboolean for_photometry_cc;	// proceeed to PCC after a successful plate solve
-	struct photometric_cc_data *pcc;// PCC configuration
+	gboolean nocache;	// solve each image with its metadata for a sequence (do not use a common catalogue)
+	psf_star **stars;	// alternate source for manual stars (vincent's special)
+	limit_mag_mode mag_mode;// automatically limit magnitude of the catalog
+	double magnitude_arg;	// if not automatic, use this limit magnitude
+	gboolean verbose;	// display all information
+	gboolean for_sequence;	// sequence operation, don't free everything
+	gchar *filename;	// the name of the file being processed
+	int rx_solver;		// width of the image being solved (accounting for downscale if any)
+	int ry_solver;		// height of the image being solved (accounting for downscale if any)
+	double scalefactor;	// scale factor accounting for downscale if any
+	int trans_order; // order of the polynomial fit (if > 1, it includes distortions)
+	double searchradius; // radius of the cone if nearsearch in degrees
+	gboolean forced_metadata[3]; // flags using for seq, to indicate if center, pixel and focal where forced
+	gboolean force; // flag to force solving again already solved images from sequence
 
 	/* program-processed input, by process_plate_solver_input() */
-	double limit_mag;	// limit magnitude to sear for in the catalog
 	double scale;		// scale (resolution) in arcsec per pixel
 	double used_fov;	// field of view for the solved image region (arcmin)
-	gboolean use_local_cat;	// use local catalogues if installed
-	GFile *catalog_file;	// downloaded file containing raw catalog data
-	gchar *catalogStars;	// file name of the projected catalog
 	rectangle solvearea;	// area in case of manual selection or autocrop
 	gboolean uncentered;	// solvearea is not centered with image
+	gboolean asnet_checked;	// local asnet availability already checked
+	gboolean near_solve; // if this flag is false, ref_stars conesearch is done once (mainly when catalogs are not local)
+	gboolean asnet_blind_pos; // if this flag is true, no position is passed to asnet, the solve is blind in position
+	gboolean asnet_blind_res; // if this flag is true, no resolution is passed to asnet, the solve is blind in scale
+	int numthreads; //nb of threads that can be used
 
 	/* results */
 	int ret;		// return value
-	gchar *message;		// error message
 	gboolean image_flipped;	// image has been flipped
-	SirilWorldCS *new_center; // the image center found by the solve
+	int seqprogress; // used to log number of solved images when processing a sequence
+	int seqskipped; // used to log number of skipped images (already solved) when processing a sequence
 };
 
-struct sky_object {
-	gchar *name;
+typedef struct {
+	psf_star **stars;
+	siril_catalogue *search_cat;
+	int nb_stars;
+	double scale;
+	point *centers;
 	double radius;
-	int maxRecords;
-	SirilWorldCS *world_cs;
-	point imageCenter;
-	gboolean south;
-};
+	int N;
+	gboolean verbose;
+	// modified by the pool workers
+	gint progress;
+	gint solved;
+	point *center;
+} near_solve_data;
 
 void open_astrometry_dialog();
-gchar *search_in_online_catalogs(const gchar *object, query_server server);
+void close_astrometry_dialog();
 void process_plate_solver_input(struct astrometry_data *args);
 int fill_plate_solver_structure_from_GUI(struct astrometry_data *args);
-void wcs_cd_to_pc(double cd[][2], double pc[][2], double cdelt[2]);
 void wcs_pc_to_cd(double pc[][2], const double cdelt[2], double cd[][2]);
-gpointer match_catalog(gpointer p);
-double compute_mag_limit_from_fov(double fov_degrees);
-
+gpointer plate_solver(gpointer p);
+double compute_mag_limit_from_position_and_fov(double ra, double dec, double fov_degrees, int Nstars);
 gboolean confirm_delete_wcs_keywords(fits *fit);
-void flip_bottom_up_astrometry_data(fits *fit);
 void reframe_astrometry_data(fits *fit, Homography H);
 
-void set_focal_and_pixel_pitch();
+void init_astrometry();
+void reset_astrometry_checks();
+void initialize_ips_dialog();
+
+
+void start_sequence_astrometry(sequence *seq, struct astrometry_data *args);
+
+gboolean asnet_is_available();
+void reset_asnet_version();
 
 /* for the GUI */
 double get_resolution(double focal, double pixel);
 double get_radius_deg(double resolution, int rx, int ry);
-void free_Platedobject();
-int parse_content_buffer(char *buffer, struct sky_object *obj);
-gchar *search_in_online_conesearch(struct astrometry_data *args);
-gboolean has_nonzero_coords();
+
 gboolean has_any_keywords();
 SirilWorldCS *get_eqs_from_header(fits *fit);
-GFile *download_catalog(online_catalog onlineCatalog, SirilWorldCS *catalog_center, double radius, double mag);
-gchar *get_catalog_url(SirilWorldCS *center, double mag_limit, double dfov, int type);
+double get_fov_arcmin(double resolution, int rx, int ry);
+gchar *platesolve_msg(struct astrometry_data *args);
 
 /* from the GUI */
+gboolean end_process_catsearch(gpointer p);
 void update_coords();
 gboolean end_plate_solver(gpointer p);
 

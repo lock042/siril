@@ -62,7 +62,7 @@ extern "C" {
 
 using namespace cv;
 
-static void convert_H_to_MatH(Homography *from, Mat &to);
+static void convert_H_to_MatH(const Homography *from, Mat &to);
 static void convert_MatH_to_H(Mat from, Homography *to);
 
 /* TODO:
@@ -242,6 +242,15 @@ static int Mat_to_image(fits *image, Mat *in, Mat *out, void *bgr, int target_rx
 	return 0;
 }
 
+// int guide image for clamping
+static void init_guide(fits *image, unsigned int target_rx, unsigned int target_ry, Mat *guide) {
+	if (image->type == DATA_USHORT) {
+		*guide = Mat(target_ry, target_rx, (image->naxes[2] == 1) ? CV_16UC1 : CV_16UC3, Scalar(0));
+	} else {
+		*guide = Mat(target_ry, target_rx, (image->naxes[2] == 1) ? CV_32FC1 : CV_32FC3, Scalar(0.0f));
+	}
+}
+
 /* resizes image to the sizes toX * toY, and stores it back in image */
 int cvResizeGaussian(fits *image, int toX, int toY, int interpolation, gboolean clamp) {
 	Mat in, out;
@@ -251,13 +260,14 @@ int cvResizeGaussian(fits *image, int toX, int toY, int interpolation, gboolean 
 
 	// OpenCV function
 	resize(in, out, out.size(), 0, 0, interpolation);
+
 	if ((interpolation == OPENCV_LANCZOS4 || interpolation == OPENCV_CUBIC) && clamp) {
 		Mat guide, tmp1;
+		init_guide(image, toX, toY, &guide);
 		// Create guide image
 		resize(in, guide, out.size(), 0, 0, OPENCV_AREA);
 		tmp1 = (out < CLAMPING_FACTOR * guide);
-		Mat element = getStructuringElement( MORPH_ELLIPSE,
-                       Size(3, 3), Point(1,1));
+		Mat element = getStructuringElement(MORPH_ELLIPSE, Size(3, 3), Point(1,1));
 		dilate(tmp1, tmp1, element);
 
 		copyTo(guide, out, tmp1); // Guide copied to the clamped pixels
@@ -318,7 +328,7 @@ void cvTransformImageRefPoint(Homography Hom, point refpointin, point *refpointo
 	refpointout->y = refptout.at<double>(0, 1);
 }
 
-static void convert_H_to_MatH(Homography *from, Mat &to) {
+static void convert_H_to_MatH(const Homography *from, Mat &to) {
 	to.at<double>(0, 0) = from->h00;
 	to.at<double>(0, 1) = from->h01;
 	to.at<double>(0, 2) = from->h02;
@@ -377,8 +387,10 @@ void cvTransfH(Homography Href, Homography Himg, Homography *Hres) {
 	convert_MatH_to_H(H2, Hres);
 }
 
+// TODO: to be looked into when we sort out the conventions for astrometry (see #1103)
+
 unsigned char *cvCalculH(s_star *star_array_img,
-		struct s_star *star_array_ref, int n, Homography *Hom, transformation_type type) {
+		struct s_star *star_array_ref, int n, Homography *Hom, transformation_type type, float offset) {
 
 	std::vector<Point2f> ref;
 	std::vector<Point2f> img;
@@ -390,23 +402,24 @@ unsigned char *cvCalculH(s_star *star_array_img,
 	Mat H, a, mask, s;
 	unsigned char *ret = NULL;
 
-	/* build vectors with lists of stars. */
-	/* the -0.5 term comes from the difference in convention between how we compute PSF
-	/ and opencv (zero coordinate at edge of pixel vs at center) */
+	/* 	build vectors with lists of stars.
+		When defined with offset, the -0.5 term comes from the difference 
+		in convention between how we compute PSF
+		and opencv (zero coordinate at edge of pixel vs at center) */
 	switch (type) {
 	case SIMILARITY_TRANSFORMATION:
 	case HOMOGRAPHY_TRANSFORMATION:
 	case AFFINE_TRANSFORMATION:
 		for (int i = 0; i < n; i++) {
-			ref.push_back(Point2f(star_array_ref[i].x - 0.5, star_array_ref[i].y - 0.5));
-			img.push_back(Point2f(star_array_img[i].x - 0.5, star_array_img[i].y - 0.5));
+			ref.push_back(Point2f(star_array_ref[i].x + offset, star_array_ref[i].y + offset));
+			img.push_back(Point2f(star_array_img[i].x + offset, star_array_img[i].y + offset));
 		}
 	break;
 #ifdef HAVE_CV44
 	case SHIFT_TRANSFORMATION:
 		for (int i = 0; i < n; i++) {
-			ref3.push_back(Point3f(star_array_ref[i].x - 0.5, star_array_ref[i].y - 0.5, 0.));
-			img3.push_back(Point3f(star_array_img[i].x - 0.5, star_array_img[i].y - 0.5, 0.));
+			ref3.push_back(Point3f(star_array_ref[i].x + offset, star_array_ref[i].y + offset, 0.));
+			img3.push_back(Point3f(star_array_img[i].x + offset, star_array_img[i].y + offset, 0.));
 		}
 	break;
 #endif
@@ -518,6 +531,7 @@ int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homog
 	warpPerspective(in, out, H, Size(target_rx, target_ry), interpolation, BORDER_TRANSPARENT);
 	if ((interpolation == OPENCV_LANCZOS4 || interpolation == OPENCV_CUBIC) && clamp) {
 		Mat guide, tmp1;
+		init_guide(image, target_rx, target_ry, &guide);
 		// Create guide image
 		warpPerspective(in, guide, H, Size(target_rx, target_ry), OPENCV_AREA, BORDER_TRANSPARENT);
 		tmp1 = (out < guide * CLAMPING_FACTOR);
@@ -937,10 +951,10 @@ void cvGetMatrixReframe(double x, double y, int w, int h, double angle, Homograp
 void cvGetBoundingRectSize(fits *image, point center, double angle, int *w, int *h) {
 	Rect frame;
 	Point2f pt(center.x, center.y);
-	frame = RotatedRect(pt, Size(image->rx, image->ry), angle).boundingRect();
+	frame = RotatedRect(pt, Size(image->rx, image->ry), angle).boundingRect2f();
 	siril_debug_print("after rotation, new image size will be %d x %d\n", frame.width, frame.height);
-	*w = frame.width;
-	*h = frame.height;
+	*w = (int)frame.width;
+	*h = (int)frame.height;
 }
 
 void cvInvertH(Homography *Hom) {
@@ -958,13 +972,27 @@ void cvApplyFlips(Homography *Hom, int source_ry, int target_ry) {
 	/* modify matrix for reverse Y axis */
 	Mat F1 = Mat::eye(3, 3, CV_64FC1);
 	F1.at<double>(1,1) = -1.0;
-	F1.at<double>(1,2) = source_ry - 1.0;
+	F1.at<double>(1,2) = source_ry;
 
 	Mat F2 = Mat::eye(3, 3, CV_64FC1);
 	F2.at<double>(1,1) = -1.0;
-	F2.at<double>(1,2) = target_ry - 1.0;
+	F2.at<double>(1,2) = target_ry;
 
 	H = F2.inv() * H * F1;
+	convert_MatH_to_H(H, Hom);
+}
+
+// Used to convert a H matrix written in display convention to opencv convention
+void cvdisplay2ocv(Homography *Hom) {
+	Mat H = Mat(3, 3, CV_64FC1);
+	convert_H_to_MatH(Hom, H);
+
+	/* modify matrix to go to opencv convention */
+	Mat S1 = Mat::eye(3, 3, CV_64FC1);
+	S1.at<double>(0,2) = 0.5;
+	S1.at<double>(1,2) = 0.5;
+
+	H = S1.inv() * H * S1;
 	convert_MatH_to_H(H, Hom);
 }
 

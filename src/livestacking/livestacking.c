@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -84,8 +84,8 @@ static imstats *refimage_stats[3] = { NULL };
 /* config */
 static gboolean use_32bits = FALSE;
 static super_bool use_demosaicing = BOOL_NOT_SET;
-static transformation_type reg_type = SHIFT_TRANSFORMATION;
-static gboolean reg_rotates = FALSE;
+static transformation_type reg_type = HOMOGRAPHY_TRANSFORMATION;
+static gboolean reg_rotates = TRUE;
 
 static gpointer live_stacker(gpointer arg);
 int star_align_prepare_hook(struct generic_seq_args *args);
@@ -154,12 +154,18 @@ void stop_live_stacking_engine() {
 	first_stacking_result = TRUE;
 	unreserve_thread();
 
-	set_cursor_waiting(FALSE);
+	if (!com.headless) {
+		GtkWidget *toolbar = lookup_widget("GtkToolMainBar");
+		if (!gtk_widget_is_visible(toolbar)) show_hide_toolbox();
+		set_cursor_waiting(FALSE);
+	}
 }
 
 static int wait_for_file_to_be_written(const gchar *filename) {
 	int iter;
+#ifndef _WIN32
 	guint64 last_size = 0;
+#endif
 	GFile *fd = g_file_new_for_path(filename);
 	for (iter = 1; iter < WAIT_FILE_WRITTEN_ITERS; iter++) {
 		g_usleep(WAIT_FILE_WRITTEN_US);
@@ -187,34 +193,47 @@ static int wait_for_file_to_be_written(const gchar *filename) {
 
 static void file_changed(GFileMonitor *monitor, GFile *file, GFile *other,
 		GFileMonitorEvent evtype, gpointer user_data) {
-	if (evtype == G_FILE_MONITOR_EVENT_CREATED) {
-		gchar *filename = g_file_get_basename(file);
-		siril_debug_print("File %s created\n", filename);
-		if (filename[0] == '.' || // hidden files
-				paused)	{ // manage in https://gitlab.com/free-astro/siril/-/issues/786
-			g_free(filename);
-			return;
-		}
+	if (evtype != G_FILE_MONITOR_EVENT_CREATED && evtype != G_FILE_MONITOR_EVENT_MOVED_IN) {
+		return;
+	}
+	gchar *filename = g_file_get_basename(file);
+	siril_debug_print("File %s added\n", filename);
+	if (filename[0] == '.' || // hidden files
+			paused)	{ // manage in https://gitlab.com/free-astro/siril/-/issues/786
+		g_free(filename);
+		return;
+	}
 
-		image_type type;
-		stat_file(filename, &type, NULL);
-		if (type != TYPEFITS) {
-			siril_log_message(_("File not supported for live stacking: %s\n"), filename);
-			g_free(filename);
-		} else {
-			if (strncmp(filename, "live_stack", 10) &&
-					strncmp(filename, "r_live_stack", 12) &&
-					strncmp(filename, "result_live_stack", 17)) {
-				if (wait_for_file_to_be_written(filename)) {
-					gchar *str = g_strdup_printf(_("Could not open file: %s"), filename);
-					livestacking_display(str, TRUE);
-					g_free(filename);
-					return;
-				}
-				g_async_queue_push(new_files_queue, filename);
+	image_type type;
+	if (stat_file(filename, &type, NULL)) {
+		siril_debug_print("Filename is not canonical\n");
+	}
+	if (type != TYPEFITS) {
+		if (type == TYPERAW) {
+			if (!wait_for_file_to_be_written(filename)) {
+				fits dest = { 0 };
+				gchar *new = replace_ext(filename, com.pref.ext);
+				any_to_fits(TYPERAW, filename, &dest, FALSE, !com.pref.force_16bit, FALSE);
+				savefits(new, &dest);
+				clearfits(&dest);
 			}
-			else g_free(filename);
+		}  else {
+			siril_log_message(_("File not supported for live stacking: %s\n"), filename);
 		}
+		g_free(filename);
+	} else {
+		if (strncmp(filename, "live_stack", 10) &&
+				strncmp(filename, "r_live_stack", 12) &&
+				strncmp(filename, "result_live_stack", 17)) {
+			if (wait_for_file_to_be_written(filename)) {
+				gchar *str = g_strdup_printf(_("Could not open file: %s"), filename);
+				livestacking_display(str, TRUE);
+				g_free(filename);
+				return;
+			}
+			g_async_queue_push(new_files_queue, filename);
+		}
+		else g_free(filename);
 	}
 }
 
@@ -231,7 +250,8 @@ int start_livestacking(gboolean with_filewatcher) {
 		gui.rendering_mode = STF_DISPLAY;
 		set_display_mode();
 		force_unlinked_channels();
-		show_hide_toolbox();
+		GtkWidget *toolbar = lookup_widget("GtkToolMainBar");
+		if (gtk_widget_is_visible(toolbar)) show_hide_toolbox();
 		livestacking_display_config(prepro && prepro->use_dark, prepro && prepro->use_flat, reg_type);
 	}
 
@@ -603,6 +623,7 @@ static gpointer live_stacker(gpointer arg) {
 		tv_tmp = tv_end;
 
 		if (target && symlink_uniq_file(filename, target, do_links)) {
+			g_free(target);
 			livestacking_display(_("Failed to rename or make a symbolic link to the input file"), FALSE);
 			break;
 		}

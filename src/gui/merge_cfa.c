@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -81,7 +81,7 @@ void on_merge_cfa_seqapply_toggled(GtkToggleButton *button, gpointer user_data) 
 
 void on_merge_cfa_filechooser_CFA0_file_set(GtkFileChooser *filechooser, gpointer user_data) {
 	clearfits(&cfa0);
-	f_cfa0 = g_strdup(gtk_file_chooser_get_filename(filechooser));
+	f_cfa0 = siril_file_chooser_get_filename(filechooser);
 	if (readfits(f_cfa0, &cfa0, NULL, FALSE)) {
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: image could not be loaded"),
 				_("Image loading failed"));
@@ -95,7 +95,7 @@ void on_merge_cfa_filechooser_CFA0_file_set(GtkFileChooser *filechooser, gpointe
 
 void on_merge_cfa_filechooser_CFA1_file_set(GtkFileChooser *filechooser, gpointer user_data) {
 	clearfits(&cfa1);
-	f_cfa1 = g_strdup(gtk_file_chooser_get_filename(filechooser));
+	f_cfa1 = siril_file_chooser_get_filename(filechooser);
 	if (readfits(f_cfa1, &cfa1, NULL, FALSE)) {
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: image could not be loaded"),
 				_("Image loading failed"));
@@ -108,7 +108,7 @@ void on_merge_cfa_filechooser_CFA1_file_set(GtkFileChooser *filechooser, gpointe
 }
 void on_merge_cfa_filechooser_CFA2_file_set(GtkFileChooser *filechooser, gpointer user_data) {
 	clearfits(&cfa2);
-	f_cfa2 = g_strdup(gtk_file_chooser_get_filename(filechooser));
+	f_cfa2 = siril_file_chooser_get_filename(filechooser);
 	if (readfits(f_cfa2, &cfa2, NULL, FALSE)) {
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: image could not be loaded"),
 				_("Image loading failed"));
@@ -121,7 +121,7 @@ void on_merge_cfa_filechooser_CFA2_file_set(GtkFileChooser *filechooser, gpointe
 }
 void on_merge_cfa_filechooser_CFA3_file_set(GtkFileChooser *filechooser, gpointer user_data) {
 	clearfits(&cfa3);
-	f_cfa3 = g_strdup(gtk_file_chooser_get_filename(filechooser));
+	f_cfa3 = siril_file_chooser_get_filename(filechooser);
 	if (readfits(f_cfa3, &cfa3, NULL, FALSE)) {
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: image could not be loaded"),
 				_("Image loading failed"));
@@ -145,7 +145,7 @@ void apply_to_seq() {
 	args->seqEntryIn = gtk_entry_get_text(entryMergeCFAin);
 	if (args->seqEntryIn && args->seqEntryIn[0] == '\0')
 		args->seqEntryIn = "CFA_";
-	args->seqEntryOut = gtk_entry_get_text(entryMergeCFAout);
+	args->seqEntryOut = strdup(gtk_entry_get_text(entryMergeCFAout));
 	if (args->seqEntryOut && args->seqEntryOut[0] == '\0')
 		args->seqEntryOut = "mCFA_";
 	GtkComboBox *combo_pattern = GTK_COMBO_BOX(lookup_widget("merge_cfa_pattern"));
@@ -189,6 +189,7 @@ void apply_to_img() {
 			close_single_image();
 			copyfits(out, &gfit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 			clearfits(out);
+			free(out);
 			clear_stars_list(TRUE);
 			com.seq.current = UNRELATED_IMAGE;
 			if (!create_uniq_from_gfit(strdup(_("Unsaved Bayer pattern merge")), FALSE))

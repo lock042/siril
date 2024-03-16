@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 */
 
 #ifdef HAVE_CONFIG_H
-#  include <config.h>
+#include <config.h>
 #endif
 
 #ifdef _WIN32
@@ -121,14 +121,21 @@ void list_format_available() {
 #ifdef HAVE_LIBTIFF
 	puts("TIFF\t(*.tif, *.tiff)");
 #endif
+#ifdef HAVE_LIBXISF
+	puts("XISF\t(*.xisf)");
+#endif
 #ifdef HAVE_LIBJPEG
 	puts("JPEG\t(*.jpg, *.jpeg)");
+#endif
+#ifdef HAVE_LIBJXL
+	puts("JPEG XL\t(*.jxl)");
 #endif
 #ifdef HAVE_LIBPNG
 	puts("PNG\t(*.png)");
 #endif
 #ifdef HAVE_LIBHEIF
 	puts("HEIF\t(*.heic, *.heif)");
+	puts("AVIF\t(*.avif)");
 #endif
 }
 
@@ -212,12 +219,26 @@ gchar *initialize_converters() {
 	supported_extensions[count_ext++] = ".tiff";
 #endif
 
+#ifdef HAVE_LIBXISF
+	supported_filetypes |= TYPEXISF;
+	string = g_string_append(string, ", ");
+	string = g_string_append(string, _("XISF images"));
+	supported_extensions[count_ext++] = ".xisf";
+#endif
+
 #ifdef HAVE_LIBJPEG
 	supported_filetypes |= TYPEJPG;
 	string = g_string_append(string, ", ");
 	string = g_string_append(string, _("JPG images"));
 	supported_extensions[count_ext++] = ".jpg";
 	supported_extensions[count_ext++] = ".jpeg";
+#endif
+
+#ifdef HAVE_LIBJXL
+	supported_filetypes |= TYPEJXL;
+	string = g_string_append(string, ", ");
+	string = g_string_append(string, _("JPEG XL images"));
+	supported_extensions[count_ext++] = ".jxl";
 #endif
 
 #ifdef HAVE_LIBPNG
@@ -229,10 +250,12 @@ gchar *initialize_converters() {
 
 #ifdef HAVE_LIBHEIF
 	supported_filetypes |= TYPEHEIF;
+	supported_filetypes |= TYPEAVIF;
 	string = g_string_append(string, ", ");
-	string = g_string_append(string, _("HEIF images"));
+	string = g_string_append(string, _("HEIF images, AVIF images"));
 	supported_extensions[count_ext++] = ".heic";
 	supported_extensions[count_ext++] = ".heif";
+	supported_extensions[count_ext++] = ".avif";
 #endif
 	supported_extensions[count_ext++] = NULL;		// NULL-terminated array
 
@@ -273,9 +296,15 @@ image_type get_type_for_extension(const char *extension) {
 	} else if ((supported_filetypes & TYPEJPG) &&
 			(!g_ascii_strcasecmp(extension, "jpg") || !g_ascii_strcasecmp(extension, "jpeg"))) {
 		return TYPEJPG;
+	} else if ((supported_filetypes & TYPEJXL) &&
+			(!g_ascii_strcasecmp(extension, "jxl"))) {
+		return TYPEJXL;
 	} else if ((supported_filetypes & TYPEHEIF) &&
 			(!g_ascii_strcasecmp(extension, "heic") || !g_ascii_strcasecmp(extension, "heif"))) {
 		return TYPEHEIF;
+	} else if ((supported_filetypes & TYPEAVIF) &&
+			(!g_ascii_strcasecmp(extension, "avif"))) {
+		return TYPEAVIF;
 	} else if ((supported_filetypes & TYPETIFF) &&
 			(!g_ascii_strcasecmp(extension, "tif") || !g_ascii_strcasecmp(extension, "tiff"))) {
 		return TYPETIFF;
@@ -301,6 +330,8 @@ image_type get_type_for_extension(const char *extension) {
 	} else if (!g_ascii_strcasecmp(extension, "fit.fz") || !g_ascii_strcasecmp(extension, "fits.fz") ||
 			!g_ascii_strcasecmp(extension, "fts.fz")) {
 		return TYPEFITS;
+	} else if (!g_ascii_strcasecmp(extension, "xisf")) {
+		return TYPEXISF;
 	}
 	return TYPEUNDEF; // not recognized or not supported
 }
@@ -322,7 +353,12 @@ int any_to_fits(image_type imagetype, const char *source, fits *dest,
 			break;
 #ifdef HAVE_LIBTIFF
 		case TYPETIFF:
-			retval = (readtif(source, dest, force_float) < 0);
+			retval = (readtif(source, dest, force_float, TRUE) < 0);
+			break;
+#endif
+#ifdef HAVE_LIBXISF
+		case TYPEXISF:
+			retval = (readxisf(source, dest, force_float) < 0);
 			break;
 #endif
 		case TYPEPNM:
@@ -333,8 +369,14 @@ int any_to_fits(image_type imagetype, const char *source, fits *dest,
 			retval = (readjpg(source, dest) < 0);
 			break;
 #endif
+#ifdef HAVE_LIBJXL
+		case TYPEJXL:
+			retval = (readjxl(source, dest) < 0);
+			break;
+#endif
 #ifdef HAVE_LIBHEIF
 		case TYPEHEIF:
+		case TYPEAVIF:
 			/* need to retrieve all return values */
 			retval = readheif(source, dest, interactive);
 			break;
@@ -387,7 +429,7 @@ int convert_single_film_to_ser(sequence *seq) {
 	}
 	files_to_convert[0] = g_strdup(seq->film_file->filename);
 
-	struct _convert_data *args = malloc(sizeof(struct _convert_data));
+	struct _convert_data *args = calloc(1, sizeof(struct _convert_data));
 	args->start = 1;
 	args->list = files_to_convert;
 	args->total = 1;
@@ -509,7 +551,6 @@ typedef struct {
 	gboolean allow_32bits;
 
 	int number_of_threads;	// size of threads, size of pool
-	int number_of_images_in_mem; // size of writer queue
 	void **threads; // for fitseq read
 
 	/* counters, atomic access */
@@ -523,13 +564,13 @@ typedef struct {
 static void pool_worker(gpointer data, gpointer user_data);
 static void open_next_input_seq(convert_status *conv);
 static seqread_status open_next_input_sequence(const char *src_filename, convert_status *convert, gboolean test_only);
-static seqwrite_status open_next_output_seq(struct _convert_data *args, convert_status *conv);
+static seqwrite_status open_next_output_seq(const struct _convert_data *args, convert_status *conv);
 static seqread_status get_next_read_details(convert_status *conv, struct reader_data *reader);
 static seqwrite_status get_next_write_details(struct _convert_data *args, convert_status *conv,
 		struct writer_data *writer, gboolean end_of_input_seq, gboolean last_file_and_image);
 static gchar *create_sequence_filename(sequence_type output_type, const char *destroot, int index);
 static seqwrite_status write_image(fits *fit, struct writer_data *writer);
-static int compute_nb_images_fit_mem(fits *fit);
+static void compute_nb_images_fit_mem(fits *fit, gboolean debayer, int *nb_threads, int *nb_images);
 static void print_reader(struct reader_data *reader);
 static void print_writer(struct writer_data *writer);
 
@@ -551,13 +592,14 @@ static gboolean end_convert_idle(gpointer p) {
 					converted_seqname = malloc(extidx + 5);
 					strncpy(converted_seqname, args->destroot, extidx);
 					strcpy(converted_seqname+extidx, ".seq");
+				} else {
+					converted_seqname = strdup(args->destroot);
 				}
 			} else {
-				converted_seqname = malloc(strlen(args->destroot) + 5);
-				sprintf(converted_seqname, "%s.seq", args->destroot);
+				converted_seqname = strdup(args->destroot);
 			}
+			check_seq();
 		}
-		check_seq();
 		if (converted_seqname) {
 			update_sequences_list(converted_seqname);
 			free(converted_seqname);
@@ -569,40 +611,49 @@ static gboolean end_convert_idle(gpointer p) {
 	gettimeofday(&t_end, NULL);
 	show_time(args->t_start, t_end);
 	stop_processing_thread();
-	g_free(args->destroot);
+	free(args->destroot);
+	free(args->report);
 	free(args);
 	return FALSE;
 }
 
+/* memory and threads management:
+ * until we read the first image, we don't know how many of them can fit into memory.
+ * conversion uses a thread pool. It's initialized to 1 thread only, after the first image is read, it's
+ * resized to how many images can fit in memory, also depending on the image writer allocation.
+ * The writer is also allocated a size of 1 at first, resized after the first read.
+ * Reading or writing to film formats doesn't support multi-threading.
+ */
 gpointer convert_thread_worker(gpointer p) {
 	struct _convert_data *args = (struct _convert_data *) p;
+	struct writer_data *writer = NULL;
 	args->nb_converted_files = 0;
 	args->retval = 0;
 	gboolean allow_symlink = args->output_type == SEQ_REGULAR && test_if_symlink_is_ok(TRUE);
 	args->make_link &= allow_symlink;
-	if (args->make_link && com.pref.comp.fits_enabled) {
-		/* of course if input files are already compressed with the same
-		 * algorithm, that's a problem, but it's not very likely to happen */
-		siril_log_message(_("Not using symbolic links because FITS compression is enabled\n"));
-		args->make_link = FALSE;
-	}
-
 	if (args->multiple_output && args->output_type != SEQ_SER && args->output_type != SEQ_FITSEQ) {
 		siril_log_message(_("disabling incompatible multiple output option in conversion\n"));
 		args->multiple_output = FALSE;
 	}
-	int initial_wqueue_limit = args->input_has_a_film ? 3 : max(1, com.max_thread / 2);
-	siril_debug_print("Starting conversion with %d writer queue length\n", initial_wqueue_limit);
 	if (args->output_type == SEQ_SER || args->output_type == SEQ_FITSEQ) {
-		seqwriter_set_max_active_blocks(initial_wqueue_limit);
+		seqwriter_set_max_active_blocks(1);
 	}
 	set_progress_bar_data(_("Converting files"), PROGRESS_RESET);
 	init_report(args);
 
-	/* remove the target .seq to avoid errors */
-	gchar *seqname = replace_ext(args->destroot, ".seq");
-	g_unlink(seqname);
+	char *newdestroot = normalize_seqname(args->destroot, args->output_type == SEQ_REGULAR);
+	free(args->destroot);
+	args->destroot = strdup(newdestroot);
+	gchar *seqname = g_strdup_printf("%s%s", args->destroot, ".seq");
+	if (g_unlink(seqname))
+		siril_debug_print("Error in g_unlink()\n");
+	if (args->output_type == SEQ_REGULAR) {
+		// to make sure destroot has an extension (will be removed when creating the filenames)
+		free(args->destroot);
+		args->destroot = strdup(seqname);
+	}
 	g_free(seqname);
+	free(newdestroot);
 
 	convert_status convert = { 0 };
 	convert.args = args;
@@ -611,7 +662,10 @@ gpointer convert_thread_worker(gpointer p) {
 	convert.threads = calloc(com.max_thread, sizeof(void *));
 	convert.allow_link = args->make_link;
 	convert.allow_32bits = args->output_type != SEQ_SER && !com.pref.force_16bit;
-	GThreadPool *pool = g_thread_pool_new(pool_worker, &convert, args->input_has_a_film ? 1 : com.max_thread, FALSE, NULL);
+
+	g_mutex_init(&args->pool_mutex);
+	g_cond_init(&args->pool_cond);
+	args->pool = g_thread_pool_new(pool_worker, &convert, 1, FALSE, NULL);
 	open_next_input_seq(&convert);
 	open_next_output_seq(args, &convert);
 	do {
@@ -625,7 +679,7 @@ gpointer convert_thread_worker(gpointer p) {
 		print_reader(reader);
 		g_atomic_int_inc(&convert.nb_input_images);
 
-		struct writer_data *writer = calloc(1, sizeof(struct writer_data));
+		writer = calloc(1, sizeof(struct writer_data));
 		seqwrite_status wstatus = get_next_write_details(args, &convert, writer,
 				rstatus == GOT_OK_LAST_IN_SEQ || rstatus == GOT_OK_LAST_IN_SEQ_LAST_FILE,
 				rstatus == GOT_OK_LAST_IN_SEQ_LAST_FILE || rstatus == GOT_OK_LAST_FILE);
@@ -633,6 +687,7 @@ gpointer convert_thread_worker(gpointer p) {
 			siril_debug_print("got writer error\n");
 			free(reader);
 			free(writer);
+			writer = NULL;
 			break;
 		}
 		print_writer(writer);
@@ -640,8 +695,13 @@ gpointer convert_thread_worker(gpointer p) {
 		rwarg->reader = reader;
 		rwarg->writer = writer;
 		report_file_conversion(args, rwarg);
-		if (!g_thread_pool_push(pool, rwarg, NULL)) {
+
+		if (!g_thread_pool_push(args->pool, rwarg, NULL)) {
 			siril_log_message(_("Failed to queue image conversion task, aborting"));
+			free(reader);
+			free(writer);
+			writer = NULL;
+			free(rwarg);
 			break;
 		}
 		if (rstatus == GOT_OK_LAST_FILE || rstatus == GOT_OK_LAST_IN_SEQ_LAST_FILE)
@@ -650,25 +710,56 @@ gpointer convert_thread_worker(gpointer p) {
 			siril_debug_print("last image of the sequence reached, opening next sequence\n");
 			open_next_input_seq(&convert);
 		}
-
+		// reader is freed elsewhere
 	} while (com.run_thread);
-	siril_debug_print("conversion scheduling loop finished, waiting for conversion tasks to finish\n");
-	g_thread_pool_free(pool, FALSE, TRUE);
+	siril_debug_print("conversion scheduling loop finished, waiting for first read task to signal\n");
+	g_mutex_lock(&args->pool_mutex);
+	while (convert.first <= 0) {
+		g_cond_wait(&args->pool_cond, &args->pool_mutex);
+	}
+	g_mutex_unlock(&args->pool_mutex);
+	siril_debug_print("waiting for conversion tasks to finish\n");
+	// this cannot be called before the g_thread_pool_set_max_threads() call, hence the pool_cond
+	g_thread_pool_free(args->pool, FALSE, TRUE);
 	siril_debug_print("conversion tasks finished\n");
+	g_mutex_clear(&args->pool_mutex);
+	g_cond_clear(&args->pool_cond);
 
 	/* clean-up and reporting */
 	for (int i = 0; i < args->total; i++)
 		g_free(args->list[i]);
 	free(args->list);
 	args->nb_converted_files = convert.converted_files;
-	if (convert.fatal_error)
-		siril_log_message(_("Conversion ended with error, %d/%d input files converted\n"), args->nb_converted_files, args->total);
-	else {
-		if (convert.nb_input_images == convert.converted_images)
-			siril_log_message(_("Conversion succeeded, %d file(s) created for %d input file(s) (%d image(s) converted, %d failed)\n"), args->nb_converted_files, args->total, convert.converted_images, convert.failed_images);
-		else siril_log_message(_("Conversion aborted, %d file(s) created for %d input file(s) (%d image(s) converted, %d failed)\n"), args->nb_converted_files, args->total, convert.converted_images, convert.failed_images);
-		write_conversion_report(args);
+	if (args->output_type == SEQ_REGULAR) {
+		if (convert.fatal_error)
+			siril_log_message(_("Conversion ended with error, %d/%d input files converted\n"), args->nb_converted_files, args->total);
+		else {
+			if (convert.nb_input_images == convert.converted_images)
+				siril_log_message(_("Conversion succeeded, %d file(s) created for %d input file(s) (%d image(s) converted, %d failed)\n"), args->nb_converted_files, args->total, convert.converted_images, convert.failed_images);
+			else siril_log_message(_("Conversion aborted, %d file(s) created for %d input file(s) (%d image(s) converted, %d failed)\n"), args->nb_converted_files, args->total, convert.converted_images, convert.failed_images);
+			write_conversion_report(args);
+		}
+	} else {
+		if (convert.fatal_error)
+			siril_log_message(_("Conversion ended with error, %d output files created\n"), args->nb_converted_files);
+		else {
+			gboolean success = TRUE;
+			if (!args->multiple_output && args->nb_converted_files == 1)
+				siril_log_message(_("Conversion succeeded, %d file(s) created for %d input file(s) (%d image(s) converted, %d failed)\n"), args->nb_converted_files, args->total, convert.converted_images, convert.failed_images);
+			else if (args->multiple_output && convert.nb_input_images == args->nb_converted_files)
+				siril_log_message(_("Conversion succeeded, %d file(s) created for %d input file(s)\n"), args->nb_converted_files, args->total);
+			else {
+				siril_log_message(_("Conversion aborted, %d file(s) created for %d input file(s)\n"), args->nb_converted_files, args->total);
+				success = FALSE;
+			}
+			if (success)
+				write_conversion_report(args);
+		}
 	}
+	// TODO still need to understand why, in case of error while writing a frame,
+	// sometimes we do create the file and sometimes the error is caught and we get convert.fatal_error to 1...
+	free(convert.output_fitseq);
+	free(convert.output_ser);
 	siril_add_idle(end_convert_idle, args);
 	return NULL;
 }
@@ -726,16 +817,16 @@ static void finish_write_seq(struct writer_data *writer, gboolean success) {
 		if (writer->ser) {
 			siril_debug_print("closing write SER sequence%s\n", success ? "" : " and deleting the file");
 			if (success) {
-				ser_write_and_close(writer->ser);
-				g_atomic_int_inc(writer->converted_files);
+				if(!ser_write_and_close(writer->ser))
+					g_atomic_int_inc(writer->converted_files);
 			}
 			else ser_close_and_delete_file(writer->ser);
 		}
 		else if (writer->fitseq) {
 			siril_debug_print("closing write FITS sequence%s\n", success ? "" : " and deleting the file");
 			if (success) {
-				fitseq_close_file(writer->fitseq);
-				g_atomic_int_inc(writer->converted_files);
+				if (!fitseq_close_file(writer->fitseq))
+					g_atomic_int_inc(writer->converted_files);
 			}
 			else fitseq_close_and_delete_file(writer->fitseq);
 		}
@@ -926,22 +1017,38 @@ static int make_link(struct readwrite_data *rwdata) {
 	return retval;
 }
 
-static void readjust_memory_limits(convert_status *conv, fits *fit) {
-	if (g_atomic_int_add(&conv->first, 1) || conv->args->input_has_a_film)
+// to be called to unblock the threads if readjust_memory_limits cannot be called
+static void signal_memory_limit(convert_status *conv) {
+	if (g_atomic_int_add(&conv->first, 1))
 		return;
-	int nb_images = compute_nb_images_fit_mem(fit);
-	if (nb_images < 0) {
-		nb_images = com.max_thread * 2 + 1;
-	} else {
-		if (nb_images == 0)
-			nb_images = 1;	// too late, still try...
-		nb_images = min(nb_images, com.max_thread * 2 + 1);
-	}
-	seqwriter_set_max_active_blocks(nb_images);
+	siril_debug_print("unblocking the main thread after conversion error\n");
+	g_mutex_lock(&conv->args->pool_mutex);
+	g_cond_signal(&conv->args->pool_cond);
+	g_mutex_unlock(&conv->args->pool_mutex);
+}
+
+// see the memory and threads notes higher in the file
+static void readjust_memory_limits(convert_status *conv, fits *fit) {
+	if (g_atomic_int_add(&conv->first, 1))
+		return;
+	if (conv->args->input_has_a_film)
+		goto unlock_end;
+	int nb_threads, nb_images;
+	compute_nb_images_fit_mem(fit, conv->args->debayer, &nb_threads, &nb_images);
+	if (nb_threads <= 0)
+		goto unlock_end;
+	siril_log_message("%d image(s) can be processed in parallel\n", nb_threads);
+	g_thread_pool_set_max_threads(conv->args->pool, nb_threads, NULL);
+	if (conv->args->output_type == SEQ_SER || conv->args->output_type == SEQ_FITSEQ)
+		seqwriter_set_max_active_blocks(nb_images);
+unlock_end:
+	g_mutex_lock(&conv->args->pool_mutex);
+	g_cond_signal(&conv->args->pool_cond);
+	g_mutex_unlock(&conv->args->pool_mutex);
 }
 
 static void handle_error(struct readwrite_data *rwdata) {
-	siril_debug_print("conversion aborted or failed, cancelling this thread");
+	siril_debug_print("conversion aborted or failed, cancelling this thread\n");
 	seqwriter_release_memory();
 	if (rwdata->reader) {
 		finish_read_seq(rwdata->reader);
@@ -961,6 +1068,7 @@ static void pool_worker(gpointer data, gpointer user_data) {
 
 	if (!get_thread_run() || g_atomic_int_get(&conv->fatal_error)) {
 		handle_error(rwdata);
+		signal_memory_limit(conv);
 		return;
 	}
 
@@ -975,12 +1083,25 @@ static void pool_worker(gpointer data, gpointer user_data) {
 			g_atomic_int_inc(&conv->converted_files);
 		}
 		free(rwdata);	// reader and writer are freed in their function
+		if (fit) {
+			clearfits(fit);
+			free(fit);
+		}
+		signal_memory_limit(conv);
 		return;
 	}
 	else if (!fit || read_status == NOT_READ || read_status == READ_FAILED) {
 		siril_debug_print("read error, ignoring image\n");
 		g_atomic_int_inc(&conv->failed_images);
 		finish_write_seq(rwdata->writer, FALSE);
+		if (rwdata->writer->have_seqwriter)
+			seqwriter_release_memory();
+		free(rwdata);
+		if (fit) {
+			clearfits(fit);
+			free(fit);
+		}
+		signal_memory_limit(conv);
 		return;
 	}
 	readjust_memory_limits(conv, fit);
@@ -988,7 +1109,9 @@ static void pool_worker(gpointer data, gpointer user_data) {
 	if (!get_thread_run() || g_atomic_int_get(&conv->fatal_error)) {
 		rwdata->reader = NULL;
 		clearfits(fit);
-		handle_error(rwdata);
+		free(fit);
+		if (rwdata->writer->have_seqwriter)
+			handle_error(rwdata);
 		return;
 	}
 
@@ -1004,6 +1127,7 @@ static void pool_worker(gpointer data, gpointer user_data) {
 	double percent = (double)g_atomic_int_get(&conv->converted_images) /
 		(double)g_atomic_int_get(&conv->nb_input_images);
 	set_progress_bar_data(NULL, percent);
+	return;
 }
 
 static seqwrite_status get_next_write_details(struct _convert_data *args, convert_status *conv,
@@ -1014,11 +1138,13 @@ static seqwrite_status get_next_write_details(struct _convert_data *args, conver
 			if (!conv->output_ser) {
 				conv->output_ser = malloc(sizeof(struct ser_struct));
 				ser_init_struct(conv->output_ser);
-				gchar *dest = g_str_has_suffix(args->destroot, ".ser") ? args->destroot : g_strdup_printf("%s.ser", args->destroot);
+				gchar *dest = g_str_has_suffix(args->destroot, ".ser") ? g_strdup(args->destroot) : g_strdup_printf("%s.ser", args->destroot);
 				if (ser_create_file(dest, conv->output_ser, TRUE, NULL)) {
 					siril_log_message(_("Creating the SER file `%s' failed, aborting.\n"), args->destroot);
+					g_free(dest);
 					return GOT_WRITE_ERROR;
 				}
+				g_free(dest);
 				conv->next_image_in_output = 0;
 				conv->writeseq_count = get_new_write_counter();
 			}
@@ -1076,7 +1202,7 @@ static seqwrite_status get_next_write_details(struct _convert_data *args, conver
 	return GOT_WRITE_ERROR;
 }
 
-static seqwrite_status open_next_output_seq(struct _convert_data *args, convert_status *conv) {
+static seqwrite_status open_next_output_seq(const struct _convert_data *args, convert_status *conv) {
 	if (args->multiple_output) {
 		if (args->output_type == SEQ_SER) {
 			if (conv->next_file != conv->args->total) {
@@ -1121,7 +1247,10 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 	}
 #ifdef HAVE_FFMS2
 	if (imagetype == TYPEAVI) {
-		if (test_only) return OPEN_SEQ;
+		if (test_only) {
+			g_free(name);
+			return OPEN_SEQ;
+		}
 		if (convert->current_film) {
 			siril_debug_print("error: opening a film while the previous was still here\n");
 			g_free(name);
@@ -1137,11 +1266,15 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 			return OPEN_ERROR;
 		}
 		convert->readseq_count = get_new_read_counter();
+		g_free(name);
 		return OPEN_OK;
 	}
 #endif
 	else if (imagetype == TYPESER) {
-		if (test_only) return OPEN_SEQ;
+		if (test_only) {
+			g_free(name);
+			return OPEN_SEQ;
+		}
 		if (convert->current_ser) {
 			siril_debug_print("error: opening a SER while the previous was still here\n");
 			g_free(name);
@@ -1155,9 +1288,10 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 			free(convert->current_ser);
 			convert->current_ser = NULL;
 			g_free(name);
-			return OPEN_ERROR;
+			return OPEN_ERROR_AND_STOP;
 		}
 		convert->readseq_count = get_new_read_counter();
+		g_free(name);
 		return OPEN_OK;
 	}
 	else if (imagetype == TYPEFITS && fitseq_is_fitseq(name, NULL)) {
@@ -1170,7 +1304,7 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 		convert->current_fitseq = malloc(sizeof(fitseq));
 		fitseq_init_struct(convert->current_fitseq);
 		siril_log_message(_("Reading %s\n"), src_filename);
-		if (fitseq_open(name, convert->current_fitseq)) {
+		if (fitseq_open(name, convert->current_fitseq, READONLY)) {
 			siril_log_message(_("Error while opening ser file %s, ignoring file.\n"), src_filename);
 			free(convert->current_fitseq);
 			convert->current_fitseq = NULL;
@@ -1189,6 +1323,7 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 		convert->readseq_count = get_new_read_counter();
 		return OPEN_OK;
 	}
+	g_free(name);
 	return OPEN_NOT_A_SEQ;
 }
 
@@ -1210,6 +1345,7 @@ static gchar *create_sequence_filename(sequence_type output_type, const char *de
 		default:
 			siril_log_color_message(_("output sequence type unknown, aborting\n"), "red");
 	}
+	free(destroot_noext);
 	return output;
 }
 
@@ -1236,7 +1372,12 @@ static seqwrite_status write_image(fits *fit, struct writer_data *writer) {
 	}
 	else if (writer->filename) {
 		if (savefits(writer->filename, fit)) {
-			siril_log_color_message(_("Error while converting to FITS (no space left?)\n"), "red");
+			siril_log_color_message(_("Error while converting to FITS\n"), "red");
+			/* We test if there's any space left. If not, we remove the image */
+			if (!is_space_disk_available(com.wd)) {
+				siril_log_color_message(_("No space left!\n"), "red");
+				g_unlink(writer->filename);
+			}
 		}
 		else {
 			retval = WRITE_OK;
@@ -1250,24 +1391,48 @@ static seqwrite_status write_image(fits *fit, struct writer_data *writer) {
 		siril_log_color_message(_("Error while converting, unknown output\n"), "red");
 	}
 
+
 	free(writer);
 	return retval;
 }
 
-// similar to compute_nb_images_fit_memory from sequence.c, but uses a FITS as input, not a sequence */
-static int compute_nb_images_fit_mem(fits *fit) {
+/* similar to compute_nb_images_fit_memory from sequence.c, but uses a FITS as input (same size as the
+ * output files), not a sequence. It computes how many threads can be created and how many images fit in
+ * memory with those threads, for the writer */
+static void compute_nb_images_fit_mem(fits *fit, gboolean debayer, int *nb_threads, int *nb_images) {
 	int max_memory_MB = get_max_memory_in_MB();
-	uint64_t memory_per_image = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
-	if (fit->type == DATA_FLOAT)
-		memory_per_image *= sizeof(float);
-	else memory_per_image *= sizeof(WORD);
-	unsigned int memory_per_image_MB = memory_per_image / BYTES_IN_A_MB;
+	/* image size only changes in case of debayer and in this case, it also needs
+	 * more memory to do the debayer:
+	 * 	O(3n) for ushort (the output image ushort and 1 float for processing)
+	 * 	O(2n) for float (the output image and 1 for processing)
+	 */
+	uint64_t memory_per_output_image = fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
+	uint64_t memory_per_processed_image;
+	if (fit->type == DATA_FLOAT) {
+		memory_per_output_image *= sizeof(float);
+		memory_per_processed_image = memory_per_output_image;
+		if (debayer)
+			memory_per_processed_image *= 2;
+	} else {
+		memory_per_output_image *= sizeof(WORD);
+		memory_per_processed_image = memory_per_output_image;
+		if (debayer)
+			memory_per_processed_image *= 3;
+	}
+	unsigned int memory_per_image_MB = memory_per_output_image / BYTES_IN_A_MB;
 	if (memory_per_image_MB == 0)
 		memory_per_image_MB = 1;
-	fprintf(stdout, "Memory per image: %u MB. Max memory: %d MB\n", memory_per_image_MB, max_memory_MB);
-	int current_limit = max(1, com.max_thread / 2);
-	return current_limit + max_memory_MB / memory_per_image_MB;
-	// we add that ^ because we already have that many images loaded at this point
+	max_memory_MB += memory_per_image_MB;	// one is already loaded
+	unsigned int memory_per_thread_MB = memory_per_processed_image / BYTES_IN_A_MB;
+	if (memory_per_thread_MB == 0)
+		memory_per_thread_MB= 1;
+	siril_debug_print("Memory required per image: %u MB. Max memory: %d MB\n", memory_per_thread_MB, max_memory_MB);
+	*nb_threads = max_memory_MB / memory_per_thread_MB;
+	if (*nb_threads >= com.max_thread)
+		*nb_threads = com.max_thread;
+	*nb_images = *nb_threads + (max_memory_MB - *nb_threads * memory_per_thread_MB) / memory_per_image_MB;
+	if (*nb_images >= com.max_thread * 3)
+		*nb_images = com.max_thread * 3;
 }
 
 static void print_reader(struct reader_data *reader) {
@@ -1313,13 +1478,13 @@ static void report_file_conversion(struct _convert_data *args, struct readwrite_
 	gchar *str = NULL;
 	if (rwarg->reader->filename) {
 		if (rwarg->writer->filename) {
-			str = g_strdup_printf("'%s' -> '%s'%s", rwarg->reader->filename, rwarg->writer->filename, SIRIL_EOL);
+			str = g_strdup_printf("'%s' -> '%s'\n", rwarg->reader->filename, rwarg->writer->filename);
 		}
 		else if (rwarg->writer->fitseq) {
-			str = g_strdup_printf("'%s' -> '%s' image %d%s", rwarg->reader->filename, rwarg->writer->fitseq->filename, rwarg->writer->index, SIRIL_EOL);
+			str = g_strdup_printf("'%s' -> '%s' image %d\n", rwarg->reader->filename, rwarg->writer->fitseq->filename, rwarg->writer->index);
 		}
 		else if (rwarg->writer->ser) {
-			str = g_strdup_printf("'%s' -> '%s' image %d%s", rwarg->reader->filename, rwarg->writer->ser->filename, rwarg->writer->index, SIRIL_EOL);
+			str = g_strdup_printf("'%s' -> '%s' image %d\n", rwarg->reader->filename, rwarg->writer->ser->filename, rwarg->writer->index);
 		}
 	}
 	if (str) {
@@ -1331,11 +1496,13 @@ static void write_conversion_report(struct _convert_data *args) {
 	if (args->report_length <= 0)
 		return;
 	gchar *filename;
-	if (g_str_has_suffix(args->destroot, "_"))
-		filename = g_strdup_printf("%sconversion.txt", args->destroot);
-	else filename = g_strdup_printf("%s_conversion.txt", args->destroot);
+	char *filename_noext = remove_ext_from_filename(args->destroot);
+	if (g_str_has_suffix(filename_noext, "_"))
+		filename = g_strdup_printf("%sconversion.txt", filename_noext);
+	else filename = g_strdup_printf("%s_conversion.txt", filename_noext);
 	FILE *fd = g_fopen(filename, "w+");
 	g_free(filename);
+	free(filename_noext);
 	if (!fd)
 		return;
 

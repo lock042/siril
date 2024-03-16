@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated with glade 3.40.0
+
+Copyright (C) The free-astro development team, 2019-2023
+
+This file is part of Siril.
+
+Siril is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Siril is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Siril.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+
+<!-- Within each list (UI elements, pixmaps) please keep the entries sorted.
+-->
+
+<gresources>
+  <gresource prefix="/org/siril/ui">
+    <file compressed="true" alias="siril.css">gui/siril.css</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="siril-shortcuts.ui">gui/siril-shortcuts.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="aavso_dialog.ui">gui/uifiles/aavso_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="aberration_inspector.ui">gui/uifiles/aberration_inspector.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="asinh_dialog.ui">gui/uifiles/asinh_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="astrometry_dialog.ui">gui/uifiles/astrometry_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="background_extraction_dialog.ui">gui/uifiles/background_extraction_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="bdeconv_dialog.ui">gui/uifiles/bdeconv_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="binxy_dialog.ui">gui/uifiles/binxy_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="canon_fixbanding_dialog.ui">gui/uifiles/canon_fixbanding_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="ccm_dialog.ui">gui/uifiles/ccm_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="CLAHE_dialog.ui">gui/uifiles/CLAHE_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="color_calibration.ui">gui/uifiles/color_calibration.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="colorchooserdialog.ui">gui/uifiles/colorchooserdialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="composition_dialog.ui">gui/uifiles/composition_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="cosmetic_dialog.ui">gui/uifiles/cosmetic_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="crop_dialog.ui">gui/uifiles/crop_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="cut_coords_dialog.ui">gui/uifiles/cut_coords_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="cut_dialog.ui">gui/uifiles/cut_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="cut_spectroscopy_dialog.ui">gui/uifiles/cut_spectroscopy_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="data_dialog.ui">gui/uifiles/data_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="denoise_dialog.ui">gui/uifiles/denoise_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="dialog_FFT.ui">gui/uifiles/dialog_FFT.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="dialog_star_remix.ui">gui/uifiles/dialog_star_remix.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="extract_channel_dialog.ui">gui/uifiles/extract_channel_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="extract_wavelet_layers_dialog.ui">gui/uifiles/extract_wavelet_layers_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="file_information_dialog.ui">gui/uifiles/file_information_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="filefilters.ui">gui/uifiles/filefilters.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="histogram_dialog.ui">gui/uifiles/histogram_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="keywords_dialog.ui">gui/uifiles/keywords_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="icc_dialog.ui">gui/uifiles/icc_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="icc_gamut_dialog.ui">gui/uifiles/icc_gamut_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="linearmatch_dialog.ui">gui/uifiles/linearmatch_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="livestacking_player.ui">gui/uifiles/livestacking_player.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="Median_dialog.ui">gui/uifiles/Median_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="merge_cfa_dialog.ui">gui/uifiles/merge_cfa_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="pixelmath.ui">gui/uifiles/pixelmath.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="resample_dialog.ui">gui/uifiles/resample_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="rgradient_dialog.ui">gui/uifiles/rgradient_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="rotation_dialog.ui">gui/uifiles/rotation_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="s_pcc_dialog.ui">gui/uifiles/s_pcc_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="satu_dialog.ui">gui/uifiles/satu_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="savepopup.ui">gui/uifiles/savepopup.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="SCNR_dialog.ui">gui/uifiles/SCNR_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="script_contents_dialog.ui">gui/uifiles/script_contents_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="search_window.ui">gui/uifiles/search_window.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="seqlist_dialog.ui">gui/uifiles/seqlist_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="settings_window.ui">gui/uifiles/settings_window.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="siril.ui">gui/uifiles/siril.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="spcc_details.ui">gui/uifiles/spcc_details.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="split_cfa_dialog.ui">gui/uifiles/split_cfa_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="starnet_dialog.ui">gui/uifiles/starnet_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="stars_list_window.ui">gui/uifiles/stars_list_window.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="StatWindow.ui">gui/uifiles/StatWindow.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="wavelets_dialog.ui">gui/uifiles/wavelets_dialog.ui</file>
+
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/astrometry.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/astrometry_dark.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/b.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/chain.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/check_menu.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/CIE1931.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/cm.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/color_management.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/color_management_off.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/curve.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/cut.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/cut_dark.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/export.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/export_dark.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/eyedropper.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/eyedropper_dark.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/frame.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/frame_dark.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/framing-cog.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/framing-default.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/framing-max.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/framing-min.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/g.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/grid.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/histo-orig.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/histo.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/list.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/mirrorx.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/mirrorx_dark.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/mirrory.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/mirrory_dark.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/monochrome.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/monochrome_dark.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/mtf.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/mtf_dark.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/neg.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/photometry.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/photometry_dark.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/r.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/rotate-acw.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/rotate-acw_dark.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/rotate-cw.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/rotate-cw_dark.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/siril.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/starfinder.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/starfinder_dark.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/sum.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/sum_dark.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/wcs-grid.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/wcs-grid_dark.svg</file>
+    <!-- background files -->
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/plot_background/CIE1931xy.svg</file>
+  </gresource>
+</gresources>

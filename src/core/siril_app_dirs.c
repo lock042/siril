@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,6 +30,8 @@ static const gchar *siril_share_dir = NULL;
 static const gchar *siril_config_dir = NULL;
 static const gchar *siril_startup_dir = NULL;
 static const gchar *siril_locale_dir = NULL;
+static const gchar *siril_scripts_repo_dir = NULL;
+static const gchar *siril_spcc_repo_dir = NULL;
 
 /* To set the data dir we are looking for the glade file */
 static void search_for_data_dir() {
@@ -161,6 +163,14 @@ static void search_for_locale_dir() {
 #endif
 }
 
+static void search_for_scripts_repo_dir() {
+	siril_scripts_repo_dir = g_build_filename(g_get_user_data_dir(), "siril-scripts", NULL);
+}
+
+static void search_for_spcc_repo_dir() {
+	siril_spcc_repo_dir = g_build_filename(g_get_user_data_dir(), "siril-spcc-database", NULL);
+}
+
 /** Public functions **/
 
 const gchar* siril_get_locale_dir() {
@@ -183,5 +193,14 @@ void initialize_siril_directories() {
 	search_for_locale_dir();
 	search_for_startup_dir();
 	search_for_config_dir();
+	search_for_scripts_repo_dir();
+	search_for_spcc_repo_dir();
 }
 
+const gchar* siril_get_scripts_repo_path() {
+	return siril_scripts_repo_dir;
+}
+
+const gchar* siril_get_spcc_repo_path() {
+	return siril_spcc_repo_dir;
+}

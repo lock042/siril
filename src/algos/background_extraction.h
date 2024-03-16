@@ -33,7 +33,7 @@ struct background_data {
 	fits *fit;
 	gboolean from_ui;
 	sequence *seq;
-	const gchar *seqEntry;
+	char *seqEntry;
 };
 
 typedef struct sample background_sample;

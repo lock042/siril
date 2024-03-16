@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,6 +38,7 @@
 #include "io/sequence.h"
 #include "algos/demosaicing.h"
 #include "io/image_format_fits.h"
+#include "io/path_parse.h"
 #include "io/ser.h"
 
 #include "preprocess.h"
@@ -176,8 +177,27 @@ static int darkOptimization(fits *raw, struct preprocessing_data *args, int in_i
 	if (copyfits(dark, &dark_tmp, CP_ALLOC | CP_COPYA | CP_FORMAT, 0))
 		return 1;
 
-	/* Minimization of background noise to find better k */
-	k0 = goldenSectionSearch(raw, &dark_tmp, lo, up, 0.001f, args->allow_32bit_output);
+	if (args->use_exposure) {
+		if (dark->exposure <= 0.0) {
+			siril_log_color_message(_("The dark frame contains no exposure data or incorrect exposure data.\n"), "red");
+			clearfits(&dark_tmp);
+			return 1;
+		}
+		if (raw->exposure <= 0.0) {
+			siril_log_color_message(_("The light frame (%d) contains no exposure data or incorrect exposure data.\n"), "red", in_index);
+			clearfits(&dark_tmp);
+			return 1;
+		}
+		/* linear scale with time */
+		k0 = raw->exposure / dark->exposure;
+		if (k0 > 1.f) {
+			siril_log_color_message(_("Warning: master dark is shorter than lights. It is "
+						"recommended that the master dark be at least as long as the lights.\n"), "salmon");
+		}
+	} else {
+		/* Minimization of background noise to find better k */
+		k0 = goldenSectionSearch(raw, &dark_tmp, lo, up, 0.001f, args->allow_32bit_output);
+	}
 	if (k0 < 0.f) {
 		siril_log_message(_("Dark optimization of image %d failed\n"), in_index);
 		ret = -1;
@@ -447,6 +467,8 @@ int prepro_image_hook(struct generic_seq_args *args, int out_index, int in_index
 }
 
 void clear_preprocessing_data(struct preprocessing_data *prepro) {
+	if (prepro->bad_pixel_map_file)
+		g_object_unref(prepro->bad_pixel_map_file);
 	if (prepro->use_bias && prepro->bias)
 		clearfits(prepro->bias);
 	if (prepro->use_dark && prepro->dark)
@@ -467,6 +489,11 @@ static int prepro_finalize_hook(struct generic_seq_args *args) {
 void start_sequence_preprocessing(struct preprocessing_data *prepro) {
 	struct generic_seq_args *args = create_default_seqargs(prepro->seq);
 	args->force_float = !com.pref.force_16bit && prepro->output_seqtype != SEQ_SER;
+	if (!prepro->ignore_exclusion) {
+		siril_debug_print("Ignoring exclusions: frames marked as excluded will still be processed.\n");
+		args->filtering_criterion = seq_filter_included;
+		args->nb_filtered_images = prepro->seq->selnum;
+	}
 	args->compute_size_hook = prepro_compute_size_hook;
 	args->compute_mem_limits_hook = prepro_compute_mem_hook;
 	args->prepare_hook = prepro_prepare_hook;
@@ -474,7 +501,7 @@ void start_sequence_preprocessing(struct preprocessing_data *prepro) {
 	args->finalize_hook = prepro_finalize_hook;
 	args->description = _("Preprocessing");
 	args->has_output = TRUE;
-	args->new_seq_prefix = prepro->ppprefix;
+	args->new_seq_prefix = strdup(prepro->ppprefix);
 	args->load_new_sequence = TRUE;
 	args->force_ser_output = prepro->seq->type != SEQ_SER && prepro->output_seqtype == SEQ_SER;
 	args->force_fitseq_output = prepro->seq->type != SEQ_FITSEQ && prepro->output_seqtype == SEQ_FITSEQ;
@@ -484,13 +511,11 @@ void start_sequence_preprocessing(struct preprocessing_data *prepro) {
 			(args->seq->type == SEQ_SER && !args->force_fitseq_output)) ?
 		DATA_USHORT : DATA_FLOAT;
 
-	remove_prefixed_sequence_files(prepro->seq, prepro->ppprefix);
-
 	start_in_new_thread(generic_sequence_worker, args);
 }
 
 /********** SINGLE IMAGE (from com.uniq) ************/
-int preprocess_single_image(struct preprocessing_data *args) {
+int calibrate_single_image(struct preprocessing_data *args) {
 	gchar *msg;
 	fits fit = { 0 };
 	int ret = 0;
@@ -565,8 +590,8 @@ int preprocess_given_image(char *file, struct preprocessing_data *args) {
 		ret = savefits(dest_filename, &fit);
 		free(filename_noext);
 		g_free(dest_filename);
+		clearfits(&fit);
 	}
-	clearfits(&fit);
 	return ret;
 }
 
@@ -577,6 +602,8 @@ int evaluateoffsetlevel(const char* expression, fits *fit) {
 	// If found -> Try to find $ sign to read the offset value and its multiplier
 
 	gchar *expressioncpy = g_strdup(expression);
+	if (!expressioncpy)
+		return 0;
 	gchar *end = NULL;
 	remove_spaces_from_str(expressioncpy);
 	gchar *mulsignpos = g_strrstr(expressioncpy, "*");
@@ -629,10 +656,14 @@ gboolean check_for_cosme_file_sanity(GFile *file) {
 				&& !g_str_has_prefix(line, "C ")
 				&& !g_str_has_prefix(line, "#")) {
 			g_free(line);
+			g_object_unref(data_input);
+			g_object_unref(input_stream);
 			return FALSE;
 		}
 		g_free(line);
 	}
+	g_object_unref(data_input);
+	g_object_unref(input_stream);
 	return TRUE;
 }
 
@@ -642,6 +673,18 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 	gboolean has_error = FALSE;
 	args->bias_level = FLT_MAX;
 	args->bad_pixel_map_file = NULL;
+	fits reffit = { 0 };
+	gboolean isseq = (args->seq != NULL);
+	if (isseq) {
+		// loading the sequence reference image's metadata in case it's needed
+		int image_to_load = sequence_find_refimage(args->seq);
+		if (seq_read_frame_metadata(args->seq, image_to_load, &reffit)) {
+			siril_log_message(_("Could not load the reference image of the sequence, aborting.\n"));
+			has_error = TRUE;
+		}
+	} else {
+		reffit = gfit;
+	}
 
 	tbutton = GTK_TOGGLE_BUTTON(lookup_widget("useoffset_button"));
 	if (gtk_toggle_button_get_active(tbutton)) {
@@ -671,28 +714,37 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 					}
 				}
 			} else {
-				args->bias = calloc(1, sizeof(fits));
-				set_progress_bar_data(_("Opening offset image..."), PROGRESS_NONE);
-				if (!readfits(filename, args->bias, NULL, !com.pref.force_16bit)) {
-					if (args->bias->naxes[2] != gfit.naxes[2]) {
-						error = _("NOT USING OFFSET: number of channels is different");
-					} else if (args->bias->naxes[0] != gfit.naxes[0] ||
-							args->bias->naxes[1] != gfit.naxes[1]) {
-						error = _("NOT USING OFFSET: image dimensions are different");
-					} else {
-						args->use_bias = TRUE;
-						// if input is 8b, we assume 32b master needs to be rescaled
-						if ((args->bias->type == DATA_FLOAT) && (gfit.orig_bitpix == BYTE_IMG)) {
-							soper(args->bias, USHRT_MAX_SINGLE / UCHAR_MAX_SINGLE, OPER_MUL, TRUE);
+				int status;
+				gchar *expression = path_parse(&reffit, filename, PATHPARSE_MODE_READ, &status);
+				if (status) {
+					error = _("NOT USING OFFSET: could not parse the expression\n");
+					has_error = TRUE;
+				} else {
+					args->bias = calloc(1, sizeof(fits));
+					set_progress_bar_data(_("Opening offset image..."), PROGRESS_NONE);
+					if (!readfits(expression, args->bias, NULL, !com.pref.force_16bit)) {
+						if (args->bias->naxes[2] != gfit.naxes[2]) {
+							error = _("NOT USING OFFSET: number of channels is different");
+						} else if (args->bias->naxes[0] != gfit.naxes[0] ||
+								args->bias->naxes[1] != gfit.naxes[1]) {
+							error = _("NOT USING OFFSET: image dimensions are different");
+						} else {
+							args->use_bias = TRUE;
+							// if input is 8b, we assume 32b master needs to be rescaled
+							if ((args->bias->type == DATA_FLOAT) && (gfit.orig_bitpix == BYTE_IMG)) {
+								soper(args->bias, USHRT_MAX_SINGLE / UCHAR_MAX_SINGLE, OPER_MUL, TRUE);
+							}
 						}
-					}
-				} else error = _("NOT USING OFFSET: cannot open the file");
+					} else
+						error = _("NOT USING OFFSET: cannot open the file");
+				}
+				g_free(expression);
 			}
 			if (error) {
 				siril_log_color_message("%s\n", "red", error);
 				set_progress_bar_data(error, PROGRESS_DONE);
-				free(args->bias);
-				gtk_entry_set_text(entry, "");
+				if (args->bias)
+					free(args->bias);
 				args->use_bias = FALSE;
 				has_error = TRUE;
 			}
@@ -708,38 +760,48 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 			gtk_toggle_button_set_active(tbutton, FALSE);
 		} else {
 			const char *error = NULL;
-			set_progress_bar_data(_("Opening dark image..."), PROGRESS_NONE);
-			args->dark = calloc(1, sizeof(fits));
-			if (!readfits(filename, args->dark, NULL, !com.pref.force_16bit)) {
-				if (args->dark->naxes[2] != gfit.naxes[2]) {
-					error = _("NOT USING DARK: number of channels is different");
-				} else if (args->dark->naxes[0] != gfit.naxes[0] ||
-						args->dark->naxes[1] != gfit.naxes[1]) {
-					error = _("NOT USING DARK: image dimensions are different");
-				} else {
-					args->use_dark = TRUE;
-					// if input is 8b, we assume 32b master needs to be rescaled
-					if ((args->dark->type == DATA_FLOAT) && (gfit.orig_bitpix == BYTE_IMG)) {
-						soper(args->dark, USHRT_MAX_SINGLE / UCHAR_MAX_SINGLE, OPER_MUL, TRUE);
+			int status;
+			gchar *expression = path_parse(&reffit, filename, PATHPARSE_MODE_READ, &status);
+			if (status) {
+				error = _("NOT USING DARK: could not parse the expression");
+				has_error = TRUE;
+			} else {
+				set_progress_bar_data(_("Opening dark image..."), PROGRESS_NONE);
+				args->dark = calloc(1, sizeof(fits));
+				if (!readfits(expression, args->dark, NULL, !com.pref.force_16bit)) {
+					if (args->dark->naxes[2] != gfit.naxes[2]) {
+						error = _("NOT USING DARK: number of channels is different");
+					} else if (args->dark->naxes[0] != gfit.naxes[0] ||
+							args->dark->naxes[1] != gfit.naxes[1]) {
+						error = _("NOT USING DARK: image dimensions are different");
+					} else {
+						args->use_dark = TRUE;
+						// if input is 8b, we assume 32b master needs to be rescaled
+						if ((args->dark->type == DATA_FLOAT) && (gfit.orig_bitpix == BYTE_IMG)) {
+							soper(args->dark, USHRT_MAX_SINGLE / UCHAR_MAX_SINGLE, OPER_MUL, TRUE);
+						}
 					}
-				}
 
-			} else error = _("NOT USING DARK: cannot open the file");
+				} else error = _("NOT USING DARK: cannot open the file");
+			}
 			if (error) {
 				siril_log_color_message("%s\n", "red", error);
 				set_progress_bar_data(error, PROGRESS_DONE);
-				clearfits(args->dark);
+				if (args->dark)
+					clearfits(args->dark);
 				args->dark = NULL; // in order to be sure it is freed
-				gtk_entry_set_text(entry, "");
 				args->use_dark = FALSE;
 				has_error = TRUE;
 			}
+			g_free(expression);
+			
 		}
 
 		if (args->use_dark) {
 			// dark optimization
-			tbutton = GTK_TOGGLE_BUTTON(lookup_widget("checkDarkOptimize"));
-			args->use_dark_optim = gtk_toggle_button_get_active(tbutton);
+			int optim = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("comboDarkOptimize")));
+			args->use_dark_optim = optim != 0;
+			args->use_exposure = optim == 2;
 			const char *error = NULL;
 			if ((gfit.orig_bitpix == BYTE_IMG) && args->use_dark_optim) {
 				error = _("Dark optimization: This process cannot be applied to 8b images");
@@ -778,8 +840,8 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 				if (bad_pixel_f[0] != '\0') {
 					args->bad_pixel_map_file = g_file_new_for_path(bad_pixel_f);
 					if (!check_for_cosme_file_sanity(args->bad_pixel_map_file)) {
-						g_object_unref(args->bad_pixel_map_file);
-						args->bad_pixel_map_file = NULL;
+						siril_debug_print("cosme file sanity check failed...\n");
+						has_error = TRUE;
 					}
 				}
 			}
@@ -808,25 +870,33 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 			gtk_toggle_button_set_active(tbutton, FALSE);
 		} else {
 			const char *error = NULL;
-			set_progress_bar_data(_("Opening flat image..."), PROGRESS_NONE);
-			args->flat = calloc(1, sizeof(fits));
-			if (!readfits(filename, args->flat, NULL, !com.pref.force_16bit)) {
-				if (args->flat->naxes[2] != gfit.naxes[2]) {
-					error = _("NOT USING FLAT: number of channels is different");
-				} else if (args->flat->naxes[0] != gfit.naxes[0] ||
-						args->flat->naxes[1] != gfit.naxes[1]) {
-					error = _("NOT USING FLAT: image dimensions are different");
-				} else {
-					args->use_flat = TRUE;
-					// no need to deal with bitdepth conversion as flat is just a division (unlike darks which need to be on same scale)
-				}
+			int status;
+			gchar *expression = path_parse(&reffit, filename, PATHPARSE_MODE_READ, &status);
+			if (status) {
+				error = _("NOT USING FLAT: could not parse the expression");
+				has_error = TRUE;
+			} else {
+				set_progress_bar_data(_("Opening flat image..."), PROGRESS_NONE);
+				args->flat = calloc(1, sizeof(fits));
+				if (!readfits(filename, args->flat, NULL, !com.pref.force_16bit)) {
+					if (args->flat->naxes[2] != gfit.naxes[2]) {
+						error = _("NOT USING FLAT: number of channels is different");
+					} else if (args->flat->naxes[0] != gfit.naxes[0] ||
+							args->flat->naxes[1] != gfit.naxes[1]) {
+						error = _("NOT USING FLAT: image dimensions are different");
+					} else {
+						args->use_flat = TRUE;
+						// no need to deal with bitdepth conversion as flat is just a division (unlike darks which need to be on same scale)
+					}
 
-			} else error = _("NOT USING FLAT: cannot open the file");
+				} else error = _("NOT USING FLAT: cannot open the file");
+				g_free(expression);
+			}
 			if (error) {
 				siril_log_color_message("%s\n", "red", error);
 				set_progress_bar_data(error, PROGRESS_DONE);
-				free(args->flat);
-				gtk_entry_set_text(entry, "");
+				if (args->flat)
+					free(args->flat);
 				args->use_flat = FALSE;
 				has_error = TRUE;
 			}
@@ -841,6 +911,8 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 			}
 		}
 	}
+	if (isseq)
+		clearfits(&reffit);
 	return has_error;
 }
 
@@ -857,21 +929,25 @@ void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 	GtkToggleButton *CFA = GTK_TOGGLE_BUTTON(lookup_widget("cosmCFACheck"));
 	GtkToggleButton *debayer = GTK_TOGGLE_BUTTON(lookup_widget("checkButton_pp_dem"));
 	GtkToggleButton *equalize_cfa = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_equalize_cfa"));
+	GtkToggleButton *preprocess_excluded = GTK_TOGGLE_BUTTON(lookup_widget("toggle_preprocess_excluded"));
 	GtkComboBox *output_type = GTK_COMBO_BOX(lookup_widget("prepro_output_type_combo"));
 
 	struct preprocessing_data *args = calloc(1, sizeof(struct preprocessing_data));
 	if (test_for_master_files(args)) {
 		siril_log_color_message(_("Some errors have been detected, Please check the logs.\n"), "red");
+		free(args);
 		return;
 	}
-	if (!args->use_bias && !args->use_dark && !args->use_flat)
+	if (!args->use_bias && !args->use_dark && !args->use_flat) {
+		free(args);
 		return;
-
+	}
 	siril_log_color_message(_("Preprocessing...\n"), "green");
 
 	// set output filename (preprocessed file name prefix)
-	args->ppprefix = gtk_entry_get_text(entry);
+	args->ppprefix = strdup(gtk_entry_get_text(entry));
 
+	args->ignore_exclusion = gtk_toggle_button_get_active(preprocess_excluded);
 	args->is_cfa = gtk_toggle_button_get_active(CFA);
 	args->debayer = gtk_toggle_button_get_active(debayer);
 	args->equalize_cfa = gtk_toggle_button_get_active(equalize_cfa);
@@ -897,7 +973,7 @@ void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 		set_cursor_waiting(TRUE);
 		control_window_switch_to_tab(OUTPUT_LOGS);
 
-		retval = preprocess_single_image(args);
+		retval = calibrate_single_image(args);
 
 		free(args);
 
@@ -922,6 +998,20 @@ void on_GtkButtonEvaluateCC_clicked(GtkButton *button, gpointer user_data) {
 	long icold = 0L, ihot = 0L;
 	double rate, total;
 	fits fit = { 0 };
+	fits reffit = { 0 };
+	int status;
+	gboolean isseq = FALSE;
+	if (sequence_is_loaded()) {
+		// loading the sequence reference image's metadata
+		int image_to_load = sequence_find_refimage(&com.seq);
+		if (seq_read_frame_metadata(&com.seq, image_to_load, &reffit)) {
+			siril_log_message(_("Could not load the reference image of the sequence, aborting.\n"));
+			return;
+		}
+		isseq = TRUE;
+	} else {
+		reffit = gfit;
+	}
 
 	set_cursor_waiting(TRUE);
 	sig[0] = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinSigCosmeColdBox")));
@@ -932,12 +1022,14 @@ void on_GtkButtonEvaluateCC_clicked(GtkButton *button, gpointer user_data) {
 	label[1] = GTK_LABEL(lookup_widget("GtkLabelHotCC"));
 	entry = GTK_ENTRY(lookup_widget("darkname_entry"));
 	filename = gtk_entry_get_text(entry);
-	if (readfits(filename, &fit, NULL, !com.pref.force_16bit)) {
+	gchar *expression = path_parse(&reffit, filename, PATHPARSE_MODE_READ, &status);
+	if (status || readfits(expression, &fit, NULL, !com.pref.force_16bit)) {
 		str[0] = g_markup_printf_escaped(_("<span foreground=\"red\">ERROR</span>"));
 		str[1] = g_markup_printf_escaped(_("<span foreground=\"red\">ERROR</span>"));
 		gtk_label_set_markup(label[0], str[0]);
 		gtk_label_set_markup(label[1], str[1]);
 		set_cursor_waiting(FALSE);
+		g_free(expression);
 		return;
 	}
 	find_deviant_pixels(&fit, sig, &icold, &ihot, TRUE);
@@ -969,4 +1061,7 @@ void on_GtkButtonEvaluateCC_clicked(GtkButton *button, gpointer user_data) {
 	g_free(str[0]);
 	g_free(str[1]);
 	set_cursor_waiting(FALSE);
+	g_free(expression);
+	if (isseq)
+		clearfits(&reffit);
 }

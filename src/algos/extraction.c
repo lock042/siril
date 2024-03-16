@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,13 +30,20 @@
 #include "io/sequence.h"
 #include "extraction.h"
 
+/******************************************************************************
+ * Note for maintainers: do not use the translation macro on the following    *
+ * string. Color management relies on being able to detect "Extraction"       *
+ * in FITS HISTORY header.                                                    *
+ ******************************************************************************/
+const gchar *extract_string = "Extraction";
+
 static int cfa_extract_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer);
 
-static void update_sampling_information(fits *fit) {
+static void update_sampling_information(fits *fit, float factor) {
 	clear_Bayer_information(fit);
 
-	fit->pixel_size_x *= 2;
-	fit->pixel_size_y *= 2;
+	fit->pixel_size_x *= factor;
+	fit->pixel_size_y *= factor;
 }
 
 void update_filter_information(fits *fit, char *filter, gboolean append) {
@@ -50,6 +57,7 @@ void update_filter_information(fits *fit, char *filter, gboolean append) {
 		filtername = g_strdup(filter);
 	}
 	strncpy(fit->filter, filtername, FLEN_VALUE - 1);
+	g_free(filtername);
 }
 
 int extractHa_ushort(fits *in, fits *Ha, sensor_pattern pattern) {
@@ -96,8 +104,9 @@ int extractHa_ushort(fits *in, fits *Ha, sensor_pattern pattern) {
 
 	/* We update FITS keywords */
 	copy_fits_metadata(in, Ha);
-	update_sampling_information(Ha);
+	update_sampling_information(Ha, 2.f);
 	update_filter_information(Ha, "Ha", TRUE);
+	Ha->history = g_slist_append(Ha->history, g_strdup(_("Ha channel")));
 
 	return 0;
 }
@@ -145,8 +154,9 @@ int extractHa_float(fits *in, fits *Ha, sensor_pattern pattern) {
 
 	/* We update FITS keywords */
 	copy_fits_metadata(in, Ha);
-	update_sampling_information(Ha);
+	update_sampling_information(Ha, 2.f);
 	update_filter_information(Ha, "Ha", TRUE);
+	Ha->history = g_slist_append(Ha->history, g_strdup(_("Ha channel")));
 
 	return 0;
 }
@@ -182,6 +192,19 @@ sensor_pattern get_bayer_pattern(fits *fit) {
 	return tmp_pattern;
 }
 
+int extract_finalize_hook(struct generic_seq_args *args) {
+	struct split_cfa_data *data = (struct split_cfa_data *) args->user;
+	int retval = seq_finalize_hook(args);
+	free(data);
+	return retval;
+}
+
+int split_finalize_hook(struct generic_seq_args *args) {
+	struct split_cfa_data *data = (struct split_cfa_data *) args->user;
+	free(data);
+	return 0;
+}
+
 int extractHa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
 	int ret = 1;
 	fits f_Ha = { 0 };
@@ -214,7 +237,7 @@ void apply_extractHa_to_sequence(struct split_cfa_data *split_cfa_args) {
 	args->nb_filtered_images = split_cfa_args->seq->selnum;
 	args->compute_mem_limits_hook = cfa_extract_compute_mem_limits;
 	args->prepare_hook = extract_prepare_hook;
-	args->finalize_hook = seq_finalize_hook;
+	args->finalize_hook = extract_finalize_hook;
 	args->image_hook = extractHa_image_hook;
 	args->description = _("Extract Ha");
 	args->has_output = TRUE;
@@ -266,8 +289,9 @@ int extractGreen_ushort(fits *in, fits *green, sensor_pattern pattern) {
 
 	/* We update FITS keywords */
 	copy_fits_metadata(in, green);
-	update_sampling_information(green);
+	update_sampling_information(green, 2.f);
 	update_filter_information(green, "G", TRUE);
+	green->history = g_slist_append(green->history, g_strdup_printf(_("%s: extract Green channel\n"), extract_string));
 
 	return 0;
 }
@@ -310,8 +334,9 @@ int extractGreen_float(fits *in, fits *green, sensor_pattern pattern) {
 
 	/* We update FITS keywords */
 	copy_fits_metadata(in, green);
-	update_sampling_information(green);
+	update_sampling_information(green, 2.f);
 	update_filter_information(green, "G", TRUE);
+	green->history = g_slist_append(green->history, g_strdup_printf(_("%s: extract Green channel\n"), extract_string));
 
 	return 0;
 }
@@ -340,7 +365,7 @@ void apply_extractGreen_to_sequence(struct split_cfa_data *split_cfa_args) {
 	args->nb_filtered_images = split_cfa_args->seq->selnum;
 	args->compute_mem_limits_hook = cfa_extract_compute_mem_limits;
 	args->prepare_hook = extract_prepare_hook;
-	args->finalize_hook = seq_finalize_hook;
+	args->finalize_hook = extract_finalize_hook;
 	args->image_hook = extractGreen_image_hook;
 	args->description = _("Extract Green");
 	args->has_output = TRUE;
@@ -372,15 +397,17 @@ int extractHaOIII_image_hook(struct generic_seq_args *args, int o, int i, fits *
 	double_data->index = o;
 
 	if (fit->type == DATA_USHORT) {
-		ret = extractHaOIII_ushort(fit, double_data->ha, double_data->oiii, pattern, cfa_args->scaling);
+		ret = extractHaOIII_ushort(fit, double_data->ha, double_data->oiii, pattern, cfa_args->scaling, threads);
 	}
 	else if (fit->type == DATA_FLOAT) {
-		ret = extractHaOIII_float(fit, double_data->ha, double_data->oiii, pattern, cfa_args->scaling);
+		ret = extractHaOIII_float(fit, double_data->ha, double_data->oiii, pattern, cfa_args->scaling, threads);
 	}
 
 	if (ret) {
 		clearfits(double_data->ha);
+		free(double_data->ha);
 		clearfits(double_data->oiii);
+		free(double_data->oiii);
 		free(double_data);
 	} else {
 #ifdef _OPENMP
@@ -398,14 +425,16 @@ int extractHaOIII_image_hook(struct generic_seq_args *args, int o, int i, fits *
 static int dual_prepare(struct generic_seq_args *args) {
 	struct split_cfa_data *cfa_args = (struct split_cfa_data *) args->user;
 	// we call the generic prepare twice with different prefixes
-	args->new_seq_prefix = "Ha_";
+	args->new_seq_prefix = "Ha_"; // This is OK here, it does not get freed in the
+	// end_generic_sequence later
 	if (extract_prepare_hook(args))
 		return 1;
 	// but we copy the result between each call
 	cfa_args->new_ser_ha = args->new_ser;
 	cfa_args->new_fitseq_ha = args->new_fitseq;
 
-	args->new_seq_prefix = "OIII_";
+	args->new_seq_prefix = "OIII_"; // This is OK here, it does not get freed in the
+	// end_generic_sequence later
 	if (extract_prepare_hook(args))
 		return 1;
 	cfa_args->new_ser_oiii = args->new_ser;
@@ -433,6 +462,7 @@ static int dual_finalize(struct generic_seq_args *args) {
 	cfa_args->new_ser_oiii = NULL;
 	cfa_args->new_fitseq_oiii = NULL;
 	seqwriter_set_number_of_outputs(1);
+	free(cfa_args);
 	return retval;
 }
 
@@ -502,8 +532,12 @@ static int dual_save(struct generic_seq_args *args, int out_index, int in_index,
 			retval2 = save1fits32(dest, double_data->oiii, RLAYER);
 		}
 		free(dest);
+	}
+	if (!cfa_args->new_fitseq_ha && !cfa_args->new_ser_ha) { // detect if there is a seqwriter
 		clearfits(double_data->ha);
+		free(double_data->ha);
 		clearfits(double_data->oiii);
+		free(double_data->oiii);
 	}
 	free(double_data);
 	return retval1 || retval2;
@@ -573,6 +607,12 @@ int split_cfa_ushort(fits *in, fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3) {
 	clear_Bayer_information(cfa2);
 	clear_Bayer_information(cfa3);
 
+	/* Update history */
+	cfa0->history = g_slist_append(cfa0->history, g_strdup(_("CFA0 Bayer channel\n")));
+	cfa1->history = g_slist_append(cfa1->history, g_strdup(_("CFA1 Bayer channel\n")));
+	cfa2->history = g_slist_append(cfa2->history, g_strdup(_("CFA2 Bayer channel\n")));
+	cfa3->history = g_slist_append(cfa3->history, g_strdup(_("CFA3 Bayer channel\n")));
+
 	return 0;
 }
 
@@ -619,6 +659,12 @@ int split_cfa_float(fits *in, fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3) {
 	clear_Bayer_information(cfa2);
 	clear_Bayer_information(cfa3);
 
+	/* Update history */
+	cfa0->history = g_slist_append(cfa0->history, g_strdup(_("CFA0 Bayer channel\n")));
+	cfa1->history = g_slist_append(cfa1->history, g_strdup(_("CFA1 Bayer channel\n")));
+	cfa2->history = g_slist_append(cfa2->history, g_strdup(_("CFA2 Bayer channel\n")));
+	cfa3->history = g_slist_append(cfa3->history, g_strdup(_("CFA3 Bayer channel\n")));
+
 	return 0;
 }
 
@@ -660,7 +706,7 @@ int split_cfa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 static int cfa_extract_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
 	unsigned int MB_per_input_image, MB_per_output_image, MB_avail, required;
 	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_input_image, NULL, &MB_avail);
-	struct split_cfa_data *cfa_args = (struct split_cfa_data *) args->user;
+	const struct split_cfa_data *cfa_args = (struct split_cfa_data *) args->user;
 
 	if (args->image_hook == extractHa_image_hook || args->image_hook == extractGreen_image_hook) {
 		MB_per_output_image = min(1, MB_per_input_image / 4);
@@ -738,7 +784,7 @@ void apply_split_cfa_to_sequence(struct split_cfa_data *split_cfa_args) {
 	args->description = _("Split CFA");
 	args->new_seq_prefix = split_cfa_args->seqEntry;
 	args->user = split_cfa_args;
-
+	args->finalize_hook = split_finalize_hook;
 	split_cfa_args->fit = NULL;	// not used here
 
 	start_in_new_thread(generic_sequence_worker, args);
@@ -746,7 +792,23 @@ void apply_split_cfa_to_sequence(struct split_cfa_data *split_cfa_args) {
 
 #define SQRTF_2 1.41421356f
 
-int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, extraction_scaling scaling) {
+int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, extraction_scaling scaling, int threads) {
+	int crop_x = in->rx, crop_y = in->ry;
+	gboolean do_crop = FALSE;
+	if (in->rx % 2) {
+		crop_x--;
+		do_crop = TRUE;
+	}
+	if (in->ry % 2) {
+		crop_y--;
+		do_crop = TRUE;
+	}
+	if (do_crop) {
+		siril_log_message(_("Image dimensions must be even. Trimming by 1 pixel.\n"));
+		rectangle bounds = {0, 0, crop_x, crop_y};
+		crop(in, &bounds);
+	}
+
 	int width = in->rx / 2, height = in->ry / 2;
 
 	if (strlen(in->bayer_pattern) > 4) {
@@ -813,30 +875,30 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 		float bratio = avgoiii / b;
 
 		// Loop through to equalize the O-III photosite data and interpolate the O-III values at the Ha photosites
+#ifdef _OPENMP
+#pragma omp parallel num_threads(threads)
+{
+#pragma omp for simd schedule(static)
+#endif
 		for (int row = 0; row < in->ry - 1; row += 2) {
 			for (int col = 0; col < in->rx - 1; col += 2) {
-				int HaIndex = 0;
 				switch(pattern) {
 					case BAYER_FILTER_RGGB:
-						HaIndex = col + row * in->rx;
 						OIII->data[1 + col + row * in->rx] = roundf_to_WORD(g1ratio * in->data[1 + col + row * in->rx]);
 						OIII->data[col + (1 + row) * in->rx] = roundf_to_WORD(g2ratio * in->data[col + (1 + row) * in->rx]);
 						OIII->data[1 + col + (1 + row) * in->rx] = roundf_to_WORD(bratio * in->data[1 + col + (1 + row) * in->rx]);
 						break;
 					case BAYER_FILTER_BGGR:
-						HaIndex = 1 + col + (1 + row) * in->rx;
 						OIII->data[1 + col + row * in->rx] = roundf_to_WORD(g1ratio * in->data[1 + col + row * in->rx]);
 						OIII->data[col + (1 + row) * in->rx] = roundf_to_WORD(g2ratio * in->data[col + (1 + row) * in->rx]);
 						OIII->data[col + row * in->rx] = roundf_to_WORD(bratio * in->data[col + row * in->rx]);
 						break;
 					case BAYER_FILTER_GRBG:
-						HaIndex = 1 + col + row * in->rx;
 						OIII->data[col + row * in->rx] = roundf_to_WORD(g1ratio * in->data[col + row * in->rx]);
 						OIII->data[1 + col + (1 + row) * in->rx] = roundf_to_WORD(g2ratio * in->data[1 + col + (1 + row) * in->rx]);
 						OIII->data[col + (1 + row) * in->rx] = roundf_to_WORD(bratio * in->data[col + (1 + row) * in->rx]);
 						break;
 					case BAYER_FILTER_GBRG:
-						HaIndex = col + (1 + row) * in->rx;
 						OIII->data[col + row * in->rx] = roundf_to_WORD(g1ratio * in->data[col + row * in->rx]);
 						OIII->data[1 + col + (1 + row) * in->rx] = roundf_to_WORD(g2ratio * in->data[1 + col + (1 + row) * in->rx]);
 						OIII->data[1 + col + row * in->rx] = roundf_to_WORD(bratio * in->data[1 + col + row * in->rx]);
@@ -845,7 +907,36 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 						printf("Should not happen.\n");
 						error++;
 				}
-				if (!error) {
+			}
+		}
+#ifdef _OPENMP
+#pragma omp barrier
+#endif
+		// Separate loop for Ha site interpolation so this works for all Bayer patterns
+		if (!error) {
+#ifdef _OPENMP
+#pragma omp for simd schedule(static)
+#endif
+			for (int row = 0; row < in->ry - 1; row += 2) {
+				for (int col = 0; col < in->rx - 1; col += 2) {
+					int HaIndex = 0;
+					switch(pattern) {
+						case BAYER_FILTER_RGGB:
+							HaIndex = col + row * in->rx;
+							break;
+						case BAYER_FILTER_BGGR:
+							HaIndex = 1 + col + (1 + row) * in->rx;
+							break;
+						case BAYER_FILTER_GRBG:
+							HaIndex = 1 + col + row * in->rx;
+							break;
+						case BAYER_FILTER_GBRG:
+							HaIndex = col + (1 + row) * in->rx;
+							break;
+						default:
+							printf("Should not happen.\n");
+							error++;
+					}
 					float interp = 0.f;
 					float weight = 0.f;
 					gboolean first_y = (HaIndex / in->rx == 0) ? TRUE : FALSE;
@@ -857,11 +948,11 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 						weight += SQRTF_2;
 						if (!first_x) {
 							interp += (OIII->data[HaIndex - 1] * SQRTF_2);
-							interp += OIII->data[HaIndex - in->rx - 1];
+							interp += OIII->data[(HaIndex - in->rx) - 1];
 							weight += (1.f + SQRTF_2);
 						}
 						if (!last_x) {
-							interp += OIII->data[HaIndex - in->rx + 1];
+							interp += OIII->data[(HaIndex - in->rx) + 1];
 							interp += OIII->data[HaIndex + 1] * SQRTF_2;
 							weight += (1.f + SQRTF_2);
 						}
@@ -871,7 +962,7 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 							weight += SQRTF_2;
 						}
 						if(!last_x) {
-							interp += OIII->data[HaIndex+1] * SQRTF_2;
+							interp += OIII->data[HaIndex + 1] * SQRTF_2;
 							weight += SQRTF_2;
 						}
 					}
@@ -879,7 +970,7 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 						interp += OIII->data[HaIndex + in->rx] * SQRTF_2;
 						weight += SQRTF_2;
 						if(!first_x) {
-							interp += OIII->data[HaIndex + in->rx - 1];
+							interp += OIII->data[(HaIndex + in->rx) - 1];
 							weight += 1.f;
 						}
 						if(!last_x) {
@@ -892,18 +983,24 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 				}
 			}
 		}
+#ifdef _OPENMP
+}
+#endif
 	}
 	if (error)
 		return 1;
 	// Scale images to match: either upsample Ha to match OIII, downsample OIII to match Ha
 	// or do nothing. Hardcoded to upscale for now.
 
+	float factorHa = 2.f, factorOIII = 1.f;
 	switch (scaling) {
 		case 1: // Upsample Ha to OIII size
 			verbose_resize_gaussian(Ha, OIII->rx, OIII->ry, OPENCV_LANCZOS4, TRUE);
+			factorHa = 1.f;
 			break;
 		case 2: // Downsample OIII to Ha size
 			verbose_resize_gaussian(OIII, Ha->rx, Ha->ry, OPENCV_LANCZOS4, TRUE);
+			factorOIII = 2.f;
 			break;
 		default:
 			break;
@@ -911,17 +1008,35 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 
 	/* We update FITS keywords */
 	copy_fits_metadata(in, Ha);
-	update_sampling_information(Ha);
+	update_sampling_information(Ha, factorHa);
 	update_filter_information(Ha, "Ha", TRUE);
+	Ha->history = g_slist_append(Ha->history, g_strdup(_("Ha channel\n")));
 
 	copy_fits_metadata(in, OIII);
-	update_sampling_information(OIII);
+	update_sampling_information(OIII, factorOIII);
 	update_filter_information(OIII, "OIII", TRUE);
+	OIII->history = g_slist_append(OIII->history, g_strdup(_("OIII channel\n")));
 
 	return 0;
 }
 
-int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, extraction_scaling scaling) {
+int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, extraction_scaling scaling, int threads) {
+	int crop_x = in->rx, crop_y = in->ry;
+	gboolean do_crop = FALSE;
+	if (in->rx % 2) {
+		crop_x--;
+		do_crop = TRUE;
+	}
+	if (in->ry % 2) {
+		crop_y--;
+		do_crop = TRUE;
+	}
+	if (do_crop) {
+		siril_log_message(_("Image dimensions must be even. Trimming by 1 pixel.\n"));
+		rectangle bounds = {0, 0, crop_x, crop_y};
+		crop(in, &bounds);
+	}
+
 	int width = in->rx / 2, height = in->ry / 2;
 
 	if (strlen(in->bayer_pattern) > 4) {
@@ -988,30 +1103,30 @@ int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, 
 		float bratio = avgoiii / b;
 
 		// Loop through to equalize the O-III photosite data and interpolate the O-III values at the Ha photosites
+#ifdef _OPENMP
+#pragma omp parallel num_threads(threads)
+{
+#pragma omp for simd schedule(static)
+#endif
 		for (int row = 0; row < in->ry - 1; row += 2) {
 			for (int col = 0; col < in->rx - 1; col += 2) {
-				int HaIndex = 0;
 				switch(pattern) {
 					case BAYER_FILTER_RGGB:
-						HaIndex = col + row * in->rx;
 						OIII->fdata[1 + col + row * in->rx] = g1ratio * in->fdata[1 + col + row * in->rx];
 						OIII->fdata[col + (1 + row) * in->rx] = g2ratio * in->fdata[col + (1 + row) * in->rx];
 						OIII->fdata[1 + col + (1 + row) * in->rx] = bratio * in->fdata[1 + col + (1 + row) * in->rx];
 						break;
 					case BAYER_FILTER_BGGR:
-						HaIndex = 1 + col + (1 + row) * in->rx;
 						OIII->fdata[1 + col + row * in->rx] = g1ratio * in->fdata[1 + col + row * in->rx];
 						OIII->fdata[col + (1 + row) * in->rx] = g2ratio * in->fdata[col + (1 + row) * in->rx];
 						OIII->fdata[col + row * in->rx] = bratio * in->fdata[col + row * in->rx];
 						break;
 					case BAYER_FILTER_GRBG:
-						HaIndex = 1 + col + row * in->rx;
 						OIII->fdata[col + row * in->rx] = g1ratio * in->fdata[col + row * in->rx];
 						OIII->fdata[1 + col + (1 + row) * in->rx] = g2ratio * in->fdata[1 + col + (1 + row) * in->rx];
 						OIII->fdata[col + (1 + row) * in->rx] = bratio * in->fdata[col + (1 + row) * in->rx];
 						break;
 					case BAYER_FILTER_GBRG:
-						HaIndex = col + (1 + row) * in->rx;
 						OIII->fdata[col + row * in->rx] = g1ratio * in->fdata[col + row * in->rx];
 						OIII->fdata[1 + col + (1 + row) * in->rx] = g2ratio * in->fdata[1 + col + (1 + row) * in->rx];
 						OIII->fdata[1 + col + row * in->rx] = bratio * in->fdata[1 + col + row * in->rx];
@@ -1020,7 +1135,36 @@ int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, 
 						printf("Should not happen.\n");
 						error++;
 				}
-				if (!error) {
+			}
+		}
+#ifdef _OPENMP
+#pragma omp barrier
+#endif
+		// Separate loop for Ha site interpolation so this works for all Bayer patterns
+		if (!error) {
+#ifdef _OPENMP
+#pragma omp for simd schedule(static)
+#endif
+			for (int row = 0; row < in->ry - 1; row += 2) {
+				for (int col = 0; col < in->rx - 1; col += 2) {
+					int HaIndex = 0;
+					switch(pattern) {
+						case BAYER_FILTER_RGGB:
+							HaIndex = col + row * in->rx;
+							break;
+						case BAYER_FILTER_BGGR:
+							HaIndex = 1 + col + (1 + row) * in->rx;
+							break;
+						case BAYER_FILTER_GRBG:
+							HaIndex = 1 + col + row * in->rx;
+							break;
+						case BAYER_FILTER_GBRG:
+							HaIndex = col + (1 + row) * in->rx;
+							break;
+						default:
+							printf("Should not happen.\n");
+							error++;
+					}
 					float interp = 0.f;
 					float weight = 0.f;
 					gboolean first_y = (HaIndex / in->rx == 0) ? TRUE : FALSE;
@@ -1067,18 +1211,23 @@ int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, 
 				}
 			}
 		}
+#ifdef _OPENMP
+}
+#endif
 	}
 	if (error)
 		return 1;
 	// Scale images to match: either upsample Ha to match OIII, downsample OIII to match Ha
 	// or do nothing. Hardcoded to upscale for now.
-
+	float factorHa = 2.f, factorOIII = 1.f;
 	switch (scaling) {
 		case SCALING_HA_UP: // Upsample Ha to OIII size
 			verbose_resize_gaussian(Ha, OIII->rx, OIII->ry, OPENCV_LANCZOS4, TRUE);
+			factorHa = 1.f;
 			break;
 		case SCALING_OIII_DOWN: // Downsample OIII to Ha size
 			verbose_resize_gaussian(OIII, Ha->rx, Ha->ry, OPENCV_LANCZOS4, TRUE);
+			factorOIII = 2.f;
 			break;
 		default:
 			break;
@@ -1086,12 +1235,14 @@ int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, 
 
 	/* We update FITS keywords */
 	copy_fits_metadata(in, Ha);
-	update_sampling_information(Ha);
+	update_sampling_information(Ha, factorHa);
 	update_filter_information(Ha, "Ha", TRUE);
+	Ha->history = g_slist_append(Ha->history, g_strdup(_("Ha channel\n")));
 
 	copy_fits_metadata(in, OIII);
-	update_sampling_information(OIII);
+	update_sampling_information(OIII, factorOIII);
 	update_filter_information(OIII, "OIII", TRUE);
+	OIII->history = g_slist_append(OIII->history, g_strdup(_("OIII channel\n")));
 
 	return 0;
 }

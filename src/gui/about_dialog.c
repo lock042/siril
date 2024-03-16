@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -64,9 +64,7 @@ void siril_show_about_dialog() {
 
 	parent = GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
 	/* Create pixbuf from siril.svg file */
-	gchar *image = g_build_filename(siril_get_system_data_dir(), "pixmaps", "siril.svg", NULL);
-	icon = gdk_pixbuf_new_from_file_at_size(image, 256, 256, NULL);
-	g_free(image);
+	icon = gdk_pixbuf_new_from_resource_at_scale("/org/siril/ui/pixmaps/siril.svg", 256, 256, FALSE, NULL);
 
 	gtk_show_about_dialog(parent,
 			"program-name", PACKAGE,

@@ -1,7 +1,7 @@
 # This file is part of Siril, an astronomy image processor.
 # Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
-# Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
-# Reference site is https://free-astro.org/index.php/Siril
+# Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+# Reference site is https://siril.org
 #
 # Siril is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,12 +27,12 @@
 
 project('siril',
   ['c','cpp'],
-  version : '1.1.0',
+  version : '1.3.1-alpha-dev',
   license : ['GPL3'],
   meson_version: '>=0.56.0',
   default_options : [
     'c_std=gnu11',
-    'cpp_std=c++14',
+    'cpp_std=c++17',
     'buildtype=debugoptimized',
   ],
 )
@@ -42,18 +42,24 @@ srcInclude  = include_directories('src')
 
 warnings = []
 
+have_fftw3fomp = false
+have_fftw3fthreads = false
+have_fftw3fthreadsnolinkerarg = false
+
 enable_openmp    = get_option('openmp')
-enable_json_glib = get_option('json_glib')
+enable_libcurl   = get_option('libcurl')
+enable_exiv      = get_option('exiv2')
 enable_libraw    = get_option('libraw')
 enable_libtiff   = get_option('libtiff')
 enable_libjpeg   = get_option('libjpeg')
 enable_libpng    = get_option('libpng')
 enable_libheif   = get_option('libheif')
+enable_libXISF   = get_option('libXISF')
 enable_ffms2     = get_option('ffms2')
 enable_ffmpeg    = get_option('ffmpeg')
-enable_libconfig = get_option('libconfig')
 enable_criterion = get_option('criterion')
-enable_wcslib    = get_option('wcslib')
+enable_libjxl    = get_option('libjxl')
+enable_libgit2    = get_option('libgit2')
 
 # General version
 siril_version = meson.project_version()
@@ -138,6 +144,7 @@ siril_cpp_flag = []
 siril_c_flag = []
 siril_link_arg = []
 
+
 # -fno-math-errno is used to speedup code, this for example speeds up all sqrt() functions.
 # There is no case where we check the math errno. So it’s safe to use this flag for siril.
 siril_c_flag += ['-DHAVE_CONFIG_H', '-fcommon', '-fno-math-errno', '-D_FILE_OFFSET_BITS=64']
@@ -208,18 +215,6 @@ else # == 'platform-default'
   endif
 endif
 
-if get_option('enable-libcurl') == 'yes'
-  enable_libcurl= true
-elif get_option('enable-libcurl') == 'no'
-  enable_libcurl = false
-else # == 'platform-default'
-  if platform_windows or platform_osx
-      enable_libcurl = true
-  else
-      enable_libcurl = false
-  endif
-endif
-
 # Dependencies
 no_dep = dependency('', required: false)
 
@@ -232,11 +227,36 @@ if platform_windows
 else
   gio_platform_dep = dependency('gio-unix-2.0', required : true, version: '>= 2.56.0')
 endif
-gtk_dep = dependency('gtk+-3.0', required : true, version: '>= 3.20.0')
+gtk_dep = dependency('gtk+-3.0', required : true, version: '>= 3.22.0')
 gsl_dep = dependency('gsl', required : true)
 m_dep = cc.find_library('m', required : false)
-exiv_dep = dependency('exiv2', required : true, version: '>= 0.25')
+lcms_dep = dependency('lcms2', required : true, version: '>= 2.14')
+# wcslib mandatory - uses subproject fallback to build if not found
+wcslib_dep = dependency('wcslib', fallback : ['wcslib', 'wcslib_dep'], required : true, version: '>= 7.12')
+json_glib_dep = dependency('json-glib-1.0', required : true, version: '>=1.2.6')
+
 fftw3f_dep = dependency('fftw3f', required : true)
+# threaded fftw3f
+if cc.links('''#include <fftw3.h>
+               int main () {
+                 fftwf_init_threads();
+                 return 0;
+               }''', dependencies : [fftw3f_dep], name : 'fftw3f linked with pthreads and combined_threads')
+  have_fftw3fthreadsnolinkerarg = true
+elif cc.links('''#include <fftw3.h>
+               int main () {
+                 fftwf_init_threads();
+                 return 0;
+               }''', dependencies : [fftw3f_dep], args : ['-lfftw3f_omp'], name : 'fftw3f linked with openmp')
+  have_fftw3fomp = true
+elif cc.links('''#include <fftw3.h>
+               int main () {
+                 fftwf_init_threads();
+                 return 0;
+               }''', dependencies : [fftw3f_dep], args : ['-lfftw3f_threads'], name : 'fftw3f linked with pthreads')
+  have_fftw3fthreads = true
+endif
+
 cfitsio_dep = dependency('cfitsio', required : true)
 cairo_dep = dependency('cairo', required : true)
 kplot_dep = dependency('kplot', fallback : ['kplot', 'kplot_dep'], required : true)
@@ -262,24 +282,21 @@ if not htmesh_dep.found()
 
   # Call CMake with `-DCMAKE_CXX_FLAGS="-I$(abs_srcdir)/htmesh"
   opt_var.add_cmake_defines({'CMAKE_CXX_FLAGS': '-I'+meson.current_source_dir()+'/subprojects/htmesh'})
-  #opt_var.append_compile_args(
+if platform_windows
+  opt_var.append_compile_args('cpp', '-Wno-unknown-pragmas')
+endif
   sub_proj = cmake.subproject('htmesh', options: opt_var)
 
   htmesh_dep = sub_proj.dependency('htmesh')
   htmesh_inc = sub_proj.include_directories('htmesh')
 else
-  siril_cpp_flag += '-DHAVE_LIBRTPROCESS'
+  siril_cpp_flag += '-DHAVE_HTMESH'
 endif
 
 ## Optional dependencies
 
 openmp_dep = []
 if enable_openmp
-  if platform_linux
-    siril_c_flag += '-DHAVE_FFTW3F_OMP'
-    siril_cpp_flag += '-DHAVE_FFTW3F_OMP'
-    siril_link_arg += ['-lfftw3f_omp']
-  endif
   if platform_osx
     message('Set OpenMP flags for macOS')
     siril_link_arg += ['-lomp']
@@ -292,9 +309,41 @@ else
   message('OpenMP disabled')
 endif
 
-json_glib_dep = no_dep
-if enable_json_glib
-  json_glib_dep = dependency('json-glib-1.0', required : true, version: '>=1.2.6')
+# Now we know OpenMP availability we can choose FFTW flags
+if enable_openmp
+  if have_fftw3fomp
+    siril_c_flag += '-DHAVE_FFTW3F_OMP'
+    siril_cpp_flag += '-DHAVE_FFTW3F_OMP'
+    siril_link_arg += ['-lfftw3f_omp']
+    message('FFTW linked against OpenMP')
+  elif have_fftw3fthreads
+    siril_c_flag += '-DHAVE_FFTW3F_THREADS'
+    siril_cpp_flag += '-DHAVE_FFTW3F_THREADS'
+    siril_link_arg += ['-lfftw3f_threads']
+    message('FFTW linked against pthreads: will use OpenMP callback')
+  elif have_fftw3fthreadsnolinkerarg
+# Note in this instance FFTW has been built with the combined_threads
+# option which means pthreads is in use
+    siril_c_flag += '-DHAVE_FFTW3F_THREADS'
+    siril_cpp_flag += '-DHAVE_FFTW3F_THREADS'
+    message('FFTW linked against pthreads: will use OpenMP callback')
+  endif
+elif have_fftw3fthreads
+  siril_c_flag += '-DHAVE_FFTW3F_THREADS'
+  siril_cpp_flag += '-DHAVE_FFTW3F_THREADS'
+  siril_link_arg += ['-lfftw3f_threads']
+  message('FFTW linked against pthreads')
+elif have_fftw3fthreadsnolinkerarg
+  siril_c_flag += '-DHAVE_FFTW3F_THREADS'
+  siril_cpp_flag += '-DHAVE_FFTW3F_THREADS'
+  message('FFTW linked against pthreads')
+else
+  message('FFTW does not support multithreading')
+endif
+
+exiv_dep = no_dep
+if enable_exiv
+  exiv_dep = dependency('exiv2', required : true, version: '>= 0.25')
 endif
 
 libraw_dep = no_dep
@@ -312,6 +361,13 @@ if enable_libjpeg
   libjpeg_dep = dependency('libjpeg', required : true)
 endif
 
+libjxl_dep = no_dep
+libjxl_threads_dep = no_dep
+if enable_libjxl
+  libjxl_dep = dependency('libjxl', required : true)
+  libjxl_threads_dep = dependency('libjxl_threads', required : false)
+endif
+
 libpng_dep = no_dep
 if enable_libpng
   libpng_dep = dependency('libpng', required : true, version: '>= 1.6.0')
@@ -319,7 +375,17 @@ endif
 
 libheif_dep = no_dep
 if enable_libheif
-  libheif_dep = dependency('libheif', required : true)
+  libheif_dep = dependency('libheif', required : true, version: '>= 1.8.0')
+endif
+
+libXISF_dep = no_dep
+if enable_libXISF
+  libXISF_dep = dependency('libxisf', required : true, version: '>= 0.2.7')
+endif
+
+libgit2_dep = no_dep
+if enable_libgit2
+  libgit2_dep = dependency('libgit2', required : true)
 endif
 
 ffms2_dep = no_dep
@@ -343,19 +409,9 @@ if enable_libcurl
   libcurl_dep = dependency('libcurl', required : true)
 endif
 
-libconfig_dep = no_dep
-if enable_libconfig
-  libconfig_dep = dependency('libconfig', required : true)
-endif
-
 criterion_dep = no_dep
 if enable_criterion
   criterion_dep = dependency('criterion', required : true)
-endif
-
-wcslib_dep = no_dep
-if enable_wcslib
-  wcslib_dep = dependency('wcslib', fallback : ['wcslib', 'wcslib_dep'], required : true)
 endif
 
 ################################################################################
@@ -388,6 +444,20 @@ conf_data.set_quoted('PACKAGE_BUGREPORT', 'https://gitlab.com/free-astro/siril/i
 conf_data.set_quoted('PACKAGE_DATA_DIR', siril_datadir, description : 'Define to the data directory.')
 conf_data.set_quoted('LOCALEDIR', siril_locale, description : 'Define to the locale directory.')
 
+# Man page platform specific
+
+if platform_windows
+  conf_data.set('MAN_CONFIG_PATH', '.B %LOCALAPPDATA%\esiril\econfig.ini')
+  conf_data.set('MAN_CSS_PATH', '.B C:\eProgram Files\eSiril\eshare\esiril\esiril.css')
+elif platform_osx
+  conf_data.set('MAN_CONFIG_PATH', '.B ~/Library/Application Support/siril/config.ini')
+  conf_data.set('MAN_CSS_PATH', '.B ' + siril_share + 'siril/siril.css')
+else
+  conf_data.set('MAN_CONFIG_PATH', '.B ~/.config/siril/config.ini')
+  conf_data.set('MAN_CSS_PATH', '.B ' + siril_share + 'siril/siril.css')
+endif
+
+
 # Build identifiers #
 
 if platform_linux
@@ -419,12 +489,6 @@ else
   warning('OpenCV 4.4 was not found, using a lower version that does not support translation-only registration instead.')
 endif
 
-if libconfig_dep.found()
-  conf_data.set('HAVE_LIBCONFIG', true, description : 'Using libconfig.')
-else
-  conf_data.set('HAVE_LIBCONFIG', false, description : 'Using libconfig.')
-endif
-
 if gsl_dep.found()
   if gsl_dep.version().version_compare('>=2.0')
     conf_data.set('HAVE_GSL_1', 0, description : 'Use GSL 1.')
@@ -438,10 +502,10 @@ else
   conf_data.set('HAVE_GSL_2', 0, description : 'Use GSL 2.')
 endif
 
-if json_glib_dep.found()
-  conf_data.set('HAVE_JSON_GLIB', true, description : 'Using json glib')
+if exiv_dep.found()
+  conf_data.set('HAVE_EXIV2', true, description : 'Using exif previews.')
 else
-  conf_data.set('HAVE_JSON_GLIB', false, description : 'Using json glib')
+  conf_data.set('HAVE_EXIV2', false, description : 'Using exif previews.')
 endif
 
 if libraw_dep.found()
@@ -462,6 +526,18 @@ else
   conf_data.set('HAVE_LIBJPEG', false, description : 'Using JPEG images.')
 endif
 
+if libjxl_dep.found()
+  conf_data.set('HAVE_LIBJXL', true, description : 'Using JPEG XL images.')
+else
+  conf_data.set('HAVE_LIBJXL', false, description : 'Using JPEG XL images.')
+endif
+
+if libjxl_threads_dep.found()
+  conf_data.set('HAVE_LIBJXL_THREADS', true, description : 'Using JPEG XL threading.')
+else
+  conf_data.set('HAVE_LIBJXL_THREADS', false, description : 'Using JPEG XL threading.')
+endif
+
 if libpng_dep.found()
   conf_data.set('HAVE_LIBPNG', true, description : 'Using PNG images.')
 else
@@ -472,6 +548,18 @@ if libheif_dep.found()
   conf_data.set('HAVE_LIBHEIF', true, description : 'Using HEIF.')
 else
   conf_data.set('HAVE_LIBHEIF', false, description : 'Using HEIF.')
+endif
+
+if libXISF_dep.found()
+  conf_data.set('HAVE_LIBXISF', true, description : 'Using XISF.')
+else
+  conf_data.set('HAVE_LIBXISF', false, description : 'Using XISF.')
+endif
+
+if libgit2_dep.found()
+  conf_data.set('HAVE_LIBGIT2', true, description : 'Using libgit2.')
+else
+  conf_data.set('HAVE_LIBGIT2', false, description : 'Using libgit2.')
 endif
 
 ffmpeg_found = false
@@ -497,19 +585,6 @@ else
   conf_data.set('HAVE_LIBCURL', false, description : 'Using Curl.')
 endif
 
-if wcslib_dep.found()
-  conf_data.set('HAVE_WCSLIB', true, description : 'Using wcslib.')
-  if wcslib_dep.version().version_compare('< 7.7')
-  wcslib_warning = '''
-        wcslib lower than version 7.7 is known to crash when
-        updating wcsdata in files. Please update
-  '''
-  warnings += wcslib_warning
-endif
-else
-  conf_data.set('HAVE_WCSLIB', false, description : 'Using wcslib.')
-endif
-
 conf_data.set('HAVE_CXX11', true, description : 'Define to 1 if cpp compiler is C++11 compliant.')
 
 ## Git configuration
@@ -528,14 +603,15 @@ externals_dep = declare_dependency(
     gio_dep,
     gio_platform_dep,
     gtk_dep,
+    lcms_dep,
     libcurl_dep,
+    libgit2_dep,
     gsl_dep,
     opencv4_dep,
     rtprocess_dep,
     htmesh_dep,
     exiv_dep,
     wcslib_dep,
-    libconfig_dep,
     fftw3f_dep,
     cfitsio_dep,
     json_glib_dep,
@@ -544,6 +620,9 @@ externals_dep = declare_dependency(
     libjpeg_dep,
     libpng_dep,
     libheif_dep,
+    libXISF_dep,
+    libjxl_dep,
+    libjxl_threads_dep,
     ffms2_dep,
     openmp_dep,
     kplot_dep,
@@ -562,6 +641,7 @@ subdir('data')
 subdir('po')
 subdir('scripts')
 subdir('3rdparty')
+subdir('3rdparty_licenses')
 
 ################################################################################
 # Install misc
@@ -580,11 +660,10 @@ man_files = [
 ]
 
 install_man(man_files)
-install_data(['AUTHORS', 'LICENSE.md', 'LICENSE_sleef.txt'],
+install_data(['AUTHORS', 'LICENSE.md'],
              rename : [
 	       'doc/siril/AUTHORS',
 	       'doc/siril/LICENSE.md',
-	       'doc/siril/LICENSE_sleef.txt',
 	     ],
              install_dir : siril_share)
 
@@ -613,18 +692,19 @@ summary(
 
 summary(
   {
-    'json glib' : json_glib_dep.found(),
-    'libraw'    : libraw_dep.found(),
-    'TIFF'      : libtiff_dep.found(),
-    'JPEG'      : libjpeg_dep.found(),
-    'PNG'       : libpng_dep.found(),
-    'HEIF'      : libheif_dep.found(),
-    'FFMS2'     : ffms2_dep.found(),
-    'FFMPEG'    : ffmpeg_found,
-    'libcurl'   : libcurl_dep.found(),
-    'wcslib'    : wcslib_dep.found(),
-    'libconfig' : libconfig_dep.found(),
-    'criterion' : criterion_dep.found(),
+    'exiv2'             : exiv_dep.found(),
+    'libraw'            : libraw_dep.found(),
+    'TIFF'              : libtiff_dep.found(),
+    'XISF'              : libXISF_dep.found(),
+    'JPEG'              : libjpeg_dep.found(),
+    'JPEG XL'           : libjxl_dep.found(),
+    'PNG'               : libpng_dep.found(),
+    'HEIF'              : libheif_dep.found(),
+    'FFMS2'             : ffms2_dep.found(),
+    'libgit2'           : libgit2_dep.found(),
+    'ffmpeg'            : ffmpeg_found,
+    'libcurl'           : libcurl_dep.found(),
+    'criterion'         : criterion_dep.found(),
   }, section: 'Optional dependencies'
 )
 

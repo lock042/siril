@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -159,11 +159,12 @@ GDateTime *FITS_date_to_date_time(char *date) {
 	gint year = 0, month = 0, day = 0, hour = 0, min = 0;
 	gdouble sec = 0.0;
 
-	if (date[0] == '\0')
+	if (!date || date[0] == '\0')
 		return NULL;
 
 	if (sscanf(date, "%04d-%02d-%02dT%02d:%02d:%lf", &year, &month, &day, &hour, &min, &sec) != 6) {
-		return NULL;
+		if (sscanf(date, "%04d-%02d-%02dT%02d-%02d-%lf", &year, &month, &day, &hour, &min, &sec) != 6)
+			return NULL;
 	}
 	GTimeZone *tz = g_time_zone_new_utc();
 	GDateTime *new_date = g_date_time_new(tz, year, month, day, hour, min, sec);
@@ -220,3 +221,27 @@ gchar *date_time_to_date(GDateTime *datetime) {
 	return g_date_time_format(datetime, format);
 }
 
+/**
+ * Get the date only from a datetime object.
+ * @param datetime a GDateTime
+ * @return a newly allocated string formatted as year-month-day_hour-minutes-seconds in numbers.
+ */
+gchar *date_time_to_date_time(GDateTime *datetime) {
+	gchar *format = "%Y-%m-%dT%H-%M-%S";
+	return g_date_time_format(datetime, format);
+}
+
+// jsecs is the number of seconds since julian day 2450000.5: 00:00:00 UT on October 10, 1995
+GDateTime *julian_sec_to_date(uint32_t jsecs, uint32_t us) {
+	//double day = jsecs / 86400.0 - 2440587.5;
+	GDateTime *JD245 = g_date_time_new_utc(1995, 10, 10, 0, 0, 0.0);
+	GDateTime *date1 = g_date_time_add_seconds(JD245, jsecs);
+	GDateTime *date = g_date_time_add_seconds(date1, us / 1000000.0);
+	g_date_time_unref(JD245);
+	g_date_time_unref(date1);
+	return date;
+}
+
+double timediff_in_s(GDateTime *dt1, GDateTime *dt2) {
+	return (double)g_date_time_difference(dt2, dt1) * 1.e-6;
+}

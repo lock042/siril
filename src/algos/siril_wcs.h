@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,14 +21,48 @@
 #ifndef SRC_ALGOS_SIRIL_WCS_H_
 #define SRC_ALGOS_SIRIL_WCS_H_
 
+#include <wcslib.h>
+#include <wcsfix.h>
+
+/* we force naxis to 2 */
+#define NAXIS 2
+#define MAX_SIP_ORDER 6
+#define MAX_SIP_SIZE MAX_SIP_ORDER + 1
+
+typedef struct wcsprm wcsprm_t;
+
 gboolean has_wcs(fits *fit);
 gboolean has_wcsdata(fits *fit);
-void free_wcs(fits *fit, gboolean keep_RADEC);
-gboolean load_WCS_from_file(fits* fit);
-gboolean load_WCS_from_memory(fits *fit);
+void reset_wcsdata(fits *fit);
+void free_wcs(fits *fit);
+wcsprm_t *wcs_deepcopy(wcsprm_t *wcssrc, int *status);
+wcsprm_t *load_WCS_from_hdr(char *header, int nkeyrec);
+gboolean load_WCS_from_fits(fits* fit);
+// this one directly uses the WCSLIB struct
+void pix2wcs2(wcsprm_t *wcslib, double x, double y, double *r, double *d);
 void pix2wcs(fits *fit, double pixel_x, double pixel_y, double *world_x, double *world_y);
 int wcs2pix(fits *fit, double world_x, double world_y, double *pixel_x, double *pixel_y);
+int *wcs2pix_array(fits *fit, int n, double *world, double *x, double *y);
 void center2wcs(fits *fit, double *r, double *d);
 double get_wcs_image_resolution(fits *fit);
+
+void wcs_pc2mat(wcsprm_t *prm, double pc[NAXIS][NAXIS]);
+void wcs_cd2mat(wcsprm_t *prm, double cd[NAXIS][NAXIS]);
+void wcs_mat2pc(wcsprm_t *prm, double pc[NAXIS][NAXIS]);
+void wcs_mat2cd(wcsprm_t *prm, double cd[NAXIS][NAXIS]);
+void wcs_mat2cdelt(wcsprm_t *prm, double cdelt[NAXIS]);
+void wcs_decompose_cd(wcsprm_t *prm, double cd[NAXIS][NAXIS]);
+
+int extract_SIP_order_and_matrices(struct disprm *dis, 
+		double A[MAX_SIP_SIZE][MAX_SIP_SIZE],
+		double B[MAX_SIP_SIZE][MAX_SIP_SIZE],
+		double AP[MAX_SIP_SIZE][MAX_SIP_SIZE],
+		double BP[MAX_SIP_SIZE][MAX_SIP_SIZE]);
+void update_SIP_keys(struct disprm *dis, 
+		double A[MAX_SIP_SIZE][MAX_SIP_SIZE],
+		double B[MAX_SIP_SIZE][MAX_SIP_SIZE],
+		double AP[MAX_SIP_SIZE][MAX_SIP_SIZE],
+		double BP[MAX_SIP_SIZE][MAX_SIP_SIZE]);
+void wcs_print(wcsprm_t *prm);
 
 #endif /* SRC_ALGOS_SIRIL_WCS_H_ */

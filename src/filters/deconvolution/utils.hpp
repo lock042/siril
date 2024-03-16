@@ -1,30 +1,48 @@
+/*
+MIT License
+
+Copyright (c) 2018 Jérémy Anger, Gabriele Facciolo, Mauricio Delbracio
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 #pragma once
 
 #include "image.hpp"
 #include "image_expr.hpp"
 #include "labeling.hpp"
 #include "vec2.hpp"
+#include "chelperfuncs.h"
 
 namespace utils {
-    extern "C" {
-        // these are defined in imscript/upsa.c and imscript/downscale.c
-        void zoom2(float *y, const float *x, int W, int H, int pd, int w, int h, float n, int zt);
-        void downscale_image(float *y, float *x, int outw, int outh, int inw, int inh, float scale, float sigma);
-        void gblur_gray(float*, float*, int, int, float);
-    }
 
     inline void blur(img_t<float>& out, const img_t<float>& in, float sigma) {
         assert(in.d == 1);
         out.resize(in.w, in.h);
-        gblur_gray(&out[0], (float*) &in[0], in.w, in.h, sigma);
+        gaussblur(&out[0], (float*) &in[0], in.w, in.h, sigma);
     }
 
     // upsample an image
     inline void upsample(img_t<float>& out, const img_t<float>& _in, float factor,
-                         int targetw, int targeth, int interp=2) { // Bilinear
+                         int targetw, int targeth) {
         img_t<float> in = _in; // copy input
         out.resize(targetw, targeth, in.d);
-        zoom2(&out[0], &in[0], out.w, out.h, out.d, in.w, in.h, factor, interp);
+        magnify(&out[0], &in[0], out.w, out.h, out.d, in.w, in.h, factor);
     }
 
     template <typename T>

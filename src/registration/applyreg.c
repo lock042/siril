@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@
 #include <math.h>
 
 #include "algos/sorting.h"
+#include "algos/siril_wcs.h"
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/processing.h"
@@ -39,6 +40,7 @@
 
 #include "opencv/opencv.h"
 
+#define MIN_RATIO 0.1 // minimum fraction of ref image dimensions to validate output sequence is worth creating
 
 static void create_output_sequence_for_apply_reg(struct registration_args *args);
 static int new_ref_index = -1;
@@ -95,6 +97,14 @@ static gboolean compute_framing(struct registration_args *regargs) {
 				siril_debug_print("Image #%d:\n", i);
 				regframe current_framing = {0};
 				memcpy(&current_framing, &framing, sizeof(regframe));
+				if (regargs->seq->is_variable) {
+					double rx2 = (double)regargs->seq->imgparam[i].rx;
+					double ry2 = (double)regargs->seq->imgparam[i].ry;
+					current_framing.pt[1].x = rx2;
+					current_framing.pt[2].x = rx2;
+					current_framing.pt[2].y = ry2;
+					current_framing.pt[3].y = ry2;
+				}
 				for (int j = 0; j < 4; j++) {
 					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y, regargs->seq->regparam[regargs->layer][i].H, Href);
 					if (xmin > current_framing.pt[j].x) xmin = current_framing.pt[j].x;
@@ -124,6 +134,14 @@ static gboolean compute_framing(struct registration_args *regargs) {
 				siril_debug_print("Image #%d:\n", i);
 				regframe current_framing = {0};
 				memcpy(&current_framing, &framing, sizeof(regframe));
+				if (regargs->seq->is_variable) {
+					double rx2 = (double)regargs->seq->imgparam[i].rx;
+					double ry2 = (double)regargs->seq->imgparam[i].ry;
+					current_framing.pt[1].x = rx2;
+					current_framing.pt[2].x = rx2;
+					current_framing.pt[2].y = ry2;
+					current_framing.pt[3].y = ry2;
+				}
 				double xs[4], ys[4];
 				for (int j = 0; j < 4; j++) {
 					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y,regargs->seq->regparam[regargs->layer][i].H, Href);
@@ -227,7 +245,8 @@ int apply_reg_prepare_hook(struct generic_seq_args *args) {
 	}
 	if (fit.naxes[2] == 1 && fit.bayer_pattern[0] != '\0')
 		siril_log_color_message(_("Applying transformation on a sequence opened as CFA is a bad idea.\n"), "red");
-
+	free_wcs(&fit);
+	reset_wcsdata(&fit);
 	return apply_reg_prepare_results(args);
 }
 
@@ -259,7 +278,8 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 			return 1;
 		}
 	}
-	if (in_index == regargs->reference_image) new_ref_index = out_index; // keeping track of the new ref index in output sequence
+	if (in_index == regargs->reference_image)
+		new_ref_index = out_index; // keeping track of the new ref index in output sequence
 
 
 	regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
@@ -339,12 +359,12 @@ int apply_reg_finalize_hook(struct generic_seq_args *args) {
 		siril_log_color_message(_("Total: %d failed, %d exported.\n"), "green", failed, regargs->new_total);
 
 		g_free(str);
-
-		// explicit sequence creation to copy imgparam and regparam
-		create_output_sequence_for_apply_reg(regargs);
-		// will be loaded in the idle function if (load_new_sequence)
-		regargs->load_new_sequence = TRUE; // only case where a new sequence must be loaded
-
+		if (!(args->seq->type == SEQ_INTERNAL)) {
+			// explicit sequence creation to copy imgparam and regparam
+			create_output_sequence_for_apply_reg(regargs);
+			// will be loaded in the idle function if (load_new_sequence)
+			regargs->load_new_sequence = TRUE; // only case where a new sequence must be loaded
+		}
 	}
 	else {
 		siril_log_message(_("Transformation aborted.\n"));
@@ -549,8 +569,8 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 	}
 
 	// check the consistency of output images size if -interp=none
-	if (regargs->interpolation == OPENCV_NONE && regargs->x2upscale) {
-		siril_log_color_message(_("Applying registration with upscaling when interpolation is set to none is not allowed, aborting\n"), "red");
+	if (regargs->interpolation == OPENCV_NONE && (regargs->x2upscale || regargs->framing == FRAMING_MAX || regargs->framing == FRAMING_MIN)) {
+		siril_log_color_message(_("Applying registration with changes in output image sizeis not allowed when interpolation is set to none , aborting\n"), "red");
 		return FALSE;
 	}
 
@@ -605,22 +625,30 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 		return FALSE;
 	}
 
-	// Remove the files that we are about to create
-	remove_prefixed_sequence_files(regargs->seq, regargs->prefix);
+	// make sure we apply registration only if the output sequence has a meaningful size
+	int rx0 = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
+	int ry0 = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
+	if (rx_out < rx0 * MIN_RATIO || ry_out < ry0 * MIN_RATIO) {
+		siril_log_color_message(_("The output sequence is too small compared to reference image (too much rotation or little overlap?)\n"), "red");
+		siril_log_color_message(_("You should change framing method, aborting\n"), "red");
+		return FALSE;
+	}
 
 	// cannot use seq_compute_size as rx_out/ry_out are not necessarily consistent with seq->rx/ry
 	// rx_out/ry_out already account for 2x upscale if any
-	int64_t size = rx_out * ry_out * regargs->seq->nb_layers;
+	int64_t size = (int64_t) rx_out * ry_out * regargs->seq->nb_layers;
 	if (regargs->seq->type == SEQ_SER) {
 		size *= regargs->seq->ser_file->byte_pixel_depth;
 		size *= nb_frames;
 		size += SER_HEADER_LEN;
 	} else {
 		size *= (get_data_type(regargs->seq->bitpix) == DATA_USHORT) ? sizeof(WORD) : sizeof(float);
-		size += 5760; // FITS double HDU size
+		size += FITS_DOUBLE_BLOC_SIZE; // FITS double HDU size
 		size *= nb_frames;
 	}
-	siril_debug_print("Apply Registration: sequence out size: %s\n",  g_format_size_full(size, G_FORMAT_SIZE_IEC_UNITS));
+	gchar* size_msg = g_format_size_full(size, G_FORMAT_SIZE_IEC_UNITS);
+	siril_debug_print("Apply Registration: sequence out size: %s\n", size_msg);
+	g_free(size_msg);
 	if (test_available_space(size)) {
 		siril_log_color_message(_("Not enough space to save the output images, aborting\n"), "red");
 		return FALSE;

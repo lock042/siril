@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,22 +43,23 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 		set_cursor_waiting(TRUE);
 		args->seq = &com.seq;
 		args->scaling = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_haoiii_scaling")));
-		args->seqEntry = gtk_entry_get_text(entrySplitCFA);
-		if (com.seq.type == SEQ_SER) {
-			siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: sequence is SER"),
+		args->seqEntry = strdup(gtk_entry_get_text(entrySplitCFA));
+		if ((com.seq.type == SEQ_SER || com.seq.type == SEQ_FITSEQ) && method == 0) {
+			siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: sequence is SER or FITSEQ"),
 						_("Only FITS format is supported for sequence CFA splitting"));
+			free(args->seqEntry);
 			free(args);
 			return;
 		}
 		switch (method) {
 			case 0:
 				if (args->seqEntry && args->seqEntry[0] == '\0')
-					args->seqEntry = "CFA_";
+					args->seqEntry = strdup("CFA_");
 				apply_split_cfa_to_sequence(args);
 				break;
 			case 1:
 				if (args->seqEntry && args->seqEntry[0] == '\0')
-					args->seqEntry = "Ha_";
+					args->seqEntry = strdup("Ha_");
 				apply_extractHa_to_sequence(args);
 				break;
 			case 2:
@@ -66,11 +67,12 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 				break;
 			case 3:
 				if (args->seqEntry && args->seqEntry[0] == '\0')
-					args->seqEntry = "Green_";
+					args->seqEntry = strdup("Green_");
 				apply_extractGreen_to_sequence(args);
 				break;
 			default:
 				fprintf(stderr, "unhandled case!\n");
+				free(args);
 		}
 	} else {
 		int scaling = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_haoiii_scaling")));

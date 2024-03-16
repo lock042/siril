@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -110,6 +110,9 @@ int _3stars_check_registration_ready() {
 }
 
 gboolean _3stars_check_selection() {
+	if (com.seq.current < 0)
+		return FALSE;
+
 	if (!follow) {
 		follow = lookup_widget("followStarCheckButton");
 		reg_all_sel_box = GTK_COMBO_BOX(GTK_COMBO_BOX_TEXT(lookup_widget("reg_sel_all_combobox")));
@@ -180,6 +183,10 @@ void on_select_star_button_clicked(GtkButton *button, gpointer user_data) {
 
 	int index;
 	int layer = get_registration_layer(&com.seq);
+	if (layer < 0) {
+		fprintf(stderr, "invalid registration layer\n");
+		return;
+	}
 	add_star(&gfit, layer, &index);
 	if (index == -1) {
 		update_label(_("No star found, make another selection"));
@@ -548,12 +555,16 @@ int register_3stars(struct registration_args *regargs) {
 	int processed = 0, failed = 0;
 
 	// local flag accounting both for process_all_frames flag and collecting failures along the process
-	gboolean *included = NULL;
-	float *scores = NULL;
-	included = calloc(regargs->seq->number, sizeof(gboolean));
-	scores = calloc(regargs->seq->number, sizeof(float));
-	if (!included || !scores) {
+	gboolean *included = calloc(regargs->seq->number, sizeof(gboolean));
+	if (!included) {
 		PRINT_ALLOC_ERR;
+		_3stars_free_results();
+		return 1;
+	}
+	float *scores = calloc(regargs->seq->number, sizeof(float));
+	if (!scores) {
+		PRINT_ALLOC_ERR;
+		free(included);
 		_3stars_free_results();
 		return 1;
 	}
