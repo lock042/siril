@@ -697,7 +697,7 @@ void update_preferences_from_model() {
 	from_prefs_init = TRUE;
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinOuter")), pref->phot_set.outer);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinInner")), pref->phot_set.inner);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("photometry_force_radius_button")), !pref->phot_set.force_radius);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("photometry_force_radius_button")), pref->phot_set.force_radius);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinRadRatio")), pref->phot_set.auto_aperture_factor);
 	from_prefs_init = FALSE;
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinAperture")), pref->phot_set.aperture);

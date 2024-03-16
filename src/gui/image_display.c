@@ -1066,8 +1066,8 @@ static void draw_stars(const draw_data_t* dd) {
 
 	/* quick photometry */
 	if (!com.script && gui.qphot && mouse_status == MOUSE_ACTION_PHOTOMETRY) {
-//		double size = (!com.pref.phot_set.force_radius && gui.qphot) ? gui.qphot->fwhmx * 2.0 : com.pref.phot_set.aperture;
-		double size = (!com.pref.phot_set.force_radius) ? 0.5 * gui.qphot->fwhmx * com.pref.phot_set.auto_aperture_factor : com.pref.phot_set.aperture;
+//		double size = (!com.pref.phot_set.force_radius && gui.qphot) ? gui.qphot->fwhmx * 2.0 : com.pref.phot_set.aperture;	//this line is the original one
+		double size = (com.pref.phot_set.force_radius) ? 0.5 * gui.qphot->fwhmx * com.pref.phot_set.auto_aperture_factor : com.pref.phot_set.aperture;
 		if (size <= 0.0) size = com.pref.phot_set.aperture;
 
 		cairo_set_dash(cr, NULL, 0, 0);
@@ -1100,9 +1100,9 @@ static void draw_stars(const draw_data_t* dd) {
 		for (i = 0; i < MAX_SEQPSF && com.seq.photometry[i]; i++) {
 			psf_star *the_psf = com.seq.photometry[i][com.seq.current];
 			if (the_psf) {
-//				double size = (!com.pref.phot_set.force_radius && the_psf->fwhmx > 0.0) ?
+//				double size = (!com.pref.phot_set.force_radius && the_psf->fwhmx > 0.0) ?	//this line is the original one
 //					the_psf->fwhmx * 2.0 : com.pref.phot_set.aperture;
-				double size = (!com.pref.phot_set.force_radius && the_psf->fwhmx > 0.0) ?
+				double size = (com.pref.phot_set.force_radius && the_psf->fwhmx > 0.0) ?
 					0.5 * the_psf->fwhmx * com.pref.phot_set.auto_aperture_factor : com.pref.phot_set.aperture;
 				cairo_set_dash(cr, NULL, 0, 0);
 				// make the aperture slightly brighter
