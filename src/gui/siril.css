@@ -127,3 +127,8 @@ label.siril-intro-highlight,
 toolbar.siril-intro-highlight {
   animation: widget-highlight 1s infinite alternate;
 }
+
+entry.header_unset,
+spinbutton.header_unset {
+  color: salmon;
+}

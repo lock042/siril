@@ -72,14 +72,15 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
-  <object class="GtkAdjustment" id="adj_asnet_radius">
+  <object class="GtkAdjustment" id="adj_astrometry_radius">
     <property name="lower">0.01</property>
-    <property name="upper">180</property>
+    <property name="upper">30</property>
     <property name="value">10</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
-  <object class="GtkAdjustment" id="adj_asnet_spi_order">
+  <object class="GtkAdjustment" id="adj_astrometry_sip_order">
+    <property name="lower">1</property>
     <property name="upper">5</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
@@ -142,8 +143,9 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="adj_sampling_tolerance">
+    <property name="lower">10</property>
     <property name="upper">50</property>
-    <property name="value">15</property>
+    <property name="value">20</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
@@ -1114,6 +1116,7 @@ It depends on the acquistion software used to create the FITS.</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
                                     <property name="margin-start">12</property>
+                                    <property name="margin-end">12</property>
                                     <property name="orientation">vertical</property>
                                     <property name="spacing">5</property>
                                     <child>
@@ -1570,12 +1573,12 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                           <object class="GtkSpinButton" id="spin_asnet_sip_order">
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
-                                            <property name="tooltip-text" translatable="yes">Astrometry solvers can use a polynomial correction (SIP) to work with optical aberrations, this is the default order of the polynomial model. 0 or 1 disable it.</property>
+                                            <property name="tooltip-text" translatable="yes">Astrometry solvers can use a polynomial correction (SIP) to work with optical aberrations, this is the default order of the polynomial model. Set to 1 to disable it.</property>
                                             <property name="halign">start</property>
                                             <property name="width-chars">9</property>
                                             <property name="text" translatable="yes">3</property>
                                             <property name="input-purpose">digits</property>
-                                            <property name="adjustment">adj_asnet_spi_order</property>
+                                            <property name="adjustment">adj_astrometry_sip_order</property>
                                           </object>
                                           <packing>
                                             <property name="expand">False</property>
@@ -1619,7 +1622,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                             <property name="width-chars">9</property>
                                             <property name="text" translatable="yes">10.00</property>
                                             <property name="input-purpose">number</property>
-                                            <property name="adjustment">adj_asnet_radius</property>
+                                            <property name="adjustment">adj_astrometry_radius</property>
                                             <property name="digits">2</property>
                                             <property name="value">10</property>
                                           </object>
