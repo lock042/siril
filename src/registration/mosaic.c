@@ -78,26 +78,18 @@ static double compute_haversine_distance(double ra1, double dec1, double ra2, do
 }
 
 static gboolean get_scales_and_framing(struct wcsprm *WCSDATA, Homography *K, double *framing) {
-#ifndef HAVE_WCSLIB
-	siril_log_color_message(_("Mosaic registration requires to have wcslib dependency installed, aborting\n"), "red");
-	return FALSE;
-#endif
 	K->h00 = -1;
 	K->h11 = -1;
 	*framing = -1;
-	double cd[2][2], pc[2][2];
+	double pc[2][2];
 	double cdelt[2];
 	double *pcij = WCSDATA->pc;
-	double *cdij = WCSDATA->cd;
 	for (int i = 0; i < 2; i++) {
 		cdelt[i] = WCSDATA->cdelt[i];
 		for (int j = 0; j <2; j++) {
 			pc[i][j] = *(pcij++);
-			cd[i][j] = *(cdij++);
 		}
 	}
-	// if (cdelt[0] == 1. && cdelt[1] == 1.)// CD formalism
-	// 	wcs_cd_to_pc(cd, pc, cdelt);
 
 	K->h00 = -RADTODEG / cdelt[0];
 	K->h11 = RADTODEG / cdelt[1];
@@ -108,10 +100,6 @@ static gboolean get_scales_and_framing(struct wcsprm *WCSDATA, Homography *K, do
 }
 
 int register_mosaic(struct registration_args *regargs) {
-#ifndef HAVE_WCSLIB
-	siril_log_color_message(_("Mosaic registration requires to have wcslib dependency installed, aborting\n"), "red");
-	return 1;
-#else
 
 	int retval = 0;
 	struct timeval t_start, t_end;
@@ -344,6 +332,5 @@ free_all:
 	}
 	free(WCSDATA);
 	return retval;
-#endif
 }
 
