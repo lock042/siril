@@ -1204,7 +1204,10 @@ int read_fits_with_convert(fits* fit, const char* filename, gboolean force_float
 		fits_read_img(fit->fptr, datatype, 1, nbdata, &zero, pixels_long, &zero, &status);
 		if (status) break;
 		fits_read_key(fit->fptr, TDOUBLE, "DATAMAX", &data_max, NULL, &status);
-		if (status) data_max = 0.0;
+		if (status) {
+			data_max = 0.0;
+			status = 0;
+		}
 		convert_data_float(fit->bitpix, pixels_long, fit->fdata, nbdata, data_max);
 		free(pixels_long);
 		fit->bitpix = FLOAT_IMG;
