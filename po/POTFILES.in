@@ -9,6 +9,7 @@ src/gui/uifiles/background_extraction_dialog.ui
 src/gui/uifiles/bdeconv_dialog.ui
 src/gui/uifiles/binxy_dialog.ui
 src/gui/uifiles/canon_fixbanding_dialog.ui
+src/gui/uifiles/ccm_dialog.ui
 src/gui/uifiles/CLAHE_dialog.ui
 src/gui/uifiles/color_calibration.ui
 src/gui/uifiles/colorchooserdialog.ui
@@ -27,6 +28,7 @@ src/gui/uifiles/extract_wavelet_layers_dialog.ui
 src/gui/uifiles/filefilters.ui
 src/gui/uifiles/file_information_dialog.ui
 src/gui/uifiles/histogram_dialog.ui
+src/gui/uifiles/keywords_dialog.ui
 src/gui/uifiles/icc_dialog.ui
 src/gui/uifiles/icc_gamut_dialog.ui
 src/gui/uifiles/linearmatch_dialog.ui
@@ -125,6 +127,7 @@ src/gui/colors.c
 src/gui/dialog_preview.c
 src/gui/documentation.c
 src/gui/histogram.c
+src/gui/keywords_tree.c
 src/gui/image_display.c
 src/gui/image_interactions.c
 src/gui/linear_match.c

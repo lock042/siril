@@ -51,6 +51,7 @@ int	process_calibrate(int nb);
 int	process_calibrate_single(int nb);
 int	process_capabilities(int nb);
 int	process_catsearch(int nb);
+int	process_ccm(int nb);
 int	process_cd(int nb);
 int	process_cdg(int nb);
 int	process_crop(int nb);
@@ -131,8 +132,6 @@ int	process_parse(int nb);
 int	process_pcc(int nb);
 int	process_platesolve(int nb);
 int	process_pm(int nb);
-int	process_preprocess(int nb);
-int	process_preprocess_single(int nb);
 int	process_profile(int nb);
 int	process_psf(int nb);
 
@@ -228,12 +227,14 @@ int	process_thresh(int nb);
 int	process_threshlo(int nb);
 int	process_threshhi(int nb);
 int	process_tilt(int nb);
+int	process_trixel(int nb);
 
 int	process_unclip(int nb);
 int	process_unset_mag(int nb);
 int	process_unset_mag_seq(int nb);
 int	process_unselect(int nb);
 int	process_unsharp(int nb);
+int process_update_key(int nb);
 
 int	process_visu(int nb);
 

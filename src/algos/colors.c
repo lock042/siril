@@ -797,9 +797,11 @@ static gpointer extract_channels_ushort(gpointer p) {
 	cmsUInt32Number datasize;
 	cmsUInt32Number bytesperline;
 	cmsUInt32Number bytesperplane;
-	gchar *desc = siril_color_profile_get_description(args->fit->icc_profile);
-	if(args->fit->icc_profile)
+	gchar *desc = NULL;
+	if(args->fit->icc_profile) {
+		desc = siril_color_profile_get_description(args->fit->icc_profile);
 		cmsCloseProfile(args->fit->icc_profile);
+	}
 	/* The extracted channels are considered raw data, and are not color
 		* managed. It is up to the user to ensure that future use of them is
 		* with similar data and an appropriate color profile is assigned.
@@ -1241,4 +1243,83 @@ int pos_to_neg(fits *fit) {
 	else return 1;
 
 	return 0;
+}
+
+void ccm_float(fits *fit, ccm matrix, float power) {
+	size_t npixels = fit->rx * fit->ry;
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#endif
+	for (size_t i = 0 ; i < npixels ; i++) {
+		float r = fit->fpdata[RLAYER][i] * matrix[0][0] + fit->fpdata[GLAYER][i] * matrix[0][1] + fit->fpdata[BLAYER][i] * matrix[0][2];
+		float g = fit->fpdata[RLAYER][i] * matrix[1][0] + fit->fpdata[GLAYER][i] * matrix[1][1] + fit->fpdata[BLAYER][i] * matrix[1][2];
+		float b = fit->fpdata[RLAYER][i] * matrix[2][0] + fit->fpdata[GLAYER][i] * matrix[2][1] + fit->fpdata[BLAYER][i] * matrix[2][2];
+		fit->fpdata[RLAYER][i] = powf(r, 1.f / power);
+		fit->fpdata[GLAYER][i] = powf(g, 1.f / power);
+		fit->fpdata[BLAYER][i] = powf(b, 1.f / power);
+	}
+}
+
+void ccm_ushort(fits *fit, ccm matrix, float power) {
+	size_t npixels = fit->rx * fit->ry;
+	float norm = USHRT_MAX_SINGLE;
+	float invnorm = 1.f / norm;
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#endif
+	for (size_t i = 0 ; i < npixels ; i++) {
+		float r = (float) fit->pdata[RLAYER][i] * matrix[0][0] + (float) fit->pdata[GLAYER][i] * matrix[0][1] + (float) fit->pdata[BLAYER][i] * matrix[0][2];
+		float g = (float) fit->pdata[RLAYER][i] * matrix[1][0] + (float) fit->pdata[GLAYER][i] * matrix[1][1] + (float) fit->pdata[BLAYER][i] * matrix[1][2];
+		float b = (float) fit->pdata[RLAYER][i] * matrix[2][0] + (float) fit->pdata[GLAYER][i] * matrix[2][1] + (float) fit->pdata[BLAYER][i] * matrix[2][2];
+		fit->pdata[RLAYER][i] = roundf_to_WORD(norm * powf(r * invnorm, 1.f / power));
+		fit->pdata[GLAYER][i] = roundf_to_WORD(norm * powf(g * invnorm, 1.f/ power));
+		fit->pdata[BLAYER][i] = roundf_to_WORD(norm * powf(b * invnorm, 1.f / power));
+	}
+}
+
+int ccm_calc(fits *fit, ccm matrix, float power) {
+	// We require a 3-channel FITS
+	if (!isrgb(fit))
+		return 1;
+	fit->type == DATA_FLOAT ? ccm_float(fit, matrix, power) : ccm_ushort(fit, matrix, power);
+	return 0;
+}
+
+static int ccm_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
+		rectangle *_, int threads) {
+	struct ccm_data *c_args = (struct ccm_data*) args->user;
+	int ret = ccm_calc(fit, c_args->matrix, c_args->power);
+	if (ret) {
+		siril_log_color_message(_("Color Conversion Matrices can only be applied to 3-channel images.\n"), "red");
+	}
+	return ret;
+}
+
+static int ccm_finalize_hook(struct generic_seq_args *args) {
+	struct ccm_data *c_args = (struct ccm_data*) args->user;
+	int retval = seq_finalize_hook(args);
+
+	free(c_args);
+	return retval;
+}
+
+void apply_ccm_to_sequence(struct ccm_data *ccm_args) {
+	struct generic_seq_args *args = create_default_seqargs(ccm_args->seq);
+	args->filtering_criterion = seq_filter_included;
+	args->nb_filtered_images = ccm_args->seq->selnum;
+	args->compute_mem_limits_hook = NULL;
+	args->prepare_hook = seq_prepare_hook;
+	args->finalize_hook = ccm_finalize_hook;
+	args->image_hook = ccm_image_hook;
+	args->stop_on_error = FALSE;
+	args->description = _("Color Conversion Matrices");
+	args->has_output = TRUE;
+	args->output_type = get_data_type(args->seq->bitpix);
+	args->new_seq_prefix = ccm_args->seqEntry;
+	args->load_new_sequence = TRUE;
+	args->user = ccm_args;
+
+	ccm_args->fit = NULL;	// not used here
+
+	start_in_new_thread(generic_sequence_worker, args);
 }

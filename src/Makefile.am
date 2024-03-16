@@ -256,6 +256,8 @@ siril_common_SOURCES = \
 	gui/fix_xtrans_af.h \
 	gui/histogram.c \
 	gui/histogram.h \
+	gui/keywords_tree.c \
+	gui/keywords_tree.h \
 	gui/icc_profile.c \
 	gui/icc_profile.h \
 	gui/image_display.c \
@@ -357,6 +359,7 @@ siril_common_SOURCES = \
 	io/siril_git.h \
 	io/siril_plot.c \
 	io/siril_plot.h \
+	io/spcc_json.c \
 	livestacking/livestacking.c \
 	livestacking/livestacking.h \
 	livestacking/gui.c \

@@ -34,6 +34,7 @@
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
 #include "gui/cut.h"
+#include "gui/keywords_tree.h"
 #include "algos/siril_wcs.h"
 #include "algos/star_finder.h"
 #include "io/annotation_catalogues.h"
@@ -688,6 +689,9 @@ void update_MenuItem() {
 	/* search SOLAR object */
 	GAction *action_search_solar = g_action_map_lookup_action (G_ACTION_MAP(app_win), "search-solar");
 	g_simple_action_set_enabled(G_SIMPLE_ACTION(action_search_solar), any_image_is_loaded && has_wcs(&gfit));
+	/* Lightcurve process */
+	GAction *action_nina_light_curve = g_action_map_lookup_action (G_ACTION_MAP(app_win), "nina_light_curve");
+	g_simple_action_set_enabled(G_SIMPLE_ACTION(action_nina_light_curve), sequence_is_loaded() && has_wcs(&gfit));
 	/* selection is needed */
 	siril_window_enable_if_selection_actions(app_win, com.selection.w && com.selection.h);
 	/* selection and sequence is needed */
@@ -701,6 +705,8 @@ void update_MenuItem() {
 	siril_window_enable_rgb_proc_actions(app_win, is_a_singleRGB_image_loaded);
 	/* single RGB image with wcs information is needed */
 	siril_window_enable_rgb_wcs_proc_actions(app_win, is_a_singleRGB_image_loaded && has_wcs(&gfit));
+	/* single or sequence RGB is needed */
+	siril_window_enable_any_rgb_proc_actions(app_win, is_a_singleRGB_image_loaded|| sequence_is_loaded());
 	/* any image is needed */
 	siril_window_enable_any_proc_actions(app_win, any_image_is_loaded);
 	/* any mono image is needed */
@@ -715,6 +721,9 @@ void update_MenuItem() {
 
 	/* auto-stretch actions */
 	siril_window_autostretch_actions(app_win, gui.rendering_mode == STF_DISPLAY && gfit.naxes[2] == 3);
+
+	/* keywords list */
+	refresh_keywords_dialog();
 }
 
 void sliders_mode_set_state(sliders_mode sliders) {
@@ -795,7 +804,7 @@ void update_prepro_interface(gboolean allow_debayer) {
 		output_type = GTK_COMBO_BOX(lookup_widget("prepro_output_type_combo"));
 		prepro_button = lookup_widget("prepro_button");
 		cosme_grid = lookup_widget("grid24");
-		dark_optim = lookup_widget("checkDarkOptimize");
+		dark_optim = lookup_widget("comboDarkOptimize");
 		equalize = lookup_widget("checkbutton_equalize_cfa");
 		auto_eval = lookup_widget("checkbutton_auto_evaluate");
 		flat_norm = lookup_widget("entry_flat_norm");
@@ -1315,6 +1324,8 @@ static void load_accels() {
 		"win.astrometry",             "<Primary><Shift>a", NULL,
 		"win.pcc-processing",         "<Primary><Shift>p", NULL,
 		"win.spcc-processing",        "<Primary><Shift>c", NULL,
+		"win.compstars",              "<Primary><Shift>b", NULL,
+		"win.nina_light_curve",       "<Primary><Shift>n", NULL,
 		"win.pickstar",               "<Primary>space", NULL,
 		"win.dyn-psf",                "<Primary>F6", NULL,
 		"win.clipboard",              "<Primary><Shift>x", NULL,
@@ -1536,7 +1547,7 @@ void initialize_all_GUI(gchar *supported_files) {
 	initialize_stacking_methods();
 
 	/* set focal and pixel pitch */
-	set_focal_and_pixel_pitch();
+	init_astrometry();
 
 	initialize_FITS_name_entries();
 

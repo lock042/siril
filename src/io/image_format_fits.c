@@ -415,6 +415,8 @@ void read_fits_header(fits *fit) {
 
 	status = 0;
 	__tryToFindKeywords(fit->fptr, TFLOAT, PIXELSIZEX, &fit->pixel_size_x, &status);
+	if (!status && fit->pixel_size_x > 0.)
+		fit->pixelkey = TRUE;
 	status = 0;
 	__tryToFindKeywords(fit->fptr, TFLOAT, PIXELSIZEY, &fit->pixel_size_y, &status);
 #ifdef _WIN32 //TODO: remove after cfitsio is fixed
@@ -462,13 +464,16 @@ void read_fits_header(fits *fit) {
 
 	status = 0;
 	__tryToFindKeywords(fit->fptr, TDOUBLE, FOCAL, &fit->focal_length, &status);
+	if (!status && fit->focal_length > 0.)
+		fit->focalkey = TRUE;
 	if (fit->focal_length <= 0.0) {
 		/* this keyword is seen in some professional images, FLENGTH is in m. */
 		double flength;
 		status = 0;
 		fits_read_key(fit->fptr, TDOUBLE, "FLENGTH", &flength, NULL, &status);
-		if (!status) {
+		if (!status && flength > 0.) {
 			fit->focal_length = flength * 1000.0; // convert m to mm
+			fit->focalkey = TRUE;
 		}
 	}
 
@@ -619,6 +624,7 @@ int fits_parse_header_string(fits *fit, gchar *header) {
 			break;
 		} else if (siril_str_has_prefix(card, PIXELSIZEX)) {
 			fit->pixel_size_x = g_ascii_strtod(value, NULL);
+			fit->pixelkey = TRUE;
 		} else if (siril_str_has_prefix(card, PIXELSIZEY)) {
 			fit->pixel_size_y = g_ascii_strtod(value, NULL);
 		} else if (siril_str_has_prefix(card, BINX)) {
@@ -654,6 +660,7 @@ int fits_parse_header_string(fits *fit, gchar *header) {
 			fit->focal_length = g_ascii_strtod(value, NULL);
 		} else if (g_str_has_prefix(card, "FLENGTH =")) {
 			fit->focal_length = g_ascii_strtod(value, NULL) * 1000.0;
+			fit->focal_length = TRUE;
 		} else if (siril_str_has_prefix(card, CCD_TEMP)) {
 			fit->ccd_temp = g_ascii_strtod(value, NULL);
 		} else if (g_str_has_prefix(card, "SET-TEMP=")) {
@@ -1385,37 +1392,41 @@ static void save_wcs_keywords(fits *fit) {
 			// A terms
 			fits_update_key(fit->fptr, TINT, "A_ORDER", &order, "SIP polynomial degree, axis 1, pixel-to-sky", &status);
 			for (int i = 0; i <= order; i++) {
-				for (int j = 0; j <= order - i; j++) {
+				for (int j = i; j >= 0; j--) {
+					int k = i - j;
 					char key[6];
-					g_snprintf(key, 6, "A_%d_%d", i, j);
-					fits_update_key(fit->fptr, TDOUBLE, key, &A[i][j], NULL, &status);
+					g_snprintf(key, 6, "A_%d_%d", j, k);
+					fits_update_key(fit->fptr, TDOUBLE, key, &A[j][k], NULL, &status);
 				}
 			}
 			// B terms
 			fits_update_key(fit->fptr, TINT, "B_ORDER", &order, "SIP polynomial degree, axis 2, pixel-to-sky", &status);
 			for (int i = 0; i <= order; i++) {
-				for (int j = 0; j <= order - i; j++) {
+				for (int j = i; j >= 0; j--) {
+					int k = i - j;
 					char key[6];
-					g_snprintf(key, 6, "B_%d_%d", i, j);
-					fits_update_key(fit->fptr, TDOUBLE, key, &B[i][j], NULL, &status);
+					g_snprintf(key, 6, "B_%d_%d", j, k);
+					fits_update_key(fit->fptr, TDOUBLE, key, &B[j][k], NULL, &status);
 				}
 			}
 			// AP terms
 			fits_update_key(fit->fptr, TINT, "AP_ORDER", &order, "SIP polynomial degree, axis 1, sky-to-pixel", &status);
 			for (int i = 0; i <= order; i++) {
-				for (int j = 0; j <= order - i; j++) {
+				for (int j = i; j >= 0; j--) {
+					int k = i - j;
 					char key[7];
-					g_snprintf(key, 7, "AP_%d_%d", i, j);
-					fits_update_key(fit->fptr, TDOUBLE, key, &AP[i][j], NULL, &status);
+					g_snprintf(key, 7, "AP_%d_%d", j, k);
+					fits_update_key(fit->fptr, TDOUBLE, key, &AP[j][k], NULL, &status);
 				}
 			}
 			// BP terms
 			fits_update_key(fit->fptr, TINT, "BP_ORDER", &order, "SIP polynomial degree, axis 2, sky-to-pixel", &status);
 			for (int i = 0; i <= order; i++) {
-				for (int j = 0; j <= order - i; j++) {
+				for (int j = i; j >= 0; j--) {
+					int k = i - j;
 					char key[7];
-					g_snprintf(key, 7, "BP_%d_%d", i, j);
-					fits_update_key(fit->fptr, TDOUBLE, key, &BP[i][j], NULL, &status);
+					g_snprintf(key, 7, "BP_%d_%d", j, k);
+					fits_update_key(fit->fptr, TDOUBLE, key, &BP[j][k], NULL, &status);
 				}
 			}
 		}
@@ -1425,7 +1436,46 @@ static void save_wcs_keywords(fits *fit) {
 	}
 }
 
-void save_fits_header(fits *fit) {
+// updates the header string from fit->header
+// by creating an in-memory fits file (as oppsed to on-disk file)
+void update_fits_header(fits *fit) {
+	void *memptr;
+	size_t memsize = IOBUFLEN;
+	int status = 0;
+	fitsfile *fptr = NULL;
+	memptr = malloc(memsize);
+	if (!memptr) {
+		PRINT_ALLOC_ERR;
+		return;
+	}
+	fits_create_memfile(&fptr, &memptr, &memsize, IOBUFLEN, realloc, &status);
+	if (status) {
+		report_fits_error(status);
+		if (fptr)
+			fits_close_file(fptr, &status);
+		free(memptr);
+		return;
+	}
+	if (fits_create_img(fptr, fit->bitpix, fit->naxis, fit->naxes, &status)) {
+		report_fits_error(status);
+		if (fptr)
+			fits_close_file(fptr, &status);
+		free(memptr);
+		return;
+	}
+	fits tmpfit = { 0 };
+	copy_fits_metadata(fit, &tmpfit);
+	tmpfit.fptr = fptr;
+	save_fits_header(&tmpfit);
+	if (fit->header)
+		free(fit->header);
+	fit->header = copy_header(&tmpfit);
+	fits_close_file(fptr, &status);
+	clearfits(&tmpfit);
+	free(memptr);
+}
+
+void  save_fits_header(fits *fit) {
 	int i, status = 0;
 	double zero, scale;
 	char comment[FLEN_COMMENT];
@@ -3012,15 +3062,19 @@ void copy_fits_metadata(fits *from, fits *to) {
 	to->sitelat = from->sitelat;
 	to->sitelong = from->sitelong;
 	to->siteelev = from->siteelev;
+	to->pixelkey = (from->pixel_size_x > 0.);
+	to->focalkey = (from->focal_length > 0.);
 
 	memcpy(&to->dft, &from->dft, sizeof(dft_info));
 	memcpy(&to->wcsdata, &from->wcsdata, sizeof(wcs_info));
 	// don't copy ICC profile, if that is needed it should be done separately
-	int status = -1;
-	to->wcslib = wcs_deepcopy(from->wcslib, &status);
-	if (status) {
-		wcsfree(to->wcslib);
-		siril_debug_print("could not copy wcslib struct\n");
+	if (from->wcslib) {
+		int status = -1;
+		to->wcslib = wcs_deepcopy(from->wcslib, &status);
+		if (status) {
+			wcsfree(to->wcslib);
+			siril_debug_print("could not copy wcslib struct\n");
+		}
 	}
 
 	// copy from->history?
@@ -3814,12 +3868,12 @@ int get_xpsampled(xpsampled *xps, gchar *filename, int i) {
 	// Convert from flux in W m^-2 nm^-1 to relative photon count normalised at 550nm
 	// for consistency with how we handle white references and camera photon counting
 	// behaviour.
-	for (int i = 0 ; i < XPSAMPLED_LEN; i++) {
-		xps->y[i] *= xps->x[i];
+	for (int j = 0 ; j < XPSAMPLED_LEN; j++) {
+		xps->y[j] *= xps->x[j];
 	}
 	double norm = xps->y[82];
-	for (int i = 0 ; i < XPSAMPLED_LEN; i++) {
-		xps->y[i] /= norm;
+	for (int j = 0 ; j < XPSAMPLED_LEN; j++) {
+		xps->y[j] /= norm;
 	}
 
 	if (fits_close_file(fptr, &status))
@@ -3829,3 +3883,90 @@ error:
 	fits_close_file(fptr, &status);
 	return 1;
 }
+
+int updateFITSKeyword(fits *fit, const gchar *key, const gchar *value) {
+	char card[FLEN_CARD], newcard[FLEN_CARD];
+	char oldvalue[FLEN_VALUE], comment[FLEN_COMMENT];
+	int keytype;
+	void *memptr;
+	size_t memsize = IOBUFLEN;
+	int status = 0;
+	fitsfile *fptr = NULL;
+
+	memptr = malloc(memsize);
+	if (!memptr) {
+		PRINT_ALLOC_ERR;
+		return 1;
+	}
+	fits_create_memfile(&fptr, &memptr, &memsize, IOBUFLEN, realloc, &status);
+	if (status) {
+		report_fits_error(status);
+		if (fptr)
+			fits_close_file(fptr, &status);
+		free(memptr);
+		return 1;
+	}
+
+	if (fits_create_img(fptr, fit->bitpix, fit->naxis, fit->naxes, &status)) {
+		report_fits_error(status);
+		if (fptr)
+			fits_close_file(fptr, &status);
+		free(memptr);
+		return 1;
+	}
+
+	fits tmpfit = { 0 };
+	copy_fits_metadata(fit, &tmpfit);
+	tmpfit.fptr = fptr;
+	save_fits_header(&tmpfit);
+
+	if (fits_read_card(fptr, key, card, &status)) {
+		siril_log_color_message("Keyword does not exist or is not managed by Siril\n", "red");
+		goto cleanup;
+	} else
+		siril_debug_print("%s\n", card);
+
+	/* check if this is a protected keyword that must not be changed */
+	if (*card && fits_get_keyclass(card) == TYP_STRUC_KEY) {
+		siril_log_color_message("Protected keyword cannot be modified.\n", "red");
+	} else {
+		/* get the comment string */
+		if (*card)
+			fits_parse_value(card, oldvalue, comment, &status);
+
+		/* construct template for new keyword */
+		strcpy(newcard, key);
+		strcat(newcard, " = ");
+		strcat(newcard, value);
+		if (*comment) { /* Restore comment if exist */
+			strcat(newcard, " / ");
+			strcat(newcard, comment);
+		}
+
+		fits_parse_template(newcard, card, &keytype, &status);
+		fits_update_card(tmpfit.fptr, key, card, &status);
+
+		siril_log_color_message("Keyword has been changed to:\n", "green");
+		siril_log_message("%s\n", card);
+
+		/* populate all structures */
+		read_fits_header(&tmpfit);
+		copy_fits_metadata(&tmpfit, fit);
+
+		if (fit->header)
+			free(fit->header);
+		fit->header = copy_header(&tmpfit);
+	}
+
+	if (status)
+		fits_report_error(stderr, status);
+
+cleanup:
+	fits_close_file(tmpfit.fptr, &status);
+	clearfits(&tmpfit);
+	free(memptr);
+
+	return status;
+}
+
+

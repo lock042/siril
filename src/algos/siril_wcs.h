@@ -46,11 +46,13 @@ int *wcs2pix_array(fits *fit, int n, double *world, double *x, double *y);
 void center2wcs(fits *fit, double *r, double *d);
 double get_wcs_image_resolution(fits *fit);
 
-void wcs_cdelt2unity(wcsprm_t *prm);
 void wcs_pc2mat(wcsprm_t *prm, double pc[NAXIS][NAXIS]);
 void wcs_cd2mat(wcsprm_t *prm, double cd[NAXIS][NAXIS]);
 void wcs_mat2pc(wcsprm_t *prm, double pc[NAXIS][NAXIS]);
 void wcs_mat2cd(wcsprm_t *prm, double cd[NAXIS][NAXIS]);
+void wcs_mat2cdelt(wcsprm_t *prm, double cdelt[NAXIS]);
+void wcs_decompose_cd(wcsprm_t *prm, double cd[NAXIS][NAXIS]);
+
 int extract_SIP_order_and_matrices(struct disprm *dis, 
 		double A[MAX_SIP_SIZE][MAX_SIP_SIZE],
 		double B[MAX_SIP_SIZE][MAX_SIP_SIZE],

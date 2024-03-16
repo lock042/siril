@@ -48,29 +48,6 @@
 
 static cmsHPROFILE target = NULL; // Target profile for the GUI tool
 
-static void export_profile(cmsHPROFILE profile, const char *provided_filename) {
-	char *filename = NULL, *path = NULL;
-	if (provided_filename != NULL && provided_filename[0] != '\0') {
-		filename = strdup(provided_filename);
-	} else {
-		filename = siril_color_profile_get_description(profile);
-		if (!g_str_has_suffix(filename, ".icc")) {
-			gchar* temp = g_strdup_printf("%s.icc", filename);
-			g_free(filename);
-			filename = strdup(temp);
-			g_free(temp);
-		}
-	}
-	path = g_build_filename(com.wd, filename, NULL);
-	free(filename);
-	if (cmsSaveProfileToFile(profile, path)) {
-		siril_log_color_message(_("Exported ICC profile to %s\n"), "green", path);
-	} else {
-		siril_log_color_message(_("Failed to export ICC profile to %s\n"), "red", path);
-	}
-	free(path);
-}
-
 static void export_elle_stone_profiles() {
 	cmsHPROFILE profile;
 	control_window_switch_to_tab(OUTPUT_LOGS);

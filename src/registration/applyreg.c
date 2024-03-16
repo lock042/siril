@@ -643,7 +643,7 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 		size += SER_HEADER_LEN;
 	} else {
 		size *= (get_data_type(regargs->seq->bitpix) == DATA_USHORT) ? sizeof(WORD) : sizeof(float);
-		size += 5760; // FITS double HDU size
+		size += FITS_DOUBLE_BLOC_SIZE; // FITS double HDU size
 		size *= nb_frames;
 	}
 	gchar* size_msg = g_format_size_full(size, G_FORMAT_SIZE_IEC_UNITS);

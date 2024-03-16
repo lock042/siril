@@ -28,6 +28,7 @@
 #include "core/OS_utils.h"
 #include "core/processing.h"
 #include "core/undo.h"
+#include "icc_profile.h"
 #include "icc_default_profiles.h"
 #include "gui/image_display.h"
 #include "gui/callbacks.h"
@@ -188,6 +189,29 @@ cmsHPROFILE gray_rec709trcv2() {
 
 cmsHPROFILE srgb_monitor_perceptual() {
 	return cmsOpenProfileFromMem(sRGB_v4_ICC_preference_icc, sRGB_v4_ICC_preference_icc_len);
+}
+
+void export_profile(cmsHPROFILE profile, const char *provided_filename) {
+	char *filename = NULL, *path = NULL;
+	if (provided_filename != NULL && provided_filename[0] != '\0') {
+		filename = strdup(provided_filename);
+	} else {
+		filename = siril_color_profile_get_description(profile);
+		if (!g_str_has_suffix(filename, ".icc")) {
+			gchar* temp = g_strdup_printf("%s.icc", filename);
+			g_free(filename);
+			filename = strdup(temp);
+			g_free(temp);
+		}
+	}
+	path = g_build_filename(com.wd, filename, NULL);
+	free(filename);
+	if (cmsSaveProfileToFile(profile, path)) {
+		siril_log_color_message(_("Exported ICC profile to %s\n"), "green", path);
+	} else {
+		siril_log_color_message(_("Failed to export ICC profile to %s\n"), "red", path);
+	}
+	free(path);
 }
 
 void lock_display_transform() {
@@ -633,6 +657,29 @@ cmsUInt32Number get_planar_formatter_type(cmsColorSpaceSignature tgt, data_type 
 		default:
 			return 0;
 	}
+}
+
+/* Even for mono images with a Gray profile, the display datatype is always RGB;
+ * lcms2 takes care of populating all 3 output channels for us.
+ */
+cmsHTRANSFORM initialize_display_transform() {
+	g_assert(gui.icc.monitor);
+	cmsHTRANSFORM transform = NULL;
+	if (gfit.icc_profile == NULL || !gfit.color_managed) {
+		siril_debug_print("NULL display transform\n");
+		return NULL;
+	}
+	cmsUInt32Number gfit_signature = cmsGetColorSpace(gfit.icc_profile);
+	cmsUInt32Number srctype = get_planar_formatter_type(gfit_signature, gfit.type, TRUE);
+	g_mutex_lock(&monitor_profile_mutex);
+	// The display transform is always single threaded as OpenMP is used within the remap function
+	transform = cmsCreateTransformTHR(com.icc.context_single, gfit.icc_profile, srctype, gui.icc.monitor, TYPE_RGB_16_PLANAR, com.pref.icc.rendering_intent, com.icc.rendering_flags);
+	g_mutex_unlock(&monitor_profile_mutex);
+	if (transform == NULL)
+		siril_log_message("Error: failed to create display_transform!\n");
+	else
+		siril_debug_print("Display transform created (gfit->icc_profile to gui.icc.monitor)\n");
+	return transform;
 }
 
 cmsHTRANSFORM initialize_export8_transform(fits* fit, gboolean threaded) {
@@ -1358,6 +1405,10 @@ void update_profiles_after_gamut_change() {
 	g_mutex_unlock(&default_profiles_mutex);
 	refresh_icc_transforms();
 }
+
+// This function overrides any GTK theme to assign a white border and D50 Gray
+// background to the 4 vports to approximate ISO 12646 viewing conditions.
+// It is recommended in conjunction with the excellent Equilux GTK theme.
 
 void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb) {
 	cmsCIEXYZTRIPLE XYZtriple = { 0 };

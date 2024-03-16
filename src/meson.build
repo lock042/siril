@@ -199,6 +199,7 @@ src_files = [
   'gui/documentation.c',
   'gui/fix_xtrans_af.c',
   'gui/histogram.c',
+  'gui/keywords_tree.c',
   'gui/icc_profile.c',
   'gui/image_display.c',
   'gui/image_interactions.c',

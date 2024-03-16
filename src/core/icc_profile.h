@@ -68,6 +68,7 @@ cmsHPROFILE gray_srgbtrcv2();
 cmsHPROFILE gray_rec709trcv2();
 cmsHPROFILE srgb_monitor_perceptual();
 
+void export_profile(cmsHPROFILE profile, const char *provided_filename);
 void color_manage(fits *fit, gboolean active);
 void lock_display_transform();
 void unlock_display_transform();

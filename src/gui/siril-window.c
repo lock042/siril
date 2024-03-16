@@ -97,7 +97,8 @@ static GActionEntry rgb_processing_entries[] = {
 	{ "align-psf", align_psf_activate },
 	{ "align-global", align_global_activate },
 	{ "align-kombat", align_kombat_activate },
-	{ "split-channel-processing", split_channel_activate }
+	{ "split-channel-processing", split_channel_activate },
+	{ "ccm-processing", ccm_activate }
 };
 
 static GActionEntry any_processing_entries[] = {
@@ -188,7 +189,6 @@ void siril_window_enable_wcs_proc_actions(GtkApplicationWindow *window, gboolean
 	static const gchar *wcs_processing_actions[] = {
 		"annotate-object",
 		"wcs-grid",
-		"nina_light_curve",
 		"compstars",
 		NULL,
 	};
@@ -213,6 +213,14 @@ void siril_window_enable_rgb_proc_actions(GtkApplicationWindow *window, gboolean
 		NULL,
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), rgb_processing_actions, enable);
+}
+
+void siril_window_enable_any_rgb_proc_actions(GtkApplicationWindow *window, gboolean enable) {
+	static const gchar *any_rgb_processing_actions[] = {
+		"ccm-processing",
+		NULL,
+	};
+	_siril_window_enable_action_group(G_ACTION_MAP(window), any_rgb_processing_actions, enable);
 }
 
 void siril_window_enable_rgb_wcs_proc_actions(GtkApplicationWindow *window, gboolean enable) {

@@ -353,6 +353,7 @@ int undo_display_data(int dir) {
 			close_tab(); // These 2 lines account for possible change from mono to RGB
 			init_right_tab();
 			redraw(REMAP_ALL);
+			update_fits_header(&gfit);
 		}
 		break;
 	case REDO:
@@ -379,6 +380,7 @@ int undo_display_data(int dir) {
 			init_right_tab();
 			redraw(REMAP_ALL);
 			gui.roi.active = tmp_roi_active;
+			update_fits_header(&gfit);
 		}
 		break;
 	default:

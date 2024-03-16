@@ -88,6 +88,12 @@ typedef enum {
 } starnet_version;
 
 typedef enum {
+	MMB_ZOOM_FIT,
+	MMB_ZOOM_100,
+	MMB_ZOOM_TOGGLE
+} mmb_action_t;
+
+typedef enum {
 	CMF_1931_2DEG = 0,
 	CMF_1964_10DEG = 1
 } cmf_pref;
@@ -107,15 +113,15 @@ struct libraw_config {
 };
 
 struct astrometry_config {
+	// common to siril and asnet solvers
 	gboolean update_default_scale;	// update default focal length and pixel size from the result
-
-	/* for local astrometry.net */
 	int percent_scale_range;	// percent below and above the expected sampling to allow
 	int sip_correction_order;	// degrees of the polynomial correction
 	double radius_degrees;		// radius around the target coordinates (degrees)
+	int max_seconds_run;		// maximum seconds of CPU time to try solving
+	/* for local astrometry.net  only */
 	gboolean keep_xyls_files;	// do not delete .xyls FITS tables
 	gboolean keep_wcs_files;	// do not delete .wcs result files
-	int max_seconds_run;		// maximum seconds of CPU time to try solving
 	gboolean show_asnet_output;	// show solve-field output in main log
 };
 
@@ -225,6 +231,7 @@ struct gui_config {
 	roi_mode_t roi_mode; // Whether to set the ROI manually or auto from selection
 	gboolean enable_roi_warning; // Whether to notify when a ROI-enabled dialog starts
 	configurable_colors config_colors; // This used to configure some colors in Siril
+	mmb_action_t mmb_action; // Defines middle mouse button double click behaviour
 };
 
 // TODO: is any of the following used for something else than providing the default GUI value?
@@ -375,7 +382,6 @@ struct pref_struct {
 
 	gchar *starnet_exe;	// Location of starnet++ executable
 	gchar *starnet_weights;	// Location of StarNet weights file (optional, Torch based StarNet only)
-	gchar *gnuplot_dir;	// Location of gnuplot installation
 	gchar *asnet_dir;	// Location of solve-field or asnet-ansvr installation on Windows
 
 	star_finder_params starfinder_conf;

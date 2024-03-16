@@ -2,7 +2,7 @@
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
  * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
- * Reference site is https://siril.org
+ * Reference site is https://free-astro.org/index.php/Siril
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,13 +17,9 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
+#ifndef SRC_GUI_KEYWORDS_TREE_H_
+#define SRC_GUI_KEYWORDS_TREE_H_
 
+void refresh_keywords_dialog();
 
-#ifndef SRC_REGISTRATION_MATCHING_APPLY_MATCH_H_
-#define SRC_REGISTRATION_MATCHING_APPLY_MATCH_H_
-
-#include "misc.h"
-
-void apply_match(double ra, double dec, double xval, double yval, TRANS *trans, double *a, double *d);
-
-#endif /* SRC_REGISTRATION_MATCHING_APPLY_MATCH_H_ */
+#endif /* SRC_GUI_KEYWORDS_TREE_H_ */

@@ -50,3 +50,27 @@ int get_htm_indices_around_target(double ra, double dec, double radius, int leve
 	// https://invent.kde.org/education/kstars/-/blob/master/kstars/skycomponents/skymesh.cpp
 	return *nb_trixels <= 0;
 }
+
+void get_vertices_for_index(int index, int level, double *ra1, double *dec1, double *ra2, double *dec2, double *ra3, double *dec3) {
+	HTMesh mesh = HTMesh(level, 0, 1);
+	mesh.vertices(index, ra1, dec1, ra2, dec2, ra3, dec3);
+}
+
+int get_htm_indices_around_rectangle(double ra[4], double dec[4], int levels, int **trixels, int *nb_trixels) {
+	*trixels = NULL;
+	HTMesh mesh = HTMesh(levels, 0, 1);
+	mesh.intersect(ra[0], dec[0], ra[1], dec[1], ra[2], dec[2], ra[3], dec[3], (BufNum)0);
+	auto buffer = mesh.meshBuffer(0);
+	*nb_trixels = buffer->size();
+	if (*nb_trixels > 0) {
+		*trixels = (int *)malloc(*nb_trixels * sizeof(int));
+		if (!*trixels) {
+			*nb_trixels = 0;
+		} else {
+			for (int i = 0; i < *nb_trixels; i++) {
+				(*trixels)[i] = buffer->buffer()[i];
+			}
+		}
+	}
+	return *nb_trixels <= 0;
+}

@@ -24,6 +24,7 @@ void siril_window_enable_image_actions(GtkApplicationWindow *window, gboolean en
 void siril_window_enable_wcs_proc_actions(GtkApplicationWindow *window, gboolean enable);
 void siril_window_autostretch_actions(GtkApplicationWindow *window, gboolean enable);
 void siril_window_enable_rgb_proc_actions(GtkApplicationWindow *window, gboolean enable);
+void siril_window_enable_any_rgb_proc_actions(GtkApplicationWindow *window, gboolean enable);
 void siril_window_enable_rgb_wcs_proc_actions(GtkApplicationWindow *window, gboolean enable);
 void siril_window_enable_any_proc_actions(GtkApplicationWindow *window, gboolean enable);
 void siril_window_enable_any_mono_proc_actions(GtkApplicationWindow *window, gboolean enable);
