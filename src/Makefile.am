@@ -258,6 +258,8 @@ siril_common_SOURCES = \
 	gui/histogram.h \
 	gui/keywords_tree.c \
 	gui/keywords_tree.h \
+	gui/icc_profile.c \
+	gui/icc_profile.h \
 	gui/image_display.c \
 	gui/image_display.h \
 	gui/image_interactions.c \

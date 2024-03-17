@@ -39,6 +39,7 @@
 #include "gui/cut.h"
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
+#include "gui/icc_profile.h"
 #include "gui/message_dialog.h"
 #include "gui/preferences.h"
 #include "gui/plot.h"
