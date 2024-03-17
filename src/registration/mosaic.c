@@ -228,63 +228,13 @@ int register_mosaic(struct registration_args *regargs) {
 	// We compute the H matrices wrt to ref as Kref * Rrel * Kimg^-1
 	// The K matrices have the focals on the diag and (rx/2, ry/2) for the translation terms
 	// We add to the seq in order to display some kind of alignment
-	// for (int i = 0; i < n; i++) {
-	// 	Homography H = { 0 };
-	// 	if (i != refindex) {
-	// 		cvcalcH_fromKKR(Ks[refindex], Ks[i], Rs[i], &H);
-	// 	} else {
-	// 		cvGetEye(&H);
-	// 	}
-	// 	nb_aligned++;
-	// 	current_regdata[i].roundness = 1.;
-	// 	current_regdata[i].fwhm = 0.;
-	// 	current_regdata[i].weighted_fwhm = 0.;
-	// 	current_regdata[i].background_lvl = 0.;
-	// 	current_regdata[i].number_of_stars = 1;
-	// 	current_regdata[i].H = H;
-	// 	regargs->seq->imgparam[i].incl = TRUE;
-	// }
-
-	// Give the full mosaic output size
-	float scale = 0.5 * (fabs(Ks[refindex].h00) + fabs(Ks[refindex].h11));
-	pointi tl = { INT_MAX, INT_MAX }, br = { INT_MIN, INT_MIN }; // top left and bottom-right
-	gboolean savewarped = TRUE;
-	for (int i = 0; i < n; i++) {
-		if (savewarped) {
-			seq_read_frame(regargs->seq, i, &fit, FALSE, -1);
-			fits_flip_top_to_bottom(&fit);
-			cvWarp_fromKR(&fit, Ks[i], Rs[i], scale, rois + i);
-			gchar tmp[PATH_MAX];
-			g_snprintf(tmp, PATH_MAX, "mosaic_%s%05d", regargs->seq->seqname, i + 1);
-			fits_flip_top_to_bottom(&fit);
-			savefits(tmp, &fit);
-		} else {
-			seq_read_frame_metadata(regargs->seq, i, &fit);
-			cvWarp_fromKR(&fit, Ks[i], Rs[i], scale, rois + i);
-		}
-		clearfits(&fit);
-		// first determine the corners
-		if (rois[i].x < tl.x) tl.x = rois[i].x;
-		if (rois[i].y < tl.y) tl.y = rois[i].y;
-		if (rois[i].x + rois[i].w > br.x) br.x = rois[i].x + rois[i].w;
-		if (rois[i].y + rois[i].h > br.y) br.y = rois[i].y + rois[i].h;
-	}
-	// then compute the roi size and full mosaic space requirement
-	int mosaicw = br.x - tl.x;
-	int mosaich = br.y - tl.y;
-	siril_log_message(_("Full size output mosaic: %d x %d pixels (assuming spherical projection)\n"), mosaicw, mosaich);
-	int64_t frame_size = mosaicw * mosaich * regargs->seq->nb_layers;
-	frame_size *= (get_data_type(regargs->seq->bitpix) == DATA_USHORT) ? sizeof(WORD) : sizeof(float);
-	frame_size += 5760; // FITS double HDU size
-	gchar *mem = g_format_size_full(frame_size, G_FORMAT_SIZE_IEC_UNITS);
-	siril_log_message(_("Space required for full size storage: %s\n"), mem);
-	g_free(mem);
-
 	for (int i = 0; i < n; i++) {
 		Homography H = { 0 };
-		cvGetEye(&H);
-		H.h02 = rois[i].x - tl.x;
-		H.h12 = rois[i].y - tl.y;
+		if (i != refindex) {
+			cvcalcH_fromKKR(Ks[refindex], Ks[i], Rs[i], &H);
+		} else {
+			cvGetEye(&H);
+		}
 		nb_aligned++;
 		current_regdata[i].roundness = 1.;
 		current_regdata[i].fwhm = 0.;
@@ -294,6 +244,56 @@ int register_mosaic(struct registration_args *regargs) {
 		current_regdata[i].H = H;
 		regargs->seq->imgparam[i].incl = TRUE;
 	}
+
+	// // Give the full mosaic output size
+	// float scale = 0.5 * (fabs(Ks[refindex].h00) + fabs(Ks[refindex].h11));
+	// pointi tl = { INT_MAX, INT_MAX }, br = { INT_MIN, INT_MIN }; // top left and bottom-right
+	// gboolean savewarped = TRUE;
+	// for (int i = 0; i < n; i++) {
+	// 	if (savewarped) {
+	// 		seq_read_frame(regargs->seq, i, &fit, FALSE, -1);
+	// 		fits_flip_top_to_bottom(&fit);
+	// 		cvWarp_fromKR(&fit, Ks[i], Rs[i], scale, rois + i);
+	// 		gchar tmp[PATH_MAX];
+	// 		g_snprintf(tmp, PATH_MAX, "mosaic_%s%05d", regargs->seq->seqname, i + 1);
+	// 		fits_flip_top_to_bottom(&fit);
+	// 		savefits(tmp, &fit);
+	// 	} else {
+	// 		seq_read_frame_metadata(regargs->seq, i, &fit);
+	// 		cvWarp_fromKR(&fit, Ks[i], Rs[i], scale, rois + i);
+	// 	}
+	// 	clearfits(&fit);
+	// 	// first determine the corners
+	// 	if (rois[i].x < tl.x) tl.x = rois[i].x;
+	// 	if (rois[i].y < tl.y) tl.y = rois[i].y;
+	// 	if (rois[i].x + rois[i].w > br.x) br.x = rois[i].x + rois[i].w;
+	// 	if (rois[i].y + rois[i].h > br.y) br.y = rois[i].y + rois[i].h;
+	// }
+	// // then compute the roi size and full mosaic space requirement
+	// int mosaicw = br.x - tl.x;
+	// int mosaich = br.y - tl.y;
+	// siril_log_message(_("Full size output mosaic: %d x %d pixels (assuming spherical projection)\n"), mosaicw, mosaich);
+	// int64_t frame_size = mosaicw * mosaich * regargs->seq->nb_layers;
+	// frame_size *= (get_data_type(regargs->seq->bitpix) == DATA_USHORT) ? sizeof(WORD) : sizeof(float);
+	// frame_size += 5760; // FITS double HDU size
+	// gchar *mem = g_format_size_full(frame_size, G_FORMAT_SIZE_IEC_UNITS);
+	// siril_log_message(_("Space required for full size storage: %s\n"), mem);
+	// g_free(mem);
+
+	// for (int i = 0; i < n; i++) {
+	// 	Homography H = { 0 };
+	// 	cvGetEye(&H);
+	// 	H.h02 = rois[i].x - tl.x;
+	// 	H.h12 = rois[i].y - tl.y;
+	// 	nb_aligned++;
+	// 	current_regdata[i].roundness = 1.;
+	// 	current_regdata[i].fwhm = 0.;
+	// 	current_regdata[i].weighted_fwhm = 0.;
+	// 	current_regdata[i].background_lvl = 0.;
+	// 	current_regdata[i].number_of_stars = 1;
+	// 	current_regdata[i].H = H;
+	// 	regargs->seq->imgparam[i].incl = TRUE;
+	// }
 
 	//Composing the mosaic
 
