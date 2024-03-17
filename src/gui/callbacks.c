@@ -705,6 +705,8 @@ void update_MenuItem() {
 	siril_window_enable_rgb_proc_actions(app_win, is_a_singleRGB_image_loaded);
 	/* single RGB image with wcs information is needed */
 	siril_window_enable_rgb_wcs_proc_actions(app_win, is_a_singleRGB_image_loaded && has_wcs(&gfit));
+	/* single or sequence RGB is needed */
+	siril_window_enable_any_rgb_proc_actions(app_win, is_a_singleRGB_image_loaded|| sequence_is_loaded());
 	/* any image is needed */
 	siril_window_enable_any_proc_actions(app_win, any_image_is_loaded);
 	/* any mono image is needed */
@@ -1545,7 +1547,7 @@ void initialize_all_GUI(gchar *supported_files) {
 	initialize_stacking_methods();
 
 	/* set focal and pixel pitch */
-	set_focal_and_pixel_pitch();
+	init_astrometry();
 
 	initialize_FITS_name_entries();
 

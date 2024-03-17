@@ -4,6 +4,8 @@
 #include <fitsio.h>
 #include "core/siril.h"
 
+#define FITS_DOUBLE_BLOC_SIZE 2 * IOBUFLEN // 2 * 2880, the size of a double FITS block, used to allocate bigger chunk and avoid reallocating
+
 /****************** image_format_fits.h ******************/
 void read_fits_header(fits *fit);
 int fits_parse_header_string(fits *fit, gchar *description);
@@ -69,6 +71,7 @@ int read_fits_with_convert(fits* fit, const char* filename, gboolean force_float
 int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,
 		int bitpix, void *dest, int layer, const rectangle *area);
 int siril_fits_create_diskfile(fitsfile **fptr, const char *filename, int *status);
+void update_fits_header(fits *fit);
 void save_fits_header(fits *fit);
 void report_fits_error(int status);
 

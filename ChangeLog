@@ -30,6 +30,7 @@ xx/xx/xx
 * Fixed a crash when carrying out sequence geometry operations, caused by ROI (#1235)
 * Fixed wavelets redraw. (#1236)
 * Removed glib-networking as a dependency (#1157)
+* Fixed a crash in asinh (#1246)
 * Added color management to photometric color calibration, and SPCC as a new method. (!598)
 * Added solving with distortions using SIP convention and handling writing related keywords in the header (!612 and #1154::3)
 * Split Astrometry from (S)PCC
@@ -43,6 +44,11 @@ xx/xx/xx
 * Added near solve in Siril internal solver (#1154::4 and !631)
 * Improved mouse pan and zoom control to enable one-handed operation (!638, fixes #1271)
 * Added FITS keyword update on single loaded images (#72)
+* Added Color Conversion Matrices for single images and sequences (!630 and !641) 
+* Added versionning for init files (#1274)
+* Added full blindsolve with Astrometry.net (#1154::5 and !636)
+* Added avoiding to create a new sequence when platesolving sequences (#1154::6 and !636)
+* Refactored astrometry GUI (#1154::6 and !636)
 * Added flexible aperture size depending in FWHM (#1278 !640)
 
 siril 1.2.2
@@ -50,7 +56,7 @@ xx/xx/24
 
 * Removed background extraction samples after using it in script (#1265)
 * Fixed catalog parser problem with negative declination (less than 1°) (#1270)
-* Fixes weighing by number of stars during stacking if number of stars is the same accross the sequence (#1273)
+* Fixes weighting by number of stars during stacking if number of stars is the same across the sequence (#1273)
 
 siril 1.2.1
 01/26/24
