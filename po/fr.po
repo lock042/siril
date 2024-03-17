@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-03-13 22:33+0100\n"
-"PO-Revision-Date: 2024-03-14 22:37+0000\n"
+"PO-Revision-Date: 2024-03-18 21:37+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.pixls.us/projects/siril/"
 "siril-application/fr/>\n"
@@ -11507,18 +11507,18 @@ msgid ""
 "Siril near solver could not find a solution over the search radius (%.1f "
 "deg)\n"
 msgstr ""
-"Le solveur Siril de proximité n'a pas pu trouver de solution dans le rayon "
+"Le solveur Siril par proximité n'a pas pu trouver de solution dans le rayon "
 "de recherche (%.1f deg)\n"
 
 #: src/algos/astrometry_solver.c:515
 #, c-format
 msgid "Siril near solver time-out after %ds\n"
-msgstr "Le solveur Siril de proximité ne répond pas après %ds\n"
+msgstr "Le solveur Siril par proximité ne répond pas après %ds\n"
 
 #: src/algos/astrometry_solver.c:517
 msgid "Siril near solver encountered a problem when allocating threads\n"
 msgstr ""
-"Le solver Siril de proximité a rencontré un problème lors de l'allocation "
+"Le solver Siril par proximité a rencontré un problème lors de l'allocation "
 "des threads\n"
 
 #: src/algos/astrometry_solver.c:519
@@ -11633,7 +11633,7 @@ msgstr "La résolution initiale a échoué\n"
 #: src/algos/astrometry_solver.c:992
 #, c-format
 msgid "Attempting a near solve with a radius of %3.1f degrees\n"
-msgstr ""
+msgstr "Tentative de résolution par proximité avec un rayon de %3.1f degrés\n"
 
 #: src/algos/astrometry_solver.c:1004
 msgid "Plate Solve"
@@ -11651,26 +11651,26 @@ msgid "Flipping image and updating astrometry data.\n"
 msgstr "Retournement de l'image et mise à jour des données astrométriques.\n"
 
 #: src/algos/astrometry_solver.c:1049
-#, fuzzy, c-format
+#, c-format
 msgid "Plate solving warning: %s"
-msgstr "L'astrométrie a échoué : %s\n"
+msgstr "Avertissement de résolution : %s"
 
 #: src/algos/astrometry_solver.c:1051
-#, fuzzy, c-format
+#, c-format
 msgid "Plate solving failed: %s"
-msgstr "L'astrométrie a échoué : %s\n"
+msgstr "L'astrométrie a échoué : %s"
 
 #: src/algos/astrometry_solver.c:1157
 msgid "Near solver started"
-msgstr ""
+msgstr "Le solver par proximité a débuté"
 
 #: src/algos/astrometry_solver.c:1230
 msgid "Near solver done"
-msgstr ""
+msgstr "Le solver par proximité a terminé"
 
 #: src/algos/astrometry_solver.c:1239
 msgid "Solving again at updated center\n"
-msgstr ""
+msgstr "Nouvelle résolution à partir du centre mis à jour\n"
 
 #: src/algos/astrometry_solver.c:1513 src/algos/astrometry_solver.c:1537
 #, c-format
@@ -11722,18 +11722,20 @@ msgstr ""
 "des étoiles\n"
 
 #: src/algos/astrometry_solver.c:1936
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Could not retrieve target coordinates from image %s metadata, skipping\n"
 msgstr ""
-"Utilisation des coordonnées de la cible depuis l'en-tête de l'image : %f, "
-"%f\n"
+"Impossible de récupérer les coordonnées de la cible à partir des métadonnées "
+"de l'image %s\n"
 
 #: src/algos/astrometry_solver.c:1952
 #, c-format
 msgid ""
 "Could not retrieve pixel size from image %s metadata or settings, skipping\n"
 msgstr ""
+"Impossible de récupérer la taille des pixels à partir des métadonnées ou des "
+"paramètres de l'image %s\n"
 
 #: src/algos/astrometry_solver.c:1966
 #, c-format
@@ -11741,6 +11743,8 @@ msgid ""
 "Could not retrieve focal length from image %s metadata or settings, "
 "skipping\n"
 msgstr ""
+"Impossible de récupérer la longueur focale à partir des métadonnées ou des "
+"paramètres de l'image %s\n"
 
 #: src/algos/astrometry_solver.c:1983
 #, c-format
@@ -15643,6 +15647,8 @@ msgstr ""
 #: src/core/command.c:8961
 msgid "Limiting search radius to 30 degrres for internal solver near solve\n"
 msgstr ""
+"Limitation du rayon de recherche à 30 degrés pour le solveur interne par "
+"proximité\n"
 
 #: src/core/command.c:9053
 msgid ""
@@ -15657,12 +15663,11 @@ msgstr "L'observatoire doit être codé sous la forme d'un mot de 3 lettres\n"
 
 #: src/core/command.c:9069
 msgid "No local catalogues found, ignoring -trix option\n"
-msgstr ""
+msgstr "Aucun catalogue local n'a été trouvé, l'option -trix est ignoré\n"
 
 #: src/core/command.c:9075
-#, fuzzy
 msgid "Trixel number must be between 0 and 511\n"
-msgstr "La valeur du point noir BP doit être entre 0 et 1\n"
+msgstr "Le numéro du Trixel doit être compris entre 0 et 511\n"
 
 #: src/core/command.c:9088
 msgid "Wrong parameter values. Log must be set to on or off, aborting.\n"
@@ -16212,7 +16217,6 @@ msgstr ""
 "Ferme correctement l'image ouverte et la séquence ouverte, le cas échéant"
 
 #: src/core/command_def.h:27
-#, fuzzy
 msgid ""
 "Displays stars from the local catalog by default for the loaded plate solved "
 "image, down to the provided <b>limit_magnitude</b> (13 by default for most "
@@ -16251,27 +16255,35 @@ msgstr ""
 "solsys et omis pour pgc).\n"
 "Un autre catalogue en ligne peut être spécifié avec <b>-cat=</b>, en prenant "
 "les valeurs\n"
-"- pour les étoiles : tycho2, nomad, gaia, ppmxl, bsc, apass, gcvs, vsx, "
+"- pour les étoiles : tycho2, nomad, gaia, ppmxl, bsc, apass, gcvs, vsx, "
 "simbad, aavso_chart\n"
-"- pour les exoplanètes : exo\n"
-"- pour le ciel profond : pgc\n"
-"- pour les objets du système solaire : solsys (le <a href=\"https://vo.imcce."
+"- pour les exoplanètes : exo\n"
+"- pour le ciel profond : pgc\n"
+"- pour les objets du système solaire : solsys (le <a href=\"https://vo.imcce."
 "fr/webservices/data/displayIAUObsCodes.php\">code d'observatoire IAU</a> le "
 "plus proche peut être passé avec l'argument <b>-obscode=</b> pour une "
 "meilleure précision de position)\n"
 "\n"
 "Pour les catalogues d'étoiles contenant des données photométriques, les "
-"étoiles sans informations B-V seront conservées ; ils peuvent être exclus en "
-"passant <b>-photo</b>\n"
+"étoiles sans informations B-V seront conservées ; ils peuvent être exclus en "
+"passant <b>-phot</b>\n"
+"L'argument <b>-trix=</b> peut être passé à la place d'un catalogue suivi "
+"d'un nombre compris entre 0 et 511 pour tracer les étoiles contenues dans le "
+"trixel des catalogues locaux de niveau 3 (à usage de développement "
+"principalement)\n"
 "\n"
-"Certains catalogues (bsc, gcvs, pgc, exo, aavso_chart et solsys) afficheront "
-"également, par défaut, les noms à côté des marqueurs à l'écran (interface "
-"graphique uniquement) et les listeront dans le journal. Pour d'autres ayant "
-"un plus grand nombre d'objets, à savoir vsx et simbad, l'information peut "
-"également être affichée, mais, comme elle peut encombrer l'affichage, elle "
-"n'est pas activée par défaut. Ce comportement peut être activé/désactivé "
-"avec les options <b>-tag=on|off</b> pour afficher les noms à côté des "
-"marqueurs et <b>-log=on|off</b> pour lister les objets dans la console"
+"Certains catalogues (bsc, gcvs, pgc, exo, aavso_chart, varisum et solsys) "
+"afficheront également, par défaut, les noms à côté des marqueurs dans "
+"l'affichage (interface graphique uniquement) et les listeront dans les logs. "
+"Pour d'autres ayant un plus grand nombre d'objets, à savoir vsx et simbad, "
+"l'information peut par ailleurs être affichée, mais comme elle peut "
+"encombrer l'affichage, elle n'est pas activée par défaut. Ce comportement "
+"peut être activé/désactivé avec les options <b>-tag=on|off</b> pour afficher "
+"les noms à côté des marqueurs et <b>-log=on|off</b> pour lister les objets "
+"dans la console.\n"
+"\n"
+"La liste des éléments présents dans l'image peut éventuellement être "
+"enregistrée dans un fichier CSV en passant l'argument <b>-out=</b>"
 
 #: src/core/command_def.h:28
 msgid ""
@@ -19592,6 +19604,15 @@ msgid ""
 "With argument <b>-p</b>, prints out all the valid stars from all the 512 "
 "level3 trixels to file \"trixels.csv\""
 msgstr ""
+"Pour les développeurs.\n"
+"\n"
+"Sans aucun argument, liste tous les trixels de niveau 3 visibles dans "
+"l'image résolue. Les étoiles de chaque trixel peuvent ensuite être affichées "
+"avec la commande CONESEARCH en utilisant <b>-trix=</b> suivi d'un numéro de "
+"trixel visible\n"
+"\n"
+"Avec l'argument <b>-p</b>, imprime toutes les étoiles valides de tous les "
+"512 trixels de niveau 3 dans le fichier \"trixels.csv\""
 
 #: src/core/command_def.h:204
 msgid ""
@@ -19626,6 +19647,10 @@ msgid ""
 "<b>value</b> is not checked. This verification is the responsibility of the "
 "user"
 msgstr ""
+"Met à jour le mot-clé FITS. L'argument <b>key</b> doit être un mot-clé FITS "
+"présent dans l'en-tête et être géré par Siril. Veuillez noter que la "
+"validité de la <b>value</b> n'est pas vérifiée. Cette vérification relève de "
+"la responsabilité de l'utilisateur"
 
 #: src/core/command_def.h:209
 msgid ""
@@ -21493,7 +21518,7 @@ msgstr "activer l'avertissement de la boîte de dialogue des ROI"
 
 #: src/core/settings.c:473
 msgid "Middle mouse button double click zoom action"
-msgstr ""
+msgstr "Double clic sur le bouton du milieu de la souris pour zoomer"
 
 #: src/core/settings.c:474
 msgid "configure background samples color"
@@ -25938,9 +25963,8 @@ msgid "Failed to read the local NOMAD catalogue\n"
 msgstr "Échec de la lecture du catalogue local NOMAD\n"
 
 #: src/io/local_catalogues.c:174
-#, fuzzy
 msgid "Wrong trixel ID\n"
-msgstr "Mauvaise date : "
+msgstr "Mauvaise identification du trixel\n"
 
 #: src/io/local_catalogues.c:281
 msgid "Error: number of trixels reported by file is out of limits.\n"
@@ -25960,16 +25984,16 @@ msgstr "Impossible de créer le fichier de catalogue %s (%s)\n"
 
 #: src/io/local_catalogues.c:811
 msgid "Trixels list saved to trixels.csv\n"
-msgstr ""
+msgstr "Liste de trixels sauvegardée dans le fichier trixels.csv\n"
 
 #: src/io/local_catalogues.c:829
 msgid "Failed\n"
-msgstr ""
+msgstr "Échec\n"
 
 #: src/io/local_catalogues.c:833
-#, fuzzy, c-format
+#, c-format
 msgid "Found %d trixels:\n"
-msgstr "A trouvé %s"
+msgstr "Trouvé %d trixels :\n"
 
 #: src/io/mp4_output.c:453
 msgid ""
@@ -26815,9 +26839,9 @@ msgid "No item found in the image\n"
 msgstr "Aucun élément n'a été trouvé dans l'image\n"
 
 #: src/io/siril_catalogues.c:1164
-#, fuzzy, c-format
+#, c-format
 msgid "List saved to %s\n"
-msgstr "Nouveaux paramètres enregistrés dans %s\n"
+msgstr "Liste sauvegardée dans %s\n"
 
 #: src/io/siril_git.c:138
 msgid "libgit2: unable to parse some refish\n"
