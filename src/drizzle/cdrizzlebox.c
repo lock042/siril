@@ -291,7 +291,7 @@ do_kernel_point(struct driz_param_t* p) {
     integer_t bv;
     int xmin, xmax, ymin, ymax, n;
 	const char* cfa = p->cfa;
-	size_t cfadim = strlen(cfa) == 4 ? 2 : 6;
+	size_t cfadim = !cfa ? 1 : strlen(cfa) == 4 ? 2 : 6;
 
     scale2 = p->scale * p->scale;
     bv = compute_bit_value(p->uuid);
@@ -385,7 +385,7 @@ do_kernel_tophat(struct driz_param_t* p) {
     float xxi, xxa, yyi, yya, ddx, ddy, r2;
     int xmin, xmax, ymin, ymax, n;
 	const char* cfa = p->cfa;
-	size_t cfadim = strlen(cfa) == 4 ? 2 : 6;
+	size_t cfadim = !cfa ? 1 : strlen(cfa) == 4 ? 2 : 6;
 
     scale2 = p->scale * p->scale;
     pfo = p->pixel_fraction / p->scale / 2.0;
@@ -509,7 +509,7 @@ do_kernel_gaussian(struct driz_param_t* p) {
     const float nsig = 2.5;
     int xmin, xmax, ymin, ymax, n;
 	const char* cfa = p->cfa;
-	size_t cfadim = strlen(cfa) == 4 ? 2 : 6;
+	size_t cfadim = !cfa ? 1 : strlen(cfa) == 4 ? 2 : 6;
 
     /* Added in V2.9 - make sure pfo doesn't get less than 1.2
        divided by the scale so that there are never holes in the
@@ -642,7 +642,7 @@ do_kernel_lanczos(struct driz_param_t* p) {
     const float del = 0.01;
     int xmin, xmax, ymin, ymax, n;
 	const char* cfa = p->cfa;
-	size_t cfadim = strlen(cfa) == 4 ? 2 : 6;
+	size_t cfadim = !cfa ? 1 : strlen(cfa) == 4 ? 2 : 6;
 
     dx = 1.0;
     dy = 1.0;
@@ -776,7 +776,7 @@ do_kernel_turbo(struct driz_param_t* p) {
     float xxi, xxa, yyi, yya, w, dover;
     int xmin, xmax, ymin, ymax, n;
 	const char* cfa = p->cfa;
-	size_t cfadim = strlen(cfa) == 4 ? 2 : 6;
+	size_t cfadim = !cfa ? 1 : strlen(cfa) == 4 ? 2 : 6;
 
     driz_log_message("starting do_kernel_turbo");
     bv = compute_bit_value(p->uuid);
@@ -906,7 +906,7 @@ do_kernel_square(struct driz_param_t* p) {
     struct scanner s;
     int xmin, xmax, ymin, ymax, n;
 	const char* cfa = p->cfa;
-	size_t cfadim = strlen(cfa) == 4 ? 2 : 6;
+	size_t cfadim = !cfa ? 1 : strlen(cfa) == 4 ? 2 : 6;
 
     driz_log_message("starting do_kernel_square");
     dh = 0.5 * p->pixel_fraction;

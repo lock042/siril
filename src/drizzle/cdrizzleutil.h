@@ -412,7 +412,7 @@ unset_bit(fits *image, integer_t xpix, integer_t ypix) {
 }*/
 
 static inline_macro int FC(const size_t row, const size_t col, const size_t dim, const char *cfa) {
-	return cfa[(col % dim) + (row % dim) * dim] - '0';
+	return !cfa ? 0 : cfa[(col % dim) + (row % dim) * dim] - '0';
 }
 
 /*****************************************************************
