@@ -1303,8 +1303,11 @@ int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,
 					pixels_long, &zero, &status);
 			if (status) break;
 			fits_read_key(fptr, TDOUBLE, "DATAMAX", &data_max, NULL, &status);
-			if (status) data_max = 0.0;
-			convert_data_float(bitpix, pixels_long, dest, nbdata, 0.0);
+			if (status) {
+				data_max = 0.0;
+				status = 0;
+			}
+			convert_data_float(bitpix, pixels_long, dest, nbdata, data_max);
 			free(pixels_long);
 			break;
 		case DOUBLE_IMG:	// 64-bit floating point pixels
