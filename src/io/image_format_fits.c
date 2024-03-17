@@ -18,7 +18,7 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/* Management of Siril's internal image format: unsigned 16-bit FITS */
+/* Management of Siril's internal image formats */
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -951,16 +951,16 @@ static void convert_data_ushort(int bitpix, const void *from, WORD *to, size_t n
 /* convert FITS data formats to siril native.
  * nbdata is the number of pixels, w * h.
  * from is not freed, to must be allocated and can be the same as from */
-static void convert_data_float(int bitpix, const void *from, float *to, size_t nbdata) {
+static void convert_data_float(int bitpix, const void *from, float *to, size_t nbdata, double data_max) {
 	size_t i;
 	BYTE *data8;
 	WORD *ushort;
 	int16_t *data16;
 	double *pixels_double;
 	long *sdata32;	// TO BE TESTED on 32-bit arch, seems to be a cfitsio bug
-	float mini = FLT_MAX;
-	float maxi = -FLT_MAX;
 	unsigned long *data32;
+	double mini = DBL_MAX;
+	double maxi = -DBL_MAX;
 	float *data32f;
 
 	switch (bitpix) {
@@ -985,21 +985,43 @@ static void convert_data_float(int bitpix, const void *from, float *to, size_t n
 			break;
 		case ULONG_IMG:		// 32-bit unsigned integer pixels
 			data32 = (unsigned long *)from;
-			for (i = 0; i < nbdata; i++) {
-				mini = min(data32[i], mini);
-				maxi = max(data32[i], maxi);
+			if (data_max > 0.0) {
+				siril_debug_print("Normalizing image data with DATA_MAX of %d\n", round_to_int(data_max));
+				for (i = 0; i < nbdata; i++)
+					to[i] = (float)(((double)(data32[i])) / data_max);
+			} else {
+				// N.I.N.A. gives the normalization value in DATAMAX, if it's not
+				// there, compute from data. This is not suitable for sequence work
+				unsigned long min = ULONG_MAX, max = 0;
+				for (i = 0; i < nbdata; i++) {
+					min = min(data32[i], min);
+					max = max(data32[i], max);
+				}
+				siril_log_message(_("Normalizing the image data with [%ld, %ld], not suitable for sequence operations\n"), min, max);
+				mini = (double)min;
+				maxi = (double)max;
+				for (i = 0; i < nbdata; i++)
+					to[i] = (float)((data32[i] - mini)) / (maxi - mini);
 			}
-			for (i = 0; i < nbdata; i++)
-				to[i] = (float)((data32[i] - mini)) / (maxi - mini);
 			break;
 		case LONG_IMG:		// 32-bit signed integer pixels
 			sdata32 = (long *)from;
-			for (i = 0; i < nbdata; i++) {
-				mini = min(sdata32[i], mini);
-				maxi = max(sdata32[i], maxi);
+			if (data_max > 0.0) {
+				siril_debug_print("Normalizing image data with DATA_MAX of %d\n", round_to_int(data_max));
+				for (i = 0; i < nbdata; i++)
+					to[i] = (float)(((double)(sdata32[i])) / data_max);
+			} else {
+				long min = LONG_MAX, max = LONG_MIN;
+				for (i = 0; i < nbdata; i++) {
+					min = min(sdata32[i], min);
+					max = max(sdata32[i], max);
+				}
+				siril_log_message(_("Normalizing the image data with [%ld, %ld], not suitable for sequence operations\n"), min, max);
+				mini = (double)min;
+				maxi = (double)max;
+				for (i = 0; i < nbdata; i++)
+					to[i] = (float)((sdata32[i] - mini)) / (maxi - mini);
 			}
-			for (i = 0; i < nbdata; i++)
-				to[i] = (float)((sdata32[i] - mini)) / (maxi - mini);
 			break;
 		case FLOAT_IMG:		// 32-bit floating point pixels, we use it only if float is not in the [0, 1] range
 			data32f = (float *)from;
@@ -1105,6 +1127,7 @@ int read_fits_with_convert(fits* fit, const char* filename, gboolean force_float
 	size_t nbdata = nbpix * fit->naxes[2];
 	// with force_float, image is read as float data, type is stored as DATA_FLOAT
 	int fake_bitpix = force_float ? FLOAT_IMG : fit->bitpix;
+	double data_max;
 
 	switch (fake_bitpix) {
 		case BYTE_IMG:
@@ -1193,7 +1216,12 @@ int read_fits_with_convert(fits* fit, const char* filename, gboolean force_float
 		datatype = fit->bitpix == LONG_IMG ? TLONG : TULONG;
 		fits_read_img(fit->fptr, datatype, 1, nbdata, &zero, pixels_long, &zero, &status);
 		if (status) break;
-		convert_data_float(fit->bitpix, pixels_long, fit->fdata, nbdata);
+		fits_read_key(fit->fptr, TDOUBLE, "DATAMAX", &data_max, NULL, &status);
+		if (status) {
+			data_max = 0.0;
+			status = 0;
+		}
+		convert_data_float(fit->bitpix, pixels_long, fit->fdata, nbdata, data_max);
 		free(pixels_long);
 		fit->bitpix = FLOAT_IMG;
 		break;
@@ -1274,7 +1302,12 @@ int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,
 			fits_read_subset(fptr, datatype, fpixel, lpixel, inc, &zero,
 					pixels_long, &zero, &status);
 			if (status) break;
-			convert_data_float(bitpix, pixels_long, dest, nbdata);
+			fits_read_key(fptr, TDOUBLE, "DATAMAX", &data_max, NULL, &status);
+			if (status) {
+				data_max = 0.0;
+				status = 0;
+			}
+			convert_data_float(bitpix, pixels_long, dest, nbdata, data_max);
 			free(pixels_long);
 			break;
 		case DOUBLE_IMG:	// 64-bit floating point pixels
