@@ -6903,7 +6903,7 @@ int process_register(int nb) {
 			reg_args->interpolation == OPENCV_NONE ||
 			reg_args->no_output)
 		reg_args->clamp = FALSE;
-	if (reg_args->clamp)
+	if (reg_args->clamp && !reg_args->no_output)
 		siril_log_message(_("Interpolation clamping active\n"));
 
 	set_progress_bar_data(msg, PROGRESS_RESET);
@@ -7181,7 +7181,7 @@ int process_seq_applyreg(int nb) {
 
 	if (reg_args->interpolation == OPENCV_AREA || reg_args->interpolation == OPENCV_LINEAR || reg_args->interpolation == OPENCV_NEAREST || reg_args->interpolation == OPENCV_NONE)
 		reg_args->clamp = FALSE;
-	if (reg_args->clamp)
+	if (reg_args->clamp && !reg_args->no_output)
 		siril_log_message(_("Interpolation clamping active\n"));
 
 	set_progress_bar_data(_("Registration: Applying existing data"), PROGRESS_RESET);

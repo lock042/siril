@@ -377,6 +377,7 @@ siril_common_SOURCES = \
 	registration/matching/misc.c \
 	registration/matching/degtorad.h \
 	registration/matching/apply_match.c \
+	registration/mosaic.c \
 	registration/registration.c \
 	registration/registration.h \
 	stacking/median_and_mean.c \

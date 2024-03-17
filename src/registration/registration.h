@@ -5,7 +5,7 @@
 #include "algos/PSF.h"
 #include "core/processing.h"
 
-#define NUMBER_OF_METHODS 7
+#define NUMBER_OF_METHODS 10
 
 struct registration_args;
 typedef int (*registration_function)(struct registration_args *);
@@ -100,6 +100,18 @@ typedef struct {
 	point pt[4];
 } regframe;
 
+/* used to define rotation matrices*/
+typedef enum {
+	ROTX,
+	ROTY,
+	ROTZ
+} rotation_type;
+
+/* same as rectangle but avoids conflicts with rectangle defined in opencv namespace */
+typedef struct {
+	int x, y, w, h;
+} mosaic_roi;
+
 struct registration_method *new_reg_method(const char *name, registration_function f,
 		selection_type s, registration_type t); // for compositing
 void initialize_registration_methods();
@@ -113,6 +125,7 @@ int register_3stars(struct registration_args *regargs);
 int register_apply_reg(struct registration_args *regargs);
 int register_kombat(struct registration_args *args);
 int register_manual(struct registration_args *regargs); // defined in compositing/compositing.c
+int register_mosaic(struct registration_args *regargs);
 
 void reset_3stars();
 int _3stars_check_registration_ready();
@@ -144,6 +157,7 @@ regdata *star_align_get_current_regdata(struct registration_args *regargs);
 int star_align_prepare_results(struct generic_seq_args *args);
 int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads);
 int star_align_finalize_hook(struct generic_seq_args *args);
+int star_match_and_checks(psf_star **ref_stars, psf_star **stars, int nb_ref_stars, int nb_stars, struct registration_args *regargs, int filenum, Homography *H);
 
 const char *describe_transformation_type(transformation_type type);
 
