@@ -61,6 +61,7 @@ struct normalization_coeff {
 struct stacking_args {
 	stack_method method;
 	sequence *seq;
+	sequence *pxcnt; // sequence holding pixel_count images for drizzle
 	int ref_image; // takes precedence over seq->reference_image which may not be applicable
 	seq_image_filter filtering_criterion;
 	double filtering_parameter;

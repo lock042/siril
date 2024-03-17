@@ -289,8 +289,9 @@ do_kernel_point(struct driz_param_t* p) {
     integer_t /*ybounds[2],*/ osize[2];
     float scale2, vc[3], d, dow;
     integer_t bv;
-	uint32_t cfa = p->cfa;
     int xmin, xmax, ymin, ymax, n;
+	const char* cfa = p->cfa;
+	size_t cfadim = strlen(cfa) == 4 ? 2 : 6;
 
     scale2 = p->scale * p->scale;
     bv = compute_bit_value(p->uuid);
@@ -323,7 +324,7 @@ do_kernel_point(struct driz_param_t* p) {
 
         for (i = xmin; i <= xmax; ++i) {
             float ox, oy;
-            int chan = FC(j, i, cfa);
+            int chan = FC(j, i, cfadim, cfa);
             if (map_pixel(p->pixmap, i, j, &ox, &oy)) {
               ++ p->nmiss;
 
@@ -383,7 +384,8 @@ do_kernel_tophat(struct driz_param_t* p) {
     float scale2, pfo, pfo2, vc[3], d, dow;
     float xxi, xxa, yyi, yya, ddx, ddy, r2;
     int xmin, xmax, ymin, ymax, n;
-	uint32_t cfa = p->cfa;
+	const char* cfa = p->cfa;
+	size_t cfadim = strlen(cfa) == 4 ? 2 : 6;
 
     scale2 = p->scale * p->scale;
     pfo = p->pixel_fraction / p->scale / 2.0;
@@ -419,7 +421,7 @@ do_kernel_tophat(struct driz_param_t* p) {
 
         for (i = xmin; i <= xmax; ++i) {
             float ox, oy;
-            int chan = FC(j, i, cfa);
+            int chan = FC(j, i, cfadim, cfa);
 
             if (map_pixel(p->pixmap, i, j, &ox, &oy)) {
                 nhit = 0;
@@ -506,7 +508,8 @@ do_kernel_gaussian(struct driz_param_t* p) {
     float pfo, ac,  scale2, xxi, xxa, yyi, yya, w, ddx, ddy, r2, dover;
     const float nsig = 2.5;
     int xmin, xmax, ymin, ymax, n;
-	uint32_t cfa = p->cfa;
+	const char* cfa = p->cfa;
+	size_t cfadim = strlen(cfa) == 4 ? 2 : 6;
 
     /* Added in V2.9 - make sure pfo doesn't get less than 1.2
        divided by the scale so that there are never holes in the
@@ -551,7 +554,7 @@ do_kernel_gaussian(struct driz_param_t* p) {
 
         for (i = xmin; i <= xmax; ++i) {
             float ox, oy;
-            int chan = FC(j, i, cfa);
+            int chan = FC(j, i, cfadim, cfa);
 
             if (map_pixel(p->pixmap, i, j, &ox, &oy)) {
                 nhit = 0;
@@ -638,7 +641,8 @@ do_kernel_lanczos(struct driz_param_t* p) {
     const size_t nlut = 512;
     const float del = 0.01;
     int xmin, xmax, ymin, ymax, n;
-	uint32_t cfa = p->cfa;
+	const char* cfa = p->cfa;
+	size_t cfadim = strlen(cfa) == 4 ? 2 : 6;
 
     dx = 1.0;
     dy = 1.0;
@@ -687,7 +691,7 @@ do_kernel_lanczos(struct driz_param_t* p) {
         }
 
         for (i = xmin; i <= xmax; ++i) {
-            int chan = FC(j, i, cfa);
+            int chan = FC(j, i, cfadim, cfa);
             if (map_pixel(p->pixmap, i, j, &xx, &yy)) {
                 nhit = 0;
 
@@ -771,7 +775,8 @@ do_kernel_turbo(struct driz_param_t* p) {
     float pfo, scale2, ac;
     float xxi, xxa, yyi, yya, w, dover;
     int xmin, xmax, ymin, ymax, n;
-	uint32_t cfa = p->cfa;
+	const char* cfa = p->cfa;
+	size_t cfadim = strlen(cfa) == 4 ? 2 : 6;
 
     driz_log_message("starting do_kernel_turbo");
     bv = compute_bit_value(p->uuid);
@@ -809,7 +814,7 @@ do_kernel_turbo(struct driz_param_t* p) {
 
         for (i = xmin; i <= xmax; ++i) {
             float ox, oy;
-            int chan = FC(j, i, cfa);
+            int chan = FC(j, i, cfadim, cfa);
 
             if (map_pixel(p->pixmap, i, j, &ox, &oy)) {
                 nhit = 0;
@@ -898,10 +903,10 @@ do_kernel_square(struct driz_param_t* p) {
     float scale2, vc[3], d, dow;
     float dh, jaco, tem, dover, w;
     float xin[4], yin[4], xout[4], yout[4];
-	uint32_t cfa = p->cfa;
-
     struct scanner s;
     int xmin, xmax, ymin, ymax, n;
+	const char* cfa = p->cfa;
+	size_t cfadim = strlen(cfa) == 4 ? 2 : 6;
 
     driz_log_message("starting do_kernel_square");
     dh = 0.5 * p->pixel_fraction;
@@ -944,7 +949,7 @@ do_kernel_square(struct driz_param_t* p) {
 
         for (i = xmin; i <= xmax; ++i) {
             nhit = 0;
-            int chan = FC(j, i, cfa);
+            int chan = FC(j, i, cfadim, cfa);
 
             xin[3] = xin[0] = (float) i - dh;
             xin[2] = xin[1] = (float) i + dh;

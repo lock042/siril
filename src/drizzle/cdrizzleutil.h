@@ -180,7 +180,7 @@ struct driz_args_t {
   float scale;
   float weight_scale; /* Weight scale */
   float pixel_fraction;
-  uint32_t cfa;
+  const char* cfa;
   GList *processed_images;
   struct ser_struct *new_ser_drz;
   fitseq *new_fitseq_drz;
@@ -207,7 +207,7 @@ struct driz_param_t {
   float scale;
 
   /* CFA filter pattern */
-  uint32_t cfa;
+  const char* cfa;
 
   /* Image subset */
   integer_t xmin;
@@ -407,8 +407,12 @@ unset_bit(fits *image, integer_t xpix, integer_t ypix) {
 }
 
 /** Calculate the CFA pattern color from the row and column **/
-static inline_macro int FC(const size_t row, const size_t col, const uint32_t cfa) {
+/*static inline_macro int FC(const size_t row, const size_t col, const uint32_t cfa) {
 	return cfa >> (((row << 1 & 14) + (col & 1)) << 1) & 3;
+}*/
+
+static inline_macro int FC(const size_t row, const size_t col, const size_t dim, const char *cfa) {
+	return cfa[(col % dim) + (row % dim) * dim] - '0';
 }
 
 /*****************************************************************

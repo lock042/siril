@@ -999,8 +999,10 @@ static long stack_get_max_number_of_rows(long naxes[3], data_type type, int nb_i
 static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	int bitpix, i, naxis, cur_nb = 0, retval = ST_OK, pool_size = 1;
 	long naxes[3];
+	gboolean use_pxcnt = ((args->pxcnt != NULL));
 	struct _data_block *data_pool = NULL;
 	struct _image_block *blocks = NULL;
+	struct _pxcnt_block *pxcnt_blocks = NULL;
 	fits fit = { 0 }; // output result
 	fits ref = { 0 }; // reference image, used to propagate metadata
 	// data for mean/rej only
@@ -1110,6 +1112,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 			nb_rejmaps = 1;
 		else nb_rejmaps = 2;
 	}
+	// TODO: update this to take pxcnt use into account
 	long max_number_of_rows = stack_get_max_number_of_rows(naxes, itype, args->nb_images_to_stack, nb_rejmaps);
 	/* Compute parallel processing data: the data blocks, later distributed to threads */
 	if ((retval = stack_compute_parallel_blocks(&blocks, max_number_of_rows, naxes, nb_threads,
@@ -1269,6 +1272,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 
 		/**** Step 2: load image data for the corresponding image block ****/
 		retval = stack_read_block_data(args, my_block, data, naxes, itype, data_idx);
+		// This needs to be extended to read args->pxcnt and populate the pxcnt data into data as well
 		if (retval) continue;
 
 #if defined _OPENMP && defined STACK_DEBUG
