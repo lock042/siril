@@ -110,11 +110,7 @@ photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 
 	r1 = phot_set->inner;
 	r2 = phot_set->outer;
-//	appRadius = phot_set->force_radius ? phot_set->aperture : psf->fwhmx * 2.0;	//this line is the original one
-	appRadius = !phot_set->force_radius ? phot_set->aperture : 0.5 * psf->fwhmx * phot_set->auto_aperture_factor;
-	siril_log_message(_("psf->fwhmx: %lf\n"), psf->fwhmx);
-	siril_log_message(_("phot_set->auto_aperture_factor: %lf\n"), phot_set->auto_aperture_factor);
-	siril_log_message(_("force_radius: %i, appRadius: %lf.\n"), phot_set->force_radius, appRadius);
+	appRadius = phot_set->force_radius ? phot_set->aperture : 0.5 * psf->fwhmx * phot_set->auto_aperture_factor;
 	if (appRadius >= r1 && !phot_set->force_radius) {
 		if (verbose) {
 			/* Translator note: radii is plural for radius */
@@ -234,7 +230,7 @@ void initialize_photometric_param() {
 	com.pref.phot_set.inner = 20;
 	com.pref.phot_set.outer = 30;
 	com.pref.phot_set.aperture = 10;
-	com.pref.phot_set.force_radius = TRUE;
+	com.pref.phot_set.force_radius = FALSE;
 	com.pref.phot_set.auto_inner_factor = 4.2;
 	com.pref.phot_set.auto_outer_factor = 6.3;
 	com.pref.phot_set.auto_aperture_factor = 4.0;
@@ -487,7 +483,7 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 
 	// Additionnal information on the error bars and variable SNR 
 	// distributions if the auto aperture option is set
-	if (com.pref.phot_set.force_radius) {
+	if (!com.pref.phot_set.force_radius) {
 		double median_err, largest_err, smallest_err;
 		gsl_sort (err, 1, nb_valid_images);
 		median_err = gsl_stats_median_from_sorted_data (err, 1, nb_valid_images);

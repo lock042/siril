@@ -3340,7 +3340,7 @@ int process_set_photometry(int nb) {
 				if (arg == end) error = TRUE;
 				else if (max == 0 || max > 65535) error = TRUE;
 			}
-			else if (g_str_has_prefix(arg, "-force_radius=")) {
+			else if (g_str_has_prefix(arg, "-dyn_ratio=")) {
 				arg += 14;
 				force = g_ascii_strtod(arg, &end);
 				if (arg == end) error = TRUE;
@@ -3384,10 +3384,10 @@ int process_set_photometry(int nb) {
 		if (aperture > 0.0)
 			com.pref.phot_set.aperture = aperture;
 		if (force && force >= 1.0 && force <= 5.0) {
-			com.pref.phot_set.force_radius = TRUE;
+			com.pref.phot_set.force_radius = FALSE;
 			com.pref.phot_set.auto_aperture_factor = (double)force;
 		} else {
-			com.pref.phot_set.force_radius = FALSE;
+			com.pref.phot_set.force_radius = TRUE;
 		}
 
 		if (gain > 0.0)
@@ -3427,7 +3427,7 @@ int process_set_photometry(int nb) {
 			com.pref.phot_set.inner,
 			com.pref.phot_set.outer,
 			com.pref.phot_set.aperture,
-			!com.pref.phot_set.force_radius ? _("forced") : _("unused, dynamic"),
+			com.pref.phot_set.force_radius ? _("forced") : _("unused, dynamic"),
 			com.pref.phot_set.gain,
 			com.pref.phot_set.minval,
 			com.pref.phot_set.maxval);

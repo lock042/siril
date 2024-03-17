@@ -132,7 +132,7 @@ static void build_the_dialog() {
 
 	/* Fill the 1st box */
 	/* The label */
-	radius_label = com.pref.phot_set.force_radius ? g_strdup("Radius/half-FWHM ratio:") : g_strdup("Aperture radius (px):");
+	radius_label = !com.pref.phot_set.force_radius ? g_strdup("Radius/half-FWHM ratio:") : g_strdup("Aperture radius (px):");
 	apert = gtk_label_new(radius_label);	// The label depends on the "force_radius" value
 	gtk_label_set_line_wrap(GTK_LABEL(apert), TRUE);
 	g_object_set(G_OBJECT(apert), "margin-left", 15, NULL);
@@ -145,7 +145,7 @@ static void build_the_dialog() {
 	g_object_set(G_OBJECT(apert_value), "margin-left", 15, NULL);
 	g_object_set(G_OBJECT(apert_value), "margin-top", 0, NULL);
 	gtk_widget_set_halign(apert_value, GTK_ALIGN_START);
-	radius_value = com.pref.phot_set.force_radius ? com.pref.phot_set.auto_aperture_factor : com.pref.phot_set.aperture;
+	radius_value = !com.pref.phot_set.force_radius ? com.pref.phot_set.auto_aperture_factor : com.pref.phot_set.aperture;
 	gtk_entry_set_text(GTK_ENTRY(apert_value), g_strdup_printf("%1.2lf", radius_value));
 	gtk_container_add(GTK_CONTAINER(aperture_box), apert_value);
 
@@ -207,9 +207,9 @@ GtkWidget *get_nina_lc_dialog() {
 static void on_nina_lc_response(GtkDialog* self, gint response_id, gpointer user_data) {
 	siril_debug_print("got response event\n");
 	if (response_id != GTK_RESPONSE_ACCEPT) {
-		radius_label = com.pref.phot_set.force_radius ? g_strdup("Radius/half-FWHM ratio:") : g_strdup("Aperture radius (px):");
+		radius_label = !com.pref.phot_set.force_radius ? g_strdup("Radius/half-FWHM ratio:") : g_strdup("Aperture radius (px):");
 		gtk_label_set_text(GTK_LABEL(apert), radius_label);
-		radius_value = com.pref.phot_set.force_radius ? com.pref.phot_set.auto_aperture_factor : com.pref.phot_set.aperture;
+		radius_value = !com.pref.phot_set.force_radius ? com.pref.phot_set.auto_aperture_factor : com.pref.phot_set.aperture;
 		gtk_entry_set_text(GTK_ENTRY(apert_value), g_strdup_printf("%1.2lf", radius_value));
 		gtk_entry_set_text(GTK_ENTRY(inner_value), g_strdup_printf("%1.2lf", com.pref.phot_set.inner));
 		gtk_entry_set_text(GTK_ENTRY(outer_value), g_strdup_printf("%1.2lf", com.pref.phot_set.outer));
@@ -275,9 +275,9 @@ static void on_nina_lc_response(GtkDialog* self, gint response_id, gpointer user
 	start_in_new_thread(light_curve_worker, args);
 
 	// Update of the UI
-	radius_label = com.pref.phot_set.force_radius ? g_strdup("Radius/half-FWHM ratio:") : g_strdup("Aperture radius (px):");
+	radius_label = !com.pref.phot_set.force_radius ? g_strdup("Radius/half-FWHM ratio:") : g_strdup("Aperture radius (px):");
 	gtk_label_set_text(GTK_LABEL(apert), radius_label);
-	radius_value = com.pref.phot_set.force_radius ? com.pref.phot_set.auto_aperture_factor : com.pref.phot_set.aperture;
+	radius_value = !com.pref.phot_set.force_radius ? com.pref.phot_set.auto_aperture_factor : com.pref.phot_set.aperture;
 	gtk_entry_set_text(GTK_ENTRY(apert_value), g_strdup_printf("%1.2lf", radius_value));
 	gtk_entry_set_text(GTK_ENTRY(inner_value), g_strdup_printf("%1.2lf", com.pref.phot_set.inner));
 	gtk_entry_set_text(GTK_ENTRY(outer_value), g_strdup_printf("%1.2lf", com.pref.phot_set.outer));
