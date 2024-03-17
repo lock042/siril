@@ -108,7 +108,8 @@ photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 
 	r1 = phot_set->inner;
 	r2 = phot_set->outer;
-	appRadius = !phot_set->force_radius ? phot_set->aperture : psf->fwhmx * 2.0;
+	appRadius = phot_set->force_radius ? phot_set->aperture : psf->fwhmx * 2.0;	//original line
+//	appRadius = !phot_set->force_radius ? phot_set->aperture : psf->fwhmx * 2.0;
 	siril_log_message(_("phot_set->force_radius: %i\n"), phot_set->force_radius);
 	siril_log_message(_("psf->fwhmx: %lf, appRadius: %lf\n"), psf->fwhmx, appRadius);
 
@@ -231,7 +232,8 @@ void initialize_photometric_param() {
 	com.pref.phot_set.inner = 20;
 	com.pref.phot_set.outer = 30;
 	com.pref.phot_set.aperture = 10;
-	com.pref.phot_set.force_radius = TRUE;
+	com.pref.phot_set.force_radius = FALSE;	//original line
+//	com.pref.phot_set.force_radius = TRUE;
 	com.pref.phot_set.auto_inner_factor = 4.2;
 	com.pref.phot_set.auto_outer_factor = 6.3;
 	com.pref.phot_set.gain = 2.3;
