@@ -3393,7 +3393,7 @@ int process_set_photometry(int nb) {
 				else if (max == 0 || max > 65535) error = TRUE;
 			}
 			else if (g_str_has_prefix(arg, "-dyn_ratio=")) {
-				arg += 14;
+				arg += 11;
 				force = g_ascii_strtod(arg, &end);
 				if (arg == end) error = TRUE;
 			}
@@ -3475,11 +3475,12 @@ int process_set_photometry(int nb) {
 			return CMD_ARG_ERROR;
 		}
 	}
-	siril_log_message(_("Local background annulus radius: %.1f to %.1f, aperture: %.1f (%s), camera conversion gain: %f e-/ADU, using pixels with values ]%f, %f[\n"),
+	siril_log_message(_("Local background annulus radius: %.1f to %.1f, %s: %.1f (%s), camera conversion gain: %f e-/ADU, using pixels with values ]%f, %f[\n"),
 			com.pref.phot_set.inner,
 			com.pref.phot_set.outer,
-			com.pref.phot_set.aperture,
-			com.pref.phot_set.force_radius ? _("forced") : _("unused, dynamic"),
+			com.pref.phot_set.force_radius ? _("aperture") : _("dynamic aperture"),
+			com.pref.phot_set.force_radius ? com.pref.phot_set.aperture : com.pref.phot_set.auto_aperture_factor,
+			com.pref.phot_set.force_radius ? _("forced") : _("times the half-FWHM"),
 			com.pref.phot_set.gain,
 			com.pref.phot_set.minval,
 			com.pref.phot_set.maxval);
