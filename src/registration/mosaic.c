@@ -33,6 +33,7 @@
 #include "algos/siril_wcs.h"
 #include "algos/sorting.h"
 #include "io/sequence.h"
+#include "io/siril_catalogues.h"
 #include "io/image_format_fits.h"
 #include "opencv/opencv.h"
 
@@ -64,17 +65,6 @@ static void compute_center_cog(double *ra, double *dec, int n, double *RA, doubl
 	z /= (double)n;
 	*RA = atan2(y, x) * RADTODEG;
 	*DEC = atan2(z, sqrt(x * x + y * y)) * RADTODEG;
-}
-
-// Haversine formula on unit sphere
-// https://en.wikipedia.org/wiki/Haversine_formula
-// dec is phi, ra is lambda
-static double compute_haversine_distance(double ra1, double dec1, double ra2, double dec2) {
-	double dra_2 = 0.5 * (ra2 - ra1) * DEGTORAD;
-	double ddec_2 = 0.5 * (dec2 - dec1) * DEGTORAD;
-	double h = pow(sin(ddec_2), 2.) + cos(dec1 * DEGTORAD) * cos(dec2 * DEGTORAD) * pow(sin(dra_2), 2.);
-	if (h > 1.) h = 1.;
-	return 2 * asin(pow(h, 0.5));
 }
 
 static gboolean get_scales_and_framing(struct wcsprm *WCSDATA, Homography *K, double *framing) {
@@ -151,7 +141,7 @@ int register_mosaic(struct registration_args *regargs) {
 	int refindex = -1;
 	double mindist = DBL_MAX;
 	for (int i = 0; i < n; i++) {
-		dist[i] = compute_haversine_distance(RA[i], DEC[i], ra0, dec0);
+		dist[i] = compute_coords_distance(RA[i], DEC[i], ra0, dec0);
 		if (dist[i] < mindist) {
 			mindist = dist[i];
 			refindex = i;
