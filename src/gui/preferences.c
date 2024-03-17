@@ -31,6 +31,7 @@
 #include "io/annotation_catalogues.h"
 #include "gui/annotations_pref.h"
 #include "gui/callbacks.h"
+#include "gui/icc_profile.h"
 #include "gui/utils.h"
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"

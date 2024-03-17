@@ -200,6 +200,7 @@ src_files = [
   'gui/fix_xtrans_af.c',
   'gui/histogram.c',
   'gui/keywords_tree.c',
+  'gui/icc_profile.c',
   'gui/image_display.c',
   'gui/image_interactions.c',
   'gui/linear_match.c',
