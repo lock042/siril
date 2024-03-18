@@ -516,7 +516,8 @@ int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homog
 
 // transform an image using a mapping array.
 // note, the mapping array maps *destination* pixels to *source* pixels, not the
-// other way round (this may seem counterintuitive)
+// other way round (this may seem counterintuitive and is the opposite way round
+// to how the mapping array is used in drizzle)
 int cvRemapImage(fits *image, unsigned int width, unsigned int height, float* map, int interpolation, gboolean clamp) {
 	Mat in, out;
 	void *bgr = NULL;
