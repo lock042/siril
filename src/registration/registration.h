@@ -112,6 +112,14 @@ typedef struct {
 	int x, y, w, h;
 } mosaic_roi;
 
+struct mosaic_args{
+	int nb;
+	int refindex;
+	Homography *Rs;
+	Homography *Ks;
+	float scale;
+	pointi tl;
+};
 struct registration_method *new_reg_method(const char *name, registration_function f,
 		selection_type s, registration_type t); // for compositing
 void initialize_registration_methods();
@@ -147,6 +155,7 @@ int seq_has_any_regdata(const sequence *seq); // same as get_registration_layer 
 struct star_align_data {
 	struct registration_args *regargs;
 	regdata *current_regdata;
+	struct mosaic_args *mosargs;
 	psf_star **refstars;
 	int fitted_stars;
 	BYTE *success;
@@ -176,5 +185,7 @@ void SetNullH(Homography *H);
 int shift_fit_from_reg(fits *fit, Homography H);
 
 int minidx(const float *arr, const gboolean *mask, int nb, float *val);
+
+void free_mosaic_args(struct mosaic_args *mosargs);
 
 #endif

@@ -1088,7 +1088,7 @@ void cvcalcH_fromKKR(Homography Kref, Homography K, Homography R, Homography *H)
 
 // TODO: Code below should be moved to a dedicated cvMosaic.cpp file
 
-int cvWarp_fromKR(fits *image, Homography K, Homography R, float scale, mosaic_roi *roiout) {
+int cvWarp_fromKR(fits *image, Homography K, Homography R, float scale, mosaic_roi *roiout, int interpolation, gboolean clamp) {
 	Mat in, out;
 	void *bgr = NULL;
 
@@ -1122,7 +1122,6 @@ int cvWarp_fromKR(fits *image, Homography K, Homography R, float scale, mosaic_r
 	}
 
 	Ptr<detail::RotationWarper> warper = warper_creator->create(static_cast<float>(scale));
-	// k.at<float>(1,1) *= -1.f; // flip bottom up
 	Rect roi = warper->warpRoi(szin, k, r);
 	corners = roi.tl();
 	sizes = roi.size();
@@ -1134,7 +1133,19 @@ int cvWarp_fromKR(fits *image, Homography K, Homography R, float scale, mosaic_r
 	if (image->data || image->fdata) { 
 		if (image_to_Mat(image, &in, &out, &bgr, sizes.width, sizes.height))
 			return 2;
-		warper->warp(in, k, r, INTER_NEAREST, BORDER_CONSTANT, out);
+		warper->warp(in, k, r, interpolation, BORDER_TRANSPARENT, out);
+		if ((interpolation == OPENCV_LANCZOS4 || interpolation == OPENCV_CUBIC) && clamp) {
+			Mat guide, tmp1;
+			init_guide(image, sizes.width, sizes.height, &guide);
+			// Create guide image
+			warper->warp(in, k, r, OPENCV_AREA, BORDER_TRANSPARENT, guide);
+			tmp1 = (out < CLAMPING_FACTOR * guide);
+			Mat element = getStructuringElement(MORPH_ELLIPSE, Size(3, 3), Point(1,1));
+			dilate(tmp1, tmp1, element);
+			copyTo(guide, out, tmp1); // Guide copied to the clamped pixels
+			guide.release();
+			tmp1.release();
+		}
 		// warper->warp(masks, _K, _R, INTER_NEAREST, BORDER_CONSTANT, masks_warped);
 		return Mat_to_image(image, &in, &out, bgr, sizes.width, sizes.height);
 	}

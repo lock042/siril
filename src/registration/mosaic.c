@@ -36,15 +36,10 @@
 #include "io/siril_catalogues.h"
 #include "io/image_format_fits.h"
 #include "opencv/opencv.h"
-
-#ifdef HAVE_WCSLIB
-#include <wcslib.h>
-#include <wcsfix.h>
-#endif
-
-
 #include "registration/registration.h"
 #include "registration/matching/degtorad.h"
+
+static int mosaic_alignment(struct registration_args *regargs, struct mosaic_args *mosargs);
 
 // computing center cog dealing with range jumps
 // https://stackoverflow.com/questions/6671183/calculate-the-center-point-of-multiple-latitude-longitude-coordinate-pairs
@@ -95,7 +90,8 @@ int register_mosaic(struct registration_args *regargs) {
 	struct timeval t_start, t_end;
 
 	regdata *current_regdata = star_align_get_current_regdata(regargs); // clean the structure if it exists, allocates otherwise
-	if (!current_regdata) return -1;
+	if (!current_regdata)
+		return -2;
 	regargs->type = HOMOGRAPHY_TRANSFORMATION; // forcing homography calc
 
 	gettimeofday(&t_start, NULL);
@@ -116,6 +112,8 @@ int register_mosaic(struct registration_args *regargs) {
 	}
 
 	for (int i = 0; i < n; i++) {
+		if (!regargs->seq->imgparam[i].incl && regargs->filters.filter_included)
+			continue;
 		if (seq_read_frame_metadata(regargs->seq, i, &fit)) {
 			siril_log_message(_("Could not load image %d from sequence %s\n"),
 			i + 1, regargs->seq->seqname);
@@ -141,6 +139,8 @@ int register_mosaic(struct registration_args *regargs) {
 	int refindex = -1;
 	double mindist = DBL_MAX;
 	for (int i = 0; i < n; i++) {
+		if (!regargs->seq->imgparam[i].incl && regargs->filters.filter_included)
+			continue;
 		dist[i] = compute_coords_distance(RA[i], DEC[i], ra0, dec0);
 		if (dist[i] < mindist) {
 			mindist = dist[i];
@@ -168,8 +168,9 @@ int register_mosaic(struct registration_args *regargs) {
 	// The "framing" angle is obtained by making the PC matrix a true rotation matrix (averaging of CROTAi)
 
 	rotation_type rottypes[3] = { ROTZ, ROTX, ROTZ};
-
 	for (int i = 0; i < n; i++) {
+		if (!regargs->seq->imgparam[i].incl && regargs->filters.filter_included)
+			continue;
 		double angles[3];
 		angles[0] = 90. - RA[i]; 
 		angles[1] = 90. - DEC[i];
@@ -194,106 +195,172 @@ int register_mosaic(struct registration_args *regargs) {
 		cvRelRot(&Rref, Rs + i);
 	}
 
-	// now we store the relative Rs and cameras K
-	// writing outputs to *.smf file, a.k.a Siril Mosaic File
-	char *filename;
-	FILE *mscfile;
-	if (!regargs->seq->seqname || regargs->seq->seqname[0] == '\0') {
-		retval = 1;
-		goto free_all;
-	}
-	filename = malloc(strlen(regargs->seq->seqname)+5);
-	sprintf(filename, "%s.smf", regargs->seq->seqname);
-	mscfile = g_fopen(filename, "w+t"); // TODO deal with errors
-	for (int i = 0; i < n; i++) {
-		fprintf(mscfile, "%2d K %12.1f %12.1f %8.1f %8.1f R %g %g %g %g %g %g %g %g %g\n",
-		i + 1,
-		Ks[i].h00,
-		Ks[i].h11,
-		Ks[i].h02,
-		Ks[i].h12,
-		Rs[i].h00,
-		Rs[i].h01,
-		Rs[i].h02,
-		Rs[i].h10,
-		Rs[i].h11,
-		Rs[i].h12,
-		Rs[i].h20,
-		Rs[i].h21,
-		Rs[i].h22
-		);
-	}
-	fclose(mscfile);
-
 	// We compute the H matrices wrt to ref as Kref * Rrel * Kimg^-1
 	// The K matrices have the focals on the diag and (rx/2, ry/2) for the translation terms
-	// We add to the seq in order to display some kind of alignment
-	for (int i = 0; i < n; i++) {
+	// We add to the seq in order to display some kind of alignment, sufficient if small FOV
+	for (int i = 0;  i < n; i++) {
+		if (!regargs->seq->imgparam[i].incl && regargs->filters.filter_included)
+			continue;
 		Homography H = { 0 };
 		if (i != refindex) {
 			cvcalcH_fromKKR(Ks[refindex], Ks[i], Rs[i], &H);
 		} else {
 			cvGetEye(&H);
 		}
-		nb_aligned++;
 		current_regdata[i].roundness = 1.;
-		current_regdata[i].fwhm = 0.;
-		current_regdata[i].weighted_fwhm = 0.;
+		current_regdata[i].fwhm = 1.;
+		current_regdata[i].weighted_fwhm = 1.;
 		current_regdata[i].background_lvl = 0.;
 		current_regdata[i].number_of_stars = 1;
 		current_regdata[i].H = H;
-		regargs->seq->imgparam[i].incl = TRUE;
+		nb_aligned++;
+	}
+	regargs->seq->reference_image = refindex;
+
+	// Give the full mosaic output size
+	float scale = 0.5 * (fabs(Ks[refindex].h00) + fabs(Ks[refindex].h11));
+	pointi tl = { INT_MAX, INT_MAX }, br = { INT_MIN, INT_MIN }; // top left and bottom-right
+	gboolean savewarped = !regargs->no_output;
+	struct mosaic_args *margs = NULL;
+	// if we have some output sequence, prepare the mosaic_args
+	if (savewarped) {
+		margs = malloc(sizeof(struct mosaic_args));
+		margs->nb = n;
+		margs->refindex = refindex;
+		margs->Ks = Ks;
+		margs->Rs = Rs;
+		margs->scale = scale;
+	}
+	for (int i = 0;  i < n; i++) {
+		if (!regargs->seq->imgparam[i].incl && regargs->filters.filter_included)
+			continue;
+		seq_read_frame_metadata(regargs->seq, i, &fit);
+		cvWarp_fromKR(&fit, Ks[i], Rs[i], scale, rois + i, OPENCV_NONE, FALSE);
+		clearfits(&fit);
+		// first determine the corners
+		if (rois[i].x < tl.x) tl.x = rois[i].x;
+		if (rois[i].y < tl.y) tl.y = rois[i].y;
+		if (rois[i].x + rois[i].w > br.x) br.x = rois[i].x + rois[i].w;
+		if (rois[i].y + rois[i].h > br.y) br.y = rois[i].y + rois[i].h;
+	}
+	// then compute the roi size and full mosaic space requirement
+	int mosaicw = br.x - tl.x;
+	int mosaich = br.y - tl.y;
+	siril_log_message(_("Full size output mosaic: %d x %d pixels (assuming spherical projection)\n"), mosaicw, mosaich);
+	int64_t frame_size = mosaicw * mosaich * regargs->seq->nb_layers;
+	frame_size *= (get_data_type(regargs->seq->bitpix) == DATA_USHORT) ? sizeof(WORD) : sizeof(float);
+	gchar *mem = g_format_size_full(frame_size, G_FORMAT_SIZE_IEC_UNITS);
+	siril_log_message(_("Space required for full size storage: %s\n"), mem);
+	g_free(mem);
+	if (savewarped) {
+		margs->tl = tl;
 	}
 
-	// // Give the full mosaic output size
-	// float scale = 0.5 * (fabs(Ks[refindex].h00) + fabs(Ks[refindex].h11));
-	// pointi tl = { INT_MAX, INT_MAX }, br = { INT_MIN, INT_MIN }; // top left and bottom-right
-	// gboolean savewarped = TRUE;
-	// for (int i = 0; i < n; i++) {
-	// 	if (savewarped) {
-	// 		seq_read_frame(regargs->seq, i, &fit, FALSE, -1);
-	// 		fits_flip_top_to_bottom(&fit);
-	// 		cvWarp_fromKR(&fit, Ks[i], Rs[i], scale, rois + i);
-	// 		gchar tmp[PATH_MAX];
-	// 		g_snprintf(tmp, PATH_MAX, "mosaic_%s%05d", regargs->seq->seqname, i + 1);
-	// 		fits_flip_top_to_bottom(&fit);
-	// 		savefits(tmp, &fit);
-	// 	} else {
-	// 		seq_read_frame_metadata(regargs->seq, i, &fit);
-	// 		cvWarp_fromKR(&fit, Ks[i], Rs[i], scale, rois + i);
-	// 	}
-	// 	clearfits(&fit);
-	// 	// first determine the corners
-	// 	if (rois[i].x < tl.x) tl.x = rois[i].x;
-	// 	if (rois[i].y < tl.y) tl.y = rois[i].y;
-	// 	if (rois[i].x + rois[i].w > br.x) br.x = rois[i].x + rois[i].w;
-	// 	if (rois[i].y + rois[i].h > br.y) br.y = rois[i].y + rois[i].h;
-	// }
-	// // then compute the roi size and full mosaic space requirement
-	// int mosaicw = br.x - tl.x;
-	// int mosaich = br.y - tl.y;
-	// siril_log_message(_("Full size output mosaic: %d x %d pixels (assuming spherical projection)\n"), mosaicw, mosaich);
-	// int64_t frame_size = mosaicw * mosaich * regargs->seq->nb_layers;
-	// frame_size *= (get_data_type(regargs->seq->bitpix) == DATA_USHORT) ? sizeof(WORD) : sizeof(float);
-	// frame_size += 5760; // FITS double HDU size
-	// gchar *mem = g_format_size_full(frame_size, G_FORMAT_SIZE_IEC_UNITS);
-	// siril_log_message(_("Space required for full size storage: %s\n"), mem);
-	// g_free(mem);
+free_all:
+	free(RA);
+	free(DEC);
+	free(dist);
+	free(rois);
+	for (int i = 0; i < n; i++) {
+		wcsfree(WCSDATA + i);
+	}
+	free(WCSDATA);
+	if (!retval && !regargs->no_output) {
+		return mosaic_alignment(regargs, margs);
+	}
+	free(Ks);
+	free(Rs);
+	fix_selnum(regargs->seq, FALSE);
+	siril_log_message(_("Registration finished.\n"));
+	siril_log_color_message(_("Total: %d failed, %d registered.\n"), "green", failed, nb_aligned);
+	gettimeofday(&t_end, NULL);
+	show_time(t_start, t_end);
+	return retval;
+}
 
-	// for (int i = 0; i < n; i++) {
-	// 	Homography H = { 0 };
-	// 	cvGetEye(&H);
-	// 	H.h02 = rois[i].x - tl.x;
-	// 	H.h12 = rois[i].y - tl.y;
-	// 	nb_aligned++;
-	// 	current_regdata[i].roundness = 1.;
-	// 	current_regdata[i].fwhm = 0.;
-	// 	current_regdata[i].weighted_fwhm = 0.;
-	// 	current_regdata[i].background_lvl = 0.;
-	// 	current_regdata[i].number_of_stars = 1;
-	// 	current_regdata[i].H = H;
-	// 	regargs->seq->imgparam[i].incl = TRUE;
-	// }
+/* image alignment hooks and main process */
+static int mosaic_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads) {
+	struct star_align_data *sadata = args->user;
+	struct registration_args *regargs = sadata->regargs;
+	struct mosaic_args *mosargs = sadata->mosargs;
+	Homography *Rs = mosargs->Rs;
+	Homography *Ks = mosargs->Ks;
+	mosaic_roi roi = { 0 };
+	Homography H = { 0 };
+	cvGetEye(&H);
+
+	sadata->success[out_index] = 0;
+	// TODO: find in opencv codebase if smthg smart can be done with K/R to avoid the double-flip
+	fits_flip_top_to_bottom(fit);
+	int status = cvWarp_fromKR(fit, Ks[out_index], Rs[out_index], mosargs->scale, &roi, regargs->interpolation, regargs->clamp);
+	if (!status) {
+		fits_flip_top_to_bottom(fit);
+		H.h02 = roi.x - mosargs->tl.x;
+		H.h12 = roi.y - mosargs->tl.y;
+	}
+	regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
+	regargs->imgparam[out_index].incl = (int)(!status);
+	regargs->imgparam[out_index].rx = roi.w;
+	regargs->imgparam[out_index].ry = roi.h;
+	regargs->regparam[out_index].fwhm = (in_index == mosargs->refindex) ? 0.5 : 1;
+	regargs->regparam[out_index].weighted_fwhm = 1.;
+	regargs->regparam[out_index].roundness = 1.;
+	regargs->regparam[out_index].background_lvl = 0.;
+	regargs->regparam[out_index].number_of_stars = 1;
+	regargs->regparam[out_index].H = H;
+	sadata->success[out_index] = (int)(!status);
+	return status;
+}
+
+
+static int mosaic_alignment(struct registration_args *regargs, struct mosaic_args *mosargs) {
+	struct generic_seq_args *args = create_default_seqargs(&com.seq);
+	if (regargs->filters.filter_included) {
+		args->filtering_criterion = seq_filter_included;
+		args->nb_filtered_images = regargs->seq->selnum;
+	}
+	args->prepare_hook = star_align_prepare_results; // from global registration
+	args->image_hook = mosaic_image_hook;
+	args->finalize_hook = star_align_finalize_hook;	// from global registration
+	args->stop_on_error = FALSE;
+	args->description = _("Creating the warped images sequence");
+	args->has_output = TRUE;
+	args->output_type = get_data_type(args->seq->bitpix);
+	args->new_seq_prefix = g_strdup("mosaic_");
+	args->load_new_sequence = TRUE;
+	args->already_in_a_thread = TRUE;
+
+	struct star_align_data *sadata = calloc(1, sizeof(struct star_align_data));
+	if (!sadata) {
+		free(args);
+		return -1;
+	}
+	g_free(regargs->prefix);
+	regargs->prefix = g_strdup("mosaic_");
+	sadata->regargs = regargs;
+	sadata->mosargs = mosargs;
+	sadata->current_regdata = NULL;
+	sadata->fitted_stars = 0;
+	sadata->refstars = NULL;
+	args->user = sadata;
+
+	generic_sequence_worker(args);
+	regargs->retval = args->retval;
+	free(args);
+	return regargs->retval;
+}
+
+void free_mosaic_args(struct mosaic_args *mosargs) {
+	if (!mosargs)
+		return;
+	free(mosargs->Ks);
+	free(mosargs->Rs);
+	free(mosargs);
+}
+
+
+
+// FOR LATER
 
 	//Composing the mosaic
 
@@ -302,25 +369,36 @@ int register_mosaic(struct registration_args *regargs) {
 	// savefits("mosaic.fit", &fit);
 	// clearfits(&fit);
 
-	// images may have been excluded but selnum wasn't updated
 
-	regargs->seq->reference_image = refindex;
-	fix_selnum(regargs->seq, FALSE);
-	siril_log_color_message(_("Total: %d failed, %d registered.\n"), "green", failed, nb_aligned);
-	gettimeofday(&t_end, NULL);
-	show_time(t_start, t_end);
+// just in case
 
-
-free_all:
-	free(RA);
-	free(DEC);
-	free(dist);
-	free(Ks);
-	free(Rs);
-	for (int i = 0; i < n; i++) {
-		wcsfree(WCSDATA + i);
-	}
-	free(WCSDATA);
-	return retval;
-}
-
+	// // now we store the relative Rs and cameras K
+	// // writing outputs to *.smf file, a.k.a Siril Mosaic File
+	// char *filename;
+	// FILE *mscfile;
+	// if (!regargs->seq->seqname || regargs->seq->seqname[0] == '\0') {
+	// 	retval = 1;
+	// 	goto free_all;
+	// }
+	// filename = malloc(strlen(regargs->seq->seqname)+5);
+	// sprintf(filename, "%s.smf", regargs->seq->seqname);
+	// mscfile = g_fopen(filename, "w+t"); // TODO deal with errors
+	// for (int i = 0; i < n; i++) {
+	// 	fprintf(mscfile, "%2d K %12.1f %12.1f %8.1f %8.1f R %g %g %g %g %g %g %g %g %g\n",
+	// 	i + 1,
+	// 	Ks[i].h00,
+	// 	Ks[i].h11,
+	// 	Ks[i].h02,
+	// 	Ks[i].h12,
+	// 	Rs[i].h00,
+	// 	Rs[i].h01,
+	// 	Rs[i].h02,
+	// 	Rs[i].h10,
+	// 	Rs[i].h11,
+	// 	Rs[i].h12,
+	// 	Rs[i].h20,
+	// 	Rs[i].h21,
+	// 	Rs[i].h22
+	// 	);
+	// }
+	// fclose(mscfile);

@@ -462,11 +462,6 @@ int star_align_finalize_hook(struct generic_seq_args *args) {
 		}
 	}
 
-	if (sadata->success) free(sadata->success);
-	free(sadata);
-	args->user = NULL;
-	clear_stars_list(FALSE);
-
 	if (!args->retval) {
 		siril_log_message(_("Registration finished.\n"));
 		gchar *str = ngettext("%d image processed.\n", "%d images processed.\n", args->nb_filtered_images);
@@ -485,6 +480,13 @@ int star_align_finalize_hook(struct generic_seq_args *args) {
 	else {
 		siril_log_message(_("Registration aborted.\n"));
 	}
+	if (sadata->success)
+		free(sadata->success);
+	if (sadata->mosargs)
+		free_mosaic_args(sadata->mosargs);
+	free(sadata);
+	args->user = NULL;
+	clear_stars_list(FALSE);
 	return regargs->new_total == 0;
 }
 
