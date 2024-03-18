@@ -68,6 +68,27 @@ static regdata *apply_driz_get_current_regdata(struct driz_args_t *driz) {
 	return current_regdata;
 }
 
+// TODO: make this function account for different framing types, currently it assumes "Current" framing
+static gboolean driz_compute_wcs_framing(struct driz_args_t *driz) {
+	int rx = (driz->seq->is_variable) ? driz->seq->imgparam[driz->reference_image].rx : driz->seq->rx;
+	int ry = (driz->seq->is_variable) ? driz->seq->imgparam[driz->reference_image].ry : driz->seq->ry;
+	int x0, y0, rx_0 = rx, ry_0 = ry, n;
+	double xmin, xmax, ymin, ymax, cogx, cogy;
+
+	regframe framing = { 0 };
+	framing.pt[0].x = 0.;
+	framing.pt[0].y = 0.;
+	framing.pt[1].x = (double)rx;
+	framing.pt[1].y = 0.;
+	framing.pt[2].x = (double)rx;
+	framing.pt[2].y = (double)ry;
+	framing.pt[3].x = 0.;
+	framing.pt[3].y = (double)ry;
+	rx_out = rx_0 * driz->scale;
+	ry_out = ry_0 * driz->scale;
+	return TRUE;
+}
+
 static gboolean driz_compute_framing(struct driz_args_t *driz) {
 	// validity of matrices has already been checked before this call
 	// and null matrices have been discarded
@@ -430,11 +451,13 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	driz->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
 	driz->imgparam[out_index].rx = rx_out;
 	driz->imgparam[out_index].ry = ry_out;
-	driz->regparam[out_index].fwhm = p->current_regdata[in_index].fwhm;
-	driz->regparam[out_index].weighted_fwhm = p->current_regdata[in_index].weighted_fwhm;
-	driz->regparam[out_index].roundness = p->current_regdata[in_index].roundness;
-	driz->regparam[out_index].background_lvl = p->current_regdata[in_index].background_lvl;
-	driz->regparam[out_index].number_of_stars = p->current_regdata[in_index].number_of_stars;
+	if (!driz->use_wcs) {
+		driz->regparam[out_index].fwhm = p->current_regdata[in_index].fwhm;
+		driz->regparam[out_index].weighted_fwhm = p->current_regdata[in_index].weighted_fwhm;
+		driz->regparam[out_index].roundness = p->current_regdata[in_index].roundness;
+		driz->regparam[out_index].background_lvl = p->current_regdata[in_index].background_lvl;
+		driz->regparam[out_index].number_of_stars = p->current_regdata[in_index].number_of_stars;
+	}
 	cvGetEye(&driz->regparam[out_index].H);
 
 	// Compensate metadata for any change in scale
@@ -638,9 +661,6 @@ int apply_drz_compute_mem_limits(struct generic_seq_args *args, gboolean for_wri
 		* the output counts image, the same size as the scaled image
 		*/
 	unsigned int required = MB_per_orig_image + 2 * MB_per_double_channel + MB_per_float_channel + 2 * MB_per_scaled_image;
-	// If interpolation clamping is set, 2x additional Mats of the same format
-	// as the original image are required
-//	struct registration_args *regargs = driz->regargs;
 
 	if (limit > 0) {
 
@@ -700,7 +720,7 @@ int apply_drizzle(struct driz_args_t *driz) {
 	args->compute_mem_limits_hook = apply_drz_compute_mem_limits;
 	args->prepare_hook = apply_drz_prepare_hook;
 	args->image_hook = apply_drz_image_hook;
-	args->save_hook = apply_drz_save_hook; // TODO: write this to handle the dual sequences
+	args->save_hook = apply_drz_save_hook;
 	args->finalize_hook = apply_drz_finalize_hook;
 	args->description = _("Apply drizzle");
 	args->has_output = TRUE;
@@ -725,39 +745,9 @@ int apply_drizzle(struct driz_args_t *driz) {
 	driz->is_bayer = (fit.bayer_pattern[0] != '\0'); // If there is a CFA pattern we need to CFA drizzle
 	sensor_pattern pattern = com.pref.debayer.use_bayer_header ? get_cfa_pattern_index_from_string(fit.bayer_pattern) : com.pref.debayer.bayer_pattern;
 	if (driz->is_bayer) {
-		switch (pattern) {
-			case BAYER_FILTER_BGGR:
-				driz->cfa = "2110";
-				break;
-			case BAYER_FILTER_GRBG:
-				driz->cfa = "1012";
-				break;
-			case BAYER_FILTER_RGGB:
-				driz->cfa = "0112";
-				break;
-			case BAYER_FILTER_GBRG:
-				driz->cfa = "1210";
-				break;
-			case XTRANS_FILTER_1:
-	//						"GGRGGBGGBGGRBRGRBGGGBGGRGGRGGBRBGBRG"
-				driz->cfa = "110112112110201021112110110112021201";
-				break;
-			case XTRANS_FILTER_2:
-	//						"RBGBRGGGRGGBGGBGGRBRGRBGGGBGGRGGRGGB";
-				driz->cfa = "021201110112112110201021112110110112";
-				break;
-			case XTRANS_FILTER_3:
-	//						"GRGGBGBGBRGRGRGGBGGBGGRGRGRBGBGBGGRG";
-				driz->cfa = "101121212010101121121101010212121101";
-				break;
-			case XTRANS_FILTER_4:
-	//						"GBGGRGRGRBGBGBGGRGGRGGBGBGBRGRGRGGBG";
-				driz->cfa = "121101010212121101101121212010101121";
-				break;
-			default:
-				siril_log_color_message(_("Error: cannot drizzle this CFA pattern\n"), "red");
-				return -1;
-		}
+		driz->cfa = get_cfa_from_pattern(pattern);
+		if (!driz->cfa) // if fit.bayer_pattern exists and get_cfa_from_pattern returns NULL then there is a problem.
+			return 1;
 	}
 
 	start_in_new_thread(generic_sequence_worker, args);
@@ -803,35 +793,38 @@ static void create_output_sequence_for_apply_driz(struct driz_args_t *args) {
 
 gboolean check_before_applydrizzle(struct driz_args_t *driz) {
 	// check the reference image matrix is not null
-	if (!(driz && driz->seq && driz->seq->regparam[0])) {
+/*	if (!(driz && driz->seq && (!driz->use_wcs && driz->seq->regparam[0]))) {
 		siril_log_color_message(_("Error: registration parameters not found, aborting\n"), "red");
 		return FALSE;
-	}
-	transformation_type checkH = guess_transform_from_H(driz->seq->regparam[0][driz->seq->reference_image].H);
-	if (checkH == NULL_TRANSFORMATION) {
-		siril_log_color_message(_("The reference image has a null matrix and was not previously aligned, choose another one, aborting\n"), "red");
-		return FALSE;
-	}
+	}*/
 
-	transformation_type min, max;
-	guess_transform_from_seq(driz->seq, 0, &min, &max, TRUE);
+	if (!driz->use_wcs) {
+		transformation_type checkH = guess_transform_from_H(driz->seq->regparam[0][driz->seq->reference_image].H);
+		if (checkH == NULL_TRANSFORMATION) {
+			siril_log_color_message(_("The reference image has a null matrix and was not previously aligned, choose another one, aborting\n"), "red");
+			return FALSE;
+		}
 
-	// check that we are not trying to apply identity transform to all the images
-	if (max == IDENTITY_TRANSFORMATION) {
-		siril_log_color_message(_("Existing registration data is a set of identity matrices, no transformation would be applied, aborting\n"), "red");
-		return FALSE;
-	}
+		transformation_type min, max;
+		guess_transform_from_seq(driz->seq, 0, &min, &max, TRUE);
 
-	// check that we are not trying to apply null transform to all the images
-	if (max == NULL_TRANSFORMATION || (driz->seq->selnum <= 1) ) {
-		siril_log_color_message(_("Existing registration data is a set of null matrices, no transformation would be applied, aborting\n"), "red");
-		return FALSE;
-	}
+		// check that we are not trying to apply identity transform to all the images
+		if (max == IDENTITY_TRANSFORMATION) {
+			siril_log_color_message(_("Existing registration data is a set of identity matrices, no transformation would be applied, aborting\n"), "red");
+			return FALSE;
+		}
 
-	// force -selected if some matrices were null
-	if (min == NULL_TRANSFORMATION) {
-		siril_log_color_message(_("Some images were not registered, excluding them\n"), "salmon");
-		driz->filters.filter_included = TRUE;
+		// check that we are not trying to apply null transform to all the images
+		if (max == NULL_TRANSFORMATION || (driz->seq->selnum <= 1) ) {
+			siril_log_color_message(_("Existing registration data is a set of null matrices, no transformation would be applied, aborting\n"), "red");
+			return FALSE;
+		}
+
+		// force -selected if some matrices were null
+		if (min == NULL_TRANSFORMATION) {
+			siril_log_color_message(_("Some images were not registered, excluding them\n"), "salmon");
+			driz->filters.filter_included = TRUE;
+		}
 	}
 
 	// cog framing method requires all images to be of same size
@@ -856,7 +849,8 @@ gboolean check_before_applydrizzle(struct driz_args_t *driz) {
 	g_free(str);
 
 	// determines the reference homography (including framing shift) and output size
-	if (!driz_compute_framing(driz)) {
+	int ret = (driz->use_wcs) ? (driz_compute_wcs_framing(driz)) : (driz_compute_framing(driz));
+	if (!ret) {
 		siril_log_color_message(_("Unknown framing method, aborting\n"), "red");
 		return FALSE;
 	}

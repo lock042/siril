@@ -214,7 +214,7 @@ int map_image_coordinates_wcs(int width, int height, struct wcsprm *wcs_i, struc
 	int ncoord = width;
 	const int nelem = 2;
 
-	double *pixcrd = malloc(ncoord * height * 2 * sizeof(double));
+	double *pixcrd = malloc(npixels * 2 * sizeof(double));
 	if (!pixcrd) {
 		return 1;
 	}
@@ -231,7 +231,7 @@ int map_image_coordinates_wcs(int width, int height, struct wcsprm *wcs_i, struc
 		free(pixcrd);
 		return 1;
 	}
-	double *imgcrd = malloc(2 * npixels * sizeof(double));
+	double *imgcrd = malloc(2 * ncoord * sizeof(double));
 	if (!imgcrd) {
 		free(world);
 		free(pixcrd);
@@ -291,16 +291,19 @@ int map_image_coordinates_wcs(int width, int height, struct wcsprm *wcs_i, struc
 			return 1;
 		}
 	}
+	free(imgcrd);
 	free(world);
 	free(phi);
 	free(theta);
 	free(status);
 
-	p->pixmap = realloc(imgcrd, ncoord * 2 * sizeof(float));
-	if (!p->pixmap) // should never happen as realloc halves the allocation
+	p->pixmap = malloc(npixels * 2 * sizeof(float));
+	if (!p->pixmap) {
+		free(pixcrd);
 		return 1;
+	}
 
-	size_t maxindex = ncoord * 2;
+	size_t maxindex = npixels * 2;
 	for (index = 0 ; index < maxindex ; index++) {
 		p->pixmap[index] = (float) pixcrd[index] * scale;
 	}
