@@ -39,6 +39,7 @@
 #include "gui/cut.h"
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
+#include "gui/icc_profile.h"
 #include "gui/message_dialog.h"
 #include "gui/preferences.h"
 #include "gui/plot.h"
@@ -225,6 +226,8 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 		retval = any_to_fits(imagetype, realname, dest, allow_dialogs, force_float, com.pref.debayer.open_debayer);
 		if (!retval)
 			debayer_if_needed(imagetype, dest, FALSE);
+		if (com.pref.debayer.open_debayer || imagetype != TYPEFITS)
+			update_fits_header(dest);
 	}
 	if (is_sequence) {
 		*is_sequence = single_sequence;

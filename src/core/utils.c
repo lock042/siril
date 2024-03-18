@@ -766,6 +766,24 @@ int is_readable_file(const char *filename) {
 	return 0;
 }
 
+/**
+ * Tests whether the given file is a symlink
+ * @param filename input
+ * @return 1 if file is symlink
+ */
+int is_symlink_file(const char *filename) {
+	GStatBuf sts;
+	if (g_lstat(filename, &sts))
+		return 0;
+#ifndef _WIN32
+	if (S_ISLNK(sts.st_mode))
+#else
+	if (GetFileAttributesA(filename) & FILE_ATTRIBUTE_REPARSE_POINT )
+#endif
+		return 1;
+	return 0;
+}
+
 // https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
 // we still allow for '.' though
 static gchar forbidden_char[] = { '/', '\\', '"', '\'' , '?', '%', '*', ':', '|', '<', '>', ';', '='};

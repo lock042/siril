@@ -67,20 +67,20 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="page-increment">100</property>
   </object>
   <object class="GtkAdjustment" id="adj_asnet_max_sec">
-    <property name="lower">0</property>
     <property name="upper">100000</property>
     <property name="value">30</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
-  <object class="GtkAdjustment" id="adj_asnet_radius">
+  <object class="GtkAdjustment" id="adj_astrometry_radius">
     <property name="lower">0.01</property>
-    <property name="upper">180</property>
+    <property name="upper">30</property>
     <property name="value">10</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
-  <object class="GtkAdjustment" id="adj_asnet_spi_order">
+  <object class="GtkAdjustment" id="adj_astrometry_sip_order">
+    <property name="lower">1</property>
     <property name="upper">5</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
@@ -143,8 +143,9 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="adj_sampling_tolerance">
+    <property name="lower">10</property>
     <property name="upper">50</property>
-    <property name="value">15</property>
+    <property name="value">20</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
@@ -1076,8 +1077,8 @@ It depends on the acquistion software used to create the FITS.</property>
                   <object class="GtkScrolledWindow">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
-                    <property name="shadow-type">in</property>
                     <property name="hscrollbar-policy">never</property>
+                    <property name="shadow-type">in</property>
                     <child>
                       <object class="GtkViewport">
                         <property name="visible">True</property>
@@ -1115,6 +1116,7 @@ It depends on the acquistion software used to create the FITS.</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
                                     <property name="margin-start">12</property>
+                                    <property name="margin-end">12</property>
                                     <property name="orientation">vertical</property>
                                     <property name="spacing">5</property>
                                     <child>
@@ -1571,12 +1573,12 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                           <object class="GtkSpinButton" id="spin_asnet_sip_order">
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
-                                            <property name="tooltip-text" translatable="yes">Astrometry solvers can use a polynomial correction (SIP) to work with optical aberrations, this is the default order of the polynomial model. 0 or 1 disable it.</property>
+                                            <property name="tooltip-text" translatable="yes">Astrometry solvers can use a polynomial correction (SIP) to work with optical aberrations, this is the default order of the polynomial model. Set to 1 to disable it.</property>
                                             <property name="halign">start</property>
                                             <property name="width-chars">9</property>
                                             <property name="text" translatable="yes">3</property>
                                             <property name="input-purpose">digits</property>
-                                            <property name="adjustment">adj_asnet_spi_order</property>
+                                            <property name="adjustment">adj_astrometry_sip_order</property>
                                           </object>
                                           <packing>
                                             <property name="expand">False</property>
@@ -1620,7 +1622,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                             <property name="width-chars">9</property>
                                             <property name="text" translatable="yes">10.00</property>
                                             <property name="input-purpose">number</property>
-                                            <property name="adjustment">adj_asnet_radius</property>
+                                            <property name="adjustment">adj_astrometry_radius</property>
                                             <property name="digits">2</property>
                                             <property name="value">10</property>
                                           </object>
@@ -3624,6 +3626,65 @@ It is strongly recommended to leave this enabled. If you choose not to use the r
                                   </packing>
                                 </child>
                                 <child>
+                                  <object class="GtkFrame">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="label-xalign">0</property>
+                                    <property name="shadow-type">none</property>
+                                    <child>
+                                      <!-- n-columns=2 n-rows=1 -->
+                                      <object class="GtkGrid">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="row-spacing">6</property>
+                                        <property name="column-spacing">6</property>
+                                        <property name="column-homogeneous">True</property>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">Middle button double click</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">0</property>
+                                            <property name="top-attach">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkComboBoxText" id="pref_ui_mmb_zoom">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="active">0</property>
+                                            <items>
+                                              <item translatable="yes">Zoom to fit</item>
+                                              <item translatable="yes">Zoom 100% centred on mouse</item>
+                                              <item translatable="yes">Zoom toggles between fit and 100%</item>
+                                            </items>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">1</property>
+                                            <property name="top-attach">0</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <child type="label">
+                                      <object class="GtkLabel">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="ypad">6</property>
+                                        <property name="label" translatable="yes">Mouse Behaviour</property>
+                                      </object>
+                                    </child>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">7</property>
+                                  </packing>
+                                </child>
+                                <child>
                                   <object class="GtkFrame" id="frame4">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
@@ -3786,7 +3847,7 @@ It is strongly recommended to leave this enabled. If you choose not to use the r
                                   <packing>
                                     <property name="expand">False</property>
                                     <property name="fill">True</property>
-                                    <property name="position">7</property>
+                                    <property name="position">8</property>
                                   </packing>
                                 </child>
                               </object>

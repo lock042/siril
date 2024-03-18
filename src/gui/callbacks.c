@@ -34,6 +34,7 @@
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
 #include "gui/cut.h"
+#include "gui/keywords_tree.h"
 #include "algos/siril_wcs.h"
 #include "algos/star_finder.h"
 #include "io/annotation_catalogues.h"
@@ -707,6 +708,8 @@ void update_MenuItem() {
 	siril_window_enable_rgb_proc_actions(app_win, is_a_singleRGB_image_loaded);
 	/* single RGB image with wcs information is needed */
 	siril_window_enable_rgb_wcs_proc_actions(app_win, is_a_singleRGB_image_loaded && has_wcs(&gfit));
+	/* single or sequence RGB is needed */
+	siril_window_enable_any_rgb_proc_actions(app_win, is_a_singleRGB_image_loaded|| sequence_is_loaded());
 	/* any image is needed */
 	siril_window_enable_any_proc_actions(app_win, any_image_is_loaded);
 	/* any mono image is needed */
@@ -721,6 +724,9 @@ void update_MenuItem() {
 
 	/* auto-stretch actions */
 	siril_window_autostretch_actions(app_win, gui.rendering_mode == STF_DISPLAY && gfit.naxes[2] == 3);
+
+	/* keywords list */
+	refresh_keywords_dialog();
 }
 
 void sliders_mode_set_state(sliders_mode sliders) {
@@ -1544,7 +1550,7 @@ void initialize_all_GUI(gchar *supported_files) {
 	initialize_stacking_methods();
 
 	/* set focal and pixel pitch */
-	set_focal_and_pixel_pitch();
+	init_astrometry();
 
 	initialize_FITS_name_entries();
 

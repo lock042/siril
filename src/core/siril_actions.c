@@ -44,6 +44,7 @@
 #include "gui/callbacks.h"
 #include "gui/documentation.h"
 #include "gui/histogram.h"
+#include "gui/icc_profile.h"
 #include "gui/open_dialog.h"
 #include "gui/message_dialog.h"
 #include "gui/PSF_list.h"
@@ -527,7 +528,7 @@ void image_information_activate(GSimpleAction *action, GVariant *parameter, gpoi
 }
 
 void image_fits_header_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	show_FITS_header(&gfit);
+	siril_open_dialog("keywords_dialog");
 }
 
 /******* processing menu **************/

@@ -31,6 +31,7 @@
 #include "io/annotation_catalogues.h"
 #include "gui/annotations_pref.h"
 #include "gui/callbacks.h"
+#include "gui/icc_profile.h"
 #include "gui/utils.h"
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
@@ -122,8 +123,9 @@ static void update_astrometry_preferences() {
 	com.pref.astrometry.max_seconds_run = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("spin_asnet_max_sec")));
 	com.pref.astrometry.update_default_scale = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("astrometry_update_fields")));
 	com.pref.astrometry.show_asnet_output = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_asnet_show_output")));
-	// In the prefs structure, the dir is stored alongside starnet and gnuplot, not in astrometry
+	// In the prefs structure, the dir is stored alongside starnet, not in astrometry
 	com.pref.asnet_dir = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("filechooser_asnet")));
+	reset_astrometry_checks();
 }
 
 static void update_prepro_preferences() {
@@ -226,6 +228,7 @@ static void update_user_interface_preferences() {
 	com.pref.gui.default_rendering_mode = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_default_stf")));
 	com.pref.gui.display_histogram_mode = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_default_histo_mode")));
 	com.pref.gui.roi_mode = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_ui_roimode")));
+	com.pref.gui.mmb_action = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_ui_mmb_zoom")));
 	update_roi_config();
 	/* Configure colors */
 	GdkRGBA color;
@@ -717,6 +720,7 @@ void update_preferences_from_model() {
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_default_stf")), pref->gui.default_rendering_mode);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_default_histo_mode")), pref->gui.display_histogram_mode);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_ui_roimode")), pref->gui.roi_mode);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_ui_mmb_zoom")), pref->gui.mmb_action);
 
 	GdkRGBA color;
 	gdk_rgba_parse(&color, pref->gui.config_colors.color_bkg_samples);

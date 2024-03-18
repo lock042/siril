@@ -32,6 +32,7 @@
 #include "gui/utils.h"
 #include "gui/message_dialog.h"
 #include "gui/dialog_preview.h"
+#include "gui/icc_profile.h"
 #include "gui/utils.h"
 #include "gui/image_display.h"
 #include "gui/callbacks.h"
@@ -229,12 +230,14 @@ static void prepare_savepopup() {
 	static GtkNotebook* notebookFormat = NULL;
 	static GtkWidget *savepopup = NULL;
 	static GtkWidget *savetxt = NULL;
+	static GtkWidget *button_savepopup = NULL;
 	int tab;
 
 	if (notebookFormat == NULL) {
 		notebookFormat = GTK_NOTEBOOK(lookup_widget("notebookFormat"));
 		savepopup = lookup_widget("savepopup");
 		savetxt = lookup_widget("filenameframe");
+		button_savepopup = lookup_widget("button_savepopup");
 	}
 
 	GtkWindow *parent = GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
@@ -277,6 +280,7 @@ static void prepare_savepopup() {
 
 	gtk_widget_set_visible(savetxt, FALSE);
 	gtk_notebook_set_current_page(notebookFormat, tab);
+	gtk_widget_grab_focus(button_savepopup);
 }
 
 static void init_dialog() {
