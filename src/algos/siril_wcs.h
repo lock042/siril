@@ -52,6 +52,7 @@ void wcs_mat2pc(wcsprm_t *prm, double pc[NAXIS][NAXIS]);
 void wcs_mat2cd(wcsprm_t *prm, double cd[NAXIS][NAXIS]);
 void wcs_mat2cdelt(wcsprm_t *prm, double cdelt[NAXIS]);
 void wcs_decompose_cd(wcsprm_t *prm, double cd[NAXIS][NAXIS]);
+gboolean image_is_flipped_from_wcs(struct wcsprm *wcslib);
 
 int extract_SIP_order_and_matrices(struct disprm *dis, 
 		double A[MAX_SIP_SIZE][MAX_SIP_SIZE],

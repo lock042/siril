@@ -75,11 +75,12 @@ static gboolean get_scales_and_framing(struct wcsprm *WCSDATA, Homography *K, do
 			pc[i][j] = *(pcij++);
 		}
 	}
+	int flipped = (image_is_flipped_from_wcs(WCSDATA)) ? -1 : 1;
 
 	K->h00 = -RADTODEG / cdelt[0];
-	K->h11 = RADTODEG / cdelt[1];
-	double rotation1 = atan2(pc[0][1], pc[0][0]);
-	double rotation2 = atan2(-pc[1][0], pc[1][1]);
+	K->h11 = flipped * RADTODEG / cdelt[1];
+	double rotation1 = atan2(flipped * pc[0][1], pc[0][0]);
+	double rotation2 = atan2(-pc[1][0], flipped * pc[1][1]);
 	*framing = -0.5 * (rotation1 + rotation2) * RADTODEG;
 	return TRUE;
 }
