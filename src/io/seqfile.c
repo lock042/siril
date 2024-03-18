@@ -399,7 +399,7 @@ sequence * readseqfile(const char *name){
 					GString *fileString = g_string_new(filename);
 					g_string_append(fileString, get_com_ext(seq->fz));
 					seq->fitseq_file->filename = g_string_free(fileString, FALSE);
-					if (fitseq_open(seq->fitseq_file->filename, seq->fitseq_file)) {
+					if (fitseq_open(seq->fitseq_file->filename, seq->fitseq_file, READONLY)) {
 						g_free(seq->fitseq_file->filename);
 						free(seq->fitseq_file);
 						seq->fitseq_file = NULL;

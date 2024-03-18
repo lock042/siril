@@ -1304,7 +1304,7 @@ static seqread_status open_next_input_sequence(const char *src_filename, convert
 		convert->current_fitseq = malloc(sizeof(fitseq));
 		fitseq_init_struct(convert->current_fitseq);
 		siril_log_message(_("Reading %s\n"), src_filename);
-		if (fitseq_open(name, convert->current_fitseq)) {
+		if (fitseq_open(name, convert->current_fitseq, READONLY)) {
 			siril_log_message(_("Error while opening ser file %s, ignoring file.\n"), src_filename);
 			free(convert->current_fitseq);
 			convert->current_fitseq = NULL;

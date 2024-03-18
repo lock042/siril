@@ -622,8 +622,10 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 		fit->exposure = exposure;
 	if (aperture > 0.0)
 		fit->aperture = aperture;
-	if (focal_length > 0.0)
+	if (focal_length > 0.0) {
 		fit->focal_length = focal_length;
+		fit->focalkey = TRUE;
+	}
 	if (description) {
 		if (g_str_has_prefix(description, "SIMPLE  =")) {
 			// It is FITS header, copy it
@@ -2092,10 +2094,14 @@ static int readraw_in_cfa(const char *name, fits *fit) {
 	// other straight-from-the-camera formats we do not set a profile: the user
 	// may assign one if they wish.
 	color_manage(fit, FALSE);
-	if (pitch > 0.f)
+	if (pitch > 0.f) {
 		fit->pixel_size_x = fit->pixel_size_y = pitch;
-	if (raw->other.focal_len > 0.f)
+		fit->pixelkey = TRUE;
+	}
+	if (raw->other.focal_len > 0.f) {
 		fit->focal_length = raw->other.focal_len;
+		fit->focalkey = TRUE;
+	}
 	if (raw->other.iso_speed > 0.f)
 		fit->iso_speed = raw->other.iso_speed;
 	if (raw->other.shutter > 0.f)

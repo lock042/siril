@@ -76,6 +76,7 @@ struct astrometry_data {
 	int trans_order; // order of the polynomial fit (if > 1, it includes distortions)
 	double searchradius; // radius of the cone if nearsearch in degrees
 	gboolean forced_metadata[3]; // flags using for seq, to indicate if center, pixel and focal where forced
+	gboolean force; // flag to force solving again already solved images from sequence
 
 	/* program-processed input, by process_plate_solver_input() */
 	double scale;		// scale (resolution) in arcsec per pixel
@@ -84,11 +85,15 @@ struct astrometry_data {
 	gboolean uncentered;	// solvearea is not centered with image
 	gboolean asnet_checked;	// local asnet availability already checked
 	gboolean near_solve; // if this flag is false, ref_stars conesearch is done once (mainly when catalogs are not local)
+	gboolean asnet_blind_pos; // if this flag is true, no position is passed to asnet, the solve is blind in position
+	gboolean asnet_blind_res; // if this flag is true, no resolution is passed to asnet, the solve is blind in scale
 	int numthreads; //nb of threads that can be used
 
 	/* results */
 	int ret;		// return value
 	gboolean image_flipped;	// image has been flipped
+	int seqprogress; // used to log number of solved images when processing a sequence
+	int seqskipped; // used to log number of skipped images (already solved) when processing a sequence
 };
 
 typedef struct {
@@ -116,7 +121,10 @@ double compute_mag_limit_from_position_and_fov(double ra, double dec, double fov
 gboolean confirm_delete_wcs_keywords(fits *fit);
 void reframe_astrometry_data(fits *fit, Homography H);
 
-void set_focal_and_pixel_pitch();
+void init_astrometry();
+void reset_astrometry_checks();
+void initialize_ips_dialog();
+
 
 void start_sequence_astrometry(sequence *seq, struct astrometry_data *args);
 

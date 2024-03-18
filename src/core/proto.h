@@ -134,6 +134,7 @@ char* remove_ext_from_filename(const char *basename);
 gchar *replace_ext(const char *path, const char *new_ext);
 gboolean string_is_a_path(const char *file);
 int is_readable_file(const char *filename);
+int is_symlink_file(const char *filename);
 gboolean is_forbiden_in_filename(gchar c);
 gboolean file_name_has_invalid_chars(const char *name);
 void replace_invalid_chars(char *name, char repl);

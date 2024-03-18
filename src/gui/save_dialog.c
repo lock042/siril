@@ -32,6 +32,7 @@
 #include "gui/utils.h"
 #include "gui/message_dialog.h"
 #include "gui/dialog_preview.h"
+#include "gui/icc_profile.h"
 #include "gui/utils.h"
 #include "gui/image_display.h"
 #include "gui/callbacks.h"
