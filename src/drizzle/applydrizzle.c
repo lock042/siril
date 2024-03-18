@@ -724,45 +724,40 @@ int apply_drizzle(struct driz_args_t *driz) {
 
 	driz->is_bayer = (fit.bayer_pattern[0] != '\0'); // If there is a CFA pattern we need to CFA drizzle
 	sensor_pattern pattern = com.pref.debayer.use_bayer_header ? get_cfa_pattern_index_from_string(fit.bayer_pattern) : com.pref.debayer.bayer_pattern;
-	switch (pattern) {
-		case BAYER_FILTER_BGGR:
-			driz->cfa = "2110";
-//				driz->cfa = 0x16161616;
-			break;
-		case BAYER_FILTER_GRBG:
-			driz->cfa = "1012";
-//				driz->cfa = 0x61616161;
-			break;
-		case BAYER_FILTER_RGGB:
-			driz->cfa = "0112";
-//				driz->cfa = 0x94949494;
-			break;
-		case BAYER_FILTER_GBRG:
-			driz->cfa = "1210";
-//				driz->cfa = 0x49494949;
-			break;
-		case XTRANS_FILTER_1:
-//				driz->cfa = "GGRGGBGGBGGRBRGRBGGGBGGRGGRGGBRBGBRG"
-			driz->cfa = "110112112110201021112110110112021201";
-			break;
-		case XTRANS_FILTER_2:
-//				driz->cfa = "RBGBRGGGRGGBGGBGGRBRGRBGGGBGGRGGRGGB";
-			driz->cfa = "021201110112112110201021112110110112";
-			break;
-		case XTRANS_FILTER_3:
-//				driz->cfa = "GRGGBGBGBRGRGRGGBGGBGGRGRGRBGBGBGGRG";
-			driz->cfa = "101121212010101121121101010212121101";
-			break;
-		case XTRANS_FILTER_4:
-//				driz->cfa = "GBGGRGRGRBGBGBGGRGGRGGBGBGBRGRGRGGBG";
-			driz->cfa = "121101010212121101101121212010101121";
-			break;
-		default:
-			driz->cfa = '\0';
-			if (driz->is_bayer) {
+	if (driz->is_bayer) {
+		switch (pattern) {
+			case BAYER_FILTER_BGGR:
+				driz->cfa = "2110";
+				break;
+			case BAYER_FILTER_GRBG:
+				driz->cfa = "1012";
+				break;
+			case BAYER_FILTER_RGGB:
+				driz->cfa = "0112";
+				break;
+			case BAYER_FILTER_GBRG:
+				driz->cfa = "1210";
+				break;
+			case XTRANS_FILTER_1:
+	//						"GGRGGBGGBGGRBRGRBGGGBGGRGGRGGBRBGBRG"
+				driz->cfa = "110112112110201021112110110112021201";
+				break;
+			case XTRANS_FILTER_2:
+	//						"RBGBRGGGRGGBGGBGGRBRGRBGGGBGGRGGRGGB";
+				driz->cfa = "021201110112112110201021112110110112";
+				break;
+			case XTRANS_FILTER_3:
+	//						"GRGGBGBGBRGRGRGGBGGBGGRGRGRBGBGBGGRG";
+				driz->cfa = "101121212010101121121101010212121101";
+				break;
+			case XTRANS_FILTER_4:
+	//						"GBGGRGRGRBGBGBGGRGGRGGBGBGBRGRGRGGBG";
+				driz->cfa = "121101010212121101101121212010101121";
+				break;
+			default:
 				siril_log_color_message(_("Error: cannot drizzle this CFA pattern\n"), "red");
 				return -1;
-			}
+		}
 	}
 
 	start_in_new_thread(generic_sequence_worker, args);

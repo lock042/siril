@@ -24,6 +24,7 @@
 
 #include "algos/demosaicing.h"
 #include "utils.h"
+#include "core/siril_log.h"
 #include "message_dialog.h"
 
 struct _label_data {
@@ -321,41 +322,87 @@ void siril_set_file_filter(const gchar* widget_name, const gchar* filter_name) {
 }
 
 /** Calculate the bayer pattern color from the row and column **/
-static inline int FC(const size_t row, const size_t col, const uint32_t filters) {
-	return filters >> (((row << 1 & 14) + (col & 1)) << 1) & 3;
+
+static inline int FC(const size_t row, const size_t col, const size_t dim, const char *cfa) {
+	return !cfa ? 0 : cfa[(col % dim) + (row % dim) * dim] - '0';
 }
+
+const char* get_cfa_from_pattern(sensor_pattern pattern) {
+	const char* cfa;
+	switch (pattern) {
+		case BAYER_FILTER_BGGR:
+			cfa = "2110";
+			break;
+		case BAYER_FILTER_GRBG:
+			cfa = "1012";
+			break;
+		case BAYER_FILTER_RGGB:
+			cfa = "0112";
+			break;
+		case BAYER_FILTER_GBRG:
+			cfa = "1210";
+			break;
+		case XTRANS_FILTER_1:
+//				  "GGRGGBGGBGGRBRGRBGGGBGGRGGRGGBRBGBRG"
+			cfa = "110112112110201021112110110112021201";
+			break;
+		case XTRANS_FILTER_2:
+//				  "RBGBRGGGRGGBGGBGGRBRGRBGGGBGGRGGRGGB";
+			cfa = "021201110112112110201021112110110112";
+			break;
+		case XTRANS_FILTER_3:
+//				  "GRGGBGBGBRGRGRGGBGGBGGRGRGRBGBGBGGRG";
+			cfa = "101121212010101121121101010212121101";
+			break;
+		case XTRANS_FILTER_4:
+//				  "GBGGRGRGRBGBGBGGRGGRGGBGBGBRGRGRGGBG";
+			cfa = "121101010212121101101121212010101121";
+			break;
+		default:
+			siril_log_color_message(_("Error: unknown CFA pattern\n"), "red");
+			return NULL;
+	}
+	return cfa;
+}
+
+#define RECIPSQRT2 0.70710677f;
+
+// These interpolation routines will work for X-Trans as well as Bayer patterns
 
 static void interpolate_nongreen_float(fits *fit) {
 	sensor_pattern pattern = get_bayer_pattern(fit);
-	for (int row = 0; row < fit->ry - 1; row++) {
-		for (int col = 0; col < fit->rx - 1; col++) {
-			if (FC(row, col, pattern) == 1)
+	const char *cfa = get_cfa_from_pattern(pattern);
+	if (!cfa)
+		return;
+	size_t cfadim = !cfa ? 1 : strlen(cfa) == 4 ? 2 : 6;
+	uint32_t width = fit->rx;
+	uint32_t height = fit->ry;
+	for (int row = 0; row < height - 1; row++) {
+		for (int col = 0; col < width - 1; col++) {
+			if (FC(row, col, cfadim, cfa) == 1)
 				continue;
-			uint32_t index = col + row * fit->rx;
+			uint32_t index = col + row * width;
 			float interp = 0.f;
 			float weight = 0.f;
-			gboolean first_y = (index / fit->rx == 0) ? TRUE : FALSE;
-			gboolean last_y = (index / fit->rx == fit->ry - 1) ? TRUE : FALSE;
-			gboolean first_x = (index % fit->rx == 0) ? TRUE : FALSE;
-			gboolean last_x = (index % fit->rx == fit->rx - 1) ? TRUE : FALSE;
-			if (!first_y) {
-				interp += fit->fdata[index - fit->rx];
-				weight++;
+			for (int dy = -1; dy <= 1; dy++) {
+				for (int dx = -1; dx <= 1; dx++) {
+					if (dx != 0 || dy != 0) {
+						// Check if the neighboring pixel is within the image bounds and green
+						int nx = col + dx;
+						int ny = row + dy;
+						if (FC(nx, ny, cfadim, cfa) == 1 && nx >= 0 && nx < width && ny >= 0 && ny < height) {
+							// Calculate distance from the current pixel
+							float distance = dx + dy;
+							// Calculate weight for the neighboring pixel
+							float weight = (distance == 1) ? 1 : RECIPSQRT2;
+							// Accumulate weighted green values and total weight
+							interp += weight * fit->fdata[nx + ny * width];
+							weight += weight;
+						}
+					}
+				}
 			}
-			if (!first_x) {
-				interp += fit->fdata[index - 1];
-				weight++;
-			}
-			if (!last_x) {
-				interp += fit->fdata[index + 1];
-				weight++;
-			}
-			if (!last_y) {
-				interp += fit->fdata[index + fit->rx];
-				weight ++;
-			}
-			interp /= weight;
-			fit->fdata[index] = interp;
+			fit->fdata[index] = interp / weight;
 		}
 	}
 	fit->bayer_pattern[0] = '\0'; // Mark this as no longer having a Bayer pattern
@@ -363,39 +410,44 @@ static void interpolate_nongreen_float(fits *fit) {
 
 static void interpolate_nongreen_ushort(fits *fit) {
 	sensor_pattern pattern = get_bayer_pattern(fit);
-	for (int row = 0; row < fit->ry - 1; row++) {
-		for (int col = 0; col < fit->rx - 1; col++) {
-			if (FC(row, col, pattern) == 1)
+	const char *cfa = get_cfa_from_pattern(pattern);
+	if (!cfa)
+		return;
+	size_t cfadim = !cfa ? 1 : strlen(cfa) == 4 ? 2 : 6;
+	uint32_t width = fit->rx;
+	uint32_t height = fit->ry;
+	for (int row = 0; row < height - 1; row++) {
+		for (int col = 0; col < width - 1; col++) {
+			if (FC(row, col, cfadim, cfa) == 1)
 				continue;
-			uint32_t index = col + row * fit->rx;
+			uint32_t index = col + row * width;
 			float interp = 0.f;
 			float weight = 0.f;
-			gboolean first_y = (index / fit->rx == 0) ? TRUE : FALSE;
-			gboolean last_y = (index / fit->rx == fit->ry - 1) ? TRUE : FALSE;
-			gboolean first_x = (index % fit->rx == 0) ? TRUE : FALSE;
-			gboolean last_x = (index % fit->rx == fit->rx - 1) ? TRUE : FALSE;
-			if (!first_y) {
-				interp += (float) fit->data[index - fit->rx];
-				weight++;
+			for (int dy = -1; dy <= 1; dy++) {
+				for (int dx = -1; dx <= 1; dx++) {
+					if (dx != 0 || dy != 0) {
+						// Check if the neighboring pixel is within the image bounds and green
+						int nx = col + dx;
+						int ny = row + dy;
+						if (FC(nx, ny, cfadim, cfa) == 1 && nx >= 0 && nx < width && ny >= 0 && ny < height) {
+							// Calculate distance from the current pixel
+							float distance = dx + dy;
+							// Calculate weight for the neighboring pixel
+							float weight = (distance == 1) ? 1 : RECIPSQRT2;
+							// Accumulate weighted green values and total weight
+							interp += weight * (float) fit->data[nx + ny * width];
+							weight += weight;
+						}
+					}
+				}
 			}
-			if (!first_x) {
-				interp += (float) fit->data[index - 1];
-				weight++;
-			}
-			if (!last_x) {
-				interp += (float) fit->data[index + 1];
-				weight++;
-			}
-			if (!last_y) {
-				interp += (float) fit->data[index + fit->rx];
-				weight++;
-			}
-			interp /= weight;
-			fit->data[index] = roundf_to_WORD(interp);
+			fit->data[index] = roundf_to_WORD(interp / weight);
 		}
 	}
 	fit->bayer_pattern[0] = '\0'; // Mark this as no longer having a Bayer pattern
 }
+
+#undef RECIPSQRT2
 
 void interpolate_nongreen(fits *fit) {
 	if (fit->type == DATA_FLOAT) {
