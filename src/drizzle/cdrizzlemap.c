@@ -211,46 +211,98 @@ interpolate_point(struct driz_param_t *par, float xin, float yin,
 
 int map_image_coordinates_wcs(int width, int height, struct wcsprm *wcs_i, struct wcsprm *wcs_o, imgmap_t *p, float scale) {
 	int npixels = width * height;
+	int ncoord = width;
+	const int nelem = 2;
 	int status = 0;
 
-	double *pixcrd = malloc(npixels * 2 * sizeof(double));
+	double *pixcrd = malloc(ncoord * height * 2 * sizeof(double));
 	if (!pixcrd) {
 		return 1;
 	}
 	int index = 0;
 	for (int j = 0 ; j < height ; j++) {
 		for (int i = 0 ; i < width;  i++) {
-			pixcrd[index++] = (double) i + 1;
-			pixcrd[index++] = (double) j + 1;
+			pixcrd[index++] = (double) i + 1.0;
+			pixcrd[index++] = (double) j + 1.0;
 		}
 	}
 
-	double *imgcrd = malloc(2 * npixels * sizeof(double));
+	double *world = malloc(2 * npixels * sizeof(double));
 	if (!imgcrd) {
 		free(pixcrd);
 		return 1;
 	}
-	// can't pass NULL to the values we don't want to retrieve (intcrd, phi, theta so we just use a single junk array)
-	double *junk = malloc(2 * npixels * sizeof(double));
-	if (!junk) {
-		free(imgcrd);
+	double *imgcrd = malloc(2 * npixels * sizeof(double));
+	if (!imgcrd) {
+		free(world);
 		free(pixcrd);
 		return 1;
 	}
-
-	wcsp2s(wcs_i, npixels, 2, pixcrd, junk, junk, junk, imgcrd, &status);
-	wcss2p(wcs_o, npixels, 2, imgcrd, junk, junk, junk, pixcrd, &status);
-	for (int i = 2 * npixels - 1; i >= 0 ; i--) {
-		pixcrd[i] =- 1.0;
+	double *phi = malloc(ncoord * sizeof(double));
+	if (!phi) {
+		free(world);
+		free(pixcrd);
+		free(imgcrd);
+		return 1;
+	}
+	double *theta = malloc(ncoord * sizeof(double));
+	if (!imgcrd) {
+		free(world);
+		free(pixcrd);
+		free(imgcrd);
+		free(phi);
+		return 1;
+	}
+	int *status = malloc(ncoord * sizeof(int));
+	if (!status) {
+		free(world);
+		free(pixcrd);
+		free(imgcrd);
+		free(theta);
+		return 1;
 	}
 
-	free(junk); // finished with the junk array
+	size_t status_sum = 0;
 
-	p->pixmap = realloc(imgcrd, npixels * 2 * sizeof(float));
+	// Work one row at a time to get most of the benefit of allowing wcslib to
+	// work on vectors, but without requiring vast amounts of memory for the
+	// intermediate arrays that we don't care about.
+
+	for (int row = 0 ; row < height ; row++) {
+		// Create temporary pointers for each row
+		double *pixcrd_index = pixcrd + 2 * (row * width);
+		double *world_index = world + 2 * (row * width);
+		// Transform the coordinate vectors for each row
+		wcsp2s(wcs_i, ncoord, nelem, pixcrd_index, imgcrd, phi, theta, world_index, status);
+		wcss2p(wcs_o, ncoord, nelem, world_index, phi, theta, imgcrd, pixcrd_index, status);
+		// Subtract 1.0 (wcs image coords are 1-based; Siril image coords are 0-based)
+		for (int i = 2 * ncoord - 1; i >= 0 ; i--) {
+			pixcrd_index[i] -= 1.0;
+		}
+		for (int i = 0 ; i < nelem ; i++) {
+			i += status[i];
+		}
+		if (i) { // wcslib returned at least 1 error for this row
+			free(imgcrd);
+			free(pixcrd);
+			free(world);
+			free(phi);
+			free(theta);
+			free(status);
+			return 1;
+		}
+	}
+	free(world);
+	free(imgcrd);
+	free(phi);
+	free(theta);
+	free(status);
+
+	p->pixmap = realloc(imgcrd, ncoord * 2 * sizeof(float));
 	if (!p->pixmap) // should never happen as realloc halves the allocation
 		return 1;
 
-	size_t maxindex = npixels * 2;
+	size_t maxindex = ncoord * 2;
 	for (index = 0 ; index < maxindex ; index++) {
 		p->pixmap[index] = (float) pixcrd[index] * scale;
 	}
