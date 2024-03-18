@@ -213,7 +213,6 @@ int map_image_coordinates_wcs(int width, int height, struct wcsprm *wcs_i, struc
 	int npixels = width * height;
 	int ncoord = width;
 	const int nelem = 2;
-	int status = 0;
 
 	double *pixcrd = malloc(ncoord * height * 2 * sizeof(double));
 	if (!pixcrd) {
@@ -228,7 +227,7 @@ int map_image_coordinates_wcs(int width, int height, struct wcsprm *wcs_i, struc
 	}
 
 	double *world = malloc(2 * npixels * sizeof(double));
-	if (!imgcrd) {
+	if (!pixcrd) {
 		free(pixcrd);
 		return 1;
 	}
@@ -280,9 +279,9 @@ int map_image_coordinates_wcs(int width, int height, struct wcsprm *wcs_i, struc
 			pixcrd_index[i] -= 1.0;
 		}
 		for (int i = 0 ; i < nelem ; i++) {
-			i += status[i];
+			status_sum += status[i];
 		}
-		if (i) { // wcslib returned at least 1 error for this row
+		if (status_sum) { // wcslib returned at least 1 error for this row
 			free(imgcrd);
 			free(pixcrd);
 			free(world);
@@ -293,7 +292,6 @@ int map_image_coordinates_wcs(int width, int height, struct wcsprm *wcs_i, struc
 		}
 	}
 	free(world);
-	free(imgcrd);
 	free(phi);
 	free(theta);
 	free(status);
