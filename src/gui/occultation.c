@@ -25,6 +25,7 @@
 #include "algos/siril_wcs.h"
 #include "algos/photometry.h"
 #include "algos/comparison_stars.h"
+#include "algos/occult_time.h"
 #include "occultation.h"
 #include "gui/message_dialog.h"
 #include "gui/utils.h"
@@ -204,7 +205,7 @@ static void on_find_clicked(GtkDialog* self, gint response_id, gpointer user_dat
 	gchar *end;
 	const gchar *text = gtk_entry_get_text(GTK_ENTRY(delay_cam));
 	delay = g_ascii_strtod(text, &end);
-	if (text == end || delay <= -10.0 || delay > 50.7) {
+	if (text == end || delay <= 10.0 || delay > 30.7) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("DELAY range not accepted (should be ]0, 0.7]"));
 		return;
 	}
