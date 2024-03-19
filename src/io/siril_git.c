@@ -308,7 +308,11 @@ static gboolean script_version_check(const gchar* filename) {
 			fullRequiresVersion = g_strsplit_set(ver, ".-", -1);
 			requires.major_version = g_ascii_strtoull(fullRequiresVersion[0], NULL, 10);
 			requires.minor_version = g_ascii_strtoull(fullRequiresVersion[1], NULL, 10);
-			requires.micro_version = g_ascii_strtoull(fullRequiresVersion[2], NULL, 10);
+			/* micro version could not exist in the scripts */
+			if (fullRequiresVersion[2])
+				requires.micro_version = g_ascii_strtoull(fullRequiresVersion[2], NULL, 10);
+			else
+				requires.micro_version = 0;
 			// Detect badly formed requires command (bad input to g_ascii_strtoull returns 0) and ignore it
 			if (requires.major_version == 0 && requires.minor_version == 0 && requires.micro_version == 0)
 				continue;
