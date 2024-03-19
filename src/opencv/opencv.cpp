@@ -1088,7 +1088,7 @@ void cvcalcH_fromKKR(Homography Kref, Homography K, Homography R, Homography *H)
 
 // TODO: Code below should be moved to a dedicated cvMosaic.cpp file
 
-int cvWarp_fromKR(fits *image, Homography K, Homography R, float scale, mosaic_roi *roiout, int interpolation, gboolean clamp) {
+int cvWarp_fromKR(fits *image, Homography K, Homography R, float scale, mosaic_roi *roiout, int projector, int interpolation, gboolean clamp) {
 	Mat in, out;
 	void *bgr = NULL;
 
@@ -1098,20 +1098,14 @@ int cvWarp_fromKR(fits *image, Homography K, Homography R, float scale, mosaic_r
 	convert_H_to_MatH(&K, _K);
 
 	Point corners;
-	// UMat masks_warped;
-	UMat images_warped;
 	Size sizes;
 	// UMat masks;
 	Mat_<float> k, r;
 	_K.convertTo(k, CV_32F);
 	_R.convertTo(r, CV_32F);
-
-	// Prepare images masks
 	Size szin = Size(image->rx, image->ry);
-	// masks.create(szin, CV_8U);
-	// masks.setTo(Scalar::all(255));
 
-	// Warp images and their masks
+	// Warp images
 	Ptr<WarperCreator> warper_creator;
 	warper_creator = makePtr<SphericalWarper>();
 

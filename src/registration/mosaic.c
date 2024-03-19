@@ -93,7 +93,10 @@ int register_mosaic(struct registration_args *regargs) {
 	regdata *current_regdata = star_align_get_current_regdata(regargs); // clean the structure if it exists, allocates otherwise
 	if (!current_regdata)
 		return -2;
-	regargs->type = HOMOGRAPHY_TRANSFORMATION; // forcing homography calc
+	regargs->type = HOMOGRAPHY_TRANSFORMATION; // forcing homography calc for the input sequence
+	regargs->projector = OPENCV_SPHERICAL;
+	regargs->undistort = FALSE;
+	regargs->mosaic_scale = 1.f;
 
 	gettimeofday(&t_start, NULL);
 	fits fit = { 0 };
@@ -210,11 +213,7 @@ int register_mosaic(struct registration_args *regargs) {
 		if (!regargs->seq->imgparam[i].incl && regargs->filters.filter_included)
 			continue;
 		Homography H = { 0 };
-		// if (i != refindex) {
-			cvcalcH_fromKKR(Ks[refindex], Ks[i], Rs[i], &H);
-		// } else {
-		// 	cvGetEye(&H);
-		// }
+		cvcalcH_fromKKR(Ks[refindex], Ks[i], Rs[i], &H);
 		current_regdata[i].roundness = 1.;
 		current_regdata[i].fwhm = 1.;
 		current_regdata[i].weighted_fwhm = 1.;
@@ -226,7 +225,7 @@ int register_mosaic(struct registration_args *regargs) {
 	regargs->seq->reference_image = refindex;
 
 	// Give the full mosaic output size
-	float scale = 0.5 * (fabs(Ks[refindex].h00) + fabs(Ks[refindex].h11));
+	float scale = 0.5 * (fabs(Ks[refindex].h00) + fabs(Ks[refindex].h11)) * regargs->mosaic_scale;
 	pointi tl = { INT_MAX, INT_MAX }, br = { INT_MIN, INT_MIN }; // top left and bottom-right
 	gboolean savewarped = !regargs->no_output;
 	struct mosaic_args *margs = NULL;
@@ -243,7 +242,7 @@ int register_mosaic(struct registration_args *regargs) {
 		if (!regargs->seq->imgparam[i].incl && regargs->filters.filter_included)
 			continue;
 		seq_read_frame_metadata(regargs->seq, i, &fit);
-		cvWarp_fromKR(&fit, Ks[i], Rs[i], scale, rois + i, OPENCV_NONE, FALSE);
+		cvWarp_fromKR(&fit, Ks[i], Rs[i], scale, rois + i, regargs->projector, OPENCV_NONE, FALSE);
 		clearfits(&fit);
 		// first determine the corners
 		if (rois[i].x < tl.x) tl.x = rois[i].x;
@@ -254,11 +253,14 @@ int register_mosaic(struct registration_args *regargs) {
 	// then compute the roi size and full mosaic space requirement
 	int mosaicw = br.x - tl.x;
 	int mosaich = br.y - tl.y;
-	siril_log_message(_("Full size output mosaic: %d x %d pixels (assuming spherical projection)\n"), mosaicw, mosaich);
+	const gchar *proj = (regargs->projector == OPENCV_PLANE) ? _("plane") : _("spherical");
+	gchar *downscale = (regargs->mosaic_scale != 1.f) ? g_strdup_printf(_(" and a scaling factor of %.2f"), regargs->mosaic_scale) : g_strdup("");
+	siril_log_color_message(_("Output mosaic: %d x %d pixels (assuming %s projection%s)\n"), "salmon", mosaicw, mosaich, proj, downscale);
+	g_free(downscale);
 	int64_t frame_size = mosaicw * mosaich * regargs->seq->nb_layers;
 	frame_size *= (get_data_type(regargs->seq->bitpix) == DATA_USHORT) ? sizeof(WORD) : sizeof(float);
 	gchar *mem = g_format_size_full(frame_size, G_FORMAT_SIZE_IEC_UNITS);
-	siril_log_message(_("Space required for full size storage: %s\n"), mem);
+	siril_log_color_message(_("Space required for storage: %s\n"), "salmon", mem);
 	g_free(mem);
 	if (savewarped) {
 		margs->tl = tl;
@@ -300,7 +302,7 @@ static int mosaic_image_hook(struct generic_seq_args *args, int out_index, int i
 	sadata->success[out_index] = 0;
 	// TODO: find in opencv codebase if smthg smart can be done with K/R to avoid the double-flip
 	fits_flip_top_to_bottom(fit);
-	int status = cvWarp_fromKR(fit, Ks[out_index], Rs[out_index], mosargs->scale, &roi, regargs->interpolation, regargs->clamp);
+	int status = cvWarp_fromKR(fit, Ks[out_index], Rs[out_index], mosargs->scale, &roi, regargs->projector, regargs->interpolation, regargs->clamp);
 	if (!status) {
 		fits_flip_top_to_bottom(fit);
 		H.h02 = roi.x - mosargs->tl.x;

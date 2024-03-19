@@ -72,8 +72,10 @@ struct registration_args {
 	seq_image_filter filtering_criterion; // the filter, (seqapplyreg only)
 	double filtering_parameter;	// and its parameter (seqapplyreg only)
 	gboolean no_starlist;		// disable star list creation (2pass only)
+	float mosaic_scale;		// scaling factor (for mosaic only)
+	gboolean undistort;		// apply undistorsion with SIP data
 
-	/* data for generated sequence, for star alignment registration */
+	/* data for generated sequence, for star alignment/mosaic registration */
 	gboolean no_output;		// write transformation to .seq
 	int new_total;                  // remaining images after registration
 	imgdata *imgparam;		// imgparam for the new sequence
@@ -85,6 +87,7 @@ struct registration_args {
 	framing_type framing;		// used by seqapplyreg to determine framing
 	gboolean clamp;				// should Bicubic and Lanczos4 interpolation be clamped?
 	double clamping_factor;		// used to set amount of interpolation clamping
+	opencv_projector projector; // used by mosaic registration
 };
 
 /* used to register a registration method */
