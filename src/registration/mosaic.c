@@ -169,11 +169,12 @@ int register_mosaic(struct registration_args *regargs) {
 	// The "framing" angle is obtained by making the PC matrix a true rotation matrix (averaging of CROTAi)
 
 	rotation_type rottypes[3] = { ROTZ, ROTX, ROTZ};
+	double framingref;
 	for (int i = 0; i < n; i++) {
 		if (!regargs->seq->imgparam[i].incl && regargs->filters.filter_included)
 			continue;
 		double angles[3];
-		angles[0] = 90. - RA[i]; 
+		angles[0] = 90. - RA[i]; // TODO: need to understand why 90- instead of 90 + .... opencv vs wcs convention?
 		angles[1] = 90. - DEC[i];
 		// initializing K with center point
 		cvGetEye(Ks + i); // initializing to unity
@@ -187,11 +188,17 @@ int register_mosaic(struct registration_args *regargs) {
 		}
 		cvRotMat3(angles, rottypes, TRUE, Rs + i);
 		siril_debug_print("Image #%d - rot:%.3f\n", i + 1, angles[2]);
+		if (i == refindex)
+			framingref = angles[2];
 	}
 
-	// computing relative rotations wrt to ref image
+	// computing relative rotations wrt to cog center + central image framing
 	Homography Rref = { 0 };
-	memcpy(&Rref, Rs + refindex, sizeof(Homography));
+	double angles[3];
+	angles[0] = 90. - ra0;
+	angles[1] = 90. - dec0;
+	angles[2] = framingref;
+	cvRotMat3(angles, rottypes, TRUE, &Rref);
 	for (int i = 0; i < n; i++) {
 		cvRelRot(&Rref, Rs + i);
 	}
@@ -203,11 +210,11 @@ int register_mosaic(struct registration_args *regargs) {
 		if (!regargs->seq->imgparam[i].incl && regargs->filters.filter_included)
 			continue;
 		Homography H = { 0 };
-		if (i != refindex) {
+		// if (i != refindex) {
 			cvcalcH_fromKKR(Ks[refindex], Ks[i], Rs[i], &H);
-		} else {
-			cvGetEye(&H);
-		}
+		// } else {
+		// 	cvGetEye(&H);
+		// }
 		current_regdata[i].roundness = 1.;
 		current_regdata[i].fwhm = 1.;
 		current_regdata[i].weighted_fwhm = 1.;
@@ -320,6 +327,7 @@ static int mosaic_alignment(struct registration_args *regargs, struct mosaic_arg
 		args->filtering_criterion = seq_filter_included;
 		args->nb_filtered_images = regargs->seq->selnum;
 	}
+	// args->compute_mem_limits_hook =  mosaic_mem_hook; // TODO
 	args->prepare_hook = star_align_prepare_results; // from global registration
 	args->image_hook = mosaic_image_hook;
 	args->finalize_hook = star_align_finalize_hook;	// from global registration
