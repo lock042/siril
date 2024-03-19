@@ -44,11 +44,12 @@ xx/xx/xx
 * Added near solve in Siril internal solver (#1154::4 and !631)
 * Improved mouse pan and zoom control to enable one-handed operation (!638, fixes #1271)
 * Added FITS keyword update on single loaded images (#72)
-* Added Color Conversion Matrices for single images and sequences (!630 and !641) 
+* Added Color Conversion Matrices for single images and sequences (!630 and !641)
 * Added versionning for init files (#1274)
 * Added full blindsolve with Astrometry.net (#1154::5 and !636)
 * Added avoiding to create a new sequence when platesolving sequences (#1154::6 and !636)
 * Refactored astrometry GUI (#1154::6 and !636)
+* Fix deconvolution so it works after redo (#1276)
 
 siril 1.2.2
 xx/xx/24
