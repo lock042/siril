@@ -15,7 +15,7 @@ PREFIX=/usr
 
 meson ${BUILDDIR} \
     --prefix=${PREFIX} \
-    --buildtype=release \
+    --buildtype=debug \
     -Drelocatable-bundle=yes
 
 
