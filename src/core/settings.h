@@ -79,6 +79,12 @@ typedef enum {
 } starprofile;
 
 typedef enum {
+	MMB_ZOOM_FIT,
+	MMB_ZOOM_100,
+	MMB_ZOOM_TOGGLE
+} mmb_action_t;
+
+typedef enum {
 	NIL = 0,
 	V2 = 1,
 	V1MONO = 2,
@@ -204,6 +210,7 @@ struct gui_config {
 	int default_rendering_mode; // Default view STF to use at startup
 	int display_histogram_mode; // Default histogram view to use at startup
 	configurable_colors config_colors; // This used to configure some colors in Siril
+	mmb_action_t mmb_action; // Defines middle mouse button double click behaviour
 };
 
 // TODO: is any of the following used for something else than providing the default GUI value?
