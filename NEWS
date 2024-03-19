@@ -1,8 +1,10 @@
 
 siril 1.2.2 xx xx, 2024
-* Removed bakground extraction samples after using it in script (#1265)
+
+* Removed background extraction samples after using it in script (#1265)
 * Fixed catalog parser problem with negative declination (less than 1°) (#1270)
-* Fixes weighing by number of stars during stacking if number of stars is the same accross the sequence (#1273)
+* Fixed weighting by number of stars during stacking if number of stars is the same accross the sequence (#1273)
+* Improved mouse pan and zoom control to enable one-handed operation (!644 / !638, fixes #1271)
 
 siril 1.2.1 January 26, 2024
 
