@@ -3747,6 +3747,7 @@ int process_pm(int nb) {
 	int count = 0;
 	float min = -1.f;
 	float max = -1.f;
+	gboolean do_cumul = TRUE;
 
 	cur = expression;
 	while ((next = strchr(cur, '$')) != NULL) {
@@ -3762,24 +3763,28 @@ int process_pm(int nb) {
 		return CMD_ARG_ERROR;
 	}
 
-	/* parse rescale option if exist */
+	/* parse rescale and nocumul options if exist */
 	if (nb > 1) {
-		if (!g_strcmp0(word[2], "-rescale")) {
-			if (nb == 5) {
-				gchar *end;
-				min = g_ascii_strtod(word[3], &end);
-				if (end == word[3] || min < 0 || min > 1) {
-					siril_log_message(_("Rescale can only be done in the [0, 1] range.\n"));
-					return CMD_ARG_ERROR;
+		for (int i = 2; i < 4; i++) {
+			if (!g_strcmp0(word[i], "-rescale")) {
+				if (nb == 5) {
+					gchar *end;
+					min = g_ascii_strtod(word[i + 1], &end);
+					if (end == word[i + 1] || min < 0 || min > 1) {
+						siril_log_message(_("Rescale can only be done in the [0, 1] range.\n"));
+						return CMD_ARG_ERROR;
+					}
+					max = g_ascii_strtod(word[i + 2], &end);
+					if (end == word[i + 2] || max < 0 || max > 1) {
+						siril_log_message(_("Rescale can only be done in the [0, 1] range.\n"));
+						return CMD_ARG_ERROR;
+					}
+				} else {
+					min = 0.f;
+					max = 1.f;
 				}
-				max = g_ascii_strtod(word[4], &end);
-				if (end == word[4] || max < 0 || max > 1) {
-					siril_log_message(_("Rescale can only be done in the [0, 1] range.\n"));
-					return CMD_ARG_ERROR;
-				}
-			} else {
-				min = 0.f;
-				max = 1.f;
+			} else if (!g_strcmp0(word[i], "-nocumul")) {
+				do_cumul = FALSE;
 			}
 		}
 	}
@@ -3905,6 +3910,7 @@ int process_pm(int nb) {
 	args->fit = fit;
 	args->ret = 0;
 	args->from_ui = FALSE;
+	args->do_cumul = do_cumul;
 	if (min >= 0.f) {
 		args->rescale = TRUE;
 		args->min = min;
@@ -8439,8 +8445,8 @@ int process_rgbcomp(int nb) {
 			return CMD_ALLOC_ERROR;
 		}
 		if (had_an_rgb_image)
-			merge_fits_headers_to_result(rgbptr, &l, &r, NULL);
-		else merge_fits_headers_to_result(rgbptr, &l, &r, &g, &b, NULL);
+			merge_fits_headers_to_result(rgbptr, TRUE, &l, &r, NULL);
+		else merge_fits_headers_to_result(rgbptr, TRUE, &l, &r, &g, &b, NULL);
 		rgbptr->history = g_slist_append(rgbptr->history, strdup("LRGB composition"));
 
 		size_t nbpix = l.naxes[0] * l.naxes[1];
@@ -8469,7 +8475,7 @@ int process_rgbcomp(int nb) {
 			PRINT_ALLOC_ERR;
 			return CMD_ALLOC_ERROR;
 		}
-		merge_fits_headers_to_result(rgbptr, &r, &g, &b, NULL);
+		merge_fits_headers_to_result(rgbptr, TRUE, &r, &g, &b, NULL);
 		rgbptr->history = g_slist_append(rgbptr->history, strdup("RGB composition"));
 		size_t nbpix = r.naxes[0] * r.naxes[1];
 		for (size_t i = 0; i < nbpix; i++) {

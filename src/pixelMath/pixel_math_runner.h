@@ -28,6 +28,7 @@ struct pixel_math_data {
 	gchar **varname;
 	int ret;
 	gboolean from_ui;
+	gboolean do_cumul;
 	gchar *expression1;
 	gchar *expression2;
 	gchar *expression3;

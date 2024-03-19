@@ -3773,7 +3773,7 @@ int check_loaded_fits_params(fits *ref, ...) {
 }
 
 // f is NULL-terminated and not empty
-void merge_fits_headers_to_result2(fits *result, fits **f) {
+void merge_fits_headers_to_result2(fits *result, fits **f, gboolean do_cumul) {
 	/* copy all from the first */
 	copy_fits_metadata(f[0], result);
 
@@ -3812,18 +3812,21 @@ void merge_fits_headers_to_result2(fits *result, fits **f) {
 		// do not store conflicting filter information
 		if (strcmp(result->filter, current->filter))
 			strcpy(result->filter, "mixed");
-		// add the exposure times and number of stacked images
-		result->stackcnt += current->stackcnt;
-		result->livetime += current->livetime;
-		// average exposure
-		exposure += current->exposure;
 
-		/* to add if one day we keep FITS comments: discrepancies in
-		 * various fields like exposure, instrument, observer,
-		 * telescope, ... */
-		image_count++;
+		if (do_cumul) {
+			// add the exposure times and number of stacked images
+			result->stackcnt += current->stackcnt;
+			result->livetime += current->livetime;
+			// average exposure
+			exposure += current->exposure;
+
+			/* to add if one day we keep FITS comments: discrepancies in
+			 * various fields like exposure, instrument, observer,
+			 * telescope, ... */
+			image_count++;
+		}
 	}
-	result->exposure = exposure / image_count;
+	result->exposure = exposure / (double)image_count;
 	result->date_obs = date_obs;
 	result->expstart = expstart;
 	result->expend = expend;
@@ -3831,7 +3834,7 @@ void merge_fits_headers_to_result2(fits *result, fits **f) {
 
 // NULL-terminated list of fits, given with decreasing importance
 // HISTORY is not managed, neither is some conflicting information
-void merge_fits_headers_to_result(fits *result, fits *f1, ...) {
+void merge_fits_headers_to_result(fits *result, gboolean do_cumul, fits *f1, ...) {
 	if (!f1) return;
 	// converting variadic to array of args
 	va_list ap;
@@ -3851,7 +3854,7 @@ void merge_fits_headers_to_result(fits *result, fits *f1, ...) {
 	va_end(ap);
 	array[i] = NULL;
 
-	merge_fits_headers_to_result2(result, array);
+	merge_fits_headers_to_result2(result, array, do_cumul);
 	free(array);
 }
 

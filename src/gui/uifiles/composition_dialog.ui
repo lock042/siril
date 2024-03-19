@@ -325,6 +325,22 @@ Rotation is shown in degrees anticlockwise.</property>
           </packing>
         </child>
         <child>
+          <object class="GtkCheckButton" id="cumulate_rgb_button">
+            <property name="label" translatable="yes">Cumulate metadata</property>
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">False</property>
+            <property name="tooltip-text" translatable="yes">Accumulate metadata such as exposure, stackcnt, livetime.</property>
+            <property name="active">True</property>
+            <property name="draw-indicator">True</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
+        <child>
           <object class="GtkBox" id="box41">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -420,7 +436,7 @@ Modifying parameters in this windows afterward will void the colour balance, and
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">2</property>
+            <property name="position">3</property>
           </packing>
         </child>
         <child>
@@ -433,7 +449,7 @@ Modifying parameters in this windows afterward will void the colour balance, and
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">3</property>
+            <property name="position">4</property>
           </packing>
         </child>
         <child>
@@ -550,7 +566,7 @@ COG - frame to the centre of gravity of the pixels in the set of aligned images.
             <property name="expand">True</property>
             <property name="fill">True</property>
             <property name="pack-type">end</property>
-            <property name="position">4</property>
+            <property name="position">5</property>
           </packing>
         </child>
       </object>
