@@ -1105,12 +1105,19 @@ int cvWarp_fromKR(fits *image, Homography K, Homography R, float scale, mosaic_r
 	_R.convertTo(r, CV_32F);
 	Size szin = Size(image->rx, image->ry);
 
-	// Warp images
 	Ptr<WarperCreator> warper_creator;
-	warper_creator = makePtr<SphericalWarper>();
+	// Prepare projector
+	switch (projector) {
+		default:
+		case OPENCV_PLANE:
+			warper_creator = makePtr<PlaneWarper>();
+			break;
+		case OPENCV_SPHERICAL:
+			warper_creator = makePtr<SphericalWarper>();
+			break;
+	}
 
-	if (!warper_creator)
-	{
+	if (!warper_creator) {
 		std::cout << "Can't create the warper" << "'\n";
 		return 1;
 	}
@@ -1127,12 +1134,14 @@ int cvWarp_fromKR(fits *image, Homography K, Homography R, float scale, mosaic_r
 	if (image->data || image->fdata) { 
 		if (image_to_Mat(image, &in, &out, &bgr, sizes.width, sizes.height))
 			return 2;
-		warper->warp(in, k, r, interpolation, BORDER_TRANSPARENT, out);
+		UMat uxmap, uymap;
+		Rect dst_roi = warper->buildMaps(szin, k, r, uxmap, uymap);
+    	remap(in, out, uxmap, uymap, interpolation, BORDER_TRANSPARENT);
 		if ((interpolation == OPENCV_LANCZOS4 || interpolation == OPENCV_CUBIC) && clamp) {
 			Mat guide, tmp1;
 			init_guide(image, sizes.width, sizes.height, &guide);
 			// Create guide image
-			warper->warp(in, k, r, OPENCV_AREA, BORDER_TRANSPARENT, guide);
+			remap(in, guide, uxmap, uymap, OPENCV_AREA, BORDER_TRANSPARENT);
 			tmp1 = (out < CLAMPING_FACTOR * guide);
 			Mat element = getStructuringElement(MORPH_ELLIPSE, Size(3, 3), Point(1,1));
 			dilate(tmp1, tmp1, element);
