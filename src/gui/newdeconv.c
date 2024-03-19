@@ -1377,7 +1377,6 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 			seqargs->seqEntry = strdup("dec_");
 		apply_deconvolve_to_sequence(seqargs);
 	} else {
-		copy_backup_to_gfit();
 		the_fit = &gfit;
 		start_in_new_thread(deconvolve, NULL);
 	}
