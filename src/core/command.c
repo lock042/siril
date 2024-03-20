@@ -8395,7 +8395,7 @@ int process_boxselect(int nb){
 	return CMD_OK;
 }
 
-static void rgb_extract_laster_option(int next_arg, gchar **result_filename,
+static void rgb_extract_last_options(int next_arg, gchar **result_filename,
 		const gchar *default_filename, gboolean *do_cumul) {
 	gchar *filename = NULL;
 	*do_cumul = TRUE;
@@ -8469,7 +8469,7 @@ int process_rgbcomp(int nb) {
 		}
 
 		/* we need to parse last parameters before merge_fits_headers_to_result */
-		rgb_extract_laster_option(next_arg, &result_filename, "composed_lrgb", &do_cumul);
+		rgb_extract_last_options(next_arg, &result_filename, "composed_lrgb", &do_cumul);
 
 		if (had_an_rgb_image)
 			merge_fits_headers_to_result(rgbptr, do_cumul, &l, &r, NULL);
@@ -8502,7 +8502,7 @@ int process_rgbcomp(int nb) {
 			return CMD_ALLOC_ERROR;
 		}
 		next_arg = 4;
-		rgb_extract_laster_option(next_arg, &result_filename, "composed_rgb", &do_cumul);
+		rgb_extract_last_options(next_arg, &result_filename, "composed_rgb", &do_cumul);
 
 		merge_fits_headers_to_result(rgbptr, do_cumul, &r, &g, &b, NULL);
 		rgbptr->history = g_slist_append(rgbptr->history, strdup("RGB composition"));
