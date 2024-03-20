@@ -49,6 +49,7 @@ xx/xx/xx
 * Added avoiding to create a new sequence when platesolving sequences (#1154::6 and !636)
 * Refactored astrometry GUI (#1154::6 and !636)
 * Fixed deconvolution so it works after redo (#1276)
+* Added an option that overrides the default (i.e. summation) behavior in PixelMath and RGB composition (#1272)
 
 siril 1.2.2
 xx/xx/24
