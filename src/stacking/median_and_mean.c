@@ -1272,7 +1272,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 
 		/**** Step 2: load image data for the corresponding image block ****/
 		retval = stack_read_block_data(args, my_block, data, naxes, itype, data_idx);
-		// This needs to be extended to read args->pxcnt and populate the pxcnt data into data as well
+		// TODO: This needs to be extended to read args->pxcnt and populate the pxcnt data into data as well
 		if (retval) continue;
 
 #if defined _OPENMP && defined STACK_DEBUG
