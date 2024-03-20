@@ -3817,14 +3817,15 @@ void merge_fits_headers_to_result2(fits *result, fits **f, gboolean do_cumul) {
 			// add the exposure times and number of stacked images
 			result->stackcnt += current->stackcnt;
 			result->livetime += current->livetime;
-			// average exposure
-			exposure += current->exposure;
 
 			/* to add if one day we keep FITS comments: discrepancies in
 			 * various fields like exposure, instrument, observer,
 			 * telescope, ... */
-			image_count++;
 		}
+		// average exposure
+		exposure += current->exposure;
+
+		image_count++;
 	}
 	result->exposure = exposure / (double)image_count;
 	result->date_obs = date_obs;

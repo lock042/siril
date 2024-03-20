@@ -3763,9 +3763,9 @@ int process_pm(int nb) {
 		return CMD_ARG_ERROR;
 	}
 
-	/* parse rescale and nocumul options if exist */
+	/* parse rescale and nocumul options if they exist */
 	if (nb > 1) {
-		for (int i = 2; i < 4; i++) {
+		for (int i = 2; i < 5; i++) {
 			if (!g_strcmp0(word[i], "-rescale")) {
 				if (nb == 5) {
 					gchar *end;
@@ -8399,7 +8399,8 @@ int process_rgbcomp(int nb) {
 	fits r = { 0 }, g = { 0 }, b = { 0 };
 	fits rgb = { 0 }, *rgbptr = &rgb;
 	int retval = 0, next_arg;
-	char *default_result_name;
+	gboolean do_cumul = TRUE;
+	gchar *result_filename = NULL;
 
 	if (g_str_has_prefix(word[1], "-lum=")) {
 		char *lum_file = word[1] + 5;
@@ -8444,9 +8445,27 @@ int process_rgbcomp(int nb) {
 			PRINT_ALLOC_ERR;
 			return CMD_ALLOC_ERROR;
 		}
+
+		/* we need to parse last parameters before merge_fits_headers_to_result */
+		for (int i = next_arg; word[i]; i++) {
+			if (g_str_has_prefix(word[i], "-out=") && word[i][5] != '\0') {
+				result_filename = word[i] + 5;
+				if (g_str_has_suffix(result_filename, com.pref.ext))
+					result_filename = g_strdup(result_filename);
+				else
+					result_filename = g_strdup_printf("%s%s", result_filename, com.pref.ext);
+			} else if (!g_strcmp0(word[i], "-nocumul")) {
+				do_cumul = FALSE;
+			}
+		}
+		if (result_filename == NULL) {
+			result_filename = g_strdup_printf("%s%s", "composed_lrgb", com.pref.ext);
+		}
+
+
 		if (had_an_rgb_image)
-			merge_fits_headers_to_result(rgbptr, TRUE, &l, &r, NULL);
-		else merge_fits_headers_to_result(rgbptr, TRUE, &l, &r, &g, &b, NULL);
+			merge_fits_headers_to_result(rgbptr, do_cumul, &l, &r, NULL);
+		else merge_fits_headers_to_result(rgbptr, do_cumul, &l, &r, &g, &b, NULL);
 		rgbptr->history = g_slist_append(rgbptr->history, strdup("LRGB composition"));
 
 		size_t nbpix = l.naxes[0] * l.naxes[1];
@@ -8459,7 +8478,6 @@ int process_rgbcomp(int nb) {
 			rgb.fpdata[BLAYER][i] = (float)bd;
 		}
 		clearfits(&l);
-		default_result_name = "composed_lrgb";
 	} else {
 		if (readfits(word[1], &r, NULL, TRUE)) return CMD_INVALID_IMAGE;
 		if (readfits(word[2], &g, NULL, TRUE)) { clearfits(&r); return CMD_INVALID_IMAGE; }
@@ -8475,7 +8493,23 @@ int process_rgbcomp(int nb) {
 			PRINT_ALLOC_ERR;
 			return CMD_ALLOC_ERROR;
 		}
-		merge_fits_headers_to_result(rgbptr, TRUE, &r, &g, &b, NULL);
+		next_arg = 4;
+		for (int i = next_arg; word[i]; i++) {
+			if (g_str_has_prefix(word[i], "-out=") && word[i][5] != '\0') {
+				result_filename = word[i] + 5;
+				if (g_str_has_suffix(result_filename, com.pref.ext))
+					result_filename = g_strdup(result_filename);
+				else
+					result_filename = g_strdup_printf("%s%s", result_filename, com.pref.ext);
+			} else if (!g_strcmp0(word[i], "-nocumul")) {
+				do_cumul = FALSE;
+			}
+		}
+		if (result_filename == NULL) {
+			result_filename = g_strdup_printf("%s%s", "composed_rgb", com.pref.ext);
+		}
+
+		merge_fits_headers_to_result(rgbptr, do_cumul, &r, &g, &b, NULL);
 		rgbptr->history = g_slist_append(rgbptr->history, strdup("RGB composition"));
 		size_t nbpix = r.naxes[0] * r.naxes[1];
 		for (size_t i = 0; i < nbpix; i++) {
@@ -8484,18 +8518,9 @@ int process_rgbcomp(int nb) {
 			rgb.fpdata[BLAYER][i] = b.fdata[i];
 		}
 		next_arg = 4;
-		default_result_name = "composed_rgb";
 	}
 
 	clearfits(&r); clearfits(&g); clearfits(&b);
-	gchar *result_filename;
-	if (nb == next_arg + 1 && g_str_has_prefix(word[next_arg], "-out=") &&
-			word[next_arg][5] != '\0') {
-		result_filename = word[next_arg] + 5;
-		if (g_str_has_suffix(result_filename, com.pref.ext))
-			result_filename = g_strdup(result_filename);
-		else result_filename = g_strdup_printf("%s%s", result_filename, com.pref.ext);
-	} else result_filename = g_strdup_printf("%s%s", default_result_name, com.pref.ext);
 
 	retval = savefits(result_filename, rgbptr);
 	g_free(result_filename);
