@@ -8395,12 +8395,34 @@ int process_boxselect(int nb){
 	return CMD_OK;
 }
 
+static void rgb_extract_laster_option(int next_arg, gchar **result_filename,
+		const gchar *default_filename, gboolean *do_cumul) {
+	gchar *filename = NULL;
+	*do_cumul = TRUE;
+
+	for (int i = next_arg; word[i]; i++) {
+		if (g_str_has_prefix(word[i], "-out=") && word[i][5] != '\0') {
+			filename = word[i] + 5;
+			if (g_str_has_suffix(filename, com.pref.ext))
+				filename = g_strdup(filename);
+			else
+				filename = g_strdup_printf("%s%s", filename, com.pref.ext);
+		} else if (!g_strcmp0(word[i], "-nocumul")) {
+			*do_cumul = FALSE;
+		}
+	}
+	if (filename == NULL) {
+		filename = g_strdup_printf("%s%s", default_filename, com.pref.ext);
+	}
+	*result_filename = filename;
+}
+
 int process_rgbcomp(int nb) {
 	fits r = { 0 }, g = { 0 }, b = { 0 };
 	fits rgb = { 0 }, *rgbptr = &rgb;
 	int retval = 0, next_arg;
-	gboolean do_cumul = TRUE;
-	gchar *result_filename = NULL;
+	gboolean do_cumul;
+	gchar *result_filename;
 
 	if (g_str_has_prefix(word[1], "-lum=")) {
 		char *lum_file = word[1] + 5;
@@ -8447,21 +8469,7 @@ int process_rgbcomp(int nb) {
 		}
 
 		/* we need to parse last parameters before merge_fits_headers_to_result */
-		for (int i = next_arg; word[i]; i++) {
-			if (g_str_has_prefix(word[i], "-out=") && word[i][5] != '\0') {
-				result_filename = word[i] + 5;
-				if (g_str_has_suffix(result_filename, com.pref.ext))
-					result_filename = g_strdup(result_filename);
-				else
-					result_filename = g_strdup_printf("%s%s", result_filename, com.pref.ext);
-			} else if (!g_strcmp0(word[i], "-nocumul")) {
-				do_cumul = FALSE;
-			}
-		}
-		if (result_filename == NULL) {
-			result_filename = g_strdup_printf("%s%s", "composed_lrgb", com.pref.ext);
-		}
-
+		rgb_extract_laster_option(next_arg, &result_filename, "composed_lrgb", &do_cumul);
 
 		if (had_an_rgb_image)
 			merge_fits_headers_to_result(rgbptr, do_cumul, &l, &r, NULL);
@@ -8494,20 +8502,7 @@ int process_rgbcomp(int nb) {
 			return CMD_ALLOC_ERROR;
 		}
 		next_arg = 4;
-		for (int i = next_arg; word[i]; i++) {
-			if (g_str_has_prefix(word[i], "-out=") && word[i][5] != '\0') {
-				result_filename = word[i] + 5;
-				if (g_str_has_suffix(result_filename, com.pref.ext))
-					result_filename = g_strdup(result_filename);
-				else
-					result_filename = g_strdup_printf("%s%s", result_filename, com.pref.ext);
-			} else if (!g_strcmp0(word[i], "-nocumul")) {
-				do_cumul = FALSE;
-			}
-		}
-		if (result_filename == NULL) {
-			result_filename = g_strdup_printf("%s%s", "composed_rgb", com.pref.ext);
-		}
+		rgb_extract_laster_option(next_arg, &result_filename, "composed_rgb", &do_cumul);
 
 		merge_fits_headers_to_result(rgbptr, do_cumul, &r, &g, &b, NULL);
 		rgbptr->history = g_slist_append(rgbptr->history, strdup("RGB composition"));
@@ -8523,6 +8518,7 @@ int process_rgbcomp(int nb) {
 	clearfits(&r); clearfits(&g); clearfits(&b);
 
 	retval = savefits(result_filename, rgbptr);
+	siril_log_message(_("Successful RGB composition with metadata accumulate option %s.\n"), do_cumul ? "enable" : "disabled");
 	g_free(result_filename);
 	clearfits(rgbptr);
 
