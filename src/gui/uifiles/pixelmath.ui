@@ -705,7 +705,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">False</property>
-                    <property name="tooltip-text" translatable="yes">Accumulate metadata such as exposure, stackcnt, livetime.</property>
+                    <property name="tooltip-text" translatable="yes">Accumulate metadata such as stackcnt (number of image stacked), livetime (total exposure).</property>
                     <property name="active">True</property>
                     <property name="draw-indicator">True</property>
                   </object>
