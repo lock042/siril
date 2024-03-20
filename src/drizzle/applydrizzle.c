@@ -308,7 +308,6 @@ struct _double_driz {
 int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads) {
 	struct driz_args_t *driz = args->user;
 	struct wcsprm *refwcs = driz->refwcs;
-	gboolean keep_counts = TRUE; // TODO: this should be set more intelligently
 	/* Set up the per-image drizzle parameters */
 	struct driz_param_t *p = calloc(1, sizeof(struct driz_param_t));
 
@@ -419,13 +418,11 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	clearfits(fit);
 	copyfits(&out, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 
-	// TODO: do we still need the mapping file for the blot or the second drizzle or is it
-	//       cheaper to recalculate it (if needed) than to save / load it?
 	free(p->pixmap->pixmap);
 	free(p->pixmap);
 
 	// Get rid of the output_counts if not required
-	if (!keep_counts) {
+	if (!driz->keep_counts) {
 		clearfits(output_counts);
 		free(output_counts);
 		output_counts = NULL;

@@ -164,7 +164,9 @@ struct driz_args_t {
   bool_t use_wcs; /* Use WCS mapping? If not, Homography mapping will be used */
   regdata *ref_regdata; /* Reference reg data */
   struct wcsprm *refwcs; /* Reference WCS */
+  gboolean keep_counts; /* whether to save the pixel_counts sequence */
   gchar *prefix;
+  gchar *pixcnt_prefix;
   gchar *new_seq_name;
   imgdata *imgparam;
   regdata *regparam;
