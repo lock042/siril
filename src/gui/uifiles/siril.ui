@@ -72,7 +72,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="value">1</property>
     <property name="step-increment">0.01</property>
     <property name="page-increment">0.10</property>
-    <property name="page-size">0.5</property>
   </object>
   <object class="GtkAdjustment" id="adj_driz_scale">
     <property name="lower">0.25</property>
@@ -7584,7 +7583,7 @@ Cross marker: the value for the currently loaded frame.</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="tooltip-text" translatable="yes">Drizzle scale</property>
                                                             <property name="adjustment">adj_driz_scale</property>
-                                                            <property name="digits">1</property>
+                                                            <property name="digits">2</property>
                                                             <property name="value">1</property>
                                                           </object>
                                                           <packing>
@@ -7610,7 +7609,7 @@ Cross marker: the value for the currently loaded frame.</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="tooltip-text" translatable="yes">Droplet size</property>
                                                             <property name="adjustment">adj_driz_dropsize</property>
-                                                            <property name="digits">1</property>
+                                                            <property name="digits">2</property>
                                                             <property name="value">1</property>
                                                           </object>
                                                           <packing>
@@ -7696,89 +7695,15 @@ Note that the Gaussian and Lanczos models do not conserve flux.</property>
                                               </packing>
                                             </child>
                                             <child>
-                                              <object class="GtkFrame">
+                                              <object class="GtkCheckButton" id="generate_pixcnt">
+                                                <property name="label" translatable="yes">Save a pixel_count sequence</property>
                                                 <property name="visible">True</property>
-                                                <property name="can-focus">False</property>
-                                                <property name="label-xalign">0</property>
-                                                <property name="shadow-type">none</property>
-                                                <child>
-                                                  <object class="GtkAlignment">
-                                                    <property name="visible">True</property>
-                                                    <property name="can-focus">False</property>
-                                                    <property name="left-padding">12</property>
-                                                    <child>
-                                                      <!-- n-columns=3 n-rows=5 -->
-                                                      <object class="GtkGrid">
-                                                        <property name="visible">True</property>
-                                                        <property name="can-focus">False</property>
-                                                        <property name="row-spacing">6</property>
-                                                        <property name="column-spacing">6</property>
-                                                        <child>
-                                                          <object class="GtkCheckButton" id="toggle_driz_blot">
-                                                            <property name="label" translatable="yes">Blot outlier suppression active</property>
-                                                            <property name="visible">True</property>
-                                                            <property name="sensitive">False</property>
-                                                            <property name="can-focus">True</property>
-                                                            <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">If active, an intermediate stack will be created and then blotted back to the reference frames of each input image for outlier pixel rejection. A second drizzle will be performed post outlier rejection and finally stacked.
-The initial drizzle will always use the turbo droplet model to create the intermediate stack, and the selected droplet model will be used for the final drizzle.</property>
-                                                            <property name="halign">start</property>
-                                                            <property name="draw-indicator">True</property>
-                                                          </object>
-                                                          <packing>
-                                                            <property name="left-attach">0</property>
-                                                            <property name="top-attach">0</property>
-                                                            <property name="width">3</property>
-                                                          </packing>
-                                                        </child>
-                                                        <child>
-                                                          <placeholder/>
-                                                        </child>
-                                                        <child>
-                                                          <placeholder/>
-                                                        </child>
-                                                        <child>
-                                                          <placeholder/>
-                                                        </child>
-                                                        <child>
-                                                          <placeholder/>
-                                                        </child>
-                                                        <child>
-                                                          <placeholder/>
-                                                        </child>
-                                                        <child>
-                                                          <placeholder/>
-                                                        </child>
-                                                        <child>
-                                                          <placeholder/>
-                                                        </child>
-                                                        <child>
-                                                          <placeholder/>
-                                                        </child>
-                                                        <child>
-                                                          <placeholder/>
-                                                        </child>
-                                                        <child>
-                                                          <placeholder/>
-                                                        </child>
-                                                        <child>
-                                                          <placeholder/>
-                                                        </child>
-                                                        <child>
-                                                          <placeholder/>
-                                                        </child>
-                                                      </object>
-                                                    </child>
-                                                  </object>
-                                                </child>
-                                                <child type="label">
-                                                  <object class="GtkLabel">
-                                                    <property name="visible">True</property>
-                                                    <property name="can-focus">False</property>
-                                                    <property name="margin-bottom">6</property>
-                                                    <property name="label" translatable="yes">Blot Outlier Suppression</property>
-                                                  </object>
-                                                </child>
+                                                <property name="can-focus">True</property>
+                                                <property name="receives-default">False</property>
+                                                <property name="tooltip-text" translatable="yes">If selected, a pixel_count sequence will be saved. This records what percentage of a complete droplet each pixel value is based on. For scale = 1, droplet size = 1 this doesn't matter, but for other combinations of scale and droplet size this data can be used during stacking to ensure the contributions to each pixel from each frame are weighted correctly.
+
+The pixel_count sequence will be the same size as the sequence of drizzled images, and will always be floating point.</property>
+                                                <property name="draw-indicator">True</property>
                                               </object>
                                               <packing>
                                                 <property name="expand">False</property>
@@ -8020,6 +7945,70 @@ Pixels of the image are replaced by pixels at the same coordinates if intensity 
                                                         <property name="expand">False</property>
                                                         <property name="fill">True</property>
                                                         <property name="position">1</property>
+                                                      </packing>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkFrame" id="pixcnt_settings">
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">False</property>
+                                                        <property name="label-xalign">0</property>
+                                                        <property name="shadow-type">none</property>
+                                                        <child>
+                                                          <object class="GtkAlignment">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="left-padding">12</property>
+                                                            <child>
+                                                            <object class="GtkBox">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="orientation">vertical</property>
+                                                            <child>
+                                                            <object class="GtkCheckButton" id="use_drizzle_pixel_counts">
+                                                            <property name="label" translatable="yes">Use Drizzle pixel_count weighting</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Use a pixel_count sequence generated by Drizzle to weight the contribution of pixels from different frames.
+* This option is only applicable to sequences that have been drizzled: it should be disabled for other sequences.
+* This option only works with mean stacking methods (with or without rejection); it does not apply to sum, median, min or max stacking methods and will be ignored.</property>
+                                                            <property name="draw-indicator">True</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkComboBoxText" id="pixel_weight_sequence_combobox">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="tooltip-markup" translatable="yes">Select the sequence containing the pixel weights generated by Drizzle.
+&lt;b&gt;Warning:&lt;/b&gt; ensure you select the correct sequence. Using the wrong pixel_weights sequence will give poor results, and using a sequence containing image data not pixel weights will give garbage results!</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            </object>
+                                                            </child>
+                                                          </object>
+                                                        </child>
+                                                        <child type="label">
+                                                          <object class="GtkLabel">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="label" translatable="yes">Drizzle pixel_count Weighting</property>
+                                                          </object>
+                                                        </child>
+                                                      </object>
+                                                      <packing>
+                                                        <property name="expand">False</property>
+                                                        <property name="fill">True</property>
+                                                        <property name="position">2</property>
                                                       </packing>
                                                     </child>
                                                     <child>
@@ -8384,7 +8373,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                       <packing>
                                                         <property name="expand">False</property>
                                                         <property name="fill">True</property>
-                                                        <property name="position">2</property>
+                                                        <property name="position">3</property>
                                                       </packing>
                                                     </child>
                                                     <child>
@@ -8834,7 +8823,7 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                       <packing>
                                                         <property name="expand">False</property>
                                                         <property name="fill">True</property>
-                                                        <property name="position">3</property>
+                                                        <property name="position">4</property>
                                                       </packing>
                                                     </child>
                                                   </object>
