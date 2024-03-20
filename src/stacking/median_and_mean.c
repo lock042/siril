@@ -284,11 +284,14 @@ int stack_compute_parallel_blocks(struct _image_block **blocksptr, long max_numb
 
 static int stack_read_block_data(struct stacking_args *args,
 		struct _image_block *my_block, struct _data_block *data,
-		long *naxes, data_type itype, int thread_id) {
+		struct _data_block *pixcnt_data, long *naxes, data_type itype,
+		int thread_id) {
 
 	int ielem_size = itype == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+	const int pixcnt_elem_size = sizeof(float);
 	/* store the layer info to retrieve normalization coeffs*/
 	data->layer = (int)my_block->channel;
+	if (pixcnt_data) pixcnt_data->layer = data->layer;
 	/* Read the block from all images, store them in pix[image] */
 	for (int frame = 0; frame < args->nb_images_to_stack; ++frame) {
 		gboolean clear = FALSE, readdata = TRUE;
@@ -339,7 +342,12 @@ static int stack_read_block_data(struct stacking_args *args,
 			if (clear) {
 				/* we are reading outside an image, fill with
 				 * zeros and attempt to read lines that fit */
-				memset(data->pix[frame], 0, my_block->height * naxes[0] * ielem_size);
+				size_t len = my_block->height * naxes[0] * ielem_size;
+				memset(data->pix[frame], 0, len);
+				if (pixcnt_data) {
+					size_t pixcnt_len = my_block->height * naxes[0] * pixcnt_elem_size;
+					memset(pixcnt_data->pix[frame], 0, pixcnt_len);
+				}
 			}
 		}
 
@@ -351,7 +359,13 @@ static int stack_read_block_data(struct stacking_args *args,
 			else 	buffer = ((WORD *)data->pix[frame])+offset;
 			int retval = seq_opened_read_region(args->seq, my_block->channel,
 					args->image_indices[frame], buffer, &area, thread_id);
-			if (retval) {
+			int retval2 = 0;
+			if (pixcnt_data) {
+				void *buffer2 = ((float*)pixcnt_data->pix[frame]) + offset;
+				retval2 = seq_opened_read_region(args->pixcnt, my_block->channel,
+					args->image_indices[frame], buffer2, &area, thread_id);
+			}
+			if (retval || retval2) {
 #ifdef _OPENMP
 				int tid = omp_get_thread_num();
 				if (tid == 0)
@@ -520,7 +534,7 @@ void confirm_outliers(struct outliers *out, int N, double median, int *rejected,
 	}
 }
 
-static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struct stacking_args *args, int rej[2]) {
+static int apply_rejection_ushort(struct _data_block *data, struct _data_block *pixcnt_data, int nb_frames, struct stacking_args *args, int rej[2]) {
 	int N = nb_frames;	// N is the number of pixels kept from the current stack
 	float median = 0.f;
 	int pixel, output, changed, n, r = 0;
@@ -530,6 +544,10 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 	WORD *w_stack = (WORD *)data->w_stack;
 	int *rejected = (int *)data->rejected;
 	WORD *o_stack = (WORD *)data->o_stack;
+	float *pixcnt_stack;
+	if (pixcnt_data) {
+		pixcnt_stack = (float *) pixcnt_data->stack;
+	}
 
 	memcpy(o_stack, stack, N * sizeof(WORD)); /* making a copy of unsorted stack to apply weights (before the median sorts in place)*/
 
@@ -538,6 +556,8 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 		if (stack[frame] > 0) {
 			if (frame != kept) {
 				stack[kept] = stack[frame];
+				if (pixcnt_data)
+					pixcnt_stack[kept] = pixcnt_stack[frame];
 			}
 			kept++;
 		}
@@ -575,8 +595,11 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 			for (pixel = 0, output = 0; pixel < N; pixel++) {
 				if (!rejected[pixel]) {
 					// copy only if there was a rejection
-					if (pixel != output)
+					if (pixel != output) {
 						stack[output] = stack[pixel];
+						if (pixcnt_data)
+							pixcnt_stack[output] = pixcnt_stack[pixel];
+					}
 					output++;
 				}
 			}
@@ -610,8 +633,11 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 				for (pixel = 0, output = 0; pixel < N; pixel++) {
 					if (!rejected[pixel]) {
 						// copy only if there was a rejection
-						if (pixel != output)
+						if (pixel != output) {
 							stack[output] = stack[pixel];
+							if (pixcnt_data)
+								pixcnt_stack[output] = pixcnt_stack[pixel];
+						}
 						output++;
 					}
 				}
@@ -620,6 +646,7 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 			} while (changed && N > 3);
 			break;
 		case SIGMEDIAN:
+			// TODO: currently doesn't support pixel_count.
 			do {
 				const float sigma = args->sd_calculator(stack, N);
 				if (!firstloop) {
@@ -666,6 +693,8 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 					if (!rejected[pixel]) {
 						// copy only if there was a rejection
 						stack[output] = stack[pixel];
+						if (pixcnt_data)
+							pixcnt_stack[output] = pixcnt_stack[pixel];
 						output++;
 					}
 				}
@@ -699,8 +728,11 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 				for (pixel = 0, output = 0; pixel < N; pixel++) {
 					if (!rejected[pixel]) {
 						// copy only if there was a rejection
-						if (pixel != output)
+						if (pixel != output) {
 							stack[output] = stack[pixel];
+							if (pixcnt_data)
+								pixcnt_stack[output] = pixcnt_stack[pixel];
+						}
 						output++;
 					}
 				}
@@ -747,8 +779,11 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 			for (pixel = 0, output = 0; pixel < N; pixel++) {
 				if (!rejected[pixel]) {
 					// copy only if there was a rejection
-					if (pixel != output)
+					if (pixel != output) {
 						stack[output] = stack[pixel];
+						if (pixcnt_data)
+							pixcnt_stack[output] = pixcnt_stack[pixel];
+					}
 					output++;
 				}
 			}
@@ -762,12 +797,12 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 }
 
 static double mean_and_reject(struct stacking_args *args, struct _data_block *data,
-		int stack_size, data_type itype, int rej[2]) {
+		struct _data_block *pixcnt_data, int stack_size, data_type itype, int rej[2]) {
 	double mean;
 
 	int layer = data->layer;
 	if (itype == DATA_USHORT) {
-		int kept_pixels = apply_rejection_ushort(data, stack_size, args, rej);
+		int kept_pixels = apply_rejection_ushort(data, pixcnt_data, stack_size, args, rej);
 		if (kept_pixels == 0)
 			mean = quickmedian(data->stack, stack_size);
 		else {
@@ -789,9 +824,10 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 
 				for (int frame = 0; frame < stack_size; ++frame) {
 					WORD val = ((WORD*)data->o_stack)[frame];
+					float pixcnt_val = pixcnt_data ? ((float*)pixcnt_data->o_stack)[frame] : 1.f;
 					if (val >= pmin && val <= pmax && val > 0) {
-						sum += (float)val * pweights[frame];
-						norm += pweights[frame];
+						sum += (float)val * pweights[frame] * pixcnt_val;
+						norm += pweights[frame] * pixcnt_val;
 					}
 				}
 				if (norm <= 1.e-2) { // if norm is 0, sum is 0 too
@@ -809,7 +845,7 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 			}
 		}
 	} else {
-		int kept_pixels = apply_rejection_float(data, stack_size, args, rej);
+		int kept_pixels = apply_rejection_float(data, pixcnt_data, stack_size, args, rej);
 		if (kept_pixels == 0)
 			mean = quickmedian_float(data->stack, stack_size);
 		else {
@@ -825,9 +861,10 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 
 				for (int frame = 0; frame < stack_size; ++frame) {
 					float val = ((float*)data->o_stack)[frame];
+					float pixcnt_val = pixcnt_data ? ((float*)pixcnt_data->o_stack)[frame] : 1.f;
 					if (val >= pmin && val <= pmax && val != 0.f) {
-						sum += val * pweights[frame];
-						norm += pweights[frame];
+						sum += val * pweights[frame] * pixcnt_val;
+						norm += pweights[frame] * pixcnt_val;
 					}
 				}
 				if (norm == 0.0)
@@ -999,10 +1036,10 @@ static long stack_get_max_number_of_rows(long naxes[3], data_type type, int nb_i
 static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	int bitpix, i, naxis, cur_nb = 0, retval = ST_OK, pool_size = 1;
 	long naxes[3];
-	gboolean use_pxcnt = ((args->pxcnt != NULL));
+	const gboolean use_pixcnt = ((args->pixcnt != NULL));
 	struct _data_block *data_pool = NULL;
+	struct _data_block *pixcnt_pool = NULL; // for drizzle pixel_count data if available
 	struct _image_block *blocks = NULL;
-	struct _pxcnt_block *pxcnt_blocks = NULL;
 	fits fit = { 0 }; // output result
 	fits ref = { 0 }; // reference image, used to propagate metadata
 	// data for mean/rej only
@@ -1131,14 +1168,24 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	size_t npixels_in_block = largest_block_height * naxes[0];
 	g_assert(npixels_in_block > 0);
 	int ielem_size = itype == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+	const int pixcnt_elem_size = sizeof(float); // pixcnt data is always float
 
 	fprintf(stdout, "allocating data for %d threads (each %lu MB)\n", pool_size,
 			(unsigned long)(nb_frames * npixels_in_block * ielem_size) / BYTES_IN_A_MB);
 	data_pool = calloc(pool_size, sizeof(struct _data_block));
+	size_t pixcnt_bufferSize;
+	if (use_pixcnt) {
+		pixcnt_pool = calloc(pool_size, sizeof(struct _data_block));
+		pixcnt_bufferSize = pixcnt_elem_size * nb_frames * (npixels_in_block + 1ul) + 4ul;
+	}
 	size_t bufferSize = ielem_size * nb_frames * (npixels_in_block + 1ul) + 4ul; // buffer for tmp and stack, added 4 byte for alignment
 	if (is_mean) {
 		bufferSize += nb_frames * sizeof(int); // for rejected
 		bufferSize += ielem_size * nb_frames; // for o_stack
+		if (use_pixcnt) {
+			pixcnt_bufferSize += nb_frames * sizeof(int);
+			pixcnt_bufferSize += pixcnt_elem_size * nb_frames;
+		}
 		if (args->type_of_rejection == WINSORIZED) {
 			bufferSize += ielem_size * nb_frames; // for w_frame
 		} else if (args->type_of_rejection == GESDT) {
@@ -1171,6 +1218,15 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 			}
 			data_pool[i].rejected = (int*)((char*)data_pool[i].tmp + offset);
 			data_pool[i].o_stack = (void*)((char*)data_pool[i].rejected + sizeof(int) * nb_frames);
+			if (use_pixcnt) {
+				size_t pixcnt_offset = (size_t) pixcnt_elem_size * nb_frames * (npixels_in_block + 1);
+				int pixcnt_temp = pixcnt_offset % sizeof(int);
+				if (pixcnt_temp > 0) {
+					pixcnt_offset += sizeof(int) - temp;
+				}
+				pixcnt_pool[i].rejected = (int*)((char*)pixcnt_pool[i].tmp + pixcnt_offset);
+				pixcnt_pool[i].o_stack = (void*)((char*)pixcnt_pool[i].rejected + sizeof(int) * nb_frames);
+			}
 
 			if (args->type_of_rejection == WINSORIZED) {
 				data_pool[i].w_stack = (void*)((char*)data_pool[i].o_stack + ielem_size * nb_frames);
@@ -1204,6 +1260,24 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 			if (itype == DATA_FLOAT)
 				data_pool[i].pix[j] = ((float*)data_pool[i].tmp) + j * npixels_in_block;
 			else 	data_pool[i].pix[j] = ((WORD *)data_pool[i].tmp) + j * npixels_in_block;
+			if (use_pixcnt)
+				pixcnt_pool[i].pix[j] = ((float*)pixcnt_pool[i].tmp) + j * npixels_in_block;
+		}
+
+		if (use_pixcnt) { // set up the matching data block for drizzle pixcnt data
+			pixcnt_pool[i].pix = malloc(nb_frames * sizeof(void *));
+			pixcnt_pool[i].tmp = malloc(pixcnt_bufferSize);
+			if (!pixcnt_pool[i].pix || !pixcnt_pool[i].tmp) {
+				PRINT_ALLOC_ERR;
+				gchar *available = g_format_size_full(get_available_memory(), G_FORMAT_SIZE_IEC_UNITS);
+				fprintf(stderr, "Cannot allocate %zu (free memory: %s)\n", bufferSize / BYTES_IN_A_MB, available);
+				fprintf(stderr, "CHANGE MEMORY SETTINGS if stacking takes too much.\n");
+				g_free(available);
+				retval = ST_ALLOC_ERROR;
+				goto free_and_close;
+			}
+			pixcnt_pool[i].stack = (void *) ((char*) pixcnt_pool[i].tmp
+					+ nb_frames * npixels_in_block * pixcnt_elem_size);
 		}
 	}
 
@@ -1254,6 +1328,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 		/**** Step 1: get allocated memory for the current thread ****/
 		struct _image_block *my_block = blocks+i;
 		struct _data_block *data;
+		struct _data_block *pixcnt_data = NULL;
 		int data_idx = 0;
 		guint64 brej[2] = {0, 0}; // rejection counts for the block
 		long x, y;
@@ -1269,10 +1344,11 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 #endif
 #endif
 		data = &data_pool[data_idx];
+		if (use_pixcnt)
+			pixcnt_data = &pixcnt_pool[data_idx];
 
 		/**** Step 2: load image data for the corresponding image block ****/
-		retval = stack_read_block_data(args, my_block, data, naxes, itype, data_idx);
-		// TODO: This needs to be extended to read args->pxcnt and populate the pxcnt data into data as well
+		retval = stack_read_block_data(args, my_block, data, pixcnt_data, naxes, itype, data_idx);
 		if (retval) continue;
 
 #if defined _OPENMP && defined STACK_DEBUG
@@ -1381,12 +1457,16 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 							}
 							break;
 					}
+
+					if (use_pixcnt)
+						// This never gets normalized
+						((float*) pixcnt_data->stack)[frame] = ((float*) pixcnt_data->pix[frame])[pix_idx];
 				}
 
 				double result; // resulting pixel value, either mean or median
 				if (is_mean) {
 					int rej[2] = { 0, 0 };
-					result = mean_and_reject(args, data, nb_frames, itype, rej);
+					result = mean_and_reject(args, data, pixcnt_data, nb_frames, itype, rej);
 					brej[0] += rej[0];
 					brej[1] += rej[1];
 					if (args->create_rejmaps) {
@@ -1477,6 +1557,13 @@ free_and_close:
 		for (i=0; i<pool_size; i++) {
 			if (data_pool[i].pix) free(data_pool[i].pix);
 			if (data_pool[i].tmp) free(data_pool[i].tmp);
+		}
+		free(data_pool);
+	}
+	if (pixcnt_pool) {
+		for (i=0; i<pool_size; i++) {
+			if (pixcnt_pool[i].pix) free(pixcnt_pool[i].pix);
+			if (pixcnt_pool[i].tmp) free(pixcnt_pool[i].tmp);
 		}
 		free(data_pool);
 	}
