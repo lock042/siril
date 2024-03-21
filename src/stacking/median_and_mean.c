@@ -99,6 +99,20 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 					siril_log_message(_("Opening image %d failed\n"), image_index);
 					return ST_SEQUENCE_ERROR;
 				}
+				if (args->pixcnt) {
+					if (seq_open_image(args->pixcnt, image_index)) {
+						siril_log_message(_("Opening pixel_count image %d failed\n"), image_index);
+						return ST_SEQUENCE_ERROR;
+					}
+
+					fptr = args->pixcnt->fptr[image_index];
+					int pixel_count_bitpix =-32;
+					if (check_fits_params(fptr, &pixel_count_bitpix, naxis, naxes)) {
+						// old_bitpix == -32 as the pixel_count sequences are always float
+						siril_log_message(_("Opening pixel_count image %d failed\n"), image_index);
+						return ST_SEQUENCE_ERROR;
+					}
+				}
 			} else {
 				if (fitseq_set_current_frame(args->seq->fitseq_file, image_index)) {
 					siril_log_color_message(_("There was an error opening frame %d for stacking\n"), "red", image_index);
@@ -1037,6 +1051,8 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	int bitpix, i, naxis, cur_nb = 0, retval = ST_OK, pool_size = 1;
 	long naxes[3];
 	const gboolean use_pixcnt = ((args->pixcnt != NULL));
+	if (use_pixcnt)
+		siril_log_message(_("Using pixel_count sequence for per-pixel drizzle droplet weighting\n"));
 	struct _data_block *data_pool = NULL;
 	struct _data_block *pixcnt_pool = NULL; // for drizzle pixel_count data if available
 	struct _image_block *blocks = NULL;
@@ -1198,6 +1214,19 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	for (i = 0; i < pool_size; i++) {
 		data_pool[i].pix = malloc(nb_frames * sizeof(void *));
 		data_pool[i].tmp = malloc(bufferSize);
+		if (use_pixcnt) {
+			pixcnt_pool[i].pix = malloc(nb_frames * sizeof(void *));
+			pixcnt_pool[i].tmp = malloc(pixcnt_bufferSize);
+			if (!pixcnt_pool[i].pix || !pixcnt_pool[i].tmp) {
+				PRINT_ALLOC_ERR;
+				gchar *available = g_format_size_full(get_available_memory(), G_FORMAT_SIZE_IEC_UNITS);
+				fprintf(stderr, "Cannot allocate %zu (free memory: %s)\n", pixcnt_bufferSize / BYTES_IN_A_MB, available);
+				fprintf(stderr, "CHANGE MEMORY SETTINGS if stacking takes too much.\n");
+				g_free(available);
+				retval = ST_ALLOC_ERROR;
+				goto free_and_close;
+			}
+		}
 		if (!data_pool[i].pix || !data_pool[i].tmp) {
 			PRINT_ALLOC_ERR;
 			gchar *available = g_format_size_full(get_available_memory(), G_FORMAT_SIZE_IEC_UNITS);
@@ -1255,29 +1284,18 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 				data_pool[i].m_dx2 = 1.f / data_pool[i].m_dx2;
 			}
 		}
+		if (use_pixcnt) { // set up the matching data block for drizzle pixcnt data
+			pixcnt_pool[i].stack = (void *) ((char*) pixcnt_pool[i].tmp
+					+ nb_frames * npixels_in_block * pixcnt_elem_size);
+		}
 
 		for (int j = 0; j < nb_frames; ++j) {
 			if (itype == DATA_FLOAT)
 				data_pool[i].pix[j] = ((float*)data_pool[i].tmp) + j * npixels_in_block;
-			else 	data_pool[i].pix[j] = ((WORD *)data_pool[i].tmp) + j * npixels_in_block;
+			else
+				data_pool[i].pix[j] = ((WORD *)data_pool[i].tmp) + j * npixels_in_block;
 			if (use_pixcnt)
 				pixcnt_pool[i].pix[j] = ((float*)pixcnt_pool[i].tmp) + j * npixels_in_block;
-		}
-
-		if (use_pixcnt) { // set up the matching data block for drizzle pixcnt data
-			pixcnt_pool[i].pix = malloc(nb_frames * sizeof(void *));
-			pixcnt_pool[i].tmp = malloc(pixcnt_bufferSize);
-			if (!pixcnt_pool[i].pix || !pixcnt_pool[i].tmp) {
-				PRINT_ALLOC_ERR;
-				gchar *available = g_format_size_full(get_available_memory(), G_FORMAT_SIZE_IEC_UNITS);
-				fprintf(stderr, "Cannot allocate %zu (free memory: %s)\n", bufferSize / BYTES_IN_A_MB, available);
-				fprintf(stderr, "CHANGE MEMORY SETTINGS if stacking takes too much.\n");
-				g_free(available);
-				retval = ST_ALLOC_ERROR;
-				goto free_and_close;
-			}
-			pixcnt_pool[i].stack = (void *) ((char*) pixcnt_pool[i].tmp
-					+ nb_frames * npixels_in_block * pixcnt_elem_size);
 		}
 	}
 
@@ -1565,7 +1583,7 @@ free_and_close:
 			if (pixcnt_pool[i].pix) free(pixcnt_pool[i].pix);
 			if (pixcnt_pool[i].tmp) free(pixcnt_pool[i].tmp);
 		}
-		free(data_pool);
+		free(pixcnt_pool);
 	}
 	g_list_free_full(list_date, (GDestroyNotify) free_list_date);
 	if (blocks) free(blocks);

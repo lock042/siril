@@ -314,6 +314,7 @@ typedef struct {
 
 struct sequ {
 	char *seqname;		// name of the sequence, as in name.seq
+	char *pixcnt_seqname; 	// name of associated pixel_count sequence
 	int number;		// number of images in the sequence
 	int selnum;		// number of selected images in the sequence
 	int fixed;		// fixed length of image index in filename (like %3d)
@@ -336,7 +337,6 @@ struct sequ {
 	int end;		// imgparam[number-1]->filenum
 	double exposure;	// exposure of frames (we assume they are all identical)
 	gboolean fz;
-
 	sequence_type type;
 	struct ser_struct *ser_file;
 	gboolean cfa_opened_monochrome;	// in case the CFA SER was opened in monochrome mode

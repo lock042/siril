@@ -765,6 +765,10 @@ static void create_output_sequence_for_apply_driz(struct driz_args_t *args) {
 	args->new_seq_name = remove_ext_from_filename(rseqname);
 	free(rseqname);
 	seq.seqname = strdup(args->new_seq_name);
+	gchar *tmpbuf = g_strdup_printf("oc_%s", seq.seqname);
+	siril_debug_print("seq name: %s\npix_cnt seq name: %s\n", args->seq->seqname, tmpbuf);
+	seq.pixcnt_seqname = strdup(tmpbuf);
+	g_free(tmpbuf);
 	seq.number = args->new_total;
 	seq.selnum = args->new_total;
 	seq.fixed = args->seq->fixed;
@@ -790,12 +794,12 @@ static void create_output_sequence_for_apply_driz(struct driz_args_t *args) {
 
 gboolean check_before_applydrizzle(struct driz_args_t *driz) {
 	// check the reference image matrix is not null
-/*	if (!(driz && driz->seq && (!driz->use_wcs && driz->seq->regparam[0]))) {
+	if (!driz->use_wcs) {
+		if (!(driz->seq && (driz->seq->regparam[0]))) {
 		siril_log_color_message(_("Error: registration parameters not found, aborting\n"), "red");
 		return FALSE;
-	}*/
+		}
 
-	if (!driz->use_wcs) {
 		transformation_type checkH = guess_transform_from_H(driz->seq->regparam[0][driz->seq->reference_image].H);
 		if (checkH == NULL_TRANSFORMATION) {
 			siril_log_color_message(_("The reference image has a null matrix and was not previously aligned, choose another one, aborting\n"), "red");

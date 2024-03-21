@@ -252,6 +252,12 @@ static void start_stacking() {
 	if (stackparam.method != stack_median && stackparam.method != stack_mean_with_rejection)
 		stackparam.normalize = NO_NORM;
 	stackparam.seq = &com.seq;
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("use_drizzle_pixel_counts"))) && com.seq.pixcnt_seqname != NULL) {
+		stackparam.pixcnt = readseqfile(com.seq.pixcnt_seqname);
+		seq_check_basic_data(stackparam.pixcnt, FALSE);
+	} else {
+		stackparam.pixcnt = NULL;
+	}
 	stackparam.reglayer = get_registration_layer(stackparam.seq);
 	// checking regdata is absent, or if present, is only shift
 	if (!test_regdata_is_valid_and_shift(stackparam.seq, stackparam.reglayer)) {
@@ -1183,7 +1189,8 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 		g_signal_handlers_unblock_by_func(filter_combo, on_stacksel_changed, NULL);
 	}
 
-	switch (gtk_combo_box_get_active(method_combo)) {
+	gboolean method_selected = gtk_combo_box_get_active(method_combo);
+	switch (method_selected) {
 	default:
 	case STACK_SUM:
 	case STACK_MAX:
@@ -1203,6 +1210,8 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 				gtk_combo_box_get_active(GTK_COMBO_BOX(widgetnormalize)) != 0);
 		gtk_widget_set_visible(output_norm, TRUE);
 		gtk_widget_set_visible(RGB_equal, TRUE);
+		gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("use_drizzle_pixel_counts")),
+								 (com.seq.pixcnt_seqname != NULL && method_selected != STACK_MEDIAN));
 	}
 
 	if (com.seq.reference_image == -1)

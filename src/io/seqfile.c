@@ -75,6 +75,7 @@
 sequence * readseqfile(const char *name){
 	char line[512], *scanformat;
 	char filename[512], *seqfilename;
+	char pixcnt_seq_name[512];
 	int i, nb_tokens, allocated = 0, current_layer = -1, image;
 	int to_backup = 0, version = -1;
 	FILE *seqfile;
@@ -105,6 +106,13 @@ sequence * readseqfile(const char *name){
 		switch (line[0]) {
 			case '#':
 				continue;
+			case 'P': // Contains the name of an associated pixel_count sequence
+				if (!sscanf(line+2, "'%511[^']'", pixcnt_seq_name)) {
+					fprintf(stderr,"readseqfile: sequence file format error: %s\n",line);
+					goto error;
+				}
+				seq->pixcnt_seqname = strdup(pixcnt_seq_name);
+				break;
 			case 'S':
 				/* The double quote as sequence name is a sequence with no name.
 				 * Such sequences don't exist anymore. */
@@ -602,6 +610,10 @@ int writeseqfile(sequence *seq){
 	fprintf(seqfile,"S '%s' %d %d %d %d %d %d %d %d\n",
 			seq->seqname, seq->beg, seq->number, seq->selnum, seq->fixed,
 			seq->reference_image, CURRENT_SEQFILE_VERSION, seq->is_variable, seq->fz);
+	if (seq->pixcnt_seqname) { // write the name of an associated pixel_count sequence
+		fprintf(seqfile,"#P 'pixel_count_seqname'\n");
+		fprintf(seqfile,"P '%s'\n", seq->pixcnt_seqname);
+	}
 	if (seq->type != SEQ_REGULAR) {
 		char type;
 		switch (seq->type) {

@@ -108,7 +108,7 @@ int apply_rejection_float(struct _data_block *data, struct _data_block *pixcnt_d
 	float *w_stack = (float*) data->w_stack;
 	int *rejected = (int*) data->rejected;
 	float *o_stack = (float*) data->o_stack;
-		float *pixcnt_stack;
+	float *pixcnt_stack;
 	if (pixcnt_data) {
 		pixcnt_stack = (float *) pixcnt_data->stack;
 	}
