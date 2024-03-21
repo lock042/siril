@@ -238,7 +238,7 @@ int star_match_and_checks(psf_star **ref_stars, psf_star **stars, int nb_ref_sta
 	int failure = 1;
 	/* make a loop with different tries in order to align the two sets of data */
 	while (failure && attempt < NB_OF_MATCHING_TRY) {
-		failure = new_star_match(stars, ref_stars, nb_ref_stars, nb_stars, nobj,
+		failure = new_star_match(stars, ref_stars, nb_stars, nb_ref_stars, nobj,
 				scale_min, scale_max, H, NULL, FALSE, regargs->type, AT_TRANS_UNDEFINED,
 				NULL, NULL);
 		if (attempt == 1) {
