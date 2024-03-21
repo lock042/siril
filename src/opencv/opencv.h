@@ -26,8 +26,6 @@ void cvResizeArray(double *, double *, int, int, int, int);
 
 int cvRotateImage(fits *image, int angle); // only for fast rotations
 
-int cvCalculH_exact(double *X, double *Y, int indref, int indimg, Homography *Hom);
-
 unsigned char *cvCalculH(s_star *star_array_img,
 		struct s_star *star_array_ref, int n, Homography *H, transformation_type type, float offset);
 
@@ -62,7 +60,6 @@ gboolean cvRotMat3(double angles[3], rotation_type rottype[3], gboolean W2C, Hom
 void cvRelRot(Homography *Ref, Homography *R);
 void cvcalcH_fromKKR(Homography Kref, Homography K, Homography R, Homography *H);
 int cvWarp_fromKR(fits *image, Homography K, Homography R, float scale, mosaic_roi *roiout, int projector, int interpolation, gboolean clamp, disto_data *disto);
-int cvmosaiccompose(sequence *seq, Homography *K, Homography *R, int n, float scale, double swa, double cwa, fits *imageout);
 
 #ifdef __cplusplus
 }

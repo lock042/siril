@@ -245,7 +245,7 @@ int register_mosaic(struct registration_args *regargs) {
 					continue;
 				if (WCSDATA[i].lin.dispre) {
 					double A[MAX_DISTO_SIZE][MAX_DISTO_SIZE], B[MAX_DISTO_SIZE][MAX_DISTO_SIZE]; // we won't need them
-					margs->disto[i].order = extract_SIP_order_and_matrices(WCSDATA[i].lin.dispre, &A, &B, margs->disto[i].AP, margs->disto[i].BP);
+					margs->disto[i].order = extract_SIP_order_and_matrices(WCSDATA[i].lin.dispre, A, B, margs->disto[i].AP, margs->disto[i].BP);
 					found = TRUE;
 					margs->disto[i].xref = WCSDATA[i].crpix[0] - 1.; // -1 commes from the difference of convention between opencv and wcs
 					margs->disto[i].yref = WCSDATA[i].crpix[1] - 1.;
