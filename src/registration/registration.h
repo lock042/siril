@@ -6,6 +6,7 @@
 #include "core/processing.h"
 
 #define NUMBER_OF_METHODS 10
+#define MAX_DISTO_SIZE 7
 
 struct registration_args;
 typedef int (*registration_function)(struct registration_args *);
@@ -115,11 +116,19 @@ typedef struct {
 	int x, y, w, h;
 } mosaic_roi;
 
+typedef struct {
+	double AP[MAX_DISTO_SIZE][MAX_DISTO_SIZE];
+	double BP[MAX_DISTO_SIZE][MAX_DISTO_SIZE];
+	int order;
+	double xref, yref;
+} disto_data;
+
 struct mosaic_args{
 	int nb;
 	int refindex;
 	Homography *Rs;
 	Homography *Ks;
+	disto_data *disto;
 	float scale;
 	pointi tl;
 };

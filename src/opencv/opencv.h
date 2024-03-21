@@ -61,7 +61,7 @@ void cvGetBoundingRectSize(fits *image, point center, double angle, int *w, int 
 gboolean cvRotMat3(double angles[3], rotation_type rottype[3], gboolean W2C, Homography *Hom);
 void cvRelRot(Homography *Ref, Homography *R);
 void cvcalcH_fromKKR(Homography Kref, Homography K, Homography R, Homography *H);
-int cvWarp_fromKR(fits *image, Homography K, Homography R, float scale, mosaic_roi *roiout, int projector, int interpolation, gboolean clamp);
+int cvWarp_fromKR(fits *image, Homography K, Homography R, float scale, mosaic_roi *roiout, int projector, int interpolation, gboolean clamp, disto_data *disto);
 int cvmosaiccompose(sequence *seq, Homography *K, Homography *R, int n, float scale, double swa, double cwa, fits *imageout);
 
 #ifdef __cplusplus

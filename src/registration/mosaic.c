@@ -95,7 +95,7 @@ int register_mosaic(struct registration_args *regargs) {
 		return -2;
 	regargs->type = HOMOGRAPHY_TRANSFORMATION; // forcing homography calc for the input sequence
 	regargs->projector = OPENCV_SPHERICAL;
-	regargs->undistort = FALSE;
+	regargs->undistort = TRUE;
 	regargs->mosaic_scale = 1.f;
 
 	gettimeofday(&t_start, NULL);
@@ -237,12 +237,34 @@ int register_mosaic(struct registration_args *regargs) {
 		margs->Ks = Ks;
 		margs->Rs = Rs;
 		margs->scale = scale;
+		gboolean found = FALSE;
+		if (regargs->undistort) {
+			margs->disto = calloc(n, sizeof(disto_data));
+			for (int i = 0;  i < n; i++) {
+				if (!regargs->seq->imgparam[i].incl && regargs->filters.filter_included)
+					continue;
+				if (WCSDATA[i].lin.dispre) {
+					double A[MAX_DISTO_SIZE][MAX_DISTO_SIZE], B[MAX_DISTO_SIZE][MAX_DISTO_SIZE]; // we won't need them
+					margs->disto[i].order = extract_SIP_order_and_matrices(WCSDATA[i].lin.dispre, &A, &B, margs->disto[i].AP, margs->disto[i].BP);
+					found = TRUE;
+					margs->disto[i].xref = WCSDATA[i].crpix[0] - 1.; // -1 commes from the difference of convention between opencv and wcs
+					margs->disto[i].yref = WCSDATA[i].crpix[1] - 1.;
+				}
+			}
+			if (!found) {
+				siril_debug_print("no distorsion terms found in any of the solutions, disabling undistort\n");
+				free(margs->disto);
+				margs->disto = NULL;
+				regargs->undistort = FALSE;
+			}
+
+		}
 	}
 	for (int i = 0;  i < n; i++) {
 		if (!regargs->seq->imgparam[i].incl && regargs->filters.filter_included)
 			continue;
 		seq_read_frame_metadata(regargs->seq, i, &fit);
-		cvWarp_fromKR(&fit, Ks[i], Rs[i], scale, rois + i, regargs->projector, OPENCV_NONE, FALSE);
+		cvWarp_fromKR(&fit, Ks[i], Rs[i], scale, rois + i, regargs->projector, OPENCV_NONE, FALSE, NULL);
 		clearfits(&fit);
 		// first determine the corners
 		if (rois[i].x < tl.x) tl.x = rois[i].x;
@@ -297,12 +319,15 @@ static int mosaic_image_hook(struct generic_seq_args *args, int out_index, int i
 	Homography *Ks = mosargs->Ks;
 	mosaic_roi roi = { 0 };
 	Homography H = { 0 };
+	disto_data *disto = NULL;
+	if (regargs->undistort && mosargs->disto)
+		disto = &mosargs->disto[in_index];
 	cvGetEye(&H);
 
 	sadata->success[out_index] = 0;
 	// TODO: find in opencv codebase if smthg smart can be done with K/R to avoid the double-flip
 	fits_flip_top_to_bottom(fit);
-	int status = cvWarp_fromKR(fit, Ks[out_index], Rs[out_index], mosargs->scale, &roi, regargs->projector, regargs->interpolation, regargs->clamp);
+	int status = cvWarp_fromKR(fit, Ks[out_index], Rs[out_index], mosargs->scale, &roi, regargs->projector, regargs->interpolation, regargs->clamp, disto);
 	if (!status) {
 		fits_flip_top_to_bottom(fit);
 		H.h02 = roi.x - mosargs->tl.x;
@@ -366,6 +391,7 @@ void free_mosaic_args(struct mosaic_args *mosargs) {
 		return;
 	free(mosargs->Ks);
 	free(mosargs->Rs);
+	free(mosargs->disto);
 	free(mosargs);
 }
 

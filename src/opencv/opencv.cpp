@@ -1088,7 +1088,56 @@ void cvcalcH_fromKKR(Homography Kref, Homography K, Homography R, Homography *H)
 
 // TODO: Code below should be moved to a dedicated cvMosaic.cpp file
 
-int cvWarp_fromKR(fits *image, Homography K, Homography R, float scale, mosaic_roi *roiout, int projector, int interpolation, gboolean clamp) {
+static void map_undistortion(disto_data *disto, Rect roi, Mat xmap, Mat ymap) {
+	double U, V, x, y;
+	double U2, V2, U3, V3, U4, V4, U5, V5;
+	for (int v = 0; v < roi.height; ++v) {
+		for (int u = 0; u < roi.width; ++u) {
+			U = (double)xmap.at<float>(v, u) - disto->xref;
+			V = (double)ymap.at<float>(v, u) - disto->yref;
+			x = U + disto->AP[0][0] + disto->AP[1][0] * U + disto->AP[0][1] * V;
+			y = V + disto->BP[0][0] + disto->BP[1][0] * U + disto->BP[0][1] * V;
+			if (disto->order >= 2) {
+				U2 = U * U;
+				V2 = V * V;
+				double UV = U * V;
+				x += disto->AP[2][0] * U2 + disto->AP[1][1] * UV + disto->AP[0][2] * V2;
+				y += disto->BP[2][0] * U2 + disto->BP[1][1] * UV + disto->BP[0][2] * V2;
+			}
+			if (disto->order >= 3) {
+				U3 = U2 * U;
+				V3 = V2 * V;
+				double U2V = U2 * V;
+				double UV2 = U * V2;
+				x += disto->AP[3][0] * U3 + disto->AP[2][1] * U2V + disto->AP[1][2] * UV2 + disto->AP[0][3] * V3;
+				y += disto->BP[3][0] * U3 + disto->BP[2][1] * U2V + disto->BP[1][2] * UV2 + disto->BP[0][3] * V3;
+			}
+			if (disto->order >= 4) {
+				U4 = U3 * U;
+				V4 = V3 * V;
+				double U3V = U3 * V;
+				double U2V2 = U2 * V2;
+				double UV3 = U * V3;
+				x += disto->AP[4][0] * U4 + disto->AP[3][1] * U3V + disto->AP[2][2] * U2V2 + disto->AP[1][3] * UV3 + disto->AP[0][4] * V4;
+				y += disto->BP[4][0] * U4 + disto->BP[3][1] * U3V + disto->BP[2][2] * U2V2 + disto->BP[1][3] * UV3 + disto->BP[0][4] * V4;
+			}
+			if (disto->order >= 5) {
+				U5 = U4 * U;
+				V5 = V4 * V;
+				double U4V = U4 * V;
+				double U3V2 = U3 * V2;
+				double U2V3 = U2 * V3;
+				double UV4 = U * V4;
+				x += disto->AP[5][0] * U5 + disto->AP[4][1] * U4V + disto->AP[3][2] * U3V2 + disto->AP[2][3] * U2V3 + disto->AP[1][4] * UV4 + disto->AP[0][5] * V5;
+				y += disto->BP[5][0] * U5 + disto->BP[4][1] * U4V + disto->BP[3][2] * U3V2 + disto->BP[2][3] * U2V3 + disto->BP[1][4] * UV4 + disto->BP[0][5] * V5;
+			}
+			xmap.at<float>(v, u) = (float)(x + disto->xref);
+			ymap.at<float>(v, u) = (float)(y + disto->yref);
+ 		}
+ 	}
+}
+
+int cvWarp_fromKR(fits *image, Homography K, Homography R, float scale, mosaic_roi *roiout, int projector, int interpolation, gboolean clamp, disto_data *disto) {
 	Mat in, out;
 	void *bgr = NULL;
 
@@ -1134,9 +1183,12 @@ int cvWarp_fromKR(fits *image, Homography K, Homography R, float scale, mosaic_r
 	if (image->data || image->fdata) { 
 		if (image_to_Mat(image, &in, &out, &bgr, sizes.width, sizes.height))
 			return 2;
-		UMat uxmap, uymap;
-		Rect dst_roi = warper->buildMaps(szin, k, r, uxmap, uymap);
-    	remap(in, out, uxmap, uymap, interpolation, BORDER_TRANSPARENT);
+		Mat uxmap, uymap;
+		warper->buildMaps(szin, k, r, uxmap, uymap);
+		if (disto) {
+			map_undistortion(disto, roi, uxmap, uymap);
+		}
+		remap(in, out, uxmap, uymap, interpolation, BORDER_TRANSPARENT);
 		if ((interpolation == OPENCV_LANCZOS4 || interpolation == OPENCV_CUBIC) && clamp) {
 			Mat guide, tmp1;
 			init_guide(image, sizes.width, sizes.height, &guide);
@@ -1149,7 +1201,6 @@ int cvWarp_fromKR(fits *image, Homography K, Homography R, float scale, mosaic_r
 			guide.release();
 			tmp1.release();
 		}
-		// warper->warp(masks, _K, _R, INTER_NEAREST, BORDER_CONSTANT, masks_warped);
 		return Mat_to_image(image, &in, &out, bgr, sizes.width, sizes.height);
 	}
 	return 0;
