@@ -714,6 +714,8 @@ int apply_drizzle(struct driz_args_t *driz) {
 	args->force_float = FALSE;
 	args->user = driz;
 
+	driz->flatten = TRUE; // TODO: replace with a UI element
+
 	driz_param_dump(driz); // Print some info to the log
 	fits fit = { 0 };
 
@@ -735,7 +737,18 @@ int apply_drizzle(struct driz_args_t *driz) {
 			}
 		}
 		// Set the reference WCS data
-		wcscopy(1, fit.wcslib, driz->refwcs);
+		int copy_status;
+		driz->refwcs = wcs_deepcopy(fit.wcslib, &copy_status);
+		if (copy_status) {
+			siril_log_color_message(_("Error: failed to set the reference WCS.\n"), "red");
+			return 1;
+		}
+		if (driz->flatten && driz->refwcs->lin.dispre) {
+			// Disabling distortion in the reference frame so that the distorted
+			// input images are mapped to a flat output reference
+			free(driz->refwcs->lin.dispre);
+			driz->refwcs->lin.dispre = NULL;
+		}
 	}
 
 	driz->is_bayer = (fit.bayer_pattern[0] != '\0'); // If there is a CFA pattern we need to CFA drizzle

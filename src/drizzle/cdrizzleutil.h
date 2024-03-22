@@ -177,6 +177,7 @@ struct driz_args_t {
   BYTE* success;
   int new_total;
   gboolean load_new_sequence;
+  gboolean flatten; // whether or not to map to a flat output reference
   /* Parameters to be copied into the driz_param_t for each frame */
   enum e_kernel_t kernel; /* Kernel shape and size */
   float scale;
