@@ -275,7 +275,7 @@ static int apply_drz_prepare_hook(struct generic_seq_args *args) {
 	driz->new_ser_pxcnt = args->new_ser;
 	driz->new_fitseq_pxcnt = args->new_fitseq;
 
-	args->new_seq_prefix = NULL;
+	args->new_seq_prefix = driz->prefix; // Put it back so it gets loaded on completion
 	args->new_ser = NULL;
 	args->new_fitseq = NULL;
 
@@ -605,7 +605,7 @@ int apply_drz_finalize_hook(struct generic_seq_args *args) {
 			// explicit sequence creation to copy imgparam and regparam
 			create_output_sequence_for_apply_driz(driz);
 			// will be loaded in the idle function if (load_new_sequence)
-			driz->load_new_sequence = TRUE; // only case where a new sequence must be loaded
+			args->load_new_sequence = TRUE; // only case where a new sequence must be loaded
 		}
 	}
 	else {
@@ -767,8 +767,7 @@ static void create_output_sequence_for_apply_driz(struct driz_args_t *args) {
 
 	/* we are not interested in the whole path */
 	gchar *seqname = g_path_get_basename(args->seq->seqname);
-	char *rseqname = malloc(
-			strlen(args->prefix) + strlen(seqname) + 5);
+	char *rseqname = malloc(strlen(args->prefix) + strlen(seqname) + 5);
 	sprintf(rseqname, "%s%s.seq", args->prefix, seqname);
 	g_free(seqname);
 	g_unlink(rseqname);	// remove previous to overwrite
