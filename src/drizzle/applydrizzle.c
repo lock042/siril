@@ -281,20 +281,6 @@ static int apply_drz_prepare_hook(struct generic_seq_args *args) {
 
 	seqwriter_set_number_of_outputs(2);
 
-/*
- * This needs to be moved into check_before_applydrizzle and aligned with the framing computation
-	if (driz->use_wcs) {
-		if (!fit.wcslib) {
-			// TODO: Attempt to platesolve the reference image
-			// Code goes here, then try again to see if we have a viable struct wcslib...
-			if (!fit.wcslib) {
-				siril_log_color_message(_("Error: platesolver failed. Unable to drizzle using WCS data.\n"), "red");
-				return 1;
-			}
-		}
-		driz->refwcs = fit.wcslib;
-	}
-*/
 	return 0;
 }
 
@@ -737,6 +723,19 @@ int apply_drizzle(struct driz_args_t *driz) {
 		siril_log_message(_("Could not load reference image\n"));
 		args->seq->regparam[0] = NULL;
 		return 1;
+	}
+
+	if (driz->use_wcs) {
+		if (!fit.wcslib) {
+			// TODO: Attempt to platesolve the reference image
+			// Code goes here, then try again to see if we have a viable struct wcslib...
+			if (!fit.wcslib) {
+				siril_log_color_message(_("Error: platesolver failed. Unable to drizzle using WCS data.\n"), "red");
+				return 1;
+			}
+		}
+		// Set the reference WCS data
+		wcscopy(1, fit.wcslib, driz->refwcs);
 	}
 
 	driz->is_bayer = (fit.bayer_pattern[0] != '\0'); // If there is a CFA pattern we need to CFA drizzle
