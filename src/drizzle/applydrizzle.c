@@ -714,8 +714,6 @@ int apply_drizzle(struct driz_args_t *driz) {
 	args->force_float = FALSE;
 	args->user = driz;
 
-	driz->flatten = TRUE; // TODO: replace with a UI element
-
 	driz_param_dump(driz); // Print some info to the log
 	fits fit = { 0 };
 
