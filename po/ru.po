@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-03-13 22:33+0100\n"
-"PO-Revision-Date: 2024-03-22 10:41+0000\n"
+"PO-Revision-Date: 2024-03-22 20:23+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -679,7 +679,7 @@ msgstr "Радиально-базисная функция (RBF)"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:132
 msgid "Polynomial"
-msgstr "Полиномиальная функция"
+msgstr "Полином"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:162
 msgid "Smoothing"
@@ -836,7 +836,7 @@ msgstr ""
 "световым загрязнением или Луной.\n"
 "Деление: главным образом используется для коррекции мультипликативных "
 "эффектов, как виньетирование или дифференциальное поглощение атмосферы, "
-"например. Однако, такие операции должны корректироваться с помощью мастер-"
+"например. Однако такие операции должны корректироваться с помощью мастер-"
 "кадров плоского поля."
 
 #: src/gui/uifiles/background_extraction_dialog.ui:541
@@ -1658,17 +1658,16 @@ msgstr ""
 "полошения."
 
 #: src/gui/uifiles/ccm_dialog.ui:13 src/gui/uifiles/ccm_dialog.ui:248
-#, fuzzy
 msgid "Color Conversion Matrix"
-msgstr "Преобразование цветового пространства завершено.\n"
+msgstr "Матрица преобразования цвета"
 
 #: src/gui/uifiles/ccm_dialog.ui:27
 msgid "Restore ICC"
-msgstr ""
+msgstr "Восстановить ICC"
 
 #: src/gui/uifiles/ccm_dialog.ui:32
 msgid "Reactivate ICC profile previously disabled by applying a CCM"
-msgstr ""
+msgstr "Восстанавливает ICC-профиль, раннее отключённый применением CCM"
 
 #: src/gui/uifiles/ccm_dialog.ui:120 src/gui/uifiles/ccm_dialog.ui:176
 #: src/gui/uifiles/ccm_dialog.ui:232
@@ -1683,11 +1682,11 @@ msgstr "0.0"
 
 #: src/gui/uifiles/ccm_dialog.ui:281
 msgid "The power to which each result pixel will be raised."
-msgstr ""
+msgstr "Степень, в которую будет возведён каждый итоговый пиксель."
 
 #: src/gui/uifiles/ccm_dialog.ui:297
 msgid "Power:"
-msgstr ""
+msgstr "Степень:"
 
 #: src/gui/uifiles/ccm_dialog.ui:309
 msgid "Presets:"
@@ -1695,23 +1694,23 @@ msgstr "Предустановки:"
 
 #: src/gui/uifiles/ccm_dialog.ui:322
 msgid "Custom"
-msgstr ""
+msgstr "Пользовательские"
 
 #: src/gui/uifiles/ccm_dialog.ui:323
 msgid "Linear Rec.709_D65 to XYZ"
-msgstr ""
+msgstr "Линейная Rec.709_D65 в XYZ"
 
 #: src/gui/uifiles/ccm_dialog.ui:324
 msgid "XYZ to Linear Rec.709_D65"
-msgstr ""
+msgstr "XYZ в линейную Rec.709_D65"
 
 #: src/gui/uifiles/ccm_dialog.ui:325
 msgid "Simplified sRGB (gamma = 2.2) to XYZ"
-msgstr ""
+msgstr "Упрощённое sRGB (гамма = 2.2) в XYZ"
 
 #: src/gui/uifiles/ccm_dialog.ui:326
 msgid "XYZ to Simplified sRGB (gamma = 2.2)"
-msgstr ""
+msgstr "XYZ в упрощённое sRGB (гамма = 2.2)"
 
 #: src/gui/uifiles/ccm_dialog.ui:343
 msgid "Settings"
@@ -5164,7 +5163,7 @@ msgstr ""
 "шаблоны. Чтобы добиться более высокого сжатия, необходимо удалить часть "
 "этого шума, но без потери полезной информации. Если он слишком велик, один "
 "из них неправильно выбирает значения пикселей, что приводит к потере "
-"информации в изображении. Однако, если он слишком мал, он сохраняет слишком "
+"информации в изображении. Однако если он слишком мал, он сохраняет слишком "
 "много шума (или даже усиливает его) в значениях пикселей, что приводит к "
 "плохому сжатию."
 
@@ -5233,7 +5232,7 @@ msgstr ""
 "0 или 1 приводит к сжатию без потерь. Если коэффициент масштаба больше 1, то "
 "сжатие выполняется с потерями. Для астрономических изображений сжатие без "
 "потерь, как правило, довольно неэффективно, поскольку изображения содержат "
-"много шума, который, по своей сути, несжимаем. Однако, если часть этого шума "
+"много шума, который, по своей сути, несжимаем. Однако если часть этого шума "
 "отбросить, то изображения сжимаются очень хорошо. Коэффициент масштаба "
 "определяет, какая часть шума отбрасывается. Установка масштаба в 2 раза "
 "больше сигмы, среднеквадратичного значения шума в изображении, обычно "
@@ -6053,24 +6052,23 @@ msgstr "Область интереса"
 
 #: src/gui/uifiles/settings_window.ui:3644
 msgid "Middle button double click"
-msgstr ""
+msgstr "Двойной клик средней кнопкой"
 
 #: src/gui/uifiles/settings_window.ui:3657
-#, fuzzy
 msgid "Zoom to fit"
-msgstr "Отдалить"
+msgstr "Уместить в окне"
 
 #: src/gui/uifiles/settings_window.ui:3658
 msgid "Zoom 100% centred on mouse"
-msgstr ""
+msgstr "100% масштаб в позиции курсора"
 
 #: src/gui/uifiles/settings_window.ui:3659
 msgid "Zoom toggles between fit and 100%"
-msgstr ""
+msgstr "Уместить в окне или 100% масштаб"
 
 #: src/gui/uifiles/settings_window.ui:3674
 msgid "Mouse Behaviour"
-msgstr ""
+msgstr "Поведение мыши"
 
 #: src/gui/uifiles/settings_window.ui:3718
 msgid "Background extraction samples:"
@@ -7570,14 +7568,12 @@ msgid "Color Management..."
 msgstr "Управление цветом…"
 
 #: src/gui/uifiles/siril.ui:2573
-#, fuzzy
 msgid "Open the CCM dialog"
-msgstr "Диалог подавления шума"
+msgstr "Диалог матрицы преобразования цвета"
 
 #: src/gui/uifiles/siril.ui:2575
-#, fuzzy
 msgid "Color Conversion Matrix..."
-msgstr "Преобразование цветового пространства завершено.\n"
+msgstr "Матрица преобразования цвета..."
 
 #: src/gui/uifiles/siril.ui:2589
 msgid "FITS Header..."
@@ -9281,7 +9277,7 @@ msgstr ""
 "по умолчанию при аддитивной нормализации.\n"
 "\n"
 "<b>Мастер-кадры шума считывания и темновые мастер-кадры должны "
-"обрабатываться без нормализации. Однако, при работе с кадрами плоского поля "
+"обрабатываться без нормализации. Однако при работе с кадрами плоского поля "
 "должна использоваться мультипликативная нормализация.</b>"
 
 #: src/gui/uifiles/siril.ui:7622
@@ -15871,12 +15867,12 @@ msgid ""
 "but will eliminate artefacts"
 msgstr ""
 "Подавляет шум на изображении, используя нелокальный Байесовский (НЛ "
-"Байесовский) алгоритм описанный <a href=\"https://www.ipol.im/pub/"
-"art/2013/16\">Лебраном, Буадесом и Морелом</a>.\n"
+"Байесовский) алгоритм описанный <a href=\"https://www.ipol.im/pub/art/2013/"
+"16\">Лебраном, Буадесом и Морелом</a>.\n"
 "\n"
 "Перед шумоподавлением настоятельно рекомендуется применить косметическую "
 "коррекцию для удаления шума типа 'соль и перец'. По умолчанию эта команда "
-"автоматически применяет косметическую коррекцию. Однако, если косметическая "
+"автоматически применяет косметическую коррекцию. Однако если косметическая "
 "коррекция была выполнена в ходе рабочего процесса раннее, она может быть "
 "отключена с помощью опции <b>-nocosmetic</b>.\n"
 "\n"
@@ -15901,11 +15897,12 @@ msgstr ""
 "шумоподавления. DA3D улучшает детали и уменьшает ступенчатые артефакты.\n"
 "\n"
 "Необязательный аргумент <b>-sos=<i>n</i></b> можно использовать для "
-"включения итеративного улучшения шумоподавления с помощью алгоритма усиление-"
-"подавление-вычитание (SOS). Количество повторов указывается с помощью n. В "
-"частности, SOS может давать лучшие результаты, если неулучшенный НЛ "
-"Байесовский алгоритм оставляет артефакты в областях фона. Если одновременно "
-"переданы -da3d и -sos=n, то будет применён последний из переданных.\n"
+"включения итеративного улучшения шумоподавления с помощью алгоритма "
+"усиление-подавление-вычитание (SOS). Количество повторов указывается с "
+"помощью n. В частности, SOS может давать лучшие результаты, если "
+"неулучшенный НЛ Байесовский алгоритм оставляет артефакты в областях фона. "
+"Если одновременно переданы -da3d и -sos=n, то будет применён последний из "
+"переданных.\n"
 "\n"
 "Может быть передан необязательный аргумент <b>-rho=r</b>, где 0 &lt; r &lt; "
 "1. Он используется алгоритмом SOS для указания доли зашумлённого "
@@ -22175,9 +22172,9 @@ msgid "-> %i comparison stars selected\n"
 msgstr "%d звёзд сравнения после сортировки.\n"
 
 #: src/gui/compstars.c:251
-#, fuzzy, c-format
+#, c-format
 msgid "Target star  : %4.3lf, %+4.3lf\n"
-msgstr "Целевая звезда: Vmag = %2.2lf, B-V = %+2.2lf\n"
+msgstr "Целевая звезда  : %4.3lf, %+4.3lf\n"
 
 #: src/gui/compstars.c:257
 #, c-format
@@ -23098,9 +23095,8 @@ msgstr ""
 "формате PNG"
 
 #: src/gui/nina_light_curve.c:110
-#, fuzzy
 msgid "Choose a comparison stars file"
-msgstr "Создать список звёзд сравнения"
+msgstr "Выберете файл со списком звёзд сравнения"
 
 #: src/gui/nina_light_curve.c:115
 msgid "The currently loaded image must be plate solved"
@@ -25869,9 +25865,9 @@ msgid "No item found in the image\n"
 msgstr "Элементы на изображении не найдены\n"
 
 #: src/io/siril_catalogues.c:1164
-#, fuzzy, c-format
+#, c-format
 msgid "List saved to %s\n"
-msgstr "Новые настройки сохранены в %s\n"
+msgstr "Список сохранён в %s\n"
 
 #: src/io/siril_git.c:138
 msgid "libgit2: unable to parse some refish\n"
