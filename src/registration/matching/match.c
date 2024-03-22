@@ -170,7 +170,7 @@ int new_star_match(psf_star **s1, psf_star **s2, int n1, int n2, int nobj_overri
 	}
 #endif
 	if (nobj_override > 0)
-		nobj = min(min(n1, n2), nobj_override);
+		nobj = min(max(n1, n2), nobj_override);
 
 	/* Check to make sure that the user specified
 	 *
