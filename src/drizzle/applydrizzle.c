@@ -612,7 +612,7 @@ int apply_drz_finalize_hook(struct generic_seq_args *args) {
 		siril_log_message(_("Drizzle aborted.\n"));
 	}
 
-	if (driz->new_total != 0)
+	if (driz->new_total == 0)
 		return 1;
 	driz->new_ser_drz = NULL;
 	driz->new_fitseq_drz = NULL;
