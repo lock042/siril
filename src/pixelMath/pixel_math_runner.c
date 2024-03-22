@@ -469,7 +469,7 @@ static float get_max_rescale_value() {
 	return (float) gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_pm_high")));
 }
 
-static void update_metadata(fits *fit, gboolean do_cumul) {
+static void update_metadata(fits *fit, gboolean do_sum) {
 	fits **f = malloc((MAX_IMAGES + 1) * sizeof(fits *));
 	int j = 0;
 	for (int i = 0; i < MAX_IMAGES ; i++)
@@ -482,7 +482,7 @@ static void update_metadata(fits *fit, gboolean do_cumul) {
 		// we copy the metadata from first image of the list
 		copy_fits_metadata(var_fit, fit);
 	else
-		merge_fits_headers_to_result2(fit, f, do_cumul);
+		merge_fits_headers_to_result2(fit, f, do_sum);
 	free(f);
 }
 
@@ -739,7 +739,7 @@ failure: // failure before the eval loop
 
 	if (failed)
 		args->ret = 1;
-	else update_metadata(args->fit, args->do_cumul);
+	else update_metadata(args->fit, args->do_sum);
 
 	/* free memory */
 	g_free(args->expression1);
@@ -910,7 +910,7 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 	gboolean icc_warning_given = FALSE;
 	gboolean single_rgb = is_pm_use_rgb_button_checked();
 	gboolean rescale = is_pm_rescale_checked();
-	gboolean do_cumul = is_cumulate_checked();
+	gboolean do_sum = is_cumulate_checked();
 	float min = get_min_rescale_value();
 	float max = get_max_rescale_value();
 
@@ -976,7 +976,7 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 	args->expression3 = single_rgb ? NULL : expression3;
 	args->single_rgb = single_rgb;
 	args->rescale = rescale;
-	args->do_cumul = do_cumul;
+	args->do_sum = do_sum;
 	args->min = min;
 	args->max = max;
 	args->fit = fit;

@@ -3773,7 +3773,7 @@ int check_loaded_fits_params(fits *ref, ...) {
 }
 
 // f is NULL-terminated and not empty
-void merge_fits_headers_to_result2(fits *result, fits **f, gboolean do_cumul) {
+void merge_fits_headers_to_result2(fits *result, fits **f, gboolean do_sum) {
 	/* copy all from the first */
 	copy_fits_metadata(f[0], result);
 
@@ -3813,7 +3813,7 @@ void merge_fits_headers_to_result2(fits *result, fits **f, gboolean do_cumul) {
 		if (strcmp(result->filter, current->filter))
 			strcpy(result->filter, "mixed");
 
-		if (do_cumul) {
+		if (do_sum) {
 			// add the exposure times and number of stacked images
 			result->stackcnt += current->stackcnt;
 			result->livetime += current->livetime;
@@ -3835,7 +3835,7 @@ void merge_fits_headers_to_result2(fits *result, fits **f, gboolean do_cumul) {
 
 // NULL-terminated list of fits, given with decreasing importance
 // HISTORY is not managed, neither is some conflicting information
-void merge_fits_headers_to_result(fits *result, gboolean do_cumul, fits *f1, ...) {
+void merge_fits_headers_to_result(fits *result, gboolean do_sum, fits *f1, ...) {
 	if (!f1) return;
 	// converting variadic to array of args
 	va_list ap;
@@ -3855,7 +3855,7 @@ void merge_fits_headers_to_result(fits *result, gboolean do_cumul, fits *f1, ...
 	va_end(ap);
 	array[i] = NULL;
 
-	merge_fits_headers_to_result2(result, array, do_cumul);
+	merge_fits_headers_to_result2(result, array, do_sum);
 	free(array);
 }
 
