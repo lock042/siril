@@ -294,6 +294,8 @@ free_all:
 	free(dist);
 	free(rois);
 	for (int i = 0; i < n; i++) {
+		if (!regargs->seq->imgparam[i].incl && regargs->filters.filter_included)
+			continue;
 		wcsfree(WCSDATA + i);
 	}
 	free(WCSDATA);
@@ -327,7 +329,7 @@ static int mosaic_image_hook(struct generic_seq_args *args, int out_index, int i
 	sadata->success[out_index] = 0;
 	// TODO: find in opencv codebase if smthg smart can be done with K/R to avoid the double-flip
 	fits_flip_top_to_bottom(fit);
-	int status = cvWarp_fromKR(fit, Ks[out_index], Rs[out_index], mosargs->scale, &roi, regargs->projector, regargs->interpolation, regargs->clamp, disto);
+	int status = cvWarp_fromKR(fit, Ks[in_index], Rs[in_index], mosargs->scale, &roi, regargs->projector, regargs->interpolation, regargs->clamp, disto);
 	if (!status) {
 		fits_flip_top_to_bottom(fit);
 		H.h02 = roi.x - mosargs->tl.x;
