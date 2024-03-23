@@ -174,7 +174,7 @@ int execute_command(int wordnb) {
 		}
 	}
 
-	if ((commands[i].prerequires & (REQ_CMD_FOR_MONO | REQ_CMD_FOR_CFA)) == (REQ_CMD_FOR_MONO | REQ_CMD_FOR_CFA)) {
+	if ((commands[i].prerequires & REQ_CMD_FOR_CFA) == REQ_CMD_FOR_CFA) {
 		if (isrgb(&gfit)) {
 			return CMD_FOR_CFA_IMAGE;
 		}
