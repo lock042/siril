@@ -705,7 +705,7 @@ For example, if you set parameters with the expression &lt;i&gt;factor=0.8, K=0.
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">False</property>
-                    <property name="tooltip-text" translatable="yes">Sum of the exposure times of the different images used for the composition. This will change the value of some keywords such as stackcnt (number of frames stacked) and livetime (total exposure).</property>
+                    <property name="tooltip-text" translatable="yes">Sum of the exposure times of the different images used for the composition. This will change the value of some keywords such as STACKCNT (number of frames stacked) and LIVETIME (total exposure).</property>
                     <property name="active">True</property>
                     <property name="draw-indicator">True</property>
                   </object>
