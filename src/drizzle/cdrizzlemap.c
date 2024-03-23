@@ -42,6 +42,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 
 #include "core/siril.h"
+#include "core/siril_log.h"
 #include "opencv/opencv.h"
 #include "driz_portability.h"
 #include "cdrizzlemap.h"
@@ -281,15 +282,16 @@ int map_image_coordinates_wcs(int width, int height, struct wcsprm *wcs_i, struc
 		for (int i = 0 ; i < nelem ; i++) {
 			status_sum += status[i];
 		}
-		if (status_sum) { // wcslib returned at least 1 error for this row
-			free(imgcrd);
-			free(pixcrd);
-			free(world);
-			free(phi);
-			free(theta);
-			free(status);
-			return 1;
-		}
+	}
+	if (status_sum) { // wcslib returned at least 1 error for this row
+		free(imgcrd);
+		free(pixcrd);
+		free(world);
+		free(phi);
+		free(theta);
+		free(status);
+		siril_log_color_message(_("%d errors in wcs coordinate transform (%f%\n"), "red", status_sum, (float) status_sum / (float)(width * height));
+		return 1;
 	}
 	free(imgcrd);
 	free(world);

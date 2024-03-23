@@ -346,7 +346,7 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	/* Populate the mapping array. This maps pixels from the current frame to
 	 * the reference frame. Either a Homography mapping can be used based on
 	 * image registration or a WCS mapping can be used based on plate solving */
-	p->pixmap = malloc(sizeof(imgmap_t));
+	p->pixmap = calloc(1, sizeof(imgmap_t));
 	p->pixmap->rx = fit->rx;
 	p->pixmap->ry = fit->ry;
 	struct timeval t_start, t_end;
@@ -355,6 +355,10 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		map_image_coordinates_wcs(fit->rx, fit->ry, fit->wcslib, refwcs, p->pixmap, driz->scale);
 	} else {
 		map_image_coordinates_h(fit, H, p->pixmap, driz->scale);
+	}
+	if (!p->pixmap->pixmap) {
+		siril_log_color_message(_("Error generating mapping array.\n"), "red");
+		return 1;
 	}
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, _("Remapping"));
@@ -831,12 +835,8 @@ int apply_drizzle(struct driz_args_t *driz) {
 
 	if (driz->use_wcs) {
 		if (!fit.wcslib) {
-			// TODO: Attempt to platesolve the reference image
-			// Code goes here, then try again to see if we have a viable struct wcslib...
-			if (!fit.wcslib) {
-				siril_log_color_message(_("Error: platesolver failed. Unable to drizzle using WCS data.\n"), "red");
-				return 1;
-			}
+			siril_log_color_message(_("Error: reference image is not plate solved. Unable to drizzle using WCS data.\n"), "red");
+			return 1;
 		}
 		// Set the reference WCS data
 		int copy_status;

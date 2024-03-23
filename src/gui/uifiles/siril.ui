@@ -7773,7 +7773,7 @@ The master flat must be set in the Calibration tab.</property>
                                                           </packing>
                                                         </child>
                                                         <child>
-                                                          <object class="GtkCheckButton">
+                                                          <object class="GtkCheckButton" id="driz_use_bias">
                                                             <property name="label" translatable="yes">Master flat requires bias subtraction</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
