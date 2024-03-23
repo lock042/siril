@@ -7722,15 +7722,88 @@ Note that the Gaussian and Lanczos models do not conserve flux.</property>
                                               </packing>
                                             </child>
                                             <child>
-                                              <object class="GtkCheckButton" id="generate_pixcnt">
-                                                <property name="label" translatable="yes">Save a pixel_count sequence</property>
+                                              <object class="GtkFrame">
                                                 <property name="visible">True</property>
-                                                <property name="can-focus">True</property>
-                                                <property name="receives-default">False</property>
-                                                <property name="tooltip-text" translatable="yes">If selected, a pixel_count sequence will be saved. This records what percentage of a complete droplet each pixel value is based on. For scale = 1, droplet size = 1 this doesn't matter, but for other combinations of scale and droplet size this data can be used during stacking to ensure the contributions to each pixel from each frame are weighted correctly.
+                                                <property name="can-focus">False</property>
+                                                <property name="label-xalign">0</property>
+                                                <property name="shadow-type">none</property>
+                                                <child>
+                                                  <object class="GtkAlignment">
+                                                    <property name="visible">True</property>
+                                                    <property name="can-focus">False</property>
+                                                    <property name="left-padding">12</property>
+                                                    <child>
+                                                      <object class="GtkBox">
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">False</property>
+                                                        <property name="orientation">vertical</property>
+                                                        <property name="spacing">6</property>
+                                                        <child>
+                                                          <object class="GtkCheckButton" id="generate_pixcnt">
+                                                            <property name="label" translatable="yes">Save a pixel_count sequence</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">If selected, a pixel_count sequence will be saved. This records what percentage of a complete droplet each pixel value is based on. For scale = 1, droplet size = 1 this doesn't matter, but for other combinations of scale and droplet size this data can be used during stacking to ensure the contributions to each pixel from each frame are weighted correctly.
 
 The pixel_count sequence will be the same size as the sequence of drizzled images, and will always be floating point.</property>
-                                                <property name="draw-indicator">True</property>
+                                                            <property name="draw-indicator">True</property>
+                                                          </object>
+                                                          <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">0</property>
+                                                          </packing>
+                                                        </child>
+                                                        <child>
+                                                          <object class="GtkCheckButton" id="driz_use_flats">
+                                                            <property name="label" translatable="yes">Include master flat in pixel_count weighting</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Check this to include the master flat in the pixel_count weighting. This will result in pixels from less vignetted areas of input frames being weighted more heavily than pixels from more vignetted areas of other input frames in the final stack.
+
+The master flat must be set in the Calibration tab.</property>
+                                                            <property name="draw-indicator">True</property>
+                                                          </object>
+                                                          <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">1</property>
+                                                          </packing>
+                                                        </child>
+                                                        <child>
+                                                          <object class="GtkCheckButton">
+                                                            <property name="label" translatable="yes">Master flat requires bias subtraction</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Check this if the master flat requires bias subtraction.
+
+The master bias or synthetic bias value must be set in the Calibration tab.</property>
+                                                            <property name="draw-indicator">True</property>
+                                                          </object>
+                                                          <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">2</property>
+                                                          </packing>
+                                                        </child>
+                                                      </object>
+                                                    </child>
+                                                  </object>
+                                                </child>
+                                                <child type="label">
+                                                  <object class="GtkLabel">
+                                                    <property name="visible">True</property>
+                                                    <property name="can-focus">False</property>
+                                                    <property name="ypad">6</property>
+                                                    <property name="label" translatable="yes">Pixel_count weighting</property>
+                                                    <attributes>
+                                                      <attribute name="weight" value="bold"/>
+                                                    </attributes>
+                                                  </object>
+                                                </child>
                                               </object>
                                               <packing>
                                                 <property name="expand">False</property>

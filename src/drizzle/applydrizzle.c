@@ -728,9 +728,6 @@ int apply_drizzle(struct driz_args_t *driz) {
 		return 1;
 	}
 
-	driz->use_flats = FALSE; // TODO: add UI elements to select this
-	driz->use_bias = FALSE;
-
 	if (driz->use_flats) {
 		fits reffit = { 0 };
 		GtkEntry *entry = GTK_ENTRY(lookup_widget("flatname_entry"));
