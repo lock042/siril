@@ -182,6 +182,9 @@ struct driz_args_t {
   enum e_kernel_t kernel; /* Kernel shape and size */
   float scale;
   float weight_scale; /* Weight scale */
+  fits *weights; /* Weights FITS */
+  gboolean use_flats; /* Whether to use master flat as weights */
+  gboolean use_bias; /* If use_flats == TRUE, whether to subtract bias */
   float pixel_fraction;
   const char* cfa;
   GList *processed_images;
@@ -199,12 +202,20 @@ struct driz_param_t {
   enum e_kernel_t kernel; /* Kernel shape and size */
   float          pixel_fraction; /* was: PIXFRAC */
   float           exposure_time; /* Exposure time was: EXPIN */
+  // Siril doesn't use exposure_time because frame exposure weighting can already be
+  // done in the stacking code, so this is always set to 1.f in the initializer.
   float           weight_scale; /* Weight scale was: WTSCL */
   float           fill_value; /* Filling was: FILVAL */
+  // Siril doesn't use fill_value: empty regions are always set to zero anyway,
+  // so also do_fill is always initialized to FALSE
   bool_t          do_fill; /* was: FILL */
   enum e_unit_t   in_units; /* CPS / counts was: INCPS, either counts or CPS */
   enum e_unit_t   out_units; /* CPS / counts was: INCPS, either counts or CPS */
+  // Siril typically works with images directly from a camera, with pixel values
+  // representing counts. These are automatically initialised to counts in the
+  // initializer but are left in the struct in case they are ever of use.
   integer_t       uuid; /* was: UNIQID */
+  // This is only for building context images; Siril doesn't build a context image.
 
   /* Scaling */
   float scale;

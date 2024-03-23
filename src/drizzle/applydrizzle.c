@@ -27,12 +27,15 @@
 #include "algos/siril_wcs.h"
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/arithm.h"
+#include "core/preprocess.h"
 #include "core/processing.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
 #include "gui/image_display.h"
 #include "gui/progress_and_log.h"
 #include "gui/utils.h"
+#include "io/path_parse.h"
 #include "io/sequence.h"
 #include "io/ser.h"
 #include "io/image_format_fits.h"
@@ -723,6 +726,110 @@ int apply_drizzle(struct driz_args_t *driz) {
 		siril_log_message(_("Could not load reference image\n"));
 		args->seq->regparam[0] = NULL;
 		return 1;
+	}
+
+	driz->use_flats = FALSE; // TODO: add UI elements to select this
+	driz->use_bias = FALSE;
+
+	if (driz->use_flats) {
+		fits reffit = { 0 };
+		GtkEntry *entry = GTK_ENTRY(lookup_widget("flatname_entry"));
+		const gchar *flat_filename = gtk_entry_get_text(entry);
+		gchar *error = NULL;
+		int status;
+		gchar *expression = path_parse(&reffit, flat_filename, PATHPARSE_MODE_READ, &status);
+		if (status) {
+			error = _("NOT USING FLAT: could not parse the expression");
+			driz->use_flats = FALSE;
+		} else {
+			free(expression);
+			if (flat_filename[0] == '\0') {
+				siril_log_message(_("Error: no master flat specified in the preprocessing tab.\n"));
+				return 1;
+			} else {
+				set_progress_bar_data(_("Opening flat image..."), PROGRESS_NONE);
+				driz->weights = calloc(1, sizeof(fits));
+				if (!readfits(flat_filename, driz->weights, NULL, TRUE)) {
+					if (driz->weights->naxes[2] != fit.naxes[2]) {
+						error = _("NOT USING FLAT: number of channels is different");
+					} else if (driz->weights->naxes[0] != fit.naxes[0] ||
+							driz->weights->naxes[1] != fit.naxes[1]) {
+						error = _("NOT USING FLAT: image dimensions are different");
+					} else {
+						// no need to deal with bitdepth conversion as readfits has already forced conversion to float
+						siril_log_message(_("Master flat read for use as initial pixel weight\n"));
+					}
+
+				} else error = _("NOT USING FLAT: cannot open the file");
+				if (error) {
+					siril_log_color_message("%s\n", "red", error);
+					set_progress_bar_data(error, PROGRESS_DONE);
+					if (driz->weights) {
+						clearfits(driz->weights);
+						free(driz->weights);
+					}
+					return 1;
+				}
+				if (driz->use_bias) {
+					entry = GTK_ENTRY(lookup_widget("offsetname_entry"));
+					const gchar *offset_filename = gtk_entry_get_text(entry);
+					if (offset_filename[0] == '\0') {
+						siril_log_message(_("Error: no master bias specified in the preprocessing tab.\n"));
+						return 1;
+					} else if (offset_filename[0] == '=') { // offset is specified as a level not a file
+						set_progress_bar_data(_("Checking offset level..."), PROGRESS_NONE);
+						int offsetlevel = evaluateoffsetlevel(offset_filename + 1, &fit);
+						if (!offsetlevel) {
+							error = _("NOT USING OFFSET: the offset value could not be parsed");
+							driz->use_bias = FALSE;
+						} else {
+							siril_log_message(_("Synthetic offset: Level = %d\n"),offsetlevel);
+							int maxlevel = (fit.orig_bitpix == BYTE_IMG) ? UCHAR_MAX : USHRT_MAX;
+							if ((offsetlevel > maxlevel) || (offsetlevel < -maxlevel) ) {   // not excluding all neg values here to allow defining a pedestal
+								error = _("NOT USING OFFSET: the offset value is not consistent with image bitdepth");
+								driz->use_bias = FALSE;
+							} else {
+								float bias_level = (float)offsetlevel;
+								bias_level *= (fit.orig_bitpix == BYTE_IMG) ? INV_UCHAR_MAX_SINGLE : INV_USHRT_MAX_SINGLE; //converting to [0 1] to use with soper
+								soper(driz->weights, bias_level, OPER_SUB, TRUE);
+								siril_log_message(_("Bias level subtracted from master flat for use as initial pixel weighting\n"));
+							}
+						}
+					} else {
+						int status;
+						expression = path_parse(&reffit, offset_filename, PATHPARSE_MODE_READ, &status);
+						if (status) {
+							error = _("NOT USING OFFSET: could not parse the expression\n");
+						} else {
+							set_progress_bar_data(_("Opening master bias image..."), PROGRESS_NONE);
+							fits bias = { 0 };
+							if (!readfits(offset_filename, &bias, NULL, TRUE)) {
+								if (bias.naxes[2] != fit.naxes[2]) {
+									error = _("NOT USING BIAS: number of channels is different");
+								} else if (bias.naxes[0] != fit.naxes[0] ||
+										bias.naxes[1] != fit.naxes[1]) {
+									error = _("NOT USING BIAS: image dimensions are different");
+								} else {
+									imoper(driz->weights, &bias, OPER_SUB, TRUE);
+									siril_log_message(_("Master bias subtracted from master flat for use as initial pixel weighting\n"));
+									// no need to deal with bitdepth conversion as flat is just a division (unlike darks which need to be on same scale)
+								}
+							} else error = _("NOT USING BIAS: cannot open the file");
+							clearfits(&bias);
+						}
+					}
+					if (error) {
+						siril_log_color_message("%s\n", "red", error);
+						set_progress_bar_data(error, PROGRESS_DONE);
+						if (driz->weights) {
+							clearfits(driz->weights);
+							free(driz->weights);
+						}
+						return 1;
+					}
+				}
+			}
+		}
 	}
 
 	if (driz->use_wcs) {
