@@ -144,7 +144,8 @@ preferences pref_init = {
 		.reg_clamping = TRUE,
 		.pm_presets = NULL,
 		.config_colors.color_bkg_samples = NULL,
-		.config_colors.color_std_annotations = NULL
+		.config_colors.color_std_annotations = NULL,
+		.mmb_action = MMB_ZOOM_FIT
 	},
 	.debayer = {
 		.open_debayer = FALSE,
@@ -390,6 +391,7 @@ struct settings_access all_settings[] = {
 	{ "gui", "show_deciasec", STYPE_BOOL, N_("show tenths of arcseconds on hover"), &com.pref.gui.show_deciasec },
 	{ "gui", "default_rendering_mode", STYPE_INT, N_("default display mode"), &com.pref.gui.default_rendering_mode, { .range_int = { 0, 6 } } },
 	{ "gui", "display_histogram_mode", STYPE_INT, N_("default histogram display mode"), &com.pref.gui.display_histogram_mode, { .range_int = { 0, 1 } } },
+	{ "gui", "mmb_zoom_action", STYPE_INT, N_("Middle mouse button double click zoom action"), &com.pref.gui.mmb_action },
 	{ "gui", "color_bkg_samples", STYPE_STR, N_("configure background samples color"), &com.pref.gui.config_colors.color_bkg_samples },
 	{ "gui", "color_std_annotations", STYPE_STR, N_("configure standard annotation color"), &com.pref.gui.config_colors.color_std_annotations },
 
