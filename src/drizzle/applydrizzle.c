@@ -698,6 +698,7 @@ gboolean check_before_applydrizzle(struct driz_args_t *driz);
 
 int apply_drizzle(struct driz_args_t *driz) {
 	struct generic_seq_args *args = create_default_seqargs(driz->seq);
+	set_progress_bar_data(_("Initializing drizzle data..."), PROGRESS_PULSATE);
 
 	if (!check_before_applydrizzle(driz)) {
 		free(args);
@@ -845,7 +846,8 @@ int apply_drizzle(struct driz_args_t *driz) {
 			siril_log_color_message(_("Error: failed to set the reference WCS.\n"), "red");
 			return 1;
 		}
-		if (driz->flatten && driz->refwcs->lin.dispre) {
+		// Disable this check: it doesn't work trying to use wcss2p to a distorted WCS, so we always map to undistorted
+		if (/*driz->flatten &&*/ driz->refwcs->lin.dispre) {
 			// Disabling distortion in the reference frame so that the distorted
 			// input images are mapped to a flat output reference
 			free(driz->refwcs->lin.dispre);

@@ -305,7 +305,8 @@ static int stack_read_block_data(struct stacking_args *args,
 	const int pixcnt_elem_size = sizeof(float);
 	/* store the layer info to retrieve normalization coeffs*/
 	data->layer = (int)my_block->channel;
-	if (pixcnt_data) pixcnt_data->layer = data->layer;
+	if (pixcnt_data)
+		pixcnt_data->layer = data->layer;
 	/* Read the block from all images, store them in pix[image] */
 	for (int frame = 0; frame < args->nb_images_to_stack; ++frame) {
 		gboolean clear = FALSE, readdata = TRUE;
@@ -370,7 +371,8 @@ static int stack_read_block_data(struct stacking_args *args,
 			void *buffer;
 			if (itype == DATA_FLOAT)
 				buffer = ((float*)data->pix[frame])+offset;
-			else 	buffer = ((WORD *)data->pix[frame])+offset;
+			else
+				buffer = ((WORD *)data->pix[frame])+offset;
 			int retval = seq_opened_read_region(args->seq, my_block->channel,
 					args->image_indices[frame], buffer, &area, thread_id);
 			int retval2 = 0;
@@ -558,9 +560,11 @@ static int apply_rejection_ushort(struct _data_block *data, struct _data_block *
 	WORD *w_stack = (WORD *)data->w_stack;
 	int *rejected = (int *)data->rejected;
 	WORD *o_stack = (WORD *)data->o_stack;
-	float *pixcnt_stack;
+	float *pixcnt_stack, *pixcnt_o_stack;
 	if (pixcnt_data) {
 		pixcnt_stack = (float *) pixcnt_data->stack;
+		pixcnt_o_stack = (float *) pixcnt_data->o_stack;
+		memcpy(pixcnt_o_stack, pixcnt_stack, N * sizeof(float));
 	}
 
 	memcpy(o_stack, stack, N * sizeof(WORD)); /* making a copy of unsorted stack to apply weights (before the median sorts in place)*/
@@ -838,7 +842,8 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 
 				for (int frame = 0; frame < stack_size; ++frame) {
 					WORD val = ((WORD*)data->o_stack)[frame];
-					float pixcnt_val = pixcnt_data ? ((float*)pixcnt_data->o_stack)[frame] : 1.f;
+					float pixcnt_val = pixcnt_data ? ((float*)pixcnt_data->stack)[frame] : 1.f;
+					// TODO: check I'm doing the sorting right, it works if I use pixcnt_data->stack but shouldn't it be pixcnt_data->o_stack like val?
 					if (val >= pmin && val <= pmax && val > 0) {
 						sum += (float)val * pweights[frame] * pixcnt_val;
 						norm += pweights[frame] * pixcnt_val;
@@ -875,7 +880,7 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 
 				for (int frame = 0; frame < stack_size; ++frame) {
 					float val = ((float*)data->o_stack)[frame];
-					float pixcnt_val = pixcnt_data ? ((float*)pixcnt_data->o_stack)[frame] : 1.f;
+					float pixcnt_val = pixcnt_data ? ((float*)pixcnt_data->stack)[frame] : 1.f;
 					if (val >= pmin && val <= pmax && val != 0.f) {
 						sum += val * pweights[frame] * pixcnt_val;
 						norm += pweights[frame] * pixcnt_val;
@@ -1199,8 +1204,8 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 		bufferSize += nb_frames * sizeof(int); // for rejected
 		bufferSize += ielem_size * nb_frames; // for o_stack
 		if (use_pixcnt) {
-			pixcnt_bufferSize += nb_frames * sizeof(int);
-			pixcnt_bufferSize += pixcnt_elem_size * nb_frames;
+			pixcnt_bufferSize += nb_frames * sizeof(int); // for rejected
+			pixcnt_bufferSize += pixcnt_elem_size * nb_frames; // for o_stack
 		}
 		if (args->type_of_rejection == WINSORIZED) {
 			bufferSize += ielem_size * nb_frames; // for w_frame

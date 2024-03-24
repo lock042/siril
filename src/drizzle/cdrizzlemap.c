@@ -274,16 +274,23 @@ int map_image_coordinates_wcs(int width, int height, struct wcsprm *wcs_i, struc
 		double *world_index = world + 2 * (row * width);
 		// Transform the coordinate vectors for each row
 		wcsp2s(wcs_i, ncoord, nelem, pixcrd_index, imgcrd, phi, theta, world_index, status);
+/*		for (int i = 0 ; i < ncoord ; i++) {
+			if (status[i])
+				printf("wcsp2s error %d\n", status[i]);
+			status_sum += status[i];
+		}*/
 		wcss2p(wcs_o, ncoord, nelem, world_index, phi, theta, imgcrd, pixcrd_index, status);
 		// Subtract 1.0 (wcs image coords are 1-based; Siril image coords are 0-based)
 		for (int i = 2 * ncoord - 1; i >= 0 ; i--) {
 			pixcrd_index[i] -= 1.0;
 		}
-		for (int i = 0 ; i < nelem ; i++) {
+/*		for (int i = 0 ; i < ncoord ; i++) {
+			if (status[i])
+				printf("wcss2p error %d\n", status[i]);
 			status_sum += status[i];
-		}
+		}*/
 	}
-	if (status_sum) { // wcslib returned at least 1 error for this row
+	if (status_sum) { // wcslib returned at least 1 error
 		free(imgcrd);
 		free(pixcrd);
 		free(world);
