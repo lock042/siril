@@ -266,7 +266,7 @@ on_error:
 
 static char* find_str_before_comment(const char* str1, const char* str2, const char* str3) {
 	char* strpos = strstr(str1, str2);
-	char* chrpos = strstr(str1, str3);
+	const char* chrpos = strstr(str1, str3);
 	return !strpos ? NULL : (chrpos && chrpos < strpos) ? NULL : strpos;
 }
 
@@ -306,9 +306,18 @@ static gboolean script_version_check(const gchar* filename) {
 			if (fullRequiresVersion)
 				g_strfreev(fullRequiresVersion);
 			fullRequiresVersion = g_strsplit_set(ver, ".-", -1);
-			requires.major_version = g_ascii_strtoull(fullRequiresVersion[0], NULL, 10);
-			requires.minor_version = g_ascii_strtoull(fullRequiresVersion[1], NULL, 10);
-			requires.micro_version = g_ascii_strtoull(fullRequiresVersion[2], NULL, 10);
+			if (fullRequiresVersion[0])
+				requires.major_version = g_ascii_strtoull(fullRequiresVersion[0], NULL, 10);
+			else
+				requires.major_version = 1;
+			if (fullRequiresVersion[1])
+				requires.minor_version = g_ascii_strtoull(fullRequiresVersion[1], NULL, 10);
+			else
+				requires.minor_version = 2;
+			if (fullRequiresVersion[2])
+				requires.micro_version = g_ascii_strtoull(fullRequiresVersion[2], NULL, 10);
+			else
+				requires.micro_version = 0;
 			// Detect badly formed requires command (bad input to g_ascii_strtoull returns 0) and ignore it
 			if (requires.major_version == 0 && requires.minor_version == 0 && requires.micro_version == 0)
 				continue;

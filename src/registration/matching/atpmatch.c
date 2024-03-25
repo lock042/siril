@@ -363,7 +363,7 @@ TRANS *trans /* O: place into this TRANS structure's fields */
 /*       the coeffs which convert coords of chainA */
 /*       into coords of chainB system. */
 ) {
-	int i, nbright, min;
+	int i, nbright, min, max;
 	int num_stars_A; /* number of stars in chain A */
 	int num_stars_B; /* number of stars in chain B */
 	int num_triangles_A; /* number of triangles formed from chain A */
@@ -420,7 +420,7 @@ TRANS *trans /* O: place into this TRANS structure's fields */
 	 * an error message, and SH_GENERIC_ERROR.
 	 *
 	 * In addition, we check to see that each list has at least 'nobj'
-	 * items.  If not, we set 'nbright' to the minimum of the two
+	 * items.  If not, we set 'nbright' to the maximum of the two
 	 * list lengths, and print a warning message so the user knows
 	 * that we're using fewer stars than he asked.
 	 *
@@ -428,7 +428,8 @@ TRANS *trans /* O: place into this TRANS structure's fields */
 	 * is too SMALL, then we ignore it and use the smallest valid
 	 * value (which is start_pairs).
 	 */
-	min = (num_stars_A < num_stars_B ? num_stars_A : num_stars_B);
+	min = min(num_stars_A, num_stars_B);
+	max = max(num_stars_A, num_stars_B);
 	if (min < start_pairs) {
 		shError("atFindTrans: only %d stars in list(s), require at least %d",
 				min, start_pairs);
@@ -436,11 +437,11 @@ TRANS *trans /* O: place into this TRANS structure's fields */
 		free_star_array(star_array_B);
 		return (SH_GENERIC_ERROR);
 	}
-	if (nobj > min) {
+	if (nobj > max) {
 		shDebug(AT_MATCH_ERRLEVEL,
 				"atFindTrans: using only %d stars, fewer than requested %d",
 				min, nobj);
-		nbright = min;
+		nbright = max;
 	} else {
 		nbright = nobj;
 	}
@@ -451,8 +452,6 @@ TRANS *trans /* O: place into this TRANS structure's fields */
 		nbright = start_pairs;
 	}
 
-	/* this is a sanity check on the above checks */
-	g_assert((nbright >= start_pairs) && (nbright <= min));
 
 #ifdef DEBUG
 	printf("here comes star array A\n");
@@ -464,11 +463,12 @@ TRANS *trans /* O: place into this TRANS structure's fields */
 	/*
 	 * we now convert each list of stars into a list of triangles,
 	 * using only a subset of the "nbright" brightest items in each list.
+	 * If one list is shorter than nbright, we stop before
 	 */
-	triangle_array_A = stars_to_triangles(star_array_A, num_stars_A, nbright,
+	triangle_array_A = stars_to_triangles(star_array_A, num_stars_A, min(num_stars_A, nbright),
 			&num_triangles_A);
 	g_assert(triangle_array_A != NULL);
-	triangle_array_B = stars_to_triangles(star_array_B, num_stars_B, nbright,
+	triangle_array_B = stars_to_triangles(star_array_B, num_stars_B, min(num_stars_B, nbright),
 			&num_triangles_B);
 	g_assert(triangle_array_B != NULL);
 
@@ -2847,9 +2847,6 @@ TRANS *trans /* O: place solved coefficients into this */
 	g_assert(winner_index_B != NULL);
 	g_assert(trans != NULL);
 
-	/* these should already have been checked, but it doesn't hurt */
-	g_assert(num_stars_A >= nbright);
-	g_assert(num_stars_A >= nbright);
 
 	/*
 	 * make a first guess at TRANS;
