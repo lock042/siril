@@ -178,6 +178,8 @@ struct generic_seq_metadata_args {
 
 	/** instead of outputing to the log, output to a file */
 	GOutputStream *output_stream;
+	/** filtering the images from the sequence, maybe we don't want them all */
+	seq_image_filter filtering_criterion;
 };
 
 gpointer generic_sequence_metadata_worker(gpointer args);

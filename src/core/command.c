@@ -6361,18 +6361,19 @@ int header_hook(struct generic_seq_metadata_args *args, fitsfile *fptr, int inde
 		strcpy(str, "not found");
 	if (args->output_stream) {
 		GError *error = NULL;
-		if (!g_output_stream_printf(args->output_stream, NULL, NULL, &error, "%d,%s\n", index, str)) {
+		if (!g_output_stream_printf(args->output_stream, NULL, NULL, &error, "%d,%s\n", index + 1, str)) {
 			g_warning("%s\n", error->message);
 			g_clear_error(&error);
 			return 1;
 		}
 	}
-	else siril_log_message(_("Image %d, %s = %s\n"), index, args->key, str);
+	else siril_log_message(_("Image %d, %s = %s\n"), index + 1, args->key, str);
 	return status;
 }
 
 int process_seq_header(int nb) {
 	sequence *seq = load_sequence(word[1], NULL);
+	gboolean filter = FALSE;
 	if (!seq)
 		return CMD_SEQUENCE_NOT_FOUND;
 	if (seq->type != SEQ_REGULAR && seq->type != SEQ_FITSEQ) {
@@ -6383,26 +6384,30 @@ int process_seq_header(int nb) {
 	}
 
 	GOutputStream* output_stream = NULL;
-	if (nb > 3 && g_str_has_prefix(word[3], "-out=")) {
-		const char *arg = word[3] + 5;
-		if (arg[0] == '\0') {
-			siril_log_message(_("Missing argument to %s, aborting.\n"), word[3]);
-			return CMD_ARG_ERROR;
-		}
-		GFile *file = g_file_new_for_path(arg);
-		GError *error = NULL;
-		output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE, G_FILE_CREATE_NONE, NULL, &error);
-		g_object_unref(file);
-		if (!output_stream) {
-			if (error) {
-				siril_log_color_message(_("Failed to create output file: %s\n"), "red", error->message);
-				g_clear_error(&error);
+	for (int i = 3; i < nb; i++) {
+		if (g_str_has_prefix(word[i], "-out=")) {
+			const char *arg = word[i] + 5;
+			if (arg[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), word[i]);
+				return CMD_ARG_ERROR;
 			}
-			return CMD_ARG_ERROR;
-		}
-		if (!g_output_stream_printf(output_stream, NULL, NULL, NULL, "# image number,%s\n", word[2])) {
-			siril_log_color_message(_("Failed to write to output file\n"), "red");
-			return CMD_ARG_ERROR;
+			GFile *file = g_file_new_for_path(arg);
+			GError *error = NULL;
+			output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE, G_FILE_CREATE_NONE, NULL, &error);
+			g_object_unref(file);
+			if (!output_stream) {
+				if (error) {
+					siril_log_color_message(_("Failed to create output file: %s\n"), "red", error->message);
+					g_clear_error(&error);
+				}
+				return CMD_ARG_ERROR;
+			}
+			if (!g_output_stream_printf(output_stream, NULL, NULL, NULL, "# image number,%s\n", word[2])) {
+				siril_log_color_message(_("Failed to write to output file\n"), "red");
+				return CMD_ARG_ERROR;
+			}
+		} else if (!g_strcmp0(word[i], "-sel")) {
+			filter = TRUE;
 		}
 	}
 
@@ -6411,6 +6416,7 @@ int process_seq_header(int nb) {
 	args->key = g_strdup(word[2]);
 	args->image_hook = header_hook;
 	args->output_stream = output_stream;
+	args->filtering_criterion = filter ? seq_filter_included : seq_filter_all;
 	start_in_new_thread(generic_sequence_metadata_worker, args);
 	return 0;
 }
