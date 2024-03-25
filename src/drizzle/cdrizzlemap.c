@@ -259,6 +259,7 @@ int map_image_coordinates_wcs(int width, int height, struct wcsprm *wcs_i, struc
 		free(pixcrd);
 		free(imgcrd);
 		free(theta);
+		free(phi);
 		return 1;
 	}
 

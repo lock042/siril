@@ -319,8 +319,10 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	Homography Himg = { 0 };
 	if (!driz->use_wcs) {
 		p->current_regdata = apply_driz_get_current_regdata(driz);
-		if (!p->current_regdata)
+		if (!p->current_regdata) {
+			free(p);
 			return -2;
+		}
 	}
 
 	int filenum = args->seq->imgparam[in_index].filenum;	// for display purposes
@@ -410,6 +412,7 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	// Copy driz->output_data to fit so that it is saved as the output sequence frame
 	clearfits(fit);
 	copyfits(&out, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+	clearfits(&out);
 
 	free(p->pixmap->pixmap);
 	free(p->pixmap);
@@ -642,8 +645,10 @@ int apply_drz_compute_mem_limits(struct generic_seq_args *args, gboolean for_wri
 	int is_color = args->seq->nb_layers == 3;
 	int is_bayer = driz->is_bayer;
 	MB_per_scaled_image *= is_float ? 1 : 2; // Output is always float
-	if (is_bayer)
+	if (is_bayer) {
+		MB_per_orig_image *= 3;
 		MB_per_scaled_image *= 3;
+	}
 	unsigned int MB_per_float_image = MB_per_orig_image * float_multiplier;
 	unsigned int MB_per_float_channel = is_color ? MB_per_float_image / 3 : MB_per_float_image;
 	unsigned int MB_per_double_channel = MB_per_float_channel * 2;
@@ -651,11 +656,11 @@ int apply_drz_compute_mem_limits(struct generic_seq_args *args, gboolean for_wri
 		* the original image
 		* Two 2 * rx * ry * double arrays for computing mapping
 		  (the mapping file reallocs one of these so never exceeds that amount)
-		* the weights file (1 * input channel float data)
+		* the weights file (1 * scaled image float data)
 		* the transformed image, including scaling factor if required
 		* the output counts image, the same size as the scaled image
 		*/
-	unsigned int required = MB_per_orig_image + 2 * MB_per_double_channel + MB_per_float_channel + 2 * MB_per_scaled_image;
+	unsigned int required = MB_per_orig_image + 4 * MB_per_double_channel + 3 * MB_per_scaled_image;
 
 	if (limit > 0) {
 
@@ -735,6 +740,7 @@ int apply_drizzle(struct driz_args_t *driz) {
 	if (seq_read_frame_metadata(args->seq, driz->reference_image, &fit)) {
 		siril_log_message(_("Could not load reference image\n"));
 		args->seq->regparam[0] = NULL;
+		free(args);
 		return 1;
 	}
 
