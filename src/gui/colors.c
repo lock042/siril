@@ -435,6 +435,7 @@ void on_ccm_apply_clicked(GtkButton* button, gpointer user_data) {
 	} else {
 		if (seq_toggle) {
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("No sequence is loaded"));
+			free(args);
 			return;
 		} else if (gfit.icc_profile && gfit.color_managed) {
 			siril_message_dialog(GTK_MESSAGE_WARNING, _("ICC Profile"), _("This image has an attached ICC profile. Applying the CCM will invalidate the "
