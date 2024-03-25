@@ -182,7 +182,7 @@ struct driz_args_t {
   enum e_kernel_t kernel; /* Kernel shape and size */
   float scale;
   float weight_scale; /* Weight scale */
-  fits *weights; /* Weights FITS */
+  fits *flat; /* Flat, for multiplying the pixel_count */
   gboolean use_flats; /* Whether to use master flat as weights */
   gboolean use_bias; /* If use_flats == TRUE, whether to subtract bias */
   float pixel_fraction;

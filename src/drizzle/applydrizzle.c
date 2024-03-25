@@ -419,6 +419,11 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		clearfits(output_counts);
 		free(output_counts);
 		output_counts = NULL;
+	} else if (driz->use_flats && driz->flat) {
+		// Multiply the output_counts by the master flat
+		// TODO: is this the right approach after all? Reconsider once issues with the kernels are sorted
+		// If we do need to do this, the flat has to be upscaled to match the drizzled image size
+		imoper(output_counts, driz->flat, OPER_MUL, TRUE);
 	}
 
 	struct _double_driz *double_data = calloc(1, sizeof(struct _double_driz));
@@ -750,12 +755,12 @@ int apply_drizzle(struct driz_args_t *driz) {
 				return 1;
 			} else {
 				set_progress_bar_data(_("Opening flat image..."), PROGRESS_NONE);
-				driz->weights = calloc(1, sizeof(fits));
-				if (!readfits(flat_filename, driz->weights, NULL, TRUE)) {
-					if (driz->weights->naxes[2] != fit.naxes[2]) {
+				driz->flat = calloc(1, sizeof(fits));
+				if (!readfits(flat_filename, driz->flat, NULL, TRUE)) {
+					if (driz->flat->naxes[2] != fit.naxes[2]) {
 						error = _("NOT USING FLAT: number of channels is different");
-					} else if (driz->weights->naxes[0] != fit.naxes[0] ||
-							driz->weights->naxes[1] != fit.naxes[1]) {
+					} else if (driz->flat->naxes[0] != fit.naxes[0] ||
+							driz->flat->naxes[1] != fit.naxes[1]) {
 						error = _("NOT USING FLAT: image dimensions are different");
 					} else {
 						// no need to deal with bitdepth conversion as readfits has already forced conversion to float
@@ -766,9 +771,9 @@ int apply_drizzle(struct driz_args_t *driz) {
 				if (error) {
 					siril_log_color_message("%s\n", "red", error);
 					set_progress_bar_data(error, PROGRESS_DONE);
-					if (driz->weights) {
-						clearfits(driz->weights);
-						free(driz->weights);
+					if (driz->flat) {
+						clearfits(driz->flat);
+						free(driz->flat);
 					}
 					return 1;
 				}
@@ -793,7 +798,7 @@ int apply_drizzle(struct driz_args_t *driz) {
 							} else {
 								float bias_level = (float)offsetlevel;
 								bias_level *= (fit.orig_bitpix == BYTE_IMG) ? INV_UCHAR_MAX_SINGLE : INV_USHRT_MAX_SINGLE; //converting to [0 1] to use with soper
-								soper(driz->weights, bias_level, OPER_SUB, TRUE);
+								soper(driz->flat, bias_level, OPER_SUB, TRUE);
 								siril_log_message(_("Bias level subtracted from master flat for use as initial pixel weighting\n"));
 							}
 						}
@@ -812,7 +817,7 @@ int apply_drizzle(struct driz_args_t *driz) {
 										bias.naxes[1] != fit.naxes[1]) {
 									error = _("NOT USING BIAS: image dimensions are different");
 								} else {
-									imoper(driz->weights, &bias, OPER_SUB, TRUE);
+									imoper(driz->flat, &bias, OPER_SUB, TRUE);
 									siril_log_message(_("Master bias subtracted from master flat for use as initial pixel weighting\n"));
 									// no need to deal with bitdepth conversion as flat is just a division (unlike darks which need to be on same scale)
 								}
@@ -823,9 +828,9 @@ int apply_drizzle(struct driz_args_t *driz) {
 					if (error) {
 						siril_log_color_message("%s\n", "red", error);
 						set_progress_bar_data(error, PROGRESS_DONE);
-						if (driz->weights) {
-							clearfits(driz->weights);
-							free(driz->weights);
+						if (driz->flat) {
+							clearfits(driz->flat);
+							free(driz->flat);
 						}
 						return 1;
 					}
