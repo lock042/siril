@@ -1030,7 +1030,7 @@ static int compute_nbstars_weights(struct stacking_args *args) {
 
 /* How many rows fit in memory, based on image size, number and available memory.
  * It returns at most the total number of rows of the image (naxes[1] * naxes[2]) */
-static long stack_get_max_number_of_rows(long naxes[3], data_type type, int nb_images_to_stack, int nb_rejmaps) {
+static long stack_get_max_number_of_rows(long naxes[3], data_type type, int nb_images_to_stack, int nb_rejmaps, gboolean use_pixcnt) {
 	int max_memory = get_max_memory_in_MB();
 	long total_nb_rows = naxes[1] * naxes[2];
 	int elem_size = type == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
@@ -1044,7 +1044,7 @@ static long stack_get_max_number_of_rows(long naxes[3], data_type type, int nb_i
 
 	siril_log_message(_("Using %d MB memory maximum for stacking\n"), max_memory);
 	guint64 number_of_rows = (guint64)max_memory * BYTES_IN_A_MB /
-		((guint64)naxes[0] * nb_images_to_stack * elem_size);
+		((guint64)naxes[0] * nb_images_to_stack * elem_size * (use_pixcnt ? 2 : 1));
 	// this is how many rows we can load in parallel from all images of the
 	// sequence and be under the limit defined in config in megabytes.
 	if (total_nb_rows < number_of_rows)
@@ -1171,13 +1171,12 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 		else nb_rejmaps = 2;
 	}
 	// TODO: update this to take pxcnt use into account
-	long max_number_of_rows = stack_get_max_number_of_rows(naxes, itype, args->nb_images_to_stack, nb_rejmaps);
+	long max_number_of_rows = stack_get_max_number_of_rows(naxes, itype, args->nb_images_to_stack, nb_rejmaps, use_pixcnt);
 	/* Compute parallel processing data: the data blocks, later distributed to threads */
 	if ((retval = stack_compute_parallel_blocks(&blocks, max_number_of_rows, naxes, nb_threads,
 					&largest_block_height, &nb_blocks))) {
 		goto free_and_close;
 	}
-
 	/* Allocate the buffers.
 	 * We allocate as many as the number of threads, each thread will pick one of the buffers.
 	 * Buffers are allocated to the largest block size calculated above.
