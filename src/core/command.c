@@ -6395,6 +6395,7 @@ int header_hook(struct generic_seq_metadata_args *args, fitsfile *fptr, int inde
 		    g_free(tmp);
 		}
 		siril_log_message(_("Image %d, %s\n"), index + 1, output);
+		g_free(output);
 		g_strfreev(token_keys);
 		g_strfreev(token_values);
 	}
