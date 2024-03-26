@@ -6356,7 +6356,7 @@ int process_jsonmetadata(int nb) {
 int header_hook(struct generic_seq_metadata_args *args, fitsfile *fptr, int index) {
 	char str[FLEN_VALUE] = { 0 };
 	char *str_total = NULL;
-	GString *string = g_string_new("");
+	GString *string = g_string_new(NULL);
 	int status = 0;
 	GSList *list = args->keys;
 
@@ -6364,7 +6364,7 @@ int header_hook(struct generic_seq_metadata_args *args, fitsfile *fptr, int inde
 		gchar *key = (gchar *)list->data;
 		fits_read_keyword(fptr, key, str, NULL, &status);
 		if (status) {
-			strcpy(str, "not found");
+			strcpy(str, "N/A");
 			status = 0;
 		}
 		if (i > 0) string = g_string_append(string, ", ");
@@ -6378,12 +6378,14 @@ int header_hook(struct generic_seq_metadata_args *args, fitsfile *fptr, int inde
 		if (!g_output_stream_printf(args->output_stream, NULL, NULL, &error, "%d,%s\n", index + 1, str_total)) {
 			g_warning("%s\n", error->message);
 			g_clear_error(&error);
+			g_free(str_total);
 			return 1;
 		}
 	}
 	else {
 		gchar **token_keys = g_strsplit (args->header, ",", -1);
 		gchar **token_values = g_strsplit (str_total, ",", -1);
+		g_free(str_total);
 		gchar *output = NULL;
 		for (int i = 0; i < g_strv_length(token_keys) && token_keys[i] && token_values[i]; i++) {
 		    gchar *tmp = g_strdup_printf("%s = %s, ", token_keys[i], token_values[i]);
