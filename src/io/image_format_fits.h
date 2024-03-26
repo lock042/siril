@@ -39,6 +39,7 @@ int copy_fits_from_file(char *source, char *destination);
 int save1fits16(const char *filename, fits *fit, int layer);
 int save1fits32(const char *filename, fits *fit, int layer);
 int siril_fits_open_diskfile_img(fitsfile **fptr, const char *filename, int iomode, int *status);
+GDateTime *get_date_from_fits(const gchar *filename);
 
 void rgb24bit_to_fits48bit(unsigned char *rgbbuf, fits *fit, gboolean inverted);
 void rgb8bit_to_fits16bit(unsigned char *graybuf, fits *fit);

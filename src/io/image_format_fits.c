@@ -1952,6 +1952,25 @@ int siril_fits_open_diskfile_img(fitsfile **fptr, const char *filename, int iomo
 	return *status;
 }
 
+GDateTime* get_date_from_fits(const gchar *filename) {
+	gchar *localefilename = get_locale_filename(filename);
+	fitsfile *fptr = NULL;
+	GDateTime *date = NULL;
+	int status = 0;
+	fits_open_diskfile(&fptr, localefilename, READONLY, &status);
+	g_free(localefilename);
+	if (!status) {
+		status = siril_fits_move_first_image(fptr);
+		char date_obs[FLEN_VALUE] = { 0 };
+		fits_read_key(fptr, TSTRING, "DATE-OBS", &date_obs, NULL, &status);
+		if (!status)
+			date = FITS_date_to_date_time(date_obs);
+	}
+	status = 0;
+	fits_close_file(fptr, &status);
+	return date;
+}
+
 // reset a fit data structure, deallocates everything in it and zero the data
 void clearfits(fits *fit) {
 	if (fit == NULL)
