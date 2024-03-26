@@ -6354,37 +6354,38 @@ int process_jsonmetadata(int nb) {
 }
 
 int header_hook(struct generic_seq_metadata_args *args, fitsfile *fptr, int index) {
-	char str[FLEN_VALUE] = { 0 };
 	GString *string = g_string_new(NULL);
 	int status = 0;
 	GSList *list = args->keys;
 
 	for (int i = 0; i < g_slist_length(args->keys); i++) {
+		char str[FLEN_VALUE] = { 0 };
+
 		gchar *key = (gchar *)list->data;
 		fits_read_keyword(fptr, key, str, NULL, &status);
 		if (status) {
 			strcpy(str, "N/A");
 			status = 0;
+		} else {
+			if (i > 0) string = g_string_append(string, ", ");
+			string = g_string_append(string, str);
 		}
-		if (i > 0) string = g_string_append(string, ", ");
-		string = g_string_append(string, str);
 		list = list->next;
 	}
 
-	gchar *str_total = g_string_free(string, FALSE);
 	if (args->output_stream) {
 		GError *error = NULL;
-		if (!g_output_stream_printf(args->output_stream, NULL, NULL, &error, "%d,%s\n", index + 1, str_total)) {
+		if (!g_output_stream_printf(args->output_stream, NULL, NULL, &error, "%d,%s\n", index + 1, string->str)) {
 			g_warning("%s\n", error->message);
 			g_clear_error(&error);
-			g_free(str_total);
+			g_string_free(string, TRUE);
 			return 1;
 		}
 	}
 	else {
 		gchar **token_keys = g_strsplit (args->header, ",", -1);
-		gchar **token_values = g_strsplit (str_total, ",", -1);
-		g_free(str_total);
+		gchar **token_values = g_strsplit (string->str, ",", -1);
+		g_string_free(string, TRUE);
 		gchar *output = NULL;
 		for (int i = 0; i < g_strv_length(token_keys) && token_keys[i] && token_values[i]; i++) {
 			gchar *tmp = g_strdup_printf("%s = %s, ", token_keys[i], token_values[i]);
@@ -6461,6 +6462,7 @@ int process_seq_header(int nb) {
 				siril_log_color_message(_("Failed to write to output file\n"), "red");
 				return CMD_ARG_ERROR;
 			}
+			siril_log_message(_("The file %s has been created.\n"), arg);
 		} else if (!g_strcmp0(word[i], "-sel")) {
 			filter = TRUE;
 		}
