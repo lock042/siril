@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-03-05 09:51+0100\n"
+"POT-Creation-Date: 2024-03-26 15:25+0100\n"
 "PO-Revision-Date: 2024-03-13 19:43+0000\n"
 "Last-Translator: Garth TianBo <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
@@ -726,7 +726,7 @@ msgstr "点此生成自动选择的样本。"
 
 #: src/gui/siril3.glade:3812 src/gui/siril3.glade:8654
 #: src/gui/siril3.glade:8794 src/gui/siril3.glade:20100
-#: src/gui/siril3.glade:29155 src/gui/siril3.glade:31705
+#: src/gui/siril3.glade:29155 src/gui/siril3.glade:31767
 msgid "Clear"
 msgstr "清除"
 
@@ -5004,7 +5004,7 @@ msgid ""
 "considered as defective."
 msgstr "像素的数值被认为是“有缺陷的”所需要达到的标准背离次数。"
 
-#: src/gui/siril3.glade:21418 src/gui/siril3.glade:31336
+#: src/gui/siril3.glade:21418 src/gui/siril3.glade:31398
 msgid "Estimate"
 msgstr "估算"
 
@@ -6576,8 +6576,8 @@ msgstr ""
 "脚本菜单。只有在偏好设置中定义的脚本路径设置为现有脚本文件夹时，才会显示此菜"
 "单。"
 
-#: src/gui/siril3.glade:26430 src/gui/siril3.glade:30898
-#: src/gui/siril3.glade:31048
+#: src/gui/siril3.glade:26430 src/gui/siril3.glade:30960
+#: src/gui/siril3.glade:31110
 msgid "Scripts"
 msgstr "脚本"
 
@@ -7630,7 +7630,7 @@ msgstr "定义窗口尺寸。"
 msgid "<b>Aberration Inspector</b>"
 msgstr "<b>像差检查器</b>"
 
-#: src/gui/siril3.glade:30369 src/gui/siril3.glade:30884
+#: src/gui/siril3.glade:30369 src/gui/siril3.glade:30946
 msgid "User Interface"
 msgstr "用户界面"
 
@@ -7734,19 +7734,40 @@ msgstr "缺省显示模式"
 msgid "Histogram Display"
 msgstr "直方图显示"
 
-#: src/gui/siril3.glade:30816
+#: src/gui/siril3.glade:30800
+msgid "Middle button double click"
+msgstr ""
+
+#: src/gui/siril3.glade:30813
+#, fuzzy
+msgid "Zoom to fit"
+msgstr "缩小"
+
+#: src/gui/siril3.glade:30814
+msgid "Zoom 100% centred on mouse"
+msgstr ""
+
+#: src/gui/siril3.glade:30815
+msgid "Zoom toggles between fit and 100%"
+msgstr ""
+
+#: src/gui/siril3.glade:30830
+msgid "Mouse Behaviour"
+msgstr ""
+
+#: src/gui/siril3.glade:30878
 msgid "Background extraction samples:"
 msgstr "背景提取的采样点："
 
-#: src/gui/siril3.glade:30828
+#: src/gui/siril3.glade:30890
 msgid "Standard annotations:"
 msgstr "标准标记："
 
-#: src/gui/siril3.glade:30857
+#: src/gui/siril3.glade:30919
 msgid "Overlay Colors"
 msgstr "蒙版预览颜色"
 
-#: src/gui/siril3.glade:30929
+#: src/gui/siril3.glade:30991
 msgid ""
 "The paths written in this text box will be checked in order to load scripts "
 "that have been put inside. Write a path per line with as many lines you "
@@ -7756,23 +7777,23 @@ msgstr ""
 "该文本窗口中的路径用于载入脚本文件。每行存放一个路径，行数不限。但请注意，更"
 "多的路径则会使启动时间更长。"
 
-#: src/gui/siril3.glade:30942
+#: src/gui/siril3.glade:31004
 msgid "<b>Scripts Storage Directories</b>"
 msgstr "<b>脚本存放目录</b>"
 
-#: src/gui/siril3.glade:30959
+#: src/gui/siril3.glade:31021
 msgid "Rescans the scripts folders and updates scripts menu."
 msgstr "重新扫描脚本目录以更新脚本菜单。"
 
-#: src/gui/siril3.glade:30990
+#: src/gui/siril3.glade:31052
 msgid "Show warning before script execution"
 msgstr "脚本运行前显示警告"
 
-#: src/gui/siril3.glade:31006
+#: src/gui/siril3.glade:31068
 msgid "\"Requires\" command is mandatory in scripts"
 msgstr "强制脚本中需有“Requires”命令"
 
-#: src/gui/siril3.glade:31010
+#: src/gui/siril3.glade:31072
 msgid ""
 "If this option is checked, scripts cannot be executed without the "
 "\"requires\" command. That ensures the compatibility between scripts and "
@@ -7787,19 +7808,19 @@ msgstr ""
 "<span foreground=\"red\"><b>警告：只在你明确知道你在干什么的情况才可以改变此"
 "设置！</b></span>"
 
-#: src/gui/siril3.glade:31031 src/gui/siril3.glade:31581
+#: src/gui/siril3.glade:31093 src/gui/siril3.glade:31643
 msgid "Warning Dialogs"
 msgstr "警告对话框"
 
-#: src/gui/siril3.glade:31062 src/gui/siril3.glade:31425
+#: src/gui/siril3.glade:31124 src/gui/siril3.glade:31487
 msgid "Performances"
 msgstr "性能"
 
-#: src/gui/siril3.glade:31093
+#: src/gui/siril3.glade:31155
 msgid "Ratio of available"
 msgstr "可用比例"
 
-#: src/gui/siril3.glade:31097
+#: src/gui/siril3.glade:31159
 msgid ""
 "Siril will limit itself to a ratio of the amount of free physical memory and "
 "will decrease the size of work tasks if needed.\n"
@@ -7816,11 +7837,11 @@ msgstr ""
 "如果操作系统未设置磁盘虚拟内存文件，大于等于1的设定会造成Siril或是操作系统的"
 "崩溃。"
 
-#: src/gui/siril3.glade:31113
+#: src/gui/siril3.glade:31175
 msgid "Fixed amount (GB)"
 msgstr "固定值（GB）"
 
-#: src/gui/siril3.glade:31117
+#: src/gui/siril3.glade:31179
 msgid ""
 "Siril will limit itself to a fixed amount of memory and will decrease the "
 "size of work tasks if needed.\n"
@@ -7831,7 +7852,7 @@ msgstr ""
 "程。\n"
 "设置大于系统可用内存的值可能会造成Siril或是操作系统的崩溃。"
 
-#: src/gui/siril3.glade:31133
+#: src/gui/siril3.glade:31195
 msgid ""
 "Sets a new ratio of free memory on memory used for stacking. Value should be "
 "between 0.05 and 2, depending on other activities of the machine. A higher "
@@ -7843,15 +7864,15 @@ msgstr ""
 "情况。设定较高的比例可以使得siril叠加运行得更快。但是当内存比例高于1时，磁盘"
 "上的虚拟内存文件将被使用，会造成极大的速度影响，因此不被推荐"
 
-#: src/gui/siril3.glade:31178
+#: src/gui/siril3.glade:31240
 msgid "<b>Memory management</b>"
 msgstr "<b>内存管理</b>"
 
-#: src/gui/siril3.glade:31211
+#: src/gui/siril3.glade:31273
 msgid "Default bit depth for HD AutoStretch"
 msgstr "高分辨率自动拉伸的缺省位深"
 
-#: src/gui/siril3.glade:31227
+#: src/gui/siril3.glade:31289
 msgid ""
 "Sets default bit depth for the HD AutoStretch display mode. Higher bit "
 "depths require exponentially more memory for the LUT and take longer to "
@@ -7865,23 +7886,23 @@ msgstr ""
 "平滑量化伪影。默认位深将从下一次查看器模式更改开始应用，现在可以使用右侧的按"
 "钮应用。"
 
-#: src/gui/siril3.glade:31244
+#: src/gui/siril3.glade:31306
 msgid "Apply bit depth"
 msgstr "应用位深"
 
-#: src/gui/siril3.glade:31248
+#: src/gui/siril3.glade:31310
 msgid "Set the selected HD AutoStretch bit depth now"
 msgstr "立即设置选定的高分辨率自动拉伸位深"
 
-#: src/gui/siril3.glade:31271
+#: src/gui/siril3.glade:31333
 msgid "HD AutoStretch"
 msgstr "高分辨率自动拉伸"
 
-#: src/gui/siril3.glade:31301
+#: src/gui/siril3.glade:31363
 msgid "Multithreaded FFTW"
 msgstr "多线程FFTW"
 
-#: src/gui/siril3.glade:31305
+#: src/gui/siril3.glade:31367
 msgid ""
 "If selected, FFTW will use multiple threads. This is usually a speedup on "
 "large images, but will increase initial planning time the first time FFTW "
@@ -7890,11 +7911,11 @@ msgstr ""
 "如果选中，FFTW将使用多个线程。这通常是对大图像的加速，但在FFTW首次对给定尺寸"
 "的图像进行操作时会增加初始规划时间。"
 
-#: src/gui/siril3.glade:31320 src/core/settings.c:293
+#: src/gui/siril3.glade:31382 src/core/settings.c:294
 msgid "FFTW planning strategy"
 msgstr "FFTW规划策略"
 
-#: src/gui/siril3.glade:31331
+#: src/gui/siril3.glade:31393
 msgid ""
 "Sets the FFTW planning strategy. FFTW generates and stores wisdom to help it "
 "optimise FFT calculations of given sizes. For each successive level of "
@@ -7921,23 +7942,23 @@ msgstr ""
 "此设置用于反卷积。傅立叶变换函数会忽略此选项，而始终使用“估算”，因为其他策略"
 "的开销不值得。"
 
-#: src/gui/siril3.glade:31337
+#: src/gui/siril3.glade:31399
 msgid "Measure"
 msgstr "度量"
 
-#: src/gui/siril3.glade:31338
+#: src/gui/siril3.glade:31400
 msgid "Patient"
 msgstr "耐心"
 
-#: src/gui/siril3.glade:31339
+#: src/gui/siril3.glade:31401
 msgid "Exhaustive"
 msgstr "穷举"
 
-#: src/gui/siril3.glade:31352
+#: src/gui/siril3.glade:31414
 msgid "FFTW planning time limit (seconds)"
 msgstr "FFTW 规划时间限制（秒）"
 
-#: src/gui/siril3.glade:31363
+#: src/gui/siril3.glade:31425
 msgid ""
 "Instructs FFTW to spend at most this amount of seconds planning a FFT. In "
 "practice this may be exceeded slightly if the time limit is reached when "
@@ -7948,11 +7969,11 @@ msgstr ""
 "中达到时间限制，则可能会略微超过此限制。如果设置为 0，将始终完成“估算”的最低"
 "计划级别。"
 
-#: src/gui/siril3.glade:31378
+#: src/gui/siril3.glade:31440
 msgid "Minimum PSF size to use FFT convolutions"
 msgstr "用于 FFT 卷积的最小 PSF 尺寸"
 
-#: src/gui/siril3.glade:31389
+#: src/gui/siril3.glade:31451
 msgid ""
 "Siril can calculate convolutions either by summing over the kernel at every "
 "pixel or by using Fourier Transforms. The former becomes very inefficient "
@@ -7967,57 +7988,57 @@ msgstr ""
 "对于较小的内核求和更快。确切的交叉点将取决于您的硬件，因此是可配置的。此参数"
 "设置将使用傅里叶变换的最小内核尺寸。"
 
-#: src/gui/siril3.glade:31411
+#: src/gui/siril3.glade:31473
 msgid "<b>FFTW Options</b>"
 msgstr "<b>FFTW 选项</b>"
 
-#: src/gui/siril3.glade:31439 src/gui/siril3.glade:31874
+#: src/gui/siril3.glade:31501 src/gui/siril3.glade:31936
 msgid "Miscellaneous"
 msgstr "杂项"
 
-#: src/gui/siril3.glade:31467
+#: src/gui/siril3.glade:31529
 msgid ""
 "Select an existing directory. Make sure you have write permissions and "
 "enough spaces."
 msgstr "选择一个已存在的目录，该目录须要具有写权限和足够的空间。"
 
-#: src/gui/siril3.glade:31470
+#: src/gui/siril3.glade:31532
 msgid "Select Swap Directory"
 msgstr "选择Swap目录"
 
-#: src/gui/siril3.glade:31483
+#: src/gui/siril3.glade:31545
 msgid "available mem"
 msgstr "可用内存"
 
-#: src/gui/siril3.glade:31495
+#: src/gui/siril3.glade:31557
 msgid "Restore to Default"
 msgstr "恢复为缺省值"
 
-#: src/gui/siril3.glade:31499
+#: src/gui/siril3.glade:31561
 msgid "Restore the default swap storage directory"
 msgstr "恢复为缺省的swap存储目录"
 
-#: src/gui/siril3.glade:31518
+#: src/gui/siril3.glade:31580
 msgid "<b>Swap Storage Directory</b>"
 msgstr "<b>Swap存储目录</b>"
 
-#: src/gui/siril3.glade:31545
+#: src/gui/siril3.glade:31607
 msgid "Don't ask before quitting"
 msgstr "退出前不询问"
 
-#: src/gui/siril3.glade:31560
+#: src/gui/siril3.glade:31622
 msgid "Don't ask before saving when display is not linear"
 msgstr "当显示不是线性时，保存前不要询问"
 
-#: src/gui/siril3.glade:31603
+#: src/gui/siril3.glade:31665
 msgid "Play introduction"
 msgstr "显示简介"
 
-#: src/gui/siril3.glade:31617
+#: src/gui/siril3.glade:31679
 msgid "Introduction Tips"
 msgstr "简介"
 
-#: src/gui/siril3.glade:31648
+#: src/gui/siril3.glade:31710
 msgid ""
 "Select StarNet executable. Works with all StarNet command-line versions.\n"
 "\n"
@@ -8034,15 +8055,15 @@ msgstr ""
 "果使用 Windows，则使用 <b>.exe</b>），并且它们必须位于同一目录中。您可以选择"
 "任一可执行文件：Siril 将自动查找另一个可执行文件（如果存在）。"
 
-#: src/gui/siril3.glade:31657
+#: src/gui/siril3.glade:31719
 msgid "Select StarNet executable"
 msgstr "选择 StarNet 可执行文件"
 
-#: src/gui/siril3.glade:31671
+#: src/gui/siril3.glade:31733
 msgid "Must point to a valid StarNet executable."
 msgstr "必须指向有效的 StarNet 可执行文件。"
 
-#: src/gui/siril3.glade:31685
+#: src/gui/siril3.glade:31747
 msgid ""
 "Select StarNet weights file. This <b>only</b> works with the new Torch-based "
 "StarNet versions. It is optional: if left blank, the weights file <b>must</"
@@ -8051,11 +8072,11 @@ msgstr ""
 "选择 StarNet 权重文件。这<b>仅</b>适用于新的 Torch-based StarNet 版本。它是可"
 "选的：如果留空，则权重文件<b>必须</b>与 StarNet 可执行文件位于同一目录中。"
 
-#: src/gui/siril3.glade:31692
+#: src/gui/siril3.glade:31754
 msgid "Select StarNet weights file"
 msgstr "选择 StarNet 权重文件"
 
-#: src/gui/siril3.glade:31709
+#: src/gui/siril3.glade:31771
 msgid ""
 "Clears the neural net weights location. When cleared, the weights file "
 "<b>must</b> be in the same directory as the StarNet executable."
@@ -8063,7 +8084,7 @@ msgstr ""
 "清除神经网络权重位置。清除后，权重文件<b>必须</b>与 StarNet 可执行文件位于同"
 "一目录中。"
 
-#: src/gui/siril3.glade:31724
+#: src/gui/siril3.glade:31786
 msgid ""
 "May point to a StarNet neural net weights file.\n"
 "Torch-based StarNet versions only."
@@ -8071,15 +8092,15 @@ msgstr ""
 "可以指向 StarNet 神经网络权重文件。\n"
 "仅用于 Torch-based StarNet 版本。"
 
-#: src/gui/siril3.glade:31746
+#: src/gui/siril3.glade:31808
 msgid "Select gnuplot binary location."
 msgstr "选择 gnuplot 二进制位置。"
 
-#: src/gui/siril3.glade:31751
+#: src/gui/siril3.glade:31813
 msgid "Select gnuplot installation directory"
 msgstr "选择 gnuplot 安装目录"
 
-#: src/gui/siril3.glade:31764
+#: src/gui/siril3.glade:31826
 msgid ""
 "Must point to a valid gnuplot installation directory.\n"
 "Not necessary if the path of gnuplot is stored in the PATH variable (UNIX-"
@@ -8088,23 +8109,23 @@ msgstr ""
 "必须指向有效的 gnuplot 安装目录。\n"
 "如果 gnuplot 的路径存储在 PATH 变量（类 UNIX）中，则不需要。"
 
-#: src/gui/siril3.glade:31784
+#: src/gui/siril3.glade:31846
 msgid "Software Location"
 msgstr "软件位置"
 
-#: src/gui/siril3.glade:31807
+#: src/gui/siril3.glade:31869
 msgid "Copyright when saving image as TIFF"
 msgstr "保存TIFF图像时嵌入版权信息"
 
-#: src/gui/siril3.glade:31819
+#: src/gui/siril3.glade:31881
 msgid "Copyright TIFF"
 msgstr "TIFF版权信息"
 
-#: src/gui/siril3.glade:31841
+#: src/gui/siril3.glade:31903
 msgid "Check update at startup"
 msgstr "启动时检查更新"
 
-#: src/gui/siril3.glade:31857
+#: src/gui/siril3.glade:31919
 msgid "Update"
 msgstr "更新"
 
@@ -10829,8 +10850,9 @@ msgid ""
 "No image in the sequence was found with the WCS information required for "
 "star selection by equatorial coordinates, plate solve the reference or the "
 "current\n"
-msgstr "在序列中未找到具有WCS信息的图像，这些信息用于按赤道坐标来选择星点、"
-"解析参考帧或当前图像\n"
+msgstr ""
+"在序列中未找到具有WCS信息的图像，这些信息用于按赤道坐标来选择星点、解析参考帧"
+"或当前图像\n"
 
 #: src/core/command.c:4200
 #, c-format
@@ -15347,475 +15369,479 @@ msgstr "叠加尚未有输出结果的图像（%d帧）"
 msgid "for a total of images processed of %d)\n"
 msgstr "得到总计图像（%d帧）将被叠加\n"
 
-#: src/core/settings.c:262
+#: src/core/settings.c:263
 msgid "current working directory"
 msgstr "当前工作目录"
 
-#: src/core/settings.c:263
+#: src/core/settings.c:264
 msgid "FITS file extension"
 msgstr "FITS扩展名"
 
-#: src/core/settings.c:264
+#: src/core/settings.c:265
 msgid "don't use 32 bits for pixel depth"
 msgstr "不要使用 32 位作为像素深度"
 
-#: src/core/settings.c:265
+#: src/core/settings.c:266
 msgid "allow FITS cubes to have different sizes"
 msgstr "允许 FITS 矩阵具有不同的尺寸"
 
-#: src/core/settings.c:266
+#: src/core/settings.c:267
 msgid "memory mode (0 ratio, 1 amount)"
 msgstr "内存模式（0比例，1数量）"
 
-#: src/core/settings.c:267
+#: src/core/settings.c:268
 msgid "memory ratio of available"
 msgstr "可用内存比例"
 
-#: src/core/settings.c:268
+#: src/core/settings.c:269
 msgid "amount of memory in GB"
 msgstr "内存量（以 GB 为单位）"
 
-#: src/core/settings.c:269
+#: src/core/settings.c:270
 msgid "HD AutoStretch bit depth"
 msgstr "高分辨率自动拉伸位深"
 
-#: src/core/settings.c:270
+#: src/core/settings.c:271
 msgid "need requires cmd in script"
 msgstr "需要脚本中的requires命令"
 
-#: src/core/settings.c:271
+#: src/core/settings.c:272
 msgid "need requires cmd in pipe"
 msgstr "需要管道中的 cmd"
 
-#: src/core/settings.c:272
+#: src/core/settings.c:273
 msgid "check update at start-up"
 msgstr "启动时检查更新"
 
-#: src/core/settings.c:273
+#: src/core/settings.c:274
 msgid "active siril language"
 msgstr "启用 siril 语言"
 
-#: src/core/settings.c:274
+#: src/core/settings.c:275
 msgid "swap directory"
 msgstr "swap目录"
 
-#: src/core/settings.c:275
+#: src/core/settings.c:276
 msgid "update pixel size of binned images"
 msgstr "更新像素合并后的像素尺寸"
 
-#: src/core/settings.c:276
+#: src/core/settings.c:277
 msgid "WCS formalism used in FITS header"
 msgstr "FITS 文件头中使用的 WCS 形式"
 
-#: src/core/settings.c:277
+#: src/core/settings.c:278
 msgid "Path of the namedstars.dat catalogue"
 msgstr "namedstars.dat星表路径"
 
-#: src/core/settings.c:278
+#: src/core/settings.c:279
 msgid "Path of the unnamedstars.dat catalogue"
 msgstr "unnamedstars.dat星表路径"
 
-#: src/core/settings.c:279
+#: src/core/settings.c:280
 msgid "Path of the deepstars.dat catalogue"
 msgstr "deepstars.dat星表路径"
 
-#: src/core/settings.c:280
+#: src/core/settings.c:281
 msgid "Path of the USNO-NOMAD-1e8.dat catalogue"
 msgstr "USNO-NOMAD-1e8.dat星表路径"
 
-#: src/core/settings.c:281
+#: src/core/settings.c:282
 msgid "add CTYPE3='RGB' in the FITS header"
 msgstr "在 FITS 文件头中添加 CTYPE3='RGB'"
 
-#: src/core/settings.c:282
+#: src/core/settings.c:283
 msgid "user copyright to put in file header"
 msgstr "放入文件头的用户版权"
 
-#: src/core/settings.c:283
+#: src/core/settings.c:284
 msgid "location of the StarNet executable"
 msgstr "StarNet 可执行文件位置"
 
-#: src/core/settings.c:284
+#: src/core/settings.c:285
 msgid "location of the StarNet-torch weights file"
 msgstr "StarNet-torch 权重文件位置"
 
-#: src/core/settings.c:285
+#: src/core/settings.c:286
 msgid "directory of the gnuplot installation"
 msgstr "gnuplot 安装目录"
 
-#: src/core/settings.c:287
+#: src/core/settings.c:288
 msgid "directory of the asnet_ansvr installation"
 msgstr "asnet_ansvr 安装目录"
 
-#: src/core/settings.c:289
+#: src/core/settings.c:290
 msgid "directory containing the solve-field executable"
 msgstr "包含 solve-field 可执行文件的目录"
 
-#: src/core/settings.c:291
+#: src/core/settings.c:292
 msgid "FFTW planning timelimit"
 msgstr "FFTW规划时限"
 
-#: src/core/settings.c:292
+#: src/core/settings.c:293
 msgid "Convolution minimum kernel size to use FFTW"
 msgstr "FFTW 所使用的卷积最小内核尺寸"
 
-#: src/core/settings.c:294
+#: src/core/settings.c:295
 msgid "multithreaded FFTW"
 msgstr "多线程 FFTW"
 
-#: src/core/settings.c:296
+#: src/core/settings.c:297
 msgid "focal length in mm for radius adjustment"
 msgstr "焦距（毫米），用于半径调整"
 
-#: src/core/settings.c:297
+#: src/core/settings.c:298
 msgid "pixel size in µm for radius adjustment"
 msgstr "像素尺寸（以μm为单位），用于半径调整"
 
-#: src/core/settings.c:299
+#: src/core/settings.c:300
 msgid "use pattern from the file header"
 msgstr "使用文件头中的模式"
 
-#: src/core/settings.c:300
+#: src/core/settings.c:301
 msgid "index of the Bayer pattern"
 msgstr "拜耳阵列索引值"
 
-#: src/core/settings.c:301
+#: src/core/settings.c:302
 msgid "type of interpolation"
 msgstr "插值类型"
 
-#: src/core/settings.c:302
+#: src/core/settings.c:303
 msgid "force debayer top-down"
 msgstr "强制自上而下解拜耳"
 
-#: src/core/settings.c:303
+#: src/core/settings.c:304
 msgid "Bayer matrix offset X"
 msgstr "拜尔阵列X轴偏移量"
 
-#: src/core/settings.c:304
+#: src/core/settings.c:305
 msgid "Bayer matrix offset Y"
 msgstr "拜尔阵列Y轴偏移量"
 
-#: src/core/settings.c:305
+#: src/core/settings.c:306
 msgid "Number of passes for the X-Trans Markesteijn algorithm"
 msgstr "X-Trans Markesteijn 算法的传递次数"
 
-#: src/core/settings.c:307
+#: src/core/settings.c:308
 msgid "electrons per ADU for noise estimation"
 msgstr "每个 ADU 的电子数，用于噪声估算"
 
-#: src/core/settings.c:308
+#: src/core/settings.c:309
 msgid "inner radius for background annulus"
 msgstr "背景环的内半径"
 
-#: src/core/settings.c:309
+#: src/core/settings.c:310
 msgid "outer radius for background annulus"
 msgstr "背景环的外半径"
 
-#: src/core/settings.c:310
+#: src/core/settings.c:311
 msgid "factor for inner radius automatic computation"
 msgstr "内半径自动计算系数"
 
-#: src/core/settings.c:311
+#: src/core/settings.c:312
 msgid "factor for outer radius automatic computation"
 msgstr "外半径自动计算系数"
 
-#: src/core/settings.c:312
+#: src/core/settings.c:313
 msgid "force flux aperture value"
 msgstr "强制光通量孔径"
 
-#: src/core/settings.c:313
+#: src/core/settings.c:314
 msgid "forced aperture for flux computation"
 msgstr "用于光通量计算的强制孔径"
 
-#: src/core/settings.c:314
+#: src/core/settings.c:315
 msgid "minimum valid pixel value for photometry"
 msgstr "光度测量的最小有效像素值"
 
-#: src/core/settings.c:315
+#: src/core/settings.c:316
 msgid "maximum valid pixel value for photometry"
 msgstr "光度测量的最大有效像素值"
 
-#: src/core/settings.c:317
+#: src/core/settings.c:318
 msgid "degrees of the polynomial correction"
 msgstr "多项式修正中多项式的次数"
 
-#: src/core/settings.c:318
+#: src/core/settings.c:319
 msgid "radius around the target coordinates (degrees)"
 msgstr "目标坐标周围的半径（度）"
 
-#: src/core/settings.c:319
+#: src/core/settings.c:320
 msgid "do not delete .xyls FITS tables"
 msgstr "不要删除 .xyls FITS 表"
 
-#: src/core/settings.c:320
+#: src/core/settings.c:321
 msgid "do not delete .wcs result files"
 msgstr "不要删除 .wcs 结果文件"
 
-#: src/core/settings.c:321
+#: src/core/settings.c:322
 msgid "maximum seconds to try solving"
 msgstr "尝试解析的最大秒数"
 
-#: src/core/settings.c:322
+#: src/core/settings.c:323
 msgid "show solve-field output in main log"
 msgstr "在主日志中显示 solve-field 输出"
 
-#: src/core/settings.c:324
+#: src/core/settings.c:325
 msgid "update default focal length and pixel size from the result"
 msgstr "从结果更新缺省的焦距和像素尺寸"
 
-#: src/core/settings.c:325
+#: src/core/settings.c:326
 msgid "percent below and above the expected sampling to allow"
 msgstr "所允许的低于和高于预期采样的百分比"
 
-#: src/core/settings.c:327
+#: src/core/settings.c:328
 msgid "panel size of aberration inspector"
 msgstr "像差检查器面板尺寸"
 
-#: src/core/settings.c:328
+#: src/core/settings.c:329
 msgid "window size of aberration inspector"
 msgstr "像差检查器窗口尺寸"
 
-#: src/core/settings.c:330
+#: src/core/settings.c:331
 msgid "FITS compression enabled"
 msgstr "FITS压缩启用"
 
-#: src/core/settings.c:331
+#: src/core/settings.c:332
 msgid "FITS compression method"
 msgstr "FITS压缩方法"
 
-#: src/core/settings.c:332
+#: src/core/settings.c:333
 msgid "quantization factor for 32-bit float"
 msgstr "32 位浮点数的量子化因子"
 
-#: src/core/settings.c:333
+#: src/core/settings.c:334
 msgid "Hcompress scale factor"
 msgstr "HCompress 比例因子"
 
 #. the GUI part, not as useful but still required to be listed in order to be saved in the ini file
-#: src/core/settings.c:336
+#: src/core/settings.c:337
 msgid "type of sensor for cosmetic correction"
 msgstr "需应用坏点修正的传感器类型"
 
-#: src/core/settings.c:337
+#: src/core/settings.c:338
 msgid "equalize flat channels"
 msgstr "均衡平场帧的各通道"
 
-#: src/core/settings.c:338
+#: src/core/settings.c:339
 msgid "enable correction for X-Trans sensor"
 msgstr "启用 X-Trans 传感器修正"
 
-#: src/core/settings.c:339 src/core/settings.c:340 src/core/settings.c:341
-#: src/core/settings.c:342 src/core/settings.c:343 src/core/settings.c:344
-#: src/core/settings.c:345 src/core/settings.c:346
+#: src/core/settings.c:340 src/core/settings.c:341 src/core/settings.c:342
+#: src/core/settings.c:343 src/core/settings.c:344 src/core/settings.c:345
+#: src/core/settings.c:346 src/core/settings.c:347
 msgid "if no X-Trans model found, use this"
 msgstr "如果未找到 X-Trans 模型，请使用此"
 
-#: src/core/settings.c:347
+#: src/core/settings.c:348
 msgid "default master bias"
 msgstr "缺省主偏置帧"
 
-#: src/core/settings.c:348
+#: src/core/settings.c:349
 msgid "use default master bias"
 msgstr "使用缺省主偏置帧"
 
-#: src/core/settings.c:349
+#: src/core/settings.c:350
 msgid "default master dark"
 msgstr "缺省主暗场帧"
 
-#: src/core/settings.c:350
+#: src/core/settings.c:351
 msgid "use default master dark"
 msgstr "使用缺省主暗场帧"
 
-#: src/core/settings.c:351
+#: src/core/settings.c:352
 msgid "default master flat"
 msgstr "缺省主平场帧"
 
-#: src/core/settings.c:352
+#: src/core/settings.c:353
 msgid "use default master flat"
 msgstr "使用缺省主平场帧"
 
-#: src/core/settings.c:353
+#: src/core/settings.c:354
 msgid "default stack name"
 msgstr "缺省叠加名"
 
-#: src/core/settings.c:354
+#: src/core/settings.c:355
 msgid "use preferred stack name"
 msgstr "使用首选的叠加名"
 
-#: src/core/settings.c:356
+#: src/core/settings.c:357
 msgid "index of the selected registration method"
 msgstr "所选对齐方法的指标"
 
-#: src/core/settings.c:357
+#: src/core/settings.c:358
 msgid "index of the selected interpolation method"
 msgstr "所选插值方法的指标"
 
-#: src/core/settings.c:358
+#: src/core/settings.c:359
 msgid "use clamping method with Lanczos and Cubic interpolation"
 msgstr "对 Lanczos 和 Cubic 插值使用保持机制"
 
-#: src/core/settings.c:360
+#: src/core/settings.c:361
 msgid "index of the selected method"
 msgstr "所选方法的指标"
 
-#: src/core/settings.c:361
+#: src/core/settings.c:362
 msgid "index of the normalization method"
 msgstr "所选归一化方法的指标"
 
-#: src/core/settings.c:362
+#: src/core/settings.c:363
 msgid "index of the rejection method"
 msgstr "剔除方法的指标"
 
-#: src/core/settings.c:363
+#: src/core/settings.c:364
 msgid "index of the weighting method"
 msgstr "加权方法的指标"
 
-#: src/core/settings.c:364
+#: src/core/settings.c:365
 msgid "sigma low value for rejection"
 msgstr "用作剔除的sigma下限"
 
-#: src/core/settings.c:365
+#: src/core/settings.c:366
 msgid "sigma high value for rejection"
 msgstr "用作剔除的sigma上限"
 
-#: src/core/settings.c:366
+#: src/core/settings.c:367
 msgid "linear low value for rejection"
 msgstr "用作剔除的linear下限"
 
-#: src/core/settings.c:367
+#: src/core/settings.c:368
 msgid "linear high value for rejection"
 msgstr "用作剔除的linear上限"
 
-#: src/core/settings.c:368
+#: src/core/settings.c:369
 msgid "percentile low value for rejection"
 msgstr "用作剔除的percentile下限"
 
-#: src/core/settings.c:369
+#: src/core/settings.c:370
 msgid "percentile high value for rejection"
 msgstr "用作剔除的percentile上限"
 
-#: src/core/settings.c:371
+#: src/core/settings.c:372
 msgid "first start of siril"
 msgstr "siril第一次启动"
 
-#: src/core/settings.c:372
+#: src/core/settings.c:373
 msgid "don't confirm quit when exiting"
 msgstr "退出时不需要确认"
 
-#: src/core/settings.c:373
+#: src/core/settings.c:374
 msgid "don't confirm save when non linear mode"
 msgstr "非线性模式时不确认保存"
 
-#: src/core/settings.c:374
+#: src/core/settings.c:375
 msgid "remember window position"
 msgstr "记住窗口位置"
 
-#: src/core/settings.c:375 src/core/settings.c:376 src/core/settings.c:377
-#: src/core/settings.c:378
+#: src/core/settings.c:376 src/core/settings.c:377 src/core/settings.c:378
+#: src/core/settings.c:379
 msgid "main window position"
 msgstr "主窗口位置"
 
-#: src/core/settings.c:379
+#: src/core/settings.c:380
 msgid "position of the two sides separator"
 msgstr "两侧分隔符的位置"
 
-#: src/core/settings.c:380
+#: src/core/settings.c:381
 msgid "main window is extended"
 msgstr "主窗口已扩展"
 
-#: src/core/settings.c:381
+#: src/core/settings.c:382
 msgid "main window is maximized"
 msgstr "主窗口最大化"
 
-#: src/core/settings.c:382
+#: src/core/settings.c:383
 msgid "index of the selected theme"
 msgstr "所选主题的指标"
 
-#: src/core/settings.c:383
+#: src/core/settings.c:384
 msgid "font scale in percent"
 msgstr "字体缩放百分比"
 
-#: src/core/settings.c:384
+#: src/core/settings.c:385
 msgid "icon style"
 msgstr "图标样式"
 
-#: src/core/settings.c:385
+#: src/core/settings.c:386
 msgid "list of script directories"
 msgstr "脚本目录列表"
 
-#: src/core/settings.c:386
+#: src/core/settings.c:387
 msgid "warn when launching a script"
 msgstr "启动脚本时发出警告"
 
-#: src/core/settings.c:387
+#: src/core/settings.c:388
 msgid "show thumbnails in open dialog"
 msgstr "在打开对话框中显示缩略图"
 
-#: src/core/settings.c:388
+#: src/core/settings.c:389
 msgid "size of the thumbnails"
 msgstr "缩略图尺寸"
 
-#: src/core/settings.c:389
+#: src/core/settings.c:390
 msgid "number of elements of the grid guides"
 msgstr "网格参考线的元素数量"
 
-#: src/core/settings.c:390
+#: src/core/settings.c:391
 msgid "show tenths of arcseconds on hover"
 msgstr "悬停时显示十分之一角秒"
 
-#: src/core/settings.c:391
+#: src/core/settings.c:392
 msgid "default display mode"
 msgstr "缺省显示模式"
 
-#: src/core/settings.c:392
+#: src/core/settings.c:393
 msgid "default histogram display mode"
 msgstr "缺省直方图显示模式"
 
-#: src/core/settings.c:393
+#: src/core/settings.c:394
+msgid "Middle mouse button double click zoom action"
+msgstr ""
+
+#: src/core/settings.c:395
 msgid "configure background samples color"
 msgstr "配置背景提取采样点的颜色"
 
-#: src/core/settings.c:394
+#: src/core/settings.c:396
 msgid "configure standard annotation color"
 msgstr "配置标准标记的颜色"
 
-#: src/core/settings.c:396
+#: src/core/settings.c:398
 msgid "index of the compass position over grid"
 msgstr "网格上罗盘位置的指标"
 
-#: src/core/settings.c:397
+#: src/core/settings.c:399
 msgid "show Messier objects in annotations"
 msgstr "标记梅西耶天体"
 
-#: src/core/settings.c:398
+#: src/core/settings.c:400
 msgid "show NGC objects in annotations"
 msgstr "标记NGC天体"
 
-#: src/core/settings.c:399
+#: src/core/settings.c:401
 msgid "show IC objects in annotations"
 msgstr "标记IC天体"
 
-#: src/core/settings.c:400
+#: src/core/settings.c:402
 msgid "show LDN objects in annotations"
 msgstr "标记LDN天体"
 
-#: src/core/settings.c:401
+#: src/core/settings.c:403
 msgid "show SH2 objects in annotations"
 msgstr "标记SH2天体"
 
-#: src/core/settings.c:402
+#: src/core/settings.c:404
 msgid "show stars in annotations"
 msgstr "标记恒星"
 
-#: src/core/settings.c:403
+#: src/core/settings.c:405
 msgid "show user objects in annotations"
 msgstr "标记用户天体"
 
-#: src/core/settings.c:405
+#: src/core/settings.c:407
 msgid "list of pixel math presets"
 msgstr "像素数学预设列表"
 
-#: src/core/settings.c:445
+#: src/core/settings.c:447
 #, c-format
 msgid "Unknown settings variable %s.%s\n"
 msgstr "未知设置变量 %s.%s\n"
@@ -16035,14 +16061,14 @@ msgstr "将文件名转换为系统代码页失败。请考虑删除所有宽字
 msgid "Filename is too long, not expanding it\n"
 msgstr "文件名太长了\n"
 
-#: src/core/utils.c:1189 src/io/image_format_fits.c:3216
-#: src/io/image_format_fits.c:3221 src/io/ser.c:1362
+#: src/core/utils.c:1189 src/io/image_format_fits.c:3249
+#: src/io/image_format_fits.c:3254 src/io/ser.c:1362
 msgid "pixel"
 msgid_plural "pixels"
 msgstr[0] "像素"
 
-#: src/core/utils.c:1190 src/io/image_format_fits.c:3217
-#: src/io/image_format_fits.c:3222 src/io/ser.c:1363
+#: src/core/utils.c:1190 src/io/image_format_fits.c:3250
+#: src/io/image_format_fits.c:3255 src/io/ser.c:1363
 msgid "channel"
 msgid_plural "channels"
 msgstr[0] "通道"
@@ -16120,8 +16146,8 @@ msgstr "傅立叶变换不可用于序列！\n"
 #. fail
 #: src/filters/fft.c:596 src/filters/fft.c:602 src/filters/fft.c:621
 #: src/gui/nina_light_curve.c:83 src/gui/nina_light_curve.c:120
-#: src/gui/open_dialog.c:387 src/gui/plot.c:831 src/gui/preferences.c:411
-#: src/gui/preferences.c:430 src/gui/preferences.c:468 src/gui/PSF_list.c:305
+#: src/gui/open_dialog.c:387 src/gui/plot.c:831 src/gui/preferences.c:412
+#: src/gui/preferences.c:431 src/gui/preferences.c:469 src/gui/PSF_list.c:305
 #: src/gui/PSF_list.c:310 src/gui/PSF_list.c:315 src/gui/save_dialog.c:399
 msgid "Error"
 msgstr "错误"
@@ -17746,32 +17772,32 @@ msgstr "仅保留选区内的点"
 msgid "Exclude selected points"
 msgstr "排除所选的点"
 
-#: src/gui/preferences.c:410
+#: src/gui/preferences.c:411
 #, c-format
 msgid "You don't have permission to write in this directory: %s\n"
 msgstr "当前用户对目录%s没有写权限\n"
 
-#: src/gui/preferences.c:429
+#: src/gui/preferences.c:430
 #, c-format
 msgid "You don't have permission to execute this file: %s\n"
 msgstr "您没有权限以执行该文件： %s\n"
 
-#: src/gui/preferences.c:467
+#: src/gui/preferences.c:468
 #, c-format
 msgid "You don't have permission to read this file: %s\n"
 msgstr "您没有权限以读取该文件： %s\n"
 
-#: src/gui/preferences.c:496
+#: src/gui/preferences.c:497
 msgid "Cannot refresh script list"
 msgstr "无法刷新脚本列表"
 
-#: src/gui/preferences.c:726
+#: src/gui/preferences.c:727
 msgid ""
 "Inner radius value must be less than outer. Please change the value in "
 "Photometry tab."
 msgstr "内半径必须小于外半径，请在测光签中更改。"
 
-#: src/gui/preferences.c:735
+#: src/gui/preferences.c:736
 msgid ""
 "Setting quantization to 0 has only a sense with a GZIP compression and GZIP "
 "2 often produces better compression of floating­point images."
@@ -17779,19 +17805,19 @@ msgstr ""
 "将量子化设置为 0 仅对 GZIP 压缩有意义，GZIP 2 通常会对浮点图像产生更好的压"
 "缩。"
 
-#: src/gui/preferences.c:747
+#: src/gui/preferences.c:748
 msgid "Wrong value"
 msgstr "无效值"
 
-#: src/gui/preferences.c:768
+#: src/gui/preferences.c:769
 msgid "Reset all preferences"
 msgstr "重置所有偏好设置"
 
-#: src/gui/preferences.c:769
+#: src/gui/preferences.c:770
 msgid "Do you really want to reset all preferences to default value?"
 msgstr "您确定要将所有偏好设置恢复为缺省值？"
 
-#: src/gui/preferences.c:770
+#: src/gui/preferences.c:771
 msgid "Reset Preferences"
 msgstr "重置偏好设置"
 
@@ -18716,18 +18742,18 @@ msgstr "无法打开文件 %s\n"
 msgid "Cannot open FITS file %s: doesn't seem to be a FITS sequence\n"
 msgstr "无法打开FITS文件 %s：看上去不像是一个FITS序列\n"
 
-#: src/io/fits_sequence.c:193 src/io/image_format_fits.c:2107
+#: src/io/fits_sequence.c:193 src/io/image_format_fits.c:2140
 msgid ""
 "FITS images with 64 bits signed integer per pixel.channel are not "
 "supported.\n"
 msgstr "不支持每个像素通道具有 64 位有符号整数的 FITS 图像。\n"
 
-#: src/io/fits_sequence.c:213 src/stacking/median_and_mean.c:1078
+#: src/io/fits_sequence.c:213 src/stacking/median_and_mean.c:1090
 msgid "Your version of cfitsio does not support multi-threading\n"
 msgstr "您的 cfitsio 版本不支持多线程\n"
 
 #: src/io/fits_sequence.c:262 src/io/image_format_fits.c:1046
-#: src/io/image_format_fits.c:1116 src/io/image_format_fits.c:1998
+#: src/io/image_format_fits.c:1138 src/io/image_format_fits.c:2031
 msgid "Unknown FITS data format in internal conversion\n"
 msgstr "内部转化中有不可识别的FITS数据格式\n"
 
@@ -19018,116 +19044,123 @@ msgstr "载入的 FITS 文件的 BSCALE 小于 1 （%f）\n"
 msgid "FITS error: %s\n"
 msgstr "FITS 错误： %s\n"
 
-#: src/io/image_format_fits.c:1128
+#: src/io/image_format_fits.c:1099 src/io/image_format_fits.c:1118
+#, c-format
+msgid ""
+"Normalizing the image data with [%ld, %ld], not suitable for sequence "
+"operations\n"
+msgstr ""
+
+#: src/io/image_format_fits.c:1150
 msgid "Normalizing input data to our float range [0, 1]\n"
 msgstr "将输入数据归一化为浮点范围[0, 1]\n"
 
-#: src/io/image_format_fits.c:1161
+#: src/io/image_format_fits.c:1183
 msgid "Cannot move to first image in FITS file\n"
 msgstr "无法移动到 FITS 文件中的第一幅图像\n"
 
-#: src/io/image_format_fits.c:1171
+#: src/io/image_format_fits.c:1193
 msgid "Cannot get dimension of FITS file\n"
 msgstr "无法获取 FITS 文件的维度\n"
 
-#: src/io/image_format_fits.c:1181
+#: src/io/image_format_fits.c:1203
 msgid "Cannot move to next image in FITS file\n"
 msgstr "无法移动到 FITS 文件中的下一幅图像\n"
 
-#: src/io/image_format_fits.c:1248 src/io/image_format_fits.c:1389
+#: src/io/image_format_fits.c:1271 src/io/image_format_fits.c:1422
 #, c-format
 msgid "FITS image format %d is not supported by Siril.\n"
 msgstr "FITS图像格式%d不被Siril支持。\n"
 
-#: src/io/image_format_fits.c:1315
+#: src/io/image_format_fits.c:1343
 #, c-format
 msgid "Fitsio error reading data, file: %s.\n"
 msgstr "Fitsio 读取数据时出错，文件： %s。\n"
 
-#: src/io/image_format_fits.c:1860
+#: src/io/image_format_fits.c:1893
 #, c-format
 msgid "%s.[any_allowed_extension] not found.\n"
 msgstr "%s.[any_allowed_extension] 未找到。\n"
 
-#: src/io/image_format_fits.c:1867
+#: src/io/image_format_fits.c:1900
 #, c-format
 msgid ""
 "The file %s is not a FITS file or doesn't exists with FITS extensions.\n"
 msgstr "文件 %s 不是FITS格式，或者没有FITS扩展名。\n"
 
-#: src/io/image_format_fits.c:1894
+#: src/io/image_format_fits.c:1927
 #, c-format
 msgid "Reading FITS: file %s, %ld layer(s), %ux%u pixels, %d bits\n"
 msgstr "保存FITS：文件 %s, %ld图层，%ux%u像素，%d位\n"
 
-#: src/io/image_format_fits.c:1980
+#: src/io/image_format_fits.c:2013
 #, c-format
 msgid "FITS read partial: there is no layer %d in the image %s\n"
 msgstr "FITS 部分读取：未找到图层 %d 于图像 %s 中\n"
 
-#: src/io/image_format_fits.c:1988
+#: src/io/image_format_fits.c:2021
 #, c-format
 msgid "Unsupported FITS image format (%ld axes).\n"
 msgstr "不支持此FITS格式（%ld axes）。\n"
 
-#: src/io/image_format_fits.c:2072
+#: src/io/image_format_fits.c:2105
 #, c-format
 msgid "Loaded partial FITS file %s\n"
 msgstr "载入的部分 FITS 文件 %s\n"
 
-#: src/io/image_format_fits.c:2081
+#: src/io/image_format_fits.c:2114
 msgid "FITSIO error getting image parameters.\n"
 msgstr "获取图像参数时出现 FITSIO 错误。\n"
 
-#: src/io/image_format_fits.c:2094
+#: src/io/image_format_fits.c:2127
 #, c-format
 msgid ""
 "The FITS image contains more than 3 channels (%ld). Opening only the three "
 "first.\n"
 msgstr "FITS图像中包含超过3个通道 (%ld)。只打开前三个。\n"
 
-#: src/io/image_format_fits.c:2222
+#: src/io/image_format_fits.c:2255
 msgid "Unknown FITS compression method in internal conversion\n"
 msgstr "转化中遇到未知的FITS压缩方法\n"
 
-#: src/io/image_format_fits.c:2366
+#: src/io/image_format_fits.c:2399
 #, c-format
 msgid "Saving FITS: file %s, %ld layer(s), %ux%u pixels, %d bits\n"
 msgstr "保存FITS：文件 %s, %ld图层，%ux%u像素，%d位\n"
 
-#: src/io/image_format_fits.c:2463
+#: src/io/image_format_fits.c:2496
 #, c-format
 msgid "ERROR: trying to save a FITS image with an unsupported format (%d).\n"
 msgstr "错误：企图以不支持的格式(%d)来保存一个FITS文件。\n"
 
-#: src/io/image_format_fits.c:3190
+#: src/io/image_format_fits.c:3223
 #, c-format
 msgid "Selecting the primary header failed, is the FITS file '%s' malformed?\n"
 msgstr "选择主文件头失败，FITS 文件“%s”的格式是否不正确？\n"
 
-#: src/io/image_format_fits.c:3218 src/io/ser.c:1364
+#: src/io/image_format_fits.c:3251 src/io/ser.c:1364
 msgid "frame"
 msgid_plural "frames"
 msgstr[0] "帧"
 
-#: src/io/image_format_fits.c:3218 src/io/image_format_fits.c:3223
+#: src/io/image_format_fits.c:3251 src/io/image_format_fits.c:3256
 #: src/io/ser.c:1364
 msgid "(Monochrome Preview)"
 msgstr "（黑白预览）"
 
-#: src/io/image_format_fits.c:3338
+#: src/io/image_format_fits.c:3371
 msgid "Opening image failed\n"
 msgstr "打开图像失败。\n"
 
-#: src/io/image_format_fits.c:3343
+#: src/io/image_format_fits.c:3376
 msgid "Stacking error: images with > 3 dimensions are not supported\n"
 msgstr "叠加错误：超过3个维度的图像不被支持\n"
 
-#: src/io/image_format_fits.c:3353
+#: src/io/image_format_fits.c:3386
 msgid "Stacking error: input images have different sizes\n"
 msgstr "叠加错误：图像拥有不同的尺寸\n"
 
-#: src/io/image_format_fits.c:3366
+#: src/io/image_format_fits.c:3399
 msgid "Stacking error: input images have different precision\n"
 msgstr "叠加错误：图像拥有不同的精度\n"
 
@@ -20954,125 +20987,125 @@ msgstr "发现一个Bug，无法将图像区域拆分成正确的待处理块。
 msgid "Error reading one of the image areas\n"
 msgstr "图像区域读取错误\n"
 
-#: src/stacking/median_and_mean.c:882 src/stacking/median_and_mean.c:927
+#: src/stacking/median_and_mean.c:890 src/stacking/median_and_mean.c:935
 #, c-format
 msgid ""
 "Sequence does not have registration info, cannot use weighing by %s, "
 "aborting\n"
 msgstr "序列没有对齐信息，无法使用以 %s 的加权，异常中止\n"
 
-#: src/stacking/median_and_mean.c:927
+#: src/stacking/median_and_mean.c:935
 msgid "number of stars"
 msgstr "星点数量"
 
-#: src/stacking/median_and_mean.c:977
+#: src/stacking/median_and_mean.c:989
 #, c-format
 msgid "Using %d MB memory maximum for stacking\n"
 msgstr "叠加操作共使用内存%d MB\n"
 
-#: src/stacking/median_and_mean.c:1002
+#: src/stacking/median_and_mean.c:1014
 msgid "Select at least two frames for stacking. Aborting.\n"
 msgstr "至少选择两幅图像用于叠加，异常中止。\n"
 
-#: src/stacking/median_and_mean.c:1005
+#: src/stacking/median_and_mean.c:1017
 msgid ""
 "The Generalized Extreme Studentized Deviate Test needs at least three frames "
 "for stacking. Aborting.\n"
 msgstr "广义ESD检验算法至少需要三幅图像用于叠加，异常中止。\n"
 
-#: src/stacking/median_and_mean.c:1011
+#: src/stacking/median_and_mean.c:1023
 msgid "No registration layer passed, ignoring registration data!\n"
 msgstr "没有传递已对齐的图层，忽略对齐数据！\n"
 
 #. no image has been loaded
-#: src/stacking/median_and_mean.c:1025
+#: src/stacking/median_and_mean.c:1037
 msgid "Rejection stack error: uninitialized sequence\n"
 msgstr "叠加（像素剔除）：序列未初始化\n"
 
-#: src/stacking/median_and_mean.c:1030
+#: src/stacking/median_and_mean.c:1042
 #, c-format
 msgid ""
 "Rejection stack error: sequence has wrong image size (%dx%d for sequence, "
 "%ldx%ld for images)\n"
 msgstr "像素剔除叠加：序列具有错误的图像尺寸（%dx%d 序列, %ldx%ld 图像）\n"
 
-#: src/stacking/median_and_mean.c:1035
+#: src/stacking/median_and_mean.c:1047
 msgid "Processing the sequence as RGB\n"
 msgstr "以RGB模式处理当前序列\n"
 
-#: src/stacking/median_and_mean.c:1083
+#: src/stacking/median_and_mean.c:1095
 msgid ""
 "Stacking a film will work only on one core and will be slower than if you "
 "convert it to SER\n"
 msgstr "叠加影片只能在单线程上工作，将其转化为SER再处理会更快\n"
 
-#: src/stacking/median_and_mean.c:1201
+#: src/stacking/median_and_mean.c:1213
 msgid "Computing weights based on noise...\n"
 msgstr "基于噪声计算权重…\n"
 
-#: src/stacking/median_and_mean.c:1209
+#: src/stacking/median_and_mean.c:1221
 msgid "Computing weights based on wFWHM...\n"
 msgstr "基于 wFWHM 计算权重…\n"
 
-#: src/stacking/median_and_mean.c:1217
+#: src/stacking/median_and_mean.c:1229
 msgid "Computing weights based on number of stars...\n"
 msgstr "基于星点数量计算权重…\n"
 
-#: src/stacking/median_and_mean.c:1225
+#: src/stacking/median_and_mean.c:1237
 msgid "Computing weights based on number of stacked images...\n"
 msgstr "基于已叠加图像数量计算权重…\n"
 
-#: src/stacking/median_and_mean.c:1228
+#: src/stacking/median_and_mean.c:1240
 msgid "Starting stacking...\n"
 msgstr "开始叠加...\n"
 
-#: src/stacking/median_and_mean.c:1230
+#: src/stacking/median_and_mean.c:1242
 msgid "Rejection stacking in progress..."
 msgstr "叠加（像素剔除）执行中..."
 
-#: src/stacking/median_and_mean.c:1231
+#: src/stacking/median_and_mean.c:1243
 msgid "Median stacking in progress..."
 msgstr "中位数叠加处理中..."
 
-#: src/stacking/median_and_mean.c:1443 src/stacking/stackminmax.c:210
+#: src/stacking/median_and_mean.c:1455 src/stacking/stackminmax.c:210
 msgid "Finalizing stacking..."
 msgstr "叠加最终定稿..."
 
-#: src/stacking/median_and_mean.c:1447
+#: src/stacking/median_and_mean.c:1459
 #, c-format
 msgid "Pixel rejection in channel #%d: %.3lf%% - %.3lf%%\n"
 msgstr "像素剔除于通道 #%d: %.3lf%% - %.3lf%%\n"
 
-#: src/stacking/median_and_mean.c:1484
+#: src/stacking/median_and_mean.c:1496
 msgid "Rejection stacking failed. Check the log."
 msgstr "叠加（像素剔除）失败，请检查日志。"
 
-#: src/stacking/median_and_mean.c:1485
+#: src/stacking/median_and_mean.c:1497
 msgid "Median stacking failed. Check the log."
 msgstr "中位数叠加错误。 请查询日志。"
 
-#: src/stacking/median_and_mean.c:1487
+#: src/stacking/median_and_mean.c:1499
 msgid "Stacking operation was cancelled.\n"
 msgstr "叠加操作已取消。\n"
 
-#: src/stacking/median_and_mean.c:1488 src/stacking/stackminmax.c:249
+#: src/stacking/median_and_mean.c:1500 src/stacking/stackminmax.c:249
 msgid "Stacking failed.\n"
 msgstr "叠加失败。\n"
 
-#: src/stacking/median_and_mean.c:1491
+#: src/stacking/median_and_mean.c:1503
 msgid "Rejection stacking complete."
 msgstr "像素剔除叠加完成。"
 
-#: src/stacking/median_and_mean.c:1492
+#: src/stacking/median_and_mean.c:1504
 #, c-format
 msgid "Rejection stacking complete. %d images have been stacked.\n"
 msgstr "像素剔除叠加完成。共%d帧图像被叠加。\n"
 
-#: src/stacking/median_and_mean.c:1494
+#: src/stacking/median_and_mean.c:1506
 msgid "Median stacking complete."
 msgstr "中位数叠加完成。"
 
-#: src/stacking/median_and_mean.c:1495
+#: src/stacking/median_and_mean.c:1507
 #, c-format
 msgid "Median stacking complete. %d images have been stacked.\n"
 msgstr "中位数叠加完成。共%d帧图像被叠加。\n"

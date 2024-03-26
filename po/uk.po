@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: FreeAstro Siril\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-03-05 09:51+0100\n"
+"POT-Creation-Date: 2024-03-26 15:25+0100\n"
 "PO-Revision-Date: 2023-06-02 12:32+0000\n"
 "Last-Translator: Anonymous <noreply@weblate.org>\n"
 "Language-Team: Ukrainian <https://weblate.pixls.us/projects/siril/siril-"
@@ -733,7 +733,7 @@ msgstr ""
 
 #: src/gui/siril3.glade:3812 src/gui/siril3.glade:8654
 #: src/gui/siril3.glade:8794 src/gui/siril3.glade:20100
-#: src/gui/siril3.glade:29155 src/gui/siril3.glade:31705
+#: src/gui/siril3.glade:29155 src/gui/siril3.glade:31767
 #, fuzzy
 msgid "Clear"
 msgstr "Очистити все"
@@ -4964,7 +4964,7 @@ msgstr ""
 "У скільки разів значення пікселя має відрізнятися від стандартного "
 "відхилення, щоб він вважався дефективним."
 
-#: src/gui/siril3.glade:21418 src/gui/siril3.glade:31336
+#: src/gui/siril3.glade:21418 src/gui/siril3.glade:31398
 msgid "Estimate"
 msgstr "Оцінити"
 
@@ -6529,8 +6529,8 @@ msgid ""
 "defined in the preferences are set to the existing script folders."
 msgstr ""
 
-#: src/gui/siril3.glade:26430 src/gui/siril3.glade:30898
-#: src/gui/siril3.glade:31048
+#: src/gui/siril3.glade:26430 src/gui/siril3.glade:30960
+#: src/gui/siril3.glade:31110
 #, fuzzy
 msgid "Scripts"
 msgstr "_Скріпти"
@@ -7515,7 +7515,7 @@ msgstr ""
 msgid "<b>Aberration Inspector</b>"
 msgstr ""
 
-#: src/gui/siril3.glade:30369 src/gui/siril3.glade:30884
+#: src/gui/siril3.glade:30369 src/gui/siril3.glade:30946
 msgid "User Interface"
 msgstr ""
 
@@ -7625,21 +7625,42 @@ msgstr "Режим відображення"
 msgid "Histogram Display"
 msgstr "Гістограми"
 
-#: src/gui/siril3.glade:30816
+#: src/gui/siril3.glade:30800
+msgid "Middle button double click"
+msgstr ""
+
+#: src/gui/siril3.glade:30813
+#, fuzzy
+msgid "Zoom to fit"
+msgstr "Підігнати масштаб"
+
+#: src/gui/siril3.glade:30814
+msgid "Zoom 100% centred on mouse"
+msgstr ""
+
+#: src/gui/siril3.glade:30815
+msgid "Zoom toggles between fit and 100%"
+msgstr ""
+
+#: src/gui/siril3.glade:30830
+msgid "Mouse Behaviour"
+msgstr ""
+
+#: src/gui/siril3.glade:30878
 #, fuzzy
 msgid "Background extraction samples:"
 msgstr "Вирівнювання фону..."
 
-#: src/gui/siril3.glade:30828
+#: src/gui/siril3.glade:30890
 #, fuzzy
 msgid "Standard annotations:"
 msgstr "Співставити зірки у вибраній області"
 
-#: src/gui/siril3.glade:30857
+#: src/gui/siril3.glade:30919
 msgid "Overlay Colors"
 msgstr ""
 
-#: src/gui/siril3.glade:30929
+#: src/gui/siril3.glade:30991
 #, fuzzy
 msgid ""
 "The paths written in this text box will be checked in order to load scripts "
@@ -7652,23 +7673,23 @@ msgstr ""
 "використовуючи скільки потрібно радків. Майте на увазі, що велика кількість "
 "шляхів, що потребують перевірки, буде затримувати запуск програми."
 
-#: src/gui/siril3.glade:30942
+#: src/gui/siril3.glade:31004
 msgid "<b>Scripts Storage Directories</b>"
 msgstr "<b>Діректорії зі скриптами</b>"
 
-#: src/gui/siril3.glade:30959
+#: src/gui/siril3.glade:31021
 msgid "Rescans the scripts folders and updates scripts menu."
 msgstr ""
 
-#: src/gui/siril3.glade:30990
+#: src/gui/siril3.glade:31052
 msgid "Show warning before script execution"
 msgstr ""
 
-#: src/gui/siril3.glade:31006
+#: src/gui/siril3.glade:31068
 msgid "\"Requires\" command is mandatory in scripts"
 msgstr ""
 
-#: src/gui/siril3.glade:31010
+#: src/gui/siril3.glade:31072
 msgid ""
 "If this option is checked, scripts cannot be executed without the "
 "\"requires\" command. That ensures the compatibility between scripts and "
@@ -7678,21 +7699,21 @@ msgid ""
 "what you are doing!</b></span>"
 msgstr ""
 
-#: src/gui/siril3.glade:31031 src/gui/siril3.glade:31581
+#: src/gui/siril3.glade:31093 src/gui/siril3.glade:31643
 #, fuzzy
 msgid "Warning Dialogs"
 msgstr "Увага"
 
-#: src/gui/siril3.glade:31062 src/gui/siril3.glade:31425
+#: src/gui/siril3.glade:31124 src/gui/siril3.glade:31487
 msgid "Performances"
 msgstr ""
 
-#: src/gui/siril3.glade:31093
+#: src/gui/siril3.glade:31155
 #, fuzzy
 msgid "Ratio of available"
 msgstr "Використовувати частину доступної пам'яті: "
 
-#: src/gui/siril3.glade:31097
+#: src/gui/siril3.glade:31159
 msgid ""
 "Siril will limit itself to a ratio of the amount of free physical memory and "
 "will decrease the size of work tasks if needed.\n"
@@ -7703,11 +7724,11 @@ msgid ""
 "above will likely result in a crash of siril or of the operating system."
 msgstr ""
 
-#: src/gui/siril3.glade:31113
+#: src/gui/siril3.glade:31175
 msgid "Fixed amount (GB)"
 msgstr ""
 
-#: src/gui/siril3.glade:31117
+#: src/gui/siril3.glade:31179
 msgid ""
 "Siril will limit itself to a fixed amount of memory and will decrease the "
 "size of work tasks if needed.\n"
@@ -7715,7 +7736,7 @@ msgid ""
 "result in a crash of siril or of the operating system."
 msgstr ""
 
-#: src/gui/siril3.glade:31133
+#: src/gui/siril3.glade:31195
 msgid ""
 "Sets a new ratio of free memory on memory used for stacking. Value should be "
 "between 0.05 and 2, depending on other activities of the machine. A higher "
@@ -7724,16 +7745,16 @@ msgid ""
 "very slow and unrecommended"
 msgstr ""
 
-#: src/gui/siril3.glade:31178
+#: src/gui/siril3.glade:31240
 #, fuzzy
 msgid "<b>Memory management</b>"
 msgstr "<b>Управління пам'яттю</b>"
 
-#: src/gui/siril3.glade:31211
+#: src/gui/siril3.glade:31273
 msgid "Default bit depth for HD AutoStretch"
 msgstr ""
 
-#: src/gui/siril3.glade:31227
+#: src/gui/siril3.glade:31289
 msgid ""
 "Sets default bit depth for the HD AutoStretch display mode. Higher bit "
 "depths require exponentially more memory for the LUT and take longer to "
@@ -7743,35 +7764,35 @@ msgid ""
 "the button to the right."
 msgstr ""
 
-#: src/gui/siril3.glade:31244
+#: src/gui/siril3.glade:31306
 msgid "Apply bit depth"
 msgstr ""
 
-#: src/gui/siril3.glade:31248
+#: src/gui/siril3.glade:31310
 msgid "Set the selected HD AutoStretch bit depth now"
 msgstr ""
 
-#: src/gui/siril3.glade:31271
+#: src/gui/siril3.glade:31333
 #, fuzzy
 msgid "HD AutoStretch"
 msgstr "Розтягнути автоматично"
 
-#: src/gui/siril3.glade:31301
+#: src/gui/siril3.glade:31363
 msgid "Multithreaded FFTW"
 msgstr ""
 
-#: src/gui/siril3.glade:31305
+#: src/gui/siril3.glade:31367
 msgid ""
 "If selected, FFTW will use multiple threads. This is usually a speedup on "
 "large images, but will increase initial planning time the first time FFTW "
 "operates on an image of a given size."
 msgstr ""
 
-#: src/gui/siril3.glade:31320 src/core/settings.c:293
+#: src/gui/siril3.glade:31382 src/core/settings.c:294
 msgid "FFTW planning strategy"
 msgstr ""
 
-#: src/gui/siril3.glade:31331
+#: src/gui/siril3.glade:31393
 msgid ""
 "Sets the FFTW planning strategy. FFTW generates and stores wisdom to help it "
 "optimise FFT calculations of given sizes. For each successive level of "
@@ -7789,23 +7810,23 @@ msgid ""
 "the other strategies is not worth it for a single Fourier Transform."
 msgstr ""
 
-#: src/gui/siril3.glade:31337
+#: src/gui/siril3.glade:31399
 msgid "Measure"
 msgstr ""
 
-#: src/gui/siril3.glade:31338
+#: src/gui/siril3.glade:31400
 msgid "Patient"
 msgstr ""
 
-#: src/gui/siril3.glade:31339
+#: src/gui/siril3.glade:31401
 msgid "Exhaustive"
 msgstr ""
 
-#: src/gui/siril3.glade:31352
+#: src/gui/siril3.glade:31414
 msgid "FFTW planning time limit (seconds)"
 msgstr ""
 
-#: src/gui/siril3.glade:31363
+#: src/gui/siril3.glade:31425
 msgid ""
 "Instructs FFTW to spend at most this amount of seconds planning a FFT. In "
 "practice this may be exceeded slightly if the time limit is reached when "
@@ -7813,11 +7834,11 @@ msgid ""
 "minimum planning level of Estimate will always be completed."
 msgstr ""
 
-#: src/gui/siril3.glade:31378
+#: src/gui/siril3.glade:31440
 msgid "Minimum PSF size to use FFT convolutions"
 msgstr ""
 
-#: src/gui/siril3.glade:31389
+#: src/gui/siril3.glade:31451
 msgid ""
 "Siril can calculate convolutions either by summing over the kernel at every "
 "pixel or by using Fourier Transforms. The former becomes very inefficient "
@@ -7828,16 +7849,16 @@ msgid ""
 "Fourier Transforms will be used."
 msgstr ""
 
-#: src/gui/siril3.glade:31411
+#: src/gui/siril3.glade:31473
 #, fuzzy
 msgid "<b>FFTW Options</b>"
 msgstr "<b>Корекція</b>"
 
-#: src/gui/siril3.glade:31439 src/gui/siril3.glade:31874
+#: src/gui/siril3.glade:31501 src/gui/siril3.glade:31936
 msgid "Miscellaneous"
 msgstr ""
 
-#: src/gui/siril3.glade:31467
+#: src/gui/siril3.glade:31529
 msgid ""
 "Select an existing directory. Make sure you have write permissions and "
 "enough spaces."
@@ -7845,46 +7866,46 @@ msgstr ""
 "Виберіть директорію, що існує. Упевніться, що ви маєте права на запис та "
 "достатньо місця."
 
-#: src/gui/siril3.glade:31470
+#: src/gui/siril3.glade:31532
 msgid "Select Swap Directory"
 msgstr "Виберіть директорію свопу"
 
-#: src/gui/siril3.glade:31483
+#: src/gui/siril3.glade:31545
 msgid "available mem"
 msgstr ""
 
-#: src/gui/siril3.glade:31495
+#: src/gui/siril3.glade:31557
 msgid "Restore to Default"
 msgstr "Повернутись до початкових значень"
 
-#: src/gui/siril3.glade:31499
+#: src/gui/siril3.glade:31561
 #, fuzzy
 msgid "Restore the default swap storage directory"
 msgstr "Повернути директорію свопу за замовчуванням"
 
-#: src/gui/siril3.glade:31518
+#: src/gui/siril3.glade:31580
 msgid "<b>Swap Storage Directory</b>"
 msgstr "<b>Директорія для свопу</b>"
 
-#: src/gui/siril3.glade:31545
+#: src/gui/siril3.glade:31607
 msgid "Don't ask before quitting"
 msgstr "Не питати перед виходом з програми"
 
-#: src/gui/siril3.glade:31560
+#: src/gui/siril3.glade:31622
 msgid "Don't ask before saving when display is not linear"
 msgstr ""
 
-#: src/gui/siril3.glade:31603
+#: src/gui/siril3.glade:31665
 #, fuzzy
 msgid "Play introduction"
 msgstr "Метод інтерполяції для дебаєризації: "
 
-#: src/gui/siril3.glade:31617
+#: src/gui/siril3.glade:31679
 #, fuzzy
 msgid "Introduction Tips"
 msgstr "Інтерполяція"
 
-#: src/gui/siril3.glade:31648
+#: src/gui/siril3.glade:31710
 msgid ""
 "Select StarNet executable. Works with all StarNet command-line versions.\n"
 "\n"
@@ -7895,72 +7916,72 @@ msgid ""
 "executable: Siril will automatically find the other one if it exists."
 msgstr ""
 
-#: src/gui/siril3.glade:31657
+#: src/gui/siril3.glade:31719
 msgid "Select StarNet executable"
 msgstr ""
 
-#: src/gui/siril3.glade:31671
+#: src/gui/siril3.glade:31733
 msgid "Must point to a valid StarNet executable."
 msgstr ""
 
-#: src/gui/siril3.glade:31685
+#: src/gui/siril3.glade:31747
 msgid ""
 "Select StarNet weights file. This <b>only</b> works with the new Torch-based "
 "StarNet versions. It is optional: if left blank, the weights file <b>must</"
 "b> be in the same directory as the StarNet executable."
 msgstr ""
 
-#: src/gui/siril3.glade:31692
+#: src/gui/siril3.glade:31754
 msgid "Select StarNet weights file"
 msgstr ""
 
-#: src/gui/siril3.glade:31709
+#: src/gui/siril3.glade:31771
 msgid ""
 "Clears the neural net weights location. When cleared, the weights file "
 "<b>must</b> be in the same directory as the StarNet executable."
 msgstr ""
 
-#: src/gui/siril3.glade:31724
+#: src/gui/siril3.glade:31786
 msgid ""
 "May point to a StarNet neural net weights file.\n"
 "Torch-based StarNet versions only."
 msgstr ""
 
-#: src/gui/siril3.glade:31746
+#: src/gui/siril3.glade:31808
 msgid "Select gnuplot binary location."
 msgstr ""
 
-#: src/gui/siril3.glade:31751
+#: src/gui/siril3.glade:31813
 #, fuzzy
 msgid "Select gnuplot installation directory"
 msgstr "Виберіть  площину для реєстрації:"
 
-#: src/gui/siril3.glade:31764
+#: src/gui/siril3.glade:31826
 msgid ""
 "Must point to a valid gnuplot installation directory.\n"
 "Not necessary if the path of gnuplot is stored in the PATH variable (UNIX-"
 "like)."
 msgstr ""
 
-#: src/gui/siril3.glade:31784
+#: src/gui/siril3.glade:31846
 #, fuzzy
 msgid "Software Location"
 msgstr "Виявлення зірок"
 
-#: src/gui/siril3.glade:31807
+#: src/gui/siril3.glade:31869
 msgid "Copyright when saving image as TIFF"
 msgstr ""
 
-#: src/gui/siril3.glade:31819
+#: src/gui/siril3.glade:31881
 msgid "Copyright TIFF"
 msgstr ""
 
-#: src/gui/siril3.glade:31841
+#: src/gui/siril3.glade:31903
 #, fuzzy
 msgid "Check update at startup"
 msgstr "Перевірити оновлення"
 
-#: src/gui/siril3.glade:31857
+#: src/gui/siril3.glade:31919
 msgid "Update"
 msgstr ""
 
@@ -14331,495 +14352,499 @@ msgstr ""
 msgid "for a total of images processed of %d)\n"
 msgstr ""
 
-#: src/core/settings.c:262
+#: src/core/settings.c:263
 #, fuzzy
 msgid "current working directory"
 msgstr "Поточний робочий каталог:"
 
-#: src/core/settings.c:263
+#: src/core/settings.c:264
 #, fuzzy
 msgid "FITS file extension"
 msgstr "Розширення файлів: "
 
-#: src/core/settings.c:264
+#: src/core/settings.c:265
 msgid "don't use 32 bits for pixel depth"
 msgstr ""
 
-#: src/core/settings.c:265
+#: src/core/settings.c:266
 msgid "allow FITS cubes to have different sizes"
 msgstr ""
 
-#: src/core/settings.c:266
+#: src/core/settings.c:267
 msgid "memory mode (0 ratio, 1 amount)"
 msgstr ""
 
-#: src/core/settings.c:267
+#: src/core/settings.c:268
 msgid "memory ratio of available"
 msgstr ""
 
-#: src/core/settings.c:268
+#: src/core/settings.c:269
 msgid "amount of memory in GB"
 msgstr ""
 
-#: src/core/settings.c:269
+#: src/core/settings.c:270
 #, fuzzy
 msgid "HD AutoStretch bit depth"
 msgstr "Розтягнути автоматично"
 
-#: src/core/settings.c:270
+#: src/core/settings.c:271
 #, fuzzy
 msgid "need requires cmd in script"
 msgstr "Може бути використана в скриптах: "
 
-#: src/core/settings.c:271
+#: src/core/settings.c:272
 msgid "need requires cmd in pipe"
 msgstr ""
 
-#: src/core/settings.c:272
+#: src/core/settings.c:273
 msgid "check update at start-up"
 msgstr ""
 
-#: src/core/settings.c:273
+#: src/core/settings.c:274
 msgid "active siril language"
 msgstr ""
 
-#: src/core/settings.c:274
+#: src/core/settings.c:275
 #, fuzzy
 msgid "swap directory"
 msgstr "Виберіть директорію свопу"
 
-#: src/core/settings.c:275
+#: src/core/settings.c:276
 msgid "update pixel size of binned images"
 msgstr ""
 
-#: src/core/settings.c:276
+#: src/core/settings.c:277
 msgid "WCS formalism used in FITS header"
 msgstr ""
 
-#: src/core/settings.c:277
+#: src/core/settings.c:278
 msgid "Path of the namedstars.dat catalogue"
 msgstr ""
 
-#: src/core/settings.c:278
+#: src/core/settings.c:279
 msgid "Path of the unnamedstars.dat catalogue"
 msgstr ""
 
-#: src/core/settings.c:279
+#: src/core/settings.c:280
 msgid "Path of the deepstars.dat catalogue"
 msgstr ""
 
-#: src/core/settings.c:280
+#: src/core/settings.c:281
 msgid "Path of the USNO-NOMAD-1e8.dat catalogue"
 msgstr ""
 
-#: src/core/settings.c:281
+#: src/core/settings.c:282
 msgid "add CTYPE3='RGB' in the FITS header"
 msgstr ""
 
-#: src/core/settings.c:282
+#: src/core/settings.c:283
 msgid "user copyright to put in file header"
 msgstr ""
 
-#: src/core/settings.c:283
+#: src/core/settings.c:284
 msgid "location of the StarNet executable"
 msgstr ""
 
-#: src/core/settings.c:284
+#: src/core/settings.c:285
 msgid "location of the StarNet-torch weights file"
 msgstr ""
 
-#: src/core/settings.c:285
+#: src/core/settings.c:286
 msgid "directory of the gnuplot installation"
 msgstr ""
 
-#: src/core/settings.c:287
+#: src/core/settings.c:288
 msgid "directory of the asnet_ansvr installation"
 msgstr ""
 
-#: src/core/settings.c:289
+#: src/core/settings.c:290
 msgid "directory containing the solve-field executable"
 msgstr ""
 
-#: src/core/settings.c:291
+#: src/core/settings.c:292
 msgid "FFTW planning timelimit"
 msgstr ""
 
-#: src/core/settings.c:292
+#: src/core/settings.c:293
 msgid "Convolution minimum kernel size to use FFTW"
 msgstr ""
 
-#: src/core/settings.c:294
+#: src/core/settings.c:295
 msgid "multithreaded FFTW"
 msgstr ""
 
-#: src/core/settings.c:296
+#: src/core/settings.c:297
 msgid "focal length in mm for radius adjustment"
 msgstr ""
 
-#: src/core/settings.c:297
+#: src/core/settings.c:298
 msgid "pixel size in µm for radius adjustment"
 msgstr ""
 
-#: src/core/settings.c:299
+#: src/core/settings.c:300
 #, fuzzy
 msgid "use pattern from the file header"
 msgstr "Баєрівська матриця з заголовку файлу (якщо є)"
 
-#: src/core/settings.c:300
+#: src/core/settings.c:301
 #, fuzzy
 msgid "index of the Bayer pattern"
 msgstr "Виберіть порадок кольорів у Баєрівській матриці вашої камери."
 
-#: src/core/settings.c:301
+#: src/core/settings.c:302
 #, fuzzy
 msgid "type of interpolation"
 msgstr "Метод інтерполяції для дебаєризації: "
 
-#: src/core/settings.c:302
+#: src/core/settings.c:303
 msgid "force debayer top-down"
 msgstr ""
 
-#: src/core/settings.c:303
+#: src/core/settings.c:304
 msgid "Bayer matrix offset X"
 msgstr ""
 
-#: src/core/settings.c:304
+#: src/core/settings.c:305
 msgid "Bayer matrix offset Y"
 msgstr ""
 
-#: src/core/settings.c:305
+#: src/core/settings.c:306
 msgid "Number of passes for the X-Trans Markesteijn algorithm"
 msgstr ""
 
-#: src/core/settings.c:307
+#: src/core/settings.c:308
 msgid "electrons per ADU for noise estimation"
 msgstr ""
 
-#: src/core/settings.c:308
+#: src/core/settings.c:309
 #, fuzzy
 msgid "inner radius for background annulus"
 msgstr "Очистити вибір зразків фону."
 
-#: src/core/settings.c:309
+#: src/core/settings.c:310
 #, fuzzy
 msgid "outer radius for background annulus"
 msgstr "Очистити вибір зразків фону."
 
-#: src/core/settings.c:310
+#: src/core/settings.c:311
 msgid "factor for inner radius automatic computation"
 msgstr ""
 
-#: src/core/settings.c:311
+#: src/core/settings.c:312
 msgid "factor for outer radius automatic computation"
 msgstr ""
 
-#: src/core/settings.c:312
+#: src/core/settings.c:313
 msgid "force flux aperture value"
 msgstr ""
 
-#: src/core/settings.c:313
+#: src/core/settings.c:314
 #, fuzzy
 msgid "forced aperture for flux computation"
 msgstr "Примусово переобчислити .seq"
 
-#: src/core/settings.c:314
+#: src/core/settings.c:315
 msgid "minimum valid pixel value for photometry"
 msgstr ""
 
-#: src/core/settings.c:315
+#: src/core/settings.c:316
 msgid "maximum valid pixel value for photometry"
 msgstr ""
 
-#: src/core/settings.c:317
+#: src/core/settings.c:318
 msgid "degrees of the polynomial correction"
 msgstr ""
 
-#: src/core/settings.c:318
+#: src/core/settings.c:319
 msgid "radius around the target coordinates (degrees)"
 msgstr ""
 
-#: src/core/settings.c:319
+#: src/core/settings.c:320
 msgid "do not delete .xyls FITS tables"
 msgstr ""
 
-#: src/core/settings.c:320
+#: src/core/settings.c:321
 msgid "do not delete .wcs result files"
 msgstr ""
 
-#: src/core/settings.c:321
+#: src/core/settings.c:322
 msgid "maximum seconds to try solving"
 msgstr ""
 
-#: src/core/settings.c:322
+#: src/core/settings.c:323
 msgid "show solve-field output in main log"
 msgstr ""
 
-#: src/core/settings.c:324
+#: src/core/settings.c:325
 msgid "update default focal length and pixel size from the result"
 msgstr ""
 
-#: src/core/settings.c:325
+#: src/core/settings.c:326
 msgid "percent below and above the expected sampling to allow"
 msgstr ""
 
-#: src/core/settings.c:327
+#: src/core/settings.c:328
 msgid "panel size of aberration inspector"
 msgstr ""
 
-#: src/core/settings.c:328
+#: src/core/settings.c:329
 msgid "window size of aberration inspector"
 msgstr ""
 
-#: src/core/settings.c:330
+#: src/core/settings.c:331
 msgid "FITS compression enabled"
 msgstr ""
 
-#: src/core/settings.c:331
+#: src/core/settings.c:332
 msgid "FITS compression method"
 msgstr ""
 
-#: src/core/settings.c:332
+#: src/core/settings.c:333
 msgid "quantization factor for 32-bit float"
 msgstr ""
 
-#: src/core/settings.c:333
+#: src/core/settings.c:334
 msgid "Hcompress scale factor"
 msgstr ""
 
 #. the GUI part, not as useful but still required to be listed in order to be saved in the ini file
-#: src/core/settings.c:336
+#: src/core/settings.c:337
 #, fuzzy
 msgid "type of sensor for cosmetic correction"
 msgstr "Застосувати косметичну корекцію"
 
-#: src/core/settings.c:337
+#: src/core/settings.c:338
 #, fuzzy
 msgid "equalize flat channels"
 msgstr "Зберегти три канали"
 
-#: src/core/settings.c:338
+#: src/core/settings.c:339
 msgid "enable correction for X-Trans sensor"
 msgstr ""
 
-#: src/core/settings.c:339 src/core/settings.c:340 src/core/settings.c:341
-#: src/core/settings.c:342 src/core/settings.c:343 src/core/settings.c:344
-#: src/core/settings.c:345 src/core/settings.c:346
+#: src/core/settings.c:340 src/core/settings.c:341 src/core/settings.c:342
+#: src/core/settings.c:343 src/core/settings.c:344 src/core/settings.c:345
+#: src/core/settings.c:346 src/core/settings.c:347
 msgid "if no X-Trans model found, use this"
 msgstr ""
 
-#: src/core/settings.c:347
+#: src/core/settings.c:348
 msgid "default master bias"
 msgstr ""
 
-#: src/core/settings.c:348
+#: src/core/settings.c:349
 msgid "use default master bias"
 msgstr ""
 
-#: src/core/settings.c:349
+#: src/core/settings.c:350
 msgid "default master dark"
 msgstr ""
 
-#: src/core/settings.c:350
+#: src/core/settings.c:351
 msgid "use default master dark"
 msgstr ""
 
-#: src/core/settings.c:351
+#: src/core/settings.c:352
 msgid "default master flat"
 msgstr ""
 
-#: src/core/settings.c:352
+#: src/core/settings.c:353
 msgid "use default master flat"
 msgstr ""
 
-#: src/core/settings.c:353
+#: src/core/settings.c:354
 msgid "default stack name"
 msgstr ""
 
-#: src/core/settings.c:354
+#: src/core/settings.c:355
 msgid "use preferred stack name"
 msgstr ""
 
-#: src/core/settings.c:356
+#: src/core/settings.c:357
 #, fuzzy
 msgid "index of the selected registration method"
 msgstr "Виберіть метод реєстрації:"
 
-#: src/core/settings.c:357
+#: src/core/settings.c:358
 msgid "index of the selected interpolation method"
 msgstr ""
 
-#: src/core/settings.c:358
+#: src/core/settings.c:359
 msgid "use clamping method with Lanczos and Cubic interpolation"
 msgstr ""
 
-#: src/core/settings.c:360
+#: src/core/settings.c:361
 msgid "index of the selected method"
 msgstr ""
 
-#: src/core/settings.c:361
+#: src/core/settings.c:362
 msgid "index of the normalization method"
 msgstr ""
 
-#: src/core/settings.c:362
+#: src/core/settings.c:363
 #, fuzzy
 msgid "index of the rejection method"
 msgstr "Метод: "
 
-#: src/core/settings.c:363
+#: src/core/settings.c:364
 msgid "index of the weighting method"
 msgstr ""
 
-#: src/core/settings.c:364
+#: src/core/settings.c:365
 msgid "sigma low value for rejection"
 msgstr ""
 
-#: src/core/settings.c:365
+#: src/core/settings.c:366
 msgid "sigma high value for rejection"
 msgstr ""
 
-#: src/core/settings.c:366
+#: src/core/settings.c:367
 msgid "linear low value for rejection"
 msgstr ""
 
-#: src/core/settings.c:367
+#: src/core/settings.c:368
 msgid "linear high value for rejection"
 msgstr ""
 
-#: src/core/settings.c:368
+#: src/core/settings.c:369
 msgid "percentile low value for rejection"
 msgstr ""
 
-#: src/core/settings.c:369
+#: src/core/settings.c:370
 msgid "percentile high value for rejection"
 msgstr ""
 
-#: src/core/settings.c:371
+#: src/core/settings.c:372
 msgid "first start of siril"
 msgstr ""
 
-#: src/core/settings.c:372
+#: src/core/settings.c:373
 msgid "don't confirm quit when exiting"
 msgstr ""
 
-#: src/core/settings.c:373
+#: src/core/settings.c:374
 msgid "don't confirm save when non linear mode"
 msgstr ""
 
-#: src/core/settings.c:374
+#: src/core/settings.c:375
 msgid "remember window position"
 msgstr ""
 
-#: src/core/settings.c:375 src/core/settings.c:376 src/core/settings.c:377
-#: src/core/settings.c:378
+#: src/core/settings.c:376 src/core/settings.c:377 src/core/settings.c:378
+#: src/core/settings.c:379
 #, fuzzy
 msgid "main window position"
 msgstr "Позиція X"
 
-#: src/core/settings.c:379
+#: src/core/settings.c:380
 msgid "position of the two sides separator"
 msgstr ""
 
-#: src/core/settings.c:380
+#: src/core/settings.c:381
 msgid "main window is extended"
 msgstr ""
 
-#: src/core/settings.c:381
+#: src/core/settings.c:382
 msgid "main window is maximized"
 msgstr ""
 
-#: src/core/settings.c:382
+#: src/core/settings.c:383
 msgid "index of the selected theme"
 msgstr ""
 
-#: src/core/settings.c:383
+#: src/core/settings.c:384
 msgid "font scale in percent"
 msgstr ""
 
-#: src/core/settings.c:384
+#: src/core/settings.c:385
 msgid "icon style"
 msgstr ""
 
-#: src/core/settings.c:385
+#: src/core/settings.c:386
 msgid "list of script directories"
 msgstr ""
 
-#: src/core/settings.c:386
+#: src/core/settings.c:387
 #, fuzzy
 msgid "warn when launching a script"
 msgstr "Може бути використана в скриптах: "
 
-#: src/core/settings.c:387
+#: src/core/settings.c:388
 msgid "show thumbnails in open dialog"
 msgstr ""
 
-#: src/core/settings.c:388
+#: src/core/settings.c:389
 msgid "size of the thumbnails"
 msgstr ""
 
-#: src/core/settings.c:389
+#: src/core/settings.c:390
 msgid "number of elements of the grid guides"
 msgstr ""
 
-#: src/core/settings.c:390
+#: src/core/settings.c:391
 msgid "show tenths of arcseconds on hover"
 msgstr ""
 
-#: src/core/settings.c:391
+#: src/core/settings.c:392
 #, fuzzy
 msgid "default display mode"
 msgstr "Режим відображення"
 
-#: src/core/settings.c:392
+#: src/core/settings.c:393
 msgid "default histogram display mode"
 msgstr ""
 
-#: src/core/settings.c:393
+#: src/core/settings.c:394
+msgid "Middle mouse button double click zoom action"
+msgstr ""
+
+#: src/core/settings.c:395
 #, fuzzy
 msgid "configure background samples color"
 msgstr "Siril вибере зразки фону автоматично."
 
-#: src/core/settings.c:394
+#: src/core/settings.c:396
 msgid "configure standard annotation color"
 msgstr ""
 
-#: src/core/settings.c:396
+#: src/core/settings.c:398
 msgid "index of the compass position over grid"
 msgstr ""
 
-#: src/core/settings.c:397
+#: src/core/settings.c:399
 msgid "show Messier objects in annotations"
 msgstr ""
 
-#: src/core/settings.c:398
+#: src/core/settings.c:400
 msgid "show NGC objects in annotations"
 msgstr ""
 
-#: src/core/settings.c:399
+#: src/core/settings.c:401
 msgid "show IC objects in annotations"
 msgstr ""
 
-#: src/core/settings.c:400
+#: src/core/settings.c:402
 msgid "show LDN objects in annotations"
 msgstr ""
 
-#: src/core/settings.c:401
+#: src/core/settings.c:403
 msgid "show SH2 objects in annotations"
 msgstr ""
 
-#: src/core/settings.c:402
+#: src/core/settings.c:404
 #, fuzzy
 msgid "show stars in annotations"
 msgstr "Співставити зірки у вибраній області"
 
-#: src/core/settings.c:403
+#: src/core/settings.c:405
 msgid "show user objects in annotations"
 msgstr ""
 
-#: src/core/settings.c:405
+#: src/core/settings.c:407
 msgid "list of pixel math presets"
 msgstr ""
 
-#: src/core/settings.c:445
+#: src/core/settings.c:447
 #, c-format
 msgid "Unknown settings variable %s.%s\n"
 msgstr ""
@@ -15039,8 +15064,8 @@ msgstr ""
 msgid "Filename is too long, not expanding it\n"
 msgstr ""
 
-#: src/core/utils.c:1189 src/io/image_format_fits.c:3216
-#: src/io/image_format_fits.c:3221 src/io/ser.c:1362
+#: src/core/utils.c:1189 src/io/image_format_fits.c:3249
+#: src/io/image_format_fits.c:3254 src/io/ser.c:1362
 #, fuzzy
 msgid "pixel"
 msgid_plural "pixels"
@@ -15048,8 +15073,8 @@ msgstr[0] "Суперпіксельна"
 msgstr[1] "Суперпіксельна"
 msgstr[2] "Суперпіксельна"
 
-#: src/core/utils.c:1190 src/io/image_format_fits.c:3217
-#: src/io/image_format_fits.c:3222 src/io/ser.c:1363
+#: src/core/utils.c:1190 src/io/image_format_fits.c:3250
+#: src/io/image_format_fits.c:3255 src/io/ser.c:1363
 #, fuzzy
 msgid "channel"
 msgid_plural "channels"
@@ -15130,8 +15155,8 @@ msgstr ""
 #. fail
 #: src/filters/fft.c:596 src/filters/fft.c:602 src/filters/fft.c:621
 #: src/gui/nina_light_curve.c:83 src/gui/nina_light_curve.c:120
-#: src/gui/open_dialog.c:387 src/gui/plot.c:831 src/gui/preferences.c:411
-#: src/gui/preferences.c:430 src/gui/preferences.c:468 src/gui/PSF_list.c:305
+#: src/gui/open_dialog.c:387 src/gui/plot.c:831 src/gui/preferences.c:412
+#: src/gui/preferences.c:431 src/gui/preferences.c:469 src/gui/PSF_list.c:305
 #: src/gui/PSF_list.c:310 src/gui/PSF_list.c:315 src/gui/save_dialog.c:399
 msgid "Error"
 msgstr "Помилка"
@@ -16759,51 +16784,51 @@ msgstr ""
 msgid "Exclude selected points"
 msgstr ""
 
-#: src/gui/preferences.c:410
+#: src/gui/preferences.c:411
 #, c-format
 msgid "You don't have permission to write in this directory: %s\n"
 msgstr ""
 
-#: src/gui/preferences.c:429
+#: src/gui/preferences.c:430
 #, c-format
 msgid "You don't have permission to execute this file: %s\n"
 msgstr ""
 
-#: src/gui/preferences.c:467
+#: src/gui/preferences.c:468
 #, c-format
 msgid "You don't have permission to read this file: %s\n"
 msgstr ""
 
-#: src/gui/preferences.c:496
+#: src/gui/preferences.c:497
 msgid "Cannot refresh script list"
 msgstr ""
 
-#: src/gui/preferences.c:726
+#: src/gui/preferences.c:727
 msgid ""
 "Inner radius value must be less than outer. Please change the value in "
 "Photometry tab."
 msgstr ""
 
-#: src/gui/preferences.c:735
+#: src/gui/preferences.c:736
 msgid ""
 "Setting quantization to 0 has only a sense with a GZIP compression and GZIP "
 "2 often produces better compression of floating­point images."
 msgstr ""
 
-#: src/gui/preferences.c:747
+#: src/gui/preferences.c:748
 msgid "Wrong value"
 msgstr ""
 
-#: src/gui/preferences.c:768
+#: src/gui/preferences.c:769
 #, fuzzy
 msgid "Reset all preferences"
 msgstr "Опорний зразок білого"
 
-#: src/gui/preferences.c:769
+#: src/gui/preferences.c:770
 msgid "Do you really want to reset all preferences to default value?"
 msgstr ""
 
-#: src/gui/preferences.c:770
+#: src/gui/preferences.c:771
 #, fuzzy
 msgid "Reset Preferences"
 msgstr "Опорний зразок білого"
@@ -17699,18 +17724,18 @@ msgstr ""
 msgid "Cannot open FITS file %s: doesn't seem to be a FITS sequence\n"
 msgstr ""
 
-#: src/io/fits_sequence.c:193 src/io/image_format_fits.c:2107
+#: src/io/fits_sequence.c:193 src/io/image_format_fits.c:2140
 msgid ""
 "FITS images with 64 bits signed integer per pixel.channel are not "
 "supported.\n"
 msgstr ""
 
-#: src/io/fits_sequence.c:213 src/stacking/median_and_mean.c:1078
+#: src/io/fits_sequence.c:213 src/stacking/median_and_mean.c:1090
 msgid "Your version of cfitsio does not support multi-threading\n"
 msgstr ""
 
 #: src/io/fits_sequence.c:262 src/io/image_format_fits.c:1046
-#: src/io/image_format_fits.c:1116 src/io/image_format_fits.c:1998
+#: src/io/image_format_fits.c:1138 src/io/image_format_fits.c:2031
 msgid "Unknown FITS data format in internal conversion\n"
 msgstr ""
 
@@ -18003,94 +18028,101 @@ msgstr ""
 msgid "FITS error: %s\n"
 msgstr ""
 
-#: src/io/image_format_fits.c:1128
+#: src/io/image_format_fits.c:1099 src/io/image_format_fits.c:1118
+#, c-format
+msgid ""
+"Normalizing the image data with [%ld, %ld], not suitable for sequence "
+"operations\n"
+msgstr ""
+
+#: src/io/image_format_fits.c:1150
 msgid "Normalizing input data to our float range [0, 1]\n"
 msgstr ""
 
-#: src/io/image_format_fits.c:1161
+#: src/io/image_format_fits.c:1183
 msgid "Cannot move to first image in FITS file\n"
 msgstr ""
 
-#: src/io/image_format_fits.c:1171
+#: src/io/image_format_fits.c:1193
 msgid "Cannot get dimension of FITS file\n"
 msgstr ""
 
-#: src/io/image_format_fits.c:1181
+#: src/io/image_format_fits.c:1203
 msgid "Cannot move to next image in FITS file\n"
 msgstr ""
 
-#: src/io/image_format_fits.c:1248 src/io/image_format_fits.c:1389
+#: src/io/image_format_fits.c:1271 src/io/image_format_fits.c:1422
 #, c-format
 msgid "FITS image format %d is not supported by Siril.\n"
 msgstr ""
 
-#: src/io/image_format_fits.c:1315
+#: src/io/image_format_fits.c:1343
 #, c-format
 msgid "Fitsio error reading data, file: %s.\n"
 msgstr ""
 
-#: src/io/image_format_fits.c:1860
+#: src/io/image_format_fits.c:1893
 #, c-format
 msgid "%s.[any_allowed_extension] not found.\n"
 msgstr ""
 
-#: src/io/image_format_fits.c:1867
+#: src/io/image_format_fits.c:1900
 #, c-format
 msgid ""
 "The file %s is not a FITS file or doesn't exists with FITS extensions.\n"
 msgstr ""
 
-#: src/io/image_format_fits.c:1894
+#: src/io/image_format_fits.c:1927
 #, fuzzy, c-format
 msgid "Reading FITS: file %s, %ld layer(s), %ux%u pixels, %d bits\n"
 msgstr "Зчитування FITS-файлу: %s, %ld шар(и), %ux%u пікселів\n"
 
-#: src/io/image_format_fits.c:1980
+#: src/io/image_format_fits.c:2013
 #, c-format
 msgid "FITS read partial: there is no layer %d in the image %s\n"
 msgstr ""
 
-#: src/io/image_format_fits.c:1988
+#: src/io/image_format_fits.c:2021
 #, c-format
 msgid "Unsupported FITS image format (%ld axes).\n"
 msgstr ""
 
-#: src/io/image_format_fits.c:2072
+#: src/io/image_format_fits.c:2105
 #, c-format
 msgid "Loaded partial FITS file %s\n"
 msgstr ""
 
-#: src/io/image_format_fits.c:2081
+#: src/io/image_format_fits.c:2114
 msgid "FITSIO error getting image parameters.\n"
 msgstr ""
 
-#: src/io/image_format_fits.c:2094
+#: src/io/image_format_fits.c:2127
 #, c-format
 msgid ""
 "The FITS image contains more than 3 channels (%ld). Opening only the three "
 "first.\n"
 msgstr ""
 
-#: src/io/image_format_fits.c:2222
+#: src/io/image_format_fits.c:2255
 msgid "Unknown FITS compression method in internal conversion\n"
 msgstr ""
 
-#: src/io/image_format_fits.c:2366
+#: src/io/image_format_fits.c:2399
 #, fuzzy, c-format
 msgid "Saving FITS: file %s, %ld layer(s), %ux%u pixels, %d bits\n"
 msgstr "Збереження FITS-файлу: %s, %ld шар(и), %ux%u пікселів\n"
 
-#: src/io/image_format_fits.c:2463
+#: src/io/image_format_fits.c:2496
 #, c-format
 msgid "ERROR: trying to save a FITS image with an unsupported format (%d).\n"
 msgstr ""
 
-#: src/io/image_format_fits.c:3190
+#: src/io/image_format_fits.c:3223
 #, c-format
 msgid "Selecting the primary header failed, is the FITS file '%s' malformed?\n"
 msgstr ""
 
-#: src/io/image_format_fits.c:3218 src/io/ser.c:1364
+#: src/io/image_format_fits.c:3251 src/io/ser.c:1364
 #, fuzzy
 msgid "frame"
 msgid_plural "frames"
@@ -18098,25 +18130,25 @@ msgstr[0] "Кадри"
 msgstr[1] "Кадри"
 msgstr[2] "Кадри"
 
-#: src/io/image_format_fits.c:3218 src/io/image_format_fits.c:3223
+#: src/io/image_format_fits.c:3251 src/io/image_format_fits.c:3256
 #: src/io/ser.c:1364
 msgid "(Monochrome Preview)"
 msgstr ""
 
-#: src/io/image_format_fits.c:3338
+#: src/io/image_format_fits.c:3371
 #, fuzzy
 msgid "Opening image failed\n"
 msgstr "Медіанний фільтр: невдало"
 
-#: src/io/image_format_fits.c:3343
+#: src/io/image_format_fits.c:3376
 msgid "Stacking error: images with > 3 dimensions are not supported\n"
 msgstr ""
 
-#: src/io/image_format_fits.c:3353
+#: src/io/image_format_fits.c:3386
 msgid "Stacking error: input images have different sizes\n"
 msgstr ""
 
-#: src/io/image_format_fits.c:3366
+#: src/io/image_format_fits.c:3399
 msgid "Stacking error: input images have different precision\n"
 msgstr ""
 
@@ -19947,127 +19979,127 @@ msgstr ""
 msgid "Error reading one of the image areas\n"
 msgstr ""
 
-#: src/stacking/median_and_mean.c:882 src/stacking/median_and_mean.c:927
+#: src/stacking/median_and_mean.c:890 src/stacking/median_and_mean.c:935
 #, c-format
 msgid ""
 "Sequence does not have registration info, cannot use weighing by %s, "
 "aborting\n"
 msgstr ""
 
-#: src/stacking/median_and_mean.c:927
+#: src/stacking/median_and_mean.c:935
 #, fuzzy
 msgid "number of stars"
 msgstr "Кількість ітерацій."
 
-#: src/stacking/median_and_mean.c:977
+#: src/stacking/median_and_mean.c:989
 #, c-format
 msgid "Using %d MB memory maximum for stacking\n"
 msgstr "Максимальний об'єм пам'яті для стекінгу: %d MB\n"
 
-#: src/stacking/median_and_mean.c:1002
+#: src/stacking/median_and_mean.c:1014
 msgid "Select at least two frames for stacking. Aborting.\n"
 msgstr "Виберіть щонайменш два кадри для стекінгу. Перервано.\n"
 
-#: src/stacking/median_and_mean.c:1005
+#: src/stacking/median_and_mean.c:1017
 #, fuzzy
 msgid ""
 "The Generalized Extreme Studentized Deviate Test needs at least three frames "
 "for stacking. Aborting.\n"
 msgstr "Виберіть щонайменш два кадри для стекінгу. Перервано.\n"
 
-#: src/stacking/median_and_mean.c:1011
+#: src/stacking/median_and_mean.c:1023
 msgid "No registration layer passed, ignoring registration data!\n"
 msgstr ""
 
 #. no image has been loaded
-#: src/stacking/median_and_mean.c:1025
+#: src/stacking/median_and_mean.c:1037
 msgid "Rejection stack error: uninitialized sequence\n"
 msgstr ""
 
-#: src/stacking/median_and_mean.c:1030
+#: src/stacking/median_and_mean.c:1042
 #, c-format
 msgid ""
 "Rejection stack error: sequence has wrong image size (%dx%d for sequence, "
 "%ldx%ld for images)\n"
 msgstr ""
 
-#: src/stacking/median_and_mean.c:1035
+#: src/stacking/median_and_mean.c:1047
 msgid "Processing the sequence as RGB\n"
 msgstr ""
 
-#: src/stacking/median_and_mean.c:1083
+#: src/stacking/median_and_mean.c:1095
 msgid ""
 "Stacking a film will work only on one core and will be slower than if you "
 "convert it to SER\n"
 msgstr ""
 
-#: src/stacking/median_and_mean.c:1201
+#: src/stacking/median_and_mean.c:1213
 msgid "Computing weights based on noise...\n"
 msgstr ""
 
-#: src/stacking/median_and_mean.c:1209
+#: src/stacking/median_and_mean.c:1221
 msgid "Computing weights based on wFWHM...\n"
 msgstr ""
 
-#: src/stacking/median_and_mean.c:1217
+#: src/stacking/median_and_mean.c:1229
 msgid "Computing weights based on number of stars...\n"
 msgstr ""
 
-#: src/stacking/median_and_mean.c:1225
+#: src/stacking/median_and_mean.c:1237
 msgid "Computing weights based on number of stacked images...\n"
 msgstr ""
 
-#: src/stacking/median_and_mean.c:1228
+#: src/stacking/median_and_mean.c:1240
 msgid "Starting stacking...\n"
 msgstr "Починаємо стекінг...\n"
 
-#: src/stacking/median_and_mean.c:1230
+#: src/stacking/median_and_mean.c:1242
 msgid "Rejection stacking in progress..."
 msgstr ""
 
-#: src/stacking/median_and_mean.c:1231
+#: src/stacking/median_and_mean.c:1243
 msgid "Median stacking in progress..."
 msgstr ""
 
-#: src/stacking/median_and_mean.c:1443 src/stacking/stackminmax.c:210
+#: src/stacking/median_and_mean.c:1455 src/stacking/stackminmax.c:210
 msgid "Finalizing stacking..."
 msgstr ""
 
-#: src/stacking/median_and_mean.c:1447
+#: src/stacking/median_and_mean.c:1459
 #, c-format
 msgid "Pixel rejection in channel #%d: %.3lf%% - %.3lf%%\n"
 msgstr ""
 
-#: src/stacking/median_and_mean.c:1484
+#: src/stacking/median_and_mean.c:1496
 msgid "Rejection stacking failed. Check the log."
 msgstr ""
 
-#: src/stacking/median_and_mean.c:1485
+#: src/stacking/median_and_mean.c:1497
 msgid "Median stacking failed. Check the log."
 msgstr ""
 
-#: src/stacking/median_and_mean.c:1487
+#: src/stacking/median_and_mean.c:1499
 msgid "Stacking operation was cancelled.\n"
 msgstr ""
 
-#: src/stacking/median_and_mean.c:1488 src/stacking/stackminmax.c:249
+#: src/stacking/median_and_mean.c:1500 src/stacking/stackminmax.c:249
 msgid "Stacking failed.\n"
 msgstr ""
 
-#: src/stacking/median_and_mean.c:1491
+#: src/stacking/median_and_mean.c:1503
 msgid "Rejection stacking complete."
 msgstr ""
 
-#: src/stacking/median_and_mean.c:1492
+#: src/stacking/median_and_mean.c:1504
 #, fuzzy, c-format
 msgid "Rejection stacking complete. %d images have been stacked.\n"
 msgstr "Медіанний стекінг завершено. Використано %d зображень.\n"
 
-#: src/stacking/median_and_mean.c:1494
+#: src/stacking/median_and_mean.c:1506
 msgid "Median stacking complete."
 msgstr "Медіанний стекінг завершено."
 
-#: src/stacking/median_and_mean.c:1495
+#: src/stacking/median_and_mean.c:1507
 #, fuzzy, c-format
 msgid "Median stacking complete. %d images have been stacked.\n"
 msgstr "Медіанний стекінг завершено. Використано %d зображень.\n"
