@@ -483,7 +483,8 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 
 	// Additionnal information on the error bars and variable SNR 
 	// distributions if the auto aperture option is set
-	if (!com.pref.phot_set.force_radius) {
+	lcargs->force_rad = com.pref.phot_set.force_radius;
+	if (!lcargs->force_rad) {
 		double median_err, largest_err, smallest_err;
 		gsl_sort (err, 1, nb_valid_images);
 		median_err = gsl_stats_median_from_sorted_data (err, 1, nb_valid_images);
