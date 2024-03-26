@@ -23,4 +23,6 @@ gpointer deconvolve_sequence_command(gpointer p, sequence* seqname);
 
 void apply_deconvolve_to_sequence(struct deconvolution_sequence_data *seqdata);
 
+void close_deconv();
+
 #endif

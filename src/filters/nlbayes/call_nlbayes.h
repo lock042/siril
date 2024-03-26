@@ -24,4 +24,9 @@ EXTERNC int do_nlbayes(fits *fit, const float modulation, unsigned sos, int da3d
 }
 #endif
 
+EXTERNC void close_denoise();
+#ifdef __cplusplus
+}
+#endif
+
 #endif /* SRC_CALL_NLBAYES_H_ */

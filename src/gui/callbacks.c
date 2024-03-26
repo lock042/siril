@@ -723,7 +723,8 @@ void update_MenuItem() {
 	siril_window_autostretch_actions(app_win, gui.rendering_mode == STF_DISPLAY && gfit.naxes[2] == 3);
 
 	/* keywords list */
-	refresh_keywords_dialog();
+	if (gtk_widget_is_visible(lookup_widget("keywords_dialog")))
+		refresh_keywords_dialog();
 }
 
 void sliders_mode_set_state(sliders_mode sliders) {
