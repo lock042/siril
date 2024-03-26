@@ -1388,172 +1388,176 @@ void on_shiftonly_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 
 /* callback for 'Go register' button, GTK thread */
 void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
-	struct registration_args *reg_args;
-	struct registration_method *method;
-	char *msg;
-	GtkToggleButton *follow, *matchSel, *x2upscale, *cumul, *onlyshift;
-	GtkComboBox *cbbt_layers, *reg_all_sel_box;
-	GtkComboBoxText *ComboBoxRegInter, *ComboBoxTransfo, *ComboBoxMaxStars, *ComboBoxFraming;
-	GtkSpinButton *minpairs, *percent_moved;
-
-	if (!reserve_thread()) {	// reentrant from here
-		PRINT_ANOTHER_THREAD_RUNNING;
-		return;
-	}
-
-	if (!com.seq.regparam) {
-		fprintf(stderr, "regparam should have been created before\n");
-		// means that a call to seq_check_basic_data() or
-		// check_or_allocate_regparam() is missing somewhere else
-		unreserve_thread();
-		return;
-	}
-
-	method = get_selected_registration_method();
-
-	if (com.selection.w <= 0 && com.selection.h <= 0
-			&& method->sel != REQUIRES_NO_SELECTION) {
-		msg = siril_log_message(
-				_("All prerequisites are not filled for registration. Select a rectangle first.\n"));
-		siril_message_dialog( GTK_MESSAGE_WARNING, _("Warning"), msg);
-		unreserve_thread();
-		return;
-	}
-
-	reg_args = calloc(1, sizeof(struct registration_args));
-
-	control_window_switch_to_tab(OUTPUT_LOGS);
-
-	/* filling the arguments for registration */
-	follow = GTK_TOGGLE_BUTTON(lookup_widget("followStarCheckButton"));
-	onlyshift = GTK_TOGGLE_BUTTON(lookup_widget("onlyshift_checkbutton"));
-	matchSel = GTK_TOGGLE_BUTTON(lookup_widget("checkStarSelect"));
-	x2upscale = GTK_TOGGLE_BUTTON(lookup_widget("upscaleCheckButton"));
-	cbbt_layers = GTK_COMBO_BOX(lookup_widget("comboboxreglayer"));
-	ComboBoxRegInter = GTK_COMBO_BOX_TEXT(lookup_widget("ComboBoxRegInter"));
-	cumul = GTK_TOGGLE_BUTTON(lookup_widget("check_button_comet"));
-	minpairs = GTK_SPIN_BUTTON(lookup_widget("spinbut_minpairs"));
-	percent_moved = GTK_SPIN_BUTTON(lookup_widget("spin_kombat_percent"));
-	ComboBoxMaxStars = GTK_COMBO_BOX_TEXT(lookup_widget("comboreg_maxstars"));
-	ComboBoxTransfo = GTK_COMBO_BOX_TEXT(lookup_widget("comboreg_transfo"));
-	ComboBoxFraming = GTK_COMBO_BOX_TEXT(lookup_widget("comboreg_framing"));
-	reg_all_sel_box = GTK_COMBO_BOX(GTK_COMBO_BOX_TEXT(lookup_widget("reg_sel_all_combobox")));
-	reg_args->clamp = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_reg_clamp")));
-
-	reg_args->func = method->method_ptr;
-	reg_args->seq = &com.seq;
-	reg_args->bayer = ((gfit.naxes[2] == 1 && gfit.bayer_pattern[0] != '\0' && get_bayer_pattern(&gfit) <= BAYER_FILTER_MAX));
-	reg_args->reference_image = sequence_find_refimage(&com.seq);
-	reg_args->follow_star = gtk_toggle_button_get_active(follow);
-	reg_args->matchSelection = gtk_toggle_button_get_active(matchSel);
-	reg_args->no_output = keep_noout_state;
-	reg_args->x2upscale = gtk_toggle_button_get_active(x2upscale);
-	reg_args->cumul = gtk_toggle_button_get_active(cumul);
-	reg_args->prefix = strdup( gtk_entry_get_text(GTK_ENTRY(lookup_widget("regseqname_entry"))));
-	reg_args->min_pairs = gtk_spin_button_get_value_as_int(minpairs);
-	reg_args->percent_moved = (float) gtk_spin_button_get_value(percent_moved) / 100.f;
-	int starmaxactive = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxMaxStars));
-	reg_args->max_stars_candidates = (starmaxactive == -1) ? MAX_STARS_FITTED : maxstars_values[starmaxactive];
-	if (method->method_ptr != register_3stars)
-		reg_args->type = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxTransfo));
-	else {
-		reg_args->type = (gtk_toggle_button_get_active(onlyshift)) ? SHIFT_TRANSFORMATION : SIMILARITY_TRANSFORMATION;
-		reg_args->no_output = (gtk_toggle_button_get_active(onlyshift)) ? TRUE : keep_noout_state;
-	}
-	reg_args->framing = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxFraming));
-#ifndef HAVE_CV44
-	if (reg_args->type == SHIFT_TRANSFORMATION && method->method_ptr != register_3stars) {
-		siril_log_color_message(_("Shift-only registration is only possible with OpenCV 4.4\n"), "red");
-		free(reg_args->prefix);
-		free(reg_args);
-		unreserve_thread();
-		return;
-	}
-#endif
-	if (method->method_ptr == register_apply_reg) {
-		get_reg_sequence_filtering_from_gui(
-				&reg_args->filtering_criterion, &reg_args->filtering_parameter, -1);
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("upscaleCheckButton")))) {
+		on_apply_drizzle_clicked(button, user_data);
 	} else {
-		reg_args->filters.filter_included = gtk_combo_box_get_active(reg_all_sel_box);
-	}
-	if ((method->method_ptr == register_star_alignment || method->method_ptr == register_multi_step_global) &&
-		reg_args->matchSelection && reg_args->seq->is_variable) {
-		siril_log_color_message(_("Cannot use area selection on a sequence with variable image sizes\n"), "red");
-		free(reg_args);
-		unreserve_thread();
-		return;
-	}
+		struct registration_args *reg_args;
+		struct registration_method *method;
+		char *msg;
+		GtkToggleButton *follow, *matchSel, *x2upscale, *cumul, *onlyshift;
+		GtkComboBox *cbbt_layers, *reg_all_sel_box;
+		GtkComboBoxText *ComboBoxRegInter, *ComboBoxTransfo, *ComboBoxMaxStars, *ComboBoxFraming;
+		GtkSpinButton *minpairs, *percent_moved;
 
-	if ((method->method_ptr == register_star_alignment || method->method_ptr == register_multi_step_global) &&
-		!reg_args->matchSelection) {
-		delete_selected_area(); // othersie it is enforced
-	}
+		if (!reserve_thread()) {	// reentrant from here
+			PRINT_ANOTHER_THREAD_RUNNING;
+			return;
+		}
 
-
-	/* We check that available disk space is enough when
-	the registration method produces a new sequence
-	*/
-	if (!reg_args->no_output && method->method_ptr == register_star_alignment) {
-
-		int nb_frames = reg_args->filters.filter_included ? reg_args->seq->selnum : reg_args->seq->number;
-		gint64 size = seq_compute_size(reg_args->seq, nb_frames, get_data_type(reg_args->seq->bitpix));
-		if (reg_args->x2upscale)
-			size *= 4;
-		if (test_available_space(size)) {
-			siril_log_color_message(_("Not enough space to save the output images, aborting\n"), "red");
-			free(reg_args);
+		if (!com.seq.regparam) {
+			fprintf(stderr, "regparam should have been created before\n");
+			// means that a call to seq_check_basic_data() or
+			// check_or_allocate_regparam() is missing somewhere else
 			unreserve_thread();
 			return;
 		}
-	} else if (method->method_ptr == register_comet) {
-		pointf velocity = get_velocity();
-		if ((velocity.x == 0.0 && velocity.y == 0.0)
-				|| isinf(velocity.x) || isinf(velocity.y)) {
-			msg = siril_log_color_message(_("The object is not moving, please check your registration data.\n"), "red");
+
+		method = get_selected_registration_method();
+
+		if (com.selection.w <= 0 && com.selection.h <= 0
+				&& method->sel != REQUIRES_NO_SELECTION) {
+			msg = siril_log_message(
+					_("All prerequisites are not filled for registration. Select a rectangle first.\n"));
 			siril_message_dialog( GTK_MESSAGE_WARNING, _("Warning"), msg);
+			unreserve_thread();
+			return;
+		}
+
+		reg_args = calloc(1, sizeof(struct registration_args));
+
+		control_window_switch_to_tab(OUTPUT_LOGS);
+
+		/* filling the arguments for registration */
+		follow = GTK_TOGGLE_BUTTON(lookup_widget("followStarCheckButton"));
+		onlyshift = GTK_TOGGLE_BUTTON(lookup_widget("onlyshift_checkbutton"));
+		matchSel = GTK_TOGGLE_BUTTON(lookup_widget("checkStarSelect"));
+		x2upscale = GTK_TOGGLE_BUTTON(lookup_widget("upscaleCheckButton"));
+		cbbt_layers = GTK_COMBO_BOX(lookup_widget("comboboxreglayer"));
+		ComboBoxRegInter = GTK_COMBO_BOX_TEXT(lookup_widget("ComboBoxRegInter"));
+		cumul = GTK_TOGGLE_BUTTON(lookup_widget("check_button_comet"));
+		minpairs = GTK_SPIN_BUTTON(lookup_widget("spinbut_minpairs"));
+		percent_moved = GTK_SPIN_BUTTON(lookup_widget("spin_kombat_percent"));
+		ComboBoxMaxStars = GTK_COMBO_BOX_TEXT(lookup_widget("comboreg_maxstars"));
+		ComboBoxTransfo = GTK_COMBO_BOX_TEXT(lookup_widget("comboreg_transfo"));
+		ComboBoxFraming = GTK_COMBO_BOX_TEXT(lookup_widget("comboreg_framing"));
+		reg_all_sel_box = GTK_COMBO_BOX(GTK_COMBO_BOX_TEXT(lookup_widget("reg_sel_all_combobox")));
+		reg_args->clamp = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_reg_clamp")));
+
+		reg_args->func = method->method_ptr;
+		reg_args->seq = &com.seq;
+		reg_args->bayer = ((gfit.naxes[2] == 1 && gfit.bayer_pattern[0] != '\0' && get_bayer_pattern(&gfit) <= BAYER_FILTER_MAX));
+		reg_args->reference_image = sequence_find_refimage(&com.seq);
+		reg_args->follow_star = gtk_toggle_button_get_active(follow);
+		reg_args->matchSelection = gtk_toggle_button_get_active(matchSel);
+		reg_args->no_output = keep_noout_state;
+		reg_args->x2upscale = gtk_toggle_button_get_active(x2upscale);
+		reg_args->cumul = gtk_toggle_button_get_active(cumul);
+		reg_args->prefix = strdup( gtk_entry_get_text(GTK_ENTRY(lookup_widget("regseqname_entry"))));
+		reg_args->min_pairs = gtk_spin_button_get_value_as_int(minpairs);
+		reg_args->percent_moved = (float) gtk_spin_button_get_value(percent_moved) / 100.f;
+		int starmaxactive = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxMaxStars));
+		reg_args->max_stars_candidates = (starmaxactive == -1) ? MAX_STARS_FITTED : maxstars_values[starmaxactive];
+		if (method->method_ptr != register_3stars)
+			reg_args->type = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxTransfo));
+		else {
+			reg_args->type = (gtk_toggle_button_get_active(onlyshift)) ? SHIFT_TRANSFORMATION : SIMILARITY_TRANSFORMATION;
+			reg_args->no_output = (gtk_toggle_button_get_active(onlyshift)) ? TRUE : keep_noout_state;
+		}
+		reg_args->framing = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxFraming));
+	#ifndef HAVE_CV44
+		if (reg_args->type == SHIFT_TRANSFORMATION && method->method_ptr != register_3stars) {
+			siril_log_color_message(_("Shift-only registration is only possible with OpenCV 4.4\n"), "red");
+			free(reg_args->prefix);
 			free(reg_args);
 			unreserve_thread();
 			return;
 		}
+	#endif
+		if (method->method_ptr == register_apply_reg) {
+			get_reg_sequence_filtering_from_gui(
+					&reg_args->filtering_criterion, &reg_args->filtering_parameter, -1);
+		} else {
+			reg_args->filters.filter_included = gtk_combo_box_get_active(reg_all_sel_box);
+		}
+		if ((method->method_ptr == register_star_alignment || method->method_ptr == register_multi_step_global) &&
+			reg_args->matchSelection && reg_args->seq->is_variable) {
+			siril_log_color_message(_("Cannot use area selection on a sequence with variable image sizes\n"), "red");
+			free(reg_args);
+			unreserve_thread();
+			return;
+		}
+
+		if ((method->method_ptr == register_star_alignment || method->method_ptr == register_multi_step_global) &&
+			!reg_args->matchSelection) {
+			delete_selected_area(); // othersie it is enforced
+		}
+
+
+		/* We check that available disk space is enough when
+		the registration method produces a new sequence
+		*/
+		if (!reg_args->no_output && method->method_ptr == register_star_alignment) {
+
+			int nb_frames = reg_args->filters.filter_included ? reg_args->seq->selnum : reg_args->seq->number;
+			gint64 size = seq_compute_size(reg_args->seq, nb_frames, get_data_type(reg_args->seq->bitpix));
+			if (reg_args->x2upscale)
+				size *= 4;
+			if (test_available_space(size)) {
+				siril_log_color_message(_("Not enough space to save the output images, aborting\n"), "red");
+				free(reg_args);
+				unreserve_thread();
+				return;
+			}
+		} else if (method->method_ptr == register_comet) {
+			pointf velocity = get_velocity();
+			if ((velocity.x == 0.0 && velocity.y == 0.0)
+					|| isinf(velocity.x) || isinf(velocity.y)) {
+				msg = siril_log_color_message(_("The object is not moving, please check your registration data.\n"), "red");
+				siril_message_dialog( GTK_MESSAGE_WARNING, _("Warning"), msg);
+				free(reg_args);
+				unreserve_thread();
+				return;
+			}
+		}
+		/* getting the selected registration layer from the combo box. The value is the index
+		* of the selected line, and they are in the same order than layers so there should be
+		* an exact matching between the two */
+		reg_args->layer = gtk_combo_box_get_active(cbbt_layers);
+		reg_args->interpolation = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxRegInter));
+		get_the_registration_area(reg_args, method);	// sets selection
+		reg_args->run_in_thread = TRUE;
+		reg_args->load_new_sequence = FALSE; // only TRUE for some methods. Will be updated in these cases
+
+		if (method->method_ptr == register_star_alignment) { // seqpplyreg case is dealt with in the sanity checks of the method
+			if (reg_args->interpolation == OPENCV_NONE && (reg_args->x2upscale || com.seq.is_variable)) {
+				siril_log_color_message(_("When interpolation is set to None, the images must be of same size and no upscaling can be applied. Aborting\n"), "red");
+				free(reg_args);
+				unreserve_thread();
+				return;
+			}
+			if (reg_args->interpolation == OPENCV_NONE && (reg_args->type > SHIFT_TRANSFORMATION)) {
+				siril_log_color_message(_("When interpolation is set to None, the transformation can only be set to Shift. Aborting\n"), "red");
+				free(reg_args);
+				unreserve_thread();
+				return;
+			}
+		}
+		if (((method->method_ptr == register_star_alignment || method->method_ptr == register_3stars || method->method_ptr == register_apply_reg) &&
+			(reg_args->interpolation == OPENCV_AREA || reg_args->interpolation == OPENCV_LINEAR || reg_args->interpolation == OPENCV_NEAREST || reg_args->interpolation == OPENCV_NONE)) ||
+			reg_args->no_output)
+			reg_args->clamp = FALSE;
+
+		if (method->method_ptr != register_3stars) clear_stars_list(TRUE); //to avoid problems with com.stars later on in the process
+
+		msg = siril_log_color_message(_("Registration: processing using method: %s\n"),
+				"green", method->name);
+		msg[strlen(msg) - 1] = '\0';
+		if (reg_args->clamp)
+			siril_log_message(_("Interpolation clamping active\n"));
+		set_progress_bar_data(msg, PROGRESS_RESET);
+
+		start_in_reserved_thread(register_thread_func, reg_args);
 	}
-	/* getting the selected registration layer from the combo box. The value is the index
-	 * of the selected line, and they are in the same order than layers so there should be
-	 * an exact matching between the two */
-	reg_args->layer = gtk_combo_box_get_active(cbbt_layers);
-	reg_args->interpolation = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxRegInter));
-	get_the_registration_area(reg_args, method);	// sets selection
-	reg_args->run_in_thread = TRUE;
-	reg_args->load_new_sequence = FALSE; // only TRUE for some methods. Will be updated in these cases
-
-	if (method->method_ptr == register_star_alignment) { // seqpplyreg case is dealt with in the sanity checks of the method
-		if (reg_args->interpolation == OPENCV_NONE && (reg_args->x2upscale || com.seq.is_variable)) {
-			siril_log_color_message(_("When interpolation is set to None, the images must be of same size and no upscaling can be applied. Aborting\n"), "red");
-			free(reg_args);
-			unreserve_thread();
-			return;
-		}
-		if (reg_args->interpolation == OPENCV_NONE && (reg_args->type > SHIFT_TRANSFORMATION)) {
-			siril_log_color_message(_("When interpolation is set to None, the transformation can only be set to Shift. Aborting\n"), "red");
-			free(reg_args);
-			unreserve_thread();
-			return;
-		}
-	}
-	if (((method->method_ptr == register_star_alignment || method->method_ptr == register_3stars || method->method_ptr == register_apply_reg) &&
-		(reg_args->interpolation == OPENCV_AREA || reg_args->interpolation == OPENCV_LINEAR || reg_args->interpolation == OPENCV_NEAREST || reg_args->interpolation == OPENCV_NONE)) ||
-		reg_args->no_output)
-		reg_args->clamp = FALSE;
-
-	if (method->method_ptr != register_3stars) clear_stars_list(TRUE); //to avoid problems with com.stars later on in the process
-
-	msg = siril_log_color_message(_("Registration: processing using method: %s\n"),
-			"green", method->name);
-	msg[strlen(msg) - 1] = '\0';
-	if (reg_args->clamp)
-		siril_log_message(_("Interpolation clamping active\n"));
-	set_progress_bar_data(msg, PROGRESS_RESET);
-
-	start_in_reserved_thread(register_thread_func, reg_args);
 }
 
 // worker thread function for the registration

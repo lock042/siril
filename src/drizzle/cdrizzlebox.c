@@ -907,6 +907,7 @@ do_kernel_square(struct driz_param_t* p) {
     int xmin, xmax, ymin, ymax, n;
 	const char* cfa = p->cfa;
 	size_t cfadim = !cfa ? 1 : strlen(cfa) == 4 ? 2 : 6;
+	integer_t maxarea = 0, mnii, mxii, mnjj, mxjj;
 
     driz_log_message("starting do_kernel_square");
     dh = 0.5 * p->pixel_fraction;
@@ -990,6 +991,14 @@ do_kernel_square(struct driz_param_t* p) {
             max_jj = MIN(fortran_round(max_floats(yout, 4)), osize[1]-1);
             min_ii = MAX(fortran_round(min_floats(xout, 4)), 0);
             max_ii = MIN(fortran_round(max_floats(xout, 4)), osize[0]-1);
+			int area = (max_jj - min_jj) - (max_ii - min_ii);
+			if (area > maxarea) {
+				maxarea = area;
+				mnjj = min_jj;
+				mxjj = max_jj;
+				mnii = min_ii;
+				mxii = max_ii;
+			}
 
             for (jj = min_jj; jj <= max_jj; ++jj) {
                 for (ii = min_ii; ii <= max_ii; ++ii) {
@@ -1027,6 +1036,7 @@ do_kernel_square(struct driz_param_t* p) {
         }
     }
 
+    printf("do_square max area: %d. (%d, %d) to (%d, %d)\n", maxarea, mnii, mnjj, mxii, mxjj);
     driz_log_message("ending do_kernel_square");
     return 0;
 }

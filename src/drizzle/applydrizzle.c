@@ -71,7 +71,7 @@ static regdata *apply_driz_get_current_regdata(struct driz_args_t *driz) {
 	return current_regdata;
 }
 
-// TODO: make this function account for different framing types, currently it assumes "Current" framing
+// TODO: framing doesn't appear to be computed correctly
 static gboolean driz_compute_wcs_framing(struct driz_args_t *driz) {
 	int rx = (driz->seq->is_variable) ? driz->seq->imgparam[driz->reference_image].rx : driz->seq->rx;
 	int ry = (driz->seq->is_variable) ? driz->seq->imgparam[driz->reference_image].ry : driz->seq->ry;

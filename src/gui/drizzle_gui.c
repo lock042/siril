@@ -54,8 +54,13 @@ void on_apply_drizzle_clicked(GtkButton *button, gpointer user_data) {
 	driz->pixel_fraction = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_driz_dropsize")));
 	driz->filtering_criterion = seq_filter_all; // Needs a GUI element
 	driz->filtering_parameter = 1.0; // Needs a GUI element
-	driz->framing = FRAMING_MAX; // for testing purposes, this is probably the one that best shows any shifts / rotation between frames. Needs a GUI element
+	driz->framing = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("comboreg_framing")));
 	apply_drizzle(driz);
 }
 
-
+void on_upscaleCheckButton_toggled(GtkToggleButton* button, gpointer user_data) {
+	gboolean state = gtk_toggle_button_get_active(button);
+	gtk_widget_set_visible(lookup_widget("box_drizzle_controls"), state);
+	if (state)
+		gtk_notebook_set_current_page(GTK_NOTEBOOK(lookup_widget("notebook_registration")), 4);
+}
