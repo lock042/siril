@@ -6388,16 +6388,20 @@ int header_hook(struct generic_seq_metadata_args *args, fitsfile *fptr, int inde
 		g_free(str_total);
 		gchar *output = NULL;
 		for (int i = 0; i < g_strv_length(token_keys) && token_keys[i] && token_values[i]; i++) {
-		    gchar *tmp = g_strdup_printf("%s = %s, ", token_keys[i], token_values[i]);
-		    if (output == NULL) {
-		        output = g_strdup(tmp);
-		    } else {
-		        output = g_strconcat(output, tmp, NULL);
-		    }
-		    g_free(tmp);
+			gchar *tmp = g_strdup_printf("%s = %s, ", token_keys[i], token_values[i]);
+			if (output == NULL) {
+				output = g_strdup(tmp);
+			} else {
+				gchar *old_output = output;
+				output = g_strconcat(old_output, tmp, NULL);
+				g_free(old_output);
+			}
+			g_free(tmp);
 		}
-		siril_log_message(_("Image %d, %s\n"), index + 1, output);
-		g_free(output);
+		if (output) {
+			siril_log_message(_("Image %d, %s\n"), index + 1, output);
+			g_free(output);
+		}
 		g_strfreev(token_keys);
 		g_strfreev(token_values);
 	}
