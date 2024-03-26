@@ -32,6 +32,7 @@
 #include "core/proto.h"
 #include "core/siril_log.h"
 #include "algos/demosaicing.h"
+#include "gui/drizzle_gui.h"
 #include "gui/callbacks.h"
 #include "gui/utils.h"
 #include "gui/image_display.h"
