@@ -65,6 +65,7 @@ gboolean aperture_warning_given = FALSE;
 gboolean bad_load = FALSE;
 orientation_t imageorientation;
 gboolean next_psf_is_previous = FALSE;
+static gboolean first_time = TRUE;
 
 estk_data args = { 0 };
 static GtkWidget *drawingPSF = NULL;
@@ -577,13 +578,15 @@ void deconv_roi_callback() {
 	the_fit = gui.roi.active ? &gui.roi.fit : &gfit;
 }
 
-void on_bdeconv_close_clicked(GtkButton *button, gpointer user_data) {
-	if (sequence_is_running == 0)
-		reset_conv_controls_and_args();
+void close_deconv() {
 	roi_supported(FALSE);
 	siril_preview_hide();
 	remove_roi_callback(deconv_roi_callback);
 	siril_close_dialog("bdeconv_dialog");
+}
+
+void on_bdeconv_close_clicked(GtkButton *button, gpointer user_data) {
+	close_deconv();
 }
 
 void on_bdeconv_dialog_show(GtkWidget *widget, gpointer user_data) {
@@ -592,7 +595,10 @@ void on_bdeconv_dialog_show(GtkWidget *widget, gpointer user_data) {
 	deconv_roi_callback();
 	add_roi_callback(deconv_roi_callback);
 	copy_gfit_to_backup();
-	reset_conv_controls_and_args();
+	if (first_time) {
+		reset_conv_controls_and_args();
+		first_time = FALSE;
+	}
 	if (com.kernel && com.kernelsize > 0) {
 		args.psftype = PSF_PREVIOUS;
 			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_psfprevious")), TRUE);
@@ -1377,6 +1383,7 @@ void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 			seqargs->seqEntry = strdup("dec_");
 		apply_deconvolve_to_sequence(seqargs);
 	} else {
+		copy_backup_to_gfit();
 		the_fit = &gfit;
 		start_in_new_thread(deconvolve, NULL);
 	}
