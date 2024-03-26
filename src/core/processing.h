@@ -171,8 +171,9 @@ struct generic_seq_metadata_args {
 	/** sequence that will be processed */
 	sequence *seq;
 	/** key to read */
-	gchar *key;
-
+	GSList *keys;
+	/** Header to display */
+	gchar *header;
 	/** function called for each image with image index in sequence */
 	int (*image_hook)(struct generic_seq_metadata_args *, fitsfile *, int);
 

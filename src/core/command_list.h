@@ -177,7 +177,7 @@ static command commands[] = {
 	{"seqfindstar", 1, "seqfindstar sequencename [-layer=] [-maxstars=]", process_seq_findstar, STR_SEQFINDSTAR CMD_CAT(FINDSTAR) STR_FINDSTAR, TRUE, REQ_CMD_NONE},
 	{"seqfixbanding", 3, "seqfixbanding sequencename amount sigma [-prefix=] [-vertical]", process_seq_fixbanding, STR_SEQFIXBANDING CMD_CAT(FIXBANDING) STR_FIXBANDING, TRUE, REQ_CMD_NONE},
 	{"seqght", 2, "seqght sequence -D= [-B=] [-LP=] [-SP=] [-HP=] [-human | -even | -independent | -sat] [channels] [-prefix=]", process_seq_ght, STR_SEQGHT CMD_CAT(GHT) STR_GHT, TRUE, REQ_CMD_NONE},
-	{"seqheader", 2, "seqheader sequencename keyword [-sel] [-out=file.csv]", process_seq_header, STR_SEQHEADER, TRUE, REQ_CMD_NONE},
+	{"seqheader", 2, "seqheader sequencename keyword [keyword2 ...] [-sel] [-out=file.csv]", process_seq_header, STR_SEQHEADER, TRUE, REQ_CMD_NONE},
 	{"seqinvght", 2, "seqinvght sequence -D= [-B=] [-LP=] [-SP=] [-HP=] [-human | -even | -independent | -sat] [channels] [-prefix=]", process_seq_invght, STR_SEQINVGHT CMD_CAT(INVGHT) STR_INVGHT CMD_CAT(GHT) STR_GHT, TRUE, REQ_CMD_NONE},
 	{"seqinvmodasinh", 2, "seqinvmodasinh sequence -D= [-LP=] [-SP=] [-HP=] [-human | -even | -independent | -sat] [channels] [-prefix=]", process_seq_invmodasinh, STR_SEQINVMODASINH CMD_CAT(INVMODASINH) STR_INVMODASINH CMD_CAT(MODASINH) STR_MODASINH, TRUE, REQ_CMD_NONE},
 	{"seqlinstretch", 2, "seqlinstretch sequence -BP= [channels] [-sat] [-prefix=]", process_seq_linstretch, STR_SEQLINSTRETCH CMD_CAT(LINSTRETCH) STR_LINSTRETCH, TRUE, REQ_CMD_NONE},

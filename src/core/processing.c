@@ -827,7 +827,8 @@ cleanup:
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
 	free_sequence(args->seq, TRUE);
-	g_free(args->key);
+	g_slist_free_full(args->keys, g_free);
+	g_free(args->header);
 	if (args->output_stream)
 		g_object_unref(args->output_stream);
 	if (index_mapping)
