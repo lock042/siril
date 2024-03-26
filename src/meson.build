@@ -99,7 +99,6 @@ src_files = [
 #  'drizzle/cdrizzleblot.c',
   'drizzle/cdrizzlebox.c',
   'drizzle/cdrizzlemap.c',
-  'drizzle/cdrizzlefileutils.c',
   'drizzle/cdrizzleutil.c',
 
   'filters/asinh.c',

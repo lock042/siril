@@ -569,8 +569,4 @@ rad3(const float x, const float y, const float* co,
 // High level function to apply drizzle
 int apply_drizzle(struct driz_args_t *driz);
 
-// FITS functions for saving 2-channel (x,y) mapping pixmaps as FITS bintables
-int save_floats_to_fits_bintable(const char* filename, float* data, int rx, int ry, int numChannels);
-int read_floats_from_fits_bintable(const char* filename, float** data, int* rx, int* ry, int* nchans);
-
 #endif /* CDRIZZLEUTIL_H */
