@@ -6355,7 +6355,6 @@ int process_jsonmetadata(int nb) {
 
 int header_hook(struct generic_seq_metadata_args *args, fitsfile *fptr, int index) {
 	char str[FLEN_VALUE] = { 0 };
-	char *str_total = NULL;
 	GString *string = g_string_new(NULL);
 	int status = 0;
 	GSList *list = args->keys;
@@ -6372,7 +6371,7 @@ int header_hook(struct generic_seq_metadata_args *args, fitsfile *fptr, int inde
 		list = list->next;
 	}
 
-	str_total = g_string_free(string, FALSE);
+	gchar *str_total = g_string_free(string, FALSE);
 	if (args->output_stream) {
 		GError *error = NULL;
 		if (!g_output_stream_printf(args->output_stream, NULL, NULL, &error, "%d,%s\n", index + 1, str_total)) {
@@ -6412,7 +6411,7 @@ int process_seq_header(int nb) {
 	sequence *seq = load_sequence(word[1], NULL);
 	gboolean filter = FALSE;
 	GSList *list = NULL;
-	GString *list_of_keys = g_string_new("");
+	GString *list_of_keys = g_string_new(NULL);
 	int key;
 	if (!seq)
 		return CMD_SEQUENCE_NOT_FOUND;
