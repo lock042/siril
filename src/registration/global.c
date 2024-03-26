@@ -482,8 +482,8 @@ int star_align_finalize_hook(struct generic_seq_args *args) {
 	}
 	if (sadata->success)
 		free(sadata->success);
-	if (sadata->mosargs)
-		free_mosaic_args(sadata->mosargs);
+	if (sadata->astargs)
+		free_astrometric_args(sadata->astargs);
 	free(sadata);
 	args->user = NULL;
 	clear_stars_list(FALSE);

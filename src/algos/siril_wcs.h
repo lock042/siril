@@ -26,7 +26,7 @@
 
 /* we force naxis to 2 */
 #define NAXIS 2
-#define MAX_SIP_ORDER 6
+#define MAX_SIP_ORDER 6 // see also MAX_DISTO_SIZE when changing this value
 #define MAX_SIP_SIZE MAX_SIP_ORDER + 1
 
 typedef struct wcsprm wcsprm_t;

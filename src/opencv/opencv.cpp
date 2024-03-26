@@ -1064,7 +1064,7 @@ void cvcalcH_fromKKR(Homography Kref, Homography K, Homography R, Homography *H)
 	convert_MatH_to_H(_H, H);
 }
 
-// TODO: Code below should be moved to a dedicated cvMosaic.cpp file
+// TODO: Code below should be moved to a dedicated cvastrometric.cpp file
 
 static void map_undistortion(disto_data *disto, Rect roi, Mat xmap, Mat ymap) {
 	double U, V, x, y;
@@ -1115,7 +1115,7 @@ static void map_undistortion(disto_data *disto, Rect roi, Mat xmap, Mat ymap) {
  	}
 }
 
-int cvWarp_fromKR(fits *image, Homography K, Homography R, float scale, mosaic_roi *roiout, int projector, int interpolation, gboolean clamp, disto_data *disto) {
+int cvWarp_fromKR(fits *image, Homography K, Homography R, float scale, astrometric_roi *roiout, int projector, int interpolation, gboolean clamp, disto_data *disto) {
 	Mat in, out;
 	void *bgr = NULL;
 
@@ -1154,7 +1154,7 @@ int cvWarp_fromKR(fits *image, Homography K, Homography R, float scale, mosaic_r
 	corners = roi.tl();
 	sizes = roi.size();
 	std::cout << corners << "\n" << sizes << "\n";
-	*roiout = (mosaic_roi) {.x = corners.x, .y = corners.y, .w = sizes.width, .h = sizes.height};
+	*roiout = (astrometric_roi) {.x = corners.x, .y = corners.y, .w = sizes.width, .h = sizes.height};
 
 	// in case we just want to assess final size, we skip warping the image
 	// we just import metadata so that the buffers are NULL

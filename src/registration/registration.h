@@ -5,8 +5,8 @@
 #include "algos/PSF.h"
 #include "core/processing.h"
 
-#define NUMBER_OF_METHODS 10
-#define MAX_DISTO_SIZE 7
+#define NUMBER_OF_METHODS 8
+#define MAX_DISTO_SIZE 7 // need to duplicate MAX_SIP_SIZE here because of circular refs with opencv
 
 struct registration_args;
 typedef int (*registration_function)(struct registration_args *);
@@ -73,7 +73,7 @@ struct registration_args {
 	seq_image_filter filtering_criterion; // the filter, (seqapplyreg only)
 	double filtering_parameter;	// and its parameter (seqapplyreg only)
 	gboolean no_starlist;		// disable star list creation (2pass only)
-	float mosaic_scale;		// scaling factor (for mosaic only)
+	float astrometric_scale;		// scaling factor (for mosaic only)
 	gboolean undistort;		// apply undistorsion with SIP data
 
 	/* data for generated sequence, for star alignment/mosaic registration */
@@ -114,7 +114,7 @@ typedef enum {
 /* same as rectangle but avoids conflicts with rectangle defined in opencv namespace */
 typedef struct {
 	int x, y, w, h;
-} mosaic_roi;
+} astrometric_roi;
 
 typedef struct {
 	double AP[MAX_DISTO_SIZE][MAX_DISTO_SIZE];
@@ -123,7 +123,7 @@ typedef struct {
 	double xref, yref;
 } disto_data;
 
-struct mosaic_args{
+struct astrometric_args{
 	int nb;
 	int refindex;
 	Homography *Rs;
@@ -145,7 +145,7 @@ int register_3stars(struct registration_args *regargs);
 int register_apply_reg(struct registration_args *regargs);
 int register_kombat(struct registration_args *args);
 int register_manual(struct registration_args *regargs); // defined in compositing/compositing.c
-int register_mosaic(struct registration_args *regargs);
+int register_astrometric(struct registration_args *regargs);
 
 void reset_3stars();
 int _3stars_check_registration_ready();
@@ -155,7 +155,6 @@ pointf get_velocity();
 void update_reg_interface(gboolean dont_change_reg_radio);
 void compute_fitting_selection(rectangle *area, int hsteps, int vsteps, int preserve_square);
 void get_the_registration_area(struct registration_args *reg_args, const struct registration_method *method); // for compositing
-void fill_comboboxregmethod();
 gpointer register_thread_func(gpointer p);
 
 /** getter */
@@ -167,7 +166,7 @@ int seq_has_any_regdata(const sequence *seq); // same as get_registration_layer 
 struct star_align_data {
 	struct registration_args *regargs;
 	regdata *current_regdata;
-	struct mosaic_args *mosargs;
+	struct astrometric_args *astargs;
 	psf_star **refstars;
 	int fitted_stars;
 	BYTE *success;
@@ -198,6 +197,6 @@ int shift_fit_from_reg(fits *fit, Homography H);
 
 int minidx(const float *arr, const gboolean *mask, int nb, float *val);
 
-void free_mosaic_args(struct mosaic_args *mosargs);
+void free_astrometric_args(struct astrometric_args *astargs);
 
 #endif

@@ -39,7 +39,7 @@
 #include "registration/registration.h"
 #include "registration/matching/degtorad.h"
 
-static int mosaic_alignment(struct registration_args *regargs, struct mosaic_args *mosargs);
+static int astrometric_alignment(struct registration_args *regargs, struct astrometric_args *astargs);
 
 // computing center cog dealing with range jumps
 // https://stackoverflow.com/questions/6671183/calculate-the-center-point-of-multiple-latitude-longitude-coordinate-pairs
@@ -85,7 +85,7 @@ static gboolean get_scales_and_framing(struct wcsprm *WCSDATA, Homography *K, do
 	return TRUE;
 }
 
-int register_mosaic(struct registration_args *regargs) {
+int register_astrometric(struct registration_args *regargs) {
 
 	int retval = 0;
 	struct timeval t_start, t_end;
@@ -94,9 +94,6 @@ int register_mosaic(struct registration_args *regargs) {
 	if (!current_regdata)
 		return -2;
 	regargs->type = HOMOGRAPHY_TRANSFORMATION; // forcing homography calc for the input sequence
-	regargs->projector = OPENCV_SPHERICAL;
-	regargs->undistort = TRUE;
-	regargs->mosaic_scale = 1.f;
 
 	gettimeofday(&t_start, NULL);
 	fits fit = { 0 };
@@ -105,8 +102,8 @@ int register_mosaic(struct registration_args *regargs) {
 	double *RA = malloc(n * sizeof(double));
 	double *DEC = malloc(n * sizeof(double));
 	double *dist = malloc(n * sizeof(double));
-	struct wcsprm *WCSDATA = malloc(n * sizeof(struct wcsprm));
-	mosaic_roi *rois = malloc(n * sizeof(mosaic_roi));
+	struct wcsprm *WCSDATA = calloc(n, sizeof(struct wcsprm));
+	astrometric_roi *rois = malloc(n * sizeof(astrometric_roi));
 	int failed = 0, nb_aligned = 0;
 
 	if (!RA || !DEC || !dist || !WCSDATA || !rois) {
@@ -125,9 +122,11 @@ int register_mosaic(struct registration_args *regargs) {
 			goto free_all;
 		}
 		if (!has_wcs(&fit)) {
-			siril_log_message(_("Image %d has not been plate-solved, aborting\n"), i + 1);
-			retval = 1;
-			goto free_all;
+			siril_log_message(_("Image %d has not been plate-solved, unselecting\n"), i + 1);
+			regargs->seq->imgparam[i].incl = FALSE;
+			regargs->filters.filter_included = TRUE;
+			failed++;
+			continue;
 		}
 		center2wcs(&fit, RA + i, DEC + i);
 		WCSDATA[i].flag = -1;
@@ -225,36 +224,36 @@ int register_mosaic(struct registration_args *regargs) {
 	regargs->seq->reference_image = refindex;
 
 	// Give the full mosaic output size
-	float scale = 0.5 * (fabs(Ks[refindex].h00) + fabs(Ks[refindex].h11)) * regargs->mosaic_scale;
+	float scale = 0.5 * (fabs(Ks[refindex].h00) + fabs(Ks[refindex].h11)) * regargs->astrometric_scale;
 	pointi tl = { INT_MAX, INT_MAX }, br = { INT_MIN, INT_MIN }; // top left and bottom-right
 	gboolean savewarped = !regargs->no_output;
-	struct mosaic_args *margs = NULL;
-	// if we have some output sequence, prepare the mosaic_args
+	struct astrometric_args *astargs = NULL;
+	// if we have some output sequence, prepare the astrometric_args
 	if (savewarped) {
-		margs = malloc(sizeof(struct mosaic_args));
-		margs->nb = n;
-		margs->refindex = refindex;
-		margs->Ks = Ks;
-		margs->Rs = Rs;
-		margs->scale = scale;
+		astargs = malloc(sizeof(struct astrometric_args));
+		astargs->nb = n;
+		astargs->refindex = refindex;
+		astargs->Ks = Ks;
+		astargs->Rs = Rs;
+		astargs->scale = scale;
 		gboolean found = FALSE;
 		if (regargs->undistort) {
-			margs->disto = calloc(n, sizeof(disto_data));
+			astargs->disto = calloc(n, sizeof(disto_data));
 			for (int i = 0;  i < n; i++) {
 				if (!regargs->seq->imgparam[i].incl && regargs->filters.filter_included)
 					continue;
 				if (WCSDATA[i].lin.dispre) {
-					double A[MAX_DISTO_SIZE][MAX_DISTO_SIZE], B[MAX_DISTO_SIZE][MAX_DISTO_SIZE]; // we won't need them
-					margs->disto[i].order = extract_SIP_order_and_matrices(WCSDATA[i].lin.dispre, A, B, margs->disto[i].AP, margs->disto[i].BP);
+					double A[MAX_SIP_SIZE][MAX_SIP_SIZE], B[MAX_SIP_SIZE][MAX_SIP_SIZE]; // we won't need them
+					astargs->disto[i].order = extract_SIP_order_and_matrices(WCSDATA[i].lin.dispre, A, B, astargs->disto[i].AP, astargs->disto[i].BP);
 					found = TRUE;
-					margs->disto[i].xref = WCSDATA[i].crpix[0] - 1.; // -1 commes from the difference of convention between opencv and wcs
-					margs->disto[i].yref = WCSDATA[i].crpix[1] - 1.;
+					astargs->disto[i].xref = WCSDATA[i].crpix[0] - 1.; // -1 commes from the difference of convention between opencv and wcs
+					astargs->disto[i].yref = WCSDATA[i].crpix[1] - 1.;
 				}
 			}
 			if (!found) {
 				siril_debug_print("no distorsion terms found in any of the solutions, disabling undistort\n");
-				free(margs->disto);
-				margs->disto = NULL;
+				free(astargs->disto);
+				astargs->disto = NULL;
 				regargs->undistort = FALSE;
 			}
 
@@ -263,7 +262,7 @@ int register_mosaic(struct registration_args *regargs) {
 	for (int i = 0;  i < n; i++) {
 		if (!regargs->seq->imgparam[i].incl && regargs->filters.filter_included)
 			continue;
-		seq_read_frame_metadata(regargs->seq, i, &fit);
+		seq_read_frame_metadata(regargs->seq, i, &fit); // TODO: read rx,ry the first time and pass them instead of fit if we are just estimating
 		cvWarp_fromKR(&fit, Ks[i], Rs[i], scale, rois + i, regargs->projector, OPENCV_NONE, FALSE, NULL);
 		clearfits(&fit);
 		// first determine the corners
@@ -276,7 +275,7 @@ int register_mosaic(struct registration_args *regargs) {
 	int mosaicw = br.x - tl.x;
 	int mosaich = br.y - tl.y;
 	const gchar *proj = (regargs->projector == OPENCV_PLANE) ? _("plane") : _("spherical");
-	gchar *downscale = (regargs->mosaic_scale != 1.f) ? g_strdup_printf(_(" and a scaling factor of %.2f"), regargs->mosaic_scale) : g_strdup("");
+	gchar *downscale = (regargs->astrometric_scale != 1.f) ? g_strdup_printf(_(" and a scaling factor of %.2f"), regargs->astrometric_scale) : g_strdup("");
 	siril_log_color_message(_("Output mosaic: %d x %d pixels (assuming %s projection%s)\n"), "salmon", mosaicw, mosaich, proj, downscale);
 	g_free(downscale);
 	int64_t frame_size = mosaicw * mosaich * regargs->seq->nb_layers;
@@ -285,7 +284,7 @@ int register_mosaic(struct registration_args *regargs) {
 	siril_log_color_message(_("Space required for storage: %s\n"), "salmon", mem);
 	g_free(mem);
 	if (savewarped) {
-		margs->tl = tl;
+		astargs->tl = tl;
 	}
 
 free_all:
@@ -300,7 +299,7 @@ free_all:
 	}
 	free(WCSDATA);
 	if (!retval && !regargs->no_output) {
-		return mosaic_alignment(regargs, margs);
+		return astrometric_alignment(regargs, astargs);
 	}
 	free(Ks);
 	free(Rs);
@@ -313,33 +312,34 @@ free_all:
 }
 
 /* image alignment hooks and main process */
-static int mosaic_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads) {
+static int astrometric_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads) {
 	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
-	struct mosaic_args *mosargs = sadata->mosargs;
-	Homography *Rs = mosargs->Rs;
-	Homography *Ks = mosargs->Ks;
-	mosaic_roi roi = { 0 };
+	struct astrometric_args *astargs = sadata->astargs;
+	Homography *Rs = astargs->Rs;
+	Homography *Ks = astargs->Ks;
+	astrometric_roi roi = { 0 };
 	Homography H = { 0 };
 	disto_data *disto = NULL;
-	if (regargs->undistort && mosargs->disto)
-		disto = &mosargs->disto[in_index];
+	if (regargs->undistort && astargs->disto)
+		disto = &astargs->disto[in_index];
 	cvGetEye(&H);
 
 	sadata->success[out_index] = 0;
 	// TODO: find in opencv codebase if smthg smart can be done with K/R to avoid the double-flip
 	fits_flip_top_to_bottom(fit);
-	int status = cvWarp_fromKR(fit, Ks[in_index], Rs[in_index], mosargs->scale, &roi, regargs->projector, regargs->interpolation, regargs->clamp, disto);
+	int status = cvWarp_fromKR(fit, Ks[in_index], Rs[in_index], astargs->scale, &roi, regargs->projector, regargs->interpolation, regargs->clamp, disto);
 	if (!status) {
 		fits_flip_top_to_bottom(fit);
-		H.h02 = roi.x - mosargs->tl.x;
-		H.h12 = roi.y - mosargs->tl.y;
+		H.h02 = roi.x - astargs->tl.x;
+		H.h12 = roi.y - astargs->tl.y;
+		free_wcs(fit); // we remove astrometric solution
 	}
 	regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
 	regargs->imgparam[out_index].incl = (int)(!status);
 	regargs->imgparam[out_index].rx = roi.w;
 	regargs->imgparam[out_index].ry = roi.h;
-	regargs->regparam[out_index].fwhm = (in_index == mosargs->refindex) ? 0.5 : 1;
+	regargs->regparam[out_index].fwhm = (in_index == astargs->refindex) ? 0.5 : 1;
 	regargs->regparam[out_index].weighted_fwhm = 1.;
 	regargs->regparam[out_index].roundness = 1.;
 	regargs->regparam[out_index].background_lvl = 0.;
@@ -350,21 +350,21 @@ static int mosaic_image_hook(struct generic_seq_args *args, int out_index, int i
 }
 
 
-static int mosaic_alignment(struct registration_args *regargs, struct mosaic_args *mosargs) {
+static int astrometric_alignment(struct registration_args *regargs, struct astrometric_args *astargs) {
 	struct generic_seq_args *args = create_default_seqargs(&com.seq);
 	if (regargs->filters.filter_included) {
 		args->filtering_criterion = seq_filter_included;
 		args->nb_filtered_images = regargs->seq->selnum;
 	}
-	// args->compute_mem_limits_hook =  mosaic_mem_hook; // TODO
+	// args->compute_mem_limits_hook =  astrometric_mem_hook; // TODO
 	args->prepare_hook = star_align_prepare_results; // from global registration
-	args->image_hook = mosaic_image_hook;
+	args->image_hook = astrometric_image_hook;
 	args->finalize_hook = star_align_finalize_hook;	// from global registration
 	args->stop_on_error = FALSE;
 	args->description = _("Creating the warped images sequence");
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
-	args->new_seq_prefix = g_strdup("mosaic_");
+	args->new_seq_prefix = g_strdup(regargs->prefix);
 	args->load_new_sequence = TRUE;
 	args->already_in_a_thread = TRUE;
 
@@ -373,10 +373,8 @@ static int mosaic_alignment(struct registration_args *regargs, struct mosaic_arg
 		free(args);
 		return -1;
 	}
-	g_free(regargs->prefix);
-	regargs->prefix = g_strdup("mosaic_");
 	sadata->regargs = regargs;
-	sadata->mosargs = mosargs;
+	sadata->astargs = astargs;
 	sadata->current_regdata = NULL;
 	sadata->fitted_stars = 0;
 	sadata->refstars = NULL;
@@ -388,13 +386,13 @@ static int mosaic_alignment(struct registration_args *regargs, struct mosaic_arg
 	return regargs->retval;
 }
 
-void free_mosaic_args(struct mosaic_args *mosargs) {
-	if (!mosargs)
+void free_astrometric_args(struct astrometric_args *astargs) {
+	if (!astargs)
 		return;
-	free(mosargs->Ks);
-	free(mosargs->Rs);
-	free(mosargs->disto);
-	free(mosargs);
+	free(astargs->Ks);
+	free(astargs->Rs);
+	free(astargs->disto);
+	free(astargs);
 }
 
 
