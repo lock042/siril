@@ -379,8 +379,11 @@ void on_checkbutton_use_header_toggled(GtkToggleButton *button, gpointer user_da
 }
 
 void on_photometry_force_radius_button_toggled(GtkToggleButton *button, gpointer user_data) {
-	GtkWidget *spin = (GtkWidget *)user_data;
-	gtk_widget_set_sensitive(spin, !gtk_toggle_button_get_active(button));
+//	GtkWidget *spin = (GtkWidget *)user_data;
+	GtkWidget *spin1 = lookup_widget("spinAperture");
+	GtkWidget *spin2 = lookup_widget("spinRadRatio");
+	gtk_widget_set_sensitive(spin1, !gtk_toggle_button_get_active(button));
+	gtk_widget_set_sensitive(spin2, gtk_toggle_button_get_active(button));
 }
 
 void initialize_path_directory(const gchar *path) {
