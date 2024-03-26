@@ -487,14 +487,12 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 		double median_err, largest_err, smallest_err;
 		gsl_sort (err, 1, nb_valid_images);
 		median_err = gsl_stats_median_from_sorted_data (err, 1, nb_valid_images);
-		largest_err = gsl_stats_max (err, 1, nb_valid_images);
-		smallest_err = gsl_stats_min (err, 1, nb_valid_images);
+		gsl_stats_minmax (&smallest_err, &largest_err, err, 1, nb_valid_images);
 
 		double median_snr, largest_snr, smallest_snr;
 		gsl_sort (snr_opt, 1, nb_valid_images);
 		median_snr = gsl_stats_median_from_sorted_data (snr_opt, 1, nb_valid_images);
-		largest_snr = gsl_stats_max (snr_opt, 1, nb_valid_images);
-		smallest_snr = gsl_stats_min (snr_opt, 1, nb_valid_images);
+		gsl_stats_minmax (&smallest_snr, &largest_snr, snr_opt, 1, nb_valid_images);
 
 		siril_log_color_message(_("Error bars-- (%d images) median: %.2lfmmag, max: %.2lfmmag, min: %.2lfmmag\n"), "blue",
 			nb_valid_images,
