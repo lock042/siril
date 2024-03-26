@@ -6367,7 +6367,7 @@ int header_hook(struct generic_seq_metadata_args *args, fitsfile *fptr, int inde
 			strcpy(str, "N/A");
 			status = 0;
 		} else {
-			if (i > 0) string = g_string_append(string, ", ");
+			if (i > 0) string = g_string_append(string, ",");
 			string = g_string_append(string, str);
 		}
 		list = list->next;
@@ -6388,7 +6388,7 @@ int header_hook(struct generic_seq_metadata_args *args, fitsfile *fptr, int inde
 		g_string_free(string, TRUE);
 		gchar *output = NULL;
 		for (int i = 0; i < g_strv_length(token_keys) && token_keys[i] && token_values[i]; i++) {
-			gchar *tmp = g_strdup_printf("%s = %s, ", token_keys[i], token_values[i]);
+			gchar *tmp = g_strdup_printf("%s = %s,", token_keys[i], token_values[i]);
 			if (output == NULL) {
 				output = g_strdup(tmp);
 			} else {
