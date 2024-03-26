@@ -6355,25 +6355,66 @@ int process_jsonmetadata(int nb) {
 }
 
 int header_hook(struct generic_seq_metadata_args *args, fitsfile *fptr, int index) {
-	char str[FLEN_VALUE] = { 0 };
+	GString *string = g_string_new(NULL);
 	int status = 0;
-	fits_read_keyword(fptr, args->key, str, NULL, &status);
-	if (status)
-		strcpy(str, "not found");
+	GSList *list = args->keys;
+
+	for (int i = 0; i < g_slist_length(args->keys); i++) {
+		char str[FLEN_VALUE] = { 0 };
+
+		gchar *key = (gchar *)list->data;
+		fits_read_keyword(fptr, key, str, NULL, &status);
+		if (status) {
+			strcpy(str, "N/A");
+			status = 0;
+		} else {
+			if (i > 0) string = g_string_append(string, ",");
+			string = g_string_append(string, str);
+		}
+		list = list->next;
+	}
+
 	if (args->output_stream) {
 		GError *error = NULL;
-		if (!g_output_stream_printf(args->output_stream, NULL, NULL, &error, "%d,%s\n", index, str)) {
+		if (!g_output_stream_printf(args->output_stream, NULL, NULL, &error, "%d,%s\n", index + 1, string->str)) {
 			g_warning("%s\n", error->message);
 			g_clear_error(&error);
+			g_string_free(string, TRUE);
 			return 1;
 		}
 	}
-	else siril_log_message(_("Image %d, %s = %s\n"), index, args->key, str);
+	else {
+		gchar **token_keys = g_strsplit (args->header, ",", -1);
+		gchar **token_values = g_strsplit (string->str, ",", -1);
+		g_string_free(string, TRUE);
+		gchar *output = NULL;
+		for (int i = 0; i < g_strv_length(token_keys) && token_keys[i] && token_values[i]; i++) {
+			gchar *tmp = g_strdup_printf("%s = %s,", token_keys[i], token_values[i]);
+			if (output == NULL) {
+				output = g_strdup(tmp);
+			} else {
+				gchar *old_output = output;
+				output = g_strconcat(old_output, tmp, NULL);
+				g_free(old_output);
+			}
+			g_free(tmp);
+		}
+		if (output) {
+			siril_log_message(_("Image %d, %s\n"), index + 1, output);
+			g_free(output);
+		}
+		g_strfreev(token_keys);
+		g_strfreev(token_values);
+	}
 	return status;
 }
 
 int process_seq_header(int nb) {
 	sequence *seq = load_sequence(word[1], NULL);
+	gboolean filter = FALSE;
+	GSList *list = NULL;
+	GString *list_of_keys = g_string_new(NULL);
+	int key;
 	if (!seq)
 		return CMD_SEQUENCE_NOT_FOUND;
 	if (seq->type != SEQ_REGULAR && seq->type != SEQ_FITSEQ) {
@@ -6383,35 +6424,58 @@ int process_seq_header(int nb) {
 		return CMD_GENERIC_ERROR;
 	}
 
+	for (key = 2; key < nb; key++) {
+		if (!word[key] || word[key][0] == '-') {
+			break;
+		}
+		list = g_slist_prepend(list, g_strdup(word[key]));
+		if (key > 2) list_of_keys = g_string_append(list_of_keys, ", ");
+		list_of_keys = g_string_append(list_of_keys, word[key]);
+	}
+
+	list = g_slist_reverse(list);
+	gchar *header = g_string_free(list_of_keys, FALSE);
+
+	if (!header) {
+		return CMD_ARG_ERROR;
+	}
+
 	GOutputStream* output_stream = NULL;
-	if (nb > 3 && g_str_has_prefix(word[3], "-out=")) {
-		const char *arg = word[3] + 5;
-		if (arg[0] == '\0') {
-			siril_log_message(_("Missing argument to %s, aborting.\n"), word[3]);
-			return CMD_ARG_ERROR;
-		}
-		GFile *file = g_file_new_for_path(arg);
-		GError *error = NULL;
-		output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE, G_FILE_CREATE_NONE, NULL, &error);
-		g_object_unref(file);
-		if (!output_stream) {
-			if (error) {
-				siril_log_color_message(_("Failed to create output file: %s\n"), "red", error->message);
-				g_clear_error(&error);
+	for (int i = key; i < nb; i++) {
+		if (g_str_has_prefix(word[i], "-out=")) {
+			const char *arg = word[i] + 5;
+			if (arg[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), word[i]);
+				return CMD_ARG_ERROR;
 			}
-			return CMD_ARG_ERROR;
-		}
-		if (!g_output_stream_printf(output_stream, NULL, NULL, NULL, "# image number,%s\n", word[2])) {
-			siril_log_color_message(_("Failed to write to output file\n"), "red");
-			return CMD_ARG_ERROR;
+			GFile *file = g_file_new_for_path(arg);
+			GError *error = NULL;
+			output_stream = (GOutputStream*) g_file_replace(file, NULL, FALSE, G_FILE_CREATE_NONE, NULL, &error);
+			g_object_unref(file);
+			if (!output_stream) {
+				if (error) {
+					siril_log_color_message(_("Failed to create output file: %s\n"), "red", error->message);
+					g_clear_error(&error);
+				}
+				return CMD_ARG_ERROR;
+			}
+			if (!g_output_stream_printf(output_stream, NULL, NULL, NULL, "# image number,%s\n", header)) {
+				siril_log_color_message(_("Failed to write to output file\n"), "red");
+				return CMD_ARG_ERROR;
+			}
+			siril_log_message(_("The file %s has been created.\n"), arg);
+		} else if (!g_strcmp0(word[i], "-sel")) {
+			filter = TRUE;
 		}
 	}
 
 	struct generic_seq_metadata_args *args = calloc(1, sizeof(struct generic_seq_metadata_args));
 	args->seq = seq;
-	args->key = g_strdup(word[2]);
+	args->keys = list;
 	args->image_hook = header_hook;
 	args->output_stream = output_stream;
+	args->header = header;
+	args->filtering_criterion = filter ? seq_filter_included : seq_filter_all;
 	start_in_new_thread(generic_sequence_metadata_worker, args);
 	return 0;
 }
