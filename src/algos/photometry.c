@@ -28,6 +28,7 @@
 #include "core/proto.h"
 #include "core/siril_date.h"
 #include "core/siril_log.h"
+#include "algos/sorting.h"
 #include "algos/PSF.h"
 #include "algos/photometry.h"
 #include "algos/astrometry_solver.h"
@@ -486,14 +487,12 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 	lcargs->force_rad = com.pref.phot_set.force_radius;
 	if (!lcargs->force_rad) {
 		double median_err, largest_err, smallest_err;
-		gsl_sort (err, 1, nb_valid_images);
-		median_err = gsl_stats_median_from_sorted_data (err, 1, nb_valid_images);
 		gsl_stats_minmax (&smallest_err, &largest_err, err, 1, nb_valid_images);
+		median_err = quickmedian_double(err, nb_valid_images);
 
 		double median_snr, largest_snr, smallest_snr;
-		gsl_sort (snr_opt, 1, nb_valid_images);
-		median_snr = gsl_stats_median_from_sorted_data (snr_opt, 1, nb_valid_images);
 		gsl_stats_minmax (&smallest_snr, &largest_snr, snr_opt, 1, nb_valid_images);
+		median_snr = quickmedian_double(snr_opt, nb_valid_images);
 
 		siril_log_color_message(_("Error bars-- (%d images) median: %.2lfmmag, max: %.2lfmmag, min: %.2lfmmag\n"), "blue",
 			nb_valid_images,
