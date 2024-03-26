@@ -6479,6 +6479,19 @@ int process_seq_header(int nb) {
 	return 0;
 }
 
+struct file_time {
+	gchar *file;
+	GDateTime *time;
+};
+static gint sort_date(gconstpointer a, gconstpointer b) {
+	return g_date_time_compare(((struct file_time*) a)->time,
+			((struct file_time*) b)->time);
+}
+static gpointer extract(gconstpointer src, gpointer data) {
+	g_date_time_unref(((struct file_time*) src)->time);
+	return ((struct file_time*) src)->file;
+}
+
 int process_link(int nb) {
 	if (word[1][0] == '-') {
 		siril_log_message(_("First argument is the converted sequence name and shall not start with a -\n"));
@@ -6490,6 +6503,7 @@ int process_link(int nb) {
 	}
 	char *destroot = strdup(word[1]);
 	int idx = 1;
+	gboolean sort_dateobs = FALSE;
 
 	for (int i = 2; i < nb; i++) {
 		char *current = word[i], *value;
@@ -6521,7 +6535,9 @@ int process_link(int nb) {
 			destroot = strdup(filename);
 			g_free(filename);
 		}
-		else {
+		else if (!g_strcmp0(current, "-date")) {
+			sort_dateobs = TRUE;
+		} else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), current);
 			free(destroot);
 			return CMD_ARG_ERROR;
@@ -6559,7 +6575,33 @@ int process_link(int nb) {
 		return CMD_GENERIC_ERROR;
 	}
 	/* sort list */
-	list = g_list_sort(list, (GCompareFunc) strcompare);
+	if (sort_dateobs) {
+		GList *cur = list;
+		GList *timed = NULL;
+		gboolean failed = FALSE;
+		siril_log_message("Sorting FITS files using DATE-OBS\n");
+		while (cur) {
+			gchar *filename = (gchar*) cur->data;
+			GDateTime *date = get_date_from_fits(filename);
+			if (!date) {
+				siril_log_color_message(_("Sorting by date could not be done, file %s doesn't have DATE-OBS, not sorting\n"), "red", filename);
+				failed = TRUE;
+				break;
+			}
+			struct file_time *ft = malloc(sizeof(struct file_time));
+			ft->file = filename;
+			ft->time = date;
+			timed = g_list_append(timed, ft);
+			cur = cur->next;
+		}
+		if (!failed) {
+			timed = g_list_sort(timed, (GCompareFunc) sort_date);
+			list = g_list_copy_deep(timed, extract, NULL);
+			g_list_free_full(timed, free);
+		}
+	} else {
+		list = g_list_sort(list, (GCompareFunc) strcompare);
+	}
 	/* convert the list to an array for parallel processing */
 	char **files_to_link = glist_to_array(list, &count);
 

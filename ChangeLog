@@ -58,6 +58,7 @@ xx/xx/24
 * Fixed catalog parser problem with negative declination (less than 1°) (#1270)
 * Fixed weighting by number of stars during stacking if number of stars is the same across the sequence (#1273)
 * Improved mouse pan and zoom control to enable one-handed operation (!638, fixes #1271)
+* Added an option to the LINK command in order to sort output by date (#1115)
 
 siril 1.2.1
 01/26/24
