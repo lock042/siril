@@ -797,6 +797,10 @@ gpointer generic_sequence_metadata_worker(gpointer arg) {
 			goto cleanup;
 		}
 		for (input_idx = 0, frame = 0; input_idx < args->seq->number; input_idx++) {
+			/* the third parameter, filtering_parameter, is not required here, so
+			 * we set an arbitrary value of 1.0. The only relevant filtering is
+			 * "by selection".
+			 */
 			if (!args->filtering_criterion(args->seq, input_idx, 1.0)) {
 				continue;
 			}
@@ -809,7 +813,7 @@ gpointer generic_sequence_metadata_worker(gpointer arg) {
 		}
 	}
 
-	for (int frame = 0; frame < nb_frames; frame++) {
+	for (frame = 0; frame < nb_frames; frame++) {
 		if (index_mapping)
 			input_idx = index_mapping[frame];
 		else input_idx = frame;
