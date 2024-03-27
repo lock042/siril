@@ -484,7 +484,6 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 
 	// Additionnal information on the error bars and variable SNR 
 	// distributions if the auto aperture option is set
-	lcargs->force_rad = com.pref.phot_set.force_radius;
 	if (!lcargs->force_rad) {
 		double median_err, largest_err, smallest_err;
 		gsl_stats_minmax (&smallest_err, &largest_err, err, 1, nb_valid_images);
@@ -615,7 +614,7 @@ gpointer light_curve_worker(gpointer arg) {
 			queue_redraw(REDRAW_OVERLAY);
 	}
 	memset(&com.selection, 0, sizeof(rectangle));
-
+	args->force_rad = com.pref.phot_set.force_radius;	// Retrieve the Aperture state (fixed/dynamic)
 	/* analyse data and create the light curve */
 	if (!retval)
 		retval = new_light_curve("light_curve.dat", args);
