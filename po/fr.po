@@ -557,16 +557,16 @@ msgid ""
 "Choose Siril internal solver or local Astrometry.net (needs to be installed "
 "on your system)"
 msgstr ""
+"Choisissez le solveur interne Siril ou le solveur local Astrometry.net (doit "
+"être installé sur votre système)"
 
 #: src/gui/uifiles/astrometry_dialog.ui:660
-#, fuzzy
 msgid "Siril solver"
-msgstr "Message de Siril"
+msgstr "Solver Siril"
 
 #: src/gui/uifiles/astrometry_dialog.ui:661
-#, fuzzy
 msgid "Astrometry.net (local)"
-msgstr "Résolution astrométrique par Astrometry.net"
+msgstr "Astrometry.net (local)"
 
 #: src/gui/uifiles/astrometry_dialog.ui:674
 msgid "Radius used by the solver to search around the target."
