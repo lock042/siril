@@ -1015,8 +1015,8 @@ gpointer plate_solver(gpointer p) {
 	double resolution = get_wcs_image_resolution(args->fit) * 3600.0;
 	double focal_length = RADCONV * args->pixel_size / resolution;
 	args->fit->focal_length = focal_length;
-	args->fit->pixel_size_x = args->pixel_size;
-	args->fit->pixel_size_y = args->pixel_size;
+	args->fit->pixel_size_x = args->pixel_size / max(args->fit->binning_x, args->fit->binning_y);
+	args->fit->pixel_size_y = args->pixel_size / max(args->fit->binning_x, args->fit->binning_y);
 	args->fit->pixelkey = TRUE;
 	args->fit->focalkey = TRUE;
 	if (!args->for_sequence && com.pref.astrometry.update_default_scale) {
