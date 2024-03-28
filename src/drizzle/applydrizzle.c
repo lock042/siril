@@ -715,6 +715,8 @@ int apply_drizzle(struct driz_args_t *driz) {
 		return -1;
 	}
 
+	control_window_switch_to_tab(OUTPUT_LOGS);
+
 	args->seq = driz->seq;
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = driz->seq->selnum;

@@ -52,9 +52,9 @@ void on_apply_drizzle_clicked(GtkButton *button, gpointer user_data) {
 	driz->weight_scale = 1.f; // Not used for now
 	driz->kernel = (enum e_kernel_t) gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_driz_kernel")));
 	driz->pixel_fraction = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_driz_dropsize")));
-	driz->filtering_criterion = seq_filter_all; // Needs a GUI element
-	driz->filtering_parameter = 1.0; // Needs a GUI element
 	driz->framing = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("comboreg_framing")));
+	get_reg_sequence_filtering_from_gui(&driz->filtering_criterion, &driz->filtering_parameter, -1);
+
 	apply_drizzle(driz);
 }
 

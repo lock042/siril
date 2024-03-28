@@ -164,5 +164,7 @@ void SetNullH(Homography *H);
 int shift_fit_from_reg(fits *fit, Homography H);
 
 int minidx(const float *arr, const gboolean *mask, int nb, float *val);
+void get_reg_sequence_filtering_from_gui(seq_image_filter *filtering_criterion,
+		double *filtering_parameter, int update_adjustment);
 
 #endif

@@ -926,7 +926,7 @@ void on_filter_rem6_clicked(GtkButton *button, gpointer user_data){
 	update_filters_registration(-1);
 }
 
-static void get_reg_sequence_filtering_from_gui(seq_image_filter *filtering_criterion,
+void get_reg_sequence_filtering_from_gui(seq_image_filter *filtering_criterion,
 		double *filtering_parameter, int update_adjustment) {
 	int filter, guifilter, channel = 0, type;
 	gboolean is_ksig = FALSE;
