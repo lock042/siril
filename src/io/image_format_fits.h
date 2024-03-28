@@ -8,7 +8,6 @@
 
 /****************** image_format_fits.h ******************/
 void read_fits_header(fits *fit);
-int fits_parse_header_string(fits *fit, gchar *description);
 char *copy_header(fits *fit);
 
 typedef struct {
@@ -83,5 +82,6 @@ void merge_fits_headers_to_result2(fits *result, fits **f, gboolean do_sum);
 void merge_fits_headers_to_result(fits *result, gboolean do_sum, fits *f1,...);
 int get_xpsampled(xpsampled* xps, gchar *filename, int i);
 int updateFITSKeyword(fits *fit, const gchar *key, const gchar *value);
+int fits_parse_header_str(fits *fit, const char *header);
 
 #endif
