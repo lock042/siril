@@ -1529,6 +1529,10 @@ gpointer plate_solver(gpointer p) {
 	/* 4. Print and store some results */
 	args->fit->focal_length = solution.focal_length;
 	args->fit->pixel_size_x = args->fit->pixel_size_y = solution.pixel_size;
+	if (com.pref.binning_update && args->fit->binning_x > 1) {
+		args->fit->pixel_size_x /= args->fit->binning_x;
+		args->fit->pixel_size_y /= args->fit->binning_x;
+	}
 	if (!args->for_sequence && com.pref.astrometry.update_default_scale) {
 		com.pref.starfinder_conf.focal_length = solution.focal_length;
 		com.pref.starfinder_conf.pixel_size_x = solution.pixel_size;

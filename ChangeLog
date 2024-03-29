@@ -6,6 +6,7 @@ xx/xx/24
 * Fixed catalog parser problem with negative declination (less than 1°) (#1270)
 * Fixed weighting by number of stars during stacking if number of stars is the same accross the sequence (#1273)
 * Improved mouse pan and zoom control to enable one-handed operation (!644 / !638, fixes #1271)
+* Fixed pixel size set by astrometry using binning_update preference (#1254)
 
 siril 1.2.1
 01/26/24
