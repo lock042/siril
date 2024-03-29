@@ -858,7 +858,7 @@ int apply_drizzle(struct driz_args_t *driz) {
 		}
 	}
 
-	if (driz->use_wcs) {
+/*	if (driz->use_wcs) {
 		if (!fit.wcslib) {
 			siril_log_color_message(_("Error: reference image is not plate solved. Unable to drizzle using WCS data.\n"), "red");
 			return 1;
@@ -870,14 +870,14 @@ int apply_drizzle(struct driz_args_t *driz) {
 			siril_log_color_message(_("Error: failed to set the reference WCS.\n"), "red");
 			return 1;
 		}
-		// Disable this check: it doesn't work trying to use wcss2p to a distorted WCS, so we always map to undistorted
-		if (/*driz->flatten &&*/ driz->refwcs->lin.dispre) {
+		if (driz->refwcs->lin.dispre) {
 			// Disabling distortion in the reference frame so that the distorted
 			// input images are mapped to a flat output reference
 			free(driz->refwcs->lin.dispre);
 			driz->refwcs->lin.dispre = NULL;
 		}
 	}
+*/
 
 	driz->is_bayer = (fit.bayer_pattern[0] != '\0'); // If there is a CFA pattern we need to CFA drizzle
 	sensor_pattern pattern = com.pref.debayer.use_bayer_header ? get_cfa_pattern_index_from_string(fit.bayer_pattern) : com.pref.debayer.bayer_pattern;
