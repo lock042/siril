@@ -333,23 +333,23 @@ int map_image_coordinates_wcs(int width, int height, struct wcsprm *wcs_i, struc
  * H: the Homography matrix to map between the two images
  */
 
-int map_image_coordinates_h(fits *fit, Homography H, imgmap_t *p, float scale) {
+int map_image_coordinates_h(fits *fit, Homography H, imgmap_t *p, int target_ry, float scale) {
 	float x, y;
-	int rx, ry;
+	int rx, source_ry;
 	int index = 0;
 	rx = fit->rx;
-	ry = fit->ry;
+	source_ry = fit->ry;
 	/* Doing the calculations manually rather than using
 	 * cvTransformImageRefPoint() achieves a speedup of 2 orders of
 	 * magnitude! */
-    cvApplyFlips(&H, ry, ry);
+    cvApplyFlips(&H, source_ry, target_ry);
 	float Harr[9] = { (float) H.h00, (float) H.h01, (float) H.h02,
 		(float) H.h10, (float) H.h11, (float) H.h12,
 		(float) H.h20, (float) H.h21, (float) H.h22 };
 
-	p->pixmap = malloc(rx * ry * 2 * sizeof(float));
+	p->pixmap = malloc(rx * source_ry * 2 * sizeof(float));
 
-	for (y = 0; y < ry; y++) {
+	for (y = 0; y < source_ry; y++) {
 		for (x = 0; x < rx; x++) {
 			float z = x * Harr[6] + y * Harr[7] + Harr[8];
 			p->pixmap[index++] = scale * (x * Harr[0] + y * Harr[1] + Harr[2]) / z;

@@ -92,6 +92,7 @@ static gboolean driz_compute_wcs_framing(struct driz_args_t *driz) {
 	return TRUE;
 }
 
+// confirmed generates the correct Homography
 static gboolean driz_compute_framing(struct driz_args_t *driz) {
 	// validity of matrices has already been checked before this call
 	// and null matrices have been discarded
@@ -344,7 +345,7 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 			return 1; // in case H is null and -selected was not passed
 		cvTransfH(Himg, Htransf, &H);
 	}
-	siril_debug_print("H: %f %f %f\n   %f %f %f\n   %f %f %f\n", H.h00, H.h01, H.h02, H.h10, H.h11, H.h12, H.h20, H.h21, H.h22);
+//	fprintf(stderr,"H: %f %f %f\n   %f %f %f\n   %f %f %f\n", H.h00, H.h01, H.h02, H.h10, H.h11, H.h12, H.h20, H.h21, H.h22);
 	/* Populate the mapping array. This maps pixels from the current frame to
 	 * the reference frame. Either a Homography mapping can be used based on
 	 * image registration or a WCS mapping can be used based on plate solving */
@@ -356,7 +357,7 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	if (p->driz->use_wcs) {
 		map_image_coordinates_wcs(fit->rx, fit->ry, fit->wcslib, refwcs, p->pixmap, driz->scale);
 	} else {
-		map_image_coordinates_h(fit, H, p->pixmap, driz->scale);
+		map_image_coordinates_h(fit, H, p->pixmap, ry_out, driz->scale);
 	}
 	if (!p->pixmap->pixmap) {
 		siril_log_color_message(_("Error generating mapping array.\n"), "red");
