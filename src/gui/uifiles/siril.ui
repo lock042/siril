@@ -6639,7 +6639,7 @@ WARNING: the counterpart of this technic is that the amount of memory and disk s
                                                             <property name="can-focus">False</property>
                                                             <property name="left-padding">12</property>
                                                             <child>
-                                                            <!-- n-columns=2 n-rows=5 -->
+                                                            <!-- n-columns=2 n-rows=4 -->
                                                             <object class="GtkGrid">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
@@ -6647,7 +6647,7 @@ WARNING: the counterpart of this technic is that the amount of memory and disk s
                                                             <property name="column-spacing">6</property>
                                                             <child>
                                                             <object class="GtkComboBoxText" id="combo_driz_method">
-                                                            <property name="visible">True</property>
+                                                            <property name="sensitive">False</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="tooltip-markup" translatable="yes">Choose Homography or WCS for the drizzle mapping method. For Homography, the sequence must contain registration data; for WCS, all images in the sequence must be plate solved (e.g. using the &lt;b&gt;seqplatesolve&lt;/b&gt; command)</property>
                                                             <property name="active">0</property>
@@ -6663,7 +6663,7 @@ WARNING: the counterpart of this technic is that the amount of memory and disk s
                                                             </child>
                                                             <child>
                                                             <object class="GtkLabel">
-                                                            <property name="visible">True</property>
+                                                            <property name="sensitive">False</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="halign">start</property>
                                                             <property name="label" translatable="yes">Drizzle mapping method</property>
@@ -6745,7 +6745,7 @@ WARNING: the counterpart of this technic is that the amount of memory and disk s
                                                             <property name="can-focus">False</property>
                                                             <property name="tooltip-text" translatable="yes">Select the droplet model. See the documentation for details
 Note that the Gaussian and Lanczos models do not conserve flux.</property>
-                                                            <property name="active">0</property>
+                                                            <property name="active">3</property>
                                                             <items>
                                                             <item translatable="yes">Square</item>
                                                             <item translatable="yes">Gaussian</item>
@@ -6758,31 +6758,6 @@ Note that the Gaussian and Lanczos models do not conserve flux.</property>
                                                             <packing>
                                                             <property name="left-attach">1</property>
                                                             <property name="top-attach">3</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkLabel">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="halign">start</property>
-                                                            <property name="label" translatable="yes">Bayer Drizzle</property>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="left-attach">0</property>
-                                                            <property name="top-attach">4</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkLabel" id="label_driz_bayer">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Bayer drizzle will automatically be performed if a CFA pattern is detected in the input sequence</property>
-                                                            <property name="halign">start</property>
-                                                            <property name="label" translatable="yes">inactive</property>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="left-attach">1</property>
-                                                            <property name="top-attach">4</property>
                                                             </packing>
                                                             </child>
                                                             </object>
@@ -6967,7 +6942,7 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkBox">
+                                                            <object class="GtkBox" id="interp_box">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="spacing">6</property>

@@ -55,7 +55,7 @@ static void create_output_sequence_for_apply_driz(struct driz_args_t *args);
 static int new_ref_index = -1;
 
 static Homography Htransf = {0};
-static int rx_out, ry_out;
+static int rx_out, ry_out, ry_out_unscaled;
 
 static regdata *apply_driz_get_current_regdata(struct driz_args_t *driz) {
 	regdata *current_regdata;
@@ -71,7 +71,8 @@ static regdata *apply_driz_get_current_regdata(struct driz_args_t *driz) {
 	return current_regdata;
 }
 
-// TODO: framing doesn't appear to be computed correctly
+// TODO: once WCS drizzle mapping is reinstated, the framing calculation needs to be written properly
+/*
 static gboolean driz_compute_wcs_framing(struct driz_args_t *driz) {
 	int rx = (driz->seq->is_variable) ? driz->seq->imgparam[driz->reference_image].rx : driz->seq->rx;
 	int ry = (driz->seq->is_variable) ? driz->seq->imgparam[driz->reference_image].ry : driz->seq->ry;
@@ -91,6 +92,7 @@ static gboolean driz_compute_wcs_framing(struct driz_args_t *driz) {
 	ry_out = ry_0 * driz->scale;
 	return TRUE;
 }
+*/
 
 // confirmed generates the correct Homography
 static gboolean driz_compute_framing(struct driz_args_t *driz) {
@@ -231,6 +233,7 @@ static gboolean driz_compute_framing(struct driz_args_t *driz) {
 	cvMultH(Href, Hshift, &Htransf);
 	rx_out = rx_0 * driz->scale;
 	ry_out = ry_0 * driz->scale;
+	ry_out_unscaled = ry_0;
 	return TRUE;
 }
 
@@ -297,7 +300,7 @@ struct _double_driz {
 /* reads the image and apply existing transformation */
 int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads) {
 	struct driz_args_t *driz = args->user;
-	struct wcsprm *refwcs = driz->refwcs;
+//	struct wcsprm *refwcs = driz->refwcs;
 	/* Set up the per-image drizzle parameters */
 	struct driz_param_t *p = calloc(1, sizeof(struct driz_param_t));
 
@@ -345,7 +348,6 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 			return 1; // in case H is null and -selected was not passed
 		cvTransfH(Himg, Htransf, &H);
 	}
-//	fprintf(stderr,"H: %f %f %f\n   %f %f %f\n   %f %f %f\n", H.h00, H.h01, H.h02, H.h10, H.h11, H.h12, H.h20, H.h21, H.h22);
 	/* Populate the mapping array. This maps pixels from the current frame to
 	 * the reference frame. Either a Homography mapping can be used based on
 	 * image registration or a WCS mapping can be used based on plate solving */
@@ -354,11 +356,11 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	p->pixmap->ry = fit->ry;
 	struct timeval t_start, t_end;
 	gettimeofday(&t_start, NULL);
-	if (p->driz->use_wcs) {
-		map_image_coordinates_wcs(fit->rx, fit->ry, fit->wcslib, refwcs, p->pixmap, driz->scale);
-	} else {
-		map_image_coordinates_h(fit, H, p->pixmap, ry_out, driz->scale);
-	}
+//	if (p->driz->use_wcs) {
+//		map_image_coordinates_wcs(fit->rx, fit->ry, fit->wcslib, refwcs, p->pixmap, driz->scale);
+//	} else {
+		map_image_coordinates_h(fit, H, p->pixmap, ry_out_unscaled, driz->scale);
+//	}
 	if (!p->pixmap->pixmap) {
 		siril_log_color_message(_("Error generating mapping array.\n"), "red");
 		return 1;
@@ -529,6 +531,14 @@ static int apply_drz_save_hook(struct generic_seq_args *args, int out_index, int
 	} else {
 		char *dest = fit_sequence_get_image_filename_prefixed(args->seq, driz->prefix, in_index);
 		if (double_data->output) {
+			if (com.pref.force_16bit) {
+				fit_replace_buffer(	double_data->output,
+									float_buffer_to_ushort( double_data->output->fdata,
+															(double_data->output->rx *
+															 double_data->output->ry *
+															 double_data->output->naxes[2])),
+									DATA_USHORT);
+			}
 			retval1 = savefits(dest, double_data->output);
 		}
 		free(dest);
@@ -536,6 +546,7 @@ static int apply_drz_save_hook(struct generic_seq_args *args, int out_index, int
 		dest = fit_sequence_get_image_filename_prefixed(args->seq, ocprefix, in_index);
 		g_free(ocprefix);
 		if (double_data->pixel_count) {
+			// No 16-bit conversion here, the output_counts is always float.
 			retval2 = savefits(dest, double_data->pixel_count);
 		}
 		free(dest);
@@ -979,7 +990,10 @@ gboolean check_before_applydrizzle(struct driz_args_t *driz) {
 	g_free(str);
 
 	// determines the reference homography (including framing shift) and output size
-	int ret = (driz->use_wcs) ? (driz_compute_wcs_framing(driz)) : (driz_compute_framing(driz));
+	// This line can be restored once the WCS drizzle mapping is reintroduced following the mosaic work
+	//	int ret = (driz->use_wcs) ? (driz_compute_wcs_framing(driz)) : (driz_compute_framing(driz));
+
+	int ret = driz_compute_framing(driz);
 	if (!ret) {
 		siril_log_color_message(_("Unknown framing method, aborting\n"), "red");
 		return FALSE;

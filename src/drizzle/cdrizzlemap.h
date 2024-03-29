@@ -129,7 +129,7 @@ int
 interpolate_point(struct driz_param_t *par, float xin, float yin,
                   float *xout, float *yout);
 
-int map_image_coordinates_wcs(int width, int height, struct wcsprm *wcs_i, struct wcsprm *wcs_o, imgmap_t *p, float scale);
+// int map_image_coordinates_wcs(int width, int height, struct wcsprm *wcs_i, struct wcsprm *wcs_o, imgmap_t *p, float scale);
 
 int map_image_coordinates_h(fits *fit, Homography H, imgmap_t *p, int target_ry, float scale);
 

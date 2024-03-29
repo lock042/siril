@@ -32,20 +32,13 @@
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 
-void on_drizzleTab_show(GtkWidget *widget, gpointer user_data) {
-	if (com.seq.cfa_opened_monochrome) {
-		gtk_label_set_text(GTK_LABEL(lookup_widget("label_driz_bayer")), "active");
-	} else {
-		gtk_label_set_text(GTK_LABEL(lookup_widget("label_driz_bayer")), "inactive");
-	}
-}
-
 void on_apply_drizzle_clicked(GtkButton *button, gpointer user_data) {
 	struct driz_args_t *driz = calloc(1, sizeof(struct driz_args_t));
 	driz->seq = &com.seq;
 	driz->reference_image = sequence_find_refimage(&com.seq);
 	driz->keep_counts = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("generate_pixcnt")));
-	driz->use_wcs = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_driz_method"))) == 1;
+//	driz->use_wcs = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_driz_method"))) == 1;
+	driz->use_wcs = FALSE;
 	driz->use_flats = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("driz_use_flats")));
 	driz->use_bias = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("driz_use_bias")));
 	driz->scale = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_driz_scale")));
@@ -63,4 +56,7 @@ void on_upscaleCheckButton_toggled(GtkToggleButton* button, gpointer user_data) 
 	gtk_widget_set_visible(lookup_widget("box_drizzle_controls"), state);
 	if (state)
 		gtk_notebook_set_current_page(GTK_NOTEBOOK(lookup_widget("notebook_registration")), 4);
+	gtk_widget_set_visible(lookup_widget("interp_box"), !state);
+	gtk_widget_set_visible(lookup_widget("toggle_reg_clamp"), !state);
+	gtk_widget_set_visible(lookup_widget("regNoOutput"), !state);
 }
