@@ -740,8 +740,7 @@ int apply_drizzle(struct driz_args_t *driz) {
 	args->description = _("Apply drizzle");
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
-	args->new_seq_prefix = g_strdup("drz_");
-	driz->prefix = g_strdup("drz_");
+	args->new_seq_prefix = strdup(driz->prefix);
 	args->load_new_sequence = TRUE;
 	args->force_float = FALSE;
 	args->user = driz;
