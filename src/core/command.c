@@ -3747,6 +3747,7 @@ int process_pm(int nb) {
 	int count = 0;
 	float min = -1.f;
 	float max = -1.f;
+	gboolean do_sum = TRUE;
 
 	cur = expression;
 	while ((next = strchr(cur, '$')) != NULL) {
@@ -3762,24 +3763,28 @@ int process_pm(int nb) {
 		return CMD_ARG_ERROR;
 	}
 
-	/* parse rescale option if exist */
+	/* parse rescale and nosum options if they exist */
 	if (nb > 1) {
-		if (!g_strcmp0(word[2], "-rescale")) {
-			if (nb == 5) {
-				gchar *end;
-				min = g_ascii_strtod(word[3], &end);
-				if (end == word[3] || min < 0 || min > 1) {
-					siril_log_message(_("Rescale can only be done in the [0, 1] range.\n"));
-					return CMD_ARG_ERROR;
+		for (int i = 2; i < 5; i++) {
+			if (!g_strcmp0(word[i], "-rescale")) {
+				if (nb == 5) {
+					gchar *end;
+					min = g_ascii_strtod(word[i + 1], &end);
+					if (end == word[i + 1] || min < 0 || min > 1) {
+						siril_log_message(_("Rescale can only be done in the [0, 1] range.\n"));
+						return CMD_ARG_ERROR;
+					}
+					max = g_ascii_strtod(word[i + 2], &end);
+					if (end == word[i + 2] || max < 0 || max > 1) {
+						siril_log_message(_("Rescale can only be done in the [0, 1] range.\n"));
+						return CMD_ARG_ERROR;
+					}
+				} else {
+					min = 0.f;
+					max = 1.f;
 				}
-				max = g_ascii_strtod(word[4], &end);
-				if (end == word[4] || max < 0 || max > 1) {
-					siril_log_message(_("Rescale can only be done in the [0, 1] range.\n"));
-					return CMD_ARG_ERROR;
-				}
-			} else {
-				min = 0.f;
-				max = 1.f;
+			} else if (!g_strcmp0(word[i], "-nosum")) {
+				do_sum = FALSE;
 			}
 		}
 	}
@@ -3905,6 +3910,7 @@ int process_pm(int nb) {
 	args->fit = fit;
 	args->ret = 0;
 	args->from_ui = FALSE;
+	args->do_sum = do_sum;
 	if (min >= 0.f) {
 		args->rescale = TRUE;
 		args->min = min;
@@ -6479,6 +6485,19 @@ int process_seq_header(int nb) {
 	return 0;
 }
 
+struct file_time {
+	gchar *file;
+	GDateTime *time;
+};
+static gint sort_date(gconstpointer a, gconstpointer b) {
+	return g_date_time_compare(((struct file_time*) a)->time,
+			((struct file_time*) b)->time);
+}
+static gpointer extract(gconstpointer src, gpointer data) {
+	g_date_time_unref(((struct file_time*) src)->time);
+	return ((struct file_time*) src)->file;
+}
+
 int process_link(int nb) {
 	if (word[1][0] == '-') {
 		siril_log_message(_("First argument is the converted sequence name and shall not start with a -\n"));
@@ -6490,6 +6509,7 @@ int process_link(int nb) {
 	}
 	char *destroot = strdup(word[1]);
 	int idx = 1;
+	gboolean sort_dateobs = FALSE;
 
 	for (int i = 2; i < nb; i++) {
 		char *current = word[i], *value;
@@ -6521,7 +6541,9 @@ int process_link(int nb) {
 			destroot = strdup(filename);
 			g_free(filename);
 		}
-		else {
+		else if (!g_strcmp0(current, "-date")) {
+			sort_dateobs = TRUE;
+		} else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), current);
 			free(destroot);
 			return CMD_ARG_ERROR;
@@ -6559,7 +6581,33 @@ int process_link(int nb) {
 		return CMD_GENERIC_ERROR;
 	}
 	/* sort list */
-	list = g_list_sort(list, (GCompareFunc) strcompare);
+	if (sort_dateobs) {
+		GList *cur = list;
+		GList *timed = NULL;
+		gboolean failed = FALSE;
+		siril_log_message("Sorting FITS files using DATE-OBS\n");
+		while (cur) {
+			gchar *filename = (gchar*) cur->data;
+			GDateTime *date = get_date_from_fits(filename);
+			if (!date) {
+				siril_log_color_message(_("Sorting by date could not be done, file %s doesn't have DATE-OBS, not sorting\n"), "red", filename);
+				failed = TRUE;
+				break;
+			}
+			struct file_time *ft = malloc(sizeof(struct file_time));
+			ft->file = filename;
+			ft->time = date;
+			timed = g_list_append(timed, ft);
+			cur = cur->next;
+		}
+		if (!failed) {
+			timed = g_list_sort(timed, (GCompareFunc) sort_date);
+			list = g_list_copy_deep(timed, extract, NULL);
+			g_list_free_full(timed, free);
+		}
+	} else {
+		list = g_list_sort(list, (GCompareFunc) strcompare);
+	}
 	/* convert the list to an array for parallel processing */
 	char **files_to_link = glist_to_array(list, &count);
 
@@ -8453,11 +8501,34 @@ int process_boxselect(int nb){
 	return CMD_OK;
 }
 
+static void rgb_extract_last_options(int next_arg, gchar **result_filename,
+		const gchar *default_filename, gboolean *do_sum) {
+	gchar *filename = NULL;
+	*do_sum = TRUE;
+
+	for (int i = next_arg; word[i]; i++) {
+		if (g_str_has_prefix(word[i], "-out=") && word[i][5] != '\0') {
+			filename = word[i] + 5;
+			if (g_str_has_suffix(filename, com.pref.ext))
+				filename = g_strdup(filename);
+			else
+				filename = g_strdup_printf("%s%s", filename, com.pref.ext);
+		} else if (!g_strcmp0(word[i], "-nosum")) {
+			*do_sum = FALSE;
+		}
+	}
+	if (filename == NULL) {
+		filename = g_strdup_printf("%s%s", default_filename, com.pref.ext);
+	}
+	*result_filename = filename;
+}
+
 int process_rgbcomp(int nb) {
 	fits r = { 0 }, g = { 0 }, b = { 0 };
 	fits rgb = { 0 }, *rgbptr = &rgb;
 	int retval = 0, next_arg;
-	char *default_result_name;
+	gboolean do_sum;
+	gchar *result_filename;
 
 	if (g_str_has_prefix(word[1], "-lum=")) {
 		char *lum_file = word[1] + 5;
@@ -8502,9 +8573,13 @@ int process_rgbcomp(int nb) {
 			PRINT_ALLOC_ERR;
 			return CMD_ALLOC_ERROR;
 		}
+
+		/* we need to parse last parameters before merge_fits_headers_to_result */
+		rgb_extract_last_options(next_arg, &result_filename, "composed_lrgb", &do_sum);
+
 		if (had_an_rgb_image)
-			merge_fits_headers_to_result(rgbptr, &l, &r, NULL);
-		else merge_fits_headers_to_result(rgbptr, &l, &r, &g, &b, NULL);
+			merge_fits_headers_to_result(rgbptr, do_sum, &l, &r, NULL);
+		else merge_fits_headers_to_result(rgbptr, do_sum, &l, &r, &g, &b, NULL);
 		rgbptr->history = g_slist_append(rgbptr->history, strdup("LRGB composition"));
 
 		size_t nbpix = l.naxes[0] * l.naxes[1];
@@ -8517,7 +8592,6 @@ int process_rgbcomp(int nb) {
 			rgb.fpdata[BLAYER][i] = (float)bd;
 		}
 		clearfits(&l);
-		default_result_name = "composed_lrgb";
 	} else {
 		if (readfits(word[1], &r, NULL, TRUE)) return CMD_INVALID_IMAGE;
 		if (readfits(word[2], &g, NULL, TRUE)) { clearfits(&r); return CMD_INVALID_IMAGE; }
@@ -8533,7 +8607,10 @@ int process_rgbcomp(int nb) {
 			PRINT_ALLOC_ERR;
 			return CMD_ALLOC_ERROR;
 		}
-		merge_fits_headers_to_result(rgbptr, &r, &g, &b, NULL);
+		next_arg = 4;
+		rgb_extract_last_options(next_arg, &result_filename, "composed_rgb", &do_sum);
+
+		merge_fits_headers_to_result(rgbptr, do_sum, &r, &g, &b, NULL);
 		rgbptr->history = g_slist_append(rgbptr->history, strdup("RGB composition"));
 		size_t nbpix = r.naxes[0] * r.naxes[1];
 		for (size_t i = 0; i < nbpix; i++) {
@@ -8542,20 +8619,12 @@ int process_rgbcomp(int nb) {
 			rgb.fpdata[BLAYER][i] = b.fdata[i];
 		}
 		next_arg = 4;
-		default_result_name = "composed_rgb";
 	}
 
 	clearfits(&r); clearfits(&g); clearfits(&b);
-	gchar *result_filename;
-	if (nb == next_arg + 1 && g_str_has_prefix(word[next_arg], "-out=") &&
-			word[next_arg][5] != '\0') {
-		result_filename = word[next_arg] + 5;
-		if (g_str_has_suffix(result_filename, com.pref.ext))
-			result_filename = g_strdup(result_filename);
-		else result_filename = g_strdup_printf("%s%s", result_filename, com.pref.ext);
-	} else result_filename = g_strdup_printf("%s%s", default_result_name, com.pref.ext);
 
 	retval = savefits(result_filename, rgbptr);
+	siril_log_message(_("Successful RGB composition with metadata accumulate option %s.\n"), do_sum ? "enable" : "disabled");
 	g_free(result_filename);
 	clearfits(rgbptr);
 

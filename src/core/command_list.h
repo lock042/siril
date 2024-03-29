@@ -96,7 +96,7 @@ static command commands[] = {
 	{"light_curve", 3, "light_curve sequencename channel [-autoring] { -at=x,y | -wcs=ra,dec } { -refat=x,y | -refwcs=ra,dec } ...\n"
 				"light_curve sequencename channel [-autoring] -ninastars=file", process_light_curve, STR_LIGHTCURVE, TRUE, REQ_CMD_NO_THREAD},
 	{"linear_match", 2, "linear_match reference low high", process_linear_match, STR_LMATCH, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"link", 1, "link basename [-start=index] [-out=]", process_link, STR_LINK, TRUE, REQ_CMD_NO_THREAD},
+	{"link", 1, "link basename [-date] [-start=index] [-out=]", process_link, STR_LINK, TRUE, REQ_CMD_NO_THREAD},
 	{"linstretch", 1, "linstretch -BP= [-sat] [channels]", process_linstretch, STR_LINSTRETCH, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"livestack", 1, "livestack filename", process_livestack, STR_LIVESTACK, TRUE, REQ_CMD_NONE},
 	{"load", 1, "load filename[.ext]", process_load, STR_LOAD, TRUE, REQ_CMD_NONE},
@@ -127,7 +127,7 @@ static command commands[] = {
 	{"parse", 1, "parse str [-r]", process_parse, STR_PARSE, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"pcc", 0, "pcc [-limitmag=[+-]] [-catalog=] [-bgtol=lower,upper]", process_pcc, STR_PCC, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_RGB },
 	{"platesolve", 0, "platesolve [image_center_coords] [-noflip] [-nocrop] [-force] [-focal=] [-pixelsize=] [-limitmag=[+-]] [-catalog=] [-localasnet [-blindpos] [-blindres]] [-downscale] [-order=] [-radius=]", process_platesolve, STR_PLATESOLVE, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
-	{"pm", 1, "pm \"expression\" [-rescale [low] [high]]", process_pm, STR_PM, TRUE, REQ_CMD_NONE},
+	{"pm", 1, "pm \"expression\" [-rescale [low] [high]] [-nosum]", process_pm, STR_PM, TRUE, REQ_CMD_NONE},
 	{"profile", 2, "profile -from=x,y -to=x,y [-tri] [-cfa] [-arcsec] { [-savedat] | [-filename=] } [-layer=] [-width=] [-spacing=] [ {-xaxis=wavelength | -xaxis=wavenumber } ] [ {-wavenumber1= | -wavelength1=} -wn1at=x,y {-wavenumber2= | -wavelength2=} -wn2at=x,y] [\"-title=My Plot\"]", process_profile, STR_PROFILE, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"psf", 0, "psf [channel]", process_psf, STR_PSF, TRUE, REQ_CMD_SINGLE_IMAGE},
 
@@ -135,8 +135,8 @@ static command commands[] = {
 	{"reloadscripts", 0, "reloadscripts", process_reloadscripts, STR_RELOADSCRIPTS, FALSE, REQ_CMD_NONE},
 	{"requires", 1, "requires version", process_requires, STR_REQUIRES, TRUE, REQ_CMD_NONE},
 	{"resample", 1, "resample { factor | -width= | -height= } [-interp=] [-noclamp]", process_resample, STR_RESAMPLE, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"rgbcomp", 2, "rgbcomp red green blue [-out=result_filename]\n"
-				"rgbcomp -lum=image { rgb_image | red green blue } [-out=result_filename]", process_rgbcomp, STR_RGBCOMP, TRUE, REQ_CMD_NONE},
+	{"rgbcomp", 2, "rgbcomp red green blue [-out=result_filename] [-nosum]\n"
+				"rgbcomp -lum=image { rgb_image | red green blue } [-out=result_filename] [-nosum]", process_rgbcomp, STR_RGBCOMP, TRUE, REQ_CMD_NONE},
 	{"rgradient", 4, "rgradient xc yc dR dalpha", process_rgradient, STR_RGRADIENT, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_NO_THREAD},
 	{"rl", 0, "rl [-loadpsf=] [-alpha=] [-iters=] [-stop=] [-gdstep=] [-tv] [-fh] [-mul]", process_rl, STR_RL, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"rmgreen", 0, "rmgreen [-nopreserve] [type] [amount]", process_scnr, STR_RMGREEN, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_RGB | REQ_CMD_NO_THREAD},
