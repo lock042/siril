@@ -6798,13 +6798,15 @@ Note that the Gaussian and Lanczos models do not conserve flux.</property>
                                                             <property name="spacing">6</property>
                                                             <child>
                                                             <object class="GtkCheckButton" id="generate_pixcnt">
-                                                            <property name="label" translatable="yes">Save a pixel_count sequence</property>
+                                                            <property name="label" translatable="yes">Save an output_count sequence</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">If selected, a pixel_count sequence will be saved. This records what percentage of a complete droplet each pixel value is based on. For scale = 1, droplet size = 1 this doesn't matter, but for other combinations of scale and droplet size this data can be used during stacking to ensure the contributions to each pixel from each frame are weighted correctly.
+                                                            <property name="tooltip-text" translatable="yes">If selected, an output_count sequence will be saved. This records what percentage of a complete droplet each pixel value is based on. For scale = 1, droplet size = 1 this doesn't matter, but for other combinations of scale and droplet size this data can be used during stacking to ensure the contributions to each pixel from each frame are weighted correctly.
 
-The pixel_count sequence will be the same size as the sequence of drizzled images, and will always be floating point.</property>
+The output_count sequence will be the same size as the sequence of drizzled images, and will always be floating point.
+
+Note: for sequences with large numbers of frames, this becomes less important as the statistics will average out anyway.</property>
                                                             <property name="draw-indicator">True</property>
                                                             </object>
                                                             <packing>
@@ -6815,11 +6817,11 @@ The pixel_count sequence will be the same size as the sequence of drizzled image
                                                             </child>
                                                             <child>
                                                             <object class="GtkCheckButton" id="driz_use_flats">
-                                                            <property name="label" translatable="yes">Include master flat in pixel_count weighting</property>
+                                                            <property name="label" translatable="yes">Include master flat in output_count weighting</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Check this to include the master flat in the pixel_count weighting. This will result in pixels from less vignetted areas of input frames being weighted more heavily than pixels from more vignetted areas of other input frames in the final stack.
+                                                            <property name="tooltip-text" translatable="yes">Check this to include the master flat in the output_count weighting. This will result in pixels from less vignetted areas of input frames being weighted more heavily than pixels from more vignetted areas of other input frames in the final stack.
 
 The master flat must be set in the Calibration tab.</property>
                                                             <property name="draw-indicator">True</property>
@@ -6836,7 +6838,7 @@ The master flat must be set in the Calibration tab.</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Check this if the master flat requires bias subtraction.
+                                                            <property name="tooltip-text" translatable="yes">Check this if the master flat used as initial weighting in the output_count calculation requires bias subtraction.
 
 The master bias or synthetic bias value must be set in the Calibration tab.</property>
                                                             <property name="draw-indicator">True</property>
@@ -6856,7 +6858,7 @@ The master bias or synthetic bias value must be set in the Calibration tab.</pro
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="ypad">6</property>
-                                                            <property name="label" translatable="yes">Pixel_count weighting</property>
+                                                            <property name="label" translatable="yes">Output_count weighting</property>
                                                             <attributes>
                                                             <attribute name="weight" value="bold"/>
                                                             </attributes>
@@ -7970,12 +7972,12 @@ Pixels of the image are replaced by pixels at the same coordinates if intensity 
                                                             <property name="left-padding">12</property>
                                                             <child>
                                                             <object class="GtkCheckButton" id="use_drizzle_pixel_counts">
-                                                            <property name="label" translatable="yes">Use pixel_count weighting</property>
+                                                            <property name="label" translatable="yes">Use output_count weighting</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Use a pixel_count sequence generated by Drizzle to weight the contribution of pixels from different frames.
-* This option is only applicable to sequences that have been drizzled: it should be disabled for other sequences.
+                                                            <property name="tooltip-text" translatable="yes">Use an output_count sequence generated by Drizzle to weight the contribution of pixels from different frames.
+* This option is only applicable to sequences that have been drizzled: it is not selectable for other sequences and will be ignored if already set.
 * This option only works with mean stacking methods (with or without rejection); it does not apply to sum, median, min or max stacking methods and will be ignored.</property>
                                                             <property name="margin-top">6</property>
                                                             <property name="margin-bottom">6</property>
@@ -7988,7 +7990,7 @@ Pixels of the image are replaced by pixels at the same coordinates if intensity 
                                                           <object class="GtkLabel">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="label" translatable="yes">Drizzle pixel_count Weighting</property>
+                                                            <property name="label" translatable="yes">Drizzle output_count Weighting</property>
                                                             <attributes>
                                                             <attribute name="weight" value="bold"/>
                                                             </attributes>
