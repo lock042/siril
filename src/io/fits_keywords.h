@@ -17,9 +17,28 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef SRC_GUI_KEYWORDS_TREE_H_
-#define SRC_GUI_KEYWORDS_TREE_H_
+#ifndef SRC_IO_FITS_KEYWORDS_H_
+#define SRC_IO_FITS_KEYWORDS_H_
 
-void refresh_keywords_dialog();
+enum keywords_type {
+	KTYPE_BOOL,
+	KTYPE_INT,
+	KTYPE_UINT,
+	KTYPE_DOUBLE,
+	KTYPE_STR,
+	KTYPE_DATE
+};
 
-#endif /* SRC_GUI_KEYWORDS_TREE_H_ */
+
+struct keywords_access {
+	const char *group;	// group name
+	const char *key;	// key name
+	enum keywords_type type;// type of the keyword
+	const char *comment;	// comment
+	void *data;		// pointer to the data in keyword struct
+};
+
+int save_fits_keywords(fits *fit);
+
+
+#endif /* SRC_IO_FITS_KEYWORDS_H_ */

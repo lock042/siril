@@ -47,6 +47,7 @@
 #include "algos/spcc.h"
 #include "algos/siril_wcs.h"
 #include "io/sequence.h"
+#include "io/fits_keywords.h"
 #include "io/single_image.h"
 #include "image_format_fits.h"
 #include "algos/siril_wcs.h"
@@ -183,7 +184,7 @@ static void read_fits_date_obs_header(fits *fit) {
 		}
 	}
 
-	fit->date_obs = FITS_date_to_date_time(date_obs);
+	fit->keywords.date_obs = FITS_date_to_date_time(date_obs);
 }
 
 void fit_get_photometry_data(fits *fit) {
@@ -406,7 +407,7 @@ void read_fits_header(fits *fit) {
 	}
 
 	status = 0;
-	fits_read_key(fit->fptr, TSTRING, "ROWORDER", &(fit->row_order), NULL,
+	fits_read_key(fit->fptr, TSTRING, "ROWORDER", &(fit->keywords.row_order), NULL,
 			&status);
 
 	/*******************************************************************
@@ -434,10 +435,10 @@ void read_fits_header(fits *fit) {
 	if (fit->binning_y <= 0) fit->binning_y = 1;
 
 	status = 0;
-	fits_read_key(fit->fptr, TSTRING, "INSTRUME", &(fit->instrume), NULL, &status);
+	fits_read_key(fit->fptr, TSTRING, "INSTRUME", &(fit->keywords.instrume), NULL, &status);
 
 	status = 0;
-	fits_read_key(fit->fptr, TSTRING, "TELESCOP", &(fit->telescop), NULL, &status);
+	fits_read_key(fit->fptr, TSTRING, "TELESCOP", &(fit->keywords.telescop), NULL, &status);
 
 	status = 0;
 	fits_read_key(fit->fptr, TSTRING, "OBSERVER", &(fit->observer), NULL, &status);
@@ -1635,6 +1636,7 @@ void  save_fits_header(fits *fit) {
 				fits_write_history(fit->fptr, com.history[i].history, &status);
 		}
 	}
+	save_fits_keywords(fit);
 }
 
 /********************** public functions ************************************/
@@ -3900,7 +3902,6 @@ int fits_parse_header_str(fits *fit, const char *header){
 
 	fits tmpfit = { 0 };
 	tmpfit.fptr = fptr;
-	save_fits_header(&tmpfit);
 
 	associate_header_to_memfile(header, fptr);
 

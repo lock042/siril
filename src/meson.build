@@ -154,6 +154,7 @@ src_files = [
   'io/kstars/htmesh_wrapper.cpp',
   'io/conversion.c',
   'io/films.c',
+  'io/fits_keywords.c',
   'io/fits_sequence.c',
   'io/FITS_symlink.c',
   'io/image_format_fits.c',
