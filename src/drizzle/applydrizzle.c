@@ -403,9 +403,8 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	output_counts->fdata = calloc(output_counts->rx * output_counts->ry * output_counts->naxes[2], sizeof(float));
 	p->output_counts = output_counts;
 
-	/* NOTE: on the first pass there is no weights file, everything is evenly
-	 *       weighted. This will be used to remove outliers after drz_medstack.
-	 *       So we don't need to initialize driz->weights here */
+	p->weights = driz->flat;
+
 	gettimeofday(&t_start, NULL);
 	if (dobox(p)) // Do the drizzle
 		return 1;
@@ -425,11 +424,6 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		clearfits(output_counts);
 		free(output_counts);
 		output_counts = NULL;
-	} else if (driz->use_flats && driz->flat) {
-		// Multiply the output_counts by the master flat
-		// TODO: is this the right approach after all? Reconsider once issues with the kernels are sorted
-		// If we do need to do this, the flat has to be upscaled to match the drizzled image size
-		imoper(output_counts, driz->flat, OPER_MUL, TRUE);
 	}
 
 	struct _double_driz *double_data = calloc(1, sizeof(struct _double_driz));
@@ -458,8 +452,8 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		driz->regparam[out_index].roundness = p->current_regdata[in_index].roundness;
 		driz->regparam[out_index].background_lvl = p->current_regdata[in_index].background_lvl;
 		driz->regparam[out_index].number_of_stars = p->current_regdata[in_index].number_of_stars;
+		cvGetEye(&driz->regparam[out_index].H);
 	}
-	cvGetEye(&driz->regparam[out_index].H);
 
 	// Compensate metadata for any change in scale
 	fit->pixel_size_x /= p->scale;
