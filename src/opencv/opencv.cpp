@@ -1115,7 +1115,7 @@ static void map_undistortion(disto_data *disto, Rect roi, Mat xmap, Mat ymap) {
  	}
 }
 
-int cvWarp_fromKR(fits *image, Homography K, Homography R, float scale, astrometric_roi *roiout, int projector, int interpolation, gboolean clamp, disto_data *disto) {
+int cvWarp_fromKR(fits *image, int rx, int ry, Homography K, Homography R, float scale, astrometric_roi *roiout, int projector, int interpolation, gboolean clamp, disto_data *disto) {
 	Mat in, out;
 	void *bgr = NULL;
 
@@ -1130,7 +1130,11 @@ int cvWarp_fromKR(fits *image, Homography K, Homography R, float scale, astromet
 	Mat_<float> k, r;
 	_K.convertTo(k, CV_32F);
 	_R.convertTo(r, CV_32F);
-	Size szin = Size(image->rx, image->ry);
+	Size szin;
+	if (!image)
+		szin = Size(rx, ry);
+	else
+		szin = Size(image->rx, image->ry);
 
 	Ptr<WarperCreator> warper_creator;
 	// Prepare projector
@@ -1158,7 +1162,7 @@ int cvWarp_fromKR(fits *image, Homography K, Homography R, float scale, astromet
 
 	// in case we just want to assess final size, we skip warping the image
 	// we just import metadata so that the buffers are NULL
-	if (image->data || image->fdata) { 
+	if (image && (image->data || image->fdata)) { 
 		if (image_to_Mat(image, &in, &out, &bgr, sizes.width, sizes.height))
 			return 2;
 		Mat uxmap, uymap;

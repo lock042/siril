@@ -213,11 +213,11 @@ int register_astrometric(struct registration_args *regargs) {
 			continue;
 		Homography H = { 0 };
 		cvcalcH_fromKKR(Ks[refindex], Ks[i], Rs[i], &H);
-		current_regdata[i].roundness = 1.;
-		current_regdata[i].fwhm = 1.;
-		current_regdata[i].weighted_fwhm = 1.;
-		current_regdata[i].background_lvl = 0.;
-		current_regdata[i].number_of_stars = 1;
+		// current_regdata[i].roundness = 1.;
+		// current_regdata[i].fwhm = 1.;
+		// current_regdata[i].weighted_fwhm = 1.;
+		// current_regdata[i].background_lvl = 0.;
+		// current_regdata[i].number_of_stars = 1;
 		current_regdata[i].H = H;
 		nb_aligned++;
 	}
@@ -262,8 +262,9 @@ int register_astrometric(struct registration_args *regargs) {
 	for (int i = 0;  i < n; i++) {
 		if (!regargs->seq->imgparam[i].incl && regargs->filters.filter_included)
 			continue;
-		seq_read_frame_metadata(regargs->seq, i, &fit); // TODO: read rx,ry the first time and pass them instead of fit if we are just estimating
-		cvWarp_fromKR(&fit, Ks[i], Rs[i], scale, rois + i, regargs->projector, OPENCV_NONE, FALSE, NULL);
+		int rx = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
+		int ry = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
+		cvWarp_fromKR(NULL, rx, ry, Ks[i], Rs[i], scale, rois + i, regargs->projector, OPENCV_NONE, FALSE, NULL);
 		clearfits(&fit);
 		// first determine the corners
 		if (rois[i].x < tl.x) tl.x = rois[i].x;
@@ -271,12 +272,12 @@ int register_astrometric(struct registration_args *regargs) {
 		if (rois[i].x + rois[i].w > br.x) br.x = rois[i].x + rois[i].w;
 		if (rois[i].y + rois[i].h > br.y) br.y = rois[i].y + rois[i].h;
 	}
-	// then compute the roi size and full mosaic space requirement
+	// then compute the roi size and full image space requirement
 	int mosaicw = br.x - tl.x;
 	int mosaich = br.y - tl.y;
 	const gchar *proj = (regargs->projector == OPENCV_PLANE) ? _("plane") : _("spherical");
 	gchar *downscale = (regargs->astrometric_scale != 1.f) ? g_strdup_printf(_(" and a scaling factor of %.2f"), regargs->astrometric_scale) : g_strdup("");
-	siril_log_color_message(_("Output mosaic: %d x %d pixels (assuming %s projection%s)\n"), "salmon", mosaicw, mosaich, proj, downscale);
+	siril_log_color_message(_("Output image: %d x %d pixels (assuming %s projection%s)\n"), "salmon", mosaicw, mosaich, proj, downscale);
 	g_free(downscale);
 	int64_t frame_size = mosaicw * mosaich * regargs->seq->nb_layers;
 	frame_size *= (get_data_type(regargs->seq->bitpix) == DATA_USHORT) ? sizeof(WORD) : sizeof(float);
@@ -328,7 +329,7 @@ static int astrometric_image_hook(struct generic_seq_args *args, int out_index, 
 	sadata->success[out_index] = 0;
 	// TODO: find in opencv codebase if smthg smart can be done with K/R to avoid the double-flip
 	fits_flip_top_to_bottom(fit);
-	int status = cvWarp_fromKR(fit, Ks[in_index], Rs[in_index], astargs->scale, &roi, regargs->projector, regargs->interpolation, regargs->clamp, disto);
+	int status = cvWarp_fromKR(fit, 0, 0, Ks[in_index], Rs[in_index], astargs->scale, &roi, regargs->projector, regargs->interpolation, regargs->clamp, disto);
 	if (!status) {
 		fits_flip_top_to_bottom(fit);
 		H.h02 = roi.x - astargs->tl.x;
