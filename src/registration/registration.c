@@ -86,8 +86,8 @@ static char *tooltip_text[] = {
 		"sequence of star aligned images. This methods makes a translation of a certain number "
 		"of pixels depending on the timestamp of each images and the global shift of the "
 		"object between the first and the last image."),
-	N_("<b>Astrometric Registration</b>: This algorithm computes the transforms between plate-solved images "
-	    " of a sequence"),
+	N_("<b>Apply Astrometric Registration</b>: This algorithm computes the transforms between plate-solved images "
+	    " of a sequence and applies them"),
 	N_("<b>Apply existing registration</b>: This is not an algorithm but rather a commodity to "
 		"apply previously computed registration data stored in the sequence file. The "
 		"interpolation method and simplified drizzle can be selected in the Output "
@@ -152,8 +152,8 @@ void initialize_registration_methods() {
 			&register_kombat, REQUIRES_ANY_SELECTION, REGTYPE_PLANETARY);
 	reg_methods[i++] = new_reg_method(_("Comet/Asteroid Registration"),
 			&register_comet, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
-	reg_methods[i++] = new_reg_method(_("Astrometric Registration"),
-			&register_astrometric, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
+	reg_methods[i++] = new_reg_method(_("Apply Astrometric Registration"),
+			&register_astrometric, REQUIRES_NO_SELECTION, REGTYPE_APPLY);
 	reg_methods[i++] = new_reg_method(_("Apply Existing Registration"),
 			&register_apply_reg, REQUIRES_NO_SELECTION, REGTYPE_APPLY);
 	reg_methods[i] = NULL;
@@ -1177,7 +1177,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	}
 
 	/* show the appropriate frame selection widgets */
-	gboolean isapplyreg = method->method_ptr == &register_apply_reg;
+	gboolean isapplyreg = method->type == REGTYPE_APPLY;
 	gtk_widget_set_visible(GTK_WIDGET(reg_all_sel_box), !isapplyreg);
 	gtk_widget_set_visible(filter_box, isapplyreg);
 	gtk_widget_set_visible(GTK_WIDGET(filter_combo_init), isapplyreg);
