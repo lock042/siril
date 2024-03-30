@@ -514,42 +514,6 @@ int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homog
 	return Mat_to_image(image, &in, &out, bgr, target_rx, target_ry);
 }
 
-// transform an image using a mapping array.
-// note, the mapping array maps *destination* pixels to *source* pixels, not the
-// other way round (this may seem counterintuitive and is the opposite way round
-// to how the mapping array is used in drizzle)
-int cvRemapImage(fits *image, unsigned int width, unsigned int height, float* map, int interpolation, gboolean clamp) {
-	Mat in, out;
-	void *bgr = NULL;
-	int target_rx = width, target_ry = height;
-
-	if (image_to_Mat(image, &in, &out, &bgr, target_rx, target_ry))
-		return 1;
-
-	// Create a Mat object referencing the 2 channel mapping array : dst(x,y) = src(mapx(x,y), mapy(x,y))
-	Mat mat(width, height, CV_32FC2, map);
-	cv::InputArray mapArray(mat);
-
-	// OpenCV function
-	remap(in, out, mapArray, interpolation, BORDER_TRANSPARENT);
-
-	if ((interpolation == OPENCV_LANCZOS4 || interpolation == OPENCV_CUBIC) && clamp) {
-		Mat guide, tmp1;
-		init_guide(image, target_rx, target_ry, &guide);
-		// Create guide image
-		remap(in, out, mapArray, OPENCV_AREA, BORDER_TRANSPARENT);
-		tmp1 = (out < guide * CLAMPING_FACTOR);
-		Mat element = getStructuringElement( MORPH_ELLIPSE,
-                       Size(3, 3), Point(-1,-1));
-		dilate(tmp1, tmp1, element);
-
-		copyTo(guide, out, tmp1); // Guide copied to the clamped pixels
-		guide.release();
-		tmp1.release();
-	}
-	return Mat_to_image(image, &in, &out, bgr, target_rx, target_ry);
-}
-
 int cvUnsharpFilter(fits* image, double sigma, double amount) {
 	Mat in, out;
 	void *bgr = NULL;
