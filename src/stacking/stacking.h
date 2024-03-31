@@ -111,6 +111,7 @@ struct stacking_configuration {
 	stack_method method;
 	rejection type_of_rejection;
 	double sig[2];
+	gboolean use_oc;
 	gboolean create_rejmaps;
 	gboolean merge_lowhigh_rejmaps;
 	gboolean force_no_norm;

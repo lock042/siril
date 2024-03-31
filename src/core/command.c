@@ -7653,9 +7653,8 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 				if (current[strlen(current)-1] == 's')
 					arg->merge_lowhigh_rejmaps = FALSE;
 			}
-		} else {
-			siril_log_message(_("Unexpected argument to stacking `%s', aborting.\n"), current);
-			return CMD_ARG_ERROR;
+		} else if (g_str_has_prefix(current, "-drz_oc")) {
+			arg->use_oc = TRUE;
 		}
 		first++;
 	}
@@ -7677,6 +7676,15 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 
 	struct stacking_args args = { 0 };
 	args.seq = seq;
+	if (arg->use_oc) {
+		args.pixcnt = readseqfile(seq->pixcnt_seqname);
+		if (!args.pixcnt || (seq_check_basic_data(args.pixcnt, FALSE) != 1)) {
+			siril_log_message(_("Error loading output_count sequence\n"));
+			free_sequence(seq, TRUE);
+			free_sequence(args.pixcnt, TRUE);
+			return CMD_ARG_ERROR;
+		}
+	}
 	args.ref_image = sequence_find_refimage(seq);
 	// the three below: used only if method is average w/ rejection
 	if (arg->method == stack_mean_with_rejection && (arg->sig[0] != 0.0 || arg->sig[1] != 0.0)) {
