@@ -62,6 +62,7 @@
 #include "io/local_catalogues.h"
 #include "io/remote_catalogues.h"
 #include "io/FITS_symlink.h"
+#include "drizzle/cdrizzleutil.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/PSF_list.h"
@@ -7152,6 +7153,245 @@ static int parse_filter_args(char *current, struct seq_filter_config *arg) {
 	return 1;
 }
 
+int process_seq_applydrizzle(int nb) {
+	struct driz_args_t *driz = NULL;
+	sequence *seq = load_sequence(word[1], NULL);
+	float bias_level = -1.f;
+	fits bias = { 0 };
+	gboolean bias_level_set = FALSE, bias_image_set = FALSE;
+	if (!seq)
+		return CMD_SEQUENCE_NOT_FOUND;
+	if (seq->nb_layers > 1) {
+		siril_log_color_message(_("Error: sequence has more than 1 layer. Mono or CFA sequence required.\n"), "red");
+		return CMD_GENERIC_ERROR;
+	}
+	driz = calloc(1, sizeof(struct driz_args_t));
+	if (!seq->regparam || !seq->regparam[0]) {
+		siril_log_color_message(_("Error: sequence requires registration data in order to apply drizzle.\n"), "red");
+		return CMD_GENERIC_ERROR;
+	}
+	driz->seq = seq;
+	driz->reference_image = sequence_find_refimage(driz->seq);
+	driz->keep_counts = FALSE;
+	driz->use_wcs = FALSE;
+	driz->use_flats = FALSE;
+	driz->use_bias = FALSE;
+	driz->load_new_sequence = FALSE;
+	driz->scale = 1.f;
+	driz->weight_scale = 1.f; // Not used for now
+	driz->kernel = (enum e_kernel_t) kernel_turbo;
+	driz->pixel_fraction = 1.f;
+	driz->framing = FRAMING_MIN;
+	get_reg_sequence_filtering_from_gui(&driz->filtering_criterion, &driz->filtering_parameter, -1);
+	for (int i = 2; i < nb; i++) {
+		if (g_str_has_prefix(word[i], "-prefix=")) {
+			char *current = word[i], *value;
+			value = current + 8;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+				goto drizzle_error;
+			}
+			driz->prefix = strdup(value);
+		} else if (g_str_has_prefix(word[i], "-ocseq")) {
+			driz->keep_counts = TRUE;
+		} else if (g_str_has_prefix(word[i], "-framing=")) {
+			char *current = word[i], *value;
+			value = current + 9;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+				goto drizzle_error;
+			}
+			if(!g_ascii_strncasecmp(value, "current", 7)) {
+				driz->framing = FRAMING_CURRENT;
+				continue;
+			}
+			if(!g_ascii_strncasecmp(value, "min", 3)) {
+				driz->framing = FRAMING_MIN;
+				continue;
+			}
+			if(!g_ascii_strncasecmp(value, "max", 3)) {
+				driz->framing = FRAMING_MAX;
+				continue;
+			}
+			if(!g_ascii_strncasecmp(value, "cog", 3)) {
+				driz->framing = FRAMING_COG;
+				continue;
+			}
+			siril_log_color_message(_("Unknown framing type %s, aborting.\n"), "red", value);
+			goto drizzle_error;
+		} else if (g_str_has_prefix(word[i], "-scale=")) {
+			char *arg = word[i] + 7;
+			gchar *end;
+			double value;
+			value = g_ascii_strtod(arg, &end);
+			if (end == arg) {
+				siril_log_color_message(_("Invalid argument to %s, aborting.\n"), "red", word[i]);
+				goto drizzle_error;
+			}
+			driz->scale = (float) value;
+		} else if (g_str_has_prefix(word[i], "-pixfrac=")) {
+			char *arg = word[i] + 9;
+			gchar *end;
+			double value;
+			value = g_ascii_strtod(arg, &end);
+			if (end == arg) {
+				siril_log_color_message(_("Invalid argument to %s, aborting.\n"), "red", word[i]);
+				goto drizzle_error;
+			}
+			driz->pixel_fraction = (float) value;
+		} else if (g_str_has_prefix(word[i], "-kernel=")) {
+			char *arg = word[i] + 8;
+			if (!g_ascii_strncasecmp(arg, "point", 5))
+				driz->kernel = kernel_point;
+			else if (!g_ascii_strncasecmp(arg, "turbo", 5))
+				driz->kernel = kernel_turbo;
+			else if (!g_ascii_strncasecmp(arg, "square", 6))
+				driz->kernel = kernel_square;
+			else if (!g_ascii_strncasecmp(arg, "gaussian", 8))
+				driz->kernel = kernel_gaussian;
+			else if (!g_ascii_strncasecmp(arg, "lanczos2", 8))
+				driz->kernel = kernel_lanczos2;
+			else if (!g_ascii_strncasecmp(arg, "lanczos3", 8))
+				driz->kernel = kernel_lanczos3;
+			else {
+				siril_log_color_message(_("Invalid argument to %s, aborting.\n"), "red", word[i]);
+				goto drizzle_error;
+			}
+		} else if (g_str_has_prefix(word[i], "-flat=")) {
+			if (driz->flat) {
+				siril_log_color_message(_("Error: flat image already set. Aborting.\n"), "red");
+				goto drizzle_error;
+			}
+			if (seq->is_variable) {
+				siril_log_color_message(_("Error: flat image cannot work with variable sized sequence.\n"), "red");
+				goto drizzle_error;
+			}
+			char *flat_filename = word[i] + 6;
+			fits reffit = { 0 };
+			gchar *error = NULL;
+			int status;
+			gchar *expression = path_parse(&reffit, flat_filename, PATHPARSE_MODE_READ, &status);
+			if (status) {
+				error = _("NOT USING FLAT: could not parse the expression");
+				driz->use_flats = FALSE;
+			} else {
+				free(expression);
+				if (flat_filename[0] == '\0') {
+					siril_log_message(_("Error: no master flat specified in the preprocessing tab.\n"));
+					goto drizzle_error;
+				} else {
+					driz->flat = calloc(1, sizeof(fits));
+					if (!readfits(flat_filename, driz->flat, NULL, TRUE)) {
+						if (driz->flat->naxes[2] != seq->nb_layers) {
+							error = _("NOT USING FLAT: number of channels is different");
+						} else if (driz->flat->naxes[0] != seq->rx ||
+								driz->flat->naxes[1] != seq->ry) {
+							error = _("NOT USING FLAT: image dimensions are different");
+						} else {
+							// no need to deal with bitdepth conversion as readfits has already forced conversion to float
+							siril_log_message(_("Master flat read for use as initial pixel weight\n"));
+						}
+
+					} else error = _("NOT USING FLAT: cannot open the file");
+					if (error) {
+						goto drizzle_error;
+					}
+				}
+			}
+		} else if (g_str_has_prefix(word[i], "-bias=")) {
+			if (bias_image_set || bias_level_set) {
+				siril_log_color_message(_("Error: bias already set. Aborting.\n"), "red");
+				goto drizzle_error;
+			}
+			if (seq->is_variable) {
+				siril_log_color_message(_("Error: flat image cannot work with variable sized sequence.\n"), "red");
+				goto drizzle_error;
+			}
+			char *offset_filename = word[i] + 6;
+			fits reffit = { 0 };
+			gchar *error = NULL;
+			if (offset_filename[0] == '\0') {
+				siril_log_color_message(_("Error: no master bias specified in the preprocessing tab.\n"), "red");
+				goto drizzle_error;
+			} else if (offset_filename[0] == '=') { // offset is specified as a level not a file
+				int offsetlevel = evaluateoffsetlevel(offset_filename + 1, &reffit);
+				if (!offsetlevel) {
+					error = _("NOT USING OFFSET: the offset value could not be parsed");
+					driz->use_bias = FALSE;
+				} else {
+					int maxlevel = (seq->bitpix == BYTE_IMG) ? UCHAR_MAX : USHRT_MAX;
+					if ((offsetlevel > maxlevel) || (offsetlevel < -maxlevel) ) {   // not excluding all neg values here to allow defining a pedestal
+						error = _("NOT USING OFFSET: the offset value is not consistent with image bitdepth");
+						driz->use_bias = FALSE;
+					} else {
+						bias_level = (float) offsetlevel;
+						bias_level *= (seq->bitpix == BYTE_IMG) ? INV_UCHAR_MAX_SINGLE : INV_USHRT_MAX_SINGLE; //converting to [0 1] to use with soper
+						bias_level_set = TRUE;
+					}
+				}
+			} else {
+				int status;
+				path_parse(&reffit, offset_filename, PATHPARSE_MODE_READ, &status);
+				if (status) {
+					error = _("NOT USING OFFSET: could not parse the expression\n");
+				} else {
+					if (!readfits(offset_filename, &bias, NULL, TRUE)) {
+						if (bias.naxes[2] != seq->nb_layers) {
+							error = _("NOT USING BIAS: number of channels is different");
+						} else if (bias.naxes[0] != seq->rx ||
+								bias.naxes[1] != seq->ry) {
+							error = _("NOT USING BIAS: image dimensions are different");
+						} else {
+							bias_image_set = TRUE;
+						}
+					} else error = _("NOT USING BIAS: cannot open the file");
+				}
+			}
+			if (error) {
+				siril_log_color_message("%s\n", "red", error);
+				goto drizzle_error;
+			}
+		} else if (parse_filter_args(word[i], &driz->filters)) {
+			convert_parsed_filter_to_filter(&driz->filters, driz->seq, &driz->filtering_criterion, &driz->filtering_parameter);
+		} else {
+			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
+			goto drizzle_error;
+		}
+	}
+	if ((bias_image_set || bias_level_set) && !driz->flat) {
+		siril_log_color_message(_("Error: bias set but no flat set. Aborting.\n"), "red");
+		goto drizzle_error;
+	}
+	if (driz->flat) {
+		if (bias_level_set) {
+			soper(driz->flat, bias_level, OPER_SUB, TRUE);
+		} else if (bias_image_set) {
+			imoper(driz->flat, &bias, OPER_SUB, TRUE);
+			clearfits(&bias);
+		}
+	}
+
+	if(!driz->prefix) {
+		driz->prefix = strdup("r_");
+	}
+
+	apply_drizzle(driz);
+
+	return CMD_OK;
+
+	drizzle_error:
+
+	if (driz->flat) {
+		clearfits(driz->flat);
+		free(driz->flat);
+	}
+	clearfits(&bias);
+	free(driz->prefix);
+	free(driz);
+	free_sequence(seq, (seq != &com.seq));
+	return CMD_GENERIC_ERROR;
+}
+
 int process_seq_applyreg(int nb) {
 	struct registration_args *reg_args = NULL;
 
@@ -9099,7 +9339,7 @@ int process_platesolve(int nb) {
 			forced_metadata[FORCED_CENTER] = FALSE;
 		}
 		siril_world_cs_unref(target_coords);
-		target_coords = NULL;	
+		target_coords = NULL;
 	}
 
 	// we are now ready to fill the structure

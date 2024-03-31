@@ -173,6 +173,7 @@ int	process_sb(int nb);
 int	process_scnr(int nb);
 int	process_search_fct(int nb);
 int	process_select(int nb);
+int	process_seq_applydrizzle(int nb);
 int	process_seq_applyreg(int nb);
 int	process_seq_clean(int nb);
 int	process_seq_cosme(int nb);

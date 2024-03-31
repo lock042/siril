@@ -626,7 +626,7 @@ int apply_drz_finalize_hook(struct generic_seq_args *args) {
 			// explicit sequence creation to copy imgparam and regparam
 			create_output_sequence_for_apply_driz(driz);
 			// will be loaded in the idle function if (load_new_sequence)
-			args->load_new_sequence = TRUE; // only case where a new sequence must be loaded
+			args->load_new_sequence = driz->load_new_sequence; // only case where a new sequence must be loaded
 		}
 	}
 	else {
@@ -735,7 +735,6 @@ int apply_drizzle(struct driz_args_t *driz) {
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
 	args->new_seq_prefix = strdup(driz->prefix);
-	args->load_new_sequence = TRUE;
 	args->force_float = FALSE;
 	args->user = driz;
 

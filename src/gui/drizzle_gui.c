@@ -39,6 +39,7 @@ void on_apply_drizzle_clicked(GtkButton *button, gpointer user_data) {
 	driz->keep_counts = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("generate_pixcnt")));
 //	driz->use_wcs = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_driz_method"))) == 1;
 	driz->use_wcs = FALSE;
+	driz->load_new_sequence = TRUE;
 	driz->use_flats = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("driz_use_flats")));
 	driz->use_bias = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("driz_use_bias")));
 	driz->scale = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_driz_scale")));
