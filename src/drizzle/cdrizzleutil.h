@@ -549,9 +549,9 @@ as this is physically meaningless.
 
 @param[out] yo The distorted y coordinate
 */
-static inline_macro void
+/*static inline_macro void
 rad3(const float x, const float y, const float* co,
-     /* Output parameters */
+     // Output parameters
      float* xo, float* yo) {
   float r, f;
 
@@ -565,6 +565,7 @@ rad3(const float x, const float y, const float* co,
   *xo = f*x;
   *yo = f*y;
 }
+*/
 
 // High level function to apply drizzle
 int apply_drizzle(struct driz_args_t *driz);
