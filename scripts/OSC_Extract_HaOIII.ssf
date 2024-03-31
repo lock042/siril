@@ -64,7 +64,10 @@ calibrate light -dark=../masters/dark_stacked -flat=../masters/pp_flat_stacked -
 seqextract_HaOIII pp_light
 
 # Align Ha lights
-register Ha_pp_light -drizzle
+register Ha_pp_light -2pass
+
+# Drizzle Ha lights
+seqapplydrizzle Ha_pp_light -scale=2.0 -pixfrac=0.5
 
 # Stack calibrated Ha lights to Ha_stack (temporary)
 stack r_Ha_pp_light rej 3 3 -norm=addscale -output_norm -out=results_00001
