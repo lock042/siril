@@ -441,7 +441,7 @@ void read_fits_header(fits *fit) {
 	fits_read_key(fit->fptr, TSTRING, "TELESCOP", &(fit->keywords.telescop), NULL, &status);
 
 	status = 0;
-	fits_read_key(fit->fptr, TSTRING, "OBSERVER", &(fit->observer), NULL, &status);
+	fits_read_key(fit->fptr, TSTRING, "OBSERVER", &(fit->keywords.observer), NULL, &status);
 
 	status = 0;
 	fits_read_key(fit->fptr, TSTRING, "BAYERPAT", &(fit->bayer_pattern), NULL, &status);
@@ -489,13 +489,13 @@ void read_fits_header(fits *fit) {
 		fit->set_temp = -999.9;
 	}
 	status = 0;
-	__tryToFindKeywords(fit->fptr, TDOUBLE, EXPOSURE, &fit->exposure, &status);
+	__tryToFindKeywords(fit->fptr, TDOUBLE, EXPOSURE, &fit->keywords.exposure, &status);
 #ifdef _WIN32
 	status = 0;
-	__tryToFindKeywords(fit->fptr, TINT, NB_STACKED, &fit->stackcnt, &status);
+	__tryToFindKeywords(fit->fptr, TINT, NB_STACKED, &fit->keywords.stackcnt, &status);
 #else
 	status = 0;
-	__tryToFindKeywords(fit->fptr, TUINT, NB_STACKED, &fit->stackcnt, &status);
+	__tryToFindKeywords(fit->fptr, TUINT, NB_STACKED, &fit->keywords.stackcnt, &status);
 #endif
 
 	status = 0;

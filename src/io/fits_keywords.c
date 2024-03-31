@@ -24,22 +24,57 @@
 
 #include "fits_keywords.h"
 
-static fkeywords key = { 0 };
+#define KEYWORD(group, key, type, comment) { group, key, type, comment, NULL, TRUE }
 
-struct keywords_access all_keywords[] = {
-	{ "image", "ROWORDER", KTYPE_STR, "Order of the rows in image array", &key.row_order },
-	{ "setup", "INSTRUME", KTYPE_STR, "Instrument name", &key.instrume },
-	{ "setup", "TELESCOP", KTYPE_STR, "Telescope used to acquire this image", &key.telescop },
-	{ "date", "DATE-OBS", KTYPE_DATE, "YYYY-MM-DDThh:mm:ss observation start, UT", &key.date_obs },
+static gboolean should_use_keyword(const fkeywords *keywords, const gchar *keyword) {
+    if (g_strcmp0(keyword, "XBAYROFF") == 0) {
+        return keywords->bayer_pattern[0] != '\0';
+    } else if (g_strcmp0(keyword, "YBAYROFF") == 0) {
+        return keywords->bayer_pattern[0] != '\0';
+    }
 
-	{ NULL, NULL, KTYPE_BOOL, NULL, NULL }
-};
-
-struct keywords_access *get_all_keywords(fits *fit) {
-	memcpy(&key, &fit->keywords, sizeof(fkeywords));
-	return all_keywords;
+    return TRUE;
 }
 
+struct keywords_access *get_all_keywords(fits *fit) {
+    static struct keywords_access all_keywords[] = {
+//    		KEYWORD( "image", "BZERO", KTYPE_DOUBLE, "Offset data range to that of unsigned short" ),
+//    		KEYWORD( "image", "BSCALE", KTYPE_DOUBLE, "Default scaling factor" ),
+    		KEYWORD( "image", "ROWORDER", KTYPE_STR, "Order of the rows in image array" ),
+			KEYWORD( "setup", "INSTRUME", KTYPE_STR, "Instrument name" ),
+			KEYWORD( "setup", "TELESCOP", KTYPE_STR, "Telescope used to acquire this image" ),
+			KEYWORD( "setup", "OBSERVER", KTYPE_STR, "Observer name" ),
+			KEYWORD( "image", "BAYERPAT", KTYPE_STR, "Bayer color pattern" ),
+			KEYWORD( "image", "XBAYROFF", KTYPE_INT, "X offset of Bayer array" ),
+			KEYWORD( "image", "YBAYROFF", KTYPE_INT, "Y offset of Bayer array" ),
+			KEYWORD( "date",  "DATE-OBS", KTYPE_DATE, "YYYY-MM-DDThh:mm:ss observation start, UT" ),
+			KEYWORD( "image", "STACKCNT;NCOMBINE", KTYPE_UINT, "Stack frames" ),
+			KEYWORD( "image", "EXPTIME;EXPOSURE", KTYPE_DOUBLE, "Exposure time [s]" ),
+			KEYWORD( "image", "LIVETIME", KTYPE_DOUBLE, "Exposure time after deadtime correction" ),
+		    { NULL, NULL, KTYPE_BOOL, NULL, NULL }
+    };
+
+    /** Handle data **/
+    int i = 0;
+    all_keywords[i++].data = &fit->keywords.row_order;
+    all_keywords[i++].data = &fit->keywords.instrume;
+    all_keywords[i++].data = &fit->keywords.telescop;
+    all_keywords[i++].data = &fit->keywords.observer;
+    all_keywords[i++].data = &fit->keywords.bayer_pattern;
+   	all_keywords[i++].data = &fit->keywords.bayer_xoffset;
+   	all_keywords[i++].data = &fit->keywords.bayer_yoffset;
+    all_keywords[i++].data = &fit->keywords.date_obs;
+    all_keywords[i++].data = &fit->keywords.stackcnt;
+    all_keywords[i++].data = &fit->keywords.exposure;
+    all_keywords[i++].data = &fit->keywords.livetime;
+
+    /** Handle conditions if needed */
+    for (i = 0; all_keywords[i].group != NULL; i++) {
+        all_keywords[i].is_used = should_use_keyword(&fit->keywords, all_keywords[i].key);
+    }
+
+    return all_keywords;
+}
 
 int save_fits_keywords(fits *fit) {
 	struct keywords_access *keys = get_all_keywords(fit);
@@ -47,31 +82,40 @@ int save_fits_keywords(fits *fit) {
 	gchar *str;
 	GDateTime *date;
 	while (keys->group) {
+		if (!keys->is_used) {
+			keys++;
+			continue;
+		}
+		gchar** tokens = g_strsplit(keys->key, ";", -1);
 		switch (keys->type) {
 			case KTYPE_BOOL:
 
 				break;
 			case KTYPE_INT:
-
+				status = 0;
+				fits_update_key(fit->fptr, TINT, tokens[0], &(*((int*)keys->data)), keys->comment, &status);
 				break;
 			case KTYPE_UINT:
-
+				status = 0;
+				fits_update_key(fit->fptr, TUINT, tokens[0], &(*((guint*)keys->data)), keys->comment, &status);
 				break;
 			case KTYPE_DOUBLE:
-
+				status = 0;
+				fits_update_key(fit->fptr, TDOUBLE, tokens[0], &(*((double*)keys->data)), keys->comment, &status);
 				break;
 			case KTYPE_STR:
 				status = 0;
 				str = ((gchar*)keys->data);
-				if (str && str[0] != '\0')
-					fits_update_key(fit->fptr, TSTRING, keys->key, str, keys->comment, &status);
+				if (str && str[0] != '\0') {
+					fits_update_key(fit->fptr, TSTRING, tokens[0], str, keys->comment, &status);
+				}
 				break;
 			case KTYPE_DATE:
 				status = 0;
 				date = *((GDateTime**)keys->data);
 				if (date) {
 					gchar *formatted_date = date_time_to_FITS_date(date);
-					fits_update_key(fit->fptr, TSTRING, keys->key, formatted_date, keys->comment, &status);
+					fits_update_key(fit->fptr, TSTRING, tokens[0], formatted_date, keys->comment, &status);
 					g_free(formatted_date);
 				}
 				break;

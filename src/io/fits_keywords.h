@@ -36,6 +36,7 @@ struct keywords_access {
 	enum keywords_type type;// type of the keyword
 	const char *comment;	// comment
 	void *data;		// pointer to the data in keyword struct
+	gboolean is_used;
 };
 
 int save_fits_keywords(fits *fit);
