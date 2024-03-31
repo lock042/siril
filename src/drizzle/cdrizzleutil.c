@@ -337,17 +337,3 @@ put_fill(struct driz_param_t* p, const float fill_value) {
     }
   }
 }
-
-/** Not required in Siril
-float
-mgf2(float lambda) {
-  float sig, sig2;
-
-  sig = 1.0e7 / lambda;
-  sig2 = sig*sig;
-
-  return sqrt(1.0 + 2.590355e10/(5.312993e10-sig2) +
-              4.4543708e9/(11.17083e9-sig2) +
-              4.0838897e5/(1.766361e5-sig2));
-}
-*/

@@ -420,11 +420,6 @@ unset_bit(fits *image, integer_t xpix, integer_t ypix) {
   return;
 }
 
-/** Calculate the CFA pattern color from the row and column **/
-/*static inline_macro int FC(const size_t row, const size_t col, const uint32_t cfa) {
-	return cfa >> (((row << 1 & 14) + (col & 1)) << 1) & 3;
-}*/
-
 static inline_macro int FC(const size_t row, const size_t col, const size_t dim, const char *cfa) {
 	return !cfa ? 0 : cfa[(col % dim) + (row % dim) * dim] - '0';
 }
@@ -476,14 +471,6 @@ create_lanczos_lut(const int kernel_order, const size_t npix,
 
 void
 put_fill(struct driz_param_t* p, const float fill_value);
-
-/**
- Calculate the refractive index of MgF2 for a given C wavelength (in
- nm) using the formula given by Trauger (1995)
-// Not required in Siril
-float
-mgf2(float lambda);
-*/
 
 /**
 Weighted sum of 2 real vectors.
@@ -548,23 +535,6 @@ as this is physically meaningless.
 @param[out] xo The distorted x coordinate
 
 @param[out] yo The distorted y coordinate
-*/
-/*static inline_macro void
-rad3(const float x, const float y, const float* co,
-     // Output parameters
-     float* xo, float* yo) {
-  float r, f;
-
-  assert(co);
-  assert(xo);
-  assert(yo);
-
-  r = sqrt(x*x + y*y);
-
-  f = 1.0 + co[0] + co[1]*r + co[2]*r*r;
-  *xo = f*x;
-  *yo = f*y;
-}
 */
 
 // High level function to apply drizzle

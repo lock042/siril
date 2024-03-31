@@ -305,8 +305,6 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	struct driz_param_t *p = calloc(1, sizeof(struct driz_param_t));
 
 	driz_param_init(p);
-	// TODO: populate any arguments that can be set from the GUI or command args
-	// NOTE: driz_args_t will need equivalent fields to set these from
 	p->kernel = driz->kernel;
 	p->driz = driz;
 	p->error = malloc(sizeof(struct driz_error_t));
@@ -648,25 +646,24 @@ int apply_drz_compute_mem_limits(struct generic_seq_args *args, gboolean for_wri
 			&MB_per_orig_image, &MB_per_scaled_image, &MB_avail);
 	int is_float = get_data_type(args->seq->bitpix) == DATA_FLOAT;
 	int float_multiplier = (is_float) ? 1 : 2;
-	int is_color = args->seq->nb_layers == 3;
 	int is_bayer = driz->is_bayer;
 	MB_per_scaled_image *= is_float ? 1 : 2; // Output is always float
 	if (is_bayer) {
-		MB_per_orig_image *= 3;
 		MB_per_scaled_image *= 3;
 	}
 	unsigned int MB_per_float_image = MB_per_orig_image * float_multiplier;
-	unsigned int MB_per_float_channel = is_color ? MB_per_float_image / 3 : MB_per_float_image;
-	unsigned int MB_per_double_channel = MB_per_float_channel * 2;
+	unsigned int MB_per_float_channel = MB_per_float_image;
+
 	/* The drizzle memory consumption is:
 		* the original image
-		* Two 2 * rx * ry * double arrays for computing mapping
+		* Two 2 * rx * ry * float arrays for computing mapping
+		* (note this could become double arrays with WCS?)
 		  (the mapping file reallocs one of these so never exceeds that amount)
 		* the weights file (1 * scaled image float data)
 		* the transformed image, including scaling factor if required
 		* the output counts image, the same size as the scaled image
-		*/
-	unsigned int required = MB_per_orig_image + 4 * MB_per_double_channel + 3 * MB_per_scaled_image;
+	*/
+	unsigned int required = MB_per_orig_image + 4 * MB_per_float_channel + 2 * MB_per_scaled_image;
 
 	if (limit > 0) {
 
@@ -1001,7 +998,7 @@ gboolean check_before_applydrizzle(struct driz_args_t *driz) {
 	}
 
 	// cannot use seq_compute_size as rx_out/ry_out are not necessarily consistent with seq->rx/ry
-	// rx_out/ry_out already account for 2x upscale if any
+	// rx_out/ry_out already account for scale
 	int64_t size = (int64_t) rx_out * ry_out * driz->seq->nb_layers;
 	if (driz->seq->type == SEQ_SER) {
 		size *= driz->seq->ser_file->byte_pixel_depth;
