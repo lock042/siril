@@ -503,13 +503,27 @@ static int apply_drz_save_hook(struct generic_seq_args *args, int out_index, int
 
 	int retval1 = 0, retval2 = 0;
 	if (args->force_ser_output || args->seq->type == SEQ_SER) {
-		if (double_data->output)
+		if (double_data->output) {
+			fit_replace_buffer(	double_data->output,
+									float_buffer_to_ushort( double_data->output->fdata,
+															(double_data->output->rx *
+															 double_data->output->ry *
+															 double_data->output->naxes[2])),
+									DATA_USHORT);
 			retval1 = ser_write_frame_from_fit(driz->new_ser_drz, double_data->output, out_index);
-		if (double_data->pixel_count)
+		}
+		if (double_data->pixel_count) {
+			fit_replace_buffer(	double_data->pixel_count,
+									float_buffer_to_ushort( double_data->output->fdata,
+															(double_data->output->rx *
+															 double_data->output->ry *
+															 double_data->output->naxes[2])),
+									DATA_USHORT);
 			retval2 = ser_write_frame_from_fit(driz->new_ser_pxcnt, double_data->pixel_count, out_index);
+		}
 		// the two fits are freed by the writing thread
-		if (!retval1 && !retval2) {
-			/* special case because it's not done in the generic */
+		if (retval1 || retval2) {
+			// special case because it's not done in the generic
 			clearfits(fit);
 			free(fit);
 		}
@@ -519,7 +533,7 @@ static int apply_drz_save_hook(struct generic_seq_args *args, int out_index, int
 		if (double_data->pixel_count)
 			retval2 = fitseq_write_image(driz->new_fitseq_pxcnt, double_data->pixel_count, out_index);
 		// the two fits are freed by the writing thread
-		if (!retval1 && !retval2) {
+		if (retval1 || retval2) {
 			/* special case because it's not done in the generic */
 			clearfits(fit);
 			free(fit);
@@ -885,8 +899,30 @@ int apply_drizzle(struct driz_args_t *driz) {
 	}
 */
 
-	driz->is_bayer = (fit.bayer_pattern[0] != '\0'); // If there is a CFA pattern we need to CFA drizzle
-	sensor_pattern pattern = com.pref.debayer.use_bayer_header ? get_cfa_pattern_index_from_string(fit.bayer_pattern) : com.pref.debayer.bayer_pattern;
+	sensor_pattern pattern;
+	if (args->seq->type == SEQ_SER && args->seq->ser_file) {
+		driz->is_bayer = TRUE;
+		switch (args->seq->ser_file->color_id) {
+			case SER_BAYER_RGGB:
+				pattern = get_cfa_pattern_index_from_string("RGGB");
+				break;
+			case SER_BAYER_GRBG:
+				pattern = get_cfa_pattern_index_from_string("GRGB");
+				break;
+			case SER_BAYER_GBRG:
+				pattern = get_cfa_pattern_index_from_string("GBRG");
+				break;
+			case SER_BAYER_BGGR:
+				pattern = get_cfa_pattern_index_from_string("BGGR");
+				break;
+			default:
+				siril_log_message(_("Unsupported SER CFA pattern detected. Treating as mono.\n"));
+				driz->is_bayer = FALSE;
+		}
+	} else {
+		driz->is_bayer = (fit.bayer_pattern[0] != '\0'); // If there is a CFA pattern we need to CFA drizzle
+		pattern = com.pref.debayer.use_bayer_header ? get_cfa_pattern_index_from_string(fit.bayer_pattern) : com.pref.debayer.bayer_pattern;
+	}
 	if (driz->is_bayer) {
 		driz->cfa = get_cfa_from_pattern(pattern);
 		if (!driz->cfa) // if fit.bayer_pattern exists and get_cfa_from_pattern returns NULL then there is a problem.
