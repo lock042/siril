@@ -394,10 +394,10 @@ static void interpolate_nongreen_float(fits *fit) {
 							// Calculate distance from the current pixel
 							float distance = dx + dy;
 							// Calculate weight for the neighboring pixel
-							float weight = (distance == 1) ? 1 : RECIPSQRT2;
+							float weight_contrib = (distance == 1) ? 1 : RECIPSQRT2;
 							// Accumulate weighted green values and total weight
-							interp += weight * fit->fdata[nx + ny * width];
-							weight += weight;
+							interp += weight_contrib * fit->fdata[nx + ny * width];
+							weight += weight_contrib;
 						}
 					}
 				}
@@ -429,14 +429,14 @@ static void interpolate_nongreen_ushort(fits *fit) {
 						// Check if the neighboring pixel is within the image bounds and green
 						int nx = col + dx;
 						int ny = row + dy;
-						if (FC(nx, ny, cfadim, cfa) == 1 && nx >= 0 && nx < width && ny >= 0 && ny < height) {
+						if (nx >= 0 && nx < width && ny >= 0 && ny < height && FC(nx, ny, cfadim, cfa) == 1) {
 							// Calculate distance from the current pixel
 							float distance = dx + dy;
 							// Calculate weight for the neighboring pixel
-							float weight = (distance == 1) ? 1 : RECIPSQRT2;
+							float weight_contrib = (distance == 1) ? 1 : RECIPSQRT2;
 							// Accumulate weighted green values and total weight
-							interp += weight * (float) fit->data[nx + ny * width];
-							weight += weight;
+							interp += weight_contrib * (float) fit->data[nx + ny * width];
+							weight += weight_contrib;
 						}
 					}
 				}

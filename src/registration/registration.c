@@ -241,6 +241,7 @@ int register_shift_dft(struct registration_args *args) {
 	regdata *current_regdata;
 	double q_max = 0, q_min = DBL_MAX;
 	int q_index = -1;
+	char pattern[37] = { 0 };
 
 	/* the selection needs to be squared for the DFT */
 	assert(args->selection.w == args->selection.h);
@@ -284,6 +285,30 @@ int register_shift_dft(struct registration_args *args) {
 		clearfits(&fit_ref);
 		return ret;
 	}
+	if (args->seq->type == SEQ_SER && args->seq->ser_file) {
+		switch (args->seq->ser_file->color_id) {
+			case SER_BAYER_RGGB:
+				strcpy(pattern, "RGGB");
+				break;
+			case SER_BAYER_GRBG:
+				strcpy(pattern, "GRGB");
+				break;
+			case SER_BAYER_GBRG:
+				strcpy(pattern, "GBRG");
+				break;
+			case SER_BAYER_BGGR:
+				strcpy(pattern, "BGGR");
+				break;
+			default:
+				siril_log_message(_("Unsupported SER CFA pattern detected. Treating as mono.\n"));
+		}
+	} else {
+		strcpy(pattern, fit_ref.bayer_pattern);
+	}
+	strcpy(fit_ref.bayer_pattern, pattern);
+	fit_ref.bayer_xoffset = args->selection.x;
+	fit_ref.bayer_yoffset = args->selection.y;
+	interpolate_nongreen(&fit_ref);
 
 	gettimeofday(&t_start, NULL);
 
@@ -377,6 +402,10 @@ int register_shift_dft(struct registration_args *args) {
 		if (!seq_read_frame_part(args->seq, args->layer, frame, &fit,
 						&args->selection, FALSE, thread_id)) {
 			int x;
+			strcpy(fit.bayer_pattern, pattern);
+			fit.bayer_xoffset = args->selection.x;
+			fit.bayer_yoffset = args->selection.y;
+			interpolate_nongreen(&fit);
 			fftwf_complex *img = fftwf_malloc(sizeof(fftwf_complex) * sqsize);
 			fftwf_complex *out2 = fftwf_malloc(sizeof(fftwf_complex) * sqsize);
 
@@ -545,6 +574,28 @@ int register_kombat(struct registration_args *args) {
 
 	/* loading reference frame */
 	ref_idx = sequence_find_refimage(args->seq);
+	char pattern[37] = { 0 };
+	if (args->seq->type == SEQ_SER && args->seq->ser_file) {
+		switch (args->seq->ser_file->color_id) {
+			case SER_BAYER_RGGB:
+				strcpy(pattern, "RGGB");
+				break;
+			case SER_BAYER_GRBG:
+				strcpy(pattern, "GRGB");
+				break;
+			case SER_BAYER_GBRG:
+				strcpy(pattern, "GBRG");
+				break;
+			case SER_BAYER_BGGR:
+				strcpy(pattern, "BGGR");
+				break;
+			default:
+				siril_log_message(_("Unsupported SER CFA pattern detected. Treating as mono.\n"));
+		}
+	} else {
+		ret = seq_read_frame_metadata(args->seq, ref_idx, &fit_ref);
+		strcpy(pattern, fit_ref.bayer_pattern);
+	}
 	q_index = ref_idx;
 
 	set_progress_bar_data(
@@ -554,6 +605,9 @@ int register_kombat(struct registration_args *args) {
 	/* we want pattern (the selection) to be located on each image */
 	ret = seq_read_frame_part(args->seq, args->layer, ref_idx, &fit_templ,
 			&args->selection, FALSE, -1);
+	strcpy(fit_templ.bayer_pattern, pattern);
+	fit_templ.bayer_xoffset = args->selection.x;
+	fit_templ.bayer_yoffset = args->selection.y;
 	/* we load reference image just to get dimensions of images,
 	 in order to call seq_read_frame_part() and use only the desired layer, over each full image */
 	ret2 = seq_read_frame(args->seq, ref_idx, &fit_ref, FALSE, -1);
@@ -578,6 +632,7 @@ int register_kombat(struct registration_args *args) {
 		clearfits(&fit_templ);
 		return 1;
 	}
+	interpolate_nongreen(&fit_templ);
 
 	gettimeofday(&t_start, NULL);
 	set_shifts(args->seq, ref_idx, args->layer, 0.0, 0.0, FALSE);
@@ -628,6 +683,10 @@ int register_kombat(struct registration_args *args) {
 				_register_kombat_disable_frame(args, current_regdata, frame);
 				continue;
 			} else {
+				strcpy(cur_fit.bayer_pattern, pattern);
+				cur_fit.bayer_xoffset = args->selection.x;
+				cur_fit.bayer_yoffset = args->selection.y;
+				interpolate_nongreen(&cur_fit);
 				qual = QualityEstimate(&cur_fit, args->layer);
 				current_regdata[frame].quality = qual;
 				if (frame == ref_idx) {
