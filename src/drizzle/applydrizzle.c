@@ -279,7 +279,7 @@ static int apply_drz_prepare_hook(struct generic_seq_args *args) {
 	if (driz->keep_counts) {
 		args->new_seq_prefix = "oc_"; // This is OK here, it does not get freed in the
 		// end_generic_sequence later
-		if (seq_prepare_hook(args))
+		if (apply_drz_prepare_results(args))
 			return 1;
 		driz->new_ser_pxcnt = args->new_ser;
 		driz->new_fitseq_pxcnt = args->new_fitseq;
