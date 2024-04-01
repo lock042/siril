@@ -226,26 +226,30 @@ int read_fits_keywords(fits *fit) {
 
 		for (int i = 0; keys[i].group != NULL; i++) {
 			if (strcmp(keys[i].key, keyname) == 0) {
-				int int_value;
-				guint uint_value;
-				ushort ushort_value;
-				double double_value;
-				char str_value[FLEN_VALUE];
+				int int_value = 0;
+				guint uint_value = 0;
+				ushort ushort_value = 0;
+				double double_value = DBL_FLAG;
+				char str_value[FLEN_VALUE] = { 0 };
 
 				switch (keys[i].type) {
 				case KTYPE_INT:
+					status = 0;
 					fits_read_key(fit->fptr, TINT, keyname, &int_value, NULL, &status);
 					*((int*) keys[i].data) = int_value;
 					break;
 				case KTYPE_UINT:
+					status = 0;
 					fits_read_key(fit->fptr, TUINT, keyname, &uint_value, NULL, &status);
 					*((guint*) keys[i].data) = uint_value;
 					break;
 				case KTYPE_USHORT:
+					status = 0;
 					fits_read_key(fit->fptr, TUSHORT, keyname, &ushort_value, NULL, &status);
 					*((ushort*) keys[i].data) = ushort_value;
 					break;
 				case KTYPE_DOUBLE:
+					status = 0;
 					fits_read_key(fit->fptr, TDOUBLE, keyname, &double_value, NULL, &status);
 					if (status == KEY_NO_EXIST) {
 						double_value = DBL_FLAG;
@@ -253,10 +257,12 @@ int read_fits_keywords(fits *fit) {
 					*((double*) keys[i].data) = double_value;
 					break;
 				case KTYPE_STR:
+					status = 0;
 					fits_read_key(fit->fptr, TSTRING, keyname, str_value, NULL, &status);
 					strcpy((char*) keys[i].data, str_value);
 					break;
 				case KTYPE_DATE:
+					status = 0;
 					fits_read_key(fit->fptr, TSTRING, keyname, str_value, NULL, &status);
 					// FIXME: convert to GDateTime
 					break;
