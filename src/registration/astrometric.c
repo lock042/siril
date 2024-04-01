@@ -172,6 +172,7 @@ int register_astrometric(struct registration_args *regargs) {
 
 	rotation_type rottypes[3] = { ROTZ, ROTX, ROTZ};
 	double framingref;
+	int framingref_index = (regargs->framing == FRAMING_CURRENT) ? regargs->seq->reference_image : refindex;
 	for (int i = 0; i < n; i++) {
 		if (!regargs->seq->imgparam[i].incl && regargs->filters.filter_included)
 			continue;
@@ -190,15 +191,27 @@ int register_astrometric(struct registration_args *regargs) {
 		}
 		cvRotMat3(angles, rottypes, TRUE, Rs + i);
 		siril_debug_print("Image #%d - rot:%.3f\n", i + 1, angles[2]);
-		if (i == refindex)
+		if (i == framingref_index)
 			framingref = angles[2];
 	}
 
-	// computing relative rotations wrt to cog center + central image framing
+	// computing relative rotations wrt to proj center + central image framing
+	// this is important for warping by the spherical projector
 	Homography Rref = { 0 };
 	double angles[3];
-	angles[0] = 90. - ra0;
-	angles[1] = 90. - dec0;
+	switch (regargs->framing) {
+		case FRAMING_CURRENT:
+		default:
+			angles[0] = 90. - RA[regargs->seq->reference_image];
+			angles[1] = 90. - DEC[regargs->seq->reference_image];
+			break;
+		case FRAMING_COG:
+		case FRAMING_MAX:
+		case FRAMING_MIN:
+			angles[0] = 90. - ra0;
+			angles[1] = 90. - dec0;
+			break;
+	}
 	angles[2] = framingref;
 	cvRotMat3(angles, rottypes, TRUE, &Rref);
 	for (int i = 0; i < n; i++) {
@@ -223,9 +236,16 @@ int register_astrometric(struct registration_args *regargs) {
 	}
 	regargs->seq->reference_image = refindex;
 
-	// Give the full mosaic output size
+	// Give the full output size
 	float scale = 0.5 * (fabs(Ks[refindex].h00) + fabs(Ks[refindex].h11)) * regargs->astrometric_scale;
-	pointi tl = { INT_MAX, INT_MAX }, br = { INT_MIN, INT_MIN }; // top left and bottom-right
+	pointi tl, br; // top left and bottom-right
+	if (regargs->framing == FRAMING_MIN) {
+		tl = (pointi){ INT_MIN, INT_MIN };
+		br = (pointi){ INT_MAX, INT_MAX };
+	} else {
+		tl = (pointi){ INT_MAX, INT_MAX };
+		br = (pointi){ INT_MIN, INT_MIN };
+	}
 	gboolean savewarped = !regargs->no_output;
 	struct astrometric_args *astargs = NULL;
 	// if we have some output sequence, prepare the astrometric_args
@@ -246,12 +266,12 @@ int register_astrometric(struct registration_args *regargs) {
 					double A[MAX_SIP_SIZE][MAX_SIP_SIZE], B[MAX_SIP_SIZE][MAX_SIP_SIZE]; // we won't need them
 					astargs->disto[i].order = extract_SIP_order_and_matrices(WCSDATA[i].lin.dispre, A, B, astargs->disto[i].AP, astargs->disto[i].BP);
 					found = TRUE;
-					astargs->disto[i].xref = WCSDATA[i].crpix[0] - 1.; // -1 commes from the difference of convention between opencv and wcs
+					astargs->disto[i].xref = WCSDATA[i].crpix[0] - 1.; // -1 comes from the difference of convention between opencv and wcs
 					astargs->disto[i].yref = WCSDATA[i].crpix[1] - 1.;
 				}
 			}
 			if (!found) {
-				siril_debug_print("no distorsion terms found in any of the solutions, disabling undistort\n");
+				siril_debug_print("no distorsion terms found in any of the images, disabling undistort\n");
 				free(astargs->disto);
 				astargs->disto = NULL;
 				regargs->undistort = FALSE;
@@ -265,27 +285,57 @@ int register_astrometric(struct registration_args *regargs) {
 		int rx = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
 		int ry = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
 		cvWarp_fromKR(NULL, rx, ry, Ks[i], Rs[i], scale, rois + i, regargs->projector, OPENCV_NONE, FALSE, NULL);
-		clearfits(&fit);
 		// first determine the corners
-		if (rois[i].x < tl.x) tl.x = rois[i].x;
-		if (rois[i].y < tl.y) tl.y = rois[i].y;
-		if (rois[i].x + rois[i].w > br.x) br.x = rois[i].x + rois[i].w;
-		if (rois[i].y + rois[i].h > br.y) br.y = rois[i].y + rois[i].h;
+		printf("%d,%d,%d,%d,%d\n", i + 1, rois[i].x, rois[i].y, rois[i].w, rois[i].h);
+		switch (regargs->framing) {
+			case FRAMING_MAX:
+				if (rois[i].x < tl.x) tl.x = rois[i].x;
+				if (rois[i].y < tl.y) tl.y = rois[i].y;
+				if (rois[i].x + rois[i].w > br.x) br.x = rois[i].x + rois[i].w;
+				if (rois[i].y + rois[i].h > br.y) br.y = rois[i].y + rois[i].h;
+				break;
+			case FRAMING_CURRENT:
+			default:
+				if (i == regargs->reference_image) {
+					tl.x = rois[i].x;
+					tl.y = rois[i].y;
+					br.x = rois[i].x + rx;
+					br.y = rois[i].y + ry;
+				}
+				break;
+			case FRAMING_MIN:
+				if (rois[i].x > tl.x) tl.x = rois[i].x;
+				if (rois[i].y > tl.y) tl.y = rois[i].y;
+				if (rois[i].x + rois[i].w < br.x) br.x = rois[i].x + rois[i].w;
+				if (rois[i].y + rois[i].h < br.y) br.y = rois[i].y + rois[i].h;
+				break;
+			case FRAMING_COG:
+				break;
+		}
+	}
+	if (regargs->framing == FRAMING_COG) {
+		int rx = regargs->seq->imgparam[regargs->reference_image].rx;
+		int ry = regargs->seq->imgparam[regargs->reference_image].ry;
+		cvWarp_fromKR(NULL, rx, ry, Ks[refindex], Rref, scale, rois, regargs->projector, OPENCV_NONE, FALSE, NULL);
+		tl.x = rois[0].x;
+		tl.y = rois[0].y;
+		br.x = rois[0].x + rx;
+		br.y = rois[0].y + ry;
 	}
 	// then compute the roi size and full image space requirement
-	int mosaicw = br.x - tl.x;
-	int mosaich = br.y - tl.y;
+	int imagew = br.x - tl.x;
+	int imageh = br.y - tl.y;
 	const gchar *proj = (regargs->projector == OPENCV_PLANE) ? _("plane") : _("spherical");
 	gchar *downscale = (regargs->astrometric_scale != 1.f) ? g_strdup_printf(_(" and a scaling factor of %.2f"), regargs->astrometric_scale) : g_strdup("");
-	siril_log_color_message(_("Output image: %d x %d pixels (assuming %s projection%s)\n"), "salmon", mosaicw, mosaich, proj, downscale);
+	siril_log_color_message(_("Output image: %d x %d pixels (assuming %s projection%s)\n"), "salmon", imagew, imageh, proj, downscale);
 	g_free(downscale);
-	int64_t frame_size = mosaicw * mosaich * regargs->seq->nb_layers;
+	int64_t frame_size = imagew * imageh * regargs->seq->nb_layers;
 	frame_size *= (get_data_type(regargs->seq->bitpix) == DATA_USHORT) ? sizeof(WORD) : sizeof(float);
 	gchar *mem = g_format_size_full(frame_size, G_FORMAT_SIZE_IEC_UNITS);
 	siril_log_color_message(_("Space required for storage: %s\n"), "salmon", mem);
 	g_free(mem);
 	if (savewarped) {
-		astargs->tl = tl;
+		astargs->roi = (astrometric_roi) {.x = tl.x, .y = tl.y, .w = imagew, .h = imageh};
 	}
 
 free_all:
@@ -332,19 +382,19 @@ static int astrometric_image_hook(struct generic_seq_args *args, int out_index, 
 	int status = cvWarp_fromKR(fit, 0, 0, Ks[in_index], Rs[in_index], astargs->scale, &roi, regargs->projector, regargs->interpolation, regargs->clamp, disto);
 	if (!status) {
 		fits_flip_top_to_bottom(fit);
-		H.h02 = roi.x - astargs->tl.x;
-		H.h12 = roi.y - astargs->tl.y;
+		H.h02 = roi.x - astargs->roi.x;
+		H.h12 = roi.y - astargs->roi.y;
 		free_wcs(fit); // we remove astrometric solution
 	}
 	regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
 	regargs->imgparam[out_index].incl = (int)(!status);
 	regargs->imgparam[out_index].rx = roi.w;
 	regargs->imgparam[out_index].ry = roi.h;
-	regargs->regparam[out_index].fwhm = (in_index == astargs->refindex) ? 0.5 : 1;
-	regargs->regparam[out_index].weighted_fwhm = 1.;
-	regargs->regparam[out_index].roundness = 1.;
-	regargs->regparam[out_index].background_lvl = 0.;
-	regargs->regparam[out_index].number_of_stars = 1;
+	regargs->regparam[out_index].fwhm = regargs->regparam[in_index].fwhm;
+	regargs->regparam[out_index].weighted_fwhm = regargs->regparam[in_index].weighted_fwhm;
+	regargs->regparam[out_index].roundness = regargs->regparam[in_index].roundness;
+	regargs->regparam[out_index].background_lvl = regargs->regparam[in_index].background_lvl;
+	regargs->regparam[out_index].number_of_stars = regargs->regparam[in_index].number_of_stars;
 	regargs->regparam[out_index].H = H;
 	sadata->success[out_index] = (int)(!status);
 	return status;

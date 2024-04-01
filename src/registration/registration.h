@@ -130,7 +130,7 @@ struct astrometric_args{
 	Homography *Ks;
 	disto_data *disto;
 	float scale;
-	pointi tl;
+	astrometric_roi roi;
 };
 struct registration_method *new_reg_method(const char *name, registration_function f,
 		selection_type s, registration_type t); // for compositing

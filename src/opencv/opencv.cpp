@@ -1115,7 +1115,7 @@ static void map_undistortion(disto_data *disto, Rect roi, Mat xmap, Mat ymap) {
  	}
 }
 
-int cvWarp_fromKR(fits *image, int rx, int ry, Homography K, Homography R, float scale, astrometric_roi *roiout, int projector, int interpolation, gboolean clamp, disto_data *disto) {
+int cvWarp_fromKR(fits *image, int rx_in, int ry_in, Homography K, Homography R, float scale, astrometric_roi *roiout, int projector, int interpolation, gboolean clamp, disto_data *disto) {
 	Mat in, out;
 	void *bgr = NULL;
 
@@ -1132,7 +1132,7 @@ int cvWarp_fromKR(fits *image, int rx, int ry, Homography K, Homography R, float
 	_R.convertTo(r, CV_32F);
 	Size szin;
 	if (!image)
-		szin = Size(rx, ry);
+		szin = Size(rx_in, ry_in);
 	else
 		szin = Size(image->rx, image->ry);
 
@@ -1157,12 +1157,11 @@ int cvWarp_fromKR(fits *image, int rx, int ry, Homography K, Homography R, float
 	Rect roi = warper->warpRoi(szin, k, r);
 	corners = roi.tl();
 	sizes = roi.size();
-	std::cout << corners << "\n" << sizes << "\n";
 	*roiout = (astrometric_roi) {.x = corners.x, .y = corners.y, .w = sizes.width, .h = sizes.height};
 
 	// in case we just want to assess final size, we skip warping the image
-	// we just import metadata so that the buffers are NULL
-	if (image && (image->data || image->fdata)) { 
+	// we just pass a NULL image
+	if (image) { 
 		if (image_to_Mat(image, &in, &out, &bgr, sizes.width, sizes.height))
 			return 2;
 		Mat uxmap, uymap;
