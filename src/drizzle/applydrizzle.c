@@ -538,9 +538,8 @@ static int apply_drz_save_hook(struct generic_seq_args *args, int out_index, int
 			retval1 = savefits(dest, double_data->output);
 		}
 		free(dest);
-		gchar *ocprefix = g_strdup_printf("oc_%s", driz->prefix);
-		dest = fit_sequence_get_image_filename_prefixed(args->seq, ocprefix, in_index);
-		g_free(ocprefix);
+		driz->pixcnt_prefix = g_strdup_printf("oc_%s", driz->prefix);
+		dest = fit_sequence_get_image_filename_prefixed(args->seq, driz->pixcnt_prefix, in_index);
 		if (double_data->pixel_count) {
 			// No 16-bit conversion here, the output_counts is always float.
 			retval2 = savefits(dest, double_data->pixel_count);
@@ -559,16 +558,29 @@ static int apply_drz_save_hook(struct generic_seq_args *args, int out_index, int
 
 int apply_drz_finalize_hook(struct generic_seq_args *args) {
 	struct driz_args_t *driz = (struct driz_args_t*) args->user;
-
-	// We deal with the pixel_count sequence first
-	args->new_ser = driz->new_ser_pxcnt;
-	args->new_fitseq = driz->new_fitseq_pxcnt;
 	int retval = 0;
-	if (args->new_ser || args->new_fitseq) {
-		retval = seq_finalize_hook(args);
+
+	if (driz->keep_counts) {
+		// We deal with the pixel_count sequence first
+		args->new_ser = driz->new_ser_pxcnt;
+		args->new_fitseq = driz->new_fitseq_pxcnt;
+		if (!args->retval) {
+			retval = seq_finalize_hook(args);
+		} else {
+			// same as seq_finalize_hook but with file deletion
+			if ((args->force_ser_output || args->seq->type == SEQ_SER) && args->new_ser) {
+				ser_close_and_delete_file(args->new_ser);
+				free(args->new_ser);
+			} else if ((args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) && args->new_fitseq) {
+				fitseq_close_and_delete_file(args->new_fitseq);
+				free(args->new_fitseq);
+			} else if (args->seq->type == SEQ_REGULAR) {
+				remove_prefixed_sequence_files(driz->seq, driz->pixcnt_prefix);
+			}
+		}
+		driz->new_ser_pxcnt = NULL;
+		driz->new_fitseq_pxcnt = NULL;
 	}
-	driz->new_ser_pxcnt = NULL;
-	driz->new_fitseq_pxcnt = NULL;
 
 	// We deal with the drizzled sequence next
 	args->new_ser = driz->new_ser_drz;
