@@ -42,6 +42,6 @@ typedef struct {
 } KeywordInfo;
 
 int save_fits_keywords(fits *fit);
-
+int read_fits_keywords(fits *fit);
 
 #endif /* SRC_IO_FITS_KEYWORDS_H_ */

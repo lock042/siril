@@ -46,8 +46,9 @@ static gboolean should_use_keyword(const fits *fit, const gchar *keyword) {
 
 KeywordInfo *initialize_keywords(fits *fit) {
 	KeywordInfo keyword_list[] = {
-//        KEYWORD( "image", "BZERO", KTYPE_DOUBLE, "Offset data range to that of unsigned short", &(fit->keywords.bzero)),
-//        KEYWORD( "image", "BSCALE", KTYPE_DOUBLE, "Default scaling factor", &(fit->keywords.bscale)),
+			// FIXME: add MIPS keywords
+        KEYWORD( "image", "BZERO", KTYPE_DOUBLE, "Offset data range to that of unsigned short", &(fit->keywords.bzero)),
+        KEYWORD( "image", "BSCALE", KTYPE_DOUBLE, "Default scaling factor", &(fit->keywords.bscale)),
         KEYWORD( "image", "ROWORDER", KTYPE_STR, "Order of the rows in image array", &(fit->keywords.row_order)),
         KEYWORD( "setup", "INSTRUME", KTYPE_STR, "Instrument name", &(fit->keywords.instrume)),
         KEYWORD( "setup", "TELESCOP", KTYPE_STR, "Telescope used to acquire this image", &(fit->keywords.telescop)),
@@ -204,3 +205,70 @@ int save_fits_keywords(fits *fit) {
 
 	return 0;
 }
+
+int read_fits_keywords(fits *fit) {
+	KeywordInfo *keys = initialize_keywords(fit);
+	int status = 0;
+	int key_number = 1;
+	while (1) {
+		char card[FLEN_CARD];
+		if (fits_read_record(fit->fptr, key_number++, card, &status)) {
+			break;
+		}
+		char keyname[FLEN_KEYWORD];
+		char value[FLEN_VALUE];
+		int length = 0;
+		char type;
+
+		fits_get_keyname(card, keyname, &length, &status);
+		fits_parse_value(card, value, NULL, &status);
+		fits_get_keytype(value, &type, &status);
+
+		for (int i = 0; keys[i].group != NULL; i++) {
+			if (strcmp(keys[i].key, keyname) == 0) {
+				int int_value;
+				guint uint_value;
+				ushort ushort_value;
+				double double_value;
+				char str_value[FLEN_VALUE];
+
+				switch (keys[i].type) {
+				case KTYPE_INT:
+					fits_read_key(fit->fptr, TINT, keyname, &int_value, NULL, &status);
+					*((int*) keys[i].data) = int_value;
+					break;
+				case KTYPE_UINT:
+					fits_read_key(fit->fptr, TUINT, keyname, &uint_value, NULL, &status);
+					*((guint*) keys[i].data) = uint_value;
+					break;
+				case KTYPE_USHORT:
+					fits_read_key(fit->fptr, TUSHORT, keyname, &ushort_value, NULL, &status);
+					*((ushort*) keys[i].data) = ushort_value;
+					break;
+				case KTYPE_DOUBLE:
+					fits_read_key(fit->fptr, TDOUBLE, keyname, &double_value, NULL, &status);
+					if (status == KEY_NO_EXIST) {
+						double_value = DBL_FLAG;
+					}
+					*((double*) keys[i].data) = double_value;
+					break;
+				case KTYPE_STR:
+					fits_read_key(fit->fptr, TSTRING, keyname, str_value, NULL, &status);
+					strcpy((char*) keys[i].data, str_value);
+					break;
+				case KTYPE_DATE:
+					fits_read_key(fit->fptr, TSTRING, keyname, str_value, NULL, &status);
+					// FIXME: convert to GDateTime
+					break;
+				default:
+					break;
+				}
+				break;
+			}
+		}
+	}
+	return 0;
+}
+
+
+

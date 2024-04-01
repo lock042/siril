@@ -397,6 +397,8 @@ typedef enum { DATA_USHORT, DATA_FLOAT, DATA_UNSUPPORTED } data_type;
 typedef struct {
 	/* data obtained from the FITS file */
 	char *header;		// entire header of the FITS file. NULL for non-FITS file.
+	double bzero;
+	double bscale;
 	WORD lo;		// MIPS-LO key in FITS file, "Lower visualization cutoff"
 	WORD hi;		// MIPS-HI key in FITS file, "Upper visualization cutoff"
 	double data_max;	// used to check if 32b float is in the [0, 1] range
