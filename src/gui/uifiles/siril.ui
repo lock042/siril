@@ -6678,7 +6678,7 @@ WARNING: the counterpart of this technic is that the amount of memory and disk s
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="halign">start</property>
-                                                            <property name="label" translatable="yes">Scale</property>
+                                                            <property name="label" translatable="yes">Drizzle Scale</property>
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
@@ -6689,7 +6689,7 @@ WARNING: the counterpart of this technic is that the amount of memory and disk s
                                                             <object class="GtkSpinButton" id="spin_driz_scale">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
-                                                            <property name="tooltip-text" translatable="yes">Drizzle scale</property>
+                                                            <property name="tooltip-text" translatable="yes">Sets the drizzle scale. A scale of 2 means the output pixel grid will have twice the resolution of the input pixel grid.</property>
                                                             <property name="text" translatable="yes">1.00</property>
                                                             <property name="adjustment">adj_driz_scale</property>
                                                             <property name="digits">2</property>
@@ -6705,7 +6705,7 @@ WARNING: the counterpart of this technic is that the amount of memory and disk s
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="halign">start</property>
-                                                            <property name="label" translatable="yes">Droplet Size</property>
+                                                            <property name="label" translatable="yes">Pixel Fraction</property>
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
@@ -6716,7 +6716,7 @@ WARNING: the counterpart of this technic is that the amount of memory and disk s
                                                             <object class="GtkSpinButton" id="spin_driz_dropsize">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
-                                                            <property name="tooltip-text" translatable="yes">Droplet size</property>
+                                                            <property name="tooltip-text" translatable="yes">Sets the droplet size as a fraction of the input pixel size. Typically a good value for this is the reciprocal of the drizzle scale.</property>
                                                             <property name="text" translatable="yes">1.00</property>
                                                             <property name="adjustment">adj_driz_dropsize</property>
                                                             <property name="digits">2</property>
@@ -6744,7 +6744,7 @@ WARNING: the counterpart of this technic is that the amount of memory and disk s
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="tooltip-text" translatable="yes">Select the droplet model. See the documentation for details
-Note that the Gaussian and Lanczos models do not conserve flux.</property>
+Note that the Gaussian and Lanczos models do not conserve flux and should not be used f you wish to use the output for accurate photometry.</property>
                                                             <property name="active">3</property>
                                                             <items>
                                                             <item translatable="yes">Square</item>

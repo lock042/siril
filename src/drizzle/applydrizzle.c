@@ -267,6 +267,7 @@ struct _drizzle_pair {
 
 static int apply_drz_prepare_hook(struct generic_seq_args *args) {
 	struct driz_args_t *driz = args->user;
+	int number_of_outputs = 1;
 	// we call the generic prepare twice with different prefixes
 	args->new_seq_prefix = driz->prefix;
 	if (apply_drz_prepare_results(args))
@@ -275,18 +276,21 @@ static int apply_drz_prepare_hook(struct generic_seq_args *args) {
 	driz->new_ser_drz = args->new_ser;
 	driz->new_fitseq_drz = args->new_fitseq;
 
-	args->new_seq_prefix = "pxcnt_"; // This is OK here, it does not get freed in the
-	// end_generic_sequence later
-	if (seq_prepare_hook(args))
-		return 1;
-	driz->new_ser_pxcnt = args->new_ser;
-	driz->new_fitseq_pxcnt = args->new_fitseq;
+	if (driz->keep_counts) {
+		args->new_seq_prefix = "oc_"; // This is OK here, it does not get freed in the
+		// end_generic_sequence later
+		if (seq_prepare_hook(args))
+			return 1;
+		driz->new_ser_pxcnt = args->new_ser;
+		driz->new_fitseq_pxcnt = args->new_fitseq;
 
-	args->new_seq_prefix = driz->prefix; // Put it back so it gets loaded on completion
-	args->new_ser = NULL;
-	args->new_fitseq = NULL;
+		args->new_seq_prefix = driz->prefix; // Put it back so it gets loaded on completion
+		args->new_ser = NULL;
+		args->new_fitseq = NULL;
+		number_of_outputs = 2;
+	}
 
-	seqwriter_set_number_of_outputs(2);
+	seqwriter_set_number_of_outputs(number_of_outputs);
 
 	return 0;
 }
@@ -466,7 +470,7 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 }
 
 static int apply_drz_save_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit) {
-	struct driz_args_t *driz = (struct driz_args_t*) args->user;;
+	struct driz_args_t *driz = (struct driz_args_t*) args->user;
 	struct _double_driz *double_data = NULL;
 	// images are passed from the image_hook to the save in a list, because
 	// there are two, which is unsupported by the generic arguments
