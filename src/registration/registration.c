@@ -1174,7 +1174,7 @@ static void update_filters_registration(int update_adjustment) {
  */
 void update_reg_interface(gboolean dont_change_reg_radio) {
 	static GtkWidget *go_register = NULL, *follow = NULL, *cumul_data = NULL,
-	*noout = NULL, *toggle_reg_clamp = NULL, *onlyshift = NULL, *filter_box = NULL, *manualreg = NULL,
+	*noout = NULL, *toggle_reg_clamp = NULL, *onlyshift = NULL, *filter_box = NULL, *manualreg = NULL, *drizzle_checkbox = NULL,
 	*interpolation_algo = NULL;
 	static GtkLabel *labelreginfo = NULL;
 	static GtkComboBox *reg_all_sel_box = NULL, *reglayer = NULL, *filter_combo_init = NULL;
@@ -1200,6 +1200,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		filter_box = lookup_widget("seq_filters_box_reg");
 		manualreg = lookup_widget("manualreg_expander");
 		interpolation_algo = lookup_widget("ComboBoxRegInter");
+		drizzle_checkbox = lookup_widget("upscaleCheckButton");
 	}
 
 	if (!dont_change_reg_radio) {
@@ -1230,6 +1231,9 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 
 	/* show the appropriate frame selection widgets */
 	gboolean isapplyreg = method->method_ptr == &register_apply_reg;
+	if (!isapplyreg)
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(drizzle_checkbox), FALSE);
+	gtk_widget_set_visible(GTK_WIDGET(drizzle_checkbox), isapplyreg);
 	gtk_widget_set_visible(GTK_WIDGET(reg_all_sel_box), !isapplyreg);
 	gtk_widget_set_visible(filter_box, isapplyreg);
 	gtk_widget_set_visible(GTK_WIDGET(filter_combo_init), isapplyreg);
