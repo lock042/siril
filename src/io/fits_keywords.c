@@ -24,60 +24,49 @@
 
 #include "fits_keywords.h"
 
-#define KEYWORD(group, key, type, comment) { group, key, type, comment, NULL, TRUE }
+#define KEYWORD(group, key, type, comment, data) { group, key, type, comment, data, TRUE }
 
-static gboolean should_use_keyword(const fkeywords *keywords, const gchar *keyword) {
-    if (g_strcmp0(keyword, "XBAYROFF") == 0) {
-        return keywords->bayer_pattern[0] != '\0';
-    } else if (g_strcmp0(keyword, "YBAYROFF") == 0) {
-        return keywords->bayer_pattern[0] != '\0';
-    }
-
-    return TRUE;
-}
-
-struct keywords_access *get_all_keywords(fits *fit) {
-    static struct keywords_access all_keywords[] = {
-//    		KEYWORD( "image", "BZERO", KTYPE_DOUBLE, "Offset data range to that of unsigned short" ),
-//    		KEYWORD( "image", "BSCALE", KTYPE_DOUBLE, "Default scaling factor" ),
-    		KEYWORD( "image", "ROWORDER", KTYPE_STR, "Order of the rows in image array" ),
-			KEYWORD( "setup", "INSTRUME", KTYPE_STR, "Instrument name" ),
-			KEYWORD( "setup", "TELESCOP", KTYPE_STR, "Telescope used to acquire this image" ),
-			KEYWORD( "setup", "OBSERVER", KTYPE_STR, "Observer name" ),
-			KEYWORD( "image", "BAYERPAT", KTYPE_STR, "Bayer color pattern" ),
-			KEYWORD( "image", "XBAYROFF", KTYPE_INT, "X offset of Bayer array" ),
-			KEYWORD( "image", "YBAYROFF", KTYPE_INT, "Y offset of Bayer array" ),
-			KEYWORD( "date",  "DATE-OBS", KTYPE_DATE, "YYYY-MM-DDThh:mm:ss observation start, UT" ),
-			KEYWORD( "image", "STACKCNT;NCOMBINE", KTYPE_UINT, "Stack frames" ),
-			KEYWORD( "image", "EXPTIME;EXPOSURE", KTYPE_DOUBLE, "Exposure time [s]" ),
-			KEYWORD( "image", "LIVETIME", KTYPE_DOUBLE, "Exposure time after deadtime correction" ),
-		    { NULL, NULL, KTYPE_BOOL, NULL, NULL }
+KeywordInfo *initialize_keywords(fits *fit) {
+	KeywordInfo keyword_list[] = {
+        KEYWORD( "image", "ROWORDER", KTYPE_STR, "Order of the rows in image array", &(fit->keywords.row_order)),
+        KEYWORD( "setup", "INSTRUME", KTYPE_STR, "Instrument name", &(fit->keywords.instrume)),
+        KEYWORD( "setup", "TELESCOP", KTYPE_STR, "Telescope used to acquire this image", &(fit->keywords.telescop)),
+        KEYWORD( "setup", "OBSERVER", KTYPE_STR, "Observer name", &(fit->keywords.observer)),
+        KEYWORD( "image", "BAYERPAT", KTYPE_STR, "Bayer color pattern", &(fit->keywords.bayer_pattern)),
+        KEYWORD( "image", "XBAYROFF", KTYPE_INT, "X offset of Bayer array", &(fit->keywords.bayer_xoffset)),
+        KEYWORD( "image", "YBAYROFF", KTYPE_INT, "Y offset of Bayer array", &(fit->keywords.bayer_yoffset)),
+        KEYWORD( "image", "GAIN", KTYPE_USHORT, "Camera gain", &(fit->keywords.key_gain)),
+        KEYWORD( "image", "OFFSET", KTYPE_USHORT, "Camera offset", &(fit->keywords.key_offset)),
+        KEYWORD( "image", "CVF", KTYPE_DOUBLE, "Conversion factor (e-/adu)", &(fit->keywords.cvf)),
+        KEYWORD( "date", "DATE-OBS", KTYPE_DATE, "YYYY-MM-DDThh:mm:ss observation start, UT", &(fit->keywords.date_obs)),
+        KEYWORD( "image", "STACKCNT;NCOMBINE", KTYPE_UINT, "Stack frames", &(fit->keywords.stackcnt)),
+        KEYWORD( "image", "EXPTIME;EXPOSURE", KTYPE_DOUBLE, "Exposure time [s]", &(fit->keywords.exposure)),
+        KEYWORD( "image", "LIVETIME", KTYPE_DOUBLE, "Exposure time after deadtime correction", &(fit->keywords.livetime)),
+        {NULL, NULL, KTYPE_BOOL, NULL, NULL, FALSE}
     };
 
-    /** Handle data **/
-    int i = 0;
-    all_keywords[i++].data = &fit->keywords.row_order;
-    all_keywords[i++].data = &fit->keywords.instrume;
-    all_keywords[i++].data = &fit->keywords.telescop;
-    all_keywords[i++].data = &fit->keywords.observer;
-    all_keywords[i++].data = &fit->keywords.bayer_pattern;
-   	all_keywords[i++].data = &fit->keywords.bayer_xoffset;
-   	all_keywords[i++].data = &fit->keywords.bayer_yoffset;
-    all_keywords[i++].data = &fit->keywords.date_obs;
-    all_keywords[i++].data = &fit->keywords.stackcnt;
-    all_keywords[i++].data = &fit->keywords.exposure;
-    all_keywords[i++].data = &fit->keywords.livetime;
+	// Count the number of keywords in the list
+	int num_keywords = 0;
+	while (keyword_list[num_keywords].group != NULL) {
+		num_keywords++;
+	}
 
-    /** Handle conditions if needed */
-    for (i = 0; all_keywords[i].group != NULL; i++) {
-        all_keywords[i].is_used = should_use_keyword(&fit->keywords, all_keywords[i].key);
-    }
+    // Allocate memory dynamically for the keyword array
+	KeywordInfo *all_keywords = (KeywordInfo*) malloc((num_keywords + 1) * sizeof(KeywordInfo));
 
-    return all_keywords;
+    // Copy keyword information from the list to the dynamic array
+	for (int i = 0; i < num_keywords; i++) {
+		all_keywords[i] = keyword_list[i];
+	}
+
+    // Mark the end of the list
+	all_keywords[num_keywords] = keyword_list[num_keywords];
+
+	return all_keywords;
 }
 
 int save_fits_keywords(fits *fit) {
-	struct keywords_access *keys = get_all_keywords(fit);
+	KeywordInfo *keys = initialize_keywords(fit);
 	int status;
 	gchar *str;
 	GDateTime *date;
@@ -88,9 +77,6 @@ int save_fits_keywords(fits *fit) {
 		}
 		gchar** tokens = g_strsplit(keys->key, ";", -1);
 		switch (keys->type) {
-			case KTYPE_BOOL:
-
-				break;
 			case KTYPE_INT:
 				status = 0;
 				fits_update_key(fit->fptr, TINT, tokens[0], &(*((int*)keys->data)), keys->comment, &status);
@@ -98,6 +84,10 @@ int save_fits_keywords(fits *fit) {
 			case KTYPE_UINT:
 				status = 0;
 				fits_update_key(fit->fptr, TUINT, tokens[0], &(*((guint*)keys->data)), keys->comment, &status);
+				break;
+			case KTYPE_USHORT:
+				status = 0;
+				fits_update_key(fit->fptr, TUSHORT, tokens[0], &(*((int*)keys->data)), keys->comment, &status);
 				break;
 			case KTYPE_DOUBLE:
 				status = 0;
@@ -114,14 +104,25 @@ int save_fits_keywords(fits *fit) {
 				status = 0;
 				date = *((GDateTime**)keys->data);
 				if (date) {
-					gchar *formatted_date = date_time_to_FITS_date(date);
-					fits_update_key(fit->fptr, TSTRING, tokens[0], formatted_date, keys->comment, &status);
-					g_free(formatted_date);
+					if (!g_strcmp0("DATE", tokens[0])) {
+						int itmp;
+						char fit_date[40];
+						fits_get_system_time(fit_date, &itmp, &status);
+						fits_update_key(fit->fptr, TSTRING, tokens[0], fit_date, keys->comment, &status);
+					} else {
+						gchar *formatted_date = date_time_to_FITS_date(date);
+						fits_update_key(fit->fptr, TSTRING, tokens[0], formatted_date, keys->comment, &status);
+						g_free(formatted_date);
+					}
 				}
 				break;
+			default:
+				siril_debug_print("Save_fits_keywords: Error. Type is not handled.\n");
 		}
 		keys++;
 	}
+
+	free(keys);
 
 	return 0;
 }

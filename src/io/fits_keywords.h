@@ -24,20 +24,21 @@ enum keywords_type {
 	KTYPE_BOOL,
 	KTYPE_INT,
 	KTYPE_UINT,
+	KTYPE_USHORT,
 	KTYPE_DOUBLE,
 	KTYPE_STR,
 	KTYPE_DATE
 };
 
 
-struct keywords_access {
+typedef struct {
 	const char *group;	// group name
 	const char *key;	// key name
 	enum keywords_type type;// type of the keyword
 	const char *comment;	// comment
 	void *data;		// pointer to the data in keyword struct
 	gboolean is_used;
-};
+} KeywordInfo;
 
 int save_fits_keywords(fits *fit);
 
