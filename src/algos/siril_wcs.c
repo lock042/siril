@@ -35,25 +35,25 @@
 #define DEBUG_WCS 0
 
 gboolean has_wcs(fits *fit) {
-	return fit->wcslib != NULL;
+	return fit->keywords.wcslib != NULL;
 }
 
 // deal with cases where wcsdata is not NULL but members are set to 0
 gboolean has_wcsdata(fits *fit) {
-	return fit->wcsdata.pltsolvd_comment[0] != '\0';
+	return fit->keywords.wcsdata.pltsolvd_comment[0] != '\0';
 }
 
 void reset_wcsdata(fits *fit) {
-	fit->wcsdata.pltsolvd = FALSE;
-	memset(&fit->wcsdata.pltsolvd_comment, 0, sizeof(fit->wcsdata.pltsolvd_comment));
+	fit->keywords.wcsdata.pltsolvd = FALSE;
+	memset(&fit->keywords.wcsdata.pltsolvd_comment, 0, sizeof(fit->keywords.wcsdata.pltsolvd_comment));
 }
 
 
 void free_wcs(fits *fit) {
-	if (fit->wcslib) {
-		if (!wcsfree(fit->wcslib))
-			free(fit->wcslib);
-		fit->wcslib = NULL;
+	if (fit->keywords.wcslib) {
+		if (!wcsfree(fit->keywords.wcslib))
+			free(fit->keywords.wcslib);
+		fit->keywords.wcslib = NULL;
 	}
 }
 
@@ -147,7 +147,7 @@ gboolean load_WCS_from_fits(fits* fit) {
 	char *header;
 	struct wcsprm *wcs = NULL;
 	int nkeyrec;
-	if (fit->wcslib) {
+	if (fit->keywords.wcslib) {
 		free_wcs(fit);
 		reset_wcsdata(fit);
 	}
@@ -165,7 +165,7 @@ gboolean load_WCS_from_fits(fits* fit) {
 		wcsfree(wcs);
 		return FALSE;
 	}
-	fit->wcslib = wcs;
+	fit->keywords.wcslib = wcs;
 	return TRUE;
 }
 
@@ -190,8 +190,8 @@ void pix2wcs2(struct wcsprm *wcslib, double x, double y, double *r, double *d) {
 void pix2wcs(fits *fit, double x, double y, double *r, double *d) {
 	*r = 0.0;
 	*d = 0.0;
-	if (fit->wcslib)
-		pix2wcs2(fit->wcslib, x, y, r, d);
+	if (fit->keywords.wcslib)
+		pix2wcs2(fit->keywords.wcslib, x, y, r, d);
 }
 
 // ra in degrees
@@ -203,7 +203,7 @@ int wcs2pix(fits *fit, double ra, double dec, double *x, double *y) {
 	world[0] = ra;
 	world[1] = dec;
 
-	status = wcss2p(fit->wcslib, 1, 2, world, &phi, &theta, imgcrd, pixcrd, stat);
+	status = wcss2p(fit->keywords.wcslib, 1, 2, world, &phi, &theta, imgcrd, pixcrd, stat);
 
 	if (!status) {
 		double xx = pixcrd[0];
@@ -242,7 +242,7 @@ int *wcs2pix_array(fits *fit, int n, double *world, double *x, double *y) {
 	double *theta = malloc(n * sizeof(double));
 	int c = 0;
 	int *status = calloc((unsigned)n , sizeof(int));
-	int globstatus = wcss2p(fit->wcslib, n, 2, world, phi, theta, intcrd, pixcrd, status);
+	int globstatus = wcss2p(fit->keywords.wcslib, n, 2, world, phi, theta, intcrd, pixcrd, status);
 	if (globstatus == WCSERR_SUCCESS || globstatus == WCSERR_BAD_WORLD) {// we accept BAD_WORLD as it does not mean all of the conversions failed
 		for (int i = 0; i < n; i++) {
 			if (!status[i]) {
@@ -284,7 +284,7 @@ void center2wcs(fits *fit, double *r, double *d) {
 	pixcrd[0] = (double)(fit->rx) * 0.5 + 0.5;
 	pixcrd[1] = (double)(fit->ry) * 0.5 + 0.5;
 
-	status = wcsp2s(fit->wcslib, 1, 2, pixcrd, imgcrd, &phi, &theta, world, stat);
+	status = wcsp2s(fit->keywords.wcslib, 1, 2, pixcrd, imgcrd, &phi, &theta, world, stat);
 	if (status != 0)
 		return;
 
@@ -362,12 +362,12 @@ void wcs_decompose_cd(wcsprm_t *prm, double cd[NAXIS][NAXIS]) {
 /* get resolution in degree/pixel */
 double get_wcs_image_resolution(fits *fit) {
 	double resolution = -1.0;
-	if (fit->wcslib) {
-		resolution = (fabs(fit->wcslib->cdelt[0]) + fabs(fit->wcslib->cdelt[1])) * 0.5;
+	if (fit->keywords.wcslib) {
+		resolution = (fabs(fit->keywords.wcslib->cdelt[0]) + fabs(fit->keywords.wcslib->cdelt[1])) * 0.5;
 	}
 	if (resolution <= 0.0) {
-		if (fit->focal_length >= 0.0 && fit->pixel_size_x >= 0.0 && fit->pixel_size_y == fit->pixel_size_x)
-			resolution = (RADCONV / fit->focal_length * fit->pixel_size_x) / 3600.0;
+		if (fit->keywords.focal_length >= 0.0 && fit->keywords.pixel_size_x >= 0.0 && fit->keywords.pixel_size_y == fit->keywords.pixel_size_x)
+			resolution = (RADCONV / fit->keywords.focal_length * fit->keywords.pixel_size_x) / 3600.0;
 		// what about pix size x != y?
 	}
 	return resolution;

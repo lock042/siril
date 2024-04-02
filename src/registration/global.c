@@ -141,7 +141,7 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 		free(sadata->current_regdata);
 		return 1;
 	}
-	if (fit.naxes[2] == 1 && fit.bayer_pattern[0] != '\0')
+	if (fit.naxes[2] == 1 && fit.keywords.bayer_pattern[0] != '\0')
 		siril_log_color_message(_("Registering a sequence opened as CFA is a bad idea.\n"), "red");
 
 	siril_log_color_message(_("Reference Image:\n"), "green");
@@ -399,8 +399,8 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		cvGetEye(&regargs->regparam[out_index].H);
 
 		if (regargs->x2upscale) {
-			fit->pixel_size_x /= 2;
-			fit->pixel_size_y /= 2;
+			fit->keywords.pixel_size_x /= 2;
+			fit->keywords.pixel_size_y /= 2;
 			regargs->regparam[out_index].fwhm *= 2.0;
 			regargs->regparam[out_index].weighted_fwhm *= 2.0;
 		}

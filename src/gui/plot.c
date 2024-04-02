@@ -440,8 +440,8 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 				break;
 			case r_FWHM:
 				if (is_arcsec) {
-					double bin = com.pref.binning_update ? (double) gfit.binning_x : 1.0;
-					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].fwhm, bin, (double) gfit.pixel_size_x, gfit.focal_length, &fwhm);
+					double bin = com.pref.binning_update ? (double) gfit.keywords.binning_x : 1.0;
+					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].fwhm, bin, (double) gfit.keywords.pixel_size_x, gfit.keywords.focal_length, &fwhm);
 				} else {
 					fwhm = seq->regparam[layer][i].fwhm;
 				}
@@ -461,8 +461,8 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 				break;
 			case r_WFWHM:
 				if (is_arcsec) {
-					double bin = com.pref.binning_update ? (double) gfit.binning_x : 1.0;
-					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].weighted_fwhm, bin, (double) gfit.pixel_size_x, gfit.focal_length, &fwhm);
+					double bin = com.pref.binning_update ? (double) gfit.keywords.binning_x : 1.0;
+					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].weighted_fwhm, bin, (double) gfit.keywords.pixel_size_x, gfit.keywords.focal_length, &fwhm);
 				} else {
 					fwhm = seq->regparam[layer][i].weighted_fwhm;
 				}
@@ -490,8 +490,8 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 				break;
 			case r_FWHM:
 				if (is_arcsec) {
-					double bin = com.pref.binning_update ? (double) gfit.binning_x : 1.0;
-					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].fwhm, bin, (double) gfit.pixel_size_x, gfit.focal_length, &fwhm);
+					double bin = com.pref.binning_update ? (double) gfit.keywords.binning_x : 1.0;
+					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].fwhm, bin, (double) gfit.keywords.pixel_size_x, gfit.keywords.focal_length, &fwhm);
 				} else {
 					fwhm = seq->regparam[layer][i].fwhm;
 				}
@@ -511,8 +511,8 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 				break;
 			case r_WFWHM:
 				if (is_arcsec) {
-					double bin = com.pref.binning_update ? (double) gfit.binning_x : 1.0;
-					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].weighted_fwhm, bin, (double) gfit.pixel_size_x, gfit.focal_length, &fwhm);
+					double bin = com.pref.binning_update ? (double) gfit.keywords.binning_x : 1.0;
+					convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][i].weighted_fwhm, bin, (double) gfit.keywords.pixel_size_x, gfit.keywords.focal_length, &fwhm);
 				} else {
 					fwhm = seq->regparam[layer][i].weighted_fwhm;
 				}
@@ -1190,9 +1190,9 @@ void drawPlot() {
 		ref_image = 0;
 	else ref_image = seq->reference_image;
 
-	gboolean arcsec_is_ok = (gfit.focal_length > 0.0 && gfit.pixel_size_x > 0.f
-		&& gfit.pixel_size_y > 0.f && gfit.binning_x > 0
-		&& gfit.binning_y > 0);
+	gboolean arcsec_is_ok = (gfit.keywords.focal_length > 0.0 && gfit.keywords.pixel_size_x > 0.f
+		&& gfit.keywords.pixel_size_y > 0.f && gfit.keywords.binning_x > 0
+		&& gfit.keywords.binning_y > 0);
 	int current_selected_source = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));
 	if (!arcsec_is_ok) {
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(arcsec), FALSE);

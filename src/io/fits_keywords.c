@@ -21,8 +21,8 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_date.h"
+#include "core/siril_log.h"
 #include "algos/siril_wcs.h"
-
 
 #include "fits_keywords.h"
 
@@ -172,7 +172,7 @@ int save_fits_keywords(fits *fit) {
 	KeywordInfo *keys_start = keys;
 	int status;
 	gchar *str;
-	ushort us;
+	gushort us;
 	double dbl, zero, scale;
 	GDateTime *date;
 
@@ -288,6 +288,26 @@ int read_fits_keywords(fits *fit) {
 	KeywordInfo *keys_start = keys;
 	int status = 0;
 	int key_number = 1;
+
+
+	/* Special cases */
+	double scale = 0.0, zero = 0.0;
+	fits_read_key(fit->fptr, TDOUBLE, "BSCALE", &scale, NULL, &status);
+	if (!status && 1.0 != scale) {
+		siril_log_message(_("Loaded FITS file has a BSCALE different than 1 (%f)\n"), scale);
+		status = 0;
+		/* We reset the scaling factors as we don't use it */
+		fits_set_bscale(fit->fptr, 1.0, 0.0, &status);
+	}
+
+	status = 0;
+	fits_read_key(fit->fptr, TDOUBLE, "BZERO", &zero, NULL, &status);
+	if (!status && 0.0 != zero && fit->bitpix == FLOAT_IMG) {
+		fprintf(stdout, "ignoring BZERO\n");
+		fits_set_bscale(fit->fptr, 1.0, 0.0, &status);
+	}
+
+
 	while (1) {
 		char card[FLEN_CARD];
 		if (fits_read_record(fit->fptr, key_number++, card, &status)) {
@@ -302,22 +322,15 @@ int read_fits_keywords(fits *fit) {
 		fits_parse_value(card, value, NULL, &status);
 		fits_get_keytype(value, &type, &status);
 
-		/* FIXME: need to handle MIPS, BZERO, BSCALE, ... */
-//		status = 0;
-//		fits_read_key(fit->fptr, TDOUBLE, "BSCALE", &scale, NULL, &status);
-//		if (!status && 1.0 != scale) {
-//			siril_log_message(_("Loaded FITS file has a BSCALE different than 1 (%f)\n"), scale);
-//			status = 0;
-//			/* We reset the scaling factors as we don't use it */
-//			fits_set_bscale(fit->fptr, 1.0, 0.0, &status);
-//		}
-//
-//		status = 0;
-//		fits_read_key(fit->fptr, TDOUBLE, "BZERO", &zero, NULL, &status);
-//		if (!status && 0.0 != zero && fit->bitpix == FLOAT_IMG) {
-//			fprintf(stdout, "ignoring BZERO\n");
-//			fits_set_bscale(fit->fptr, 1.0, 0.0, &status);
-//		}
+		if (status) break;
+		/* FIXME: need to handle MIPS, ... */
+
+		/* These have been already processed */
+		if (g_strcmp0(keyname, "BSCALE") == 0) {
+			continue;
+		} else if (g_strcmp0(keyname, "BZERO") == 0) {
+			continue;
+		}
 
 		while (keys->group) {
 			if (keys->fixed_value) {
@@ -336,27 +349,31 @@ int read_fits_keywords(fits *fit) {
 
 					switch (keys->type) {
 					case KTYPE_INT:
-						sscanf(value, "%d", &int_value);
-						*((int*) keys->data) = int_value;
+						if (sscanf(value, "%d", &int_value) == 1) {
+							*((int*) keys->data) = int_value;
+						}
 						break;
 					case KTYPE_UINT:
-						sscanf(value, "%u", &uint_value);
-						*((guint*) keys->data) = uint_value;
+						if (sscanf(value, "%u", &uint_value) == 1) {
+							*((guint*) keys->data) = uint_value;
+						}
 						break;
 					case KTYPE_USHORT:
-						sscanf(value, "%hu", &ushort_value);
-						*((gushort*) keys->data) = ushort_value;
+						if (sscanf(value, "%hu", &ushort_value) == 1) {
+							*((gushort*) keys->data) = ushort_value;
+						}
 						break;
 					case KTYPE_DOUBLE:
-						sscanf(value, "%lf", &double_value);
-						*((double*) keys->data) = double_value;
+						if (sscanf(value, "%lf", &double_value) == 1) {
+							*((double*) keys->data) = double_value;
+						}
 						break;
 					case KTYPE_STR:
 						strcpy((char*) keys->data, value);
 						break;
 					case KTYPE_DATE:
 						status = 0;
-						// FIXME: convert to GDateTime
+						*((GDateTime**) keys->data) = FITS_date_to_date_time(value);
 						break;
 					default:
 						break;

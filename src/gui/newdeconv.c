@@ -82,9 +82,9 @@ orientation_t get_imageorientation() {
 	} else if (sequence_is_loaded()) {
 		result = BOTTOM_UP; // All other sequences should be BOTTOM_UP
 	} else if (single_image_is_loaded()) {
-		if (!g_strcmp0(the_fit->row_order, "TOP-DOWN")) {
+		if (!g_strcmp0(the_fit->keywords.row_order, "TOP-DOWN")) {
 			result = TOP_DOWN;
-		} else if (!g_strcmp0(the_fit->row_order, "BOTTOM-UP")) {
+		} else if (!g_strcmp0(the_fit->keywords.row_order, "BOTTOM-UP")) {
 			result = BOTTOM_UP;
 	} else {
 			result = UNDEFINED;
@@ -409,9 +409,9 @@ void on_airy_pixelsize_value_changed(GtkSpinButton *button, gpointer user_data) 
 
 static void initialize_airy_parameters() {
 	// Get initial stab at parameters for Airy function from FITS header. Not essential they be correct as they are user-editable in the UI.
-	args.airy_fl = the_fit->focal_length;
+	args.airy_fl = the_fit->keywords.focal_length;
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("airy_fl")), args.airy_fl);
-	if (the_fit->focal_length < 10.) {
+	if (the_fit->keywords.focal_length < 10.) {
 		GtkWidget *button = lookup_widget("airy_fl");
 		GtkCssProvider *css = gtk_css_provider_new();
 		gtk_css_provider_load_from_data(css, "* { background-image:none; color:salmon;}",-1,NULL);
@@ -419,9 +419,9 @@ static void initialize_airy_parameters() {
 		gtk_style_context_add_provider(context, GTK_STYLE_PROVIDER(css),GTK_STYLE_PROVIDER_PRIORITY_USER);
 		g_object_unref(css);
 	}
-	args.airy_diameter = the_fit->aperture;
+	args.airy_diameter = the_fit->keywords.aperture;
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("airy_diameter")), args.airy_diameter);
-	if (the_fit->aperture < 10.) {
+	if (the_fit->keywords.aperture < 10.) {
 		GtkWidget *button = lookup_widget("airy_diameter");
 		GtkCssProvider *css = gtk_css_provider_new();
 		gtk_css_provider_load_from_data(css, "* { background-image:none; color:salmon;}",-1,NULL);
@@ -429,9 +429,9 @@ static void initialize_airy_parameters() {
 		gtk_style_context_add_provider(context, GTK_STYLE_PROVIDER(css),GTK_STYLE_PROVIDER_PRIORITY_USER);
 		g_object_unref(css);
 	}
-	args.airy_pixelsize = the_fit->pixel_size_x;
+	args.airy_pixelsize = the_fit->keywords.pixel_size_x;
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("airy_pixelsize")), args.airy_pixelsize);
-	if (the_fit->pixel_size_x <=1.) {
+	if (the_fit->keywords.pixel_size_x <=1.) {
 		GtkWidget *button = lookup_widget("airy_pixelsize");
 		GtkCssProvider *css = gtk_css_provider_new();
 		gtk_css_provider_load_from_data(css, "* { background-image:none; color:salmon;}",-1,NULL);
@@ -535,8 +535,8 @@ static void calculate_parameters() {
 		args.psf_beta = (float) beta / (float) n;
 		args.psf_ratio = args.symkern ? 1.f : args.psf_fwhm / FWHMy;
 		if (unit_is_arcsec) {
-			double bin_X = com.pref.binning_update ? (double) the_fit->binning_x : 1.0;
-			double conversionfactor = (((3600.0 * 180.0) / G_PI) / 1.0E3 * (double)the_fit->pixel_size_x / the_fit->focal_length) * bin_X;
+			double bin_X = com.pref.binning_update ? (double) the_fit->keywords.binning_x : 1.0;
+			double conversionfactor = (((3600.0 * 180.0) / G_PI) / 1.0E3 * (double)the_fit->keywords.pixel_size_x / the_fit->keywords.focal_length) * bin_X;
 			args.psf_fwhm /= (float) conversionfactor;
 		}
 		args.psf_angle = (float) angle / (float) n;

@@ -1207,7 +1207,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		if (method->method_ptr == &register_3stars) {
 			ready = _3stars_check_selection(); // checks that the right image is loaded based on doall and dofollow
 		}
-		else if (gfit.naxes[2] == 1 && gfit.bayer_pattern[0] != '\0') {
+		else if (gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] != '\0') {
 			gtk_label_set_text(labelreginfo, _("Debayer the sequence for registration"));
 			ready = FALSE;
 		}

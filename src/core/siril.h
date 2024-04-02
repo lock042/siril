@@ -396,7 +396,6 @@ typedef enum { DATA_USHORT, DATA_FLOAT, DATA_UNSUPPORTED } data_type;
 
 typedef struct {
 	/* data obtained from the FITS file */
-	char *header;		// entire header of the FITS file. NULL for non-FITS file.
 	WORD lo;		// MIPS-LO key in FITS file, "Lower visualization cutoff"
 	WORD hi;		// MIPS-HI key in FITS file, "Upper visualization cutoff"
 	double data_max;	// used to check if 32b float is in the [0, 1] range
@@ -456,42 +455,42 @@ struct ffit {
 
 	fkeywords keywords;
 
-	/* data obtained from the FITS file */
+//	/* data obtained from the FITS file */
 	char *header;		// entire header of the FITS file. NULL for non-FITS file.
-	WORD lo;		// MIPS-LO key in FITS file, "Lower visualization cutoff"
-	WORD hi;		// MIPS-HI key in FITS file, "Upper visualization cutoff"
-	double data_max;	// used to check if 32b float is in the [0, 1] range
-	double data_min;	// used to check if 32b float is in the [0, 1] range
-	float pixel_size_x, pixel_size_y;	// XPIXSZ and YPIXSZ keys
-	unsigned int binning_x, binning_y;	// XBINNING and YBINNING keys
-	char row_order[FLEN_VALUE];
-	GDateTime *date, *date_obs;		// creation and acquisition UTC dates
-	double expstart, expend;		// Julian dates
-	char filter[FLEN_VALUE];		// FILTER key
-	char image_type[FLEN_VALUE];		// IMAGETYP key
-	char object[FLEN_VALUE];		// OBJECT key
-	char instrume[FLEN_VALUE];		// INSTRUME key
-	char telescop[FLEN_VALUE];		// TELESCOP key
-	char observer[FLEN_VALUE];		// OBSERVER key
-	double sitelat;				// SITE LATITUDE key
-	double sitelong;			// SITE LONGITUDE key
-	double siteelev;			// SITE LONGITUDE key
-	char bayer_pattern[FLEN_VALUE];		// BAYERPAT key Bayer Pattern if available
-	int bayer_xoffset, bayer_yoffset;
-	double airmass;                   // relative optical path length through atmosphere.
-	/* data obtained from FITS or RAW files */
-	double focal_length, iso_speed, exposure, aperture, ccd_temp, set_temp;
-	double livetime;		// sum of exposures (s)
-	guint stackcnt;			// number of stacked frame
-	double cvf;			// Conversion factor (e-/adu)
-	int key_gain, key_offset;	// Gain, Offset values read in camera headers.
-
-	/* Plate Solving data */
-	wcs_info wcsdata;		// data from the header
-	struct wcsprm *wcslib;		// struct of the lib
-
-	/* data used in the Fourier space */
-	dft_info dft;
+//	WORD lo;		// MIPS-LO key in FITS file, "Lower visualization cutoff"
+//	WORD hi;		// MIPS-HI key in FITS file, "Upper visualization cutoff"
+//	double data_max;	// used to check if 32b float is in the [0, 1] range
+//	double data_min;	// used to check if 32b float is in the [0, 1] range
+//	float pixel_size_x, pixel_size_y;	// XPIXSZ and YPIXSZ keys
+//	unsigned int binning_x, binning_y;	// XBINNING and YBINNING keys
+//	char row_order[FLEN_VALUE];
+//	GDateTime *date, *date_obs;		// creation and acquisition UTC dates
+//	double expstart, expend;		// Julian dates
+//	char filter[FLEN_VALUE];		// FILTER key
+//	char image_type[FLEN_VALUE];		// IMAGETYP key
+//	char object[FLEN_VALUE];		// OBJECT key
+//	char instrume[FLEN_VALUE];		// INSTRUME key
+//	char telescop[FLEN_VALUE];		// TELESCOP key
+//	char observer[FLEN_VALUE];		// OBSERVER key
+//	double sitelat;				// SITE LATITUDE key
+//	double sitelong;			// SITE LONGITUDE key
+//	double siteelev;			// SITE LONGITUDE key
+//	char bayer_pattern[FLEN_VALUE];		// BAYERPAT key Bayer Pattern if available
+//	int bayer_xoffset, bayer_yoffset;
+//	double airmass;                   // relative optical path length through atmosphere.
+//	/* data obtained from FITS or RAW files */
+//	double focal_length, iso_speed, exposure, aperture, ccd_temp, set_temp;
+//	double livetime;		// sum of exposures (s)
+//	guint stackcnt;			// number of stacked frame
+//	double cvf;			// Conversion factor (e-/adu)
+//	int key_gain, key_offset;	// Gain, Offset values read in camera headers.
+//
+//	/* Plate Solving data */
+//	wcs_info wcsdata;		// data from the header
+//	struct wcsprm *wcslib;		// struct of the lib
+//
+//	/* data used in the Fourier space */
+//	dft_info dft;
 
 	/* data computed or set by Siril */
 	imstats **stats;	// stats of fit for each layer, null if naxes[2] is unknown
