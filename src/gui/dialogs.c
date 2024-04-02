@@ -25,6 +25,7 @@
 #include "algos/background_extraction.h"
 #include "filters/asinh.h"
 #include "filters/clahe.h"
+#include "filters/median.h"
 #include "filters/saturation.h"
 #include "filters/wavelets.h"
 
@@ -65,7 +66,7 @@ static const SirilDialogEntry entries[] =
 	{"icc_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"astrometry_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"linearmatch_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
-	{"Median_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"Median_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, median_close},
 	{"merge_cfa_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"nina_light_curve", get_nina_lc_dialog, OTHER_DIALOG, FALSE, NULL},
 	{"pixel_math_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
