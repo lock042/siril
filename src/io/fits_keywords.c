@@ -126,22 +126,22 @@ KeywordInfo *initialize_keywords(fits *fit) {
 //        KEYWORD( "wcslib",   "CTYPE2", KTYPE_STR, "TAN (gnomic) projection", "DEC---TAN"), // FIXME: handle both version of comments
 		KEYWORD_FIXED( "wcslib", "CUNIT1", KTYPE_STR, "Unit of coordinates", "deg"),
 		KEYWORD_FIXED( "wcslib", "CUNIT1", KTYPE_STR, "Unit of coordinates", "deg"),
-        KEYWORD( "wcslib", "EQUINOX", KTYPE_DOUBLE, "Equatorial equinox", &(fit->keywords.wcslib->equinox)),
-        KEYWORD( "wcslib", "CRPIX1", KTYPE_DOUBLE, "Axis1 reference pixel", &(fit->keywords.wcslib->crpix[0])),
-        KEYWORD( "wcslib", "CRPIX2", KTYPE_DOUBLE, "Axis2 reference pixel", &(fit->keywords.wcslib->crpix[1])),
-        KEYWORD( "wcslib", "CRVAL1", KTYPE_DOUBLE, "Axis1 reference value (deg)", &(fit->keywords.wcslib->crval[0])),
-        KEYWORD( "wcslib", "CRVAL2", KTYPE_DOUBLE, "Axis2 reference value (deg)", &(fit->keywords.wcslib->crval[1])),
-        KEYWORD( "wcslib", "LONPOLE", KTYPE_DOUBLE, "Native longitude of celestial pole", &(fit->keywords.wcslib->lonpole)),
-        KEYWORD( "wcslib", "CDELT1", KTYPE_DOUBLE, "X pixel size (deg)", &(fit->keywords.wcslib->cdelt[0])),
-        KEYWORD( "wcslib", "CDELT2", KTYPE_DOUBLE, "X pixel size (deg)", &(fit->keywords.wcslib->cdelt[1])),
-        KEYWORD( "wcslib", "PC1_1", KTYPE_DOUBLE, "Linear transformation matrix (1, 1)", &(fit->keywords.wcslib->pc[0])),
-        KEYWORD( "wcslib", "PC1_2", KTYPE_DOUBLE, "Linear transformation matrix (1, 2)", &(fit->keywords.wcslib->pc[1])),
-        KEYWORD( "wcslib", "PC2_1", KTYPE_DOUBLE, "Linear transformation matrix (2, 1)", &(fit->keywords.wcslib->pc[2])),
-        KEYWORD( "wcslib", "PC2_2", KTYPE_DOUBLE, "Linear transformation matrix (2, 2)", &(fit->keywords.wcslib->pc[3])),
-        KEYWORD( "wcslib", "CD1_1", KTYPE_DOUBLE, "Scale matrix (1, 1)", &(fit->keywords.wcslib->cd[0])),
-        KEYWORD( "wcslib", "CD1_2", KTYPE_DOUBLE, "Scale matrix (1, 2)", &(fit->keywords.wcslib->cd[1])),
-        KEYWORD( "wcslib", "CD2_1", KTYPE_DOUBLE, "Scale matrix (2, 1)", &(fit->keywords.wcslib->cd[2])),
-        KEYWORD( "wcslib", "CD2_2", KTYPE_DOUBLE, "Scale matrix (2, 2)", &(fit->keywords.wcslib->cd[3])),
+//        KEYWORD( "wcslib", "EQUINOX", KTYPE_DOUBLE, "Equatorial equinox", &(fit->keywords.wcslib->equinox)),
+//        KEYWORD( "wcslib", "CRPIX1", KTYPE_DOUBLE, "Axis1 reference pixel", &(fit->keywords.wcslib->crpix[0])),
+//        KEYWORD( "wcslib", "CRPIX2", KTYPE_DOUBLE, "Axis2 reference pixel", &(fit->keywords.wcslib->crpix[1])),
+//        KEYWORD( "wcslib", "CRVAL1", KTYPE_DOUBLE, "Axis1 reference value (deg)", &(fit->keywords.wcslib->crval[0])),
+//        KEYWORD( "wcslib", "CRVAL2", KTYPE_DOUBLE, "Axis2 reference value (deg)", &(fit->keywords.wcslib->crval[1])),
+//        KEYWORD( "wcslib", "LONPOLE", KTYPE_DOUBLE, "Native longitude of celestial pole", &(fit->keywords.wcslib->lonpole)),
+//        KEYWORD( "wcslib", "CDELT1", KTYPE_DOUBLE, "X pixel size (deg)", &(fit->keywords.wcslib->cdelt[0])),
+//        KEYWORD( "wcslib", "CDELT2", KTYPE_DOUBLE, "X pixel size (deg)", &(fit->keywords.wcslib->cdelt[1])),
+//        KEYWORD( "wcslib", "PC1_1", KTYPE_DOUBLE, "Linear transformation matrix (1, 1)", &(fit->keywords.wcslib->pc[0])),
+//        KEYWORD( "wcslib", "PC1_2", KTYPE_DOUBLE, "Linear transformation matrix (1, 2)", &(fit->keywords.wcslib->pc[1])),
+//        KEYWORD( "wcslib", "PC2_1", KTYPE_DOUBLE, "Linear transformation matrix (2, 1)", &(fit->keywords.wcslib->pc[2])),
+//        KEYWORD( "wcslib", "PC2_2", KTYPE_DOUBLE, "Linear transformation matrix (2, 2)", &(fit->keywords.wcslib->pc[3])),
+//        KEYWORD( "wcslib", "CD1_1", KTYPE_DOUBLE, "Scale matrix (1, 1)", &(fit->keywords.wcslib->cd[0])),
+//        KEYWORD( "wcslib", "CD1_2", KTYPE_DOUBLE, "Scale matrix (1, 2)", &(fit->keywords.wcslib->cd[1])),
+//        KEYWORD( "wcslib", "CD2_1", KTYPE_DOUBLE, "Scale matrix (2, 1)", &(fit->keywords.wcslib->cd[2])),
+//        KEYWORD( "wcslib", "CD2_2", KTYPE_DOUBLE, "Scale matrix (2, 2)", &(fit->keywords.wcslib->cd[3])),
 
 		{NULL, NULL, KTYPE_BOOL, NULL, NULL, FALSE, TRUE}
     };
@@ -257,6 +257,8 @@ int save_fits_keywords(fits *fit) {
 		}
 		keys++;
 	}
+
+	load_WCS_from_fits(fit);
 
 	free(keys_start);
 
