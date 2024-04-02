@@ -532,6 +532,8 @@ void read_fits_header(fits *fit) {
 //	status = 0;
 //	__tryToFindKeywords(fit->fptr, TUSHORT, OFFSETLEVEL, &fit->keywords.key_offset, &status); // Offset setting from camera
 
+	/* use new keywords structure */
+	read_fits_keywords(fit);
 
 	/* first fill wcsdata FITS structure */
 	load_wcs_keywords(fit);
@@ -1673,8 +1675,7 @@ void get_date_data_from_fitsfile(fitsfile *fptr, GDateTime **dt, double *exposur
 int import_metadata_from_fitsfile(fitsfile *fptr, fits *to) {
 	fits from = { 0 };
 	from.fptr = fptr;
-//	read_fits_header(&from);
-	read_fits_keywords(&from);
+	read_fits_header(&from);
 	copy_fits_metadata(&from, to);
 	clearfits(&from);
 	return 0;
