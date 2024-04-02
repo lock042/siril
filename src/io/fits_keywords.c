@@ -176,6 +176,8 @@ int save_fits_keywords(fits *fit) {
 	int status;
 	gchar *str;
 	gushort us;
+	guint ui;
+	int ii;
 	double dbl, zero, scale;
 	GDateTime *date;
 
@@ -212,11 +214,17 @@ int save_fits_keywords(fits *fit) {
 		switch (keys->type) {
 			case KTYPE_INT:
 				status = 0;
-				fits_update_key(fit->fptr, TINT, tokens[0], &(*((int*)keys->data)), keys->comment, &status);
+				ii = (*((int*)keys->data));
+				if (ii) {
+					fits_update_key(fit->fptr, TINT, tokens[0], &ii, keys->comment, &status);
+				}
 				break;
 			case KTYPE_UINT:
 				status = 0;
-				fits_update_key(fit->fptr, TUINT, tokens[0], &(*((guint*)keys->data)), keys->comment, &status);
+				ui = (*((guint*)keys->data));
+				if (ui) {
+					fits_update_key(fit->fptr, TUINT, tokens[0], &ui, keys->comment, &status);
+				}
 				break;
 			case KTYPE_USHORT:
 				status = 0;
@@ -263,28 +271,6 @@ int save_fits_keywords(fits *fit) {
 
 	free(keys_start);
 
-	load_WCS_from_fits(fit);
-
-	/*******************************************************************
-	 * ********************* HISTORY KEYWORDS **************************
-	 * ****************************************************************/
-
-	status = 0;
-	if (fit->history) {
-		GSList *list;
-		for (list = fit->history; list; list = list->next) {
-			fits_write_history(fit->fptr, (char *)list->data, &status);
-		}
-	}
-
-	status = 0;
-	if (com.history) {
-		for (int i = 0; i < com.hist_display; i++) {
-			if (com.history[i].history[0] != '\0')
-				fits_write_history(fit->fptr, com.history[i].history, &status);
-		}
-	}
-
 	return 0;
 }
 
@@ -311,10 +297,13 @@ int read_fits_keywords(fits *fit) {
 		fits_set_bscale(fit->fptr, 1.0, 0.0, &status);
 	}
 
+	fits_get_hdrspace(fit->fptr, &key_number, NULL, &status); /* get # of keywords */
 
-	while (1) {
+	for (int ii = 1; ii <= key_number; ii++) {
 		char card[FLEN_CARD];
-		if (fits_read_record(fit->fptr, key_number++, card, &status)) {
+		status = 0;
+		if (fits_read_record(fit->fptr, ii, card, &status)) {
+			fits_report_error(stderr, status);
 			break;
 		}
 		char keyname[FLEN_KEYWORD];
@@ -325,24 +314,23 @@ int read_fits_keywords(fits *fit) {
 		fits_get_keyname(card, keyname, &length, &status);
 		fits_parse_value(card, value, NULL, &status);
 		fits_get_keytype(value, &type, &status);
+		status = 0;
 
-		if (status) break;
 		/* FIXME: need to handle MIPS, ... */
 
-		/* These have been already processed */
-		if (g_strcmp0(keyname, "BSCALE") == 0) {
-			continue;
-		} else if (g_strcmp0(keyname, "BZERO") == 0) {
-			continue;
-		}
+	    /* These have been already processed */
+	    if (g_strcmp0(keyname, "BSCALE") == 0 || g_strcmp0(keyname, "BZERO") == 0) {
+	        continue;
+	    }
 
-		while (keys->group) {
-			if (keys->fixed_value) {
+	    KeywordInfo *current_key = keys_start;
+		while (current_key->group) {
+			if (current_key->fixed_value || fits_get_keyclass(card) == TYP_STRUC_KEY) {
 				/* if fixed value, we do not read it, we do not store it */
-				keys++;
+				current_key++;
 				continue;
 			}
-			gchar** tokens = g_strsplit(keys->key, ";", -1);
+			gchar** tokens = g_strsplit(current_key->key, ";", -1);
 			int n = g_strv_length(tokens);
 			gboolean value_set = FALSE; // Flag to indicate if a value was set
 			for (int i = 0; i < n; i++) {
@@ -351,73 +339,82 @@ int read_fits_keywords(fits *fit) {
 					guint uint_value;
 					gushort ushort_value;
 					double double_value;
+					gchar *str_value;
 					GDateTime *date;
 
-					switch (keys->type) {
+					if ((g_strcmp0("XPIXSZ", keyname) == 0)  && (g_strcmp0("XPIXSZ", tokens[i]) == 0)) {
+						printf("stop\n");
+					}
+
+					switch (current_key->type) {
 					case KTYPE_INT:
 						if (sscanf(value, "%d", &int_value) == 1) {
-							*((int*) keys->data) = int_value;
+							*((int*) current_key->data) = int_value;
 							value_set = TRUE;
+							continue;
 						}
 						break;
 					case KTYPE_UINT:
 						if (sscanf(value, "%u", &uint_value) == 1) {
-							*((guint*) keys->data) = uint_value;
+							*((guint*) current_key->data) = uint_value;
 							value_set = TRUE;
+							continue;
 						}
 						break;
 					case KTYPE_USHORT:
 						if (sscanf(value, "%hu", &ushort_value) == 1) {
-							*((gushort*) keys->data) = ushort_value;
+							*((gushort*) current_key->data) = ushort_value;
 							value_set = TRUE;
 						}
 						break;
 					case KTYPE_DOUBLE:
 						if (sscanf(value, "%lf", &double_value) == 1) {
-							*((double*) keys->data) = double_value;
+							*((double*) current_key->data) = double_value;
 							value_set = TRUE;
+							continue;
 						}
 						break;
 					case KTYPE_STR:
-						strcpy((char*) keys->data, value);
+						str_value = g_shell_unquote(value, NULL);
+						strcpy((char*) current_key->data, str_value);
 						value_set = TRUE;
+						continue;
 						break;
 					case KTYPE_DATE:
-						status = 0;
-						date = FITS_date_to_date_time(value);
+						str_value = g_shell_unquote(value, NULL);
+						date = FITS_date_to_date_time(str_value);
 						if (date) {
-							*((GDateTime**) keys->data) = date;
+							*((GDateTime**) current_key->data) = date;
 							value_set = TRUE;
+							continue;
 						}
 						break;
 					default:
 						break;
 					}
-					break;
 				}
 			}
 			// If no value was set, set default value
 			if (!value_set) {
 				// Set default value based on key type
-				switch (keys->type) {
+				switch (current_key->type) {
 				case KTYPE_INT:
-					*((int*) keys->data) = DEFAULT_INT_VALUE;
+					*((int*) current_key->data) = DEFAULT_INT_VALUE;
 					break;
 				case KTYPE_UINT:
-					*((guint*) keys->data) = DEFAULT_UINT_VALUE;
+					*((guint*) current_key->data) = DEFAULT_UINT_VALUE;
 					break;
 				case KTYPE_USHORT:
-					*((gushort*) keys->data) = DEFAULT_USHORT_VALUE;
+					*((gushort*) current_key->data) = DEFAULT_USHORT_VALUE;
 					break;
 				case KTYPE_DOUBLE:
-					*((double*) keys->data) = DEFAULT_DOUBLE_VALUE;
+					*((double*) current_key->data) = DEFAULT_DOUBLE_VALUE;
 					break;
 				default:
 					break;
 				}
 			}
-
-			keys++;
+			current_key++;
 		}
 	}
 	free(keys_start);
