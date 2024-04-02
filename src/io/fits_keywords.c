@@ -274,6 +274,42 @@ int save_fits_keywords(fits *fit) {
 	return 0;
 }
 
+static void read_fits_date_obs_header(fits *fit) {
+	int status = 0;
+	char ut_start[FLEN_VALUE] = { 0 };
+	char date_obs[FLEN_VALUE] = { 0 };
+
+	fits_read_key(fit->fptr, TSTRING, "DATE-OBS", &date_obs, NULL, &status);
+
+	/* In some cases, date is divided in two:
+	 * - DATE-OBS
+	 * - TIME-OBS
+	 * We need to check if we find the "T" inside DATE-OBS.
+	 * If not, then try to check for TIME-OBS to get the time
+	 */
+	if (!g_strstr_len(date_obs, -1, "T")) {
+		status = 0;
+		char time_obs[FLEN_VALUE] = { 0 };
+		fits_read_key(fit->fptr, TSTRING, "TIME-OBS", &time_obs, NULL, &status);
+		if (!status) {
+			strcat(date_obs, "T");
+			strcat(date_obs, time_obs);
+		}
+	}
+
+	/** Case seen in some FITS files. Needed to get date back in SER conversion **/
+	status = 0;
+	fits_read_key(fit->fptr, TSTRING, "UT-START", &ut_start, NULL, &status);
+	if (status == 0 && ut_start[0] != '\0' && date_obs[2] == '/') {
+		int year, month, day;
+		if (sscanf(date_obs, "%02d/%02d/%04d", &day, &month, &year) == 3) {
+			g_snprintf(date_obs, sizeof(date_obs), "%04d-%02d-%02dT%s", year, month, day, ut_start);
+		}
+	}
+
+	fit->keywords.date_obs = FITS_date_to_date_time(date_obs);
+}
+
 int read_fits_keywords(fits *fit) {
 	KeywordInfo *keys = initialize_keywords(fit);
 	KeywordInfo *keys_start = keys;
@@ -296,6 +332,8 @@ int read_fits_keywords(fits *fit) {
 		fprintf(stdout, "ignoring BZERO\n");
 		fits_set_bscale(fit->fptr, 1.0, 0.0, &status);
 	}
+
+	read_fits_date_obs_header(fit);
 
 	fits_get_hdrspace(fit->fptr, &key_number, NULL, &status); /* get # of keywords */
 
@@ -324,7 +362,8 @@ int read_fits_keywords(fits *fit) {
 	    }
 
 	    KeywordInfo *current_key = keys_start;
-		while (current_key->group) {
+		gboolean value_set = FALSE; // Flag to indicate if a value was set
+		while (current_key->group && !value_set) {
 			if (current_key->fixed_value || fits_get_keyclass(card) == TYP_STRUC_KEY) {
 				/* if fixed value, we do not read it, we do not store it */
 				current_key++;
@@ -332,8 +371,7 @@ int read_fits_keywords(fits *fit) {
 			}
 			gchar** tokens = g_strsplit(current_key->key, ";", -1);
 			int n = g_strv_length(tokens);
-			gboolean value_set = FALSE; // Flag to indicate if a value was set
-			for (int i = 0; i < n; i++) {
+			for (int i = 0; i < n && !value_set; i++) {
 				if (g_strcmp0(tokens[i], keyname) == 0) {
 					int int_value;
 					guint uint_value;
@@ -351,14 +389,12 @@ int read_fits_keywords(fits *fit) {
 						if (sscanf(value, "%d", &int_value) == 1) {
 							*((int*) current_key->data) = int_value;
 							value_set = TRUE;
-							continue;
 						}
 						break;
 					case KTYPE_UINT:
 						if (sscanf(value, "%u", &uint_value) == 1) {
 							*((guint*) current_key->data) = uint_value;
 							value_set = TRUE;
-							continue;
 						}
 						break;
 					case KTYPE_USHORT:
@@ -371,14 +407,12 @@ int read_fits_keywords(fits *fit) {
 						if (sscanf(value, "%lf", &double_value) == 1) {
 							*((double*) current_key->data) = double_value;
 							value_set = TRUE;
-							continue;
 						}
 						break;
 					case KTYPE_STR:
 						str_value = g_shell_unquote(value, NULL);
 						strcpy((char*) current_key->data, str_value);
 						value_set = TRUE;
-						continue;
 						break;
 					case KTYPE_DATE:
 						str_value = g_shell_unquote(value, NULL);
@@ -386,7 +420,6 @@ int read_fits_keywords(fits *fit) {
 						if (date) {
 							*((GDateTime**) current_key->data) = date;
 							value_set = TRUE;
-							continue;
 						}
 						break;
 					default:
@@ -394,30 +427,49 @@ int read_fits_keywords(fits *fit) {
 					}
 				}
 			}
-			// If no value was set, set default value
-			if (!value_set) {
-				// Set default value based on key type
-				switch (current_key->type) {
-				case KTYPE_INT:
-					*((int*) current_key->data) = DEFAULT_INT_VALUE;
-					break;
-				case KTYPE_UINT:
-					*((guint*) current_key->data) = DEFAULT_UINT_VALUE;
-					break;
-				case KTYPE_USHORT:
-					*((gushort*) current_key->data) = DEFAULT_USHORT_VALUE;
-					break;
-				case KTYPE_DOUBLE:
-					*((double*) current_key->data) = DEFAULT_DOUBLE_VALUE;
-					break;
-				default:
-					break;
-				}
-			}
+//			// If no value was set, set default value
+//			if (!value_set) {
+//				// Set default value based on key type
+//				switch (current_key->type) {
+//				case KTYPE_INT:
+//					*((int*) current_key->data) = DEFAULT_INT_VALUE;
+//					break;
+//				case KTYPE_UINT:
+//					*((guint*) current_key->data) = DEFAULT_UINT_VALUE;
+//					break;
+//				case KTYPE_USHORT:
+//					*((gushort*) current_key->data) = DEFAULT_USHORT_VALUE;
+//					break;
+//				case KTYPE_DOUBLE:
+//					*((double*) current_key->data) = DEFAULT_DOUBLE_VALUE;
+//					break;
+//				default:
+//					break;
+//				}
+//			}
 			current_key++;
 		}
 	}
 	free(keys_start);
+
+	/** **/
+	// FIXME: FLENGTH should be handled
+	if (fit->keywords.pixel_size_x > 0.0) {
+		fit->pixelkey = TRUE;
+	}
+
+	if (fit->keywords.binning_x <= 0)
+		fit->keywords.binning_x = 1;
+	if (fit->keywords.binning_y <= 0)
+		fit->keywords.binning_y = 1;
+
+	if (!strcasecmp(fit->keywords.bayer_pattern, "NONE")) {
+		memset(fit->keywords.bayer_pattern, 0, sizeof(char) * FLEN_VALUE);
+	}
+
+	if (fit->keywords.focal_length > 0.0)
+		fit->focalkey = TRUE;
+
 	return 0;
 }
 
