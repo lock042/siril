@@ -513,6 +513,8 @@ static int apply_drz_save_hook(struct generic_seq_args *args, int out_index, int
 			retval1 = ser_write_frame_from_fit(driz->new_ser_drz, double_data->output, out_index);
 		}
 		if (double_data->pixel_count) {
+			float factor = max(1.f, (1.f / (driz->scale * driz->scale)));
+			soper(double_data->pixel_count, factor, OPER_MUL, FALSE);
 			fit_replace_buffer(	double_data->pixel_count,
 									float_buffer_to_ushort( double_data->output->fdata,
 															(double_data->output->rx *
@@ -528,10 +530,30 @@ static int apply_drz_save_hook(struct generic_seq_args *args, int out_index, int
 			free(fit);
 		}
 	} else if (args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) {
-		if (double_data->output)
+		if (double_data->output) {
+			if (com.pref.force_16bit) {
+				fit_replace_buffer(	double_data->output,
+									float_buffer_to_ushort( double_data->output->fdata,
+															(double_data->output->rx *
+															 double_data->output->ry *
+															 double_data->output->naxes[2])),
+									DATA_USHORT);
+			}
 			retval1 = fitseq_write_image(driz->new_fitseq_drz, double_data->output, out_index);
-		if (double_data->pixel_count)
+		}
+		if (double_data->pixel_count) {
+			if (com.pref.force_16bit) {
+				float factor = max(1.f, (1.f / (driz->scale * driz->scale)));
+				soper(double_data->pixel_count, factor, OPER_MUL, FALSE);
+				fit_replace_buffer(	double_data->pixel_count,
+									float_buffer_to_ushort( double_data->pixel_count->fdata,
+															(double_data->pixel_count->rx *
+															 double_data->pixel_count->ry *
+															 double_data->pixel_count->naxes[2])),
+									DATA_USHORT);
+			}
 			retval2 = fitseq_write_image(driz->new_fitseq_pxcnt, double_data->pixel_count, out_index);
+		}
 		// the two fits are freed by the writing thread
 		if (retval1 || retval2) {
 			/* special case because it's not done in the generic */
@@ -552,13 +574,22 @@ static int apply_drz_save_hook(struct generic_seq_args *args, int out_index, int
 			retval1 = savefits(dest, double_data->output);
 		}
 		free(dest);
-		driz->pixcnt_prefix = g_strdup_printf("oc_%s", driz->prefix);
-		dest = fit_sequence_get_image_filename_prefixed(args->seq, driz->pixcnt_prefix, in_index);
 		if (double_data->pixel_count) {
-			// No 16-bit conversion here, the output_counts is always float.
+			driz->pixcnt_prefix = g_strdup_printf("oc_%s", driz->prefix);
+			dest = fit_sequence_get_image_filename_prefixed(args->seq, driz->pixcnt_prefix, in_index);
+			if (com.pref.force_16bit) {
+				float factor = max(1.f, (1.f / (driz->scale * driz->scale)));
+				soper(double_data->pixel_count, factor, OPER_MUL, FALSE);
+				fit_replace_buffer(	double_data->pixel_count,
+									float_buffer_to_ushort( double_data->pixel_count->fdata,
+															(double_data->pixel_count->rx *
+															 double_data->pixel_count->ry *
+															 double_data->pixel_count->naxes[2])),
+									DATA_USHORT);
+			}
 			retval2 = savefits(dest, double_data->pixel_count);
+			free(dest);
 		}
-		free(dest);
 	}
 	if (!driz->new_fitseq_drz && !driz->new_ser_drz) { // detect if there is a seqwriter
 		clearfits(double_data->output);

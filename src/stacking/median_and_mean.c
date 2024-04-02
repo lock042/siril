@@ -106,9 +106,7 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 					}
 
 					fptr = args->pixcnt->fptr[image_index];
-					int pixel_count_bitpix =-32;
-					if (check_fits_params(fptr, &pixel_count_bitpix, naxis, naxes)) {
-						// old_bitpix == -32 as the pixel_count sequences are always float
+					if (check_fits_params(fptr, bitpix, naxis, naxes)) {
 						siril_log_message(_("Opening pixel_count image %d failed\n"), image_index);
 						return ST_SEQUENCE_ERROR;
 					}
@@ -302,7 +300,6 @@ static int stack_read_block_data(struct stacking_args *args,
 		int thread_id) {
 
 	int ielem_size = itype == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
-	const int pixcnt_elem_size = sizeof(float);
 	/* store the layer info to retrieve normalization coeffs*/
 	data->layer = (int)my_block->channel;
 	if (pixcnt_data)
@@ -360,7 +357,7 @@ static int stack_read_block_data(struct stacking_args *args,
 				size_t len = my_block->height * naxes[0] * ielem_size;
 				memset(data->pix[frame], 0, len);
 				if (pixcnt_data) {
-					size_t pixcnt_len = my_block->height * naxes[0] * pixcnt_elem_size;
+					size_t pixcnt_len = my_block->height * naxes[0] * ielem_size;
 					memset(pixcnt_data->pix[frame], 0, pixcnt_len);
 				}
 			}
@@ -377,7 +374,11 @@ static int stack_read_block_data(struct stacking_args *args,
 					args->image_indices[frame], buffer, &area, thread_id);
 			int retval2 = 0;
 			if (pixcnt_data) {
-				void *buffer2 = ((float*)pixcnt_data->pix[frame]) + offset;
+				void *buffer2;
+				if (itype == DATA_FLOAT)
+					buffer2 = ((float*)pixcnt_data->pix[frame])+offset;
+				else
+					buffer2 = ((WORD *)pixcnt_data->pix[frame])+offset;
 				retval2 = seq_opened_read_region(args->pixcnt, my_block->channel,
 					args->image_indices[frame], buffer2, &area, thread_id);
 			}
@@ -560,10 +561,10 @@ static int apply_rejection_ushort(struct _data_block *data, struct _data_block *
 	WORD *w_stack = (WORD *)data->w_stack;
 	int *rejected = (int *)data->rejected;
 	WORD *o_stack = (WORD *)data->o_stack;
-	float *pixcnt_stack, *pixcnt_o_stack;
+	WORD *pixcnt_stack, *pixcnt_o_stack;
 	if (pixcnt_data) {
-		pixcnt_stack = (float *) pixcnt_data->stack;
-		pixcnt_o_stack = (float *) pixcnt_data->o_stack;
+		pixcnt_stack = (WORD *) pixcnt_data->stack;
+		pixcnt_o_stack = (WORD *) pixcnt_data->o_stack;
 		memcpy(pixcnt_o_stack, pixcnt_stack, N * sizeof(float));
 	}
 
@@ -842,8 +843,7 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 
 				for (int frame = 0; frame < stack_size; ++frame) {
 					WORD val = ((WORD*)data->o_stack)[frame];
-					float pixcnt_val = pixcnt_data ? ((float*)pixcnt_data->stack)[frame] : 1.f;
-					// TODO: check I'm doing the sorting right, it works if I use pixcnt_data->stack but shouldn't it be pixcnt_data->o_stack like val?
+					float pixcnt_val = pixcnt_data ? (float) ((WORD*)pixcnt_data->stack)[frame] : 1.f;
 					if (val >= pmin && val <= pmax && val > 0) {
 						sum += (float)val * pweights[frame] * pixcnt_val;
 						norm += pweights[frame] * pixcnt_val;
