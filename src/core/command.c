@@ -131,6 +131,7 @@
 #include "command_line_processor.h"
 
 #define PRINT_DEPRECATED_WARNING(__new_function__) siril_log_color_message(_("This command is deprecated: %s should be used instead.\n"), "red", __new_function__)
+#define PRINT_DEPRECATED_OPTION_WARNING(__option__, __new_function__) siril_log_color_message(_("The %s option is deprecated: %s should be used instead.\n"), "red", __option__, __new_function__)
 
 /* process_command functions take the number of arguments (like argc) as
  * parameter and will be able to access the equivalent of argv with `word'
@@ -6824,6 +6825,7 @@ int process_register(int nb) {
 	for (int i = 2; i < nb; i++) {
 		if (!strcmp(word[i], "-drizzle")) {
 			reg_args->x2upscale = TRUE;
+			PRINT_DEPRECATED_OPTION_WARNING("-drizzle", _("the seqapplydrizzle command"));
 		} else if (!strcmp(word[i], "-noout")) {
 			reg_args->no_output = TRUE;
 		} else if (!strcmp(word[i], "-noclamp")) {
