@@ -47,8 +47,8 @@ static gboolean should_use_keyword(const fits *fit, const gchar *keyword) {
 KeywordInfo *initialize_keywords(fits *fit) {
 	KeywordInfo keyword_list[] = {
 			// FIXME: add MIPS keywords
-        KEYWORD( "image", "BZERO", KTYPE_DOUBLE, "Offset data range to that of unsigned short", &(fit->keywords.bzero)),
-        KEYWORD( "image", "BSCALE", KTYPE_DOUBLE, "Default scaling factor", &(fit->keywords.bscale)),
+	    KEYWORD( "image", "MIPS-HI", KTYPE_USHORT, "Upper visualization cutoff", &(fit->keywords.hi)),
+	    KEYWORD( "image", "MIPS-LO", KTYPE_USHORT, "Lower visualization cutoff", &(fit->keywords.lo)),
         KEYWORD( "image", "ROWORDER", KTYPE_STR, "Order of the rows in image array", &(fit->keywords.row_order)),
         KEYWORD( "setup", "INSTRUME", KTYPE_STR, "Instrument name", &(fit->keywords.instrume)),
         KEYWORD( "setup", "TELESCOP", KTYPE_STR, "Telescope used to acquire this image", &(fit->keywords.telescop)),
@@ -107,7 +107,7 @@ KeywordInfo *initialize_keywords(fits *fit) {
     // Allocate memory dynamically for the keyword array
 	KeywordInfo *all_keywords = (KeywordInfo*) malloc((num_keywords + 1) * sizeof(KeywordInfo));
 
-    // Copy keyword information from the list to the dynamic array
+    // Copy keyword information from the list to the dynamic array and set if keyword must be used
 	for (int i = 0; i < num_keywords; i++) {
 		all_keywords[i] = keyword_list[i];
 		all_keywords[i].is_used = should_use_keyword(fit, keyword_list[i].key);
@@ -124,8 +124,33 @@ int save_fits_keywords(fits *fit) {
 	KeywordInfo *keys_start = keys;
 	int status;
 	gchar *str;
-	double dbl;
+	ushort us;
+	double dbl, zero, scale;
 	GDateTime *date;
+
+	/* Let's start by most important keywords */
+	switch (fit->bitpix) {
+	case BYTE_IMG:
+	case SHORT_IMG:
+		zero = 0.0;
+		scale = 1.0;
+		break;
+	case FLOAT_IMG:
+		zero = 0.0;
+		scale = 1.0;
+		break;
+	default:
+	case USHORT_IMG:
+		zero = 32768.0;
+		scale = 1.0;
+		break;
+	}
+	status = 0;
+	fits_update_key(fit->fptr, TDOUBLE, "BZERO", &zero, "Offset data range to that of unsigned short", &status);
+
+	status = 0;
+	fits_update_key(fit->fptr, TDOUBLE, "BSCALE", &scale, "Default scaling factor",	&status);
+
 	while (keys->group) {
 		if (!keys->is_used) {
 			keys++;
@@ -143,7 +168,10 @@ int save_fits_keywords(fits *fit) {
 				break;
 			case KTYPE_USHORT:
 				status = 0;
-				fits_update_key(fit->fptr, TUSHORT, tokens[0], &(*((int*)keys->data)), keys->comment, &status);
+				us = (*((int*)keys->data));
+				if (us) {
+					fits_update_key(fit->fptr, TUSHORT, tokens[0], &us, keys->comment, &status);
+				}
 				break;
 			case KTYPE_DOUBLE:
 				status = 0;
@@ -208,6 +236,7 @@ int save_fits_keywords(fits *fit) {
 
 int read_fits_keywords(fits *fit) {
 	KeywordInfo *keys = initialize_keywords(fit);
+	KeywordInfo *keys_start = keys;
 	int status = 0;
 	int key_number = 1;
 	while (1) {
@@ -224,54 +253,60 @@ int read_fits_keywords(fits *fit) {
 		fits_parse_value(card, value, NULL, &status);
 		fits_get_keytype(value, &type, &status);
 
-		for (int i = 0; keys[i].group != NULL; i++) {
-			if (strcmp(keys[i].key, keyname) == 0) {
-				int int_value = 0;
-				guint uint_value = 0;
-				ushort ushort_value = 0;
-				double double_value = DBL_FLAG;
-				char str_value[FLEN_VALUE] = { 0 };
+		while (keys->group) {
+			gchar** tokens = g_strsplit(keys->key, ";", -1);
+			int n = g_strv_length(tokens);
+			for (int i = 0; i < n; i++) {
+				if (strcmp(tokens[i], keyname) == 0) {
+					int int_value = 0;
+					guint uint_value = 0;
+					ushort ushort_value = 0;
+					double double_value = DBL_FLAG;
+					char str_value[FLEN_VALUE] = { 0 };
 
-				switch (keys[i].type) {
-				case KTYPE_INT:
-					status = 0;
-					fits_read_key(fit->fptr, TINT, keyname, &int_value, NULL, &status);
-					*((int*) keys[i].data) = int_value;
-					break;
-				case KTYPE_UINT:
-					status = 0;
-					fits_read_key(fit->fptr, TUINT, keyname, &uint_value, NULL, &status);
-					*((guint*) keys[i].data) = uint_value;
-					break;
-				case KTYPE_USHORT:
-					status = 0;
-					fits_read_key(fit->fptr, TUSHORT, keyname, &ushort_value, NULL, &status);
-					*((ushort*) keys[i].data) = ushort_value;
-					break;
-				case KTYPE_DOUBLE:
-					status = 0;
-					fits_read_key(fit->fptr, TDOUBLE, keyname, &double_value, NULL, &status);
-					if (status == KEY_NO_EXIST) {
-						double_value = DBL_FLAG;
+					switch (keys->type) {
+					case KTYPE_INT:
+						status = 0;
+						fits_read_key(fit->fptr, TINT, keyname, &int_value, NULL, &status);
+						*((int*) keys->data) = int_value;
+						break;
+					case KTYPE_UINT:
+						status = 0;
+						fits_read_key(fit->fptr, TUINT, keyname, &uint_value, NULL, &status);
+						*((guint*) keys->data) = uint_value;
+						break;
+					case KTYPE_USHORT:
+						status = 0;
+						fits_read_key(fit->fptr, TUSHORT, keyname, &ushort_value, NULL, &status);
+						*((ushort*) keys->data) = ushort_value;
+						break;
+					case KTYPE_DOUBLE:
+						status = 0;
+						fits_read_key(fit->fptr, TDOUBLE, keyname, &double_value, NULL, &status);
+						if (status == KEY_NO_EXIST) {
+							double_value = DBL_FLAG;
+						}
+						*((double*) keys->data) = double_value;
+						break;
+					case KTYPE_STR:
+						status = 0;
+						fits_read_key(fit->fptr, TSTRING, keyname, str_value, NULL, &status);
+						strcpy((char*) keys->data, str_value);
+						break;
+					case KTYPE_DATE:
+						status = 0;
+						fits_read_key(fit->fptr, TSTRING, keyname, str_value, NULL, &status);
+						// FIXME: convert to GDateTime
+						break;
+					default:
+						break;
 					}
-					*((double*) keys[i].data) = double_value;
-					break;
-				case KTYPE_STR:
-					status = 0;
-					fits_read_key(fit->fptr, TSTRING, keyname, str_value, NULL, &status);
-					strcpy((char*) keys[i].data, str_value);
-					break;
-				case KTYPE_DATE:
-					status = 0;
-					fits_read_key(fit->fptr, TSTRING, keyname, str_value, NULL, &status);
-					// FIXME: convert to GDateTime
-					break;
-				default:
 					break;
 				}
-				break;
 			}
+			keys++;
 		}
+		free(keys_start);
 	}
 	return 0;
 }

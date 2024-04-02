@@ -1673,7 +1673,8 @@ void get_date_data_from_fitsfile(fitsfile *fptr, GDateTime **dt, double *exposur
 int import_metadata_from_fitsfile(fitsfile *fptr, fits *to) {
 	fits from = { 0 };
 	from.fptr = fptr;
-	read_fits_header(&from);
+//	read_fits_header(&from);
+	read_fits_keywords(&from);
 	copy_fits_metadata(&from, to);
 	clearfits(&from);
 	return 0;
