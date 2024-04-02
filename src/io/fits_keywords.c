@@ -48,29 +48,30 @@ static gboolean should_use_keyword(const fits *fit, const gchar *group, const gc
         return fit->naxes[2] > 1;
     } else if (g_strcmp0(keyword, "DFTNORM3") == 0) {
         return fit->naxes[2] > 1;
-    } else if (g_strcmp0(keyword, "CTYPE3") == 0) {
-        return (fit->naxes[2] > 1  && com.pref.rgb_aladin);
-    } else if (g_strcmp0(keyword, "CDELT1") == 0) {
-        return (use_keyword && com.pref.wcs_formalism == WCS_FORMALISM_1);
-    } else if (g_strcmp0(keyword, "CDELT2") == 0) {
-        return (use_keyword && com.pref.wcs_formalism == WCS_FORMALISM_1);
-    } else if (g_strcmp0(keyword, "PC1_1") == 0) {
-        return (use_keyword && com.pref.wcs_formalism == WCS_FORMALISM_1);
-    } else if (g_strcmp0(keyword, "PC1_2") == 0) {
-        return (use_keyword && com.pref.wcs_formalism == WCS_FORMALISM_1);
-    } else if (g_strcmp0(keyword, "PC2_1") == 0) {
-        return (use_keyword && com.pref.wcs_formalism == WCS_FORMALISM_1);
-    } else if (g_strcmp0(keyword, "PC2_2") == 0) {
-        return (use_keyword && com.pref.wcs_formalism == WCS_FORMALISM_1);
-    } else if (g_strcmp0(keyword, "CD1_1") == 0) {
-        return (use_keyword && com.pref.wcs_formalism == WCS_FORMALISM_2);
-    } else if (g_strcmp0(keyword, "CD1_2") == 0) {
-        return (use_keyword && com.pref.wcs_formalism == WCS_FORMALISM_2);
-    } else if (g_strcmp0(keyword, "CD2_1") == 0) {
-        return (use_keyword && com.pref.wcs_formalism == WCS_FORMALISM_2);
-    } else if (g_strcmp0(keyword, "CD2_2") == 0) {
-        return (use_keyword && com.pref.wcs_formalism == WCS_FORMALISM_2);
     }
+//    else if (g_strcmp0(keyword, "CTYPE3") == 0) {
+//        return (fit->naxes[2] > 1  && com.pref.rgb_aladin);
+//    } else if (g_strcmp0(keyword, "CDELT1") == 0) {
+//        return (use_keyword && com.pref.wcs_formalism == WCS_FORMALISM_1);
+//    } else if (g_strcmp0(keyword, "CDELT2") == 0) {
+//        return (use_keyword && com.pref.wcs_formalism == WCS_FORMALISM_1);
+//    } else if (g_strcmp0(keyword, "PC1_1") == 0) {
+//        return (use_keyword && com.pref.wcs_formalism == WCS_FORMALISM_1);
+//    } else if (g_strcmp0(keyword, "PC1_2") == 0) {
+//        return (use_keyword && com.pref.wcs_formalism == WCS_FORMALISM_1);
+//    } else if (g_strcmp0(keyword, "PC2_1") == 0) {
+//        return (use_keyword && com.pref.wcs_formalism == WCS_FORMALISM_1);
+//    } else if (g_strcmp0(keyword, "PC2_2") == 0) {
+//        return (use_keyword && com.pref.wcs_formalism == WCS_FORMALISM_1);
+//    } else if (g_strcmp0(keyword, "CD1_1") == 0) {
+//        return (use_keyword && com.pref.wcs_formalism == WCS_FORMALISM_2);
+//    } else if (g_strcmp0(keyword, "CD1_2") == 0) {
+//        return (use_keyword && com.pref.wcs_formalism == WCS_FORMALISM_2);
+//    } else if (g_strcmp0(keyword, "CD2_1") == 0) {
+//        return (use_keyword && com.pref.wcs_formalism == WCS_FORMALISM_2);
+//    } else if (g_strcmp0(keyword, "CD2_2") == 0) {
+//        return (use_keyword && com.pref.wcs_formalism == WCS_FORMALISM_2);
+//    }
 
     return use_keyword;
 }
@@ -125,26 +126,26 @@ KeywordInfo *initialize_keywords(fits *fit) {
         KEYWORD( "wcsdata",   "OBJCTDEC", KTYPE_STR, "Image center Declination (dms)", &(fit->keywords.wcsdata.objctdec)),
         KEYWORD( "wcsdata",   "RA", KTYPE_DOUBLE, "Image center Right Ascension (deg)", &(fit->keywords.wcsdata.ra)),
         KEYWORD( "wcsdata",   "DEC", KTYPE_DOUBLE, "Image center Declination (deg)", &(fit->keywords.wcsdata.dec)),
-//        KEYWORD( "wcslib",   "CTYPE1", KTYPE_STR, "TAN (gnomic) projection", "RA---TAN"), // FIXME: handle both version of comments
-//        KEYWORD( "wcslib",   "CTYPE2", KTYPE_STR, "TAN (gnomic) projection", "DEC---TAN"), // FIXME: handle both version of comments
-		KEYWORD_FIXED( "wcslib", "CUNIT1", KTYPE_STR, "Unit of coordinates", "deg"),
-		KEYWORD_FIXED( "wcslib", "CUNIT1", KTYPE_STR, "Unit of coordinates", "deg"),
-//        KEYWORD( "wcslib", "EQUINOX", KTYPE_DOUBLE, "Equatorial equinox", &(fit->keywords.wcslib->equinox)),
-//        KEYWORD( "wcslib", "CRPIX1", KTYPE_DOUBLE, "Axis1 reference pixel", &(fit->keywords.wcslib->crpix[0])),
-//        KEYWORD( "wcslib", "CRPIX2", KTYPE_DOUBLE, "Axis2 reference pixel", &(fit->keywords.wcslib->crpix[1])),
-//        KEYWORD( "wcslib", "CRVAL1", KTYPE_DOUBLE, "Axis1 reference value (deg)", &(fit->keywords.wcslib->crval[0])),
-//        KEYWORD( "wcslib", "CRVAL2", KTYPE_DOUBLE, "Axis2 reference value (deg)", &(fit->keywords.wcslib->crval[1])),
-//        KEYWORD( "wcslib", "LONPOLE", KTYPE_DOUBLE, "Native longitude of celestial pole", &(fit->keywords.wcslib->lonpole)),
-//        KEYWORD( "wcslib", "CDELT1", KTYPE_DOUBLE, "X pixel size (deg)", &(fit->keywords.wcslib->cdelt[0])),
-//        KEYWORD( "wcslib", "CDELT2", KTYPE_DOUBLE, "X pixel size (deg)", &(fit->keywords.wcslib->cdelt[1])),
-//        KEYWORD( "wcslib", "PC1_1", KTYPE_DOUBLE, "Linear transformation matrix (1, 1)", &(fit->keywords.wcslib->pc[0])),
-//        KEYWORD( "wcslib", "PC1_2", KTYPE_DOUBLE, "Linear transformation matrix (1, 2)", &(fit->keywords.wcslib->pc[1])),
-//        KEYWORD( "wcslib", "PC2_1", KTYPE_DOUBLE, "Linear transformation matrix (2, 1)", &(fit->keywords.wcslib->pc[2])),
-//        KEYWORD( "wcslib", "PC2_2", KTYPE_DOUBLE, "Linear transformation matrix (2, 2)", &(fit->keywords.wcslib->pc[3])),
-//        KEYWORD( "wcslib", "CD1_1", KTYPE_DOUBLE, "Scale matrix (1, 1)", &(fit->keywords.wcslib->cd[0])),
-//        KEYWORD( "wcslib", "CD1_2", KTYPE_DOUBLE, "Scale matrix (1, 2)", &(fit->keywords.wcslib->cd[1])),
-//        KEYWORD( "wcslib", "CD2_1", KTYPE_DOUBLE, "Scale matrix (2, 1)", &(fit->keywords.wcslib->cd[2])),
-//        KEYWORD( "wcslib", "CD2_2", KTYPE_DOUBLE, "Scale matrix (2, 2)", &(fit->keywords.wcslib->cd[3])),
+//      KEYWORD( "wcslib",   "CTYPE1", KTYPE_STR, "TAN (gnomic) projection", "RA---TAN"), // FIXME: handle both version of comments
+//      KEYWORD( "wcslib",   "CTYPE2", KTYPE_STR, "TAN (gnomic) projection", "DEC---TAN"), // FIXME: handle both version of comments
+//		KEYWORD_FIXED( "wcslib", "CUNIT1", KTYPE_STR, "Unit of coordinates", "deg"),
+//		KEYWORD_FIXED( "wcslib", "CUNIT1", KTYPE_STR, "Unit of coordinates", "deg"),
+//      KEYWORD( "wcslib", "EQUINOX", KTYPE_DOUBLE, "Equatorial equinox", &(fit->keywords.wcslib->equinox)),
+//      KEYWORD( "wcslib", "CRPIX1", KTYPE_DOUBLE, "Axis1 reference pixel", &(fit->keywords.wcslib->crpix[0])),
+//      KEYWORD( "wcslib", "CRPIX2", KTYPE_DOUBLE, "Axis2 reference pixel", &(fit->keywords.wcslib->crpix[1])),
+//      KEYWORD( "wcslib", "CRVAL1", KTYPE_DOUBLE, "Axis1 reference value (deg)", &(fit->keywords.wcslib->crval[0])),
+//      KEYWORD( "wcslib", "CRVAL2", KTYPE_DOUBLE, "Axis2 reference value (deg)", &(fit->keywords.wcslib->crval[1])),
+//      KEYWORD( "wcslib", "LONPOLE", KTYPE_DOUBLE, "Native longitude of celestial pole", &(fit->keywords.wcslib->lonpole)),
+//      KEYWORD( "wcslib", "CDELT1", KTYPE_DOUBLE, "X pixel size (deg)", &(fit->keywords.wcslib->cdelt[0])),
+//      KEYWORD( "wcslib", "CDELT2", KTYPE_DOUBLE, "X pixel size (deg)", &(fit->keywords.wcslib->cdelt[1])),
+//      KEYWORD( "wcslib", "PC1_1", KTYPE_DOUBLE, "Linear transformation matrix (1, 1)", &(fit->keywords.wcslib->pc[0])),
+//      KEYWORD( "wcslib", "PC1_2", KTYPE_DOUBLE, "Linear transformation matrix (1, 2)", &(fit->keywords.wcslib->pc[1])),
+//      KEYWORD( "wcslib", "PC2_1", KTYPE_DOUBLE, "Linear transformation matrix (2, 1)", &(fit->keywords.wcslib->pc[2])),
+//      KEYWORD( "wcslib", "PC2_2", KTYPE_DOUBLE, "Linear transformation matrix (2, 2)", &(fit->keywords.wcslib->pc[3])),
+//      KEYWORD( "wcslib", "CD1_1", KTYPE_DOUBLE, "Scale matrix (1, 1)", &(fit->keywords.wcslib->cd[0])),
+//      KEYWORD( "wcslib", "CD1_2", KTYPE_DOUBLE, "Scale matrix (1, 2)", &(fit->keywords.wcslib->cd[1])),
+//      KEYWORD( "wcslib", "CD2_1", KTYPE_DOUBLE, "Scale matrix (2, 1)", &(fit->keywords.wcslib->cd[2])),
+//      KEYWORD( "wcslib", "CD2_2", KTYPE_DOUBLE, "Scale matrix (2, 2)", &(fit->keywords.wcslib->cd[3])),
 
 		{NULL, NULL, KTYPE_BOOL, NULL, NULL, FALSE, TRUE}
     };
@@ -379,32 +380,33 @@ int read_fits_keywords(fits *fit) {
 					double double_value;
 					gchar *str_value;
 					GDateTime *date;
-
-					if ((g_strcmp0("XPIXSZ", keyname) == 0)  && (g_strcmp0("XPIXSZ", tokens[i]) == 0)) {
-						printf("stop\n");
-					}
+					char *end;
 
 					switch (current_key->type) {
 					case KTYPE_INT:
-						if (sscanf(value, "%d", &int_value) == 1) {
+						int_value = g_ascii_strtoll(value, &end, 10);
+						if (value != end) {
 							*((int*) current_key->data) = int_value;
 							value_set = TRUE;
 						}
 						break;
 					case KTYPE_UINT:
-						if (sscanf(value, "%u", &uint_value) == 1) {
+						uint_value = g_ascii_strtoll(value, &end, 10);
+						if (value != end) {
 							*((guint*) current_key->data) = uint_value;
 							value_set = TRUE;
 						}
 						break;
 					case KTYPE_USHORT:
-						if (sscanf(value, "%hu", &ushort_value) == 1) {
+						ushort_value = g_ascii_strtoll(value, &end, 10);
+						if (value != end) {
 							*((gushort*) current_key->data) = ushort_value;
 							value_set = TRUE;
 						}
 						break;
 					case KTYPE_DOUBLE:
-						if (sscanf(value, "%lf", &double_value) == 1) {
+						double_value = g_ascii_strtod(value, &end);
+						if (value != end) {
 							*((double*) current_key->data) = double_value;
 							value_set = TRUE;
 						}
@@ -414,19 +416,21 @@ int read_fits_keywords(fits *fit) {
 						strcpy((char*) current_key->data, str_value);
 						value_set = TRUE;
 						break;
-					case KTYPE_DATE:
-						str_value = g_shell_unquote(value, NULL);
-						date = FITS_date_to_date_time(str_value);
-						if (date) {
-							*((GDateTime**) current_key->data) = date;
-							value_set = TRUE;
-						}
-						break;
+//					case KTYPE_DATE:
+//						str_value = g_shell_unquote(value, NULL);
+//						date = FITS_date_to_date_time(str_value);
+//						if (date) {
+//							*((GDateTime**) current_key->data) = date;
+//							value_set = TRUE;
+//						}
+//						break;
 					default:
 						break;
 					}
 				}
 			}
+
+			g_strfreev(tokens);
 //			// If no value was set, set default value
 //			if (!value_set) {
 //				// Set default value based on key type
@@ -452,7 +456,7 @@ int read_fits_keywords(fits *fit) {
 	}
 	free(keys_start);
 
-	/** **/
+	/** Finalize **/
 	// FIXME: FLENGTH should be handled
 	if (fit->keywords.pixel_size_x > 0.0) {
 		fit->pixelkey = TRUE;

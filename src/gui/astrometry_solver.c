@@ -277,13 +277,13 @@ static gboolean is_autocrop_activated() {
 }
 
 static void update_pixel_size() {
-	float pixel = gfit.keywords.pixel_size_x > gfit.keywords.pixel_size_y ? gfit.keywords.pixel_size_x : gfit.keywords.pixel_size_y;
+	double pixel = gfit.keywords.pixel_size_x > gfit.keywords.pixel_size_y ? gfit.keywords.pixel_size_x : gfit.keywords.pixel_size_y;
 	if (com.pref.binning_update && gfit.keywords.binning_x > 1) {
 		pixel *= gfit.keywords.binning_x;
 	}
 
-	if (pixel > 0.f) {
-		gchar *cpixels = g_strdup_printf("%.2lf", (double) pixel);
+	if (pixel > 0.0) {
+		gchar *cpixels = g_strdup_printf("%.2lf", pixel);
 		gtk_entry_set_text(pixelentry, cpixels);
 		g_free(cpixels);
 		has_pixel = gfit.pixelkey;
