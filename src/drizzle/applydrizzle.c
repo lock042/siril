@@ -504,23 +504,27 @@ static int apply_drz_save_hook(struct generic_seq_args *args, int out_index, int
 	int retval1 = 0, retval2 = 0;
 	if (args->force_ser_output || args->seq->type == SEQ_SER) {
 		if (double_data->output) {
-			fit_replace_buffer(	double_data->output,
+			if (double_data->output->type != DATA_USHORT) {
+				fit_replace_buffer(	double_data->output,
 									float_buffer_to_ushort( double_data->output->fdata,
 															(double_data->output->rx *
 															 double_data->output->ry *
 															 double_data->output->naxes[2])),
 									DATA_USHORT);
+			}
 			retval1 = ser_write_frame_from_fit(driz->new_ser_drz, double_data->output, out_index);
 		}
 		if (double_data->pixel_count) {
 			float factor = max(1.f, (1.f / (driz->scale * driz->scale)));
 			soper(double_data->pixel_count, factor, OPER_MUL, FALSE);
-			fit_replace_buffer(	double_data->pixel_count,
-									float_buffer_to_ushort( double_data->output->fdata,
-															(double_data->output->rx *
-															 double_data->output->ry *
-															 double_data->output->naxes[2])),
+			if (double_data->pixel_count->type != DATA_USHORT) {
+				fit_replace_buffer(	double_data->pixel_count,
+									float_buffer_to_ushort( double_data->pixel_count->fdata,
+															(double_data->pixel_count->rx *
+															 double_data->pixel_count->ry *
+															 double_data->pixel_count->naxes[2])),
 									DATA_USHORT);
+			}
 			retval2 = ser_write_frame_from_fit(driz->new_ser_pxcnt, double_data->pixel_count, out_index);
 		}
 		// the two fits are freed by the writing thread
@@ -531,7 +535,7 @@ static int apply_drz_save_hook(struct generic_seq_args *args, int out_index, int
 		}
 	} else if (args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) {
 		if (double_data->output) {
-			if (com.pref.force_16bit) {
+			if (com.pref.force_16bit && double_data->output->type != DATA_USHORT) {
 				fit_replace_buffer(	double_data->output,
 									float_buffer_to_ushort( double_data->output->fdata,
 															(double_data->output->rx *
@@ -542,7 +546,7 @@ static int apply_drz_save_hook(struct generic_seq_args *args, int out_index, int
 			retval1 = fitseq_write_image(driz->new_fitseq_drz, double_data->output, out_index);
 		}
 		if (double_data->pixel_count) {
-			if (com.pref.force_16bit) {
+			if (double_data->output->type == DATA_USHORT) {
 				float factor = max(1.f, (1.f / (driz->scale * driz->scale)));
 				soper(double_data->pixel_count, factor, OPER_MUL, FALSE);
 				fit_replace_buffer(	double_data->pixel_count,
