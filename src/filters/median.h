@@ -16,6 +16,7 @@ struct median_filter_data {
 gpointer median_filter(gpointer p);
 
 void median_roi_callback();
+void median_close();
 double get_median_ushort(const WORD *buf, const int xx, const int yy, const int w,
 		const int h, int radius, gboolean is_cfa, gboolean include_self);
 double get_median_float(const float *buf, const int xx, const int yy, const int w,
