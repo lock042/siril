@@ -21,15 +21,23 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_date.h"
+#include "algos/siril_wcs.h"
+
 
 #include "fits_keywords.h"
 
 #define DBL_FLAG -999.0
 
-#define KEYWORD(group, key, type, comment, data) { group, key, type, comment, data, TRUE }
+#define KEYWORD(group, key, type, comment, data) { group, key, type, comment, data, TRUE, FALSE }
+#define KEYWORD_FIXED(group, key, type, comment, data) { group, key, type, comment, data, TRUE, TRUE }
 
-static gboolean should_use_keyword(const fits *fit, const gchar *keyword) {
-    if (g_strcmp0(keyword, "XBAYROFF") == 0) {
+static gboolean should_use_keyword(const fits *fit, const gchar *group, const gchar *keyword) {
+	gboolean use_keyword = TRUE;
+	if (g_strcmp0(group, "wcslib") == 0) {
+		use_keyword = (fit->keywords.wcslib != NULL);
+	}
+
+	if (g_strcmp0(keyword, "XBAYROFF") == 0) {
         return fit->keywords.bayer_pattern[0] != '\0';
     } else if (g_strcmp0(keyword, "YBAYROFF") == 0) {
         return fit->keywords.bayer_pattern[0] != '\0';
@@ -39,9 +47,29 @@ static gboolean should_use_keyword(const fits *fit, const gchar *keyword) {
         return fit->naxes[2] > 1;
     } else if (g_strcmp0(keyword, "CTYPE3") == 0) {
         return (fit->naxes[2] > 1  && com.pref.rgb_aladin);
+    } else if (g_strcmp0(keyword, "CDELT1") == 0) {
+        return (use_keyword && com.pref.wcs_formalism == WCS_FORMALISM_1);
+    } else if (g_strcmp0(keyword, "CDELT2") == 0) {
+        return (use_keyword && com.pref.wcs_formalism == WCS_FORMALISM_1);
+    } else if (g_strcmp0(keyword, "PC1_1") == 0) {
+        return (use_keyword && com.pref.wcs_formalism == WCS_FORMALISM_1);
+    } else if (g_strcmp0(keyword, "PC1_2") == 0) {
+        return (use_keyword && com.pref.wcs_formalism == WCS_FORMALISM_1);
+    } else if (g_strcmp0(keyword, "PC2_1") == 0) {
+        return (use_keyword && com.pref.wcs_formalism == WCS_FORMALISM_1);
+    } else if (g_strcmp0(keyword, "PC2_2") == 0) {
+        return (use_keyword && com.pref.wcs_formalism == WCS_FORMALISM_1);
+    } else if (g_strcmp0(keyword, "CD1_1") == 0) {
+        return (use_keyword && com.pref.wcs_formalism == WCS_FORMALISM_2);
+    } else if (g_strcmp0(keyword, "CD1_2") == 0) {
+        return (use_keyword && com.pref.wcs_formalism == WCS_FORMALISM_2);
+    } else if (g_strcmp0(keyword, "CD2_1") == 0) {
+        return (use_keyword && com.pref.wcs_formalism == WCS_FORMALISM_2);
+    } else if (g_strcmp0(keyword, "CD2_2") == 0) {
+        return (use_keyword && com.pref.wcs_formalism == WCS_FORMALISM_2);
     }
 
-    return TRUE;
+    return use_keyword;
 }
 
 KeywordInfo *initialize_keywords(fits *fit) {
@@ -87,15 +115,35 @@ KeywordInfo *initialize_keywords(fits *fit) {
         KEYWORD( "dft",   "DFTNORM1", KTYPE_DOUBLE, "Normalisation value for channel #1", &(fit->keywords.dft.norm[0])),
         KEYWORD( "dft",   "DFTNORM2", KTYPE_DOUBLE, "Normalisation value for channel #2", &(fit->keywords.dft.norm[1])),
         KEYWORD( "dft",   "DFTNORM3", KTYPE_DOUBLE, "Normalisation value for channel #3", &(fit->keywords.dft.norm[2])),
-        KEYWORD( "image", "PROGRAMM", KTYPE_STR, "Software that created this HDU", "Siril "PACKAGE_VERSION),
+		KEYWORD_FIXED( "image", "PROGRAMM", KTYPE_STR, "Software that created this HDU", "Siril "PACKAGE_VERSION),
 
-        KEYWORD( "wcs",   "CTYPE3", KTYPE_STR, "RGB image", "RGB"),
-        KEYWORD( "wcs",   "OBJCTRA", KTYPE_STR, "Image center Right Ascension (hms)", &(fit->keywords.wcsdata.objctra)),
-        KEYWORD( "wcs",   "OBJCTDEC", KTYPE_STR, "Image center Declination (dms)", &(fit->keywords.wcsdata.objctdec)),
-        KEYWORD( "wcs",   "RA", KTYPE_DOUBLE, "Image center Right Ascension (deg)", &(fit->keywords.wcsdata.ra)),
-        KEYWORD( "wcs",   "DEC", KTYPE_DOUBLE, "Image center Declination (deg)", &(fit->keywords.wcsdata.dec)),
+		KEYWORD_FIXED( "wcsdata",   "CTYPE3", KTYPE_STR, "RGB image", "RGB"),
+        KEYWORD( "wcsdata",   "OBJCTRA", KTYPE_STR, "Image center Right Ascension (hms)", &(fit->keywords.wcsdata.objctra)),
+        KEYWORD( "wcsdata",   "OBJCTDEC", KTYPE_STR, "Image center Declination (dms)", &(fit->keywords.wcsdata.objctdec)),
+        KEYWORD( "wcsdata",   "RA", KTYPE_DOUBLE, "Image center Right Ascension (deg)", &(fit->keywords.wcsdata.ra)),
+        KEYWORD( "wcsdata",   "DEC", KTYPE_DOUBLE, "Image center Declination (deg)", &(fit->keywords.wcsdata.dec)),
+//        KEYWORD( "wcslib",   "CTYPE1", KTYPE_STR, "TAN (gnomic) projection", "RA---TAN"), // FIXME: handle both version of comments
+//        KEYWORD( "wcslib",   "CTYPE2", KTYPE_STR, "TAN (gnomic) projection", "DEC---TAN"), // FIXME: handle both version of comments
+		KEYWORD_FIXED( "wcslib", "CUNIT1", KTYPE_STR, "Unit of coordinates", "deg"),
+		KEYWORD_FIXED( "wcslib", "CUNIT1", KTYPE_STR, "Unit of coordinates", "deg"),
+        KEYWORD( "wcslib", "EQUINOX", KTYPE_DOUBLE, "Equatorial equinox", &(fit->keywords.wcslib->equinox)),
+        KEYWORD( "wcslib", "CRPIX1", KTYPE_DOUBLE, "Axis1 reference pixel", &(fit->keywords.wcslib->crpix[0])),
+        KEYWORD( "wcslib", "CRPIX2", KTYPE_DOUBLE, "Axis2 reference pixel", &(fit->keywords.wcslib->crpix[1])),
+        KEYWORD( "wcslib", "CRVAL1", KTYPE_DOUBLE, "Axis1 reference value (deg)", &(fit->keywords.wcslib->crval[0])),
+        KEYWORD( "wcslib", "CRVAL2", KTYPE_DOUBLE, "Axis2 reference value (deg)", &(fit->keywords.wcslib->crval[1])),
+        KEYWORD( "wcslib", "LONPOLE", KTYPE_DOUBLE, "Native longitude of celestial pole", &(fit->keywords.wcslib->lonpole)),
+        KEYWORD( "wcslib", "CDELT1", KTYPE_DOUBLE, "X pixel size (deg)", &(fit->keywords.wcslib->cdelt[0])),
+        KEYWORD( "wcslib", "CDELT2", KTYPE_DOUBLE, "X pixel size (deg)", &(fit->keywords.wcslib->cdelt[1])),
+        KEYWORD( "wcslib", "PC1_1", KTYPE_DOUBLE, "Linear transformation matrix (1, 1)", &(fit->keywords.wcslib->pc[0])),
+        KEYWORD( "wcslib", "PC1_2", KTYPE_DOUBLE, "Linear transformation matrix (1, 2)", &(fit->keywords.wcslib->pc[1])),
+        KEYWORD( "wcslib", "PC2_1", KTYPE_DOUBLE, "Linear transformation matrix (2, 1)", &(fit->keywords.wcslib->pc[2])),
+        KEYWORD( "wcslib", "PC2_2", KTYPE_DOUBLE, "Linear transformation matrix (2, 2)", &(fit->keywords.wcslib->pc[3])),
+        KEYWORD( "wcslib", "CD1_1", KTYPE_DOUBLE, "Scale matrix (1, 1)", &(fit->keywords.wcslib->cd[0])),
+        KEYWORD( "wcslib", "CD1_2", KTYPE_DOUBLE, "Scale matrix (1, 2)", &(fit->keywords.wcslib->cd[1])),
+        KEYWORD( "wcslib", "CD2_1", KTYPE_DOUBLE, "Scale matrix (2, 1)", &(fit->keywords.wcslib->cd[2])),
+        KEYWORD( "wcslib", "CD2_2", KTYPE_DOUBLE, "Scale matrix (2, 2)", &(fit->keywords.wcslib->cd[3])),
 
-		{NULL, NULL, KTYPE_BOOL, NULL, NULL, FALSE}
+		{NULL, NULL, KTYPE_BOOL, NULL, NULL, FALSE, TRUE}
     };
 
 	// Count the number of keywords in the list
@@ -110,7 +158,7 @@ KeywordInfo *initialize_keywords(fits *fit) {
     // Copy keyword information from the list to the dynamic array and set if keyword must be used
 	for (int i = 0; i < num_keywords; i++) {
 		all_keywords[i] = keyword_list[i];
-		all_keywords[i].is_used = should_use_keyword(fit, keyword_list[i].key);
+		all_keywords[i].is_used = should_use_keyword(fit, keyword_list[i].group, keyword_list[i].key);
 	}
 
     // Mark the end of the list
@@ -151,6 +199,7 @@ int save_fits_keywords(fits *fit) {
 	status = 0;
 	fits_update_key(fit->fptr, TDOUBLE, "BSCALE", &scale, "Default scaling factor",	&status);
 
+	/* Let's save all other keywords */
 	while (keys->group) {
 		if (!keys->is_used) {
 			keys++;
@@ -245,7 +294,7 @@ int read_fits_keywords(fits *fit) {
 			break;
 		}
 		char keyname[FLEN_KEYWORD];
-		char value[FLEN_VALUE];
+		char value[FLEN_VALUE] = { 0 };
 		int length = 0;
 		char type;
 
@@ -253,49 +302,60 @@ int read_fits_keywords(fits *fit) {
 		fits_parse_value(card, value, NULL, &status);
 		fits_get_keytype(value, &type, &status);
 
+		/* FIXME: need to handle MIPS, BZERO, BSCALE, ... */
+//		status = 0;
+//		fits_read_key(fit->fptr, TDOUBLE, "BSCALE", &scale, NULL, &status);
+//		if (!status && 1.0 != scale) {
+//			siril_log_message(_("Loaded FITS file has a BSCALE different than 1 (%f)\n"), scale);
+//			status = 0;
+//			/* We reset the scaling factors as we don't use it */
+//			fits_set_bscale(fit->fptr, 1.0, 0.0, &status);
+//		}
+//
+//		status = 0;
+//		fits_read_key(fit->fptr, TDOUBLE, "BZERO", &zero, NULL, &status);
+//		if (!status && 0.0 != zero && fit->bitpix == FLOAT_IMG) {
+//			fprintf(stdout, "ignoring BZERO\n");
+//			fits_set_bscale(fit->fptr, 1.0, 0.0, &status);
+//		}
+
 		while (keys->group) {
+			if (keys->fixed_value) {
+				/* if fixed value, we do not read it, we do not store it */
+				keys++;
+				continue;
+			}
 			gchar** tokens = g_strsplit(keys->key, ";", -1);
 			int n = g_strv_length(tokens);
 			for (int i = 0; i < n; i++) {
-				if (strcmp(tokens[i], keyname) == 0) {
+				if (g_strcmp0(tokens[i], keyname) == 0) {
 					int int_value = 0;
 					guint uint_value = 0;
-					ushort ushort_value = 0;
+					gushort ushort_value = 0;
 					double double_value = DBL_FLAG;
-					char str_value[FLEN_VALUE] = { 0 };
 
 					switch (keys->type) {
 					case KTYPE_INT:
-						status = 0;
-						fits_read_key(fit->fptr, TINT, keyname, &int_value, NULL, &status);
+						sscanf(value, "%d", &int_value);
 						*((int*) keys->data) = int_value;
 						break;
 					case KTYPE_UINT:
-						status = 0;
-						fits_read_key(fit->fptr, TUINT, keyname, &uint_value, NULL, &status);
+						sscanf(value, "%u", &uint_value);
 						*((guint*) keys->data) = uint_value;
 						break;
 					case KTYPE_USHORT:
-						status = 0;
-						fits_read_key(fit->fptr, TUSHORT, keyname, &ushort_value, NULL, &status);
-						*((ushort*) keys->data) = ushort_value;
+						sscanf(value, "%hu", &ushort_value);
+						*((gushort*) keys->data) = ushort_value;
 						break;
 					case KTYPE_DOUBLE:
-						status = 0;
-						fits_read_key(fit->fptr, TDOUBLE, keyname, &double_value, NULL, &status);
-						if (status == KEY_NO_EXIST) {
-							double_value = DBL_FLAG;
-						}
+						sscanf(value, "%lf", &double_value);
 						*((double*) keys->data) = double_value;
 						break;
 					case KTYPE_STR:
-						status = 0;
-						fits_read_key(fit->fptr, TSTRING, keyname, str_value, NULL, &status);
-						strcpy((char*) keys->data, str_value);
+						strcpy((char*) keys->data, value);
 						break;
 					case KTYPE_DATE:
 						status = 0;
-						fits_read_key(fit->fptr, TSTRING, keyname, str_value, NULL, &status);
 						// FIXME: convert to GDateTime
 						break;
 					default:

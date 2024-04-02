@@ -50,7 +50,6 @@
 #include "io/fits_keywords.h"
 #include "io/single_image.h"
 #include "image_format_fits.h"
-#include "algos/siril_wcs.h"
 
 const char *fit_extension[] = {
 		".fit",

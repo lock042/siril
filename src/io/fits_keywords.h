@@ -39,6 +39,7 @@ typedef struct {
 	const char *comment;	// comment
 	void *data;		// pointer to the data in keyword struct
 	gboolean is_used;
+	gboolean fixed_value;
 } KeywordInfo;
 
 int save_fits_keywords(fits *fit);
