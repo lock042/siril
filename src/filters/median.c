@@ -55,11 +55,15 @@ void on_Median_dialog_show(GtkWidget *widget, gpointer user_data) {
 	copy_gfit_to_backup();
 }
 
-void on_Median_cancel_clicked(GtkButton *button, gpointer user_data) {
+void median_close() {
 	siril_preview_hide();
 	roi_supported(FALSE);
 	remove_roi_callback(median_roi_callback);
 	siril_close_dialog("Median_dialog");
+}
+
+void on_Median_cancel_clicked(GtkButton *button, gpointer user_data) {
+	median_close();
 }
 
 void on_Median_Apply_clicked(GtkButton *button, gpointer user_data) {
