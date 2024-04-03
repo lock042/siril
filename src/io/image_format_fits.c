@@ -71,8 +71,8 @@ static char *EXPOSURE[] = { "EXPTIME", "EXPOSURE", NULL };
 //static char *IMAGETYP[] = { "IMAGETYP", "FRAMETYP", NULL };
 //static char *OFFSETLEVEL[] = { "OFFSET", "BLKLEVEL", NULL };  //Used for synthetic offset
 static char *NB_STACKED[] = { "STACKCNT", "NCOMBINE", NULL };
-static char *SITELAT[] = { "SITELAT", "SITE-LAT", "OBSLAT", NULL };
-static char *SITELONG[] = { "SITELONG", "SITE-LON", "OBSLONG", NULL };
+//static char *SITELAT[] = { "SITELAT", "SITE-LAT", "OBSLAT", NULL };
+//static char *SITELONG[] = { "SITELONG", "SITE-LON", "OBSLONG", NULL };
 
 static int CompressionMethods[] = { RICE_1, GZIP_1, GZIP_2, HCOMPRESS_1};
 
@@ -86,69 +86,69 @@ static int CompressionMethods[] = { RICE_1, GZIP_1, GZIP_2, HCOMPRESS_1};
 	} while ((keywords[__iter__]) && (*status > 0)); \
 }
 
-static void read_fits_locdata_header(fits *fit) {
-	int status = 0;
-	char sitelat_dump[FLEN_VALUE] = { 0 };
-	char sitelat_dump_tmp[FLEN_VALUE] = { 0 };
-	char sitelong_dump[FLEN_VALUE] = { 0 };
-	char sitelong_dump_tmp[FLEN_VALUE] = { 0 };
-	double d_sitelat_dump = 0.0,  d_sitelong_dump = 0.0;
-
-	status = 0;
-	__tryToFindKeywords(fit->fptr, TSTRING, SITELAT, &sitelat_dump, &status);
-
-	if (status == 0) {
-		gchar **token = g_strsplit(sitelat_dump, ":", -1); // Handles PRISM special parsing for SITELAT
-		gsize token_size = g_strv_length(token);
-		if (token_size > 1 && token[1])	{	// Denotes presence of ":"
-			for (int i = 0; i < token_size; ++i) {
-				g_strlcat(sitelat_dump_tmp, token[i], sizeof(sitelat_dump_tmp));
-				if (i < 3) strncat(sitelat_dump_tmp, i < 2 ? ":" : ".", 2);
-				d_sitelat_dump = parse_dms(sitelat_dump_tmp);
-			}
-		} else d_sitelat_dump = parse_dms(sitelat_dump);
-
-		g_strfreev(token);
-	}
-
-	status = 0;
-	__tryToFindKeywords(fit->fptr, TSTRING, SITELONG, &sitelong_dump, &status);
-
-	if (status == 0) {
-		gchar **token = g_strsplit(sitelong_dump, ":", -1); // Handles PRISM special parsing for SITELONG
-		gsize token_size = g_strv_length(token);
-		if (token_size > 1 && token[1])	{
-			for (int i = 0; i < token_size; ++i) {
-				g_strlcat(sitelong_dump_tmp, token[i], sizeof(sitelong_dump_tmp));
-				if (i < 3) strncat(sitelong_dump_tmp, i < 2 ? ":" : ".", 2);
-				d_sitelong_dump = parse_dms(sitelong_dump_tmp);
-			}
-		} else d_sitelong_dump = parse_dms(sitelong_dump);
-
-		g_strfreev(token);
-	}
-
-	if (isnan(d_sitelat_dump) || isnan(d_sitelong_dump)) {	// Cases SITELONG and SITELAT keyword are numbers (only NINA and Seq. Generator, for now)
-		gchar *end;
-		fit->keywords.sitelat = g_ascii_strtod(sitelat_dump, &end);
-		if (sitelat_dump == end) {
-			siril_debug_print("Cannot read SITELAT\n");
-		}
-		fit->keywords.sitelong = g_ascii_strtod(sitelong_dump, &end);
-		if (sitelong_dump == end) {
-			siril_debug_print("Cannot read SITELONG\n");
-		}
-	} else {
-		fit->keywords.sitelat = d_sitelat_dump;
-		fit->keywords.sitelong = d_sitelong_dump;
-	}
-
-	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "SITEELEV", &(fit->keywords.siteelev), NULL, &status);	// Handles SITEELEV keyword cases
-	if (status) {
-		fit->keywords.siteelev = 0.0;	// set to 0.0 if no elevation keyword (all except NINA and Seq. Generator, for now)
-	}
-}
+//static void read_fits_locdata_header(fits *fit) {
+//	int status = 0;
+//	char sitelat_dump[FLEN_VALUE] = { 0 };
+//	char sitelat_dump_tmp[FLEN_VALUE] = { 0 };
+//	char sitelong_dump[FLEN_VALUE] = { 0 };
+//	char sitelong_dump_tmp[FLEN_VALUE] = { 0 };
+//	double d_sitelat_dump = 0.0,  d_sitelong_dump = 0.0;
+//
+//	status = 0;
+//	__tryToFindKeywords(fit->fptr, TSTRING, SITELAT, &sitelat_dump, &status);
+//
+//	if (status == 0) {
+//		gchar **token = g_strsplit(sitelat_dump, ":", -1); // Handles PRISM special parsing for SITELAT
+//		gsize token_size = g_strv_length(token);
+//		if (token_size > 1 && token[1])	{	// Denotes presence of ":"
+//			for (int i = 0; i < token_size; ++i) {
+//				g_strlcat(sitelat_dump_tmp, token[i], sizeof(sitelat_dump_tmp));
+//				if (i < 3) strncat(sitelat_dump_tmp, i < 2 ? ":" : ".", 2);
+//				d_sitelat_dump = parse_dms(sitelat_dump_tmp);
+//			}
+//		} else d_sitelat_dump = parse_dms(sitelat_dump);
+//
+//		g_strfreev(token);
+//	}
+//
+//	status = 0;
+//	__tryToFindKeywords(fit->fptr, TSTRING, SITELONG, &sitelong_dump, &status);
+//
+//	if (status == 0) {
+//		gchar **token = g_strsplit(sitelong_dump, ":", -1); // Handles PRISM special parsing for SITELONG
+//		gsize token_size = g_strv_length(token);
+//		if (token_size > 1 && token[1])	{
+//			for (int i = 0; i < token_size; ++i) {
+//				g_strlcat(sitelong_dump_tmp, token[i], sizeof(sitelong_dump_tmp));
+//				if (i < 3) strncat(sitelong_dump_tmp, i < 2 ? ":" : ".", 2);
+//				d_sitelong_dump = parse_dms(sitelong_dump_tmp);
+//			}
+//		} else d_sitelong_dump = parse_dms(sitelong_dump);
+//
+//		g_strfreev(token);
+//	}
+//
+//	if (isnan(d_sitelat_dump) || isnan(d_sitelong_dump)) {	// Cases SITELONG and SITELAT keyword are numbers (only NINA and Seq. Generator, for now)
+//		gchar *end;
+//		fit->keywords.sitelat = g_ascii_strtod(sitelat_dump, &end);
+//		if (sitelat_dump == end) {
+//			siril_debug_print("Cannot read SITELAT\n");
+//		}
+//		fit->keywords.sitelong = g_ascii_strtod(sitelong_dump, &end);
+//		if (sitelong_dump == end) {
+//			siril_debug_print("Cannot read SITELONG\n");
+//		}
+//	} else {
+//		fit->keywords.sitelat = d_sitelat_dump;
+//		fit->keywords.sitelong = d_sitelong_dump;
+//	}
+//
+//	status = 0;
+//	fits_read_key(fit->fptr, TDOUBLE, "SITEELEV", &(fit->keywords.siteelev), NULL, &status);	// Handles SITEELEV keyword cases
+//	if (status) {
+//		fit->keywords.siteelev = 0.0;	// set to 0.0 if no elevation keyword (all except NINA and Seq. Generator, for now)
+//	}
+//}
 
 static void read_fits_date_obs_header(fits *fit) {
 	int status = 0;
@@ -534,8 +534,8 @@ void read_fits_header(fits *fit) {
 	/* use new keywords structure */
 	read_fits_keywords(fit);
 
-	/* Locdata */
-	read_fits_locdata_header(fit); //FIXME: use new structure
+//	/* Locdata */
+//	read_fits_locdata_header(fit); //FIXME: use new structure
 
 	/* first fill wcsdata FITS structure */ //FIXME: should we use new structure?
 	load_wcs_keywords(fit);

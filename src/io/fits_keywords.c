@@ -91,6 +91,62 @@ static void flength_handler(fits *fit, KeywordInfo *info) {
 	fit->focalkey = TRUE;
 }
 
+static void sitelong_handler(fits *fit, KeywordInfo *info) {
+	char sitelong_dump[FLEN_VALUE] = { 0 };
+	char sitelong_dump_tmp[FLEN_VALUE] = { 0 };
+	double d_sitelong_dump = 0.0;
+
+	gchar **token = g_strsplit(sitelong_dump, ":", -1); // Handles PRISM special parsing for SITELONG
+	gsize token_size = g_strv_length(token);
+	if (token_size > 1 && token[1])	{
+		for (int i = 0; i < token_size; ++i) {
+			g_strlcat(sitelong_dump_tmp, token[i], sizeof(sitelong_dump_tmp));
+			if (i < 3) strncat(sitelong_dump_tmp, i < 2 ? ":" : ".", 2);
+			d_sitelong_dump = parse_dms(sitelong_dump_tmp);
+		}
+	} else d_sitelong_dump = parse_dms(sitelong_dump);
+
+	g_strfreev(token);
+
+	if (isnan(d_sitelong_dump)) {	// Cases SITELONG and SITELAT keyword are numbers (only NINA and Seq. Generator, for now)
+		gchar *end;
+		fit->keywords.sitelong = g_ascii_strtod(sitelong_dump, &end);
+		if (sitelong_dump == end) {
+			siril_debug_print("Cannot read SITELONG\n");
+		}
+	} else {
+		fit->keywords.sitelong = d_sitelong_dump;
+	}
+}
+
+static void sitelat_handler(fits *fit, KeywordInfo *info) {
+	char sitelat_dump[FLEN_VALUE] = { 0 };
+	char sitelat_dump_tmp[FLEN_VALUE] = { 0 };
+	double d_sitelat_dump = 0.0;
+
+	gchar **token = g_strsplit(sitelat_dump, ":", -1); // Handles PRISM special parsing for SITELAT
+	gsize token_size = g_strv_length(token);
+	if (token_size > 1 && token[1])	{	// Denotes presence of ":"
+		for (int i = 0; i < token_size; ++i) {
+			g_strlcat(sitelat_dump_tmp, token[i], sizeof(sitelat_dump_tmp));
+			if (i < 3) strncat(sitelat_dump_tmp, i < 2 ? ":" : ".", 2);
+			d_sitelat_dump = parse_dms(sitelat_dump_tmp);
+		}
+	} else d_sitelat_dump = parse_dms(sitelat_dump);
+
+	g_strfreev(token);
+
+	if (isnan(d_sitelat_dump)) {	// Cases SITELONG and SITELAT keyword are numbers (only NINA and Seq. Generator, for now)
+		gchar *end;
+		fit->keywords.sitelat = g_ascii_strtod(sitelat_dump, &end);
+		if (sitelat_dump == end) {
+			siril_debug_print("Cannot read SITELAT\n");
+		}
+	} else {
+		fit->keywords.sitelat = d_sitelat_dump;
+	}
+}
+
 /*****************************************************************************/
 
 KeywordInfo *initialize_keywords(fits *fit) {
@@ -129,8 +185,8 @@ KeywordInfo *initialize_keywords(fits *fit) {
         KEYWORD( "image", "OFFSET;BLKLEVEL", KTYPE_USHORT, "Camera offset", &(fit->keywords.key_offset), NULL),
         KEYWORD( "image", "CVF;EGAIN", KTYPE_DOUBLE, "Conversion factor (e-/adu)", &(fit->keywords.cvf), NULL),
         KEYWORD( "image", "AIRMASS", KTYPE_DOUBLE, "Airmass", &(fit->keywords.airmass), NULL),
-        KEYWORD( "image", "SITELAT;SITE-LAT;OBSLAT", KTYPE_DOUBLE, "[deg] Observation site latitude", &(fit->keywords.sitelat), NULL),
-        KEYWORD( "image", "SITELONG;SITE-LONOBSLONG", KTYPE_DOUBLE, "[deg] Observation site longitude", &(fit->keywords.sitelong), NULL),
+        KEYWORD( "image", "SITELAT;SITE-LAT;OBSLAT", KTYPE_DOUBLE, "[deg] Observation site latitude", &(fit->keywords.sitelat), sitelat_handler),
+        KEYWORD( "image", "SITELONG;SITE-LONOBSLONG", KTYPE_DOUBLE, "[deg] Observation site longitude", &(fit->keywords.sitelong), sitelong_handler),
         KEYWORD( "image", "SITEELEV", KTYPE_DOUBLE, "[m] Observation site elevation", &(fit->keywords.siteelev), NULL),
         KEYWORD( "dft",   "DFTTYPE", KTYPE_STR, "Module/Phase of a Discrete Fourier Transform", &(fit->keywords.dft.type), NULL),
         KEYWORD( "dft",   "DFTORD", KTYPE_STR, "Low/High spatial freq. are located at image center", &(fit->keywords.dft.ord), NULL),
@@ -322,7 +378,7 @@ int save_fits_keywords(fits *fit) {
 	return 0;
 }
 
-/* FIXME: DATE-OBS should be used in the new structure */
+/* FIXME: DATE-OBS should be used in the new structure, in the handler */
 static void read_fits_date_obs_header(fits *fit) {
 	int status = 0;
 	char ut_start[FLEN_VALUE] = { 0 };
