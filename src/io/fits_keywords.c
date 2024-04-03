@@ -54,45 +54,49 @@ static gboolean should_use_keyword(const fits *fit, const gchar *group, const gc
         return fit->naxes[2] > 1;
     } else if (g_strcmp0(keyword, "DFTNORM3") == 0) {
         return fit->naxes[2] > 1;
+    } else if (g_strcmp0(keyword, "RA_D") == 0) {
+        return FALSE;
+    } else if (g_strcmp0(keyword, "DEC_D") == 0) {
+        return FALSE;
     }
     return use_keyword;
 }
 
 /****************************** handlers ******************************/
 
-static void pixel_x_handler(fits *fit, KeywordInfo *info) {
+static void pixel_x_handler(fits *fit, const char *comment, KeywordInfo *info) {
 	if (fit->keywords.pixel_size_x > 0.0) {
 		fit->pixelkey = TRUE;
 	}
 }
 
-static void binning_x_handler(fits *fit, KeywordInfo *info) {
+static void binning_x_handler(fits *fit, const char *comment, KeywordInfo *info) {
 	if (fit->keywords.binning_x <= 0)
 		fit->keywords.binning_x = 1;
 }
 
-static void binning_y_handler(fits *fit, KeywordInfo *info) {
+static void binning_y_handler(fits *fit, const char *comment, KeywordInfo *info) {
 	if (fit->keywords.binning_y <= 0)
 		fit->keywords.binning_y = 1;
 }
 
-static void roworder_handler(fits *fit, KeywordInfo *info) {
+static void roworder_handler(fits *fit, const char *comment, KeywordInfo *info) {
 	if (!strcasecmp(fit->keywords.bayer_pattern, "NONE")) {
 		memset(fit->keywords.bayer_pattern, 0, sizeof(char) * FLEN_VALUE);
 	}
 }
 
-static void focal_length_handler(fits *fit, KeywordInfo *info) {
+static void focal_length_handler(fits *fit, const char *comment, KeywordInfo *info) {
 	if (fit->keywords.focal_length > 0.0)
 		fit->focalkey = TRUE;
 }
 
-static void flength_handler(fits *fit, KeywordInfo *info) {
+static void flength_handler(fits *fit, const char *comment, KeywordInfo *info) {
 	fit->keywords.focal_length = fit->keywords.flength * 1000.0; // convert m to mm
 	fit->focalkey = TRUE;
 }
 
-static void sitelong_handler(fits *fit, KeywordInfo *info) {
+static void sitelong_handler(fits *fit, const char *comment, KeywordInfo *info) {
 	char sitelong_dump[FLEN_VALUE] = { 0 };
 	char sitelong_dump_tmp[FLEN_VALUE] = { 0 };
 	double d_sitelong_dump = 0.0;
@@ -120,7 +124,7 @@ static void sitelong_handler(fits *fit, KeywordInfo *info) {
 	}
 }
 
-static void sitelat_handler(fits *fit, KeywordInfo *info) {
+static void sitelat_handler(fits *fit, const char *comment, KeywordInfo *info) {
 	char sitelat_dump[FLEN_VALUE] = { 0 };
 	char sitelat_dump_tmp[FLEN_VALUE] = { 0 };
 	double d_sitelat_dump = 0.0;
@@ -146,6 +150,10 @@ static void sitelat_handler(fits *fit, KeywordInfo *info) {
 	} else {
 		fit->keywords.sitelat = d_sitelat_dump;
 	}
+}
+
+void pltsolvd_handler(fits *fit, const char *comment, KeywordInfo *info) {
+	strncpy(fit->keywords.wcsdata.pltsolvd_comment, comment, FLEN_COMMENT);
 }
 
 /*****************************************************************************/
@@ -200,7 +208,10 @@ KeywordInfo *initialize_keywords(fits *fit) {
         KEYWORD( "wcsdata", "OBJCTRA", KTYPE_STR, "Image center Right Ascension (hms)", &(fit->keywords.wcsdata.objctra), NULL),
         KEYWORD( "wcsdata", "OBJCTDEC", KTYPE_STR, "Image center Declination (dms)", &(fit->keywords.wcsdata.objctdec), NULL),
         KEYWORD( "wcsdata", "RA", KTYPE_DOUBLE, "Image center Right Ascension (deg)", &(fit->keywords.wcsdata.ra), NULL),
+        KEYWORD( "wcsdata", "RA_D", KTYPE_DOUBLE, "Image center Right Ascension (deg)", &(fit->keywords.wcsdata.ra), NULL),
         KEYWORD( "wcsdata", "DEC", KTYPE_DOUBLE, "Image center Declination (deg)", &(fit->keywords.wcsdata.dec), NULL),
+        KEYWORD( "wcsdata", "DEC_D", KTYPE_DOUBLE, "Image center Declination (deg)", &(fit->keywords.wcsdata.dec), NULL),
+        KEYWORD( "wcsdata", "PLTSOLVD", KTYPE_BOOL, NULL, &(fit->keywords.wcsdata.pltsolvd), pltsolvd_handler),
 
 		{NULL, NULL, KTYPE_BOOL, NULL, NULL, FALSE, TRUE}
     };
@@ -222,7 +233,7 @@ KeywordInfo *initialize_keywords(fits *fit) {
 		// Set default values based on keyword type
 		switch (all_keywords[i].type) {
 		case KTYPE_INT:
-			if (*((int*)all_keywords[i].data) == 0)
+			if (*((int*) all_keywords[i].data) == 0)
 				*((int*) all_keywords[i].data) = DEFAULT_INT_VALUE;
 			break;
 		case KTYPE_UINT:
@@ -341,6 +352,10 @@ int save_fits_keywords(fits *fit) {
 					}
 				}
 				break;
+			case KTYPE_BOOL:
+				status = 0;
+				fits_update_key(fit->fptr, TLOGICAL, tokens[0], &(*((gboolean*)keys->data)), keys->comment, &status);
+				break;
 			default:
 				siril_debug_print("Save_fits_keywords: Error. Type is not handled.\n");
 		}
@@ -434,11 +449,12 @@ int read_fits_keywords(fits *fit) {
 		}
 		char keyname[FLEN_KEYWORD];
 		char value[FLEN_VALUE] = { 0 };
+		char comment[FLEN_COMMENT];
 		int length = 0;
 		char type;
 
 		fits_get_keyname(card, keyname, &length, &status);
-		fits_parse_value(card, value, NULL, &status);
+		fits_parse_value(card, value, comment, &status);
 		fits_get_keytype(value, &type, &status);
 		status = 0;
 
@@ -467,6 +483,7 @@ int read_fits_keywords(fits *fit) {
 					double double_value;
 					gchar *str_value;
 					GDateTime *date;
+					gboolean bool;
 					char *end;
 
 					switch (current_key->type) {
@@ -511,12 +528,17 @@ int read_fits_keywords(fits *fit) {
 							value_set = TRUE;
 						}
 						break;
+					case KTYPE_BOOL:
+						bool = value[0] == 'T' ? TRUE : FALSE;
+						*((gboolean*) current_key->data) = bool;
+						value_set = TRUE;
+						break;
 					default:
 						break;
 					}
 					/* Handle special cases */
 					if (current_key->special_handler) {
-						current_key->special_handler(fit, current_key);
+						current_key->special_handler(fit, comment, current_key);
 					}
 				}
 			}

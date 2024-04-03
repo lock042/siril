@@ -36,7 +36,7 @@ enum keywords_type {
 
 typedef struct KeywordInfo KeywordInfo;
 
-typedef void (*special_handler_func)(fits *fit, KeywordInfo *info);
+typedef void (*special_handler_func)(fits *fit, const char *comment, KeywordInfo *info);
 
 struct KeywordInfo {
     const char *group;    // group name

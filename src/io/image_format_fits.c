@@ -313,45 +313,45 @@ static int try_read_float_lo_hi(fitsfile *fptr, WORD *lo, WORD *hi) {
 	return status;
 }
 
-static void load_wcs_keywords(fits *fit) {
-	int status = 0;
-	status = 0;
-	fits_read_key(fit->fptr, TSTRING, "OBJCTRA", &(fit->keywords.wcsdata.objctra), NULL, &status);
-
-	// RA and DEC can have values either in double or in string
-	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "RA", &(fit->keywords.wcsdata.ra), NULL, &status);
-	if (status) {
-		status = 0;
-		char hms[FLEN_VALUE];
-		fits_read_key(fit->fptr, TSTRING, "RA", hms, NULL, &status);
-		if (!status) {
-			fit->keywords.wcsdata.ra = parse_hms(hms);
-			if (isnan(fit->keywords.wcsdata.ra)) fit->keywords.wcsdata.ra = 0.0;
-			else siril_debug_print("read RA as HMS\n");
-		}
-	}
-
-	status = 0;
-	fits_read_key(fit->fptr, TSTRING, "OBJCTDEC", &(fit->keywords.wcsdata.objctdec), NULL, &status);
-
-	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "DEC", &(fit->keywords.wcsdata.dec), NULL, &status);
-	if (status) {
-		status = 0;
-		char dms[FLEN_VALUE];
-		fits_read_key(fit->fptr, TSTRING, "DEC", dms, NULL, &status);
-		if (!status) {
-			fit->keywords.wcsdata.dec = parse_dms(dms);
-			if (isnan(fit->keywords.wcsdata.dec)) fit->keywords.wcsdata.dec = 0.0;
-			else siril_debug_print("read DEC as DMS\n");
-		}
-	}
-	// kewwords directly related to platesolve solution are loaded to fit->wcslib using load_WCS_from_fits
-
-	status = 0;
-	fits_read_key(fit->fptr, TLOGICAL, "PLTSOLVD", &(fit->keywords.wcsdata.pltsolvd), fit->keywords.wcsdata.pltsolvd_comment, &status);
-}
+//static void load_wcs_keywords(fits *fit) {
+//	int status = 0;
+//	status = 0;
+//	fits_read_key(fit->fptr, TSTRING, "OBJCTRA", &(fit->keywords.wcsdata.objctra), NULL, &status);
+//
+//	// RA and DEC can have values either in double or in string
+//	status = 0;
+//	fits_read_key(fit->fptr, TDOUBLE, "RA", &(fit->keywords.wcsdata.ra), NULL, &status);
+//	if (status) {
+//		status = 0;
+//		char hms[FLEN_VALUE];
+//		fits_read_key(fit->fptr, TSTRING, "RA", hms, NULL, &status);
+//		if (!status) {
+//			fit->keywords.wcsdata.ra = parse_hms(hms);
+//			if (isnan(fit->keywords.wcsdata.ra)) fit->keywords.wcsdata.ra = 0.0;
+//			else siril_debug_print("read RA as HMS\n");
+//		}
+//	}
+//
+//	status = 0;
+//	fits_read_key(fit->fptr, TSTRING, "OBJCTDEC", &(fit->keywords.wcsdata.objctdec), NULL, &status);
+//
+//	status = 0;
+//	fits_read_key(fit->fptr, TDOUBLE, "DEC", &(fit->keywords.wcsdata.dec), NULL, &status);
+//	if (status) {
+//		status = 0;
+//		char dms[FLEN_VALUE];
+//		fits_read_key(fit->fptr, TSTRING, "DEC", dms, NULL, &status);
+//		if (!status) {
+//			fit->keywords.wcsdata.dec = parse_dms(dms);
+//			if (isnan(fit->keywords.wcsdata.dec)) fit->keywords.wcsdata.dec = 0.0;
+//			else siril_debug_print("read DEC as DMS\n");
+//		}
+//	}
+//	// kewwords directly related to platesolve solution are loaded to fit->wcslib using load_WCS_from_fits
+//
+//	status = 0;
+//	fits_read_key(fit->fptr, TLOGICAL, "PLTSOLVD", &(fit->keywords.wcsdata.pltsolvd), fit->keywords.wcsdata.pltsolvd_comment, &status);
+//}
 
 
 /* reading the FITS header to get useful information
@@ -537,8 +537,8 @@ void read_fits_header(fits *fit) {
 //	/* Locdata */
 //	read_fits_locdata_header(fit); //FIXME: use new structure
 
-	/* first fill wcsdata FITS structure */ //FIXME: should we use new structure?
-	load_wcs_keywords(fit);
+//	/* first fill wcsdata FITS structure */ //FIXME: should we use new structure?
+//	load_wcs_keywords(fit);
 
 	/* so now, fill the wcslib structure. */
 	load_WCS_from_fits(fit);
