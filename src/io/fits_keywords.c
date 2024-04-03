@@ -188,6 +188,7 @@ KeywordInfo *initialize_keywords(fits *fit) {
 				*((double*) all_keywords[i].data) = DEFAULT_DOUBLE_VALUE;
 			break;
 		default:
+			break;
 		}
 	}
 
