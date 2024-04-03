@@ -22,12 +22,13 @@
 #include "core/proto.h"
 #include "core/siril_date.h"
 #include "core/siril_log.h"
+#include "core/siril_world_cs.h"
 #include "algos/siril_wcs.h"
 
 #include "fits_keywords.h"
 
 #define DEFAULT_DOUBLE_VALUE -999.0
-#define DEFAULT_INT_VALUE -INT_MAX
+#define DEFAULT_INT_VALUE -INT_MAX //FIXME: 0 ?
 #define DEFAULT_UINT_VALUE 0
 #define DEFAULT_USHORT_VALUE DEFAULT_UINT_VALUE
 
@@ -196,32 +197,10 @@ KeywordInfo *initialize_keywords(fits *fit) {
         KEYWORD_FIXED( "image", "PROGRAMM", KTYPE_STR, "Software that created this HDU", "Siril "PACKAGE_VERSION, NULL),
 
         KEYWORD_FIXED( "wcsdata", "CTYPE3", KTYPE_STR, "RGB image", "RGB", NULL),
-        KEYWORD( "wcsdata",   "OBJCTRA", KTYPE_STR, "Image center Right Ascension (hms)", &(fit->keywords.wcsdata.objctra), NULL),
-        KEYWORD( "wcsdata",   "OBJCTDEC", KTYPE_STR, "Image center Declination (dms)", &(fit->keywords.wcsdata.objctdec), NULL),
-        KEYWORD( "wcsdata",   "RA", KTYPE_DOUBLE, "Image center Right Ascension (deg)", &(fit->keywords.wcsdata.ra), NULL),
-        KEYWORD( "wcsdata",   "DEC", KTYPE_DOUBLE, "Image center Declination (deg)", &(fit->keywords.wcsdata.dec), NULL),
-
-		/*** I don't think we will handle wcslib here ***/
-//      KEYWORD( "wcslib",   "CTYPE1", KTYPE_STR, "TAN (gnomic) projection", "RA---TAN"), // FIXME: handle both version of comments
-//      KEYWORD( "wcslib",   "CTYPE2", KTYPE_STR, "TAN (gnomic) projection", "DEC---TAN"), // FIXME: handle both version of comments
-//      KEYWORD_FIXED( "wcslib", "CUNIT1", KTYPE_STR, "Unit of coordinates", "deg"),
-//      KEYWORD_FIXED( "wcslib", "CUNIT1", KTYPE_STR, "Unit of coordinates", "deg"),
-//      KEYWORD( "wcslib", "EQUINOX", KTYPE_DOUBLE, "Equatorial equinox", &(fit->keywords.wcslib->equinox)),
-//      KEYWORD( "wcslib", "CRPIX1", KTYPE_DOUBLE, "Axis1 reference pixel", &(fit->keywords.wcslib->crpix[0])),
-//      KEYWORD( "wcslib", "CRPIX2", KTYPE_DOUBLE, "Axis2 reference pixel", &(fit->keywords.wcslib->crpix[1])),
-//      KEYWORD( "wcslib", "CRVAL1", KTYPE_DOUBLE, "Axis1 reference value (deg)", &(fit->keywords.wcslib->crval[0])),
-//      KEYWORD( "wcslib", "CRVAL2", KTYPE_DOUBLE, "Axis2 reference value (deg)", &(fit->keywords.wcslib->crval[1])),
-//      KEYWORD( "wcslib", "LONPOLE", KTYPE_DOUBLE, "Native longitude of celestial pole", &(fit->keywords.wcslib->lonpole)),
-//      KEYWORD( "wcslib", "CDELT1", KTYPE_DOUBLE, "X pixel size (deg)", &(fit->keywords.wcslib->cdelt[0])),
-//      KEYWORD( "wcslib", "CDELT2", KTYPE_DOUBLE, "X pixel size (deg)", &(fit->keywords.wcslib->cdelt[1])),
-//      KEYWORD( "wcslib", "PC1_1", KTYPE_DOUBLE, "Linear transformation matrix (1, 1)", &(fit->keywords.wcslib->pc[0])),
-//      KEYWORD( "wcslib", "PC1_2", KTYPE_DOUBLE, "Linear transformation matrix (1, 2)", &(fit->keywords.wcslib->pc[1])),
-//      KEYWORD( "wcslib", "PC2_1", KTYPE_DOUBLE, "Linear transformation matrix (2, 1)", &(fit->keywords.wcslib->pc[2])),
-//      KEYWORD( "wcslib", "PC2_2", KTYPE_DOUBLE, "Linear transformation matrix (2, 2)", &(fit->keywords.wcslib->pc[3])),
-//      KEYWORD( "wcslib", "CD1_1", KTYPE_DOUBLE, "Scale matrix (1, 1)", &(fit->keywords.wcslib->cd[0])),
-//      KEYWORD( "wcslib", "CD1_2", KTYPE_DOUBLE, "Scale matrix (1, 2)", &(fit->keywords.wcslib->cd[1])),
-//      KEYWORD( "wcslib", "CD2_1", KTYPE_DOUBLE, "Scale matrix (2, 1)", &(fit->keywords.wcslib->cd[2])),
-//      KEYWORD( "wcslib", "CD2_2", KTYPE_DOUBLE, "Scale matrix (2, 2)", &(fit->keywords.wcslib->cd[3])),
+        KEYWORD( "wcsdata", "OBJCTRA", KTYPE_STR, "Image center Right Ascension (hms)", &(fit->keywords.wcsdata.objctra), NULL),
+        KEYWORD( "wcsdata", "OBJCTDEC", KTYPE_STR, "Image center Declination (dms)", &(fit->keywords.wcsdata.objctdec), NULL),
+        KEYWORD( "wcsdata", "RA", KTYPE_DOUBLE, "Image center Right Ascension (deg)", &(fit->keywords.wcsdata.ra), NULL),
+        KEYWORD( "wcsdata", "DEC", KTYPE_DOUBLE, "Image center Declination (deg)", &(fit->keywords.wcsdata.dec), NULL),
 
 		{NULL, NULL, KTYPE_BOOL, NULL, NULL, FALSE, TRUE}
     };
