@@ -20,6 +20,8 @@
 #ifndef SRC_IO_FITS_KEYWORDS_H_
 #define SRC_IO_FITS_KEYWORDS_H_
 
+#include "core/siril.h"
+
 enum keywords_type {
 	KTYPE_BOOL,
 	KTYPE_INT,
@@ -32,15 +34,20 @@ enum keywords_type {
 };
 
 
-typedef struct {
-	const char *group;	// group name
-	const char *key;	// key name
-	enum keywords_type type;// type of the keyword
-	const char *comment;	// comment
-	void *data;		// pointer to the data in keyword struct
-	gboolean is_used;
-	gboolean fixed_value;
-} KeywordInfo;
+typedef struct KeywordInfo KeywordInfo;
+
+typedef void (*special_handler_func)(fits *fit, KeywordInfo *info);
+
+struct KeywordInfo {
+    const char *group;    // group name
+    const char *key;    // key name
+    enum keywords_type type;    // type of the keyword
+    const char *comment;    // comment
+    void *data;    // pointer to the data in keyword struct
+    special_handler_func special_handler;
+    gboolean is_used;
+    gboolean fixed_value;
+};
 
 int save_fits_keywords(fits *fit);
 int read_fits_keywords(fits *fit);
