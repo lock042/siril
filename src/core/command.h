@@ -174,6 +174,7 @@ int	process_scnr(int nb);
 int	process_search_fct(int nb);
 int	process_select(int nb);
 int	process_seq_applyreg(int nb);
+int process_seq_applyastrometry(int nb);
 int	process_seq_clean(int nb);
 int	process_seq_cosme(int nb);
 int	process_seq_crop(int nb);

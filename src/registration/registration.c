@@ -1486,7 +1486,7 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 		return 1;
 	}
 #endif
-	if (method->method_ptr == register_apply_reg) {
+	if (method->method_ptr == register_apply_reg || method->method_ptr == register_astrometric) {
 		get_reg_sequence_filtering_from_gui(
 				&reg_args->filtering_criterion, &reg_args->filtering_parameter, -1);
 	} else {
@@ -1544,7 +1544,7 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 			return 1;
 		}
 	}
-	if (((method->method_ptr == register_star_alignment || method->method_ptr == register_3stars || method->method_ptr == register_apply_reg) &&
+	if (((method->method_ptr == register_star_alignment || method->method_ptr == register_3stars || method->method_ptr == register_apply_reg || method->method_ptr == register_astrometric) &&
 		(reg_args->interpolation == OPENCV_AREA || reg_args->interpolation == OPENCV_LINEAR || reg_args->interpolation == OPENCV_NEAREST || reg_args->interpolation == OPENCV_NONE)) ||
 		reg_args->no_output)
 		reg_args->clamp = FALSE;
