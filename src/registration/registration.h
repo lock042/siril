@@ -189,6 +189,7 @@ gboolean check_before_applyreg(struct registration_args *regargs);
 gboolean layer_has_registration(const sequence *seq, int layer);
 gboolean layer_has_usable_registration(sequence *seq, int layer);
 int get_first_selected(sequence *seq);
+regdata *apply_reg_get_current_regdata(struct registration_args *regargs);
 
 void translation_from_H(Homography H, double *dx, double *dy);
 Homography H_from_translation(double dx, double dy);
