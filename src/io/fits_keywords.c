@@ -40,7 +40,10 @@ static gboolean should_use_keyword(const fits *fit, const gchar *group, const gc
 		use_keyword = (fit->keywords.wcslib != NULL);
 	}
 
-	if (g_strcmp0(keyword, "XBAYROFF") == 0) {
+	if (g_strcmp0(keyword, "ROWORDER") == 0) {
+		return ((g_strcmp0(fit->keywords.row_order, "BOTTOM-UP") == 0)
+				|| (g_strcmp0(fit->keywords.row_order, "TOP-DOWN") == 0));
+	} else if (g_strcmp0(keyword, "XBAYROFF") == 0) {
         return fit->keywords.bayer_pattern[0] != '\0';
     } else if (g_strcmp0(keyword, "YBAYROFF") == 0) {
         return fit->keywords.bayer_pattern[0] != '\0';
@@ -126,6 +129,8 @@ KeywordInfo *initialize_keywords(fits *fit) {
         KEYWORD( "wcsdata",   "OBJCTDEC", KTYPE_STR, "Image center Declination (dms)", &(fit->keywords.wcsdata.objctdec)),
         KEYWORD( "wcsdata",   "RA", KTYPE_DOUBLE, "Image center Right Ascension (deg)", &(fit->keywords.wcsdata.ra)),
         KEYWORD( "wcsdata",   "DEC", KTYPE_DOUBLE, "Image center Declination (deg)", &(fit->keywords.wcsdata.dec)),
+
+		/*** I don't think we will handle wcslib here ***/
 //      KEYWORD( "wcslib",   "CTYPE1", KTYPE_STR, "TAN (gnomic) projection", "RA---TAN"), // FIXME: handle both version of comments
 //      KEYWORD( "wcslib",   "CTYPE2", KTYPE_STR, "TAN (gnomic) projection", "DEC---TAN"), // FIXME: handle both version of comments
 //      KEYWORD_FIXED( "wcslib", "CUNIT1", KTYPE_STR, "Unit of coordinates", "deg"),
@@ -472,7 +477,7 @@ int read_fits_keywords(fits *fit) {
 	free(keys_start);
 
 	/** Finalize **/
-	// FIXME: FLENGTH should be handled
+	// FIXME: FLENGTH, given in m, should be handled
 	if (fit->keywords.pixel_size_x > 0.0) {
 		fit->pixelkey = TRUE;
 	}

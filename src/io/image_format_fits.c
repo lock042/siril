@@ -59,17 +59,17 @@ const char *fit_extension[] = {
 
 static char *MIPSHI[] = {"MIPS-HI", "CWHITE", "DATAMAX", NULL };
 static char *MIPSLO[] = {"MIPS-LO", "CBLACK", "DATAMIN", NULL };
-static char *PIXELSIZEX[] = { "XPIXSZ", "XPIXELSZ", "PIXSIZE1", "PIXSIZEX", "XPIXSIZE", NULL };
-static char *PIXELSIZEY[] = { "YPIXSZ", "YPIXELSZ", "PIXSIZE2", "PIXSIZEY", "YPIXSIZE", NULL };
-static char *BINX[] = { "XBINNING", "BINX", NULL };
-static char *BINY[] = { "YBINNING", "BINY", NULL };
-static char *FOCAL[] = { "FOCAL", "FOCALLEN", NULL };
-static char *CCD_TEMP[] = { "CCD-TEMP", "CCD_TEMP", "CCDTEMP", "TEMPERAT", "CAMTCCD", NULL };
+//static char *PIXELSIZEX[] = { "XPIXSZ", "XPIXELSZ", "PIXSIZE1", "PIXSIZEX", "XPIXSIZE", NULL };
+//static char *PIXELSIZEY[] = { "YPIXSZ", "YPIXELSZ", "PIXSIZE2", "PIXSIZEY", "YPIXSIZE", NULL };
+//static char *BINX[] = { "XBINNING", "BINX", NULL };
+//static char *BINY[] = { "YBINNING", "BINY", NULL };
+//static char *FOCAL[] = { "FOCAL", "FOCALLEN", NULL };
+//static char *CCD_TEMP[] = { "CCD-TEMP", "CCD_TEMP", "CCDTEMP", "TEMPERAT", "CAMTCCD", NULL };
 static char *EXPOSURE[] = { "EXPTIME", "EXPOSURE", NULL };
-static char *FILTER[] = {"FILTER", "FILT-1", NULL };
-static char *CVF[] = { "CVF", "EGAIN", NULL };
-static char *IMAGETYP[] = { "IMAGETYP", "FRAMETYP", NULL };
-static char *OFFSETLEVEL[] = { "OFFSET", "BLKLEVEL", NULL };  //Used for synthetic offset
+//static char *FILTER[] = {"FILTER", "FILT-1", NULL };
+//static char *CVF[] = { "CVF", "EGAIN", NULL };
+//static char *IMAGETYP[] = { "IMAGETYP", "FRAMETYP", NULL };
+//static char *OFFSETLEVEL[] = { "OFFSET", "BLKLEVEL", NULL };  //Used for synthetic offset
 static char *NB_STACKED[] = { "STACKCNT", "NCOMBINE", NULL };
 static char *SITELAT[] = { "SITELAT", "SITE-LAT", "OBSLAT", NULL };
 static char *SITELONG[] = { "SITELONG", "SITE-LON", "OBSLONG", NULL };
@@ -359,7 +359,7 @@ static void load_wcs_keywords(fits *fit) {
 void read_fits_header(fits *fit) {
 	/* about the status argument: http://heasarc.gsfc.nasa.gov/fitsio/c/c_user/node28.html */
 	int status = 0;
-	double scale, zero;
+//	double scale, zero;
 	char str[FLEN_VALUE] = { 0 };
 
 	__tryToFindKeywords(fit->fptr, TUSHORT, MIPSLO, &fit->keywords.lo, &status);
@@ -515,7 +515,6 @@ void read_fits_header(fits *fit) {
 //	status = 0;
 //	fits_read_key(fit->fptr, TSTRING, "OBJECT", &(fit->keywords.object), NULL, &status);
 //
-//	read_fits_locdata_header(fit);
 //
 //	status = 0;
 //	fits_read_key(fit->fptr, TDOUBLE, "APERTURE", &(fit->keywords.aperture), NULL, &status);
@@ -534,6 +533,9 @@ void read_fits_header(fits *fit) {
 
 	/* use new keywords structure */
 	read_fits_keywords(fit);
+
+	/* Locdata */
+	read_fits_locdata_header(fit); //FIXME: use new structure
 
 	/* first fill wcsdata FITS structure */
 	load_wcs_keywords(fit);
