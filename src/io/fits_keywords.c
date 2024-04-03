@@ -78,9 +78,9 @@ static gboolean should_use_keyword(const fits *fit, const gchar *group, const gc
 
 KeywordInfo *initialize_keywords(fits *fit) {
 	KeywordInfo keyword_list[] = {
-			// FIXME: add MIPS keywords
-	    KEYWORD( "image", "MIPS-HI", KTYPE_USHORT, "Upper visualization cutoff", &(fit->keywords.hi)),
-	    KEYWORD( "image", "MIPS-LO", KTYPE_USHORT, "Lower visualization cutoff", &(fit->keywords.lo)),
+		// FIXME: add MIPS keywords
+        KEYWORD( "image", "MIPS-HI", KTYPE_USHORT, "Upper visualization cutoff", &(fit->keywords.hi)),
+        KEYWORD( "image", "MIPS-LO", KTYPE_USHORT, "Lower visualization cutoff", &(fit->keywords.lo)),
         KEYWORD( "image", "ROWORDER", KTYPE_STR, "Order of the rows in image array", &(fit->keywords.row_order)),
         KEYWORD( "setup", "INSTRUME", KTYPE_STR, "Instrument name", &(fit->keywords.instrume)),
         KEYWORD( "setup", "TELESCOP", KTYPE_STR, "Telescope used to acquire this image", &(fit->keywords.telescop)),
@@ -119,17 +119,17 @@ KeywordInfo *initialize_keywords(fits *fit) {
         KEYWORD( "dft",   "DFTNORM1", KTYPE_DOUBLE, "Normalisation value for channel #1", &(fit->keywords.dft.norm[0])),
         KEYWORD( "dft",   "DFTNORM2", KTYPE_DOUBLE, "Normalisation value for channel #2", &(fit->keywords.dft.norm[1])),
         KEYWORD( "dft",   "DFTNORM3", KTYPE_DOUBLE, "Normalisation value for channel #3", &(fit->keywords.dft.norm[2])),
-		KEYWORD_FIXED( "image", "PROGRAMM", KTYPE_STR, "Software that created this HDU", "Siril "PACKAGE_VERSION),
+        KEYWORD_FIXED( "image", "PROGRAMM", KTYPE_STR, "Software that created this HDU", "Siril "PACKAGE_VERSION),
 
-		KEYWORD_FIXED( "wcsdata",   "CTYPE3", KTYPE_STR, "RGB image", "RGB"),
+        KEYWORD_FIXED( "wcsdata",   "CTYPE3", KTYPE_STR, "RGB image", "RGB"),
         KEYWORD( "wcsdata",   "OBJCTRA", KTYPE_STR, "Image center Right Ascension (hms)", &(fit->keywords.wcsdata.objctra)),
         KEYWORD( "wcsdata",   "OBJCTDEC", KTYPE_STR, "Image center Declination (dms)", &(fit->keywords.wcsdata.objctdec)),
         KEYWORD( "wcsdata",   "RA", KTYPE_DOUBLE, "Image center Right Ascension (deg)", &(fit->keywords.wcsdata.ra)),
         KEYWORD( "wcsdata",   "DEC", KTYPE_DOUBLE, "Image center Declination (deg)", &(fit->keywords.wcsdata.dec)),
 //      KEYWORD( "wcslib",   "CTYPE1", KTYPE_STR, "TAN (gnomic) projection", "RA---TAN"), // FIXME: handle both version of comments
 //      KEYWORD( "wcslib",   "CTYPE2", KTYPE_STR, "TAN (gnomic) projection", "DEC---TAN"), // FIXME: handle both version of comments
-//		KEYWORD_FIXED( "wcslib", "CUNIT1", KTYPE_STR, "Unit of coordinates", "deg"),
-//		KEYWORD_FIXED( "wcslib", "CUNIT1", KTYPE_STR, "Unit of coordinates", "deg"),
+//      KEYWORD_FIXED( "wcslib", "CUNIT1", KTYPE_STR, "Unit of coordinates", "deg"),
+//      KEYWORD_FIXED( "wcslib", "CUNIT1", KTYPE_STR, "Unit of coordinates", "deg"),
 //      KEYWORD( "wcslib", "EQUINOX", KTYPE_DOUBLE, "Equatorial equinox", &(fit->keywords.wcslib->equinox)),
 //      KEYWORD( "wcslib", "CRPIX1", KTYPE_DOUBLE, "Axis1 reference pixel", &(fit->keywords.wcslib->crpix[0])),
 //      KEYWORD( "wcslib", "CRPIX2", KTYPE_DOUBLE, "Axis2 reference pixel", &(fit->keywords.wcslib->crpix[1])),
@@ -163,6 +163,27 @@ KeywordInfo *initialize_keywords(fits *fit) {
 	for (int i = 0; i < num_keywords; i++) {
 		all_keywords[i] = keyword_list[i];
 		all_keywords[i].is_used = should_use_keyword(fit, keyword_list[i].group, keyword_list[i].key);
+
+		// Set default values based on keyword type
+		switch (all_keywords[i].type) {
+		case KTYPE_INT:
+			if (*((int*)all_keywords[i].data) == 0)
+				*((int*) all_keywords[i].data) = DEFAULT_INT_VALUE;
+			break;
+		case KTYPE_UINT:
+			if (*((guint*)all_keywords[i].data) == 0)
+				*((guint*) all_keywords[i].data) = DEFAULT_UINT_VALUE;
+			break;
+		case KTYPE_USHORT:
+			if (*((gushort*)all_keywords[i].data) == 0)
+				*((gushort*) all_keywords[i].data) = DEFAULT_USHORT_VALUE;
+			break;
+		case KTYPE_DOUBLE:
+			if (*((double*)all_keywords[i].data) == 0)
+				*((double*) all_keywords[i].data) = DEFAULT_DOUBLE_VALUE;
+			break;
+		default:
+		}
 	}
 
     // Mark the end of the list
@@ -272,6 +293,11 @@ int save_fits_keywords(fits *fit) {
 
 	free(keys_start);
 
+	/*** Save list of unknown keys ***/
+	/* FIXME: save it into the FITS file */
+	if (fit->unknown_keys)
+		printf("%s\n", fit->unknown_keys);
+
 	return 0;
 }
 
@@ -316,8 +342,10 @@ int read_fits_keywords(fits *fit) {
 	KeywordInfo *keys_start = keys;
 	int status = 0;
 	int key_number = 1;
+	GString *UnknownKeys = g_string_new(NULL);
 
-	/* Special cases */
+	/***** Special cases *****/
+
 	double scale = 0.0, zero = 0.0;
 	fits_read_key(fit->fptr, TDOUBLE, "BSCALE", &scale, NULL, &status);
 	if (!status && 1.0 != scale) {
@@ -335,6 +363,8 @@ int read_fits_keywords(fits *fit) {
 	}
 
 	read_fits_date_obs_header(fit);
+
+	/***** End of special cases *****/
 
 	fits_get_hdrspace(fit->fptr, &key_number, NULL, &status); /* get # of keywords */
 
@@ -365,8 +395,8 @@ int read_fits_keywords(fits *fit) {
 	    KeywordInfo *current_key = keys_start;
 		gboolean value_set = FALSE; // Flag to indicate if a value was set
 		while (current_key->group && !value_set) {
-			if (current_key->fixed_value || fits_get_keyclass(card) == TYP_STRUC_KEY) {
-				/* if fixed value, we do not read it, we do not store it */
+			if (fits_get_keyclass(card) == TYP_STRUC_KEY) {
+				value_set = TRUE;
 				current_key++;
 				continue;
 			}
@@ -416,14 +446,14 @@ int read_fits_keywords(fits *fit) {
 						strcpy((char*) current_key->data, str_value);
 						value_set = TRUE;
 						break;
-//					case KTYPE_DATE:
-//						str_value = g_shell_unquote(value, NULL);
-//						date = FITS_date_to_date_time(str_value);
-//						if (date) {
-//							*((GDateTime**) current_key->data) = date;
-//							value_set = TRUE;
-//						}
-//						break;
+					case KTYPE_DATE:
+						str_value = g_shell_unquote(value, NULL);
+						date = FITS_date_to_date_time(str_value);
+						if (date) {
+							*((GDateTime**) current_key->data) = date;
+							value_set = TRUE;
+						}
+						break;
 					default:
 						break;
 					}
@@ -431,27 +461,12 @@ int read_fits_keywords(fits *fit) {
 			}
 
 			g_strfreev(tokens);
-//			// If no value was set, set default value
-//			if (!value_set) {
-//				// Set default value based on key type
-//				switch (current_key->type) {
-//				case KTYPE_INT:
-//					*((int*) current_key->data) = DEFAULT_INT_VALUE;
-//					break;
-//				case KTYPE_UINT:
-//					*((guint*) current_key->data) = DEFAULT_UINT_VALUE;
-//					break;
-//				case KTYPE_USHORT:
-//					*((gushort*) current_key->data) = DEFAULT_USHORT_VALUE;
-//					break;
-//				case KTYPE_DOUBLE:
-//					*((double*) current_key->data) = DEFAULT_DOUBLE_VALUE;
-//					break;
-//				default:
-//					break;
-//				}
-//			}
 			current_key++;
+		}
+		/* output not known keywords */
+		if (!value_set) {
+			UnknownKeys = g_string_append(UnknownKeys, card);
+			UnknownKeys = g_string_append(UnknownKeys, "\n");
 		}
 	}
 	free(keys_start);
@@ -473,6 +488,10 @@ int read_fits_keywords(fits *fit) {
 
 	if (fit->keywords.focal_length > 0.0)
 		fit->focalkey = TRUE;
+
+	if (fit->unknown_keys)
+		g_free(fit->unknown_keys);
+	fit->unknown_keys = g_string_free(UnknownKeys, FALSE);
 
 	return 0;
 }

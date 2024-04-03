@@ -456,6 +456,7 @@ struct ffit {
 	fkeywords keywords;
 
 	char *header;		// entire header of the FITS file. NULL for non-FITS file.
+	gchar *unknown_keys; // list of unknown keys
 
 	/* data computed or set by Siril */
 	imstats **stats;	// stats of fit for each layer, null if naxes[2] is unknown
