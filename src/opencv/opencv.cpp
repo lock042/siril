@@ -1164,7 +1164,6 @@ int cvWarp_fromKR(fits *image, astrometric_roi *roi_in, Homography K, Homography
 	// we just pass a NULL image
 	if (image) { 
 		if (image_to_Mat(image, &in, &out, &bgr, roi_in->w, roi_in->h))
-		// if (image_to_Mat(image, &in, &out, &bgr, sizes.width, sizes.height))
 			return 2;
 		Mat uxmap, uymap;
 		warper->buildMaps(szin, k, r, uxmap, uymap);
@@ -1199,6 +1198,7 @@ int cvWarp_fromKR(fits *image, astrometric_roi *roi_in, Homography K, Homography
 		Mat roiin = aux(Rect(xi, yi, outr.size().width, outr.size().height));
 		Mat roiout = out(Rect(xo, yo, outr.size().width, outr.size().height));
 		roiin.copyTo(roiout);
+		aux.release();
 
 		return Mat_to_image(image, &in, &out, bgr, roi_in->w, roi_in->h);
 

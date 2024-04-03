@@ -39,7 +39,7 @@
 #include "registration/registration.h"
 #include "registration/matching/degtorad.h"
 
-static int astrometric_alignment(struct registration_args *regargs, struct astrometric_args *astargs);
+static int astrometric_alignment(struct registration_args *regargs, struct astrometric_args *astargs, regdata *current_regdata);
 
 // computing center cog dealing with range jumps
 // https://stackoverflow.com/questions/6671183/calculate-the-center-point-of-multiple-latitude-longitude-coordinate-pairs
@@ -90,7 +90,7 @@ int register_astrometric(struct registration_args *regargs) {
 	int retval = 0;
 	struct timeval t_start, t_end;
 
-	regdata *current_regdata = star_align_get_current_regdata(regargs); // clean the structure if it exists, allocates otherwise
+	regdata *current_regdata = apply_reg_get_current_regdata(regargs); // clean the structure if it exists, allocates otherwise
 	if (!current_regdata)
 		return -2;
 	regargs->type = HOMOGRAPHY_TRANSFORMATION; // forcing homography calc for the input sequence
@@ -226,11 +226,6 @@ int register_astrometric(struct registration_args *regargs) {
 			continue;
 		Homography H = { 0 };
 		cvcalcH_fromKKR(Ks[refindex], Ks[i], Rs[i], &H);
-		// current_regdata[i].roundness = 1.;
-		// current_regdata[i].fwhm = 1.;
-		// current_regdata[i].weighted_fwhm = 1.;
-		// current_regdata[i].background_lvl = 0.;
-		// current_regdata[i].number_of_stars = 1;
 		current_regdata[i].H = H;
 		nb_aligned++;
 	}
@@ -354,7 +349,7 @@ free_all:
 	}
 	free(WCSDATA);
 	if (!retval && !regargs->no_output) {
-		return astrometric_alignment(regargs, astargs);
+		return astrometric_alignment(regargs, astargs, current_regdata);
 	}
 	free(Ks);
 	free(Rs);
@@ -386,6 +381,7 @@ static int astrometric_image_hook(struct generic_seq_args *args, int out_index, 
 	int status = cvWarp_fromKR(fit,  &astargs->roi, Ks[in_index], Rs[in_index], astargs->scale ,regargs->projector, regargs->interpolation, regargs->clamp, disto, &roi);
 	if (!status) {
 		fits_flip_top_to_bottom(fit);
+		// TODO: keeping this for later when max framing won't save large black borders...
 		// H.h02 = roi.x - astargs->roi.x;
 		// H.h12 = roi.y - astargs->roi.y;
 		free_wcs(fit); // we remove astrometric solution
@@ -394,18 +390,22 @@ static int astrometric_image_hook(struct generic_seq_args *args, int out_index, 
 	regargs->imgparam[out_index].incl = (int)(!status);
 	regargs->imgparam[out_index].rx = roi.w;
 	regargs->imgparam[out_index].ry = roi.h;
-	regargs->regparam[out_index].fwhm = regargs->regparam[in_index].fwhm;
-	regargs->regparam[out_index].weighted_fwhm = regargs->regparam[in_index].weighted_fwhm;
-	regargs->regparam[out_index].roundness = regargs->regparam[in_index].roundness;
-	regargs->regparam[out_index].background_lvl = regargs->regparam[in_index].background_lvl;
-	regargs->regparam[out_index].number_of_stars = regargs->regparam[in_index].number_of_stars;
+	regargs->regparam[out_index].fwhm = sadata->current_regdata[in_index].fwhm;
+	regargs->regparam[out_index].weighted_fwhm = sadata->current_regdata[in_index].weighted_fwhm;
+	regargs->regparam[out_index].roundness = sadata->current_regdata[in_index].roundness;
+	regargs->regparam[out_index].background_lvl = sadata->current_regdata[in_index].background_lvl;
+	regargs->regparam[out_index].number_of_stars = sadata->current_regdata[in_index].number_of_stars;
 	regargs->regparam[out_index].H = H;
 	sadata->success[out_index] = (int)(!status);
+	if (astargs->scale != 1.f) {
+		fit->pixel_size_x /= regargs->astrometric_scale;
+		fit->pixel_size_y /= regargs->astrometric_scale;
+	}
 	return status;
 }
 
 
-static int astrometric_alignment(struct registration_args *regargs, struct astrometric_args *astargs) {
+static int astrometric_alignment(struct registration_args *regargs, struct astrometric_args *astargs, regdata *current_regdata) {
 	struct generic_seq_args *args = create_default_seqargs(&com.seq);
 	if (regargs->filters.filter_included) {
 		args->filtering_criterion = seq_filter_included;
@@ -430,7 +430,7 @@ static int astrometric_alignment(struct registration_args *regargs, struct astro
 	}
 	sadata->regargs = regargs;
 	sadata->astargs = astargs;
-	sadata->current_regdata = NULL;
+	sadata->current_regdata = current_regdata;
 	sadata->fitted_stars = 0;
 	sadata->refstars = NULL;
 	args->user = sadata;
