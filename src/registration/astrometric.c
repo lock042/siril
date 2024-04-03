@@ -284,7 +284,8 @@ int register_astrometric(struct registration_args *regargs) {
 			continue;
 		int rx = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
 		int ry = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
-		cvWarp_fromKR(NULL, rx, ry, Ks[i], Rs[i], scale, rois + i, regargs->projector, OPENCV_NONE, FALSE, NULL);
+		astrometric_roi roi_in = {.x = 0, .y = 0, .w = rx, .h = ry};
+		cvWarp_fromKR(NULL, &roi_in, Ks[i], Rs[i], scale, regargs->projector, OPENCV_NONE, FALSE, NULL, rois + i);
 		// first determine the corners
 		printf("%d,%d,%d,%d,%d\n", i + 1, rois[i].x, rois[i].y, rois[i].w, rois[i].h);
 		switch (regargs->framing) {
@@ -299,8 +300,8 @@ int register_astrometric(struct registration_args *regargs) {
 				if (i == regargs->reference_image) {
 					tl.x = rois[i].x;
 					tl.y = rois[i].y;
-					br.x = rois[i].x + rx;
-					br.y = rois[i].y + ry;
+					br.x = rois[i].x + rois[i].w;
+					br.y = rois[i].y + rois[i].h;
 				}
 				break;
 			case FRAMING_MIN:
@@ -314,13 +315,16 @@ int register_astrometric(struct registration_args *regargs) {
 		}
 	}
 	if (regargs->framing == FRAMING_COG) {
-		int rx = regargs->seq->imgparam[regargs->reference_image].rx;
-		int ry = regargs->seq->imgparam[regargs->reference_image].ry;
-		cvWarp_fromKR(NULL, rx, ry, Ks[refindex], Rref, scale, rois, regargs->projector, OPENCV_NONE, FALSE, NULL);
+		int rx = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
+		int ry = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
+		astrometric_roi roi_in = {.x = 0, .y = 0, .w = rx, .h = ry};
+		Homography R = { 0 };
+		cvGetEye(&R); // initializing to unity
+		cvWarp_fromKR(NULL, &roi_in, Ks[refindex], R, scale, regargs->projector, OPENCV_NONE, FALSE, NULL, rois);
 		tl.x = rois[0].x;
 		tl.y = rois[0].y;
-		br.x = rois[0].x + rx;
-		br.y = rois[0].y + ry;
+		br.x = rois[0].x + rois[0].w;
+		br.y = rois[0].y + rois[0].h;
 	}
 	// then compute the roi size and full image space requirement
 	int imagew = br.x - tl.x;
@@ -379,11 +383,11 @@ static int astrometric_image_hook(struct generic_seq_args *args, int out_index, 
 	sadata->success[out_index] = 0;
 	// TODO: find in opencv codebase if smthg smart can be done with K/R to avoid the double-flip
 	fits_flip_top_to_bottom(fit);
-	int status = cvWarp_fromKR(fit, 0, 0, Ks[in_index], Rs[in_index], astargs->scale, &roi, regargs->projector, regargs->interpolation, regargs->clamp, disto);
+	int status = cvWarp_fromKR(fit,  &astargs->roi, Ks[in_index], Rs[in_index], astargs->scale ,regargs->projector, regargs->interpolation, regargs->clamp, disto, &roi);
 	if (!status) {
 		fits_flip_top_to_bottom(fit);
-		H.h02 = roi.x - astargs->roi.x;
-		H.h12 = roi.y - astargs->roi.y;
+		// H.h02 = roi.x - astargs->roi.x;
+		// H.h12 = roi.y - astargs->roi.y;
 		free_wcs(fit); // we remove astrometric solution
 	}
 	regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
