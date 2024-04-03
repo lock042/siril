@@ -418,7 +418,7 @@ typedef struct {
 	int bayer_xoffset, bayer_yoffset;
 	double airmass;                   // relative optical path length through atmosphere.
 	/* data obtained from FITS or RAW files */
-	double focal_length, iso_speed, exposure, aperture, ccd_temp, set_temp;
+	double focal_length, flength, iso_speed, exposure, aperture, ccd_temp, set_temp;
 	double livetime;		// sum of exposures (s)
 	guint stackcnt;			// number of stacked frame
 	double cvf;			// Conversion factor (e-/adu)

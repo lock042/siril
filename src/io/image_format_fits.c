@@ -537,7 +537,7 @@ void read_fits_header(fits *fit) {
 	/* Locdata */
 	read_fits_locdata_header(fit); //FIXME: use new structure
 
-	/* first fill wcsdata FITS structure */
+	/* first fill wcsdata FITS structure */ //FIXME: should we use new structure?
 	load_wcs_keywords(fit);
 
 	/* so now, fill the wcslib structure. */

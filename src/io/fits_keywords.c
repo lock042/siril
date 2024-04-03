@@ -43,6 +43,8 @@ static gboolean should_use_keyword(const fits *fit, const gchar *group, const gc
 	if (g_strcmp0(keyword, "ROWORDER") == 0) {
 		return ((g_strcmp0(fit->keywords.row_order, "BOTTOM-UP") == 0)
 				|| (g_strcmp0(fit->keywords.row_order, "TOP-DOWN") == 0));
+	} else if (g_strcmp0(keyword, "FLENGTH") == 0) {
+		return FALSE;
 	} else if (g_strcmp0(keyword, "XBAYROFF") == 0) {
         return fit->keywords.bayer_pattern[0] != '\0';
     } else if (g_strcmp0(keyword, "YBAYROFF") == 0) {
@@ -100,6 +102,7 @@ KeywordInfo *initialize_keywords(fits *fit) {
         KEYWORD( "image", "XBINNING;BINX", KTYPE_UINT, "Camera binning mode", &(fit->keywords.binning_x)),
         KEYWORD( "image", "YBINNING;BINY", KTYPE_UINT, "Camera binning mode", &(fit->keywords.binning_y)),
         KEYWORD( "image", "FOCALLEN;FOCAL", KTYPE_DOUBLE, "Camera focal length", &(fit->keywords.focal_length)),
+        KEYWORD( "image", "FLENGTH", KTYPE_DOUBLE, "Camera focal length [m]", &(fit->keywords.flength)),
         KEYWORD( "image", "CCD-TEMP;CCD_TEMP;CCDTEMP;TEMPERAT;CAMTCCD", KTYPE_DOUBLE, "CCD temp in C", &(fit->keywords.ccd_temp)),
         KEYWORD( "image", "SET-TEMP", KTYPE_DOUBLE, "Temperature setting in C", &(fit->keywords.set_temp)),
         KEYWORD( "image", "FILTER;FILT-1", KTYPE_STR, "Active filter name", &(fit->keywords.filter)),
@@ -307,6 +310,7 @@ int save_fits_keywords(fits *fit) {
 	return 0;
 }
 
+/* FIXME: DATE-OBS should be used in the new structure */
 static void read_fits_date_obs_header(fits *fit) {
 	int status = 0;
 	char ut_start[FLEN_VALUE] = { 0 };
@@ -470,6 +474,7 @@ int read_fits_keywords(fits *fit) {
 			current_key++;
 		}
 		/* output not known keywords */
+		/** FIXME: need to exclude all keywords not handled but known. Like WCS and SIP keywords */
 		if (!value_set) {
 			UnknownKeys = g_string_append(UnknownKeys, card);
 			UnknownKeys = g_string_append(UnknownKeys, "\n");
@@ -478,7 +483,7 @@ int read_fits_keywords(fits *fit) {
 	free(keys_start);
 
 	/** Finalize **/
-	// FIXME: FLENGTH, given in m, should be handled
+
 	if (fit->keywords.pixel_size_x > 0.0) {
 		fit->pixelkey = TRUE;
 	}
@@ -494,7 +499,16 @@ int read_fits_keywords(fits *fit) {
 
 	if (fit->keywords.focal_length > 0.0)
 		fit->focalkey = TRUE;
+	else {
+		/* this keyword is seen in some professional images, FLENGTH is in m. */
+		status = 0;
+		if (fit->keywords.flength > 0.) {
+			fit->keywords.focal_length = fit->keywords.flength * 1000.0; // convert m to mm
+			fit->focalkey = TRUE;
+		}
+	}
 
+	/** Retrieve unknown keys **/
 	if (fit->unknown_keys)
 		g_free(fit->unknown_keys);
 	fit->unknown_keys = g_string_free(UnknownKeys, FALSE);
