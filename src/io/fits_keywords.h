@@ -47,6 +47,7 @@ struct KeywordInfo {
     special_handler_func special_handler;
     gboolean is_used;
     gboolean fixed_value;
+    gboolean already_read;
 };
 
 int save_fits_keywords(fits *fit);

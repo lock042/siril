@@ -33,9 +33,9 @@
 #define DEFAULT_UINT_VALUE 0
 #define DEFAULT_USHORT_VALUE DEFAULT_UINT_VALUE
 
-#define KEYWORD(group, key, type, comment, data, handler) { group, key, type, comment, data, handler, TRUE, FALSE }
-#define KEYWORD_FIXED(group, key, type, comment, data, handler) { group, key, type, comment, data, handler, TRUE, TRUE }
-#define KEYWORD_WCS(group, key, type) { group, key, type, NULL, NULL, NULL, FALSE, TRUE }
+#define KEYWORD(group, key, type, comment, data, handler) { group, key, type, comment, data, handler, TRUE, FALSE, FALSE }
+#define KEYWORD_FIXED(group, key, type, comment, data, handler) { group, key, type, comment, data, handler, TRUE, TRUE, FALSE }
+#define KEYWORD_WCS(group, key, type) { group, key, type, NULL, NULL, NULL, FALSE, TRUE, FALSE }
 
 static gboolean should_use_keyword(const fits *fit, const gchar *group, const gchar *keyword) {
 
@@ -432,7 +432,7 @@ int save_fits_keywords(fits *fit) {
 			case KTYPE_INT:
 				status = 0;
 				ii = (*((int*)keys->data));
-				if (ii) {
+				if (ii > DEFAULT_INT_VALUE) {
 					fits_update_key(fit->fptr, TINT, tokens[0], &ii, keys->comment, &status);
 				}
 				break;
@@ -629,8 +629,8 @@ int read_fits_keywords(fits *fit) {
 	    }
 
 	    KeywordInfo *current_key = keys_start;
-		gboolean value_set = FALSE; // Flag to indicate if a value was set
-		while (current_key->group && !value_set) {
+		gboolean value_set = FALSE; // Flag to indicate if a value was set.  current_key->already_read remember for the next time
+		while (current_key->group && !value_set && !current_key->already_read) {
 			if (fits_get_keyclass(card) == TYP_STRUC_KEY) {
 				value_set = TRUE;
 				current_key++;
@@ -640,11 +640,9 @@ int read_fits_keywords(fits *fit) {
 			int n = g_strv_length(tokens);
 			for (int i = 0; i < n && !value_set; i++) {
 				if (g_strcmp0(tokens[i], keyname) == 0) {
-					if (g_strcmp0("EQUINOX", keyname) == 0) {
-						printf("stop\n");
-					}
 					if (current_key->fixed_value) {
 						value_set = TRUE;
+						current_key->already_read = TRUE;
 						break;
 					}
 					int int_value;
@@ -662,6 +660,7 @@ int read_fits_keywords(fits *fit) {
 						if (value != end) {
 							*((int*) current_key->data) = int_value;
 							value_set = TRUE;
+							current_key->already_read = TRUE;
 						}
 						break;
 					case KTYPE_UINT:
@@ -676,6 +675,7 @@ int read_fits_keywords(fits *fit) {
 						if (value != end) {
 							*((gushort*) current_key->data) = ushort_value;
 							value_set = TRUE;
+							current_key->already_read = TRUE;
 						}
 						break;
 					case KTYPE_DOUBLE:
@@ -683,12 +683,14 @@ int read_fits_keywords(fits *fit) {
 						if (value != end) {
 							*((double*) current_key->data) = double_value;
 							value_set = TRUE;
+							current_key->already_read = TRUE;
 						}
 						break;
 					case KTYPE_STR:
 						str_value = g_shell_unquote(value, NULL);
 						strncpy((char*) current_key->data, str_value, FLEN_VALUE - 1);
 						value_set = TRUE;
+						current_key->already_read = TRUE;
 						break;
 					case KTYPE_DATE:
 						str_value = g_shell_unquote(value, NULL);
@@ -696,12 +698,14 @@ int read_fits_keywords(fits *fit) {
 						if (date) {
 							*((GDateTime**) current_key->data) = date;
 							value_set = TRUE;
+							current_key->already_read = TRUE;
 						}
 						break;
 					case KTYPE_BOOL:
 						bool = value[0] == 'T' ? TRUE : FALSE;
 						*((gboolean*) current_key->data) = bool;
 						value_set = TRUE;
+						current_key->already_read = TRUE;
 						break;
 					default:
 						break;
