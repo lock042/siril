@@ -2449,6 +2449,38 @@ void copy_fits_metadata(fits *from, fits *to) {
 	// copy from->history?
 }
 
+//void copy_fits_metadata(fits *from, fits *to) {
+//	// Copy simple fields
+//	memcpy(&to->keywords, &from->keywords, sizeof(fkeywords));
+//
+//	// Copy date_obs
+//	if (from->keywords.date_obs) {
+//		if (to->keywords.date_obs)
+//			g_date_time_unref(to->keywords.date_obs);
+//		to->keywords.date_obs = g_date_time_ref(from->keywords.date_obs);
+//	}
+//
+//	if (from->keywords.wcslib) {
+//		int status = -1;
+//		to->keywords.wcslib = wcs_deepcopy(from->keywords.wcslib, &status);
+//		if (status) {
+//			wcsfree(to->keywords.wcslib);
+//			siril_debug_print("could not copy wcslib struct\n");
+//		}
+//	}
+//
+//	// Copy other structures
+//	memcpy(&to->keywords.dft, &from->keywords.dft, sizeof(dft_info));
+//	memcpy(&to->keywords.wcsdata, &from->keywords.wcsdata, sizeof(wcs_info));
+//
+//	// Set boolean flags
+//	to->pixelkey = (from->keywords.pixel_size_x > 0.);
+//	to->focalkey = (from->keywords.focal_length > 0.);
+//
+//	// copy from->history?
+//}
+
+
 int copy_fits_from_file(char *source, char *destination) {
 	fitsfile *infptr, *outfptr; /* FITS file pointers defined in fitsio.h */
 	int status = 0; /* status must always be initialized = 0  */

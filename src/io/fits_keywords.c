@@ -679,7 +679,7 @@ int read_fits_keywords(fits *fit) {
 
 	    KeywordInfo *current_key = keys_start;
 		gboolean value_set = FALSE; // Flag indicating whether a value has been set. current_key->already_read remember next time. They do not point to the same keyword at this time.
-		while (current_key->group && !value_set && !current_key->already_read) {
+		while (current_key->group && !value_set) {
 			if (fits_get_keyclass(card) == TYP_STRUC_KEY) {
 				value_set = TRUE;
 				current_key++;
@@ -745,13 +745,13 @@ int read_fits_keywords(fits *fit) {
 						}
 						break;
 					case KTYPE_STR:
-						str_value = g_shell_unquote(value, NULL);
+						str_value = g_strstrip(g_shell_unquote(value, NULL));
 						strncpy((char*) current_key->data, str_value, FLEN_VALUE - 1);
 						value_set = TRUE;
 						current_key->already_read = TRUE;
 						break;
 					case KTYPE_DATE:
-						str_value = g_shell_unquote(value, NULL);
+						str_value = g_strstrip(g_shell_unquote(value, NULL));
 						date = FITS_date_to_date_time(str_value);
 						if (date) {
 							*((GDateTime**) current_key->data) = date;
