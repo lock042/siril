@@ -398,6 +398,7 @@ typedef struct {
 	/* data obtained from the FITS file */
 	WORD lo;		// MIPS-LO key in FITS file, "Lower visualization cutoff"
 	WORD hi;		// MIPS-HI key in FITS file, "Upper visualization cutoff"
+	char program[FLEN_VALUE];           // Software that created this HDU
 	double data_max;	// used to check if 32b float is in the [0, 1] range
 	double data_min;	// used to check if 32b float is in the [0, 1] range
 	double pixel_size_x, pixel_size_y;	// XPIXSZ and YPIXSZ keys

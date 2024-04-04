@@ -21,6 +21,7 @@ int write_icc_profile_to_fits(fits *fit);
 int write_icc_profile_to_fptr(fitsfile *fptr, cmsHPROFILE icc_profile);
 data_type get_data_type(int bitpix);
 void fit_get_photometry_data(fits *fit);
+int fit_stats(fitsfile *fptr, float *mini, float *maxi);
 int readfits(const char *filename, fits *fit, char *realname, gboolean force_float);
 void get_date_data_from_fitsfile(fitsfile *fptr, GDateTime **dt, double *exposure, double *livetime, unsigned int *stack_count);
 int import_metadata_from_fitsfile(fitsfile *fptr, fits *to);
@@ -82,6 +83,7 @@ void merge_fits_headers_to_result2(fits *result, fits **f, gboolean do_sum);
 void merge_fits_headers_to_result(fits *result, gboolean do_sum, fits *f1,...);
 int get_xpsampled(xpsampled* xps, gchar *filename, int i);
 int updateFITSKeyword(fits *fit, const gchar *key, const gchar *value);
+int associate_header_to_memfile(const char *header, fitsfile *fptr);
 int fits_parse_header_str(fits *fit, const char *header);
 
 #endif

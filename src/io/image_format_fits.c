@@ -194,7 +194,7 @@ void fit_get_photometry_data(fits *fit) {
 	fits_read_key(fit->fptr, TDOUBLE, "AIRMASS", &fit->keywords.airmass, NULL, &status);
 }
 
-static int fit_stats(fitsfile *fptr, float *mini, float *maxi) {
+int fit_stats(fitsfile *fptr, float *mini, float *maxi) {
 	int status = 0;
 	int ii;
 	long npixels = 1L;
@@ -360,7 +360,7 @@ void read_fits_header(fits *fit) {
 	/* about the status argument: http://heasarc.gsfc.nasa.gov/fitsio/c/c_user/node28.html */
 	int status = 0;
 //	double scale, zero;
-	char str[FLEN_VALUE] = { 0 };
+//	char str[FLEN_VALUE] = { 0 };
 
 	__tryToFindKeywords(fit->fptr, TUSHORT, MIPSLO, &fit->keywords.lo, &status);
 	status = 0;
@@ -391,19 +391,19 @@ void read_fits_header(fits *fit) {
 //	 * compute fit_stats
 //	 */
 //	status = 0;
-	fits_read_key(fit->fptr, TSTRING, "PROGRAM", &str, NULL, &status);
-	gboolean not_from_siril = status || g_ascii_strncasecmp(str, PACKAGE, strlen(PACKAGE));
-
-	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "DATAMAX", &(fit->keywords.data_max), NULL, &status);
-
-	if ((fit->bitpix == FLOAT_IMG && not_from_siril) || fit->bitpix == DOUBLE_IMG) {
-		float mini, maxi;
-		fit_stats(fit->fptr, &mini, &maxi);
-		// override data_max if needed. In some images there are differences between max and data_max
-		fit->keywords.data_max = (double) maxi;
-		fit->keywords.data_min = (double) mini;
-	}
+//	fits_read_key(fit->fptr, TSTRING, "PROGRAM", &str, NULL, &status);
+//	gboolean not_from_siril = status || g_ascii_strncasecmp(str, PACKAGE, strlen(PACKAGE));
+//
+//	status = 0;
+//	fits_read_key(fit->fptr, TDOUBLE, "DATAMAX", &(fit->keywords.data_max), NULL, &status);
+//
+//	if ((fit->bitpix == FLOAT_IMG && not_from_siril) || fit->bitpix == DOUBLE_IMG) {
+//		float mini, maxi;
+//		fit_stats(fit->fptr, &mini, &maxi);
+//		// override data_max if needed. In some images there are differences between max and data_max
+//		fit->keywords.data_max = (double) maxi;
+//		fit->keywords.data_min = (double) mini;
+//	}
 
 //	status = 0;
 //	fits_read_key(fit->fptr, TSTRING, "ROWORDER", &(fit->keywords.row_order), NULL,
@@ -1344,299 +1344,12 @@ void update_fits_header(fits *fit) {
 	free(memptr);
 }
 
-void  save_fits_header(fits *fit) {
-	int i, status = 0;
-//	double zero, scale;
-//	char comment[FLEN_COMMENT];
-//
-//	if (fit->keywords.hi) { /* may not be initialized */
-//		if (fit->type == DATA_USHORT) {
-//			fits_update_key(fit->fptr, TUSHORT, "MIPS-HI", &(fit->keywords.hi),
-//					"Upper visualization cutoff", &status);
-//			fits_update_key(fit->fptr, TUSHORT, "MIPS-LO", &(fit->keywords.lo),
-//					"Lower visualization cutoff", &status);
-//		}
-//		else if (fit->type == DATA_FLOAT) {
-//			float fhi = ushort_to_float_range(fit->keywords.hi);
-//			fits_update_key(fit->fptr, TFLOAT, "MIPS-FHI", &(fhi),
-//					"Upper visualization cutoff", &status);
-//			float flo = ushort_to_float_range(fit->keywords.lo);
-//			fits_update_key(fit->fptr, TFLOAT, "MIPS-FLO", &(flo),
-//					"Lower visualization cutoff", &status);
-//		}
-//	}
-//	// physical_value = BZERO + BSCALE * array_value
-//	// https://heasarc.gsfc.nasa.gov/docs/software/fitsio/c/c_user/node26.html
-//	switch (fit->bitpix) {
-//	case BYTE_IMG:
-//	case SHORT_IMG:
-//		zero = 0.0;
-//		scale = 1.0;
-//		break;
-//	case FLOAT_IMG:
-//		zero = 0.0;
-//		scale = 1.0;
-//		break;
-//	default:
-//	case USHORT_IMG:
-//		zero = 32768.0;
-//		scale = 1.0;
-//		break;
-//	}
-//	status = 0;
-//	fits_update_key(fit->fptr, TDOUBLE, "BZERO", &zero,
-//			"offset data range to that of unsigned short", &status);
-//
-//	status = 0;
-//	fits_update_key(fit->fptr, TDOUBLE, "BSCALE", &scale, "default scaling factor",
-//			&status);
-//
-//	status = 0;
-//	if (!g_strcmp0(fit->keywords.row_order, "BOTTOM-UP") || !g_strcmp0(fit->keywords.row_order, "TOP-DOWN")) {
-//		fits_update_key(fit->fptr, TSTRING, "ROWORDER", &fit->keywords.row_order,
-//				"Order of the rows in image array", &status);
-//	}
-//
-//	/*******************************************************************
-//	 * ************* CAMERA AND INSTRUMENT KEYWORDS ********************
-//	 * ******************** AND DATES **********************************
-//	 * ****************************************************************/
-//
-//	status = 0;
-//	if (fit->instrume[0] != '\0')
-//		fits_update_key(fit->fptr, TSTRING, "INSTRUME", &(fit->instrume),
-//				"instrument name", &status);
-//	status = 0;
-//	if (fit->telescop[0] != '\0')
-//		fits_update_key(fit->fptr, TSTRING, "TELESCOP", &(fit->telescop),
-//				"telescope used to acquire this image", &status);
-//	status = 0;
-//	if (fit->observer[0] != '\0')
-//		fits_update_key(fit->fptr, TSTRING, "OBSERVER", &(fit->observer),
-//				"observer name", &status);
-//	status = 0;
-//	int itmp;
-//	char fit_date[40];
-//	fits_get_system_time(fit_date, &itmp, &status);
-//	fits_update_key(fit->fptr, TSTRING, "DATE", fit_date,
-//			"UTC date that FITS file was created", &status);
-//
-//	status = 0;
-//	if (fit->date_obs) {
-//		gchar *formatted_date = date_time_to_FITS_date(fit->date_obs);
-//		fits_update_key(fit->fptr, TSTRING, "DATE-OBS", formatted_date,
-//				"YYYY-MM-DDThh:mm:ss observation start, UT", &status);
-//
-//		g_free(formatted_date);
-//	}
-//
-//	status = 0;
-//	if (fit->stackcnt > 0)
-//		fits_update_key(fit->fptr, TUINT, "STACKCNT", &(fit->stackcnt),
-//				"Stack frames", &status);
-//
-//	status = 0;
-//	if (fit->exposure > 0.)
-//		fits_update_key(fit->fptr, TDOUBLE, "EXPTIME", &(fit->exposure),
-//				"Exposure time [s]", &status);
-//
-//	status = 0;
-//	if (fit->livetime > 0.)
-//		fits_update_key(fit->fptr, TDOUBLE, "LIVETIME", &(fit->livetime),
-//				"Exposure time after deadtime correction", &status);
-//
-//	status = 0;
-//	if (fit->expstart > 0.)
-//		fits_update_key(fit->fptr, TDOUBLE, "EXPSTART", &(fit->expstart),
-//				"Exposure start time (standard Julian date)", &status);
-//
-//	status = 0;
-//	if (fit->expend > 0.)
-//		fits_update_key(fit->fptr, TDOUBLE, "EXPEND", &(fit->expend),
-//				"Exposure end time (standard Julian date)", &status);
-//
-//	status = 0;
-//	if (fit->pixel_size_x > 0.)
-//		fits_update_key(fit->fptr, TFLOAT, "XPIXSZ", &(fit->pixel_size_x),
-//				"X pixel size microns", &status);
-//	if (fit->pixel_size_y > 0.)
-//		fits_update_key(fit->fptr, TFLOAT, "YPIXSZ", &(fit->pixel_size_y),
-//				"Y pixel size microns", &status);
-//
-//	status = 0;
-//	if (fit->binning_x)
-//		fits_update_key(fit->fptr, TUINT, "XBINNING", &(fit->binning_x),
-//				"Camera binning mode", &status);
-//	if (fit->binning_y)
-//		fits_update_key(fit->fptr, TUINT, "YBINNING", &(fit->binning_y),
-//				"Camera binning mode", &status);
-//
-//	status = 0;
-//	if (fit->focal_length > 0.)
-//		fits_update_key(fit->fptr, TDOUBLE, "FOCALLEN", &(fit->focal_length),
-//				"Camera focal length", &status);
-//
-//	status = 0;
-//	if (fit->ccd_temp > -999.0)
-//		fits_update_key(fit->fptr, TDOUBLE, "CCD-TEMP", &(fit->ccd_temp),
-//				"CCD temp in C", &status);
-//
-//	status = 0;
-//	if (fit->set_temp > -999.0)
-//		fits_update_key(fit->fptr, TDOUBLE, "SET-TEMP", &(fit->set_temp),
-//				"Temperature setting in C", &status);
-//
-//	status = 0;
-//	if (fit->filter[0] != '\0')
-//		fits_update_key(fit->fptr, TSTRING, "FILTER", &(fit->filter),
-//				"Active filter name", &status);
-//
-//	status = 0;
-//	if (fit->image_type[0] != '\0')
-//		fits_update_key(fit->fptr, TSTRING, "IMAGETYP", &(fit->image_type),
-//				"Type of image", &status);
-//
-//	status = 0;
-//	if (fit->object[0] != '\0')
-//		fits_update_key(fit->fptr, TSTRING, "OBJECT", &(fit->object),
-//				"Name of the object of interest", &status);
-//
-//	status = 0;
-//	if (fit->aperture > 0.)
-//		fits_update_key(fit->fptr, TDOUBLE, "APERTURE", &(fit->aperture),
-//				"Aperture of the instrument", &status);
-//
-//	status = 0;
-//	if (fit->iso_speed > 0.)
-//		fits_update_key(fit->fptr, TDOUBLE, "ISOSPEED", &(fit->iso_speed),
-//				"ISO camera setting", &status);
-//
-//	status = 0;
-//	if (fit->bayer_pattern[0] != '\0') {
-//		fits_update_key(fit->fptr, TSTRING, "BAYERPAT", &(fit->bayer_pattern),
-//				"Bayer color pattern", &status);
-//
-//		status = 0;
-//		fits_update_key(fit->fptr, TINT, "XBAYROFF", &(fit->bayer_xoffset),
-//				"X offset of Bayer array", &status);
-//
-//		status = 0;
-//		fits_update_key(fit->fptr, TINT, "YBAYROFF", &(fit->bayer_yoffset),
-//				"Y offset of Bayer array", &status);
-//	}
-//
-//	status = 0;
-//	if (fit->key_gain > 0.)
-//		fits_update_key(fit->fptr, TUSHORT, "GAIN", &(fit->key_gain),
-//				"Camera gain", &status);
-//
-//	status = 0;
-//	if (fit->key_offset > 0.)
-//		fits_update_key(fit->fptr, TUSHORT, "OFFSET", &(fit->key_offset),
-//				"Camera offset", &status);
-//
-//	status = 0;
-//	if (fit->cvf > 0.)
-//		fits_update_key(fit->fptr, TDOUBLE, "CVF", &(fit->cvf),
-//				"Conversion factor (e-/adu)", &status);
-//
-//	/**
-//	 * others
-//	 */
-//
-//	status = 0;
-//	if (fit->airmass > 0.)
-//		fits_update_key(fit->fptr, TDOUBLE, "AIRMASS", &(fit->airmass),
-//				"Airmass", &status);
-//
-//	status = 0;
-//	if (fit->sitelat)
-//		fits_update_key(fit->fptr, TDOUBLE, "SITELAT", &(fit->sitelat),
-//			"[deg] Observation site latitude", &status);
-//
-//	status = 0;
-//	if (fit->sitelong)
-//		fits_update_key(fit->fptr, TDOUBLE, "SITELONG", &(fit->sitelong),
-//				"[deg] Observation site longitude", &status);
-//
-//	status = 0;
-//	if (fit->siteelev)
-//		fits_update_key(fit->fptr, TDOUBLE, "SITEELEV", &(fit->siteelev),
-//				"[m] Observation site elevation", &status);
-//
-//	/*******************************************************************
-//	 * ************************* DFT KEYWORDS **************************
-//	 * ****************************************************************/
-//
-//	status = 0;
-//	if (fit->dft.type[0] != '\0') {
-//		if (fit->dft.type[0] == 'S')
-//			strcpy(comment, "Module of a Discrete Fourier Transform");
-//		else if (fit->dft.type[0] == 'P')
-//			strcpy(comment, "Phase of a Discrete Fourier Transform");
-//		else
-//			status = 1;			// should not happen
-//		fits_update_key(fit->fptr, TSTRING, "DFTTYPE", &(fit->dft.type), comment, &status);
-//	}
-//
-//	status = 0;
-//	if (fit->dft.ord[0] != '\0') {
-//		if (fit->dft.ord[0] == 'C')
-//			strcpy(comment, "Low spatial freq. are located at image center");
-//		else if (fit->dft.ord[0] == 'R')
-//			strcpy(comment, "High spatial freq. are located at image center");
-//		else
-//			status = 1;			// should not happen
-//		fits_update_key(fit->fptr, TSTRING, "DFTORD", &(fit->dft.ord), comment, &status);
-//	}
-//
-//	for (i = 0; i < fit->naxes[2]; i++) {
-//		if (fit->dft.norm[i] > 0.) {
-//			const char *str1 = "DFTNORM";
-//			const char *str2 = "Normalisation value for channel #";
-//			char key_str[FLEN_KEYWORD], comment_str[FLEN_VALUE];
-//			g_sprintf(key_str, "%s%d", str1, i);
-//			g_sprintf(comment_str, "%s%d", str2, i);
-//			status = 0;
-//			fits_update_key(fit->fptr, TDOUBLE, key_str, &(fit->dft.norm[i]),
-//					comment_str, &status);
-//		}
-//	}
-//
-//	/*******************************************************************
-//	 * ********************** PROGRAM KEYWORD **************************
-//	 * ****************************************************************/
-//
-//	status = 0;
-//	char programm[32];
-//
-//	sprintf(programm, "%c%s v%s", toupper(PACKAGE[0]), (char*) PACKAGE + 1, VERSION);
-//	fits_update_key(fit->fptr, TSTRING, "PROGRAM", programm,
-//			"Software that created this HDU", &status);
-
+void save_fits_header(fits *fit) {
 	save_fits_keywords(fit);
-
 	save_wcs_keywords(fit);
+	save_history_keywords(fit);
 
-	/*******************************************************************
-	 * ********************* HISTORY KEYWORDS **************************
-	 * ****************************************************************/
-
-	status = 0;
-	if (fit->history) {
-		GSList *list;
-		for (list = fit->history; list; list = list->next) {
-			fits_write_history(fit->fptr, (char *)list->data, &status);
-		}
-	}
-
-	status = 0;
-	if (com.history) {
-		for (i = 0; i < com.hist_display; i++) {
-			if (com.history[i].history[0] != '\0')
-				fits_write_history(fit->fptr, com.history[i].history, &status);
-		}
-	}
+	save_fits_unknown_keywords(fit);
 }
 
 /********************** public functions ************************************/
@@ -3859,7 +3572,7 @@ cleanup:
 	return status;
 }
 
-static int associate_header_to_memfile(const char *header, fitsfile *fptr) {
+int associate_header_to_memfile(const char *header, fitsfile *fptr) {
     int status = 0;
 
     char *header_copy = strdup(header);

@@ -24,6 +24,7 @@
 #include "core/siril_log.h"
 #include "core/siril_world_cs.h"
 #include "algos/siril_wcs.h"
+#include "io/image_format_fits.h"
 
 #include "fits_keywords.h"
 
@@ -34,12 +35,9 @@
 
 #define KEYWORD(group, key, type, comment, data, handler) { group, key, type, comment, data, handler, TRUE, FALSE }
 #define KEYWORD_FIXED(group, key, type, comment, data, handler) { group, key, type, comment, data, handler, TRUE, TRUE }
+#define KEYWORD_WCS(group, key, type) { group, key, type, NULL, NULL, NULL, FALSE, TRUE }
 
 static gboolean should_use_keyword(const fits *fit, const gchar *group, const gchar *keyword) {
-	gboolean use_keyword = TRUE;
-	if (g_strcmp0(group, "wcslib") == 0) {
-		use_keyword = (fit->keywords.wcslib != NULL);
-	}
 
 	if (g_strcmp0(keyword, "ROWORDER") == 0) {
 		return ((g_strcmp0(fit->keywords.row_order, "BOTTOM-UP") == 0)
@@ -59,7 +57,7 @@ static gboolean should_use_keyword(const fits *fit, const gchar *group, const gc
     } else if (g_strcmp0(keyword, "DEC_D") == 0) {
         return FALSE;
     }
-    return use_keyword;
+    return TRUE;
 }
 
 /****************************** handlers ******************************/
@@ -156,13 +154,27 @@ void pltsolvd_handler(fits *fit, const char *comment, KeywordInfo *info) {
 	strncpy(fit->keywords.wcsdata.pltsolvd_comment, comment, FLEN_COMMENT);
 }
 
+void datamax_handler(fits *fit, const char *comment, KeywordInfo *info) {
+	gboolean not_from_siril = (strstr(fit->keywords.program, "Siril") == NULL);
+	if ((fit->bitpix == FLOAT_IMG && not_from_siril) || fit->bitpix == DOUBLE_IMG) {
+		float mini, maxi;
+		fit_stats(fit->fptr, &mini, &maxi);
+		// override data_max if needed. In some images there are differences between max and data_max
+		fit->keywords.data_max = (double) maxi;
+		fit->keywords.data_min = (double) mini;
+	}
+}
+
 /*****************************************************************************/
 
 KeywordInfo *initialize_keywords(fits *fit) {
 	KeywordInfo keyword_list[] = {
 		// FIXME: add MIPS keywords
-        KEYWORD( "image", "MIPS-HI", KTYPE_USHORT, "Upper visualization cutoff", &(fit->keywords.hi), NULL),
-        KEYWORD( "image", "MIPS-LO", KTYPE_USHORT, "Lower visualization cutoff", &(fit->keywords.lo), NULL),
+        KEYWORD( "image", "MIPS-HI;CWHITE", KTYPE_USHORT, "Upper visualization cutoff", &(fit->keywords.hi), NULL),
+        KEYWORD( "image", "MIPS-LO;CBLACK", KTYPE_USHORT, "Lower visualization cutoff", &(fit->keywords.lo), NULL),
+		/* IMPORTANT: PROGRAM MUST BE BEFORE DATAMAX */
+        KEYWORD( "image", "PROGRAM", KTYPE_STR, "Software that created this HDU", &(fit->keywords.program), NULL),
+        KEYWORD( "image", "DATAMAX", KTYPE_DOUBLE, "Order of the rows in image array", &(fit->keywords.data_max), datamax_handler),
         KEYWORD( "image", "ROWORDER", KTYPE_STR, "Order of the rows in image array", &(fit->keywords.row_order), roworder_handler),
         KEYWORD( "setup", "INSTRUME", KTYPE_STR, "Instrument name", &(fit->keywords.instrume), NULL),
         KEYWORD( "setup", "TELESCOP", KTYPE_STR, "Telescope used to acquire this image", &(fit->keywords.telescop), NULL),
@@ -202,7 +214,6 @@ KeywordInfo *initialize_keywords(fits *fit) {
         KEYWORD( "dft",   "DFTNORM1", KTYPE_DOUBLE, "Normalisation value for channel #1", &(fit->keywords.dft.norm[0]), NULL),
         KEYWORD( "dft",   "DFTNORM2", KTYPE_DOUBLE, "Normalisation value for channel #2", &(fit->keywords.dft.norm[1]), NULL),
         KEYWORD( "dft",   "DFTNORM3", KTYPE_DOUBLE, "Normalisation value for channel #3", &(fit->keywords.dft.norm[2]), NULL),
-        KEYWORD_FIXED( "image", "PROGRAMM", KTYPE_STR, "Software that created this HDU", "Siril "PACKAGE_VERSION, NULL),
 
         KEYWORD_FIXED( "wcsdata", "CTYPE3", KTYPE_STR, "RGB image", "RGB", NULL),
         KEYWORD( "wcsdata", "OBJCTRA", KTYPE_STR, "Image center Right Ascension (hms)", &(fit->keywords.wcsdata.objctra), NULL),
@@ -212,6 +223,30 @@ KeywordInfo *initialize_keywords(fits *fit) {
         KEYWORD( "wcsdata", "DEC", KTYPE_DOUBLE, "Image center Declination (deg)", &(fit->keywords.wcsdata.dec), NULL),
         KEYWORD( "wcsdata", "DEC_D", KTYPE_DOUBLE, "Image center Declination (deg)", &(fit->keywords.wcsdata.dec), NULL),
         KEYWORD( "wcsdata", "PLTSOLVD", KTYPE_BOOL, NULL, &(fit->keywords.wcsdata.pltsolvd), pltsolvd_handler),
+
+		/* This group must be the last one !!
+		 * It is not used. We write keywords just so that Siril knows about them
+		 */
+		KEYWORD_WCS( "wcslib", "CTYPE1", KTYPE_STR),
+		KEYWORD_WCS( "wcslib", "CTYPE2", KTYPE_STR),
+		KEYWORD_WCS( "wcslib", "CUNIT1", KTYPE_STR),
+		KEYWORD_WCS( "wcslib", "CUNIT2", KTYPE_STR),
+		KEYWORD_WCS( "wcslib", "EQUINOX", KTYPE_DOUBLE),
+		KEYWORD_WCS( "wcslib", "CRPIX1", KTYPE_DOUBLE),
+		KEYWORD_WCS( "wcslib", "CRPIX2", KTYPE_DOUBLE),
+		KEYWORD_WCS( "wcslib", "CRVAL1", KTYPE_DOUBLE),
+		KEYWORD_WCS( "wcslib", "CRVAL2", KTYPE_DOUBLE),
+		KEYWORD_WCS( "wcslib", "LONPOLE", KTYPE_DOUBLE),
+		KEYWORD_WCS( "wcslib", "CDELT1", KTYPE_DOUBLE),
+		KEYWORD_WCS( "wcslib", "CDELT2", KTYPE_DOUBLE),
+		KEYWORD_WCS( "wcslib", "PC1_1", KTYPE_DOUBLE),
+		KEYWORD_WCS( "wcslib", "PC1_2", KTYPE_DOUBLE),
+		KEYWORD_WCS( "wcslib", "PC2_1", KTYPE_DOUBLE),
+		KEYWORD_WCS( "wcslib", "PC2_2", KTYPE_DOUBLE),
+		KEYWORD_WCS( "wcslib", "CD1_1", KTYPE_DOUBLE),
+		KEYWORD_WCS( "wcslib", "CD1_2", KTYPE_DOUBLE),
+		KEYWORD_WCS( "wcslib", "CD2_1", KTYPE_DOUBLE),
+		KEYWORD_WCS( "wcslib", "CD2_2", KTYPE_DOUBLE),
 
 		{NULL, NULL, KTYPE_BOOL, NULL, NULL, FALSE, TRUE}
     };
@@ -231,25 +266,27 @@ KeywordInfo *initialize_keywords(fits *fit) {
 		all_keywords[i].is_used = should_use_keyword(fit, keyword_list[i].group, keyword_list[i].key);
 
 		// Set default values based on keyword type
-		switch (all_keywords[i].type) {
-		case KTYPE_INT:
-			if (*((int*) all_keywords[i].data) == 0)
-				*((int*) all_keywords[i].data) = DEFAULT_INT_VALUE;
-			break;
-		case KTYPE_UINT:
-			if (*((guint*)all_keywords[i].data) == 0)
-				*((guint*) all_keywords[i].data) = DEFAULT_UINT_VALUE;
-			break;
-		case KTYPE_USHORT:
-			if (*((gushort*)all_keywords[i].data) == 0)
-				*((gushort*) all_keywords[i].data) = DEFAULT_USHORT_VALUE;
-			break;
-		case KTYPE_DOUBLE:
-			if (*((double*)all_keywords[i].data) == 0)
-				*((double*) all_keywords[i].data) = DEFAULT_DOUBLE_VALUE;
-			break;
-		default:
-			break;
+		if (g_strcmp0(all_keywords[i].group, "wcslib")) { // This group is initialized somewhere
+			switch (all_keywords[i].type) {
+			case KTYPE_INT:
+				if (*((int*) all_keywords[i].data) == 0)
+					*((int*) all_keywords[i].data) = DEFAULT_INT_VALUE;
+				break;
+			case KTYPE_UINT:
+				if (*((guint*)all_keywords[i].data) == 0)
+					*((guint*) all_keywords[i].data) = DEFAULT_UINT_VALUE;
+				break;
+			case KTYPE_USHORT:
+				if (*((gushort*)all_keywords[i].data) == 0)
+					*((gushort*) all_keywords[i].data) = DEFAULT_USHORT_VALUE;
+				break;
+			case KTYPE_DOUBLE:
+				if (*((double*)all_keywords[i].data) == 0)
+					*((double*) all_keywords[i].data) = DEFAULT_DOUBLE_VALUE;
+				break;
+			default:
+				break;
+			}
 		}
 	}
 
@@ -293,9 +330,11 @@ int save_fits_keywords(fits *fit) {
 	status = 0;
 	fits_update_key(fit->fptr, TDOUBLE, "BSCALE", &scale, "Default scaling factor",	&status);
 
+	strncpy(fit->keywords.program, "Siril "PACKAGE_VERSION, FLEN_VALUE - 1);
+
 	/* Let's save all other keywords */
 	while (keys->group) {
-		if (!keys->is_used) {
+		if (!keys->is_used || g_strcmp0(keys->group, "wcslib") == 0) {
 			keys++;
 			continue;
 		}
@@ -364,24 +403,47 @@ int save_fits_keywords(fits *fit) {
 
 	free(keys_start);
 
-	/*** Save list of unknown keys ***/
-	/* FIXME: save it into the FITS file */
-	if (fit->unknown_keys) {
-	    /* Move to the end of the header */
-	    if (fits_movabs_hdu(fit->fptr, 2, NULL, &status)) {
-	        fits_report_error(stderr, status); /* Print error message */
-	        return status;
-	    }
+	return 0;
+}
 
-	    /* Write the formatted header string to the end of the header */
-	    if (fits_write_record(fit->fptr, fit->unknown_keys, &status)) {
-	        fits_report_error(stderr, status); /* Print error message */
-	        return status;
-	    }
-//		printf("%s\n", fit->unknown_keys);
+int save_fits_unknown_keywords(fits *fit) {
+	int status = 0;
+	/*** Save list of unknown keys ***/
+	if (fit->unknown_keys) {
+		for (int i = 0; i < 2; i++) {
+			status = 0;
+			fits_write_comment(fit->fptr, "************************************************************", &status);
+		}
+		status = 0;
+		fits_write_comment(fit->fptr, "**********************Unknown keywords**********************", &status);
+		for (int i = 0; i < 2; i++) {
+			status = 0;
+			fits_write_comment(fit->fptr, "************************************************************", &status);
+		}
+		status = associate_header_to_memfile(fit->unknown_keys, fit->fptr);
+	}
+	return status;
+}
+
+int save_history_keywords(fits *fit) {
+	int status = 0;
+
+	if (fit->history) {
+		GSList *list;
+		for (list = fit->history; list; list = list->next) {
+			fits_write_history(fit->fptr, (char *)list->data, &status);
+		}
 	}
 
-	return 0;
+	status = 0;
+	if (com.history) {
+		for (int i = 0; i < com.hist_display; i++) {
+			if (com.history[i].history[0] != '\0')
+				fits_write_history(fit->fptr, com.history[i].history, &status);
+		}
+	}
+
+	return status;
 }
 
 /* FIXME: DATE-OBS should be used in the new structure, in the handler */
@@ -489,6 +551,9 @@ int read_fits_keywords(fits *fit) {
 			int n = g_strv_length(tokens);
 			for (int i = 0; i < n && !value_set; i++) {
 				if (g_strcmp0(tokens[i], keyname) == 0) {
+					if (g_strcmp0("EQUINOX", keyname) == 0) {
+						printf("stop\n");
+					}
 					if (current_key->fixed_value) {
 						value_set = TRUE;
 						break;
@@ -566,7 +631,7 @@ int read_fits_keywords(fits *fit) {
 		/** FIXME: need to exclude all keywords not handled but known. Like WCS and SIP keywords */
 		if (!value_set) {
 			UnknownKeys = g_string_append(UnknownKeys, card);
-//			UnknownKeys = g_string_append(UnknownKeys, "\n");
+			UnknownKeys = g_string_append(UnknownKeys, "\n");
 		}
 	}
 	free(keys_start);
