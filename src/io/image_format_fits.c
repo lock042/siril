@@ -59,20 +59,8 @@ const char *fit_extension[] = {
 
 static char *MIPSHI[] = {"MIPS-HI", "CWHITE", "DATAMAX", NULL };
 static char *MIPSLO[] = {"MIPS-LO", "CBLACK", "DATAMIN", NULL };
-//static char *PIXELSIZEX[] = { "XPIXSZ", "XPIXELSZ", "PIXSIZE1", "PIXSIZEX", "XPIXSIZE", NULL };
-//static char *PIXELSIZEY[] = { "YPIXSZ", "YPIXELSZ", "PIXSIZE2", "PIXSIZEY", "YPIXSIZE", NULL };
-//static char *BINX[] = { "XBINNING", "BINX", NULL };
-//static char *BINY[] = { "YBINNING", "BINY", NULL };
-//static char *FOCAL[] = { "FOCAL", "FOCALLEN", NULL };
-//static char *CCD_TEMP[] = { "CCD-TEMP", "CCD_TEMP", "CCDTEMP", "TEMPERAT", "CAMTCCD", NULL };
 static char *EXPOSURE[] = { "EXPTIME", "EXPOSURE", NULL };
-//static char *FILTER[] = {"FILTER", "FILT-1", NULL };
-//static char *CVF[] = { "CVF", "EGAIN", NULL };
-//static char *IMAGETYP[] = { "IMAGETYP", "FRAMETYP", NULL };
-//static char *OFFSETLEVEL[] = { "OFFSET", "BLKLEVEL", NULL };  //Used for synthetic offset
 static char *NB_STACKED[] = { "STACKCNT", "NCOMBINE", NULL };
-//static char *SITELAT[] = { "SITELAT", "SITE-LAT", "OBSLAT", NULL };
-//static char *SITELONG[] = { "SITELONG", "SITE-LON", "OBSLONG", NULL };
 
 static int CompressionMethods[] = { RICE_1, GZIP_1, GZIP_2, HCOMPRESS_1};
 
@@ -313,112 +301,21 @@ static int try_read_float_lo_hi(fitsfile *fptr, WORD *lo, WORD *hi) {
 	return status;
 }
 
-//static void load_wcs_keywords(fits *fit) {
-//	int status = 0;
-//	status = 0;
-//	fits_read_key(fit->fptr, TSTRING, "OBJCTRA", &(fit->keywords.wcsdata.objctra), NULL, &status);
-//
-//	// RA and DEC can have values either in double or in string
-//	status = 0;
-//	fits_read_key(fit->fptr, TDOUBLE, "RA", &(fit->keywords.wcsdata.ra), NULL, &status);
-//	if (status) {
-//		status = 0;
-//		char hms[FLEN_VALUE];
-//		fits_read_key(fit->fptr, TSTRING, "RA", hms, NULL, &status);
-//		if (!status) {
-//			fit->keywords.wcsdata.ra = parse_hms(hms);
-//			if (isnan(fit->keywords.wcsdata.ra)) fit->keywords.wcsdata.ra = 0.0;
-//			else siril_debug_print("read RA as HMS\n");
-//		}
-//	}
-//
-//	status = 0;
-//	fits_read_key(fit->fptr, TSTRING, "OBJCTDEC", &(fit->keywords.wcsdata.objctdec), NULL, &status);
-//
-//	status = 0;
-//	fits_read_key(fit->fptr, TDOUBLE, "DEC", &(fit->keywords.wcsdata.dec), NULL, &status);
-//	if (status) {
-//		status = 0;
-//		char dms[FLEN_VALUE];
-//		fits_read_key(fit->fptr, TSTRING, "DEC", dms, NULL, &status);
-//		if (!status) {
-//			fit->keywords.wcsdata.dec = parse_dms(dms);
-//			if (isnan(fit->keywords.wcsdata.dec)) fit->keywords.wcsdata.dec = 0.0;
-//			else siril_debug_print("read DEC as DMS\n");
-//		}
-//	}
-//	// kewwords directly related to platesolve solution are loaded to fit->wcslib using load_WCS_from_fits
-//
-//	status = 0;
-//	fits_read_key(fit->fptr, TLOGICAL, "PLTSOLVD", &(fit->keywords.wcsdata.pltsolvd), fit->keywords.wcsdata.pltsolvd_comment, &status);
-//}
-
 
 /* reading the FITS header to get useful information
  * stored in the fit, requires an opened file descriptor */
 void read_fits_header(fits *fit) {
-	/* about the status argument: http://heasarc.gsfc.nasa.gov/fitsio/c/c_user/node28.html */
-	int status = 0;
-//	double scale, zero;
-//	char str[FLEN_VALUE] = { 0 };
-
-	__tryToFindKeywords(fit->fptr, TUSHORT, MIPSLO, &fit->keywords.lo, &status);
-	status = 0;
-	__tryToFindKeywords(fit->fptr, TUSHORT, MIPSHI, &fit->keywords.hi, &status);
-	if (fit->orig_bitpix == FLOAT_IMG || fit->orig_bitpix == DOUBLE_IMG) {
-		try_read_float_lo_hi(fit->fptr, &fit->keywords.lo, &fit->keywords.hi);
-	}
-
+//	/* about the status argument: http://heasarc.gsfc.nasa.gov/fitsio/c/c_user/node28.html */
+//	int status = 0;
+//
+//	__tryToFindKeywords(fit->fptr, TUSHORT, MIPSLO, &fit->keywords.lo, &status);
 //	status = 0;
-//	fits_read_key(fit->fptr, TDOUBLE, "BSCALE", &scale, NULL, &status);
-//	if (!status && 1.0 != scale) {
-//		siril_log_message(_("Loaded FITS file has "
-//					"a BSCALE different than 1 (%f)\n"), scale);
-//		status = 0;
-//		/* We reset the scaling factors as we don't use it */
-//		fits_set_bscale(fit->fptr, 1.0, 0.0, &status);
+//	__tryToFindKeywords(fit->fptr, TUSHORT, MIPSHI, &fit->keywords.hi, &status);
+//	if (fit->orig_bitpix == FLOAT_IMG || fit->orig_bitpix == DOUBLE_IMG) {
+//		try_read_float_lo_hi(fit->fptr, &fit->keywords.lo, &fit->keywords.hi);
 //	}
 //
-//	status = 0;
-//	fits_read_key(fit->fptr, TDOUBLE, "BZERO", &zero, NULL, &status);
-//	if (!status && 0.0 != zero && fit->bitpix == FLOAT_IMG) {
-//		fprintf(stdout, "ignoring BZERO\n");
-//		fits_set_bscale(fit->fptr, 1.0, 0.0, &status);
-//	}
-//
-//	/* check if file is created by Siril. If so, and if the file is FLOAT_IMG
-//	 * Then we are confident enough that the range is [0, 1]. So, no need to
-//	 * compute fit_stats
-//	 */
-//	status = 0;
-//	fits_read_key(fit->fptr, TSTRING, "PROGRAM", &str, NULL, &status);
-//	gboolean not_from_siril = status || g_ascii_strncasecmp(str, PACKAGE, strlen(PACKAGE));
-//
-//	status = 0;
-//	fits_read_key(fit->fptr, TDOUBLE, "DATAMAX", &(fit->keywords.data_max), NULL, &status);
-//
-//	if ((fit->bitpix == FLOAT_IMG && not_from_siril) || fit->bitpix == DOUBLE_IMG) {
-//		float mini, maxi;
-//		fit_stats(fit->fptr, &mini, &maxi);
-//		// override data_max if needed. In some images there are differences between max and data_max
-//		fit->keywords.data_max = (double) maxi;
-//		fit->keywords.data_min = (double) mini;
-//	}
 
-//	status = 0;
-//	fits_read_key(fit->fptr, TSTRING, "ROWORDER", &(fit->keywords.row_order), NULL,
-//			&status);
-//
-//	/*******************************************************************
-//	 * ************* CAMERA AND INSTRUMENT KEYWORDS ********************
-//	 * ****************************************************************/
-//
-//	status = 0;
-//	__tryToFindKeywords(fit->fptr, TFLOAT, PIXELSIZEX, &fit->keywords.pixel_size_x, &status);
-//	if (!status && fit->keywords.pixel_size_x > 0.)
-//		fit->pixelkey = TRUE;
-//	status = 0;
-//	__tryToFindKeywords(fit->fptr, TFLOAT, PIXELSIZEY, &fit->keywords.pixel_size_y, &status);
 //#ifdef _WIN32 //TODO: remove after cfitsio is fixed
 //	status = 0;
 //	__tryToFindKeywords(fit->fptr, TINT, BINX, &fit->binning_x, &status);
@@ -430,140 +327,13 @@ void read_fits_header(fits *fit) {
 //	status = 0;
 //	__tryToFindKeywords(fit->fptr, TUINT, BINY, &fit->keywords.binning_y, &status);
 //#endif
-//	if (fit->keywords.binning_x <= 0) fit->keywords.binning_x = 1;
-//	if (fit->keywords.binning_y <= 0) fit->keywords.binning_y = 1;
-//
-//	status = 0;
-//	fits_read_key(fit->fptr, TSTRING, "INSTRUME", &(fit->keywords.instrume), NULL, &status);
-//
-//	status = 0;
-//	fits_read_key(fit->fptr, TSTRING, "TELESCOP", &(fit->keywords.telescop), NULL, &status);
-//
-//	status = 0;
-//	fits_read_key(fit->fptr, TSTRING, "OBSERVER", &(fit->keywords.observer), NULL, &status);
-//
-//	status = 0;
-//	fits_read_key(fit->fptr, TSTRING, "BAYERPAT", &(fit->keywords.bayer_pattern), NULL, &status);
-//	/* if value is NONE we do not want to have the keyword */
-//	if (status == 0 && !strcasecmp(fit->keywords.bayer_pattern, "NONE")) {
-//		memset(fit->keywords.bayer_pattern, 0, sizeof(char) * FLEN_VALUE);
-//	}
-//
-//	status = 0;
-//	fits_read_key(fit->fptr, TINT, "XBAYROFF", &(fit->keywords.bayer_xoffset), NULL, &status);
-//
-//	status = 0;
-//	fits_read_key(fit->fptr, TINT, "YBAYROFF", &(fit->keywords.bayer_yoffset), NULL, &status);
-//
-//	read_fits_date_obs_header(fit);
-//
-//	status = 0;
-//	char date[FLEN_VALUE];
-//	fits_read_key(fit->fptr, TSTRING, "DATE", &date, NULL, &status);
-//	fit->keywords.date = FITS_date_to_date_time(date);
-//
-//	status = 0;
-//	__tryToFindKeywords(fit->fptr, TDOUBLE, FOCAL, &fit->keywords.focal_length, &status);
-//	if (!status && fit->keywords.focal_length > 0.)
-//		fit->focalkey = TRUE;
-//	if (fit->keywords.focal_length <= 0.0) {
-//		/* this keyword is seen in some professional images, FLENGTH is in m. */
-//		double flength;
-//		status = 0;
-//		fits_read_key(fit->fptr, TDOUBLE, "FLENGTH", &flength, NULL, &status);
-//		if (!status && flength > 0.) {
-//			fit->keywords.focal_length = flength * 1000.0; // convert m to mm
-//			fit->focalkey = TRUE;
-//		}
-//	}
-//
-//	status = 0;
-//	__tryToFindKeywords(fit->fptr, TDOUBLE, CCD_TEMP, &fit->keywords.ccd_temp, &status);
-//	if (status == KEY_NO_EXIST) {
-//		fit->keywords.ccd_temp = -999.9;
-//	}
-//	status = 0;
-//	fits_read_key(fit->fptr, TDOUBLE, "SET-TEMP", &(fit->keywords.set_temp), NULL, &status);
-//	if (status == KEY_NO_EXIST) {
-//		fit->keywords.set_temp = -999.9;
-//	}
-//	status = 0;
-//	__tryToFindKeywords(fit->fptr, TDOUBLE, EXPOSURE, &fit->keywords.exposure, &status);
-//#ifdef _WIN32
-//	status = 0;
-//	__tryToFindKeywords(fit->fptr, TINT, NB_STACKED, &fit->keywords.stackcnt, &status);
-//#else
-//	status = 0;
-//	__tryToFindKeywords(fit->fptr, TUINT, NB_STACKED, &fit->keywords.stackcnt, &status);
-//#endif
-//
-//	status = 0;
-//	fits_read_key(fit->fptr, TDOUBLE, "LIVETIME", &(fit->keywords.livetime), NULL, &status);
-//
-//	status = 0;
-//	fits_read_key(fit->fptr, TDOUBLE, "EXPSTART", &(fit->keywords.expstart), NULL, &status);
-//
-//	status = 0;
-//	fits_read_key(fit->fptr, TDOUBLE, "EXPEND", &(fit->keywords.expend), NULL, &status);
-//
-//	status = 0;
-//	__tryToFindKeywords(fit->fptr, TSTRING, FILTER, &fit->keywords.filter, &status);
-//
-//	status = 0;
-//	__tryToFindKeywords(fit->fptr, TSTRING, IMAGETYP, &fit->keywords.image_type, &status);
-//
-//	status = 0;
-//	fits_read_key(fit->fptr, TSTRING, "OBJECT", &(fit->keywords.object), NULL, &status);
-//
-//
-//	status = 0;
-//	fits_read_key(fit->fptr, TDOUBLE, "APERTURE", &(fit->keywords.aperture), NULL, &status);
-//
-//	status = 0;
-//	fits_read_key(fit->fptr, TDOUBLE, "ISOSPEED", &(fit->keywords.iso_speed), NULL, &status);	// Non-standard keywords used in MaxIm DL
-//
-//	status = 0;
-//	__tryToFindKeywords(fit->fptr, TDOUBLE, CVF, &fit->keywords.cvf, &status); // conversion gain in e-/ADU
-//
-//	status = 0;
-//	fits_read_key(fit->fptr, TUSHORT, "GAIN", &(fit->keywords.key_gain), NULL, &status);  // Gain setting from camera
-//
-//	status = 0;
-//	__tryToFindKeywords(fit->fptr, TUSHORT, OFFSETLEVEL, &fit->keywords.key_offset, &status); // Offset setting from camera
+
 
 	/* use new keywords structure */
 	read_fits_keywords(fit);
 
-//	/* Locdata */
-//	read_fits_locdata_header(fit); //FIXME: use new structure
-
-//	/* first fill wcsdata FITS structure */ //FIXME: should we use new structure?
-//	load_wcs_keywords(fit);
-
 	/* so now, fill the wcslib structure. */
 	load_WCS_from_fits(fit);
-
-//	/**
-//	 * Others
-//	 */
-//
-//	status = 0;
-//	fits_read_key(fit->fptr, TDOUBLE, "AIRMASS", &(fit->keywords.airmass), NULL, &status);
-//
-//	/*******************************************************************
-//	 * ************************* DFT KEYWORDS **************************
-//	 * ****************************************************************/
-//
-//	status = 0;
-//	fits_read_key(fit->fptr, TDOUBLE, "DFTNORM0", &(fit->keywords.dft.norm[0]), NULL, &status);
-//	status = 0;
-//	fits_read_key(fit->fptr, TDOUBLE, "DFTNORM1", &(fit->keywords.dft.norm[1]), NULL, &status);
-//	status = 0;
-//	fits_read_key(fit->fptr, TDOUBLE, "DFTNORM2", &(fit->keywords.dft.norm[2]), NULL, &status);
-//	status = 0;
-//	fits_read_key(fit->fptr, TSTRING, "DFTORD", &(fit->keywords.dft.ord), NULL, &status);
-//	status = 0;
-//	fits_read_key(fit->fptr, TSTRING, "DFTTYPE", &(fit->keywords.dft.type), NULL, &status);
 
 	fits_read_history(fit->fptr, &(fit->history));
 }

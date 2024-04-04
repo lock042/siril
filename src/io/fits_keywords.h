@@ -36,7 +36,8 @@ enum keywords_type {
 
 typedef struct KeywordInfo KeywordInfo;
 
-typedef void (*special_handler_func)(fits *fit, const char *comment, KeywordInfo *info);
+typedef void (*special_handler_read_func)(fits *fit, const char *comment, KeywordInfo *info);
+typedef void (*special_handler_save_func)(fits *fit,  KeywordInfo *info);
 
 struct KeywordInfo {
     const char *group;    // group name
@@ -44,7 +45,8 @@ struct KeywordInfo {
     enum keywords_type type;    // type of the keyword
     const char *comment;    // comment
     void *data;    // pointer to the data in keyword struct
-    special_handler_func special_handler;
+    special_handler_read_func special_handler_read;
+    special_handler_save_func special_handler_save;
     gboolean is_used;
     gboolean fixed_value;
     gboolean already_read;
