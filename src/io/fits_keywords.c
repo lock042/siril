@@ -34,40 +34,40 @@
 #define DEFAULT_UINT_VALUE 0
 #define DEFAULT_USHORT_VALUE DEFAULT_UINT_VALUE
 
-#define KEYWORD_SECONDA(group, key, type, comment, data, handler_read, handler_save) { group, key, type, comment, data, handler_read, handler_save, FALSE, FALSE, FALSE }
-#define KEYWORD_PRIMARY(group, key, type, comment, data, handler_read, handler_save) { group, key, type, comment, data, handler_read, handler_save, TRUE, FALSE, FALSE }
-#define KEYWORD_FIXED(group, key, type, comment, data, handler_read, handler_save) { group, key, type, comment, data, handler_read, handler_save, TRUE, TRUE, FALSE }
-#define KEYWORD_WCS(group, key, type) { group, key, type, NULL, NULL, NULL, NULL, FALSE, TRUE, FALSE }
+#define KEYWORD_PRIMARY(group, key, type, comment, data, handler_read, handler_save) { group, key, type, comment, data, handler_read, handler_save, TRUE, FALSE }
+#define KEYWORD_SECONDA(group, key, type, comment, data, handler_read, handler_save) { group, key, type, comment, data, handler_read, handler_save, FALSE, FALSE }
+#define KEYWORD_FIXED(group, key, type, comment, data, handler_read, handler_save) { group, key, type, comment, data, handler_read, handler_save, TRUE, TRUE }
+#define KEYWORD_WCS(group, key, type) { group, key, type, NULL, NULL, NULL, NULL, FALSE, TRUE }
 
-static gboolean should_use_keyword(const fits *fit, const gchar *group, const gchar *keyword) {
+static gboolean should_use_keyword(const fits *fit, KeywordInfo keyword) {
 
-	if (g_strcmp0(keyword, "MIPS-HI") == 0) {
+	if (g_strcmp0(keyword.key, "MIPS-HI") == 0) {
 		return (fit->type == DATA_USHORT);
-	} else if (g_strcmp0(keyword, "MIPS-LO") == 0) {
+	} else if (g_strcmp0(keyword.key, "MIPS-LO") == 0) {
 		return (fit->type == DATA_USHORT);
-	} else if (g_strcmp0(keyword, "MIPS-FLO") == 0) {
+	} else if (g_strcmp0(keyword.key, "MIPS-FLO") == 0) {
 		return (fit->type == DATA_FLOAT);
-	} else if (g_strcmp0(keyword, "MIPS-FHI") == 0) {
+	} else if (g_strcmp0(keyword.key, "MIPS-FHI") == 0) {
 		return (fit->type == DATA_FLOAT);
-	} else if (g_strcmp0(keyword, "ROWORDER") == 0) {
+	} else if (g_strcmp0(keyword.key, "ROWORDER") == 0) {
 		return ((g_strcmp0(fit->keywords.row_order, "BOTTOM-UP") == 0)
 				|| (g_strcmp0(fit->keywords.row_order, "TOP-DOWN") == 0));
-	} else if (g_strcmp0(keyword, "FLENGTH") == 0) {
+	} else if (g_strcmp0(keyword.key, "FLENGTH") == 0) {
 		return FALSE;
-	} else if (g_strcmp0(keyword, "XBAYROFF") == 0) {
+	} else if (g_strcmp0(keyword.key, "XBAYROFF") == 0) {
 		return fit->keywords.bayer_pattern[0] != '\0';
-	} else if (g_strcmp0(keyword, "YBAYROFF") == 0) {
+	} else if (g_strcmp0(keyword.key, "YBAYROFF") == 0) {
 		return fit->keywords.bayer_pattern[0] != '\0';
-	} else if (g_strcmp0(keyword, "DFTNORM2") == 0) {
+	} else if (g_strcmp0(keyword.key, "DFTNORM2") == 0) {
 		return fit->naxes[2] > 1;
-	} else if (g_strcmp0(keyword, "DFTNORM3") == 0) {
+	} else if (g_strcmp0(keyword.key, "DFTNORM3") == 0) {
 		return fit->naxes[2] > 1;
-	} else if (g_strcmp0(keyword, "RA_D") == 0) {
+	} else if (g_strcmp0(keyword.key, "RA_D") == 0) {
 		return FALSE;
-	} else if (g_strcmp0(keyword, "DEC_D") == 0) {
+	} else if (g_strcmp0(keyword.key, "DEC_D") == 0) {
 		return FALSE;
 	}
-	return TRUE;
+	return keyword.is_used;
 }
 
 /****************************** handlers ******************************/
@@ -427,7 +427,7 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
     // Copy keyword information from the list to the dynamic array and set if keyword must be used
     for (int i = 0; i < num_keywords; i++) {
         all_keywords[i] = keyword_list[i];
-        all_keywords[i].is_used = should_use_keyword(fit, keyword_list[i].group, keyword_list[i].key);
+        all_keywords[i].is_used = should_use_keyword(fit, keyword_list[i]);
 
         // Set default values based on keyword type
         if (g_strcmp0(all_keywords[i].group, "wcslib")) { // This group is initialized somewhere
@@ -512,7 +512,6 @@ int save_fits_keywords(fits *fit) {
 			keys++;
 			continue;
 		}
-		gchar** tokens = g_strsplit(keys->key, ";", -1);
 
 		/* Handle special cases */
 		if (keys->special_handler_save) {
@@ -524,63 +523,63 @@ int save_fits_keywords(fits *fit) {
 				status = 0;
 				ii = (*((int*)keys->data));
 				if (ii > DEFAULT_INT_VALUE) {
-					fits_update_key(fit->fptr, TINT, tokens[0], &ii, keys->comment, &status);
+					fits_update_key(fit->fptr, TINT, keys->key, &ii, keys->comment, &status);
 				}
 				break;
 			case KTYPE_UINT:
 				status = 0;
 				ui = (*((guint*)keys->data));
 				if (ui) {
-					fits_update_key(fit->fptr, TUINT, tokens[0], &ui, keys->comment, &status);
+					fits_update_key(fit->fptr, TUINT, keys->key, &ui, keys->comment, &status);
 				}
 				break;
 			case KTYPE_USHORT:
 				status = 0;
 				us = (*((int*)keys->data));
 				if (us) {
-					fits_update_key(fit->fptr, TUSHORT, tokens[0], &us, keys->comment, &status);
+					fits_update_key(fit->fptr, TUSHORT, keys->key, &us, keys->comment, &status);
 				}
 				break;
 			case KTYPE_DOUBLE:
 				status = 0;
 				dbl = *((double*)keys->data);
 				if (dbl > DEFAULT_DOUBLE_VALUE) {
-					fits_update_key(fit->fptr, TDOUBLE, tokens[0], &dbl, keys->comment, &status);
+					fits_update_key(fit->fptr, TDOUBLE, keys->key, &dbl, keys->comment, &status);
 				}
 				break;
 			case KTYPE_FLOAT:
 				status = 0;
 				flt = *((float*)keys->data);
 				if (flt > DEFAULT_FLOAT_VALUE) {
-					fits_update_key(fit->fptr, TFLOAT, tokens[0], &flt, keys->comment, &status);
+					fits_update_key(fit->fptr, TFLOAT, keys->key, &flt, keys->comment, &status);
 				}
 				break;
 			case KTYPE_STR:
 				status = 0;
 				str = ((gchar*)keys->data);
 				if (str && str[0] != '\0') {
-					fits_update_key(fit->fptr, TSTRING, tokens[0], str, keys->comment, &status);
+					fits_update_key(fit->fptr, TSTRING, keys->key, str, keys->comment, &status);
 				}
 				break;
 			case KTYPE_DATE:
 				status = 0;
 				date = *((GDateTime**)keys->data);
 				if (date) {
-					if (!g_strcmp0("DATE", tokens[0])) {
+					if (!g_strcmp0("DATE", keys->key)) {
 						int itmp;
 						char fit_date[40];
 						fits_get_system_time(fit_date, &itmp, &status);
-						fits_update_key(fit->fptr, TSTRING, tokens[0], fit_date, keys->comment, &status);
+						fits_update_key(fit->fptr, TSTRING, keys->key, fit_date, keys->comment, &status);
 					} else {
 						gchar *formatted_date = date_time_to_FITS_date(date);
-						fits_update_key(fit->fptr, TSTRING, tokens[0], formatted_date, keys->comment, &status);
+						fits_update_key(fit->fptr, TSTRING, keys->key, formatted_date, keys->comment, &status);
 						g_free(formatted_date);
 					}
 				}
 				break;
 			case KTYPE_BOOL:
 				status = 0;
-				fits_update_key(fit->fptr, TLOGICAL, tokens[0], &(*((gboolean*)keys->data)), keys->comment, &status);
+				fits_update_key(fit->fptr, TLOGICAL, keys->key, &(*((gboolean*)keys->data)), keys->comment, &status);
 				break;
 			default:
 				siril_debug_print("Save_fits_keywords: Error. Type is not handled.\n");
@@ -736,11 +735,8 @@ int read_fits_keywords(fits *fit) {
 		if (fits_get_keyclass(card) == TYP_STRUC_KEY) {
 			value_set = TRUE;
 			continue;
-		} else if (current_key->already_read) {
-			continue;
 		} else if (current_key->fixed_value) {
 			value_set = TRUE;
-			current_key->already_read = TRUE;
 			continue;
 		}
 		int int_value;
@@ -760,7 +756,6 @@ int read_fits_keywords(fits *fit) {
 			if (value != end) {
 				*((int*) current_key->data) = int_value;
 				value_set = TRUE;
-				current_key->already_read = TRUE;
 			}
 			break;
 		case KTYPE_UINT:
@@ -775,7 +770,6 @@ int read_fits_keywords(fits *fit) {
 			if (value != end) {
 				*((gushort*) current_key->data) = ushort_value;
 				value_set = TRUE;
-				current_key->already_read = TRUE;
 			}
 			break;
 		case KTYPE_DOUBLE:
@@ -783,7 +777,6 @@ int read_fits_keywords(fits *fit) {
 			if (value != end) {
 				*((double*) current_key->data) = double_value;
 				value_set = TRUE;
-				current_key->already_read = TRUE;
 			}
 			break;
 		case KTYPE_FLOAT:
@@ -791,14 +784,12 @@ int read_fits_keywords(fits *fit) {
 			if (value != end) {
 				*((float*) current_key->data) = float_value;
 				value_set = TRUE;
-				current_key->already_read = TRUE;
 			}
 			break;
 		case KTYPE_STR:
 			str_value = g_strstrip(g_shell_unquote(value, NULL));
 			strncpy((char*) current_key->data, str_value, FLEN_VALUE - 1);
 			value_set = TRUE;
-			current_key->already_read = TRUE;
 			break;
 		case KTYPE_DATE:
 			str_value = g_strstrip(g_shell_unquote(value, NULL));
@@ -806,14 +797,12 @@ int read_fits_keywords(fits *fit) {
 			if (date) {
 				*((GDateTime**) current_key->data) = date;
 				value_set = TRUE;
-				current_key->already_read = TRUE;
 			}
 			break;
 		case KTYPE_BOOL:
 			bool_value = value[0] == 'T' ? TRUE : FALSE;
 			*((gboolean*) current_key->data) = bool_value;
 			value_set = TRUE;
-			current_key->already_read = TRUE;
 			break;
 		default:
 			break;
