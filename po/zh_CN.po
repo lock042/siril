@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-03-28 07:46+0100\n"
-"PO-Revision-Date: 2024-03-13 19:43+0000\n"
-"Last-Translator: Garth TianBo <g-art-h@outlook.com>\n"
+"PO-Revision-Date: 2024-04-05 05:37+0000\n"
+"Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application/zh_Hans/>\n"
 "Language: zh_CN\n"
@@ -84,23 +84,22 @@ msgid "Non-square pixels can be entered but will not be used in most cases."
 msgstr "可以输入非正方形像素，但在大多数情况下不会被使用。"
 
 #: src/gui/uifiles/aavso_dialog.ui:71
-#, fuzzy
 msgid "Obstype: "
-msgstr "类型: "
+msgstr "观测者类型: "
 
 #: src/gui/uifiles/aavso_dialog.ui:82
 msgid ""
 "The official AAVSO Observer Code for the observer which was previously "
 "assigned by the AAVSO."
-msgstr ""
+msgstr "官方 AAVSO 观测者代码，之前由 AAVSO 分配。"
 
 #: src/gui/uifiles/aavso_dialog.ui:101
 msgid "Obscode: "
-msgstr ""
+msgstr "观测者代码： "
 
 #: src/gui/uifiles/aavso_dialog.ui:113
 msgid "Filter: "
-msgstr ""
+msgstr "滤镜： "
 
 #: src/gui/uifiles/aavso_dialog.ui:124
 msgid "The filter used for the observation."
@@ -108,24 +107,26 @@ msgstr "观测所用滤镜。"
 
 #: src/gui/uifiles/aavso_dialog.ui:171
 msgid "Cname: "
-msgstr ""
+msgstr "C名称： "
 
 #: src/gui/uifiles/aavso_dialog.ui:183
 msgid "Kname: "
-msgstr ""
+msgstr "K名称： "
 
 #: src/gui/uifiles/aavso_dialog.ui:194
 msgid ""
 "Comparison star name or label such as the AUID (much preferred) or the chart "
 "label for the comparison star used. If not present, use \"na\". Limit: 20 "
 "characters."
-msgstr ""
+msgstr "比较星名称或标签，例如 "
+"AUID（首选）或所用比较星的图表标签。如果不存在，请使用“na”。限制：20 个字符。"
 
 #: src/gui/uifiles/aavso_dialog.ui:211
 msgid ""
 "Check star name or label such as the AUID (much preferred) or the chart "
 "label for the check star. If not present, use \"na\". Limit: 20 characters."
-msgstr ""
+msgstr "检查星名称或标签，例如 "
+"AUID（首选）或检查星的图表标签。如果不存在，请使用“na”。限制：20 个字符。"
 
 #: src/gui/uifiles/aavso_dialog.ui:229
 msgid "Starid: "
@@ -136,7 +137,8 @@ msgid ""
 "The star's identifier. It can be the AAVSO Designation, the AAVSO Name, or "
 "the AAVSO Unique Identifier, but NOT more than one of these. Limit: 30 "
 "characters."
-msgstr ""
+msgstr "恒星的标识符。它可以是 AAVSO 称号、AAVSO 名称或 AAVSO "
+"唯一标识符，但不能超过其中之一。限制：30 个字符。"
 
 #: src/gui/uifiles/aavso_dialog.ui:258
 msgid ""
@@ -356,12 +358,12 @@ msgstr ""
 "值。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:390
-#, fuzzy
 msgid ""
 "Pixel size in microns. The image is assumed to have square pixels. Value is "
 "already multiplied by the camera binning if the \"Real pixel size\" box is "
 "checked in the Tool->Image Information dialog box."
-msgstr "像素尺寸（微米）。假定图像具有方形像素。值已乘以像素合并。"
+msgstr "以微米为单位的像素尺寸。假设图像具有方形像素。如果在“工具”->“图像信息”对话框"
+"中选中“实际像素大小”框，则该值已乘以相机合并。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:409
 msgid "Focal length (mm):"
@@ -478,64 +480,64 @@ msgid ""
 "When selecting an order with distortions, additional terms are added to the "
 "solution, using SIP convention"
 msgstr ""
+"选择解析的阶：\n"
+"线性假设图像中不存在失真\n"
+"二次、三次、四次和五次方将包括二阶、三阶、四阶或五阶多项式失真。\n"
+"当选择有失真的阶时，使用 SIP 约定将附加项添加到解决方案中"
 
 #: src/gui/uifiles/astrometry_dialog.ui:646
-#, fuzzy
 msgid "Solution order: "
-msgstr "分辨率: "
+msgstr "解析的阶: "
 
 #: src/gui/uifiles/astrometry_dialog.ui:657
 msgid ""
 "Choose Siril internal solver or local Astrometry.net (needs to be installed "
 "on your system)"
-msgstr ""
+msgstr "选择 Siril 内建解析或本地 Astrometry.net（需要安装在您的系统上）"
 
 #: src/gui/uifiles/astrometry_dialog.ui:660
-#, fuzzy
 msgid "Siril solver"
-msgstr "Siril消息"
+msgstr "Siril解析"
 
 #: src/gui/uifiles/astrometry_dialog.ui:661
-#, fuzzy
 msgid "Astrometry.net (local)"
-msgstr "Astrometry.net 解析"
+msgstr "Astrometry.net（本地）"
 
 #: src/gui/uifiles/astrometry_dialog.ui:674
 msgid "Radius used by the solver to search around the target."
-msgstr ""
+msgstr "解析器用于搜索目标周围的半径。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:695
-#, fuzzy
 msgid "Search radius:"
-msgstr "外半径："
+msgstr "搜索半径："
 
 #: src/gui/uifiles/astrometry_dialog.ui:704
 msgid "disable near search"
-msgstr ""
+msgstr "禁用附近搜索"
 
 #: src/gui/uifiles/astrometry_dialog.ui:708
 msgid ""
 "Tick this box to disable searching around target position with Siril "
 "internal solver."
-msgstr ""
+msgstr "勾选此框可禁用使用 Siril 内建解析器搜索目标位置。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:727
 msgid "Ignore position (blind solve)"
-msgstr ""
+msgstr "忽略位置（盲解）"
 
 #: src/gui/uifiles/astrometry_dialog.ui:731
 msgid ""
 "Tick this box to ignore target position when solving with local Astrometry."
 "net"
-msgstr ""
+msgstr "勾选此框可在使用本地 Astrometry.net 解析时忽略目标位置"
 
 #: src/gui/uifiles/astrometry_dialog.ui:743
 msgid "Ignore sampling (blind solve)"
-msgstr ""
+msgstr "忽略采样（盲解）"
 
 #: src/gui/uifiles/astrometry_dialog.ui:747
 msgid "Tick this box to ignore sampling when solving with local Astrometry.net"
-msgstr ""
+msgstr "勾选此框可在使用本地 Astrometry.net 解析时忽略采样"
 
 #: src/gui/uifiles/astrometry_dialog.ui:805
 msgid "Image Parameters"
@@ -563,9 +565,8 @@ msgid ""
 msgstr "以近似估算的视野来自动选择极限星等。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:882
-#, fuzzy
 msgid "Star Catalogue: "
-msgstr "在线星表: "
+msgstr "星表: "
 
 #: src/gui/uifiles/astrometry_dialog.ui:894
 msgid ""
@@ -612,11 +613,10 @@ msgstr ""
 "magnitude to about 17th magnitude for over 37 million stars."
 
 #: src/gui/uifiles/astrometry_dialog.ui:923
-#, fuzzy
 msgid ""
 "The catalogue is automatically determined using the approximation of the "
 "Field Of View and magnitude."
-msgstr "以近似估算的视野和星等来自动选择在线星表。"
+msgstr "使用视场和星等的近似值自动确定星表。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:938
 msgid ""
@@ -650,28 +650,26 @@ msgid "Star Detection"
 msgstr "星点侦测"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1015
-#, fuzzy
 msgid "Solve whole sequence"
-msgstr "查找序列"
+msgstr "解析整个序列"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1019
 msgid "Tick this box to solve the whole sequence."
-msgstr ""
+msgstr "勾选此框可解析整个序列。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1031
 msgid "Skip already solved images"
-msgstr ""
+msgstr "跳过已解析图像"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1035
 msgid ""
 "Tick this box to skip solving the images of the sequence that already have a "
 "solution."
-msgstr ""
+msgstr "勾选此框可跳过解析序列中已经有解的图像。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1048
-#, fuzzy
 msgid "Fetch stars for each image"
-msgstr "从 %s 星表中获取 %d 颗恒星\n"
+msgstr "为每幅图像获取星表"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1052
 msgid ""
@@ -681,6 +679,10 @@ msgid ""
 "box to fetch a new catalogue for each image. The information contained in "
 "the headers will be used to recompute the new position/resolution."
 msgstr ""
+"将在线星表与 Siril 解析器结合使用时，默认情况下会为整个序列获取一个星表。如果"
+"您的图像不是来自同一视场或具有相同的分辨率，则此操作可能会失败。在这种情况下"
+"，勾选此框可为每个图像获取新的星表。文件头中包含的信息将用于重新计算新的视场/"
+"分辨率。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1068 src/gui/uifiles/siril.ui:4395
 #: src/gui/callbacks.c:2160
@@ -779,16 +781,16 @@ msgstr ""
 "选取背景样本。"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:389
-#, fuzzy
 msgid "Keep all samples"
-msgstr "绘制取样"
+msgstr "保留所有样本"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:393
 msgid ""
 "Override tolerance and keep all samples. May be useful in cases of extreme "
 "gradients if tolerance 6 is insufficient: you will need to remove samples "
 "from astronomical objects manually."
-msgstr ""
+msgstr "覆盖容差并保留所有样本。如果容差 6 "
+"不足，在极端梯度的情况下可能很有用：您将需要手动从天文物体中删除样本。"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:414
 msgid ""
@@ -935,9 +937,8 @@ msgstr "反卷积"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:284 src/gui/uifiles/denoise_dialog.ui:84
 #: src/gui/uifiles/Median_dialog.ui:80 src/gui/uifiles/SCNR_dialog.ui:73
-#, fuzzy
 msgid "ROI Preview"
-msgstr "预览"
+msgstr "ROI 预览"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:288 src/gui/uifiles/bdeconv_dialog.ui:306
 msgid ""
@@ -1629,16 +1630,14 @@ msgstr ""
 
 #: src/gui/uifiles/ccm_dialog.ui:120 src/gui/uifiles/ccm_dialog.ui:176
 #: src/gui/uifiles/ccm_dialog.ui:232
-#, fuzzy
 msgid "1.0"
-msgstr "0"
+msgstr "1.0"
 
 #: src/gui/uifiles/ccm_dialog.ui:134 src/gui/uifiles/ccm_dialog.ui:148
 #: src/gui/uifiles/ccm_dialog.ui:162 src/gui/uifiles/ccm_dialog.ui:190
 #: src/gui/uifiles/ccm_dialog.ui:204 src/gui/uifiles/ccm_dialog.ui:218
-#, fuzzy
 msgid "0.0"
-msgstr "500"
+msgstr "0.0"
 
 #: src/gui/uifiles/ccm_dialog.ui:281
 msgid "The power to which each result pixel will be raised."
@@ -1649,9 +1648,8 @@ msgid "Power:"
 msgstr ""
 
 #: src/gui/uifiles/ccm_dialog.ui:309
-#, fuzzy
 msgid "Presets:"
-msgstr "预设"
+msgstr "预设："
 
 #: src/gui/uifiles/ccm_dialog.ui:322
 msgid "Custom"
@@ -2051,19 +2049,16 @@ msgstr ""
 
 #: src/gui/uifiles/composition_dialog.ui:424
 #: src/gui/uifiles/settings_window.ui:3598
-#, fuzzy
 msgid "Manual"
-msgstr "手动 PSF"
+msgstr "手动"
 
 #: src/gui/uifiles/composition_dialog.ui:425
-#, fuzzy
 msgid "Photometric"
-msgstr "测光法色彩校准"
+msgstr "测光法"
 
 #: src/gui/uifiles/composition_dialog.ui:426
-#, fuzzy
 msgid "Spectrophotometric"
-msgstr "测光法色彩校准"
+msgstr "光谱法"
 
 #: src/gui/uifiles/composition_dialog.ui:467
 msgid "Use this alignment method:"
@@ -2403,13 +2398,11 @@ msgid ""
 msgstr "设置剪切的宽度。将使用垂直于剪切的中值像素值。"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:142
-#, fuzzy
 msgid "Pick point 1"
-msgstr "选择目标于#1"
+msgstr "选取点1"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:146
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:160
-#, fuzzy
 msgid ""
 "Pick a point on the profile line corresponding to a known wavelength / "
 "wavenumber. Typically this would be a known spectral line or, for true "
@@ -2417,14 +2410,13 @@ msgid ""
 "these points snap to the profile line and are reset if the profile line is "
 "moved."
 msgstr ""
-"在轮廓线上选取一个与已知波数对应的点。通常，这将是一条已知的谱线，或者对于真"
-"正的光谱仪图像，是起始波数或中心波数。注意： 这些点捕捉到轮廓线，并在移动轮廓"
-"线时重置。"
+"在曲线上选取与已知波长/波数相对应的点。通常，这将是已知的谱线，或者对于真实的"
+"光谱仪图像，起始或中心波长/波数。注意：这些点会吸附到曲线，并在移动曲线时重置"
+"。"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:156
-#, fuzzy
 msgid "Pick point 2"
-msgstr "选择目标于#2"
+msgstr "选取点2"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:172
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:187
@@ -2454,9 +2446,8 @@ msgid "wavenumber / cm<sup>-1</sup>"
 msgstr "波数 / cm<sup>-1</sup>"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:316
-#, fuzzy
 msgid "Plot x axis"
-msgstr "测量变星"
+msgstr "图表X轴"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:327
 msgid ""
@@ -2465,14 +2456,12 @@ msgstr ""
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:330
 #: src/gui/uifiles/s_pcc_dialog.ui:547
-#, fuzzy
 msgid "Wavelength"
-msgstr "波长 / nm"
+msgstr "波长"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:331
-#, fuzzy
 msgid "Wavenumber"
-msgstr "波数 / cm^{-1}"
+msgstr "波数"
 
 #: src/gui/uifiles/data_dialog.ui:50
 msgid "More details..."
@@ -3352,9 +3341,8 @@ msgid "Prefix of the image names resulting from the mtf process."
 msgstr "MTF处理后的目标文件名前缀。"
 
 #: src/gui/uifiles/histogram_dialog.ui:742
-#, fuzzy
 msgid "Toggle preview on / off"
-msgstr "全屏切换开/关"
+msgstr "预览切换开/关"
 
 #: src/gui/uifiles/histogram_dialog.ui:804
 msgid ""
@@ -3428,54 +3416,49 @@ msgstr ""
 "下，此变换是不可逆的。"
 
 #: src/gui/uifiles/keywords_dialog.ui:27
-#, fuzzy
 msgid "FITS Header"
-msgstr "FITS 文件头..."
+msgstr "FITS 文件头"
 
 #: src/gui/uifiles/keywords_dialog.ui:42
-#, fuzzy
 msgid "Copy Selection"
-msgstr "无选择"
+msgstr "复制所选"
 
 #: src/gui/uifiles/keywords_dialog.ui:47
-#, fuzzy
 msgid "Copy selected keywords to clipboard."
-msgstr "复制快照到剪贴板"
+msgstr "复制选定的关键字到剪贴板。"
 
 #: src/gui/uifiles/keywords_dialog.ui:95
 msgid "Keyword"
-msgstr ""
+msgstr "关键字"
 
 #: src/gui/uifiles/keywords_dialog.ui:108
-#, fuzzy
 msgid "Value"
-msgstr "值: "
+msgstr "值"
 
 #: src/gui/uifiles/keywords_dialog.ui:123 src/gui/uifiles/spcc_details.ui:223
 msgid "Comment"
-msgstr ""
+msgstr "注释"
 
 #: src/gui/uifiles/keywords_dialog.ui:136
 msgid "Dtype"
-msgstr ""
+msgstr "Dtype"
 
 #: src/gui/uifiles/keywords_dialog.ui:149
-#, fuzzy
 msgid "Protected"
-msgstr "保护算法: "
+msgstr "已保护"
 
 #: src/gui/uifiles/keywords_dialog.ui:173
 msgid ""
 "In <span foreground=\"salmon\">salmon</span>, these are protected keywords, "
 "which cannot be modified."
-msgstr ""
+msgstr "在<span foreground=\"salmon\""
+">salmon</span>中，这些是受保护的关键字，无法修改。"
 
 #: src/gui/uifiles/icc_dialog.ui:33 src/gui/uifiles/settings_window.ui:3891
 #: src/gui/uifiles/settings_window.ui:4707 src/core/icc_profile.c:1224
 #: src/core/icc_profile.c:1226
-#, fuzzy
 msgid "Color Management"
-msgstr "彩色图像目标"
+msgstr "色彩管理"
 
 #: src/gui/uifiles/icc_dialog.ui:65 src/gui/uifiles/siril.ui:7485
 #: src/gui/uifiles/spcc_details.ui:24
@@ -3486,18 +3469,17 @@ msgstr "图表"
 msgid ""
 "Plot the current ICC profile in a 1931 chromatcity diagram, alongside sRGB "
 "for reference"
-msgstr ""
+msgstr "在 1931 年色度图中绘制当前 ICC 配置文档，并附上 sRGB 以供参考"
 
 #: src/gui/uifiles/icc_dialog.ui:80
-#, fuzzy
 msgid "Export"
-msgstr "导出为CSV"
+msgstr "导出"
 
 #: src/gui/uifiles/icc_dialog.ui:84
 msgid ""
 "Export the profile currently assigned to the image to the working directory. "
 "It will be saved with the filename {imagename}.icc"
-msgstr ""
+msgstr "将当前分配给图像的配置文档导出到工作目录。它将以文档名 {imagename}.icc 保存"
 
 #: src/gui/uifiles/icc_dialog.ui:95 src/gui/uifiles/siril.ui:3518
 msgid "Remove"
@@ -3505,19 +3487,19 @@ msgstr "移除"
 
 #: src/gui/uifiles/icc_dialog.ui:99
 msgid "Remove the ICC profile from the image and stop color managing it"
-msgstr ""
+msgstr "从图像中删除 ICC 配置文档并停止对其进行色彩管理"
 
 #: src/gui/uifiles/icc_dialog.ui:110 src/core/icc_profile.c:1224
-#, fuzzy
 msgid "Assign"
-msgstr "无符号"
+msgstr "指定"
 
 #: src/gui/uifiles/icc_dialog.ui:114
 msgid ""
 "Assigns the selected ICC profile to the current image without performing any "
 "color space transform. This is useful if the image has an incorrect ICC "
 "profile."
-msgstr ""
+msgstr "将选定的 ICC 配置文档指定给当前图像，而不执行任何色彩空间转换。如果图像的 "
+"ICC 配置文档不正确，这非常有用。"
 
 #: src/gui/uifiles/icc_dialog.ui:128 src/gui/uifiles/siril.ui:3670
 #: src/core/icc_profile.c:1226
@@ -3528,91 +3510,86 @@ msgstr "转化"
 msgid ""
 "Converts the image to a different color space. This can be useful for "
 "exporting an image to sRGB for WWW use, for example."
-msgstr ""
+msgstr "将图像转换为不同的色彩空间。例如，这对于将图像导出为 sRGB 以供 WWW "
+"使用非常有用。"
 
 #: src/gui/uifiles/icc_dialog.ui:178
 msgid "<b><i>Current ICC profile</i></b>"
-msgstr ""
+msgstr "<b><i>当前 ICC 配置文档</i></b>"
 
 #: src/gui/uifiles/icc_dialog.ui:228
-#, fuzzy
 msgid "<b><i>Target ICC profile</i></b>"
-msgstr "<b>轮廓类型</b>"
+msgstr "<b><i>目标 ICC 配置文档</i></b>"
 
 #: src/gui/uifiles/icc_dialog.ui:254 src/gui/uifiles/icc_dialog.ui:308
 #: src/gui/uifiles/spcc_details.ui:96
 msgid "Manufacturer"
-msgstr ""
+msgstr "制造商"
 
 #: src/gui/uifiles/icc_dialog.ui:267 src/gui/uifiles/icc_dialog.ui:321
-#, fuzzy
 msgid "Copyright"
-msgstr "TIFF版权信息"
+msgstr "版权信息"
 
 #: src/gui/uifiles/icc_dialog.ui:332
 msgid "\n"
-msgstr ""
+msgstr "\n"
 
 #: src/gui/uifiles/icc_dialog.ui:360
 msgid "Built-in profile"
-msgstr ""
+msgstr "内置配置文档"
 
 #: src/gui/uifiles/icc_dialog.ui:371
 msgid ""
 "Select a built-in ICC profile. This tool is only for converting the profile "
 "of an image, not its type, so you cannot convert a RGB image to a Gray "
 "profile or vice versa."
-msgstr ""
+msgstr "选择内置 ICC 配置文档。此工具仅用于转换图像的配置文档，而不是其类型，"
+"因此您无法将 RGB 图像转换为灰度配置文档，反之亦然。"
 
 #: src/gui/uifiles/icc_dialog.ui:374
-#, fuzzy
 msgid "None selected"
-msgstr "已选择"
+msgstr "未选择"
 
 #: src/gui/uifiles/icc_dialog.ui:375
-#, fuzzy
 msgid "sRGB (linear TRC)"
-msgstr "RGB对齐(DFT)"
+msgstr "sRGB（线性TRC）"
 
 #: src/gui/uifiles/icc_dialog.ui:376
 msgid "sRGB (standard sRGB TRC)"
-msgstr ""
+msgstr "sRGB（标准 sRGB TRC）"
 
 #: src/gui/uifiles/icc_dialog.ui:377
 msgid "Rec2020 (linear TRC)"
-msgstr ""
+msgstr "Rec2020（线性 TRC）"
 
 #: src/gui/uifiles/icc_dialog.ui:378
 msgid "Rec2020 (standard Rec709 TRC)"
-msgstr ""
+msgstr "Rec2020（标准 Rec709 TRC）"
 
 #: src/gui/uifiles/icc_dialog.ui:379
 msgid "Gray (linear TRC)"
-msgstr ""
+msgstr "灰度（线性 TRC）"
 
 #: src/gui/uifiles/icc_dialog.ui:380
 msgid "Gray (sRGB TRC)"
-msgstr ""
+msgstr "灰都 (sRGB TRC)"
 
 #: src/gui/uifiles/icc_dialog.ui:381
 msgid "Gray (Rec709 TRC)"
-msgstr ""
+msgstr "灰度 (Rec709 TRC)"
 
 #: src/gui/uifiles/icc_dialog.ui:394
-#, fuzzy
 msgid "Load profile from file"
-msgstr "从文件载入 PSF"
+msgstr "从文件载入配置文档"
 
 #: src/gui/uifiles/icc_dialog.ui:424
-#, fuzzy
 msgid "<b>Color Management Operations</b>"
-msgstr "<b>内存管理</b>"
+msgstr "<b>色彩管理操作</b>"
 
 #: src/gui/uifiles/icc_gamut_dialog.ui:32
 #: src/gui/uifiles/settings_window.ui:3952
-#, fuzzy
 msgid "Gamut visualisation"
-msgstr "仅用于预览"
+msgstr "色域可视化"
 
 #: src/gui/uifiles/icc_gamut_dialog.ui:76
 msgid ""
@@ -3631,6 +3608,16 @@ msgid ""
 "larger gamuts than sRGB, and you will probably want to use a gamut at least "
 "as large as your monitor can display."
 msgstr ""
+"此图显示了 Siril 中可用的各种工作色域的比较。 （注意 P3 在 Siril "
+"中不可用：显示它仅供参考，如果需要，您可以提供 P3 ICC 配置文档。）\n"
+"CIE1931 xy 空间代表人眼可见的所有颜色。\n"
+"sRGB 是网络发布的标准，对应于大多数显示器的色域。\n"
+"其他色彩空间提供更大的色域，覆盖更多的 CIE1931 空间。 "
+"Rec2020拥有最大的色域，不包括想象的颜色； ProPhoto RGB "
+"具有更大的色域，尤其是在绿色/蓝色区域，但确实包含一些想象的颜色。\n"
+"如果从具有更大色域的色彩空间生成，打印的照片可以提供更丰富、更深的色彩。"
+"专业显示器还提供比 sRGB "
+"更大的色域，您可能希望使用至少与显示器可以显示的色域一样大的色域。"
 
 #: src/gui/uifiles/icc_gamut_dialog.ui:93
 msgid ""
@@ -3638,6 +3625,9 @@ msgid ""
 "w/index.php?curid=116654642\">https://commons.wikimedia.org/w/index.php?"
 "curid=116654642</a>"
 msgstr ""
+"作者：Myndex 自己的作品，CC BY-SA 4.0，<a href=\"https://commons.wikimedia."
+"org/w/index.php?curid=116654642\">https://commons.wikimedia.org/w /index."
+"php?curid=116654642</a>"
 
 #: src/gui/uifiles/linearmatch_dialog.ui:46 src/gui/linear_match.c:204
 msgid "Linear Match"
@@ -4288,6 +4278,9 @@ msgid ""
 "entire profile. This means that when you re-open the file the ICC profile "
 "description may be different, although it will be functionally equivalent."
 msgstr ""
+"注意：嵌入 ICC 配置文档时，libjxl 将检查它是否识别该配置文档。如果是，它将设"
+"置一个参考值而不是存储整个配置文档。这意味着当您重新打开文档时，ICC "
+"配置文档描述可能会有所不同，尽管它在功能上是等效的。"
 
 #: src/gui/uifiles/savepopup.ui:133
 msgid "root name of the converted images (the &apos;dest&apos; in dest1.fit)"
@@ -4329,9 +4322,8 @@ msgid "<b>Compression</b>"
 msgstr "<b>压缩</b>"
 
 #: src/gui/uifiles/savepopup.ui:360
-#, fuzzy
 msgid "<b>ICC Profile</b>"
-msgstr "<b>轮廓类型</b>"
+msgstr "<b>ICC配置文档</b>"
 
 #: src/gui/uifiles/savepopup.ui:389
 msgid "<b>Embedded Data</b>"
@@ -4405,9 +4397,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/savepopup.ui:876
-#, fuzzy
 msgid "100"
-msgstr "1,00"
+msgstr "100"
 
 #: src/gui/uifiles/savepopup.ui:902
 msgid "Effort:"
@@ -4432,9 +4423,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/savepopup.ui:982
-#, fuzzy
 msgid "JPEG XL"
-msgstr "JPEG"
+msgstr "JPEG XL"
 
 #: src/gui/uifiles/SCNR_dialog.ui:41
 msgid "Subtractive Chromatic Green Noise Reduction"
@@ -4475,9 +4465,8 @@ msgid "Preserves the original CIE L* component in the processed image."
 msgstr "处理后的图像维持原始的CIE L*组分。"
 
 #: src/gui/uifiles/script_contents_dialog.ui:74
-#, fuzzy
 msgid "Script Filename"
-msgstr "文件名："
+msgstr "脚本文件名"
 
 #: src/gui/uifiles/search_window.ui:32
 msgid "Search Object"
@@ -4874,9 +4863,8 @@ msgstr ""
 "这取决于用于创建 FITS 的软件。"
 
 #: src/gui/uifiles/settings_window.ui:776
-#, fuzzy
 msgid "Embed ICC profiles in saved FITS files"
-msgstr "图像中嵌入sRGB式ICC色彩配置文件"
+msgstr "图像中嵌入sRGB式ICC色彩配置文档"
 
 #: src/gui/uifiles/settings_window.ui:780
 msgid ""
@@ -5189,9 +5177,8 @@ msgid "Percent below and above the expected sampling to allow."
 msgstr "允许的低于和高于预期采样的百分比。"
 
 #: src/gui/uifiles/settings_window.ui:1564
-#, fuzzy
 msgid "Default degree of the polynomial correction:"
-msgstr "多项式修正中多项式的次数："
+msgstr "多项式修正的默认次数："
 
 #: src/gui/uifiles/settings_window.ui:1576
 #, fuzzy
@@ -14896,6 +14883,36 @@ msgid ""
 "The list of items that are present in the image can optionally saved to a "
 "csv file by passing the argument <b>-out=</b>"
 msgstr ""
+"Displays stars from the local catalog by default for the loaded plate solved "
+"image, down to the provided <b>limit_magnitude</b> (13 by default for most "
+"catalogues, except 14.5 for aavso_chart, 20 for solsys, and ommitted for "
+"pgc).\n"
+"An alternate online catalog can be specified with <b>-cat=</b>, taking "
+"values \n"
+"- for stars: tycho2, nomad, gaia, ppmxl, bsc, apass, gcvs, vsx, simbad, "
+"aavso_chart\n"
+"- for exoplanets: exo\n"
+"- for deep-sky: pgc\n"
+"- for solar system objects: solsys (closest <a href=\"https://vo.imcce.fr/"
+"webservices/data/displayIAUObsCodes.php\">IAU observatory code</a> can be "
+"passed with the argument <b>-obscode=</b> for better position accuracy)\n"
+"\n"
+"For stars catalogues containing photometric data, stars with no B-V "
+"information will be kept; they can be excluded by passing <b>-phot</b>\n"
+"The argument <b>-trix=</b> can be passed instead of a catalogue followed by "
+"a number between 0 and 511 to plot stars contained in local catalogues "
+"trixel of level 3 (for dev usage mainly)\n"
+"\n"
+"Some catalogs (bsc, gcvs, pgc, exo, aavso_chart, varisum and solsys) will "
+"also display, by default, names alongside markers in the display (GUI only) "
+"and list them in the log. For others with larger number of objects, namely "
+"vsx and simbad, the information can also be shown but, as it may clutter the "
+"display, it is not activated by default. This behavior can be toggled on/off "
+"with the options <b>-tag=on|off</b> to display names alongside markers and "
+"<b>-log=on|off</b> to list the objects in the console log\n"
+"\n"
+"The list of items that are present in the image can optionally saved to a "
+"csv file by passing the argument <b>-out=</b>"
 
 #: src/core/command_def.h:28
 msgid ""
@@ -20357,9 +20374,8 @@ msgid "Sequence: "
 msgstr "序列: "
 
 #: src/gui/callbacks.c:307
-#, fuzzy
 msgid "Region of Interest supported"
-msgstr "，嵌套不被支持"
+msgstr "所支持的关注区域"
 
 #: src/gui/callbacks.c:309
 msgid ""
@@ -20370,6 +20386,11 @@ msgid ""
 "While a ROI is active, processing will only preview the ROI. When the Apply "
 "button is clicked, the operation will apply to the whole image."
 msgstr ""
+"该图像操作支持ROI处理。这由 ROI 周围的绿色边框表示。在不支持ROI处理的图像操作"
+"对话框中，无打开对话框时，ROI将具有红色轮廓。\n"
+"\n"
+"当 ROI 处于活动状态时，处理将仅预览 "
+"ROI。单击“应用”按钮后，该操作将应用于整个图像。"
 
 #: src/gui/callbacks.c:316 src/gui/message_dialog.c:286
 msgid "_Do not show this dialog again"
