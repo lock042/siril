@@ -2105,6 +2105,8 @@ static int astrometry_finalize_hook(struct generic_seq_args *arg) {
 		arg->seq->fitseq_file->filename = filename; // we may need to reopen in the idle so we save it here
 		arg->seq->fitseq_file->hdu_index = NULL;
 	}
+	if (!arg->retval)
+		writeseqfile(arg->seq);
 finish:
 	if (aargs->cat_center)
 		siril_world_cs_unref(aargs->cat_center);
@@ -2128,7 +2130,6 @@ gboolean end_platesolve_sequence(gpointer p) {
 		g_free(seqname);
 		g_free(basename);
 	} else if (check_seq_is_comseq(args->seq) && !args->retval) {
-		writeseqfile(args->seq);
 		if (args->seq->type == SEQ_FITSEQ) { // if FITSEQ, we need to repoen in READONLY mode
 			if (fitseq_open(args->seq->fitseq_file->filename, args->seq->fitseq_file, READONLY)) {
 				siril_debug_print("error when finally re-opening fitseq\n");

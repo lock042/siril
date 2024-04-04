@@ -406,7 +406,7 @@ static int astrometric_image_hook(struct generic_seq_args *args, int out_index, 
 
 
 static int astrometric_alignment(struct registration_args *regargs, struct astrometric_args *astargs, regdata *current_regdata) {
-	struct generic_seq_args *args = create_default_seqargs(&com.seq);
+	struct generic_seq_args *args = create_default_seqargs(regargs->seq);
 	if (regargs->filters.filter_included) {
 		args->filtering_criterion = seq_filter_included;
 		args->nb_filtered_images = regargs->seq->selnum;
