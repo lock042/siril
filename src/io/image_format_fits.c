@@ -391,7 +391,7 @@ void read_fits_header(fits *fit) {
 //	 * compute fit_stats
 //	 */
 //	status = 0;
-//	fits_read_key(fit->fptr, TSTRING, "PROGRAM", &str, NULL, &status);
+	fits_read_key(fit->fptr, TSTRING, "PROGRAM", &str, NULL, &status);
 	gboolean not_from_siril = status || g_ascii_strncasecmp(str, PACKAGE, strlen(PACKAGE));
 
 	status = 0;

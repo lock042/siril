@@ -366,8 +366,20 @@ int save_fits_keywords(fits *fit) {
 
 	/*** Save list of unknown keys ***/
 	/* FIXME: save it into the FITS file */
-	if (fit->unknown_keys)
-		printf("%s\n", fit->unknown_keys);
+	if (fit->unknown_keys) {
+	    /* Move to the end of the header */
+	    if (fits_movabs_hdu(fit->fptr, 2, NULL, &status)) {
+	        fits_report_error(stderr, status); /* Print error message */
+	        return status;
+	    }
+
+	    /* Write the formatted header string to the end of the header */
+	    if (fits_write_record(fit->fptr, fit->unknown_keys, &status)) {
+	        fits_report_error(stderr, status); /* Print error message */
+	        return status;
+	    }
+//		printf("%s\n", fit->unknown_keys);
+	}
 
 	return 0;
 }
@@ -477,6 +489,10 @@ int read_fits_keywords(fits *fit) {
 			int n = g_strv_length(tokens);
 			for (int i = 0; i < n && !value_set; i++) {
 				if (g_strcmp0(tokens[i], keyname) == 0) {
+					if (current_key->fixed_value) {
+						value_set = TRUE;
+						break;
+					}
 					int int_value;
 					guint uint_value;
 					gushort ushort_value;
@@ -517,7 +533,7 @@ int read_fits_keywords(fits *fit) {
 						break;
 					case KTYPE_STR:
 						str_value = g_shell_unquote(value, NULL);
-						strcpy((char*) current_key->data, str_value);
+						strncpy((char*) current_key->data, str_value, FLEN_VALUE - 1);
 						value_set = TRUE;
 						break;
 					case KTYPE_DATE:
@@ -550,7 +566,7 @@ int read_fits_keywords(fits *fit) {
 		/** FIXME: need to exclude all keywords not handled but known. Like WCS and SIP keywords */
 		if (!value_set) {
 			UnknownKeys = g_string_append(UnknownKeys, card);
-			UnknownKeys = g_string_append(UnknownKeys, "\n");
+//			UnknownKeys = g_string_append(UnknownKeys, "\n");
 		}
 	}
 	free(keys_start);
