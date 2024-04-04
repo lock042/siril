@@ -1119,7 +1119,8 @@ static void update_filters_registration(int update_adjustment) {
 void update_reg_interface(gboolean dont_change_reg_radio) {
 	static GtkWidget *go_register = NULL, *follow = NULL, *cumul_data = NULL,
 	*noout = NULL, *toggle_reg_clamp = NULL, *onlyshift = NULL, *filter_box = NULL, *manualreg = NULL,
-	*interpolation_algo = NULL, *proj_box = NULL, *undistort_check = NULL, *scale_box = NULL, *x2upscale = NULL;
+	*interpolation_algo = NULL, *proj_box = NULL, *undistort_check = NULL, *scale_box = NULL,
+	*x2upscale = NULL, *go_estimate = NULL;
 	static GtkLabel *labelreginfo = NULL;
 	static GtkComboBox *reg_all_sel_box = NULL, *reglayer = NULL, *filter_combo_init = NULL;
 	static GtkNotebook *notebook_reg = NULL;
@@ -1131,6 +1132,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 
 	if (!go_register) {
 		go_register = lookup_widget("goregister_button");
+		go_estimate = lookup_widget("proj_estimate");
 		follow = lookup_widget("followStarCheckButton");
 		onlyshift = lookup_widget("onlyshift_checkbutton");
 		reg_all_sel_box = GTK_COMBO_BOX(lookup_widget("reg_sel_all_combobox"));
@@ -1218,14 +1220,17 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		// the 3 stars method has special GUI requirements
 		if (method->method_ptr == &register_3stars) {
 			if (!ready) 
-				gtk_widget_set_sensitive(go_register,FALSE);
+				gtk_widget_set_sensitive(go_register, FALSE);
 			else 
 				nbselstars = _3stars_check_registration_ready();
-		} else
+		} else {
 			gtk_widget_set_sensitive(go_register, ready);
+			gtk_widget_set_sensitive(go_estimate, ready);
+		}
 		if (method->method_ptr == &register_astrometric && sequence_is_loaded() && !has_wcs(&gfit)) {
 			gtk_label_set_text(labelreginfo, _("Platesolve the sequence first"));
-			gtk_widget_set_sensitive(go_register,FALSE);
+			gtk_widget_set_sensitive(go_register, FALSE);
+			gtk_widget_set_sensitive(go_estimate, FALSE);
 		}
 
 		gtk_widget_set_visible(follow, method->method_ptr == &register_3stars);
