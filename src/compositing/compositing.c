@@ -590,7 +590,7 @@ static void check_gfit_is_ours() {
 }
 
 // Called from the filechooser
-static void update_metadata() {
+static void update_metadata(gboolean do_sum) {
 	int nb = number_of_images_loaded();
 	fits **f = malloc((nb + 1) * sizeof(fits *));
 	int j = 0;
@@ -603,12 +603,12 @@ static void update_metadata() {
 		}
 	f[j] = NULL;
 
-	merge_fits_headers_to_result2(&gfit, f);
+	merge_fits_headers_to_result2(&gfit, f, do_sum);
 	free(f);
 }
 
 // Called after alignment
-static void update_comp_metadata(fits *fit) {
+static void update_comp_metadata(fits *fit, gboolean do_sum) {
 	int nb = number_of_images_loaded();
 	fits **f = malloc((nb + 1) * sizeof(fits *));
 	int j = 0;
@@ -617,7 +617,7 @@ static void update_comp_metadata(fits *fit) {
 			f[j++] = seq->internal_fits[i];
 	f[j] = NULL;
 
-	merge_fits_headers_to_result2(&gfit, f);
+	merge_fits_headers_to_result2(&gfit, f, do_sum);
 	free(f);
 }
 
@@ -762,7 +762,7 @@ void on_filechooser_file_set(GtkFileChooserButton *chooser, gpointer user_data) 
 	// enable the color balance finalization button
 	gtk_widget_set_sensitive(lookup_widget("composition_rgbcolor"), number_of_images_loaded() > 1);
 	update_result(1);
-	update_metadata();
+	update_metadata(TRUE);
 	update_MenuItem();
 }
 
@@ -847,6 +847,8 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 
 	gboolean two_step = (method->method_ptr == register_multi_step_global ||
 		method->method_ptr == register_kombat || method->method_ptr == register_manual) ? TRUE : FALSE;
+
+	gboolean do_sum = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("cumulate_rgb_button")));
 
 	// Avoid crash if gfit has been closed since populating the layers
 	if (!gfit.data && !gfit.fdata) {
@@ -966,7 +968,7 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 		}
 	}
 	// update WCS etc.
-	update_comp_metadata(seq->internal_fits[seq->reference_image]);
+	update_comp_metadata(seq->internal_fits[seq->reference_image], do_sum);
 	set_progress_bar_data(_("Registration complete."), PROGRESS_DONE);
 	set_cursor_waiting(FALSE);
 	com.run_thread = FALSE;	// fix for the cancelling check in processing

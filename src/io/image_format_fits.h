@@ -8,7 +8,6 @@
 
 /****************** image_format_fits.h ******************/
 void read_fits_header(fits *fit);
-int fits_parse_header_string(fits *fit, gchar *description);
 char *copy_header(fits *fit);
 
 typedef struct {
@@ -45,6 +44,7 @@ int copy_fits_from_file(char *source, char *destination);
 int save1fits16(const char *filename, fits *fit, int layer);
 int save1fits32(const char *filename, fits *fit, int layer);
 int siril_fits_open_diskfile_img(fitsfile **fptr, const char *filename, int iomode, int *status);
+GDateTime *get_date_from_fits(const gchar *filename);
 
 void rgb24bit_to_fits48bit(unsigned char *rgbbuf, fits *fit, gboolean inverted);
 void rgb8bit_to_fits16bit(unsigned char *graybuf, fits *fit);
@@ -78,9 +78,10 @@ void report_fits_error(int status);
 int check_fits_params(fitsfile *fptr, int *oldbitpix, int *oldnaxis, long *oldnaxes);
 int check_loaded_fits_params(fits *ref, ...);
 
-void merge_fits_headers_to_result2(fits *result, fits **f);
-void merge_fits_headers_to_result(fits *result, fits *f1, ...);
+void merge_fits_headers_to_result2(fits *result, fits **f, gboolean do_sum);
+void merge_fits_headers_to_result(fits *result, gboolean do_sum, fits *f1,...);
 int get_xpsampled(xpsampled* xps, gchar *filename, int i);
 int updateFITSKeyword(fits *fit, const gchar *key, const gchar *value);
+int fits_parse_header_str(fits *fit, const char *header);
 
 #endif

@@ -774,25 +774,67 @@ gpointer generic_sequence_metadata_worker(gpointer arg) {
 	struct timeval t_start, t_end;
 	set_progress_bar_data(NULL, PROGRESS_RESET);
 	gettimeofday(&t_start, NULL);
-	for (int frame = 0; frame < args->seq->number; frame++) {
+	int input_idx, frame, retval = 0;
+	int *index_mapping = NULL;
+
+	int nb_frames = compute_nb_filtered_images(args->seq, args->filtering_criterion, 1.0);
+	if (nb_frames <= 0) {
+		siril_log_message(_("No image selected for processing, aborting\n"));
+		retval = 1;
+		goto cleanup;
+	}
+
+	if (args->filtering_criterion) {
+		index_mapping = malloc(nb_frames * sizeof(int));
+		if (!index_mapping) {
+			PRINT_ALLOC_ERR;
+			retval = 1;
+			goto cleanup;
+		}
+		for (input_idx = 0, frame = 0; input_idx < args->seq->number; input_idx++) {
+			/* the third parameter, filtering_parameter, is not required here, so
+			 * we set an arbitrary value of 1.0. The only relevant filtering is
+			 * "by selection".
+			 */
+			if (!args->filtering_criterion(args->seq, input_idx, 1.0)) {
+				continue;
+			}
+			index_mapping[frame++] = input_idx;
+		}
+		if (frame != nb_frames) {
+			siril_log_message(_("Output index mapping failed (%d/%d).\n"), frame, nb_frames);
+			retval = 1;
+			goto cleanup;
+		}
+	}
+
+	for (frame = 0; frame < nb_frames; frame++) {
+		if (index_mapping)
+			input_idx = index_mapping[frame];
+		else input_idx = frame;
+
 		fits fit = { 0 };
-		if (seq_open_image(args->seq, frame))
+		if (seq_open_image(args->seq, input_idx))
 			return GINT_TO_POINTER(1);
 		if (args->seq->type == SEQ_REGULAR)
-			args->image_hook(args, args->seq->fptr[frame], frame);
-		else args->image_hook(args, args->seq->fitseq_file->fptr, frame);
-		seq_close_image(args->seq, frame);
+			args->image_hook(args, args->seq->fptr[input_idx], input_idx);
+		else args->image_hook(args, args->seq->fitseq_file->fptr, input_idx);
+		seq_close_image(args->seq, input_idx);
 		clearfits(&fit);
 	}
+cleanup:
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
 	free_sequence(args->seq, TRUE);
-	g_free(args->key);
+	g_slist_free_full(args->keys, g_free);
+	g_free(args->header);
 	if (args->output_stream)
 		g_object_unref(args->output_stream);
+	if (index_mapping)
+		free(index_mapping);
 	free(args);
 	siril_add_idle(end_generic, NULL);
-	return 0;
+	return GINT_TO_POINTER(retval);
 }
 
 /********** per-image threading **********/

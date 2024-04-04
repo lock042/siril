@@ -632,7 +632,7 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 			siril_debug_print("ASTRO-TIFF detected.\n");
 			if (fit->header) free(fit->header);
 			fit->header = description;
-			int ret = fits_parse_header_string(fit, description);
+			int ret = fits_parse_header_str(fit, description);
 			if (ret) {
 				siril_debug_print("ASTRO-TIFF is not well formed.\n");
 			}
@@ -1094,11 +1094,11 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 	if (xdata->fitsHeader) {
 		if (fit->header) free(fit->header);
 		fit->header = strdup(xdata->fitsHeader);
-		int ret = fits_parse_header_string(fit, xdata->fitsHeader);
+		int ret = fits_parse_header_str(fit, xdata->fitsHeader);
 		if (ret) {
 			siril_debug_print("XISF Header cannot be read.\n");
 		}
-		}
+	}
 	fits_flip_top_to_bottom(fit);
 	siril_log_message(_("Reading XISF: file %s, %ld layer(s), %ux%u pixels\n"),
 			name, fit->naxes[2], fit->rx, fit->ry);
