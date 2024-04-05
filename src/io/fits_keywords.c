@@ -201,9 +201,12 @@ static void fhi_handler_save(fits *fit, KeywordInfo *info) {
 	}
 }
 
-
-
 /*****************************************************************************/
+
+static void default_values_special_cases(fits *fit) {
+	/* set special default values */
+	fit->keywords.siteelev = 0.0;
+}
 
 KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 	KeywordInfo keyword_list[] = {
@@ -453,6 +456,8 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
                     break;
             }
         }
+
+        default_values_special_cases(fit);
 
         g_hash_table_insert(hash_table, g_strdup(keyword_list[i].key), &(all_keywords[i]));
     }

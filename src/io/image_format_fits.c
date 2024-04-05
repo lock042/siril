@@ -74,69 +74,6 @@ static int CompressionMethods[] = { RICE_1, GZIP_1, GZIP_2, HCOMPRESS_1};
 	} while ((keywords[__iter__]) && (*status > 0)); \
 }
 
-//static void read_fits_locdata_header(fits *fit) {
-//	int status = 0;
-//	char sitelat_dump[FLEN_VALUE] = { 0 };
-//	char sitelat_dump_tmp[FLEN_VALUE] = { 0 };
-//	char sitelong_dump[FLEN_VALUE] = { 0 };
-//	char sitelong_dump_tmp[FLEN_VALUE] = { 0 };
-//	double d_sitelat_dump = 0.0,  d_sitelong_dump = 0.0;
-//
-//	status = 0;
-//	__tryToFindKeywords(fit->fptr, TSTRING, SITELAT, &sitelat_dump, &status);
-//
-//	if (status == 0) {
-//		gchar **token = g_strsplit(sitelat_dump, ":", -1); // Handles PRISM special parsing for SITELAT
-//		gsize token_size = g_strv_length(token);
-//		if (token_size > 1 && token[1])	{	// Denotes presence of ":"
-//			for (int i = 0; i < token_size; ++i) {
-//				g_strlcat(sitelat_dump_tmp, token[i], sizeof(sitelat_dump_tmp));
-//				if (i < 3) strncat(sitelat_dump_tmp, i < 2 ? ":" : ".", 2);
-//				d_sitelat_dump = parse_dms(sitelat_dump_tmp);
-//			}
-//		} else d_sitelat_dump = parse_dms(sitelat_dump);
-//
-//		g_strfreev(token);
-//	}
-//
-//	status = 0;
-//	__tryToFindKeywords(fit->fptr, TSTRING, SITELONG, &sitelong_dump, &status);
-//
-//	if (status == 0) {
-//		gchar **token = g_strsplit(sitelong_dump, ":", -1); // Handles PRISM special parsing for SITELONG
-//		gsize token_size = g_strv_length(token);
-//		if (token_size > 1 && token[1])	{
-//			for (int i = 0; i < token_size; ++i) {
-//				g_strlcat(sitelong_dump_tmp, token[i], sizeof(sitelong_dump_tmp));
-//				if (i < 3) strncat(sitelong_dump_tmp, i < 2 ? ":" : ".", 2);
-//				d_sitelong_dump = parse_dms(sitelong_dump_tmp);
-//			}
-//		} else d_sitelong_dump = parse_dms(sitelong_dump);
-//
-//		g_strfreev(token);
-//	}
-//
-//	if (isnan(d_sitelat_dump) || isnan(d_sitelong_dump)) {	// Cases SITELONG and SITELAT keyword are numbers (only NINA and Seq. Generator, for now)
-//		gchar *end;
-//		fit->keywords.sitelat = g_ascii_strtod(sitelat_dump, &end);
-//		if (sitelat_dump == end) {
-//			siril_debug_print("Cannot read SITELAT\n");
-//		}
-//		fit->keywords.sitelong = g_ascii_strtod(sitelong_dump, &end);
-//		if (sitelong_dump == end) {
-//			siril_debug_print("Cannot read SITELONG\n");
-//		}
-//	} else {
-//		fit->keywords.sitelat = d_sitelat_dump;
-//		fit->keywords.sitelong = d_sitelong_dump;
-//	}
-//
-//	status = 0;
-//	fits_read_key(fit->fptr, TDOUBLE, "SITEELEV", &(fit->keywords.siteelev), NULL, &status);	// Handles SITEELEV keyword cases
-//	if (status) {
-//		fit->keywords.siteelev = 0.0;	// set to 0.0 if no elevation keyword (all except NINA and Seq. Generator, for now)
-//	}
-//}
 
 static void read_fits_date_obs_header(fits *fit) {
 	int status = 0;
@@ -173,6 +110,7 @@ static void read_fits_date_obs_header(fits *fit) {
 
 	fit->keywords.date_obs = FITS_date_to_date_time(date_obs);
 }
+
 
 void fit_get_photometry_data(fits *fit) {
 	int status = 0;
@@ -305,20 +243,6 @@ static int try_read_float_lo_hi(fitsfile *fptr, WORD *lo, WORD *hi) {
 /* reading the FITS header to get useful information
  * stored in the fit, requires an opened file descriptor */
 void read_fits_header(fits *fit) {
-
-//#ifdef _WIN32 //TODO: remove after cfitsio is fixed
-//	status = 0;
-//	__tryToFindKeywords(fit->fptr, TINT, BINX, &fit->binning_x, &status);
-//	status = 0;
-//	__tryToFindKeywords(fit->fptr, TINT, BINY, &fit->binning_y, &status);
-//#else
-//	status = 0;
-//	__tryToFindKeywords(fit->fptr, TUINT, BINX, &fit->keywords.binning_x, &status);
-//	status = 0;
-//	__tryToFindKeywords(fit->fptr, TUINT, BINY, &fit->keywords.binning_y, &status);
-//#endif
-
-
 	/* use new keywords structure */
 	read_fits_keywords(fit);
 
@@ -557,7 +481,7 @@ static void convert_data_float(int bitpix, const void *from, float *to, size_t n
 	unsigned long *data32;
 	double mini = DBL_MAX;
 	double maxi = -DBL_MAX;
-	float *data32f;
+	const float *data32f;
 
 	switch (bitpix) {
 		case BYTE_IMG:
@@ -644,7 +568,7 @@ static void convert_floats(int bitpix, float *data, size_t nbdata) {
 				data[i] = data[i] * INV_UCHAR_MAX_SINGLE;
 			break;
 		case FLOAT_IMG:
-			siril_log_message(_("Normalizing input data to our float range [0, 1]\n"));
+			siril_log_message(_("Normalizing input data to our float range [0, 1]\n")); // @suppress("No break at end of case")
 			// Fallthrough is deliberate, this handles FITS with floating point data
 			// where MAX is 65565 (e.g. JWST)
 		default:
@@ -1166,7 +1090,7 @@ int read_icc_profile_from_fits(fits *fit) {
 	}
 	if (ihdu > nhdus) {
 		/* no matching HDU */
-		status = siril_fits_move_first_image(fit->fptr); // Reset to the first HDU
+		siril_fits_move_first_image(fit->fptr); // Reset to the first HDU
 		status = BAD_HDU_NUM;
 		return 1;
 	}
@@ -2119,9 +2043,6 @@ int fits_change_depth(fits *fit, int layers) {
 	g_assert (layers == 1 || layers == 3); // Can only change depth to mono or 3-channel
 
 	size_t nbdata = fit->naxes[0] * fit->naxes[1];
-	if (fit->naxes[2] == layers)
-		// Nothing to do! Just return.
-		return 0;
 	if (fit->type == DATA_USHORT) {
 		WORD *tmp;
 		if (!(tmp = realloc(fit->data, nbdata * layers * sizeof(WORD)))) {
@@ -2246,7 +2167,7 @@ void keep_only_first_channel(fits *fit) {
 	color_manage(fit, FALSE);
 }
 
-/* copy non-mandatory keywords from 'from' to 'to' */
+///* copy non-mandatory keywords from 'from' to 'to' */
 void copy_fits_metadata(fits *from, fits *to) {
 	to->keywords.pixel_size_x = from->keywords.pixel_size_x;
 	to->keywords.pixel_size_y = from->keywords.pixel_size_y;
@@ -2307,12 +2228,15 @@ void copy_fits_metadata(fits *from, fits *to) {
 
 //void copy_fits_metadata(fits *from, fits *to) {
 //	// Copy simple fields
-//	memcpy(&to->keywords, &from->keywords, sizeof(fkeywords));
+//    memcpy(&to->keywords, &from->keywords, sizeof(fkeywords));
+//
+//    // Copy other structures
+//    memcpy(&to->keywords.dft, &from->keywords.dft, sizeof(dft_info));
+//    memcpy(&to->keywords.wcsdata, &from->keywords.wcsdata, sizeof(wcs_info));
 //
 //	// Copy date_obs
+//	to->keywords.date_obs = NULL;
 //	if (from->keywords.date_obs) {
-//		if (to->keywords.date_obs)
-//			g_date_time_unref(to->keywords.date_obs);
 //		to->keywords.date_obs = g_date_time_ref(from->keywords.date_obs);
 //	}
 //
@@ -2325,10 +2249,6 @@ void copy_fits_metadata(fits *from, fits *to) {
 //		}
 //	}
 //
-//	// Copy other structures
-//	memcpy(&to->keywords.dft, &from->keywords.dft, sizeof(dft_info));
-//	memcpy(&to->keywords.wcsdata, &from->keywords.wcsdata, sizeof(wcs_info));
-//
 //	// Set boolean flags
 //	to->pixelkey = (from->keywords.pixel_size_x > 0.);
 //	to->focalkey = (from->keywords.focal_length > 0.);
@@ -2337,7 +2257,7 @@ void copy_fits_metadata(fits *from, fits *to) {
 //}
 
 
-int copy_fits_from_file(char *source, char *destination) {
+int copy_fits_from_file(const char *source, const char *destination) {
 	fitsfile *infptr, *outfptr; /* FITS file pointers defined in fitsio.h */
 	int status = 0; /* status must always be initialized = 0  */
 
@@ -2417,7 +2337,7 @@ void rgb24bit_to_fits48bit(unsigned char *rgbbuf, fits *fit, gboolean inverted) 
 
 /* this method converts 8-bit gray data to 16-bit FITS data.
  * fit->data has to be already allocated and fit->rx and fit->ry must be correct */
-void rgb8bit_to_fits16bit(unsigned char *graybuf, fits *fit) {
+void rgb8bit_to_fits16bit(const unsigned char *graybuf, fits *fit) {
 	WORD *data;
 	size_t i, nbdata = fit->naxes[0] * fit->naxes[1];
 	fit->pdata[0] = fit->data;
@@ -2434,7 +2354,7 @@ void rgb8bit_to_fits16bit(unsigned char *graybuf, fits *fit) {
  * the endianness of the data, since we have two byte per value, may not match the endianness
  * of our FITS files, so the change_endian parameter allows to flip the endian.
  * fit->data has to be already allocated and fit->rx and fit->ry must be correct */
-void rgb48bit_to_fits48bit(WORD *rgbbuf, fits *fit, gboolean inverted,
+void rgb48bit_to_fits48bit(const WORD *rgbbuf, fits *fit, gboolean inverted,
 		gboolean change_endian) {
 	size_t i, nbdata = fit->naxes[0] * fit->naxes[1];
 	WORD *rdata, *gdata, *bdata, curval;
@@ -2836,7 +2756,7 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 			}
 			unsigned int m = 0; // amount of strings read in block
 			for (int l = 0; l < pixScale; l++, m++) { // cycle through a block lines
-				float *ptr = &ima_data[M * w];
+				const float *ptr = &ima_data[M * w];
 				int N = 0; // number of column
 				for (int j = 0; j < Ws; j++) { // cycle through a blocks by columns
 					unsigned int n = 0;	// amount of columns read in block
@@ -2977,7 +2897,7 @@ int check_loaded_fits_params(fits *ref, ...) {
 	va_list args;
 	va_start(args, ref);
 
-	fits *test;
+	const fits *test;
 	while (!retval && (test = va_arg(args, fits *))) {
 		if (test->bitpix != ref->bitpix ||
 				test->naxis != ref->naxis) {
@@ -3090,7 +3010,7 @@ void merge_fits_headers_to_result(fits *result, gboolean do_sum, fits *f1, ...) 
  *
  * **************************************************************/
 
-int get_xpsampled(xpsampled *xps, gchar *filename, int i) {
+int get_xpsampled(xpsampled *xps, const gchar *filename, int i) {
 	// The dataset wavelength range is always the same for all xpsampled spectra
 	// The spacing is always 2nm iaw the dataset
 	int status = 0, num_hdus = 0, anynul = 0, wlcol = 0, fluxcol = 0;
