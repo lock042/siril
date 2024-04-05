@@ -2130,53 +2130,20 @@ void keep_only_first_channel(fits *fit) {
 	color_manage(fit, FALSE);
 }
 
-///* copy non-mandatory keywords from 'from' to 'to' */
 void copy_fits_metadata(fits *from, fits *to) {
-	to->keywords.pixel_size_x = from->keywords.pixel_size_x;
-	to->keywords.pixel_size_y = from->keywords.pixel_size_y;
-	to->keywords.binning_x = from->keywords.binning_x;
-	to->keywords.binning_y = from->keywords.binning_y;
+	// Copy simple fields
+    memcpy(&to->keywords, &from->keywords, sizeof(fkeywords));
 
-	// 'date' is the file creation date, automatically set on save
+    // Copy other structures
+    memcpy(&to->keywords.dft, &from->keywords.dft, sizeof(dft_info));
+    memcpy(&to->keywords.wcsdata, &from->keywords.wcsdata, sizeof(wcs_info));
+
+	// Copy date_obs
+	to->keywords.date_obs = NULL;
 	if (from->keywords.date_obs) {
-		if (to->keywords.date_obs)
-			g_date_time_unref(to->keywords.date_obs);
 		to->keywords.date_obs = g_date_time_ref(from->keywords.date_obs);
 	}
-	strncpy(to->keywords.filter, from->keywords.filter, FLEN_VALUE);
-	strncpy(to->keywords.image_type, from->keywords.image_type, FLEN_VALUE);
-	strncpy(to->keywords.object, from->keywords.object, FLEN_VALUE);
-	strncpy(to->keywords.instrume, from->keywords.instrume, FLEN_VALUE);
-	strncpy(to->keywords.telescop, from->keywords.telescop, FLEN_VALUE);
-	strncpy(to->keywords.observer, from->keywords.observer, FLEN_VALUE);
-	strncpy(to->keywords.bayer_pattern, from->keywords.bayer_pattern, FLEN_VALUE);
-	strncpy(to->keywords.row_order, from->keywords.row_order, FLEN_VALUE);
 
-	to->keywords.bayer_xoffset = from->keywords.bayer_xoffset;
-	to->keywords.bayer_yoffset = from->keywords.bayer_yoffset;
-	to->keywords.focal_length = from->keywords.focal_length;
-	to->keywords.iso_speed = from->keywords.iso_speed;
-	to->keywords.exposure = from->keywords.exposure;
-	to->keywords.expstart = from->keywords.expstart;
-	to->keywords.expend = from->keywords.expend;
-	to->keywords.livetime = from->keywords.livetime;
-	to->keywords.stackcnt = from->keywords.stackcnt;
-	to->keywords.aperture = from->keywords.aperture;
-	to->keywords.ccd_temp = from->keywords.ccd_temp;
-	to->keywords.set_temp = from->keywords.set_temp;
-	to->keywords.cvf = from->keywords.cvf;
-	to->keywords.key_gain = from->keywords.key_gain;
-	to->keywords.key_offset = from->keywords.key_offset;
-	to->keywords.airmass = from->keywords.airmass;
-	to->keywords.sitelat = from->keywords.sitelat;
-	to->keywords.sitelong = from->keywords.sitelong;
-	to->keywords.siteelev = from->keywords.siteelev;
-	to->pixelkey = (from->keywords.pixel_size_x > 0.);
-	to->focalkey = (from->keywords.focal_length > 0.);
-
-	memcpy(&to->keywords.dft, &from->keywords.dft, sizeof(dft_info));
-	memcpy(&to->keywords.wcsdata, &from->keywords.wcsdata, sizeof(wcs_info));
-	// don't copy ICC profile, if that is needed it should be done separately
 	if (from->keywords.wcslib) {
 		int status = -1;
 		to->keywords.wcslib = wcs_deepcopy(from->keywords.wcslib, &status);
@@ -2186,38 +2153,12 @@ void copy_fits_metadata(fits *from, fits *to) {
 		}
 	}
 
+	// Set boolean flags
+	to->pixelkey = (from->keywords.pixel_size_x > 0.);
+	to->focalkey = (from->keywords.focal_length > 0.);
+
 	// copy from->history?
 }
-
-//void copy_fits_metadata(fits *from, fits *to) {
-//	// Copy simple fields
-//    memcpy(&to->keywords, &from->keywords, sizeof(fkeywords));
-//
-//    // Copy other structures
-//    memcpy(&to->keywords.dft, &from->keywords.dft, sizeof(dft_info));
-//    memcpy(&to->keywords.wcsdata, &from->keywords.wcsdata, sizeof(wcs_info));
-//
-//	// Copy date_obs
-//	to->keywords.date_obs = NULL;
-//	if (from->keywords.date_obs) {
-//		to->keywords.date_obs = g_date_time_ref(from->keywords.date_obs);
-//	}
-//
-//	if (from->keywords.wcslib) {
-//		int status = -1;
-//		to->keywords.wcslib = wcs_deepcopy(from->keywords.wcslib, &status);
-//		if (status) {
-//			wcsfree(to->keywords.wcslib);
-//			siril_debug_print("could not copy wcslib struct\n");
-//		}
-//	}
-//
-//	// Set boolean flags
-//	to->pixelkey = (from->keywords.pixel_size_x > 0.);
-//	to->focalkey = (from->keywords.focal_length > 0.);
-//
-//	// copy from->history?
-//}
 
 
 int copy_fits_from_file(const char *source, const char *destination) {
