@@ -467,6 +467,8 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 
     if (hash)
         *hash = hash_table;
+    else
+    	g_hash_table_destroy(hash_table);
 
     return all_keywords;
 }
@@ -880,7 +882,7 @@ int read_fits_keywords(fits *fit) {
 		gushort ushort_value;
 		double double_value;
 		float float_value;
-		gchar *str_value;
+		gchar *str_value, *unquoted;
 		GDateTime *date;
 		gboolean bool_value;
 		char *end;
@@ -918,15 +920,19 @@ int read_fits_keywords(fits *fit) {
 			}
 			break;
 		case KTYPE_STR:
-			str_value = g_strstrip(g_shell_unquote(value, NULL));
+			unquoted = g_shell_unquote(value, NULL);
+			str_value = g_strstrip(unquoted);
 			strncpy((char*) current_key->data, str_value, FLEN_VALUE - 1);
+			g_free(unquoted);
 			break;
 		case KTYPE_DATE:
-			str_value = g_strstrip(g_shell_unquote(value, NULL));
+			unquoted = g_shell_unquote(value, NULL);
+			str_value = g_strstrip(unquoted);
 			date = FITS_date_to_date_time(str_value);
 			if (date) {
 				*((GDateTime**) current_key->data) = date;
 			}
+			g_free(unquoted);
 			break;
 		case KTYPE_BOOL:
 			bool_value = value[0] == 'T' ? TRUE : FALSE;
