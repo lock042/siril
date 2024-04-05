@@ -20,12 +20,15 @@
 
 #include <math.h>
 #include <gsl/gsl_matrix.h>
+#include <gsl/gsl_sort.h>
+#include <gsl/gsl_statistics.h>
 #include <string.h>
 
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_date.h"
 #include "core/siril_log.h"
+#include "algos/sorting.h"
 #include "algos/PSF.h"
 #include "algos/photometry.h"
 #include "algos/astrometry_solver.h"
@@ -601,6 +604,185 @@ gpointer light_curve_worker(gpointer arg) {
 
 // All the stuff for occultation
 
+/****************** making a light curve from sequence-stored data ****************/
+/* It uses data stored in the sequence, in seq->photometry, which is
+ * populated by successive calls to seqpsf on the opened sequence;
+ */
+int occult_curve(struct light_curve_args *lcargs) {
+	int i, j;
+//	siril_plot_data *spl_data = NULL;
+	sequence *seq = lcargs->seq;
+
+	if (!seq->photometry[0]) {
+		siril_log_color_message(_("No photometry data found, error\n"), "red");
+		return -1;
+	}
+
+	/* get number of valid frames for each star */
+	int ref_valid_count[MAX_SEQPSF] = { 0 };
+	int nbImages = 0;
+	gboolean ref_valid[MAX_SEQPSF] = { FALSE };
+	for (i = 0; i < seq->number; i++) {
+		if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid)
+			continue;
+		++nbImages;
+		for (int ref = 1; ref < MAX_SEQPSF && seq->photometry[ref]; ref++) {
+			if (seq->photometry[ref][i] && seq->photometry[ref][i]->phot_is_valid)
+				ref_valid_count[ref]++;
+		}
+	}
+	siril_debug_print("we have %d images with a valid photometry for the variable star\n", nbImages);
+	if (nbImages < 1) {
+		siril_log_color_message(_("There are not enough valid stars to make a photometric analysis.\n"), "red");
+		return -1;
+	}
+
+/*	int nb_ref_stars = 0;
+	// select reference stars that are only available at least 4/5 of the time
+	for (int ref = 1; ref < MAX_SEQPSF && seq->photometry[ref]; ref++) {
+		ref_valid[ref] = ref_valid_count[ref] >= round_to_int(nbImages * 4.0 / 5.0);
+		siril_debug_print("reference star %d has %d/%d valid measures, %s\n", ref, ref_valid_count[ref], nbImages, ref_valid[ref] ? "including" : "discarding");
+		if (ref_valid[ref])
+			nb_ref_stars++;
+	}
+
+	if (nb_ref_stars == 0) {
+		siril_log_color_message(_("The reference stars are not good enough, probably out of the configured valid pixel range, cannot calibrate the light curve\n"), "red");
+		return -1;
+	}
+	if (nb_ref_stars == 1)
+		siril_log_color_message(_("Only one reference star was validated, this will not result in an accurate light curve. Try to add more reference stars or check the configured valid pixel range\n"), "salmon");
+	else siril_log_message(_("Using %d stars to calibrate the light curve\n"), nb_ref_stars);
+*/
+
+	// arrays containing the graph data: X, Y and Y error bars
+	double *date = calloc(nbImages, sizeof(double));	// X is the julian date
+	double *vmag = calloc(nbImages, sizeof(double));	// Y is the calibrated magnitude
+	double *err = calloc(nbImages, sizeof(double));		// Y error bar
+	if (!date || !vmag || !err) {
+		PRINT_ALLOC_ERR;
+		free(date); free(vmag); free(err);
+		return -1;
+	}
+	double min_date = DBL_MAX;
+	// i is index in dataset, j is index in output
+	for (i = 0, j = 0; i < seq->number; i++) {
+		if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid)
+			continue;
+
+		// X value: the date
+		if (seq->imgparam[i].date_obs) {
+			double julian;
+			GDateTime *tsi = g_date_time_ref(seq->imgparam[i].date_obs);
+			if (seq->exposure > 0.0) {
+				GDateTime *new_dt = g_date_time_add_seconds(tsi, seq->exposure * 0.5);
+				julian = date_time_to_Julian(new_dt);
+				g_date_time_unref(new_dt);
+			} else {
+				julian = date_time_to_Julian(tsi);
+			}
+			g_date_time_unref(tsi);
+			date[j] = julian;
+			if (julian < min_date)
+				min_date = julian;
+		} else {
+			date[j] = (double) i + 1; // should not happen.
+		}
+
+// to be refactored with amplitude not magnitude
+		// Y value: the magnitude and error and their calibration
+		double target_amp = seq->photometry[0][i]->A;
+		double target_bck = seq->photometry[0][i]->B;
+
+		double cmag = 0.0, cerr = 0.0;
+		int nb_ref = 0;
+		/* First data plotted are variable data, others are references
+		 * Variable is done above, now we compute references */
+
+		vmag[j] = target_amp;
+
+		j++;
+		
+	}
+	int nb_valid_images = j;
+	double median_val, largest_val, smallest_val;
+	gsl_stats_minmax (&smallest_val, &largest_val, vmag, 1, j);
+	median_val = quickmedian_double(vmag, nb_valid_images);
+	siril_log_color_message(_("med= %lf, min= %lf, max= %lf, nb_valid_images= %i\n"), "red", median_val, smallest_val, largest_val, nb_valid_images);
+
+	int julian0 = 0;
+	if (min_date != DBL_MAX)
+		julian0 = (int)min_date;
+
+	siril_log_message(_("FD-Calibrated data for %d points of the light curve, %d excluded because of invalid photometry\n"), nb_valid_images, seq->selnum - nb_valid_images);
+
+	int ret = 0;
+// ce qui suit n'est ralatif qu'à la courbe, donc inutile
+/*
+	gchar *subtitleimg = generate_lc_subtitle(lcargs->metadata, TRUE);
+	gchar *titleimg;
+	if (!lcargs->target_descr) {
+		titleimg = g_strdup_printf("%s %s", _("Light curve of star"), subtitleimg);
+	} else {
+		titleimg = g_strdup_printf("%s %s%s", _("Light curve of star"), lcargs->target_descr, subtitleimg);
+	}
+	gchar *subtitledat = generate_lc_subtitle(lcargs->metadata, FALSE);
+	gchar *titledat = g_strdup_printf("%s#JD_UT (+ %d)\n", subtitledat, julian0);
+	gchar *xlabel = g_strdup_printf("JD_UT (+ %d)", julian0);
+
+	spl_data = malloc(sizeof(siril_plot_data));
+	init_siril_plot_data(spl_data);
+	siril_plot_set_title(spl_data, titledat);
+	siril_plot_set_xlabel(spl_data, xlabel);
+	spl_data->revertY = TRUE;
+	siril_plot_set_savename(spl_data, "light_curve");
+	spl_data->forsequence = TRUE;
+	double *date0 = malloc(nb_valid_images * sizeof(double));
+	for (int k = 0; k < nb_valid_images; k++)
+		date0[k] = date[k] - julian0;
+	siril_plot_add_xydata(spl_data, _("V-C"), nb_valid_images, date0, vmag, err, NULL);
+	splxyerrdata *lc = (splxyerrdata *)spl_data->plots->data;
+	lc->plots[0]->x_offset = (double)julian0;
+	free(date0);
+
+	// now we sort to have all dates ascending
+	siril_plot_sort_x(spl_data);
+	// saving dat
+	int ret = 0;
+	if (!siril_plot_save_ETD_light_curve(spl_data, filename, TRUE)) {
+		ret = 1;
+		free_siril_plot_data(spl_data);
+		spl_data = NULL; // just in case we try to use it later on
+	} else {
+		// now saving the plot if required
+		siril_plot_set_title(spl_data, titleimg);
+		if (!lcargs->display_graph) { // if not used for display we can free spl_data now
+			gchar *image_name = replace_ext(filename, ".png");
+			siril_plot_save_png(spl_data, image_name, 0, 0);
+			free_siril_plot_data(spl_data);
+			spl_data = NULL; // just in case we try to use it later on
+			g_free(image_name);
+		}
+	}
+	g_free(xlabel);
+	g_free(subtitleimg);
+	g_free(titleimg);
+	g_free(subtitledat);
+	g_free(titledat);
+
+	if (lcargs->display_graph && spl_data)
+		lcargs->spl_data = spl_data;
+
+*/
+
+	free(date);
+	free(vmag);
+	free(err);
+	return ret;
+}
+
+
+
 static gboolean end_occultation_worker(gpointer p) {
 	if (sequence_is_loaded()) {
 		drawPlot();
@@ -624,14 +806,26 @@ void free_occultation_args(struct light_curve_args *args) {
 gpointer occultation_worker(gpointer arg) {
 	int retval = 0;
 	struct light_curve_args *args = (struct light_curve_args *)arg;
-
+	
+	siril_log_message(_("Entering occulation_worker\n"));
 	framing_mode framing = REGISTERED_FRAME;
-	if (framing == REGISTERED_FRAME && !args->seq->regparam[args->layer])
-		framing = FOLLOW_STAR_FRAME;
-
+//	framing_mode framing = FOLLOW_STAR_FRAME;
+//	if (framing == REGISTERED_FRAME && !args->seq->regparam[args->layer])
+//		framing = FOLLOW_STAR_FRAME;
+//	siril_log_message(_("STEP#-2\n"));
 	// someday we should move the area in the seqpsf args, not needed for now
 //	for (int star_index = 0; star_index < args->nb; star_index++) {					// not needed as we have only 1 "star"
-		com.selection = args->areas[0];
+//		int star_index = 0;
+//		siril_log_message(_("STEP#-1: W= %i, H= %i\n"), com.selection.w, com.selection.h);
+//		com.selection = args->areas[star_index];
+//		siril_log_message(_("STEP#0: W= %i, H= %i\n"), args->areas[star_index].w, args->areas[star_index].h);
+
+//		siril_log_message(_("STEP#1: layer= %i\n"), args->layer);
+//		siril_log_message(_("STEP#1: mode= %i\n"), framing);
+//		siril_log_message(_("STEP#1: seqname= %s\n"), args->seq->seqname);
+
+		seqpsf(args->seq, args->layer, FALSE, FALSE, framing, FALSE, TRUE);
+
 
 /*		if (seqpsf(args->seq, args->layer, FALSE, FALSE, framing, FALSE, TRUE)) {
 			if (star_index == 0) {
@@ -643,14 +837,16 @@ gpointer occultation_worker(gpointer arg) {
 					star_index);
 		}
 */
-		if (args->seq == &com.seq)
-			queue_redraw(REDRAW_OVERLAY);
+		//if (args->seq == &com.seq)
+		//	queue_redraw(REDRAW_OVERLAY);
 //	}
-	memset(&com.selection, 0, sizeof(rectangle));
+//	memset(&com.selection, 0, sizeof(rectangle));
 
 	/* analyse data and create the light curve */
 	if (!retval)
-		retval = new_light_curve("light_curve.dat", args);
+		retval = occult_curve(args);
+
+
 /*	if (!retval && args->display_graph && args->spl_data) {					// not accurate here!!
 		siril_add_idle(create_new_siril_plot_window, args->spl_data);
 	}

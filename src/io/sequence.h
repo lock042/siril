@@ -47,6 +47,7 @@ typedef enum {
 
 struct seqpsf_args {
 	gboolean for_photometry;
+	gboolean for_occultation;
 	super_bool allow_use_as_regdata;
 	framing_mode framing;
 

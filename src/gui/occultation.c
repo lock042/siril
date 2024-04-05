@@ -29,6 +29,7 @@
 #include "occultation.h"
 #include "gui/message_dialog.h"
 #include "gui/utils.h"
+#include "io/sequence.h"
 
 static GtkWidget *dialog = NULL;	// the window, a GtkDialog
 static GtkWidget *delay_cam = NULL;
@@ -196,16 +197,49 @@ static void build_the_dialog() {
 GtkWidget *get_occult_dialog() {
 	if (!dialog)
 		build_the_dialog();
+	
 	return dialog;
 }
 
 static void on_find_clicked(GtkDialog* self, gint response_id, gpointer user_data){
+//	struct phot_config *args = calloc(1, sizeof(struct phot_config));
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	siril_log_message(_("Find button clicked \n"));		//c'est ici que la procedure de calcul doit etre lancée
+
+	int layer = -1;
+	if (com.seq.regparam) {
+		for (int i = 0; i < com.seq.nb_layers; i++) {
+			if (com.seq.regparam[i]) {
+				layer = i;
+				break;
+			}
+		}
+	}
+	if (layer == -1) {
+		siril_debug_print("unregistered sequence\n");
+		//siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("The sequence must be registered"));
+		if (com.seq.nb_layers == 3)
+			layer = 1;
+		else layer = 0;
+	}
+
+// Tedst if area selected
+// Test if seq loaded
+
+//	struct phot_config *args = calloc(1, sizeof(struct phot_config));
+	struct seqpsf_args *spsfargs = malloc(sizeof(struct seqpsf_args));
+	spsfargs->for_photometry = TRUE;
+
+	struct light_curve_args *args = calloc(1, sizeof(struct light_curve_args));
+	args->seq = &com.seq;
+	args->layer = layer;
+	start_in_new_thread(occultation_worker, args);
+
+
 	gchar *end;
 	const gchar *text = gtk_entry_get_text(GTK_ENTRY(delay_cam));
 	delay = g_ascii_strtod(text, &end);
-	if (text == end || delay <= 10.0 || delay > 30.7) {
+	if (text == end || delay <= -10.0 || delay > 30.7) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("DELAY range not accepted (should be ]0, 0.7]"));
 		return;
 	}
@@ -262,9 +296,21 @@ static void on_occult_response(GtkDialog* self, gint response_id, gpointer user_
 //	gboolean narrow = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(check_narrow));
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	gboolean use_offset = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apply_offset));
-	if (use_offset) siril_log_message(_("Applied offset: %lf \n"), delay);
-	else siril_log_message(_("No offset applied \n"));
+//	struct phot_config *args = calloc(1, sizeof(struct phot_config));
+	struct light_curve_args *args = calloc(1, sizeof(struct light_curve_args));
+//	args->seq->psf->occult_is_valid = TRUE;
+	if (use_offset) {
+		siril_log_message(_("Applied offset: %lf \n"), delay);
+		args->time_offset = TRUE;
+		args->JD_offset = delay;
+	}
+	else {
+		siril_log_message(_("No offset applied \n"));
+		args->time_offset = FALSE;
+		args->JD_offset = 0.0;
+	}
 	gtk_widget_hide(dialog);
+	
 
 //	struct compstars_arg *args = calloc(1, sizeof(struct compstars_arg));
 /*	args->fit = &gfit;
@@ -276,5 +322,6 @@ static void on_occult_response(GtkDialog* self, gint response_id, gpointer user_
 	args->max_emag = emag;
 	args->nina_file = g_strdup("auto");
 */
-	start_in_new_thread(occultation_worker, NULL);
+
+//	start_in_new_thread(occultation_worker, args);
 }
