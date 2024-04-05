@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-03-28 07:46+0100\n"
-"PO-Revision-Date: 2024-04-05 05:37+0000\n"
+"PO-Revision-Date: 2024-04-05 19:36+0000\n"
 "Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application/zh_Hans/>\n"
@@ -146,6 +146,8 @@ msgid ""
 "Photoelectric Photometry). If absent, it is assumed to be CCD.  If you use a "
 "CMOS camera please report it as CCD."
 msgstr ""
+"数据文档中的观测类型。它可以是 CCD、DSLR、PEP（用于光度测定）。如果不存在，"
+"则假定为 CCD。如果您使用 CMOS 相机，请将其报告为 CCD。"
 
 #: src/gui/uifiles/aavso_dialog.ui:275
 msgid "Comparaison star: "
@@ -157,7 +159,7 @@ msgstr "比较星的数量。"
 
 #: src/gui/uifiles/aavso_dialog.ui:299
 msgid "Cstd: "
-msgstr ""
+msgstr "Cstd: "
 
 #: src/gui/uifiles/aavso_dialog.ui:310
 msgid ""
@@ -169,6 +171,12 @@ msgid ""
 "instrumental value of the comparison, and Cstd is the chart magnitude for "
 "the comparison."
 msgstr ""
+"变星的标准化星等由下式给出\n"
+"\n"
+"Vstd = (Vins - Cins) + Cstd\n"
+"\n"
+"其中 Vins 是变星的仪器星等，Cins 是用于比较的仪器值，Cstd "
+"是用于比较的图表星等。"
 
 #: src/gui/uifiles/aavso_dialog.ui:315 src/gui/uifiles/astrometry_dialog.ui:180
 #: src/gui/uifiles/astrometry_dialog.ui:202
@@ -185,7 +193,7 @@ msgstr "0"
 
 #: src/gui/uifiles/aavso_dialog.ui:328
 msgid "Check star: "
-msgstr ""
+msgstr "检查星： "
 
 #: src/gui/uifiles/aavso_dialog.ui:339
 msgid "The number of the check star."
@@ -202,18 +210,24 @@ msgid ""
 "chart) and give a proper chart name like \"APASS DR10\". Then add "
 "information on the comp stars in the notes. Limit: 20 characters."
 msgstr ""
+"请使用您在测光表顶部附近以粗体字写的序列 ID，句子中写着“"
+"在观测报告的图表字段中将此序列报告为 [ID]”。如果您使用自己的比较星（例如，在"
+"序列团队没有时间创建序列时出现时间敏感警报的情况下），请不要提供图表 ID，"
+"即使您使用 VSP 绘制图表也是如此。使用注释代码 K（非 AAVSO "
+"图表）并给出适当的图表名称，例如“APASS "
+"DR10”。然后在注释中添加有关比较星的信息。限制：20 个字符。"
 
 #: src/gui/uifiles/aavso_dialog.ui:367
 msgid "Chart: "
-msgstr ""
+msgstr "图表： "
 
 #: src/gui/uifiles/aavso_dialog.ui:379
 msgid "Notes: "
-msgstr ""
+msgstr "注释： "
 
 #: src/gui/uifiles/aavso_dialog.ui:390
 msgid "Comments or notes about the observation. If no comments, use \"na\"."
-msgstr ""
+msgstr "关于观测的评论或注释。如果没有注释，则使用“na”。"
 
 #: src/gui/uifiles/aberration_inspector.ui:32 src/gui/uifiles/siril.ui:2309
 msgid "Aberration Inspector"
@@ -5181,21 +5195,18 @@ msgid "Default degree of the polynomial correction:"
 msgstr "多项式修正的默认次数："
 
 #: src/gui/uifiles/settings_window.ui:1576
-#, fuzzy
 msgid ""
 "Astrometry solvers can use a polynomial correction (SIP) to work with "
 "optical aberrations, this is the default order of the polynomial model. Set "
 "to 1 to disable it."
-msgstr ""
-"Astrometry.net 可以使用多项式修正 （SIP） 来处理光学像差，这是多项式的次数。"
-"设置为 0 以禁用。"
+msgstr "Astrometry 解析器可以使用多项式修正 (SIP) "
+"来处理光学像差，这是多项式模型的默认阶数。设置为 1 以禁用它。"
 
 #: src/gui/uifiles/settings_window.ui:1579
 msgid "3"
 msgstr "3"
 
 #: src/gui/uifiles/settings_window.ui:1608
-#, fuzzy
 msgid "Target radius (degrees)"
 msgstr "目标半径（度）"
 
@@ -5206,28 +5217,24 @@ msgid ""
 msgstr "解析的目标坐标周围搜索半径（度）。盲解析（未传递目标坐标时）不可用。"
 
 #: src/gui/uifiles/settings_window.ui:1623
-#, fuzzy
 msgid "10.00"
-msgstr "0.00"
+msgstr "10.00"
 
 #: src/gui/uifiles/settings_window.ui:1654
-#, fuzzy
 msgid "Maximum seconds to try solving. 0 to disable it"
-msgstr "尝试求解的最大秒数："
+msgstr "尝试解析的最大秒数。 0 禁用它"
 
 #: src/gui/uifiles/settings_window.ui:1666
 msgid ""
 "Allowed time for the solve for each catalog file. It can be used as the "
 "total solve time only if solve-field is configured to do so in its "
 "configuration file."
-msgstr ""
-"允许求解每个星表文件的时间。仅当 solve-field 在其配置文件中配置为总求解时间"
-"时，它才能用作总求解时间。"
+msgstr "每个星表文件的所允许解析时间。仅当 solve-field "
+"在其配置文件中配置为总解析时间时，它才能用作总解析时间。"
 
 #: src/gui/uifiles/settings_window.ui:1669
-#, fuzzy
 msgid "30"
-msgstr "0"
+msgstr "30"
 
 #: src/gui/uifiles/settings_window.ui:1695
 msgid "General Platesolving"
@@ -5675,9 +5682,8 @@ msgid "Image Thumbnails"
 msgstr "缩略图"
 
 #: src/gui/uifiles/settings_window.ui:3449
-#, fuzzy
 msgid "Default screen transfer function:"
-msgstr "缺省屏幕变换函数"
+msgstr "缺省屏幕变换函数："
 
 #: src/gui/uifiles/settings_window.ui:3463
 #: src/gui/uifiles/settings_window.ui:3532 src/gui/uifiles/siril.ui:562
@@ -5709,18 +5715,16 @@ msgid "Image Display"
 msgstr "图像显示"
 
 #: src/gui/uifiles/settings_window.ui:3518
-#, fuzzy
 msgid "Default display mode:"
-msgstr "缺省显示模式"
+msgstr "缺省显示模式："
 
 #: src/gui/uifiles/settings_window.ui:3548
 msgid "Histogram Display"
 msgstr "直方图显示"
 
 #: src/gui/uifiles/settings_window.ui:3582
-#, fuzzy
 msgid "Type of selection:"
-msgstr "无选择"
+msgstr "选择类型："
 
 #: src/gui/uifiles/settings_window.ui:3593
 msgid ""
@@ -5742,24 +5746,23 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:3647
 msgid "Middle button double click"
-msgstr ""
+msgstr "双击中键"
 
 #: src/gui/uifiles/settings_window.ui:3660
-#, fuzzy
 msgid "Zoom to fit"
-msgstr "缩小"
+msgstr "缩放到适合"
 
 #: src/gui/uifiles/settings_window.ui:3661
 msgid "Zoom 100% centred on mouse"
-msgstr ""
+msgstr "以鼠标为中心缩放 100%"
 
 #: src/gui/uifiles/settings_window.ui:3662
 msgid "Zoom toggles between fit and 100%"
-msgstr ""
+msgstr "缩放在适合和 100% 之间切换"
 
 #: src/gui/uifiles/settings_window.ui:3677
 msgid "Mouse Behaviour"
-msgstr ""
+msgstr "鼠标行为"
 
 #: src/gui/uifiles/settings_window.ui:3721
 msgid "Background extraction samples:"
@@ -7017,24 +7020,28 @@ msgid "Color Calibration..."
 msgstr "色彩校准..."
 
 #: src/gui/uifiles/siril.ui:1769
-#, fuzzy
 msgid ""
 "Open the photometric color calibration dialog.\n"
 "\n"
 "<b>WARNING: image must be platesolved before.</b>"
-msgstr "开启测光法色彩校准对话窗"
+msgstr ""
+"开启测光法色彩校准对话窗。\n"
+"\n"
+"<b>警告：必须先对图像进行解析。</b>"
 
 #: src/gui/uifiles/siril.ui:1773
 msgid "Photometric Color Calibration..."
 msgstr "测光法色彩校准..."
 
 #: src/gui/uifiles/siril.ui:1786
-#, fuzzy
 msgid ""
 "Open the spectrophotometric color calibration dialog.\n"
 "\n"
 "<b>WARNING: image must be platesolved before.</b>"
-msgstr "开启测光法色彩校准对话窗"
+msgstr ""
+"开启光谱法色彩校准对话窗。\n"
+"\n"
+"<b>警告：必须先对图像进行解析。</b>"
 
 #: src/gui/uifiles/siril.ui:1790
 #, fuzzy
@@ -7686,7 +7693,6 @@ msgstr ""
 "出现一些可见的方块。"
 
 #: src/gui/uifiles/siril.ui:4672
-#, fuzzy
 msgid ""
 "Dark subtraction can be optimized. Siril offers two ways of doing this.\n"
 "- The first method automatically evaluates the coefficients to be applied so "
@@ -7702,10 +7708,15 @@ msgid ""
 "<b>WARNING:</b> Do not apply dark optimization to the master-dark if the "
 "master-bias has not been subtracted beforehand."
 msgstr ""
-"可选择优化减去暗场的操作，所减去的暗场会乘上一个系数，使得最终图片（亮场减暗"
-"场）的噪声最小化。这个选项适用于暗场拍摄条件不理想的情况。\n"
+"可选择优化扣暗场的操作，Siril 提供了两种方法来做到这一点。\n"
+"- 第一种方法自动评估要应用的系数，以使所得图像（亮场减去暗场）的噪声最小化。"
 "\n"
-"警告：如果先前制作主暗场帧时没有减去主偏置帧，则不要应用暗场优化。"
+"- 第二种方法会考虑曝光时间，如果拍摄软件已输入。\n"
+"\n"
+"当未在最佳条件下拍摄暗场图像时，暗场优化非常有用。它会补偿暗场图像和亮场图像"
+"之间的温度和/或曝光时间的差异。\n"
+"\n"
+"<b>警告：</b>如果先前制作主暗场帧时没有减去主偏置帧，则不要应用暗场优化。"
 
 #: src/gui/uifiles/siril.ui:4681
 #, fuzzy
@@ -9261,13 +9272,11 @@ msgid "Image Processing"
 msgstr "图像处理"
 
 #: src/gui/uifiles/siril.ui:9910
-#, fuzzy
 msgid ""
 "Siril tools menu. It contains all the functions required for image analysis."
-msgstr "图像处理工具菜单，包含所有可用于强化图像的功能。"
+msgstr "Siril 工具菜单。它包含图像分析所需的所有功能。"
 
 #: src/gui/uifiles/siril.ui:9921
-#, fuzzy
 msgid "Tools"
 msgstr "工具"
 
@@ -9322,27 +9331,25 @@ msgstr "磁盘空间：N/A"
 
 #: src/gui/uifiles/spcc_details.ui:8 src/gui/uifiles/spcc_details.ui:254
 msgid "SPCC Details"
-msgstr ""
+msgstr "SPCC详情"
 
 #: src/gui/uifiles/spcc_details.ui:28
 msgid ""
 "Plot the data (QE, transmittance or relative photon count) as a function of "
 "wavelength"
-msgstr ""
+msgstr "将数据（QE、透射率或相对光子计数）绘制为波长的函数"
 
 #: src/gui/uifiles/spcc_details.ui:154
-#, fuzzy
 msgid "Data Source"
-msgstr "源文件"
+msgstr "数据源"
 
 #: src/gui/uifiles/spcc_details.ui:167
 msgid "Datafile version"
-msgstr ""
+msgstr "数据文件版本"
 
 #: src/gui/uifiles/spcc_details.ui:195
-#, fuzzy
 msgid "Number of samples"
-msgstr "星点数量"
+msgstr "样本数量"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:119
 msgid "Start the photometric color calibration algorithm."
@@ -9354,103 +9361,90 @@ msgstr "白点参考："
 
 #: src/gui/uifiles/s_pcc_dialog.ui:191
 msgid "Mono Sensor:"
-msgstr ""
+msgstr "单色传感器："
 
 #: src/gui/uifiles/s_pcc_dialog.ui:203
 msgid "OSC Sensor:"
-msgstr ""
+msgstr "OSC传感器："
 
 #: src/gui/uifiles/s_pcc_dialog.ui:215
-#, fuzzy
 msgid "Red Filter:"
-msgstr "中位数滤波"
+msgstr "红色滤镜："
 
 #: src/gui/uifiles/s_pcc_dialog.ui:227
-#, fuzzy
 msgid "Green Filter:"
-msgstr "中位数滤波"
+msgstr "绿色滤镜："
 
 #: src/gui/uifiles/s_pcc_dialog.ui:239
-#, fuzzy
 msgid "OSC Filter:"
-msgstr "打开文件"
+msgstr "OSC滤镜："
 
 #: src/gui/uifiles/s_pcc_dialog.ui:251
-#, fuzzy
 msgid "Blue Filter:"
-msgstr "中位数滤波"
+msgstr "蓝色滤镜："
 
 #: src/gui/uifiles/s_pcc_dialog.ui:262
-#, fuzzy
 msgid "Select an OSC sensor"
-msgstr "选择相位文件"
+msgstr "选择OSC传感器"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:275
-#, fuzzy
 msgid "Select a mono sensor"
-msgstr "选择相位文件"
+msgstr "选择单色传感器"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:288
 msgid "Select an OSC filter (e.g. a broadband light pollution filter)"
-msgstr ""
+msgstr "选择 OSC 滤镜（例如宽带光害滤镜）"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:301
 msgid "Select a red filter used with composited mono images"
-msgstr ""
+msgstr "选择与合成单色图像一起使用的红色滤镜"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:314
 msgid "Select a green filter used with composited mono images"
-msgstr ""
+msgstr "选择与合成单色图像一起使用的绿色滤镜"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:327
 msgid "Select a blue filter used with composited mono images"
-msgstr ""
+msgstr "选择与合成单色图像一起使用的蓝色滤镜"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:338 src/gui/uifiles/s_pcc_dialog.ui:352
 #: src/gui/uifiles/s_pcc_dialog.ui:366 src/gui/uifiles/s_pcc_dialog.ui:380
 #: src/gui/uifiles/s_pcc_dialog.ui:394 src/gui/uifiles/s_pcc_dialog.ui:408
 #: src/gui/uifiles/s_pcc_dialog.ui:434 src/gui/uifiles/s_pcc_dialog.ui:486
 msgid "Details"
-msgstr ""
+msgstr "详情"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:342
-#, fuzzy
 msgid "Show details of the selected OSC sensor"
-msgstr "所选方法的指标"
+msgstr "显示所选 OSC 传感器的详细信息"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:356
-#, fuzzy
 msgid "Show details of the selected mono sensor"
-msgstr "所选方法的指标"
+msgstr "显示所选单色传感器的详细信息"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:370
-#, fuzzy
 msgid "Show details of the selected OSC filter"
-msgstr "所选主题的指标"
+msgstr "显示所选 OSC 滤镜的详细信息"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:384
-#, fuzzy
 msgid "Show details of the selected red filter"
-msgstr "所选主题的指标"
+msgstr "显示所选红色滤镜的详细信息"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:398
-#, fuzzy
 msgid "Show details of the selected green filter"
-msgstr "所选主题的指标"
+msgstr "显示所选绿色滤镜的详细信息"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:412
-#, fuzzy
 msgid "Show details of the selected blue filter"
-msgstr "所选主题的指标"
+msgstr "显示所选蓝色滤镜的详细信息"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:425
 msgid "DSLR Low Pass Filter:"
-msgstr ""
+msgstr "DSLR 低通滤镜："
 
 #: src/gui/uifiles/s_pcc_dialog.ui:438
-#, fuzzy
 msgid "Show details of the selected LPF"
-msgstr "所选主题的指标"
+msgstr "显示所选低通滤镜的详细信息"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:450
 msgid ""
@@ -9459,27 +9453,27 @@ msgid ""
 "model). For modified DSLRs, select the replacement LPF (if there isn't an "
 "exact match the Baader BCF is probably close)."
 msgstr ""
+"对于未经修改的 DSLR，请选择与您的型号最匹配的低通滤镜（许多佳能低通滤镜几乎相"
+"同，因此可能与您的型号不完全匹配）。对于修改后的 "
+"DSLR，请选择替换低通滤镜（如果没有完全匹配，Baader BCF 可能接近）。"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:463
-#, fuzzy
 msgid "Select white balance reference"
-msgstr "重置所有偏好设置"
+msgstr "选择白平衡参考"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:472
-#, fuzzy
 msgid "Plot all"
-msgstr "图表标题"
+msgstr "绘制全部"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:476
 msgid ""
 "Plot the selected sensor QE, filter responses and white reference relative "
 "photon count as a function of wavelength"
-msgstr ""
+msgstr "绘制所选传感器 QE、滤镜响应和白点参考相对光子计数与波长的函数关系"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:490
-#, fuzzy
 msgid "Show details of the selected white reference"
-msgstr "所选主题的指标"
+msgstr "显示所选白点参考的详细信息"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:510
 msgid "Blue:"
@@ -9499,73 +9493,73 @@ msgid ""
 "Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - "
 "486.1 nm"
 msgstr ""
+"标称通带波长（nm）\n"
+"常用波长：S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:558
 msgid "Filter bandwidth in nm"
-msgstr ""
+msgstr "滤镜带宽（nm）"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:559
 msgid "Bandwidth"
-msgstr ""
+msgstr "带宽"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:570
 msgid "Enter the nominal wavelength of the red channel narrowband filter"
-msgstr ""
+msgstr "输入红色通道窄带滤镜的标称波长"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:586
 msgid "Enter the nominal wavelength of the blue channel narrowband filter"
-msgstr ""
+msgstr "输入蓝色通道窄带滤镜的标称波长"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:602
 msgid "Enter the nominal wavelength of the green channel narrowband filter"
-msgstr ""
+msgstr "输入绿色通道窄带滤镜的标称波长"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:618
 msgid "Enter the nominal bandwidth of the red channel narrowband filter"
-msgstr ""
+msgstr "输入红色通道窄带滤镜的标称带宽"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:634
 msgid "Enter the nominal bandwidth of the green channel narrowband filter"
-msgstr ""
+msgstr "输入绿色通道窄带滤镜的标称带宽"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:650
 msgid "Enter the nominal bandwidth of the blue channel narrowband filter"
-msgstr ""
+msgstr "输入蓝色通道窄带滤镜的标称带宽"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:674
-#, fuzzy
 msgid "Plot fits"
-msgstr "图表标题"
+msgstr "图表拟合"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:678
 msgid "Plot SPCC linear fits for catalog to image R/G and B/G ratios"
-msgstr ""
+msgstr "绘制目录与图像 R/G 和 B/G 比率的 SPCC 线性拟合"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:693
 msgid "Sensor Type:"
-msgstr ""
+msgstr "传感器类型："
 
 #: src/gui/uifiles/s_pcc_dialog.ui:723 src/gui/photometric_cc.c:546
 msgid "mono"
-msgstr ""
+msgstr "单色"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:740
 msgid "Narrowband mode"
-msgstr ""
+msgstr "窄带模式"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:744
 msgid ""
 "Set narrowband mode. This is suitable for composited narrowband images such "
 "as HOO as well as for OSC images taken with dual narrowband filters etc."
-msgstr ""
+msgstr "设置窄带模式。这适用于合成窄带图像，例如 HOO 以及使用双窄带滤镜等拍摄的 OSC "
+"图像。"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:760
-#, fuzzy
 msgid "SPCC Parameters"
-msgstr "参数"
+msgstr "SPCC 参数"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:838
-#, fuzzy
 msgid ""
 "Choose the online catalogue against one want to compare the image and "
 "compute photometry.\n"
@@ -9591,16 +9585,20 @@ msgstr ""
 "* APASS, the AAVSO Photometric All Sky Survey, is performing an all-sky "
 "photometric survey. This survey is conducted in eight filters: Johnson B and "
 "V, plus Sloan u', g′, r′, i′, z_s and Z. It is valid from about 7th "
-"magnitude to about 17th magnitude for over 37 million stars."
+"magnitude to about 17th magnitude for over 37 million stars.\n"
+"* Gaia Data Release 3 was released on 13 June 2022. Photometry is given for "
+"around 1.46 billion sources, with a limiting magnitude of G = 21. It uses "
+"different filters from Johnson B and V, however it provides measures of "
+"source effective temperature based on the source's spectrum, and Siril uses "
+"this Teff for PCC."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:845 src/io/siril_catalogues.c:247
 msgid "APASS"
 msgstr "APASS"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:846
-#, fuzzy
 msgid "GAIA DR3"
-msgstr "Gaia DR3"
+msgstr "GAIA DR3"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:860
 msgid "Photometric Star Catalogue: "
@@ -9614,16 +9612,16 @@ msgstr "NOMAD星表可以本地安装，不依赖于互联网连接进行此操�
 
 #: src/gui/uifiles/s_pcc_dialog.ui:924
 msgid "Tolerance / σ"
-msgstr ""
+msgstr "公差 / σ"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:936
 msgid ""
 "Include background samples this many σ above the median. Default is 2.00"
-msgstr ""
+msgstr "包括高于中值这幺多 σ 的背景样本。默认值为 2.00"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:954
 msgid "Include background samples this many σ below the median. Default is 2.8"
-msgstr ""
+msgstr "包括低于中值这幺多 σ 的背景样本。默认值为 2.8"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:977
 msgid "Automatic detection"
@@ -10029,21 +10027,19 @@ msgid "Roundness range"
 msgstr "圆度范围"
 
 #: src/gui/uifiles/stars_list_window.ui:810
-#, fuzzy
 msgid ""
 "Enable roundness upper bound.\n"
 "Use only to display optical distortions or double stars, not for "
 "registration or astrometry, this will break them."
 msgstr ""
 "启用圆度上限。\n"
-"仅用于显示光学畸变或双星，不用于对齐或解析，这会破坏它们。"
+"仅用于显示光学失真或双星，不可用于对齐或解析，这会破坏它们。"
 
 #: src/gui/uifiles/stars_list_window.ui:825
-#, fuzzy
 msgid ""
 "Maximum roundness, use only to display optical distortions or double stars, "
 "not for registration or astrometry, this will break them."
-msgstr "圆度上限，仅用于显示光学畸变或双星，不用于对齐或解析，这会破坏它们。"
+msgstr "圆度上限，仅用于显示光学失真或双星，不可用于对齐或解析，这会破坏它们。"
 
 #: src/gui/uifiles/stars_list_window.ui:944
 msgid "Export PSF parameters in an ASCII file"
@@ -10487,14 +10483,15 @@ msgstr "无法找到序列 %s。\n"
 msgid ""
 "Could not invert the SIP distortion coefficients, try using a lower order or "
 "a linear solution\n"
-msgstr ""
+msgstr "无法反转 SIP 失真系数，请尝试使用低阶或线性解决方案\n"
 
 #: src/algos/astrometry_solver.c:489
 #, c-format
 msgid ""
 "%s could not find distortion polynomials for the order specified (%d) and "
 "returned a linear solution, try with a lower order or increase magnitude\n"
-msgstr ""
+msgstr "%s 无法找到指定阶数 (%d) 的失真多项式并返回线性解，"
+"请尝试使用较低阶数或增加幅度\n"
 
 #: src/algos/astrometry_solver.c:492
 msgid ""
@@ -10503,9 +10500,9 @@ msgid ""
 msgstr ""
 
 #: src/algos/astrometry_solver.c:495
-#, fuzzy, c-format
+#, c-format
 msgid "%s solve succeeded.\n"
-msgstr "本地 astrometry.net 解析成功。\n"
+msgstr "%s 解析成功。\n"
 
 #: src/algos/astrometry_solver.c:498
 #, fuzzy
@@ -10513,34 +10510,29 @@ msgid "The image could not be aligned with the reference stars\n"
 msgstr "解析失败。图像无法与参考坐标相对齐。\n"
 
 #: src/algos/astrometry_solver.c:500
-#, fuzzy
 msgid "Cancelled\n"
-msgstr "已取消"
+msgstr "已取消\n"
 
 #: src/algos/astrometry_solver.c:502
-#, fuzzy
 msgid "Not enough memory\n"
-msgstr "内存不足"
+msgstr "内存不足\n"
 
 #: src/algos/astrometry_solver.c:504
-#, fuzzy, c-format
+#, c-format
 msgid "There are not enough stars picked in the image. least %d are needed\n"
-msgstr "图像中没有足够数量的被选星点，至少需要 %d 个。"
+msgstr "图像中没有足够数量的被选星点，至少需要 %d\n"
 
 #: src/algos/astrometry_solver.c:507
-#, fuzzy
 msgid "Transformation matrix is invalid, solve failed\n"
-msgstr "变换矩阵无效，解析失败"
+msgstr "变换矩阵无效，解析失败\n"
 
 #: src/algos/astrometry_solver.c:509
-#, fuzzy
 msgid "Reprojecting catalog failed\n"
-msgstr "重投影星表失败。"
+msgstr "重投影星表失败\n"
 
 #: src/algos/astrometry_solver.c:511
-#, fuzzy
 msgid "Updating trans failed\n"
-msgstr "更新单应性失败。"
+msgstr "更新转换失败\n"
 
 #: src/algos/astrometry_solver.c:513
 #, c-format
@@ -10674,14 +10666,14 @@ msgid "Flipping image and updating astrometry data.\n"
 msgstr "翻转图像并更新解析数据。\n"
 
 #: src/algos/astrometry_solver.c:1056
-#, fuzzy, c-format
+#, c-format
 msgid "Plate solving warning: %s"
-msgstr "解析失败：%s\n"
+msgstr "解析警告：%s"
 
 #: src/algos/astrometry_solver.c:1058
-#, fuzzy, c-format
+#, c-format
 msgid "Plate solving failed: %s"
-msgstr "解析失败：%s\n"
+msgstr "解析失败：%s"
 
 #: src/algos/astrometry_solver.c:1164
 msgid "Near solver started"
@@ -10718,13 +10710,11 @@ msgstr ""
 "%s]。\n"
 
 #: src/algos/astrometry_solver.c:1671
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Astrometry.net solving with a search field at RA: %s, Dec: %s, within a %s "
 "degrees radius, blindly for scale\n"
-msgstr ""
-"Astrometry.net 进行解析基于RA：%s，Dec：%s，半径为%s度，缩放比例为[%s, "
-"%s]。\n"
+msgstr "Astrometry.net 进行解析基于RA：%s，Dec：%s，半径为%s度，盲解缩放\n"
 
 #: src/algos/astrometry_solver.c:1675
 #, fuzzy, c-format
@@ -10732,9 +10722,8 @@ msgid "Astrometry.net solving blindly in position for scales [%s, %s]\n"
 msgstr "Astrometry.net盲定位，比例尺范围为[%s, %s]。\n"
 
 #: src/algos/astrometry_solver.c:1678
-#, fuzzy
 msgid "Astrometry.net solving blindly\n"
-msgstr "Astrometry.net 解析"
+msgstr "Astrometry.net 盲解\n"
 
 #: src/algos/astrometry_solver.c:1756
 msgid "No astrometric solution found\n"
@@ -10754,15 +10743,15 @@ msgid "Selection is not used in manual star selection mode\n"
 msgstr "在手动选星模式下不使用选区\n"
 
 #: src/algos/astrometry_solver.c:1953
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d already platesolved, skipping\n"
-msgstr "图像已解析。什么都不会做。\n"
+msgstr "图像 %d 已解析，跳过\n"
 
 #: src/algos/astrometry_solver.c:1975
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Could not retrieve target coordinates from image %s metadata, skipping\n"
-msgstr "使用图像文件头中的目标坐标： %f, %f\n"
+msgstr "无法从图像 %s 元数据检索目标坐标，跳过\n"
 
 #: src/algos/astrometry_solver.c:1991
 #, c-format
@@ -10783,9 +10772,9 @@ msgid "Image %s did not solve\n"
 msgstr "图像 %s 未解析\n"
 
 #: src/algos/astrometry_solver.c:2043
-#, fuzzy, c-format
+#, c-format
 msgid "Image %s platesolved and updated\n"
-msgstr "图像载入并放大完成"
+msgstr "图像 %s 解析完成并更新\n"
 
 #: src/algos/astrometry_solver.c:2045
 #, c-format
@@ -10793,9 +10782,9 @@ msgid "Image %s platesolved but could not be saved\n"
 msgstr ""
 
 #: src/algos/astrometry_solver.c:2051
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d platesolved and updated\n"
-msgstr "图像载入并放大完成"
+msgstr "图像 %d 解析完成并更新\n"
 
 #: src/algos/astrometry_solver.c:2062
 #, c-format
@@ -10808,9 +10797,9 @@ msgid "(%d were already solved and skipped)\n"
 msgstr ""
 
 #: src/algos/astrometry_solver.c:2076
-#, fuzzy, c-format
+#, c-format
 msgid "File %s updated\n"
-msgstr "FWHM将会更新"
+msgstr "文件 %s 已更新\n"
 
 #: src/algos/astrometry_solver.c:2142
 #, c-format
@@ -10990,9 +10979,8 @@ msgid "Creating csv output file %s\n"
 msgstr "创建 csv 输出文件 %s\n"
 
 #: src/algos/comparison_stars.c:230
-#, fuzzy
 msgid "Problem writing the comparison stars file\n"
-msgstr "创建比较星列表"
+msgstr "写入比较星文件时出现问题\n"
 
 #: src/algos/comparison_stars.c:280
 msgid "Not enough stars available\n"
@@ -11213,9 +11201,9 @@ msgid "Extract_Green does not work on non-Bayer filter camera images!\n"
 msgstr "Extract_Green无法在非拜耳阵列的图像上执行！\n"
 
 #: src/algos/extraction.c:294 src/algos/extraction.c:339
-#, fuzzy, c-format
+#, c-format
 msgid "%s: extract Green channel\n"
-msgstr "绿色通道"
+msgstr "%s：提取绿色通道\n"
 
 #: src/algos/extraction.c:491
 #, c-format
@@ -11232,24 +11220,20 @@ msgstr "拆分CFA无法在非拜耳阵列的图像上执行！\n"
 
 #. Update history
 #: src/algos/extraction.c:611 src/algos/extraction.c:663
-#, fuzzy
 msgid "CFA0 Bayer channel\n"
-msgstr "每个CFA通道"
+msgstr "CFA0 拜尔通道\n"
 
 #: src/algos/extraction.c:612 src/algos/extraction.c:664
-#, fuzzy
 msgid "CFA1 Bayer channel\n"
-msgstr "每个CFA通道"
+msgstr "CFA1 拜尔通道\n"
 
 #: src/algos/extraction.c:613 src/algos/extraction.c:665
-#, fuzzy
 msgid "CFA2 Bayer channel\n"
-msgstr "每个CFA通道"
+msgstr "CFA2 拜尔通道\n"
 
 #: src/algos/extraction.c:614 src/algos/extraction.c:666
-#, fuzzy
 msgid "CFA3 Bayer channel\n"
-msgstr "每个CFA通道"
+msgstr "CFA3 拜尔通道\n"
 
 #: src/algos/extraction.c:807 src/algos/extraction.c:1035
 msgid "Image dimensions must be even. Trimming by 1 pixel.\n"
@@ -11260,14 +11244,12 @@ msgid "Extract_HaOIII does not work on non-Bayer filter camera images!\n"
 msgstr "Extract_HaOIII无法在非拜耳阵列的图像上执行！\n"
 
 #: src/algos/extraction.c:1013 src/algos/extraction.c:1240
-#, fuzzy
 msgid "Ha channel\n"
-msgstr "通道"
+msgstr "Ha 通道\n"
 
 #: src/algos/extraction.c:1018 src/algos/extraction.c:1245
-#, fuzzy
 msgid "OIII channel\n"
-msgstr "通道"
+msgstr "OIII 通道\n"
 
 #: src/algos/fix_xtrans_af.c:188
 #, c-format
@@ -11672,11 +11654,11 @@ msgid "No valid catalog found.\n"
 msgstr "未找到有效的星表。\n"
 
 #: src/algos/photometric_cc.c:853
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Getting stars from online catalogue %s for PCC, with a radius of %.2f "
 "degrees and limit magnitude %.2f\n"
-msgstr "从 PCC 的本地星表中获取恒星，半径为%.2f度，极限星等为%.2f\n"
+msgstr "从 PCC 的在线星表 %s 获取恒星，半径为 %.2f 度，极限星等为 %.2f\n"
 
 #: src/algos/photometric_cc.c:876
 msgid "SPCC"
@@ -11688,9 +11670,9 @@ msgid "PCC"
 msgstr "PPG"
 
 #: src/algos/photometric_cc.c:877
-#, fuzzy, c-format
+#, c-format
 msgid "Photometric CC (algorithm: %s)"
-msgstr "基于解析的色彩校准"
+msgstr "测光发色彩校准（算法：%s）"
 
 #: src/algos/photometric_cc.c:883
 #, fuzzy
@@ -11822,9 +11804,9 @@ msgid "SIMBAD server returned:\n"
 msgstr ""
 
 #: src/algos/search_objects.c:62 src/algos/search_objects.c:137
-#, fuzzy, c-format
+#, c-format
 msgid "%s\n"
-msgstr "%"
+msgstr "%s\n"
 
 #: src/algos/search_objects.c:134 src/io/remote_catalogues.c:400
 msgid "IMCCE server returned:\n"
@@ -11836,9 +11818,9 @@ msgid "Unsupported object type in response: %s\n"
 msgstr "响应中不支持的天体类型： %s\n"
 
 #: src/algos/search_objects.c:179
-#, fuzzy, c-format
+#, c-format
 msgid "Could not parse the server response: %s\n"
-msgstr "无法将设置保存于 %s： %s\n"
+msgstr "无法解析服务器响应：%s\n"
 
 #: src/algos/search_objects.c:218
 #, c-format
@@ -11856,9 +11838,9 @@ msgid " at coordinates: %s, %s\n"
 msgstr " 于座标：%s,%s\n"
 
 #: src/algos/search_objects.c:248
-#, fuzzy, c-format
+#, c-format
 msgid "Object %s (exact match: %s) was found in the %s catalogue at: %s, %s\n"
-msgstr "天体 %s 在星表 %s 中被找到，RA = %f, Dec = %f\n"
+msgstr "天体 %s （完全匹配：%s）在星表 %s 中被找到：%s, %s\n"
 
 #: src/algos/search_objects.c:271
 #, c-format
@@ -12759,14 +12741,14 @@ msgid "Missing argument to %s, aborting.\n"
 msgstr "缺少参数%s，中止处理。\n"
 
 #: src/core/command.c:1796
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid matrix element (%d, %d) %s, aborting.\n"
-msgstr "无效参数 %s，异常终止。\n"
+msgstr "无效的矩阵元素（%d，%d）%s，异常中止。\n"
 
 #: src/core/command.c:1804
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid power %s, must be between 0.0 and 10.0: aborting.\n"
-msgstr "beta 参数错误：必须介于 0 和 10 之间，异常终止。\n"
+msgstr "无效幂 %s，必须介于 0.0 和 10.0 之间：异常终止。\n"
 
 #: src/core/command.c:1808
 #, c-format
@@ -13661,7 +13643,7 @@ msgstr "未发现用于链接的FITS文件\n"
 msgid ""
 "Sorting by date could not be done, file %s doesn't have DATE-OBS, not "
 "sorting\n"
-msgstr ""
+msgstr "无法按日期排序，文件 %s 没有 DATE-OBS，无法排序\n"
 
 #: src/core/command.c:6616 src/core/command.c:6766
 msgid ""
@@ -14198,21 +14180,22 @@ msgstr "图像必须尺寸相同且全为单色\n"
 #: src/core/command.c:8627
 #, c-format
 msgid "Successful RGB composition with metadata accumulate option %s.\n"
-msgstr ""
+msgstr "使用元数据累积选项 %s 成功进行 RGB 合成。\n"
 
 #: src/core/command.c:8746
 msgid ""
 "Found linear plate solve data, you may need to solve your image with "
 "distortions to ensure correct calibration of stars near image corners.\n"
-msgstr ""
+msgstr "找到解析数据，您可能需要解析具有失真的图像，以确保正确校准图像边角附近的星点"
+"。\n"
 
 #: src/core/command.c:8757
 msgid "NB wavelength out of range (must be 380 <= wl <= 700)\n"
-msgstr ""
+msgstr "NB 波长超出范围（必须为 380 <= wl <= 700）\n"
 
 #: src/core/command.c:8762
 msgid "NB bandwidth out of range (must be 1.0 <= wl <= 40.0)\n"
-msgstr ""
+msgstr "NB 带宽超出范围（必须为 1.0 <= wl <= 40.0）\n"
 
 #: src/core/command.c:8772 src/core/command.c:9046
 #, c-format
@@ -14223,34 +14206,37 @@ msgstr "使用远程 %s 代替本地 NOMAD 星表\n"
 msgid ""
 "Either the sensor or a filter / LPF was not specified as argument or "
 "guessable from previous use. Ensure all necessary data is set.\n"
-msgstr ""
+msgstr "传感器或滤镜/低通未指定为参数或可从之前的使用中猜测。确保所有必要的数据均已设"
+"置。\n"
 
 #: src/core/command.c:8810
 #, c-format
 msgid "SPCC will use OSC sensor \"%s\", filter \"%s\" and DSLR LPF \"%s\"\n"
-msgstr ""
+msgstr "SPCC 将使用 OSC 传感器“%s”、滤镜“%s”和 DSLR 低通“%s”\n"
 
 #: src/core/command.c:8812
 #, c-format
 msgid "SPCC will use OSC sensor \"%s\" and filter \"%s\"\n"
-msgstr ""
+msgstr "SPCC 将使用 OSC 传感器“%s”和滤镜“%s”\n"
 
 #: src/core/command.c:8820
 msgid ""
 "Either the sensor or a filter was not specified as argument or guessable "
 "from previous use. Ensure all necessary data is set.\n"
-msgstr ""
+msgstr "传感器或滤镜未指定为参数或可从以前的使用中猜测。确保所有必要的数据均已设置。"
+"\n"
 
 #: src/core/command.c:8826
 #, c-format
 msgid "SPCC will use mono senor \"%s\" and filters \"%s\", \"%s\" and \"%s\n"
-msgstr ""
+msgstr "SPCC 将使用单色传感器“%s”和滤镜“%s”、“%s”和“%s”\n"
 
 #: src/core/command.c:8858
 msgid ""
 "Siril has been compiled without libcurl support for network operations; SPCC "
 "is therefore not available. Recompile with libcurl support to enable SPCC.\n"
-msgstr ""
+msgstr "Siril 编译时没有 libcurl 支持网络操作；因此 SPCC 不可用。使用 libcurl "
+"支持重新编译以启用 SPCC。\n"
 
 #: src/core/command.c:8885
 msgid ""
@@ -14279,17 +14265,15 @@ msgstr "未找到本地astrometry.net解析器，异常中止。请检查设置�
 #: src/core/command.c:9071 src/core/command.c:9075
 #, c-format
 msgid "Siril internal solver cannot be set blind in %s\n"
-msgstr ""
+msgstr "Siril 内部解析器无法在 %s 中设置为盲解\n"
 
 #: src/core/command.c:9071 src/core/command.c:9098
-#, fuzzy
 msgid "position"
-msgstr "X 坐标"
+msgstr "坐标"
 
 #: src/core/command.c:9075 src/core/command.c:9110 src/core/command.c:9137
-#, fuzzy
 msgid "resolution"
-msgstr "分辨率: "
+msgstr "分辨率"
 
 #: src/core/command.c:9083
 msgid ""
@@ -14305,17 +14289,15 @@ msgstr "使用图像文件头中的目标坐标： %f, %f\n"
 #: src/core/command.c:9098 src/core/command.c:9110 src/core/command.c:9137
 #, c-format
 msgid "%s is ignored when using local astrometry.net blind in %s\n"
-msgstr ""
+msgstr "%s 被忽略，当在 %s 中使用本地 astrometry.net 盲解时\n"
 
 #: src/core/command.c:9098
-#, fuzzy
 msgid "Center position"
-msgstr "星点重绘"
+msgstr "中央坐标"
 
 #: src/core/command.c:9110
-#, fuzzy
 msgid "Pixel size"
-msgstr "像素尺寸(微米):"
+msgstr "像素尺寸"
 
 #: src/core/command.c:9116
 #, c-format
@@ -14337,9 +14319,8 @@ msgid "Using pixel size from image: %.2f\n"
 msgstr "使用图像中的像素尺寸：%.2f\n"
 
 #: src/core/command.c:9137
-#, fuzzy
 msgid "Focal length"
-msgstr "焦距 / 毫米"
+msgstr "焦距"
 
 #: src/core/command.c:9143
 #, c-format
@@ -14369,42 +14350,38 @@ msgstr "星等变化参数对于astrometry.net解析无用\n"
 msgid ""
 "Cannot force null radius for localasnet if not blind solving, using default "
 "instead\n"
-msgstr ""
+msgstr "如果不是盲解，则无法强制 localasnet 为空半径，而是使用默认值\n"
 
 #: src/core/command.c:9286
-#, fuzzy
 msgid ""
 "This option only works on images that have observation date information\n"
-msgstr "此命令仅适用于具有观测日期信息的图像\n"
+msgstr "此选项仅适用于具有观测日期信息的图像\n"
 
 #: src/core/command.c:9296
 msgid "The observatory should be coded as a 3-letter word\n"
-msgstr ""
+msgstr "天文台应编码为 3 个字母的单词\n"
 
 #: src/core/command.c:9302
 msgid "No local catalogues found, ignoring -trix option\n"
-msgstr ""
+msgstr "未找到本地目录，忽略 -trix 选项\n"
 
 #: src/core/command.c:9308
-#, fuzzy
 msgid "Trixel number must be between 0 and 511\n"
-msgstr "调制值必须在0到1之间\n"
+msgstr "Trixel 值必须介于 0 到 511 之间\n"
 
 #: src/core/command.c:9321
-#, fuzzy
 msgid "Wrong parameter values. Log must be set to on or off, aborting.\n"
-msgstr "参数错误。Auto必须设置为on或off，异常终止。\n"
+msgstr "参数错误。Log必须设置为on或off，异常终止。\n"
 
 #: src/core/command.c:9331
-#, fuzzy
 msgid "Wrong parameter values. Tag must be set to on or off, aborting.\n"
-msgstr "参数错误。Auto必须设置为on或off，异常终止。\n"
+msgstr "参数错误。Tag必须设置为on或off，异常终止。\n"
 
 #: src/core/command.c:9366
 msgid ""
 "Did not specify an observatory code, using geocentric by default, positions "
 "may not be accurate\n"
-msgstr ""
+msgstr "未指定天文台代码，默认使用地心，位置可能不准确\n"
 
 #: src/core/command.c:9466 src/core/command.c:9510
 #, c-format
@@ -14464,30 +14441,28 @@ msgid "Error: sequence has variable sized images.\n"
 msgstr "错误：序列中的图像尺寸不一致。\n"
 
 #: src/core/command.c:9948
-#, fuzzy
 msgid "Error opening target ICC profile.\n"
-msgstr "打开文件 %s 时出错\n"
+msgstr "打开目标 ICC 配置文档时出错。\n"
 
 #: src/core/command.c:9952
 msgid "Color profile assignment complete.\n"
-msgstr ""
+msgstr "彩色配置文档分配完成。\n"
 
 #: src/core/command.c:9955 src/core/command.c:10019
-#, fuzzy
 msgid "Error opening ICC profile.\n"
-msgstr "打开文件失败"
+msgstr "打开 ICC 配置文档时出错。\n"
 
 #: src/core/command.c:9972
 msgid ""
 "Image has no color profile assigned to convert from. Assign a profile "
 "first.\n"
-msgstr ""
+msgstr "图像没有分配用于转换的彩色配置文档。首先分配一个配置文档。\n"
 
 #: src/core/command.c:9986
 msgid ""
 "Specified intent not recognized. Specify one of \"perceptual\", "
 "\"relative\", \"saturation\" or \"absolute\"\n"
-msgstr ""
+msgstr "未识别指定的意图。指定“感知”、“相对”、“饱和度”或“绝对”之一\n"
 
 #: src/core/command.c:10017
 msgid "Color space conversion complete.\n"
@@ -14495,50 +14470,44 @@ msgstr "色彩空间转换完成。\n"
 
 #: src/core/command.c:10053
 msgid "OSC Sensors"
-msgstr ""
+msgstr "OSC 传感器"
 
 #: src/core/command.c:10056
 msgid "Mono Sensors"
-msgstr ""
+msgstr "单色传感器"
 
 #: src/core/command.c:10059
-#, fuzzy
 msgid "Red Filters"
-msgstr "中位数滤波"
+msgstr "红色滤镜"
 
 #: src/core/command.c:10062
-#, fuzzy
 msgid "Green Filters"
-msgstr "中位数滤波"
+msgstr "绿色滤镜"
 
 #: src/core/command.c:10065
-#, fuzzy
 msgid "Blue Filters"
-msgstr "中位数滤波"
+msgstr "蓝色滤镜"
 
 #: src/core/command.c:10068
-#, fuzzy
 msgid "OSC Filters"
-msgstr "打开文件"
+msgstr "OSC 滤镜"
 
 #: src/core/command.c:10071
 msgid "OSC Low-Pass Filters"
-msgstr ""
+msgstr "OSC 低通滤镜"
 
 #: src/core/command.c:10074
-#, fuzzy
 msgid "White References"
-msgstr "参考白色"
+msgstr "白点参考"
 
 #: src/core/command.c:10076
 msgid "Unknown SPCC list\n"
-msgstr ""
+msgstr "未知的 SPCC 列表\n"
 
 #: src/core/command.c:10090
-#, fuzzy
 msgid ""
 "This command only works on plate solved images with distortions included\n"
-msgstr "此命令仅适用于已解析的图像\n"
+msgstr "此命令仅适用于包含失真的已解析的图像\n"
 
 #: src/core/command_def.h:6
 msgid ""
@@ -14639,7 +14608,6 @@ msgstr ""
 "数，则打印当前选择"
 
 #: src/core/command_def.h:16
-#, fuzzy
 msgid ""
 "Calibrates the sequence <b>sequencename</b> using bias, dark and flat given "
 "in argument.\n"
@@ -14685,25 +14653,25 @@ msgstr ""
 "\n"
 "默认情况下，坏点修正不会激活。如果您需要，则使用<b>-cc=</b>选项指定。\n"
 "您可以使用<b>-cc=dark</b>来检测主暗场帧中的热像素和冷像素（使用<b>-dark=</b>"
-"选项时必须提供主暗场帧），然后可以选择分别为冷像素和热像素使用<b>siglo</b>和"
-"<b>sighi</b>。sigma值为0时停用坏点修正。如果不指定sigma，则仅应用sigma为3的热"
+"选项时必须提供主暗场帧），然后可以选择分别为冷像素和热像素使用<b>siglo</b>和<"
+"b>sighi</b>。sigma值为0时停用坏点修正。如果不指定sigma，则仅应用sigma为3的热"
 "像素检测。\n"
 "您也可以使用<b>-cc=bpm</b>，后跟坏像素图的路径，来指定必须修正的像素。在主暗"
 "场帧上使用<i>find_hot</i>命令可以获得示例文件。\n"
 "\n"
-"有三个选项适用于彩色图像（CFA格式）：<b>-CFA</b>用于坏点修正，<b>-debayer</b>"
+"有三个选项适用于彩色图像（CFA格式）：<b>-cfa</b>用于坏点修正，<b>-debayer</b>"
 "在保存图像之前进行去马赛克，<b>-equalize_cfa</b>将主平场帧RGB图层的平均亮度均"
 "衡化，以免校准后偏色。\n"
-"<b>-fix_xtrans</b>选项专门用于X-Trans图像，会修正暗场和偏置帧，以去除自动对焦"
-"造成的矩形图案。\n"
-"还可以使用<b>-opt</b>进行暗场优化，这需要同时提供主偏置和主暗场帧。\n"
+"<b>-fix_xtrans</b>选项专门用于X-"
+"Trans图像，会修正暗场和偏置帧，以去除自动对焦造成的矩形图案。\n"
+"还可以使用<b>-opt</b>进行暗场优化，这需要同时提供主偏置和主暗场帧，并自动计算"
+"应用于暗场的系数，或者通过 <b>-opt=exp</b> 的曝光关键字来计算系数。\n"
 "默认情况下，不会处理标记已排除的帧。参数<b>-all</b>可用于强制处理所有帧，即使"
 "标记为已排除。\n"
 "输出序列的文件名前缀为“pp_”，除非使用选项<b>-prefix=</b>指定。\n"
 "如果提供<b>-fitseq</b>，输出序列将是FITS序列（单个文件）"
 
 #: src/core/command_def.h:17
-#, fuzzy
 msgid ""
 "Calibrates the image <b>imagename</b> using bias, dark and flat given in "
 "argument.\n"
@@ -14744,8 +14712,8 @@ msgstr ""
 "\n"
 "默认情况下，坏点修正不会激活。如果您需要，则使用<b>-cc=</b>选项指定。\n"
 "您可以使用<b>-cc=dark</b>来检测主暗场帧中的热像素和冷像素（使用<b>-dark=</b>"
-"选项时必须提供主暗场帧），然后可以选择分别为冷像素和热像素使用<b>siglo</b>和"
-"<b>sighi</b>。sigma值为0时停用坏点修正。如果不指定sigma，则仅应用sigma为3的热"
+"选项时必须提供主暗场帧），然后可以选择分别为冷像素和热像素使用<b>siglo</b>和<"
+"b>sighi</b>。sigma值为0时停用坏点修正。如果不指定sigma，则仅应用sigma为3的热"
 "像素检测。\n"
 "您也可以使用<b>-cc=bpm</b>，后跟坏像素图的路径，来指定必须修正的像素。在主暗"
 "场帧上使用<i>find_hot</i>命令可以获得示例文件。\n"
@@ -14753,9 +14721,10 @@ msgstr ""
 "有三个选项适用于彩色图像（CFA格式）：<b>-CFA</b>用于坏点修正，<b>-debayer</b>"
 "在保存图像之前进行去马赛克，<b>-equalize_cfa</b>将主平场帧RGB图层的平均亮度均"
 "衡化，以免校准后偏色。\n"
-"<b>-fix_xtrans</b>选项专门用于X-Trans图像，会修正暗场和偏置帧，以去除自动对焦"
-"造成的矩形图案。\n"
-"还可以使用<b>-opt</b>进行暗场优化，这需要同时提供主偏置和主暗场帧。\n"
+"<b>-fix_xtrans</b>选项专门用于X-"
+"Trans图像，会修正暗场和偏置帧，以去除自动对焦造成的矩形图案。\n"
+"还可以使用<b>-opt</b>进行暗场优化，这需要同时提供主偏置和主暗场帧，并自动计算"
+"应用于暗的系数，或者通过 <b>-opt=exp</b> 的曝光关键字来计算系数。\n"
 "输出文件名的前缀为“pp_”，除非使用选项<b>-prefix=</b>指定"
 
 #: src/core/command_def.h:18
@@ -14763,7 +14732,6 @@ msgid "Lists Siril capabilities, based on compilation options and runtime"
 msgstr "根据编译选项和运行时列出Siril的功能"
 
 #: src/core/command_def.h:19
-#, fuzzy
 msgid ""
 "Searches an object by <b>name</b> and adds it to the user annotation "
 "catalog. The object is first searched in the annotation catalogs, if not "
@@ -14778,7 +14746,9 @@ msgstr ""
 "按 <b>名称</b> 搜索天体，并将其添加到用户标记目录中。首先在用户标记目录中搜索"
 "该天体，若未找到，则向 SIMBAD 数据库发出请求。\n"
 "该天体如果是太阳系内的天体，则需要用前缀“a:”代表小行星，“p:”代表行星，“c:”代"
-"表彗星，并且使用IMCCE Miriade服务搜索图像文件头中的日期和地球位置"
+"表彗星，“dp:”（代表矮行星）或“s:”（代表自然卫星）。使用 <a href=\"https://ssp"
+".imcce.fr/webservices/miriade/howto/ephemcc/#howto-sso\">IMCCE Miriade "
+"服务</a>搜索图像文件头中的日期、时间和观测位置"
 
 #: src/core/command_def.h:20
 msgid ""
@@ -14799,6 +14769,21 @@ msgid ""
 "g' = (m10 * r + m11 * g + m12 * b)^(-1/gamma)\n"
 "b' = (m20 * r + m21 * g + m22 * b)^(-1/gamma)"
 msgstr ""
+"将颜色转换矩阵应用于当前图像。\n"
+"\n"
+"有 9 个强制参数对应 9 个矩阵元素：\n"
+"\n"
+"m00, m01, m02\n"
+"m10, m11, m12\n"
+"m20, m21, m22\n"
+"\n"
+"附加第十个参数<b>[gamma]</b>可以提供：如果省略，则默认为1.0。\n"
+"\n"
+"这些根据以下公式应用于每个像素：\n"
+"\n"
+"r' = (m00 * r + m01 * g + m02 * b)^(-1/gamma)\n"
+"g' = (m10 * r + m11 * g + m12 * b)^(-1/gamma)\n"
+"b' = (m20 * r + m21 * g + m22 * b)^(-1/gamma)"
 
 #: src/core/command_def.h:21
 msgid ""
@@ -15096,6 +15081,9 @@ msgid ""
 "\n"
 "Pass option <b>clear</b> to disable"
 msgstr ""
+"显示解析图像上的失真，该解包含失真项\n"
+"\n"
+"传递选项<b>clear</b>以禁用"
 
 #: src/core/command_def.h:37
 msgid "Dumps the FITS header of the loaded image in the console"
@@ -15232,7 +15220,6 @@ msgstr ""
 "见SEQCOSME将其应用于序列上"
 
 #: src/core/command_def.h:54
-#, fuzzy
 msgid ""
 "Automatically finds comparison stars in the field of the plate solved loaded "
 "image, for photometric analysis of a star's light curve according to\n"
@@ -15255,22 +15242,22 @@ msgid ""
 "\n"
 "See also LIGHT_CURVE"
 msgstr ""
-"Automatically finds comparison stars in the field of the plate solved loaded "
-"image, for photometric analysis of a star's light curve according to\n"
+"自动在载入已解析图像的区域中找到比较星，"
+"根据以下公式对恒星的光曲线进行光度分析\n"
 "- the provided name of the star\n"
-"- the field of view of the image, reduced to a diameter of its height if <b>-"
-"narrow</b> is passed, avoiding stars in the corners\n"
-"- the chosen catalog (APASS by default), can be changed with <b>-"
-"catalog={NOMAD|APASS}</b>\n"
-"- the difference in visual magnitude from the variable star, in the range "
-"[0, 6] with a default of 3, change with <b>-dvmag=</b>\n"
-"- the difference in color with from the variable star, in the range [0.0, "
-"0.7] of their B-V indices with a default of 0.5, change with <b>-dbv=</b>.\n"
+"- the field of view of the image, reduced to a diameter of its height if "
+"<b>-narrow</b> is passed, avoiding stars in the corners\n"
+"- the chosen catalog (APASS by default), can be changed with "
+"<b>-catalog={NOMAD|APASS}</b>\n"
+"- the difference in visual magnitude from the variable star, in the range ["
+"0, 6] with a default of 3, changed with <b>-dvmag=</b>\n"
+"- the difference in color with the variable star, in the range [0.0, 0.7] of "
+"their B-V indices with a default of 0.5, changed with <b>-dbv=</b>\n"
+"- the maximum allowed error on Vmag in the range [0.0, 0.1] with a default "
+"of 0.03, changed with <b>-emag=</b>.\n"
 "\n"
-"The list can optionally be saved as a CSV file compatible with the NINA "
-"comparison stars list, specifying the file name with <b>-out=</b>. If the "
-"provided name is the special value <b>auto</b>, it is generated using the "
-"input parameters\n"
+"该列表可以选择保存为与 NINA 比较星列表兼容的 CSV 文档，并使用 <b>-out=</b> "
+"指定文档名。如果提供的名称是特殊值<b>auto</b>，则使用输入参数生成\n"
 "\n"
 "See also LIGHT_CURVE"
 
@@ -15603,7 +15590,6 @@ msgstr ""
 "该算法将忽略值在[<b>low</b>, <b>high</b>]范围之外的所有参考像素"
 
 #: src/core/command_def.h:84
-#, fuzzy
 msgid ""
 "Same as CONVERT but converts only FITS files found in the current working "
 "directory. This is useful to avoid conversions of JPEG results or other "
@@ -15611,8 +15597,9 @@ msgid ""
 "enables sorting files with their DATE-OBS value instead of with their name "
 "alphanumerically"
 msgstr ""
-"与CONVERT相同，但仅转换在当前工作目录中的FITS文件。有助于避免转换JPEG或出现在"
-"目录中的其他文件"
+"与CONVERT相同，但仅转换在当前工作目录中的FITS文件。这对于避免 JPEG "
+"结果或可能最终出现在目录中的其他文档的转换很有用。附加参数<b>-date</"
+"b>允许使用 DATE-OBS 值而不是按字母数字顺序对文档进行排序"
 
 #: src/core/command_def.h:85
 msgid ""
@@ -15963,7 +15950,6 @@ msgid ""
 msgstr ""
 
 #: src/core/command_def.h:109
-#, fuzzy
 msgid ""
 "Plate solve the loaded image.\n"
 "If the image has already been plate solved nothing will be done, unless the "
@@ -16017,28 +16003,44 @@ msgid ""
 "solving an image with a completely unknown location and sampling"
 msgstr ""
 "解析载入的图像。\n"
-"如果图像已经解析，则不会执行任何操作，除非传递<b>-platesolve</b>参数以强制重"
-"新解析。如果WCS或其他图像元数据错误或丢失，则必须传递解析用的参数：\n"
-"  近似图像中心坐标可以是十进制度格式，或者度/时-分-秒格式（带有冒号分隔符的"
-"J2000坐标），赤经和赤纬用逗号或空格分隔（对于astrometry.net不是必需的）。\n"
-"  焦距和像素尺寸可以通过<b>-focus=</b>（以毫米为单位）和<b>-pixelsize=</b>"
-"（以微米为单位）来传递，会覆盖图像和设置中的值。\n"
+"如果图像已经解析，则不会执行任何操作，除非传递<b>-force</b>参数以强制重新解析"
+"。如果WCS或其他图像元数据错误或丢失，则必须传递解析用的参数：\n"
+"  近似图像中心坐标可以是十进制度格式，或者度/时-分-秒格式（带有冒号分隔符的J2"
+"000坐标），赤经和赤纬用逗号或空格分隔（对于astrometry.net不是必需的）。\n"
+"  焦距和像素尺寸可以通过<b>-focal=</b>（以毫米为单位）和<b>-pixelsize=</b>（"
+"以微米为单位）来传递，会覆盖图像和设置中的值。\n"
 "\n"
-"如果图像被检测到是颠倒的，运行解析后图像将被翻转，除非指定了<b>-noflip</"
-"b>。\n"
-"为了在大图像中更快地侦测恒星，可以使用<b>-downscale</b>缩小图像。\n"
+"图像可以由 Siril 使用星表和全局对齐算法进行解析，也可以由 astrometry.net "
+"的本地解析命令（通过 <b>-localasnet</b> 启用）进行解析。\n"
 "\n"
-"图像可以由Siril使用星表和全局对齐算法来解析，也可以由astrometry.net的本地解析"
-"命令（使用<b>-localsnet</b>启用）解析。\n"
-"以下选项仅适用于Siril的解析。\n"
-"用于解析和PCC的恒星的极限星等是根据视场尺寸自动计算的，但可以用<b>-"
-"limitmag=</b>指定极限星等的正负偏移值，或者用一个正数直接指定极限星等。\n"
-"星表根据以下规则自动选择：如果安装有本地星表，则使用本地星表，否则根据视场和"
-"极限星等进行选择。用<b>-catalog=</b>选项可以强制使用参数中给定的远程目录，可"
-"能的取值为：tycho2、nomad、gaia、ppmxl、brightstars、apass"
+"以下选项对于两个解析器都是通用的：\n"
+"如果图像被检测到是颠倒的，运行解析后图像将被翻转，除非指定了<b>-noflip</b>。"
+"\n"
+"为了在大尺寸图像中更快地检测新星点，可以使用<b>-downscale</b>对图像进行下采样"
+"。\n"
+"该解析可以使用 SIP 约定以及高达 5 "
+"阶的多项式来解释失真。默认值取自天体测量首选项。这可以通过选项 <b>-order=</"
+"b> 进行更改。给出 1 到 5 之间的值。\n"
+"当使用 Siril 解析器本地星表或本地 Astrometry.net 时，如果初始解析不成功，"
+"解析器将在使用 <b>-radius=</b> 指定的半径锥体内搜索解。选项。如果未传递任何值"
+"，则搜索半径将从天体测量首选项中获取。可以通过传递值 0 来禁用 Siril "
+"临近搜索。（无法为 Astrometry.net 禁用）。\n"
+"\n"
+"以下选项仅适用于 Siril 解析器：\n"
+"用于解析的恒星的极限星等是根据视场的大小自动计算的，但可以通过将 +offset 或 -"
+"offset 值传递给 <b>-limitmag=</b> 来更改，或者简单地更改极限幅度的绝对正值。"
+"\n"
+"星表的选择是自动的，除非 <b>-catalog=</b>传递选项：如果安装了本地目录，则使用"
+"它们，否则选择基于视场和限制大小。如果传递该选项，它将强制使用参数中给出的远"
+"程星表，可能的值包括：tycho2、nomad、gaia、ppmxl、brightstars、apass。\n"
+"如果计算出的视场大于 5 度，则星体检测将局限于图像中心周围的裁剪区域，除非 "
+"<b>-nocrop</b> 大于 5 度。选项已传递。\n"
+"\n"
+"以下选项仅适用于 Astrometry.net 解析器：\n"
+"传递选项 <b>-blindpos</b>和/或<b>-blindres</b>能够分别盲解坐标和分辨率。您可"
+"以在解析位置和采样完全未知的图像时使用这些"
 
 #: src/core/command_def.h:110
-#, fuzzy
 msgid ""
 "This command evaluates the expression given in argument as in PixelMath "
 "tool. The full expression must be between double quotes and variables (that "
@@ -16052,13 +16054,14 @@ msgid ""
 "such as LIVETIME and STACKCNT"
 msgstr ""
 "此命令将参数中给定的表达式用作PixelMath运算。完整表达式必须用双引号引起来，并"
-"且变量（此处指工作目录中图像的文件名，不带扩展名）必须用$围起来，例如"
-"\"$image1$ * 0.5 + $image2$ * 0.5\"。表达式中最多可以使用10个图像。\n"
-"可以使用选项<b>-rescale</b>重新缩放图像，其后指定范围为[0, 1]的最低值<b>low</"
-"b>和最高值<b>high</b>。如果没有提供最低值和最高值，则默认为0和1"
+"且变量（此处指工作目录中图像的文件名，不带扩展名）必须用$围起来，例如\""
+"$image1$ * 0.5 + $image2$ * 0.5\"。表达式中最多可以使用10个图像。\n"
+"可以使用选项<b>-rescale</b>重新缩放图像。随后是<b>low</b>和<b>high</b>范围 ["
+"0, 1] 内的值。如果未提供低值和高值，则默认值设置为 0 和 1。另一个可选参数 "
+"<b>-nosum</b>告诉 Siril 不要对曝光时间求和。这会影响 FITS 关键字，例如 "
+"LIVETIME 和 STACKCNT"
 
 #: src/core/command_def.h:111
-#, fuzzy
 msgid ""
 "Generates an intensity profile plot between 2 points in the image, also "
 "known as a <i>cut</i>. The arguments may be provided in any order. The "
@@ -16125,21 +16128,22 @@ msgstr ""
 "available, distance will be shown in pixel units.\n"
 "\n"
 "The argument <b>-savedat</b> will cause the data files to be saved: the "
-"filename will be written to the log. Alternatively the argument <b>-"
-"filename=</b> can be used to specify a filename to write the data file to. "
-"(The <b>-filename=</b> option implies <b>-savedat</b>.)\n"
+"filename will be written to the log. Alternatively the argument "
+"<b>-filename=</b> can be used to specify a filename to write the data file "
+"to. (The <b>-filename=</b> option implies <b>-savedat</b>.)\n"
 "\n"
 "<b>Spectrometric Options</b>\n"
 "\n"
-"If spectrometric options are provided, all of the following must be "
-"provided: <b>-wavenumber1=</b> and <b>-wavenumber2=</b> specify 2 "
-"wavenumbers in cm<sup>-1</sup>, and <b>-wn1=x,y</b> and <b>-wn2=x,y</b> "
-"specify points in the image corresponding to those wavenumbers. As a "
-"convenience, <b>-wavelength1=</b> and <b>-wavelength2=</b> may be used "
-"instead to provide wavelengths in nm. These are always converted and the "
-"plot axis always shows wavenumber. The optional spectrometric argument <b>-"
-"width=</b> may be provided, which specifies how many pixels should be "
-"averaged perpendicular to the profile line.\n"
+"If spectrometric options are provided, all of the following must be provided:"
+" <b>-wavenumber1=</b> / <b>-wavelength1=</b> and <b>-wavenumber2=</b> / "
+"<b>-wavelength2=</b> specify 2 wavenumbers in cm<sup>-1</sup> / wavelengths "
+"in nm, and <b>-wn1=x,y</b> and <b>-wn2=x,y</b> specify points in the image "
+"corresponding to those wavenumbers. As a convenience, <b>-wavelength1=</b> "
+"and <b>-wavelength2=</b> may be used instead to provide wavelengths in nm. "
+"The following optional spectrometric arguments may be provided: <b>-width=</"
+"b>, which specifies how many pixels should be averaged perpendicular to the "
+"profile line, and one of <b>-xaxis=wavelength</b> or <b>-xaxis=wavenumber</"
+"b>, which set the units for the x axis (the default is wavelength).\n"
 "\n"
 "The argument <b>\"-title=<i>My Title\"</i></b> sets a custom title \"My "
 "Title\""
@@ -16286,7 +16290,6 @@ msgstr ""
 "noclamp</b>参数禁用"
 
 #: src/core/command_def.h:119
-#, fuzzy
 msgid ""
 "Creates an RGB composition using three independent images, or an LRGB "
 "composition using the optional luminance image and three monochrome images "
@@ -16296,8 +16299,9 @@ msgid ""
 "impacts FITS keywords such as LIVETIME and STACKCNT"
 msgstr ""
 "使用三个独立图像执行RGB合成，或者使用一个明度图像与三个单色图像或一个彩色图像"
-"执行LRGB合成。结果图像默认文件名为composed_rgb.fit或composed_lrgb.fit，除非在"
-"可选参数中指定"
+"执行LRGB合成。结果图像默认文件名为composed_rgb.fit或composed_lrgb."
+"fit，另一个可选参数，<b>-nosum</b>告诉 Siril 不要对曝光时间求和。这会影响 "
+"FITS 关键字，例如 LIVETIME 和 STACKCNT"
 
 #: src/core/command_def.h:120
 msgid ""
@@ -16876,7 +16880,6 @@ msgstr ""
 "输出序列名前缀为\"mtf_\"，除非使用<b>-prefix=</b>选项指定"
 
 #: src/core/command_def.h:159
-#, fuzzy
 msgid ""
 "Plate solve a sequence. A new sequence will be created with the prefix "
 "\"ps_\" if the input sequence is SER, otherwise, the images headers will be "
@@ -16937,30 +16940,50 @@ msgid ""
 "blindly for position and for resolution respectively. You can use these when "
 "solving an image with a completely unknown location and sampling"
 msgstr ""
-"解析载入的图像序列。将创建一个前缀为\"ps_\"的新序列。如果输入序列是SER，则必"
-"须提供元数据，并且输出序列将采用FITS cube格式，因为SER无法存储WCS数据。\n"
-"如果WCS或其他图像元数据错误或丢失，则必须传递解析用的参数：\n"
-"  近似图像中心坐标可以是十进制度格式，或者度/时-分-秒格式（带有冒号分隔符的"
-"J2000坐标），赤经和赤纬用逗号或空格分隔（对于astrometry.net不是必需的）。整个"
-"序列将使用同一组星点解析，如果图像间存在大量漂移，解析可能失败。\n"
-"  焦距和像素尺寸可以通过<b>-focus=</b>（以毫米为单位）和<b>-pixelsize=</b>"
-"（以微米为单位）来传递，会覆盖图像和设置中的值。\n"
+"解析一个序列。如果输入序列是 "
+"SER，则将创建一个带有前缀“ps_”的新序列，否则，将更新图像标题。对于 "
+"SER，必须提供元数据，并且输出序列将采用 FITS 矩阵格式，因为 SER 无法存储 WCS "
+"数据。\n"
+"如果 WCS 或其他图像元数据错误或丢失，则必须传递参数：\n"
+"  近似图像中心坐标可以是十进制度格式，或者度/时-分-秒格式（带有冒号分隔符的J2"
+"000坐标），赤经和赤纬用逗号或空格分隔（对于astrometry.net不是必需的）。\n"
+"  焦距和像素尺寸可以通过<b>-focal=</b>（以毫米为单位）和<b>-pixelsize=</b>（"
+"以微米为单位）来传递，会覆盖图像和设置中的值。\n"
 "\n"
-"如果图像被检测到是颠倒的，运行解析后图像将被翻转，除非指定了<b>-noflip</"
-"b>。\n"
-"为了在大图像中更快地侦测恒星，可以使用<b>-downscale</b>缩小图像。\n"
+"图像可以由 Siril 使用星表和全局对齐算法进行解析，也可以由 astrometry.net "
+"的本地解析命令（通过 <b>-localasnet</b> 启用）进行解析。\n"
 "\n"
-"图像可以由Siril使用星表和全局对齐算法来解析，也可以由astrometry.net的本地解析"
-"命令（使用<b>-localsnet</b>启用）解析。\n"
-"以下选项仅适用于Siril的解析。\n"
-"用于解析和PCC的恒星的极限星等是根据视场尺寸自动计算的，但可以用<b>-"
-"limitmag=</b>指定极限星等的正负偏移值，或者用一个正数直接指定极限星等。\n"
-"星表根据以下规则自动选择：如果安装有本地星表，则使用本地星表，否则根据视场和"
-"极限星等进行选择。用<b>-catalog=</b>选项可以强制使用参数中给定的远程目录，可"
-"能的取值为：tycho2、nomad、gaia、ppmxl、brightstars、apass"
+"以下选项对于两个解析器都是通用的：\n"
+"为了在大尺寸图像中更快地检测新星点，可以使用<b>-downscale</b>对图像进行下采样"
+"。\n"
+"该解析可以使用 SIP 约定以及高达 5 "
+"阶的多项式来解释失真。默认值取自天体测量首选项。这可以通过选项 <b>-order=</"
+"b> 进行更改。给出 1 到 5 之间的值。\n"
+"当使用 Siril 解析器本地星表或本地 Astrometry.net 时，如果初始解析不成功，"
+"解析器将在使用 <b>-radius=</b> 指定的半径锥体内搜索解。选项。如果未传递任何值"
+"，则搜索半径将从天体测量首选项中获取。可以通过传递值 0 来禁用 Siril "
+"临近搜索。（无法为 Astrometry.net 禁用）。\n"
+"默认情况下，已解析的图像将被跳过。这可以通过传递选项<b>-force</b>来禁用。\n"
+"\n"
+"以下选项仅适用于 Siril 解析器：\n"
+"用于解析的恒星的极限星等是根据视场的大小自动计算的，但可以通过将 +offset 或 -"
+"offset 值传递给 <b>-limitmag=</b> 来更改，或者简单地更改极限幅度的绝对正值。"
+"\n"
+"星表的选择是自动的，除非 <b>-catalog=</b>传递选项：如果安装了本地目录，则使用"
+"它们，否则选择基于视场和限制大小。如果传递该选项，它将强制使用参数中给出的远"
+"程星表，可能的值包括：tycho2、nomad、gaia、ppmxl、brightstars、apass。\n"
+"如果计算出的视场大于 5 度，则星体检测将局限于图像中心周围的裁剪区域，除非 "
+"<b>-nocrop</b> 大于 5 度。选项已传递。\n"
+"使用在线星表时，将为整个序列执行一次星表提取。如果存在大量漂移或不同的采样，"
+"则可能无法对所有图像都成功。可以通过传递参数 <b>-nocache</b> 来禁用此功能，在"
+"这种情况下，将使用每个图像的元数据（中心坐标、像素大小和/或焦距等强制值除外）"
+"。\n"
+"\n"
+"以下选项仅适用于 Astrometry.net 解析器：\n"
+"传递选项 <b>-blindpos</b>和/或<b>-blindres</b>能够分别盲解坐标和分辨率。您可"
+"以在解析位置和采样完全未知的图像时使用这些"
 
 #: src/core/command_def.h:160
-#, fuzzy
 msgid ""
 "Generates an intensity profile plot between 2 points in each image in the "
 "sequence. After the mandatory first argument stating the sequence to "
@@ -16970,11 +16993,10 @@ msgid ""
 "the given title should end with () (e.g. \"My Sequence ()\" and the numbers "
 "will be populated automatically)"
 msgstr ""
-"Generates an intensity profile plot between 2 points in each image in the "
-"sequence. If processing a sequence and it is desired to have the current "
-"image number and total number of images displayed in the format \"My "
-"Sequence (1 / 5)\", the given title should end with () (e.g. \"My Sequence "
-"()\" and the numbers will be populated automatically)"
+"生成序列中每个图像中 2 个点之间的强度曲线图。在说明要处理的序列的强制第一个参"
+"数之后，其他参数与<b>profile</b>命令相同。如果处理序列并且希望以“我的序列 (1 "
+"/ 5)”格式显示当前图像编号和图像总数，则给定标题应以 () 结尾（例如“我的序列 "
+"()”和数字将自动填充）"
 
 #: src/core/command_def.h:161
 msgid ""
@@ -18019,9 +18041,9 @@ msgid "Exported ICC profile to %s\n"
 msgstr "支持的文件类型: %s\n"
 
 #: src/core/icc_profile.c:212 src/gui/icc_profile.c:534
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to export ICC profile to %s\n"
-msgstr "无法保存 JSON 文件 %s: %s\n"
+msgstr "无法将 ICC 配置文档导出到 %s\n"
 
 #: src/core/icc_profile.c:349
 msgid "Error opening custom monitor profile. Monitor profile set to sRGB.\n"
@@ -18075,9 +18097,8 @@ msgstr ""
 
 #: src/core/icc_profile.c:510 src/core/icc_profile.c:577
 #: src/core/icc_profile.c:586
-#, fuzzy
 msgid "Fatal error: standard sRGB ICC profile could not be loaded.\n"
-msgstr "错误：无法载入图像"
+msgstr "致命错误：无法加载标准 sRGB ICC 配置文档。\n"
 
 #: src/core/icc_profile.c:559
 #, fuzzy
@@ -18090,9 +18111,9 @@ msgid "Monitor profile loaded from %s\n"
 msgstr ""
 
 #: src/core/icc_profile.c:571
-#, fuzzy, c-format
+#, c-format
 msgid "Monitor profile could not be loaded from %s\n"
-msgstr "无法从 %s： %s 载入设置\n"
+msgstr "无法从 %s 加载显视器配置文档\n"
 
 #: src/core/icc_profile.c:575 src/core/icc_profile.c:584
 msgid "Monitor ICC profile set to sRGB (D65 whitepoint, gamma = 2.2)\n"
@@ -18109,9 +18130,9 @@ msgid "Output device proofing profile loaded from %s\n"
 msgstr ""
 
 #: src/core/icc_profile.c:621
-#, fuzzy, c-format
+#, c-format
 msgid "Output device proofing profile could not be loaded from %s\n"
-msgstr "无法从 %s： %s 载入设置\n"
+msgstr "无法从 %s 加载输出设备校对配置文档\n"
 
 #: src/core/icc_profile.c:623
 msgid ""
@@ -18150,9 +18171,9 @@ msgid "ICC profile removed"
 msgstr "ICC色彩配置文件"
 
 #: src/core/icc_profile.c:1108 src/core/icc_profile.c:1199
-#, fuzzy, c-format
+#, c-format
 msgid "Assigned ICC profile: %s"
-msgstr "ICC色彩配置文件"
+msgstr "分配的 ICC 配置文件：%s"
 
 #: src/core/icc_profile.c:1114
 msgid ""
@@ -18167,9 +18188,9 @@ msgid ""
 msgstr ""
 
 #: src/core/icc_profile.c:1150
-#, fuzzy, c-format
+#, c-format
 msgid "Converted to ICC profile: %s"
-msgstr "转化为16位"
+msgstr "已转换为 ICC 配置文档：%s"
 
 #: src/core/icc_profile.c:1155
 msgid "Failed to create colorspace transform."
@@ -18193,9 +18214,8 @@ msgid "Do you want to convert this image to the working color space?"
 msgstr ""
 
 #: src/core/icc_profile.c:1323
-#, fuzzy
 msgid "Error loading profile"
-msgstr "载入文件出错！\n"
+msgstr "载入配置文件出错"
 
 #: src/core/icc_profile.c:1324
 msgid ""
@@ -18210,9 +18230,8 @@ msgid ""
 msgstr ""
 
 #: src/core/icc_profile.c:1342
-#, fuzzy
 msgid "Updating working profiles.\n"
-msgstr "等待输入文件"
+msgstr "更新工作文件。\n"
 
 #: src/core/icc_profile.c:1425
 msgid "This ICC profile is not RGB. Unable to plot the colorspace.\n"
@@ -18253,9 +18272,8 @@ msgid "CIE 1931"
 msgstr ""
 
 #: src/core/icc_profile.c:1482
-#, fuzzy
 msgid "Could not load background\n"
-msgstr "背景不够"
+msgstr "无法载入背景不够\n"
 
 #: src/core/initfile.c:58 src/core/initfile.c:69 src/core/initfile.c:89
 #, c-format
@@ -19341,7 +19359,7 @@ msgstr ""
 
 #: src/core/settings.c:468
 msgid "Middle mouse button double click zoom action"
-msgstr ""
+msgstr "鼠标中键双击缩放操作"
 
 #: src/core/settings.c:469
 msgid "configure background samples color"
@@ -20584,21 +20602,20 @@ msgid "The requested data of the sequence has been cleaned."
 msgstr "序列的请求数据已被清除。"
 
 #: src/gui/callbacks.c:2168
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "You are about to purge your %s user catalog. This means the file containing "
 "the manually added objects will be deleted. This operation cannot be undone."
-msgstr ""
-"您将要清除您的深空用户星表。这意味着包含手动添加的天体的文件将被删除。此操作"
-"无法撤消。"
+msgstr "您将要清除您的 %s "
+"用户目录。这意味着包含手动添加的天体的文件将被删除。此操作无法撤消。"
 
 #: src/gui/callbacks.c:2170
 msgid "SOLAR SYSTEM"
-msgstr ""
+msgstr "太阳系"
 
 #: src/gui/callbacks.c:2170
 msgid "DEEP SKY"
-msgstr ""
+msgstr "深空"
 
 #: src/gui/callbacks.c:2172
 msgid "Catalog deletion"
@@ -20623,54 +20640,50 @@ msgstr "_OK"
 
 #: src/gui/compstars.c:70
 msgid "Toggle Manual mode or Automatic mode for Comparison stars list"
-msgstr ""
+msgstr "切换手动模式或自动模式以比较恒星列表"
 
 #: src/gui/compstars.c:72
-#, fuzzy
 msgid "Use the stars selected in the currently loaded image"
-msgstr "=当前载入图像的FITS文件头=\n"
+msgstr "使用当前加载图像中所选择的星点"
 
 #: src/gui/compstars.c:80
 msgid "Enter your own target name"
-msgstr ""
+msgstr "输入您自己的目标名称"
 
 #. 1st element, a label
 #: src/gui/compstars.c:82
-#, fuzzy
 msgid "Output file name: "
-msgstr "输出文件 (*%s)"
+msgstr "输出文件名： "
 
 #: src/gui/compstars.c:88
 msgid "Change the default file name if needed"
-msgstr ""
+msgstr "如果需要，更改默认文件名"
 
 #. 3rd element, another label
 #: src/gui/compstars.c:95
 msgid ".csv"
-msgstr ""
+msgstr ".csv"
 
 #: src/gui/compstars.c:101
-#, fuzzy
 msgid "Find comparison stars from catalogue requests"
-msgstr "排序后的 %d 比较星。\n"
+msgstr "从星表请求中查找比较星"
 
 #: src/gui/compstars.c:113
 msgid "Variable star data and sorting parameters for catalogue request"
-msgstr ""
+msgstr "用于星表请求的变星数据和排序参数"
 
 #: src/gui/compstars.c:118
-#, fuzzy
 msgid "Enter the target star name to search in catalogues"
 msgstr "输入要在星表中搜索的目标星名"
 
 #: src/gui/compstars.c:124
 msgid "Narrow field of view"
-msgstr ""
+msgstr "窄视场"
 
 #: src/gui/compstars.c:125
 msgid ""
 "Tick this box to use a narrow field of view centered about the target star"
-msgstr ""
+msgstr "勾选此框可使用以目标恒星为中心的窄视场"
 
 #: src/gui/compstars.c:132
 msgid "Allowed visual magnitude range:"
@@ -20693,14 +20706,12 @@ msgid ""
 msgstr "目标星和比较星之间允许的B-V指标（色彩）范围"
 
 #: src/gui/compstars.c:164
-#, fuzzy
 msgid "Allowed magnitude error:"
-msgstr "允许的视星等范围："
+msgstr "允许的视星等误差："
 
 #: src/gui/compstars.c:173
-#, fuzzy
 msgid "Allowed catalogue magnitude error for comparison stars"
-msgstr "目标星和比较星之间允许的视星等范围"
+msgstr "目标星和比较星之间允许的星表星等误差"
 
 #: src/gui/compstars.c:184
 msgid "Recommended catalogue for this feature is APASS"
@@ -20718,34 +20729,33 @@ msgstr "NOMAD 星表"
 msgid ""
 "One Variable star and one comparison star at least are required. Cannot "
 "create any file\n"
-msgstr ""
+msgstr "至少需要一颗变星和一颗比较星。无法创建任何文件\n"
 
 #: src/gui/compstars.c:221
 msgid ""
 "One Variable star and one comparison star at least are required. Cannot "
 "create any file"
-msgstr ""
+msgstr "至少需要一颗变星和一颗比较星。无法创建任何文件"
 
 #: src/gui/compstars.c:228
-#, fuzzy
 msgid "Problem with convertion\n"
-msgstr "有问题的路径： "
+msgstr "转换有问题\n"
 
 #. Header for the console display
 #: src/gui/compstars.c:243
-#, fuzzy, c-format
+#, c-format
 msgid "-> %i comparison stars selected\n"
-msgstr "排序后的 %d 比较星。\n"
+msgstr "->已选择 %i 个比较星\n"
 
 #: src/gui/compstars.c:251
-#, fuzzy, c-format
+#, c-format
 msgid "Target star  : %4.3lf, %+4.3lf\n"
-msgstr "目标星：Vmag = %2.2lf, B-V = %+2.2lf\n"
+msgstr "目标星： %4.3lf, %+4.3lf\n"
 
 #: src/gui/compstars.c:257
 #, c-format
 msgid "Comp star %3d: %4.3lf, %+4.3lf\n"
-msgstr ""
+msgstr "比较星 %3d: %4.3lf, %+4.3lf\n"
 
 #: src/gui/compstars.c:290
 msgid "Enter the name of the target star"
@@ -20760,9 +20770,8 @@ msgid "BV range not accepted (should be ]0, 0.7]"
 msgstr "不接受 BV 范围（应为 [0， 0.7]）"
 
 #: src/gui/compstars.c:310
-#, fuzzy
 msgid "Magnitude error not accepted (should be ]0, 0.1["
-msgstr "不接受 BV 范围（应为 [0， 0.7]）"
+msgstr "不可接受星等误差（应为]0, 0.1["
 
 #: src/gui/conversion.c:109
 msgid "Invalid char"
@@ -21081,9 +21090,8 @@ msgid "CCM: [[%.2f %.2f %.2f][%.2f %.2f %.2f][%.2f %.2f %.2f]], pwr: %.2f"
 msgstr ""
 
 #: src/gui/colors.c:547
-#, fuzzy
 msgid "This case is not handled yet"
-msgstr "该图像类型无法处理。\n"
+msgstr "此案尚未处理"
 
 #: src/gui/dialog_preview.c:112
 msgid "Folder"
@@ -21868,9 +21876,8 @@ msgid "Output files (*%s)"
 msgstr "输出文件 (*%s)"
 
 #: src/gui/plot.c:1294 src/gui/plot.c:1337 src/gui/plot.c:1351
-#, fuzzy
 msgid "Cannot output data"
-msgstr "无法创建输出目录: %s\n"
+msgstr "无法输出数据"
 
 #: src/gui/plot.c:1323
 #, fuzzy
@@ -22466,9 +22473,9 @@ msgid "Are you sure you want to close everything and open the new image?"
 msgstr "确定要全部关闭并打开新图像？"
 
 #: src/gui/siril_css.c:63
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to load CSS sheet: %s.\n"
-msgstr "无法写入输出文件\n"
+msgstr "无法加载 CSS 表：%s。\n"
 
 #: src/gui/siril_intro.c:34
 msgid ""
@@ -22777,9 +22784,8 @@ msgid ""
 msgstr ""
 
 #: src/io/aavso_extended.c:206
-#, fuzzy
 msgid "Number of images is not enough\n"
-msgstr "图像数量"
+msgstr "图像数量不足\n"
 
 #. we want both c_idx and k_idx valid
 #: src/io/aavso_extended.c:223
@@ -22795,9 +22801,8 @@ msgid "Using %d stars to calibrate the data\n"
 msgstr "使用 %d 颗星来校准光变曲线\n"
 
 #: src/io/aavso_extended.c:237
-#, fuzzy
 msgid "Out of memory\n"
-msgstr "内存不足 - 异常中止"
+msgstr "内存不足\n"
 
 #: src/io/aavso_extended.c:311
 #, fuzzy, c-format
@@ -22819,9 +22824,9 @@ msgid ""
 msgstr "已在 %s 星表中以 %s 的名称找到该天体，无需再次添加\n"
 
 #: src/io/annotation_catalogues.c:653
-#, fuzzy, c-format
+#, c-format
 msgid "Object %s record found in the local SSO catalog\n"
-msgstr "天体 %s 在星表 %s 中被找到，RA = %f, Dec = %f\n"
+msgstr "在本地 SSO 星表中找到天体 %s 记录\n"
 
 #: src/io/annotation_catalogues.c:658
 #, fuzzy, c-format
@@ -23387,9 +23392,9 @@ msgid "Input image has undefined bit-depth.\n"
 msgstr "输入文件并非相同位深\n"
 
 #: src/io/image_formats_libraries.c:2815
-#, fuzzy, c-format
+#, c-format
 msgid "Reading HEIF: file %s, %ld layer(s), %ux%u pixels, bitdepth %d\n"
-msgstr "读取HEIF：文件名 %s, %ld 图层， %ux%u 像素\n"
+msgstr "正在读取 HEIF：文件 %s，%ld 图层，%ux%u 像素，位深 %d\n"
 
 #: src/io/image_formats_libraries.c:2929
 #, fuzzy, c-format
@@ -23402,18 +23407,18 @@ msgid "Error interleaving image\n"
 msgstr "创建输出图像时出错\n"
 
 #: src/io/image_formats_libraries.c:3059
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Saving JPEG XL: file %s, lossless, effort=%d %ld layer(s), %ux%u pixels, bit "
 "depth: %d\n"
-msgstr "保存JPG：文件名 %s, quality=%d%%, %ld layer(s), %ux%u pixels\n"
+msgstr "保存 JPEG XL：文件 %s，无损，effort=%d %ld 图层，%ux%u 像素，位深：%d\n"
 
 #: src/io/image_formats_libraries.c:3062
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Saving JPEG XL: file %s, quality=%.3f, effort=%d %ld layer(s), %ux%u pixels, "
 "bit depth: %d\n"
-msgstr "保存JPG：文件名 %s, quality=%d%%, %ld layer(s), %ux%u pixels\n"
+msgstr "保存 JPEG XL：文件 %s，质量=%.3f，effort=%d %ld 层图，%ux%u 像素，位深：%d\n"
 
 #: src/io/image_formats_libraries.c:3070
 msgid "Save complete.\n"
@@ -23434,7 +23439,7 @@ msgstr "FITS 错误： %s\n"
 msgid ""
 "Normalizing the image data with [%ld, %ld], not suitable for sequence "
 "operations\n"
-msgstr ""
+msgstr "用[%ld,%ld]对图像数据进行归一化，不适合序列操作\n"
 
 #: src/io/image_format_fits.c:1051
 msgid "Normalizing input data to our float range [0, 1]\n"
@@ -23557,18 +23562,17 @@ msgid "Failed to read the local NOMAD catalogue\n"
 msgstr "无法读取本地 NOMAD 星表\n"
 
 #: src/io/local_catalogues.c:174
-#, fuzzy
 msgid "Wrong trixel ID\n"
-msgstr "错误的日期： "
+msgstr "错误的trixel ID\n"
 
 #: src/io/local_catalogues.c:281
 msgid "Error: number of trixels reported by file is out of limits.\n"
 msgstr "错误：文件报告的 trixel 数量超出限制。\n"
 
 #: src/io/local_catalogues.c:779 src/io/siril_catalogues.c:800
-#, fuzzy, c-format
+#, c-format
 msgid "File %s cannot be deleted (%s), aborting\n"
-msgstr "无法创建 %s，异常终止。\n"
+msgstr "文件 %s 无法删除 (%s)，异常终止\n"
 
 #: src/io/local_catalogues.c:789 src/io/remote_catalogues.c:760
 #: src/io/remote_catalogues.c:1126 src/io/siril_catalogues.c:809
@@ -23585,9 +23589,9 @@ msgid "Failed\n"
 msgstr ""
 
 #: src/io/local_catalogues.c:833
-#, fuzzy, c-format
+#, c-format
 msgid "Found %d trixels:\n"
-msgstr "%ld 冷像素 %ld 热像素\n"
+msgstr "找到 %d trixels:\n"
 
 #: src/io/mp4_output.c:453
 msgid ""
@@ -23692,9 +23696,9 @@ msgid ""
 msgstr ""
 
 #: src/io/remote_catalogues.c:700 src/io/remote_catalogues.c:1102
-#, fuzzy, c-format
+#, c-format
 msgid "Using already downloaded catalogue %s\n"
-msgstr "使用已下载的星表\n"
+msgstr "使用已下载的星表 %s\n"
 
 #: src/io/remote_catalogues.c:721
 msgid "Contacting server\n"
@@ -24248,9 +24252,8 @@ msgid "bright stars"
 msgstr "亮星"
 
 #: src/io/siril_catalogues.c:249
-#, fuzzy
 msgid "AAVSO Variable stars"
-msgstr "无变星选择\n"
+msgstr "AAVSO 变星"
 
 #: src/io/siril_catalogues.c:251
 msgid "GCVS"
@@ -24529,9 +24532,8 @@ msgid "Update cancelled. Updates have not been applied."
 msgstr ""
 
 #: src/io/siril_git.c:958
-#, fuzzy
 msgid "The script repository is up to date."
-msgstr "Siril已是最新版\n"
+msgstr "脚本存储库是最新的。"
 
 #: src/io/siril_git.c:975
 msgid ""
@@ -24557,9 +24559,9 @@ msgid "The SPCC database repository is up to date."
 msgstr ""
 
 #: src/io/spcc_json.c:57 src/io/spcc_json.c:243 src/io/spcc_json.c:433
-#, fuzzy, c-format
+#, c-format
 msgid "Error loading SPCC JSON file: %s\n"
-msgstr "载入文件出错！\n"
+msgstr "加载 SPCC JSON 文件时出错：%s\n"
 
 #: src/io/spcc_json.c:67 src/io/spcc_json.c:443
 msgid "Error: The JSON file should contain an array of objects.\n"
@@ -25459,7 +25461,7 @@ msgstr "仿射模式使用了少于 %d%% 对星点，可能无法精确对齐：
 msgid ""
 "Less than %d%% star pairs kept by homography model, Image %d may show "
 "important distortion\n"
-msgstr "单应性模式使用了少于 %d%% 对星点，图像 %d 可能出现严重的畸变\n"
+msgstr "单应性模式使用了少于 %d%% 对星点，图像 %d 可能出现严重的失真\n"
 
 #: src/registration/global.c:332
 #, c-format
