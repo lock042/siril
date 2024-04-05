@@ -53,8 +53,6 @@ static gboolean should_use_keyword(const fits *fit, KeywordInfo keyword) {
 	} else if (g_strcmp0(keyword.key, "ROWORDER") == 0) {
 		return ((g_strcmp0(fit->keywords.row_order, "BOTTOM-UP") == 0)
 				|| (g_strcmp0(fit->keywords.row_order, "TOP-DOWN") == 0));
-	} else if (g_strcmp0(keyword.key, "FLENGTH") == 0) {
-		return FALSE;
 	} else if (g_strcmp0(keyword.key, "XBAYROFF") == 0) {
 		return fit->keywords.bayer_pattern[0] != '\0';
 	} else if (g_strcmp0(keyword.key, "YBAYROFF") == 0) {
@@ -246,9 +244,9 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
         KEYWORD_SECONDA( "image", "BINX", KTYPE_UINT, "Camera binning mode", &(fit->keywords.binning_x), binning_x_handler_read, NULL),
         KEYWORD_PRIMARY( "image", "YBINNING", KTYPE_UINT, "Camera binning mode", &(fit->keywords.binning_y), binning_y_handler_read, NULL),
         KEYWORD_SECONDA( "image", "BINY", KTYPE_UINT, "Camera binning mode", &(fit->keywords.binning_y), binning_y_handler_read, NULL),
-        KEYWORD_PRIMARY( "image", "FOCALLEN", KTYPE_DOUBLE, "Camera focal length", &(fit->keywords.focal_length), focal_length_handler_read, NULL),
-        KEYWORD_SECONDA( "image", "FOCAL", KTYPE_DOUBLE, "Camera focal length", &(fit->keywords.focal_length), focal_length_handler_read, NULL),
-        KEYWORD_PRIMARY( "image", "FLENGTH", KTYPE_DOUBLE, "Camera focal length [m]", &(fit->keywords.flength), flength_handler_read, NULL),
+        KEYWORD_PRIMARY( "image", "FOCALLEN", KTYPE_DOUBLE, "Focal length in mm", &(fit->keywords.focal_length), focal_length_handler_read, NULL),
+        KEYWORD_SECONDA( "image", "FOCAL", KTYPE_DOUBLE, "Focal length in mm", &(fit->keywords.focal_length), focal_length_handler_read, NULL),
+        KEYWORD_SECONDA( "image", "FLENGTH", KTYPE_DOUBLE, "Focal length in m", &(fit->keywords.flength), flength_handler_read, NULL),
         KEYWORD_PRIMARY( "image", "CCD-TEMP", KTYPE_DOUBLE, "CCD temp in C", &(fit->keywords.ccd_temp), NULL, NULL),
         KEYWORD_SECONDA( "image", "CCD_TEMP", KTYPE_DOUBLE, "CCD temp in C", &(fit->keywords.ccd_temp), NULL, NULL),
         KEYWORD_SECONDA( "image", "CCDTEMP", KTYPE_DOUBLE, "CCD temp in C", &(fit->keywords.ccd_temp), NULL, NULL),
@@ -292,9 +290,9 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
         KEYWORD_PRIMARY( "wcsdata", "DEC", KTYPE_DOUBLE, "Image center Declination (deg)", &(fit->keywords.wcsdata.dec), NULL, NULL),
         KEYWORD_SECONDA( "wcsdata", "DEC_D", KTYPE_DOUBLE, "Image center Declination (deg)", &(fit->keywords.wcsdata.dec), NULL, NULL),
 
-		/* This group must be the last one !!
-		 * It is not used. We write keywords just so that Siril knows about them
-		 */
+        /* This group must be the last one !!
+         * It is not used. We write keywords just so that Siril knows about them
+        */
         KEYWORD_WCS( "wcslib", "CTYPE1", KTYPE_STR),
         KEYWORD_WCS( "wcslib", "CTYPE2", KTYPE_STR),
         KEYWORD_WCS( "wcslib", "CUNIT1", KTYPE_STR),
@@ -405,7 +403,7 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
         KEYWORD_WCS( "wcslib", "BP_1_4", KTYPE_DOUBLE),
         KEYWORD_WCS( "wcslib", "BP_0_5", KTYPE_DOUBLE),
 
-		KEYWORD_WCS( "wcsdata", "PLTSOLVD", KTYPE_BOOL),
+        KEYWORD_WCS( "wcsdata", "PLTSOLVD", KTYPE_BOOL),
         {NULL, NULL, KTYPE_BOOL, NULL, NULL, NULL, FALSE, TRUE}
     };
 
