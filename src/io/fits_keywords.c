@@ -869,12 +869,10 @@ int read_fits_keywords(fits *fit) {
 			continue;
 		}
 
-		gboolean value_set = FALSE; // Flag indicating whether a value has been set.
+		//gboolean value_set = FALSE; // Flag indicating whether a value has been set.
 		if (fits_get_keyclass(card) == TYP_STRUC_KEY) {
-			value_set = TRUE;
 			continue;
 		} else if (current_key->fixed_value) {
-			value_set = TRUE;
 			continue;
 		}
 		int int_value;
@@ -893,54 +891,46 @@ int read_fits_keywords(fits *fit) {
 			int_value = g_ascii_strtoll(value, &end, 10);
 			if (value != end) {
 				*((int*) current_key->data) = int_value;
-				value_set = TRUE;
 			}
 			break;
 		case KTYPE_UINT:
 			uint_value = g_ascii_strtoll(value, &end, 10);
 			if (value != end) {
 				*((guint*) current_key->data) = uint_value;
-				value_set = TRUE;
 			}
 			break;
 		case KTYPE_USHORT:
 			ushort_value = g_ascii_strtoll(value, &end, 10);
 			if (value != end) {
 				*((gushort*) current_key->data) = ushort_value;
-				value_set = TRUE;
 			}
 			break;
 		case KTYPE_DOUBLE:
 			double_value = g_ascii_strtod(value, &end);
 			if (value != end) {
 				*((double*) current_key->data) = double_value;
-				value_set = TRUE;
 			}
 			break;
 		case KTYPE_FLOAT:
 			float_value = g_ascii_strtod(value, &end);
 			if (value != end) {
 				*((float*) current_key->data) = float_value;
-				value_set = TRUE;
 			}
 			break;
 		case KTYPE_STR:
 			str_value = g_strstrip(g_shell_unquote(value, NULL));
 			strncpy((char*) current_key->data, str_value, FLEN_VALUE - 1);
-			value_set = TRUE;
 			break;
 		case KTYPE_DATE:
 			str_value = g_strstrip(g_shell_unquote(value, NULL));
 			date = FITS_date_to_date_time(str_value);
 			if (date) {
 				*((GDateTime**) current_key->data) = date;
-				value_set = TRUE;
 			}
 			break;
 		case KTYPE_BOOL:
 			bool_value = value[0] == 'T' ? TRUE : FALSE;
 			*((gboolean*) current_key->data) = bool_value;
-			value_set = TRUE;
 			break;
 		default:
 			break;
@@ -949,12 +939,6 @@ int read_fits_keywords(fits *fit) {
 		// Handle special cases
 		if (current_key->special_handler_read != NULL) {
 			current_key->special_handler_read(fit, comment, current_key);
-		}
-
-		/* output unknown keywords */
-		if (!value_set) {
-			UnknownKeys = g_string_append(UnknownKeys, card);
-			UnknownKeys = g_string_append(UnknownKeys, "\n");
 		}
 	}
 
