@@ -54,6 +54,7 @@ struct KeywordInfo {
 int save_fits_keywords(fits *fit);
 int save_fits_unknown_keywords(fits *fit);
 int save_history_keywords(fits *fit);
+int save_wcs_keywords(fits *fit);
 int read_fits_keywords(fits *fit);
 
 #endif /* SRC_IO_FITS_KEYWORDS_H_ */
