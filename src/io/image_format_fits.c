@@ -75,43 +75,6 @@ static int CompressionMethods[] = { RICE_1, GZIP_1, GZIP_2, HCOMPRESS_1};
 }
 
 
-static void read_fits_date_obs_header(fits *fit) {
-	int status = 0;
-	char ut_start[FLEN_VALUE] = { 0 };
-	char date_obs[FLEN_VALUE] = { 0 };
-
-	fits_read_key(fit->fptr, TSTRING, "DATE-OBS", &date_obs, NULL, &status);
-
-	/* In some cases, date is divided in two:
-	 * - DATE-OBS
-	 * - TIME-OBS
-	 * We need to check if we find the "T" inside DATE-OBS.
-	 * If not, then try to check for TIME-OBS to get the time
-	 */
-	if (!g_strstr_len(date_obs, -1, "T")) {
-		status = 0;
-		char time_obs[FLEN_VALUE] = { 0 };
-		fits_read_key(fit->fptr, TSTRING, "TIME-OBS", &time_obs, NULL, &status);
-		if (!status) {
-			strcat(date_obs, "T");
-			strcat(date_obs, time_obs);
-		}
-	}
-
-	/** Case seen in some FITS files. Needed to get date back in SER conversion **/
-	status = 0;
-	fits_read_key(fit->fptr, TSTRING, "UT-START", &ut_start, NULL, &status);
-	if (status == 0 && ut_start[0] != '\0' && date_obs[2] == '/') {
-		int year, month, day;
-		if (sscanf(date_obs, "%02d/%02d/%04d", &day, &month, &year) == 3) {
-			g_snprintf(date_obs, sizeof(date_obs), "%04d-%02d-%02dT%s", year, month, day, ut_start);
-		}
-	}
-
-	fit->keywords.date_obs = FITS_date_to_date_time(date_obs);
-}
-
-
 void fit_get_photometry_data(fits *fit) {
 	int status = 0;
 	read_fits_date_obs_header(fit);
