@@ -879,13 +879,8 @@ void get_date_data_from_fitsfile(fitsfile *fptr, GDateTime **dt, double *exposur
 	int status = 0;
 
 	__tryToFindKeywords(fptr, TDOUBLE, EXPOSURE, exposure, &status);
-#ifdef _WIN32 //TODO: remove after cfitsio is fixed
-	status = 0;
-	__tryToFindKeywords(fptr, TINT, NB_STACKED, stack_count, &status);
-#else
 	status = 0;
 	__tryToFindKeywords(fptr, TUINT, NB_STACKED, stack_count, &status);
-#endif
 	status = 0;
 	if (fits_read_key(fptr, TDOUBLE, "LIVETIME", livetime, NULL, &status))
 		*livetime = *exposure;
