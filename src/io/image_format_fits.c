@@ -1231,6 +1231,10 @@ void clearfits_header(fits *fit) {
 		free(fit->header);
 		fit->header = NULL;
 	}
+	if (fit->unknown_keys) {
+		g_free(fit->unknown_keys);
+		fit->unknown_keys = NULL;
+	}
 	if (fit->history) {
 		g_slist_free_full(fit->history, g_free);
 		fit->history = NULL;
