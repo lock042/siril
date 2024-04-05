@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-03-28 07:46+0100\n"
-"PO-Revision-Date: 2024-03-13 19:43+0000\n"
-"Last-Translator: Garth TianBo <g-art-h@outlook.com>\n"
+"PO-Revision-Date: 2024-04-05 19:36+0000\n"
+"Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application-1-2/zh_Hans/>\n"
 "Language: zh_CN\n"
@@ -7352,9 +7352,8 @@ msgid ""
 "Allowed time for the solve for each catalog file. It can be used as the "
 "total solve time only if solve-field is configured to do so in its "
 "configuration file."
-msgstr ""
-"允许求解每个星表文件的时间。仅当 solve-field 在其配置文件中配置为总求解时间"
-"时，它才能用作总求解时间。"
+msgstr "每个星表文件的所允许解析时间。仅当 solve-field "
+"在其配置文件中配置为总解析时间时，它才能用作总解析时间。"
 
 #: src/gui/siril3.glade:29098
 msgid ""
@@ -7736,24 +7735,23 @@ msgstr "直方图显示"
 
 #: src/gui/siril3.glade:30800
 msgid "Middle button double click"
-msgstr ""
+msgstr "双击中键"
 
 #: src/gui/siril3.glade:30813
-#, fuzzy
 msgid "Zoom to fit"
-msgstr "缩小"
+msgstr "缩放到适合"
 
 #: src/gui/siril3.glade:30814
 msgid "Zoom 100% centred on mouse"
-msgstr ""
+msgstr "以鼠标为中心缩放 100%"
 
 #: src/gui/siril3.glade:30815
 msgid "Zoom toggles between fit and 100%"
-msgstr ""
+msgstr "缩放在适合和 100% 之间切换"
 
 #: src/gui/siril3.glade:30830
 msgid "Mouse Behaviour"
-msgstr ""
+msgstr "鼠标行为"
 
 #: src/gui/siril3.glade:30878
 msgid "Background extraction samples:"
@@ -11124,7 +11122,7 @@ msgstr "未发现用于链接的FITS文件\n"
 msgid ""
 "Sorting by date could not be done, file %s doesn't have DATE-OBS, not "
 "sorting\n"
-msgstr ""
+msgstr "无法按日期排序，文件 %s 没有 DATE-OBS，无法排序\n"
 
 #: src/core/command.c:6354 src/core/command.c:6504
 msgid ""
@@ -12665,7 +12663,6 @@ msgstr ""
 "该算法将忽略值在[<b>low</b>, <b>high</b>]范围之外的所有参考像素"
 
 #: src/core/command_def.h:77
-#, fuzzy
 msgid ""
 "Same as CONVERT but converts only FITS files found in the current working "
 "directory. This is useful to avoid conversions of JPEG results or other "
@@ -12673,8 +12670,9 @@ msgid ""
 "enables sorting files with their DATE-OBS value instead of with their name "
 "alphanumerically"
 msgstr ""
-"与CONVERT相同，但仅转换在当前工作目录中的FITS文件。有助于避免转换JPEG或出现在"
-"目录中的其他文件"
+"与CONVERT相同，但仅转换在当前工作目录中的FITS文件。这对于避免 JPEG "
+"结果或可能最终出现在目录中的其他文档的转换很有用。附加参数<b>-date</"
+"b>允许使用 DATE-OBS 值而不是按字母数字顺序对文档进行排序"
 
 #: src/core/command_def.h:78
 msgid ""
@@ -15805,7 +15803,7 @@ msgstr "缺省直方图显示模式"
 
 #: src/core/settings.c:394
 msgid "Middle mouse button double click zoom action"
-msgstr ""
+msgstr "鼠标中键双击缩放操作"
 
 #: src/core/settings.c:395
 msgid "configure background samples color"
@@ -19059,7 +19057,7 @@ msgstr "FITS 错误： %s\n"
 msgid ""
 "Normalizing the image data with [%ld, %ld], not suitable for sequence "
 "operations\n"
-msgstr ""
+msgstr "用[%ld,%ld]对图像数据进行归一化，不适合序列操作\n"
 
 #: src/io/image_format_fits.c:1150
 msgid "Normalizing input data to our float range [0, 1]\n"
@@ -20607,7 +20605,7 @@ msgstr "仿射模式使用了少于 %d%% 对星点，可能无法精确对齐：
 msgid ""
 "Less than %d%% star pairs kept by homography model, Image %d may show "
 "important distortion\n"
-msgstr "单应性模式使用了少于 %d%% 对星点，图像 %d 可能出现严重的畸变\n"
+msgstr "单应性模式使用了少于 %d%% 对星点，图像 %d 可能出现严重的失真\n"
 
 #: src/registration/global.c:324
 #, c-format
