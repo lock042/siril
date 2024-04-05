@@ -562,6 +562,7 @@ int save_fits_keywords(fits *fit) {
 				status = 0;
 				date = *((GDateTime**)keys->data);
 				if (date) {
+					/* special case */
 					if (!g_strcmp0("DATE", keys->key)) {
 						int itmp;
 						char fit_date[40];
@@ -758,8 +759,7 @@ int save_history_keywords(fits *fit) {
 	return status;
 }
 
-/* FIXME: DATE-OBS should be used in the new structure, in the handler */
-static void read_fits_date_obs_header(fits *fit) {
+void read_fits_date_obs_header(fits *fit) {
 	int status = 0;
 	char ut_start[FLEN_VALUE] = { 0 };
 	char date_obs[FLEN_VALUE] = { 0 };
@@ -822,6 +822,8 @@ int read_fits_keywords(fits *fit) {
 		fits_set_bscale(fit->fptr, 1.0, 0.0, &status);
 	}
 
+	read_fits_date_obs_header(fit);
+
 	fits_get_hdrspace(fit->fptr, &key_number, NULL, &status); /* get # of keywords */
 
 	// Loop through each keyword
@@ -849,7 +851,7 @@ int read_fits_keywords(fits *fit) {
 		}
 
 		/* These have been already processed */
-		if (g_strcmp0(keyname, "BSCALE") == 0 || g_strcmp0(keyname, "BZERO") == 0) {
+		if (g_strcmp0(keyname, "BSCALE") == 0 || g_strcmp0(keyname, "BZERO") || g_strcmp0(keyname, "DATE-OBS") == 0) {
 			continue;
 		}
 
