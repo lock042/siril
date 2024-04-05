@@ -327,6 +327,8 @@ siril_common_SOURCES = \
 	io/conversion.h \
 	io/films.c \
 	io/films.h \
+	io/fits_keywords.c \
+	io/fits_keywords.h \
 	io/fits_sequence.c \
 	io/fits_sequence.h \
 	io/FITS_symlink.c \

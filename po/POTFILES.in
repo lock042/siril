@@ -162,6 +162,7 @@ src/io/annotation_catalogues.c
 src/io/Astro-TIFF.c
 src/io/conversion.c
 src/io/films.c
+src/io/fits_keywords.c
 src/io/fits_sequence.c
 src/io/FITS_symlink.c
 src/io/image_formats_internal.c
