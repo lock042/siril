@@ -61,10 +61,6 @@ static gboolean should_use_keyword(const fits *fit, KeywordInfo keyword) {
 		return fit->naxes[2] > 1;
 	} else if (g_strcmp0(keyword.key, "DFTNORM3") == 0) {
 		return fit->naxes[2] > 1;
-	} else if (g_strcmp0(keyword.key, "RA_D") == 0) {
-		return FALSE;
-	} else if (g_strcmp0(keyword.key, "DEC_D") == 0) {
-		return FALSE;
 	}
 	return keyword.is_used;
 }
