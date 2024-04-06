@@ -205,10 +205,6 @@ struct driz_param_t {
   // Siril doesn't use exposure_time because frame exposure weighting can already be
   // done in the stacking code, so this is always set to 1.f in the initializer.
   float           weight_scale; /* Weight scale was: WTSCL */
-  float           fill_value; /* Filling was: FILVAL */
-  // Siril doesn't use fill_value: empty regions are always set to zero anyway,
-  // so also do_fill is always initialized to FALSE
-  bool_t          do_fill; /* was: FILL */
   enum e_unit_t   in_units; /* CPS / counts was: INCPS, either counts or CPS */
   enum e_unit_t   out_units; /* CPS / counts was: INCPS, either counts or CPS */
   // Siril typically works with images directly from a camera, with pixel values
@@ -230,11 +226,11 @@ struct driz_param_t {
   integer_t ymax;
 
   /* Blotting-specific parameters */
-  enum e_interp_t interpolation; /* was INTERP */
+/*  enum e_interp_t interpolation; // was INTERP
   float ef;
   float misval;
   float sinscl;
-  float kscale;
+  float kscale;*/
 
   /* Input images */
   fits *data; // Per-image
@@ -244,7 +240,7 @@ struct driz_param_t {
   /* Output images */
   fits *output_data;
   fits *output_counts;  /* was: COU */
-  fits *output_context; /* was: CONTIM */
+//  fits *output_context; /* was: CONTIM */
 
   /* Other output */
   integer_t nmiss;
@@ -468,30 +464,6 @@ was: FILALU
 void
 create_lanczos_lut(const int kernel_order, const size_t npix,
                    const float del, float* lanczos_lut);
-
-void
-put_fill(struct driz_param_t* p, const float fill_value);
-
-/**
-Weighted sum of 2 real vectors.
-
-was: WSUMR
-*/
-static inline_macro void
-weighted_sum_vectors(const integer_t npix,
-                     const float* a /*[npix]*/, const float w1,
-                     const float* b /*[npix]*/, const float w2,
-                     /* Output arguments */
-                     float* c /*[npix]*/) {
-  float* c_end = c + npix;
-
-  assert(a);
-  assert(b);
-  assert(c);
-
-  while(c != c_end)
-    *(c++) = *(a++) * w1 + *(b++) * w2;
-}
 
 /**
  Round to nearest integer in a way that mimics fortrans NINT

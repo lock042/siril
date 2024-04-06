@@ -1837,35 +1837,3 @@ int count_lines_in_textfile(const gchar *filename) {
 
     return line_count;
 }
-
-void adjust_bayer(char* pattern, rectangle selection) {
-	int xshift = selection.x % 2;
-	int yshift = selection.y % 2;
-	int shift_index = xshift + (yshift << 1);
-	char tmp[5];
-	strcpy(tmp, pattern);
-	switch (shift_index) {
-		case 0:
-			return;
-		case 1:
-			pattern[0] = tmp[1];
-			pattern[1] = tmp[0];
-			pattern[2] = tmp[3];
-			pattern[3] = tmp[2];
-			break;
-		case 2:
-			pattern[0] = tmp[2];
-			pattern[1] = tmp[3];
-			pattern[2] = tmp[0];
-			pattern[3] = tmp[1];
-			break;
-		case 3:
-			pattern[0] = tmp[3];
-			pattern[1] = tmp[2];
-			pattern[2] = tmp[1];
-			pattern[3] = tmp[0];
-			break;
-		default:
-			siril_log_color_message(_("Error shifting Bayer pattern\n"), "red");
-	}
-}

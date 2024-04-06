@@ -101,24 +101,6 @@ update_data(struct driz_param_t* p, const integer_t ii, const integer_t jj,
 }
 
 /** --------------------------------------------------------------------------------------------------
- * The bit value, trimmed to the appropriate range
- *
- * uuid: the id of the input image
- */
-
-integer_t
-compute_bit_value(integer_t uuid) {
-    integer_t bv;
-    int np, bit_no;
-
-    np = (uuid - 1) / 32 + 1;
-    bit_no = (uuid - 1 - (32 * (np - 1)));
-    bv = (integer_t)(1 << bit_no);
-
-    return bv;
-}
-
-/** --------------------------------------------------------------------------------------------------
  * Compute area of box overlap. Calculate the area common to input clockwise polygon x(n), y(n) with
  * square (is, js) to (is+1, js+1). This version is for a quadrilateral. Used by do_square_kernel.
  *
@@ -288,13 +270,11 @@ do_kernel_point(struct driz_param_t* p) {
     integer_t i, j, ii, jj;
     integer_t /*ybounds[2],*/ osize[2];
     float scale2, vc[3], d, dow;
-    integer_t bv;
     int xmin, xmax, ymin, ymax, n;
 	const char* cfa = p->cfa;
 	size_t cfadim = !cfa ? 1 : strlen(cfa) == 4 ? 2 : 6;
 
     scale2 = p->scale * p->scale;
-    bv = compute_bit_value(p->uuid);
 
     if (init_image_scanner(p, &s, &ymin, &ymax)) return 1;
 
@@ -350,12 +330,6 @@ do_kernel_point(struct driz_param_t* p) {
                         dow = 1.0;
                     }
 
-                    /* If we are creating or modifying the context image,
-                       we do so here. */
-                    if (p->output_context && dow > 0.0) {
-                        set_bit(p->output_context, ii, jj, bv);
-                    }
-
                     if (update_data(p, ii, jj, chan, d, vc[chan], dow)) {
                         return 1;
                     }
@@ -376,7 +350,7 @@ do_kernel_point(struct driz_param_t* p) {
 static int
 do_kernel_gaussian(struct driz_param_t* p) {
     struct scanner s;
-    integer_t bv, i, j, ii, jj, nxi, nxa, nyi, nya, nhit;
+    integer_t i, j, ii, jj, nxi, nxa, nyi, nya, nhit;
     integer_t /*ybounds[2],*/ osize[2];
     float vc[3], d, dow;
     float gaussian_efac, gaussian_es;
@@ -395,7 +369,6 @@ do_kernel_gaussian(struct driz_param_t* p) {
 
     ac = 1.0 / (p->pixel_fraction * p->pixel_fraction);
     scale2 = p->scale * p->scale;
-    bv = compute_bit_value(p->uuid);
 
     gaussian_efac = (2.3548*2.3548) * scale2 * ac / 2.0;
     gaussian_es = gaussian_efac / M_PI;
@@ -477,12 +450,6 @@ do_kernel_gaussian(struct driz_param_t* p) {
                         vc[chan] = get_pixel(p->output_counts, ii, jj, chan);
                         dow = (float)dover * w;
 
-                        /* If we are create or modifying the context image, we do so
-                           here. */
-                        if (p->output_context && dow > 0.0) {
-                            set_bit(p->output_context, ii, jj, bv);
-                        }
-
                         if (update_data(p, ii, jj, chan, d, vc[chan], dow)) {
                             return 1;
                         }
@@ -507,7 +474,7 @@ do_kernel_gaussian(struct driz_param_t* p) {
 static int
 do_kernel_lanczos(struct driz_param_t* p) {
     struct scanner s;
-    integer_t bv, i, j, ii, jj, nxi, nxa, nyi, nya, nhit, ix, iy;
+    integer_t i, j, ii, jj, nxi, nxa, nyi, nya, nhit, ix, iy;
     integer_t /*ybounds[2],*/ osize[2];
     float scale2, vc[3], d, dow;
     float pfo, xx, yy, xxi, xxa, yyi, yya, w, dx, dy, dover;
@@ -525,7 +492,6 @@ do_kernel_lanczos(struct driz_param_t* p) {
     scale2 = p->scale * p->scale;
     kernel_order = (p->kernel == kernel_lanczos2) ? 2 : 3;
     pfo = (float)kernel_order * p->pixel_fraction / p->scale;
-    bv = compute_bit_value(p->uuid);
 
     if ((lanczos.lut = malloc(nlut * sizeof(float))) == NULL) {
         driz_error_set_message(p->error, "Out of memory");
@@ -610,12 +576,6 @@ do_kernel_lanczos(struct driz_param_t* p) {
                         vc[chan] = get_pixel(p->output_counts, ii, jj, chan);
                         dow = (float)(dover * w);
 
-                        /* If we are create or modifying the context image, we do so
-                           here. */
-                        if (p->output_context && dow > 0.0) {
-                            set_bit(p->output_context, ii, jj, bv);
-                        }
-
                         if (update_data(p, ii, jj, chan, d, vc[chan], dow)) {
                             return 1;
                         }
@@ -644,7 +604,7 @@ do_kernel_lanczos(struct driz_param_t* p) {
 static int
 do_kernel_turbo(struct driz_param_t* p) {
     struct scanner s;
-    integer_t bv, i, j, ii, jj, nxi, nxa, nyi, nya, nhit, iis, iie, jjs, jje;
+    integer_t i, j, ii, jj, nxi, nxa, nyi, nya, nhit, iis, iie, jjs, jje;
     integer_t osize[2];
     float vc[3], d, dow;
     float pfo, scale2, ac;
@@ -654,7 +614,6 @@ do_kernel_turbo(struct driz_param_t* p) {
 	size_t cfadim = !cfa ? 1 : strlen(cfa) == 4 ? 2 : 6;
 
     driz_log_message("starting do_kernel_turbo");
-    bv = compute_bit_value(p->uuid);
     ac = 1.0 / (p->pixel_fraction * p->pixel_fraction);
     pfo = p->pixel_fraction / p->scale / 2.0;
     scale2 = p->scale * p->scale;
@@ -740,12 +699,6 @@ do_kernel_turbo(struct driz_param_t* p) {
                             vc[chan] = get_pixel(p->output_counts, ii, jj, chan);
                             dow = (float)(dover * w);
 
-                            /* If we are create or modifying the context image,
-                               we do so here. */
-                            if (p->output_context && dow > 0.0) {
-                                set_bit(p->output_context, ii, jj, bv);
-                            }
-
                             if (update_data(p, ii, jj, chan, d, vc[chan], dow)) {
                                 return 1;
                             }
@@ -773,7 +726,7 @@ do_kernel_turbo(struct driz_param_t* p) {
 
 int
 do_kernel_square(struct driz_param_t* p) {
-    integer_t bv, i, j, ii, jj, min_ii, max_ii, min_jj, max_jj, nhit;
+    integer_t i, j, ii, jj, min_ii, max_ii, min_jj, max_jj, nhit;
     integer_t osize[2];
     float scale2, vc[3], d, dow;
     float dh, jaco, tem, dover, w;
@@ -786,7 +739,6 @@ do_kernel_square(struct driz_param_t* p) {
 
     driz_log_message("starting do_kernel_square");
     dh = 0.5 * p->pixel_fraction;
-    bv = compute_bit_value(p->uuid);
     scale2 = p->scale * p->scale;
 
     /* Next the "classic" drizzle square kernel...  this is different
@@ -889,12 +841,6 @@ do_kernel_square(struct driz_param_t* p) {
 
                         /* Count the hits */
                         ++nhit;
-
-                        /* If we are creating or modifying the context image we
-                           do so here */
-                        if (p->output_context && dow > 0.0) {
-                            set_bit(p->output_context, ii, jj, bv);
-                        }
 
                         if (update_data(p, ii, jj, chan, d, vc[chan], dow)) {
                             return 1;

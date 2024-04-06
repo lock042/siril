@@ -146,10 +146,6 @@ driz_param_init(struct driz_param_t* p) {
   /* Weight scale */
   p->weight_scale = 1.f;
 
-  /* Filling */
-  p->fill_value = 0.f;
-  p->do_fill = 0;
-
   /* CPS / Counts */
   p->in_units = unit_counts;
   p->out_units = unit_counts;
@@ -164,7 +160,6 @@ driz_param_init(struct driz_param_t* p) {
   /* Output data */
   p->output_data = NULL;
   p->output_counts = NULL;
-  p->output_context = NULL;
 
   p->nmiss = 0;
   p->nskip = 0;
@@ -307,33 +302,6 @@ create_lanczos_lut(const int kernel_order, const size_t npix,
       lanczos_lut[i] = sin(poff) / poff * sin(poff / forder) / (poff / forder);
     } else {
       lanczos_lut[i] = 0.0;
-    }
-  }
-}
-
-void
-put_fill(struct driz_param_t* p, const float fill_value) {
-  integer_t i, j, chan, osize[2];
-
-  assert(p);
-  get_dimensions(p->output_data, osize);
-  for (j = 0; j < osize[1]; ++j) {
-    for (i = 0; i < osize[0]; ++i) {
-      if (oob_pixel(p->output_counts, i, j)) {
-        driz_error_format_message(p->error, "OOB in output_counts[%d,%d]", i, j);
-        return;
-
-      } else if (oob_pixel(p->output_data, i, j)) {
-        driz_error_format_message(p->error, "OOB in output_data[%d,%d]", i, j);
-        return;
-
-      } else {
-        for (chan = 0; chan < p->output_counts->naxes[2]; ++chan) {
-          if (get_pixel(p->output_counts, i, j, chan) == 0.0) {
-            set_pixel(p->output_data, i, j, chan, fill_value);
-		  }
-        }
-      }
     }
   }
 }
