@@ -163,7 +163,7 @@ static command commands[] = {
 #endif
 	{"sb", 0, "sb [-loadpsf=] [-alpha=] [-iters=]", process_sb, STR_SB, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"select", 3, "select sequencename from to", process_select, STR_SELECT, TRUE, REQ_CMD_NONE},
-	{"seqapplydrizzle", 1, "seqapplydrizzle sequencename [-framing=] [-scale=] [-pixfrac=] [-kernel=] [-flat=] [-bias=] [-prefix=] [-filter-fwhm=value[%|k]] [-filter-wfwhm=value[%|k]] [-filter-round=value[%|k]] [-filter-bkg=value[%|k]] [-filter-nbstars=value[%|k]] [-filter-quality=value[%|k]] [-filter-incl[uded]]", process_seq_applydrizzle, STR_SEQAPPLYDRIZZLE, TRUE, REQ_CMD_NO_THREAD},
+	{"seqapplydrizzle", 1, "seqapplydrizzle sequencename [-framing=] [-scale=] [-pixfrac=] [-kernel=] [-flat=] [-prefix=] [-filter-fwhm=value[%|k]] [-filter-wfwhm=value[%|k]] [-filter-round=value[%|k]] [-filter-bkg=value[%|k]] [-filter-nbstars=value[%|k]] [-filter-quality=value[%|k]] [-filter-incl[uded]]", process_seq_applydrizzle, STR_SEQAPPLYDRIZZLE, TRUE, REQ_CMD_NO_THREAD},
 	{"seqapplyreg", 1, "seqapplyreg sequencename [-drizzle] [-interp=] [-noclamp] [-layer=] [-framing=] [-prefix=] [-filter-fwhm=value[%|k]] [-filter-wfwhm=value[%|k]] [-filter-round=value[%|k]] [-filter-bkg=value[%|k]] [-filter-nbstars=value[%|k]] [-filter-quality=value[%|k]] [-filter-incl[uded]]", process_seq_applyreg, STR_SEQAPPLYREG, TRUE, REQ_CMD_NO_THREAD},
 	{"seqccm", 2, "seqccm sequencename [-prefix=]", process_ccm, STR_SEQCCM CMD_CAT(CCM) STR_CCM, TRUE, REQ_CMD_NONE},
 	{"seqclean", 1, "seqclean sequencename [-reg] [-stat] [-sel]", process_seq_clean, STR_SEQCLEAN, TRUE, REQ_CMD_NONE},
