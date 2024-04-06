@@ -7177,7 +7177,6 @@ int process_seq_applydrizzle(int nb) {
 	driz->keep_counts = FALSE;
 	driz->use_wcs = FALSE;
 	driz->use_flats = FALSE;
-	driz->use_bias = FALSE;
 	driz->load_new_sequence = FALSE;
 	driz->scale = 1.f;
 	driz->weight_scale = 1.f; // Not used for now

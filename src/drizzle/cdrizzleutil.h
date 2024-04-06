@@ -184,7 +184,6 @@ struct driz_args_t {
   float weight_scale; /* Weight scale */
   fits *flat; /* Flat, for multiplying the pixel_count */
   gboolean use_flats; /* Whether to use master flat as weights */
-  gboolean use_bias; /* If use_flats == TRUE, whether to subtract bias */
   float pixel_fraction;
   const char* cfa;
   GList *processed_images;
