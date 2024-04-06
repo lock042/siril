@@ -207,6 +207,22 @@ static void default_values_special_cases(fits *fit) {
 }
 
 KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
+	/*
+	 * KEYWORD_PRIMARY represents keywords read and saved by Siril
+	 * KEYWORD_SECONDA are those read but not saved by Siril
+	 * KEYWORD_FIXED are keywords whose value is fixed and does not change.
+	 * KEYWORD_WCS Used for keywords in the wcslib group. They are recognized as known
+	 * keywords but are read by another routine. They are also saved in a special function.
+	 *
+	 * A series of keywords representing the same data usually begins with KEYWORD_PRIMARY and
+	 * is followed by a list of KEYWORD_SECONDA. They should normally be linked to the same
+	 * variable in the keywords structure.
+	 * The only exception is FLENGHT, where the units are not the same. We could have managed
+	 * the units to avoid this, but the software that manages these keywords doesn't save
+	 * the units in compliance with the standard. So we abandoned the idea. It's something we
+	 * can do if we have the data to do it. All we have to do is retrieve the units and add a
+	 * variable to the read handle.
+	 */
 	KeywordInfo keyword_list[] = {
         KEYWORD_PRIMARY( "image", "MIPS-HI", KTYPE_USHORT, "Lower visualization cutoff", &(fit->keywords.hi), NULL, NULL),
         KEYWORD_SECONDA( "image", "CWHITE", KTYPE_USHORT, "Lower visualization cutoff", &(fit->keywords.hi), NULL, NULL),
