@@ -7182,7 +7182,7 @@ int process_seq_applydrizzle(int nb) {
 	driz->weight_scale = 1.f; // Not used for now
 	driz->kernel = (enum e_kernel_t) kernel_turbo;
 	driz->pixel_fraction = 1.f;
-	driz->framing = FRAMING_MIN;
+	driz->framing = FRAMING_CURRENT;
 	for (int i = 2; i < nb; i++) {
 		if (g_str_has_prefix(word[i], "-prefix=")) {
 			char *current = word[i], *value;
