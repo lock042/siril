@@ -360,11 +360,59 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 	return ST_OK;
 }
 
+static int compute_sumstack_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
+	struct sum_stacking_data *ssdata = args->user;
+	const gboolean use_pixcnt = ((ssdata->pixcnt != NULL));
+	unsigned int MB_per_orig_image, MB_per_scaled_image, MB_avail;
+	int limit = compute_nb_images_fit_memory(args->seq, 1, ssdata->output_32bits,
+			&MB_per_orig_image, &MB_per_scaled_image, &MB_avail);
+	int is_float = ssdata->input_32bits;
+	int float_multiplier = (is_float) ? 2 : 4; // the sum and weight sum images are always 64-bit
+	unsigned int MB_per_weight_image = MB_per_orig_image * float_multiplier;
+
+	/* The drizzle memory consumption is:
+		* the original image
+		* if the oc_data array is used, this is the same size as the original image
+	*/
+	unsigned int required = MB_per_orig_image * (1 + (int) use_pixcnt);
+	unsigned int overhead = MB_per_weight_image * (1 + (int) use_pixcnt);
+	// 1 x weight image required to hold the output sum, 1 to hold the weight sum
+
+	if (limit > 0) {
+
+		int thread_limit = (MB_avail - overhead) / required;
+		if (thread_limit > com.max_thread)
+			thread_limit = com.max_thread;
+
+		limit = thread_limit;
+	}
+
+	if (limit == 0) {
+		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+
+		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per thread, %s considered available)\n"),
+				"red", args->description, mem_per_thread, mem_available);
+
+		g_free(mem_per_thread);
+		g_free(mem_available);
+	} else {
+#ifdef _OPENMP
+		siril_debug_print("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
+				required, MB_per_scaled_image, limit, "threads");
+#else
+		limit = 1;
+#endif
+	}
+	return limit;
+}
+
 int stack_summing_generic(struct stacking_args *stackargs) {
 	struct generic_seq_args *args = create_default_seqargs(stackargs->seq);
 	args->filtering_criterion = stackargs->filtering_criterion;
 	args->filtering_parameter = stackargs->filtering_parameter;
 	args->nb_filtered_images = stackargs->nb_images_to_stack;
+	args->compute_mem_limits_hook = compute_sumstack_mem_limits;
 	args->prepare_hook = sum_stacking_prepare_hook;
 	args->image_hook = sum_stacking_image_hook;
 	args->finalize_hook = sum_stacking_finalize_hook;
