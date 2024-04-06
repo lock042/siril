@@ -316,33 +316,6 @@ set_pixel(fits *image, integer_t xpix, integer_t ypix, integer_t chan, float val
   return;
 }
 
-/* For the context image we will blatantly misuse a FITS structure (because it's
- * convenient) by storing integer_t (aka uint8_t) data in the fdata array. This
- * applies to the next 3 functions.
- *
- * NOTE: the context image is optional, so for the moment we are simply not using it.
- *
- * TODO: this should really be made less ugly!! */
-
-static inline_macro int
-get_bit(fits *image, integer_t xpix, integer_t ypix, integer_t bitval) {
-  integer_t value;
-  value = *(integer_t*) (image->fdata + xpix + ypix * image->rx) & bitval;
-  return value? 1 : 0;
-}
-
-static inline_macro void
-set_bit(fits *image, integer_t xpix, integer_t ypix, integer_t bitval) {
-  *(integer_t*) (image->fdata + xpix + ypix * image->rx) |= bitval;
-  return;
-}
-
-static inline_macro void
-unset_bit(fits *image, integer_t xpix, integer_t ypix) {
-  *(integer_t*) (image->fpdata + ypix * image->rx +xpix) = 0;
-  return;
-}
-
 static inline_macro int FC(const size_t row, const size_t col, const size_t dim, const char *cfa) {
 	return !cfa ? 0 : cfa[(col % dim) + (row % dim) * dim] - '0';
 }
