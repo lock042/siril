@@ -210,8 +210,6 @@ struct driz_param_t {
   // Siril typically works with images directly from a camera, with pixel values
   // representing counts. These are automatically initialised to counts in the
   // initializer but are left in the struct in case they are ever of use.
-  integer_t       uuid; /* was: UNIQID */
-  // This is only for building context images; Siril doesn't build a context image.
 
   /* Scaling */
   float scale;
@@ -225,13 +223,6 @@ struct driz_param_t {
   integer_t ymin;
   integer_t ymax;
 
-  /* Blotting-specific parameters */
-/*  enum e_interp_t interpolation; // was INTERP
-  float ef;
-  float misval;
-  float sinscl;
-  float kscale;*/
-
   /* Input images */
   fits *data; // Per-image
   fits *weights; // Per-image
@@ -240,7 +231,6 @@ struct driz_param_t {
   /* Output images */
   fits *output_data;
   fits *output_counts;  /* was: COU */
-//  fits *output_context; /* was: CONTIM */
 
   /* Other output */
   integer_t nmiss;
@@ -392,22 +382,6 @@ max_floats(const float* a, const integer_t size) {
       value = *a;
   return value;
 }
-
-/**
-Evaluate a 3rd order radial geometric distortion in 2d
-X version. Note that there is no zero order coefficient
-as this is physically meaningless.
-
-@param x The x coordinate
-
-@param y The y coordinate
-
-@param co An array of length 4 of coefficients
-
-@param[out] xo The distorted x coordinate
-
-@param[out] yo The distorted y coordinate
-*/
 
 // High level function to apply drizzle
 int apply_drizzle(struct driz_args_t *driz);
