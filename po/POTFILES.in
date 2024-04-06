@@ -101,6 +101,10 @@ src/core/siril_log.c
 src/core/siril_update.c
 src/core/undo.c
 src/core/utils.c
+src/drizzle/applydrizzle.c
+src/drizzle/cdrizzlebox.c
+src/drizzle/cdrizzlemap.c
+src/drizzle/cdrizzleutil.c
 src/filters/asinh.c
 src/filters/banding.c
 src/filters/clahe.c
@@ -126,6 +130,7 @@ src/gui/cut.c
 src/gui/colors.c
 src/gui/dialog_preview.c
 src/gui/documentation.c
+src/gui/drizzle_gui.c
 src/gui/histogram.c
 src/gui/icc_profile.c
 src/gui/keywords_tree.c

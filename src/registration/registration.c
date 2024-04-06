@@ -285,31 +285,36 @@ int register_shift_dft(struct registration_args *args) {
 		clearfits(&fit_ref);
 		return ret;
 	}
-	if (args->seq->type == SEQ_SER && args->seq->ser_file) {
-		switch (args->seq->ser_file->color_id) {
-			case SER_BAYER_RGGB:
-				strcpy(pattern, "RGGB");
-				break;
-			case SER_BAYER_GRBG:
-				strcpy(pattern, "GRGB");
-				break;
-			case SER_BAYER_GBRG:
-				strcpy(pattern, "GBRG");
-				break;
-			case SER_BAYER_BGGR:
-				strcpy(pattern, "BGGR");
-				break;
-			default:
-				siril_log_message(_("Unsupported SER CFA pattern detected. Treating as mono.\n"));
+	if (args->seq->nb_layers == 1) {
+		if (args->seq->type == SEQ_SER && args->seq->ser_file) {
+			switch (args->seq->ser_file->color_id) {
+				case SER_MONO:
+					strcpy(pattern, "");
+					break;
+				case SER_BAYER_RGGB:
+					strcpy(pattern, "RGGB");
+					break;
+				case SER_BAYER_GRBG:
+					strcpy(pattern, "GRGB");
+					break;
+				case SER_BAYER_GBRG:
+					strcpy(pattern, "GBRG");
+					break;
+				case SER_BAYER_BGGR:
+					strcpy(pattern, "BGGR");
+					break;
+				default:
+					siril_log_message(_("Error: SER file has wrong type. Cannot proceed.\n"));
+					return -2;
+			}
+		} else {
+			strcpy(pattern, fit_ref.bayer_pattern);
 		}
-	} else {
-		strcpy(pattern, fit_ref.bayer_pattern);
+		strcpy(fit_ref.bayer_pattern, pattern);
+		fit_ref.bayer_xoffset = args->selection.x;
+		fit_ref.bayer_yoffset = args->selection.y;
+		interpolate_nongreen(&fit_ref);
 	}
-	strcpy(fit_ref.bayer_pattern, pattern);
-	fit_ref.bayer_xoffset = args->selection.x;
-	fit_ref.bayer_yoffset = args->selection.y;
-	interpolate_nongreen(&fit_ref);
-
 	gettimeofday(&t_start, NULL);
 
 	ref = fftwf_malloc(sizeof(fftwf_complex) * sqsize);

@@ -88,8 +88,9 @@ shrink_image_section(fits *pixmap, int *xmin, int *xmax, int *ymin,
     jmin = j2;
 
     for (j = j1; j <= j2; ++j) {
+		int jrx = j * pixmap->rx;
         for (i = i1; i <= i2; ++i) {
-            pv = (float *)pixmap->fdata + j * pixmap->rx +i;
+            pv = (float *)pixmap->fdata + jrx + i;
             if (!(npy_isnan(pv[0]) || npy_isnan(pv[1]))) {
                 if (i < imin) {
                     imin = i;
@@ -106,8 +107,9 @@ shrink_image_section(fits *pixmap, int *xmin, int *xmax, int *ymin,
     jmax = jmin;
 
     for (j = j2; j >= j1; --j) {
+		int jrx = j * pixmap->rx;
         for (i = i2; i >= i1; --i) {
-            pv = (float *) pixmap->fdata + j * pixmap->rx + i;
+            pv = (float *) pixmap->fdata + jrx + i;
             if (!(npy_isnan(pv[0]) || npy_isnan(pv[1]))) {
                 if (i > imax) {
                     imax = i;
@@ -354,10 +356,13 @@ int map_image_coordinates_h(fits *fit, Homography H, imgmap_t *p, int target_ry,
 	p->pixmap = malloc(rx * source_ry * 2 * sizeof(float));
 
 	for (y = 0; y < source_ry; y++) {
+		float y1 = y * Harr[7] + Harr[8];
+		float y2 = y * Harr[1] + Harr[2];
+		float y3 = y * Harr[4] + Harr[5];
 		for (x = 0; x < rx; x++) {
-			float z = x * Harr[6] + y * Harr[7] + Harr[8];
-			p->pixmap[index++] = scale * (x * Harr[0] + y * Harr[1] + Harr[2]) / z;
-			p->pixmap[index++] = scale * (x * Harr[3] + y * Harr[4] + Harr[5]) / z;
+			float z = scale / (x * Harr[6] + y1);
+			p->pixmap[index++] = (x * Harr[0] + y2) * z;
+			p->pixmap[index++] = (x * Harr[3] + y3) * z;
 		}
 	}
 	return 0;

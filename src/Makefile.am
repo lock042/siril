@@ -164,6 +164,14 @@ siril_common_SOURCES = \
 	core/undo.c \
 	core/undo.h \
 	core/utils.c \
+	drizzle/applydrizzle.c \
+	drizzle/cdrizzlebox.c \
+	drizzle/cdrizzlebox.h \
+	drizzle/cdrizzlemap.c \
+	drizzzle/cdrizzlemap.h \
+	drizzle/cdrizzleutil.c \
+	drizzle/cdrizzleutil.h \
+	drizzle/driz_portability.h \
 	filters/asinh.c \
 	filters/asinh.h \
 	filters/banding.c \
@@ -252,6 +260,8 @@ siril_common_SOURCES = \
 	gui/dialogs.h \
 	gui/documentation.c \
 	gui/documentation.h \
+	gui/drizzle_gui.c \
+	gui/drizzle_gui.h \
 	gui/fix_xtrans_af.c \
 	gui/fix_xtrans_af.h \
 	gui/histogram.c \

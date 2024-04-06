@@ -7184,7 +7184,6 @@ int process_seq_applydrizzle(int nb) {
 	driz->kernel = (enum e_kernel_t) kernel_turbo;
 	driz->pixel_fraction = 1.f;
 	driz->framing = FRAMING_MIN;
-	get_reg_sequence_filtering_from_gui(&driz->filtering_criterion, &driz->filtering_parameter, -1);
 	for (int i = 2; i < nb; i++) {
 		if (g_str_has_prefix(word[i], "-prefix=")) {
 			char *current = word[i], *value;
@@ -7299,59 +7298,6 @@ int process_seq_applydrizzle(int nb) {
 						goto drizzle_error;
 					}
 				}
-			}
-		} else if (g_str_has_prefix(word[i], "-bias=")) {
-			if (bias_image_set || bias_level_set) {
-				siril_log_color_message(_("Error: bias already set. Aborting.\n"), "red");
-				goto drizzle_error;
-			}
-			if (seq->is_variable) {
-				siril_log_color_message(_("Error: flat image cannot work with variable sized sequence.\n"), "red");
-				goto drizzle_error;
-			}
-			char *offset_filename = word[i] + 6;
-			fits reffit = { 0 };
-			gchar *error = NULL;
-			if (offset_filename[0] == '\0') {
-				siril_log_color_message(_("Error: no master bias specified in the preprocessing tab.\n"), "red");
-				goto drizzle_error;
-			} else if (offset_filename[0] == '=') { // offset is specified as a level not a file
-				int offsetlevel = evaluateoffsetlevel(offset_filename + 1, &reffit);
-				if (!offsetlevel) {
-					error = _("NOT USING OFFSET: the offset value could not be parsed");
-					driz->use_bias = FALSE;
-				} else {
-					int maxlevel = (seq->bitpix == BYTE_IMG) ? UCHAR_MAX : USHRT_MAX;
-					if ((offsetlevel > maxlevel) || (offsetlevel < -maxlevel) ) {   // not excluding all neg values here to allow defining a pedestal
-						error = _("NOT USING OFFSET: the offset value is not consistent with image bitdepth");
-						driz->use_bias = FALSE;
-					} else {
-						bias_level = (float) offsetlevel;
-						bias_level *= (seq->bitpix == BYTE_IMG) ? INV_UCHAR_MAX_SINGLE : INV_USHRT_MAX_SINGLE; //converting to [0 1] to use with soper
-						bias_level_set = TRUE;
-					}
-				}
-			} else {
-				int status;
-				path_parse(&reffit, offset_filename, PATHPARSE_MODE_READ, &status);
-				if (status) {
-					error = _("NOT USING OFFSET: could not parse the expression\n");
-				} else {
-					if (!readfits(offset_filename, &bias, NULL, TRUE)) {
-						if (bias.naxes[2] != seq->nb_layers) {
-							error = _("NOT USING BIAS: number of channels is different");
-						} else if (bias.naxes[0] != seq->rx ||
-								bias.naxes[1] != seq->ry) {
-							error = _("NOT USING BIAS: image dimensions are different");
-						} else {
-							bias_image_set = TRUE;
-						}
-					} else error = _("NOT USING BIAS: cannot open the file");
-				}
-			}
-			if (error) {
-				siril_log_color_message("%s\n", "red", error);
-				goto drizzle_error;
 			}
 		} else if (parse_filter_args(word[i], &driz->filters)) {
 			convert_parsed_filter_to_filter(&driz->filters, driz->seq, &driz->filtering_criterion, &driz->filtering_parameter);
@@ -7657,6 +7603,9 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 			}
 		} else if (g_str_has_prefix(current, "-drz_oc")) {
 			arg->use_oc = TRUE;
+		} else {
+			siril_log_message(_("Unexpected argument to stacking `%s', aborting.\n"), current);
+			return CMD_ARG_ERROR;
 		}
 		first++;
 	}

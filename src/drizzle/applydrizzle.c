@@ -465,7 +465,6 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	driz->imgparam[out_index].rx *= p->scale;
 	driz->imgparam[out_index].ry *= p->scale;
 	driz->success[out_index] = 1;
-	driz->new_total++; // is this thread safe?
 	return 0;
 }
 
@@ -583,7 +582,8 @@ static int apply_drz_save_hook(struct generic_seq_args *args, int out_index, int
 			dest = fit_sequence_get_image_filename_prefixed(args->seq, driz->pixcnt_prefix, in_index);
 			if (com.pref.force_16bit) {
 				float factor = max(1.f, (1.f / (driz->scale * driz->scale)));
-				soper(double_data->pixel_count, factor, OPER_MUL, FALSE);
+				if (abs(factor - 1.f) > FLT_EPSILON)
+					soper(double_data->pixel_count, factor, OPER_MUL, FALSE);
 				fit_replace_buffer(	double_data->pixel_count,
 									float_buffer_to_ushort( double_data->pixel_count->fdata,
 															(double_data->pixel_count->rx *
@@ -812,107 +812,6 @@ int apply_drizzle(struct driz_args_t *driz) {
 		return 1;
 	}
 
-	if (driz->use_flats) {
-		fits reffit = { 0 };
-		GtkEntry *entry = GTK_ENTRY(lookup_widget("flatname_entry"));
-		const gchar *flat_filename = gtk_entry_get_text(entry);
-		gchar *error = NULL;
-		int status;
-		gchar *expression = path_parse(&reffit, flat_filename, PATHPARSE_MODE_READ, &status);
-		if (status) {
-			error = _("NOT USING FLAT: could not parse the expression");
-			driz->use_flats = FALSE;
-		} else {
-			free(expression);
-			if (flat_filename[0] == '\0') {
-				siril_log_message(_("Error: no master flat specified in the preprocessing tab.\n"));
-				return 1;
-			} else {
-				set_progress_bar_data(_("Opening flat image..."), PROGRESS_NONE);
-				driz->flat = calloc(1, sizeof(fits));
-				if (!readfits(flat_filename, driz->flat, NULL, TRUE)) {
-					if (driz->flat->naxes[2] != fit.naxes[2]) {
-						error = _("NOT USING FLAT: number of channels is different");
-					} else if (driz->flat->naxes[0] != fit.naxes[0] ||
-							driz->flat->naxes[1] != fit.naxes[1]) {
-						error = _("NOT USING FLAT: image dimensions are different");
-					} else {
-						// no need to deal with bitdepth conversion as readfits has already forced conversion to float
-						siril_log_message(_("Master flat read for use as initial pixel weight\n"));
-					}
-
-				} else error = _("NOT USING FLAT: cannot open the file");
-				if (error) {
-					siril_log_color_message("%s\n", "red", error);
-					set_progress_bar_data(error, PROGRESS_DONE);
-					if (driz->flat) {
-						clearfits(driz->flat);
-						free(driz->flat);
-					}
-					return 1;
-				}
-				if (driz->use_bias) {
-					entry = GTK_ENTRY(lookup_widget("offsetname_entry"));
-					const gchar *offset_filename = gtk_entry_get_text(entry);
-					if (offset_filename[0] == '\0') {
-						siril_log_message(_("Error: no master bias specified in the preprocessing tab.\n"));
-						return 1;
-					} else if (offset_filename[0] == '=') { // offset is specified as a level not a file
-						set_progress_bar_data(_("Checking offset level..."), PROGRESS_NONE);
-						int offsetlevel = evaluateoffsetlevel(offset_filename + 1, &fit);
-						if (!offsetlevel) {
-							error = _("NOT USING OFFSET: the offset value could not be parsed");
-							driz->use_bias = FALSE;
-						} else {
-							siril_log_message(_("Synthetic offset: Level = %d\n"),offsetlevel);
-							int maxlevel = (fit.orig_bitpix == BYTE_IMG) ? UCHAR_MAX : USHRT_MAX;
-							if ((offsetlevel > maxlevel) || (offsetlevel < -maxlevel) ) {   // not excluding all neg values here to allow defining a pedestal
-								error = _("NOT USING OFFSET: the offset value is not consistent with image bitdepth");
-								driz->use_bias = FALSE;
-							} else {
-								float bias_level = (float)offsetlevel;
-								bias_level *= (fit.orig_bitpix == BYTE_IMG) ? INV_UCHAR_MAX_SINGLE : INV_USHRT_MAX_SINGLE; //converting to [0 1] to use with soper
-								soper(driz->flat, bias_level, OPER_SUB, TRUE);
-								siril_log_message(_("Bias level subtracted from master flat for use as initial pixel weighting\n"));
-							}
-						}
-					} else {
-						int status;
-						expression = path_parse(&reffit, offset_filename, PATHPARSE_MODE_READ, &status);
-						if (status) {
-							error = _("NOT USING OFFSET: could not parse the expression\n");
-						} else {
-							set_progress_bar_data(_("Opening master bias image..."), PROGRESS_NONE);
-							fits bias = { 0 };
-							if (!readfits(offset_filename, &bias, NULL, TRUE)) {
-								if (bias.naxes[2] != fit.naxes[2]) {
-									error = _("NOT USING BIAS: number of channels is different");
-								} else if (bias.naxes[0] != fit.naxes[0] ||
-										bias.naxes[1] != fit.naxes[1]) {
-									error = _("NOT USING BIAS: image dimensions are different");
-								} else {
-									imoper(driz->flat, &bias, OPER_SUB, TRUE);
-									siril_log_message(_("Master bias subtracted from master flat for use as initial pixel weighting\n"));
-									// no need to deal with bitdepth conversion as flat is just a division (unlike darks which need to be on same scale)
-								}
-							} else error = _("NOT USING BIAS: cannot open the file");
-							clearfits(&bias);
-						}
-					}
-					if (error) {
-						siril_log_color_message("%s\n", "red", error);
-						set_progress_bar_data(error, PROGRESS_DONE);
-						if (driz->flat) {
-							clearfits(driz->flat);
-							free(driz->flat);
-						}
-						return 1;
-					}
-				}
-			}
-		}
-	}
-
 /*	if (driz->use_wcs) {
 		if (!fit.wcslib) {
 			siril_log_color_message(_("Error: reference image is not plate solved. Unable to drizzle using WCS data.\n"), "red");
@@ -935,9 +834,13 @@ int apply_drizzle(struct driz_args_t *driz) {
 */
 
 	sensor_pattern pattern;
-	if (args->seq->type == SEQ_SER && args->seq->ser_file) {
+	if (args->seq->type == SEQ_SER && args->seq->ser_file ) {
 		driz->is_bayer = TRUE;
 		switch (args->seq->ser_file->color_id) {
+			case SER_MONO:
+				pattern = get_cfa_pattern_index_from_string("");
+				driz->is_bayer = FALSE;
+				break;
 			case SER_BAYER_RGGB:
 				pattern = get_cfa_pattern_index_from_string("RGGB");
 				break;
