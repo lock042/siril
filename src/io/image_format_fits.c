@@ -1881,6 +1881,7 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 		to->fpdata[1] = NULL;
 		to->fpdata[2] = NULL;
 		to->header = NULL;
+		to->unknown_keys = NULL;
 		to->history = NULL;
 		to->keywords.date = NULL;
 		to->keywords.date_obs = NULL;
@@ -2043,6 +2044,7 @@ int extract_fits(fits *from, fits *to, int channel, gboolean to_float) {
 	to->stats = NULL;
 	to->fptr = NULL;
 	to->header = NULL;
+	to->unknown_keys = NULL;
 	to->history = NULL;
 	to->keywords.date = NULL;
 	to->keywords.date_obs = NULL;
@@ -2137,6 +2139,7 @@ void copy_fits_metadata(fits *from, fits *to) {
     memcpy(&to->keywords.dft, &from->keywords.dft, sizeof(dft_info));
     memcpy(&to->keywords.wcsdata, &from->keywords.wcsdata, sizeof(wcs_info));
 
+	to->keywords.date = NULL; // will be set at save
 	// Copy date_obs
 	to->keywords.date_obs = NULL;
 	if (from->keywords.date_obs) {

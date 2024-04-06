@@ -537,70 +537,72 @@ int save_fits_keywords(fits *fit) {
 		}
 
 		switch (keys->type) {
-			case KTYPE_INT:
-				status = 0;
-				ii = (*((int*)keys->data));
-				if (ii > DEFAULT_INT_VALUE) {
-					fits_update_key(fit->fptr, TINT, keys->key, &ii, keys->comment, &status);
-				}
-				break;
-			case KTYPE_UINT:
-				status = 0;
-				ui = (*((guint*)keys->data));
-				if (ui) {
-					fits_update_key(fit->fptr, TUINT, keys->key, &ui, keys->comment, &status);
-				}
-				break;
-			case KTYPE_USHORT:
-				status = 0;
-				us = (*((int*)keys->data));
-				if (us) {
-					fits_update_key(fit->fptr, TUSHORT, keys->key, &us, keys->comment, &status);
-				}
-				break;
-			case KTYPE_DOUBLE:
-				status = 0;
-				dbl = *((double*)keys->data);
-				if (dbl > DEFAULT_DOUBLE_VALUE) {
-					fits_update_key(fit->fptr, TDOUBLE, keys->key, &dbl, keys->comment, &status);
-				}
-				break;
-			case KTYPE_FLOAT:
-				status = 0;
-				flt = *((float*)keys->data);
-				if (flt > DEFAULT_FLOAT_VALUE) {
-					fits_update_key(fit->fptr, TFLOAT, keys->key, &flt, keys->comment, &status);
-				}
-				break;
-			case KTYPE_STR:
-				status = 0;
-				str = ((gchar*)keys->data);
-				if (str && str[0] != '\0') {
-					fits_update_key(fit->fptr, TSTRING, keys->key, str, keys->comment, &status);
-				}
-				break;
-			case KTYPE_DATE:
-				status = 0;
-				date = *((GDateTime**)keys->data);
+		case KTYPE_INT:
+			status = 0;
+			ii = (*((int*) keys->data));
+			if (ii > DEFAULT_INT_VALUE) {
+				fits_update_key(fit->fptr, TINT, keys->key, &ii, keys->comment, &status);
+			}
+			break;
+		case KTYPE_UINT:
+			status = 0;
+			ui = (*((guint*) keys->data));
+			if (ui) {
+				fits_update_key(fit->fptr, TUINT, keys->key, &ui, keys->comment, &status);
+			}
+			break;
+		case KTYPE_USHORT:
+			status = 0;
+			us = (*((int*) keys->data));
+			if (us) {
+				fits_update_key(fit->fptr, TUSHORT, keys->key, &us, keys->comment, &status);
+			}
+			break;
+		case KTYPE_DOUBLE:
+			status = 0;
+			dbl = *((double*) keys->data);
+			if (dbl > DEFAULT_DOUBLE_VALUE) {
+				fits_update_key(fit->fptr, TDOUBLE, keys->key, &dbl, keys->comment, &status);
+			}
+			break;
+		case KTYPE_FLOAT:
+			status = 0;
+			flt = *((float*) keys->data);
+			if (flt > DEFAULT_FLOAT_VALUE) {
+				fits_update_key(fit->fptr, TFLOAT, keys->key, &flt, keys->comment, &status);
+			}
+			break;
+		case KTYPE_STR:
+			status = 0;
+			str = ((gchar*) keys->data);
+			if (str && str[0] != '\0') {
+				fits_update_key(fit->fptr, TSTRING, keys->key, str, keys->comment, &status);
+			}
+			break;
+		case KTYPE_DATE:
+			status = 0;
+			if (g_strcmp0("DATE", keys->key) == 0) {
+				int itmp;
+				char fit_date[40];
+				fits_get_system_time(fit_date, &itmp, &status);
+				fits_update_key(fit->fptr, TSTRING, keys->key, fit_date, keys->comment, &status);
+			} else {
+				date = *((GDateTime**) keys->data);
 				if (date) {
-					if (!g_strcmp0("DATE", keys->key)) {
-						int itmp;
-						char fit_date[40];
-						fits_get_system_time(fit_date, &itmp, &status);
-						fits_update_key(fit->fptr, TSTRING, keys->key, fit_date, keys->comment, &status);
-					} else {
-						gchar *formatted_date = date_time_to_FITS_date(date);
-						fits_update_key(fit->fptr, TSTRING, keys->key, formatted_date, keys->comment, &status);
-						g_free(formatted_date);
-					}
+					gchar *formatted_date = date_time_to_FITS_date(date);
+					fits_update_key(fit->fptr, TSTRING, keys->key, formatted_date, keys->comment, &status);
+					g_free(formatted_date);
 				}
-				break;
-			case KTYPE_BOOL:
-				status = 0;
-				fits_update_key(fit->fptr, TLOGICAL, keys->key, &(*((gboolean*)keys->data)), keys->comment, &status);
-				break;
-			default:
-				siril_debug_print("Save_fits_keywords: Error. Type is not handled.\n");
+			}
+			break;
+		case KTYPE_BOOL:
+			status = 0;
+			fits_update_key(fit->fptr, TLOGICAL, keys->key,
+					&(*((gboolean*) keys->data)), keys->comment, &status);
+			break;
+		default:
+			siril_debug_print(
+					"Save_fits_keywords: Error. Type is not handled.\n");
 		}
 		keys++;
 	}
