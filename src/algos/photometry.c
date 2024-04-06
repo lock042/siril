@@ -618,7 +618,7 @@ int occult_curve(struct light_curve_args *lcargs) {
 		return -1;
 	}
 
-	/* get number of valid frames for each star */
+	/* get number of valid frames for each star, nbImages*/
 	int ref_valid_count[MAX_SEQPSF] = { 0 };
 	int nbImages = 0;
 	gboolean ref_valid[MAX_SEQPSF] = { FALSE };
@@ -699,16 +699,17 @@ int occult_curve(struct light_curve_args *lcargs) {
 		/* First data plotted are variable data, others are references
 		 * Variable is done above, now we compute references */
 
-		vmag[j] = target_amp;
+		vmag[j] = target_amp - target_bck;
 
 		j++;
 		
 	}
 	int nb_valid_images = j;
-	double median_val, largest_val, smallest_val;
+	double median_val, largest_val, smallest_val, mean_val;
 	gsl_stats_minmax (&smallest_val, &largest_val, vmag, 1, j);
 	median_val = quickmedian_double(vmag, nb_valid_images);
-	siril_log_color_message(_("med= %lf, min= %lf, max= %lf, nb_valid_images= %i\n"), "red", median_val, smallest_val, largest_val, nb_valid_images);
+	mean_val = gsl_stats_mean(vmag, 1, nb_valid_images);
+	siril_log_color_message(_("med= %lf, min= %lf, max= %lf, mean= %f, nb_valid_images= %i\n"), "red", median_val, smallest_val, largest_val, mean_val, nb_valid_images);
 
 	int julian0 = 0;
 	if (min_date != DBL_MAX)
@@ -717,63 +718,6 @@ int occult_curve(struct light_curve_args *lcargs) {
 	siril_log_message(_("FD-Calibrated data for %d points of the light curve, %d excluded because of invalid photometry\n"), nb_valid_images, seq->selnum - nb_valid_images);
 
 	int ret = 0;
-// ce qui suit n'est ralatif qu'à la courbe, donc inutile
-/*
-	gchar *subtitleimg = generate_lc_subtitle(lcargs->metadata, TRUE);
-	gchar *titleimg;
-	if (!lcargs->target_descr) {
-		titleimg = g_strdup_printf("%s %s", _("Light curve of star"), subtitleimg);
-	} else {
-		titleimg = g_strdup_printf("%s %s%s", _("Light curve of star"), lcargs->target_descr, subtitleimg);
-	}
-	gchar *subtitledat = generate_lc_subtitle(lcargs->metadata, FALSE);
-	gchar *titledat = g_strdup_printf("%s#JD_UT (+ %d)\n", subtitledat, julian0);
-	gchar *xlabel = g_strdup_printf("JD_UT (+ %d)", julian0);
-
-	spl_data = malloc(sizeof(siril_plot_data));
-	init_siril_plot_data(spl_data);
-	siril_plot_set_title(spl_data, titledat);
-	siril_plot_set_xlabel(spl_data, xlabel);
-	spl_data->revertY = TRUE;
-	siril_plot_set_savename(spl_data, "light_curve");
-	spl_data->forsequence = TRUE;
-	double *date0 = malloc(nb_valid_images * sizeof(double));
-	for (int k = 0; k < nb_valid_images; k++)
-		date0[k] = date[k] - julian0;
-	siril_plot_add_xydata(spl_data, _("V-C"), nb_valid_images, date0, vmag, err, NULL);
-	splxyerrdata *lc = (splxyerrdata *)spl_data->plots->data;
-	lc->plots[0]->x_offset = (double)julian0;
-	free(date0);
-
-	// now we sort to have all dates ascending
-	siril_plot_sort_x(spl_data);
-	// saving dat
-	int ret = 0;
-	if (!siril_plot_save_ETD_light_curve(spl_data, filename, TRUE)) {
-		ret = 1;
-		free_siril_plot_data(spl_data);
-		spl_data = NULL; // just in case we try to use it later on
-	} else {
-		// now saving the plot if required
-		siril_plot_set_title(spl_data, titleimg);
-		if (!lcargs->display_graph) { // if not used for display we can free spl_data now
-			gchar *image_name = replace_ext(filename, ".png");
-			siril_plot_save_png(spl_data, image_name, 0, 0);
-			free_siril_plot_data(spl_data);
-			spl_data = NULL; // just in case we try to use it later on
-			g_free(image_name);
-		}
-	}
-	g_free(xlabel);
-	g_free(subtitleimg);
-	g_free(titleimg);
-	g_free(subtitledat);
-	g_free(titledat);
-
-	if (lcargs->display_graph && spl_data)
-		lcargs->spl_data = spl_data;
-
-*/
 
 	free(date);
 	free(vmag);
@@ -806,7 +750,20 @@ void free_occultation_args(struct light_curve_args *args) {
 gpointer occultation_worker(gpointer arg) {
 	int retval = 0;
 	struct light_curve_args *args = (struct light_curve_args *)arg;
-	
+
+	struct seqpsf_args *spsfargs = malloc(sizeof(struct seqpsf_args));
+//	struct generic_seq_args *argss = calloc(1, sizeof(struct generic_seq_args));
+//	struct seqpsf_args *spsfargs = (struct seqpsf_args *)argss->user;
+//	struct generic_seq_args *argss = create_default_seqargs(spsfargs);
+	spsfargs->for_photometry = TRUE;
+	spsfargs->for_occultation = TRUE;
+
+
+
+	struct generic_seq_args *argss = create_default_seqargs(spsfargs);
+	argss->user = spsfargs;
+
+
 	siril_log_message(_("Entering occulation_worker\n"));
 	framing_mode framing = REGISTERED_FRAME;
 //	framing_mode framing = FOLLOW_STAR_FRAME;
@@ -851,6 +808,8 @@ gpointer occultation_worker(gpointer arg) {
 		siril_add_idle(create_new_siril_plot_window, args->spl_data);
 	}
 */
+	free(argss);
+	free(spsfargs);
 	free_occultation_args(args); // this will not free args->spl_data which is free by siril_plot window upon closing
 	siril_add_idle(end_occultation_worker, NULL);
 	return GINT_TO_POINTER(retval);

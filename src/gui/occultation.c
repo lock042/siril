@@ -227,14 +227,15 @@ static void on_find_clicked(GtkDialog* self, gint response_id, gpointer user_dat
 // Test if seq loaded
 
 //	struct phot_config *args = calloc(1, sizeof(struct phot_config));
-	struct seqpsf_args *spsfargs = malloc(sizeof(struct seqpsf_args));
-	spsfargs->for_photometry = TRUE;
+//	struct seqpsf_args *spsfargs = malloc(sizeof(struct seqpsf_args));
+//	spsfargs->for_photometry = TRUE;
 
 	struct light_curve_args *args = calloc(1, sizeof(struct light_curve_args));
 	args->seq = &com.seq;
 	args->layer = layer;
 	start_in_new_thread(occultation_worker, args);
 
+	control_window_switch_to_tab(OUTPUT_LOGS);
 
 	gchar *end;
 	const gchar *text = gtk_entry_get_text(GTK_ENTRY(delay_cam));
