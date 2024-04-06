@@ -494,7 +494,7 @@ do_kernel_lanczos(struct driz_param_t* p) {
     pfo = (float)kernel_order * p->pixel_fraction / p->scale;
 
     if ((lanczos.lut = malloc(nlut * sizeof(float))) == NULL) {
-        driz_error_set_message(p->error, "Out of memory");
+        driz_error_set_message(p->error, _("Out of memory"));
         return driz_error_is_set(p->error);
     }
 
@@ -613,7 +613,7 @@ do_kernel_turbo(struct driz_param_t* p) {
 	const char* cfa = p->cfa;
 	size_t cfadim = !cfa ? 1 : strlen(cfa) == 4 ? 2 : 6;
 
-    driz_log_message("starting do_kernel_turbo");
+    siril_debug_print("starting do_kernel_turbo\n");
     ac = 1.0 / (p->pixel_fraction * p->pixel_fraction);
     pfo = p->pixel_fraction / p->scale / 2.0;
     scale2 = p->scale * p->scale;
@@ -712,7 +712,7 @@ do_kernel_turbo(struct driz_param_t* p) {
         }
     }
 
-    driz_log_message("ending do_kernel_turbo");
+    siril_debug_print("ending do_kernel_turbo\n");
     return 0;
 }
 
@@ -737,7 +737,7 @@ do_kernel_square(struct driz_param_t* p) {
 	size_t cfadim = !cfa ? 1 : strlen(cfa) == 4 ? 2 : 6;
 	integer_t maxarea = 0, mnii, mxii, mnjj, mxjj;
 
-    driz_log_message("starting do_kernel_square");
+    siril_debug_print("starting do_kernel_square\n");
     dh = 0.5 * p->pixel_fraction;
     scale2 = p->scale * p->scale;
 
@@ -858,7 +858,7 @@ do_kernel_square(struct driz_param_t* p) {
     }
 
     printf("do_square max area: %d. (%d, %d) to (%d, %d)\n", maxarea, mnii, mnjj, mxii, mxjj);
-    driz_log_message("ending do_kernel_square");
+    siril_debug_print("ending do_kernel_square\n");
     return 0;
 }
 
@@ -887,7 +887,7 @@ kernel_handler_map[] = {
 int
 dobox(struct driz_param_t* p) {
     kernel_handler_t kernel_handler = NULL;
-    driz_log_message("starting dobox");
+    siril_debug_print("starting dobox\n");
 
     /* Set up a function pointer to handle the appropriate kernel */
     if (p->kernel < kernel_LAST) {
@@ -899,9 +899,9 @@ dobox(struct driz_param_t* p) {
     }
 
     if (kernel_handler == NULL) {
-        driz_error_set_message(p->error, "Invalid kernel type");
+        driz_error_set_message(p->error, _("Invalid kernel type"));
     }
 
-    driz_log_message("ending dobox");
+    siril_debug_print("ending dobox\n");
     return driz_error_is_set(p->error);
 }

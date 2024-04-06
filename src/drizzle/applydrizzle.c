@@ -408,8 +408,10 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	p->weights = driz->flat;
 
 	gettimeofday(&t_start, NULL);
-	if (dobox(p)) // Do the drizzle
+	if (dobox(p)) { // Do the drizzle
+		siril_log_color_message("s\n", p->error->last_message);
 		return 1;
+	}
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, _("Drizzle"));
 
