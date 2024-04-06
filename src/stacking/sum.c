@@ -33,8 +33,11 @@
 #include "registration/registration.h"
 
 struct sum_stacking_data {
+	sequence *pixcnt;	// the pixel_count sequence, for use with drizzle pixel_count
 	guint64 *sum[3];	// the new image's channels
 	double *fsum[3];	// the new image's channels, for float input image
+	guint64 *pcsum[3];	// pixel weighting sum
+	double *fpcsum[3];	// pixel weighting sum, for float input image
 	GList *list_date; // list of dates of every FITS file
 	double livetime;	// sum of the exposures
 	int reglayer;		// layer used for registration data
@@ -47,6 +50,7 @@ struct sum_stacking_data {
 static int sum_stacking_prepare_hook(struct generic_seq_args *args) {
 	struct sum_stacking_data *ssdata = args->user;
 	size_t nbdata = args->seq->ry * args->seq->rx;
+	const gboolean use_pixcnt = ((ssdata->pixcnt != NULL));
 
 	if (ssdata->input_32bits) {
 		ssdata->fsum[0] = calloc(nbdata, sizeof(double) * args->seq->nb_layers);
@@ -62,6 +66,22 @@ static int sum_stacking_prepare_hook(struct generic_seq_args *args) {
 			ssdata->fsum[2] = NULL;
 		}
 		ssdata->sum[0] = NULL;
+		if (use_pixcnt) {
+			ssdata->fpcsum[0] = calloc(nbdata, sizeof(double) * args->seq->nb_layers);
+			if (ssdata->fpcsum[0] == NULL){
+				PRINT_ALLOC_ERR;
+				free(ssdata->fsum[0]);
+				return ST_ALLOC_ERROR;
+			}
+			if(args->seq->nb_layers == 3){
+				ssdata->fpcsum[1] = ssdata->fpcsum[0] + nbdata;
+				ssdata->fpcsum[2] = ssdata->fpcsum[0] + nbdata*2;
+			} else {
+				ssdata->fpcsum[1] = NULL;
+				ssdata->fpcsum[2] = NULL;
+			}
+			ssdata->pcsum[0] = NULL;
+		}
 	} else {
 		ssdata->sum[0] = calloc(nbdata, sizeof(guint64) * args->seq->nb_layers);
 		if (ssdata->sum[0] == NULL){
@@ -76,6 +96,22 @@ static int sum_stacking_prepare_hook(struct generic_seq_args *args) {
 			ssdata->sum[2] = NULL;
 		}
 		ssdata->fsum[0] = NULL;
+		if (use_pixcnt) {
+			ssdata->pcsum[0] = calloc(nbdata, sizeof(guint64) * args->seq->nb_layers);
+			if (ssdata->pcsum[0] == NULL){
+				PRINT_ALLOC_ERR;
+				free(ssdata->sum[0]);
+				return ST_ALLOC_ERROR;
+			}
+			if(args->seq->nb_layers == 3){
+				ssdata->pcsum[1] = ssdata->pcsum[0] + nbdata;
+				ssdata->pcsum[2] = ssdata->pcsum[0] + nbdata*2;
+			} else {
+				ssdata->pcsum[1] = NULL;
+				ssdata->pcsum[2] = NULL;
+			}
+			ssdata->fpcsum[0] = NULL;
+		}
 	}
 
 	ssdata->livetime = 0.0;
@@ -89,6 +125,16 @@ static int sum_stacking_image_hook(struct generic_seq_args *args, int o, int i, 
 	size_t ii, pixel = 0;	// index in sum[0]
 	/* we get some metadata at the same time: date, exposure ... */
 
+	fits *pc = NULL;
+	const gboolean use_pixcnt = ((ssdata->pixcnt != NULL));
+	if (use_pixcnt) {
+		int thread_id = 0;
+#ifdef _OPENMP
+		thread_id = omp_get_thread_num();
+#endif
+		pc = calloc(1, sizeof(fits));
+		seq_read_frame(ssdata->pixcnt, i, pc, TRUE, thread_id);
+	}
 #ifdef _OPENMP
 #pragma omp atomic
 #endif
@@ -117,21 +163,47 @@ static int sum_stacking_image_hook(struct generic_seq_args *args, int o, int i, 
 				if (ii < fit->rx * fit->ry) {
 					for (layer = 0; layer < args->seq->nb_layers; ++layer) {
 						if (ssdata->input_32bits) {
+							if (use_pixcnt) {
 #ifdef _OPENMP
 #pragma omp atomic
 #endif
-							ssdata->fsum[layer][pixel] += (double)fit->fpdata[layer][ii];
+								ssdata->fpcsum[layer][pixel] += (double)pc->fpdata[layer][ii];
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+								ssdata->fsum[layer][pixel] += (double)fit->fpdata[layer][ii] * (double)pc->fpdata[layer][ii];
+							} else {
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+								ssdata->fsum[layer][pixel] += (double)fit->fpdata[layer][ii];
+							}
+						} else {
+							if (use_pixcnt) {
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+								ssdata->pcsum[layer][pixel] += pc->pdata[layer][ii];
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+								ssdata->sum[layer][pixel] += round_to_WORD((double)fit->pdata[layer][ii] * (double)pc->pdata[layer][ii]);
+							} else {
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+ 								ssdata->sum[layer][pixel] += fit->pdata[layer][ii];
+							}
 						}
-						else
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-							ssdata->sum[layer][pixel] += fit->pdata[layer][ii];
 					}
 				}
 			}
 			++pixel;
 		}
+	}
+	if (pc) {
+		clearfits(pc);
+		free(pc);
 	}
 	return ST_OK;
 }
@@ -143,6 +215,7 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 	double fmax = 0.0;
 	size_t i, nbdata;
 	int layer;
+	const gboolean use_pixcnt = ((ssdata->pixcnt != NULL));
 
 	if (args->retval) {
 		if (ssdata->sum[0]) free(ssdata->sum[0]);
@@ -201,18 +274,46 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 			double ratio = 1.0 / fmax;
 			for (layer=0; layer<args->seq->nb_layers; ++layer){
 				double *from = ssdata->fsum[layer];
+				double *fpcsum = NULL;
+				if (use_pixcnt) {
+					fpcsum = ssdata->fpcsum[layer];
+				}
 				float *to = fit->fpdata[layer];
 				for (i=0; i < nbdata; ++i) {
-					*to++ = (float)((double)(*from++) * ratio);
+					if (use_pixcnt) {
+						double divisor = (*fpcsum++);
+						if (!divisor) {
+							*to++ = 0.0;
+							from++;
+						} else {
+							*to++ = (float)((double)(*from++) * ratio / divisor);
+						}
+					} else {
+						*to++ = (float)((double)(*from++) * ratio);
+					}
 				}
 			}
 		} else {
 			double ratio = 1.0 / (max == 0 ? 1 : (double)max);
 			for (layer=0; layer<args->seq->nb_layers; ++layer){
 				guint64 *from = ssdata->sum[layer];
+				guint64 *pcsum = NULL;
+				if (use_pixcnt) {
+					pcsum = ssdata->pcsum[layer];
+				}
 				float *to = fit->fpdata[layer];
 				for (i=0; i < nbdata; ++i) {
-					*to++ = (float)((double)(*from++) * ratio);
+					if (use_pixcnt) {
+						double divisor = (double)(*pcsum++);
+						if (!divisor) {
+							*to++ = 0.0;
+							from++;
+						} else {
+							*to++ = (float)((double)(*from++) * ratio / divisor);
+						}
+					} else {
+						*to++ = (float)((double)(*from++) * ratio);
+					}
 				}
 			}
 		}
@@ -226,16 +327,34 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 		for (layer=0; layer<args->seq->nb_layers; ++layer){
 			guint64 *from = ssdata->sum[layer];
 			WORD *to = fit->pdata[layer];
+			guint64 *pcsum = NULL;
+			if (use_pixcnt) {
+				pcsum = ssdata->pcsum[layer];
+			}
 			for (i=0; i < nbdata; ++i) {
-				if (ratio == 1.0)
-					*to++ = round_to_WORD(*from++);
-				else *to++ = round_to_WORD((double)(*from++) * ratio);
+				if (use_pixcnt) {
+					double divisor = (double) (*pcsum++);
+					if (!divisor) {
+						*to++ = 0.0;
+						from++;
+					} else if (ratio == 1.0) {
+						*to++ = round_to_WORD((double)(*from++) / divisor);
+					} else {
+						*to++ = round_to_WORD((double)(*from++) * ratio / divisor);
+					}
+				} else {
+					if (ratio == 1.0)
+						*to++ = round_to_WORD(*from++);
+					else *to++ = round_to_WORD((double)(*from++) * ratio);
+				}
 			}
 		}
 	}
 
 	if (ssdata->sum[0]) free(ssdata->sum[0]);
 	if (ssdata->fsum[0]) free(ssdata->fsum[0]);
+	if (ssdata->pcsum[0]) free(ssdata->pcsum[0]);
+	if (ssdata->fpcsum[0]) free(ssdata->fpcsum[0]);
 	args->user = NULL;
 
 	return ST_OK;
@@ -253,6 +372,7 @@ int stack_summing_generic(struct stacking_args *stackargs) {
 	args->already_in_a_thread = TRUE;
 
 	struct sum_stacking_data *ssdata = calloc(1, sizeof(struct sum_stacking_data));
+	ssdata->pixcnt = stackargs->pixcnt;
 	ssdata->reglayer = stackargs->reglayer;
 	ssdata->ref_image = stackargs->ref_image;
 	assert(ssdata->ref_image >= 0 && ssdata->ref_image < args->seq->number);

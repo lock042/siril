@@ -703,6 +703,9 @@ void on_comboboxstack_methods_changed (GtkComboBox *box, gpointer user_data) {
 	if (!notebook)
 		notebook = GTK_NOTEBOOK(gtk_builder_get_object(gui.builder, "notebook4"));
 	com.pref.stack.method = gtk_combo_box_get_active(box);
+	gboolean oc_applicable = (com.pref.stack.method == STACK_MEAN ||
+							  com.pref.stack.method == STACK_SUM);
+	gtk_widget_set_visible(lookup_widget("pixcnt_settings"), oc_applicable);
 
 	gtk_notebook_set_current_page(notebook, com.pref.stack.method);
 	update_stack_interface(TRUE);
