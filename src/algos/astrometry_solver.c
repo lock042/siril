@@ -2033,13 +2033,12 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 				NULL, FALSE, TRUE,
 				BRIGHTEST_STARS, com.pref.starfinder_conf.profile, threads);
 	aargs->manual = TRUE;
-	float FWHMx, FWHMy, B;
-	char *units;
-
-	FWHM_stats(aargs->stars, nb_stars, arg->seq->bitpix, &FWHMx, &FWHMy, &units, &B, NULL, 0.);
 	// siril_log_message(_("FWHMx:%*.2f %s\n"), 12, FWHMx, units);
 	// siril_log_message(_("FWHMy:%*.2f %s\n"), 12, FWHMy, units);
 	if (aargs->update_reg && nb_stars) {
+		float FWHMx, FWHMy, B;
+		char *units;
+		FWHM_stats(aargs->stars, nb_stars, arg->seq->bitpix, &FWHMx, &FWHMy, &units, &B, NULL, 0.);
 		regdata *current_regdata = arg->seq->regparam[aargs->layer];
 		current_regdata[o].roundness = FWHMy/FWHMx;
 		current_regdata[o].fwhm = FWHMx;
@@ -2053,6 +2052,7 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 	if (!nb_stars) {
 		siril_log_color_message(_("Image %s did not solve\n"), "red", root);
 		arg->seq->imgparam[o].incl = FALSE;
+		free(aargs);
 		return 1;
 	}
 
