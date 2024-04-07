@@ -48,11 +48,7 @@
 
 static gboolean should_use_keyword(const fits *fit, KeywordInfo keyword) {
 
-	if (g_strcmp0(keyword.key, "BZERO") == 0) {
-		return FALSE; // special case
-	} else 	if (g_strcmp0(keyword.key, "BSCALE") == 0) {
-		return FALSE; // special case
-	} else 	if (g_strcmp0(keyword.key, "MIPS-HI") == 0) {
+	if (g_strcmp0(keyword.key, "MIPS-HI") == 0) {
 		return (fit->type == DATA_USHORT);
 	} else if (g_strcmp0(keyword.key, "MIPS-LO") == 0) {
 		return (fit->type == DATA_USHORT);
@@ -224,6 +220,38 @@ static void fhi_handler_save(fits *fit, KeywordInfo *info) {
 	}
 }
 
+static void bzero_handler_save(fits *fit, KeywordInfo *info) {
+	switch (fit->bitpix) {
+	case BYTE_IMG:
+	case SHORT_IMG:
+		fit->keywords.bzero = 0.0;
+		break;
+	case FLOAT_IMG:
+		fit->keywords.bzero = 0.0;
+		break;
+	default:
+	case USHORT_IMG:
+		fit->keywords.bzero = 32768.0;
+		break;
+	}
+}
+
+static void bscale_handler_save(fits *fit, KeywordInfo *info) {
+	switch (fit->bitpix) {
+	case BYTE_IMG:
+	case SHORT_IMG:
+		fit->keywords.bscale = 1.0;
+		break;
+	case FLOAT_IMG:
+		fit->keywords.bscale = 1.0;
+		break;
+	default:
+	case USHORT_IMG:
+		fit->keywords.bscale = 1.0;
+		break;
+	}
+}
+
 static void program_handler_save(fits *fit, KeywordInfo *info) {
 	strncpy(fit->keywords.program, "Siril "PACKAGE_VERSION, FLEN_VALUE - 1);
 }
@@ -253,8 +281,8 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 	 * variable to the read handle.
 	 */
 	KeywordInfo keyword_list[] = {
-			KEYWORD_PRIMARY( "image", "BZERO", KTYPE_DOUBLE, "Offset data range to that of unsigned short", &(fit->keywords.bzero), bzero_handler_read, NULL),
-			KEYWORD_PRIMARY( "image", "BSCALE", KTYPE_DOUBLE, "Default scaling factor", &(fit->keywords.bscale), bscale_handler_read, NULL),
+			KEYWORD_PRIMARY( "image", "BZERO", KTYPE_DOUBLE, "Offset data range to that of unsigned short", &(fit->keywords.bzero), bzero_handler_read, bzero_handler_save),
+			KEYWORD_PRIMARY( "image", "BSCALE", KTYPE_DOUBLE, "Default scaling factor", &(fit->keywords.bscale), bscale_handler_read, bscale_handler_save),
 			KEYWORD_PRIMARY( "image", "MIPS-HI", KTYPE_USHORT, "Lower visualization cutoff", &(fit->keywords.hi), NULL, NULL),
 			KEYWORD_SECONDA( "image", "CWHITE", KTYPE_USHORT, "Lower visualization cutoff", &(fit->keywords.hi), NULL, NULL),
 			KEYWORD_PRIMARY( "image", "MIPS-LO", KTYPE_USHORT, "Upper visualization cutoff", &(fit->keywords.lo), NULL, NULL),
@@ -525,32 +553,9 @@ int save_fits_keywords(fits *fit) {
 	gushort us;
 	guint ui;
 	int ii;
-	double dbl, zero, scale;
+	double dbl;
 	float flt;
 	GDateTime *date;
-
-	/* Let's start by most important keywords */
-	switch (fit->bitpix) {
-	case BYTE_IMG:
-	case SHORT_IMG:
-		zero = 0.0;
-		scale = 1.0;
-		break;
-	case FLOAT_IMG:
-		zero = 0.0;
-		scale = 1.0;
-		break;
-	default:
-	case USHORT_IMG:
-		zero = 32768.0;
-		scale = 1.0;
-		break;
-	}
-	status = 0;
-	fits_update_key(fit->fptr, TDOUBLE, "BZERO", &zero, "Offset data range to that of unsigned short", &status);
-
-	status = 0;
-	fits_update_key(fit->fptr, TDOUBLE, "BSCALE", &scale, "Default scaling factor",	&status);
 
 	/* Let's save all other keywords */
 	while (keys->group) {
