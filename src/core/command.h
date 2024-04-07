@@ -195,6 +195,7 @@ int	process_seq_profile(int nb);
 int	process_seq_psf(int nb);
 int	process_seq_rl(int nb);
 int	process_seq_sb(int nb);
+int process_seq_scale(int nb);
 int	process_seq_split_cfa(int nb);
 int	process_seq_starnet(int nb);
 int	process_seq_stat(int nb);

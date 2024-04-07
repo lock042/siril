@@ -4372,6 +4372,7 @@ int process_seq_crop(int nb) {
 							free_sequence(seq, TRUE);
 						return CMD_ARG_ERROR;
 					}
+					free(args->prefix);
 					args->prefix = strdup(value);
 				}
 			}
@@ -4379,6 +4380,104 @@ int process_seq_crop(int nb) {
 	}
 
 	crop_sequence(args);
+	return CMD_OK;
+}
+
+int process_seq_scale(int nb) {
+	sequence *seq = load_sequence(word[1], NULL);
+	if (!seq) {
+		return CMD_SEQUENCE_NOT_FOUND;
+	}
+
+	struct scale_sequence_data *args = calloc(1, sizeof(struct scale_sequence_data));
+
+	args->seq = seq;
+	args->prefix = strdup("scaled_");
+	args->scale = 1.0;
+	args->interpolation = OPENCV_AREA;
+	args->clamp = FALSE;
+
+	for (int i = 2; i < nb; i++) {
+		if (word[i]) {
+			if (g_str_has_prefix(word[i], "-prefix=")) {
+				char *current = word[i], *value;
+				value = current + 8;
+				if (value[0] == '\0') {
+					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+					free(args->prefix);
+					free(args);
+					if (!check_seq_is_comseq(seq))
+						free_sequence(seq, TRUE);
+					return CMD_ARG_ERROR;
+				}
+				free(args->prefix);
+				args->prefix = strdup(value);
+			}
+			else if (g_str_has_prefix(word[i], "-scale=")) {
+				char *current = word[i] + 7, *end;
+				args->scale = g_ascii_strtod(current, &end);
+				if (args->scale < 0.01) {
+					siril_log_message(_("Error: scale cannot be less than 0.01, aborting.\n"));
+					if (!check_seq_is_comseq(seq))
+						free_sequence(seq, TRUE);
+					free(args->prefix);
+					return CMD_ARG_ERROR;
+				}
+				if (current == end) {
+					siril_log_message(_("Error parsing argument to -scale= (%s), aborting.\n"), current);
+					if (!check_seq_is_comseq(seq))
+						free_sequence(seq, TRUE);
+					free(args->prefix);
+					return CMD_ARG_ERROR;
+				}
+			}
+			else if (g_str_has_prefix(word[i], "-interp=")) {
+				char *current = word[i], *value;
+				value = current + 8;
+				if (value[0] == '\0') {
+					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+					return CMD_ARG_ERROR;
+				}
+				if(!g_ascii_strncasecmp(value, "nearest", 7) || !g_ascii_strncasecmp(value, "ne", 2)) {
+					args->interpolation = OPENCV_NEAREST;
+					args->clamp = FALSE;
+					continue;
+				}
+				if(!g_ascii_strncasecmp(value, "cubic", 5) || !g_ascii_strncasecmp(value, "cu", 2)) {
+					args->interpolation = OPENCV_CUBIC;
+					args->clamp = TRUE;
+					continue;
+				}
+				if(!g_ascii_strncasecmp(value, "lanczos4", 8) || !g_ascii_strncasecmp(value, "la", 2)) {
+					args->interpolation = OPENCV_LANCZOS4;
+					args->clamp = TRUE;
+					continue;
+				}
+				if(!g_ascii_strncasecmp(value, "linear", 6) || !g_ascii_strncasecmp(value, "li", 2)) {
+					args->interpolation = OPENCV_LINEAR;
+					args->clamp = FALSE;
+					continue;
+				}
+				if(!g_ascii_strncasecmp(value, "area", 4) || !g_ascii_strncasecmp(value, "ar", 2)) {
+					args->interpolation = OPENCV_AREA;
+					args->clamp = FALSE;
+					continue;
+				}
+				siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
+				return CMD_ARG_ERROR;
+			}
+		}
+	}
+	if (fabs(args->scale - 1.0) < 1.e-10) {
+		siril_log_message(_("Scale is 1.0, nothing to do.\n"));
+		free(args->prefix);
+		free(args);
+		if (!check_seq_is_comseq(seq))
+			free_sequence(seq, TRUE);
+		return CMD_GENERIC_ERROR;
+	}
+
+	scale_sequence(args);
 	return CMD_OK;
 }
 

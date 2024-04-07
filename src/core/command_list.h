@@ -190,6 +190,7 @@ static command commands[] = {
 	{"seqplatesolve", 1, "seqplatesolve sequencename [image_center_coords] [-nocrop] [-focal=] [-pixelsize=] [-limitmag=[+-]] [-catalog=] [-localasnet [-blindpos] [-blindres]] [-force][-downscale] [-order=] [-radius=] [-nocache]", process_platesolve, STR_SEQPLATESOLVE, TRUE, REQ_CMD_NO_THREAD},
 	{"seqrl", 1, "seqrl sequencename [-loadpsf=] [-alpha=] [-iters=] [-stop=] [-gdstep=] [-tv] [-fh] [-mul]", process_seq_rl, STR_SEQRL CMD_CAT(RL) STR_RL, TRUE, REQ_CMD_NONE},
 	{"seqsb", 1, "sb sequencename [-loadpsf=] [-alpha=] [-iters=]", process_seq_sb, STR_SEQSB CMD_CAT(SB) STR_SB, TRUE, REQ_CMD_NONE},
+	{"seqscale", 1, "seqscale sequencename -scale= [-interp=] [-prefix=]", process_seq_scale, STR_SEQSCALE, TRUE, REQ_CMD_NO_THREAD},
 	{"seqsplit_cfa", 1, "seqsplit_cfa sequencename [-prefix=]", process_seq_split_cfa, STR_SEQSPLIT_CFA CMD_CAT(SPLIT_CFA) STR_SPLIT_CFA, TRUE, REQ_CMD_NO_THREAD},
 #ifdef HAVE_LIBTIFF
 	{"seqstarnet", 1, "seqstarnet sequencename [-stretch] [-upscale] [-stride=value] [-nostarmask]", process_seq_starnet, STR_SEQSTARNET CMD_CAT(STARNET) STR_STARNET, TRUE, REQ_CMD_NONE},
