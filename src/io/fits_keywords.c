@@ -73,6 +73,25 @@ static gboolean should_use_keyword(const fits *fit, KeywordInfo keyword) {
 
 /****************************** handlers ******************************/
 
+static void bscale_handler_read(fits *fit, const char *comment, KeywordInfo *info) {
+	double scale = 0.0;
+	if (1.0 != scale) {
+		siril_log_message(_("Loaded FITS file has a BSCALE different than 1 (%f)\n"), scale);
+		int status = 0;
+		/* We reset the scaling factors as we don't use it */
+		fits_set_bscale(fit->fptr, 1.0, 0.0, &status);
+	}
+}
+
+static void bzero_handler_read(fits *fit, const char *comment, KeywordInfo *info) {
+	double zero = 0.0;
+	if (0.0 != zero && fit->bitpix == FLOAT_IMG) {
+		fprintf(stdout, "ignoring BZERO\n");
+		int status = 0;
+		fits_set_bscale(fit->fptr, 1.0, 0.0, &status);
+	}
+}
+
 static void pixel_x_handler_read(fits *fit, const char *comment, KeywordInfo *info) {
 	if (fit->keywords.pixel_size_x > 0.0) {
 		fit->pixelkey = TRUE;
@@ -226,6 +245,8 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 	 * variable to the read handle.
 	 */
 	KeywordInfo keyword_list[] = {
+			KEYWORD_PRIMARY( "image", "BZERO", KTYPE_DOUBLE, "Offset data range to that of unsigned short", &(fit->keywords.bzero), bzero_handler_read, NULL),
+			KEYWORD_PRIMARY( "image", "BSCALE", KTYPE_DOUBLE, "Default scaling factor", &(fit->keywords.bscale), bscale_handler_read, NULL),
 			KEYWORD_PRIMARY( "image", "MIPS-HI", KTYPE_USHORT, "Lower visualization cutoff", &(fit->keywords.hi), NULL, NULL),
 			KEYWORD_SECONDA( "image", "CWHITE", KTYPE_USHORT, "Lower visualization cutoff", &(fit->keywords.hi), NULL, NULL),
 			KEYWORD_PRIMARY( "image", "MIPS-LO", KTYPE_USHORT, "Upper visualization cutoff", &(fit->keywords.lo), NULL, NULL),
@@ -527,7 +548,9 @@ int save_fits_keywords(fits *fit) {
 
 	/* Let's save all other keywords */
 	while (keys->group) {
-		if (!keys->is_used || g_strcmp0(keys->group, "wcslib") == 0) {
+		if (!keys->is_used || g_strcmp0(keys->group, "wcslib") == 0
+				|| g_strcmp0(keys->key, "BZERO") == 0
+				|| g_strcmp0(keys->key, "BSCALE") == 0) {
 			keys++;
 			continue;
 		}
@@ -827,24 +850,6 @@ int read_fits_keywords(fits *fit) {
 	gboolean end_of_header = FALSE;
 	GString *unknown_keys = g_string_new(NULL);
 
-	/***** Special cases *****/
-
-	double scale = 0.0, zero = 0.0;
-	fits_read_key(fit->fptr, TDOUBLE, "BSCALE", &scale, NULL, &status);
-	if (!status && 1.0 != scale) {
-		siril_log_message(_("Loaded FITS file has a BSCALE different than 1 (%f)\n"), scale);
-		status = 0;
-		/* We reset the scaling factors as we don't use it */
-		fits_set_bscale(fit->fptr, 1.0, 0.0, &status);
-	}
-
-	status = 0;
-	fits_read_key(fit->fptr, TDOUBLE, "BZERO", &zero, NULL, &status);
-	if (!status && 0.0 != zero && fit->bitpix == FLOAT_IMG) {
-		fprintf(stdout, "ignoring BZERO\n");
-		fits_set_bscale(fit->fptr, 1.0, 0.0, &status);
-	}
-
 	read_fits_date_obs_header(fit);
 
 	fits_get_hdrspace(fit->fptr, &key_number, NULL, &status); /* get # of keywords */
@@ -874,7 +879,7 @@ int read_fits_keywords(fits *fit) {
 		}
 
 		/* These have been already processed */
-		if (g_strcmp0(keyname, "BSCALE") == 0 || g_strcmp0(keyname, "BZERO") == 0 || g_strcmp0(keyname, "DATE-OBS") == 0) {
+		if (g_strcmp0(keyname, "DATE-OBS") == 0) {
 			continue;
 		}
 

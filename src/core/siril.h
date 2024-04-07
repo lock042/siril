@@ -396,6 +396,7 @@ typedef enum { DATA_USHORT, DATA_FLOAT, DATA_UNSUPPORTED } data_type;
 
 typedef struct {
 	/* data obtained from the FITS file */
+	double bscale, bzero;
 	WORD lo;		// MIPS-LO key in FITS file, "Lower visualization cutoff"
 	WORD hi;		// MIPS-HI key in FITS file, "Upper visualization cutoff"
 	float flo, fhi; // Same but float format.
