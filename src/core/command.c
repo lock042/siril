@@ -4383,7 +4383,7 @@ int process_seq_crop(int nb) {
 	return CMD_OK;
 }
 
-int process_seq_scale(int nb) {
+int process_seq_resample(int nb) {
 	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq) {
 		return CMD_SEQUENCE_NOT_FOUND;
@@ -4412,6 +4412,30 @@ int process_seq_scale(int nb) {
 				}
 				free(args->prefix);
 				args->prefix = strdup(value);
+			}
+			else if (g_str_has_prefix(word[1], "-height=")) {
+				char *current = word[i] + 8, *end;
+				double toY = g_ascii_strtod(current, &end);
+				if (toY < 10) {
+					siril_log_message(_("Error: height cannot be less than 10, aborting.\n"));
+					if (!check_seq_is_comseq(seq))
+						free_sequence(seq, TRUE);
+					free(args->prefix);
+					return CMD_ARG_ERROR;
+				}
+				args->scale = toY / (double) seq->ry;
+			}
+			else if (g_str_has_prefix(word[1], "-width=")) {
+				char *current = word[i] + 7, *end;
+				double toX = g_ascii_strtod(current, &end);
+				if (toX < 10) {
+					siril_log_message(_("Error: width cannot be less than 10, aborting.\n"));
+					if (!check_seq_is_comseq(seq))
+						free_sequence(seq, TRUE);
+					free(args->prefix);
+					return CMD_ARG_ERROR;
+				}
+				args->scale = toX / (double) seq->rx;
 			}
 			else if (g_str_has_prefix(word[i], "-scale=")) {
 				char *current = word[i] + 7, *end;
@@ -4467,6 +4491,14 @@ int process_seq_scale(int nb) {
 				return CMD_ARG_ERROR;
 			}
 		}
+	}
+	if (args->scale < 0.1) {
+		siril_log_message(_("Error: scale cannot be less than 0.01, aborting.\n"));
+		free(args->prefix);
+		free(args);
+		if (!check_seq_is_comseq(seq))
+			free_sequence(seq, TRUE);
+		return CMD_GENERIC_ERROR;
 	}
 	if (fabs(args->scale - 1.0) < 1.e-10) {
 		siril_log_message(_("Scale is 1.0, nothing to do.\n"));
