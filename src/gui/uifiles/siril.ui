@@ -6606,9 +6606,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Activate the simplified drizzle algorithm for the processing of this sequence. An up-scale (x2) will be applied to the registered frame or during stacking depending on which registration is chosen, that will result in higher resolution images.
-This option is adapted for under-sampled images, i.e, when the telescope focal length is too short for the pixel size. One may consider that the system is under-sampled when FWHM is smaller than 2 pixels.
-The correct name of this method should be super-resolution stacking, but for a more convenient understanding we called it "Simplified Drizzle x2".
+                                                            <property name="tooltip-text" translatable="yes">The sequence will be registered using the Drizzle algorithm originally developed for use with undersampled Hubble Space Telescope images. This can be useful to improve resolution of your images if they are undersampled. It can also serve as an alternative demosaicing algorithm for OSC images (the CFA pattern must still be present, so you must not debayer them prior to Drizzle) which improves the resolution of the result and yields noise with a characteristic that is easier to treat with noise reduction algorithms. Drizzling mono images with x2 scale or CFA images with x1 scale generally requires a minimum of about 10 frames in the sequence.
 
 WARNING: the counterpart of this technic is that the amount of memory and disk space needed to create and process drizzled images is multiplied by the square of the Drizzle factor.</property>
                                                             <property name="halign">start</property>
