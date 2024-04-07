@@ -28,18 +28,13 @@
 #include <iomanip>
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-#include "opencv2/core/version.hpp"
-#include "opencv2/core/matx.hpp"
+#include <opencv2/core/version.hpp>
+#include <opencv2/core/matx.hpp>
 #define CV_RANSAC FM_RANSAC
 #include <opencv2/calib3d.hpp>
 
 // for mosaics
-#include "opencv2/stitching/detail/blenders.hpp"
-#include "opencv2/stitching/detail/exposure_compensate.hpp"
-#include "opencv2/stitching/detail/seam_finders.hpp"
-#include "opencv2/stitching/detail/warpers.hpp"
-#include "opencv2/stitching/detail/util.hpp"
-#include "opencv2/stitching/warpers.hpp"
+#include <opencv2/stitching/warpers.hpp>
 
 #include "core/siril.h"
 #include "core/siril_log.h"
