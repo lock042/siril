@@ -557,7 +557,6 @@ int save_fits_keywords(fits *fit) {
 	float flt;
 	GDateTime *date;
 
-	/* Let's save all other keywords */
 	while (keys->group) {
 		if (!keys->is_saved || g_strcmp0(keys->group, "wcslib") == 0) {
 			keys++;
@@ -634,8 +633,7 @@ int save_fits_keywords(fits *fit) {
 					&(*((gboolean*) keys->data)), keys->comment, &status);
 			break;
 		default:
-			siril_debug_print(
-					"Save_fits_keywords: Error. Type is not handled.\n");
+			siril_debug_print("Save_fits_keywords: Error. Type is not handled.\n");
 		}
 		keys++;
 	}
