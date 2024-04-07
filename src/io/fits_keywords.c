@@ -300,19 +300,19 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 			KEYWORD_SECONDA( "setup", "FILT-1", KTYPE_STR, "Active filter name", &(fit->keywords.filter), NULL, NULL),
 			KEYWORD_PRIMARY( "setup", "APERTURE", KTYPE_DOUBLE, "Aperture of the instrument", &(fit->keywords.aperture), NULL, NULL),
 			KEYWORD_PRIMARY( "setup", "ISOSPEED", KTYPE_DOUBLE, "ISO camera setting", &(fit->keywords.iso_speed), NULL, NULL),
-			KEYWORD_PRIMARY( "setup", "FOCALLEN", KTYPE_DOUBLE, "Focal length in mm", &(fit->keywords.focal_length), focal_length_handler_read, NULL),
-			KEYWORD_SECONDA( "setup", "FOCAL", KTYPE_DOUBLE, "Focal length in mm", &(fit->keywords.focal_length), focal_length_handler_read, NULL),
-			KEYWORD_SECONDA( "setup", "FLENGTH", KTYPE_DOUBLE, "Focal length in m", &(fit->keywords.flength), flength_handler_read, NULL),
-			KEYWORD_PRIMARY( "setup", "XPIXSZ", KTYPE_DOUBLE, "X pixel size microns", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
-			KEYWORD_SECONDA( "setup", "XPIXELSZ", KTYPE_DOUBLE, "X pixel size microns", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
-			KEYWORD_SECONDA( "setup", "PIXSIZE1", KTYPE_DOUBLE, "X pixel size microns", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
-			KEYWORD_SECONDA( "setup", "PIXSIZEX", KTYPE_DOUBLE, "X pixel size microns", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
-			KEYWORD_SECONDA( "setup", "XPIXSIZE", KTYPE_DOUBLE, "X pixel size microns", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
-			KEYWORD_PRIMARY( "setup", "YPIXSZ", KTYPE_DOUBLE, "X pixel size microns", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
-			KEYWORD_SECONDA( "setup", "YPIXELSZ", KTYPE_DOUBLE, "X pixel size microns", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
-			KEYWORD_SECONDA( "setup", "PIXSIZE2", KTYPE_DOUBLE, "X pixel size microns", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
-			KEYWORD_SECONDA( "setup", "PIXSIZEY", KTYPE_DOUBLE, "X pixel size microns", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
-			KEYWORD_SECONDA( "setup", "YPIXSIZE", KTYPE_DOUBLE, "X pixel size microns", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
+			KEYWORD_PRIMARY( "setup", "FOCALLEN", KTYPE_DOUBLE, "[mm] Focal length", &(fit->keywords.focal_length), focal_length_handler_read, NULL),
+			KEYWORD_SECONDA( "setup", "FOCAL", KTYPE_DOUBLE, "[mm] Focal length", &(fit->keywords.focal_length), focal_length_handler_read, NULL),
+			KEYWORD_SECONDA( "setup", "FLENGTH", KTYPE_DOUBLE, "[m] Focal length", &(fit->keywords.flength), flength_handler_read, NULL),
+			KEYWORD_PRIMARY( "setup", "XPIXSZ", KTYPE_DOUBLE, " [µm] Pixel X axis size", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
+			KEYWORD_SECONDA( "setup", "XPIXELSZ", KTYPE_DOUBLE, "[µm] Pixel X axis size", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
+			KEYWORD_SECONDA( "setup", "PIXSIZE1", KTYPE_DOUBLE, "[µm] Pixel X axis size", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
+			KEYWORD_SECONDA( "setup", "PIXSIZEX", KTYPE_DOUBLE, "[µm] Pixel X axis size", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
+			KEYWORD_SECONDA( "setup", "XPIXSIZE", KTYPE_DOUBLE, "[µm] Pixel X axis size", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
+			KEYWORD_PRIMARY( "setup", "YPIXSZ", KTYPE_DOUBLE, "[µm] Pixel Y axis size", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
+			KEYWORD_SECONDA( "setup", "YPIXELSZ", KTYPE_DOUBLE, "[µm] Pixel Y axis size", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
+			KEYWORD_SECONDA( "setup", "PIXSIZE2", KTYPE_DOUBLE, "[µm] Pixel Y axis size", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
+			KEYWORD_SECONDA( "setup", "PIXSIZEY", KTYPE_DOUBLE, "[µm] Pixel Y axis size", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
+			KEYWORD_SECONDA( "setup", "YPIXSIZE", KTYPE_DOUBLE, "[µm] Pixel Y axis size", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
 			KEYWORD_PRIMARY( "setup", "XBINNING", KTYPE_UINT, "Camera binning mode", &(fit->keywords.binning_x), binning_x_handler_read, NULL),
 			KEYWORD_SECONDA( "setup", "BINX", KTYPE_UINT, "Camera binning mode", &(fit->keywords.binning_x), binning_x_handler_read, NULL),
 			KEYWORD_PRIMARY( "setup", "YBINNING", KTYPE_UINT, "Camera binning mode", &(fit->keywords.binning_y), binning_y_handler_read, NULL),
@@ -323,27 +323,27 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 			KEYWORD_SECONDA( "setup", "TEMPERAT", KTYPE_DOUBLE, "CCD temp in C", &(fit->keywords.ccd_temp), NULL, NULL),
 			KEYWORD_SECONDA( "setup", "CAMTCCD", KTYPE_DOUBLE, "CCD temp in C", &(fit->keywords.ccd_temp), NULL, NULL),
 			KEYWORD_PRIMARY( "setup", "SET-TEMP", KTYPE_DOUBLE, "Temperature setting in C", &(fit->keywords.set_temp), NULL, NULL),
-			KEYWORD_PRIMARY( "setup", "GAIN", KTYPE_USHORT, "Camera gain", &(fit->keywords.key_gain), NULL, NULL),
-			KEYWORD_PRIMARY( "setup", "OFFSET", KTYPE_USHORT, "Camera offset", &(fit->keywords.key_offset), NULL, NULL),
-			KEYWORD_SECONDA( "setup", "BLKLEVEL", KTYPE_USHORT, "Camera offset", &(fit->keywords.key_offset), NULL, NULL),
-			KEYWORD_PRIMARY( "setup", "CVF", KTYPE_DOUBLE, "Conversion factor (e-/adu)", &(fit->keywords.cvf), NULL, NULL),
-			KEYWORD_SECONDA( "setup", "EGAIN", KTYPE_DOUBLE, "Conversion factor (e-/adu)", &(fit->keywords.cvf), NULL, NULL),
+			KEYWORD_PRIMARY( "setup", "GAIN", KTYPE_USHORT, "Sensor gain", &(fit->keywords.key_gain), NULL, NULL),
+			KEYWORD_PRIMARY( "setup", "OFFSET", KTYPE_USHORT, "Sensor gain offset", &(fit->keywords.key_offset), NULL, NULL),
+			KEYWORD_SECONDA( "setup", "BLKLEVEL", KTYPE_USHORT, "Sensor gain offset", &(fit->keywords.key_offset), NULL, NULL),
+			KEYWORD_PRIMARY( "setup", "CVF", KTYPE_DOUBLE, "[e-/ADU] Electrons per A/D unit", &(fit->keywords.cvf), NULL, NULL),
+			KEYWORD_SECONDA( "setup", "EGAIN", KTYPE_DOUBLE, "[e-/ADU] Electrons per A/D unit", &(fit->keywords.cvf), NULL, NULL),
 			KEYWORD_PRIMARY( "date",  "DATE", KTYPE_DATE, "UTC date that FITS file was created", &(fit->keywords.date), NULL, NULL),
 			KEYWORD_PRIMARY( "date",  "DATE-OBS", KTYPE_DATE, "YYYY-MM-DDThh:mm:ss observation start, UT", &(fit->keywords.date_obs), NULL, NULL),
 			KEYWORD_PRIMARY( "image", "STACKCNT", KTYPE_UINT, "Stack frames", &(fit->keywords.stackcnt), NULL, NULL),
 			KEYWORD_SECONDA( "image", "NCOMBINE", KTYPE_UINT, "Stack frames", &(fit->keywords.stackcnt), NULL, NULL),
-			KEYWORD_PRIMARY( "image", "EXPTIME", KTYPE_DOUBLE, "Exposure time [s]", &(fit->keywords.exposure), NULL, NULL),
-			KEYWORD_SECONDA( "image", "EXPOSURE", KTYPE_DOUBLE, "Exposure time [s]", &(fit->keywords.exposure), NULL, NULL),
-			KEYWORD_PRIMARY( "image", "LIVETIME", KTYPE_DOUBLE, "Exposure time after deadtime correction", &(fit->keywords.livetime), NULL, NULL),
-			KEYWORD_PRIMARY( "image", "EXPSTART", KTYPE_DOUBLE, "Exposure start time (standard Julian date)", &(fit->keywords.expstart), NULL, NULL),
-			KEYWORD_PRIMARY( "image", "EXPEND", KTYPE_DOUBLE, "Exposure end time (standard Julian date)", &(fit->keywords.expend), NULL, NULL),
+			KEYWORD_PRIMARY( "image", "EXPTIME", KTYPE_DOUBLE, "[s] Exposure time duration", &(fit->keywords.exposure), NULL, NULL),
+			KEYWORD_SECONDA( "image", "EXPOSURE", KTYPE_DOUBLE, "[s] Exposure time duration", &(fit->keywords.exposure), NULL, NULL),
+			KEYWORD_PRIMARY( "image", "LIVETIME", KTYPE_DOUBLE, "[s] Exposure time after deadtime correction", &(fit->keywords.livetime), NULL, NULL),
+			KEYWORD_PRIMARY( "image", "EXPSTART", KTYPE_DOUBLE, "[JD] Exposure start time (standard Julian date)", &(fit->keywords.expstart), NULL, NULL),
+			KEYWORD_PRIMARY( "image", "EXPEND", KTYPE_DOUBLE, "[JD] Exposure end time (standard Julian date)", &(fit->keywords.expend), NULL, NULL),
 			KEYWORD_PRIMARY( "image", "IMAGETYP", KTYPE_STR, "Type of image", &(fit->keywords.image_type), NULL, NULL),
 			KEYWORD_SECONDA( "image", "FRAMETYP", KTYPE_STR, "Type of image", &(fit->keywords.image_type), NULL, NULL),
 			KEYWORD_PRIMARY( "image", "OBJECT", KTYPE_STR, "Name of the object of interest", &(fit->keywords.object), NULL, NULL),
 			KEYWORD_PRIMARY( "image", "BAYERPAT", KTYPE_STR, "Bayer color pattern", &(fit->keywords.bayer_pattern), NULL, NULL),
 			KEYWORD_PRIMARY( "image", "XBAYROFF", KTYPE_INT, "X offset of Bayer array", &(fit->keywords.bayer_xoffset), NULL, NULL),
 			KEYWORD_PRIMARY( "image", "YBAYROFF", KTYPE_INT, "Y offset of Bayer array", &(fit->keywords.bayer_yoffset), NULL, NULL),
-			KEYWORD_PRIMARY( "image", "AIRMASS", KTYPE_DOUBLE, "Airmass", &(fit->keywords.airmass), NULL, NULL),
+			KEYWORD_PRIMARY( "image", "AIRMASS", KTYPE_DOUBLE, "Airmass at frame center (Gueymard 1993)", &(fit->keywords.airmass), NULL, NULL),
 			KEYWORD_PRIMARY( "geo", "SITELAT", KTYPE_DOUBLE, "[deg] Observation site latitude", &(fit->keywords.sitelat), sitelat_handler_read, NULL),
 			KEYWORD_SECONDA( "geo", "SITE-LAT", KTYPE_DOUBLE, "[deg] Observation site latitude", &(fit->keywords.sitelat), sitelat_handler_read, NULL),
 			KEYWORD_SECONDA( "geo", "OBSLAT", KTYPE_DOUBLE, "[deg] Observation site latitude", &(fit->keywords.sitelat), sitelat_handler_read, NULL),
@@ -653,15 +653,15 @@ int save_wcs_keywords(fits *fit) {
 
 	if (fit->keywords.wcsdata.objctra[0] != '\0') {
 		status = 0;
-		fits_update_key(fit->fptr, TSTRING, "OBJCTRA", &(fit->keywords.wcsdata.objctra),	"Image center Right Ascension (hms)", &status);
+		fits_update_key(fit->fptr, TSTRING, "OBJCTRA", &(fit->keywords.wcsdata.objctra), "[H M S] Image center Right Ascension", &status);
 		status = 0;
-		fits_update_key(fit->fptr, TSTRING, "OBJCTDEC", &(fit->keywords.wcsdata.objctdec), "Image center Declination (dms)", &status);
+		fits_update_key(fit->fptr, TSTRING, "OBJCTDEC", &(fit->keywords.wcsdata.objctdec), "[D M S] Image center Declination", &status);
 	}
 	if (fit->keywords.wcsdata.ra > 0) {
 		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "RA", &(fit->keywords.wcsdata.ra), "Image center Right Ascension (deg)", &status);
+		fits_update_key(fit->fptr, TDOUBLE, "RA", &(fit->keywords.wcsdata.ra), "[deg] Image center Right Ascension", &status);
 		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "DEC", &(fit->keywords.wcsdata.dec), "Image center Declination (deg)", &status);
+		fits_update_key(fit->fptr, TDOUBLE, "DEC", &(fit->keywords.wcsdata.dec), "[deg] Image center Declination", &status);
 	}
 	status = 0;
 
@@ -689,18 +689,18 @@ int save_wcs_keywords(fits *fit) {
 		status = 0;
 		fits_update_key(fit->fptr, TDOUBLE, "CRPIX2", &(fit->keywords.wcslib->crpix[1]), "Axis2 reference pixel", &status);
 		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CRVAL1", &(fit->keywords.wcslib->crval[0]), "Axis1 reference value (deg)", &status);
+		fits_update_key(fit->fptr, TDOUBLE, "CRVAL1", &(fit->keywords.wcslib->crval[0]), "[deg] Axis1 reference value", &status);
 		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "CRVAL2", &(fit->keywords.wcslib->crval[1]), "Axis2 reference value (deg)", &status);
+		fits_update_key(fit->fptr, TDOUBLE, "CRVAL2", &(fit->keywords.wcslib->crval[1]), "[deg] Axis2 reference value", &status);
 		if (fit->keywords.wcslib->lonpole) {
 			status = 0;
 			fits_update_key(fit->fptr, TDOUBLE, "LONPOLE", &(fit->keywords.wcslib->lonpole), "Native longitude of celestial pole", &status);
 		}
 		if (com.pref.wcs_formalism == WCS_FORMALISM_1) {
 			status = 0;
-			fits_update_key(fit->fptr, TDOUBLE, "CDELT1", &(fit->keywords.wcslib->cdelt[0]), "X pixel size (deg)", &status);
+			fits_update_key(fit->fptr, TDOUBLE, "CDELT1", &(fit->keywords.wcslib->cdelt[0]), "[deg] X pixel size", &status);
 			status = 0;
-			fits_update_key(fit->fptr, TDOUBLE, "CDELT2", &(fit->keywords.wcslib->cdelt[1]), "Y pixel size (deg)", &status);
+			fits_update_key(fit->fptr, TDOUBLE, "CDELT2", &(fit->keywords.wcslib->cdelt[1]), "[deg] Y pixel size", &status);
 			status = 0;
 			fits_update_key(fit->fptr, TDOUBLE, "PC1_1", &(fit->keywords.wcslib->pc[0]), "Linear transformation matrix (1, 1)", &status);
 			status = 0;
@@ -857,7 +857,7 @@ int read_fits_keywords(fits *fit) {
 	gboolean end_of_header = FALSE;
 	GString *unknown_keys = g_string_new(NULL);
 
-	read_fits_date_obs_header(fit);
+	read_fits_date_obs_header(fit); // handle very special case
 
 	fits_get_hdrspace(fit->fptr, &key_number, NULL, &status); /* get # of keywords */
 
@@ -885,14 +885,14 @@ int read_fits_keywords(fits *fit) {
 			continue;
 		}
 
-		/* These have been already processed */
-		if (g_strcmp0(keyname, "DATE-OBS") == 0) {
+		/* DATE-OBS has already been processed */
+		if (g_strcmp0(keyname, "DATE-OBS") == 0 || fits_get_keyclass(card) == TYP_STRUC_KEY) {
 			continue;
 		}
 
 		// Retrieve KeywordInfo from the hash table
 		KeywordInfo *current_key = g_hash_table_lookup(keys_hash, keyname);
-		if (((current_key == NULL && fits_get_keyclass(card) != TYP_STRUC_KEY) || end_of_header)) {
+		if ((current_key == NULL || end_of_header)) {
 			if (strncmp(card, "HISTORY", 7) == 0) continue;
 			// Handle unknown keys
 			unknown_keys = g_string_append(unknown_keys, card);
@@ -900,10 +900,7 @@ int read_fits_keywords(fits *fit) {
 			continue;
 		}
 
-		//gboolean value_set = FALSE; // Flag indicating whether a value has been set.
-		if (fits_get_keyclass(card) == TYP_STRUC_KEY) {
-			continue;
-		} else if (current_key->fixed_value) {
+		if (current_key->fixed_value) {
 			continue;
 		}
 		int int_value;
