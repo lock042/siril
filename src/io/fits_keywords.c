@@ -28,6 +28,12 @@
 
 #include "fits_keywords.h"
 
+#define PRINT_PARSING_ERROR \
+    do { \
+        siril_debug_print("Error parsing value: %s\n", value); \
+        siril_debug_print("Parsing stopped at: %s\n", end); \
+    } while (0)
+
 #define DEFAULT_DOUBLE_VALUE -999.0
 #define DEFAULT_FLOAT_VALUE -999.f
 #define DEFAULT_INT_VALUE -INT_MAX
@@ -220,268 +226,266 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 	 * variable to the read handle.
 	 */
 	KeywordInfo keyword_list[] = {
-        KEYWORD_PRIMARY( "image", "MIPS-HI", KTYPE_USHORT, "Lower visualization cutoff", &(fit->keywords.hi), NULL, NULL),
-        KEYWORD_SECONDA( "image", "CWHITE", KTYPE_USHORT, "Lower visualization cutoff", &(fit->keywords.hi), NULL, NULL),
-        KEYWORD_PRIMARY( "image", "MIPS-LO", KTYPE_USHORT, "Upper visualization cutoff", &(fit->keywords.lo), NULL, NULL),
-        KEYWORD_SECONDA( "image", "CBLACK", KTYPE_USHORT, "Upper visualization cutoff", &(fit->keywords.lo), NULL, NULL),
-        KEYWORD_PRIMARY( "image", "MIPS-FLO", KTYPE_FLOAT, "Lower visualization cutoff", &(fit->keywords.flo), flo_handler_read, flo_handler_save),
-        KEYWORD_PRIMARY( "image", "MIPS-FHI", KTYPE_FLOAT, "Upper visualization cutoff", &(fit->keywords.fhi), fhi_handler_read, fhi_handler_save),
-        /* ATTENTION: PROGRAM MUST BE BEFORE DATAMAX */
-        KEYWORD_PRIMARY( "image", "PROGRAM", KTYPE_STR, "Software that created this HDU", &(fit->keywords.program), NULL, NULL),
-        KEYWORD_PRIMARY( "image", "DATAMAX", KTYPE_DOUBLE, "Order of the rows in image array", &(fit->keywords.data_max), datamax_handler_read, NULL),
-        KEYWORD_PRIMARY( "image", "ROWORDER", KTYPE_STR, "Order of the rows in image array", &(fit->keywords.row_order), roworder_handler_read, NULL),
-        KEYWORD_PRIMARY( "setup", "INSTRUME", KTYPE_STR, "Instrument name", &(fit->keywords.instrume), NULL, NULL),
-        KEYWORD_PRIMARY( "setup", "TELESCOP", KTYPE_STR, "Telescope used to acquire this image", &(fit->keywords.telescop), NULL, NULL),
-        KEYWORD_PRIMARY( "setup", "OBSERVER", KTYPE_STR, "Observer name", &(fit->keywords.observer), NULL, NULL),
-        KEYWORD_PRIMARY( "setup", "FILTER", KTYPE_STR, "Active filter name", &(fit->keywords.filter), NULL, NULL),
-        KEYWORD_SECONDA( "setup", "FILT-1", KTYPE_STR, "Active filter name", &(fit->keywords.filter), NULL, NULL),
-        KEYWORD_PRIMARY( "setup", "APERTURE", KTYPE_DOUBLE, "Aperture of the instrument", &(fit->keywords.aperture), NULL, NULL),
-        KEYWORD_PRIMARY( "setup", "ISOSPEED", KTYPE_DOUBLE, "ISO camera setting", &(fit->keywords.iso_speed), NULL, NULL),
-        KEYWORD_PRIMARY( "setup", "FOCALLEN", KTYPE_DOUBLE, "Focal length in mm", &(fit->keywords.focal_length), focal_length_handler_read, NULL),
-        KEYWORD_SECONDA( "setup", "FOCAL", KTYPE_DOUBLE, "Focal length in mm", &(fit->keywords.focal_length), focal_length_handler_read, NULL),
-        KEYWORD_SECONDA( "setup", "FLENGTH", KTYPE_DOUBLE, "Focal length in m", &(fit->keywords.flength), flength_handler_read, NULL),
-        KEYWORD_PRIMARY( "setup", "XPIXSZ", KTYPE_DOUBLE, "X pixel size microns", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
-        KEYWORD_SECONDA( "setup", "XPIXELSZ", KTYPE_DOUBLE, "X pixel size microns", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
-        KEYWORD_SECONDA( "setup", "PIXSIZE1", KTYPE_DOUBLE, "X pixel size microns", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
-        KEYWORD_SECONDA( "setup", "PIXSIZEX", KTYPE_DOUBLE, "X pixel size microns", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
-        KEYWORD_SECONDA( "setup", "XPIXSIZE", KTYPE_DOUBLE, "X pixel size microns", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
-        KEYWORD_PRIMARY( "setup", "YPIXSZ", KTYPE_DOUBLE, "X pixel size microns", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
-        KEYWORD_SECONDA( "setup", "YPIXELSZ", KTYPE_DOUBLE, "X pixel size microns", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
-        KEYWORD_SECONDA( "setup", "PIXSIZE2", KTYPE_DOUBLE, "X pixel size microns", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
-        KEYWORD_SECONDA( "setup", "PIXSIZEY", KTYPE_DOUBLE, "X pixel size microns", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
-        KEYWORD_SECONDA( "setup", "YPIXSIZE", KTYPE_DOUBLE, "X pixel size microns", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
-        KEYWORD_PRIMARY( "setup", "XBINNING", KTYPE_UINT, "Camera binning mode", &(fit->keywords.binning_x), binning_x_handler_read, NULL),
-        KEYWORD_SECONDA( "setup", "BINX", KTYPE_UINT, "Camera binning mode", &(fit->keywords.binning_x), binning_x_handler_read, NULL),
-        KEYWORD_PRIMARY( "setup", "YBINNING", KTYPE_UINT, "Camera binning mode", &(fit->keywords.binning_y), binning_y_handler_read, NULL),
-        KEYWORD_SECONDA( "setup", "BINY", KTYPE_UINT, "Camera binning mode", &(fit->keywords.binning_y), binning_y_handler_read, NULL),
-        KEYWORD_PRIMARY( "setup", "CCD-TEMP", KTYPE_DOUBLE, "CCD temp in C", &(fit->keywords.ccd_temp), NULL, NULL),
-        KEYWORD_SECONDA( "setup", "CCD_TEMP", KTYPE_DOUBLE, "CCD temp in C", &(fit->keywords.ccd_temp), NULL, NULL),
-        KEYWORD_SECONDA( "setup", "CCDTEMP", KTYPE_DOUBLE, "CCD temp in C", &(fit->keywords.ccd_temp), NULL, NULL),
-        KEYWORD_SECONDA( "setup", "TEMPERAT", KTYPE_DOUBLE, "CCD temp in C", &(fit->keywords.ccd_temp), NULL, NULL),
-        KEYWORD_SECONDA( "setup", "CAMTCCD", KTYPE_DOUBLE, "CCD temp in C", &(fit->keywords.ccd_temp), NULL, NULL),
-        KEYWORD_PRIMARY( "setup", "SET-TEMP", KTYPE_DOUBLE, "Temperature setting in C", &(fit->keywords.set_temp), NULL, NULL),
-        KEYWORD_PRIMARY( "setup", "GAIN", KTYPE_USHORT, "Camera gain", &(fit->keywords.key_gain), NULL, NULL),
-        KEYWORD_PRIMARY( "setup", "OFFSET", KTYPE_USHORT, "Camera offset", &(fit->keywords.key_offset), NULL, NULL),
-        KEYWORD_SECONDA( "setup", "BLKLEVEL", KTYPE_USHORT, "Camera offset", &(fit->keywords.key_offset), NULL, NULL),
-        KEYWORD_PRIMARY( "setup", "CVF", KTYPE_DOUBLE, "Conversion factor (e-/adu)", &(fit->keywords.cvf), NULL, NULL),
-        KEYWORD_SECONDA( "setup", "EGAIN", KTYPE_DOUBLE, "Conversion factor (e-/adu)", &(fit->keywords.cvf), NULL, NULL),
-        KEYWORD_PRIMARY( "date",  "DATE", KTYPE_DATE, "UTC date that FITS file was created", &(fit->keywords.date), NULL, NULL),
-        KEYWORD_PRIMARY( "date",  "DATE-OBS", KTYPE_DATE, "YYYY-MM-DDThh:mm:ss observation start, UT", &(fit->keywords.date_obs), NULL, NULL),
-        KEYWORD_PRIMARY( "image", "STACKCNT", KTYPE_UINT, "Stack frames", &(fit->keywords.stackcnt), NULL, NULL),
-        KEYWORD_SECONDA( "image", "NCOMBINE", KTYPE_UINT, "Stack frames", &(fit->keywords.stackcnt), NULL, NULL),
-        KEYWORD_PRIMARY( "image", "EXPTIME", KTYPE_DOUBLE, "Exposure time [s]", &(fit->keywords.exposure), NULL, NULL),
-        KEYWORD_SECONDA( "image", "EXPOSURE", KTYPE_DOUBLE, "Exposure time [s]", &(fit->keywords.exposure), NULL, NULL),
-        KEYWORD_PRIMARY( "image", "LIVETIME", KTYPE_DOUBLE, "Exposure time after deadtime correction", &(fit->keywords.livetime), NULL, NULL),
-        KEYWORD_PRIMARY( "image", "EXPSTART", KTYPE_DOUBLE, "Exposure start time (standard Julian date)", &(fit->keywords.expstart), NULL, NULL),
-        KEYWORD_PRIMARY( "image", "EXPEND", KTYPE_DOUBLE, "Exposure end time (standard Julian date)", &(fit->keywords.expend), NULL, NULL),
-        KEYWORD_PRIMARY( "image", "IMAGETYP", KTYPE_STR, "Type of image", &(fit->keywords.image_type), NULL, NULL),
-        KEYWORD_SECONDA( "image", "FRAMETYP", KTYPE_STR, "Type of image", &(fit->keywords.image_type), NULL, NULL),
-        KEYWORD_PRIMARY( "image", "OBJECT", KTYPE_STR, "Name of the object of interest", &(fit->keywords.object), NULL, NULL),
-        KEYWORD_PRIMARY( "image", "BAYERPAT", KTYPE_STR, "Bayer color pattern", &(fit->keywords.bayer_pattern), NULL, NULL),
-        KEYWORD_PRIMARY( "image", "XBAYROFF", KTYPE_INT, "X offset of Bayer array", &(fit->keywords.bayer_xoffset), NULL, NULL),
-        KEYWORD_PRIMARY( "image", "YBAYROFF", KTYPE_INT, "Y offset of Bayer array", &(fit->keywords.bayer_yoffset), NULL, NULL),
-        KEYWORD_PRIMARY( "image", "AIRMASS", KTYPE_DOUBLE, "Airmass", &(fit->keywords.airmass), NULL, NULL),
-        KEYWORD_PRIMARY( "geo", "SITELAT", KTYPE_DOUBLE, "[deg] Observation site latitude", &(fit->keywords.sitelat), sitelat_handler_read, NULL),
-        KEYWORD_SECONDA( "geo", "SITE-LAT", KTYPE_DOUBLE, "[deg] Observation site latitude", &(fit->keywords.sitelat), sitelat_handler_read, NULL),
-        KEYWORD_SECONDA( "geo", "OBSLAT", KTYPE_DOUBLE, "[deg] Observation site latitude", &(fit->keywords.sitelat), sitelat_handler_read, NULL),
-        KEYWORD_PRIMARY( "geo", "SITELONG", KTYPE_DOUBLE, "[deg] Observation site longitude", &(fit->keywords.sitelong), sitelong_handler_read, NULL),
-        KEYWORD_SECONDA( "geo", "SITE-LON", KTYPE_DOUBLE, "[deg] Observation site longitude", &(fit->keywords.sitelong), sitelong_handler_read, NULL),
-        KEYWORD_SECONDA( "geo", "OBSLONG", KTYPE_DOUBLE, "[deg] Observation site longitude", &(fit->keywords.sitelong), sitelong_handler_read, NULL),
-        KEYWORD_PRIMARY( "geo", "SITEELEV", KTYPE_DOUBLE, "[m] Observation site elevation", &(fit->keywords.siteelev), NULL, NULL),
-        KEYWORD_PRIMARY( "dft",   "DFTTYPE", KTYPE_STR, "Module/Phase of a Discrete Fourier Transform", &(fit->keywords.dft.type), NULL, NULL),
-        KEYWORD_PRIMARY( "dft",   "DFTORD", KTYPE_STR, "Low/High spatial freq. are located at image center", &(fit->keywords.dft.ord), NULL, NULL),
-        KEYWORD_PRIMARY( "dft",   "DFTNORM1", KTYPE_DOUBLE, "Normalisation value for channel #1", &(fit->keywords.dft.norm[0]), NULL, NULL),
-        KEYWORD_PRIMARY( "dft",   "DFTNORM2", KTYPE_DOUBLE, "Normalisation value for channel #2", &(fit->keywords.dft.norm[1]), NULL, NULL),
-        KEYWORD_PRIMARY( "dft",   "DFTNORM3", KTYPE_DOUBLE, "Normalisation value for channel #3", &(fit->keywords.dft.norm[2]), NULL, NULL),
+			KEYWORD_PRIMARY( "image", "MIPS-HI", KTYPE_USHORT, "Lower visualization cutoff", &(fit->keywords.hi), NULL, NULL),
+			KEYWORD_SECONDA( "image", "CWHITE", KTYPE_USHORT, "Lower visualization cutoff", &(fit->keywords.hi), NULL, NULL),
+			KEYWORD_PRIMARY( "image", "MIPS-LO", KTYPE_USHORT, "Upper visualization cutoff", &(fit->keywords.lo), NULL, NULL),
+			KEYWORD_SECONDA( "image", "CBLACK", KTYPE_USHORT, "Upper visualization cutoff", &(fit->keywords.lo), NULL, NULL),
+			KEYWORD_PRIMARY( "image", "MIPS-FLO", KTYPE_FLOAT, "Lower visualization cutoff", &(fit->keywords.flo), flo_handler_read, flo_handler_save),
+			KEYWORD_PRIMARY( "image", "MIPS-FHI", KTYPE_FLOAT, "Upper visualization cutoff", &(fit->keywords.fhi), fhi_handler_read, fhi_handler_save),
+			/* ATTENTION: PROGRAM MUST BE BEFORE DATAMAX */
+			KEYWORD_PRIMARY( "image", "PROGRAM", KTYPE_STR, "Software that created this HDU", &(fit->keywords.program), NULL, NULL),
+			KEYWORD_PRIMARY( "image", "DATAMAX", KTYPE_DOUBLE, "Order of the rows in image array", &(fit->keywords.data_max), datamax_handler_read, NULL),
+			KEYWORD_PRIMARY( "image", "ROWORDER", KTYPE_STR, "Order of the rows in image array", &(fit->keywords.row_order), roworder_handler_read, NULL),
+			KEYWORD_PRIMARY( "setup", "INSTRUME", KTYPE_STR, "Instrument name", &(fit->keywords.instrume), NULL, NULL),
+			KEYWORD_PRIMARY( "setup", "TELESCOP", KTYPE_STR, "Telescope used to acquire this image", &(fit->keywords.telescop), NULL, NULL),
+			KEYWORD_PRIMARY( "setup", "OBSERVER", KTYPE_STR, "Observer name", &(fit->keywords.observer), NULL, NULL),
+			KEYWORD_PRIMARY( "setup", "FILTER", KTYPE_STR, "Active filter name", &(fit->keywords.filter), NULL, NULL),
+			KEYWORD_SECONDA( "setup", "FILT-1", KTYPE_STR, "Active filter name", &(fit->keywords.filter), NULL, NULL),
+			KEYWORD_PRIMARY( "setup", "APERTURE", KTYPE_DOUBLE, "Aperture of the instrument", &(fit->keywords.aperture), NULL, NULL),
+			KEYWORD_PRIMARY( "setup", "ISOSPEED", KTYPE_DOUBLE, "ISO camera setting", &(fit->keywords.iso_speed), NULL, NULL),
+			KEYWORD_PRIMARY( "setup", "FOCALLEN", KTYPE_DOUBLE, "Focal length in mm", &(fit->keywords.focal_length), focal_length_handler_read, NULL),
+			KEYWORD_SECONDA( "setup", "FOCAL", KTYPE_DOUBLE, "Focal length in mm", &(fit->keywords.focal_length), focal_length_handler_read, NULL),
+			KEYWORD_SECONDA( "setup", "FLENGTH", KTYPE_DOUBLE, "Focal length in m", &(fit->keywords.flength), flength_handler_read, NULL),
+			KEYWORD_PRIMARY( "setup", "XPIXSZ", KTYPE_DOUBLE, "X pixel size microns", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
+			KEYWORD_SECONDA( "setup", "XPIXELSZ", KTYPE_DOUBLE, "X pixel size microns", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
+			KEYWORD_SECONDA( "setup", "PIXSIZE1", KTYPE_DOUBLE, "X pixel size microns", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
+			KEYWORD_SECONDA( "setup", "PIXSIZEX", KTYPE_DOUBLE, "X pixel size microns", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
+			KEYWORD_SECONDA( "setup", "XPIXSIZE", KTYPE_DOUBLE, "X pixel size microns", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
+			KEYWORD_PRIMARY( "setup", "YPIXSZ", KTYPE_DOUBLE, "X pixel size microns", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
+			KEYWORD_SECONDA( "setup", "YPIXELSZ", KTYPE_DOUBLE, "X pixel size microns", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
+			KEYWORD_SECONDA( "setup", "PIXSIZE2", KTYPE_DOUBLE, "X pixel size microns", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
+			KEYWORD_SECONDA( "setup", "PIXSIZEY", KTYPE_DOUBLE, "X pixel size microns", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
+			KEYWORD_SECONDA( "setup", "YPIXSIZE", KTYPE_DOUBLE, "X pixel size microns", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
+			KEYWORD_PRIMARY( "setup", "XBINNING", KTYPE_UINT, "Camera binning mode", &(fit->keywords.binning_x), binning_x_handler_read, NULL),
+			KEYWORD_SECONDA( "setup", "BINX", KTYPE_UINT, "Camera binning mode", &(fit->keywords.binning_x), binning_x_handler_read, NULL),
+			KEYWORD_PRIMARY( "setup", "YBINNING", KTYPE_UINT, "Camera binning mode", &(fit->keywords.binning_y), binning_y_handler_read, NULL),
+			KEYWORD_SECONDA( "setup", "BINY", KTYPE_UINT, "Camera binning mode", &(fit->keywords.binning_y), binning_y_handler_read, NULL),
+			KEYWORD_PRIMARY( "setup", "CCD-TEMP", KTYPE_DOUBLE, "CCD temp in C", &(fit->keywords.ccd_temp), NULL, NULL),
+			KEYWORD_SECONDA( "setup", "CCD_TEMP", KTYPE_DOUBLE, "CCD temp in C", &(fit->keywords.ccd_temp), NULL, NULL),
+			KEYWORD_SECONDA( "setup", "CCDTEMP", KTYPE_DOUBLE, "CCD temp in C", &(fit->keywords.ccd_temp), NULL, NULL),
+			KEYWORD_SECONDA( "setup", "TEMPERAT", KTYPE_DOUBLE, "CCD temp in C", &(fit->keywords.ccd_temp), NULL, NULL),
+			KEYWORD_SECONDA( "setup", "CAMTCCD", KTYPE_DOUBLE, "CCD temp in C", &(fit->keywords.ccd_temp), NULL, NULL),
+			KEYWORD_PRIMARY( "setup", "SET-TEMP", KTYPE_DOUBLE, "Temperature setting in C", &(fit->keywords.set_temp), NULL, NULL),
+			KEYWORD_PRIMARY( "setup", "GAIN", KTYPE_USHORT, "Camera gain", &(fit->keywords.key_gain), NULL, NULL),
+			KEYWORD_PRIMARY( "setup", "OFFSET", KTYPE_USHORT, "Camera offset", &(fit->keywords.key_offset), NULL, NULL),
+			KEYWORD_SECONDA( "setup", "BLKLEVEL", KTYPE_USHORT, "Camera offset", &(fit->keywords.key_offset), NULL, NULL),
+			KEYWORD_PRIMARY( "setup", "CVF", KTYPE_DOUBLE, "Conversion factor (e-/adu)", &(fit->keywords.cvf), NULL, NULL),
+			KEYWORD_SECONDA( "setup", "EGAIN", KTYPE_DOUBLE, "Conversion factor (e-/adu)", &(fit->keywords.cvf), NULL, NULL),
+			KEYWORD_PRIMARY( "date",  "DATE", KTYPE_DATE, "UTC date that FITS file was created", &(fit->keywords.date), NULL, NULL),
+			KEYWORD_PRIMARY( "date",  "DATE-OBS", KTYPE_DATE, "YYYY-MM-DDThh:mm:ss observation start, UT", &(fit->keywords.date_obs), NULL, NULL),
+			KEYWORD_PRIMARY( "image", "STACKCNT", KTYPE_UINT, "Stack frames", &(fit->keywords.stackcnt), NULL, NULL),
+			KEYWORD_SECONDA( "image", "NCOMBINE", KTYPE_UINT, "Stack frames", &(fit->keywords.stackcnt), NULL, NULL),
+			KEYWORD_PRIMARY( "image", "EXPTIME", KTYPE_DOUBLE, "Exposure time [s]", &(fit->keywords.exposure), NULL, NULL),
+			KEYWORD_SECONDA( "image", "EXPOSURE", KTYPE_DOUBLE, "Exposure time [s]", &(fit->keywords.exposure), NULL, NULL),
+			KEYWORD_PRIMARY( "image", "LIVETIME", KTYPE_DOUBLE, "Exposure time after deadtime correction", &(fit->keywords.livetime), NULL, NULL),
+			KEYWORD_PRIMARY( "image", "EXPSTART", KTYPE_DOUBLE, "Exposure start time (standard Julian date)", &(fit->keywords.expstart), NULL, NULL),
+			KEYWORD_PRIMARY( "image", "EXPEND", KTYPE_DOUBLE, "Exposure end time (standard Julian date)", &(fit->keywords.expend), NULL, NULL),
+			KEYWORD_PRIMARY( "image", "IMAGETYP", KTYPE_STR, "Type of image", &(fit->keywords.image_type), NULL, NULL),
+			KEYWORD_SECONDA( "image", "FRAMETYP", KTYPE_STR, "Type of image", &(fit->keywords.image_type), NULL, NULL),
+			KEYWORD_PRIMARY( "image", "OBJECT", KTYPE_STR, "Name of the object of interest", &(fit->keywords.object), NULL, NULL),
+			KEYWORD_PRIMARY( "image", "BAYERPAT", KTYPE_STR, "Bayer color pattern", &(fit->keywords.bayer_pattern), NULL, NULL),
+			KEYWORD_PRIMARY( "image", "XBAYROFF", KTYPE_INT, "X offset of Bayer array", &(fit->keywords.bayer_xoffset), NULL, NULL),
+			KEYWORD_PRIMARY( "image", "YBAYROFF", KTYPE_INT, "Y offset of Bayer array", &(fit->keywords.bayer_yoffset), NULL, NULL),
+			KEYWORD_PRIMARY( "image", "AIRMASS", KTYPE_DOUBLE, "Airmass", &(fit->keywords.airmass), NULL, NULL),
+			KEYWORD_PRIMARY( "geo", "SITELAT", KTYPE_DOUBLE, "[deg] Observation site latitude", &(fit->keywords.sitelat), sitelat_handler_read, NULL),
+			KEYWORD_SECONDA( "geo", "SITE-LAT", KTYPE_DOUBLE, "[deg] Observation site latitude", &(fit->keywords.sitelat), sitelat_handler_read, NULL),
+			KEYWORD_SECONDA( "geo", "OBSLAT", KTYPE_DOUBLE, "[deg] Observation site latitude", &(fit->keywords.sitelat), sitelat_handler_read, NULL),
+			KEYWORD_PRIMARY( "geo", "SITELONG", KTYPE_DOUBLE, "[deg] Observation site longitude", &(fit->keywords.sitelong), sitelong_handler_read, NULL),
+			KEYWORD_SECONDA( "geo", "SITE-LON", KTYPE_DOUBLE, "[deg] Observation site longitude", &(fit->keywords.sitelong), sitelong_handler_read, NULL),
+			KEYWORD_SECONDA( "geo", "OBSLONG", KTYPE_DOUBLE, "[deg] Observation site longitude", &(fit->keywords.sitelong), sitelong_handler_read, NULL),
+			KEYWORD_PRIMARY( "geo", "SITEELEV", KTYPE_DOUBLE, "[m] Observation site elevation", &(fit->keywords.siteelev), NULL, NULL),
+			KEYWORD_PRIMARY( "dft",   "DFTTYPE", KTYPE_STR, "Module/Phase of a Discrete Fourier Transform", &(fit->keywords.dft.type), NULL, NULL),
+			KEYWORD_PRIMARY( "dft",   "DFTORD", KTYPE_STR, "Low/High spatial freq. are located at image center", &(fit->keywords.dft.ord), NULL, NULL),
+			KEYWORD_PRIMARY( "dft",   "DFTNORM1", KTYPE_DOUBLE, "Normalisation value for channel #1", &(fit->keywords.dft.norm[0]), NULL, NULL),
+			KEYWORD_PRIMARY( "dft",   "DFTNORM2", KTYPE_DOUBLE, "Normalisation value for channel #2", &(fit->keywords.dft.norm[1]), NULL, NULL),
+			KEYWORD_PRIMARY( "dft",   "DFTNORM3", KTYPE_DOUBLE, "Normalisation value for channel #3", &(fit->keywords.dft.norm[2]), NULL, NULL),
 
-        KEYWORD_FIXED(   "wcsdata", "CTYPE3", KTYPE_STR, "RGB image", "RGB", NULL, NULL),
-        KEYWORD_PRIMARY( "wcsdata", "OBJCTRA", KTYPE_STR, "Image center Right Ascension (hms)", &(fit->keywords.wcsdata.objctra), NULL, NULL),
-        KEYWORD_PRIMARY( "wcsdata", "OBJCTDEC", KTYPE_STR, "Image center Declination (dms)", &(fit->keywords.wcsdata.objctdec), NULL, NULL),
-        KEYWORD_PRIMARY( "wcsdata", "RA", KTYPE_DOUBLE, "Image center Right Ascension (deg)", &(fit->keywords.wcsdata.ra), NULL, NULL),
-        KEYWORD_SECONDA( "wcsdata", "RA_D", KTYPE_DOUBLE, "Image center Right Ascension (deg)", &(fit->keywords.wcsdata.ra), NULL, NULL),
-        KEYWORD_PRIMARY( "wcsdata", "DEC", KTYPE_DOUBLE, "Image center Declination (deg)", &(fit->keywords.wcsdata.dec), NULL, NULL),
-        KEYWORD_SECONDA( "wcsdata", "DEC_D", KTYPE_DOUBLE, "Image center Declination (deg)", &(fit->keywords.wcsdata.dec), NULL, NULL),
+			KEYWORD_FIXED(   "wcsdata", "CTYPE3", KTYPE_STR, "RGB image", "RGB", NULL, NULL),
+			KEYWORD_PRIMARY( "wcsdata", "OBJCTRA", KTYPE_STR, "Image center Right Ascension (hms)", &(fit->keywords.wcsdata.objctra), NULL, NULL),
+			KEYWORD_PRIMARY( "wcsdata", "OBJCTDEC", KTYPE_STR, "Image center Declination (dms)", &(fit->keywords.wcsdata.objctdec), NULL, NULL),
+			KEYWORD_PRIMARY( "wcsdata", "RA", KTYPE_DOUBLE, "Image center Right Ascension (deg)", &(fit->keywords.wcsdata.ra), NULL, NULL),
+			KEYWORD_SECONDA( "wcsdata", "RA_D", KTYPE_DOUBLE, "Image center Right Ascension (deg)", &(fit->keywords.wcsdata.ra), NULL, NULL),
+			KEYWORD_PRIMARY( "wcsdata", "DEC", KTYPE_DOUBLE, "Image center Declination (deg)", &(fit->keywords.wcsdata.dec), NULL, NULL),
+			KEYWORD_SECONDA( "wcsdata", "DEC_D", KTYPE_DOUBLE, "Image center Declination (deg)", &(fit->keywords.wcsdata.dec), NULL, NULL),
 
-        /* This group must be the last one !!
-         * It is not used. We write keywords just so that Siril knows about them
-        */
-        KEYWORD_WCS( "wcslib", "CTYPE1", KTYPE_STR),
-        KEYWORD_WCS( "wcslib", "CTYPE2", KTYPE_STR),
-        KEYWORD_WCS( "wcslib", "CUNIT1", KTYPE_STR),
-        KEYWORD_WCS( "wcslib", "CUNIT2", KTYPE_STR),
-        KEYWORD_WCS( "wcslib", "EQUINOX", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "CRPIX1", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "CRPIX2", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "CRVAL1", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "CRVAL2", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "LONPOLE", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "CDELT1", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "CDELT2", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "PC1_1", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "PC1_2", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "PC2_1", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "PC2_2", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "CD1_1", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "CD1_2", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "CD2_1", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "CD2_2", KTYPE_DOUBLE),
+			/* This group must be the last one !!
+			 * It is not used. We write keywords just so that Siril knows about them
+			*/
+			KEYWORD_WCS( "wcslib", "CTYPE1", KTYPE_STR),
+			KEYWORD_WCS( "wcslib", "CTYPE2", KTYPE_STR),
+			KEYWORD_WCS( "wcslib", "CUNIT1", KTYPE_STR),
+			KEYWORD_WCS( "wcslib", "CUNIT2", KTYPE_STR),
+			KEYWORD_WCS( "wcslib", "EQUINOX", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "CRPIX1", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "CRPIX2", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "CRVAL1", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "CRVAL2", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "LONPOLE", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "CDELT1", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "CDELT2", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "PC1_1", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "PC1_2", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "PC2_1", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "PC2_2", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "CD1_1", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "CD1_2", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "CD2_1", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "CD2_2", KTYPE_DOUBLE),
 
-        KEYWORD_WCS( "wcslib", "A_ORDER", KTYPE_INT),
-        KEYWORD_WCS( "wcslib", "A_0_0", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "A_1_0", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "A_0_1", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "A_2_0", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "A_1_1", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "A_0_2", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "A_3_0", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "A_2_1", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "A_1_2", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "A_0_3", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "A_4_0", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "A_3_1", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "A_2_2", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "A_1_3", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "A_0_4", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "A_5_0", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "A_4_1", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "A_3_2", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "A_2_3", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "A_1_4", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "A_0_5", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "B_ORDER", KTYPE_INT),
-        KEYWORD_WCS( "wcslib", "B_0_0", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "B_1_0", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "B_0_1", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "B_2_0", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "B_1_1", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "B_0_2", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "B_3_0", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "B_2_1", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "B_1_2", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "B_0_3", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "B_4_0", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "B_3_1", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "B_2_2", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "B_1_3", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "B_0_4", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "B_5_0", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "B_4_1", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "B_3_2", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "B_2_3", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "B_1_4", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "B_0_5", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "AP_ORDER", KTYPE_INT),
-        KEYWORD_WCS( "wcslib", "AP_0_0", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "AP_1_0", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "AP_0_1", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "AP_2_0", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "AP_1_1", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "AP_0_2", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "AP_3_0", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "AP_2_1", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "AP_1_2", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "AP_0_3", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "AP_4_0", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "AP_3_1", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "AP_2_2", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "AP_1_3", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "AP_0_4", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "AP_5_0", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "AP_4_1", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "AP_3_2", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "AP_2_3", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "AP_1_4", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "AP_0_5", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "BP_ORDER", KTYPE_INT),
-        KEYWORD_WCS( "wcslib", "BP_0_0", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "BP_1_0", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "BP_0_1", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "BP_2_0", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "BP_1_1", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "BP_0_2", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "BP_3_0", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "BP_2_1", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "BP_1_2", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "BP_0_3", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "BP_4_0", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "BP_3_1", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "BP_2_2", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "BP_1_3", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "BP_0_4", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "BP_5_0", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "BP_4_1", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "BP_3_2", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "BP_2_3", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "BP_1_4", KTYPE_DOUBLE),
-        KEYWORD_WCS( "wcslib", "BP_0_5", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "A_ORDER", KTYPE_INT),
+			KEYWORD_WCS( "wcslib", "A_0_0", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "A_1_0", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "A_0_1", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "A_2_0", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "A_1_1", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "A_0_2", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "A_3_0", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "A_2_1", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "A_1_2", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "A_0_3", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "A_4_0", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "A_3_1", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "A_2_2", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "A_1_3", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "A_0_4", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "A_5_0", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "A_4_1", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "A_3_2", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "A_2_3", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "A_1_4", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "A_0_5", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "B_ORDER", KTYPE_INT),
+			KEYWORD_WCS( "wcslib", "B_0_0", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "B_1_0", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "B_0_1", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "B_2_0", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "B_1_1", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "B_0_2", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "B_3_0", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "B_2_1", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "B_1_2", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "B_0_3", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "B_4_0", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "B_3_1", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "B_2_2", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "B_1_3", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "B_0_4", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "B_5_0", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "B_4_1", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "B_3_2", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "B_2_3", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "B_1_4", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "B_0_5", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "AP_ORDER", KTYPE_INT),
+			KEYWORD_WCS( "wcslib", "AP_0_0", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "AP_1_0", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "AP_0_1", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "AP_2_0", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "AP_1_1", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "AP_0_2", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "AP_3_0", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "AP_2_1", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "AP_1_2", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "AP_0_3", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "AP_4_0", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "AP_3_1", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "AP_2_2", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "AP_1_3", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "AP_0_4", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "AP_5_0", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "AP_4_1", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "AP_3_2", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "AP_2_3", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "AP_1_4", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "AP_0_5", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "BP_ORDER", KTYPE_INT),
+			KEYWORD_WCS( "wcslib", "BP_0_0", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "BP_1_0", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "BP_0_1", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "BP_2_0", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "BP_1_1", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "BP_0_2", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "BP_3_0", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "BP_2_1", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "BP_1_2", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "BP_0_3", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "BP_4_0", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "BP_3_1", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "BP_2_2", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "BP_1_3", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "BP_0_4", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "BP_5_0", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "BP_4_1", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "BP_3_2", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "BP_2_3", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "BP_1_4", KTYPE_DOUBLE),
+			KEYWORD_WCS( "wcslib", "BP_0_5", KTYPE_DOUBLE),
 
-        KEYWORD_WCS( "wcsdata", "PLTSOLVD", KTYPE_BOOL),
-        {NULL, NULL, KTYPE_BOOL, NULL, NULL, NULL, FALSE, TRUE}
+			KEYWORD_WCS( "wcsdata", "PLTSOLVD", KTYPE_BOOL),
+			{NULL, NULL, KTYPE_BOOL, NULL, NULL, NULL, FALSE, TRUE}
     };
 
-	// Count the number of keywords in the list
-	int num_keywords = 0;
-	while (keyword_list[num_keywords].group != NULL) {
-		num_keywords++;
-	}
+	int num_keywords = G_N_ELEMENTS(keyword_list) - 1; // remove last line
 
-    // Allocate memory dynamically for the keyword array
-    KeywordInfo *all_keywords = (KeywordInfo*) malloc((num_keywords + 1) * sizeof(KeywordInfo));
-    if (!all_keywords) {
-        PRINT_ALLOC_ERR;
-        return NULL;
-    }
+	// Allocate memory dynamically for the keyword array
+	KeywordInfo *all_keywords = (KeywordInfo*) malloc((num_keywords + 1) * sizeof(KeywordInfo));
+	if (!all_keywords) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
 
 	GHashTable *hash_table = NULL;
 
 	if (hash)
-		*hash = g_hash_table_new_full(g_str_hash, g_str_equal, (GDestroyNotify) g_free, NULL);
+		hash_table = g_hash_table_new_full(g_str_hash, g_str_equal,
+				(GDestroyNotify) g_free, NULL);
 
-    // Copy keyword information from the list to the dynamic array and set if keyword must be used
-    for (int i = 0; i < num_keywords; i++) {
-        all_keywords[i] = keyword_list[i];
-        all_keywords[i].is_used = should_use_keyword(fit, keyword_list[i]);
+	// Copy keyword information from the list to the dynamic array and set if keyword must be used
+	for (int i = 0; i < num_keywords; i++) {
+		all_keywords[i] = keyword_list[i];
+		all_keywords[i].is_used = should_use_keyword(fit, keyword_list[i]);
 
-        // Set default values based on keyword type
-        if (g_strcmp0(all_keywords[i].group, "wcslib")) { // This group is initialized in load_WCS_from_hdr
-            switch (all_keywords[i].type) {
-                case KTYPE_INT:
-                    if (*((int*) all_keywords[i].data) == 0)
-                        *((int*) all_keywords[i].data) = DEFAULT_INT_VALUE;
-                    break;
-                case KTYPE_UINT:
-                    if (*((guint*) all_keywords[i].data) == 0)
-                        *((guint*) all_keywords[i].data) = DEFAULT_UINT_VALUE;
-                    break;
-                case KTYPE_USHORT:
-                    if (*((gushort*) all_keywords[i].data) == 0)
-                        *((gushort*) all_keywords[i].data) = DEFAULT_USHORT_VALUE;
-                    break;
-                case KTYPE_DOUBLE:
-                    if (*((double*) all_keywords[i].data) == 0)
-                        *((double*) all_keywords[i].data) = DEFAULT_DOUBLE_VALUE;
-                    break;
-                case KTYPE_FLOAT:
-                    if (*((float*) all_keywords[i].data) == 0)
-                        *((float*) all_keywords[i].data) = DEFAULT_FLOAT_VALUE;
-                    break;
-                default:
-                    break;
-            }
-        }
+		// Set default values based on keyword type
+		if (g_strcmp0(all_keywords[i].group, "wcslib")) { // This group is initialized in load_WCS_from_hdr
+			switch (all_keywords[i].type) {
+			case KTYPE_INT:
+				if (*((int*) all_keywords[i].data) == 0)
+					*((int*) all_keywords[i].data) = DEFAULT_INT_VALUE;
+				break;
+			case KTYPE_UINT:
+				if (*((guint*) all_keywords[i].data) == 0)
+					*((guint*) all_keywords[i].data) = DEFAULT_UINT_VALUE;
+				break;
+			case KTYPE_USHORT:
+				if (*((gushort*) all_keywords[i].data) == 0)
+					*((gushort*) all_keywords[i].data) = DEFAULT_USHORT_VALUE;
+				break;
+			case KTYPE_DOUBLE:
+				if (*((double*) all_keywords[i].data) == 0)
+					*((double*) all_keywords[i].data) = DEFAULT_DOUBLE_VALUE;
+				break;
+			case KTYPE_FLOAT:
+				if (*((float*) all_keywords[i].data) == 0)
+					*((float*) all_keywords[i].data) = DEFAULT_FLOAT_VALUE;
+				break;
+			default:
+				break;
+			}
+		}
 
-        default_values_special_cases(fit);
+		default_values_special_cases(fit);
 
-        g_hash_table_insert(hash_table, g_strdup(keyword_list[i].key), &(all_keywords[i]));
-    }
+		if (hash_table)
+			g_hash_table_insert(hash_table, g_strdup(keyword_list[i].key), &(all_keywords[i]));
+	}
 
-    // Mark the end of the list
-    all_keywords[num_keywords] = keyword_list[num_keywords];
+	// Mark the end of the list
+	all_keywords[num_keywords] = keyword_list[num_keywords];
 
-    if (hash)
-        *hash = hash_table;
+	if (hash_table)
+		*hash = hash_table;
 
-    return all_keywords;
+	return all_keywords;
 }
 
 int save_fits_keywords(fits *fit) {
@@ -906,30 +910,40 @@ int read_fits_keywords(fits *fit) {
 			int_value = g_ascii_strtoll(value, &end, 10);
 			if (value != end) {
 				*((int*) current_key->data) = int_value;
+			} else {
+				PRINT_PARSING_ERROR;
 			}
 			break;
 		case KTYPE_UINT:
 			uint_value = g_ascii_strtoll(value, &end, 10);
 			if (value != end) {
 				*((guint*) current_key->data) = uint_value;
+			} else {
+				PRINT_PARSING_ERROR;
 			}
 			break;
 		case KTYPE_USHORT:
 			ushort_value = g_ascii_strtoll(value, &end, 10);
 			if (value != end) {
 				*((gushort*) current_key->data) = ushort_value;
+			} else {
+				PRINT_PARSING_ERROR;
 			}
 			break;
 		case KTYPE_DOUBLE:
 			double_value = g_ascii_strtod(value, &end);
 			if (value != end) {
 				*((double*) current_key->data) = double_value;
+			} else {
+				PRINT_PARSING_ERROR;
 			}
 			break;
 		case KTYPE_FLOAT:
 			float_value = g_ascii_strtod(value, &end);
 			if (value != end) {
 				*((float*) current_key->data) = float_value;
+			} else {
+				PRINT_PARSING_ERROR;
 			}
 			break;
 		case KTYPE_STR:
@@ -944,6 +958,8 @@ int read_fits_keywords(fits *fit) {
 			date = FITS_date_to_date_time(str_value);
 			if (date) {
 				*((GDateTime**) current_key->data) = date;
+			} else {
+				PRINT_PARSING_ERROR;
 			}
 			g_free(unquoted);
 			break;
