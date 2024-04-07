@@ -584,7 +584,7 @@ static int apply_drz_save_hook(struct generic_seq_args *args, int out_index, int
 			dest = fit_sequence_get_image_filename_prefixed(args->seq, driz->pixcnt_prefix, in_index);
 			if (com.pref.force_16bit) {
 				float factor = max(1.f, (1.f / (driz->scale * driz->scale)));
-				if (abs(factor - 1.f) > FLT_EPSILON)
+				if (fabs(factor - 1.f) > FLT_EPSILON)
 					soper(double_data->pixel_count, factor, OPER_MUL, FALSE);
 				fit_replace_buffer(	double_data->pixel_count,
 									float_buffer_to_ushort( double_data->pixel_count->fdata,
