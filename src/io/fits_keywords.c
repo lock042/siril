@@ -427,12 +427,15 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 
     // Allocate memory dynamically for the keyword array
     KeywordInfo *all_keywords = (KeywordInfo*) malloc((num_keywords + 1) * sizeof(KeywordInfo));
-    if (all_keywords == NULL) {
-        // Handle memory allocation failure
+    if (!all_keywords) {
+        PRINT_ALLOC_ERR;
         return NULL;
     }
 
-	GHashTable *hash_table = g_hash_table_new_full(g_str_hash, g_str_equal, (GDestroyNotify) g_free, NULL);
+	GHashTable *hash_table = NULL;
+
+	if (hash)
+		*hash = g_hash_table_new_full(g_str_hash, g_str_equal, (GDestroyNotify) g_free, NULL);
 
     // Copy keyword information from the list to the dynamic array and set if keyword must be used
     for (int i = 0; i < num_keywords; i++) {
@@ -440,7 +443,7 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
         all_keywords[i].is_used = should_use_keyword(fit, keyword_list[i]);
 
         // Set default values based on keyword type
-        if (g_strcmp0(all_keywords[i].group, "wcslib")) { // This group is initialized somewhere
+        if (g_strcmp0(all_keywords[i].group, "wcslib")) { // This group is initialized in load_WCS_from_hdr
             switch (all_keywords[i].type) {
                 case KTYPE_INT:
                     if (*((int*) all_keywords[i].data) == 0)
@@ -477,8 +480,6 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 
     if (hash)
         *hash = hash_table;
-    else
-    	g_hash_table_destroy(hash_table);
 
     return all_keywords;
 }
@@ -820,7 +821,7 @@ int read_fits_keywords(fits *fit) {
 	int status = 0;
 	int key_number = 1;
 	gboolean end_of_header = FALSE;
-	GString *UnknownKeys = g_string_new(NULL);
+	GString *unknown_keys = g_string_new(NULL);
 
 	/***** Special cases *****/
 
@@ -878,8 +879,8 @@ int read_fits_keywords(fits *fit) {
 		if (((current_key == NULL && fits_get_keyclass(card) != TYP_STRUC_KEY) || end_of_header)) {
 			if (strncmp(card, "HISTORY", 7) == 0) continue;
 			// Handle unknown keys
-			UnknownKeys = g_string_append(UnknownKeys, card);
-			UnknownKeys = g_string_append(UnknownKeys, "\n");
+			unknown_keys = g_string_append(unknown_keys, card);
+			unknown_keys = g_string_append(unknown_keys, "\n");
 			continue;
 		}
 
@@ -963,7 +964,7 @@ int read_fits_keywords(fits *fit) {
 	if (fit->unknown_keys != NULL) {
 		g_free(fit->unknown_keys);
 	}
-	fit->unknown_keys = g_string_free(UnknownKeys, FALSE);
+	fit->unknown_keys = g_string_free(unknown_keys, FALSE);
 
 	// Free the hash table and unknown keys
 	g_hash_table_destroy(keys_hash);
