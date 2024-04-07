@@ -82,7 +82,11 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 				process_split_cfa(0);
 				break;
 			case 1:
-				process_extractHa(0);
+				if (scaling == SCALING_HA_UP) {
+					processcommand("extract_Ha -upscale");
+				} else {
+					process_extractHa(0);
+				}
 				break;
 			case 2:
 				switch (scaling) {

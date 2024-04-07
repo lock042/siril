@@ -31,8 +31,8 @@ struct split_cfa_data {
 
 void update_filter_information(fits *fit, char *filter, gboolean append);
 
-int extractHa_ushort(fits *in, fits *Ha, sensor_pattern pattern);
-int extractHa_float(fits *in, fits *Ha, sensor_pattern pattern);
+int extractHa_ushort(fits *in, fits *Ha, sensor_pattern pattern, extraction_scaling scaling);
+int extractHa_float(fits *in, fits *Ha, sensor_pattern pattern, extraction_scaling scaling);
 void apply_extractHa_to_sequence(struct split_cfa_data *split_cfa_args);
 
 int extractGreen_ushort(fits *in, fits *green, sensor_pattern pattern);

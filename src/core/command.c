@@ -5653,8 +5653,13 @@ int process_extractGreen(int nb) {
 int process_extractHa(int nb) {
 	char *filename = NULL;
 	int ret = 1;
-
+	extraction_scaling scaling = SCALING_NONE;
 	fits f_Ha = { 0 };
+
+	if (g_str_has_prefix(word[1], "-upscale")) {
+		scaling = SCALING_HA_UP;
+		siril_log_message(_("Upscaling x2\n"));
+	}
 
 	if (sequence_is_loaded() && !single_image_is_loaded()) {
 		filename = g_path_get_basename(com.seq.seqname);
@@ -5671,12 +5676,12 @@ int process_extractHa(int nb) {
 
 	gchar *Ha = g_strdup_printf("Ha_%s%s", filename, com.pref.ext);
 	if (gfit.type == DATA_USHORT) {
-		if (!(ret = extractHa_ushort(&gfit, &f_Ha, pattern))) {
+		if (!(ret = extractHa_ushort(&gfit, &f_Ha, pattern, scaling))) {
 			ret = save1fits16(Ha, &f_Ha, 0);
 		}
 	}
 	else if (gfit.type == DATA_FLOAT) {
-		if (!(ret = extractHa_float(&gfit, &f_Ha, pattern))) {
+		if (!(ret = extractHa_float(&gfit, &f_Ha, pattern, scaling))) {
 			ret = save1fits32(Ha, &f_Ha, 0);
 		}
 	} else ret = CMD_INVALID_IMAGE;
@@ -5984,6 +5989,9 @@ int process_seq_extractHa(int nb) {
 						return CMD_ARG_ERROR;
 					}
 					args->seqEntry = strdup(value);
+				}
+				else if (g_str_has_prefix(word[i], "-upscale")) {
+					args->scaling = SCALING_HA_UP;
 				}
 				else {
 					siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);

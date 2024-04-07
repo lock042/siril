@@ -60,7 +60,7 @@ void update_filter_information(fits *fit, char *filter, gboolean append) {
 	g_free(filtername);
 }
 
-int extractHa_ushort(fits *in, fits *Ha, sensor_pattern pattern) {
+int extractHa_ushort(fits *in, fits *Ha, sensor_pattern pattern, extraction_scaling scaling) {
 	int width = in->rx / 2, height = in->ry / 2;
 
 	if (strlen(in->bayer_pattern) > 4) {
@@ -101,17 +101,20 @@ int extractHa_ushort(fits *in, fits *Ha, sensor_pattern pattern) {
 			j++;
 		}
 	}
+	if (scaling == SCALING_HA_UP) {
+			verbose_resize_gaussian(Ha, Ha->rx * 2, Ha->ry * 2, OPENCV_LANCZOS4, TRUE);
+	}
 
 	/* We update FITS keywords */
 	copy_fits_metadata(in, Ha);
-	update_sampling_information(Ha, 2.f);
+	update_sampling_information(Ha, scaling ? 1.f : 2.f);
 	update_filter_information(Ha, "Ha", TRUE);
 	Ha->history = g_slist_append(Ha->history, g_strdup(_("Ha channel")));
 
 	return 0;
 }
 
-int extractHa_float(fits *in, fits *Ha, sensor_pattern pattern) {
+int extractHa_float(fits *in, fits *Ha, sensor_pattern pattern, extraction_scaling scaling) {
 	int width = in->rx / 2, height = in->ry / 2;
 
 	if (strlen(in->bayer_pattern) > 4) {
@@ -152,9 +155,13 @@ int extractHa_float(fits *in, fits *Ha, sensor_pattern pattern) {
 		}
 	}
 
+	if (scaling == SCALING_HA_UP) {
+			verbose_resize_gaussian(Ha, Ha->rx * 2, Ha->ry * 2, OPENCV_LANCZOS4, TRUE);
+	}
+
 	/* We update FITS keywords */
 	copy_fits_metadata(in, Ha);
-	update_sampling_information(Ha, 2.f);
+	update_sampling_information(Ha, scaling ? 1.f : 2.f);
 	update_filter_information(Ha, "Ha", TRUE);
 	Ha->history = g_slist_append(Ha->history, g_strdup(_("Ha channel")));
 
@@ -206,14 +213,15 @@ int split_finalize_hook(struct generic_seq_args *args) {
 }
 
 int extractHa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
+	struct split_cfa_data *data = (struct split_cfa_data *) args->user;
 	int ret = 1;
 	fits f_Ha = { 0 };
 	sensor_pattern pattern = get_bayer_pattern(fit);
 
 	if (fit->type == DATA_USHORT)
-		ret = extractHa_ushort(fit, &f_Ha, pattern);
+		ret = extractHa_ushort(fit, &f_Ha, pattern, data->scaling);
 	else if (fit->type == DATA_FLOAT)
-		ret = extractHa_float(fit, &f_Ha, pattern);
+		ret = extractHa_float(fit, &f_Ha, pattern, data->scaling);
 	else return 1;
 	if (!ret) {
 		clearfits(fit);
