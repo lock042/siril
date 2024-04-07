@@ -400,6 +400,8 @@ static int astrometric_image_hook(struct generic_seq_args *args, int out_index, 
 	if (astargs->scale != 1.f) {
 		fit->pixel_size_x /= regargs->astrometric_scale;
 		fit->pixel_size_y /= regargs->astrometric_scale;
+		regargs->regparam[out_index].fwhm *= regargs->astrometric_scale;
+		regargs->regparam[out_index].weighted_fwhm *= regargs->astrometric_scale;
 	}
 	return status;
 }
