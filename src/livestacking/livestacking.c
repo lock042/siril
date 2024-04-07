@@ -481,7 +481,6 @@ static int start_global_registration(sequence *seq) {
 	reg_args.follow_star = FALSE;
 	reg_args.matchSelection = FALSE;
 	//memcpy(&reg_args.selection, &com.selection, sizeof(rectangle));
-	reg_args.x2upscale = FALSE;
 	reg_args.cumul = FALSE;
 	reg_args.min_pairs = 10;
 	reg_args.no_output = !reg_rotates;

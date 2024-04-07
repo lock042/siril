@@ -500,10 +500,6 @@ int register_shift_dft(struct registration_args *args) {
 	fftwf_destroy_plan(q);
 	fftwf_free(in);
 	if (!ret) {
-		if (args->x2upscale)
-			args->seq->upscale_at_stacking = 2.0;
-		else
-			args->seq->upscale_at_stacking = 1.0;
 		normalizeQualityData(args, q_min, q_max);
 
 		siril_log_message(_("Registration finished.\n"));
@@ -819,11 +815,6 @@ int register_shift_fwhm(struct registration_args *args) {
 		cur_nb += 1.f;
 		set_progress_bar_data(NULL, cur_nb / nb_frames);
 	}
-
-	if (args->x2upscale)
-		args->seq->upscale_at_stacking = 2.0;
-	else
-		args->seq->upscale_at_stacking = 1.0;
 
 	siril_log_message(_("Registration finished.\n"));
 	siril_log_color_message(_("Best frame: #%d with fwhm=%.3g.\n"), "bold",
@@ -1463,7 +1454,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 		struct registration_args *reg_args;
 		struct registration_method *method;
 		char *msg;
-		GtkToggleButton *follow, *matchSel, *x2upscale, *cumul, *onlyshift;
+		GtkToggleButton *follow, *matchSel, *drizzle, *cumul, *onlyshift;
 		GtkComboBox *cbbt_layers, *reg_all_sel_box;
 		GtkComboBoxText *ComboBoxRegInter, *ComboBoxTransfo, *ComboBoxMaxStars, *ComboBoxFraming;
 		GtkSpinButton *minpairs, *percent_moved;
@@ -1500,7 +1491,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 		follow = GTK_TOGGLE_BUTTON(lookup_widget("followStarCheckButton"));
 		onlyshift = GTK_TOGGLE_BUTTON(lookup_widget("onlyshift_checkbutton"));
 		matchSel = GTK_TOGGLE_BUTTON(lookup_widget("checkStarSelect"));
-		x2upscale = GTK_TOGGLE_BUTTON(lookup_widget("upscaleCheckButton"));
+		drizzle = GTK_TOGGLE_BUTTON(lookup_widget("upscaleCheckButton"));
 		cbbt_layers = GTK_COMBO_BOX(lookup_widget("comboboxreglayer"));
 		ComboBoxRegInter = GTK_COMBO_BOX_TEXT(lookup_widget("ComboBoxRegInter"));
 		cumul = GTK_TOGGLE_BUTTON(lookup_widget("check_button_comet"));
@@ -1519,7 +1510,6 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 		reg_args->follow_star = gtk_toggle_button_get_active(follow);
 		reg_args->matchSelection = gtk_toggle_button_get_active(matchSel);
 		reg_args->no_output = keep_noout_state;
-		reg_args->x2upscale = gtk_toggle_button_get_active(x2upscale);
 		reg_args->cumul = gtk_toggle_button_get_active(cumul);
 		reg_args->prefix = strdup( gtk_entry_get_text(GTK_ENTRY(lookup_widget("regseqname_entry"))));
 		reg_args->min_pairs = gtk_spin_button_get_value_as_int(minpairs);
@@ -1569,8 +1559,6 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 
 			int nb_frames = reg_args->filters.filter_included ? reg_args->seq->selnum : reg_args->seq->number;
 			gint64 size = seq_compute_size(reg_args->seq, nb_frames, get_data_type(reg_args->seq->bitpix));
-			if (reg_args->x2upscale)
-				size *= 4;
 			if (test_available_space(size)) {
 				siril_log_color_message(_("Not enough space to save the output images, aborting\n"), "red");
 				free(reg_args);
@@ -1598,8 +1586,8 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 		reg_args->load_new_sequence = FALSE; // only TRUE for some methods. Will be updated in these cases
 
 		if (method->method_ptr == register_star_alignment) { // seqpplyreg case is dealt with in the sanity checks of the method
-			if (reg_args->interpolation == OPENCV_NONE && (reg_args->x2upscale || com.seq.is_variable)) {
-				siril_log_color_message(_("When interpolation is set to None, the images must be of same size and no upscaling can be applied. Aborting\n"), "red");
+			if (reg_args->interpolation == OPENCV_NONE && (com.seq.is_variable)) {
+				siril_log_color_message(_("When interpolation is set to None, the images must be of same size. Aborting\n"), "red");
 				free(reg_args);
 				unreserve_thread();
 				return;

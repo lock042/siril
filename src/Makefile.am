@@ -399,7 +399,6 @@ siril_common_SOURCES = \
 	stacking/stackminmax.c \
 	stacking/sum.c \
 	stacking/sum.h \
-	stacking/upscaling.c \
 	rt/rt_algo.cc \
 	rt/gauss.cc \
 	rt/boxblur.cc

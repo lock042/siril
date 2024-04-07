@@ -6820,7 +6820,6 @@ int process_register(int nb) {
 	reg_args->follow_star = FALSE;
 	reg_args->matchSelection = FALSE;
 	reg_args->no_output = FALSE;
-	reg_args->x2upscale = FALSE;
 	reg_args->prefix = strdup("r_");
 	reg_args->min_pairs = 10; // 10 is good enough to ensure good matching
 	reg_args->max_stars_candidates = MAX_STARS_FITTED;
@@ -6831,10 +6830,7 @@ int process_register(int nb) {
 
 	/* check for options */
 	for (int i = 2; i < nb; i++) {
-		if (!strcmp(word[i], "-drizzle")) {
-			reg_args->x2upscale = TRUE;
-			PRINT_DEPRECATED_OPTION_WARNING("-drizzle", _("the seqapplydrizzle command"));
-		} else if (!strcmp(word[i], "-noout")) {
+		if (!strcmp(word[i], "-noout")) {
 			reg_args->no_output = TRUE;
 		} else if (!strcmp(word[i], "-noclamp")) {
 			reg_args->clamp = FALSE;
@@ -6989,8 +6985,6 @@ int process_register(int nb) {
 	if (!reg_args->no_output) {
 		int nb_frames = reg_args->filters.filter_included ? reg_args->seq->selnum : reg_args->seq->number;
 		int64_t size = seq_compute_size(reg_args->seq, nb_frames, get_data_type(seq->bitpix));
-		if (reg_args->x2upscale)
-			size *= 4;
 		if (test_available_space(size)) {
 			siril_log_color_message(_("Not enough space to save the output images, aborting\n"), "red");
 			goto terminate_register_on_error;
@@ -7007,8 +7001,8 @@ int process_register(int nb) {
 #endif
 	}
 
-	if (reg_args->interpolation == OPENCV_NONE && (reg_args->x2upscale || reg_args->seq->is_variable)) {
-		siril_log_color_message(_("When interpolation is set to None, the images must be of same size and no upscaling can be applied. Aborting\n"), "red");
+	if (reg_args->interpolation == OPENCV_NONE && reg_args->seq->is_variable) {
+		siril_log_color_message(_("When interpolation is set to None, the images must be of same size. Aborting\n"), "red");
 		goto terminate_register_on_error;
 	}
 
@@ -7376,7 +7370,6 @@ int process_seq_applyreg(int nb) {
 	reg_args->seq = seq;
 	reg_args->reference_image = sequence_find_refimage(seq);
 	reg_args->no_output = FALSE;
-	reg_args->x2upscale = FALSE;
 	reg_args->prefix = strdup("r_");
 	reg_args->layer = layer;
 	reg_args->interpolation = OPENCV_LANCZOS4;
@@ -7385,9 +7378,7 @@ int process_seq_applyreg(int nb) {
 
 	/* check for options */
 	for (int i = 2; i < nb; i++) {
-		if (!strcmp(word[i], "-drizzle")) {
-			reg_args->x2upscale = TRUE;
-		} else if (g_str_has_prefix(word[i], "-prefix=")) {
+		if (g_str_has_prefix(word[i], "-prefix=")) {
 			char *current = word[i], *value;
 			value = current + 8;
 			if (value[0] == '\0') {
