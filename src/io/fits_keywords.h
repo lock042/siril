@@ -47,7 +47,7 @@ struct KeywordInfo {
     void *data;    // pointer to the data in keyword struct
     special_handler_read_func special_handler_read;
     special_handler_save_func special_handler_save;
-    gboolean is_used;
+    gboolean is_saved;
     gboolean fixed_value;
 };
 

@@ -48,7 +48,11 @@
 
 static gboolean should_use_keyword(const fits *fit, KeywordInfo keyword) {
 
-	if (g_strcmp0(keyword.key, "MIPS-HI") == 0) {
+	if (g_strcmp0(keyword.key, "BZERO") == 0) {
+		return FALSE; // special case
+	} else 	if (g_strcmp0(keyword.key, "BSCALE") == 0) {
+		return FALSE; // special case
+	} else 	if (g_strcmp0(keyword.key, "MIPS-HI") == 0) {
 		return (fit->type == DATA_USHORT);
 	} else if (g_strcmp0(keyword.key, "MIPS-LO") == 0) {
 		return (fit->type == DATA_USHORT);
@@ -68,7 +72,7 @@ static gboolean should_use_keyword(const fits *fit, KeywordInfo keyword) {
 	} else if (g_strcmp0(keyword.key, "DFTNORM3") == 0) {
 		return fit->naxes[2] > 1;
 	}
-	return keyword.is_used;
+	return keyword.is_saved;
 }
 
 /****************************** handlers ******************************/
@@ -464,7 +468,7 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 	// Copy keyword information from the list to the dynamic array and set if keyword must be used
 	for (int i = 0; i < num_keywords; i++) {
 		all_keywords[i] = keyword_list[i];
-		all_keywords[i].is_used = should_use_keyword(fit, keyword_list[i]);
+		all_keywords[i].is_saved = should_use_keyword(fit, keyword_list[i]);
 
 		// Set default values based on keyword type
 		if (g_strcmp0(all_keywords[i].group, "wcslib")) { // This group is initialized in load_WCS_from_hdr
@@ -548,9 +552,7 @@ int save_fits_keywords(fits *fit) {
 
 	/* Let's save all other keywords */
 	while (keys->group) {
-		if (!keys->is_used || g_strcmp0(keys->group, "wcslib") == 0
-				|| g_strcmp0(keys->key, "BZERO") == 0
-				|| g_strcmp0(keys->key, "BSCALE") == 0) {
+		if (!keys->is_saved || g_strcmp0(keys->group, "wcslib") == 0) {
 			keys++;
 			continue;
 		}
