@@ -179,6 +179,20 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	}
 	clearfits(&fit);
 
+	if (regargs->x2upscale) {
+		if (regargs->no_output) {
+			args->seq->upscale_at_stacking = 2.0;
+		} else {
+			sadata->ref.x *= 2.0;
+			sadata->ref.y *= 2.0;
+		}
+	}
+	else {
+		if (regargs->no_output) {
+			args->seq->upscale_at_stacking = 1.0;
+		}
+	}
+
 	/* copying refstars to com.stars for display */
 	if (!com.script && &com.seq == args->seq && com.seq.current == regargs->reference_image) {
 		psf_star **stars = new_fitted_stars(MAX_STARS);
@@ -366,7 +380,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 
 		if (!regargs->no_output) {
 			if (regargs->interpolation <= OPENCV_LANCZOS4) {
-				if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, H, FALSE, regargs->interpolation, regargs->clamp)) {
+				if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, H, regargs->x2upscale, regargs->interpolation, regargs->clamp)) {
 					args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 					return 1;
 				}
@@ -381,6 +395,12 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		// reference image
 		cvGetEye(&H);
 		sadata->current_regdata[in_index].H = H;
+/*		if (regargs->x2upscale && !regargs->no_output) {
+			if (cvResizeGaussian(fit, fit->rx * 2, fit->ry * 2, OPENCV_NEAREST, FALSE)) {
+				args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
+				return 1;
+			}
+		} */ // Removed in favour of proper drizzle after registration
 	}
 
 	if (!regargs->no_output) {
@@ -395,6 +415,12 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		regargs->regparam[out_index].number_of_stars = sadata->current_regdata[in_index].number_of_stars;
 		cvGetEye(&regargs->regparam[out_index].H);
 
+/*		if (regargs->x2upscale) { // Removed in favour of proper drizzle after registration
+			fit->pixel_size_x /= 2;
+			fit->pixel_size_y /= 2;
+			regargs->regparam[out_index].fwhm *= 2.0;
+			regargs->regparam[out_index].weighted_fwhm *= 2.0;
+		} */
 	} else {
 		// TODO: check if H matrix needs to include a flip or not based on fit->top_down
 		// seems like not but this could backfire at some point
@@ -603,7 +629,7 @@ int register_star_alignment(struct registration_args *regargs) {
 	args->description = _("Global star registration");
 	args->has_output = !regargs->no_output;
 	args->output_type = get_data_type(args->seq->bitpix);
-	args->upscale_ratio = 1.0;
+	args->upscale_ratio = regargs->x2upscale ? 2.0 : 1.0;
 	args->new_seq_prefix = regargs->prefix;
 	args->load_new_sequence = !regargs->no_output;
 	args->already_in_a_thread = TRUE;

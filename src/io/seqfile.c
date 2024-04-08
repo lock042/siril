@@ -470,6 +470,16 @@ sequence * readseqfile(const char *name){
 #endif
 				break;
 
+			case 'U':
+				/* up-scale factor for stacking. Used in simplified stacking for
+				 * shift-only registrated sequences, up-scale will be done at
+				 * stack-time. */
+				if (line[1] == ' ' &&
+						sscanf(line+2, "%lg", &seq->upscale_at_stacking) != 1) {
+					fprintf(stderr,"readseqfile: sequence file format error: %s\n",line);
+					goto error;
+				}
+				break;
 			case 'M':
 				/* stats may not exist for all images and layers so we use
 				 * indices for them, the line is Mx-y with x the layer number
@@ -616,6 +626,11 @@ int writeseqfile(sequence *seq){
 		}
 		/* sequence type, not needed for regular, S for ser, A for avi */
 		fprintf(seqfile, "T%c\n", type);
+	}
+
+	if (seq->upscale_at_stacking != 1.0) {
+		// until we have a real drizzle
+		fprintf(seqfile, "U %g\n", seq->upscale_at_stacking);
 	}
 
 	fprintf(seqfile, "L %d\n", seq->nb_layers);

@@ -357,6 +357,8 @@ struct sequ {
 	int previewX[PREVIEW_NB], previewY[PREVIEW_NB];	// center, -1 is uninitialized value
 	int previewW[PREVIEW_NB], previewH[PREVIEW_NB];	// 0 is uninitialized value
 
+	double upscale_at_stacking;// up-scale factor during stacking (see #215)
+
 	gboolean needs_saving;	// a dirty flag for the sequence, avoid saving it too often
 	gboolean reg_invalidated; // a flag to detect if regframe can be plotted
 

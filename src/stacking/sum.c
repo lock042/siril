@@ -146,10 +146,11 @@ static int sum_stacking_image_hook(struct generic_seq_args *args, int o, int i, 
 	}
 
 	if (ssdata->reglayer != -1 && args->seq->regparam[ssdata->reglayer]) {
+		double scale = args->seq->upscale_at_stacking;
 		double dx, dy;
 		translation_from_H(args->seq->regparam[ssdata->reglayer][i].H, &dx, &dy);
-		shiftx = round_to_int(dx);
-		shifty = round_to_int(dy);
+		shiftx = round_to_int(dx * scale);
+		shifty = round_to_int(dy * scale);
 	}
 
 	for (y = 0; y < fit->ry; ++y) {

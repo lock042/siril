@@ -131,7 +131,7 @@ static command commands[] = {
 	{"profile", 2, "profile -from=x,y -to=x,y [-tri] [-cfa] [-arcsec] { [-savedat] | [-filename=] } [-layer=] [-width=] [-spacing=] [ {-xaxis=wavelength | -xaxis=wavenumber } ] [ {-wavenumber1= | -wavelength1=} -wn1at=x,y {-wavenumber2= | -wavelength2=} -wn2at=x,y] [\"-title=My Plot\"]", process_profile, STR_PROFILE, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"psf", 0, "psf [channel]", process_psf, STR_PSF, TRUE, REQ_CMD_SINGLE_IMAGE},
 
-	{"register", 1, "register sequencename [-2pass] [-noout] [-prefix=] [-minpairs=] [-transf=] [-layer=] [-maxstars=] [-nostarlist] [-interp=] [-noclamp] [-selected]", process_register, STR_REGISTER, TRUE, REQ_CMD_NO_THREAD},
+	{"register", 1, "register sequencename [-2pass] [-noout] [-drizzle] [-prefix=] [-minpairs=] [-transf=] [-layer=] [-maxstars=] [-nostarlist] [-interp=] [-noclamp] [-selected]", process_register, STR_REGISTER, TRUE, REQ_CMD_NO_THREAD},
 	{"reloadscripts", 0, "reloadscripts", process_reloadscripts, STR_RELOADSCRIPTS, FALSE, REQ_CMD_NONE},
 	{"requires", 1, "requires version", process_requires, STR_REQUIRES, TRUE, REQ_CMD_NONE},
 	{"resample", 1, "resample { factor | -width= | -height= } [-interp=] [-noclamp]", process_resample, STR_RESAMPLE, TRUE, REQ_CMD_SINGLE_IMAGE},
@@ -164,7 +164,7 @@ static command commands[] = {
 	{"sb", 0, "sb [-loadpsf=] [-alpha=] [-iters=]", process_sb, STR_SB, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"select", 3, "select sequencename from to", process_select, STR_SELECT, TRUE, REQ_CMD_NONE},
 	{"seqapplydrizzle", 1, "seqapplydrizzle sequencename [-framing=] [-scale=] [-pixfrac=] [-kernel=] [-flat=] [-prefix=] [-filter-fwhm=value[%|k]] [-filter-wfwhm=value[%|k]] [-filter-round=value[%|k]] [-filter-bkg=value[%|k]] [-filter-nbstars=value[%|k]] [-filter-quality=value[%|k]] [-filter-incl[uded]]", process_seq_applydrizzle, STR_SEQAPPLYDRIZZLE, TRUE, REQ_CMD_NO_THREAD},
-	{"seqapplyreg", 1, "seqapplyreg sequencename [-interp=] [-noclamp] [-layer=] [-framing=] [-prefix=] [-filter-fwhm=value[%|k]] [-filter-wfwhm=value[%|k]] [-filter-round=value[%|k]] [-filter-bkg=value[%|k]] [-filter-nbstars=value[%|k]] [-filter-quality=value[%|k]] [-filter-incl[uded]]", process_seq_applyreg, STR_SEQAPPLYREG, TRUE, REQ_CMD_NO_THREAD},
+	{"seqapplyreg", 1, "seqapplyreg sequencename [-drizzle] [-interp=] [-noclamp] [-layer=] [-framing=] [-prefix=] [-filter-fwhm=value[%|k]] [-filter-wfwhm=value[%|k]] [-filter-round=value[%|k]] [-filter-bkg=value[%|k]] [-filter-nbstars=value[%|k]] [-filter-quality=value[%|k]] [-filter-incl[uded]]", process_seq_applyreg, STR_SEQAPPLYREG, TRUE, REQ_CMD_NO_THREAD},
 	{"seqccm", 2, "seqccm sequencename [-prefix=]", process_ccm, STR_SEQCCM CMD_CAT(CCM) STR_CCM, TRUE, REQ_CMD_NONE},
 	{"seqclean", 1, "seqclean sequencename [-reg] [-stat] [-sel]", process_seq_clean, STR_SEQCLEAN, TRUE, REQ_CMD_NONE},
 	{"seqcosme", 2, "seqcosme sequencename [filename].lst [-prefix=]", process_seq_cosme, STR_SEQCOSME CMD_CAT(COSME) STR_COSME, TRUE, REQ_CMD_NONE},

@@ -342,7 +342,7 @@ static int _3stars_align_image_hook(struct generic_seq_args *args, int out_index
 	if (in_index != refimage) {
 		if (guess_transform_from_H(sadata->current_regdata[in_index].H) > NULL_TRANSFORMATION) {
 			if (regargs->interpolation <= OPENCV_LANCZOS4) {
-				if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, sadata->current_regdata[in_index].H, FALSE, regargs->interpolation, regargs->clamp)) {
+				if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, sadata->current_regdata[in_index].H, regargs->x2upscale, regargs->interpolation, regargs->clamp)) {
 					return 1;
 				}
 			} else { //  Do we want to allow for no interp while the transformation has been computed as a similarity?
@@ -351,6 +351,12 @@ static int _3stars_align_image_hook(struct generic_seq_args *args, int out_index
 				}
 			}
 		} else return 1;
+	} else {
+		// reference image
+		if (regargs->x2upscale && !regargs->no_output) {
+			if (cvResizeGaussian(fit, fit->rx * 2, fit->ry * 2, OPENCV_NEAREST, FALSE))
+				return 1;
+		}
 	}
 
 	if (!regargs->no_output) {
@@ -365,6 +371,12 @@ static int _3stars_align_image_hook(struct generic_seq_args *args, int out_index
 		regargs->regparam[out_index].number_of_stars = sadata->current_regdata[in_index].number_of_stars;
 		cvGetEye(&regargs->regparam[out_index].H);
 
+		if (regargs->x2upscale) {
+			fit->pixel_size_x /= 2;
+			fit->pixel_size_y /= 2;
+			regargs->regparam[out_index].fwhm *= 2.0;
+			regargs->regparam[out_index].weighted_fwhm *= 2.0;
+		}
 	}
 	sadata->success[out_index] = 1;
 	return 0;
@@ -468,7 +480,7 @@ static int _3stars_alignment(struct registration_args *regargs, regdata *current
 	args->description = (!regargs->no_output) ? _("Creating the aligned image sequence") : _("Saving the transformation matrices");
 	args->has_output = !regargs->no_output;
 	args->output_type = get_data_type(args->seq->bitpix);
-	args->upscale_ratio = 1.0;
+	args->upscale_ratio = regargs->x2upscale ? 2.0 : 1.0;
 	args->new_seq_prefix = regargs->prefix;
 	args->load_new_sequence = !regargs->no_output;
 	args->already_in_a_thread = TRUE;
@@ -487,6 +499,11 @@ static int _3stars_alignment(struct registration_args *regargs, regdata *current
 	// need to duplicate it here
 	sadata->ref.x = args->seq->rx;
 	sadata->ref.y = args->seq->ry;
+
+	if (regargs->x2upscale) {
+		sadata->ref.x *= 2.0;
+		sadata->ref.y *= 2.0;
+	}
 
 	generic_sequence_worker(args);
 	regargs->retval = args->retval;

@@ -167,7 +167,10 @@ void main_stack(struct stacking_args *args) {
 	// 1. normalization
 	if (do_normalization(args)) // does nothing if NO_NORM
 		return;
-	// 2. stack
+	// 2. up-scale
+	if (upscale_sequence(args)) // does nothing if args->seq->upscale_at_stacking <= 1.05
+		return;
+	// 3. stack
 	args->retval = args->method(args);
 
 	// result is in args->result, not saved
@@ -530,6 +533,7 @@ void describe_stack_for_history(struct stacking_args *args, GSList **hist, gbool
 void clean_end_stacking(struct stacking_args *args) {
 	if (!args->retval)
 		_show_summary(args);
+	remove_tmp_drizzle_files(args);
 }
 
 /* because this idle function is called after one of many stacking method
@@ -548,7 +552,10 @@ static gboolean end_stacking(gpointer p) {
 		if (!com.script)
 			icc_auto_assign(&gfit, ICC_ASSIGN_ON_STACK);
 		clear_stars_list(TRUE);
-		com.seq.current = RESULT_IMAGE;
+		/* check in com.seq, because args->seq may have been replaced */
+		if (com.seq.upscale_at_stacking > 1.05)
+			com.seq.current = SCALED_IMAGE;
+		else com.seq.current = RESULT_IMAGE;
 		/* Warning: the previous com.uniq is not freed, but calling
 		 * close_single_image() will close everything before reopening it,
 		 * which is quite slow */
@@ -636,6 +643,8 @@ static gboolean end_stacking(gpointer p) {
 			display_filename();
 			set_precision_switch(); // set precision on screen
 		}
+		/* remove tmp files if exist (Drizzle) */
+		remove_tmp_drizzle_files(args);
 
 		initialize_display_mode();
 

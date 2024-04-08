@@ -198,8 +198,8 @@ static gboolean compute_framing(struct registration_args *regargs) {
 			return FALSE;
 	}
 	cvMultH(Href, Hshift, &Htransf);
-	rx_out = rx_0;
-	ry_out = ry_0;
+	rx_out = rx_0 * ((regargs->x2upscale) ? 2. : 1.);
+	ry_out = ry_0 * ((regargs->x2upscale) ? 2. : 1.);
 	return TRUE;
 }
 
@@ -270,7 +270,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	cvTransfH(Himg, Htransf, &H);
 
 	if (regargs->interpolation <= OPENCV_LANCZOS4) {
-		if (cvTransformImage(fit, rx_out, ry_out, H, FALSE, regargs->interpolation, regargs->clamp)) {
+		if (cvTransformImage(fit, rx_out, ry_out, H, regargs->x2upscale, regargs->interpolation, regargs->clamp)) {
 			return 1;
 		}
 	} else {
@@ -292,6 +292,15 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	regargs->regparam[out_index].background_lvl = sadata->current_regdata[in_index].background_lvl;
 	regargs->regparam[out_index].number_of_stars = sadata->current_regdata[in_index].number_of_stars;
 	cvGetEye(&regargs->regparam[out_index].H);
+
+	if (regargs->x2upscale) {
+		fit->pixel_size_x /= 2;
+		fit->pixel_size_y /= 2;
+		regargs->regparam[out_index].fwhm *= 2.0;
+		regargs->regparam[out_index].weighted_fwhm *= 2.0;
+		regargs->imgparam[out_index].rx *= 2.0;
+		regargs->imgparam[out_index].ry *= 2.0;
+	}
 
 	sadata->success[out_index] = 1;
 	return 0;
@@ -447,7 +456,7 @@ int register_apply_reg(struct registration_args *regargs) {
 	args->description = _("Apply registration");
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
-	args->upscale_ratio = 1.0;
+	args->upscale_ratio = regargs->x2upscale ? 2.0 : 1.0;
 	args->new_seq_prefix = regargs->prefix;
 	args->load_new_sequence = TRUE;
 	args->already_in_a_thread = TRUE;
@@ -560,7 +569,7 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 	}
 
 	// check the consistency of output images size if -interp=none
-	if (regargs->interpolation == OPENCV_NONE && (regargs->framing == FRAMING_MAX || regargs->framing == FRAMING_MIN)) {
+	if (regargs->interpolation == OPENCV_NONE && (regargs->x2upscale || regargs->framing == FRAMING_MAX || regargs->framing == FRAMING_MIN)) {
 		siril_log_color_message(_("Applying registration with changes in output image sizeis not allowed when interpolation is set to none , aborting\n"), "red");
 		return FALSE;
 	}

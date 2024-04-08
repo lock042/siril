@@ -148,9 +148,10 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 		int shiftx, shifty;
 		if (reglayer != -1 && args->seq->regparam[reglayer]) {
 			double dx, dy;
+			double scale = args->seq->upscale_at_stacking;
 			translation_from_H(args->seq->regparam[reglayer][j].H, &dx, &dy);
-			shiftx = round_to_int(dx);
-			shifty = round_to_int(dy);
+			shiftx = round_to_int(dx * scale);
+			shifty = round_to_int(dy * scale);
 		} else {
 			shiftx = 0;
 			shifty = 0;

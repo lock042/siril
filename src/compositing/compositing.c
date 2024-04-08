@@ -1881,6 +1881,19 @@ int manual_align_prepare_hook(struct generic_seq_args *args) {
 	}
 	clearfits(&fit);
 
+	if (regargs->x2upscale) {
+		if (regargs->no_output) {
+			args->seq->upscale_at_stacking = 2.0;
+		} else {
+			sadata->ref.x *= 2.0;
+			sadata->ref.y *= 2.0;
+		}
+	}
+	else {
+		if (regargs->no_output) {
+			args->seq->upscale_at_stacking = 1.0;
+		}
+	}
 	int retval = manual_align_prepare_results(args);
 	if (!retval)
 		sadata->current_regdata = regargs->regparam;
@@ -1928,6 +1941,11 @@ int manual_align_image_hook(struct generic_seq_args *args, int out_index, int in
 		regargs->imgparam[out_index].rx = sadata->ref.x;
 		regargs->imgparam[out_index].ry = sadata->ref.y;
 		cvGetEye(&regargs->regparam[out_index].H);
+
+		if (regargs->x2upscale) {
+			fit->pixel_size_x /= 2;
+			fit->pixel_size_y /= 2;
+		}
 	} else {
 		// TODO: check if H matrix needs to include a flip or not based on fit->top_down
 		// seems like not but this could backfire at some point
@@ -2017,6 +2035,7 @@ int register_manual(struct registration_args *regargs) {
 	args->description = _("Manual registration");
 	args->has_output = !regargs->no_output;
 	args->output_type = get_data_type(args->seq->bitpix);
+	args->upscale_ratio = regargs->x2upscale ? 2.0 : 1.0;
 	args->new_seq_prefix = regargs->prefix;
 	args->load_new_sequence = !regargs->no_output;
 	args->already_in_a_thread = TRUE;
