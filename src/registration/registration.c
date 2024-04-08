@@ -1285,7 +1285,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		}
 		// the 3 stars method has special GUI requirements
 		if (method->method_ptr == &register_3stars) {
-			if (!ready) gtk_widget_set_sensitive(go_register,FALSE);
+			if (!ready) gtk_widget_set_sensitive(go_register, FALSE);
 			else nbselstars = _3stars_check_registration_ready();
 		} else gtk_widget_set_sensitive(go_register, ready);
 	} else {

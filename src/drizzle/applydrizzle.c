@@ -847,7 +847,7 @@ int apply_drizzle(struct driz_args_t *driz) {
 				pattern = get_cfa_pattern_index_from_string("RGGB");
 				break;
 			case SER_BAYER_GRBG:
-				pattern = get_cfa_pattern_index_from_string("GRGB");
+				pattern = get_cfa_pattern_index_from_string("GRBG");
 				break;
 			case SER_BAYER_GBRG:
 				pattern = get_cfa_pattern_index_from_string("GBRG");
