@@ -346,7 +346,7 @@
                 "-DBUILD_opencv_video=OFF",
                 "-DBUILD_opencv_objdetect=OFF",
                 "-DBUILD_opencv_photo=OFF",
-                "-DBUILD_opencv_stitching=OFF",
+                "-DBUILD_opencv_stitching=ON",
                 "-DBUILD_opencv_gapi=OFF",
                 "-DENABLE_PRECOMPILED_HEADERS=OFF",
                 "-DFORCE_VTK=OFF",

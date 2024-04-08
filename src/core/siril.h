@@ -245,6 +245,11 @@ typedef enum {
 } opencv_interpolation;
 
 typedef enum {
+	OPENCV_PLANE = 0,
+	OPENCV_SPHERICAL = 1
+} opencv_projector;
+
+typedef enum {
 	SEQ_REGULAR, SEQ_SER, SEQ_FITSEQ,
 #ifdef HAVE_FFMS2
 	SEQ_AVI,

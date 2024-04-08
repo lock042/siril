@@ -359,6 +359,13 @@ void wcs_decompose_cd(wcsprm_t *prm, double cd[NAXIS][NAXIS]) {
 	wcs_mat2cdelt(prm, cdelt);
 }
 
+gboolean image_is_flipped_from_wcs(struct wcsprm *wcslib) {
+	double cd[2][2];
+	wcs_cd2mat(wcslib, cd);
+	double det = (cd[0][0] * cd[1][1] - cd[1][0] * cd[0][1]); // determinant of rotation matrix (ad - bc)
+	return det > 0; // convention is that angles are positive clockwise when image is not flipped
+}
+
 /* get resolution in degree/pixel */
 double get_wcs_image_resolution(fits *fit) {
 	double resolution = -1.0;
