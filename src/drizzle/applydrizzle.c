@@ -877,6 +877,7 @@ int apply_drizzle(struct driz_args_t *driz) {
 		pattern = com.pref.debayer.use_bayer_header ? get_cfa_pattern_index_from_string(fit.bayer_pattern) : com.pref.debayer.bayer_pattern;
 	}
 	if (driz->is_bayer) {
+		adjust_Bayer_pattern(&fit, &pattern);
 		driz->cfa = get_cfa_from_pattern(pattern);
 		if (!driz->cfa) // if fit.bayer_pattern exists and get_cfa_from_pattern returns NULL then there is a problem.
 			return 1;
