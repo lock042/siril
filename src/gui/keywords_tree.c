@@ -216,9 +216,6 @@ void on_val_edited(GtkCellRendererText *renderer, char *path, char *new_val, gpo
 		/* update FITS */
 		if (dtype == 'C' && (new_val[0] != '\'' || new_val[strlen(new_val) - 1] != '\'')) {
 			ffs2c(new_val, valstring, &status);
-			if (status) {
-				return;
-			}
 		} else {
 			strcpy(valstring, new_val);
 		}

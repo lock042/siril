@@ -2973,7 +2973,7 @@ error:
 
 int updateFITSKeyword(fits *fit, const gchar *key, const gchar *value) {
 	char card[FLEN_CARD], newcard[FLEN_CARD];
-	char oldvalue[FLEN_VALUE], comment[FLEN_COMMENT];
+	char oldvalue[FLEN_VALUE], comment[FLEN_COMMENT] = { 0 };
 	int keytype;
 	void *memptr;
 	size_t memsize = IOBUFLEN;
@@ -3022,12 +3022,12 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *value) {
 			fits_parse_value(card, oldvalue, comment, &status);
 
 		/* construct template for new keyword */
-		strcpy(newcard, key);
-		strcat(newcard, " = ");
-		strcat(newcard, value);
-		if (*comment) { /* Restore comment if exist */
-			strcat(newcard, " / ");
-			strcat(newcard, comment);
+		g_strlcpy(newcard, key, FLEN_CARD);
+		g_strlcat(newcard, " = ", FLEN_CARD);
+		g_strlcat(newcard, value, FLEN_CARD);
+		if (*card && *comment) { /* Restore comment if exist */
+			g_strlcat(newcard, " / ", FLEN_CARD);
+			g_strlcat(newcard, comment, FLEN_CARD);
 		}
 
 		fits_parse_template(newcard, card, &keytype, &status);
