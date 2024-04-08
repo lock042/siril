@@ -843,7 +843,7 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 
 				for (int frame = 0; frame < stack_size; ++frame) {
 					WORD val = ((WORD*)data->o_stack)[frame];
-					float pixcnt_val = pixcnt_data ? (float) ((WORD*)pixcnt_data->stack)[frame] : 1.f;
+					float pixcnt_val = pixcnt_data ? (float) ((WORD*)pixcnt_data->o_stack)[frame] : 1.f;
 					if (val >= pmin && val <= pmax && val > 0) {
 						sum += (float)val * pweights[frame] * pixcnt_val;
 						norm += pweights[frame] * pixcnt_val;
@@ -856,11 +856,14 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 				}
 				else mean = sum / norm;
 			} else {
-				gint64 sum = 0L;
+				double sum = 0.;
+				double norm = 0.0;
 				for (int frame = 0; frame < kept_pixels; ++frame) {
-					sum += ((WORD *)data->stack)[frame];
+					double pixcnt_val = pixcnt_data ? (double) ((WORD*)pixcnt_data->stack)[frame] : 1.f;
+					sum += (double)((WORD *)data->stack)[frame] * pixcnt_val;
+					norm += pixcnt_val;
 				}
-				mean = sum / (double)kept_pixels;
+				mean = sum / norm;
 			}
 		}
 	} else {
@@ -880,7 +883,7 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 
 				for (int frame = 0; frame < stack_size; ++frame) {
 					float val = ((float*)data->o_stack)[frame];
-					float pixcnt_val = pixcnt_data ? ((float*)pixcnt_data->stack)[frame] : 1.f;
+					float pixcnt_val = pixcnt_data ? ((float*)pixcnt_data->o_stack)[frame] : 1.f;
 					if (val >= pmin && val <= pmax && val != 0.f) {
 						sum += val * pweights[frame] * pixcnt_val;
 						norm += pweights[frame] * pixcnt_val;
@@ -891,10 +894,13 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 				else mean = sum / norm;
 			} else {
 				double sum = 0.0;
+				double norm = 0.0;
 				for (int frame = 0; frame < kept_pixels; ++frame) {
-					sum += ((float*)data->stack)[frame];
+					double pixcnt_val = pixcnt_data ? (double) ((WORD*)pixcnt_data->stack)[frame] : 1.f;
+					sum += ((float*)data->stack)[frame] * pixcnt_val;
+					norm += pixcnt_val;
 				}
-				mean = sum / (double)kept_pixels;
+				mean = sum / norm;
 			}
 		}
 	}
@@ -1170,7 +1176,6 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 			nb_rejmaps = 1;
 		else nb_rejmaps = 2;
 	}
-	// TODO: update this to take pxcnt use into account
 	long max_number_of_rows = stack_get_max_number_of_rows(naxes, itype, args->nb_images_to_stack, nb_rejmaps, use_pixcnt);
 	/* Compute parallel processing data: the data blocks, later distributed to threads */
 	if ((retval = stack_compute_parallel_blocks(&blocks, max_number_of_rows, naxes, nb_threads,
@@ -1442,7 +1447,8 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 							// no normalization (scale[frame] = 1, offset[frame] = 0, mul[frame] = 1)
 							if (itype == DATA_FLOAT)
 								((float*)data->stack)[frame] = fpixel;
-							else	((WORD *)data->stack)[frame] = pixel;
+							else
+								((WORD *)data->stack)[frame] = pixel;
 							/* it's faster if we don't convert it to double
 							 * to make identity operations */
 							break;
@@ -1502,9 +1508,19 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 						}
 					}
 				} else {
-					if (itype == DATA_USHORT)
-						result = quickmedian(data->stack, nb_frames);
-					else 	result = quickmedian_float(data->stack, nb_frames);
+					if (use_pixcnt) {
+						if (itype == DATA_USHORT) {
+							result = weighted_median_WORD(data->stack, pixcnt_data->stack, nb_frames);
+						} else {
+							result = weighted_median_float(data->stack, pixcnt_data->stack, nb_frames);
+						}
+					} else {
+						if (itype == DATA_USHORT) {
+							result = quickmedian(data->stack, nb_frames);
+						} else {
+							result = quickmedian_float(data->stack, nb_frames);
+						}
+					}
 				}
 
 				if (args->use_32bit_output) {
@@ -1619,4 +1635,3 @@ free_and_close:
 	}
 	return retval;
 }
-

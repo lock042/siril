@@ -14,6 +14,10 @@ double quickmedian_float(float *a, size_t n);
 double quickmedian_double(double *a, size_t n);
 double quickmedian_int(int *a, size_t n);
 
+/* Weighted median, modified from quick median functions */
+double weighted_median_float(float *a, float *b, size_t n);
+double weighted_median_WORD(WORD *a, WORD *b, size_t n);
+
 /* Histogram median for very large array of unsigned short */
 double histogram_median(WORD *a, size_t n, threading_type threading);
 double histogram_median_float(float *a, size_t n, threading_type threading);

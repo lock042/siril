@@ -694,9 +694,6 @@ void on_comboboxstack_methods_changed (GtkComboBox *box, gpointer user_data) {
 	if (!notebook)
 		notebook = GTK_NOTEBOOK(gtk_builder_get_object(gui.builder, "notebook4"));
 	com.pref.stack.method = gtk_combo_box_get_active(box);
-	gboolean oc_applicable = (com.pref.stack.method == STACK_MEAN ||
-							  com.pref.stack.method == STACK_SUM);
-	gtk_widget_set_visible(lookup_widget("pixcnt_settings"), oc_applicable);
 
 	gtk_notebook_set_current_page(notebook, com.pref.stack.method);
 	update_stack_interface(TRUE);
@@ -1155,7 +1152,7 @@ static void update_filter_label() {
  */
 void update_stack_interface(gboolean dont_change_stack_type) {
 	static GtkWidget *go_stack = NULL, *widgetnormalize = NULL, *force_norm =
-			NULL, *output_norm = NULL, *RGB_equal = NULL, *fast_norm = NULL;
+			NULL, *output_norm = NULL, *RGB_equal = NULL, *fast_norm = NULL, *use_oc;
 	static GtkComboBox *method_combo = NULL, *filter_combo = NULL;
 	static GtkLabel *result_label = NULL;
 	gchar *labelbuffer;
@@ -1170,6 +1167,7 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 		result_label = GTK_LABEL(lookup_widget("stackfilter_label"));
 		output_norm = lookup_widget("check_normalise_to_max");
 		RGB_equal = lookup_widget("check_RGBequal");
+		use_oc = lookup_widget("use_drizzle_pixel_counts");
 	}
 	if (!sequence_is_loaded()) {
 		gtk_widget_set_sensitive(go_stack, FALSE);
@@ -1184,6 +1182,7 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 	}
 
 	gboolean method_selected = gtk_combo_box_get_active(method_combo);
+	gboolean oc_available = com.seq.pixcnt_seqname != NULL;
 	switch (method_selected) {
 	default:
 	case STACK_SUM:
@@ -1194,6 +1193,9 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 		gtk_widget_set_sensitive(fast_norm, FALSE);
 		gtk_widget_set_visible(output_norm, FALSE);
 		gtk_widget_set_visible(RGB_equal, FALSE);
+		gtk_widget_set_visible(use_oc, (method_selected == STACK_SUM));
+		if (method_selected != STACK_SUM)
+			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(use_oc), FALSE);
 		break;
 	case STACK_MEAN:
 	case STACK_MEDIAN:
@@ -1204,8 +1206,7 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 				gtk_combo_box_get_active(GTK_COMBO_BOX(widgetnormalize)) != 0);
 		gtk_widget_set_visible(output_norm, TRUE);
 		gtk_widget_set_visible(RGB_equal, TRUE);
-		gtk_widget_set_sensitive(GTK_WIDGET(lookup_widget("use_drizzle_pixel_counts")),
-								 (com.seq.pixcnt_seqname != NULL && method_selected != STACK_MEDIAN));
+		gtk_widget_set_visible(use_oc, oc_available);
 	}
 
 	if (com.seq.reference_image == -1)

@@ -671,3 +671,289 @@ gint strcompare(gconstpointer *a, gconstpointer *b) {
 	return result;
 }
 
+/*
+ * Optimal sorting network array of size [2,9] to retrieve median value
+ * (C) Emmanuel Brandt 2019-02 (modified)
+ * @param a array of float to sort (warning in place sorting)
+ * *param b array of float weights (warning in place sorting)
+ * @param n size of the array to sort [2,9]
+ * warning in-place sorting
+ */
+
+#define sw(i, j)                 \
+    if (a[i] > a[j]) {           \
+        register float t = a[i]; \
+        a[i] = a[j];             \
+        a[j] = t;                \
+        t = b[i];                \
+        b[i] = b[j];             \
+        b[j] = t;                \
+    }
+
+double sortnet_weighted_median_float(float *a, float *b, size_t n) {
+    size_t k = n / 2;
+
+    switch (n) {
+        case 1:
+            return a[0];
+            break;
+
+        case 2:
+            sw(0, 1);
+            break;
+
+        case 3:
+            sw(0, 1); sw(1, 2); sw(0, 1);
+            break;
+
+        case 4:
+            sw(0, 1); sw(2, 3); sw(0, 2); sw(1, 3);
+			sw(1, 2);
+            break;
+
+        case 5:
+            sw(0, 1); sw(2, 3); sw(1, 3); sw(2, 4);
+            sw(0, 2); sw(1, 4); sw(1, 2); sw(3, 4);
+            sw(2, 3);
+            break;
+
+        case 6:
+            sw(0, 1); sw(2, 3); sw(4, 5); sw(0, 2);
+			sw(3, 5); sw(1, 4); sw(0, 1); sw(2, 3);
+            sw(4, 5); sw(1, 2); sw(3, 4); sw(2, 3);
+            break;
+
+        case 7:
+            sw(1, 2); sw(3, 4); sw(5, 6); sw(0, 2);
+            sw(4, 6); sw(3, 5); sw(2, 6); sw(1, 5);
+            sw(0, 4); sw(2, 5); sw(0, 3); sw(2, 4);
+            sw(1, 3); sw(0, 1); sw(2, 3); sw(4, 5);
+            break;
+
+        case 8:
+            sw(0, 1); sw(2, 3); sw(4, 5); sw(6, 7);
+            sw(0, 2); sw(1, 3); sw(4, 6); sw(5, 7);
+            sw(1, 2); sw(5, 6); sw(0, 4); sw(1, 5);
+            sw(2, 6); sw(3, 7); sw(2, 4); sw(3, 5);
+            sw(1, 2); sw(3, 4); sw(5, 6);
+            break;
+
+        case 9:
+            sw(1, 8); sw(2, 7); sw(3, 6); sw(4, 5);
+            sw(1, 4); sw(5, 8); sw(0, 2); sw(6, 7);
+            sw(2, 6); sw(7, 8); sw(0, 3); sw(4, 5);
+            sw(0, 1); sw(3, 5); sw(6, 7); sw(2, 4);
+            sw(1, 3); sw(5, 7); sw(4, 6); sw(1, 2);
+            sw(3, 4); sw(5, 6); sw(7, 8); sw(2, 3);
+            sw(4, 5);
+            break;
+
+        default:
+            return 0.0;
+            break;  // no sort
+    }
+    return (n % 2 == 0) ? (a[k - 1] + a[k]) / 2.0 : a[k];
+}
+
+#undef sw
+
+double weighted_median_float(float *a, float *b, size_t n) {
+    // Use faster and robust sorting network for small size array
+    if (n < 9)
+        return sortnet_weighted_median_float(a, b, n); // Implement sortnet_weighted_median_float function
+
+    float total_weight = 0.0;
+    for (size_t i = 0; i < n; ++i)
+        total_weight += b[i];
+
+    float half_total_weight = total_weight / 2.0;
+    size_t k = 0;
+    float cumulative_weight = 0.0;
+
+    size_t left = 0;
+    size_t right = n - 1;
+    float tmp;
+
+    while (left < right) {
+        size_t pindex = (left + right) / 2;
+        float pivot = a[pindex];
+        float pivot_weight = b[pindex];
+        a[pindex] = a[right];
+        a[right] = pivot;
+        b[pindex] = b[right];
+        b[right] = pivot_weight;
+
+        for (size_t i = pindex = left; i < right; ++i) {
+            if (a[i] < pivot) {
+                tmp = a[pindex];
+                a[pindex] = a[i];
+                a[i] = tmp;
+                tmp = b[pindex];
+                b[pindex] = b[i];
+                b[i] = tmp;
+                pindex++;
+            }
+        }
+        a[right] = a[pindex];
+        a[pindex] = pivot;
+        b[right] = b[pindex];
+        b[pindex] = pivot_weight;
+
+        if (pindex < k)
+            left = pindex + 1;
+        else
+            right = pindex;
+    }
+
+    // Find the index k such that sum of weights from 0 to k-1 is less than half of total weight
+    while (cumulative_weight < half_total_weight && k < n) {
+        cumulative_weight += b[k];
+        ++k;
+    }
+
+    float median;
+    if (cumulative_weight == half_total_weight || (cumulative_weight < half_total_weight && k > 0))
+        median = a[k - 1]; // Weighted median lies within the same element
+    else
+        median = a[k]; // Weighted median lies between two elements
+
+    return median;
+}
+
+#define sw_WORD(i, j)             \
+    if (a[i] > a[j]) {            \
+        WORD t = a[i];            \
+        a[i] = a[j];              \
+        a[j] = t;                 \
+        t = b[i];                 \
+        b[i] = b[j];              \
+        b[j] = t;                 \
+    }
+
+double sortnet_weighted_median_WORD(WORD *a, WORD *b, size_t n) {
+    size_t k = n / 2;
+
+    switch (n) {
+        case 1:
+            return a[0];
+            break;
+
+        case 2:
+            sw_WORD(0, 1);
+            break;
+
+        case 3:
+            sw_WORD(0, 1); sw_WORD(1, 2); sw_WORD(0, 1);
+            break;
+
+        case 4:
+            sw_WORD(0, 1); sw_WORD(2, 3); sw_WORD(0, 2); sw_WORD(1, 3);
+			sw_WORD(1, 2);
+            break;
+
+        case 5:
+            sw_WORD(0, 1); sw_WORD(2, 3); sw_WORD(1, 3); sw_WORD(2, 4);
+            sw_WORD(0, 2); sw_WORD(1, 4); sw_WORD(1, 2); sw_WORD(3, 4);
+            sw_WORD(2, 3);
+            break;
+
+        case 6:
+            sw_WORD(0, 1); sw_WORD(2, 3); sw_WORD(4, 5); sw_WORD(0, 2);
+			sw_WORD(3, 5); sw_WORD(1, 4); sw_WORD(0, 1); sw_WORD(2, 3);
+            sw_WORD(4, 5); sw_WORD(1, 2); sw_WORD(3, 4); sw_WORD(2, 3);
+            break;
+
+        case 7:
+            sw_WORD(1, 2); sw_WORD(3, 4); sw_WORD(5, 6); sw_WORD(0, 2);
+            sw_WORD(4, 6); sw_WORD(3, 5); sw_WORD(2, 6); sw_WORD(1, 5);
+            sw_WORD(0, 4); sw_WORD(2, 5); sw_WORD(0, 3); sw_WORD(2, 4);
+            sw_WORD(1, 3); sw_WORD(0, 1); sw_WORD(2, 3); sw_WORD(4, 5);
+            break;
+
+        case 8:
+            sw_WORD(0, 1); sw_WORD(2, 3); sw_WORD(4, 5); sw_WORD(6, 7);
+            sw_WORD(0, 2); sw_WORD(1, 3); sw_WORD(4, 6); sw_WORD(5, 7);
+            sw_WORD(1, 2); sw_WORD(5, 6); sw_WORD(0, 4); sw_WORD(1, 5);
+            sw_WORD(2, 6); sw_WORD(3, 7); sw_WORD(2, 4); sw_WORD(3, 5);
+            sw_WORD(1, 2); sw_WORD(3, 4); sw_WORD(5, 6);
+            break;
+
+        case 9:
+            sw_WORD(1, 8); sw_WORD(2, 7); sw_WORD(3, 6); sw_WORD(4, 5);
+            sw_WORD(1, 4); sw_WORD(5, 8); sw_WORD(0, 2); sw_WORD(6, 7);
+            sw_WORD(2, 6); sw_WORD(7, 8); sw_WORD(0, 3); sw_WORD(4, 5);
+            sw_WORD(0, 1); sw_WORD(3, 5); sw_WORD(6, 7); sw_WORD(2, 4);
+            sw_WORD(1, 3); sw_WORD(5, 7); sw_WORD(4, 6); sw_WORD(1, 2);
+            sw_WORD(3, 4); sw_WORD(5, 6); sw_WORD(7, 8); sw_WORD(2, 3);
+            sw_WORD(4, 5);
+            break;
+
+        default:
+            return 0.0;
+            break;  // no sort
+    }
+    return (n % 2 == 0) ? (a[k - 1] + a[k]) / 2.0 : a[k];
+}
+
+#undef sw_WORD
+
+double weighted_median_WORD(WORD *a, WORD *b, size_t n) {
+    if (n < 9)
+        return sortnet_weighted_median_WORD(a, b, n);
+
+    uint32_t total_weight = 0;
+    for (size_t i = 0; i < n; ++i)
+        total_weight += b[i];
+
+    uint32_t half_total_weight = total_weight / 2;
+    size_t k = 0;
+    uint32_t cumulative_weight = 0;
+
+    size_t left = 0;
+    size_t right = n - 1;
+    WORD tmp;
+
+    while (left < right) {
+        size_t pindex = (left + right) / 2;
+        WORD pivot = a[pindex];
+        WORD pivot_weight = b[pindex];
+        a[pindex] = a[right];
+        a[right] = pivot;
+        b[pindex] = b[right];
+        b[right] = pivot_weight;
+
+        for (size_t i = pindex = left; i < right; ++i) {
+            if (a[i] < pivot) {
+                tmp = a[pindex];
+                a[pindex] = a[i];
+                a[i] = tmp;
+                tmp = b[pindex];
+                b[pindex] = b[i];
+                b[i] = tmp;
+                pindex++;
+            }
+        }
+        a[right] = a[pindex];
+        a[pindex] = pivot;
+        b[right] = b[pindex];
+        b[pindex] = pivot_weight;
+
+        if (pindex < k)
+            left = pindex + 1;
+        else
+            right = pindex;
+    }
+
+    while (cumulative_weight < half_total_weight && k < n) {
+        cumulative_weight += b[k];
+        ++k;
+    }
+
+    double median;
+    if (cumulative_weight == half_total_weight || (cumulative_weight < half_total_weight && k > 0))
+        median = a[k - 1]; // Weighted median lies within the same element
+    else
+        median = a[k]; // Weighted median lies between two elements
+
+    return median;
+}
