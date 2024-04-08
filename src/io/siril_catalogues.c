@@ -562,7 +562,7 @@ siril_catalogue *siril_catalog_fill_from_fit(fits *fit, siril_cat_index cat, flo
 
 int siril_catalog_conesearch(siril_catalogue *siril_cat) {
 	int nbstars = 0;
-	if (siril_cat->cat_items) {
+	if (siril_cat->cat_items && siril_cat->cat_index != CAT_SHOW) {
 		siril_debug_print("trying to fetch a catalog while a list already exists, should not happen\n");
 		return 0;
 	}
