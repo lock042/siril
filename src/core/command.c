@@ -822,6 +822,7 @@ int process_savetif(int nb){
 			tiff_compression = TRUE;
 		} else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
+			if (astro_tiff) g_free(astro_tiff);
 			return CMD_ARG_ERROR;
 		}
 	}
@@ -6418,7 +6419,6 @@ int process_seq_header(int nb) {
 	sequence *seq = load_sequence(word[1], NULL);
 	gboolean filter = FALSE;
 	GSList *list = NULL;
-	GString *list_of_keys = g_string_new(NULL);
 	int key;
 	if (!seq)
 		return CMD_SEQUENCE_NOT_FOUND;
@@ -6428,6 +6428,8 @@ int process_seq_header(int nb) {
 			free_sequence(seq, TRUE);
 		return CMD_GENERIC_ERROR;
 	}
+
+	GString *list_of_keys = g_string_new(NULL);
 
 	for (key = 2; key < nb; key++) {
 		if (!word[key] || word[key][0] == '-') {
