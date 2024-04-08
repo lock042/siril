@@ -222,14 +222,12 @@ static void fhi_handler_save(fits *fit, KeywordInfo *info) {
 
 static void bzero_handler_save(fits *fit, KeywordInfo *info) {
 	switch (fit->bitpix) {
+	default:
 	case BYTE_IMG:
 	case SHORT_IMG:
-		fit->keywords.bzero = 0.0;
-		break;
 	case FLOAT_IMG:
 		fit->keywords.bzero = 0.0;
 		break;
-	default:
 	case USHORT_IMG:
 		fit->keywords.bzero = 32768.0;
 		break;
@@ -237,19 +235,7 @@ static void bzero_handler_save(fits *fit, KeywordInfo *info) {
 }
 
 static void bscale_handler_save(fits *fit, KeywordInfo *info) {
-	switch (fit->bitpix) {
-	case BYTE_IMG:
-	case SHORT_IMG:
-		fit->keywords.bscale = 1.0;
-		break;
-	case FLOAT_IMG:
-		fit->keywords.bscale = 1.0;
-		break;
-	default:
-	case USHORT_IMG:
-		fit->keywords.bscale = 1.0;
-		break;
-	}
+	fit->keywords.bscale = 1.0;
 }
 
 static void program_handler_save(fits *fit, KeywordInfo *info) {
