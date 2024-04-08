@@ -44,20 +44,28 @@ static int astrometric_alignment(struct registration_args *regargs, struct astro
 // computing center cog dealing with range jumps
 // https://stackoverflow.com/questions/6671183/calculate-the-center-point-of-multiple-latitude-longitude-coordinate-pairs
 // ra is lon, dec is lat
-static void compute_center_cog(double *ra, double *dec, int n, double *RA, double *DEC) {
+static void compute_center_cog(double *ra, double *dec, int n, gboolean *incl, double *RA, double *DEC) {
 	double x = 0.;
 	double y = 0.;
 	double z = 0.;
+	int nb = 0;
 	for (int i = 0; i < n; i++) {
+		if (!incl[i])
+			continue;
 		double ra_rad = ra[i] * DEGTORAD;
 		double dec_rad = dec[i] * DEGTORAD;
 		x += cos(dec_rad) * cos(ra_rad);
 		y += cos(dec_rad) * sin(ra_rad);
 		z += sin(dec_rad);
+		nb++;
 	}
-	x /= (double)n;
-	y /= (double)n;
-	z /= (double)n;
+	x /= (double)nb;
+	y /= (double)nb;
+	z /= (double)nb;
+	double norm = sqrt( x * x + y * y + z * z);
+	x /= norm;
+	y /= norm;
+	z /= norm;
 	*RA = atan2(y, x) * RADTODEG;
 	*DEC = atan2(z, sqrt(x * x + y * y)) * RADTODEG;
 }
@@ -105,8 +113,12 @@ int register_astrometric(struct registration_args *regargs) {
 	struct wcsprm *WCSDATA = calloc(n, sizeof(struct wcsprm));
 	astrometric_roi *rois = malloc(n * sizeof(astrometric_roi));
 	int failed = 0, nb_aligned = 0;
+	Homography *Rs = NULL, *Ks = NULL;
+	Rs = calloc(n, sizeof(Homography)); // camera rotation matrices
+	Ks = calloc(n, sizeof(Homography)); // camera intrinsic matrices
+	gboolean *incl = calloc(n, sizeof(gboolean));
 
-	if (!RA || !DEC || !dist || !WCSDATA || !rois) {
+	if (!RA || !DEC || !dist || !WCSDATA || !rois || !Rs || !Ks || !incl) {
 		PRINT_ALLOC_ERR;
 		retval = 1;
 		goto free_all;
@@ -133,10 +145,11 @@ int register_astrometric(struct registration_args *regargs) {
 		wcssub(1, fit.wcslib, NULL, NULL, WCSDATA + i); // copying wcsprm structure for each fit to avoid reopening
 		clearfits(&fit);
 		siril_log_message("Image #%2d - RA:%.3f - DEC:%.3f\n", i + 1, RA[i], DEC[i]);
+		incl[i] = TRUE;
 	}
 
 	// find sequence cog and closest image to use as reference
-	compute_center_cog(RA, DEC, n, &ra0, &dec0);
+	compute_center_cog(RA, DEC, n, incl, &ra0, &dec0);
 	ra0 = (ra0 < 0) ? ra0 + 360. : ra0;
 	siril_log_message("Sequence COG - RA:%.3f - DEC:%.3f\n", ra0, dec0);
 	int refindex = -1;
@@ -151,10 +164,6 @@ int register_astrometric(struct registration_args *regargs) {
 		}
 	}
 	siril_debug_print("Closest image  is #%d - RA:%.3f - DEC:%.3f\n", refindex + 1, RA[refindex], DEC[refindex]);
-
-	// TODO: should check allocation success
-	Homography *Rs = calloc(n, sizeof(Homography)); // camera rotation matrices
-	Homography *Ks = calloc(n, sizeof(Homography)); // camera intrinsic matrices
 
 	// Obtaining Camera extrinsic and instrinsic matrices (resp. R and K)
 	// ##################################################################
@@ -171,7 +180,7 @@ int register_astrometric(struct registration_args *regargs) {
 	// The "framing" angle is obtained by making the PC matrix a true rotation matrix (averaging of CROTAi)
 
 	rotation_type rottypes[3] = { ROTZ, ROTX, ROTZ};
-	double framingref;
+	double framingref = 0.;
 	int framingref_index = (regargs->framing == FRAMING_CURRENT) ? regargs->seq->reference_image : refindex;
 	for (int i = 0; i < n; i++) {
 		if (!regargs->seq->imgparam[i].incl && regargs->filters.filter_included)
@@ -226,7 +235,8 @@ int register_astrometric(struct registration_args *regargs) {
 			continue;
 		Homography H = { 0 };
 		cvcalcH_fromKKR(Ks[refindex], Ks[i], Rs[i], &H);
-		current_regdata[i].H = H;
+		if (!regargs->no_output)
+			current_regdata[i].H = H;
 		nb_aligned++;
 	}
 	regargs->seq->reference_image = refindex;
@@ -328,7 +338,7 @@ int register_astrometric(struct registration_args *regargs) {
 	gchar *downscale = (regargs->astrometric_scale != 1.f) ? g_strdup_printf(_(" and a scaling factor of %.2f"), regargs->astrometric_scale) : g_strdup("");
 	siril_log_color_message(_("Output image: %d x %d pixels (assuming %s projection%s)\n"), "salmon", imagew, imageh, proj, downscale);
 	g_free(downscale);
-	int64_t frame_size = imagew * imageh * regargs->seq->nb_layers;
+	int64_t frame_size = (int64_t)imagew * imageh * regargs->seq->nb_layers;
 	frame_size *= (get_data_type(regargs->seq->bitpix) == DATA_USHORT) ? sizeof(WORD) : sizeof(float);
 	gchar *mem = g_format_size_full(frame_size, G_FORMAT_SIZE_IEC_UNITS);
 	siril_log_color_message(_("Space required for storage: %s\n"), "salmon", mem);
@@ -342,6 +352,7 @@ free_all:
 	free(DEC);
 	free(dist);
 	free(rois);
+	free(incl);
 	for (int i = 0; i < n; i++) {
 		if (!regargs->seq->imgparam[i].incl && regargs->filters.filter_included)
 			continue;
