@@ -261,6 +261,12 @@ cfitsio_dep = dependency('cfitsio', required : true)
 cairo_dep = dependency('cairo', required : true)
 kplot_dep = dependency('kplot', fallback : ['kplot', 'kplot_dep'], required : true)
 opencv4_dep = dependency('opencv4', required : true, version: '>= 4.2.0')
+# checking required opencv modules
+opencv_symbols = ['HAVE_OPENCV_CORE', 'HAVE_OPENCV_IMGPROC', 'HAVE_OPENCV_CALIB3D', 'HAVE_OPENCV_STITCHING']
+opencv_incdir = '-I'+opencv4_dep.get_variable(pkgconfig : 'includedir')
+foreach s : opencv_symbols
+  cpp.has_header_symbol('opencv2/opencv_modules.hpp', s, args: [opencv_incdir], required : true)
+endforeach
 
 rtprocess_dep = dependency('rtprocess', required : false)
 if not rtprocess_dep.found()

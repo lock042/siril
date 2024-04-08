@@ -1034,7 +1034,7 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                         <property name="receives-default">False</property>
                         <property name="tooltip-text" translatable="yes">Tick this box to skip solving the images of the sequence that already have a solution.</property>
                         <property name="margin-start">10</property>
-                        <property name="active">True</property>
+                        <property name="active">False</property>
                         <property name="draw-indicator">True</property>
                       </object>
                       <packing>

@@ -466,13 +466,6 @@ static int add_disto_to_wcslib(struct wcsprm *wcslib, TRANS *trans, int rx, int 
 	return 0;
 }
 
-static gboolean image_is_flipped_from_wcs(struct wcsprm *wcslib) {
-	double cd[2][2];
-	wcs_cd2mat(wcslib, cd);
-	double det = (cd[0][0] * cd[1][1] - cd[1][0] * cd[0][1]); // determinant of rotation matrix (ad - bc)
-	return det > 0; // convention is that angles are positive clockwise when image is not flipped
-}
-
 static void flip_bottom_up_astrometry_data(fits *fit) {
 	Homography H = { 0 };
 	cvGetEye(&H);
@@ -1919,6 +1912,18 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 		return 1;
 	args->fit = &fit;
 	process_plate_solver_input(args); // compute required data to get the catalog
+	args->layer = fit.naxes[2] == 1 ? 0 : 1;
+	regdata *current_regdata;
+	// if no registration data present, we will store the stats stored by the peaker and add identity matrices
+	if (!arg->seq->regparam[args->layer]) {
+		current_regdata = (regdata*)calloc(arg->seq->number, sizeof(regdata));
+		if (current_regdata == NULL) {
+			PRINT_ALLOC_ERR;
+			return 1;
+		}
+		arg->seq->regparam[args->layer] = current_regdata;
+		args->update_reg = TRUE;
+	}
 	clearfits(&fit);
 	args->fit = NULL;
 	if (arg->has_output)
@@ -2020,29 +2025,52 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 		aargs->filename = g_strdup(root);	// for localasnet
 	process_plate_solver_input(aargs);
 
+	int nb_stars;
+	int detection_layer = fit->naxes[2] == 1 ? 0 : 1;
+	image im = { .fit = fit, .from_seq = NULL, .index_in_seq = -1 };
+	
+	aargs->stars = peaker(&im, detection_layer, &com.pref.starfinder_conf, &nb_stars,
+				NULL, FALSE, TRUE,
+				BRIGHTEST_STARS, com.pref.starfinder_conf.profile, threads);
+	aargs->manual = TRUE;
+	// siril_log_message(_("FWHMx:%*.2f %s\n"), 12, FWHMx, units);
+	// siril_log_message(_("FWHMy:%*.2f %s\n"), 12, FWHMy, units);
+	if (aargs->update_reg && nb_stars) {
+		float FWHMx, FWHMy, B;
+		char *units;
+		FWHM_stats(aargs->stars, nb_stars, arg->seq->bitpix, &FWHMx, &FWHMy, &units, &B, NULL, 0.);
+		regdata *current_regdata = arg->seq->regparam[aargs->layer];
+		current_regdata[o].roundness = FWHMy/FWHMx;
+		current_regdata[o].fwhm = FWHMx;
+		current_regdata[o].weighted_fwhm = FWHMx;
+		current_regdata[o].background_lvl = B;
+		current_regdata[o].number_of_stars = nb_stars;
+		Homography H = { 0 };
+		cvGetEye(&H);
+		current_regdata[o].H = H;
+	}
+	if (!nb_stars) {
+		siril_log_color_message(_("Image %s did not solve\n"), "red", root);
+		arg->seq->imgparam[o].incl = FALSE;
+		free(aargs);
+		return 1;
+	}
+
 	int retval = GPOINTER_TO_INT(plate_solver(aargs));
 
-	if (retval)
-		siril_log_color_message(_("Image %s did not solve\n"), "salmon", root);
+	if (retval) {
+		siril_log_color_message(_("Image %s did not solve\n"), "red", root);
+		arg->seq->imgparam[o].incl = FALSE;
+	}
 
 	if (!retval && !arg->has_output) {
 		if (arg->seq->type == SEQ_REGULAR) { // regular sequence, fit->fptr has been closed after loading the frame, we can reopen to update
 			fit_sequence_get_image_filename(arg->seq, i, root, TRUE);
 			int status = 0;
 			// we don't want to overwrite original files, so we test for symlinks 
-			if (is_symlink_file(root)) {
+			if (is_symlink_file(root))
 				siril_debug_print("Image %s was a symlink, creating a new file to keep original untouched\n", root);
-				status = savefits(root, fit);
-			} else {
-				siril_fits_open_diskfile_img(&(fit->fptr), root, READWRITE, &status); // opening in READWRITE mode will save the update header upon closing
-				if (!status) {
-					save_fits_header(fit);
-					int statuscl = 0;
-					fits_close_file(fit->fptr, &statuscl);
-				} else {
-					report_fits_error(status);
-				}
-			}
+			status = savefits(root, fit);
 			if (!status) {
 				siril_log_color_message(_("Image %s platesolved and updated\n"), "salmon", root);
 			} else {
@@ -2081,6 +2109,8 @@ static int astrometry_finalize_hook(struct generic_seq_args *arg) {
 		arg->seq->fitseq_file->filename = filename; // we may need to reopen in the idle so we save it here
 		arg->seq->fitseq_file->hdu_index = NULL;
 	}
+	if (!arg->retval)
+		writeseqfile(arg->seq);
 finish:
 	if (aargs->cat_center)
 		siril_world_cs_unref(aargs->cat_center);
