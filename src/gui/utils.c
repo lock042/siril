@@ -334,13 +334,13 @@ const char* get_cfa_from_pattern(sensor_pattern pattern) {
 			cfa = "2110";
 			break;
 		case BAYER_FILTER_GRBG:
-			cfa = "1012";
+			cfa = "1021";
 			break;
 		case BAYER_FILTER_RGGB:
 			cfa = "0112";
 			break;
 		case BAYER_FILTER_GBRG:
-			cfa = "1210";
+			cfa = "1201";
 			break;
 		case XTRANS_FILTER_1:
 //				  "GGRGGBGGBGGRBRGRBGGGBGGRGGRGGBRBGBRG"

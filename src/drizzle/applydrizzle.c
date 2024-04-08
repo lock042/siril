@@ -24,6 +24,7 @@
 #include <math.h>
 
 #include "algos/sorting.h"
+#include "algos/statistics.h"
 #include "algos/siril_wcs.h"
 #include "core/siril.h"
 #include "core/proto.h"
@@ -419,6 +420,18 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	clearfits(fit);
 	copyfits(&out, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 	clearfits(&out);
+
+	if (driz->is_bayer) {
+		/* we need to do something special here because it's a 1-channel sequence and
+		* image that will become 3-channel after this call, so stats caching will
+		* not be correct. Preprocessing does not compute new stats so we don't need
+		* to save them into cache now.
+		* Destroying the stats from the fit will also prevent saving them in the
+		* sequence, which may be done automatically by the caller.
+		*/
+		full_stats_invalidation_from_fit(fit);
+		fit->lo = 0;
+	}
 
 	free(p->pixmap->pixmap);
 	free(p->pixmap);
@@ -1001,6 +1014,8 @@ gboolean check_before_applydrizzle(struct driz_args_t *driz) {
 		size += 5760; // FITS double HDU size
 		size *= nb_frames;
 	}
+	if (driz->keep_counts)
+		size *= 2;
 	gchar* size_msg = g_format_size_full(size, G_FORMAT_SIZE_IEC_UNITS);
 	siril_debug_print("Apply Registration: sequence out size: %s\n", size_msg);
 	g_free(size_msg);
