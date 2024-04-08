@@ -74,9 +74,8 @@ static gboolean should_use_keyword(const fits *fit, KeywordInfo keyword) {
 /****************************** handlers ******************************/
 
 static void bscale_handler_read(fits *fit, const char *comment, KeywordInfo *info) {
-	double scale = 0.0;
-	if (1.0 != scale) {
-		siril_log_message(_("Loaded FITS file has a BSCALE different than 1 (%f)\n"), scale);
+	if (1.0 != fit->keywords.bscale) {
+		siril_log_message(_("Loaded FITS file has a BSCALE different than 1 (%f)\n"), fit->keywords.bscale);
 		int status = 0;
 		/* We reset the scaling factors as we don't use it */
 		fits_set_bscale(fit->fptr, 1.0, 0.0, &status);
@@ -84,8 +83,7 @@ static void bscale_handler_read(fits *fit, const char *comment, KeywordInfo *inf
 }
 
 static void bzero_handler_read(fits *fit, const char *comment, KeywordInfo *info) {
-	double zero = 0.0;
-	if (0.0 != zero && fit->bitpix == FLOAT_IMG) {
+	if (0.0 != fit->keywords.bzero && fit->bitpix == FLOAT_IMG) {
 		fprintf(stdout, "ignoring BZERO\n");
 		int status = 0;
 		fits_set_bscale(fit->fptr, 1.0, 0.0, &status);
