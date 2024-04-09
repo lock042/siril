@@ -261,6 +261,7 @@ int register_astrometric(struct registration_args *regargs) {
 		astargs->Ks = Ks;
 		astargs->Rs = Rs;
 		astargs->scale = scale;
+		astargs->disto = NULL;
 		gboolean found = FALSE;
 		if (regargs->undistort) {
 			astargs->disto = calloc(n, sizeof(disto_data));
