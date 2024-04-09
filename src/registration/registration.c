@@ -50,6 +50,7 @@
 #include "algos/PSF.h"
 #include "gui/PSF_list.h"
 #include "algos/quality.h"
+#include "algos/siril_wcs.h"
 #include "io/sequence.h"
 #include "io/ser.h"
 #include "io/single_image.h"
@@ -85,6 +86,8 @@ static char *tooltip_text[] = {
 		"sequence of star aligned images. This methods makes a translation of a certain number "
 		"of pixels depending on the timestamp of each images and the global shift of the "
 		"object between the first and the last image."),
+	N_("<b>Apply Astrometric Registration</b>: This algorithm computes the transforms between plate-solved images "
+	    " of a sequence and applies them"),
 	N_("<b>Apply existing registration</b>: This is not an algorithm but rather a commodity to "
 		"apply previously computed registration data stored in the sequence file. The "
 		"interpolation method and simplified drizzle can be selected in the Output "
@@ -149,6 +152,8 @@ void initialize_registration_methods() {
 			&register_kombat, REQUIRES_ANY_SELECTION, REGTYPE_PLANETARY);
 	reg_methods[i++] = new_reg_method(_("Comet/Asteroid Registration"),
 			&register_comet, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
+	reg_methods[i++] = new_reg_method(_("Apply Astrometric Registration"),
+			&register_astrometric, REQUIRES_NO_SELECTION, REGTYPE_APPLY);
 	reg_methods[i++] = new_reg_method(_("Apply Existing Registration"),
 			&register_apply_reg, REQUIRES_NO_SELECTION, REGTYPE_APPLY);
 	reg_methods[i] = NULL;
@@ -1114,7 +1119,8 @@ static void update_filters_registration(int update_adjustment) {
 void update_reg_interface(gboolean dont_change_reg_radio) {
 	static GtkWidget *go_register = NULL, *follow = NULL, *cumul_data = NULL,
 	*noout = NULL, *toggle_reg_clamp = NULL, *onlyshift = NULL, *filter_box = NULL, *manualreg = NULL,
-	*interpolation_algo = NULL;
+	*interpolation_algo = NULL, *proj_box = NULL, *undistort_check = NULL, *scale_box = NULL,
+	*x2upscale = NULL, *go_estimate = NULL;
 	static GtkLabel *labelreginfo = NULL;
 	static GtkComboBox *reg_all_sel_box = NULL, *reglayer = NULL, *filter_combo_init = NULL;
 	static GtkNotebook *notebook_reg = NULL;
@@ -1126,6 +1132,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 
 	if (!go_register) {
 		go_register = lookup_widget("goregister_button");
+		go_estimate = lookup_widget("proj_estimate");
 		follow = lookup_widget("followStarCheckButton");
 		onlyshift = lookup_widget("onlyshift_checkbutton");
 		reg_all_sel_box = GTK_COMBO_BOX(lookup_widget("reg_sel_all_combobox"));
@@ -1139,6 +1146,10 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		filter_box = lookup_widget("seq_filters_box_reg");
 		manualreg = lookup_widget("manualreg_expander");
 		interpolation_algo = lookup_widget("ComboBoxRegInter");
+		proj_box = lookup_widget("proj_box");
+		scale_box = lookup_widget("reg_scaling_box");
+		undistort_check = lookup_widget("reg_undistort");
+		x2upscale = lookup_widget("upscaleCheckButton");
 	}
 
 	if (!dont_change_reg_radio) {
@@ -1168,7 +1179,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	}
 
 	/* show the appropriate frame selection widgets */
-	gboolean isapplyreg = method->method_ptr == &register_apply_reg;
+	gboolean isapplyreg = method->type == REGTYPE_APPLY;
 	gtk_widget_set_visible(GTK_WIDGET(reg_all_sel_box), !isapplyreg);
 	gtk_widget_set_visible(filter_box, isapplyreg);
 	gtk_widget_set_visible(GTK_WIDGET(filter_combo_init), isapplyreg);
@@ -1185,7 +1196,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	/* registration data exists for the selected layer */
 	has_reg = layer_has_registration(&com.seq, gtk_combo_box_get_active(reglayer));
 
-	if (nb_images_reg > 1 && (selection_is_done || method->sel == REQUIRES_NO_SELECTION) && (has_reg || method->type != REGTYPE_APPLY) ) {
+	if (method && nb_images_reg > 1 && (selection_is_done || method->sel == REQUIRES_NO_SELECTION) && (has_reg || method->type != REGTYPE_APPLY) ) {
 		if (method->method_ptr == &register_star_alignment || method->method_ptr == &register_multi_step_global) {
 			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_GLOBAL);
 		} else if (method->method_ptr == &register_comet) {
@@ -1194,29 +1205,42 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_3_STARS);
 		} else if (method->method_ptr == &register_kombat) {
 			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_KOMBAT);
-		} else if (method->method_ptr == &register_apply_reg) {
+		} else if (method->method_ptr == &register_apply_reg || method->method_ptr == &register_astrometric) {
 			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_APPLYREG);
+			gtk_widget_set_visible(proj_box, method->method_ptr == &register_astrometric);
 		}
-		gtk_widget_set_visible(follow, method->method_ptr == &register_3stars);
-		gtk_widget_set_visible(onlyshift, method->method_ptr == &register_3stars);
-		gint interpolation_item = gtk_combo_box_get_active(GTK_COMBO_BOX(interpolation_algo));
-		gtk_widget_set_sensitive(toggle_reg_clamp, ((method->method_ptr == &register_apply_reg) || (method->method_ptr == &register_star_alignment))
-				&& (interpolation_item == OPENCV_CUBIC || interpolation_item == OPENCV_LANCZOS4) );
-		gtk_widget_set_visible(cumul_data, method->method_ptr == &register_comet);
 		ready = TRUE;
 		if (method->method_ptr == &register_3stars) {
 			ready = _3stars_check_selection(); // checks that the right image is loaded based on doall and dofollow
-		}
-		else if (gfit.naxes[2] == 1 && gfit.bayer_pattern[0] != '\0') {
+		} else if (gfit.naxes[2] == 1 && gfit.bayer_pattern[0] != '\0') {
 			gtk_label_set_text(labelreginfo, _("Debayer the sequence for registration"));
 			ready = FALSE;
-		}
-		else gtk_label_set_text(labelreginfo, "");
+		} else 
+			gtk_label_set_text(labelreginfo, "");
 		// the 3 stars method has special GUI requirements
 		if (method->method_ptr == &register_3stars) {
-			if (!ready) gtk_widget_set_sensitive(go_register,FALSE);
-			else nbselstars = _3stars_check_registration_ready();
-		} else gtk_widget_set_sensitive(go_register, ready);
+			if (!ready) 
+				gtk_widget_set_sensitive(go_register, FALSE);
+			else 
+				nbselstars = _3stars_check_registration_ready();
+		} else {
+			gtk_widget_set_sensitive(go_register, ready);
+			gtk_widget_set_sensitive(go_estimate, ready);
+		}
+		if (method->method_ptr == &register_astrometric && sequence_is_loaded() && !has_wcs(&gfit)) {
+			gtk_label_set_text(labelreginfo, _("Platesolve the sequence first"));
+			gtk_widget_set_sensitive(go_register, FALSE);
+			gtk_widget_set_sensitive(go_estimate, FALSE);
+		}
+
+		gtk_widget_set_visible(follow, method->method_ptr == &register_3stars);
+		gtk_widget_set_visible(onlyshift, method->method_ptr == &register_3stars);
+		gint interpolation_item = gtk_combo_box_get_active(GTK_COMBO_BOX(interpolation_algo));
+		gtk_widget_set_sensitive(toggle_reg_clamp, (method->method_ptr == &register_apply_reg || 
+		method->method_ptr == &register_star_alignment || method->method_ptr == &register_astrometric ||
+		(method->method_ptr == &register_3stars && nbselstars > 1))
+		&& (interpolation_item == OPENCV_CUBIC || interpolation_item == OPENCV_LANCZOS4));
+		gtk_widget_set_visible(cumul_data, method->method_ptr == &register_comet);
 	} else {
 		gtk_widget_set_sensitive(go_register, FALSE);
 		if (nb_images_reg <= 1 && !selection_is_done) {
@@ -1249,14 +1273,24 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 			(method->method_ptr == &register_3stars && nbselstars <= 1))) {
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), TRUE);
 		gtk_widget_set_sensitive(noout, FALSE);
-	} else if (method->method_ptr == &register_apply_reg) { // cannot have no output with apply registration method
+		gtk_widget_set_visible(noout, TRUE);
+	} else if (method->method_ptr == &register_apply_reg || 
+				method->method_ptr == &register_astrometric ) { // cannot have no output with apply registration/astrometric method
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), FALSE);
 		gtk_widget_set_sensitive(noout, FALSE);
+		gtk_widget_set_visible(noout, FALSE);
 	} else {
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), save_state);
 		gtk_widget_set_sensitive(noout, TRUE);
+		gtk_widget_set_visible(noout, TRUE);
 	}
 	keep_noout_state  = save_state;
+
+	gboolean is_astrometric = method->method_ptr == &register_astrometric;
+	gtk_widget_set_visible(undistort_check, is_astrometric);
+	gtk_widget_set_visible(scale_box, is_astrometric);
+	gtk_widget_set_visible(x2upscale, !is_astrometric);
+
 }
 
 /* try to maximize the area within the image size (based on gfit)
@@ -1375,27 +1409,24 @@ void on_shiftonly_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), toggled);
 }
 
-/* callback for 'Go register' button, GTK thread */
-void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
-	struct registration_args *reg_args;
-	struct registration_method *method;
+static int fill_registration_structure_from_GUI(struct registration_args *reg_args) {
 	char *msg;
-	GtkToggleButton *follow, *matchSel, *x2upscale, *cumul, *onlyshift;
-	GtkComboBox *cbbt_layers, *reg_all_sel_box;
+	struct registration_method *method;
+	GtkToggleButton *follow, *matchSel, *x2upscale, *cumul, *onlyshift, *undistort;
+	GtkComboBox *cbbt_layers, *reg_all_sel_box, *proj_combo;
 	GtkComboBoxText *ComboBoxRegInter, *ComboBoxTransfo, *ComboBoxMaxStars, *ComboBoxFraming;
-	GtkSpinButton *minpairs, *percent_moved;
+	GtkSpinButton *minpairs, *percent_moved, *scaling_spin;
 
 	if (!reserve_thread()) {	// reentrant from here
 		PRINT_ANOTHER_THREAD_RUNNING;
-		return;
+		return 1;
 	}
 
 	if (!com.seq.regparam) {
 		fprintf(stderr, "regparam should have been created before\n");
 		// means that a call to seq_check_basic_data() or
 		// check_or_allocate_regparam() is missing somewhere else
-		unreserve_thread();
-		return;
+		return 1;
 	}
 
 	method = get_selected_registration_method();
@@ -1405,11 +1436,8 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 		msg = siril_log_message(
 				_("All prerequisites are not filled for registration. Select a rectangle first.\n"));
 		siril_message_dialog( GTK_MESSAGE_WARNING, _("Warning"), msg);
-		unreserve_thread();
-		return;
+		return 1;
 	}
-
-	reg_args = calloc(1, sizeof(struct registration_args));
 
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
@@ -1427,6 +1455,10 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	ComboBoxTransfo = GTK_COMBO_BOX_TEXT(lookup_widget("comboreg_transfo"));
 	ComboBoxFraming = GTK_COMBO_BOX_TEXT(lookup_widget("comboreg_framing"));
 	reg_all_sel_box = GTK_COMBO_BOX(GTK_COMBO_BOX_TEXT(lookup_widget("reg_sel_all_combobox")));
+	scaling_spin =GTK_SPIN_BUTTON(lookup_widget("reg_scaling_spin"));
+	undistort =  GTK_TOGGLE_BUTTON(lookup_widget("reg_undistort"));
+	proj_combo = GTK_COMBO_BOX(lookup_widget("comboreg_proj"));
+	
 	reg_args->clamp = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_reg_clamp")));
 
 	reg_args->func = method->method_ptr;
@@ -1449,16 +1481,17 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 		reg_args->no_output = (gtk_toggle_button_get_active(onlyshift)) ? TRUE : keep_noout_state;
 	}
 	reg_args->framing = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxFraming));
+	reg_args->projector = gtk_combo_box_get_active(proj_combo);
+	reg_args->undistort = gtk_toggle_button_get_active(undistort);
+	reg_args->astrometric_scale = (float)gtk_spin_button_get_value(scaling_spin);
 #ifndef HAVE_CV44
 	if (reg_args->type == SHIFT_TRANSFORMATION && method->method_ptr != register_3stars) {
 		siril_log_color_message(_("Shift-only registration is only possible with OpenCV 4.4\n"), "red");
 		free(reg_args->prefix);
-		free(reg_args);
-		unreserve_thread();
-		return;
+		return 1;
 	}
 #endif
-	if (method->method_ptr == register_apply_reg) {
+	if (method->method_ptr == register_apply_reg || method->method_ptr == register_astrometric) {
 		get_reg_sequence_filtering_from_gui(
 				&reg_args->filtering_criterion, &reg_args->filtering_parameter, -1);
 	} else {
@@ -1467,16 +1500,13 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	if ((method->method_ptr == register_star_alignment || method->method_ptr == register_multi_step_global) &&
 		reg_args->matchSelection && reg_args->seq->is_variable) {
 		siril_log_color_message(_("Cannot use area selection on a sequence with variable image sizes\n"), "red");
-		free(reg_args);
-		unreserve_thread();
-		return;
+		return 1;
 	}
 
 	if ((method->method_ptr == register_star_alignment || method->method_ptr == register_multi_step_global) &&
 		!reg_args->matchSelection) {
-		delete_selected_area(); // othersie it is enforced
+		delete_selected_area(); // otherwise it is enforced
 	}
-
 
 	/* We check that available disk space is enough when
 	the registration method produces a new sequence
@@ -1489,9 +1519,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 			size *= 4;
 		if (test_available_space(size)) {
 			siril_log_color_message(_("Not enough space to save the output images, aborting\n"), "red");
-			free(reg_args);
-			unreserve_thread();
-			return;
+			return 1;
 		}
 	} else if (method->method_ptr == register_comet) {
 		pointf velocity = get_velocity();
@@ -1499,9 +1527,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 				|| isinf(velocity.x) || isinf(velocity.y)) {
 			msg = siril_log_color_message(_("The object is not moving, please check your registration data.\n"), "red");
 			siril_message_dialog( GTK_MESSAGE_WARNING, _("Warning"), msg);
-			free(reg_args);
-			unreserve_thread();
-			return;
+			return 1;
 		}
 	}
 	/* getting the selected registration layer from the combo box. The value is the index
@@ -1516,28 +1542,43 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	if (method->method_ptr == register_star_alignment) { // seqpplyreg case is dealt with in the sanity checks of the method
 		if (reg_args->interpolation == OPENCV_NONE && (reg_args->x2upscale || com.seq.is_variable)) {
 			siril_log_color_message(_("When interpolation is set to None, the images must be of same size and no upscaling can be applied. Aborting\n"), "red");
-			free(reg_args);
-			unreserve_thread();
-			return;
+			return 1;
 		}
 		if (reg_args->interpolation == OPENCV_NONE && (reg_args->type > SHIFT_TRANSFORMATION)) {
 			siril_log_color_message(_("When interpolation is set to None, the transformation can only be set to Shift. Aborting\n"), "red");
-			free(reg_args);
-			unreserve_thread();
-			return;
+			return 1;
 		}
 	}
-	if (((method->method_ptr == register_star_alignment || method->method_ptr == register_3stars || method->method_ptr == register_apply_reg) &&
+	if (((method->method_ptr == register_star_alignment || method->method_ptr == register_3stars || method->method_ptr == register_apply_reg || method->method_ptr == register_astrometric) &&
 		(reg_args->interpolation == OPENCV_AREA || reg_args->interpolation == OPENCV_LINEAR || reg_args->interpolation == OPENCV_NEAREST || reg_args->interpolation == OPENCV_NONE)) ||
 		reg_args->no_output)
 		reg_args->clamp = FALSE;
 
-	if (method->method_ptr != register_3stars) clear_stars_list(TRUE); //to avoid problems with com.stars later on in the process
+	if (method->method_ptr != register_3stars)
+		clear_stars_list(TRUE); //to avoid problems with com.stars later on in the process
+
+	return 0;
+}
+
+/* callback for 'Go register' button, GTK thread */
+void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
+	struct registration_args *reg_args = calloc(1, sizeof(struct registration_args));
+	char *msg;
+	if (fill_registration_structure_from_GUI(reg_args)) {
+		free(reg_args);
+		unreserve_thread();
+		return;
+	}
+	struct registration_method *method = get_selected_registration_method();
+
+	const gchar *caller = gtk_buildable_get_name(GTK_BUILDABLE(button));
+	if (!g_strcmp0(caller, "proj_estimate"))
+		reg_args->no_output = TRUE;
 
 	msg = siril_log_color_message(_("Registration: processing using method: %s\n"),
 			"green", method->name);
 	msg[strlen(msg) - 1] = '\0';
-	if (reg_args->clamp)
+	if (reg_args->clamp && !reg_args->no_output)
 		siril_log_message(_("Interpolation clamping active\n"));
 	set_progress_bar_data(msg, PROGRESS_RESET);
 

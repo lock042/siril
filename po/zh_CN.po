@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-03-26 15:25+0100\n"
+"POT-Creation-Date: 2024-03-28 07:46+0100\n"
 "PO-Revision-Date: 2024-03-13 19:43+0000\n"
 "Last-Translator: Garth TianBo <g-art-h@outlook.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
@@ -43,7 +43,7 @@ msgstr "AAVSO 参数"
 #: src/gui/uifiles/keywords_dialog.ui:58 src/gui/uifiles/icc_dialog.ui:51
 #: src/gui/uifiles/icc_gamut_dialog.ui:48
 #: src/gui/uifiles/linearmatch_dialog.ui:62 src/gui/uifiles/Median_dialog.ui:66
-#: src/gui/uifiles/pixelmath.ui:789 src/gui/uifiles/resample_dialog.ui:65
+#: src/gui/uifiles/pixelmath.ui:805 src/gui/uifiles/resample_dialog.ui:65
 #: src/gui/uifiles/rotation_dialog.ui:57 src/gui/uifiles/SCNR_dialog.ui:59
 #: src/gui/uifiles/script_contents_dialog.ui:46
 #: src/gui/uifiles/spcc_details.ui:39 src/gui/uifiles/s_pcc_dialog.ui:100
@@ -69,7 +69,7 @@ msgstr "关闭"
 #: src/gui/uifiles/extract_wavelet_layers_dialog.ui:73
 #: src/gui/uifiles/histogram_dialog.ui:188
 #: src/gui/uifiles/linearmatch_dialog.ui:77 src/gui/uifiles/Median_dialog.ui:98
-#: src/gui/uifiles/merge_cfa_dialog.ui:77 src/gui/uifiles/pixelmath.ui:803
+#: src/gui/uifiles/merge_cfa_dialog.ui:77 src/gui/uifiles/pixelmath.ui:819
 #: src/gui/uifiles/resample_dialog.ui:79 src/gui/uifiles/rgradient_dialog.ui:75
 #: src/gui/uifiles/rotation_dialog.ui:71 src/gui/uifiles/satu_dialog.ui:93
 #: src/gui/uifiles/SCNR_dialog.ui:90 src/gui/uifiles/settings_window.ui:260
@@ -356,9 +356,11 @@ msgstr ""
 "值。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:390
+#, fuzzy
 msgid ""
 "Pixel size in microns. The image is assumed to have square pixels. Value is "
-"already multiplied by the camera binning."
+"already multiplied by the camera binning if the \"Real pixel size\" box is "
+"checked in the Tool->Image Information dialog box."
 msgstr "像素尺寸（微米）。假定图像具有方形像素。值已乘以像素合并。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:409
@@ -1918,7 +1920,7 @@ msgstr "多图层图像合成"
 #. don't destroy it on removal from grid
 #: src/gui/uifiles/composition_dialog.ui:207 src/compositing/compositing.c:227
 #: src/compositing/compositing.c:228 src/compositing/compositing.c:524
-#: src/compositing/compositing.c:1584 src/compositing/compositing.c:1585
+#: src/compositing/compositing.c:1586 src/compositing/compositing.c:1587
 msgid "not loaded"
 msgstr "未载入"
 
@@ -1970,11 +1972,22 @@ msgstr "旋转"
 msgid "Set rotation center for this layer"
 msgstr "设置此图层的旋转中心"
 
-#: src/gui/uifiles/composition_dialog.ui:335
+#: src/gui/uifiles/composition_dialog.ui:329 src/gui/uifiles/pixelmath.ui:704
+msgid "Sum exposure time"
+msgstr ""
+
+#: src/gui/uifiles/composition_dialog.ui:333 src/gui/uifiles/pixelmath.ui:708
+msgid ""
+"Sum of the exposure times of the different images used for the composition. "
+"This will change the value of some keywords such as STACKCNT (number of "
+"frames stacked) and LIVETIME (total exposure)."
+msgstr ""
+
+#: src/gui/uifiles/composition_dialog.ui:351
 msgid "Linear match"
 msgstr "线性匹配"
 
-#: src/gui/uifiles/composition_dialog.ui:339
+#: src/gui/uifiles/composition_dialog.ui:355
 msgid ""
 "Linear match the input layer images to the first layer.\n"
 "This is important if you are not coloring the layers with pure R, pure G and "
@@ -1983,11 +1996,11 @@ msgstr ""
 "线性匹配输入图层图像与第一图层。 \n"
 "如果您没有用纯 R、纯 G 和纯 B 对图层进行着色，这一点很重要。"
 
-#: src/gui/uifiles/composition_dialog.ui:351
+#: src/gui/uifiles/composition_dialog.ui:367
 msgid "Adjust layers brightness"
 msgstr "调整图层亮度"
 
-#: src/gui/uifiles/composition_dialog.ui:355
+#: src/gui/uifiles/composition_dialog.ui:371
 msgid ""
 "Automatically adjust the brightness of the colours picked for layers so that "
 "they don't overflow when compositing (based on max value for each image). "
@@ -1996,11 +2009,11 @@ msgstr ""
 "自动调整各个图层的亮度，使之在合成中不会溢出（基于每幅图像的最大值）。色调不"
 "会改变。"
 
-#: src/gui/uifiles/composition_dialog.ui:366
+#: src/gui/uifiles/composition_dialog.ui:382
 msgid "Color calibration"
 msgstr "色彩校准"
 
-#: src/gui/uifiles/composition_dialog.ui:371
+#: src/gui/uifiles/composition_dialog.ui:387
 msgid ""
 "Open the RGB calibration tool on the resulting image. This will modify the "
 "result in a destructive way to align the three channels of the result.\n"
@@ -2010,25 +2023,25 @@ msgstr ""
 "针对最终图像开启RGB色彩校准工具。这将改变最终图像的色彩平衡。\n"
 "之后在当前窗口中修改任何参数将使色彩平衡无效，色彩平衡必须重做。"
 
-#: src/gui/uifiles/composition_dialog.ui:385
+#: src/gui/uifiles/composition_dialog.ui:401
 msgid ""
 "Type of luminance-based colour composition. They represent the way of adding "
 "colour information to luminance data."
 msgstr "明度为基础的彩色合成类型。描述了在明度数据上添加彩色信息的方法。"
 
-#: src/gui/uifiles/composition_dialog.ui:388
+#: src/gui/uifiles/composition_dialog.ui:404
 msgid "HSL composition"
 msgstr "HSL合成"
 
-#: src/gui/uifiles/composition_dialog.ui:389
+#: src/gui/uifiles/composition_dialog.ui:405
 msgid "HSV composition"
 msgstr "HSV合成"
 
-#: src/gui/uifiles/composition_dialog.ui:390
+#: src/gui/uifiles/composition_dialog.ui:406
 msgid "CIE L*a*b* composition"
 msgstr "CIE L*a*b* 合成"
 
-#: src/gui/uifiles/composition_dialog.ui:405
+#: src/gui/uifiles/composition_dialog.ui:421
 msgid ""
 "Pick the color calibration method. Spectrophotometric is the most accurate, "
 "but requires an internet connection. Photometric is next best for non-"
@@ -2036,41 +2049,41 @@ msgid ""
 "manual white balance and may be useful for planetary or lunar images."
 msgstr ""
 
-#: src/gui/uifiles/composition_dialog.ui:408
+#: src/gui/uifiles/composition_dialog.ui:424
 #: src/gui/uifiles/settings_window.ui:3598
 #, fuzzy
 msgid "Manual"
 msgstr "手动 PSF"
 
-#: src/gui/uifiles/composition_dialog.ui:409
+#: src/gui/uifiles/composition_dialog.ui:425
 #, fuzzy
 msgid "Photometric"
 msgstr "测光法色彩校准"
 
-#: src/gui/uifiles/composition_dialog.ui:410
+#: src/gui/uifiles/composition_dialog.ui:426
 #, fuzzy
 msgid "Spectrophotometric"
 msgstr "测光法色彩校准"
 
-#: src/gui/uifiles/composition_dialog.ui:451
+#: src/gui/uifiles/composition_dialog.ui:467
 msgid "Use this alignment method:"
 msgstr "使用此对齐方法:"
 
-#: src/gui/uifiles/composition_dialog.ui:464
+#: src/gui/uifiles/composition_dialog.ui:480
 msgid "and this framing method:"
 msgstr "以及此构图方式："
 
-#: src/gui/uifiles/composition_dialog.ui:492 src/gui/uifiles/siril.ui:1096
+#: src/gui/uifiles/composition_dialog.ui:508 src/gui/uifiles/siril.ui:1096
 #: src/compositing/align_rgb.c:48
 msgid "Image pattern alignment (planetary/deep-sky)"
 msgstr "图像模式对齐（行星/深空）"
 
-#: src/gui/uifiles/composition_dialog.ui:493 src/gui/uifiles/siril.ui:1087
+#: src/gui/uifiles/composition_dialog.ui:509 src/gui/uifiles/siril.ui:1087
 #: src/compositing/align_rgb.c:46
 msgid "One star registration (deep-sky)"
 msgstr "单星对齐（深空）"
 
-#: src/gui/uifiles/composition_dialog.ui:506
+#: src/gui/uifiles/composition_dialog.ui:522
 msgid ""
 "Select framing method for deep-sky alignment:\n"
 "First channel - frame to the first channel (always L in luminance mode);\n"
@@ -2085,27 +2098,27 @@ msgstr ""
 "最小化 - 构图到所有对齐图像的最小重叠；\n"
 "重心法 - 构图到对齐图像像素的重心。"
 
-#: src/gui/uifiles/composition_dialog.ui:513
+#: src/gui/uifiles/composition_dialog.ui:529
 msgid "First channel"
 msgstr "首通道"
 
-#: src/gui/uifiles/composition_dialog.ui:514
+#: src/gui/uifiles/composition_dialog.ui:530
 msgid "Max"
 msgstr "最大化"
 
-#: src/gui/uifiles/composition_dialog.ui:515
+#: src/gui/uifiles/composition_dialog.ui:531
 msgid "Min"
 msgstr "最小化"
 
-#: src/gui/uifiles/composition_dialog.ui:516
+#: src/gui/uifiles/composition_dialog.ui:532
 msgid "COG"
 msgstr "重心法"
 
-#: src/gui/uifiles/composition_dialog.ui:526
+#: src/gui/uifiles/composition_dialog.ui:542
 msgid "Align"
 msgstr "对齐"
 
-#: src/gui/uifiles/composition_dialog.ui:530
+#: src/gui/uifiles/composition_dialog.ui:546
 msgid "Automatic alignment using the selected registration method."
 msgstr "使用所选的方法自动对齐。"
 
@@ -2706,7 +2719,7 @@ msgstr "对数直方图"
 
 #. gtk_widget_set_visible(lookup_widget("ghtBPcontrols1"), FALSE);
 #: src/gui/uifiles/dialog_star_remix.ui:127 src/gui/remixer.c:691
-#: src/gui/remixer.c:1429
+#: src/gui/remixer.c:1427
 msgid "Advanced"
 msgstr "高级选项"
 
@@ -3097,15 +3110,15 @@ msgid "Select the color space corresponding to the three extracted images"
 msgstr "选择与三个所提取的图像对应的色彩空间"
 
 #: src/gui/uifiles/extract_channel_dialog.ui:189 src/gui/uifiles/siril.ui:3341
-#: src/core/command.c:5543 src/core/command.c:5547
+#: src/core/command.c:5549 src/core/command.c:5553
 msgid "RGB"
 msgstr "RGB"
 
-#: src/gui/uifiles/extract_channel_dialog.ui:190 src/core/command.c:5534
+#: src/gui/uifiles/extract_channel_dialog.ui:190 src/core/command.c:5540
 msgid "HSL"
 msgstr "HSL"
 
-#: src/gui/uifiles/extract_channel_dialog.ui:191 src/core/command.c:5537
+#: src/gui/uifiles/extract_channel_dialog.ui:191 src/core/command.c:5543
 msgid "HSV"
 msgstr "HSV"
 
@@ -4051,33 +4064,33 @@ msgid ""
 "rescaling range."
 msgstr "启用重新缩放选项后，这是输出重新缩放范围的上限。"
 
-#: src/gui/uifiles/pixelmath.ui:708 src/gui/uifiles/siril.ui:7269
+#: src/gui/uifiles/pixelmath.ui:724 src/gui/uifiles/siril.ui:7269
 msgid "Output"
 msgstr "输出"
 
-#: src/gui/uifiles/pixelmath.ui:735
+#: src/gui/uifiles/pixelmath.ui:751
 msgid ""
 "Preset list. You can delete an item or the entire list by selecting what you "
 "want and pressing the delete key."
 msgstr "预设列表。您可以通过选择所需内容并按删除键来删除项目或整个列表。"
 
-#: src/gui/uifiles/pixelmath.ui:768
+#: src/gui/uifiles/pixelmath.ui:784
 msgid "Presets"
 msgstr "预设"
 
-#: src/gui/uifiles/pixelmath.ui:807
+#: src/gui/uifiles/pixelmath.ui:823
 msgid "Apply formula in the text area"
 msgstr "执行文本框中的公式"
 
-#: src/gui/uifiles/pixelmath.ui:832
+#: src/gui/uifiles/pixelmath.ui:848
 msgid "Pixel Math"
 msgstr "像素数学"
 
-#: src/gui/uifiles/pixelmath.ui:845
+#: src/gui/uifiles/pixelmath.ui:861
 msgid "Add an image as a variable"
 msgstr "添加一个图像作为变量"
 
-#: src/gui/uifiles/pixelmath.ui:866
+#: src/gui/uifiles/pixelmath.ui:882
 msgid "Remove selected image"
 msgstr "移除所选的图像"
 
@@ -8540,7 +8553,7 @@ msgstr ""
 msgid "Set second preview"
 msgstr "设置预览二"
 
-#: src/gui/uifiles/siril.ui:7099 src/compositing/compositing.c:2033
+#: src/gui/uifiles/siril.ui:7099 src/compositing/compositing.c:2035
 msgid "Manual registration"
 msgstr "手动对齐"
 
@@ -10477,7 +10490,7 @@ msgid ""
 "automatically fetched...\n"
 msgstr "Siril 是在没有网络支持的情况下编译的，无法执行此操作\n"
 
-#: src/main.c:384 src/core/command.c:7380 src/core/command_line_processor.c:630
+#: src/main.c:384 src/core/command.c:7428 src/core/command_line_processor.c:630
 #: src/gui/single_image.c:82
 #, c-format
 msgid "No sequence `%s' found.\n"
@@ -10932,8 +10945,8 @@ msgstr "Siril无法提取通道，请确保你的图像为RGB模式。\n"
 #: src/core/preprocess.c:349 src/core/siril.c:453 src/filters/banding.c:215
 #: src/filters/banding.c:298 src/filters/cosmetic_correction.c:206
 #: src/filters/cosmetic_correction.c:626 src/filters/saturation.c:205
-#: src/filters/saturation.c:264 src/gui/histogram.c:1709 src/gui/remixer.c:1325
-#: src/gui/remixer.c:1373 src/gui/statistics_list.c:224
+#: src/filters/saturation.c:264 src/gui/histogram.c:1709 src/gui/remixer.c:1323
+#: src/gui/remixer.c:1371 src/gui/statistics_list.c:224
 msgid "Error: statistics computation failed.\n"
 msgstr "错误：统计信息计算失败。\n"
 
@@ -11068,9 +11081,9 @@ msgstr "比较星"
 msgid "Comparison stars: processing...\n"
 msgstr "水平翻转：处理中...\n"
 
-#: src/algos/comparison_stars.c:444 src/core/command.c:8568
-#: src/core/command.c:9181 src/core/command.c:9321 src/core/command.c:9338
-#: src/core/command.c:9508
+#: src/algos/comparison_stars.c:444 src/core/command.c:8637
+#: src/core/command.c:9250 src/core/command.c:9390 src/core/command.c:9407
+#: src/core/command.c:9577
 msgid "This command only works on plate solved images\n"
 msgstr "此命令仅适用于已解析的图像\n"
 
@@ -11959,7 +11972,7 @@ msgstr "找到了 %d 颗星以使用与 %s 中相同的参数，跳过侦测\n"
 msgid "Cannot save star list %s: %s\n"
 msgstr "无法保存星点列表%s: %s\n"
 
-#: src/algos/star_finder.c:989 src/core/command.c:6465
+#: src/algos/star_finder.c:989 src/core/command.c:6471
 #, c-format
 msgid "The file %s has been created.\n"
 msgstr "文件%s已被创建。\n"
@@ -11968,7 +11981,7 @@ msgstr "文件%s已被创建。\n"
 msgid "FindStar"
 msgstr "星点侦测"
 
-#: src/algos/star_finder.c:1223 src/compositing/compositing.c:1861
+#: src/algos/star_finder.c:1223 src/compositing/compositing.c:1863
 #: src/io/sequence.c:2067 src/registration/applyreg.c:241
 #: src/registration/comet.c:240 src/registration/global.c:139
 msgid "Could not load reference image\n"
@@ -12039,12 +12052,12 @@ msgstr "单星对齐（深空）"
 msgid "Error in channels alignment."
 msgstr "图层对齐错误。"
 
-#: src/compositing/align_rgb.c:201 src/compositing/compositing.c:925
-#: src/compositing/compositing.c:962
+#: src/compositing/align_rgb.c:201 src/compositing/compositing.c:927
+#: src/compositing/compositing.c:964
 msgid "Error in layers alignment."
 msgstr "图层对齐错误。"
 
-#: src/compositing/align_rgb.c:203 src/compositing/compositing.c:970
+#: src/compositing/align_rgb.c:203 src/compositing/compositing.c:972
 #: src/registration/registration.c:1589
 msgid "Registration complete."
 msgstr "对齐完成。"
@@ -12106,8 +12119,8 @@ msgstr "未保存的合成结果"
 msgid "Compositing result image"
 msgstr "合成最终目标图像"
 
-#: src/compositing/compositing.c:649 src/gui/remixer.c:1124
-#: src/gui/remixer.c:1216
+#: src/compositing/compositing.c:649 src/gui/remixer.c:1122
+#: src/gui/remixer.c:1214
 msgid "Error: image could not be loaded"
 msgstr "错误：无法载入图像"
 
@@ -12191,27 +12204,27 @@ msgstr "必须先期载入至少两个图层！\n"
 msgid "Warning"
 msgstr "警告"
 
-#: src/compositing/compositing.c:870
+#: src/compositing/compositing.c:872
 #, c-format
 msgid "NOT OK: %ux%u"
 msgstr "NOT OK: %ux%u"
 
-#: src/compositing/compositing.c:876
+#: src/compositing/compositing.c:878
 msgid ""
 "The image sizes are not consistent. This may happen as the result of "
 "previous alignment operations. Please reload the input images.\n"
 msgstr "图像尺寸不一致。这可能是先前对齐操作的结果。请重新加载输入图像。\n"
 
-#: src/compositing/compositing.c:915
+#: src/compositing/compositing.c:917
 #, c-format
 msgid "Starting registration using method: %s\n"
 msgstr "开始对齐，使用方法：%s\n"
 
-#: src/compositing/compositing.c:941
+#: src/compositing/compositing.c:943
 msgid "Incomplete alignment"
 msgstr "不完全对齐"
 
-#: src/compositing/compositing.c:942
+#: src/compositing/compositing.c:944
 msgid ""
 "Some images did not align correctly. Proceed to see the partially aligned "
 "result? (This may alter image dimensions in which case the images must be re-"
@@ -12220,25 +12233,25 @@ msgstr ""
 "某些图像未正确对齐。继续查看部分对齐的结果？（这可能会改变图像尺寸，在这种情"
 "况下，必须重新加载图像才能重试对齐。）"
 
-#: src/compositing/compositing.c:945 src/core/siril_actions.c:348
+#: src/compositing/compositing.c:947 src/core/siril_actions.c:348
 #: src/gui/utils.c:269
 msgid "Proceed"
 msgstr "继续"
 
-#: src/compositing/compositing.c:954
+#: src/compositing/compositing.c:956
 msgid "Using Luminance channel as reference.\n"
 msgstr "使用明度通道作为参考。\n"
 
 #. DFT shift ad KOMBAT require a selection to be made
-#: src/compositing/compositing.c:1080
+#: src/compositing/compositing.c:1082
 msgid "An image area must be selected for align"
 msgstr "必须选定一个区域用于对齐"
 
-#: src/compositing/compositing.c:1086
+#: src/compositing/compositing.c:1088
 msgid "At least 2 channels must be loaded for align"
 msgstr "必须载入至少两个通道用于对齐"
 
-#: src/compositing/compositing.c:1160
+#: src/compositing/compositing.c:1162
 msgid ""
 "Attention: channels are dated more than 24 hours apart. DATE_OBS set to the "
 "earliest observation start date but for some purposes this field may be of "
@@ -12246,25 +12259,25 @@ msgid ""
 "channels).\n"
 msgstr ""
 
-#: src/compositing/compositing.c:1630
+#: src/compositing/compositing.c:1632
 msgid "No overflow with the current colours, redrawing only\n"
 msgstr "当前色彩无溢出，仅执行重绘\n"
 
-#: src/compositing/compositing.c:1633
+#: src/compositing/compositing.c:1635
 msgid "Nothing to adjust, no overflow\n"
 msgstr "无需要校准，无溢出\n"
 
-#: src/compositing/compositing.c:1666
+#: src/compositing/compositing.c:1668
 #, c-format
 msgid "Readjusting layer %d to %g times bright\n"
 msgstr "重新调整图层 %d 到 %g 倍亮\n"
 
-#: src/compositing/compositing.c:1754
+#: src/compositing/compositing.c:1756
 msgid "All images reloaded successfully.\n"
 msgstr "已成功重新加载所有图像。\n"
 
 #. fail
-#: src/compositing/compositing.c:1760 src/compositing/compositing.c:1785
+#: src/compositing/compositing.c:1762 src/compositing/compositing.c:1787
 #: src/core/icc_profile.c:1114 src/core/icc_profile.c:1124
 #: src/core/icc_profile.c:1155 src/filters/fft.c:600 src/filters/fft.c:606
 #: src/filters/fft.c:625 src/gui/compstars.c:221 src/gui/compstars.c:290
@@ -12279,70 +12292,70 @@ msgstr "已成功重新加载所有图像。\n"
 msgid "Error"
 msgstr "错误"
 
-#: src/compositing/compositing.c:1760
+#: src/compositing/compositing.c:1762
 msgid "No layers loaded: no files to save"
 msgstr "未加载图层：无保存文件"
 
-#: src/compositing/compositing.c:1776
+#: src/compositing/compositing.c:1778
 msgid "All layer images saved correctly.\n"
 msgstr "所有图层图像均已正确保存。\n"
 
-#: src/compositing/compositing.c:1778
+#: src/compositing/compositing.c:1780
 msgid ""
 "Error encountered in saving one or more files. Check previous log messages "
 "for details.\n"
 msgstr "保存一个或多个文件时遇到错误。有关详细信息，请查看以前的日志消息。\n"
 
-#: src/compositing/compositing.c:1785
+#: src/compositing/compositing.c:1787
 msgid "At least 2 images must be loaded to perform linear matching."
 msgstr "必须加载至少2个图像才能执行线性匹配。"
 
-#: src/compositing/compositing.c:1807
+#: src/compositing/compositing.c:1809
 #, c-format
 msgid "Unable to find linear match coefficients for layer %d. Skipping...\n"
 msgstr "找不到图层 %d 的线性匹配系数。正在跳过...\n"
 
-#: src/compositing/compositing.c:1811
+#: src/compositing/compositing.c:1813
 msgid "Linear match layers"
 msgstr "线性匹配图层"
 
-#: src/compositing/compositing.c:1813
+#: src/compositing/compositing.c:1815
 msgid "Linear match layers complete"
 msgstr "线性匹配图层完成"
 
-#: src/compositing/compositing.c:1815
+#: src/compositing/compositing.c:1817
 #, c-format
 msgid "Error: failed to match %d layers with the reference layer.\n"
 msgstr "错误：无法将 %d 个图层与参考图层匹配。\n"
 
-#: src/compositing/compositing.c:1867 src/registration/global.c:145
+#: src/compositing/compositing.c:1869 src/registration/global.c:145
 msgid "Registering a sequence opened as CFA is a bad idea.\n"
 msgstr "在CFA模式的序列上进行对齐是个坏主意。\n"
 
-#: src/compositing/compositing.c:1869 src/registration/global.c:147
+#: src/compositing/compositing.c:1871 src/registration/global.c:147
 msgid "Reference Image:\n"
 msgstr "参考帧:\n"
 
-#: src/compositing/compositing.c:1999 src/registration/3stars.c:723
+#: src/compositing/compositing.c:2001 src/registration/3stars.c:723
 #: src/registration/global.c:471 src/registration/registration.c:473
 #: src/registration/registration.c:657 src/registration/registration.c:762
 msgid "Registration finished.\n"
 msgstr "对齐结束。\n"
 
-#: src/compositing/compositing.c:2000 src/registration/applyreg.c:356
+#: src/compositing/compositing.c:2002 src/registration/applyreg.c:356
 #: src/registration/global.c:472
 #, c-format
 msgid "%d image processed.\n"
 msgid_plural "%d images processed.\n"
 msgstr[0] "%d 图像已处理。\n"
 
-#: src/compositing/compositing.c:2003 src/registration/3stars.c:724
+#: src/compositing/compositing.c:2005 src/registration/3stars.c:724
 #: src/registration/global.c:475 src/registration/global.c:1048
 #, c-format
 msgid "Total: %d failed, %d registered.\n"
 msgstr "总计： %d 失败， %d 已对齐。\n"
 
-#: src/compositing/compositing.c:2008 src/registration/global.c:486
+#: src/compositing/compositing.c:2010 src/registration/global.c:486
 msgid "Registration aborted.\n"
 msgstr "对齐操作异常中止。\n"
 
@@ -12398,12 +12411,12 @@ msgstr "=当前载入图像的FITS文件头=\n"
 #: src/core/command.c:1409 src/core/command.c:1428 src/core/command.c:1522
 #: src/core/command.c:1652 src/core/command.c:3070 src/core/command.c:3120
 #: src/core/command.c:3228 src/core/command.c:3404 src/core/command.c:3689
-#: src/core/command.c:4707 src/core/command.c:5173 src/core/command.c:5234
-#: src/core/command.c:5340 src/core/command.c:5854 src/core/command.c:5933
-#: src/core/command.c:5981 src/core/command.c:6030 src/core/command.c:6197
-#: src/core/command.c:6207 src/core/command.c:6242 src/core/command.c:6525
-#: src/core/command.c:6666 src/core/command.c:6908 src/core/command.c:7236
-#: src/core/command.c:8039 src/core/command.c:10036 src/core/command.c:10054
+#: src/core/command.c:4713 src/core/command.c:5179 src/core/command.c:5240
+#: src/core/command.c:5346 src/core/command.c:5860 src/core/command.c:5939
+#: src/core/command.c:5987 src/core/command.c:6036 src/core/command.c:6203
+#: src/core/command.c:6213 src/core/command.c:6248 src/core/command.c:6547
+#: src/core/command.c:6714 src/core/command.c:6956 src/core/command.c:7284
+#: src/core/command.c:8087 src/core/command.c:10105 src/core/command.c:10123
 #, c-format
 msgid "Unknown parameter %s, aborting.\n"
 msgstr "位置参数 %s，异常终止\n"
@@ -12412,10 +12425,10 @@ msgstr "位置参数 %s，异常终止\n"
 #: src/core/command.c:1049 src/core/command.c:1710 src/core/command.c:1715
 #: src/core/command.c:2370 src/core/command.c:2883 src/core/command.c:2890
 #: src/core/command.c:2900 src/core/command.c:2908 src/core/command.c:2916
-#: src/core/command.c:2991 src/core/command.c:4080 src/core/command.c:4824
-#: src/core/command.c:4829 src/core/command.c:8108 src/core/command.c:8669
-#: src/core/command.c:8953 src/core/command.c:9276 src/core/command.c:9484
-#: src/core/command.c:9552 src/core/command.c:9593
+#: src/core/command.c:2991 src/core/command.c:4086 src/core/command.c:4830
+#: src/core/command.c:4835 src/core/command.c:8156 src/core/command.c:8738
+#: src/core/command.c:9022 src/core/command.c:9345 src/core/command.c:9553
+#: src/core/command.c:9621 src/core/command.c:9662
 #, c-format
 msgid "Invalid argument %s, aborting.\n"
 msgstr "无效参数 %s，异常终止。\n"
@@ -12577,7 +12590,7 @@ msgstr "重构GBRG拜耳阵列。\n"
 msgid "Reconstructing GRBG Bayer matrix.\n"
 msgstr "重构GRBG拜耳阵列。\n"
 
-#: src/core/command.c:912 src/core/command.c:5893
+#: src/core/command.c:912 src/core/command.c:5899
 msgid "Invalid Bayer matrix specified!\n"
 msgstr "指定的拜耳阵列无效！\n"
 
@@ -12735,25 +12748,25 @@ msgstr "stop 参数错误：必须介于 0 和 1 之间，异常终止。\n"
 msgid "Error in step size parameter: must be between 0 and 1, aborting.\n"
 msgstr "步长参数错误：必须介于 0 和 1 之间，异常终止。\n"
 
-#: src/core/command.c:1774 src/core/command.c:5292
+#: src/core/command.c:1774 src/core/command.c:5298
 msgid "There can be only one prefix argument"
 msgstr "只能有一个前缀参数"
 
 #: src/core/command.c:1780 src/core/command.c:1997 src/core/command.c:3058
 #: src/core/command.c:3065 src/core/command.c:3092 src/core/command.c:3196
-#: src/core/command.c:3274 src/core/command.c:4259 src/core/command.c:4360
-#: src/core/command.c:4663 src/core/command.c:4695 src/core/command.c:4955
-#: src/core/command.c:5223 src/core/command.c:5298 src/core/command.c:5426
-#: src/core/command.c:5704 src/core/command.c:5803 src/core/command.c:5843
-#: src/core/command.c:5912 src/core/command.c:5923 src/core/command.c:5971
-#: src/core/command.c:6020 src/core/command.c:6064 src/core/command.c:6447
-#: src/core/command.c:6508 src/core/command.c:6649 src/core/command.c:6793
-#: src/core/command.c:6838 src/core/command.c:6846 src/core/command.c:6862
-#: src/core/command.c:6877 src/core/command.c:7003 src/core/command.c:7021
-#: src/core/command.c:7040 src/core/command.c:7059 src/core/command.c:7078
-#: src/core/command.c:7096 src/core/command.c:7151 src/core/command.c:7161
-#: src/core/command.c:7194 src/core/command.c:7349 src/core/command.c:7941
-#: src/core/command.c:7981 src/core/command.c:9268
+#: src/core/command.c:3274 src/core/command.c:4265 src/core/command.c:4366
+#: src/core/command.c:4669 src/core/command.c:4701 src/core/command.c:4961
+#: src/core/command.c:5229 src/core/command.c:5304 src/core/command.c:5432
+#: src/core/command.c:5710 src/core/command.c:5809 src/core/command.c:5849
+#: src/core/command.c:5918 src/core/command.c:5929 src/core/command.c:5977
+#: src/core/command.c:6026 src/core/command.c:6070 src/core/command.c:6453
+#: src/core/command.c:6528 src/core/command.c:6697 src/core/command.c:6841
+#: src/core/command.c:6886 src/core/command.c:6894 src/core/command.c:6910
+#: src/core/command.c:6925 src/core/command.c:7051 src/core/command.c:7069
+#: src/core/command.c:7088 src/core/command.c:7107 src/core/command.c:7126
+#: src/core/command.c:7144 src/core/command.c:7199 src/core/command.c:7209
+#: src/core/command.c:7242 src/core/command.c:7397 src/core/command.c:7989
+#: src/core/command.c:8029 src/core/command.c:9337
 #, c-format
 msgid "Missing argument to %s, aborting.\n"
 msgstr "缺少参数%s，中止处理。\n"
@@ -12781,20 +12794,20 @@ msgid ""
 "active. Please consider to close the filter dialog first.\n"
 msgstr "当上一个会话有滤镜已激活时无法裁切图像。请先关闭滤镜对话框。\n"
 
-#: src/core/command.c:1863 src/core/command.c:4318
+#: src/core/command.c:1863 src/core/command.c:4324
 msgid "Crop: x and y must be positive values.\n"
 msgstr "裁切：x 和 y 必须为正值。\n"
 
-#: src/core/command.c:1869 src/core/command.c:4324
+#: src/core/command.c:1869 src/core/command.c:4330
 msgid "Crop: width and height must be greater than 0.\n"
 msgstr "裁切：宽度和高度必须大于0。\n"
 
-#: src/core/command.c:1873 src/core/command.c:4340
+#: src/core/command.c:1873 src/core/command.c:4346
 #, c-format
 msgid "Crop: width and height, respectively, must be less than %d and %d.\n"
 msgstr "裁切：宽度和高度必须分别小于 %d 和 %d。\n"
 
-#: src/core/command.c:1878 src/core/command.c:4330
+#: src/core/command.c:1878 src/core/command.c:4336
 msgid "Crop: select a region or provide x, y, width, height\n"
 msgstr "裁切：选择一个区域，或给出x，y，宽度，高度\n"
 
@@ -12803,9 +12816,9 @@ msgstr "裁切：选择一个区域，或给出x，y，宽度，高度\n"
 msgid "Crop (x=%d, y=%d, w=%d, h=%d)"
 msgstr "裁切（x=%d, y=%d, w=%d, h=%d）"
 
-#: src/core/command.c:1941 src/core/command.c:4635 src/core/command.c:4648
-#: src/core/command.c:5047 src/core/command.c:5065 src/core/command.c:5076
-#: src/core/command.c:8369
+#: src/core/command.c:1941 src/core/command.c:4641 src/core/command.c:4654
+#: src/core/command.c:5053 src/core/command.c:5071 src/core/command.c:5082
+#: src/core/command.c:8417
 msgid "Wrong parameters.\n"
 msgstr "参数错误。\n"
 
@@ -12854,7 +12867,7 @@ msgstr "错误：无法对单色图像应用饱和度拉伸。\n"
 msgid "Error: cannot apply saturation stretch to a mono image.\n"
 msgstr "错误：无法对单色图像应用饱和度拉伸。\n"
 
-#: src/core/command.c:2275 src/core/command.c:8322 src/filters/wavelets.c:256
+#: src/core/command.c:2275 src/core/command.c:8370 src/filters/wavelets.c:256
 #: src/filters/wavelets.c:326
 #, c-format
 msgid "Wavelet: maximum number of plans for this image size is %d\n"
@@ -12915,7 +12928,7 @@ msgstr "序列：%s\n"
 msgid "Image: %s\n"
 msgstr "图像：%s\n"
 
-#: src/core/command.c:2557 src/core/command.c:8239
+#: src/core/command.c:2557 src/core/command.c:8287
 msgid "********* END OF THE LIST *********\n"
 msgstr "********* 列表完 *********\n"
 
@@ -12923,7 +12936,7 @@ msgstr "********* 列表完 *********\n"
 msgid "Merge: no working directory set.\n"
 msgstr "合并：工作目录未设置。\n"
 
-#: src/core/command.c:2571 src/core/command.c:6488 src/core/command.c:6615
+#: src/core/command.c:2571 src/core/command.c:6507 src/core/command.c:6663
 #, c-format
 msgid "Specified output name %s contains forbidden characters, aborting\n"
 msgstr "输出名称“%s”含有非法字符，已停止\n"
@@ -12968,7 +12981,7 @@ msgstr "完成合并序列时出错。\n"
 msgid "This type of sequence cannot be created by Siril, aborting the merge\n"
 msgstr "Siril 无法创建这种类型的序列，从而中止合并\n"
 
-#: src/core/command.c:2751 src/core/command.c:7825 src/io/single_image.c:211
+#: src/core/command.c:2751 src/core/command.c:7873 src/io/single_image.c:211
 #, c-format
 msgid "Error opening image %s: file not found or not supported.\n"
 msgstr "打开图像错误 %s: 文件未找到或无法识别。\n"
@@ -12985,8 +12998,8 @@ msgid ""
 "not a FITS cube.\n"
 msgstr "对于第一个 HDU，仅单个 FITS 图像支持此命令，而不支持 FITS 矩阵\n"
 
-#: src/core/command.c:2768 src/core/command.c:2782 src/core/command.c:4846
-#: src/core/command.c:9463 src/pixelMath/pixel_math_runner.c:1120
+#: src/core/command.c:2768 src/core/command.c:2782 src/core/command.c:4852
+#: src/core/command.c:9532 src/pixelMath/pixel_math_runner.c:1126
 #, c-format
 msgid "Could not open file: %s\n"
 msgstr "无法打开文件: %s\n"
@@ -13004,15 +13017,15 @@ msgstr "镜像图像以转换为自下而上的数据\n"
 msgid "Could not save mirrored image: %s\n"
 msgstr "无法保存镜像图像： %s\n"
 
-#: src/core/command.c:2830 src/core/command.c:4035 src/core/command.c:4042
-#: src/core/command.c:4047 src/core/command.c:5308 src/core/command.c:5317
-#: src/core/command.c:5326 src/core/command.c:5766 src/core/command.c:6501
-#: src/core/command.c:6642 src/core/command.c:7225 src/core/command.c:8593
-#: src/core/command.c:8604 src/core/command.c:8620 src/core/command.c:8870
-#: src/core/command.c:8882 src/core/command.c:8895 src/core/command.c:8909
-#: src/core/command.c:8921 src/core/command.c:8942 src/core/command.c:9221
-#: src/core/command.c:9358 src/core/command.c:9367 src/core/command.c:9376
-#: src/core/command.c:9385 src/core/command.c:9392
+#: src/core/command.c:2830 src/core/command.c:4041 src/core/command.c:4048
+#: src/core/command.c:4053 src/core/command.c:5314 src/core/command.c:5323
+#: src/core/command.c:5332 src/core/command.c:5772 src/core/command.c:6521
+#: src/core/command.c:6690 src/core/command.c:7273 src/core/command.c:8662
+#: src/core/command.c:8673 src/core/command.c:8689 src/core/command.c:8939
+#: src/core/command.c:8951 src/core/command.c:8964 src/core/command.c:8978
+#: src/core/command.c:8990 src/core/command.c:9011 src/core/command.c:9290
+#: src/core/command.c:9427 src/core/command.c:9436 src/core/command.c:9445
+#: src/core/command.c:9454 src/core/command.c:9461
 #, c-format
 msgid "Invalid argument to %s, aborting.\n"
 msgstr "%s 的参数无效，异常中止。\n"
@@ -13057,8 +13070,8 @@ msgstr "不允许缩放 %lf。应介于 0.0 和 5.0 之间。\n"
 msgid "Scale is 1.0. Not doing anything.\n"
 msgstr "缩放比为 1.0。什么都不做。\n"
 
-#: src/core/command.c:3115 src/core/command.c:3219 src/core/command.c:6817
-#: src/core/command.c:6904 src/core/command.c:7188
+#: src/core/command.c:3115 src/core/command.c:3219 src/core/command.c:6865
+#: src/core/command.c:6952 src/core/command.c:7236
 #, c-format
 msgid "Unknown transformation type %s, aborting.\n"
 msgstr "未知的转化类型 %s，异常终止\n"
@@ -13101,19 +13114,19 @@ msgstr "角度为 0.0 或 360.0 度。什么都不做...\n"
 msgid "Wrong magnitude value.\n"
 msgstr "错误的星等值。\n"
 
-#: src/core/command.c:3321 src/core/command.c:3923 src/core/command.c:4105
+#: src/core/command.c:3321 src/core/command.c:3929 src/core/command.c:4111
 #: src/core/siril_actions.c:735
 msgid ""
 "Current selection is too large. To determine the PSF, please make a "
 "selection around a single star.\n"
 msgstr "当前选区太大。若要计算PSF，请框选一个单独的星点。\n"
 
-#: src/core/command.c:3325 src/core/command.c:3927 src/core/command.c:4109
+#: src/core/command.c:3325 src/core/command.c:3933 src/core/command.c:4115
 #: src/io/sequence.c:1916
 msgid "Select an area first\n"
 msgstr "请先选择一个区域\n"
 
-#: src/core/command.c:3337 src/core/command.c:3957
+#: src/core/command.c:3337 src/core/command.c:3963
 #, c-format
 msgid "PSF minimisation failed with error %d\n"
 msgstr "PSF 最小化失败，错误 %d\n"
@@ -13281,96 +13294,96 @@ msgstr "最小beta = %3.2f\n"
 msgid "Reference magnitude unset for sequence\n"
 msgstr "序列中的参考星等未设定\n"
 
-#: src/core/command.c:3758
+#: src/core/command.c:3759
 msgid ""
 "You need to add at least one image as variable. Use $ tokens to surround the "
 "file names .\n"
 msgstr "你需要添加至少一张图片作为参数。 文件名应被 $ 括起来。\n"
 
-#: src/core/command.c:3761
+#: src/core/command.c:3762
 msgid "There is an unmatched $. Please check the expression.\n"
 msgstr "有不配对的 $。 请检查表达式。\n"
 
-#: src/core/command.c:3772 src/core/command.c:3777
+#: src/core/command.c:3774 src/core/command.c:3779
 msgid "Rescale can only be done in the [0, 1] range.\n"
 msgstr "重新缩放只能在 [0, 1] 区间\n"
 
-#: src/core/command.c:3846
+#: src/core/command.c:3851
 msgid "Image must have same dimension\n"
 msgstr "图像必须具有相同的维度\n"
 
-#: src/core/command.c:3932
+#: src/core/command.c:3938
 msgid ""
 "Please display the channel on which you want to compute the PSF or use -"
 "channel argument\n"
 msgstr "请指明计算PSF的通道或使用-channel参数\n"
 
-#: src/core/command.c:3941
+#: src/core/command.c:3947
 msgid "Please provide the channel number starting from 0 for red\n"
 msgstr "请从0（红色）开始提供通道编号\n"
 
-#: src/core/command.c:4017 src/core/command.c:4057 src/core/command.c:4072
+#: src/core/command.c:4023 src/core/command.c:4063 src/core/command.c:4078
 msgid "The given coordinates are not in the image, aborting\n"
 msgstr "给定的坐标不在图像中，异常中止。\n"
 
-#: src/core/command.c:4022
+#: src/core/command.c:4028
 msgid ""
 "Selection was not completely inside the first image of the sequence, "
 "aborting.\n"
 msgstr "所选区域并不完全在第一帧之内，异常终止。\n"
 
-#: src/core/command.c:4052
+#: src/core/command.c:4058
 msgid ""
 "The reference image of the sequence does not have the WCS information "
 "required for star selection by equatorial coordinates\n"
 msgstr "序列的参考帧没有选择恒星赤道坐标所需的WCS信息\n"
 
-#: src/core/command.c:4075
+#: src/core/command.c:4081
 #, c-format
 msgid "Coordinates of the star: %.1f, %.1f\n"
 msgstr "恆星坐标： %.1f， %.1f\n"
 
-#: src/core/command.c:4090
+#: src/core/command.c:4096
 msgid "Arguments are not optional when called from a script\n"
 msgstr "从脚本调用时，参数不是可选的\n"
 
-#: src/core/command.c:4094
+#: src/core/command.c:4100
 msgid ""
 "Arguments are optional only if a sequence is already loaded and selection "
 "around a star made\n"
 msgstr "仅当序列已载入并且框选了一个星点时，参数才是可选的\n"
 
-#: src/core/command.c:4133 src/core/command.c:4192
+#: src/core/command.c:4139 src/core/command.c:4198
 #, c-format
 msgid "PSF cannot be computed on channel %d for this sequence of %d channels\n"
 msgstr "PSF在通道 %d上，在有%d通道的序列中无法被计算\n"
 
-#: src/core/command.c:4161
+#: src/core/command.c:4167
 #, c-format
 msgid "Running the PSF on the sequence, layer %d\n"
 msgstr "于序列中执行PSF，图层 %d\n"
 
-#: src/core/command.c:4206
+#: src/core/command.c:4212
 msgid "Missing argument to command\n"
 msgstr "缺少命令参数\n"
 
-#: src/core/command.c:4223
+#: src/core/command.c:4229
 msgid "Could not find stars in the reference image, aborting.\n"
 msgstr "无法在参考帧中找到星点，异常中止。\n"
 
-#: src/core/command.c:4233
+#: src/core/command.c:4239
 #, c-format
 msgid ""
 "Setting inner and outer photometry ring radii to %.1f and %.1f (FWHM is %f)\n"
 msgstr "将测光圆环的内半径和外半径为%.1f和%.1f（FWHM为%f）\n"
 
-#: src/core/command.c:4242 src/gui/nina_light_curve.c:141
+#: src/core/command.c:4248 src/gui/nina_light_curve.c:141
 #, c-format
 msgid ""
 "Using preconfigured inner and outer photometry ring radii of %.1f and %.1f\n"
 msgstr "使用预设的测光圆环内外半径%.1f和%.1f\n"
 
-#: src/core/command.c:4266
+#: src/core/command.c:4272
 msgid ""
 "No image in the sequence was found with the WCS information required for "
 "star selection by equatorial coordinates, plate solve the reference or the "
@@ -13379,142 +13392,142 @@ msgstr ""
 "在序列中未找到具有WCS信息的图像，这些信息用于按赤道坐标来选择星点、解析参考帧"
 "或当前图像\n"
 
-#: src/core/command.c:4388
+#: src/core/command.c:4394
 #, c-format
 msgid "Background value (channel: #%d): %d (%.3e)\n"
 msgstr "背景噪声值（通道：#%d）: %d（%.3e）\n"
 
-#: src/core/command.c:4444
+#: src/core/command.c:4450
 #, c-format
 msgid "The file %s has been created for the %s layer.\n"
 msgstr "文件 %s 已创建基于图层 %s\n"
 
-#: src/core/command.c:4455
+#: src/core/command.c:4461
 msgid "Clearing tilt information\n"
 msgstr "清除倾斜信息\n"
 
-#: src/core/command.c:4476 src/core/command.c:4481 src/core/command.c:4502
-#: src/core/command.c:4518 src/core/command.c:4541
+#: src/core/command.c:4482 src/core/command.c:4487 src/core/command.c:4508
+#: src/core/command.c:4524 src/core/command.c:4547
 #, c-format
 msgid "Replacement value is out of range (0 - %d)\n"
 msgstr "替换值超出范围 (0 - %d)\n"
 
-#: src/core/command.c:4485
+#: src/core/command.c:4491
 msgid "lo must be strictly smaller than hi\n"
 msgstr "lo 必须严格的小于 hi\n"
 
-#: src/core/command.c:4556
+#: src/core/command.c:4562
 msgid "Level value is incorrect\n"
 msgstr "Level 值不正确\n"
 
-#: src/core/command.c:4561
+#: src/core/command.c:4567
 msgid "Coeff value is incorrect\n"
 msgstr "Coeff 值不正确\n"
 
-#: src/core/command.c:4566
+#: src/core/command.c:4572
 msgid "Sigma value is incorrect\n"
 msgstr "Sigma值不正确\n"
 
-#: src/core/command.c:4582
+#: src/core/command.c:4588
 msgid "Number of layers MUST be 1 or 3\n"
 msgstr "图层数必须为1或3\n"
 
-#: src/core/command.c:4586
+#: src/core/command.c:4592
 msgid "Width and Height must be positive values.\n"
 msgstr "宽度和高度必须为正值。\n"
 
-#: src/core/command.c:4599
+#: src/core/command.c:4605
 msgid "new empty image"
 msgstr "新空白图像"
 
-#: src/core/command.c:4609
+#: src/core/command.c:4615
 #, c-format
 msgid "Values must be positive and less than %d.\n"
 msgstr "数值必须为正并且小于 %d.\n"
 
-#: src/core/command.c:4621 src/core/command.c:5060
+#: src/core/command.c:4627 src/core/command.c:5066
 #, c-format
 msgid "Value must be positive and less than %d.\n"
 msgstr "值必须为正并且小于 %d。\n"
 
-#: src/core/command.c:4640
+#: src/core/command.c:4646
 msgid "Fill2: select a region or provide x, y, width, height\n"
 msgstr "Fill2：选择一个区域或输入x，y，width，height\n"
 
-#: src/core/command.c:4669 src/core/command.c:6514 src/core/command.c:6655
-#: src/core/command.c:7483 src/io/path_parse.c:523
+#: src/core/command.c:4675 src/core/command.c:6534 src/core/command.c:6703
+#: src/core/command.c:7531 src/io/path_parse.c:523
 #: src/io/remote_catalogues.c:653 src/io/siril_catalogues.c:788
 #, c-format
 msgid "Cannot create output folder: %s\n"
 msgstr "无法创建输出目录: %s\n"
 
 #. handling mono case
-#: src/core/command.c:4679 src/core/command.c:6821 src/core/command.c:7217
+#: src/core/command.c:4685 src/core/command.c:6869 src/core/command.c:7265
 msgid "This sequence is mono, ignoring layer number.\n"
 msgstr "序列为单色，忽略图层数。\n"
 
-#: src/core/command.c:4686 src/core/command.c:6829
+#: src/core/command.c:4692 src/core/command.c:6877
 #, c-format
 msgid ""
 "Unknown layer number %s, must be between 0 and 2, will use green layer.\n"
 msgstr "未知图层 %s，必须在0到2之间，已使用绿色图层。\n"
 
 #. limiting values to avoid too long computation or too low number of candidates
-#: src/core/command.c:4702 src/core/command.c:6869
+#: src/core/command.c:4708 src/core/command.c:6917
 #, c-format
 msgid "Max number of stars %s not allowed. Should be between %d and %d.\n"
 msgstr "最大星点数 %s 不被允许。应该介于 %d 和 %d 之间。\n"
 
-#: src/core/command.c:4749
+#: src/core/command.c:4755
 msgid ""
 "Warning: an undebayered CFA image is loaded. Star detection may produce "
 "results for this image but will not perform optimally and star parameters "
 "may be inaccurate.\n"
 msgstr ""
 
-#: src/core/command.c:4794
+#: src/core/command.c:4800
 msgid "Option -out= is not available for sequences, ignoring\n"
 msgstr "选项 -out= 对序列无效，已忽略\n"
 
-#: src/core/command.c:4806
+#: src/core/command.c:4812
 msgid ""
 "Warning: sequence contains undebayered CFA images. Star detection may "
 "produce results for this sequence but will not perform optimally and star "
 "parameters may be inaccurate.\n"
 msgstr ""
 
-#: src/core/command.c:4814
+#: src/core/command.c:4820
 msgid "find_hot must be applied on an one-channel master-dark frame"
 msgstr "find_hot必须被应用在一个单通道的主暗场帧上"
 
-#: src/core/command.c:4834
+#: src/core/command.c:4840
 #, c-format
 msgid "%ld cold and %ld hot pixels\n"
 msgstr "%ld 冷像素 %ld 热像素\n"
 
-#: src/core/command.c:4896 src/core/command.c:4933
+#: src/core/command.c:4902 src/core/command.c:4939
 #, c-format
 msgid "File [%s] does not exist.\n"
 msgstr "文件 [%s] 不存在。\n"
 
-#: src/core/command.c:4911
+#: src/core/command.c:4917
 msgid "There were some errors, please check your input file.\n"
 msgstr "错误产生，请检查您的输入文件。\n"
 
-#: src/core/command.c:4979
+#: src/core/command.c:4985
 msgid "The size of the kernel MUST be odd and in the range [3, 15].\n"
 msgstr "内核尺寸必须为奇数并且位于区间 [3, 15]。\n"
 
-#: src/core/command.c:4984
+#: src/core/command.c:4990
 msgid "Modulation value MUST be between 0 and 1\n"
 msgstr "调制值必须在0到1之间\n"
 
-#: src/core/command.c:5002
+#: src/core/command.c:5008
 #, c-format
 msgid "Center of gravity coordinates are (%.3lf, %.3lf)\n"
 msgstr "重心参考值为 (%.3lf, %.3lf)\n"
 
-#: src/core/command.c:5101
+#: src/core/command.c:5107
 msgid ""
 "Type can either be 0 (average neutral) or 1 (maximum neutral), 2 (maximum "
 "mask) or 3 (additive mask)\n"
@@ -13522,76 +13535,76 @@ msgstr ""
 "输入值可以为0（average neutral），1（maximum neutral），2（maximum mask），3"
 "（additive mask）\n"
 
-#: src/core/command.c:5112
+#: src/core/command.c:5118
 msgid "Amount can only be [0, 1]\n"
 msgstr "Amount 只能在 [0, 1] 区间\n"
 
-#: src/core/command.c:5152 src/core/command.c:5197
+#: src/core/command.c:5158 src/core/command.c:5203
 msgid "Amount value must be in the [0, 4] range.\n"
 msgstr "Amount 值只能在 [0, 4] 区间\n"
 
-#: src/core/command.c:5158 src/core/command.c:5205
+#: src/core/command.c:5164 src/core/command.c:5211
 msgid "1/sigma value must be in the [0, 5] range.\n"
 msgstr "1/sigma 值只能在 [0, 5] 区间\n"
 
-#: src/core/command.c:5282
+#: src/core/command.c:5288
 msgid "Polynomial degree order must be within the [1, 4] range.\n"
 msgstr "多项式次数必须在 [1, 4] 区间。\n"
 
-#: src/core/command.c:5331
+#: src/core/command.c:5337
 msgid "smooth parameter is unused with the polynomial model, ignoring.\n"
 msgstr "平滑参数在多项式模式中无效，忽略。\n"
 
-#: src/core/command.c:5398
+#: src/core/command.c:5404
 msgid "Sigma low must be positive.\n"
 msgstr "Sigma low 必须为正值\n"
 
-#: src/core/command.c:5404
+#: src/core/command.c:5410
 msgid "Sigma high must be positive.\n"
 msgstr "Sigma high 必须为正值。\n"
 
-#: src/core/command.c:5456
+#: src/core/command.c:5462
 msgid "The second argument must be between 1 and the number of images.\n"
 msgstr "第二个参数在[1, 图像总数]之内。\n"
 
-#: src/core/command.c:5462
+#: src/core/command.c:5468
 msgid ""
 "The third argument must be larger or equal than the \"from\" argument.\n"
 msgstr "第三个参数大于等于“from”参数。\n"
 
-#: src/core/command.c:5468
+#: src/core/command.c:5474
 msgid "The third argument is larger than the number of images.\n"
 msgstr "第三个参数大于图像总数。\n"
 
-#: src/core/command.c:5469
+#: src/core/command.c:5475
 #, c-format
 msgid "Re-adjusting to %d.\n"
 msgstr "重新调整为 %d。\n"
 
-#: src/core/command.c:5493 src/gui/sequence_list.c:636
+#: src/core/command.c:5499 src/gui/sequence_list.c:636
 #, c-format
 msgid "Selection update finished, %d images are selected in the sequence\n"
 msgstr "更新选择完成，序列中%d帧图像被选定\n"
 
-#: src/core/command.c:5522 src/gui/colors.c:393
+#: src/core/command.c:5528 src/gui/colors.c:393
 msgid "Could not copy the input image, aborting.\n"
 msgstr "无法拷贝输入图像，异常终止。\n"
 
-#: src/core/command.c:5540
+#: src/core/command.c:5546
 msgid "CieLAB"
 msgstr "CieLAB"
 
-#: src/core/command.c:5899
+#: src/core/command.c:5905
 #, c-format
 msgid "Reconstructing %s Bayer matrix.\n"
 msgstr "重构 %s 拜耳阵列。\n"
 
-#: src/core/command.c:6106
+#: src/core/command.c:6112
 #, c-format
 msgid "Statistics computation failed for channel %d (all nil?).\n"
 msgstr "通道 %d 的统计信息计算失败（全部为零？）\n"
 
-#: src/core/command.c:6127 src/core/command.c:6132
+#: src/core/command.c:6133 src/core/command.c:6138
 #, c-format
 msgid ""
 "%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, Min: %0.1f, Max: %0.1f, "
@@ -13600,7 +13613,7 @@ msgstr ""
 "%s 层：平均值：%0.1f 中位数：%0.1f Sigma: %0.1f 最小值：%0.1f 最大值：%0.1f "
 "bgnoise：%0.1f\n"
 
-#: src/core/command.c:6144 src/core/command.c:6151
+#: src/core/command.c:6150 src/core/command.c:6157
 #, c-format
 msgid ""
 "%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, Min: %0.1f, Max: %0.1f, "
@@ -13609,134 +13622,141 @@ msgstr ""
 "%s 层：平均值：%0.1f 中位数：%0.1f Sigma: %0.1f 最小值：%0.1f 最大值：%0.1f "
 "bgnoise：%0.1f avgDev：%0.1f MAD：%0.1f sqrt(BWMV)：%0.1f\n"
 
-#: src/core/command.c:6236
+#: src/core/command.c:6242
 #, c-format
 msgid "No image appears to be loaded, reloading from '%s'\n"
 msgstr "似乎未载入图像，从“%s”重新载入\n"
 
-#: src/core/command.c:6339
+#: src/core/command.c:6345
 #, c-format
 msgid "Failed to save the JSON file %s: %s\n"
 msgstr "无法保存 JSON 文件 %s: %s\n"
 
-#: src/core/command.c:6342
+#: src/core/command.c:6348
 #, c-format
 msgid "Save metadata to the JSON file '%s'\n"
 msgstr "将元数据保存到 JSON 文件 '%s'\n"
 
-#: src/core/command.c:6402
+#: src/core/command.c:6408
 #, fuzzy, c-format
 msgid "Image %d, %s\n"
 msgstr "图像%d：'%s'\n"
 
-#: src/core/command.c:6420
+#: src/core/command.c:6426
 msgid "This command can only run for FITS images\n"
 msgstr "此命令只能用于FITS图像\n"
 
-#: src/core/command.c:6456
+#: src/core/command.c:6462
 #, c-format
 msgid "Failed to create output file: %s\n"
 msgstr "无法创建输出文件： %s\n"
 
-#: src/core/command.c:6462
+#: src/core/command.c:6468
 msgid "Failed to write to output file\n"
 msgstr "无法写入输出文件\n"
 
-#: src/core/command.c:6484 src/core/command.c:6611
+#: src/core/command.c:6503 src/core/command.c:6659
 msgid ""
 "First argument is the converted sequence name and shall not start with a -\n"
 msgstr "第一个参数声明了被转化后的序列名称，不能以 a - 开头\n"
 
-#: src/core/command.c:6534
+#: src/core/command.c:6556
 #, c-format
 msgid "Link: error opening working directory %s.\n"
 msgstr "链接：无法打开工作目录 %s\n"
 
-#: src/core/command.c:6557
+#: src/core/command.c:6579
 msgid "No FITS files were found for link\n"
 msgstr "未发现用于链接的FITS文件\n"
 
-#: src/core/command.c:6568 src/core/command.c:6718
+#: src/core/command.c:6593
+#, c-format
+msgid ""
+"Sorting by date could not be done, file %s doesn't have DATE-OBS, not "
+"sorting\n"
+msgstr ""
+
+#: src/core/command.c:6616 src/core/command.c:6766
 msgid ""
 "You should pass an extra argument -fitseq to convert your sequence to fitseq "
 "format.\n"
 msgstr "您应该传递一个额外的参数-fitseq，以将序列转换为fitseq格式。\n"
 
-#: src/core/command.c:6574
+#: src/core/command.c:6622
 #, c-format
 msgid "Link: processing %d FITS file...\n"
 msgid_plural "Link: processing %d FITS files...\n"
 msgstr[0] "链接：正在处理FITS文件 %d…\n"
 
-#: src/core/command.c:6580
+#: src/core/command.c:6628
 msgid "Link: no working directory set.\n"
 msgstr "链接：工作目录未设置。\n"
 
-#: src/core/command.c:6606
+#: src/core/command.c:6654
 msgid "Conversion: no working directory set.\n"
 msgstr "转化：工作目录未设置。\n"
 
-#: src/core/command.c:6675
+#: src/core/command.c:6723
 #, c-format
 msgid "Conversion: error opening working directory %s.\n"
 msgstr "转化：无法打开工作目录 %s.\n"
 
-#: src/core/command.c:6692 src/gui/conversion.c:196
+#: src/core/command.c:6740 src/gui/conversion.c:196
 msgid ""
 "FujiFilm XTRANS sensors are not supported by SER v2 (CFA-style) standard. "
 "You may use FITS sequences instead."
 msgstr ""
 "FujiFilm XTRANS传感器不受SER v2 (CFA-style) 标准支持。您可以改用FITS序列。"
 
-#: src/core/command.c:6706
+#: src/core/command.c:6754
 msgid "No RAW files were found for conversion\n"
 msgstr "未发现用于转化的RAW文件\n"
 
-#: src/core/command.c:6707
+#: src/core/command.c:6755
 msgid "No files were found for conversion\n"
 msgstr "未发现用于转化的RAW文件\n"
 
-#: src/core/command.c:6724
+#: src/core/command.c:6772
 #, c-format
 msgid "Convert: processing %d file...\n"
 msgid_plural "Convert: processing %d files...\n"
 msgstr[0] "转化：正在处理FITS文件 %d…\n"
 
-#: src/core/command.c:6801 src/registration/registration.c:1454
+#: src/core/command.c:6849 src/registration/registration.c:1454
 msgid "Shift-only registration is only possible with OpenCV 4.4\n"
 msgstr "平移对齐仅适用于OpenCV 4.4版本\n"
 
 #. using absolute min_pairs required by homography
-#: src/core/command.c:6852
+#: src/core/command.c:6900
 #, c-format
 msgid "%d smaller than minimum allowable star pairs: %d, aborting.\n"
 msgstr "%d 少于最小配对星点数：%d，异常终止。\n"
 
-#: src/core/command.c:6916 src/registration/registration.c:144
+#: src/core/command.c:6964 src/registration/registration.c:144
 msgid "Two-Pass Global Star Alignment (deep-sky)"
 msgstr "两段式全局星点对齐（深空）"
 
-#: src/core/command.c:6919 src/registration/registration.c:142
+#: src/core/command.c:6967 src/registration/registration.c:142
 msgid "Global Star Alignment (deep-sky)"
 msgstr "全局星点对齐（深空）"
 
-#: src/core/command.c:6927
+#: src/core/command.c:6975
 msgid ""
 "The -nostarlist option has an effect only when -2pass is used, ignoring\n"
 msgstr "-nostarlist选项只有在使用-2pass时才有效，已忽略\n"
 
-#: src/core/command.c:6936 src/core/processing.c:143
+#: src/core/command.c:6984 src/core/processing.c:143
 #: src/registration/applyreg.c:653 src/registration/registration.c:1491
 msgid "Not enough space to save the output images, aborting\n"
 msgstr "没有足够的空间来保存输出图像，异常终止。\n"
 
-#: src/core/command.c:6943
+#: src/core/command.c:6991
 msgid ""
 "Forcing the registration transformation to shift, which is the only "
 "transformation compatible with no interpolation\n"
 msgstr "强制对齐变换为平移，这是唯一兼容无插值的变换\n"
 
-#: src/core/command.c:6946
+#: src/core/command.c:6994
 msgid ""
 "Forcing the registration transformation to shift, which is the only "
 "transformation compatible with no interpolation, is not compatible with "
@@ -13745,7 +13765,7 @@ msgstr ""
 "强制对齐变换为平移（这是唯一兼容无插值的变换）与版本低于 4.4 的 OpenCV 不兼"
 "容。异常中止\n"
 
-#: src/core/command.c:6952 src/registration/registration.c:1518
+#: src/core/command.c:7000 src/registration/registration.c:1518
 msgid ""
 "When interpolation is set to None, the images must be of same size and no "
 "upscaling can be applied. Aborting\n"
@@ -13754,115 +13774,115 @@ msgstr ""
 
 #. don't load it for command line execution
 #. to avoid problems with com.stars later on in the process
-#: src/core/command.c:6960 src/registration/registration.c:1537
+#: src/core/command.c:7008 src/registration/registration.c:1537
 #, c-format
 msgid "Registration: processing using method: %s\n"
 msgstr "对齐：处理中，使用方法：%s\n"
 
-#: src/core/command.c:6971 src/core/command.c:7249
+#: src/core/command.c:7019 src/core/command.c:7297
 #: src/registration/registration.c:1541
 msgid "Interpolation clamping active\n"
 msgstr "插值保持启用\n"
 
-#: src/core/command.c:6994 src/core/command.c:7012 src/core/command.c:7031
-#: src/core/command.c:7050 src/core/command.c:7069 src/core/command.c:7087
+#: src/core/command.c:7042 src/core/command.c:7060 src/core/command.c:7079
+#: src/core/command.c:7098 src/core/command.c:7117 src/core/command.c:7135
 #, c-format
 msgid "Could not parse argument `%s' to the filter `%s', aborting.\n"
 msgstr "无法将参数“%s”解析为滤镜“%s”，异常终止。\n"
 
-#: src/core/command.c:7127
+#: src/core/command.c:7175
 msgid "No registration data exists for this sequence, aborting\n"
 msgstr "该序列中没有对齐数据，异常终止\n"
 
-#: src/core/command.c:7213
+#: src/core/command.c:7261
 #, c-format
 msgid "Unknown framing type %s, aborting.\n"
 msgstr "未知的取景范围类型 %s，异常终止。\n"
 
-#: src/core/command.c:7229
+#: src/core/command.c:7277
 #, c-format
 msgid ""
 "Registration data does not exist for layer #%d, will use layer #%d instead.\n"
 msgstr "图层 #%d 的对齐数据不存在，将改用图层 #%d。\n"
 
-#: src/core/command.c:7251
+#: src/core/command.c:7299
 msgid "Registration: Applying existing data"
 msgstr "对齐：应用现有数据"
 
-#: src/core/command.c:7273
+#: src/core/command.c:7321
 msgid ""
 "Output normalization is allowed only with median or mean stacking, "
 "ignoring.\n"
 msgstr "输出归一化仅允许使用中位数或平均数叠加，忽略。\n"
 
-#: src/core/command.c:7279 src/core/command.c:7289 src/core/command.c:7297
-#: src/core/command.c:7305
+#: src/core/command.c:7327 src/core/command.c:7337 src/core/command.c:7345
+#: src/core/command.c:7353
 msgid "Weighting is allowed only with average stacking, ignoring.\n"
 msgstr "加权仅适用于平均数叠加，忽略。\n"
 
-#: src/core/command.c:7281 src/core/command.c:7307
+#: src/core/command.c:7329 src/core/command.c:7355
 msgid ""
 "Weighting is allowed only if normalization has been activated, ignoring.\n"
 msgstr "加权仅在当已激活归一化时才被允许，忽略。\n"
 
-#: src/core/command.c:7283 src/core/command.c:7291 src/core/command.c:7299
-#: src/core/command.c:7309
+#: src/core/command.c:7331 src/core/command.c:7339 src/core/command.c:7347
+#: src/core/command.c:7357
 msgid "Only one weighting method can be used\n"
 msgstr "只有一种加权方法可用\n"
 
-#: src/core/command.c:7315
+#: src/core/command.c:7363
 msgid "Fast normalization is allowed only with average stacking, ignoring.\n"
 msgstr "快速归一化仅许在平均叠加的情况下被允许，忽略。\n"
 
-#: src/core/command.c:7317
+#: src/core/command.c:7365
 msgid ""
 "Fast normalization is allowed only if normalization has been activated, "
 "ignoring.\n"
 msgstr "快速归一化仅在当已激活归一化时才被允许，忽略。\n"
 
-#: src/core/command.c:7323
+#: src/core/command.c:7371
 msgid "Normalization options are not allowed in this context, ignoring.\n"
 msgstr "归一化选项在该上下文中不可用，忽略。\n"
 
-#: src/core/command.c:7337
+#: src/core/command.c:7385
 msgid "RGB equalization is allowed only with average stacking, ignoring.\n"
 msgstr "RGB均衡仅适用于平均数叠加，忽略。\n"
 
-#: src/core/command.c:7339
+#: src/core/command.c:7387
 msgid ""
 "RGB equalization is allowed only if normalization has been activated, "
 "ignoring.\n"
 msgstr "RGB均衡仅在激活归一化时可用，忽略。\n"
 
-#: src/core/command.c:7355
+#: src/core/command.c:7403
 msgid "Output filename option is not allowed in this context, ignoring.\n"
 msgstr "此处不允许指定输出文件名，已忽略。\n"
 
-#: src/core/command.c:7359
+#: src/core/command.c:7407
 msgid "Rejection maps can only be created with rejection stacking, ignoring.\n"
 msgstr "像素剔除图只能通过带有像素剔除的叠加创建，已忽略。\n"
 
-#: src/core/command.c:7361
+#: src/core/command.c:7409
 msgid ""
 "Rejection maps can only be created if rejection has been activated, "
 "ignoring.\n"
 msgstr "像素剔除图只能在激活像素剔除时创建，已忽略。\n"
 
-#: src/core/command.c:7369
+#: src/core/command.c:7417
 #, c-format
 msgid "Unexpected argument to stacking `%s', aborting.\n"
 msgstr "叠加中出现意外参数“%s”，异常终止。\n"
 
-#: src/core/command.c:7388
+#: src/core/command.c:7436
 #, c-format
 msgid "Stacking sequence %s\n"
 msgstr "叠加序列%s\n"
 
-#: src/core/command.c:7402
+#: src/core/command.c:7450
 msgid "Not using rejection for stacking\n"
 msgstr "叠加操作未使用像素剔除算法\n"
 
-#: src/core/command.c:7424
+#: src/core/command.c:7472
 #, c-format
 msgid ""
 "Stacking has detected registration data on layer %d with more than simple "
@@ -13871,49 +13891,49 @@ msgstr ""
 "叠加检测到图层 %d 上的对齐数据，不仅仅是简单的平移。您应该在叠加前应用现有对"
 "齐\n"
 
-#: src/core/command.c:7489
+#: src/core/command.c:7537
 #, c-format
 msgid "Could not save the stacking result %s\n"
 msgstr "无法保存叠加结果 %s\n"
 
-#: src/core/command.c:7496 src/stacking/stacking.c:609
+#: src/core/command.c:7544 src/stacking/stacking.c:609
 msgid "Saving rejection maps\n"
 msgstr "保存像素剔除图\n"
 
-#: src/core/command.c:7525 src/stacking/stacking.c:662
+#: src/core/command.c:7573 src/stacking/stacking.c:662
 msgid "Stacking failed, please check the log to fix your issue.\n"
 msgstr "叠加失败，请检查日志。\n"
 
-#: src/core/command.c:7550
+#: src/core/command.c:7598
 msgid "Looking for sequences in current working directory...\n"
 msgstr "在当前工作目录中搜索序列...\n"
 
-#: src/core/command.c:7552
+#: src/core/command.c:7600
 msgid "Error while searching sequences or opening the directory.\n"
 msgstr "搜索或打开目录出错。\n"
 
-#: src/core/command.c:7561
+#: src/core/command.c:7609
 msgid "Starting stacking of found sequences...\n"
 msgstr "开始对已找到的序列进行叠加...\n"
 
-#: src/core/command.c:7573
+#: src/core/command.c:7621
 #, c-format
 msgid "Stacked %d sequences successfully.\n"
 msgstr "%d 序列叠加成功。\n"
 
-#: src/core/command.c:7630 src/core/command.c:7756
+#: src/core/command.c:7678 src/core/command.c:7804
 msgid ""
 "The average stacking with rejection requires two extra arguments: sigma low "
 "and high.\n"
 msgstr "带有像素剔除的平均数叠加需要两个附加参数：sigma下限和sigma上限。\n"
 
-#: src/core/command.c:7635 src/core/command.c:7764
+#: src/core/command.c:7683 src/core/command.c:7812
 msgid ""
 "Extra parameters of GESDT rejection algorithm must be between 0 and 1, "
 "default is 0.3 and 0.05.\n"
 msgstr "广义ESD检验剔除算法的附加参数必须介于0和1之间，默认值为0.3和0.05。\n"
 
-#: src/core/command.c:7640 src/core/command.c:7769
+#: src/core/command.c:7688 src/core/command.c:7817
 msgid ""
 "Extra parameters of percentile rejection algorithm must be between 0 and 1, "
 "default is 0.2 and 0.1.\n"
@@ -13921,117 +13941,117 @@ msgstr ""
 "Percentile Rejection Algorithm算法的额外参数必须在0到1之间，默认为0.2和"
 "0.1。\n"
 
-#: src/core/command.c:7649 src/core/command.c:7778
+#: src/core/command.c:7697 src/core/command.c:7826
 #, c-format
 msgid "Stacking method type '%s' is invalid\n"
 msgstr "叠加方式 '%s' 不可用\n"
 
-#: src/core/command.c:7679 src/stacking/stacking.c:664
+#: src/core/command.c:7727 src/stacking/stacking.c:664
 msgid ""
 "It looks like there is a memory allocation error, change memory settings and "
 "try to fix it.\n"
 msgstr "看起来存在内存分配错误，请更改内存设置并尝试修复它。\n"
 
-#: src/core/command.c:7682
+#: src/core/command.c:7730
 msgid "Stacked sequence successfully.\n"
 msgstr "序列叠加成功。\n"
 
-#: src/core/command.c:7726
+#: src/core/command.c:7774
 msgid "Missing arguments for rejection stacking.\n"
 msgstr "剔除叠加缺少参数。\n"
 
-#: src/core/command.c:7818 src/core/command.c:8994 src/core/command.c:9659
+#: src/core/command.c:7866 src/core/command.c:9063 src/core/command.c:9728
 #: src/core/preprocess.c:682 src/core/preprocess.c:1008
 msgid "Could not load the reference image of the sequence, aborting.\n"
 msgstr "无法载入序列的参考帧，异常中止。\n"
 
-#: src/core/command.c:7830 src/core/preprocess.c:575
+#: src/core/command.c:7878 src/core/preprocess.c:575
 msgid "Could not load the image, aborting.\n"
 msgstr "无法载入图像，异常中止。\n"
 
-#: src/core/command.c:7855
+#: src/core/command.c:7903
 #, c-format
 msgid "The offset value could not be parsed from expression: %s, aborting.\n"
 msgstr "偏移无法从表达式中计算：%s，已停止。\n"
 
-#: src/core/command.c:7861 src/core/preprocess.c:705
+#: src/core/command.c:7909 src/core/preprocess.c:705
 #, c-format
 msgid "Synthetic offset: Level = %d\n"
 msgstr "合成偏移量：Level = %d\n"
 
 #. not excluding all neg values here to allow defining a pedestal
-#: src/core/command.c:7864
+#: src/core/command.c:7912
 #, c-format
 msgid "The offset value is out of allowable bounds [-%d,%d], aborting.\n"
 msgstr "offset 值超出允许的范围 [-%d，%d]，异常中止。\n"
 
-#: src/core/command.c:7948
+#: src/core/command.c:7996
 msgid "Dark optimization: This process cannot be applied to 8b images\n"
 msgstr "暗场优化：此过程不适用于8b图像\n"
 
-#: src/core/command.c:7957
+#: src/core/command.c:8005
 #, fuzzy, c-format
 msgid "Missing or wrong argument to %s, aborting.\n"
 msgstr "缺少参数%s，中止处理。\n"
 
-#: src/core/command.c:7987
+#: src/core/command.c:8035
 msgid ""
 "You must specify a masterdark with -dark= before activating this option, "
 "aborting.\n"
 msgstr "在激活此选项之前，必须使用 -dark= 指定主暗场帧，异常终止。\n"
 
-#: src/core/command.c:8007
+#: src/core/command.c:8055
 #, c-format
 msgid ""
 "Cosmetic correction from masterdark: using sigma %.2lf for cold pixels.\n"
 msgstr "基于主暗场帧的坏点修正：对冷像素使用 sigma %.2lf\n"
 
-#: src/core/command.c:8009
+#: src/core/command.c:8057
 msgid "Cosmetic correction from masterdark: deactivated for cold pixels.\n"
 msgstr "基于主暗场帧的坏点修正：对冷像素停用。\n"
 
-#: src/core/command.c:8011
+#: src/core/command.c:8059
 #, c-format
 msgid ""
 "Cosmetic correction from masterdark: using sigma %.2lf for hot pixels.\n"
 msgstr "基于主暗场帧的坏点修正：对热像素使用 sigma %.2lf\n"
 
-#: src/core/command.c:8013
+#: src/core/command.c:8061
 msgid "Cosmetic correction from masterdark: deactivated for hot pixels.\n"
 msgstr "基于主暗场帧的坏点修正：对热像素停用。\n"
 
-#: src/core/command.c:8020
+#: src/core/command.c:8068
 #, c-format
 msgid "Could not open file %s, aborting.\n"
 msgstr "无法打开文件 %s，异常终止。\n"
 
-#: src/core/command.c:8024
+#: src/core/command.c:8072
 #, c-format
 msgid "Cosmetic correction from Bad Pixel Map: %s.\n"
 msgstr "基于坏点图的坏点修正：%s\n"
 
-#: src/core/command.c:8028
+#: src/core/command.c:8076
 msgid "You must specify a bad pixel map file with -cc=bpm option, aborting.\n"
 msgstr "您必须使用-cc=bpm选项指定一个坏像素图，异常中止。\n"
 
-#: src/core/command.c:8033
+#: src/core/command.c:8081
 #, c-format
 msgid "Unknown argument %s, aborting.\n"
 msgstr "未知参数%s, 异常中止。\n"
 
-#: src/core/command.c:8071 src/core/command.c:8089 src/core/preprocess.c:945
+#: src/core/command.c:8119 src/core/command.c:8137 src/core/preprocess.c:945
 msgid "Preprocessing...\n"
 msgstr "预处理...\n"
 
-#: src/core/command.c:8100
+#: src/core/command.c:8148
 msgid "16-bit per channel in processed images mode is active\n"
 msgstr "每通道16位模式启用\n"
 
-#: src/core/command.c:8101
+#: src/core/command.c:8149
 msgid "32-bit per channel in processed images mode is active\n"
 msgstr "每通道32位模式启用\n"
 
-#: src/core/command.c:8117
+#: src/core/command.c:8165
 msgid "Please specify the type of compression and quantization value.\n"
 msgstr "请指定压缩类型和量化值。\n"
 
@@ -14048,48 +14068,48 @@ msgstr "请指定压缩类型和量化值。\n"
 #. comp = g_strdup_printf("hcompress (scale factor = %.2lf) ", hscale);
 #. }
 #. siril_log_message(_("Wrong type of compression. Choices are rice, gzip1, gzip2 or hcompress\n"));
-#: src/core/command.c:8144
+#: src/core/command.c:8192
 msgid "Wrong type of compression. Choices are rice, gzip1, gzip2\n"
 msgstr "压缩类型错误。可选项为：rice, gzip1, gzip2\n"
 
-#: src/core/command.c:8148
+#: src/core/command.c:8196
 msgid "Please specify the value of quantization.\n"
 msgstr "请指定量化值。\n"
 
-#: src/core/command.c:8155
+#: src/core/command.c:8203
 msgid "Quantization can only be equal to 0 for GZIP1 and GZIP2 algorithms.\n"
 msgstr "GZIP1和GZIP2算法的量化值只能为0。\n"
 
-#: src/core/command.c:8158
+#: src/core/command.c:8206
 #, c-format
 msgid ""
 "Compression enabled with the %s algorithm and a quantization value of %.2lf\n"
 msgstr "启用了算法为%s且量化值为%.2lf的压缩。\n"
 
-#: src/core/command.c:8161
+#: src/core/command.c:8209
 msgid "No compression enabled.\n"
 msgstr "无压缩。\n"
 
-#: src/core/command.c:8179
+#: src/core/command.c:8227
 #, c-format
 msgid ""
 "Number of logical processors MUST be greater than 0 and lower or equal to "
 "%d.\n"
 msgstr "逻辑处理器的数量必须大于0并且小于等于%d.\n"
 
-#: src/core/command.c:8190
+#: src/core/command.c:8238
 #, c-format
 msgid "Using now %d logical processor\n"
 msgid_plural "Using now %d logical processors\n"
 msgstr[0] "当前使用 %d 逻辑处理器\n"
 
-#: src/core/command.c:8207
+#: src/core/command.c:8255
 msgid ""
 "The accepted range for the ratio of memory used for stacking is [0.05, 4], "
 "with values below the available memory recommended\n"
 msgstr "叠加时的可用内存比例范围为[0.05, 4]，建议使用低于总内存量\n"
 
-#: src/core/command.c:8211
+#: src/core/command.c:8259
 #, c-format
 msgid ""
 "Setting the ratio of memory used for stacking above 1 will require the use "
@@ -14099,430 +14119,435 @@ msgstr ""
 "将叠加时的可用内存比例设置为1以上，将用到磁盘上的虚拟内存，这可能非常缓慢，因"
 "此不推荐这么做（您请求了%g）\n"
 
-#: src/core/command.c:8216
+#: src/core/command.c:8264
 #, c-format
 msgid "Usable memory for stacking changed to %g\n"
 msgstr "可用于叠加的内存变为%g\n"
 
-#: src/core/command.c:8223
+#: src/core/command.c:8271
 msgid "********* LIST OF AVAILABLE COMMANDS *********\n"
 msgstr "********* 可用指令列表 *********\n"
 
-#: src/core/command.c:8231
+#: src/core/command.c:8279
 #, c-format
 msgid "Can be used in a script: %s\n"
 msgstr "脚本中可用： %s\n"
 
-#: src/core/command.c:8231 src/core/command_line_processor.c:453
+#: src/core/command.c:8279 src/core/command_line_processor.c:453
 msgid "YES"
 msgstr "YES"
 
-#: src/core/command.c:8231 src/core/command_line_processor.c:456
+#: src/core/command.c:8279 src/core/command_line_processor.c:456
 msgid "NO"
 msgstr "NO"
 
-#: src/core/command.c:8241
+#: src/core/command.c:8289
 #, c-format
 msgid "Error: command %s is not available\n"
 msgstr "错误：命令 %s 不可用\n"
 
-#: src/core/command.c:8255 src/core/OS_utils.c:497 src/core/OS_utils.c:511
+#: src/core/command.c:8303 src/core/OS_utils.c:497 src/core/OS_utils.c:511
 msgid "processor"
 msgid_plural "processors"
 msgstr[0] "处理器"
 
-#: src/core/command.c:8351
+#: src/core/command.c:8399
 msgid "Required version is not correct.\n"
 msgstr "所需版本不正确。\n"
 
-#: src/core/command.c:8382
+#: src/core/command.c:8430
 msgid "The required version of Siril is ok.\n"
 msgstr "请求的Siril版本可用。\n"
 
-#: src/core/command.c:8387
+#: src/core/command.c:8435
 msgid "A newer version of Siril is required, please update your version.\n"
 msgstr "需要较新版本的 Siril，请更新您的版本。\n"
 
-#: src/core/command.c:8389
+#: src/core/command.c:8437
 #, c-format
 msgid ""
 "The script you are executing requires a newer version of Siril to run (%s), "
 "aborting.\n"
 msgstr "正在执行的脚本需要更新版本的Siril才能运行（%s），异常中止。\n"
 
-#: src/core/command.c:8399 src/core/command.c:8450
+#: src/core/command.c:8447 src/core/command.c:8498
 #, c-format
 msgid "Current selection [x, y, w, h]: %d %d %d %d\n"
 msgstr "当前选区 [x, y, w, h]: %d %d %d %d\n"
 
-#: src/core/command.c:8402
+#: src/core/command.c:8450
 msgid "No current selection in image\n"
 msgstr "当前图像中没有选区\n"
 
-#: src/core/command.c:8409
+#: src/core/command.c:8457
 msgid ""
 "Too many arguments to boxselect, use either -clear or the coordinates, not "
 "both.\n"
 msgstr "参数过多，无法框选，请任选-clear或坐标之一，而不是两者都使用。\n"
 
-#: src/core/command.c:8413
+#: src/core/command.c:8461
 msgid "Selected area in image was cleared\n"
 msgstr "图像中的选定区域已清除\n"
 
-#: src/core/command.c:8419 src/core/command.c:8435
+#: src/core/command.c:8467 src/core/command.c:8483
 msgid "Please specify x, y, w and h, aborting\n"
 msgstr "请指定x，y，w和h，异常中止。\n"
 
-#: src/core/command.c:8439
+#: src/core/command.c:8487
 #, c-format
 msgid ""
 "The provided coordinates are outside the dimension of the currently loaded "
 "image (%d x %d).\n"
 msgstr "提供的坐标超出了当前载入图像的尺寸（%d x %d）。\n"
 
-#: src/core/command.c:8444
+#: src/core/command.c:8492
 msgid "Overriding previous selection\n"
 msgstr "覆写先前的选择\n"
 
-#: src/core/command.c:8496 src/core/command.c:8527
+#: src/core/command.c:8567 src/core/command.c:8601
 msgid "Image must all have the same dimensions and be monochrome\n"
 msgstr "图像必须尺寸相同且全为单色\n"
 
-#: src/core/command.c:8677
+#: src/core/command.c:8627
+#, c-format
+msgid "Successful RGB composition with metadata accumulate option %s.\n"
+msgstr ""
+
+#: src/core/command.c:8746
 msgid ""
 "Found linear plate solve data, you may need to solve your image with "
 "distortions to ensure correct calibration of stars near image corners.\n"
 msgstr ""
 
-#: src/core/command.c:8688
+#: src/core/command.c:8757
 msgid "NB wavelength out of range (must be 380 <= wl <= 700)\n"
 msgstr ""
 
-#: src/core/command.c:8693
+#: src/core/command.c:8762
 msgid "NB bandwidth out of range (must be 1.0 <= wl <= 40.0)\n"
 msgstr ""
 
-#: src/core/command.c:8703 src/core/command.c:8977
+#: src/core/command.c:8772 src/core/command.c:9046
 #, c-format
 msgid "Using remote %s instead of local NOMAD catalogue\n"
 msgstr "使用远程 %s 代替本地 NOMAD 星表\n"
 
-#: src/core/command.c:8734
+#: src/core/command.c:8803
 msgid ""
 "Either the sensor or a filter / LPF was not specified as argument or "
 "guessable from previous use. Ensure all necessary data is set.\n"
 msgstr ""
 
-#: src/core/command.c:8741
+#: src/core/command.c:8810
 #, c-format
 msgid "SPCC will use OSC sensor \"%s\", filter \"%s\" and DSLR LPF \"%s\"\n"
 msgstr ""
 
-#: src/core/command.c:8743
+#: src/core/command.c:8812
 #, c-format
 msgid "SPCC will use OSC sensor \"%s\" and filter \"%s\"\n"
 msgstr ""
 
-#: src/core/command.c:8751
+#: src/core/command.c:8820
 msgid ""
 "Either the sensor or a filter was not specified as argument or guessable "
 "from previous use. Ensure all necessary data is set.\n"
 msgstr ""
 
-#: src/core/command.c:8757
+#: src/core/command.c:8826
 #, c-format
 msgid "SPCC will use mono senor \"%s\" and filters \"%s\", \"%s\" and \"%s\n"
 msgstr ""
 
-#: src/core/command.c:8789
+#: src/core/command.c:8858
 msgid ""
 "Siril has been compiled without libcurl support for network operations; SPCC "
 "is therefore not available. Recompile with libcurl support to enable SPCC.\n"
 msgstr ""
 
-#: src/core/command.c:8816
+#: src/core/command.c:8885
 msgid ""
 "SER cannot contain WCS info, plate solving will export to FITS cube format\n"
 msgstr "SER不能包含WCS信息，解析将导出为FITS cube格式\n"
 
-#: src/core/command.c:8832 src/core/command.c:8844 src/core/command.c:9571
-#: src/core/command.c:9583
+#: src/core/command.c:8901 src/core/command.c:8913 src/core/command.c:9640
+#: src/core/command.c:9652
 msgid "Could not parse target coordinates\n"
 msgstr "无法解析目标坐标\n"
 
-#: src/core/command.c:8950
+#: src/core/command.c:9019
 msgid "Specifying a catalog has no effect for astrometry.net solving\n"
 msgstr "指定星表对 astrometry.net 解析器没有影响\n"
 
-#: src/core/command.c:8962
+#: src/core/command.c:9031
 msgid "Image is already plate solved. Nothing will be done.\n"
 msgstr "图像已解析。什么都不会做。\n"
 
-#: src/core/command.c:8983
+#: src/core/command.c:9052
 msgid ""
 "The local astrometry.net solver was not found, aborting. Please check the "
 "settings.\n"
 msgstr "未找到本地astrometry.net解析器，异常中止。请检查设置。\n"
 
-#: src/core/command.c:9002 src/core/command.c:9006
+#: src/core/command.c:9071 src/core/command.c:9075
 #, c-format
 msgid "Siril internal solver cannot be set blind in %s\n"
 msgstr ""
 
-#: src/core/command.c:9002 src/core/command.c:9029
+#: src/core/command.c:9071 src/core/command.c:9098
 #, fuzzy
 msgid "position"
 msgstr "X 坐标"
 
-#: src/core/command.c:9006 src/core/command.c:9041 src/core/command.c:9068
+#: src/core/command.c:9075 src/core/command.c:9110 src/core/command.c:9137
 #, fuzzy
 msgid "resolution"
 msgstr "分辨率: "
 
-#: src/core/command.c:9014
+#: src/core/command.c:9083
 msgid ""
 "Cannot plate solve, no target coordinates passed and image header doesn't "
 "contain any either\n"
 msgstr "无法解析，未传递目标坐标，图像文件头也不包含任何坐标\n"
 
-#: src/core/command.c:9020
+#: src/core/command.c:9089
 #, c-format
 msgid "Using target coordinate from image header: %f, %f\n"
 msgstr "使用图像文件头中的目标坐标： %f, %f\n"
 
-#: src/core/command.c:9029 src/core/command.c:9041 src/core/command.c:9068
+#: src/core/command.c:9098 src/core/command.c:9110 src/core/command.c:9137
 #, c-format
 msgid "%s is ignored when using local astrometry.net blind in %s\n"
 msgstr ""
 
-#: src/core/command.c:9029
+#: src/core/command.c:9098
 #, fuzzy
 msgid "Center position"
 msgstr "星点重绘"
 
-#: src/core/command.c:9041
+#: src/core/command.c:9110
 #, fuzzy
 msgid "Pixel size"
 msgstr "像素尺寸(微米):"
 
-#: src/core/command.c:9047
+#: src/core/command.c:9116
 #, c-format
 msgid "Using provided pixel size: %.2f\n"
 msgstr "使用所提供的像素尺寸：%.2f\n"
 
-#: src/core/command.c:9053
+#: src/core/command.c:9122
 msgid "Pixel size not found in image or in settings, cannot proceed\n"
 msgstr "在图像或设置中找不到像素尺寸，无法继续\n"
 
-#: src/core/command.c:9061
+#: src/core/command.c:9130
 #, c-format
 msgid "Using pixel size from preferences: %.2f\n"
 msgstr "使用偏好设置中的像素尺寸：%.2f\n"
 
-#: src/core/command.c:9063
+#: src/core/command.c:9132
 #, c-format
 msgid "Using pixel size from image: %.2f\n"
 msgstr "使用图像中的像素尺寸：%.2f\n"
 
-#: src/core/command.c:9068
+#: src/core/command.c:9137
 #, fuzzy
 msgid "Focal length"
 msgstr "焦距 / 毫米"
 
-#: src/core/command.c:9074
+#: src/core/command.c:9143
 #, c-format
 msgid "Using provided focal length: %.2f\n"
 msgstr "使用所提供的焦距：%.2f\n"
 
-#: src/core/command.c:9080
+#: src/core/command.c:9149
 msgid "Focal length not found in image or in settings, cannot proceed\n"
 msgstr "在图像或设置中找不到焦距，无法继续\n"
 
-#: src/core/command.c:9088
+#: src/core/command.c:9157
 #, c-format
 msgid "Using focal length from preferences: %.2f\n"
 msgstr "使用偏好设置中的焦距：%.2f\n"
 
-#: src/core/command.c:9090
+#: src/core/command.c:9159
 #, c-format
 msgid "Using focal length from image: %.2f\n"
 msgstr "使用图像中的焦距：%.2f\n"
 
-#: src/core/command.c:9095 src/core/command.c:9102
+#: src/core/command.c:9164 src/core/command.c:9171
 msgid ""
 "Magnitude alteration arguments are useless for astrometry.net plate solving\n"
 msgstr "星等变化参数对于astrometry.net解析无用\n"
 
-#: src/core/command.c:9119
+#: src/core/command.c:9188
 msgid ""
 "Cannot force null radius for localasnet if not blind solving, using default "
 "instead\n"
 msgstr ""
 
-#: src/core/command.c:9217
+#: src/core/command.c:9286
 #, fuzzy
 msgid ""
 "This option only works on images that have observation date information\n"
 msgstr "此命令仅适用于具有观测日期信息的图像\n"
 
-#: src/core/command.c:9227
+#: src/core/command.c:9296
 msgid "The observatory should be coded as a 3-letter word\n"
 msgstr ""
 
-#: src/core/command.c:9233
+#: src/core/command.c:9302
 msgid "No local catalogues found, ignoring -trix option\n"
 msgstr ""
 
-#: src/core/command.c:9239
+#: src/core/command.c:9308
 #, fuzzy
 msgid "Trixel number must be between 0 and 511\n"
 msgstr "调制值必须在0到1之间\n"
 
-#: src/core/command.c:9252
+#: src/core/command.c:9321
 #, fuzzy
 msgid "Wrong parameter values. Log must be set to on or off, aborting.\n"
 msgstr "参数错误。Auto必须设置为on或off，异常终止。\n"
 
-#: src/core/command.c:9262
+#: src/core/command.c:9331
 #, fuzzy
 msgid "Wrong parameter values. Tag must be set to on or off, aborting.\n"
 msgstr "参数错误。Auto必须设置为on或off，异常终止。\n"
 
-#: src/core/command.c:9297
+#: src/core/command.c:9366
 msgid ""
 "Did not specify an observatory code, using geocentric by default, positions "
 "may not be accurate\n"
 msgstr ""
 
-#: src/core/command.c:9397 src/core/command.c:9441
+#: src/core/command.c:9466 src/core/command.c:9510
 #, c-format
 msgid "Unknown option provided: %s\n"
 msgstr "提供了未知的选项：%s\n"
 
-#: src/core/command.c:9452 src/core/command.c:9473
+#: src/core/command.c:9521 src/core/command.c:9542
 msgid "Live stacking needs to be initialized with the START_LS command first\n"
 msgstr "实时叠加需要首先使用START_LS命令初始化\n"
 
-#: src/core/command.c:9456
+#: src/core/command.c:9525
 msgid "Live stacking was configured to use file watching, not this command\n"
 msgstr "实时叠加配置为使用文件监视，而不是此命令\n"
 
-#: src/core/command.c:9498
+#: src/core/command.c:9567
 #, c-format
 msgid "String in: %s\n"
 msgstr "String in: %s\n"
 
-#: src/core/command.c:9499
+#: src/core/command.c:9568
 #, c-format
 msgid "String out: %s\n"
 msgstr "输出字符串：%s\n"
 
-#: src/core/command.c:9668
+#: src/core/command.c:9737
 msgid ""
 "Error: CFA mode cannot be used with color images or mono images with no "
 "Bayer pattern.\n"
 msgstr "错误：CFA 模式不能用于彩色图像或没有拜耳模式的单色图像。\n"
 
-#: src/core/command.c:9708
+#: src/core/command.c:9777
 msgid "Incorrect option follows -layer=, aborting.\n"
 msgstr "-layer= 后面的错误选项，异常中止。\n"
 
-#: src/core/command.c:9739
+#: src/core/command.c:9808
 msgid "Error: Could not parse -from values.\n"
 msgstr "错误：无法解析 -from 值。\n"
 
-#: src/core/command.c:9747
+#: src/core/command.c:9816
 msgid "Error: Could not parse -to values.\n"
 msgstr "错误：无法解析 -to 值。\n"
 
-#: src/core/command.c:9755
+#: src/core/command.c:9824
 msgid "Error: Could not parse -wn1at values.\n"
 msgstr "错误：无法解析 -wn1at 值。\n"
 
-#: src/core/command.c:9763
+#: src/core/command.c:9832
 msgid "Error: Could not parse -wn2at values.\n"
 msgstr "错误：无法解析 -wn2at 值。\n"
 
-#: src/core/command.c:9769
+#: src/core/command.c:9838
 msgid "Error: this option cannot be used for sequences.\n"
 msgstr "错误：此选项不能用于序列。\n"
 
-#: src/core/command.c:9799
+#: src/core/command.c:9868
 msgid "Error: sequence has variable sized images.\n"
 msgstr "错误：序列中的图像尺寸不一致。\n"
 
-#: src/core/command.c:9879
+#: src/core/command.c:9948
 #, fuzzy
 msgid "Error opening target ICC profile.\n"
 msgstr "打开文件 %s 时出错\n"
 
-#: src/core/command.c:9883
+#: src/core/command.c:9952
 msgid "Color profile assignment complete.\n"
 msgstr ""
 
-#: src/core/command.c:9886 src/core/command.c:9950
+#: src/core/command.c:9955 src/core/command.c:10019
 #, fuzzy
 msgid "Error opening ICC profile.\n"
 msgstr "打开文件失败"
 
-#: src/core/command.c:9903
+#: src/core/command.c:9972
 msgid ""
 "Image has no color profile assigned to convert from. Assign a profile "
 "first.\n"
 msgstr ""
 
-#: src/core/command.c:9917
+#: src/core/command.c:9986
 msgid ""
 "Specified intent not recognized. Specify one of \"perceptual\", "
 "\"relative\", \"saturation\" or \"absolute\"\n"
 msgstr ""
 
-#: src/core/command.c:9948
+#: src/core/command.c:10017
 msgid "Color space conversion complete.\n"
 msgstr "色彩空间转换完成。\n"
 
-#: src/core/command.c:9984
+#: src/core/command.c:10053
 msgid "OSC Sensors"
 msgstr ""
 
-#: src/core/command.c:9987
+#: src/core/command.c:10056
 msgid "Mono Sensors"
 msgstr ""
 
-#: src/core/command.c:9990
+#: src/core/command.c:10059
 #, fuzzy
 msgid "Red Filters"
 msgstr "中位数滤波"
 
-#: src/core/command.c:9993
+#: src/core/command.c:10062
 #, fuzzy
 msgid "Green Filters"
 msgstr "中位数滤波"
 
-#: src/core/command.c:9996
+#: src/core/command.c:10065
 #, fuzzy
 msgid "Blue Filters"
 msgstr "中位数滤波"
 
-#: src/core/command.c:9999
+#: src/core/command.c:10068
 #, fuzzy
 msgid "OSC Filters"
 msgstr "打开文件"
 
-#: src/core/command.c:10002
+#: src/core/command.c:10071
 msgid "OSC Low-Pass Filters"
 msgstr ""
 
-#: src/core/command.c:10005
+#: src/core/command.c:10074
 #, fuzzy
 msgid "White References"
 msgstr "参考白色"
 
-#: src/core/command.c:10007
+#: src/core/command.c:10076
 msgid "Unknown SPCC list\n"
 msgstr ""
 
-#: src/core/command.c:10021
+#: src/core/command.c:10090
 #, fuzzy
 msgid ""
 "This command only works on plate solved images with distortions included\n"
@@ -15561,10 +15586,13 @@ msgstr ""
 "该算法将忽略值在[<b>low</b>, <b>high</b>]范围之外的所有参考像素"
 
 #: src/core/command_def.h:84
+#, fuzzy
 msgid ""
 "Same as CONVERT but converts only FITS files found in the current working "
 "directory. This is useful to avoid conversions of JPEG results or other "
-"files that may end up in the directory"
+"files that may end up in the directory. The additional argument <b>-date</b> "
+"enables sorting files with their DATE-OBS value instead of with their name "
+"alphanumerically"
 msgstr ""
 "与CONVERT相同，但仅转换在当前工作目录中的FITS文件。有助于避免转换JPEG或出现在"
 "目录中的其他文件"
@@ -15993,6 +16021,7 @@ msgstr ""
 "能的取值为：tycho2、nomad、gaia、ppmxl、brightstars、apass"
 
 #: src/core/command_def.h:110
+#, fuzzy
 msgid ""
 "This command evaluates the expression given in argument as in PixelMath "
 "tool. The full expression must be between double quotes and variables (that "
@@ -16001,7 +16030,9 @@ msgid ""
 "0.5\". A maximum of 10 images can be used in the expression.\n"
 "Image can be rescaled with the option <b>-rescale</b> followed by <b>low</b> "
 "and <b>high</b> values in the range [0, 1]. If no low and high values are "
-"provided, default values are set to 0 and 1"
+"provided, default values are set to 0 and 1. Another optional argument, <b>-"
+"nosum</b> tells Siril not to sum exposure times. This impacts FITS keywords "
+"such as LIVETIME and STACKCNT"
 msgstr ""
 "此命令将参数中给定的表达式用作PixelMath运算。完整表达式必须用双引号引起来，并"
 "且变量（此处指工作目录中图像的文件名，不带扩展名）必须用$围起来，例如"
@@ -16238,11 +16269,14 @@ msgstr ""
 "noclamp</b>参数禁用"
 
 #: src/core/command_def.h:119
+#, fuzzy
 msgid ""
 "Creates an RGB composition using three independent images, or an LRGB "
 "composition using the optional luminance image and three monochrome images "
 "or a color image. Result image is called composed_rgb.fit or composed_lrgb."
-"fit unless another name is provided in the optional argument"
+"fit unless another name is provided in the optional argument. Another "
+"optional argument, <b>-nosum</b> tells Siril not to sum exposure times. This "
+"impacts FITS keywords such as LIVETIME and STACKCNT"
 msgstr ""
 "使用三个独立图像执行RGB合成，或者使用一个明度图像与三个单色图像或一个彩色图像"
 "执行LRGB合成。结果图像默认文件名为composed_rgb.fit或composed_lrgb.fit，除非在"
@@ -19667,14 +19701,14 @@ msgstr "将文件名转换为系统代码页失败。请考虑删除所有宽字
 msgid "Filename is too long, not expanding it\n"
 msgstr "文件名太长了\n"
 
-#: src/core/utils.c:1215 src/io/image_format_fits.c:3589
-#: src/io/image_format_fits.c:3594 src/io/ser.c:1368
+#: src/core/utils.c:1215 src/io/image_format_fits.c:3608
+#: src/io/image_format_fits.c:3613 src/io/ser.c:1368
 msgid "pixel"
 msgid_plural "pixels"
 msgstr[0] "像素"
 
-#: src/core/utils.c:1216 src/io/image_format_fits.c:3590
-#: src/io/image_format_fits.c:3595 src/io/ser.c:1369
+#: src/core/utils.c:1216 src/io/image_format_fits.c:3609
+#: src/io/image_format_fits.c:3614 src/io/ser.c:1369
 msgid "channel"
 msgid_plural "channels"
 msgstr[0] "通道"
@@ -20966,7 +21000,7 @@ msgstr "Siril 无法设置起始坐标，因为未进行任何选择"
 #: src/gui/colors.c:53 src/gui/colors.c:139 src/gui/colors.c:172
 #: src/gui/colors.c:258 src/gui/colors.c:269 src/gui/histogram.c:1700
 #: src/gui/photometric_cc.c:312 src/gui/photometric_cc.c:324
-#: src/gui/photometric_cc.c:342 src/gui/remixer.c:1313 src/gui/remixer.c:1361
+#: src/gui/photometric_cc.c:342 src/gui/remixer.c:1311 src/gui/remixer.c:1359
 msgid "There is no selection"
 msgstr "无效选择"
 
@@ -21147,7 +21181,7 @@ msgid ""
 "Shadow preservation point cannot be set higher than stretch focal point\n"
 msgstr "阴影保护点不能设置为高于拉伸焦点\n"
 
-#: src/gui/histogram.c:1701 src/gui/remixer.c:1314 src/gui/remixer.c:1362
+#: src/gui/histogram.c:1701 src/gui/remixer.c:1312 src/gui/remixer.c:1360
 msgid "Make a selection of the point or area to set SP"
 msgstr "选择用于设置 SP 的点或区域"
 
@@ -21677,7 +21711,7 @@ msgstr "序列似乎有很大的漂移，光变曲线的计算可能不准确或
 msgid "Something went wrong while saving plot"
 msgstr "保存时产生错误"
 
-#: src/gui/open_dialog.c:78 src/pixelMath/pixel_math_runner.c:1098
+#: src/gui/open_dialog.c:78 src/pixelMath/pixel_math_runner.c:1104
 msgid "FITS Files (*.fit, *.fits, *.fts, *.fit.fz, *.fits.fz, *.fts.fz)"
 msgstr "FITS文件 (*.fit, *.fits, *.fts, *.fit.fz, *.fits.fz, *.fts.fz)"
 
@@ -22105,11 +22139,11 @@ msgstr "未保存的星点重绘结果"
 msgid "Star recomposition"
 msgstr "星点重绘"
 
-#: src/gui/remixer.c:692 src/gui/remixer.c:1430
+#: src/gui/remixer.c:692 src/gui/remixer.c:1428
 msgid "Show advanced stretch options."
 msgstr "显示高级拉伸选项。"
 
-#: src/gui/remixer.c:1043 src/gui/remixer.c:1060
+#: src/gui/remixer.c:1041 src/gui/remixer.c:1058
 msgid ""
 "This dropper allows you to set the background stretch symmetry point  based "
 "on the average value of the current selection. This helps in picking out "
@@ -22118,72 +22152,72 @@ msgstr ""
 "此滴管允许您根据当前选区的平均值设置背景拉伸拐点。这有助于挑选出深色背景上方"
 "的微弱细节。"
 
-#: src/gui/remixer.c:1046 src/gui/remixer.c:1063
+#: src/gui/remixer.c:1044 src/gui/remixer.c:1061
 msgid "Eyedropper disabled with unapplied BP shift"
 msgstr "吸管因未应用BP平移而禁用"
 
-#: src/gui/remixer.c:1125 src/gui/remixer.c:1217
+#: src/gui/remixer.c:1123 src/gui/remixer.c:1215
 msgid "Image loading failed"
 msgstr "图像载入失败"
 
-#: src/gui/remixer.c:1136 src/gui/remixer.c:1228
+#: src/gui/remixer.c:1134 src/gui/remixer.c:1226
 msgid "Error: images do not match"
 msgstr "错误：图像不匹配"
 
-#: src/gui/remixer.c:1137 src/gui/remixer.c:1229
+#: src/gui/remixer.c:1135 src/gui/remixer.c:1227
 msgid "Image width, height, bit depth and number of channels must match"
 msgstr "图像宽度、高度、位深和通道数必须匹配"
 
-#: src/gui/remixer.c:1150
+#: src/gui/remixer.c:1148
 msgid ""
 "Color profiles did not match: left-hand image has been converted to right-"
 "hand image color profile.\n"
 msgstr ""
 
-#: src/gui/remixer.c:1153
+#: src/gui/remixer.c:1151
 msgid ""
 "Color profiles did not match: right-hand image has been assigned the left-"
 "hand image color profile.\n"
 msgstr ""
 
-#: src/gui/remixer.c:1187
+#: src/gui/remixer.c:1185
 msgid "Setting the output image ICC profile to the working color space.\n"
 msgstr ""
 
-#: src/gui/remixer.c:1242 src/gui/remixer.c:1250
+#: src/gui/remixer.c:1240 src/gui/remixer.c:1248
 msgid ""
 "Color profiles did not match: right-hand image has been converted to left-"
 "hand image color profile.\n"
 msgstr ""
 
-#: src/gui/remixer.c:1245
+#: src/gui/remixer.c:1243
 msgid ""
 "Color profiles did not match: left-hand image has been assigned the right-"
 "hand image color profile.\n"
 msgstr ""
 
-#: src/gui/remixer.c:1318 src/gui/remixer.c:1366
+#: src/gui/remixer.c:1316 src/gui/remixer.c:1364
 msgid "There is no starless image loaded"
 msgstr "未载入无星图像"
 
-#: src/gui/remixer.c:1319
+#: src/gui/remixer.c:1317
 msgid ""
 "Load an image using the left-hand file chooser before attempting to set SP "
 "using the eyedropper"
 msgstr "在尝试使用吸管设置 SP 之前，使用左侧文件选择器载入图像"
 
-#: src/gui/remixer.c:1367
+#: src/gui/remixer.c:1365
 msgid ""
 "Load an image using the right-hand file chooser before attempting to set SP "
 "using the eyedropper"
 msgstr "在使用滴管设置SP之前，请先使用右侧的文件选择器载入图像"
 
 #. gtk_widget_set_visible(lookup_widget("ghtBPcontrols1"), TRUE);
-#: src/gui/remixer.c:1413
+#: src/gui/remixer.c:1411
 msgid "Simple"
 msgstr "简单"
 
-#: src/gui/remixer.c:1414
+#: src/gui/remixer.c:1412
 msgid ""
 "Show only simple stretch options. Note that any parameters that have been "
 "set while in advanced mode will remain set."
@@ -23000,7 +23034,7 @@ msgstr "无法打开文件 %s\n"
 msgid "Cannot open FITS file %s: doesn't seem to be a FITS sequence\n"
 msgstr "无法打开FITS文件 %s：看上去不像是一个FITS序列\n"
 
-#: src/io/fits_sequence.c:207 src/io/image_format_fits.c:2374
+#: src/io/fits_sequence.c:207 src/io/image_format_fits.c:2393
 msgid ""
 "FITS images with 64 bits signed integer per pixel.channel are not "
 "supported.\n"
@@ -23011,7 +23045,7 @@ msgid "Your version of cfitsio does not support multi-threading\n"
 msgstr "您的 cfitsio 版本不支持多线程\n"
 
 #: src/io/fits_sequence.c:278 src/io/image_format_fits.c:947
-#: src/io/image_format_fits.c:1039 src/io/image_format_fits.c:2255
+#: src/io/image_format_fits.c:1039 src/io/image_format_fits.c:2274
 msgid "Unknown FITS data format in internal conversion\n"
 msgstr "内部转化中有不可识别的FITS数据格式\n"
 
@@ -23297,7 +23331,7 @@ msgstr "主要"
 msgid "Load HEIF image content"
 msgstr "读取HEIF图像内容"
 
-#: src/io/image_formats_libraries.c:2295 src/pixelMath/pixel_math_runner.c:1094
+#: src/io/image_formats_libraries.c:2295 src/pixelMath/pixel_math_runner.c:1100
 msgid "_Cancel"
 msgstr "_取消"
 
@@ -23427,69 +23461,69 @@ msgstr "文件 %s 不是FITS格式，或者没有FITS扩展名。\n"
 msgid "Reading FITS: file %s, %ld layer(s), %ux%u pixels, %d bits\n"
 msgstr "保存FITS：文件 %s, %ld图层，%ux%u像素，%d位\n"
 
-#: src/io/image_format_fits.c:2237
+#: src/io/image_format_fits.c:2256
 #, c-format
 msgid "FITS read partial: there is no layer %d in the image %s\n"
 msgstr "FITS 部分读取：未找到图层 %d 于图像 %s 中\n"
 
-#: src/io/image_format_fits.c:2245
+#: src/io/image_format_fits.c:2264
 #, c-format
 msgid "Unsupported FITS image format (%ld axes).\n"
 msgstr "不支持此FITS格式（%ld axes）。\n"
 
-#: src/io/image_format_fits.c:2348
+#: src/io/image_format_fits.c:2367
 msgid "FITSIO error getting image parameters.\n"
 msgstr "获取图像参数时出现 FITSIO 错误。\n"
 
-#: src/io/image_format_fits.c:2361
+#: src/io/image_format_fits.c:2380
 #, c-format
 msgid ""
 "The FITS image contains more than 3 channels (%ld). Opening only the three "
 "first.\n"
 msgstr "FITS图像中包含超过3个通道 (%ld)。只打开前三个。\n"
 
-#: src/io/image_format_fits.c:2490
+#: src/io/image_format_fits.c:2509
 msgid "Unknown FITS compression method in internal conversion\n"
 msgstr "转化中遇到未知的FITS压缩方法\n"
 
-#: src/io/image_format_fits.c:2645
+#: src/io/image_format_fits.c:2664
 #, c-format
 msgid "Saving FITS: file %s, %ld layer(s), %ux%u pixels, %d bits\n"
 msgstr "保存FITS：文件 %s, %ld图层，%ux%u像素，%d位\n"
 
-#: src/io/image_format_fits.c:2742
+#: src/io/image_format_fits.c:2761
 #, c-format
 msgid "ERROR: trying to save a FITS image with an unsupported format (%d).\n"
 msgstr "错误：企图以不支持的格式(%d)来保存一个FITS文件。\n"
 
-#: src/io/image_format_fits.c:3563
+#: src/io/image_format_fits.c:3582
 #, c-format
 msgid "Selecting the primary header failed, is the FITS file '%s' malformed?\n"
 msgstr "选择主文件头失败，FITS 文件“%s”的格式是否不正确？\n"
 
-#: src/io/image_format_fits.c:3591 src/io/ser.c:1370
+#: src/io/image_format_fits.c:3610 src/io/ser.c:1370
 msgid "frame"
 msgid_plural "frames"
 msgstr[0] "帧"
 
-#: src/io/image_format_fits.c:3591 src/io/image_format_fits.c:3596
+#: src/io/image_format_fits.c:3610 src/io/image_format_fits.c:3615
 #: src/io/ser.c:1370
 msgid "(Monochrome Preview)"
 msgstr "（黑白预览）"
 
-#: src/io/image_format_fits.c:3711
+#: src/io/image_format_fits.c:3730
 msgid "Opening image failed\n"
 msgstr "打开图像失败。\n"
 
-#: src/io/image_format_fits.c:3716
+#: src/io/image_format_fits.c:3735
 msgid "Stacking error: images with > 3 dimensions are not supported\n"
 msgstr "叠加错误：超过3个维度的图像不被支持\n"
 
-#: src/io/image_format_fits.c:3726
+#: src/io/image_format_fits.c:3745
 msgid "Stacking error: input images have different sizes\n"
 msgstr "叠加错误：图像拥有不同的尺寸\n"
 
-#: src/io/image_format_fits.c:3739
+#: src/io/image_format_fits.c:3758
 msgid "Stacking error: input images have different precision\n"
 msgstr "叠加错误：图像拥有不同的精度\n"
 
@@ -25014,7 +25048,7 @@ msgid "%d x %d pixels (%d channel)"
 msgid_plural "%d x %d pixels (%d channels)"
 msgstr[0] "%d x %d 像素 (%d 通道)"
 
-#: src/pixelMath/pixel_math_runner.c:334 src/pixelMath/pixel_math_runner.c:758
+#: src/pixelMath/pixel_math_runner.c:334 src/pixelMath/pixel_math_runner.c:762
 msgid "Pixel Math result"
 msgstr "像素数学结果"
 
@@ -25022,75 +25056,75 @@ msgstr "像素数学结果"
 msgid "R"
 msgstr "R"
 
-#: src/pixelMath/pixel_math_runner.c:657 src/pixelMath/pixel_math_runner.c:668
-#: src/pixelMath/pixel_math_runner.c:678
+#: src/pixelMath/pixel_math_runner.c:661 src/pixelMath/pixel_math_runner.c:672
+#: src/pixelMath/pixel_math_runner.c:682
 #, c-format
 msgid "Error in pixel math expression '%s' at character %d\n"
 msgstr "像素数学表达式“%s”中的错误于字符 %d\n"
 
-#: src/pixelMath/pixel_math_runner.c:878
+#: src/pixelMath/pixel_math_runner.c:882
 #, c-format
 msgid "A maximum of %d images can be used in a single expression.\n"
 msgstr "单个表达式中最多可以使用 %d 帧图像。\n"
 
-#: src/pixelMath/pixel_math_runner.c:920
+#: src/pixelMath/pixel_math_runner.c:925
 msgid ""
 "ICC profiles are inconsistent. The output color profile will be based on the "
 "first layer to be loaded.\n"
 msgstr ""
 
-#: src/pixelMath/pixel_math_runner.c:924
+#: src/pixelMath/pixel_math_runner.c:929
 #, c-format
 msgid ""
 "ICC profile of layer %d does not match the first image. Converting it to "
 "match.\n"
 msgstr ""
 
-#: src/pixelMath/pixel_math_runner.c:926
+#: src/pixelMath/pixel_math_runner.c:931
 msgid ""
 "The first layer loaded had no color profile. All input layers will be "
 "treated as raw data.\n"
 msgstr ""
 
-#: src/pixelMath/pixel_math_runner.c:943
+#: src/pixelMath/pixel_math_runner.c:948
 msgid "Incompatible parameters"
 msgstr "参数不匹配"
 
-#: src/pixelMath/pixel_math_runner.c:944
+#: src/pixelMath/pixel_math_runner.c:949
 msgid ""
 "3 channel images are incompatible with the \"Use single RGB/K expression\" "
 "unchecked."
 msgstr "3通道图像不适用于未选定 “使用单一的RGB/K表达式”的操作。"
 
-#: src/pixelMath/pixel_math_runner.c:951
+#: src/pixelMath/pixel_math_runner.c:956
 msgid "No images loaded"
 msgstr "图像未载入"
 
-#: src/pixelMath/pixel_math_runner.c:951
+#: src/pixelMath/pixel_math_runner.c:956
 msgid "You must load images first."
 msgstr "请先载入图像。"
 
-#: src/pixelMath/pixel_math_runner.c:964
+#: src/pixelMath/pixel_math_runner.c:969
 msgid "Parameter error"
 msgstr "参数错误"
 
-#: src/pixelMath/pixel_math_runner.c:965
+#: src/pixelMath/pixel_math_runner.c:970
 msgid "Parameter symbols could not be parsed."
 msgstr "参数符号无法被解析。"
 
-#: src/pixelMath/pixel_math_runner.c:1094
+#: src/pixelMath/pixel_math_runner.c:1100
 msgid "_Open"
 msgstr "打开"
 
-#: src/pixelMath/pixel_math_runner.c:1128
+#: src/pixelMath/pixel_math_runner.c:1134
 msgid "Image must have same dimension"
 msgstr "图像必须具有相同的维度"
 
-#: src/pixelMath/pixel_math_runner.c:1197
+#: src/pixelMath/pixel_math_runner.c:1203
 msgid "Cannot load new image"
 msgstr "无法载入新文件"
 
-#: src/pixelMath/pixel_math_runner.c:1198
+#: src/pixelMath/pixel_math_runner.c:1204
 msgid "You've reached the maximum of loaded image file."
 msgstr "已达到最大的可载入图像数量。"
 

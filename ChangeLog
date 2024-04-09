@@ -49,8 +49,11 @@ xx/xx/xx
 * Added avoiding to create a new sequence when platesolving sequences (#1154::6 and !636)
 * Refactored astrometry GUI (#1154::6 and !636)
 * Added flexible aperture size depending in FWHM (#1278 !640)
-* Fixed deconvolution so it works after redo (#1276)
+* Fixed several dialogs so they work after redo (#1276, #1279)
+* Added an option that overrides the default (i.e. summation) behavior in PixelMath and RGB composition (#1272)
 * Improved SEQHEADER command. Ability to print several keywords and new filter option (#1161)
+* Added Astrometric Registration for mosaic and little overlapping sequences (#1154::7 and !643)
+* Added image undistortion using WCS SIP data when registering with astrometry (#1154::8 and !643)
 
 siril 1.2.2
 xx/xx/24
@@ -59,6 +62,8 @@ xx/xx/24
 * Fixed catalog parser problem with negative declination (less than 1°) (#1270)
 * Fixed weighting by number of stars during stacking if number of stars is the same across the sequence (#1273)
 * Improved mouse pan and zoom control to enable one-handed operation (!638, fixes #1271)
+* Added an option to the LINK command in order to sort output by date (#1115)
+* Fixed pixel size set by astrometry using binning_update preference (#1254)
 
 siril 1.2.1
 01/26/24

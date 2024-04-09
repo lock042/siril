@@ -94,6 +94,8 @@ struct astrometry_data {
 	gboolean image_flipped;	// image has been flipped
 	int seqprogress; // used to log number of solved images when processing a sequence
 	int seqskipped; // used to log number of skipped images (already solved) when processing a sequence
+	gboolean update_reg; // used to store seq regdata when processing a sequence
+	int layer; // the layer which will contain the regdata
 };
 
 typedef struct {

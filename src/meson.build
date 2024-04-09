@@ -243,6 +243,7 @@ src_files = [
   'registration/matching/atpmatch.c',
   'registration/matching/misc.c',
   'registration/matching/apply_match.c',
+  'registration/astrometric.c',
   'registration/registration.c',
   'registration/applyreg.c',
 
