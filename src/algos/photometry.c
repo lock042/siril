@@ -609,7 +609,7 @@ gpointer light_curve_worker(gpointer arg) {
  * populated by successive calls to seqpsf on the opened sequence;
  */
 int occult_curve(struct light_curve_args *lcargs) {
-	int i, j;
+	int i, j, ii;
 //	siril_plot_data *spl_data = NULL;
 	sequence *seq = lcargs->seq;
 
@@ -623,13 +623,11 @@ int occult_curve(struct light_curve_args *lcargs) {
 	int nbImages = 0;
 	gboolean ref_valid[MAX_SEQPSF] = { FALSE };
 	for (i = 0; i < seq->number; i++) {
-		if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid)
+		if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid){
+//			siril_log_color_message(_("discarded= %d\n"), "salmon", i);
 			continue;
-		++nbImages;
-		for (int ref = 1; ref < MAX_SEQPSF && seq->photometry[ref]; ref++) {
-			if (seq->photometry[ref][i] && seq->photometry[ref][i]->phot_is_valid)
-				ref_valid_count[ref]++;
 		}
+		++nbImages;
 	}
 	siril_debug_print("we have %d images with a valid photometry for the variable star\n", nbImages);
 	if (nbImages < 1) {
@@ -667,7 +665,8 @@ int occult_curve(struct light_curve_args *lcargs) {
 	double min_date = DBL_MAX;
 	// i is index in dataset, j is index in output
 	for (i = 0, j = 0; i < seq->number; i++) {
-		if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid)
+//		if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid)
+		if (!seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid)
 			continue;
 
 		// X value: the date
@@ -693,23 +692,28 @@ int occult_curve(struct light_curve_args *lcargs) {
 		// Y value: the magnitude and error and their calibration
 		double target_amp = seq->photometry[0][i]->A;
 		double target_bck = seq->photometry[0][i]->B;
+		
 
 		double cmag = 0.0, cerr = 0.0;
 		int nb_ref = 0;
 		/* First data plotted are variable data, others are references
 		 * Variable is done above, now we compute references */
 
-		vmag[j] = target_amp - target_bck;
-
+		vmag[j] = target_amp;
+//		siril_log_color_message(_("i= %d, A= %lf, Vmag= %lf\n"), "red", i, seq->photometry[0][i]->A, vmag[j]);
 		j++;
 		
 	}
 	int nb_valid_images = j;
-	double median_val, largest_val, smallest_val, mean_val;
+	double error_val, median_val, largest_val, smallest_val, mean_val;
 	gsl_stats_minmax (&smallest_val, &largest_val, vmag, 1, j);
-	median_val = quickmedian_double(vmag, nb_valid_images);
-	mean_val = gsl_stats_mean(vmag, 1, nb_valid_images);
-	siril_log_color_message(_("med= %lf, min= %lf, max= %lf, mean= %f, nb_valid_images= %i\n"), "red", median_val, smallest_val, largest_val, mean_val, nb_valid_images);
+
+
+/// 	largest_val = gsl_stats_max(vmag, 1, nb_valid_images);
+///	smallest_val = gsl_stats_min(vmag, 1, nb_valid_images);
+//	median_val = quickmedian_double(vmag, nb_valid_images);
+//	mean_val = gsl_stats_mean(vmag, 1, nb_valid_images);
+	siril_log_color_message(_("min= %lf, max= %lf, nb_valid_images= %i\n"), "red", smallest_val, largest_val, nb_valid_images);
 
 	int julian0 = 0;
 	if (min_date != DBL_MAX)
@@ -717,11 +721,60 @@ int occult_curve(struct light_curve_args *lcargs) {
 
 	siril_log_message(_("FD-Calibrated data for %d points of the light curve, %d excluded because of invalid photometry\n"), nb_valid_images, seq->selnum - nb_valid_images);
 
+
+//		Sorting the images
+	i = 0;
+	int k = 0;
+	double sum = 0.0;
+	gboolean start_pulse = FALSE;
+	gboolean stop_pulse = FALSE;
+	double *sum_t = calloc(nb_valid_images, sizeof(double));	// Y is the calibrated magnitude
+
+	for (i = 2, j = 0; i + 1 < nb_valid_images; i++) {
+//		siril_log_color_message(_("1- Valid_images= %i, Vmag= %lf, (%d)\n"), "red", i, vmag[i], seq->photometry[0][i]->phot_is_valid);
+		if (!start_pulse && (vmag[i-1] < 0.5 * vmag[i]) && (vmag[i-1] < 0.5 * vmag[i + 1]) && (vmag[i + 1] > 0.95 * largest_val)) {		// Identify raising edges
+			start_pulse = TRUE;
+			stop_pulse = FALSE;
+//			siril_log_color_message(_("Raise!!\n"), "salmon");
+		}
+
+		if (start_pulse && (vmag[i-1] > 1.06 * vmag[i]) && (vmag[i-1] > 20.0 * vmag[i + 1]) && (vmag[i + 1] < 0.05 * largest_val)) {		// Identify falling edges
+			stop_pulse = TRUE;
+//			siril_log_color_message(_("Fall!!\n"), "salmon");
+		}
+
+		if (start_pulse) {
+			if (!stop_pulse) {
+				sum += vmag[i];
+				j++;
+			} else {
+				sum += vmag[i];
+				j++;
+				start_pulse = FALSE;
+				stop_pulse = FALSE;
+				siril_log_color_message(_("Stop_pic= %i, nbr_pic= %i, sum= %lf\n"), "salmon", i, j, sum);
+				j = 0;
+				k++;
+				sum_t[k] = sum;
+				sum = 0.0;
+				}
+		}
+		
+
+	}
+	siril_log_color_message(_("nbr_pulse= %i\n"), "salmon", k);
+	siril_log_color_message(_("nb_valid_images= %i / %i\n"), "red", j, i);
+	median_val = quickmedian_double(sum_t, k);
+	error_val = gsl_stats_variance(sum_t, 1, k);
+	siril_log_color_message(_("median= %lf / error= %lf\n"), "red", median_val, error_val);
+
+
 	int ret = 0;
 
 	free(date);
 	free(vmag);
 	free(err);
+	free(sum_t);
 	return ret;
 }
 
