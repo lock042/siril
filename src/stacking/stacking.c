@@ -1176,7 +1176,7 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 		result_label = GTK_LABEL(lookup_widget("stackfilter_label"));
 		output_norm = lookup_widget("check_normalise_to_max");
 		RGB_equal = lookup_widget("check_RGBequal");
-		use_oc = lookup_widget("use_drizzle_pixel_counts");
+		use_oc = lookup_widget("pixcnt_settings");
 	}
 	if (!sequence_is_loaded()) {
 		gtk_widget_set_sensitive(go_stack, FALSE);
