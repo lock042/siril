@@ -617,7 +617,7 @@ int save_fits_keywords(fits *fit) {
 					&(*((gboolean*) keys->data)), keys->comment, &status);
 			break;
 		default:
-			siril_debug_print("Save_fits_keywords: Error. Type is not handled.\n");
+			siril_debug_print("Save_fits_keywords: Error. Type is not handled: %s.\n", keys->key);
 		}
 		keys++;
 	}
