@@ -7157,7 +7157,7 @@ int process_register(int nb) {
 			reg_args->interpolation == OPENCV_NONE ||
 			reg_args->no_output)
 		reg_args->clamp = FALSE;
-	if (reg_args->clamp)
+	if (reg_args->clamp && !reg_args->no_output)
 		siril_log_message(_("Interpolation clamping active\n"));
 
 	set_progress_bar_data(msg, PROGRESS_RESET);
@@ -7619,7 +7619,7 @@ int process_seq_applyreg(int nb) {
 
 	if (reg_args->interpolation == OPENCV_AREA || reg_args->interpolation == OPENCV_LINEAR || reg_args->interpolation == OPENCV_NEAREST || reg_args->interpolation == OPENCV_NONE)
 		reg_args->clamp = FALSE;
-	if (reg_args->clamp)
+	if (reg_args->clamp && !reg_args->no_output)
 		siril_log_message(_("Interpolation clamping active\n"));
 
 	set_progress_bar_data(_("Registration: Applying existing data"), PROGRESS_RESET);
@@ -7633,6 +7633,192 @@ terminate_register_on_error:
 	free(reg_args->new_seq_name);
 	free(reg_args);
 	return CMD_ARG_ERROR;
+}
+
+int process_seq_applyastrometry(int nb) {
+	struct registration_args *reg_args = NULL;
+	int retval = CMD_GENERIC_ERROR;
+
+	sequence *seq = load_sequence(word[1], NULL);
+	if (!seq)
+		return CMD_SEQUENCE_NOT_FOUND;
+
+	reg_args = calloc(1, sizeof(struct registration_args));
+
+	// check that registration exists for one layer at least
+	int layer = -1;
+	if (seq->regparam) {
+		for (int i = 0; i < seq->nb_layers; i++) {
+			if (seq->regparam[i]) {
+				layer = i;
+				break;
+			}
+		}
+	}
+	if (layer == -1) {
+		siril_log_color_message(_("No registration data exists for this sequence, aborting\n"), "red");
+		goto terminate_register_on_error;
+	}
+	fits reffit = { 0 };
+	int image_to_load = sequence_find_refimage(seq);
+	if (seq_read_frame_metadata(seq, image_to_load, &reffit)) {
+		siril_log_message(_("Could not load the reference image of the sequence, aborting.\n"));
+		retval = CMD_INVALID_IMAGE;
+		goto terminate_register_on_error;
+	}
+	if (!has_wcs(&reffit)) {
+		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
+		retval = CMD_FOR_PLATE_SOLVED;
+		clearfits(&reffit);
+		goto terminate_register_on_error;
+	}
+	clearfits(&reffit);
+
+	/* filling the arguments for registration */
+	reg_args->func = &register_astrometric;
+	reg_args->seq = seq;
+	reg_args->reference_image = sequence_find_refimage(seq);
+	reg_args->no_output = FALSE;
+	reg_args->x2upscale = FALSE;
+	reg_args->prefix = strdup("r_");
+	reg_args->layer = layer;
+	reg_args->interpolation = OPENCV_LANCZOS4;
+	reg_args->clamp = TRUE;
+	reg_args->framing = FRAMING_CURRENT;
+	reg_args->projector = OPENCV_SPHERICAL;
+	reg_args->undistort = TRUE;
+	reg_args->astrometric_scale = 1.f;
+
+	/* check for options */
+	for (int i = 2; i < nb; i++) {
+		if (g_str_has_prefix(word[i], "-prefix=")) {
+			char *current = word[i], *value;
+			value = current + 8;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+				goto terminate_register_on_error;
+			}
+			reg_args->prefix = strdup(value);
+		} else if (!strcmp(word[i], "-noclamp")) {
+			reg_args->clamp = FALSE;
+		} else if (!strcmp(word[i], "-noundistort")) {
+			reg_args->undistort = FALSE;
+		} else if (g_str_has_prefix(word[i], "-interp=")) {
+			char *current = word[i], *value;
+			value = current + 8;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+				goto terminate_register_on_error;
+			}
+			if(!g_ascii_strncasecmp(value, "nearest", 7) || !g_ascii_strncasecmp(value, "ne", 2)) {
+				reg_args->interpolation = OPENCV_NEAREST;
+				continue;
+			}
+			if(!g_ascii_strncasecmp(value, "cubic", 5) || !g_ascii_strncasecmp(value, "cu", 2)) {
+				reg_args->interpolation = OPENCV_CUBIC;
+				continue;
+			}
+			if(!g_ascii_strncasecmp(value, "lanczos4", 8) || !g_ascii_strncasecmp(value, "la", 2)) {
+				reg_args->interpolation = OPENCV_LANCZOS4;
+				continue;
+			}
+			if(!g_ascii_strncasecmp(value, "linear", 6) || !g_ascii_strncasecmp(value, "li", 2)) {
+				reg_args->interpolation = OPENCV_LINEAR;
+				continue;
+			}
+			if(!g_ascii_strncasecmp(value, "none", 4) || !g_ascii_strncasecmp(value, "no", 2)) {
+				reg_args->interpolation = OPENCV_NONE;
+				continue;
+			}
+			if(!g_ascii_strncasecmp(value, "area", 4) || !g_ascii_strncasecmp(value, "ar", 2)) {
+				reg_args->interpolation = OPENCV_AREA;
+				continue;
+			}
+			siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
+			retval = CMD_ARG_ERROR;
+			goto terminate_register_on_error;
+		} else if (g_str_has_prefix(word[i], "-framing=")) {
+			char *current = word[i], *value;
+			value = current + 9;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+				goto terminate_register_on_error;
+			}
+			if(!g_ascii_strncasecmp(value, "current", 7)) {
+				reg_args->framing = FRAMING_CURRENT;
+				continue;
+			}
+			if(!g_ascii_strncasecmp(value, "min", 3)) {
+				reg_args->framing = FRAMING_MIN;
+				continue;
+			}
+			if(!g_ascii_strncasecmp(value, "max", 3)) {
+				reg_args->framing = FRAMING_MAX;
+				continue;
+			}
+			if(!g_ascii_strncasecmp(value, "cog", 3)) {
+				reg_args->framing = FRAMING_COG;
+				continue;
+			}
+			siril_log_message(_("Unknown framing type %s, aborting.\n"), value);
+			goto terminate_register_on_error;
+		} else if (g_str_has_prefix(word[i], "-proj=")) {
+			char *current = word[i], *value;
+			value = current + 6;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+				goto terminate_register_on_error;
+			}
+			if(!g_ascii_strncasecmp(value, "spherical", 9)) {
+				reg_args->projector = OPENCV_SPHERICAL;
+				continue;
+			}
+			if(!g_ascii_strncasecmp(value, "plane", 6)) {
+				reg_args->projector = OPENCV_PLANE;
+				continue;
+			}
+			siril_log_message(_("Unknown projector type %s, aborting.\n"), value);
+			retval = CMD_ARG_ERROR;
+			goto terminate_register_on_error;
+		} else if (g_str_has_prefix(word[i], "-scale=")) {
+			char *arg = word[i] + 7;
+			gchar *end;
+			float scale = (float)g_ascii_strtod(arg, &end);
+			if (scale < 0.1f || scale > 2.f) {
+				siril_log_message(_("Scaling factor should be between 0.1 and 2, aborting.\n"));
+				retval = CMD_ARG_ERROR;
+				goto terminate_register_on_error;
+			}
+			reg_args->astrometric_scale = g_ascii_strtod(arg, &end);
+		} else if (parse_filter_args(word[i], &reg_args->filters)) {
+			;
+		} else {
+			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
+			goto terminate_register_on_error;
+		}
+	}
+
+	// sanity checks are done in register_apply_reg
+
+	reg_args->run_in_thread = TRUE;
+	reg_args->load_new_sequence = FALSE;	// don't load it for command line execution
+
+	if (reg_args->interpolation == OPENCV_AREA || reg_args->interpolation == OPENCV_LINEAR || reg_args->interpolation == OPENCV_NEAREST || reg_args->interpolation == OPENCV_NONE)
+		reg_args->clamp = FALSE;
+	if (reg_args->clamp)
+		siril_log_message(_("Interpolation clamping active\n"));
+
+	set_progress_bar_data(_("Registration: Applying existing astrometric data"), PROGRESS_RESET);
+
+	start_in_new_thread(register_thread_func, reg_args);
+	return CMD_OK;
+
+terminate_register_on_error:
+	if (!check_seq_is_comseq(seq))
+		free_sequence(seq, TRUE);
+	free(reg_args->new_seq_name);
+	free(reg_args);
+	return retval;
 }
 
 // parse normalization and filters from the stack command line, starting at word `first'

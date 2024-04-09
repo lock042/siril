@@ -98,12 +98,22 @@ void on_apply_drizzle_clicked(GtkButton *button, gpointer user_data) {
 	apply_drizzle(driz);
 }
 
-void on_upscaleCheckButton_toggled(GtkToggleButton* button, gpointer user_data) {
+void on_drizzleCheckButton_toggled(GtkToggleButton* button, gpointer user_data) {
 	gboolean state = gtk_toggle_button_get_active(button);
 	gtk_widget_set_visible(lookup_widget("box_drizzle_controls"), state);
-	if (state)
+	if (state) {
 		gtk_notebook_set_current_page(GTK_NOTEBOOK(lookup_widget("notebook_registration")), 4);
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("upscaleCheckButton")), FALSE);
+	}
 	gtk_widget_set_visible(lookup_widget("interp_box"), !state);
 	gtk_widget_set_visible(lookup_widget("toggle_reg_clamp"), !state);
 	gtk_widget_set_visible(lookup_widget("regNoOutput"), !state);
+
+}
+
+void on_upscaleCheckButton_toggled(GtkToggleButton* button, gpointer user_data) {
+	gboolean state = gtk_toggle_button_get_active(button);
+	if (state) {
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("drizzleCheckButton")), FALSE);
+	}
 }

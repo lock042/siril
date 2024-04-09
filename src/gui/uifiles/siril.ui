@@ -6680,13 +6680,10 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="orientation">vertical</property>
                                                             <child>
                                                             <object class="GtkCheckButton" id="upscaleCheckButton">
-                                                            <property name="label" translatable="yes">Drizzle</property>
+                                                            <property name="label" translatable="yes">Scaling</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">The sequence will be registered using the Drizzle algorithm originally developed for use with undersampled Hubble Space Telescope images. This can be useful to improve resolution of your images if they are undersampled. It can also serve as an alternative demosaicing algorithm for OSC images (the CFA pattern must still be present, so you must not debayer them prior to Drizzle) which improves the resolution of the result and yields noise with a characteristic that is easier to treat with noise reduction algorithms. Drizzling mono images with x2 scale or CFA images with x1 scale generally requires a minimum of about 10 frames in the sequence.
-
-WARNING: the counterpart of this technic is that the amount of memory and disk space needed to create and process drizzled images is multiplied by the square of the Drizzle factor.</property>
                                                             <property name="halign">start</property>
                                                             <property name="draw-indicator">True</property>
                                                             <signal name="toggled" handler="on_upscaleCheckButton_toggled" swapped="no"/>
@@ -6695,6 +6692,24 @@ WARNING: the counterpart of this technic is that the amount of memory and disk s
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
                                                             <property name="position">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkCheckButton" id="drizzleCheckButton">
+                                                            <property name="label" translatable="yes">Drizzle</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">The sequence will be registered using the Drizzle algorithm originally developed for use with undersampled Hubble Space Telescope images. This can be useful to improve resolution of your images if they are undersampled. It can also serve as an alternative demosaicing algorithm for OSC images (the CFA pattern must still be present, so you must not debayer them prior to Drizzle) which improves the resolution of the result and yields noise with a characteristic that is easier to treat with noise reduction algorithms. Drizzling mono images with x2 scale or CFA images with x1 scale generally requires a minimum of about 10 frames in the sequence.
+
+WARNING: the counterpart of this technic is that the amount of memory and disk space needed to create and process drizzled images is multiplied by the square of the Drizzle factor.</property>
+                                                            <property name="draw-indicator">True</property>
+                                                            <signal name="toggled" handler="on_drizzleCheckButton_toggled" swapped="no"/>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">1</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -6933,7 +6948,7 @@ The master flat must be set in the Calibration tab.</property>
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">1</property>
+                                                            <property name="position">2</property>
                                                             </packing>
                                                             </child>
                                                             </object>
