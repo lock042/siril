@@ -307,14 +307,14 @@ static void init_preprocessing_from_command(char *dark, char *flat, gboolean use
 				prepro->use_cosmetic_correction = FALSE;
 				siril_log_message(_("Calibration with color images is not yet supported\n"));
 			}
-			else if (strlen(prepro->dark->bayer_pattern) > 4) {
+			else if (strlen(prepro->dark->keywords.bayer_pattern) > 4) {
 				prepro->use_cosmetic_correction = FALSE;
 				prepro->fix_xtrans = TRUE;
 			} else {
 				prepro->use_cosmetic_correction = TRUE;
 				prepro->sigma[0] = -1.0;
 				prepro->sigma[1] = 3.5;
-				if (strlen(prepro->dark->bayer_pattern) >= 4)
+				if (strlen(prepro->dark->keywords.bayer_pattern) >= 4)
 					prepro->is_cfa = TRUE;
 			}
 			siril_log_message(_("Master dark %d x %d configured for live stacking (%s cosmetic correction)\n"), prepro->dark->rx, prepro->dark->ry, prepro->use_cosmetic_correction ? _("with") : _("without") );
@@ -336,7 +336,7 @@ static void init_preprocessing_from_command(char *dark, char *flat, gboolean use
 			} else {
 				prepro->use_flat = TRUE;
 				prepro->autolevel = TRUE;
-				if (strlen(prepro->flat->bayer_pattern) >= 4) {
+				if (strlen(prepro->flat->keywords.bayer_pattern) >= 4) {
 					prepro->is_cfa = TRUE;
 					prepro->equalize_cfa = TRUE;
 				}
@@ -570,7 +570,7 @@ static gpointer live_stacker(gpointer arg) {
 				clearfits(&fit);
 				break;
 			}
-			gboolean is_CFA = fit.bayer_pattern[0] != '\0';
+			gboolean is_CFA = fit.keywords.bayer_pattern[0] != '\0';
 			use_demosaicing = is_CFA ? BOOL_TRUE : BOOL_FALSE;
 			if (prepro)
 				prepro->debayer = is_CFA;
@@ -645,7 +645,7 @@ static gpointer live_stacker(gpointer arg) {
 			if (buildseqfile(&seq, 1) || seq.number == 1) {
 				index++;
 				livestacking_display(_("Waiting for second image"), FALSE);
-				livestacking_update_number_of_images(1, gfit.exposure, -1.0, NULL);
+				livestacking_update_number_of_images(1, gfit.keywords.exposure, -1.0, NULL);
 				continue;
 			}
 			first_loop = FALSE;
@@ -814,7 +814,7 @@ static gpointer live_stacker(gpointer arg) {
 		const char *total_time = format_time_diff(tv_start, tv_end);
 		siril_log_color_message(_("Time to process the last image for live stacking: %s\n"),
 				"green", total_time);
-		livestacking_update_number_of_images(number_of_images_stacked, gfit.livetime, noise, total_time);
+		livestacking_update_number_of_images(number_of_images_stacked, gfit.keywords.livetime, noise, total_time);
 	} while (1);
 
 	siril_debug_print("===== exiting live stacking thread =====\n");

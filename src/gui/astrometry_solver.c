@@ -217,12 +217,12 @@ static void get_mag_settings_from_GUI(limit_mag_mode *mag_mode, double *magnitud
 }
 
 gboolean has_any_keywords() {
-	return (gfit.focal_length > 0.0 ||
-			gfit.pixel_size_x > 0.f ||
-			gfit.pixel_size_y > 0.f ||
-			(has_wcs(&gfit) && gfit.wcslib->crval[0] != 0.0 && gfit.wcslib->crval[1] != 0.0) ||
-			(gfit.wcsdata.objctra[0] != '\0' && gfit.wcsdata.objctdec[0] != '\0') ||
-			(gfit.wcsdata.ra != 0.0 && gfit.wcsdata.dec != 0.0));
+	return (gfit.keywords.focal_length > 0.0 ||
+			gfit.keywords.pixel_size_x > 0.f ||
+			gfit.keywords.pixel_size_y > 0.f ||
+			(has_wcs(&gfit) && gfit.keywords.wcslib->crval[0] != 0.0 && gfit.keywords.wcslib->crval[1] != 0.0) ||
+			(gfit.keywords.wcsdata.objctra[0] != '\0' && gfit.keywords.wcsdata.objctdec[0] != '\0') ||
+			(gfit.keywords.wcsdata.ra != 0.0 && gfit.keywords.wcsdata.dec != 0.0));
 }
 
 /* effective focal length in mm */
@@ -277,13 +277,13 @@ static gboolean is_autocrop_activated() {
 }
 
 static void update_pixel_size() {
-	float pixel = gfit.pixel_size_x > gfit.pixel_size_y ? gfit.pixel_size_x : gfit.pixel_size_y;
-	if (com.pref.binning_update && gfit.binning_x > 1) {
-		pixel *= gfit.binning_x;
+	double pixel = gfit.keywords.pixel_size_x > gfit.keywords.pixel_size_y ? gfit.keywords.pixel_size_x : gfit.keywords.pixel_size_y;
+	if (com.pref.binning_update && gfit.keywords.binning_x > 1) {
+		pixel *= gfit.keywords.binning_x;
 	}
 
-	if (pixel > 0.f) {
-		gchar *cpixels = g_strdup_printf("%.2lf", (double) pixel);
+	if (pixel > 0.0) {
+		gchar *cpixels = g_strdup_printf("%.2lf", pixel);
 		gtk_entry_set_text(pixelentry, cpixels);
 		g_free(cpixels);
 		has_pixel = gfit.pixelkey;
@@ -296,7 +296,7 @@ static void update_pixel_size() {
 }
 
 static void update_focal() {
-	double focal = gfit.focal_length;
+	double focal = gfit.keywords.focal_length;
 
 	if (focal > 0.0) {
 		gchar *cfocal = g_strdup_printf("%.1lf", focal);

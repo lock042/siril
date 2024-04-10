@@ -402,14 +402,14 @@ void set_iter_of_clicked_psf(double x, double y) {
 	gboolean is_as;
 	const double radian_conversion = ((3600.0 * 180.0) / M_PI) / 1.0E3;
 	double invpixscalex = 1.0;
-	double bin_X = com.pref.binning_update ? (double) gfit.binning_x : 1.0;
+	double bin_X = com.pref.binning_update ? (double) gfit.keywords.binning_x : 1.0;
 	if (com.stars && com.stars[0]) {// If the first star has units of arcsec, all should have
 		is_as = (strcmp(com.stars[0]->units, "px"));
 	} else {
 		return; // If com.stars is empty there is no point carrying on
 	}
 	if (is_as) {
-		invpixscalex = 1.0 / (radian_conversion * (double) gfit.pixel_size_x / gfit.focal_length) * bin_X;
+		invpixscalex = 1.0 / (radian_conversion * (double) gfit.keywords.pixel_size_x / gfit.keywords.focal_length) * bin_X;
 	}
 	valid = gtk_tree_model_get_iter_first(model, &iter);
 	while (valid) {

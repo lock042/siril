@@ -1136,8 +1136,8 @@ static void select_image(int nb) {
 						g_free(str);
 
 					} else {
-						if (f.filter[0] != '\0') {
-							memcpy(filter, f.filter, FLEN_VALUE);
+						if (f.keywords.filter[0] != '\0') {
+							memcpy(filter, f.keywords.filter, FLEN_VALUE);
 						}
 
 						int idx = search_for_free_index();

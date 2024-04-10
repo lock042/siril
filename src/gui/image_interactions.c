@@ -600,7 +600,7 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 	if (event->button == GDK_BUTTON_PRIMARY && gui.measure_start.x != -1.) {
 		gui.measure_end.x = zoomed.x;
 		gui.measure_end.y = zoomed.y;
-		gboolean use_arcsec = (gfit.wcsdata.pltsolvd || gui.cut.pref_as);
+		gboolean use_arcsec = (gfit.keywords.wcsdata.pltsolvd || gui.cut.pref_as);
 		measure_line(&gfit, gui.measure_start, gui.measure_end, use_arcsec);
 		gui.measure_start.x = -1.;
 		gui.measure_start.y = -1.;
@@ -826,9 +826,9 @@ gboolean on_drawingarea_motion_notify_event(GtkWidget *widget,
 			} else {
 				format_base_ushort = "x: %%.%dd y: %%.%dd";
 			}
-			if (gfit.hi >= 1000)
+			if (gfit.keywords.hi >= 1000)
 				val_width = 4;
-			if (gfit.hi >= 10000)
+			if (gfit.keywords.hi >= 10000)
 				val_width = 5;
 			g_sprintf(format, format_base_ushort,
 					coords_width, coords_width, val_width);
