@@ -788,8 +788,8 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 			initialize_remixer_transforms(&fit_left);
 			merge_fits_headers_to_result(&gfit, FALSE, &fit_left, &fit_right, NULL);
 			// Avoid doubling STACKCNT and LIVETIME as we are merging starless and star parts of a single image
-			gfit.stackcnt = fit_left.stackcnt;
-			gfit.livetime = fit_left.livetime;
+			gfit.keywords.stackcnt = fit_left.keywords.stackcnt;
+			gfit.keywords.livetime = fit_left.keywords.livetime;
 			initialise_image();
 
 			gtk_widget_set_visible(lookup_widget("remix_filechooser_left"), FALSE);
@@ -1152,22 +1152,22 @@ void on_remix_filechooser_left_file_set(GtkFileChooser *filechooser, gpointer us
 				}
 			}
 			merge_fits_headers_to_result(&gfit, FALSE, &fit_left, &fit_right, NULL);
-			if (fit_left.filter[0] != '\0' && fit_right.filter[0] != '\0' && strlen(fit_left.filter) >= 8 && strlen(fit_right.filter) >= 8) {
-				gchar *temp_l = g_malloc(strlen(fit_left.filter) - 7);
-				g_strlcpy(temp_l, fit_left.filter, strlen(fit_left.filter) - 8);
-				gchar *temp_r = g_malloc(strlen(fit_right.filter) - 7);
-				g_strlcpy(temp_r, fit_right.filter, strlen(fit_right.filter) - 8);
-				if (strlen(fit_left.filter) == 8)
+			if (fit_left.keywords.filter[0] != '\0' && fit_right.keywords.filter[0] != '\0' && strlen(fit_left.keywords.filter) >= 8 && strlen(fit_right.keywords.filter) >= 8) {
+				gchar *temp_l = g_malloc(strlen(fit_left.keywords.filter) - 7);
+				g_strlcpy(temp_l, fit_left.keywords.filter, strlen(fit_left.keywords.filter) - 8);
+				gchar *temp_r = g_malloc(strlen(fit_right.keywords.filter) - 7);
+				g_strlcpy(temp_r, fit_right.keywords.filter, strlen(fit_right.keywords.filter) - 8);
+				if (strlen(fit_left.keywords.filter) == 8)
 					temp_l[0] = '\0';
-				if (strlen(fit_right.filter) == 8)
+				if (strlen(fit_right.keywords.filter) == 8)
 					temp_r[0] = '\0';
 				if (!strcmp(temp_l, temp_r)) {
-					if (fit_left.livetime >= fit_right.livetime) {
-						gfit.livetime = fit_left.livetime;
-						gfit.stackcnt = fit_left.stackcnt;
+					if (fit_left.keywords.livetime >= fit_right.keywords.livetime) {
+						gfit.keywords.livetime = fit_left.keywords.livetime;
+						gfit.keywords.stackcnt = fit_left.keywords.stackcnt;
 					} else {
-						gfit.livetime = fit_right.livetime;
-						gfit.stackcnt = fit_right.stackcnt;
+						gfit.keywords.livetime = fit_right.keywords.livetime;
+						gfit.keywords.stackcnt = fit_right.keywords.stackcnt;
 					}
 				}
 				g_free(temp_l);
@@ -1248,22 +1248,22 @@ void on_remix_filechooser_right_file_set(GtkFileChooser *filechooser, gpointer u
 				siril_log_message(_("Color profiles did not match: right-hand image has been converted to left-hand image color profile.\n"));
 			}
 			merge_fits_headers_to_result(&gfit, FALSE, &fit_left, &fit_right, NULL);
-			if (fit_left.filter[0] != '\0' && fit_right.filter[0] != '\0' && strlen(fit_left.filter) >= 8 && strlen(fit_right.filter) >= 8) {
-				gchar *temp_l = g_malloc(strlen(fit_left.filter) - 7);
-				g_strlcpy(temp_l, fit_left.filter, strlen(fit_left.filter) - 8);
-				gchar *temp_r = g_malloc(strlen(fit_right.filter) - 7);
-				g_strlcpy(temp_r, fit_right.filter, strlen(fit_right.filter) - 8);
-				if (strlen(fit_left.filter) == 8)
+			if (fit_left.keywords.filter[0] != '\0' && fit_right.keywords.filter[0] != '\0' && strlen(fit_left.keywords.filter) >= 8 && strlen(fit_right.keywords.filter) >= 8) {
+				gchar *temp_l = g_malloc(strlen(fit_left.keywords.filter) - 7);
+				g_strlcpy(temp_l, fit_left.keywords.filter, strlen(fit_left.keywords.filter) - 8);
+				gchar *temp_r = g_malloc(strlen(fit_right.keywords.filter) - 7);
+				g_strlcpy(temp_r, fit_right.keywords.filter, strlen(fit_right.keywords.filter) - 8);
+				if (strlen(fit_left.keywords.filter) == 8)
 					temp_l[0] = '\0';
-				if (strlen(fit_right.filter) == 8)
+				if (strlen(fit_right.keywords.filter) == 8)
 					temp_r[0] = '\0';
 				if (!strcmp(temp_l, temp_r)) {
-					if (fit_left.livetime >= fit_right.livetime) {
-						gfit.livetime = fit_left.livetime;
-						gfit.stackcnt = fit_left.stackcnt;
+					if (fit_left.keywords.livetime >= fit_right.keywords.livetime) {
+						gfit.keywords.livetime = fit_left.keywords.livetime;
+						gfit.keywords.stackcnt = fit_left.keywords.stackcnt;
 					} else {
-						gfit.livetime = fit_right.livetime;
-						gfit.stackcnt = fit_right.stackcnt;
+						gfit.keywords.livetime = fit_right.keywords.livetime;
+						gfit.keywords.stackcnt = fit_right.keywords.stackcnt;
 					}
 				}
 				g_free(temp_l);

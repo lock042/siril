@@ -125,7 +125,7 @@ static void init_dialog() {
 	}
 
 	gtk_list_store_clear(list_store);
-	gtk_widget_set_sensitive(cfacheck, gfit.rx > 0 && gfit.naxes[2] == 1 && gfit.bayer_pattern[0] != '\0');
+	gtk_widget_set_sensitive(cfacheck, gfit.rx > 0 && gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] != '\0');
 }
 
 static void add_chan_stats_to_list(imstats **stat, int nblayer, data_type type, gboolean normalized) {
@@ -210,7 +210,7 @@ void computeStat() {
 
 	int nb_channels = (int)gfit.naxes[2];
 	if (use_cfa) {
-		if (nb_channels == 1 && gfit.bayer_pattern[0] != '\0')
+		if (nb_channels == 1 && gfit.keywords.bayer_pattern[0] != '\0')
 			nb_channels = 3;
 		else use_cfa = FALSE;
 	}

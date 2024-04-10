@@ -67,9 +67,9 @@ struct phot_config *phot_set_adjusted_for_image(const fits *fit) {
 		return NULL;
 	}
 	memcpy(retval, &com.pref.phot_set, sizeof(struct phot_config));
-	if (fit->cvf > 0.0) {
+	if (fit->keywords.cvf > 0.0) {
 		// always overwrite with value from the image if available
-		retval->gain = fit->cvf;
+		retval->gain = fit->keywords.cvf;
 	}
 	if (fit->type == DATA_FLOAT) {
 		retval->gain *= USHRT_MAX_DOUBLE;

@@ -189,10 +189,10 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 		item->dec = dec;
 		item->name = g_strdup(objname); // we use the offical name returned by the server
 		item->alias = g_strdup(args->name); // we store the name that was queried
-		item->sitelon = args->fit->sitelong;
-		item->sitelat = args->fit->sitelat;
-		item->siteelev = args->fit->siteelev;
-		item->dateobs = date_time_to_Julian(args->fit->date_obs);
+		item->sitelon = args->fit->keywords.sitelong;
+		item->sitelat = args->fit->keywords.sitelat;
+		item->siteelev = args->fit->keywords.siteelev;
+		item->dateobs = date_time_to_Julian(args->fit->keywords.date_obs);
 		item->type = g_strdup(objtype);
 		item->vra = vra;
 		item->vdec = vdec;
@@ -401,9 +401,9 @@ gboolean has_nonzero_coords() {
 // returns a string describing the site coordinates on Earth in a format suited for queries
 #ifdef HAVE_LIBCURL
 static gchar *retrieve_site_coord(fits *fit) {
-	if (fit->sitelat == 0.0 && fit->sitelong == 0.0)
+	if (fit->keywords.sitelat == 0.0 && fit->keywords.sitelong == 0.0)
 		return g_strdup("@500");
-	return g_strdup_printf("%+f,%+f,%f", fit->sitelat, fit->sitelong, fit->siteelev);
+	return g_strdup_printf("%+f,%+f,%f", fit->keywords.sitelat, fit->keywords.sitelong, fit->keywords.siteelev);
 }
 #endif
 
@@ -443,24 +443,24 @@ gchar *search_in_online_catalogs(sky_object_query_args *args) {
 		break;
 	case QUERY_SERVER_EPHEMCC:
 		// see https://ssp.imcce.fr/webservices/miriade/api/ephemcc/
-		if (!args->fit->date_obs) {
+		if (!args->fit->keywords.date_obs) {
 			siril_log_color_message(_("This command only works on images that have observation date information\n"), "red");
 			g_string_free(string_url, TRUE);
 			return NULL;
 		}
 		string_url = g_string_new(EPHEMCC);
 		g_string_append_printf(string_url, "&-name=%s:%s", args->prefix, name);
-		gchar *formatted_date = date_time_to_FITS_date(args->fit->date_obs);
+		gchar *formatted_date = date_time_to_FITS_date(args->fit->keywords.date_obs);
 		g_string_append_printf(string_url, "&-ep=%s", formatted_date);
 		gchar *formatted_site = retrieve_site_coord(args->fit);
 		g_string_append_printf(string_url, "&-observer=%s", formatted_site);
 		siril_log_message(_("Searching for solar system object %s on observation date %s\n"),
 				name, formatted_date);
-		if (args->fit->sitelat == 0.0 && args->fit->sitelong == 0.0) {
+		if (args->fit->keywords.sitelat == 0.0 && args->fit->keywords.sitelong == 0.0) {
 			siril_log_color_message(_("No topocentric data available. Set to geocentric, positions may be inaccurate\n"), "salmon");
 		} else {
-			siril_log_message(_("at lat: %f, long: %f, alt: %f\n"), args->fit->sitelat,
-				args->fit->sitelong, args->fit->siteelev);
+			siril_log_message(_("at lat: %f, long: %f, alt: %f\n"), args->fit->keywords.sitelat,
+				args->fit->keywords.sitelong, args->fit->keywords.siteelev);
 		}
 		g_free(formatted_site);
 		g_free(formatted_date);

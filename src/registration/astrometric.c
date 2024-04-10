@@ -142,7 +142,7 @@ int register_astrometric(struct registration_args *regargs) {
 		}
 		center2wcs(&fit, RA + i, DEC + i);
 		WCSDATA[i].flag = -1;
-		wcssub(1, fit.wcslib, NULL, NULL, WCSDATA + i); // copying wcsprm structure for each fit to avoid reopening
+		wcssub(1, fit.keywords.wcslib, NULL, NULL, WCSDATA + i); // copying wcsprm structure for each fit to avoid reopening
 		clearfits(&fit);
 		siril_log_message("Image #%2d - RA:%.3f - DEC:%.3f\n", i + 1, RA[i], DEC[i]);
 		incl[i] = TRUE;
@@ -410,8 +410,8 @@ static int astrometric_image_hook(struct generic_seq_args *args, int out_index, 
 	regargs->regparam[out_index].H = H;
 	sadata->success[out_index] = (int)(!status);
 	if (astargs->scale != 1.f) {
-		fit->pixel_size_x /= regargs->astrometric_scale;
-		fit->pixel_size_y /= regargs->astrometric_scale;
+		fit->keywords.pixel_size_x /= regargs->astrometric_scale;
+		fit->keywords.pixel_size_y /= regargs->astrometric_scale;
 		regargs->regparam[out_index].fwhm *= regargs->astrometric_scale;
 		regargs->regparam[out_index].weighted_fwhm *= regargs->astrometric_scale;
 	}

@@ -81,7 +81,7 @@ static void fill_date_obs_if_any(fits *fit, const char *file) {
 		int n = sscanf(date_time, "%04d:%02d:%02d %02d:%02d:%02d", &year, &month, &day, &h, &m, &s);
 		if (n == 6) {
 			GTimeZone *tz = g_time_zone_new_utc();
-			fit->date_obs = g_date_time_new(tz, year, month, day, h, m, (double) s);
+			fit->keywords.date_obs = g_date_time_new(tz, year, month, day, h, m, (double) s);
 			g_time_zone_unref(tz);
 		}
 		g_free(date_time);
@@ -517,7 +517,7 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 	clearfits(fit);
 	if (date_time) {
 		GTimeZone *tz = g_time_zone_new_utc();
-		fit->date_obs = g_date_time_new(tz, year, month, day, h, m, (double) s);
+		fit->keywords.date_obs = g_date_time_new(tz, year, month, day, h, m, (double) s);
 		g_time_zone_unref(tz);
 	}
 	cmsUInt8Number *embed = NULL;
@@ -542,7 +542,7 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 	fit->naxes[1] = height;
 	fit->data = data;
 	fit->fdata = fdata;
-	fit->binning_x = fit->binning_y = 1;
+	fit->keywords.binning_x = fit->keywords.binning_y = 1;
 	if (nsamples == 1 || nsamples == 2) {
 		fit->naxes[2] = 1;
 		fit->naxis = 2;
@@ -615,15 +615,15 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 		}
 	}
 	fit->orig_bitpix = fit->bitpix;
-	g_snprintf(fit->row_order, FLEN_VALUE, "%s", "TOP-DOWN");
+	g_snprintf(fit->keywords.row_order, FLEN_VALUE, "%s", "TOP-DOWN");
 
 	/* fill exifs is exist */
 	if (exposure > 0.0)
-		fit->exposure = exposure;
+		fit->keywords.exposure = exposure;
 	if (aperture > 0.0)
-		fit->aperture = aperture;
+		fit->keywords.aperture = aperture;
 	if (focal_length > 0.0) {
-		fit->focal_length = focal_length;
+		fit->keywords.focal_length = focal_length;
 		fit->focalkey = TRUE;
 	}
 	if (description) {
@@ -741,8 +741,8 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 		return 1;
 	}
 
-	if (fit->date_obs) {
-		gchar *date_time = g_date_time_format(fit->date_obs, "%Y:%m:%d %H:%M:%S");
+	if (fit->keywords.date_obs) {
+		gchar *date_time = g_date_time_format(fit->keywords.date_obs, "%Y:%m:%d %H:%M:%S");
 
 		TIFFSetField(tif, TIFFTAG_DATETIME, date_time);
 		g_free(date_time);
@@ -1089,7 +1089,7 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 	free(xdata->icc_buffer);
 
 	/* let's do it before header parsing. */
-	g_snprintf(fit->row_order, FLEN_VALUE, "%s", "TOP-DOWN");
+	g_snprintf(fit->keywords.row_order, FLEN_VALUE, "%s", "TOP-DOWN");
 
 	if (xdata->fitsHeader) {
 		if (fit->header) free(fit->header);
@@ -1189,7 +1189,7 @@ int readjpg(const char* name, fits *fit){
 	fit->pdata[RLAYER] = fit->data;
 	fit->pdata[GLAYER] = fit->data + npixels;
 	fit->pdata[BLAYER] = fit->data + npixels * 2;
-	fit->binning_x = fit->binning_y = 1;
+	fit->keywords.binning_x = fit->keywords.binning_y = 1;
 	fit->type = DATA_USHORT;
 	mirrorx(fit, FALSE);
 	fill_date_obs_if_any(fit, name);
@@ -1558,8 +1558,8 @@ int readpng(const char *name, fits* fit) {
 		fit->pdata[GLAYER] = fit->naxes[2] == 3 ? fit->data + npixels : fit->data;
 		fit->pdata[BLAYER] = fit->naxes[2] == 3 ? fit->data + npixels * 2 : fit->data;
 
-		fit->binning_x = fit->binning_y = 1;
-		g_snprintf(fit->row_order, FLEN_VALUE, "%s", "TOP-DOWN");
+		fit->keywords.binning_x = fit->keywords.binning_y = 1;
+		g_snprintf(fit->keywords.row_order, FLEN_VALUE, "%s", "TOP-DOWN");
 		fill_date_obs_if_any(fit, name);
 		// Initialize ICC profile and display transform
 		fits_initialize_icc(fit, embed, len);
@@ -2088,33 +2088,33 @@ static int readraw_in_cfa(const char *name, fits *fit) {
 	fit->pdata[RLAYER] = fit->data;
 	fit->pdata[GLAYER] = fit->data;
 	fit->pdata[BLAYER] = fit->data;
-	fit->binning_x = fit->binning_y = 1;
+	fit->keywords.binning_x = fit->keywords.binning_y = 1;
 	// RAW files are always mono, and pretty certainly always linear: they
 	// should have the mono_linear ICC profile. However for consistency with
 	// other straight-from-the-camera formats we do not set a profile: the user
 	// may assign one if they wish.
 	color_manage(fit, FALSE);
 	if (pitch > 0.f) {
-		fit->pixel_size_x = fit->pixel_size_y = pitch;
+		fit->keywords.pixel_size_x = fit->keywords.pixel_size_y = pitch;
 		fit->pixelkey = TRUE;
 	}
 	if (raw->other.focal_len > 0.f) {
-		fit->focal_length = raw->other.focal_len;
+		fit->keywords.focal_length = raw->other.focal_len;
 		fit->focalkey = TRUE;
 	}
 	if (raw->other.iso_speed > 0.f)
-		fit->iso_speed = raw->other.iso_speed;
+		fit->keywords.iso_speed = raw->other.iso_speed;
 	if (raw->other.shutter > 0.f)
-		fit->exposure = raw->other.shutter;
+		fit->keywords.exposure = raw->other.shutter;
 	if (raw->other.aperture > 0.f)
-		fit->aperture = raw->other.aperture;
-	g_snprintf(fit->instrume, FLEN_VALUE, "%s %s", raw->idata.make,
+		fit->keywords.aperture = raw->other.aperture;
+	g_snprintf(fit->keywords.instrume, FLEN_VALUE, "%s %s", raw->idata.make,
 			raw->idata.model);
-	fit->date_obs = g_date_time_new_from_unix_utc(raw->other.timestamp);
+	fit->keywords.date_obs = g_date_time_new_from_unix_utc(raw->other.timestamp);
 	if (filters)
-		g_snprintf(fit->bayer_pattern, FLEN_VALUE, "%s", pattern);
+		g_snprintf(fit->keywords.bayer_pattern, FLEN_VALUE, "%s", pattern);
 
-	g_snprintf(fit->row_order, FLEN_VALUE, "%s", "BOTTOM-UP");
+	g_snprintf(fit->keywords.row_order, FLEN_VALUE, "%s", "BOTTOM-UP");
 
 	libraw_recycle(raw);
 	libraw_close(raw);
@@ -2798,7 +2798,7 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 	fit->pdata[RLAYER] = fit->data;
 	fit->pdata[GLAYER] = fit->data + npixels * (nchannels == 3);
 	fit->pdata[BLAYER] = fit->data + npixels * 2 * (nchannels == 3);
-	fit->binning_x = fit->binning_y = 1;
+	fit->keywords.binning_x = fit->keywords.binning_y = 1;
 	mirrorx(fit, FALSE);
 
 	fits_initialize_icc(fit, icc_buffer, icc_length);
@@ -2871,7 +2871,7 @@ int readjxl(const char* name, fits *fit) {
 		fit->pdata[GLAYER] = zsize == 3 ? fit->data + npixels : fit->data;
 		fit->pdata[BLAYER] = zsize == 3 ? fit->data + npixels * 2 : fit->data;
 	}
-	fit->binning_x = fit->binning_y = 1;
+	fit->keywords.binning_x = fit->keywords.binning_y = 1;
 
 	if (fit->naxes[2] == 1) {
 		if (fit->type == DATA_FLOAT) {

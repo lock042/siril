@@ -371,8 +371,8 @@ static int _3stars_align_image_hook(struct generic_seq_args *args, int out_index
 		cvGetEye(&regargs->regparam[out_index].H);
 
 		if (regargs->x2upscale) {
-			fit->pixel_size_x /= 2;
-			fit->pixel_size_y /= 2;
+			fit->keywords.pixel_size_x /= 2;
+			fit->keywords.pixel_size_y /= 2;
 			regargs->regparam[out_index].fwhm *= 2.0;
 			regargs->regparam[out_index].weighted_fwhm *= 2.0;
 		}

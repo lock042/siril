@@ -399,8 +399,8 @@ void set_sliders_value_to_gfit() {
 		adj2 = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "adjustmentscalemin"));// scalemin
 	}
 
-	gfit.hi = gtk_adjustment_get_value(adj1);
-	gfit.lo = gtk_adjustment_get_value(adj2);
+	gfit.keywords.hi = gtk_adjustment_get_value(adj1);
+	gfit.keywords.lo = gtk_adjustment_get_value(adj2);
 }
 
 /* Sets maximum value for contrast scales. Minimum is always 0.
@@ -1395,11 +1395,11 @@ void update_sampling_in_information() {
 	GtkLabel *sampling_label = GTK_LABEL(lookup_widget("info_sampling_label"));
 	// display sampling based on information displayed in the window
 	// otherwise, we could use get_wcs_image_resolution(fits *fit)
-	if (gfit.focal_length > 0.0 && gfit.pixel_size_x > 0.0) {
-		float pixel_size = gfit.pixel_size_x;
-		if (gfit.binning_x > 1 && com.pref.binning_update)
-			pixel_size *= gfit.binning_x;
-		double scale = get_resolution(gfit.focal_length, pixel_size);
+	if (gfit.keywords.focal_length > 0.0 && gfit.keywords.pixel_size_x > 0.0) {
+		float pixel_size = gfit.keywords.pixel_size_x;
+		if (gfit.keywords.binning_x > 1 && com.pref.binning_update)
+			pixel_size *= gfit.keywords.binning_x;
+		double scale = get_resolution(gfit.keywords.focal_length, pixel_size);
 		char buf[20];
 		sprintf(buf, "%.4f", scale);
 		gtk_label_set_text(sampling_label, buf);
@@ -1412,30 +1412,30 @@ void set_GUI_CAMERA() {
 	/* information will be taken from gfit or from the preferences and overwritten in
 	 * gfit by the callbacks */
 	char buf[20];
-	double fl = gfit.focal_length > 0.0 ? gfit.focal_length : com.pref.starfinder_conf.focal_length;
+	double fl = gfit.keywords.focal_length > 0.0 ? gfit.keywords.focal_length : com.pref.starfinder_conf.focal_length;
 	sprintf(buf, "%.3f", fl);
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("focal_entry")), buf);
 
-	double pixsz = gfit.pixel_size_x > 0.0 ? gfit.pixel_size_x : com.pref.starfinder_conf.pixel_size_x;
+	double pixsz = gfit.keywords.pixel_size_x > 0.0 ? gfit.keywords.pixel_size_x : com.pref.starfinder_conf.pixel_size_x;
 	sprintf(buf, "%.2f", pixsz);
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("pitchX_entry")), buf);
 
-	pixsz = gfit.pixel_size_y > 0.0 ? gfit.pixel_size_y : com.pref.starfinder_conf.pixel_size_x;
+	pixsz = gfit.keywords.pixel_size_y > 0.0 ? gfit.keywords.pixel_size_y : com.pref.starfinder_conf.pixel_size_x;
 	sprintf(buf, "%.2f", pixsz);
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("pitchY_entry")), buf);
 
 	GtkComboBox *binning = GTK_COMBO_BOX(lookup_widget("combobinning"));
-	if (!gfit.binning_x || !gfit.binning_y) {
+	if (!gfit.keywords.binning_x || !gfit.keywords.binning_y) {
 		gtk_combo_box_set_active(binning, 0);
 	}
-	else if (gfit.binning_x == gfit.binning_y) {
+	else if (gfit.keywords.binning_x == gfit.keywords.binning_y) {
 		/* squared binning */
-		gtk_combo_box_set_active(binning, (gint) gfit.binning_x - 1);
+		gtk_combo_box_set_active(binning, (gint) gfit.keywords.binning_x - 1);
 	} else {
 		short coeff =
-			gfit.binning_x > gfit.binning_y ?
-			gfit.binning_x / gfit.binning_y :
-			gfit.binning_y / gfit.binning_x;
+			gfit.keywords.binning_x > gfit.keywords.binning_y ?
+			gfit.keywords.binning_x / gfit.keywords.binning_y :
+			gfit.keywords.binning_y / gfit.keywords.binning_x;
 		switch (coeff) {
 			case 2:
 				gtk_combo_box_set_active(binning, 4);
@@ -1445,7 +1445,7 @@ void set_GUI_CAMERA() {
 				break;
 			default:
 				siril_log_message(_("Binning %d x %d is not supported\n"),
-						gfit.binning_x, gfit.binning_y);
+						gfit.keywords.binning_x, gfit.keywords.binning_y);
 		}
 	}
 
@@ -1738,21 +1738,21 @@ void on_cosmEnabledCheck_toggled(GtkToggleButton *button, gpointer user_data) {
 
 void on_focal_entry_changed(GtkEditable *editable, gpointer user_data) {
 	const gchar* focal_entry = gtk_entry_get_text(GTK_ENTRY(editable));
-	gfit.focal_length = g_ascii_strtod(focal_entry, NULL);
+	gfit.keywords.focal_length = g_ascii_strtod(focal_entry, NULL);
 	update_sampling_in_information();
 	drawPlot();
 }
 
 void on_pitchX_entry_changed(GtkEditable *editable, gpointer user_data) {
 	const gchar* pitchX_entry = gtk_entry_get_text(GTK_ENTRY(editable));
-	gfit.pixel_size_x = (float) g_ascii_strtod(pitchX_entry, NULL);
+	gfit.keywords.pixel_size_x = (float) g_ascii_strtod(pitchX_entry, NULL);
 	update_sampling_in_information();
 	drawPlot();
 }
 
 void on_pitchY_entry_changed(GtkEditable *editable, gpointer user_data) {
 	const gchar* pitchY_entry = gtk_entry_get_text(GTK_ENTRY(editable));
-	gfit.pixel_size_y = (float) g_ascii_strtod(pitchY_entry, NULL);
+	gfit.keywords.pixel_size_y = (float) g_ascii_strtod(pitchY_entry, NULL);
 	update_sampling_in_information();
 	drawPlot();
 }
@@ -1765,15 +1765,15 @@ void on_combobinning_changed(GtkComboBox *box, gpointer user_data) {
 		case 1:
 		case 2:
 		case 3:
-			gfit.binning_x = gfit.binning_y = (unsigned int) index + 1;
+			gfit.keywords.binning_x = gfit.keywords.binning_y = (unsigned int) index + 1;
 			break;
 		case 4:
-			gfit.binning_x = 1;
-			gfit.binning_y = 2;
+			gfit.keywords.binning_x = 1;
+			gfit.keywords.binning_y = 2;
 			break;
 		case 5:
-			gfit.binning_x = 1;
-			gfit.binning_y = 3;
+			gfit.keywords.binning_x = 1;
+			gfit.keywords.binning_y = 3;
 			break;
 		default:
 			fprintf(stderr, "Should not happen\n");
@@ -1785,9 +1785,9 @@ void on_combobinning_changed(GtkComboBox *box, gpointer user_data) {
 void on_file_information_close_clicked(GtkButton *button, gpointer user_data) {
 	GtkToggleButton *save_as_prefs_button = GTK_TOGGLE_BUTTON(lookup_widget("saveinfo_toggle"));
 	if (gtk_toggle_button_get_active(save_as_prefs_button)) {
-		com.pref.starfinder_conf.focal_length = gfit.focal_length;
-		com.pref.starfinder_conf.pixel_size_x = gfit.pixel_size_x;
-		siril_log_message(_("Saved focal length %.2f and pixel size %.2f as default values\n"), gfit.focal_length, gfit.pixel_size_x);
+		com.pref.starfinder_conf.focal_length = gfit.keywords.focal_length;
+		com.pref.starfinder_conf.pixel_size_x = gfit.keywords.pixel_size_x;
+		siril_log_message(_("Saved focal length %.2f and pixel size %.2f as default values\n"), gfit.keywords.focal_length, gfit.keywords.pixel_size_x);
 	}
 	gtk_widget_hide(lookup_widget("file_information"));
 	refresh_star_list();

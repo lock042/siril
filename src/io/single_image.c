@@ -395,14 +395,14 @@ static void fit_lohi_to_layers(fits *fit, double lo, double hi) {
  */
 void init_layers_hi_and_lo_values(sliders_mode force_minmax) {
 	if (force_minmax == USER) return;
-	if (gfit.hi == 0 || force_minmax == MINMAX) {
+	if (gfit.keywords.hi == 0 || force_minmax == MINMAX) {
 		gui.sliders = MINMAX;
 		image_find_minmax(&gfit);
 		fit_lohi_to_layers(&gfit, gfit.mini, gfit.maxi);
 	} else {
 		gui.sliders = MIPSLOHI;
-		gui.hi = gfit.hi;
-		gui.lo = gfit.lo;
+		gui.hi = gfit.keywords.hi;
+		gui.lo = gfit.keywords.lo;
 	}
 }
 
