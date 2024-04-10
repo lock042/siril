@@ -197,11 +197,7 @@ int unsharp(fits *fit, double sigma, double amount, gboolean verbose) {
  */
 float entropy(fits *fit, int layer, rectangle *area, const imstats *opt_stats) {
 	float e = 0.f;
-	double threshold = 0.0;
 	gsl_histogram *histo;
-
-	if (opt_stats && opt_stats->median >= 0.0 && opt_stats->sigma >= 0.0)
-		threshold = opt_stats->median + 1 * opt_stats->sigma;
 
 	if (area == NULL)
 		histo = computeHisto(fit, layer);
@@ -209,13 +205,15 @@ float entropy(fits *fit, int layer, rectangle *area, const imstats *opt_stats) {
 		histo = computeHisto_Selection(fit, layer, area);
 
 	size_t n = fit->naxes[0] * fit->naxes[1];
-	g_assert (n > 0);
+	g_assert(n > 0);
 	size_t size = gsl_histogram_bins(histo);
+
 	for (size_t i = 0; i < size; i++) {
-		double p = gsl_histogram_get(histo, i);
-		if (p > threshold && p < size)
-			e += (p / n) * log(n / p);
+		double p = gsl_histogram_get(histo, i) / n;
+		if (p > 0)
+			e -= p * log(p);
 	}
+
 	gsl_histogram_free(histo);
 
 	return e;
