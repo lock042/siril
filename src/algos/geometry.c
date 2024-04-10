@@ -173,16 +173,16 @@ static void fit_update_buffer(fits *fit, void *newbuf, int width, int height, in
 	fit->rx = width;
 	fit->ry = height;
 
-	if (fit->binning_x == 0 || fit->binning_x == 1) {
-		fit->binning_x = bin_factor;
-		fit->binning_y = bin_factor;
+	if (fit->keywords.binning_x == 0 || fit->keywords.binning_x == 1) {
+		fit->keywords.binning_x = bin_factor;
+		fit->keywords.binning_y = bin_factor;
 	} else {
-		fit->binning_x *= bin_factor;
-		fit->binning_y *= bin_factor;
+		fit->keywords.binning_x *= bin_factor;
+		fit->keywords.binning_y *= bin_factor;
 	}
 	if (!com.pref.binning_update) {
-		fit->pixel_size_x *= bin_factor;
-		fit->pixel_size_y *= bin_factor;
+		fit->keywords.pixel_size_x *= bin_factor;
+		fit->keywords.pixel_size_y *= bin_factor;
 	}
 }
 
@@ -323,8 +323,8 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation 
 	gettimeofday(&t_start, NULL);
 	on_clear_roi(); // ROI is cleared on geometry-altering operations
 	retvalue = cvResizeGaussian(image, toX, toY, interpolation, clamp);
-	if (image->pixel_size_x > 0) image->pixel_size_x *= factor_X;
-	if (image->pixel_size_y > 0) image->pixel_size_y *= factor_Y;
+	if (image->keywords.pixel_size_x > 0) image->keywords.pixel_size_x *= factor_X;
+	if (image->keywords.pixel_size_y > 0) image->keywords.pixel_size_y *= factor_Y;
 	free_wcs(image);
 	reset_wcsdata(image);
 	refresh_annotations(TRUE);
@@ -508,11 +508,11 @@ void mirrorx(fits *fit, gboolean verbose) {
 	} else if (fit->type == DATA_FLOAT) {
 		mirrorx_float(fit, verbose);
 	}
-	if (!strcmp(fit->row_order, "BOTTOM-UP"))
-		sprintf(fit->row_order, "TOP-DOWN");
+	if (!strcmp(fit->keywords.row_order, "BOTTOM-UP"))
+		sprintf(fit->keywords.row_order, "TOP-DOWN");
 	else { //if (!strcmp(fit->row_order, "TOP-DOWN"))
 		// let's create the keyword in all cases
-		sprintf(fit->row_order, "BOTTOM-UP");
+		sprintf(fit->keywords.row_order, "BOTTOM-UP");
 	}
 	fit->history = g_slist_append(fit->history, strdup("TOP-DOWN mirror"));
 	if (has_wcs(fit)) {

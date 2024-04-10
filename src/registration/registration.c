@@ -313,11 +313,11 @@ int register_shift_dft(struct registration_args *args) {
 					return -2;
 			}
 		} else {
-			strcpy(pattern, fit_ref.bayer_pattern);
+			strcpy(pattern, fit_ref.keywords.bayer_pattern);
 		}
-		strcpy(fit_ref.bayer_pattern, pattern);
-		fit_ref.bayer_xoffset = args->selection.x;
-		fit_ref.bayer_yoffset = args->selection.y;
+		strcpy(fit_ref.keywords.bayer_pattern, pattern);
+		fit_ref.keywords.bayer_xoffset = args->selection.x;
+		fit_ref.keywords.bayer_yoffset = args->selection.y;
 		interpolate_nongreen(&fit_ref);
 	}
 	gettimeofday(&t_start, NULL);
@@ -412,9 +412,9 @@ int register_shift_dft(struct registration_args *args) {
 		if (!seq_read_frame_part(args->seq, args->layer, frame, &fit,
 						&args->selection, FALSE, thread_id)) {
 			int x;
-			strcpy(fit.bayer_pattern, pattern);
-			fit.bayer_xoffset = args->selection.x;
-			fit.bayer_yoffset = args->selection.y;
+			strcpy(fit.keywords.bayer_pattern, pattern);
+			fit.keywords.bayer_xoffset = args->selection.x;
+			fit.keywords.bayer_yoffset = args->selection.y;
 			interpolate_nongreen(&fit);
 			fftwf_complex *img = fftwf_malloc(sizeof(fftwf_complex) * sqsize);
 			fftwf_complex *out2 = fftwf_malloc(sizeof(fftwf_complex) * sqsize);
@@ -604,7 +604,7 @@ int register_kombat(struct registration_args *args) {
 		}
 	} else {
 		ret = seq_read_frame_metadata(args->seq, ref_idx, &fit_ref);
-		strcpy(pattern, fit_ref.bayer_pattern);
+		strcpy(pattern, fit_ref.keywords.bayer_pattern);
 	}
 	q_index = ref_idx;
 
@@ -615,9 +615,9 @@ int register_kombat(struct registration_args *args) {
 	/* we want pattern (the selection) to be located on each image */
 	ret = seq_read_frame_part(args->seq, args->layer, ref_idx, &fit_templ,
 			&args->selection, FALSE, -1);
-	strcpy(fit_templ.bayer_pattern, pattern);
-	fit_templ.bayer_xoffset = args->selection.x;
-	fit_templ.bayer_yoffset = args->selection.y;
+	strcpy(fit_templ.keywords.bayer_pattern, pattern);
+	fit_templ.keywords.bayer_xoffset = args->selection.x;
+	fit_templ.keywords.bayer_yoffset = args->selection.y;
 	/* we load reference image just to get dimensions of images,
 	 in order to call seq_read_frame_part() and use only the desired layer, over each full image */
 	ret2 = seq_read_frame(args->seq, ref_idx, &fit_ref, FALSE, -1);
@@ -693,9 +693,9 @@ int register_kombat(struct registration_args *args) {
 				_register_kombat_disable_frame(args, current_regdata, frame);
 				continue;
 			} else {
-				strcpy(cur_fit.bayer_pattern, pattern);
-				cur_fit.bayer_xoffset = args->selection.x;
-				cur_fit.bayer_yoffset = args->selection.y;
+				strcpy(cur_fit.keywords.bayer_pattern, pattern);
+				cur_fit.keywords.bayer_xoffset = args->selection.x;
+				cur_fit.keywords.bayer_yoffset = args->selection.y;
 				interpolate_nongreen(&cur_fit);
 				qual = QualityEstimate(&cur_fit, args->layer);
 				current_regdata[frame].quality = qual;
@@ -1282,7 +1282,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		ready = TRUE;
 		if (method->method_ptr == &register_3stars) {
 			ready = _3stars_check_selection(); // checks that the right image is loaded based on doall and dofollow
-		} else if (gfit.naxes[2] == 1 && gfit.bayer_pattern[0] != '\0') {
+		} else if (gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] != '\0') {
 			sensor_pattern pattern = get_bayer_pattern(&gfit);
 			if (pattern <= BAYER_FILTER_MAX) {
 				gtk_label_set_text(labelreginfo, _("Supported Bayer pattern detected"));

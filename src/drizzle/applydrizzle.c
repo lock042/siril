@@ -339,7 +339,7 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 
 	// Composing transformation wrt reference image
 	if (driz->use_wcs) {
-		if (!fit->wcslib) {
+		if (!fit->keywords.wcslib) {
 			siril_log_color_message(_("Error: drizzle configured to use WCS transforms but this frame "
 						"is not plate solved. Ensure all frames are plate solved, e.g. by running "
 						"seqplatesolve.\n"), "red");
@@ -430,7 +430,7 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		* sequence, which may be done automatically by the caller.
 		*/
 		full_stats_invalidation_from_fit(fit);
-		fit->lo = 0;
+		fit->keywords.lo = 0;
 	}
 
 	free(p->pixmap->xmap);
@@ -473,8 +473,8 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	}
 
 	// Compensate metadata for any change in scale
-	fit->pixel_size_x /= p->scale;
-	fit->pixel_size_y /= p->scale;
+	fit->keywords.pixel_size_x /= p->scale;
+	fit->keywords.pixel_size_y /= p->scale;
 	driz->regparam[out_index].fwhm *= p->scale;
 	driz->regparam[out_index].weighted_fwhm *= p->scale;
 	driz->imgparam[out_index].rx *= p->scale;
@@ -873,8 +873,8 @@ int apply_drizzle(struct driz_args_t *driz) {
 				driz->is_bayer = FALSE;
 		}
 	} else {
-		driz->is_bayer = (fit.bayer_pattern[0] != '\0'); // If there is a CFA pattern we need to CFA drizzle
-		pattern = com.pref.debayer.use_bayer_header ? get_cfa_pattern_index_from_string(fit.bayer_pattern) : com.pref.debayer.bayer_pattern;
+		driz->is_bayer = (fit.keywords.bayer_pattern[0] != '\0'); // If there is a CFA pattern we need to CFA drizzle
+		pattern = com.pref.debayer.use_bayer_header ? get_cfa_pattern_index_from_string(fit.keywords.bayer_pattern) : com.pref.debayer.bayer_pattern;
 	}
 	if (driz->is_bayer) {
 		adjust_Bayer_pattern(&fit, &pattern);

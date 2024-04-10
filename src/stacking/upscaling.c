@@ -111,8 +111,8 @@ struct upscale_args {
 static int upscale_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
 	double factor = ((struct upscale_args *)args->user)->factor;
 	/* updating pixel size if exist */
-	fit->pixel_size_x /= factor;
-	fit->pixel_size_y /= factor;
+	fit->keywords.pixel_size_x /= factor;
+	fit->keywords.pixel_size_y /= factor;
 
 	return cvResizeGaussian(fit,
 			round_to_int(fit->rx * factor),

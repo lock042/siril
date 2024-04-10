@@ -178,18 +178,18 @@ static int darkOptimization(fits *raw, struct preprocessing_data *args, int in_i
 		return 1;
 
 	if (args->use_exposure) {
-		if (dark->exposure <= 0.0) {
+		if (dark->keywords.exposure <= 0.0) {
 			siril_log_color_message(_("The dark frame contains no exposure data or incorrect exposure data.\n"), "red");
 			clearfits(&dark_tmp);
 			return 1;
 		}
-		if (raw->exposure <= 0.0) {
+		if (raw->keywords.exposure <= 0.0) {
 			siril_log_color_message(_("The light frame (%d) contains no exposure data or incorrect exposure data.\n"), "red", in_index);
 			clearfits(&dark_tmp);
 			return 1;
 		}
 		/* linear scale with time */
-		k0 = raw->exposure / dark->exposure;
+		k0 = raw->keywords.exposure / dark->keywords.exposure;
 		if (k0 > 1.f) {
 			siril_log_color_message(_("Warning: master dark is shorter than lights. It is "
 						"recommended that the master dark be at least as long as the lights.\n"), "salmon");
@@ -388,7 +388,7 @@ int prepro_prepare_hook(struct generic_seq_args *args) {
 
 	// proceed to cosmetic correction
 	if (prepro->use_cosmetic_correction && prepro->use_dark && prepro->cc_from_dark) {
-		if (strlen(prepro->dark->bayer_pattern) > 4) {
+		if (strlen(prepro->dark->keywords.bayer_pattern) > 4) {
 			siril_log_color_message(_("Cosmetic correction cannot be applied on X-Trans files.\n"), "red");
 			prepro->use_cosmetic_correction = FALSE;
 		} else {
@@ -462,7 +462,7 @@ int prepro_image_hook(struct generic_seq_args *args, int out_index, int in_index
 	 */
 	full_stats_invalidation_from_fit(fit);
 	fit->history = g_slist_concat(fit->history, history);
-	fit->lo = 0;
+	fit->keywords.lo = 0;
 	return 0;
 }
 
@@ -626,7 +626,7 @@ int evaluateoffsetlevel(const char* expression, fits *fit) {
 	}
 	if (!multiplier) goto free_on_error; // multiplier not parsed
 	if (end[0] != '\0') goto free_on_error; // some characters were found after the multiplier
-	offsetlevel = (int)(multiplier * fit->key_offset);
+	offsetlevel = (int)(multiplier * fit->keywords.key_offset);
 	if (expressioncpy) g_free(expressioncpy);
 	return offsetlevel;
 free_on_error:

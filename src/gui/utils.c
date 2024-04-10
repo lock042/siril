@@ -266,7 +266,7 @@ int select_vport(int vport) {
 
 gboolean check_ok_if_cfa() {
 	gboolean retval;
-	if (gfit.naxes[2] == 1 && gfit.bayer_pattern[0] != '\0') {
+	if (gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] != '\0') {
 		int confirm = siril_confirm_dialog(_("Undebayered CFA image loaded"),
 				_("You are about to apply a function that is not intended for use on an undebayered CFA image. Are you sure you wish to proceed?"), _("Proceed"));
 		retval = confirm ? TRUE : FALSE;
@@ -405,7 +405,7 @@ static void interpolate_nongreen_float(fits *fit) {
 			fit->fdata[index] = interp / weight;
 		}
 	}
-	fit->bayer_pattern[0] = '\0'; // Mark this as no longer having a Bayer pattern
+	fit->keywords.bayer_pattern[0] = '\0'; // Mark this as no longer having a Bayer pattern
 }
 
 static void interpolate_nongreen_ushort(fits *fit) {
@@ -444,7 +444,7 @@ static void interpolate_nongreen_ushort(fits *fit) {
 			fit->data[index] = roundf_to_WORD(interp / weight);
 		}
 	}
-	fit->bayer_pattern[0] = '\0'; // Mark this as no longer having a Bayer pattern
+	fit->keywords.bayer_pattern[0] = '\0'; // Mark this as no longer having a Bayer pattern
 }
 
 #undef RECIPSQRT2

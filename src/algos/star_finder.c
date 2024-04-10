@@ -1228,13 +1228,13 @@ int apply_findstar_to_sequence(struct starfinder_data *findstar_args) {
 			findstar_args->save_eqcoords = FALSE;
 		else {
 			findstar_args->reference_image = refidx;
-			findstar_args->ref_wcs = ref.wcslib;
+			findstar_args->ref_wcs = ref.keywords.wcslib;
 			if (args->seq->regparam[findstar_args->layer] &&
 					guess_transform_from_H(args->seq->regparam[findstar_args->layer][refidx].H) != NULL_TRANSFORMATION) {
 				findstar_args->reference_H = args->seq->regparam[findstar_args->layer][refidx].H;
 			}
 		}
-		ref.wcslib = NULL;	// don't free it
+		ref.keywords.wcslib = NULL;	// don't free it
 		clearfits(&ref);
 	}
 	if (findstar_args->already_in_thread) {

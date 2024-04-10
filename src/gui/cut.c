@@ -43,11 +43,11 @@ void reset_cut_gui_filedependent() { // Separated out to avoid having to repeat 
 	GtkWidget *colorbutton = (GtkWidget*) lookup_widget("cut_radio_color");
 	GtkWidget *cfabutton = (GtkWidget*) lookup_widget("cut_cfa");
 	gtk_widget_set_sensitive(colorbutton, (gfit.naxes[2] == 3));
-	sensor_pattern pattern = get_cfa_pattern_index_from_string(gfit.bayer_pattern);
+	sensor_pattern pattern = get_cfa_pattern_index_from_string(gfit.keywords.bayer_pattern);
 	gboolean cfa_disabled = ((gfit.naxes[2] > 1) || ((!(pattern == BAYER_FILTER_RGGB || pattern == BAYER_FILTER_GRBG || pattern == BAYER_FILTER_BGGR || pattern == BAYER_FILTER_GBRG))));
 	gtk_widget_set_sensitive(cfabutton, !cfa_disabled);
 	GtkToggleButton* as = (GtkToggleButton*) lookup_widget("cut_dist_pref_as");
-	gtk_toggle_button_set_active(as, gfit.wcsdata.pltsolvd);
+	gtk_toggle_button_set_active(as, gfit.keywords.wcsdata.pltsolvd);
 }
 
 static void reset_cut_gui() {
@@ -115,7 +115,7 @@ void initialize_cut_struct(cut_struct *arg) {
 	arg->title_has_sequence_numbers = FALSE;
 	arg->save_dat = FALSE;
 	arg->save_png_too = FALSE;
-	arg->pref_as = gfit.wcsdata.pltsolvd;
+	arg->pref_as = gfit.keywords.wcsdata.pltsolvd;
 	arg->vport = -1;
 	if (!com.script)
 		reset_cut_gui();
@@ -250,11 +250,11 @@ gboolean cut_struct_is_valid(cut_struct *arg) {
 }
 
 double get_conversion_factor(fits *fit) {
-	gboolean unit_is_as = (fit->focal_length > 0.0) && (fit->pixel_size_x > 0.0) && (fit->pixel_size_y == fit->pixel_size_x);
+	gboolean unit_is_as = (fit->keywords.focal_length > 0.0) && (fit->keywords.pixel_size_x > 0.0) && (fit->keywords.pixel_size_y == fit->keywords.pixel_size_x);
 	double conversionfactor = -DBL_MAX;
 	if (unit_is_as) {
-		double bin_X = com.pref.binning_update ? (double) fit->binning_x : 1.0;
-		conversionfactor = (((3600.0 * 180.0) / M_PI) / 1.0E3 * (double) fit->pixel_size_x / fit->focal_length) * bin_X;
+		double bin_X = com.pref.binning_update ? (double) fit->keywords.binning_x : 1.0;
+		conversionfactor = (((3600.0 * 180.0) / M_PI) / 1.0E3 * (double) fit->keywords.pixel_size_x / fit->keywords.focal_length) * bin_X;
 	}
 	return conversionfactor;
 }
@@ -954,7 +954,7 @@ void on_cut_dialog_show(GtkWindow *dialog, gpointer user_data) {
 	GtkToggleButton* seqbutton = (GtkToggleButton*) lookup_widget("cut_apply_to_sequence");
 	GtkToggleButton* pngbutton = (GtkToggleButton*) lookup_widget("cut_save_png");
 	gtk_widget_set_sensitive(colorbutton, (gfit.naxes[2] == 3));
-	sensor_pattern pattern = get_cfa_pattern_index_from_string(gfit.bayer_pattern);
+	sensor_pattern pattern = get_cfa_pattern_index_from_string(gfit.keywords.bayer_pattern);
 	gboolean cfa_disabled = ((gfit.naxes[2] > 1) || ((!(pattern == BAYER_FILTER_RGGB || pattern == BAYER_FILTER_GRBG || pattern == BAYER_FILTER_BGGR || pattern == BAYER_FILTER_GBRG))));
 	gtk_widget_set_sensitive(cfabutton, !cfa_disabled);
 	if (gtk_toggle_button_get_active(seqbutton))

@@ -933,9 +933,9 @@ void compute_date_time_keywords(GList *list_date, fits *fit) {
 	g_date_time_unref(corrected_last_date);
 
 	/* we address the computed values to the keywords */
-	fit->date_obs = date_obs;
-	fit->expstart = start;
-	fit->expend = end;
+	fit->keywords.date_obs = date_obs;
+	fit->keywords.expstart = start;
+	fit->keywords.expend = end;
 }
 
 /****************************************************************/

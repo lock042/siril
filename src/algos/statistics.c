@@ -755,7 +755,7 @@ static int stat_image_hook(struct generic_seq_args *args, int o, int i, fits *fi
 		rectangle *_, int threads) {
 	struct stat_data *s_args = (struct stat_data*) args->user;
 
-	gboolean is_cfa = fit->bayer_pattern[0] != '\0' && s_args->cfa;
+	gboolean is_cfa = fit->keywords.bayer_pattern[0] != '\0' && s_args->cfa;
 	int nb_image_layers = (int)fit->naxes[2];
 	if (is_cfa)
 		nb_image_layers = 3;
@@ -1050,7 +1050,7 @@ int compute_all_channels_statistics_seqimage(sequence *seq, int image_index, fit
 int compute_all_channels_statistics_single_image(fits *fit, int option,
 		threading_type threading, imstats **stats) {
 	g_assert(fit);
-	gboolean cfa = (option & STATS_FOR_CFA) && fit->bayer_pattern[0] != '\0';
+	gboolean cfa = (option & STATS_FOR_CFA) && fit->keywords.bayer_pattern[0] != '\0';
 	int required_computations = cfa ? 3 : (int)fit->naxes[2];
 	if (required_computations == 0) {
 		stats[0] = NULL;

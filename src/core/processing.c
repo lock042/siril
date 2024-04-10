@@ -819,8 +819,10 @@ gpointer generic_sequence_metadata_worker(gpointer arg) {
 		else input_idx = frame;
 
 		fits fit = { 0 };
-		if (seq_open_image(args->seq, input_idx))
-			return GINT_TO_POINTER(1);
+		if (seq_open_image(args->seq, input_idx)) {
+			retval = 1;
+			goto cleanup;
+		}
 		if (args->seq->type == SEQ_REGULAR)
 			args->image_hook(args, args->seq->fptr[input_idx], input_idx);
 		else args->image_hook(args, args->seq->fitseq_file->fptr, input_idx);

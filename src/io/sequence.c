@@ -1722,11 +1722,11 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 			siril_debug_print("moving area to %d, %d\n", args->area.x, args->area.y);
 		}
 
-		if (!args->seq->imgparam[index].date_obs && fit->date_obs)
-			args->seq->imgparam[index].date_obs = g_date_time_ref(fit->date_obs);
-		data->exposure = fit->exposure;
+		if (!args->seq->imgparam[index].date_obs && fit->keywords.date_obs)
+			args->seq->imgparam[index].date_obs = g_date_time_ref(fit->keywords.date_obs);
+		data->exposure = fit->keywords.exposure;
 
-		args->seq->imgparam[index].airmass = fit->airmass;
+		args->seq->imgparam[index].airmass = fit->keywords.airmass;
 	}
 	else {
 		if (spsfargs->framing == FOLLOW_STAR_FRAME) {
