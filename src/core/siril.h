@@ -419,6 +419,7 @@ typedef struct {
 	char instrume[FLEN_VALUE];		// INSTRUME key
 	char telescop[FLEN_VALUE];		// TELESCOP key
 	char observer[FLEN_VALUE];		// OBSERVER key
+	double centalt, centaz;
 	double sitelat;				// SITE LATITUDE key
 	double sitelong;			// SITE LONGITUDE key
 	double siteelev;			// SITE LONGITUDE key
@@ -431,6 +432,9 @@ typedef struct {
 	guint stackcnt;			// number of stacked frame
 	double cvf;			// Conversion factor (e-/adu)
 	int key_gain, key_offset;	// Gain, Offset values read in camera headers.
+	char focname[FLEN_VALUE]; // focuser name
+	int focuspos, focussz;
+	double foctemp;
 
 	/* Plate Solving data */
 	wcs_info wcsdata;		// data from the header
