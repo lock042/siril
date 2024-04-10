@@ -1157,7 +1157,7 @@ int cvWarp_fromKR(fits *image, astrometric_roi *roi_in, Homography K, Homography
 
 	// in case we just want to assess final size, we skip warping the image
 	// we just pass a NULL image
-	if (image) { 
+	if (image) {
 		if (image_to_Mat(image, &in, &out, &bgr, roi_in->w, roi_in->h))
 			return 2;
 		Mat uxmap, uymap;
@@ -1196,6 +1196,201 @@ int cvWarp_fromKR(fits *image, astrometric_roi *roi_in, Homography K, Homography
 
 		return Mat_to_image(image, &in, &out, bgr, roi_in->w, roi_in->h);
 
+	}
+	return 0;
+}
+
+static void drizzle_map_undistortion(disto_data *disto, Rect roi, Mat xmap, Mat ymap) {
+	double U, V, x, y;
+	double U2, V2, U3, V3, U4, V4, U5, V5;
+	for (int v = 0; v < roi.height; ++v) {
+		for (int u = 0; u < roi.width; ++u) {
+			U = (double)xmap.at<float>(v, u) - disto->xref;
+			V = (double)ymap.at<float>(v, u) - disto->yref;
+			x = U + disto->AP[0][0] + disto->AP[1][0] * U + disto->AP[0][1] * V;
+			y = V + disto->BP[0][0] + disto->BP[1][0] * U + disto->BP[0][1] * V;
+			if (disto->order >= 2) {
+				U2 = U * U;
+				V2 = V * V;
+				double UV = U * V;
+				x += disto->AP[2][0] * U2 + disto->AP[1][1] * UV + disto->AP[0][2] * V2;
+				y += disto->BP[2][0] * U2 + disto->BP[1][1] * UV + disto->BP[0][2] * V2;
+			}
+			if (disto->order >= 3) {
+				U3 = U2 * U;
+				V3 = V2 * V;
+				double U2V = U2 * V;
+				double UV2 = U * V2;
+				x += disto->AP[3][0] * U3 + disto->AP[2][1] * U2V + disto->AP[1][2] * UV2 + disto->AP[0][3] * V3;
+				y += disto->BP[3][0] * U3 + disto->BP[2][1] * U2V + disto->BP[1][2] * UV2 + disto->BP[0][3] * V3;
+			}
+			if (disto->order >= 4) {
+				U4 = U3 * U;
+				V4 = V3 * V;
+				double U3V = U3 * V;
+				double U2V2 = U2 * V2;
+				double UV3 = U * V3;
+				x += disto->AP[4][0] * U4 + disto->AP[3][1] * U3V + disto->AP[2][2] * U2V2 + disto->AP[1][3] * UV3 + disto->AP[0][4] * V4;
+				y += disto->BP[4][0] * U4 + disto->BP[3][1] * U3V + disto->BP[2][2] * U2V2 + disto->BP[1][3] * UV3 + disto->BP[0][4] * V4;
+			}
+			if (disto->order >= 5) {
+				U5 = U4 * U;
+				V5 = V4 * V;
+				double U4V = U4 * V;
+				double U3V2 = U3 * V2;
+				double U2V3 = U2 * V3;
+				double UV4 = U * V4;
+				x += disto->AP[5][0] * U5 + disto->AP[4][1] * U4V + disto->AP[3][2] * U3V2 + disto->AP[2][3] * U2V3 + disto->AP[1][4] * UV4 + disto->AP[0][5] * V5;
+				y += disto->BP[5][0] * U5 + disto->BP[4][1] * U4V + disto->BP[3][2] * U3V2 + disto->BP[2][3] * U2V3 + disto->BP[1][4] * UV4 + disto->BP[0][5] * V5;
+			}
+			xmap.at<float>(v, u) = (float)(x + disto->xref);
+			ymap.at<float>(v, u) = (float)(y + disto->yref);
+ 		}
+ 	}
+}
+
+int cvDrizzleWarpMapSpherical(gboolean get_size_only, astrometric_roi *roi_in, Homography K, Homography R, float scale, int projectortype, disto_data *undisto, astrometric_roi *roi_out, float *xmap_data_ptr, float *ymap_data_ptr) {
+	Mat _R = Mat(3, 3, CV_64FC1);
+	Mat _K = Mat(3, 3,CV_64FC1);
+	convert_H_to_MatH(&R, _R);
+	convert_H_to_MatH(&K, _K);
+
+	Point corners;
+	Size sizes;
+	// UMat masks;
+	Mat_<float> k, r;
+	_K.convertTo(k, CV_32F);
+	_R.convertTo(r, CV_32F);
+	Size szin(roi_in->w, roi_in->h);
+	// Prepare projector
+	cv::detail::SphericalProjector projector;
+	Point dst_tl, dst_br;
+	float tl_uf = (std::numeric_limits<float>::max)();
+	float tl_vf = (std::numeric_limits<float>::max)();
+	float br_uf = -(std::numeric_limits<float>::max)();
+	float br_vf = -(std::numeric_limits<float>::max)();
+
+	float u, v;
+	for (int y = 0; y < szin.height; ++y)
+	{
+		for (int x = 0; x < szin.width; ++x)
+		{
+			// Opposite direction to RotationWarperBase::warpRoi as Drizzle needs the
+			// mapping in the opposite direction to OpenCV warp.
+			projector.mapBackward(static_cast<float>(x), static_cast<float>(y), u, v);
+			tl_uf = (std::min)(tl_uf, u); tl_vf = (std::min)(tl_vf, v);
+			br_uf = (std::max)(br_uf, u); br_vf = (std::max)(br_vf, v);
+		}
+	}
+	dst_tl.x = static_cast<int>(tl_uf);
+	dst_tl.y = static_cast<int>(tl_vf);
+	dst_br.x = static_cast<int>(br_uf);
+	dst_br.y = static_cast<int>(br_vf);
+	Rect roi = Rect(dst_tl, Point(dst_br.x + 1, dst_br.y + 1));
+	corners = roi.tl();
+	sizes = roi.size();
+	if (roi_out)
+		*roi_out = (astrometric_roi) {.x = corners.x, .y = corners.y, .w = sizes.width, .h = sizes.height};
+	// We call this function twice, once with get_size_only to populate roi_out which we use to calculate
+	// how much memory to allocate in the mapping float arrays, then we call it again to actually generate
+	// the mapping arrays.
+	if (!get_size_only) {
+		projector.scale = scale;
+		projector.setCameraParams(k, r);
+
+		Point dst_tl, dst_br;
+
+		Mat uxmap(dst_br.y - dst_tl.y + 1, dst_br.x - dst_tl.x + 1, CV_32F, xmap_data_ptr);
+		Mat uymap(dst_br.y - dst_tl.y + 1, dst_br.x - dst_tl.x + 1, CV_32F, ymap_data_ptr);
+
+		if (undisto)
+			drizzle_map_undistortion(undisto, roi, uxmap, uymap);
+
+		float x, y;
+		for (int v = dst_tl.y; v <= dst_br.y; ++v)
+		{
+			for (int u = dst_tl.x; u <= dst_br.x; ++u)
+			{
+				// Opposite direction to RotationWarperBase::buildMaps as Drizzle needs the
+				// mapping in the opposite direction to OpenCV warp.
+				projector.mapForward(static_cast<float>(u), static_cast<float>(v), x, y);
+				uxmap.at<float>(v - dst_tl.y, u - dst_tl.x) = x;
+				uymap.at<float>(v - dst_tl.y, u - dst_tl.x) = y;
+			}
+		}
+	}
+	return 0;
+}
+
+int cvDrizzleWarpMapPlanar(gboolean get_size_only, astrometric_roi *roi_in, Homography K, Homography R, float scale, int projectortype, disto_data *undisto, astrometric_roi *roi_out, float *xmap_data_ptr, float *ymap_data_ptr) {
+	Mat _R = Mat(3, 3, CV_64FC1);
+	Mat _K = Mat(3, 3,CV_64FC1);
+	convert_H_to_MatH(&R, _R);
+	convert_H_to_MatH(&K, _K);
+
+	Point corners;
+	Size sizes;
+	// UMat masks;
+	Mat_<float> k, r;
+	_K.convertTo(k, CV_32F);
+	_R.convertTo(r, CV_32F);
+	Size szin(roi_in->w, roi_in->h);
+	// Prepare projector
+	cv::detail::PlaneProjector projector;
+	Point dst_tl, dst_br;
+	float tl_uf = (std::numeric_limits<float>::max)();
+	float tl_vf = (std::numeric_limits<float>::max)();
+	float br_uf = -(std::numeric_limits<float>::max)();
+	float br_vf = -(std::numeric_limits<float>::max)();
+
+	float u, v;
+	for (int y = 0; y < szin.height; ++y)
+	{
+		for (int x = 0; x < szin.width; ++x)
+		{
+			// Opposite direction to RotationWarperBase::warpRoi as Drizzle needs the
+			// mapping in the opposite direction to OpenCV warp.
+			projector.mapBackward(static_cast<float>(x), static_cast<float>(y), u, v);
+			tl_uf = (std::min)(tl_uf, u); tl_vf = (std::min)(tl_vf, v);
+			br_uf = (std::max)(br_uf, u); br_vf = (std::max)(br_vf, v);
+		}
+	}
+	dst_tl.x = static_cast<int>(tl_uf);
+	dst_tl.y = static_cast<int>(tl_vf);
+	dst_br.x = static_cast<int>(br_uf);
+	dst_br.y = static_cast<int>(br_vf);
+	Rect roi = Rect(dst_tl, Point(dst_br.x + 1, dst_br.y + 1));
+	corners = roi.tl();
+	sizes = roi.size();
+	if (roi_out)
+		*roi_out = (astrometric_roi) {.x = corners.x, .y = corners.y, .w = sizes.width, .h = sizes.height};
+	// We call this function twice, once with get_size_only to populate roi_out which we use to calculate
+	// how much memory to allocate in the mapping float arrays, then we call it again to actually generate
+	// the mapping arrays.
+	if (!get_size_only) {
+		projector.scale = scale;
+		projector.setCameraParams(k, r);
+
+		Point dst_tl, dst_br;
+
+		Mat uxmap(dst_br.y - dst_tl.y + 1, dst_br.x - dst_tl.x + 1, CV_32F, xmap_data_ptr);
+		Mat uymap(dst_br.y - dst_tl.y + 1, dst_br.x - dst_tl.x + 1, CV_32F, ymap_data_ptr);
+
+		if (undisto)
+			drizzle_map_undistortion(undisto, roi, uxmap, uymap);
+
+		float x, y;
+		for (int v = dst_tl.y; v <= dst_br.y; ++v)
+		{
+			for (int u = dst_tl.x; u <= dst_br.x; ++u)
+			{
+				// Opposite direction to RotationWarperBase::buildMaps as Drizzle needs the
+				// mapping in the opposite direction to OpenCV warp.
+				projector.mapForward(static_cast<float>(u), static_cast<float>(v), x, y);
+				uxmap.at<float>(v - dst_tl.y, u - dst_tl.x) = x;
+				uymap.at<float>(v - dst_tl.y, u - dst_tl.x) = y;
+			}
+		}
 	}
 	return 0;
 }
