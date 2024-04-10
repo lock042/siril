@@ -215,7 +215,7 @@ SirilWorldCS *get_eqs_from_header(fits *fit) {
 	else if (has_wcs(fit) && (fit->keywords.wcslib->crval[0] != 0.0 || fit->keywords.wcslib->crval[1] != 0.0))
 		return siril_world_cs_new_from_a_d(fit->keywords.wcslib->crval[0], fit->keywords.wcslib->crval[1]);
 
-	else if (fit->keywords.wcsdata.ra != 0.0 || fit->keywords.wcsdata.dec != 0.0)
+	else if (fit->keywords.wcsdata.ra > DEFAULT_DOUBLE_VALUE || fit->keywords.wcsdata.dec > DEFAULT_DOUBLE_VALUE)
 		return siril_world_cs_new_from_a_d(fit->keywords.wcsdata.ra, fit->keywords.wcsdata.dec);
 	return NULL;
 }

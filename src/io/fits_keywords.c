@@ -34,11 +34,6 @@
         siril_debug_print("Parsing stopped at: %s\n", end); \
     } while (0)
 
-#define DEFAULT_DOUBLE_VALUE -999.0
-#define DEFAULT_FLOAT_VALUE -999.f
-#define DEFAULT_INT_VALUE -INT_MAX
-#define DEFAULT_UINT_VALUE 0
-#define DEFAULT_USHORT_VALUE DEFAULT_UINT_VALUE
 
 #define KEYWORD_PRIMARY(group, key, type, comment, data, handler_read, handler_save) { group, key, type, comment, data, handler_read, handler_save, TRUE, FALSE }
 #define KEYWORD_SECONDA(group, key, type, comment, data, handler_read, handler_save) { group, key, type, comment, data, handler_read, handler_save, FALSE, FALSE }
