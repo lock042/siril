@@ -151,7 +151,8 @@ struct lanczos_param_t {
 };
 
 typedef struct _imgmap_t {
-	float* pixmap;
+	float* xmap;
+	float* ymap;
 	int rx;
 	int ry;
 } imgmap_t;
@@ -264,9 +265,14 @@ get_dimensions(fits *image, integer_t size[2]) {
   return;
 }
 
-static inline_macro float*
-get_pixmap(imgmap_t *p, integer_t xpix, integer_t ypix) {
-  return (float*) p->pixmap + ((xpix + ypix * p->rx) * 2);
+static inline_macro float
+get_xmap(imgmap_t *p, integer_t xpix, integer_t ypix) {
+  return *(float*) (p->xmap + ((xpix + ypix * p->rx)));
+}
+
+static inline_macro float
+get_ymap(imgmap_t *p, integer_t xpix, integer_t ypix) {
+  return *(float*) (p->ymap + ((xpix + ypix * p->rx)));
 }
 
 #if defined(LOGGING) && defined(CHECK_OOB)

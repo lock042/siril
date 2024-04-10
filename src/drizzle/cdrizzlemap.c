@@ -175,21 +175,17 @@ interpolate_point(struct driz_param_t *par, float xin, float yin,
     x1 = 1.0 - x;
     y1 = 1.0 - y;
 
-    p = get_pixmap(pixmap, i0, j0);
-    f00 = p[0];
-    g00 = p[1];
+    f00 = get_xmap(pixmap, i0, j0);
+	g00 = get_ymap(pixmap, i0, j0);
 
-    p = get_pixmap(pixmap, i0 + 1, j0);
-    f10 = p[0];
-    g10 = p[1];
+    f10 = get_xmap(pixmap, i0 + 1, j0);
+    g10 = get_ymap(pixmap, i0 + 1, j0);
 
-    p = get_pixmap(pixmap, i0, j0 + 1);
-    f01 = p[0];
-    g01 = p[1];
+    f01 = get_xmap(pixmap, i0, j0 + 1);
+    g01 = get_ymap(pixmap, i0, j0 + 1);
 
-    p = get_pixmap(pixmap, i0 + 1, j0 + 1);
-    f11 = p[0];
-    g11 = p[1];
+    f11 = get_xmap(pixmap, i0 + 1, j0 + 1);
+    g11 = get_ymap(pixmap, i0 + 1, j0 + 1);
 
     *xout = f00 * x1 * y1 + f10 * x * y1 + f01 * x1 * y + f11 * x * y;
     *yout = g00 * x1 * y1 + g10 * x * y1 + g01 * x1 * y + g11 * x * y;
@@ -353,7 +349,8 @@ int map_image_coordinates_h(fits *fit, Homography H, imgmap_t *p, int target_ry,
 		(float) H.h10, (float) H.h11, (float) H.h12,
 		(float) H.h20, (float) H.h21, (float) H.h22 };
 
-	p->pixmap = malloc(rx * source_ry * 2 * sizeof(float));
+	p->xmap = malloc(rx * source_ry * 2 * sizeof(float));
+	p->ymap = p->xmap + (rx * source_ry);
 
 	for (y = 0; y < source_ry; y++) {
 		float y1 = y * Harr[7] + Harr[8];
@@ -361,8 +358,8 @@ int map_image_coordinates_h(fits *fit, Homography H, imgmap_t *p, int target_ry,
 		float y3 = y * Harr[4] + Harr[5];
 		for (x = 0; x < rx; x++) {
 			float z = scale / (x * Harr[6] + y1);
-			p->pixmap[index++] = (x * Harr[0] + y2) * z;
-			p->pixmap[index++] = (x * Harr[3] + y3) * z;
+			p->xmap[index] = (x * Harr[0] + y2) * z;
+			p->ymap[index++] = (x * Harr[3] + y3) * z;
 		}
 	}
 	return 0;
@@ -381,11 +378,8 @@ int map_image_coordinates_h(fits *fit, Homography H, imgmap_t *p, int target_ry,
 
 int
 map_pixel(imgmap_t *p, int i, int j, float *x, float *y) {
-	/* p->pixmap is a float array with twice as many
-	 * elements as the number of pixels in the input image: consecutive values
-	 * represent the mapped x and y coordinates. */
-    *x = p->pixmap[2 * (j * p->rx + i)];
-    *y = p->pixmap[2 * (j * p->rx + i) + 1];
+    *x = p->xmap[(j * p->rx + i)];
+    *y = p->ymap[(j * p->rx + i)];
     return ((npy_isnan(*x) || npy_isnan(*y)) ? 1 : 0);
 }
 

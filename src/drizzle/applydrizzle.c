@@ -364,7 +364,7 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 //	} else {
 		map_image_coordinates_h(fit, H, p->pixmap, ry_out_unscaled, driz->scale);
 //	}
-	if (!p->pixmap->pixmap) {
+	if (!p->pixmap->xmap) {
 		siril_log_color_message(_("Error generating mapping array.\n"), "red");
 		return 1;
 	}
@@ -433,7 +433,7 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		fit->lo = 0;
 	}
 
-	free(p->pixmap->pixmap);
+	free(p->pixmap->xmap);
 	free(p->pixmap);
 
 	// Get rid of the output_counts if not required
