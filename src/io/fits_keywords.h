@@ -33,12 +33,6 @@ enum keywords_type {
 	KTYPE_DATE
 };
 
-enum default_type {
-	NO_DEFAULT,
-	SET_DEFAULT
-};
-
-
 typedef struct KeywordInfo KeywordInfo;
 
 typedef void (*special_handler_read_func)(fits *fit, const char *comment, KeywordInfo *info);
@@ -54,7 +48,7 @@ struct KeywordInfo {
     special_handler_save_func special_handler_save;
     gboolean is_saved;
     gboolean fixed_value;
-    enum default_type default_value;
+    gboolean used;
 };
 
 int save_fits_keywords(fits *fit);
