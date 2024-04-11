@@ -118,11 +118,10 @@ static void flength_handler_read(fits *fit, const char *comment, KeywordInfo *in
 }
 
 static void sitelong_handler_read(fits *fit, const char *comment, KeywordInfo *info) {
-	char sitelong_dump[FLEN_VALUE] = { 0 };
 	char sitelong_dump_tmp[FLEN_VALUE] = { 0 };
 	double d_sitelong_dump = 0.0;
 
-	gchar **token = g_strsplit(sitelong_dump, ":", -1); // Handles PRISM special parsing for SITELONG
+	gchar **token = g_strsplit(fit->keywords.sitelong_str, ":", -1); // Handles PRISM special parsing for SITELONG
 	gsize token_size = g_strv_length(token);
 	if (token_size > 1 && token[1])	{
 		for (int i = 0; i < token_size; ++i) {
@@ -130,14 +129,14 @@ static void sitelong_handler_read(fits *fit, const char *comment, KeywordInfo *i
 			if (i < 3) strncat(sitelong_dump_tmp, i < 2 ? ":" : ".", 2);
 			d_sitelong_dump = parse_dms(sitelong_dump_tmp);
 		}
-	} else d_sitelong_dump = parse_dms(sitelong_dump);
+	} else d_sitelong_dump = parse_dms(fit->keywords.sitelong_str);
 
 	g_strfreev(token);
 
 	if (isnan(d_sitelong_dump)) {	// Cases SITELONG and SITELAT keyword are numbers (only NINA and Seq. Generator, for now)
 		gchar *end;
-		fit->keywords.sitelong = g_ascii_strtod(sitelong_dump, &end);
-		if (sitelong_dump == end) {
+		fit->keywords.sitelong = g_ascii_strtod(fit->keywords.sitelong_str, &end);
+		if (fit->keywords.sitelong_str == end) {
 			siril_debug_print("Cannot read SITELONG\n");
 		}
 	} else {
@@ -146,11 +145,10 @@ static void sitelong_handler_read(fits *fit, const char *comment, KeywordInfo *i
 }
 
 static void sitelat_handler_read(fits *fit, const char *comment, KeywordInfo *info) {
-	char sitelat_dump[FLEN_VALUE] = { 0 };
 	char sitelat_dump_tmp[FLEN_VALUE] = { 0 };
 	double d_sitelat_dump = 0.0;
 
-	gchar **token = g_strsplit(sitelat_dump, ":", -1); // Handles PRISM special parsing for SITELAT
+	gchar **token = g_strsplit(fit->keywords.sitelat_str, ":", -1); // Handles PRISM special parsing for SITELAT
 	gsize token_size = g_strv_length(token);
 	if (token_size > 1 && token[1])	{	// Denotes presence of ":"
 		for (int i = 0; i < token_size; ++i) {
@@ -158,14 +156,14 @@ static void sitelat_handler_read(fits *fit, const char *comment, KeywordInfo *in
 			if (i < 3) strncat(sitelat_dump_tmp, i < 2 ? ":" : ".", 2);
 			d_sitelat_dump = parse_dms(sitelat_dump_tmp);
 		}
-	} else d_sitelat_dump = parse_dms(sitelat_dump);
+	} else d_sitelat_dump = parse_dms(fit->keywords.sitelat_str);
 
 	g_strfreev(token);
 
 	if (isnan(d_sitelat_dump)) {	// Cases SITELONG and SITELAT keyword are numbers (only NINA and Seq. Generator, for now)
 		gchar *end;
-		fit->keywords.sitelat = g_ascii_strtod(sitelat_dump, &end);
-		if (sitelat_dump == end) {
+		fit->keywords.sitelat = g_ascii_strtod(fit->keywords.sitelat_str, &end);
+		if (fit->keywords.sitelat_str == end) {
 			siril_debug_print("Cannot read SITELAT\n");
 		}
 	} else {
@@ -195,7 +193,6 @@ static void fhi_handler_read(fits *fit, const char *comment, KeywordInfo *info) 
 		fit->keywords.hi = float_to_ushort_range(fit->keywords.fhi);
 	}
 }
-
 
 static void flo_handler_save(fits *fit, KeywordInfo *info) {
 	if (!fit->keywords.hi && (fit->orig_bitpix == FLOAT_IMG || fit->orig_bitpix == DOUBLE_IMG)) {
@@ -241,6 +238,7 @@ static void default_values_special_cases(fits *fit) {
 	/* set special default values */
 	fit->keywords.siteelev = 0.0;
 }
+
 
 KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 	/*
@@ -334,12 +332,15 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 			KEYWORD_PRIMARY( "stack", "EXPEND", KTYPE_DOUBLE, "[JD] Exposure end time (standard Julian date)", &(fit->keywords.expend), NULL, NULL),
 			KEYWORD_PRIMARY( "target", "OBJECT", KTYPE_STR, "Name of the object of interest", &(fit->keywords.object), NULL, NULL),
 			KEYWORD_PRIMARY( "target", "AIRMASS", KTYPE_DOUBLE, "Airmass at frame center (Gueymard 1993)", &(fit->keywords.airmass), NULL, NULL),
-			KEYWORD_PRIMARY( "geo", "SITELAT", KTYPE_DOUBLE, "[deg] Observation site latitude", &(fit->keywords.sitelat), sitelat_handler_read, NULL),
-			KEYWORD_SECONDA( "geo", "SITE-LAT", KTYPE_DOUBLE, "[deg] Observation site latitude", &(fit->keywords.sitelat), sitelat_handler_read, NULL),
-			KEYWORD_SECONDA( "geo", "OBSLAT", KTYPE_DOUBLE, "[deg] Observation site latitude", &(fit->keywords.sitelat), sitelat_handler_read, NULL),
-			KEYWORD_PRIMARY( "geo", "SITELONG", KTYPE_DOUBLE, "[deg] Observation site longitude", &(fit->keywords.sitelong), sitelong_handler_read, NULL),
-			KEYWORD_SECONDA( "geo", "SITE-LON", KTYPE_DOUBLE, "[deg] Observation site longitude", &(fit->keywords.sitelong), sitelong_handler_read, NULL),
-			KEYWORD_SECONDA( "geo", "OBSLONG", KTYPE_DOUBLE, "[deg] Observation site longitude", &(fit->keywords.sitelong), sitelong_handler_read, NULL),
+			/* SITELAT and SITELONG can be provided in double or string. We need to check both. We save as double */
+			KEYWORD_PRIMARY( "geo", "SITELAT", KTYPE_DOUBLE, "[deg] Observation site latitude", &(fit->keywords.sitelat), NULL, NULL),
+			KEYWORD_SECONDA( "geo", "SITELAT", KTYPE_STR, "[deg] Observation site latitude", &(fit->keywords.sitelat_str), sitelat_handler_read, NULL),
+			KEYWORD_SECONDA( "geo", "SITE-LAT", KTYPE_STR, "[deg] Observation site latitude", &(fit->keywords.sitelat_str), sitelat_handler_read, NULL),
+			KEYWORD_SECONDA( "geo", "OBSLAT", KTYPE_STR, "[deg] Observation site latitude", &(fit->keywords.sitelat_str), sitelat_handler_read, NULL),
+			KEYWORD_PRIMARY( "geo", "SITELONG", KTYPE_DOUBLE, "[deg] Observation site longitude", &(fit->keywords.sitelong), NULL, NULL),
+			KEYWORD_SECONDA( "geo", "SITELONG", KTYPE_STR, "[deg] Observation site longitude", &(fit->keywords.sitelong_str), sitelong_handler_read, NULL),
+			KEYWORD_SECONDA( "geo", "SITE-LON", KTYPE_STR, "[deg] Observation site longitude", &(fit->keywords.sitelong_str), sitelong_handler_read, NULL),
+			KEYWORD_SECONDA( "geo", "OBSLONG", KTYPE_STR, "[deg] Observation site longitude", &(fit->keywords.sitelong_str), sitelong_handler_read, NULL),
 			KEYWORD_PRIMARY( "geo", "SITEELEV", KTYPE_DOUBLE, "[m] Observation site elevation", &(fit->keywords.siteelev), NULL, NULL),
 			KEYWORD_PRIMARY( "dft",   "DFTTYPE", KTYPE_STR, "Module/Phase of a Discrete Fourier Transform", &(fit->keywords.dft.type), NULL, NULL),
 			KEYWORD_PRIMARY( "dft",   "DFTORD", KTYPE_STR, "Low/High spatial freq. are located at image center", &(fit->keywords.dft.ord), NULL, NULL),
@@ -520,7 +521,7 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 			}
 		}
 
-		default_values_special_cases(fit);
+		default_values_special_cases(fit); // handle special initialization. Cannot be done in read_handler because it would be overridden by previous initialization
 
 		if (hash_table)
 			g_hash_table_insert(hash_table, g_strdup(keyword_list[i].key), &(all_keywords[i]));

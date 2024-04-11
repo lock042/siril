@@ -2160,6 +2160,7 @@ void copy_fits_metadata(fits *from, fits *to) {
 	to->focalkey = (from->keywords.focal_length > 0.);
 
 	// copy from->history?
+
 }
 
 

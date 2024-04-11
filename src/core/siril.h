@@ -426,9 +426,10 @@ typedef struct {
 	char telescop[FLEN_VALUE];		// TELESCOP key
 	char observer[FLEN_VALUE];		// OBSERVER key
 	double centalt, centaz;
-	double sitelat;				// SITE LATITUDE key
-	double sitelong;			// SITE LONGITUDE key
-	double siteelev;			// SITE LONGITUDE key
+	double sitelat, sitelong;		// SITE LAT and LONG as double
+	char sitelat_str[FLEN_VALUE];		// SITE LATITUDE key as string
+	char sitelong_str[FLEN_VALUE];		// SITE LONGITUDE key as string
+	double siteelev;			// SITE LONGITUDE key as double
 	char bayer_pattern[FLEN_VALUE];		// BAYERPAT key Bayer Pattern if available
 	int bayer_xoffset, bayer_yoffset;
 	double airmass;                   // relative optical path length through atmosphere.
