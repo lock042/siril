@@ -8,16 +8,16 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-03-28 07:46+0100\n"
-"PO-Revision-Date: 2024-02-18 22:17+0000\n"
+"PO-Revision-Date: 2024-04-12 14:37+0000\n"
 "Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
-"Language-Team: German <https://weblate.pixls.us/projects/siril/siril-"
-"application-1-2/de/>\n"
+"Language-Team: German <https://weblate.pixls.us/projects/siril/"
+"siril-application-1-2/de/>\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.4\n"
+"X-Generator: Weblate 5.4.2\n"
 
 #: src/gui/siril3.glade:149 src/gui/siril3.glade:7998
 #: src/filters/cosmetic_correction.c:434 src/filters/cosmetic_correction.c:605
@@ -12156,6 +12156,8 @@ msgid ""
 "Sorting by date could not be done, file %s doesn't have DATE-OBS, not "
 "sorting\n"
 msgstr ""
+"Sortierung nach Datum konnte nicht durchgeführt werden, Datei %s hat keine "
+"DATE-OBS-Header, keine Sortierung\n"
 
 #: src/core/command.c:6354 src/core/command.c:6504 src/core/command.c:6312
 #: src/core/command.c:6462
@@ -13993,7 +13995,6 @@ msgstr ""
 "Bereichs [<b>low</b>, <b>high</b>] liegen"
 
 #: src/core/command_def.h:77
-#, fuzzy
 msgid ""
 "Same as CONVERT but converts only FITS files found in the current working "
 "directory. This is useful to avoid conversions of JPEG results or other "
@@ -14004,7 +14005,9 @@ msgstr ""
 "Identisch mit CONVERT, konvertiert jedoch nur FITS-Dateien, die im aktuellen "
 "Arbeitsverzeichnis gefunden werden. Dies ist nützlich, um Konvertierungen "
 "von JPEG-Ergebnissen oder anderen Dateien zu vermeiden, die möglicherweise "
-"im Verzeichnis landen"
+"im Verzeichnis landen. Das zusätzliche Argument <b>-date</b> ermöglicht es, "
+"Dateien nach ihrem DATE-OBS-Wert statt nach ihrem Namen alphanumerisch zu "
+"sortieren"
 
 #: src/core/command_def.h:78
 msgid ""
