@@ -1200,6 +1200,13 @@ int cvWarp_fromKR(fits *image, astrometric_roi *roi_in, Homography K, Homography
 	return 0;
 }
 
+/*
+ *
+ * The following functions are written in preparation for the subsequent MR to
+ * integrate Drizzle into astrometric registration
+ *
+ */
+/*
 static void drizzle_map_undistortion(disto_data *disto, Rect roi, Mat xmap, Mat ymap) {
 	double U, V, x, y;
 	double U2, V2, U3, V3, U4, V4, U5, V5;
@@ -1270,7 +1277,11 @@ int cvDrizzleWarpMapSpherical(gboolean get_size_only, astrometric_roi *roi_in, H
 	Mat_<float> k, r;
 	_K.convertTo(k, CV_32F);
 	_R.convertTo(r, CV_32F);
-	Size szin(roi_in->w, roi_in->h);
+	Size szin;
+	if (!image)
+		szin = Size(roi_in->w, roi_in->h);
+	else
+		szin = Size(image->rx, image->ry);
 	// Prepare projector
 	cv::detail::SphericalProjector projector;
 	Point dst_tl, dst_br;
@@ -1284,9 +1295,7 @@ int cvDrizzleWarpMapSpherical(gboolean get_size_only, astrometric_roi *roi_in, H
 	{
 		for (int x = 0; x < szin.width; ++x)
 		{
-			// Opposite direction to RotationWarperBase::warpRoi as Drizzle needs the
-			// mapping in the opposite direction to OpenCV warp.
-			projector.mapBackward(static_cast<float>(x), static_cast<float>(y), u, v);
+			projector.mapForward(static_cast<float>(x), static_cast<float>(y), u, v);
 			tl_uf = (std::min)(tl_uf, u); tl_vf = (std::min)(tl_vf, v);
 			br_uf = (std::max)(br_uf, u); br_vf = (std::max)(br_vf, v);
 		}
@@ -1343,7 +1352,11 @@ int cvDrizzleWarpMapPlanar(gboolean get_size_only, astrometric_roi *roi_in, Homo
 	Mat_<float> k, r;
 	_K.convertTo(k, CV_32F);
 	_R.convertTo(r, CV_32F);
-	Size szin(roi_in->w, roi_in->h);
+	Size szin;
+	if (!image)
+		szin = Size(roi_in->w, roi_in->h);
+	else
+		szin = Size(image->rx, image->ry);
 	// Prepare projector
 	cv::detail::PlaneProjector projector;
 	Point dst_tl, dst_br;
@@ -1357,9 +1370,7 @@ int cvDrizzleWarpMapPlanar(gboolean get_size_only, astrometric_roi *roi_in, Homo
 	{
 		for (int x = 0; x < szin.width; ++x)
 		{
-			// Opposite direction to RotationWarperBase::warpRoi as Drizzle needs the
-			// mapping in the opposite direction to OpenCV warp.
-			projector.mapBackward(static_cast<float>(x), static_cast<float>(y), u, v);
+			projector.mapForward(static_cast<float>(x), static_cast<float>(y), u, v);
 			tl_uf = (std::min)(tl_uf, u); tl_vf = (std::min)(tl_vf, v);
 			br_uf = (std::max)(br_uf, u); br_vf = (std::max)(br_vf, v);
 		}
@@ -1403,3 +1414,4 @@ int cvDrizzleWarpMapPlanar(gboolean get_size_only, astrometric_roi *roi_in, Homo
 	}
 	return 0;
 }
+*/
