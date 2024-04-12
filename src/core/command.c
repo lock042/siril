@@ -6964,9 +6964,8 @@ int process_register(int nb) {
 
 	/* check for options */
 	for (int i = 2; i < nb; i++) {
-		if (!strcmp(word[i], "-drizzle")) {
+		if (!strcmp(word[i], "-upscale")) {
 			reg_args->x2upscale = TRUE;
-			PRINT_DEPRECATED_OPTION_WARNING("-drizzle", _("the seqapplydrizzle command"));
 		} else if (!strcmp(word[i], "-noout")) {
 			reg_args->no_output = TRUE;
 		} else if (!strcmp(word[i], "-noclamp")) {
