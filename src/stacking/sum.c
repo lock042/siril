@@ -133,7 +133,10 @@ static int sum_stacking_image_hook(struct generic_seq_args *args, int o, int i, 
 		thread_id = omp_get_thread_num();
 #endif
 		pc = calloc(1, sizeof(fits));
-		seq_read_frame(ssdata->pixcnt, i, pc, TRUE, thread_id);
+		if (seq_read_frame(ssdata->pixcnt, i, pc, TRUE, thread_id)) {
+			free(pc);
+			return ST_GENERIC_ERROR;
+		}
 	}
 #ifdef _OPENMP
 #pragma omp atomic

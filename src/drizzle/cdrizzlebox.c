@@ -735,7 +735,7 @@ do_kernel_square(struct driz_param_t* p) {
     int xmin, xmax, ymin, ymax, n;
 	const char* cfa = p->cfa;
 	size_t cfadim = !cfa ? 1 : strlen(cfa) == 4 ? 2 : 6;
-	integer_t maxarea = 0, mnii, mxii, mnjj, mxjj;
+	integer_t maxarea = 0, mnii = 0, mxii = 0, mnjj = 0, mxjj = 0;
 
     siril_debug_print("starting do_kernel_square\n");
     dh = 0.5 * p->pixel_fraction;

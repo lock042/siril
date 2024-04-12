@@ -355,6 +355,9 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		map_image_coordinates_h(fit, H, p->pixmap, ry_out_unscaled, driz->scale);
 		if (!p->pixmap->xmap) {
 			siril_log_color_message(_("Error generating mapping array.\n"), "red");
+			free(p->error);
+			free(p->pixmap);
+			free(p);
 			return 1;
 		}
 		p->data = fit;

@@ -74,7 +74,7 @@ driz_error_set_message(struct driz_error_t* error, const char* message) {
   assert(error);
   assert(message);
 
-  strncpy(error->last_message, message, MAX_DRIZ_ERROR_LEN);
+  strncpy(error->last_message, message, MAX_DRIZ_ERROR_LEN - 1);
 }
 
 void
@@ -88,7 +88,7 @@ driz_error_format_message(struct driz_error_t* error, const char* format, ...) {
   assert(format);
 
   va_start(argp, format);
-  (void)vsnprintf(error->last_message, MAX_DRIZ_ERROR_LEN, format, argp);
+  (void)vsnprintf(error->last_message, MAX_DRIZ_ERROR_LEN - 1, format, argp);
   va_end(argp);
 }
 
@@ -256,22 +256,16 @@ interp_str2enum(const char* s, enum e_interp_t* result, struct driz_error_t* err
 
 const char*
 kernel_enum2str(enum e_kernel_t value) {
-  assert(value >= 0 && value < kernel_LAST);
-
   return kernel_string_table[value];
 }
 
 const char*
 unit_enum2str(enum e_unit_t value) {
-  assert(value >= 0 && value < 2);
-
   return unit_string_table[value];
 }
 
 const char*
 interp_enum2str(enum e_interp_t value) {
-  assert(value >= 0 && value < interp_LAST);
-
   return interp_string_table[value];
 }
 
