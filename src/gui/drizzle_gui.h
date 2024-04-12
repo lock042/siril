@@ -21,6 +21,6 @@
 #ifndef _DRIZZLEGUI_H_
 #define _DRIZZLEGUI_H_
 
- void on_apply_drizzle_clicked(GtkButton *button, gpointer user_data);
+int populate_drizzle_data(struct driz_args_t *driz);
 
 #endif

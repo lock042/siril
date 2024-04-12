@@ -158,27 +158,10 @@ typedef struct _imgmap_t {
 } imgmap_t;
 
 struct driz_args_t {
-  /* Siril sequence data */
-  sequence *seq; /* Sequence to operate on */
-  int reference_image; /* reference image */
   bool_t is_bayer; /* Is this a Bayer drizzle? */
-  bool_t use_wcs; /* Use WCS mapping? If not, Homography mapping will be used */
   regdata *ref_regdata; /* Reference reg data */
-  struct wcsprm *refwcs; /* Reference WCS */
   gboolean keep_counts; /* whether to save the pixel_counts sequence */
-  gchar *prefix;
   gchar *pixcnt_prefix;
-  gchar *new_seq_name;
-  imgdata *imgparam;
-  regdata *regparam;
-  struct seq_filter_config filters; // parsed image filters (.filter_included always used)
-  seq_image_filter filtering_criterion; // the filter, (seqapplyreg only)
-  double filtering_parameter;	// and its parameter (seqapplyreg only)
-  framing_type framing;	// used by seqapplyreg to determine framing
-  BYTE* success;
-  int new_total;
-  gboolean load_new_sequence;
-  gboolean flatten; // whether or not to map to a flat output reference
   /* Parameters to be copied into the driz_param_t for each frame */
   enum e_kernel_t kernel; /* Kernel shape and size */
   float scale;
@@ -187,6 +170,7 @@ struct driz_args_t {
   gboolean use_flats; /* Whether to use master flat as weights */
   float pixel_fraction;
   const char* cfa;
+  /* Output sequence data */
   GList *processed_images;
   struct ser_struct *new_ser_drz;
   fitseq *new_fitseq_drz;

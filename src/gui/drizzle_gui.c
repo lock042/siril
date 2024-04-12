@@ -33,22 +33,13 @@
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 
-void on_apply_drizzle_clicked(GtkButton *button, gpointer user_data) {
-	struct driz_args_t *driz = calloc(1, sizeof(struct driz_args_t));
-	driz->seq = &com.seq;
-	driz->reference_image = sequence_find_refimage(&com.seq);
+int populate_drizzle_data(struct driz_args_t *driz) {
 	driz->keep_counts = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("generate_pixcnt")));
-//	driz->use_wcs = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_driz_method"))) == 1;
-	driz->use_wcs = FALSE;
-	driz->load_new_sequence = TRUE;
 	driz->use_flats = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("driz_use_flats")));
 	driz->scale = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_driz_scale")));
 	driz->weight_scale = 1.f; // Not used for now
 	driz->kernel = (enum e_kernel_t) gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_driz_kernel")));
 	driz->pixel_fraction = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_driz_dropsize")));
-	driz->framing = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("comboreg_framing")));
-	driz->prefix = strdup(gtk_entry_get_text(GTK_ENTRY(lookup_widget("regseqname_entry"))));
-	get_reg_sequence_filtering_from_gui(&driz->filtering_criterion, &driz->filtering_parameter, -1);
 	if (driz->use_flats) {
 		fits reffit = { 0 };
 		GtkEntry *entry = GTK_ENTRY(lookup_widget("flatname_entry"));
@@ -63,17 +54,16 @@ void on_apply_drizzle_clicked(GtkButton *button, gpointer user_data) {
 			free(expression);
 			if (flat_filename[0] == '\0') {
 				siril_log_message(_("Error: no master flat specified in the preprocessing tab.\n"));
-				free(driz->prefix);
 				free(driz);
-				return;
+				return 1;
 			} else {
 				set_progress_bar_data(_("Opening flat image..."), PROGRESS_NONE);
 				driz->flat = calloc(1, sizeof(fits));
 				if (!readfits(flat_filename, driz->flat, NULL, TRUE)) {
-					if (driz->flat->naxes[2] != driz->seq->nb_layers) {
+					if (driz->flat->naxes[2] != com.seq.nb_layers) {
 						error = _("NOT USING FLAT: number of channels is different");
-					} else if (driz->flat->naxes[0] != driz->seq->rx ||
-							driz->flat->naxes[1] != driz->seq->ry) {
+					} else if (driz->flat->naxes[0] != com.seq.rx ||
+							driz->flat->naxes[1] != com.seq.ry) {
 						error = _("NOT USING FLAT: image dimensions are different");
 					} else {
 						// no need to deal with bitdepth conversion as readfits has already forced conversion to float
@@ -87,15 +77,13 @@ void on_apply_drizzle_clicked(GtkButton *button, gpointer user_data) {
 						clearfits(driz->flat);
 						free(driz->flat);
 					}
-					free(driz->prefix);
 					free(driz);
-					return;
+					return 1;
 				}
 			}
 		}
 	}
-
-	apply_drizzle(driz);
+	return 0;
 }
 
 void on_drizzleCheckButton_toggled(GtkToggleButton* button, gpointer user_data) {

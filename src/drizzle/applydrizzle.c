@@ -57,7 +57,7 @@ static int new_ref_index = -1;
 
 static Homography Htransf = {0};
 static int rx_out, ry_out, ry_out_unscaled;
-
+/*
 static regdata *apply_driz_get_current_regdata(struct driz_args_t *driz) {
 	regdata *current_regdata;
 	if (driz->seq->regparam[0]) {
@@ -71,7 +71,7 @@ static regdata *apply_driz_get_current_regdata(struct driz_args_t *driz) {
 	}
 	return current_regdata;
 }
-
+*/
 // TODO: once WCS drizzle mapping is reinstated, the framing calculation needs to be written properly
 /*
 static gboolean driz_compute_wcs_framing(struct driz_args_t *driz) {
@@ -96,6 +96,7 @@ static gboolean driz_compute_wcs_framing(struct driz_args_t *driz) {
 */
 
 // confirmed generates the correct Homography
+/*
 static gboolean driz_compute_framing(struct driz_args_t *driz) {
 	// validity of matrices has already been checked before this call
 	// and null matrices have been discarded
@@ -237,7 +238,9 @@ static gboolean driz_compute_framing(struct driz_args_t *driz) {
 	ry_out_unscaled = ry_0;
 	return TRUE;
 }
+*/
 
+/*
 int apply_drz_prepare_results(struct generic_seq_args *args) {
 	struct driz_args_t *driz = args->user;
 
@@ -259,6 +262,7 @@ int apply_drz_prepare_results(struct generic_seq_args *args) {
 	}
 	return 0;
 }
+*/
 
 struct _drizzle_pair {
 	int index;
@@ -267,11 +271,12 @@ struct _drizzle_pair {
 };
 
 static int apply_drz_prepare_hook(struct generic_seq_args *args) {
-	struct driz_args_t *driz = args->user;
+	struct registration_args *regargs = args->user;
+	struct driz_args_t *driz = regargs->driz;
 	int number_of_outputs = 1;
 	// we call the generic prepare twice with different prefixes
-	args->new_seq_prefix = driz->prefix;
-	if (apply_drz_prepare_results(args))
+	args->new_seq_prefix = regargs->prefix;
+	if (apply_reg_prepare_results(args))
 		return 1;
 	// but we copy the result between each call
 	driz->new_ser_drz = args->new_ser;
@@ -280,12 +285,12 @@ static int apply_drz_prepare_hook(struct generic_seq_args *args) {
 	if (driz->keep_counts) {
 		args->new_seq_prefix = "oc_"; // This is OK here, it does not get freed in the
 		// end_generic_sequence later
-		if (apply_drz_prepare_results(args))
+		if (apply_reg_prepare_results(args))
 			return 1;
 		driz->new_ser_pxcnt = args->new_ser;
 		driz->new_fitseq_pxcnt = args->new_fitseq;
 
-		args->new_seq_prefix = driz->prefix; // Put it back so it gets loaded on completion
+		args->new_seq_prefix = regargs->prefix; // Put it back so it gets loaded on completion
 		args->new_ser = NULL;
 		args->new_fitseq = NULL;
 		number_of_outputs = 2;
@@ -303,10 +308,11 @@ struct _double_driz {
 };
 
 /* reads the image and apply existing transformation */
+/*
 int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads) {
 	struct driz_args_t *driz = args->user;
 //	struct wcsprm *refwcs = driz->refwcs;
-	/* Set up the per-image drizzle parameters */
+	// Set up the per-image drizzle parameters
 	struct driz_param_t *p = calloc(1, sizeof(struct driz_param_t));
 
 	driz_param_init(p);
@@ -351,9 +357,9 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 			return 1; // in case H is null and -selected was not passed
 		cvTransfH(Himg, Htransf, &H);
 	}
-	/* Populate the mapping array. This maps pixels from the current frame to
-	 * the reference frame. Either a Homography mapping can be used based on
-	 * image registration or a WCS mapping can be used based on plate solving */
+	// Populate the mapping array. This maps pixels from the current frame to
+	//the reference frame. Either a Homography mapping can be used based on
+	//image registration or a WCS mapping can be used based on plate solving
 	p->pixmap = calloc(1, sizeof(imgmap_t));
 	p->pixmap->rx = fit->rx;
 	p->pixmap->ry = fit->ry;
@@ -370,7 +376,7 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	}
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, _("Remapping"));
-	/* Populate the data fits to be drizzled */
+	// Populate the data fits to be drizzled
 	p->data = fit;
 	// Convert fit to 32-bit float if required
 	float *newbuf = NULL;
@@ -385,7 +391,7 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		fit_replace_buffer(fit, newbuf, DATA_FLOAT);
 	}
 
-	/* Set up output fits */
+	// Set up output fits
 	fits out;
 	copyfits(fit, &out, CP_FORMAT, -1);
 	out.rx = out.naxes[0] = rx_out;
@@ -422,13 +428,13 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	clearfits(&out);
 
 	if (driz->is_bayer) {
-		/* we need to do something special here because it's a 1-channel sequence and
-		* image that will become 3-channel after this call, so stats caching will
-		* not be correct. Preprocessing does not compute new stats so we don't need
-		* to save them into cache now.
-		* Destroying the stats from the fit will also prevent saving them in the
-		* sequence, which may be done automatically by the caller.
-		*/
+		// we need to do something special here because it's a 1-channel sequence and
+		// image that will become 3-channel after this call, so stats caching will
+		// not be correct. Preprocessing does not compute new stats so we don't need
+		//  to save them into cache now.
+		//  Destroying the stats from the fit will also prevent saving them in the
+		//  sequence, which may be done automatically by the caller.
+
 		full_stats_invalidation_from_fit(fit);
 		fit->keywords.lo = 0;
 	}
@@ -482,9 +488,11 @@ int apply_drz_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	driz->success[out_index] = 1;
 	return 0;
 }
+*/
 
 static int apply_drz_save_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit) {
-	struct driz_args_t *driz = (struct driz_args_t*) args->user;
+	struct registration_args *regargs = (struct registration_args*) args->user;
+	struct driz_args_t *driz = regargs->driz;
 	struct _double_driz *double_data = NULL;
 	// images are passed from the image_hook to the save in a list, because
 	// there are two, which is unsupported by the generic arguments
@@ -621,7 +629,8 @@ static int apply_drz_save_hook(struct generic_seq_args *args, int out_index, int
 }
 
 int apply_drz_finalize_hook(struct generic_seq_args *args) {
-	struct driz_args_t *driz = (struct driz_args_t*) args->user;
+	struct registration_args *regargs = (struct registration_args*) args->user;
+	struct driz_args_t *driz = regargs->driz;
 	int retval = 0;
 
 	if (driz->keep_counts) {
@@ -720,7 +729,8 @@ int apply_drz_finalize_hook(struct generic_seq_args *args) {
 }
 
 int apply_drz_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
-	struct driz_args_t *driz = args->user;
+	struct registration_args *regargs = (struct registration_args*) args->user;
+	struct driz_args_t *driz = regargs->driz;
 	unsigned int MB_per_orig_image, MB_per_scaled_image, MB_avail;
 	int limit = compute_nb_images_fit_memory(args->seq, driz->scale, args->force_float,
 			&MB_per_orig_image, &MB_per_scaled_image, &MB_avail);
@@ -787,8 +797,8 @@ int apply_drz_compute_mem_limits(struct generic_seq_args *args, gboolean for_wri
 	return limit;
 }
 
-gboolean check_before_applydrizzle(struct driz_args_t *driz);
-
+//gboolean check_before_applydrizzle(struct driz_args_t *driz);
+/*
 int apply_drizzle(struct driz_args_t *driz) {
 	struct generic_seq_args *args = create_default_seqargs(driz->seq);
 	set_progress_bar_data(_("Initializing drizzle data..."), PROGRESS_PULSATE);
@@ -818,35 +828,14 @@ int apply_drizzle(struct driz_args_t *driz) {
 	driz_param_dump(driz); // Print some info to the log
 	fits fit = { 0 };
 
-	/* preparing reference data from reference fit and making sanity checks*/
-	/* fit will now hold the reference frame */
+	// preparing reference data from reference fit and making sanity checks
+	// fit will now hold the reference frame
 	if (seq_read_frame_metadata(args->seq, driz->reference_image, &fit)) {
 		siril_log_message(_("Could not load reference image\n"));
 		args->seq->regparam[0] = NULL;
 		free(args);
 		return 1;
 	}
-
-/*	if (driz->use_wcs) {
-		if (!fit.wcslib) {
-			siril_log_color_message(_("Error: reference image is not plate solved. Unable to drizzle using WCS data.\n"), "red");
-			return 1;
-		}
-		// Set the reference WCS data
-		int copy_status;
-		driz->refwcs = wcs_deepcopy(fit.wcslib, &copy_status);
-		if (copy_status) {
-			siril_log_color_message(_("Error: failed to set the reference WCS.\n"), "red");
-			return 1;
-		}
-		if (driz->refwcs->lin.dispre) {
-			// Disabling distortion in the reference frame so that the distorted
-			// input images are mapped to a flat output reference
-			free(driz->refwcs->lin.dispre);
-			driz->refwcs->lin.dispre = NULL;
-		}
-	}
-*/
 
 	sensor_pattern pattern;
 	if (args->seq->type == SEQ_SER && args->seq->ser_file ) {
@@ -886,12 +875,14 @@ int apply_drizzle(struct driz_args_t *driz) {
 	start_in_new_thread(generic_sequence_worker, args);
 	return 0;
 }
+*/
 
+/*
 static void create_output_sequence_for_apply_driz(struct driz_args_t *args) {
 	sequence seq = { 0 };
 	initialize_sequence(&seq, TRUE);
 
-	/* we are not interested in the whole path */
+	// we are not interested in the whole path
 	gchar *seqname = g_path_get_basename(args->seq->seqname);
 	char *rseqname = malloc(strlen(args->prefix) + strlen(seqname) + 5);
 	sprintf(rseqname, "%s%s.seq", args->prefix, seqname);
@@ -926,7 +917,9 @@ static void create_output_sequence_for_apply_driz(struct driz_args_t *args) {
 	free_sequence(&seq, FALSE);
 	new_ref_index = -1; // resetting
 }
+*/
 
+/*
 gboolean check_before_applydrizzle(struct driz_args_t *driz) {
 	// check the reference image matrix is not null
 	if (!driz->use_wcs) {
@@ -1026,4 +1019,4 @@ gboolean check_before_applydrizzle(struct driz_args_t *driz) {
 	}
 	return TRUE;
 }
-
+*/

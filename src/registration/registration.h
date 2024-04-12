@@ -76,6 +76,7 @@ struct registration_args {
 	gboolean no_starlist;		// disable star list creation (2pass only)
 	float astrometric_scale;		// scaling factor (for mosaic only)
 	gboolean undistort;		// apply undistorsion with SIP data
+	struct driz_args_t *driz;	// drizzle-specific data
 
 	/* data for generated sequence, for star alignment/mosaic registration */
 	gboolean no_output;		// write transformation to .seq

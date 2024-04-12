@@ -7295,7 +7295,10 @@ static int parse_filter_args(char *current, struct seq_filter_config *arg) {
 	else return 0;
 	return 1;
 }
-
+int process_seq_applydrizzle(int nb) {
+	return 0;
+}
+/*
 int process_seq_applydrizzle(int nb) {
 	struct driz_args_t *driz = NULL;
 	sequence *seq = load_sequence(word[1], NULL);
@@ -7479,7 +7482,7 @@ int process_seq_applydrizzle(int nb) {
 	free_sequence(seq, (seq != &com.seq));
 	return CMD_GENERIC_ERROR;
 }
-
+*/
 int process_seq_applyreg(int nb) {
 	struct registration_args *reg_args = NULL;
 

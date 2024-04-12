@@ -32,6 +32,7 @@
 #include "core/proto.h"
 #include "core/siril_log.h"
 #include "algos/demosaicing.h"
+#include "drizzle/cdrizzleutil.h"
 #include "gui/drizzle_gui.h"
 #include "gui/callbacks.h"
 #include "gui/utils.h"
@@ -1641,12 +1642,9 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 
 /* callback for 'Go register' button, GTK thread */
 void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("drizzleCheckButton")))) {
-		unreserve_thread();
-		on_apply_drizzle_clicked(button, user_data);
-		return;
-	}
+
 	struct registration_args *reg_args = calloc(1, sizeof(struct registration_args));
+
 	char *msg;
 	if (fill_registration_structure_from_GUI(reg_args)) {
 		free(reg_args);
@@ -1658,11 +1656,17 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	const gchar *caller = gtk_buildable_get_name(GTK_BUILDABLE(button));
 	if (!g_strcmp0(caller, "proj_estimate"))
 		reg_args->no_output = TRUE;
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("drizzleCheckButton")))) {
+		reg_args->driz = calloc(1, sizeof(struct driz_args_t));
+		if (populate_drizzle_data(reg_args->driz)) {
+			return;
+		}
+	}
 
 	msg = siril_log_color_message(_("Registration: processing using method: %s\n"),
 			"green", method->name);
 	msg[strlen(msg) - 1] = '\0';
-	if (reg_args->clamp && !reg_args->no_output)
+	if (!reg_args->driz && reg_args->clamp && !reg_args->no_output)
 		siril_log_message(_("Interpolation clamping active\n"));
 	set_progress_bar_data(msg, PROGRESS_RESET);
 
