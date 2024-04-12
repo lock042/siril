@@ -561,7 +561,7 @@ static int apply_rejection_ushort(struct _data_block *data, struct _data_block *
 	WORD *w_stack = (WORD *)data->w_stack;
 	int *rejected = (int *)data->rejected;
 	WORD *o_stack = (WORD *)data->o_stack;
-	WORD *pixcnt_stack, *pixcnt_o_stack;
+	WORD *pixcnt_stack = NULL, *pixcnt_o_stack = NULL;
 	if (pixcnt_data) {
 		pixcnt_stack = (WORD *) pixcnt_data->stack;
 		pixcnt_o_stack = (WORD *) pixcnt_data->o_stack;

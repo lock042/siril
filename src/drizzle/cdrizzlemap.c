@@ -144,7 +144,6 @@ interpolate_point(struct driz_param_t *par, float xin, float yin,
                   float *xout, float *yout) {
     int i0, j0, nx2, ny2;
     float x, y, x1, y1, f00, f01, f10, f11, g00, g01, g10, g11;
-    float *p;
     imgmap_t *pixmap;
 
     pixmap = par->pixmap;
@@ -267,7 +266,7 @@ map_pixel(imgmap_t *p, int i, int j, float *x, float *y) {
 int
 map_point(struct driz_param_t *par, float xin, float yin, float *xout,
           float *yout) {
-    int i, j, status;
+    int i, j, status = 0;
 
     i = (int)xin;
     j = (int)yin;
