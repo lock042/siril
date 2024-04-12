@@ -1035,7 +1035,7 @@ static void create_output_sequence_for_apply_reg(struct registration_args *args)
 	seq.number = args->new_total;
 	seq.selnum = args->new_total;
 	seq.fixed = args->seq->fixed;
-	seq.nb_layers = args->seq->nb_layers;
+	seq.nb_layers = (args->driz && args->driz->is_bayer) ? 3 : args->seq->nb_layers;
 	seq.rx = rx_out;
 	seq.ry = ry_out;
 	seq.imgparam = args->imgparam;

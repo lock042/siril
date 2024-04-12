@@ -7298,199 +7298,24 @@ static int parse_filter_args(char *current, struct seq_filter_config *arg) {
 int process_seq_applydrizzle(int nb) {
 	return 0;
 }
-/*
-int process_seq_applydrizzle(int nb) {
-	struct driz_args_t *driz = NULL;
-	sequence *seq = load_sequence(word[1], NULL);
-	float bias_level = -1.f;
-	fits bias = { 0 };
-	gboolean bias_level_set = FALSE, bias_image_set = FALSE;
-	if (!seq)
-		return CMD_SEQUENCE_NOT_FOUND;
-	if (seq->nb_layers > 1) {
-		siril_log_color_message(_("Error: sequence has more than 1 layer. Mono or CFA sequence required.\n"), "red");
-		return CMD_GENERIC_ERROR;
-	}
-	driz = calloc(1, sizeof(struct driz_args_t));
-	if (!seq->regparam || !seq->regparam[0]) {
-		siril_log_color_message(_("Error: sequence requires registration data in order to apply drizzle.\n"), "red");
-		return CMD_GENERIC_ERROR;
-	}
-	driz->seq = seq;
-	driz->reference_image = sequence_find_refimage(driz->seq);
-	driz->keep_counts = FALSE;
-	driz->use_wcs = FALSE;
-	driz->use_flats = FALSE;
-	driz->load_new_sequence = FALSE;
-	driz->scale = 1.f;
-	driz->weight_scale = 1.f; // Not used for now
-	driz->kernel = (enum e_kernel_t) kernel_turbo;
-	driz->pixel_fraction = 1.f;
-	driz->framing = FRAMING_CURRENT;
-	for (int i = 2; i < nb; i++) {
-		if (g_str_has_prefix(word[i], "-prefix=")) {
-			char *current = word[i], *value;
-			value = current + 8;
-			if (value[0] == '\0') {
-				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-				goto drizzle_error;
-			}
-			driz->prefix = strdup(value);
-		} else if (g_str_has_prefix(word[i], "-ocseq")) {
-			driz->keep_counts = TRUE;
-		} else if (g_str_has_prefix(word[i], "-framing=")) {
-			char *current = word[i], *value;
-			value = current + 9;
-			if (value[0] == '\0') {
-				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-				goto drizzle_error;
-			}
-			if(!g_ascii_strncasecmp(value, "current", 7)) {
-				driz->framing = FRAMING_CURRENT;
-				continue;
-			}
-			if(!g_ascii_strncasecmp(value, "min", 3)) {
-				driz->framing = FRAMING_MIN;
-				continue;
-			}
-			if(!g_ascii_strncasecmp(value, "max", 3)) {
-				driz->framing = FRAMING_MAX;
-				continue;
-			}
-			if(!g_ascii_strncasecmp(value, "cog", 3)) {
-				driz->framing = FRAMING_COG;
-				continue;
-			}
-			siril_log_color_message(_("Unknown framing type %s, aborting.\n"), "red", value);
-			goto drizzle_error;
-		} else if (g_str_has_prefix(word[i], "-scale=")) {
-			char *arg = word[i] + 7;
-			gchar *end;
-			double value;
-			value = g_ascii_strtod(arg, &end);
-			if (end == arg) {
-				siril_log_color_message(_("Invalid argument to %s, aborting.\n"), "red", word[i]);
-				goto drizzle_error;
-			}
-			driz->scale = (float) value;
-		} else if (g_str_has_prefix(word[i], "-pixfrac=")) {
-			char *arg = word[i] + 9;
-			gchar *end;
-			double value;
-			value = g_ascii_strtod(arg, &end);
-			if (end == arg) {
-				siril_log_color_message(_("Invalid argument to %s, aborting.\n"), "red", word[i]);
-				goto drizzle_error;
-			}
-			driz->pixel_fraction = (float) value;
-		} else if (g_str_has_prefix(word[i], "-kernel=")) {
-			char *arg = word[i] + 8;
-			if (!g_ascii_strncasecmp(arg, "point", 5))
-				driz->kernel = kernel_point;
-			else if (!g_ascii_strncasecmp(arg, "turbo", 5))
-				driz->kernel = kernel_turbo;
-			else if (!g_ascii_strncasecmp(arg, "square", 6))
-				driz->kernel = kernel_square;
-			else if (!g_ascii_strncasecmp(arg, "gaussian", 8))
-				driz->kernel = kernel_gaussian;
-			else if (!g_ascii_strncasecmp(arg, "lanczos2", 8))
-				driz->kernel = kernel_lanczos2;
-			else if (!g_ascii_strncasecmp(arg, "lanczos3", 8))
-				driz->kernel = kernel_lanczos3;
-			else {
-				siril_log_color_message(_("Invalid argument to %s, aborting.\n"), "red", word[i]);
-				goto drizzle_error;
-			}
-		} else if (g_str_has_prefix(word[i], "-flat=")) {
-			if (driz->flat) {
-				siril_log_color_message(_("Error: flat image already set. Aborting.\n"), "red");
-				goto drizzle_error;
-			}
-			if (seq->is_variable) {
-				siril_log_color_message(_("Error: flat image cannot work with variable sized sequence.\n"), "red");
-				goto drizzle_error;
-			}
-			char *flat_filename = word[i] + 6;
-			fits reffit = { 0 };
-			gchar *error = NULL;
-			int status;
-			gchar *expression = path_parse(&reffit, flat_filename, PATHPARSE_MODE_READ, &status);
-			if (status) {
-				error = _("NOT USING FLAT: could not parse the expression");
-				driz->use_flats = FALSE;
-			} else {
-				free(expression);
-				if (flat_filename[0] == '\0') {
-					siril_log_message(_("Error: no master flat specified in the preprocessing tab.\n"));
-					goto drizzle_error;
-				} else {
-					driz->flat = calloc(1, sizeof(fits));
-					if (!readfits(flat_filename, driz->flat, NULL, TRUE)) {
-						if (driz->flat->naxes[2] != seq->nb_layers) {
-							error = _("NOT USING FLAT: number of channels is different");
-						} else if (driz->flat->naxes[0] != seq->rx ||
-								driz->flat->naxes[1] != seq->ry) {
-							error = _("NOT USING FLAT: image dimensions are different");
-						} else {
-							// no need to deal with bitdepth conversion as readfits has already forced conversion to float
-							siril_log_message(_("Master flat read for use as initial pixel weight\n"));
-						}
 
-					} else error = _("NOT USING FLAT: cannot open the file");
-					if (error) {
-						goto drizzle_error;
-					}
-				}
-			}
-		} else if (parse_filter_args(word[i], &driz->filters)) {
-			convert_parsed_filter_to_filter(&driz->filters, driz->seq, &driz->filtering_criterion, &driz->filtering_parameter);
-		} else {
-			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
-			goto drizzle_error;
-		}
-	}
-	if ((bias_image_set || bias_level_set) && !driz->flat) {
-		siril_log_color_message(_("Error: bias set but no flat set. Aborting.\n"), "red");
-		goto drizzle_error;
-	}
-	if (driz->flat) {
-		if (bias_level_set) {
-			soper(driz->flat, bias_level, OPER_SUB, TRUE);
-		} else if (bias_image_set) {
-			imoper(driz->flat, &bias, OPER_SUB, TRUE);
-			clearfits(&bias);
-		}
-	}
-
-	if(!driz->prefix) {
-		driz->prefix = strdup("r_");
-	}
-
-	apply_drizzle(driz);
-
-	return CMD_OK;
-
-	drizzle_error:
-
-	if (driz->flat) {
-		clearfits(driz->flat);
-		free(driz->flat);
-	}
-	clearfits(&bias);
-	free(driz->prefix);
-	free(driz);
-	free_sequence(seq, (seq != &com.seq));
-	return CMD_GENERIC_ERROR;
-}
-*/
 int process_seq_applyreg(int nb) {
 	struct registration_args *reg_args = NULL;
+	gboolean drizzle = FALSE;
 
 	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq)
 		return CMD_SEQUENCE_NOT_FOUND;
 
 	reg_args = calloc(1, sizeof(struct registration_args));
+	struct driz_args_t *driz = calloc(1, sizeof(struct driz_args_t));
+	// Default values for the driz_args_t
+	driz->keep_counts = FALSE;
+	driz->use_flats = FALSE;
+	driz->scale = 1.f;
+	driz->kernel = kernel_turbo;
+	driz->weight_scale = 1.f;
+	driz->pixel_fraction = 1.f;
 
 	// check that registration exists for one layer at least
 	int layer = -1;
@@ -7521,8 +7346,95 @@ int process_seq_applyreg(int nb) {
 
 	/* check for options */
 	for (int i = 2; i < nb; i++) {
-		if (!strcmp(word[i], "-drizzle")) {
+		if (!strcmp(word[i], "-upscale")) {
 			reg_args->x2upscale = TRUE;
+		} else if (!strcmp(word[i], "-drizzle")) {
+			if (reg_args->seq->nb_layers != 1) {  // handling mono case
+				siril_log_message(_("This sequence is not mono / CFA, cannot drizzle.\n"));
+				goto terminate_register_on_error;
+			}
+			drizzle = TRUE;
+		// Drizzle options
+		} else if (g_str_has_prefix(word[i], "-scale=")) {
+			char *arg = word[i] + 7;
+			gchar *end;
+			double value;
+			value = g_ascii_strtod(arg, &end);
+			if (end == arg) {
+				siril_log_color_message(_("Invalid argument to %s, aborting.\n"), "red", word[i]);
+				goto terminate_register_on_error;
+			}
+			driz->scale = (float) value;
+		} else if (g_str_has_prefix(word[i], "-pixfrac=")) {
+			char *arg = word[i] + 9;
+			gchar *end;
+			double value;
+			value = g_ascii_strtod(arg, &end);
+			if (end == arg) {
+				siril_log_color_message(_("Invalid argument to %s, aborting.\n"), "red", word[i]);
+				goto terminate_register_on_error;
+			}
+			driz->pixel_fraction = (float) value;
+		} else if (g_str_has_prefix(word[i], "-kernel=")) {
+			char *arg = word[i] + 8;
+			if (!g_ascii_strncasecmp(arg, "point", 5))
+				driz->kernel = kernel_point;
+			else if (!g_ascii_strncasecmp(arg, "turbo", 5))
+				driz->kernel = kernel_turbo;
+			else if (!g_ascii_strncasecmp(arg, "square", 6))
+				driz->kernel = kernel_square;
+			else if (!g_ascii_strncasecmp(arg, "gaussian", 8))
+				driz->kernel = kernel_gaussian;
+			else if (!g_ascii_strncasecmp(arg, "lanczos2", 8))
+				driz->kernel = kernel_lanczos2;
+			else if (!g_ascii_strncasecmp(arg, "lanczos3", 8))
+				driz->kernel = kernel_lanczos3;
+			else {
+				siril_log_color_message(_("Invalid argument to %s, aborting.\n"), "red", word[i]);
+				goto terminate_register_on_error;
+			}
+		} else if (g_str_has_prefix(word[i], "-flat=")) {
+			if (driz->flat) {
+				siril_log_color_message(_("Error: flat image already set. Aborting.\n"), "red");
+				goto terminate_register_on_error;
+			}
+			if (seq->is_variable) {
+				siril_log_color_message(_("Error: flat image cannot work with variable sized sequence.\n"), "red");
+				goto terminate_register_on_error;
+			}
+			char *flat_filename = word[i] + 6;
+			fits reffit = { 0 };
+			gchar *error = NULL;
+			int status;
+			gchar *expression = path_parse(&reffit, flat_filename, PATHPARSE_MODE_READ, &status);
+			if (status) {
+				error = _("NOT USING FLAT: could not parse the expression");
+				driz->use_flats = FALSE;
+			} else {
+				free(expression);
+				if (flat_filename[0] == '\0') {
+					siril_log_message(_("Error: no master flat specified in the preprocessing tab.\n"));
+					goto terminate_register_on_error;
+				} else {
+					driz->flat = calloc(1, sizeof(fits));
+					if (!readfits(flat_filename, driz->flat, NULL, TRUE)) {
+						if (driz->flat->naxes[2] != seq->nb_layers) {
+							error = _("NOT USING FLAT: number of channels is different");
+						} else if (driz->flat->naxes[0] != seq->rx ||
+								driz->flat->naxes[1] != seq->ry) {
+							error = _("NOT USING FLAT: image dimensions are different");
+						} else {
+							// no need to deal with bitdepth conversion as readfits has already forced conversion to float
+							siril_log_message(_("Master flat read for use as initial pixel weight\n"));
+						}
+
+					} else error = _("NOT USING FLAT: cannot open the file");
+					if (error) {
+						goto terminate_register_on_error;
+					}
+				}
+			}
+		// Other registration options
 		} else if (g_str_has_prefix(word[i], "-prefix=")) {
 			char *current = word[i], *value;
 			value = current + 8;
@@ -7617,6 +7529,16 @@ int process_seq_applyreg(int nb) {
 		}
 	}
 
+	if (drizzle) {
+		reg_args->driz = driz;
+		if (reg_args->x2upscale) {
+			siril_log_message(_("-upscale is not compatible with -drizzle, choose one or the other.\n"));
+			goto terminate_register_on_error;
+		}
+	} else {
+		free(driz);
+		driz = NULL;
+	}
 	// sanity checks are done in register_apply_reg
 
 	reg_args->run_in_thread = TRUE;
@@ -7624,7 +7546,7 @@ int process_seq_applyreg(int nb) {
 
 	if (reg_args->interpolation == OPENCV_AREA || reg_args->interpolation == OPENCV_LINEAR || reg_args->interpolation == OPENCV_NEAREST || reg_args->interpolation == OPENCV_NONE)
 		reg_args->clamp = FALSE;
-	if (reg_args->clamp && !reg_args->no_output)
+	if (reg_args->clamp && !reg_args->no_output && !drizzle)
 		siril_log_message(_("Interpolation clamping active\n"));
 
 	set_progress_bar_data(_("Registration: Applying existing data"), PROGRESS_RESET);
@@ -7633,8 +7555,10 @@ int process_seq_applyreg(int nb) {
 	return CMD_OK;
 
 terminate_register_on_error:
+	free(driz);
 	if (!check_seq_is_comseq(seq))
 		free_sequence(seq, TRUE);
+	free(reg_args->prefix);
 	free(reg_args->new_seq_name);
 	free(reg_args);
 	return CMD_ARG_ERROR;
