@@ -101,7 +101,6 @@ src/core/siril_log.c
 src/core/siril_update.c
 src/core/undo.c
 src/core/utils.c
-src/drizzle/applydrizzle.c
 src/drizzle/cdrizzlebox.c
 src/drizzle/cdrizzlemap.c
 src/drizzle/cdrizzleutil.c
