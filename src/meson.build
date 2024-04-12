@@ -95,7 +95,6 @@ src_files = [
   'core/undo.c',
   'core/utils.c',
 
-#  'drizzle/applydrizzle.c',
   'drizzle/cdrizzlebox.c',
   'drizzle/cdrizzlemap.c',
   'drizzle/cdrizzleutil.c',

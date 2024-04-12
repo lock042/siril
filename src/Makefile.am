@@ -164,7 +164,6 @@ siril_common_SOURCES = \
 	core/undo.c \
 	core/undo.h \
 	core/utils.c \
-	drizzle/applydrizzle.c \
 	drizzle/cdrizzlebox.c \
 	drizzle/cdrizzlebox.h \
 	drizzle/cdrizzlemap.c \
