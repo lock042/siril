@@ -61,7 +61,6 @@ struct normalization_coeff {
 struct stacking_args {
 	stack_method method;
 	sequence *seq;
-	sequence *pixcnt; // sequence holding pixel_count images for drizzle
 	int ref_image; // takes precedence over seq->reference_image which may not be applicable
 	seq_image_filter filtering_criterion;
 	double filtering_parameter;
@@ -111,7 +110,6 @@ struct stacking_configuration {
 	stack_method method;
 	rejection type_of_rejection;
 	double sig[2];
-	gboolean use_oc;
 	gboolean create_rejmaps;
 	gboolean merge_lowhigh_rejmaps;
 	gboolean force_no_norm;
@@ -201,8 +199,7 @@ void remove_tmp_drizzle_files(struct stacking_args *args);
 
 	/* rejection_float.c */
 
-int apply_rejection_float(struct _data_block *data, struct _data_block *pixcnt_data,
-						  int nb_frames, struct stacking_args *args, int crej[2]);
+int apply_rejection_float(struct _data_block *data, int nb_frames, struct stacking_args *args, int crej[2]);
 
 	/* keeping metadata */
 void free_list_date(gpointer data);

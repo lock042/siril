@@ -735,7 +735,6 @@ do_kernel_turbo(struct driz_param_t* p) {
         if (chunk == threads - 1) {
             chunk_end = p->ymax;
         }
-		int chunk_mid = chunk_start + (chunk_end - chunk_start) / 2;
 		siril_debug_print("starting do_kernel_turbo chunk: rows %d to %d\n", chunk_start, chunk_end);
         retval |= do_kernel_turbo_chunk(p, chunk_start, chunk_end, &s);
     }

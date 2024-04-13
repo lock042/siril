@@ -7309,7 +7309,6 @@ int process_seq_applyreg(int nb) {
 	reg_args = calloc(1, sizeof(struct registration_args));
 	struct driz_args_t *driz = calloc(1, sizeof(struct driz_args_t));
 	// Default values for the driz_args_t
-	driz->keep_counts = FALSE;
 	driz->use_flats = FALSE;
 	driz->scale = 1.f;
 	driz->kernel = kernel_turbo;
@@ -7853,8 +7852,6 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 				if (current[strlen(current)-1] == 's')
 					arg->merge_lowhigh_rejmaps = FALSE;
 			}
-		} else if (g_str_has_prefix(current, "-drz_oc")) {
-			arg->use_oc = TRUE;
 		} else {
 			siril_log_message(_("Unexpected argument to stacking `%s', aborting.\n"), current);
 			return CMD_ARG_ERROR;
@@ -7879,15 +7876,6 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 
 	struct stacking_args args = { 0 };
 	args.seq = seq;
-	if (arg->use_oc) {
-		args.pixcnt = readseqfile(seq->pixcnt_seqname);
-		if (!args.pixcnt || (seq_check_basic_data(args.pixcnt, FALSE) != 1)) {
-			siril_log_message(_("Error loading output_count sequence\n"));
-			free_sequence(seq, TRUE);
-			free_sequence(args.pixcnt, TRUE);
-			return CMD_ARG_ERROR;
-		}
-	}
 	args.ref_image = sequence_find_refimage(seq);
 	// the three below: used only if method is average w/ rejection
 	if (arg->method == stack_mean_with_rejection && (arg->sig[0] != 0.0 || arg->sig[1] != 0.0)) {

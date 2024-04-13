@@ -160,8 +160,6 @@ typedef struct _imgmap_t {
 struct driz_args_t {
   bool_t is_bayer; /* Is this a Bayer drizzle? */
   regdata *ref_regdata; /* Reference reg data */
-  gboolean keep_counts; /* whether to save the pixel_counts sequence */
-  gchar *pixcnt_prefix;
   /* Parameters to be copied into the driz_param_t for each frame */
   enum e_kernel_t kernel; /* Kernel shape and size */
   float scale;
@@ -170,12 +168,6 @@ struct driz_args_t {
   gboolean use_flats; /* Whether to use master flat as weights */
   float pixel_fraction;
   const char* cfa;
-  /* Output sequence data */
-  GList *processed_images;
-  struct ser_struct *new_ser_drz;
-  fitseq *new_fitseq_drz;
-  struct ser_struct *new_ser_pxcnt;
-  fitseq *new_fitseq_pxcnt;
 };
 
 struct driz_param_t {

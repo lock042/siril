@@ -54,7 +54,7 @@
 #include "stacking.h"
 
 static struct stacking_args stackparam = {	// parameters passed to stacking
-	NULL, NULL, NULL, -1, NULL, -1.0, 0, NULL, NULL, NULL, NULL, FALSE,
+	NULL, NULL, -1, NULL, -1.0, 0, NULL, NULL, NULL, NULL, FALSE,
 	FALSE, NO_NORM, { 0 }, FALSE, FALSE, TRUE, -1, FALSE,
 	NO_REJEC, { 0, 0 }, NULL, FALSE, FALSE, NULL, NULL,
 	FALSE, FALSE, FALSE, FALSE, NULL, NULL, NULL, { 0 }, 0, { 0 }
@@ -252,12 +252,6 @@ static void start_stacking() {
 	if (stackparam.method != stack_median && stackparam.method != stack_mean_with_rejection)
 		stackparam.normalize = NO_NORM;
 	stackparam.seq = &com.seq;
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("use_drizzle_pixel_counts"))) && com.seq.pixcnt_seqname != NULL) {
-		stackparam.pixcnt = readseqfile(com.seq.pixcnt_seqname);
-		seq_check_basic_data(stackparam.pixcnt, FALSE);
-	} else {
-		stackparam.pixcnt = NULL;
-	}
 	stackparam.reglayer = get_registration_layer(stackparam.seq);
 	// checking regdata is absent, or if present, is only shift
 	if (!test_regdata_is_valid_and_shift(stackparam.seq, stackparam.reglayer)) {
@@ -1161,7 +1155,7 @@ static void update_filter_label() {
  */
 void update_stack_interface(gboolean dont_change_stack_type) {
 	static GtkWidget *go_stack = NULL, *widgetnormalize = NULL, *force_norm =
-			NULL, *output_norm = NULL, *RGB_equal = NULL, *fast_norm = NULL, *use_oc;
+			NULL, *output_norm = NULL, *RGB_equal = NULL, *fast_norm = NULL;
 	static GtkComboBox *method_combo = NULL, *filter_combo = NULL;
 	static GtkLabel *result_label = NULL;
 	gchar *labelbuffer;
@@ -1176,7 +1170,6 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 		result_label = GTK_LABEL(lookup_widget("stackfilter_label"));
 		output_norm = lookup_widget("check_normalise_to_max");
 		RGB_equal = lookup_widget("check_RGBequal");
-		use_oc = lookup_widget("pixcnt_settings");
 	}
 	if (!sequence_is_loaded()) {
 		gtk_widget_set_sensitive(go_stack, FALSE);
@@ -1190,9 +1183,7 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 		g_signal_handlers_unblock_by_func(filter_combo, on_stacksel_changed, NULL);
 	}
 
-	gboolean method_selected = gtk_combo_box_get_active(method_combo);
-	gboolean oc_available = com.seq.pixcnt_seqname != NULL;
-	switch (method_selected) {
+	switch (gtk_combo_box_get_active(method_combo)) {
 	default:
 	case STACK_SUM:
 	case STACK_MAX:
@@ -1202,9 +1193,6 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 		gtk_widget_set_sensitive(fast_norm, FALSE);
 		gtk_widget_set_visible(output_norm, FALSE);
 		gtk_widget_set_visible(RGB_equal, FALSE);
-		gtk_widget_set_visible(use_oc, (method_selected == STACK_SUM));
-		if (method_selected != STACK_SUM)
-			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(use_oc), FALSE);
 		break;
 	case STACK_MEAN:
 	case STACK_MEDIAN:
@@ -1215,7 +1203,6 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 				gtk_combo_box_get_active(GTK_COMBO_BOX(widgetnormalize)) != 0);
 		gtk_widget_set_visible(output_norm, TRUE);
 		gtk_widget_set_visible(RGB_equal, TRUE);
-		gtk_widget_set_visible(use_oc, oc_available);
 	}
 
 	if (com.seq.reference_image == -1)

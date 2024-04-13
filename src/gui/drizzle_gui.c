@@ -34,7 +34,6 @@
 #include "gui/progress_and_log.h"
 
 int populate_drizzle_data(struct driz_args_t *driz) {
-	driz->keep_counts = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("generate_pixcnt")));
 	driz->use_flats = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("driz_use_flats")));
 	driz->scale = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_driz_scale")));
 	driz->weight_scale = 1.f; // Not used for now

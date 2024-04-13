@@ -239,55 +239,6 @@ int apply_reg_prepare_results(struct generic_seq_args *args) {
 	return 0;
 }
 
-struct _drizzle_pair {
-	int index;
-	fits *out;
-	fits *output_counts;
-};
-
-static int apply_drz_prepare_hook(struct generic_seq_args *args) {
-	struct star_align_data *sadata = args->user;
-	struct registration_args *regargs = sadata->regargs;
-	struct driz_args_t *driz = regargs->driz;
-
-	/* preparing reference data from reference fit and making sanity checks*/
-	sadata->current_regdata = apply_reg_get_current_regdata(regargs);
-	if (!sadata->current_regdata) return -2;
-
-	int number_of_outputs = 1;
-	// we call the generic prepare twice with different prefixes
-	args->new_seq_prefix = regargs->prefix;
-	if (apply_reg_prepare_results(args))
-		return 1;
-	// but we copy the result between each call
-	driz->new_ser_drz = args->new_ser;
-	driz->new_fitseq_drz = args->new_fitseq;
-
-	if (driz->keep_counts) {
-		args->new_seq_prefix = "oc_"; // This is OK here, it does not get freed in the
-		// end_generic_sequence later
-		if (apply_reg_prepare_results(args))
-			return 1;
-		driz->new_ser_pxcnt = args->new_ser;
-		driz->new_fitseq_pxcnt = args->new_fitseq;
-
-		args->new_seq_prefix = regargs->prefix; // Put it back so it gets loaded on completion
-		args->new_ser = NULL;
-		args->new_fitseq = NULL;
-		number_of_outputs = 2;
-	}
-
-	seqwriter_set_number_of_outputs(number_of_outputs);
-
-	return 0;
-}
-
-struct _double_driz {
-	int index;
-	fits *output;
-	fits *pixel_count;
-};
-
 int apply_reg_prepare_hook(struct generic_seq_args *args) {
 	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
@@ -305,7 +256,7 @@ int apply_reg_prepare_hook(struct generic_seq_args *args) {
 		free(sadata->current_regdata);
 		return 1;
 	}
-	if (fit.naxes[2] == 1 && fit.keywords.bayer_pattern[0] != '\0')
+	if (!regargs->driz && fit.naxes[2] == 1 && fit.keywords.bayer_pattern[0] != '\0')
 		siril_log_color_message(_("Applying transformation on a sequence opened as CFA is a bad idea.\n"), "red");
 	free_wcs(&fit);
 	reset_wcsdata(&fit);
@@ -380,7 +331,6 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		out.rx = out.naxes[0] = rx_out;
 		out.ry = out.naxes[1] = ry_out;
 		out.naxes[2] = driz->is_bayer ? 3 : 1;
-		siril_debug_print("Output image %d x %d x %ld\n", out.rx, out.ry, out.naxes[2]);
 		size_t chansize = out.rx * out.ry * sizeof(float);
 		out.fdata = calloc(out.naxes[2] * chansize, 1);
 		out.fpdata[0] = out.fdata;
@@ -391,7 +341,6 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		// Set up the output_counts fits to store pixel hit counts
 		fits *output_counts = calloc(1, sizeof(fits));
 		copyfits(&out, output_counts, CP_FORMAT, -1);
-		siril_debug_print("Output counts image %d x %d x %ld\n", out.rx, out.ry, out.naxes[2]);
 		output_counts->fdata = calloc(output_counts->rx * output_counts->ry * output_counts->naxes[2], sizeof(float));
 		p->output_counts = output_counts;
 
@@ -420,25 +369,10 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		free(p->pixmap->xmap);
 		free(p->pixmap);
 
-		// Get rid of the output_counts if not required
-		if (!driz->keep_counts) {
-			clearfits(output_counts);
-			free(output_counts);
-			output_counts = NULL;
-		}
-
-		struct _double_driz *double_data = calloc(1, sizeof(struct _double_driz));
-		double_data->index = out_index;
-		double_data->output = fit;
-		double_data->pixel_count = output_counts;
-#ifdef _OPENMP
-		omp_set_lock(&args->lock);
-#endif
-		driz->processed_images = g_list_append(driz->processed_images, double_data);
-#ifdef _OPENMP
-		omp_unset_lock(&args->lock);
-#endif
-		siril_debug_print("drizzle: processed image and output_counts (if specified) added to the save list (index %d)\n", out_index);
+		// Get rid of the output_counts image, no longer required
+		clearfits(output_counts);
+		free(output_counts);
+		output_counts = NULL;
 	}
 	else {
 		if (regargs->interpolation <= OPENCV_LANCZOS4) {
@@ -465,7 +399,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	regargs->regparam[out_index].number_of_stars = sadata->current_regdata[in_index].number_of_stars;
 	cvGetEye(&regargs->regparam[out_index].H);
 
-	if (regargs->x2upscale) {
+	if (regargs->driz || regargs->x2upscale) {
 		fit->keywords.pixel_size_x /= scale;
 		fit->keywords.pixel_size_y /= scale;
 		regargs->regparam[out_index].fwhm *= scale;
@@ -476,246 +410,6 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 
 	sadata->success[out_index] = 1;
 	return 0;
-}
-
-static int apply_drz_save_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit) {
-	struct star_align_data *sadata = args->user;
-	struct registration_args *regargs = sadata->regargs;
-	struct driz_args_t *driz = regargs->driz;
-	struct _double_driz *double_data = NULL;
-	// images are passed from the image_hook to the save in a list, because
-	// there are two, which is unsupported by the generic arguments
-#ifdef _OPENMP
-	omp_set_lock(&args->lock);
-#endif
-	GList *list = driz->processed_images;
-	while (list) {
-		if (((struct _double_driz *)list->data)->index == out_index) {
-			double_data = list->data;
-			break;
-		}
-		list = g_list_next(driz->processed_images);
-	}
-	if (double_data)
-		driz->processed_images = g_list_remove(driz->processed_images, double_data);
-#ifdef _OPENMP
-	omp_unset_lock(&args->lock);
-#endif
-	if (!double_data) {
-		siril_log_color_message(_("Image %d not found for writing\n"), "red", in_index);
-		return 1;
-	}
-
-	siril_debug_print("Drizzle: images to be saved (index %d)\n", out_index);
-	if (double_data->output->naxes[0] == 0) {
-		siril_debug_print("empty drizzle data\n");
-		return 1;
-	}
-
-	int retval1 = 0, retval2 = 0;
-	if (args->force_ser_output || args->seq->type == SEQ_SER) {
-		if (double_data->output) {
-			if (double_data->output->type != DATA_USHORT) {
-				fit_replace_buffer(	double_data->output,
-									float_buffer_to_ushort( double_data->output->fdata,
-															(double_data->output->rx *
-															 double_data->output->ry *
-															 double_data->output->naxes[2])),
-									DATA_USHORT);
-			}
-			retval1 = ser_write_frame_from_fit(driz->new_ser_drz, double_data->output, out_index);
-		}
-		if (double_data->pixel_count) {
-			float factor = max(1.f, (1.f / (driz->scale * driz->scale)));
-			soper(double_data->pixel_count, factor, OPER_MUL, FALSE);
-			if (double_data->pixel_count->type != DATA_USHORT) {
-				fit_replace_buffer(	double_data->pixel_count,
-									float_buffer_to_ushort( double_data->pixel_count->fdata,
-															(double_data->pixel_count->rx *
-															 double_data->pixel_count->ry *
-															 double_data->pixel_count->naxes[2])),
-									DATA_USHORT);
-			}
-			retval2 = ser_write_frame_from_fit(driz->new_ser_pxcnt, double_data->pixel_count, out_index);
-		}
-		// the two fits are freed by the writing thread
-		if (retval1 || retval2) {
-			// special case because it's not done in the generic
-			clearfits(fit);
-			free(fit);
-		}
-	} else if (args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) {
-		if (double_data->output) {
-			if (com.pref.force_16bit && double_data->output->type != DATA_USHORT) {
-				fit_replace_buffer(	double_data->output,
-									float_buffer_to_ushort( double_data->output->fdata,
-															(double_data->output->rx *
-															 double_data->output->ry *
-															 double_data->output->naxes[2])),
-									DATA_USHORT);
-			}
-			retval1 = fitseq_write_image(driz->new_fitseq_drz, double_data->output, out_index);
-		}
-		if (double_data->pixel_count) {
-			if (double_data->output->type == DATA_USHORT) {
-				float factor = max(1.f, (1.f / (driz->scale * driz->scale)));
-				soper(double_data->pixel_count, factor, OPER_MUL, FALSE);
-				fit_replace_buffer(	double_data->pixel_count,
-									float_buffer_to_ushort( double_data->pixel_count->fdata,
-															(double_data->pixel_count->rx *
-															 double_data->pixel_count->ry *
-															 double_data->pixel_count->naxes[2])),
-									DATA_USHORT);
-			}
-			retval2 = fitseq_write_image(driz->new_fitseq_pxcnt, double_data->pixel_count, out_index);
-		}
-		// the two fits are freed by the writing thread
-		if (retval1 || retval2) {
-			/* special case because it's not done in the generic */
-			clearfits(fit);
-			free(fit);
-		}
-	} else {
-		char *dest = fit_sequence_get_image_filename_prefixed(args->seq, regargs->prefix, in_index);
-		if (double_data->output) {
-			if (com.pref.force_16bit) {
-				fit_replace_buffer(	double_data->output,
-									float_buffer_to_ushort( double_data->output->fdata,
-															(double_data->output->rx *
-															 double_data->output->ry *
-															 double_data->output->naxes[2])),
-									DATA_USHORT);
-			}
-			retval1 = savefits(dest, double_data->output);
-		}
-		free(dest);
-		if (double_data->pixel_count) {
-			driz->pixcnt_prefix = g_strdup_printf("oc_%s", regargs->prefix);
-			dest = fit_sequence_get_image_filename_prefixed(args->seq, driz->pixcnt_prefix, in_index);
-			if (com.pref.force_16bit) {
-				float factor = max(1.f, (1.f / (driz->scale * driz->scale)));
-				if (fabs(factor - 1.f) > FLT_EPSILON)
-					soper(double_data->pixel_count, factor, OPER_MUL, FALSE);
-				fit_replace_buffer(	double_data->pixel_count,
-									float_buffer_to_ushort( double_data->pixel_count->fdata,
-															(double_data->pixel_count->rx *
-															 double_data->pixel_count->ry *
-															 double_data->pixel_count->naxes[2])),
-									DATA_USHORT);
-			}
-			retval2 = savefits(dest, double_data->pixel_count);
-			free(dest);
-		}
-	}
-	if (!driz->new_fitseq_drz && !driz->new_ser_drz) { // detect if there is a seqwriter
-		clearfits(double_data->output);
-		// Don't free double_data->output as this == fit and needs to be freed by the sequence worker
-		clearfits(double_data->pixel_count);
-		free(double_data->pixel_count);
-	}
-	free(double_data);
-	return retval1 || retval2;
-}
-
-int apply_drz_finalize_hook(struct generic_seq_args *args) {
-	struct star_align_data *sadata = args->user;
-	struct registration_args *regargs = sadata->regargs;
-	struct driz_args_t *driz = regargs->driz;
-	int retval = 0;
-
-	if (driz->keep_counts) {
-		// We deal with the pixel_count sequence first
-		args->new_ser = driz->new_ser_pxcnt;
-		args->new_fitseq = driz->new_fitseq_pxcnt;
-		if (!args->retval) {
-			retval = seq_finalize_hook(args);
-		} else {
-			// same as seq_finalize_hook but with file deletion
-			if ((args->force_ser_output || args->seq->type == SEQ_SER) && args->new_ser) {
-				ser_close_and_delete_file(args->new_ser);
-				free(args->new_ser);
-			} else if ((args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) && args->new_fitseq) {
-				fitseq_close_and_delete_file(args->new_fitseq);
-				free(args->new_fitseq);
-			} else if (args->seq->type == SEQ_REGULAR) {
-				remove_prefixed_sequence_files(args->seq, driz->pixcnt_prefix);
-			}
-		}
-		driz->new_ser_pxcnt = NULL;
-		driz->new_fitseq_pxcnt = NULL;
-	}
-
-	// We deal with the drizzled sequence next
-	args->new_ser = driz->new_ser_drz;
-	args->new_fitseq = driz->new_fitseq_drz;
-
-	int failed = 0;
-
-	// images may have been excluded but selnum wasn't updated
-	fix_selnum(args->seq, FALSE);
-
-	if (!args->retval) {
-		for (int i = 0; i < args->nb_filtered_images; i++)
-			if (!sadata->success[i])
-				failed++;
-		regargs->new_total = args->nb_filtered_images - failed;
-		if (failed) {
-			// driz->imgparam and driz->regparam may have holes caused by images
-			// that failed to be registered - compact them
-			for (int i = 0, j = 0; i < regargs->new_total; i++, j++) {
-				while (!sadata->success[j] && j < args->nb_filtered_images) j++;
-				g_assert(sadata->success[j]);
-				if (i != j) {
-					regargs->imgparam[i] = regargs->imgparam[j];
-					regargs->regparam[i] = regargs->regparam[j];
-				}
-			}
-		}
-		seq_finalize_hook(args);
-	} else {
-		regargs->new_total = 0;
-
-		// same as seq_finalize_hook but with file deletion
-		if ((args->force_ser_output || args->seq->type == SEQ_SER) && args->new_ser) {
-			ser_close_and_delete_file(args->new_ser);
-			free(args->new_ser);
-		} else if ((args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) && args->new_fitseq) {
-			fitseq_close_and_delete_file(args->new_fitseq);
-			free(args->new_fitseq);
-		} else if (args->seq->type == SEQ_REGULAR) {
-			remove_prefixed_sequence_files(args->seq, regargs->prefix);
-		}
-	}
-
-	if (sadata->success) free(sadata->success);
-	//	Do not free driz here as it will be needed for blot and second drizzle
-	args->user = NULL;
-
-	if (!args->retval) {
-		siril_log_message(_("Applying drizzle completed.\n"));
-		gchar *str = ngettext("%d image processed.\n", "%d images processed.\n", args->nb_filtered_images);
-		str = g_strdup_printf(str, args->nb_filtered_images);
-		siril_log_color_message(str, "green");
-		siril_log_color_message(_("Total: %d failed, %d exported.\n"), "green", failed, regargs->new_total);
-		regargs->load_new_sequence = TRUE;
-		g_free(str);
-		if (!(args->seq->type == SEQ_INTERNAL)) {
-			// explicit sequence creation to copy imgparam and regparam
-			create_output_sequence_for_apply_reg(regargs);
-			// will be loaded in the idle function if (load_new_sequence)
-			args->load_new_sequence = regargs->load_new_sequence; // always want to load drizzled sequence
-		}
-	}
-	else {
-		siril_log_message(_("Drizzle aborted.\n"));
-	}
-
-	if (regargs->new_total == 0)
-		return 1;
-	driz->new_ser_drz = NULL;
-	driz->new_fitseq_drz = NULL;
-
-	return retval;
 }
 
 int apply_reg_finalize_hook(struct generic_seq_args *args) {
@@ -935,9 +629,6 @@ int register_apply_reg(struct registration_args *regargs) {
 
 	if (driz) {
 		args->compute_mem_limits_hook = apply_drz_compute_mem_limits;
-		args->prepare_hook = apply_drz_prepare_hook;
-		args->save_hook = apply_drz_save_hook;
-		args->finalize_hook = apply_drz_finalize_hook;
 		args->upscale_ratio = 1.0; // Drizzle scale dealt with separately
 		driz_param_dump(driz); // Print some info to the log
 		/* preparing reference data from reference fit and making sanity checks*/
@@ -986,10 +677,10 @@ int register_apply_reg(struct registration_args *regargs) {
 		}
 	} else {
 		args->compute_mem_limits_hook = apply_reg_compute_mem_limits;
-		args->prepare_hook = apply_reg_prepare_hook;
-		args->finalize_hook = apply_reg_finalize_hook;
 		args->upscale_ratio = regargs->x2upscale ? 2.0 : 1.0;
 	}
+	args->prepare_hook = apply_reg_prepare_hook;
+	args->finalize_hook = apply_reg_finalize_hook;
 	args->filtering_criterion = regargs->filtering_criterion;
 	args->filtering_parameter = regargs->filtering_parameter;
 	args->nb_filtered_images = regargs->new_total;
@@ -1031,12 +722,6 @@ static void create_output_sequence_for_apply_reg(struct registration_args *args)
 	args->new_seq_name = remove_ext_from_filename(rseqname);
 	free(rseqname);
 	seq.seqname = strdup(args->new_seq_name);
-	if (args->driz) {
-		gchar *tmpbuf = g_strdup_printf("oc_%s", seq.seqname);
-		siril_debug_print("seq name: %s\npix_cnt seq name: %s\n", args->seq->seqname, tmpbuf);
-		seq.pixcnt_seqname = strdup(tmpbuf);
-		g_free(tmpbuf);
-	}
 	seq.number = args->new_total;
 	seq.selnum = args->new_total;
 	seq.fixed = args->seq->fixed;

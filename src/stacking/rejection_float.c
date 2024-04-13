@@ -97,7 +97,7 @@ static void grubbs_stat(float *stack, int N, float *GCal, int *max_ind) {
 	*GCal = max_of_deviations / sd;
 }
 
-int apply_rejection_float(struct _data_block *data, struct _data_block *pixcnt_data, int nb_frames,
+int apply_rejection_float(struct _data_block *data, int nb_frames,
 		struct stacking_args *args, int crej[2]) {
 	int N = nb_frames;	// N is the number of pixels kept from the current stack
 	double median = 0.0;
@@ -108,10 +108,6 @@ int apply_rejection_float(struct _data_block *data, struct _data_block *pixcnt_d
 	float *w_stack = (float*) data->w_stack;
 	int *rejected = (int*) data->rejected;
 	float *o_stack = (float*) data->o_stack;
-	float *pixcnt_stack;
-	if (pixcnt_data) {
-		pixcnt_stack = (float *) pixcnt_data->stack;
-	}
 	const float siglow = args->sig[0];
 	const float sighigh = args->sig[1];
 
@@ -122,16 +118,14 @@ int apply_rejection_float(struct _data_block *data, struct _data_block *pixcnt_d
 		if (stack[frame] != 0.f) {
 			if (frame != kept) {
 				stack[kept] = stack[frame];
-				if (pixcnt_data)
-					pixcnt_stack[kept] = pixcnt_stack[frame];
-			}
+			} 
 			kept++;
 		}
 	}
 	/* Preventing problems
 	   0: should not happen but just in case.
 	   1 or 2: no need to reject */
-	if (kept <= 2) {
+	if (kept <= 2) { 
 		return kept;
 	}
 	removed = N - kept;
@@ -158,11 +152,8 @@ int apply_rejection_float(struct _data_block *data, struct _data_block *pixcnt_d
 		for (pixel = 0, output = 0; pixel < N; pixel++) {
 			if (!rejected[pixel]) {
 				// copy only if there was a rejection
-				if (pixel != output) {
+				if (pixel != output)
 					stack[output] = stack[pixel];
-					if (pixcnt_data)
-						pixcnt_stack[output] = pixcnt_stack[pixel];
-				}
 				output++;
 			}
 		}
@@ -195,11 +186,8 @@ int apply_rejection_float(struct _data_block *data, struct _data_block *pixcnt_d
 			for (pixel = 0, output = 0; pixel < N; pixel++) {
 				if (!rejected[pixel]) {
 					// copy only if there was a rejection
-					if (pixel != output) {
+					if (pixel != output)
 						stack[output] = stack[pixel];
-						if (pixcnt_data)
-							pixcnt_stack[output] = pixcnt_stack[pixel];
-					}
 					output++;
 				}
 			}
@@ -250,9 +238,6 @@ int apply_rejection_float(struct _data_block *data, struct _data_block *pixcnt_d
 				if (!rejected[pixel]) {
 					// copy only if there was a rejection
 					stack[output] = stack[pixel];
-					if (pixcnt_data)
-						pixcnt_stack[output] = pixcnt_stack[pixel];
-
 					output++;
 				}
 			}
@@ -286,11 +271,8 @@ int apply_rejection_float(struct _data_block *data, struct _data_block *pixcnt_d
 			for (pixel = 0, output = 0; pixel < N; pixel++) {
 				if (!rejected[pixel]) {
 					// copy only if there was a rejection
-					if (pixel != output) {
+					if (pixel != output)
 						stack[output] = stack[pixel];
-						if (pixcnt_data)
-							pixcnt_stack[output] = pixcnt_stack[pixel];
-					}
 					output++;
 				}
 			}
@@ -312,7 +294,7 @@ int apply_rejection_float(struct _data_block *data, struct _data_block *pixcnt_d
 		median = gsl_stats_float_median_from_sorted_data(stack, 1, N);
 
 		int max_outliers = (int) nb_frames * args->sig[0];
-
+		
 		if (removed >= max_outliers) {
 			/* more than max allowable have already been removed, should not reject anymore*/
 			return kept;
@@ -339,11 +321,8 @@ int apply_rejection_float(struct _data_block *data, struct _data_block *pixcnt_d
 		for (pixel = 0, output = 0; pixel < N; pixel++) {
 			if (!rejected[pixel]) {
 				// copy only if there was a rejection
-				if (pixel != output) {
+				if (pixel != output)
 					stack[output] = stack[pixel];
-					if (pixcnt_data)
-						pixcnt_stack[output] = pixcnt_stack[pixel];
-				}
 				output++;
 			}
 		}
