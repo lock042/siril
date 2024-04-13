@@ -45,8 +45,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #define _USE_MATH_DEFINES       /* needed for MS Windows to define M_PI */
 #include <math.h>
 #include <stdlib.h>
-#include <sys/time.h>
-#include "core/siril_log.h"
 
 
 //static char buf[1024];
@@ -604,19 +602,23 @@ do_kernel_lanczos(struct driz_param_t* p) {
  */
 
 static int
-do_kernel_turbo_chunk(struct driz_param_t* p, int ymin, int ymax, struct scanner *s) {
+do_kernel_turbo(struct driz_param_t* p) {
+    struct scanner s;
     integer_t i, j, ii, jj, nxi, nxa, nyi, nya, nhit, iis, iie, jjs, jje;
     integer_t osize[2];
     float vc[3], d, dow;
     float pfo, scale2, ac;
     float xxi, xxa, yyi, yya, w, dover;
-    int xmin, xmax, n;
+    int xmin, xmax, ymin, ymax, n;
 	const char* cfa = p->cfa;
 	size_t cfadim = !cfa ? 1 : strlen(cfa) == 4 ? 2 : 6;
 
+    siril_debug_print("starting do_kernel_turbo\n");
     ac = 1.0 / (p->pixel_fraction * p->pixel_fraction);
     pfo = p->pixel_fraction / p->scale / 2.0;
     scale2 = p->scale * p->scale;
+
+    if (init_image_scanner(p, &s, &ymin, &ymax)) return 1;
 
     p->nskip = (p->ymax - p->ymin) - (ymax - ymin);
     p->nmiss = p->nskip * (p->xmax - p->xmin);
@@ -626,7 +628,7 @@ do_kernel_turbo_chunk(struct driz_param_t* p, int ymin, int ymax, struct scanner
     get_dimensions(p->output_data, osize);
     for (j = ymin; j <= ymax; ++j) {
         /* Check the overlap with the output */
-        n = get_scanline_limits(s, j, &xmin, &xmax);
+        n = get_scanline_limits(&s, j, &xmin, &xmax);
 
         if (n == 1) {
             // scan ended (y reached the top vertex/edge)
@@ -710,40 +712,9 @@ do_kernel_turbo_chunk(struct driz_param_t* p, int ymin, int ymax, struct scanner
         }
     }
 
+    siril_debug_print("ending do_kernel_turbo\n");
     return 0;
 }
-
-static int
-do_kernel_turbo(struct driz_param_t* p) {
-    struct scanner s;
-    int ymin, ymax;
-	struct timeval t_start, t_end;
-	gettimeofday(&t_start, NULL);
-	int threads = p->threads;
-    siril_debug_print("starting drizzle kernel \"turbo\" with %d threads\n", threads);
-
-    if (init_image_scanner(p, &s, &ymin, &ymax)) return 1;
-    int chunk_size = (p->ymax - p->ymin + 1) / threads;
-	int retval = 0;
-#pragma omp parallel num_threads(threads) if (threads > 1)
-{
-#pragma omp barrier
-#pragma omp for schedule(static, 1)
-    for (int chunk = 0; chunk < threads; chunk++) {
-        int chunk_start = p->ymin + chunk * chunk_size;
-        int chunk_end = chunk_start + chunk_size - 1;
-        if (chunk == threads - 1) {
-            chunk_end = p->ymax;
-        }
-		siril_debug_print("starting do_kernel_turbo chunk: rows %d to %d\n", chunk_start, chunk_end);
-        retval |= do_kernel_turbo_chunk(p, chunk_start, chunk_end, &s);
-    }
-}
-	gettimeofday(&t_end, NULL);
-	show_time(t_start, t_end);
-	return retval;
-}
-
 
 /** --------------------------------------------------------------------------------------------------
  * This module does the actual mapping of input flux to output images. It works by calculating the
