@@ -204,8 +204,7 @@ interpolate_point(struct driz_param_t *par, float xin, float yin,
  * H: the Homography matrix to map between the two images
  */
 
-int map_image_coordinates_h(fits *fit, Homography H, imgmap_t *p, int target_ry, float scale) {
-	float x, y;
+int map_image_coordinates_h(fits *fit, Homography H, imgmap_t *p, int target_ry, float scale, int threads) {
 	int rx, source_ry;
 	int index = 0;
 	rx = fit->rx;
@@ -219,13 +218,17 @@ int map_image_coordinates_h(fits *fit, Homography H, imgmap_t *p, int target_ry,
 		(float) H.h20, (float) H.h21, (float) H.h22 };
 
 	p->xmap = malloc(rx * source_ry * 2 * sizeof(float));
+	if (!p->xmap)
+		return 1;
 	p->ymap = p->xmap + (rx * source_ry);
-
-	for (y = 0; y < source_ry; y++) {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(threads) schedule(static) if (threads > 1)
+#endif
+	for (int y = 0; y < source_ry; y++) {
 		float y1 = y * Harr[7] + Harr[8];
 		float y2 = y * Harr[1] + Harr[2];
 		float y3 = y * Harr[4] + Harr[5];
-		for (x = 0; x < rx; x++) {
+		for (int x = 0; x < rx; x++) {
 			float z = scale / (x * Harr[6] + y1);
 			p->xmap[index] = (x * Harr[0] + y2) * z;
 			p->ymap[index++] = (x * Harr[3] + y3) * z;

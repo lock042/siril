@@ -181,6 +181,7 @@ struct driz_args_t {
 struct driz_param_t {
   struct driz_args_t *driz; /* sequence-wide drizzle args */
   regdata *current_regdata; /* Current reg data (to get Homography matrices, if required)*/
+  int threads; /* threads allowed */
 
   /* Options */
   enum e_kernel_t kernel; /* Kernel shape and size */

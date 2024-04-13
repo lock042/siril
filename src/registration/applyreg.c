@@ -351,8 +351,9 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		p->pixmap = calloc(1, sizeof(imgmap_t));
 		p->pixmap->rx = fit->rx;
 		p->pixmap->ry = fit->ry;
+		p->threads = threads;
 
-		map_image_coordinates_h(fit, H, p->pixmap, ry_out_unscaled, driz->scale);
+		map_image_coordinates_h(fit, H, p->pixmap, ry_out_unscaled, driz->scale, threads);
 		if (!p->pixmap->xmap) {
 			siril_log_color_message(_("Error generating mapping array.\n"), "red");
 			free(p->error);
@@ -933,6 +934,7 @@ int register_apply_reg(struct registration_args *regargs) {
 	}
 
 	if (driz) {
+		args->compute_mem_limits_hook = apply_drz_compute_mem_limits;
 		args->prepare_hook = apply_drz_prepare_hook;
 		args->save_hook = apply_drz_save_hook;
 		args->finalize_hook = apply_drz_finalize_hook;
@@ -983,6 +985,7 @@ int register_apply_reg(struct registration_args *regargs) {
 				return 1;
 		}
 	} else {
+		args->compute_mem_limits_hook = apply_reg_compute_mem_limits;
 		args->prepare_hook = apply_reg_prepare_hook;
 		args->finalize_hook = apply_reg_finalize_hook;
 		args->upscale_ratio = regargs->x2upscale ? 2.0 : 1.0;
@@ -990,7 +993,6 @@ int register_apply_reg(struct registration_args *regargs) {
 	args->filtering_criterion = regargs->filtering_criterion;
 	args->filtering_parameter = regargs->filtering_parameter;
 	args->nb_filtered_images = regargs->new_total;
-	args->compute_mem_limits_hook = apply_reg_compute_mem_limits;
 	args->image_hook = apply_reg_image_hook;
 	args->stop_on_error = FALSE;
 	args->description = _("Apply registration");
