@@ -62,6 +62,14 @@ struct light_curve_args {
 	siril_plot_data *spl_data;
 };
 
+struct occultation_args {
+	int start_ind_inseq;	// Index of the first image of the pulse in the original sequence
+	int start_ind;	// Index of the first image of the pulse in the sorted list
+	int pls_nbr;	// Number of usefull images in the 100ms pulse
+	double sum_flux;	// Total flux during the pulse
+	double delta_t;	// delay time
+};
+
 void free_light_curve_args(struct light_curve_args *args);
 
 gpointer light_curve_worker(gpointer arg);

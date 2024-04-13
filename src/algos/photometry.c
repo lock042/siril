@@ -41,6 +41,7 @@
 #include "gui/image_display.h"
 #include "gui/siril_plot.h"
 #include "io/sequence.h"
+#include "io/ser.h"
 #include "io/siril_plot.h"
 #include "opencv/opencv.h"
 
@@ -601,7 +602,21 @@ gpointer light_curve_worker(gpointer arg) {
 	return GINT_TO_POINTER(retval);
 }
 
+GDateTime *floor_date (GDateTime *date){
+		/* Check date and time */
+	gint year, month, day;
 
+	GTimeZone *tz = g_date_time_get_timezone(date);
+	g_date_time_get_ymd(date, &year, &month, &day);
+	gint hour = g_date_time_get_hour(date);
+	gint minute = g_date_time_get_minute(date);
+	double seconds = g_date_time_get_seconds(date);
+		/* Check date and time */
+
+	GDateTime *ret = g_date_time_new (tz,year, month, day, hour, minute, floor(seconds));
+	g_time_zone_unref(tz);
+	return ret;
+}
 // All the stuff for occultation
 
 /****************** making a light curve from sequence-stored data ****************/
@@ -635,37 +650,19 @@ int occult_curve(struct light_curve_args *lcargs) {
 		return -1;
 	}
 
-/*	int nb_ref_stars = 0;
-	// select reference stars that are only available at least 4/5 of the time
-	for (int ref = 1; ref < MAX_SEQPSF && seq->photometry[ref]; ref++) {
-		ref_valid[ref] = ref_valid_count[ref] >= round_to_int(nbImages * 4.0 / 5.0);
-		siril_debug_print("reference star %d has %d/%d valid measures, %s\n", ref, ref_valid_count[ref], nbImages, ref_valid[ref] ? "including" : "discarding");
-		if (ref_valid[ref])
-			nb_ref_stars++;
-	}
-
-	if (nb_ref_stars == 0) {
-		siril_log_color_message(_("The reference stars are not good enough, probably out of the configured valid pixel range, cannot calibrate the light curve\n"), "red");
-		return -1;
-	}
-	if (nb_ref_stars == 1)
-		siril_log_color_message(_("Only one reference star was validated, this will not result in an accurate light curve. Try to add more reference stars or check the configured valid pixel range\n"), "salmon");
-	else siril_log_message(_("Using %d stars to calibrate the light curve\n"), nb_ref_stars);
-*/
-
 	// arrays containing the graph data: X, Y and Y error bars
 	double *date = calloc(nbImages, sizeof(double));	// X is the julian date
 	double *vmag = calloc(nbImages, sizeof(double));	// Y is the calibrated magnitude
-	double *err = calloc(nbImages, sizeof(double));		// Y error bar
-	if (!date || !vmag || !err) {
+	int *orig_ind = calloc(nbImages, sizeof(int));		// Original index in the sequence
+	if (!date || !vmag) {
 		PRINT_ALLOC_ERR;
-		free(date); free(vmag); free(err);
+		free(date); free(vmag);
 		return -1;
 	}
 	double min_date = DBL_MAX;
 	// i is index in dataset, j is index in output
 	for (i = 0, j = 0; i < seq->number; i++) {
-//		if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid)
+
 		if (!seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid)
 			continue;
 
@@ -677,7 +674,7 @@ int occult_curve(struct light_curve_args *lcargs) {
 				GDateTime *new_dt = g_date_time_add_seconds(tsi, seq->exposure * 0.5);
 				julian = date_time_to_Julian(new_dt);
 				g_date_time_unref(new_dt);
-			} else {
+			} else {		// this is the case for ser files. So the timestamp is the beginning of the frame
 				julian = date_time_to_Julian(tsi);
 			}
 			g_date_time_unref(tsi);
@@ -689,31 +686,38 @@ int occult_curve(struct light_curve_args *lcargs) {
 		}
 
 // to be refactored with amplitude not magnitude
-		// Y value: the magnitude and error and their calibration
+		// Y value: the the PSF amplitude
 		double target_amp = seq->photometry[0][i]->A;
 		double target_bck = seq->photometry[0][i]->B;
-		
 
-		double cmag = 0.0, cerr = 0.0;
-		int nb_ref = 0;
 		/* First data plotted are variable data, others are references
 		 * Variable is done above, now we compute references */
-
-		vmag[j] = target_amp;
+		vmag[j] = target_amp - target_bck;
+		orig_ind[j] = i;	// Keep trace of the original index 
 //		siril_log_color_message(_("i= %d, A= %lf, Vmag= %lf\n"), "red", i, seq->photometry[0][i]->A, vmag[j]);
-		j++;
+		j++;	// Count for usable images
 		
 	}
 	int nb_valid_images = j;
+
+	struct occultation_args *pulse = NULL;
+	double exposure = 1.0 / com.seq.ser_file->fps;	// Have to re-compute it as seq->exposure is not filled for ser files. This is an average value.
+//	double exposure = 0.01;
+
+
+	int plsnbr = seq->number * exposure;	// Retrieves the number of PPS we shoulf find in the sequence
+	pulse = calloc(plsnbr, sizeof(struct occultation_args));
+
 	double error_val, median_val, largest_val, smallest_val, mean_val;
 	gsl_stats_minmax (&smallest_val, &largest_val, vmag, 1, j);
 
 
-/// 	largest_val = gsl_stats_max(vmag, 1, nb_valid_images);
+/// largest_val = gsl_stats_max(vmag, 1, nb_valid_images);
 ///	smallest_val = gsl_stats_min(vmag, 1, nb_valid_images);
 //	median_val = quickmedian_double(vmag, nb_valid_images);
 //	mean_val = gsl_stats_mean(vmag, 1, nb_valid_images);
-	siril_log_color_message(_("min= %lf, max= %lf, nb_valid_images= %i\n"), "red", smallest_val, largest_val, nb_valid_images);
+	siril_log_color_message(_("min= %lf, max= %lf, nb_valid_images= %i, nbr pulse= %i\n"), "red", smallest_val, largest_val, nb_valid_images, plsnbr);
+
 
 	int julian0 = 0;
 	if (min_date != DBL_MAX)
@@ -728,19 +732,22 @@ int occult_curve(struct light_curve_args *lcargs) {
 	double sum = 0.0;
 	gboolean start_pulse = FALSE;
 	gboolean stop_pulse = FALSE;
-	double *sum_t = calloc(nb_valid_images, sizeof(double));	// Y is the calibrated magnitude
 
-	for (i = 2, j = 0; i + 1 < nb_valid_images; i++) {
-//		siril_log_color_message(_("1- Valid_images= %i, Vmag= %lf, (%d)\n"), "red", i, vmag[i], seq->photometry[0][i]->phot_is_valid);
+	/* Loop over the valid images */
+	for (i = 1, j = 0; i + 1 < nb_valid_images; i++) {
+		siril_log_color_message(_("1- Valid_images= %i, Vmag= %lf\n"), "red", orig_ind[i + 1], vmag[i]);
 		if (!start_pulse && (vmag[i-1] < 0.5 * vmag[i]) && (vmag[i-1] < 0.5 * vmag[i + 1]) && (vmag[i + 1] > 0.95 * largest_val)) {		// Identify raising edges
 			start_pulse = TRUE;
 			stop_pulse = FALSE;
-//			siril_log_color_message(_("Raise!!\n"), "salmon");
+			pulse[k].start_ind_inseq = orig_ind[i + 1];
+			pulse[k].start_ind = i;
+
+			siril_log_color_message(_("Raise!!\n"), "salmon");
 		}
 
 		if (start_pulse && (vmag[i-1] > 1.06 * vmag[i]) && (vmag[i-1] > 20.0 * vmag[i + 1]) && (vmag[i + 1] < 0.05 * largest_val)) {		// Identify falling edges
 			stop_pulse = TRUE;
-//			siril_log_color_message(_("Fall!!\n"), "salmon");
+			siril_log_color_message(_("Fall!!\n"), "salmon");
 		}
 
 		if (start_pulse) {
@@ -749,32 +756,84 @@ int occult_curve(struct light_curve_args *lcargs) {
 				j++;
 			} else {
 				sum += vmag[i];
-				j++;
 				start_pulse = FALSE;
 				stop_pulse = FALSE;
-				siril_log_color_message(_("Stop_pic= %i, nbr_pic= %i, sum= %lf\n"), "salmon", i, j, sum);
+				j++;	// Number of pictures in a PPS pulse
+				pulse[k].pls_nbr = j;
+				pulse[k].sum_flux = sum;
+				siril_log_color_message(_("Stoppic= %i, Vmag(%lf), Startpic= %i, nbr_pic= %i, sum= %lf\n"), "salmon", orig_ind[i + 1], vmag[orig_ind[i +1]], orig_ind[i +1] - pulse[k].pls_nbr +1, pulse[k].pls_nbr, pulse[k].sum_flux);
+				k++;	// Index of the pulse
 				j = 0;
-				k++;
-				sum_t[k] = sum;
 				sum = 0.0;
 				}
 		}
 		
 
 	}
-	siril_log_color_message(_("nbr_pulse= %i\n"), "salmon", k);
-	siril_log_color_message(_("nb_valid_images= %i / %i\n"), "red", j, i);
-	median_val = quickmedian_double(sum_t, k);
-	error_val = gsl_stats_variance(sum_t, 1, k);
-	siril_log_color_message(_("median= %lf / error= %lf\n"), "red", median_val, error_val);
+
+	int nb_pulses = k - 1;
+	siril_log_color_message(_("nbr_pulse= %i vs plsnbr= %i\n"), "red", nb_pulses, plsnbr);
+//	median_val = quickmedian_double(pulse->sum_flux, k);
+//	median_val = gsl_stats_median(pulse[]->sum_flux, 1, k);
+//	error_val = gsl_stats_variance(pulse->sum_flux, 1, k);
+//	siril_log_color_message(_("median= %lf / error= %lf\n"), "red", median_val, error_val);
+
+	double *unity_flux = calloc(plsnbr, sizeof(double));
+	double *first_p = calloc(plsnbr, sizeof(double));
+	int tmp_ind = 0;
+
+	for (i = 0; i < plsnbr; i++) {
+		unity_flux[i] = pulse[i].sum_flux / 100.0;	// in ADU/ms, assuming the pulse duration = 100ms
+		first_p[i] = vmag[pulse[i].start_ind] / unity_flux[i];	// Lenght of the first pulse (ms)
+		siril_log_color_message(_("unit_flux[%i] %lf, sum_flux(%i) = %lf\n"), "red", i, unity_flux[i], i, pulse[i].sum_flux);
+		siril_log_color_message(_("Vmag(%i)= %lf, first_p[%i] %lf (ms)\n"), "salmon", pulse[i].start_ind_inseq, vmag[pulse[i].start_ind], i, first_p[i]);
+
+		tmp_ind = pulse[i].start_ind_inseq + pulse[i].pls_nbr -1;	// Retrieves the index of the begining frame in the original sequence
+		GDateTime *begin_frame = g_date_time_ref(seq->imgparam[pulse[i].start_ind_inseq].date_obs);	// Timestamp at the beginning of the frame
+		GDateTime *end_frame = g_date_time_add_seconds (begin_frame, exposure);	// (computed) Timestamp at the end of the frame
+//		GDateTime *end_frame2 = g_date_time_ref(seq->imgparam[tmp_ind].date_obs);	// (computed) Timestamp at the end of the frame
+
+		GDateTime *pps_time = floor_date (end_frame);	// Timestamp of the precise PPS time the pulse refers to
+		GDateTime *pps_time_end = g_date_time_add_seconds (pps_time, first_p[i] / 1000.0);
+
+//		GTimeSpan *ptr_delay = g_date_time_difference(end_frame, pps_time_end);
+		GTimeSpan *ptr_delay = g_date_time_difference(pps_time_end, end_frame);
+//		acq_delay[i] = (double)ptr_delay;
+
+		gchar *str = date_time_to_FITS_date(begin_frame);
+
+		siril_log_color_message(_("begin_frame %s, tmp_ind= %i, exposure= %lf (ms)\n"), "salmon", str, tmp_ind, 1000.0 * exposure);
+		str = date_time_to_FITS_date(end_frame);
+		siril_log_color_message(_("end_frame %s\n"), "salmon", str);
+//		str = date_time_to_FITS_date(end_frame2);
+//		siril_log_color_message(_("end_frame2 %s\n"), "salmon", str);
+		str = date_time_to_FITS_date(pps_time);
+		siril_log_color_message(_("pps_time %s, first_p[%i]= %lf (ms)\n"), "salmon", str, i, first_p[i]);
+		str = date_time_to_FITS_date(pps_time_end);
+		siril_log_color_message(_("pps_time_end %s\n"), "salmon", str);
+
+
+//		str = date_time_to_FITS_date(g_date_time_difference(pps_time, begin_frame));
+		siril_log_color_message(_("diff time %lf\n"), "salmon", 0.000001 * (double)g_date_time_difference(end_frame, pps_time_end));
+//		GTimeSpan times_pan = g_date_time_compare(begin_frame, pps_time);
+//		siril_log_color_message(_("diff time %i\n"), "salmon", g_date_time_compare(begin_frame, pps_time));
+
+
+		free(str);
+		g_date_time_unref(begin_frame);
+		g_date_time_unref(end_frame);
+		g_date_time_unref(pps_time);
+		g_date_time_unref(pps_time_end);
+
+	}
 
 
 	int ret = 0;
 
 	free(date);
 	free(vmag);
-	free(err);
-	free(sum_t);
+//	free(err);
+//	free(sum_t);
 	return ret;
 }
 
