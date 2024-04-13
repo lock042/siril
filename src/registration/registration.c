@@ -33,7 +33,6 @@
 #include "core/siril_log.h"
 #include "algos/demosaicing.h"
 #include "drizzle/cdrizzleutil.h"
-#include "gui/drizzle_gui.h"
 #include "gui/callbacks.h"
 #include "gui/utils.h"
 #include "gui/image_display.h"
@@ -54,6 +53,7 @@
 #include "gui/PSF_list.h"
 #include "algos/quality.h"
 #include "algos/siril_wcs.h"
+#include "io/path_parse.h"
 #include "io/sequence.h"
 #include "io/ser.h"
 #include "io/single_image.h"
@@ -122,6 +122,78 @@ static char *filter_tooltip_text[] = {
 void _reg_selected_area_callback() {
 	if (!com.headless)
 		update_reg_interface(TRUE);
+}
+
+int populate_drizzle_data(struct driz_args_t *driz) {
+	driz->use_flats = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("driz_use_flats")));
+	driz->scale = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_driz_scale")));
+	driz->weight_scale = 1.f; // Not used for now
+	driz->kernel = (enum e_kernel_t) gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_driz_kernel")));
+	driz->pixel_fraction = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_driz_dropsize")));
+	if (driz->use_flats) {
+		fits reffit = { 0 };
+		GtkEntry *entry = GTK_ENTRY(lookup_widget("flatname_entry"));
+		const gchar *flat_filename = gtk_entry_get_text(entry);
+		gchar *error = NULL;
+		int status;
+		gchar *expression = path_parse(&reffit, flat_filename, PATHPARSE_MODE_READ, &status);
+		if (status) {
+			error = _("NOT USING FLAT: could not parse the expression");
+			driz->use_flats = FALSE;
+		} else {
+			free(expression);
+			if (flat_filename[0] == '\0') {
+				siril_log_message(_("Error: no master flat specified in the preprocessing tab.\n"));
+				free(driz);
+				return 1;
+			} else {
+				set_progress_bar_data(_("Opening flat image..."), PROGRESS_NONE);
+				driz->flat = calloc(1, sizeof(fits));
+				if (!readfits(flat_filename, driz->flat, NULL, TRUE)) {
+					if (driz->flat->naxes[2] != com.seq.nb_layers) {
+						error = _("NOT USING FLAT: number of channels is different");
+					} else if (driz->flat->naxes[0] != com.seq.rx ||
+							driz->flat->naxes[1] != com.seq.ry) {
+						error = _("NOT USING FLAT: image dimensions are different");
+					} else {
+						// no need to deal with bitdepth conversion as readfits has already forced conversion to float
+						siril_log_message(_("Master flat read for use as initial pixel weight\n"));
+					}
+				} else error = _("NOT USING FLAT: cannot open the file");
+				if (error) {
+					siril_log_color_message("%s\n", "red", error);
+					set_progress_bar_data(error, PROGRESS_DONE);
+					if (driz->flat) {
+						clearfits(driz->flat);
+						free(driz->flat);
+					}
+					free(driz);
+					return 1;
+				}
+			}
+		}
+	}
+	return 0;
+}
+
+void on_drizzleCheckButton_toggled(GtkToggleButton* button, gpointer user_data) {
+	gboolean state = gtk_toggle_button_get_active(button);
+	gtk_widget_set_visible(lookup_widget("box_drizzle_controls"), state);
+	if (state) {
+		gtk_notebook_set_current_page(GTK_NOTEBOOK(lookup_widget("notebook_registration")), 4);
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("upscaleCheckButton")), FALSE);
+	}
+	gtk_widget_set_visible(lookup_widget("interp_box"), !state);
+	gtk_widget_set_visible(lookup_widget("toggle_reg_clamp"), !state);
+	gtk_widget_set_visible(lookup_widget("regNoOutput"), !state);
+
+}
+
+void on_upscaleCheckButton_toggled(GtkToggleButton* button, gpointer user_data) {
+	gboolean state = gtk_toggle_button_get_active(button);
+	if (state) {
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("drizzleCheckButton")), FALSE);
+	}
 }
 
 static struct registration_method *reg_methods[NUMBER_OF_METHODS + 1];

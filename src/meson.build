@@ -202,7 +202,6 @@ src_files = [
   'gui/dialog_preview.c',
   'gui/dialogs.c',
   'gui/documentation.c',
-  'gui/drizzle_gui.c',
   'gui/fix_xtrans_af.c',
   'gui/histogram.c',
   'gui/keywords_tree.c',

@@ -259,8 +259,6 @@ siril_common_SOURCES = \
 	gui/dialogs.h \
 	gui/documentation.c \
 	gui/documentation.h \
-	gui/drizzle_gui.c \
-	gui/drizzle_gui.h \
 	gui/fix_xtrans_af.c \
 	gui/fix_xtrans_af.h \
 	gui/histogram.c \
