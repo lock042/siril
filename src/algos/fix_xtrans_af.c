@@ -183,9 +183,9 @@ int fix_xtrans_ac(fits *fit) {
 	rectangle af, sam;
 	gboolean read_bottom_up = FALSE;
 
-	int model = get_model(fit->instrume);
+	int model = get_model(fit->keywords.instrume);
 	if (model < 0) {
-		siril_log_color_message(_("Fix X-Trans: Unknown camera %s, trying to read information from preferences.\n"), "red", fit->instrume);
+		siril_log_color_message(_("Fix X-Trans: Unknown camera %s, trying to read information from preferences.\n"), "red", fit->keywords.instrume);
 		if (com.pref.prepro.xtrans_af.w != 0 && com.pref.prepro.xtrans_af.h != 0) {
 			if (com.pref.prepro.xtrans_sample.w > fit->rx || com.pref.prepro.xtrans_sample.h > fit->ry) {
 				siril_log_color_message(_("Sample box cannot be bigger than the image.\n"), "red");
@@ -217,7 +217,7 @@ int fix_xtrans_ac(fits *fit) {
 	// Flip the image so the xtrans pattern makes sense.
 	// This matches logic in demosaicing.c.
 	read_bottom_up = (com.pref.debayer.use_bayer_header
-			&& !g_strcmp0(fit->row_order, "BOTTOM-UP"))
+			&& !g_strcmp0(fit->keywords.row_order, "BOTTOM-UP"))
 			|| (!com.pref.debayer.top_down);
 	if (read_bottom_up) { fits_flip_top_to_bottom(fit); }
 
@@ -250,7 +250,7 @@ int fix_xtrans_ac(fits *fit) {
 
 	// af_matrix is an RGB pattern where lowercase letters represent AF pixels and their color.
 	af_pixel_matrix af_matrix = { 0 };
-	set_af_matrix(fit->bayer_pattern, af_matrix);
+	set_af_matrix(fit->keywords.bayer_pattern, af_matrix);
 
 	WORD *buf = fit->pdata[RLAYER];
 	float *fbuf = fit->fpdata[RLAYER];

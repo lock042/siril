@@ -870,7 +870,7 @@ static gpointer extract_channels_ushort(gpointer p) {
 		cmsDoTransformLineStride(transform, args->fit->data, args->fit->data, args->fit->rx, args->fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 		cmsDeleteTransform(transform);
 	}
-	gchar *fitfilter = g_strdup(args->fit->filter);
+	gchar *fitfilter = g_strdup(args->fit->keywords.filter);
 	if (desc) {
 		args->fit->history = g_slist_append(args->fit->history, g_strdup_printf(_("Channel extraction from 3-channel image with ICC profile:")));
 		args->fit->history = g_slist_append(args->fit->history, g_strdup_printf("%s", desc));
@@ -1008,7 +1008,7 @@ static gpointer extract_channels_float(gpointer p) {
 		cmsDoTransformLineStride(transform, args->fit->fdata, args->fit->fdata, args->fit->rx, args->fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
 		cmsDeleteTransform(transform);
 	}
-	gchar *fitfilter = g_strdup(args->fit->filter);
+	gchar *fitfilter = g_strdup(args->fit->keywords.filter);
 	if (desc) {
 		args->fit->history = g_slist_append(args->fit->history, g_strdup_printf(_("Channel extraction from 3-channel image with ICC profile:")));
 		args->fit->history = g_slist_append(args->fit->history, g_strdup_printf("%s", desc));

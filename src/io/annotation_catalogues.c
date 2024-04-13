@@ -409,7 +409,7 @@ GSList *find_objects_in_field(fits *fit) {
 		load_all_catalogues();
 	gdouble starradius = get_wcs_image_resolution(fit) * 6. * 60.0;
 	GSList *list = get_siril_annot_catalogue_list();
-	double tref = date_time_to_Julian(fit->date_obs);
+	double tref = date_time_to_Julian(fit->keywords.date_obs);
 	for (GSList *l = list; l; l = l->next) {
 		annotations_catalogue_t *curcat = l->data;
 		if (!curcat->show) // the catalog show member is set at read-out
@@ -422,9 +422,9 @@ GSList *find_objects_in_field(fits *fit) {
 		for (int i = 0; i < siril_cat->nbitems; i++) {
 			if (siril_cat->cat_index == CAT_AN_USER_SSO) { // we need to check the record is from the same night and same location
 				if (tref == 0. || fabs(siril_cat->cat_items[i].dateobs - tref) > 0.75 || // 18hrs
-					fabs(siril_cat->cat_items[i].sitelat - fit->sitelat) > 1.e-4 ||
-					fabs(siril_cat->cat_items[i].sitelon - fit->sitelong) > 1.e-4 ||
-					fabs(siril_cat->cat_items[i].siteelev - fit->siteelev) > 1.)
+					fabs(siril_cat->cat_items[i].sitelat - fit->keywords.sitelat) > 1.e-4 ||
+					fabs(siril_cat->cat_items[i].sitelon - fit->keywords.sitelong) > 1.e-4 ||
+					fabs(siril_cat->cat_items[i].siteelev - fit->keywords.siteelev) > 1.)
 					continue;
 			}
 			if (siril_cat->cat_items[i].included) { //included means it is within the bounds of the image after projection
@@ -641,17 +641,17 @@ cat_item *search_in_solar_annotations(sky_object_query_args *args) {
 	siril_catalogue *solar_cat = ((annotations_catalogue_t *)solar_an_cat->data)->cat;
 
 	cat_item *ref_item = calloc(1, sizeof(cat_item));
-	double ref = date_time_to_Julian(args->fit->date_obs);
+	double ref = date_time_to_Julian(args->fit->keywords.date_obs);
 	ref_item->name = g_strdup(args->name);
 	ref_item->dateobs = ref;
-	ref_item->sitelat = args->fit->sitelat;
-	ref_item->sitelon = args->fit->sitelong;
-	ref_item->siteelev = args->fit->siteelev;
+	ref_item->sitelat = args->fit->keywords.sitelat;
+	ref_item->sitelon = args->fit->keywords.sitelong;
+	ref_item->siteelev = args->fit->keywords.siteelev;
 	for (int i = 0; i < solar_cat->nbitems; i++) {
 		if (is_same_item(ref_item, &solar_cat->cat_items[i], CAT_AN_USER_SSO)) {
 			siril_catalogue_copy_item(&solar_cat->cat_items[i], ref_item);
 			siril_log_message(_("Object %s record found in the local SSO catalog\n"), ref_item->name);
-			GDateTime *timerecord = g_date_time_add_seconds(args->fit->date_obs, (ref_item->dateobs - ref) * 3600. * 24.); // doing this to avoid writing a converter julian to fits date...
+			GDateTime *timerecord = g_date_time_add_seconds(args->fit->keywords.date_obs, (ref_item->dateobs - ref) * 3600. * 24.); // doing this to avoid writing a converter julian to fits date...
 			gchar *dt = date_time_to_FITS_date(timerecord);
 			gchar *alpha = siril_world_cs_alpha_format_from_double(ref_item->ra, " %02dh%02dm%04.1lfs");
 			gchar *delta = siril_world_cs_delta_format_from_double(ref_item->dec, "%c%02d°%02d\'%04.1lf\"");

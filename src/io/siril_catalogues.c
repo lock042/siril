@@ -529,8 +529,8 @@ siril_catalogue *siril_catalog_fill_from_fit(fits *fit, siril_cat_index cat, flo
 	siril_cat->center_dec = dec;
 	siril_cat->radius = get_radius_deg(resolution, fit->rx, fit->ry) * 60.;
 	siril_cat->limitmag = limit_mag;
-	if (fit->date_obs) {
-		siril_cat->dateobs = fit->date_obs;
+	if (fit->keywords.date_obs) {
+		siril_cat->dateobs = fit->keywords.date_obs;
 	}
 	return siril_cat;
 }
@@ -838,7 +838,7 @@ gboolean siril_catalog_append_item(siril_catalogue *siril_cat, cat_item *item) {
 static gboolean can_use_proper_motion(fits *fit, siril_catalogue *siril_cat) {
 	if (!fit || !siril_cat)
 		return FALSE;
-	if (!fit->date_obs) {
+	if (!fit->keywords.date_obs) {
 		// siril_debug_print("This image does not have any DATE-OBS information, cannot account for stars proper motions\n");
 		return FALSE;
 	}
@@ -853,7 +853,7 @@ static gboolean can_use_proper_motion(fits *fit, siril_catalogue *siril_cat) {
 static gboolean can_use_velocity(fits *fit, siril_catalogue *siril_cat) {
 	if (!fit || !siril_cat)
 		return FALSE;
-	if (!fit->date_obs) {
+	if (!fit->keywords.date_obs) {
 		// siril_debug_print("This image does not have any DATE-OBS information, cannot account for velocity\n");
 		return FALSE;
 	}
@@ -884,14 +884,14 @@ int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboole
 	use_proper_motion = use_proper_motion && can_use_proper_motion(fit, siril_cat);
 	use_velocity = use_velocity && can_use_velocity(fit, siril_cat);
 	if (use_proper_motion) {
-		GDateTime *dt = g_date_time_ref(fit->date_obs);
+		GDateTime *dt = g_date_time_ref(fit->keywords.date_obs);
 		gdouble jd = date_time_to_Julian(dt);
 		g_date_time_unref(dt);
 		double J2000 = 2451545.0;
 		jyears = (jd - J2000) / 365.25;
 	}
 	if (use_velocity) {
-		GDateTime *dt = g_date_time_ref(fit->date_obs);
+		GDateTime *dt = g_date_time_ref(fit->keywords.date_obs);
 		tobs = date_time_to_Julian(dt);
 		g_date_time_unref(dt);
 		// for IMCCE conesearch, the dateobs is common to the whole catalogue

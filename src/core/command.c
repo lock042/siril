@@ -145,7 +145,7 @@ static gboolean sequence_cfa_warning_check(sequence* seq) {
 	fits tmpfit = { 0 };
 	seq_read_frame_metadata(seq, sequence_find_refimage(seq), &tmpfit);
 	gboolean mono = (tmpfit.naxes[2] == 1);
-	gboolean cfa = (tmpfit.bayer_pattern[0] != '\0');
+	gboolean cfa = (tmpfit.keywords.bayer_pattern[0] != '\0');
 	clearfits(&tmpfit);
 	if (mono && cfa) {
 		control_window_switch_to_tab(OUTPUT_LOGS);
@@ -161,7 +161,7 @@ static gboolean sequence_cfa_warning_check(sequence* seq) {
 // Otherwise, returns FALSE and prints a warning
 gboolean image_cfa_warning_check() {
 	gboolean retval;
-	if (gfit.naxes[2] == 1 && gfit.bayer_pattern[0] != '\0') {
+	if (gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] != '\0') {
 		control_window_switch_to_tab(OUTPUT_LOGS);
 		siril_log_color_message(_("Warning: an undebayered CFA image is loaded. Applying an image function not intended for this kind of image. This is likely to give poor results: check your intended workflow.\n"), "salmon");
 		retval = FALSE;
@@ -293,8 +293,8 @@ int process_satu(int nb){
 int process_save(int nb){
 	gchar *filename = g_strdup(word[1]);
 	if (!com.script) {
-		gfit.lo = gui.lo;
-		gfit.hi = gui.hi;
+		gfit.keywords.lo = gui.lo;
+		gfit.keywords.hi = gui.hi;
 	}
 	int status, retval;
 	gchar *savename = update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, TRUE, &status);
@@ -822,6 +822,7 @@ int process_savetif(int nb){
 			tiff_compression = TRUE;
 		} else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
+			if (astro_tiff) g_free(astro_tiff);
 			return CMD_ARG_ERROR;
 		}
 	}
@@ -1017,8 +1018,8 @@ int process_fmul(int nb){
 	if (from8b) { // image is now 32b, need to reset slider max and update hi/lo
 		invalidate_stats_from_fit(&gfit);
 		image_find_minmax(&gfit);
-		gfit.hi = (WORD)(gfit.maxi * USHRT_MAX_SINGLE);
-		gfit.lo = (WORD)(gfit.mini * USHRT_MAX_SINGLE);
+		gfit.keywords.hi = (WORD)(gfit.maxi * USHRT_MAX_SINGLE);
+		gfit.keywords.lo = (WORD)(gfit.mini * USHRT_MAX_SINGLE);
 		set_cutoff_sliders_max_values();
 	}
 	adjust_cutoff_from_updated_gfit();
@@ -2770,7 +2771,7 @@ int process_mirrorx_single(int nb){
 		free(realname);
 		return CMD_ARG_ERROR;
 	}
-	if (!strcmp(fit.row_order, "BOTTOM-UP")) {
+	if (!strcmp(fit.keywords.row_order, "BOTTOM-UP")) {
 		siril_log_message(_("Image data is already bottom-up\n"));
 		clearfits(&fit);
 		free(realname);
@@ -2799,7 +2800,7 @@ int process_mirrorx_single(int nb){
 
 int process_mirrorx(int nb){
 	if (nb == 2 && !strcmp(word[1], "-bottomup")) {
-		if (!strcmp(gfit.row_order, "BOTTOM-UP")) {
+		if (!strcmp(gfit.keywords.row_order, "BOTTOM-UP")) {
 			siril_log_message(_("Image data is already bottom-up\n"));
 			return CMD_OK;
 		}
@@ -4751,7 +4752,7 @@ int process_findstar(int nb) {
 		free(args);
 		return argparsing;
 	}
-	if (gfit.naxes[2] == 1 && gfit.bayer_pattern[0] != '\0') {
+	if (gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] != '\0') {
 		control_window_switch_to_tab(OUTPUT_LOGS);
 		siril_log_color_message(_("Warning: an undebayered CFA image is loaded. Star detection may produce results for this image but will not perform optimally and star parameters may be inaccurate.\n"), "salmon");
 	}
@@ -4806,7 +4807,7 @@ int process_seq_findstar(int nb) {
 	fits tmpfit = { 0 };
 	seq_read_frame_metadata(seq, sequence_find_refimage(seq), &tmpfit);
 	gboolean mono = (tmpfit.naxes[2] == 1);
-	gboolean cfa = (tmpfit.bayer_pattern[0] != '\0');
+	gboolean cfa = (tmpfit.keywords.bayer_pattern[0] != '\0');
 	clearfits(&tmpfit);
 	if (mono && cfa) {
 		control_window_switch_to_tab(OUTPUT_LOGS);
@@ -6095,7 +6096,7 @@ int process_stat(int nb){
 	nplane = gfit.naxes[2];
 	gboolean cfa = FALSE;
 	int argidx = 1;
-	if (nb == 2 && !g_strcmp0(word[1], "-cfa") && nplane == 1 && gfit.bayer_pattern[0] != '\0') {
+	if (nb == 2 && !g_strcmp0(word[1], "-cfa") && nplane == 1 && gfit.keywords.bayer_pattern[0] != '\0') {
 		siril_debug_print("Running stats on CFA\n");
 		nplane = 3;
 		cfa = TRUE;
@@ -6267,7 +6268,7 @@ int process_jsonmetadata(int nb) {
 	if (compute_stats) {
 		if (use_gfit) {
 			compute_all_channels_statistics_single_image(&gfit, STATS_BASIC | STATS_FOR_CFA, MULTI_THREADED, stats);
-			gboolean cfa = gfit.bayer_pattern[0] != '\0';
+			gboolean cfa = gfit.keywords.bayer_pattern[0] != '\0';
 			nb_channels = cfa ? 3 : (int)gfit.naxes[2];
 		} else {
 			fits fit = { 0 };
@@ -6277,7 +6278,7 @@ int process_jsonmetadata(int nb) {
 				return CMD_GENERIC_ERROR;
 			}
 			compute_all_channels_statistics_single_image(&fit, STATS_BASIC | STATS_FOR_CFA, MULTI_THREADED, stats);
-			gboolean cfa = fit.bayer_pattern[0] != '\0';
+			gboolean cfa = fit.keywords.bayer_pattern[0] != '\0';
 			nb_channels = cfa ? 3 : (int)fit.naxes[2];
 			clearfits(&fit);
 		}
@@ -6419,7 +6420,6 @@ int process_seq_header(int nb) {
 	sequence *seq = load_sequence(word[1], NULL);
 	gboolean filter = FALSE;
 	GSList *list = NULL;
-	GString *list_of_keys = g_string_new(NULL);
 	int key;
 	if (!seq)
 		return CMD_SEQUENCE_NOT_FOUND;
@@ -6429,6 +6429,8 @@ int process_seq_header(int nb) {
 			free_sequence(seq, TRUE);
 		return CMD_GENERIC_ERROR;
 	}
+
+	GString *list_of_keys = g_string_new(NULL);
 
 	for (key = 2; key < nb; key++) {
 		if (!word[key] || word[key][0] == '-') {
@@ -8929,7 +8931,7 @@ static int do_pcc(int nb, gboolean spectro) {
 		next_arg++;
 	}
 
-	if (gfit.wcslib->lin.dispre == NULL) {
+	if (gfit.keywords.wcslib->lin.dispre == NULL) {
 		siril_log_message(_("Found linear plate solve data, you may need to solve your image with distortions to ensure correct calibration of stars near image corners.\n"));
 	}
 
@@ -9302,7 +9304,7 @@ int process_platesolve(int nb) {
 		args->pixel_size = forced_pixsize;
 		siril_log_message(_("Using provided pixel size: %.2f\n"), args->pixel_size);
 	} else {
-		args->pixel_size = max(preffit->pixel_size_x, preffit->pixel_size_y);
+		args->pixel_size = max(preffit->keywords.pixel_size_x, preffit->keywords.pixel_size_y);
 		if (args->pixel_size <= 0.0) {
 			args->pixel_size = com.pref.starfinder_conf.pixel_size_x;
 			if (args->pixel_size <= 0.0) {
@@ -9329,7 +9331,7 @@ int process_platesolve(int nb) {
 		args->focal_length = forced_focal;
 		siril_log_message(_("Using provided focal length: %.2f\n"), args->focal_length);
 	} else {
-		args->focal_length = preffit->focal_length;
+		args->focal_length = preffit->keywords.focal_length;
 		if (args->focal_length <= 0.0) {
 			args->focal_length = com.pref.starfinder_conf.focal_length;
 			if (args->focal_length <= 0.0) {
@@ -9469,7 +9471,7 @@ int process_conesearch(int nb) {
 				cat = CAT_AAVSO_CHART;
 			else if (!g_strcmp0(arg, "solsys")) {
 				cat = CAT_IMCCE;
-				if (!gfit.date_obs) {
+				if (!gfit.keywords.date_obs) {
 					siril_log_color_message(_("This option only works on images that have observation date information\n"), "red");
 					return CMD_INVALID_IMAGE;
 				}
@@ -9919,7 +9921,7 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 			} else {
 				reffit = gfit;
 			}
-			sensor_pattern pattern = get_cfa_pattern_index_from_string(reffit.bayer_pattern);
+			sensor_pattern pattern = get_cfa_pattern_index_from_string(reffit.keywords.bayer_pattern);
 			if ((reffit.naxes[2] > 1) || ((!(pattern == BAYER_FILTER_RGGB || pattern == BAYER_FILTER_GRBG || pattern == BAYER_FILTER_BGGR || pattern == BAYER_FILTER_GBRG)))) {
 				siril_log_color_message(_("Error: CFA mode cannot be used with color images or mono images with no Bayer pattern.\n"), "red");
 				*err = CMD_ARG_ERROR;
@@ -10273,7 +10275,7 @@ int process_spcc_list(int nb) {
 }
 
 int process_disto(int nb) {
-	if (!has_wcs(&gfit) || !gfit.wcslib->lin.dispre) {
+	if (!has_wcs(&gfit) || !gfit.keywords.wcslib->lin.dispre) {
 		siril_log_color_message(_("This command only works on plate solved images with distortions included\n"), "red");
 		return CMD_FOR_PLATE_SOLVED;
 	}

@@ -532,24 +532,24 @@ static gpointer mini_save_dialog(gpointer p) {
 			/* Check if MIPS-HI and MIPS-LO must be updated. If yes,
 			 * Values are taken from the layer 0 */
 			if (args->update_hilo) {
-				gfit.hi = gui.hi;
-				gfit.lo = gui.lo;
+				gfit.keywords.hi = gui.hi;
+				gfit.keywords.lo = gui.lo;
 				if (gfit.orig_bitpix == BYTE_IMG
-						&& (gfit.hi > UCHAR_MAX || gfit.lo > UCHAR_MAX)) {
-					gfit.hi = UCHAR_MAX;
-					gfit.lo = 0;
+						&& (gfit.keywords.hi > UCHAR_MAX || gfit.keywords.lo > UCHAR_MAX)) {
+					gfit.keywords.hi = UCHAR_MAX;
+					gfit.keywords.lo = 0;
 				} else if (gfit.orig_bitpix == SHORT_IMG
-						&& (gfit.hi > SHRT_MAX || gfit.lo > SHRT_MAX)) {
-					gfit.hi = UCHAR_MAX;
-					gfit.lo = 0;
+						&& (gfit.keywords.hi > SHRT_MAX || gfit.keywords.lo > SHRT_MAX)) {
+					gfit.keywords.hi = UCHAR_MAX;
+					gfit.keywords.lo = 0;
 				}
 				if (gfit.orig_bitpix == BYTE_IMG && gfit.bitpix != BYTE_IMG) {
-					gfit.hi = USHRT_MAX;
-					gfit.lo = 0;
+					gfit.keywords.hi = USHRT_MAX;
+					gfit.keywords.lo = 0;
 				}
 			} else {
-				gfit.hi = 0;
-				gfit.lo = 0;
+				gfit.keywords.hi = 0;
+				gfit.keywords.lo = 0;
 			}
 			args->retval = savefits(args->filename, &gfit);
 			if (!args->retval && single_image_is_loaded()) {

@@ -781,7 +781,7 @@ static void draw_vport(const draw_data_t* dd) {
 		cairo_t *cached_cr = cairo_create(view->disp_surface);
 		cairo_matrix_t y_reflection_matrix, flipped_matrix;
 		cairo_matrix_init_identity(&y_reflection_matrix);
-		if (livestacking_is_started() && !g_strcmp0(gfit.row_order, "TOP-DOWN")) {
+		if (livestacking_is_started() && !g_strcmp0(gfit.keywords.row_order, "TOP-DOWN")) {
 			y_reflection_matrix.yy = -1.0;
 			y_reflection_matrix.y0 = gfit.ry;
 		}
@@ -1411,7 +1411,7 @@ static void draw_wcs_grid(const draw_data_t* dd) {
 						world[0] = di;
 						pix[pixtype[k]] = pixval[k];
 						double latspan[2] = {dj, dj+step};
-						status = wcsmix(fit->wcslib, pixtype[k], 1, latspan, 1.0, 0, world, &phi, &theta, img, pix);
+						status = wcsmix(fit->keywords.wcslib, pixtype[k], 1, latspan, 1.0, 0, world, &phi, &theta, img, pix);
 						if(!status) {
 							wcs2pix(fit, world[0], world[1] + 0.1, &pix2[0], &pix2[1]);
 							ptlist = g_list_append(ptlist, new_label_point(height, pix, pix2, world, TRUE, k));
@@ -1455,7 +1455,7 @@ static void draw_wcs_grid(const draw_data_t* dd) {
 						world[1] = dj;
 						pix[pixtype[k]] = pixval[k];
 						double lngspan[2] = {di, di+step};
-						status = wcsmix(fit->wcslib, pixtype[k], 2, lngspan, 1.0, 0, world, &phi, &theta, img, pix);
+						status = wcsmix(fit->keywords.wcslib, pixtype[k], 2, lngspan, 1.0, 0, world, &phi, &theta, img, pix);
 						if(!status) {
 							wcs2pix(fit, world[0] + 0.1, world[1], &pix2[0], &pix2[1]);
 							ptlist = g_list_append(ptlist, new_label_point(height, pix, pix2, world, FALSE, k));
@@ -1540,7 +1540,7 @@ static void draw_wcs_grid(const draw_data_t* dd) {
 static void draw_wcs_disto(const draw_data_t* dd) {
 	if (!gui.show_wcs_disto) return;
 	fits *fit = &gfit;
-	if (!has_wcs(fit) || !fit->wcslib->lin.dispre) return; // no platesolve or no distortions
+	if (!has_wcs(fit) || !fit->keywords.wcslib->lin.dispre) return; // no platesolve or no distortions
 	cairo_t *cr = dd->cr;
 	cairo_set_dash(cr, NULL, 0, 0);
 	cairo_set_line_width(cr, 3. / dd->zoom);
@@ -1558,7 +1558,7 @@ static void draw_wcs_disto(const draw_data_t* dd) {
 		for (int j = 0; j < nbpoints; j++) {
 			double rawcrd[2] = { currX, currY };
 			double discrd[2] = {0., 0.};
-			int status = disp2x(fit->wcslib->lin.dispre, rawcrd, discrd);
+			int status = disp2x(fit->keywords.wcslib->lin.dispre, rawcrd, discrd);
 			if (!status) {
 				double disX = (discrd[0] - rawcrd[0]) * 5. +  rawcrd[0];
 				double disY = (discrd[1] - rawcrd[1]) * 5. +  rawcrd[1];
