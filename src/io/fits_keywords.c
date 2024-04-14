@@ -931,6 +931,7 @@ int read_fits_keywords(fits *fit) {
 			double_value = g_ascii_strtod(value, &end);
 			if (value != end) {
 				*((double*) current_key->data) = double_value;
+				current_key->used = TRUE;
 			} else {
 				PRINT_PARSING_ERROR;
 			}
