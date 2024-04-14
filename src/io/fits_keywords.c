@@ -526,7 +526,7 @@ int save_fits_keywords(fits *fit) {
 		case KTYPE_INT:
 			status = 0;
 			ii = (*((int*) keys->data));
-			if (ii > DEFAULT_INT_VALUE) {
+			if (ii) {
 				fits_update_key(fit->fptr, TINT, keys->key, &ii, keys->comment, &status);
 			}
 			break;
@@ -547,14 +547,14 @@ int save_fits_keywords(fits *fit) {
 		case KTYPE_DOUBLE:
 			status = 0;
 			dbl = *((double*) keys->data);
-			if (dbl > DEFAULT_DOUBLE_VALUE) {
+			if (dbl != 0.0) {
 				fits_update_key(fit->fptr, TDOUBLE, keys->key, &dbl, keys->comment, &status);
 			}
 			break;
 		case KTYPE_FLOAT:
 			status = 0;
 			flt = *((float*) keys->data);
-			if (flt > DEFAULT_FLOAT_VALUE) {
+			if (flt != 0.f) {
 				fits_update_key(fit->fptr, TFLOAT, keys->key, &flt, keys->comment, &status);
 			}
 			break;
