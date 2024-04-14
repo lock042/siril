@@ -58,4 +58,6 @@ int save_wcs_keywords(fits *fit);
 void read_fits_date_obs_header(fits *fit);
 int read_fits_keywords(fits *fit);
 
+void set_all_keywords_default(fits *fit);
+
 #endif /* SRC_IO_FITS_KEYWORDS_H_ */

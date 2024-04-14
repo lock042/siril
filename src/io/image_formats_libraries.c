@@ -65,6 +65,7 @@
 #include "core/siril_log.h"
 #include "core/siril_date.h"
 #include "core/exif.h"
+#include "io/fits_keywords.h"
 #include "algos/geometry.h"
 #include "algos/siril_wcs.h"
 #include "algos/demosaicing.h"
@@ -515,6 +516,9 @@ int readtif(const char *name, fits *fit, gboolean force_float, gboolean verbose)
 	/* note: this has been moved slightly, it has to happen before we initialize the ICC profile
 	 * which in turn has to happen before we close the TIFF */
 	clearfits(fit);
+
+	set_all_keywords_default(fit);
+
 	if (date_time) {
 		GTimeZone *tz = g_time_zone_new_utc();
 		fit->keywords.date_obs = g_date_time_new(tz, year, month, day, h, m, (double) s);
@@ -1005,6 +1009,9 @@ int readxisf(const char* name, fits *fit, gboolean force_float) {
 	size_t npixels = xdata->width * xdata->height;
 
 	clearfits(fit);
+
+	set_all_keywords_default(fit);
+
 	if (xdata->channelCount == 1)
 		fit->naxis = 2;
 	else
@@ -1175,6 +1182,9 @@ int readjpg(const char* name, fits *fit){
 	jpeg_destroy_decompress(&cinfo);
 
 	clearfits(fit);
+
+	set_all_keywords_default(fit);
+
 	fit->bitpix = fit->orig_bitpix = BYTE_IMG;
 	if (cinfo.output_components == 1)
 		fit->naxis = 2;
@@ -1541,6 +1551,9 @@ int readpng(const char *name, fits* fit) {
 
 	if (data != NULL) {
 		clearfits(fit);
+
+		set_all_keywords_default(fit);
+
 		fit->rx = width;
 		fit->ry = height;
 		fit->naxes[0] = width;
@@ -2076,6 +2089,9 @@ static int readraw_in_cfa(const char *name, fits *fit) {
 	}
 
 	clearfits(fit);
+
+	set_all_keywords_default(fit);
+
 	fit->bitpix = fit->orig_bitpix = USHORT_IMG;
 	fit->type = DATA_USHORT;
 	fit->rx = (unsigned int) (width);
@@ -2787,6 +2803,9 @@ int readheif(const char* name, fits *fit, gboolean interactive){
 	}
 
 	clearfits(fit);
+
+	set_all_keywords_default(fit);
+
 	fit->bitpix = fit->orig_bitpix = bit_depth == 8 ? BYTE_IMG : USHORT_IMG;
 	fit->type = DATA_USHORT;
 	fit->naxis = nchannels == 1 ? 2 : 3;
@@ -2849,6 +2868,9 @@ int readjxl(const char* name, fits *fit) {
 	}
 	siril_debug_print("Image decoded as %d bits per pixel\n", bitdepth);
 	clearfits(fit);
+
+	set_all_keywords_default(fit);
+
 	fit->bitpix = (bitdepth == 16 || com.pref.force_16bit) ? USHORT_IMG : FLOAT_IMG;
 	fit->type = fit->bitpix == FLOAT_IMG ? DATA_FLOAT : DATA_USHORT;
 	if (zsize == 1)
