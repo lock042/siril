@@ -5895,6 +5895,10 @@ int process_stat(int nb){
 		siril_debug_print("Running stats on CFA\n");
 		nplane = 3;
 		cfa = TRUE;
+		if ((com.selection.w && com.selection.w < 2) || (com.selection.h && com.selection.h < 2)) {
+			siril_log_color_message(_("Statistics cannot be made on CFA images with a selection smaller than a 2x2 square, aborting\n"), "red");
+			return CMD_GENERIC_ERROR;
+		}
 		argidx++;
 	}
 	if (nb == argidx + 1 && !g_strcmp0(word[argidx], "main"))
