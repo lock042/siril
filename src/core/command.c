@@ -7294,9 +7294,6 @@ static int parse_filter_args(char *current, struct seq_filter_config *arg) {
 	else return 0;
 	return 1;
 }
-int process_seq_applydrizzle(int nb) {
-	return 0;
-}
 
 int process_seq_applyreg(int nb) {
 	struct registration_args *reg_args = NULL;
@@ -7311,7 +7308,7 @@ int process_seq_applyreg(int nb) {
 	// Default values for the driz_args_t
 	driz->use_flats = FALSE;
 	driz->scale = 1.f;
-	driz->kernel = kernel_turbo;
+	driz->kernel = kernel_square;
 	driz->weight_scale = 1.f;
 	driz->pixel_fraction = 1.f;
 
