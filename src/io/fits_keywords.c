@@ -833,6 +833,17 @@ static void set_to_default_not_used(fits *fit, GHashTable *keys_hash) {
     }
 }
 
+void set_all_keywords_default(fits *fit) {
+	GHashTable *keys_hash;
+	KeywordInfo *keys = initialize_keywords(fit, &keys_hash);
+
+	set_to_default_not_used(fit, keys_hash);
+
+	// Free the hash table and unknown keys
+	g_hash_table_destroy(keys_hash);
+	free(keys);
+}
+
 int read_fits_keywords(fits *fit) {
 	// Initialize keywords and get hash table
 	GHashTable *keys_hash;

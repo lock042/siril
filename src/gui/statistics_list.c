@@ -210,9 +210,11 @@ void computeStat() {
 
 	int nb_channels = (int)gfit.naxes[2];
 	if (use_cfa) {
-		if (nb_channels == 1 && gfit.keywords.bayer_pattern[0] != '\0')
+		if (nb_channels == 1 && gfit.keywords.bayer_pattern[0] != '\0' && com.selection.w >= 2 && com.selection.h >= 2)
 			nb_channels = 3;
-		else use_cfa = FALSE;
+		else {
+			use_cfa = FALSE;
+		}
 	}
 	imstats *stat[3] = { NULL, NULL, NULL };
 	for (channel = 0; channel < nb_channels; channel++) {
