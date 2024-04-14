@@ -526,7 +526,7 @@ int save_fits_keywords(fits *fit) {
 		case KTYPE_INT:
 			status = 0;
 			ii = (*((int*) keys->data));
-			if (ii) {
+			if (ii > DEFAULT_INT_VALUE) {
 				fits_update_key(fit->fptr, TINT, keys->key, &ii, keys->comment, &status);
 			}
 			break;
@@ -547,14 +547,14 @@ int save_fits_keywords(fits *fit) {
 		case KTYPE_DOUBLE:
 			status = 0;
 			dbl = *((double*) keys->data);
-			if (dbl != 0.0) {
+			if (dbl > DEFAULT_DOUBLE_VALUE) {
 				fits_update_key(fit->fptr, TDOUBLE, keys->key, &dbl, keys->comment, &status);
 			}
 			break;
 		case KTYPE_FLOAT:
 			status = 0;
 			flt = *((float*) keys->data);
-			if (flt != 0.f) {
+			if (flt > DEFAULT_FLOAT_VALUE) {
 				fits_update_key(fit->fptr, TFLOAT, keys->key, &flt, keys->comment, &status);
 			}
 			break;
@@ -831,6 +831,17 @@ static void set_to_default_not_used(fits *fit, GHashTable *keys_hash) {
 			}
         }
     }
+}
+
+void set_all_keywords_default(fits *fit) {
+	GHashTable *keys_hash;
+	KeywordInfo *keys = initialize_keywords(fit, &keys_hash);
+
+	set_to_default_not_used(fit, keys_hash);
+
+	// Free the hash table and unknown keys
+	g_hash_table_destroy(keys_hash);
+	free(keys);
 }
 
 int read_fits_keywords(fits *fit) {
