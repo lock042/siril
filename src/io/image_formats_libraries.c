@@ -2093,6 +2093,7 @@ static int readraw_in_cfa(const char *name, fits *fit) {
 	// should have the mono_linear ICC profile. However for consistency with
 	// other straight-from-the-camera formats we do not set a profile: the user
 	// may assign one if they wish.
+
 	color_manage(fit, FALSE);
 	if (pitch > 0.f) {
 		fit->keywords.pixel_size_x = fit->keywords.pixel_size_y = pitch;
