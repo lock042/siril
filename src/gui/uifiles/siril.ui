@@ -6680,10 +6680,11 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="orientation">vertical</property>
                                                             <child>
                                                             <object class="GtkCheckButton" id="upscaleCheckButton">
-                                                            <property name="label" translatable="yes">Scaling</property>
+                                                            <property name="label" translatable="yes">Interpolation upscaling x2</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Applies an interpolation-based x2 upscaling. This is quicker than most of the proper drizzle kernels but will not provide results that are as sharp.</property>
                                                             <property name="halign">start</property>
                                                             <property name="draw-indicator">True</property>
                                                             <signal name="toggled" handler="on_upscaleCheckButton_toggled" swapped="no"/>
