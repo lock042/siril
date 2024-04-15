@@ -8,6 +8,7 @@ xx/xx/24
 * Improved mouse pan and zoom control to enable one-handed operation (!644 / !638, fixes #1271)
 * Fixed pixel size set by astrometry using binning_update preference (#1254)
 * Fixed crash when querying stats on a CFA image with a selection smaller than a 2x2 square (#1286)
+* Fixed crash when saving compressed and croped images (#1287)
 
 siril 1.2.1
 01/26/24
