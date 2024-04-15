@@ -62,6 +62,7 @@ siril 1.2.2 xx xx, 2024
 * Added an option to the LINK command in order to sort output by date (#1115)
 * Fixed pixel size set by astrometry using binning_update preference (#1254)
 * Fixed crash when querying stats on a CFA image with a selection smaller than a 2x2 square (#1286)
+* Fixed crash when saving compressed and croped images (#1287)
 
 siril 1.2.1 January 26, 2024
 
