@@ -1731,6 +1731,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("drizzleCheckButton")))) {
 		reg_args->driz = calloc(1, sizeof(struct driz_args_t));
 		if (populate_drizzle_data(reg_args->driz)) {
+			free(reg_args);
 			return;
 		}
 	}
@@ -1738,6 +1739,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	msg = siril_log_color_message(_("Registration: processing using method: %s\n"),
 			"green", method->name);
 	msg[strlen(msg) - 1] = '\0';
+
 	if (!reg_args->driz && reg_args->clamp && !reg_args->no_output)
 		siril_log_message(_("Interpolation clamping active\n"));
 	set_progress_bar_data(msg, PROGRESS_RESET);
@@ -1799,6 +1801,7 @@ static gboolean end_register_idle(gpointer p) {
 	free(args->new_seq_name);
 	if (!check_seq_is_comseq(args->seq))
 		free_sequence(args->seq, TRUE);
+	free(args->driz);
 	free(args);
 	return FALSE;
 }

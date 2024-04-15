@@ -395,12 +395,12 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		// reference image
 		cvGetEye(&H);
 		sadata->current_regdata[in_index].H = H;
-/*		if (regargs->x2upscale && !regargs->no_output) {
+		if (regargs->x2upscale && !regargs->no_output) {
 			if (cvResizeGaussian(fit, fit->rx * 2, fit->ry * 2, OPENCV_NEAREST, FALSE)) {
 				args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 				return 1;
 			}
-		} */ // Removed in favour of proper drizzle after registration
+		}
 	}
 
 	if (!regargs->no_output) {
