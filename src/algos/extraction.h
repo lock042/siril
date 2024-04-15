@@ -6,12 +6,6 @@
 #include "io/ser.h"
 #include "io/fits_sequence.h"
 
-typedef enum {
-	SCALING_NONE,
-	SCALING_HA_UP,
-	SCALING_OIII_DOWN
-} extraction_scaling;
-
 struct split_cfa_data {
 	fits *fit;
 	sequence *seq;

@@ -5783,6 +5783,9 @@ int process_extractGreen(int nb) {
 }
 
 int extract_Ha(extraction_scaling scaling) {
+	int ret = 1;
+	char *filename = NULL;
+	fits f_Ha = { 0 };
 	if (sequence_is_loaded() && !single_image_is_loaded()) {
 		filename = g_path_get_basename(com.seq.seqname);
 	}
@@ -5812,19 +5815,19 @@ int extract_Ha(extraction_scaling scaling) {
 }
 
 int process_extractHa(int nb) {
-	char *filename = NULL;
 	int ret = 1;
 	extraction_scaling scaling = SCALING_NONE;
-	fits f_Ha = { 0 };
 	if (g_str_has_prefix(word[1], "-upscale")) {
 		scaling = SCALING_HA_UP;
 		siril_log_message(_("Upscaling x2\n"));
 	}
-	int ret = extract_Ha(scaling);
+	ret = extract_Ha(scaling);
 	return ret;
 }
 
 int extract_HaOIII(extraction_scaling scaling) {
+	gchar *filename = NULL;
+	int ret = 1;
 	fits f_Ha = { 0 }, f_OIII = { 0 };
 	if (sequence_is_loaded() && !single_image_is_loaded()) {
 		filename = g_path_get_basename(com.seq.seqname);
@@ -5865,8 +5868,6 @@ int extract_HaOIII(extraction_scaling scaling) {
 }
 
 int process_extractHaOIII(int nb) {
-	gchar *filename = NULL;
-	int ret = 1;
 	extraction_scaling scaling = SCALING_NONE;
 	if (word[1]) {
 		if (g_str_has_prefix(word[1], "-resample=")) {
@@ -5874,7 +5875,6 @@ int process_extractHaOIII(int nb) {
 			value = current + 10;
 			if (value[0] == '\0') {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), word[1]);
-				g_free(filename);
 				return CMD_ARG_ERROR;
 			} else if (!strcasecmp(value, "ha")) {
 				scaling = SCALING_HA_UP;
