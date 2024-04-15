@@ -274,6 +274,10 @@ if not rtprocess_dep.found()
 
   # Call CMake with `-DBUILD_SHARED_LIBS=OFF`
   opt_var.add_cmake_defines({'BUILD_SHARED_LIBS': false})
+  opt_var.add_cmake_defines({'OPTION_OMP': false})
+  if get_option('buildtype').startswith('debug')
+    opt_var.add_cmake_defines({'CMAKE_BUILD_TYPE': 'debug'})
+  endif
   sub_proj = cmake.subproject('librtprocess', options: opt_var)
 
   rtprocess_dep = sub_proj.dependency('rtprocess')
