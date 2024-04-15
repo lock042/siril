@@ -84,7 +84,7 @@ struct polygon {
 
 /** edge structure.
  *
- *  This structure holds invormation about vertices of the edge, edge position
+ *  This structure holds information about vertices of the edge, edge position
  *  in the polygon (left or right of the line going through the top and bottom
  *  vertices), slope, and interceipts.
  *
