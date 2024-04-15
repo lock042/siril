@@ -5782,17 +5782,7 @@ int process_extractGreen(int nb) {
 
 }
 
-int process_extractHa(int nb) {
-	char *filename = NULL;
-	int ret = 1;
-	extraction_scaling scaling = SCALING_NONE;
-	fits f_Ha = { 0 };
-
-	if (g_str_has_prefix(word[1], "-upscale")) {
-		scaling = SCALING_HA_UP;
-		siril_log_message(_("Upscaling x2\n"));
-	}
-
+int extract_Ha(extraction_scaling scaling) {
 	if (sequence_is_loaded() && !single_image_is_loaded()) {
 		filename = g_path_get_basename(com.seq.seqname);
 	}
@@ -5803,9 +5793,7 @@ int process_extractHa(int nb) {
 			free(tmp);
 		}
 	}
-
 	sensor_pattern pattern = get_bayer_pattern(&gfit);
-
 	gchar *Ha = g_strdup_printf("Ha_%s%s", filename, com.pref.ext);
 	if (gfit.type == DATA_USHORT) {
 		if (!(ret = extractHa_ushort(&gfit, &f_Ha, pattern, scaling))) {
@@ -5817,20 +5805,27 @@ int process_extractHa(int nb) {
 			ret = save1fits32(Ha, &f_Ha, 0);
 		}
 	} else ret = CMD_INVALID_IMAGE;
-
 	g_free(Ha);
 	clearfits(&f_Ha);
 	free(filename);
 	return ret;
 }
 
-int process_extractHaOIII(int nb) {
-	gchar *filename = NULL;
+int process_extractHa(int nb) {
+	char *filename = NULL;
 	int ret = 1;
 	extraction_scaling scaling = SCALING_NONE;
+	fits f_Ha = { 0 };
+	if (g_str_has_prefix(word[1], "-upscale")) {
+		scaling = SCALING_HA_UP;
+		siril_log_message(_("Upscaling x2\n"));
+	}
+	int ret = extract_Ha(scaling);
+	return ret;
+}
 
+int extract_HaOIII(extraction_scaling scaling) {
 	fits f_Ha = { 0 }, f_OIII = { 0 };
-
 	if (sequence_is_loaded() && !single_image_is_loaded()) {
 		filename = g_path_get_basename(com.seq.seqname);
 	}
@@ -5841,24 +5836,7 @@ int process_extractHaOIII(int nb) {
 			free(tmp);
 		}
 	}
-	if (word[1]) {
-		if (g_str_has_prefix(word[1], "-resample=")) {
-			char *current = word[1], *value;
-			value = current + 10;
-			if (value[0] == '\0') {
-				siril_log_message(_("Missing argument to %s, aborting.\n"), word[1]);
-				g_free(filename);
-				return CMD_ARG_ERROR;
-			} else if (!strcasecmp(value, "ha")) {
-				scaling = SCALING_HA_UP;
-			} else if (!strcasecmp(value, "oiii")) {
-				scaling = SCALING_OIII_DOWN;
-			}
-		}
-	}
-
 	sensor_pattern pattern = get_bayer_pattern(&gfit);
-
 	gchar *Ha = g_strdup_printf("Ha_%s%s", filename, com.pref.ext);
 	gchar *OIII = g_strdup_printf("OIII_%s%s", filename, com.pref.ext);
 	if (gfit.type == DATA_USHORT) {
@@ -5878,13 +5856,34 @@ int process_extractHaOIII(int nb) {
 		g_free(filename);
 		return CMD_INVALID_IMAGE;
 	}
-
 	g_free(Ha);
 	g_free(OIII);
 	clearfits(&f_Ha);
 	clearfits(&f_OIII);
 	g_free(filename);
 	return ret;
+}
+
+int process_extractHaOIII(int nb) {
+	gchar *filename = NULL;
+	int ret = 1;
+	extraction_scaling scaling = SCALING_NONE;
+	if (word[1]) {
+		if (g_str_has_prefix(word[1], "-resample=")) {
+			char *current = word[1], *value;
+			value = current + 10;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), word[1]);
+				g_free(filename);
+				return CMD_ARG_ERROR;
+			} else if (!strcasecmp(value, "ha")) {
+				scaling = SCALING_HA_UP;
+			} else if (!strcasecmp(value, "oiii")) {
+				scaling = SCALING_OIII_DOWN;
+			}
+		}
+	}
+	return extract_HaOIII(scaling);
 }
 
 int process_seq_mtf(int nb) {

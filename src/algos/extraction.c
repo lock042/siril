@@ -102,7 +102,7 @@ int extractHa_ushort(fits *in, fits *Ha, sensor_pattern pattern, extraction_scal
 		}
 	}
 	if (scaling == SCALING_HA_UP) {
-			verbose_resize_gaussian(Ha, Ha->rx * 2, Ha->ry * 2, OPENCV_LANCZOS4, TRUE);
+		verbose_resize_gaussian(Ha, Ha->rx * 2, Ha->ry * 2, OPENCV_LANCZOS4, TRUE);
 	}
 
 	/* We update FITS keywords */
@@ -156,7 +156,7 @@ int extractHa_float(fits *in, fits *Ha, sensor_pattern pattern, extraction_scali
 	}
 
 	if (scaling == SCALING_HA_UP) {
-			verbose_resize_gaussian(Ha, Ha->rx * 2, Ha->ry * 2, OPENCV_LANCZOS4, TRUE);
+		verbose_resize_gaussian(Ha, Ha->rx * 2, Ha->ry * 2, OPENCV_LANCZOS4, TRUE);
 	}
 
 	/* We update FITS keywords */

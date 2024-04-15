@@ -54,7 +54,7 @@ xx/xx/xx
 * Refactoring of the keywords use (#668)
 * Added Astrometric Registration for mosaic and little overlapping sequences (#1154::7 and !643)
 * Added image undistortion using WCS SIP data when registering with astrometry (#1154::8 and !643)
-* Added DRIZZLE (!633)
+* Added DRIZZLE (!633, closes #12, #170)
 
 siril 1.2.2
 xx/xx/24

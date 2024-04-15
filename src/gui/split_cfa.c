@@ -76,30 +76,16 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 		}
 	} else {
 		int scaling = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_haoiii_scaling")));
-		fprintf(stdout,"Scaling %d\n",scaling);
+		siril_debug_print("Scaling %d\n",scaling);
 		switch (method) {
 			case 0:
 				process_split_cfa(0);
 				break;
 			case 1:
-				if (scaling == SCALING_HA_UP) {
-					processcommand("extract_Ha -upscale");
-				} else {
-					process_extractHa(0);
-				}
+				extract_Ha(scaling);
 				break;
 			case 2:
-				switch (scaling) {
-					case 0:
-						processcommand("extract_HaOIII");
-						break;
-					case 1:
-						processcommand("extract_HaOIII -resample=ha");
-						break;
-					case 2:
-						processcommand("extract_HaOIII -resample=oiii");
-						break;
-				}
+				extract_HaOIII(scaling);
 				break;
 			case 3:
 				process_extractGreen(0);
