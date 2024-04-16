@@ -162,7 +162,7 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 }
 
 starnet_version starnet_executablecheck(gchar* executable) {
-	char *test_argv[3] = {0};
+	char *test_argv[3] = { NULL };
 	int retval = NIL;
 	gint child_stdout;
 	g_autoptr(GError) error = NULL;

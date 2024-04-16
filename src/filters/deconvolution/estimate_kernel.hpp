@@ -142,7 +142,6 @@ public:
         img_t<std::complex<T>> div(v.w, v.h);
 
         T beta = beta_init;
-        int n = 0;
         while (beta < beta_max) {
             // compute the gradient of u
             utils::circular_gradients(g, u);
@@ -171,7 +170,6 @@ public:
 
             // increase beta
             beta *= beta_rate;
-            n++;
         }
     }
 };
