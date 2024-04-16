@@ -337,6 +337,7 @@ static void siril_app_activate(GApplication *application) {
 			read_pipe(main_option_rpipe_path);
 		}
 	}
+
 	if (!com.headless) {
 		/* Load GResource */
 		com.resource = siril_resource_get_resource();

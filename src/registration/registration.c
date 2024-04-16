@@ -31,6 +31,8 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_log.h"
+#include "algos/demosaicing.h"
+#include "drizzle/cdrizzleutil.h"
 #include "gui/callbacks.h"
 #include "gui/utils.h"
 #include "gui/image_display.h"
@@ -51,6 +53,7 @@
 #include "gui/PSF_list.h"
 #include "algos/quality.h"
 #include "algos/siril_wcs.h"
+#include "io/path_parse.h"
 #include "io/sequence.h"
 #include "io/ser.h"
 #include "io/single_image.h"
@@ -119,6 +122,78 @@ static char *filter_tooltip_text[] = {
 void _reg_selected_area_callback() {
 	if (!com.headless)
 		update_reg_interface(TRUE);
+}
+
+int populate_drizzle_data(struct driz_args_t *driz) {
+	driz->use_flats = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("driz_use_flats")));
+	driz->scale = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_driz_scale")));
+	driz->weight_scale = 1.f; // Not used for now
+	driz->kernel = (enum e_kernel_t) gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_driz_kernel")));
+	driz->pixel_fraction = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_driz_dropsize")));
+	if (driz->use_flats) {
+		fits reffit = { 0 };
+		GtkEntry *entry = GTK_ENTRY(lookup_widget("flatname_entry"));
+		const gchar *flat_filename = gtk_entry_get_text(entry);
+		gchar *error = NULL;
+		int status;
+		gchar *expression = path_parse(&reffit, flat_filename, PATHPARSE_MODE_READ, &status);
+		if (status) {
+			error = _("NOT USING FLAT: could not parse the expression");
+			driz->use_flats = FALSE;
+		} else {
+			free(expression);
+			if (flat_filename[0] == '\0') {
+				siril_log_message(_("Error: no master flat specified in the preprocessing tab.\n"));
+				free(driz);
+				return 1;
+			} else {
+				set_progress_bar_data(_("Opening flat image..."), PROGRESS_NONE);
+				driz->flat = calloc(1, sizeof(fits));
+				if (!readfits(flat_filename, driz->flat, NULL, TRUE)) {
+					if (driz->flat->naxes[2] != com.seq.nb_layers) {
+						error = _("NOT USING FLAT: number of channels is different");
+					} else if (driz->flat->naxes[0] != com.seq.rx ||
+							driz->flat->naxes[1] != com.seq.ry) {
+						error = _("NOT USING FLAT: image dimensions are different");
+					} else {
+						// no need to deal with bitdepth conversion as readfits has already forced conversion to float
+						siril_log_message(_("Master flat read for use as initial pixel weight\n"));
+					}
+				} else error = _("NOT USING FLAT: cannot open the file");
+				if (error) {
+					siril_log_color_message("%s\n", "red", error);
+					set_progress_bar_data(error, PROGRESS_DONE);
+					if (driz->flat) {
+						clearfits(driz->flat);
+						free(driz->flat);
+					}
+					free(driz);
+					return 1;
+				}
+			}
+		}
+	}
+	return 0;
+}
+
+void on_drizzleCheckButton_toggled(GtkToggleButton* button, gpointer user_data) {
+	gboolean state = gtk_toggle_button_get_active(button);
+	gtk_widget_set_visible(lookup_widget("box_drizzle_controls"), state);
+	if (state) {
+		gtk_notebook_set_current_page(GTK_NOTEBOOK(lookup_widget("notebook_registration")), 4);
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("upscaleCheckButton")), FALSE);
+	}
+	gtk_widget_set_visible(lookup_widget("interp_box"), !state);
+	gtk_widget_set_visible(lookup_widget("toggle_reg_clamp"), !state);
+	gtk_widget_set_visible(lookup_widget("regNoOutput"), !state);
+
+}
+
+void on_upscaleCheckButton_toggled(GtkToggleButton* button, gpointer user_data) {
+	gboolean state = gtk_toggle_button_get_active(button);
+	if (state) {
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("drizzleCheckButton")), FALSE);
+	}
 }
 
 static struct registration_method *reg_methods[NUMBER_OF_METHODS + 1];
@@ -244,6 +319,7 @@ int register_shift_dft(struct registration_args *args) {
 	regdata *current_regdata;
 	double q_max = 0, q_min = DBL_MAX;
 	int q_index = -1;
+	char pattern[37] = { 0 };
 
 	/* the selection needs to be squared for the DFT */
 	assert(args->selection.w == args->selection.h);
@@ -287,7 +363,36 @@ int register_shift_dft(struct registration_args *args) {
 		clearfits(&fit_ref);
 		return ret;
 	}
-
+	if (args->seq->nb_layers == 1) {
+		if (args->seq->type == SEQ_SER && args->seq->ser_file) {
+			switch (args->seq->ser_file->color_id) {
+				case SER_MONO:
+					strcpy(pattern, "");
+					break;
+				case SER_BAYER_RGGB:
+					strcpy(pattern, "RGGB");
+					break;
+				case SER_BAYER_GRBG:
+					strcpy(pattern, "GRGB");
+					break;
+				case SER_BAYER_GBRG:
+					strcpy(pattern, "GBRG");
+					break;
+				case SER_BAYER_BGGR:
+					strcpy(pattern, "BGGR");
+					break;
+				default:
+					siril_log_message(_("Error: SER file has wrong type. Cannot proceed.\n"));
+					return -2;
+			}
+		} else {
+			strcpy(pattern, fit_ref.keywords.bayer_pattern);
+		}
+		strcpy(fit_ref.keywords.bayer_pattern, pattern);
+		fit_ref.keywords.bayer_xoffset = args->selection.x;
+		fit_ref.keywords.bayer_yoffset = args->selection.y;
+		interpolate_nongreen(&fit_ref);
+	}
 	gettimeofday(&t_start, NULL);
 
 	ref = fftwf_malloc(sizeof(fftwf_complex) * sqsize);
@@ -380,6 +485,10 @@ int register_shift_dft(struct registration_args *args) {
 		if (!seq_read_frame_part(args->seq, args->layer, frame, &fit,
 						&args->selection, FALSE, thread_id)) {
 			int x;
+			strcpy(fit.keywords.bayer_pattern, pattern);
+			fit.keywords.bayer_xoffset = args->selection.x;
+			fit.keywords.bayer_yoffset = args->selection.y;
+			interpolate_nongreen(&fit);
 			fftwf_complex *img = fftwf_malloc(sizeof(fftwf_complex) * sqsize);
 			fftwf_complex *out2 = fftwf_malloc(sizeof(fftwf_complex) * sqsize);
 
@@ -548,6 +657,28 @@ int register_kombat(struct registration_args *args) {
 
 	/* loading reference frame */
 	ref_idx = sequence_find_refimage(args->seq);
+	char pattern[37] = { 0 };
+	if (args->seq->type == SEQ_SER && args->seq->ser_file) {
+		switch (args->seq->ser_file->color_id) {
+			case SER_BAYER_RGGB:
+				strcpy(pattern, "RGGB");
+				break;
+			case SER_BAYER_GRBG:
+				strcpy(pattern, "GRGB");
+				break;
+			case SER_BAYER_GBRG:
+				strcpy(pattern, "GBRG");
+				break;
+			case SER_BAYER_BGGR:
+				strcpy(pattern, "BGGR");
+				break;
+			default:
+				siril_log_message(_("Unsupported SER CFA pattern detected. Treating as mono.\n"));
+		}
+	} else {
+		ret = seq_read_frame_metadata(args->seq, ref_idx, &fit_ref);
+		strcpy(pattern, fit_ref.keywords.bayer_pattern);
+	}
 	q_index = ref_idx;
 
 	set_progress_bar_data(
@@ -557,6 +688,9 @@ int register_kombat(struct registration_args *args) {
 	/* we want pattern (the selection) to be located on each image */
 	ret = seq_read_frame_part(args->seq, args->layer, ref_idx, &fit_templ,
 			&args->selection, FALSE, -1);
+	strcpy(fit_templ.keywords.bayer_pattern, pattern);
+	fit_templ.keywords.bayer_xoffset = args->selection.x;
+	fit_templ.keywords.bayer_yoffset = args->selection.y;
 	/* we load reference image just to get dimensions of images,
 	 in order to call seq_read_frame_part() and use only the desired layer, over each full image */
 	ret2 = seq_read_frame(args->seq, ref_idx, &fit_ref, FALSE, -1);
@@ -581,6 +715,7 @@ int register_kombat(struct registration_args *args) {
 		clearfits(&fit_templ);
 		return 1;
 	}
+	interpolate_nongreen(&fit_templ);
 
 	gettimeofday(&t_start, NULL);
 	set_shifts(args->seq, ref_idx, args->layer, 0.0, 0.0, FALSE);
@@ -631,6 +766,10 @@ int register_kombat(struct registration_args *args) {
 				_register_kombat_disable_frame(args, current_regdata, frame);
 				continue;
 			} else {
+				strcpy(cur_fit.keywords.bayer_pattern, pattern);
+				cur_fit.keywords.bayer_xoffset = args->selection.x;
+				cur_fit.keywords.bayer_yoffset = args->selection.y;
+				interpolate_nongreen(&cur_fit);
 				qual = QualityEstimate(&cur_fit, args->layer);
 				current_regdata[frame].quality = qual;
 				if (frame == ref_idx) {
@@ -929,7 +1068,7 @@ void on_filter_rem6_clicked(GtkButton *button, gpointer user_data){
 	update_filters_registration(-1);
 }
 
-static void get_reg_sequence_filtering_from_gui(seq_image_filter *filtering_criterion,
+void get_reg_sequence_filtering_from_gui(seq_image_filter *filtering_criterion,
 		double *filtering_parameter, int update_adjustment) {
 	int filter, guifilter, channel = 0, type;
 	gboolean is_ksig = FALSE;
@@ -1120,7 +1259,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	static GtkWidget *go_register = NULL, *follow = NULL, *cumul_data = NULL,
 	*noout = NULL, *toggle_reg_clamp = NULL, *onlyshift = NULL, *filter_box = NULL, *manualreg = NULL,
 	*interpolation_algo = NULL, *proj_box = NULL, *undistort_check = NULL, *scale_box = NULL,
-	*x2upscale = NULL, *go_estimate = NULL;
+	*x2upscale = NULL, *go_estimate = NULL, *drizzle_checkbox = NULL;
 	static GtkLabel *labelreginfo = NULL;
 	static GtkComboBox *reg_all_sel_box = NULL, *reglayer = NULL, *filter_combo_init = NULL;
 	static GtkNotebook *notebook_reg = NULL;
@@ -1150,6 +1289,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		scale_box = lookup_widget("reg_scaling_box");
 		undistort_check = lookup_widget("reg_undistort");
 		x2upscale = lookup_widget("upscaleCheckButton");
+		drizzle_checkbox = lookup_widget("drizzleCheckButton");
 	}
 
 	if (!dont_change_reg_radio) {
@@ -1180,6 +1320,9 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 
 	/* show the appropriate frame selection widgets */
 	gboolean isapplyreg = method->type == REGTYPE_APPLY;
+	if (!isapplyreg)
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(drizzle_checkbox), FALSE);
+	gtk_widget_set_visible(GTK_WIDGET(drizzle_checkbox), isapplyreg);
 	gtk_widget_set_visible(GTK_WIDGET(reg_all_sel_box), !isapplyreg);
 	gtk_widget_set_visible(filter_box, isapplyreg);
 	gtk_widget_set_visible(GTK_WIDGET(filter_combo_init), isapplyreg);
@@ -1213,15 +1356,24 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		if (method->method_ptr == &register_3stars) {
 			ready = _3stars_check_selection(); // checks that the right image is loaded based on doall and dofollow
 		} else if (gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] != '\0') {
-			gtk_label_set_text(labelreginfo, _("Debayer the sequence for registration"));
-			ready = FALSE;
-		} else 
+			sensor_pattern pattern = get_bayer_pattern(&gfit);
+			if (pattern <= BAYER_FILTER_MAX) {
+				gtk_label_set_text(labelreginfo, _("Supported Bayer pattern detected"));
+				gtk_widget_set_tooltip_text(GTK_WIDGET(labelreginfo), _("This sequence can be registered with the Bayer pattern intact based on registering the green layer with red and blue pixels interpolated"));
+			} else {
+				gtk_label_set_text(labelreginfo, _("Unsupported CFA pattern detected"));
+				gtk_widget_set_tooltip_text(GTK_WIDGET(labelreginfo), _("This sequence cannot be registered with the CFA pattern intact. You must debayer it prior to registration"));
+				ready = FALSE;
+			}
+		}
+		else {
 			gtk_label_set_text(labelreginfo, "");
-		// the 3 stars method has special GUI requirements
+			gtk_widget_set_tooltip_text(GTK_WIDGET(labelreginfo), "");
+		}		// the 3 stars method has special GUI requirements
 		if (method->method_ptr == &register_3stars) {
-			if (!ready) 
+			if (!ready)
 				gtk_widget_set_sensitive(go_register, FALSE);
-			else 
+			else
 				nbselstars = _3stars_check_registration_ready();
 		} else {
 			gtk_widget_set_sensitive(go_register, ready);
@@ -1236,7 +1388,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		gtk_widget_set_visible(follow, method->method_ptr == &register_3stars);
 		gtk_widget_set_visible(onlyshift, method->method_ptr == &register_3stars);
 		gint interpolation_item = gtk_combo_box_get_active(GTK_COMBO_BOX(interpolation_algo));
-		gtk_widget_set_sensitive(toggle_reg_clamp, (method->method_ptr == &register_apply_reg || 
+		gtk_widget_set_sensitive(toggle_reg_clamp, (method->method_ptr == &register_apply_reg ||
 		method->method_ptr == &register_star_alignment || method->method_ptr == &register_astrometric ||
 		(method->method_ptr == &register_3stars && nbselstars > 1))
 		&& (interpolation_item == OPENCV_CUBIC || interpolation_item == OPENCV_LANCZOS4));
@@ -1274,7 +1426,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), TRUE);
 		gtk_widget_set_sensitive(noout, FALSE);
 		gtk_widget_set_visible(noout, TRUE);
-	} else if (method->method_ptr == &register_apply_reg || 
+	} else if (method->method_ptr == &register_apply_reg ||
 				method->method_ptr == &register_astrometric ) { // cannot have no output with apply registration/astrometric method
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), FALSE);
 		gtk_widget_set_sensitive(noout, FALSE);
@@ -1458,7 +1610,7 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 	scaling_spin =GTK_SPIN_BUTTON(lookup_widget("reg_scaling_spin"));
 	undistort =  GTK_TOGGLE_BUTTON(lookup_widget("reg_undistort"));
 	proj_combo = GTK_COMBO_BOX(lookup_widget("comboreg_proj"));
-	
+
 	reg_args->clamp = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_reg_clamp")));
 
 	reg_args->func = method->method_ptr;
@@ -1562,7 +1714,9 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 
 /* callback for 'Go register' button, GTK thread */
 void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
+
 	struct registration_args *reg_args = calloc(1, sizeof(struct registration_args));
+
 	char *msg;
 	if (fill_registration_structure_from_GUI(reg_args)) {
 		free(reg_args);
@@ -1574,11 +1728,19 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	const gchar *caller = gtk_buildable_get_name(GTK_BUILDABLE(button));
 	if (!g_strcmp0(caller, "proj_estimate"))
 		reg_args->no_output = TRUE;
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("drizzleCheckButton")))) {
+		reg_args->driz = calloc(1, sizeof(struct driz_args_t));
+		if (populate_drizzle_data(reg_args->driz)) {
+			free(reg_args);
+			return;
+		}
+	}
 
 	msg = siril_log_color_message(_("Registration: processing using method: %s\n"),
 			"green", method->name);
 	msg[strlen(msg) - 1] = '\0';
-	if (reg_args->clamp && !reg_args->no_output)
+
+	if (!reg_args->driz && reg_args->clamp && !reg_args->no_output)
 		siril_log_message(_("Interpolation clamping active\n"));
 	set_progress_bar_data(msg, PROGRESS_RESET);
 
@@ -1639,6 +1801,7 @@ static gboolean end_register_idle(gpointer p) {
 	free(args->new_seq_name);
 	if (!check_seq_is_comseq(args->seq))
 		free_sequence(args->seq, TRUE);
+	free(args->driz);
 	free(args);
 	return FALSE;
 }

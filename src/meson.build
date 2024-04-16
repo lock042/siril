@@ -95,6 +95,10 @@ src_files = [
   'core/undo.c',
   'core/utils.c',
 
+  'drizzle/cdrizzlebox.c',
+  'drizzle/cdrizzlemap.c',
+  'drizzle/cdrizzleutil.c',
+
   'filters/asinh.c',
   'filters/banding.c',
   'filters/clahe.c',
