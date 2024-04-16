@@ -79,6 +79,9 @@ struct occ_res {
 	double exposure;	// Computed exposure time
 	int th_pls_nbr;	// Theorical pulse number in the sequence
 	int det_pulses; 	// Number of detected pulses
+	double hi_val;	// Maximum value in the sequence
+	double lo_val;	// Minimum value in the sequence
+	int valid_images;	// Number of valid images in the sequence
 };
 
 void free_light_curve_args(struct light_curve_args *args);
