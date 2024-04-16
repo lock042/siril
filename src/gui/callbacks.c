@@ -35,6 +35,7 @@
 #include "core/siril_log.h"
 #include "gui/cut.h"
 #include "gui/keywords_tree.h"
+#include "gui/registration.h"
 #include "algos/siril_wcs.h"
 #include "algos/star_finder.h"
 #include "io/annotation_catalogues.h"
