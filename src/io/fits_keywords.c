@@ -904,10 +904,10 @@ int read_fits_keywords(fits *fit) {
 		gushort ushort_value;
 		double double_value;
 		float float_value;
-		gchar *str_value, *unquoted;
+		gchar *str_value = NULL, *unquoted = NULL;
 		GDateTime *date;
 		gboolean bool_value;
-		char *end;
+		char *end = NULL;
 
 		// Process the value based on the type of the keyword
 		switch (current_key->type) {
