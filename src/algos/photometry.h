@@ -67,7 +67,18 @@ struct occultation_args {
 	int start_ind;	// Index of the first image of the pulse in the sorted list
 	int pls_nbr;	// Number of usefull images in the 100ms pulse
 	double sum_flux;	// Total flux during the pulse
-	double delta_t;	// delay time
+	double delay_comp;	// delay time between the real PPS and the forseen PPS
+};
+
+
+
+// temporary structure. Data will be used later 
+struct occ_res {
+	double median_seq;	// median over the sequence
+	double sig_seq;		// sigma over the sequence
+	double exposure;	// Computed exposure time
+	int th_pls_nbr;	// Theorical pulse number in the sequence
+	int det_pulses; 	// Number of detected pulses
 };
 
 void free_light_curve_args(struct light_curve_args *args);
