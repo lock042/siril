@@ -668,6 +668,91 @@ int crop_finalize_hook(struct generic_seq_args *args) {
 	return retval;
 }
 
+int scale_compute_mem_limits_hook(struct generic_seq_args *args, gboolean for_writer) {
+	unsigned int MB_per_orig_image, MB_per_scaled_image, MB_avail;
+	int limit = compute_nb_images_fit_memory(args->seq, args->upscale_ratio, args->force_float,
+			&MB_per_orig_image, &MB_per_scaled_image, &MB_avail);
+	int is_float = get_data_type(args->seq->bitpix) == DATA_FLOAT;
+
+	/* The transformation memory consumption is:
+		* the original image
+		* the transformed image, including upscale if required (4x)
+		*/
+	unsigned int required = MB_per_orig_image + MB_per_scaled_image;
+	// If interpolation clamping is set, 2x additional Mats of the same format
+	// as the original image are required
+	struct scale_sequence_data *s_args = args->user;
+	if (s_args->clamp && (s_args->interpolation == OPENCV_CUBIC ||
+			s_args->interpolation == OPENCV_LANCZOS4)) {
+		float factor = (is_float) ? 0.25 : 0.5;
+		required += (1 + factor) * MB_per_scaled_image;
+	}
+
+	if (limit > 0) {
+
+		int thread_limit = MB_avail / required;
+		if (thread_limit > com.max_thread)
+			thread_limit = com.max_thread;
+
+		if (for_writer) {
+			/* we allow the already allocated thread_limit images,
+			 * plus how many images can be stored in what remains
+			 * unused by the main processing */
+			limit = thread_limit + (MB_avail - required * thread_limit) / MB_per_scaled_image;
+		} else limit = thread_limit;
+	}
+
+	if (limit == 0) {
+		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+
+		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per thread, %s considered available)\n"),
+				"red", args->description, mem_per_thread, mem_available);
+
+		g_free(mem_per_thread);
+		g_free(mem_available);
+	} else {
+#ifdef _OPENMP
+		if (for_writer) {
+			int max_queue_size = com.max_thread * 3;
+			if (limit > max_queue_size)
+				limit = max_queue_size;
+		}
+		siril_debug_print("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
+				required, MB_per_scaled_image, limit, for_writer ? "images" : "threads");
+#else
+		if (!for_writer)
+			limit = 1;
+		else if (limit > 3)
+			limit = 3;
+#endif
+	}
+	return limit;
+}
+
+gint64 scale_compute_size_hook(struct generic_seq_args *args, int nb_frames) {
+	struct scale_sequence_data *s_args = (struct scale_sequence_data*) args->user;
+	double ratio = s_args->scale * s_args->scale;
+	double fullseqsize = seq_compute_size(args->seq, nb_frames, args->output_type);
+	return (gint64)(fullseqsize * ratio);
+}
+
+int scale_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
+		rectangle *_, int threads) {
+	struct scale_sequence_data *s_args = (struct scale_sequence_data*) args->user;
+	int toX = fit->rx * s_args->scale;
+	int toY = fit->ry * s_args->scale;
+	s_args->retvalue = verbose_resize_gaussian(fit, toX, toY, s_args->interpolation, s_args->clamp);
+	return s_args->retvalue;
+}
+
+int scale_finalize_hook(struct generic_seq_args *args) {
+	struct scale_sequence_data *data = (struct scale_sequence_data *) args->user;
+	int retval = seq_finalize_hook(args);
+	free(data);
+	return retval;
+}
+
 /* TODO: should we use the partial image? */
 gpointer crop_sequence(struct crop_sequence_data *crop_sequence_data) {
 	struct generic_seq_args *args = create_default_seqargs(crop_sequence_data->seq);
@@ -690,3 +775,24 @@ gpointer crop_sequence(struct crop_sequence_data *crop_sequence_data) {
 	return 0;
 }
 
+gpointer scale_sequence(struct scale_sequence_data *scale_sequence_data) {
+	struct generic_seq_args *args = create_default_seqargs(scale_sequence_data->seq);
+	args->filtering_criterion = seq_filter_included;
+	args->nb_filtered_images = scale_sequence_data->seq->selnum;
+	args->compute_mem_limits_hook = scale_compute_mem_limits_hook;
+	args->compute_size_hook = scale_compute_size_hook;
+	args->prepare_hook = seq_prepare_hook;
+	args->finalize_hook = scale_finalize_hook;
+	args->image_hook = scale_image_hook;
+	args->stop_on_error = FALSE;
+	args->description = _("Scale Sequence");
+	args->has_output = TRUE;
+	args->output_type = get_data_type(args->seq->bitpix);
+	args->new_seq_prefix = scale_sequence_data->prefix;
+	args->load_new_sequence = TRUE;
+	args->user = scale_sequence_data;
+
+	start_in_new_thread(generic_sequence_worker, args);
+
+	return 0;
+}

@@ -276,6 +276,12 @@ typedef enum {
 	EXT_ASNET,
 } external_program;
 
+typedef enum {
+	SCALING_NONE,
+	SCALING_HA_UP,
+	SCALING_OIII_DOWN
+} extraction_scaling;
+
 /* image data, exists once for each image */
 typedef struct {
 	int filenum;		/* real file index in the sequence, i.e. for mars9.fit = 9 */
@@ -341,7 +347,6 @@ struct sequ {
 	int end;		// imgparam[number-1]->filenum
 	double exposure;	// exposure of frames (we assume they are all identical)
 	gboolean fz;
-
 	sequence_type type;
 	struct ser_struct *ser_file;
 	gboolean cfa_opened_monochrome;	// in case the CFA SER was opened in monochrome mode

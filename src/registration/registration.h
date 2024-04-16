@@ -55,6 +55,7 @@ typedef enum {
 struct registration_args {
 	registration_function func;	// the registration function
 	sequence *seq;			// the sequence to register
+	gboolean bayer;			// whether we are dealing with a Bayer pattern
 	int reference_image;		// reference image index
 	struct seq_filter_config filters; // parsed image filters (.filter_included always used)
 	int layer;			// layer of images on which the registration is computed
@@ -75,6 +76,7 @@ struct registration_args {
 	gboolean no_starlist;		// disable star list creation (2pass only)
 	float astrometric_scale;		// scaling factor (for mosaic only)
 	gboolean undistort;		// apply undistorsion with SIP data
+	struct driz_args_t *driz;	// drizzle-specific data
 
 	/* data for generated sequence, for star alignment/mosaic registration */
 	gboolean no_output;		// write transformation to .seq
@@ -173,6 +175,7 @@ struct star_align_data {
 	point ref;
 };
 
+regdata *apply_reg_get_current_regdata(struct registration_args *regargs);
 regdata *star_align_get_current_regdata(struct registration_args *regargs);
 int star_align_prepare_results(struct generic_seq_args *args);
 int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads);
@@ -197,6 +200,8 @@ void SetNullH(Homography *H);
 int shift_fit_from_reg(fits *fit, Homography H);
 
 int minidx(const float *arr, const gboolean *mask, int nb, float *val);
+void get_reg_sequence_filtering_from_gui(seq_image_filter *filtering_criterion,
+		double *filtering_parameter, int update_adjustment);
 
 void free_astrometric_args(struct astrometric_args *astargs);
 
