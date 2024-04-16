@@ -1170,8 +1170,7 @@ static void colors_align_and_compose() {
 		if (gfit.keywords.date_obs) {
 			g_date_time_unref(gfit.keywords.date_obs);
 		}
-		g_date_time_ref(earliest);
-		gfit.keywords.date_obs = earliest;
+		gfit.keywords.date_obs = g_date_time_ref(earliest);
 	}
 	g_list_free(date_obs_list);
 	fprintf(stdout, "colour layers only composition\n");

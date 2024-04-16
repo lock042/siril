@@ -329,8 +329,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		fits out;
 		copyfits(fit, &out, CP_FORMAT, -1);
 		// copy the DATE_OBS
-		out.keywords.date_obs = fit->keywords.date_obs;
-		g_date_time_ref(out.keywords.date_obs);
+		out.keywords.date_obs = g_date_time_ref(fit->keywords.date_obs);
 		out.rx = out.naxes[0] = rx_out;
 		out.ry = out.naxes[1] = ry_out;
 		out.naxes[2] = driz->is_bayer ? 3 : 1;
@@ -356,8 +355,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		clearfits(fit);
 		// copy the DATE_OBS
 		copyfits(&out, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
-		fit->keywords.date_obs = out.keywords.date_obs;
-		g_date_time_ref(fit->keywords.date_obs);
+		fit->keywords.date_obs = g_date_time_ref(out.keywords.date_obs);
 		clearfits(&out);
 
 		if (driz->is_bayer) {

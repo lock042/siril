@@ -415,12 +415,12 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		regargs->regparam[out_index].number_of_stars = sadata->current_regdata[in_index].number_of_stars;
 		cvGetEye(&regargs->regparam[out_index].H);
 
-/*		if (regargs->x2upscale) { // Removed in favour of proper drizzle after registration
+		if (regargs->x2upscale) { // Removed in favour of proper drizzle after registration
 			fit->keywords.pixel_size_x /= 2;
 			fit->keywords.pixel_size_y /= 2;
 			regargs->regparam[out_index].fwhm *= 2.0;
 			regargs->regparam[out_index].weighted_fwhm *= 2.0;
-		} */
+		}
 	} else {
 		// TODO: check if H matrix needs to include a flip or not based on fit->top_down
 		// seems like not but this could backfire at some point
