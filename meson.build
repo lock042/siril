@@ -650,7 +650,6 @@ subdir('pixmaps')
 subdir('data')
 subdir('po')
 subdir('scripts')
-subdir('3rdparty')
 subdir('3rdparty_licenses')
 
 ################################################################################
