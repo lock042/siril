@@ -48,7 +48,7 @@ namespace da3d {
 namespace {
 
 Image ColorTransform(Image&& src) {
-  Image img = move(src);
+  Image img = std::move(src);
   if (img.channels() == 3) {
     for (int row = 0; row < img.rows(); ++row) {
       for (int col = 0; col < img.columns(); ++col) {
@@ -66,7 +66,7 @@ Image ColorTransform(Image&& src) {
 }
 
 Image ColorTransformInverse(Image&& src) {
-  Image img = move(src);
+  Image img = std::move(src);
   if (img.channels() == 3) {
     for (int row = 0; row < img.rows(); ++row) {
       for (int col = 0; col < img.columns(); ++col) {
@@ -339,7 +339,7 @@ pair<Image, Image> DA3D_block(int &retval, const Image &noisy, const Image &guid
     }
     agg_weights.IncreaseWeights(k, pr - r, pc - r);  // line 29
   }
-  return {move(output), move(weights)};
+  return {std::move(output), std::move(weights)};
 }
 
 }  // namespace
