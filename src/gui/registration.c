@@ -923,6 +923,17 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 		unreserve_thread();
 		return;
 	}
+	fits fit_ref = { 0 };
+	int ret = seq_read_frame_metadata(reg_args->seq, reg_args->reference_image, &fit_ref);
+	if (ret) {
+		siril_log_message(_("Error: unable to read reference frame metadata\n"));
+		free(reg_args);
+		unreserve_thread();
+		return;
+	}
+	reg_args->bayer = (fit_ref.keywords.bayer_pattern[0] != '\0');
+	clearfits(&fit_ref);
+
 	struct registration_method *method = get_selected_registration_method();
 
 	const gchar *caller = gtk_buildable_get_name(GTK_BUILDABLE(button));

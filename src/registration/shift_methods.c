@@ -103,7 +103,9 @@ int register_shift_dft(struct registration_args *args) {
 	set_progress_bar_data(
 			_("Register DFT: loading and processing reference frame"),
 			PROGRESS_NONE);
-	ret = seq_read_frame_part(args->seq, args->layer, ref_image, &fit_ref,
+	ret = seq_read_frame_metadata(args->seq, ref_image, &fit_ref);
+	if (!ret)
+		ret = seq_read_frame_part(args->seq, args->layer, ref_image, &fit_ref,
 			&args->selection, FALSE, -1);
 
 	if (ret || ((fit_ref.type == DATA_USHORT && !fit_ref.data) || (fit_ref.type == DATA_FLOAT && !fit_ref.fdata))) {
@@ -233,7 +235,7 @@ int register_shift_dft(struct registration_args *args) {
 #ifdef _OPENMP
 		thread_id = omp_get_thread_num();
 #endif
-		if (!seq_read_frame_part(args->seq, args->layer, frame, &fit,
+		if (!seq_read_frame_metadata(args->seq, frame, &fit) && !seq_read_frame_part(args->seq, args->layer, frame, &fit,
 						&args->selection, FALSE, thread_id)) {
 			int x;
 			strcpy(fit.keywords.bayer_pattern, pattern);
