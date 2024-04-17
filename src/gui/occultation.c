@@ -36,12 +36,6 @@ static GtkWidget *delay_cam = NULL;
 static GtkWidget *sep = NULL;
 static GtkWidget *apply_offset = NULL;
 static double delay = 0.0;
-//static GtkWidget *delta_vmag_entry = NULL;
-//static GtkWidget *delta_bv_entry = NULL;
-//static GtkWidget *emag_entry = NULL;
-//static GtkWidget *target_entry = NULL;
-//static GtkWidget *apass_radio = NULL;
-//static GtkWidget *check_narrow = NULL;
 
 static void on_occult_response(GtkDialog* self, gint response_id, gpointer user_data);
 static void on_find_clicked(GtkDialog* self, gint response_id, gpointer user_data);
@@ -68,11 +62,6 @@ static void build_the_dialog() {
 	g_object_set(G_OBJECT(label2), "margin-left", 15, NULL);
 	g_object_set(G_OBJECT(label2), "margin-top", 15, NULL);
 
-
-//	target_entry = gtk_entry_new();
-//	gtk_entry_set_placeholder_text(GTK_ENTRY(target_entry), "Target star name");
-//	gtk_widget_set_tooltip_text(target_entry, _("Enter the target star name to search in cataloges"));
-//	g_object_set(G_OBJECT(target_entry), "margin", 15, NULL);
 	GtkWidget *label_delay_cam = gtk_label_new(_("Camera delay to handle (ms):"));
 	gtk_widget_set_halign(label_delay_cam, GTK_ALIGN_CENTER);
 //	g_object_set(G_OBJECT(label_delay_cam), "margin-left", 15, NULL);
@@ -108,78 +97,7 @@ static void build_the_dialog() {
 	g_object_set(G_OBJECT(apply_offset), "margin-bottom", 35, NULL);
 	g_object_set(G_OBJECT(apply_offset), "margin-top", 5, NULL);
 
-/*	check_narrow = gtk_check_button_new_with_label(_("Narrow field of view"));
-	gtk_widget_set_tooltip_text(check_narrow, _("Tick this box to use a narrow field of view centered about the target star"));
-	gtk_widget_set_halign(check_narrow, GTK_ALIGN_START);
-	g_object_set(G_OBJECT(check_narrow), "margin-left", 15, NULL);
-	g_object_set(G_OBJECT(check_narrow), "margin-top", 5, NULL);
-	g_object_set(G_OBJECT(check_narrow), "margin-bottom", 0, NULL);
 
-	GtkWidget *labelvmag = gtk_label_new(_("Allowed visual magnitude range:"));
-	gtk_widget_set_halign(labelvmag, GTK_ALIGN_START);
-	g_object_set(G_OBJECT(labelvmag), "margin-left", 15, NULL);
-	g_object_set(G_OBJECT(labelvmag), "margin-top", 10, NULL);
-	g_object_set(G_OBJECT(labelvmag), "margin-bottom", 0, NULL);
-
-	delta_vmag_entry = gtk_entry_new();
-	gtk_entry_set_text(GTK_ENTRY(delta_vmag_entry), "3.0");
-	gtk_widget_set_tooltip_text(delta_vmag_entry, _("Allowed range of visual magnitude between the target star and the comparison stars"));
-	g_object_set(G_OBJECT(delta_vmag_entry), "margin-left", 15, NULL);
-	g_object_set(G_OBJECT(delta_vmag_entry), "margin-right", 15, NULL);
-	g_object_set(G_OBJECT(delta_vmag_entry), "margin-top", 0, NULL);
-
-	GtkWidget *labelbv = gtk_label_new(_("Allowed B-V index range:"));
-	gtk_widget_set_halign(labelbv, GTK_ALIGN_START);
-	g_object_set(G_OBJECT(labelbv), "margin-left", 15, NULL);
-	g_object_set(G_OBJECT(labelbv), "margin-top", 10, NULL);
-	g_object_set(G_OBJECT(labelbv), "margin-bottom", 0, NULL);
-
-	delta_bv_entry = gtk_entry_new();
-	gtk_entry_set_text(GTK_ENTRY(delta_bv_entry), "0.5");
-	gtk_widget_set_tooltip_text(delta_bv_entry, _("Allowed range of B-V index (color) between the target star and the comparison stars"));
-	g_object_set(G_OBJECT(delta_bv_entry), "margin-left", 15, NULL);
-	g_object_set(G_OBJECT(delta_bv_entry), "margin-right", 15, NULL);
-	g_object_set(G_OBJECT(delta_bv_entry), "margin-top", 0, NULL);
-
-	GtkWidget *labelemag = gtk_label_new(_("Allowed magnitude error:"));
-	gtk_widget_set_halign(labelemag, GTK_ALIGN_START);
-	g_object_set(G_OBJECT(labelemag), "margin-left", 15, NULL);
-	g_object_set(G_OBJECT(labelemag), "margin-top", 10, NULL);
-	g_object_set(G_OBJECT(labelemag), "margin-bottom", 0, NULL);
-
-	emag_entry = gtk_entry_new();
-	gtk_entry_set_text(GTK_ENTRY(emag_entry), "0.03");
-	gtk_widget_set_tooltip_text(emag_entry, _("Allowed catalogue magnitude error for comparison stars"));
-	g_object_set(G_OBJECT(emag_entry), "margin-left", 15, NULL);
-	g_object_set(G_OBJECT(emag_entry), "margin-right", 15, NULL);
-	g_object_set(G_OBJECT(emag_entry), "margin-top", 0, NULL);
-*/
-	/* catalogue choice */
-/*	GtkWidget *radio2, *radiobox;
-	radiobox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
-	gtk_box_set_homogeneous(GTK_BOX(radiobox), TRUE);
-	gtk_widget_set_tooltip_text(radiobox, _("Recommended catalogue for this feature is APASS"));
-
-	apass_radio = gtk_radio_button_new_with_label_from_widget(NULL, _("APASS catalogue"));
-	radio2 = gtk_radio_button_new_with_label_from_widget (GTK_RADIO_BUTTON(apass_radio),
-			_("NOMAD catalogue"));
-	gtk_container_add(GTK_CONTAINER(radiobox), apass_radio);
-	gtk_container_add(GTK_CONTAINER(radiobox), radio2);
-	g_object_set(G_OBJECT(radiobox), "margin", 15, NULL);
-
-	GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
-	gtk_box_set_spacing(GTK_BOX(content_area), 15);
-	gtk_container_add(GTK_CONTAINER(content_area), label);
-	gtk_container_add(GTK_CONTAINER(content_area), target_entry);
-	gtk_container_add(GTK_CONTAINER(content_area), check_narrow);
-	gtk_container_add(GTK_CONTAINER(content_area), labelvmag);
-	gtk_container_add(GTK_CONTAINER(content_area), delta_vmag_entry);
-	gtk_container_add(GTK_CONTAINER(content_area), labelbv);
-	gtk_container_add(GTK_CONTAINER(content_area), delta_bv_entry);
-	gtk_container_add(GTK_CONTAINER(content_area), labelemag);
-	gtk_container_add(GTK_CONTAINER(content_area), emag_entry);
-	gtk_container_add(GTK_CONTAINER(content_area), radiobox);
-*/
 	GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
 	gtk_container_add(GTK_CONTAINER(content_area), label);
 	gtk_container_add(GTK_CONTAINER(content_area), label2);
@@ -205,7 +123,6 @@ static void on_find_clicked(GtkDialog* self, gint response_id, gpointer user_dat
 //	struct phot_config *args = calloc(1, sizeof(struct phot_config));
 	if (com.seq.photometry[0] != NULL) free_photometry_set(&com.seq, 0);
 	control_window_switch_to_tab(OUTPUT_LOGS);
-	siril_log_message(_("Find button clicked \n"));		//c'est ici que la procedure de calcul doit etre lancée
 
 	int layer = -1;
 	if (com.seq.regparam) {
@@ -239,25 +156,23 @@ static void on_find_clicked(GtkDialog* self, gint response_id, gpointer user_dat
 */
 	struct light_curve_args *args = calloc(1, sizeof(struct light_curve_args));
 	args->seq = &com.seq;
-	args->layer = layer;
 	start_in_new_thread(occultation_worker, args);
 
-	gchar *end;
-	const gchar *text = gtk_entry_get_text(GTK_ENTRY(delay_cam));
-//	delay = g_ascii_strtod(text, &end);
-	delay = args->JD_offset;
-//	if (text == end || delay <= -10.0 || delay > 30.7) {
-//		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("DELAY range not accepted (should be ]0, 0.7]"));
-//		return;
-//	}
-	siril_log_message(_("Delay value: %lf \n"), delay);
-//	delay += 1.0;
-
-	gtk_entry_set_text(GTK_ENTRY(delay_cam), g_strdup_printf("%0.6lf", delay));
-
+	delay = 0.0;
+	gtk_entry_set_text(GTK_ENTRY(delay_cam), g_strdup_printf("%0.3lf", delay));
 	control_window_switch_to_tab(OUTPUT_LOGS);
 }
 
+gboolean end_occultation_worker(gpointer p) {
+		if (!com.script) {
+			struct light_curve_args *args = (struct light_curve_args *)p;
+			args->seq = &com.seq;
+			delay = args->JD_offset;
+			gtk_entry_set_text(GTK_ENTRY(delay_cam), g_strdup_printf("%0.3lf", delay));
+			control_window_switch_to_tab(OUTPUT_LOGS);
+		}
+	return end_generic(NULL);
+}
 
 static void on_occult_response(GtkDialog* self, gint response_id, gpointer user_data) {
 	siril_debug_print("got response event\n");
@@ -310,7 +225,7 @@ static void on_occult_response(GtkDialog* self, gint response_id, gpointer user_
 	struct light_curve_args *args = calloc(1, sizeof(struct light_curve_args));
 //	args->seq->psf->occult_is_valid = TRUE;
 	if (use_offset) {
-		siril_log_message(_("Applied offset: %lf \n"), delay);
+		siril_log_message(_("Applied offset: %0.3lf (ms) \n"), delay);
 		args->time_offset = TRUE;
 		args->JD_offset = delay;
 	}

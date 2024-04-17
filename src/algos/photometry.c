@@ -41,6 +41,7 @@
 #include "gui/plot.h"
 #include "gui/image_display.h"
 #include "gui/siril_plot.h"
+#include "gui/occultation.h"
 #include "io/sequence.h"
 #include "io/ser.h"
 #include "io/siril_plot.h"
@@ -721,7 +722,7 @@ static int time_offset (struct occultation_args *pulse, double *vmag, sequence *
 	gsl_stats_minmax (&lo_val, &hi_val, tmp_dbl, 1, timing->det_pulses);
 	free(tmp_dbl);
 
-	siril_log_color_message(_("median diff time %0.3lf(ms), sigma diff time %0.3lf(ms), nbr= %i\n"), "green", timing->median_seq, timing->sig_seq, timing->det_pulses);
+	siril_log_color_message(_("Time Offset: %0.3lf(ms), sigma= %0.3lf(ms)\n"), "green", timing->median_seq, timing->sig_seq);
 	if (verbose) siril_log_color_message(_("mini diff time %0.3lf(ms), maxi diff time %0.3lf(ms)\n"), "green", lo_val, hi_val);
 
 	free(unity_flux);
@@ -830,30 +831,21 @@ int occult_curve(struct light_curve_args *lcargs) {
 	timing->det_pulses = pulse_detection (pulse, vmag, orig_ind, timing);
 
 	// Does it match the forseen value
-	siril_log_color_message(_("Detected pulses= %i vs Expected pulses= %i\n"), "red", timing->det_pulses, timing->th_pls_nbr - 1);
-	if (timing->det_pulses < 1) return 0;
+	siril_log_color_message(_("Detected pulses= %i vs Expected pulses= %i\n"), "salmon", timing->det_pulses, timing->th_pls_nbr - 1);
+	if (timing->det_pulses < (timing->th_pls_nbr / 2)) {
+		siril_log_color_message(_("Not enought pulses detected.\n"), "red");
+		return 0;
+	}
 
-	// Compute offset
+	// Computes offset
 	ret = time_offset(pulse, vmag, seq, timing);
-
 	lcargs->JD_offset = timing->median_seq;
 
-
+	// Frees what needs to be
 	free(date);
 	free(vmag);
 
 	return ret;
-}
-
-
-
-static gboolean end_occultation_worker(gpointer p) {
-	if (sequence_is_loaded()) {
-		drawPlot();
-		notify_new_photometry();	// switch to and update plot tab
-		redraw(REDRAW_OVERLAY);
-	}
-	return end_generic(NULL);
 }
 
 void free_occultation_args(struct light_curve_args *args) {
@@ -894,12 +886,12 @@ gpointer occultation_worker(gpointer arg) {
 	if (!retval)
 		retval = occult_curve(args);
 
-//	free_photometry_set(&com.seq, 0);
-//	reset_plot();
-//	clear_stars_list(TRUE);
-//	drawPlot();
-
+	if (sequence_is_loaded()) {
+		drawPlot();
+		notify_new_photometry();	// switch to and update plot tab
+		redraw(REDRAW_OVERLAY);
+	}
 	free_occultation_args(args); // this will not free args->spl_data which is free by siril_plot window upon closing
-	siril_add_idle(end_occultation_worker, NULL);
+	siril_add_idle(end_occultation_worker, args);
 	return GINT_TO_POINTER(retval);
 }
