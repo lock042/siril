@@ -30,6 +30,7 @@
 #include "gui/message_dialog.h"
 #include "gui/utils.h"
 #include "io/sequence.h"
+#include "gui/image_display.h"
 
 static GtkWidget *dialog = NULL;	// the window, a GtkDialog
 static GtkWidget *delay_cam = NULL;
@@ -172,6 +173,11 @@ gboolean end_occultation_worker(gpointer p) {
 		control_window_switch_to_tab(OUTPUT_LOGS);
 		free_light_curve_args(args);
 	}
+	if (sequence_is_loaded()) {
+		drawPlot();
+		notify_new_photometry();	// switch to and update plot tab
+		redraw(REDRAW_OVERLAY);
+	}
 	return end_generic(NULL);
 }
 
@@ -183,52 +189,14 @@ static void on_occult_response(GtkDialog* self, gint response_id, gpointer user_
 		return;
 	}
 
-
-//	if (!has_wcs(&gfit)) {
-//		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("The currently loaded image must be plate solved"));
-//		gtk_widget_hide(dialog);
-//		return;
-//	}
-
-//	const gchar *entered_target_name = gtk_entry_get_text(GTK_ENTRY(target_entry));
-//	gchar *target_name = g_strdup(entered_target_name);
-//	g_strstrip(target_name);
-//	if (target_name[0] == '\0') {
-//		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Enter the name of the target star"));
-//		return;
-//	}
-
-/*	gchar *end;
-	const gchar *text = gtk_entry_get_text(GTK_ENTRY(delta_vmag_entry));
-	double delta_Vmag = g_ascii_strtod(text, &end);
-	if (text == end || delta_Vmag <= 0.0 || delta_Vmag > 6.0) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Vmag range not accepted (should be ]0, 6])"));
-		return;
-	}
-	text = gtk_entry_get_text(GTK_ENTRY(delta_bv_entry));
-	double delta_BV = g_ascii_strtod(text, &end);
-	if (text == end || delta_BV <= 0.0 || delta_BV > 0.7) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("BV range not accepted (should be ]0, 0.7]"));
-		return;
-	}
-	text = gtk_entry_get_text(GTK_ENTRY(emag_entry));
-	double emag = g_ascii_strtod(text, &end);
-	if (text == end || emag <= 0.0 || emag > 0.1) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Magnitude error not accepted (should be ]0, 0.1["));
-		return;
-	}
-*/
-//	gboolean use_apass = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apass_radio));
-//	gboolean narrow = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(check_narrow));
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	gboolean use_offset = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(apply_offset));
-//	struct phot_config *args = calloc(1, sizeof(struct phot_config));
 	struct light_curve_args *args = calloc(1, sizeof(struct light_curve_args));
-//	args->seq->psf->occult_is_valid = TRUE;
+	args->seq = &com.seq;
 	if (use_offset) {
-		siril_log_message(_("Applied offset: %0.3lf (ms) \n"), delay);
 		args->time_offset = TRUE;
 		args->JD_offset = delay;
+		siril_log_message(_("Applied offset: %0.3lf (ms) \n"), args->JD_offset);
 	}
 	else {
 		siril_log_message(_("No offset applied \n"));
@@ -237,20 +205,9 @@ static void on_occult_response(GtkDialog* self, gint response_id, gpointer user_
 	}
 
 	if (com.seq.photometry[0] != NULL) free_photometry_set(&com.seq, 0);
+	free_light_curve_args(args);
 
 	gtk_widget_hide(dialog);
-	
-
-//	struct compstars_arg *args = calloc(1, sizeof(struct compstars_arg));
-/*	args->fit = &gfit;
-	args->target_name = g_strdup(target_name);
-	args->narrow_fov = narrow;
-	args->cat = use_apass ? CAT_APASS : CAT_NOMAD;
-	args->delta_Vmag = delta_Vmag;
-	args->delta_BV = delta_BV;
-	args->max_emag = emag;
-	args->nina_file = g_strdup("auto");
-*/
 
 //	start_in_new_thread(occultation_worker, args);
 }

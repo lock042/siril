@@ -860,19 +860,6 @@ int occult_curve(struct light_curve_args *lcargs) {
 	return ret;
 }
 
-/*
-void free_occultation_args(struct light_curve_args *args) {
-	if (args->seq && !check_seq_is_comseq(args->seq))
-		free_sequence(args->seq, TRUE);
-	free(args->areas);
-	if (args->target_descr)
-		g_free(args->target_descr);
-	if (args->metadata)
-		free(args->metadata);
-	free(args);
-	return;
-}
-*/
 gpointer occultation_worker(gpointer arg) {
 	int retval = 0;
 	struct light_curve_args *args = (struct light_curve_args *)arg;
@@ -899,12 +886,6 @@ gpointer occultation_worker(gpointer arg) {
 	/* analyse data and compute the offset */
 	if (!retval)
 		retval = occult_curve(args);
-
-	if (sequence_is_loaded()) {
-		drawPlot();
-		notify_new_photometry();	// switch to and update plot tab
-		redraw(REDRAW_OVERLAY);
-	}
 
 	siril_add_idle(end_occultation_worker, args);
 	return GINT_TO_POINTER(retval);
