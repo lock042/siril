@@ -357,7 +357,9 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		copyfits(&out, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 		fit->keywords.date_obs = g_date_time_ref(out.keywords.date_obs);
 		clearfits(&out);
-
+		if (args->seq->type == SEQ_SER || com.pref.force_16bit) {
+			fit_replace_buffer(fit, float_buffer_to_ushort(fit->fdata, fit->rx * fit->ry * fit->naxes[2]), DATA_USHORT);
+		}
 		if (driz->is_bayer) {
 			/* we need to do something special here because it's a 1-channel sequence and
 			* image that will become 3-channel after this call, so stats caching will
