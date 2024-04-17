@@ -90,7 +90,9 @@ gpointer light_curve_worker(gpointer arg);
 
 int new_light_curve(const char *filename, struct light_curve_args *lcargs);
 
-void free_occultation_args(struct light_curve_args *args);
+void free_occultation_args(struct occultation_args *args);
+
+void free_occ_res_args(struct occ_res *args);
 
 gpointer occultation_worker(gpointer arg);
 

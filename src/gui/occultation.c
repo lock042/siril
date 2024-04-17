@@ -148,12 +148,12 @@ static void on_find_clicked(GtkDialog* self, gint response_id, gpointer user_dat
 		return;
 	}
 
-/*	if (com.selection.w < com.pref.phot_set.outer || com.selection.h < com.pref.phot_set.outer) {
+	if (com.selection.w < com.pref.phot_set.outer || com.selection.h < com.pref.phot_set.outer) {
 		siril_log_color_message(_("The selection has benen resized \n"), "salmon");
 		com.selection.w = 2.0 * com.pref.phot_set.outer;
 		com.selection.h = 2.0 * com.pref.phot_set.outer;
 	}
-*/
+
 	struct light_curve_args *args = calloc(1, sizeof(struct light_curve_args));
 	args->seq = &com.seq;
 	start_in_new_thread(occultation_worker, args);
@@ -164,13 +164,14 @@ static void on_find_clicked(GtkDialog* self, gint response_id, gpointer user_dat
 }
 
 gboolean end_occultation_worker(gpointer p) {
-		if (!com.script) {
-			struct light_curve_args *args = (struct light_curve_args *)p;
-			args->seq = &com.seq;
-			delay = args->JD_offset;
-			gtk_entry_set_text(GTK_ENTRY(delay_cam), g_strdup_printf("%0.3lf", delay));
-			control_window_switch_to_tab(OUTPUT_LOGS);
-		}
+	if (!com.script) {
+		struct light_curve_args *args = (struct light_curve_args *)p;
+		args->seq = &com.seq;
+		delay = args->JD_offset;
+		gtk_entry_set_text(GTK_ENTRY(delay_cam), g_strdup_printf("%0.3lf", delay));
+		control_window_switch_to_tab(OUTPUT_LOGS);
+		free_light_curve_args(args);
+	}
 	return end_generic(NULL);
 }
 

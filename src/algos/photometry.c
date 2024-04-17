@@ -674,8 +674,8 @@ static GDateTime *round_date (GDateTime *date){
 
 static int time_offset (struct occultation_args *pulse, double *vmag, sequence *seq, struct occ_res *timing) {
 	gboolean verbose = FALSE;
-	double *unity_flux = calloc(timing->th_pls_nbr, sizeof(double));
-	double *first_p = calloc(timing->th_pls_nbr, sizeof(double));
+	double *unity_flux = malloc(timing->th_pls_nbr * sizeof(double));
+	double *first_p = malloc(timing->th_pls_nbr * sizeof(double));
 	double exposure = timing->exposure;
 
 	for (int i = 0; i < timing->th_pls_nbr; i++) {
@@ -737,6 +737,16 @@ static int time_offset (struct occultation_args *pulse, double *vmag, sequence *
 /* It uses data stored in the sequence, in seq->photometry, which is
  * populated by successive calls to seqpsf on the opened sequence;
  */
+void free_occultation_args(struct occultation_args *args) {
+	free(args);
+	return;
+}
+
+void free_occ_res_args(struct occ_res *args) {
+	free(args);
+	return;
+}
+
 int occult_curve(struct light_curve_args *lcargs) {
 	int i, j;
 	int ret = 0;	// return value
@@ -763,9 +773,9 @@ int occult_curve(struct light_curve_args *lcargs) {
 	}
 
 	// Arrays containing the graph data: X, Y and the original index
-	double *date = calloc(nbImages, sizeof(double));	// X is the julian date
-	double *vmag = calloc(nbImages, sizeof(double));	// Y is the calibrated magnitude
-	int *orig_ind = calloc(nbImages, sizeof(int));		// Original index in the sequence
+	double *date = malloc(nbImages * sizeof(double));	// X is the julian date
+	double *vmag = malloc(nbImages * sizeof(double));	// Y is the calibrated magnitude
+	int *orig_ind = malloc(nbImages * sizeof(int));		// Original index in the sequence
 	if (!date || !vmag) {
 		PRINT_ALLOC_ERR;
 		free(date); free(vmag);
@@ -809,7 +819,7 @@ int occult_curve(struct light_curve_args *lcargs) {
 	
 	// Retrieve the expected number of pulses in the sequence
 	double expos = timediff_in_s(seq->imgparam[0].date_obs, seq->imgparam[seq->number - 1].date_obs);	// Get the time difference in seconds
-	int exp_pls_nbr = expos;	// Floor it to get the total number of pulses
+	int exp_pls_nbr = (int)expos;	// Floor it to get the total expected number of pulses
 	expos = 0.01 * expos / (double)exp_pls_nbr;	// Compute the (average) exposition time of the frames
 
 	struct occ_res *timing = NULL;	// Structure embedding the final results
@@ -825,7 +835,7 @@ int occult_curve(struct light_curve_args *lcargs) {
 //	siril_log_color_message(_("min= %lf, max= %lf, nb_valid_images= %i, nbr pulse= %i\n"), "red", smallest_val, largest_val, nb_valid_images, th_pls_nbr);
 
 	struct occultation_args *pulse = NULL;	// Structure embedding the results for each pulse
-	pulse = calloc(timing->th_pls_nbr, sizeof(struct occultation_args));
+	pulse = malloc(timing->th_pls_nbr * sizeof(struct occultation_args));
 
 	// Seeking the pulses in the sequence
 	timing->det_pulses = pulse_detection (pulse, vmag, orig_ind, timing);
@@ -833,7 +843,7 @@ int occult_curve(struct light_curve_args *lcargs) {
 	// Does it match the forseen value
 	siril_log_color_message(_("Detected pulses= %i vs Expected pulses= %i\n"), "salmon", timing->det_pulses, timing->th_pls_nbr - 1);
 	if (timing->det_pulses < (timing->th_pls_nbr / 2)) {
-		siril_log_color_message(_("Not enought pulses detected.\n"), "red");
+		siril_log_color_message(_("Not enought pulses detected. Enlarge the selection.\n"), "red");
 		return 0;
 	}
 
@@ -842,23 +852,27 @@ int occult_curve(struct light_curve_args *lcargs) {
 	lcargs->JD_offset = timing->median_seq;
 
 	// Frees what needs to be
+	free_occultation_args(pulse);
+	free_occ_res_args(timing);
 	free(date);
 	free(vmag);
 
 	return ret;
 }
 
+/*
 void free_occultation_args(struct light_curve_args *args) {
 	if (args->seq && !check_seq_is_comseq(args->seq))
 		free_sequence(args->seq, TRUE);
 	free(args->areas);
-	g_free(args->target_descr);
+	if (args->target_descr)
+		g_free(args->target_descr);
 	if (args->metadata)
 		free(args->metadata);
 	free(args);
 	return;
 }
-
+*/
 gpointer occultation_worker(gpointer arg) {
 	int retval = 0;
 	struct light_curve_args *args = (struct light_curve_args *)arg;
@@ -891,7 +905,7 @@ gpointer occultation_worker(gpointer arg) {
 		notify_new_photometry();	// switch to and update plot tab
 		redraw(REDRAW_OVERLAY);
 	}
-	free_occultation_args(args); // this will not free args->spl_data which is free by siril_plot window upon closing
+
 	siril_add_idle(end_occultation_worker, args);
 	return GINT_TO_POINTER(retval);
 }
