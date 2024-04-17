@@ -608,7 +608,7 @@ gpointer light_curve_worker(gpointer arg) {
 ////////////////////////////////////////
 
 static int pulse_detection (struct occultation_args *pulse, double *vmag, int *orig_ind, struct occ_res *timing) {
-	gboolean verbose = TRUE;
+	gboolean verbose = FALSE;
 	int k = 0;
 	double sum = 0.0;
 	gboolean start_pulse = FALSE;
@@ -661,21 +661,18 @@ static GDateTime *round_date (GDateTime *date){
 	gint minute = g_date_time_get_minute(date);
 	double seconds = g_date_time_get_seconds(date);
 	double seconds_prime = round(seconds);
-	siril_log_color_message(_("seconds= %lf, round(seconds)= %lf\n"), "red", seconds, round(seconds));
 	if (seconds_prime == 60.0) {
 		minute ++;
 		seconds_prime = 0.0;
 	}
-		/* Check date and time */
 
-//	GDateTime *ret = g_date_time_new (tz,year, month, day, hour, minute, floor(seconds));
 	GDateTime *ret = g_date_time_new (tz,year, month, day, hour, minute, seconds_prime);
 	g_time_zone_unref(tz);
 	return ret;
 }
 
 static int time_offset (struct occultation_args *pulse, double *vmag, sequence *seq, struct occ_res *timing) {
-	gboolean verbose = TRUE;
+	gboolean verbose = FALSE;
 	double *unity_flux = calloc(timing->th_pls_nbr, sizeof(double));
 	double *first_p = calloc(timing->th_pls_nbr, sizeof(double));
 	double exposure = timing->exposure;
@@ -690,7 +687,7 @@ static int time_offset (struct occultation_args *pulse, double *vmag, sequence *
 		GDateTime *begin_frame = g_date_time_ref(seq->imgparam[pulse[i].start_ind_inseq - 1].date_obs);	// Timestamp at the beginning of the frame
 		GDateTime *end_frame = g_date_time_add_seconds (begin_frame, exposure);	// (computed) Timestamp at the end of the frame
 		GDateTime *end_frame2 = g_date_time_add_seconds (end_frame, -1.0 * first_p[i] / 1000.0);	// (Computed) Timestamp of the PPS
-		GDateTime *pps_time = round_date (end_frame);	// (Observed) Timestamp of the precise PPS time the pulse refers to
+		GDateTime *pps_time = round_date (end_frame2);	// (Observed) Timestamp of the precise PPS time the pulse refers to
 
 
 		gchar *str = date_time_to_FITS_date(begin_frame);
@@ -704,7 +701,7 @@ static int time_offset (struct occultation_args *pulse, double *vmag, sequence *
 		free(str);
 
 		pulse[i].delay_comp = 1000.0 * timediff_in_s(end_frame2, pps_time);	// delay after the real PPS timestamp
-		siril_log_color_message(_("diff time (ms) %lf\n\n"), "salmon", pulse[i].delay_comp);
+		if (verbose) siril_log_color_message(_("diff time (ms) %lf\n\n"), "salmon", pulse[i].delay_comp);
 
 		g_date_time_unref(begin_frame);
 		g_date_time_unref(end_frame);
@@ -714,15 +711,18 @@ static int time_offset (struct occultation_args *pulse, double *vmag, sequence *
 	}
 
 	/*Compute the median and sigma of the delay to be used later*/
-	double *tmp_dbl;
+	double *tmp_dbl, lo_val, hi_val;
 	tmp_dbl = malloc(timing->det_pulses * sizeof(double));
 	for (int i = 0; i < timing->det_pulses; i++)
 		tmp_dbl[i] = pulse[i].delay_comp;
 	gsl_sort (tmp_dbl, 1, timing->det_pulses);
 	timing->median_seq = gsl_stats_median_from_sorted_data (tmp_dbl, 1, timing->det_pulses);
 	timing->sig_seq = gsl_stats_variance(tmp_dbl, 1, timing->det_pulses);
+	gsl_stats_minmax (&lo_val, &hi_val, tmp_dbl, 1, timing->det_pulses);
 	free(tmp_dbl);
-	siril_log_color_message(_("median diff time %lf(ms), sigma diff time %lf(ms), nbr= %i\n"), "green", timing->median_seq, timing->sig_seq, timing->det_pulses);
+
+	siril_log_color_message(_("median diff time %0.3lf(ms), sigma diff time %0.3lf(ms), nbr= %i\n"), "green", timing->median_seq, timing->sig_seq, timing->det_pulses);
+	if (verbose) siril_log_color_message(_("mini diff time %0.3lf(ms), maxi diff time %0.3lf(ms)\n"), "green", lo_val, hi_val);
 
 	free(unity_flux);
 	free(first_p);
