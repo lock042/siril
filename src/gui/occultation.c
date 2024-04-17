@@ -203,6 +203,7 @@ GtkWidget *get_occult_dialog() {
 
 static void on_find_clicked(GtkDialog* self, gint response_id, gpointer user_data){
 //	struct phot_config *args = calloc(1, sizeof(struct phot_config));
+	if (com.seq.photometry[0] != NULL) free_photometry_set(&com.seq, 0);
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	siril_log_message(_("Find button clicked \n"));		//c'est ici que la procedure de calcul doit etre lancée
 
@@ -225,35 +226,43 @@ static void on_find_clicked(GtkDialog* self, gint response_id, gpointer user_dat
 
 // Tedst if area selected
 // Test if seq loaded
+	if (com.selection.w == 0 || com.selection.h  == 0) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Make a selection aroud the blinking star first"));
+		return;
+	}
 
-//	struct phot_config *args = calloc(1, sizeof(struct phot_config));
-//	struct seqpsf_args *spsfargs = malloc(sizeof(struct seqpsf_args));
-//	spsfargs->for_photometry = TRUE;
-
+/*	if (com.selection.w < com.pref.phot_set.outer || com.selection.h < com.pref.phot_set.outer) {
+		siril_log_color_message(_("The selection has benen resized \n"), "salmon");
+		com.selection.w = 2.0 * com.pref.phot_set.outer;
+		com.selection.h = 2.0 * com.pref.phot_set.outer;
+	}
+*/
 	struct light_curve_args *args = calloc(1, sizeof(struct light_curve_args));
 	args->seq = &com.seq;
 	args->layer = layer;
 	start_in_new_thread(occultation_worker, args);
 
-	control_window_switch_to_tab(OUTPUT_LOGS);
-
 	gchar *end;
 	const gchar *text = gtk_entry_get_text(GTK_ENTRY(delay_cam));
-	delay = g_ascii_strtod(text, &end);
-	if (text == end || delay <= -10.0 || delay > 30.7) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("DELAY range not accepted (should be ]0, 0.7]"));
-		return;
-	}
+//	delay = g_ascii_strtod(text, &end);
+	delay = args->JD_offset;
+//	if (text == end || delay <= -10.0 || delay > 30.7) {
+//		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("DELAY range not accepted (should be ]0, 0.7]"));
+//		return;
+//	}
 	siril_log_message(_("Delay value: %lf \n"), delay);
-	delay += 1.0;
+//	delay += 1.0;
 
-	gtk_entry_set_text(GTK_ENTRY(delay_cam), g_strdup_printf("%0.2lf", delay));
+	gtk_entry_set_text(GTK_ENTRY(delay_cam), g_strdup_printf("%0.6lf", delay));
+
+	control_window_switch_to_tab(OUTPUT_LOGS);
 }
 
 
 static void on_occult_response(GtkDialog* self, gint response_id, gpointer user_data) {
 	siril_debug_print("got response event\n");
 	if (response_id != GTK_RESPONSE_ACCEPT) {
+		if (com.seq.photometry[0] != NULL) free_photometry_set(&com.seq, 0);
 		gtk_widget_hide(dialog);
 		return;
 	}
@@ -310,6 +319,9 @@ static void on_occult_response(GtkDialog* self, gint response_id, gpointer user_
 		args->time_offset = FALSE;
 		args->JD_offset = 0.0;
 	}
+
+	if (com.seq.photometry[0] != NULL) free_photometry_set(&com.seq, 0);
+
 	gtk_widget_hide(dialog);
 	
 

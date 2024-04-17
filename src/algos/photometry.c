@@ -608,28 +608,26 @@ gpointer light_curve_worker(gpointer arg) {
 ////////////////////////////////////////
 
 static int pulse_detection (struct occultation_args *pulse, double *vmag, int *orig_ind, struct occ_res *timing) {
+	gboolean verbose = TRUE;
 	int k = 0;
 	double sum = 0.0;
 	gboolean start_pulse = FALSE;
 	gboolean stop_pulse = FALSE;
 
-//	struct occultation_args *pulse = NULL;
-//	pulse = calloc(th_pls_nbr, sizeof(struct occultation_args));
-
 	/* Loop over the valid images */
 	for (int i = 1, j = 0; i + 1 < timing->valid_images; i++) {
-//		siril_log_color_message(_("1- Valid_images= %i, Vmag= %lf\n"), "red", orig_ind[i + 1], vmag[i]);
+		if (verbose) siril_log_color_message(_("1- Valid_images= %i, Vmag= %lf\n"), "red", orig_ind[i + 1], vmag[i]);
 		if (!start_pulse && (vmag[i-1] < 0.5 * vmag[i]) && (vmag[i-1] < 0.5 * vmag[i + 1]) && (vmag[i + 1] > 0.85 * timing->hi_val)) {		// Identify raising edges
 			start_pulse = TRUE;
 			stop_pulse = FALSE;
 			pulse[k].start_ind_inseq = orig_ind[i + 1];
 			pulse[k].start_ind = i;
-//			siril_log_color_message(_("Raise!!\n"), "salmon");
+			if (verbose) siril_log_color_message(_("Raise!!\n"), "salmon");
 		}
 
 		if (start_pulse && (vmag[i-1] > 1.06 * vmag[i]) && (vmag[i-1] > 20.0 * vmag[i + 1]) && (vmag[i + 1] < 0.05 * timing->hi_val)) {		// Identify falling edges
 			stop_pulse = TRUE;
-//			siril_log_color_message(_("Fall!!\n"), "salmon");
+			if (verbose) siril_log_color_message(_("Fall!!\n"), "salmon");
 		}
 
 		if (start_pulse) {
@@ -643,16 +641,13 @@ static int pulse_detection (struct occultation_args *pulse, double *vmag, int *o
 				j++;	// Number of pictures in a PPS pulse
 				pulse[k].pls_nbr = j;
 				pulse[k].sum_flux = sum;
-//				siril_log_color_message(_("Stoppic= %i, Vmag(%lf), Startpic= %i, nbr_pic= %i, sum= %lf\n"), "salmon", orig_ind[i + 1], vmag[orig_ind[i +1]], orig_ind[i +1] - pulse[k].pls_nbr +1, pulse[k].pls_nbr, pulse[k].sum_flux);
+				if (verbose) siril_log_color_message(_("Stoppic= %i, Vmag(%lf), Startpic= %i, nbr_pic= %i, sum= %lf\n"), "salmon", orig_ind[i + 1], vmag[orig_ind[i +1]], orig_ind[i +1] - pulse[k].pls_nbr +1, pulse[k].pls_nbr, pulse[k].sum_flux);
 				k++;	// Index of the pulse
 				j = 0;
 				sum = 0.0;
-				}
+			}
 		}
-		
-
-	}
-	
+	}	
 	return (k - 1);		// number of detected PPS in the sequence
 }
 
@@ -665,28 +660,33 @@ static GDateTime *round_date (GDateTime *date){
 	gint hour = g_date_time_get_hour(date);
 	gint minute = g_date_time_get_minute(date);
 	double seconds = g_date_time_get_seconds(date);
+	double seconds_prime = round(seconds);
+	siril_log_color_message(_("seconds= %lf, round(seconds)= %lf\n"), "red", seconds, round(seconds));
+	if (seconds_prime == 60.0) {
+		minute ++;
+		seconds_prime = 0.0;
+	}
 		/* Check date and time */
 
 //	GDateTime *ret = g_date_time_new (tz,year, month, day, hour, minute, floor(seconds));
-	GDateTime *ret = g_date_time_new (tz,year, month, day, hour, minute, round(seconds));
+	GDateTime *ret = g_date_time_new (tz,year, month, day, hour, minute, seconds_prime);
 	g_time_zone_unref(tz);
 	return ret;
 }
 
 static int time_offset (struct occultation_args *pulse, double *vmag, sequence *seq, struct occ_res *timing) {
+	gboolean verbose = TRUE;
 	double *unity_flux = calloc(timing->th_pls_nbr, sizeof(double));
 	double *first_p = calloc(timing->th_pls_nbr, sizeof(double));
 	double exposure = timing->exposure;
-	int tmp_ind = 0;
 
 	for (int i = 0; i < timing->th_pls_nbr; i++) {
 		if (i >= timing->det_pulses) continue;	// Avoid an overflow, even if it should not occur here...
 		unity_flux[i] = pulse[i].sum_flux / 100.0;	// in ADU/ms, assuming the pulse duration = 100ms
 		first_p[i] = vmag[pulse[i].start_ind] / unity_flux[i];	// Lenght of the first pulse (ms)
-//		siril_log_color_message(_("unit_flux[%i] %lf, sum_flux(%i) = %lf\n"), "red", i, unity_flux[i], i, pulse[i].sum_flux);
-//		siril_log_color_message(_("Vmag(%i)= %lf, first_p[%i] %lf (ms)\n"), "salmon", pulse[i].start_ind_inseq, vmag[pulse[i].start_ind], i, first_p[i]);
+		if (verbose) siril_log_color_message(_("unit_flux[%i] %lf, sum_flux(%i) = %lf\n"), "red", i, unity_flux[i], i, pulse[i].sum_flux);
+		if (verbose) siril_log_color_message(_("Vmag(%i)= %lf, first_p[%i] %lf (ms)\n"), "salmon", pulse[i].start_ind_inseq, vmag[pulse[i].start_ind], i, first_p[i]);
 
-		tmp_ind = pulse[i].start_ind_inseq + pulse[i].pls_nbr -1;	// Retrieves the index of the begining frame in the original sequence
 		GDateTime *begin_frame = g_date_time_ref(seq->imgparam[pulse[i].start_ind_inseq - 1].date_obs);	// Timestamp at the beginning of the frame
 		GDateTime *end_frame = g_date_time_add_seconds (begin_frame, exposure);	// (computed) Timestamp at the end of the frame
 		GDateTime *end_frame2 = g_date_time_add_seconds (end_frame, -1.0 * first_p[i] / 1000.0);	// (Computed) Timestamp of the PPS
@@ -694,13 +694,13 @@ static int time_offset (struct occultation_args *pulse, double *vmag, sequence *
 
 
 		gchar *str = date_time_to_FITS_date(begin_frame);
-//		siril_log_color_message(_("begin_frame %s, tmp_ind= %i, exposure= %lf (ms)\n"), "salmon", str, tmp_ind, 1000.0 * exposure);
+		if (verbose) siril_log_color_message(_("begin_frame %s, exposure= %lf (ms)\n"), "salmon", str, 1000.0 * exposure);
 		str = date_time_to_FITS_date(end_frame);
-//		siril_log_color_message(_("end_frame %s\n"), "salmon", str);
+		if (verbose) siril_log_color_message(_("end_frame %s\n"), "salmon", str);
 		str = date_time_to_FITS_date(end_frame2);
-//		siril_log_color_message(_("end_frame2 (supposed PPS) %s, with first_p[%i]= %lf (ms)\n"), "salmon", str, i, first_p[i]);
+		if (verbose) siril_log_color_message(_("end_frame2 (supposed PPS) %s, with first_p[%i]= %lf (ms)\n"), "salmon", str, i, first_p[i]);
 		str = date_time_to_FITS_date(pps_time);
-//		siril_log_color_message(_("Real pps_time %s\n"), "salmon", str);
+		if (verbose) siril_log_color_message(_("Real pps_time %s\n"), "salmon", str);
 		free(str);
 
 		pulse[i].delay_comp = 1000.0 * timediff_in_s(end_frame2, pps_time);	// delay after the real PPS timestamp
@@ -714,21 +714,19 @@ static int time_offset (struct occultation_args *pulse, double *vmag, sequence *
 	}
 
 	/*Compute the median and sigma of the delay to be used later*/
-//	double median_delay, sig_delay;
-//	timing->median_seq = quickmedian_double(pulse->delay_comp, timing->det_pulses);
-//	siril_log_color_message(_("mean diff time %lf(ms)\n"), "green", gsl_stats_mean (&pulse->delay_comp, 1, timing->det_pulses));
-	timing->sig_seq = gsl_stats_sd(&pulse->delay_comp, 1, timing->det_pulses);
-	gsl_sort (&pulse->delay_comp, 1, timing->det_pulses);
-	timing->median_seq = gsl_stats_median_from_sorted_data (&pulse->delay_comp, 1, timing->det_pulses);
-//	timing->sig_seq = gsl_stats_sd(&pulse->delay_comp, 1, timing->det_pulses);
+	double *tmp_dbl;
+	tmp_dbl = malloc(timing->det_pulses * sizeof(double));
+	for (int i = 0; i < timing->det_pulses; i++)
+		tmp_dbl[i] = pulse[i].delay_comp;
+	gsl_sort (tmp_dbl, 1, timing->det_pulses);
+	timing->median_seq = gsl_stats_median_from_sorted_data (tmp_dbl, 1, timing->det_pulses);
+	timing->sig_seq = gsl_stats_variance(tmp_dbl, 1, timing->det_pulses);
+	free(tmp_dbl);
 	siril_log_color_message(_("median diff time %lf(ms), sigma diff time %lf(ms), nbr= %i\n"), "green", timing->median_seq, timing->sig_seq, timing->det_pulses);
-	siril_log_color_message(_("mean diff time %lf(ms)\n"), "green", gsl_stats_mean (&pulse->delay_comp, 1, timing->det_pulses));
 
 	free(unity_flux);
 	free(first_p);
-
 	return 0;
-	
 }
 
 
@@ -825,12 +823,6 @@ int occult_curve(struct light_curve_args *lcargs) {
 	gsl_stats_minmax (&timing->lo_val, &timing->hi_val, vmag, 1, timing->valid_images);
 //	siril_log_color_message(_("min= %lf, max= %lf, nb_valid_images= %i, nbr pulse= %i\n"), "red", smallest_val, largest_val, nb_valid_images, th_pls_nbr);
 
-
-	int julian0 = 0;
-	if (min_date != DBL_MAX)
-		julian0 = (int)min_date;
-
-
 	struct occultation_args *pulse = NULL;	// Structure embedding the results for each pulse
 	pulse = calloc(timing->th_pls_nbr, sizeof(struct occultation_args));
 
@@ -843,6 +835,8 @@ int occult_curve(struct light_curve_args *lcargs) {
 
 	// Compute offset
 	ret = time_offset(pulse, vmag, seq, timing);
+
+	lcargs->JD_offset = timing->median_seq;
 
 
 	free(date);
@@ -876,73 +870,35 @@ void free_occultation_args(struct light_curve_args *args) {
 gpointer occultation_worker(gpointer arg) {
 	int retval = 0;
 	struct light_curve_args *args = (struct light_curve_args *)arg;
-//	ser_struct *ser_file
-
-	struct seqpsf_args *spsfargs = malloc(sizeof(struct seqpsf_args));
-//	struct generic_seq_args *argss = calloc(1, sizeof(struct generic_seq_args));
-//	struct seqpsf_args *spsfargs = (struct seqpsf_args *)argss->user;
-//	struct generic_seq_args *argss = create_default_seqargs(spsfargs);
-	spsfargs->for_photometry = TRUE;
-	spsfargs->for_occultation = TRUE;
-
-
-
-//	struct generic_seq_args *argss = create_default_seqargs(&spsfargs);
-//	argss->user = spsfargs;
-
 
 	siril_log_message(_("Entering occulation_worker\n"));
 	framing_mode framing = REGISTERED_FRAME;
 
+	// Set predifined aperture data to be independant o fthe lasting user parameters 
+	com.pref.phot_set.inner = 20;
+	com.pref.phot_set.outer = 30;
+	com.pref.phot_set.aperture = 10;
+	com.pref.phot_set.force_radius = TRUE;
 
-//	framing_mode framing = FOLLOW_STAR_FRAME;
-//	if (framing == REGISTERED_FRAME && !args->seq->regparam[args->layer])
-//		framing = FOLLOW_STAR_FRAME;
-//	siril_log_message(_("STEP#-2\n"));
-	// someday we should move the area in the seqpsf args, not needed for now
-//	for (int star_index = 0; star_index < args->nb; star_index++) {					// not needed as we have only 1 "star"
-//		int star_index = 0;
-//		siril_log_message(_("STEP#-1: W= %i, H= %i\n"), com.selection.w, com.selection.h);
-//		com.selection = args->areas[star_index];
-//		siril_log_message(_("STEP#0: W= %i, H= %i\n"), args->areas[star_index].w, args->areas[star_index].h);
+	if (seqpsf(args->seq, args->layer, FALSE, FALSE, framing, FALSE, TRUE)) {
+		siril_log_color_message(_("Something went wrong with the PSF analisys. Try to enlarge the selection or check the blinking star is not too faint\n"), "red");
+		return GINT_TO_POINTER(retval);
+	}
 
-//		siril_log_message(_("STEP#1: layer= %i\n"), args->layer);
-//		siril_log_message(_("STEP#1: mode= %i\n"), framing);
-//		siril_log_message(_("STEP#1: seqname= %s\n"), args->seq->seqname);
+	if (args->seq == &com.seq)
+		queue_redraw(REDRAW_OVERLAY);
 
-		seqpsf(args->seq, args->layer, FALSE, FALSE, framing, FALSE, TRUE);
+	memset(&com.selection, 0, sizeof(rectangle));
 
-
-/*		if (seqpsf(args->seq, args->layer, FALSE, FALSE, framing, FALSE, TRUE)) {
-			if (star_index == 0) {
-				siril_log_message(_("Failed to analyse the variable star photometry\n"));
-				retval = 1;
-				break;
-			}
-			else siril_log_message(_("Failed to analyse the photometry of reference star %d\n"),
-					star_index);
-		}
-*/
-		//if (args->seq == &com.seq)
-		//	queue_redraw(REDRAW_OVERLAY);
-//	}
-//	memset(&com.selection, 0, sizeof(rectangle));
-
-	/* analyse data and create the light curve */
+	/* analyse data and compute the offset */
 	if (!retval)
 		retval = occult_curve(args);
 
+//	free_photometry_set(&com.seq, 0);
+//	reset_plot();
+//	clear_stars_list(TRUE);
+//	drawPlot();
 
-/*	if (!retval) {					// not accurate here!!
-//		siril_add_idle(create_new_siril_plot_window, args->spl_data);
-		siril_log_color_message(_("jusqu'à la tout va bien-4\n\n"), "blue");
-	} else {
-		siril_log_color_message(_("Smthg went wrong with occult_curve.\n"), "red");
-	}
-	siril_log_color_message(_("jusqu'à la tout va bien-5\n\n"), "blue");
-*/
-//	free(argss);
-	free(spsfargs);
 	free_occultation_args(args); // this will not free args->spl_data which is free by siril_plot window upon closing
 	siril_add_idle(end_occultation_worker, NULL);
 	return GINT_TO_POINTER(retval);
