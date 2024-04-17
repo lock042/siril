@@ -68,7 +68,7 @@ xx/xx/24
 * Fixed crash when querying stats on a CFA image with a selection smaller than a 2x2 square (#1286)
 * Fixed crash when saving compressed and croped images (#1287)
 * Disabled supernumerary use of openmp in demosaicing, which could lead to a crash (#1288)
-* Fix ser orientation error (#1258, #1261)
+* Fixed ser orientation error (#1258, #1261)
 
 siril 1.2.1
 01/26/24
