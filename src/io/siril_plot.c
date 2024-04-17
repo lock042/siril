@@ -757,6 +757,7 @@ gboolean siril_plot_save_dat(siril_plot_data *spl_data, const char *datfilename,
 	FILE* fileout = NULL;
 	gboolean retval = TRUE;
 	double *data = NULL;
+	char* newfilename = NULL;
 
 	// TODO: for the time-being, we will assume that x of the first series
 	// is valid for all other series. May need to complexify this in the future
@@ -851,7 +852,7 @@ gboolean siril_plot_save_dat(siril_plot_data *spl_data, const char *datfilename,
 		}
 		j += 3;
 	}
-	char *newfilename = strdup(datfilename);
+	newfilename = strdup(datfilename);
 	if (!g_str_has_suffix(newfilename, ".dat")) {
 		str_append(&newfilename, ".dat");
 	}
