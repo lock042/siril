@@ -225,13 +225,17 @@ int map_image_coordinates_h(fits *fit, Homography H, imgmap_t *p, int target_ry,
 #pragma omp parallel for num_threads(threads) schedule(static) if (threads > 1)
 #endif
 	for (int y = 0; y < source_ry; y++) {
-		float y1 = y * Harr[7] + Harr[8];
-		float y2 = y * Harr[1] + Harr[2];
-		float y3 = y * Harr[4] + Harr[5];
+		// This y offset of 1.0f fixes an error where images either side of a
+		// meridian flip were misaligned by a small amount
+		float y0 = (float) y + 1.0f;
+		float y1 = y0 * Harr[7] + Harr[8];
+		float y2 = y0 * Harr[1] + Harr[2];
+		float y3 = y0 * Harr[4] + Harr[5];
 		for (int x = 0; x < rx; x++) {
-			float z = scale / (x * Harr[6] + y1);
-			p->xmap[index] = (x * Harr[0] + y2) * z;
-			p->ymap[index++] = (x * Harr[3] + y3) * z;
+			float x0 = (float) x + 0.001f; // TODO: the 0.001f shouldn't be needed but drizzle fails without it. Why?
+			float z = scale / (x0 * Harr[6] + y1);
+			p->xmap[index] = (x0 * Harr[0] + y2) * z;
+			p->ymap[index++] = (x0 * Harr[3] + y3) * z;
 		}
 	}
 	return 0;
