@@ -49,6 +49,8 @@
 
 #define MIN_SKY    5	// min number of backgroun pixels for valid photometry
 
+#define PULSE_WIDTH	100.0	// Pulse width (ms)
+
 static double getMagnitude(double intensity) {
 	return -2.5 * log10(intensity);
 }
@@ -609,7 +611,7 @@ gpointer light_curve_worker(gpointer arg) {
 ////////////////////////////////////////
 
 static int pulse_detection (struct occultation_args *pulse, double *vmag, int *orig_ind, struct occ_res *timing) {
-	gboolean verbose = TRUE;
+	gboolean verbose = FALSE;
 	int k = 0;
 	double sum = 0.0;
 	gboolean start_pulse = FALSE;
@@ -642,6 +644,7 @@ static int pulse_detection (struct occultation_args *pulse, double *vmag, int *o
 				j++;	// Number of pictures in a PPS pulse
 				pulse[k].pls_nbr = j;
 				pulse[k].sum_flux = sum;
+				if (sum == 0.0) return 0;
 				if (verbose) siril_log_color_message(_("Stoppic= %i, Vmag(%lf), Startpic= %i, nbr_pic= %i, sum= %lf\n"), "salmon", orig_ind[i + 1], vmag[orig_ind[i +1]], orig_ind[i +1] - pulse[k].pls_nbr +1, pulse[k].pls_nbr, pulse[k].sum_flux);
 				k++;	// Index of the pulse
 				j = 0;
@@ -673,14 +676,14 @@ static GDateTime *round_date (GDateTime *date){
 }
 
 static int time_offset (struct occultation_args *pulse, double *vmag, sequence *seq, struct occ_res *timing) {
-	gboolean verbose = TRUE;
+	gboolean verbose = FALSE;
 	double *unity_flux = malloc(timing->th_pls_nbr * sizeof(double));
 	double *first_p = malloc(timing->th_pls_nbr * sizeof(double));
 	double exposure = timing->exposure;
 
 	for (int i = 0; i < timing->th_pls_nbr; i++) {
 		if (i >= timing->det_pulses) continue;	// Avoid an overflow, even if it should not occur here...
-		unity_flux[i] = pulse[i].sum_flux / 100.0;	// in ADU/ms, assuming the pulse duration = 100ms
+		unity_flux[i] = pulse[i].sum_flux / PULSE_WIDTH;	// in ADU/ms, assuming the pulse duration = 100ms
 		first_p[i] = vmag[pulse[i].start_ind] / unity_flux[i];	// Lenght of the first pulse (ms)
 
 		GDateTime *begin_frame = g_date_time_ref(seq->imgparam[pulse[i].start_ind_inseq - 1].date_obs);	// Timestamp at the beginning of the frame
@@ -719,11 +722,11 @@ static int time_offset (struct occultation_args *pulse, double *vmag, sequence *
 		tmp_dbl[i] = pulse[i].delay_comp;
 	gsl_sort (tmp_dbl, 1, timing->det_pulses);
 	timing->median_seq = gsl_stats_median_from_sorted_data (tmp_dbl, 1, timing->det_pulses);
-	timing->sig_seq = gsl_stats_variance(tmp_dbl, 1, timing->det_pulses);
+	timing->std_seq = gsl_stats_sd(tmp_dbl, 1, timing->det_pulses);
 	gsl_stats_minmax (&lo_val, &hi_val, tmp_dbl, 1, timing->det_pulses);
 	free(tmp_dbl);
 
-	siril_log_color_message(_("Time Offset: %0.3lf(ms), sigma= %0.3lf(ms)\n"), "green", timing->median_seq, timing->sig_seq);
+	siril_log_color_message(_("Time Offset: %0.3lf(ms), Std= %0.3lf(ms)\n"), "green", timing->median_seq, timing->std_seq);
 	if (verbose) siril_log_color_message(_("mini diff time %0.3lf(ms), maxi diff time %0.3lf(ms)\n"), "green", lo_val, hi_val);
 
 	free(unity_flux);
@@ -820,8 +823,11 @@ int occult_curve(struct light_curve_args *lcargs) {
 	
 	// Retrieve the expected number of pulses in the sequence
 	double expos = timediff_in_s(seq->imgparam[0].date_obs, seq->imgparam[seq->number - 1].date_obs);	// Get the time difference in seconds
+	expos = expos * (1.0 + 1.0 / (double)seq->number);
+	siril_log_color_message(_("Exposure= %0.3lf(ms), fps= %0.3lf\n"), "salmon", expos, 1000.0 / expos);
 	int exp_pls_nbr = (int)expos;	// Floor it to get the total expected number of pulses
 	expos = 0.01 * expos / (double)exp_pls_nbr;	// Compute the (average) exposition time of the frames
+	siril_log_color_message(_("Number of frames = %i, Number of valid images= %i\n"), "salmon", seq->number, j);
 
 	struct occ_res *timing = NULL;	// Structure embedding the final results
 	timing = malloc(sizeof(struct occ_res));
@@ -829,11 +835,13 @@ int occult_curve(struct light_curve_args *lcargs) {
 	timing->th_pls_nbr = exp_pls_nbr;
 	timing->valid_images = j;
 
-//	siril_log_message(_("Number of PPS we should find in the sequence: %d, exposure(s)= %lf \n"), timing->th_pls_nbr, timing->exposure);
-	
 	// Retrieve the amplitude range
 	gsl_stats_minmax (&timing->lo_val, &timing->hi_val, vmag, 1, timing->valid_images);
-	siril_log_color_message(_("min= %lf, max= %lf, nb_valid_images= %i, nbr pulse= %i\n"), "red", timing->lo_val, timing->hi_val, timing->valid_images, timing->th_pls_nbr);
+//	siril_log_color_message(_("min= %lf, max= %lf, nb_valid_images= %i, nbr pulse= %i, exposure(s)= %lf\n"), "red", timing->lo_val, timing->hi_val, timing->valid_images, timing->th_pls_nbr, timing->exposure);
+	if ((int)timing->hi_val > com.pref.phot_set.maxval) {
+		siril_log_color_message(_("The blinking star looks saturated.\n"), "red");
+		return 0;
+	}
 
 	struct occultation_args *pulse = NULL;	// Structure embedding the results for each pulse
 	pulse = malloc(timing->th_pls_nbr * sizeof(struct occultation_args));

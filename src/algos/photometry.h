@@ -75,7 +75,7 @@ struct occultation_args {
 // temporary structure. Data will be used later 
 struct occ_res {
 	double median_seq;	// median over the sequence
-	double sig_seq;		// sigma over the sequence
+	double std_seq;		// sigma over the sequence
 	double exposure;	// Computed exposure time
 	int th_pls_nbr;	// Theorical pulse number in the sequence
 	int det_pulses; 	// Number of detected pulses
