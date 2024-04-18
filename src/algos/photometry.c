@@ -609,7 +609,7 @@ gpointer light_curve_worker(gpointer arg) {
 ////////////////////////////////////////
 
 static int pulse_detection (struct occultation_args *pulse, double *vmag, int *orig_ind, struct occ_res *timing) {
-	gboolean verbose = FALSE;
+	gboolean verbose = TRUE;
 	int k = 0;
 	double sum = 0.0;
 	gboolean start_pulse = FALSE;
@@ -618,7 +618,7 @@ static int pulse_detection (struct occultation_args *pulse, double *vmag, int *o
 	/* Loop over the valid images */
 	for (int i = 1, j = 0; i + 1 < timing->valid_images; i++) {
 		if (verbose) siril_log_color_message(_("1- Valid_images= %i, Vmag= %lf\n"), "red", orig_ind[i + 1], vmag[i]);
-		if (!start_pulse && (vmag[i-1] < 0.5 * vmag[i]) && (vmag[i-1] < 0.5 * vmag[i + 1]) && (vmag[i + 1] > 0.85 * timing->hi_val)) {		// Identify raising edges
+		if (!start_pulse && (vmag[i-1] < 0.5 * vmag[i]) && (vmag[i-1] < 0.5 * vmag[i + 1]) && (vmag[i + 1] > 0.55 * timing->hi_val)) {		// Identify raising edges
 			start_pulse = TRUE;
 			stop_pulse = FALSE;
 			pulse[k].start_ind_inseq = orig_ind[i + 1];
@@ -673,7 +673,7 @@ static GDateTime *round_date (GDateTime *date){
 }
 
 static int time_offset (struct occultation_args *pulse, double *vmag, sequence *seq, struct occ_res *timing) {
-	gboolean verbose = FALSE;
+	gboolean verbose = TRUE;
 	double *unity_flux = malloc(timing->th_pls_nbr * sizeof(double));
 	double *first_p = malloc(timing->th_pls_nbr * sizeof(double));
 	double exposure = timing->exposure;
@@ -682,24 +682,26 @@ static int time_offset (struct occultation_args *pulse, double *vmag, sequence *
 		if (i >= timing->det_pulses) continue;	// Avoid an overflow, even if it should not occur here...
 		unity_flux[i] = pulse[i].sum_flux / 100.0;	// in ADU/ms, assuming the pulse duration = 100ms
 		first_p[i] = vmag[pulse[i].start_ind] / unity_flux[i];	// Lenght of the first pulse (ms)
-		if (verbose) siril_log_color_message(_("unit_flux[%i] %lf, sum_flux(%i) = %lf\n"), "red", i, unity_flux[i], i, pulse[i].sum_flux);
-		if (verbose) siril_log_color_message(_("Vmag(%i)= %lf, first_p[%i] %lf (ms)\n"), "salmon", pulse[i].start_ind_inseq, vmag[pulse[i].start_ind], i, first_p[i]);
 
 		GDateTime *begin_frame = g_date_time_ref(seq->imgparam[pulse[i].start_ind_inseq - 1].date_obs);	// Timestamp at the beginning of the frame
 		GDateTime *end_frame = g_date_time_add_seconds (begin_frame, exposure);	// (computed) Timestamp at the end of the frame
 		GDateTime *end_frame2 = g_date_time_add_seconds (end_frame, -1.0 * first_p[i] / 1000.0);	// (Computed) Timestamp of the PPS
 		GDateTime *pps_time = round_date (end_frame2);	// (Observed) Timestamp of the precise PPS time the pulse refers to
 
+		if (verbose) {
+			siril_log_color_message(_("unit_flux[%i] %lf, sum_flux(%i) = %lf\n"), "red", i, unity_flux[i], i, pulse[i].sum_flux);
+			siril_log_color_message(_("Vmag(%i)= %lf, first_p[%i] %lf (ms)\n"), "salmon", pulse[i].start_ind_inseq, vmag[pulse[i].start_ind], i, first_p[i]);
 
-		gchar *str = date_time_to_FITS_date(begin_frame);
-		if (verbose) siril_log_color_message(_("begin_frame %s, exposure= %lf (ms)\n"), "salmon", str, 1000.0 * exposure);
-		str = date_time_to_FITS_date(end_frame);
-		if (verbose) siril_log_color_message(_("end_frame %s\n"), "salmon", str);
-		str = date_time_to_FITS_date(end_frame2);
-		if (verbose) siril_log_color_message(_("end_frame2 (supposed PPS) %s, with first_p[%i]= %lf (ms)\n"), "salmon", str, i, first_p[i]);
-		str = date_time_to_FITS_date(pps_time);
-		if (verbose) siril_log_color_message(_("Real pps_time %s\n"), "salmon", str);
-		free(str);
+			gchar *str = date_time_to_FITS_date(begin_frame);
+			siril_log_color_message(_("begin_frame %s, exposure= %lf (ms)\n"), "salmon", str, 1000.0 * exposure);
+			str = date_time_to_FITS_date(end_frame);
+			siril_log_color_message(_("end_frame %s\n"), "salmon", str);
+			str = date_time_to_FITS_date(end_frame2);
+			siril_log_color_message(_("end_frame2 (supposed PPS) %s, with first_p[%i]= %lf (ms)\n"), "salmon", str, i, first_p[i]);
+			str = date_time_to_FITS_date(pps_time);
+			siril_log_color_message(_("Real pps_time %s\n"), "salmon", str);
+			free(str);
+		}
 
 		pulse[i].delay_comp = 1000.0 * timediff_in_s(end_frame2, pps_time);	// delay after the real PPS timestamp
 		if (verbose) siril_log_color_message(_("diff time (ms) %lf\n\n"), "salmon", pulse[i].delay_comp);
@@ -708,7 +710,6 @@ static int time_offset (struct occultation_args *pulse, double *vmag, sequence *
 		g_date_time_unref(end_frame);
 		g_date_time_unref(end_frame2);
 		g_date_time_unref(pps_time);
-
 	}
 
 	/*Compute the median and sigma of the delay to be used later*/
@@ -778,7 +779,7 @@ int occult_curve(struct light_curve_args *lcargs) {
 	int *orig_ind = malloc(nbImages * sizeof(int));		// Original index in the sequence
 	if (!date || !vmag) {
 		PRINT_ALLOC_ERR;
-		free(date); free(vmag);
+		free(date); free(vmag); free(orig_ind);
 		return -1;
 	}
 
@@ -832,7 +833,7 @@ int occult_curve(struct light_curve_args *lcargs) {
 	
 	// Retrieve the amplitude range
 	gsl_stats_minmax (&timing->lo_val, &timing->hi_val, vmag, 1, timing->valid_images);
-//	siril_log_color_message(_("min= %lf, max= %lf, nb_valid_images= %i, nbr pulse= %i\n"), "red", smallest_val, largest_val, nb_valid_images, th_pls_nbr);
+	siril_log_color_message(_("min= %lf, max= %lf, nb_valid_images= %i, nbr pulse= %i\n"), "red", timing->lo_val, timing->hi_val, timing->valid_images, timing->th_pls_nbr);
 
 	struct occultation_args *pulse = NULL;	// Structure embedding the results for each pulse
 	pulse = malloc(timing->th_pls_nbr * sizeof(struct occultation_args));
@@ -842,7 +843,7 @@ int occult_curve(struct light_curve_args *lcargs) {
 
 	// Does it match the forseen value
 	siril_log_color_message(_("Detected pulses= %i vs Expected pulses= %i\n"), "salmon", timing->det_pulses, timing->th_pls_nbr - 1);
-	if (timing->det_pulses < (timing->th_pls_nbr / 2)) {
+	if (timing->det_pulses < (timing->th_pls_nbr / 5)) {
 		siril_log_color_message(_("Not enought pulses detected. Enlarge the selection.\n"), "red");
 		return 0;
 	}
@@ -856,6 +857,7 @@ int occult_curve(struct light_curve_args *lcargs) {
 	free_occ_res_args(timing);
 	free(date);
 	free(vmag);
+	free(orig_ind);
 
 	return ret;
 }

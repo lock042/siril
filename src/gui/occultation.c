@@ -209,5 +209,5 @@ static void on_occult_response(GtkDialog* self, gint response_id, gpointer user_
 
 	gtk_widget_hide(dialog);
 
-//	start_in_new_thread(occultation_worker, args);
+
 }
