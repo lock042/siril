@@ -40,6 +40,7 @@
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "gui/PSF_list.h"
+#include "gui/utils.h"
 #include "registration/registration.h"
 #include "opencv/opencv.h"
 #include <wcslib.h>
@@ -1056,7 +1057,7 @@ int save_list_as_FITS_table(const char *filename, psf_star **stars, int nbstars,
 	}
 
 	for (int i = 0; i < nbstars; i++)
-		data[i] = stars[i]->A; 
+		data[i] = stars[i]->A;
 	if (fits_write_col(fptr, TFLOAT, 3, 1, 1, nbstars, data, &status)) {
 		report_fits_error(status);
 		status = 0;
@@ -1066,7 +1067,7 @@ int save_list_as_FITS_table(const char *filename, psf_star **stars, int nbstars,
 	}
 
 	for (int i = 0; i < nbstars; i++)
-		data[i] = stars[i]->B; 
+		data[i] = stars[i]->B;
 	if (fits_write_col(fptr, TFLOAT, 4, 1, 1, nbstars, data, &status)) {
 		report_fits_error(status);
 		status = 0;
@@ -1135,6 +1136,9 @@ int findstar_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, 
 	memcpy(curr_findstar_args, findstar_args, sizeof(struct starfinder_data));
 	curr_findstar_args->im.index_in_seq = i;
 	curr_findstar_args->im.fit = fit;
+	if (fit->keywords.bayer_pattern[0] != '\0') {
+		interpolate_nongreen(fit);
+	}
 	if (findstar_args->stars && findstar_args->nb_stars) {
 		curr_findstar_args->stars = findstar_args->stars + i;
 		curr_findstar_args->nb_stars = findstar_args->nb_stars + i;
