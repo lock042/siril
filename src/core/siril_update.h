@@ -32,6 +32,7 @@ typedef struct {
 } version_number;
 
 void siril_check_updates(gboolean verbose);
+void siril_check_notifications(gboolean verbose);
 
 #endif
 

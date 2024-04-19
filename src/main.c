@@ -54,6 +54,7 @@
 #include "core/signals.h"
 #include "core/siril_app_dirs.h"
 #include "core/siril_language.h"
+#include "core/siril_notifier.h"
 #include "core/siril_update.h"
 #include "core/siril_log.h"
 #include "core/OS_utils.h"
@@ -356,6 +357,8 @@ static void siril_app_activate(GApplication *application) {
 		if (com.pref.check_update) {
 			siril_check_updates(FALSE);
 		}
+		siril_check_notifications(FALSE);
+
 #else
 		gtk_widget_set_visible(lookup_widget("main_menu_updates"), FALSE);
 		gtk_widget_set_visible(lookup_widget("frame24"), FALSE);

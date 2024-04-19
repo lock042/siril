@@ -41,9 +41,11 @@
 #define SIRIL_VERSIONS DOMAIN"siril_versions.json"
 #define SIRIL_DOWNLOAD DOMAIN"download/"
 #define GITLAB_URL "https://gitlab.com/free-astro/siril/raw"
+// Currently points to my google drive for test purposes, this needs to be
+// updated to point to somewhere on siril.org in due course
+#define SIRIL_NOTIFICATIONS "https://filebin.net/i4hjt1osi4lcz7f7/siril_notifications.json"
 
 static gchar *get_changelog(gchar *str);
-
 
 // taken from gimp
 static gboolean siril_update_get_highest(JsonParser *parser,
@@ -381,6 +383,7 @@ struct _update_data {
 	long code;
 	gchar *content;
 	gboolean verbose;
+	gboolean (*idle_function)(gpointer args);
 };
 
 
@@ -540,6 +543,115 @@ static gboolean end_update_idle(gpointer p) {
 	return FALSE;
 }
 
+static int parseJsonNotificationsString(const gchar *jsonString, GArray *validMessages, GArray *validStatus) {
+
+    // Load JSON from string and check for errors
+    GError *error = NULL;
+    JsonParser *parser = json_parser_new();
+    if (!(json_parser_load_from_data(parser, jsonString, -1, &error))) {
+        g_printerr("Error parsing JSON from URL: %s\n", error->message);
+        g_object_unref(parser);
+        return 1;
+    }
+
+    // Get root value
+    JsonNode *node = json_parser_get_root(parser);
+
+    // Get current time
+    GDateTime *currentTime = g_date_time_new_now_local();
+
+    // Get array of messages
+    JsonArray *messages = json_node_get_array(node);
+
+    // Iterate over messages
+    for (guint i = 0; i < json_array_get_length(messages); i++) {
+        JsonObject *message = json_array_get_object_element(messages, i);
+
+        // Parse valid-from and valid-to fields
+        GDateTime *validFrom = g_date_time_new_from_iso8601(json_object_get_string_member(message, "valid-from"), NULL);
+        GDateTime *validTo = g_date_time_new_from_iso8601(json_object_get_string_member(message, "valid-to"), NULL);
+
+		// Parse status and append to GArray
+		int *status = malloc(sizeof(int));
+		*status = json_object_get_int_member(message, "priority");
+		g_array_append_val(validStatus, status);
+
+        // Check if current time is within validity period
+        if (g_date_time_compare(currentTime, validFrom) >= 0 && g_date_time_compare(currentTime, validTo) <= 0) {
+			// Store the message in a variable first
+			GString *messageString = g_string_new(json_object_get_string_member(message, "message"));
+			// Append the message to the array
+			g_array_append_val(validMessages, messageString);
+        }
+
+        // Free allocated memory
+        g_date_time_unref(validFrom);
+        g_date_time_unref(validTo);
+    }
+
+    // Free allocated memory
+    g_date_time_unref(currentTime);
+    g_object_unref(parser);
+
+    return 0;
+}
+
+static gboolean end_notifier_idle(gpointer p) {
+	struct _update_data *args = (struct _update_data *) p;
+	if (args->content == NULL) {
+		switch(args->code) {
+		case 0:
+			siril_log_message(_("Unable to check notifications! "
+					"Please Check your network connection\n"));
+			break;
+		default:
+			siril_log_message(_("Unable to check notifications! Error: %ld\n"),
+					args->code);
+		}
+	} else {
+		control_window_switch_to_tab(OUTPUT_LOGS);
+
+		// Create an array to store valid messages
+		GArray *validMessages = g_array_new(FALSE, FALSE, sizeof(GString*));
+		GArray *validStatus = g_array_new(FALSE, FALSE, sizeof(int*));
+
+		// Fetch and parse JSON file from URL and populate validMessages array
+		if (parseJsonNotificationsString(args->content, validMessages, validStatus) != 0) {
+			siril_log_message(_("Error fetching or parsing Siril notifications JSON file from URL\n"));
+			g_array_free(validMessages, TRUE);
+			return FALSE;
+		}
+
+		// Print valid messages
+		for (guint i = 0; i < validMessages->len; i++) {
+			int *status = g_array_index(validStatus, int*, i);
+			siril_debug_print("message %d, status %d\n", i, *status);
+			GString *msg = g_array_index(validMessages, GString*, i);
+			char *color = *status == 1 ? "green" : *status == 2 ? "salmon" : "red";
+			siril_log_color_message(_("Siril Notification: %s\n"), color, msg->str);
+		}
+
+		// Free allocated memory
+		for (guint i = 0; i < validMessages->len; i++) {
+			GString *msg = g_array_index(validMessages, GString*, i);
+			g_string_free(msg, TRUE);
+			int *status = g_array_index(validStatus, int*, i);
+			free(status);
+		}
+		g_array_free(validMessages, TRUE);
+		g_array_free(validStatus, TRUE);
+	}
+
+	/* free data */
+	set_cursor_waiting(FALSE);
+	g_free(args->content);
+	free(args);
+	http_cleanup();
+	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+	stop_processing_thread();
+	return FALSE;
+}
+
 static gpointer fetch_url(gpointer p) {
 	struct ucontent *content;
 	gchar *result;
@@ -628,7 +740,7 @@ static gpointer fetch_url(gpointer p) {
 
 	args->content = result;
 
-	gdk_threads_add_idle(end_update_idle, args);
+	gdk_threads_add_idle(args->idle_function, args);
 	return NULL;
 }
 
@@ -640,8 +752,27 @@ void siril_check_updates(gboolean verbose) {
 	args->code = 0L;
 	args->content = NULL;
 	args->verbose = verbose;
+	args->idle_function = end_update_idle;
 
 	set_progress_bar_data(_("Looking for updates..."), PROGRESS_NONE);
+	if (args->verbose)
+		set_cursor_waiting(TRUE);
+
+	// this is a graphical operation, we don't use the main processing thread for it, it could block file opening
+	g_thread_new("siril-update", fetch_url, args);
+}
+
+void siril_check_notifications(gboolean verbose) {
+	struct _update_data *args;
+
+	args = malloc(sizeof(struct _update_data));
+	args->url = SIRIL_NOTIFICATIONS;
+	args->code = 0L;
+	args->content = NULL;
+	args->verbose = verbose;
+	args->idle_function = end_notifier_idle;
+	siril_debug_print("Checking notifications...\n");
+	set_progress_bar_data(_("Looking for notifications..."), PROGRESS_NONE);
 	if (args->verbose)
 		set_cursor_waiting(TRUE);
 
