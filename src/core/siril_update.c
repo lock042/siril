@@ -544,56 +544,63 @@ static gboolean end_update_idle(gpointer p) {
 }
 
 static int parseJsonNotificationsString(const gchar *jsonString, GArray *validMessages, GArray *validStatus) {
+	// Load JSON from string and check for errors
+	GError *error = NULL;
+	JsonParser *parser = json_parser_new();
+	if (!(json_parser_load_from_data(parser, jsonString, -1, &error))) {
+		siril_log_color_message(_("Error parsing JSON from URL: %s\n"), "red", error->message);
+		g_object_unref(parser);
+		return 1;
+	}
 
-    // Load JSON from string and check for errors
-    GError *error = NULL;
-    JsonParser *parser = json_parser_new();
-    if (!(json_parser_load_from_data(parser, jsonString, -1, &error))) {
-        g_printerr("Error parsing JSON from URL: %s\n", error->message);
-        g_object_unref(parser);
-        return 1;
-    }
+	// Get root node
+	JsonNode *node = json_parser_get_root(parser);
 
-    // Get root value
-    JsonNode *node = json_parser_get_root(parser);
+	// Get current time
+	GDateTime *currentTime = g_date_time_new_now_local();
 
-    // Get current time
-    GDateTime *currentTime = g_date_time_new_now_local();
+	// Get array of messages
+	JsonArray *messages = json_node_get_array(node);
 
-    // Get array of messages
-    JsonArray *messages = json_node_get_array(node);
+	// Iterate over messages
+	for (guint i = 0; i < json_array_get_length(messages); i++) {
+		JsonObject *message = json_array_get_object_element(messages, i);
+		// Check the necessary json objects are there
+		if (!	(json_object_has_member(message, "valid-from")) &&
+				(json_object_has_member(message, "valid-to")) &&
+				(json_object_has_member(message, "message")) &&
+				(json_object_has_member(message, "priority"))) {
+			siril_log_color_message(_("Error parsing JSON from URL: required JSON objects not found\n"), "red");
+			return 1;
+		}
 
-    // Iterate over messages
-    for (guint i = 0; i < json_array_get_length(messages); i++) {
-        JsonObject *message = json_array_get_object_element(messages, i);
-
-        // Parse valid-from and valid-to fields
-        GDateTime *validFrom = g_date_time_new_from_iso8601(json_object_get_string_member(message, "valid-from"), NULL);
-        GDateTime *validTo = g_date_time_new_from_iso8601(json_object_get_string_member(message, "valid-to"), NULL);
+		// Parse valid-from and valid-to fields
+		GDateTime *validFrom = g_date_time_new_from_iso8601(json_object_get_string_member(message, "valid-from"), NULL);
+		GDateTime *validTo = g_date_time_new_from_iso8601(json_object_get_string_member(message, "valid-to"), NULL);
 
 		// Parse status and append to GArray
 		int *status = malloc(sizeof(int));
 		*status = json_object_get_int_member(message, "priority");
 		g_array_append_val(validStatus, status);
 
-        // Check if current time is within validity period
-        if (g_date_time_compare(currentTime, validFrom) >= 0 && g_date_time_compare(currentTime, validTo) <= 0) {
+		// Check if current time is within validity period
+		if (g_date_time_compare(currentTime, validFrom) >= 0 && g_date_time_compare(currentTime, validTo) <= 0) {
 			// Store the message in a variable first
 			GString *messageString = g_string_new(json_object_get_string_member(message, "message"));
 			// Append the message to the array
 			g_array_append_val(validMessages, messageString);
-        }
+		}
 
-        // Free allocated memory
-        g_date_time_unref(validFrom);
-        g_date_time_unref(validTo);
-    }
+		// Free allocated memory
+		g_date_time_unref(validFrom);
+		g_date_time_unref(validTo);
+	}
 
-    // Free allocated memory
-    g_date_time_unref(currentTime);
-    g_object_unref(parser);
+	// Free allocated memory
+	g_date_time_unref(currentTime);
+	g_object_unref(parser);
 
-    return 0;
+	return 0;
 }
 
 static gboolean end_notifier_idle(gpointer p) {
@@ -625,7 +632,6 @@ static gboolean end_notifier_idle(gpointer p) {
 		// Print valid messages
 		for (guint i = 0; i < validMessages->len; i++) {
 			int *status = g_array_index(validStatus, int*, i);
-			siril_debug_print("message %d, status %d\n", i, *status);
 			GString *msg = g_array_index(validMessages, GString*, i);
 			char *color = *status == 1 ? "green" : *status == 2 ? "salmon" : "red";
 			siril_log_color_message(_("Siril Notification: %s\n"), color, msg->str);
