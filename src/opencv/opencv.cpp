@@ -519,6 +519,8 @@ int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homog
 	return Mat_to_image(image, &in, &out, bgr, target_rx, target_ry);
 }
 
+
+
 int cvUnsharpFilter(fits* image, double sigma, double amount) {
 	Mat in, out;
 	void *bgr = NULL;
@@ -950,6 +952,30 @@ void cvApplyFlips(Homography *Hom, int source_ry, int target_ry) {
 	Mat F2 = Mat::eye(3, 3, CV_64FC1);
 	F2.at<double>(1,1) = -1.0;
 	F2.at<double>(1,2) = target_ry;
+
+	H = F2.inv() * H * F1;
+	convert_MatH_to_H(H, Hom);
+}
+
+void cvPrepareDrizzleH(Homography *Hom, double scale, int source_ry, int target_ry) {
+	Mat H = Mat(3, 3, CV_64FC1);
+	convert_H_to_MatH(Hom, H);
+
+	if (scale != 1.) {
+		Mat S = Mat::eye(3, 3, CV_64FC1);
+		S.at<double>(0,0) = scale;
+		S.at<double>(1,1) = scale;
+		H = S * H;
+	}
+
+	/* modify matrix for reverse Y axis */
+	Mat F1 = Mat::eye(3, 3, CV_64FC1);
+	F1.at<double>(1,1) = -1.0;
+	F1.at<double>(1,2) = source_ry - 1.0;
+
+	Mat F2 = Mat::eye(3, 3, CV_64FC1);
+	F2.at<double>(1,1) = -1.0;
+	F2.at<double>(1,2) = target_ry - 1.0;
 
 	H = F2.inv() * H * F1;
 	convert_MatH_to_H(H, Hom);

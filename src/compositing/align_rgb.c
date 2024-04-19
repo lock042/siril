@@ -51,7 +51,6 @@ static void initialize_methods() {
 			&register_multi_step_global, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
 	reg_methods[3] = new_reg_method(_("KOMBAT registration (planetary / deep-sky)"),
 			&register_kombat, REQUIRES_ANY_SELECTION, REGTYPE_DEEPSKY);
-
 	reg_methods[4] = NULL;
 }
 
