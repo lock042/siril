@@ -555,22 +555,49 @@ static int parseJsonNotificationsString(const gchar *jsonString, GArray *validMe
 
 	// Get root node
 	JsonNode *node = json_parser_get_root(parser);
+	if (!node) {
+		siril_log_color_message(_("Error parsing JSON from URL: unable to get root node\n"), "red");
+		g_object_unref(parser);
+		return 1;
+	}
 
 	// Get current time
 	GDateTime *currentTime = g_date_time_new_now_local();
 
+	// The message array / object and number of messages (length is overwritten if an array is found)
+	JsonArray *messages = NULL;
+	JsonObject *message = NULL;
+	guint length = 1;
+
 	// Get array of messages
-	JsonArray *messages = json_node_get_array(node);
+	if (JSON_NODE_HOLDS_ARRAY(node)) {
+		messages = json_node_get_array(node);
+		length = json_array_get_length(messages);
+	} else {
+		if (JSON_NODE_HOLDS_OBJECT(node)) {
+			message = json_node_get_object(node);
+		} else {
+			siril_log_color_message(_("Error parsing JSON from URL: unable to find a valid JSON object\n"), "red");
+			g_object_unref(parser);
+			return 1;
+		}
+	}
+	if (!messages && !message) {
+		siril_log_color_message(_("Error parsing JSON from URL: unable to find any valid JSON objects\n"), "red");
+		g_object_unref(parser);
+		return 1;
+	}
 
 	// Iterate over messages
-	for (guint i = 0; i < json_array_get_length(messages); i++) {
-		JsonObject *message = json_array_get_object_element(messages, i);
+	for (guint i = 0; i < length; i++) {
+		if (!message)
+			message = json_array_get_object_element(messages, i);
 		// Check the necessary json objects are there
 		if (!	(json_object_has_member(message, "valid-from")) &&
 				(json_object_has_member(message, "valid-to")) &&
 				(json_object_has_member(message, "message")) &&
 				(json_object_has_member(message, "priority"))) {
-			siril_log_color_message(_("Error parsing JSON from URL: required JSON objects not found\n"), "red");
+			siril_log_color_message(_("Error parsing JSON from URL: required JSON members not found\n"), "red");
 			return 1;
 		}
 
@@ -594,6 +621,9 @@ static int parseJsonNotificationsString(const gchar *jsonString, GArray *validMe
 		// Free allocated memory
 		g_date_time_unref(validFrom);
 		g_date_time_unref(validTo);
+
+		// Reset the JsonObject
+		message = NULL;
 	}
 
 	// Free allocated memory
@@ -634,7 +664,7 @@ static gboolean end_notifier_idle(gpointer p) {
 			int *status = g_array_index(validStatus, int*, i);
 			GString *msg = g_array_index(validMessages, GString*, i);
 			char *color = *status == 1 ? "green" : *status == 2 ? "salmon" : "red";
-			siril_log_color_message(_("Siril Notification: %s\n"), color, msg->str);
+			siril_log_color_message(_("*** SIRIL NOTIFICATION ***\n%s\n"), color, msg->str);
 		}
 
 		// Free allocated memory
