@@ -659,7 +659,9 @@ static GDateTime *round_date (GDateTime *date){
 		/* Check date and time */
 	gint year, month, day;
 
-	GTimeZone *tz = g_date_time_get_timezone(date);
+//	GTimeZone *tz = g_date_time_get_timezone(date);
+//	GTimeZone *tz = g_time_zone_new_utc(date);
+	GTimeZone *tz = g_time_zone_new_utc();
 	g_date_time_get_ymd(date, &year, &month, &day);
 	gint hour = g_date_time_get_hour(date);
 	gint minute = g_date_time_get_minute(date);
@@ -687,8 +689,9 @@ static int time_offset (struct occultation_args *pulse, double *vmag, sequence *
 		first_p[i] = vmag[pulse[i].start_ind] / unity_flux[i];	// Lenght of the first pulse (ms)
 
 		GDateTime *begin_frame = g_date_time_ref(seq->imgparam[pulse[i].start_ind_inseq - 1].date_obs);	// Timestamp at the beginning of the frame
-		GDateTime *end_frame = g_date_time_add_seconds (begin_frame, exposure);	// (computed) Timestamp at the end of the frame
+		GDateTime *end_frame = g_date_time_add_seconds (begin_frame, exposure / 1000.0);	// (computed) Timestamp at the end of the frame
 		GDateTime *end_frame2 = g_date_time_add_seconds (end_frame, -1.0 * first_p[i] / 1000.0);	// (Computed) Timestamp of the PPS
+//		GDateTime *end_frame2 = g_date_time_add_seconds (begin_frame, -1.0 * first_p[i] / 1000.0);	// (Computed) Timestamp of the PPS
 		GDateTime *pps_time = round_date (end_frame2);	// (Observed) Timestamp of the precise PPS time the pulse refers to
 
 		if (verbose) {
@@ -741,16 +744,6 @@ static int time_offset (struct occultation_args *pulse, double *vmag, sequence *
 /* It uses data stored in the sequence, in seq->photometry, which is
  * populated by successive calls to seqpsf on the opened sequence;
  */
-void free_occultation_args(struct occultation_args *args) {
-	free(args);
-	return;
-}
-
-void free_occ_res_args(struct occ_res *args) {
-	free(args);
-	return;
-}
-
 int occult_curve(struct light_curve_args *lcargs) {
 	int i, j;
 	int ret = 0;	// return value
@@ -820,13 +813,12 @@ int occult_curve(struct light_curve_args *lcargs) {
 	
 	}
 
-	
 	// Retrieve the expected number of pulses in the sequence
-	double expos = timediff_in_s(seq->imgparam[0].date_obs, seq->imgparam[seq->number - 1].date_obs);	// Get the time difference in seconds
-	expos = expos * (1.0 + 1.0 / (double)seq->number);
+	GTimeSpan timespan = g_date_time_difference(seq->imgparam[seq->number - 1].date_obs, seq->imgparam[1].date_obs);	// Given in µs. Note: smthg strange happens with [0]. [1] is a workaround.
+	double expos = 1e-3 * timespan / (double)seq->number;	// Expressed in ms
+	expos = expos * (1.0 + 2.0 / (double)seq->number);	// Correction because of the [0] issue. Still in ms
+	int exp_pls_nbr = (int)(expos * 1e-3 * (double)seq->number);	// Floors it to get the total expected number of pulses
 	siril_log_color_message(_("Exposure= %0.3lf(ms), fps= %0.3lf\n"), "salmon", expos, 1000.0 / expos);
-	int exp_pls_nbr = (int)expos;	// Floor it to get the total expected number of pulses
-	expos = 0.01 * expos / (double)exp_pls_nbr;	// Compute the (average) exposition time of the frames
 	siril_log_color_message(_("Number of frames = %i, Number of valid images= %i\n"), "salmon", seq->number, j);
 
 	struct occ_res *timing = NULL;	// Structure embedding the final results
@@ -851,7 +843,7 @@ int occult_curve(struct light_curve_args *lcargs) {
 
 	// Does it match the forseen value
 	siril_log_color_message(_("Detected pulses= %i vs Expected pulses= %i\n"), "salmon", timing->det_pulses, timing->th_pls_nbr - 1);
-	if (timing->det_pulses < (timing->th_pls_nbr / 5)) {
+	if (timing->det_pulses < (timing->th_pls_nbr / 2)) {
 		siril_log_color_message(_("Not enought pulses detected. Enlarge the selection.\n"), "red");
 		return 0;
 	}
@@ -861,8 +853,6 @@ int occult_curve(struct light_curve_args *lcargs) {
 	lcargs->JD_offset = timing->median_seq;
 
 	// Frees what needs to be
-	free_occultation_args(pulse);
-	free_occ_res_args(timing);
 	free(date);
 	free(vmag);
 	free(orig_ind);
@@ -873,8 +863,7 @@ int occult_curve(struct light_curve_args *lcargs) {
 gpointer occultation_worker(gpointer arg) {
 	int retval = 0;
 	struct light_curve_args *args = (struct light_curve_args *)arg;
-
-	siril_log_message(_("Entering occulation_worker\n"));
+	siril_log_color_message(_("Entering the Occulation Time precedure.\n"), "green");
 	framing_mode framing = REGISTERED_FRAME;
 
 	// Set predifined aperture data to be independant o fthe lasting user parameters 
