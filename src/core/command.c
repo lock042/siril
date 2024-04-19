@@ -76,6 +76,7 @@
 #include "gui/newdeconv.h"
 #include "gui/sequence_list.h"
 #include "gui/siril_preview.h"
+#include "gui/registration.h"
 #include "gui/registration_preview.h"
 #include "gui/script_menu.h"
 #include "gui/preferences.h"

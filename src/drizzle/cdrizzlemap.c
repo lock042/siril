@@ -212,7 +212,7 @@ int map_image_coordinates_h(fits *fit, Homography H, imgmap_t *p, int target_ry,
 	/* Doing the calculations manually rather than using
 	 * cvTransformImageRefPoint() achieves a speedup of 2 orders of
 	 * magnitude! */
-    cvApplyFlips(&H, source_ry, target_ry);
+	cvPrepareDrizzleH(&H, scale, source_ry, target_ry);
 	float Harr[9] = { (float) H.h00, (float) H.h01, (float) H.h02,
 		(float) H.h10, (float) H.h11, (float) H.h12,
 		(float) H.h20, (float) H.h21, (float) H.h22 };
@@ -225,13 +225,15 @@ int map_image_coordinates_h(fits *fit, Homography H, imgmap_t *p, int target_ry,
 #pragma omp parallel for num_threads(threads) schedule(static) if (threads > 1)
 #endif
 	for (int y = 0; y < source_ry; y++) {
-		float y1 = y * Harr[7] + Harr[8];
-		float y2 = y * Harr[1] + Harr[2];
-		float y3 = y * Harr[4] + Harr[5];
+		float y0 = (float)y;
+		float y1 = y0 * Harr[7] + Harr[8];
+		float y2 = y0 * Harr[1] + Harr[2];
+		float y3 = y0 * Harr[4] + Harr[5];
 		for (int x = 0; x < rx; x++) {
-			float z = scale / (x * Harr[6] + y1);
-			p->xmap[index] = (x * Harr[0] + y2) * z;
-			p->ymap[index++] = (x * Harr[3] + y3) * z;
+			float x0 = (float) x;
+			float z = 1. / (x0 * Harr[6] + y1);
+			p->xmap[index] = (x0 * Harr[0] + y2) * z;
+			p->ymap[index++] = (x0 * Harr[3] + y3) * z;
 		}
 	}
 	return 0;

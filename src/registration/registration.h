@@ -25,14 +25,6 @@ typedef enum {
 	PLANETARY_FULLDISK, PLANETARY_SURFACE
 } planetary_type;
 
-typedef enum {
-	REG_PAGE_GLOBAL,
-	REG_PAGE_COMET,
-	REG_PAGE_3_STARS,
-	REG_PAGE_KOMBAT,
-	REG_PAGE_APPLYREG,
-	REG_PAGE_MISC
-} reg_notebook_page;
 
 typedef enum {
 	UNDEFINED_TRANSFORMATION = -3,
@@ -50,6 +42,60 @@ typedef enum {
 	FRAMING_MIN,
 	FRAMING_COG,
 } framing_type;
+
+/* used to register a registration method */
+struct registration_method {
+	const char *name;
+	registration_function method_ptr;
+	selection_type sel;
+	registration_type type;
+};
+
+/* used to draw framing in image_display */
+typedef struct {
+	point pt[4];
+} regframe;
+
+/* used to define rotation matrices*/
+typedef enum {
+	ROTX,
+	ROTY,
+	ROTZ
+} rotation_type;
+
+/* same as rectangle but avoids conflicts with rectangle defined in opencv namespace */
+typedef struct {
+	int x, y, w, h;
+} astrometric_roi;
+
+typedef struct {
+	double AP[MAX_DISTO_SIZE][MAX_DISTO_SIZE];
+	double BP[MAX_DISTO_SIZE][MAX_DISTO_SIZE];
+	int order;
+	double xref, yref;
+} disto_data;
+
+struct astrometric_args{
+	int nb;
+	int refindex;
+	Homography *Rs;
+	Homography *Ks;
+	disto_data *disto;
+	float scale;
+	astrometric_roi roi;
+};
+
+/**** star alignment (global and 3-star) registration ****/
+
+struct star_align_data {
+	struct registration_args *regargs;
+	regdata *current_regdata;
+	struct astrometric_args *astargs;
+	psf_star **refstars;
+	int fitted_stars;
+	BYTE *success;
+	point ref;
+};
 
 /* arguments passed to registration functions */
 struct registration_args {
@@ -93,50 +139,10 @@ struct registration_args {
 	opencv_projector projector; // used by mosaic registration
 };
 
-/* used to register a registration method */
-struct registration_method {
-	const char *name;
-	registration_function method_ptr;
-	selection_type sel;
-	registration_type type;
-};
+// static struct registration_method *reg_methods[NUMBER_OF_METHODS + 1];
 
-/* used to draw framing in image_display */
-typedef struct {
-	point pt[4];
-} regframe;
-
-/* used to define rotation matrices*/
-typedef enum {
-	ROTX,
-	ROTY,
-	ROTZ
-} rotation_type;
-
-/* same as rectangle but avoids conflicts with rectangle defined in opencv namespace */
-typedef struct {
-	int x, y, w, h;
-} astrometric_roi;
-
-typedef struct {
-	double AP[MAX_DISTO_SIZE][MAX_DISTO_SIZE];
-	double BP[MAX_DISTO_SIZE][MAX_DISTO_SIZE];
-	int order;
-	double xref, yref;
-} disto_data;
-
-struct astrometric_args{
-	int nb;
-	int refindex;
-	Homography *Rs;
-	Homography *Ks;
-	disto_data *disto;
-	float scale;
-	astrometric_roi roi;
-};
 struct registration_method *new_reg_method(const char *name, registration_function f,
 		selection_type s, registration_type t); // for compositing
-void initialize_registration_methods();
 struct registration_method * get_selected_registration_method();
 int register_shift_dft(struct registration_args *args);
 int register_shift_fwhm(struct registration_args *args);
@@ -162,18 +168,6 @@ gpointer register_thread_func(gpointer p);
 /** getter */
 int get_registration_layer(const sequence *seq);
 int seq_has_any_regdata(const sequence *seq); // same as get_registration_layer but does not rely on GUI for com.seq
-
-/**** star alignment (global and 3-star) registration ****/
-
-struct star_align_data {
-	struct registration_args *regargs;
-	regdata *current_regdata;
-	struct astrometric_args *astargs;
-	psf_star **refstars;
-	int fitted_stars;
-	BYTE *success;
-	point ref;
-};
 
 regdata *apply_reg_get_current_regdata(struct registration_args *regargs);
 regdata *star_align_get_current_regdata(struct registration_args *regargs);

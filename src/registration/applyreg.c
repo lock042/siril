@@ -53,7 +53,7 @@ static void create_output_sequence_for_apply_reg(struct registration_args *args)
 static int new_ref_index = -1;
 
 static Homography Htransf = {0};
-static int rx_out, ry_out, ry_out_unscaled;
+static int rx_out, ry_out;
 
 regdata *apply_reg_get_current_regdata(struct registration_args *regargs) {
 	regdata *current_regdata;
@@ -205,7 +205,6 @@ static gboolean compute_framing(struct registration_args *regargs) {
 			return FALSE;
 	}
 	cvMultH(Href, Hshift, &Htransf);
-	ry_out_unscaled = ry_0;
 	if (regargs->driz) {
 		rx_out = rx_0 * regargs->driz->scale;
 		ry_out = ry_0 * regargs->driz->scale;
@@ -304,7 +303,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		p->pixmap->ry = fit->ry;
 		p->threads = threads;
 
-		map_image_coordinates_h(fit, H, p->pixmap, ry_out_unscaled, driz->scale, threads);
+		map_image_coordinates_h(fit, H, p->pixmap, ry_out, driz->scale, threads);
 		if (!p->pixmap->xmap) {
 			siril_log_color_message(_("Error generating mapping array.\n"), "red");
 			free(p->error);
@@ -357,7 +356,9 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		copyfits(&out, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 		fit->keywords.date_obs = g_date_time_ref(out.keywords.date_obs);
 		clearfits(&out);
-
+		if (args->seq->type == SEQ_SER || com.pref.force_16bit) {
+			fit_replace_buffer(fit, float_buffer_to_ushort(fit->fdata, fit->rx * fit->ry * fit->naxes[2]), DATA_USHORT);
+		}
 		if (driz->is_bayer) {
 			/* we need to do something special here because it's a 1-channel sequence and
 			* image that will become 3-channel after this call, so stats caching will

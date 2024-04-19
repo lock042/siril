@@ -141,8 +141,10 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 		free(sadata->current_regdata);
 		return 1;
 	}
-	if (fit.naxes[2] == 1 && fit.keywords.bayer_pattern[0] != '\0')
+	if (fit.naxes[2] == 1 && fit.keywords.bayer_pattern[0] != '\0') {
 		siril_log_color_message(_("Registering a sequence opened as CFA: the resulting sequence should be drizzled.\n"), "salmon");
+		interpolate_nongreen(&fit);
+	}
 
 	siril_log_color_message(_("Reference Image:\n"), "green");
 	image refimage = { .fit = &fit, .from_seq = args->seq, .index_in_seq = regargs->reference_image };

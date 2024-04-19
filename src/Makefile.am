@@ -294,6 +294,8 @@ siril_common_SOURCES = \
 	gui/progress_and_log.h \
 	gui/PSF_list.h \
 	gui/PSF_list.c \
+	gui/registration.h \
+	gui/registration.c \
 	gui/registration_preview.c \
 	gui/remixer.c \
 	gui/remixer.h \
@@ -389,6 +391,7 @@ siril_common_SOURCES = \
 	registration/astrometric.c \
 	registration/registration.c \
 	registration/registration.h \
+	registration/shift_methods.c \
 	stacking/median_and_mean.c \
 	stacking/rejection_float.c \
 	stacking/normalization.c \
