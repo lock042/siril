@@ -862,20 +862,28 @@ int occult_curve(struct light_curve_args *lcargs) {
 
 gpointer occultation_worker(gpointer arg) {
 	int retval = 0;
+	struct phot_config bkp_photo;
 	struct light_curve_args *args = (struct light_curve_args *)arg;
 	siril_log_color_message(_("Entering the Occulation Time precedure.\n"), "green");
 	framing_mode framing = REGISTERED_FRAME;
 
-	// Set predifined aperture data to be independant o fthe lasting user parameters 
-	com.pref.phot_set.inner = 20;
-	com.pref.phot_set.outer = 30;
-	com.pref.phot_set.aperture = 10;
+	// Backup the current user values
+	bkp_photo = com.pref.phot_set;
+
+	// Set predifined aperture data to be independant of the lasting user parameters 
+	com.pref.phot_set.inner = 20.0;
+	com.pref.phot_set.outer = 30.0;
+	com.pref.phot_set.aperture = 10.0;
 	com.pref.phot_set.force_radius = TRUE;
 
 	if (seqpsf(args->seq, args->layer, FALSE, FALSE, framing, FALSE, TRUE)) {
 		siril_log_color_message(_("Something went wrong with the PSF analisys. Try to enlarge the selection or check the blinking star is not too faint\n"), "red");
 		return GINT_TO_POINTER(retval);
 	}
+
+	// Restaure the user parameters
+	com.pref.phot_set = bkp_photo;
+
 
 	if (args->seq == &com.seq)
 		queue_redraw(REDRAW_OVERLAY);

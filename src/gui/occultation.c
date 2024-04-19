@@ -142,17 +142,16 @@ static void on_find_clicked(GtkDialog* self, gint response_id, gpointer user_dat
 		else layer = 0;
 	}
 
-// Tedst if area selected
-// Test if seq loaded
+	// An area must be drawn around the blinking star
 	if (com.selection.w == 0 || com.selection.h  == 0) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Make a selection aroud the blinking star first"));
 		return;
 	}
-
-	if (com.selection.w < com.pref.phot_set.outer || com.selection.h < com.pref.phot_set.outer) {
+	// This area must be large enought wrt the current photometric aperture (outer ring)
+	if ((double)com.selection.w <= com.pref.phot_set.outer || (double)com.selection.h <= com.pref.phot_set.outer) {
 		siril_log_color_message(_("The selection has benen resized \n"), "salmon");
-		com.selection.w = 2.0 * com.pref.phot_set.outer;
-		com.selection.h = 2.0 * com.pref.phot_set.outer;
+		com.selection.w = (int)(1.1 * com.pref.phot_set.outer);
+		com.selection.h = (int)(1.1 * com.pref.phot_set.outer);
 	}
 
 	struct light_curve_args *args = calloc(1, sizeof(struct light_curve_args));
