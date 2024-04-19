@@ -33,7 +33,6 @@ enum keywords_type {
 	KTYPE_DATE
 };
 
-
 typedef struct KeywordInfo KeywordInfo;
 
 typedef void (*special_handler_read_func)(fits *fit, const char *comment, KeywordInfo *info);
@@ -49,6 +48,7 @@ struct KeywordInfo {
     special_handler_save_func special_handler_save;
     gboolean is_saved;
     gboolean fixed_value;
+    gboolean used;
 };
 
 int save_fits_keywords(fits *fit);
@@ -57,5 +57,7 @@ int save_history_keywords(fits *fit);
 int save_wcs_keywords(fits *fit);
 void read_fits_date_obs_header(fits *fit);
 int read_fits_keywords(fits *fit);
+
+void set_all_keywords_default(fits *fit);
 
 #endif /* SRC_IO_FITS_KEYWORDS_H_ */

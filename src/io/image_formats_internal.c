@@ -36,6 +36,7 @@
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "io/image_format_fits.h"
+#include "io/fits_keywords.h"
 
 #ifndef O_BINARY
 #define O_BINARY 0
@@ -64,6 +65,8 @@ static int bmp32tofits48(unsigned char *rvb, unsigned long rx, unsigned long ry,
 		*rdata++ = (WORD) *rvb++;
 		rvb++;
 	}
+	set_all_keywords_default(fit);
+
 	fit->bitpix = fit->orig_bitpix = BYTE_IMG;
 	fit->naxis = 3;
 	fit->rx = rx;
@@ -100,6 +103,8 @@ static int bmp24tofits48(unsigned char *rvb, unsigned long rx, unsigned long ry,
 		}
 		rvb += padsize;
 	}
+	set_all_keywords_default(fit);
+
 	fit->bitpix = fit->orig_bitpix = BYTE_IMG;
 	fit->naxis = 3;
 	fit->rx = rx;
@@ -134,6 +139,8 @@ static int bmp16tofits48(unsigned char *rvb, unsigned long rx, unsigned long ry,
 		*gdata++ = ((pixel_data & 0x03e0) >> 5) * 255.0 / 31.0 + 0.5;
 		*bdata++ = ((pixel_data & 0x001f) >> 0) * 255.0 / 31.0 + 0.5;
 	}
+	set_all_keywords_default(fit);
+
 	fit->bitpix = fit->orig_bitpix = BYTE_IMG;
 	fit->naxis = 3;
 	fit->rx = rx;
@@ -167,6 +174,8 @@ static int bmp8tofits(unsigned char *rgb, unsigned long rx, unsigned long ry, fi
 		}
 		rgb += padsize;
 	}
+	set_all_keywords_default(fit);
+
 	fit->bitpix = fit->orig_bitpix = BYTE_IMG;
 	fit->rx = rx;
 	fit->ry = ry;
@@ -256,6 +265,8 @@ int readbmp(const char *name, fits *fit) {
 		return -1;
 	}
 	fclose(file);
+
+	set_all_keywords_default(fit);
 
 	switch (nbplane) {
 		case 1:
@@ -533,6 +544,8 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 		fclose(file);
 		return -1;
 	}
+	set_all_keywords_default(fit);
+
 	if (max_val == UCHAR_MAX) {
 		/* 8-bit file */
 		unsigned char *tmpbuf = NULL;
@@ -944,6 +957,8 @@ int readpic(const char *name, fits *fit) {
 		free(pic_file);
 		return -1;
 	}
+
+	set_all_keywords_default(fit);
 
 	if (_pic_read_header(pic_file)) {
 		_pic_close_file(pic_file);

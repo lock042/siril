@@ -22,6 +22,7 @@
 #include "core/proto.h"
 
 #include "io/image_format_fits.h"
+#include "io/fits_keywords.h"
 
 gchar *AstroTiff_build_header(fits *fit) {
 	void *memptr;
@@ -51,6 +52,7 @@ gchar *AstroTiff_build_header(fits *fit) {
 	}
 
 	fits tmpfit = { 0 };
+	set_all_keywords_default(&tmpfit);
 	copy_fits_metadata(fit, &tmpfit);
 	tmpfit.fptr = fptr;
 	save_fits_header(&tmpfit);

@@ -34,11 +34,6 @@
         siril_debug_print("Parsing stopped at: %s\n", end); \
     } while (0)
 
-#define DEFAULT_DOUBLE_VALUE -999.0
-#define DEFAULT_FLOAT_VALUE -999.f
-#define DEFAULT_INT_VALUE -INT_MAX
-#define DEFAULT_UINT_VALUE 0
-#define DEFAULT_USHORT_VALUE DEFAULT_UINT_VALUE
 
 #define KEYWORD_PRIMARY(group, key, type, comment, data, handler_read, handler_save) { group, key, type, comment, data, handler_read, handler_save, TRUE, FALSE }
 #define KEYWORD_SECONDA(group, key, type, comment, data, handler_read, handler_save) { group, key, type, comment, data, handler_read, handler_save, FALSE, FALSE }
@@ -123,11 +118,10 @@ static void flength_handler_read(fits *fit, const char *comment, KeywordInfo *in
 }
 
 static void sitelong_handler_read(fits *fit, const char *comment, KeywordInfo *info) {
-	char sitelong_dump[FLEN_VALUE] = { 0 };
 	char sitelong_dump_tmp[FLEN_VALUE] = { 0 };
 	double d_sitelong_dump = 0.0;
 
-	gchar **token = g_strsplit(sitelong_dump, ":", -1); // Handles PRISM special parsing for SITELONG
+	gchar **token = g_strsplit(fit->keywords.sitelong_str, ":", -1); // Handles PRISM special parsing for SITELONG
 	gsize token_size = g_strv_length(token);
 	if (token_size > 1 && token[1])	{
 		for (int i = 0; i < token_size; ++i) {
@@ -135,14 +129,14 @@ static void sitelong_handler_read(fits *fit, const char *comment, KeywordInfo *i
 			if (i < 3) strncat(sitelong_dump_tmp, i < 2 ? ":" : ".", 2);
 			d_sitelong_dump = parse_dms(sitelong_dump_tmp);
 		}
-	} else d_sitelong_dump = parse_dms(sitelong_dump);
+	} else d_sitelong_dump = parse_dms(fit->keywords.sitelong_str);
 
 	g_strfreev(token);
 
 	if (isnan(d_sitelong_dump)) {	// Cases SITELONG and SITELAT keyword are numbers (only NINA and Seq. Generator, for now)
 		gchar *end;
-		fit->keywords.sitelong = g_ascii_strtod(sitelong_dump, &end);
-		if (sitelong_dump == end) {
+		fit->keywords.sitelong = g_ascii_strtod(fit->keywords.sitelong_str, &end);
+		if (fit->keywords.sitelong_str == end) {
 			siril_debug_print("Cannot read SITELONG\n");
 		}
 	} else {
@@ -151,11 +145,10 @@ static void sitelong_handler_read(fits *fit, const char *comment, KeywordInfo *i
 }
 
 static void sitelat_handler_read(fits *fit, const char *comment, KeywordInfo *info) {
-	char sitelat_dump[FLEN_VALUE] = { 0 };
 	char sitelat_dump_tmp[FLEN_VALUE] = { 0 };
 	double d_sitelat_dump = 0.0;
 
-	gchar **token = g_strsplit(sitelat_dump, ":", -1); // Handles PRISM special parsing for SITELAT
+	gchar **token = g_strsplit(fit->keywords.sitelat_str, ":", -1); // Handles PRISM special parsing for SITELAT
 	gsize token_size = g_strv_length(token);
 	if (token_size > 1 && token[1])	{	// Denotes presence of ":"
 		for (int i = 0; i < token_size; ++i) {
@@ -163,14 +156,14 @@ static void sitelat_handler_read(fits *fit, const char *comment, KeywordInfo *in
 			if (i < 3) strncat(sitelat_dump_tmp, i < 2 ? ":" : ".", 2);
 			d_sitelat_dump = parse_dms(sitelat_dump_tmp);
 		}
-	} else d_sitelat_dump = parse_dms(sitelat_dump);
+	} else d_sitelat_dump = parse_dms(fit->keywords.sitelat_str);
 
 	g_strfreev(token);
 
 	if (isnan(d_sitelat_dump)) {	// Cases SITELONG and SITELAT keyword are numbers (only NINA and Seq. Generator, for now)
 		gchar *end;
-		fit->keywords.sitelat = g_ascii_strtod(sitelat_dump, &end);
-		if (sitelat_dump == end) {
+		fit->keywords.sitelat = g_ascii_strtod(fit->keywords.sitelat_str, &end);
+		if (fit->keywords.sitelat_str == end) {
 			siril_debug_print("Cannot read SITELAT\n");
 		}
 	} else {
@@ -200,7 +193,6 @@ static void fhi_handler_read(fits *fit, const char *comment, KeywordInfo *info) 
 		fit->keywords.hi = float_to_ushort_range(fit->keywords.fhi);
 	}
 }
-
 
 static void flo_handler_save(fits *fit, KeywordInfo *info) {
 	if (!fit->keywords.hi && (fit->orig_bitpix == FLOAT_IMG || fit->orig_bitpix == DOUBLE_IMG)) {
@@ -241,11 +233,6 @@ static void program_handler_save(fits *fit, KeywordInfo *info) {
 }
 
 /*****************************************************************************/
-
-static void default_values_special_cases(fits *fit) {
-	/* set special default values */
-	fit->keywords.siteelev = 0.0;
-}
 
 KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 	/*
@@ -330,8 +317,8 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 			KEYWORD_PRIMARY( "focuser", "FOCPOS", KTYPE_INT, "[step] Focuser position", &(fit->keywords.focuspos), NULL, NULL),
 			KEYWORD_SECONDA( "focuser", "FOCUSPOS", KTYPE_INT, "[step] Focuser position", &(fit->keywords.focuspos), NULL, NULL),
 			KEYWORD_PRIMARY( "focuser", "FOCUSSZ", KTYPE_INT, "[um] Focuser step size", &(fit->keywords.focussz), NULL, NULL),
-			KEYWORD_PRIMARY( "focuser", "FOCTEMP", KTYPE_INT, "[degC] Focuser temperature", &(fit->keywords.foctemp), NULL, NULL),
-			KEYWORD_SECONDA( "focuser", "FOCUSTEM", KTYPE_INT, "[degC] Focuser temperature", &(fit->keywords.foctemp), NULL, NULL),
+			KEYWORD_PRIMARY( "focuser", "FOCTEMP", KTYPE_DOUBLE, "[degC] Focuser temperature", &(fit->keywords.foctemp), NULL, NULL),
+			KEYWORD_SECONDA( "focuser", "FOCUSTEM", KTYPE_DOUBLE, "[degC] Focuser temperature", &(fit->keywords.foctemp), NULL, NULL),
 			KEYWORD_PRIMARY( "stack", "STACKCNT", KTYPE_UINT, "Stack frames", &(fit->keywords.stackcnt), NULL, NULL),
 			KEYWORD_SECONDA( "stack", "NCOMBINE", KTYPE_UINT, "Stack frames", &(fit->keywords.stackcnt), NULL, NULL),
 			KEYWORD_PRIMARY( "stack", "LIVETIME", KTYPE_DOUBLE, "[s] Exposure time after deadtime correction", &(fit->keywords.livetime), NULL, NULL),
@@ -339,18 +326,21 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 			KEYWORD_PRIMARY( "stack", "EXPEND", KTYPE_DOUBLE, "[JD] Exposure end time (standard Julian date)", &(fit->keywords.expend), NULL, NULL),
 			KEYWORD_PRIMARY( "target", "OBJECT", KTYPE_STR, "Name of the object of interest", &(fit->keywords.object), NULL, NULL),
 			KEYWORD_PRIMARY( "target", "AIRMASS", KTYPE_DOUBLE, "Airmass at frame center (Gueymard 1993)", &(fit->keywords.airmass), NULL, NULL),
-			KEYWORD_PRIMARY( "geo", "SITELAT", KTYPE_DOUBLE, "[deg] Observation site latitude", &(fit->keywords.sitelat), sitelat_handler_read, NULL),
-			KEYWORD_SECONDA( "geo", "SITE-LAT", KTYPE_DOUBLE, "[deg] Observation site latitude", &(fit->keywords.sitelat), sitelat_handler_read, NULL),
-			KEYWORD_SECONDA( "geo", "OBSLAT", KTYPE_DOUBLE, "[deg] Observation site latitude", &(fit->keywords.sitelat), sitelat_handler_read, NULL),
-			KEYWORD_PRIMARY( "geo", "SITELONG", KTYPE_DOUBLE, "[deg] Observation site longitude", &(fit->keywords.sitelong), sitelong_handler_read, NULL),
-			KEYWORD_SECONDA( "geo", "SITE-LON", KTYPE_DOUBLE, "[deg] Observation site longitude", &(fit->keywords.sitelong), sitelong_handler_read, NULL),
-			KEYWORD_SECONDA( "geo", "OBSLONG", KTYPE_DOUBLE, "[deg] Observation site longitude", &(fit->keywords.sitelong), sitelong_handler_read, NULL),
+			/* SITELAT and SITELONG can be provided in double or string. We need to check both. We save as double */
+			KEYWORD_SECONDA( "geo", "SITELAT", KTYPE_STR, "[deg] Observation site latitude", &(fit->keywords.sitelat_str), sitelat_handler_read, NULL),
+			KEYWORD_SECONDA( "geo", "SITE-LAT", KTYPE_STR, "[deg] Observation site latitude", &(fit->keywords.sitelat_str), sitelat_handler_read, NULL),
+			KEYWORD_SECONDA( "geo", "OBSLAT", KTYPE_STR, "[deg] Observation site latitude", &(fit->keywords.sitelat_str), sitelat_handler_read, NULL),
+			KEYWORD_PRIMARY( "geo", "SITELAT", KTYPE_DOUBLE, "[deg] Observation site latitude", &(fit->keywords.sitelat), NULL, NULL),
+			KEYWORD_SECONDA( "geo", "SITELONG", KTYPE_STR, "[deg] Observation site longitude", &(fit->keywords.sitelong_str), sitelong_handler_read, NULL),
+			KEYWORD_SECONDA( "geo", "SITE-LON", KTYPE_STR, "[deg] Observation site longitude", &(fit->keywords.sitelong_str), sitelong_handler_read, NULL),
+			KEYWORD_SECONDA( "geo", "OBSLONG", KTYPE_STR, "[deg] Observation site longitude", &(fit->keywords.sitelong_str), sitelong_handler_read, NULL),
+			KEYWORD_PRIMARY( "geo", "SITELONG", KTYPE_DOUBLE, "[deg] Observation site longitude", &(fit->keywords.sitelong), NULL, NULL),
 			KEYWORD_PRIMARY( "geo", "SITEELEV", KTYPE_DOUBLE, "[m] Observation site elevation", &(fit->keywords.siteelev), NULL, NULL),
-			KEYWORD_PRIMARY( "dft",   "DFTTYPE", KTYPE_STR, "Module/Phase of a Discrete Fourier Transform", &(fit->keywords.dft.type), NULL, NULL),
-			KEYWORD_PRIMARY( "dft",   "DFTORD", KTYPE_STR, "Low/High spatial freq. are located at image center", &(fit->keywords.dft.ord), NULL, NULL),
-			KEYWORD_PRIMARY( "dft",   "DFTNORM1", KTYPE_DOUBLE, "Normalisation value for channel #1", &(fit->keywords.dft.norm[0]), NULL, NULL),
-			KEYWORD_PRIMARY( "dft",   "DFTNORM2", KTYPE_DOUBLE, "Normalisation value for channel #2", &(fit->keywords.dft.norm[1]), NULL, NULL),
-			KEYWORD_PRIMARY( "dft",   "DFTNORM3", KTYPE_DOUBLE, "Normalisation value for channel #3", &(fit->keywords.dft.norm[2]), NULL, NULL),
+			KEYWORD_PRIMARY( "dft", "DFTTYPE", KTYPE_STR, "Module/Phase of a Discrete Fourier Transform", &(fit->keywords.dft.type), NULL, NULL),
+			KEYWORD_PRIMARY( "dft", "DFTORD", KTYPE_STR, "Low/High spatial freq. are located at image center", &(fit->keywords.dft.ord), NULL, NULL),
+			KEYWORD_PRIMARY( "dft", "DFTNORM1", KTYPE_DOUBLE, "Normalisation value for channel #1", &(fit->keywords.dft.norm[0]), NULL, NULL),
+			KEYWORD_PRIMARY( "dft", "DFTNORM2", KTYPE_DOUBLE, "Normalisation value for channel #2", &(fit->keywords.dft.norm[1]), NULL, NULL),
+			KEYWORD_PRIMARY( "dft", "DFTNORM3", KTYPE_DOUBLE, "Normalisation value for channel #3", &(fit->keywords.dft.norm[2]), NULL, NULL),
 
 			KEYWORD_FIXED(   "wcsdata", "CTYPE3", KTYPE_STR, "RGB image", "RGB", NULL, NULL),
 			KEYWORD_PRIMARY( "wcsdata", "OBJCTRA", KTYPE_STR, "Image center Right Ascension (hms)", &(fit->keywords.wcsdata.objctra), NULL, NULL),
@@ -474,7 +464,7 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 			KEYWORD_WCS( "wcslib", "BP_0_5", KTYPE_DOUBLE),
 
 			KEYWORD_WCS( "wcsdata", "PLTSOLVD", KTYPE_BOOL),
-			{NULL, NULL, KTYPE_BOOL, NULL, NULL, NULL, FALSE, TRUE}
+			{NULL, NULL, KTYPE_BOOL, NULL, NULL, NULL, FALSE, TRUE }
     };
 
 	int num_keywords = G_N_ELEMENTS(keyword_list) - 1; // remove last line
@@ -489,43 +479,12 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 	GHashTable *hash_table = NULL;
 
 	if (hash)
-		hash_table = g_hash_table_new_full(g_str_hash, g_str_equal,
-				(GDestroyNotify) g_free, NULL);
+		hash_table = g_hash_table_new_full(g_str_hash, g_str_equal, (GDestroyNotify) g_free, NULL);
 
 	// Copy keyword information from the list to the dynamic array and set if keyword must be used
 	for (int i = 0; i < num_keywords; i++) {
 		all_keywords[i] = keyword_list[i];
 		all_keywords[i].is_saved = should_use_keyword(fit, keyword_list[i]);
-
-		// Set default values based on keyword type
-		if (g_strcmp0(all_keywords[i].group, "wcslib")) { // This group is initialized in load_WCS_from_hdr
-			switch (all_keywords[i].type) {
-			case KTYPE_INT:
-				if (*((int*) all_keywords[i].data) == 0)
-					*((int*) all_keywords[i].data) = DEFAULT_INT_VALUE;
-				break;
-			case KTYPE_UINT:
-				if (*((guint*) all_keywords[i].data) == 0)
-					*((guint*) all_keywords[i].data) = DEFAULT_UINT_VALUE;
-				break;
-			case KTYPE_USHORT:
-				if (*((gushort*) all_keywords[i].data) == 0)
-					*((gushort*) all_keywords[i].data) = DEFAULT_USHORT_VALUE;
-				break;
-			case KTYPE_DOUBLE:
-				if (*((double*) all_keywords[i].data) == 0)
-					*((double*) all_keywords[i].data) = DEFAULT_DOUBLE_VALUE;
-				break;
-			case KTYPE_FLOAT:
-				if (*((float*) all_keywords[i].data) == 0)
-					*((float*) all_keywords[i].data) = DEFAULT_FLOAT_VALUE;
-				break;
-			default:
-				break;
-			}
-		}
-
-		default_values_special_cases(fit);
 
 		if (hash_table)
 			g_hash_table_insert(hash_table, g_strdup(keyword_list[i].key), &(all_keywords[i]));
@@ -843,6 +802,48 @@ void read_fits_date_obs_header(fits *fit) {
 	fit->keywords.date_obs = FITS_date_to_date_time(date_obs);
 }
 
+static void set_to_default_not_used(fits *fit, GHashTable *keys_hash) {
+    GHashTableIter iter;
+    gpointer key, value;
+    g_hash_table_iter_init(&iter, keys_hash);
+    while (g_hash_table_iter_next(&iter, &key, &value)) {
+        KeywordInfo *keyword_info = (KeywordInfo *)value;
+
+        if (!keyword_info->used && should_use_keyword(fit, *keyword_info)) {
+			switch (keyword_info->type) {
+			case KTYPE_INT:
+				*((int*) keyword_info->data) = DEFAULT_INT_VALUE;
+				break;
+			case KTYPE_UINT:
+				*((guint*) keyword_info->data) = DEFAULT_UINT_VALUE;
+				break;
+			case KTYPE_USHORT:
+				*((gushort*) keyword_info->data) = DEFAULT_USHORT_VALUE;
+				break;
+			case KTYPE_DOUBLE:
+				*((double*) keyword_info->data) = DEFAULT_DOUBLE_VALUE;
+				break;
+			case KTYPE_FLOAT:
+				*((float*) keyword_info->data) = DEFAULT_FLOAT_VALUE;
+				break;
+			default:
+				break;
+			}
+        }
+    }
+}
+
+void set_all_keywords_default(fits *fit) {
+	GHashTable *keys_hash;
+	KeywordInfo *keys = initialize_keywords(fit, &keys_hash);
+
+	set_to_default_not_used(fit, keys_hash);
+
+	// Free the hash table and unknown keys
+	g_hash_table_destroy(keys_hash);
+	free(keys);
+}
+
 int read_fits_keywords(fits *fit) {
 	// Initialize keywords and get hash table
 	GHashTable *keys_hash;
@@ -903,10 +904,10 @@ int read_fits_keywords(fits *fit) {
 		gushort ushort_value;
 		double double_value;
 		float float_value;
-		gchar *str_value, *unquoted;
+		gchar *str_value = NULL, *unquoted = NULL;
 		GDateTime *date;
 		gboolean bool_value;
-		char *end;
+		char *end = NULL;
 
 		// Process the value based on the type of the keyword
 		switch (current_key->type) {
@@ -914,6 +915,7 @@ int read_fits_keywords(fits *fit) {
 			int_value = g_ascii_strtoll(value, &end, 10);
 			if (value != end) {
 				*((int*) current_key->data) = int_value;
+				current_key->used = TRUE;
 			} else {
 				PRINT_PARSING_ERROR;
 			}
@@ -922,6 +924,7 @@ int read_fits_keywords(fits *fit) {
 			uint_value = g_ascii_strtoll(value, &end, 10);
 			if (value != end) {
 				*((guint*) current_key->data) = uint_value;
+				current_key->used = TRUE;
 			} else {
 				PRINT_PARSING_ERROR;
 			}
@@ -930,6 +933,7 @@ int read_fits_keywords(fits *fit) {
 			ushort_value = g_ascii_strtoll(value, &end, 10);
 			if (value != end) {
 				*((gushort*) current_key->data) = ushort_value;
+				current_key->used = TRUE;
 			} else {
 				PRINT_PARSING_ERROR;
 			}
@@ -938,6 +942,7 @@ int read_fits_keywords(fits *fit) {
 			double_value = g_ascii_strtod(value, &end);
 			if (value != end) {
 				*((double*) current_key->data) = double_value;
+				current_key->used = TRUE;
 			} else {
 				PRINT_PARSING_ERROR;
 			}
@@ -946,6 +951,7 @@ int read_fits_keywords(fits *fit) {
 			float_value = g_ascii_strtod(value, &end);
 			if (value != end) {
 				*((float*) current_key->data) = float_value;
+				current_key->used = TRUE;
 			} else {
 				PRINT_PARSING_ERROR;
 			}
@@ -955,6 +961,7 @@ int read_fits_keywords(fits *fit) {
 			str_value = g_strstrip(unquoted);
 			strncpy((char*) current_key->data, str_value, FLEN_VALUE - 1);
 			g_free(unquoted);
+			current_key->used = TRUE;
 			break;
 		case KTYPE_DATE:
 			unquoted = g_shell_unquote(value, NULL);
@@ -962,6 +969,7 @@ int read_fits_keywords(fits *fit) {
 			date = FITS_date_to_date_time(str_value);
 			if (date) {
 				*((GDateTime**) current_key->data) = date;
+				current_key->used = TRUE;
 			} else {
 				PRINT_PARSING_ERROR;
 			}
@@ -970,6 +978,7 @@ int read_fits_keywords(fits *fit) {
 		case KTYPE_BOOL:
 			bool_value = value[0] == 'T' ? TRUE : FALSE;
 			*((gboolean*) current_key->data) = bool_value;
+			current_key->used = TRUE;
 			break;
 		default:
 			break;
@@ -985,6 +994,8 @@ int read_fits_keywords(fits *fit) {
 		g_free(fit->unknown_keys);
 	}
 	fit->unknown_keys = g_string_free(unknown_keys, FALSE);
+
+	set_to_default_not_used(fit, keys_hash);
 
 	// Free the hash table and unknown keys
 	g_hash_table_destroy(keys_hash);

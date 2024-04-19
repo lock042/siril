@@ -263,7 +263,7 @@ static int comet_align_image_hook(struct generic_seq_args *args, int out_index, 
 
 	get_comet_shift(cadata->reference_date, fit->keywords.date_obs, velocity, &reg);
 
-	/* get_comet_shift does not car about orientation of image */
+	/* get_comet_shift does not care about orientation of image */
 	cum_shifts(args->seq, in_index, regargs->layer, -reg.x, reg.y, FALSE);
 	return 0;
 }

@@ -59,6 +59,8 @@ static void compute_center_cog(double *ra, double *dec, int n, gboolean *incl, d
 		z += sin(dec_rad);
 		nb++;
 	}
+	if (nb == 0)
+		return;
 	x /= (double)nb;
 	y /= (double)nb;
 	z /= (double)nb;

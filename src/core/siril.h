@@ -276,6 +276,12 @@ typedef enum {
 	EXT_ASNET,
 } external_program;
 
+typedef enum {
+	SCALING_NONE,
+	SCALING_HA_UP,
+	SCALING_OIII_DOWN
+} extraction_scaling;
+
 /* image data, exists once for each image */
 typedef struct {
 	int filenum;		/* real file index in the sequence, i.e. for mars9.fit = 9 */
@@ -341,7 +347,6 @@ struct sequ {
 	int end;		// imgparam[number-1]->filenum
 	double exposure;	// exposure of frames (we assume they are all identical)
 	gboolean fz;
-
 	sequence_type type;
 	struct ser_struct *ser_file;
 	gboolean cfa_opened_monochrome;	// in case the CFA SER was opened in monochrome mode
@@ -399,6 +404,12 @@ typedef struct {
 
 typedef enum { DATA_USHORT, DATA_FLOAT, DATA_UNSUPPORTED } data_type;
 
+#define DEFAULT_DOUBLE_VALUE -999.0
+#define DEFAULT_FLOAT_VALUE -999.f
+#define DEFAULT_INT_VALUE -INT_MAX
+#define DEFAULT_UINT_VALUE 0
+#define DEFAULT_USHORT_VALUE DEFAULT_UINT_VALUE
+
 typedef struct {
 	/* data obtained from the FITS file */
 	double bscale, bzero;
@@ -420,9 +431,10 @@ typedef struct {
 	char telescop[FLEN_VALUE];		// TELESCOP key
 	char observer[FLEN_VALUE];		// OBSERVER key
 	double centalt, centaz;
-	double sitelat;				// SITE LATITUDE key
-	double sitelong;			// SITE LONGITUDE key
-	double siteelev;			// SITE LONGITUDE key
+	double sitelat, sitelong;		// SITE LAT and LONG as double
+	char sitelat_str[FLEN_VALUE];		// SITE LATITUDE key as string
+	char sitelong_str[FLEN_VALUE];		// SITE LONGITUDE key as string
+	double siteelev;			// SITE LONGITUDE key as double
 	char bayer_pattern[FLEN_VALUE];		// BAYERPAT key Bayer Pattern if available
 	int bayer_xoffset, bayer_yoffset;
 	double airmass;                   // relative optical path length through atmosphere.
