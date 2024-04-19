@@ -1093,7 +1093,7 @@ static void map_undistortion(disto_data *disto, Rect roi, Mat xmap, Mat ymap) {
 	for (int v = 0; v < roi.height; ++v) {
 		for (int u = 0; u < roi.width; ++u) {
 			U = (double)xmap.at<float>(v, u) - disto->xref;
-			V = (double)ymap.at<float>(v, u) - disto->yref;
+			V = disto->yref - (double)ymap.at<float>(v, u); // opencv convention is y down while wcs is y up
 			x = U + disto->AP[0][0] + disto->AP[1][0] * U + disto->AP[0][1] * V;
 			y = V + disto->BP[0][0] + disto->BP[1][0] * U + disto->BP[0][1] * V;
 			if (disto->order >= 2) {
@@ -1131,7 +1131,7 @@ static void map_undistortion(disto_data *disto, Rect roi, Mat xmap, Mat ymap) {
 				y += disto->BP[5][0] * U5 + disto->BP[4][1] * U4V + disto->BP[3][2] * U3V2 + disto->BP[2][3] * U2V3 + disto->BP[1][4] * UV4 + disto->BP[0][5] * V5;
 			}
 			xmap.at<float>(v, u) = (float)(x + disto->xref);
-			ymap.at<float>(v, u) = (float)(y + disto->yref);
+			ymap.at<float>(v, u) = (float)(disto->yref - y);
  		}
  	}
 }
