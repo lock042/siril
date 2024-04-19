@@ -194,7 +194,7 @@ static void on_occult_response(GtkDialog* self, gint response_id, gpointer user_
 	args->seq = &com.seq;
 	if (use_offset) {
 		args->time_offset = TRUE;
-		args->JD_offset = delay;
+		args->JD_offset = g_strtod(gtk_entry_get_text(GTK_ENTRY(delay_cam)), NULL);
 		siril_log_message(_("Applied offset: %0.3lf (ms) \n"), args->JD_offset);
 	}
 	else {
@@ -207,6 +207,4 @@ static void on_occult_response(GtkDialog* self, gint response_id, gpointer user_
 	free_light_curve_args(args);
 
 	gtk_widget_hide(dialog);
-
-
 }
