@@ -50,6 +50,7 @@
 #include "gui/callbacks.h"
 #include "gui/message_dialog.h"
 #include "gui/plot.h"
+#include "gui/registration.h"
 #include "ser.h"
 #include "fits_sequence.h"
 #ifdef HAVE_FFMS2
@@ -657,6 +658,7 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 	}
 
 	update_MenuItem();		// initialize menu gui
+	set_GUI_CAMERA();		// update image information
 	sequence_list_change_current();
 	adjust_refimage(index);	// check or uncheck reference image checkbox
 

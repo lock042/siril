@@ -54,6 +54,8 @@ siril 1.4.0 xx xx, xx
 * Added Astrometric Registration for mosaic and little overlapping sequences (#1154::7 and !643)
 * Added image undistortion using WCS SIP data when registering with astrometry (#1154::8 and !643)
 * Added DRIZZLE and related script (!633, closes #12, #170)
+* Changed convention to Counterclokwise for the angle reported by astrometry (#1290)
+* Removed calls to deprecated OpenMP functions (!662)
 
 siril 1.2.2 xx xx, 2024
 * Removed background extraction samples after using it in script (#1265)
