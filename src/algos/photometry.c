@@ -436,15 +436,36 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 		if (seq->imgparam[i].date_obs) {
 			double julian;
 			GDateTime *tsi = g_date_time_ref(seq->imgparam[i].date_obs);
+			julian = date_time_to_Julian(tsi);
+			siril_log_color_message(_("julian-0= %lf\n"), "salmon", julian);
+			gchar *str = NULL;
+			str = date_time_to_FITS_date(tsi);
+			siril_log_color_message(_("tsi= %s\n"), "salmon", str);
+			siril_log_color_message(_("time_offset= %lf\n"), "salmon", com.pref.phot_set.time_offset);
 			if (seq->exposure > 0.0) {
-				GDateTime *new_dt = g_date_time_add_seconds(tsi, seq->exposure * 0.5);
+//				GDateTime *new_dt = g_date_time_add_seconds(tsi, seq->exposure * 0.5);
+				GDateTime *new_dt = g_date_time_add_seconds(tsi, com.pref.phot_set.t_delayed ? seq->exposure * 0.5 + com.pref.phot_set.time_offset / 1000.0 : seq->exposure * 0.5);
+				str = date_time_to_FITS_date(new_dt);
+				siril_log_color_message(_("expo= %s\n"), "salmon", str);
 				julian = date_time_to_Julian(new_dt);
+				siril_log_color_message(_("julian= %lf\n"), "salmon", julian);
 				g_date_time_unref(new_dt);
+				//g_date_time_unref(new_dt);
 			} else {
-				julian = date_time_to_Julian(tsi);
+				GDateTime *new_dt = g_date_time_add_seconds(tsi, com.pref.phot_set.t_delayed ? com.pref.phot_set.time_offset / 1000.0 : 0.0);
+				str = date_time_to_FITS_date(new_dt);
+				siril_log_color_message(_("!expo= %s\n"), "salmon", str);
+				julian = date_time_to_Julian(new_dt);
+				siril_log_color_message(_("julian= %lf\n"), "salmon", julian);
+				g_date_time_unref(new_dt);
+				//g_date_time_unref(new_dt);
 			}
+			free(str);
+			//g_date_time_unref(new_dt);
+
 			g_date_time_unref(tsi);
 			date[j] = julian;
+//			date[j] = com.pref.phot_set.t_delayed ? julian + com.pref.phot_set.time_offset : julian;
 			if (julian < min_date)
 				min_date = julian;
 		} else {
@@ -511,7 +532,7 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 		date0[k] = date[k] - julian0;
 	siril_plot_add_xydata(spl_data, _("V-C"), nb_valid_images, date0, vmag, err, NULL);
 	splxyerrdata *lc = (splxyerrdata *)spl_data->plots->data;
-	lc->plots[0]->x_offset = lcargs->time_offset ? (double)julian0 + lcargs->JD_offset : (double)julian0;
+	lc->plots[0]->x_offset = (double)julian0;
 	free(date0);
 
 	// now we sort to have all dates ascending
@@ -659,8 +680,6 @@ static GDateTime *round_date (GDateTime *date){
 		/* Check date and time */
 	gint year, month, day;
 
-//	GTimeZone *tz = g_date_time_get_timezone(date);
-//	GTimeZone *tz = g_time_zone_new_utc(date);
 	GTimeZone *tz = g_time_zone_new_utc();
 	g_date_time_get_ymd(date, &year, &month, &day);
 	gint hour = g_date_time_get_hour(date);
@@ -677,7 +696,7 @@ static GDateTime *round_date (GDateTime *date){
 	return ret;
 }
 
-static int time_offset (struct occultation_args *pulse, double *vmag, sequence *seq, struct occ_res *timing) {
+static int time_offset_calc (struct occultation_args *pulse, double *vmag, sequence *seq, struct occ_res *timing) {
 	gboolean verbose = FALSE;
 	double *unity_flux = malloc(timing->th_pls_nbr * sizeof(double));
 	double *first_p = malloc(timing->th_pls_nbr * sizeof(double));
@@ -825,7 +844,7 @@ int occult_curve(struct light_curve_args *lcargs) {
 		exp_pls_nbr = (int)(expos * 1e-3 * (double)seq->number);	// Floors it to get the total expected number of pulses
 	} else {
 		if (!seq->imgparam[1].date_obs || !seq->imgparam[seq->number - 1].date_obs) {
-			siril_log_color_message(_("Error in the fits sequence. Should use the .ser file as a sequence.\n"), "red");
+			siril_log_color_message(_("Something went wrong in the fits sequence. Should use the .ser file as a sequence.\n"), "red");
 			return 0;
 		}
 		GTimeSpan timespan = g_date_time_difference(seq->imgparam[seq->number - 1].date_obs, seq->imgparam[1].date_obs);	// Given in µs. Note: smthg strange happens with [0]. [1] is a workaround.
@@ -866,8 +885,8 @@ int occult_curve(struct light_curve_args *lcargs) {
 	}
 
 	// Computes offset
-	ret = time_offset(pulse, vmag, seq, timing);
-	lcargs->JD_offset = timing->median_seq;
+	ret = time_offset_calc (pulse, vmag, seq, timing);
+	com.pref.phot_set.time_offset = timing->median_seq;
 
 	// Frees what needs to be
 	free(date);

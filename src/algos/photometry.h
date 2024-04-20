@@ -52,8 +52,6 @@ struct light_curve_args {
 	int layer;
 	char *target_descr;	// the description to put in the data file and graph
 	gboolean display_graph;	// if true, show it, if false, generate png
-	gboolean time_offset;	// is the time offset used?
-	double JD_offset; 		// value of the offset (in ms)
 
 	// metadata from the NINA file created by Siril
 	struct compstars_arg *metadata;

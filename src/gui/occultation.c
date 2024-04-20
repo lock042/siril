@@ -167,7 +167,7 @@ gboolean end_occultation_worker(gpointer p) {
 	if (!com.script) {
 		struct light_curve_args *args = (struct light_curve_args *)p;
 		args->seq = &com.seq;
-		delay = args->JD_offset;
+		delay = com.pref.phot_set.time_offset;
 		gtk_entry_set_text(GTK_ENTRY(delay_cam), g_strdup_printf("%0.3lf", delay));
 		control_window_switch_to_tab(OUTPUT_LOGS);
 		free_light_curve_args(args);
@@ -193,14 +193,14 @@ static void on_occult_response(GtkDialog* self, gint response_id, gpointer user_
 	struct light_curve_args *args = calloc(1, sizeof(struct light_curve_args));
 	args->seq = &com.seq;
 	if (use_offset) {
-		args->time_offset = TRUE;
-		args->JD_offset = g_strtod(gtk_entry_get_text(GTK_ENTRY(delay_cam)), NULL);
-		siril_log_message(_("Applied offset: %0.3lf (ms) \n"), args->JD_offset);
+		com.pref.phot_set.t_delayed = TRUE;
+		com.pref.phot_set.time_offset = g_strtod(gtk_entry_get_text(GTK_ENTRY(delay_cam)), NULL);
+		siril_log_message(_("Applied offset: %0.3lf (ms) \n"), com.pref.phot_set.time_offset);
 	}
 	else {
 		siril_log_message(_("No offset applied \n"));
-		args->time_offset = FALSE;
-		args->JD_offset = 0.0;
+		com.pref.phot_set.t_delayed = FALSE;
+		com.pref.phot_set.time_offset = 0.0;
 	}
 
 	if (com.seq.photometry[0] != NULL) free_photometry_set(&com.seq, 0);
