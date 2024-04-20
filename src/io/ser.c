@@ -932,9 +932,9 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 		// No need to inform the user as the FITS header details for a sequence frame are not accessible
 		strncpy(fit->keywords.bayer_pattern, pattern, 70); // fixed char* length FLEN == 71, leave 1 char for the NULL
 	}
-	fits_flip_top_to_bottom(fit); // convert top-down ser to bottom-up fits roworder
-	fit->top_down = FALSE;
-	snprintf(fit->keywords.row_order, FLEN_VALUE, "BOTTOM-UP");
+//	fits_flip_top_to_bottom(fit); // convert top-down ser to bottom-up fits roworder
+	fit->top_down = TRUE;
+	snprintf(fit->keywords.row_order, FLEN_VALUE, "TOP-DOWN");
 	return SER_OK;
 }
 
@@ -1201,6 +1201,7 @@ static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *
 	if (strcmp(fit->keywords.row_order, "TOP-DOWN")) {
 		snprintf(fit->keywords.bayer_pattern, FLEN_VALUE, "%s", flip_bayer_pattern(fit->keywords.bayer_pattern));
 		fits_flip_top_to_bottom(fit);
+		fit->top_down = TRUE;
 	}
 
 if (!ser_file || ser_file->file == NULL || !fit)
