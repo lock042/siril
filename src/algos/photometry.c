@@ -511,7 +511,7 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 		date0[k] = date[k] - julian0;
 	siril_plot_add_xydata(spl_data, _("V-C"), nb_valid_images, date0, vmag, err, NULL);
 	splxyerrdata *lc = (splxyerrdata *)spl_data->plots->data;
-	lc->plots[0]->x_offset = (double)julian0;
+	lc->plots[0]->x_offset = lcargs->time_offset ? (double)julian0 + lcargs->JD_offset : (double)julian0;
 	free(date0);
 
 	// now we sort to have all dates ascending
@@ -758,7 +758,8 @@ int occult_curve(struct light_curve_args *lcargs) {
 	// Get number of valid frames, nbImages
 	int nbImages = 0;
 	for (i = 0; i < seq->number; i++) {
-		if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid){
+//		if (!seq->imgparam[i].incl || !seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid){
+		if (!seq->photometry[0][i] || !seq->photometry[0][i]->phot_is_valid){
 			continue;
 		}
 		++nbImages;
@@ -813,14 +814,30 @@ int occult_curve(struct light_curve_args *lcargs) {
 	
 	}
 
-	// Retrieve the expected number of pulses in the sequence
-	GTimeSpan timespan = g_date_time_difference(seq->imgparam[seq->number - 1].date_obs, seq->imgparam[1].date_obs);	// Given in µs. Note: smthg strange happens with [0]. [1] is a workaround.
-	double expos = 1e-3 * timespan / (double)seq->number;	// Expressed in ms
-	expos = expos * (1.0 + 2.0 / (double)seq->number);	// Correction because of the [0] issue. Still in ms
-	int exp_pls_nbr = (int)(expos * 1e-3 * (double)seq->number);	// Floors it to get the total expected number of pulses
-	siril_log_color_message(_("Exposure= %0.3lf(ms), fps= %0.3lf\n"), "salmon", expos, 1000.0 / expos);
-	siril_log_color_message(_("Number of frames = %i, Number of valid images= %i\n"), "salmon", seq->number, j);
+	// Retrieve the fps, the expopsition time and expected number of pulses in the sequence
+	// Depends on the sequnece type, from .ser or from fits sequence
+	double fps, expos;	// fps, exposition time
+	int exp_pls_nbr;	// expected pulses number
 
+	if (com.seq.ser_file != NULL) {
+		fps = com.seq.ser_file->fps;
+		expos = 1000.0 / fps;
+		exp_pls_nbr = (int)(expos * 1e-3 * (double)seq->number);	// Floors it to get the total expected number of pulses
+	} else {
+		if (!seq->imgparam[1].date_obs || !seq->imgparam[seq->number - 1].date_obs) {
+			siril_log_color_message(_("Error in the fits sequence. Should use the .ser file as a sequence.\n"), "red");
+			return 0;
+		}
+		GTimeSpan timespan = g_date_time_difference(seq->imgparam[seq->number - 1].date_obs, seq->imgparam[1].date_obs);	// Given in µs. Note: smthg strange happens with [0]. [1] is a workaround.
+		expos = 1e-3 * timespan / (double)seq->number;	// Expressed in ms
+		expos = expos * (1.0 + 2.0 / (double)seq->number);	// Correction because of the [0] issue. Still in ms
+		exp_pls_nbr = (int)(expos * 1e-3 * (double)seq->number);	// Floors it to get the total expected number of pulses
+		fps = 1000.0 / expos;
+	}
+
+	siril_log_color_message(_("Exposure= %0.3lf(ms), fps= %0.3lf\n"), "salmon", expos, fps);
+	siril_log_color_message(_("Number of frames = %i, Number of valid images= %i\n"), "salmon", seq->number, j);
+	
 	struct occ_res *timing = NULL;	// Structure embedding the final results
 	timing = malloc(sizeof(struct occ_res));
 	timing->exposure = expos;
@@ -862,28 +879,14 @@ int occult_curve(struct light_curve_args *lcargs) {
 
 gpointer occultation_worker(gpointer arg) {
 	int retval = 0;
-	struct phot_config bkp_photo;
 	struct light_curve_args *args = (struct light_curve_args *)arg;
 	siril_log_color_message(_("Entering the Occulation Time precedure.\n"), "green");
 	framing_mode framing = REGISTERED_FRAME;
-
-	// Backup the current user values
-	bkp_photo = com.pref.phot_set;
-
-	// Set predifined aperture data to be independant of the lasting user parameters 
-	com.pref.phot_set.inner = 20.0;
-	com.pref.phot_set.outer = 30.0;
-	com.pref.phot_set.aperture = 10.0;
-	com.pref.phot_set.force_radius = TRUE;
 
 	if (seqpsf(args->seq, args->layer, FALSE, FALSE, framing, FALSE, TRUE)) {
 		siril_log_color_message(_("Something went wrong with the PSF analisys. Try to enlarge the selection or check the blinking star is not too faint\n"), "red");
 		return GINT_TO_POINTER(retval);
 	}
-
-	// Restaure the user parameters
-	com.pref.phot_set = bkp_photo;
-
 
 	if (args->seq == &com.seq)
 		queue_redraw(REDRAW_OVERLAY);
