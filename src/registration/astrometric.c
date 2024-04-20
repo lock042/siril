@@ -392,12 +392,14 @@ static int astrometric_image_hook(struct generic_seq_args *args, int out_index, 
 	sadata->success[out_index] = 0;
 	// TODO: find in opencv codebase if smthg smart can be done with K/R to avoid the double-flip
 	fits_flip_top_to_bottom(fit);
-	int status = cvWarp_fromKR(fit,  &astargs->roi, Ks[in_index], Rs[in_index], astargs->scale ,regargs->projector, regargs->interpolation, regargs->clamp, disto, &roi);
+	astrometric_roi *roi_in = (regargs->framing != FRAMING_MAX) ?  &astargs->roi : NULL;
+	int status = cvWarp_fromKR(fit, roi_in, Ks[in_index], Rs[in_index], astargs->scale ,regargs->projector, regargs->interpolation, regargs->clamp, disto, &roi);
 	if (!status) {
 		fits_flip_top_to_bottom(fit);
-		// TODO: keeping this for later when max framing won't save large black borders...
-		// H.h02 = roi.x - astargs->roi.x;
-		// H.h12 = roi.y - astargs->roi.y;
+		if (regargs->framing == FRAMING_MAX) {
+			H.h02 = roi.x - astargs->roi.x;
+			H.h12 = roi.y - astargs->roi.y;
+		}
 		free_wcs(fit); // we remove astrometric solution
 	}
 	regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;

@@ -1184,7 +1184,13 @@ int cvWarp_fromKR(fits *image, astrometric_roi *roi_in, Homography K, Homography
 	// in case we just want to assess final size, we skip warping the image
 	// we just pass a NULL image
 	if (image) {
-		if (image_to_Mat(image, &in, &out, &bgr, roi_in->w, roi_in->h))
+		int out_w = sizes.width;
+		int out_h = sizes.height;
+		if (roi_in) { // if we don't pass roi_in, we're in max mode, the output size is just the warped image
+			out_w = roi_in->w;
+			out_h = roi_in->h;
+		}
+		if (image_to_Mat(image, &in, &out, &bgr, out_w, out_h))
 			return 2;
 		Mat uxmap, uymap;
 		warper->buildMaps(szin, k, r, uxmap, uymap);
@@ -1192,35 +1198,46 @@ int cvWarp_fromKR(fits *image, astrometric_roi *roi_in, Homography K, Homography
 			map_undistortion(disto, roi, uxmap, uymap);
 		}
 		Mat aux;
-		init_guide(image, sizes.width, sizes.height, &aux);
-		remap(in, aux, uxmap, uymap, interpolation, BORDER_TRANSPARENT);
-
+		if (roi_in) {
+			init_guide(image, sizes.width, sizes.height, &aux);
+			remap(in, aux, uxmap, uymap, interpolation, BORDER_TRANSPARENT);
+		} else {
+			remap(in, out, uxmap, uymap, interpolation, BORDER_TRANSPARENT);
+		}
 		if ((interpolation == OPENCV_LANCZOS4 || interpolation == OPENCV_CUBIC) && clamp) {
 			Mat guide, tmp1;
 			init_guide(image, sizes.width, sizes.height, &guide);
 			// Create guide image
 			remap(in, guide, uxmap, uymap, OPENCV_AREA, BORDER_TRANSPARENT);
-			tmp1 = (aux < CLAMPING_FACTOR * guide);
 			Mat element = getStructuringElement(MORPH_ELLIPSE, Size(3, 3), Point(1,1));
-			dilate(tmp1, tmp1, element);
-			copyTo(guide, aux, tmp1); // Guide copied to the clamped pixels
+			if (roi_in) {
+				tmp1 = (aux < CLAMPING_FACTOR * guide);
+				dilate(tmp1, tmp1, element);
+				copyTo(guide, aux, tmp1); // Guide copied to the clamped pixels
+			} else {
+				tmp1 = (out < CLAMPING_FACTOR * guide);
+				dilate(tmp1, tmp1, element);
+				copyTo(guide, out, tmp1); // Guide copied to the clamped pixels
+			}
 			guide.release();
 			tmp1.release();
 		}
-		Rect inr = Rect(roi_in->x, roi_in->y, roi_in->w, roi_in->h);
-		Rect outr = inr & roi;
-		int xoffset = roi.tl().x - roi_in->x;
-		int yoffset = roi.tl().y - roi_in->y;
-		int xi = (xoffset < 0) ? -xoffset : 0;
-		int xo = (xoffset < 0) ? 0 : xoffset;
-		int yi = (yoffset < 0) ? -yoffset : 0;
-		int yo = (yoffset < 0) ? 0 : yoffset;
-		// std::cout << xi << " " << yi << "\n" << xo << " " << yo << "\n";
-		Mat roiin = aux(Rect(xi, yi, outr.size().width, outr.size().height));
-		Mat roiout = out(Rect(xo, yo, outr.size().width, outr.size().height));
-		roiin.copyTo(roiout);
+		if (roi_in) {
+			Rect inr = Rect(roi_in->x, roi_in->y, roi_in->w, roi_in->h);
+			Rect outr = inr & roi;
+			int xoffset = roi.tl().x - roi_in->x;
+			int yoffset = roi.tl().y - roi_in->y;
+			int xi = (xoffset < 0) ? -xoffset : 0;
+			int xo = (xoffset < 0) ? 0 : xoffset;
+			int yi = (yoffset < 0) ? -yoffset : 0;
+			int yo = (yoffset < 0) ? 0 : yoffset;
+			// std::cout << xi << " " << yi << "\n" << xo << " " << yo << "\n";
+			Mat roiin = aux(Rect(xi, yi, outr.size().width, outr.size().height));
+			Mat roiout = out(Rect(xo, yo, outr.size().width, outr.size().height));
+			roiin.copyTo(roiout);
+		}
+		return Mat_to_image(image, &in, &out, bgr, out_w, out_h);
 
-		return Mat_to_image(image, &in, &out, bgr, roi_in->w, roi_in->h);
 
 	}
 	return 0;
