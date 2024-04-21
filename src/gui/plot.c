@@ -90,7 +90,7 @@ static gboolean popup_already_shown = FALSE, has_item3 = TRUE;
 static void formatX(double v, char *buf, size_t bufsz) {
 	char *fmt;
 	if (use_photometry && julian0 && force_Julian) {
-		fmt = "%0.5f";
+		fmt = "%0.8f";
 	} else {
 		fmt = (gfit.type == DATA_FLOAT) ? regfmt32[X_selected_source] : regfmt16[X_selected_source];
 	}

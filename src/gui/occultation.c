@@ -184,7 +184,6 @@ gboolean end_occultation_worker(gpointer p) {
 static void on_occult_response(GtkDialog* self, gint response_id, gpointer user_data) {
 	siril_debug_print("got response event\n");
 	if (response_id != GTK_RESPONSE_ACCEPT) {
-		if (com.seq.photometry[0] != NULL) free_photometry_set(&com.seq, 0);
 		gtk_widget_hide(dialog);
 		return;
 	}
