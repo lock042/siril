@@ -11,6 +11,15 @@ struct crop_sequence_data {
 	int retvalue;
 };
 
+struct scale_sequence_data {
+	sequence *seq;
+	char *prefix;
+	double scale;
+	opencv_interpolation interpolation;
+	gboolean clamp;
+	int retvalue;
+};
+
 int fits_binning(fits *fit, int factor, gboolean mean);
 
 int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation interpolation, gboolean clamp);
@@ -23,6 +32,7 @@ void mirrory(fits *fit, gboolean verbose);
 
 int crop(fits *fit, rectangle *bounds);
 gpointer crop_sequence(struct crop_sequence_data *crop_sequence_data);
+gpointer scale_sequence(struct scale_sequence_data *scale_sequence_data);
 
 const char *interp_to_str(opencv_interpolation interpolation);
 

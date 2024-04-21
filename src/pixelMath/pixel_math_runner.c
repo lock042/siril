@@ -457,6 +457,10 @@ static gboolean is_pm_rescale_checked() {
 	return gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("rescale_pm_button")));
 }
 
+static gboolean is_cumulate_checked() {
+	return gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("cumulate_pm_button")));
+}
+
 static float get_min_rescale_value() {
 	return (float) gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_pm_low")));
 }
@@ -465,7 +469,7 @@ static float get_max_rescale_value() {
 	return (float) gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_pm_high")));
 }
 
-static void update_metadata(fits *fit) {
+static void update_metadata(fits *fit, gboolean do_sum) {
 	fits **f = malloc((MAX_IMAGES + 1) * sizeof(fits *));
 	int j = 0;
 	for (int i = 0; i < MAX_IMAGES ; i++)
@@ -478,7 +482,7 @@ static void update_metadata(fits *fit) {
 		// we copy the metadata from first image of the list
 		copy_fits_metadata(var_fit, fit);
 	else
-		merge_fits_headers_to_result2(fit, f);
+		merge_fits_headers_to_result2(fit, f, do_sum);
 	free(f);
 }
 
@@ -735,7 +739,7 @@ failure: // failure before the eval loop
 
 	if (failed)
 		args->ret = 1;
-	else update_metadata(args->fit);
+	else update_metadata(args->fit, args->do_sum);
 
 	/* free memory */
 	g_free(args->expression1);
@@ -906,6 +910,7 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 	gboolean icc_warning_given = FALSE;
 	gboolean single_rgb = is_pm_use_rgb_button_checked();
 	gboolean rescale = is_pm_rescale_checked();
+	gboolean do_sum = is_cumulate_checked();
 	float min = get_min_rescale_value();
 	float max = get_max_rescale_value();
 
@@ -971,6 +976,7 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 	args->expression3 = single_rgb ? NULL : expression3;
 	args->single_rgb = single_rgb;
 	args->rescale = rescale;
+	args->do_sum = do_sum;
 	args->min = min;
 	args->max = max;
 	args->fit = fit;
@@ -1130,8 +1136,8 @@ static void select_image(int nb) {
 						g_free(str);
 
 					} else {
-						if (f.filter[0] != '\0') {
-							memcpy(filter, f.filter, FLEN_VALUE);
+						if (f.keywords.filter[0] != '\0') {
+							memcpy(filter, f.keywords.filter, FLEN_VALUE);
 						}
 
 						int idx = search_for_free_index();

@@ -161,10 +161,10 @@ static void normalisation_spectra_float(unsigned int w, unsigned int h, const fl
 static void save_dft_information_in_gfit(fits *fit) {
 	int i;
 
-	strcpy(gfit.dft.ord, fit->dft.type);
-	strcpy(gfit.dft.ord, fit->dft.ord);
+	strcpy(gfit.keywords.dft.ord, fit->keywords.dft.type);
+	strcpy(gfit.keywords.dft.ord, fit->keywords.dft.ord);
 	for (i = 0; i < fit->naxes[2]; i++)
-		gfit.dft.norm[i] = fit->dft.norm[i];
+		gfit.keywords.dft.norm[i] = fit->keywords.dft.norm[i];
 
 }
 
@@ -210,14 +210,14 @@ static void FFTD_ushort(fits *fit, fits *x, fits *y, int type_order, int layer) 
 	//We normalize the modulus and the phase
 	normalisation_spectra_ushort(width, height, modul, phase, xbuf, ybuf, maxi);
 	if (type_order == TYPE_CENTERED) {
-		strcpy(x->dft.ord, "CENTERED");
+		strcpy(x->keywords.dft.ord, "CENTERED");
 		centered_ushort(xbuf, width, height, FFTW_FORWARD);
 		centered_ushort(ybuf, width, height, FFTW_FORWARD);
 	} else {
-		strcpy(x->dft.ord, "REGULAR");
+		strcpy(x->keywords.dft.ord, "REGULAR");
 	}
-	strcpy(y->dft.ord, x->dft.ord);
-	x->dft.norm[layer] = maxi / USHRT_MAX_SINGLE;
+	strcpy(y->keywords.dft.ord, x->keywords.dft.ord);
+	x->keywords.dft.norm[layer] = maxi / USHRT_MAX_SINGLE;
 
 	free(modul);
 	free(phase);
@@ -268,14 +268,14 @@ static void FFTD_float(fits *fit, fits *x, fits *y, int type_order, int layer) {
 	//We normalize the modulus and the phase
 	normalisation_spectra_float(width, height, modul, phase, xbuf, ybuf, maxi);
 	if (type_order == TYPE_CENTERED) {
-		strcpy(x->dft.ord, "CENTERED");
+		strcpy(x->keywords.dft.ord, "CENTERED");
 		centered_float(xbuf, width, height, FFTW_FORWARD);
 		centered_float(ybuf, width, height, FFTW_FORWARD);
 	} else {
-		strcpy(x->dft.ord, "REGULAR");
+		strcpy(x->keywords.dft.ord, "REGULAR");
 	}
-	strcpy(y->dft.ord, x->dft.ord);
-	x->dft.norm[layer] = maxi;
+	strcpy(y->keywords.dft.ord, x->keywords.dft.ord);
+	x->keywords.dft.norm[layer] = maxi;
 
 	free(modul);
 	free(phase);
@@ -309,7 +309,7 @@ static void FFTI_ushort(fits *fit, fits *xfit, fits *yfit, int type_order, int l
 	}
 
 	for (i = 0; i < height * width; i++) {
-		modul[i] = (float) xbuf[i] * (xfit->dft.norm[layer]);
+		modul[i] = (float) xbuf[i] * (xfit->keywords.dft.norm[layer]);
 		phase[i] = (float) ybuf[i] * (2.f * (float)M_PI / USHRT_MAX_SINGLE);
 		phase[i] -= (float)M_PI;
 	}
@@ -368,7 +368,7 @@ static void FFTI_float(fits *fit, fits *xfit, fits *yfit, int type_order, int la
 	}
 
 	for (i = 0; i < height * width; i++) {
-		modul[i] = xbuf[i] * (xfit->dft.norm[layer]);
+		modul[i] = xbuf[i] * (xfit->keywords.dft.norm[layer]);
 		phase[i] = ybuf[i] * (2.f * (float)M_PI);
 		phase[i] -= (float)M_PI;
 	}
@@ -492,12 +492,12 @@ gpointer fourier_transform(gpointer p) {
 
 		for (chan = 0; chan < args->fit->naxes[2]; chan++)
 			FFTD(args->fit, tmp1, tmp2, args->type_order, chan);
-		strcpy(tmp1->dft.type, "SPECTRUM");
+		strcpy(tmp1->keywords.dft.type, "SPECTRUM");
 		if (savefits(args->modulus, tmp1)) {
 			args->retval = 1;
 			goto end;
 		}
-		strcpy(tmp2->dft.type, "PHASE");
+		strcpy(tmp2->keywords.dft.type, "PHASE");
 		if (savefits(args->phase, tmp2)) {
 			args->retval = 1;
 			goto end;
@@ -531,9 +531,9 @@ gpointer fourier_transform(gpointer p) {
 			siril_log_color_message(_("Images must have same dimensions.\n"), "red");
 			goto end;
 		}
-		if (tmp->dft.ord[0] == 'C')		// CENTERED
+		if (tmp->keywords.dft.ord[0] == 'C')		// CENTERED
 			args->type_order = TYPE_CENTERED;
-		else if (tmp->dft.ord[0] == 'R')	// REGULAR
+		else if (tmp->keywords.dft.ord[0] == 'R')	// REGULAR
 			args->type_order = TYPE_REGULAR;
 		else {
 			args->retval = 1;

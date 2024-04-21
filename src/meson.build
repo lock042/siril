@@ -96,6 +96,10 @@ src_files = [
   'core/undo.c',
   'core/utils.c',
 
+  'drizzle/cdrizzlebox.c',
+  'drizzle/cdrizzlemap.c',
+  'drizzle/cdrizzleutil.c',
+
   'filters/asinh.c',
   'filters/banding.c',
   'filters/clahe.c',
@@ -155,6 +159,7 @@ src_files = [
   'io/kstars/htmesh_wrapper.cpp',
   'io/conversion.c',
   'io/films.c',
+  'io/fits_keywords.c',
   'io/fits_sequence.c',
   'io/FITS_symlink.c',
   'io/image_format_fits.c',
@@ -218,6 +223,7 @@ src_files = [
   'gui/preferences.c',
   'gui/progress_and_log.c',
   'gui/PSF_list.c',
+  'gui/registration.c',
   'gui/registration_preview.c',
   'gui/remixer.c',
   'gui/save_dialog.c',
@@ -245,8 +251,10 @@ src_files = [
   'registration/matching/atpmatch.c',
   'registration/matching/misc.c',
   'registration/matching/apply_match.c',
+  'registration/astrometric.c',
   'registration/registration.c',
   'registration/applyreg.c',
+  'registration/shift_methods.c',
 
   'stacking/median_and_mean.c',
   'stacking/normalization.c',

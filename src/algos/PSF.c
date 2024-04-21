@@ -1057,9 +1057,9 @@ gchar *format_psf_result(psf_star *result, const rectangle *area, fits *fit, gch
 void fwhm_to_arcsec_if_needed(fits* fit, psf_star *result) {
 
 	if (!result) return;
-	if (fit->focal_length <= 0.0 || fit->pixel_size_x <= 0.f
-			|| fit->pixel_size_y <= 0.f || fit->binning_x <= 0
-			|| fit->binning_y <= 0) {
+	if (fit->keywords.focal_length <= 0.0 || fit->keywords.pixel_size_x <= 0.f
+			|| fit->keywords.pixel_size_y <= 0.f || fit->keywords.binning_x <= 0
+			|| fit->keywords.binning_y <= 0) {
 		result->fwhmx_arcsec = -1.0;
 		result->fwhmy_arcsec = -1.0;
 		return;
@@ -1067,11 +1067,11 @@ void fwhm_to_arcsec_if_needed(fits* fit, psf_star *result) {
 
 	double bin_X, bin_Y;
 
-	bin_X = com.pref.binning_update ? (double) fit->binning_x : 1.0;
-	bin_Y = com.pref.binning_update ? (double) fit->binning_y : 1.0;
+	bin_X = com.pref.binning_update ? (double) fit->keywords.binning_x : 1.0;
+	bin_Y = com.pref.binning_update ? (double) fit->keywords.binning_y : 1.0;
 
-	result->fwhmx_arcsec = result->fwhmx * (radian_conversion * (double)fit->pixel_size_x / fit->focal_length) * bin_X;
-	result->fwhmy_arcsec = result->fwhmy * (radian_conversion * (double)fit->pixel_size_y / fit->focal_length) * bin_Y;
+	result->fwhmx_arcsec = result->fwhmx * (radian_conversion * (double)fit->keywords.pixel_size_x / fit->keywords.focal_length) * bin_X;
+	result->fwhmy_arcsec = result->fwhmy * (radian_conversion * (double)fit->keywords.pixel_size_y / fit->keywords.focal_length) * bin_Y;
 	result->units = "\"";
 }
 

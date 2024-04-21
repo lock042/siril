@@ -126,7 +126,7 @@ void on_button1_comet_clicked(GtkButton *button, gpointer p) {
 				cvTransfPoint(&pos_of_image1.x, &pos_of_image1.y, com.seq.regparam[layer][com.seq.current].H, com.seq.regparam[layer][com.seq.reference_image].H);
 			}
 			free_psf(result);
-			if (!gfit.date_obs) {
+			if (!gfit.keywords.date_obs) {
 				siril_message_dialog(GTK_MESSAGE_ERROR,
 						_("There is no timestamp stored in the file"),
 						_("Siril cannot perform the registration without date information in the file."));
@@ -134,7 +134,7 @@ void on_button1_comet_clicked(GtkButton *button, gpointer p) {
 				if (t_of_image_1) {
 					g_date_time_unref(t_of_image_1);
 				}
-				t_of_image_1 = g_date_time_ref(gfit.date_obs);
+				t_of_image_1 = g_date_time_ref(gfit.keywords.date_obs);
 				if (!t_of_image_1) {
 					siril_message_dialog(GTK_MESSAGE_ERROR,
 							_("Unable to convert DATE-OBS to a valid date"),
@@ -163,7 +163,7 @@ void on_button2_comet_clicked(GtkButton *button, gpointer p) {
 				cvTransfPoint(&pos_of_image2.x, &pos_of_image2.y, com.seq.regparam[layer][com.seq.current].H, com.seq.regparam[layer][com.seq.reference_image].H);
 			}
 			free_psf(result);
-			if (!gfit.date_obs) {
+			if (!gfit.keywords.date_obs) {
 				siril_message_dialog(GTK_MESSAGE_ERROR,
 						_("There is no timestamp stored in the file"),
 						_("Siril cannot perform the registration without date information in the file."));
@@ -171,7 +171,7 @@ void on_button2_comet_clicked(GtkButton *button, gpointer p) {
 				if (t_of_image_2) {
 					g_date_time_unref(t_of_image_2);
 				}
-				t_of_image_2 = g_date_time_ref(gfit.date_obs);
+				t_of_image_2 = g_date_time_ref(gfit.keywords.date_obs);
 				if (!t_of_image_2) {
 					siril_message_dialog(GTK_MESSAGE_ERROR,
 							_("Unable to convert DATE-OBS to a valid date"),
@@ -242,7 +242,7 @@ static int comet_align_prepare_hook(struct generic_seq_args *args) {
 		free(cadata->current_regdata);
 		return 1;
 	}
-	cadata->reference_date = g_date_time_ref(ref.date_obs);
+	cadata->reference_date = g_date_time_ref(ref.keywords.date_obs);
 	clearfits(&ref);
 
 	if (regargs->x2upscale)
@@ -261,9 +261,9 @@ static int comet_align_image_hook(struct generic_seq_args *args, int out_index, 
 		set_shifts(args->seq, in_index, regargs->layer, 0., 0., FALSE);
 	}
 
-	get_comet_shift(cadata->reference_date, fit->date_obs, velocity, &reg);
+	get_comet_shift(cadata->reference_date, fit->keywords.date_obs, velocity, &reg);
 
-	/* get_comet_shift does not car about orientation of image */
+	/* get_comet_shift does not care about orientation of image */
 	cum_shifts(args->seq, in_index, regargs->layer, -reg.x, reg.y, FALSE);
 	return 0;
 }

@@ -755,7 +755,7 @@ static int stat_image_hook(struct generic_seq_args *args, int o, int i, fits *fi
 		rectangle *_, int threads) {
 	struct stat_data *s_args = (struct stat_data*) args->user;
 
-	gboolean is_cfa = fit->bayer_pattern[0] != '\0' && s_args->cfa;
+	gboolean is_cfa = fit->keywords.bayer_pattern[0] != '\0' && s_args->cfa;
 	int nb_image_layers = (int)fit->naxes[2];
 	if (is_cfa)
 		nb_image_layers = 3;
@@ -1005,8 +1005,8 @@ int compute_all_channels_statistics_seqimage(sequence *seq, int image_index, fit
 			if (threads >= required_computations) {
 				channels_per_thread = 1;
 				threads_per_thread = compute_thread_distribution(required_computations, threading);
-				omp_set_nested(1);	// to be done at each level
-				if ((!omp_get_nested() || omp_get_max_active_levels() < 2) && threads_per_thread[0] > 1)
+				omp_set_max_active_levels(INT_MAX);	// to be done at each level
+				if ((omp_get_max_active_levels() < 2) && threads_per_thread[0] > 1)
 					siril_log_message(_("Threading statistics computation per channel, but enabling threading in channels too is not supported.\n"));
 				else siril_debug_print("threading statistics computation per channel (at most %d threads each)\n", threads_per_thread[0]);
 			}
@@ -1050,7 +1050,7 @@ int compute_all_channels_statistics_seqimage(sequence *seq, int image_index, fit
 int compute_all_channels_statistics_single_image(fits *fit, int option,
 		threading_type threading, imstats **stats) {
 	g_assert(fit);
-	gboolean cfa = (option & STATS_FOR_CFA) && fit->bayer_pattern[0] != '\0';
+	gboolean cfa = (option & STATS_FOR_CFA) && fit->keywords.bayer_pattern[0] != '\0';
 	int required_computations = cfa ? 3 : (int)fit->naxes[2];
 	if (required_computations == 0) {
 		stats[0] = NULL;
@@ -1075,8 +1075,8 @@ int compute_all_channels_statistics_single_image(fits *fit, int option,
 		if (threads >= required_computations) {
 			channels_per_thread = 1;
 			threads_per_thread = compute_thread_distribution(required_computations, threading);
-			omp_set_nested(1);	// to be done at each level
-			if ((!omp_get_nested() || omp_get_max_active_levels() < 2) && threads_per_thread[0] > 1)
+			omp_set_max_active_levels(INT_MAX);	// to be done at each level
+			if ((omp_get_max_active_levels() < 2) && threads_per_thread[0] > 1)
 				siril_log_message(_("Threading statistics computation per channel, but enabling threading in channels too is not supported.\n"));
 			else siril_debug_print("threading statistics computation per channel (at most %d threads each)\n", threads_per_thread[0]);
 		}

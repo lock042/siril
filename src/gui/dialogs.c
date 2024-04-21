@@ -25,9 +25,12 @@
 #include "algos/background_extraction.h"
 #include "filters/asinh.h"
 #include "filters/clahe.h"
+#include "filters/median.h"
 #include "filters/saturation.h"
 #include "filters/wavelets.h"
 
+#include "gui/newdeconv.h"
+#include "filters/nlbayes/call_nlbayes.h"
 #include "gui/dialogs.h"
 #include "nina_light_curve.h"
 #include "compstars.h"
@@ -38,7 +41,7 @@ static const SirilDialogEntry entries[] =
 	{"aavso_dialog", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"asinh_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_asinh_cancel},
 	{"astrometry_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
-	{"denoise_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"denoise_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, close_denoise},
 	{"background_extraction_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_background_cancel},
 	{"binxy_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"canon_fixbanding_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
@@ -52,7 +55,7 @@ static const SirilDialogEntry entries[] =
 	{"cut_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"cut_coords_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
 	{"cut_spectroscopy_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
-	{"bdeconv_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"bdeconv_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, close_deconv},
 	{"dialog_FFT", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"dialog_star_remix", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"edge_dialog", NULL, INFORMATION_DIALOG, FALSE, NULL},
@@ -64,7 +67,7 @@ static const SirilDialogEntry entries[] =
 	{"icc_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"astrometry_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"linearmatch_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
-	{"Median_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"Median_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, median_close},
 	{"merge_cfa_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"nina_light_curve", get_nina_lc_dialog, OTHER_DIALOG, FALSE, NULL},
 	{"occultation", get_occult_dialog, OTHER_DIALOG, FALSE, NULL},

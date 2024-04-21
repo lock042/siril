@@ -64,7 +64,7 @@ preferences pref_init = {
 	.asnet_dir = NULL,
 	.selected_scripts = NULL,
 	.use_scripts_repository = TRUE,
-	.auto_script_update = FALSE,
+	.auto_script_update = TRUE,
 	.starfinder_conf = { // starfinder_conf
 		.radius = DEF_BOX_RADIUS,
 		.sigma = 1.0,
@@ -306,8 +306,8 @@ void initialize_default_settings() {
 }
 
 void update_gain_from_gfit() {
-	if (gfit.cvf > 0.0)
-		com.pref.phot_set.gain = gfit.cvf;
+	if (gfit.keywords.cvf > 0.0)
+		com.pref.phot_set.gain = gfit.keywords.cvf;
 }
 
 struct settings_access all_settings[] = {

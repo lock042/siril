@@ -50,6 +50,7 @@ struct seqpsf_args {
 	gboolean for_occultation;
 	super_bool allow_use_as_regdata;
 	framing_mode framing;
+	gboolean bayer; // whether or not to interpolate non-green pixels
 
 	/* The seqpsf result for each image, list of seqpsf_data */
 	GSList *list;

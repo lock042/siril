@@ -42,20 +42,34 @@ xx/xx/xx
 * Added dark scaling to match exposure time (#1269)
 * Added manual photometry output comparison stars file creation from UI (!614)
 * Added near solve in Siril internal solver (#1154::4 and !631)
-* Improved mouse pan and zoom control to enable one-handed operation (!638, fixes #1271)
 * Added FITS keyword update on single loaded images (#72)
-* Added Color Conversion Matrices for single images and sequences (!630 and !641) 
+* Added Color Conversion Matrices for single images and sequences (!630 and !641)
 * Added versionning for init files (#1274)
 * Added full blindsolve with Astrometry.net (#1154::5 and !636)
 * Added avoiding to create a new sequence when platesolving sequences (#1154::6 and !636)
 * Refactored astrometry GUI (#1154::6 and !636)
+* Fixed several dialogs so they work after redo (#1276, #1279)
+* Added an option that overrides the default (i.e. summation) behavior in PixelMath and RGB composition (#1272)
+* Improved SEQHEADER command. Ability to print several keywords and new filter option (#1161)
+* Refactoring of the keywords use (#668)
+* Added Astrometric Registration for mosaic and little overlapping sequences (#1154::7 and !643)
+* Added image undistortion using WCS SIP data when registering with astrometry (#1154::8 and !643)
+* Added DRIZZLE and related script (!633, closes #12, #170)
+* Changed convention to Counterclokwise for the angle reported by astrometry (#1290)
+* Removed calls to deprecated OpenMP functions (!662)
 
 siril 1.2.2
 xx/xx/24
 
 * Removed background extraction samples after using it in script (#1265)
 * Fixed catalog parser problem with negative declination (less than 1°) (#1270)
-* Fixes weighting by number of stars during stacking if number of stars is the same across the sequence (#1273)
+* Fixed weighting by number of stars during stacking if number of stars is the same across the sequence (#1273)
+* Improved mouse pan and zoom control to enable one-handed operation (!638, fixes #1271)
+* Added an option to the LINK command in order to sort output by date (#1115)
+* Fixed pixel size set by astrometry using binning_update preference (#1254)
+* Fixed crash when querying stats on a CFA image with a selection smaller than a 2x2 square (#1286)
+* Fixed crash when saving compressed and croped images (#1287)
+* Disabled supernumerary use of openmp in demosaicing, which could lead to a crash (#1288)
 
 siril 1.2.1
 01/26/24

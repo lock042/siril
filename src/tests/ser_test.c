@@ -124,7 +124,7 @@ int test_ser_image_sizes() {
 }
 
 static void set_fits_date(fits *fit, gint64 time) {
-	fit->date_obs = g_date_time_new_from_unix_utc(time);
+	fit->keywords.date_obs = g_date_time_new_from_unix_utc(time);
 }
 
 int test_ser_dates() {

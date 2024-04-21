@@ -36,6 +36,7 @@
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "io/image_format_fits.h"
+#include "io/fits_keywords.h"
 
 #ifndef O_BINARY
 #define O_BINARY 0
@@ -64,6 +65,8 @@ static int bmp32tofits48(unsigned char *rvb, unsigned long rx, unsigned long ry,
 		*rdata++ = (WORD) *rvb++;
 		rvb++;
 	}
+	set_all_keywords_default(fit);
+
 	fit->bitpix = fit->orig_bitpix = BYTE_IMG;
 	fit->naxis = 3;
 	fit->rx = rx;
@@ -71,7 +74,7 @@ static int bmp32tofits48(unsigned char *rvb, unsigned long rx, unsigned long ry,
 	fit->naxes[0] = rx;
 	fit->naxes[1] = ry;
 	fit->naxes[2] = 3;
-	fit->binning_x = fit->binning_y = 1;
+	fit->keywords.binning_x = fit->keywords.binning_y = 1;
 	return 0;
 }
 
@@ -100,6 +103,8 @@ static int bmp24tofits48(unsigned char *rvb, unsigned long rx, unsigned long ry,
 		}
 		rvb += padsize;
 	}
+	set_all_keywords_default(fit);
+
 	fit->bitpix = fit->orig_bitpix = BYTE_IMG;
 	fit->naxis = 3;
 	fit->rx = rx;
@@ -107,7 +112,7 @@ static int bmp24tofits48(unsigned char *rvb, unsigned long rx, unsigned long ry,
 	fit->naxes[0] = rx;
 	fit->naxes[1] = ry;
 	fit->naxes[2] = 3;
-	fit->binning_x = fit->binning_y = 1;
+	fit->keywords.binning_x = fit->keywords.binning_y = 1;
 	return 0;
 }
 
@@ -134,6 +139,8 @@ static int bmp16tofits48(unsigned char *rvb, unsigned long rx, unsigned long ry,
 		*gdata++ = ((pixel_data & 0x03e0) >> 5) * 255.0 / 31.0 + 0.5;
 		*bdata++ = ((pixel_data & 0x001f) >> 0) * 255.0 / 31.0 + 0.5;
 	}
+	set_all_keywords_default(fit);
+
 	fit->bitpix = fit->orig_bitpix = BYTE_IMG;
 	fit->naxis = 3;
 	fit->rx = rx;
@@ -141,7 +148,7 @@ static int bmp16tofits48(unsigned char *rvb, unsigned long rx, unsigned long ry,
 	fit->naxes[0] = rx;
 	fit->naxes[1] = ry;
 	fit->naxes[2] = 3;
-	fit->binning_x = fit->binning_y = 1;
+	fit->keywords.binning_x = fit->keywords.binning_y = 1;
 	return 0;
 }
 
@@ -167,6 +174,8 @@ static int bmp8tofits(unsigned char *rgb, unsigned long rx, unsigned long ry, fi
 		}
 		rgb += padsize;
 	}
+	set_all_keywords_default(fit);
+
 	fit->bitpix = fit->orig_bitpix = BYTE_IMG;
 	fit->rx = rx;
 	fit->ry = ry;
@@ -174,7 +183,7 @@ static int bmp8tofits(unsigned char *rgb, unsigned long rx, unsigned long ry, fi
 	fit->naxes[1] = ry;
 	fit->naxes[2] = 1;
 	fit->naxis = 2;
-	fit->binning_x = fit->binning_y = 1;
+	fit->keywords.binning_x = fit->keywords.binning_y = 1;
 	return 0;
 }
 
@@ -256,6 +265,8 @@ int readbmp(const char *name, fits *fit) {
 		return -1;
 	}
 	fclose(file);
+
+	set_all_keywords_default(fit);
 
 	switch (nbplane) {
 		case 1:
@@ -533,6 +544,8 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 		fclose(file);
 		return -1;
 	}
+	set_all_keywords_default(fit);
+
 	if (max_val == UCHAR_MAX) {
 		/* 8-bit file */
 		unsigned char *tmpbuf = NULL;
@@ -569,7 +582,7 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 			rgb8bit_to_fits16bit(tmpbuf, fit);
 		free(tmpbuf);
 		fit->bitpix = BYTE_IMG;
-		fit->binning_x = fit->binning_y = 1;
+		fit->keywords.binning_x = fit->keywords.binning_y = 1;
 		fits_flip_top_to_bottom(fit);
 	} else if (max_val == USHRT_MAX || max_val == SHRT_MAX) {
 		/* 16-bit file */
@@ -631,7 +644,7 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 			free(tmpbuf);
 		}
 		fit->bitpix = USHORT_IMG;
-		fit->binning_x = fit->binning_y = 1;
+		fit->keywords.binning_x = fit->keywords.binning_y = 1;
 		fits_flip_top_to_bottom(fit);
 	} else {
 		siril_log_color_message(_("Not handled max value for PNM: %d.\n"), "red",
@@ -640,7 +653,7 @@ int import_pnm_to_fits(const char *filename, fits *fit) {
 		return -1;
 	}
 	fit->type = DATA_USHORT;
-	g_snprintf(fit->row_order, FLEN_VALUE, "%s", "TOP-DOWN");
+	g_snprintf(fit->keywords.row_order, FLEN_VALUE, "%s", "TOP-DOWN");
 
 	// Initialize ICC profile. As the buffer is set to NULL, this sets the
 	// profile as sRGB (or Gray g22) which is what we want
@@ -945,6 +958,8 @@ int readpic(const char *name, fits *fit) {
 		return -1;
 	}
 
+	set_all_keywords_default(fit);
+
 	if (_pic_read_header(pic_file)) {
 		_pic_close_file(pic_file);
 		return -1;
@@ -952,10 +967,10 @@ int readpic(const char *name, fits *fit) {
 
 	fit->rx = (unsigned int) pic_file->width;
 	fit->ry = (unsigned int) pic_file->height;
-	fit->binning_x = (unsigned int) pic_file->bin[4];
-	fit->binning_y = (unsigned int) pic_file->bin[5];
-	fit->hi = pic_file->hi;
-	fit->lo = pic_file->lo;
+	fit->keywords.binning_x = (unsigned int) pic_file->bin[4];
+	fit->keywords.binning_y = (unsigned int) pic_file->bin[5];
+	fit->keywords.hi = pic_file->hi;
+	fit->keywords.lo = pic_file->lo;
 	fit->type = DATA_USHORT;
 
 	size_t nbdata = fit->rx * fit->ry;
@@ -1003,7 +1018,7 @@ int readpic(const char *name, fits *fit) {
 			basename, fit->naxes[2], fit->rx, fit->ry);
 	siril_log_message("(%d,%d)-(%d,%d) - Binning %dx%d\n", pic_file->bin[0],
 			pic_file->bin[1], pic_file->bin[2], pic_file->bin[3],
-			fit->binning_x, fit->binning_y);
+			fit->keywords.binning_x, fit->keywords.binning_y);
 
 	if (pic_file->date[0] != 0x00) {
 		g_strchug(pic_file->date);	// removing left white spaces if exist

@@ -590,7 +590,7 @@ static void check_gfit_is_ours() {
 }
 
 // Called from the filechooser
-static void update_metadata() {
+static void update_metadata(gboolean do_sum) {
 	int nb = number_of_images_loaded();
 	fits **f = malloc((nb + 1) * sizeof(fits *));
 	int j = 0;
@@ -603,12 +603,12 @@ static void update_metadata() {
 		}
 	f[j] = NULL;
 
-	merge_fits_headers_to_result2(&gfit, f);
+	merge_fits_headers_to_result2(&gfit, f, do_sum);
 	free(f);
 }
 
 // Called after alignment
-static void update_comp_metadata(fits *fit) {
+static void update_comp_metadata(fits *fit, gboolean do_sum) {
 	int nb = number_of_images_loaded();
 	fits **f = malloc((nb + 1) * sizeof(fits *));
 	int j = 0;
@@ -617,7 +617,7 @@ static void update_comp_metadata(fits *fit) {
 			f[j++] = seq->internal_fits[i];
 	f[j] = NULL;
 
-	merge_fits_headers_to_result2(&gfit, f);
+	merge_fits_headers_to_result2(&gfit, f, do_sum);
 	free(f);
 }
 
@@ -762,7 +762,7 @@ void on_filechooser_file_set(GtkFileChooserButton *chooser, gpointer user_data) 
 	// enable the color balance finalization button
 	gtk_widget_set_sensitive(lookup_widget("composition_rgbcolor"), number_of_images_loaded() > 1);
 	update_result(1);
-	update_metadata();
+	update_metadata(TRUE);
 	update_MenuItem();
 }
 
@@ -847,6 +847,8 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 
 	gboolean two_step = (method->method_ptr == register_multi_step_global ||
 		method->method_ptr == register_kombat || method->method_ptr == register_manual) ? TRUE : FALSE;
+
+	gboolean do_sum = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("cumulate_rgb_button")));
 
 	// Avoid crash if gfit has been closed since populating the layers
 	if (!gfit.data && !gfit.fdata) {
@@ -966,7 +968,7 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 		}
 	}
 	// update WCS etc.
-	update_comp_metadata(seq->internal_fits[seq->reference_image]);
+	update_comp_metadata(seq->internal_fits[seq->reference_image], do_sum);
 	set_progress_bar_data(_("Registration complete."), PROGRESS_DONE);
 	set_cursor_waiting(FALSE);
 	com.run_thread = FALSE;	// fix for the cancelling check in processing
@@ -1145,8 +1147,8 @@ static void colors_align_and_compose() {
 	// Sort the date_obs and pic the earliest one
 	GList *date_obs_list = NULL;
 	for (int layer = 1 ; layers[layer]; layer++) {
-		if (has_fit(layer) && layers[layer]->the_fit.date_obs) {
-			date_obs_list = g_list_append(date_obs_list, layers[layer]->the_fit.date_obs);
+		if (has_fit(layer) && layers[layer]->the_fit.keywords.date_obs) {
+			date_obs_list = g_list_append(date_obs_list, layers[layer]->the_fit.keywords.date_obs);
 		}
 	}
 	int len = g_list_length(date_obs_list);
@@ -1165,11 +1167,10 @@ static void colors_align_and_compose() {
 		} else {
 			timespan_warning_given = FALSE;
 		}
-		if (gfit.date_obs) {
-			g_date_time_unref(gfit.date_obs);
+		if (gfit.keywords.date_obs) {
+			g_date_time_unref(gfit.keywords.date_obs);
 		}
-		g_date_time_ref(earliest);
-		gfit.date_obs = earliest;
+		gfit.keywords.date_obs = g_date_time_ref(earliest);
 	}
 	g_list_free(date_obs_list);
 	fprintf(stdout, "colour layers only composition\n");
@@ -1208,12 +1209,12 @@ static void luminance_and_colors_align_and_compose() {
 	guint x, y;
 	assert(has_fit(0));
 	// Copy the date_obs field from the luminance layer
-	if (layers[0]->the_fit.date_obs) {
-		if (gfit.date_obs) {
-			g_date_time_unref(gfit.date_obs);
+	if (layers[0]->the_fit.keywords.date_obs) {
+		if (gfit.keywords.date_obs) {
+			g_date_time_unref(gfit.keywords.date_obs);
 		}
-		g_date_time_ref(layers[0]->the_fit.date_obs);
-		gfit.date_obs = layers[0]->the_fit.date_obs;
+		g_date_time_ref(layers[0]->the_fit.keywords.date_obs);
+		gfit.keywords.date_obs = layers[0]->the_fit.keywords.date_obs;
 	}
 	if (no_color_available()) {
 		/* luminance only: we copy its data to all result layers */
@@ -1863,7 +1864,7 @@ int manual_align_prepare_hook(struct generic_seq_args *args) {
 		free(sadata->current_regdata);
 		return 1;
 	}
-	if (fit.naxes[2] == 1 && fit.bayer_pattern[0] != '\0')
+	if (fit.naxes[2] == 1 && fit.keywords.bayer_pattern[0] != '\0')
 		siril_log_color_message(_("Registering a sequence opened as CFA is a bad idea.\n"), "red");
 
 	siril_log_color_message(_("Reference Image:\n"), "green");
@@ -1941,8 +1942,8 @@ int manual_align_image_hook(struct generic_seq_args *args, int out_index, int in
 		cvGetEye(&regargs->regparam[out_index].H);
 
 		if (regargs->x2upscale) {
-			fit->pixel_size_x /= 2;
-			fit->pixel_size_y /= 2;
+			fit->keywords.pixel_size_x /= 2;
+			fit->keywords.pixel_size_y /= 2;
 		}
 	} else {
 		// TODO: check if H matrix needs to include a flip or not based on fit->top_down

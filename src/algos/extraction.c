@@ -42,28 +42,28 @@ static int cfa_extract_compute_mem_limits(struct generic_seq_args *args, gboolea
 static void update_sampling_information(fits *fit, float factor) {
 	clear_Bayer_information(fit);
 
-	fit->pixel_size_x *= factor;
-	fit->pixel_size_y *= factor;
+	fit->keywords.pixel_size_x *= factor;
+	fit->keywords.pixel_size_y *= factor;
 }
 
 void update_filter_information(fits *fit, char *filter, gboolean append) {
 	gchar *filtername = NULL;
 	if (append) {
-		gchar *currfilter = g_strstrip(fit->filter);
+		gchar *currfilter = g_strstrip(fit->keywords.filter);
 		if (g_strcmp0(currfilter, filter) && !(currfilter[0] == '\0')) { // to deal with case of Ha filter (avoids Ha_Ha) or empty filter name
 			filtername = g_strconcat(currfilter, "_", filter, NULL);
 		} else filtername = g_strdup(filter);
 	} else {
 		filtername = g_strdup(filter);
 	}
-	strncpy(fit->filter, filtername, FLEN_VALUE - 1);
+	strncpy(fit->keywords.filter, filtername, FLEN_VALUE - 1);
 	g_free(filtername);
 }
 
-int extractHa_ushort(fits *in, fits *Ha, sensor_pattern pattern) {
+int extractHa_ushort(fits *in, fits *Ha, sensor_pattern pattern, extraction_scaling scaling) {
 	int width = in->rx / 2, height = in->ry / 2;
 
-	if (strlen(in->bayer_pattern) > 4) {
+	if (strlen(in->keywords.bayer_pattern) > 4) {
 		siril_log_message(_("Extract_Ha does not work on non-Bayer filter camera images!\n"));
 		return 1;
 	}
@@ -101,20 +101,23 @@ int extractHa_ushort(fits *in, fits *Ha, sensor_pattern pattern) {
 			j++;
 		}
 	}
+	if (scaling == SCALING_HA_UP) {
+		verbose_resize_gaussian(Ha, Ha->rx * 2, Ha->ry * 2, OPENCV_LANCZOS4, TRUE);
+	}
 
 	/* We update FITS keywords */
 	copy_fits_metadata(in, Ha);
-	update_sampling_information(Ha, 2.f);
+	update_sampling_information(Ha, scaling ? 1.f : 2.f);
 	update_filter_information(Ha, "Ha", TRUE);
 	Ha->history = g_slist_append(Ha->history, g_strdup(_("Ha channel")));
 
 	return 0;
 }
 
-int extractHa_float(fits *in, fits *Ha, sensor_pattern pattern) {
+int extractHa_float(fits *in, fits *Ha, sensor_pattern pattern, extraction_scaling scaling) {
 	int width = in->rx / 2, height = in->ry / 2;
 
-	if (strlen(in->bayer_pattern) > 4) {
+	if (strlen(in->keywords.bayer_pattern) > 4) {
 		siril_log_message(_("Extract_Ha does not work on non-Bayer filter camera images!\n"));
 		return 1;
 	}
@@ -152,9 +155,13 @@ int extractHa_float(fits *in, fits *Ha, sensor_pattern pattern) {
 		}
 	}
 
+	if (scaling == SCALING_HA_UP) {
+		verbose_resize_gaussian(Ha, Ha->rx * 2, Ha->ry * 2, OPENCV_LANCZOS4, TRUE);
+	}
+
 	/* We update FITS keywords */
 	copy_fits_metadata(in, Ha);
-	update_sampling_information(Ha, 2.f);
+	update_sampling_information(Ha, scaling ? 1.f : 2.f);
 	update_filter_information(Ha, "Ha", TRUE);
 	Ha->history = g_slist_append(Ha->history, g_strdup(_("Ha channel")));
 
@@ -165,7 +172,7 @@ sensor_pattern get_bayer_pattern(fits *fit) {
 	/* Get Bayer informations from header if available */
 	sensor_pattern tmp_pattern = com.pref.debayer.bayer_pattern;
 	if (com.pref.debayer.use_bayer_header) {
-		sensor_pattern bayer = get_cfa_pattern_index_from_string(fit->bayer_pattern);
+		sensor_pattern bayer = get_cfa_pattern_index_from_string(fit->keywords.bayer_pattern);
 		if (bayer <= BAYER_FILTER_MAX) {
 			if (bayer != tmp_pattern) {
 				if (bayer == BAYER_FILTER_NONE) {
@@ -206,14 +213,15 @@ int split_finalize_hook(struct generic_seq_args *args) {
 }
 
 int extractHa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
+	struct split_cfa_data *data = (struct split_cfa_data *) args->user;
 	int ret = 1;
 	fits f_Ha = { 0 };
 	sensor_pattern pattern = get_bayer_pattern(fit);
 
 	if (fit->type == DATA_USHORT)
-		ret = extractHa_ushort(fit, &f_Ha, pattern);
+		ret = extractHa_ushort(fit, &f_Ha, pattern, data->scaling);
 	else if (fit->type == DATA_FLOAT)
-		ret = extractHa_float(fit, &f_Ha, pattern);
+		ret = extractHa_float(fit, &f_Ha, pattern, data->scaling);
 	else return 1;
 	if (!ret) {
 		clearfits(fit);
@@ -254,7 +262,7 @@ void apply_extractHa_to_sequence(struct split_cfa_data *split_cfa_args) {
 int extractGreen_ushort(fits *in, fits *green, sensor_pattern pattern) {
 	int width = in->rx / 2, height = in->ry / 2;
 
-	if (strlen(in->bayer_pattern) > 4) {
+	if (strlen(in->keywords.bayer_pattern) > 4) {
 		siril_log_message(_("Extract_Green does not work on non-Bayer filter camera images!\n"));
 		return 1;
 	}
@@ -299,7 +307,7 @@ int extractGreen_ushort(fits *in, fits *green, sensor_pattern pattern) {
 int extractGreen_float(fits *in, fits *green, sensor_pattern pattern) {
 	int width = in->rx / 2, height = in->ry / 2;
 
-	if (strlen(in->bayer_pattern) > 4) {
+	if (strlen(in->keywords.bayer_pattern) > 4) {
 		siril_log_message(_("Extract_Green does not work on non-Bayer filter camera images!\n"));
 		return 1;
 	}
@@ -568,7 +576,7 @@ void apply_extractHaOIII_to_sequence(struct split_cfa_data *split_cfa_args) {
 int split_cfa_ushort(fits *in, fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3) {
 	int width = in->rx / 2, height = in->ry / 2;
 
-	if (strlen(in->bayer_pattern) > 4) {
+	if (strlen(in->keywords.bayer_pattern) > 4) {
 		siril_log_message(_("Split CFA does not work on non-Bayer filter camera images!\n"));
 		return 1;
 	}
@@ -619,7 +627,7 @@ int split_cfa_ushort(fits *in, fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3) {
 int split_cfa_float(fits *in, fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3) {
 	int width = in->rx / 2, height = in->ry / 2;
 
-	if (strlen(in->bayer_pattern) > 4) {
+	if (strlen(in->keywords.bayer_pattern) > 4) {
 		siril_log_message(_("Split CFA does not work on non-Bayer filter camera images!\n"));
 		return 1;
 	}
@@ -811,7 +819,7 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 
 	int width = in->rx / 2, height = in->ry / 2;
 
-	if (strlen(in->bayer_pattern) > 4) {
+	if (strlen(in->keywords.bayer_pattern) > 4) {
 		siril_log_message(_("Extract_HaOIII does not work on non-Bayer filter camera images!\n"));
 		return 1;
 	}
@@ -1039,7 +1047,7 @@ int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, 
 
 	int width = in->rx / 2, height = in->ry / 2;
 
-	if (strlen(in->bayer_pattern) > 4) {
+	if (strlen(in->keywords.bayer_pattern) > 4) {
 		siril_log_message(_("Extract_HaOIII does not work on non-Bayer filter camera images!\n"));
 		return 1;
 	}

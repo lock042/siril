@@ -66,6 +66,20 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="step-increment">0.10</property>
     <property name="page-increment">10</property>
   </object>
+  <object class="GtkAdjustment" id="adj_driz_dropsize">
+    <property name="lower">0.10</property>
+    <property name="upper">10</property>
+    <property name="value">1</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">0.10</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_driz_scale">
+    <property name="lower">0.10</property>
+    <property name="upper">10</property>
+    <property name="value">1</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">0.10</property>
+  </object>
   <object class="GtkAdjustment" id="adj_highlights">
     <property name="upper">1</property>
     <property name="value">1</property>
@@ -181,6 +195,13 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="value">0.5</property>
     <property name="step-increment">0.05</property>
     <property name="page-increment">0.10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_scaling">
+    <property name="lower">0.10</property>
+    <property name="upper">2</property>
+    <property name="value">1</property>
+    <property name="step-increment">0.10</property>
+    <property name="page-increment">0.20</property>
   </object>
   <object class="GtkAdjustment" id="adjustment_shiftx">
     <property name="lower">-3000</property>
@@ -6047,7 +6068,72 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <placeholder/>
+                                                            <object class="GtkBox" id="proj_box">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="spacing">5</property>
+                                                            <child>
+                                                            <object class="GtkLabel" id="proj_lbl">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="valign">center</property>
+                                                            <property name="label" translatable="yes">Projection method</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="padding">5</property>
+                                                            <property name="position">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkComboBoxText" id="comboreg_proj">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Specifies the projection method to be used:
+- "planar" uses linear transformations between images (suitable for a limited FOV)
+- "spherical" reprojects images on the celestial sphere.</property>
+                                                            <property name="valign">center</property>
+                                                            <property name="active">1</property>
+                                                            <items>
+                                                            <item translatable="yes">planar</item>
+                                                            <item translatable="yes">spherical</item>
+                                                            </items>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkButton" id="proj_estimate">
+                                                            <property name="label" translatable="yes">Estimate</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">True</property>
+                                                            <property name="tooltip-text" translatable="yes">Estimates the final size and space used by the stacked image.</property>
+                                                            <property name="use-underline">True</property>
+                                                            <signal name="clicked" handler="on_seqregister_button_clicked" swapped="no"/>
+                                                            <style>
+                                                            <class name="suggested-action"/>
+                                                            </style>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">False</property>
+                                                            <property name="padding">15</property>
+                                                            <property name="pack-type">end</property>
+                                                            <property name="position">2</property>
+                                                            </packing>
+                                                            </child>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="padding">5</property>
+                                                            <property name="position">2</property>
+                                                            </packing>
                                                             </child>
                                                             </object>
                                                             <packing>
@@ -6610,18 +6696,252 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="orientation">vertical</property>
                                                             <property name="spacing">5</property>
                                                             <child>
+                                                            <object class="GtkBox">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="orientation">vertical</property>
+                                                            <child>
                                                             <object class="GtkCheckButton" id="upscaleCheckButton">
-                                                            <property name="label" translatable="yes">Simplified Drizzle x2</property>
+                                                            <property name="label" translatable="yes">Interpolation upscaling x2</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Activate the simplified drizzle algorithm for the processing of this sequence. An up-scale (x2) will be applied to the registered frame or during stacking depending on which registration is chosen, that will result in higher resolution images.
-This option is adapted for under-sampled images, i.e, when the telescope focal length is too short for the pixel size. One may consider that the system is under-sampled when FWHM is smaller than 2 pixels.
-The correct name of this method should be super-resolution stacking, but for a more convenient understanding we called it "Simplified Drizzle x2".
-
-WARNING: the counterpart of this technic is that the amount of memory and disk space needed to create and process drizzled images is multiplied by the square of the Drizzle factor.</property>
+                                                            <property name="tooltip-text" translatable="yes">Applies an interpolation-based x2 upscaling. This is quicker than most of the proper drizzle kernels but will not provide results that are as sharp.</property>
                                                             <property name="halign">start</property>
                                                             <property name="draw-indicator">True</property>
+                                                            <signal name="toggled" handler="on_upscaleCheckButton_toggled" swapped="no"/>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkCheckButton" id="drizzleCheckButton">
+                                                            <property name="label" translatable="yes">Drizzle</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">The sequence will be registered using the Drizzle algorithm originally developed for use with undersampled Hubble Space Telescope images. This can be useful to improve resolution of your images if they are undersampled. It can also serve as an alternative demosaicing algorithm for OSC images (the CFA pattern must still be present, so you must not debayer them prior to Drizzle) which improves the resolution of the result and yields noise with a characteristic that is easier to treat with noise reduction algorithms. Drizzling mono images with x2 scale or CFA images with x1 scale generally requires a minimum of about 10 frames in the sequence.
+
+WARNING: the counterpart of this technic is that the amount of memory and disk space needed to create and process drizzled images is multiplied by the square of the Drizzle factor.</property>
+                                                            <property name="draw-indicator">True</property>
+                                                            <signal name="toggled" handler="on_drizzleCheckButton_toggled" swapped="no"/>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkBox" id="box_drizzle_controls">
+                                                            <property name="can-focus">False</property>
+                                                            <property name="orientation">vertical</property>
+                                                            <property name="spacing">6</property>
+                                                            <child>
+                                                            <object class="GtkFrame">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="label-xalign">0</property>
+                                                            <property name="shadow-type">none</property>
+                                                            <child>
+                                                            <object class="GtkAlignment">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="left-padding">12</property>
+                                                            <child>
+                                                            <!-- n-columns=2 n-rows=4 -->
+                                                            <object class="GtkGrid">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="row-spacing">6</property>
+                                                            <property name="column-spacing">6</property>
+                                                            <child>
+                                                            <object class="GtkComboBoxText" id="combo_driz_method">
+                                                            <property name="sensitive">False</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="tooltip-markup" translatable="yes">Choose Homography or WCS for the drizzle mapping method. For Homography, the sequence must contain registration data; for WCS, all images in the sequence must be plate solved (e.g. using the &lt;b&gt;seqplatesolve&lt;/b&gt; command)</property>
+                                                            <property name="active">0</property>
+                                                            <items>
+                                                            <item translatable="yes">Homography</item>
+                                                            <item translatable="yes">WCS</item>
+                                                            </items>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">1</property>
+                                                            <property name="top-attach">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkLabel">
+                                                            <property name="sensitive">False</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="label" translatable="yes">Drizzle mapping method</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkLabel">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="label" translatable="yes">Drizzle Scale</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkSpinButton" id="spin_driz_scale">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="tooltip-text" translatable="yes">Sets the drizzle scale. A scale of 2 means the output pixel grid will have twice the resolution of the input pixel grid.</property>
+                                                            <property name="text" translatable="yes">1.00</property>
+                                                            <property name="adjustment">adj_driz_scale</property>
+                                                            <property name="digits">2</property>
+                                                            <property name="value">1</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">1</property>
+                                                            <property name="top-attach">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkLabel">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="label" translatable="yes">Pixel Fraction</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">2</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkSpinButton" id="spin_driz_dropsize">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="tooltip-text" translatable="yes">Sets the droplet size as a fraction of the input pixel size. Typically a good value for this is the reciprocal of the drizzle scale.</property>
+                                                            <property name="text" translatable="yes">1.00</property>
+                                                            <property name="adjustment">adj_driz_dropsize</property>
+                                                            <property name="digits">2</property>
+                                                            <property name="value">1</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">1</property>
+                                                            <property name="top-attach">2</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkLabel">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="label" translatable="yes">Droplet Model</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">3</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkComboBoxText" id="combo_driz_kernel">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Select the droplet model. See the documentation for details
+Note that the Gaussian and Lanczos models do not conserve flux and should not be used f you wish to use the output for accurate photometry.</property>
+                                                            <property name="active">0</property>
+                                                            <items>
+                                                            <item translatable="yes">Square</item>
+                                                            <item translatable="yes">Gaussian</item>
+                                                            <item translatable="yes">Point</item>
+                                                            <item translatable="yes">Turbo</item>
+                                                            <item translatable="yes">Lanczos2</item>
+                                                            <item translatable="yes">Lanczos3</item>
+                                                            </items>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">1</property>
+                                                            <property name="top-attach">3</property>
+                                                            </packing>
+                                                            </child>
+                                                            </object>
+                                                            </child>
+                                                            </object>
+                                                            </child>
+                                                            <child type="label">
+                                                            <object class="GtkLabel">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="margin-bottom">6</property>
+                                                            <property name="label" translatable="yes">Drizzle Mapping</property>
+                                                            </object>
+                                                            </child>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkFrame">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="label-xalign">0</property>
+                                                            <property name="shadow-type">none</property>
+                                                            <child>
+                                                            <object class="GtkAlignment">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="left-padding">12</property>
+                                                            <child>
+                                                            <object class="GtkCheckButton" id="driz_use_flats">
+                                                            <property name="label" translatable="yes">Include master flat in initial pixel weighting</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Check this to include the master flat in the initial pixel weighting. This will result in pixels from less vignetted areas of input frames being weighted more heavily than pixels from more vignetted areas, where they land on the same output pixel. This is at best a minor gain.
+
+The master flat must be set in the Calibration tab.</property>
+                                                            <property name="draw-indicator">True</property>
+                                                            </object>
+                                                            </child>
+                                                            </object>
+                                                            </child>
+                                                            <child type="label">
+                                                            <object class="GtkLabel">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="ypad">6</property>
+                                                            <property name="label" translatable="yes">Pixel weighting</property>
+                                                            <attributes>
+                                                            <attribute name="weight" value="bold"/>
+                                                            </attributes>
+                                                            </object>
+                                                            </child>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">2</property>
+                                                            </packing>
+                                                            </child>
                                                             </object>
                                                             <packing>
                                                             <property name="expand">False</property>
@@ -6646,6 +6966,94 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
                                                             <property name="position">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkCheckButton" id="check_button_comet">
+                                                            <property name="label" translatable="yes">Accumulate reg. data</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Check this button if you want the new registration data to be added to the previous one.
+This option is useful when sequence has previously been aligned using a method that does not build a new sequence, but it should be unchecked when the comet/asteroid algorithm is applied several times.</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="active">True</property>
+                                                            <property name="draw-indicator">True</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">2</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkCheckButton" id="reg_undistort">
+                                                            <property name="label" translatable="yes">Undistort images</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-markup" translatable="yes">When this box is checked, the transformed images are undistorted using the SIP data in the reference frame.</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="active">True</property>
+                                                            <property name="draw-indicator">True</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">3</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkBox" id="reg_scaling_box">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <child>
+                                                            <object class="GtkLabel">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="label" translatable="yes">Scaling:</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="padding">12</property>
+                                                            <property name="position">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkSpinButton" id="reg_scaling_spin">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="tooltip-text" translatable="yes">Scaling of the output images. Use Estimate button to determine the final image size.</property>
+                                                            <property name="halign">end</property>
+                                                            <property name="invisible-char">●</property>
+                                                            <property name="width-chars">6</property>
+                                                            <property name="max-width-chars">5</property>
+                                                            <property name="text">1.00</property>
+                                                            <property name="input-purpose">number</property>
+                                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                                            <property name="adjustment">adjustment_scaling</property>
+                                                            <property name="climb-rate">0.10</property>
+                                                            <property name="digits">2</property>
+                                                            <property name="numeric">True</property>
+                                                            <property name="value">1</property>
+                                                            <style>
+                                                            <class name="small-spinbutton"/>
+                                                            </style>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <placeholder/>
+                                                            </child>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">4</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -6691,11 +7099,11 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">2</property>
+                                                            <property name="position">5</property>
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkBox">
+                                                            <object class="GtkBox" id="interp_box">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="spacing">6</property>
@@ -6742,7 +7150,7 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">3</property>
+                                                            <property name="position">6</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -6764,24 +7172,7 @@ In current Siril implementations, we have included a clamping mechanism that pre
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">4</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkCheckButton" id="check_button_comet">
-                                                            <property name="label" translatable="yes">Accumulate reg. data</property>
-                                                            <property name="can-focus">True</property>
-                                                            <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Check this button if you want the new registration data to be added to the previous one.
-This option is useful when sequence has previously been aligned using a method that does not build a new sequence, but it should be unchecked when the comet/asteroid algorithm is applied several times.</property>
-                                                            <property name="halign">start</property>
-                                                            <property name="active">True</property>
-                                                            <property name="draw-indicator">True</property>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">5</property>
+                                                            <property name="position">7</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -6802,7 +7193,7 @@ This option is useful when sequence has previously been aligned using a method t
                                                             <property name="expand">True</property>
                                                             <property name="fill">True</property>
                                                             <property name="padding">16</property>
-                                                            <property name="position">6</property>
+                                                            <property name="position">8</property>
                                                             </packing>
                                                             </child>
                                                             </object>

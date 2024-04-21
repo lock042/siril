@@ -401,7 +401,7 @@ void initialise_image() {
 	init_right_tab();
 }
 
-gboolean check_images_match(fits *fit1, fits *fit2) {
+static gboolean check_images_match(const fits *fit1, const fits *fit2) {
 	if (fit1->rx != fit2->rx) return FALSE;
 	if (fit1->ry != fit2->ry) return FALSE;
 	if (fit1->type != fit2->type) return FALSE;
@@ -769,7 +769,6 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 			copy_fits_metadata(_fit_left, &fit_left);
 			clearfits(_fit_left);
 			free(_fit_left);
-			_fit_left = NULL;
 			close_histograms(TRUE, TRUE);
 			remix_histo_startup_left();
 			copyfits(&fit_left, &fit_left_calc, (CP_ALLOC | CP_INIT | CP_FORMAT), 0);
@@ -783,15 +782,14 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 			remix_histo_startup_right();
 			clearfits(_fit_right);
 			free(_fit_right);
-			_fit_right = NULL;
 			copyfits(&fit_right, &fit_right_calc, (CP_ALLOC | CP_INIT | CP_FORMAT), 0);
 			right_loaded = TRUE; // Mark RHS image as loaded
 			right_changed = TRUE; // Force update on initial draw
 			initialize_remixer_transforms(&fit_left);
-			merge_fits_headers_to_result(&gfit, &fit_left, &fit_right, NULL);
+			merge_fits_headers_to_result(&gfit, FALSE, &fit_left, &fit_right, NULL);
 			// Avoid doubling STACKCNT and LIVETIME as we are merging starless and star parts of a single image
-			gfit.stackcnt = fit_left.stackcnt;
-			gfit.livetime = fit_left.livetime;
+			gfit.keywords.stackcnt = fit_left.keywords.stackcnt;
+			gfit.keywords.livetime = fit_left.keywords.livetime;
 			initialise_image();
 
 			gtk_widget_set_visible(lookup_widget("remix_filechooser_left"), FALSE);
@@ -1153,23 +1151,23 @@ void on_remix_filechooser_left_file_set(GtkFileChooser *filechooser, gpointer us
 					siril_log_message(_("Color profiles did not match: right-hand image has been assigned the left-hand image color profile.\n"));
 				}
 			}
-			merge_fits_headers_to_result(&gfit, &fit_left, &fit_right, NULL);
-			if (fit_left.filter[0] != '\0' && fit_right.filter[0] != '\0' && strlen(fit_left.filter) >= 8 && strlen(fit_right.filter) >= 8) {
-				gchar *temp_l = g_malloc(strlen(fit_left.filter) - 7);
-				g_strlcpy(temp_l, fit_left.filter, strlen(fit_left.filter) - 8);
-				gchar *temp_r = g_malloc(strlen(fit_right.filter) - 7);
-				g_strlcpy(temp_r, fit_right.filter, strlen(fit_right.filter) - 8);
-				if (strlen(fit_left.filter) == 8)
+			merge_fits_headers_to_result(&gfit, FALSE, &fit_left, &fit_right, NULL);
+			if (fit_left.keywords.filter[0] != '\0' && fit_right.keywords.filter[0] != '\0' && strlen(fit_left.keywords.filter) >= 8 && strlen(fit_right.keywords.filter) >= 8) {
+				gchar *temp_l = g_malloc(strlen(fit_left.keywords.filter) - 7);
+				g_strlcpy(temp_l, fit_left.keywords.filter, strlen(fit_left.keywords.filter) - 8);
+				gchar *temp_r = g_malloc(strlen(fit_right.keywords.filter) - 7);
+				g_strlcpy(temp_r, fit_right.keywords.filter, strlen(fit_right.keywords.filter) - 8);
+				if (strlen(fit_left.keywords.filter) == 8)
 					temp_l[0] = '\0';
-				if (strlen(fit_right.filter) == 8)
+				if (strlen(fit_right.keywords.filter) == 8)
 					temp_r[0] = '\0';
 				if (!strcmp(temp_l, temp_r)) {
-					if (fit_left.livetime >= fit_right.livetime) {
-						gfit.livetime = fit_left.livetime;
-						gfit.stackcnt = fit_left.stackcnt;
+					if (fit_left.keywords.livetime >= fit_right.keywords.livetime) {
+						gfit.keywords.livetime = fit_left.keywords.livetime;
+						gfit.keywords.stackcnt = fit_left.keywords.stackcnt;
 					} else {
-						gfit.livetime = fit_right.livetime;
-						gfit.stackcnt = fit_right.stackcnt;
+						gfit.keywords.livetime = fit_right.keywords.livetime;
+						gfit.keywords.stackcnt = fit_right.keywords.stackcnt;
 					}
 				}
 				g_free(temp_l);
@@ -1249,23 +1247,23 @@ void on_remix_filechooser_right_file_set(GtkFileChooser *filechooser, gpointer u
 				siril_colorspace_transform(&fit_right, fit_left.icc_profile);
 				siril_log_message(_("Color profiles did not match: right-hand image has been converted to left-hand image color profile.\n"));
 			}
-			merge_fits_headers_to_result(&gfit, &fit_left, &fit_right, NULL);
-			if (fit_left.filter[0] != '\0' && fit_right.filter[0] != '\0' && strlen(fit_left.filter) >= 8 && strlen(fit_right.filter) >= 8) {
-				gchar *temp_l = g_malloc(strlen(fit_left.filter) - 7);
-				g_strlcpy(temp_l, fit_left.filter, strlen(fit_left.filter) - 8);
-				gchar *temp_r = g_malloc(strlen(fit_right.filter) - 7);
-				g_strlcpy(temp_r, fit_right.filter, strlen(fit_right.filter) - 8);
-				if (strlen(fit_left.filter) == 8)
+			merge_fits_headers_to_result(&gfit, FALSE, &fit_left, &fit_right, NULL);
+			if (fit_left.keywords.filter[0] != '\0' && fit_right.keywords.filter[0] != '\0' && strlen(fit_left.keywords.filter) >= 8 && strlen(fit_right.keywords.filter) >= 8) {
+				gchar *temp_l = g_malloc(strlen(fit_left.keywords.filter) - 7);
+				g_strlcpy(temp_l, fit_left.keywords.filter, strlen(fit_left.keywords.filter) - 8);
+				gchar *temp_r = g_malloc(strlen(fit_right.keywords.filter) - 7);
+				g_strlcpy(temp_r, fit_right.keywords.filter, strlen(fit_right.keywords.filter) - 8);
+				if (strlen(fit_left.keywords.filter) == 8)
 					temp_l[0] = '\0';
-				if (strlen(fit_right.filter) == 8)
+				if (strlen(fit_right.keywords.filter) == 8)
 					temp_r[0] = '\0';
 				if (!strcmp(temp_l, temp_r)) {
-					if (fit_left.livetime >= fit_right.livetime) {
-						gfit.livetime = fit_left.livetime;
-						gfit.stackcnt = fit_left.stackcnt;
+					if (fit_left.keywords.livetime >= fit_right.keywords.livetime) {
+						gfit.keywords.livetime = fit_left.keywords.livetime;
+						gfit.keywords.stackcnt = fit_left.keywords.stackcnt;
 					} else {
-						gfit.livetime = fit_right.livetime;
-						gfit.stackcnt = fit_right.stackcnt;
+						gfit.keywords.livetime = fit_right.keywords.livetime;
+						gfit.keywords.stackcnt = fit_right.keywords.stackcnt;
 					}
 				}
 				g_free(temp_l);

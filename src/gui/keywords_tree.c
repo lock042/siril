@@ -2,7 +2,7 @@
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
  * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -174,7 +174,6 @@ static int listFITSKeywords(fits *fit, gboolean editable) {
 		fits_parse_value(card, value, comment, &status);
 		fits_get_keytype(value, &dtype, &status);
 		status = 0;
-
 		add_key_to_tree(keyname, value, comment, dtype, fits_get_keyclass(card) == TYP_STRUC_KEY, editable);
 	}
 
@@ -216,9 +215,6 @@ void on_val_edited(GtkCellRendererText *renderer, char *path, char *new_val, gpo
 		/* update FITS */
 		if (dtype == 'C' && (new_val[0] != '\'' || new_val[strlen(new_val) - 1] != '\'')) {
 			ffs2c(new_val, valstring, &status);
-			if (status) {
-				return;
-			}
 		} else {
 			strcpy(valstring, new_val);
 		}

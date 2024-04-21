@@ -516,8 +516,8 @@ static gpointer export_sequence(gpointer ptr) {
 				break;
 #endif
 			case EXPORT_SER:
-				if (destfit->date_obs) {
-					strTime = g_date_time_ref(destfit->date_obs);
+				if (destfit->keywords.date_obs) {
+					strTime = g_date_time_ref(destfit->keywords.date_obs);
 					timestamp = g_slist_append(timestamp, strTime);
 				}
 				retval = ser_write_frame_from_fit(ser_file, destfit, i - skipped);

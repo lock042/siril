@@ -71,7 +71,9 @@ int	process_entropy(int nb);
 int	process_exit(int nb);
 int	process_extract(int nb);
 int	process_extractGreen(int nb);
+int	extract_Ha(extraction_scaling scaling);
 int	process_extractHa(int nb);
+int	extract_HaOIII(extraction_scaling scaling);
 int	process_extractHaOIII(int nb);
 
 int	process_fdiv(int nb);
@@ -96,9 +98,9 @@ int	process_histo(int nb);
 
 int	process_jsonmetadata(int nb);
 
-int process_icc_assign(int nb);
-int process_icc_convert_to(int nb);
-int process_icc_remove(int nb);
+int	process_icc_assign(int nb);
+int	process_icc_convert_to(int nb);
+int	process_icc_remove(int nb);
 int	process_imoper(int nb);
 int	process_inspector(int nb);
 
@@ -149,11 +151,11 @@ int	process_rotatepi(int nb);
 int	process_satu(int nb);
 int	process_save(int nb);
 #ifdef HAVE_LIBHEIF
-int process_saveavif(int nb);
+int	process_saveavif(int nb);
 #endif
 int	process_savebmp(int nb);
 #ifdef HAVE_LIBHEIF
-int process_saveheif(int nb);
+int	process_saveheif(int nb);
 #endif
 #ifdef HAVE_LIBJPEG
 int	process_savejpg(int nb);
@@ -174,6 +176,7 @@ int	process_scnr(int nb);
 int	process_search_fct(int nb);
 int	process_select(int nb);
 int	process_seq_applyreg(int nb);
+int	process_seq_applyastrometry(int nb);
 int	process_seq_clean(int nb);
 int	process_seq_cosme(int nb);
 int	process_seq_crop(int nb);
@@ -192,6 +195,7 @@ int	process_seq_modasinh(int nb);
 int	process_seq_mtf(int nb);
 int	process_seq_profile(int nb);
 int	process_seq_psf(int nb);
+int	process_seq_resample(int nb);
 int	process_seq_rl(int nb);
 int	process_seq_sb(int nb);
 int	process_seq_split_cfa(int nb);
@@ -214,8 +218,8 @@ int	process_set_mem(int nb);
 int	process_set_photometry(int nb);
 int	process_set_ref(int nb);
 int	process_subsky(int nb);
-int process_spcc(int nb);
-int process_spcc_list(int nb);
+int	process_spcc(int nb);
+int	process_spcc_list(int nb);
 int	process_split(int nb);
 int	process_split_cfa(int nb);
 int	process_stat(int nb);

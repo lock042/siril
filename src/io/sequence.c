@@ -50,6 +50,7 @@
 #include "gui/callbacks.h"
 #include "gui/message_dialog.h"
 #include "gui/plot.h"
+#include "gui/registration.h"
 #include "ser.h"
 #include "fits_sequence.h"
 #ifdef HAVE_FFMS2
@@ -657,6 +658,7 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 	}
 
 	update_MenuItem();		// initialize menu gui
+	set_GUI_CAMERA();		// update image information
 	sequence_list_change_current();
 	adjust_refimage(index);	// check or uncheck reference image checkbox
 
@@ -1685,6 +1687,15 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 	}
 	data->image_index = index;
 
+	/* Backup the original pointer to fit. If there is a Bayer pattern we need
+	 * to interpolate non-green pixels, so make a copy we can work on. */
+	fits *orig_fit = fit;
+	if (spsfargs->bayer) {
+		fit = calloc(1, sizeof(fits));
+		copyfits(orig_fit, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+		interpolate_nongreen(fit);
+	}
+
 	rectangle psfarea = { .x = 0, .y = 0, .w = fit->rx, .h = fit->ry };
 	psf_error error;
 	struct phot_config *ps = NULL;
@@ -1714,11 +1725,11 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 			siril_debug_print("moving area to %d, %d\n", args->area.x, args->area.y);
 		}
 
-		if (!args->seq->imgparam[index].date_obs && fit->date_obs)
-			args->seq->imgparam[index].date_obs = g_date_time_ref(fit->date_obs);
-		data->exposure = fit->exposure;
+		if (!args->seq->imgparam[index].date_obs && fit->keywords.date_obs)
+			args->seq->imgparam[index].date_obs = g_date_time_ref(fit->keywords.date_obs);
+		data->exposure = fit->keywords.exposure;
 
-		args->seq->imgparam[index].airmass = fit->airmass;
+		args->seq->imgparam[index].airmass = fit->keywords.airmass;
 	}
 	else {
 		if (spsfargs->framing == FOLLOW_STAR_FRAME && !spsfargs->for_occultation) {
@@ -1732,7 +1743,13 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 					"red", index, area->x, area->y, psf_error_to_string(error));
 		}
 	}
-
+	if (spsfargs->bayer) {
+		// Get rid of the temporary copy and restore the original frame fits
+		// now that we have computed the actual registration data
+		clearfits(fit);
+		free(fit);
+		fit = orig_fit;
+	}
 #ifdef _OPENMP
 	omp_set_lock(&args->lock);
 #endif
@@ -2006,9 +2023,10 @@ void free_reference_image() {
  * on the configured memory ratio */
 static int compute_nb_images_fit_memory_from_dimensions(int rx, int ry, int nb_layers, data_type type, double factor, gboolean force_float, unsigned int *MB_per_orig_image, unsigned int *MB_per_scaled_image, unsigned int *max_mem_MB) {
 	int max_memory_MB = get_max_memory_in_MB();
-	if (factor < 1.0 || factor > 2.0) {
-		fprintf(stderr, "############ FACTOR UNINIT (set to 1) ############\n");
-		factor = 1.0;
+
+	factor = max(factor, 1.0);
+	if (factor > 3.0) {
+		siril_debug_print("Info: image scaling is very large! (> 3.0)\n");
 	}
 	uint64_t newx = round_to_int((double) rx * factor);
 	uint64_t newy = round_to_int((double) ry * factor);

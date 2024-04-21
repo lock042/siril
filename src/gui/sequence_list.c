@@ -33,10 +33,11 @@
 #include "gui/progress_and_log.h"
 #include "gui/registration_preview.h"
 #include "gui/plot.h"
+#include "gui/registration.h"	// for update_reg_interface
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
 #include "algos/PSF.h"
-#include "registration/registration.h"	// for update_reg_interface
+#include "registration/registration.h"
 #include "stacking/stacking.h"	// for update_stack_interface
 #include <dirent.h>
 
@@ -196,16 +197,16 @@ static void add_image_to_sequence_list(sequence *seq, int index, int layer) {
 			switch (selected_source) {
 				case r_FWHM:
 					if (is_arcsec) {
-						bin = com.pref.binning_update ? (double) gfit.binning_x : 1.0;
-						convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][index].fwhm, bin, (double) gfit.pixel_size_x, gfit.focal_length, &fwhm);
+						bin = com.pref.binning_update ? (double) gfit.keywords.binning_x : 1.0;
+						convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][index].fwhm, bin, (double) gfit.keywords.pixel_size_x, gfit.keywords.focal_length, &fwhm);
 					} else {
 						fwhm = seq->regparam[layer][index].fwhm;
 					}
 					break;
 				case r_WFWHM:
 					if (is_arcsec) {
-						bin = com.pref.binning_update ? (double) gfit.binning_x : 1.0;
-						convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][index].weighted_fwhm, bin, (double) gfit.pixel_size_x, gfit.focal_length, &fwhm);
+						bin = com.pref.binning_update ? (double) gfit.keywords.binning_x : 1.0;
+						convert_single_fwhm_to_arcsec_if_possible(seq->regparam[layer][index].weighted_fwhm, bin, (double) gfit.keywords.pixel_size_x, gfit.keywords.focal_length, &fwhm);
 					} else {
 						fwhm = seq->regparam[layer][index].weighted_fwhm;
 					}
