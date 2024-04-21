@@ -31,6 +31,7 @@ src_files = [
   'algos/io_wave.c',
   'algos/median_fast.c',
   'algos/noise.c',
+  'algos/occult_time.c',
   'algos/pave.c',
   'algos/photometry.c',
   'algos/photometric_cc.c',

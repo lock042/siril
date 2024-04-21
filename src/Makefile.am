@@ -68,6 +68,8 @@ siril_common_SOURCES = \
 	algos/noise.c \
 	algos/noise.h \
 	algos/pave.c \
+	algos/occult_time.c \
+	algos/occult_time.h \
 	algos/photometry.c \
 	algos/photometry.h \
 	algos/photometric_cc.c \

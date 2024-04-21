@@ -24,6 +24,7 @@
 #include "core/processing.h"
 #include "algos/siril_wcs.h"
 #include "algos/photometry.h"
+#include "algos/occult_time.h"
 #include "algos/comparison_stars.h"
 #include "algos/occult_time.h"
 #include "occultation.h"
