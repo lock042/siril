@@ -141,6 +141,15 @@
 
 char *word[MAX_COMMAND_WORDS];	// NULL terminated
 
+static gchar** word_to_args(int nb) {
+	gchar** gword = g_malloc((nb + 1) * sizeof(gchar*));
+	memset(gword, 0, (nb + 1) * sizeof(gchar*));
+	for (int i = 0 ; i < nb; i++) {
+		gword[i] = g_strdup(word[i]);
+	}
+	return gword;
+}
+
 // Returns TRUE if the sequence does not contain CFA images
 // Otherwise, returns FALSE and prints a warning
 static gboolean sequence_cfa_warning_check(sequence* seq) {
@@ -216,24 +225,24 @@ int process_seq_clean(int nb) {
 	}
 
 	if (nb > 2) {
-		for (int i = 2; i < nb; i++) {
-			if (word[i]) {
-				if (!strcmp(word[i], "-reg")) {
-					cleanreg = TRUE;
-				}
-				else if (!strcmp(word[i], "-stat")) {
-					cleanstat = TRUE;
-				}
-				else if (!strcmp(word[i], "-sel")) {
-					cleansel = TRUE;
-				}
-				else {
-					siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
-					if (!check_seq_is_comseq(seq))
-						free_sequence(seq, TRUE);
-					return CMD_ARG_ERROR;
-				}
-			}
+		gchar** gword = word_to_args(nb);
+		GOptionEntry entries[] = {
+			{ "reg", 0, 0, G_OPTION_ARG_NONE, &cleanreg, NULL, NULL },
+			{ "stat", 0, 0, G_OPTION_ARG_NONE, &cleanstat, NULL, NULL },
+			{ "sel", 0, 0, G_OPTION_ARG_NONE, &cleansel, NULL, NULL },
+			G_OPTION_ENTRY_NULL
+		};
+		GError *error = NULL;
+		GOptionContext *context;
+		context = g_option_context_new (NULL);
+		g_option_context_add_main_entries (context, entries, NULL);
+		gboolean retval = g_option_context_parse_strv(context, &gword, &error);
+		g_option_context_free(context);
+		g_strfreev(gword);
+		if (!retval) {
+			g_print ("option parsing failed: %s\n", error->message);
+			g_error_free(error);
+			return CMD_ARG_ERROR;
 		}
 	} else {
 		cleanreg = TRUE;
