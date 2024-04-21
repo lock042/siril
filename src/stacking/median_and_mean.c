@@ -351,7 +351,7 @@ static int stack_read_block_data(struct stacking_args *args,
 			rx = args->seq->imgparam[image_index].rx;
 			ry = args->seq->imgparam[image_index].ry;
 		}
-		rectangle area = {0, my_block->start_row, rx, min(my_block->height, ry)};
+		rectangle area = {0, my_block->start_row, rx, my_block->height};
 
 		if (!get_thread_run())
 			return ST_CANCEL;
@@ -366,38 +366,27 @@ static int stack_read_block_data(struct stacking_args *args,
 				double scale = args->seq->upscale_at_stacking;
 				double dx, dy;
 				translation_from_H(layerparam[args->image_indices[frame]].H, &dx, &dy);
-				if (args->maximize_framing) {
-					dy = args->offset[1] - dy;
-				}
 				int shifty = round_to_int(dy * scale);
-				if (!args->maximize_framing) {
 #ifdef STACK_DEBUG
 				fprintf(stdout, "shifty for image %d: %d\n", args->image_indices[frame], shifty);
 #endif
-					if (area.y + area.h - 1 + shifty < 0 || area.y + shifty >= naxes[1]) {
-						// entirely outside image below or above: all black pixels
-						clear = TRUE; readdata = FALSE;
-					} else if (area.y + shifty < 0) {
-						/* we read only the bottom part of the area here, which
-						* requires an offset in pix */
-						clear = TRUE;
-						area.h += area.y + shifty;	// cropping the height
-						offset = naxes[0] * (area.y - shifty);	// positive
-						area.y = 0;
-					} else if (area.y + area.h - 1 + shifty >= naxes[1]) {
-						/* we read only the upper part of the area here */
-						clear = TRUE;
-						area.y += shifty;
-						area.h += ry - (area.y + area.h);
-					} else {
-						area.y += shifty;
-					}
-				} else {
-					clear = TRUE; readdata = TRUE;
-					offset = dy * naxes[0];
+				if (area.y + area.h - 1 + shifty < 0 || area.y + shifty >= naxes[1]) {
+					// entirely outside image below or above: all black pixels
+					clear = TRUE; readdata = FALSE;
+				} else if (area.y + shifty < 0) {
+					/* we read only the bottom part of the area here, which
+					* requires an offset in pix */
+					clear = TRUE;
+					area.h += area.y + shifty;	// cropping the height
+					offset = naxes[0] * (area.y - shifty);	// positive
 					area.y = 0;
-					area.w = rx;
-					area.h = ry;
+				} else if (area.y + area.h - 1 + shifty >= ry) {
+					/* we read only the upper part of the area here */
+					clear = TRUE;
+					area.y += shifty;
+					area.h += ry - (area.y + area.h);
+				} else {
+					area.y += shifty;
 				}
 			}
 #ifdef STACK_DEBUG
