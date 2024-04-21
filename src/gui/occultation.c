@@ -203,9 +203,6 @@ static void on_occult_response(GtkDialog* self, gint response_id, gpointer user_
 		com.pref.phot_set.t_delayed = FALSE;
 		com.pref.phot_set.time_offset = 0.0;
 	}
-
-	if (com.seq.photometry[0] != NULL) free_photometry_set(&com.seq, 0);
 	free_light_curve_args(args);
-
 	gtk_widget_hide(dialog);
 }
