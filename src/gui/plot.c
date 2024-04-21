@@ -559,11 +559,15 @@ static void set_x_photometry_values(sequence *seq, pldata *plot, int image_index
 	if (seq->imgparam[image_index].date_obs) {
 		GDateTime *tsi = g_date_time_ref(seq->imgparam[image_index].date_obs);
 		if (seq->exposure > 0.0) {
-			GDateTime *new_dt = g_date_time_add_seconds(tsi, seq->exposure * 0.5);
+//			GDateTime *new_dt = g_date_time_add_seconds(tsi, seq->exposure * 0.5);
+			GDateTime *new_dt = g_date_time_add_seconds(tsi, com.pref.phot_set.t_delayed ? seq->exposure * 0.5 + com.pref.phot_set.time_offset / 1000.0 : seq->exposure * 0.5);
 			julian = date_time_to_Julian(new_dt);
 			g_date_time_unref(new_dt);
 		} else {
-			julian = date_time_to_Julian(tsi);
+			GDateTime *new_dt = g_date_time_add_seconds(tsi, com.pref.phot_set.t_delayed ? com.pref.phot_set.time_offset / 1000.0 : 0.0);
+//			julian = date_time_to_Julian(tsi);
+			julian = date_time_to_Julian(new_dt);
+			g_date_time_unref(new_dt);
 		}
 
 		julian -= (double)julian0;
@@ -597,11 +601,15 @@ static void build_photometry_dataset(sequence *seq, int dataset, int ref_image, 
 			if (seq->imgparam[i].date_obs) {
 				GDateTime *ts0 = g_date_time_ref(seq->imgparam[i].date_obs);
 				if (seq->exposure > 0.0) {
-					GDateTime *new_dt = g_date_time_add_seconds(ts0, seq->exposure * 0.5);
+//					GDateTime *new_dt = g_date_time_add_seconds(ts0, seq->exposure * 0.5);
+					GDateTime *new_dt = g_date_time_add_seconds(ts0, com.pref.phot_set.t_delayed ? seq->exposure * 0.5 + com.pref.phot_set.time_offset / 1000.0 : seq->exposure * 0.5);
 					julian0 = (int) date_time_to_Julian(new_dt);
 					g_date_time_unref(new_dt);
 				} else {
-					julian0 = (int) date_time_to_Julian(ts0);
+					GDateTime *new_dt = g_date_time_add_seconds(ts0, com.pref.phot_set.t_delayed ? com.pref.phot_set.time_offset / 1000.0 : 0.0);
+//					julian0 = (int) date_time_to_Julian(ts0);
+					julian0 = date_time_to_Julian(new_dt);
+					g_date_time_unref(new_dt);
 				}
 				g_date_time_unref(ts0);
 				//siril_debug_print("julian0 set to %d\n", julian0);

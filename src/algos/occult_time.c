@@ -233,11 +233,15 @@ int occult_curve(struct light_curve_args *lcargs) {
 			double julian;
 			GDateTime *tsi = g_date_time_ref(seq->imgparam[i].date_obs);
 			if (seq->exposure > 0.0) {
-				GDateTime *new_dt = g_date_time_add_seconds(tsi, seq->exposure * 0.5);
+//				GDateTime *new_dt = g_date_time_add_seconds(tsi, seq->exposure * 0.5);
+				GDateTime *new_dt = g_date_time_add_seconds(tsi, com.pref.phot_set.t_delayed ? seq->exposure * 0.5 + com.pref.phot_set.time_offset / 1000.0 : seq->exposure * 0.5);
 				julian = date_time_to_Julian(new_dt);
 				g_date_time_unref(new_dt);
 			} else {		// this is the case for ser files. So the timestamp is the beginning of the frame
-				julian = date_time_to_Julian(tsi);
+				GDateTime *new_dt = g_date_time_add_seconds(tsi, com.pref.phot_set.t_delayed ? com.pref.phot_set.time_offset / 1000.0 : 0.0);
+//				julian = date_time_to_Julian(tsi);
+				julian = date_time_to_Julian(new_dt);
+				g_date_time_unref(new_dt);
 			}
 			g_date_time_unref(tsi);
 			date[j] = julian;
