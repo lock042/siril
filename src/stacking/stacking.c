@@ -55,7 +55,7 @@
 
 static struct stacking_args stackparam = {	// parameters passed to stacking
 	NULL, NULL, -1, NULL, -1.0, 0, NULL, NULL, NULL, NULL, FALSE,
-	FALSE, NO_NORM, { 0 }, FALSE, FALSE, TRUE, -1, FALSE,
+	FALSE, NO_NORM, { 0 }, FALSE, FALSE, TRUE, -1, FALSE, FALSE, { 0, 0 },
 	NO_REJEC, { 0, 0 }, NULL, FALSE, FALSE, NULL, NULL,
 	FALSE, FALSE, FALSE, FALSE, NULL, NULL, NULL, { 0 }, 0, { 0 }
 };
@@ -194,7 +194,7 @@ static void start_stacking() {
 	gchar *error = NULL;
 	static GtkComboBox *method_combo = NULL, *rejec_combo = NULL, *norm_combo = NULL, *weighing_combo;
 	static GtkEntry *output_file = NULL;
-	static GtkToggleButton *overwrite = NULL, *force_norm = NULL,
+	static GtkToggleButton *overwrite = NULL, *force_norm = NULL, *max_framing = NULL,
 			       *fast_norm = NULL, *rejmaps = NULL, *merge_rejmaps = NULL;
 	static GtkSpinButton *sigSpin[2] = {NULL, NULL};
 	static GtkWidget *norm_to_max = NULL, *RGB_equal = NULL;
@@ -210,6 +210,7 @@ static void start_stacking() {
 		weighing_combo = GTK_COMBO_BOX(lookup_widget("comboweighing"));
 		force_norm = GTK_TOGGLE_BUTTON(lookup_widget("checkforcenorm"));
 		fast_norm = GTK_TOGGLE_BUTTON(lookup_widget("checkfastnorm"));
+		max_framing = GTK_TOGGLE_BUTTON(lookup_widget("check_maximize_framing"));
 		norm_to_max = lookup_widget("check_normalise_to_max");
 		RGB_equal = lookup_widget("check_RGBequal");
 		rejmaps = GTK_TOGGLE_BUTTON(lookup_widget("rejmaps_checkbutton"));
@@ -229,6 +230,7 @@ static void start_stacking() {
 	stackparam.normalize = gtk_combo_box_get_active(norm_combo);
 	stackparam.force_norm = gtk_toggle_button_get_active(force_norm);
 	stackparam.output_norm = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(norm_to_max)) && gtk_widget_is_visible(norm_to_max);
+	stackparam.maximize_framing = gtk_toggle_button_get_active(max_framing);
 	stackparam.coeff.offset = NULL;
 	stackparam.coeff.mul = NULL;
 	stackparam.coeff.scale = NULL;
@@ -1155,7 +1157,7 @@ static void update_filter_label() {
  */
 void update_stack_interface(gboolean dont_change_stack_type) {
 	static GtkWidget *go_stack = NULL, *widgetnormalize = NULL, *force_norm =
-			NULL, *output_norm = NULL, *RGB_equal = NULL, *fast_norm = NULL;
+			NULL, *output_norm = NULL, *RGB_equal = NULL, *fast_norm = NULL, *max_framing = NULL;
 	static GtkComboBox *method_combo = NULL, *filter_combo = NULL;
 	static GtkLabel *result_label = NULL;
 	gchar *labelbuffer;
@@ -1170,6 +1172,7 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 		result_label = GTK_LABEL(lookup_widget("stackfilter_label"));
 		output_norm = lookup_widget("check_normalise_to_max");
 		RGB_equal = lookup_widget("check_RGBequal");
+		max_framing = lookup_widget("check_maximize_framing");
 	}
 	if (!sequence_is_loaded()) {
 		gtk_widget_set_sensitive(go_stack, FALSE);
@@ -1203,6 +1206,7 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 				gtk_combo_box_get_active(GTK_COMBO_BOX(widgetnormalize)) != 0);
 		gtk_widget_set_visible(output_norm, TRUE);
 		gtk_widget_set_visible(RGB_equal, TRUE);
+		gtk_widget_set_visible(max_framing, TRUE);
 	}
 
 	if (com.seq.reference_image == -1)

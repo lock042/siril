@@ -1531,9 +1531,11 @@ int read_opened_fits_partial(sequence *seq, int layer, int index, void *buffer,
 		printf("data initialization error in read fits partial\n");
 		return 1;
 	}
-	if (area->x < 0 || area->y < 0 || area->x >= seq->rx || area->y >= seq->ry
-			|| area->w <= 0 || area->h <= 0 || area->x + area->w > seq->rx
-			|| area->y + area->h > seq->ry) {
+	int rx = (seq->is_variable) ? seq->imgparam[index].rx : seq->rx;
+	int ry = (seq->is_variable) ? seq->imgparam[index].ry : seq->ry;
+	if (area->x < 0 || area->y < 0 || area->x >= rx || area->y >= ry
+			|| area->w <= 0 || area->h <= 0 || area->x + area->w > rx
+			|| area->y + area->h > ry) {
 		fprintf(stderr, "partial read from FITS file has been requested outside image bounds or with invalid size\n");
 		return 1;
 	}
@@ -1543,7 +1545,7 @@ int read_opened_fits_partial(sequence *seq, int layer, int index, void *buffer,
 	omp_set_lock(&seq->fd_lock[index]);
 #endif
 
-	status = internal_read_partial_fits(seq->fptr[index], seq->ry, seq->bitpix, buffer, layer, area);
+	status = internal_read_partial_fits(seq->fptr[index], ry, seq->bitpix, buffer, layer, area);
 
 #ifdef _OPENMP
 	omp_unset_lock(&seq->fd_lock[index]);
@@ -2753,7 +2755,7 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 }
 
 /* verify that the parameters of the image pointed by fptr are the same as some reference values */
-int check_fits_params(fitsfile *fptr, int *oldbitpix, int *oldnaxis, long *oldnaxes) {
+int check_fits_params(fitsfile *fptr, int *oldbitpix, int *oldnaxis, long *oldnaxes, gboolean relax_dimcheck) {
 	int status = 0;
 	long naxes[3] = { 0L };
 	int bitpix = 0, naxis = -1;
@@ -2770,10 +2772,10 @@ int check_fits_params(fitsfile *fptr, int *oldbitpix, int *oldnaxis, long *oldna
 	}
 
 	if (*oldnaxis > 0) {
-		if (naxis != *oldnaxis ||
+		if (!relax_dimcheck && (naxis != *oldnaxis ||
 				oldnaxes[0] != naxes[0] ||
 				oldnaxes[1] != naxes[1] ||
-				oldnaxes[2] != naxes[2]) {
+				oldnaxes[2] != naxes[2])) {
 			siril_log_message(_("Stacking error: input images have "
 						"different sizes\n"));
 			return -1;

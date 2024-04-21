@@ -65,6 +65,15 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 	*bitpix = 0;
 	*naxis = 0;
 	*naxes = 0;
+	// for max framing
+	double xmin = DBL_MAX;
+	double xmax = -DBL_MAX;
+	double ymin = DBL_MAX;
+	double ymax = -DBL_MAX;
+	if (args->maximize_framing)	{
+		g_assert(args->seq->regparam);
+		g_assert(args->seq->regparam[args->reglayer]);
+	}
 	set_progress_bar_data(_("Opening images for stacking"), PROGRESS_NONE);
 
 	if (args->seq->type == SEQ_REGULAR || args->seq->type == SEQ_FITSEQ) {
@@ -74,7 +83,9 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 		}
 		if (args->seq->type == SEQ_FITSEQ) {
 			g_assert(args->seq->fitseq_file);
-			/* we assume that all images have the same dimensions and bitpix */
+			/* we assume that all images have the same dimensions and bitpix 
+			unless we are using max framing, which will recompute dest image size
+			and skip forcing same image size */
 			memcpy(naxes, args->seq->fitseq_file->naxes, sizeof args->seq->fitseq_file->naxes);
 			*naxis = naxes[2] == 3 ? 3 : 2;
 			*bitpix = args->seq->fitseq_file->bitpix;
@@ -95,7 +106,7 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 				}
 
 				fptr = args->seq->fptr[image_index];
-				if (check_fits_params(fptr, bitpix, naxis, naxes)) {
+				if (check_fits_params(fptr, bitpix, naxis, naxes, args->maximize_framing)) {
 					siril_log_message(_("Opening image %d failed\n"), image_index);
 					return ST_SEQUENCE_ERROR;
 				}
@@ -132,6 +143,16 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 					args->weights[nb_frames * 2 + i] = weight;
 				}
 			}
+			/*we compute the dest size if maximize_framing*/
+			if (args->maximize_framing) {
+				regdata *regdat = args->seq->regparam[args->reglayer];
+				int rx = (args->seq->is_variable) ? args->seq->imgparam[image_index].rx : args->seq->rx;
+				int ry = (args->seq->is_variable) ? args->seq->imgparam[image_index].ry : args->seq->ry;
+				xmin = (xmin > regdat[image_index].H.h02) ? regdat[image_index].H.h02 : xmin;
+				ymin = (ymin > regdat[image_index].H.h12) ? regdat[image_index].H.h12 : ymin;
+				xmax = (xmax < regdat[image_index].H.h02 + rx) ? regdat[image_index].H.h02 + rx : xmax;
+				ymax = (ymax < regdat[image_index].H.h12 + ry) ? regdat[image_index].H.h12 + ry : ymax;
+			}
 		}
 		if (stackcnt <= 0)
 			stackcnt = nb_frames;
@@ -142,6 +163,15 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 		if (naxes[2] == 0)
 			naxes[2] = 1;
 		g_assert(naxes[2] <= 3);
+
+		if (args->maximize_framing) {
+			naxes[0] = (int)(ceil(xmax) - floor(xmin));
+			naxes[1] = (int)(ceil(ymax) - floor(ymin));
+			args->offset[0] = floor(xmin);
+			args->offset[1] = floor(ymin); // TODO: may need a - sign, we'll see
+			siril_debug_print("new size: %d %d\n", naxes[0], naxes[1]);
+			siril_debug_print("new origin: %d %d\n", args->offset[0], args->offset[1]);
+		}
 	}
 	else if (args->seq->type == SEQ_SER) {
 		g_assert(args->seq->ser_file);
@@ -282,6 +312,26 @@ int stack_compute_parallel_blocks(struct _image_block **blocksptr, long max_numb
 	return ST_OK;
 }
 
+static void rearrange_block_data(void *buffer, data_type itype, int rx, int ry, int rx_new) {
+	if (rx == rx_new) // nothing to rearrange
+		return;
+	int ielem_size = itype == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
+	int rest = rx - rx_new;
+	// void *line = malloc(rx_new * ielem_size);
+	int stride = rx_new * ielem_size;
+	int rest_stride = rest * ielem_size;
+	for (int j = ry - 1 ; j >= 0; j--) { // we start from the end of the array to rearrange in place
+		long src = j * rx_new * ielem_size;
+		long dst = j * rx * ielem_size;
+		memcpy(buffer + dst, buffer + src, stride);
+		// memcpy(line, buffer + src, stride);
+		// memcpy(buffer + dst, line, stride);
+		memset(buffer + dst + stride, 0, rest_stride);
+	}
+	// free(line);
+	return;
+}
+
 static int stack_read_block_data(struct stacking_args *args,
 		struct _image_block *my_block, struct _data_block *data,
 		long *naxes, data_type itype, int thread_id) {
@@ -293,8 +343,15 @@ static int stack_read_block_data(struct stacking_args *args,
 	for (int frame = 0; frame < args->nb_images_to_stack; ++frame) {
 		gboolean clear = FALSE, readdata = TRUE;
 		long offset = 0;
+		int image_index = args->image_indices[frame]; // image index in sequence
 		/* area in C coordinates, starting with 0, not cfitsio coordinates. */
-		rectangle area = {0, my_block->start_row, naxes[0], my_block->height};
+		int rx = naxes[0];
+		int ry = naxes[1];
+		if (args->maximize_framing && args->seq->is_variable) {
+			rx = args->seq->imgparam[image_index].rx;
+			ry = args->seq->imgparam[image_index].ry;
+		}
+		rectangle area = {0, my_block->start_row, rx, min(my_block->height, ry)};
 
 		if (!get_thread_run())
 			return ST_CANCEL;
@@ -309,27 +366,38 @@ static int stack_read_block_data(struct stacking_args *args,
 				double scale = args->seq->upscale_at_stacking;
 				double dx, dy;
 				translation_from_H(layerparam[args->image_indices[frame]].H, &dx, &dy);
+				if (args->maximize_framing) {
+					dy = args->offset[1] - dy;
+				}
 				int shifty = round_to_int(dy * scale);
+				if (!args->maximize_framing) {
 #ifdef STACK_DEBUG
 				fprintf(stdout, "shifty for image %d: %d\n", args->image_indices[frame], shifty);
 #endif
-				if (area.y + area.h - 1 + shifty < 0 || area.y + shifty >= naxes[1]) {
-					// entirely outside image below or above: all black pixels
-					clear = TRUE; readdata = FALSE;
-				} else if (area.y + shifty < 0) {
-					/* we read only the bottom part of the area here, which
-					 * requires an offset in pix */
-					clear = TRUE;
-					area.h += area.y + shifty;	// cropping the height
-					offset = naxes[0] * (area.y - shifty);	// positive
-					area.y = 0;
-				} else if (area.y + area.h - 1 + shifty >= naxes[1]) {
-					/* we read only the upper part of the area here */
-					clear = TRUE;
-					area.y += shifty;
-					area.h += naxes[1] - (area.y + area.h);
+					if (area.y + area.h - 1 + shifty < 0 || area.y + shifty >= naxes[1]) {
+						// entirely outside image below or above: all black pixels
+						clear = TRUE; readdata = FALSE;
+					} else if (area.y + shifty < 0) {
+						/* we read only the bottom part of the area here, which
+						* requires an offset in pix */
+						clear = TRUE;
+						area.h += area.y + shifty;	// cropping the height
+						offset = naxes[0] * (area.y - shifty);	// positive
+						area.y = 0;
+					} else if (area.y + area.h - 1 + shifty >= naxes[1]) {
+						/* we read only the upper part of the area here */
+						clear = TRUE;
+						area.y += shifty;
+						area.h += ry - (area.y + area.h);
+					} else {
+						area.y += shifty;
+					}
 				} else {
-					area.y += shifty;
+					clear = TRUE; readdata = TRUE;
+					offset = dy * naxes[0];
+					area.y = 0;
+					area.w = rx;
+					area.h = ry;
 				}
 			}
 #ifdef STACK_DEBUG
@@ -342,13 +410,16 @@ static int stack_read_block_data(struct stacking_args *args,
 				memset(data->pix[frame], 0, my_block->height * naxes[0] * ielem_size);
 			}
 		}
+		// if (area.h > ry)
+		// 	area.h = ry;
 
 		if (args->reglayer < 0 || readdata) {
 			// reading pixels from current frame
 			void *buffer;
 			if (itype == DATA_FLOAT)
-				buffer = ((float*)data->pix[frame])+offset;
-			else 	buffer = ((WORD *)data->pix[frame])+offset;
+				buffer = ((float*)data->pix[frame]) + offset;
+			else
+				buffer = ((WORD *)data->pix[frame]) + offset;
 			int retval = seq_opened_read_region(args->seq, my_block->channel,
 					args->image_indices[frame], buffer, &area, thread_id);
 			if (retval) {
@@ -358,6 +429,9 @@ static int stack_read_block_data(struct stacking_args *args,
 #endif
 					siril_log_color_message(_("Error reading one of the image areas\n"), "red");
 				return ST_SEQUENCE_ERROR;
+			}
+			if (args->maximize_framing && args->seq->is_variable) {
+				rearrange_block_data(buffer, itype, naxes[0], area.h, rx);
 			}
 		}
 	}
@@ -1038,7 +1112,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 		retval = ST_SEQUENCE_ERROR;
 		goto free_and_close;
 	}
-	if (naxes[0] != args->seq->rx || naxes[1] != args->seq->ry) {
+	if (!args->maximize_framing && (naxes[0] != args->seq->rx || naxes[1] != args->seq->ry)) {
 		siril_log_color_message(_("Rejection stack error: sequence has wrong image size (%dx%d for sequence, %ldx%ld for images)\n"), "red", args->seq->rx, args->seq->ry, naxes[0], naxes[1]);
 		retval = ST_SEQUENCE_ERROR;
 		goto free_and_close;
@@ -1315,6 +1389,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 						double dx, dy;
 						translation_from_H(layerparam[args->image_indices[frame]].H, &dx, &dy);
 						shiftx = round_to_int(dx * scale);
+
 
 						if (shiftx && (x - shiftx >= naxes[0] || x - shiftx < 0)) {
 							/* outside bounds, images are black. We could

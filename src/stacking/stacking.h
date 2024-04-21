@@ -80,6 +80,8 @@ struct stacking_args {
 	gboolean use_32bit_output;	/* output to 32 bit float */
 	int reglayer;			/* layer used for registration data */
 	gboolean equalizeRGB;		/* enable RGB equalization through normalization */
+	gboolean maximize_framing;	/* maximize the framing instead of conforming to ref image size*/
+	int offset[2];				/* offset used by max framing*/
 
 	rejection type_of_rejection;	/* type of rejection */
 	float sig[2];			/* low and high sigma rejection or GESTD parameters */
@@ -123,6 +125,7 @@ struct stacking_configuration {
 	gboolean apply_nbstack_weights;
 	gboolean apply_wfwhm_weights;
 	gboolean apply_nbstars_weights;
+	gboolean maximize_framing;
 };
 
 typedef struct {
