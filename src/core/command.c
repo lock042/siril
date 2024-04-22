@@ -214,9 +214,40 @@ int process_dumpheader(int nb) {
 }
 
 int process_seq_clean(int nb) {
-	gboolean cleanreg = FALSE, cleanstat = FALSE, cleansel = FALSE;
+	// Define variables to populate based on the arguments provided
+	// Initialize to default values
+	gboolean cleanreg = FALSE, cleanstat = FALSE, cleansel = FALSE, cleanall = FALSE;
+	gchar *seqname = NULL;
 
-	sequence *seq = load_sequence(word[1], NULL);
+	// Argument parsing
+	gchar** gword = word_to_args(nb);
+	GOptionEntry entries[] = {
+		{ "seq", 0, 0, G_OPTION_ARG_STRING, &seqname, NULL, NULL },
+		{ "all", 0, 0, G_OPTION_ARG_NONE, &cleanall, NULL, NULL },
+		{ "reg", 0, 0, G_OPTION_ARG_NONE, &cleanreg, NULL, NULL },
+		{ "stat", 0, 0, G_OPTION_ARG_NONE, &cleanstat, NULL, NULL },
+		{ "sel", 0, 0, G_OPTION_ARG_NONE, &cleansel, NULL, NULL },
+		G_OPTION_ENTRY_NULL
+	};
+	GError *error = NULL;
+	GOptionContext *context;
+	context = g_option_context_new (NULL);
+	g_option_context_add_main_entries (context, entries, NULL);
+	gboolean retval = g_option_context_parse_strv(context, &gword, &error);
+	g_option_context_free(context);
+	g_strfreev(gword);
+
+	// Sanity checking
+	if (!retval) {
+		siril_debug_print("option parsing failed: %s\n", error->message);
+		g_error_free(error);
+		return CMD_ARG_ERROR;
+	}
+	if (!seqname) {
+		siril_log_color_message(_("Error: no sequence specified.\n"), "red");
+		return CMD_SEQUENCE_NOT_FOUND;
+	}
+	sequence *seq = load_sequence(seqname, NULL);
 	if (!seq)
 		return CMD_SEQUENCE_NOT_FOUND;
 	if (check_seq_is_comseq(seq)) {
@@ -224,33 +255,17 @@ int process_seq_clean(int nb) {
 		seq = &com.seq;
 	}
 
-	if (nb > 2) {
-		gchar** gword = word_to_args(nb);
-		GOptionEntry entries[] = {
-			{ "reg", 0, 0, G_OPTION_ARG_NONE, &cleanreg, NULL, NULL },
-			{ "stat", 0, 0, G_OPTION_ARG_NONE, &cleanstat, NULL, NULL },
-			{ "sel", 0, 0, G_OPTION_ARG_NONE, &cleansel, NULL, NULL },
-			G_OPTION_ENTRY_NULL
-		};
-		GError *error = NULL;
-		GOptionContext *context;
-		context = g_option_context_new (NULL);
-		g_option_context_add_main_entries (context, entries, NULL);
-		gboolean retval = g_option_context_parse_strv(context, &gword, &error);
-		g_option_context_free(context);
-		g_strfreev(gword);
-		if (!retval) {
-			g_print ("option parsing failed: %s\n", error->message);
-			g_error_free(error);
-			return CMD_ARG_ERROR;
-		}
-	} else {
+	// Configuration
+	if (cleanall) {
 		cleanreg = TRUE;
 		cleanstat = TRUE;
 		cleansel = TRUE;
 	}
 
+	// Run the process
 	clean_sequence(seq, cleanreg, cleanstat, cleansel);
+
+	// Update the GUI and tidy up
 	if (check_seq_is_comseq(seq)) {
 		fix_selnum(&com.seq, FALSE);
 		update_stack_interface(TRUE);
