@@ -1131,7 +1131,7 @@ int process_grey_flat(int nb) {
 
 int process_makepsf(int nb) {
 	cmd_errors status = CMD_OK;
-	float lambda;
+	float lambda = 1.f / 3000.f;
 
 	// Define variables and configure to defaults
 	estk_data* data = calloc(1, sizeof(estk_data));
@@ -1267,7 +1267,7 @@ int process_makepsf(int nb) {
 		status = CMD_ARG_ERROR;
 		goto terminate_makepsf;
 	}
-	if (data->ks < 3 || !(data->ks %2) || data->ks > min(gfit.rx, gfit.ry)) {
+	if (data->ks < 3 || !(data->ks %2) || data->ks < min(gfit.rx, gfit.ry)) {
 		g_set_error(&error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,
 					_("Error: ks must be odd and between 3 and the minimum image dimension."));
 		status = CMD_ARG_ERROR;
@@ -1292,37 +1292,37 @@ int process_makepsf(int nb) {
 			status = CMD_ARG_ERROR;
 			goto terminate_makepsf;
 		}
-		if (data->psf_beta <= 0.0 || data->psf_beta > 10.0) {
+		if (data->profile == PROFILE_MOFFAT && (data->psf_beta <= 0.0 || data->psf_beta > 10.0)) {
 			g_set_error(&error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,
 						_("Error: beta must be > 0.0 and <= 10.0"));
 			status = CMD_ARG_ERROR;
 			goto terminate_makepsf;
 		}
-		if (data->airy_diameter <= 0.0 || data->airy_diameter > 5000.0) {
+		if (data->profile == PROFILE_AIRY && (data->airy_diameter <= 0.0 || data->airy_diameter > 5000.0)) {
 			g_set_error(&error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,
 						_("Error: dia must be > 0.0 and <= 5000.0"));
 			status = CMD_ARG_ERROR;
 			goto terminate_makepsf;
 		}
-		if (data->airy_fl <= 0.0 || data->airy_fl > 60000.0) {
+		if (data->profile == PROFILE_AIRY && (data->airy_fl <= 0.0 || data->airy_fl > 60000.0)) {
 			g_set_error(&error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,
 						_("Error: fl must be > 0.0 and <= 60000.0"));
 			status = CMD_ARG_ERROR;
 			goto terminate_makepsf;
 		}
-		if (data->airy_wl < 100.0 || data->airy_wl > 30000.0) {
+		if (data->profile == PROFILE_AIRY && (data->airy_wl < 100.0 || data->airy_wl > 30000.0)) {
 			g_set_error(&error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,
 						_("Error: wl must be >= 100.0 and <= 30000.0"));
 			status = CMD_ARG_ERROR;
 			goto terminate_makepsf;
 		}
-		if (data->airy_pixelsize < 1.0 || data->airy_pixelsize > 30.0) {
+		if (data->profile == PROFILE_AIRY && (data->airy_pixelsize < 1.0 || data->airy_pixelsize > 30.0)) {
 			g_set_error(&error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,
 						_("Error: pixelsize must be >= 1.0 and <= 30.0"));
 			status = CMD_ARG_ERROR;
 			goto terminate_makepsf;
 		}
-		if (data->airy_obstruction < 0.0 || data->airy_obstruction >= 100.0) {
+		if (data->profile == PROFILE_AIRY && (data->airy_obstruction < 0.0 || data->airy_obstruction >= 100.0)) {
 			g_set_error(&error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,
 						_("Error: obstruct must be >= 0.0 and < 100.0"));
 			status = CMD_ARG_ERROR;
@@ -1332,6 +1332,7 @@ int process_makepsf(int nb) {
 
 	image_cfa_warning_check();
 	start_in_new_thread(estimate_only, data);
+	return CMD_OK;
 
 terminate_makepsf:
 	g_free(data->savepsf_filename);
