@@ -1130,340 +1130,216 @@ int process_grey_flat(int nb) {
 }
 
 int process_makepsf(int nb) {
-	gboolean error = FALSE;
-	estk_data* data = malloc(sizeof(estk_data));
-	reset_conv_args(data);
 	cmd_errors status = CMD_OK;
+	float lambda;
 
-	char *arg_1 = word[1];
-	if (!g_strcmp0(arg_1, "clear")) {
+	// Define variables and configure to defaults
+	estk_data* data = calloc(1, sizeof(estk_data));
+	reset_conv_args(data);
+	gboolean clear_psf = FALSE, blind = FALSE, stars = FALSE, manual = FALSE, l0 = FALSE,
+	si = FALSE, gaussian = FALSE, moffat = FALSE, disc = FALSE, airy = FALSE;
+	gchar *load_filename = NULL, *save_filename = NULL;
+
+	// Argument parsing
+	GOptionEntry entries[] = {
+		{ "clear", 0, 0, G_OPTION_ARG_NONE, &clear_psf, NULL, NULL },
+		{ "save", 0, 0, G_OPTION_ARG_FILENAME, &save_filename, NULL, NULL },
+		{ "blind", 0, 0, G_OPTION_ARG_NONE, &blind, NULL, NULL},
+		{ "stars", 0, 0, G_OPTION_ARG_NONE, &stars, NULL, NULL },
+		{ "manual", 0, 0, G_OPTION_ARG_NONE, &manual, NULL, NULL },
+		{ "load", 0, 0, G_OPTION_ARG_FILENAME, &load_filename, NULL, NULL },
+		{ "l0", 0, 0, G_OPTION_ARG_NONE, &l0, NULL, NULL },
+		{ "si", 0, 0, G_OPTION_ARG_NONE, &si, NULL, NULL },
+		{ "multiscale", 0, 0, G_OPTION_ARG_NONE, &data->multiscale, NULL, NULL },
+		{ "lambda", 0, 0, G_OPTION_ARG_DOUBLE, &lambda, NULL, NULL },
+		{ "comp", 0, 0, G_OPTION_ARG_DOUBLE, &data->compensationfactor, NULL, NULL },
+		{ "ks", 0, 0, G_OPTION_ARG_INT, &data->ks, NULL, NULL },
+		{ "sym", 0, 0, G_OPTION_ARG_NONE, &data->symkern, NULL, NULL },
+		{ "gaussian", 0, 0, G_OPTION_ARG_NONE, &gaussian, NULL,NULL },
+		{ "moffat", 0, 0, G_OPTION_ARG_NONE, &moffat, NULL, NULL },
+		{ "disc", 0, 0, G_OPTION_ARG_NONE, &disc, NULL, NULL },
+		{ "airy", 0, 0, G_OPTION_ARG_NONE, &airy, NULL, NULL },
+		{ "fwhm", 0, 0, G_OPTION_ARG_DOUBLE, &data->psf_fwhm, NULL, NULL },
+		{ "angle", 0, 0, G_OPTION_ARG_DOUBLE, &data->psf_angle, NULL, NULL },
+		{ "ratio", 0, 0, G_OPTION_ARG_DOUBLE, &data->psf_ratio, NULL, NULL },
+		{ "beta", 0, 0, G_OPTION_ARG_DOUBLE, &data->psf_beta, NULL, NULL },
+		{ "dia", 0, 0, G_OPTION_ARG_DOUBLE, &data->airy_diameter, NULL, NULL },
+		{ "fl", 0, 0, G_OPTION_ARG_DOUBLE, &data->airy_fl, NULL, NULL },
+		{ "wl", 0, 0, G_OPTION_ARG_DOUBLE, &data->airy_wl, NULL, NULL },
+		{ "pixelsize", 0, 0, G_OPTION_ARG_DOUBLE, &data->airy_pixelsize, NULL, NULL },
+		{ "obstruct", 0, 0, G_OPTION_ARG_DOUBLE, &data->airy_obstruction, NULL, NULL },
+		{ NULL }
+	};
+	GError *error = NULL;
+	int retval = parse_args(entries, nb, &error);
+	if (!retval) {
+		status = CMD_ARG_ERROR;
+		goto terminate_makepsf;
+	}
+
+	// Basic configuration and sanity checks
+	if (blind + stars + manual == 1) {
+		data->psftype = blind ? PSF_BLIND : stars ? PSF_STARS : PSF_MANUAL;
+	} else if (blind + stars + manual > 1 || ((!data->psftype && !save_filename && !load_filename && !clear_psf) || (load_filename && save_filename) || ((data->psftype || load_filename) && clear_psf) || (clear_psf && data->savepsf_filename))) {
+		g_set_error(&error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,
+				_("Error: exactly one of --clear, --blind, --stars, --manual or --load must be provided, or --save must be provided either alone or with a PSF generating argument."));
+		status = CMD_ARG_ERROR;
+		goto terminate_makepsf;
+	}
+
+	if (save_filename) {
+		if (!(g_str_has_suffix(data->savepsf_filename, ".fit") || g_str_has_suffix(data->savepsf_filename, ".fits") || g_str_has_suffix(data->savepsf_filename, ".fts") || g_str_has_suffix(data->savepsf_filename, ".tif"))) {
+			g_set_error(&error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,_("Error: filename must have the extension \".fit\", \".fits\", \".fts\" or \".tif\"\n"));
+			status = CMD_ARG_ERROR;
+			goto terminate_makepsf;
+		} else {
+			data->savepsf_filename = save_filename;
+		}
+	}
+
+	// Clear PSF option
+	if (clear_psf) {
 		if (get_thread_run()) {
-			siril_log_message(_("Error: will not clear the PSF while a sequence is running.\n"));
+		g_set_error(&error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,
+					_("Error: will not clear the PSF while a sequence is running."));
 			status = CMD_GENERIC_ERROR;
 			goto terminate_makepsf;
 		}
 		reset_conv_kernel();
 		siril_log_color_message(_("Deconvolution kernel cleared.\n"), "green");
+		status = CMD_OK;
 		goto terminate_makepsf;
-	} else {
-		if (!g_strcmp0(arg_1, "save")) {
-			siril_log_message(_("Save PSF to file:\n"));
-			if (!word[2] || word[2][0] == '\0') {
-				on_bdeconv_savekernel_clicked(NULL, NULL);
-			} else {
-				if (!(g_str_has_suffix(word[2], ".fit") || g_str_has_suffix(word[2], ".fits") || g_str_has_suffix(word[2], ".fts") || g_str_has_suffix(word[2], ".tif"))) {
-					siril_log_color_message(_("Error: filename must have the extension \".fit\", \".fits\", \".fts\" or \".tif\"\n"), "red");
-					status = CMD_ARG_ERROR;
-					goto terminate_makepsf;
-				}
-				save_kernel(word[2]);
-			}
+	}
+
+	// Save only
+	if (data->savepsf_filename && !blind && !stars && !manual) {
+		save_kernel(data->savepsf_filename);
+		status = CMD_OK;
+		goto terminate_makepsf;
+	}
+
+	// We are making or loading a new PSF, so first reset the old one if it exists
+	reset_conv_kernel();
+
+	// If we are just loading a PSF, do it now without needing to sanity check parameters
+	if (load_filename) {
+		if (load_kernel(load_filename)) {
+			g_set_error(&error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE, _("Error loading PSF."));
+			status = CMD_FILE_NOT_FOUND;
 			goto terminate_makepsf;
 		}
-		reset_conv_kernel();
-		status = CMD_ARG_ERROR; // setting to this value as it will be the most likely error from now on
-		if (!g_strcmp0(arg_1, "blind")) {
-			if (!(single_image_is_loaded() || sequence_is_loaded())) {
-				siril_log_message(_("Error: image or sequence must be loaded to carry out %s PSF estimation, aborting...\n"), "blind");
-				status = CMD_GENERIC_ERROR;
-				goto terminate_makepsf;
-			}
-			data->psftype = PSF_BLIND;
-			siril_log_message(_("Blind kernel estimation:\n"));
-			for (int i = 2; i < nb; i++) {
-				char *arg = word[i], *end;
-				if (!word[i])
-					break;
-				if (!g_strcmp0(arg, "-l0")) {
-					siril_log_message(_("ℓ0 descent prior method\n"));
-					data->blindtype = 1;
-				}
-				else if (!g_strcmp0(arg, "-si")) {
-					siril_log_message(_("spectral irregularity method\n"));
-					data->blindtype = 0;
-				}
-				else if (!g_strcmp0(arg, "-multiscale")) {
-					siril_log_message(_("multiscale estimation\n"));
-					data->multiscale = TRUE;
-				}
-				else if (g_str_has_prefix(arg, "-lambda=")) {
-					arg += 8;
-					float lambda = (float) g_ascii_strtod(arg, &end);
-					if (arg == end) goto terminate_makepsf;
-					if (error || lambda < 0.f || lambda > 100000.f) {
-						siril_log_message(_("Error in %s parameter: must be in %s, aborting.\n"), "lambda", "]0,10000[");
-						goto terminate_makepsf;
-					}
-					data->lambda = lambda;
-					data->finaldeconvolutionweight = lambda;
-					data->intermediatedeconvolutionweight = lambda;
-				}
-				else if (g_str_has_prefix(arg, "-comp=")) {
-					arg += 6;
-					float comp = (float) g_ascii_strtod(arg, &end);
-					if (arg == end) goto terminate_makepsf;
-					if (comp < 1.f || comp > 100000.f) {
-						siril_log_message(_("Error in %s parameter: must be in %s, aborting.\n"), "compensation factor", "]1,10000[");
-						goto terminate_makepsf;
-					}
-					data->compensationfactor = comp;
-				}
-				else if (g_str_has_prefix(arg, "-ks=")) {
-					arg += 4;
-					int ks = (int) g_ascii_strtod(arg, &end);
-					if (arg == end) goto terminate_makepsf;
-					if (ks < 3 || !(ks %2) || ks > min(gfit.rx, gfit.ry)) {
-						siril_log_message(_("Error in ks parameter: must be odd and between 3 and minimum of (image height, image width), aborting.\n"));
-						goto terminate_makepsf;
-					}
-					data->ks = ks;
-				}
-				else if (g_str_has_prefix(arg, "-savepsf=")) {
-					if (data->savepsf_filename) {
-						g_free(data->savepsf_filename);
-						data->savepsf_filename = NULL;
-					}
-					arg += 9;
-					if (arg[0] == '\0') {
-						siril_log_message(_("Error: no filename specified, aborting.\n"));
-						goto terminate_makepsf;
-					} else {
-						if (!(g_str_has_suffix(arg, ".fit") || g_str_has_suffix(arg, ".fits") || g_str_has_suffix(arg, ".fts") || g_str_has_suffix(arg, ".tif"))) {
-							siril_log_color_message(_("Error: filename must have the extension \".fit\", \".fits\", \".fts\" or \".tif\"\n"), "red");
-							goto terminate_makepsf;
-						}
-						data->savepsf_filename = g_strdup(arg);
-						data->save_after = TRUE;
-					}
-				} else {
-					siril_log_color_message(_("Unknown parameter %s, aborting.\n"), "red", arg);
-					goto terminate_makepsf;
-				}
-			}
-			image_cfa_warning_check();
-			start_in_new_thread(estimate_only, data);
-			return CMD_OK;
-		} else if (!g_strcmp0(arg_1, "stars")) {
-			data->recalc_ks = FALSE;
-			gboolean force_ks = FALSE;
-			if (!(single_image_is_loaded() || sequence_is_loaded())) {
-				siril_log_message(_("Error: image or sequence must be loaded to carry out %s PSF estimation, aborting...\n"), "star-based");
-				status = CMD_GENERIC_ERROR;
-				goto terminate_makepsf;
-			}
-			data->psftype = PSF_STARS;
-			for (int i = 2; i < nb; i++) {
-				char *arg = word[i], *end;
-				if (!word[i])
-					break;
-				if (!g_strcmp0(arg, "-sym")) {
-					siril_log_message(_("symmetric kernel\n"));
-					data->symkern = TRUE;
-				}
-				else if (g_str_has_prefix(arg, "-ks=")) {
-					arg += 4;
-					int ks = (int) g_ascii_strtod(arg, &end);
-					if (arg == end) goto terminate_makepsf;
-					if (ks < 3 || !(ks %2) || ks > min(gfit.rx, gfit.ry)) {
-						siril_log_message(_("Error in ks parameter: must be odd and between 3 and minimum of (image height, image width), aborting.\n"));
-						goto terminate_makepsf;
-					}
-					data->ks = ks;
-				}
-				else if (g_str_has_prefix(arg, "-savepsf=")) {
-					if (data->savepsf_filename) {
-						g_free(data->savepsf_filename);
-						data->savepsf_filename = NULL;
-					}
-					arg += 9;
-					if (arg[0] == '\0') {
-						siril_log_message(_("Error: no filename specified, aborting.\n"));
-						goto terminate_makepsf;
-					} else {
-						if (!(g_str_has_suffix(arg, ".fit") || g_str_has_suffix(arg, ".fits") || g_str_has_suffix(arg, ".fts") || g_str_has_suffix(arg, ".tif"))) {
-							siril_log_color_message(_("Error: filename must have the extension \".fit\", \".fits\", \".fts\" or \".tif\"\n"), "red");
-							goto terminate_makepsf;
-						}
-						data->savepsf_filename = g_strdup(arg);
-						data->save_after = TRUE;
-					}
-				} else {
-					siril_log_color_message(_("Unknown parameter %s, aborting.\n"), "red", arg);
-					goto terminate_makepsf;
-				}
-			}
-			if (!force_ks) {
-				data->recalc_ks = TRUE;
-			}
-			image_cfa_warning_check();
-			start_in_new_thread(estimate_only, data);
-			return CMD_OK;
-		} else if (!g_strcmp0(arg_1, "manual")) {
-			siril_log_message(_("Manual PSF generation:\n"));
-			data->psftype = PSF_MANUAL;
-			for (int i = 2; i < nb; i++) {
-				char *arg = word[i], *end;
-				if (!word[i])
-					break;
-				if (!g_strcmp0(arg, "-gaussian")) {
-					siril_log_message(_("Gaussian PSF\n"));
-					data->profile = 0;
-				}
-				else if (!g_strcmp0(arg, "-moffat")) {
-					siril_log_message(_("Moffat PSF\n"));
-					data->profile = 1;
-				}
-				else if (!g_strcmp0(arg, "-disc")) {
-					siril_log_message(_("Disc PSF\n"));
-					data->profile = 2;
-				}
-				else if (!g_strcmp0(arg, "-airy")) {
-					siril_log_message(_("Airy disc PSF\n"));
-					data->profile = 3;
-				}
-				else if (g_str_has_prefix(arg, "-fwhm=")) {
-					arg += 6;
-					float val = (float) g_ascii_strtod(arg, &end);
-					if (arg == end) goto terminate_makepsf;
-					if ((val <= 0.f) || (val > 100.f)) {
-						siril_log_message(_("Error in %s parameter: must be in %s, aborting.\n"), "fwhm", "]0,100]");
-						goto terminate_makepsf;
-					}
-					data->psf_fwhm = val;
-				}
-				else if (g_str_has_prefix(arg, "-angle=")) {
-					arg += 7;
-					float val = (float) g_ascii_strtod(arg, &end);
-					if (arg == end) goto terminate_makepsf;
-					if ((val <= -360.f) || (val > 360.f)) {
-						siril_log_message(_("Error in %s parameter: must be in %s, aborting.\n"), "angle", "]-360,360]");
-						goto terminate_makepsf;
-					}
-					data->psf_angle = val;
-				}
-				else if (g_str_has_prefix(arg, "-ratio=")) {
-					arg += 7;
-					float val = (float) g_ascii_strtod(arg, &end);
-					if (arg == end) goto terminate_makepsf;
-					else if ((val < 1.f) || (val > 5.f)) {
-						siril_log_message(_("Error in %s parameter: must be in %s, aborting.\n"), "ratio", "[1,5]");
-						goto terminate_makepsf;
-					}
-					data->psf_ratio = val;
-				}
-				else if (g_str_has_prefix(arg, "-beta=")) {
-					arg += 6;
-					float val = (float) g_ascii_strtod(arg, &end);
-					if (arg == end) goto terminate_makepsf;
-					if ((val <= 0.f) || (val > 10.f)) {
-						siril_log_message(_("Error in %s parameter: must be in %s, aborting.\n"), "beta", "]0,10]");
-						goto terminate_makepsf;;
-					}
-					data->psf_beta = val;
-				}
-				else if (g_str_has_prefix(arg, "-dia=")) {
-					arg += 5;
-					float val = (float) g_ascii_strtod(arg, &end);
-					if (arg == end) goto terminate_makepsf;
-					if ((val <= 0.f) || (val > 5000.f)) {
-						siril_log_message(_("Error in %s parameter: must be in %s, aborting.\n"), "dia", "]0,5000]");
-						goto terminate_makepsf;
-					}
-					data->airy_diameter = val;
-				}
-				else if (g_str_has_prefix(arg, "-fl=")) {
-					arg += 4;
-					float val = (float) g_ascii_strtod(arg, &end);
-					if (arg == end) goto terminate_makepsf;
-					if ((val <= 0.f) || (val > 60000.f)) {
-						siril_log_message(_("Error in %s parameter: must be in %s, aborting.\n"), "fl", "]0,60000]");
-						goto terminate_makepsf;
-					}
-					data->airy_fl = val;
-				}
-				else if (g_str_has_prefix(arg, "-wl=")) {
-					arg += 4;
-					float val = (float) g_ascii_strtod(arg, &end);
-					if (arg == end) goto terminate_makepsf;
-					if ((val < 100.f) || (val > 30000.f)) {
-						siril_log_message(_("Error in %s parameter: must be in %s, aborting.\n"), "wl", "[100,30000]");
-						goto terminate_makepsf;
-					}
-					data->airy_wl = val;
-				}
-				else if (g_str_has_prefix(arg, "-pixelsize=")) {
-					arg += 11;
-					float val = (float) g_ascii_strtod(arg, &end);
-					if (arg == end) goto terminate_makepsf;
-					if ((val < 1.f) || (val > 30.f)) {
-						siril_log_message(_("Error in %s parameter: must be in %s, aborting.\n"), "pixelsize", "[1,30]");
-						goto terminate_makepsf;
-					}
-					data->airy_pixelsize = val;
-				}
-				else if (g_str_has_prefix(arg, "-obstruct=")) {
-					arg += 10;
-					float val = (float) g_ascii_strtod(arg, &end);
-					if (arg == end) error = TRUE;
-					else if ((val < 0.f) || (val >= 100.f)) {
-						siril_log_message(_("Error in %s parameter: must be in %s, aborting.\n"), "obstruct", "[0,100[");
-						goto terminate_makepsf;
-					}
-					data->airy_obstruction = val;
-				}
-				else if (g_str_has_prefix(arg, "-ks=")) {
-					arg += 4;
-					int ks = (int) g_ascii_strtod(arg, &end);
-					if (arg == end) goto terminate_makepsf;
-					if (ks < 3 || !(ks %2) || ks > min(gfit.rx, gfit.ry)) {
-						siril_log_message(_("Error in ks parameter: must be odd and between 3 and minimum of (image height, image width), aborting.\n"));
-						goto terminate_makepsf;
-					}
-					data->ks = ks;
-				}
-				else if (g_str_has_prefix(arg, "-savepsf=")) {
-					if (data->savepsf_filename) {
-						g_free(data->savepsf_filename);
-						data->savepsf_filename = NULL;
-					}
-					arg += 9;
-					if (arg[0] == '\0') {
-						siril_log_message(_("Error: no filename specified, aborting.\n"));
-						goto terminate_makepsf;
-					} else {
-						if (!(g_str_has_suffix(arg, ".fit") || g_str_has_suffix(arg, ".fits") || g_str_has_suffix(arg, ".fts") || g_str_has_suffix(arg, ".tif"))) {
-							siril_log_color_message(_("Error: filename must have the extension \".fit\", \".fits\", \".fts\" or \".tif\"\n"), "red");
-							goto terminate_makepsf;
-						}
-						data->savepsf_filename = g_strdup(arg);
-						data->save_after = TRUE;
-					}
-				} else {
-					siril_log_color_message(_("Unknown parameter %s, aborting.\n"), "red", arg);
-					goto terminate_makepsf;
-				}
-			}
-			start_in_new_thread(estimate_only,data);
-			return CMD_OK;
-		} else if (!g_strcmp0(arg_1, "load")) {
-			siril_log_message(_("Load PSF from file:\n"));
-			if (word[2] && word[2][0] != '\0') {
-				if (load_kernel(word[2])) {
-					siril_log_color_message(_("Error loading PSF.\n"), "red");
-					status = CMD_FILE_NOT_FOUND;
-					goto terminate_makepsf;
-				}
-			}
-			data->psftype = PSF_PREVIOUS;
-			status = CMD_OK;
+		status = CMD_OK;
+		goto terminate_makepsf;
+	}
+
+	// Parameter sanity checks
+	if (l0 + si == 1) {
+		data->blindtype = l0 ? BLIND_L0 : BLIND_SI;
+	} else if (l0 + si > 1) {
+		g_set_error(&error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,
+				_("Error: --l0 and --si cannot both be specified."));
+		status = CMD_ARG_ERROR;
+		goto terminate_makepsf;
+	}
+	if (gaussian + moffat + disc + airy == 1) {
+		data->profile = gaussian ? PROFILE_GAUSSIAN : moffat ? PROFILE_MOFFAT : disc ? PROFILE_DISK : PROFILE_AIRY;
+	} else if (gaussian + moffat + disc + airy > 1) {
+		g_set_error(&error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,
+				_("Error: only one of --gaussian, --moffat, --disc or --airy can be specified."));
+		status = CMD_ARG_ERROR;
+		goto terminate_makepsf;
+	}
+	if (data->savepsf_filename) {
+		data->save_after = TRUE;
+	}
+	if (lambda <= 0.f || lambda > 100000.f) {
+		g_set_error(&error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,
+					_("Error: lambda must be in the range ]0, 100000]."));
+		status = CMD_ARG_ERROR;
+		goto terminate_makepsf;
+	}
+	data->lambda = lambda;
+	data->finaldeconvolutionweight = lambda;
+	data->intermediatedeconvolutionweight = lambda;
+	if (data->compensationfactor <= 1.0 || data->compensationfactor > 100000.0) {
+		g_set_error(&error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,
+					_("Error: comp must be in the range ]1, 100000]."));
+		status = CMD_ARG_ERROR;
+		goto terminate_makepsf;
+	}
+	if (data->ks < 3 || !(data->ks %2) || data->ks > min(gfit.rx, gfit.ry)) {
+		g_set_error(&error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,
+					_("Error: ks must be odd and between 3 and the minimum image dimension."));
+		status = CMD_ARG_ERROR;
+		goto terminate_makepsf;
+	}
+	if (data->psftype == PSF_MANUAL) {
+		if (data->psf_fwhm <= 0.0 || data->psf_fwhm > 100.0) {
+			g_set_error(&error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,
+						_("Error: fwhm must be > 0.0 and <= 100.0"));
+			status = CMD_ARG_ERROR;
 			goto terminate_makepsf;
-		} else {
-			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg_1);
+		}
+		if (data->psf_angle <= -360.0 || data->psf_angle > 360.0) {
+			g_set_error(&error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,
+						_("Error: angle must be > -360.0 and <= +360.0"));
+			status = CMD_ARG_ERROR;
+			goto terminate_makepsf;
+		}
+		if (data->psf_ratio < 1.0 || data->psf_ratio > 5.0) {
+			g_set_error(&error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,
+						_("Error: ratio must be <= 1.0 and <= 5.0"));
+			status = CMD_ARG_ERROR;
+			goto terminate_makepsf;
+		}
+		if (data->psf_beta <= 0.0 || data->psf_beta > 10.0) {
+			g_set_error(&error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,
+						_("Error: beta must be > 0.0 and <= 10.0"));
+			status = CMD_ARG_ERROR;
+			goto terminate_makepsf;
+		}
+		if (data->airy_diameter <= 0.0 || data->airy_diameter > 5000.0) {
+			g_set_error(&error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,
+						_("Error: dia must be > 0.0 and <= 5000.0"));
+			status = CMD_ARG_ERROR;
+			goto terminate_makepsf;
+		}
+		if (data->airy_fl <= 0.0 || data->airy_fl > 60000.0) {
+			g_set_error(&error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,
+						_("Error: fl must be > 0.0 and <= 60000.0"));
+			status = CMD_ARG_ERROR;
+			goto terminate_makepsf;
+		}
+		if (data->airy_wl < 100.0 || data->airy_wl > 30000.0) {
+			g_set_error(&error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,
+						_("Error: wl must be >= 100.0 and <= 30000.0"));
+			status = CMD_ARG_ERROR;
+			goto terminate_makepsf;
+		}
+		if (data->airy_pixelsize < 1.0 || data->airy_pixelsize > 30.0) {
+			g_set_error(&error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,
+						_("Error: pixelsize must be >= 1.0 and <= 30.0"));
+			status = CMD_ARG_ERROR;
+			goto terminate_makepsf;
+		}
+		if (data->airy_obstruction < 0.0 || data->airy_obstruction >= 100.0) {
+			g_set_error(&error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,
+						_("Error: obstruct must be >= 0.0 and < 100.0"));
+			status = CMD_ARG_ERROR;
+			goto terminate_makepsf;
 		}
 	}
+
+	image_cfa_warning_check();
+	start_in_new_thread(estimate_only, data);
+
 terminate_makepsf:
 	g_free(data->savepsf_filename);
+	g_free(load_filename);
 	free(data);
+	if (error) {
+		siril_log_color_message("%s\n", "red", error->message);
+	}
 	return status;
 }
 

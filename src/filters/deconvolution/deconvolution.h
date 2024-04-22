@@ -64,10 +64,10 @@ EXTERNC typedef struct estk_data {
 	float upscaleblur;// = 0.f;
 	float downscaleblur;// = 1.6f;
 	float k_l1;// = 0.5f;
-	float psf_fwhm;
-	float psf_beta;
-	float psf_angle;
-	float psf_ratio;
+	double psf_fwhm;
+	double psf_beta;
+	double psf_angle;
+	double psf_ratio;
 	gboolean symkern;
 	profile_t profile;
 	// Goldstein-Fattal Spectral Irregularity
@@ -87,12 +87,12 @@ EXTERNC typedef struct estk_data {
 	rl_method_t rl_method; // 0 for multiplicative, 1 for gradient descent
 	float stepsize; // Step size for gradient descent versions of R-L
 	regtype_t regtype; // R-L regularization type
-	float airy_diameter;
-	float airy_fl;
-	float airy_wl;
-	float airy_pixelsize;
-	float airy_pixelscale;
-	float airy_obstruction;
+	double airy_diameter;
+	double airy_fl;
+	double airy_wl;
+	double airy_pixelsize;
+	double airy_pixelscale;
+	double airy_obstruction;
 	gboolean save_after; // for the makepsf -savepsf= option
 	char* savepsf_filename; // for the makepsf -savepsf= option
 	gboolean recalc_ks; // for the makepsf stars option

@@ -142,15 +142,15 @@ void reset_conv_args(estk_data* args) {
 
 	// Synthetic kernel parameters
 	args->profile = PROFILE_GAUSSIAN;
-	args->psf_fwhm = 3.0f;
-	args->psf_beta = 4.5f;
-	args->psf_angle = 0.f;
-	args->psf_ratio = 1.f;
-	args->airy_wl = 525.f;
-	args->airy_pixelsize = 0.1f;
-	args->airy_fl = 1.f;
-	args->airy_diameter = 1.f;
-	args->airy_obstruction = 0.f;
+	args->psf_fwhm = 3.0;
+	args->psf_beta = 4.5;
+	args->psf_angle = 0.0;
+	args->psf_ratio = 1.0;
+	args->airy_wl = 525.;
+	args->airy_pixelsize = 0.1;
+	args->airy_fl = 1.0;
+	args->airy_diameter = 1.;
+	args->airy_obstruction = 0.0;
 
 	// Non-blind deconvolution parameters
 	args->nonblindtype = DECONV_RL;
