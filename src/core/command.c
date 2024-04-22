@@ -236,7 +236,7 @@ int process_seq_clean(int nb) {
 		{ "reg", 0, 0, G_OPTION_ARG_NONE, &cleanreg, NULL, NULL },
 		{ "stat", 0, 0, G_OPTION_ARG_NONE, &cleanstat, NULL, NULL },
 		{ "sel", 0, 0, G_OPTION_ARG_NONE, &cleansel, NULL, NULL },
-		G_OPTION_ENTRY_NULL
+		{ NULL }
 	};
 	GError *error = NULL;
 	int retval = parse_args(entries, nb, &error);
