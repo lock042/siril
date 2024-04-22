@@ -1059,6 +1059,57 @@ Use the Dynamic PSF tool, or the findstar command, adjusting the settings to you
                         <property name="position">2</property>
                       </packing>
                     </child>
+                    <child>
+                      <object class="GtkCheckButton" id="checkbutton_IPS_sequseheadercoords">
+                        <property name="label" translatable="yes">Use coordinates from headers</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">Use the coordinates contained in each image header instead of those given in this dialog</property>
+                        <property name="double-buffered">False</property>
+                        <property name="margin-start">10</property>
+                        <property name="draw-indicator">True</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="checkbutton_IPS_sequseheaderpixel">
+                        <property name="label" translatable="yes">Use pixel size from headers</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">Use the pixel size contained in each image header instead of those given in this dialog</property>
+                        <property name="double-buffered">False</property>
+                        <property name="margin-start">10</property>
+                        <property name="draw-indicator">True</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="checkbutton_IPS_sequseheaderfocal">
+                        <property name="label" translatable="yes">Use focal length from headers</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">Use the focal length contained in each image header instead of those given in this dialog</property>
+                        <property name="double-buffered">False</property>
+                        <property name="margin-start">10</property>
+                        <property name="draw-indicator">True</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">5</property>
+                      </packing>
+                    </child>
                   </object>
                 </child>
                 <child type="label">
