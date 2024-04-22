@@ -216,14 +216,13 @@ int process_dumpheader(int nb) {
 int process_seq_clean(int nb) {
 	// Define variables to populate based on the arguments provided
 	// Initialize to default values
-	gboolean cleanreg = FALSE, cleanstat = FALSE, cleansel = FALSE, cleanall = FALSE;
+	gboolean cleanreg = FALSE, cleanstat = FALSE, cleansel = FALSE;
 	gchar *seqname = NULL;
 
 	// Argument parsing
 	gchar** gword = word_to_args(nb);
 	GOptionEntry entries[] = {
 		{ "seq", 0, 0, G_OPTION_ARG_STRING, &seqname, NULL, NULL },
-		{ "all", 0, 0, G_OPTION_ARG_NONE, &cleanall, NULL, NULL },
 		{ "reg", 0, 0, G_OPTION_ARG_NONE, &cleanreg, NULL, NULL },
 		{ "stat", 0, 0, G_OPTION_ARG_NONE, &cleanstat, NULL, NULL },
 		{ "sel", 0, 0, G_OPTION_ARG_NONE, &cleansel, NULL, NULL },
@@ -256,7 +255,8 @@ int process_seq_clean(int nb) {
 	}
 
 	// Configuration
-	if (cleanall) {
+	if (!cleanreg && !cleanstat && !cleansel) {
+		// If no specific arguments are provided, everything is cleaned
 		cleanreg = TRUE;
 		cleanstat = TRUE;
 		cleansel = TRUE;
