@@ -150,6 +150,17 @@ static gchar** word_to_args(int nb) {
 	return gword;
 }
 
+gboolean parse_args(GOptionEntry *entries, int nb, GError **error) {
+	gchar** gword = word_to_args(nb);
+	GOptionContext *context;
+	context = g_option_context_new (NULL);
+	g_option_context_add_main_entries (context, entries, NULL);
+	gboolean retval = g_option_context_parse_strv(context, &gword, error);
+	g_option_context_free(context);
+	g_strfreev(gword);
+	return retval;
+}
+
 // Returns TRUE if the sequence does not contain CFA images
 // Otherwise, returns FALSE and prints a warning
 static gboolean sequence_cfa_warning_check(sequence* seq) {
@@ -220,7 +231,6 @@ int process_seq_clean(int nb) {
 	gchar *seqname = NULL;
 
 	// Argument parsing
-	gchar** gword = word_to_args(nb);
 	GOptionEntry entries[] = {
 		{ "seq", 0, 0, G_OPTION_ARG_STRING, &seqname, NULL, NULL },
 		{ "reg", 0, 0, G_OPTION_ARG_NONE, &cleanreg, NULL, NULL },
@@ -229,12 +239,7 @@ int process_seq_clean(int nb) {
 		G_OPTION_ENTRY_NULL
 	};
 	GError *error = NULL;
-	GOptionContext *context;
-	context = g_option_context_new (NULL);
-	g_option_context_add_main_entries (context, entries, NULL);
-	gboolean retval = g_option_context_parse_strv(context, &gword, &error);
-	g_option_context_free(context);
-	g_strfreev(gword);
+	int retval = parse_args(entries, nb, &error);
 
 	// Sanity checking
 	if (!retval) {
