@@ -312,23 +312,27 @@ int stack_compute_parallel_blocks(struct _image_block **blocksptr, long max_numb
 	return ST_OK;
 }
 
-static void rearrange_block_data(void *buffer, data_type itype, int rx, int ry, int rx_new) {
-	if (rx == rx_new) // nothing to rearrange
+// This function reaaranges data that was written continuously to the buffer by 
+// seq_opened_read_region to the actual stride of block_data. The rest of each line
+// is padded with zeros.
+// For instance, if img has a stride rx_img = 3 while block data has rx = 5 over
+// 2 lines (ry = 2), this will transform abcdef0000 to abc00def00
+
+static void rearrange_block_data(void *buffer, data_type itype, int rx, int ry, int rx_img) {
+	if (rx == rx_img) // nothing to rearrange
 		return;
 	int ielem_size = itype == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
-	int rest = rx - rx_new;
-	// void *line = malloc(rx_new * ielem_size);
-	int stride = rx_new * ielem_size;
+	int rest = rx - rx_img;
+	int stride = rx_img * ielem_size;
 	int rest_stride = rest * ielem_size;
 	for (int j = ry - 1 ; j >= 0; j--) { // we start from the end of the array to rearrange in place
-		long src = j * rx_new * ielem_size;
+		long src = j * rx_img * ielem_size;
 		long dst = j * rx * ielem_size;
-		memcpy(buffer + dst, buffer + src, stride);
-		// memcpy(line, buffer + src, stride);
-		// memcpy(buffer + dst, line, stride);
+		// using memmove instead of memcpy to avoid error in case of overlap
+		// Is it optimized or should we evaluate if overlap happens?
+		memmove(buffer + dst, buffer + src, stride); 
 		memset(buffer + dst + stride, 0, rest_stride);
 	}
-	// free(line);
 	return;
 }
 
