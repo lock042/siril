@@ -168,7 +168,7 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 			naxes[0] = (int)(ceil(xmax) - floor(xmin));
 			naxes[1] = (int)(ceil(ymax) - floor(ymin));
 			args->offset[0] = floor(xmin);
-			args->offset[1] = floor(ymin); // TODO: may need a - sign, we'll see
+			args->offset[1] = -floor(ymin);
 			siril_debug_print("new size: %d %d\n", naxes[0], naxes[1]);
 			siril_debug_print("new origin: %d %d\n", args->offset[0], args->offset[1]);
 		}
@@ -351,9 +351,9 @@ static int stack_read_block_data(struct stacking_args *args,
 		/* area in C coordinates, starting with 0, not cfitsio coordinates. */
 		int rx = naxes[0];
 		int ry = naxes[1];
-		if (args->maximize_framing && args->seq->is_variable) {
-			rx = args->seq->imgparam[image_index].rx;
-			ry = args->seq->imgparam[image_index].ry;
+		if (args->maximize_framing) {
+			rx = (args->seq->is_variable) ? args->seq->imgparam[image_index].rx : args->seq->rx;
+			ry = (args->seq->is_variable) ? args->seq->imgparam[image_index].ry : args->seq->ry;
 		}
 		rectangle area = {0, my_block->start_row, rx, my_block->height};
 
@@ -370,11 +370,12 @@ static int stack_read_block_data(struct stacking_args *args,
 				double scale = args->seq->upscale_at_stacking;
 				double dx, dy;
 				translation_from_H(layerparam[args->image_indices[frame]].H, &dx, &dy);
+				dy -=args->offset[1];
 				int shifty = round_to_int(dy * scale);
 #ifdef STACK_DEBUG
 				fprintf(stdout, "shifty for image %d: %d\n", args->image_indices[frame], shifty);
 #endif
-				if (area.y + area.h - 1 + shifty < 0 || area.y + shifty >= naxes[1]) {
+				if (area.y + area.h + shifty < 0 || area.y + shifty >= ry) {
 					// entirely outside image below or above: all black pixels
 					clear = TRUE; readdata = FALSE;
 				} else if (area.y + shifty < 0) {
@@ -382,9 +383,11 @@ static int stack_read_block_data(struct stacking_args *args,
 					* requires an offset in pix */
 					clear = TRUE;
 					area.h += area.y + shifty;	// cropping the height
-					offset = naxes[0] * (area.y - shifty);	// positive
+					area.h = min(area.h, ry);
+					offset = -naxes[0] * (area.y + shifty);	// positive
+					// offset = naxes[0] * (area.y - shifty);	// positive  TODO: understand why this was working before
 					area.y = 0;
-				} else if (area.y + area.h - 1 + shifty >= ry) {
+				} else if (area.y + area.h + shifty >= ry) {
 					/* we read only the upper part of the area here */
 					clear = TRUE;
 					area.y += shifty;
@@ -403,8 +406,6 @@ static int stack_read_block_data(struct stacking_args *args,
 				memset(data->pix[frame], 0, my_block->height * naxes[0] * ielem_size);
 			}
 		}
-		// if (area.h > ry)
-		// 	area.h = ry;
 
 		if (args->reglayer < 0 || readdata) {
 			// reading pixels from current frame
@@ -423,7 +424,7 @@ static int stack_read_block_data(struct stacking_args *args,
 					siril_log_color_message(_("Error reading one of the image areas\n"), "red");
 				return ST_SEQUENCE_ERROR;
 			}
-			if (args->maximize_framing && args->seq->is_variable) {
+			if (args->maximize_framing) {
 				rearrange_block_data(buffer, itype, naxes[0], area.h, rx);
 			}
 		}
@@ -1381,6 +1382,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 						double scale = args->seq->upscale_at_stacking;
 						double dx, dy;
 						translation_from_H(layerparam[args->image_indices[frame]].H, &dx, &dy);
+						dx -= args->offset[0];
 						shiftx = round_to_int(dx * scale);
 
 
