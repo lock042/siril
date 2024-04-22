@@ -1203,7 +1203,6 @@ static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *
 	if (fit->top_down) {
 		snprintf(fit->keywords.bayer_pattern, FLEN_VALUE, "%s", flip_bayer_pattern(fit->keywords.bayer_pattern));
 		fits_flip_top_to_bottom(fit);
-		fit->top_down = TRUE;
 	}
 
 if (!ser_file || ser_file->file == NULL || !fit)
