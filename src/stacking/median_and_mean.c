@@ -313,7 +313,7 @@ static int stack_read_block_data(struct stacking_args *args,
 #ifdef STACK_DEBUG
 				fprintf(stdout, "shifty for image %d: %d\n", args->image_indices[frame], shifty);
 #endif
-				if (area.y + area.h - 1 + shifty < 0 || area.y + shifty >= naxes[1]) {
+				if (area.y + area.h + shifty < 0 || area.y + shifty >= naxes[1]) {
 					// entirely outside image below or above: all black pixels
 					clear = TRUE; readdata = FALSE;
 				} else if (area.y + shifty < 0) {
@@ -321,9 +321,9 @@ static int stack_read_block_data(struct stacking_args *args,
 					 * requires an offset in pix */
 					clear = TRUE;
 					area.h += area.y + shifty;	// cropping the height
-					offset = naxes[0] * (area.y - shifty);	// positive
+					offset = -naxes[0] * (area.y + shifty);	// positive
 					area.y = 0;
-				} else if (area.y + area.h - 1 + shifty >= naxes[1]) {
+				} else if (area.y + area.h + shifty >= naxes[1]) {
 					/* we read only the upper part of the area here */
 					clear = TRUE;
 					area.y += shifty;
