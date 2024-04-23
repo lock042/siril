@@ -8969,7 +8969,7 @@ WARNING: This option should not be checked for master stacking.</property>
                                                             <property name="label" translatable="yes">Maximize framing</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">If you check this button, the final image will be normalized in the [0, 1] range if you work in 32-bit format precision, or in [0, 65535] otherwise.
+                                                            <property name="tooltip-text" translatable="yes">If you check this button, the final image size will be enlarged to fit all the selected frames of the sequence.
 
 WARNING: This option should not be checked for master stacking.</property>
                                                             <property name="halign">start</property>

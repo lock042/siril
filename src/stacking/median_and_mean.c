@@ -171,6 +171,9 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 			args->offset[1] = -floor(ymin);
 			siril_debug_print("new size: %d %d\n", naxes[0], naxes[1]);
 			siril_debug_print("new origin: %d %d\n", args->offset[0], args->offset[1]);
+		} else { // TODO: shouldn't we use dx/dy of ref image instead?
+			args->offset[0] = 0;
+			args->offset[1] = 0;
 		}
 	}
 	else if (args->seq->type == SEQ_SER) {

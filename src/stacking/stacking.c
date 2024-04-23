@@ -230,7 +230,7 @@ static void start_stacking() {
 	stackparam.normalize = gtk_combo_box_get_active(norm_combo);
 	stackparam.force_norm = gtk_toggle_button_get_active(force_norm);
 	stackparam.output_norm = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(norm_to_max)) && gtk_widget_is_visible(norm_to_max);
-	stackparam.maximize_framing = gtk_toggle_button_get_active(max_framing);
+	stackparam.maximize_framing = gtk_toggle_button_get_active(max_framing) && gtk_widget_is_visible(max_framing);
 	stackparam.coeff.offset = NULL;
 	stackparam.coeff.mul = NULL;
 	stackparam.coeff.scale = NULL;
@@ -1206,7 +1206,7 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 				gtk_combo_box_get_active(GTK_COMBO_BOX(widgetnormalize)) != 0);
 		gtk_widget_set_visible(output_norm, TRUE);
 		gtk_widget_set_visible(RGB_equal, TRUE);
-		gtk_widget_set_visible(max_framing, TRUE);
+		gtk_widget_set_visible(max_framing, layer_has_usable_registration(&com.seq, get_registration_layer(&com.seq))); // only shown if applicable
 	}
 
 	if (com.seq.reference_image == -1)
