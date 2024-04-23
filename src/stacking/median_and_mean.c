@@ -387,7 +387,6 @@ static int stack_read_block_data(struct stacking_args *args,
 					area.h += area.y + shifty;	// cropping the height
 					area.h = min(area.h, ry);
 					offset = -naxes[0] * (area.y + shifty);	// positive
-					// offset = naxes[0] * (area.y - shifty);	// positive  TODO: understand why this was working before
 					area.y = 0;
 				} else if (area.y + area.h + shifty >= ry) {
 					/* we read only the upper part of the area here */
