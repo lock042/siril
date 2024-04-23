@@ -322,16 +322,18 @@ static void rearrange_block_data(void *buffer, data_type itype, int rx, int ry, 
 	if (rx == rx_img) // nothing to rearrange
 		return;
 	int ielem_size = itype == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
-	int rest = rx - rx_img;
-	int stride = rx_img * ielem_size;
-	int rest_stride = rest * ielem_size;
+	size_t full_stride = rx * ielem_size;
+	size_t img_stride = rx_img * ielem_size;
+	size_t padding_stride = full_stride - img_stride;
+	size_t src = (ry - 1) * img_stride;
+	size_t dst = (ry - 1) * full_stride;
 	for (int j = ry - 1 ; j >= 0; j--) { // we start from the end of the array to rearrange in place
-		long src = j * rx_img * ielem_size;
-		long dst = j * rx * ielem_size;
 		// using memmove instead of memcpy to avoid error in case of overlap
 		// Is it optimized or should we evaluate if overlap happens?
-		memmove(buffer + dst, buffer + src, stride); 
-		memset(buffer + dst + stride, 0, rest_stride);
+		memmove(buffer + dst, buffer + src, img_stride); 
+		memset(buffer + dst + img_stride, 0, padding_stride);
+		src -= img_stride;
+		dst -= full_stride;
 	}
 	return;
 }
