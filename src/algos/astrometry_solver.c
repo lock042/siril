@@ -2131,7 +2131,7 @@ gboolean end_platesolve_sequence(gpointer p) {
 		update_sequences_list(seqname);
 		g_free(seqname);
 		g_free(basename);
-	} else if (check_seq_is_comseq(args->seq) && !args->retval) {
+	} else if (check_seq_is_comseq(args->seq)) {
 		if (args->seq->type == SEQ_FITSEQ) { // if FITSEQ, we need to repoen in READONLY mode
 			if (fitseq_open(args->seq->fitseq_file->filename, args->seq->fitseq_file, READONLY)) {
 				siril_debug_print("error when finally re-opening fitseq\n");
