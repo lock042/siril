@@ -171,17 +171,6 @@ static void sitelat_handler_read(fits *fit, const char *comment, KeywordInfo *in
 	}
 }
 
-static void datamax_handler_read(fits *fit, const char *comment, KeywordInfo *info) {
-	gboolean not_from_siril = (strstr(fit->keywords.program, "Siril") == NULL);
-	if ((fit->bitpix == FLOAT_IMG && not_from_siril) || fit->bitpix == DOUBLE_IMG) {
-		float mini, maxi;
-		fit_stats(fit->fptr, &mini, &maxi);
-		// override data_max if needed. In some images there are differences between max and data_max
-		fit->keywords.data_max = (double) maxi;
-		fit->keywords.data_min = (double) mini;
-	}
-}
-
 static void flo_handler_read(fits *fit, const char *comment, KeywordInfo *info) {
 	if (!fit->keywords.hi && (fit->orig_bitpix == FLOAT_IMG || fit->orig_bitpix == DOUBLE_IMG)) {
 		fit->keywords.lo = float_to_ushort_range(fit->keywords.flo);
@@ -263,7 +252,7 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 			/* ATTENTION: PROGRAM MUST BE BEFORE DATAMAX */
 			KEYWORD_PRIMARY( "image", "PROGRAM", KTYPE_STR, "Software that created this HDU", &(fit->keywords.program), NULL, program_handler_save),
 			KEYWORD_SECONDA( "image", "SWCREATE", KTYPE_STR, "Software that created this HDU", &(fit->keywords.program), NULL, NULL),
-			KEYWORD_PRIMARY( "image", "DATAMAX", KTYPE_DOUBLE, "Order of the rows in image array", &(fit->keywords.data_max), datamax_handler_read, NULL),
+			KEYWORD_PRIMARY( "image", "DATAMAX", KTYPE_DOUBLE, "Order of the rows in image array", &(fit->keywords.data_max), NULL, NULL),
 			KEYWORD_PRIMARY( "date",  "DATE", KTYPE_DATE, "UTC date that FITS file was created", &(fit->keywords.date), NULL, NULL),
 			KEYWORD_PRIMARY( "date",  "DATE-OBS", KTYPE_DATE, "YYYY-MM-DDThh:mm:ss observation start, UT", &(fit->keywords.date_obs), NULL, NULL),
 			KEYWORD_PRIMARY( "image", "IMAGETYP", KTYPE_STR, "Type of image", &(fit->keywords.image_type), NULL, NULL),
@@ -996,6 +985,15 @@ int read_fits_keywords(fits *fit) {
 	fit->unknown_keys = g_string_free(unknown_keys, FALSE);
 
 	set_to_default_not_used(fit, keys_hash);
+
+	gboolean not_from_siril = (strstr(fit->keywords.program, "Siril") == NULL);
+	if ((fit->bitpix == FLOAT_IMG && not_from_siril) || fit->bitpix == DOUBLE_IMG) {
+		float mini, maxi;
+		fit_stats(fit->fptr, &mini, &maxi);
+		// override data_max if needed. In some images there are differences between max and data_max
+		fit->keywords.data_max = (double) maxi;
+		fit->keywords.data_min = (double) mini;
+	}
 
 	// Free the hash table and unknown keys
 	g_hash_table_destroy(keys_hash);
