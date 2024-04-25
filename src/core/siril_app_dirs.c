@@ -68,31 +68,6 @@ static void search_for_data_dir() {
 	}
 	g_free(path);
 #endif
-	/* if not found we are looking for in the common dirs */
-	if (siril_share_dir == NULL) {
-		int i = 0;
-		const gchar *const*system_data_dirs;
-
-		system_data_dirs = g_get_system_data_dirs();
-
-		do {
-			path = g_build_filename(system_data_dirs[i], PACKAGE, NULL);
-			gchar *gladefile = g_build_filename(path, GLADE_FILE, NULL);
-
-			/* data dir is the dir when a glade file is found */
-			if (g_file_test(gladefile, G_FILE_TEST_EXISTS)) {
-				siril_share_dir = g_strdup(path);
-
-				g_free(path);
-				g_free(gladefile);
-				break;
-			}
-			g_free(path);
-			g_free(gladefile);
-
-			i++;
-		} while (system_data_dirs[i] != NULL);
-	}
 }
 
 static void search_for_config_dir() {

@@ -32,8 +32,6 @@
 #define HAVE_FFTW3F_MULTITHREAD
 #endif
 
-#define GLADE_FILE "siril3.glade"
-
 /* https://stackoverflow.com/questions/1644868/define-macro-for-debug-printing-in-c */
 #define siril_debug_print(fmt, ...) \
 	do { if (DEBUG_TEST) fprintf(stdout, fmt, ##__VA_ARGS__); } while (0)
