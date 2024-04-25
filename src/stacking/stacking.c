@@ -56,7 +56,7 @@
 static struct stacking_args stackparam = {	// parameters passed to stacking
 	NULL, NULL, -1, NULL, -1.0, 0, NULL, NULL, NULL, NULL, FALSE,
 	FALSE, NO_NORM, { 0 }, FALSE, FALSE, TRUE, -1, FALSE, FALSE, { 0, 0 },
-	NO_REJEC, { 0, 0 }, NULL, FALSE, FALSE, NULL, NULL,
+	FALSE, NO_REJEC, { 0, 0 }, NULL, FALSE, FALSE, NULL, NULL,
 	FALSE, FALSE, FALSE, FALSE, NULL, NULL, NULL, { 0 }, 0, { 0 }
 };
 
@@ -168,7 +168,7 @@ void main_stack(struct stacking_args *args) {
 	if (do_normalization(args)) // does nothing if NO_NORM
 		return;
 	// 2. up-scale
-	if (upscale_sequence(args)) // does nothing if args->seq->upscale_at_stacking <= 1.05
+	if (upscale_sequence(args)) // does nothing if !args->upscale_at_stacking
 		return;
 	// 3. stack
 	args->retval = args->method(args);
@@ -195,7 +195,7 @@ static void start_stacking() {
 	static GtkComboBox *method_combo = NULL, *rejec_combo = NULL, *norm_combo = NULL, *weighing_combo;
 	static GtkEntry *output_file = NULL;
 	static GtkToggleButton *overwrite = NULL, *force_norm = NULL, *max_framing = NULL,
-			       *fast_norm = NULL, *rejmaps = NULL, *merge_rejmaps = NULL;
+					*fast_norm = NULL, *rejmaps = NULL, *merge_rejmaps = NULL, *upscale_at_stacking = NULL;
 	static GtkSpinButton *sigSpin[2] = {NULL, NULL};
 	static GtkWidget *norm_to_max = NULL, *RGB_equal = NULL;
 
@@ -215,6 +215,7 @@ static void start_stacking() {
 		RGB_equal = lookup_widget("check_RGBequal");
 		rejmaps = GTK_TOGGLE_BUTTON(lookup_widget("rejmaps_checkbutton"));
 		merge_rejmaps = GTK_TOGGLE_BUTTON(lookup_widget("merge_rejmaps_checkbutton"));
+		upscale_at_stacking = GTK_TOGGLE_BUTTON(lookup_widget("upscale_at_stacking"));
 	}
 
 	if (get_thread_run()) {
@@ -230,7 +231,8 @@ static void start_stacking() {
 	stackparam.normalize = gtk_combo_box_get_active(norm_combo);
 	stackparam.force_norm = gtk_toggle_button_get_active(force_norm);
 	stackparam.output_norm = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(norm_to_max)) && gtk_widget_is_visible(norm_to_max);
-	stackparam.maximize_framing = gtk_toggle_button_get_active(max_framing) && gtk_widget_is_visible(max_framing);
+	stackparam.maximize_framing = gtk_toggle_button_get_active(max_framing) && gtk_widget_is_visible(GTK_WIDGET(max_framing));
+	stackparam.upscale_at_stacking = gtk_toggle_button_get_active(upscale_at_stacking) && gtk_widget_is_visible(GTK_WIDGET(upscale_at_stacking));
 	stackparam.coeff.offset = NULL;
 	stackparam.coeff.mul = NULL;
 	stackparam.coeff.scale = NULL;
@@ -549,7 +551,7 @@ static gboolean end_stacking(gpointer p) {
 			icc_auto_assign(&gfit, ICC_ASSIGN_ON_STACK);
 		clear_stars_list(TRUE);
 		/* check in com.seq, because args->seq may have been replaced */
-		if (com.seq.upscale_at_stacking > 1.05)
+		if (args->upscale_at_stacking)
 			com.seq.current = SCALED_IMAGE;
 		else com.seq.current = RESULT_IMAGE;
 		/* Warning: the previous com.uniq is not freed, but calling
@@ -1157,7 +1159,8 @@ static void update_filter_label() {
  */
 void update_stack_interface(gboolean dont_change_stack_type) {
 	static GtkWidget *go_stack = NULL, *widgetnormalize = NULL, *force_norm =
-			NULL, *output_norm = NULL, *RGB_equal = NULL, *fast_norm = NULL, *max_framing = NULL;
+			NULL, *output_norm = NULL, *RGB_equal = NULL, *fast_norm = NULL, *max_framing = NULL,
+			*upscale_at_stacking = NULL;
 	static GtkComboBox *method_combo = NULL, *filter_combo = NULL;
 	static GtkLabel *result_label = NULL;
 	gchar *labelbuffer;
@@ -1173,6 +1176,7 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 		output_norm = lookup_widget("check_normalise_to_max");
 		RGB_equal = lookup_widget("check_RGBequal");
 		max_framing = lookup_widget("check_maximize_framing");
+		upscale_at_stacking = lookup_widget("check_upscale_at_stacking");
 	}
 	if (!sequence_is_loaded()) {
 		gtk_widget_set_sensitive(go_stack, FALSE);
@@ -1185,6 +1189,8 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 		gtk_combo_box_set_active(filter_combo, SELECTED_IMAGES);
 		g_signal_handlers_unblock_by_func(filter_combo, on_stacksel_changed, NULL);
 	}
+	gboolean can_reframe = layer_has_usable_registration(&com.seq, get_registration_layer(&com.seq));
+	gboolean can_upscale = can_reframe && !com.seq.is_variable;
 
 	switch (gtk_combo_box_get_active(method_combo)) {
 	default:
@@ -1196,8 +1202,12 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 		gtk_widget_set_sensitive(fast_norm, FALSE);
 		gtk_widget_set_visible(output_norm, FALSE);
 		gtk_widget_set_visible(RGB_equal, FALSE);
+		gtk_widget_set_visible(max_framing, can_reframe); // only shown if applicable
+		gtk_widget_set_visible(upscale_at_stacking, can_upscale); // only shown if applicable
 		break;
 	case STACK_MEAN:
+		gtk_widget_set_visible(max_framing, can_reframe); // only shown if applicable and not for median
+		gtk_widget_set_visible(upscale_at_stacking, can_upscale); // only shown if applicable and not for median
 	case STACK_MEDIAN:
 		gtk_widget_set_sensitive(widgetnormalize, TRUE);
 		gtk_widget_set_sensitive(force_norm,
@@ -1206,7 +1216,6 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 				gtk_combo_box_get_active(GTK_COMBO_BOX(widgetnormalize)) != 0);
 		gtk_widget_set_visible(output_norm, TRUE);
 		gtk_widget_set_visible(RGB_equal, TRUE);
-		gtk_widget_set_visible(max_framing, layer_has_usable_registration(&com.seq, get_registration_layer(&com.seq))); // only shown if applicable
 	}
 
 	if (com.seq.reference_image == -1)

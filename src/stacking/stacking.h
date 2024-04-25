@@ -82,6 +82,7 @@ struct stacking_args {
 	gboolean equalizeRGB;		/* enable RGB equalization through normalization */
 	gboolean maximize_framing;	/* maximize the framing instead of conforming to ref image size*/
 	int offset[2];				/* offset used by max framing*/
+	gboolean upscale_at_stacking; /* x2 upscale during stacking*/
 
 	rejection type_of_rejection;	/* type of rejection */
 	float sig[2];			/* low and high sigma rejection or GESTD parameters */

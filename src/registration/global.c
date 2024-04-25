@@ -181,18 +181,9 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	}
 	clearfits(&fit);
 
-	if (regargs->x2upscale) {
-		if (regargs->no_output) {
-			args->seq->upscale_at_stacking = 2.0;
-		} else {
-			sadata->ref.x *= 2.0;
-			sadata->ref.y *= 2.0;
-		}
-	}
-	else {
-		if (regargs->no_output) {
-			args->seq->upscale_at_stacking = 1.0;
-		}
+	if (regargs->x2upscale && !regargs->no_output) {
+		sadata->ref.x *= 2.0;
+		sadata->ref.y *= 2.0;
 	}
 
 	/* copying refstars to com.stars for display */

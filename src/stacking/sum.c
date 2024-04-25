@@ -41,6 +41,9 @@ struct sum_stacking_data {
 	int ref_image;		// reference image index in the stacked sequence
 	gboolean input_32bits;	// input is a sequence of 32-bit float images
 	gboolean output_32bits;	// output a 32-bit float image instead of the default ushort
+	gboolean maximize_framing; // outputs an image that encompasses all frames including registration
+	gboolean upscale_at_stacking; // outputs an image twice the size of the original sequence
+	int output_size[2]; // stacked image size
 	fits result;
 };
 
@@ -100,7 +103,7 @@ static int sum_stacking_image_hook(struct generic_seq_args *args, int o, int i, 
 	}
 
 	if (ssdata->reglayer != -1 && args->seq->regparam[ssdata->reglayer]) {
-		double scale = args->seq->upscale_at_stacking;
+		double scale = (ssdata->upscale_at_stacking) ? 2. : 1.;
 		double dx, dy;
 		translation_from_H(args->seq->regparam[ssdata->reglayer][i].H, &dx, &dy);
 		shiftx = round_to_int(dx * scale);
@@ -260,6 +263,7 @@ int stack_summing_generic(struct stacking_args *stackargs) {
 	ssdata->output_32bits = stackargs->use_32bit_output;
 	if (ssdata->input_32bits)
 		assert(ssdata->output_32bits);
+	ssdata->maximize_framing = stackargs->maximize_framing;
 	args->user = ssdata;
 
 	generic_sequence_worker(args);

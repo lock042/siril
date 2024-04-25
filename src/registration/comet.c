@@ -245,9 +245,6 @@ static int comet_align_prepare_hook(struct generic_seq_args *args) {
 	cadata->reference_date = g_date_time_ref(ref.keywords.date_obs);
 	clearfits(&ref);
 
-	if (regargs->x2upscale)
-		args->seq->upscale_at_stacking = 2.0;
-	else args->seq->upscale_at_stacking = 1.0;
 	return 0;
 }
 

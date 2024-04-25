@@ -372,7 +372,7 @@ static int stack_read_block_data(struct stacking_args *args,
 			 * shift is managed in the main loop after the read. */
 			regdata *layerparam = args->seq->regparam[args->reglayer];
 			if (layerparam) {
-				double scale = args->seq->upscale_at_stacking;
+				double scale = (args->upscale_at_stacking) ? 2. : 1.;
 				double dx, dy;
 				translation_from_H(layerparam[args->image_indices[frame]].H, &dx, &dy);
 				dy -=args->offset[1];
@@ -1383,7 +1383,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 					int pix_idx = line_idx + x;
 					if (layerparam) {
 						int shiftx = 0;
-						double scale = args->seq->upscale_at_stacking;
+						double scale = (args->upscale_at_stacking) ? 2. : 1.;
 						double dx, dy;
 						translation_from_H(layerparam[args->image_indices[frame]].H, &dx, &dy);
 						dx -= args->offset[0];
