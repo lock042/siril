@@ -5811,8 +5811,7 @@ msgstr "10.00"
 #: src/gui/uifiles/settings_window.ui:1654
 msgid "Maximum seconds to try solving. 0 to disable it"
 msgstr ""
-"Nombre maximum de secondes avant d'essayer de résoudre le problème. 0 pour "
-"le désactiver"
+"Nombre maximum de secondes avant de reesayer. 0 pour désactiver"
 
 #: src/gui/uifiles/settings_window.ui:1666
 msgid ""
