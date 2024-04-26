@@ -25,7 +25,6 @@
  */
 
 #include "core/siril.h"
-#include "core/arithm.h" // for powi()
 #include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
 #include "algos/photometric_cc.h"
