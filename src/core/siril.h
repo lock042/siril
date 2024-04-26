@@ -505,6 +505,14 @@ struct ffit {
 	cmsHPROFILE icc_profile; // ICC color management profile
 };
 
+typedef enum {
+	SPCC_RED = 1 << RLAYER,
+	SPCC_GREEN = 1 << GLAYER,
+	SPCC_BLUE = 1 << BLAYER,
+	SPCC_CLEAR = SPCC_RED | SPCC_GREEN | SPCC_BLUE,
+	SPCC_INVIS = 0
+} spcc_channel;
+
 /* Filter spectral responses are defined by unevenly spaced frequency samples
  * and accompanying spectral responses corresponding to the sampling points. */
 typedef struct _spcc_object {
@@ -516,7 +524,7 @@ typedef struct _spcc_object {
 	int index; // index in the JSON file
 	int type;
 	int quality;
-	int channel;
+	spcc_channel channel;
 	gchar *manufacturer;
 	gchar *source;
 	int version;
