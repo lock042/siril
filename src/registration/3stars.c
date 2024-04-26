@@ -257,7 +257,15 @@ static int _3stars_seqpsf(struct registration_args *regargs) {
 	struct seqpsf_args *spsfargs = malloc(sizeof(struct seqpsf_args));
 	struct generic_seq_args *args = calloc(1, sizeof(struct generic_seq_args));
 	spsfargs->for_photometry = FALSE;
-	spsfargs->bayer = regargs->bayer;
+	fits fit = { 0 };
+	if (seq_read_frame(args->seq, seq->reference_image, &fit, FALSE, -1)) {
+		siril_log_color_message(_("Could not load metadata"), "red");
+		free(spsfargs);
+		return -1;
+	} else {
+		memcpy(spsfargs->bayer_pattern, fit.keywords.bayer_pattern, FLEN_VALUE);
+	}
+	clearfits(&fit);
 	spsfargs->allow_use_as_regdata = BOOL_FALSE;
 	spsfargs->list = NULL;	// GSList init is NULL
 	spsfargs->framing = (regargs->follow_star) ? FOLLOW_STAR_FRAME : REGISTERED_FRAME;

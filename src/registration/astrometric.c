@@ -29,6 +29,8 @@
 #include "core/proto.h"
 #include "core/siril_world_cs.h"
 #include "core/siril_log.h"
+#include "drizzle/cdrizzleutil.h"
+#include "drizzle/cdrizzlebox.h"
 #include "algos/astrometry_solver.h"
 #include "algos/siril_wcs.h"
 #include "algos/sorting.h"
@@ -272,7 +274,12 @@ int register_astrometric(struct registration_args *regargs) {
 					continue;
 				if (WCSDATA[i].lin.dispre) {
 					double A[MAX_SIP_SIZE][MAX_SIP_SIZE], B[MAX_SIP_SIZE][MAX_SIP_SIZE]; // we won't need them
-					astargs->disto[i].order = extract_SIP_order_and_matrices(WCSDATA[i].lin.dispre, A, B, astargs->disto[i].AP, astargs->disto[i].BP);
+					if (regargs->driz) {
+						// For drizzle we take the opposite (A and B) parameters instead of AP and BP
+						astargs->disto[i].order = extract_SIP_order_and_matrices(WCSDATA[i].lin.dispre, astargs->disto[i].AP, astargs->disto[i].BP, A, B);
+					} else {
+						astargs->disto[i].order = extract_SIP_order_and_matrices(WCSDATA[i].lin.dispre, A, B, astargs->disto[i].AP, astargs->disto[i].BP);
+					}
 					found = TRUE;
 					astargs->disto[i].xref = WCSDATA[i].crpix[0] - 1.; // -1 comes from the difference of convention between opencv and wcs
 					astargs->disto[i].yref = WCSDATA[i].crpix[1] - 1.;
@@ -379,6 +386,7 @@ free_all:
 static int astrometric_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads) {
 	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
+	struct driz_args_t *driz = regargs->driz;
 	struct astrometric_args *astargs = sadata->astargs;
 	Homography *Rs = astargs->Rs;
 	Homography *Ks = astargs->Ks;
@@ -392,7 +400,105 @@ static int astrometric_image_hook(struct generic_seq_args *args, int out_index, 
 	sadata->success[out_index] = 0;
 	// TODO: find in opencv codebase if smthg smart can be done with K/R to avoid the double-flip
 	fits_flip_top_to_bottom(fit);
-	int status = cvWarp_fromKR(fit,  &astargs->roi, Ks[in_index], Rs[in_index], astargs->scale ,regargs->projector, regargs->interpolation, regargs->clamp, disto, &roi);
+	int status = 0;
+	struct driz_param_t *p = NULL;
+	if (regargs->driz) {
+		float scale = driz->scale;
+		p = calloc(1, sizeof(struct driz_param_t));
+		driz_param_init(p);
+		p->kernel = driz->kernel;
+		p->driz = driz;
+		p->error = malloc(sizeof(struct driz_error_t));
+		p->scale = driz->scale;
+		p->pixel_fraction = driz->pixel_fraction;
+		p->cfa = driz->cfa;
+		// Set bounds equal to whole image
+		p->xmin = p->ymin = 0;
+		p->xmax = fit->rx - 1;
+		p->ymax = fit->ry - 1;
+		p->pixmap = calloc(1, sizeof(imgmap_t));
+		p->pixmap->rx = fit->rx;
+		p->pixmap->ry = fit->ry;
+		p->threads = threads;
+
+		map_image_coordinates_wcs(fit, &astargs->roi, Ks[in_index], Rs[in_index], driz->scale, regargs->projector, disto, &roi, p->pixmap->xmap, p->pixmap->ymap);
+		if (!p->pixmap->xmap) {
+			siril_log_color_message(_("Error generating mapping array.\n"), "red");
+			free(p->error);
+			free(p->pixmap);
+			free(p);
+			return 1;
+		}
+		p->data = fit;
+		// Convert fit to 32-bit float if required
+		float *newbuf = NULL;
+		if (fit->type == DATA_USHORT) {
+			siril_debug_print("Replacing ushort buffer for drizzling\n");
+			size_t ndata = fit->rx * fit->ry * fit->naxes[2];
+			newbuf = malloc(ndata * sizeof(float));
+			float invnorm = 1.f / USHRT_MAX_SINGLE;
+			for (size_t i = 0 ; i < ndata ; i++) {
+				newbuf[i] = fit->data[i] * invnorm;
+			}
+			fit_replace_buffer(fit, newbuf, DATA_FLOAT);
+		}
+		/* Set up output fits */
+		fits out;
+		copyfits(fit, &out, CP_FORMAT, -1);
+		// copy the DATE_OBS
+		out.keywords.date_obs = g_date_time_ref(fit->keywords.date_obs);
+		out.rx = out.naxes[0] = rx_out;
+		out.ry = out.naxes[1] = ry_out;
+		out.naxes[2] = driz->is_bayer ? 3 : 1;
+		size_t chansize = out.rx * out.ry * sizeof(float);
+		out.fdata = calloc(out.naxes[2] * chansize, 1);
+		out.fpdata[0] = out.fdata;
+		out.fpdata[1] = out.naxes[2] == 1 ? out.fdata : out.fdata + chansize;
+		out.fpdata[2] = out.naxes[2] == 1 ? out.fdata : out.fdata + 2 * chansize;
+		p->output_data = &out;
+
+		// Set up the output_counts fits to store pixel hit counts
+		fits *output_counts = calloc(1, sizeof(fits));
+		copyfits(&out, output_counts, CP_FORMAT, -1);
+		output_counts->fdata = calloc(output_counts->rx * output_counts->ry * output_counts->naxes[2], sizeof(float));
+		p->output_counts = output_counts;
+
+		p->weights = driz->flat;
+
+		if (dobox(p)) { // Do the drizzle
+			siril_log_color_message("s\n", p->error->last_message);
+			return 1;
+		}
+		clearfits(fit);
+		// copy the DATE_OBS
+		copyfits(&out, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+		fit->keywords.date_obs = g_date_time_ref(out.keywords.date_obs);
+		clearfits(&out);
+		if (args->seq->type == SEQ_SER || com.pref.force_16bit) {
+			fit_replace_buffer(fit, float_buffer_to_ushort(fit->fdata, fit->rx * fit->ry * fit->naxes[2]), DATA_USHORT);
+		}
+		if (driz->is_bayer) {
+			/* we need to do something special here because it's a 1-channel sequence and
+			* image that will become 3-channel after this call, so stats caching will
+			* not be correct. Preprocessing does not compute new stats so we don't need
+			* to save them into cache now.
+			* Destroying the stats from the fit will also prevent saving them in the
+			* sequence, which may be done automatically by the caller.
+			*/
+			full_stats_invalidation_from_fit(fit);
+			fit->keywords.lo = 0;
+		}
+
+		free(p->pixmap->xmap);
+		free(p->pixmap);
+
+		// Get rid of the output_counts image, no longer required
+		clearfits(output_counts);
+		free(output_counts);
+		output_counts = NULL;
+	} else {
+		status = cvWarp_fromKR(fit,  &astargs->roi, Ks[in_index], Rs[in_index], astargs->scale ,regargs->projector, regargs->interpolation, regargs->clamp, disto, &roi);
+	}
 	if (!status) {
 		fits_flip_top_to_bottom(fit);
 		// TODO: keeping this for later when max framing won't save large black borders...

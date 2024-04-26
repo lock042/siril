@@ -1232,7 +1232,7 @@ int cvWarp_fromKR(fits *image, astrometric_roi *roi_in, Homography K, Homography
  * integrate Drizzle into astrometric registration
  *
  */
-/*
+
 static void drizzle_map_undistortion(disto_data *disto, Rect roi, Mat xmap, Mat ymap) {
 	double U, V, x, y;
 	double U2, V2, U3, V3, U4, V4, U5, V5;
@@ -1291,7 +1291,7 @@ static void drizzle_map_undistortion(disto_data *disto, Rect roi, Mat xmap, Mat 
  	}
 }
 
-int cvDrizzleWarpMapSpherical(gboolean get_size_only, astrometric_roi *roi_in, Homography K, Homography R, float scale, int projectortype, disto_data *undisto, astrometric_roi *roi_out, float *xmap_data_ptr, float *ymap_data_ptr) {
+int cvDrizzleWarpMapSpherical(fits *image, astrometric_roi *roi_in, Homography K, Homography R, float scale, disto_data *undisto, astrometric_roi *roi_out, float *xmap_data_ptr, float *ymap_data_ptr) {
 	Mat _R = Mat(3, 3, CV_64FC1);
 	Mat _K = Mat(3, 3,CV_64FC1);
 	convert_H_to_MatH(&R, _R);
@@ -1338,7 +1338,7 @@ int cvDrizzleWarpMapSpherical(gboolean get_size_only, astrometric_roi *roi_in, H
 	// We call this function twice, once with get_size_only to populate roi_out which we use to calculate
 	// how much memory to allocate in the mapping float arrays, then we call it again to actually generate
 	// the mapping arrays.
-	if (!get_size_only) {
+	if (image) {
 		projector.scale = scale;
 		projector.setCameraParams(k, r);
 
@@ -1366,7 +1366,7 @@ int cvDrizzleWarpMapSpherical(gboolean get_size_only, astrometric_roi *roi_in, H
 	return 0;
 }
 
-int cvDrizzleWarpMapPlanar(gboolean get_size_only, astrometric_roi *roi_in, Homography K, Homography R, float scale, int projectortype, disto_data *undisto, astrometric_roi *roi_out, float *xmap_data_ptr, float *ymap_data_ptr) {
+int cvDrizzleWarpMapPlanar(fits *image, astrometric_roi *roi_in, Homography K, Homography R, float scale, disto_data *undisto, astrometric_roi *roi_out, float *xmap_data_ptr, float *ymap_data_ptr) {
 	Mat _R = Mat(3, 3, CV_64FC1);
 	Mat _K = Mat(3, 3,CV_64FC1);
 	convert_H_to_MatH(&R, _R);
@@ -1413,7 +1413,7 @@ int cvDrizzleWarpMapPlanar(gboolean get_size_only, astrometric_roi *roi_in, Homo
 	// We call this function twice, once with get_size_only to populate roi_out which we use to calculate
 	// how much memory to allocate in the mapping float arrays, then we call it again to actually generate
 	// the mapping arrays.
-	if (!get_size_only) {
+	if (image) {
 		projector.scale = scale;
 		projector.setCameraParams(k, r);
 
@@ -1440,4 +1440,20 @@ int cvDrizzleWarpMapPlanar(gboolean get_size_only, astrometric_roi *roi_in, Homo
 	}
 	return 0;
 }
-*/
+
+void map_image_coordinates_wcs(fits *image, astrometric_roi *roi_in, Homography K, Homography R, float scale, int projector, disto_data *undisto, astrometric_roi *roi_out, float *xmap_data_ptr, float *ymap_data_ptr) {
+	switch (projector) {
+		case OPENCV_PLANE:
+			cvDrizzleWarpMapPlanar(NULL, roi_in, K, R, scale, undisto, roi_out, xmap_data_ptr, ymap_data_ptr);
+			xmap_data_ptr = (float*) malloc(roi_out->w * roi_out->h * 2 * sizeof(float));
+			ymap_data_ptr = xmap_data_ptr + roi_out->w * roi_out->h;
+			cvDrizzleWarpMapPlanar(image, roi_in, K, R, scale, undisto, roi_out, xmap_data_ptr, ymap_data_ptr);
+			break;
+		case OPENCV_SPHERICAL:
+			cvDrizzleWarpMapSpherical(NULL, roi_in, K, R, scale, undisto, roi_out, xmap_data_ptr, ymap_data_ptr);
+			xmap_data_ptr = (float*) malloc(roi_out->w * roi_out->h * 2 * sizeof(float));
+			ymap_data_ptr = xmap_data_ptr + roi_out->w * roi_out->h;
+			cvDrizzleWarpMapSpherical(image, roi_in, K, R, scale, undisto, roi_out, xmap_data_ptr, ymap_data_ptr);
+			break;
+	}
+}

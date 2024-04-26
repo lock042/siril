@@ -61,6 +61,7 @@ gboolean cvRotMat3(double angles[3], rotation_type rottype[3], gboolean W2C, Hom
 void cvRelRot(Homography *Ref, Homography *R);
 void cvcalcH_fromKKR(Homography Kref, Homography K, Homography R, Homography *H);
 int cvWarp_fromKR(fits *image, astrometric_roi *roi_in, Homography K, Homography R, float scale, int projector, int interpolation, gboolean clamp, disto_data *disto, astrometric_roi *roi_out);
+void map_image_coordinates_wcs(fits *image, astrometric_roi *roi_in, Homography K, Homography R, float scale, int projector, disto_data *undisto, astrometric_roi *roi_out, float *xmap_data_ptr, float *ymap_data_ptr);
 #ifdef __cplusplus
 }
 #endif
