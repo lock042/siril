@@ -56,6 +56,7 @@ siril 1.4.0 xx xx, xx
 * Added DRIZZLE and related script (!633, closes #12, #170)
 * Changed convention to Counterclokwise for the angle reported by astrometry (#1290)
 * Removed calls to deprecated OpenMP functions (!662)
+* Fixed bug where Bayer pattern was not read as needed for seqpsf (#1297)
 
 siril 1.2.2 xx xx, 2024
 * Removed background extraction samples after using it in script (#1265)
