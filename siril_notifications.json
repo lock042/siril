@@ -1,0 +1,20 @@
+[
+  {
+    "valid-from": "2024-04-18T17:30:00+02:00",
+    "valid-to": "2024-04-23T08:30:00+02:00",
+    "message": "The Gaia archive will be down for maintenance from 18 April 17:30 CEST until 23 April 08:30 CEST. During this time Siril SPCC functionality will be unavailable as it relies on an online connection to the archive to retrieve stellar spectra. We apologise for the inconvenience.",
+    "priority": 2
+  },
+  {
+    "valid-from": "2024-04-18T17:30:00+02:00",
+    "valid-to": "2024-05-23T08:30:00+02:00",
+    "message": "Testing 1 2 3 4 5",
+    "priority": 2
+  },
+  {
+    "valid-from": "2025-04-18T17:30:00+02:00",
+    "valid-to": "2025-05-23T08:30:00+02:00",
+    "message": "This is a message from the future (shouldn't appear!)",
+    "priority": 2
+  }
+]

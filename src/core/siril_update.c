@@ -41,9 +41,8 @@
 #define SIRIL_VERSIONS DOMAIN"siril_versions.json"
 #define SIRIL_DOWNLOAD DOMAIN"download/"
 #define GITLAB_URL "https://gitlab.com/free-astro/siril/raw"
-// Currently points to my google drive for test purposes, this needs to be
-// updated to point to somewhere on siril.org in due course
-#define SIRIL_NOTIFICATIONS "https://filebin.net/i4hjt1osi4lcz7f7/siril_notifications.json"
+#define BRANCH "notifier"
+#define SIRIL_NOTIFICATIONS "current_notifications.json"
 
 static gchar *get_changelog(gchar *str);
 
@@ -681,6 +680,7 @@ static gboolean end_notifier_idle(gpointer p) {
 	/* free data */
 	set_cursor_waiting(FALSE);
 	g_free(args->content);
+	g_free(args->url);
 	free(args);
 	http_cleanup();
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
@@ -784,7 +784,7 @@ void siril_check_updates(gboolean verbose) {
 	struct _update_data *args;
 
 	args = malloc(sizeof(struct _update_data));
-	args->url = SIRIL_VERSIONS;
+	args->url = g_strdup(SIRIL_VERSIONS);
 	args->code = 0L;
 	args->content = NULL;
 	args->verbose = verbose;
@@ -802,7 +802,13 @@ void siril_check_notifications(gboolean verbose) {
 	struct _update_data *args;
 
 	args = malloc(sizeof(struct _update_data));
-	args->url = SIRIL_NOTIFICATIONS;
+	GString *url = g_string_new(GITLAB_URL);
+	url = g_string_append(url, "/");
+	url = g_string_append(url, BRANCH);
+	url = g_string_append(url, "/");
+	url = g_string_append(url, SIRIL_NOTIFICATIONS);
+	args->url = g_string_free(url, FALSE);
+	siril_debug_print("Notification URL: %s\n", args->url);
 	args->code = 0L;
 	args->content = NULL;
 	args->verbose = verbose;
@@ -813,7 +819,7 @@ void siril_check_notifications(gboolean verbose) {
 		set_cursor_waiting(TRUE);
 
 	// this is a graphical operation, we don't use the main processing thread for it, it could block file opening
-	g_thread_new("siril-update", fetch_url, args);
+	g_thread_new("siril-notifications", fetch_url, args);
 }
 
 #endif
