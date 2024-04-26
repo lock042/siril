@@ -33,6 +33,21 @@
  *       S I R I L      A R I T H M E T I C      O P E R A T I O N S         *
  ****************************************************************************/
 
+// Integer power calculation
+static inline int sq(int x) { return x * x; }
+
+int powi(int b, int e) {
+	if (e == 0) {
+		return 1;
+	} else if (e == 1) {
+		return e;
+	} else if (e % 2 == 1) {
+		return b * powi(b, e - 1);
+	} else {
+		return sq(powi(b, e / 2));
+	}
+}
+
 static int soper_ushort_to_ushort(fits *a, float scalar, image_operator oper) {
 	if (!a) return 1;
 	if (!a->data) return 1;

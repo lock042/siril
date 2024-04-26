@@ -34,6 +34,7 @@ typedef struct blend_data {
 	gboolean do_channel[3]; // Whether or not to do each channel
 } blend_data;
 
+int powi(int b, int e);
 int soper(fits *a, float scalar, image_operator oper, gboolean conv_to_float);
 int imoper(fits *a, fits *b, image_operator oper, gboolean allow_32bits);
 int addmax(fits *a, fits *b);
