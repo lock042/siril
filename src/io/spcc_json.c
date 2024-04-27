@@ -127,14 +127,14 @@ static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *da
 			data->channel = SPCC_GREEN;
 		} else if (!strcmp(channel_string, "BLUE")) {
 			data->channel = SPCC_BLUE;
-		} else if (!strcmp(channel_string, "RED GREEN")) {
+		} else if (!strcmp(channel_string, "RED GREEN") || !strcmp(channel_string, "GREEN RED")) {
 			data->channel = SPCC_RED | SPCC_BLUE;
-		} else if (!strcmp(channel_string, "GREEN BLUE")) {
+		} else if (!strcmp(channel_string, "GREEN BLUE") || !strcmp(channel_string, "BLUE GREEN")) {
 			data->channel = SPCC_GREEN | SPCC_BLUE;
-		} else if (!strcmp(channel_string, "RED BLUE")) { // This is unlikely ever to be used
+		} else if (!strcmp(channel_string, "RED BLUE") || !strcmp(channel_string, "BLUE RED")) { // This is unlikely ever to be used
 		// but is included for completeness
 			data->channel = SPCC_RED | SPCC_BLUE;
-		} else if (!strcmp(channel_string, "ALL") || !strcmp(channel_string, "RED GREEN BLUE")) {
+		} else if (!strcmp(channel_string, "ALL") || !strcmp(channel_string, "RED GREEN BLUE") || !strcmp(channel_string, "BLUE GREEN RED")) {
 			data->channel = SPCC_CLEAR;
 		} else {
 			data->channel = SPCC_INVIS; // Other filters e.g. UV or IR filters
