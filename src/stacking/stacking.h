@@ -210,4 +210,7 @@ void free_list_date(gpointer data);
 DateEvent* new_date_item(GDateTime *dt, gdouble exposure);
 void compute_date_time_keywords(GList *list_date, fits *fit);
 
+	/* compute max framing (used by sum, min and max) */
+void compute_max_framing(struct stacking_args *args, int output_size[2], int offset[2]);
+
 #endif

@@ -211,7 +211,7 @@ int upscale_sequence(struct stacking_args *stackargs) {
 		for (i = 0; i < stackargs->nb_images_to_stack; i++) {
 			regdata *data = &oldseq->regparam[stackargs->reglayer][stackargs->image_indices[i]];
 			memcpy(&newseq->regparam[stackargs->reglayer][i], data, sizeof(regdata));
-			// TODO: why don't we modify the shifts here already?
+			// TODO: why don't we modify the shifts here already? indeed!
 		}
 		stackargs->retval = stack_fill_list_of_unfiltered_images(stackargs);
 

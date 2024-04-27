@@ -215,7 +215,7 @@ static void start_stacking() {
 		RGB_equal = lookup_widget("check_RGBequal");
 		rejmaps = GTK_TOGGLE_BUTTON(lookup_widget("rejmaps_checkbutton"));
 		merge_rejmaps = GTK_TOGGLE_BUTTON(lookup_widget("merge_rejmaps_checkbutton"));
-		upscale_at_stacking = GTK_TOGGLE_BUTTON(lookup_widget("upscale_at_stacking"));
+		upscale_at_stacking = GTK_TOGGLE_BUTTON(lookup_widget("check_upscale_at_stacking"));
 	}
 
 	if (get_thread_run()) {
@@ -1192,7 +1192,8 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 	gboolean can_reframe = layer_has_usable_registration(&com.seq, get_registration_layer(&com.seq));
 	gboolean can_upscale = can_reframe && !com.seq.is_variable;
 
-	switch (gtk_combo_box_get_active(method_combo)) {
+	int stack_method = gtk_combo_box_get_active(method_combo);
+	switch (stack_method) {
 	default:
 	case STACK_SUM:
 	case STACK_MAX:
@@ -1206,8 +1207,6 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 		gtk_widget_set_visible(upscale_at_stacking, can_upscale); // only shown if applicable
 		break;
 	case STACK_MEAN:
-		gtk_widget_set_visible(max_framing, can_reframe); // only shown if applicable and not for median
-		gtk_widget_set_visible(upscale_at_stacking, can_upscale); // only shown if applicable and not for median
 	case STACK_MEDIAN:
 		gtk_widget_set_sensitive(widgetnormalize, TRUE);
 		gtk_widget_set_sensitive(force_norm,
@@ -1216,6 +1215,8 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 				gtk_combo_box_get_active(GTK_COMBO_BOX(widgetnormalize)) != 0);
 		gtk_widget_set_visible(output_norm, TRUE);
 		gtk_widget_set_visible(RGB_equal, TRUE);
+		gtk_widget_set_visible(max_framing, can_reframe && stack_method != STACK_MEDIAN); // only shown if applicable and not for median
+		gtk_widget_set_visible(upscale_at_stacking, can_upscale && stack_method != STACK_MEDIAN); // only shown if applicable and not for median
 	}
 
 	if (com.seq.reference_image == -1)
@@ -1263,3 +1264,29 @@ static void stacking_args_deep_free(struct stacking_args *args) {
 	free(args);
 }
 
+// used by sum, min and max stacking
+// needs to take into account scale because those methods are called on the upscaled sequence
+void compute_max_framing(struct stacking_args *args, int output_size[2], int offset[2]) {
+	double xmin = DBL_MAX;
+	double xmax = -DBL_MAX;
+	double ymin = DBL_MAX;
+	double ymax = -DBL_MAX;
+	int nb_frames = args->nb_images_to_stack;
+	double scale = (args->upscale_at_stacking) ? 2. : 1.;
+	for (int i = 0; i < nb_frames; ++i) {
+		int image_index = args->image_indices[i]; // image index in sequence
+		regdata *regdat = args->seq->regparam[args->reglayer];
+		int rx = (args->seq->is_variable) ? args->seq->imgparam[image_index].rx : args->seq->rx;
+		int ry = (args->seq->is_variable) ? args->seq->imgparam[image_index].ry : args->seq->ry;
+		xmin = (xmin > regdat[image_index].H.h02 * scale) ? regdat[image_index].H.h02 * scale : xmin;
+		ymin = (ymin > regdat[image_index].H.h12 * scale) ? regdat[image_index].H.h12 * scale : ymin;
+		xmax = (xmax < regdat[image_index].H.h02 * scale + rx) ? regdat[image_index].H.h02 * scale + rx : xmax;
+		ymax = (ymax < regdat[image_index].H.h12 * scale + ry) ? regdat[image_index].H.h12 * scale + ry : ymax;
+	}
+	output_size[0] = (int)(ceil(xmax) - floor(xmin));
+	output_size[1] = (int)(ceil(ymax) - floor(ymin));
+	offset[0] = floor(xmin);
+	offset[1] = -ceil(ymax); // the stack is done with origin at bottom left but the shifts are computed from top right
+	siril_debug_print("new size: %d %d\n", output_size[0], output_size[1]);
+	siril_debug_print("new origin: %d %d\n", offset[0], offset[1]);
+}

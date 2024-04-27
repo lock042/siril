@@ -90,7 +90,7 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 			*naxis = naxes[2] == 3 ? 3 : 2;
 			*bitpix = args->seq->fitseq_file->bitpix;
 		}
-
+		double scale = (args->upscale_at_stacking) ? 2. : 1.;
 		for (int i = 0; i < nb_frames; ++i) {
 			int image_index = args->image_indices[i]; // image index in sequence
 			if (!get_thread_run())
@@ -148,10 +148,10 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 				regdata *regdat = args->seq->regparam[args->reglayer];
 				int rx = (args->seq->is_variable) ? args->seq->imgparam[image_index].rx : args->seq->rx;
 				int ry = (args->seq->is_variable) ? args->seq->imgparam[image_index].ry : args->seq->ry;
-				xmin = (xmin > regdat[image_index].H.h02) ? regdat[image_index].H.h02 : xmin;
-				ymin = (ymin > regdat[image_index].H.h12) ? regdat[image_index].H.h12 : ymin;
-				xmax = (xmax < regdat[image_index].H.h02 + rx) ? regdat[image_index].H.h02 + rx : xmax;
-				ymax = (ymax < regdat[image_index].H.h12 + ry) ? regdat[image_index].H.h12 + ry : ymax;
+				xmin = (xmin > regdat[image_index].H.h02 * scale) ? regdat[image_index].H.h02 * scale : xmin;
+				ymin = (ymin > regdat[image_index].H.h12 * scale) ? regdat[image_index].H.h12 * scale : ymin;
+				xmax = (xmax < regdat[image_index].H.h02 * scale + rx) ? regdat[image_index].H.h02 * scale + rx : xmax;
+				ymax = (ymax < regdat[image_index].H.h12 * scale + ry) ? regdat[image_index].H.h12 * scale + ry : ymax;
 			}
 		}
 		if (stackcnt <= 0)
@@ -171,9 +171,11 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 			args->offset[1] = -floor(ymin);
 			siril_debug_print("new size: %d %d\n", naxes[0], naxes[1]);
 			siril_debug_print("new origin: %d %d\n", args->offset[0], args->offset[1]);
-		} else { // TODO: shouldn't we use dx/dy of ref image instead?
-			args->offset[0] = 0;
-			args->offset[1] = 0;
+		} else {
+			double dx, dy;
+			translation_from_H(args->seq->regparam[args->reglayer][args->ref_image].H, &dx, &dy);
+			args->offset[0] = (int)dx;
+			args->offset[1] = (int)dy;
 		}
 	}
 	else if (args->seq->type == SEQ_SER) {
