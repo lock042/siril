@@ -1389,17 +1389,16 @@ terminate_makepsf:
 	return status;
 }
 
-int process_deconvolve(int nb, nonblind_t type) {
+int parse_deconvolve(int first_arg, int nb,  estk_data*data, nonblind_t type) {
 	gboolean error = FALSE;
 	gboolean kernel_loaded = FALSE;
-	estk_data* data = calloc(1, sizeof(estk_data));
 	reset_conv_args(data);
 	data->regtype = REG_NONE_GRAD;
 	if (type == DECONV_SB)
 		data->finaliters = 1;
 	if (type == DECONV_WIENER)
 		data->alpha = 1.f / 500.f;
-	for (int i = 1; i < nb; i++) {
+	for (int i = first_arg; i < nb; i++) {
 		char *arg = word[i], *end;
 		if (!word[i])
 			break;
@@ -1407,7 +1406,6 @@ int process_deconvolve(int nb, nonblind_t type) {
 			arg += 9;
 			if (arg[0] != '\0' && load_kernel(arg)) {
 				siril_log_message(_("Error loading PSF.\n"));
-				free(data);
 				return CMD_FILE_NOT_FOUND;
 			}
 			kernel_loaded = TRUE;
@@ -1418,7 +1416,6 @@ int process_deconvolve(int nb, nonblind_t type) {
 			if (arg == end) error = TRUE;
 			else if ((alpha < 0.f) || (alpha > 100000.f)) {
 				siril_log_message(_("Error in alpha parameter: must be between 0 and 1e5, aborting.\n"));
-				free(data);
 				return CMD_ARG_ERROR;
 			}
 			if (!error) {
@@ -1431,7 +1428,6 @@ int process_deconvolve(int nb, nonblind_t type) {
 			if (arg == end) error = TRUE;
 			else if ((iters < 1) || (iters > 100000)) {
 				siril_log_message(_("Error in iterations parameter: must be between 1 and 1e5, aborting.\n"));
-				free(data);
 				return CMD_ARG_ERROR;
 			}
 			if (!error) {
@@ -1444,7 +1440,6 @@ int process_deconvolve(int nb, nonblind_t type) {
 			if (arg == end) error = TRUE;
 			else if ((stopcriterion < 0.f) || (stopcriterion > 1.f)) {
 				siril_log_message(_("Error in stop parameter: must be between 0 and 1, aborting.\n"));
-				free(data);
 				return CMD_ARG_ERROR;
 			}
 			if (!error) {
@@ -1458,7 +1453,6 @@ int process_deconvolve(int nb, nonblind_t type) {
 			if (arg == end) error = TRUE;
 			else if ((stepsize < 0.f) || (stepsize > 1.f)) {
 				siril_log_message(_("Error in step size parameter: must be between 0 and 1, aborting.\n"));
-				free(data);
 				return CMD_ARG_ERROR;
 			}
 			if (!error) {
@@ -1475,13 +1469,11 @@ int process_deconvolve(int nb, nonblind_t type) {
 			data->regtype = REG_FH_GRAD;
 		} else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
-			free(data);
 			return CMD_ARG_ERROR;
 		}
 	}
 
 	if (error) {
-		free(data);
 		return CMD_ARG_ERROR;
 	}
 	// Guess the user's intentions for a kernel:
@@ -1501,10 +1493,21 @@ int process_deconvolve(int nb, nonblind_t type) {
 	else data->psftype = PSF_BLIND; // blind deconvolve
 
 	data->nonblindtype = type;
-	image_cfa_warning_check();
-	start_in_new_thread(deconvolve, data);
-
 	return CMD_OK;
+}
+
+int process_deconvolve(int nb, nonblind_t type) {
+	estk_data* data = calloc(1, sizeof(estk_data));
+	reset_conv_args(data);
+
+	int ret = parse_deconvolve(1, nb, data, type);
+	if (ret == CMD_OK){		
+		image_cfa_warning_check();
+		start_in_new_thread(deconvolve, data);
+		return CMD_OK;
+	}
+	free(data);
+	return ret;
 }
 
 int process_seqdeconvolve(int nb, nonblind_t type) {
@@ -1512,126 +1515,20 @@ int process_seqdeconvolve(int nb, nonblind_t type) {
 	if (!seq) {
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
-	gboolean error = FALSE;
-	gboolean kernel_loaded = FALSE;
 	estk_data* data = calloc(1, sizeof(estk_data));
 	reset_conv_args(data);
-	data->regtype = REG_NONE_GRAD;
-	if (type == DECONV_SB)
-		data->finaliters = 1;
-	if (type == DECONV_WIENER)
-		data->alpha = 1.f / 500.f;
-	for (int i = 2; i < nb; i++) {
-		char *arg = word[i], *end;
-		if (!word[i])
-			break;
-		if (g_str_has_prefix(arg, "-loadpsf=")) {
-			arg += 9;
-			if (arg[0] != '\0' && load_kernel(arg)) {
-				siril_log_message(_("Error loading PSF.\n"));
-				free(data);
-				return CMD_FILE_NOT_FOUND;
-			}
-			kernel_loaded = TRUE;
-		}
-		else if (g_str_has_prefix(arg, "-alpha=")) {
-			arg += 7;
-			float alpha = (float) g_ascii_strtod(arg, &end);
-			if (arg == end) error = TRUE;
-			else if ((alpha < 0.f) || (alpha > 100000.f)) {
-				siril_log_message(_("Error in alpha parameter: must be between 0 and 1e5, aborting.\n"));
-				free(data);
-				if (!check_seq_is_comseq(seq))
-					free_sequence(seq, TRUE);
-				return CMD_ARG_ERROR;
-			}
-			if (!error) {
-				data->alpha = alpha;
-			}
-		}
-		else if (g_str_has_prefix(arg, "-iters=")) {
-			arg += 7;
-			float iters = (int) g_ascii_strtod(arg, &end);
-			if (arg == end) error = TRUE;
-			else if ((iters < 1) || (iters > 100000)) {
-				siril_log_message(_("Error in iterations parameter: must be between 1 and 1e5, aborting.\n"));
-				free(data);
-				if (!check_seq_is_comseq(seq))
-					free_sequence(seq, TRUE);
-				return CMD_ARG_ERROR;
-			}
-			if (!error) {
-				data->finaliters = iters;
-			}
-		}
-		else if (g_str_has_prefix(arg, "-stop=")) {
-			arg += 6;
-			float stopcriterion = (float) g_ascii_strtod(arg, &end);
-			if (arg == end) error = TRUE;
-			else if ((stopcriterion < 0.f) || (stopcriterion > 1.f)) {
-				siril_log_message(_("Error in stop parameter: must be between 0 and 1, aborting.\n"));
-				free(data);
-				if (!check_seq_is_comseq(seq))
-					free_sequence(seq, TRUE);
-				return CMD_ARG_ERROR;
-			}
-			if (!error) {
-				data->stopcriterion = stopcriterion;
-				data->stopcriterion_active = TRUE;
-			}
-		}
-		else if (g_str_has_prefix(arg, "-gdstep=")) {
-			arg += 8;
-			float stepsize = (float) g_ascii_strtod(arg, &end);
-			if (arg == end) error = TRUE;
-			else if ((stepsize < 0.f) || (stepsize > 1.f)) {
-				siril_log_message(_("Error in step size parameter: must be between 0 and 1, aborting.\n"));
-				free(data);
-				if (!check_seq_is_comseq(seq))
-					free_sequence(seq, TRUE);
-				return CMD_ARG_ERROR;
-			}
-			if (!error) {
-				data->stepsize = stepsize;
-			}
-		}
-		else if (!g_strcmp0(arg, "-tv")) {
-			 data->regtype = REG_TV_GRAD;
-		}
-		else if (!g_strcmp0(arg, "-mul")) {
-			data->rl_method = RL_MULT;
-		}
-		else if (!g_strcmp0(arg, "-fh")) {
-			data->regtype = REG_FH_GRAD;
-		} else {
-			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
-			free(data);
-			return CMD_ARG_ERROR;
-		}
+	
+	int ret = parse_deconvolve(2, nb, data, type);
+	if (ret == CMD_OK){	
+		sequence_cfa_warning_check(seq);
+		deconvolve_sequence_command(data, seq);
+		return CMD_OK;
 	}
 
-	if (error) {
-		free(data);
-		if (!check_seq_is_comseq(seq))
-			free_sequence(seq, TRUE);
-		return CMD_ARG_ERROR;
-	}
-	// Guess the user's intentions for a kernel:
-	// Order of preference is the same as process_deconvolve() above.
-
-	if (kernel_loaded)
-		data->psftype = PSF_PREVIOUS; // use loaded (existing) kernel
-	else if (com.stars && com.stars[0])
-		data->psftype = PSF_STARS; // PSF from stars
-	else if (com.kernel && (com.kernelsize != 0))
-		data->psftype = PSF_PREVIOUS; // use existing kernel
-	else data->psftype = PSF_BLIND; // blind deconvolve
-
-	data->nonblindtype = type;
-	sequence_cfa_warning_check(seq);
-	deconvolve_sequence_command(data, seq);
-
-	return CMD_OK;
+	if (!check_seq_is_comseq(seq))
+		free_sequence(seq, TRUE);
+	free(data);
+	return ret;
 }
 
 int process_sb(int nb) {
