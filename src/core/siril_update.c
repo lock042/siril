@@ -41,7 +41,7 @@
 #define SIRIL_VERSIONS DOMAIN"siril_versions.json"
 #define SIRIL_DOWNLOAD DOMAIN"download/"
 #define GITLAB_URL "https://gitlab.com/free-astro/siril/raw"
-#define BRANCH "notifier"
+#define BRANCH "master"
 #define SIRIL_NOTIFICATIONS "siril_notifications.json"
 
 static gchar *get_changelog(gchar *str);
