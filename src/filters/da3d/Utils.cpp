@@ -35,23 +35,23 @@ pair<int, int> ComputeTiling(int rows, int columns, int ntiles) {
   while (ntiles % r_low != 0) --r_low;
   while (ntiles % r_up != 0) ++r_up;
   // At this point there are two possible tilings:
-  //   {r_low, ntiles / r_low} and {r_up, ntiles / r_up}. 
-  // We need to select the best. 
+  //   {r_low, ntiles / r_low} and {r_up, ntiles / r_up}.
+  // We need to select the best.
   // To do that, we consider the shape of the tiles.
-  // In the first case, the tiles are roughly 
+  // In the first case, the tiles are roughly
   //   {rows / r_low, columns * r_low / ntiles} pixels.
-  // In the second case, the tiles are 
+  // In the second case, the tiles are
   //   {rows / r_up, columns * r_up / ntiles} pixels.
   // Since r_low <= best_r <= r_up the first tile will have i
   // more rows than columns and vice-versa.
   //
-  // To select the best case we consider the ratio between the 
-  // lengths of the longer and the shorter edge of a tile. 
-  // The closer this ratio is to 1, the "squarer" the tile will be. 
+  // To select the best case we consider the ratio between the
+  // lengths of the longer and the shorter edge of a tile.
+  // The closer this ratio is to 1, the "squarer" the tile will be.
   // In other words, we select the first tiling if
-  //   (rows / r_low) / (columns * r_low / ntiles) < 
+  //   (rows / r_low) / (columns * r_low / ntiles) <
   //        (columns * r_up / ntiles) / (rows / r_up)
-  // That is equivalent to (all values are > 0): 
+  // That is equivalent to (all values are > 0):
   //   rows * ntiles < r_up * r_low * columns
   if (r_up * r_low * columns > ntiles * rows) {
     return {r_low, ntiles / r_low};
@@ -89,7 +89,7 @@ vector<Image> SplitTiles(const Image &src,
           }
         }
       }
-      result.push_back(move(tile));
+      result.push_back(std::move(tile));
     }
   }
   return result;

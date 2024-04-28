@@ -20,7 +20,7 @@
 #
 ############################################
 
-requires 1.2.0
+requires 1.3.1
 
 # Convert Bias Frames to .fit files
 cd biases
@@ -61,17 +61,16 @@ cd ../process
 calibrate light -dark=../masters/dark_stacked -flat=../masters/pp_flat_stacked -cc=dark -cfa -equalize_cfa
 
 # Extract Ha and OIII
-seqextract_HaOIII pp_light
+seqextract_HaOIII pp_light -resample=ha
 
 # Align Ha lights
-register Ha_pp_light -drizzle
+register Ha_pp_light
 
 # Stack calibrated Ha lights to Ha_stack (temporary)
 stack r_Ha_pp_light rej 3 3 -norm=addscale -output_norm -out=results_00001
 
 # and flip if required
 mirrorx_single results_00001
-
 
 # Align OIII lights
 register OIII_pp_light

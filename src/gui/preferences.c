@@ -395,7 +395,7 @@ void initialize_path_directory(const gchar *path) {
 	}
 }
 
-void initialize_starnet_executable(const gchar *path) {
+void initialize_starnet_executable(gchar *path) {
 #ifdef HAVE_LIBTIFF
 	GtkFileChooser *starnet_exe = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet"));
 	GtkWidget *starnet_weights_reset = GTK_WIDGET(lookup_widget("starnet_weights_clear"));
@@ -416,7 +416,7 @@ void initialize_starnet_executable(const gchar *path) {
 #endif
 }
 
-void initialize_starnet_weights(const gchar *path) {
+void initialize_starnet_weights(gchar *path) {
 	GtkFileChooser *starnet_weights = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet_weights"));
 	if (path && path[0] != '\0') {
 		gtk_file_chooser_set_filename (starnet_weights, path);

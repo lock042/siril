@@ -32,8 +32,6 @@
 #define HAVE_FFTW3F_MULTITHREAD
 #endif
 
-#define GLADE_FILE "siril3.glade"
-
 /* https://stackoverflow.com/questions/1644868/define-macro-for-debug-printing-in-c */
 #define siril_debug_print(fmt, ...) \
 	do { if (DEBUG_TEST) fprintf(stdout, fmt, ##__VA_ARGS__); } while (0)
@@ -276,6 +274,12 @@ typedef enum {
 	EXT_ASNET,
 } external_program;
 
+typedef enum {
+	SCALING_NONE,
+	SCALING_HA_UP,
+	SCALING_OIII_DOWN
+} extraction_scaling;
+
 /* image data, exists once for each image */
 typedef struct {
 	int filenum;		/* real file index in the sequence, i.e. for mars9.fit = 9 */
@@ -341,7 +345,6 @@ struct sequ {
 	int end;		// imgparam[number-1]->filenum
 	double exposure;	// exposure of frames (we assume they are all identical)
 	gboolean fz;
-
 	sequence_type type;
 	struct ser_struct *ser_file;
 	gboolean cfa_opened_monochrome;	// in case the CFA SER was opened in monochrome mode
@@ -387,6 +390,8 @@ typedef struct {
 	char objctdec[FLEN_VALUE];
 	double ra;
 	double dec;
+	char ra_str[FLEN_VALUE];
+	char dec_str[FLEN_VALUE];
 	gboolean pltsolvd;
 	char pltsolvd_comment[FLEN_COMMENT];
 } wcs_info;
@@ -500,6 +505,14 @@ struct ffit {
 	cmsHPROFILE icc_profile; // ICC color management profile
 };
 
+typedef enum {
+	SPCC_RED = 1 << RLAYER,
+	SPCC_GREEN = 1 << GLAYER,
+	SPCC_BLUE = 1 << BLAYER,
+	SPCC_CLEAR = SPCC_RED | SPCC_GREEN | SPCC_BLUE,
+	SPCC_INVIS = 0
+} spcc_channel;
+
 /* Filter spectral responses are defined by unevenly spaced frequency samples
  * and accompanying spectral responses corresponding to the sampling points. */
 typedef struct _spcc_object {
@@ -511,7 +524,7 @@ typedef struct _spcc_object {
 	int index; // index in the JSON file
 	int type;
 	int quality;
-	int channel;
+	spcc_channel channel;
 	gchar *manufacturer;
 	gchar *source;
 	int version;

@@ -45,7 +45,4 @@ void init_mouse();
 
 extern mouse_status_enum mouse_status;	// defined in registration_preview.c
 
-extern gpointer cut_profile(); // graph a pixel intensity profile between two point,
-										 // like the IRIS cut function. Defined in cut.c
-
 #endif

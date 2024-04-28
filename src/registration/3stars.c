@@ -257,6 +257,15 @@ static int _3stars_seqpsf(struct registration_args *regargs) {
 	struct seqpsf_args *spsfargs = malloc(sizeof(struct seqpsf_args));
 	struct generic_seq_args *args = calloc(1, sizeof(struct generic_seq_args));
 	spsfargs->for_photometry = FALSE;
+	fits fit = { 0 };
+	if (seq_read_frame(regargs->seq, regargs->seq->reference_image, &fit, FALSE, -1)) {
+		siril_log_color_message(_("Could not load metadata"), "red");
+		free(spsfargs);
+		return -1;
+	} else {
+		memcpy(spsfargs->bayer_pattern, fit.keywords.bayer_pattern, FLEN_VALUE);
+	}
+	clearfits(&fit);
 	spsfargs->allow_use_as_regdata = BOOL_FALSE;
 	spsfargs->list = NULL;	// GSList init is NULL
 	spsfargs->framing = (regargs->follow_star) ? FOLLOW_STAR_FRAME : REGISTERED_FRAME;
@@ -382,6 +391,7 @@ static int _3stars_align_image_hook(struct generic_seq_args *args, int out_index
 }
 
 static int _3stars_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
+	struct seqpsf_args *spsfargs = (struct seqpsf_args *)args->user;
 	unsigned int MB_per_orig_image, MB_per_scaled_image, MB_avail;
 	int limit = compute_nb_images_fit_memory(args->seq, args->upscale_ratio, FALSE,
 			&MB_per_orig_image, &MB_per_scaled_image, &MB_avail);
@@ -417,6 +427,8 @@ static int _3stars_align_compute_mem_limits(struct generic_seq_args *args, gbool
 				regargs->interpolation == OPENCV_LANCZOS4)) {
 			float factor = (is_float) ? 0.25 : 0.5;
 			required += (1 + factor) * MB_per_scaled_image;
+		} else if (spsfargs->bayer_pattern[0]) {
+			required += MB_per_orig_image;
 		}
 		regargs = NULL;
 		sadata = NULL;

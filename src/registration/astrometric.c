@@ -59,6 +59,8 @@ static void compute_center_cog(double *ra, double *dec, int n, gboolean *incl, d
 		z += sin(dec_rad);
 		nb++;
 	}
+	if (nb == 0)
+		return;
 	x /= (double)nb;
 	y /= (double)nb;
 	z /= (double)nb;
@@ -188,10 +190,10 @@ int register_astrometric(struct registration_args *regargs) {
 		double angles[3];
 		angles[0] = 90. - RA[i]; // TODO: need to understand why 90- instead of 90 + .... opencv vs wcs convention?
 		angles[1] = 90. - DEC[i];
-		// initializing K with center point
+		// initializing K with center point (-0.5 is for opencv convention)
 		cvGetEye(Ks + i); // initializing to unity
-		Ks[i].h02 = 0.5 * ((regargs->seq->is_variable) ? regargs->seq->imgparam[i].rx : regargs->seq->rx);
-		Ks[i].h12 = 0.5 * ((regargs->seq->is_variable) ? regargs->seq->imgparam[i].ry : regargs->seq->ry);
+		Ks[i].h02 = 0.5 * ((regargs->seq->is_variable) ? regargs->seq->imgparam[i].rx : regargs->seq->rx) - 0.5;
+		Ks[i].h12 = 0.5 * ((regargs->seq->is_variable) ? regargs->seq->imgparam[i].ry : regargs->seq->ry) - 0.5;
 		if (!get_scales_and_framing(WCSDATA + i, Ks + i, angles + 2)) {
 			siril_log_message(_("Could not compute camera parameters of image %d from sequence %s\n"),
 			i + 1, regargs->seq->seqname);

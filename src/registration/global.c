@@ -141,8 +141,10 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 		free(sadata->current_regdata);
 		return 1;
 	}
-	if (fit.naxes[2] == 1 && fit.keywords.bayer_pattern[0] != '\0')
-		siril_log_color_message(_("Registering a sequence opened as CFA is a bad idea.\n"), "red");
+	if (fit.naxes[2] == 1 && fit.keywords.bayer_pattern[0] != '\0') {
+		siril_log_color_message(_("Registering a sequence opened as CFA: the resulting sequence should be drizzled.\n"), "salmon");
+		interpolate_nongreen(&fit);
+	}
 
 	siril_log_color_message(_("Reference Image:\n"), "green");
 	image refimage = { .fit = &fit, .from_seq = args->seq, .index_in_seq = regargs->reference_image };
@@ -299,6 +301,14 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 	int filenum = args->seq->imgparam[in_index].filenum;	// for display purposes
 	siril_debug_print("registration of image %d using %d threads\n", in_index, threads);
 
+	/* Backup the original pointer to fit. If there is a Bayer pattern we need
+	 * to interpolate non-green pixels, so make a copy we can work on. */
+	fits *orig_fit = fit;
+	if (regargs->bayer) {
+		fit = calloc(1, sizeof(fits));
+		copyfits(orig_fit, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+		interpolate_nongreen(fit);
+	}
 	if (regargs->no_output) {
 		/* if "save transformation only", we choose to initialize all frames
 		 * to exclude status. If registration is ok, the status is
@@ -350,6 +360,15 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 #ifdef _OPENMP
 #pragma omp critical
 #endif
+
+		if (regargs->bayer) {
+			// Get rid of the temporary copy and restore the original frame fits
+			// now that we have computed the actual registration data
+			clearfits(fit);
+			free(fit);
+			fit = orig_fit;
+		}
+
 		print_alignment_results(H, filenum, FWHMx, FWHMy/FWHMx, units);
 
 		sadata->current_regdata[in_index].roundness = FWHMy/FWHMx;
@@ -398,7 +417,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		regargs->regparam[out_index].number_of_stars = sadata->current_regdata[in_index].number_of_stars;
 		cvGetEye(&regargs->regparam[out_index].H);
 
-		if (regargs->x2upscale) {
+		if (regargs->x2upscale) { // Removed in favour of proper drizzle after registration
 			fit->keywords.pixel_size_x /= 2;
 			fit->keywords.pixel_size_y /= 2;
 			regargs->regparam[out_index].fwhm *= 2.0;
@@ -553,6 +572,10 @@ int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 				regargs->interpolation == OPENCV_LANCZOS4)) {
 			float factor = (is_float) ? 0.25 : 0.5;
 			required += (1 + factor) * MB_per_scaled_image;
+		} else if (regargs->bayer) { // Allow for the extra copy of the image used for interpolation and star detection
+			// (this is never more than required for clamping and they are not required at the same time so no need to
+			// account for this if clamping is active)
+			required += MB_per_orig_image;
 		}
 		regargs = NULL;
 		sadata = NULL;

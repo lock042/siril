@@ -95,6 +95,10 @@ src_files = [
   'core/undo.c',
   'core/utils.c',
 
+  'drizzle/cdrizzlebox.c',
+  'drizzle/cdrizzlemap.c',
+  'drizzle/cdrizzleutil.c',
+
   'filters/asinh.c',
   'filters/banding.c',
   'filters/clahe.c',
@@ -217,6 +221,7 @@ src_files = [
   'gui/preferences.c',
   'gui/progress_and_log.c',
   'gui/PSF_list.c',
+  'gui/registration.c',
   'gui/registration_preview.c',
   'gui/remixer.c',
   'gui/save_dialog.c',
@@ -247,6 +252,7 @@ src_files = [
   'registration/astrometric.c',
   'registration/registration.c',
   'registration/applyreg.c',
+  'registration/shift_methods.c',
 
   'stacking/median_and_mean.c',
   'stacking/normalization.c',

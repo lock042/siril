@@ -62,6 +62,7 @@
 #include "io/local_catalogues.h"
 #include "io/remote_catalogues.h"
 #include "io/FITS_symlink.h"
+#include "drizzle/cdrizzleutil.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/PSF_list.h"
@@ -75,6 +76,7 @@
 #include "gui/newdeconv.h"
 #include "gui/sequence_list.h"
 #include "gui/siril_preview.h"
+#include "gui/registration.h"
 #include "gui/registration_preview.h"
 #include "gui/script_menu.h"
 #include "gui/preferences.h"
@@ -130,6 +132,7 @@
 #include "command_line_processor.h"
 
 #define PRINT_DEPRECATED_WARNING(__new_function__) siril_log_color_message(_("This command is deprecated: %s should be used instead.\n"), "red", __new_function__)
+#define PRINT_DEPRECATED_OPTION_WARNING(__option__, __new_function__) siril_log_color_message(_("The %s option is deprecated: %s should be used instead.\n"), "red", __option__, __new_function__)
 
 /* process_command functions take the number of arguments (like argc) as
  * parameter and will be able to access the equivalent of argv with `word'
@@ -1435,17 +1438,16 @@ terminate_makepsf:
 	return status;
 }
 
-int process_deconvolve(int nb, nonblind_t type) {
+int parse_deconvolve(int first_arg, int nb,  estk_data*data, nonblind_t type) {
 	gboolean error = FALSE;
 	gboolean kernel_loaded = FALSE;
-	estk_data* data = calloc(1, sizeof(estk_data));
 	reset_conv_args(data);
 	data->regtype = REG_NONE_GRAD;
 	if (type == DECONV_SB)
 		data->finaliters = 1;
 	if (type == DECONV_WIENER)
 		data->alpha = 1.f / 500.f;
-	for (int i = 1; i < nb; i++) {
+	for (int i = first_arg; i < nb; i++) {
 		char *arg = word[i], *end;
 		if (!word[i])
 			break;
@@ -1453,7 +1455,6 @@ int process_deconvolve(int nb, nonblind_t type) {
 			arg += 9;
 			if (arg[0] != '\0' && load_kernel(arg)) {
 				siril_log_message(_("Error loading PSF.\n"));
-				free(data);
 				return CMD_FILE_NOT_FOUND;
 			}
 			kernel_loaded = TRUE;
@@ -1464,7 +1465,6 @@ int process_deconvolve(int nb, nonblind_t type) {
 			if (arg == end) error = TRUE;
 			else if ((alpha < 0.f) || (alpha > 100000.f)) {
 				siril_log_message(_("Error in alpha parameter: must be between 0 and 1e5, aborting.\n"));
-				free(data);
 				return CMD_ARG_ERROR;
 			}
 			if (!error) {
@@ -1477,7 +1477,6 @@ int process_deconvolve(int nb, nonblind_t type) {
 			if (arg == end) error = TRUE;
 			else if ((iters < 1) || (iters > 100000)) {
 				siril_log_message(_("Error in iterations parameter: must be between 1 and 1e5, aborting.\n"));
-				free(data);
 				return CMD_ARG_ERROR;
 			}
 			if (!error) {
@@ -1490,7 +1489,6 @@ int process_deconvolve(int nb, nonblind_t type) {
 			if (arg == end) error = TRUE;
 			else if ((stopcriterion < 0.f) || (stopcriterion > 1.f)) {
 				siril_log_message(_("Error in stop parameter: must be between 0 and 1, aborting.\n"));
-				free(data);
 				return CMD_ARG_ERROR;
 			}
 			if (!error) {
@@ -1504,7 +1502,6 @@ int process_deconvolve(int nb, nonblind_t type) {
 			if (arg == end) error = TRUE;
 			else if ((stepsize < 0.f) || (stepsize > 1.f)) {
 				siril_log_message(_("Error in step size parameter: must be between 0 and 1, aborting.\n"));
-				free(data);
 				return CMD_ARG_ERROR;
 			}
 			if (!error) {
@@ -1521,13 +1518,11 @@ int process_deconvolve(int nb, nonblind_t type) {
 			data->regtype = REG_FH_GRAD;
 		} else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
-			free(data);
 			return CMD_ARG_ERROR;
 		}
 	}
 
 	if (error) {
-		free(data);
 		return CMD_ARG_ERROR;
 	}
 	// Guess the user's intentions for a kernel:
@@ -1547,10 +1542,21 @@ int process_deconvolve(int nb, nonblind_t type) {
 	else data->psftype = PSF_BLIND; // blind deconvolve
 
 	data->nonblindtype = type;
-	image_cfa_warning_check();
-	start_in_new_thread(deconvolve, data);
-
 	return CMD_OK;
+}
+
+int process_deconvolve(int nb, nonblind_t type) {
+	estk_data* data = calloc(1, sizeof(estk_data));
+	reset_conv_args(data);
+
+	int ret = parse_deconvolve(1, nb, data, type);
+	if (ret == CMD_OK){		
+		image_cfa_warning_check();
+		start_in_new_thread(deconvolve, data);
+		return CMD_OK;
+	}
+	free(data);
+	return ret;
 }
 
 int process_seqdeconvolve(int nb, nonblind_t type) {
@@ -1558,126 +1564,20 @@ int process_seqdeconvolve(int nb, nonblind_t type) {
 	if (!seq) {
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
-	gboolean error = FALSE;
-	gboolean kernel_loaded = FALSE;
 	estk_data* data = calloc(1, sizeof(estk_data));
 	reset_conv_args(data);
-	data->regtype = REG_NONE_GRAD;
-	if (type == DECONV_SB)
-		data->finaliters = 1;
-	if (type == DECONV_WIENER)
-		data->alpha = 1.f / 500.f;
-	for (int i = 2; i < nb; i++) {
-		char *arg = word[i], *end;
-		if (!word[i])
-			break;
-		if (g_str_has_prefix(arg, "-loadpsf=")) {
-			arg += 9;
-			if (arg[0] != '\0' && load_kernel(arg)) {
-				siril_log_message(_("Error loading PSF.\n"));
-				free(data);
-				return CMD_FILE_NOT_FOUND;
-			}
-			kernel_loaded = TRUE;
-		}
-		else if (g_str_has_prefix(arg, "-alpha=")) {
-			arg += 7;
-			float alpha = (float) g_ascii_strtod(arg, &end);
-			if (arg == end) error = TRUE;
-			else if ((alpha < 0.f) || (alpha > 100000.f)) {
-				siril_log_message(_("Error in alpha parameter: must be between 0 and 1e5, aborting.\n"));
-				free(data);
-				if (!check_seq_is_comseq(seq))
-					free_sequence(seq, TRUE);
-				return CMD_ARG_ERROR;
-			}
-			if (!error) {
-				data->alpha = alpha;
-			}
-		}
-		else if (g_str_has_prefix(arg, "-iters=")) {
-			arg += 7;
-			float iters = (int) g_ascii_strtod(arg, &end);
-			if (arg == end) error = TRUE;
-			else if ((iters < 1) || (iters > 100000)) {
-				siril_log_message(_("Error in iterations parameter: must be between 1 and 1e5, aborting.\n"));
-				free(data);
-				if (!check_seq_is_comseq(seq))
-					free_sequence(seq, TRUE);
-				return CMD_ARG_ERROR;
-			}
-			if (!error) {
-				data->finaliters = iters;
-			}
-		}
-		else if (g_str_has_prefix(arg, "-stop=")) {
-			arg += 6;
-			float stopcriterion = (float) g_ascii_strtod(arg, &end);
-			if (arg == end) error = TRUE;
-			else if ((stopcriterion < 0.f) || (stopcriterion > 1.f)) {
-				siril_log_message(_("Error in stop parameter: must be between 0 and 1, aborting.\n"));
-				free(data);
-				if (!check_seq_is_comseq(seq))
-					free_sequence(seq, TRUE);
-				return CMD_ARG_ERROR;
-			}
-			if (!error) {
-				data->stopcriterion = stopcriterion;
-				data->stopcriterion_active = TRUE;
-			}
-		}
-		else if (g_str_has_prefix(arg, "-gdstep=")) {
-			arg += 8;
-			float stepsize = (float) g_ascii_strtod(arg, &end);
-			if (arg == end) error = TRUE;
-			else if ((stepsize < 0.f) || (stepsize > 1.f)) {
-				siril_log_message(_("Error in step size parameter: must be between 0 and 1, aborting.\n"));
-				free(data);
-				if (!check_seq_is_comseq(seq))
-					free_sequence(seq, TRUE);
-				return CMD_ARG_ERROR;
-			}
-			if (!error) {
-				data->stepsize = stepsize;
-			}
-		}
-		else if (!g_strcmp0(arg, "-tv")) {
-			 data->regtype = REG_TV_GRAD;
-		}
-		else if (!g_strcmp0(arg, "-mul")) {
-			data->rl_method = RL_MULT;
-		}
-		else if (!g_strcmp0(arg, "-fh")) {
-			data->regtype = REG_FH_GRAD;
-		} else {
-			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
-			free(data);
-			return CMD_ARG_ERROR;
-		}
+	
+	int ret = parse_deconvolve(2, nb, data, type);
+	if (ret == CMD_OK){	
+		sequence_cfa_warning_check(seq);
+		deconvolve_sequence_command(data, seq);
+		return CMD_OK;
 	}
 
-	if (error) {
-		free(data);
-		if (!check_seq_is_comseq(seq))
-			free_sequence(seq, TRUE);
-		return CMD_ARG_ERROR;
-	}
-	// Guess the user's intentions for a kernel:
-	// Order of preference is the same as process_deconvolve() above.
-
-	if (kernel_loaded)
-		data->psftype = PSF_PREVIOUS; // use loaded (existing) kernel
-	else if (com.stars && com.stars[0])
-		data->psftype = PSF_STARS; // PSF from stars
-	else if (com.kernel && (com.kernelsize != 0))
-		data->psftype = PSF_PREVIOUS; // use existing kernel
-	else data->psftype = PSF_BLIND; // blind deconvolve
-
-	data->nonblindtype = type;
-	sequence_cfa_warning_check(seq);
-	deconvolve_sequence_command(data, seq);
-
-	return CMD_OK;
+	if (!check_seq_is_comseq(seq))
+		free_sequence(seq, TRUE);
+	free(data);
+	return ret;
 }
 
 int process_sb(int nb) {
@@ -4372,6 +4272,7 @@ int process_seq_crop(int nb) {
 							free_sequence(seq, TRUE);
 						return CMD_ARG_ERROR;
 					}
+					free(args->prefix);
 					args->prefix = strdup(value);
 				}
 			}
@@ -4379,6 +4280,136 @@ int process_seq_crop(int nb) {
 	}
 
 	crop_sequence(args);
+	return CMD_OK;
+}
+
+int process_seq_resample(int nb) {
+	sequence *seq = load_sequence(word[1], NULL);
+	if (!seq) {
+		return CMD_SEQUENCE_NOT_FOUND;
+	}
+
+	struct scale_sequence_data *args = calloc(1, sizeof(struct scale_sequence_data));
+
+	args->seq = seq;
+	args->prefix = strdup("scaled_");
+	args->scale = 1.0;
+	args->interpolation = OPENCV_AREA;
+	args->clamp = FALSE;
+
+	for (int i = 2; i < nb; i++) {
+		if (word[i]) {
+			if (g_str_has_prefix(word[i], "-prefix=")) {
+				char *current = word[i], *value;
+				value = current + 8;
+				if (value[0] == '\0') {
+					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+					free(args->prefix);
+					free(args);
+					if (!check_seq_is_comseq(seq))
+						free_sequence(seq, TRUE);
+					return CMD_ARG_ERROR;
+				}
+				free(args->prefix);
+				args->prefix = strdup(value);
+			}
+			else if (g_str_has_prefix(word[1], "-height=")) {
+				char *current = word[i] + 8, *end;
+				double toY = g_ascii_strtod(current, &end);
+				if (toY < 10) {
+					siril_log_message(_("Error: height cannot be less than 10, aborting.\n"));
+					if (!check_seq_is_comseq(seq))
+						free_sequence(seq, TRUE);
+					free(args->prefix);
+					return CMD_ARG_ERROR;
+				}
+				args->scale = toY / (double) seq->ry;
+			}
+			else if (g_str_has_prefix(word[1], "-width=")) {
+				char *current = word[i] + 7, *end;
+				double toX = g_ascii_strtod(current, &end);
+				if (toX < 10) {
+					siril_log_message(_("Error: width cannot be less than 10, aborting.\n"));
+					if (!check_seq_is_comseq(seq))
+						free_sequence(seq, TRUE);
+					free(args->prefix);
+					return CMD_ARG_ERROR;
+				}
+				args->scale = toX / (double) seq->rx;
+			}
+			else if (g_str_has_prefix(word[i], "-scale=")) {
+				char *current = word[i] + 7, *end;
+				args->scale = g_ascii_strtod(current, &end);
+				if (args->scale < 0.01) {
+					siril_log_message(_("Error: scale cannot be less than 0.01, aborting.\n"));
+					if (!check_seq_is_comseq(seq))
+						free_sequence(seq, TRUE);
+					free(args->prefix);
+					return CMD_ARG_ERROR;
+				}
+				if (current == end) {
+					siril_log_message(_("Error parsing argument to -scale= (%s), aborting.\n"), current);
+					if (!check_seq_is_comseq(seq))
+						free_sequence(seq, TRUE);
+					free(args->prefix);
+					return CMD_ARG_ERROR;
+				}
+			}
+			else if (g_str_has_prefix(word[i], "-interp=")) {
+				char *current = word[i], *value;
+				value = current + 8;
+				if (value[0] == '\0') {
+					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+					return CMD_ARG_ERROR;
+				}
+				if(!g_ascii_strncasecmp(value, "nearest", 7) || !g_ascii_strncasecmp(value, "ne", 2)) {
+					args->interpolation = OPENCV_NEAREST;
+					args->clamp = FALSE;
+					continue;
+				}
+				if(!g_ascii_strncasecmp(value, "cubic", 5) || !g_ascii_strncasecmp(value, "cu", 2)) {
+					args->interpolation = OPENCV_CUBIC;
+					args->clamp = TRUE;
+					continue;
+				}
+				if(!g_ascii_strncasecmp(value, "lanczos4", 8) || !g_ascii_strncasecmp(value, "la", 2)) {
+					args->interpolation = OPENCV_LANCZOS4;
+					args->clamp = TRUE;
+					continue;
+				}
+				if(!g_ascii_strncasecmp(value, "linear", 6) || !g_ascii_strncasecmp(value, "li", 2)) {
+					args->interpolation = OPENCV_LINEAR;
+					args->clamp = FALSE;
+					continue;
+				}
+				if(!g_ascii_strncasecmp(value, "area", 4) || !g_ascii_strncasecmp(value, "ar", 2)) {
+					args->interpolation = OPENCV_AREA;
+					args->clamp = FALSE;
+					continue;
+				}
+				siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
+				return CMD_ARG_ERROR;
+			}
+		}
+	}
+	if (args->scale < 0.1) {
+		siril_log_message(_("Error: scale cannot be less than 0.01, aborting.\n"));
+		free(args->prefix);
+		free(args);
+		if (!check_seq_is_comseq(seq))
+			free_sequence(seq, TRUE);
+		return CMD_GENERIC_ERROR;
+	}
+	if (fabs(args->scale - 1.0) < 1.e-10) {
+		siril_log_message(_("Scale is 1.0, nothing to do.\n"));
+		free(args->prefix);
+		free(args);
+		if (!check_seq_is_comseq(seq))
+			free_sequence(seq, TRUE);
+		return CMD_GENERIC_ERROR;
+	}
+
+	scale_sequence(args);
 	return CMD_OK;
 }
 
@@ -5650,12 +5681,10 @@ int process_extractGreen(int nb) {
 
 }
 
-int process_extractHa(int nb) {
-	char *filename = NULL;
+int extract_Ha(extraction_scaling scaling) {
 	int ret = 1;
-
+	char *filename = NULL;
 	fits f_Ha = { 0 };
-
 	if (sequence_is_loaded() && !single_image_is_loaded()) {
 		filename = g_path_get_basename(com.seq.seqname);
 	}
@@ -5666,34 +5695,39 @@ int process_extractHa(int nb) {
 			free(tmp);
 		}
 	}
-
 	sensor_pattern pattern = get_bayer_pattern(&gfit);
-
 	gchar *Ha = g_strdup_printf("Ha_%s%s", filename, com.pref.ext);
 	if (gfit.type == DATA_USHORT) {
-		if (!(ret = extractHa_ushort(&gfit, &f_Ha, pattern))) {
+		if (!(ret = extractHa_ushort(&gfit, &f_Ha, pattern, scaling))) {
 			ret = save1fits16(Ha, &f_Ha, 0);
 		}
 	}
 	else if (gfit.type == DATA_FLOAT) {
-		if (!(ret = extractHa_float(&gfit, &f_Ha, pattern))) {
+		if (!(ret = extractHa_float(&gfit, &f_Ha, pattern, scaling))) {
 			ret = save1fits32(Ha, &f_Ha, 0);
 		}
 	} else ret = CMD_INVALID_IMAGE;
-
 	g_free(Ha);
 	clearfits(&f_Ha);
 	free(filename);
 	return ret;
 }
 
-int process_extractHaOIII(int nb) {
-	gchar *filename = NULL;
+int process_extractHa(int nb) {
 	int ret = 1;
 	extraction_scaling scaling = SCALING_NONE;
+	if (g_str_has_prefix(word[1], "-upscale")) {
+		scaling = SCALING_HA_UP;
+		siril_log_message(_("Upscaling x2\n"));
+	}
+	ret = extract_Ha(scaling);
+	return ret;
+}
 
+int extract_HaOIII(extraction_scaling scaling) {
+	gchar *filename = NULL;
+	int ret = 1;
 	fits f_Ha = { 0 }, f_OIII = { 0 };
-
 	if (sequence_is_loaded() && !single_image_is_loaded()) {
 		filename = g_path_get_basename(com.seq.seqname);
 	}
@@ -5704,24 +5738,7 @@ int process_extractHaOIII(int nb) {
 			free(tmp);
 		}
 	}
-	if (word[1]) {
-		if (g_str_has_prefix(word[1], "-resample=")) {
-			char *current = word[1], *value;
-			value = current + 10;
-			if (value[0] == '\0') {
-				siril_log_message(_("Missing argument to %s, aborting.\n"), word[1]);
-				g_free(filename);
-				return CMD_ARG_ERROR;
-			} else if (!strcasecmp(value, "ha")) {
-				scaling = SCALING_HA_UP;
-			} else if (!strcasecmp(value, "oiii")) {
-				scaling = SCALING_OIII_DOWN;
-			}
-		}
-	}
-
 	sensor_pattern pattern = get_bayer_pattern(&gfit);
-
 	gchar *Ha = g_strdup_printf("Ha_%s%s", filename, com.pref.ext);
 	gchar *OIII = g_strdup_printf("OIII_%s%s", filename, com.pref.ext);
 	if (gfit.type == DATA_USHORT) {
@@ -5741,13 +5758,31 @@ int process_extractHaOIII(int nb) {
 		g_free(filename);
 		return CMD_INVALID_IMAGE;
 	}
-
 	g_free(Ha);
 	g_free(OIII);
 	clearfits(&f_Ha);
 	clearfits(&f_OIII);
 	g_free(filename);
 	return ret;
+}
+
+int process_extractHaOIII(int nb) {
+	extraction_scaling scaling = SCALING_NONE;
+	if (word[1]) {
+		if (g_str_has_prefix(word[1], "-resample=")) {
+			char *current = word[1], *value;
+			value = current + 10;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), word[1]);
+				return CMD_ARG_ERROR;
+			} else if (!strcasecmp(value, "ha")) {
+				scaling = SCALING_HA_UP;
+			} else if (!strcasecmp(value, "oiii")) {
+				scaling = SCALING_OIII_DOWN;
+			}
+		}
+	}
+	return extract_HaOIII(scaling);
 }
 
 int process_seq_mtf(int nb) {
@@ -5985,6 +6020,9 @@ int process_seq_extractHa(int nb) {
 					}
 					args->seqEntry = strdup(value);
 				}
+				else if (g_str_has_prefix(word[i], "-upscale")) {
+					args->scaling = SCALING_HA_UP;
+				}
 				else {
 					siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
 						if (!check_seq_is_comseq(seq))
@@ -6100,6 +6138,10 @@ int process_stat(int nb){
 		siril_debug_print("Running stats on CFA\n");
 		nplane = 3;
 		cfa = TRUE;
+		if ((com.selection.w && com.selection.w < 2) || (com.selection.h && com.selection.h < 2)) {
+			siril_log_color_message(_("Statistics cannot be made on CFA images with a selection smaller than a 2x2 square, aborting\n"), "red");
+			return CMD_GENERIC_ERROR;
+		}
 		argidx++;
 	}
 	if (nb == argidx + 1 && !g_strcmp0(word[argidx], "main"))
@@ -6824,7 +6866,7 @@ int process_register(int nb) {
 
 	/* check for options */
 	for (int i = 2; i < nb; i++) {
-		if (!strcmp(word[i], "-drizzle")) {
+		if (!strcmp(word[i], "-upscale")) {
 			reg_args->x2upscale = TRUE;
 		} else if (!strcmp(word[i], "-noout")) {
 			reg_args->no_output = TRUE;
@@ -7157,12 +7199,20 @@ static int parse_filter_args(char *current, struct seq_filter_config *arg) {
 
 int process_seq_applyreg(int nb) {
 	struct registration_args *reg_args = NULL;
+	gboolean drizzle = FALSE;
 
 	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq)
 		return CMD_SEQUENCE_NOT_FOUND;
 
 	reg_args = calloc(1, sizeof(struct registration_args));
+	struct driz_args_t *driz = calloc(1, sizeof(struct driz_args_t));
+	// Default values for the driz_args_t
+	driz->use_flats = FALSE;
+	driz->scale = 1.f;
+	driz->kernel = kernel_square;
+	driz->weight_scale = 1.f;
+	driz->pixel_fraction = 1.f;
 
 	// check that registration exists for one layer at least
 	int layer = -1;
@@ -7193,8 +7243,95 @@ int process_seq_applyreg(int nb) {
 
 	/* check for options */
 	for (int i = 2; i < nb; i++) {
-		if (!strcmp(word[i], "-drizzle")) {
+		if (!strcmp(word[i], "-upscale")) {
 			reg_args->x2upscale = TRUE;
+		} else if (!strcmp(word[i], "-drizzle")) {
+			if (reg_args->seq->nb_layers != 1) {  // handling mono case
+				siril_log_message(_("This sequence is not mono / CFA, cannot drizzle.\n"));
+				goto terminate_register_on_error;
+			}
+			drizzle = TRUE;
+		// Drizzle options
+		} else if (g_str_has_prefix(word[i], "-scale=")) {
+			char *arg = word[i] + 7;
+			gchar *end;
+			double value;
+			value = g_ascii_strtod(arg, &end);
+			if (end == arg) {
+				siril_log_color_message(_("Invalid argument to %s, aborting.\n"), "red", word[i]);
+				goto terminate_register_on_error;
+			}
+			driz->scale = (float) value;
+		} else if (g_str_has_prefix(word[i], "-pixfrac=")) {
+			char *arg = word[i] + 9;
+			gchar *end;
+			double value;
+			value = g_ascii_strtod(arg, &end);
+			if (end == arg) {
+				siril_log_color_message(_("Invalid argument to %s, aborting.\n"), "red", word[i]);
+				goto terminate_register_on_error;
+			}
+			driz->pixel_fraction = (float) value;
+		} else if (g_str_has_prefix(word[i], "-kernel=")) {
+			char *arg = word[i] + 8;
+			if (!g_ascii_strncasecmp(arg, "point", 5))
+				driz->kernel = kernel_point;
+			else if (!g_ascii_strncasecmp(arg, "turbo", 5))
+				driz->kernel = kernel_turbo;
+			else if (!g_ascii_strncasecmp(arg, "square", 6))
+				driz->kernel = kernel_square;
+			else if (!g_ascii_strncasecmp(arg, "gaussian", 8))
+				driz->kernel = kernel_gaussian;
+			else if (!g_ascii_strncasecmp(arg, "lanczos2", 8))
+				driz->kernel = kernel_lanczos2;
+			else if (!g_ascii_strncasecmp(arg, "lanczos3", 8))
+				driz->kernel = kernel_lanczos3;
+			else {
+				siril_log_color_message(_("Invalid argument to %s, aborting.\n"), "red", word[i]);
+				goto terminate_register_on_error;
+			}
+		} else if (g_str_has_prefix(word[i], "-flat=")) {
+			if (driz->flat) {
+				siril_log_color_message(_("Error: flat image already set. Aborting.\n"), "red");
+				goto terminate_register_on_error;
+			}
+			if (seq->is_variable) {
+				siril_log_color_message(_("Error: flat image cannot work with variable sized sequence.\n"), "red");
+				goto terminate_register_on_error;
+			}
+			char *flat_filename = word[i] + 6;
+			fits reffit = { 0 };
+			gchar *error = NULL;
+			int status;
+			gchar *expression = path_parse(&reffit, flat_filename, PATHPARSE_MODE_READ, &status);
+			if (status) {
+				error = _("NOT USING FLAT: could not parse the expression");
+				driz->use_flats = FALSE;
+			} else {
+				free(expression);
+				if (flat_filename[0] == '\0') {
+					siril_log_message(_("Error: no master flat specified in the preprocessing tab.\n"));
+					goto terminate_register_on_error;
+				} else {
+					driz->flat = calloc(1, sizeof(fits));
+					if (!readfits(flat_filename, driz->flat, NULL, TRUE)) {
+						if (driz->flat->naxes[2] != seq->nb_layers) {
+							error = _("NOT USING FLAT: number of channels is different");
+						} else if (driz->flat->naxes[0] != seq->rx ||
+								driz->flat->naxes[1] != seq->ry) {
+							error = _("NOT USING FLAT: image dimensions are different");
+						} else {
+							// no need to deal with bitdepth conversion as readfits has already forced conversion to float
+							siril_log_message(_("Master flat read for use as initial pixel weight\n"));
+						}
+
+					} else error = _("NOT USING FLAT: cannot open the file");
+					if (error) {
+						goto terminate_register_on_error;
+					}
+				}
+			}
+		// Other registration options
 		} else if (g_str_has_prefix(word[i], "-prefix=")) {
 			char *current = word[i], *value;
 			value = current + 8;
@@ -7289,6 +7426,16 @@ int process_seq_applyreg(int nb) {
 		}
 	}
 
+	if (drizzle) {
+		reg_args->driz = driz;
+		if (reg_args->x2upscale) {
+			siril_log_message(_("-upscale is not compatible with -drizzle, choose one or the other.\n"));
+			goto terminate_register_on_error;
+		}
+	} else {
+		free(driz);
+		driz = NULL;
+	}
 	// sanity checks are done in register_apply_reg
 
 	reg_args->run_in_thread = TRUE;
@@ -7296,7 +7443,7 @@ int process_seq_applyreg(int nb) {
 
 	if (reg_args->interpolation == OPENCV_AREA || reg_args->interpolation == OPENCV_LINEAR || reg_args->interpolation == OPENCV_NEAREST || reg_args->interpolation == OPENCV_NONE)
 		reg_args->clamp = FALSE;
-	if (reg_args->clamp && !reg_args->no_output)
+	if (reg_args->clamp && !reg_args->no_output && !drizzle)
 		siril_log_message(_("Interpolation clamping active\n"));
 
 	set_progress_bar_data(_("Registration: Applying existing data"), PROGRESS_RESET);
@@ -7305,8 +7452,10 @@ int process_seq_applyreg(int nb) {
 	return CMD_OK;
 
 terminate_register_on_error:
+	free(driz);
 	if (!check_seq_is_comseq(seq))
 		free_sequence(seq, TRUE);
+	free(reg_args->prefix);
 	free(reg_args->new_seq_name);
 	free(reg_args);
 	return CMD_ARG_ERROR;
@@ -9288,7 +9437,7 @@ int process_platesolve(int nb) {
 			forced_metadata[FORCED_CENTER] = FALSE;
 		}
 		siril_world_cs_unref(target_coords);
-		target_coords = NULL;	
+		target_coords = NULL;
 	}
 
 	// we are now ready to fill the structure

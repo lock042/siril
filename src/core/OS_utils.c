@@ -503,8 +503,9 @@ void init_num_procs() {
 		siril_log_message(_("Using cgroups limit on the number of processors: %d\n"), cgroups_num_proc);
 		com.max_thread = cgroups_num_proc;
 	}
-	omp_set_nested(1);
-	int supports_nesting = omp_get_nested() && omp_get_max_active_levels() > 1;
+	omp_set_max_active_levels(INT_MAX);
+	int max_levels_supported = omp_get_max_active_levels();
+	int supports_nesting = max_levels_supported > 1;
 	siril_log_message(
 			_("Parallel processing enabled: using %d logical %s%s.\n"),
 			com.max_thread,

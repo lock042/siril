@@ -171,17 +171,6 @@ static void sitelat_handler_read(fits *fit, const char *comment, KeywordInfo *in
 	}
 }
 
-static void datamax_handler_read(fits *fit, const char *comment, KeywordInfo *info) {
-	gboolean not_from_siril = (strstr(fit->keywords.program, "Siril") == NULL);
-	if ((fit->bitpix == FLOAT_IMG && not_from_siril) || fit->bitpix == DOUBLE_IMG) {
-		float mini, maxi;
-		fit_stats(fit->fptr, &mini, &maxi);
-		// override data_max if needed. In some images there are differences between max and data_max
-		fit->keywords.data_max = (double) maxi;
-		fit->keywords.data_min = (double) mini;
-	}
-}
-
 static void flo_handler_read(fits *fit, const char *comment, KeywordInfo *info) {
 	if (!fit->keywords.hi && (fit->orig_bitpix == FLOAT_IMG || fit->orig_bitpix == DOUBLE_IMG)) {
 		fit->keywords.lo = float_to_ushort_range(fit->keywords.flo);
@@ -192,6 +181,23 @@ static void fhi_handler_read(fits *fit, const char *comment, KeywordInfo *info) 
 	if (!fit->keywords.hi && (fit->orig_bitpix == FLOAT_IMG || fit->orig_bitpix == DOUBLE_IMG)) {
 		fit->keywords.hi = float_to_ushort_range(fit->keywords.fhi);
 	}
+}
+
+static void ra_handler_read(fits *fit, const char *comment, KeywordInfo *info) {
+	fit->keywords.wcsdata.ra = parse_hms(fit->keywords.wcsdata.ra_str);
+	if (isnan(fit->keywords.wcsdata.ra))
+		fit->keywords.wcsdata.ra = 0.0;
+	else
+		siril_debug_print("read RA as HMS\n");
+}
+
+static void dec_handler_read(fits *fit, const char *comment, KeywordInfo *info) {
+	fit->keywords.wcsdata.dec = parse_dms(fit->keywords.wcsdata.dec_str);
+	if (isnan(fit->keywords.wcsdata.dec))
+		fit->keywords.wcsdata.dec = 0.0;
+	else
+		siril_debug_print("read DEC as DMS\n");
+
 }
 
 static void flo_handler_save(fits *fit, KeywordInfo *info) {
@@ -263,7 +269,7 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 			/* ATTENTION: PROGRAM MUST BE BEFORE DATAMAX */
 			KEYWORD_PRIMARY( "image", "PROGRAM", KTYPE_STR, "Software that created this HDU", &(fit->keywords.program), NULL, program_handler_save),
 			KEYWORD_SECONDA( "image", "SWCREATE", KTYPE_STR, "Software that created this HDU", &(fit->keywords.program), NULL, NULL),
-			KEYWORD_PRIMARY( "image", "DATAMAX", KTYPE_DOUBLE, "Order of the rows in image array", &(fit->keywords.data_max), datamax_handler_read, NULL),
+			KEYWORD_PRIMARY( "image", "DATAMAX", KTYPE_DOUBLE, "Order of the rows in image array", &(fit->keywords.data_max), NULL, NULL),
 			KEYWORD_PRIMARY( "date",  "DATE", KTYPE_DATE, "UTC date that FITS file was created", &(fit->keywords.date), NULL, NULL),
 			KEYWORD_PRIMARY( "date",  "DATE-OBS", KTYPE_DATE, "YYYY-MM-DDThh:mm:ss observation start, UT", &(fit->keywords.date_obs), NULL, NULL),
 			KEYWORD_PRIMARY( "image", "IMAGETYP", KTYPE_STR, "Type of image", &(fit->keywords.image_type), NULL, NULL),
@@ -293,11 +299,11 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 			KEYWORD_SECONDA( "camera", "PIXSIZE1", KTYPE_DOUBLE, "[um] Pixel X axis size", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
 			KEYWORD_SECONDA( "camera", "PIXSIZEX", KTYPE_DOUBLE, "[um] Pixel X axis size", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
 			KEYWORD_SECONDA( "camera", "XPIXSIZE", KTYPE_DOUBLE, "[um] Pixel X axis size", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
-			KEYWORD_PRIMARY( "camera", "YPIXSZ", KTYPE_DOUBLE,   "[um] Pixel Y axis size", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
-			KEYWORD_SECONDA( "camera", "YPIXELSZ", KTYPE_DOUBLE, "[um] Pixel Y axis size", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
-			KEYWORD_SECONDA( "camera", "PIXSIZE2", KTYPE_DOUBLE, "[um] Pixel Y axis size", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
-			KEYWORD_SECONDA( "camera", "PIXSIZEY", KTYPE_DOUBLE, "[um] Pixel Y axis size", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
-			KEYWORD_SECONDA( "camera", "YPIXSIZE", KTYPE_DOUBLE, "[um] Pixel Y axis size", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
+			KEYWORD_PRIMARY( "camera", "YPIXSZ", KTYPE_DOUBLE,   "[um] Pixel Y axis size", &(fit->keywords.pixel_size_y), pixel_x_handler_read, NULL),
+			KEYWORD_SECONDA( "camera", "YPIXELSZ", KTYPE_DOUBLE, "[um] Pixel Y axis size", &(fit->keywords.pixel_size_y), pixel_x_handler_read, NULL),
+			KEYWORD_SECONDA( "camera", "PIXSIZE2", KTYPE_DOUBLE, "[um] Pixel Y axis size", &(fit->keywords.pixel_size_y), pixel_x_handler_read, NULL),
+			KEYWORD_SECONDA( "camera", "PIXSIZEY", KTYPE_DOUBLE, "[um] Pixel Y axis size", &(fit->keywords.pixel_size_y), pixel_x_handler_read, NULL),
+			KEYWORD_SECONDA( "camera", "YPIXSIZE", KTYPE_DOUBLE, "[um] Pixel Y axis size", &(fit->keywords.pixel_size_y), pixel_x_handler_read, NULL),
 			KEYWORD_PRIMARY( "camera", "INSTRUME", KTYPE_STR, "Instrument name", &(fit->keywords.instrume), NULL, NULL),
 			KEYWORD_PRIMARY( "camera", "CCD-TEMP", KTYPE_DOUBLE, "[degC] CCD temperature", &(fit->keywords.ccd_temp), NULL, NULL),
 			KEYWORD_SECONDA( "camera", "CCD_TEMP", KTYPE_DOUBLE, "[degC] CCD temperature", &(fit->keywords.ccd_temp), NULL, NULL),
@@ -346,8 +352,10 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 			KEYWORD_PRIMARY( "wcsdata", "OBJCTRA", KTYPE_STR, "Image center Right Ascension (hms)", &(fit->keywords.wcsdata.objctra), NULL, NULL),
 			KEYWORD_PRIMARY( "wcsdata", "OBJCTDEC", KTYPE_STR, "Image center Declination (dms)", &(fit->keywords.wcsdata.objctdec), NULL, NULL),
 			KEYWORD_PRIMARY( "wcsdata", "RA", KTYPE_DOUBLE, "Image center Right Ascension (deg)", &(fit->keywords.wcsdata.ra), NULL, NULL),
+			KEYWORD_SECONDA( "wcsdata", "RA", KTYPE_STR, "Image center Right Ascension (deg)", &(fit->keywords.wcsdata.ra_str), ra_handler_read, NULL),
 			KEYWORD_SECONDA( "wcsdata", "RA_D", KTYPE_DOUBLE, "Image center Right Ascension (deg)", &(fit->keywords.wcsdata.ra), NULL, NULL),
 			KEYWORD_PRIMARY( "wcsdata", "DEC", KTYPE_DOUBLE, "Image center Declination (deg)", &(fit->keywords.wcsdata.dec), NULL, NULL),
+			KEYWORD_SECONDA( "wcsdata", "DEC", KTYPE_STR, "Image center Declination (deg)", &(fit->keywords.wcsdata.dec_str), dec_handler_read, NULL),
 			KEYWORD_SECONDA( "wcsdata", "DEC_D", KTYPE_DOUBLE, "Image center Declination (deg)", &(fit->keywords.wcsdata.dec), NULL, NULL),
 
 			/* This group must be the last one !!
@@ -833,6 +841,17 @@ static void set_to_default_not_used(fits *fit, GHashTable *keys_hash) {
     }
 }
 
+void set_all_keywords_default(fits *fit) {
+	GHashTable *keys_hash;
+	KeywordInfo *keys = initialize_keywords(fit, &keys_hash);
+
+	set_to_default_not_used(fit, keys_hash);
+
+	// Free the hash table and unknown keys
+	g_hash_table_destroy(keys_hash);
+	free(keys);
+}
+
 int read_fits_keywords(fits *fit) {
 	// Initialize keywords and get hash table
 	GHashTable *keys_hash;
@@ -893,10 +912,10 @@ int read_fits_keywords(fits *fit) {
 		gushort ushort_value;
 		double double_value;
 		float float_value;
-		gchar *str_value, *unquoted;
+		gchar *str_value = NULL, *unquoted = NULL;
 		GDateTime *date;
 		gboolean bool_value;
-		char *end;
+		char *end = NULL;
 
 		// Process the value based on the type of the keyword
 		switch (current_key->type) {
@@ -985,6 +1004,15 @@ int read_fits_keywords(fits *fit) {
 	fit->unknown_keys = g_string_free(unknown_keys, FALSE);
 
 	set_to_default_not_used(fit, keys_hash);
+
+	gboolean not_from_siril = (strstr(fit->keywords.program, "Siril") == NULL);
+	if ((fit->bitpix == FLOAT_IMG && not_from_siril) || fit->bitpix == DOUBLE_IMG) {
+		float mini, maxi;
+		fit_stats(fit->fptr, &mini, &maxi);
+		// override data_max if needed. In some images there are differences between max and data_max
+		fit->keywords.data_max = (double) maxi;
+		fit->keywords.data_min = (double) mini;
+	}
 
 	// Free the hash table and unknown keys
 	g_hash_table_destroy(keys_hash);

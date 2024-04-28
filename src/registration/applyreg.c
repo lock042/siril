@@ -24,19 +24,26 @@
 #include <math.h>
 
 #include "algos/sorting.h"
+#include "algos/statistics.h"
 #include "algos/siril_wcs.h"
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/arithm.h"
 #include "core/processing.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
+#include "drizzle/cdrizzlebox.h"
+#include "drizzle/cdrizzlemap.h"
+#include "drizzle/cdrizzleutil.h"
 #include "gui/image_display.h"
 #include "gui/progress_and_log.h"
 #include "gui/utils.h"
+#include "io/path_parse.h"
 #include "io/sequence.h"
 #include "io/ser.h"
 #include "io/image_format_fits.h"
 #include "registration/registration.h"
+#include "algos/demosaicing.h"
 
 #include "opencv/opencv.h"
 
@@ -198,8 +205,13 @@ static gboolean compute_framing(struct registration_args *regargs) {
 			return FALSE;
 	}
 	cvMultH(Href, Hshift, &Htransf);
-	rx_out = rx_0 * ((regargs->x2upscale) ? 2. : 1.);
-	ry_out = ry_0 * ((regargs->x2upscale) ? 2. : 1.);
+	if (regargs->driz) {
+		rx_out = rx_0 * regargs->driz->scale;
+		ry_out = ry_0 * regargs->driz->scale;
+	} else {
+		rx_out = rx_0 * ((regargs->x2upscale) ? 2. : 1.);
+		ry_out = ry_0 * ((regargs->x2upscale) ? 2. : 1.);
+	}
 	return TRUE;
 }
 
@@ -243,7 +255,7 @@ int apply_reg_prepare_hook(struct generic_seq_args *args) {
 		free(sadata->current_regdata);
 		return 1;
 	}
-	if (fit.naxes[2] == 1 && fit.keywords.bayer_pattern[0] != '\0')
+	if (!regargs->driz && fit.naxes[2] == 1 && fit.keywords.bayer_pattern[0] != '\0')
 		siril_log_color_message(_("Applying transformation on a sequence opened as CFA is a bad idea.\n"), "red");
 	free_wcs(&fit);
 	reset_wcsdata(&fit);
@@ -254,6 +266,8 @@ int apply_reg_prepare_hook(struct generic_seq_args *args) {
 int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads) {
 	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
+	struct driz_args_t *driz = regargs->driz;
+	float scale = 2.f;
 
 	Homography H = { 0 };
 	Homography Himg = { 0 };
@@ -269,18 +283,115 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		return 1; // in case H is null and -selected was not passed
 	cvTransfH(Himg, Htransf, &H);
 
-	if (regargs->interpolation <= OPENCV_LANCZOS4) {
-		if (cvTransformImage(fit, rx_out, ry_out, H, regargs->x2upscale, regargs->interpolation, regargs->clamp)) {
+	struct driz_param_t *p = NULL;
+	if (regargs->driz) {
+		scale = driz->scale;
+		p = calloc(1, sizeof(struct driz_param_t));
+		driz_param_init(p);
+		p->kernel = driz->kernel;
+		p->driz = driz;
+		p->error = malloc(sizeof(struct driz_error_t));
+		p->scale = driz->scale;
+		p->pixel_fraction = driz->pixel_fraction;
+		p->cfa = driz->cfa;
+		// Set bounds equal to whole image
+		p->xmin = p->ymin = 0;
+		p->xmax = fit->rx - 1;
+		p->ymax = fit->ry - 1;
+		p->pixmap = calloc(1, sizeof(imgmap_t));
+		p->pixmap->rx = fit->rx;
+		p->pixmap->ry = fit->ry;
+		p->threads = threads;
+
+		map_image_coordinates_h(fit, H, p->pixmap, ry_out, driz->scale, threads);
+		if (!p->pixmap->xmap) {
+			siril_log_color_message(_("Error generating mapping array.\n"), "red");
+			free(p->error);
+			free(p->pixmap);
+			free(p);
 			return 1;
 		}
-	} else {
-		if (shift_fit_from_reg(fit, H)) {
+		p->data = fit;
+		// Convert fit to 32-bit float if required
+		float *newbuf = NULL;
+		if (fit->type == DATA_USHORT) {
+			siril_debug_print("Replacing ushort buffer for drizzling\n");
+			size_t ndata = fit->rx * fit->ry * fit->naxes[2];
+			newbuf = malloc(ndata * sizeof(float));
+			float invnorm = 1.f / USHRT_MAX_SINGLE;
+			for (size_t i = 0 ; i < ndata ; i++) {
+				newbuf[i] = fit->data[i] * invnorm;
+			}
+			fit_replace_buffer(fit, newbuf, DATA_FLOAT);
+		}
+		/* Set up output fits */
+		fits out;
+		copyfits(fit, &out, CP_FORMAT, -1);
+		// copy the DATE_OBS
+		out.keywords.date_obs = g_date_time_ref(fit->keywords.date_obs);
+		out.rx = out.naxes[0] = rx_out;
+		out.ry = out.naxes[1] = ry_out;
+		out.naxes[2] = driz->is_bayer ? 3 : 1;
+		size_t chansize = out.rx * out.ry * sizeof(float);
+		out.fdata = calloc(out.naxes[2] * chansize, 1);
+		out.fpdata[0] = out.fdata;
+		out.fpdata[1] = out.naxes[2] == 1 ? out.fdata : out.fdata + chansize;
+		out.fpdata[2] = out.naxes[2] == 1 ? out.fdata : out.fdata + 2 * chansize;
+		p->output_data = &out;
+
+		// Set up the output_counts fits to store pixel hit counts
+		fits *output_counts = calloc(1, sizeof(fits));
+		copyfits(&out, output_counts, CP_FORMAT, -1);
+		output_counts->fdata = calloc(output_counts->rx * output_counts->ry * output_counts->naxes[2], sizeof(float));
+		p->output_counts = output_counts;
+
+		p->weights = driz->flat;
+
+		if (dobox(p)) { // Do the drizzle
+			siril_log_color_message("s\n", p->error->last_message);
 			return 1;
+		}
+		clearfits(fit);
+		// copy the DATE_OBS
+		copyfits(&out, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+		fit->keywords.date_obs = g_date_time_ref(out.keywords.date_obs);
+		clearfits(&out);
+		if (args->seq->type == SEQ_SER || com.pref.force_16bit) {
+			fit_replace_buffer(fit, float_buffer_to_ushort(fit->fdata, fit->rx * fit->ry * fit->naxes[2]), DATA_USHORT);
+		}
+		if (driz->is_bayer) {
+			/* we need to do something special here because it's a 1-channel sequence and
+			* image that will become 3-channel after this call, so stats caching will
+			* not be correct. Preprocessing does not compute new stats so we don't need
+			* to save them into cache now.
+			* Destroying the stats from the fit will also prevent saving them in the
+			* sequence, which may be done automatically by the caller.
+			*/
+			full_stats_invalidation_from_fit(fit);
+			fit->keywords.lo = 0;
+		}
+
+		free(p->pixmap->xmap);
+		free(p->pixmap);
+
+		// Get rid of the output_counts image, no longer required
+		clearfits(output_counts);
+		free(output_counts);
+		output_counts = NULL;
+	}
+	else {
+		if (regargs->interpolation <= OPENCV_LANCZOS4) {
+			if (cvTransformImage(fit, rx_out, ry_out, H, regargs->x2upscale, regargs->interpolation, regargs->clamp)) {
+				return 1;
+			}
+		} else {
+			if (shift_fit_from_reg(fit, H)) {
+				return 1;
+			}
 		}
 	}
 	if (in_index == regargs->reference_image)
 		new_ref_index = out_index; // keeping track of the new ref index in output sequence
-
 
 	regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
 	regargs->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
@@ -293,13 +404,13 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	regargs->regparam[out_index].number_of_stars = sadata->current_regdata[in_index].number_of_stars;
 	cvGetEye(&regargs->regparam[out_index].H);
 
-	if (regargs->x2upscale) {
-		fit->keywords.pixel_size_x /= 2;
-		fit->keywords.pixel_size_y /= 2;
-		regargs->regparam[out_index].fwhm *= 2.0;
-		regargs->regparam[out_index].weighted_fwhm *= 2.0;
-		regargs->imgparam[out_index].rx *= 2.0;
-		regargs->imgparam[out_index].ry *= 2.0;
+	if (regargs->driz || regargs->x2upscale) {
+		fit->keywords.pixel_size_x /= scale;
+		fit->keywords.pixel_size_y /= scale;
+		regargs->regparam[out_index].fwhm *= scale;
+		regargs->regparam[out_index].weighted_fwhm *= scale;
+		regargs->imgparam[out_index].rx *= scale;
+		regargs->imgparam[out_index].ry *= scale;
 	}
 
 	sadata->success[out_index] = 1;
@@ -372,6 +483,76 @@ int apply_reg_finalize_hook(struct generic_seq_args *args) {
 	return regargs->new_total == 0;
 }
 
+int apply_drz_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
+	struct star_align_data *sadata = args->user;
+	struct registration_args *regargs = sadata->regargs;
+	struct driz_args_t *driz = regargs->driz;
+	unsigned int MB_per_orig_image, MB_per_scaled_image, MB_avail;
+	int limit = compute_nb_images_fit_memory(args->seq, driz->scale, args->force_float,
+			&MB_per_orig_image, &MB_per_scaled_image, &MB_avail);
+	int is_float = get_data_type(args->seq->bitpix) == DATA_FLOAT;
+	int float_multiplier = (is_float) ? 1 : 2;
+	int is_bayer = driz->is_bayer;
+	MB_per_scaled_image *= is_float ? 1 : 2; // Output is always float
+	if (is_bayer) {
+		MB_per_scaled_image *= 3;
+	}
+	unsigned int MB_per_float_image = MB_per_orig_image * float_multiplier;
+	unsigned int MB_per_float_channel = MB_per_float_image;
+
+	/* The drizzle memory consumption is:
+		* the original image
+		* Two 2 * rx * ry * float arrays for computing mapping
+		* (note this could become double arrays with WCS?)
+		  (the mapping file reallocs one of these so never exceeds that amount)
+		* the weights file (1 * scaled image float data)
+		* the transformed image, including scaling factor if required
+		* the output counts image, the same size as the scaled image
+	*/
+	unsigned int required = MB_per_orig_image + 4 * MB_per_float_channel + 2 * MB_per_scaled_image;
+
+	if (limit > 0) {
+
+		int thread_limit = MB_avail / required;
+		if (thread_limit > com.max_thread)
+			thread_limit = com.max_thread;
+
+		if (for_writer) {
+			/* we allow the already allocated thread_limit images,
+			 * plus how many images can be stored in what remains
+			 * unused by the main processing */
+			limit = thread_limit + (MB_avail - required * thread_limit) / MB_per_scaled_image;
+		} else limit = thread_limit;
+	}
+
+	if (limit == 0) {
+		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+
+		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per thread, %s considered available)\n"),
+				"red", args->description, mem_per_thread, mem_available);
+
+		g_free(mem_per_thread);
+		g_free(mem_available);
+	} else {
+#ifdef _OPENMP
+		if (for_writer) {
+			int max_queue_size = com.max_thread * 3;
+			if (limit > max_queue_size)
+				limit = max_queue_size;
+		}
+		siril_debug_print("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
+				required, MB_per_scaled_image, limit, for_writer ? "images" : "threads");
+#else
+		if (!for_writer)
+			limit = 1;
+		else if (limit > 3)
+			limit = 3;
+#endif
+	}
+	return limit;
+}
+
 int apply_reg_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
 	unsigned int MB_per_orig_image, MB_per_scaled_image, MB_avail;
 	int limit = compute_nb_images_fit_memory(args->seq, args->upscale_ratio, args->force_float,
@@ -439,24 +620,80 @@ int apply_reg_compute_mem_limits(struct generic_seq_args *args, gboolean for_wri
 
 int register_apply_reg(struct registration_args *regargs) {
 	struct generic_seq_args *args = create_default_seqargs(regargs->seq);
+	struct driz_args_t *driz = regargs->driz;
+	control_window_switch_to_tab(OUTPUT_LOGS);
+
+	if (regargs->driz) {
+		set_progress_bar_data(_("Initializing drizzle data..."), PROGRESS_PULSATE);
+	}
 
 	if (!check_before_applyreg(regargs)) {
 		free(args);
 		return -1;
 	}
 
+	if (driz) {
+		args->compute_mem_limits_hook = apply_drz_compute_mem_limits;
+		args->upscale_ratio = 1.0; // Drizzle scale dealt with separately
+		driz_param_dump(driz); // Print some info to the log
+		/* preparing reference data from reference fit and making sanity checks*/
+		fits fit = { 0 };
+
+		/* fit will now hold the reference frame */
+		if (seq_read_frame_metadata(regargs->seq, regargs->reference_image, &fit)) {
+			siril_log_message(_("Could not load reference image\n"));
+			args->seq->regparam[0] = NULL;
+			free(args);
+			return 1;
+		}
+		sensor_pattern pattern;
+		if (args->seq->type == SEQ_SER && args->seq->ser_file ) {
+			driz->is_bayer = TRUE;
+			switch (args->seq->ser_file->color_id) {
+				case SER_MONO:
+					pattern = get_cfa_pattern_index_from_string("");
+					driz->is_bayer = FALSE;
+					break;
+				case SER_BAYER_RGGB:
+					pattern = get_cfa_pattern_index_from_string("RGGB");
+					break;
+				case SER_BAYER_GRBG:
+					pattern = get_cfa_pattern_index_from_string("GRBG");
+					break;
+				case SER_BAYER_GBRG:
+					pattern = get_cfa_pattern_index_from_string("GBRG");
+					break;
+				case SER_BAYER_BGGR:
+					pattern = get_cfa_pattern_index_from_string("BGGR");
+					break;
+				default:
+					siril_log_message(_("Unsupported SER CFA pattern detected. Treating as mono.\n"));
+					driz->is_bayer = FALSE;
+			}
+		} else {
+			driz->is_bayer = (fit.keywords.bayer_pattern[0] != '\0'); // If there is a CFA pattern we need to CFA drizzle
+			pattern = com.pref.debayer.use_bayer_header ? get_cfa_pattern_index_from_string(fit.keywords.bayer_pattern) : com.pref.debayer.bayer_pattern;
+		}
+		if (driz->is_bayer) {
+			adjust_Bayer_pattern(&fit, &pattern);
+			driz->cfa = get_cfa_from_pattern(pattern);
+			if (!driz->cfa) // if fit.bayer_pattern exists and get_cfa_from_pattern returns NULL then there is a problem.
+				return 1;
+		}
+	} else {
+		args->compute_mem_limits_hook = apply_reg_compute_mem_limits;
+		args->upscale_ratio = regargs->x2upscale ? 2.0 : 1.0;
+	}
+	args->prepare_hook = apply_reg_prepare_hook;
+	args->finalize_hook = apply_reg_finalize_hook;
 	args->filtering_criterion = regargs->filtering_criterion;
 	args->filtering_parameter = regargs->filtering_parameter;
 	args->nb_filtered_images = regargs->new_total;
-	args->compute_mem_limits_hook = apply_reg_compute_mem_limits;
-	args->prepare_hook = apply_reg_prepare_hook;
 	args->image_hook = apply_reg_image_hook;
-	args->finalize_hook = apply_reg_finalize_hook;
 	args->stop_on_error = FALSE;
 	args->description = _("Apply registration");
 	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
-	args->upscale_ratio = regargs->x2upscale ? 2.0 : 1.0;
 	args->new_seq_prefix = regargs->prefix;
 	args->load_new_sequence = TRUE;
 	args->already_in_a_thread = TRUE;
@@ -493,7 +730,7 @@ static void create_output_sequence_for_apply_reg(struct registration_args *args)
 	seq.number = args->new_total;
 	seq.selnum = args->new_total;
 	seq.fixed = args->seq->fixed;
-	seq.nb_layers = args->seq->nb_layers;
+	seq.nb_layers = (args->driz && args->driz->is_bayer) ? 3 : args->seq->nb_layers;
 	seq.rx = rx_out;
 	seq.ry = ry_out;
 	seq.imgparam = args->imgparam;
@@ -554,6 +791,7 @@ void guess_transform_from_seq(sequence *seq, int layer,
 }
 
 gboolean check_before_applyreg(struct registration_args *regargs) {
+	struct driz_args_t *driz = regargs->driz;
 		// check the reference image matrix is not null
 	transformation_type checkH = guess_transform_from_H(regargs->seq->regparam[regargs->layer][regargs->seq->reference_image].H);
 	if (checkH == NULL_TRANSFORMATION) {
@@ -563,19 +801,19 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 	// check the number of dof if -interp=none
 	transformation_type min, max;
 	guess_transform_from_seq(regargs->seq, regargs->layer, &min, &max, TRUE);
-	if (max > SHIFT_TRANSFORMATION && regargs->interpolation == OPENCV_NONE) {
+	if (!driz && max > SHIFT_TRANSFORMATION && regargs->interpolation == OPENCV_NONE) {
 		siril_log_color_message(_("Applying registration computed with higher degree of freedom (%d) than shift is not allowed when interpolation is set to none, aborting\n"), "red", ((int)max + 1) * 2);
 		return FALSE;
 	}
 
 	// check the consistency of output images size if -interp=none
-	if (regargs->interpolation == OPENCV_NONE && (regargs->x2upscale || regargs->framing == FRAMING_MAX || regargs->framing == FRAMING_MIN)) {
+	if (!driz && regargs->interpolation == OPENCV_NONE && (regargs->x2upscale || regargs->framing == FRAMING_MAX || regargs->framing == FRAMING_MIN)) {
 		siril_log_color_message(_("Applying registration with changes in output image sizeis not allowed when interpolation is set to none , aborting\n"), "red");
 		return FALSE;
 	}
 
 	// check the consistency of images size if -interp=none
-	if (regargs->interpolation == OPENCV_NONE && regargs->seq->is_variable) {
+	if (!driz && regargs->interpolation == OPENCV_NONE && regargs->seq->is_variable) {
 		siril_log_color_message(_("Applying registration on images with different sizes when interpolation is set to none is not allowed, aborting\n"), "red");
 		return FALSE;
 	}
@@ -598,7 +836,7 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 		regargs->filters.filter_included = TRUE;
 	}
 
-	// cog frmaing method requires all images to be of same size
+	// cog framing method requires all images to be of same size
 	if (regargs->framing == FRAMING_COG && regargs->seq->is_variable) {
 		siril_log_color_message(_("Framing method \"cog\" requires all images to be of same size, aborting\n"), "red");
 		return FALSE;

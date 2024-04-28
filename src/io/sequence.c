@@ -50,6 +50,7 @@
 #include "gui/callbacks.h"
 #include "gui/message_dialog.h"
 #include "gui/plot.h"
+#include "gui/registration.h"
 #include "ser.h"
 #include "fits_sequence.h"
 #ifdef HAVE_FFMS2
@@ -657,6 +658,7 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 	}
 
 	update_MenuItem();		// initialize menu gui
+	set_GUI_CAMERA();		// update image information
 	sequence_list_change_current();
 	adjust_refimage(index);	// check or uncheck reference image checkbox
 
@@ -1685,6 +1687,16 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 	}
 	data->image_index = index;
 
+	/* Backup the original pointer to fit. If there is a Bayer pattern we need
+	 * to interpolate non-green pixels, so make a copy we can work on. */
+	fits *orig_fit = fit;
+	if (spsfargs->bayer_pattern[0]) {
+		fit = calloc(1, sizeof(fits));
+		copyfits(orig_fit, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+		memcpy(fit->keywords.bayer_pattern, spsfargs->bayer_pattern, FLEN_VALUE);
+		interpolate_nongreen(fit);
+	}
+
 	rectangle psfarea = { .x = 0, .y = 0, .w = fit->rx, .h = fit->ry };
 	psf_error error;
 	struct phot_config *ps = NULL;
@@ -1730,7 +1742,13 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 				"red", index, area->x, area->y, psf_error_to_string(error));
 		}
 	}
-
+	if (spsfargs->bayer_pattern[0]) {
+		// Get rid of the temporary copy and restore the original frame fits
+		// now that we have computed the actual registration data
+		clearfits(fit);
+		free(fit);
+		fit = orig_fit;
+	}
 #ifdef _OPENMP
 	omp_set_lock(&args->lock);
 #endif
@@ -1918,7 +1936,7 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 	}
 
 	struct generic_seq_args *args = create_default_seqargs(seq);
-	struct seqpsf_args *spsfargs = malloc(sizeof(struct seqpsf_args));
+	struct seqpsf_args *spsfargs = calloc(1, sizeof(struct seqpsf_args));
 
 	spsfargs->for_photometry = !for_registration;
 	if (!no_GUI)
@@ -1926,6 +1944,16 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 	else spsfargs->allow_use_as_regdata = for_registration ? BOOL_TRUE : BOOL_FALSE;
 	spsfargs->framing = framing;
 	spsfargs->list = NULL;	// GSList init is NULL
+
+	fits fit = { 0 };
+	if (seq_read_frame(args->seq, seq->reference_image, &fit, FALSE, -1)) {
+		siril_log_color_message(_("Could not load metadata"), "red");
+		free(spsfargs);
+		return -1;
+	} else {
+		memcpy(spsfargs->bayer_pattern, fit.keywords.bayer_pattern, FLEN_VALUE);
+	}
+	clearfits(&fit);
 
 	args->partial_image = TRUE;
 	memcpy(&args->area, &com.selection, sizeof(rectangle));
@@ -2004,9 +2032,10 @@ void free_reference_image() {
  * on the configured memory ratio */
 static int compute_nb_images_fit_memory_from_dimensions(int rx, int ry, int nb_layers, data_type type, double factor, gboolean force_float, unsigned int *MB_per_orig_image, unsigned int *MB_per_scaled_image, unsigned int *max_mem_MB) {
 	int max_memory_MB = get_max_memory_in_MB();
-	if (factor < 1.0 || factor > 2.0) {
-		fprintf(stderr, "############ FACTOR UNINIT (set to 1) ############\n");
-		factor = 1.0;
+
+	factor = max(factor, 1.0);
+	if (factor > 3.0) {
+		siril_debug_print("Info: image scaling is very large! (> 3.0)\n");
 	}
 	uint64_t newx = round_to_int((double) rx * factor);
 	uint64_t newy = round_to_int((double) ry * factor);
