@@ -33,7 +33,7 @@ extern "C" float *estimate_kernel(estk_data *args, int max_threads) {
     if (!cppfftwmultithreaded)
         max_threads = 1;
     img_t<float>::use_threading(max_threads);
-    options opts;
+    estimate_kernel_options opts;
     opts.ks = args->ks;
     opts.lambda = args->lambda;
     opts.lambda_ratio = args->lambda_ratio;
