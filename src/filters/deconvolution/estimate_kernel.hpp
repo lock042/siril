@@ -56,7 +56,7 @@ void gaussian_downsample(img_t<float>& out, const img_t<float>& _in, float facto
     }
 }
 
-struct options {
+struct estimate_kernel_options {
     bool verbose;
     int ks;
     float lambda;
@@ -81,7 +81,7 @@ template <typename T>
 class ImagePredictor {
 public:
     virtual void solve(img_t<T>& u, const img_t<T>& K, T lambda, T beta_init, T beta_rate, T beta_max,
-                       const options& opts) = 0;
+                       const estimate_kernel_options& opts) = 0;
     virtual ~ImagePredictor() {}
 };
 
@@ -114,7 +114,7 @@ public:
     }
 
     void solve(img_t<T>& u, const img_t<T>& K,
-               T lambda, T beta_init, T beta_rate, T beta_max, const options& opts) {
+               T lambda, T beta_init, T beta_rate, T beta_max, const estimate_kernel_options& opts) {
         assert(K.w % 2);
         assert(K.h % 2);
 
@@ -177,7 +177,7 @@ public:
 template <typename T>
 class KernelEstimator {
 public:
-    virtual void solve(img_t<T>& k, const img_t<T>& u, const struct options& opts) = 0;
+    virtual void solve(img_t<T>& k, const img_t<T>& u, const struct estimate_kernel_options& opts) = 0;
     virtual ~KernelEstimator() {}
 };
 
@@ -198,7 +198,7 @@ public:
     }
 
     // implements Algorithm 3
-    void solve(img_t<T>& k, const img_t<T>& u, const struct options& opts) {
+    void solve(img_t<T>& k, const img_t<T>& u, const struct estimate_kernel_options& opts) {
         k.resize(ks, ks);
 
         // solves the Equation (28)
@@ -313,7 +313,7 @@ public:
         fv = fft::r2c(v);
     }
 
-    void solve(img_t<T>& k, const img_t<T>& u, const struct options& opts) {
+    void solve(img_t<T>& k, const img_t<T>& u, const struct estimate_kernel_options& opts) {
         if (k.w != ks || k.h != ks)
             k.resize(ks, ks);
 
@@ -407,7 +407,7 @@ public:
 // estimates the sharp image and the kernel from a blurry image and an initialization of u
 template <typename T>
 void l0_kernel_estimation(img_t<T>& k, img_t<T>& u, const img_t<T>& v,
-                          const img_t<T>& initu, struct options& opts) {
+                          const img_t<T>& initu, struct estimate_kernel_options& opts) {
 //    static int it = 0;
     ImagePredictor<T>* sharp_predictor = nullptr;
     sharp_predictor = new L0ImagePredictor<T>(v);
@@ -463,7 +463,7 @@ void l0_kernel_estimation(img_t<T>& k, img_t<T>& u, const img_t<T>& v,
 // it assumes that the image was previously processed by preprocess_image
 // the inner loop is implemented in l0_kernel_estimation
 template <typename T>
-void multiscale_l0_kernel_estimation(img_t<T>& k, img_t<T>& u, const img_t<T>& v, struct options& opts) {
+void multiscale_l0_kernel_estimation(img_t<T>& k, img_t<T>& u, const img_t<T>& v, struct estimate_kernel_options& opts) {
     std::vector<img_t<T>> vs;
     std::vector<int> kernelSizes;
     printf("Multiscale kernel estimation...\n");
@@ -511,7 +511,7 @@ void multiscale_l0_kernel_estimation(img_t<T>& k, img_t<T>& u, const img_t<T>& v
 
 // preprocess the input blurry image as describe in Section 2.1
 template <typename T>
-void preprocess_image(img_t<T>& out, const img_t<T>& _v, struct options& opts) {
+void preprocess_image(img_t<T>& out, const img_t<T>& _v, struct estimate_kernel_options& opts) {
     img_t<T> v(_v.w, _v.h);
 
     // convert to grayscale
