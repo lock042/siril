@@ -94,41 +94,10 @@ static gboolean compute_framing(struct registration_args *regargs) {
 		case FRAMING_CURRENT:
 			break;
 		case FRAMING_MAX:
-			xmin = DBL_MAX;
-			xmax = -DBL_MAX;
-			ymin = DBL_MAX;
-			ymax = -DBL_MAX;
-			for (int i = 0; i < regargs->seq->number; i++) {
-				if (!regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
-					continue;
-				siril_debug_print("Image #%d:\n", i);
-				regframe current_framing = {0};
-				memcpy(&current_framing, &framing, sizeof(regframe));
-				if (regargs->seq->is_variable) {
-					double rx2 = (double)regargs->seq->imgparam[i].rx;
-					double ry2 = (double)regargs->seq->imgparam[i].ry;
-					current_framing.pt[1].x = rx2;
-					current_framing.pt[2].x = rx2;
-					current_framing.pt[2].y = ry2;
-					current_framing.pt[3].y = ry2;
-				}
-				for (int j = 0; j < 4; j++) {
-					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y, regargs->seq->regparam[regargs->layer][i].H, Href);
-					if (xmin > current_framing.pt[j].x) xmin = current_framing.pt[j].x;
-					if (ymin > current_framing.pt[j].y) ymin = current_framing.pt[j].y;
-					if (xmax < current_framing.pt[j].x) xmax = current_framing.pt[j].x;
-					if (ymax < current_framing.pt[j].y) ymax = current_framing.pt[j].y;
-					siril_debug_print("Point #%d: %3.2f %3.2f\n", j, current_framing.pt[j].x, current_framing.pt[j].y);
-				}
-			}
-			rx_0 = (int)(ceil(xmax) - floor(xmin));
-			ry_0 = (int)(ceil(ymax) - floor(ymin));
-			x0 = floor(xmin);
-			y0 = floor(ymin);
-			siril_debug_print("new size: %d %d\n", rx_0, ry_0);
-			siril_debug_print("new origin: %d %d\n", x0, y0);
-			Hshift.h02 = (double)x0;
-			Hshift.h12 = (double)y0;
+			rx_0 = INT16_MAX; // won't be used, it's just to bypass the min size check
+			ry_0 = INT16_MAX;
+			Hshift.h02 = 0.;
+			Hshift.h12 = 0.;
 			break;
 		case FRAMING_MIN:
 			xmin = -DBL_MAX;
@@ -151,7 +120,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 				}
 				double xs[4], ys[4];
 				for (int j = 0; j < 4; j++) {
-					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y,regargs->seq->regparam[regargs->layer][i].H, Href);
+					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y,regargs->seq->regparam[regargs->layer][i].H, Href, 1.);
 					siril_debug_print("Point #%d: %3.2f %3.2f\n", j, current_framing.pt[j].x, current_framing.pt[j].y);
 					xs[j] = current_framing.pt[j].x;
 					ys[j] = current_framing.pt[j].y;
@@ -184,7 +153,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 				memcpy(&current_framing, &framing, sizeof(regframe));
 				double currcogx = 0., currcogy = 0.;
 				for (int j = 0; j < 4; j++) {
-					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y,regargs->seq->regparam[regargs->layer][i].H, Href);
+					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y,regargs->seq->regparam[regargs->layer][i].H, Href, 1.);
 					siril_debug_print("Point #%d: %3.2f %3.2f\n", j, current_framing.pt[j].x, current_framing.pt[j].y);
 					currcogx += current_framing.pt[j].x;
 					currcogy += current_framing.pt[j].y;
@@ -213,6 +182,41 @@ static gboolean compute_framing(struct registration_args *regargs) {
 		ry_out = ry_0 * ((regargs->x2upscale) ? 2. : 1.);
 	}
 	return TRUE;
+}
+
+// For framing max, we don't want to export the image with black borders
+// From the homographies and the input image size
+// we compute:
+// - H transf, the warping transformation in place
+// - H shift, the residual shift wrt to ref image
+// - the size of the transformed image after applying The transformation
+static void compute_Hmax(Homography *Himg, Homography *Href, int src_rx_in, int src_ry_in, double scale, Homography *H, Homography *Hshift, int *dst_rx_out, int *dst_ry_out) {
+	*dst_rx_out = 0;
+	*dst_ry_out = 0;
+	regframe framing = { 0 };
+	framing = (regframe){(point){0., 0.}, (point){(double)src_rx_in, 0.}, (point){(double)src_rx_in, (double)src_ry_in}, (point){0., (double)src_ry_in}};
+	double xmin, xmax, ymin, ymax;
+	xmin = DBL_MAX;
+	xmax = -DBL_MAX;
+	ymin = DBL_MAX;
+	ymax = -DBL_MAX;
+	for (int j = 0; j < 4; j++) {
+		cvTransfPoint(&framing.pt[j].x, &framing.pt[j].y, *Himg, *Href, scale);
+		if (xmin > framing.pt[j].x) xmin = framing.pt[j].x;
+		if (ymin > framing.pt[j].y) ymin = framing.pt[j].y;
+		if (xmax < framing.pt[j].x) xmax = framing.pt[j].x;
+		if (ymax < framing.pt[j].y) ymax = framing.pt[j].y;
+		siril_debug_print("Point #%d: %3.2f %3.2f\n", j, framing.pt[j].x, framing.pt[j].y);
+	}
+	*dst_rx_out = (int)(ceil(xmax) - floor(xmin)) + 1;
+	*dst_ry_out = (int)(ceil(ymax) - floor(ymin)) + 1;
+	Hshift->h02 = (double)floor(xmin);
+	Hshift->h12 = (double)floor(ymin);
+	cvTransfH(*Himg, *Href, H);
+	// the shift matrix is at the final scale, while the transformation matrix
+	// is still at the orginal scale (will be upscaled in cvTransformImage)
+	H->h02 -= Hshift->h02 / scale;
+	H->h12 -= Hshift->h12 / scale;
 }
 
 int apply_reg_prepare_results(struct generic_seq_args *args) {
@@ -267,10 +271,18 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
 	struct driz_args_t *driz = regargs->driz;
-	float scale = 2.f;
+	float scale = 1.f;
+	if (regargs->driz)
+		scale = driz->scale;
+	else if (regargs->x2upscale)
+		scale = 2.f;
 
 	Homography H = { 0 };
 	Homography Himg = { 0 };
+	Homography Hs = { 0 };
+	cvGetEye(&Hs);
+	int dst_rx = rx_out;
+	int dst_ry = ry_out;
 	int filenum = args->seq->imgparam[in_index].filenum;	// for display purposes
 
 	if (args->seq->type == SEQ_SER || args->seq->type == SEQ_FITSEQ) {
@@ -281,7 +293,12 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	Himg = regargs->seq->regparam[regargs->layer][in_index].H;
 	if (guess_transform_from_H(Himg) == NULL_TRANSFORMATION)
 		return 1; // in case H is null and -selected was not passed
-	cvTransfH(Himg, Htransf, &H);
+
+	if (regargs->framing != FRAMING_MAX)
+		cvTransfH(Himg, Htransf, &H);
+	else {
+		compute_Hmax(&Himg, &Htransf, fit->rx, fit->ry, scale, &H, &Hs, &dst_rx, &dst_ry);
+	}
 
 	struct driz_param_t *p = NULL;
 	if (regargs->driz) {
@@ -303,7 +320,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		p->pixmap->ry = fit->ry;
 		p->threads = threads;
 
-		map_image_coordinates_h(fit, H, p->pixmap, ry_out, driz->scale, threads);
+		map_image_coordinates_h(fit, H, p->pixmap, dst_ry, driz->scale, threads);
 		if (!p->pixmap->xmap) {
 			siril_log_color_message(_("Error generating mapping array.\n"), "red");
 			free(p->error);
@@ -329,8 +346,8 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		copyfits(fit, &out, CP_FORMAT, -1);
 		// copy the DATE_OBS
 		out.keywords.date_obs = g_date_time_ref(fit->keywords.date_obs);
-		out.rx = out.naxes[0] = rx_out;
-		out.ry = out.naxes[1] = ry_out;
+		out.rx = out.naxes[0] = dst_rx;
+		out.ry = out.naxes[1] = dst_ry;
 		out.naxes[2] = driz->is_bayer ? 3 : 1;
 		size_t chansize = out.rx * out.ry * sizeof(float);
 		out.fdata = calloc(out.naxes[2] * chansize, 1);
@@ -381,7 +398,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	}
 	else {
 		if (regargs->interpolation <= OPENCV_LANCZOS4) {
-			if (cvTransformImage(fit, rx_out, ry_out, H, regargs->x2upscale, regargs->interpolation, regargs->clamp)) {
+			if (cvTransformImage(fit, dst_rx, dst_ry, H, regargs->x2upscale, regargs->interpolation, regargs->clamp)) {
 				return 1;
 			}
 		} else {
@@ -395,22 +412,20 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 
 	regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
 	regargs->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
-	regargs->imgparam[out_index].rx = rx_out;
-	regargs->imgparam[out_index].ry = ry_out;
+	regargs->imgparam[out_index].rx = dst_rx;
+	regargs->imgparam[out_index].ry = dst_ry;
 	regargs->regparam[out_index].fwhm = sadata->current_regdata[in_index].fwhm;
 	regargs->regparam[out_index].weighted_fwhm = sadata->current_regdata[in_index].weighted_fwhm;
 	regargs->regparam[out_index].roundness = sadata->current_regdata[in_index].roundness;
 	regargs->regparam[out_index].background_lvl = sadata->current_regdata[in_index].background_lvl;
 	regargs->regparam[out_index].number_of_stars = sadata->current_regdata[in_index].number_of_stars;
-	cvGetEye(&regargs->regparam[out_index].H);
+	regargs->regparam[out_index].H = Hs;
 
 	if (regargs->driz || regargs->x2upscale) {
 		fit->keywords.pixel_size_x /= scale;
 		fit->keywords.pixel_size_y /= scale;
 		regargs->regparam[out_index].fwhm *= scale;
 		regargs->regparam[out_index].weighted_fwhm *= scale;
-		regargs->imgparam[out_index].rx *= scale;
-		regargs->imgparam[out_index].ry *= scale;
 	}
 
 	sadata->success[out_index] = 1;

@@ -352,7 +352,7 @@ void cvGetEye(Homography *Hom) {
 	convert_MatH_to_H(M, Hom);
 }
 
-void cvTransfPoint(double *x, double *y, Homography Href, Homography Himg) {
+void cvTransfPoint(double *x, double *y, Homography Href, Homography Himg, double scale) {
 	Mat_<double> ref(3,1);
 	Mat_<double> dst;
 	Mat H0 = Mat(3, 3, CV_64FC1);
@@ -365,8 +365,14 @@ void cvTransfPoint(double *x, double *y, Homography Href, Homography Himg) {
 	convert_H_to_MatH(&Himg, H1);
 	if (cv::determinant(H1) == 0) return;
 	dst = H1.inv() * H0 * ref;
-	*x = dst(0,0);
-	*y = dst(1,0);
+	if (scale != 1.) {
+		Mat S = Mat::eye(3, 3, CV_64FC1);
+		S.at<double>(0,0) = scale;
+		S.at<double>(1,1) = scale;
+		dst = S * dst;
+	}
+	*x = dst(0,0) / dst(2,0);
+	*y = dst(1,0) / dst(2,0);
 }
 
 void cvTransfH(Homography Href, Homography Himg, Homography *Hres) {
@@ -381,8 +387,6 @@ void cvTransfH(Homography Href, Homography Himg, Homography *Hres) {
 	H2 = H1.inv() * H0;
 	convert_MatH_to_H(H2, Hres);
 }
-
-// TODO: to be looked into when we sort out the conventions for astrometry (see #1103)
 
 unsigned char *cvCalculH(s_star *star_array_img,
 		struct s_star *star_array_ref, int n, Homography *Hom, transformation_type type, float offset) {

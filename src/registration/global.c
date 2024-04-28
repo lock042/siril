@@ -778,7 +778,7 @@ static void compute_dist(struct registration_args *regargs, float *dist, const g
 		if (!included[i]) continue;
 		point currcenter;
 		memcpy(&currcenter, &center, sizeof(point));
-		cvTransfPoint(&currcenter.x, &currcenter.y,regargs->seq->regparam[regargs->layer][i].H, Href);
+		cvTransfPoint(&currcenter.x, &currcenter.y,regargs->seq->regparam[regargs->layer][i].H, Href, 1.);
 		cogx += currcenter.x;
 		cogy += currcenter.y;
 		n++;
@@ -796,7 +796,7 @@ static void compute_dist(struct registration_args *regargs, float *dist, const g
 		point currcenter;
 		double dx, dy;
 		memcpy(&currcenter, &center, sizeof(point));
-		cvTransfPoint(&currcenter.x, &currcenter.y, regargs->seq->regparam[regargs->layer][i].H, Htransf);
+		cvTransfPoint(&currcenter.x, &currcenter.y, regargs->seq->regparam[regargs->layer][i].H, Htransf, 1.);
 		dx = currcenter.x - center.x;
 		dy = currcenter.y - center.y;
 		dist[i] = (float)sqrt(dx * dx + dy * dy);

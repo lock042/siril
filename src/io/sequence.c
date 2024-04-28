@@ -2111,7 +2111,7 @@ gboolean sequence_drifts(sequence *seq, int reglayer, int threshold) {
 		if (!seq->imgparam[i].incl)
 			continue;
 		double x = orig_x, y = orig_y;
-		cvTransfPoint(&x, &y, seq->regparam[reglayer][i].H, seq->regparam[reglayer][seq->reference_image].H);
+		cvTransfPoint(&x, &y, seq->regparam[reglayer][i].H, seq->regparam[reglayer][seq->reference_image].H, 1.);
 		double dist = sqrt((x - orig_x) * (x - orig_x) + (y - orig_y) * (y - orig_y));
 		if (dist > threshold) {
 			siril_log_color_message(_("Warning: the sequence appears to have heavy drifted images (%d pixels for image %d), photometry will probably not be reliable. Check the sequence and exclude some images\n"), "salmon", (int)dist, i);

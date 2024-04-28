@@ -123,7 +123,7 @@ void on_button1_comet_clicked(GtkButton *button, gpointer p) {
 			if (layer_has_registration(&com.seq, layer) &&
 					guess_transform_from_H(com.seq.regparam[layer][com.seq.reference_image].H) > NULL_TRANSFORMATION &&
 					guess_transform_from_H(com.seq.regparam[layer][com.seq.current].H) > NULL_TRANSFORMATION) {
-				cvTransfPoint(&pos_of_image1.x, &pos_of_image1.y, com.seq.regparam[layer][com.seq.current].H, com.seq.regparam[layer][com.seq.reference_image].H);
+				cvTransfPoint(&pos_of_image1.x, &pos_of_image1.y, com.seq.regparam[layer][com.seq.current].H, com.seq.regparam[layer][com.seq.reference_image].H, 1.);
 			}
 			free_psf(result);
 			if (!gfit.keywords.date_obs) {
@@ -160,7 +160,7 @@ void on_button2_comet_clicked(GtkButton *button, gpointer p) {
 			if (layer_has_registration(&com.seq, layer) &&
 					guess_transform_from_H(com.seq.regparam[layer][com.seq.reference_image].H) > NULL_TRANSFORMATION &&
 					guess_transform_from_H(com.seq.regparam[layer][com.seq.current].H) > NULL_TRANSFORMATION) {
-				cvTransfPoint(&pos_of_image2.x, &pos_of_image2.y, com.seq.regparam[layer][com.seq.current].H, com.seq.regparam[layer][com.seq.reference_image].H);
+				cvTransfPoint(&pos_of_image2.x, &pos_of_image2.y, com.seq.regparam[layer][com.seq.current].H, com.seq.regparam[layer][com.seq.reference_image].H, 1.);
 			}
 			free_psf(result);
 			if (!gfit.keywords.date_obs) {

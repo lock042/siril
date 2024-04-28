@@ -40,7 +40,7 @@ void cvTransformImageRefPoint(Homography Hom, point refpointin, point *refpointo
 
 void cvGetEye(Homography *H);
 
-void cvTransfPoint(double *x, double *y, Homography Href, Homography Himg);
+void cvTransfPoint(double *x, double *y, Homography Href, Homography Himg, double scale);
 
 void cvTransfH(Homography Href, Homography Himg, Homography *Hres);
 

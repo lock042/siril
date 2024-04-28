@@ -1783,7 +1783,7 @@ static void draw_regframe(const draw_data_t* dd) {
 	framing.pt[3].y = (double)com.seq.imgparam[com.seq.reference_image].ry;
 	double cogx = 0., cogy = 0., cx, cy;
 	for (int i = 0; i < 4; i++) {
-		cvTransfPoint(&framing.pt[i].x, &framing.pt[i].y, com.seq.regparam[activelayer][com.seq.reference_image].H, com.seq.regparam[activelayer][com.seq.current].H);
+		cvTransfPoint(&framing.pt[i].x, &framing.pt[i].y, com.seq.regparam[activelayer][com.seq.reference_image].H, com.seq.regparam[activelayer][com.seq.current].H, 1.);
 		cogx += framing.pt[i].x;
 		cogy += framing.pt[i].y;
 	}
