@@ -122,18 +122,24 @@ static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *da
 	if (json_object_has_member(object, "channel")) {
 		const gchar *channel_string = json_object_get_string_member(object, "channel");
 		if (!strcmp(channel_string, "RED")) {
-			data->channel = 0;
+			data->channel = SPCC_RED;
 		} else if (!strcmp(channel_string, "GREEN")) {
-			data->channel = 1;
+			data->channel = SPCC_GREEN;
 		} else if (!strcmp(channel_string, "BLUE")) {
-			data->channel = 2;
+			data->channel = SPCC_BLUE;
+		} else if (!strcmp(channel_string, "RED GREEN") || !strcmp(channel_string, "GREEN RED")) {
+			data->channel = SPCC_RED | SPCC_BLUE;
+		} else if (!strcmp(channel_string, "GREEN BLUE") || !strcmp(channel_string, "BLUE GREEN")) {
+			data->channel = SPCC_GREEN | SPCC_BLUE;
+		} else if (!strcmp(channel_string, "RED BLUE") || !strcmp(channel_string, "BLUE RED")) { // This is unlikely ever to be used
+		// but is included for completeness
+			data->channel = SPCC_RED | SPCC_BLUE;
+		} else if (!strcmp(channel_string, "ALL") || !strcmp(channel_string, "RED GREEN BLUE") || !strcmp(channel_string, "BLUE GREEN RED")) {
+			data->channel = SPCC_CLEAR;
 		} else {
-			// "OTHER" may be used for filters that aren't clearly R, G or B
-			// we don't care about them for SPCC though, so move on
-			goto validation_error;
+			data->channel = SPCC_INVIS; // Other filters e.g. UV or IR filters
+			// should not be shown in SPCC combos
 		}
-	} else {
-		data->channel = -1;
 	}
 	data->manufacturer = g_strdup(json_object_get_string_member(object, "manufacturer"));
 	if (!data->manufacturer) {
@@ -268,10 +274,6 @@ static gboolean processJsonFile(const char *file_path) {
 
 		retval = load_spcc_object_from_file(file_path, data, index, FALSE);
 		if (retval == 1) {
-			if (data->type == MONO_FILTERS && (data->channel < 0 || data->channel > 2)) {
-				spcc_object_free(data, TRUE);
-				return FALSE;
-			}
 			siril_debug_print("Read JSON object: %s\n", data->name);
 			// Place the data into the correct list based on its type
 			switch (data->type) {
@@ -282,7 +284,11 @@ static gboolean processJsonFile(const char *file_path) {
 					siril_debug_print("Error, this should have been trapped and handled by load_osc_sensor_from_file!\n");
 					break;
 				case MONO_FILTERS:
-					com.spcc_data.mono_filters[data->channel] = g_list_append(com.spcc_data.mono_filters[data->channel], data);
+					for (int chan = RLAYER ; chan <= BLAYER ; chan++) {
+						if ((int) data->channel & (1 << chan)) {
+							com.spcc_data.mono_filters[chan] = g_list_append(com.spcc_data.mono_filters[chan], data);
+						}
+					}
 					break;
 				case OSC_FILTERS:
 					com.spcc_data.osc_filters = g_list_append(com.spcc_data.osc_filters, data);
@@ -536,8 +542,8 @@ static void processDirectory(const gchar *directory_path) {
 		gchar *file_path = g_build_filename(directory_path, filename, NULL);
 
 		if (g_file_test(file_path, G_FILE_TEST_IS_DIR)) {
-			// If the current item is a directory, recursively process it (ignore ., .. and .git)
-			if (g_strcmp0(filename, ".") != 0 && g_strcmp0(filename, "..") && g_strcmp0(filename, ".git") != 0) {
+			// If the current item is a directory, recursively process it (ignore ., .. and utils and .git)
+			if (g_strcmp0(filename, ".") && g_strcmp0(filename, "..") && g_strcmp0(filename, ".git")) {
 				processDirectory(file_path);
 			}
 		} else {

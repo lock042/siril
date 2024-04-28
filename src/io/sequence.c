@@ -1689,9 +1689,10 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 	/* Backup the original pointer to fit. If there is a Bayer pattern we need
 	 * to interpolate non-green pixels, so make a copy we can work on. */
 	fits *orig_fit = fit;
-	if (spsfargs->bayer) {
+	if (spsfargs->bayer_pattern[0]) {
 		fit = calloc(1, sizeof(fits));
 		copyfits(orig_fit, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+		memcpy(fit->keywords.bayer_pattern, spsfargs->bayer_pattern, FLEN_VALUE);
 		interpolate_nongreen(fit);
 	}
 
@@ -1740,7 +1741,7 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 				"red", index, area->x, area->y, psf_error_to_string(error));
 		}
 	}
-	if (spsfargs->bayer) {
+	if (spsfargs->bayer_pattern[0]) {
 		// Get rid of the temporary copy and restore the original frame fits
 		// now that we have computed the actual registration data
 		clearfits(fit);
@@ -1934,7 +1935,7 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 	}
 
 	struct generic_seq_args *args = create_default_seqargs(seq);
-	struct seqpsf_args *spsfargs = malloc(sizeof(struct seqpsf_args));
+	struct seqpsf_args *spsfargs = calloc(1, sizeof(struct seqpsf_args));
 
 	spsfargs->for_photometry = !for_registration;
 	if (!no_GUI)
@@ -1942,6 +1943,16 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 	else spsfargs->allow_use_as_regdata = for_registration ? BOOL_TRUE : BOOL_FALSE;
 	spsfargs->framing = framing;
 	spsfargs->list = NULL;	// GSList init is NULL
+
+	fits fit = { 0 };
+	if (seq_read_frame(args->seq, seq->reference_image, &fit, FALSE, -1)) {
+		siril_log_color_message(_("Could not load metadata"), "red");
+		free(spsfargs);
+		return -1;
+	} else {
+		memcpy(spsfargs->bayer_pattern, fit.keywords.bayer_pattern, FLEN_VALUE);
+	}
+	clearfits(&fit);
 
 	args->partial_image = TRUE;
 	memcpy(&args->area, &com.selection, sizeof(rectangle));
