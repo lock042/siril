@@ -402,7 +402,13 @@ void search_object_activate(GSimpleAction *action, GVariant *parameter, gpointer
 void search_object_solar_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	if (has_wcs(&gfit)) {
 		siril_catalogue *siril_cat = siril_catalog_fill_from_fit(&gfit, CAT_IMCCE, -1.f);
-		siril_cat->IAUcode = g_strdup("500");
+		if (com.pref.astrometry.default_obscode != NULL) {
+			siril_cat->IAUcode = g_strdup(com.pref.astrometry.default_obscode);
+			siril_log_message(_("Using preferred observatory code %s\n"), siril_cat->IAUcode);
+		} else {
+			siril_cat->IAUcode = g_strdup("500");
+			siril_log_message(_("Using default geocentric observer code\n"));
+		}
 		conesearch_args *args = init_conesearch();
 		args->fit = &gfit;
 		args->has_GUI = TRUE;
