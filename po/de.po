@@ -8,16 +8,16 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-03-28 07:46+0100\n"
-"PO-Revision-Date: 2024-02-18 16:37+0000\n"
+"PO-Revision-Date: 2024-04-12 14:37+0000\n"
 "Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
-"Language-Team: German <https://weblate.pixls.us/projects/siril/siril-"
-"application/de/>\n"
+"Language-Team: German <https://weblate.pixls.us/projects/siril/"
+"siril-application/de/>\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.4\n"
+"X-Generator: Weblate 5.4.2\n"
 
 #: src/gui/uifiles/aavso_dialog.ui:7
 msgid "AAVSO parameters"
@@ -403,14 +403,15 @@ msgstr ""
 "ganz präzise sein muß, sollte eine Abweichung <20% eingehalten werden."
 
 #: src/gui/uifiles/astrometry_dialog.ui:390
-#, fuzzy
 msgid ""
 "Pixel size in microns. The image is assumed to have square pixels. Value is "
 "already multiplied by the camera binning if the \"Real pixel size\" box is "
 "checked in the Tool->Image Information dialog box."
 msgstr ""
-"Pixel-Größe in Miktrometer. Es wird von quadratischen Pixel ausgegangen. Der "
-"Wert ist bereits mit dem Binning der Kamera multipliziert."
+"Pixel-Größe in Mikron. Es wird von quadratischen Pixel ausgegangen. Der Wert "
+"ist bereits mit dem Binning der Kamera multipliziert falls die Checkbox "
+"\"Echte Pixelgröße\" in der Dialogbox Werkzeuge->Bildinformationen gesetzt "
+"ist."
 
 #: src/gui/uifiles/astrometry_dialog.ui:409
 msgid "Focal length (mm):"
@@ -2173,7 +2174,7 @@ msgstr "Legt das Rotationszentrum für diese Ebene fest"
 
 #: src/gui/uifiles/composition_dialog.ui:329 src/gui/uifiles/pixelmath.ui:704
 msgid "Sum exposure time"
-msgstr ""
+msgstr "Summe der Belichtungszeiten"
 
 #: src/gui/uifiles/composition_dialog.ui:333 src/gui/uifiles/pixelmath.ui:708
 msgid ""
@@ -2181,6 +2182,9 @@ msgid ""
 "This will change the value of some keywords such as STACKCNT (number of "
 "frames stacked) and LIVETIME (total exposure)."
 msgstr ""
+"Summe der Belichtungszeiten der verschiedenen für die Komposition "
+"verwendeten Bilder. Dadurch ändert sich der Wert einiger Schlüsselwörter wie "
+"STACKCNT (Anzahl der gestackten Bilder) und LIVETIME (Gesamtbelichtung)."
 
 #: src/gui/uifiles/composition_dialog.ui:351
 #: src/gui/uifiles/composition_dialog.ui:335
@@ -7462,7 +7466,6 @@ msgid "RGB align"
 msgstr "RGB-Ausrichtung"
 
 #: src/gui/uifiles/siril.ui:1069
-#, fuzzy
 msgid "2-pass global star alignment (deep-sky)"
 msgstr "Globale Sternausrichtung in zwei Durchgängen (Deep-Sky)"
 
@@ -15008,6 +15011,8 @@ msgid ""
 "Sorting by date could not be done, file %s doesn't have DATE-OBS, not "
 "sorting\n"
 msgstr ""
+"Sortierung nach Datum konnte nicht durchgeführt werden, Datei %s hat keine "
+"DATE-OBS-Header, keine Sortierung\n"
 
 #: src/core/command.c:6616 src/core/command.c:6766 src/core/command.c:6568
 #: src/core/command.c:6718
@@ -15642,7 +15647,7 @@ msgstr "Bilder müssen die gleiche Größe haben und Monochrome sein\n"
 #: src/core/command.c:8627
 #, c-format
 msgid "Successful RGB composition with metadata accumulate option %s.\n"
-msgstr ""
+msgstr "Erfolgreiche RGB-Komposition mit Metadatenakkumulationsoption %s.\n"
 
 #: src/core/command.c:8746 src/core/command.c:8677
 msgid ""
@@ -17313,7 +17318,6 @@ msgstr ""
 "Bereichs [<b>low</b>, <b>high</b>] liegen"
 
 #: src/core/command_def.h:84
-#, fuzzy
 msgid ""
 "Same as CONVERT but converts only FITS files found in the current working "
 "directory. This is useful to avoid conversions of JPEG results or other "
@@ -17324,7 +17328,9 @@ msgstr ""
 "Identisch mit CONVERT, konvertiert jedoch nur FITS-Dateien, die im aktuellen "
 "Arbeitsverzeichnis gefunden werden. Dies ist nützlich, um Konvertierungen "
 "von JPEG-Ergebnissen oder anderen Dateien zu vermeiden, die möglicherweise "
-"im Verzeichnis landen"
+"im Verzeichnis landen. Das zusätzliche Argument <b>-date</b> ermöglicht es, "
+"Dateien nach ihrem DATE-OBS-Wert statt nach ihrem Namen alphanumerisch zu "
+"sortieren"
 
 #: src/core/command_def.h:85
 msgid ""
@@ -17857,7 +17863,6 @@ msgstr ""
 "einem unbekannten Sampling lösen"
 
 #: src/core/command_def.h:110
-#, fuzzy
 msgid ""
 "This command evaluates the expression given in argument as in PixelMath "
 "tool. The full expression must be between double quotes and variables (that "
@@ -17877,8 +17882,11 @@ msgstr ""
 "Token $ umgeben sein, z.B. \"$image1$ * 0.5 + $image2$ * 0.5\". Es können "
 "maximal 10 Bilder in dem Ausdruck verwendet werden.\n"
 "Das Bild kann mit der Option <b>-rescale</b>neu skaliert werden, gefolgt von "
-"Werten für <b>Niedrig</b> und <b>Hoch> im Bereich [0-1]. Falls keine Werte "
-"für Niedrig und Hoch angegeben werden, wird der Default 0 und 1 genutzt"
+"Werten für <b>low</b> (niedrig) und <b>high</b> (hoch) im Bereich [0-1]. "
+"Falls keine Werte für Niedrig und Hoch angegeben werden, werden als Default "
+"0 und 1 genutzt. Ein weiteres optionales Argument <b>nosum</b> weist Siril "
+"an, Belichtungszeiten nicht zu summieren. Dies wirkt sich auf FITS-"
+"Schlüsselwörter wie LIVETIME und STACKCNT aus"
 
 #: src/core/command_def.h:111
 msgid ""
@@ -18143,7 +18151,6 @@ msgstr ""
 "deaktiviert werden"
 
 #: src/core/command_def.h:119
-#, fuzzy
 msgid ""
 "Creates an RGB composition using three independent images, or an LRGB "
 "composition using the optional luminance image and three monochrome images "
@@ -18156,7 +18163,9 @@ msgstr ""
 "Komposition aus dem optionalen Luminanzbild und drei monochromen Bildern "
 "oder einem Farbbild. Das Ergebnisbild heißt composed_rgb.fit oder "
 "composed_lrgb.fit, es sei denn, es wird ein anderer Name im optionalen "
-"Argument angegeben"
+"Argument angegeben. Ein weiteres optionales Argument <b>nosum</b> weist "
+"Siril an, Belichtungszeiten nicht zu summieren. Dies wirkt sich auf FITS-"
+"Schlüsselwörter wie LIVETIME und STACKCNT aus"
 
 #: src/core/command_def.h:120
 msgid ""

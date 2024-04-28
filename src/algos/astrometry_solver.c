@@ -551,7 +551,7 @@ static void print_platesolving_results_from_wcs(struct astrometry_data *args) {
 		xN -= args->fit->rx * 0.5;
 		yN -= args->fit->ry * 0.5;
 		if (!status) {
-			rotation = -atan2(xN, yN) * RADTODEG; // we measure clockwise wrt. +y axis
+			rotation = atan2(xN, yN) * RADTODEG; // we measure clockwise wrt. +y axis
 			if (image_is_flipped_from_wcs(args->fit->keywords.wcslib)) {
 				if (args->flip_image) {
 					rotation = 180.0 - rotation;
@@ -559,11 +559,9 @@ static void print_platesolving_results_from_wcs(struct astrometry_data *args) {
 					report_flip = TRUE; // we only report a flip if the image is not flipped afterwards
 				}
 			}
-			if (rotation < -180.0)
+			if (rotation < 0.0)
 				rotation += 360.0;
-			if (rotation > 180.0)
-				rotation -= 360.0;
-			siril_log_message(_("Up is %+.2lf deg ClockWise wrt. N%s\n"), rotation, report_flip ? _(" (flipped)") : "");
+			siril_log_message(_("Up is %+.2lf deg CounterclockWise wrt. N%s\n"), rotation, report_flip ? _(" (flipped)") : "");
 		}
 	}
 	/* Plate Solving */
@@ -2133,7 +2131,7 @@ gboolean end_platesolve_sequence(gpointer p) {
 		update_sequences_list(seqname);
 		g_free(seqname);
 		g_free(basename);
-	} else if (check_seq_is_comseq(args->seq) && !args->retval) {
+	} else if (check_seq_is_comseq(args->seq)) {
 		if (args->seq->type == SEQ_FITSEQ) { // if FITSEQ, we need to repoen in READONLY mode
 			if (fitseq_open(args->seq->fitseq_file->filename, args->seq->fitseq_file, READONLY)) {
 				siril_debug_print("error when finally re-opening fitseq\n");

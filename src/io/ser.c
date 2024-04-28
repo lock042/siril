@@ -732,6 +732,19 @@ int ser_metadata_as_fits(const struct ser_struct *ser_file, fits *fit) {
 	return SER_OK;
 }
 
+static const gchar *flip_bayer_pattern(const gchar *old_pattern) {
+	if (!strcmp(old_pattern, "RGGB"))
+		return "GBRG";
+	else if (!strcmp(old_pattern, "GBRG"))
+		return "RGGB";
+	else if (!strcmp(old_pattern, "BGGR"))
+		return "GRBG";
+	else if (!strcmp(old_pattern, "GRBG"))
+		return "BGGR";
+	else
+		return NULL;
+}
+
 /* reads a frame on an already opened SER sequence.
  * frame number starts at 0 */
 int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolean force_float, gboolean open_debayer) {
@@ -809,9 +822,6 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 	} else if (open_debayer && type_ser == SER_MONO && !com.pref.debayer.use_bayer_header) {
 		pattern = filter_pattern[com.pref.debayer.bayer_pattern];
 		type_ser = get_cfa_pattern_index_from_string(pattern) + 8;
-	}
-	if (pattern) {
-		strncpy(fit->keywords.bayer_pattern, pattern, 70); // fixed char* length FLEN == 71, leave 1 char for the NULL
 	}
 
 	switch (type_ser) {
@@ -917,8 +927,15 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 	color_manage(fit, FALSE);
 	fit->icc_profile = NULL;
 
+	if (pattern) {
+		pattern = flip_bayer_pattern(pattern);
+		// No need to inform the user as the FITS header details for a sequence frame are not accessible
+		strncpy(fit->keywords.bayer_pattern, pattern, 70); // fixed char* length FLEN == 71, leave 1 char for the NULL
+	}
+
+	// FITS are stored with TOP-DOWN roworder
 	fits_flip_top_to_bottom(fit);
-	fit->top_down = FALSE;
+	fit->top_down = TRUE;
 	snprintf(fit->keywords.row_order, FLEN_VALUE, "BOTTOM-UP");
 	return SER_OK;
 }
@@ -1182,7 +1199,13 @@ static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *
 	BYTE *data8 = NULL;	// for 8-bit files
 	WORD *data16 = NULL;	// for 16-bit files
 
-	if (!ser_file || ser_file->file == NULL || !fit)
+	// return bottom-up fits to top-down ser row_order (not if the image is already top-down)
+	if (fit->top_down) {
+		snprintf(fit->keywords.bayer_pattern, FLEN_VALUE, "%s", flip_bayer_pattern(fit->keywords.bayer_pattern));
+		fits_flip_top_to_bottom(fit);
+	}
+
+if (!ser_file || ser_file->file == NULL || !fit)
 		return SER_GENERIC_ERROR;
 	if (ser_file->number_of_planes == 0) {
 		// adding first frame of a new sequence, use it to populate the header
