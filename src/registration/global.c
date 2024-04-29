@@ -962,9 +962,8 @@ int register_multi_step_global(struct registration_args *regargs) {
 
 	//intializing some useful info
 	int trials = 0;
-	int nb_valid_frames = 0, nb_meaningful = 0;
+	int nb_meaningful = 0;
 	for (int i = 0; i < regargs->seq->number; i++) {
-		if (included[i]) nb_valid_frames++;
 		if (meaningful[i]) nb_meaningful++;
 	}
 	int best_indexes[MAX_TRIALS_2PASS];

@@ -169,7 +169,7 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 			naxes[1] = (int)(ceil(ymax) - floor(ymin));
 			args->offset[0] = floor(xmin);
 			args->offset[1] = -floor(ymin);
-			siril_debug_print("new size: %d %d\n", naxes[0], naxes[1]);
+			siril_debug_print("new size: %ld %ld\n", naxes[0], naxes[1]);
 			siril_debug_print("new origin: %d %d\n", args->offset[0], args->offset[1]);
 		} else {
 			double dx, dy;
