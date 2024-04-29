@@ -172,6 +172,13 @@ void on_upscaleCheckButton_toggled(GtkToggleButton* button, gpointer user_data) 
 	if (state) {
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("drizzleCheckButton")), FALSE);
 	}
+	GtkWidget *regNoOut = lookup_widget("regNoOutput");
+	if (gtk_widget_get_visible(regNoOut) && state) {
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(regNoOut), FALSE);
+		gtk_widget_set_sensitive(regNoOut, FALSE);
+	} else {
+		gtk_widget_set_sensitive(regNoOut, TRUE);
+	}
 }
 
 static struct registration_method *reg_methods[NUMBER_OF_METHODS + 1];
@@ -707,6 +714,10 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	gboolean save_state = keep_noout_state;
 	// for now, methods which do not save images but only shift in seq files are constrained to this option (no_output is true and unsensitive)
 
+	gboolean is_astrometric = method->method_ptr == &register_astrometric;
+	gtk_widget_set_visible(undistort_check, is_astrometric);
+	gtk_widget_set_visible(scale_box, is_astrometric);
+
 	if (((method->method_ptr == &register_comet) ||
 			(method->method_ptr == &register_kombat) ||
 			(method->method_ptr == &register_shift_dft) ||
@@ -715,22 +726,24 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), TRUE);
 		gtk_widget_set_sensitive(noout, FALSE);
 		gtk_widget_set_visible(noout, TRUE);
+		gtk_widget_set_visible(x2upscale, TRUE);
+		gtk_widget_set_sensitive(x2upscale, FALSE);
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(x2upscale), FALSE);
 	} else if (method->method_ptr == &register_apply_reg ||
 				method->method_ptr == &register_astrometric ) { // cannot have no output with apply registration/astrometric method
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), FALSE);
 		gtk_widget_set_sensitive(noout, FALSE);
 		gtk_widget_set_visible(noout, FALSE);
+		gtk_widget_set_visible(x2upscale, !is_astrometric);
+		gtk_widget_set_sensitive(x2upscale, !is_astrometric);
 	} else {
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), save_state);
 		gtk_widget_set_sensitive(noout, TRUE);
 		gtk_widget_set_visible(noout, TRUE);
+		gtk_widget_set_visible(x2upscale, TRUE);
+		gtk_widget_set_sensitive(x2upscale, TRUE);
 	}
 	keep_noout_state  = save_state;
-
-	gboolean is_astrometric = method->method_ptr == &register_astrometric;
-	gtk_widget_set_visible(undistort_check, is_astrometric);
-	gtk_widget_set_visible(scale_box, is_astrometric);
-	gtk_widget_set_visible(x2upscale, !is_astrometric);
 
 }
 
@@ -740,12 +753,16 @@ void on_regNoOutput_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	GtkWidget *Algo = lookup_widget("ComboBoxRegInter");
 	GtkWidget *clamping = lookup_widget("toggle_reg_clamp");
 	GtkWidget *Prefix = lookup_widget("regseqname_entry");
+	GtkWidget *x2upscale = lookup_widget("upscaleCheckButton");
 
 	gboolean toggled = gtk_toggle_button_get_active(togglebutton);
 
 	gtk_widget_set_sensitive(Algo, !toggled);
 	gtk_widget_set_sensitive(clamping, !toggled);
 	gtk_widget_set_sensitive(Prefix, !toggled);
+	gtk_widget_set_sensitive(x2upscale, !toggled);
+	if (toggled)
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(x2upscale), FALSE);
 
 	keep_noout_state = toggled;
 }
