@@ -839,7 +839,8 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	GtkComboBox *regcombo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "compositing_align_method_combo"));
 	method = reg_methods[gtk_combo_box_get_active(regcombo)];
 	GtkComboBox *framingcombo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "compositing_align_framing_combo"));
-	framing = (framing_type) gtk_combo_box_get_active(framingcombo);
+	int ft = gtk_combo_box_get_active(framingcombo);
+	framing = ft == 0 ? FRAMING_CURRENT : ft == 1 ? FRAMING_MIN : FRAMING_COG;
 	if (method->method_ptr == register_shift_fwhm || method->method_ptr == register_shift_dft)
 		the_type = SHIFT_TRANSFORMATION;
 	else
