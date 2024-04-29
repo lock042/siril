@@ -1795,8 +1795,10 @@ static void draw_regframe(const draw_data_t* dd) {
 	cairo_t *cr = dd->cr;
 	double size = 10. / dd->zoom;
 	cairo_set_dash(cr, NULL, 0, 0);
-	cairo_set_source_rgb(cr, 1., 0., 0.);
-
+	if (max <= SHIFT_TRANSFORMATION)
+		cairo_set_source_rgb(cr, 0.0, 0.5, 1.0);
+	else
+		cairo_set_source_rgb(cr, 1., 0., 0.);
 
 	cairo_set_line_width(cr, 2.0 / dd->zoom);
 	// reference origin
