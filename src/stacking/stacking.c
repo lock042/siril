@@ -1191,6 +1191,7 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 	}
 	gboolean can_reframe = layer_has_usable_registration(&com.seq, get_registration_layer(&com.seq));
 	gboolean can_upscale = can_reframe && !com.seq.is_variable;
+	gboolean must_reframe = can_reframe && com.seq.is_variable;
 
 	int stack_method = gtk_combo_box_get_active(method_combo);
 	switch (stack_method) {
@@ -1204,6 +1205,10 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 		gtk_widget_set_visible(output_norm, FALSE);
 		gtk_widget_set_visible(RGB_equal, FALSE);
 		gtk_widget_set_visible(max_framing, can_reframe); // only shown if applicable
+		if (can_reframe) {
+			gtk_widget_set_sensitive(max_framing, !must_reframe);
+			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(max_framing), must_reframe);
+		}
 		gtk_widget_set_visible(upscale_at_stacking, can_upscale); // only shown if applicable
 		break;
 	case STACK_MEAN:
@@ -1217,6 +1222,10 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 		gtk_widget_set_visible(RGB_equal, TRUE);
 		gtk_widget_set_visible(max_framing, can_reframe && stack_method != STACK_MEDIAN); // only shown if applicable and not for median
 		gtk_widget_set_visible(upscale_at_stacking, can_upscale && stack_method != STACK_MEDIAN); // only shown if applicable and not for median
+		if (can_reframe && stack_method != STACK_MEDIAN) {
+			gtk_widget_set_sensitive(max_framing, !must_reframe);
+			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(max_framing), must_reframe);
+		}
 	}
 
 	if (com.seq.reference_image == -1)
