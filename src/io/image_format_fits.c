@@ -968,7 +968,8 @@ cmsHPROFILE read_icc_profile_from_fptr(fitsfile *fptr) {
 	cmsHPROFILE icc_profile;
 	int status = 0;
 	char extname[FLEN_VALUE], comment[FLEN_COMMENT];
-	int ihdu, nhdus, hdutype;
+	int ihdu, nhdus, hdutype, orig_hdu = 1;
+	fits_get_hdu_num(fptr, &orig_hdu);
 	fits_get_num_hdus(fptr, &nhdus, &status);
 	for (ihdu = 2 ; ihdu <= nhdus ; ihdu++) {
 		fits_movabs_hdu(fptr,ihdu, &hdutype, &status);
@@ -1024,6 +1025,9 @@ cmsHPROFILE read_icc_profile_from_fptr(fitsfile *fptr) {
 		siril_debug_print("Embedded ICC profile read from FITS\n");
 	free(profile);
 	free(header);
+	fits_movabs_hdu(fptr, orig_hdu, &hdutype, &status);
+	if (status)
+		siril_debug_print("Error returning to original HDU!\n");
 	return icc_profile;
 }
 
