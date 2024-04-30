@@ -158,12 +158,13 @@ void on_drizzleCheckButton_toggled(GtkToggleButton* button, gpointer user_data) 
 	gboolean state = gtk_toggle_button_get_active(button);
 	gtk_widget_set_visible(lookup_widget("box_drizzle_controls"), state);
 	if (state) {
-		gtk_notebook_set_current_page(GTK_NOTEBOOK(lookup_widget("notebook_registration")), 4);
+		gtk_notebook_set_current_page(GTK_NOTEBOOK(lookup_widget("notebook_registration")), REG_PAGE_APPLYREG);
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("upscaleCheckButton")), FALSE);
 	}
 	gtk_widget_set_visible(lookup_widget("interp_box"), !state);
 	gtk_widget_set_visible(lookup_widget("toggle_reg_clamp"), !state);
-	gtk_widget_set_visible(lookup_widget("regNoOutput"), !state);
+	gtk_widget_set_sensitive(lookup_widget("upscaleCheckButton"), !state);
+	gtk_widget_set_visible(lookup_widget("regNoOutput"), FALSE);
 
 }
 
@@ -547,6 +548,24 @@ static void update_filters_registration(int update_adjustment) {
 	update_filter_label(criterion, param);
 }
 
+static gboolean check_framing() {
+	// TODO: need to cache
+	framing_type framingmethod = (framing_type)gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("comboreg_framing")));
+	GtkLabel *labelreginfo = GTK_LABEL(lookup_widget("labelregisterinfo"));
+	if (framingmethod == FRAMING_MAX) {
+		if (com.seq.type == SEQ_FITSEQ && !com.pref.allow_heterogeneous_fitseq) {
+			gtk_label_set_text(labelreginfo, _("Max framing not allowed if fitseq cannot have variable image sizes, change in Preferences"));
+			return FALSE;
+		}
+		if (com.seq.type == SEQ_SER) {
+			gtk_label_set_text(labelreginfo, _("Max framing not allowed for SER sequences, change framing type"));
+			return FALSE;
+		}
+	}
+	gtk_label_set_text(labelreginfo, "");
+	gtk_widget_set_tooltip_text(GTK_WIDGET(labelreginfo), "");
+	return TRUE;
+}
 /* Selects the "register all" or "register selected" according to the number of
  * selected images, if argument is false.
  * Verifies that enough images are selected and an area is selected.
@@ -619,6 +638,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	if (!isapplyreg)
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(drizzle_checkbox), FALSE);
 	gtk_widget_set_visible(GTK_WIDGET(drizzle_checkbox), isapplyreg);
+	gtk_widget_set_sensitive(GTK_WIDGET(drizzle_checkbox), method->method_ptr == &register_apply_reg); // TODO: remove when we allow drizzle with astrometric
 	gtk_widget_set_visible(GTK_WIDGET(reg_all_sel_box), !isapplyreg);
 	gtk_widget_set_visible(filter_box, isapplyreg);
 	gtk_widget_set_visible(GTK_WIDGET(filter_combo_init), isapplyreg);
@@ -660,9 +680,10 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 				gtk_label_set_text(labelreginfo, _("Unsupported CFA pattern detected"));
 				gtk_widget_set_tooltip_text(GTK_WIDGET(labelreginfo), _("This sequence cannot be registered with the CFA pattern intact. You must debayer it prior to registration"));
 				ready = FALSE;
-			}
-		}
-		else {
+			}		
+		} else if (method->type == REGTYPE_APPLY && sequence_is_loaded()) {
+			ready = check_framing();
+		} else {
 			gtk_label_set_text(labelreginfo, "");
 			gtk_widget_set_tooltip_text(GTK_WIDGET(labelreginfo), "");
 		}		// the 3 stars method has special GUI requirements
@@ -1023,4 +1044,9 @@ void on_comboreg_framing_changed(GtkComboBox *box, gpointer user_data) {
 
 		g_free(name);
 	}
+	GtkWidget *go_register = lookup_widget("goregister_button");
+	GtkWidget *go_estimate = lookup_widget("proj_estimate");
+	gboolean ready = check_framing();
+	gtk_widget_set_sensitive(go_register, ready);
+	gtk_widget_set_sensitive(go_estimate, ready);
 }
