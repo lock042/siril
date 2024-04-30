@@ -985,6 +985,9 @@ cmsHPROFILE read_icc_profile_from_fptr(fitsfile *fptr) {
 	if (ihdu > nhdus) {
 		/* no matching HDU */
 		status = BAD_HDU_NUM;
+		fits_movabs_hdu(fptr, orig_hdu, &hdutype, &status);
+		if (status)
+			siril_debug_print("Error returning to original HDU!\n");
 		return NULL;
 	}
 	int strsize = 1620;
@@ -992,11 +995,17 @@ cmsHPROFILE read_icc_profile_from_fptr(fitsfile *fptr) {
 	char *header = NULL;
 	if (!(header = malloc(strsize))) {
 		PRINT_ALLOC_ERR;
+		fits_movabs_hdu(fptr, orig_hdu, &hdutype, &status);
+		if (status)
+			siril_debug_print("Error returning to original HDU!\n");
 		return NULL;
 	}
 	status = copy_header_from_hdu(fptr, &header, &strsize, &strlength);
 	if (status) {
 		free(header);
+		fits_movabs_hdu(fptr, orig_hdu, &hdutype, &status);
+		if (status)
+			siril_debug_print("Error returning to original HDU!\n");
 		return NULL;
 	}
 	// Get the ICC Profile length
@@ -1005,6 +1014,9 @@ cmsHPROFILE read_icc_profile_from_fptr(fitsfile *fptr) {
 	fits_read_key(fptr, TUINT, "BITPIX", &bitpix, comment, &status);
 	if (bitpix != 8 || status != 0) {
 		free(header);
+		fits_movabs_hdu(fptr, orig_hdu, &hdutype, &status);
+		if (status)
+			siril_debug_print("Error returning to original HDU!\n");
 		return NULL;
 	}
 	int zero = 0;
@@ -1012,12 +1024,18 @@ cmsHPROFILE read_icc_profile_from_fptr(fitsfile *fptr) {
 	if (!(profile = malloc(profile_length * sizeof(BYTE)))) {
 		PRINT_ALLOC_ERR;
 		free(header);
+		fits_movabs_hdu(fptr, orig_hdu, &hdutype, &status);
+		if (status)
+			siril_debug_print("Error returning to original HDU!\n");
 		return NULL;
 	}
 	fits_read_img(fptr, TBYTE, 1, profile_length, &zero, profile, &zero, &status);
 	if (status) {
 		free(profile);
 		free(header);
+		fits_movabs_hdu(fptr, orig_hdu, &hdutype, &status);
+		if (status)
+			siril_debug_print("Error returning to original HDU!\n");
 		return NULL;
 	}
 	icc_profile = cmsOpenProfileFromMem(profile, profile_length);
@@ -1034,7 +1052,9 @@ cmsHPROFILE read_icc_profile_from_fptr(fitsfile *fptr) {
 int read_icc_profile_from_fits(fits *fit) {
 	int status = 0;
 	char extname[FLEN_VALUE], comment[FLEN_COMMENT];
-	int ihdu, nhdus, hdutype;
+	int ihdu, nhdus, hdutype, orig_hdu = 1;
+	fits_get_hdu_num(fit->fptr, &orig_hdu);
+	siril_debug_print("Original HDU before looking for ICC profile: %d\n", orig_hdu);
 	if (fit->icc_profile)
 		cmsCloseProfile(fit->icc_profile);
 	fit->icc_profile = NULL;
@@ -1052,7 +1072,7 @@ int read_icc_profile_from_fits(fits *fit) {
 	}
 	if (ihdu > nhdus) {
 		/* no matching HDU */
-		siril_fits_move_first_image(fit->fptr); // Reset to the first HDU
+		fits_movabs_hdu(fit->fptr, orig_hdu, &hdutype, &status);
 		status = BAD_HDU_NUM;
 		return 1;
 	}
@@ -1061,13 +1081,17 @@ int read_icc_profile_from_fits(fits *fit) {
 	char *header = NULL;
 	if (!(header = malloc(strsize))) {
 		PRINT_ALLOC_ERR;
-		status = siril_fits_move_first_image(fit->fptr); // Reset to the first HDU
+		fits_movabs_hdu(fit->fptr, orig_hdu, &hdutype, &status);
+		if (status)
+			siril_debug_print("Error returning to original HDU!\n");
 		return 1;
 	}
 	status = copy_header_from_hdu(fit->fptr, &header, &strsize, &strlength);
 	if (status) {
 		free(header);
-		status = siril_fits_move_first_image(fit->fptr); // Reset to the first HDU
+		fits_movabs_hdu(fit->fptr, orig_hdu, &hdutype, &status);
+		if (status)
+			siril_debug_print("Error returning to original HDU!\n");
 		return 1;
 	}
 	// Get the ICC Profile length
@@ -1076,7 +1100,9 @@ int read_icc_profile_from_fits(fits *fit) {
 	fits_read_key(fit->fptr, TUINT, "BITPIX", &bitpix, comment, &status);
 	if (bitpix != 8 || status != 0) {
 		free(header);
-		status = siril_fits_move_first_image(fit->fptr); // Reset to the first HDU
+		fits_movabs_hdu(fit->fptr, orig_hdu, &hdutype, &status);
+		if (status)
+			siril_debug_print("Error returning to original HDU!\n");
 		return 1;
 	}
 	int zero = 0;
@@ -1084,14 +1110,18 @@ int read_icc_profile_from_fits(fits *fit) {
 	if (!(profile = malloc(profile_length * sizeof(BYTE)))) {
 		PRINT_ALLOC_ERR;
 		free(header);
-		status = siril_fits_move_first_image(fit->fptr); // Reset to the first HDU
+		fits_movabs_hdu(fit->fptr, orig_hdu, &hdutype, &status);
+		if (status)
+			siril_debug_print("Error returning to original HDU!\n");
 		return 1;
 	}
 	fits_read_img(fit->fptr, TBYTE, 1, profile_length, &zero, profile, &zero, &status);
 	if (status) {
 		free(profile);
 		free(header);
-		status = siril_fits_move_first_image(fit->fptr); // Reset to the first HDU
+		fits_movabs_hdu(fit->fptr, orig_hdu, &hdutype, &status);
+		if (status)
+			siril_debug_print("Error returning to original HDU!\n");
 		return 1;
 	}
 	fit->icc_profile = cmsOpenProfileFromMem(profile, profile_length);
@@ -1103,7 +1133,10 @@ int read_icc_profile_from_fits(fits *fit) {
 	}
 	free(profile);
 	free(header);
-	status = siril_fits_move_first_image(fit->fptr); // Reset to the first HDU
+	fits_movabs_hdu(fit->fptr, orig_hdu, &hdutype, &status);
+	if (status)
+		siril_debug_print("Error returning to original HDU!\n");
+	fits_get_hdu_num(fit->fptr, &orig_hdu);
 	return 0;
 }
 
