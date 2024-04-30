@@ -49,7 +49,7 @@ struct seqpsf_args {
 	gboolean for_photometry;
 	super_bool allow_use_as_regdata;
 	framing_mode framing;
-	gboolean bayer; // whether or not to interpolate non-green pixels
+	char bayer_pattern[FLEN_VALUE];
 
 	/* The seqpsf result for each image, list of seqpsf_data */
 	GSList *list;

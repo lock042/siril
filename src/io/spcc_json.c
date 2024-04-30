@@ -33,6 +33,7 @@
 
 void spcc_object_free(spcc_object *data, gboolean free_struct);
 void osc_sensor_free(osc_sensor *data, gboolean free_struct);
+spcc_object* spcc_object_copy(spcc_object *data);
 gboolean spcc_metadata_loaded = FALSE;
 
 static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *data, int index, gboolean from_osc_sensor) {
@@ -122,18 +123,24 @@ static int load_spcc_object_from_file(const gchar *jsonFilePath, spcc_object *da
 	if (json_object_has_member(object, "channel")) {
 		const gchar *channel_string = json_object_get_string_member(object, "channel");
 		if (!strcmp(channel_string, "RED")) {
-			data->channel = 0;
+			data->channel = SPCC_RED;
 		} else if (!strcmp(channel_string, "GREEN")) {
-			data->channel = 1;
+			data->channel = SPCC_GREEN;
 		} else if (!strcmp(channel_string, "BLUE")) {
-			data->channel = 2;
+			data->channel = SPCC_BLUE;
+		} else if (!strcmp(channel_string, "RED GREEN") || !strcmp(channel_string, "GREEN RED")) {
+			data->channel = SPCC_RED | SPCC_BLUE;
+		} else if (!strcmp(channel_string, "GREEN BLUE") || !strcmp(channel_string, "BLUE GREEN")) {
+			data->channel = SPCC_GREEN | SPCC_BLUE;
+		} else if (!strcmp(channel_string, "RED BLUE") || !strcmp(channel_string, "BLUE RED")) { // This is unlikely ever to be used
+		// but is included for completeness
+			data->channel = SPCC_RED | SPCC_BLUE;
+		} else if (!strcmp(channel_string, "ALL") || !strcmp(channel_string, "RED GREEN BLUE") || !strcmp(channel_string, "BLUE GREEN RED")) {
+			data->channel = SPCC_CLEAR;
 		} else {
-			// "OTHER" may be used for filters that aren't clearly R, G or B
-			// we don't care about them for SPCC though, so move on
-			goto validation_error;
+			data->channel = SPCC_INVIS; // Other filters e.g. UV or IR filters
+			// should not be shown in SPCC combos
 		}
-	} else {
-		data->channel = -1;
 	}
 	data->manufacturer = g_strdup(json_object_get_string_member(object, "manufacturer"));
 	if (!data->manufacturer) {
@@ -268,10 +275,6 @@ static gboolean processJsonFile(const char *file_path) {
 
 		retval = load_spcc_object_from_file(file_path, data, index, FALSE);
 		if (retval == 1) {
-			if (data->type == MONO_FILTERS && (data->channel < 0 || data->channel > 2)) {
-				spcc_object_free(data, TRUE);
-				return FALSE;
-			}
 			siril_debug_print("Read JSON object: %s\n", data->name);
 			// Place the data into the correct list based on its type
 			switch (data->type) {
@@ -281,8 +284,22 @@ static gboolean processJsonFile(const char *file_path) {
 				case OSC_SENSORS:
 					siril_debug_print("Error, this should have been trapped and handled by load_osc_sensor_from_file!\n");
 					break;
-				case MONO_FILTERS:
-					com.spcc_data.mono_filters[data->channel] = g_list_append(com.spcc_data.mono_filters[data->channel], data);
+				case MONO_FILTERS:;
+					gboolean added = FALSE;
+					for (int chan = RLAYER ; chan <= BLAYER ; chan++) {
+						if ((int) data->channel & (1 << chan)) {
+							if (!added) {
+								com.spcc_data.mono_filters[chan] = g_list_append(com.spcc_data.mono_filters[chan], data);
+								added = TRUE;
+							} else {
+								// If a spcc object has already been added to one channel and needs adding
+								// to another we MUST make a copy, otherwise we get corruption when reloading
+								// the objects
+								spcc_object *copy = spcc_object_copy(data);
+								com.spcc_data.mono_filters[chan] = g_list_append(com.spcc_data.mono_filters[chan], copy);
+							}
+						}
+					}
 					break;
 				case OSC_FILTERS:
 					com.spcc_data.osc_filters = g_list_append(com.spcc_data.osc_filters, data);
@@ -319,18 +336,43 @@ static gboolean processJsonFile(const char *file_path) {
 
 /*********************** PUBLIC FUNCTIONS ****************************/
 
+spcc_object* spcc_object_copy(spcc_object *data) {
+	spcc_object *copy = malloc(sizeof(spcc_object));
+	if (!copy) return NULL;
+	memcpy(copy, data, sizeof(spcc_object));
+	copy->model = g_strdup(data->model);
+	copy->name = g_strdup(data->name);
+	copy->filepath = g_strdup(data->filepath);
+	copy->comment = g_strdup(data->comment);
+	copy->manufacturer = g_strdup(data->manufacturer);
+	copy->source = g_strdup(data->source);
+	copy->arrays_loaded = FALSE;
+	copy->x = NULL;
+	copy->y = NULL;
+	copy->n = 0;
+	return copy;
+}
+
 // Call to free the members of a spcc_object
 void spcc_object_free(spcc_object *data, gboolean free_struct) {
 	if (!data)
 		return;
 	g_free(data->name);
+	data->name = NULL;
 	g_free(data->manufacturer);
+	data->manufacturer = NULL;
 	g_free(data->filepath);
+	data->filepath = NULL;
 	g_free(data->source);
+	data->source = NULL;
 	free(data->x);
+	data->x = NULL;
 	free(data->y);
-	if (free_struct)
+	data->y = NULL;
+	if (free_struct) {
 		g_free(data);
+		data = NULL;
+	}
 	return;
 }
 
@@ -355,10 +397,10 @@ void osc_sensor_free(osc_sensor *data, gboolean free_struct) {
 	}
 	if (free_struct) {
 		g_free(data);
+		data = NULL;
 	}
 	return;
 }
-
 
 // Frees and nulls the arrays of a spcc_object. This should be called
 // after use to release the memory used by the arrays, but without
@@ -536,8 +578,8 @@ static void processDirectory(const gchar *directory_path) {
 		gchar *file_path = g_build_filename(directory_path, filename, NULL);
 
 		if (g_file_test(file_path, G_FILE_TEST_IS_DIR)) {
-			// If the current item is a directory, recursively process it (ignore ., .. and .git)
-			if (g_strcmp0(filename, ".") != 0 && g_strcmp0(filename, "..") && g_strcmp0(filename, ".git") != 0) {
+			// If the current item is a directory, recursively process it (ignore ., .. and utils and .git)
+			if (g_strcmp0(filename, ".") && g_strcmp0(filename, "..") && g_strcmp0(filename, ".git")) {
 				processDirectory(file_path);
 			}
 		} else {
@@ -594,6 +636,7 @@ void load_all_spcc_metadata() {
 
 	const gchar *path = siril_get_spcc_repo_path();
 	processDirectory(path);
+
 	com.spcc_data.wb_ref = g_list_sort(com.spcc_data.wb_ref, compare_spcc_object_names);
 	com.spcc_data.osc_sensors = g_list_sort(com.spcc_data.osc_sensors, compare_osc_object_models);
 	com.spcc_data.osc_lpf = g_list_sort(com.spcc_data.osc_lpf, compare_spcc_object_names);

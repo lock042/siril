@@ -258,7 +258,7 @@ static int _3stars_seqpsf(struct registration_args *regargs) {
 	struct generic_seq_args *args = calloc(1, sizeof(struct generic_seq_args));
 	spsfargs->for_photometry = FALSE;
 	fits fit = { 0 };
-	if (seq_read_frame(args->seq, seq->reference_image, &fit, FALSE, -1)) {
+	if (seq_read_frame(regargs->seq, regargs->seq->reference_image, &fit, FALSE, -1)) {
 		siril_log_color_message(_("Could not load metadata"), "red");
 		free(spsfargs);
 		return -1;
@@ -427,7 +427,7 @@ static int _3stars_align_compute_mem_limits(struct generic_seq_args *args, gbool
 				regargs->interpolation == OPENCV_LANCZOS4)) {
 			float factor = (is_float) ? 0.25 : 0.5;
 			required += (1 + factor) * MB_per_scaled_image;
-		} else if (spsfargs->bayer) {
+		} else if (spsfargs->bayer_pattern[0]) {
 			required += MB_per_orig_image;
 		}
 		regargs = NULL;

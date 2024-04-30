@@ -1310,6 +1310,8 @@ int cvDrizzleWarpMapSpherical(fits *image, astrometric_roi *roi_in, Homography K
 		szin = Size(image->rx, image->ry);
 	// Prepare projector
 	cv::detail::SphericalProjector projector;
+	projector.scale = scale;
+	projector.setCameraParams(k, r);
 	Point dst_tl, dst_br;
 	float tl_uf = (std::numeric_limits<float>::max)();
 	float tl_vf = (std::numeric_limits<float>::max)();
@@ -1339,8 +1341,6 @@ int cvDrizzleWarpMapSpherical(fits *image, astrometric_roi *roi_in, Homography K
 	// how much memory to allocate in the mapping float arrays, then we call it again to actually generate
 	// the mapping arrays.
 	if (image) {
-		projector.scale = scale;
-		projector.setCameraParams(k, r);
 
 		Point dst_tl, dst_br;
 
@@ -1385,6 +1385,8 @@ int cvDrizzleWarpMapPlanar(fits *image, astrometric_roi *roi_in, Homography K, H
 		szin = Size(image->rx, image->ry);
 	// Prepare projector
 	cv::detail::PlaneProjector projector;
+	projector.scale = scale;
+	projector.setCameraParams(k, r);
 	Point dst_tl, dst_br;
 	float tl_uf = (std::numeric_limits<float>::max)();
 	float tl_vf = (std::numeric_limits<float>::max)();
@@ -1414,8 +1416,6 @@ int cvDrizzleWarpMapPlanar(fits *image, astrometric_roi *roi_in, Homography K, H
 	// how much memory to allocate in the mapping float arrays, then we call it again to actually generate
 	// the mapping arrays.
 	if (image) {
-		projector.scale = scale;
-		projector.setCameraParams(k, r);
 
 		Point dst_tl, dst_br;
 

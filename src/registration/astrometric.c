@@ -29,6 +29,7 @@
 #include "core/proto.h"
 #include "core/siril_world_cs.h"
 #include "core/siril_log.h"
+#include "algos/statistics.h"
 #include "drizzle/cdrizzleutil.h"
 #include "drizzle/cdrizzlebox.h"
 #include "algos/astrometry_solver.h"
@@ -420,6 +421,10 @@ static int astrometric_image_hook(struct generic_seq_args *args, int out_index, 
 		p->pixmap->rx = fit->rx;
 		p->pixmap->ry = fit->ry;
 		p->threads = threads;
+		astargs->roi.x = 0;
+		astargs->roi.y = 0;
+		astargs->roi.w = fit->rx;
+		astargs->roi.h = fit->ry;
 
 		map_image_coordinates_wcs(fit, &astargs->roi, Ks[in_index], Rs[in_index], driz->scale, regargs->projector, disto, &roi, p->pixmap->xmap, p->pixmap->ymap);
 		if (!p->pixmap->xmap) {
@@ -447,8 +452,8 @@ static int astrometric_image_hook(struct generic_seq_args *args, int out_index, 
 		copyfits(fit, &out, CP_FORMAT, -1);
 		// copy the DATE_OBS
 		out.keywords.date_obs = g_date_time_ref(fit->keywords.date_obs);
-		out.rx = out.naxes[0] = rx_out;
-		out.ry = out.naxes[1] = ry_out;
+		out.rx = out.naxes[0] = roi.w;
+		out.ry = out.naxes[1] = roi.h;
 		out.naxes[2] = driz->is_bayer ? 3 : 1;
 		size_t chansize = out.rx * out.ry * sizeof(float);
 		out.fdata = calloc(out.naxes[2] * chansize, 1);
