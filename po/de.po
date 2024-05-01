@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-03-28 07:46+0100\n"
-"PO-Revision-Date: 2024-04-12 14:37+0000\n"
+"PO-Revision-Date: 2024-05-02 12:37+0000\n"
 "Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
 "Language-Team: German <https://weblate.pixls.us/projects/siril/"
 "siril-application-1-2/de/>\n"
@@ -657,11 +657,11 @@ msgstr "Wähle Interpolationsmethode."
 
 #: src/gui/siril3.glade:3489
 msgid "RBF"
-msgstr "RBF"
+msgstr ""
 
 #: src/gui/siril3.glade:3490
 msgid "Polynomial"
-msgstr "Polynom"
+msgstr "Polynomisch"
 
 #: src/gui/siril3.glade:3520
 msgid "Smoothing"
