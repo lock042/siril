@@ -1,6 +1,6 @@
-#line 2 "wcsutrn.c"
+#line 1 "wcsutrn.c"
 
-#line 4 "wcsutrn.c"
+#line 3 "wcsutrn.c"
 
 #define _POSIX_C_SOURCE 1
 #define  YY_INT_ALIGNED short int
@@ -4382,8 +4382,8 @@ static const yy_state_type yy_NUL_trans[217] =
 #define YY_RESTORE_YY_MORE_OFFSET
 #line 1 "wcsutrn.l"
 /*============================================================================
-  WCSLIB 7.6 - an implementation of the FITS WCS standard.
-  Copyright (C) 1995-2021, Mark Calabretta
+  WCSLIB 8.2 - an implementation of the FITS WCS standard.
+  Copyright (C) 1995-2023, Mark Calabretta
 
   This file is part of WCSLIB.
 
@@ -4402,7 +4402,7 @@ static const yy_state_type yy_NUL_trans[217] =
 
   Author: Mark Calabretta, Australia Telescope National Facility, CSIRO.
   http://www.atnf.csiro.au/people/Mark.Calabretta
-  $Id: wcsutrn.l,v 7.6 2021/04/13 12:57:01 mcalabre Exp $
+  $Id: wcsutrn.l,v 8.2 2023/11/16 10:00:29 mcalabre Exp $
 *=============================================================================
 *
 * wcsutrn.l is a Flex description file containing the definition of a lexical
@@ -4445,8 +4445,8 @@ struct wcsutrn_extra {
 // Internal helper functions.
 static YY_DECL;
 
+#line 4448 "wcsutrn.c"
 #line 4449 "wcsutrn.c"
-#line 4450 "wcsutrn.c"
 
 #define INITIAL 0
 #define NEXT 1
@@ -4724,7 +4724,7 @@ YY_DECL
 	fprintf(stderr, "\n%s ->\n", unitstr);
 #endif
 
-#line 4728 "wcsutrn.c"
+#line 4727 "wcsutrn.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -5111,7 +5111,7 @@ YY_RULE_SETUP
 #line 344 "wcsutrn.l"
 ECHO;
 	YY_BREAK
-#line 5115 "wcsutrn.c"
+#line 5114 "wcsutrn.c"
 
 	case YY_END_OF_BUFFER:
 		{
@@ -6274,8 +6274,6 @@ int wcsutrne(
   struct wcserr **err)
 
 {
-  static const char *function = "wcsutrne";
-
   // Function prototypes.
   int yylex_init_extra(YY_EXTRA_TYPE extra, yyscan_t *yyscanner);
   int yylex_destroy(yyscan_t yyscanner);

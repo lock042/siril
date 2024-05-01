@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -514,29 +514,9 @@ gchar *update_header_and_parse(fits *fit, gchar *expression, pathparse_mode mode
 	if (!g_utf8_strchr(expression, -1, '$')) { // nothing to parse, return original string
 		return g_strdup(expression);
 	}
-	fits tmpfit = { 0 };
-	fitsfile *fptr;
-	int fstatus = 0;
 	gchar *parsedname = NULL, *dirname = NULL;
-	copyfits(fit, &tmpfit, CP_FORMAT, 0);
-	copy_fits_metadata(fit, &tmpfit); // otherwise some fields get wiped out like date-obs
-	const gchar *tmpdir = g_get_tmp_dir();
-	gchar *tmpheadername = g_build_filename(tmpdir, "header.fit", NULL);
-	unlink(tmpheadername);
-	fits_create_diskfile(&fptr, tmpheadername, &fstatus);
-	if (fstatus) {
-		char tbuf[30];
-		fits_get_errstatus(fstatus, tbuf);
-		*status = PATHPARSE_ERR_TMPFIT;
-		display_path_parse_error(*status, tbuf);
-		goto free_and_exit;
-	}
-	tmpfit.fptr = fptr;
-	save_fits_header(&tmpfit);
-	tmpfit.header = copy_header(&tmpfit);
-	parsedname = path_parse(&tmpfit, expression, mode, status);
-	fits_close_file(fptr, &fstatus);
-
+	update_fits_header(fit);
+	parsedname = path_parse(fit, expression, mode, status);
 	if (parsedname && createdir) {
 		dirname = g_path_get_dirname(parsedname);
 		if (g_mkdir_with_parents(dirname, 0755) < 0) {
@@ -545,10 +525,6 @@ gchar *update_header_and_parse(fits *fit, gchar *expression, pathparse_mode mode
 			parsedname = NULL;
 		}
 	}
-
-free_and_exit:
-	g_free(tmpheadername);
 	g_free(dirname);
-	clearfits(&tmpfit);
 	return parsedname;
 }

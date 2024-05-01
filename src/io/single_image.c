@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,7 +30,6 @@
 #include "algos/statistics.h"
 #include "io/annotation_catalogues.h"
 #include "algos/ccd-inspector.h"
-#include "algos/colors.h"
 #include "algos/background_extraction.h"
 #include "algos/astrometry_solver.h"
 #include "algos/demosaicing.h"
@@ -40,6 +39,7 @@
 #include "gui/cut.h"
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
+#include "gui/icc_profile.h"
 #include "gui/message_dialog.h"
 #include "gui/preferences.h"
 #include "gui/plot.h"
@@ -111,6 +111,7 @@ static gboolean free_image_data_idle(gpointer p) {
 	reset_zoom_default();
 	free(gui.qphot);
 	gui.qphot = NULL;
+	gui.show_wcs_disto = FALSE;
 	clear_sensor_tilt();
 	g_signal_handlers_unblock_by_func(focal_entry, on_focal_entry_changed, NULL);
 	g_signal_handlers_unblock_by_func(pitchX_entry, on_pitchX_entry_changed, NULL);
@@ -159,6 +160,8 @@ void free_image_data() {
 	siril_debug_print("free_image_data() called, clearing loaded image\n");
 	/* WARNING: single_image.fit references the actual fits image,
 	 * shouldn't it be used here instead of gfit? */
+	cmsCloseProfile(gfit.icc_profile);
+	gfit.icc_profile = NULL;
 	reset_icc_transforms();
 	if (!single_image_is_loaded() && sequence_is_loaded())
 		save_stats_from_fit(&gfit, &com.seq, com.seq.current);
@@ -223,8 +226,8 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 		retval = any_to_fits(imagetype, realname, dest, allow_dialogs, force_float, com.pref.debayer.open_debayer);
 		if (!retval)
 			debayer_if_needed(imagetype, dest, FALSE);
-		fits_convert_ranges(dest, FALSE); // Convert non-standard ranges associated with different color spaces
-
+		if (com.pref.debayer.open_debayer || imagetype != TYPEFITS)
+			update_fits_header(dest);
 	}
 	if (is_sequence) {
 		*is_sequence = single_sequence;
@@ -392,14 +395,14 @@ static void fit_lohi_to_layers(fits *fit, double lo, double hi) {
  */
 void init_layers_hi_and_lo_values(sliders_mode force_minmax) {
 	if (force_minmax == USER) return;
-	if (gfit.hi == 0 || force_minmax == MINMAX) {
+	if (gfit.keywords.hi == 0 || force_minmax == MINMAX) {
 		gui.sliders = MINMAX;
 		image_find_minmax(&gfit);
 		fit_lohi_to_layers(&gfit, gfit.mini, gfit.maxi);
 	} else {
 		gui.sliders = MIPSLOHI;
-		gui.hi = gfit.hi;
-		gui.lo = gfit.lo;
+		gui.hi = gfit.keywords.hi;
+		gui.lo = gfit.keywords.lo;
 	}
 }
 

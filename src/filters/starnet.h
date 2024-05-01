@@ -30,7 +30,7 @@ typedef struct remixargs {
 	fits *fit2;
 } remixargs;
 
-starnet_version starnet_executablecheck();
+starnet_version starnet_executablecheck(gchar* executable);
 gpointer do_starnet(gpointer p);
 void apply_starnet_to_sequence(struct starnet_data *seqdata);
 

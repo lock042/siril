@@ -4,9 +4,10 @@
 #include <fitsio.h>
 #include "core/siril.h"
 
+#define FITS_DOUBLE_BLOC_SIZE 2 * IOBUFLEN // 2 * 2880, the size of a double FITS block, used to allocate bigger chunk and avoid reallocating
+
 /****************** image_format_fits.h ******************/
 void read_fits_header(fits *fit);
-int fits_parse_header_string(fits *fit, gchar *description);
 char *copy_header(fits *fit);
 
 typedef struct {
@@ -20,6 +21,7 @@ int write_icc_profile_to_fits(fits *fit);
 int write_icc_profile_to_fptr(fitsfile *fptr, cmsHPROFILE icc_profile);
 data_type get_data_type(int bitpix);
 void fit_get_photometry_data(fits *fit);
+int fit_stats(fitsfile *fptr, float *mini, float *maxi);
 int readfits(const char *filename, fits *fit, char *realname, gboolean force_float);
 void get_date_data_from_fitsfile(fitsfile *fptr, GDateTime **dt, double *exposure, double *livetime, unsigned int *stack_count);
 int import_metadata_from_fitsfile(fitsfile *fptr, fits *to);
@@ -39,14 +41,15 @@ gchar *set_right_extension(const char *name);
 int savefits(const char*, fits*);
 int copyfits(fits *from, fits *to, unsigned char oper, int layer);
 void copy_fits_metadata(fits *from, fits *to);
-int copy_fits_from_file(char *source, char *destination);
+int copy_fits_from_file(const char *source, const char *destination);
 int save1fits16(const char *filename, fits *fit, int layer);
 int save1fits32(const char *filename, fits *fit, int layer);
 int siril_fits_open_diskfile_img(fitsfile **fptr, const char *filename, int iomode, int *status);
+GDateTime *get_date_from_fits(const gchar *filename);
 
 void rgb24bit_to_fits48bit(unsigned char *rgbbuf, fits *fit, gboolean inverted);
-void rgb8bit_to_fits16bit(unsigned char *graybuf, fits *fit);
-void rgb48bit_to_fits48bit(WORD *rgbbuf, fits *fit, gboolean inverted,
+void rgb8bit_to_fits16bit(const unsigned char *graybuf, fits *fit);
+void rgb48bit_to_fits48bit(const WORD *rgbbuf, fits *fit, gboolean inverted,
 		gboolean change_endian);
 
 void fits_flip_top_to_bottom(fits *fit);
@@ -69,13 +72,18 @@ int read_fits_with_convert(fits* fit, const char* filename, gboolean force_float
 int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,
 		int bitpix, void *dest, int layer, const rectangle *area);
 int siril_fits_create_diskfile(fitsfile **fptr, const char *filename, int *status);
+void update_fits_header(fits *fit);
 void save_fits_header(fits *fit);
 void report_fits_error(int status);
 
 int check_fits_params(fitsfile *fptr, int *oldbitpix, int *oldnaxis, long *oldnaxes);
 int check_loaded_fits_params(fits *ref, ...);
 
-void merge_fits_headers_to_result2(fits *result, fits **f);
-void merge_fits_headers_to_result(fits *result, fits *f1, ...);
+void merge_fits_headers_to_result2(fits *result, fits **f, gboolean do_sum);
+void merge_fits_headers_to_result(fits *result, gboolean do_sum, fits *f1,...);
+int get_xpsampled(xpsampled* xps, const gchar *filename, int i);
+int updateFITSKeyword(fits *fit, const gchar *key, const gchar *value);
+int associate_header_to_memfile(const char *header, fitsfile *fptr);
+int fits_parse_header_str(fits *fit, const char *header);
 
 #endif

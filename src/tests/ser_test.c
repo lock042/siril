@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -124,7 +124,7 @@ int test_ser_image_sizes() {
 }
 
 static void set_fits_date(fits *fit, gint64 time) {
-	fit->date_obs = g_date_time_new_from_unix_utc(time);
+	fit->keywords.date_obs = g_date_time_new_from_unix_utc(time);
 }
 
 int test_ser_dates() {

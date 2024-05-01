@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -125,7 +125,7 @@ static void init_dialog() {
 	}
 
 	gtk_list_store_clear(list_store);
-	gtk_widget_set_sensitive(cfacheck, gfit.rx > 0 && gfit.naxes[2] == 1 && gfit.bayer_pattern[0] != '\0');
+	gtk_widget_set_sensitive(cfacheck, gfit.rx > 0 && gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] != '\0');
 }
 
 static void add_chan_stats_to_list(imstats **stat, int nblayer, data_type type, gboolean normalized) {
@@ -210,9 +210,11 @@ void computeStat() {
 
 	int nb_channels = (int)gfit.naxes[2];
 	if (use_cfa) {
-		if (nb_channels == 1 && gfit.bayer_pattern[0] != '\0')
+		if (nb_channels == 1 && gfit.keywords.bayer_pattern[0] != '\0' && com.selection.w >= 2 && com.selection.h >= 2)
 			nb_channels = 3;
-		else use_cfa = FALSE;
+		else {
+			use_cfa = FALSE;
+		}
 	}
 	imstats *stat[3] = { NULL, NULL, NULL };
 	for (channel = 0; channel < nb_channels; channel++) {

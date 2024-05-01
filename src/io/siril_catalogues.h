@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
 #include "core/siril_world_cs.h"
 
 // number of columns that can be defined in a catalogue
-#define MAX_CAT_COLUMNS 18
+#define MAX_CAT_COLUMNS 21
 #define CAT_AN_INDEX_OFFSET 60
 
 // all catalogues that can be used
@@ -51,9 +51,11 @@ typedef enum {
 	CAT_GCVS,  //06
 	CAT_VSX, //07
 	CAT_SIMBAD, //08
+	CAT_VARISUM, //09
 	CAT_PGC = 20,
 // Other TAP Queries
 	CAT_EXOPLANETARCHIVE = 30,
+	CAT_GAIADR3_DIRECT = 31, // For direct queries to Gaia rather than using Vizier
 // Non TAP Queries (stars)
 	CAT_AAVSO_CHART = 40,
 // Non TAP Queries (others)
@@ -73,7 +75,7 @@ typedef enum {
 	CAT_COMPSTARS = 97,
 	CAT_AUTO = 98,
 	CAT_LOCAL = 99,		// siril local (KStars Tycho-2 and NOMAD)
-	CAT_ASNET = 100,	// solve-field local (astrometry.net)
+	CAT_LOCAL_TRIX = 100 // for trixel query
 } siril_cat_index;
 
 typedef enum {
@@ -89,6 +91,9 @@ typedef enum {
 	CAT_FIELD_E_MAG,
 	CAT_FIELD_E_BMAG,
 	CAT_FIELD_DIAMETER,
+	CAT_FIELD_TEFF,
+	CAT_FIELD_XPSAMP,
+	CAT_FIELD_GAIASOURCEID,
 	CAT_FIELD_ALIAS,
 	CAT_FIELD_DATEOBS,
 	CAT_FIELD_SITELAT,
@@ -100,7 +105,7 @@ typedef enum {
 
 typedef enum {
 	CAT_PROJ_NONE,
-	CAT_PROJ_PLATE,
+	CAT_PROJ_TAN,
 	CAT_PROJ_WCS
 } cat_proj;
 
@@ -118,6 +123,8 @@ typedef struct {
 	gchar *name;  // name of the object
 	gchar *alias; // aliases given in annotation catalogues, '/'-separated
 	gchar *type; // type of the object, for solsys and compstars
+	float teff; // GAIA Teff term
+	uint64_t gaiasourceid; // GAIA source ID, for constructing Datalink queries
 
 	// computed
 	float x, y;	// image coordinates
@@ -128,7 +135,7 @@ typedef struct {
 	siril_cat_index cat_index;
 	double center_ra;
 	double center_dec;
-	double radius; // fov radius (in degrees)
+	double radius; // fov radius (in arcmin)
 	double limitmag; // limiting magnitude
 	GDateTime *dateobs; // date-obs in JD
 	gchar *IAUcode; // observatory code
@@ -139,6 +146,7 @@ typedef struct {
 	cat_proj projected; // the type of projection applied
 	uint32_t columns; // the list of columns which where parsed when read
 	gchar *header; // the file header lines (#) if read from file
+	int trixel; // trixelID
 } siril_catalogue;
 
 #define has_field(cat, column) (cat->columns & (1 << CAT_FIELD_##column))
@@ -161,7 +169,8 @@ typedef struct {
 	gboolean display_log; // if true, displays the list in the log
 	gboolean display_tag; // if true, displays the names next to object in the annotations
 	//gboolean add_to_user; // if true, the objects are added to the user DSO catalogue (not SSO due to imprecision of obscode)
-	gboolean has_GUI; // true if we will need to refresh the disaply
+	gboolean has_GUI; // true if we will need to refresh the display
+	gchar *outfilename; // the name of the outputfile
 } conesearch_args;
 
 
@@ -176,6 +185,7 @@ void siril_catalog_free(siril_catalogue *siril_cat);
 void siril_catalog_reset_projection(siril_catalogue *siril_cat);
 gboolean siril_catalog_append_item(siril_catalogue *siril_cat, cat_item *item);
 void siril_catalogue_copy_item(cat_item *from, cat_item *to);
+void siril_catalogue_copy(siril_catalogue *from, siril_catalogue *to, gboolean metadata_only);
 gboolean is_star_catalogue(siril_cat_index Catalog);
 gboolean display_names_for_catalogue(siril_cat_index Catalog);
 
@@ -184,12 +194,14 @@ int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filena
 gboolean siril_catalog_write_to_output_stream(siril_catalogue *siril_cat, GOutputStream *output_stream);
 gboolean siril_catalog_write_to_file(siril_catalogue *siril_cat, const gchar *filename);
 int siril_catalog_project_with_WCS(siril_catalogue *siril_cat, fits *fit, gboolean use_proper_motion, gboolean use_velocity);
-int siril_catalog_project_at_center(siril_catalogue *siril_cat, double ra0, double dec0, gboolean use_proper_motion, GDateTime *date_obs);
+int siril_catalog_project_gnomonic(siril_catalogue *siril_cat, double ra0, double dec0, gboolean use_proper_motion, GDateTime *date_obs);
 
-psf_star **convert_siril_cat_to_psf_stars(siril_catalogue *siril_cat, int *nbstars);
+int siril_catalog_inner_conesearch(siril_catalogue *siril_cat_in, siril_catalogue *siril_cat_out);
+psf_star **convert_siril_cat_to_psf_stars(siril_catalogue *siril_cat);
 siril_catalogue *siril_catalog_fill_from_fit(fits *fit, siril_cat_index cat, float limit_mag);
 gpointer conesearch_worker(gpointer p);
 
+double compute_coords_distance_h(double ra1, double dec1, double ra2, double dec2);
 double compute_coords_distance(double ra1, double dec1, double ra2, double dec2);
 
 sky_object_query_args *init_sky_object_query();

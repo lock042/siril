@@ -49,6 +49,7 @@ struct seqpsf_args {
 	gboolean for_photometry;
 	super_bool allow_use_as_regdata;
 	framing_mode framing;
+	char bayer_pattern[FLEN_VALUE];
 
 	/* The seqpsf result for each image, list of seqpsf_data */
 	GSList *list;
@@ -86,7 +87,7 @@ int compute_nb_images_fit_memory_from_fit(fits *fit, double factor, gboolean for
 
 void fix_selnum(sequence *seq, gboolean warn);
 
-gboolean sequence_has_wcs(sequence *seq, int *index);
+gboolean sequence_ref_has_wcs(sequence *seq);
 
 gboolean sequence_drifts(sequence *seq, int reglayer, int threshold);
 

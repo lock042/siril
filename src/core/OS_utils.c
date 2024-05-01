@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -203,7 +203,7 @@ static guint64 get_used_RAM_memory() {
  * @param the path of the folder to be checked
  * @return TRUE if free space disk is available, FALSE otherwise
  */
-gboolean is_space_disk_available(gchar *disk) {
+gboolean is_space_disk_available(const gchar *disk) {
 	return (!(find_space(disk) < 1L));
 }
 
@@ -503,8 +503,9 @@ void init_num_procs() {
 		siril_log_message(_("Using cgroups limit on the number of processors: %d\n"), cgroups_num_proc);
 		com.max_thread = cgroups_num_proc;
 	}
-	omp_set_nested(1);
-	int supports_nesting = omp_get_nested() && omp_get_max_active_levels() > 1;
+	omp_set_max_active_levels(INT_MAX);
+	int max_levels_supported = omp_get_max_active_levels();
+	int supports_nesting = max_levels_supported > 1;
 	siril_log_message(
 			_("Parallel processing enabled: using %d logical %s%s.\n"),
 			com.max_thread,

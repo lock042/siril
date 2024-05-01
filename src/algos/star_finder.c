@@ -2,8 +2,8 @@
  * This file is part of Siril, an astronomy image processor.
  *
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,12 +40,11 @@
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "gui/PSF_list.h"
+#include "gui/utils.h"
 #include "registration/registration.h"
 #include "opencv/opencv.h"
-#ifdef HAVE_WCSLIB
 #include <wcslib.h>
 #include <wcsfix.h>
-#endif
 
 #define _SQRT_EXP1 1.6487212707
 #define KERNEL_SIZE 2.  // sigma of the gaussian smoothing kernel
@@ -82,7 +81,7 @@ static float compute_threshold(image *image, double ksigma, int layer, rectangle
 	return threshold;
 }
 
-static sf_errors reject_star(psf_star *result, star_finder_params *sf, starc *se, double dynrange, double minA, double maxA, gchar *errmsg) {
+static sf_errors reject_star(psf_star *result, const star_finder_params *sf, starc *se, double dynrange, double minA, double maxA, gchar *errmsg) {
 	if (isnan(result->fwhmx) || isnan(result->fwhmy))
 		return SF_NO_FWHM; //crit 11
 	if (isnan(result->x0) || isnan(result->y0))
@@ -491,19 +490,18 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 				int Rc = (int) ceil(s_factor * Sc);
 				int Rm = max(Rr, Rc);
 				Rm = min(Rm, MAX_BOX_RADIUS);
-				if (Rm > r) {
-					// avoid enlarging outside frame width
-					if (xx - Rm < 0)
-						Rm = xx;
-					if (xx + Rm >= nx)
-						Rm = nx - xx - 1;
-					// avoid enlarging outside frame height
-					if (yy - Rm < 0)
-						Rm = yy;
-					if (yy + Rm >= ny)
-						Rm = ny - yy - 1;
-				}
 				int R = max(Rm, r);
+
+				// avoid enlarging outside frame width
+				if (xx - R < 0)
+					R = xx;
+				if (xx + R >= nx)
+					R = nx - xx - 1;
+				// avoid enlarging outside frame height
+				if (yy - R < 0)
+					R = yy;
+				if (yy + R >= ny)
+					R = ny - yy - 1;
 
 				// Quality checks
 				float dA = max(Ar,Ac)/min(Ar,Ac);
@@ -680,10 +678,7 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 #if DEBUG_STAR_DETECTION
 				siril_debug_print("Candidate #%5d: X: %5d, Y: %5d - PSF fit failed with error %d\n", candidate, x, y, error);
 #endif
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-				psf_failure++;
+				g_atomic_int_inc(&psf_failure);
 			}
 		}
 		if (threads > 1) {
@@ -713,8 +708,8 @@ static int minimize_candidates(fits *image, star_finder_params *sf, starc *candi
 }
 
 int compare_stars_by_mag(const void* star1, const void* star2) {
-	psf_star *s1 = *(psf_star**) star1;
-	psf_star *s2 = *(psf_star**) star2;
+	const psf_star *s1 = *(psf_star**) star1;
+	const psf_star *s2 = *(psf_star**) star2;
 	if (s1->mag < s2->mag)
 		return -1;
 	if (s1->mag > s2->mag)
@@ -828,7 +823,7 @@ static int check_star_list(gchar *filename, struct starfinder_data *sfargs) {
 	siril_debug_print("star list file %s found, checking...\n", filename);
 	char buffer[300];
 	gboolean params_ok = FALSE, read_failure = FALSE;
-	star_finder_params *sf = &com.pref.starfinder_conf;
+	const star_finder_params *sf = &com.pref.starfinder_conf;
 	int star = 0, nb_stars = -1;
 	while (fgets(buffer, 300, fd)) {
 		if (buffer[0] != '#' && !params_ok) {
@@ -927,7 +922,7 @@ static int check_star_list(gchar *filename, struct starfinder_data *sfargs) {
 	g_object_unref(file); \
 	return 1
 
-int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbstars, star_finder_params *sf, int layer, gboolean verbose) {
+int save_list(gchar *filename, int max_stars_fitted, psf_star **stars, int nbstars, const star_finder_params *sf, int layer, gboolean verbose) {
 	int i = 0;
 	GError *error = NULL;
 
@@ -1018,9 +1013,9 @@ int save_list_as_FITS_table(const char *filename, psf_star **stars, int nbstars,
 		return 1;
 	}
 
-	char* rownames[] = { "X", "Y" };
-	char* rowtypes[] = { "1E", "1E" };	// rE is float, rD is double
-	if (fits_create_tbl(fptr, BINARY_TBL, nbstars, 2, rownames, rowtypes, NULL, NULL, &status)) {
+	char* rownames[] = { "X", "Y", "FLUX", "BACKGROUND"};
+	char* rowtypes[] = { "1E", "1E", "1E", "1E"};	// rE is float, rD is double
+	if (fits_create_tbl(fptr, BINARY_TBL, nbstars, 4, rownames, rowtypes, NULL, NULL, &status)) {
 		report_fits_error(status);
 		status = 0;
 		fits_close_file(fptr, &status);
@@ -1053,8 +1048,33 @@ int save_list_as_FITS_table(const char *filename, psf_star **stars, int nbstars,
 
 	for (int i = 0; i < nbstars; i++)
 		data[i] = ry - stars[i]->ypos + 0.5; // asnet convention
-	if (fits_write_col(fptr, TFLOAT, 2, 1, 1, nbstars, data, &status))
+	if (fits_write_col(fptr, TFLOAT, 2, 1, 1, nbstars, data, &status)) {
 		report_fits_error(status);
+		status = 0;
+		fits_close_file(fptr, &status);
+		free(data);
+		return 1;
+	}
+
+	for (int i = 0; i < nbstars; i++)
+		data[i] = stars[i]->A;
+	if (fits_write_col(fptr, TFLOAT, 3, 1, 1, nbstars, data, &status)) {
+		report_fits_error(status);
+		status = 0;
+		fits_close_file(fptr, &status);
+		free(data);
+		return 1;
+	}
+
+	for (int i = 0; i < nbstars; i++)
+		data[i] = stars[i]->B;
+	if (fits_write_col(fptr, TFLOAT, 4, 1, 1, nbstars, data, &status)) {
+		report_fits_error(status);
+		status = 0;
+		fits_close_file(fptr, &status);
+		free(data);
+		return 1;
+	}
 
 	int retval = status;
 	status = 0;
@@ -1110,12 +1130,15 @@ static int findstar_compute_mem_limits(struct generic_seq_args *args, gboolean f
 }
 
 int findstar_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
-	struct starfinder_data *findstar_args = (struct starfinder_data *)args->user;
+	const struct starfinder_data *findstar_args = (struct starfinder_data *)args->user;
 
 	struct starfinder_data *curr_findstar_args = malloc(sizeof(struct starfinder_data));
 	memcpy(curr_findstar_args, findstar_args, sizeof(struct starfinder_data));
 	curr_findstar_args->im.index_in_seq = i;
 	curr_findstar_args->im.fit = fit;
+	if (fit->keywords.bayer_pattern[0] != '\0') {
+		interpolate_nongreen(fit);
+	}
 	if (findstar_args->stars && findstar_args->nb_stars) {
 		curr_findstar_args->stars = findstar_args->stars + i;
 		curr_findstar_args->nb_stars = findstar_args->nb_stars + i;
@@ -1165,12 +1188,10 @@ gboolean end_findstar_sequence(gpointer p) {
 
 int findstar_finalize_hook (struct generic_seq_args *args) {
 	struct starfinder_data *data = (struct starfinder_data *) args->user;
-#ifdef HAVE_WCSLIB
 	if (data->ref_wcs) {
 		if (!wcsfree(data->ref_wcs))
 			free(data->ref_wcs);
 	}
-#endif
 	if (data->startable)
 		g_free(data->startable);
 	if (data->starfile)
@@ -1202,7 +1223,6 @@ int apply_findstar_to_sequence(struct starfinder_data *findstar_args) {
 		 * transformation matrices H from registration are available */
 		fits ref = { 0 };
 		int refidx = sequence_find_refimage(args->seq);
-		// or use sequence_has_wcs(args->seq
 		if (seq_read_frame_metadata(args->seq, refidx, &ref)) {
 			siril_log_message(_("Could not load reference image\n"));
 			free(args);
@@ -1212,17 +1232,13 @@ int apply_findstar_to_sequence(struct starfinder_data *findstar_args) {
 			findstar_args->save_eqcoords = FALSE;
 		else {
 			findstar_args->reference_image = refidx;
-#ifdef HAVE_WCSLIB
-			findstar_args->ref_wcs = ref.wcslib;
-#endif
+			findstar_args->ref_wcs = ref.keywords.wcslib;
 			if (args->seq->regparam[findstar_args->layer] &&
 					guess_transform_from_H(args->seq->regparam[findstar_args->layer][refidx].H) != NULL_TRANSFORMATION) {
 				findstar_args->reference_H = args->seq->regparam[findstar_args->layer][refidx].H;
 			}
 		}
-#ifdef HAVE_WCSLIB
-		ref.wcslib = NULL;	// don't free it
-#endif
+		ref.keywords.wcslib = NULL;	// don't free it
 		clearfits(&ref);
 	}
 	if (findstar_args->already_in_thread) {
@@ -1262,12 +1278,10 @@ gpointer findstar_worker(gpointer p) {
 				double dx = stars[i]->xpos, dy = stars[i]->ypos;
 				if (has_wcs(args->im.fit)) {
 					double ra = 0.0, dec = 0.0;
-#ifdef HAVE_WCSLIB
 					// coordinates of the star in FITS/WCS coordinates
 					double fx, fy;
-					display_to_fits(dx, dy, &fx, &fy, args->im.fit->ry);
+					display_to_siril(dx, dy, &fx, &fy, args->im.fit->ry);
 					pix2wcs2(args->ref_wcs, fx, fy, &ra, &dec);
-#endif
 					// ra and dec = -1 is the error code
 					stars[i]->ra = ra;
 					stars[i]->dec = dec;
@@ -1279,12 +1293,10 @@ gpointer findstar_worker(gpointer p) {
 				else {
 					cvTransfPoint(&dx, &dy, seq->regparam[args->layer][args->im.index_in_seq].H, args->reference_H);
 					double ra = 0.0, dec = 0.0;
-#ifdef HAVE_WCSLIB
 					// coordinates of the star in FITS/WCS coordinates
 					double fx, fy;
-					display_to_fits(dx, dy, &fx, &fy, args->im.fit->ry);
+					display_to_siril(dx, dy, &fx, &fy, args->im.fit->ry);
 					pix2wcs2(args->ref_wcs, fx, fy, &ra, &dec);
-#endif
 					// ra and dec = -1 is the error code
 					stars[i]->ra = ra;
 					stars[i]->dec = dec;

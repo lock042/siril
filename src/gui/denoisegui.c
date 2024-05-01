@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -64,11 +64,15 @@ void on_denoise_dialog_show(GtkWidget *widget, gpointer user_data) {
 	gtk_widget_set_visible(GTK_WIDGET(lookup_widget("denoise_artefact_control")), (gfit.naxes[2] == 3));
 }
 
-void on_denoise_cancel_clicked(GtkButton *button, gpointer user_data) {
+void close_denoise() {
 	roi_supported(FALSE);
 	siril_preview_hide();
 	remove_roi_callback(denoise_roi_callback);
 	siril_close_dialog("denoise_dialog");
+}
+
+void on_denoise_cancel_clicked(GtkButton *button, gpointer user_data) {
+	close_denoise();
 }
 
 void on_spin_sos_iters_value_changed(GtkSpinButton *button, gpointer user_data) {
@@ -150,7 +154,6 @@ void on_denoise_apply_clicked(GtkButton *button, gpointer user_data) {
 		return;
 	GtkSpinButton *spin_denoise_modulation = GTK_SPIN_BUTTON(lookup_widget("spin_denoise_modulation"));
 	denoise_modulation = (float)gtk_spin_button_get_value(spin_denoise_modulation);
-	//	copy_gfit_to_backup();
 	gboolean suppress_artefacts = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_denoise_suppress_artefacts")));
 	denoise_args *args = calloc(1, sizeof(denoise_args));
 	args->previewing = ((GtkWidget*) button == lookup_widget("denoise_roi_preview"));

@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,15 +44,11 @@ preferences pref_init = {
 	.hd_bitdepth = 20,
 	.script_check_requires = TRUE,
 	.pipe_check_requires = FALSE,
-#ifdef HAVE_JSON_GLIB
  #ifdef SIRIL_UNSTABLE
 	.check_update = FALSE,
  #else
 	.check_update = TRUE,
  #endif
-#else
-	.check_update = FALSE,
-#endif
 	.lang = 0,
 	.swap_dir = NULL,
 	.binning_update = TRUE,
@@ -65,11 +61,10 @@ preferences pref_init = {
 	.copyright = NULL,
 	.starnet_exe = NULL,
 	.starnet_weights = NULL,
-	.gnuplot_dir = NULL,
 	.asnet_dir = NULL,
 	.selected_scripts = NULL,
-	.use_scripts_repository = FALSE,
-	.auto_script_update = FALSE,
+	.use_scripts_repository = TRUE,
+	.auto_script_update = TRUE,
 	.starfinder_conf = { // starfinder_conf
 		.radius = DEF_BOX_RADIUS,
 		.sigma = 1.0,
@@ -154,7 +149,8 @@ preferences pref_init = {
 		.config_colors.color_std_annotations = NULL,
 		.config_colors.color_dso_annotations = NULL,
 		.config_colors.color_sso_annotations = NULL,
-		.config_colors.color_tmp_annotations = NULL
+		.config_colors.color_tmp_annotations = NULL,
+		.mmb_action = MMB_ZOOM_FIT
 	},
 	.debayer = {
 		.open_debayer = FALSE,
@@ -176,15 +172,17 @@ preferences pref_init = {
 		.force_radius = TRUE,
 		.minval = -1500.0,
 		.maxval = 60000.0,
+		.discard_var_catalogues = 4,
+
 	},
 	.astrometry = {
 		.update_default_scale = TRUE,
 		.percent_scale_range = 20,
-		.sip_correction_order = 0,
+		.sip_correction_order = 3,
 		.radius_degrees = 10.0,
 		.keep_xyls_files = FALSE,
 		.keep_wcs_files = FALSE,
-		.max_seconds_run = 10,
+		.max_seconds_run = 30,
 		.show_asnet_output = FALSE,
 	},
 	.analysis = {
@@ -232,7 +230,28 @@ preferences pref_init = {
 		.rendering_bpc = TRUE,
 		.autoconversion = ICC_NEVER_AUTOCONVERT,
 		.autoassignment = ICC_ASSIGN_ON_STRETCH,
-		.pedantic_linear = FALSE
+		.pedantic_linear = FALSE,
+		.cmf = CMF_1931_2DEG
+	},
+	.spcc = {
+		.use_spcc_repository = TRUE,
+		.auto_spcc_update = TRUE,
+		.redpref = NULL,
+		.greenpref = NULL,
+		.bluepref = NULL,
+		.lpfpref = NULL,
+		.oscfilterpref = NULL,
+		.monosensorpref = NULL,
+		.oscsensorpref = NULL,
+		.is_mono = TRUE,
+		.is_dslr = FALSE,
+		.nb_mode = FALSE,
+		.red_wl = 656.28,
+		.green_wl = 500.70,
+		.blue_wl = 500.70,
+		.red_bw = 6.0,
+		.green_bw = 6.0,
+		.blue_bw = 6.0
 	}
 };
 
@@ -247,8 +266,6 @@ void free_preferences(preferences *pref) {
 	pref->starnet_exe = NULL;
 	g_free(pref->starnet_weights);
 	pref->starnet_weights = NULL;
-	g_free(pref->gnuplot_dir);
-	pref->gnuplot_dir = NULL;
 	g_free(pref->asnet_dir);
 	pref->asnet_dir = NULL;
 	g_free(pref->lang);
@@ -279,6 +296,7 @@ static void initialize_configurable_colors() {
 /* static + dynamic settings initialization */
 void initialize_default_settings() {
 	com.pref = pref_init;
+	com.pref.spcc.oscfilterpref = g_strdup("No filter");
 	com.pref.ext = g_strdup(".fit");
 	com.pref.prepro.stack_default = g_strdup("$seqname$stacked");
 	com.pref.swap_dir = g_strdup(g_get_tmp_dir());
@@ -287,8 +305,8 @@ void initialize_default_settings() {
 }
 
 void update_gain_from_gfit() {
-	if (gfit.cvf > 0.0)
-		com.pref.phot_set.gain = gfit.cvf;
+	if (gfit.keywords.cvf > 0.0)
+		com.pref.phot_set.gain = gfit.keywords.cvf;
 }
 
 struct settings_access all_settings[] = {
@@ -316,8 +334,6 @@ struct settings_access all_settings[] = {
 	{ "core", "copyright", STYPE_STR, N_("user copyright to put in file header"), &com.pref.copyright },
 	{ "core", "starnet_exe", STYPE_STR, N_("location of the StarNet executable"), &com.pref.starnet_exe },
 	{ "core", "starnet_weights", STYPE_STR, N_("location of the StarNet-torch weights file"), &com.pref.starnet_weights },
-// TODO: remove when we release 1.4. For now, it's kept to avoid having the key removed when switching back and forth to 1.2/1.3
-	{ "core", "gnuplot_dir", STYPE_STR, N_("directory of the gnuplot installation"), &com.pref.gnuplot_dir },
 #ifdef _WIN32
 	{ "core", "asnet_dir", STYPE_STR, N_("directory of the asnet_ansvr installation"), &com.pref.asnet_dir },
 #else
@@ -348,16 +364,33 @@ struct settings_access all_settings[] = {
 	{ "photometry", "aperture", STYPE_DOUBLE, N_("forced aperture for flux computation"), &com.pref.phot_set.aperture, { .range_double = { 1., 100. } } },
 	{ "photometry", "minval", STYPE_DOUBLE, N_("minimum valid pixel value for photometry"), &com.pref.phot_set.minval, { .range_double = { -65536.0, 65534.0 } } },
 	{ "photometry", "maxval", STYPE_DOUBLE, N_("maximum valid pixel value for photometry"), &com.pref.phot_set.maxval, { .range_double = { 1.0, 65535.0 } } },
+	{ "photometry", "discard_var_catalogues", STYPE_INT, N_("catalogues to be used to discard the variable stars from the comparison stars list"), &com.pref.phot_set.discard_var_catalogues, { .range_int = { 0, 7 } } },
+	{ "photometry", "redpref", STYPE_STR, N_("preferred SPCC red filter"), &com.pref.spcc.redpref },
+	{ "photometry", "greenpref", STYPE_STR, N_("preferred SPCC green filter"), &com.pref.spcc.greenpref },
+	{ "photometry", "bluepref", STYPE_STR, N_("preferred SPCC blue filter"), &com.pref.spcc.bluepref },
+	{ "photometry", "lpfpref", STYPE_STR, N_("preferred SPCC DSLR LPF filter"), &com.pref.spcc.lpfpref },
+	{ "photometry", "oscfilterpref", STYPE_STR, N_("preferred SPCC OSC filter"), &com.pref.spcc.oscfilterpref },
+	{ "photometry", "monosensorpref", STYPE_STR, N_("preferred SPCC mono sensor"), &com.pref.spcc.monosensorpref },
+	{ "photometry", "oscsensorpref", STYPE_STR, N_("preferred SPCC OSC sensor"), &com.pref.spcc.oscsensorpref },
+	{ "photometry", "is_mono", STYPE_BOOL, N_("is the SPCC sensor mono?"), &com.pref.spcc.is_mono },
+	{ "photometry", "is_dslr", STYPE_BOOL, N_("is the SPCC OSC sensor a DSLR?"), &com.pref.spcc.is_dslr },
+	{ "photometry", "nb_mode", STYPE_BOOL, N_("are we in narrowband mode?"), &com.pref.spcc.nb_mode },
+	{ "photometry", "r_wl", STYPE_DOUBLE, N_("red NB filter wavelength"), &com.pref.spcc.red_wl },
+	{ "photometry", "r_bw", STYPE_DOUBLE, N_("red NB filter bandwidth"), &com.pref.spcc.red_bw },
+	{ "photometry", "g_wl", STYPE_DOUBLE, N_("green NB filter wavelength"), &com.pref.spcc.green_wl },
+	{ "photometry", "g_bw", STYPE_DOUBLE, N_("green NB filter bandwidth"), &com.pref.spcc.green_bw },
+	{ "photometry", "b_wl", STYPE_DOUBLE, N_("blue NB filter wavelength"), &com.pref.spcc.blue_wl },
+	{ "photometry", "b_bw", STYPE_DOUBLE, N_("blue NB filter bandwidth"), &com.pref.spcc.blue_bw },
 
-	{ "astrometry", "asnet_sip_order", STYPE_INT, N_("degrees of the polynomial correction"), &com.pref.astrometry.sip_correction_order, { .range_int = { 0, 6 } } },
-	{ "astrometry", "asnet_radius", STYPE_DOUBLE, N_("radius around the target coordinates (degrees)"), &com.pref.astrometry.radius_degrees, { .range_double = { 0.01, 180.0 } } },
 	{ "astrometry", "asnet_keep_xyls", STYPE_BOOL, N_("do not delete .xyls FITS tables"), &com.pref.astrometry.keep_xyls_files },
 	{ "astrometry", "asnet_keep_wcs", STYPE_BOOL, N_("do not delete .wcs result files"), &com.pref.astrometry.keep_wcs_files },
-	{ "astrometry", "asnet_max_seconds_run", STYPE_INT, N_("maximum seconds to try solving"), &com.pref.astrometry.max_seconds_run, { .range_int = { 0, 100000 } } },
 	{ "astrometry", "asnet_show_output", STYPE_BOOL, N_("show solve-field output in main log"), &com.pref.astrometry.show_asnet_output },
 
+	{ "astrometry", "sip_order", STYPE_INT, N_("degrees of the polynomial correction"), &com.pref.astrometry.sip_correction_order, { .range_int = { 1, 5 } } },
+	{ "astrometry", "radius", STYPE_DOUBLE, N_("radius around the target coordinates (degrees)"), &com.pref.astrometry.radius_degrees, { .range_double = { 0.01, 30.0 } } },
+	{ "astrometry", "max_seconds_run", STYPE_INT, N_("maximum seconds to try solving"), &com.pref.astrometry.max_seconds_run, { .range_int = { 0, 100000 } } },
 	{ "astrometry", "update_default_scale", STYPE_BOOL, N_("update default focal length and pixel size from the result"), &com.pref.astrometry.update_default_scale },
-	{ "astrometry", "percent_scale_range", STYPE_INT, N_("percent below and above the expected sampling to allow"), &com.pref.astrometry.percent_scale_range, { .range_int = { 0, 50 } } },
+	{ "astrometry", "percent_scale_range", STYPE_INT, N_("percent below and above the expected sampling to allow"), &com.pref.astrometry.percent_scale_range, { .range_int = { 10, 50 } } },
 
 	{ "analysis", "panel", STYPE_INT, N_("panel size of aberration inspector"), &com.pref.analysis.mosaic_panel, { .range_int = { 127, 1024 } } },
 	{ "analysis", "window", STYPE_INT, N_("window size of aberration inspector"), &com.pref.analysis.mosaic_window, { .range_int = { 300, 1600 } } },
@@ -419,7 +452,9 @@ struct settings_access all_settings[] = {
 	{ "gui", "icon_symbolic", STYPE_BOOL, N_("icon style"), &com.pref.gui.icon_symbolic },
 	{ "gui", "script_path", STYPE_STRLIST, N_("list of script directories"), &com.pref.gui.script_path },
 	{ "gui", "use_scripts_repository", STYPE_BOOL, N_("use and sync online scripts repository"), &com.pref.use_scripts_repository },
+	{ "gui", "use_spcc_repository", STYPE_BOOL, N_("use and sync spcc-database repository"), &com.pref.spcc.use_spcc_repository },
 	{ "gui", "auto_update_scripts", STYPE_BOOL, N_("auto sync online scripts repository"), &com.pref.auto_script_update },
+	{ "gui", "auto_update_spcc", STYPE_BOOL, N_("auto sync spcc-database repository"), &com.pref.spcc.auto_spcc_update },
 	{ "gui", "selected_scripts", STYPE_STRLIST, N_("list of scripts selected from the repository"), &com.pref.selected_scripts },
 	{ "gui", "warn_script_run", STYPE_BOOL, N_("warn when launching a script"), &com.pref.gui.warn_script_run },
 	{ "gui", "show_thumbnails", STYPE_BOOL, N_("show thumbnails in open dialog"), &com.pref.gui.show_thumbnails },
@@ -430,6 +465,7 @@ struct settings_access all_settings[] = {
 	{ "gui", "display_histogram_mode", STYPE_INT, N_("default histogram display mode"), &com.pref.gui.display_histogram_mode, { .range_int = { 0, 1 } } },
 	{ "gui", "roi_mode", STYPE_INT, N_("ROI selection mode"), &com.pref.gui.roi_mode },
 	{ "gui", "roi_warning", STYPE_BOOL, N_("enable ROI dialog warning"), &com.pref.gui.enable_roi_warning },
+	{ "gui", "mmb_zoom_action", STYPE_INT, N_("Middle mouse button double click zoom action"), &com.pref.gui.mmb_action },
 	{ "gui", "color_bkg_samples", STYPE_STR, N_("configure background samples color"), &com.pref.gui.config_colors.color_bkg_samples },
 	{ "gui", "color_std_annotations", STYPE_STR, N_("configure standard annotation color"), &com.pref.gui.config_colors.color_std_annotations },
 	{ "gui", "color_dso_annotations", STYPE_STR, N_("configure dso annotation color"), &com.pref.gui.config_colors.color_dso_annotations },

@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,21 +26,27 @@
 #include "filters/asinh.h"
 #include "filters/bilat.h"
 #include "filters/clahe.h"
+#include "filters/median.h"
 #include "filters/saturation.h"
 #include "filters/wavelets.h"
 
+#include "gui/newdeconv.h"
+#include "filters/nlbayes/call_nlbayes.h"
 #include "gui/dialogs.h"
 #include "nina_light_curve.h"
 #include "compstars.h"
 
 static const SirilDialogEntry entries[] =
 {
+	{"aavso_dialog", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"asinh_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_asinh_cancel},
+	{"astrometry_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"bilat_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_bilat_cancel},
-	{"denoise_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"denoise_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, close_denoise},
 	{"background_extraction_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_background_cancel},
 	{"binxy_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"canon_fixbanding_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"ccm_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"CLAHE_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_clahe_cancel},
 	{"composition_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"compstars", get_compstars_dialog, OTHER_DIALOG, FALSE, NULL},
@@ -50,7 +56,7 @@ static const SirilDialogEntry entries[] =
 	{"cut_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"cut_coords_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
 	{"cut_spectroscopy_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
-	{"bdeconv_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"bdeconv_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, close_deconv},
 	{"dialog_FFT", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"dialog_star_remix", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"edge_dialog", NULL, INFORMATION_DIALOG, FALSE, NULL},
@@ -58,16 +64,18 @@ static const SirilDialogEntry entries[] =
 	{"extract_wavelets_layers_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
 	{"file_information", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"histogram_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_histo_cancel},
+	{"keywords_dialog", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"icc_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
-	{"ImagePlateSolver_Dial", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"astrometry_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"linearmatch_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
-	{"Median_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"Median_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, median_close},
 	{"merge_cfa_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"nina_light_curve", get_nina_lc_dialog, OTHER_DIALOG, FALSE, NULL},
 	{"pixel_math_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
 	{"resample_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"rgradient_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"rotation_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"s_pcc_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"satu_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_satu_cancel},
 	{"SCNR_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"script_contents_dialog", NULL, INFORMATION_DIALOG, FALSE, NULL},

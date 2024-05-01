@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -95,6 +95,8 @@ static const char *cmd_err_to_str(cmd_errors err) {
 			return _("memory allocation error");
 		case CMD_THREAD_RUNNING:
 			return _("a processing is already running");
+        case CMD_DIR_NOT_FOUND:
+			return _("directory not found");
 	}
 }
 
@@ -176,7 +178,7 @@ int execute_command(int wordnb) {
 		}
 	}
 
-	if ((commands[i].prerequires & (REQ_CMD_FOR_MONO | REQ_CMD_FOR_CFA)) == (REQ_CMD_FOR_MONO | REQ_CMD_FOR_CFA)) {
+	if ((commands[i].prerequires & REQ_CMD_FOR_CFA) == REQ_CMD_FOR_CFA) {
 		if (isrgb(&gfit)) {
 			return CMD_FOR_CFA_IMAGE;
 		}

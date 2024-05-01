@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -352,13 +352,13 @@ static int ser_write_header_from_fit(struct ser_struct *ser_file, fits *fit) {
 	if (ser_file->color_id == SER_RGB)
 		ser_file->number_of_planes = 3;
 	else {
-		if (!g_strcmp0(fit->bayer_pattern, "RGGB")) {
+		if (!g_strcmp0(fit->keywords.bayer_pattern, "RGGB")) {
 			ser_file->color_id = SER_BAYER_RGGB;
-		} else if (!g_strcmp0(fit->bayer_pattern, "BGGR")) {
+		} else if (!g_strcmp0(fit->keywords.bayer_pattern, "BGGR")) {
 			ser_file->color_id = SER_BAYER_BGGR;
-		} else if (!g_strcmp0(fit->bayer_pattern, "GBRG")) {
+		} else if (!g_strcmp0(fit->keywords.bayer_pattern, "GBRG")) {
 			ser_file->color_id = SER_BAYER_GBRG;
-		} else if (!g_strcmp0(fit->bayer_pattern, "GRBG")) {
+		} else if (!g_strcmp0(fit->keywords.bayer_pattern, "GRBG")) {
 			ser_file->color_id = SER_BAYER_GRBG;
 		}
 		ser_file->number_of_planes = 1;
@@ -374,21 +374,21 @@ static int ser_write_header_from_fit(struct ser_struct *ser_file, fits *fit) {
 		siril_log_message(_("Writing a 32-bit image to SER files is not supported.\n"));
 		return SER_GENERIC_ERROR;
 	}
-	if (fit->instrume[0] != 0) {
+	if (fit->keywords.instrume[0] != 0) {
 		memset(ser_file->instrument, 0, 40);
-		memcpy(ser_file->instrument, fit->instrume, 40);
+		memcpy(ser_file->instrument, fit->keywords.instrume, 40);
 	}
-	if (fit->observer[0] != 0) {
+	if (fit->keywords.observer[0] != 0) {
 		memset(ser_file->observer, 0, 40);
-		memcpy(ser_file->observer, fit->observer, 40);
+		memcpy(ser_file->observer, fit->keywords.observer, 40);
 	}
-	if (fit->telescop[0] != 0) {
+	if (fit->keywords.telescop[0] != 0) {
 		memset(ser_file->telescope, 0, 40);
-		memcpy(ser_file->telescope, fit->telescop, 40);
+		memcpy(ser_file->telescope, fit->keywords.telescop, 40);
 	}
 
-	if (fit->date_obs)
-		ser_file->date = date_time_to_ser_timestamp(fit->date_obs);
+	if (fit->keywords.date_obs)
+		ser_file->date = date_time_to_ser_timestamp(fit->keywords.date_obs);
 	return SER_OK;
 }
 
@@ -410,7 +410,7 @@ static int get_SER_Bayer_Pattern(ser_color pattern) {
 /* once a buffer (data) has been acquired from the file, with frame_size pixels
  * read in it, depending on ser_file's endianess and pixel depth, data is
  * reorganized to match Siril's data format . */
-static void ser_manage_endianess_and_depth(struct ser_struct *ser_file,
+static void ser_manage_endianess_and_depth(const struct ser_struct *ser_file,
 		WORD *data, gint64 frame_size) {
 	int i;
 	if (ser_file->byte_pixel_depth == SER_PIXEL_DEPTH_8) {
@@ -455,7 +455,7 @@ static int ser_alloc_ts(struct ser_struct *ser_file, int frame_no) {
  * Public functions
  */
 
-gboolean ser_is_cfa(struct ser_struct *ser_file) {
+gboolean ser_is_cfa(const struct ser_struct *ser_file) {
 	return ser_file && (ser_file->color_id == SER_BAYER_RGGB ||
 			ser_file->color_id == SER_BAYER_GRBG ||
 			ser_file->color_id == SER_BAYER_GBRG ||
@@ -571,7 +571,7 @@ int ser_write_and_close(struct ser_struct *ser_file) {
 /* ser_file must be allocated and initialised with ser_init_struct()
  * the file is created with no image size, the first image added will set it. */
 int ser_create_file(const char *filename, struct ser_struct *ser_file,
-		gboolean overwrite, struct ser_struct *copy_from) {
+		gboolean overwrite, const struct ser_struct *copy_from) {
 	if (overwrite)
 		if (g_unlink(filename))
 			siril_debug_print("g_unlink() failed\n");
@@ -702,7 +702,7 @@ void ser_init_struct(struct ser_struct *ser_file) {
 	memset(ser_file, 0, sizeof(struct ser_struct));
 }
 
-int ser_metadata_as_fits(struct ser_struct *ser_file, fits *fit) {
+int ser_metadata_as_fits(const struct ser_struct *ser_file, fits *fit) {
 	ser_color type_ser = ser_file->color_id;
 	if (!com.pref.debayer.open_debayer && type_ser != SER_RGB && type_ser != SER_BGR) {
 		type_ser = SER_MONO;
@@ -728,8 +728,21 @@ int ser_metadata_as_fits(struct ser_struct *ser_file, fits *fit) {
 	fit->naxes[1] = fit->ry = ser_file->image_height;
 	fit->bitpix = (ser_file->byte_pixel_depth == SER_PIXEL_DEPTH_8) ? BYTE_IMG : USHORT_IMG;
 	fit->orig_bitpix = fit->bitpix;
-	fit->binning_x = fit->binning_y = 1;
+	fit->keywords.binning_x = fit->keywords.binning_y = 1;
 	return SER_OK;
+}
+
+static const gchar *flip_bayer_pattern(const gchar *old_pattern) {
+	if (!strcmp(old_pattern, "RGGB"))
+		return "GBRG";
+	else if (!strcmp(old_pattern, "GBRG"))
+		return "RGGB";
+	else if (!strcmp(old_pattern, "BGGR"))
+		return "GRBG";
+	else if (!strcmp(old_pattern, "GRBG"))
+		return "BGGR";
+	else
+		return NULL;
 }
 
 /* reads a frame on an already opened SER sequence.
@@ -779,7 +792,7 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 
 	fit->bitpix = (ser_file->byte_pixel_depth == SER_PIXEL_DEPTH_8) ? BYTE_IMG : USHORT_IMG;
 	fit->orig_bitpix = fit->bitpix;
-	fit->binning_x = fit->binning_y = 1;
+	fit->keywords.binning_x = fit->keywords.binning_y = 1;
 
 	/* If opening images debayered is not activated, read the image as CFA monochrome */
 	const gchar *pattern = NULL;
@@ -809,9 +822,6 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 	} else if (open_debayer && type_ser == SER_MONO && !com.pref.debayer.use_bayer_header) {
 		pattern = filter_pattern[com.pref.debayer.bayer_pattern];
 		type_ser = get_cfa_pattern_index_from_string(pattern) + 8;
-	}
-	if (pattern) {
-		strncpy(fit->bayer_pattern, pattern, 70); // fixed char* length FLEN == 71, leave 1 char for the NULL
 	}
 
 	switch (type_ser) {
@@ -895,10 +905,10 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 	if (ser_file->ts) {
 		GDateTime *timestamp = ser_timestamp_to_date_time(ser_file->ts[frame_no]);
 		if (timestamp) {
-			if (fit->date_obs) {
-				g_date_time_unref(fit->date_obs);
+			if (fit->keywords.date_obs) {
+				g_date_time_unref(fit->keywords.date_obs);
 			}
-			fit->date_obs = timestamp;
+			fit->keywords.date_obs = timestamp;
 		}
 	}
 
@@ -917,16 +927,23 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 	color_manage(fit, FALSE);
 	fit->icc_profile = NULL;
 
+	if (pattern) {
+		pattern = flip_bayer_pattern(pattern);
+		// No need to inform the user as the FITS header details for a sequence frame are not accessible
+		strncpy(fit->keywords.bayer_pattern, pattern, 70); // fixed char* length FLEN == 71, leave 1 char for the NULL
+	}
+
+	// FITS are stored with TOP-DOWN roworder
 	fits_flip_top_to_bottom(fit);
-	fit->top_down = FALSE;
-	snprintf(fit->row_order, FLEN_VALUE, "BOTTOM-UP");
+	fit->top_down = TRUE;
+	snprintf(fit->keywords.row_order, FLEN_VALUE, "BOTTOM-UP");
 	return SER_OK;
 }
 
 /* multi-type cropping, works in constant space if needed */
 #define crop_area_from_lines(BUFFER_TYPE) { \
 	int x, y, src, dst = 0; \
-	BUFFER_TYPE *inbuf = (BUFFER_TYPE *)read_buffer; \
+	const BUFFER_TYPE *inbuf = (BUFFER_TYPE *)read_buffer; \
 	BUFFER_TYPE *out = (BUFFER_TYPE *)outbuf; \
 	for (y = 0; y < area->h; y++) { \
 		src = y * ser_file->image_width + area->x; \
@@ -938,7 +955,7 @@ int ser_read_frame(struct ser_struct *ser_file, int frame_no, fits *fit, gboolea
 /* multi-type RGB reordering, works in constant space if needed */
 #define crop_area_from_color_lines(BUFFER_TYPE) { \
 	int x, y, src, dst = 0; \
-	BUFFER_TYPE *inbuf = (BUFFER_TYPE *)read_buffer; \
+	const BUFFER_TYPE *inbuf = (BUFFER_TYPE *)read_buffer; \
 	BUFFER_TYPE *out = (BUFFER_TYPE *)outbuf; \
 	int color_offset; \
 	if (ser_file->color_id == SER_BGR) { \
@@ -1159,10 +1176,10 @@ int ser_read_opened_partial_fits(struct ser_struct *ser_file, int layer,
 	if (ser_file->ts) {
 		GDateTime *timestamp = ser_timestamp_to_date_time(ser_file->ts[frame_no]);
 		if (timestamp) {
-			if (fit->date_obs) {
-				g_date_time_unref(fit->date_obs);
+			if (fit->keywords.date_obs) {
+				g_date_time_unref(fit->keywords.date_obs);
 			}
-			fit->date_obs = timestamp;
+			fit->keywords.date_obs = timestamp;
 		}
 	}
 	return ser_read_opened_partial(ser_file, layer, frame_no, fit->pdata[0], area);
@@ -1182,7 +1199,13 @@ static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *
 	BYTE *data8 = NULL;	// for 8-bit files
 	WORD *data16 = NULL;	// for 16-bit files
 
-	if (!ser_file || ser_file->file == NULL || !fit)
+	// return bottom-up fits to top-down ser row_order (not if the image is already top-down)
+	if (fit->top_down) {
+		snprintf(fit->keywords.bayer_pattern, FLEN_VALUE, "%s", flip_bayer_pattern(fit->keywords.bayer_pattern));
+		fits_flip_top_to_bottom(fit);
+	}
+
+if (!ser_file || ser_file->file == NULL || !fit)
 		return SER_GENERIC_ERROR;
 	if (ser_file->number_of_planes == 0) {
 		// adding first frame of a new sequence, use it to populate the header
@@ -1265,14 +1288,11 @@ static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *
 		}
 	}
 
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-	ser_file->frame_count++;
+	g_atomic_int_inc(&ser_file->frame_count);
 
-	if (fit->date_obs && !ser_alloc_ts(ser_file, frame_no)) {
+	if (fit->keywords.date_obs && !ser_alloc_ts(ser_file, frame_no)) {
 		guint64 utc;
-		utc = date_time_to_ser_timestamp(fit->date_obs);
+		utc = date_time_to_ser_timestamp(fit->keywords.date_obs);
 		ser_file->ts[frame_no] = utc;
 	}
 
@@ -1282,7 +1302,7 @@ free_and_quit:
 	return retval;
 }
 
-gint64 ser_compute_file_size(struct ser_struct *ser_file, int nb_frames) {
+gint64 ser_compute_file_size(const struct ser_struct *ser_file, int nb_frames) {
 	gint64 frame_size, size = ser_file->filesize;
 
 	if (nb_frames != ser_file->frame_count) {
@@ -1292,12 +1312,12 @@ gint64 ser_compute_file_size(struct ser_struct *ser_file, int nb_frames) {
 	return size;
 }
 
-int import_metadata_from_serfile(struct ser_struct *ser_file, fits *to) {
-	strncpy(to->instrume, ser_file->instrument, FLEN_VALUE - 1);
-	strncpy(to->observer, ser_file->observer, FLEN_VALUE - 1);
-	strncpy(to->telescop, ser_file->telescope, FLEN_VALUE - 1);
+int import_metadata_from_serfile(const struct ser_struct *ser_file, fits *to) {
+	strncpy(to->keywords.instrume, ser_file->instrument, FLEN_VALUE - 1);
+	strncpy(to->keywords.observer, ser_file->observer, FLEN_VALUE - 1);
+	strncpy(to->keywords.telescop, ser_file->telescope, FLEN_VALUE - 1);
 	if (ser_file->fps > 0.0)
-		to->exposure = 1.0 / ser_file->fps;
+		to->keywords.exposure = 1.0 / ser_file->fps;
 	return SER_OK;
 }
 
@@ -1312,7 +1332,7 @@ static GdkPixbufDestroyNotify free_preview_data(guchar *pixels, gpointer data) {
  * @param filename
  * @return a GdkPixbuf containing the preview or NULL
  */
-GdkPixbuf* get_thumbnail_from_ser(char *filename, gchar **descr) {
+GdkPixbuf* get_thumbnail_from_ser(const char *filename, gchar **descr) {
 	GdkPixbuf *pixbuf = NULL;
 	int MAX_SIZE = com.pref.gui.thumbnail_size;
 	gchar *description = NULL;

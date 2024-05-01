@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -65,6 +65,7 @@ gboolean aperture_warning_given = FALSE;
 gboolean bad_load = FALSE;
 orientation_t imageorientation;
 gboolean next_psf_is_previous = FALSE;
+static gboolean first_time = TRUE;
 
 estk_data args = { 0 };
 static GtkWidget *drawingPSF = NULL;
@@ -81,9 +82,9 @@ orientation_t get_imageorientation() {
 	} else if (sequence_is_loaded()) {
 		result = BOTTOM_UP; // All other sequences should be BOTTOM_UP
 	} else if (single_image_is_loaded()) {
-		if (!g_strcmp0(the_fit->row_order, "TOP-DOWN")) {
+		if (!g_strcmp0(the_fit->keywords.row_order, "TOP-DOWN")) {
 			result = TOP_DOWN;
-		} else if (!g_strcmp0(the_fit->row_order, "BOTTOM-UP")) {
+		} else if (!g_strcmp0(the_fit->keywords.row_order, "BOTTOM-UP")) {
 			result = BOTTOM_UP;
 	} else {
 			result = UNDEFINED;
@@ -408,9 +409,9 @@ void on_airy_pixelsize_value_changed(GtkSpinButton *button, gpointer user_data) 
 
 static void initialize_airy_parameters() {
 	// Get initial stab at parameters for Airy function from FITS header. Not essential they be correct as they are user-editable in the UI.
-	args.airy_fl = the_fit->focal_length;
+	args.airy_fl = the_fit->keywords.focal_length;
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("airy_fl")), args.airy_fl);
-	if (the_fit->focal_length < 10.) {
+	if (the_fit->keywords.focal_length < 10.) {
 		GtkWidget *button = lookup_widget("airy_fl");
 		GtkCssProvider *css = gtk_css_provider_new();
 		gtk_css_provider_load_from_data(css, "* { background-image:none; color:salmon;}",-1,NULL);
@@ -418,9 +419,9 @@ static void initialize_airy_parameters() {
 		gtk_style_context_add_provider(context, GTK_STYLE_PROVIDER(css),GTK_STYLE_PROVIDER_PRIORITY_USER);
 		g_object_unref(css);
 	}
-	args.airy_diameter = the_fit->aperture;
+	args.airy_diameter = the_fit->keywords.aperture;
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("airy_diameter")), args.airy_diameter);
-	if (the_fit->aperture < 10.) {
+	if (the_fit->keywords.aperture < 10.) {
 		GtkWidget *button = lookup_widget("airy_diameter");
 		GtkCssProvider *css = gtk_css_provider_new();
 		gtk_css_provider_load_from_data(css, "* { background-image:none; color:salmon;}",-1,NULL);
@@ -428,9 +429,9 @@ static void initialize_airy_parameters() {
 		gtk_style_context_add_provider(context, GTK_STYLE_PROVIDER(css),GTK_STYLE_PROVIDER_PRIORITY_USER);
 		g_object_unref(css);
 	}
-	args.airy_pixelsize = the_fit->pixel_size_x;
+	args.airy_pixelsize = the_fit->keywords.pixel_size_x;
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("airy_pixelsize")), args.airy_pixelsize);
-	if (the_fit->pixel_size_x <=1.) {
+	if (the_fit->keywords.pixel_size_x <=1.) {
 		GtkWidget *button = lookup_widget("airy_pixelsize");
 		GtkCssProvider *css = gtk_css_provider_new();
 		gtk_css_provider_load_from_data(css, "* { background-image:none; color:salmon;}",-1,NULL);
@@ -534,8 +535,8 @@ static void calculate_parameters() {
 		args.psf_beta = (float) beta / (float) n;
 		args.psf_ratio = args.symkern ? 1.f : args.psf_fwhm / FWHMy;
 		if (unit_is_arcsec) {
-			double bin_X = com.pref.binning_update ? (double) the_fit->binning_x : 1.0;
-			double conversionfactor = (((3600.0 * 180.0) / G_PI) / 1.0E3 * (double)the_fit->pixel_size_x / the_fit->focal_length) * bin_X;
+			double bin_X = com.pref.binning_update ? (double) the_fit->keywords.binning_x : 1.0;
+			double conversionfactor = (((3600.0 * 180.0) / G_PI) / 1.0E3 * (double)the_fit->keywords.pixel_size_x / the_fit->keywords.focal_length) * bin_X;
 			args.psf_fwhm /= (float) conversionfactor;
 		}
 		args.psf_angle = (float) angle / (float) n;
@@ -577,13 +578,15 @@ void deconv_roi_callback() {
 	the_fit = gui.roi.active ? &gui.roi.fit : &gfit;
 }
 
-void on_bdeconv_close_clicked(GtkButton *button, gpointer user_data) {
-	if (sequence_is_running == 0)
-		reset_conv_controls_and_args();
+void close_deconv() {
 	roi_supported(FALSE);
 	siril_preview_hide();
 	remove_roi_callback(deconv_roi_callback);
 	siril_close_dialog("bdeconv_dialog");
+}
+
+void on_bdeconv_close_clicked(GtkButton *button, gpointer user_data) {
+	close_deconv();
 }
 
 void on_bdeconv_dialog_show(GtkWidget *widget, gpointer user_data) {
@@ -592,7 +595,10 @@ void on_bdeconv_dialog_show(GtkWidget *widget, gpointer user_data) {
 	deconv_roi_callback();
 	add_roi_callback(deconv_roi_callback);
 	copy_gfit_to_backup();
-	reset_conv_controls_and_args();
+	if (first_time) {
+		reset_conv_controls_and_args();
+		first_time = FALSE;
+	}
 	if (com.kernel && com.kernelsize > 0) {
 		args.psftype = PSF_PREVIOUS;
 			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_psfprevious")), TRUE);

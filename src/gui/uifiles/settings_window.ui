@@ -72,15 +72,16 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
-  <object class="GtkAdjustment" id="adj_asnet_radius">
+  <object class="GtkAdjustment" id="adj_astrometry_radius">
     <property name="lower">0.01</property>
-    <property name="upper">180</property>
+    <property name="upper">30</property>
     <property name="value">10</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
-  <object class="GtkAdjustment" id="adj_asnet_spi_order">
-    <property name="upper">6</property>
+  <object class="GtkAdjustment" id="adj_astrometry_sip_order">
+    <property name="lower">1</property>
+    <property name="upper">5</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
@@ -142,8 +143,9 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="adj_sampling_tolerance">
+    <property name="lower">10</property>
     <property name="upper">50</property>
-    <property name="value">15</property>
+    <property name="value">20</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
@@ -1075,6 +1077,7 @@ It depends on the acquistion software used to create the FITS.</property>
                   <object class="GtkScrolledWindow">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
+                    <property name="hscrollbar-policy">never</property>
                     <property name="shadow-type">in</property>
                     <child>
                       <object class="GtkViewport">
@@ -1113,6 +1116,7 @@ It depends on the acquistion software used to create the FITS.</property>
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
                                     <property name="margin-start">12</property>
+                                    <property name="margin-end">12</property>
                                     <property name="orientation">vertical</property>
                                     <property name="spacing">5</property>
                                     <child>
@@ -1380,7 +1384,6 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
                                         <property name="tooltip-text" translatable="yes">Specify the location of the namedstars.dat star catalogue on your system.</property>
-                                        <property name="filter">filter_namedstars</property>
                                         <property name="title">namedstars.dat</property>
                                       </object>
                                       <packing>
@@ -1393,7 +1396,6 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
                                         <property name="tooltip-text" translatable="yes">Specify the location of the unnamedstars.dat star catalogue on your system.</property>
-                                        <property name="filter">filter_unnamedstars</property>
                                         <property name="title">unnamedstars.dat</property>
                                       </object>
                                       <packing>
@@ -1406,7 +1408,6 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
                                         <property name="tooltip-text" translatable="yes">Specify the location of the deepstars.dat star catalogue on your system.</property>
-                                        <property name="filter">filter_deepstars</property>
                                         <property name="title">deepstars.dat</property>
                                       </object>
                                       <packing>
@@ -1435,7 +1436,6 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
                                         <property name="tooltip-text" translatable="yes">Specify the location of the USNO-NOMAD-1e8.dat star catalogue on your system.</property>
-                                        <property name="filter">filter_USNO-NOMAD-1e8</property>
                                         <property name="title">USNO-NOMAD-1e8.dat</property>
                                       </object>
                                       <packing>
@@ -1549,6 +1549,141 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                         <property name="position">1</property>
                                       </packing>
                                     </child>
+                                    <child>
+                                      <object class="GtkBox">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="margin-start">12</property>
+                                        <property name="spacing">6</property>
+                                        <property name="homogeneous">True</property>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">Default degree of the polynomial correction:</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkSpinButton" id="spin_asnet_sip_order">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="tooltip-text" translatable="yes">Astrometry solvers can use a polynomial correction (SIP) to work with optical aberrations, this is the default order of the polynomial model. Set to 1 to disable it.</property>
+                                            <property name="halign">start</property>
+                                            <property name="width-chars">9</property>
+                                            <property name="text" translatable="yes">3</property>
+                                            <property name="input-purpose">digits</property>
+                                            <property name="adjustment">adj_astrometry_sip_order</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">1</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">2</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkBox">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="margin-start">12</property>
+                                        <property name="spacing">6</property>
+                                        <property name="homogeneous">True</property>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">Target radius (degrees)</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkSpinButton" id="spin_asnet_radius">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="tooltip-text" translatable="yes">Allowed search radius around the target coordinates for the solve (degrees). Unused for blind (no target passed) solves.</property>
+                                            <property name="halign">start</property>
+                                            <property name="width-chars">9</property>
+                                            <property name="text" translatable="yes">10.00</property>
+                                            <property name="input-purpose">number</property>
+                                            <property name="adjustment">adj_astrometry_radius</property>
+                                            <property name="digits">2</property>
+                                            <property name="value">10</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">1</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">3</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkBox">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="margin-start">12</property>
+                                        <property name="spacing">6</property>
+                                        <property name="homogeneous">True</property>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">Maximum seconds to try solving. 0 to disable it</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkSpinButton" id="spin_asnet_max_sec">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="tooltip-text" translatable="yes">Allowed time for the solve for each catalog file. It can be used as the total solve time only if solve-field is configured to do so in its configuration file.</property>
+                                            <property name="halign">start</property>
+                                            <property name="width-chars">9</property>
+                                            <property name="text" translatable="yes">30</property>
+                                            <property name="input-purpose">digits</property>
+                                            <property name="adjustment">adj_asnet_max_sec</property>
+                                            <property name="value">30</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">1</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                      <packing>
+                                        <property name="expand">False</property>
+                                        <property name="fill">True</property>
+                                        <property name="position">4</property>
+                                      </packing>
+                                    </child>
                                   </object>
                                 </child>
                                 <child type="label">
@@ -1578,7 +1713,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                 <property name="label-xalign">0</property>
                                 <property name="shadow-type">none</property>
                                 <child>
-                                  <!-- n-columns=2 n-rows=8 -->
+                                  <!-- n-columns=2 n-rows=5 -->
                                   <object class="GtkGrid">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
@@ -1586,46 +1721,6 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                     <property name="row-spacing">6</property>
                                     <property name="column-spacing">6</property>
                                     <property name="column-homogeneous">True</property>
-                                    <child>
-                                      <object class="GtkLabel">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">False</property>
-                                        <property name="halign">start</property>
-                                        <property name="label" translatable="yes">Degrees of the polynomial correction:</property>
-                                      </object>
-                                      <packing>
-                                        <property name="left-attach">0</property>
-                                        <property name="top-attach">0</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkSpinButton" id="spin_asnet_radius">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">True</property>
-                                        <property name="tooltip-text" translatable="yes">Allowed search radius around the target coordinates for the solve (degrees). Unused for blind (no target passed) solves.</property>
-                                        <property name="halign">start</property>
-                                        <property name="width-chars">9</property>
-                                        <property name="input-purpose">number</property>
-                                        <property name="adjustment">adj_asnet_radius</property>
-                                        <property name="digits">2</property>
-                                      </object>
-                                      <packing>
-                                        <property name="left-attach">1</property>
-                                        <property name="top-attach">1</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkLabel">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">False</property>
-                                        <property name="halign">start</property>
-                                        <property name="label" translatable="yes">Target radius (degree)</property>
-                                      </object>
-                                      <packing>
-                                        <property name="left-attach">0</property>
-                                        <property name="top-attach">1</property>
-                                      </packing>
-                                    </child>
                                     <child>
                                       <object class="GtkCheckButton" id="check_button_asnet_xyls">
                                         <property name="label" translatable="yes">Do not delete .xyls FITS tables</property>
@@ -1637,7 +1732,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       </object>
                                       <packing>
                                         <property name="left-attach">0</property>
-                                        <property name="top-attach">2</property>
+                                        <property name="top-attach">0</property>
                                       </packing>
                                     </child>
                                     <child>
@@ -1651,49 +1746,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       </object>
                                       <packing>
                                         <property name="left-attach">0</property>
-                                        <property name="top-attach">3</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkLabel">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">False</property>
-                                        <property name="halign">start</property>
-                                        <property name="label" translatable="yes">Maximum seconds to try solving:</property>
-                                      </object>
-                                      <packing>
-                                        <property name="left-attach">0</property>
-                                        <property name="top-attach">4</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkSpinButton" id="spin_asnet_max_sec">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">True</property>
-                                        <property name="tooltip-text" translatable="yes">Allowed time for the solve for each catalog file. It can be used as the total solve time only if solve-field is configured to do so in its configuration file.</property>
-                                        <property name="halign">start</property>
-                                        <property name="width-chars">9</property>
-                                        <property name="input-purpose">digits</property>
-                                        <property name="adjustment">adj_asnet_max_sec</property>
-                                      </object>
-                                      <packing>
-                                        <property name="left-attach">1</property>
-                                        <property name="top-attach">4</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkSpinButton" id="spin_asnet_sip_order">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">True</property>
-                                        <property name="tooltip-text" translatable="yes">Astrometry.net can use a polynomial correction (SIP) to work with optical aberrations, this is the order of the polynomial model. 0 disables it.</property>
-                                        <property name="halign">start</property>
-                                        <property name="width-chars">9</property>
-                                        <property name="input-purpose">digits</property>
-                                        <property name="adjustment">adj_asnet_spi_order</property>
-                                      </object>
-                                      <packing>
-                                        <property name="left-attach">1</property>
-                                        <property name="top-attach">0</property>
+                                        <property name="top-attach">1</property>
                                       </packing>
                                     </child>
                                     <child>
@@ -1705,7 +1758,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       </object>
                                       <packing>
                                         <property name="left-attach">0</property>
-                                        <property name="top-attach">5</property>
+                                        <property name="top-attach">2</property>
                                       </packing>
                                     </child>
                                     <child>
@@ -1723,7 +1776,7 @@ On Windows, you must point to the location of cygwin_ansvr folder only if not in
                                       </object>
                                       <packing>
                                         <property name="left-attach">1</property>
-                                        <property name="top-attach">5</property>
+                                        <property name="top-attach">2</property>
                                       </packing>
                                     </child>
                                     <child>
@@ -1737,7 +1790,7 @@ On Windows, you must point to the location of cygwin_ansvr folder only if not in
                                       </object>
                                       <packing>
                                         <property name="left-attach">0</property>
-                                        <property name="top-attach">7</property>
+                                        <property name="top-attach">4</property>
                                       </packing>
                                     </child>
                                     <child>
@@ -1751,7 +1804,7 @@ On Windows, you must point to the location of cygwin_ansvr folder only if not in
                                       </object>
                                       <packing>
                                         <property name="left-attach">1</property>
-                                        <property name="top-attach">6</property>
+                                        <property name="top-attach">3</property>
                                       </packing>
                                     </child>
                                     <child>
@@ -2814,6 +2867,139 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                         <property name="position">4</property>
                       </packing>
                     </child>
+                    <child>
+                      <object class="GtkFrame">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label-xalign">0</property>
+                        <property name="shadow-type">none</property>
+                        <child>
+                          <object class="GtkAlignment">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="left-padding">12</property>
+                            <child>
+                              <!-- n-columns=3 n-rows=3 -->
+                              <object class="GtkGrid">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="row-spacing">6</property>
+                                <property name="column-spacing">6</property>
+                                <property name="column-homogeneous">True</property>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">siril-spcc-database repository:</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkCheckButton" id="spcc_repo_enable">
+                                    <property name="label" translatable="yes">Enable repository</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">False</property>
+                                    <property name="tooltip-text" translatable="yes">Enable the git repository. This provides the filter and sensor data required to use SPCC.
+It is strongly recommended to leave this enabled. If you choose not to use the repository, you will need to download the .json files manually and unpack them into the repository path shown below in order to use SPCC.</property>
+                                    <property name="active">True</property>
+                                    <property name="draw-indicator">True</property>
+                                    <signal name="toggled" handler="on_spcc_repo_enable_toggled" swapped="no"/>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">Repository path:</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">2</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel" id="label_spcc_repo_path">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="tooltip-text" translatable="yes">If you disable the repository, any SPCC data json files you need must be placed in this directory.</property>
+                                    <property name="halign">start</property>
+                                    <property name="label">label</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">2</property>
+                                    <property name="width">2</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkCheckButton" id="spcc_repo_sync_at_startup">
+                                    <property name="label" translatable="yes">Sync at startup</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">False</property>
+                                    <property name="tooltip-text" translatable="yes">Synchronise the repository at Siril startup.</property>
+                                    <property name="halign">start</property>
+                                    <property name="active">True</property>
+                                    <property name="draw-indicator">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">0</property>
+                                    <property name="top-attach">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkButton" id="spcc_repo_manual_sync">
+                                    <property name="label" translatable="yes">Manual sync</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">True</property>
+                                    <property name="tooltip-text" translatable="yes">Manually synchronise the repository</property>
+                                    <signal name="clicked" handler="on_manual_spcc_sync_button_clicked" swapped="no"/>
+                                  </object>
+                                  <packing>
+                                    <property name="left-attach">1</property>
+                                    <property name="top-attach">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <placeholder/>
+                                </child>
+                                <child>
+                                  <placeholder/>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child type="label">
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="margin-top">10</property>
+                            <property name="margin-bottom">10</property>
+                            <property name="label" translatable="yes">Spectrophotometric Calibration</property>
+                            <attributes>
+                              <attribute name="weight" value="bold"/>
+                            </attributes>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">5</property>
+                      </packing>
+                    </child>
                   </object>
                   <packing>
                     <property name="name">preferences_p3</property>
@@ -3440,6 +3626,65 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                   </packing>
                                 </child>
                                 <child>
+                                  <object class="GtkFrame">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="label-xalign">0</property>
+                                    <property name="shadow-type">none</property>
+                                    <child>
+                                      <!-- n-columns=2 n-rows=1 -->
+                                      <object class="GtkGrid">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="row-spacing">6</property>
+                                        <property name="column-spacing">6</property>
+                                        <property name="column-homogeneous">True</property>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">Middle button double click</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">0</property>
+                                            <property name="top-attach">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkComboBoxText" id="pref_ui_mmb_zoom">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="active">0</property>
+                                            <items>
+                                              <item translatable="yes">Zoom to fit</item>
+                                              <item translatable="yes">Zoom 100% centred on mouse</item>
+                                              <item translatable="yes">Zoom toggles between fit and 100%</item>
+                                            </items>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">1</property>
+                                            <property name="top-attach">0</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                    </child>
+                                    <child type="label">
+                                      <object class="GtkLabel">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="ypad">6</property>
+                                        <property name="label" translatable="yes">Mouse Behaviour</property>
+                                      </object>
+                                    </child>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">7</property>
+                                  </packing>
+                                </child>
+                                <child>
                                   <object class="GtkFrame" id="frame4">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
@@ -3602,7 +3847,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                   <packing>
                                     <property name="expand">False</property>
                                     <property name="fill">True</property>
-                                    <property name="position">7</property>
+                                    <property name="position">8</property>
                                   </packing>
                                 </child>
                               </object>
@@ -3763,7 +4008,6 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
                                         <property name="tooltip-text" translatable="yes">Use this together with the "From files" option above. This should be a RGB ICC profile in your preferred color gamut (e.g. ProPhoto, ClayRGB, ACEScg etc.)</property>
-                                        <property name="filter">icc_filter</property>
                                         <property name="title" translatable="yes"/>
                                         <signal name="file-set" handler="on_external_preferred_profile_set" swapped="no"/>
                                       </object>
@@ -3778,7 +4022,6 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
                                         <property name="tooltip-text" translatable="yes">Use this together with the "From files" option above. This should be a Gray (mono) ICC profile with a tone response curve that matches that of the RGB profile you set above.</property>
-                                        <property name="filter">icc_filter</property>
                                         <property name="title" translatable="yes"/>
                                         <signal name="file-set" handler="on_external_preferred_profile_set" swapped="no"/>
                                       </object>
@@ -3815,7 +4058,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                 <property name="label-xalign">0</property>
                                 <property name="shadow-type">none</property>
                                 <child>
-                                  <!-- n-columns=4 n-rows=3 -->
+                                  <!-- n-columns=3 n-rows=3 -->
                                   <object class="GtkGrid">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
@@ -3841,7 +4084,6 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
                                         <property name="tooltip-text" translatable="yes">To use a custom monitor ICC profile, set it here. If no custom profile is set, sRGB with D65 white point and gamma = 2.2 will be used.</property>
-                                        <property name="filter">icc_filter</property>
                                         <property name="title" translatable="yes"/>
                                         <signal name="file-set" handler="on_pref_custom_monitor_profile_file_set" swapped="no"/>
                                       </object>
@@ -3855,7 +4097,6 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
                                         <property name="tooltip-text" translatable="yes">Specify an output device profile for soft proofing purposes. If this is not set or is inactive, the monitor profile (or sRGB by default) will be used as the soft proofing target.</property>
-                                        <property name="filter">icc_filter</property>
                                         <property name="title" translatable="yes"/>
                                         <signal name="file-set" handler="on_pref_soft_proofing_profile_file_set" swapped="no"/>
                                       </object>
@@ -3890,34 +4131,6 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                       </packing>
                                     </child>
                                     <child>
-                                      <object class="GtkButton" id="monitor_profile_clear">
-                                        <property name="label" translatable="yes">Clear</property>
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">True</property>
-                                        <property name="receives-default">True</property>
-                                        <property name="tooltip-text" translatable="yes">Clear the profile and revert to the default</property>
-                                        <signal name="clicked" handler="on_monitor_profile_clear_clicked" swapped="no"/>
-                                      </object>
-                                      <packing>
-                                        <property name="left-attach">2</property>
-                                        <property name="top-attach">0</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkButton" id="proofing_profile_clear">
-                                        <property name="label" translatable="yes">Clear</property>
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">True</property>
-                                        <property name="receives-default">True</property>
-                                        <property name="tooltip-text" translatable="yes">Clear the profile: soft proofing will be unavailable</property>
-                                        <signal name="clicked" handler="on_proofing_profile_clear_clicked" swapped="no"/>
-                                      </object>
-                                      <packing>
-                                        <property name="left-attach">2</property>
-                                        <property name="top-attach">2</property>
-                                      </packing>
-                                    </child>
-                                    <child>
                                       <object class="GtkComboBoxText" id="combo_rendering_intent">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
@@ -3937,36 +4150,6 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                       </packing>
                                     </child>
                                     <child>
-                                      <object class="GtkCheckButton" id="custom_monitor_profile_active">
-                                        <property name="label" translatable="yes">active</property>
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">True</property>
-                                        <property name="receives-default">False</property>
-                                        <property name="tooltip-text" translatable="yes">Whether or not to use the custom monitor profile. This will take effect when Apply is clicked. The setting is ignored if no custom monitor profile is set.</property>
-                                        <property name="draw-indicator">True</property>
-                                        <signal name="toggled" handler="on_custom_monitor_profile_active_toggled" swapped="no"/>
-                                      </object>
-                                      <packing>
-                                        <property name="left-attach">3</property>
-                                        <property name="top-attach">0</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkCheckButton" id="custom_proofing_profile_active">
-                                        <property name="label" translatable="yes">active</property>
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">True</property>
-                                        <property name="receives-default">False</property>
-                                        <property name="tooltip-text" translatable="yes">Whether or not to use the custom soft proofing profile. This will take effect when Apply is clicked. The setting is ignored if no custom monitor profile is set.</property>
-                                        <property name="draw-indicator">True</property>
-                                        <signal name="toggled" handler="on_custom_proofing_profile_active_toggled" swapped="no"/>
-                                      </object>
-                                      <packing>
-                                        <property name="left-attach">3</property>
-                                        <property name="top-attach">2</property>
-                                      </packing>
-                                    </child>
-                                    <child>
                                       <object class="GtkCheckButton" id="checkbutton_rendering_bpc">
                                         <property name="label" translatable="yes">Black point compensation</property>
                                         <property name="visible">True</property>
@@ -3979,7 +4162,88 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                       <packing>
                                         <property name="left-attach">2</property>
                                         <property name="top-attach">1</property>
-                                        <property name="width">2</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkBox">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <child>
+                                          <object class="GtkButton" id="monitor_profile_clear">
+                                            <property name="label" translatable="yes">Clear</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">True</property>
+                                            <property name="tooltip-text" translatable="yes">Clear the profile and revert to the default</property>
+                                            <signal name="clicked" handler="on_monitor_profile_clear_clicked" swapped="no"/>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkCheckButton" id="custom_monitor_profile_active">
+                                            <property name="label" translatable="yes">active</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">False</property>
+                                            <property name="tooltip-text" translatable="yes">Whether or not to use the custom monitor profile. This will take effect when Apply is clicked. The setting is ignored if no custom monitor profile is set.</property>
+                                            <property name="draw-indicator">True</property>
+                                            <signal name="toggled" handler="on_custom_monitor_profile_active_toggled" swapped="no"/>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">1</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">2</property>
+                                        <property name="top-attach">0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkBox">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <child>
+                                          <object class="GtkButton" id="proofing_profile_clear">
+                                            <property name="label" translatable="yes">Clear</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">True</property>
+                                            <property name="tooltip-text" translatable="yes">Clear the profile: soft proofing will be unavailable</property>
+                                            <signal name="clicked" handler="on_proofing_profile_clear_clicked" swapped="no"/>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkCheckButton" id="custom_proofing_profile_active">
+                                            <property name="label" translatable="yes">active</property>
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">False</property>
+                                            <property name="tooltip-text" translatable="yes">Whether or not to use the custom soft proofing profile. This will take effect when Apply is clicked. The setting is ignored if no custom monitor profile is set.</property>
+                                            <property name="draw-indicator">True</property>
+                                            <signal name="toggled" handler="on_custom_proofing_profile_active_toggled" swapped="no"/>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">1</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                      <packing>
+                                        <property name="left-attach">2</property>
+                                        <property name="top-attach">2</property>
                                       </packing>
                                     </child>
                                   </object>
@@ -4329,6 +4593,69 @@ assign a linear ICC profile. This is technically correct but generally unnecessa
                                 <property name="label-xalign">0</property>
                                 <property name="shadow-type">none</property>
                                 <child>
+                                  <object class="GtkAlignment">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="left-padding">12</property>
+                                    <child>
+                                      <!-- n-columns=3 n-rows=1 -->
+                                      <object class="GtkGrid">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="column-homogeneous">True</property>
+                                        <child>
+                                          <object class="GtkLabel">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="halign">start</property>
+                                            <property name="label" translatable="yes">Color Matching Functions</property>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">0</property>
+                                            <property name="top-attach">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkComboBoxText" id="combo_cmf_pref">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="active">0</property>
+                                            <items>
+                                              <item translatable="yes">CIE 1931 2 degree standard observer</item>
+                                              <item translatable="yes">CIE 1964 10 degree supplementary standard observer</item>
+                                            </items>
+                                          </object>
+                                          <packing>
+                                            <property name="left-attach">1</property>
+                                            <property name="top-attach">0</property>
+                                            <property name="width">2</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                                <child type="label">
+                                  <object class="GtkLabel">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="label" translatable="yes">Color Matching Functions</property>
+                                  </object>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">5</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkFrame">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="label-xalign">0</property>
+                                <property name="shadow-type">none</property>
+                                <child>
                                   <object class="GtkButtonBox">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
@@ -4367,7 +4694,7 @@ assign a linear ICC profile. This is technically correct but generally unnecessa
                               <packing>
                                 <property name="expand">False</property>
                                 <property name="fill">True</property>
-                                <property name="position">6</property>
+                                <property name="position">7</property>
                               </packing>
                             </child>
                           </object>
@@ -5332,7 +5659,6 @@ This setting is used in Deconvolution, but is ignored by the Fourier Transform f
 For old StarNet++ v1 installations that used separate executables to process mono and RGB files, the executables &lt;b&gt;must&lt;/b&gt; retain their original names &lt;b&gt;mono_starnet++&lt;/b&gt; and &lt;b&gt;rgb_starnet++&lt;/b&gt; (with &lt;b&gt;.exe&lt;/b&gt; if using Windows), and they must both be in the same directory. You can select either executable: Siril will automatically find the other one if it exists.</property>
                                 <property name="valign">center</property>
                                 <property name="create-folders">False</property>
-                                <property name="filter">all_files</property>
                                 <property name="preview-widget-active">False</property>
                                 <property name="show-hidden">True</property>
                                 <property name="use-preview-label">False</property>
@@ -5367,7 +5693,6 @@ For old StarNet++ v1 installations that used separate executables to process mon
                                 <property name="tooltip-markup" translatable="yes">Select StarNet weights file. This &lt;b&gt;only&lt;/b&gt; works with the new Torch-based StarNet versions. It is optional: if left blank, the weights file &lt;b&gt;must&lt;/b&gt; be in the same directory as the StarNet executable.</property>
                                 <property name="valign">center</property>
                                 <property name="create-folders">False</property>
-                                <property name="filter">all_files</property>
                                 <property name="preview-widget-active">False</property>
                                 <property name="show-hidden">True</property>
                                 <property name="use-preview-label">False</property>

@@ -109,7 +109,7 @@
 #include "registration/matching/match.h"
 #include "registration/matching/atpmatch.h"
 
-#define DEBUG           /* get some of diagnostic output */
+// #define DEBUG           /* get some of diagnostic output */
 
 static void reset_copy_ids(int numA, struct s_star *star_list_A,
 		struct s_star *star_list_A_copy);
@@ -121,15 +121,30 @@ static int prepare_to_recalc(int num_matched_A,
 		struct s_star *matched_list_B, struct s_star *star_list_A_copy,
 		TRANS *trans);
 
-int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
-		double min_scale, double max_scale, Homography *H,
-		gboolean for_astrometry, transformation_type type,
+// star_match can output either:
+// - a Homography matrix (with the right order, set with transformation_type) for linear transformations only (global alignment)
+// - a trans matrix (with the right order, set with trans_order) for astrometry solve which can be linear, quadratic or cubic
+// The flag for astrometry is used to check whether we are getting the right members to fill:
+// if TRUE, we should have a trans_order input and a TRANS* output
+// if FALSE, we should have a transformation_type input and a Homography * output
+// The function starts by making sure we have the correct inputs/outputs set
+int new_star_match(psf_star **s1, psf_star **s2, int n1, int n2, int nobj_override,
+		double min_scale, double max_scale, Homography *H, TRANS *t,
+		gboolean for_astrometry, transformation_type type, int trans_type,
 		s_star **out_list_A, s_star **out_list_B) {
+	//sanity checks
+	if (for_astrometry) {
+		g_assert(t != NULL);
+		g_assert(trans_type > AT_TRANS_UNDEFINED);
+	} else {
+		g_assert(H != NULL);
+		g_assert(type >= SHIFT_TRANSFORMATION);
+	}
 	int numA, numB;
 	int num_matched_A, num_matched_B;
 	int numA_copy;
 	int max_iter = AT_MATCH_MAXITER;
-	int trans_order = AT_TRANS_LINEAR; /* Good enough to start */
+	int trans_order = (for_astrometry) ? trans_type : AT_TRANS_LINEAR; /* for image registration, we will always use linear */
 	double triangle_radius = AT_TRIANGLE_RADIUS; /* in triangle-space coords */
 	double match_radius = AT_MATCH_RADIUS; /* in units of list B */
 	double rot_angle = AT_MATCH_NOANGLE; /* by default, any angle is okay */
@@ -140,8 +155,8 @@ int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
 	struct s_star *star_list_A = NULL, *star_list_B = NULL;
 	struct s_star *star_list_A_copy = NULL;
 	struct s_star *matched_list_A = NULL, *matched_list_B = NULL;
-	TRANS *trans;
-	Homography *Hom;
+	TRANS *trans = NULL;
+	Homography *Hom = NULL;
 
 	if (min_scale != -1.0 && max_scale != -1.0 && min_scale > max_scale) {
 		fprintf(stderr,"min_scale must be smaller than max_scale\n");
@@ -155,7 +170,7 @@ int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
 	}
 #endif
 	if (nobj_override > 0)
-		nobj = min(n, nobj_override);
+		nobj = min(max(n1, n2), nobj_override);
 
 	/* Check to make sure that the user specified
 	 *
@@ -175,8 +190,7 @@ int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
 	}
 
 	/* we start with an "empty" TRANS; atFindTrans will try to fill it */
-	atTransOrderSet(trans_order);
-	trans = atTransNew();
+	trans = calloc(1, sizeof(TRANS));
 	trans->order = trans_order;
 
 #ifdef DEBUG
@@ -184,7 +198,7 @@ int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
 #endif
 
 	/* read information from the first list */
-	if (get_stars(s1, n, &numA, &star_list_A)) {
+	if (get_stars(s1, n1, &numA, &star_list_A)) {
 		shFatal("can't read data\n");
 		atTransDel(trans);
 		return (SH_GENERIC_ERROR);
@@ -198,7 +212,7 @@ int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
 	 * restore the output matched coords (which have been converted to those in
 	 * set B) with the original coords.
 	 */
-	if (get_stars(s1, n, &numA_copy, &star_list_A_copy)) {
+	if (get_stars(s1, n1, &numA_copy, &star_list_A_copy)) {
 		atTransDel(trans);
 		free_stars(&star_list_A);
 		fprintf(stderr,"can't read data\n");
@@ -214,7 +228,7 @@ int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
 	reset_copy_ids(numA, star_list_A, star_list_A_copy);
 
 	/* read information from the second list */
-	if (get_stars(s2, n, &numB, &star_list_B)) {
+	if (get_stars(s2, n2, &numB, &star_list_B)) {
 		atTransDel(trans);
 		free_stars(&star_list_A);
 		free_stars(&star_list_A_copy);
@@ -229,7 +243,9 @@ int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
 			nobj, min_scale, max_scale, rot_angle, rot_tol, max_iter,
 			halt_sigma, trans);
 	if (ret != SH_SUCCESS) {
+#ifdef DEBUG
 		fprintf(stderr, "initial call to atFindTrans failed\n");
+#endif
 		/** */
 		atTransDel(trans);
 		free_stars(&star_list_A);
@@ -295,7 +311,9 @@ int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
 	/* okay, now we're ready to call atRecalcTrans, on matched items only */
 	if (atRecalcTrans(num_matched_A, matched_list_A, num_matched_B,
 			matched_list_B, max_iter, halt_sigma, trans) != SH_SUCCESS) {
+#ifdef DEBUG
 		fprintf(stderr,"atRecalcTrans fails on matched pairs only\n");
+#endif
 		/** */
 		atTransDel(trans);
 		free_stars(&matched_list_A);
@@ -362,7 +380,254 @@ int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
 	/* final call atRecalcTrans, on matched items only */
 	if (atRecalcTrans(num_matched_A, matched_list_A, num_matched_B,
 			matched_list_B, max_iter, halt_sigma, trans) != SH_SUCCESS) {
+#ifdef DEBUG
 		fprintf(stderr,"atRecalcTrans fails on matched pairs only\n");
+#endif
+		/** */
+		atTransDel(trans);
+		free_stars(&matched_list_A);
+		free_stars(&matched_list_B);
+		free_stars(&star_list_A);
+		free_stars(&star_list_B);
+		free_stars(&star_list_A_copy);
+		/** */
+		return (SH_GENERIC_ERROR);
+	}
+
+#ifdef DEBUG
+	printf("TRANS based on recalculated matches is \n");
+	print_trans(trans);
+#endif
+	if (!for_astrometry) { // we will compute the full linear up to HOMOGRAPHY_TRANSFORMATION with opencv
+		Hom = atHNew();
+		Hom->pair_matched = num_matches;
+
+		if (atPrepareHomography(num_matched_A, matched_list_A, num_matched_B,
+				matched_list_B, Hom, for_astrometry, type)) {
+			fprintf(stderr, "atPrepareHomography failed to compute H\n");
+			/** */
+			atTransDel(trans);
+			atHDel(Hom);
+			free_stars(&matched_list_A);
+			free_stars(&matched_list_B);
+			free_stars(&star_list_A);
+			free_stars(&star_list_B);
+			free_stars(&star_list_A_copy);
+			/** */
+			return (SH_GENERIC_ERROR);
+		}
+
+		print_H(Hom);
+		*H = *Hom;
+	} else {
+		*t = *trans;
+	}
+
+	if (out_list_A)
+		*out_list_A = matched_list_A;
+	else free_stars(&matched_list_A);
+	if (out_list_B)
+		*out_list_B = matched_list_B;
+	else free_stars(&matched_list_B);
+
+	/* clean up memory */
+	atTransDel(trans);
+	atHDel(Hom);
+	free_stars(&star_list_A);
+	free_stars(&star_list_B);
+	free_stars(&star_list_A_copy);
+
+	return 0;
+}
+
+// star_match can output either:
+// - a Homography matrix (with the right order, set with transformation_type) for linear transformations only (global alignment)
+// - a trans matrix (with the right order, set with trans_order) for astrometry solve which can be linear, quadratic or cubic
+// The flag for astrometry is used to check whether we are getting the right members to fill:
+// if TRUE, we should have a trans_order input and a TRANS* output
+// if FALSE, we should have a transformation_type input and a Homography * output
+// The function starts by making sure we have the correct inputs/outputs set
+int re_star_match(psf_star **s1, psf_star **s2, int n1, int n2,
+		TRANS *trans, s_star **out_list_A, s_star **out_list_B) {
+	//sanity checks
+
+	int numA, numB;
+	int num_matched_A, num_matched_B;
+	int numA_copy;
+	int max_iter = AT_MATCH_MAXITER;
+	double match_radius = AT_MATCH_RADIUS; /* in units of list B */
+	double halt_sigma = AT_MATCH_HALTSIGMA;
+	int num_matches = 0; /* number of matching pairs */
+	struct s_star *star_list_A = NULL, *star_list_B = NULL;
+	struct s_star *star_list_A_copy = NULL;
+	struct s_star *matched_list_A = NULL, *matched_list_B = NULL;
+
+#ifdef DEBUG
+	printf("using trans_order %d\n", trans_order);
+#endif
+
+	/* read information from the first list */
+	if (get_stars(s1, n1, &numA, &star_list_A)) {
+		shFatal("can't read data\n");
+		return (SH_GENERIC_ERROR);
+	}
+
+	/* We always (whether given initial TRANS or not) will make a second
+	 * calculation of the TRANS, using only objects in the set of matched pairs.
+	 * As input to this second calculation, we will need items from list A with
+	 * their original coordinates.
+	 * Therefore, we now create a copy of the stars in set A, so that we can
+	 * restore the output matched coords (which have been converted to those in
+	 * set B) with the original coords.
+	 */
+	if (get_stars(s1, n1, &numA_copy, &star_list_A_copy)) {
+		free_stars(&star_list_A);
+		fprintf(stderr,"can't read data\n");
+		return (SH_GENERIC_ERROR);
+	}
+
+	/* sanity check */
+	g_assert(numA_copy == numA);
+
+	/* reset the 'id' field values in the star_list_A_copy so that they
+	 * match the 'id' field values in their counterparts in star_list_A
+	 */
+	reset_copy_ids(numA, star_list_A, star_list_A_copy);
+
+	/* read information from the second list */
+	if (get_stars(s2, n2, &numB, &star_list_B)) {
+		free_stars(&star_list_A);
+		free_stars(&star_list_A_copy);
+		printf("can't read data\n");
+		return (SH_GENERIC_ERROR);
+	}
+
+
+#ifdef DEBUG
+	printf("using trans_order %d.\n", trans_order);
+	printf("Initial trans structure:\n");
+	print_trans(trans);
+#endif
+
+	/* having found (or been given) the TRANS that takes A -> B, let us apply
+	 * it to all the elements in A; thus, we'll have two sets of
+	 * of stars, each in the same coordinate system
+	 */
+	atApplyTrans(numA, star_list_A, trans);
+
+	/* now match up the two sets of items, and find four subsets:
+	 *
+	 *     those from list A that do     have matches in list B
+	 *     those from list B that do     have matches in list A
+	 *     those from list A that do NOT have matches in list B
+	 *     those from list B that do NOT have matches in list A
+	 *
+	 * We may use the two sets of matched objects for further processing,
+	 * so we put the names of the files containing those matched objects
+	 * into 'matched_file_A' and 'matched_file_B' for easy reference.
+	 */
+	atMatchLists(numA, star_list_A, numB, star_list_B, match_radius, &num_matches, &matched_list_A, &matched_list_B);
+	trans->nm = num_matches;
+	num_matched_B = num_matched_A = num_matches;
+
+	/* The user didn't give us any information about an initial TRANS, so we
+	 * called 'atFindTrans()' to find one.
+	 * We have applied this TRANS to input list A, and looked for matched pairs.
+	 *
+	 * Now, we want to improve the initial TRANS, whether it was supplied
+	 * by user or determined by 'atFindTrans()'.  We do so by applying
+	 * the initial TRANS to only the matched objects in list A, and then
+	 * calling 'atRecalcTrans()' on the matched objects only.  This should
+	 * give an improved TRANS, since it very likely won't be contaminated
+	 * by any spurious matches.
+	 */
+
+	/* need to send trans to prepare_to_recalc because it adds sdx,sdy to it */
+	if (prepare_to_recalc(num_matched_A, matched_list_A,
+			num_matched_B, matched_list_B, star_list_A_copy, trans) != 0) {
+		fprintf(stderr,"prepare_to_recalc fails\n");
+		/** */
+		free_stars(&matched_list_A);
+		free_stars(&matched_list_B);
+		free_stars(&star_list_A);
+		free_stars(&star_list_B);
+		free_stars(&star_list_A_copy);
+		/** */
+		return (SH_GENERIC_ERROR);
+	}
+	/* okay, now we're ready to call atRecalcTrans, on matched items only */
+	if (atRecalcTrans(num_matched_A, matched_list_A, num_matched_B,
+			matched_list_B, max_iter, halt_sigma, trans) != SH_SUCCESS) {
+#ifdef DEBUG
+		fprintf(stderr,"atRecalcTrans fails on matched pairs only\n");
+#endif
+		/** */
+		free_stars(&matched_list_A);
+		free_stars(&matched_list_B);
+		free_stars(&star_list_A);
+		free_stars(&star_list_B);
+		free_stars(&star_list_A_copy);
+		/** */
+		return (SH_GENERIC_ERROR);
+	}
+#ifdef DEBUG
+	printf("TRANS based on matches only :\n");
+	print_trans(trans);
+#endif
+
+	/* At this point, we have a TRANS which is based solely on those items
+	 * which matched.  If the user wishes, we can improve the TRANS
+	 * even more by applying the current transformation to ALL items
+	 * in list A, making a second round of matching pairs, and then
+	 * using these pairs to calculate a new and better TRANS.
+	 *
+	 * The point is that we'll probably end up with more matched pairs
+	 * if we start with the current TRANS, instead of the initial TRANS.
+	 */
+
+	/* re-set coords of all items in star A */
+	if (reset_A_coords(numA, star_list_A, star_list_A_copy) != 0) {
+		shFatal("reset_A_coords returns with error before recalc");
+	}
+
+	/* apply the current TRANS (which is probably much better than
+	 * the initial TRANS) to all items in list A
+	 */
+	atApplyTrans(numA, star_list_A, trans);
+
+	/* Match items in list A to those in list B */
+	free_stars(&matched_list_A);
+	free_stars(&matched_list_B);
+	atMatchLists(numA, star_list_A, numB, star_list_B, match_radius, &num_matches, &matched_list_A, &matched_list_B); // causes memleak
+
+	trans->nm = num_matches;
+	num_matched_B = num_matched_A = num_matches;
+#ifdef DEBUG
+	printf("After tuning with recalc, num matches is %d\n", num_matches);
+	print_trans(trans);
+#endif
+
+	/* prepare to call atRecalcTrans one last time */
+	/* need to send trans to prepare_to_recalc because it adds sdx,sdy */
+	if (prepare_to_recalc(num_matched_A, matched_list_A,
+			num_matched_B, matched_list_B, star_list_A_copy, trans) != 0) {
+		fprintf(stderr,"prepare_to_recalc fails\n");
+		/** */
+		free_stars(&matched_list_A);
+		free_stars(&matched_list_B);
+		free_stars(&star_list_A);
+		free_stars(&star_list_B);
+		free_stars(&star_list_A_copy);
+		/** */
+		return (SH_GENERIC_ERROR);
+	}
+
+	/* final call atRecalcTrans, on matched items only */
+	if (atRecalcTrans(num_matched_A, matched_list_A, num_matched_B,
+			matched_list_B, max_iter, halt_sigma, trans) != SH_SUCCESS) {
+#ifdef DEBUG
+		fprintf(stderr,"atRecalcTrans fails on matched pairs only\n");
+#endif
 		/** */
 		atTransDel(trans);
 		free_stars(&matched_list_A);
@@ -379,26 +644,6 @@ int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
 	print_trans(trans);
 #endif
 
-	Hom = atHNew();
-	Hom->pair_matched = num_matches;
-
-	if (atPrepareHomography(num_matched_A, matched_list_A, num_matched_B,
-			matched_list_B, Hom, for_astrometry, type)) {
-		fprintf(stderr, "atPrepareHomography failed to compute H\n");
-		/** */
-		atTransDel(trans);
-		atHDel(Hom);
-		free_stars(&matched_list_A);
-		free_stars(&matched_list_B);
-		free_stars(&star_list_A);
-		free_stars(&star_list_B);
-		free_stars(&star_list_A_copy);
-		/** */
-		return (SH_GENERIC_ERROR);
-	}
-
-	print_H(Hom);
-	*H = *Hom;
 
 	if (out_list_A)
 		*out_list_A = matched_list_A;
@@ -408,8 +653,6 @@ int new_star_match(psf_star **s1, psf_star **s2, int n, int nobj_override,
 	else free_stars(&matched_list_B);
 
 	/* clean up memory */
-	atTransDel(trans);
-	atHDel(Hom);
 	free_stars(&star_list_A);
 	free_stars(&star_list_B);
 	free_stars(&star_list_A_copy);

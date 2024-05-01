@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -177,8 +177,27 @@ static int darkOptimization(fits *raw, struct preprocessing_data *args, int in_i
 	if (copyfits(dark, &dark_tmp, CP_ALLOC | CP_COPYA | CP_FORMAT, 0))
 		return 1;
 
-	/* Minimization of background noise to find better k */
-	k0 = goldenSectionSearch(raw, &dark_tmp, lo, up, 0.001f, args->allow_32bit_output);
+	if (args->use_exposure) {
+		if (dark->keywords.exposure <= 0.0) {
+			siril_log_color_message(_("The dark frame contains no exposure data or incorrect exposure data.\n"), "red");
+			clearfits(&dark_tmp);
+			return 1;
+		}
+		if (raw->keywords.exposure <= 0.0) {
+			siril_log_color_message(_("The light frame (%d) contains no exposure data or incorrect exposure data.\n"), "red", in_index);
+			clearfits(&dark_tmp);
+			return 1;
+		}
+		/* linear scale with time */
+		k0 = raw->keywords.exposure / dark->keywords.exposure;
+		if (k0 > 1.f) {
+			siril_log_color_message(_("Warning: master dark is shorter than lights. It is "
+						"recommended that the master dark be at least as long as the lights.\n"), "salmon");
+		}
+	} else {
+		/* Minimization of background noise to find better k */
+		k0 = goldenSectionSearch(raw, &dark_tmp, lo, up, 0.001f, args->allow_32bit_output);
+	}
 	if (k0 < 0.f) {
 		siril_log_message(_("Dark optimization of image %d failed\n"), in_index);
 		ret = -1;
@@ -369,7 +388,7 @@ int prepro_prepare_hook(struct generic_seq_args *args) {
 
 	// proceed to cosmetic correction
 	if (prepro->use_cosmetic_correction && prepro->use_dark && prepro->cc_from_dark) {
-		if (strlen(prepro->dark->bayer_pattern) > 4) {
+		if (strlen(prepro->dark->keywords.bayer_pattern) > 4) {
 			siril_log_color_message(_("Cosmetic correction cannot be applied on X-Trans files.\n"), "red");
 			prepro->use_cosmetic_correction = FALSE;
 		} else {
@@ -443,7 +462,7 @@ int prepro_image_hook(struct generic_seq_args *args, int out_index, int in_index
 	 */
 	full_stats_invalidation_from_fit(fit);
 	fit->history = g_slist_concat(fit->history, history);
-	fit->lo = 0;
+	fit->keywords.lo = 0;
 	return 0;
 }
 
@@ -496,7 +515,7 @@ void start_sequence_preprocessing(struct preprocessing_data *prepro) {
 }
 
 /********** SINGLE IMAGE (from com.uniq) ************/
-int preprocess_single_image(struct preprocessing_data *args) {
+int calibrate_single_image(struct preprocessing_data *args) {
 	gchar *msg;
 	fits fit = { 0 };
 	int ret = 0;
@@ -607,7 +626,7 @@ int evaluateoffsetlevel(const char* expression, fits *fit) {
 	}
 	if (!multiplier) goto free_on_error; // multiplier not parsed
 	if (end[0] != '\0') goto free_on_error; // some characters were found after the multiplier
-	offsetlevel = (int)(multiplier * fit->key_offset);
+	offsetlevel = (int)(multiplier * fit->keywords.key_offset);
 	if (expressioncpy) g_free(expressioncpy);
 	return offsetlevel;
 free_on_error:
@@ -780,8 +799,9 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 
 		if (args->use_dark) {
 			// dark optimization
-			tbutton = GTK_TOGGLE_BUTTON(lookup_widget("checkDarkOptimize"));
-			args->use_dark_optim = gtk_toggle_button_get_active(tbutton);
+			int optim = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("comboDarkOptimize")));
+			args->use_dark_optim = optim != 0;
+			args->use_exposure = optim == 2;
 			const char *error = NULL;
 			if ((gfit.orig_bitpix == BYTE_IMG) && args->use_dark_optim) {
 				error = _("Dark optimization: This process cannot be applied to 8b images");
@@ -953,7 +973,7 @@ void on_prepro_button_clicked(GtkButton *button, gpointer user_data) {
 		set_cursor_waiting(TRUE);
 		control_window_switch_to_tab(OUTPUT_LOGS);
 
-		retval = preprocess_single_image(args);
+		retval = calibrate_single_image(args);
 
 		free(args);
 

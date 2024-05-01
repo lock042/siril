@@ -9,7 +9,7 @@ project('kplot',
   ['c','cpp'],
   version : '0.1.14',
   license : ['ISC'],
-  meson_version: '>=0.53.0',
+  meson_version: '>=0.55.0',
   default_options : [
     'c_std=gnu11',
     'cpp_std=c++11'
@@ -41,9 +41,8 @@ int main(void) { return( ! reallocarray(NULL, 2, 2));}
 '''
 
 # TODO: Better crosscompilation support.
-# TODO: Also has_exe_wrapper will be deperacted in meson version 0.55.
 rcode = 1
-if meson.has_exe_wrapper()
+if meson.can_run_host_binaries()
     result = cc.run(code, name : 'reallocarray check')
     rcode = result.returncode()
 endif

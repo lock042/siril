@@ -33,13 +33,12 @@
 
 
    /* possibilities for the "order" field of TRANS structures */
+#define AT_TRANS_UNDEFINED   0           /* when not specified */
 #define AT_TRANS_LINEAR      1           /* linear terms only */
 #define AT_TRANS_QUADRATIC   2           /* linear plus quadratic */
 #define AT_TRANS_CUBIC       3           /* linear plus quadratic plus cubic */
-
-	/* maximum possible number of coefficients in a TRANS */
-#define AT_TRANS_MAXCOEFF   16           /* for cubic case */
-
+#define AT_TRANS_QUARTIC     4           /* linear plus quadratic plus cubic plus quartic*/
+#define AT_TRANS_QUINTIC     5           /* linear plus quadratic plus cubic plus quartic plus quintic*/
 
    /*
     * little wrappers around 'malloc' and 'free' functions.
@@ -87,18 +86,23 @@ shDebug(int level, char *format, ...);
     *
     *   if linear terms only:
     *
-    *       x' = A + B*x + C*y
-    *       y' = D + E*x + F*y
+    *       x' = X00 + X10*x + X01*y
+    *       y' = Y00 + Y10*x + Y01*y
     *
     *   if linear plus quadratic terms,
     *
-    *      x' =  A + Bx + Cy + Dxx + Exy + Fyy
-    *      y' =  G + Hx + Iy + Jxx + Kxy + Lyy
+    *      x' =  X00 + X10*x + X01*y + X20*xx + X11*xy + X02*yy
+    *      y' =  Y00 + Y10*x + Y01*y + Y20*xx + Y11*xy + Y02*yy
     *
     *   if linear plus quadratic plus cubic,
     *
-    *      x' =  A + Bx + Cy + Dxx + Exy + Fyy + Gx(xx+yy) + Hy(xx+yy)
-    *      y' =  I + Jx + Ky + Lxx + Mxy + Nyy + Ox(xx+yy) + Py(xx+yy)
+    *      x' =  X00 + X10*x + X01*y + X20*xx + X11*xy + X02*yy + X30*xxx + X21*xxy + X12*xyy + X03*yyy
+    *      y' =  Y00 + Y10*x + Y01*y + Y20*xx + Y11*xy + Y02*yy + Y30*xxx + Y21*xxy + Y12*xyy + Y03*yyy
+    * 
+    *   if linear plus quadratic plus cubic plus quartic,
+    *
+    *      x' =  X00 + X10*x + X01*y + X20*xx + X11*xy + X02*yy + X30*xxx + X21*xxy + X12*xyy + X03*yyy + X40*xxxx + X31*xxxy + X22*xxyy + X13*xyyy + X04*yyyy
+    *      y' =  Y00 + Y10*x + Y01*y + Y20*xx + Y11*xy + Y02*yy + Y30*xxx + Y21*xxy + Y12*xyy + Y03*yyy + Y40*xxxx + Y31*xxxy + Y22*xxyy + Y13*xyyy + Y04*yyyy
     *
     *
     *  The 'order' field of the TRANS structure signals which
@@ -131,7 +135,8 @@ shDebug(int level, char *format, ...);
 typedef struct Trans {
   int id;
   int order;
-  double a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p;
+  double x00, x10, x01, x20, x11, x02, x30, x21, x12, x03, x40, x31, x22, x13, x04, x50, x41, x32, x23, x14, x05;
+  double y00, y10, y01, y20, y11, y02, y30, y21, y12, y03, y40, y31, y22, y13, y04, y50, y41, y32, y23, y14, y05;
   int nr;
   int nm;
   double sig;
@@ -156,21 +161,24 @@ struct s_star *
 atStarNew(double x, double y, double mag, double BV);
 
    /*
-    * read an ASCII file with a catalog of stars, and create a list
-    * of s_star structures
-    */
-int
-read_star_file(char *filename, int xcolumn, int ycolumn, int magcolumn,
-               int idcolumn, int ra_hours_col, int *num_stars,
-               struct s_star **list);
-
-   /*
-    * read an ASCII file with a list of matched stars, created by
-    * the atMatchLists function, and create a list of s_star structures.
+    * converts a psf_star list to a s_star list usable by the match functions
     */
 
 int
 get_stars(psf_star **s, int n, int *num_stars, struct s_star **list);
+
+   /*
+    * updates stars positions using an updated psf_star catalog
+    */
+void
+update_stars_positions(struct s_star **old_list, int n_old, psf_star **s);
+
+   /*
+    * creates a list of stars on a mesh
+    */
+
+struct s_star *
+create_grid_list(int rx, int ry, int nbpoints);
 
 void
 free_stars(struct s_star **head);

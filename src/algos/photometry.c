@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -60,16 +60,16 @@ static double getMagErr(double intensity, double area, int nsky, double skysig, 
 	return fmin(9.999, 1.0857 * noise / intensity);
 }
 
-struct phot_config *phot_set_adjusted_for_image(fits *fit) {
+struct phot_config *phot_set_adjusted_for_image(const fits *fit) {
 	struct phot_config *retval = malloc(sizeof(struct phot_config));
 	if (!retval) {
 		PRINT_ALLOC_ERR;
 		return NULL;
 	}
 	memcpy(retval, &com.pref.phot_set, sizeof(struct phot_config));
-	if (fit->cvf > 0.0) {
+	if (fit->keywords.cvf > 0.0) {
 		// always overwrite with value from the image if available
-		retval->gain = fit->cvf;
+		retval->gain = fit->keywords.cvf;
 	}
 	if (fit->type == DATA_FLOAT) {
 		retval->gain *= USHRT_MAX_DOUBLE;
@@ -81,7 +81,7 @@ struct phot_config *phot_set_adjusted_for_image(fits *fit) {
 }
 
 /* Function that compute all photometric data. The result must be freed */
-photometry *getPhotometryData(gsl_matrix* z, psf_star *psf,
+photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 		struct phot_config *phot_set, gboolean verbose, psf_error *error) {
 	int width = z->size2;
 	int height = z->size1;
@@ -264,8 +264,8 @@ const char *psf_error_to_string(psf_error err) {
 			return _("area too small");
 		case PSF_ERR_INVALID_IMAGE:
 			return _("image is invalid");
-		case PSF_ERR_OUT_OF_IMAGE:
-			return _("not in image");
+		case PSF_ERR_FLUX_RATIO:
+			return _("flux ratio failed");
 		default:
 			return _("unknown error");
 	}
@@ -288,14 +288,84 @@ void print_psf_error_summary(gint *code_sums) {
 	g_free(str);
 }
 
+// save the light curve to a dat file
+// with formatting compatible with ETD
+static gboolean siril_plot_save_ETD_light_curve(siril_plot_data *spl_data, const char *datfilename, gboolean add_title) {
+	GString *header = NULL;
+	FILE* fileout = NULL;
+	gboolean retval = TRUE;
+	double *data = NULL;
+	if (g_list_length(spl_data->plots) > 1) {
+		siril_debug_print("Light curve should not hold more than one data series, aborting\n");
+		return FALSE;
+	}
+
+	int nbpoints = 0, nbcols = 3;
+	if (add_title && spl_data->title) {
+		// spl_data->title is assumed to have the # signs at each line start as necessary
+		// and to finish by a \n character
+		header = g_string_new(spl_data->title);
+		g_string_append_printf(header, "# JD_UT V-C err");
+	} else
+		header = g_string_new("# JD_UT V-C err");
+
+	// xy points with y error bars
+	splxyerrdata *plots = (splxyerrdata *)spl_data->plots->data;
+	nbpoints = plots->nb;
+
+	// gathering all the data
+	data = malloc(nbpoints * nbcols * sizeof(double));
+	if (!data) {
+		PRINT_ALLOC_ERR;
+		retval = FALSE;
+		goto clean_and_exit;
+	}
+
+	// writing JD
+	int index = 0;
+	for (int i = 0; i < nbpoints; i++) {
+		data[index] = plots->plots[0]->data[i].x + plots->plots[0]->x_offset; // adding JD
+		index += nbcols;
+	}
+
+	// writing V-C and error
+	index = 1;
+	for (int i = 0; i < nbpoints; i++) {
+		for (int k = 0; k < 2; k++)
+			data[index + k] = plots->plots[k]->data[i].y;
+		index += nbcols;
+	}
+
+	fileout = g_fopen(datfilename, "w");
+	if (fileout == NULL) {
+		siril_log_message(_("Could not create %s, aborting\n"));
+		retval = FALSE;
+		goto clean_and_exit;
+	}
+	fprintf(fileout, "%s", header->str);
+	index = 0;
+	for (int r = 0 ; r < nbpoints ; r++) {
+		fprintf(fileout, "\n%f", data[index++]); // print newline and x
+		for (int c = 1 ; c < nbcols ; c++)
+			fprintf(fileout, " %g", data[index++]);
+	}
+	fclose(fileout);
+	siril_log_message(_("%s has been saved.\n"), datfilename);
+
+clean_and_exit:
+	g_string_free(header, TRUE);
+	free(data);
+	return retval;
+}
+
 /****************** making a light curve from sequence-stored data ****************/
-/* contrary to light_curve() in gui/plot.c, this one does not use preprocessed data and the
- * kplot data structure. It only uses data stored in the sequence, in seq->photometry, which is
+/* It uses data stored in the sequence, in seq->photometry, which is
  * populated by successive calls to seqpsf on the opened sequence;
  */
-int new_light_curve(sequence *seq, const char *filename, const char *target_descr, gboolean display_graph, struct light_curve_args *lcargs) {
+int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 	int i, j;
 	siril_plot_data *spl_data = NULL;
+	sequence *seq = lcargs->seq;
 
 	if (!seq->photometry[0]) {
 		siril_log_color_message(_("No photometry data found, error\n"), "red");
@@ -411,8 +481,12 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 	siril_log_message(_("Calibrated data for %d points of the light curve, %d excluded because of invalid photometry\n"), nb_valid_images, seq->selnum - nb_valid_images);
 
 	gchar *subtitleimg = generate_lc_subtitle(lcargs->metadata, TRUE);
-	gchar *titleimg = g_strdup_printf("%s %s%s",
-			_("Light curve of star"), target_descr, subtitleimg);
+	gchar *titleimg;
+	if (!lcargs->target_descr) {
+		titleimg = g_strdup_printf("%s %s", _("Light curve of star"), subtitleimg);
+	} else {
+		titleimg = g_strdup_printf("%s %s%s", _("Light curve of star"), lcargs->target_descr, subtitleimg);
+	}
 	gchar *subtitledat = generate_lc_subtitle(lcargs->metadata, FALSE);
 	gchar *titledat = g_strdup_printf("%s#JD_UT (+ %d)\n", subtitledat, julian0);
 	gchar *xlabel = g_strdup_printf("JD_UT (+ %d)", julian0);
@@ -425,20 +499,25 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 	siril_plot_set_savename(spl_data, "light_curve");
 	spl_data->forsequence = TRUE;
 	double *date0 = malloc(nb_valid_images * sizeof(double));
-	for (int i = 0; i < nb_valid_images; i++)
-		date0[i] = date[i] - julian0;
+	for (int k = 0; k < nb_valid_images; k++)
+		date0[k] = date[k] - julian0;
 	siril_plot_add_xydata(spl_data, _("V-C"), nb_valid_images, date0, vmag, err, NULL);
+	splxyerrdata *lc = (splxyerrdata *)spl_data->plots->data;
+	lc->plots[0]->x_offset = (double)julian0;
 	free(date0);
+
+	// now we sort to have all dates ascending
+	siril_plot_sort_x(spl_data);
 	// saving dat
 	int ret = 0;
-	if (!siril_plot_save_dat(spl_data, filename, TRUE)) {
+	if (!siril_plot_save_ETD_light_curve(spl_data, filename, TRUE)) {
 		ret = 1;
 		free_siril_plot_data(spl_data);
 		spl_data = NULL; // just in case we try to use it later on
 	} else {
 		// now saving the plot if required
 		siril_plot_set_title(spl_data, titleimg);
-		if (!display_graph) { // if not used for display we can free spl_data now
+		if (!lcargs->display_graph) { // if not used for display we can free spl_data now
 			gchar *image_name = replace_ext(filename, ".png");
 			siril_plot_save_png(spl_data, image_name, 0, 0);
 			free_siril_plot_data(spl_data);
@@ -452,7 +531,7 @@ int new_light_curve(sequence *seq, const char *filename, const char *target_desc
 	g_free(subtitledat);
 	g_free(titledat);
 
-	if (display_graph && spl_data)
+	if (lcargs->display_graph && spl_data)
 		lcargs->spl_data = spl_data;
 
 	free(date);
@@ -510,7 +589,7 @@ gpointer light_curve_worker(gpointer arg) {
 
 	/* analyse data and create the light curve */
 	if (!retval)
-		retval = new_light_curve(args->seq, "light_curve.dat", args->target_descr, args->display_graph, args);
+		retval = new_light_curve("light_curve.dat", args);
 	if (!retval && args->display_graph && args->spl_data) {
 		siril_add_idle(create_new_siril_plot_window, args->spl_data);
 	}

@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -50,6 +50,7 @@
 #include "gui/callbacks.h"
 #include "gui/message_dialog.h"
 #include "gui/plot.h"
+#include "gui/registration.h"
 #include "ser.h"
 #include "fits_sequence.h"
 #ifdef HAVE_FFMS2
@@ -418,7 +419,7 @@ static sequence *check_seq_one_file(const char* name, gboolean check_for_fitseq)
 
 		fitseq *fitseq_file = malloc(sizeof(fitseq));
 		fitseq_init_struct(fitseq_file);
-		if (fitseq_open(name, fitseq_file)) {
+		if (fitseq_open(name, fitseq_file, READONLY)) {
 			free(fitseq_file);
 			return NULL;
 		}
@@ -657,6 +658,7 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 	}
 
 	update_MenuItem();		// initialize menu gui
+	set_GUI_CAMERA();		// update image information
 	sequence_list_change_current();
 	adjust_refimage(index);	// check or uncheck reference image checkbox
 
@@ -689,7 +691,7 @@ int64_t seq_compute_size(sequence *seq, int nb_frames, data_type depth) {
 			frame_size *= sizeof(WORD);
 		else if (depth == DATA_FLOAT)
 			frame_size *= sizeof(float);
-		frame_size += 5760; // FITS double HDU size
+		frame_size += FITS_DOUBLE_BLOC_SIZE; // FITS double HDU size
 		size = frame_size * nb_frames;
 		break;
 #ifdef HAVE_FFMS2
@@ -847,8 +849,6 @@ int seq_read_frame(sequence *seq, int index, fits *dest, gboolean force_float, i
 			index, dest->naxes[2], seq->nb_layers);
 		return 1;
 	}
-//	check_profile_correct(dest);
-	color_manage(dest, FALSE);
 
 	full_stats_invalidation_from_fit(dest);
 	copy_seq_stats_to_fit(seq, index, dest);
@@ -1687,6 +1687,16 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 	}
 	data->image_index = index;
 
+	/* Backup the original pointer to fit. If there is a Bayer pattern we need
+	 * to interpolate non-green pixels, so make a copy we can work on. */
+	fits *orig_fit = fit;
+	if (spsfargs->bayer_pattern[0]) {
+		fit = calloc(1, sizeof(fits));
+		copyfits(orig_fit, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+		memcpy(fit->keywords.bayer_pattern, spsfargs->bayer_pattern, FLEN_VALUE);
+		interpolate_nongreen(fit);
+	}
+
 	rectangle psfarea = { .x = 0, .y = 0, .w = fit->rx, .h = fit->ry };
 	psf_error error;
 	struct phot_config *ps = NULL;
@@ -1715,9 +1725,11 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 			siril_debug_print("moving area to %d, %d\n", args->area.x, args->area.y);
 		}
 
-		if (!args->seq->imgparam[index].date_obs && fit->date_obs)
-			args->seq->imgparam[index].date_obs = g_date_time_ref(fit->date_obs);
-		data->exposure = fit->exposure;
+		if (!args->seq->imgparam[index].date_obs && fit->keywords.date_obs)
+			args->seq->imgparam[index].date_obs = g_date_time_ref(fit->keywords.date_obs);
+		data->exposure = fit->keywords.exposure;
+
+		args->seq->imgparam[index].airmass = fit->keywords.airmass;
 	}
 	else {
 		if (spsfargs->framing == FOLLOW_STAR_FRAME) {
@@ -1730,7 +1742,13 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 				"red", index, area->x, area->y, psf_error_to_string(error));
 		}
 	}
-
+	if (spsfargs->bayer_pattern[0]) {
+		// Get rid of the temporary copy and restore the original frame fits
+		// now that we have computed the actual registration data
+		clearfits(fit);
+		free(fit);
+		fit = orig_fit;
+	}
 #ifdef _OPENMP
 	omp_set_lock(&args->lock);
 #endif
@@ -1811,10 +1829,10 @@ int seqpsf_finalize_hook(struct generic_seq_args *args) {
 				psf_star *psf = seq->photometry[photometry_index][j];
 				if (first) {
 					siril_log_message(_("Photometry for star at %.1f, %.1f in image %d\n"), psf->xpos, psf->ypos, j);
-					siril_log_message("image_index magnitude error fwhm amplitude background\n");
+					siril_debug_print("image_index magnitude error fwhm amplitude background\n");
 					first = FALSE;
 				}
-				siril_log_message("%d %f %f %f %f %f\n", j, psf->mag, psf->s_mag, psf->fwhmx, psf->A, psf->B);
+				siril_debug_print("%d %f %f %f %f %f\n", j, psf->mag, psf->s_mag, psf->fwhmx, psf->A, psf->B);
 			}
 		}
 
@@ -1918,7 +1936,7 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 	}
 
 	struct generic_seq_args *args = create_default_seqargs(seq);
-	struct seqpsf_args *spsfargs = malloc(sizeof(struct seqpsf_args));
+	struct seqpsf_args *spsfargs = calloc(1, sizeof(struct seqpsf_args));
 
 	spsfargs->for_photometry = !for_registration;
 	if (!no_GUI)
@@ -1926,6 +1944,16 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 	else spsfargs->allow_use_as_regdata = for_registration ? BOOL_TRUE : BOOL_FALSE;
 	spsfargs->framing = framing;
 	spsfargs->list = NULL;	// GSList init is NULL
+
+	fits fit = { 0 };
+	if (seq_read_frame(args->seq, seq->reference_image, &fit, FALSE, -1)) {
+		siril_log_color_message(_("Could not load metadata"), "red");
+		free(spsfargs);
+		return -1;
+	} else {
+		memcpy(spsfargs->bayer_pattern, fit.keywords.bayer_pattern, FLEN_VALUE);
+	}
+	clearfits(&fit);
 
 	args->partial_image = TRUE;
 	memcpy(&args->area, &com.selection, sizeof(rectangle));
@@ -2004,9 +2032,10 @@ void free_reference_image() {
  * on the configured memory ratio */
 static int compute_nb_images_fit_memory_from_dimensions(int rx, int ry, int nb_layers, data_type type, double factor, gboolean force_float, unsigned int *MB_per_orig_image, unsigned int *MB_per_scaled_image, unsigned int *max_mem_MB) {
 	int max_memory_MB = get_max_memory_in_MB();
-	if (factor < 1.0 || factor > 2.0) {
-		fprintf(stderr, "############ FACTOR UNINIT (set to 1) ############\n");
-		factor = 1.0;
+
+	factor = max(factor, 1.0);
+	if (factor > 3.0) {
+		siril_debug_print("Info: image scaling is very large! (> 3.0)\n");
 	}
 	uint64_t newx = round_to_int((double) rx * factor);
 	uint64_t newy = round_to_int((double) ry * factor);
@@ -2060,35 +2089,16 @@ void fix_selnum(sequence *seq, gboolean warn) {
 	}
 }
 
-gboolean sequence_has_wcs(sequence *seq, int *index) {
-	int refimage = sequence_find_refimage(seq);
-	int indices[3];
-	indices[0] = refimage;
-	indices[1] = 0;
-	int first_included_image = -1;
-	for (int i = 0; i < seq->number; i++)
-		if (seq->imgparam[i].incl) {
-			first_included_image = i;
-			break;
-		}
-	if (first_included_image == 0 || first_included_image == refimage)
-		indices[2] = -1;
-	else indices[2] = first_included_image;
-
-	for (int i = 0; i < 3; i++) {
-		fits fit = { 0 };
-		if (indices[i] >= 0 && seq->imgparam[indices[i]].incl &&
-				!seq_read_frame_metadata(seq, indices[i], &fit)) {
-			if (has_wcs(&fit)) {
-				if (index)
-					*index = indices[i];
-				clearfits(&fit);
-				return TRUE;
-			}
-			clearfits(&fit);
-		}
+gboolean sequence_ref_has_wcs(sequence *seq) {
+	int refidx = sequence_find_refimage(seq);
+	fits ref = { 0 };
+	if (seq_read_frame_metadata(seq, refidx, &ref)) {
+		siril_log_message(_("Could not load reference image\n"));
+		return FALSE;
 	}
-	return FALSE;
+	gboolean ret = has_wcs(&ref);
+	clearfits(&ref);
+	return ret;
 }
 
 gboolean sequence_drifts(sequence *seq, int reglayer, int threshold) {

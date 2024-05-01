@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -135,8 +135,8 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 		}
 		if (stackcnt <= 0)
 			stackcnt = nb_frames;
-		fit->stackcnt = stackcnt;
-		fit->livetime = livetime;
+		fit->keywords.stackcnt = stackcnt;
+		fit->keywords.livetime = livetime;
 		// keeping exposure of the reference frame
 
 		if (naxes[2] == 0)
@@ -166,8 +166,8 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 			if (dt)
 				*list_date = g_list_prepend(*list_date,	new_date_item(dt, 0.0));
 		}
-		fit->stackcnt = nb_frames;
-		fit->livetime = fit->exposure * nb_frames;
+		fit->keywords.stackcnt = nb_frames;
+		fit->keywords.livetime = fit->keywords.exposure * nb_frames;
 		// keeping the fallacious exposure based on fps from the header
 	} else {
 		siril_log_message(_("Rejection stacking is only supported for FITS images/sequences and SER sequences.\nUse \"Sum Stacking\" instead.\n"));
@@ -175,7 +175,7 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 	}
 
 	set_progress_bar_data(NULL, PROGRESS_DONE);
-	siril_debug_print("stack count: %u, livetime: %f\n", fit->stackcnt, fit->livetime);
+	siril_debug_print("stack count: %u, livetime: %f\n", fit->keywords.stackcnt, fit->keywords.livetime);
 	return ST_OK;
 }
 
@@ -313,7 +313,7 @@ static int stack_read_block_data(struct stacking_args *args,
 #ifdef STACK_DEBUG
 				fprintf(stdout, "shifty for image %d: %d\n", args->image_indices[frame], shifty);
 #endif
-				if (area.y + area.h - 1 + shifty < 0 || area.y + shifty >= naxes[1]) {
+				if (area.y + area.h + shifty < 0 || area.y + shifty >= naxes[1]) {
 					// entirely outside image below or above: all black pixels
 					clear = TRUE; readdata = FALSE;
 				} else if (area.y + shifty < 0) {
@@ -321,9 +321,9 @@ static int stack_read_block_data(struct stacking_args *args,
 					 * requires an offset in pix */
 					clear = TRUE;
 					area.h += area.y + shifty;	// cropping the height
-					offset = naxes[0] * (area.y - shifty);	// positive
+					offset = -naxes[0] * (area.y + shifty);	// positive
 					area.y = 0;
-				} else if (area.y + area.h - 1 + shifty >= naxes[1]) {
+				} else if (area.y + area.h + shifty >= naxes[1]) {
 					/* we read only the upper part of the area here */
 					clear = TRUE;
 					area.y += shifty;
@@ -773,24 +773,32 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 		else {
 			if (args->apply_noise_weights || args->apply_nbstack_weights || args->apply_wfwhm_weights || args->apply_nbstars_weights) {
 				double *pweights = args->weights + layer * stack_size;
-				WORD pmin = 65535, pmax = 0; /* min and max computed here instead of rejection step to avoid dealing with too many particular cases */
+				/* min and max computed here instead of rejection step to avoid dealing
+				 * with too many particular cases. For rejection, the original stack
+				 * (o_stack) is used to keep the weight order, stack being sorted, we can
+				 * check for min and max values to weight the kept pixels */
+				WORD pmin = 65535, pmax = 0;
 				for (int frame = 0; frame < kept_pixels; ++frame) {
-					if (pmin > ((WORD*)data->stack)[frame]) pmin = ((WORD*)data->stack)[frame];
-					if (pmax < ((WORD*)data->stack)[frame]) pmax = ((WORD*)data->stack)[frame];
+					WORD pixel = ((WORD*)data->stack)[frame];
+					if (pmin > pixel) pmin = pixel;
+					if (pmax < pixel) pmax = pixel;
 				}
+
 				double sum = 0.0;
 				double norm = 0.0;
-				WORD val;
 
 				for (int frame = 0; frame < stack_size; ++frame) {
-					val = ((WORD*)data->o_stack)[frame];
+					WORD val = ((WORD*)data->o_stack)[frame];
 					if (val >= pmin && val <= pmax && val > 0) {
 						sum += (float)val * pweights[frame];
 						norm += pweights[frame];
 					}
 				}
-				if (norm == 0.0)
-					mean = sum / (double)kept_pixels;
+				if (norm <= 1.e-2) { // if norm is 0, sum is 0 too
+					// if the kept pixel has a weight of 0, bad luck, still take it,
+					// that will not look good, but it's better than a black pixel
+					mean = ((WORD*)data->stack)[0];
+				}
 				else mean = sum / norm;
 			} else {
 				gint64 sum = 0L;
@@ -944,10 +952,14 @@ static int compute_nbstars_weights(struct stacking_args *args) {
 		double norm = 0.0;
 		pweights[layer] = args->weights + layer * nb_frames;
 		for (int i = 0; i < args->nb_images_to_stack; ++i) {
-			int idx = args->image_indices[i];
-			pweights[layer][i] = (double)(args->seq->regparam[args->reglayer][idx].number_of_stars - starmin) *
-				(double)(args->seq->regparam[args->reglayer][idx].number_of_stars - starmin) *
-				invdenom * invdenom;
+			if (starmax == starmin)
+				pweights[layer][i] = 1.;
+			else {
+				int idx = args->image_indices[i];
+				pweights[layer][i] = (double)(args->seq->regparam[args->reglayer][idx].number_of_stars - starmin) *
+					(double)(args->seq->regparam[args->reglayer][idx].number_of_stars - starmin) *
+					invdenom * invdenom;
+			}
 			norm += pweights[layer][i];
 		}
 		norm /= (double) nb_frames;
@@ -1283,10 +1295,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 			if (retval) break;
 
 			// update progress bar
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-			cur_nb++;
+			g_atomic_int_inc(&cur_nb);
 
 			if (!get_thread_run()) {
 				retval = ST_CANCEL;

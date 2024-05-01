@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +19,8 @@
 */
 
 #include "filters.h"
+#include "core/siril.h"
+#include "core/icc_profile.h"
 #include <math.h>
 
 /* A common narrow-band filter list. */
@@ -46,64 +48,58 @@ broad_filter broad_band_filters[] = {
 	{ "#2 (blue)", "#0000ff" },
 };
 
-/** Taken from Earl F. Glynn's web page:
- * http://www.efg2.com/Lab/ScienceAndEngineering/Spectra.htm
- * http://www.physics.sfasu.edu/astro/color/spectra.html
- *
- * Fills the rgb struct passed as arg with RGB values corresponding to the
- * wavelength.
- *
- * I couldn't find why gamma is 0.8 anywhere. */
-static double Gamma = 0.80;
+// TODO: this function should be replaced by the CIE cmfs from algos/photometric_cc.c for consistency
+// Still need to decide on CIE 1931 2 degree or 1964 10 degree
+void wavelength_to_XYZ(float wavelength, float *X, float *Y, float *Z) {
+    float Xt1 = (wavelength - 442.0f) *
+                ((wavelength < 442.0f) ? 0.0624f : 0.0374f);
+    float Xt2 = (wavelength - 599.8f) *
+                ((wavelength < 599.8f) ? 0.0264f : 0.0323f);
+    float Xt3 = (wavelength - 501.1f) *
+                ((wavelength < 501.1f) ? 0.0490f : 0.0382f);
+    *X =   0.362f * expf(-0.5f*Xt1*Xt1) +
+                1.056f * expf(-0.5f*Xt2*Xt2) -
+                0.065f * expf(-0.5f*Xt3*Xt3);
 
-void wavelength_to_RGB(double wavelength, GdkRGBA *rgb) {
-	double factor;
-	double Red,Green,Blue;
+    float Yt1 = (wavelength - 568.8f) *
+                ((wavelength < 568.8f) ? 0.0213f : 0.0247f);
+    float Yt2 = (wavelength - 530.9f) *
+                ((wavelength < 530.9f) ? 0.0613f : 0.0322f);
+    *Y = 0.821f * expf(-0.5f*Yt1*Yt1) +
+                0.286f * expf(-0.5f*Yt2*Yt2);
 
-	if (wavelength >= 380 && wavelength < 440) {
-		Red = -(wavelength - 440) / (440 - 380);
-		Green = 0.0;
-		Blue = 1.0;
-	} else if (wavelength >= 440 && wavelength < 490) {
-		Red = 0.0;
-		Green = (wavelength - 440) / (490 - 440);
-		Blue = 1.0;
-	} else if (wavelength >= 490 && wavelength < 510) {
-		Red = 0.0;
-		Green = 1.0;
-		Blue = -(wavelength - 510) / (510 - 490);
-	} else if (wavelength >= 510 && wavelength < 580) {
-		Red = (wavelength - 510) / (580 - 510);
-		Green = 1.0;
-		Blue = 0.0;
-	} else if (wavelength >= 580 && wavelength < 645) {
-		Red = 1.0;
-		Green = -(wavelength - 645) / (645 - 580);
-		Blue = 0.0;
-	} else if (wavelength >= 645 && wavelength < 781) {
-		Red = 1.0;
-		Green = 0.0;
-		Blue = 0.0;
+    float Zt1 = (wavelength - 437.0f) *
+                ((wavelength < 437.0f) ? 0.0845f : 0.0278f);
+    float Zt2 = (wavelength - 459.0f) *
+                ((wavelength - 459.0f) ? 0.0385f : 0.0725f);
+    *Z =   1.217f * expf(-0.5f*Zt1*Zt1) +
+                0.681f * expf(-0.5f*Zt2*Zt2);
+}
+
+void wavelength_to_display_RGB(double wavelength, GdkRGBA *rgb) {
+	float XYZ[3] = { 0.f };
+	float RGB[3] = { 0.f };
+	wavelength_to_XYZ((float) wavelength, &XYZ[0], &XYZ[1], &XYZ[2]);
+	if (gui.icc.monitor) {
+		cmsHPROFILE profile_xyz = cmsCreateXYZProfile();
+		// This transform is unbounded: Gdk crops the negative values returned
+		// for the displayed colors, but retaining the unbounded values allows
+		// them to be used to convert to the image color space later.
+		cmsHTRANSFORM transform = cmsCreateTransformTHR(com.icc.context_single,
+														profile_xyz,
+														TYPE_XYZ_FLT_PLANAR,
+														gui.icc.monitor,
+														TYPE_RGB_FLT_PLANAR,
+														INTENT_RELATIVE_COLORIMETRIC,
+														0);
+		cmsDoTransform(transform, &XYZ, &RGB, 1);
+		cmsDeleteTransform(transform);
+		cmsCloseProfile(profile_xyz);
 	} else {
-		Red = 0.0;
-		Green = 0.0;
-		Blue = 0.0;
-	};
-
-	// Let the intensity fall off near the vision limits
-	if (wavelength >= 380 && wavelength < 420) {
-		factor = 0.3 + 0.7*(wavelength - 380) / (420 - 380);
-	} else if (wavelength >= 420 && wavelength < 701) {
-		factor = 1.0;
-	} else if (wavelength >= 701 && wavelength < 781) {
-		factor = 0.3 + 0.7*(780 - wavelength) / (780 - 700);
-	} else {
-		factor = 0.0;
-	};
-
-	// Don't want 0^x = 1 for x <> 0
-	rgb->red = Red == 0.0 ? 0 : pow(Red * factor, Gamma);
-	rgb->green = Green == 0.0 ? 0 : pow(Green * factor, Gamma);
-	rgb->blue = Blue == 0.0 ? 0 : pow(Blue * factor, Gamma);
+		siril_debug_print("Error: no monitor profile exists. This is a bug!\n");
+	}
+	rgb->red = (double) RGB[0];
+	rgb->green = (double) RGB[1];
+	rgb->blue = (double) RGB[2];
 	rgb->alpha = 1.0;
 }

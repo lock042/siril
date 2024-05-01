@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -402,14 +402,14 @@ void set_iter_of_clicked_psf(double x, double y) {
 	gboolean is_as;
 	const double radian_conversion = ((3600.0 * 180.0) / M_PI) / 1.0E3;
 	double invpixscalex = 1.0;
-	double bin_X = com.pref.binning_update ? (double) gfit.binning_x : 1.0;
+	double bin_X = com.pref.binning_update ? (double) gfit.keywords.binning_x : 1.0;
 	if (com.stars && com.stars[0]) {// If the first star has units of arcsec, all should have
 		is_as = (strcmp(com.stars[0]->units, "px"));
 	} else {
 		return; // If com.stars is empty there is no point carrying on
 	}
 	if (is_as) {
-		invpixscalex = 1.0 / (radian_conversion * (double) gfit.pixel_size_x / gfit.focal_length) * bin_X;
+		invpixscalex = 1.0 / (radian_conversion * (double) gfit.keywords.pixel_size_x / gfit.keywords.focal_length) * bin_X;
 	}
 	valid = gtk_tree_model_get_iter_first(model, &iter);
 	while (valid) {
@@ -637,12 +637,12 @@ static void save_stars_dialog() {
 	siril_widget_destroy(widgetdialog);
 }
 
-static int get_ra_and_dec_from_star_pos(psf_star *star, gdouble *alpha, gdouble *delta) {
+int get_ra_and_dec_from_star_pos(psf_star *star, gdouble *alpha, gdouble *delta) {
 	int ret = 1;
 	if (has_wcs(&gfit)) {
 		// coordinates of the star in FITS/WCS coordinates
 		double fx, fy;
-		display_to_fits(star->xpos, star->ypos, &fx, &fy, gfit.ry);
+		display_to_siril(star->xpos, star->ypos, &fx, &fy, gfit.ry);
 
 		double ra, dec;
 		pix2wcs(&gfit, fx, fy, &ra, &dec);
@@ -904,7 +904,6 @@ void on_remove_button_clicked(GtkButton *button, gpointer user_data) {
 
 void on_remove_all_button_clicked(GtkButton *button, gpointer user_data) {
 	remove_all_stars();
-	clear_sensor_tilt();
 }
 
 void on_export_button_clicked(GtkButton *button, gpointer user_data) {

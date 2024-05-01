@@ -175,11 +175,11 @@ deps-debian:
 siril-deb-meson:
   extends: .siril-debian/testing-base
   script:
-    - meson setup --prefix="${INSTALL_PREFIX}" ${BUILD_DIR} -Db_coverage=true -Denable-libcurl=yes -Dcriterion=true
+    - meson setup --prefix="${INSTALL_PREFIX}" ${BUILD_DIR} -Db_coverage=true -Dcriterion=true
     - ninja -C ${BUILD_DIR} install
     - meson test -C ${BUILD_DIR} -v --no-suite perfs
     - cd ${BUILD_DIR}
-    - gcovr --xml-pretty --exclude-unreachable-branches --exclude-directories subprojects --exclude-directories  src/tests  --root ../ -o coverage.xml --print-summary
+#    - gcovr --xml-pretty --exclude-unreachable-branches --exclude-directories subprojects --exclude-directories  src/tests  --root ../ -o coverage.xml --print-summary
     - cd ..
   artifacts:
     paths:
@@ -241,7 +241,7 @@ siril-win64:
   script:
     - export PATH="`pwd`/.local/bin:$PATH"
     - mkdir _build && cd _build
-    - echo 'crossroad meson --buildtype=release --prefix="${INSTALL_PREFIX}" -Denable-libcurl=yes .. && ninja install && cp -fr $CROSSROAD_PREFIX/ ../${CROSSROAD_OUT}' | crossroad w64 siril --run="-"
+    - echo 'crossroad meson --buildtype=release --prefix="${INSTALL_PREFIX}" .. && ninja install && cp -fr $CROSSROAD_PREFIX/ ../${CROSSROAD_OUT}' | crossroad w64 siril --run="-"
   needs: ["deps-win64"]
   artifacts:
     name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
@@ -281,8 +281,8 @@ macos:
     REP_DIR: /Users/Shared/build/dmgs
     WRK_DIR: /Users/Shared/work
     SIRIL_BUILD: $CI_PIPELINE_IID
-    RELEASE_ARCHIVE: jhb-0.41_$ARCHITECTURE.dmg
-    RELEASE_TAG: r24
+    RELEASE_ARCHIVE: jhb-0.42_$ARCHITECTURE.dmg
+    RELEASE_TAG: r26
     RELEASE_URLS: https://gitlab.com/api/v4/projects/40985653/packages/generic/dependencies/$RELEASE_TAG/$RELEASE_ARCHIVE
   script:
     - rm -f $REP_DIR/$RELEASE_ARCHIVE  # force download, we cannot differentiate releases by filename
@@ -314,6 +314,7 @@ win64:
     # Package ssl certificates
     - mkdir -p ${INSTALL_PREFIX}/etc/ssl
     - cp -fr ${CROSSROAD_OUT}/etc/ssl ${INSTALL_PREFIX}/etc
+    - cp build/windows/crossbuild-gitlab-ci/ssl-certs/* ${INSTALL_PREFIX}/etc/ssl/certs
 
     # Package shared ressources
     - cp -fr ${CROSSROAD_OUT}/share/glib-2.0/ ${INSTALL_PREFIX}/share
@@ -368,7 +369,7 @@ flatpak:
     BUNDLE: "org.free_astro.siril.flatpak"
     GIT_SUBMODULE_STRATEGY: recursive
   script:
-    - flatpak-builder --verbose --disable-rofiles-fuse --ccache --repo=repo ${BRANCH:+--default-branch=$BRANCH} flatpak_app ${MANIFEST_PATH} 1>/dev/null
+    - flatpak-builder --verbose --disable-rofiles-fuse --ccache --repo=repo ${BRANCH:+--default-branch=$BRANCH} flatpak_app ${MANIFEST_PATH}
     - flatpak build-bundle repo ${BUNDLE} --runtime-repo=${RUNTIME_REPO} ${APP_ID} ${BRANCH}
   artifacts:
     name: "Flatpak artifacts"

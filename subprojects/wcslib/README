@@ -1,8 +1,8 @@
 ------------------------------------------------------------------------------
-                         WCSLIB 7.3 and PGSBOX 7.3
+                         WCSLIB 8.2 and PGSBOX 8.2
 ------------------------------------------------------------------------------
-  WCSLIB 7.3 - an implementation of the FITS WCS standard.
-  Copyright (C) 1995-2020, Mark Calabretta
+  WCSLIB 8.2 - an implementation of the FITS WCS standard.
+  Copyright (C) 1995-2023, Mark Calabretta
 
   This file is part of WCSLIB.
 
@@ -19,11 +19,9 @@
   You should have received a copy of the GNU Lesser General Public License
   along with WCSLIB.  If not, see http://www.gnu.org/licenses.
 
-  Direct correspondence concerning WCSLIB to mark@calabretta.id.au
-
   Author: Mark Calabretta, Australia Telescope National Facility, CSIRO.
   http://www.atnf.csiro.au/people/Mark.Calabretta
-  $Id: README,v 7.3.1.1 2020/06/03 03:38:11 mcalabre Exp mcalabre $
+  $Id: README,v 8.2 2023/11/16 10:00:30 mcalabre Exp $
 ------------------------------------------------------------------------------
 
 Please refer to

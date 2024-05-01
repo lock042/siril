@@ -28,12 +28,17 @@
 #include <iomanip>
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-#include "opencv2/core/version.hpp"
+#include <opencv2/core/version.hpp>
+#include <opencv2/core/matx.hpp>
 #define CV_RANSAC FM_RANSAC
 #include <opencv2/calib3d.hpp>
 
+// for mosaics
+#include <opencv2/stitching/warpers.hpp>
+
 #include "core/siril.h"
 #include "core/siril_log.h"
+#include "core/settings.h"
 #include "registration/registration.h"
 #include "registration/matching/misc.h"
 #include "registration/matching/atpmatch.h"
@@ -54,7 +59,7 @@ extern "C" {
 
 using namespace cv;
 
-static void convert_H_to_MatH(Homography *from, Mat &to);
+static void convert_H_to_MatH(const Homography *from, Mat &to);
 static void convert_MatH_to_H(Mat from, Homography *to);
 
 /* TODO:
@@ -196,7 +201,7 @@ static int Mat_to_image(fits *image, Mat *in, Mat *out, void *bgr, int target_rx
 				return 1;
 			}
 			image->data = newdata;
-			memcpy(image->fdata, out->data, data_size);
+			memcpy(image->data, out->data, data_size);
 			image->pdata[RLAYER] = image->data;
 			image->pdata[GLAYER] = image->data;
 			image->pdata[BLAYER] = image->data;
@@ -336,7 +341,7 @@ void cvTransformImageRefPoint(Homography Hom, point refpointin, point *refpointo
 	refpointout->y = refptout.at<double>(0, 1);
 }
 
-static void convert_H_to_MatH(Homography *from, Mat &to) {
+static void convert_H_to_MatH(const Homography *from, Mat &to) {
 	to.at<double>(0, 0) = from->h00;
 	to.at<double>(0, 1) = from->h01;
 	to.at<double>(0, 2) = from->h02;
@@ -531,6 +536,8 @@ int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homog
 	}
 	return Mat_to_image(image, &in, &out, bgr, target_rx, target_ry);
 }
+
+
 
 int cvUnsharpFilter(fits* image, double sigma, double amount) {
 	Mat in, out;
@@ -983,42 +990,13 @@ void cvGetMatrixReframe(double x, double y, int w, int h, double angle, Homograp
 	convert_MatH_to_H(H, Hom);
 }
 
-void cvGetMatrixResize(double cxin, double cyin, double cxout, double cyout, double scale, Homography *Hom) {
-
-	// shift to get to the center of the initial image
-	Mat S =  Mat::eye(3, 3, CV_64FC1);
-	S.at<double>(0, 2) = cxin;
-	S.at<double>(1, 2) = cyin;
-
-	// shift backwards to set the top-left point of the final image
-	Mat S2 =  Mat::eye(3, 3, CV_64FC1);
-	S2.at<double>(0, 2) = -cxout;
-	S2.at<double>(1, 2) = -cyout;
-
-	// get scaling matrix about origin {0, 0}
-	Mat H = Mat::eye(3, 3, CV_64FC1);
-	H.at<double>(0, 0) = scale;
-	H.at<double>(1, 1) = scale;
-	// std::cout << H << std::endl;
-
-	H = S * H * S2;
-	std::cout << H << std::endl;
-
-	// transform is final to orginal, we need to inverse
-	// to have H from original to final
-	H = H.inv();
-	std::cout << H << std::endl;
-
-	convert_MatH_to_H(H, Hom);
-}
-
 void cvGetBoundingRectSize(fits *image, point center, double angle, int *w, int *h) {
 	Rect frame;
 	Point2f pt(center.x, center.y);
-	frame = RotatedRect(pt, Size(image->rx, image->ry), angle).boundingRect();
+	frame = RotatedRect(pt, Size(image->rx, image->ry), angle).boundingRect2f();
 	siril_debug_print("after rotation, new image size will be %d x %d\n", frame.width, frame.height);
-	*w = frame.width;
-	*h = frame.height;
+	*w = (int)frame.width;
+	*h = (int)frame.height;
 }
 
 void cvInvertH(Homography *Hom) {
@@ -1036,6 +1014,30 @@ void cvApplyFlips(Homography *Hom, int source_ry, int target_ry) {
 	/* modify matrix for reverse Y axis */
 	Mat F1 = Mat::eye(3, 3, CV_64FC1);
 	F1.at<double>(1,1) = -1.0;
+	F1.at<double>(1,2) = source_ry;
+
+	Mat F2 = Mat::eye(3, 3, CV_64FC1);
+	F2.at<double>(1,1) = -1.0;
+	F2.at<double>(1,2) = target_ry;
+
+	H = F2.inv() * H * F1;
+	convert_MatH_to_H(H, Hom);
+}
+
+void cvPrepareDrizzleH(Homography *Hom, double scale, int source_ry, int target_ry) {
+	Mat H = Mat(3, 3, CV_64FC1);
+	convert_H_to_MatH(Hom, H);
+
+	if (scale != 1.) {
+		Mat S = Mat::eye(3, 3, CV_64FC1);
+		S.at<double>(0,0) = scale;
+		S.at<double>(1,1) = scale;
+		H = S * H;
+	}
+
+	/* modify matrix for reverse Y axis */
+	Mat F1 = Mat::eye(3, 3, CV_64FC1);
+	F1.at<double>(1,1) = -1.0;
 	F1.at<double>(1,2) = source_ry - 1.0;
 
 	Mat F2 = Mat::eye(3, 3, CV_64FC1);
@@ -1045,3 +1047,464 @@ void cvApplyFlips(Homography *Hom, int source_ry, int target_ry) {
 	H = F2.inv() * H * F1;
 	convert_MatH_to_H(H, Hom);
 }
+
+// Used to convert a H matrix written in display convention to opencv convention
+void cvdisplay2ocv(Homography *Hom) {
+	Mat H = Mat(3, 3, CV_64FC1);
+	convert_H_to_MatH(Hom, H);
+
+	/* modify matrix to go to opencv convention */
+	Mat S1 = Mat::eye(3, 3, CV_64FC1);
+	S1.at<double>(0,2) = 0.5;
+	S1.at<double>(1,2) = 0.5;
+
+	H = S1.inv() * H * S1;
+	convert_MatH_to_H(H, Hom);
+}
+
+/*
+Takes an angle in degrees and a rotationtype (X, Y or Z)
+Fills the 3D rotation matrix
+Returns FALSE on error
+*/
+static gboolean cvRotMat1(double angle, rotation_type rottype, Mat &R) {
+	angle *= G_PI / 180.;
+	double ca = cos(angle);
+	double sa = sin(angle);
+	gboolean retval = TRUE;
+
+	switch (rottype) {
+		case ROTX:
+			R.at<double>(1,1) = ca;
+			R.at<double>(2,2) = ca;
+			R.at<double>(1,2) = -sa;
+			R.at<double>(2,1) = sa;
+			break;
+		case ROTY:
+			R.at<double>(0,0) = ca;
+			R.at<double>(2,2) = ca;
+			R.at<double>(2,0) = -sa;
+			R.at<double>(0,2) = sa;
+			break;
+		case ROTZ:
+			R.at<double>(0,0) = ca;
+			R.at<double>(1,1) = ca;
+			R.at<double>(0,1) = -sa;
+			R.at<double>(1,0) = sa;
+			break;
+		default:
+			retval = FALSE;
+			break;
+	}
+	return retval;
+}
+
+
+/*
+Takes an angle array[3] in degrees and a rotationtype vector[3] (X, Y or Z)
+Fills the 3D rotation matrix
+The angles are applied in the input order
+The flag W2C specifies if the matrix out is World-to-Camera or Camera-to-World
+Returns FALSE on error
+*/
+gboolean cvRotMat3(double angles[3], rotation_type rottype[3], gboolean W2C, Homography *R) {
+	Mat _R = Mat::eye(3, 3, CV_64FC1);
+	gboolean retval = TRUE;
+	for (int i = 0; i < 3; i++) {
+		Mat M = Mat::eye(3, 3, CV_64FC1);
+		if (!cvRotMat1(angles[i], rottype[i], M)) {
+			retval = FALSE;
+			break;
+		}
+		_R = M * _R; // left-multiply as the full matrix is R3*R2*R1
+	}
+	if (W2C)
+		_R = _R.t(); // if we need W2C, we need to invert (i.e. transpose for R mats)
+	convert_MatH_to_H(_R, R);
+	// std::cout << R << std::endl;
+	return retval;
+}
+
+// Computes the relative rotation matrix between Rref and R
+// R is updated inplace
+void cvRelRot(Homography *Ref, Homography *R) {
+	Mat _Ref = Mat(3, 3, CV_64FC1);
+	Mat _R = Mat(3, 3, CV_64FC1);
+	Mat _H = Mat(3, 3, CV_64FC1);
+	convert_H_to_MatH(Ref, _Ref);
+	convert_H_to_MatH(R, _R);
+	_R = _Ref.t() * _R;
+	convert_MatH_to_H(_R, R);
+}
+
+// Computes Homography from cameras R and K
+void cvcalcH_fromKKR(Homography Kref, Homography K, Homography R, Homography *H) {
+	Mat _Kref = Mat(3, 3, CV_64FC1);
+	Mat _K = Mat(3, 3, CV_64FC1);
+	Mat _R = Mat(3, 3, CV_64FC1);
+	Mat _H = Mat(3, 3, CV_64FC1);
+	convert_H_to_MatH(&Kref, _Kref);
+	convert_H_to_MatH(&K, _K);
+	convert_H_to_MatH(&R, _R);
+
+	//Compute H and returning
+	_H = _Kref * _R * _K.inv();
+	convert_MatH_to_H(_H, H);
+}
+
+// TODO: Code below should be moved to a dedicated cvastrometric.cpp file
+
+static void map_undistortion(disto_data *disto, Rect roi, Mat xmap, Mat ymap) {
+	double U, V, x, y;
+	double U2, V2, U3, V3, U4, V4, U5, V5;
+	for (int v = 0; v < roi.height; ++v) {
+		for (int u = 0; u < roi.width; ++u) {
+			U = (double)xmap.at<float>(v, u) - disto->xref;
+			V = disto->yref - (double)ymap.at<float>(v, u); // opencv convention is y down while wcs is y up
+			x = U + disto->AP[0][0] + disto->AP[1][0] * U + disto->AP[0][1] * V;
+			y = V + disto->BP[0][0] + disto->BP[1][0] * U + disto->BP[0][1] * V;
+			if (disto->order >= 2) {
+				U2 = U * U;
+				V2 = V * V;
+				double UV = U * V;
+				x += disto->AP[2][0] * U2 + disto->AP[1][1] * UV + disto->AP[0][2] * V2;
+				y += disto->BP[2][0] * U2 + disto->BP[1][1] * UV + disto->BP[0][2] * V2;
+			}
+			if (disto->order >= 3) {
+				U3 = U2 * U;
+				V3 = V2 * V;
+				double U2V = U2 * V;
+				double UV2 = U * V2;
+				x += disto->AP[3][0] * U3 + disto->AP[2][1] * U2V + disto->AP[1][2] * UV2 + disto->AP[0][3] * V3;
+				y += disto->BP[3][0] * U3 + disto->BP[2][1] * U2V + disto->BP[1][2] * UV2 + disto->BP[0][3] * V3;
+			}
+			if (disto->order >= 4) {
+				U4 = U3 * U;
+				V4 = V3 * V;
+				double U3V = U3 * V;
+				double U2V2 = U2 * V2;
+				double UV3 = U * V3;
+				x += disto->AP[4][0] * U4 + disto->AP[3][1] * U3V + disto->AP[2][2] * U2V2 + disto->AP[1][3] * UV3 + disto->AP[0][4] * V4;
+				y += disto->BP[4][0] * U4 + disto->BP[3][1] * U3V + disto->BP[2][2] * U2V2 + disto->BP[1][3] * UV3 + disto->BP[0][4] * V4;
+			}
+			if (disto->order >= 5) {
+				U5 = U4 * U;
+				V5 = V4 * V;
+				double U4V = U4 * V;
+				double U3V2 = U3 * V2;
+				double U2V3 = U2 * V3;
+				double UV4 = U * V4;
+				x += disto->AP[5][0] * U5 + disto->AP[4][1] * U4V + disto->AP[3][2] * U3V2 + disto->AP[2][3] * U2V3 + disto->AP[1][4] * UV4 + disto->AP[0][5] * V5;
+				y += disto->BP[5][0] * U5 + disto->BP[4][1] * U4V + disto->BP[3][2] * U3V2 + disto->BP[2][3] * U2V3 + disto->BP[1][4] * UV4 + disto->BP[0][5] * V5;
+			}
+			xmap.at<float>(v, u) = (float)(x + disto->xref);
+			ymap.at<float>(v, u) = (float)(disto->yref - y);
+ 		}
+ 	}
+}
+
+int cvWarp_fromKR(fits *image, astrometric_roi *roi_in, Homography K, Homography R, float scale, int projector, int interpolation, gboolean clamp, disto_data *disto, astrometric_roi *roi_out) {
+	Mat in, out;
+	void *bgr = NULL;
+
+	Mat _R = Mat(3, 3, CV_64FC1);
+	Mat _K = Mat(3, 3,CV_64FC1);
+	convert_H_to_MatH(&R, _R);
+	convert_H_to_MatH(&K, _K);
+
+	Point corners;
+	Size sizes;
+	// UMat masks;
+	Mat_<float> k, r;
+	_K.convertTo(k, CV_32F);
+	_R.convertTo(r, CV_32F);
+	Size szin;
+	if (!image)
+		szin = Size(roi_in->w, roi_in->h);
+	else
+		szin = Size(image->rx, image->ry);
+
+	Ptr<WarperCreator> warper_creator;
+	// Prepare projector
+	switch (projector) {
+		default:
+		case OPENCV_PLANE:
+			warper_creator = makePtr<PlaneWarper>();
+			break;
+		case OPENCV_SPHERICAL:
+			warper_creator = makePtr<SphericalWarper>();
+			break;
+	}
+
+	if (!warper_creator) {
+		std::cout << "Can't create the warper" << "'\n";
+		return 1;
+	}
+
+	Ptr<detail::RotationWarper> warper = warper_creator->create(static_cast<float>(scale));
+	Rect roi = warper->warpRoi(szin, k, r);
+	corners = roi.tl();
+	sizes = roi.size();
+	if (roi_out)
+		*roi_out = (astrometric_roi) {.x = corners.x, .y = corners.y, .w = sizes.width, .h = sizes.height};
+
+	// in case we just want to assess final size, we skip warping the image
+	// we just pass a NULL image
+	if (image) {
+		if (image_to_Mat(image, &in, &out, &bgr, roi_in->w, roi_in->h))
+			return 2;
+		Mat uxmap, uymap;
+		warper->buildMaps(szin, k, r, uxmap, uymap);
+		if (disto) {
+			map_undistortion(disto, roi, uxmap, uymap);
+		}
+		Mat aux;
+		init_guide(image, sizes.width, sizes.height, &aux);
+		remap(in, aux, uxmap, uymap, interpolation, BORDER_TRANSPARENT);
+
+		if ((interpolation == OPENCV_LANCZOS4 || interpolation == OPENCV_CUBIC) && clamp) {
+			Mat guide, tmp1;
+			init_guide(image, sizes.width, sizes.height, &guide);
+			// Create guide image
+			remap(in, guide, uxmap, uymap, OPENCV_AREA, BORDER_TRANSPARENT);
+			tmp1 = (aux < CLAMPING_FACTOR * guide);
+			Mat element = getStructuringElement(MORPH_ELLIPSE, Size(3, 3), Point(1,1));
+			dilate(tmp1, tmp1, element);
+			copyTo(guide, aux, tmp1); // Guide copied to the clamped pixels
+			guide.release();
+			tmp1.release();
+		}
+		Rect inr = Rect(roi_in->x, roi_in->y, roi_in->w, roi_in->h);
+		Rect outr = inr & roi;
+		int xoffset = roi.tl().x - roi_in->x;
+		int yoffset = roi.tl().y - roi_in->y;
+		int xi = (xoffset < 0) ? -xoffset : 0;
+		int xo = (xoffset < 0) ? 0 : xoffset;
+		int yi = (yoffset < 0) ? -yoffset : 0;
+		int yo = (yoffset < 0) ? 0 : yoffset;
+		// std::cout << xi << " " << yi << "\n" << xo << " " << yo << "\n";
+		Mat roiin = aux(Rect(xi, yi, outr.size().width, outr.size().height));
+		Mat roiout = out(Rect(xo, yo, outr.size().width, outr.size().height));
+		roiin.copyTo(roiout);
+
+		return Mat_to_image(image, &in, &out, bgr, roi_in->w, roi_in->h);
+
+	}
+	return 0;
+}
+
+/*
+ *
+ * The following functions are written in preparation for the subsequent MR to
+ * integrate Drizzle into astrometric registration
+ *
+ */
+/*
+static void drizzle_map_undistortion(disto_data *disto, Rect roi, Mat xmap, Mat ymap) {
+	double U, V, x, y;
+	double U2, V2, U3, V3, U4, V4, U5, V5;
+	for (int v = 0; v < roi.height; ++v) {
+		V = (double)ymap.at<float>(v, 0) - disto->yref;
+		if (disto->order >= 2) {
+			V2 = V * V;
+			if (disto->order >= 3) {
+				V3 = V2 * V;
+				if (disto->order >= 4) {
+					V4 = V3 * V;
+					if (disto->order >= 5) {
+						V5 = V4 * V;
+					}
+				}
+			}
+		}
+
+		for (int u = 0; u < roi.width; ++u) {
+			U = (double)xmap.at<float>(v, u) - disto->xref;
+			x = U + disto->AP[0][0] + disto->AP[1][0] * U + disto->AP[0][1] * V;
+			y = V + disto->BP[0][0] + disto->BP[1][0] * U + disto->BP[0][1] * V;
+			if (disto->order >= 2) {
+				U2 = U * U;
+				double UV = U * V;
+				x += disto->AP[2][0] * U2 + disto->AP[1][1] * UV + disto->AP[0][2] * V2;
+				y += disto->BP[2][0] * U2 + disto->BP[1][1] * UV + disto->BP[0][2] * V2;
+				if (disto->order >= 3) {
+					U3 = U2 * U;
+					double U2V = U2 * V;
+					double UV2 = U * V2;
+					x += disto->AP[3][0] * U3 + disto->AP[2][1] * U2V + disto->AP[1][2] * UV2 + disto->AP[0][3] * V3;
+					y += disto->BP[3][0] * U3 + disto->BP[2][1] * U2V + disto->BP[1][2] * UV2 + disto->BP[0][3] * V3;
+					if (disto->order >= 4) {
+						U4 = U3 * U;
+						double U3V = U3 * V;
+						double U2V2 = U2 * V2;
+						double UV3 = U * V3;
+						x += disto->AP[4][0] * U4 + disto->AP[3][1] * U3V + disto->AP[2][2] * U2V2 + disto->AP[1][3] * UV3 + disto->AP[0][4] * V4;
+						y += disto->BP[4][0] * U4 + disto->BP[3][1] * U3V + disto->BP[2][2] * U2V2 + disto->BP[1][3] * UV3 + disto->BP[0][4] * V4;
+						if (disto->order >= 5) {
+							U5 = U4 * U;
+							double U4V = U4 * V;
+							double U3V2 = U3 * V2;
+							double U2V3 = U2 * V3;
+							double UV4 = U * V4;
+							x += disto->AP[5][0] * U5 + disto->AP[4][1] * U4V + disto->AP[3][2] * U3V2 + disto->AP[2][3] * U2V3 + disto->AP[1][4] * UV4 + disto->AP[0][5] * V5;
+							y += disto->BP[5][0] * U5 + disto->BP[4][1] * U4V + disto->BP[3][2] * U3V2 + disto->BP[2][3] * U2V3 + disto->BP[1][4] * UV4 + disto->BP[0][5] * V5;
+						}
+					}
+				}
+			}
+			xmap.at<float>(v, u) = (float)(x + disto->xref);
+			ymap.at<float>(v, u) = (float)(y + disto->yref);
+ 		}
+ 	}
+}
+
+int cvDrizzleWarpMapSpherical(gboolean get_size_only, astrometric_roi *roi_in, Homography K, Homography R, float scale, int projectortype, disto_data *undisto, astrometric_roi *roi_out, float *xmap_data_ptr, float *ymap_data_ptr) {
+	Mat _R = Mat(3, 3, CV_64FC1);
+	Mat _K = Mat(3, 3,CV_64FC1);
+	convert_H_to_MatH(&R, _R);
+	convert_H_to_MatH(&K, _K);
+
+	Point corners;
+	Size sizes;
+	// UMat masks;
+	Mat_<float> k, r;
+	_K.convertTo(k, CV_32F);
+	_R.convertTo(r, CV_32F);
+	Size szin;
+	if (!image)
+		szin = Size(roi_in->w, roi_in->h);
+	else
+		szin = Size(image->rx, image->ry);
+	// Prepare projector
+	cv::detail::SphericalProjector projector;
+	Point dst_tl, dst_br;
+	float tl_uf = (std::numeric_limits<float>::max)();
+	float tl_vf = (std::numeric_limits<float>::max)();
+	float br_uf = -(std::numeric_limits<float>::max)();
+	float br_vf = -(std::numeric_limits<float>::max)();
+
+	float u, v;
+	for (int y = 0; y < szin.height; ++y)
+	{
+		for (int x = 0; x < szin.width; ++x)
+		{
+			projector.mapForward(static_cast<float>(x), static_cast<float>(y), u, v);
+			tl_uf = (std::min)(tl_uf, u); tl_vf = (std::min)(tl_vf, v);
+			br_uf = (std::max)(br_uf, u); br_vf = (std::max)(br_vf, v);
+		}
+	}
+	dst_tl.x = static_cast<int>(tl_uf);
+	dst_tl.y = static_cast<int>(tl_vf);
+	dst_br.x = static_cast<int>(br_uf);
+	dst_br.y = static_cast<int>(br_vf);
+	Rect roi = Rect(dst_tl, Point(dst_br.x + 1, dst_br.y + 1));
+	corners = roi.tl();
+	sizes = roi.size();
+	if (roi_out)
+		*roi_out = (astrometric_roi) {.x = corners.x, .y = corners.y, .w = sizes.width, .h = sizes.height};
+	// We call this function twice, once with get_size_only to populate roi_out which we use to calculate
+	// how much memory to allocate in the mapping float arrays, then we call it again to actually generate
+	// the mapping arrays.
+	if (!get_size_only) {
+		projector.scale = scale;
+		projector.setCameraParams(k, r);
+
+		Point dst_tl, dst_br;
+
+		Mat uxmap(dst_br.y - dst_tl.y + 1, dst_br.x - dst_tl.x + 1, CV_32F, xmap_data_ptr);
+		Mat uymap(dst_br.y - dst_tl.y + 1, dst_br.x - dst_tl.x + 1, CV_32F, ymap_data_ptr);
+
+		if (undisto)
+			drizzle_map_undistortion(undisto, roi, uxmap, uymap);
+
+		float x, y;
+		for (int v = dst_tl.y; v <= dst_br.y; ++v)
+		{
+			for (int u = dst_tl.x; u <= dst_br.x; ++u)
+			{
+				// Opposite direction to RotationWarperBase::buildMaps as Drizzle needs the
+				// mapping in the opposite direction to OpenCV warp.
+				projector.mapForward(static_cast<float>(u), static_cast<float>(v), x, y);
+				uxmap.at<float>(v - dst_tl.y, u - dst_tl.x) = x;
+				uymap.at<float>(v - dst_tl.y, u - dst_tl.x) = y;
+			}
+		}
+	}
+	return 0;
+}
+
+int cvDrizzleWarpMapPlanar(gboolean get_size_only, astrometric_roi *roi_in, Homography K, Homography R, float scale, int projectortype, disto_data *undisto, astrometric_roi *roi_out, float *xmap_data_ptr, float *ymap_data_ptr) {
+	Mat _R = Mat(3, 3, CV_64FC1);
+	Mat _K = Mat(3, 3,CV_64FC1);
+	convert_H_to_MatH(&R, _R);
+	convert_H_to_MatH(&K, _K);
+
+	Point corners;
+	Size sizes;
+	// UMat masks;
+	Mat_<float> k, r;
+	_K.convertTo(k, CV_32F);
+	_R.convertTo(r, CV_32F);
+	Size szin;
+	if (!image)
+		szin = Size(roi_in->w, roi_in->h);
+	else
+		szin = Size(image->rx, image->ry);
+	// Prepare projector
+	cv::detail::PlaneProjector projector;
+	Point dst_tl, dst_br;
+	float tl_uf = (std::numeric_limits<float>::max)();
+	float tl_vf = (std::numeric_limits<float>::max)();
+	float br_uf = -(std::numeric_limits<float>::max)();
+	float br_vf = -(std::numeric_limits<float>::max)();
+
+	float u, v;
+	for (int y = 0; y < szin.height; ++y)
+	{
+		for (int x = 0; x < szin.width; ++x)
+		{
+			projector.mapForward(static_cast<float>(x), static_cast<float>(y), u, v);
+			tl_uf = (std::min)(tl_uf, u); tl_vf = (std::min)(tl_vf, v);
+			br_uf = (std::max)(br_uf, u); br_vf = (std::max)(br_vf, v);
+		}
+	}
+	dst_tl.x = static_cast<int>(tl_uf);
+	dst_tl.y = static_cast<int>(tl_vf);
+	dst_br.x = static_cast<int>(br_uf);
+	dst_br.y = static_cast<int>(br_vf);
+	Rect roi = Rect(dst_tl, Point(dst_br.x + 1, dst_br.y + 1));
+	corners = roi.tl();
+	sizes = roi.size();
+	if (roi_out)
+		*roi_out = (astrometric_roi) {.x = corners.x, .y = corners.y, .w = sizes.width, .h = sizes.height};
+	// We call this function twice, once with get_size_only to populate roi_out which we use to calculate
+	// how much memory to allocate in the mapping float arrays, then we call it again to actually generate
+	// the mapping arrays.
+	if (!get_size_only) {
+		projector.scale = scale;
+		projector.setCameraParams(k, r);
+
+		Point dst_tl, dst_br;
+
+		Mat uxmap(dst_br.y - dst_tl.y + 1, dst_br.x - dst_tl.x + 1, CV_32F, xmap_data_ptr);
+		Mat uymap(dst_br.y - dst_tl.y + 1, dst_br.x - dst_tl.x + 1, CV_32F, ymap_data_ptr);
+
+		if (undisto)
+			drizzle_map_undistortion(undisto, roi, uxmap, uymap);
+
+		float x, y;
+		for (int v = dst_tl.y; v <= dst_br.y; ++v)
+		{
+			for (int u = dst_tl.x; u <= dst_br.x; ++u)
+			{
+				// Opposite direction to RotationWarperBase::buildMaps as Drizzle needs the
+				// mapping in the opposite direction to OpenCV warp.
+				projector.mapForward(static_cast<float>(u), static_cast<float>(v), x, y);
+				uxmap.at<float>(v - dst_tl.y, u - dst_tl.x) = x;
+				uymap.at<float>(v - dst_tl.y, u - dst_tl.x) = y;
+			}
+		}
+	}
+	return 0;
+}
+*/

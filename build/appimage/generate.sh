@@ -16,8 +16,7 @@ PREFIX=/usr
 meson ${BUILDDIR} \
     --prefix=${PREFIX} \
     --buildtype=release \
-    -Drelocatable-bundle=yes \
-    -Denable-libcurl=yes
+    -Drelocatable-bundle=yes
 
 
 ninja -C ${BUILDDIR} -j$(nproc)
@@ -48,7 +47,7 @@ sed -i -e 's|/usr|/xxx|g' lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
 
 # Bundle Gdk pixbuf loaders without which the bundled Gtk does not work;
 # this should eventually be done by linuxdeployqt
-apt_bundle librsvg2-common libgdk-pixbuf2.0-0
+apt_bundle librsvg2-common libgdk-pixbuf2.0-0 heif-gdk-pixbuf heif-thumbnailer
 cp /usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders/* usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders/
 cp /usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders.cache usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/
 sed -i -e 's|/usr/lib/x86_64-linux-gnu/gdk-pixbuf-.*/.*/loaders/||g' usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders.cache
@@ -56,6 +55,10 @@ sed -i -e 's|/usr/lib/x86_64-linux-gnu/gdk-pixbuf-.*/.*/loaders/||g' usr/lib/x86
 # Bundle fontconfig settings
 mkdir -p etc/fonts/
 cp /etc/fonts/fonts.conf etc/fonts/
+
+# Bundle ssl certificates
+mkdir -p etc/ssl/
+cp -rf /etc/ssl/* etc/ssl/
 
 # Compile GLib schemas if the subdirectory is present in the AppImage
 # AppRun has to export GSETTINGS_SCHEMA_DIR for this to work

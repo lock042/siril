@@ -85,6 +85,8 @@ siril_common_SOURCES = \
 	algos/siril_wcs.c \
 	algos/sorting.c \
 	algos/sorting.h \
+	algos/spcc.c \
+	algos/spcc.h \
 	algos/star_finder.c \
 	algos/star_finder.h \
 	algos/statistics.c \
@@ -119,8 +121,6 @@ siril_common_SOURCES = \
 	compositing/filters.h \
 	core/arithm.c \
 	core/arithm.h \
-	core/atomic.cpp \
-	core/atomic.h \
 	core/command.c \
 	core/command.h \
 	core/command_def.h \
@@ -164,6 +164,13 @@ siril_common_SOURCES = \
 	core/undo.c \
 	core/undo.h \
 	core/utils.c \
+	drizzle/cdrizzlebox.c \
+	drizzle/cdrizzlebox.h \
+	drizzle/cdrizzlemap.c \
+	drizzzle/cdrizzlemap.h \
+	drizzle/cdrizzleutil.c \
+	drizzle/cdrizzleutil.h \
+	drizzle/driz_portability.h \
 	filters/asinh.c \
 	filters/asinh.h \
 	filters/banding.c \
@@ -258,6 +265,10 @@ siril_common_SOURCES = \
 	gui/fix_xtrans_af.h \
 	gui/histogram.c \
 	gui/histogram.h \
+	gui/keywords_tree.c \
+	gui/keywords_tree.h \
+	gui/icc_profile.c \
+	gui/icc_profile.h \
 	gui/image_display.c \
 	gui/image_display.h \
 	gui/image_interactions.c \
@@ -285,6 +296,8 @@ siril_common_SOURCES = \
 	gui/progress_and_log.h \
 	gui/PSF_list.h \
 	gui/PSF_list.c \
+	gui/registration.h \
+	gui/registration.c \
 	gui/registration_preview.c \
 	gui/remixer.c \
 	gui/remixer.h \
@@ -315,6 +328,8 @@ siril_common_SOURCES = \
 	gui/utils.h \
 	io/annotation_catalogues.c \
 	io/annotation_catalogues.h \
+	io/aavso_extended.c \
+	io/aavso_extended.h \
 	io/Astro-TIFF.c \
 	io/Astro-TIFF.h \
 	io/kstars/binfile.h \
@@ -323,12 +338,12 @@ siril_common_SOURCES = \
 	io/conversion.h \
 	io/films.c \
 	io/films.h \
+	io/fits_keywords.c \
+	io/fits_keywords.h \
 	io/fits_sequence.c \
 	io/fits_sequence.h \
 	io/FITS_symlink.c \
 	io/FITS_symlink.h \
-	io/gitscripts.c \
-	io/gitscripts.h \
 	io/image_format_fits.c \
 	io/image_format_fits.h \
 	io/image_formats_internal.c \
@@ -353,8 +368,11 @@ siril_common_SOURCES = \
 	io/single_image.h \
 	io/siril_catalogues.c \
 	io/siril_catalogues.h \
+	io/siril_git.c \
+	io/siril_git.h \
 	io/siril_plot.c \
 	io/siril_plot.h \
+	io/spcc_json.c \
 	livestacking/livestacking.c \
 	livestacking/livestacking.h \
 	livestacking/gui.c \
@@ -370,12 +388,12 @@ siril_common_SOURCES = \
 	registration/matching/match.c \
 	registration/matching/atpmatch.c \
 	registration/matching/misc.c \
-	registration/matching/project_coords.c \
-	registration/matching/project_coords.h \
 	registration/matching/degtorad.h \
 	registration/matching/apply_match.c \
+	registration/astrometric.c \
 	registration/registration.c \
 	registration/registration.h \
+	registration/shift_methods.c \
 	stacking/median_and_mean.c \
 	stacking/rejection_float.c \
 	stacking/normalization.c \

@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -161,11 +161,11 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 #endif
 
 		/* Summing the exposure */
-		livetime += fit.exposure;
+		livetime += fit.keywords.exposure;
 
-		if (fit.date_obs) {
-			GDateTime *date = g_date_time_ref(fit.date_obs);
-			list_date = g_list_prepend(list_date, new_date_item(date, fit.exposure));
+		if (fit.keywords.date_obs) {
+			GDateTime *date = g_date_time_ref(fit.keywords.date_obs);
+			list_date = g_list_prepend(list_date, new_date_item(date, fit.keywords.exposure));
 		}
 
 		/* stack current image */
@@ -225,20 +225,20 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 			import_metadata_from_fitsfile(args->seq->fptr[ref], result);
 			result->orig_bitpix = result->bitpix = args->seq->bitpix;
 			seq_close_image(args->seq, ref);
-		result->livetime = livetime;
+		result->keywords.livetime = livetime;
 		}
 	} else if (args->seq->type == SEQ_FITSEQ) {
 		if (!fitseq_set_current_frame(args->seq->fitseq_file, ref)) {
 			import_metadata_from_fitsfile(args->seq->fitseq_file->fptr, result);
 			result->orig_bitpix = result->bitpix = args->seq->fitseq_file->bitpix;
 		}
-		result->livetime = livetime;
+		result->keywords.livetime = livetime;
 	} else if (args->seq->type == SEQ_SER) {
 		import_metadata_from_serfile(args->seq->ser_file, result);
 		result->orig_bitpix = result->bitpix = (args->seq->ser_file->byte_pixel_depth == SER_PIXEL_DEPTH_8) ? BYTE_IMG : USHORT_IMG;
-		result->livetime = result->exposure * args->nb_images_to_stack; // livetime is null for ser as fit has no exposure data
+		result->keywords.livetime = result->keywords.exposure * args->nb_images_to_stack; // livetime is null for ser as fit has no exposure data
 	}
-	result->stackcnt = args->nb_images_to_stack;
+	result->keywords.stackcnt = args->nb_images_to_stack;
 
 	compute_date_time_keywords(list_date, result);
 	g_list_free_full(list_date, (GDestroyNotify) free_list_date);

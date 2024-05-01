@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -516,8 +516,8 @@ static gpointer export_sequence(gpointer ptr) {
 				break;
 #endif
 			case EXPORT_SER:
-				if (destfit->date_obs) {
-					strTime = g_date_time_ref(destfit->date_obs);
+				if (destfit->keywords.date_obs) {
+					strTime = g_date_time_ref(destfit->keywords.date_obs);
 					timestamp = g_slist_append(timestamp, strTime);
 				}
 				retval = ser_write_frame_from_fit(ser_file, destfit, i - skipped);

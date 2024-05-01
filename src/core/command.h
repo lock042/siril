@@ -52,6 +52,7 @@ int	process_calibrate(int nb);
 int	process_calibrate_single(int nb);
 int	process_capabilities(int nb);
 int	process_catsearch(int nb);
+int	process_ccm(int nb);
 int	process_cd(int nb);
 int	process_cdg(int nb);
 int	process_crop(int nb);
@@ -64,13 +65,16 @@ int	process_convert(int nb);
 int	process_cosme(int nb);
 
 int	process_ddp(int nb);
+int	process_disto(int nb);
 int	process_dumpheader(int nb);
 
 int	process_entropy(int nb);
 int	process_exit(int nb);
 int	process_extract(int nb);
 int	process_extractGreen(int nb);
+int	extract_Ha(extraction_scaling scaling);
 int	process_extractHa(int nb);
+int	extract_HaOIII(extraction_scaling scaling);
 int	process_extractHaOIII(int nb);
 
 int	process_fdiv(int nb);
@@ -92,18 +96,15 @@ int	process_grey_flat(int nb);
 
 int	process_help(int nb);
 int	process_histo(int nb);
-int	process_hslcomp(int nb);
-int	process_hsvcomp(int nb);
 
 int	process_jsonmetadata(int nb);
 
-int process_icc_assign(int nb);
-int process_icc_convert_to(int nb);
-int process_icc_remove(int nb);
+int	process_icc_assign(int nb);
+int	process_icc_convert_to(int nb);
+int	process_icc_remove(int nb);
 int	process_imoper(int nb);
 int	process_inspector(int nb);
 
-int	process_labcomp(int nb);
 int	process_light_curve(int nb);
 int	process_link(int nb);
 int	process_linear_match(int nb);
@@ -132,9 +133,8 @@ int	process_modasinh(int nb);
 
 int	process_parse(int nb);
 int	process_pcc(int nb);
+int	process_platesolve(int nb);
 int	process_pm(int nb);
-int	process_preprocess(int nb);
-int	process_preprocess_single(int nb);
 int	process_profile(int nb);
 int	process_psf(int nb);
 
@@ -151,9 +151,18 @@ int	process_rotatepi(int nb);
 
 int	process_satu(int nb);
 int	process_save(int nb);
+#ifdef HAVE_LIBHEIF
+int	process_saveavif(int nb);
+#endif
 int	process_savebmp(int nb);
+#ifdef HAVE_LIBHEIF
+int	process_saveheif(int nb);
+#endif
 #ifdef HAVE_LIBJPEG
 int	process_savejpg(int nb);
+#endif
+#ifdef HAVE_LIBJXL
+int	process_savejxl(int nb);
 #endif
 #ifdef HAVE_LIBPNG
 int	process_savepng(int nb);
@@ -168,6 +177,7 @@ int	process_scnr(int nb);
 int	process_search_fct(int nb);
 int	process_select(int nb);
 int	process_seq_applyreg(int nb);
+int	process_seq_applyastrometry(int nb);
 int	process_seq_clean(int nb);
 int	process_seq_cosme(int nb);
 int	process_seq_crop(int nb);
@@ -186,6 +196,7 @@ int	process_seq_modasinh(int nb);
 int	process_seq_mtf(int nb);
 int	process_seq_profile(int nb);
 int	process_seq_psf(int nb);
+int	process_seq_resample(int nb);
 int	process_seq_rl(int nb);
 int	process_seq_sb(int nb);
 int	process_seq_split_cfa(int nb);
@@ -208,6 +219,8 @@ int	process_set_mem(int nb);
 int	process_set_photometry(int nb);
 int	process_set_ref(int nb);
 int	process_subsky(int nb);
+int	process_spcc(int nb);
+int	process_spcc_list(int nb);
 int	process_split(int nb);
 int	process_split_cfa(int nb);
 int	process_stat(int nb);
@@ -219,21 +232,20 @@ int	process_thresh(int nb);
 int	process_threshlo(int nb);
 int	process_threshhi(int nb);
 int	process_tilt(int nb);
+int	process_trixel(int nb);
 
 int	process_unclip(int nb);
 int	process_unset_mag(int nb);
 int	process_unset_mag_seq(int nb);
 int	process_unselect(int nb);
 int	process_unsharp(int nb);
+int process_update_key(int nb);
 
 int	process_visu(int nb);
 
 int	process_wavelet(int nb);
 int	process_wiener(int nb);
 int	process_wrecons(int nb);
-
-int	process_yuvcomp(int nb);
-
 
 /* live stacking specials */
 int process_start_ls(int nb);

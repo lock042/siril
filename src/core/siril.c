@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -226,13 +226,9 @@ int bilateral(fits *fit, double d, double sigma_col, double sigma_space, gboolea
  * sigma value, and when it is given, the entropy will only be computed for
  * pixels with values above background + 1 * sigma. It must be NULL otherwise.
  */
-float entropy(fits *fit, int layer, rectangle *area, imstats *opt_stats) {
+float entropy(fits *fit, int layer, rectangle *area, const imstats *opt_stats) {
 	float e = 0.f;
-	double threshold = 0.0;
 	gsl_histogram *histo;
-
-	if (opt_stats && opt_stats->median >= 0.0 && opt_stats->sigma >= 0.0)
-		threshold = opt_stats->median + 1 * opt_stats->sigma;
 
 	if (area == NULL)
 		histo = computeHisto(fit, layer);
@@ -240,13 +236,15 @@ float entropy(fits *fit, int layer, rectangle *area, imstats *opt_stats) {
 		histo = computeHisto_Selection(fit, layer, area);
 
 	size_t n = fit->naxes[0] * fit->naxes[1];
-	g_assert (n > 0);
+	g_assert(n > 0);
 	size_t size = gsl_histogram_bins(histo);
+
 	for (size_t i = 0; i < size; i++) {
-		double p = gsl_histogram_get(histo, i);
-		if (p > threshold && p < size)
-			e += (p / n) * log(n / p);
+		double p = gsl_histogram_get(histo, i) / n;
+		if (p > 0)
+			e -= p * log(p);
 	}
+
 	gsl_histogram_free(histo);
 
 	return e;
@@ -347,7 +345,7 @@ int visu(fits *fit, int low, int high) {
 }
 
 /* fill an image or selection with the value 'level' */
-int fill(fits *fit, int level, rectangle *arearg) {
+int fill(fits *fit, int level, const rectangle *arearg) {
 	rectangle area;
 
 	if (arearg) {
@@ -487,11 +485,6 @@ double background(fits* fit, int reqlayer, rectangle *selection, threading_type 
 	double bg = stat->median;
 	free_stats(stat);
 	return bg;
-}
-
-void show_FITS_header(fits *fit) {
-	if (fit->header)
-		show_data_dialog(fit->header, "FITS Header", NULL, NULL);
 }
 
 void compute_grey_flat(fits *fit) {

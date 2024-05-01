@@ -84,9 +84,19 @@ typedef enum {
 	V2 = 1,
 	V1MONO = 2,
 	V1RGB = 4,
-	TORCH = 8,
+	TORCH = 8
 } starnet_version;
 
+typedef enum {
+	MMB_ZOOM_FIT,
+	MMB_ZOOM_100,
+	MMB_ZOOM_TOGGLE
+} mmb_action_t;
+
+typedef enum {
+	CMF_1931_2DEG = 0,
+	CMF_1964_10DEG = 1
+} cmf_pref;
 
 /***********************************************************************************************/
 
@@ -103,15 +113,15 @@ struct libraw_config {
 };
 
 struct astrometry_config {
+	// common to siril and asnet solvers
 	gboolean update_default_scale;	// update default focal length and pixel size from the result
-
-	/* for local astrometry.net */
 	int percent_scale_range;	// percent below and above the expected sampling to allow
 	int sip_correction_order;	// degrees of the polynomial correction
 	double radius_degrees;		// radius around the target coordinates (degrees)
+	int max_seconds_run;		// maximum seconds of CPU time to try solving
+	/* for local astrometry.net  only */
 	gboolean keep_xyls_files;	// do not delete .xyls FITS tables
 	gboolean keep_wcs_files;	// do not delete .wcs result files
-	int max_seconds_run;		// maximum seconds of CPU time to try solving
 	gboolean show_asnet_output;	// show solve-field output in main log
 };
 
@@ -128,6 +138,11 @@ struct phot_config {
 	double minval, maxval;	// consider pixels outside this range as invalid for photometry
 				// minval and maxval are stored as int, but adapted to image type
 				// when used, so normalized to 1 for float, hence the double type
+	int discard_var_catalogues; 	// encodes the catalogues to be used to discard the variable stars from the comparison stars list
+				// consider this integer in its binary form:
+				// b0 (LSB) sets (or not) the VSX catologue
+				// b1 sets (or not) the GCVS catologue
+				// b2 sets (or not) the Varisum catologue
 };
 
 struct analysis_config {
@@ -216,6 +231,7 @@ struct gui_config {
 	roi_mode_t roi_mode; // Whether to set the ROI manually or auto from selection
 	gboolean enable_roi_warning; // Whether to notify when a ROI-enabled dialog starts
 	configurable_colors config_colors; // This used to configure some colors in Siril
+	mmb_action_t mmb_action; // Defines middle mouse button double click behaviour
 };
 
 // TODO: is any of the following used for something else than providing the default GUI value?
@@ -303,7 +319,29 @@ typedef struct icc_params {
 	icc_autoconvert_type autoconversion;
 	icc_assign_type autoassignment;
 	gboolean pedantic_linear;
+	cmf_pref cmf;
 } icc_params;
+
+struct spcc_favourites {
+	gboolean use_spcc_repository;
+	gboolean auto_spcc_update; // automatically update spcc repository at startup
+	gchar *redpref;
+	gchar *greenpref;
+	gchar *bluepref;
+	gchar *lpfpref;
+	gchar *oscfilterpref;
+	gchar *monosensorpref;
+	gchar *oscsensorpref;
+	gboolean is_mono;
+	gboolean is_dslr;
+	gboolean nb_mode;
+	double red_wl;
+	double green_wl;
+	double blue_wl;
+	double red_bw;
+	double green_bw;
+	double blue_bw;
+};
 
 /**
  * This is the preference structure.
@@ -344,7 +382,6 @@ struct pref_struct {
 
 	gchar *starnet_exe;	// Location of starnet++ executable
 	gchar *starnet_weights;	// Location of StarNet weights file (optional, Torch based StarNet only)
-	gchar *gnuplot_dir;	// Location of gnuplot installation
 	gchar *asnet_dir;	// Location of solve-field or asnet-ansvr installation on Windows
 
 	star_finder_params starfinder_conf;
@@ -356,6 +393,7 @@ struct pref_struct {
 	struct analysis_config analysis;
 	struct stack_config stack;
 	struct comp_config comp;
+	struct spcc_favourites spcc;
 	fftw_params fftw_conf;
 	icc_params icc;
 	GList *selected_scripts;

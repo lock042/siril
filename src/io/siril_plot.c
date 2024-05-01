@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@
 #include <pango/pangocairo.h>
 #include <math.h>
 #include "core/proto.h"
+#include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
 #include "gui/plot.h"
 
@@ -41,14 +42,12 @@
 static void free_xyplot_data(splxydata *plot) {
 	free(plot->data);
 	g_free(plot->label);
-	plot = NULL;
 }
 
 static void free_xyerrplot_data(splxyerrdata *plots) {
 	g_free(plots->label);
 	for (int i = 0; i < 3; i++)
 		free_xyplot_data(plots->plots[i]);
-	plots = NULL;
 }
 
 static void free_list_plot(gpointer data) {
@@ -63,6 +62,15 @@ static void free_list_plots(gpointer data) {
 	g_slice_free(splxyerrdata, item);
 }
 
+static void free_bkg(splbkg *bkg) {
+	if (!bkg)
+		return;
+	g_free(bkg->bkgfilepath);
+	if (bkg->img)
+		g_object_unref(bkg->img);
+	free(bkg);
+}
+
 // allocate a simple xy data structure
 static splxydata *alloc_xyplot_data(int nb) {
 	splxydata *plot = g_slice_new(splxydata);
@@ -74,6 +82,7 @@ static splxydata *alloc_xyplot_data(int nb) {
 	}
 	plot->nb = nb;
 	plot->label = NULL;
+	plot->pl_type = KPLOT_UNDEFINED;
 	return plot;
 }
 
@@ -94,12 +103,52 @@ static splxyerrdata *alloc_xyerrplot_data(int nb) {
 }
 
 // allocate a legend entry
-static spllegend *new_legend_entry(spl_type type, double color[3]) {
+static spllegend *new_legend_entry(spl_type type, const double color[3]) {
 	spllegend *legend = g_slice_new(spllegend);
 	legend->type = type;
 	memcpy(legend->color, color, 3 * sizeof(double));
 	return legend;
 }
+
+// sort kpairs by ascending x
+static int comparex(const void *a, const void *b) {
+	struct kpair datax_a = *((struct kpair *) a);
+	struct kpair datax_b = *((struct kpair *) b);
+	if (datax_a.x > datax_b.x) return 1;
+	if (datax_a.x < datax_b.x) return -1;
+	return 0;
+}
+
+// TODO later (zoomable background)
+// get subpixmap to display background
+// static GdkPixbuf *extract_sub_bkg(siril_plot_data *spl_data, double xmin, double xmax, double ymin, double ymax, int *offsx, int *offsy) {
+// 	*offsx = 0;
+// 	*offsy = 0;
+// 	double deltax = spl_data->datamax.x - spl_data->datamin.x;
+// 	double deltay = spl_data->datamax.y - spl_data->datamin.y;
+// 	double xminp = xmin * (double)spl_data->bkg->width / deltax;
+// 	double xmaxp = xmax * (double)spl_data->bkg->width / deltax;
+// 	double yminp = (spl_data->datamax.y - ymin) * (double)spl_data->bkg->width / deltax;// the display has y down
+// 	double ymaxp = (spl_data->datamax.y - ymax) * (double)spl_data->bkg->width / deltax;
+// 	double rangex = (xmax - xmin) * (double)spl_data->bkg->width / deltax;
+// 	double rangey = (ymax - ymin) * (double)spl_data->bkg->height / deltay;
+// 	if (xminp < 0) {
+// 		*offsx = (int)xminp;
+// 		xminp = 0.;
+// 	}
+// 	if (ymaxp < 0) {
+// 		*offsy = (int)ymaxp;
+// 		ymaxp = 0.;
+// 	}
+// 	if (rangex > (double)spl_data->bkg->width) {
+// 		rangex = (double)spl_data->bkg->width;
+// 	}
+// 	if (rangey > (double)spl_data->bkg->height) {
+// 		rangey = (double)spl_data->bkg->height;
+// 	}
+// 	GdkPixbuf *subbkg = gdk_pixbuf_new_subpixbuf(spl_data->bkg->img, (int)xminp, (int)ymaxp, (int)(rangex), (int)(rangey));
+// 	return subbkg;
+// }
 
 // init/free spl_data
 
@@ -124,7 +173,10 @@ void init_siril_plot_data(siril_plot_data *spl_data) {
 	spl_data->autotic = TRUE;
 	spl_data->revertX = FALSE;
 	spl_data->revertY = FALSE;
-	spl_data->interactive = FALSE;
+	spl_data->zoomable = FALSE;
+	spl_data->bkg = NULL;
+	spl_data->width = 0;
+	spl_data->height = 0;
 
 	// initializing kplot cfg structs
 	kplotcfg_defaults(&spl_data->cfgplot);
@@ -168,8 +220,9 @@ void free_siril_plot_data(siril_plot_data *spl_data) {
 	g_list_free_full(spl_data->plots, (GDestroyNotify)free_list_plots);
 	//freeing kplot cfg structures
 	free(spl_data->cfgplot.clrs);
+	free_bkg(spl_data->bkg);
 	free(spl_data);
-	spl_data = NULL;
+
 }
 
 // setters
@@ -209,6 +262,74 @@ void siril_plot_set_savename(siril_plot_data *spl_data, const gchar *savename) {
 	spl_data->savename = g_strdup(savename);
 }
 
+// set the color of the nth plot (n is one-based)
+// e.g.: siril_plot_set_nth_color(spl_data, 1, (double[3]){1., 0., 0.});
+// sets the first series color to red
+void siril_plot_set_nth_color(siril_plot_data *spl_data, int n, double color[3]) {
+	if (n > spl_data->cfgplot.clrsz) {
+		siril_debug_print("can't add color out of palette size (%lu)\n", spl_data->cfgplot.clrsz);
+		return;
+	}
+	memcpy(spl_data->cfgplot.clrs[n - 1].rgba, color, 3 * sizeof(double));
+}
+
+// set the type of the nth plot (n is one-based)
+// Note: spl_data->plot member is the list of xydata (w/o error bars)
+// e.g.: siril_plot_set_nth_plot_type(spl_data, 1, KPLOT_LINESMARKS);
+// sets the first series type to line with cross markers
+// This overiddes the setting defined in spl_data->plottype which applies
+// if no specific type is passed for a series
+void siril_plot_set_nth_plot_type(siril_plot_data *spl_data, int n, enum kplottype pl_type) {
+	GList *current_entry = g_list_nth(spl_data->plot, n - 1);
+	if (!current_entry) {
+		siril_debug_print("can't add plot type out of plot list size\n");
+		return;
+	}
+	splxydata *plot = (splxydata *)current_entry->data;
+	plot->pl_type = pl_type;
+}
+
+// set an image to be used as background
+// loads the image as a GdkPixBuf and gets its dimensions
+// `bkgfilename` is the name of the bkg file which should be added in
+// `pixmaps/plot_background` folder and added to siril_resource.xml
+gboolean siril_plot_set_background(siril_plot_data *spl_data, const gchar *bkgfilename) {
+	if (spl_data->bkg) {
+		free_bkg(spl_data->bkg);
+	}
+	GError *error = NULL;
+	spl_data->bkg = calloc(1, sizeof(splbkg));
+	spl_data->bkg->bkgfilepath = g_build_filename("/org/siril/ui/pixmaps/plot_background", bkgfilename, NULL);
+	spl_data->bkg->img = gdk_pixbuf_new_from_resource(spl_data->bkg->bkgfilepath, &error);
+	if (error) {
+		free_bkg(spl_data->bkg);
+		siril_debug_print("can't load background image %s (Error: %s)", spl_data->bkg->bkgfilepath, error->message);
+		g_error_free(error);
+		return FALSE;
+	}
+	spl_data->bkg->height = gdk_pixbuf_get_height(spl_data->bkg->img);
+	spl_data->bkg->width = gdk_pixbuf_get_width(spl_data->bkg->img);
+	return TRUE;
+}
+
+// set the types of the nth plots (n is one-based)
+// Note: spl_data->plots member is the list of xydata + error bars
+// e.g.: siril_plot_set_nth_plot_types(spl_data, 1, (enum kplottype[3]){KPLOT_MARKS, KPLOT_POINTS, KPLOT_POINTS});
+// sets the first series with error bars to crosses with circle error bar markers
+// This overiddes the setting defined in spl_data->plotstypes which applies
+// if no specific type is passed for a series
+void siril_plot_set_nth_plots_types(siril_plot_data *spl_data, int n, enum kplottype pl_type[3]) {
+	GList *current_entry = g_list_nth(spl_data->plots, n - 1);
+	if (!current_entry) {
+		siril_debug_print("can't add plots types out of plots list size\n");
+		return;
+	}
+	splxyerrdata *plots = (splxyerrdata *)current_entry->data;
+	for (int i = 0; i < 3; i++) {
+		plots->plots[i]->pl_type = pl_type[i];
+	}
+}
+
 // utilities
 static gboolean siril_plot_autotic(double vmin, double vmax, int *nbtics, double *tmin, double *tmax, int *sig) {
 	double extent = vmax - vmin;
@@ -244,7 +365,7 @@ static gboolean siril_plot_autotic(double vmin, double vmax, int *nbtics, double
 }
 
 // data assignment
-gboolean siril_plot_add_xydata(siril_plot_data *spl_data, gchar *label, size_t nb, double *x, double *y, double *errp, double *errm) {
+gboolean siril_plot_add_xydata(siril_plot_data *spl_data, const gchar *label, size_t nb, const double *x, const double *y, const double *errp, const double *errm) {
 	// single plot case
 	if (!errp) {
 		// allocate data
@@ -297,6 +418,23 @@ gboolean siril_plot_add_xydata(siril_plot_data *spl_data, gchar *label, size_t n
 	return TRUE;
 }
 
+// sort all plots by ascending x
+void siril_plot_sort_x(siril_plot_data *spl_data) {
+	if (!spl_data)
+		return;
+	for (GList *list = spl_data->plot; list; list = list->next) {
+		splxydata *plot = (splxydata *)list->data;
+		qsort(plot->data, plot->nb, sizeof(struct kpair), comparex);
+	}
+	for (GList *list = spl_data->plots; list; list = list->next) {
+		splxyerrdata *plots = (splxyerrdata *)list->data;
+		for (int i = 0; i < 3; i++) {
+			splxydata *plot = plots->plots[i];
+			qsort(plot->data, plot->nb, sizeof(struct kpair), comparex);
+		}
+	}
+}
+
 // draw the data contained in spl_data to the cairo context cr
 gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, double height, gboolean for_svg) {
 	struct kdata *d1 = NULL, *d2[3];
@@ -309,10 +447,10 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 	spl_data->cfgplot.yaxisrevert = (spl_data->revertY) ? 1 : 0;
 
 	// computing the tics spacing and bounds
-	double x1 = (!spl_data->interactive) ? spl_data->datamin.x : spl_data->pdd.datamin.x;
-	double x2 = (!spl_data->interactive) ? spl_data->datamax.x : spl_data->pdd.datamax.x;
-	double y1 = (!spl_data->interactive) ? spl_data->datamin.y : spl_data->pdd.datamin.y;
-	double y2 = (!spl_data->interactive) ? spl_data->datamax.y : spl_data->pdd.datamax.y;
+	double x1 = (!spl_data->zoomable) ? spl_data->datamin.x : spl_data->pdd.datamin.x;
+	double x2 = (!spl_data->zoomable) ? spl_data->datamax.x : spl_data->pdd.datamax.x;
+	double y1 = (!spl_data->zoomable) ? spl_data->datamin.y : spl_data->pdd.datamin.y;
+	double y2 = (!spl_data->zoomable) ? spl_data->datamax.y : spl_data->pdd.datamax.y;
 	double xmin, xmax, ymin, ymax;
 	int nbticX, nbticY, sigX, sigY;
 	if (spl_data->autotic &&
@@ -378,7 +516,8 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 	for (GList *list = spl_data->plot; list; list = list->next) {
 		splxydata *plot = (splxydata *)list->data;
 		d1 = kdata_array_alloc(plot->data, plot->nb);
-		kplot_attach_data(p, d1, spl_data->plottype, &spl_data->cfgdata);
+		enum kplottype plottype = (plot->pl_type == KPLOT_UNDEFINED) ? spl_data->plottype : plot->pl_type;
+		kplot_attach_data(p, d1, plottype, &spl_data->cfgdata);
 		if (spl_data->show_legend) {
 			int index = nb_graphs % spl_data->cfgplot.clrsz;
 			legend = g_list_append(legend, new_legend_entry(SIRIL_PLOT_XY, spl_data->cfgplot.clrs[index].rgba));
@@ -396,11 +535,13 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 	for (GList *list = spl_data->plots; list; list = list->next) {
 		splxyerrdata *plots = (splxyerrdata *)list->data;
 		const struct kdatacfg *cfgs[3];
+		enum kplottype plotstypes[3];
 		for (int i = 0; i < 3; i++) {
 			d2[i] = kdata_array_alloc(plots->plots[i]->data, plots->nb);
 			cfgs[i] = &spl_data->cfgdata;
+			plotstypes[i] = (plots->plots[i]->pl_type == KPLOT_UNDEFINED) ? spl_data->plotstypes[i] : plots->plots[i]->pl_type;
 		}
-		kplot_attach_datas(p, 3, d2, spl_data->plotstypes, cfgs, spl_data->plotstype);
+		kplot_attach_datas(p, 3, d2, plotstypes, cfgs, spl_data->plotstype);
 		if (spl_data->show_legend) {
 			int index = nb_graphs % spl_data->cfgplot.clrsz;
 			legend = g_list_append(legend, new_legend_entry(SIRIL_PLOT_XYERR, spl_data->cfgplot.clrs[index].rgba));
@@ -466,13 +607,24 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 	struct kplotctx ctx = { 0 };
 	cairo_t *draw_cr = cairo_create(draw_surface);
 	kplot_draw(p, drawwidth, drawheight, draw_cr, &ctx);
+	spl_data->pdd.range = (point){ ctx.dims.x,  ctx.dims.y};
+	spl_data->pdd.offset = (point){ ctx.offs.x,  ctx.offs.y + top};
+	if (spl_data->bkg) {
+		// TODO later zoomable bkg
+		// int offsx, offsy;
+		// GdkPixbuf *subbkg = extract_sub_bkg(spl_data, xmin, xmax, ymin, ymax, &offsx, &offsy);
+		GdkPixbuf *bkg = gdk_pixbuf_scale_simple(spl_data->bkg->img, (int)ctx.dims.x, (int)ctx.dims.y, GDK_INTERP_BILINEAR);
+		gdk_cairo_set_source_pixbuf(cr, bkg, ctx.offs.x, ctx.offs.y + top);
+		cairo_paint(cr);
+		cairo_fill(cr);
+		g_object_unref(bkg);
+		// g_object_unref(subbkg);
+	}
 	cairo_set_source_surface(cr, draw_surface, 0., (int)top);
 	cairo_paint(cr);
 	cairo_destroy(draw_cr);
 	cairo_surface_destroy(draw_surface);
 	kplot_free(p);
-	spl_data->pdd.range = (point){ ctx.dims.x,  ctx.dims.y};
-	spl_data->pdd.offset = (point){ ctx.offs.x,  ctx.offs.y + top};
 
 	if (spl_data->show_legend) {
 		// creating the legend
@@ -501,13 +653,13 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 		guint index = 0;
 		do {
 			GList *current_entry = g_list_nth(legend, index);
-			double color[3];
-			memcpy(color, ((spllegend *)current_entry->data)->color, 3 * sizeof(double));
+			double color3[3];
+			memcpy(color3, ((spllegend *)current_entry->data)->color, 3 * sizeof(double));
 			if (iter == NULL)
 				break;
 			y0 = pango_layout_iter_get_baseline(iter);
 			double dy = (double)y0 / PANGO_SCALE - 0.5 * SIRIL_PLOT_LEGEND_SIZE;
-			cairo_set_source_rgb(cr, color[0], color[1], color[2]);
+			cairo_set_source_rgb(cr, color3[0], color3[1], color3[2]);
 			cairo_set_line_width(cr, 1.);
 			if (index < nb_xygraphs) {
 				cairo_move_to(cr, px0, py0 + dy);
@@ -585,7 +737,7 @@ gboolean siril_plot_save_svg(siril_plot_data *spl_data, char *svgfilename, int w
 		}
 	}
 	// draw the plot and save the surface to svg
-	if (success && siril_plot_draw(svg_cr, spl_data, (double)SIRIL_PLOT_PNG_WIDTH, (double)SIRIL_PLOT_PNG_HEIGHT, TRUE))
+	if (success && siril_plot_draw(svg_cr, spl_data, (width) ? width : SIRIL_PLOT_PNG_WIDTH, (height) ? height : SIRIL_PLOT_PNG_HEIGHT, TRUE))
 		siril_log_message(_("%s has been saved.\n"), svgfilename);
 	else {
 		success = FALSE;
@@ -605,6 +757,7 @@ gboolean siril_plot_save_dat(siril_plot_data *spl_data, const char *datfilename,
 	FILE* fileout = NULL;
 	gboolean retval = TRUE;
 	double *data = NULL;
+	char* newfilename = NULL;
 
 	// TODO: for the time-being, we will assume that x of the first series
 	// is valid for all other series. May need to complexify this in the future
@@ -658,6 +811,8 @@ gboolean siril_plot_save_dat(siril_plot_data *spl_data, const char *datfilename,
 	}
 	for (GList *list = spl_data->plot; list; list = list->next) {
 		splxydata *plot = (splxydata *)list->data;
+		if (plot->nb != nbpoints)
+			continue;
 		// adding x if none is present
 		if (j == 0) {
 			int index = j;
@@ -677,6 +832,8 @@ gboolean siril_plot_save_dat(siril_plot_data *spl_data, const char *datfilename,
 	}
 	for (GList *list = spl_data->plots; list; list = list->next) {
 		splxyerrdata *plots = (splxyerrdata *)list->data;
+		if (plots->nb != nbpoints)
+			continue;
 		// adding x if none is present
 		if (j == 0) {
 			int index = j;
@@ -695,7 +852,11 @@ gboolean siril_plot_save_dat(siril_plot_data *spl_data, const char *datfilename,
 		}
 		j += 3;
 	}
-	fileout = g_fopen(datfilename, "w");
+	newfilename = strdup(datfilename);
+	if (!g_str_has_suffix(newfilename, ".dat")) {
+		str_append(&newfilename, ".dat");
+	}
+	fileout = g_fopen(newfilename, "w");
 	if (fileout == NULL) {
 		siril_log_message(_("Could not create %s, aborting\n"));
 		retval = FALSE;
@@ -709,19 +870,11 @@ gboolean siril_plot_save_dat(siril_plot_data *spl_data, const char *datfilename,
 			fprintf(fileout, " %g", data[index++]);
 	}
 	fclose(fileout);
-	siril_log_message(_("%s has been saved.\n"), datfilename);
+	siril_log_message(_("%s has been saved.\n"), newfilename);
 
 clean_and_exit:
 	g_string_free(header, TRUE);
 	free(data);
+	free(newfilename);
 	return retval;
 }
-
-
-
-
-
-
-
-
-

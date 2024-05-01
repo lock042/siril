@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,7 +39,7 @@
 #define REGLAYER 0
 
 static sequence *seq = NULL;		// the sequence of channels
-static struct registration_method *reg_methods[3];
+static struct registration_method *reg_methods[5];
 
 
 static void initialize_methods() {
@@ -47,8 +47,11 @@ static void initialize_methods() {
 			&register_shift_fwhm, REQUIRES_ANY_SELECTION, REGTYPE_DEEPSKY);
 	reg_methods[1] = new_reg_method(_("Image pattern alignment (planetary/deep-sky)"),
 			&register_shift_dft, REQUIRES_SQUARED_SELECTION, REGTYPE_PLANETARY);
-
-	reg_methods[2] = NULL;
+	reg_methods[2] = new_reg_method(_("Global star registration (deep-sky)"),
+			&register_multi_step_global, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
+	reg_methods[3] = new_reg_method(_("KOMBAT registration (planetary / deep-sky)"),
+			&register_kombat, REQUIRES_ANY_SELECTION, REGTYPE_DEEPSKY);
+	reg_methods[4] = NULL;
 }
 
 // We cannot currently do this in free_sequence() because compositing still
@@ -77,6 +80,7 @@ static int initialize_internal_rgb_sequence() {
 	}
 	seq->rx = gfit.rx;
 	seq->ry = gfit.ry;
+	seq->bitpix = gfit.bitpix;
 
 	return 0;
 }
@@ -120,10 +124,28 @@ static void align_and_compose() {
 	}
 }
 
+static void compose() {
+	size_t npixels = gfit.rx * gfit.ry;
+	fits *fit[3];
+	for (int i = 0 ; i < 3 ; i++) {
+		fit[i] = internal_sequence_get(seq, i);
+	}
+	if (gfit.type == DATA_FLOAT) {
+		for (int i = 0 ; i < 3 ; i++) {
+			memcpy(gfit.fpdata[i], fit[i]->fdata, sizeof(float) * npixels);
+		}
+	} else {
+		for (int i = 0 ; i < 3 ; i++) {
+			memcpy(gfit.pdata[i], fit[i]->data, sizeof(WORD) * npixels);
+		}
+	}
+}
+
 int rgb_align(int m) {
 	struct registration_args regargs = { 0 };
 	struct registration_method *method;
-	int retval;
+	framing_type framing = FRAMING_COG;
+	int retval1 = 0, retval2 = 0;
 
 	initialize_methods();
 	initialize_internal_rgb_sequence();
@@ -132,31 +154,57 @@ int rgb_align(int m) {
 
 	/* align it */
 	method = reg_methods[m];
-
+	gboolean two_step = (method->method_ptr == register_multi_step_global ||
+		method->method_ptr == register_kombat || method->method_ptr == register_manual) ? TRUE : FALSE;
 	regargs.seq = seq;
-	regargs.seq->nb_layers = 1;
+	regargs.no_output = FALSE;
 	get_the_registration_area(&regargs, method);
 	regargs.layer = REGLAYER;
-	regargs.follow_star = FALSE;
-	regargs.x2upscale = FALSE;
-	regargs.run_in_thread = FALSE;
+	seq->reference_image = 0;
+	regargs.seq->nb_layers = 1;
 	regargs.max_stars_candidates = MAX_STARS_FITTED;
+	regargs.run_in_thread = FALSE;
+	regargs.interpolation = OPENCV_LANCZOS4;
+	regargs.clamp = TRUE;
+	regargs.framing = framing;
+	regargs.percent_moved = 0.50f; // Only needed for KOMBAT
+	regargs.two_pass = (method->method_ptr == register_multi_step_global &&
+						framing != FRAMING_CURRENT) ? TRUE : FALSE;
+	if (method->method_ptr == register_shift_fwhm || method->method_ptr == register_shift_dft)
+		regargs.type = SHIFT_TRANSFORMATION;
+	else
+		regargs.type = HOMOGRAPHY_TRANSFORMATION;
 	com.run_thread = TRUE;	// fix for the canceling check in processing
 
-	retval = method->method_ptr(&regargs);
+	retval1 = method->method_ptr(&regargs);
+	free(regargs.imgparam);
+	regargs.imgparam = NULL;
+	free(regargs.regparam);
+	regargs.regparam = NULL;
+	if (retval1) {
+		set_progress_bar_data(_("Error in channels alignment."), PROGRESS_DONE);
+		set_cursor_waiting(FALSE);
+		com.run_thread = FALSE;	// fix for the cancelling check in processing
+		return retval1;
+	}
+	if (two_step) {
+		retval2 = register_apply_reg(&regargs);
+		compose(); // Register_apply_reg has already done the alignment for us
+	} else {
+		align_and_compose();
+	}
 
 	com.run_thread = FALSE;	// fix for the canceling check in processing
 
-	if (retval) {
+	if (retval2) {
 		set_progress_bar_data(_("Error in layers alignment."), PROGRESS_DONE);
 	} else {
 		set_progress_bar_data(_("Registration complete."), PROGRESS_DONE);
-		align_and_compose();
 		adjust_cutoff_from_updated_gfit();
 		redraw(REMAP_ALL);
 	}
 	set_cursor_waiting(FALSE);
 	free_internal_sequence(seq);
 	seq =  NULL;
-	return retval;
+	return retval2;
 }

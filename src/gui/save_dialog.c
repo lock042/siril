@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,6 +32,7 @@
 #include "gui/utils.h"
 #include "gui/message_dialog.h"
 #include "gui/dialog_preview.h"
+#include "gui/icc_profile.h"
 #include "gui/utils.h"
 #include "gui/image_display.h"
 #include "gui/callbacks.h"
@@ -87,6 +88,14 @@ static void set_filters_save_dialog(GtkFileChooser *chooser) {
 	all_filter = g_string_append(all_filter, jpg_filter);
 #endif
 
+#ifdef HAVE_LIBJXL
+	const gchar *jxl_filter = "*.jxl;*.JXL";
+
+	gtk_filter_add(chooser, _("JPEG XL Files (*.jxl)"), jxl_filter, FALSE);
+	all_filter = g_string_append(all_filter, ";");
+	all_filter = g_string_append(all_filter, jxl_filter);
+#endif
+
 #ifdef HAVE_LIBPNG
 	const gchar *png_filter = "*.png;*.PNG";
 
@@ -133,6 +142,9 @@ static image_type get_filetype(const gchar *filter) {
 			break;
 		} else if (!g_strcmp0(string[i], "tif")) {
 			type = TYPETIFF;
+			break;
+		} else if (!g_strcmp0(string[i], "jxl")) {
+			type = TYPEJXL;
 			break;
 		} else if (!g_strcmp0(string[i], "ppm")) {
 			type = TYPEPNM;
@@ -218,12 +230,14 @@ static void prepare_savepopup() {
 	static GtkNotebook* notebookFormat = NULL;
 	static GtkWidget *savepopup = NULL;
 	static GtkWidget *savetxt = NULL;
+	static GtkWidget *button_savepopup = NULL;
 	int tab;
 
 	if (notebookFormat == NULL) {
 		notebookFormat = GTK_NOTEBOOK(lookup_widget("notebookFormat"));
 		savepopup = lookup_widget("savepopup");
 		savetxt = lookup_widget("filenameframe");
+		button_savepopup = lookup_widget("button_savepopup");
 	}
 
 	GtkWindow *parent = GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
@@ -245,6 +259,10 @@ static void prepare_savepopup() {
 		gtk_window_set_title(GTK_WINDOW(savepopup), _("Saving JPG"));
 		tab = PAGE_JPG;
 		break;
+	case TYPEJXL:
+		gtk_window_set_title(GTK_WINDOW(savepopup), _("Saving JPEG XL"));
+		tab = PAGE_JXL;
+		break;
 	case TYPETIFF:
 		gtk_window_set_title(GTK_WINDOW(savepopup), _("Saving TIFF"));
 		set_copyright_in_TIFF();
@@ -262,6 +280,7 @@ static void prepare_savepopup() {
 
 	gtk_widget_set_visible(savetxt, FALSE);
 	gtk_notebook_set_current_page(notebookFormat, tab);
+	gtk_widget_grab_focus(button_savepopup);
 }
 
 static void init_dialog() {
@@ -337,6 +356,11 @@ static void filter_changed(gpointer user_data) {
 #ifdef HAVE_LIBJPEG
 	case TYPEJPG:
 		new_filename = g_strdup_printf("%s.jpg", file_no_ext);
+		break;
+#endif
+#ifdef HAVE_LIBJXL
+	case TYPEJXL:
+		new_filename = g_strdup_printf("%s.jxl", file_no_ext);
 		break;
 #endif
 #ifdef HAVE_LIBPNG
@@ -435,6 +459,14 @@ static gboolean initialize_data(gpointer p) {
 	GtkSpinButton *qlty_spin_button = GTK_SPIN_BUTTON(lookup_widget("quality_spinbutton"));
 	args->quality = gtk_spin_button_get_value_as_int(qlty_spin_button);
 #endif
+#ifdef HAVE_LIBJXL
+	GtkSpinButton *quality_spin_button = GTK_SPIN_BUTTON(lookup_widget("jxl_quality_spinbutton"));
+	args->jxl_quality = gtk_spin_button_get_value_as_int(quality_spin_button);
+	GtkSpinButton *effort_spin_button = GTK_SPIN_BUTTON(lookup_widget("jxl_effort_spinbutton"));
+	args->jxl_effort = gtk_spin_button_get_value_as_int(effort_spin_button);
+	GtkToggleButton *toggle_button_8bit = GTK_TOGGLE_BUTTON(lookup_widget("jxl_force_8bit"));
+	args->jxl_force_8bit = gtk_toggle_button_get_active(toggle_button_8bit);
+#endif
 #ifdef HAVE_LIBTIFF
 	GtkToggleButton *button_8 = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton8bits"));
 	GtkToggleButton *button_32 = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton32bits"));
@@ -476,6 +508,11 @@ static gpointer mini_save_dialog(gpointer p) {
 			args->retval = savejpg(args->filename, &gfit, args->quality);
 			break;
 #endif
+#ifdef HAVE_LIBJXL
+		case TYPEJXL:
+			args->retval = savejxl(args->filename, &gfit, args->jxl_effort, args->jxl_quality, args->jxl_force_8bit);
+			break;
+#endif
 #ifdef HAVE_LIBTIFF
 		case TYPETIFF:
 			args->retval = savetif(args->filename, &gfit, args->bitspersamples, args->description, args->copyright, args->tiff_compression, TRUE, TRUE);
@@ -495,24 +532,24 @@ static gpointer mini_save_dialog(gpointer p) {
 			/* Check if MIPS-HI and MIPS-LO must be updated. If yes,
 			 * Values are taken from the layer 0 */
 			if (args->update_hilo) {
-				gfit.hi = gui.hi;
-				gfit.lo = gui.lo;
+				gfit.keywords.hi = gui.hi;
+				gfit.keywords.lo = gui.lo;
 				if (gfit.orig_bitpix == BYTE_IMG
-						&& (gfit.hi > UCHAR_MAX || gfit.lo > UCHAR_MAX)) {
-					gfit.hi = UCHAR_MAX;
-					gfit.lo = 0;
+						&& (gfit.keywords.hi > UCHAR_MAX || gfit.keywords.lo > UCHAR_MAX)) {
+					gfit.keywords.hi = UCHAR_MAX;
+					gfit.keywords.lo = 0;
 				} else if (gfit.orig_bitpix == SHORT_IMG
-						&& (gfit.hi > SHRT_MAX || gfit.lo > SHRT_MAX)) {
-					gfit.hi = UCHAR_MAX;
-					gfit.lo = 0;
+						&& (gfit.keywords.hi > SHRT_MAX || gfit.keywords.lo > SHRT_MAX)) {
+					gfit.keywords.hi = UCHAR_MAX;
+					gfit.keywords.lo = 0;
 				}
 				if (gfit.orig_bitpix == BYTE_IMG && gfit.bitpix != BYTE_IMG) {
-					gfit.hi = USHRT_MAX;
-					gfit.lo = 0;
+					gfit.keywords.hi = USHRT_MAX;
+					gfit.keywords.lo = 0;
 				}
 			} else {
-				gfit.hi = 0;
-				gfit.lo = 0;
+				gfit.keywords.hi = 0;
+				gfit.keywords.lo = 0;
 			}
 			args->retval = savefits(args->filename, &gfit);
 			if (!args->retval && single_image_is_loaded()) {

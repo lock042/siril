@@ -1,7 +1,7 @@
 # This file is part of Siril, an astronomy image processor.
 # Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
-# Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
-# Reference site is https://free-astro.org/index.php/Siril
+# Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+# Reference site is https://siril.org
 #
 # Siril is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@
 
 project('siril',
   ['c','cpp'],
-  version : '1.3.0-alpha-dev',
+  version : '1.3.1-alpha-dev',
   license : ['GPL3'],
   meson_version: '>=0.56.0',
   default_options : [
@@ -47,7 +47,7 @@ have_fftw3fthreads = false
 have_fftw3fthreadsnolinkerarg = false
 
 enable_openmp    = get_option('openmp')
-enable_json_glib = get_option('json_glib')
+enable_libcurl   = get_option('libcurl')
 enable_exiv      = get_option('exiv2')
 enable_libraw    = get_option('libraw')
 enable_libtiff   = get_option('libtiff')
@@ -58,7 +58,7 @@ enable_libXISF   = get_option('libXISF')
 enable_ffms2     = get_option('ffms2')
 enable_ffmpeg    = get_option('ffmpeg')
 enable_criterion = get_option('criterion')
-enable_wcslib    = get_option('wcslib')
+enable_libjxl    = get_option('libjxl')
 enable_libgit2    = get_option('libgit2')
 
 # General version
@@ -215,18 +215,6 @@ else # == 'platform-default'
   endif
 endif
 
-if get_option('enable-libcurl') == 'yes'
-  enable_libcurl= true
-elif get_option('enable-libcurl') == 'no'
-  enable_libcurl = false
-else # == 'platform-default'
-  if platform_windows or platform_osx
-      enable_libcurl = true
-  else
-      enable_libcurl = false
-  endif
-endif
-
 # Dependencies
 no_dep = dependency('', required: false)
 
@@ -243,6 +231,9 @@ gtk_dep = dependency('gtk+-3.0', required : true, version: '>= 3.22.0')
 gsl_dep = dependency('gsl', required : true)
 m_dep = cc.find_library('m', required : false)
 lcms_dep = dependency('lcms2', required : true, version: '>= 2.14')
+# wcslib mandatory - uses subproject fallback to build if not found
+wcslib_dep = dependency('wcslib', fallback : ['wcslib', 'wcslib_dep'], required : true, version: '>= 7.12')
+json_glib_dep = dependency('json-glib-1.0', required : true, version: '>=1.2.6')
 
 fftw3f_dep = dependency('fftw3f', required : true)
 # threaded fftw3f
@@ -270,6 +261,12 @@ cfitsio_dep = dependency('cfitsio', required : true)
 cairo_dep = dependency('cairo', required : true)
 kplot_dep = dependency('kplot', fallback : ['kplot', 'kplot_dep'], required : true)
 opencv4_dep = dependency('opencv4', required : true, version: '>= 4.2.0')
+# checking required opencv modules
+opencv_symbols = ['HAVE_OPENCV_CORE', 'HAVE_OPENCV_IMGPROC', 'HAVE_OPENCV_CALIB3D', 'HAVE_OPENCV_STITCHING']
+opencv_incdir = '-I'+opencv4_dep.get_variable(pkgconfig : 'includedir')
+foreach s : opencv_symbols
+  cpp.has_header_symbol('opencv2/opencv_modules.hpp', s, args: [opencv_incdir], required : true)
+endforeach
 
 rtprocess_dep = dependency('rtprocess', required : false)
 if not rtprocess_dep.found()
@@ -277,6 +274,10 @@ if not rtprocess_dep.found()
 
   # Call CMake with `-DBUILD_SHARED_LIBS=OFF`
   opt_var.add_cmake_defines({'BUILD_SHARED_LIBS': false})
+  opt_var.add_cmake_defines({'OPTION_OMP': false})
+  if get_option('buildtype').startswith('debug')
+    opt_var.add_cmake_defines({'CMAKE_BUILD_TYPE': 'debug'})
+  endif
   sub_proj = cmake.subproject('librtprocess', options: opt_var)
 
   rtprocess_dep = sub_proj.dependency('rtprocess')
@@ -350,12 +351,6 @@ else
   message('FFTW does not support multithreading')
 endif
 
-
-json_glib_dep = no_dep
-if enable_json_glib
-  json_glib_dep = dependency('json-glib-1.0', required : true, version: '>=1.2.6')
-endif
-
 exiv_dep = no_dep
 if enable_exiv
   exiv_dep = dependency('exiv2', required : true, version: '>= 0.25')
@@ -376,6 +371,13 @@ if enable_libjpeg
   libjpeg_dep = dependency('libjpeg', required : true)
 endif
 
+libjxl_dep = no_dep
+libjxl_threads_dep = no_dep
+if enable_libjxl
+  libjxl_dep = dependency('libjxl', required : true)
+  libjxl_threads_dep = dependency('libjxl_threads', required : false)
+endif
+
 libpng_dep = no_dep
 if enable_libpng
   libpng_dep = dependency('libpng', required : true, version: '>= 1.6.0')
@@ -383,7 +385,7 @@ endif
 
 libheif_dep = no_dep
 if enable_libheif
-  libheif_dep = dependency('libheif', required : true)
+  libheif_dep = dependency('libheif', required : true, version: '>= 1.8.0')
 endif
 
 libXISF_dep = no_dep
@@ -420,11 +422,6 @@ endif
 criterion_dep = no_dep
 if enable_criterion
   criterion_dep = dependency('criterion', required : true)
-endif
-
-wcslib_dep = no_dep
-if enable_wcslib
-  wcslib_dep = dependency('wcslib', fallback : ['wcslib', 'wcslib_dep'], required : true)
 endif
 
 ################################################################################
@@ -515,12 +512,6 @@ else
   conf_data.set('HAVE_GSL_2', 0, description : 'Use GSL 2.')
 endif
 
-if json_glib_dep.found()
-  conf_data.set('HAVE_JSON_GLIB', true, description : 'Using json glib')
-else
-  conf_data.set('HAVE_JSON_GLIB', false, description : 'Using json glib')
-endif
-
 if exiv_dep.found()
   conf_data.set('HAVE_EXIV2', true, description : 'Using exif previews.')
 else
@@ -543,6 +534,18 @@ if libjpeg_dep.found()
   conf_data.set('HAVE_LIBJPEG', true, description : 'Using JPEG images.')
 else
   conf_data.set('HAVE_LIBJPEG', false, description : 'Using JPEG images.')
+endif
+
+if libjxl_dep.found()
+  conf_data.set('HAVE_LIBJXL', true, description : 'Using JPEG XL images.')
+else
+  conf_data.set('HAVE_LIBJXL', false, description : 'Using JPEG XL images.')
+endif
+
+if libjxl_threads_dep.found()
+  conf_data.set('HAVE_LIBJXL_THREADS', true, description : 'Using JPEG XL threading.')
+else
+  conf_data.set('HAVE_LIBJXL_THREADS', false, description : 'Using JPEG XL threading.')
 endif
 
 if libpng_dep.found()
@@ -592,75 +595,7 @@ else
   conf_data.set('HAVE_LIBCURL', false, description : 'Using Curl.')
 endif
 
-if wcslib_dep.found()
-  conf_data.set('HAVE_WCSLIB', true, description : 'Using wcslib.')
-  if wcslib_dep.version().version_compare('< 7.7')
-  wcslib_warning = '''
-        wcslib lower than version 7.7 is known to crash when
-        updating wcsdata in files. Please update
-  '''
-  warnings += wcslib_warning
-endif
-else
-  conf_data.set('HAVE_WCSLIB', false, description : 'Using wcslib.')
-endif
-
 conf_data.set('HAVE_CXX11', true, description : 'Define to 1 if cpp compiler is C++11 compliant.')
-
-################################################################################
-# Check for GLib Networking
-
-glib_networking_works_run=false
-if meson.is_cross_build() and not meson.can_run_host_binaries()
-    # Cross-compilation without run capability: we won't be able to
-    # check networking support.
-    glib_networking_works = true
-    glib_warning = '''
-      Test for glib-networking cannot be performed while cross-compiling,
-      unless you set an `exe_wrapper` binary in your toolchain file.
-      Make sure glib-networking is installed, otherwise Siril will not be able
-      to open remote HTTPS (or other protocol using SSL/TLS) files.
-      HTTPS is becoming the expected standard and should not be considered
-      optional anymore.
-    '''
-    warning(glib_warning)
-    warnings += glib_warning
-else # not meson.is_cross_build() or meson.can_run_host_binaries()
-    glib_networking_works_run = cc.run(
-      '''#include <gio/gio.h>
-      int main() {
-        return !g_tls_backend_supports_tls (g_tls_backend_get_default ());
-      }''',
-      dependencies: gio_dep,
-    )
-    glib_networking_works = (glib_networking_works_run.compiled() and
-                             glib_networking_works_run.returncode() == 0)
-    if (glib_networking_works)
-      message('glib-networking detected.')
-    elif meson.is_cross_build()
-        # Since cross-platform test runs may be unreliable, let's be
-        # flexible and pass the test with a warning.
-        glib_networking_works = true
-        glib_warning = '''
-      The cross-platform test for glib-networking failed, using the
-      `exe_wrapper` set in your toolchain file.
-      Make sure glib-networking is installed, otherwise Siril will not be able
-      to open remote HTTPS (or other protocol using SSL/TLS) files.
-      HTTPS is becoming the expected standard and should not be considered
-      optional anymore.
-        '''
-        warning(glib_warning)
-        warnings += glib_warning
-    endif
-endif
-
-if not glib_networking_works and not libcurl_dep.found()
-  warning('no networking library found, neither glib-networking or curl found.')
-  conf_data.set('HAVE_NETWORKING', false, description : 'Using networking.')
-else
-  message('networking solution found with either glib-networking or curl.')
-  conf_data.set('HAVE_NETWORKING', true, description : 'Using networking.')
-endif
 
 ## Git configuration
 git_data = configuration_data()
@@ -696,6 +631,8 @@ externals_dep = declare_dependency(
     libpng_dep,
     libheif_dep,
     libXISF_dep,
+    libjxl_dep,
+    libjxl_threads_dep,
     ffms2_dep,
     openmp_dep,
     kplot_dep,
@@ -713,7 +650,6 @@ subdir('pixmaps')
 subdir('data')
 subdir('po')
 subdir('scripts')
-subdir('3rdparty')
 subdir('3rdparty_licenses')
 
 ################################################################################
@@ -765,20 +701,18 @@ summary(
 
 summary(
   {
-    'json glib'         : json_glib_dep.found(),
     'exiv2'             : exiv_dep.found(),
     'libraw'            : libraw_dep.found(),
     'TIFF'              : libtiff_dep.found(),
     'XISF'              : libXISF_dep.found(),
     'JPEG'              : libjpeg_dep.found(),
+    'JPEG XL'           : libjxl_dep.found(),
     'PNG'               : libpng_dep.found(),
     'HEIF'              : libheif_dep.found(),
     'FFMS2'             : ffms2_dep.found(),
     'libgit2'           : libgit2_dep.found(),
     'ffmpeg'            : ffmpeg_found,
     'libcurl'           : libcurl_dep.found(),
-    'glib-networking'   : glib_networking_works,
-    'wcslib'            : wcslib_dep.found(),
     'criterion'         : criterion_dep.found(),
   }, section: 'Optional dependencies'
 )

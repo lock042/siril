@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 #include "core/proto.h"
 #include "core/icc_profile.h"
 #include "core/initfile.h"
+#include "core/siril_app_dirs.h"
 #include "core/siril_language.h"
 #include "core/settings.h"
 #include "core/siril_log.h"
@@ -30,18 +31,20 @@
 #include "io/annotation_catalogues.h"
 #include "gui/annotations_pref.h"
 #include "gui/callbacks.h"
+#include "gui/icc_profile.h"
 #include "gui/utils.h"
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
 #include "gui/script_menu.h"
 #include "gui/dialogs.h"
 #include "gui/PSF_list.h"
+#include "gui/photometric_cc.h"
 #include "gui/siril_intro.h"
 #include "gui/fix_xtrans_af.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "stacking/stacking.h"
-#include "io/gitscripts.h"
+#include "io/siril_git.h"
 
 #include "preferences.h"
 #include "filters/starnet.h"
@@ -120,8 +123,9 @@ static void update_astrometry_preferences() {
 	com.pref.astrometry.max_seconds_run = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("spin_asnet_max_sec")));
 	com.pref.astrometry.update_default_scale = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("astrometry_update_fields")));
 	com.pref.astrometry.show_asnet_output = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_asnet_show_output")));
-	// In the prefs structure, the dir is stored alongside starnet and gnuplot, not in astrometry
+	// In the prefs structure, the dir is stored alongside starnet, not in astrometry
 	com.pref.asnet_dir = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("filechooser_asnet")));
+	reset_astrometry_checks();
 }
 
 static void update_prepro_preferences() {
@@ -201,8 +205,11 @@ static void update_scripts_preferences() {
 #ifdef HAVE_LIBGIT2
 	com.pref.use_scripts_repository = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_use_gitscripts")));
 	com.pref.auto_script_update = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_script_automatic_updates")));
+	com.pref.spcc.use_spcc_repository = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("spcc_repo_enable")));
+	com.pref.spcc.auto_spcc_update = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("spcc_repo_sync_at_startup")));
 #else
 	com.pref.use_scripts_repository = FALSE;
+	com.pref.use_spcc_repository = FALSE;
 #endif
 }
 
@@ -221,6 +228,7 @@ static void update_user_interface_preferences() {
 	com.pref.gui.default_rendering_mode = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_default_stf")));
 	com.pref.gui.display_histogram_mode = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_default_histo_mode")));
 	com.pref.gui.roi_mode = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_ui_roimode")));
+	com.pref.gui.mmb_action = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_ui_mmb_zoom")));
 	update_roi_config();
 	/* Configure colors */
 	GdkRGBA color;
@@ -271,8 +279,9 @@ static void update_color_management_preferences() {
 	com.pref.icc.export_intent = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_export_intent")));
 	com.pref.icc.default_to_srgb = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("default_to_srgb")));
 	com.pref.icc.working_gamut = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("working_gamut")));
-	com.pref.icc.export_8bit_method =  gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("export_profile_8bit")));
-	com.pref.icc.export_16bit_method =  gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("export_profile_16bit")));
+	com.pref.icc.export_8bit_method = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("export_profile_8bit")));
+	com.pref.icc.export_16bit_method = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("export_profile_16bit")));
+	com.pref.icc.cmf = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_cmf_pref")));
 	com.pref.icc.custom_monitor_profile_active = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("custom_monitor_profile_active")));
 	com.pref.icc.soft_proofing_profile_active = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("custom_proofing_profile_active")));
 	com.pref.icc.rendering_bpc = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_rendering_bpc")));
@@ -382,7 +391,7 @@ void initialize_path_directory(const gchar *path) {
 	}
 }
 
-void initialize_starnet_executable(const gchar *path) {
+void initialize_starnet_executable(gchar *path) {
 #ifdef HAVE_LIBTIFF
 	GtkFileChooser *starnet_exe = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet"));
 	GtkWidget *starnet_weights_reset = GTK_WIDGET(lookup_widget("starnet_weights_clear"));
@@ -403,7 +412,7 @@ void initialize_starnet_executable(const gchar *path) {
 #endif
 }
 
-void initialize_starnet_weights(const gchar *path) {
+void initialize_starnet_weights(gchar *path) {
 	GtkFileChooser *starnet_weights = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet_weights"));
 	if (path && path[0] != '\0') {
 		gtk_file_chooser_set_filename (starnet_weights, path);
@@ -412,6 +421,7 @@ void initialize_starnet_weights(const gchar *path) {
 
 void initialize_asnet_directory(const gchar *path) {
 	GtkFileChooser *asnet_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_asnet"));
+	reset_asnet_version();
 	if (path && path[0] != '\0') {
 		gtk_file_chooser_set_filename (asnet_dir, path);
 	}
@@ -420,6 +430,7 @@ void initialize_asnet_directory(const gchar *path) {
 void on_asnet_clear_clicked(GtkButton *button, gpointer user_data) {
 	GtkFileChooser *asnet_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_asnet"));
 	gtk_file_chooser_set_filename(asnet_dir, "\0");
+	reset_asnet_version();
 }
 
 void on_button_reset_swap_clicked(GtkButton *button, gpointer user_data) {
@@ -709,6 +720,7 @@ void update_preferences_from_model() {
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_default_stf")), pref->gui.default_rendering_mode);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_default_histo_mode")), pref->gui.display_histogram_mode);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_ui_roimode")), pref->gui.roi_mode);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_ui_mmb_zoom")), pref->gui.mmb_action);
 
 	GdkRGBA color;
 	gdk_rgba_parse(&color, pref->gui.config_colors.color_bkg_samples);
@@ -757,6 +769,7 @@ void update_preferences_from_model() {
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("working_gamut")), pref->icc.working_gamut);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("export_profile_8bit")), pref->icc.export_8bit_method);
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("export_profile_16bit")), pref->icc.export_16bit_method);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_cmf_pref")), pref->icc.cmf);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("custom_monitor_profile_active")), pref->icc.custom_monitor_profile_active);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("custom_proofing_profile_active")), pref->icc.soft_proofing_profile_active);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("default_to_srgb")), pref->icc.default_to_srgb);
@@ -780,6 +793,8 @@ void update_preferences_from_model() {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("script_check_version")), pref->script_check_requires);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_use_gitscripts")), pref->use_scripts_repository);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_script_automatic_updates")), pref->auto_script_update);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("spcc_repo_enable")), pref->spcc.use_spcc_repository);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("spcc_repo_sync_at_startup")), pref->spcc.auto_spcc_update);
 
 	/* tab Performances */
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("memfreeratio_radio")), pref->mem_mode == RATIO);
@@ -802,12 +817,7 @@ void update_preferences_from_model() {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit")), pref->gui.silent_quit);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskSave")), pref->gui.silent_linear);
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("miscCopyright")), pref->copyright == NULL ? "" : pref->copyright);
-#ifdef HAVE_JSON_GLIB
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskUpdateStartup")), pref->check_update);
-#else
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskUpdateStartup")), FALSE);
-	gtk_widget_set_sensitive(lookup_widget("miscAskUpdateStartup"), FALSE);
-#endif
 }
 
 static void set_icc_filechooser_directories() {
@@ -852,6 +862,19 @@ static void dump_ui_to_global_var() {
 
 void on_settings_window_show(GtkWidget *widget, gpointer user_data) {
 	siril_debug_print("show preferences window: updating it\n");
+	siril_set_file_filter("localcatalogue_path1", "filter_namedstars");
+	siril_set_file_filter("localcatalogue_path2", "filter_unnamedstars");
+	siril_set_file_filter("localcatalogue_path3", "filter_deepstars");
+	siril_set_file_filter("localcatalogue_path4", "filter_USNO-NOMAD-1e8");
+	siril_set_file_filter("custom_icc_standard_trc", "icc_filter");
+	siril_set_file_filter("custom_gray_icc_matching_trc", "icc_filter");
+	siril_set_file_filter("pref_custom_monitor_profile", "icc_filter");
+	siril_set_file_filter("pref_soft_proofing_profile", "icc_filter");
+	siril_set_file_filter("filechooser_starnet", "all_files");
+	siril_set_file_filter("filechooser_starnet_weights", "all_files");
+	GtkLabel* spcc_path_label = GTK_LABEL(lookup_widget("label_spcc_repo_path"));
+	gtk_label_set_text(spcc_path_label, siril_get_spcc_repo_path());
+
 	set_icc_filechooser_directories();
 	update_preferences_from_model();
 	scripts_updated = FALSE;

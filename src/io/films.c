@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -327,7 +327,7 @@ int film_read_frame(struct film_struct *film, int frame_no, fits *fit) {
 		fit->pdata[BLAYER] = fit->data + nb_pixels * 2;
 	}
 	fit->bitpix = fit->orig_bitpix = BYTE_IMG;
-	g_snprintf(fit->row_order, FLEN_VALUE, "%s", "TOP-DOWN");
+	g_snprintf(fit->keywords.row_order, FLEN_VALUE, "%s", "TOP-DOWN");
 	//fit->mini = 0;
 	//fit->maxi = 255;
 	/* putting this above also requires the max[*] to be = 255. Besides, this overrides the

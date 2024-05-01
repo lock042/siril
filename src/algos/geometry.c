@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -173,16 +173,16 @@ static void fit_update_buffer(fits *fit, void *newbuf, int width, int height, in
 	fit->rx = width;
 	fit->ry = height;
 
-	if (fit->binning_x == 0 || fit->binning_x == 1) {
-		fit->binning_x = bin_factor;
-		fit->binning_y = bin_factor;
+	if (fit->keywords.binning_x == 0 || fit->keywords.binning_x == 1) {
+		fit->keywords.binning_x = bin_factor;
+		fit->keywords.binning_y = bin_factor;
 	} else {
-		fit->binning_x *= bin_factor;
-		fit->binning_y *= bin_factor;
+		fit->keywords.binning_x *= bin_factor;
+		fit->keywords.binning_y *= bin_factor;
 	}
 	if (!com.pref.binning_update) {
-		fit->pixel_size_x *= bin_factor;
-		fit->pixel_size_y *= bin_factor;
+		fit->keywords.pixel_size_x *= bin_factor;
+		fit->keywords.pixel_size_y *= bin_factor;
 	}
 }
 
@@ -203,7 +203,7 @@ static void fits_binning_float(fits *fit, int bin_factor, gboolean mean) {
 	}
 
 	for (int channel = 0; channel < fit->naxes[2]; channel++) {
-		float *buf = fit->fdata + (width * height) * channel;
+		const float *buf = fit->fdata + (width * height) * channel;
 
 		long k = 0 + channel * npixels;
 		for (int row = 0, nrow = 0; row < height - bin_factor + 1; row += bin_factor, nrow++) {
@@ -242,7 +242,7 @@ static void fits_binning_ushort(fits *fit, int bin_factor, gboolean mean) {
 	}
 
 	for (int channel = 0; channel < fit->naxes[2]; channel++) {
-		WORD *buf = fit->data + (width * height) * channel;
+		const WORD *buf = fit->data + (width * height) * channel;
 
 		long k = 0 + channel * npixels;
 		for (int row = 0, nrow = 0; row < height - bin_factor + 1; row += bin_factor, nrow++) {
@@ -276,8 +276,8 @@ int fits_binning(fits *fit, int factor, gboolean mean) {
 		fits_binning_float(fit, factor, mean);
 	}
 
-	free_wcs(fit, TRUE); // we keep RA/DEC to initialize platesolve
-	load_WCS_from_memory(fit);
+	free_wcs(fit);
+	reset_wcsdata(fit);
 	refresh_annotations(TRUE);
 
 	gettimeofday(&t_end, NULL);
@@ -323,10 +323,10 @@ int verbose_resize_gaussian(fits *image, int toX, int toY, opencv_interpolation 
 	gettimeofday(&t_start, NULL);
 	on_clear_roi(); // ROI is cleared on geometry-altering operations
 	retvalue = cvResizeGaussian(image, toX, toY, interpolation, clamp);
-	if (image->pixel_size_x > 0) image->pixel_size_x *= factor_X;
-	if (image->pixel_size_y > 0) image->pixel_size_y *= factor_Y;
-	free_wcs(image, TRUE); // we keep RA/DEC to initialize platesolve
-	load_WCS_from_memory(image);
+	if (image->keywords.pixel_size_x > 0) image->keywords.pixel_size_x *= factor_X;
+	if (image->keywords.pixel_size_y > 0) image->keywords.pixel_size_y *= factor_Y;
+	free_wcs(image);
+	reset_wcsdata(image);
 	refresh_annotations(TRUE);
 
 	gettimeofday(&t_end, NULL);
@@ -342,7 +342,7 @@ static void GetMatrixReframe(fits *image, rectangle area, double angle, int crop
 	double orig_x = (double)area.x;
 	double orig_y = (double)area.y;
 	if (!cropped) {
-		point center = {orig_x + (double)*target_rx * 0.5, orig_y + (double)*target_rx * 0.5 };
+		point center = {orig_x + (double)*target_rx * 0.5, orig_y + (double)*target_ry * 0.5};
 		cvGetBoundingRectSize(image, center, angle, target_rx, target_ry);
 		orig_x = (double)((int)image->rx - *target_rx) * 0.5;
 		orig_y = (double)((int)image->ry - *target_ry) * 0.5;
@@ -360,26 +360,21 @@ int verbose_rotate_fast(fits *image, int angle) {
 			_("Rotation (%s interpolation, angle=%g): processing...\n"), "green",
 			_("No"), (double)angle);
 
-#ifdef HAVE_WCSLIB // needs to be done prior to modifying the image
 	int orig_ry = image->ry; // required to compute flips afterwards
 	int target_rx, target_ry;
 	Homography H = { 0 };
 	rectangle area = {0, 0, image->rx, image->ry};
 	GetMatrixReframe(image, area, (double)angle, 0, &target_rx, &target_ry, &H);
-#endif
 
 	if (cvRotateImage(image, angle)) return 1;
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
-#ifdef HAVE_WCSLIB
 	if (has_wcs(image)) {
 		cvApplyFlips(&H, orig_ry, target_ry);
 		reframe_astrometry_data(image, H);
-		load_WCS_from_memory(image);
 		refresh_annotations(FALSE);
 	}
-#endif
 	return 0;
 }
 
@@ -416,25 +411,25 @@ int verbose_rotate_image(fits *image, rectangle area, double angle, int interpol
 	gettimeofday(&t_start, NULL);
 	on_clear_roi(); // ROI is cleared on geometry-altering operations
 
-#ifdef HAVE_WCSLIB
 	int orig_ry = image->ry; // required to compute flips afterwards
-#endif
 	int target_rx, target_ry;
-	Homography H = { 0 };
+	Homography H = { 0 }, Hocv = { 0 };
 	GetMatrixReframe(image, area, angle, cropped, &target_rx, &target_ry, &H);
-	if (cvTransformImage(image, target_rx, target_ry, H, FALSE, interpolation, clamp)) return 1;
+	// The matrix has been written in display convention (i.e, siril flipped)
+	// We need to convert to opencv convention (pixel-based) before applying to the image
+	// The original matrix will still be used to reframe astrometry data
+	Hocv = H;
+	cvdisplay2ocv(&Hocv);
+	if (cvTransformImage(image, target_rx, target_ry, Hocv, FALSE, interpolation, clamp)) return 1;
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
 
-#ifdef HAVE_WCSLIB
 	if (has_wcs(image)) {
 		cvApplyFlips(&H, orig_ry, target_ry);
 		reframe_astrometry_data(image, H);
-		load_WCS_from_memory(image);
 		refresh_annotations(FALSE);
 	}
-#endif
 	return 0;
 }
 
@@ -513,24 +508,21 @@ void mirrorx(fits *fit, gboolean verbose) {
 	} else if (fit->type == DATA_FLOAT) {
 		mirrorx_float(fit, verbose);
 	}
-	if (!strcmp(fit->row_order, "BOTTOM-UP"))
-		sprintf(fit->row_order, "TOP-DOWN");
+	if (!strcmp(fit->keywords.row_order, "BOTTOM-UP"))
+		sprintf(fit->keywords.row_order, "TOP-DOWN");
 	else { //if (!strcmp(fit->row_order, "TOP-DOWN"))
 		// let's create the keyword in all cases
-		sprintf(fit->row_order, "BOTTOM-UP");
+		sprintf(fit->keywords.row_order, "BOTTOM-UP");
 	}
 	fit->history = g_slist_append(fit->history, strdup("TOP-DOWN mirror"));
-#ifdef HAVE_WCSLIB
 	if (has_wcs(fit)) {
 		Homography H = { 0 };
 		cvGetEye(&H);
 		H.h11 = -1.;
-		H.h12 = (double)fit->ry - 1.;
+		H.h12 = (double)fit->ry;
 		reframe_astrometry_data(fit, H);
-		load_WCS_from_memory(fit);
 		refresh_annotations(FALSE);
 	}
-#endif
 }
 
 void mirrory(fits *fit, gboolean verbose) {
@@ -551,17 +543,14 @@ void mirrory(fits *fit, gboolean verbose) {
 	}
 
 	fit->history = g_slist_append(fit->history, strdup("Left-right mirror"));
-#ifdef HAVE_WCSLIB
 	if (has_wcs(fit)) {
 		Homography H = { 0 };
 		cvGetEye(&H);
 		H.h00 = -1.;
-		H.h02 = (double)fit->rx - 1.;
+		H.h02 = (double)fit->rx;
 		reframe_astrometry_data(fit, H);
-		load_WCS_from_memory(fit);
 		refresh_annotations(FALSE);
 	}
-#endif
 }
 
 /* inplace cropping of the image in fit
@@ -634,36 +623,27 @@ int crop(fits *fit, rectangle *bounds) {
 	if (bounds->w <= 0 || bounds->h <= 0 || bounds->x < 0 || bounds->y < 0) return -1;
 	if (bounds->x + bounds->w > fit->rx) return -1;
 	if (bounds->y + bounds->h > fit->ry) return -1;
-#ifdef HAVE_WCSLIB
 	int orig_ry = fit->ry; // required to compute flips afterwards
 	int target_rx, target_ry;
 	Homography H = { 0 };
 	gboolean wcs = has_wcs(fit);
 	if (wcs)
 		GetMatrixReframe(fit, *bounds, 0., 1, &target_rx, &target_ry, &H);
-#endif
 
 	if (fit->type == DATA_USHORT) {
-		if (crop_ushort(fit, bounds)) {
-			return -1;
-		}
+		crop_ushort(fit, bounds);
 	} else if (fit->type == DATA_FLOAT) {
-		if (crop_float(fit, bounds)) {
-			return -1;
-		}
+		crop_float(fit, bounds);
 	} else {
 		return -1;
 	}
 
 	invalidate_stats_from_fit(fit);
-#ifdef HAVE_WCSLIB
 	if (wcs) {
 		cvApplyFlips(&H, orig_ry, target_ry);
 		reframe_astrometry_data(fit, H);
-		load_WCS_from_memory(fit);
 		refresh_annotations(FALSE);
 	}
-#endif
 	return 0;
 }
 
@@ -683,6 +663,91 @@ int crop_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 
 int crop_finalize_hook(struct generic_seq_args *args) {
 	struct crop_sequence_data *data = (struct crop_sequence_data *) args->user;
+	int retval = seq_finalize_hook(args);
+	free(data);
+	return retval;
+}
+
+int scale_compute_mem_limits_hook(struct generic_seq_args *args, gboolean for_writer) {
+	unsigned int MB_per_orig_image, MB_per_scaled_image, MB_avail;
+	int limit = compute_nb_images_fit_memory(args->seq, args->upscale_ratio, args->force_float,
+			&MB_per_orig_image, &MB_per_scaled_image, &MB_avail);
+	int is_float = get_data_type(args->seq->bitpix) == DATA_FLOAT;
+
+	/* The transformation memory consumption is:
+		* the original image
+		* the transformed image, including upscale if required (4x)
+		*/
+	unsigned int required = MB_per_orig_image + MB_per_scaled_image;
+	// If interpolation clamping is set, 2x additional Mats of the same format
+	// as the original image are required
+	struct scale_sequence_data *s_args = args->user;
+	if (s_args->clamp && (s_args->interpolation == OPENCV_CUBIC ||
+			s_args->interpolation == OPENCV_LANCZOS4)) {
+		float factor = (is_float) ? 0.25 : 0.5;
+		required += (1 + factor) * MB_per_scaled_image;
+	}
+
+	if (limit > 0) {
+
+		int thread_limit = MB_avail / required;
+		if (thread_limit > com.max_thread)
+			thread_limit = com.max_thread;
+
+		if (for_writer) {
+			/* we allow the already allocated thread_limit images,
+			 * plus how many images can be stored in what remains
+			 * unused by the main processing */
+			limit = thread_limit + (MB_avail - required * thread_limit) / MB_per_scaled_image;
+		} else limit = thread_limit;
+	}
+
+	if (limit == 0) {
+		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+
+		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per thread, %s considered available)\n"),
+				"red", args->description, mem_per_thread, mem_available);
+
+		g_free(mem_per_thread);
+		g_free(mem_available);
+	} else {
+#ifdef _OPENMP
+		if (for_writer) {
+			int max_queue_size = com.max_thread * 3;
+			if (limit > max_queue_size)
+				limit = max_queue_size;
+		}
+		siril_debug_print("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
+				required, MB_per_scaled_image, limit, for_writer ? "images" : "threads");
+#else
+		if (!for_writer)
+			limit = 1;
+		else if (limit > 3)
+			limit = 3;
+#endif
+	}
+	return limit;
+}
+
+gint64 scale_compute_size_hook(struct generic_seq_args *args, int nb_frames) {
+	struct scale_sequence_data *s_args = (struct scale_sequence_data*) args->user;
+	double ratio = s_args->scale * s_args->scale;
+	double fullseqsize = seq_compute_size(args->seq, nb_frames, args->output_type);
+	return (gint64)(fullseqsize * ratio);
+}
+
+int scale_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
+		rectangle *_, int threads) {
+	struct scale_sequence_data *s_args = (struct scale_sequence_data*) args->user;
+	int toX = fit->rx * s_args->scale;
+	int toY = fit->ry * s_args->scale;
+	s_args->retvalue = verbose_resize_gaussian(fit, toX, toY, s_args->interpolation, s_args->clamp);
+	return s_args->retvalue;
+}
+
+int scale_finalize_hook(struct generic_seq_args *args) {
+	struct scale_sequence_data *data = (struct scale_sequence_data *) args->user;
 	int retval = seq_finalize_hook(args);
 	free(data);
 	return retval;
@@ -710,3 +775,24 @@ gpointer crop_sequence(struct crop_sequence_data *crop_sequence_data) {
 	return 0;
 }
 
+gpointer scale_sequence(struct scale_sequence_data *scale_sequence_data) {
+	struct generic_seq_args *args = create_default_seqargs(scale_sequence_data->seq);
+	args->filtering_criterion = seq_filter_included;
+	args->nb_filtered_images = scale_sequence_data->seq->selnum;
+	args->compute_mem_limits_hook = scale_compute_mem_limits_hook;
+	args->compute_size_hook = scale_compute_size_hook;
+	args->prepare_hook = seq_prepare_hook;
+	args->finalize_hook = scale_finalize_hook;
+	args->image_hook = scale_image_hook;
+	args->stop_on_error = FALSE;
+	args->description = _("Scale Sequence");
+	args->has_output = TRUE;
+	args->output_type = get_data_type(args->seq->bitpix);
+	args->new_seq_prefix = scale_sequence_data->prefix;
+	args->load_new_sequence = TRUE;
+	args->user = scale_sequence_data;
+
+	start_in_new_thread(generic_sequence_worker, args);
+
+	return 0;
+}

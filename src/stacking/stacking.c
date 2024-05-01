@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -543,8 +543,6 @@ static gboolean end_stacking(gpointer p) {
 		/* copy result to gfit if success */
 		clearfits(&gfit);
 		memcpy(&gfit, &args->result, sizeof(fits));
-		if (has_wcsdata(&gfit))
-			load_WCS_from_memory(&gfit);
 		if (!com.script)
 			icc_auto_assign(&gfit, ICC_ASSIGN_ON_STACK);
 		clear_stars_list(TRUE);
@@ -929,9 +927,9 @@ void compute_date_time_keywords(GList *list_date, fits *fit) {
 	g_date_time_unref(corrected_last_date);
 
 	/* we address the computed values to the keywords */
-	fit->date_obs = date_obs;
-	fit->expstart = start;
-	fit->expend = end;
+	fit->keywords.date_obs = date_obs;
+	fit->keywords.expstart = start;
+	fit->keywords.expend = end;
 }
 
 /****************************************************************/

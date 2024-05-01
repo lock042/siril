@@ -1,8 +1,8 @@
 /*
  * This file is part of Siril, an astronomy image processor.
  * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2023 team free-astro (see more in AUTHORS file)
- * Reference site is https://free-astro.org/index.php/Siril
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
  *
  * Siril is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -399,7 +399,7 @@ sequence * readseqfile(const char *name){
 					GString *fileString = g_string_new(filename);
 					g_string_append(fileString, get_com_ext(seq->fz));
 					seq->fitseq_file->filename = g_string_free(fileString, FALSE);
-					if (fitseq_open(seq->fitseq_file->filename, seq->fitseq_file)) {
+					if (fitseq_open(seq->fitseq_file->filename, seq->fitseq_file, READONLY)) {
 						g_free(seq->fitseq_file->filename);
 						free(seq->fitseq_file);
 						seq->fitseq_file = NULL;

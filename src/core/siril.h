@@ -17,7 +17,6 @@
 #include <fitsio.h>	// fitsfile
 
 #include "core/settings.h"
-#include "core/atomic.h"
 
 #define _(String) gettext (String)
 #define gettext_noop(String) String
@@ -32,8 +31,6 @@
 #if defined (HAVE_FFTW3F_OMP) || defined (HAVE_FFTW3F_THREADS)
 #define HAVE_FFTW3F_MULTITHREAD
 #endif
-
-#define GLADE_FILE "siril3.glade"
 
 /* https://stackoverflow.com/questions/1644868/define-macro-for-debug-printing-in-c */
 #define siril_debug_print(fmt, ...) \
@@ -131,8 +128,10 @@ typedef enum {
 	TYPEPIC = (1 << 9),
 	TYPERAW = (1 << 10),
 	TYPEXISF = (1 << 11),
+	TYPEJXL = (1 << 12),
+	TYPEAVIF = (1 << 13),
 	TYPEAVI = (1 << 20),
-	TYPESER = (1 << 21),
+	TYPESER = (1 << 21)
 } image_type;
 
 /* indices of the image data layers */
@@ -244,6 +243,11 @@ typedef enum {
 } opencv_interpolation;
 
 typedef enum {
+	OPENCV_PLANE = 0,
+	OPENCV_SPHERICAL = 1
+} opencv_projector;
+
+typedef enum {
 	SEQ_REGULAR, SEQ_SER, SEQ_FITSEQ,
 #ifdef HAVE_FFMS2
 	SEQ_AVI,
@@ -270,11 +274,18 @@ typedef enum {
 	EXT_ASNET,
 } external_program;
 
+typedef enum {
+	SCALING_NONE,
+	SCALING_HA_UP,
+	SCALING_OIII_DOWN
+} extraction_scaling;
+
 /* image data, exists once for each image */
 typedef struct {
 	int filenum;		/* real file index in the sequence, i.e. for mars9.fit = 9 */
 	gboolean incl;		/* selected in the sequence, included for future processings? */
 	GDateTime *date_obs;	/* date of the observation, processed and copied from the header */
+	double airmass;     /* airmass of the image, used in photometry */
 	int rx, ry;
 } imgdata;
 
@@ -284,7 +295,7 @@ typedef struct {
 	     ngoodpix;	// number of non-zero pixels
 	double mean, median, sigma, avgDev, mad, sqrtbwmv,
 	       location, scale, min, max, normValue, bgnoise;
-	atomic_int* _nb_refs;	// reference counting for data management
+	gint _nb_refs;	// reference counting for data management
 } imstats;
 
 typedef struct {
@@ -334,7 +345,6 @@ struct sequ {
 	int end;		// imgparam[number-1]->filenum
 	double exposure;	// exposure of frames (we assume they are all identical)
 	gboolean fz;
-
 	sequence_type type;
 	struct ser_struct *ser_file;
 	gboolean cfa_opened_monochrome;	// in case the CFA SER was opened in monochrome mode
@@ -376,15 +386,12 @@ typedef struct {
 } single;
 
 typedef struct {
-	double equinox;
-	double crpix[2];
-	double crval[2];
-	double cdelt[2];
-	double pc[2][2];
 	char objctra[FLEN_VALUE];
 	char objctdec[FLEN_VALUE];
 	double ra;
 	double dec;
+	char ra_str[FLEN_VALUE];
+	char dec_str[FLEN_VALUE];
 	gboolean pltsolvd;
 	char pltsolvd_comment[FLEN_COMMENT];
 } wcs_info;
@@ -396,6 +403,58 @@ typedef struct {
 } dft_info;
 
 typedef enum { DATA_USHORT, DATA_FLOAT, DATA_UNSUPPORTED } data_type;
+
+#define DEFAULT_DOUBLE_VALUE -999.0
+#define DEFAULT_FLOAT_VALUE -999.f
+#define DEFAULT_INT_VALUE -INT_MAX
+#define DEFAULT_UINT_VALUE 0
+#define DEFAULT_USHORT_VALUE DEFAULT_UINT_VALUE
+
+typedef struct {
+	/* data obtained from the FITS file */
+	double bscale, bzero;
+	WORD lo;		// MIPS-LO key in FITS file, "Lower visualization cutoff"
+	WORD hi;		// MIPS-HI key in FITS file, "Upper visualization cutoff"
+	float flo, fhi; // Same but float format.
+	char program[FLEN_VALUE];           // Software that created this HDU
+	double data_max;	// used to check if 32b float is in the [0, 1] range
+	double data_min;	// used to check if 32b float is in the [0, 1] range
+	double pixel_size_x, pixel_size_y;	// XPIXSZ and YPIXSZ keys
+	unsigned int binning_x, binning_y;	// XBINNING and YBINNING keys
+	char row_order[FLEN_VALUE];
+	GDateTime *date, *date_obs;		// creation and acquisition UTC dates
+	double expstart, expend;		// Julian dates
+	char filter[FLEN_VALUE];		// FILTER key
+	char image_type[FLEN_VALUE];		// IMAGETYP key
+	char object[FLEN_VALUE];		// OBJECT key
+	char instrume[FLEN_VALUE];		// INSTRUME key
+	char telescop[FLEN_VALUE];		// TELESCOP key
+	char observer[FLEN_VALUE];		// OBSERVER key
+	double centalt, centaz;
+	double sitelat, sitelong;		// SITE LAT and LONG as double
+	char sitelat_str[FLEN_VALUE];		// SITE LATITUDE key as string
+	char sitelong_str[FLEN_VALUE];		// SITE LONGITUDE key as string
+	double siteelev;			// SITE LONGITUDE key as double
+	char bayer_pattern[FLEN_VALUE];		// BAYERPAT key Bayer Pattern if available
+	int bayer_xoffset, bayer_yoffset;
+	double airmass;                   // relative optical path length through atmosphere.
+	/* data obtained from FITS or RAW files */
+	double focal_length, flength, iso_speed, exposure, aperture, ccd_temp, set_temp;
+	double livetime;		// sum of exposures (s)
+	guint stackcnt;			// number of stacked frame
+	double cvf;			// Conversion factor (e-/adu)
+	int key_gain, key_offset;	// Gain, Offset values read in camera headers.
+	char focname[FLEN_VALUE]; // focuser name
+	int focuspos, focussz;
+	double foctemp;
+
+	/* Plate Solving data */
+	wcs_info wcsdata;		// data from the header
+	struct wcsprm *wcslib;		// struct of the lib
+
+	/* data used in the Fourier space */
+	dft_info dft;
+} fkeywords;
 
 struct ffit {
 	unsigned int rx;	// image width	(naxes[0])
@@ -418,44 +477,10 @@ struct ffit {
 	 * For RGB images, naxes[2] is 3 and naxis is 3.
 	 * */
 
-	/* data obtained from the FITS file */
+	fkeywords keywords;
+
 	char *header;		// entire header of the FITS file. NULL for non-FITS file.
-	WORD lo;		// MIPS-LO key in FITS file, "Lower visualization cutoff"
-	WORD hi;		// MIPS-HI key in FITS file, "Upper visualization cutoff"
-	double data_max;	// used to check if 32b float is in the [0, 1] range
-	double data_min;	// used to check if 32b float is in the [0, 1] range
-	float pixel_size_x, pixel_size_y;	// XPIXSZ and YPIXSZ keys
-	unsigned int binning_x, binning_y;	// XBINNING and YBINNING keys
-	char row_order[FLEN_VALUE];
-	GDateTime *date, *date_obs;		// creation and acquisition UTC dates
-	double expstart, expend;		// Julian dates
-	char filter[FLEN_VALUE];		// FILTER key
-	char image_type[FLEN_VALUE];		// IMAGETYP key
-	char object[FLEN_VALUE];		// OBJECT key
-	char instrume[FLEN_VALUE];		// INSTRUME key
-	char telescop[FLEN_VALUE];		// TELESCOP key
-	char observer[FLEN_VALUE];		// OBSERVER key
-	double sitelat;				// SITE LATITUDE key
-	double sitelong;			// SITE LONGITUDE key
-	double siteelev;			// SITE LONGITUDE key
-	char bayer_pattern[FLEN_VALUE];		// BAYERPAT key Bayer Pattern if available
-	int bayer_xoffset, bayer_yoffset;
-	double airmass;                   // relative optical path length through atmosphere.
-	/* data obtained from FITS or RAW files */
-	double focal_length, iso_speed, exposure, aperture, ccd_temp, set_temp;
-	double livetime;		// sum of exposures (s)
-	guint stackcnt;			// number of stacked frame
-	double cvf;			// Conversion factor (e-/adu)
-	int key_gain, key_offset;	// Gain, Offset values read in camera headers.
-
-	/* Plate Solving data */
-	wcs_info wcsdata;		// data from the header
-#ifdef HAVE_WCSLIB
-	struct wcsprm *wcslib;		// struct of the lib
-#endif
-
-	/* data used in the Fourier space */
-	dft_info dft;
+	gchar *unknown_keys; // list of unknown keys
 
 	/* data computed or set by Siril */
 	imstats **stats;	// stats of fit for each layer, null if naxes[2] is unknown
@@ -471,6 +496,7 @@ struct ffit {
 	float *fpdata[3];	// same with float
 
 	gboolean top_down;	// image data is stored top-down, normally false for FITS, true for SER
+	gboolean focalkey, pixelkey; // flag to define if pixel and focal lengths were read from prefs or from the header keys
 
 	GSList *history;	// Former HISTORY comments of FITS file
 
@@ -478,6 +504,56 @@ struct ffit {
 	gboolean color_managed; // Whether color management applies to this FITS
 	cmsHPROFILE icc_profile; // ICC color management profile
 };
+
+typedef enum {
+	SPCC_RED = 1 << RLAYER,
+	SPCC_GREEN = 1 << GLAYER,
+	SPCC_BLUE = 1 << BLAYER,
+	SPCC_CLEAR = SPCC_RED | SPCC_GREEN | SPCC_BLUE,
+	SPCC_INVIS = 0
+} spcc_channel;
+
+/* Filter spectral responses are defined by unevenly spaced frequency samples
+ * and accompanying spectral responses corresponding to the sampling points. */
+typedef struct _spcc_object {
+	gchar *model;
+	gchar *name;
+	gchar *filepath;
+	gchar *comment; // optional comment
+	gboolean is_dslr; // optional flag to indicate if a DSLR, defaults to FALSE
+	int index; // index in the JSON file
+	int type;
+	int quality;
+	spcc_channel channel;
+	gchar *manufacturer;
+	gchar *source;
+	int version;
+	gboolean arrays_loaded;
+	double *x;  // Wavelength array
+	double *y;  // Quantity array
+	int n; // Number of points in x and y
+} spcc_object;
+
+typedef struct _osc_sensor {
+	spcc_object channel[3];
+} osc_sensor;
+
+struct spcc_data_store {
+	GList *mono_sensors;
+	GList *osc_sensors;
+	GList *mono_filters[4]; // R, G, B, Lum
+	GList *osc_lpf;
+	GList *osc_filters;
+	GList *wb_ref;
+};
+
+/* xpsampdata provides a fixed size struct matched to hold 2nm-spaced data between
+ * 336-1020nm for use with Gaia DR3 xp_sampled data products. */
+#define XPSAMPLED_LEN 343
+typedef struct _xpsampdata {
+	const double *x;
+	double y[XPSAMPLED_LEN];
+} xpsampled;
 
 typedef struct {
 	double x, y;
@@ -530,8 +606,10 @@ struct historic_struct {
 	int rx, ry, nchans;
 	data_type type;
 	wcs_info wcsdata;
+	struct wcsprm *wcslib;
 	double focal_length;
 	cmsHPROFILE icc_profile;
+	gboolean spcc_applied;
 };
 
 /* the structure storing information for each layer to be composed
@@ -550,8 +628,9 @@ typedef struct {
 	double spinbutton_y_value;
 	double spinbutton_r_value;
 	/* useful data */
-	GdkRGBA color;					// real color of the layer
-	GdkRGBA saturated_color;		// saturated color of the layer
+	GdkRGBA color;					// real color of the layer in the image colorspace
+	GdkRGBA saturated_color;		// saturated color of the layer in the image colorspace
+	GdkRGBA display_color;			// color of the layer in the display colorspace
 	fits the_fit;					// the fits for layers
 	point center;
 } layer;
@@ -628,6 +707,7 @@ struct guiinf {
 	int selected_star;		// current selected star in the GtkListStore
 
 	gboolean show_wcs_grid;		// show the equatorial grid over the image
+	gboolean show_wcs_disto;		// show the distortions (if present) include in the wcs solution
 
 	psf_star *qphot;		// quick photometry result, highlight a star
 
@@ -640,6 +720,7 @@ struct guiinf {
 	GList* repo_scripts; // the list of selected scripts is in com.pref
 	/* gboolean to confirm the script repository has been opened without error */
 	gboolean script_repo_available;
+	gboolean spcc_repo_available;
 
 	/*********** Color mapping **********/
 	WORD lo, hi;			// the values of the cutoff sliders
@@ -744,6 +825,8 @@ struct cominf {
 	GSList *grad_samples;		// list of samples for the background extraction
 
 	GSList *found_object;		// list of objects found in the image from catalogues
+
+	struct spcc_data_store spcc_data; // library of SPCC filters, sensors
 
 	sensor_tilt *tilt;		// computed tilt information
 

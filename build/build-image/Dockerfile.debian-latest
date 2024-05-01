@@ -20,7 +20,10 @@ RUN apt-get update -qyy \
         libffms2-dev \
         libtiff-dev \
         libjpeg-dev \
+        libjxl-dev \
         libheif-dev \
+        heif-thumbnailer \
+        heif-gdk-pixbuf \
         libpng-dev \
         libavformat-dev \
         libavutil-dev \

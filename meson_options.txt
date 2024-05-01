@@ -12,12 +12,6 @@ option('openmp',
  description: 'build with OpenMP support'
 )
 
-option('json_glib',
- type : 'boolean',
- value : true,
- description: 'build with json glib support'
-)
-
 option('exiv2',
  type : 'boolean',
  value : true,
@@ -46,6 +40,12 @@ option('libjpeg',
  type : 'boolean',
  value : true,
  description: 'build with JPEG support'
+)
+
+option('libjxl',
+ type : 'boolean',
+ value : true,
+ description: 'build with JPEG XL support'
 )
 
 option('libpng',
@@ -78,21 +78,14 @@ option('ffmpeg',
  description: 'build with FFmpeg support'
 )
 
-option('enable-libcurl',
- type: 'combo',
- value: 'platform-default',
- description: 'Use libcurl instead of GIO',
- choices: [ 'yes', 'no', 'platform-default' ]
+option('libcurl',
+ type: 'boolean',
+ value: true,
+ description: 'Use libcurl for web access',
 )
 
 option('criterion',
  type : 'boolean',
  value : false,
  description: 'build with criterion support'
-)
-
-option('wcslib',
- type : 'boolean',
- value : true,
- description: 'build with WCSLIB support'
 )
