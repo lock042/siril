@@ -552,8 +552,8 @@ static gboolean check_framing() {
 	// TODO: need to cache
 	framing_type framingmethod = (framing_type)gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("comboreg_framing")));
 	GtkLabel *labelreginfo = GTK_LABEL(lookup_widget("labelregisterinfo"));
-	if (framingmethod == FRAMING_MAX && com.seq.type == SEQ_FITSEQ && !com.pref.allow_heterogeneous_fitseq) {
-		gtk_label_set_text(labelreginfo, _("Max framing not allowed if fitseq cannot have variable image sizes, change in Preferences"));
+	if (framingmethod == FRAMING_MAX && com.seq.type == SEQ_FITSEQ) {
+		gtk_label_set_text(labelreginfo, _("Max framing not allowed with fitseq, change to regular FITS images"));
 		return FALSE;
 	}
 	// should not happen that often as the process checks the ref image is platesolved, which cannot happen for SER
