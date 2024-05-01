@@ -38,6 +38,7 @@
 #include "gui/utils.h"
 #include "gui/script_menu.h"
 #include "core/siril_update.h" // for the version_number struct
+#include "algos/spcc.h"
 
 //#define DEBUG_GITSCRIPTS
 
@@ -1004,15 +1005,16 @@ void on_manual_spcc_sync_button_clicked(GtkButton* button, gpointer user_data) {
 		}
 		g_string_free(git_pending_commit_buffer, TRUE);
 	} else {
-		if (!com.headless) {
-			reset_spcc_filters();
-			// Check if the SPCC window is open, if so refresh the combo boxes
-			GtkWidget *spcc_dialog = lookup_widget("astrometry_dialog");
-			if (gtk_widget_get_visible(spcc_dialog)) {
-				populate_spcc_combos();
-			}
-		}
 		siril_message_dialog(GTK_MESSAGE_INFO, _("Manual Update"), _("The SPCC database repository is up to date."));
+	}
+	if (!com.headless) {
+		reset_spcc_filters();
+		// Check if the SPCC window is open, if so refresh the combo boxes
+		GtkWidget *spcc_dialog = lookup_widget("s_pcc_dialog");
+		if (gtk_widget_get_visible(spcc_dialog)) {
+			siril_debug_print("Reloading SPCC comboboxes\n");
+			populate_spcc_combos();
+		}
 	}
 	set_cursor_waiting(FALSE);
 }
