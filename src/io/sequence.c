@@ -1426,6 +1426,18 @@ gboolean check_seq_is_comseq(sequence *seq) {
 	return FALSE;
 }
 
+gboolean check_seq_is_variable(sequence *seq) {
+	if(!seq || !seq->imgparam)
+		return FALSE;
+	int rx = seq->imgparam[0].rx;
+	int ry = seq->imgparam[0].ry;
+	for (int i = 1; i < seq->number; i++) {
+		if (seq->imgparam[1].rx != rx || seq->imgparam[1].ry != ry)
+			return TRUE;
+	}
+	return FALSE;
+}
+
 
 gboolean close_sequence_idle(gpointer data) {
 	fprintf(stdout, "closing sequence idle\n");
