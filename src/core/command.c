@@ -7751,6 +7751,10 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 				if (current[strlen(current)-1] == 's')
 					arg->merge_lowhigh_rejmaps = FALSE;
 			}
+		} else if (!strcmp(current, "-maximize")) {
+			arg->maximize_framing = TRUE;
+		} else if (!strcmp(current, "-upscale")) {
+			arg->upscale_at_stacking = TRUE;
 		} else {
 			siril_log_message(_("Unexpected argument to stacking `%s', aborting.\n"), current);
 			return CMD_ARG_ERROR;
@@ -7810,6 +7814,34 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		siril_log_color_message(_("Stacking has detected registration data on layer %d with more than simple shifts. You should apply existing registration before stacking\n"), "red", args.reglayer);
 		free_sequence(seq, TRUE);
 		return CMD_GENERIC_ERROR;
+	}
+	// manage reframing and upscale
+	gboolean can_reframe = layer_has_usable_registration(seq, args.reglayer);
+	gboolean can_upscale = can_reframe && !seq->is_variable;
+	gboolean must_reframe = can_reframe && seq->is_variable;
+	args.maximize_framing = arg->maximize_framing;
+	args.upscale_at_stacking = arg->upscale_at_stacking;
+	if (args.maximize_framing && !can_reframe) {
+		siril_log_color_message(_("No registration data in the sequence. Maximize framing will be ignored\n"), "red");
+		args.maximize_framing = FALSE;
+	}
+	if (!args.maximize_framing && must_reframe) {
+		siril_log_color_message(_("The sequence has different image sizes and registration data. Forcing to naximize framing\n"), "red");
+		args.maximize_framing = TRUE;
+	}
+	if (!can_reframe && seq->is_variable) {
+		siril_log_color_message(_("The sequence has different image sizes but no registration data, cannot stack. Aborting\n"), "red");
+		free_sequence(seq, TRUE);
+		return CMD_GENERIC_ERROR;
+	}
+	if (args.upscale_at_stacking && !can_upscale) {
+		siril_log_color_message(_("No registration data in the sequence or images with different sizes. Upscale at stacking will be ignored\n"), "red");
+		args.upscale_at_stacking = FALSE;
+	}
+	if ((args.upscale_at_stacking || args.maximize_framing) && arg->method == stack_median) {
+		siril_log_color_message(_("Cannot upscale or maximize framong with median stacking. Disabling\n"), "red");
+		args.maximize_framing = FALSE;
+		args.upscale_at_stacking = FALSE;
 	}
 
 	// manage filters

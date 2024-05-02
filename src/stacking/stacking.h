@@ -127,6 +127,7 @@ struct stacking_configuration {
 	gboolean apply_wfwhm_weights;
 	gboolean apply_nbstars_weights;
 	gboolean maximize_framing;
+	gboolean upscale_at_stacking;
 };
 
 typedef struct {
