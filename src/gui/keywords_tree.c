@@ -157,6 +157,7 @@ static int listFITSKeywords(fits *fit, gboolean editable) {
 	fits tmpfit = { 0 };
 	copy_fits_metadata(fit, &tmpfit);
 	tmpfit.fptr = fptr;
+	tmpfit.bitpix = fit->bitpix;
 	save_fits_header(&tmpfit);
 
 	fits_get_hdrspace(fptr, &nkeys, NULL, &status); /* get # of keywords */

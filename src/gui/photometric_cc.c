@@ -45,8 +45,6 @@
 #define MIN_PLOT 336.0
 #define MAX_PLOT 1020.0
 
-// (note using the Black Body locus gives a slightly different result than using the Daylight locus but
-// is *probably* what is wanted here.
 static gboolean spcc_filters_initialized = FALSE;
 static rectangle get_bkg_selection();
 void on_combophoto_catalog_changed(GtkComboBox *combo, gpointer user_data);
@@ -505,6 +503,7 @@ void fill_combo_from_glist(gchar *comboname, GList *list, int channel, const gch
 void populate_spcc_combos() {
 	// Initialize filters if required
 	if (!spcc_filters_initialized) {
+		spcc_filters_initialized = TRUE;
 		load_all_spcc_metadata();
 		fill_combo_from_glist("combo_spcc_filters_osc", com.spcc_data.osc_filters, -1, com.pref.spcc.oscfilterpref);
 		fill_combo_from_glist("combo_spcc_filters_r", com.spcc_data.mono_filters[RLAYER], RLAYER, com.pref.spcc.redpref);
@@ -516,7 +515,6 @@ void populate_spcc_combos() {
 		fill_combo_from_glist("combo_spcc_whitepoint", com.spcc_data.wb_ref, -1, "Average Spiral Galaxy");
 		GtkSwitch *switch_widget = GTK_SWITCH(lookup_widget("spcc_sensor_switch"));
 		gtk_switch_set_active(switch_widget, com.pref.spcc.is_mono);
-		spcc_filters_initialized = TRUE;
 	}
 }
 
