@@ -746,8 +746,6 @@ static void create_output_sequence_for_apply_reg(struct registration_args *args)
 	seq.selnum = args->new_total;
 	seq.fixed = args->seq->fixed;
 	seq.nb_layers = (args->driz && args->driz->is_bayer) ? 3 : args->seq->nb_layers;
-	seq.rx = rx_out;
-	seq.ry = ry_out;
 	seq.imgparam = args->imgparam;
 	seq.regparam = calloc(seq.nb_layers, sizeof(regdata*));
 	seq.regparam[args->layer] = args->regparam;
@@ -755,7 +753,11 @@ static void create_output_sequence_for_apply_reg(struct registration_args *args)
 	seq.end = seq.imgparam[seq.number-1].filenum;
 	seq.type = args->seq->type;
 	seq.current = -1;
-	seq.is_variable = FALSE;
+	seq.is_variable = check_seq_is_variable(&seq);
+	if (!seq.is_variable) {
+		seq.rx = args->seq->rx;
+		seq.ry = args->seq->ry;
+	}
 	seq.fz = com.pref.comp.fits_enabled;
 	// update with the new numbering
 	seq.reference_image = new_ref_index;
