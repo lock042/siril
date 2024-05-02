@@ -269,7 +269,8 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 			/* ATTENTION: PROGRAM MUST BE BEFORE DATAMAX */
 			KEYWORD_PRIMARY( "image", "PROGRAM", KTYPE_STR, "Software that created this HDU", &(fit->keywords.program), NULL, program_handler_save),
 			KEYWORD_SECONDA( "image", "SWCREATE", KTYPE_STR, "Software that created this HDU", &(fit->keywords.program), NULL, NULL),
-			KEYWORD_PRIMARY( "image", "DATAMAX", KTYPE_DOUBLE, "Maximum pixel value", &(fit->keywords.data_max), NULL, NULL),
+			/* We do not want to save datamax */
+			KEYWORD_SECONDA( "image", "DATAMAX", KTYPE_DOUBLE, "Maximum pixel value", &(fit->keywords.data_max), NULL, NULL),
 			KEYWORD_PRIMARY( "date",  "DATE", KTYPE_DATE, "UTC date that FITS file was created", &(fit->keywords.date), NULL, NULL),
 			KEYWORD_PRIMARY( "date",  "DATE-OBS", KTYPE_DATE, "YYYY-MM-DDThh:mm:ss observation start, UT", &(fit->keywords.date_obs), NULL, NULL),
 			KEYWORD_PRIMARY( "image", "IMAGETYP", KTYPE_STR, "Type of image", &(fit->keywords.image_type), NULL, NULL),

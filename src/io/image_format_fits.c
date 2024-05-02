@@ -719,8 +719,6 @@ int read_fits_with_convert(fits* fit, const char* filename, gboolean force_float
 		if ((fit->bitpix == USHORT_IMG || fit->bitpix == SHORT_IMG
 				|| fit->bitpix == BYTE_IMG) || fit->keywords.data_max > 2.0) { // needed for some FLOAT_IMG
 			convert_floats(fit->bitpix, fit->fdata, nbdata);
-			if (fit->keywords.data_max > 2.0)
-				fit->keywords.data_max /= USHRT_MAX_DOUBLE;
 		}
 		fit->bitpix = FLOAT_IMG;
 		fit->orig_bitpix = FLOAT_IMG; // force this, to avoid problems saving the FITS if needed
