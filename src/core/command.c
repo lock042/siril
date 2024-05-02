@@ -7029,7 +7029,12 @@ int process_register(int nb) {
 			siril_log_color_message(_("Not enough space to save the output images, aborting\n"), "red");
 			goto terminate_register_on_error;
 		}
+	} else if (reg_args->x2upscale) {
+		siril_log_color_message(_("Upscaling a sequence with -noout or -2pass has no effect, ignoring\n"), "red");
+		reg_args->x2upscale = FALSE;
 	}
+
+
 	if (reg_args->interpolation == OPENCV_NONE && !(reg_args->type == SHIFT_TRANSFORMATION)) {
 #ifdef HAVE_CV44
 		reg_args->type = SHIFT_TRANSFORMATION;
