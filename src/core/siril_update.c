@@ -658,19 +658,13 @@ static gboolean end_notifier_idle(gpointer p) {
 			return FALSE;
 		}
 
-		// Print valid messages
+		// Print and then free valid messages
 		for (guint i = 0; i < validMessages->len; i++) {
 			int *status = g_array_index(validStatus, int*, i);
 			GString *msg = g_array_index(validMessages, GString*, i);
 			char *color = *status == 1 ? "green" : *status == 2 ? "salmon" : "red";
 			siril_log_color_message(_("*** SIRIL NOTIFICATION ***\n%s\n"), color, msg->str);
-		}
-
-		// Free allocated memory
-		for (guint i = 0; i < validMessages->len; i++) {
-			GString *msg = g_array_index(validMessages, GString*, i);
 			g_string_free(msg, TRUE);
-			int *status = g_array_index(validStatus, int*, i);
 			free(status);
 		}
 		g_array_free(validMessages, TRUE);
