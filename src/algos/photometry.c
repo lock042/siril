@@ -20,12 +20,15 @@
 
 #include <math.h>
 #include <gsl/gsl_matrix.h>
+#include <gsl/gsl_sort.h>
+#include <gsl/gsl_statistics.h>
 #include <string.h>
 
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_date.h"
 #include "core/siril_log.h"
+#include "algos/sorting.h"
 #include "algos/PSF.h"
 #include "algos/photometry.h"
 #include "algos/astrometry_solver.h"
@@ -108,7 +111,7 @@ photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 
 	r1 = phot_set->inner;
 	r2 = phot_set->outer;
-	appRadius = phot_set->force_radius ? phot_set->aperture : psf->fwhmx * 2.0;
+	appRadius = phot_set->force_radius ? phot_set->aperture : 0.5 * psf->fwhmx * phot_set->auto_aperture_factor;
 	if (appRadius >= r1 && !phot_set->force_radius) {
 		if (verbose) {
 			/* Translator note: radii is plural for radius */
@@ -231,6 +234,7 @@ void initialize_photometric_param() {
 	com.pref.phot_set.force_radius = FALSE;
 	com.pref.phot_set.auto_inner_factor = 4.2;
 	com.pref.phot_set.auto_outer_factor = 6.3;
+	com.pref.phot_set.auto_aperture_factor = 4.0;
 	com.pref.phot_set.gain = 2.3;
 	com.pref.phot_set.minval = -1000;
 	com.pref.phot_set.maxval = 60000;
@@ -413,6 +417,7 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 	double *date = calloc(nbImages, sizeof(double));	// X is the julian date
 	double *vmag = calloc(nbImages, sizeof(double));	// Y is the calibrated magnitude
 	double *err = calloc(nbImages, sizeof(double));		// Y error bar
+	double *snr_opt = calloc(nbImages, sizeof(double));	// SNR
 	if (!date || !vmag || !err) {
 		PRINT_ALLOC_ERR;
 		free(date); free(vmag); free(err);
@@ -470,11 +475,36 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 
 			vmag[j] = target_mag - cmag;
 			err[j] = fmin(9.999, sqrt(target_err * target_err + cerr * cerr));
+			snr_opt[j] = seq->photometry[0][i]->SNR;
 			j++;
 		}
 	}
 	int nb_valid_images = j;
 	int julian0 = 0;
+
+	// Additionnal information on the error bars and variable SNR 
+	// distributions if the auto aperture option is set
+	if (!lcargs->force_rad) {
+		double median_err, largest_err, smallest_err;
+		gsl_stats_minmax (&smallest_err, &largest_err, err, 1, nb_valid_images);
+		median_err = quickmedian_double(err, nb_valid_images);
+
+		double median_snr, largest_snr, smallest_snr;
+		gsl_stats_minmax (&smallest_snr, &largest_snr, snr_opt, 1, nb_valid_images);
+		median_snr = quickmedian_double(snr_opt, nb_valid_images);
+
+		siril_log_color_message(_("Error bars-- (%d images) median: %.2lfmmag, max: %.2lfmmag, min: %.2lfmmag\n"), "blue",
+			nb_valid_images,
+			1000 * median_err,
+			1000 * largest_err,
+			1000 * smallest_err);
+		siril_log_color_message(_("Variable star SNR-- (%d images) median: %.2lfdB, max: %.2lfdB, min: %.2lfdB\n"), "blue",
+			nb_valid_images,
+			median_snr,
+			largest_snr,
+			smallest_snr);
+	}
+
 	if (min_date != DBL_MAX)
 		julian0 = (int)min_date;
 
@@ -567,11 +597,9 @@ gpointer light_curve_worker(gpointer arg) {
 	framing_mode framing = REGISTERED_FRAME;
 	if (framing == REGISTERED_FRAME && !args->seq->regparam[args->layer])
 		framing = FOLLOW_STAR_FRAME;
-
 	// someday we should move the area in the seqpsf args, not needed for now
 	for (int star_index = 0; star_index < args->nb; star_index++) {
 		com.selection = args->areas[star_index];
-
 		if (seqpsf(args->seq, args->layer, FALSE, FALSE, framing, FALSE, TRUE)) {
 			if (star_index == 0) {
 				siril_log_message(_("Failed to analyse the variable star photometry\n"));
@@ -586,7 +614,7 @@ gpointer light_curve_worker(gpointer arg) {
 			queue_redraw(REDRAW_OVERLAY);
 	}
 	memset(&com.selection, 0, sizeof(rectangle));
-
+	args->force_rad = com.pref.phot_set.force_radius;	// Retrieve the Aperture state (fixed/dynamic)
 	/* analyse data and create the light curve */
 	if (!retval)
 		retval = new_light_curve("light_curve.dat", args);
