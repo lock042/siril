@@ -123,6 +123,7 @@ struct astrometry_config {
 	gboolean keep_xyls_files;	// do not delete .xyls FITS tables
 	gboolean keep_wcs_files;	// do not delete .wcs result files
 	gboolean show_asnet_output;	// show solve-field output in main log
+	gchar* default_obscode;	// default observatory code
 };
 
 
