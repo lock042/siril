@@ -59,6 +59,7 @@ siril 1.4.0 xx xx, xx
 * Removed calls to deprecated OpenMP functions (!662)
 * Fixed bug where Bayer pattern was not read as needed for seqpsf (#1297)
 * Updated SPCC handling of mono filters applicable to >1 channel (!667)
+* Added preference for closest IAU observatory code(!669)
 
 siril 1.2.2 xx xx, 2024
 * Removed background extraction samples after using it in script (#1265)
