@@ -9606,9 +9606,15 @@ int process_conesearch(int nb) {
 	super_bool display_log = BOOL_NOT_SET;
 	siril_cat_index cat = CAT_AUTO;
 	gchar *obscode = NULL;
+	gboolean default_obscode_used = FALSE;
 	int trixel = -1;
 	gchar *outfilename = NULL;
 	gboolean local_cat = local_catalogues_available();
+
+	if (com.pref.astrometry.default_obscode != NULL) {
+		obscode = g_strdup(com.pref.astrometry.default_obscode);
+		default_obscode_used = TRUE;
+	}
 
 	if (!has_wcs(&gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
@@ -9660,6 +9666,9 @@ int process_conesearch(int nb) {
 				siril_log_color_message(_("The observatory should be coded as a 3-letter word\n"), "red");
 				return CMD_ARG_ERROR;
 			}
+			if (obscode)
+				g_free(obscode);
+			default_obscode_used = FALSE;
 			obscode = g_strdup(arg);
 		} else if (g_str_has_prefix(word[arg_idx], "-trix=")) {
 			if (!local_cat) {
@@ -9723,12 +9732,18 @@ int process_conesearch(int nb) {
 	siril_catalogue *siril_cat = siril_catalog_fill_from_fit(&gfit, cat, limit_mag);
 	siril_cat->phot = photometric;
 	if (cat == CAT_IMCCE) {
-		if (obscode)
+		if (obscode) {
 			siril_cat->IAUcode = obscode;
-		else {
+			if (default_obscode_used) {
+				siril_log_message(_("Using default observatory code %s\n"), obscode);
+			}
+		} else {
 			siril_cat->IAUcode = g_strdup("500");
 			siril_log_color_message(_("Did not specify an observatory code, using geocentric by default, positions may not be accurate\n"), "salmon");
 		}
+	} else if (obscode) {
+		g_free(obscode);
+		obscode = NULL;
 	}
 	if (cat == CAT_LOCAL_TRIX)
 		siril_cat->trixel = trixel;

@@ -185,6 +185,7 @@ preferences pref_init = {
 		.keep_wcs_files = FALSE,
 		.max_seconds_run = 30,
 		.show_asnet_output = FALSE,
+		.default_obscode = NULL,
 	},
 	.analysis = {
 		.mosaic_panel = 256,
@@ -275,6 +276,8 @@ void free_preferences(preferences *pref) {
 	pref->gui.script_path = NULL;
 	g_free(pref->fftw_conf.wisdom_file);
 	pref->fftw_conf.wisdom_file = NULL;
+	g_free(pref->astrometry.default_obscode);
+	pref->astrometry.default_obscode = NULL;
 }
 
 void set_wisdom_file() {
@@ -393,6 +396,7 @@ struct settings_access all_settings[] = {
 	{ "astrometry", "max_seconds_run", STYPE_INT, N_("maximum seconds to try solving"), &com.pref.astrometry.max_seconds_run, { .range_int = { 0, 100000 } } },
 	{ "astrometry", "update_default_scale", STYPE_BOOL, N_("update default focal length and pixel size from the result"), &com.pref.astrometry.update_default_scale },
 	{ "astrometry", "percent_scale_range", STYPE_INT, N_("percent below and above the expected sampling to allow"), &com.pref.astrometry.percent_scale_range, { .range_int = { 10, 50 } } },
+	{ "astrometry", "default_obscode", STYPE_STR, N_("default IAU observatory code"), &com.pref.astrometry.default_obscode },
 
 	{ "analysis", "panel", STYPE_INT, N_("panel size of aberration inspector"), &com.pref.analysis.mosaic_panel, { .range_int = { 127, 1024 } } },
 	{ "analysis", "window", STYPE_INT, N_("window size of aberration inspector"), &com.pref.analysis.mosaic_window, { .range_int = { 300, 1600 } } },
