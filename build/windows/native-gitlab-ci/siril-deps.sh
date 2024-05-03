@@ -19,6 +19,7 @@ mingw-w64-x86_64-libheif \
 mingw-w64-x86_64-ffms2 \
 mingw-w64-x86_64-cfitsio \
 mingw-w64-x86_64-libgit2-winhttp \
+mingw-w64-x86_64-libxisf \
 
 # Build LibRaw from github
 mkdir _deps && cd _deps
@@ -29,10 +30,3 @@ autoreconf -fi && \
 make install -j$(nproc) || exit 1
 cd ..
 
-# Build libXISF from git rep
-git clone https://gitea.nouspiro.space/nou/libXISF.git
-cd libXISF
-mkdir -p build && cd build
-cmake -G "MSYS Makefiles" -DCMAKE_INSTALL_PREFIX="$MSYSTEM_PREFIX" -DCMAKE_BUILD_TYPE="Release" ..
-make install || exit 1
-cd ..

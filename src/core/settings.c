@@ -169,6 +169,7 @@ preferences pref_init = {
 		.auto_inner_factor = 4.2,
 		.auto_outer_factor = 6.3,
 		.aperture = 10.0,
+		.auto_aperture_factor = 4.0,
 		.force_radius = TRUE,
 		.minval = -1500.0,
 		.maxval = 60000.0,
@@ -184,6 +185,7 @@ preferences pref_init = {
 		.keep_wcs_files = FALSE,
 		.max_seconds_run = 30,
 		.show_asnet_output = FALSE,
+		.default_obscode = NULL,
 	},
 	.analysis = {
 		.mosaic_panel = 256,
@@ -274,6 +276,8 @@ void free_preferences(preferences *pref) {
 	pref->gui.script_path = NULL;
 	g_free(pref->fftw_conf.wisdom_file);
 	pref->fftw_conf.wisdom_file = NULL;
+	g_free(pref->astrometry.default_obscode);
+	pref->astrometry.default_obscode = NULL;
 }
 
 void set_wisdom_file() {
@@ -361,6 +365,7 @@ struct settings_access all_settings[] = {
 	{ "photometry", "inner_factor", STYPE_DOUBLE, N_("factor for inner radius automatic computation"), &com.pref.phot_set.auto_inner_factor, { .range_double = { 2.0, 50.0 } } },
 	{ "photometry", "outer_factor", STYPE_DOUBLE, N_("factor for outer radius automatic computation"), &com.pref.phot_set.auto_outer_factor, { .range_double = { 2.0, 50.0 } } },
 	{ "photometry", "force_radius", STYPE_BOOL, N_("force flux aperture value"), &com.pref.phot_set.force_radius },
+	{ "photometry", "auto_aperture_factor", STYPE_DOUBLE, N_("Radius/halfFWHM ratio"), &com.pref.phot_set.auto_aperture_factor, { .range_double = { 1., 5. } }  },
 	{ "photometry", "aperture", STYPE_DOUBLE, N_("forced aperture for flux computation"), &com.pref.phot_set.aperture, { .range_double = { 1., 100. } } },
 	{ "photometry", "minval", STYPE_DOUBLE, N_("minimum valid pixel value for photometry"), &com.pref.phot_set.minval, { .range_double = { -65536.0, 65534.0 } } },
 	{ "photometry", "maxval", STYPE_DOUBLE, N_("maximum valid pixel value for photometry"), &com.pref.phot_set.maxval, { .range_double = { 1.0, 65535.0 } } },
@@ -391,6 +396,7 @@ struct settings_access all_settings[] = {
 	{ "astrometry", "max_seconds_run", STYPE_INT, N_("maximum seconds to try solving"), &com.pref.astrometry.max_seconds_run, { .range_int = { 0, 100000 } } },
 	{ "astrometry", "update_default_scale", STYPE_BOOL, N_("update default focal length and pixel size from the result"), &com.pref.astrometry.update_default_scale },
 	{ "astrometry", "percent_scale_range", STYPE_INT, N_("percent below and above the expected sampling to allow"), &com.pref.astrometry.percent_scale_range, { .range_int = { 10, 50 } } },
+	{ "astrometry", "default_obscode", STYPE_STR, N_("default IAU observatory code"), &com.pref.astrometry.default_obscode },
 
 	{ "analysis", "panel", STYPE_INT, N_("panel size of aberration inspector"), &com.pref.analysis.mosaic_panel, { .range_int = { 127, 1024 } } },
 	{ "analysis", "window", STYPE_INT, N_("window size of aberration inspector"), &com.pref.analysis.mosaic_window, { .range_int = { 300, 1600 } } },

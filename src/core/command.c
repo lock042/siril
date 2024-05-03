@@ -1550,7 +1550,7 @@ int process_deconvolve(int nb, nonblind_t type) {
 	reset_conv_args(data);
 
 	int ret = parse_deconvolve(1, nb, data, type);
-	if (ret == CMD_OK){		
+	if (ret == CMD_OK){
 		image_cfa_warning_check();
 		start_in_new_thread(deconvolve, data);
 		return CMD_OK;
@@ -1566,9 +1566,9 @@ int process_seqdeconvolve(int nb, nonblind_t type) {
 	}
 	estk_data* data = calloc(1, sizeof(estk_data));
 	reset_conv_args(data);
-	
+
 	int ret = parse_deconvolve(2, nb, data, type);
-	if (ret == CMD_OK){	
+	if (ret == CMD_OK){
 		sequence_cfa_warning_check(seq);
 		deconvolve_sequence_command(data, seq);
 		return CMD_OK;
@@ -3250,8 +3250,8 @@ int process_set_mag(int nb) {
 
 int process_set_photometry(int nb) {
 	if (nb > 0) {
-		double inner = -1.0, outer = -1.0, aperture = -1.0, gain = -1.0;
-		int min = -65536, max = -1, force = -1;
+		double inner = -1.0, outer = -1.0, aperture = -1.0, gain = -1.0, force = -1.0;
+		int min = -65536, max = -1;	//, force = -1;
 		gboolean error = FALSE;
 		for (int i = 1; i < nb; i++) {
 			char *arg = word[i], *end;
@@ -3293,13 +3293,10 @@ int process_set_photometry(int nb) {
 				if (arg == end) error = TRUE;
 				else if (max == 0 || max > 65535) error = TRUE;
 			}
-			else if (g_str_has_prefix(arg, "-force_radius=")) {
-				arg += 14;
-				if (*arg == 'y')
-					force = 1;
-				else if (*arg == 'n')
-					force = 0;
-				else error = TRUE;
+			else if (g_str_has_prefix(arg, "-dyn_ratio=")) {
+				arg += 11;
+				force = g_ascii_strtod(arg, &end);
+				if (arg == end) error = TRUE;
 			}
 			else {
 				siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
@@ -3339,10 +3336,13 @@ int process_set_photometry(int nb) {
 		}
 		if (aperture > 0.0)
 			com.pref.phot_set.aperture = aperture;
-		if (force == 0)
+		if (force && force >= 1.0 && force <= 5.0) {
 			com.pref.phot_set.force_radius = FALSE;
-		else if (force == 1)
+			com.pref.phot_set.auto_aperture_factor = (double)force;
+		} else {
 			com.pref.phot_set.force_radius = TRUE;
+		}
+
 		if (gain > 0.0)
 			com.pref.phot_set.gain = gain;
 		if (min >= -65536) {
@@ -3376,11 +3376,12 @@ int process_set_photometry(int nb) {
 			return CMD_ARG_ERROR;
 		}
 	}
-	siril_log_message(_("Local background annulus radius: %.1f to %.1f, aperture: %.1f (%s), camera conversion gain: %f e-/ADU, using pixels with values ]%f, %f[\n"),
+	siril_log_message(_("Local background annulus radius: %.1f to %.1f, %s: %.1f (%s), camera conversion gain: %f e-/ADU, using pixels with values ]%f, %f[\n"),
 			com.pref.phot_set.inner,
 			com.pref.phot_set.outer,
-			com.pref.phot_set.aperture,
-			com.pref.phot_set.force_radius ? _("forced") : _("unused, dynamic"),
+			com.pref.phot_set.force_radius ? _("aperture") : _("dynamic aperture"),
+			com.pref.phot_set.force_radius ? com.pref.phot_set.aperture : com.pref.phot_set.auto_aperture_factor,
+			com.pref.phot_set.force_radius ? _("forced") : _("times the half-FWHM"),
 			com.pref.phot_set.gain,
 			com.pref.phot_set.minval,
 			com.pref.phot_set.maxval);
@@ -9579,9 +9580,15 @@ int process_conesearch(int nb) {
 	super_bool display_log = BOOL_NOT_SET;
 	siril_cat_index cat = CAT_AUTO;
 	gchar *obscode = NULL;
+	gboolean default_obscode_used = FALSE;
 	int trixel = -1;
 	gchar *outfilename = NULL;
 	gboolean local_cat = local_catalogues_available();
+
+	if (com.pref.astrometry.default_obscode != NULL) {
+		obscode = g_strdup(com.pref.astrometry.default_obscode);
+		default_obscode_used = TRUE;
+	}
 
 	if (!has_wcs(&gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
@@ -9633,6 +9640,9 @@ int process_conesearch(int nb) {
 				siril_log_color_message(_("The observatory should be coded as a 3-letter word\n"), "red");
 				return CMD_ARG_ERROR;
 			}
+			if (obscode)
+				g_free(obscode);
+			default_obscode_used = FALSE;
 			obscode = g_strdup(arg);
 		} else if (g_str_has_prefix(word[arg_idx], "-trix=")) {
 			if (!local_cat) {
@@ -9696,12 +9706,18 @@ int process_conesearch(int nb) {
 	siril_catalogue *siril_cat = siril_catalog_fill_from_fit(&gfit, cat, limit_mag);
 	siril_cat->phot = photometric;
 	if (cat == CAT_IMCCE) {
-		if (obscode)
+		if (obscode) {
 			siril_cat->IAUcode = obscode;
-		else {
+			if (default_obscode_used) {
+				siril_log_message(_("Using default observatory code %s\n"), obscode);
+			}
+		} else {
 			siril_cat->IAUcode = g_strdup("500");
 			siril_log_color_message(_("Did not specify an observatory code, using geocentric by default, positions may not be accurate\n"), "salmon");
 		}
+	} else if (obscode) {
+		g_free(obscode);
+		obscode = NULL;
 	}
 	if (cat == CAT_LOCAL_TRIX)
 		siril_cat->trixel = trixel;
