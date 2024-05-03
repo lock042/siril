@@ -52,6 +52,7 @@ struct light_curve_args {
 	int layer;
 	char *target_descr;	// the description to put in the data file and graph
 	gboolean display_graph;	// if true, show it, if false, generate png
+	gboolean force_rad;	// if true, fixed aperture radius, if false, dynamic aperture radius
 
 	// metadata from the NINA file created by Siril
 	struct compstars_arg *metadata;
