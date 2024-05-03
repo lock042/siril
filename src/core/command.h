@@ -40,7 +40,6 @@ int	process_asinh(int nb);
 
 int	process_bg(int nb);
 int	process_bgnoise(int nb);
-int	process_bilateral(int nb);
 int	process_binxy(int nb);
 int	process_denoise(int nb);
 gpointer run_nlbayes_on_fit(gpointer p);
@@ -69,6 +68,7 @@ int	process_disto(int nb);
 int	process_dumpheader(int nb);
 
 int	process_entropy(int nb);
+int	process_epf(int nb);
 int	process_exit(int nb);
 int	process_extract(int nb);
 int	process_extractGreen(int nb);

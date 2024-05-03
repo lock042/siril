@@ -1064,27 +1064,91 @@ int process_gauss(int nb){
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
-int process_bilateral(int nb) {
+int process_epf(int nb) {
 	gchar *end;
-	double d = g_ascii_strtod(word[1], &end);
-	if (end == word[1]) {
-		siril_log_message(_("Invalid argument %s, aborting.\n"), word[1]);
-		return CMD_ARG_ERROR;
+	double	d = 3.0,
+			sigma_col = gfit.type == DATA_USHORT ? 5.0 : 0.0001,
+			sigma_space = gfit.type == DATA_USHORT ? 5.0 : 0.0001;
+	ep_filter_t filter = EP_BILATERAL;
+	gchar *filename = NULL;
+	fits *guidefit = NULL;
+
+	for (int i = 1 ; i < nb ; i++) {
+		gchar *arg = word[i];
+		if (g_str_has_prefix(arg, "-guided")) {
+			filter = EP_GUIDED;
+		}
+		else if (g_str_has_prefix(arg, "-guideimage=")) {
+			gchar *val = arg + 12;
+			if (filename) {
+				g_free(filename);
+			}
+			filename = g_strdup(val);
+		}
+		else if (g_str_has_prefix(arg, "-d=")) {
+			gchar *val = arg + 3;
+			d = g_ascii_strtod(val, &end);
+			if (end == val) {
+				siril_log_color_message(_("Invalid argument %s, aborting.\n"), "red", arg);
+				g_free(filename);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-sc=")) {
+			gchar *val = arg + 4;
+			sigma_col = g_ascii_strtod(val, &end);
+			if (end == val || sigma_col <= 0.0 || (gfit.type == DATA_FLOAT && sigma_col > 1) || (gfit.type == DATA_USHORT && sigma_col > 65535)) {
+				siril_log_color_message(_("Invalid argument %s, aborting.\n"), "red", arg);
+				g_free(filename);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-ss=")) {
+			gchar *val = arg + 4;
+			sigma_space = g_ascii_strtod(val, &end);
+			if (end == val || sigma_space <= 0.0 || (gfit.type == DATA_FLOAT && sigma_col > 1) || (gfit.type == DATA_USHORT && sigma_col > 65535)) {
+				siril_log_color_message(_("Invalid argument %s, aborting.\n"), "red", arg);
+				g_free(filename);
+				return CMD_ARG_ERROR;
+			}
+		}
 	}
-	double sigma_col = g_ascii_strtod(word[2], &end);
-	if (end == word[2] || sigma_col <= 0.0) {
-		siril_log_message(_("Invalid argument %s, aborting.\n"), word[2]);
-		return CMD_ARG_ERROR;
+	if (filter == EP_GUIDED && filename != NULL) {
+		if (!guidefit) {
+			guidefit = calloc(1, sizeof(fits));
+		} else {
+			clearfits(guidefit);
+			free(guidefit);
+			guidefit = NULL;
+			g_free(filename);
+		}
+		if (readfits(filename, guidefit, NULL, FALSE)) {
+			siril_log_color_message(_("Error: guide image could not be loaded"), "red");
+			clearfits(guidefit);
+			free(guidefit);
+			g_free(filename);
+			return CMD_ARG_ERROR;
+		}
+		g_free(filename);
+		if (guidefit->rx != gfit.rx || guidefit->ry != gfit.ry) {
+			siril_log_color_message(_("Error: guide image dimensions do not match"), "red");
+			clearfits(guidefit);
+			free(guidefit);
+			return CMD_ARG_ERROR;
+		}
 	}
-	double sigma_space = g_ascii_strtod(word[2], &end);
-	if (end == word[3] || sigma_space <= 0.0) {
-		siril_log_message(_("Invalid argument %s, aborting.\n"), word[3]);
-		return CMD_ARG_ERROR;
+	if (filter == EP_GUIDED && d < 0.0) {
+		siril_log_color_message(_("Warning: d < 0.0 cannot be used to specify automatic diameter when using a guided filter. Setting d to default value of 3.\n"), "salmon");
+		d = 3.0;
 	}
-	edge_preserving_filter(&(gfit), NULL, d, sigma_col, sigma_space, EP_BILATERAL, TRUE);
+	edge_preserving_filter(&(gfit), guidefit, d, sigma_col, sigma_space, filter, TRUE);
 
 	char log[90];
-	sprintf(log, "Bilateral filtering, d: %.2f, sigma(color): %.2f, sigma(spatial): %.2f", d, sigma_col, sigma_space);
+	if (filter == EP_BILATERAL) {
+		sprintf(log, "Bilateral filtering, d: %.2f, sigma(color): %.2f, sigma(spatial): %.2f", d, sigma_col, sigma_space);
+	} else {
+		sprintf(log, "Guided filtering, d: %.2f, sigma: %.2f, guide image: %s", d, sigma_col, filename ? filename : "");
+	}
 	gfit.history = g_slist_append(gfit.history, strdup(log));
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }

@@ -37,6 +37,11 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="step-increment">0.0001</property>
     <property name="page-increment">0.001</property>
   </object>
+  <object class="GtkAdjustment" id="adjustment_bilat_sigma_col_16bit">
+    <property name="upper">65535</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
   <object class="GtkAdjustment" id="adjustment_bilat_sigma_spatial">
     <property name="upper">20</property>
     <property name="step-increment">0.10</property>
@@ -430,5 +435,10 @@ WARNING: using guide images that are not based on the original image is likely t
     <action-widgets>
       <action-widget response="0">bilat_apply</action-widget>
     </action-widgets>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_bilat_sigma_spatial_16bit">
+    <property name="upper">65535</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
   </object>
 </interface>

@@ -165,9 +165,33 @@ void bilat_change_between_roi_and_image() {
 }
 
 static void bilat_startup() {
+	GtkSpinButton *spin_col = GTK_SPIN_BUTTON(lookup_widget("spin_bilat_sigma_col"));
+	GtkSpinButton *spin_spatial = GTK_SPIN_BUTTON(lookup_widget("spin_bilat_sigma_spatial"));
+	GtkRange *scale_col = GTK_RANGE(lookup_widget("scale_bilat_sigma_col"));
+	GtkRange *scale_spatial = GTK_RANGE(lookup_widget("scale_bilat_sigma_spatial"));
+	GtkAdjustment *adj_col_32bit = GTK_ADJUSTMENT(lookup_gobject("adjustment_bilat_sigma_col"));
+	GtkAdjustment *adj_spatial_32bit = GTK_ADJUSTMENT(lookup_gobject("adjustment_bilat_sigma_spatial"));
+	GtkAdjustment *adj_col_16bit = GTK_ADJUSTMENT(lookup_gobject("adjustment_bilat_sigma_col_16bit"));
+	GtkAdjustment *adj_spatial_16bit = GTK_ADJUSTMENT(lookup_gobject("adjustment_bilat_sigma_spatial_16bit"));
 	copy_gfit_to_backup();
 	add_roi_callback(bilat_change_between_roi_and_image);
 	roi_supported(TRUE);
+	switch (gfit.type) {
+		case DATA_FLOAT:
+			gtk_spin_button_set_adjustment(spin_col, adj_col_32bit);
+			gtk_spin_button_set_adjustment(spin_spatial, adj_spatial_32bit);
+			gtk_range_set_adjustment(scale_col, adj_col_32bit);
+			gtk_range_set_adjustment(scale_spatial, adj_spatial_32bit);
+			break;
+		case DATA_USHORT:
+			gtk_spin_button_set_adjustment(spin_col, adj_col_16bit);
+			gtk_spin_button_set_adjustment(spin_spatial, adj_spatial_16bit);
+			gtk_range_set_adjustment(scale_col, adj_col_16bit);
+			gtk_range_set_adjustment(scale_spatial, adj_spatial_16bit);
+			break;
+		default:
+			break;
+	}
 }
 
 static void bilat_close(gboolean revert) {
@@ -233,8 +257,8 @@ void on_bilat_dialog_show(GtkWidget *widget, gpointer user_data) {
 	GtkSpinButton *spin_bilat_sigma_col = GTK_SPIN_BUTTON(lookup_widget("spin_bilat_sigma_col"));
 	GtkSpinButton *spin_bilat_sigma_spatial = GTK_SPIN_BUTTON(lookup_widget("spin_bilat_sigma_spatial"));
 
-	if (gui.rendering_mode == LINEAR_DISPLAY)
-		setup_stretch_sliders(); // In linear mode, set sliders to 0 / 65535
+//	if (gui.rendering_mode == LINEAR_DISPLAY)
+//		setup_stretch_sliders(); // In linear mode, set sliders to 0 / 65535
 
 	bilat_startup();
 	bilat_d_value = 0.0f;
@@ -345,6 +369,9 @@ void on_guided_filter_guideimage_file_set(GtkFileChooser *filechooser, gpointer 
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: image could not be loaded"),
 			_("Image loading failed"));
 		gtk_file_chooser_unselect_all(filechooser);
+		clearfits(loaded_fit);
+		free(loaded_fit);
+		loaded_fit = NULL;
 		return;
 	}
 	if (loaded_fit->rx != gfit.rx || loaded_fit->ry != gfit.ry) {
@@ -361,7 +388,6 @@ void on_guided_filter_guideimage_file_set(GtkFileChooser *filechooser, gpointer 
 	param->update_preview_fn = bilat_update_preview;
 	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("bilat_preview")));
 	notify_update((gpointer) param);
-
 }
 
 void on_spin_bilat_d_value_changed(GtkSpinButton *button, gpointer user_data) {
