@@ -3276,8 +3276,8 @@ int process_set_mag(int nb) {
 
 int process_set_photometry(int nb) {
 	if (nb > 0) {
-		double inner = -1.0, outer = -1.0, aperture = -1.0, gain = -1.0;
-		int min = -65536, max = -1, force = -1;
+		double inner = -1.0, outer = -1.0, aperture = -1.0, gain = -1.0, force = -1.0;
+		int min = -65536, max = -1;	//, force = -1;
 		gboolean error = FALSE;
 		for (int i = 1; i < nb; i++) {
 			char *arg = word[i], *end;
@@ -3319,13 +3319,10 @@ int process_set_photometry(int nb) {
 				if (arg == end) error = TRUE;
 				else if (max == 0 || max > 65535) error = TRUE;
 			}
-			else if (g_str_has_prefix(arg, "-force_radius=")) {
-				arg += 14;
-				if (*arg == 'y')
-					force = 1;
-				else if (*arg == 'n')
-					force = 0;
-				else error = TRUE;
+			else if (g_str_has_prefix(arg, "-dyn_ratio=")) {
+				arg += 11;
+				force = g_ascii_strtod(arg, &end);
+				if (arg == end) error = TRUE;
 			}
 			else {
 				siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
@@ -3365,10 +3362,13 @@ int process_set_photometry(int nb) {
 		}
 		if (aperture > 0.0)
 			com.pref.phot_set.aperture = aperture;
-		if (force == 0)
+		if (force && force >= 1.0 && force <= 5.0) {
 			com.pref.phot_set.force_radius = FALSE;
-		else if (force == 1)
+			com.pref.phot_set.auto_aperture_factor = (double)force;
+		} else {
 			com.pref.phot_set.force_radius = TRUE;
+		}
+
 		if (gain > 0.0)
 			com.pref.phot_set.gain = gain;
 		if (min >= -65536) {
@@ -3402,11 +3402,12 @@ int process_set_photometry(int nb) {
 			return CMD_ARG_ERROR;
 		}
 	}
-	siril_log_message(_("Local background annulus radius: %.1f to %.1f, aperture: %.1f (%s), camera conversion gain: %f e-/ADU, using pixels with values ]%f, %f[\n"),
+	siril_log_message(_("Local background annulus radius: %.1f to %.1f, %s: %.1f (%s), camera conversion gain: %f e-/ADU, using pixels with values ]%f, %f[\n"),
 			com.pref.phot_set.inner,
 			com.pref.phot_set.outer,
-			com.pref.phot_set.aperture,
-			com.pref.phot_set.force_radius ? _("forced") : _("unused, dynamic"),
+			com.pref.phot_set.force_radius ? _("aperture") : _("dynamic aperture"),
+			com.pref.phot_set.force_radius ? com.pref.phot_set.aperture : com.pref.phot_set.auto_aperture_factor,
+			com.pref.phot_set.force_radius ? _("forced") : _("times the half-FWHM"),
 			com.pref.phot_set.gain,
 			com.pref.phot_set.minval,
 			com.pref.phot_set.maxval);

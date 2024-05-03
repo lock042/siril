@@ -10,8 +10,8 @@ msgstr ""
 "POT-Creation-Date: 2024-03-28 07:46+0100\n"
 "PO-Revision-Date: 2024-04-19 06:22+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
-"Language-Team: French <https://weblate.pixls.us/projects/siril/"
-"siril-application/fr/>\n"
+"Language-Team: French <https://weblate.pixls.us/projects/siril/siril-"
+"application/fr/>\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -404,14 +404,15 @@ msgstr ""
 "valeur avec une erreur ne dépassant pas 20%."
 
 #: src/gui/uifiles/astrometry_dialog.ui:390
-#, fuzzy
 msgid ""
 "Pixel size in microns. The image is assumed to have square pixels. Value is "
 "already multiplied by the camera binning if the \"Real pixel size\" box is "
 "checked in the Tool->Image Information dialog box."
 msgstr ""
-"Taille du pixel en microns. L'image est supposée avoir des pixels carrés. La "
-"valeur est déjà multipliée par le binning de la caméra."
+"Taille des pixels en microns. L'image est supposée avoir des pixels carrés. "
+"La valeur est déjà multipliée par le binning de la caméra si la case "
+"\"Taille réelle des pixels\" est cochée dans la boîte de dialogue Outil-"
+">Informations sur l'image."
 
 #: src/gui/uifiles/astrometry_dialog.ui:409
 msgid "Focal length (mm):"
@@ -570,40 +571,45 @@ msgstr "Astrometry.net (local)"
 
 #: src/gui/uifiles/astrometry_dialog.ui:674
 msgid "Radius used by the solver to search around the target."
-msgstr ""
+msgstr "Rayon utilisé par le solveur pour rechercher autour de la cible."
 
 #: src/gui/uifiles/astrometry_dialog.ui:695
-#, fuzzy
 msgid "Search radius:"
-msgstr "Rayon externe :"
+msgstr "Rayon de recherche :"
 
 #: src/gui/uifiles/astrometry_dialog.ui:704
 msgid "disable near search"
-msgstr ""
+msgstr "Désactiver la recherche à proximité"
 
 #: src/gui/uifiles/astrometry_dialog.ui:708
 msgid ""
 "Tick this box to disable searching around target position with Siril "
 "internal solver."
 msgstr ""
+"Cochez cette case pour désactiver la recherche autour de la position de la "
+"cible avec le solveur interne de Siril."
 
 #: src/gui/uifiles/astrometry_dialog.ui:727
 msgid "Ignore position (blind solve)"
-msgstr ""
+msgstr "Ignorer la position (résolution à l'aveugle)"
 
 #: src/gui/uifiles/astrometry_dialog.ui:731
 msgid ""
 "Tick this box to ignore target position when solving with local Astrometry."
 "net"
 msgstr ""
+"Cochez cette case pour ignorer la position de la cible lors de la résolution "
+"avec Astrometry.net local"
 
 #: src/gui/uifiles/astrometry_dialog.ui:743
 msgid "Ignore sampling (blind solve)"
-msgstr ""
+msgstr "Ignorer l'échantillonnage (résolution aveugle)"
 
 #: src/gui/uifiles/astrometry_dialog.ui:747
 msgid "Tick this box to ignore sampling when solving with local Astrometry.net"
 msgstr ""
+"Cochez cette case pour ignorer l'échantillonnage lors de la résolution avec "
+"Astrometry.net local"
 
 #: src/gui/uifiles/astrometry_dialog.ui:805
 msgid "Image Parameters"
@@ -635,9 +641,8 @@ msgstr ""
 "l'approximation du champ de l'image."
 
 #: src/gui/uifiles/astrometry_dialog.ui:882
-#, fuzzy
 msgid "Star Catalogue: "
-msgstr "Catalogue d'étoiles en ligne : "
+msgstr "Catalogue d'étoiles : "
 
 #: src/gui/uifiles/astrometry_dialog.ui:894
 msgid ""
@@ -689,13 +694,12 @@ msgstr ""
 "d'étoiles."
 
 #: src/gui/uifiles/astrometry_dialog.ui:923
-#, fuzzy
 msgid ""
 "The catalogue is automatically determined using the approximation of the "
 "Field Of View and magnitude."
 msgstr ""
-"Le catalogue en ligne est automatiquement déterminé en fonction de "
-"l'approximation du champ de l'image et de la magnitude."
+"Le catalogue est automatiquement déterminé en utilisant l'approximation du "
+"champ de vision et de la magnitude."
 
 #: src/gui/uifiles/astrometry_dialog.ui:938
 msgid ""
@@ -735,28 +739,28 @@ msgid "Star Detection"
 msgstr "Détection d'étoiles"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1015
-#, fuzzy
 msgid "Solve whole sequence"
-msgstr "Chercher séquences"
+msgstr "Résoudre la séquence entière"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1019
 msgid "Tick this box to solve the whole sequence."
-msgstr ""
+msgstr "Cochez cette case pour résoudre l'ensemble de la séquence."
 
 #: src/gui/uifiles/astrometry_dialog.ui:1031
 msgid "Skip already solved images"
-msgstr ""
+msgstr "Sauter les images déjà résolues"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1035
 msgid ""
 "Tick this box to skip solving the images of the sequence that already have a "
 "solution."
 msgstr ""
+"Cochez cette case pour ne pas résoudre les images de la séquence qui ont "
+"déjà une solution."
 
 #: src/gui/uifiles/astrometry_dialog.ui:1048
-#, fuzzy
 msgid "Fetch stars for each image"
-msgstr "Recherche de %d étoiles dans le catalogue %s\n"
+msgstr "Rechercher les étoiles pour chaque image"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1052
 msgid ""
@@ -766,6 +770,13 @@ msgid ""
 "box to fetch a new catalogue for each image. The information contained in "
 "the headers will be used to recompute the new position/resolution."
 msgstr ""
+"Lors de l'utilisation de catalogues en ligne avec le solveur Siril, la "
+"valeur par défaut est d'extraire un catalogue pour l'ensemble de la "
+"séquence. Si vos images ne proviennent pas du même champ ou n'ont pas la "
+"même résolution, cette opération risque d'échouer. Dans ce cas, cochez cette "
+"case pour récupérer un nouveau catalogue pour chaque image. Les informations "
+"contenues dans les en-têtes seront utilisées pour recalculer la nouvelle "
+"position/résolution."
 
 #: src/gui/uifiles/astrometry_dialog.ui:1068 src/gui/uifiles/siril.ui:4395
 #: src/gui/callbacks.c:2160
@@ -5777,7 +5788,6 @@ msgid "Default degree of the polynomial correction:"
 msgstr "Degré par défaut de la correction polynomiale :"
 
 #: src/gui/uifiles/settings_window.ui:1576
-#, fuzzy
 msgid ""
 "Astrometry solvers can use a polynomial correction (SIP) to work with "
 "optical aberrations, this is the default order of the polynomial model. Set "
@@ -5785,7 +5795,7 @@ msgid ""
 msgstr ""
 "Les solveurs astrométriques peuvent utiliser une correction polynomiale "
 "(SIP) pour travailler avec les aberrations optiques, c'est l'ordre par "
-"défaut du modèle polynomial. 0 ou 1 le désactive."
+"défaut du modèle polynomial. La valeur 1 permet de le désactiver."
 
 #: src/gui/uifiles/settings_window.ui:1579
 msgid "3"
@@ -5810,8 +5820,7 @@ msgstr "10.00"
 
 #: src/gui/uifiles/settings_window.ui:1654
 msgid "Maximum seconds to try solving. 0 to disable it"
-msgstr ""
-"Nombre maximum de secondes avant de reesayer. 0 pour désactiver"
+msgstr "Nombre maximum de secondes avant de reesayer. 0 pour désactiver"
 
 #: src/gui/uifiles/settings_window.ui:1666
 msgid ""
@@ -11820,23 +11829,23 @@ msgstr ""
 "dans un rayon de %s degrés pour les échelles [%s, %s].\n"
 
 #: src/algos/astrometry_solver.c:1671
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Astrometry.net solving with a search field at RA: %s, Dec: %s, within a %s "
 "degrees radius, blindly for scale\n"
 msgstr ""
-"Résolution d'Astrometry.net avec un champ de recherche à RA : %s, Dec : %s, "
-"dans un rayon de %s degrés pour les échelles [%s, %s].\n"
+"Résolution d'Astrometry.net avec un champ de recherche à RA : %s, Dec : %s, "
+"dans un rayon de %s degrés, à l'aveugle pour l'échelle\n"
 
 #: src/algos/astrometry_solver.c:1675
-#, fuzzy, c-format
+#, c-format
 msgid "Astrometry.net solving blindly in position for scales [%s, %s]\n"
-msgstr "Astrometry.net résout aveuglément pour les échelles [%s, %s].\n"
+msgstr ""
+"Astrometry.net résout à l'aveugle la position pour les échelles [%s, %s]\n"
 
 #: src/algos/astrometry_solver.c:1678
-#, fuzzy
 msgid "Astrometry.net solving blindly\n"
-msgstr "Résolution astrométrique par Astrometry.net"
+msgstr "Résolution Astrometry.net à l'aveugle\n"
 
 #: src/algos/astrometry_solver.c:1756
 msgid "No astrometric solution found\n"
@@ -11860,9 +11869,9 @@ msgstr ""
 "des étoiles\n"
 
 #: src/algos/astrometry_solver.c:1953
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d already platesolved, skipping\n"
-msgstr "L'image est déjà résolue. Rien ne sera fait.\n"
+msgstr "L'image %d a déjà été traitée, sauter\n"
 
 #: src/algos/astrometry_solver.c:1975
 #, c-format
@@ -11895,34 +11904,34 @@ msgid "Image %s did not solve\n"
 msgstr "L'image %s n'a pas été résolue\n"
 
 #: src/algos/astrometry_solver.c:2043
-#, fuzzy, c-format
+#, c-format
 msgid "Image %s platesolved and updated\n"
-msgstr "Image chargée et mise à l'échelle"
+msgstr "L'image %s est résolue et mise à jour\n"
 
 #: src/algos/astrometry_solver.c:2045
 #, c-format
 msgid "Image %s platesolved but could not be saved\n"
-msgstr ""
+msgstr "L'image %s est résolue, mais n'a pas pu être sauvegardée\n"
 
 #: src/algos/astrometry_solver.c:2051
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d platesolved and updated\n"
-msgstr "Image chargée et mise à l'échelle"
+msgstr "L'image %d est résolue et mise à jour\n"
 
 #: src/algos/astrometry_solver.c:2062
 #, c-format
 msgid "%d images successfully platesolved out of %d included\n"
-msgstr ""
+msgstr "%d images transférées avec succès sur %d images incluses\n"
 
 #: src/algos/astrometry_solver.c:2064
 #, c-format
 msgid "(%d were already solved and skipped)\n"
-msgstr ""
+msgstr "(%d ont déjà été résolus et ignorés)\n"
 
 #: src/algos/astrometry_solver.c:2076
-#, fuzzy, c-format
+#, c-format
 msgid "File %s updated\n"
-msgstr "La FWHM va être mise à jour"
+msgstr "Fichier %s mis à jour\n"
 
 #: src/algos/astrometry_solver.c:2142
 #, c-format
@@ -12084,9 +12093,8 @@ msgstr ""
 "images à trois canaux.\n"
 
 #: src/algos/colors.c:1315
-#, fuzzy
 msgid "Color Conversion Matrices"
-msgstr "Matrice de conversion des couleurs"
+msgstr "Matrices de conversion des couleurs"
 
 #: src/algos/comparison_stars.c:137
 #, c-format
@@ -15077,9 +15085,9 @@ msgid "Save metadata to the JSON file '%s'\n"
 msgstr "Enregistrer les métadonnées dans le fichier JSON '%s'\n"
 
 #: src/core/command.c:6408 src/core/command.c:6402
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d, %s\n"
-msgstr "Image %d : '%s'\n"
+msgstr "Image %d, %s\n"
 
 #: src/core/command.c:6426 src/core/command.c:6420
 msgid "This command can only run for FITS images\n"
@@ -15761,6 +15769,7 @@ msgstr "Les images doivent avoir les mêmes dimensions et être monochromes\n"
 #, c-format
 msgid "Successful RGB composition with metadata accumulate option %s.\n"
 msgstr ""
+"Composition RVB réussie avec l'option d'accumulation de métadonnées %s.\n"
 
 #: src/core/command.c:8746 src/core/command.c:8677
 msgid ""
@@ -15867,12 +15876,12 @@ msgstr ""
 #, c-format
 msgid "Siril internal solver cannot be set blind in %s\n"
 msgstr ""
+"Le solveur interne Siril ne peut pas être configuré en aveugle dans %s\n"
 
 #: src/core/command.c:9071 src/core/command.c:9098 src/core/command.c:9002
 #: src/core/command.c:9029
-#, fuzzy
 msgid "position"
-msgstr "Position X"
+msgstr "position"
 
 #: src/core/command.c:9006 src/core/command.c:9041 src/core/command.c:9068
 msgid "resolution"
@@ -15897,12 +15906,11 @@ msgstr ""
 #: src/core/command.c:9029 src/core/command.c:9041 src/core/command.c:9068
 #, c-format
 msgid "%s is ignored when using local astrometry.net blind in %s\n"
-msgstr ""
+msgstr "%s est ignoré lors de l'utilisation d'astrometry.net local dans %s\n"
 
 #: src/core/command.c:9098 src/core/command.c:9029
-#, fuzzy
 msgid "Center position"
-msgstr "Position X"
+msgstr "Position du centre"
 
 #: src/core/command.c:9041
 msgid "Pixel size"
@@ -15930,9 +15938,8 @@ msgid "Using pixel size from image: %.2f\n"
 msgstr "Utilisation de la taille de pixel de l'image : %.2f\n"
 
 #: src/core/command.c:9137 src/core/command.c:9068
-#, fuzzy
 msgid "Focal length"
-msgstr "Longueur focale / mm"
+msgstr "Longueur focale"
 
 #: src/core/command.c:9143 src/core/command.c:9074
 #, c-format
@@ -15968,6 +15975,8 @@ msgid ""
 "Cannot force null radius for localasnet if not blind solving, using default "
 "instead\n"
 msgstr ""
+"Impossible de forcer un rayon nul pour localasnet s'il ne s'agit pas d'une "
+"résolution aveugle, en utilisant la valeur par défaut à la place.\n"
 
 #: src/core/command.c:9286 src/core/command.c:9217
 msgid ""
@@ -17876,7 +17885,6 @@ msgstr ""
 "défaut de -2,8 et +2,0"
 
 #: src/core/command_def.h:109
-#, fuzzy
 msgid ""
 "Plate solve the loaded image.\n"
 "If the image has already been plate solved nothing will be done, unless the "
@@ -17929,44 +17937,66 @@ msgid ""
 "blindly for position and for resolution respectively. You can use these when "
 "solving an image with a completely unknown location and sampling"
 msgstr ""
-"Résouds l'astrométrie de l'image chargée.\n"
-"Si l'image a déjà été résolue, rien ne sera fait, à moins que l'argument <b>-"
-"platesolve</b> ne soit passé pour forcer une nouvelle résolution. Si WCS ou "
-"d'autres métadonnées d'image sont erronées ou manquantes, des arguments "
-"doivent être passés :\n"
-"   les coordonnées approximatives du centre de l'image peuvent être fournies "
-"en degrés décimaux ou en degrés/heure minute seconde (J2000 avec séparateurs "
-"deux-points), avec les valeurs d'ascension droite et de déclinaison séparées "
-"par une virgule ou un espace (pas obligatoire pour astrometry.net).\n"
-"   la distance focale et la taille des pixels peuvent être passées avec <b>-"
-"focal=</b> (en mm) et <b>-pixelsize=</b> (en microns), remplaçant les "
-"valeurs de l'image et des paramètres.\n"
+"Résout l'astrométrie de l'image chargée.\n"
+"Si l'image a déjà été résolue par astrométrie, rien ne sera fait, à moins "
+"que l'argument <b>-force</b> ne soit passé pour forcer une nouvelle "
+"résolution. Si les données WCS ou d'autres métadonnées d'image sont erronées "
+"ou manquantes, des arguments doivent être transmis :\n"
+"  les coordonnées approximatives du centre de l'image peuvent être fournies "
+"en degrés décimaux ou en degrés/heures minutes secondes (J2000 avec "
+"séparateurs deux-points), avec des valeurs d'ascension droite et de "
+"déclinaison séparées par une virgule ou un espace (non obligatoire pour "
+"astrometry.net).\n"
+"  la distance focale et la taille des pixels peuvent être transmises avec "
+"<b>-focal=</b> (en mm) et <b>-pixelsize=</b> (en microns), remplaçant les "
+"valeurs de l'image et des paramètres. Voir aussi les options pour résoudre à "
+"l'aveugle avec astrometry.net local\n"
 "\n"
+"Les images peuvent être soit résolues par Siril à l'aide d'un catalogue "
+"d'étoiles et de l'algorithme d'alignement global, soit par la commande de "
+"résolution de champ d'astrometry.net local (activée avec <b>-localasnet</"
+"b>).\n"
+"\n"
+"Les options suivantes sont communes aux deux solveurs :\n"
 "Sauf si <b>-noflip</b> est spécifié, si l'image est détectée comme étant à "
 "l'envers, elle sera retournée.\n"
 "Pour une détection plus rapide des étoiles dans les grandes images, le sous-"
 "échantillonnage de l'image est possible avec <b>-downscale</b>.\n"
+"La résolution peut prendre en compte les distorsions en utilisant la "
+"convention SIP avec des polynômes jusqu'à l'ordre 5. La valeur par défaut "
+"est issue des préférences d'astrométrie. Ceci peut être modifié avec "
+"l'option <b>-order=</b> donnant une valeur comprise entre 1 et 5.\n"
+"Lors de l'utilisation des catalogues locaux du solveur Siril ou avec "
+"Astrometry.net local, si la résolution initiale échoue, le solveur "
+"recherchera une solution dans un cône de rayon spécifié avec l'option <b>-"
+"radius=</b>. Si aucune valeur n'est passée, le rayon de recherche est issu "
+"des préférences d'astrométrie. La recherche par proximité de Siril peut être "
+"désactivée en passant une valeur de 0. (ne peut pas être désactivée pour "
+"Astrometry.net).\n"
 "\n"
-"Les images peuvent être soit résoluesastrométriquement par Siril à l'aide "
-"d'un catalogue d'étoiles et de l'algorithme d'alignement global, soit par la "
-"commande locale solve-field d'astrometry.net (activée avec <b>-localasnet</"
-"b>).\n"
-"Les options suivantes s'appliquent uniquement à la résolution astrométrique "
-"de Siril.\n"
-"La magnitude limite des étoiles utilisées pour la résolution astrométrique "
+"Les options suivantes s'appliquent uniquement à la résolution par Siril :\n"
+"La magnitude limite des étoiles utilisée pour la résolution astrométrique "
 "est automatiquement calculée à partir de la taille du champ de vision, mais "
 "peut être modifiée en passant une valeur +offset ou -offset à <b>-limitmag=</"
-"b>, ou simplement une valeur absolue valeur positive pour la magnitude "
+"b>, ou simplement une valeur absolue. Valeur positive pour la grandeur "
 "limite.\n"
 "Le choix du catalogue d'étoiles est automatique sauf si l'option <b>-"
-"catalog=</b> est passée : si des catalogues locaux sont installés, ils sont "
-"utilisés, sinon le choix est basé sur le champ de vision et la magnitude "
-"limite. Si l'option est passée, elle force l'utilisation du catalogue "
-"distant donné en argument, avec les valeurs possibles : tycho2, nomad, gaia, "
-"ppmxl, brightstars, apass"
+"catalog=</b> est passée : si des catalogues locaux sont installés, ils sont "
+"utilisés, sinon le choix se fait en fonction du champ de vision et de la "
+"magnitude limite. Si l'option est passée, elle force l'utilisation du "
+"catalogue distant donné en argument, avec les valeurs possibles : tycho2, "
+"nomad, gaia, ppmxl, brightstars, apass.\n"
+"Si le champ de vision calculé est supérieur à 5 degrés, la détection des "
+"étoiles sera limitée à une zone recadrée autour du centre de l'image, à "
+"moins que l'option <b>-nocrop</b> ne soit passée.\n"
+"\n"
+"Les options suivantes s'appliquent uniquement au solveur Astrometry.net :\n"
+"Passer les options <b>-blindpos</b> et/ou <b>-blindres</b> permet de "
+"résoudre en aveugle la position et la résolution respectivement. Vous pouvez "
+"les utiliser pour résoudre une image avec un emplacement et un "
+"échantillonnage complètement inconnus"
 
 #: src/core/command_def.h:110
-#, fuzzy
 msgid ""
 "This command evaluates the expression given in argument as in PixelMath "
 "tool. The full expression must be between double quotes and variables (that "
@@ -17981,13 +18011,16 @@ msgid ""
 msgstr ""
 "Cette commande évalue l'expression donnée en argument comme dans l'outil "
 "PixelMath. L'expression complète doit être entre guillemets doubles et les "
-"variables (qui sont des noms d'image, sans extension, situés dans le "
-"répertoire de travail dans ce cas) doivent être entourées du jeton $, par "
-"ex. \"$image1$ * 0,5 + $image2$ * 0,5\". Un maximum de 10 images peuvent "
-"être utilisées dans l'expression.\n"
+"variables (qui sont des noms d'images, sans extension, situées dans ce cas "
+"dans le répertoire de travail) doivent être entourées du jeton $, par "
+"exemple. \"$image1$ * 0,5 + $image2$ * 0,5\". Un maximum de 10 images "
+"peuvent être utilisées dans l’expression.\n"
 "L'image peut être redimensionnée avec l'option <b>-rescale</b> suivie des "
 "valeurs <b>low</b> et <b>high</b> dans la plage [0, 1]. Si aucune valeur "
-"basse et haute n'est fournie, les valeurs par défaut sont définies sur 0 et 1"
+"basse et haute n'est fournie, les valeurs par défaut sont définies sur 0 et "
+"1. Un autre argument facultatif, <b>-nosum</b> indique à Siril de ne pas "
+"additionner les temps d'exposition. Cela a un impact sur les mots-clés FITS "
+"tels que LIVETIME et STACKCNT"
 
 #: src/core/command_def.h:111
 msgid ""
@@ -18255,7 +18288,6 @@ msgstr ""
 "l'argument <b>-noclamp</b>"
 
 #: src/core/command_def.h:119
-#, fuzzy
 msgid ""
 "Creates an RGB composition using three independent images, or an LRGB "
 "composition using the optional luminance image and three monochrome images "
@@ -18268,7 +18300,9 @@ msgstr ""
 "composition LRVB à l'aide de l'image de luminance optionnelle et de trois "
 "images monochromes ou d'une image couleur. L'image résultante est appelée "
 "composed_rgb.fit ou composed_lrgb.fit à moins qu'un autre nom ne soit fourni "
-"dans l'argument optionnel"
+"dans l'argument optionnel. Un autre argument facultatif, <b>-nosum</b> "
+"indique à Siril de ne pas additionner les temps d'exposition. Cela a un "
+"impact sur les mots-clés FITS tels que LIVETIME et STACKCNT"
 
 #: src/core/command_def.h:120
 msgid ""
@@ -18678,7 +18712,6 @@ msgstr ""
 "commande"
 
 #: src/core/command_def.h:139
-#, fuzzy
 msgid ""
 "Same command as CCM but for the the sequence <b>sequencename</b>. Only "
 "selected images in the sequence are processed.\n"
@@ -18686,10 +18719,10 @@ msgid ""
 "The output sequence name starts with the prefix \"ccm\" unless otherwise "
 "specified with option <b>-prefix=</b>"
 msgstr ""
-"Même commande que COSME mais pour la séquence <b>sequencename</b>. Seules "
-"les images sélectionnées dans la séquence sont traitées.\n"
+"Même commande que CCM mais pour la séquence <b>sequencename</b>. Seules les "
+"images sélectionnées dans la séquence sont traitées.\n"
 "\n"
-"Le nom de la séquence de sortie commence par le préfixe \"cosme_\" sauf "
+"Le nom de la séquence de sortie commence par le préfixe \"ccm\" sauf "
 "indication contraire avec l'option <b>-prefix=</b>"
 
 #: src/core/command_def.h:140
@@ -18858,6 +18891,11 @@ msgid ""
 "output in a csv file. The <b>-sel</b> option limits the output to the images "
 "selected in the sequence."
 msgstr ""
+"Imprime la valeur d'en-tête FITS correspondant aux clés données pour toutes "
+"les images de la séquence. Vous pouvez écrire plusieurs clés à la suite, "
+"séparées par un espace. L'option <b>-out=</b>, suivie d'un nom de fichier, "
+"vous permet d'imprimer la sortie dans un fichier csv. L'option <b>-sel</b> "
+"limite la sortie aux images sélectionnées dans la séquence."
 
 #: src/core/command_def.h:153
 msgid ""
@@ -18945,7 +18983,6 @@ msgstr ""
 "indication contraire avec l'option <b>-prefix=</b>"
 
 #: src/core/command_def.h:159
-#, fuzzy
 msgid ""
 "Plate solve a sequence. A new sequence will be created with the prefix "
 "\"ps_\" if the input sequence is SER, otherwise, the images headers will be "
@@ -19007,49 +19044,73 @@ msgid ""
 "solving an image with a completely unknown location and sampling"
 msgstr ""
 "Astrométrie d'une séquence. Une nouvelle séquence sera créée avec le préfixe "
-"\"ps_\". Si la séquence d'entrée est en SER, la fourniture des métadonnées "
-"est obligatoire et la séquence de sortie sera au format FITS cube, le SER ne "
-"pouvant pas stocker les données WCS.\n"
-"Si les données WCS ou d'autres métadonnées d'image sont erronés ou "
-"manquants, des arguments doivent être transmis :\n"
-"   les coordonnées approximatives du centre de l'image peuvent être fournies "
-"en degrés décimaux ou en degrés/heure minute seconde (J2000 avec séparateurs "
-"deux-points), avec les valeurs d'ascension droite et de déclinaison séparées "
-"par une virgule ou un espace (pas obligatoire pour astrometry.net). Un seul "
-"extrait de catalogue sera fait pour toute la séquence, s'il y a beaucoup de "
-"dérives qui risquent cela risque de ne pas réussir pour toutes les images.\n"
-"   la distance focale et la taille des pixels peuvent être passées avec <b>-"
+"\"ps_\" si la séquence d'entrée est un fichier SER, sinon, les en-têtes des "
+"images seront mis à jour. Dans le cas des fichier SER, la fourniture des "
+"métadonnées est obligatoire et la séquence de sortie sera au format cube "
+"FITS, car les fichiers SER ne peuvent pas stocker les données WCS.\n"
+"Si les données WCS ou d'autres métadonnées d'image sont erronées ou "
+"manquantes, des arguments doivent être transmis :\n"
+"  les coordonnées approximatives du centre de l'image peuvent être fournies "
+"en degrés décimaux ou en degrés/heures minutes secondes (J2000 avec "
+"séparateurs deux-points), avec des valeurs d'ascension droite et de "
+"déclinaison séparées par une virgule ou un espace (non obligatoire pour "
+"astrometry.net).\n"
+" la distance focale et la taille des pixels peuvent être transmises avec <b>-"
 "focal=</b> (en mm) et <b>-pixelsize=</b> (en microns), remplaçant les "
-"valeurs des images et des paramètres.\n"
+"valeurs des images et des paramètres. Voir aussi les options pour résoudre à "
+"l'aveugle avec Astrometry.net local\n"
 "\n"
-"Sauf si <b>-noflip</b> est spécifié, si les images sont détectées comme "
-"étant à l'envers, elles seront retournées.\n"
+"Les images peuvent être soit résolues par Siril à l'aide d'un catalogue "
+"d'étoiles et de l'algorithme d'alignement global, soit par la commande de "
+"résolution de champ d'astrometry.net local (activée avec <b>-localasnet</"
+"b>).\n"
+"\n"
+"Les options suivantes sont communes aux deux solveurs :\n"
+"Pour une détection plus rapide des étoiles dans les grandes images, le sous-"
+"échantillonnage de l'image est possible avec <b>-downscale</b>.\n"
+"La résolution peut prendre en compte les distorsions en utilisant la "
+"convention SIP avec des polynômes jusqu'à l'ordre 5. La valeur par défaut "
+"est issue des préférences d'astrométrie. Ceci peut être modifié avec "
+"l'option <b>-order=</b> donnant une valeur comprise entre 1 et 5.\n"
+"Lors de l'utilisation des catalogues locaux du solveur Siril ou avec "
+"Astrometry.net local, si la résolution initiale échoue, le solveur "
+"recherchera une solution dans un cône de rayon spécifié avec l'option <b>-"
+"radius=</b>. Si aucune valeur n'est passée, le rayon de recherche est issu "
+"des préférences d'astrométrie. La recherche par proximité de Siril peut être "
+"désactivée en passant une valeur de 0. (ne peut pas être désactivée pour "
+"Astrometry.net).\n"
+"Les images déjà résolues seront ignorées par défaut. Ceci peut être "
+"désactivé en passant l'option <b>-force</b>.\n"
+"\n"
+"Les options suivantes s'appliquent uniquement à la résolution astrométrique "
+"de Siril :\n"
+"La magnitude limite des étoiles utilisée pour la résolution astrométrique "
+"est automatiquement calculée à partir de la taille du champ de vision, mais "
+"peut être modifiée en passant une valeur +offset ou -offset à <b>-limitmag=</"
+"b>, ou simplement une valeur absolue. Valeur positive pour la grandeur "
+"limite.\n"
+"Le choix du catalogue d'étoiles est automatique sauf si l'option <b>-"
+"catalog=</b> est passée : si des catalogues locaux sont installés, ils sont "
+"utilisés, sinon le choix se fait en fonction du champ de vision et de la "
+"magnitude limite. Si l'option est passée, elle force l'utilisation du "
+"catalogue distant donné en argument, avec les valeurs possibles : tycho2, "
+"nomad, gaia, ppmxl, brightstars, apass.\n"
 "Si le champ de vision calculé est supérieur à 5 degrés, la détection des "
 "étoiles sera limitée à une zone recadrée autour du centre de l'image, à "
 "moins que l'option <b>-nocrop</b> ne soit passée.\n"
-"Pour une détection plus rapide des étoiles dans les grandes images, le sous-"
-"échantillonnage de l'image est possible avec <b>-downscale</b>.\n"
+"Lors de l'utilisation de catalogues en ligne, une seule extraction de "
+"catalogue sera effectuée pour l'ensemble de la séquence. S'il y a beaucoup "
+"de dérive ou un échantillonnage différent, cela risque de ne pas réussir "
+"pour toutes les images. Ceci peut être désactivé en passant l'argument <b>-"
+"nocache</b>, auquel cas les métadonnées de chaque image seront utilisées "
+"(sauf pour les valeurs forcées comme les coordonnées centrales, la taille "
+"des pixels et/ou la distance focale).\n"
 "\n"
-"Les images peuvent être soit résolues par Siril à l'aide d'un catalogue "
-"d'étoiles et de l'algorithme d'alignement global, soit par la commande "
-"locale solve-field d'astrometry.net (activée avec <b>-localasnet</b>).\n"
-"Les options suivantes s'appliquent uniquement à la résolution astrométrique "
-"de Siril.\n"
-"La magnitude limite des étoiles utilisées pour la résolution astrométrique "
-"est automatiquement calculée à partir de la taille du champ de vision, mais "
-"peut être modifiée en passant une valeur +offset ou -offset à <b>-limitmag=</"
-"b>, ou simplement une valeur absolue valeur positive pour la magnitude "
-"limite.\n"
-"Le choix du catalogue d'étoiles est automatique sauf si l'option <b>-"
-"catalog=</b> est passée : si des catalogues locaux sont installés, ils sont "
-"utilisés, sinon le choix est basé sur le champ de vision et la magnitude "
-"limite. Si l'option est passée, elle force l'utilisation du catalogue "
-"distant donné en argument, avec les valeurs possibles : tycho2, nomad, gaia, "
-"ppmxl, brightstars, apass.\n"
-"La résolution peut prendre en compte les distorsions en utilisant la "
-"convention SIP avec des polynômes jusqu'à l'ordre 4. Par défaut, la "
-"distorsion cubique est incluse. Ceci peut être modifié avec l'option <b>-"
-"order=</b> donnant une valeur comprise entre 1 et 4"
+"Les options suivantes s'appliquent uniquement au solveur Astrometry.net :\n"
+"Passer les options <b>-blindpos</b> et/ou <b>-blindres</b> permet de "
+"résoudre à l'aveugle la position et la résolution respectivement. Vous "
+"pouvez les utiliser pour résoudre une image avec un emplacement et un "
+"échantillonnage complètement inconnus"
 
 #: src/core/command_def.h:160
 msgid ""
@@ -20611,9 +20672,9 @@ msgstr ""
 "pas utilisé.\n"
 
 #: src/core/initfile.c:150
-#, fuzzy, c-format
+#, c-format
 msgid "Converting previous initfile: %s\n"
-msgstr "Impossible de charger le fichier : %s\n"
+msgstr "Conversion du fichier d'initialisation précédent : %s\n"
 
 #: src/core/initfile.c:173
 #, c-format

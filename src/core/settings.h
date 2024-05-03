@@ -134,6 +134,7 @@ struct phot_config {
 	double auto_inner_factor;// factor for automatic inner radius computation from FWHM
 	double auto_outer_factor;// factor for automatic outer radius computation from FWHM
 	double aperture;	// flux aperture
+	double auto_aperture_factor;	// ratio between the aperture and the half-FWHM, used with the dynamic aperture option
 	gboolean force_radius;	// force the aperture radius value
 	double minval, maxval;	// consider pixels outside this range as invalid for photometry
 				// minval and maxval are stored as int, but adapted to image type
