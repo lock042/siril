@@ -187,6 +187,7 @@ static void update_photometry_preferences() {
 	com.pref.phot_set.outer = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinOuter")));
 	com.pref.phot_set.aperture = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinAperture")));
 	com.pref.phot_set.force_radius = !gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("photometry_force_radius_button")));
+	com.pref.phot_set.auto_aperture_factor = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinRadRatio")));
 	com.pref.phot_set.minval = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinMinPhot")));
 	com.pref.phot_set.maxval = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinMaxPhot")));
 }
@@ -378,8 +379,11 @@ void on_checkbutton_use_header_toggled(GtkToggleButton *button, gpointer user_da
 }
 
 void on_photometry_force_radius_button_toggled(GtkToggleButton *button, gpointer user_data) {
-	GtkWidget *spin = (GtkWidget *)user_data;
-	gtk_widget_set_sensitive(spin, !gtk_toggle_button_get_active(button));
+//	GtkWidget *spin = (GtkWidget *)user_data;
+	GtkWidget *spin1 = lookup_widget("spinAperture");
+	GtkWidget *spin2 = lookup_widget("spinRadRatio");
+	gtk_widget_set_sensitive(spin1, !gtk_toggle_button_get_active(button));
+	gtk_widget_set_sensitive(spin2, gtk_toggle_button_get_active(button));
 }
 
 void initialize_path_directory(const gchar *path) {
@@ -594,7 +598,7 @@ void on_check_button_pref_bias_toggled(GtkToggleButton *togglebutton, gpointer u
 	}
 }
 
-static gboolean from_prefs_init = FALSE;
+//static gboolean from_prefs_init = FALSE;	// NOT USED, SHOULD BE DELETED
 
 void update_preferences_from_model() {
 	siril_debug_print("updating preferences GUI from settings data\n");
@@ -695,12 +699,13 @@ void update_preferences_from_model() {
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("xtrans_sample_h")), tmp);
 
 	/* tab Photometry */
-	from_prefs_init = TRUE;
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinOuter")), pref->phot_set.outer);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinInner")), pref->phot_set.inner);
-	from_prefs_init = FALSE;
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinAperture")), pref->phot_set.aperture);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("photometry_force_radius_button")), !pref->phot_set.force_radius);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinRadRatio")), pref->phot_set.auto_aperture_factor);
+	gtk_widget_set_sensitive(lookup_widget("spinRadRatio"), !pref->phot_set.force_radius);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinAperture")), pref->phot_set.aperture);
+	gtk_widget_set_sensitive(lookup_widget("spinAperture"), pref->phot_set.force_radius);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinGain")), pref->phot_set.gain);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinMinPhot")), pref->phot_set.minval);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinMaxPhot")), pref->phot_set.maxval);
