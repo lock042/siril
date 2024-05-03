@@ -126,11 +126,15 @@ static void update_astrometry_preferences() {
 	if (com.pref.astrometry.default_obscode)
 		g_free(com.pref.astrometry.default_obscode);
 	com.pref.astrometry.default_obscode = g_strdup(gtk_entry_get_text(GTK_ENTRY(lookup_widget("obscode_entry"))));
-	if (strlen(com.pref.astrometry.default_obscode) != 3) {
+	if (strlen(com.pref.astrometry.default_obscode) != 3 && strlen(com.pref.astrometry.default_obscode) != 0) {
 		g_free(com.pref.astrometry.default_obscode);
 		com.pref.astrometry.default_obscode = NULL;
 		siril_log_color_message(_("Error: invalid IAU observatory code read from preferences file. Code must be a 3-character code.\n"), "red");
 		gtk_entry_set_text(GTK_ENTRY(lookup_widget("obscode_entry")), "");
+	}
+	if (com.pref.astrometry.default_obscode && strlen(com.pref.astrometry.default_obscode) == 0) {
+		g_free(com.pref.astrometry.default_obscode);
+		com.pref.astrometry.default_obscode = NULL;
 	}
 	// In the prefs structure, the dir is stored alongside starnet, not in astrometry
 	com.pref.asnet_dir = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("filechooser_asnet")));
