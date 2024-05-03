@@ -13,6 +13,7 @@ crossroad install lcms2 \
                   ffms2 \
                   cfitsio \
                   libgit2 \
+                  libxisf \
 # need to uninstall crt-git
 # probably same root cause as https://github.com/msys2/MINGW-packages/issues/10837
 # otherwise, it's messing up all the subsequent builds
@@ -26,14 +27,6 @@ autoreconf -fi && \
 crossroad ./configure --disable-examples --disable-static && \
 make install || exit 1
 cd ..
-
-# Build libXISF from git rep
-git clone https://gitea.nouspiro.space/nou/libXISF.git
-cd libXISF
-mkdir -p build && cd build
-crossroad cmake ..
-make install || exit 1
-cd ../..
 
 if [ $? -ne 0 ]; then
   echo "Installation of pre-built dependencies failed.";
