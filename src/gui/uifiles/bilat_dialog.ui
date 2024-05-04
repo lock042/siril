@@ -249,7 +249,7 @@ WARNING: using guide images that are not based on the original image is likely t
                   <object class="GtkSpinButton" id="spin_bilat_d">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
-                    <property name="tooltip-text" translatable="yes">This sets the diameter the bilateral filter applies over. If it is zero, the spatial extent is set automatically based on the spatial sigma value, otherwise the spatial extent of the filter is set to exactly this value regardless of sigma (spatial)</property>
+                    <property name="tooltip-text" translatable="yes">This sets the diameter the edge preserving filter applies over. If it is zero, the spatial extent is set automatically based on the spatial sigma value, otherwise the spatial extent of the filter is set to exactly this value regardless of sigma (spatial)</property>
                     <property name="text" translatable="yes">0.0</property>
                     <property name="progress-pulse-step">0</property>
                     <property name="adjustment">adjustment_bilat_d</property>
@@ -312,7 +312,7 @@ WARNING: using guide images that are not based on the original image is likely t
                   <object class="GtkSpinButton" id="spin_bilat_sigma_spatial">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
-                    <property name="tooltip-text" translatable="yes">Sets the standard deviation for spatial distance between pixels over which the filter operates. A larger sigma means the filter takes into account pixels over a wider area of the image. Note the interaction with the diameter setting.</property>
+                    <property name="tooltip-text" translatable="yes">Sets the range of spatial distance between pixels over which the filter operates. A larger sigma means the filter takes into account pixels over a wider area of the image. Note the interaction with the diameter setting.</property>
                     <property name="text" translatable="yes">0.0</property>
                     <property name="progress-fraction">0.01</property>
                     <property name="progress-pulse-step">0.01</property>
@@ -344,7 +344,7 @@ WARNING: using guide images that are not based on the original image is likely t
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="halign">start</property>
-                    <property name="label" translatable="yes">Sigma (color)</property>
+                    <property name="label" translatable="yes">Sigma (intensity)</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -356,7 +356,7 @@ WARNING: using guide images that are not based on the original image is likely t
                   <object class="GtkSpinButton" id="spin_bilat_sigma_col">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
-                    <property name="tooltip-text" translatable="yes">This value affects the range of color similarity the bilateral filter aplies over.</property>
+                    <property name="tooltip-text" translatable="yes">This value affects the range of pixel value similarity the edge preserving filter aplies over.</property>
                     <property name="text" translatable="yes">0.000</property>
                     <property name="progress-pulse-step">0</property>
                     <property name="adjustment">adjustment_bilat_sigma_col</property>

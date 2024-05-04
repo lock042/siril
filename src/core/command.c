@@ -1103,7 +1103,7 @@ int process_epf(int nb) {
 				return CMD_ARG_ERROR;
 			}
 		}
-		else if (g_str_has_prefix(arg, "-sc=")) {
+		else if (g_str_has_prefix(arg, "-si=")) {
 			gchar *val = arg + 4;
 			sigma_col = g_ascii_strtod(val, &end);
 			if (end == val || sigma_col <= 0.0 || (gfit.type == DATA_FLOAT && sigma_col > 1) || (gfit.type == DATA_USHORT && sigma_col > 65535)) {
