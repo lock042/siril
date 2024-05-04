@@ -96,7 +96,17 @@ int edge_preserving_filter(fits *fit, fits *guide, double d, double sigma_col, d
 		siril_log_color_message(_("Bilateral filter: processing...\n"), "green");
 		gettimeofday(&t_start, NULL);
 	}
-	sigma_col = sigma_col / 100.0;
+	sigma_col /= 100.0;
+
+	if (filter_type == EP_GUIDED) {
+		// This makes the settings behave more consistently between the two filter types
+		sigma_col /= 5.0;
+		d /= 3.0;
+	}
+	if (fit->type == DATA_FLOAT) {
+		// This makes the settings behave more consistently between 16-bit and 32-bit images
+		sigma_col *= 2.0;
+	}
 
 	// cv::BilateralFilter() only works on 8u and 32f images, so we convert 16-bit to 32-bit
 	size_t ndata;
@@ -183,33 +193,9 @@ void bilat_change_between_roi_and_image() {
 }
 
 static void bilat_startup() {
-	GtkSpinButton *spin_col = GTK_SPIN_BUTTON(lookup_widget("spin_bilat_sigma_col"));
-	GtkSpinButton *spin_spatial = GTK_SPIN_BUTTON(lookup_widget("spin_bilat_sigma_spatial"));
-	GtkRange *scale_col = GTK_RANGE(lookup_widget("scale_bilat_sigma_col"));
-	GtkRange *scale_spatial = GTK_RANGE(lookup_widget("scale_bilat_sigma_spatial"));
-	GtkAdjustment *adj_col_32bit = GTK_ADJUSTMENT(lookup_gobject("adjustment_bilat_sigma_col"));
-	GtkAdjustment *adj_spatial_32bit = GTK_ADJUSTMENT(lookup_gobject("adjustment_bilat_sigma_spatial"));
-	GtkAdjustment *adj_col_16bit = GTK_ADJUSTMENT(lookup_gobject("adjustment_bilat_sigma_col_16bit"));
-	GtkAdjustment *adj_spatial_16bit = GTK_ADJUSTMENT(lookup_gobject("adjustment_bilat_sigma_spatial_16bit"));
 	copy_gfit_to_backup();
 	add_roi_callback(bilat_change_between_roi_and_image);
 	roi_supported(TRUE);
-	switch (gfit.type) {
-		case DATA_FLOAT:
-			gtk_spin_button_set_adjustment(spin_col, adj_col_32bit);
-			gtk_spin_button_set_adjustment(spin_spatial, adj_spatial_32bit);
-			gtk_range_set_adjustment(scale_col, adj_col_32bit);
-			gtk_range_set_adjustment(scale_spatial, adj_spatial_32bit);
-			break;
-		case DATA_USHORT:
-			gtk_spin_button_set_adjustment(spin_col, adj_col_16bit);
-			gtk_spin_button_set_adjustment(spin_spatial, adj_spatial_16bit);
-			gtk_range_set_adjustment(scale_col, adj_col_16bit);
-			gtk_range_set_adjustment(scale_spatial, adj_spatial_16bit);
-			break;
-		default:
-			break;
-	}
 }
 
 static void bilat_close(gboolean revert) {
