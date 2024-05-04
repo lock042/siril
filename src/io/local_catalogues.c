@@ -56,7 +56,7 @@
 #define NOMAD_DAT "~/.local/share/kstars/USNO-NOMAD-1e8.dat"
 const char *default_catalogues_paths[] = { NAMEDSTARS_DAT, UNNAMEDSTARS_DAT, TYCHOSTARS_DAT, NOMAD_DAT };
 
-#define DEBUG_LOCALCAT 0
+// #define DEBUG_LOCALCAT
 #define NTRIXELS 2
 #define NMAG 19
 
@@ -140,7 +140,9 @@ static void bswap_stardata(deepStarData *stardata) {
 
 /* returns the complete list of stars for a catalogue's list of trixels */
 static int read_trixels_from_catalogue(const char *path, double ra, double dec, double radius, deepStarData **trixel_stars, uint32_t *trixel_nb_stars) {
+#ifdef DEBUG_LOCALCAT
 	siril_debug_print("reading data from catalogue %s\n", path);
+#endif
 	FILE *f = g_fopen(path, "rb");
 	if (!f) {
 		siril_log_message(_("Could not open local NOMAD catalogue\n"));
@@ -169,7 +171,9 @@ static int read_trixels_from_catalogue(const char *path, double ra, double dec, 
 
 /* returns the complete list of stars for a catalogue's list of trixels */
 static int read_trixelID_from_catalogue(const char *path, int ID, deepStarData **trixel_stars, uint32_t *trixel_nb_stars) {
+#ifdef DEBUG_LOCALCAT
 	siril_debug_print("reading data from catalogue %s\n", path);
+#endif
 	if (ID < 0 || ID > 512) {
 		siril_log_message(_("Wrong trixel ID\n"));
 		return 1;
@@ -342,8 +346,9 @@ static int read_trixels_of_target(double ra, double dec, double radius, struct c
 		*nb_stars = 0;
 		return 0;
 	}
-
+#ifdef DEBUG_LOCALCAT
 	siril_debug_print("trixel search found %d trixels\n", nb_trixels);
+#endif
 	deepStarData **stars_list;
 	uint32_t *nb_stars_list;
 	stars_list = malloc(nb_trixels * sizeof(deepStarData *));
@@ -362,7 +367,9 @@ static int read_trixels_of_target(double ra, double dec, double radius, struct c
 	for (int i = 0; i < nb_trixels; i++) {
 		retval = read_trixel(trixels[i], cat, stars_list + i, nb_stars_list + i);
 		if (retval) break;
+#ifdef DEBUG_LOCALCAT
 		siril_debug_print("trixel %d (%d) contained %u stars\n", i, trixels[i], nb_stars_list[i]);
+#endif
 		total_star_count += nb_stars_list[i];
 	}
 	free(trixels);
@@ -409,8 +416,9 @@ static int read_trixels_by_ID(int ID, struct catalogue_file *cat, deepStarData *
 		*nb_stars = 0;
 		return 1;
 	}
-
+#ifdef DEBUG_LOCALCAT
 	siril_debug_print("trixel search found %d trixels\n", nb_trixels);
+#endif
 	deepStarData **stars_list;
 	uint32_t *nb_stars_list;
 	stars_list = malloc(nb_trixels * sizeof(deepStarData *));
@@ -433,7 +441,9 @@ static int read_trixels_by_ID(int ID, struct catalogue_file *cat, deepStarData *
 		// get_vertices_for_index(trixels[i], cat->HTM_Level, &ra1, &dec1, &ra2, &dec2, &ra3, &dec3);
 		retval = read_trixel(trixels[i], cat, stars_list + i, nb_stars_list + i);
 		if (retval) break;
+#ifdef DEBUG_LOCALCAT
 		siril_debug_print("trixel %d (%d) contained %u stars\n", i, trixels[i], nb_stars_list[i]);
+#endif
 		total_star_count += nb_stars_list[i];
 	}
 	free(trixels);
@@ -544,7 +554,9 @@ static int get_raw_stars_from_local_catalogues(double target_ra, double target_d
 	siril_debug_print("looking for stars in local catalogues for target %f, %f, radius %f, magnitude %.2f, photometric: %d\n", target_ra, target_dec, radius, max_mag, photometric);
 	for (; catalogue < nb_catalogues; catalogue++) {
 		if (catalogue == 3 && max_mag < 12.0) {
+#ifdef DEBUG_LOCALCAT
 			siril_debug_print("not querying NOMAD for this limit magnitude\n");
+#endif
 			catalogue_stars[catalogue] = NULL;
 			catalogue_nb_stars[catalogue] = 0;
 			continue;
@@ -556,7 +568,9 @@ static int get_raw_stars_from_local_catalogues(double target_ra, double target_d
 		if (retval)
 			break;
 		total_nb_stars += catalogue_nb_stars[catalogue];
+#ifdef DEBUG_LOCALCAT
 		siril_debug_print("%d raw stars from catalogue %d\n", catalogue_nb_stars[catalogue], catalogue);
+#endif
 	}
 
 	if (catalogue == nb_catalogues) {
@@ -615,7 +629,9 @@ static int get_raw_stars_from_local_catalogues_byID(int ID, float max_mag, gbool
 		if (retval)
 			break;
 		total_nb_stars += catalogue_nb_stars[catalogue];
+#ifdef DEBUG_LOCALCAT
 		siril_debug_print("%d raw stars from catalogue %d\n", catalogue_nb_stars[catalogue], catalogue);
+#endif
 	}
 
 	if (catalogue == nb_catalogues) {
