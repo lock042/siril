@@ -101,7 +101,7 @@ win64-native:
     CHERE_INVOKING: "yes"
     MSYSTEM: "MINGW64"
   tags:
-    - windows
+    - saas-windows-medium-amd64
   artifacts:
     name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
     when: always
@@ -436,7 +436,7 @@ win64-native-installer:
   variables:
     CHERE_INVOKING: "yes"
   tags:
-    - windows
+    - saas-windows-medium-amd64
   stage: distribution
   dependencies:
     - win64-native
