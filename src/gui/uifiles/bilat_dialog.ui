@@ -47,6 +47,17 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="step-increment">0.10</property>
     <property name="page-increment">1</property>
   </object>
+  <object class="GtkAdjustment" id="adjustment_bilat_sigma_spatial_16bit">
+    <property name="upper">65535</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_spin_bilat_mod">
+    <property name="upper">1</property>
+    <property name="value">1</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">0.10</property>
+  </object>
   <object class="GtkDialog" id="bilat_dialog">
     <property name="width-request">400</property>
     <property name="height-request">200</property>
@@ -290,6 +301,7 @@ WARNING: using guide images that are not based on the original image is likely t
               <object class="GtkBox">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="spacing">6</property>
                 <property name="homogeneous">True</property>
                 <child>
                   <object class="GtkLabel" id="label177">
@@ -352,6 +364,9 @@ WARNING: using guide images that are not based on the original image is likely t
               <object class="GtkGrid" id="bilat_sigma_spatial_settings">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="row-spacing">6</property>
+                <property name="column-spacing">6</property>
+                <property name="column-homogeneous">True</property>
                 <child>
                   <object class="GtkLabel" id="label1">
                     <property name="visible">True</property>
@@ -406,6 +421,67 @@ WARNING: using guide images that are not based on the original image is likely t
                 <property name="position">6</property>
               </packing>
             </child>
+            <child>
+              <!-- n-columns=2 n-rows=2 -->
+              <object class="GtkGrid" id="bilat_mod_settings">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="row-spacing">6</property>
+                <property name="column-spacing">6</property>
+                <property name="column-homogeneous">True</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="halign">start</property>
+                    <property name="label" translatable="yes">Modulation</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSpinButton" id="spin_bilat_mod">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="tooltip-text" translatable="yes">Modulation parameter set in the [0, 1] range.
+When this parameter is equal to 1, no modulation is applied.
+If the parameters is 0, no filter is applied at all.</property>
+                    <property name="adjustment">adjustment_spin_bilat_mod</property>
+                    <property name="digits">2</property>
+                    <property name="value">1</property>
+                    <signal name="value-changed" handler="on_spin_bilat_mod_value_changed" swapped="no"/>
+                  </object>
+                  <packing>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkScale">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="tooltip-text" translatable="yes">Modulation parameter set in the [0, 1] range.
+When this parameter is equal to 1, no modulation is applied.
+If the parameters is 0, no filter is applied at all.</property>
+                    <property name="adjustment">adjustment_spin_bilat_mod</property>
+                    <property name="round-digits">1</property>
+                    <property name="draw-value">False</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">1</property>
+                    <property name="width">2</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">7</property>
+              </packing>
+            </child>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -435,10 +511,5 @@ WARNING: using guide images that are not based on the original image is likely t
     <action-widgets>
       <action-widget response="0">bilat_apply</action-widget>
     </action-widgets>
-  </object>
-  <object class="GtkAdjustment" id="adjustment_bilat_sigma_spatial_16bit">
-    <property name="upper">65535</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">10</property>
   </object>
 </interface>

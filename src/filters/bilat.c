@@ -39,7 +39,7 @@
 
 #include "bilat.h"
 
-static float bilat_d_value = 0.0f, bilat_sigma_col_value = 0.0f, bilat_sigma_spatial_value = 0.0f;
+static float bilat_d_value = 0.0f, bilat_sigma_col_value = 0.0f, bilat_sigma_spatial_value = 0.0f, mod = 1.f;
 static ep_filter_t filter_type = EP_BILATERAL;
 static fits *guide = NULL, *loaded_fit = NULL;
 
@@ -88,7 +88,7 @@ int match_guide_to_roi(fits *guide, fits *guide_roi) {
 	return retval;
 }
 
-int edge_preserving_filter(fits *fit, fits *guide, double d, double sigma_col, double sigma_space, ep_filter_t filter_type, gboolean verbose) {
+int edge_preserving_filter(fits *fit, fits *guide, double d, double sigma_col, double sigma_space, double mod, ep_filter_t filter_type, gboolean verbose) {
 	struct timeval t_start, t_end;
 	if (sigma_col <= 0.0 || (sigma_space <= 0.0 && filter_type == EP_BILATERAL))
 		return 1;
@@ -104,6 +104,10 @@ int edge_preserving_filter(fits *fit, fits *guide, double d, double sigma_col, d
 	if (orig_type == DATA_USHORT) {
 		ndata = fit->rx * fit->ry * fit->naxes[2];
 		fit_replace_buffer(fit, ushort_buffer_to_float(fit->data, ndata), DATA_FLOAT);
+	}
+	fits orig = { 0 }; // for use with modulation
+	if (mod < (1.0 - DBL_EPSILON)) {
+		copyfits(fit, &orig, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 	}
 	double eps = sigma_col * sigma_col;
 	fits *guide_roi = NULL, *guidance = NULL;
@@ -121,7 +125,21 @@ int edge_preserving_filter(fits *fit, fits *guide, double d, double sigma_col, d
 			cvGuidedFilter(fit, guidance, d, eps);
 			break;
 	}
-
+	if (mod < (1.0 - DBL_EPSILON)) {
+		for (size_t j = 0 ; j < fit->ry ; j++) {
+			size_t offset = j * fit->rx;
+			float modrem = 1.0 - mod;
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static) num_threads(com.max_thread) collapse(2) if (com.max_thread > 1)
+#endif
+			for (size_t k = 0 ; k < fit->naxes[2] ; k++) {
+				for (size_t i = 0 ; i < fit->rx ; i++) {
+					fit->fpdata[k][i + offset] = (float) mod * fit->fpdata[k][i + offset] + modrem * orig.fpdata[k][i + offset];
+				}
+			}
+		}
+		clearfits(&orig);
+	}
 	if (orig_type == DATA_USHORT) {
 		fit_replace_buffer(fit, float_buffer_to_ushort(fit->fdata, ndata), DATA_USHORT);
 	}
@@ -150,7 +168,7 @@ static int bilat_update_preview() {
 	} else {
 		guide = NULL;
 	}
-	edge_preserving_filter(fit, guide, bilat_d_value, bilat_sigma_col_value, bilat_sigma_spatial_value, filter_type, FALSE);
+	edge_preserving_filter(fit, guide, bilat_d_value, bilat_sigma_col_value, bilat_sigma_spatial_value, mod, filter_type, FALSE);
 	notify_gfit_modified();
 	return 0;
 }
@@ -234,7 +252,7 @@ static int bilat_process_all() {
 	} else {
 		guide = NULL;
 	}
-	edge_preserving_filter(fit, guide, bilat_d_value, bilat_sigma_col_value, bilat_sigma_spatial_value, filter_type, FALSE);
+	edge_preserving_filter(fit, guide, bilat_d_value, bilat_sigma_col_value, bilat_sigma_spatial_value, mod, filter_type, FALSE);
 	populate_roi();
 	notify_gfit_modified();
 	return 0;
@@ -400,6 +418,14 @@ void on_spin_bilat_d_value_changed(GtkSpinButton *button, gpointer user_data) {
 
 void on_spin_bilat_sigma_col_value_changed(GtkSpinButton *button, gpointer user_data) {
 	bilat_sigma_col_value = gtk_spin_button_get_value(button);
+	update_image *param = malloc(sizeof(update_image));
+	param->update_preview_fn = bilat_update_preview;
+	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("bilat_preview")));
+	notify_update((gpointer) param);
+}
+
+void on_spin_bilat_mod_value_changed(GtkSpinButton *button, gpointer user_data) {
+	mod = gtk_spin_button_get_value(button);
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = bilat_update_preview;
 	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("bilat_preview")));

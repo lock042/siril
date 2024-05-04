@@ -6,7 +6,7 @@ typedef enum {
 	EP_GUIDED
 } ep_filter_t;
 
-int edge_preserving_filter(fits *fit, fits *guide, double d, double sigma_col, double sigma_space, ep_filter_t filter_type, gboolean verbose);
+int edge_preserving_filter(fits *fit, fits *guide, double d, double sigma_col, double sigma_space, double mod, ep_filter_t filter_type, gboolean verbose);
 void bilat_change_between_roi_and_image();
 void apply_bilat_cancel();
 

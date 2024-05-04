@@ -1066,7 +1066,7 @@ int process_gauss(int nb){
 
 int process_epf(int nb) {
 	gchar *end;
-	double	d = 3.0,
+	double	d = 3.0, mod = 1.0,
 			sigma_col = gfit.type == DATA_USHORT ? 5.0 : 0.0001,
 			sigma_space = gfit.type == DATA_USHORT ? 5.0 : 0.0001;
 	ep_filter_t filter = EP_BILATERAL;
@@ -1088,6 +1088,15 @@ int process_epf(int nb) {
 		else if (g_str_has_prefix(arg, "-d=")) {
 			gchar *val = arg + 3;
 			d = g_ascii_strtod(val, &end);
+			if (end == val) {
+				siril_log_color_message(_("Invalid argument %s, aborting.\n"), "red", arg);
+				g_free(filename);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-mod=")) {
+			gchar *val = arg + 5;
+			mod = g_ascii_strtod(val, &end);
 			if (end == val) {
 				siril_log_color_message(_("Invalid argument %s, aborting.\n"), "red", arg);
 				g_free(filename);
@@ -1141,13 +1150,13 @@ int process_epf(int nb) {
 		siril_log_color_message(_("Warning: d < 0.0 cannot be used to specify automatic diameter when using a guided filter. Setting d to default value of 3.\n"), "salmon");
 		d = 3.0;
 	}
-	edge_preserving_filter(&(gfit), guidefit, d, sigma_col, sigma_space, filter, TRUE);
+	edge_preserving_filter(&(gfit), guidefit, d, sigma_col, sigma_space, mod, filter, TRUE);
 
 	char log[90];
 	if (filter == EP_BILATERAL) {
-		sprintf(log, "Bilateral filtering, d: %.2f, sigma(color): %.2f, sigma(spatial): %.2f", d, sigma_col, sigma_space);
+		sprintf(log, "Bilateral filtering, d: %.2f, sigma(color): %.2f, sigma(spatial): %.2f, modulation: %.2f", d, sigma_col, sigma_space, mod);
 	} else {
-		sprintf(log, "Guided filtering, d: %.2f, sigma: %.2f, guide image: %s", d, sigma_col, filename ? filename : "");
+		sprintf(log, "Guided filtering, d: %.2f, sigma: %.2f, modulation: %.2f, guide image: %s", d, sigma_col, mod, filename ? filename : "");
 	}
 	gfit.history = g_slist_append(gfit.history, strdup(log));
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
