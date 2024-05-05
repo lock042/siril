@@ -127,7 +127,7 @@ int register_astrometric(struct registration_args *regargs) {
 	}
 
 	for (int i = 0; i < n; i++) {
-		if (!regargs->seq->imgparam[i].incl && regargs->filters.filter_included)
+		if (!regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
 			continue;
 		if (seq_read_frame_metadata(regargs->seq, i, &fit)) {
 			siril_log_message(_("Could not load image %d from sequence %s\n"),
@@ -157,7 +157,7 @@ int register_astrometric(struct registration_args *regargs) {
 	int refindex = -1;
 	double mindist = DBL_MAX;
 	for (int i = 0; i < n; i++) {
-		if (!regargs->seq->imgparam[i].incl && regargs->filters.filter_included)
+		if (!regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
 			continue;
 		dist[i] = compute_coords_distance(RA[i], DEC[i], ra0, dec0);
 		if (dist[i] < mindist) {
@@ -185,7 +185,7 @@ int register_astrometric(struct registration_args *regargs) {
 	double framingref = 0.;
 	int framingref_index = (regargs->framing == FRAMING_CURRENT) ? regargs->seq->reference_image : refindex;
 	for (int i = 0; i < n; i++) {
-		if (!regargs->seq->imgparam[i].incl && regargs->filters.filter_included)
+		if (!regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
 			continue;
 		double angles[3];
 		angles[0] = 90. - RA[i]; // TODO: need to understand why 90- instead of 90 + .... opencv vs wcs convention?
@@ -233,7 +233,7 @@ int register_astrometric(struct registration_args *regargs) {
 	// The K matrices have the focals on the diag and (rx/2, ry/2) for the translation terms
 	// We add to the seq in order to display some kind of alignment, sufficient if small FOV
 	for (int i = 0;  i < n; i++) {
-		if (!regargs->seq->imgparam[i].incl && regargs->filters.filter_included)
+		if (!regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
 			continue;
 		Homography H = { 0 };
 		cvcalcH_fromKKR(Ks[refindex], Ks[i], Rs[i], &H);
@@ -268,7 +268,7 @@ int register_astrometric(struct registration_args *regargs) {
 		if (regargs->undistort) {
 			astargs->disto = calloc(n, sizeof(disto_data));
 			for (int i = 0;  i < n; i++) {
-				if (!regargs->seq->imgparam[i].incl && regargs->filters.filter_included)
+				if (!regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
 					continue;
 				if (WCSDATA[i].lin.dispre) {
 					double A[MAX_SIP_SIZE][MAX_SIP_SIZE], B[MAX_SIP_SIZE][MAX_SIP_SIZE]; // we won't need them
@@ -287,30 +287,38 @@ int register_astrometric(struct registration_args *regargs) {
 
 		}
 	}
-	for (int i = 0;  i < n; i++) {
-		if (!regargs->seq->imgparam[i].incl && regargs->filters.filter_included)
-			continue;
+
+	if (regargs->framing == FRAMING_COG || regargs->framing == FRAMING_CURRENT) {
 		int rx = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
 		int ry = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
 		astrometric_roi roi_in = {.x = 0, .y = 0, .w = rx, .h = ry};
+		Homography R = { 0 };
+		cvGetEye(&R); // initializing to unity
+		cvWarp_fromKR(NULL, &roi_in, Ks[refindex], R, scale, regargs->projector, OPENCV_NONE, FALSE, NULL, rois + refindex);
+		tl.x = rois[refindex].x;
+		tl.y = rois[refindex].y;
+		br.x = rois[refindex].x + rois[refindex].w;
+		br.y = rois[refindex].y + rois[refindex].h;
+		siril_debug_print("ref:%d,%d,%d,%d,%d\n", refindex + 1, rois[refindex].x, rois[refindex].y, rois[refindex].w, rois[refindex].h);
+	}
+
+	gboolean error = FALSE;
+
+	for (int i = 0;  i < n; i++) {
+		if (!regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
+			continue;
+		int rx = (regargs->seq->is_variable) ? regargs->seq->imgparam[i].rx : regargs->seq->rx;
+		int ry = (regargs->seq->is_variable) ? regargs->seq->imgparam[i].ry : regargs->seq->ry;
+		astrometric_roi roi_in = {.x = 0, .y = 0, .w = rx, .h = ry};
 		cvWarp_fromKR(NULL, &roi_in, Ks[i], Rs[i], scale, regargs->projector, OPENCV_NONE, FALSE, NULL, rois + i);
 		// first determine the corners
-		printf("%d,%d,%d,%d,%d\n", i + 1, rois[i].x, rois[i].y, rois[i].w, rois[i].h);
+		siril_debug_print("%d,%d,%d,%d,%d\n", i + 1, rois[i].x, rois[i].y, rois[i].w, rois[i].h);
 		switch (regargs->framing) {
 			case FRAMING_MAX:
 				if (rois[i].x < tl.x) tl.x = rois[i].x;
 				if (rois[i].y < tl.y) tl.y = rois[i].y;
 				if (rois[i].x + rois[i].w > br.x) br.x = rois[i].x + rois[i].w;
 				if (rois[i].y + rois[i].h > br.y) br.y = rois[i].y + rois[i].h;
-				break;
-			case FRAMING_CURRENT:
-			default:
-				if (i == regargs->reference_image) {
-					tl.x = rois[i].x;
-					tl.y = rois[i].y;
-					br.x = rois[i].x + rois[i].w;
-					br.y = rois[i].y + rois[i].h;
-				}
 				break;
 			case FRAMING_MIN:
 				if (rois[i].x > tl.x) tl.x = rois[i].x;
@@ -319,24 +327,33 @@ int register_astrometric(struct registration_args *regargs) {
 				if (rois[i].y + rois[i].h < br.y) br.y = rois[i].y + rois[i].h;
 				break;
 			case FRAMING_COG:
+			case FRAMING_CURRENT:
+			default:
+				// we just perform checks to make sure there is some overlap
+				if (i != regargs->reference_image) {
+					if (rois[i].x > br.x || rois[i].x + rois[i].w < tl.x ||
+						rois[i].y > br.y || rois[i].y + rois[i].h < tl.y) {
+							error = TRUE;
+							siril_log_color_message(_("Image %d has no overlap with the reference\n"), "red", i + 1);
+						}
+
+				}
 				break;
 		}
-	}
-	if (regargs->framing == FRAMING_COG) {
-		int rx = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
-		int ry = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
-		astrometric_roi roi_in = {.x = 0, .y = 0, .w = rx, .h = ry};
-		Homography R = { 0 };
-		cvGetEye(&R); // initializing to unity
-		cvWarp_fromKR(NULL, &roi_in, Ks[refindex], R, scale, regargs->projector, OPENCV_NONE, FALSE, NULL, rois);
-		tl.x = rois[0].x;
-		tl.y = rois[0].y;
-		br.x = rois[0].x + rois[0].w;
-		br.y = rois[0].y + rois[0].h;
 	}
 	// then compute the roi size and full image space requirement
 	int imagew = br.x - tl.x;
 	int imageh = br.y - tl.y;
+	if  (regargs->framing == FRAMING_MIN && (imageh <= 0 || imagew <= 0)) {
+		siril_log_color_message(_("The intersection of all images is null or negative\n"), "red");
+		error = TRUE;
+	}
+	if (error) {
+		siril_log_color_message(_("Unselect the images generating the error or change framing method to max\n"), "red");
+		retval = 1;
+		goto free_all;
+	}
+	
 	const gchar *proj = (regargs->projector == OPENCV_PLANE) ? _("plane") : _("spherical");
 	gchar *downscale = (regargs->astrometric_scale != 1.f) ? g_strdup_printf(_(" and a scaling factor of %.2f"), regargs->astrometric_scale) : g_strdup("");
 	siril_log_color_message(_("Output image: %d x %d pixels (assuming %s projection%s)\n"), "salmon", imagew, imageh, proj, downscale);
@@ -357,7 +374,7 @@ free_all:
 	free(rois);
 	free(incl);
 	for (int i = 0; i < n; i++) {
-		if (!regargs->seq->imgparam[i].incl && regargs->filters.filter_included)
+		if (!regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
 			continue;
 		wcsfree(WCSDATA + i);
 	}
@@ -425,10 +442,10 @@ static int astrometric_image_hook(struct generic_seq_args *args, int out_index, 
 
 static int astrometric_alignment(struct registration_args *regargs, struct astrometric_args *astargs, regdata *current_regdata) {
 	struct generic_seq_args *args = create_default_seqargs(regargs->seq);
-	if (regargs->filters.filter_included) {
-		args->filtering_criterion = seq_filter_included;
-		args->nb_filtered_images = regargs->seq->selnum;
-	}
+	args->filtering_criterion = regargs->filtering_criterion;
+	args->filtering_parameter = regargs->filtering_parameter;
+	args->nb_filtered_images = compute_nb_filtered_images(regargs->seq,
+			regargs->filtering_criterion, regargs->filtering_parameter);
 	// args->compute_mem_limits_hook =  astrometric_mem_hook; // TODO
 	args->prepare_hook = star_align_prepare_results; // from global registration
 	args->image_hook = astrometric_image_hook;

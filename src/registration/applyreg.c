@@ -69,35 +69,56 @@ regdata *apply_reg_get_current_regdata(struct registration_args *regargs) {
 	return current_regdata;
 }
 
+static void update_framing(regframe *framing, sequence *seq, int index) {
+	if (seq->is_variable) {
+		double rx2 = (double)seq->imgparam[index].rx;
+		double ry2 = (double)seq->imgparam[index].ry;
+		framing->pt[1].x = rx2;
+		framing->pt[2].x = rx2;
+		framing->pt[2].y = ry2;
+		framing->pt[3].y = ry2;
+	}
+}
+
 static gboolean compute_framing(struct registration_args *regargs) {
 	// validity of matrices has already been checked before this call
 	// and null matrices have been discarded
 	Homography Href = regargs->seq->regparam[regargs->layer][regargs->reference_image].H;
-	Homography Hshift = {0};
+	Homography Hshift = { 0 };
 	cvGetEye(&Hshift);
 	int rx = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
 	int ry = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
 	int x0, y0, rx_0 = rx, ry_0 = ry, n;
 	double xmin, xmax, ymin, ymax, cogx, cogy;
 
-	regframe framing = { 0 };
-	framing.pt[0].x = 0.;
-	framing.pt[0].y = 0.;
-	framing.pt[1].x = (double)rx;
-	framing.pt[1].y = 0.;
-	framing.pt[2].x = (double)rx;
-	framing.pt[2].y = (double)ry;
-	framing.pt[3].x = 0.;
-	framing.pt[3].y = (double)ry;
+	regframe framing = (regframe){(point){0., 0.}, (point){(double)rx, 0.}, (point){(double)rx, (double)ry}, (point){0., (double)ry}};
+	gboolean retval = TRUE;
 
 	switch (regargs->framing) {
 		case FRAMING_CURRENT:
+			for (int i = 0; i < regargs->seq->number; i++) {
+				if (!regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
+					continue;
+				siril_debug_print("Image #%d:\n", i + 1);
+				regframe current_framing = framing;
+				update_framing(&current_framing, regargs->seq, i);
+				double xs[4], ys[4];
+				for (int j = 0; j < 4; j++) {
+					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y,regargs->seq->regparam[regargs->layer][i].H, Href, 1.);
+					siril_debug_print("Point #%d: %3.2f %3.2f\n", j, current_framing.pt[j].x, current_framing.pt[j].y);
+					xs[j] = current_framing.pt[j].x;
+					ys[j] = current_framing.pt[j].y;
+				}
+				quicksort_d(&xs[0], 4);
+				quicksort_d(&ys[0], 4);
+				// check we have overlap with the reference
+				if (xs[3] < 0. || xs[0] > (double)rx || ys[3] < 0. || ys[0] > (double)ry) {
+					siril_log_color_message(_("Image %d has no overlap with the reference\n"), "red", i + 1);
+					retval = FALSE;
+				}
+			}
 			break;
 		case FRAMING_MAX:
-			rx_0 = INT16_MAX; // won't be used, it's just to bypass the min size check
-			ry_0 = INT16_MAX;
-			Hshift.h02 = 0.;
-			Hshift.h12 = 0.;
 			break;
 		case FRAMING_MIN:
 			xmin = -DBL_MAX;
@@ -107,17 +128,9 @@ static gboolean compute_framing(struct registration_args *regargs) {
 			for (int i = 0; i < regargs->seq->number; i++) {
 				if (!regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
 					continue;
-				siril_debug_print("Image #%d:\n", i);
-				regframe current_framing = {0};
-				memcpy(&current_framing, &framing, sizeof(regframe));
-				if (regargs->seq->is_variable) {
-					double rx2 = (double)regargs->seq->imgparam[i].rx;
-					double ry2 = (double)regargs->seq->imgparam[i].ry;
-					current_framing.pt[1].x = rx2;
-					current_framing.pt[2].x = rx2;
-					current_framing.pt[2].y = ry2;
-					current_framing.pt[3].y = ry2;
-				}
+				siril_debug_print("Image #%d:\n", i + 1);
+				regframe current_framing = framing;
+				update_framing(&current_framing, regargs->seq, i);
 				double xs[4], ys[4];
 				for (int j = 0; j < 4; j++) {
 					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y,regargs->seq->regparam[regargs->layer][i].H, Href, 1.);
@@ -134,6 +147,10 @@ static gboolean compute_framing(struct registration_args *regargs) {
 			}
 			rx_0 = (int)(floor(xmax) - ceil(xmin));
 			ry_0 = (int)(floor(ymax) - ceil(ymin));
+			if (rx_0 < 0 || ry_0 < 0) {
+				siril_log_color_message(_("The intersection of all images is null or negative\n"), "red");
+				retval = FALSE;
+			}
 			x0 = ceil(xmin);
 			y0 = ceil(ymin);
 			siril_debug_print("new size: %d %d\n", rx_0, ry_0);
@@ -148,18 +165,13 @@ static gboolean compute_framing(struct registration_args *regargs) {
 			for (int i = 0; i < regargs->seq->number; i++) {
 				if (!regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
 					continue;
-				siril_debug_print("Image #%d:\n", i);
-				regframe current_framing = {0};
-				memcpy(&current_framing, &framing, sizeof(regframe));
-				double currcogx = 0., currcogy = 0.;
-				for (int j = 0; j < 4; j++) {
-					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y,regargs->seq->regparam[regargs->layer][i].H, Href, 1.);
-					siril_debug_print("Point #%d: %3.2f %3.2f\n", j, current_framing.pt[j].x, current_framing.pt[j].y);
-					currcogx += current_framing.pt[j].x;
-					currcogy += current_framing.pt[j].y;
-				}
-				cogx += currcogx * 0.25;
-				cogy += currcogy * 0.25;
+				int rx2 = (regargs->seq->is_variable) ? regargs->seq->imgparam[i].rx : regargs->seq->rx;
+				int ry2 = (regargs->seq->is_variable) ? regargs->seq->imgparam[i].ry : regargs->seq->ry;
+				double currcogx = (double)rx2 * 0.5;
+				double currcogy = (double)ry2 * 0.5;
+				cvTransfPoint(&currcogx, &currcogy,regargs->seq->regparam[regargs->layer][i].H, Href, 1.);
+				cogx += currcogx;
+				cogy += currcogy;
 				n++;
 			}
 			cogx /= (double)n;
@@ -169,6 +181,30 @@ static gboolean compute_framing(struct registration_args *regargs) {
 			siril_log_message(_("Framing: Shift from reference origin: %d, %d\n"), x0, y0);
 			Hshift.h02 = (double)x0;
 			Hshift.h12 = (double)y0;
+			Homography newHref = { 0 };
+			cvMultH(Href, Hshift, &newHref);
+		// we now check overlaps
+			for (int i = 0; i < regargs->seq->number; i++) {
+				if (!regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
+					continue;
+				siril_debug_print("Image #%d:\n", i + 1);
+				regframe current_framing = framing;
+				update_framing(&current_framing, regargs->seq, i);
+				double xs[4], ys[4];
+				for (int j = 0; j < 4; j++) {
+					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y,regargs->seq->regparam[regargs->layer][i].H, newHref, 1.);
+					siril_debug_print("Point #%d: %3.2f %3.2f\n", j, current_framing.pt[j].x, current_framing.pt[j].y);
+					xs[j] = current_framing.pt[j].x;
+					ys[j] = current_framing.pt[j].y;
+				}
+				quicksort_d(&xs[0], 4);
+				quicksort_d(&ys[0], 4);
+				// check we have overlap with the reference
+				if (xs[3] < 0. || xs[0] > (double)rx || ys[3] < 0. || ys[0] > (double)ry) {
+					siril_log_color_message(_("Image %d has no overlap with the reference\n"), "red", i + 1);
+					retval = FALSE;
+				}
+			}
 			break;
 		default:
 			return FALSE;
@@ -181,7 +217,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 		rx_out = rx_0 * ((regargs->x2upscale) ? 2. : 1.);
 		ry_out = ry_0 * ((regargs->x2upscale) ? 2. : 1.);
 	}
-	return TRUE;
+	return retval;
 }
 
 // For framing max, we don't want to export the image with black borders
@@ -189,7 +225,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 // we compute:
 // - H transf, the warping transformation in place
 // - H shift, the residual shift wrt to ref image
-// - the size of the transformed image after applying The transformation
+// - the size of the transformed image after applying the transformation
 static void compute_Hmax(Homography *Himg, Homography *Href, int src_rx_in, int src_ry_in, double scale, Homography *H, Homography *Hshift, int *dst_rx_out, int *dst_ry_out) {
 	*dst_rx_out = 0;
 	*dst_ry_out = 0;
@@ -876,7 +912,7 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 
 	// determines the reference homography (including framing shift) and output size
 	if (!compute_framing(regargs)) {
-		siril_log_color_message(_("Unknown framing method, aborting\n"), "red");
+		siril_log_color_message(_("Unselect the images generating the error or change framing method to max\n"), "red");
 		return FALSE;
 	}
 
