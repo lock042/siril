@@ -151,7 +151,7 @@ void initialize_ips_dialog() {
 	// loads image metadata
 	on_GtkButton_IPS_metadata_clicked(NULL, NULL);	// fill it automatically
 	// sequence related controls
-	gboolean isseq = sequence_is_loaded();
+	gboolean isseq = sequence_is_loaded() && com.seq.current != RESULT_IMAGE;
 	gtk_widget_set_visible(GTK_WIDGET(flipbutton), !isseq);
 	gtk_expander_set_expanded(sequenceexp, isseq);
 	gtk_widget_set_visible(GTK_WIDGET(sequenceexp), isseq);
