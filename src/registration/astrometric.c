@@ -99,6 +99,11 @@ int register_astrometric(struct registration_args *regargs) {
 
 	int retval = 0;
 	struct timeval t_start, t_end;
+	if (!regargs->filtering_criterion &&
+			convert_parsed_filter_to_filter(&regargs->filters,
+				regargs->seq, &regargs->filtering_criterion,
+				&regargs->filtering_parameter))
+		return 1;
 
 	regdata *current_regdata = apply_reg_get_current_regdata(regargs); // clean the structure if it exists, allocates otherwise
 	if (!current_regdata)
@@ -127,7 +132,7 @@ int register_astrometric(struct registration_args *regargs) {
 	}
 
 	for (int i = 0; i < n; i++) {
-		if (!regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
+		if (regargs->filtering_criterion && !regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
 			continue;
 		if (seq_read_frame_metadata(regargs->seq, i, &fit)) {
 			siril_log_message(_("Could not load image %d from sequence %s\n"),
@@ -139,6 +144,9 @@ int register_astrometric(struct registration_args *regargs) {
 			siril_log_message(_("Image %d has not been plate-solved, unselecting\n"), i + 1);
 			regargs->seq->imgparam[i].incl = FALSE;
 			regargs->filters.filter_included = TRUE;
+			convert_parsed_filter_to_filter(&regargs->filters,
+				regargs->seq, &regargs->filtering_criterion,
+				&regargs->filtering_parameter);
 			failed++;
 			continue;
 		}
@@ -157,7 +165,7 @@ int register_astrometric(struct registration_args *regargs) {
 	int refindex = -1;
 	double mindist = DBL_MAX;
 	for (int i = 0; i < n; i++) {
-		if (!regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
+		if (!incl[i])
 			continue;
 		dist[i] = compute_coords_distance(RA[i], DEC[i], ra0, dec0);
 		if (dist[i] < mindist) {
@@ -185,7 +193,7 @@ int register_astrometric(struct registration_args *regargs) {
 	double framingref = 0.;
 	int framingref_index = (regargs->framing == FRAMING_CURRENT) ? regargs->seq->reference_image : refindex;
 	for (int i = 0; i < n; i++) {
-		if (!regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
+		if (!incl[i])
 			continue;
 		double angles[3];
 		angles[0] = 90. - RA[i]; // TODO: need to understand why 90- instead of 90 + .... opencv vs wcs convention?
@@ -226,6 +234,8 @@ int register_astrometric(struct registration_args *regargs) {
 	angles[2] = framingref;
 	cvRotMat3(angles, rottypes, TRUE, &Rref);
 	for (int i = 0; i < n; i++) {
+		if (!incl[i])
+			continue;
 		cvRelRot(&Rref, Rs + i);
 	}
 
@@ -233,7 +243,7 @@ int register_astrometric(struct registration_args *regargs) {
 	// The K matrices have the focals on the diag and (rx/2, ry/2) for the translation terms
 	// We add to the seq in order to display some kind of alignment, sufficient if small FOV
 	for (int i = 0;  i < n; i++) {
-		if (!regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
+		if (!incl[i])
 			continue;
 		Homography H = { 0 };
 		cvcalcH_fromKKR(Ks[refindex], Ks[i], Rs[i], &H);
@@ -268,7 +278,7 @@ int register_astrometric(struct registration_args *regargs) {
 		if (regargs->undistort) {
 			astargs->disto = calloc(n, sizeof(disto_data));
 			for (int i = 0;  i < n; i++) {
-				if (!regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
+				if (!incl[i])
 					continue;
 				if (WCSDATA[i].lin.dispre) {
 					double A[MAX_SIP_SIZE][MAX_SIP_SIZE], B[MAX_SIP_SIZE][MAX_SIP_SIZE]; // we won't need them
@@ -305,7 +315,7 @@ int register_astrometric(struct registration_args *regargs) {
 	gboolean error = FALSE;
 
 	for (int i = 0;  i < n; i++) {
-		if (!regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
+		if (!incl[i])
 			continue;
 		int rx = (regargs->seq->is_variable) ? regargs->seq->imgparam[i].rx : regargs->seq->rx;
 		int ry = (regargs->seq->is_variable) ? regargs->seq->imgparam[i].ry : regargs->seq->ry;
@@ -372,13 +382,13 @@ free_all:
 	free(DEC);
 	free(dist);
 	free(rois);
-	free(incl);
 	for (int i = 0; i < n; i++) {
-		if (!regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
+		if (!incl[i])
 			continue;
 		wcsfree(WCSDATA + i);
 	}
 	free(WCSDATA);
+	free(incl);
 	if (!retval && !regargs->no_output) {
 		return astrometric_alignment(regargs, astargs, current_regdata);
 	}
@@ -446,6 +456,7 @@ static int astrometric_alignment(struct registration_args *regargs, struct astro
 	args->filtering_parameter = regargs->filtering_parameter;
 	args->nb_filtered_images = compute_nb_filtered_images(regargs->seq,
 			regargs->filtering_criterion, regargs->filtering_parameter);
+
 	// args->compute_mem_limits_hook =  astrometric_mem_hook; // TODO
 	args->prepare_hook = star_align_prepare_results; // from global registration
 	args->image_hook = astrometric_image_hook;
