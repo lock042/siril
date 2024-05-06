@@ -8725,14 +8725,17 @@ int process_reloadscripts(int nb){
 }
 
 int process_requires(int nb) {
-	gchar **version, **required;
+	gchar **version = NULL, **required = NULL, **max_required = NULL;
 	gint major, minor, micro;
 	gint req_major, req_minor, req_micro;
-	gchar *endmaj, *endmin, *endmicro, *endreqmaj, *endreqmin, *endreqmicro;
+	gint max_req_major = -1, max_req_minor = -1, max_req_micro = -1;
+	gchar *endmaj, *endmin, *endmicro, *endreqmaj, *endreqmin, *endreqmicro, *endreqmaxmaj, *endreqmaxminor, *endreqmaxmicro;
 
 	version = g_strsplit(PACKAGE_VERSION, ".", 3);
 	required = g_strsplit(word[1], ".", 3);
-
+	if (word[2]) {
+		max_required = g_strsplit(word[2], ".", 3);
+	}
 	if (g_strv_length(required) != 3) {
 		siril_log_color_message(_("Required version is not correct.\n"), "red");
 
@@ -8755,14 +8758,33 @@ int process_requires(int nb) {
 		siril_log_message(_("Wrong parameters.\n"));
 		g_strfreev(version);
 		g_strfreev(required);
+		g_strfreev(max_required);
 		return CMD_ARG_ERROR;
 	}
 
+	if (max_required) {
+		max_req_major = g_ascii_strtoull(required[0], &endreqmaxmaj, 10);
+		max_req_minor = g_ascii_strtoull(required[1], &endreqmaxminor, 10);
+		max_req_micro = g_ascii_strtoull(required[2], &endreqmaxmicro, 10);
+		if (endmaj == version[0] || endmin == version[1] || endmicro == version[2]
+				|| endreqmaj == required[0] || endreqmin == required[1]
+				|| endreqmicro == required[2]) {
+			siril_log_message(_("Wrong parameters.\n"));
+			g_strfreev(version);
+			g_strfreev(required);
+			g_strfreev(max_required);
+			return CMD_ARG_ERROR;
+		}
+	}
 	g_strfreev(version);
 	g_strfreev(required);
+	g_strfreev(max_required);
 
-	if ((major > req_major || (major == req_major && minor > req_minor)
-			|| (major == req_major && minor == req_minor && micro >= req_micro))) {
+	gboolean recent_enough = (major > req_major || (major == req_major && minor > req_minor)
+			|| (major == req_major && minor == req_minor && micro >= req_micro));
+	gboolean too_recent = (!(max_req_major == -1 || (max_req_major > major || (max_req_major == major && max_req_minor > minor)
+			|| (max_req_major == major && max_req_minor == minor && max_req_micro >= micro))));
+	if (recent_enough && !too_recent) {
 		// no need to output something in script conditions
 		if (!com.script) {
 			siril_log_message(_("The required version of Siril is ok.\n"));
@@ -8770,9 +8792,17 @@ int process_requires(int nb) {
 		return CMD_OK;
 	} else {
 		if (!com.script) {
-			siril_log_color_message(_("A newer version of Siril is required, please update your version.\n"), "red");
+			if (too_recent) {
+				siril_log_color_message(_("This script has been marked as superseded for this version of Siril, please check for an update to the script.\n"), "red");
+			} else {
+				siril_log_color_message(_("A newer version of Siril is required, please update your version.\n"), "red");
+			}
 		} else {
-			siril_log_color_message(_("The script you are executing requires a newer version of Siril to run (%s), aborting.\n"), "red", word[1]);
+			if (too_recent) {
+				siril_log_color_message(_("The script you are executing has been marked as superseded for this version of Siril (%s), aborting. Check for an update to the script.\n"), "red", word[1]);
+			} else {
+				siril_log_color_message(_("The script you are executing requires a newer version of Siril to run (%s), aborting.\n"), "red", word[1]);
+			}
 		}
 		return CMD_GENERIC_ERROR;
 	}
