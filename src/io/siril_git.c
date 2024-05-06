@@ -276,6 +276,8 @@ static gboolean script_version_check(const gchar* filename) {
 	gchar **fullVersionNumber = NULL;
 	gchar **fullRequiresVersion = NULL;
 	gchar **fullObsoletedVersion = NULL;
+	gchar** versions = NULL;
+
 	version_number version;
 	fullVersionNumber = g_strsplit_set(PACKAGE_VERSION, ".-", -1);
 	version.major_version = g_ascii_strtoull(fullVersionNumber[0], NULL, 10);
@@ -299,7 +301,6 @@ static gboolean script_version_check(const gchar* filename) {
 	if (error)
 		goto ERROR_OR_COMPLETE;
 	data_input = g_data_input_stream_new(stream);
-	gchar** versions = NULL;
 	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length,
 					NULL, &error)) && !error) {
 		gchar *ver = find_str_before_comment(buffer, "requires", "#");
@@ -338,8 +339,6 @@ static gboolean script_version_check(const gchar* filename) {
 					obsoleted.minor_version = g_ascii_strtoull(fullObsoletedVersion[1], NULL, 10);
 				if (fullObsoletedVersion[2])
 					obsoleted.micro_version = g_ascii_strtoull(fullObsoletedVersion[2], NULL, 10);
-				g_strfreev(fullObsoletedVersion);
-				fullObsoletedVersion = NULL;
 			}
 			recent_enough = (version.major_version > requires.major_version || (version.major_version == requires.major_version && version.minor_version > requires.minor_version) || (version.major_version == requires.major_version && version.minor_version == requires.minor_version && version.micro_version >= requires.micro_version));
 			if (obsoleted.major_version == UINT_MAX) {
@@ -361,6 +360,8 @@ ERROR_OR_COMPLETE:
 	g_free(scriptpath);
 	g_strfreev(fullVersionNumber);
 	g_strfreev(fullRequiresVersion);
+	g_strfreev(fullObsoletedVersion);
+	g_strfreev(versions);
 	g_object_unref(data_input);
 	g_object_unref(stream);
 	g_object_unref(file);
