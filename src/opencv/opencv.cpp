@@ -1140,7 +1140,7 @@ static void map_undistortion(disto_data *disto, Rect roi, Mat xmap, Mat ymap) {
  	}
 }
 
-int cvWarp_fromKR(fits *image, astrometric_roi *roi_in, Homography K, Homography R, float scale, int projector, int interpolation, gboolean clamp, disto_data *disto, astrometric_roi *roi_out) {
+int cvWarp_fromKR(fits *image, astrometric_roi *roi_in, Homography K, Homography R, float scale, int interpolation, gboolean clamp, disto_data *disto, astrometric_roi *roi_out) {
 	Mat in, out;
 	void *bgr = NULL;
 
@@ -1161,17 +1161,7 @@ int cvWarp_fromKR(fits *image, astrometric_roi *roi_in, Homography K, Homography
 	else
 		szin = Size(image->rx, image->ry);
 
-	Ptr<WarperCreator> warper_creator;
-	// Prepare projector
-	switch (projector) {
-		default:
-		case OPENCV_PLANE:
-			warper_creator = makePtr<PlaneWarper>();
-			break;
-		case OPENCV_SPHERICAL:
-			warper_creator = makePtr<SphericalWarper>();
-			break;
-	}
+	Ptr<WarperCreator> warper_creator = makePtr<PlaneWarper>();
 
 	if (!warper_creator) {
 		std::cout << "Can't create the warper" << "'\n";

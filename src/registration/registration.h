@@ -136,7 +136,6 @@ struct registration_args {
 	framing_type framing;		// used by seqapplyreg to determine framing
 	gboolean clamp;				// should Bicubic and Lanczos4 interpolation be clamped?
 	double clamping_factor;		// used to set amount of interpolation clamping
-	opencv_projector projector; // used by mosaic registration
 };
 
 // static struct registration_method *reg_methods[NUMBER_OF_METHODS + 1];

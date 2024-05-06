@@ -7516,7 +7516,6 @@ int process_seq_applyastrometry(int nb) {
 	reg_args->interpolation = OPENCV_LANCZOS4;
 	reg_args->clamp = TRUE;
 	reg_args->framing = FRAMING_CURRENT;
-	reg_args->projector = OPENCV_SPHERICAL;
 	reg_args->undistort = TRUE;
 	reg_args->astrometric_scale = 1.f;
 
@@ -7592,24 +7591,6 @@ int process_seq_applyastrometry(int nb) {
 				continue;
 			}
 			siril_log_message(_("Unknown framing type %s, aborting.\n"), value);
-			goto terminate_register_on_error;
-		} else if (g_str_has_prefix(word[i], "-proj=")) {
-			char *current = word[i], *value;
-			value = current + 6;
-			if (value[0] == '\0') {
-				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-				goto terminate_register_on_error;
-			}
-			if(!g_ascii_strncasecmp(value, "spherical", 9)) {
-				reg_args->projector = OPENCV_SPHERICAL;
-				continue;
-			}
-			if(!g_ascii_strncasecmp(value, "plane", 6)) {
-				reg_args->projector = OPENCV_PLANE;
-				continue;
-			}
-			siril_log_message(_("Unknown projector type %s, aborting.\n"), value);
-			retval = CMD_ARG_ERROR;
 			goto terminate_register_on_error;
 		} else if (g_str_has_prefix(word[i], "-scale=")) {
 			char *arg = word[i] + 7;

@@ -573,7 +573,7 @@ static gboolean check_framing() {
 void update_reg_interface(gboolean dont_change_reg_radio) {
 	static GtkWidget *go_register = NULL, *follow = NULL, *cumul_data = NULL,
 	*noout = NULL, *toggle_reg_clamp = NULL, *onlyshift = NULL, *filter_box = NULL, *manualreg = NULL,
-	*interpolation_algo = NULL, *proj_box = NULL, *undistort_check = NULL, *scale_box = NULL,
+	*interpolation_algo = NULL, *undistort_check = NULL, *scale_box = NULL,
 	*x2upscale = NULL, *go_estimate = NULL, *drizzle_checkbox = NULL;
 	static GtkLabel *labelreginfo = NULL;
 	static GtkComboBox *reg_all_sel_box = NULL, *reglayer = NULL, *filter_combo_init = NULL;
@@ -600,7 +600,6 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		filter_box = lookup_widget("seq_filters_box_reg");
 		manualreg = lookup_widget("manualreg_expander");
 		interpolation_algo = lookup_widget("ComboBoxRegInter");
-		proj_box = lookup_widget("proj_box");
 		scale_box = lookup_widget("reg_scaling_box");
 		undistort_check = lookup_widget("reg_undistort");
 		x2upscale = lookup_widget("upscaleCheckButton");
@@ -666,7 +665,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_KOMBAT);
 		} else if (method->method_ptr == &register_apply_reg || method->method_ptr == &register_astrometric) {
 			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_APPLYREG);
-			gtk_widget_set_visible(proj_box, method->method_ptr == &register_astrometric);
+			gtk_widget_set_visible(go_estimate, method->method_ptr == &register_astrometric);
 		}
 		ready = TRUE;
 		if (method->method_ptr == &register_3stars) {
@@ -803,7 +802,7 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 	char *msg;
 	struct registration_method *method;
 	GtkToggleButton *follow, *matchSel, *x2upscale, *cumul, *onlyshift, *undistort;
-	GtkComboBox *cbbt_layers, *reg_all_sel_box, *proj_combo;
+	GtkComboBox *cbbt_layers, *reg_all_sel_box;
 	GtkComboBoxText *ComboBoxRegInter, *ComboBoxTransfo, *ComboBoxMaxStars, *ComboBoxFraming;
 	GtkSpinButton *minpairs, *percent_moved, *scaling_spin;
 
@@ -847,7 +846,6 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 	reg_all_sel_box = GTK_COMBO_BOX(GTK_COMBO_BOX_TEXT(lookup_widget("reg_sel_all_combobox")));
 	scaling_spin =GTK_SPIN_BUTTON(lookup_widget("reg_scaling_spin"));
 	undistort =  GTK_TOGGLE_BUTTON(lookup_widget("reg_undistort"));
-	proj_combo = GTK_COMBO_BOX(lookup_widget("comboreg_proj"));
 
 	reg_args->clamp = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_reg_clamp")));
 
@@ -871,7 +869,6 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 		reg_args->no_output = (gtk_toggle_button_get_active(onlyshift)) ? TRUE : keep_noout_state;
 	}
 	reg_args->framing = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxFraming));
-	reg_args->projector = gtk_combo_box_get_active(proj_combo);
 	reg_args->undistort = gtk_toggle_button_get_active(undistort);
 	reg_args->astrometric_scale = (float)gtk_spin_button_get_value(scaling_spin);
 #ifndef HAVE_CV44

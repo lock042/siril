@@ -6046,51 +6046,13 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkBox" id="proj_box">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="spacing">5</property>
-                                                            <child>
-                                                            <object class="GtkLabel" id="proj_lbl">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="valign">center</property>
-                                                            <property name="label" translatable="yes">Projection method</property>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="padding">5</property>
-                                                            <property name="position">0</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkComboBoxText" id="comboreg_proj">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Specifies the projection method to be used:
-- "planar" uses linear transformations between images (suitable for a limited FOV)
-- "spherical" reprojects images on the celestial sphere.</property>
-                                                            <property name="valign">center</property>
-                                                            <property name="active">1</property>
-                                                            <items>
-                                                            <item translatable="yes">planar</item>
-                                                            <item translatable="yes">spherical</item>
-                                                            </items>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">1</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
                                                             <object class="GtkButton" id="proj_estimate">
                                                             <property name="label" translatable="yes">Estimate</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">True</property>
                                                             <property name="tooltip-text" translatable="yes">Estimates the final size and space used by the stacked image.</property>
+                                                            <property name="halign">end</property>
                                                             <property name="use-underline">True</property>
                                                             <signal name="clicked" handler="on_seqregister_button_clicked" swapped="no"/>
                                                             <style>
@@ -6102,14 +6064,6 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="fill">False</property>
                                                             <property name="padding">15</property>
                                                             <property name="pack-type">end</property>
-                                                            <property name="position">2</property>
-                                                            </packing>
-                                                            </child>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="padding">5</property>
                                                             <property name="position">2</property>
                                                             </packing>
                                                             </child>

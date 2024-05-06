@@ -215,7 +215,6 @@ int register_astrometric(struct registration_args *regargs) {
 	}
 
 	// computing relative rotations wrt to proj center + central image framing
-	// this is important for warping by the spherical projector
 	Homography Rref = { 0 };
 	double angles[3];
 	switch (regargs->framing) {
@@ -304,7 +303,7 @@ int register_astrometric(struct registration_args *regargs) {
 		astrometric_roi roi_in = {.x = 0, .y = 0, .w = rx, .h = ry};
 		Homography R = { 0 };
 		cvGetEye(&R); // initializing to unity
-		cvWarp_fromKR(NULL, &roi_in, Ks[refindex], R, scale, regargs->projector, OPENCV_NONE, FALSE, NULL, rois + refindex);
+		cvWarp_fromKR(NULL, &roi_in, Ks[refindex], R, scale, OPENCV_NONE, FALSE, NULL, rois + refindex);
 		tl.x = rois[refindex].x;
 		tl.y = rois[refindex].y;
 		br.x = rois[refindex].x + rois[refindex].w;
@@ -320,7 +319,7 @@ int register_astrometric(struct registration_args *regargs) {
 		int rx = (regargs->seq->is_variable) ? regargs->seq->imgparam[i].rx : regargs->seq->rx;
 		int ry = (regargs->seq->is_variable) ? regargs->seq->imgparam[i].ry : regargs->seq->ry;
 		astrometric_roi roi_in = {.x = 0, .y = 0, .w = rx, .h = ry};
-		cvWarp_fromKR(NULL, &roi_in, Ks[i], Rs[i], scale, regargs->projector, OPENCV_NONE, FALSE, NULL, rois + i);
+		cvWarp_fromKR(NULL, &roi_in, Ks[i], Rs[i], scale, OPENCV_NONE, FALSE, NULL, rois + i);
 		// first determine the corners
 		siril_debug_print("%d,%d,%d,%d,%d\n", i + 1, rois[i].x, rois[i].y, rois[i].w, rois[i].h);
 		switch (regargs->framing) {
@@ -364,9 +363,8 @@ int register_astrometric(struct registration_args *regargs) {
 		goto free_all;
 	}
 	
-	const gchar *proj = (regargs->projector == OPENCV_PLANE) ? _("plane") : _("spherical");
-	gchar *downscale = (regargs->astrometric_scale != 1.f) ? g_strdup_printf(_(" and a scaling factor of %.2f"), regargs->astrometric_scale) : g_strdup("");
-	siril_log_color_message(_("Output image: %d x %d pixels (assuming %s projection%s)\n"), "salmon", imagew, imageh, proj, downscale);
+	gchar *downscale = (regargs->astrometric_scale != 1.f) ? g_strdup_printf(_(" a scaling factor of %.2f"), regargs->astrometric_scale) : g_strdup("");
+	siril_log_color_message(_("Output image: %d x %d pixels (assuming)\n"), "salmon", imagew, imageh, downscale);
 	g_free(downscale);
 	int64_t frame_size = (int64_t)imagew * imageh * regargs->seq->nb_layers;
 	frame_size *= (get_data_type(regargs->seq->bitpix) == DATA_USHORT) ? sizeof(WORD) : sizeof(float);
@@ -420,7 +418,7 @@ static int astrometric_image_hook(struct generic_seq_args *args, int out_index, 
 	// TODO: find in opencv codebase if smthg smart can be done with K/R to avoid the double-flip
 	fits_flip_top_to_bottom(fit);
 	astrometric_roi *roi_in = (regargs->framing != FRAMING_MAX) ?  &astargs->roi : NULL;
-	int status = cvWarp_fromKR(fit, roi_in, Ks[in_index], Rs[in_index], astargs->scale ,regargs->projector, regargs->interpolation, regargs->clamp, disto, &roi);
+	int status = cvWarp_fromKR(fit, roi_in, Ks[in_index], Rs[in_index], astargs->scale , regargs->interpolation, regargs->clamp, disto, &roi);
 	if (!status) {
 		fits_flip_top_to_bottom(fit);
 		if (regargs->framing == FRAMING_MAX) {

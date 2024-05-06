@@ -242,10 +242,6 @@ typedef enum {
 	OPENCV_NONE = 5 // this one will use the pixel-wise shift transform w/o opencv
 } opencv_interpolation;
 
-typedef enum {
-	OPENCV_PLANE = 0,
-	OPENCV_SPHERICAL = 1
-} opencv_projector;
 
 typedef enum {
 	SEQ_REGULAR, SEQ_SER, SEQ_FITSEQ,
