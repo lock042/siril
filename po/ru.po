@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-03-28 07:46+0100\n"
-"PO-Revision-Date: 2024-05-05 18:14+0000\n"
+"PO-Revision-Date: 2024-05-07 01:37+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -7188,9 +7188,8 @@ msgid "2-pass global star alignment (deep-sky)"
 msgstr "Всё звёздное небо за 2 шага (дальний космос)"
 
 #: src/gui/uifiles/siril.ui:1078
-#, fuzzy
 msgid "KOMBAT alignment (planetary/deep-sky)"
-msgstr "Выравнивание по паттерну (планеты/дальний космос)"
+msgstr "KOMBAT (планеты/дальний космос)"
 
 #: src/gui/uifiles/siril.ui:1118
 msgid ""
@@ -8175,7 +8174,6 @@ msgstr ""
 "кадров и кадров шума считывания."
 
 #: src/gui/uifiles/siril.ui:4672
-#, fuzzy
 msgid ""
 "Dark subtraction can be optimized. Siril offers two ways of doing this.\n"
 "- The first method automatically evaluates the coefficients to be applied so "
@@ -8191,28 +8189,33 @@ msgid ""
 "<b>WARNING:</b> Do not apply dark optimization to the master-dark if the "
 "master-bias has not been subtracted beforehand."
 msgstr ""
-"Вычитание темновых кадров опционально можно оптимизировать, чтобы шум "
-"результирующего изображения (отдельная субэкспозиция минус темновой кадр) "
-"минимизировался применением коэффициента к темновому кадру. Эта опция "
-"полезна если темновые кадры получены в не оптимальных условиях.\n"
+"Вычитание темновых кадров можно оптимизировать и Siril предлагает два "
+"способа сделать это.\n"
+"- Первый способ автоматически оценивает коэффициенты, которые будут "
+"применены, чтобы шум итогового изображения (отдельная субэкспозиция минус "
+"темновой кадр) был минимален.\n"
+"- Второй способ принимает во внимание длительность экспозиций, если таковая "
+"была записана программой захвата изображений.\n"
 "\n"
-"ВНИМАНИЕ: не используйте оптимизацию темновых кадров, если мастер-кадр шума "
-"считывания предварительно не был вычтен из темнового мастер-кадра."
+"Опция оптимизации темновых кадров полезна, если темновые изображения не были "
+"сняты в оптимальных условиях. Она компенсирует разницу в температуре и/или "
+"длительности экспозиции между темновыми кадрами и отдельными субэскопзициями."
+"\n"
+"\n"
+"<b>ВНИМАНИЕ</b>: не используйте оптимизацию темновых кадров, если мастер-"
+"кадр шума считывания предварительно не был вычтен из темнового мастер-кадра."
 
 #: src/gui/uifiles/siril.ui:4681
-#, fuzzy
 msgid "No dark optimization"
-msgstr "Оптимизация"
+msgstr "Без оптимизации"
 
 #: src/gui/uifiles/siril.ui:4682
-#, fuzzy
 msgid "Auto-evaluation"
-msgstr "Оценка наклона сенсора"
+msgstr "Авт. оценка"
 
 #: src/gui/uifiles/siril.ui:4683
-#, fuzzy
 msgid "Use Exposure"
-msgstr "Кадр шума считывания"
+msgstr "Экспозиция"
 
 #: src/gui/uifiles/siril.ui:4703
 msgid "Image calibration"
@@ -8696,7 +8699,7 @@ msgstr ""
 "- \"минимум\" (общая область) кадрирует каждый кадр до участка, общего для "
 "всех изображений в последовательности.\n"
 "- \"центр тяжести\" определяет наилучшее положение области кадрирования как "
-"центр тяжести (центр тяж.) всех изображений"
+"центр тяжести всех изображений"
 
 #: src/gui/uifiles/siril.ui:5994
 msgid "current"
