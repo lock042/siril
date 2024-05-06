@@ -275,6 +275,7 @@ static gboolean script_version_check(const gchar* filename) {
 	// Get the current version number
 	gchar **fullVersionNumber = NULL;
 	gchar **fullRequiresVersion = NULL;
+	gchar **fullObsoletedVersion = NULL;
 	version_number version;
 	fullVersionNumber = g_strsplit_set(PACKAGE_VERSION, ".-", -1);
 	version.major_version = g_ascii_strtoull(fullVersionNumber[0], NULL, 10);
@@ -289,7 +290,7 @@ static gboolean script_version_check(const gchar* filename) {
 	gchar *buffer = NULL;
 	gsize length = 0;
 	gchar* scriptpath = g_build_path(G_DIR_SEPARATOR_S, siril_get_scripts_repo_path(), filename, NULL);
-	gboolean retval = FALSE;
+	gboolean retval = FALSE, recent_enough = FALSE, not_too_recent = TRUE;
 #ifdef DEBUG_GITSCRIPTS
 	printf("checking script version requirements: %s\n", scriptpath);
 #endif
@@ -298,15 +299,20 @@ static gboolean script_version_check(const gchar* filename) {
 	if (error)
 		goto ERROR_OR_COMPLETE;
 	data_input = g_data_input_stream_new(stream);
+	gchar** versions = NULL;
 	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length,
 					NULL, &error)) && !error) {
 		gchar *ver = find_str_before_comment(buffer, "requires", "#");
 		if (ver) {
 			ver += 9;
-			version_number requires;
+			if (versions)
+				g_strfreev(versions);
+			versions = g_strsplit(ver, " ", 2);
+			version_number requires = { 0 }, obsoleted = { 0 };
+			obsoleted.major_version = UINT_MAX;
 			if (fullRequiresVersion)
 				g_strfreev(fullRequiresVersion);
-			fullRequiresVersion = g_strsplit_set(ver, ".-", -1);
+			fullRequiresVersion = g_strsplit_set(versions[0], ".-", -1);
 			if (fullRequiresVersion[0])
 				requires.major_version = g_ascii_strtoull(fullRequiresVersion[0], NULL, 10);
 			else
@@ -322,26 +328,26 @@ static gboolean script_version_check(const gchar* filename) {
 			// Detect badly formed requires command (bad input to g_ascii_strtoull returns 0) and ignore it
 			if (requires.major_version == 0 && requires.minor_version == 0 && requires.micro_version == 0)
 				continue;
-#ifdef DEBUG_GITSCRIPTS
-			printf("requires: %d.%d.%d; has %d.%d.%d\n", requires.major_version, requires.minor_version, requires.micro_version, version.major_version, version.minor_version, version.micro_version);
-#endif
-			if (requires.major_version < version.major_version) {
-#ifdef DEBUG_GITSCRIPTS
-				printf("requirement met\n");
-#endif
-				retval = TRUE;
-			} else if (requires.major_version == version.major_version && requires.minor_version < version.minor_version) {
-#ifdef DEBUG_GITSCRIPTS
-				printf("requirement met\n");
-#endif
-				retval = TRUE;
-			} else if (requires.major_version == version.major_version && requires.minor_version == version.minor_version &&
-					 requires.micro_version <= version.micro_version) {
-#ifdef DEBUG_GITSCRIPTS
-				printf("requirement met\n");
-#endif
-				retval = TRUE;
+			if (versions[1]) {
+				if (fullObsoletedVersion)
+					g_strfreev(fullObsoletedVersion);
+				fullObsoletedVersion = g_strsplit_set(versions[1], ".-", -1);
+				if (fullObsoletedVersion[0])
+					obsoleted.major_version = g_ascii_strtoull(fullObsoletedVersion[0], NULL, 10);
+				if (fullObsoletedVersion[1])
+					obsoleted.minor_version = g_ascii_strtoull(fullObsoletedVersion[1], NULL, 10);
+				if (fullObsoletedVersion[2])
+					obsoleted.micro_version = g_ascii_strtoull(fullObsoletedVersion[2], NULL, 10);
+				g_strfreev(fullObsoletedVersion);
+				fullObsoletedVersion = NULL;
 			}
+			recent_enough = (version.major_version > requires.major_version || (version.major_version == requires.major_version && version.minor_version > requires.minor_version) || (version.major_version == requires.major_version && version.minor_version == requires.minor_version && version.micro_version >= requires.micro_version));
+			if (obsoleted.major_version == UINT_MAX) {
+				not_too_recent = TRUE;
+			} else {
+				not_too_recent = (version.major_version < obsoleted.major_version || (version.major_version == obsoleted.major_version && version.minor_version < obsoleted.minor_version) || (version.major_version == obsoleted.major_version && version.minor_version == obsoleted.minor_version && version.micro_version < obsoleted.micro_version));
+			}
+			retval = recent_enough && not_too_recent;
 			g_free(buffer);
 			buffer = NULL;
 			if (retval)
