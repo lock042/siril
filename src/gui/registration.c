@@ -1045,9 +1045,4 @@ void on_comboreg_framing_changed(GtkComboBox *box, gpointer user_data) {
 
 		g_free(name);
 	}
-	GtkWidget *go_register = lookup_widget("goregister_button");
-	GtkWidget *go_estimate = lookup_widget("proj_estimate");
-	gboolean ready = check_framing();
-	gtk_widget_set_sensitive(go_register, ready);
-	gtk_widget_set_sensitive(go_estimate, ready);
 }
