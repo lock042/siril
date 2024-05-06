@@ -812,34 +812,39 @@ void read_fits_date_obs_header(fits *fit) {
 }
 
 static void set_to_default_not_used(fits *fit, GHashTable *keys_hash) {
-    GHashTableIter iter;
-    gpointer key, value;
-    g_hash_table_iter_init(&iter, keys_hash);
-    while (g_hash_table_iter_next(&iter, &key, &value)) {
-        KeywordInfo *keyword_info = (KeywordInfo *)value;
+	GHashTableIter iter;
+	gpointer key, value;
+	g_hash_table_iter_init(&iter, keys_hash);
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		KeywordInfo *keyword_info = (KeywordInfo*) value;
 
-        if (!keyword_info->used && should_use_keyword(fit, *keyword_info)) {
+		if (!keyword_info->used && should_use_keyword(fit, *keyword_info)) {
 			switch (keyword_info->type) {
 			case KTYPE_INT:
-				*((int*) keyword_info->data) = DEFAULT_INT_VALUE;
+				if (*((int*) keyword_info->data) == 0)
+					*((int*) keyword_info->data) = DEFAULT_INT_VALUE;
 				break;
 			case KTYPE_UINT:
-				*((guint*) keyword_info->data) = DEFAULT_UINT_VALUE;
+				if (*((guint*) keyword_info->data) == 0)
+					*((guint*) keyword_info->data) = DEFAULT_UINT_VALUE;
 				break;
 			case KTYPE_USHORT:
-				*((gushort*) keyword_info->data) = DEFAULT_USHORT_VALUE;
+				if (*((gushort*) keyword_info->data) == 0)
+					*((gushort*) keyword_info->data) = DEFAULT_USHORT_VALUE;
 				break;
 			case KTYPE_DOUBLE:
+				if (*((double*) keyword_info->data) == 0.0)
 				*((double*) keyword_info->data) = DEFAULT_DOUBLE_VALUE;
 				break;
 			case KTYPE_FLOAT:
-				*((float*) keyword_info->data) = DEFAULT_FLOAT_VALUE;
+				if (*((float*) keyword_info->data) == 0.f)
+					*((float*) keyword_info->data) = DEFAULT_FLOAT_VALUE;
 				break;
 			default:
 				break;
 			}
-        }
-    }
+		}
+	}
 }
 
 void set_all_keywords_default(fits *fit) {
