@@ -936,6 +936,10 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 			return 1;
 		}
 	}
+	if (method->method_ptr == register_astrometric && reg_args->interpolation == OPENCV_NONE) {
+		siril_log_color_message(_("Insterpolation cannot be set to None for astrometric alignment. Aborting\n"), "red");
+		return 1;
+	}
 	if (((method->method_ptr == register_star_alignment || method->method_ptr == register_3stars || method->method_ptr == register_apply_reg || method->method_ptr == register_astrometric) &&
 		(reg_args->interpolation == OPENCV_AREA || reg_args->interpolation == OPENCV_LINEAR || reg_args->interpolation == OPENCV_NEAREST || reg_args->interpolation == OPENCV_NONE)) ||
 		reg_args->no_output)

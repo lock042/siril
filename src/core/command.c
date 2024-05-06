@@ -7556,10 +7556,6 @@ int process_seq_applyastrometry(int nb) {
 				reg_args->interpolation = OPENCV_LINEAR;
 				continue;
 			}
-			if(!g_ascii_strncasecmp(value, "none", 4) || !g_ascii_strncasecmp(value, "no", 2)) {
-				reg_args->interpolation = OPENCV_NONE;
-				continue;
-			}
 			if(!g_ascii_strncasecmp(value, "area", 4) || !g_ascii_strncasecmp(value, "ar", 2)) {
 				reg_args->interpolation = OPENCV_AREA;
 				continue;
