@@ -8763,9 +8763,9 @@ int process_requires(int nb) {
 	}
 
 	if (max_required) {
-		max_req_major = g_ascii_strtoull(required[0], &endreqmaxmaj, 10);
-		max_req_minor = g_ascii_strtoull(required[1], &endreqmaxminor, 10);
-		max_req_micro = g_ascii_strtoull(required[2], &endreqmaxmicro, 10);
+		max_req_major = g_ascii_strtoull(max_required[0], &endreqmaxmaj, 10);
+		max_req_minor = g_ascii_strtoull(max_required[1], &endreqmaxminor, 10);
+		max_req_micro = g_ascii_strtoull(max_required[2], &endreqmaxmicro, 10);
 		if (endmaj == version[0] || endmin == version[1] || endmicro == version[2]
 				|| endreqmaj == required[0] || endreqmin == required[1]
 				|| endreqmicro == required[2]) {
@@ -8779,12 +8779,15 @@ int process_requires(int nb) {
 	g_strfreev(version);
 	g_strfreev(required);
 	g_strfreev(max_required);
-
-	gboolean recent_enough = (major > req_major || (major == req_major && minor > req_minor)
+	gboolean recent_enough, not_too_recent;
+	recent_enough = (major > req_major || (major == req_major && minor > req_minor)
 			|| (major == req_major && minor == req_minor && micro >= req_micro));
-	gboolean too_recent = (!(max_req_major == -1 || (max_req_major > major || (max_req_major == major && max_req_minor > minor)
-			|| (max_req_major == major && max_req_minor == minor && max_req_micro >= micro))));
-	if (recent_enough && !too_recent) {
+	if (max_req_major == -1)
+		not_too_recent = TRUE; // no second argument passed
+	else
+		not_too_recent = (max_req_major > major || (max_req_major == major && max_req_minor > minor)
+			|| (max_req_major == major && max_req_minor == minor && max_req_micro > micro));
+	if (recent_enough && not_too_recent) {
 		// no need to output something in script conditions
 		if (!com.script) {
 			siril_log_message(_("The required version of Siril is ok.\n"));
@@ -8792,14 +8795,14 @@ int process_requires(int nb) {
 		return CMD_OK;
 	} else {
 		if (!com.script) {
-			if (too_recent) {
-				siril_log_color_message(_("This script has been marked as superseded for this version of Siril, please check for an update to the script.\n"), "red");
+			if (!not_too_recent) {
+				siril_log_color_message(_("This script has been marked as obsolete for this version of Siril, please check for an update to the script.\n"), "red");
 			} else {
 				siril_log_color_message(_("A newer version of Siril is required, please update your version.\n"), "red");
 			}
 		} else {
-			if (too_recent) {
-				siril_log_color_message(_("The script you are executing has been marked as superseded for this version of Siril (%s), aborting. Check for an update to the script.\n"), "red", word[1]);
+			if (!not_too_recent) {
+				siril_log_color_message(_("The script you are executing has been marked as obsolete for this version of Siril (%s), aborting. Check for an update to the script.\n"), "red", word[1]);
 			} else {
 				siril_log_color_message(_("The script you are executing requires a newer version of Siril to run (%s), aborting.\n"), "red", word[1]);
 			}
