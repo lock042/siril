@@ -363,8 +363,8 @@ int register_astrometric(struct registration_args *regargs) {
 		goto free_all;
 	}
 	
-	gchar *downscale = (regargs->astrometric_scale != 1.f) ? g_strdup_printf(_(" a scaling factor of %.2f"), regargs->astrometric_scale) : g_strdup("");
-	siril_log_color_message(_("Output image: %d x %d pixels (assuming)\n"), "salmon", imagew, imageh, downscale);
+	gchar *downscale = (regargs->astrometric_scale != 1.f) ? g_strdup_printf(_(" (assuming a scaling factor of %.2f)"), regargs->astrometric_scale) : g_strdup("");
+	siril_log_color_message(_("Output image: %d x %d pixels%s\n"), "salmon", imagew, imageh, downscale);
 	g_free(downscale);
 	int64_t frame_size = (int64_t)imagew * imageh * regargs->seq->nb_layers;
 	frame_size *= (get_data_type(regargs->seq->bitpix) == DATA_USHORT) ? sizeof(WORD) : sizeof(float);
