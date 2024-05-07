@@ -186,17 +186,21 @@ static void fhi_handler_read(fits *fit, const char *comment, KeywordInfo *info) 
 }
 
 static void ra_handler_read(fits *fit, const char *comment, KeywordInfo *info) {
-	fit->keywords.wcsdata.ra = parse_hms(fit->keywords.wcsdata.ra_str);
-	if (isnan(fit->keywords.wcsdata.ra))
-		fit->keywords.wcsdata.ra = 0.0;
+	fit->keywords.wcsdata.ra = parse_hms(fit->keywords.wcsdata.objctra);
+	if (isnan(fit->keywords.wcsdata.ra)) {
+		fit->keywords.wcsdata.ra = DEFAULT_DOUBLE_VALUE;
+		info->used = FALSE;
+	}
 	else
 		siril_debug_print("read RA as HMS\n");
 }
 
 static void dec_handler_read(fits *fit, const char *comment, KeywordInfo *info) {
-	fit->keywords.wcsdata.dec = parse_dms(fit->keywords.wcsdata.dec_str);
-	if (isnan(fit->keywords.wcsdata.dec))
-		fit->keywords.wcsdata.dec = 0.0;
+	fit->keywords.wcsdata.dec = parse_dms(fit->keywords.wcsdata.objctdec);
+	if (isnan(fit->keywords.wcsdata.dec)) {
+		fit->keywords.wcsdata.dec = DEFAULT_DOUBLE_VALUE;
+		info->used = FALSE;
+	}
 	else
 		siril_debug_print("read DEC as DMS\n");
 
@@ -366,13 +370,11 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 			KEYWORD_FIXED(   "wcsdata", "CTYPE3", KTYPE_STR, "RGB image", "RGB", NULL, NULL),
 			KEYWORD_PRIMARY( "wcsdata", "OBJCTRA", KTYPE_STR, "Image center Right Ascension (hms)", &(fit->keywords.wcsdata.objctra), NULL, NULL),
 			KEYWORD_PRIMARY( "wcsdata", "OBJCTDEC", KTYPE_STR, "Image center Declination (dms)", &(fit->keywords.wcsdata.objctdec), NULL, NULL),
-			/* let's check STRING version before. This is important to not hat RA = 0.0 in the header */
-			KEYWORD_SECONDA( "wcsdata", "RA", KTYPE_STR, "Image center Right Ascension (deg)", &(fit->keywords.wcsdata.ra_str), ra_handler_read, NULL),
 			KEYWORD_PRIMARY( "wcsdata", "RA", KTYPE_DOUBLE, "Image center Right Ascension (deg)", &(fit->keywords.wcsdata.ra), NULL, NULL),
+			KEYWORD_SECONDA( "wcsdata", "RA", KTYPE_STR, "Image center Right Ascension (deg)", &(fit->keywords.wcsdata.objctra), ra_handler_read, NULL),
 			KEYWORD_SECONDA( "wcsdata", "RA_D", KTYPE_DOUBLE, "Image center Right Ascension (deg)", &(fit->keywords.wcsdata.ra), NULL, NULL),
-			/* let's check STRING version before. This is important to not hat DEC = 0.0 in the header */
-			KEYWORD_SECONDA( "wcsdata", "DEC", KTYPE_STR, "Image center Declination (deg)", &(fit->keywords.wcsdata.dec_str), dec_handler_read, NULL),
 			KEYWORD_PRIMARY( "wcsdata", "DEC", KTYPE_DOUBLE, "Image center Declination (deg)", &(fit->keywords.wcsdata.dec), NULL, NULL),
+			KEYWORD_SECONDA( "wcsdata", "DEC", KTYPE_STR, "Image center Declination (deg)", &(fit->keywords.wcsdata.objctdec), dec_handler_read, NULL),
 			KEYWORD_SECONDA( "wcsdata", "DEC_D", KTYPE_DOUBLE, "Image center Declination (deg)", &(fit->keywords.wcsdata.dec), NULL, NULL),
 
 			/* This group must be the last one !!
@@ -834,26 +836,26 @@ static void set_to_default_not_used(fits *fit, GHashTable *keys_hash) {
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		KeywordInfo *keyword_info = (KeywordInfo*) value;
 
-		if (!keyword_info->used && should_use_keyword(fit, *keyword_info)) {
+		if (!keyword_info->used || should_use_keyword(fit, *keyword_info)) {
 			switch (keyword_info->type) {
 			case KTYPE_INT:
-				if (*((int*) keyword_info->data) == 0)
+				if (keyword_info->data && *((int*) keyword_info->data) == 0)
 					*((int*) keyword_info->data) = DEFAULT_INT_VALUE;
 				break;
 			case KTYPE_UINT:
-				if (*((guint*) keyword_info->data) == 0)
+				if (keyword_info->data && *((guint*) keyword_info->data) == 0)
 					*((guint*) keyword_info->data) = DEFAULT_UINT_VALUE;
 				break;
 			case KTYPE_USHORT:
-				if (*((gushort*) keyword_info->data) == 0)
+				if (keyword_info->data && *((gushort*) keyword_info->data) == 0)
 					*((gushort*) keyword_info->data) = DEFAULT_USHORT_VALUE;
 				break;
 			case KTYPE_DOUBLE:
-				if (*((double*) keyword_info->data) == 0.0)
+				if (keyword_info->data && *((double*) keyword_info->data) == 0.0)
 				*((double*) keyword_info->data) = DEFAULT_DOUBLE_VALUE;
 				break;
 			case KTYPE_FLOAT:
-				if (*((float*) keyword_info->data) == 0.f)
+				if (keyword_info->data && *((float*) keyword_info->data) == 0.f)
 					*((float*) keyword_info->data) = DEFAULT_FLOAT_VALUE;
 				break;
 			default:
