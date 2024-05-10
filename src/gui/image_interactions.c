@@ -922,22 +922,25 @@ gboolean on_drawingarea_scroll_event(GtkWidget *widget, GdkEventScroll *event, g
 
 	point delta;
 
+	// The handler is written to act on either horizontal or vertical scroll events
+	// However the handler will only ever be called for one or the other depending
+	// on the configuration.
 	switch (event->direction) {
-	case GDK_SCROLL_SMOOTH:	// what's that?
-		gdk_event_get_scroll_deltas((GdkEvent*) event, &delta.x, &delta.y);
-		if (delta.y < 0) {
+		case GDK_SCROLL_SMOOTH:
+			gdk_event_get_scroll_deltas((GdkEvent*) event, &delta.x, &delta.y);
+			if (delta.y < 0) {
+				return update_zoom(event->x, event->y, ((ZOOM_IN - 1.0) * fabs(delta.y)) + 1.0);
+			} else if (delta.y > 0) {
+				return update_zoom(event->x, event->y, 1.0 / (((ZOOM_IN - 1.0) * delta.y) + 1.0));
+			}
+			break;
+		case GDK_SCROLL_DOWN:
 			return update_zoom(event->x, event->y, ZOOM_IN);
-		}
-		if (delta.y > 0) {
+			// Fallthrough intentional
+		case GDK_SCROLL_UP:
 			return update_zoom(event->x, event->y, ZOOM_OUT);
-		}
-		break;
-	case GDK_SCROLL_DOWN:
-		return update_zoom(event->x, event->y, ZOOM_OUT);
-	case GDK_SCROLL_UP:
-		return update_zoom(event->x, event->y, ZOOM_IN);
-	default:
-		handled = FALSE;
+		default:
+			break;
 	}
-	return handled;
+	return FALSE;
 }

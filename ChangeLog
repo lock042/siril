@@ -12,6 +12,7 @@ xx/xx/24
 * Disabled supernumerary use of openmp in demosaicing, which could lead to a crash (#1288)
 * Fix ser orientation error (#1258, #1261)
 * Fixed crash during rejection stacking when using shift-registered sequence (#1294)
+* Fixed mouse scrollwheel scrolling too fast (#1151)
 
 siril 1.2.1
 01/26/24
