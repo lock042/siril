@@ -947,66 +947,74 @@ static gpointer extract_channels_float(gpointer p) {
 	color_manage(args->fit, FALSE);
 
 	switch (args->type) {
-	case EXTRACT_RGB:
-		histstring = g_strdup_printf(_("%s: extract RGB channel"), extractionstring);
-		break;
-	case EXTRACT_HSL:
-		histstring = g_strdup_printf(_("%s: extract HSL channel"), extractionstring);
+		case EXTRACT_RGB:
+			histstring = g_strdup_printf(_("%s: extract RGB channel"), extractionstring);
+			break;
+		case EXTRACT_HSL:
+			histstring = g_strdup_printf(_("%s: extract HSL channel"), extractionstring);
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
-		for (size_t i = 0; i < n; i++) {
-			double h, s, l;
-			double r = (double) buf[RLAYER][i];
-			double g = (double) buf[GLAYER][i];
-			double b = (double) buf[BLAYER][i];
-			rgb_to_hsl(r, g, b, &h, &s, &l);
-			buf[RLAYER][i] = (float) h;
-			buf[GLAYER][i] = (float) s;
-			buf[BLAYER][i] = (float) l;
-		}
-		break;
-	case EXTRACT_HSV:
-		histstring = g_strdup_printf(_("%s: extract HSV channel"), extractionstring);
+			for (size_t i = 0; i < n; i++) {
+				double h, s, l;
+				double r = (double) buf[RLAYER][i];
+				double g = (double) buf[GLAYER][i];
+				double b = (double) buf[BLAYER][i];
+				rgb_to_hsl(r, g, b, &h, &s, &l);
+				buf[RLAYER][i] = (float) h;
+				buf[GLAYER][i] = (float) s;
+				buf[BLAYER][i] = (float) l;
+			}
+			break;
+		case EXTRACT_HSV:
+			histstring = g_strdup_printf(_("%s: extract HSV channel"), extractionstring);
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
-		for (size_t i = 0; i < n; i++) {
-			double h, s, v;
-			double r = (double) buf[RLAYER][i];
-			double g = (double) buf[GLAYER][i];
-			double b = (double) buf[BLAYER][i];
-			rgb_to_hsv(r, g, b, &h, &s, &v);
-			buf[RLAYER][i] = (float) h;
-			buf[GLAYER][i] = (float) s;
-			buf[BLAYER][i] = (float) v;
-		}
-		break;
-	case EXTRACT_CIELAB:
-		histstring = g_strdup_printf(_("%s: extract LAB channel"), extractionstring);
-		cielab_profile = cmsCreateLab4Profile(NULL);
-		if (args->fit->icc_profile) {
-			image_profile = copyICCProfile(args->fit->icc_profile);
-		} else {
-			siril_log_message(_("Image is not color managed. Assuming sRGB.\n"));
-			image_profile = srgb_trc();
-		}
-		sig = cmsGetColorSpace(image_profile);
-		trans_type = get_planar_formatter_type(sig, args->fit->type, FALSE);
-		lab_type = TYPE_Lab_FLT_PLANAR;
-		threaded = !get_thread_run();
-		transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), image_profile, trans_type, cielab_profile, lab_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
-		cmsCloseProfile(cielab_profile);
-		cmsCloseProfile(image_profile);
-		datasize = sizeof(float);
-		bytesperline = args->fit->rx * datasize;
-		bytesperplane = args->fit->rx * args->fit->ry * datasize;
-		/* Note this output is in CIE La*b* ranges (ie L [0..100] etc, not Siril's
-		 * usual [0..1] range.
-		 * TODO: convert to Siril ranges?
-		 */
-		cmsDoTransformLineStride(transform, args->fit->fdata, args->fit->fdata, args->fit->rx, args->fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
-		cmsDeleteTransform(transform);
+			for (size_t i = 0; i < n; i++) {
+				double h, s, v;
+				double r = (double) buf[RLAYER][i];
+				double g = (double) buf[GLAYER][i];
+				double b = (double) buf[BLAYER][i];
+				rgb_to_hsv(r, g, b, &h, &s, &v);
+				buf[RLAYER][i] = (float) h;
+				buf[GLAYER][i] = (float) s;
+				buf[BLAYER][i] = (float) v;
+			}
+			break;
+		case EXTRACT_CIELAB:
+			histstring = g_strdup_printf(_("%s: extract LAB channel"), extractionstring);
+			cielab_profile = cmsCreateLab4Profile(NULL);
+			if (args->fit->icc_profile) {
+				image_profile = copyICCProfile(args->fit->icc_profile);
+			} else {
+				siril_log_message(_("Image is not color managed. Assuming sRGB.\n"));
+				image_profile = srgb_trc();
+			}
+			sig = cmsGetColorSpace(image_profile);
+			trans_type = get_planar_formatter_type(sig, args->fit->type, FALSE);
+			lab_type = TYPE_Lab_FLT_PLANAR;
+			threaded = !get_thread_run();
+			transform = cmsCreateTransformTHR((threaded ? com.icc.context_threaded : com.icc.context_single), image_profile, trans_type, cielab_profile, lab_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
+			cmsCloseProfile(cielab_profile);
+			cmsCloseProfile(image_profile);
+			datasize = sizeof(float);
+			bytesperline = args->fit->rx * datasize;
+			bytesperplane = args->fit->rx * args->fit->ry * datasize;
+			cmsDoTransformLineStride(transform, args->fit->fdata, args->fit->fdata, args->fit->rx, args->fit->ry, bytesperline, bytesperline, bytesperplane, bytesperplane);
+			cmsDeleteTransform(transform);
+			/*  Convert L* to Siril 0.0 - 1.0 range
+			* TODO: long term, make Siril able to cope with images with different ranges
+			* by accounting for them in the display transform
+			*/
+			const size_t npixels = args->fit->rx * args->fit->ry;
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static) max_threads(com.max_thread) if (com.max_thread > 1)
+#endif
+			for (size_t i = 0 ; i < npixels ; i++) {
+				args->fit->fpdata[chan][i] *= 0.01f;
+			}
+			siril_log_message(_("Note: L* channel is scaled to have values in the rang 0.0 - 1.0 to aid editing in Siril. The CIE L*a*b* colorspace defines L* to have a range of 0.0 - 100.0, so if you need to use this as a true L* channel in other software you will need to multiply the values by 100, for example using the Siril command \"fmul 100\"\n"));
 	}
 	gchar *fitfilter = g_strdup(args->fit->keywords.filter);
 	if (desc) {
