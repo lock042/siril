@@ -234,7 +234,7 @@ gboolean has_any_keywords() {
 			gfit.keywords.pixel_size_y > 0.f ||
 			(has_wcs(&gfit) && gfit.keywords.wcslib->crval[0] != 0.0 && gfit.keywords.wcslib->crval[1] != 0.0) ||
 			(gfit.keywords.wcsdata.objctra[0] != '\0' && gfit.keywords.wcsdata.objctdec[0] != '\0') ||
-			(gfit.keywords.wcsdata.ra != 0.0 && gfit.keywords.wcsdata.dec != 0.0));
+			(gfit.keywords.wcsdata.ra > DEFAULT_DOUBLE_VALUE && gfit.keywords.wcsdata.dec > DEFAULT_DOUBLE_VALUE));
 }
 
 /* effective focal length in mm */
