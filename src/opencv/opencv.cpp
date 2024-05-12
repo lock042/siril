@@ -1110,9 +1110,8 @@ static void map_undistortion_map_2_D2S(disto_data *disto, int rx, int ry, Mat xm
 				float w12 = c1 * (1.f - c2);
 				float w21 = (1.f - c1) * c2;
 				float w22 = c1 * c2;
-				// TODO: need to compute real bilinear interp not the weighted mean
-				rxptr[u] = w11 * disto->xmap[s] + w12 * disto->xmap[s + 1] + w21 * disto->xmap[s + rx] + w22 *disto->xmap[s + rx + 1];
-				ryptr[u] = w11 * disto->ymap[s] + w12 * disto->ymap[s + 1] + w21 * disto->ymap[s + rx] + w22 *disto->ymap[s + rx + 1];
+				rxptr[u] = w11 * disto->xmap[s] + w12 * disto->xmap[s + 1] + w21 * disto->xmap[s + rx] + w22 * disto->xmap[s + rx + 1];
+				ryptr[u] = w11 * disto->ymap[s] + w12 * disto->ymap[s + 1] + w21 * disto->ymap[s + rx] + w22 * disto->ymap[s + rx + 1];
 			}
 		}
 	}
@@ -1292,7 +1291,7 @@ int cvWarp_fromKR(fits *image, astrometric_roi *roi_in, Homography K, Homography
 		Mat uxmap, uymap;
 		warper->buildMaps(szin, k, r, uxmap, uymap);
 		if (disto && disto->dtype != DISTO_NONE) {
-			if (disto->dtype == DISTO_MAP_S2D) {
+			if (disto->dtype == DISTO_MAP_D2S) {
 				map_undistortion_map_2_D2S(disto, szin.width, szin.height, uxmap, uymap);
 			} else {
 				map_undistortion_D2S(disto, roi, uxmap, uymap);
