@@ -1094,17 +1094,25 @@ void cvcalcH_fromKKR(Homography Kref, Homography K, Homography R, Homography *H)
 // interpolates a dst->src map from the one saved in disto structure
 static void map_undistortion_map_2_D2S(disto_data *disto, int rx, int ry, Mat xmap, Mat ymap) {
 	for (int v = 0; v < xmap.rows; ++v) {
+		float* rxptr = xmap.ptr<float>(v);
+		float* ryptr = ymap.ptr<float>(v);
 		for (int u = 0; u < xmap.cols; ++u) {
-			int i = floor(xmap.at<float>(v,u));
-			int j = floor(ymap.at<float>(v,u));
+			int i = floor(rxptr[u]);
+			int j = floor(ryptr[u]);
 			if (i < 0 || i > rx - 2 || j < 0 || j > ry - 2) {
-				xmap.at<float>(v,u) = -1.f;
-				ymap.at<float>(v,u) = -1.f;
+				rxptr[u] = -1.f;
+				ryptr[u] = -1.f;
 			} else {
 				int s = j * rx + i;
+				float c1 = rxptr[u] - (float)i;
+				float c2 = ryptr[u] - (float)j;
+				float w11 = (1.f - c1) * (1.f - c2);
+				float w12 = c1 * (1.f - c2);
+				float w21 = (1.f - c1) * c2;
+				float w22 = c1 * c2;
 				// TODO: need to compute real bilinear interp not the weighted mean
-				xmap.at<float>(v,u) = 0.25 * (disto->xmap[s] + disto->xmap[s + 1] + disto->xmap[s + rx] + disto->xmap[s + rx + 1]);
-				ymap.at<float>(v,u) = 0.25 * (disto->ymap[s] + disto->ymap[s + 1] + disto->ymap[s + rx] + disto->ymap[s + rx + 1]);
+				rxptr[u] = w11 * disto->xmap[s] + w12 * disto->xmap[s + 1] + w21 * disto->xmap[s + rx] + w22 *disto->xmap[s + rx + 1];
+				ryptr[u] = w11 * disto->ymap[s] + w12 * disto->ymap[s + 1] + w21 * disto->ymap[s + rx] + w22 *disto->ymap[s + rx + 1];
 			}
 		}
 	}
@@ -1115,9 +1123,11 @@ static void map_undistortion_D2S(disto_data *disto, Rect roi, Mat xmap, Mat ymap
 	double U, V, x, y;
 	double U2, V2, U3, V3, U4, V4, U5, V5;
 	for (int v = 0; v < roi.height; ++v) {
+		float* rxptr = xmap.ptr<float>(v);
+		float* ryptr = ymap.ptr<float>(v);
 		for (int u = 0; u < roi.width; ++u) {
-			U = (double)xmap.at<float>(v, u) - disto->xref;
-			V = disto->yref - (double)ymap.at<float>(v, u); // opencv convention is y down while wcs is y up
+			U = (double)rxptr[u] - disto->xref;
+			V = disto->yref - (double)ryptr[u]; // opencv convention is y down while wcs is y up
 			x = U + disto->AP[0][0] + disto->AP[1][0] * U + disto->AP[0][1] * V;
 			y = V + disto->BP[0][0] + disto->BP[1][0] * U + disto->BP[0][1] * V;
 			if (disto->order >= 2) {
@@ -1154,8 +1164,8 @@ static void map_undistortion_D2S(disto_data *disto, Rect roi, Mat xmap, Mat ymap
 				x += disto->AP[5][0] * U5 + disto->AP[4][1] * U4V + disto->AP[3][2] * U3V2 + disto->AP[2][3] * U2V3 + disto->AP[1][4] * UV4 + disto->AP[0][5] * V5;
 				y += disto->BP[5][0] * U5 + disto->BP[4][1] * U4V + disto->BP[3][2] * U3V2 + disto->BP[2][3] * U2V3 + disto->BP[1][4] * UV4 + disto->BP[0][5] * V5;
 			}
-			xmap.at<float>(v, u) = (float)(x + disto->xref);
-			ymap.at<float>(v, u) = (float)(disto->yref - y);
+			rxptr[u] = (float)(x + disto->xref);
+			ryptr[u] = (float)(disto->yref - y);
  		}
  	}
 }
