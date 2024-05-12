@@ -68,7 +68,18 @@ typedef struct {
 	int x, y, w, h;
 } astrometric_roi;
 
+typedef enum {
+	DISTO_NONE, // none defined
+	DISTO_D2S,  // computed for each image dst->src (regular interpolation)
+	DISTO_S2D,  // computed for each image src->dst (drizzle interpolation)
+	DISTO_REF_D2S,  // computed from the ref image dst->src (regular interpolation)
+	DISTO_REF_S2D  // computed from the ref image dst->src (drizzle interpolation)
+} disto_type;
+
 typedef struct {
+	disto_type dtype;
+	double A[MAX_DISTO_SIZE][MAX_DISTO_SIZE];
+	double B[MAX_DISTO_SIZE][MAX_DISTO_SIZE];
 	double AP[MAX_DISTO_SIZE][MAX_DISTO_SIZE];
 	double BP[MAX_DISTO_SIZE][MAX_DISTO_SIZE];
 	int order;

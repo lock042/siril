@@ -1091,7 +1091,8 @@ void cvcalcH_fromKKR(Homography Kref, Homography K, Homography R, Homography *H)
 
 // TODO: Code below should be moved to a dedicated cvastrometric.cpp file
 
-static void map_undistortion(disto_data *disto, Rect roi, Mat xmap, Mat ymap) {
+// maps undistortion dst to src
+static void map_undistortion_D2S(disto_data *disto, Rect roi, Mat xmap, Mat ymap) {
 	double U, V, x, y;
 	double U2, V2, U3, V3, U4, V4, U5, V5;
 	for (int v = 0; v < roi.height; ++v) {
@@ -1133,6 +1134,81 @@ static void map_undistortion(disto_data *disto, Rect roi, Mat xmap, Mat ymap) {
 				double UV4 = U * V4;
 				x += disto->AP[5][0] * U5 + disto->AP[4][1] * U4V + disto->AP[3][2] * U3V2 + disto->AP[2][3] * U2V3 + disto->AP[1][4] * UV4 + disto->AP[0][5] * V5;
 				y += disto->BP[5][0] * U5 + disto->BP[4][1] * U4V + disto->BP[3][2] * U3V2 + disto->BP[2][3] * U2V3 + disto->BP[1][4] * UV4 + disto->BP[0][5] * V5;
+			}
+			xmap.at<float>(v, u) = (float)(x + disto->xref);
+			ymap.at<float>(v, u) = (float)(disto->yref - y);
+ 		}
+ 	}
+}
+// maps undistortion src to dst
+static void map_undistortion_S2D(disto_data *disto, int width, int height, Mat *pxmap, Mat *pymap) {
+	Mat xmap = *pxmap;
+	Mat ymap = *pymap;
+	double x, y;
+	Mat U = Mat(width, 1, CV_64FC1);
+	Mat V = Mat(height, 1, CV_64FC1);
+	Mat U2, V2, U3, V3, U4, V4, U5, V5; // Not making U a W x order matrix (with the power terms, same for V) because opencv requires Mat memory to be contiguous
+	for (int u = 0; u < width; ++u) {
+		U.at<double>(u) = (double)u - disto->xref;
+	}
+	if (disto->order >= 2) {
+		U2 = U.mul(U);
+		if (disto->order >= 3) {
+			U3 = U2.mul(U);
+			if (disto->order >= 4) {
+				U4 = U4.mul(U);
+				if (disto->order >= 5) {
+					U5 = U5.mul(U);
+				}
+			}
+		}
+	}
+
+	for (int v = 0; v < height; ++v) {
+		V.at<double>(v) = disto->yref - (double)v;
+	}
+	if (disto->order >= 2) {
+		V2 = V.mul(V);
+		if (disto->order >= 3) {
+			V3 = V2.mul(V);
+			if (disto->order >= 4) {
+				V4 = V3.mul(V);
+				if (disto->order >= 5) {
+					V5 = V4.mul(V);
+				}
+			}
+		}
+	}
+
+	for (int v = 0; v < height; ++v) {
+		for (int u = 0; u < width; ++u) {
+			x = U.at<double>(u) + disto->A[0][0] + disto->A[1][0] * U.at<double>(u) + disto->A[0][1] * V.at<double>(v);
+			y = V.at<double>(v) + disto->B[0][0] + disto->B[1][0] * U.at<double>(u) + disto->B[0][1] * V.at<double>(v);
+			if (disto->order >= 2) {
+				double UV = U.at<double>(u) * V.at<double>(v);
+				x += disto->A[2][0] * U2.at<double>(u) + disto->A[1][1] * UV + disto->A[0][2] * V2.at<double>(v);
+				y += disto->B[2][0] * U2.at<double>(u) + disto->B[1][1] * UV + disto->B[0][2] * V2.at<double>(v);
+				if (disto->order >= 3) {
+					double U2V = U2.at<double>(u) * V.at<double>(v);
+					double UV2 = U.at<double>(u) * V2.at<double>(v);
+					x += disto->A[3][0] * U3.at<double>(u) + disto->A[2][1] * U2V + disto->A[1][2] * UV2 + disto->A[0][3] * V3.at<double>(v);
+					y += disto->B[3][0] * U3.at<double>(u) + disto->B[2][1] * U2V + disto->B[1][2] * UV2 + disto->B[0][3] * V3.at<double>(v);
+					if (disto->order >= 4) {
+						double U3V = U3.at<double>(u) * V.at<double>(v);
+						double U2V2 = U2.at<double>(u) * V2.at<double>(v);
+						double UV3 = U.at<double>(u) * V3.at<double>(v);
+						x += disto->A[4][0] * U4.at<double>(u) + disto->A[3][1] * U3V + disto->A[2][2] * U2V2 + disto->A[1][3] * UV3 + disto->A[0][4] * V4.at<double>(v);
+						y += disto->B[4][0] * U4.at<double>(u) + disto->B[3][1] * U3V + disto->B[2][2] * U2V2 + disto->B[1][3] * UV3 + disto->B[0][4] * V4.at<double>(v);
+						if (disto->order >= 5) {
+							double U4V = U4.at<double>(u) * V.at<double>(v);
+							double U3V2 = U3.at<double>(u) * V2.at<double>(v);
+							double U2V3 = U2.at<double>(u) * V3.at<double>(v);
+							double UV4 = U.at<double>(u) * V4.at<double>(v);
+							x += disto->A[5][0] * U5.at<double>(u) + disto->A[4][1] * U4V + disto->A[3][2] * U3V2 + disto->A[2][3] * U2V3 + disto->A[1][4] * UV4 + disto->A[0][5] * V5.at<double>(v);
+							y += disto->B[5][0] * U5.at<double>(u) + disto->B[4][1] * U4V + disto->B[3][2] * U3V2 + disto->B[2][3] * U2V3 + disto->B[1][4] * UV4 + disto->B[0][5] * V5.at<double>(v);
+						}
+					}
+				}
 			}
 			xmap.at<float>(v, u) = (float)(x + disto->xref);
 			ymap.at<float>(v, u) = (float)(disto->yref - y);
@@ -1188,8 +1264,8 @@ int cvWarp_fromKR(fits *image, astrometric_roi *roi_in, Homography K, Homography
 			return 2;
 		Mat uxmap, uymap;
 		warper->buildMaps(szin, k, r, uxmap, uymap);
-		if (disto) {
-			map_undistortion(disto, roi, uxmap, uymap);
+		if (disto && disto->dtype != DISTO_NONE) {
+			map_undistortion_D2S(disto, roi, uxmap, uymap);
 		}
 		Mat aux;
 		if (roi_in) {

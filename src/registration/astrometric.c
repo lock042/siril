@@ -275,16 +275,36 @@ int register_astrometric(struct registration_args *regargs) {
 		astargs->disto = NULL;
 		gboolean found = FALSE;
 		if (regargs->undistort) {
-			astargs->disto = calloc(n, sizeof(disto_data));
-			for (int i = 0;  i < n; i++) {
-				if (!incl[i])
-					continue;
-				if (WCSDATA[i].lin.dispre) {
-					double A[MAX_SIP_SIZE][MAX_SIP_SIZE], B[MAX_SIP_SIZE][MAX_SIP_SIZE]; // we won't need them
-					astargs->disto[i].order = extract_SIP_order_and_matrices(WCSDATA[i].lin.dispre, A, B, astargs->disto[i].AP, astargs->disto[i].BP);
-					found = TRUE;
-					astargs->disto[i].xref = WCSDATA[i].crpix[0] - 1.; // -1 comes from the difference of convention between opencv and wcs
-					astargs->disto[i].yref = WCSDATA[i].crpix[1] - 1.;
+			if (regargs->seq->is_variable) {
+				// sequence has variable size, we need to use each image undistorsion coeffs
+				astargs->disto = calloc(n, sizeof(disto_data));
+				for (int i = 0;  i < n; i++) {
+					if (!incl[i])
+						continue;
+					if (WCSDATA[i].lin.dispre) {
+						found = TRUE;
+						astargs->disto[i].order = extract_SIP_order_and_matrices(WCSDATA[i].lin.dispre, astargs->disto[i].A, astargs->disto[i].B, astargs->disto[i].AP, astargs->disto[i].BP);
+						astargs->disto[i].xref = WCSDATA[i].crpix[0] - 1.; // -1 comes from the difference of convention between opencv and wcs
+						astargs->disto[i].yref = WCSDATA[i].crpix[1] - 1.;
+						astargs->disto[i].dtype = DISTO_D2S;
+					} else {
+						astargs->disto[i].dtype = DISTO_NONE;
+					}
+				}
+			} else {
+				// sequence has same size images, we search for the first image that has wcs data
+				astargs->disto = calloc(1, sizeof(disto_data));
+				for (int i = 0;  i < n; i++) {
+					if (!incl[i])
+						continue;
+					if (WCSDATA[i].lin.dispre) { // we find the first image that has disto data and break afterwards
+						astargs->disto[0].order = extract_SIP_order_and_matrices(WCSDATA[i].lin.dispre, astargs->disto[i].A, astargs->disto[i].B, astargs->disto[i].AP, astargs->disto[i].BP);
+						astargs->disto[0].xref = WCSDATA[i].crpix[0] - 1.; // -1 comes from the difference of convention between opencv and wcs
+						astargs->disto[0].yref = WCSDATA[i].crpix[1] - 1.;
+						astargs->disto[0].dtype = DISTO_REF_D2S;
+						found = TRUE;
+						break;
+					}
 				}
 			}
 			if (!found) {
@@ -293,7 +313,6 @@ int register_astrometric(struct registration_args *regargs) {
 				astargs->disto = NULL;
 				regargs->undistort = FALSE;
 			}
-
 		}
 	}
 
@@ -410,8 +429,13 @@ static int astrometric_image_hook(struct generic_seq_args *args, int out_index, 
 	astrometric_roi roi = { 0 };
 	Homography H = { 0 };
 	disto_data *disto = NULL;
-	if (regargs->undistort && astargs->disto)
-		disto = &astargs->disto[in_index];
+	if (regargs->undistort && astargs->disto) {
+		if (astargs->disto[0].dtype == DISTO_REF_D2S) {
+			disto = &astargs->disto[0];
+		} else {
+			disto = &astargs->disto[in_index];
+		}
+	}
 	cvGetEye(&H);
 
 	sadata->success[out_index] = 0;
