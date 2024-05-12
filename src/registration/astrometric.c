@@ -301,15 +301,20 @@ int register_astrometric(struct registration_args *regargs) {
 						astargs->disto[0].order = extract_SIP_order_and_matrices(WCSDATA[i].lin.dispre, astargs->disto[i].A, astargs->disto[i].B, astargs->disto[i].AP, astargs->disto[i].BP);
 						astargs->disto[0].xref = WCSDATA[i].crpix[0] - 1.; // -1 comes from the difference of convention between opencv and wcs
 						astargs->disto[0].yref = WCSDATA[i].crpix[1] - 1.;
-						astargs->disto[0].dtype = DISTO_REF_D2S;
+						astargs->disto[0].dtype = (regargs->driz) ? DISTO_MAP_S2D: DISTO_MAP_D2S;
 						found = TRUE;
 						break;
 					}
 				}
+				if (found) { // and we prepare the mapping that will be used for all images
+					siril_log_message(_("Computing distortion mapping\n"));
+					init_disto_map(regargs->seq->rx, regargs->seq->ry, astargs->disto);
+					siril_log_message(_("Done\n"));
+				}
 			}
 			if (!found) {
 				siril_debug_print("no distorsion terms found in any of the images, disabling undistort\n");
-				free(astargs->disto);
+				free(astargs->disto); // we don't need to call free_disto_args as maps have not been allocated
 				astargs->disto = NULL;
 				regargs->undistort = FALSE;
 			}
@@ -430,7 +435,7 @@ static int astrometric_image_hook(struct generic_seq_args *args, int out_index, 
 	Homography H = { 0 };
 	disto_data *disto = NULL;
 	if (regargs->undistort && astargs->disto) {
-		if (astargs->disto[0].dtype == DISTO_REF_D2S) {
+		if (astargs->disto[0].dtype == DISTO_MAP_D2S) {
 			disto = &astargs->disto[0];
 		} else {
 			disto = &astargs->disto[in_index];
@@ -509,11 +514,22 @@ static int astrometric_alignment(struct registration_args *regargs, struct astro
 	return regargs->retval;
 }
 
+static void free_disto_args(disto_data *disto) {
+	if (!disto)
+		return;
+	// we only need to free the maps for the 2 types which store them (disto has only one element in that case)
+	if (disto->dtype == DISTO_MAP_D2S || disto->dtype == DISTO_MAP_S2D) {
+		free(disto->xmap);
+		free(disto->ymap);
+	}
+}
+
 void free_astrometric_args(struct astrometric_args *astargs) {
 	if (!astargs)
 		return;
 	free(astargs->Ks);
 	free(astargs->Rs);
+	free_disto_args(astargs->disto);
 	free(astargs->disto);
 	free(astargs);
 }

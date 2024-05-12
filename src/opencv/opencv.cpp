@@ -1091,6 +1091,25 @@ void cvcalcH_fromKKR(Homography Kref, Homography K, Homography R, Homography *H)
 
 // TODO: Code below should be moved to a dedicated cvastrometric.cpp file
 
+// interpolates a dst->src map from the one saved in disto structure
+static void map_undistortion_map_2_D2S(disto_data *disto, int rx, int ry, Mat xmap, Mat ymap) {
+	for (int v = 0; v < xmap.rows; ++v) {
+		for (int u = 0; u < xmap.cols; ++u) {
+			int i = floor(xmap.at<float>(v,u));
+			int j = floor(ymap.at<float>(v,u));
+			if (i < 0 || i > rx - 2 || j < 0 || j > ry - 2) {
+				xmap.at<float>(v,u) = -1.f;
+				ymap.at<float>(v,u) = -1.f;
+			} else {
+				int s = j * rx + i;
+				// TODO: need to compute real bilinear interp not the weighted mean
+				xmap.at<float>(v,u) = 0.25 * (disto->xmap[s] + disto->xmap[s + 1] + disto->xmap[s + rx] + disto->xmap[s + rx + 1]);
+				ymap.at<float>(v,u) = 0.25 * (disto->ymap[s] + disto->ymap[s + 1] + disto->ymap[s + rx] + disto->ymap[s + rx + 1]);
+			}
+		}
+	}
+}
+
 // maps undistortion dst to src
 static void map_undistortion_D2S(disto_data *disto, Rect roi, Mat xmap, Mat ymap) {
 	double U, V, x, y;
@@ -1141,9 +1160,7 @@ static void map_undistortion_D2S(disto_data *disto, Rect roi, Mat xmap, Mat ymap
  	}
 }
 // maps undistortion src to dst
-static void map_undistortion_S2D(disto_data *disto, int width, int height, Mat *pxmap, Mat *pymap) {
-	Mat xmap = *pxmap;
-	Mat ymap = *pymap;
+static void map_undistortion_S2D(disto_data *disto, int width, int height, Mat xmap, Mat ymap) {
 	double x, y;
 	Mat U = Mat(width, 1, CV_64FC1);
 	Mat V = Mat(height, 1, CV_64FC1);
@@ -1265,7 +1282,11 @@ int cvWarp_fromKR(fits *image, astrometric_roi *roi_in, Homography K, Homography
 		Mat uxmap, uymap;
 		warper->buildMaps(szin, k, r, uxmap, uymap);
 		if (disto && disto->dtype != DISTO_NONE) {
-			map_undistortion_D2S(disto, roi, uxmap, uymap);
+			if (disto->dtype == DISTO_MAP_S2D) {
+				map_undistortion_map_2_D2S(disto, szin.width, szin.height, uxmap, uymap);
+			} else {
+				map_undistortion_D2S(disto, roi, uxmap, uymap);
+			}
 		}
 		Mat aux;
 		if (roi_in) {
@@ -1307,9 +1328,43 @@ int cvWarp_fromKR(fits *image, astrometric_roi *roi_in, Homography K, Homography
 			roiin.copyTo(roiout);
 		}
 		return Mat_to_image(image, &in, &out, bgr, out_w, out_h);
-
-
 	}
+	return 0;
+}
+
+
+// Computes the distortion dst->src map and stores it in the disto structure
+int init_disto_map(int rx, int ry, disto_data *disto) {
+	if (disto == NULL || (disto->dtype != DISTO_MAP_D2S && disto->dtype != DISTO_MAP_S2D))
+		return 1;
+
+	disto->xmap = (float *)malloc(rx * ry *sizeof(float));
+	disto->ymap = (float *)malloc(rx * ry *sizeof(float));
+	size_t s = 0;
+	for (int j = 0; j < ry; j++) {
+		for (int i = 0; i < rx; i++) {
+			disto->xmap[s] = (float)i;
+			disto->ymap[s] = (float)j;
+			s++;
+		}
+	}
+
+	if (!disto->xmap || !disto->ymap) {
+		free(disto->xmap);
+		free(disto->ymap);
+		disto->xmap = NULL;
+		disto->ymap = NULL;
+		return 2;
+	}
+
+	Mat xmap = Mat(ry, rx, CV_32FC1, disto->xmap);
+	Mat ymap = Mat(ry, rx, CV_32FC1, disto->ymap);
+
+	if (disto->dtype == DISTO_MAP_D2S) {
+		Rect roidst = Rect_(0, 0, rx, ry);
+		map_undistortion_D2S(disto, roidst, xmap, ymap);
+	} else
+		map_undistortion_S2D(disto, rx, ry, xmap, ymap);
 	return 0;
 }
 
