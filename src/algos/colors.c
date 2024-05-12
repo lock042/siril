@@ -1009,10 +1009,10 @@ static gpointer extract_channels_float(gpointer p) {
 			*/
 			const size_t npixels = args->fit->rx * args->fit->ry;
 #ifdef _OPENMP
-#pragma omp parallel for schedule(static) max_threads(com.max_thread) if (com.max_thread > 1)
+#pragma omp parallel for schedule(static) num_threads(com.max_thread) if (com.max_thread > 1)
 #endif
 			for (size_t i = 0 ; i < npixels ; i++) {
-				args->fit->fpdata[chan][i] *= 0.01f;
+				args->fit->fdata[i] *= 0.01f;
 			}
 			siril_log_message(_("Note: L* channel is scaled to have values in the rang 0.0 - 1.0 to aid editing in Siril. The CIE L*a*b* colorspace defines L* to have a range of 0.0 - 100.0, so if you need to use this as a true L* channel in other software you will need to multiply the values by 100, for example using the Siril command \"fmul 100\"\n"));
 	}
