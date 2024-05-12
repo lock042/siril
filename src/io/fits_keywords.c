@@ -62,6 +62,8 @@ static gboolean should_use_keyword(const fits *fit, KeywordInfo keyword) {
 		return fit->naxes[2] > 1;
 	} else if (g_strcmp0(keyword.key, "DFTNORM3") == 0) {
 		return fit->naxes[2] > 1;
+	} else if (g_strcmp0(keyword.key, "CTYPE3") == 0) {
+		return (fit->naxes[2] == 3 && com.pref.rgb_aladin);
 	}
 	return keyword.is_saved;
 }
@@ -184,17 +186,21 @@ static void fhi_handler_read(fits *fit, const char *comment, KeywordInfo *info) 
 }
 
 static void ra_handler_read(fits *fit, const char *comment, KeywordInfo *info) {
-	fit->keywords.wcsdata.ra = parse_hms(fit->keywords.wcsdata.ra_str);
-	if (isnan(fit->keywords.wcsdata.ra))
-		fit->keywords.wcsdata.ra = 0.0;
+	fit->keywords.wcsdata.ra = parse_hms(fit->keywords.wcsdata.objctra);
+	if (isnan(fit->keywords.wcsdata.ra)) {
+		fit->keywords.wcsdata.ra = DEFAULT_DOUBLE_VALUE;
+		info->used = FALSE;
+	}
 	else
 		siril_debug_print("read RA as HMS\n");
 }
 
 static void dec_handler_read(fits *fit, const char *comment, KeywordInfo *info) {
-	fit->keywords.wcsdata.dec = parse_dms(fit->keywords.wcsdata.dec_str);
-	if (isnan(fit->keywords.wcsdata.dec))
-		fit->keywords.wcsdata.dec = 0.0;
+	fit->keywords.wcsdata.dec = parse_dms(fit->keywords.wcsdata.objctdec);
+	if (isnan(fit->keywords.wcsdata.dec)) {
+		fit->keywords.wcsdata.dec = DEFAULT_DOUBLE_VALUE;
+		info->used = FALSE;
+	}
 	else
 		siril_debug_print("read DEC as DMS\n");
 
@@ -236,6 +242,18 @@ static void bscale_handler_save(fits *fit, KeywordInfo *info) {
 
 static void program_handler_save(fits *fit, KeywordInfo *info) {
 	strncpy(fit->keywords.program, "Siril "PACKAGE_VERSION, FLEN_VALUE - 1);
+}
+
+static void focal_length_handler_save(fits *fit, KeywordInfo *info) {
+	info->is_saved = fit->focalkey;
+}
+
+static void pixel_x_handler_save(fits *fit, KeywordInfo *info) {
+	info->is_saved = fit->pixelkey;
+}
+
+static void pixel_y_handler_save(fits *fit, KeywordInfo *info) {
+	info->is_saved = fit->pixelkey;
 }
 
 /*****************************************************************************/
@@ -284,7 +302,7 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 			KEYWORD_SECONDA( "telescope", "FILT-1", KTYPE_STR, "Active filter name", &(fit->keywords.filter), NULL, NULL),
 			KEYWORD_PRIMARY( "telescope", "APERTURE", KTYPE_DOUBLE, "Aperture of the instrument", &(fit->keywords.aperture), NULL, NULL),
 			KEYWORD_PRIMARY( "telescope", "ISOSPEED", KTYPE_DOUBLE, "ISO camera setting", &(fit->keywords.iso_speed), NULL, NULL),
-			KEYWORD_PRIMARY( "telescope", "FOCALLEN", KTYPE_DOUBLE, "[mm] Focal length", &(fit->keywords.focal_length), focal_length_handler_read, NULL),
+			KEYWORD_PRIMARY( "telescope", "FOCALLEN", KTYPE_DOUBLE, "[mm] Focal length", &(fit->keywords.focal_length), focal_length_handler_read, focal_length_handler_save),
 			KEYWORD_SECONDA( "telescope", "FOCAL", KTYPE_DOUBLE, "[mm] Focal length", &(fit->keywords.focal_length), focal_length_handler_read, NULL),
 			KEYWORD_SECONDA( "telescope", "FLENGTH", KTYPE_DOUBLE, "[m] Focal length", &(fit->keywords.flength), flength_handler_read, NULL),
 			KEYWORD_PRIMARY( "telescope", "CENTALT", KTYPE_DOUBLE, "[deg] Altitude of telescope", &(fit->keywords.centalt), NULL, NULL),
@@ -295,12 +313,12 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 			KEYWORD_SECONDA( "camera", "BINX", KTYPE_UINT, "Camera binning mode", &(fit->keywords.binning_x), binning_x_handler_read, NULL),
 			KEYWORD_PRIMARY( "camera", "YBINNING", KTYPE_UINT, "Camera binning mode", &(fit->keywords.binning_y), binning_y_handler_read, NULL),
 			KEYWORD_SECONDA( "camera", "BINY", KTYPE_UINT, "Camera binning mode", &(fit->keywords.binning_y), binning_y_handler_read, NULL),
-			KEYWORD_PRIMARY( "camera", "XPIXSZ", KTYPE_DOUBLE,   "[um] Pixel X axis size", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
+			KEYWORD_PRIMARY( "camera", "XPIXSZ", KTYPE_DOUBLE,   "[um] Pixel X axis size", &(fit->keywords.pixel_size_x), pixel_x_handler_read, pixel_x_handler_save),
 			KEYWORD_SECONDA( "camera", "XPIXELSZ", KTYPE_DOUBLE, "[um] Pixel X axis size", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
 			KEYWORD_SECONDA( "camera", "PIXSIZE1", KTYPE_DOUBLE, "[um] Pixel X axis size", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
 			KEYWORD_SECONDA( "camera", "PIXSIZEX", KTYPE_DOUBLE, "[um] Pixel X axis size", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
 			KEYWORD_SECONDA( "camera", "XPIXSIZE", KTYPE_DOUBLE, "[um] Pixel X axis size", &(fit->keywords.pixel_size_x), pixel_x_handler_read, NULL),
-			KEYWORD_PRIMARY( "camera", "YPIXSZ", KTYPE_DOUBLE,   "[um] Pixel Y axis size", &(fit->keywords.pixel_size_y), pixel_x_handler_read, NULL),
+			KEYWORD_PRIMARY( "camera", "YPIXSZ", KTYPE_DOUBLE,   "[um] Pixel Y axis size", &(fit->keywords.pixel_size_y), pixel_x_handler_read, pixel_y_handler_save),
 			KEYWORD_SECONDA( "camera", "YPIXELSZ", KTYPE_DOUBLE, "[um] Pixel Y axis size", &(fit->keywords.pixel_size_y), pixel_x_handler_read, NULL),
 			KEYWORD_SECONDA( "camera", "PIXSIZE2", KTYPE_DOUBLE, "[um] Pixel Y axis size", &(fit->keywords.pixel_size_y), pixel_x_handler_read, NULL),
 			KEYWORD_SECONDA( "camera", "PIXSIZEY", KTYPE_DOUBLE, "[um] Pixel Y axis size", &(fit->keywords.pixel_size_y), pixel_x_handler_read, NULL),
@@ -353,10 +371,10 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 			KEYWORD_PRIMARY( "wcsdata", "OBJCTRA", KTYPE_STR, "Image center Right Ascension (hms)", &(fit->keywords.wcsdata.objctra), NULL, NULL),
 			KEYWORD_PRIMARY( "wcsdata", "OBJCTDEC", KTYPE_STR, "Image center Declination (dms)", &(fit->keywords.wcsdata.objctdec), NULL, NULL),
 			KEYWORD_PRIMARY( "wcsdata", "RA", KTYPE_DOUBLE, "Image center Right Ascension (deg)", &(fit->keywords.wcsdata.ra), NULL, NULL),
-			KEYWORD_SECONDA( "wcsdata", "RA", KTYPE_STR, "Image center Right Ascension (deg)", &(fit->keywords.wcsdata.ra_str), ra_handler_read, NULL),
+			KEYWORD_SECONDA( "wcsdata", "RA", KTYPE_STR, "Image center Right Ascension (deg)", &(fit->keywords.wcsdata.objctra), ra_handler_read, NULL),
 			KEYWORD_SECONDA( "wcsdata", "RA_D", KTYPE_DOUBLE, "Image center Right Ascension (deg)", &(fit->keywords.wcsdata.ra), NULL, NULL),
 			KEYWORD_PRIMARY( "wcsdata", "DEC", KTYPE_DOUBLE, "Image center Declination (deg)", &(fit->keywords.wcsdata.dec), NULL, NULL),
-			KEYWORD_SECONDA( "wcsdata", "DEC", KTYPE_STR, "Image center Declination (deg)", &(fit->keywords.wcsdata.dec_str), dec_handler_read, NULL),
+			KEYWORD_SECONDA( "wcsdata", "DEC", KTYPE_STR, "Image center Declination (deg)", &(fit->keywords.wcsdata.objctdec), dec_handler_read, NULL),
 			KEYWORD_SECONDA( "wcsdata", "DEC_D", KTYPE_DOUBLE, "Image center Declination (deg)", &(fit->keywords.wcsdata.dec), NULL, NULL),
 
 			/* This group must be the last one !!
@@ -521,14 +539,14 @@ int save_fits_keywords(fits *fit) {
 	GDateTime *date;
 
 	while (keys->group) {
-		if (!keys->is_saved || g_strcmp0(keys->group, "wcslib") == 0) {
-			keys++;
-			continue;
-		}
-
 		/* Handle special cases */
 		if (keys->special_handler_save) {
 			keys->special_handler_save(fit, keys);
+		}
+
+		if (!keys->is_saved || g_strcmp0(keys->group, "wcslib") == 0) {
+			keys++;
+			continue;
 		}
 
 		switch (keys->type) {
@@ -818,26 +836,26 @@ static void set_to_default_not_used(fits *fit, GHashTable *keys_hash) {
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		KeywordInfo *keyword_info = (KeywordInfo*) value;
 
-		if (!keyword_info->used && should_use_keyword(fit, *keyword_info)) {
+		if (!keyword_info->used || should_use_keyword(fit, *keyword_info)) {
 			switch (keyword_info->type) {
 			case KTYPE_INT:
-				if (*((int*) keyword_info->data) == 0)
+				if (keyword_info->data && *((int*) keyword_info->data) == 0)
 					*((int*) keyword_info->data) = DEFAULT_INT_VALUE;
 				break;
 			case KTYPE_UINT:
-				if (*((guint*) keyword_info->data) == 0)
+				if (keyword_info->data && *((guint*) keyword_info->data) == 0)
 					*((guint*) keyword_info->data) = DEFAULT_UINT_VALUE;
 				break;
 			case KTYPE_USHORT:
-				if (*((gushort*) keyword_info->data) == 0)
+				if (keyword_info->data && *((gushort*) keyword_info->data) == 0)
 					*((gushort*) keyword_info->data) = DEFAULT_USHORT_VALUE;
 				break;
 			case KTYPE_DOUBLE:
-				if (*((double*) keyword_info->data) == 0.0)
+				if (keyword_info->data && *((double*) keyword_info->data) == 0.0)
 				*((double*) keyword_info->data) = DEFAULT_DOUBLE_VALUE;
 				break;
 			case KTYPE_FLOAT:
-				if (*((float*) keyword_info->data) == 0.f)
+				if (keyword_info->data && *((float*) keyword_info->data) == 0.f)
 					*((float*) keyword_info->data) = DEFAULT_FLOAT_VALUE;
 				break;
 			default:
