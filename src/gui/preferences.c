@@ -123,6 +123,19 @@ static void update_astrometry_preferences() {
 	com.pref.astrometry.max_seconds_run = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(lookup_widget("spin_asnet_max_sec")));
 	com.pref.astrometry.update_default_scale = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("astrometry_update_fields")));
 	com.pref.astrometry.show_asnet_output = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_asnet_show_output")));
+	if (com.pref.astrometry.default_obscode)
+		g_free(com.pref.astrometry.default_obscode);
+	com.pref.astrometry.default_obscode = g_strdup(gtk_entry_get_text(GTK_ENTRY(lookup_widget("obscode_entry"))));
+	if (strlen(com.pref.astrometry.default_obscode) != 3 && strlen(com.pref.astrometry.default_obscode) != 0) {
+		g_free(com.pref.astrometry.default_obscode);
+		com.pref.astrometry.default_obscode = NULL;
+		siril_log_color_message(_("Error: invalid IAU observatory code read from preferences file. Code must be a 3-character code.\n"), "red");
+		gtk_entry_set_text(GTK_ENTRY(lookup_widget("obscode_entry")), "");
+	}
+	if (com.pref.astrometry.default_obscode && strlen(com.pref.astrometry.default_obscode) == 0) {
+		g_free(com.pref.astrometry.default_obscode);
+		com.pref.astrometry.default_obscode = NULL;
+	}
 	// In the prefs structure, the dir is stored alongside starnet, not in astrometry
 	com.pref.asnet_dir = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(lookup_widget("filechooser_asnet")));
 	reset_astrometry_checks();
@@ -652,9 +665,9 @@ void update_preferences_from_model() {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_asnet_xyls")), pref->astrometry.keep_xyls_files);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_asnet_wcs")), pref->astrometry.keep_wcs_files);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_asnet_max_sec")), pref->astrometry.max_seconds_run);
-
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("astrometry_update_fields")), pref->astrometry.update_default_scale);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_asnet_show_output")), pref->astrometry.show_asnet_output);
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("obscode_entry")), pref->astrometry.default_obscode);
 
 	/* tab Pre-processing */
 	if (pref->prepro.bias_lib) {

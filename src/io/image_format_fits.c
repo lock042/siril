@@ -2156,8 +2156,11 @@ void copy_fits_metadata(fits *from, fits *to) {
 	}
 
 	// Set boolean flags
-	to->pixelkey = (from->keywords.pixel_size_x > 0.);
-	to->focalkey = (from->keywords.focal_length > 0.);
+//	to->pixelkey = (from->keywords.pixel_size_x > 0.);
+//	to->focalkey = (from->keywords.focal_length > 0.);
+//	/* override these two keys. */
+	to->pixelkey = from->pixelkey;
+	to->focalkey = from->focalkey;
 
 	// copy from->history?
 
@@ -3005,6 +3008,7 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *value) {
 
 	fits tmpfit = { 0 };
 	copy_fits_metadata(fit, &tmpfit);
+
 	tmpfit.fptr = fptr;
 	save_fits_header(&tmpfit);
 
