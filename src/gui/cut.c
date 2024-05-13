@@ -20,6 +20,7 @@
 
 #include <math.h>
 #include "algos/extraction.h"
+#include "algos/statistics_float.h"
 #include "core/siril.h"
 #include "core/siril_log.h"
 #include "core/siril_date.h"
@@ -638,7 +639,30 @@ gpointer tri_cut(gpointer p) {
 		}
 	}
 
-	gchar *spllabels[3];
+	// If spectroscopic options are set, use r[0] and r[2] as dark strips,
+	// to calibrate the spectrum. (This intentionally clobbers r[0] and r[2])
+	gboolean do_spec = spectroscopy_selections_are_valid(arg);
+	if (do_spec) {
+		for (int i = 0 ; i < nbr_points ; i++) {
+			// Average the dark strips on either side
+			r[2][i] = (r[0][i] + r[2][i]) / 2.0;
+			r[0][i] = (double) i;
+		}
+		double a, b, sigma;
+		gboolean *mask = calloc(nbr_points, sizeof(gboolean));
+		robust_linear_fit(r[0], r[2], nbr_points, &a, &b, &sigma, mask);
+		free(mask); // Didn't care about mask here but need it to make the function work
+		if ( a >= 0)
+			siril_log_message(_("Subtracting dark strips: robust linear fit y = %f + %f * x; sigma = %f\n"), a, b, sigma);
+		else
+			siril_log_message(_("Subtracting dark strips: robust linear fit y = %f - %f * x; sigma = %f\n"), a, -b, sigma);
+		for (int i = 0 ; i < nbr_points ; i++) {
+			r[0][i] = (a + b * (double) i);
+			r[1][i] -= r[0][i];
+		}
+	}
+
+	gchar *spllabels[3] = { NULL };
 
 	if (arg->vport == 0) {
 		if (arg->fit->naxes[2] == 3) {
@@ -655,8 +679,10 @@ gpointer tri_cut(gpointer p) {
 	} else {
 		spllabels[1] = g_strdup("L");
 	}
-	spllabels[0] = g_strdup_printf("%s(-%dpx)", spllabels[1], (int) arg->step);
-	spllabels[2] = g_strdup_printf("%s(+%dpx)", spllabels[1], (int) arg->step);
+	if (!do_spec) {
+		spllabels[0] = g_strdup_printf("%s(-%dpx)", spllabels[1], (int) arg->step);
+		spllabels[2] = g_strdup_printf("%s(+%dpx)", spllabels[1], (int) arg->step);
+	}
 
 	/* Plotting cut profile */
 	gchar *xlabel = NULL, *title = NULL;
@@ -673,9 +699,11 @@ gpointer tri_cut(gpointer p) {
 	siril_plot_set_title(spl_data, title);
 	siril_plot_set_xlabel(spl_data, xlabel);
 	siril_plot_set_savename(spl_data, "profile");
-	siril_plot_add_xydata(spl_data, spllabels[0], nbr_points, x, r[0], NULL, NULL);
+	if (!do_spec)
+		siril_plot_add_xydata(spl_data, spllabels[0], nbr_points, x, r[0], NULL, NULL);
 	siril_plot_add_xydata(spl_data, spllabels[1], nbr_points, x, r[1], NULL, NULL);
-	siril_plot_add_xydata(spl_data, spllabels[2], nbr_points, x, r[2], NULL, NULL);
+	if (!do_spec)
+		siril_plot_add_xydata(spl_data, spllabels[2], nbr_points, x, r[2], NULL, NULL);
 	if (arg->save_dat)
 		siril_plot_save_dat(spl_data, filename, FALSE);
 	if (arg->save_png_too || !arg->display_graph)
@@ -1241,24 +1269,6 @@ static int cut_image_hook(struct generic_seq_args *args, int o, int i, fits *fit
 	cut_struct *private_args = malloc(sizeof(cut_struct));
 	memcpy(private_args, cut_args, sizeof(cut_struct));
 	private_args->fit = fit;
-
-/*
-	// Check points are not out of bounds. The >=0 criterion is checked earlier
-	// but we have to check <fit.rx and <fit.ry for every image in case of
-	// sequences with variable image sizes.
-	// These checks shouldn't be needed as we check (!seq->is_variable)
-
-	if (private_args->cut_wn1.x > fit->rx - 1 || private_args->cut_wn2.x > fit->rx - 1 || private_args->cut_wn1.y > fit->ry - 1 || private_args->cut_wn2.y > fit->ry - 1) {
-		siril_log_message(_("Error: wavenumber point outside image dimensions.\n"));
-		free(private_args);
-		return 1;
-	}
-	if (private_args->cut_start.x > fit->rx - 1 || private_args->cut_start.y > fit->ry - 1 || private_args->cut_end.x > fit->rx - 1 || private_args->cut_end.y > fit->ry - 1) {
-		siril_log_message(_("Error: profile line endpoint outside image dimensions.\n"));
-		free(private_args);
-		return 1;
-	}
-*/
 	private_args->imgnumber = i;
 	if (private_args->cfa)
 		ret = GPOINTER_TO_INT(cfa_cut(private_args));
@@ -1286,4 +1296,3 @@ void apply_cut_to_sequence(cut_struct* cut_args) {
 
 	start_in_new_thread(generic_sequence_worker, args);
 }
-

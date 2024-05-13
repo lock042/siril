@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019-2023
 
@@ -174,7 +174,8 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">False</property>
-                <property name="tooltip-text" translatable="yes">Generates 3 parallel intensity profiles separated by a given number of pixels. Tri-profiles always plot luminance along each profile and do not use spectrometric data.</property>
+                <property name="tooltip-text" translatable="yes">Generates 3 parallel intensity profiles separated by a given number of pixels. Tri-profiles always plot luminance along each profile.
+If spectroscopic data is set, the outlying profiles are used for background / gradient subtraction, so the result will be a single spectrum with the background subtracted.</property>
                 <property name="draw-indicator">True</property>
                 <property name="group">cut_radio_mono</property>
                 <signal name="toggled" handler="on_cut_tri_cut_toggled" swapped="no"/>
@@ -340,5 +341,4 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
       </object>
     </child>
   </object>
-
 </interface>
