@@ -744,6 +744,7 @@ static gchar *download_catalog(siril_catalogue *siril_cat) {
 					remove_file = TRUE;
 					goto download_error;
 				}
+				break;
 			default:
 				break;
 		}
@@ -984,6 +985,7 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 			}
 			gboolean completed = (g_strrstr(buffer,"COMPLETED") != NULL);
 			g_free(buffer);
+			buffer = NULL;
 			if (completed) {
 				success = TRUE;
 				break;
@@ -999,7 +1001,7 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 		// Retrieve the TAP+ query result
 		gchar *job_retrieval = g_strdup_printf("https://gea.esac.esa.int/tap-server/tap/async/%s/results/result", job_id);
 		gchar *buffer = fetch_url(job_retrieval, &length);
-		siril_debug_print("Length: %lu\n", length);
+		siril_debug_print("buffer length: %lu\n", length);
 		g_free(job_retrieval);
 
 		// buffer is the CSV data for the standard Gaia DR3 TAP+ query, it gets saved to the usual catalogue location
@@ -1011,7 +1013,7 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 		g_unlink(csvfilepath); // If no file exists this call may fail, that's fine
 		csvfile = g_file_new_for_path(csvfilepath);
 		csvoutput_stream = (GOutputStream*) g_file_create(csvfile, G_FILE_CREATE_NONE, NULL, &error);
-		if (!csvoutput_stream) {
+		if (!csvoutput_stream || !buffer || length == 0) {
 			goto tap_error_and_cleanup;
 		}
 		if (!g_output_stream_write_all(csvoutput_stream, buffer, strlen(buffer), NULL, NULL, &error)) {
@@ -1071,7 +1073,8 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 		siril_debug_print("Datalink url: %s\n", datalink_url->str);
 		siril_log_message(_("Submitting spectral data request to ESA Gaia DR3 catalog. This may take several seconds to complete...\n"));
 		gchar *datalink_buffer = fetch_url(datalink_url->str, &length);
-		siril_debug_print("Length: %lu\n", length);
+
+		siril_debug_print("datalink_buffer length: %lu\n", length);
 		g_string_free(datalink_url, TRUE);
 		datalink_url = NULL;
 
@@ -1085,7 +1088,7 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 		g_unlink(filepath); // If no file exists this call may fail, that's fine
 		file = g_file_new_for_path(filepath);
 		output_stream = (GOutputStream*) g_file_create(file, G_FILE_CREATE_NONE, NULL, &error);
-		if (!output_stream) {
+		if (!output_stream || !datalink_buffer || length == 0) {
 			goto datalink_download_error;
 		}
 		if (!g_output_stream_write_all(output_stream, datalink_buffer, length, NULL, NULL, &error)) {
@@ -1121,12 +1124,13 @@ tap_error_and_cleanup:
 	return -1;
 
 datalink_download_error:
-	g_string_free(datalink_url, TRUE);
+	if (datalink_url)
+		g_string_free(datalink_url, TRUE);
 	if (error) {
 		siril_log_color_message(_("Cannot create catalogue file %s (%s)\n"), "red", filepath, error->message);
 		g_clear_error(&error);
 		}
-	g_free(buffer);
+	if (buffer) g_free(buffer);
 	if (output_stream)
 		g_object_unref(output_stream);
 	if (file) {
