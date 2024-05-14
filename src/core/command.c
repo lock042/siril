@@ -1066,9 +1066,9 @@ int process_gauss(int nb){
 
 int process_epf(int nb) {
 	gchar *end;
-	double	d = 3.0, mod = 1.0,
-			sigma_col = gfit.type == DATA_USHORT ? 5.0 : 0.0001,
-			sigma_space = gfit.type == DATA_USHORT ? 5.0 : 0.0001;
+	double	d = 0.0, mod = 1.0,
+			sigma_col = 11.0,
+			sigma_space = 11.0;
 	ep_filter_t filter = EP_BILATERAL;
 	gchar *filename = NULL;
 	fits *guidefit = NULL;
@@ -1093,6 +1093,8 @@ int process_epf(int nb) {
 				g_free(filename);
 				return CMD_ARG_ERROR;
 			}
+			if (d > 25)
+				siril_log_color_message(_("Warning: d > approx. 25 may result in lengthy execution times.\n"), "salmon");
 		}
 		else if (g_str_has_prefix(arg, "-mod=")) {
 			gchar *val = arg + 5;
@@ -1106,7 +1108,7 @@ int process_epf(int nb) {
 		else if (g_str_has_prefix(arg, "-si=")) {
 			gchar *val = arg + 4;
 			sigma_col = g_ascii_strtod(val, &end);
-			if (end == val || sigma_col <= 0.0 || (gfit.type == DATA_FLOAT && sigma_col > 1) || (gfit.type == DATA_USHORT && sigma_col > 65535)) {
+			if (end == val || sigma_col <= 0.0 || sigma_col > 65535) {
 				siril_log_color_message(_("Invalid argument %s, aborting.\n"), "red", arg);
 				g_free(filename);
 				return CMD_ARG_ERROR;
@@ -1115,11 +1117,13 @@ int process_epf(int nb) {
 		else if (g_str_has_prefix(arg, "-ss=")) {
 			gchar *val = arg + 4;
 			sigma_space = g_ascii_strtod(val, &end);
-			if (end == val || sigma_space <= 0.0 || (gfit.type == DATA_FLOAT && sigma_col > 1) || (gfit.type == DATA_USHORT && sigma_col > 65535)) {
+			if (end == val || sigma_space <= 0.0 || sigma_space > 32) {
 				siril_log_color_message(_("Invalid argument %s, aborting.\n"), "red", arg);
 				g_free(filename);
 				return CMD_ARG_ERROR;
 			}
+			if (sigma_space > 20.0 && d == 0)
+				siril_log_color_message(_("Warning: spatial sigma > approx. 20 with auto diameter may result in lengthy execution times.\n"), "salmon");
 		}
 	}
 	if (filter == EP_GUIDED && filename != NULL) {
@@ -1147,8 +1151,8 @@ int process_epf(int nb) {
 		}
 	}
 	if (filter == EP_GUIDED && d < 0.0) {
-		siril_log_color_message(_("Warning: d < 0.0 cannot be used to specify automatic diameter when using a guided filter. Setting d to default value of 3.\n"), "salmon");
-		d = 3.0;
+		siril_log_color_message(_("Warning: d = 0.0 cannot be used to specify automatic diameter when using a guided filter. Setting d to default value of 5.\n"), "salmon");
+		d = 5.0;
 	}
 	edge_preserving_filter(&(gfit), guidefit, d, sigma_col, sigma_space, mod, filter, TRUE);
 
