@@ -61,6 +61,7 @@ xx/xx/xx
 * Fixed bug where Bayer pattern was not read as needed for seqpsf (#1297)
 * Updated SPCC handling of mono filters applicable to >1 channel (!667)
 * Added preference for closest IAU observatory code(!669)
+* Extended `requires` command to take optional second expiry parameter. (!674)
 
 siril 1.2.2
 xx/xx/24
