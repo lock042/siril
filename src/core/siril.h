@@ -384,8 +384,6 @@ typedef struct {
 	char objctdec[FLEN_VALUE];
 	double ra;
 	double dec;
-	char ra_str[FLEN_VALUE];
-	char dec_str[FLEN_VALUE];
 	gboolean pltsolvd;
 	char pltsolvd_comment[FLEN_COMMENT];
 } wcs_info;
