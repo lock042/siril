@@ -62,6 +62,7 @@ siril 1.4.0 xx xx, xx
 * Fixed bug where Bayer pattern was not read as needed for seqpsf (#1297)
 * Updated SPCC handling of mono filters applicable to >1 channel (!667)
 * Added preference for closest IAU observatory code(!669)
+* Added edge preserving filters (bilateral and guided filters) (!576)
 
 siril 1.2.2 xx xx, 2024
 * Removed background extraction samples after using it in script (#1265)
