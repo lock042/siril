@@ -589,9 +589,10 @@ gpointer tri_cut(gpointer p) {
 	}
 	int nbr_points = (int) length;
 	double point_spacing = length / nbr_points;
+	gboolean do_spec = spectroscopy_selections_are_valid(arg);
 	// If pref_as is set andmetadata allows, represent spacing as arcsec
 	double conversionfactor = get_conversion_factor(arg->fit);
-	if (arg->pref_as) {
+	if (arg->pref_as && !do_spec) {
 		if (conversionfactor != -DBL_MAX) {
 			point_spacing *= conversionfactor;
 		}
@@ -602,13 +603,22 @@ gpointer tri_cut(gpointer p) {
 	for (int i = 0 ; i < 3 ; i++)
 		r[i] = malloc(nbr_points * sizeof(double));
 	x = malloc(nbr_points * sizeof(double));
+	double zero = 0.0, spectro_spacing = 1.0;
+	if (do_spec)
+		calc_zero_and_spacing(arg, &zero, &spectro_spacing);
+	for (int i = 0 ; i < nbr_points ; i++) {
+		if (do_spec) {
+			x[i] = arg->plot_as_wavenumber ? 10000000. / (zero + i * spectro_spacing) : zero + i * spectro_spacing;
+		} else {
+			x[i] = i * point_spacing;
+		}
+	}
 	for (int offset = -1 ; offset < 2 ; offset++) {
 		double offstartx = arg->cut_start.x - (offset * point_spacing_y * arg->step);
 		double offstarty = starty + (offset * point_spacing_x * arg->step);
 		gboolean single_channel = (arg->vport == 0 || arg->vport == 1 || arg->vport == 2);
 		gboolean redvport = arg->vport < 3 ? arg->vport : 0;
 		for (int i = 0 ; i < nbr_points ; i++) {
-			x[i] = i * point_spacing;
 			if (hv) {
 				// Horizontal / vertical, no interpolation
 				r[offset+1][i] = nointerp(arg->fit, offstartx + point_spacing_x * i, offstarty + point_spacing_y * i, redvport, arg->width, (int) point_spacing_x, (int) point_spacing_y);
@@ -641,7 +651,6 @@ gpointer tri_cut(gpointer p) {
 
 	// If spectroscopic options are set, use r[0] and r[2] as dark strips,
 	// to calibrate the spectrum. (This intentionally clobbers r[0] and r[2])
-	gboolean do_spec = spectroscopy_selections_are_valid(arg);
 	if (do_spec) {
 		for (int i = 0 ; i < nbr_points ; i++) {
 			// Average the dark strips on either side
@@ -687,7 +696,9 @@ gpointer tri_cut(gpointer p) {
 	/* Plotting cut profile */
 	gchar *xlabel = NULL, *title = NULL;
 	title = cut_make_title(arg, FALSE); // must be freed with g_free()
-	if (arg->pref_as && conversionfactor != -DBL_MAX) {
+	if (do_spec) {
+		xlabel = arg->plot_as_wavenumber ? g_strdup_printf(_("Wavenumber / cm^{-1}")) : g_strdup_printf(_("Wavelength / nm"));
+	} else if (arg->pref_as && conversionfactor != -DBL_MAX) {
 		xlabel = g_strdup_printf(_("Distance along cut / arcsec"));
 	} else {
 		xlabel = g_strdup_printf(_("Distance along cut / px"));
