@@ -389,6 +389,7 @@ static int get_key_data(GKeyFile *kf, struct settings_access *desc) {
 				GSList *list = NULL;
 				for (gsize i = 0; i < len; i++)
 					list = g_slist_prepend(list, strs[i]);
+				list = g_slist_reverse(list); // Preserve order
 				GSList *old_list = *((GSList**)desc->data);
 				if (old_list)
 					g_slist_free_full(old_list, g_free);
