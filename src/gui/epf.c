@@ -60,9 +60,8 @@ static int epf_update_preview() {
 	} else {
 		guide = NULL;
 	}
-	int retval;
 	struct epfargs *args = calloc(1, sizeof(struct epfargs));
-	*args = (struct epfargs) { fit, guide, epf_d_value, epf_sigma_col_value, epf_sigma_spatial_value, mod, filter_type, FALSE, &retval };
+	*args = (struct epfargs) { fit, guide, epf_d_value, epf_sigma_col_value, epf_sigma_spatial_value, mod, filter_type, FALSE };
 	edge_preserving_filter(args);
 	notify_gfit_modified();
 	return 0;
@@ -119,9 +118,8 @@ static int epf_process_all() {
 	} else {
 		guide = NULL;
 	}
-	int retval;
 	struct epfargs *args = calloc(1, sizeof(struct epfargs));
-	*args = (struct epfargs) { fit, guide, epf_d_value, epf_sigma_col_value, epf_sigma_spatial_value, mod, filter_type, FALSE, &retval };
+	*args = (struct epfargs) { fit, guide, epf_d_value, epf_sigma_col_value, epf_sigma_spatial_value, mod, filter_type, FALSE };
 	epfhandler(args);
 	populate_roi();
 	notify_gfit_modified();

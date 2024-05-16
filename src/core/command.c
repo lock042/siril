@@ -1169,7 +1169,6 @@ int process_epf(int nb) {
 		siril_log_color_message(_("Warning: d = 0.0 cannot be used to specify automatic diameter when using a guided filter. Setting d to default value of 5.\n"), "salmon");
 		d = 5.0;
 	}
-	int retval;
 	struct epfargs *args = calloc(1, sizeof(struct epfargs));
 	*args = (struct epfargs) {.fit = fit,
 							.guidefit = guidefit,
@@ -1178,18 +1177,9 @@ int process_epf(int nb) {
 							.sigma_space = sigma_space,
 							.mod = mod,
 							.filter = filter,
-							.verbose = TRUE,
-							.retval = &retval };
+							.verbose = TRUE };
 	start_in_new_thread(epfhandler, args);
-	if (!retval) {
-		char log[90];
-		if (filter == EP_BILATERAL) {
-			sprintf(log, "Bilateral filtering, d: %.2f, sigma(color): %.2f, sigma(spatial): %.2f, modulation: %.2f", d, sigma_col, sigma_space, mod);
-		} else {
-			sprintf(log, "Guided filtering, d: %.2f, sigma: %.2f, modulation: %.2f, guide image: %s", d, sigma_col, mod, filename ? filename : "");
-		}
-		gfit.history = g_slist_append(gfit.history, strdup(log));
-	}
+
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 

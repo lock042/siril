@@ -174,7 +174,13 @@ int edge_preserving_filter(struct epfargs *args) {
 		gettimeofday(&t_end, NULL);
 		show_time(t_start, t_end);
 	}
+	char log[90];
+	if (filter_type == EP_BILATERAL) {
+		sprintf(log, "Bilateral filtering, d: %.2f, sigma(color): %.2f, sigma(spatial): %.2f, modulation: %.2f", d, sigma_col, sigma_space, mod);
+	} else {
+		sprintf(log, "Guided filtering, d: %.2f, sigma: %.2f, modulation: %.2f", d, sigma_col, mod);
+	}
+	gfit.history = g_slist_append(gfit.history, strdup(log));
 	free(args);
-	*args->retval = 0;
-	return *args->retval;
+	return 0;
 }
