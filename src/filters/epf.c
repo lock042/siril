@@ -112,10 +112,9 @@ int edge_preserving_filter(struct epfargs *args) {
 	}
 
 	// cv::BilateralFilter() only works on 8u and 32f images, so we convert 16-bit to 32-bit
-	size_t ndata;
+	size_t ndata = fit->rx * fit->ry * fit->naxes[2];
 	data_type orig_type = fit->type;
 	if (orig_type == DATA_USHORT) {
-		ndata = fit->rx * fit->ry * fit->naxes[2];
 		fit_replace_buffer(fit, ushort_buffer_to_float(fit->data, ndata), DATA_FLOAT);
 	}
 	fits orig = { 0 }; // for use with modulation
@@ -130,7 +129,7 @@ int edge_preserving_filter(struct epfargs *args) {
 			cvBilateralFilter(fit, d, eps, sigma_space);
 			break;
 		case EP_GUIDED:
-			guide_roi = malloc(sizeof(fits));
+			guide_roi = calloc(1, sizeof(fits));
 			roi_fitting_needed = (fit == &gui.roi.fit && guide != &gui.roi.fit && gui.roi.active);
 			if (roi_fitting_needed)
 				match_guide_to_roi(guide, guide_roi);
