@@ -189,37 +189,6 @@ int unsharp(fits *fit, double sigma, double amount, gboolean verbose) {
 	return 0;
 }
 
-int bilateral(fits *fit, double d, double sigma_col, double sigma_space, gboolean verbose) {
-	struct timeval t_start, t_end;
-	if (sigma_col <= 0.0 || sigma_space <= 0.0)
-		return 1;
-	if (verbose) {
-		siril_log_color_message(_("Bilateral filter: processing...\n"), "green");
-		gettimeofday(&t_start, NULL);
-	}
-	sigma_col = sigma_col / 100.0;
-
-	// cv::BilateralFilter() only works on 8u and 32f images, so we convert 16-bit to 32-bit
-	size_t ndata;
-	data_type orig_type = fit->type;
-	if (orig_type == DATA_USHORT) {
-		ndata = fit->rx * fit->ry * fit->naxes[2];
-		fit_replace_buffer(fit, ushort_buffer_to_float(fit->data, ndata), DATA_FLOAT);
-	}
-
-	cvBilateralFilter(fit, d, sigma_col, sigma_space);
-
-	if (orig_type == DATA_USHORT) {
-		fit_replace_buffer(fit, float_buffer_to_ushort(fit->fdata, ndata), DATA_USHORT);
-	}
-
-	if (verbose) {
-		gettimeofday(&t_end, NULL);
-		show_time(t_start, t_end);
-	}
-	return 0;
-}
-
 /* This entropy function computes the entropy for the image in gfit for its
  * layer 'layer', in the area designated by area which can be NULL.
  * An optional imstats parameter can be used to provide the background and

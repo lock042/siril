@@ -82,7 +82,7 @@
 #include "gui/preferences.h"
 #include "filters/asinh.h"
 #include "filters/banding.h"
-#include "filters/bilat.h"
+#include "filters/epf.h"
 #include "filters/nlbayes/call_nlbayes.h"
 #include "filters/clahe.h"
 #include "filters/cosmetic_correction.h"
@@ -1072,10 +1072,11 @@ int process_epf(int nb) {
 	ep_filter_t filter = EP_BILATERAL;
 	gchar *filename = NULL;
 	fits *guidefit = NULL;
+	fits *fit = &gfit;
 
 	for (int i = 1 ; i < nb ; i++) {
 		gchar *arg = word[i];
-		if (g_str_has_prefix(arg, "-guided")) {
+		if (g_strcmp0(arg, "-guided")) {
 			filter = EP_GUIDED;
 		}
 		else if (g_str_has_prefix(arg, "-guideimage=")) {
@@ -1108,7 +1109,7 @@ int process_epf(int nb) {
 		else if (g_str_has_prefix(arg, "-si=")) {
 			gchar *val = arg + 4;
 			sigma_col = g_ascii_strtod(val, &end);
-			if (end == val || sigma_col <= 0.0 || sigma_col > 65535) {
+			if (end == val) {
 				siril_log_color_message(_("Invalid argument %s, aborting.\n"), "red", arg);
 				g_free(filename);
 				return CMD_ARG_ERROR;
@@ -1117,24 +1118,38 @@ int process_epf(int nb) {
 		else if (g_str_has_prefix(arg, "-ss=")) {
 			gchar *val = arg + 4;
 			sigma_space = g_ascii_strtod(val, &end);
-			if (end == val || sigma_space <= 0.0 || sigma_space > 32) {
+			if (end == val) {
 				siril_log_color_message(_("Invalid argument %s, aborting.\n"), "red", arg);
 				g_free(filename);
 				return CMD_ARG_ERROR;
 			}
-			if (sigma_space > 20.0 && d == 0)
-				siril_log_color_message(_("Warning: spatial sigma > approx. 20 with auto diameter may result in lengthy execution times.\n"), "salmon");
 		}
 	}
+	if (sigma_col <= 0.0 || sigma_col > 65535) {
+		 siril_log_color_message(_("-si= value must be > 0.0 and <= 65535\n"), "red");
+		 g_free(filename);
+		 return CMD_ARG_ERROR;
+	}
+	if (d < 0.0 || d > 20.0) {
+		 siril_log_color_message(_("-d= value must be > 0.0 and <= 20.0\n"), "red");
+		 g_free(filename);
+		 return CMD_ARG_ERROR;
+	}
+	if (sigma_space <= 0.0 || sigma_space > 32.0) {
+		 siril_log_color_message(_("-ss= value must be > 0.0 and <= 32.0\n"), "red");
+		 g_free(filename);
+		 return CMD_ARG_ERROR;
+	}
+	if (sigma_space > 20.0 && d == 0)
+			siril_log_color_message(_("Warning: spatial sigma > approx. 20 with auto diameter may result in lengthy execution times.\n"), "salmon");
+	if (mod <= 0.0 || mod > 1.0) {
+		 siril_log_color_message(_("-mod= value must be > 0.0 and <= 1.0\n"), "red");
+		 g_free(filename);
+		 return CMD_ARG_ERROR;
+	}
+
 	if (filter == EP_GUIDED && filename != NULL) {
-		if (!guidefit) {
-			guidefit = calloc(1, sizeof(fits));
-		} else {
-			clearfits(guidefit);
-			free(guidefit);
-			guidefit = NULL;
-			g_free(filename);
-		}
+		guidefit = calloc(1, sizeof(fits));
 		if (readfits(filename, guidefit, NULL, FALSE)) {
 			siril_log_color_message(_("Error: guide image could not be loaded"), "red");
 			clearfits(guidefit);
@@ -1150,19 +1165,31 @@ int process_epf(int nb) {
 			return CMD_ARG_ERROR;
 		}
 	}
-	if (filter == EP_GUIDED && d < 0.0) {
+	if (filter == EP_GUIDED && d == 0.0) {
 		siril_log_color_message(_("Warning: d = 0.0 cannot be used to specify automatic diameter when using a guided filter. Setting d to default value of 5.\n"), "salmon");
 		d = 5.0;
 	}
-	edge_preserving_filter(&(gfit), guidefit, d, sigma_col, sigma_space, mod, filter, TRUE);
-
-	char log[90];
-	if (filter == EP_BILATERAL) {
-		sprintf(log, "Bilateral filtering, d: %.2f, sigma(color): %.2f, sigma(spatial): %.2f, modulation: %.2f", d, sigma_col, sigma_space, mod);
-	} else {
-		sprintf(log, "Guided filtering, d: %.2f, sigma: %.2f, modulation: %.2f, guide image: %s", d, sigma_col, mod, filename ? filename : "");
+	int retval;
+	struct epfargs *args = calloc(1, sizeof(struct epfargs));
+	*args = (struct epfargs) {.fit = fit,
+							.guidefit = guidefit,
+							.d = d,
+							.sigma_col = sigma_col,
+							.sigma_space = sigma_space,
+							.mod = mod,
+							.filter = filter,
+							.verbose = TRUE,
+							.retval = &retval };
+	start_in_new_thread(epfhandler, args);
+	if (!retval) {
+		char log[90];
+		if (filter == EP_BILATERAL) {
+			sprintf(log, "Bilateral filtering, d: %.2f, sigma(color): %.2f, sigma(spatial): %.2f, modulation: %.2f", d, sigma_col, sigma_space, mod);
+		} else {
+			sprintf(log, "Guided filtering, d: %.2f, sigma: %.2f, modulation: %.2f, guide image: %s", d, sigma_col, mod, filename ? filename : "");
+		}
+		gfit.history = g_slist_append(gfit.history, strdup(log));
 	}
-	gfit.history = g_slist_append(gfit.history, strdup(log));
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 

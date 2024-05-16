@@ -34,7 +34,7 @@ static cv::Mat boxfilter(const cv::Mat &I, int r)
     return result;
 }
 
-static cv::Mat convertTo(const cv::Mat &mat, int depth)
+static cv::Mat convertToIfReq(const cv::Mat &mat, int depth)
 {
     if (mat.depth() == depth)
         return mat;
@@ -91,7 +91,7 @@ private:
 
 cv::Mat GuidedFilterImpl::filter(const cv::Mat &p, int depth)
 {
-    cv::Mat p2 = convertTo(p, Idepth);
+    cv::Mat p2 = convertToIfReq(p, Idepth);
 
     cv::Mat result;
     if (p.channels() == 1)
@@ -109,7 +109,7 @@ cv::Mat GuidedFilterImpl::filter(const cv::Mat &p, int depth)
         cv::merge(pc, result);
     }
 
-    return convertTo(result, depth == -1 ? p.depth() : depth);
+    return convertToIfReq(result, depth == -1 ? p.depth() : depth);
 }
 
 GuidedFilterMono::GuidedFilterMono(const cv::Mat &origI, int r, double eps) : r(r), eps(eps)
@@ -117,7 +117,7 @@ GuidedFilterMono::GuidedFilterMono(const cv::Mat &origI, int r, double eps) : r(
     if (origI.depth() == CV_32F || origI.depth() == CV_64F)
         I = origI.clone();
     else
-        I = convertTo(origI, CV_32F);
+        I = convertToIfReq(origI, CV_32F);
 
     Idepth = I.depth();
 
@@ -147,7 +147,7 @@ GuidedFilterColor::GuidedFilterColor(const cv::Mat &origI, int r, double eps) : 
     if (origI.depth() == CV_32F || origI.depth() == CV_64F)
         I = origI.clone();
     else
-        I = convertTo(origI, CV_32F);
+        I = convertToIfReq(origI, CV_32F);
 
     Idepth = I.depth();
 

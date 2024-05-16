@@ -101,9 +101,9 @@ src_files = [
 
   'filters/asinh.c',
   'filters/banding.c',
-  'filters/bilat.c',
   'filters/clahe.c',
   'filters/cosmetic_correction.c',
+  'filters/epf.c',
   'filters/fft.c',
   'filters/ght.c',
   'filters/median.c',
@@ -205,6 +205,7 @@ src_files = [
   'gui/dialog_preview.c',
   'gui/dialogs.c',
   'gui/documentation.c',
+  'gui/epf.c',
   'gui/fix_xtrans_af.c',
   'gui/histogram.c',
   'gui/keywords_tree.c',

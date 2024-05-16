@@ -193,15 +193,7 @@ static int Mat_to_image(fits *image, Mat *in, Mat *out, void *bgr, int target_rx
 			channel[1].release();
 			channel[2].release();
 		} else {
-			size_t data_size = ndata * sizeof(WORD);
-			WORD *newdata = (WORD *) malloc(data_size);
-			if (!newdata) {
-				PRINT_ALLOC_ERR;
-				out->release();
-				return 1;
-			}
-			image->data = newdata;
-			memcpy(image->data, out->data, data_size);
+			image->data = (WORD *)out->data;
 			image->pdata[RLAYER] = image->data;
 			image->pdata[GLAYER] = image->data;
 			image->pdata[BLAYER] = image->data;
@@ -232,15 +224,7 @@ static int Mat_to_image(fits *image, Mat *in, Mat *out, void *bgr, int target_rx
 			channel[1].release();
 			channel[2].release();
 		} else {
-			size_t data_size = ndata * sizeof(float);
-			float *newdata = (float *) malloc(data_size);
-			if (!newdata) {
-				PRINT_ALLOC_ERR;
-				out->release();
-				return 1;
-			}
-			image->fdata = newdata;
-			memcpy(image->fdata, out->data, data_size);
+			image->fdata = (float *) out->data;
 			image->fpdata[RLAYER] = image->fdata;
 			image->fpdata[GLAYER] = image->fdata;
 			image->fpdata[BLAYER] = image->fdata;

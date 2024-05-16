@@ -597,8 +597,8 @@ void asinh_activate(GSimpleAction *action, GVariant *parameter, gpointer user_da
 	siril_open_dialog("asinh_dialog");
 }
 
-void bilat_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	siril_open_dialog("bilat_dialog");
+void epf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("epf_dialog");
 }
 void starnet_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("starnet_dialog");
