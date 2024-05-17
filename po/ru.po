@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-03-28 07:46+0100\n"
-"PO-Revision-Date: 2024-05-07 02:37+0000\n"
+"PO-Revision-Date: 2024-05-17 19:23+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application-1-2/ru/>\n"
@@ -5463,12 +5463,12 @@ msgstr ""
 "следующую структуру:\n"
 "\n"
 "* Строка <i>P x y тип</i> исправляет пиксель с координатами x, y. Тип это "
-"произвольный символ (<i>C</i> или <i>H</i>), указывающий Siril холодный "
+"необязательный символ (<i>C</i> или <i>H</i>), указывающий Siril холодный "
 "данный пиксель или горячий.\n"
-"* Строка <i>C x 0 тип</i> исправляет дефектную колонку с координатами <i>x</"
-"i>.\n"
-"* Строка <i>L y 0 тип</i> исправляет дефектную строку с координатами <i>y</"
-"i>."
+"* Строка <i>C x 0 тип</i> исправляет дефектную колонку с координатами "
+"<i>x</i>.\n"
+"* Строка <i>L y 0 тип</i> исправляет дефектную строку с координатами "
+"<i>y</i>."
 
 #: src/gui/siril3.glade:21560
 msgid ""
@@ -8393,24 +8393,23 @@ msgstr "Гистограмма"
 
 #: src/gui/siril3.glade:30800
 msgid "Middle button double click"
-msgstr ""
+msgstr "Двойной клик средней кнопкой"
 
 #: src/gui/siril3.glade:30813
-#, fuzzy
 msgid "Zoom to fit"
-msgstr "Отдалить"
+msgstr "Уместить в окне"
 
 #: src/gui/siril3.glade:30814
 msgid "Zoom 100% centred on mouse"
-msgstr ""
+msgstr "100% масштаб в позиции курсора"
 
 #: src/gui/siril3.glade:30815
 msgid "Zoom toggles between fit and 100%"
-msgstr ""
+msgstr "Уместить в окне или 100% масштаб"
 
 #: src/gui/siril3.glade:30830
 msgid "Mouse Behaviour"
-msgstr ""
+msgstr "Поведение мыши"
 
 #: src/gui/siril3.glade:30878
 msgid "Background extraction samples:"
@@ -12015,6 +12014,7 @@ msgid ""
 "Sorting by date could not be done, file %s doesn't have DATE-OBS, not "
 "sorting\n"
 msgstr ""
+"Сортировка по дате невозможна, файл %s не содержит DATE-OBS, не сортируем\n"
 
 #: src/core/command.c:6354 src/core/command.c:6504
 msgid ""
@@ -13806,7 +13806,6 @@ msgstr ""
 "диапазона [<b>low</b>, <b>high</b>]"
 
 #: src/core/command_def.h:77
-#, fuzzy
 msgid ""
 "Same as CONVERT but converts only FITS files found in the current working "
 "directory. This is useful to avoid conversions of JPEG results or other "
@@ -13817,7 +13816,8 @@ msgstr ""
 "Аналогична команде CONVERT, но конвертирует только изображения FITS, "
 "найденные в текущей рабочей директории. Это удобно, чтобы избежать "
 "конвертации файлов JPEG или других файлов, которые могут находиться в "
-"директории"
+"директории. Дополнительный аргумент <b>-date</b> включает сортировку файлов "
+"по дате (DATE-OBS) вместо буквенно-цифровой сортировки по имени"
 
 #: src/core/command_def.h:78
 msgid ""
@@ -17352,7 +17352,7 @@ msgstr "режим показа гистограмы по умолчанию"
 
 #: src/core/settings.c:394
 msgid "Middle mouse button double click zoom action"
-msgstr ""
+msgstr "Изменение масштаба по двойному клику по средней кнопке"
 
 #: src/core/settings.c:395
 msgid "configure background samples color"
@@ -20815,6 +20815,8 @@ msgid ""
 "Normalizing the image data with [%ld, %ld], not suitable for sequence "
 "operations\n"
 msgstr ""
+"Нормализация данных изображения с [%ld, %ld]. Не подходит для операций с "
+"последовательностями\n"
 
 #: src/io/image_format_fits.c:1150
 msgid "Normalizing input data to our float range [0, 1]\n"
