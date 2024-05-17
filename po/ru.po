@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-03-28 07:46+0100\n"
-"PO-Revision-Date: 2024-05-07 01:37+0000\n"
+"PO-Revision-Date: 2024-05-17 19:23+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -368,14 +368,15 @@ msgstr ""
 "не должно быть очень точным, постарайтесь, чтобы ошибка не превышала 20%."
 
 #: src/gui/uifiles/astrometry_dialog.ui:390
-#, fuzzy
 msgid ""
 "Pixel size in microns. The image is assumed to have square pixels. Value is "
 "already multiplied by the camera binning if the \"Real pixel size\" box is "
 "checked in the Tool->Image Information dialog box."
 msgstr ""
 "Размер пикселя в микрометрах. Предполагается, что изображение сформировано "
-"квадратными пикселями. Значение уже умножено на биннинг камеры."
+"квадратными пикселями. Значение уже умножено на биннинг камеры, если "
+"установлен флажок \"Реальный размер пикселя\" в диалогом окне Инструменты -> "
+"Данные об изображении..."
 
 #: src/gui/uifiles/astrometry_dialog.ui:409
 msgid "Focal length (mm):"
@@ -517,23 +518,20 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/astrometry_dialog.ui:660
-#, fuzzy
 msgid "Siril solver"
-msgstr "Решатель"
+msgstr "Решатель Siril"
 
 #: src/gui/uifiles/astrometry_dialog.ui:661
-#, fuzzy
 msgid "Astrometry.net (local)"
-msgstr "Решатель Astrometry.net"
+msgstr "Astrometry.net (локально)"
 
 #: src/gui/uifiles/astrometry_dialog.ui:674
 msgid "Radius used by the solver to search around the target."
 msgstr ""
 
 #: src/gui/uifiles/astrometry_dialog.ui:695
-#, fuzzy
 msgid "Search radius:"
-msgstr "Внешний радиус:"
+msgstr "Радиус поиска:"
 
 #: src/gui/uifiles/astrometry_dialog.ui:704
 msgid "disable near search"
@@ -544,24 +542,30 @@ msgid ""
 "Tick this box to disable searching around target position with Siril "
 "internal solver."
 msgstr ""
+"Установите этот флажок, для отключения поиска вокруг положения цели при "
+"решении с помощью встроенного решателя Siril."
 
 #: src/gui/uifiles/astrometry_dialog.ui:727
 msgid "Ignore position (blind solve)"
-msgstr ""
+msgstr "Игнорировать положение (решение вслепую)"
 
 #: src/gui/uifiles/astrometry_dialog.ui:731
 msgid ""
 "Tick this box to ignore target position when solving with local Astrometry."
 "net"
 msgstr ""
+"Установите этот флажок, чтобы игнорировать положение цели при решении с "
+"помощью локального Astrometry.net"
 
 #: src/gui/uifiles/astrometry_dialog.ui:743
 msgid "Ignore sampling (blind solve)"
-msgstr ""
+msgstr "Игнорировать масштаб (решение вслепую)"
 
 #: src/gui/uifiles/astrometry_dialog.ui:747
 msgid "Tick this box to ignore sampling when solving with local Astrometry.net"
 msgstr ""
+"Установите этот флажок, чтобы игнорировать масштаб при решении с помощью "
+"локального Astrometry.net"
 
 #: src/gui/uifiles/astrometry_dialog.ui:805
 msgid "Image Parameters"
@@ -593,9 +597,8 @@ msgstr ""
 "зрения."
 
 #: src/gui/uifiles/astrometry_dialog.ui:882
-#, fuzzy
 msgid "Star Catalogue: "
-msgstr "Удалённый каталог звёзд: "
+msgstr "Каталог звёзд: "
 
 #: src/gui/uifiles/astrometry_dialog.ui:894
 msgid ""
@@ -644,13 +647,12 @@ msgstr ""
 "37 миллионов звёзд примерно от 7-й до 17-й звёздной величины."
 
 #: src/gui/uifiles/astrometry_dialog.ui:923
-#, fuzzy
 msgid ""
 "The catalogue is automatically determined using the approximation of the "
 "Field Of View and magnitude."
 msgstr ""
-"Удалённый каталог определяется автоматически, исходя из оценки поля зрения и "
-"звёздной величины."
+"Каталог определяется автоматически, исходя из оценки поля зрения и звёздной "
+"величины."
 
 #: src/gui/uifiles/astrometry_dialog.ui:938
 msgid ""
@@ -690,17 +692,17 @@ msgid "Star Detection"
 msgstr "Определение звёзд"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1015
-#, fuzzy
 msgid "Solve whole sequence"
-msgstr "Найти последовательности"
+msgstr "Решить всю последовательность"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1019
 msgid "Tick this box to solve the whole sequence."
 msgstr ""
+"Установите этот флажок, чтобы найти решение для всей последовательности."
 
 #: src/gui/uifiles/astrometry_dialog.ui:1031
 msgid "Skip already solved images"
-msgstr ""
+msgstr "Пропустить уже решённые изображения"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1035
 msgid ""
@@ -709,9 +711,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/astrometry_dialog.ui:1048
-#, fuzzy
 msgid "Fetch stars for each image"
-msgstr "Получено %d звёзд из %s каталога\n"
+msgstr "Получить звёзды для каждого изображения"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1052
 msgid ""
@@ -8287,12 +8288,12 @@ msgstr ""
 "следующую структуру:\n"
 "\n"
 "* Строка <i>P x y тип</i> исправляет пиксель с координатами x, y. Тип это "
-"произвольный символ (<i>C</i> или <i>H</i>), указывающий Siril холодный "
+"необязательный символ (<i>C</i> или <i>H</i>), указывающий Siril холодный "
 "данный пиксель или горячий.\n"
-"* Строка <i>C x 0 тип</i> исправляет дефектную колонку с координатами <i>x</"
-"i>.\n"
-"* Строка <i>L y 0 тип</i> исправляет дефектную строку с координатами <i>y</"
-"i>."
+"* Строка <i>C x 0 тип</i> исправляет дефектную колонку с координатами "
+"<i>x</i>.\n"
+"* Строка <i>L y 0 тип</i> исправляет дефектную строку с координатами "
+"<i>y</i>."
 
 #: src/gui/uifiles/siril.ui:4987
 msgid ""
@@ -12316,7 +12317,7 @@ msgstr ""
 
 #: src/algos/photometric_cc.c:426
 msgid "B/G"
-msgstr ""
+msgstr "B/G"
 
 #: src/algos/photometric_cc.c:452
 msgid ""
@@ -12440,7 +12441,7 @@ msgstr ""
 
 #: src/algos/photometric_cc.c:876
 msgid "SPCC"
-msgstr ""
+msgstr "SPCC"
 
 #: src/algos/photometric_cc.c:876
 msgid "PCC"
@@ -14538,6 +14539,7 @@ msgid ""
 "Sorting by date could not be done, file %s doesn't have DATE-OBS, not "
 "sorting\n"
 msgstr ""
+"Сортировка по дате невозможна, файл %s не содержит DATE-OBS, не сортируем\n"
 
 #: src/core/command.c:6616 src/core/command.c:6766
 msgid ""
@@ -15449,12 +15451,14 @@ msgid "Color space conversion complete.\n"
 msgstr "Преобразование цветового пространства завершено.\n"
 
 #: src/core/command.c:10053
+#, fuzzy
 msgid "OSC Sensors"
-msgstr ""
+msgstr "Цветные сенсоры"
 
 #: src/core/command.c:10056
+#, fuzzy
 msgid "Mono Sensors"
-msgstr ""
+msgstr "Монохромные сенсоры"
 
 #: src/core/command.c:10059
 msgid "Red Filters"
@@ -16704,7 +16708,6 @@ msgstr ""
 "диапазона [<b>low</b>, <b>high</b>]"
 
 #: src/core/command_def.h:84
-#, fuzzy
 msgid ""
 "Same as CONVERT but converts only FITS files found in the current working "
 "directory. This is useful to avoid conversions of JPEG results or other "
@@ -16715,7 +16718,8 @@ msgstr ""
 "Аналогична команде CONVERT, но конвертирует только изображения FITS, "
 "найденные в текущей рабочей директории. Это удобно, чтобы избежать "
 "конвертации файлов JPEG или других файлов, которые могут находиться в "
-"директории"
+"директории. Дополнительный аргумент <b>-date</b> включает сортировку файлов "
+"по дате (DATE-OBS) вместо буквенно-цифровой сортировки по имени"
 
 #: src/core/command_def.h:85
 msgid ""
@@ -19683,12 +19687,14 @@ msgid ""
 msgstr ""
 
 #: src/core/icc_profile.c:1464
+#, fuzzy
 msgid "CIE x"
-msgstr ""
+msgstr "CIE x"
 
 #: src/core/icc_profile.c:1467
+#, fuzzy
 msgid "CIE y"
-msgstr ""
+msgstr "CIE y"
 
 #: src/core/icc_profile.c:1469
 msgid "Color profile"
@@ -19700,8 +19706,9 @@ msgid "Color profile whitepoint"
 msgstr "Назначение цветового профиля"
 
 #: src/core/icc_profile.c:1477
+#, fuzzy
 msgid "CIE 1931"
-msgstr ""
+msgstr "CIE 1931"
 
 #: src/core/icc_profile.c:1482
 #, fuzzy
@@ -20829,7 +20836,7 @@ msgstr ""
 
 #: src/core/settings.c:468
 msgid "Middle mouse button double click zoom action"
-msgstr ""
+msgstr "Изменение масштаба по двойному клику по средней кнопке"
 
 #: src/core/settings.c:469
 msgid "configure background samples color"
@@ -22196,8 +22203,9 @@ msgstr ""
 
 #. 3rd element, another label
 #: src/gui/compstars.c:95
+#, fuzzy
 msgid ".csv"
-msgstr ""
+msgstr ".csv"
 
 #: src/gui/compstars.c:101
 #, fuzzy
@@ -25128,6 +25136,8 @@ msgid ""
 "Normalizing the image data with [%ld, %ld], not suitable for sequence "
 "operations\n"
 msgstr ""
+"Нормализация данных изображения с [%ld, %ld]. Не подходит для операций с "
+"последовательностями\n"
 
 #: src/io/image_format_fits.c:1051
 msgid "Normalizing input data to our float range [0, 1]\n"
