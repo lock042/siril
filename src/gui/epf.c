@@ -296,10 +296,10 @@ void on_spin_epf_sigma_spatial_value_changed(GtkSpinButton *button, gpointer use
 void on_epf_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 	if (!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("epf_preview")))) {
 		copy_backup_to_gfit();
+		clear_backup();
 		redraw(REMAP_ALL);
 	} else {
 		copy_gfit_to_backup();
-
 		update_image *param = malloc(sizeof(update_image));
 		param->update_preview_fn = epf_update_preview;
 		param->show_preview = TRUE;
