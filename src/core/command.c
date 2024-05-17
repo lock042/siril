@@ -7808,7 +7808,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		args.maximize_framing = FALSE;
 	}
 	if (!args.maximize_framing && must_reframe) {
-		siril_log_color_message(_("The sequence has different image sizes and registration data. Forcing to naximize framing\n"), "red");
+		siril_log_color_message(_("The sequence has different image sizes and registration data. Forcing to maximize framing\n"), "red");
 		args.maximize_framing = TRUE;
 	}
 	if (!can_reframe && seq->is_variable) {

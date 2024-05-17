@@ -1432,7 +1432,7 @@ gboolean check_seq_is_variable(sequence *seq) {
 	int rx = seq->imgparam[0].rx;
 	int ry = seq->imgparam[0].ry;
 	for (int i = 1; i < seq->number; i++) {
-		if (seq->imgparam[1].rx != rx || seq->imgparam[1].ry != ry)
+		if (seq->imgparam[i].rx != rx || seq->imgparam[i].ry != ry)
 			return TRUE;
 	}
 	return FALSE;

@@ -334,7 +334,6 @@ static void rearrange_block_data(void *buffer, data_type itype, int rx, int ry, 
 	size_t dst = (ry - 1) * full_stride;
 	for (int j = ry - 1 ; j >= 0; j--) { // we start from the end of the array to rearrange in place
 		// using memmove instead of memcpy to avoid error in case of overlap
-		// Is it optimized or should we evaluate if overlap happens?
 		memmove(buffer + dst, buffer + src, img_stride); 
 		memset(buffer + dst + img_stride, 0, padding_stride);
 		src -= img_stride;
