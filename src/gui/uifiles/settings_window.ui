@@ -1238,6 +1238,8 @@ user Catalog</property>
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
                                             <property name="tooltip-text" translatable="yes">Enter your nearest IAU observatory code to use by default to improve accuracy in solar system cone searches. A full list can be found at https://minorplanetcenter.net/iau/lists/ObsCodesF.html</property>
+                                            <property name="halign">center</property>
+                                            <property name="valign">center</property>
                                             <property name="max-length">3</property>
                                             <property name="width-chars">5</property>
                                             <property name="max-width-chars">5</property>
