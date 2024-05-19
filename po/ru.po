@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-03-28 07:46+0100\n"
-"PO-Revision-Date: 2024-05-17 19:23+0000\n"
+"PO-Revision-Date: 2024-05-19 01:03+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -5557,15 +5557,14 @@ msgid "Default degree of the polynomial correction:"
 msgstr "Степень полиномиальной коррекции по умолчанию:"
 
 #: src/gui/uifiles/settings_window.ui:1576
-#, fuzzy
 msgid ""
 "Astrometry solvers can use a polynomial correction (SIP) to work with "
 "optical aberrations, this is the default order of the polynomial model. Set "
 "to 1 to disable it."
 msgstr ""
-"Astrometry.net может использовать полиномиальную коррекцию (SIP) для работы "
-"с оптическими искажениями. Это степень полиномиальной модели по умолчанию. "
-"Значения 0 или 1 отключают коррекцию."
+"Астрометрические решатели могут использовать полиномиальную коррекцию (SIP) "
+"для работы с оптическими искажениями. Это степень полиномиальной модели по "
+"умолчанию. Значение 1 отключает коррекцию."
 
 #: src/gui/uifiles/settings_window.ui:1579
 msgid "3"
@@ -11211,11 +11210,8 @@ msgid "%s solve succeeded.\n"
 msgstr "Успешное локальное решение astrometry.net\n"
 
 #: src/algos/astrometry_solver.c:498
-#, fuzzy
 msgid "The image could not be aligned with the reference stars\n"
-msgstr ""
-"Астрономическое решение не найдено. Изображение не может быть выравнено по "
-"опорным звёздам.\n"
+msgstr "Изображение не может быть выравнено по опорным звёздам.\n"
 
 #: src/algos/astrometry_solver.c:500
 msgid "Cancelled\n"
@@ -11386,14 +11382,14 @@ msgid "Flipping image and updating astrometry data.\n"
 msgstr "Переворачиваем изображение и обновляем данные астрометрии.\n"
 
 #: src/algos/astrometry_solver.c:1056
-#, fuzzy, c-format
+#, c-format
 msgid "Plate solving warning: %s"
-msgstr "Астрономическое решение не найдено %s\n"
+msgstr "Предупреждение астрономического решателя: %s"
 
 #: src/algos/astrometry_solver.c:1058
-#, fuzzy, c-format
+#, c-format
 msgid "Plate solving failed: %s"
-msgstr "Астрономическое решение не найдено %s\n"
+msgstr "Астрономическое решение не найдено: %s"
 
 #: src/algos/astrometry_solver.c:1164
 msgid "Near solver started"
@@ -11431,13 +11427,13 @@ msgstr ""
 "радиуса %s° для масштабов [%s, %s]\n"
 
 #: src/algos/astrometry_solver.c:1671
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Astrometry.net solving with a search field at RA: %s, Dec: %s, within a %s "
 "degrees radius, blindly for scale\n"
 msgstr ""
 "Решение с помощью astrometry.net для поискового поля с α: %s, δ: %s внутри "
-"радиуса %s° для масштабов [%s, %s]\n"
+"радиуса %s° для масштаба вслепую\n"
 
 #: src/algos/astrometry_solver.c:1675
 #, fuzzy, c-format
@@ -11467,10 +11463,9 @@ msgid "Selection is not used in manual star selection mode\n"
 msgstr "Выделение не используется при ручном выборе звёзд\n"
 
 #: src/algos/astrometry_solver.c:1953
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d already platesolved, skipping\n"
-msgstr ""
-"Изображение уже имеет астрономическое решение. Ничего не будет сделано.\n"
+msgstr "Изображение %d уже имеет астрономическое решение, пропускаем\n"
 
 #: src/algos/astrometry_solver.c:1975
 #, c-format
@@ -11499,19 +11494,19 @@ msgid "Image %s did not solve\n"
 msgstr "Астрономическое решение для изображения %s не получено\n"
 
 #: src/algos/astrometry_solver.c:2043
-#, fuzzy, c-format
+#, c-format
 msgid "Image %s platesolved and updated\n"
-msgstr "Изображение загружено и увеличено"
+msgstr "Решение для изображения %s получено и изображение обновлено\n"
 
 #: src/algos/astrometry_solver.c:2045
 #, c-format
 msgid "Image %s platesolved but could not be saved\n"
-msgstr ""
+msgstr "Решение для изображения %s получено, но не может быть сохранено\n"
 
 #: src/algos/astrometry_solver.c:2051
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d platesolved and updated\n"
-msgstr "Изображение загружено и увеличено"
+msgstr "Решение для изображения %d получено и изображение обновлено\n"
 
 #: src/algos/astrometry_solver.c:2062
 #, c-format
@@ -11784,12 +11779,10 @@ msgid "-> %i %s stars found within the image from %s\n"
 msgstr "На изображении не удалось найти звёзды сравнения, прерывание.\n"
 
 #: src/algos/comparison_stars.c:429
-#, fuzzy
 msgid "variable"
 msgstr "переменная"
 
 #: src/algos/comparison_stars.c:429
-#, fuzzy
 msgid "comparison"
 msgstr "сравнения"
 
@@ -23465,7 +23458,7 @@ msgstr ""
 #: src/gui/photometric_cc.c:811 src/gui/photometric_cc.c:826
 #, c-format
 msgid "SPCC Data: %s"
-msgstr ""
+msgstr "Данные SPCC: %s"
 
 #: src/gui/photometric_cc.c:813 src/gui/photometric_cc.c:829
 msgid "Quantum Efficiency"
@@ -26288,18 +26281,16 @@ msgid "Confirm"
 msgstr "Подтвердить"
 
 #: src/io/siril_git.c:950
-#, fuzzy
 msgid "Error! Script database failed to update."
-msgstr "Ошибка! Не удалось обновить базу данных SPCC."
+msgstr "Ошибка! Не удалось обновить базу сценариев."
 
 #: src/io/siril_git.c:954 src/io/siril_git.c:1003
 msgid "Update cancelled. Updates have not been applied."
 msgstr "Обновление отменено. Обновления не были применены."
 
 #: src/io/siril_git.c:958
-#, fuzzy
 msgid "The script repository is up to date."
-msgstr "Репозиторий spcc-database в актуальном состоянии."
+msgstr "Репозиторий сценариев в актуальном состоянии."
 
 #: src/io/siril_git.c:975
 msgid ""
