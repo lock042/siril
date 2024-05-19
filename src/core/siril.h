@@ -242,10 +242,6 @@ typedef enum {
 	OPENCV_NONE = 5 // this one will use the pixel-wise shift transform w/o opencv
 } opencv_interpolation;
 
-typedef enum {
-	OPENCV_PLANE = 0,
-	OPENCV_SPHERICAL = 1
-} opencv_projector;
 
 typedef enum {
 	SEQ_REGULAR, SEQ_SER, SEQ_FITSEQ,
@@ -364,8 +360,6 @@ struct sequ {
 	/* registration previsualisation and manual alignment data */
 	int previewX[PREVIEW_NB], previewY[PREVIEW_NB];	// center, -1 is uninitialized value
 	int previewW[PREVIEW_NB], previewH[PREVIEW_NB];	// 0 is uninitialized value
-
-	double upscale_at_stacking;// up-scale factor during stacking (see #215)
 
 	gboolean needs_saving;	// a dirty flag for the sequence, avoid saving it too often
 	gboolean reg_invalidated; // a flag to detect if regframe can be plotted

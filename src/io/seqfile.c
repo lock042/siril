@@ -51,8 +51,10 @@
  * version 2 allowed regdata to be stored for CFA SER sequences, 0.9.11
  * version 3 introduced new weighted fwhm criteria, 0.99.0
  * version 4 introduced variable size sequences, extended registration data (incl. H), 1.1.0
+ * version 5:
+ * 	- removed upscale at stacking (U card)
  */
-#define CURRENT_SEQFILE_VERSION 4	// to increment on format change
+#define CURRENT_SEQFILE_VERSION 5	// to increment on format change
 
 /* File format (lines starting with # are comments, lines that are (for all
  * something) need to be in all in sequence of this only type of line):
@@ -62,7 +64,7 @@
  * (for all images) I filenum incl [width,height] [stats+] <- stats added at some point, removed in 0.9.9
  * (for all layers (x)) Rx regparam+
  * TS | TA | TF (type for ser or film (avi) or fits)
- * U up-scale_ratio
+ * U up-scale_ratio -> discarded in v5
  * (for all images (y) and layers (x)) Mx-y stats+
  */
 
@@ -335,6 +337,7 @@ sequence * readseqfile(const char *name){
 				}
 				else {
 					// version 4 without shifts and with homography matrix
+					// version 5
 					if (sscanf(line+3, "%g %g %g %lg %g %d H %lg %lg %lg %lg %lg %lg %lg %lg %lg",
 								&(regparam[i].fwhm),
 								&(regparam[i].weighted_fwhm),
@@ -462,15 +465,8 @@ sequence * readseqfile(const char *name){
 #endif
 				break;
 
-			case 'U':
-				/* up-scale factor for stacking. Used in simplified stacking for
-				 * shift-only registrated sequences, up-scale will be done at
-				 * stack-time. */
-				if (line[1] == ' ' &&
-						sscanf(line+2, "%lg", &seq->upscale_at_stacking) != 1) {
-					fprintf(stderr,"readseqfile: sequence file format error: %s\n",line);
-					goto error;
-				}
+			case 'U': // for versions up to 4
+				siril_log_message(_("Seq file had info to upscale at stacking. This must now be passed as a stacking option\n"));
 				break;
 			case 'M':
 				/* stats may not exist for all images and layers so we use
@@ -614,11 +610,6 @@ int writeseqfile(sequence *seq){
 		}
 		/* sequence type, not needed for regular, S for ser, A for avi */
 		fprintf(seqfile, "T%c\n", type);
-	}
-
-	if (seq->upscale_at_stacking != 1.0) {
-		// until we have a real drizzle
-		fprintf(seqfile, "U %g\n", seq->upscale_at_stacking);
 	}
 
 	fprintf(seqfile, "L %d\n", seq->nb_layers);

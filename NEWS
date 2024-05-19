@@ -60,6 +60,7 @@ siril 1.4.0 xx xx, xx
 * Fixed bug where Bayer pattern was not read as needed for seqpsf (#1297)
 * Updated SPCC handling of mono filters applicable to >1 channel (!667)
 * Added preference for closest IAU observatory code(!669)
+* Changed max framing mode to avoid large black borders after registration, this is now handled at stacking step (!670)
 
 siril 1.2.2 xx xx, 2024
 * Removed background extraction samples after using it in script (#1265)
