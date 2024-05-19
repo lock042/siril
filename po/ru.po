@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-03-28 07:46+0100\n"
-"PO-Revision-Date: 2024-05-17 19:23+0000\n"
+"PO-Revision-Date: 2024-05-19 20:29+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application-1-2/ru/>\n"
@@ -9132,7 +9132,7 @@ msgstr "Включается мультипотоковая поддержка F
 #: src/gui/single_image.c:82
 #, c-format
 msgid "No sequence `%s' found.\n"
-msgstr "Не найдена последовательность `%s'.\n"
+msgstr "Последовательность `%s' не найдена.\n"
 
 #: src/algos/annotate.c:150 src/algos/annotate.c:204
 #: src/core/command_line_processor.c:570 src/core/preprocess.c:627
