@@ -193,6 +193,11 @@ typedef struct configurable_colors_param {
 	gchar* color_tmp_annotations;
 } configurable_colors;
 
+struct mouse_config {
+	GSList* mouse_actions_array;
+	GSList* scroll_actions_array;
+};
+
 struct gui_config {
 	gchar *first_start;		// use to display information at first use
 	gboolean silent_quit;
@@ -234,6 +239,7 @@ struct gui_config {
 	gboolean enable_roi_warning; // Whether to notify when a ROI-enabled dialog starts
 	configurable_colors config_colors; // This used to configure some colors in Siril
 	mmb_action_t mmb_action; // Defines middle mouse button double click behaviour
+	struct mouse_config mouse_cfg; // String representation of mouse & scroll actions
 };
 
 // TODO: is any of the following used for something else than providing the default GUI value?

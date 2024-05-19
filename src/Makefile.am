@@ -279,6 +279,9 @@ siril_common_SOURCES = \
 	gui/merge_cfa.c \
 	gui/message_dialog.c \
 	gui/message_dialog.h \
+	gui/mouse_action_functions.c \
+	gui/mouse_action_functions.h \
+	gui/mouse_action_preferences.c \
 	gui/newdeconv.c \
 	gui/nina_light_curve.c \
 	gui/nina_light_curve.h \

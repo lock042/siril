@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0 
+<!-- Generated with glade 3.40.0
 
 Copyright (C) The free-astro development team, 2019-2023
 
@@ -4691,7 +4691,7 @@ This value is the mean of the master flat calibrated with the master offset.</pr
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
                                                         <property name="tooltip-markup" translatable="yes">Dark subtraction can be optimized. Siril offers two ways of doing this.
-- The first method automatically evaluates the coefficients to be applied so that the noise of the resulting image (light image minus dark image) is minimized. 
+- The first method automatically evaluates the coefficients to be applied so that the noise of the resulting image (light image minus dark image) is minimized.
 - The second method takes into account exposure times if these have been entered by the capture software.
 
 Dark optimization is useful when dark images have not been captured under optimal conditions. It compensates for differences in temperature and/or exposure time between dark and light images.
