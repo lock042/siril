@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-03-28 07:46+0100\n"
-"PO-Revision-Date: 2024-05-19 01:03+0000\n"
+"PO-Revision-Date: 2024-05-19 11:29+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -10190,12 +10190,10 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/s_pcc_dialog.ui:760
-#, fuzzy
 msgid "SPCC Parameters"
 msgstr "Параметры спектофотометрической калибровки"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:838
-#, fuzzy
 msgid ""
 "Choose the online catalogue against one want to compare the image and "
 "compute photometry.\n"
@@ -10223,7 +10221,12 @@ msgstr ""
 "* APASS, фотометрический обзор всего неба Американской ассоциации "
 "наблюдателей переменных звёзд (AAVSO). Обзор выполняется в восьми фильтрах: "
 "Johnson B и V, Sloan u', g′, r′, i′, z_s и Z. Он действителен для более чем "
-"37 миллионов звёзд примерно от 7-й до 17-й звёздной величины."
+"37 миллионов звёзд примерно от 7-й до 17-й звёздной величины.\n"
+"* Третий релиз данных Gaia был представлен 13 июня 2022. Содержит данные "
+"фотометрии для приблизительно 1,46 миллиарда источников с приделом звёздной "
+"величины G = 21. Использованы различные фильтры из Johnson B и V, однако "
+"эффективная температура источника измерена на основе его спектра и Siril "
+"использует эту эффективную температуры для фотометрической калибровки цвета."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:845 src/io/siril_catalogues.c:247
 msgid "APASS"
@@ -11162,28 +11165,26 @@ msgstr ""
 "обновлены...\n"
 
 #: src/main.c:303
-#, fuzzy
 msgid ""
 "Online SPCC-database repository not enabled. Not fetching or updating siril-"
 "spcc-database...\n"
 msgstr ""
-"Удалённый репозиторий сценариев выключен. Сценарии не будут получены или "
-"обновлены...\n"
+"Удалённый репозиторий SPCC-database выключен. siril-spcc-database не будет "
+"получена или обновлена...\n"
 
 #: src/main.c:305
-#, fuzzy
 msgid ""
 "Siril was compiled without libgit2 support. Remote repositories cannot be "
 "automatically fetched...\n"
 msgstr ""
-"Siril скомпилирован без поддержки работы с сетью, не удалось выполнить эту "
-"операцию\n"
+"Siril скомпилирован без поддержки libgit2. Удалённые репозитории не могут "
+"быть получены автоматически...\n"
 
 #: src/main.c:384 src/core/command.c:7428 src/core/command_line_processor.c:630
 #: src/gui/single_image.c:82
 #, c-format
 msgid "No sequence `%s' found.\n"
-msgstr "Не найдена последовательность `%s'.\n"
+msgstr "Последовательность `%s' не найдена.\n"
 
 #: src/algos/astrometry_solver.c:332
 msgid ""
@@ -11519,9 +11520,9 @@ msgid "(%d were already solved and skipped)\n"
 msgstr ""
 
 #: src/algos/astrometry_solver.c:2076
-#, fuzzy, c-format
+#, c-format
 msgid "File %s updated\n"
-msgstr "Вы работаете с последней версией Siril\n"
+msgstr "Файл %s обновлён\n"
 
 #: src/algos/astrometry_solver.c:2142
 #, c-format
@@ -12788,9 +12789,8 @@ msgid "wavelet_transform_data: bad plane number\n"
 msgstr "wavelet_transform_data: неверный номер слоя\n"
 
 #: src/compositing/align_rgb.c:50
-#, fuzzy
 msgid "Global star registration (deep-sky)"
-msgstr "Регистрация по одной звезде (дальний космос)"
+msgstr "Всё звёздное небо (дальний космос)"
 
 #: src/compositing/align_rgb.c:52
 msgid "KOMBAT registration (planetary / deep-sky)"
@@ -13562,9 +13562,9 @@ msgid "Missing argument to %s, aborting.\n"
 msgstr "Отсутствующий аргумент %s, прерывание.\n"
 
 #: src/core/command.c:1796
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid matrix element (%d, %d) %s, aborting.\n"
-msgstr "Неверный аргумент %s, прерывание.\n"
+msgstr "Неверный элемент матрицы (%d, %d), прерывание.\n"
 
 #: src/core/command.c:1804
 #, fuzzy, c-format
@@ -14493,9 +14493,9 @@ msgid "Save metadata to the JSON file '%s'\n"
 msgstr "Метаданные сохранены в файле JSON '%s'\n"
 
 #: src/core/command.c:6408
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d, %s\n"
-msgstr "Изображение %d: '%s'\n"
+msgstr "Изображение %d, %s\n"
 
 #: src/core/command.c:6426
 msgid "This command can only run for FITS images\n"
@@ -14882,9 +14882,9 @@ msgstr ""
 "Темновая оптимизация: Это процесс нельзя применить к 8-битным изображениям\n"
 
 #: src/core/command.c:8005
-#, fuzzy, c-format
+#, c-format
 msgid "Missing or wrong argument to %s, aborting.\n"
-msgstr "Отсутствующий аргумент %s, прерывание.\n"
+msgstr "Отсутствующий или неверный аргумент %s, прерывание.\n"
 
 #: src/core/command.c:8035
 msgid ""
@@ -15222,9 +15222,8 @@ msgid "position"
 msgstr "Позиция по X"
 
 #: src/core/command.c:9075 src/core/command.c:9110 src/core/command.c:9137
-#, fuzzy
 msgid "resolution"
-msgstr "Разрешение: "
+msgstr "разрешение"
 
 #: src/core/command.c:9083
 msgid ""
@@ -15250,9 +15249,8 @@ msgid "Center position"
 msgstr "Восстановить звёзды"
 
 #: src/core/command.c:9110
-#, fuzzy
 msgid "Pixel size"
-msgstr "Размер пикселя (мкм):"
+msgstr "Размер пикселя"
 
 #: src/core/command.c:9116
 #, c-format
@@ -15276,9 +15274,8 @@ msgid "Using pixel size from image: %.2f\n"
 msgstr "Используется размер пикселя, полученный из изображения: %.2f\n"
 
 #: src/core/command.c:9137
-#, fuzzy
 msgid "Focal length"
-msgstr "Фокусное расстояние / мм"
+msgstr "Фокусное расстояние"
 
 #: src/core/command.c:9143
 #, c-format
@@ -15326,7 +15323,7 @@ msgstr ""
 
 #: src/core/command.c:9302
 msgid "No local catalogues found, ignoring -trix option\n"
-msgstr ""
+msgstr "Локальные каталоги не найдены, игнорируем опцию -trix\n"
 
 #: src/core/command.c:9308
 #, fuzzy
@@ -15444,12 +15441,10 @@ msgid "Color space conversion complete.\n"
 msgstr "Преобразование цветового пространства завершено.\n"
 
 #: src/core/command.c:10053
-#, fuzzy
 msgid "OSC Sensors"
 msgstr "Цветные сенсоры"
 
 #: src/core/command.c:10056
-#, fuzzy
 msgid "Mono Sensors"
 msgstr "Монохромные сенсоры"
 
@@ -17905,7 +17900,6 @@ msgstr ""
 "Полная документация по этой команде доступна в документации к командам"
 
 #: src/core/command_def.h:139
-#, fuzzy
 msgid ""
 "Same command as CCM but for the the sequence <b>sequencename</b>. Only "
 "selected images in the sequence are processed.\n"
@@ -17913,11 +17907,10 @@ msgid ""
 "The output sequence name starts with the prefix \"ccm\" unless otherwise "
 "specified with option <b>-prefix=</b>"
 msgstr ""
-"Аналогична команде COSME, но применяется к последовательности "
-"<b>sequencename</b>. Обрабатываются только выбранные изображения из "
-"последовательности.\n"
+"Аналогична команде CCM, но применяется к последовательности <b>sequencename</"
+"b>. Обрабатываются только выбранные изображения из последовательности.\n"
 "\n"
-"Название итоговой последовательности будет начинаться с префикса \"cosme_\", "
+"Название итоговой последовательности будет начинаться с префикса \"ccm\", "
 "если не указан иной с помощью аргумента <b>-prefix=</b>"
 
 #: src/core/command_def.h:140
@@ -19680,12 +19673,10 @@ msgid ""
 msgstr ""
 
 #: src/core/icc_profile.c:1464
-#, fuzzy
 msgid "CIE x"
 msgstr "CIE x"
 
 #: src/core/icc_profile.c:1467
-#, fuzzy
 msgid "CIE y"
 msgstr "CIE y"
 
@@ -19699,14 +19690,12 @@ msgid "Color profile whitepoint"
 msgstr "Назначение цветового профиля"
 
 #: src/core/icc_profile.c:1477
-#, fuzzy
 msgid "CIE 1931"
 msgstr "CIE 1931"
 
 #: src/core/icc_profile.c:1482
-#, fuzzy
 msgid "Could not load background\n"
-msgstr "недостаточно фона"
+msgstr "Не удалось загрузить фон\n"
 
 #: src/core/initfile.c:58 src/core/initfile.c:69 src/core/initfile.c:89
 #, c-format
@@ -20774,18 +20763,16 @@ msgid "use and sync online scripts repository"
 msgstr "использование и синхронизация удалённого репозитория сценариев"
 
 #: src/core/settings.c:455
-#, fuzzy
 msgid "use and sync spcc-database repository"
-msgstr "использование и синхронизация удалённого репозитория сценариев"
+msgstr "использование и синхронизация удалённого репозитория spcc-database"
 
 #: src/core/settings.c:456
 msgid "auto sync online scripts repository"
 msgstr "автосинхронизация удалённого репозитория сценариев"
 
 #: src/core/settings.c:457
-#, fuzzy
 msgid "auto sync spcc-database repository"
-msgstr "автосинхронизация удалённого репозитория сценариев"
+msgstr "автосинхронизация удалённого репозитория spcc-database"
 
 #: src/core/settings.c:458
 msgid "list of scripts selected from the repository"
@@ -21044,9 +21031,8 @@ msgid "RGB alignment (DFT)"
 msgstr "Выравнивание RGB (DFT)"
 
 #: src/core/siril_actions.c:723
-#, fuzzy
 msgid "RGB alignment (Global stars)"
-msgstr "Выравнивание RGB (DFT)"
+msgstr "Выравнивание RGB (Все звёзды)"
 
 #: src/core/siril_actions.c:728
 msgid "RGB alignment (KOMBAT)"
@@ -22186,9 +22172,8 @@ msgstr ""
 
 #. 1st element, a label
 #: src/gui/compstars.c:82
-#, fuzzy
 msgid "Output file name: "
-msgstr "Итоговые файлы (*%s)"
+msgstr "Название итогового файла: "
 
 #: src/gui/compstars.c:88
 msgid "Change the default file name if needed"
@@ -22196,7 +22181,6 @@ msgstr ""
 
 #. 3rd element, another label
 #: src/gui/compstars.c:95
-#, fuzzy
 msgid ".csv"
 msgstr ".csv"
 
@@ -22210,7 +22194,6 @@ msgid "Variable star data and sorting parameters for catalogue request"
 msgstr ""
 
 #: src/gui/compstars.c:118
-#, fuzzy
 msgid "Enter the target star name to search in catalogues"
 msgstr "Введите название целевой звезды для поиска в каталогах"
 
@@ -25289,9 +25272,9 @@ msgid "Failed\n"
 msgstr ""
 
 #: src/io/local_catalogues.c:833
-#, fuzzy, c-format
+#, c-format
 msgid "Found %d trixels:\n"
-msgstr "Найден %s"
+msgstr "Найдено трикселей %d:\n"
 
 #: src/io/mp4_output.c:453
 msgid ""
