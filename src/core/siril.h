@@ -755,6 +755,8 @@ struct guiinf {
 	layer* comp_layer_centering;	// pointer to the layer to center in RGB compositing tool
 
 	roi_t roi; // Region of interest struct
+	GSList *mouse_actions;
+	GSList *scroll_actions;
 };
 
 struct common_icc {
