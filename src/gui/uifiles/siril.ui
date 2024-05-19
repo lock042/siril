@@ -3396,7 +3396,7 @@ Output is a csv file compatible with NINA Exoplanet</property>
                                 <property name="show-border">False</property>
                                 <property name="scrollable">True</property>
                                 <child>
-                                  <object class="GtkScrolledWindow">
+                                  <object class="GtkScrolledWindow" id="conversion_tab">
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
                                     <property name="hscrollbar-policy">never</property>
@@ -3863,7 +3863,7 @@ Colour image target also applies to the debayer result for conversion.</property
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkScrolledWindow">
+                                  <object class="GtkScrolledWindow" id="sequence_tab">
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
                                     <property name="hscrollbar-policy">never</property>
@@ -4422,7 +4422,7 @@ A first computation pass will be done on all images before exporting, it may tak
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkScrolledWindow">
+                                  <object class="GtkScrolledWindow" id="calibration_tab">
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
                                     <property name="hscrollbar-policy">never</property>
@@ -5225,7 +5225,7 @@ FITS sequence: one FITS file for the whole sequence.</property>
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkScrolledWindow">
+                                  <object class="GtkScrolledWindow" id="registration_tab">
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
                                     <property name="hscrollbar-policy">never</property>
@@ -7479,7 +7479,7 @@ To be enabled, the reference image must have been explicitly set and already dis
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkScrolledWindow">
+                                  <object class="GtkScrolledWindow" id="plot_tab">
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
                                     <property name="hscrollbar-policy">never</property>
@@ -7835,7 +7835,7 @@ Cross marker: the value for the currently loaded frame.</property>
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkScrolledWindow">
+                                  <object class="GtkScrolledWindow" id="stacking_tab">
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
                                     <property name="hscrollbar-policy">never</property>
@@ -9076,7 +9076,7 @@ WARNING: This option should not be checked for master stacking.</property>
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkScrolledWindow">
+                                  <object class="GtkScrolledWindow" id="console_tab">
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
                                     <property name="hscrollbar-policy">never</property>
