@@ -527,7 +527,6 @@ COG - frame to the centre of gravity of the pixels in the set of aligned images.
                 <property name="active">2</property>
                 <items>
                   <item translatable="yes">First channel</item>
-                  <item translatable="yes">Max</item>
                   <item translatable="yes">Min</item>
                   <item translatable="yes">COG</item>
                 </items>

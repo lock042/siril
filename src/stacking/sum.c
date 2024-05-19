@@ -41,12 +41,16 @@ struct sum_stacking_data {
 	int ref_image;		// reference image index in the stacked sequence
 	gboolean input_32bits;	// input is a sequence of 32-bit float images
 	gboolean output_32bits;	// output a 32-bit float image instead of the default ushort
+	gboolean maximize_framing; // outputs an image that encompasses all frames including registration
+	gboolean upscale_at_stacking; // outputs an image twice the size of the original sequence
+	int output_size[2]; // stacked image size
+	int offset[2]; // reference offset
 	fits result;
 };
 
 static int sum_stacking_prepare_hook(struct generic_seq_args *args) {
 	struct sum_stacking_data *ssdata = args->user;
-	size_t nbdata = args->seq->ry * args->seq->rx;
+	size_t nbdata = ssdata->output_size[0] * ssdata->output_size[1];
 
 	if (ssdata->input_32bits) {
 		ssdata->fsum[0] = calloc(nbdata, sizeof(double) * args->seq->nb_layers);
@@ -87,6 +91,7 @@ static int sum_stacking_image_hook(struct generic_seq_args *args, int o, int i, 
 	struct sum_stacking_data *ssdata = args->user;
 	int shiftx = 0, shifty = 0, nx, ny, x, y, layer;
 	size_t ii, pixel = 0;	// index in sum[0]
+	size_t nbdata = ssdata->output_size[0] * ssdata->output_size[1];
 	/* we get some metadata at the same time: date, exposure ... */
 
 #ifdef _OPENMP
@@ -100,21 +105,34 @@ static int sum_stacking_image_hook(struct generic_seq_args *args, int o, int i, 
 	}
 
 	if (ssdata->reglayer != -1 && args->seq->regparam[ssdata->reglayer]) {
-		double scale = args->seq->upscale_at_stacking;
+		double scale = (ssdata->upscale_at_stacking) ? 2. : 1.;
 		double dx, dy;
 		translation_from_H(args->seq->regparam[ssdata->reglayer][i].H, &dx, &dy);
-		shiftx = round_to_int(dx * scale);
-		shifty = round_to_int(dy * scale);
+		// dx -= ssdata->offset[0];
+		// dy -= ssdata->offset[1];
+		// shiftx = round_to_int(dx * scale);
+		// shifty = round_to_int(dy * scale);
+		// if (ssdata->maximize_framing)
+		// 	shifty -= fit->ry;
+		dx *= scale;
+		dy *= scale;
+		dx -= ssdata->offset[0];
+		dy -= ssdata->offset[1];
+		if (ssdata->maximize_framing)
+			dy -= (double)fit->ry;
+		shiftx = round_to_int(dx);
+		shifty = round_to_int(dy);
+		siril_debug_print("img %d dx %d dy %d\n", o, shiftx, shifty);
 	}
 
-	for (y = 0; y < fit->ry; ++y) {
-		for (x = 0; x < fit->rx; ++x) {
+	for (y = 0; y < ssdata->output_size[1]; ++y) {
+		ny = y - shifty;
+		for (x = 0; x < ssdata->output_size[0]; ++x) {
 			nx = x - shiftx;
-			ny = y - shifty;
 			if (nx >= 0 && nx < fit->rx && ny >= 0 && ny < fit->ry) {
 				// we have data for this pixel
 				ii = ny * fit->rx + nx;		// index in source image
-				if (ii < fit->rx * fit->ry) {
+				if (ii < nbdata) {
 					for (layer = 0; layer < args->seq->nb_layers; ++layer) {
 						if (ssdata->input_32bits) {
 #ifdef _OPENMP
@@ -151,7 +169,7 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 		return args->retval;
 	}
 
-	nbdata = args->seq->ry * args->seq->rx * args->seq->nb_layers;
+	nbdata = ssdata->output_size[0] * ssdata->output_size[1] * args->seq->nb_layers;
 	// find the max first
 	if (ssdata->input_32bits) {
 #ifdef _OPENMP
@@ -171,7 +189,7 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 	}
 
 	fits *fit = &ssdata->result;
-	if (new_fit_image(&fit, args->seq->rx, args->seq->ry, args->seq->nb_layers, ssdata->output_32bits ? DATA_FLOAT : DATA_USHORT))
+	if (new_fit_image(&fit, ssdata->output_size[0], ssdata->output_size[1], args->seq->nb_layers, ssdata->output_32bits ? DATA_FLOAT : DATA_USHORT))
 		return ST_GENERIC_ERROR;
 
 	/* We copy metadata from reference to the final fit */
@@ -192,7 +210,7 @@ static int sum_stacking_finalize_hook(struct generic_seq_args *args) {
 	}
 
 	fit->keywords.stackcnt = args->nb_filtered_images;
-	nbdata = args->seq->ry * args->seq->rx;
+	nbdata = ssdata->output_size[0] * ssdata->output_size[1];
 	compute_date_time_keywords(ssdata->list_date, fit);
 	g_list_free_full(ssdata->list_date, (GDestroyNotify) free_list_date);
 
@@ -260,6 +278,18 @@ int stack_summing_generic(struct stacking_args *stackargs) {
 	ssdata->output_32bits = stackargs->use_32bit_output;
 	if (ssdata->input_32bits)
 		assert(ssdata->output_32bits);
+	if (stackargs->maximize_framing) {
+		compute_max_framing(stackargs, ssdata->output_size, ssdata->offset);
+		ssdata->maximize_framing = TRUE;
+	} else {
+		ssdata->output_size[0] = args->seq->rx;
+		ssdata->output_size[1] = args->seq->ry;
+		double dx, dy;
+		translation_from_H(args->seq->regparam[ssdata->reglayer][ssdata->ref_image].H, &dx, &dy);
+		ssdata->offset[0] = (int)dx;
+		ssdata->offset[1] = (int)dy;
+	}
+	ssdata->upscale_at_stacking = stackargs->upscale_at_stacking;
 	args->user = ssdata;
 
 	generic_sequence_worker(args);

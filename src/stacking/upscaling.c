@@ -40,7 +40,7 @@
 
 void remove_tmp_drizzle_files(struct stacking_args *args) {
 	int i;
-	if (args->seq->upscale_at_stacking < 1.05)
+	if (!args->upscale_at_stacking)
 		return;
 
 	gchar *basename = g_path_get_basename(args->seq->seqname);
@@ -120,13 +120,13 @@ static int upscale_image_hook(struct generic_seq_args *args, int o, int i, fits 
 }
 
 int upscale_sequence(struct stacking_args *stackargs) {
-	if (stackargs->seq->upscale_at_stacking <= 1.05)
+	if (!stackargs->upscale_at_stacking)
 		return 0;
 
 	struct generic_seq_args *args = create_default_seqargs(stackargs->seq);
 	struct upscale_args *upargs = malloc(sizeof(struct upscale_args));
 
-	upargs->factor = stackargs->seq->upscale_at_stacking;
+	upargs->factor = 2.;
 
 	args->filtering_criterion = stackargs->filtering_criterion;
 	args->filtering_parameter = stackargs->filtering_parameter;
@@ -146,7 +146,7 @@ int upscale_sequence(struct stacking_args *stackargs) {
 	int nb_threads = seq_compute_mem_limits(args, FALSE);
 	if (nb_threads == 0) {
 		siril_log_color_message(_("Stacking will be done without up-scaling (disabling 'drizzle')\n"), "red");
-		stackargs->seq->upscale_at_stacking = 1.0;
+		stackargs->upscale_at_stacking = FALSE;
 		free(args);
 		return 0;
 	}
@@ -206,13 +206,12 @@ int upscale_sequence(struct stacking_args *stackargs) {
 		newseq->reference_image = find_refimage_in_indices(stackargs->image_indices,
 				stackargs->nb_images_to_stack, stackargs->ref_image);
 		stackargs->ref_image = newseq->reference_image;
-		newseq->upscale_at_stacking = oldseq->upscale_at_stacking;
 		newseq->regparam[stackargs->reglayer] = malloc(stackargs->nb_images_to_stack * sizeof(regdata));
 		int i;
 		for (i = 0; i < stackargs->nb_images_to_stack; i++) {
 			regdata *data = &oldseq->regparam[stackargs->reglayer][stackargs->image_indices[i]];
 			memcpy(&newseq->regparam[stackargs->reglayer][i], data, sizeof(regdata));
-			// TODO: why don't we modify the shifts here already?
+			// TODO: why don't we modify the shifts here already? indeed!
 		}
 		stackargs->retval = stack_fill_list_of_unfiltered_images(stackargs);
 

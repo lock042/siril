@@ -6046,51 +6046,13 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkBox" id="proj_box">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="spacing">5</property>
-                                                            <child>
-                                                            <object class="GtkLabel" id="proj_lbl">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="valign">center</property>
-                                                            <property name="label" translatable="yes">Projection method</property>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="padding">5</property>
-                                                            <property name="position">0</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkComboBoxText" id="comboreg_proj">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Specifies the projection method to be used:
-- "planar" uses linear transformations between images (suitable for a limited FOV)
-- "spherical" reprojects images on the celestial sphere.</property>
-                                                            <property name="valign">center</property>
-                                                            <property name="active">1</property>
-                                                            <items>
-                                                            <item translatable="yes">planar</item>
-                                                            <item translatable="yes">spherical</item>
-                                                            </items>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">1</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
                                                             <object class="GtkButton" id="proj_estimate">
                                                             <property name="label" translatable="yes">Estimate</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">True</property>
                                                             <property name="tooltip-text" translatable="yes">Estimates the final size and space used by the stacked image.</property>
+                                                            <property name="halign">end</property>
                                                             <property name="use-underline">True</property>
                                                             <signal name="clicked" handler="on_seqregister_button_clicked" swapped="no"/>
                                                             <style>
@@ -6102,14 +6064,6 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="fill">False</property>
                                                             <property name="padding">15</property>
                                                             <property name="pack-type">end</property>
-                                                            <property name="position">2</property>
-                                                            </packing>
-                                                            </child>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="padding">5</property>
                                                             <property name="position">2</property>
                                                             </packing>
                                                             </child>
@@ -8926,37 +8880,79 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                     <property name="orientation">vertical</property>
                                                     <property name="spacing">5</property>
                                                     <child>
-                                                      <object class="GtkCheckButton" id="check_normalise_to_max">
-                                                        <property name="label" translatable="yes">Output Normalisation</property>
-                                                        <property name="can-focus">True</property>
-                                                        <property name="receives-default">False</property>
-                                                        <property name="tooltip-text" translatable="yes">If you check this button, the final image will be normalized in the [0, 1] range if you work in 32-bit format precision, or in [0, 65535] otherwise.
+                                                      <!-- n-columns=2 n-rows=2 -->
+                                                      <object class="GtkGrid">
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">False</property>
+                                                        <property name="row-spacing">5</property>
+                                                        <property name="column-spacing">10</property>
+                                                        <child>
+                                                          <object class="GtkCheckButton" id="check_normalise_to_max">
+                                                            <property name="label" translatable="yes">Output Normalisation</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">If you check this button, the final image will be normalized in the [0, 1] range if you work in 32-bit format precision, or in [0, 65535] otherwise.
 
 WARNING: This option should not be checked for master stacking.</property>
-                                                        <property name="halign">start</property>
-                                                        <property name="draw-indicator">True</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="draw-indicator">True</property>
+                                                          </object>
+                                                          <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">0</property>
+                                                          </packing>
+                                                        </child>
+                                                        <child>
+                                                          <object class="GtkCheckButton" id="check_RGBequal">
+                                                            <property name="label" translatable="yes">RGB equalization</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">If you check this button, the channels in the final image will be equalized (color images only).
+
+WARNING: This option should not be checked for master stacking.</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="draw-indicator">True</property>
+                                                          </object>
+                                                          <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">1</property>
+                                                          </packing>
+                                                        </child>
+                                                        <child>
+                                                          <object class="GtkCheckButton" id="check_maximize_framing">
+                                                            <property name="label" translatable="yes">Maximize framing</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">If you check this button, the final image size will be enlarged to fit all the selected frames of the sequence.
+                                                            </property>
+                                                            <property name="halign">start</property>
+                                                            <property name="draw-indicator">True</property>
+                                                          </object>
+                                                          <packing>
+                                                            <property name="left-attach">1</property>
+                                                            <property name="top-attach">0</property>
+                                                          </packing>
+                                                        </child>
+                                                        <child>
+                                                          <object class="GtkCheckButton" id="check_upscale_at_stacking">
+                                                            <property name="label" translatable="yes">Interpolation upscaling x2</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">If you check this button, the final image size will be upscaled by a factor of 2. This can be faster than real drizzle images obtained during registration but will not produced images as sharp.
+                                                            </property>
+                                                            <property name="halign">start</property>
+                                                            <property name="draw-indicator">True</property>
+                                                          </object>
+                                                          <packing>
+                                                            <property name="left-attach">1</property>
+                                                            <property name="top-attach">1</property>
+                                                          </packing>
+                                                        </child>
                                                       </object>
                                                       <packing>
                                                         <property name="expand">False</property>
-                                                        <property name="fill">True</property>
+                                                        <property name="fill">False</property>
                                                         <property name="position">0</property>
-                                                      </packing>
-                                                    </child>
-                                                    <child>
-                                                      <object class="GtkCheckButton" id="check_RGBequal">
-                                                        <property name="label" translatable="yes">RGB equalization</property>
-                                                        <property name="can-focus">True</property>
-                                                        <property name="receives-default">False</property>
-                                                        <property name="tooltip-text" translatable="yes">If you check this button, the channels in the final image will be equalized (color images only).
-
-WARNING: This option should not be checked for master stacking.</property>
-                                                        <property name="halign">start</property>
-                                                        <property name="draw-indicator">True</property>
-                                                      </object>
-                                                      <packing>
-                                                        <property name="expand">False</property>
-                                                        <property name="fill">True</property>
-                                                        <property name="position">1</property>
                                                       </packing>
                                                     </child>
                                                     <child>
@@ -9012,7 +9008,7 @@ WARNING: This option should not be checked for master stacking.</property>
                                                       <packing>
                                                         <property name="expand">False</property>
                                                         <property name="fill">True</property>
-                                                        <property name="position">2</property>
+                                                        <property name="position">1</property>
                                                       </packing>
                                                     </child>
                                                     <child>
@@ -9033,7 +9029,7 @@ WARNING: This option should not be checked for master stacking.</property>
                                                       <packing>
                                                         <property name="expand">False</property>
                                                         <property name="fill">True</property>
-                                                        <property name="position">4</property>
+                                                        <property name="position">2</property>
                                                       </packing>
                                                     </child>
                                                   </object>
