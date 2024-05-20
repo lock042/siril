@@ -456,7 +456,7 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 					plot->data[j].x = 0;
 					break;
 				}
-				cvTransfPoint(&dx, &dy, seq->regparam[layer][i].H, Href);
+				cvTransfPoint(&dx, &dy, seq->regparam[layer][i].H, Href, 1.);
 				plot->data[j].x = (X_selected_source == r_X_POSITION) ? dx - cx : dy - cy;
 				break;
 			case r_WFWHM:
@@ -506,7 +506,7 @@ static void build_registration_dataset(sequence *seq, int layer, int ref_image,
 					plot->data[j].y = 0;
 					break;
 				}
-				cvTransfPoint(&dx, &dy, seq->regparam[layer][i].H, Href);
+				cvTransfPoint(&dx, &dy, seq->regparam[layer][i].H, Href, 1.);
 				plot->data[j].y = (registration_selected_source == r_X_POSITION) ? dx - cx : dy - cy;
 				break;
 			case r_WFWHM:

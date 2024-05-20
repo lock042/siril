@@ -111,7 +111,7 @@ wcsprm_t *load_WCS_from_hdr(char *header, int nkeyrec) {
 						wcs->altlin = 1;
 						wcs->flag = 0;
 						wcsset(wcs);
-						printf("contains CD\n");
+						siril_debug_print("contains CD\n");
 					} else if (wcs->altlin & 1) { // header contains PC info
 						double pc[2][2] = {{ 0. }}, cd[2][2] = {{ 0. }};
 						wcs_pc2mat(wcs, pc);
@@ -119,14 +119,14 @@ wcsprm_t *load_WCS_from_hdr(char *header, int nkeyrec) {
 						wcs_mat2cd(wcs, cd);
 						wcs->flag = 0;
 						wcsset(wcs);
-						printf("contains PC\n");
+						siril_debug_print("contains PC\n");
 					} else { // contained some keywords but not enough to define at least a linear projection
 						siril_debug_print("wcs did not contain enough info\n");
 						free(wcs);
 						wcs = NULL;
 						break;
 					}
-					printf("at header readout\n");
+					siril_debug_print("at header readout\n");
 					wcs_print(wcs);
 					break;
 				} else {
@@ -360,7 +360,7 @@ void wcs_decompose_cd(wcsprm_t *prm, double cd[NAXIS][NAXIS]) {
 }
 
 gboolean image_is_flipped_from_wcs(struct wcsprm *wcslib) {
-	double cd[2][2];
+	double cd[2][2] = {{ 0. }};
 	wcs_cd2mat(wcslib, cd);
 	double det = (cd[0][0] * cd[1][1] - cd[1][0] * cd[0][1]); // determinant of rotation matrix (ad - bc)
 	return det > 0; // convention is that angles are positive clockwise when image is not flipped

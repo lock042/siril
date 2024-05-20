@@ -65,6 +65,17 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 		siril_log_message(_("No frame selected for stacking (select at least 2). Aborting.\n"));
 		return ST_GENERIC_ERROR;
 	}
+	int output_size[2], offset[2];
+	if (args->maximize_framing) {
+		compute_max_framing(args, output_size, offset);
+	} else {
+		output_size[0] = args->seq->rx;
+		output_size[1] = args->seq->ry;
+		double dx, dy;
+		translation_from_H(args->seq->regparam[reglayer][args->ref_image].H, &dx, &dy);
+		offset[0] = (int)dx;
+		offset[1] = (int)dy;
+	}
 
 	final_pixel[0] = NULL;
 	ffinal_pixel[0] = NULL;
@@ -102,7 +113,7 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 		/* first loaded image: init data structures for stacking */
 		if (!nbdata) {
 			is_float = fit.type == DATA_FLOAT;
-			nbdata = fit.naxes[0] * fit.naxes[1];
+			nbdata = output_size[0] * output_size[1];
 			if (is_float) {
 				if (ismax)
 					ffinal_pixel[0] = calloc(nbdata * fit.naxes[2], sizeof(float));
@@ -122,9 +133,9 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 				}
 			} else {
 				if (ismax)
-					final_pixel[0] = calloc(nbdata * fit.naxes[2], sizeof(WORD));
+					final_pixel[0] = calloc(nbdata * output_size[1], sizeof(WORD));
 				else {
-					final_pixel[0] = malloc(nbdata * fit.naxes[2] * sizeof(WORD));
+					final_pixel[0] = malloc(nbdata * output_size[1] * sizeof(WORD));
 					for (long k = 0; k < nbdata * fit.naxes[2]; k++)
 						final_pixel[0][k] = USHRT_MAX;
 				}
@@ -138,7 +149,7 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 					final_pixel[2] = final_pixel[1] + nbdata;
 				}
 			}
-		} else if (fit.ry * fit.rx != nbdata) {
+		} else if (fit.ry * fit.rx != nbdata && !args->maximize_framing) {
 			siril_log_message(_("Stacking: image in sequence doesn't has the same dimensions\n"));
 			retval = ST_SEQUENCE_ERROR;
 			goto free_and_reset_progress_bar;
@@ -148,10 +159,17 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 		int shiftx, shifty;
 		if (reglayer != -1 && args->seq->regparam[reglayer]) {
 			double dx, dy;
-			double scale = args->seq->upscale_at_stacking;
+			double scale = (args->upscale_at_stacking) ? 2. : 1.;
 			translation_from_H(args->seq->regparam[reglayer][j].H, &dx, &dy);
-			shiftx = round_to_int(dx * scale);
-			shifty = round_to_int(dy * scale);
+			dx *= scale;
+			dy *= scale;
+			dx -= offset[0];
+			dy -= offset[1];
+			if (args->maximize_framing)
+				dy -= (double)fit.ry;
+			shiftx = round_to_int(dx);
+			shifty = round_to_int(dy);
+			siril_debug_print("img %d dx %d dy %d\n", j, shiftx, shifty);
 		} else {
 			shiftx = 0;
 			shifty = 0;
@@ -170,15 +188,15 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 
 		/* stack current image */
 		size_t i = 0;	// index in final_pixel[0]
-		for (int y = 0; y < fit.ry; ++y) {
-			for (int x = 0; x < fit.rx; ++x) {
+		for (int y = 0; y < output_size[1]; ++y) {
+			int ny = y - shifty;
+			for (int x = 0; x < output_size[0]; ++x) {
 				int nx = x - shiftx;
-				int ny = y - shifty;
 				//printf("x=%d y=%d sx=%d sy=%d i=%d ii=%d\n",x,y,shiftx,shifty,i,ii);
 				if (nx >= 0 && nx < fit.rx && ny >= 0 && ny < fit.ry) {
 					size_t ii = ny * fit.rx + nx;		// index in final_pixel[0] too
 					//printf("shiftx=%d shifty=%d i=%d ii=%d\n",shiftx,shifty,i,ii);
-					if (ii > 0 && ii < fit.rx * fit.ry) {
+					if (ii > 0 && ii < nbdata) {
 						for (int layer = 0; layer < args->seq->nb_layers; ++layer) {
 							if (is_float) {
 								float current_pixel = fit.fpdata[layer][ii];
@@ -211,10 +229,10 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 
 	fits *result = &args->result;
 	if (is_float) {
-		if (new_fit_image_with_data(&result, args->seq->rx, args->seq->ry, args->seq->nb_layers, DATA_FLOAT, ffinal_pixel[0]))
+		if (new_fit_image_with_data(&result, output_size[0], output_size[1], args->seq->nb_layers, DATA_FLOAT, ffinal_pixel[0]))
 			return ST_GENERIC_ERROR;
 	} else {
-		if (new_fit_image_with_data(&result, args->seq->rx, args->seq->ry, args->seq->nb_layers, DATA_USHORT, final_pixel[0]))
+		if (new_fit_image_with_data(&result, output_size[0], output_size[1], args->seq->nb_layers, DATA_USHORT, final_pixel[0]))
 			return ST_GENERIC_ERROR;
 	}
 

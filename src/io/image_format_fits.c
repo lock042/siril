@@ -968,7 +968,8 @@ cmsHPROFILE read_icc_profile_from_fptr(fitsfile *fptr) {
 	cmsHPROFILE icc_profile;
 	int status = 0;
 	char extname[FLEN_VALUE], comment[FLEN_COMMENT];
-	int ihdu, nhdus, hdutype;
+	int ihdu, nhdus, hdutype, orig_hdu = 1;
+	fits_get_hdu_num(fptr, &orig_hdu);
 	fits_get_num_hdus(fptr, &nhdus, &status);
 	for (ihdu = 2 ; ihdu <= nhdus ; ihdu++) {
 		fits_movabs_hdu(fptr,ihdu, &hdutype, &status);
@@ -984,6 +985,9 @@ cmsHPROFILE read_icc_profile_from_fptr(fitsfile *fptr) {
 	if (ihdu > nhdus) {
 		/* no matching HDU */
 		status = BAD_HDU_NUM;
+		fits_movabs_hdu(fptr, orig_hdu, &hdutype, &status);
+		if (status)
+			siril_debug_print("Error returning to original HDU!\n");
 		return NULL;
 	}
 	int strsize = 1620;
@@ -991,11 +995,17 @@ cmsHPROFILE read_icc_profile_from_fptr(fitsfile *fptr) {
 	char *header = NULL;
 	if (!(header = malloc(strsize))) {
 		PRINT_ALLOC_ERR;
+		fits_movabs_hdu(fptr, orig_hdu, &hdutype, &status);
+		if (status)
+			siril_debug_print("Error returning to original HDU!\n");
 		return NULL;
 	}
 	status = copy_header_from_hdu(fptr, &header, &strsize, &strlength);
 	if (status) {
 		free(header);
+		fits_movabs_hdu(fptr, orig_hdu, &hdutype, &status);
+		if (status)
+			siril_debug_print("Error returning to original HDU!\n");
 		return NULL;
 	}
 	// Get the ICC Profile length
@@ -1004,6 +1014,9 @@ cmsHPROFILE read_icc_profile_from_fptr(fitsfile *fptr) {
 	fits_read_key(fptr, TUINT, "BITPIX", &bitpix, comment, &status);
 	if (bitpix != 8 || status != 0) {
 		free(header);
+		fits_movabs_hdu(fptr, orig_hdu, &hdutype, &status);
+		if (status)
+			siril_debug_print("Error returning to original HDU!\n");
 		return NULL;
 	}
 	int zero = 0;
@@ -1011,12 +1024,18 @@ cmsHPROFILE read_icc_profile_from_fptr(fitsfile *fptr) {
 	if (!(profile = malloc(profile_length * sizeof(BYTE)))) {
 		PRINT_ALLOC_ERR;
 		free(header);
+		fits_movabs_hdu(fptr, orig_hdu, &hdutype, &status);
+		if (status)
+			siril_debug_print("Error returning to original HDU!\n");
 		return NULL;
 	}
 	fits_read_img(fptr, TBYTE, 1, profile_length, &zero, profile, &zero, &status);
 	if (status) {
 		free(profile);
 		free(header);
+		fits_movabs_hdu(fptr, orig_hdu, &hdutype, &status);
+		if (status)
+			siril_debug_print("Error returning to original HDU!\n");
 		return NULL;
 	}
 	icc_profile = cmsOpenProfileFromMem(profile, profile_length);
@@ -1024,13 +1043,18 @@ cmsHPROFILE read_icc_profile_from_fptr(fitsfile *fptr) {
 		siril_debug_print("Embedded ICC profile read from FITS\n");
 	free(profile);
 	free(header);
+	fits_movabs_hdu(fptr, orig_hdu, &hdutype, &status);
+	if (status)
+		siril_debug_print("Error returning to original HDU!\n");
 	return icc_profile;
 }
 
 int read_icc_profile_from_fits(fits *fit) {
 	int status = 0;
 	char extname[FLEN_VALUE], comment[FLEN_COMMENT];
-	int ihdu, nhdus, hdutype;
+	int ihdu, nhdus, hdutype, orig_hdu = 1;
+	fits_get_hdu_num(fit->fptr, &orig_hdu);
+	siril_debug_print("Original HDU before looking for ICC profile: %d\n", orig_hdu);
 	if (fit->icc_profile)
 		cmsCloseProfile(fit->icc_profile);
 	fit->icc_profile = NULL;
@@ -1048,7 +1072,7 @@ int read_icc_profile_from_fits(fits *fit) {
 	}
 	if (ihdu > nhdus) {
 		/* no matching HDU */
-		siril_fits_move_first_image(fit->fptr); // Reset to the first HDU
+		fits_movabs_hdu(fit->fptr, orig_hdu, &hdutype, &status);
 		status = BAD_HDU_NUM;
 		return 1;
 	}
@@ -1057,13 +1081,17 @@ int read_icc_profile_from_fits(fits *fit) {
 	char *header = NULL;
 	if (!(header = malloc(strsize))) {
 		PRINT_ALLOC_ERR;
-		status = siril_fits_move_first_image(fit->fptr); // Reset to the first HDU
+		fits_movabs_hdu(fit->fptr, orig_hdu, &hdutype, &status);
+		if (status)
+			siril_debug_print("Error returning to original HDU!\n");
 		return 1;
 	}
 	status = copy_header_from_hdu(fit->fptr, &header, &strsize, &strlength);
 	if (status) {
 		free(header);
-		status = siril_fits_move_first_image(fit->fptr); // Reset to the first HDU
+		fits_movabs_hdu(fit->fptr, orig_hdu, &hdutype, &status);
+		if (status)
+			siril_debug_print("Error returning to original HDU!\n");
 		return 1;
 	}
 	// Get the ICC Profile length
@@ -1072,7 +1100,9 @@ int read_icc_profile_from_fits(fits *fit) {
 	fits_read_key(fit->fptr, TUINT, "BITPIX", &bitpix, comment, &status);
 	if (bitpix != 8 || status != 0) {
 		free(header);
-		status = siril_fits_move_first_image(fit->fptr); // Reset to the first HDU
+		fits_movabs_hdu(fit->fptr, orig_hdu, &hdutype, &status);
+		if (status)
+			siril_debug_print("Error returning to original HDU!\n");
 		return 1;
 	}
 	int zero = 0;
@@ -1080,14 +1110,18 @@ int read_icc_profile_from_fits(fits *fit) {
 	if (!(profile = malloc(profile_length * sizeof(BYTE)))) {
 		PRINT_ALLOC_ERR;
 		free(header);
-		status = siril_fits_move_first_image(fit->fptr); // Reset to the first HDU
+		fits_movabs_hdu(fit->fptr, orig_hdu, &hdutype, &status);
+		if (status)
+			siril_debug_print("Error returning to original HDU!\n");
 		return 1;
 	}
 	fits_read_img(fit->fptr, TBYTE, 1, profile_length, &zero, profile, &zero, &status);
 	if (status) {
 		free(profile);
 		free(header);
-		status = siril_fits_move_first_image(fit->fptr); // Reset to the first HDU
+		fits_movabs_hdu(fit->fptr, orig_hdu, &hdutype, &status);
+		if (status)
+			siril_debug_print("Error returning to original HDU!\n");
 		return 1;
 	}
 	fit->icc_profile = cmsOpenProfileFromMem(profile, profile_length);
@@ -1099,7 +1133,10 @@ int read_icc_profile_from_fits(fits *fit) {
 	}
 	free(profile);
 	free(header);
-	status = siril_fits_move_first_image(fit->fptr); // Reset to the first HDU
+	fits_movabs_hdu(fit->fptr, orig_hdu, &hdutype, &status);
+	if (status)
+		siril_debug_print("Error returning to original HDU!\n");
+	fits_get_hdu_num(fit->fptr, &orig_hdu);
 	return 0;
 }
 
@@ -1531,9 +1568,11 @@ int read_opened_fits_partial(sequence *seq, int layer, int index, void *buffer,
 		printf("data initialization error in read fits partial\n");
 		return 1;
 	}
-	if (area->x < 0 || area->y < 0 || area->x >= seq->rx || area->y >= seq->ry
-			|| area->w <= 0 || area->h <= 0 || area->x + area->w > seq->rx
-			|| area->y + area->h > seq->ry) {
+	int rx = (seq->is_variable) ? seq->imgparam[index].rx : seq->rx;
+	int ry = (seq->is_variable) ? seq->imgparam[index].ry : seq->ry;
+	if (area->x < 0 || area->y < 0 || area->x >= rx || area->y >= ry
+			|| area->w <= 0 || area->h <= 0 || area->x + area->w > rx
+			|| area->y + area->h > ry) {
 		fprintf(stderr, "partial read from FITS file has been requested outside image bounds or with invalid size\n");
 		return 1;
 	}
@@ -1543,7 +1582,7 @@ int read_opened_fits_partial(sequence *seq, int layer, int index, void *buffer,
 	omp_set_lock(&seq->fd_lock[index]);
 #endif
 
-	status = internal_read_partial_fits(seq->fptr[index], seq->ry, seq->bitpix, buffer, layer, area);
+	status = internal_read_partial_fits(seq->fptr[index], ry, seq->bitpix, buffer, layer, area);
 
 #ifdef _OPENMP
 	omp_unset_lock(&seq->fd_lock[index]);
@@ -2756,7 +2795,7 @@ GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr) {
 }
 
 /* verify that the parameters of the image pointed by fptr are the same as some reference values */
-int check_fits_params(fitsfile *fptr, int *oldbitpix, int *oldnaxis, long *oldnaxes) {
+int check_fits_params(fitsfile *fptr, int *oldbitpix, int *oldnaxis, long *oldnaxes, gboolean relax_dimcheck) {
 	int status = 0;
 	long naxes[3] = { 0L };
 	int bitpix = 0, naxis = -1;
@@ -2773,10 +2812,10 @@ int check_fits_params(fitsfile *fptr, int *oldbitpix, int *oldnaxis, long *oldna
 	}
 
 	if (*oldnaxis > 0) {
-		if (naxis != *oldnaxis ||
+		if (!relax_dimcheck && (naxis != *oldnaxis ||
 				oldnaxes[0] != naxes[0] ||
 				oldnaxes[1] != naxes[1] ||
-				oldnaxes[2] != naxes[2]) {
+				oldnaxes[2] != naxes[2])) {
 			siril_log_message(_("Stacking error: input images have "
 						"different sizes\n"));
 			return -1;

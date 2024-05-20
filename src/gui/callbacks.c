@@ -1517,6 +1517,9 @@ void initialize_all_GUI(gchar *supported_files) {
 	/* Keybord Shortcuts */
 	load_accels();
 
+	/* Mouse event mask */
+	set_mouse_event_mask();
+
 	/* Select combo boxes that trigger some text display or other things */
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("comboboxstack_methods")), 0);
 

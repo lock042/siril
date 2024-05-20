@@ -80,6 +80,9 @@ struct stacking_args {
 	gboolean use_32bit_output;	/* output to 32 bit float */
 	int reglayer;			/* layer used for registration data */
 	gboolean equalizeRGB;		/* enable RGB equalization through normalization */
+	gboolean maximize_framing;	/* maximize the framing instead of conforming to ref image size*/
+	int offset[2];				/* offset used by max framing*/
+	gboolean upscale_at_stacking; /* x2 upscale during stacking*/
 
 	rejection type_of_rejection;	/* type of rejection */
 	float sig[2];			/* low and high sigma rejection or GESTD parameters */
@@ -123,6 +126,8 @@ struct stacking_configuration {
 	gboolean apply_nbstack_weights;
 	gboolean apply_wfwhm_weights;
 	gboolean apply_nbstars_weights;
+	gboolean maximize_framing;
+	gboolean upscale_at_stacking;
 };
 
 typedef struct {
@@ -205,5 +210,8 @@ int apply_rejection_float(struct _data_block *data, int nb_frames, struct stacki
 void free_list_date(gpointer data);
 DateEvent* new_date_item(GDateTime *dt, gdouble exposure);
 void compute_date_time_keywords(GList *list_date, fits *fit);
+
+	/* compute max framing (used by sum, min and max) */
+void compute_max_framing(struct stacking_args *args, int output_size[2], int offset[2]);
 
 #endif

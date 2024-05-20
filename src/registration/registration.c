@@ -193,7 +193,7 @@ gpointer register_thread_func(gpointer p) {
 void selection_H_transform(rectangle *selection, Homography Href, Homography Himg) {
 	double xc = selection->x + selection->w * 0.5;
 	double yc = selection->y + selection->h * 0.5;
-	cvTransfPoint(&xc, &yc, Href, Himg);
+	cvTransfPoint(&xc, &yc, Href, Himg, 1.);
 	selection->x = round_to_int(xc - selection->w * 0.5);
 	selection->y = round_to_int(yc - selection->h * 0.5);
 	siril_debug_print("boxselect %d %d %d %d\n",
