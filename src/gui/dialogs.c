@@ -70,6 +70,7 @@ static const SirilDialogEntry entries[] =
 	{"linearmatch_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"Median_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, median_close},
 	{"merge_cfa_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"mouse_actions_dialog", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"nina_light_curve", get_nina_lc_dialog, OTHER_DIALOG, FALSE, NULL},
 	{"pixel_math_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
 	{"resample_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},

@@ -35,6 +35,7 @@ src/gui/uifiles/linearmatch_dialog.ui
 src/gui/uifiles/livestacking_player.ui
 src/gui/uifiles/Median_dialog.ui
 src/gui/uifiles/merge_cfa_dialog.ui
+src/gui/uifiles/mouse_actions.ui
 src/gui/uifiles/pixelmath.ui
 src/gui/uifiles/resample_dialog.ui
 src/gui/uifiles/rgradient_dialog.ui
@@ -137,6 +138,9 @@ src/gui/image_interactions.c
 src/gui/linear_match.c
 src/gui/menu_gray_geometry.c
 src/gui/message_dialog.c
+src/gui/mouse_action_functions.c
+src/gui/mouse_action_functions.h
+src/gui/mouse_action_preferences.c
 src/gui/newdeconv.c
 src/gui/nina_light_curve.c
 src/gui/open_dialog.c

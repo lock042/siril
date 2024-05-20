@@ -158,12 +158,13 @@ void on_drizzleCheckButton_toggled(GtkToggleButton* button, gpointer user_data) 
 	gboolean state = gtk_toggle_button_get_active(button);
 	gtk_widget_set_visible(lookup_widget("box_drizzle_controls"), state);
 	if (state) {
-		gtk_notebook_set_current_page(GTK_NOTEBOOK(lookup_widget("notebook_registration")), 4);
+		gtk_notebook_set_current_page(GTK_NOTEBOOK(lookup_widget("notebook_registration")), REG_PAGE_APPLYREG);
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("upscaleCheckButton")), FALSE);
 	}
 	gtk_widget_set_visible(lookup_widget("interp_box"), !state);
 	gtk_widget_set_visible(lookup_widget("toggle_reg_clamp"), !state);
-	gtk_widget_set_visible(lookup_widget("regNoOutput"), !state);
+	gtk_widget_set_sensitive(lookup_widget("upscaleCheckButton"), !state);
+	gtk_widget_set_visible(lookup_widget("regNoOutput"), FALSE);
 
 }
 
@@ -171,6 +172,13 @@ void on_upscaleCheckButton_toggled(GtkToggleButton* button, gpointer user_data) 
 	gboolean state = gtk_toggle_button_get_active(button);
 	if (state) {
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("drizzleCheckButton")), FALSE);
+	}
+	GtkWidget *regNoOut = lookup_widget("regNoOutput");
+	if (gtk_widget_get_visible(regNoOut) && state) {
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(regNoOut), FALSE);
+		gtk_widget_set_sensitive(regNoOut, FALSE);
+	} else {
+		gtk_widget_set_sensitive(regNoOut, TRUE);
 	}
 }
 
@@ -540,6 +548,24 @@ static void update_filters_registration(int update_adjustment) {
 	update_filter_label(criterion, param);
 }
 
+static gboolean check_framing() {
+	// TODO: need to cache
+	framing_type framingmethod = (framing_type)gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("comboreg_framing")));
+	GtkLabel *labelreginfo = GTK_LABEL(lookup_widget("labelregisterinfo"));
+	if (framingmethod == FRAMING_MAX && com.seq.type == SEQ_FITSEQ) {
+		gtk_label_set_text(labelreginfo, _("Max framing not allowed with fitseq, change to regular FITS images"));
+		return FALSE;
+	}
+	// should not happen that often as the process checks the ref image is platesolved, which cannot happen for SER
+	// can still be a case if ref image alone is solved through the GUI
+	if (com.seq.type == SEQ_SER) {
+		gtk_label_set_text(labelreginfo, _("Astrometric registration not allowed for SER sequences, change method"));
+		return FALSE;
+	}
+	gtk_label_set_text(labelreginfo, "");
+	gtk_widget_set_tooltip_text(GTK_WIDGET(labelreginfo), "");
+	return TRUE;
+}
 /* Selects the "register all" or "register selected" according to the number of
  * selected images, if argument is false.
  * Verifies that enough images are selected and an area is selected.
@@ -547,7 +573,7 @@ static void update_filters_registration(int update_adjustment) {
 void update_reg_interface(gboolean dont_change_reg_radio) {
 	static GtkWidget *go_register = NULL, *follow = NULL, *cumul_data = NULL,
 	*noout = NULL, *toggle_reg_clamp = NULL, *onlyshift = NULL, *filter_box = NULL, *manualreg = NULL,
-	*interpolation_algo = NULL, *proj_box = NULL, *undistort_check = NULL, *scale_box = NULL,
+	*interpolation_algo = NULL, *undistort_check = NULL, *scale_box = NULL,
 	*x2upscale = NULL, *go_estimate = NULL, *drizzle_checkbox = NULL;
 	static GtkLabel *labelreginfo = NULL;
 	static GtkComboBox *reg_all_sel_box = NULL, *reglayer = NULL, *filter_combo_init = NULL;
@@ -574,7 +600,6 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		filter_box = lookup_widget("seq_filters_box_reg");
 		manualreg = lookup_widget("manualreg_expander");
 		interpolation_algo = lookup_widget("ComboBoxRegInter");
-		proj_box = lookup_widget("proj_box");
 		scale_box = lookup_widget("reg_scaling_box");
 		undistort_check = lookup_widget("reg_undistort");
 		x2upscale = lookup_widget("upscaleCheckButton");
@@ -612,6 +637,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	if (!isapplyreg)
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(drizzle_checkbox), FALSE);
 	gtk_widget_set_visible(GTK_WIDGET(drizzle_checkbox), isapplyreg);
+	gtk_widget_set_sensitive(GTK_WIDGET(drizzle_checkbox), method->method_ptr == &register_apply_reg); // TODO: remove when we allow drizzle with astrometric
 	gtk_widget_set_visible(GTK_WIDGET(reg_all_sel_box), !isapplyreg);
 	gtk_widget_set_visible(filter_box, isapplyreg);
 	gtk_widget_set_visible(GTK_WIDGET(filter_combo_init), isapplyreg);
@@ -639,7 +665,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_KOMBAT);
 		} else if (method->method_ptr == &register_apply_reg || method->method_ptr == &register_astrometric) {
 			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_APPLYREG);
-			gtk_widget_set_visible(proj_box, method->method_ptr == &register_astrometric);
+			gtk_widget_set_visible(go_estimate, method->method_ptr == &register_astrometric);
 		}
 		ready = TRUE;
 		if (method->method_ptr == &register_3stars) {
@@ -653,9 +679,10 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 				gtk_label_set_text(labelreginfo, _("Unsupported CFA pattern detected"));
 				gtk_widget_set_tooltip_text(GTK_WIDGET(labelreginfo), _("This sequence cannot be registered with the CFA pattern intact. You must debayer it prior to registration"));
 				ready = FALSE;
-			}
-		}
-		else {
+			}		
+		} else if (method->type == REGTYPE_APPLY && sequence_is_loaded()) {
+			ready = check_framing();
+		} else {
 			gtk_label_set_text(labelreginfo, "");
 			gtk_widget_set_tooltip_text(GTK_WIDGET(labelreginfo), "");
 		}		// the 3 stars method has special GUI requirements
@@ -707,6 +734,10 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	gboolean save_state = keep_noout_state;
 	// for now, methods which do not save images but only shift in seq files are constrained to this option (no_output is true and unsensitive)
 
+	gboolean is_astrometric = method->method_ptr == &register_astrometric;
+	gtk_widget_set_visible(undistort_check, is_astrometric);
+	gtk_widget_set_visible(scale_box, is_astrometric);
+
 	if (((method->method_ptr == &register_comet) ||
 			(method->method_ptr == &register_kombat) ||
 			(method->method_ptr == &register_shift_dft) ||
@@ -715,22 +746,24 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), TRUE);
 		gtk_widget_set_sensitive(noout, FALSE);
 		gtk_widget_set_visible(noout, TRUE);
+		gtk_widget_set_visible(x2upscale, TRUE);
+		gtk_widget_set_sensitive(x2upscale, FALSE);
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(x2upscale), FALSE);
 	} else if (method->method_ptr == &register_apply_reg ||
 				method->method_ptr == &register_astrometric ) { // cannot have no output with apply registration/astrometric method
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), FALSE);
 		gtk_widget_set_sensitive(noout, FALSE);
 		gtk_widget_set_visible(noout, FALSE);
+		gtk_widget_set_visible(x2upscale, !is_astrometric);
+		gtk_widget_set_sensitive(x2upscale, !is_astrometric);
 	} else {
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), save_state);
 		gtk_widget_set_sensitive(noout, TRUE);
 		gtk_widget_set_visible(noout, TRUE);
+		gtk_widget_set_visible(x2upscale, TRUE);
+		gtk_widget_set_sensitive(x2upscale, TRUE);
 	}
 	keep_noout_state  = save_state;
-
-	gboolean is_astrometric = method->method_ptr == &register_astrometric;
-	gtk_widget_set_visible(undistort_check, is_astrometric);
-	gtk_widget_set_visible(scale_box, is_astrometric);
-	gtk_widget_set_visible(x2upscale, !is_astrometric);
 
 }
 
@@ -740,12 +773,16 @@ void on_regNoOutput_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	GtkWidget *Algo = lookup_widget("ComboBoxRegInter");
 	GtkWidget *clamping = lookup_widget("toggle_reg_clamp");
 	GtkWidget *Prefix = lookup_widget("regseqname_entry");
+	GtkWidget *x2upscale = lookup_widget("upscaleCheckButton");
 
 	gboolean toggled = gtk_toggle_button_get_active(togglebutton);
 
 	gtk_widget_set_sensitive(Algo, !toggled);
 	gtk_widget_set_sensitive(clamping, !toggled);
 	gtk_widget_set_sensitive(Prefix, !toggled);
+	gtk_widget_set_sensitive(x2upscale, !toggled);
+	if (toggled)
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(x2upscale), FALSE);
 
 	keep_noout_state = toggled;
 }
@@ -765,7 +802,7 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 	char *msg;
 	struct registration_method *method;
 	GtkToggleButton *follow, *matchSel, *x2upscale, *cumul, *onlyshift, *undistort;
-	GtkComboBox *cbbt_layers, *reg_all_sel_box, *proj_combo;
+	GtkComboBox *cbbt_layers, *reg_all_sel_box;
 	GtkComboBoxText *ComboBoxRegInter, *ComboBoxTransfo, *ComboBoxMaxStars, *ComboBoxFraming;
 	GtkSpinButton *minpairs, *percent_moved, *scaling_spin;
 
@@ -809,7 +846,6 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 	reg_all_sel_box = GTK_COMBO_BOX(GTK_COMBO_BOX_TEXT(lookup_widget("reg_sel_all_combobox")));
 	scaling_spin =GTK_SPIN_BUTTON(lookup_widget("reg_scaling_spin"));
 	undistort =  GTK_TOGGLE_BUTTON(lookup_widget("reg_undistort"));
-	proj_combo = GTK_COMBO_BOX(lookup_widget("comboreg_proj"));
 
 	reg_args->clamp = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_reg_clamp")));
 
@@ -833,7 +869,6 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 		reg_args->no_output = (gtk_toggle_button_get_active(onlyshift)) ? TRUE : keep_noout_state;
 	}
 	reg_args->framing = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxFraming));
-	reg_args->projector = gtk_combo_box_get_active(proj_combo);
 	reg_args->undistort = gtk_toggle_button_get_active(undistort);
 	reg_args->astrometric_scale = (float)gtk_spin_button_get_value(scaling_spin);
 #ifndef HAVE_CV44
@@ -900,6 +935,10 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 			siril_log_color_message(_("When interpolation is set to None, the transformation can only be set to Shift. Aborting\n"), "red");
 			return 1;
 		}
+	}
+	if (method->method_ptr == register_astrometric && reg_args->interpolation == OPENCV_NONE) {
+		siril_log_color_message(_("Insterpolation cannot be set to None for astrometric alignment. Aborting\n"), "red");
+		return 1;
 	}
 	if (((method->method_ptr == register_star_alignment || method->method_ptr == register_3stars || method->method_ptr == register_apply_reg || method->method_ptr == register_astrometric) &&
 		(reg_args->interpolation == OPENCV_AREA || reg_args->interpolation == OPENCV_LINEAR || reg_args->interpolation == OPENCV_NEAREST || reg_args->interpolation == OPENCV_NONE)) ||

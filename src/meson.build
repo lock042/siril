@@ -217,6 +217,8 @@ src_files = [
   'gui/menu_gray_selection.c',
   'gui/merge_cfa.c',
   'gui/message_dialog.c',
+  'gui/mouse_action_functions.c',
+  'gui/mouse_action_preferences.c',
   'gui/newdeconv.c',
   'gui/nina_light_curve.c',
   'gui/open_dialog.c',

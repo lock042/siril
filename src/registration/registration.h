@@ -68,11 +68,23 @@ typedef struct {
 	int x, y, w, h;
 } astrometric_roi;
 
+typedef enum {
+	DISTO_NONE, // none defined
+	DISTO_D2S,  // computed for each image dst->src (regular interpolation)
+	DISTO_S2D,  // computed for each image src->dst (drizzle interpolation)
+	DISTO_MAP_D2S,  // computed from the ref image dst->src (regular interpolation)
+	DISTO_MAP_S2D  // computed from the ref image dst->src (drizzle interpolation)
+} disto_type;
+
 typedef struct {
+	disto_type dtype;
+	double A[MAX_DISTO_SIZE][MAX_DISTO_SIZE];
+	double B[MAX_DISTO_SIZE][MAX_DISTO_SIZE];
 	double AP[MAX_DISTO_SIZE][MAX_DISTO_SIZE];
 	double BP[MAX_DISTO_SIZE][MAX_DISTO_SIZE];
 	int order;
 	double xref, yref;
+	float *xmap, *ymap;
 } disto_data;
 
 struct astrometric_args{
@@ -136,7 +148,6 @@ struct registration_args {
 	framing_type framing;		// used by seqapplyreg to determine framing
 	gboolean clamp;				// should Bicubic and Lanczos4 interpolation be clamped?
 	double clamping_factor;		// used to set amount of interpolation clamping
-	opencv_projector projector; // used by mosaic registration
 };
 
 // static struct registration_method *reg_methods[NUMBER_OF_METHODS + 1];
