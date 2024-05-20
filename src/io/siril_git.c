@@ -306,13 +306,9 @@ static gboolean script_version_check(const gchar* filename) {
 		gchar *ver = find_str_before_comment(buffer, "requires", "#");
 		if (ver) {
 			ver += 9;
-			if (versions)
-				g_strfreev(versions);
 			versions = g_strsplit(ver, " ", 2);
 			version_number requires = { 0 }, obsoleted = { 0 };
 			obsoleted.major_version = UINT_MAX;
-			if (fullRequiresVersion)
-				g_strfreev(fullRequiresVersion);
 			fullRequiresVersion = g_strsplit_set(versions[0], ".-", -1);
 			if (fullRequiresVersion[0])
 				requires.major_version = g_ascii_strtoull(fullRequiresVersion[0], NULL, 10);
@@ -330,8 +326,6 @@ static gboolean script_version_check(const gchar* filename) {
 			if (requires.major_version == 0 && requires.minor_version == 0 && requires.micro_version == 0)
 				continue;
 			if (versions[1]) {
-				if (fullObsoletedVersion)
-					g_strfreev(fullObsoletedVersion);
 				fullObsoletedVersion = g_strsplit_set(versions[1], ".-", -1);
 				if (fullObsoletedVersion[0])
 					obsoleted.major_version = g_ascii_strtoull(fullObsoletedVersion[0], NULL, 10);
@@ -349,8 +343,7 @@ static gboolean script_version_check(const gchar* filename) {
 			retval = recent_enough && not_too_recent;
 			g_free(buffer);
 			buffer = NULL;
-			if (retval)
-				break;
+			break;
 		}
 	}
 ERROR_OR_COMPLETE:

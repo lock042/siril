@@ -8736,11 +8736,11 @@ int process_requires(int nb) {
 	if (word[2]) {
 		max_required = g_strsplit(word[2], ".", 3);
 	}
-	if (g_strv_length(required) != 3) {
+	if (g_strv_length(required) != 3 || (max_required && g_strv_length(required) != 3)) {
 		siril_log_color_message(_("Required version is not correct.\n"), "red");
-
 		g_strfreev(version);
 		g_strfreev(required);
+		g_strfreev(max_required);
 		return CMD_GENERIC_ERROR;
 	}
 
@@ -8766,9 +8766,7 @@ int process_requires(int nb) {
 		max_req_major = g_ascii_strtoull(max_required[0], &endreqmaxmaj, 10);
 		max_req_minor = g_ascii_strtoull(max_required[1], &endreqmaxminor, 10);
 		max_req_micro = g_ascii_strtoull(max_required[2], &endreqmaxmicro, 10);
-		if (endmaj == version[0] || endmin == version[1] || endmicro == version[2]
-				|| endreqmaj == required[0] || endreqmin == required[1]
-				|| endreqmicro == required[2]) {
+		if (endreqmaj == max_required[0] || endreqmin == max_required[1] || endreqmicro == max_required[2]) {
 			siril_log_message(_("Wrong parameters.\n"));
 			g_strfreev(version);
 			g_strfreev(required);
