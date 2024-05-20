@@ -1863,6 +1863,8 @@ int copyfits(fits *from, fits *to, unsigned char oper, int layer) {
 	else depth = from->naxes[2];
 
 	if ((oper & CP_FORMAT)) {
+		// free anything that might need deallocating in to
+		clearfits(to);
 		// copying metadata, not data or stats which are kept null
 		memcpy(to, from, sizeof(fits));
 		to->naxis = depth == 3 ? 3 : from->naxis;
