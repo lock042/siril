@@ -1182,7 +1182,7 @@ int process_epf(int nb) {
 							.verbose = TRUE };
 	start_in_new_thread(epfhandler, args);
 
-	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+	return CMD_OK;
 }
 
 int process_getref(int nb) {

@@ -31,10 +31,19 @@
 
 #include "filters/epf.h"
 
+gboolean end_epf(gpointer p) {
+	set_cursor_waiting(FALSE);
+	stop_processing_thread();
+	notify_gfit_modified();
+	return FALSE;
+}
+
 gpointer epfhandler (gpointer args) {
 	struct epfargs *p = (struct epfargs*) args;
-	edge_preserving_filter(p);
-	return GINT_TO_POINTER(0);
+	int retval = edge_preserving_filter(p);
+	if (!com.script)
+		siril_add_idle(end_epf, NULL);
+	return GINT_TO_POINTER(retval);
 }
 
 int match_guide_to_roi(fits *guide, fits *guide_roi) {
