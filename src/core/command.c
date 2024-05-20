@@ -1076,7 +1076,7 @@ int process_epf(int nb) {
 
 	for (int i = 1 ; i < nb ; i++) {
 		gchar *arg = word[i];
-		if (g_strcmp0(arg, "-guided")) {
+		if (!g_strcmp0(arg, "-guided")) {
 			filter = EP_GUIDED;
 		}
 		else if (g_str_has_prefix(arg, "-guideimage=")) {
@@ -1142,16 +1142,18 @@ int process_epf(int nb) {
 	}
 	if (sigma_space > 20.0 && d == 0)
 			siril_log_color_message(_("Warning: spatial sigma > approx. 20 with auto diameter may result in lengthy execution times.\n"), "salmon");
+
 	if (mod <= 0.0 || mod > 1.0) {
 		 siril_log_color_message(_("-mod= value must be > 0.0 and <= 1.0\n"), "red");
 		 g_free(filename);
 		 return CMD_ARG_ERROR;
 	}
 
-	if (filter == EP_GUIDED && filename != NULL) {
+	if (filter == EP_GUIDED || filename != NULL) {
+		filter = EP_GUIDED; // passing guideimage name is enough to set to guided
 		guidefit = calloc(1, sizeof(fits));
 		if (readfits(filename, guidefit, NULL, FALSE)) {
-			siril_log_color_message(_("Error: guide image could not be loaded"), "red");
+			siril_log_color_message(_("Error: guide image could not be loaded\n"), "red");
 			clearfits(guidefit);
 			free(guidefit);
 			g_free(filename);
@@ -1159,7 +1161,7 @@ int process_epf(int nb) {
 		}
 		g_free(filename);
 		if (guidefit->rx != gfit.rx || guidefit->ry != gfit.ry) {
-			siril_log_color_message(_("Error: guide image dimensions do not match"), "red");
+			siril_log_color_message(_("Error: guide image dimensions do not match\n"), "red");
 			clearfits(guidefit);
 			free(guidefit);
 			return CMD_ARG_ERROR;
