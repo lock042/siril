@@ -174,6 +174,7 @@ static int Mat_to_image(fits *image, Mat *in, Mat *out, void *bgr, int target_rx
 			WORD *newdata = (WORD*) realloc(image->data, data_size * image->naxes[2]);
 			if (!newdata) {
 				PRINT_ALLOC_ERR;
+				out->release();
 				return 1;
 			}
 			image->data = newdata;
@@ -188,24 +189,23 @@ static int Mat_to_image(fits *image, Mat *in, Mat *out, void *bgr, int target_rx
 
 			split(*out, channel);
 
+			channel[0].release();
+			channel[1].release();
+			channel[2].release();
 		} else {
-			// Directly assign out->data to image->data before releasing out
-			image->data = (WORD *)malloc(ndata * sizeof(WORD));
-			if (!image->data) {
-				PRINT_ALLOC_ERR;
-				return 1;
-			}
-			memcpy(image->data, out->data, ndata * sizeof(WORD));
+			image->data = (WORD *)out->data;
 			image->pdata[RLAYER] = image->data;
 			image->pdata[GLAYER] = image->data;
 			image->pdata[BLAYER] = image->data;
 		}
+		out->release();
 	} else {
 		if (image->naxes[2] == 3) {
 			size_t data_size = ndata * sizeof(float);
 			float *newdata = (float *) realloc(image->fdata, data_size * image->naxes[2]);
 			if (!newdata) {
 				PRINT_ALLOC_ERR;
+				out->release();
 				return 1;
 			}
 			image->fdata = newdata;
@@ -220,18 +220,16 @@ static int Mat_to_image(fits *image, Mat *in, Mat *out, void *bgr, int target_rx
 
 			split(*out, channel);
 
+			channel[0].release();
+			channel[1].release();
+			channel[2].release();
 		} else {
-			// Directly assign out->data to image->fdata before releasing out
-			image->fdata = (float *)malloc(ndata * sizeof(float));
-			if (!image->fdata) {
-				PRINT_ALLOC_ERR;
-				return 1;
-			}
-			memcpy(image->fdata, out->data, ndata * sizeof(float));
+			image->fdata = (float *) out->data;
 			image->fpdata[RLAYER] = image->fdata;
 			image->fpdata[GLAYER] = image->fdata;
 			image->fpdata[BLAYER] = image->fdata;
 		}
+		out->release();
 	}
 	image->rx = target_rx;
 	image->ry = target_ry;
@@ -597,8 +595,7 @@ int cvGuidedFilter(fits* image, fits *guide, double r, double eps) {
 		cvtColor(guide_mat, guide_mat, COLOR_GRAY2BGR);
 	siril_debug_print("using Guided Filter (CPU)\n");
 //	out = guidedFilter(in, guide_mat, r, eps, -1);
-	Mat result = guidedFilter(guide_mat, in, r, eps, -1);
-	result.copyTo(out);
+	out = guidedFilter(guide_mat, in, r, eps, -1);
 	guide_mat.release();
 	return Mat_to_image(image, &in, &out, bgr, image->rx, image->ry);
 }
