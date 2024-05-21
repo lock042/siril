@@ -764,58 +764,6 @@ int robustmean(int n, const double *x, double *mean, double *stdev)
 	return 0;
 }
 
-/************* robust linear fit *****************/
-
-static int dofit(const gsl_multifit_robust_type *T, const gsl_matrix *X, const gsl_vector *y, gsl_vector *c, gsl_matrix *cov, double *sigma, gboolean *mask) {
-	gsl_multifit_robust_workspace *work = gsl_multifit_robust_alloc (T, X->size1, X->size2);
-	int s = gsl_multifit_robust (X, y, c, cov, work);
-	gsl_multifit_robust_stats fit_stats = gsl_multifit_robust_statistics(work);
-	gsl_vector *weights = fit_stats.weights;
-	*sigma = fit_stats.sigma_rob;
-	for (size_t i = 0; i < weights->size; i++) {
-		if (gsl_vector_get(weights, i) > 0.) // weights are null if gsl_multifit_robust_type = gsl_multifit_robust_bisquare
-			mask[i] = TRUE;
-	}
-	gsl_multifit_robust_free (work);
-	return s;
-}
-
-// Fits y = a + bx to double *xdata, double *ydata with each array of length n
-int robust_linear_fit(double *xdata, double *ydata, int n, double *a, double *b, double *sigma, gboolean *mask) {
-	const size_t p = 2; /* linear fit */
-	gsl_matrix *X = NULL, *cov = NULL;
-	gsl_vector *y = NULL, *c = NULL;
-	X = gsl_matrix_alloc (n, p);
-	y = gsl_vector_alloc (n);
-	c = gsl_vector_alloc (p);
-	cov = gsl_matrix_alloc (p, p);
-	if (!X || !y || !c || !cov) {
-		gsl_matrix_free(X);
-		gsl_vector_free(y);
-		gsl_vector_free(c);
-		gsl_matrix_free(cov);
-		return 1;
-	}
-	for (int i = 0 ; i < n ; i++) {
-		gsl_vector_set(y, i, ydata[i]);
-	}
-	/* construct design matrix X for linear fit */
-	for (int i = 0; i < n; ++i) {
-		gsl_matrix_set (X, i, 0, 1.0);
-		gsl_matrix_set (X, i, 1, xdata[i]);
-	}
-
-	/* perform robust and OLS fit */
-	int retval = dofit(gsl_multifit_robust_bisquare, X, y, c, cov, sigma, mask);
-	*a = gsl_vector_get(c,0);
-	*b = gsl_vector_get(c,1);
-	gsl_matrix_free (X);
-	gsl_vector_free (y);
-	gsl_vector_free (c);
-	gsl_matrix_free (cov);
-	return retval;
-}
-
 double robust_median_f(fits *fit, rectangle *area, int chan, float lower, float upper) {
 	uint32_t x0, y0, x1,y1;
 	if (area) {

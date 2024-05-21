@@ -20,6 +20,7 @@
 
 #include <math.h>
 #include "algos/extraction.h"
+#include "algos/fitting.h"
 #include "algos/statistics_float.h"
 #include "core/siril.h"
 #include "core/siril_log.h"
@@ -375,7 +376,12 @@ static void calc_zero_and_spacing(cut_struct *arg, double *zero, double *spectro
 	// To calculate the zero we will work from whichever of x or y has the biggest difference
 	double z2_z1 = fabs(wndelta.y) > fabs(wndelta.x) ? wndelta.y : wndelta.x;
 	double z1_z0 = fabs(wndelta.y) > fabs(wndelta.x) ? arg->cut_wn1.y - arg->cut_start.y : arg->cut_wn1.x - arg->cut_start.x;
+	double z2_z0 = fabs(wndelta.y) > fabs(wndelta.x) ? arg->cut_wn2.y - arg->cut_start.y : arg->cut_wn2.x - arg->cut_start.x;
 	*zero = wavelength1 - ( ( z1_z0 * wndiff ) / z2_z1 ); // Zero is in wavelength
+
+	// Check whether the spacing needs to be positive or negative
+	if ((fabs(z2_z0) < fabs(z1_z0) && wavelength1 < wavelength2))// || (fabs(z2_z0) > fabs(z1_z0) && wavelength1 > wavelength2))
+		*spectro_spacing *= -1.0;
 	return;
 }
 
@@ -659,14 +665,25 @@ gpointer tri_cut(gpointer p) {
 		}
 		double a, b, sigma;
 		gboolean *mask = calloc(nbr_points, sizeof(gboolean));
-		robust_linear_fit(r[0], r[2], nbr_points, &a, &b, &sigma, mask);
+		int degree = 1;
+		double *coeffs = calloc(degree + 1, sizeof(double));
+		ransac_polynomial_fit(r[0], r[2], nbr_points, degree, coeffs);
+		printf("Coefficients: ");
+		for (int i = 0 ; i <= degree ; i++) {
+			printf("%f ", coeffs[i]);
+		}
+		printf("\n");
+		a = coeffs[0];
+		b = coeffs[1];
+//		robust_linear_fit(r[0], r[2], nbr_points, &a, &b, &sigma, mask);
 		free(mask); // Didn't care about mask here but need it to make the function work
 		if ( a >= 0)
 			siril_log_message(_("Subtracting dark strips: robust linear fit y = %f + %f * x; sigma = %f\n"), a, b, sigma);
 		else
 			siril_log_message(_("Subtracting dark strips: robust linear fit y = %f - %f * x; sigma = %f\n"), a, -b, sigma);
 		for (int i = 0 ; i < nbr_points ; i++) {
-			r[0][i] = (a + b * (double) i);
+			r[0][i] = evaluate_polynomial(coeffs, degree, (double) i);
+//			r[0][i] = (a + b * (double) i);
 			r[1][i] -= r[0][i];
 		}
 	}
