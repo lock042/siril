@@ -179,6 +179,8 @@ siril_common_SOURCES = \
 	filters/clahe.h \
 	filters/cosmetic_correction.c \
 	filters/cosmetic_correction.h \
+	filters/epf.c \
+	filters/epf.h \
 	filters/fft.c \
 	filters/fft.h \
 	filters/median.c \
@@ -259,6 +261,8 @@ siril_common_SOURCES = \
 	gui/dialogs.h \
 	gui/documentation.c \
 	gui/documentation.h \
+	gui/epf.c \
+	gui/epf.h \
 	gui/fix_xtrans_af.c \
 	gui/fix_xtrans_af.h \
 	gui/histogram.c \
@@ -468,6 +472,8 @@ siril_common_SOURCES += \
 	io/SirilXISFWraper.h \
 	opencv/opencv.cpp \
 	opencv/opencv.h \
+	opencv/guidedfilter.cpp \
+	opencv/guidedfilter.h \
 	opencv/kombat/kombat.cpp \
 	opencv/kombat/kombat.h \
 	core/exif.cpp \

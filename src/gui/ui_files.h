@@ -41,6 +41,7 @@ const char* ui_files[] = {
 	"/org/siril/ui/denoise_dialog.ui",
 	"/org/siril/ui/dialog_FFT.ui",
 	"/org/siril/ui/dialog_star_remix.ui",
+	"/org/siril/ui/epf_dialog.ui",
 	"/org/siril/ui/extract_channel_dialog.ui",
 	"/org/siril/ui/extract_wavelet_layers_dialog.ui",
 	"/org/siril/ui/file_information_dialog.ui",

@@ -103,6 +103,7 @@ src_files = [
   'filters/banding.c',
   'filters/clahe.c',
   'filters/cosmetic_correction.c',
+  'filters/epf.c',
   'filters/fft.c',
   'filters/ght.c',
   'filters/median.c',
@@ -186,6 +187,8 @@ src_files = [
 
   'opencv/opencv.cpp',
   'opencv/opencv.h',
+  'opencv/guidedfilter.cpp',
+  'opencv/guidedfilter.h',
   'opencv/kombat/kombat.cpp',
   'opencv/kombat/kombat.h',
 
@@ -202,6 +205,7 @@ src_files = [
   'gui/dialog_preview.c',
   'gui/dialogs.c',
   'gui/documentation.c',
+  'gui/epf.c',
   'gui/fix_xtrans_af.c',
   'gui/histogram.c',
   'gui/keywords_tree.c',

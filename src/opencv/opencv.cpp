@@ -43,10 +43,12 @@
 #include "registration/matching/misc.h"
 #include "registration/matching/atpmatch.h"
 #include "opencv.h"
+#include "guidedfilter.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+#include "io/image_format_fits.h"
 #include "algos/statistics.h"
 #ifdef __cplusplus
 }
@@ -222,7 +224,7 @@ static int Mat_to_image(fits *image, Mat *in, Mat *out, void *bgr, int target_rx
 			channel[1].release();
 			channel[2].release();
 		} else {
-			image->fdata = (float *)out->data;
+			image->fdata = (float *) out->data;
 			image->fpdata[RLAYER] = image->fdata;
 			image->fpdata[GLAYER] = image->fdata;
 			image->fpdata[BLAYER] = image->fdata;
@@ -547,6 +549,55 @@ int cvUnsharpFilter(fits* image, double sigma, double amount) {
 	}
 
 	return Mat_to_image(image, &in, &out, bgr, target_rx, target_ry);
+}
+
+int cvBilateralFilter(fits* image, double d, double sigma_col, double sigma_space) {
+	Mat in, out;
+	void *bgr = NULL;
+	if (image_to_Mat(image, &in, &out, &bgr, image->rx, image->ry))
+		return 1;
+	siril_debug_print("using opencv Bilateral Filter (CPU)\n");
+	bilateralFilter(in, out, d, sigma_col, sigma_space, BORDER_DEFAULT);
+	return Mat_to_image(image, &in, &out, bgr, image->rx, image->ry);
+}
+
+int cvGuidedFilter(fits* image, fits *guide, double r, double eps) {
+	Mat in, out, guide_mat;
+	void *bgr = NULL;
+	int rx = guide->rx, ry = guide->ry;
+
+	if (image_to_Mat(image, &in, &out, &bgr, image->rx, image->ry))
+		return 1;
+	if (image == guide) {
+		guide_mat = in.clone();
+	} else {
+		if (guide->type == DATA_USHORT) {
+			if (guide->naxes[2] == 1) {
+				guide_mat = Mat(ry, rx, CV_16UC1, guide->data);
+			} else if (guide->naxes[2] == 3) {
+				WORD *bgr_u = fits_to_bgrbgr_ushort(guide);
+				if (!bgr_u) return -1;
+				guide_mat = Mat(ry, rx, CV_16UC3, bgr_u);
+			}
+		}
+		else if (guide->type == DATA_FLOAT) {
+			if (guide->naxes[2] == 1) {
+				guide_mat = Mat(ry, rx, CV_32FC1, guide->fdata);
+			}
+			else if (guide->naxes[2] == 3) {
+				float *bgr_f = fits_to_bgrbgr_float(guide);
+				if (!bgr_f) return -1;
+				guide_mat = Mat(ry, rx, CV_32FC3, bgr_f);
+			}
+		}
+	}
+	if (guide_mat.channels() != in.channels())
+		cvtColor(guide_mat, guide_mat, COLOR_GRAY2BGR);
+	siril_debug_print("using Guided Filter (CPU)\n");
+	Mat result = guidedFilter(guide_mat, in, r, eps, -1);
+	result.copyTo(out);
+	guide_mat.release();
+	return Mat_to_image(image, &in, &out, bgr, image->rx, image->ry);
 }
 
 /* Work on grey images. If image is in RGB it must be first converted
