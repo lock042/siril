@@ -594,8 +594,8 @@ int cvGuidedFilter(fits* image, fits *guide, double r, double eps) {
 	if (guide_mat.channels() != in.channels())
 		cvtColor(guide_mat, guide_mat, COLOR_GRAY2BGR);
 	siril_debug_print("using Guided Filter (CPU)\n");
-//	out = guidedFilter(in, guide_mat, r, eps, -1);
-	out = guidedFilter(guide_mat, in, r, eps, -1);
+	Mat result = guidedFilter(guide_mat, in, r, eps, -1);
+	result.copyTo(out);
 	guide_mat.release();
 	return Mat_to_image(image, &in, &out, bgr, image->rx, image->ry);
 }
