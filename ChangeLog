@@ -63,6 +63,7 @@ xx/xx/xx
 * Added preference for closest IAU observatory code(!669)
 * Changed max framing mode to avoid large black borders after registration, this is now handled at stacking step (!670)
 * Added full mouse buttons and scroll wheels configuration (!672)
+* Added edge preserving filters (bilateral and guided filters) (!576)
 * Extended `requires` command to take optional second expiry parameter. (!674)
 
 siril 1.2.2

@@ -1434,6 +1434,21 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
           </packing>
         </child>
         <child>
+          <object class="GtkModelButton" id="proc_epf">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Open the edge preserving filters dialog</property>
+            <property name="action-name">win.epf-processing</property>
+            <property name="text" translatable="yes">Edge Preserving Filters...</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">16</property>
+          </packing>
+        </child>
+        <child>
           <object class="GtkModelButton" id="proc_denoise">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
@@ -1445,7 +1460,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">16</property>
+            <property name="position">17</property>
           </packing>
         </child>
         <child>
@@ -1460,7 +1475,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">17</property>
+            <property name="position">18</property>
           </packing>
         </child>
         <child>
@@ -1474,7 +1489,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">18</property>
+            <property name="position">19</property>
           </packing>
         </child>
         <child>
@@ -1485,7 +1500,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">19</property>
+            <property name="position">20</property>
           </packing>
         </child>
         <child>
@@ -1499,7 +1514,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">20</property>
+            <property name="position">21</property>
           </packing>
         </child>
         <child>
@@ -1510,7 +1525,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">21</property>
+            <property name="position">22</property>
           </packing>
         </child>
         <child>
@@ -1525,7 +1540,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">22</property>
+            <property name="position">23</property>
           </packing>
         </child>
         <child>
@@ -1539,7 +1554,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">23</property>
+            <property name="position">24</property>
           </packing>
         </child>
         <child>
@@ -1554,7 +1569,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">24</property>
+            <property name="position">25</property>
           </packing>
         </child>
         <child>
@@ -1569,7 +1584,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">25</property>
+            <property name="position">26</property>
           </packing>
         </child>
         <child>
@@ -1583,7 +1598,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">26</property>
+            <property name="position">27</property>
           </packing>
         </child>
         <child>
@@ -1594,7 +1609,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">27</property>
+            <property name="position">28</property>
           </packing>
         </child>
         <child>
@@ -1609,7 +1624,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">28</property>
+            <property name="position">29</property>
           </packing>
         </child>
       </object>
