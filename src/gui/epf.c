@@ -62,7 +62,9 @@ static int epf_update_preview() {
 	}
 	struct epfargs *args = calloc(1, sizeof(struct epfargs));
 	*args = (struct epfargs) { fit, guide, epf_d_value, epf_sigma_col_value, epf_sigma_spatial_value, mod, filter_type, FALSE };
+	set_cursor_waiting(TRUE);
 	edge_preserving_filter(args);
+	set_cursor_waiting(FALSE);
 	notify_gfit_modified();
 	return 0;
 }
@@ -165,7 +167,12 @@ void on_epf_dialog_show(GtkWidget *widget, gpointer user_data) {
 	gtk_spin_button_set_value(spin_epf_sigma_col, epf_sigma_col_value);
 	set_notify_block(FALSE);
 
-	/* default parameters don't transform image, no need to update preview */
+	// Default parameters transform the image, so update the preview if toggle is active
+	update_image *param = malloc(sizeof(update_image));
+	param->update_preview_fn = epf_update_preview;
+	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("epf_preview")));
+	notify_update((gpointer) param);
+
 }
 
 void on_epf_cancel_clicked(GtkButton *button, gpointer user_data) {
@@ -193,8 +200,8 @@ void on_epf_undo_clicked(GtkButton *button, gpointer user_data) {
 	GtkSpinButton *spin_epf_sigma_col = GTK_SPIN_BUTTON(lookup_widget("spin_epf_sigma_col"));
 	GtkSpinButton *spin_epf_sigma_spatial = GTK_SPIN_BUTTON(lookup_widget("spin_epf_sigma_spatial"));
 	epf_d_value = 0.0;
-	epf_sigma_col_value = 0.0;
-	epf_sigma_spatial_value = 0.0;
+	epf_sigma_col_value = 11.0;
+	epf_sigma_spatial_value = 11.0;
 
 	set_notify_block(TRUE);
 	gtk_spin_button_set_value(spin_d, epf_d_value);

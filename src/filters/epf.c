@@ -40,6 +40,7 @@ gboolean end_epf(gpointer p) {
 
 gpointer epfhandler (gpointer args) {
 	struct epfargs *p = (struct epfargs*) args;
+	set_cursor_waiting(TRUE);
 	int retval = edge_preserving_filter(p);
 	if (!com.script)
 		siril_add_idle(end_epf, NULL);
@@ -110,9 +111,18 @@ int edge_preserving_filter(struct epfargs *args) {
 	}
 	sigma_col /= 100.0;
 
+	if (fit->naxes[2] == 1) {
+		// This makes the settings behave more consistently between color and mono images
+		sigma_col /= 25.0;
+		if (filter_type == EP_GUIDED) {
+			sigma_col /= 10.0;
+		}
+	}
 	if (filter_type == EP_GUIDED) {
 		// This makes the settings behave more consistently between the two filter types
 		sigma_col /= 5.0;
+		if (d == 0)
+			d = sigma_space;
 		d /= 3.0;
 	}
 	if (fit->type == DATA_FLOAT) {
