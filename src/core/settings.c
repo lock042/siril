@@ -150,7 +150,11 @@ preferences pref_init = {
 		.config_colors.color_dso_annotations = NULL,
 		.config_colors.color_sso_annotations = NULL,
 		.config_colors.color_tmp_annotations = NULL,
-		.mmb_action = MMB_ZOOM_FIT
+		.mmb_action = MMB_ZOOM_FIT,
+		.mouse_cfg = {
+			.mouse_actions_array = NULL,
+			.scroll_actions_array = NULL
+		}
 	},
 	.debayer = {
 		.open_debayer = FALSE,
@@ -174,7 +178,6 @@ preferences pref_init = {
 		.minval = -1500.0,
 		.maxval = 60000.0,
 		.discard_var_catalogues = 4,
-
 	},
 	.astrometry = {
 		.update_default_scale = TRUE,
@@ -494,7 +497,8 @@ struct settings_access all_settings[] = {
 	{ "gui", "icc_autoassignment", STYPE_INT, N_("encodes ICC profile auto-assignment options"), &com.pref.icc.autoassignment },
 	{ "gui", "icc_rendering_bpc", STYPE_BOOL, N_("enable rendering BPC"), &com.pref.icc.rendering_bpc },
 	{ "gui", "icc_pedantic_linear", STYPE_BOOL, N_("pedantically assign linear ICC profiles"), &com.pref.icc.pedantic_linear },
-
+	{ "gui", "mouse_actions", STYPE_STRLIST, N_("mouse actions config. Opaque data structure, edit this using the GUI"), &com.pref.gui.mouse_cfg.mouse_actions_array },
+	{ "gui", "scroll_actions", STYPE_STRLIST, N_("scroll actions config. Opaque data structure, edit this using the GUI"), &com.pref.gui.mouse_cfg.scroll_actions_array },
 	{ "gui_astrometry", "compass_position", STYPE_INT, N_("index of the compass position over grid"), &com.pref.gui.position_compass, { .range_int = { 0, 5 } } },
 	{ "gui_astrometry", "cat_messier", STYPE_BOOL, N_("show Messier objects in annotations"), &com.pref.gui.catalog[0] },
 	{ "gui_astrometry", "cat_ngc", STYPE_BOOL, N_("show NGC objects in annotations"), &com.pref.gui.catalog[1] },

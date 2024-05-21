@@ -49,6 +49,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <file compressed="true" preprocess="xml-stripblanks" alias="denoise_dialog.ui">gui/uifiles/denoise_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="dialog_FFT.ui">gui/uifiles/dialog_FFT.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="dialog_star_remix.ui">gui/uifiles/dialog_star_remix.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="epf_dialog.ui">gui/uifiles/epf_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="extract_channel_dialog.ui">gui/uifiles/extract_channel_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="extract_wavelet_layers_dialog.ui">gui/uifiles/extract_wavelet_layers_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="file_information_dialog.ui">gui/uifiles/file_information_dialog.ui</file>
@@ -61,6 +62,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <file compressed="true" preprocess="xml-stripblanks" alias="livestacking_player.ui">gui/uifiles/livestacking_player.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="Median_dialog.ui">gui/uifiles/Median_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="merge_cfa_dialog.ui">gui/uifiles/merge_cfa_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="mouse_actions.ui">gui/uifiles/mouse_actions.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="pixelmath.ui">gui/uifiles/pixelmath.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="resample_dialog.ui">gui/uifiles/resample_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="rgradient_dialog.ui">gui/uifiles/rgradient_dialog.ui</file>

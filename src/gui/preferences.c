@@ -39,6 +39,7 @@
 #include "gui/dialogs.h"
 #include "gui/PSF_list.h"
 #include "gui/photometric_cc.h"
+#include "gui/registration.h"
 #include "gui/siril_intro.h"
 #include "gui/fix_xtrans_af.h"
 #include "io/single_image.h"
@@ -667,7 +668,8 @@ void update_preferences_from_model() {
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_asnet_max_sec")), pref->astrometry.max_seconds_run);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("astrometry_update_fields")), pref->astrometry.update_default_scale);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_asnet_show_output")), pref->astrometry.show_asnet_output);
-	gtk_entry_set_text(GTK_ENTRY(lookup_widget("obscode_entry")), pref->astrometry.default_obscode);
+	if (pref->astrometry.default_obscode)
+		gtk_entry_set_text(GTK_ENTRY(lookup_widget("obscode_entry")), pref->astrometry.default_obscode);
 
 	/* tab Pre-processing */
 	if (pref->prepro.bias_lib) {
@@ -961,6 +963,7 @@ void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
 			notify_gfit_modified();
 		}
 		siril_close_dialog("settings_window");
+		update_reg_interface(TRUE); // To update UI with new preferences
 	}
 }
 

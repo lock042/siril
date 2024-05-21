@@ -43,10 +43,12 @@
 #include "registration/matching/misc.h"
 #include "registration/matching/atpmatch.h"
 #include "opencv.h"
+#include "guidedfilter.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+#include "io/image_format_fits.h"
 #include "algos/statistics.h"
 #ifdef __cplusplus
 }
@@ -222,7 +224,7 @@ static int Mat_to_image(fits *image, Mat *in, Mat *out, void *bgr, int target_rx
 			channel[1].release();
 			channel[2].release();
 		} else {
-			image->fdata = (float *)out->data;
+			image->fdata = (float *) out->data;
 			image->fpdata[RLAYER] = image->fdata;
 			image->fpdata[GLAYER] = image->fdata;
 			image->fpdata[BLAYER] = image->fdata;
@@ -352,7 +354,7 @@ void cvGetEye(Homography *Hom) {
 	convert_MatH_to_H(M, Hom);
 }
 
-void cvTransfPoint(double *x, double *y, Homography Href, Homography Himg) {
+void cvTransfPoint(double *x, double *y, Homography Href, Homography Himg, double scale) {
 	Mat_<double> ref(3,1);
 	Mat_<double> dst;
 	Mat H0 = Mat(3, 3, CV_64FC1);
@@ -365,8 +367,14 @@ void cvTransfPoint(double *x, double *y, Homography Href, Homography Himg) {
 	convert_H_to_MatH(&Himg, H1);
 	if (cv::determinant(H1) == 0) return;
 	dst = H1.inv() * H0 * ref;
-	*x = dst(0,0);
-	*y = dst(1,0);
+	if (scale != 1.) {
+		Mat S = Mat::eye(3, 3, CV_64FC1);
+		S.at<double>(0,0) = scale;
+		S.at<double>(1,1) = scale;
+		dst = S * dst;
+	}
+	*x = dst(0,0) / dst(2,0);
+	*y = dst(1,0) / dst(2,0);
 }
 
 void cvTransfH(Homography Href, Homography Himg, Homography *Hres) {
@@ -381,8 +389,6 @@ void cvTransfH(Homography Href, Homography Himg, Homography *Hres) {
 	H2 = H1.inv() * H0;
 	convert_MatH_to_H(H2, Hres);
 }
-
-// TODO: to be looked into when we sort out the conventions for astrometry (see #1103)
 
 unsigned char *cvCalculH(s_star *star_array_img,
 		struct s_star *star_array_ref, int n, Homography *Hom, transformation_type type, float offset) {
@@ -543,6 +549,55 @@ int cvUnsharpFilter(fits* image, double sigma, double amount) {
 	}
 
 	return Mat_to_image(image, &in, &out, bgr, target_rx, target_ry);
+}
+
+int cvBilateralFilter(fits* image, double d, double sigma_col, double sigma_space) {
+	Mat in, out;
+	void *bgr = NULL;
+	if (image_to_Mat(image, &in, &out, &bgr, image->rx, image->ry))
+		return 1;
+	siril_debug_print("using opencv Bilateral Filter (CPU)\n");
+	bilateralFilter(in, out, d, sigma_col, sigma_space, BORDER_DEFAULT);
+	return Mat_to_image(image, &in, &out, bgr, image->rx, image->ry);
+}
+
+int cvGuidedFilter(fits* image, fits *guide, double r, double eps) {
+	Mat in, out, guide_mat;
+	void *bgr = NULL;
+	int rx = guide->rx, ry = guide->ry;
+
+	if (image_to_Mat(image, &in, &out, &bgr, image->rx, image->ry))
+		return 1;
+	if (image == guide) {
+		guide_mat = in.clone();
+	} else {
+		if (guide->type == DATA_USHORT) {
+			if (guide->naxes[2] == 1) {
+				guide_mat = Mat(ry, rx, CV_16UC1, guide->data);
+			} else if (guide->naxes[2] == 3) {
+				WORD *bgr_u = fits_to_bgrbgr_ushort(guide);
+				if (!bgr_u) return -1;
+				guide_mat = Mat(ry, rx, CV_16UC3, bgr_u);
+			}
+		}
+		else if (guide->type == DATA_FLOAT) {
+			if (guide->naxes[2] == 1) {
+				guide_mat = Mat(ry, rx, CV_32FC1, guide->fdata);
+			}
+			else if (guide->naxes[2] == 3) {
+				float *bgr_f = fits_to_bgrbgr_float(guide);
+				if (!bgr_f) return -1;
+				guide_mat = Mat(ry, rx, CV_32FC3, bgr_f);
+			}
+		}
+	}
+	if (guide_mat.channels() != in.channels())
+		cvtColor(guide_mat, guide_mat, COLOR_GRAY2BGR);
+	siril_debug_print("using Guided Filter (CPU)\n");
+	Mat result = guidedFilter(guide_mat, in, r, eps, -1);
+	result.copyTo(out);
+	guide_mat.release();
+	return Mat_to_image(image, &in, &out, bgr, image->rx, image->ry);
 }
 
 /* Work on grey images. If image is in RGB it must be first converted
@@ -1087,13 +1142,42 @@ void cvcalcH_fromKKR(Homography Kref, Homography K, Homography R, Homography *H)
 
 // TODO: Code below should be moved to a dedicated cvastrometric.cpp file
 
-static void map_undistortion(disto_data *disto, Rect roi, Mat xmap, Mat ymap) {
+// interpolates a dst->src map from the one saved in disto structure
+static void map_undistortion_map_2_D2S(disto_data *disto, int rx, int ry, Mat xmap, Mat ymap) {
+	for (int v = 0; v < xmap.rows; ++v) {
+		float* rxptr = xmap.ptr<float>(v);
+		float* ryptr = ymap.ptr<float>(v);
+		for (int u = 0; u < xmap.cols; ++u) {
+			int i = floor(rxptr[u]);
+			int j = floor(ryptr[u]);
+			if (i < 0 || i > rx - 2 || j < 0 || j > ry - 2) {
+				rxptr[u] = -1.f;
+				ryptr[u] = -1.f;
+			} else {
+				int s = j * rx + i;
+				float c1 = rxptr[u] - (float)i;
+				float c2 = ryptr[u] - (float)j;
+				float w11 = (1.f - c1) * (1.f - c2);
+				float w12 = c1 * (1.f - c2);
+				float w21 = (1.f - c1) * c2;
+				float w22 = c1 * c2;
+				rxptr[u] = w11 * disto->xmap[s] + w12 * disto->xmap[s + 1] + w21 * disto->xmap[s + rx] + w22 * disto->xmap[s + rx + 1];
+				ryptr[u] = w11 * disto->ymap[s] + w12 * disto->ymap[s + 1] + w21 * disto->ymap[s + rx] + w22 * disto->ymap[s + rx + 1];
+			}
+		}
+	}
+}
+
+// maps undistortion dst to src
+static void map_undistortion_D2S(disto_data *disto, Rect roi, Mat xmap, Mat ymap) {
 	double U, V, x, y;
 	double U2, V2, U3, V3, U4, V4, U5, V5;
 	for (int v = 0; v < roi.height; ++v) {
+		float* rxptr = xmap.ptr<float>(v);
+		float* ryptr = ymap.ptr<float>(v);
 		for (int u = 0; u < roi.width; ++u) {
-			U = (double)xmap.at<float>(v, u) - disto->xref;
-			V = disto->yref - (double)ymap.at<float>(v, u); // opencv convention is y down while wcs is y up
+			U = (double)rxptr[u] - disto->xref;
+			V = disto->yref - (double)ryptr[u]; // opencv convention is y down while wcs is y up
 			x = U + disto->AP[0][0] + disto->AP[1][0] * U + disto->AP[0][1] * V;
 			y = V + disto->BP[0][0] + disto->BP[1][0] * U + disto->BP[0][1] * V;
 			if (disto->order >= 2) {
@@ -1130,13 +1214,86 @@ static void map_undistortion(disto_data *disto, Rect roi, Mat xmap, Mat ymap) {
 				x += disto->AP[5][0] * U5 + disto->AP[4][1] * U4V + disto->AP[3][2] * U3V2 + disto->AP[2][3] * U2V3 + disto->AP[1][4] * UV4 + disto->AP[0][5] * V5;
 				y += disto->BP[5][0] * U5 + disto->BP[4][1] * U4V + disto->BP[3][2] * U3V2 + disto->BP[2][3] * U2V3 + disto->BP[1][4] * UV4 + disto->BP[0][5] * V5;
 			}
+			rxptr[u] = (float)(x + disto->xref);
+			ryptr[u] = (float)(disto->yref - y);
+ 		}
+ 	}
+}
+// maps undistortion src to dst
+static void map_undistortion_S2D(disto_data *disto, int width, int height, Mat xmap, Mat ymap) {
+	double x, y;
+	Mat U = Mat(width, 1, CV_64FC1);
+	Mat V = Mat(height, 1, CV_64FC1);
+	Mat U2, V2, U3, V3, U4, V4, U5, V5; // Not making U a W x order matrix (with the power terms, same for V) because opencv requires Mat memory to be contiguous
+	for (int u = 0; u < width; ++u) {
+		U.at<double>(u) = (double)u - disto->xref;
+	}
+	if (disto->order >= 2) {
+		U2 = U.mul(U);
+		if (disto->order >= 3) {
+			U3 = U2.mul(U);
+			if (disto->order >= 4) {
+				U4 = U4.mul(U);
+				if (disto->order >= 5) {
+					U5 = U5.mul(U);
+				}
+			}
+		}
+	}
+
+	for (int v = 0; v < height; ++v) {
+		V.at<double>(v) = disto->yref - (double)v;
+	}
+	if (disto->order >= 2) {
+		V2 = V.mul(V);
+		if (disto->order >= 3) {
+			V3 = V2.mul(V);
+			if (disto->order >= 4) {
+				V4 = V3.mul(V);
+				if (disto->order >= 5) {
+					V5 = V4.mul(V);
+				}
+			}
+		}
+	}
+
+	for (int v = 0; v < height; ++v) {
+		for (int u = 0; u < width; ++u) {
+			x = U.at<double>(u) + disto->A[0][0] + disto->A[1][0] * U.at<double>(u) + disto->A[0][1] * V.at<double>(v);
+			y = V.at<double>(v) + disto->B[0][0] + disto->B[1][0] * U.at<double>(u) + disto->B[0][1] * V.at<double>(v);
+			if (disto->order >= 2) {
+				double UV = U.at<double>(u) * V.at<double>(v);
+				x += disto->A[2][0] * U2.at<double>(u) + disto->A[1][1] * UV + disto->A[0][2] * V2.at<double>(v);
+				y += disto->B[2][0] * U2.at<double>(u) + disto->B[1][1] * UV + disto->B[0][2] * V2.at<double>(v);
+				if (disto->order >= 3) {
+					double U2V = U2.at<double>(u) * V.at<double>(v);
+					double UV2 = U.at<double>(u) * V2.at<double>(v);
+					x += disto->A[3][0] * U3.at<double>(u) + disto->A[2][1] * U2V + disto->A[1][2] * UV2 + disto->A[0][3] * V3.at<double>(v);
+					y += disto->B[3][0] * U3.at<double>(u) + disto->B[2][1] * U2V + disto->B[1][2] * UV2 + disto->B[0][3] * V3.at<double>(v);
+					if (disto->order >= 4) {
+						double U3V = U3.at<double>(u) * V.at<double>(v);
+						double U2V2 = U2.at<double>(u) * V2.at<double>(v);
+						double UV3 = U.at<double>(u) * V3.at<double>(v);
+						x += disto->A[4][0] * U4.at<double>(u) + disto->A[3][1] * U3V + disto->A[2][2] * U2V2 + disto->A[1][3] * UV3 + disto->A[0][4] * V4.at<double>(v);
+						y += disto->B[4][0] * U4.at<double>(u) + disto->B[3][1] * U3V + disto->B[2][2] * U2V2 + disto->B[1][3] * UV3 + disto->B[0][4] * V4.at<double>(v);
+						if (disto->order >= 5) {
+							double U4V = U4.at<double>(u) * V.at<double>(v);
+							double U3V2 = U3.at<double>(u) * V2.at<double>(v);
+							double U2V3 = U2.at<double>(u) * V3.at<double>(v);
+							double UV4 = U.at<double>(u) * V4.at<double>(v);
+							x += disto->A[5][0] * U5.at<double>(u) + disto->A[4][1] * U4V + disto->A[3][2] * U3V2 + disto->A[2][3] * U2V3 + disto->A[1][4] * UV4 + disto->A[0][5] * V5.at<double>(v);
+							y += disto->B[5][0] * U5.at<double>(u) + disto->B[4][1] * U4V + disto->B[3][2] * U3V2 + disto->B[2][3] * U2V3 + disto->B[1][4] * UV4 + disto->B[0][5] * V5.at<double>(v);
+						}
+					}
+				}
+			}
 			xmap.at<float>(v, u) = (float)(x + disto->xref);
 			ymap.at<float>(v, u) = (float)(disto->yref - y);
  		}
  	}
 }
 
-int cvWarp_fromKR(fits *image, astrometric_roi *roi_in, Homography K, Homography R, float scale, int projector, int interpolation, gboolean clamp, disto_data *disto, astrometric_roi *roi_out) {
+int cvWarp_fromKR(fits *image, astrometric_roi *roi_in, Homography K, Homography R, float scale, int interpolation, gboolean clamp, disto_data *disto, astrometric_roi *roi_out) {
 	Mat in, out;
 	void *bgr = NULL;
 
@@ -1157,17 +1314,7 @@ int cvWarp_fromKR(fits *image, astrometric_roi *roi_in, Homography K, Homography
 	else
 		szin = Size(image->rx, image->ry);
 
-	Ptr<WarperCreator> warper_creator;
-	// Prepare projector
-	switch (projector) {
-		default:
-		case OPENCV_PLANE:
-			warper_creator = makePtr<PlaneWarper>();
-			break;
-		case OPENCV_SPHERICAL:
-			warper_creator = makePtr<SphericalWarper>();
-			break;
-	}
+	Ptr<WarperCreator> warper_creator = makePtr<PlaneWarper>();
 
 	if (!warper_creator) {
 		std::cout << "Can't create the warper" << "'\n";
@@ -1184,45 +1331,100 @@ int cvWarp_fromKR(fits *image, astrometric_roi *roi_in, Homography K, Homography
 	// in case we just want to assess final size, we skip warping the image
 	// we just pass a NULL image
 	if (image) {
-		if (image_to_Mat(image, &in, &out, &bgr, roi_in->w, roi_in->h))
+		int out_w = sizes.width;
+		int out_h = sizes.height;
+		if (roi_in) { // if we don't pass roi_in, we're in max mode, the output size is just the warped image
+			out_w = roi_in->w;
+			out_h = roi_in->h;
+		}
+		if (image_to_Mat(image, &in, &out, &bgr, out_w, out_h))
 			return 2;
 		Mat uxmap, uymap;
 		warper->buildMaps(szin, k, r, uxmap, uymap);
-		if (disto) {
-			map_undistortion(disto, roi, uxmap, uymap);
+		if (disto && disto->dtype != DISTO_NONE) {
+			if (disto->dtype == DISTO_MAP_D2S) {
+				map_undistortion_map_2_D2S(disto, szin.width, szin.height, uxmap, uymap);
+			} else {
+				map_undistortion_D2S(disto, roi, uxmap, uymap);
+			}
 		}
 		Mat aux;
-		init_guide(image, sizes.width, sizes.height, &aux);
-		remap(in, aux, uxmap, uymap, interpolation, BORDER_TRANSPARENT);
-
+		if (roi_in) {
+			init_guide(image, sizes.width, sizes.height, &aux);
+			remap(in, aux, uxmap, uymap, interpolation, BORDER_TRANSPARENT);
+		} else {
+			remap(in, out, uxmap, uymap, interpolation, BORDER_TRANSPARENT);
+		}
 		if ((interpolation == OPENCV_LANCZOS4 || interpolation == OPENCV_CUBIC) && clamp) {
 			Mat guide, tmp1;
 			init_guide(image, sizes.width, sizes.height, &guide);
 			// Create guide image
 			remap(in, guide, uxmap, uymap, OPENCV_AREA, BORDER_TRANSPARENT);
-			tmp1 = (aux < CLAMPING_FACTOR * guide);
 			Mat element = getStructuringElement(MORPH_ELLIPSE, Size(3, 3), Point(1,1));
-			dilate(tmp1, tmp1, element);
-			copyTo(guide, aux, tmp1); // Guide copied to the clamped pixels
+			if (roi_in) {
+				tmp1 = (aux < CLAMPING_FACTOR * guide);
+				dilate(tmp1, tmp1, element);
+				copyTo(guide, aux, tmp1); // Guide copied to the clamped pixels
+			} else {
+				tmp1 = (out < CLAMPING_FACTOR * guide);
+				dilate(tmp1, tmp1, element);
+				copyTo(guide, out, tmp1); // Guide copied to the clamped pixels
+			}
 			guide.release();
 			tmp1.release();
 		}
-		Rect inr = Rect(roi_in->x, roi_in->y, roi_in->w, roi_in->h);
-		Rect outr = inr & roi;
-		int xoffset = roi.tl().x - roi_in->x;
-		int yoffset = roi.tl().y - roi_in->y;
-		int xi = (xoffset < 0) ? -xoffset : 0;
-		int xo = (xoffset < 0) ? 0 : xoffset;
-		int yi = (yoffset < 0) ? -yoffset : 0;
-		int yo = (yoffset < 0) ? 0 : yoffset;
-		// std::cout << xi << " " << yi << "\n" << xo << " " << yo << "\n";
-		Mat roiin = aux(Rect(xi, yi, outr.size().width, outr.size().height));
-		Mat roiout = out(Rect(xo, yo, outr.size().width, outr.size().height));
-		roiin.copyTo(roiout);
-
-		return Mat_to_image(image, &in, &out, bgr, roi_in->w, roi_in->h);
-
+		if (roi_in) {
+			Rect inr = Rect(roi_in->x, roi_in->y, roi_in->w, roi_in->h);
+			Rect outr = inr & roi;
+			int xoffset = roi.tl().x - roi_in->x;
+			int yoffset = roi.tl().y - roi_in->y;
+			int xi = (xoffset < 0) ? -xoffset : 0;
+			int xo = (xoffset < 0) ? 0 : xoffset;
+			int yi = (yoffset < 0) ? -yoffset : 0;
+			int yo = (yoffset < 0) ? 0 : yoffset;
+			// std::cout << xi << " " << yi << "\n" << xo << " " << yo << "\n";
+			Mat roiin = aux(Rect(xi, yi, outr.size().width, outr.size().height));
+			Mat roiout = out(Rect(xo, yo, outr.size().width, outr.size().height));
+			roiin.copyTo(roiout);
+		}
+		return Mat_to_image(image, &in, &out, bgr, out_w, out_h);
 	}
+	return 0;
+}
+
+
+// Computes the distortion dst->src map and stores it in the disto structure
+int init_disto_map(int rx, int ry, disto_data *disto) {
+	if (disto == NULL || (disto->dtype != DISTO_MAP_D2S && disto->dtype != DISTO_MAP_S2D))
+		return 1;
+
+	disto->xmap = (float *)malloc(rx * ry *sizeof(float));
+	disto->ymap = (float *)malloc(rx * ry *sizeof(float));
+	size_t s = 0;
+	for (int j = 0; j < ry; j++) {
+		for (int i = 0; i < rx; i++) {
+			disto->xmap[s] = (float)i;
+			disto->ymap[s] = (float)j;
+			s++;
+		}
+	}
+
+	if (!disto->xmap || !disto->ymap) {
+		free(disto->xmap);
+		free(disto->ymap);
+		disto->xmap = NULL;
+		disto->ymap = NULL;
+		return 2;
+	}
+
+	Mat xmap = Mat(ry, rx, CV_32FC1, disto->xmap);
+	Mat ymap = Mat(ry, rx, CV_32FC1, disto->ymap);
+
+	if (disto->dtype == DISTO_MAP_D2S) {
+		Rect roidst = Rect_(0, 0, rx, ry);
+		map_undistortion_D2S(disto, roidst, xmap, ymap);
+	} else
+		map_undistortion_S2D(disto, rx, ry, xmap, ymap);
 	return 0;
 }
 

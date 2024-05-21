@@ -24,6 +24,7 @@
 #include "gui/histogram.h"
 #include "algos/background_extraction.h"
 #include "filters/asinh.h"
+#include "filters/epf.h"
 #include "filters/clahe.h"
 #include "filters/median.h"
 #include "filters/saturation.h"
@@ -58,6 +59,7 @@ static const SirilDialogEntry entries[] =
 	{"dialog_FFT", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"dialog_star_remix", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"edge_dialog", NULL, INFORMATION_DIALOG, FALSE, NULL},
+	{"epf_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_epf_cancel},
 	{"extract_channel_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
 	{"extract_wavelets_layers_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
 	{"file_information", NULL, INFORMATION_DIALOG, FALSE, NULL},
@@ -68,6 +70,7 @@ static const SirilDialogEntry entries[] =
 	{"linearmatch_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"Median_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, median_close},
 	{"merge_cfa_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"mouse_actions_dialog", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"nina_light_curve", get_nina_lc_dialog, OTHER_DIALOG, FALSE, NULL},
 	{"pixel_math_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
 	{"resample_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},

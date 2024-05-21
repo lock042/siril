@@ -82,6 +82,7 @@
 #include "gui/preferences.h"
 #include "filters/asinh.h"
 #include "filters/banding.h"
+#include "filters/epf.h"
 #include "filters/nlbayes/call_nlbayes.h"
 #include "filters/clahe.h"
 #include "filters/cosmetic_correction.h"
@@ -1061,6 +1062,127 @@ int process_gauss(int nb){
 	sprintf(log, "Gaussian filtering, sigma: %.2f", sigma);
 	gfit.history = g_slist_append(gfit.history, strdup(log));
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+}
+
+int process_epf(int nb) {
+	gchar *end;
+	double	d = 0.0, mod = 1.0,
+			sigma_col = 11.0,
+			sigma_space = 11.0;
+	ep_filter_t filter = EP_BILATERAL;
+	gchar *filename = NULL;
+	fits *guidefit = NULL;
+	fits *fit = &gfit;
+
+	for (int i = 1 ; i < nb ; i++) {
+		gchar *arg = word[i];
+		if (!g_strcmp0(arg, "-guided")) {
+			filter = EP_GUIDED;
+		}
+		else if (g_str_has_prefix(arg, "-guideimage=")) {
+			gchar *val = arg + 12;
+			if (filename) {
+				g_free(filename);
+			}
+			filename = g_strdup(val);
+		}
+		else if (g_str_has_prefix(arg, "-d=")) {
+			gchar *val = arg + 3;
+			d = g_ascii_strtod(val, &end);
+			if (end == val) {
+				siril_log_color_message(_("Invalid argument %s, aborting.\n"), "red", arg);
+				g_free(filename);
+				return CMD_ARG_ERROR;
+			}
+			if (d > 25)
+				siril_log_color_message(_("Warning: d > approx. 25 may result in lengthy execution times.\n"), "salmon");
+		}
+		else if (g_str_has_prefix(arg, "-mod=")) {
+			gchar *val = arg + 5;
+			mod = g_ascii_strtod(val, &end);
+			if (end == val) {
+				siril_log_color_message(_("Invalid argument %s, aborting.\n"), "red", arg);
+				g_free(filename);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-si=")) {
+			gchar *val = arg + 4;
+			sigma_col = g_ascii_strtod(val, &end);
+			if (end == val) {
+				siril_log_color_message(_("Invalid argument %s, aborting.\n"), "red", arg);
+				g_free(filename);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-ss=")) {
+			gchar *val = arg + 4;
+			sigma_space = g_ascii_strtod(val, &end);
+			if (end == val) {
+				siril_log_color_message(_("Invalid argument %s, aborting.\n"), "red", arg);
+				g_free(filename);
+				return CMD_ARG_ERROR;
+			}
+		}
+	}
+	if (sigma_col <= 0.0 || sigma_col > 65535) {
+		 siril_log_color_message(_("-si= value must be > 0.0 and <= 65535\n"), "red");
+		 g_free(filename);
+		 return CMD_ARG_ERROR;
+	}
+	if (d < 0.0 || d > 20.0) {
+		 siril_log_color_message(_("-d= value must be > 0.0 and <= 20.0\n"), "red");
+		 g_free(filename);
+		 return CMD_ARG_ERROR;
+	}
+	if (sigma_space <= 0.0 || sigma_space > 32.0) {
+		 siril_log_color_message(_("-ss= value must be > 0.0 and <= 32.0\n"), "red");
+		 g_free(filename);
+		 return CMD_ARG_ERROR;
+	}
+	if (sigma_space > 20.0 && d == 0)
+			siril_log_color_message(_("Warning: spatial sigma > approx. 20 with auto diameter may result in lengthy execution times.\n"), "salmon");
+
+	if (mod <= 0.0 || mod > 1.0) {
+		 siril_log_color_message(_("-mod= value must be > 0.0 and <= 1.0\n"), "red");
+		 g_free(filename);
+		 return CMD_ARG_ERROR;
+	}
+
+	if (filter == EP_GUIDED || filename != NULL) {
+		filter = EP_GUIDED; // passing guideimage name is enough to set to guided
+		guidefit = calloc(1, sizeof(fits));
+		if (readfits(filename, guidefit, NULL, FALSE)) {
+			siril_log_color_message(_("Error: guide image could not be loaded\n"), "red");
+			clearfits(guidefit);
+			free(guidefit);
+			g_free(filename);
+			return CMD_ARG_ERROR;
+		}
+		g_free(filename);
+		if (guidefit->rx != gfit.rx || guidefit->ry != gfit.ry) {
+			siril_log_color_message(_("Error: guide image dimensions do not match\n"), "red");
+			clearfits(guidefit);
+			free(guidefit);
+			return CMD_ARG_ERROR;
+		}
+	}
+	if (filter == EP_GUIDED && d == 0.0) {
+		siril_log_color_message(_("Warning: d = 0.0 cannot be used to specify automatic diameter when using a guided filter. Setting d to default value of 5.\n"), "salmon");
+		d = 5.0;
+	}
+	struct epfargs *args = calloc(1, sizeof(struct epfargs));
+	*args = (struct epfargs) {.fit = fit,
+							.guidefit = guidefit,
+							.d = d,
+							.sigma_col = sigma_col,
+							.sigma_space = sigma_space,
+							.mod = mod,
+							.filter = filter,
+							.verbose = TRUE };
+	start_in_new_thread(epfhandler, args);
+
+	return CMD_OK;
 }
 
 int process_getref(int nb) {
@@ -7029,7 +7151,12 @@ int process_register(int nb) {
 			siril_log_color_message(_("Not enough space to save the output images, aborting\n"), "red");
 			goto terminate_register_on_error;
 		}
+	} else if (reg_args->x2upscale) {
+		siril_log_color_message(_("Upscaling a sequence with -noout or -2pass has no effect, ignoring\n"), "red");
+		reg_args->x2upscale = FALSE;
 	}
+
+
 	if (reg_args->interpolation == OPENCV_NONE && !(reg_args->type == SHIFT_TRANSFORMATION)) {
 #ifdef HAVE_CV44
 		reg_args->type = SHIFT_TRANSFORMATION;
@@ -7511,7 +7638,6 @@ int process_seq_applyastrometry(int nb) {
 	reg_args->interpolation = OPENCV_LANCZOS4;
 	reg_args->clamp = TRUE;
 	reg_args->framing = FRAMING_CURRENT;
-	reg_args->projector = OPENCV_SPHERICAL;
 	reg_args->undistort = TRUE;
 	reg_args->astrometric_scale = 1.f;
 
@@ -7552,10 +7678,6 @@ int process_seq_applyastrometry(int nb) {
 				reg_args->interpolation = OPENCV_LINEAR;
 				continue;
 			}
-			if(!g_ascii_strncasecmp(value, "none", 4) || !g_ascii_strncasecmp(value, "no", 2)) {
-				reg_args->interpolation = OPENCV_NONE;
-				continue;
-			}
 			if(!g_ascii_strncasecmp(value, "area", 4) || !g_ascii_strncasecmp(value, "ar", 2)) {
 				reg_args->interpolation = OPENCV_AREA;
 				continue;
@@ -7587,24 +7709,6 @@ int process_seq_applyastrometry(int nb) {
 				continue;
 			}
 			siril_log_message(_("Unknown framing type %s, aborting.\n"), value);
-			goto terminate_register_on_error;
-		} else if (g_str_has_prefix(word[i], "-proj=")) {
-			char *current = word[i], *value;
-			value = current + 6;
-			if (value[0] == '\0') {
-				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-				goto terminate_register_on_error;
-			}
-			if(!g_ascii_strncasecmp(value, "spherical", 9)) {
-				reg_args->projector = OPENCV_SPHERICAL;
-				continue;
-			}
-			if(!g_ascii_strncasecmp(value, "plane", 6)) {
-				reg_args->projector = OPENCV_PLANE;
-				continue;
-			}
-			siril_log_message(_("Unknown projector type %s, aborting.\n"), value);
-			retval = CMD_ARG_ERROR;
 			goto terminate_register_on_error;
 		} else if (g_str_has_prefix(word[i], "-scale=")) {
 			char *arg = word[i] + 7;
@@ -7751,6 +7855,10 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 				if (current[strlen(current)-1] == 's')
 					arg->merge_lowhigh_rejmaps = FALSE;
 			}
+		} else if (!strcmp(current, "-maximize")) {
+			arg->maximize_framing = TRUE;
+		} else if (!strcmp(current, "-upscale")) {
+			arg->upscale_at_stacking = TRUE;
 		} else {
 			siril_log_message(_("Unexpected argument to stacking `%s', aborting.\n"), current);
 			return CMD_ARG_ERROR;
@@ -7810,6 +7918,34 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		siril_log_color_message(_("Stacking has detected registration data on layer %d with more than simple shifts. You should apply existing registration before stacking\n"), "red", args.reglayer);
 		free_sequence(seq, TRUE);
 		return CMD_GENERIC_ERROR;
+	}
+	// manage reframing and upscale
+	gboolean can_reframe = layer_has_usable_registration(seq, args.reglayer);
+	gboolean can_upscale = can_reframe && !seq->is_variable;
+	gboolean must_reframe = can_reframe && seq->is_variable;
+	args.maximize_framing = arg->maximize_framing;
+	args.upscale_at_stacking = arg->upscale_at_stacking;
+	if (args.maximize_framing && !can_reframe) {
+		siril_log_color_message(_("No registration data in the sequence. Maximize framing will be ignored\n"), "red");
+		args.maximize_framing = FALSE;
+	}
+	if (!args.maximize_framing && must_reframe) {
+		siril_log_color_message(_("The sequence has different image sizes and registration data. Forcing to maximize framing\n"), "red");
+		args.maximize_framing = TRUE;
+	}
+	if (!can_reframe && seq->is_variable) {
+		siril_log_color_message(_("The sequence has different image sizes but no registration data, cannot stack. Aborting\n"), "red");
+		free_sequence(seq, TRUE);
+		return CMD_GENERIC_ERROR;
+	}
+	if (args.upscale_at_stacking && !can_upscale) {
+		siril_log_color_message(_("No registration data in the sequence or images with different sizes. Upscale at stacking will be ignored\n"), "red");
+		args.upscale_at_stacking = FALSE;
+	}
+	if ((args.upscale_at_stacking || args.maximize_framing) && arg->method == stack_median) {
+		siril_log_color_message(_("Cannot upscale or maximize framong with median stacking. Disabling\n"), "red");
+		args.maximize_framing = FALSE;
+		args.upscale_at_stacking = FALSE;
 	}
 
 	// manage filters

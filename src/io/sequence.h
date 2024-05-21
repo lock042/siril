@@ -8,7 +8,6 @@
 
 void populate_seqcombo(const gchar *realname);
 int	read_single_sequence(char *realname, image_type imagetype);
-int	seqsetnum(int image_number);
 char *normalize_seqname(char *name, gboolean add_underscore);
 int	check_seq();
 int	seq_check_basic_data(sequence *seq, gboolean load_ref_into_gfit);
@@ -33,9 +32,9 @@ void	remove_prefixed_star_files(sequence *seq, const char *prefix);
 void	initialize_sequence(sequence *seq, gboolean is_zeroed);
 void	free_sequence(sequence *seq, gboolean free_seq_too);
 void	free_photometry_set(sequence *seq, int set);
-void	sequence_free_preprocessing_data(sequence *seq);
 void	close_sequence(int loading_another);
 gboolean check_seq_is_comseq(sequence *seq);
+gboolean check_seq_is_variable(sequence *seq);
 gboolean sequence_is_loaded();
 gboolean check_starfile_date(sequence *seq, int index, gchar *star_filename) ;
 

@@ -1783,7 +1783,7 @@ static void draw_regframe(const draw_data_t* dd) {
 	framing.pt[3].y = (double)com.seq.imgparam[com.seq.reference_image].ry;
 	double cogx = 0., cogy = 0., cx, cy;
 	for (int i = 0; i < 4; i++) {
-		cvTransfPoint(&framing.pt[i].x, &framing.pt[i].y, com.seq.regparam[activelayer][com.seq.reference_image].H, com.seq.regparam[activelayer][com.seq.current].H);
+		cvTransfPoint(&framing.pt[i].x, &framing.pt[i].y, com.seq.regparam[activelayer][com.seq.reference_image].H, com.seq.regparam[activelayer][com.seq.current].H, 1.);
 		cogx += framing.pt[i].x;
 		cogy += framing.pt[i].y;
 	}
@@ -1795,8 +1795,10 @@ static void draw_regframe(const draw_data_t* dd) {
 	cairo_t *cr = dd->cr;
 	double size = 10. / dd->zoom;
 	cairo_set_dash(cr, NULL, 0, 0);
-	cairo_set_source_rgb(cr, 1., 0., 0.);
-
+	if (max <= SHIFT_TRANSFORMATION)
+		cairo_set_source_rgb(cr, 0.0, 0.5, 1.0);
+	else
+		cairo_set_source_rgb(cr, 1., 0., 0.);
 
 	cairo_set_line_width(cr, 2.0 / dd->zoom);
 	// reference origin

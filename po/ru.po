@@ -6,10 +6,10 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-03-28 07:46+0100\n"
-"PO-Revision-Date: 2024-03-22 20:23+0000\n"
+"PO-Revision-Date: 2024-05-19 11:29+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
-"Language-Team: Russian <https://weblate.pixls.us/projects/siril/siril-"
-"application/ru/>\n"
+"Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
+"siril-application/ru/>\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -368,14 +368,15 @@ msgstr ""
 "не должно быть очень точным, постарайтесь, чтобы ошибка не превышала 20%."
 
 #: src/gui/uifiles/astrometry_dialog.ui:390
-#, fuzzy
 msgid ""
 "Pixel size in microns. The image is assumed to have square pixels. Value is "
 "already multiplied by the camera binning if the \"Real pixel size\" box is "
 "checked in the Tool->Image Information dialog box."
 msgstr ""
 "Размер пикселя в микрометрах. Предполагается, что изображение сформировано "
-"квадратными пикселями. Значение уже умножено на биннинг камеры."
+"квадратными пикселями. Значение уже умножено на биннинг камеры, если "
+"установлен флажок \"Реальный размер пикселя\" в диалогом окне Инструменты -> "
+"Данные об изображении..."
 
 #: src/gui/uifiles/astrometry_dialog.ui:409
 msgid "Focal length (mm):"
@@ -517,23 +518,20 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/astrometry_dialog.ui:660
-#, fuzzy
 msgid "Siril solver"
-msgstr "Решатель"
+msgstr "Решатель Siril"
 
 #: src/gui/uifiles/astrometry_dialog.ui:661
-#, fuzzy
 msgid "Astrometry.net (local)"
-msgstr "Решатель Astrometry.net"
+msgstr "Astrometry.net (локально)"
 
 #: src/gui/uifiles/astrometry_dialog.ui:674
 msgid "Radius used by the solver to search around the target."
 msgstr ""
 
 #: src/gui/uifiles/astrometry_dialog.ui:695
-#, fuzzy
 msgid "Search radius:"
-msgstr "Внешний радиус:"
+msgstr "Радиус поиска:"
 
 #: src/gui/uifiles/astrometry_dialog.ui:704
 msgid "disable near search"
@@ -544,24 +542,30 @@ msgid ""
 "Tick this box to disable searching around target position with Siril "
 "internal solver."
 msgstr ""
+"Установите этот флажок, для отключения поиска вокруг положения цели при "
+"решении с помощью встроенного решателя Siril."
 
 #: src/gui/uifiles/astrometry_dialog.ui:727
 msgid "Ignore position (blind solve)"
-msgstr ""
+msgstr "Игнорировать положение (решение вслепую)"
 
 #: src/gui/uifiles/astrometry_dialog.ui:731
 msgid ""
 "Tick this box to ignore target position when solving with local Astrometry."
 "net"
 msgstr ""
+"Установите этот флажок, чтобы игнорировать положение цели при решении с "
+"помощью локального Astrometry.net"
 
 #: src/gui/uifiles/astrometry_dialog.ui:743
 msgid "Ignore sampling (blind solve)"
-msgstr ""
+msgstr "Игнорировать масштаб (решение вслепую)"
 
 #: src/gui/uifiles/astrometry_dialog.ui:747
 msgid "Tick this box to ignore sampling when solving with local Astrometry.net"
 msgstr ""
+"Установите этот флажок, чтобы игнорировать масштаб при решении с помощью "
+"локального Astrometry.net"
 
 #: src/gui/uifiles/astrometry_dialog.ui:805
 msgid "Image Parameters"
@@ -593,9 +597,8 @@ msgstr ""
 "зрения."
 
 #: src/gui/uifiles/astrometry_dialog.ui:882
-#, fuzzy
 msgid "Star Catalogue: "
-msgstr "Удалённый каталог звёзд: "
+msgstr "Каталог звёзд: "
 
 #: src/gui/uifiles/astrometry_dialog.ui:894
 msgid ""
@@ -644,13 +647,12 @@ msgstr ""
 "37 миллионов звёзд примерно от 7-й до 17-й звёздной величины."
 
 #: src/gui/uifiles/astrometry_dialog.ui:923
-#, fuzzy
 msgid ""
 "The catalogue is automatically determined using the approximation of the "
 "Field Of View and magnitude."
 msgstr ""
-"Удалённый каталог определяется автоматически, исходя из оценки поля зрения и "
-"звёздной величины."
+"Каталог определяется автоматически, исходя из оценки поля зрения и звёздной "
+"величины."
 
 #: src/gui/uifiles/astrometry_dialog.ui:938
 msgid ""
@@ -690,17 +692,17 @@ msgid "Star Detection"
 msgstr "Определение звёзд"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1015
-#, fuzzy
 msgid "Solve whole sequence"
-msgstr "Найти последовательности"
+msgstr "Решить всю последовательность"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1019
 msgid "Tick this box to solve the whole sequence."
 msgstr ""
+"Установите этот флажок, чтобы найти решение для всей последовательности."
 
 #: src/gui/uifiles/astrometry_dialog.ui:1031
 msgid "Skip already solved images"
-msgstr ""
+msgstr "Пропустить уже решённые изображения"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1035
 msgid ""
@@ -709,9 +711,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/astrometry_dialog.ui:1048
-#, fuzzy
 msgid "Fetch stars for each image"
-msgstr "Получено %d звёзд из %s каталога\n"
+msgstr "Получить звёзды для каждого изображения"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1052
 msgid ""
@@ -5556,15 +5557,14 @@ msgid "Default degree of the polynomial correction:"
 msgstr "Степень полиномиальной коррекции по умолчанию:"
 
 #: src/gui/uifiles/settings_window.ui:1576
-#, fuzzy
 msgid ""
 "Astrometry solvers can use a polynomial correction (SIP) to work with "
 "optical aberrations, this is the default order of the polynomial model. Set "
 "to 1 to disable it."
 msgstr ""
-"Astrometry.net может использовать полиномиальную коррекцию (SIP) для работы "
-"с оптическими искажениями. Это степень полиномиальной модели по умолчанию. "
-"Значения 0 или 1 отключают коррекцию."
+"Астрометрические решатели могут использовать полиномиальную коррекцию (SIP) "
+"для работы с оптическими искажениями. Это степень полиномиальной модели по "
+"умолчанию. Значение 1 отключает коррекцию."
 
 #: src/gui/uifiles/settings_window.ui:1579
 msgid "3"
@@ -7090,7 +7090,7 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:763
 msgid "PSF for the Sequence"
-msgstr "PSF из последовательности"
+msgstr "PSF для последовательности"
 
 #: src/gui/uifiles/siril.ui:771
 msgid "Pick a Star"
@@ -7188,9 +7188,8 @@ msgid "2-pass global star alignment (deep-sky)"
 msgstr "Всё звёздное небо за 2 шага (дальний космос)"
 
 #: src/gui/uifiles/siril.ui:1078
-#, fuzzy
 msgid "KOMBAT alignment (planetary/deep-sky)"
-msgstr "Выравнивание по паттерну (планеты/дальний космос)"
+msgstr "KOMBAT (планеты/дальний космос)"
 
 #: src/gui/uifiles/siril.ui:1118
 msgid ""
@@ -8175,7 +8174,6 @@ msgstr ""
 "кадров и кадров шума считывания."
 
 #: src/gui/uifiles/siril.ui:4672
-#, fuzzy
 msgid ""
 "Dark subtraction can be optimized. Siril offers two ways of doing this.\n"
 "- The first method automatically evaluates the coefficients to be applied so "
@@ -8191,28 +8189,33 @@ msgid ""
 "<b>WARNING:</b> Do not apply dark optimization to the master-dark if the "
 "master-bias has not been subtracted beforehand."
 msgstr ""
-"Вычитание темновых кадров опционально можно оптимизировать, чтобы шум "
-"результирующего изображения (отдельная субэкспозиция минус темновой кадр) "
-"минимизировался применением коэффициента к темновому кадру. Эта опция "
-"полезна если темновые кадры получены в не оптимальных условиях.\n"
+"Вычитание темновых кадров можно оптимизировать и Siril предлагает два "
+"способа сделать это.\n"
+"- Первый способ автоматически оценивает коэффициенты, которые будут "
+"применены, чтобы шум итогового изображения (отдельная субэкспозиция минус "
+"темновой кадр) был минимален.\n"
+"- Второй способ принимает во внимание длительность экспозиций, если таковая "
+"была записана программой захвата изображений.\n"
 "\n"
-"ВНИМАНИЕ: не используйте оптимизацию темновых кадров, если мастер-кадр шума "
-"считывания предварительно не был вычтен из темнового мастер-кадра."
+"Опция оптимизации темновых кадров полезна, если темновые изображения не были "
+"сняты в оптимальных условиях. Она компенсирует разницу в температуре и/или "
+"длительности экспозиции между темновыми кадрами и отдельными субэскопзициями."
+"\n"
+"\n"
+"<b>ВНИМАНИЕ</b>: не используйте оптимизацию темновых кадров, если мастер-"
+"кадр шума считывания предварительно не был вычтен из темнового мастер-кадра."
 
 #: src/gui/uifiles/siril.ui:4681
-#, fuzzy
 msgid "No dark optimization"
-msgstr "Оптимизация"
+msgstr "Без оптимизации"
 
 #: src/gui/uifiles/siril.ui:4682
-#, fuzzy
 msgid "Auto-evaluation"
-msgstr "Оценка наклона сенсора"
+msgstr "Авт. оценка"
 
 #: src/gui/uifiles/siril.ui:4683
-#, fuzzy
 msgid "Use Exposure"
-msgstr "Кадр шума считывания"
+msgstr "Экспозиция"
 
 #: src/gui/uifiles/siril.ui:4703
 msgid "Image calibration"
@@ -8284,12 +8287,12 @@ msgstr ""
 "следующую структуру:\n"
 "\n"
 "* Строка <i>P x y тип</i> исправляет пиксель с координатами x, y. Тип это "
-"произвольный символ (<i>C</i> или <i>H</i>), указывающий Siril холодный "
+"необязательный символ (<i>C</i> или <i>H</i>), указывающий Siril холодный "
 "данный пиксель или горячий.\n"
-"* Строка <i>C x 0 тип</i> исправляет дефектную колонку с координатами <i>x</"
-"i>.\n"
-"* Строка <i>L y 0 тип</i> исправляет дефектную строку с координатами <i>y</"
-"i>."
+"* Строка <i>C x 0 тип</i> исправляет дефектную колонку с координатами "
+"<i>x</i>.\n"
+"* Строка <i>L y 0 тип</i> исправляет дефектную строку с координатами "
+"<i>y</i>."
 
 #: src/gui/uifiles/siril.ui:4987
 msgid ""
@@ -8696,7 +8699,7 @@ msgstr ""
 "- \"минимум\" (общая область) кадрирует каждый кадр до участка, общего для "
 "всех изображений в последовательности.\n"
 "- \"центр тяжести\" определяет наилучшее положение области кадрирования как "
-"центр тяжести (центр тяж.) всех изображений"
+"центр тяжести всех изображений"
 
 #: src/gui/uifiles/siril.ui:5994
 msgid "current"
@@ -10187,12 +10190,10 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/s_pcc_dialog.ui:760
-#, fuzzy
 msgid "SPCC Parameters"
 msgstr "Параметры спектофотометрической калибровки"
 
 #: src/gui/uifiles/s_pcc_dialog.ui:838
-#, fuzzy
 msgid ""
 "Choose the online catalogue against one want to compare the image and "
 "compute photometry.\n"
@@ -10220,7 +10221,12 @@ msgstr ""
 "* APASS, фотометрический обзор всего неба Американской ассоциации "
 "наблюдателей переменных звёзд (AAVSO). Обзор выполняется в восьми фильтрах: "
 "Johnson B и V, Sloan u', g′, r′, i′, z_s и Z. Он действителен для более чем "
-"37 миллионов звёзд примерно от 7-й до 17-й звёздной величины."
+"37 миллионов звёзд примерно от 7-й до 17-й звёздной величины.\n"
+"* Третий релиз данных Gaia был представлен 13 июня 2022. Содержит данные "
+"фотометрии для приблизительно 1,46 миллиарда источников с приделом звёздной "
+"величины G = 21. Использованы различные фильтры из Johnson B и V, однако "
+"эффективная температура источника измерена на основе его спектра и Siril "
+"использует эту эффективную температуры для фотометрической калибровки цвета."
 
 #: src/gui/uifiles/s_pcc_dialog.ui:845 src/io/siril_catalogues.c:247
 msgid "APASS"
@@ -11159,28 +11165,26 @@ msgstr ""
 "обновлены...\n"
 
 #: src/main.c:303
-#, fuzzy
 msgid ""
 "Online SPCC-database repository not enabled. Not fetching or updating siril-"
 "spcc-database...\n"
 msgstr ""
-"Удалённый репозиторий сценариев выключен. Сценарии не будут получены или "
-"обновлены...\n"
+"Удалённый репозиторий SPCC-database выключен. siril-spcc-database не будет "
+"получена или обновлена...\n"
 
 #: src/main.c:305
-#, fuzzy
 msgid ""
 "Siril was compiled without libgit2 support. Remote repositories cannot be "
 "automatically fetched...\n"
 msgstr ""
-"Siril скомпилирован без поддержки работы с сетью, не удалось выполнить эту "
-"операцию\n"
+"Siril скомпилирован без поддержки libgit2. Удалённые репозитории не могут "
+"быть получены автоматически...\n"
 
 #: src/main.c:384 src/core/command.c:7428 src/core/command_line_processor.c:630
 #: src/gui/single_image.c:82
 #, c-format
 msgid "No sequence `%s' found.\n"
-msgstr "Не найдена последовательность `%s'.\n"
+msgstr "Последовательность `%s' не найдена.\n"
 
 #: src/algos/astrometry_solver.c:332
 msgid ""
@@ -11207,11 +11211,8 @@ msgid "%s solve succeeded.\n"
 msgstr "Успешное локальное решение astrometry.net\n"
 
 #: src/algos/astrometry_solver.c:498
-#, fuzzy
 msgid "The image could not be aligned with the reference stars\n"
-msgstr ""
-"Астрономическое решение не найдено. Изображение не может быть выравнено по "
-"опорным звёздам.\n"
+msgstr "Изображение не может быть выравнено по опорным звёздам.\n"
 
 #: src/algos/astrometry_solver.c:500
 msgid "Cancelled\n"
@@ -11382,14 +11383,14 @@ msgid "Flipping image and updating astrometry data.\n"
 msgstr "Переворачиваем изображение и обновляем данные астрометрии.\n"
 
 #: src/algos/astrometry_solver.c:1056
-#, fuzzy, c-format
+#, c-format
 msgid "Plate solving warning: %s"
-msgstr "Астрономическое решение не найдено %s\n"
+msgstr "Предупреждение астрономического решателя: %s"
 
 #: src/algos/astrometry_solver.c:1058
-#, fuzzy, c-format
+#, c-format
 msgid "Plate solving failed: %s"
-msgstr "Астрономическое решение не найдено %s\n"
+msgstr "Астрономическое решение не найдено: %s"
 
 #: src/algos/astrometry_solver.c:1164
 msgid "Near solver started"
@@ -11427,13 +11428,13 @@ msgstr ""
 "радиуса %s° для масштабов [%s, %s]\n"
 
 #: src/algos/astrometry_solver.c:1671
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Astrometry.net solving with a search field at RA: %s, Dec: %s, within a %s "
 "degrees radius, blindly for scale\n"
 msgstr ""
 "Решение с помощью astrometry.net для поискового поля с α: %s, δ: %s внутри "
-"радиуса %s° для масштабов [%s, %s]\n"
+"радиуса %s° для масштаба вслепую\n"
 
 #: src/algos/astrometry_solver.c:1675
 #, fuzzy, c-format
@@ -11463,10 +11464,9 @@ msgid "Selection is not used in manual star selection mode\n"
 msgstr "Выделение не используется при ручном выборе звёзд\n"
 
 #: src/algos/astrometry_solver.c:1953
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d already platesolved, skipping\n"
-msgstr ""
-"Изображение уже имеет астрономическое решение. Ничего не будет сделано.\n"
+msgstr "Изображение %d уже имеет астрономическое решение, пропускаем\n"
 
 #: src/algos/astrometry_solver.c:1975
 #, c-format
@@ -11495,19 +11495,19 @@ msgid "Image %s did not solve\n"
 msgstr "Астрономическое решение для изображения %s не получено\n"
 
 #: src/algos/astrometry_solver.c:2043
-#, fuzzy, c-format
+#, c-format
 msgid "Image %s platesolved and updated\n"
-msgstr "Изображение загружено и увеличено"
+msgstr "Решение для изображения %s получено и изображение обновлено\n"
 
 #: src/algos/astrometry_solver.c:2045
 #, c-format
 msgid "Image %s platesolved but could not be saved\n"
-msgstr ""
+msgstr "Решение для изображения %s получено, но не может быть сохранено\n"
 
 #: src/algos/astrometry_solver.c:2051
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d platesolved and updated\n"
-msgstr "Изображение загружено и увеличено"
+msgstr "Решение для изображения %d получено и изображение обновлено\n"
 
 #: src/algos/astrometry_solver.c:2062
 #, c-format
@@ -11520,9 +11520,9 @@ msgid "(%d were already solved and skipped)\n"
 msgstr ""
 
 #: src/algos/astrometry_solver.c:2076
-#, fuzzy, c-format
+#, c-format
 msgid "File %s updated\n"
-msgstr "Вы работаете с последней версией Siril\n"
+msgstr "Файл %s обновлён\n"
 
 #: src/algos/astrometry_solver.c:2142
 #, c-format
@@ -11780,12 +11780,10 @@ msgid "-> %i %s stars found within the image from %s\n"
 msgstr "На изображении не удалось найти звёзды сравнения, прерывание.\n"
 
 #: src/algos/comparison_stars.c:429
-#, fuzzy
 msgid "variable"
 msgstr "переменная"
 
 #: src/algos/comparison_stars.c:429
-#, fuzzy
 msgid "comparison"
 msgstr "сравнения"
 
@@ -12313,7 +12311,7 @@ msgstr ""
 
 #: src/algos/photometric_cc.c:426
 msgid "B/G"
-msgstr ""
+msgstr "B/G"
 
 #: src/algos/photometric_cc.c:452
 msgid ""
@@ -12437,7 +12435,7 @@ msgstr ""
 
 #: src/algos/photometric_cc.c:876
 msgid "SPCC"
-msgstr ""
+msgstr "SPCC"
 
 #: src/algos/photometric_cc.c:876
 msgid "PCC"
@@ -12791,9 +12789,8 @@ msgid "wavelet_transform_data: bad plane number\n"
 msgstr "wavelet_transform_data: неверный номер слоя\n"
 
 #: src/compositing/align_rgb.c:50
-#, fuzzy
 msgid "Global star registration (deep-sky)"
-msgstr "Регистрация по одной звезде (дальний космос)"
+msgstr "Всё звёздное небо (дальний космос)"
 
 #: src/compositing/align_rgb.c:52
 msgid "KOMBAT registration (planetary / deep-sky)"
@@ -13565,9 +13562,9 @@ msgid "Missing argument to %s, aborting.\n"
 msgstr "Отсутствующий аргумент %s, прерывание.\n"
 
 #: src/core/command.c:1796
-#, fuzzy, c-format
+#, c-format
 msgid "Invalid matrix element (%d, %d) %s, aborting.\n"
-msgstr "Неверный аргумент %s, прерывание.\n"
+msgstr "Неверный элемент матрицы (%d, %d), прерывание.\n"
 
 #: src/core/command.c:1804
 #, fuzzy, c-format
@@ -14496,9 +14493,9 @@ msgid "Save metadata to the JSON file '%s'\n"
 msgstr "Метаданные сохранены в файле JSON '%s'\n"
 
 #: src/core/command.c:6408
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d, %s\n"
-msgstr "Изображение %d: '%s'\n"
+msgstr "Изображение %d, %s\n"
 
 #: src/core/command.c:6426
 msgid "This command can only run for FITS images\n"
@@ -14535,6 +14532,7 @@ msgid ""
 "Sorting by date could not be done, file %s doesn't have DATE-OBS, not "
 "sorting\n"
 msgstr ""
+"Сортировка по дате невозможна, файл %s не содержит DATE-OBS, не сортируем\n"
 
 #: src/core/command.c:6616 src/core/command.c:6766
 msgid ""
@@ -14884,9 +14882,9 @@ msgstr ""
 "Темновая оптимизация: Это процесс нельзя применить к 8-битным изображениям\n"
 
 #: src/core/command.c:8005
-#, fuzzy, c-format
+#, c-format
 msgid "Missing or wrong argument to %s, aborting.\n"
-msgstr "Отсутствующий аргумент %s, прерывание.\n"
+msgstr "Отсутствующий или неверный аргумент %s, прерывание.\n"
 
 #: src/core/command.c:8035
 msgid ""
@@ -15224,9 +15222,8 @@ msgid "position"
 msgstr "Позиция по X"
 
 #: src/core/command.c:9075 src/core/command.c:9110 src/core/command.c:9137
-#, fuzzy
 msgid "resolution"
-msgstr "Разрешение: "
+msgstr "разрешение"
 
 #: src/core/command.c:9083
 msgid ""
@@ -15252,9 +15249,8 @@ msgid "Center position"
 msgstr "Восстановить звёзды"
 
 #: src/core/command.c:9110
-#, fuzzy
 msgid "Pixel size"
-msgstr "Размер пикселя (мкм):"
+msgstr "Размер пикселя"
 
 #: src/core/command.c:9116
 #, c-format
@@ -15278,9 +15274,8 @@ msgid "Using pixel size from image: %.2f\n"
 msgstr "Используется размер пикселя, полученный из изображения: %.2f\n"
 
 #: src/core/command.c:9137
-#, fuzzy
 msgid "Focal length"
-msgstr "Фокусное расстояние / мм"
+msgstr "Фокусное расстояние"
 
 #: src/core/command.c:9143
 #, c-format
@@ -15328,7 +15323,7 @@ msgstr ""
 
 #: src/core/command.c:9302
 msgid "No local catalogues found, ignoring -trix option\n"
-msgstr ""
+msgstr "Локальные каталоги не найдены, игнорируем опцию -trix\n"
 
 #: src/core/command.c:9308
 #, fuzzy
@@ -15447,11 +15442,11 @@ msgstr "Преобразование цветового пространства
 
 #: src/core/command.c:10053
 msgid "OSC Sensors"
-msgstr ""
+msgstr "Цветные сенсоры"
 
 #: src/core/command.c:10056
 msgid "Mono Sensors"
-msgstr ""
+msgstr "Монохромные сенсоры"
 
 #: src/core/command.c:10059
 msgid "Red Filters"
@@ -16701,7 +16696,6 @@ msgstr ""
 "диапазона [<b>low</b>, <b>high</b>]"
 
 #: src/core/command_def.h:84
-#, fuzzy
 msgid ""
 "Same as CONVERT but converts only FITS files found in the current working "
 "directory. This is useful to avoid conversions of JPEG results or other "
@@ -16712,7 +16706,8 @@ msgstr ""
 "Аналогична команде CONVERT, но конвертирует только изображения FITS, "
 "найденные в текущей рабочей директории. Это удобно, чтобы избежать "
 "конвертации файлов JPEG или других файлов, которые могут находиться в "
-"директории"
+"директории. Дополнительный аргумент <b>-date</b> включает сортировку файлов "
+"по дате (DATE-OBS) вместо буквенно-цифровой сортировки по имени"
 
 #: src/core/command_def.h:85
 msgid ""
@@ -17905,7 +17900,6 @@ msgstr ""
 "Полная документация по этой команде доступна в документации к командам"
 
 #: src/core/command_def.h:139
-#, fuzzy
 msgid ""
 "Same command as CCM but for the the sequence <b>sequencename</b>. Only "
 "selected images in the sequence are processed.\n"
@@ -17913,11 +17907,10 @@ msgid ""
 "The output sequence name starts with the prefix \"ccm\" unless otherwise "
 "specified with option <b>-prefix=</b>"
 msgstr ""
-"Аналогична команде COSME, но применяется к последовательности "
-"<b>sequencename</b>. Обрабатываются только выбранные изображения из "
-"последовательности.\n"
+"Аналогична команде CCM, но применяется к последовательности <b>sequencename</"
+"b>. Обрабатываются только выбранные изображения из последовательности.\n"
 "\n"
-"Название итоговой последовательности будет начинаться с префикса \"cosme_\", "
+"Название итоговой последовательности будет начинаться с префикса \"ccm\", "
 "если не указан иной с помощью аргумента <b>-prefix=</b>"
 
 #: src/core/command_def.h:140
@@ -19681,11 +19674,11 @@ msgstr ""
 
 #: src/core/icc_profile.c:1464
 msgid "CIE x"
-msgstr ""
+msgstr "CIE x"
 
 #: src/core/icc_profile.c:1467
 msgid "CIE y"
-msgstr ""
+msgstr "CIE y"
 
 #: src/core/icc_profile.c:1469
 msgid "Color profile"
@@ -19698,12 +19691,11 @@ msgstr "Назначение цветового профиля"
 
 #: src/core/icc_profile.c:1477
 msgid "CIE 1931"
-msgstr ""
+msgstr "CIE 1931"
 
 #: src/core/icc_profile.c:1482
-#, fuzzy
 msgid "Could not load background\n"
-msgstr "недостаточно фона"
+msgstr "Не удалось загрузить фон\n"
 
 #: src/core/initfile.c:58 src/core/initfile.c:69 src/core/initfile.c:89
 #, c-format
@@ -20771,18 +20763,16 @@ msgid "use and sync online scripts repository"
 msgstr "использование и синхронизация удалённого репозитория сценариев"
 
 #: src/core/settings.c:455
-#, fuzzy
 msgid "use and sync spcc-database repository"
-msgstr "использование и синхронизация удалённого репозитория сценариев"
+msgstr "использование и синхронизация удалённого репозитория spcc-database"
 
 #: src/core/settings.c:456
 msgid "auto sync online scripts repository"
 msgstr "автосинхронизация удалённого репозитория сценариев"
 
 #: src/core/settings.c:457
-#, fuzzy
 msgid "auto sync spcc-database repository"
-msgstr "автосинхронизация удалённого репозитория сценариев"
+msgstr "автосинхронизация удалённого репозитория spcc-database"
 
 #: src/core/settings.c:458
 msgid "list of scripts selected from the repository"
@@ -20826,7 +20816,7 @@ msgstr ""
 
 #: src/core/settings.c:468
 msgid "Middle mouse button double click zoom action"
-msgstr ""
+msgstr "Изменение масштаба по двойному клику по средней кнопке"
 
 #: src/core/settings.c:469
 msgid "configure background samples color"
@@ -21041,9 +21031,8 @@ msgid "RGB alignment (DFT)"
 msgstr "Выравнивание RGB (DFT)"
 
 #: src/core/siril_actions.c:723
-#, fuzzy
 msgid "RGB alignment (Global stars)"
-msgstr "Выравнивание RGB (DFT)"
+msgstr "Выравнивание RGB (Все звёзды)"
 
 #: src/core/siril_actions.c:728
 msgid "RGB alignment (KOMBAT)"
@@ -22183,9 +22172,8 @@ msgstr ""
 
 #. 1st element, a label
 #: src/gui/compstars.c:82
-#, fuzzy
 msgid "Output file name: "
-msgstr "Итоговые файлы (*%s)"
+msgstr "Название итогового файла: "
 
 #: src/gui/compstars.c:88
 msgid "Change the default file name if needed"
@@ -22194,7 +22182,7 @@ msgstr ""
 #. 3rd element, another label
 #: src/gui/compstars.c:95
 msgid ".csv"
-msgstr ""
+msgstr ".csv"
 
 #: src/gui/compstars.c:101
 #, fuzzy
@@ -22206,7 +22194,6 @@ msgid "Variable star data and sorting parameters for catalogue request"
 msgstr ""
 
 #: src/gui/compstars.c:118
-#, fuzzy
 msgid "Enter the target star name to search in catalogues"
 msgstr "Введите название целевой звезды для поиска в каталогах"
 
@@ -23454,7 +23441,7 @@ msgstr ""
 #: src/gui/photometric_cc.c:811 src/gui/photometric_cc.c:826
 #, c-format
 msgid "SPCC Data: %s"
-msgstr ""
+msgstr "Данные SPCC: %s"
 
 #: src/gui/photometric_cc.c:813 src/gui/photometric_cc.c:829
 msgid "Quantum Efficiency"
@@ -25125,6 +25112,8 @@ msgid ""
 "Normalizing the image data with [%ld, %ld], not suitable for sequence "
 "operations\n"
 msgstr ""
+"Нормализация данных изображения с [%ld, %ld]. Не подходит для операций с "
+"последовательностями\n"
 
 #: src/io/image_format_fits.c:1051
 msgid "Normalizing input data to our float range [0, 1]\n"
@@ -25283,9 +25272,9 @@ msgid "Failed\n"
 msgstr ""
 
 #: src/io/local_catalogues.c:833
-#, fuzzy, c-format
+#, c-format
 msgid "Found %d trixels:\n"
-msgstr "Найден %s"
+msgstr "Найдено трикселей %d:\n"
 
 #: src/io/mp4_output.c:453
 msgid ""
@@ -26275,18 +26264,16 @@ msgid "Confirm"
 msgstr "Подтвердить"
 
 #: src/io/siril_git.c:950
-#, fuzzy
 msgid "Error! Script database failed to update."
-msgstr "Ошибка! Не удалось обновить базу данных SPCC."
+msgstr "Ошибка! Не удалось обновить базу сценариев."
 
 #: src/io/siril_git.c:954 src/io/siril_git.c:1003
 msgid "Update cancelled. Updates have not been applied."
 msgstr "Обновление отменено. Обновления не были применены."
 
 #: src/io/siril_git.c:958
-#, fuzzy
 msgid "The script repository is up to date."
-msgstr "Репозиторий spcc-database в актуальном состоянии."
+msgstr "Репозиторий сценариев в актуальном состоянии."
 
 #: src/io/siril_git.c:975
 msgid ""

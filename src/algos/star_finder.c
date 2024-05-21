@@ -1291,7 +1291,7 @@ gpointer findstar_worker(gpointer p) {
 					// image was not registered, ignore
 				}
 				else {
-					cvTransfPoint(&dx, &dy, seq->regparam[args->layer][args->im.index_in_seq].H, args->reference_H);
+					cvTransfPoint(&dx, &dy, seq->regparam[args->layer][args->im.index_in_seq].H, args->reference_H, 1.);
 					double ra = 0.0, dec = 0.0;
 					// coordinates of the star in FITS/WCS coordinates
 					double fx, fy;

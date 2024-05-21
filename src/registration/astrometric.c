@@ -99,6 +99,11 @@ int register_astrometric(struct registration_args *regargs) {
 
 	int retval = 0;
 	struct timeval t_start, t_end;
+	if (!regargs->filtering_criterion &&
+			convert_parsed_filter_to_filter(&regargs->filters,
+				regargs->seq, &regargs->filtering_criterion,
+				&regargs->filtering_parameter))
+		return 1;
 
 	regdata *current_regdata = apply_reg_get_current_regdata(regargs); // clean the structure if it exists, allocates otherwise
 	if (!current_regdata)
@@ -127,7 +132,7 @@ int register_astrometric(struct registration_args *regargs) {
 	}
 
 	for (int i = 0; i < n; i++) {
-		if (!regargs->seq->imgparam[i].incl && regargs->filters.filter_included)
+		if (regargs->filtering_criterion && !regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
 			continue;
 		if (seq_read_frame_metadata(regargs->seq, i, &fit)) {
 			siril_log_message(_("Could not load image %d from sequence %s\n"),
@@ -139,6 +144,9 @@ int register_astrometric(struct registration_args *regargs) {
 			siril_log_message(_("Image %d has not been plate-solved, unselecting\n"), i + 1);
 			regargs->seq->imgparam[i].incl = FALSE;
 			regargs->filters.filter_included = TRUE;
+			convert_parsed_filter_to_filter(&regargs->filters,
+				regargs->seq, &regargs->filtering_criterion,
+				&regargs->filtering_parameter);
 			failed++;
 			continue;
 		}
@@ -157,7 +165,7 @@ int register_astrometric(struct registration_args *regargs) {
 	int refindex = -1;
 	double mindist = DBL_MAX;
 	for (int i = 0; i < n; i++) {
-		if (!regargs->seq->imgparam[i].incl && regargs->filters.filter_included)
+		if (!incl[i])
 			continue;
 		dist[i] = compute_coords_distance(RA[i], DEC[i], ra0, dec0);
 		if (dist[i] < mindist) {
@@ -185,7 +193,7 @@ int register_astrometric(struct registration_args *regargs) {
 	double framingref = 0.;
 	int framingref_index = (regargs->framing == FRAMING_CURRENT) ? regargs->seq->reference_image : refindex;
 	for (int i = 0; i < n; i++) {
-		if (!regargs->seq->imgparam[i].incl && regargs->filters.filter_included)
+		if (!incl[i])
 			continue;
 		double angles[3];
 		angles[0] = 90. - RA[i]; // TODO: need to understand why 90- instead of 90 + .... opencv vs wcs convention?
@@ -207,7 +215,6 @@ int register_astrometric(struct registration_args *regargs) {
 	}
 
 	// computing relative rotations wrt to proj center + central image framing
-	// this is important for warping by the spherical projector
 	Homography Rref = { 0 };
 	double angles[3];
 	switch (regargs->framing) {
@@ -226,6 +233,8 @@ int register_astrometric(struct registration_args *regargs) {
 	angles[2] = framingref;
 	cvRotMat3(angles, rottypes, TRUE, &Rref);
 	for (int i = 0; i < n; i++) {
+		if (!incl[i])
+			continue;
 		cvRelRot(&Rref, Rs + i);
 	}
 
@@ -233,7 +242,7 @@ int register_astrometric(struct registration_args *regargs) {
 	// The K matrices have the focals on the diag and (rx/2, ry/2) for the translation terms
 	// We add to the seq in order to display some kind of alignment, sufficient if small FOV
 	for (int i = 0;  i < n; i++) {
-		if (!regargs->seq->imgparam[i].incl && regargs->filters.filter_included)
+		if (!incl[i])
 			continue;
 		Homography H = { 0 };
 		cvcalcH_fromKKR(Ks[refindex], Ks[i], Rs[i], &H);
@@ -266,51 +275,83 @@ int register_astrometric(struct registration_args *regargs) {
 		astargs->disto = NULL;
 		gboolean found = FALSE;
 		if (regargs->undistort) {
-			astargs->disto = calloc(n, sizeof(disto_data));
-			for (int i = 0;  i < n; i++) {
-				if (!regargs->seq->imgparam[i].incl && regargs->filters.filter_included)
-					continue;
-				if (WCSDATA[i].lin.dispre) {
-					double A[MAX_SIP_SIZE][MAX_SIP_SIZE], B[MAX_SIP_SIZE][MAX_SIP_SIZE]; // we won't need them
-					astargs->disto[i].order = extract_SIP_order_and_matrices(WCSDATA[i].lin.dispre, A, B, astargs->disto[i].AP, astargs->disto[i].BP);
-					found = TRUE;
-					astargs->disto[i].xref = WCSDATA[i].crpix[0] - 1.; // -1 comes from the difference of convention between opencv and wcs
-					astargs->disto[i].yref = WCSDATA[i].crpix[1] - 1.;
+			if (regargs->seq->is_variable) {
+				// sequence has variable size, we need to use each image undistorsion coeffs
+				astargs->disto = calloc(n, sizeof(disto_data));
+				for (int i = 0;  i < n; i++) {
+					if (!incl[i])
+						continue;
+					if (WCSDATA[i].lin.dispre) {
+						found = TRUE;
+						astargs->disto[i].order = extract_SIP_order_and_matrices(WCSDATA[i].lin.dispre, astargs->disto[i].A, astargs->disto[i].B, astargs->disto[i].AP, astargs->disto[i].BP);
+						astargs->disto[i].xref = WCSDATA[i].crpix[0] - 1.; // -1 comes from the difference of convention between opencv and wcs
+						astargs->disto[i].yref = WCSDATA[i].crpix[1] - 1.;
+						astargs->disto[i].dtype = DISTO_D2S;
+					} else {
+						astargs->disto[i].dtype = DISTO_NONE;
+					}
+				}
+			} else {
+				// sequence has same size images, we search for the first image that has wcs data
+				astargs->disto = calloc(1, sizeof(disto_data));
+				for (int i = 0;  i < n; i++) {
+					if (!incl[i])
+						continue;
+					if (WCSDATA[i].lin.dispre) { // we find the first image that has disto data and break afterwards
+						astargs->disto[0].order = extract_SIP_order_and_matrices(WCSDATA[i].lin.dispre, astargs->disto[i].A, astargs->disto[i].B, astargs->disto[i].AP, astargs->disto[i].BP);
+						astargs->disto[0].xref = WCSDATA[i].crpix[0] - 1.; // -1 comes from the difference of convention between opencv and wcs
+						astargs->disto[0].yref = WCSDATA[i].crpix[1] - 1.;
+						astargs->disto[0].dtype = (regargs->driz) ? DISTO_MAP_S2D: DISTO_MAP_D2S;
+						found = TRUE;
+						break;
+					}
+				}
+				if (found) { // and we prepare the mapping that will be used for all images
+					siril_log_message(_("Computing distortion mapping\n"));
+					init_disto_map(regargs->seq->rx, regargs->seq->ry, astargs->disto);
+					siril_log_message(_("Done\n"));
 				}
 			}
 			if (!found) {
 				siril_debug_print("no distorsion terms found in any of the images, disabling undistort\n");
-				free(astargs->disto);
+				free(astargs->disto); // we don't need to call free_disto_args as maps have not been allocated
 				astargs->disto = NULL;
 				regargs->undistort = FALSE;
 			}
-
 		}
 	}
-	for (int i = 0;  i < n; i++) {
-		if (!regargs->seq->imgparam[i].incl && regargs->filters.filter_included)
-			continue;
+
+	if (regargs->framing == FRAMING_COG || regargs->framing == FRAMING_CURRENT) {
 		int rx = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
 		int ry = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
 		astrometric_roi roi_in = {.x = 0, .y = 0, .w = rx, .h = ry};
-		cvWarp_fromKR(NULL, &roi_in, Ks[i], Rs[i], scale, regargs->projector, OPENCV_NONE, FALSE, NULL, rois + i);
+		Homography R = { 0 };
+		cvGetEye(&R); // initializing to unity
+		cvWarp_fromKR(NULL, &roi_in, Ks[refindex], R, scale, OPENCV_NONE, FALSE, NULL, rois + refindex);
+		tl.x = rois[refindex].x;
+		tl.y = rois[refindex].y;
+		br.x = rois[refindex].x + rois[refindex].w;
+		br.y = rois[refindex].y + rois[refindex].h;
+		siril_debug_print("ref:%d,%d,%d,%d,%d\n", refindex + 1, rois[refindex].x, rois[refindex].y, rois[refindex].w, rois[refindex].h);
+	}
+
+	gboolean error = FALSE;
+
+	for (int i = 0;  i < n; i++) {
+		if (!incl[i])
+			continue;
+		int rx = (regargs->seq->is_variable) ? regargs->seq->imgparam[i].rx : regargs->seq->rx;
+		int ry = (regargs->seq->is_variable) ? regargs->seq->imgparam[i].ry : regargs->seq->ry;
+		astrometric_roi roi_in = {.x = 0, .y = 0, .w = rx, .h = ry};
+		cvWarp_fromKR(NULL, &roi_in, Ks[i], Rs[i], scale, OPENCV_NONE, FALSE, NULL, rois + i);
 		// first determine the corners
-		printf("%d,%d,%d,%d,%d\n", i + 1, rois[i].x, rois[i].y, rois[i].w, rois[i].h);
+		siril_debug_print("%d,%d,%d,%d,%d\n", i + 1, rois[i].x, rois[i].y, rois[i].w, rois[i].h);
 		switch (regargs->framing) {
 			case FRAMING_MAX:
 				if (rois[i].x < tl.x) tl.x = rois[i].x;
 				if (rois[i].y < tl.y) tl.y = rois[i].y;
 				if (rois[i].x + rois[i].w > br.x) br.x = rois[i].x + rois[i].w;
 				if (rois[i].y + rois[i].h > br.y) br.y = rois[i].y + rois[i].h;
-				break;
-			case FRAMING_CURRENT:
-			default:
-				if (i == regargs->reference_image) {
-					tl.x = rois[i].x;
-					tl.y = rois[i].y;
-					br.x = rois[i].x + rois[i].w;
-					br.y = rois[i].y + rois[i].h;
-				}
 				break;
 			case FRAMING_MIN:
 				if (rois[i].x > tl.x) tl.x = rois[i].x;
@@ -319,27 +360,35 @@ int register_astrometric(struct registration_args *regargs) {
 				if (rois[i].y + rois[i].h < br.y) br.y = rois[i].y + rois[i].h;
 				break;
 			case FRAMING_COG:
+			case FRAMING_CURRENT:
+			default:
+				// we just perform checks to make sure there is some overlap
+				if (i != regargs->reference_image) {
+					if (rois[i].x > br.x || rois[i].x + rois[i].w < tl.x ||
+						rois[i].y > br.y || rois[i].y + rois[i].h < tl.y) {
+							error = TRUE;
+							siril_log_color_message(_("Image %d has no overlap with the reference\n"), "red", i + 1);
+						}
+
+				}
 				break;
 		}
-	}
-	if (regargs->framing == FRAMING_COG) {
-		int rx = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
-		int ry = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
-		astrometric_roi roi_in = {.x = 0, .y = 0, .w = rx, .h = ry};
-		Homography R = { 0 };
-		cvGetEye(&R); // initializing to unity
-		cvWarp_fromKR(NULL, &roi_in, Ks[refindex], R, scale, regargs->projector, OPENCV_NONE, FALSE, NULL, rois);
-		tl.x = rois[0].x;
-		tl.y = rois[0].y;
-		br.x = rois[0].x + rois[0].w;
-		br.y = rois[0].y + rois[0].h;
 	}
 	// then compute the roi size and full image space requirement
 	int imagew = br.x - tl.x;
 	int imageh = br.y - tl.y;
-	const gchar *proj = (regargs->projector == OPENCV_PLANE) ? _("plane") : _("spherical");
-	gchar *downscale = (regargs->astrometric_scale != 1.f) ? g_strdup_printf(_(" and a scaling factor of %.2f"), regargs->astrometric_scale) : g_strdup("");
-	siril_log_color_message(_("Output image: %d x %d pixels (assuming %s projection%s)\n"), "salmon", imagew, imageh, proj, downscale);
+	if  (regargs->framing == FRAMING_MIN && (imageh <= 0 || imagew <= 0)) {
+		siril_log_color_message(_("The intersection of all images is null or negative\n"), "red");
+		error = TRUE;
+	}
+	if (error) {
+		siril_log_color_message(_("Unselect the images generating the error or change framing method to max\n"), "red");
+		retval = 1;
+		goto free_all;
+	}
+	
+	gchar *downscale = (regargs->astrometric_scale != 1.f) ? g_strdup_printf(_(" (assuming a scaling factor of %.2f)"), regargs->astrometric_scale) : g_strdup("");
+	siril_log_color_message(_("Output image: %d x %d pixels%s\n"), "salmon", imagew, imageh, downscale);
 	g_free(downscale);
 	int64_t frame_size = (int64_t)imagew * imageh * regargs->seq->nb_layers;
 	frame_size *= (get_data_type(regargs->seq->bitpix) == DATA_USHORT) ? sizeof(WORD) : sizeof(float);
@@ -355,13 +404,13 @@ free_all:
 	free(DEC);
 	free(dist);
 	free(rois);
-	free(incl);
 	for (int i = 0; i < n; i++) {
-		if (!regargs->seq->imgparam[i].incl && regargs->filters.filter_included)
+		if (!incl[i])
 			continue;
 		wcsfree(WCSDATA + i);
 	}
 	free(WCSDATA);
+	free(incl);
 	if (!retval && !regargs->no_output) {
 		return astrometric_alignment(regargs, astargs, current_regdata);
 	}
@@ -385,19 +434,26 @@ static int astrometric_image_hook(struct generic_seq_args *args, int out_index, 
 	astrometric_roi roi = { 0 };
 	Homography H = { 0 };
 	disto_data *disto = NULL;
-	if (regargs->undistort && astargs->disto)
-		disto = &astargs->disto[in_index];
+	if (regargs->undistort && astargs->disto) {
+		if (astargs->disto[0].dtype == DISTO_MAP_D2S) {
+			disto = &astargs->disto[0];
+		} else {
+			disto = &astargs->disto[in_index];
+		}
+	}
 	cvGetEye(&H);
 
 	sadata->success[out_index] = 0;
 	// TODO: find in opencv codebase if smthg smart can be done with K/R to avoid the double-flip
 	fits_flip_top_to_bottom(fit);
-	int status = cvWarp_fromKR(fit,  &astargs->roi, Ks[in_index], Rs[in_index], astargs->scale ,regargs->projector, regargs->interpolation, regargs->clamp, disto, &roi);
+	astrometric_roi *roi_in = (regargs->framing != FRAMING_MAX) ?  &astargs->roi : NULL;
+	int status = cvWarp_fromKR(fit, roi_in, Ks[in_index], Rs[in_index], astargs->scale , regargs->interpolation, regargs->clamp, disto, &roi);
 	if (!status) {
 		fits_flip_top_to_bottom(fit);
-		// TODO: keeping this for later when max framing won't save large black borders...
-		// H.h02 = roi.x - astargs->roi.x;
-		// H.h12 = roi.y - astargs->roi.y;
+		if (regargs->framing == FRAMING_MAX) {
+			H.h02 = roi.x - astargs->roi.x;
+			H.h12 = roi.y - astargs->roi.y;
+		}
 		free_wcs(fit); // we remove astrometric solution
 	}
 	regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
@@ -423,10 +479,11 @@ static int astrometric_image_hook(struct generic_seq_args *args, int out_index, 
 
 static int astrometric_alignment(struct registration_args *regargs, struct astrometric_args *astargs, regdata *current_regdata) {
 	struct generic_seq_args *args = create_default_seqargs(regargs->seq);
-	if (regargs->filters.filter_included) {
-		args->filtering_criterion = seq_filter_included;
-		args->nb_filtered_images = regargs->seq->selnum;
-	}
+	args->filtering_criterion = regargs->filtering_criterion;
+	args->filtering_parameter = regargs->filtering_parameter;
+	args->nb_filtered_images = compute_nb_filtered_images(regargs->seq,
+			regargs->filtering_criterion, regargs->filtering_parameter);
+
 	// args->compute_mem_limits_hook =  astrometric_mem_hook; // TODO
 	args->prepare_hook = star_align_prepare_results; // from global registration
 	args->image_hook = astrometric_image_hook;
@@ -457,11 +514,22 @@ static int astrometric_alignment(struct registration_args *regargs, struct astro
 	return regargs->retval;
 }
 
+static void free_disto_args(disto_data *disto) {
+	if (!disto)
+		return;
+	// we only need to free the maps for the 2 types which store them (disto has only one element in that case)
+	if (disto->dtype == DISTO_MAP_D2S || disto->dtype == DISTO_MAP_S2D) {
+		free(disto->xmap);
+		free(disto->ymap);
+	}
+}
+
 void free_astrometric_args(struct astrometric_args *astargs) {
 	if (!astargs)
 		return;
 	free(astargs->Ks);
 	free(astargs->Rs);
+	free_disto_args(astargs->disto);
 	free(astargs->disto);
 	free(astargs);
 }
