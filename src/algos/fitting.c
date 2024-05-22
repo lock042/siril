@@ -34,8 +34,6 @@
 #include "core/processing.h"
 #include "core/siril_log.h"
 
-#define RANSAC_MAX_ITER 1000
-
 /************* robust linear fit *****************/
 
 static int dofit(const gsl_multifit_robust_type *T, const gsl_matrix *X, const gsl_vector *y, gsl_vector *c, gsl_matrix *cov, double *sigma, gboolean *mask) {
@@ -88,10 +86,10 @@ int robust_linear_fit(double *xdata, double *ydata, int n, double *a, double *b,
 	return retval;
 }
 
-// Function to compute threshold based on FITS noise sigma. Threshold is 2 * sigma,
-// which is relatively strict but provides good fit accuracy.
+// Function to compute threshold based on FITS noise sigma. Threshold is 1 * sigma,
+// which is strict but provides good fit accuracy.
 
-#define THRESHOLD_SIGMA_MULTIPLIER 2.0
+#define THRESHOLD_SIGMA_MULTIPLIER 1.0
 
 static double compute_threshold() {
 	double retval;
@@ -151,13 +149,13 @@ double evaluate_polynomial(double *coeffs, int degree, double x) {
 }
 
 // RANSAC for polynomial fit
-void ransac_polynomial_fit(double *x, double *y, int n, int degree, double *best_coeffs) {
+void ransac_polynomial_fit(double *x, double *y, int n, int degree, double *best_coeffs, double *threshold, int max_iters) {
 	int max_inliers = 0;
 	double best_error = INFINITY;
 	double *temp_coeffs = (double *)malloc((degree + 1) * sizeof(double));
 	int *inliers = (int *)malloc(n * sizeof(int));
-	double threshold = compute_threshold();
-	for (int iter = 0; iter < RANSAC_MAX_ITER; iter++) {
+	*threshold = compute_threshold();
+	for (int iter = 0; iter < max_iters; iter++) {
 		// Randomly select a subset of points
 		int subset_size = degree + 1;
 		int subset_indices[subset_size];
@@ -184,7 +182,7 @@ void ransac_polynomial_fit(double *x, double *y, int n, int degree, double *best
 				y_pred += temp_coeffs[j] * pow(x[i], j);
 			}
 			double error = fabs(y[i] - y_pred);
-			if (error < threshold) {
+			if (error < *threshold) {
 				inliers[num_inliers++] = i;
 				error_sum += error;
 			}

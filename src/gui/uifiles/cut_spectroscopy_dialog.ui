@@ -27,6 +27,13 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
   <!-- interface-name Siril -->
   <!-- interface-description Tool for astronomy image processing -->
   <!-- interface-copyright The free-astro development team, 2023 -->
+  <object class="GtkAdjustment" id="adj_bg_poly_order">
+    <property name="lower">1</property>
+    <property name="upper">6</property>
+    <property name="value">3</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">1</property>
+  </object>
   <object class="GtkAdjustment" id="adj_cut_wn1">
     <property name="upper">100000</property>
     <property name="step-increment">0.10</property>
@@ -37,12 +44,12 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="step-increment">0.10</property>
     <property name="page-increment">100</property>
   </object>
-  <object class="GtkAdjustment" id="bg_poly_order">
-    <property name="lower">1</property>
-    <property name="upper">6</property>
-    <property name="value">3</property>
-    <property name="step-increment">1</property>
-    <property name="page-increment">1</property>
+  <object class="GtkAdjustment" id="adj_ransac_iters">
+    <property name="lower">100</property>
+    <property name="upper">20000</property>
+    <property name="value">1000</property>
+    <property name="step-increment">10</property>
+    <property name="page-increment">100</property>
   </object>
   <object class="GtkAdjustment" id="cut_adj_wavelength1">
     <property name="upper">100000</property>
@@ -409,24 +416,12 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="tooltip-text" translatable="yes">Sets the degree of polynomial used for background fitting, between 1 (linear fit) and 6 (sextic polynomial)</property>
-                        <property name="adjustment">bg_poly_order</property>
+                        <property name="adjustment">adj_bg_poly_order</property>
                         <signal name="value-changed" handler="on_cut_spectro_polyorder_changed" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
                         <property name="top-attach">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="label" translatable="yes"> </property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">2</property>
-                        <property name="top-attach">0</property>
-                        <property name="width">3</property>
                       </packing>
                     </child>
                     <child>
@@ -443,6 +438,33 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                         <property name="top-attach">1</property>
                         <property name="width">5</property>
                       </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">RANSAC iterations</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">2</property>
+                        <property name="top-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkSpinButton" id="cut_ransac_iters">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="adjustment">adj_ransac_iters</property>
+                        <property name="value">1000</property>
+                        <signal name="value-changed" handler="on_cut_ransac_iters_value_changed" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">3</property>
+                        <property name="top-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <placeholder/>
                     </child>
                   </object>
                 </child>

@@ -83,12 +83,13 @@ static void reset_cut_gui() {
 	gtk_label_set_text(wn2y, "");
 	GtkSpinButton *bgpoly = GTK_SPIN_BUTTON(lookup_widget("spin_spectro_bgpoly"));
 	gtk_spin_button_set_value(bgpoly, 3);
+	GtkSpinButton *iters = GTK_SPIN_BUTTON(lookup_widget("cut_ransac_iters"));
+	gtk_spin_button_set_value(iters, 1000);
 	GtkToggleButton *plot_spectro_bg = GTK_TOGGLE_BUTTON(lookup_widget("cut_spectro_plot_bg"));
 	gtk_toggle_button_set_active(plot_spectro_bg, FALSE);
 	GtkEntry *title = (GtkEntry*) lookup_widget("cut_title");
 	gtk_entry_set_text(title, "Intensity Profile");
 	reset_cut_gui_filedependent();
-
 }
 
 void initialize_cut_struct(cut_struct *arg) {
@@ -109,6 +110,7 @@ void initialize_cut_struct(cut_struct *arg) {
 	arg->wavenumber2 = -1;
 	arg->plot_spectro_bg = FALSE;
 	arg->bg_poly_order = 3;
+	arg->ransac_iters = 1000;
 	arg->tri = FALSE;
 	arg->mode = CUT_MONO;
 	arg->width = 1;
@@ -251,6 +253,14 @@ gboolean cut_struct_is_valid(cut_struct *arg) {
 	}
 	if (arg->vport < 0 || arg->vport > nb_layers) {
 		siril_log_message(_("Error: layer out of range.\n"));
+		return FALSE;
+	}
+	if (arg->ransac_iters < 100 || arg->ransac_iters > 20000) {
+		siril_log_message(_("Error: RANSAC iterations should be >= 100 and <= 20000.\n"));
+		return FALSE;
+	}
+	if (arg->bg_poly_order < 1 || arg->bg_poly_order > 6) {
+		siril_log_message(_("Error: background removal polynomial degree should be >= 1 and <= 6.\n"));
 		return FALSE;
 	}
 	return TRUE;
@@ -671,7 +681,8 @@ gpointer tri_cut(gpointer p) {
 		}
 		int degree = arg->bg_poly_order;
 		double *coeffs = calloc(degree + 1, sizeof(double));
-		ransac_polynomial_fit(r[0], r[2], nbr_points, degree, coeffs);
+		double threshold = 0.0;
+		ransac_polynomial_fit(r[0], r[2], nbr_points, degree, coeffs, &threshold, arg->ransac_iters);
 		GString *text = g_string_new(_("Coefficients: y = "));
 		for (int i = 0 ; i <= degree ; i++) {
 			gchar *tmp = NULL;
@@ -685,7 +696,8 @@ gpointer tri_cut(gpointer p) {
 		}
 		g_string_append(text, "\n");
 		gchar *coeffs_text = g_string_free(text, FALSE);
-		siril_log_message(_("Subtracting dark strips: RANSAC polynomial fit of order %d:\n"), degree);
+		siril_log_message(_("Subtracting dark strips: RANSAC polynomial fit of degree %d, %d iterations:\n"), degree, arg->ransac_iters);
+		siril_log_message(_("RANSAC inlier threshold: %.2f (= background noise σ)\n"), threshold);
 		siril_log_message("%s\n", coeffs_text);
 		g_free(coeffs_text);
 		for (int i = 0 ; i < nbr_points ; i++) {
@@ -1019,6 +1031,8 @@ void update_spectro_labels() {
 	GtkWidget* tributton = lookup_widget("cut_tri_cut");
 	GtkWidget* cfabutton = lookup_widget("cut_cfa");
 	GtkWidget* cut_offset_label = lookup_widget("cut_offset_label");
+	GtkWidget* pixels = lookup_widget("cut_dist_pref_px");
+	GtkWidget* arcsec = lookup_widget("cut_dist_pref_as");
 	if (spectroscopy_selections_are_valid(&gui.cut)) {
 		gtk_button_set_label(GTK_BUTTON(monobutton), _("Spectroscopic"));
 		gtk_widget_set_tooltip_text(monobutton, _("Reduces a spectrum without background removal. This is suitable when the entire image represents a calibrated spectrum"));
@@ -1027,6 +1041,8 @@ void update_spectro_labels() {
 		gtk_widget_set_tooltip_text(tributton, _("Reduces a spectrum with background removal. This is suitable when background removal is required: the background is computed along parallel lines equidistant from the central spectral profile line"));
 		gtk_widget_set_visible(colorbutton, FALSE);
 		gtk_widget_set_visible(cfabutton, FALSE);
+		gtk_widget_set_visible(pixels, FALSE);
+		gtk_widget_set_visible(arcsec, FALSE);
 	} else {
 		gtk_button_set_label(GTK_BUTTON(monobutton), _("Mono"));
 		gtk_widget_set_tooltip_text(monobutton, _("Generates a single luminance profile along the profile line"));
@@ -1035,6 +1051,8 @@ void update_spectro_labels() {
 		gtk_label_set_text(GTK_LABEL(cut_offset_label), _("Tri-profile offset (px)"));
 		gtk_widget_set_visible(colorbutton, TRUE);
 		gtk_widget_set_visible(cfabutton, TRUE);
+		gtk_widget_set_visible(pixels, TRUE);
+		gtk_widget_set_visible(arcsec, TRUE);
 	}
 }
 
@@ -1292,6 +1310,10 @@ void on_cut_spectro_polyorder_changed(GtkSpinButton* button, gpointer user_data)
 
 void on_cut_spectro_plot_bg_toggled(GtkToggleButton *button, gpointer user_data) {
 	gui.cut.plot_spectro_bg = gtk_toggle_button_get_active(button);
+}
+
+void on_cut_ransac_iters_value_changed(GtkSpinButton *button, gpointer user_data) {
+	gui.cut.ransac_iters = (int) gtk_spin_button_get_value(button);
 }
 
 //// Sequence Processing ////

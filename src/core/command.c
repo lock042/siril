@@ -10243,6 +10243,10 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 			arg += 9;
 			cut_args->step = g_ascii_strtod(arg, &end);
 		}
+		else if (g_str_has_prefix(arg, "-iters=")) {
+			arg += 7;
+			cut_args->ransac_iters = (int) g_ascii_strtod(arg, &end);
+		}
 		else if (g_str_has_prefix(arg, "-layer=")) {
 			arg += 7;
 			if (g_str_has_prefix(arg, "red"))
@@ -10292,7 +10296,7 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 		}
 		else if (g_str_has_prefix(arg, "-bgpoly=")) {
 			arg += 8;
-			cut_args->bg_poly_order = g_ascii_strtod(arg, &end);
+			cut_args->bg_poly_order = (int) g_ascii_strtod(arg, &end);
 		}
 		else if (g_str_has_prefix(arg, "-from=")) {
 			gchar *value;
