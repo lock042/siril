@@ -578,6 +578,8 @@ typedef struct cut_struct {
 	cut_mode mode;
 	int width;
 	int step;
+	int bg_poly_order;	// polynomial order for background removal
+	gboolean plot_spectro_bg;
 	gboolean display_graph;
 	gboolean save_png_too; // Only takes effect if display_graph == TRUE - ignored otherwise
 	char* filename;

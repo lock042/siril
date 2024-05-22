@@ -81,6 +81,10 @@ static void reset_cut_gui() {
 	gtk_label_set_text(wn1y, "");
 	gtk_label_set_text(wn2x, "");
 	gtk_label_set_text(wn2y, "");
+	GtkSpinButton *bgpoly = GTK_SPIN_BUTTON(lookup_widget("spin_spectro_bgpoly"));
+	gtk_spin_button_set_value(bgpoly, 3);
+	GtkToggleButton *plot_spectro_bg = GTK_TOGGLE_BUTTON(lookup_widget("cut_spectro_plot_bg"));
+	gtk_toggle_button_set_active(plot_spectro_bg, FALSE);
 	GtkEntry *title = (GtkEntry*) lookup_widget("cut_title");
 	gtk_entry_set_text(title, "Intensity Profile");
 	reset_cut_gui_filedependent();
@@ -103,6 +107,8 @@ void initialize_cut_struct(cut_struct *arg) {
 	arg->plot_as_wavenumber = FALSE;
 	arg->wavenumber1 = -1;
 	arg->wavenumber2 = -1;
+	arg->plot_spectro_bg = FALSE;
+	arg->bg_poly_order = 3;
 	arg->tri = FALSE;
 	arg->mode = CUT_MONO;
 	arg->width = 1;
@@ -663,27 +669,27 @@ gpointer tri_cut(gpointer p) {
 			r[2][i] = (r[0][i] + r[2][i]) / 2.0;
 			r[0][i] = (double) i;
 		}
-		double a, b, sigma;
-		gboolean *mask = calloc(nbr_points, sizeof(gboolean));
-		int degree = 1;
+		int degree = arg->bg_poly_order;
 		double *coeffs = calloc(degree + 1, sizeof(double));
 		ransac_polynomial_fit(r[0], r[2], nbr_points, degree, coeffs);
-		printf("Coefficients: ");
+		GString *text = g_string_new(_("Coefficients: y = "));
 		for (int i = 0 ; i <= degree ; i++) {
-			printf("%f ", coeffs[i]);
+			gchar *tmp = NULL;
+			if (i == 0) {
+				tmp = g_strdup_printf("%.2e ", coeffs[0]);
+			} else {
+				tmp = g_strdup_printf("+ %.2e * x^%d ", coeffs[i], i);
+			}
+			text = g_string_append(text, tmp);
+			g_free(tmp);
 		}
-		printf("\n");
-		a = coeffs[0];
-		b = coeffs[1];
-//		robust_linear_fit(r[0], r[2], nbr_points, &a, &b, &sigma, mask);
-		free(mask); // Didn't care about mask here but need it to make the function work
-		if ( a >= 0)
-			siril_log_message(_("Subtracting dark strips: robust linear fit y = %f + %f * x; sigma = %f\n"), a, b, sigma);
-		else
-			siril_log_message(_("Subtracting dark strips: robust linear fit y = %f - %f * x; sigma = %f\n"), a, -b, sigma);
+		g_string_append(text, "\n");
+		gchar *coeffs_text = g_string_free(text, FALSE);
+		siril_log_message(_("Subtracting dark strips: RANSAC polynomial fit of order %d:\n"), degree);
+		siril_log_message("%s\n", coeffs_text);
+		g_free(coeffs_text);
 		for (int i = 0 ; i < nbr_points ; i++) {
 			r[0][i] = evaluate_polynomial(coeffs, degree, (double) i);
-//			r[0][i] = (a + b * (double) i);
 			r[1][i] -= r[0][i];
 		}
 	}
@@ -691,21 +697,25 @@ gpointer tri_cut(gpointer p) {
 	gchar *spllabels[3] = { NULL };
 
 	if (arg->vport == 0) {
-		if (arg->fit->naxes[2] == 3) {
-			spllabels[1] = g_strdup("R");
+		if (do_spec) {
+			spllabels[1] = g_strdup(_("Intensity"));
+		} else if (arg->fit->naxes[2] == 3) {
+			spllabels[1] = g_strdup(_("R"));
 		} else {
-			spllabels[1] = g_strdup("Mono");
+			spllabels[1] = g_strdup(_("Mono"));
 		}
-
 	}
 	else if (arg->vport == 1) {
-		spllabels[1] = g_strdup("G");
+		spllabels[1] = g_strdup(_("G"));
 	} else if (arg->vport == 2) {
-		spllabels[1] = g_strdup("B");
+		spllabels[1] = g_strdup(_("B"));
 	} else {
-		spllabels[1] = g_strdup("L");
+		spllabels[1] = do_spec ? g_strdup(_("Intensity")) : g_strdup(_("L"));
 	}
-	if (!do_spec) {
+	if (do_spec) {
+		spllabels[0] = g_strdup_printf(_("Fitted background"));
+		spllabels[2] = g_strdup_printf(_("Measured background"));
+	} else {
 		spllabels[0] = g_strdup_printf("%s(-%dpx)", spllabels[1], (int) arg->step);
 		spllabels[2] = g_strdup_printf("%s(+%dpx)", spllabels[1], (int) arg->step);
 	}
@@ -721,16 +731,15 @@ gpointer tri_cut(gpointer p) {
 		xlabel = g_strdup_printf(_("Distance along cut / px"));
 	}
 
-
 	spl_data = malloc(sizeof(siril_plot_data));
 	init_siril_plot_data(spl_data);
 	siril_plot_set_title(spl_data, title);
 	siril_plot_set_xlabel(spl_data, xlabel);
 	siril_plot_set_savename(spl_data, "profile");
-	if (!do_spec)
+	if (!do_spec || arg->plot_spectro_bg)
 		siril_plot_add_xydata(spl_data, spllabels[0], nbr_points, x, r[0], NULL, NULL);
 	siril_plot_add_xydata(spl_data, spllabels[1], nbr_points, x, r[1], NULL, NULL);
-	if (!do_spec)
+	if (!do_spec || arg->plot_spectro_bg)
 		siril_plot_add_xydata(spl_data, spllabels[2], nbr_points, x, r[2], NULL, NULL);
 	if (arg->save_dat)
 		siril_plot_save_dat(spl_data, filename, FALSE);
@@ -1004,9 +1013,35 @@ void on_cut_spectroscopic_button_clicked(GtkButton* button, gpointer user_data) 
 
 }
 
+void update_spectro_labels() {
+	GtkWidget* monobutton = lookup_widget("cut_radio_mono");
+	GtkWidget* colorbutton = lookup_widget("cut_radio_color");
+	GtkWidget* tributton = lookup_widget("cut_tri_cut");
+	GtkWidget* cfabutton = lookup_widget("cut_cfa");
+	GtkWidget* cut_offset_label = lookup_widget("cut_offset_label");
+	if (spectroscopy_selections_are_valid(&gui.cut)) {
+		gtk_button_set_label(GTK_BUTTON(monobutton), _("Spectroscopic"));
+		gtk_widget_set_tooltip_text(monobutton, _("Reduces a spectrum without background removal. This is suitable when the entire image represents a calibrated spectrum"));
+		gtk_button_set_label(GTK_BUTTON(tributton), _("Spectro w/ bg removal"));
+		gtk_label_set_text(GTK_LABEL(cut_offset_label), _("Spectro bg offset (px)"));
+		gtk_widget_set_tooltip_text(tributton, _("Reduces a spectrum with background removal. This is suitable when background removal is required: the background is computed along parallel lines equidistant from the central spectral profile line"));
+		gtk_widget_set_visible(colorbutton, FALSE);
+		gtk_widget_set_visible(cfabutton, FALSE);
+	} else {
+		gtk_button_set_label(GTK_BUTTON(monobutton), _("Mono"));
+		gtk_widget_set_tooltip_text(monobutton, _("Generates a single luminance profile along the profile line"));
+		gtk_button_set_label(GTK_BUTTON(tributton), _("Tri-profile (mono)"));
+		gtk_widget_set_tooltip_text(tributton, _("Generates 3 parallel intensity profiles separated by a given number of pixels. Tri-profiles always plot luminance along each profile"));
+		gtk_label_set_text(GTK_LABEL(cut_offset_label), _("Tri-profile offset (px)"));
+		gtk_widget_set_visible(colorbutton, TRUE);
+		gtk_widget_set_visible(cfabutton, TRUE);
+	}
+}
+
 void on_cut_dialog_show(GtkWindow *dialog, gpointer user_data) {
 	GtkWidget* colorbutton = lookup_widget("cut_radio_color");
 	GtkWidget* cfabutton = lookup_widget("cut_cfa");
+	GtkToggleButton* plot_bg = GTK_TOGGLE_BUTTON(lookup_widget("cut_spectro_plot_bg"));
 	GtkToggleButton* seqbutton = (GtkToggleButton*) lookup_widget("cut_apply_to_sequence");
 	GtkToggleButton* pngbutton = (GtkToggleButton*) lookup_widget("cut_save_png");
 	gtk_widget_set_sensitive(colorbutton, (gfit.naxes[2] == 3));
@@ -1018,7 +1053,8 @@ void on_cut_dialog_show(GtkWindow *dialog, gpointer user_data) {
 	GtkToggleButton *save_dat = (GtkToggleButton*) lookup_widget("cut_save_checkbutton");
 	gtk_toggle_button_set_active(save_dat, FALSE);
 	gui.cut.save_dat = gtk_toggle_button_get_active(save_dat);
-
+	update_spectro_labels();
+	gui.cut.plot_spectro_bg = gtk_toggle_button_get_active(plot_bg);
 }
 
 void on_cut_spectro_cancel_button_clicked(GtkButton *button, gpointer user_data) {
@@ -1248,6 +1284,14 @@ void on_cut_spin_point2_value_changed(GtkSpinButton* button, gpointer user_data)
 void on_cut_dist_pref_as_group_changed(GtkRadioButton* button, gpointer user_data) {
 	GtkToggleButton *as = (GtkToggleButton*) lookup_widget("cut_dist_pref_as");
 	gui.cut.pref_as = gtk_toggle_button_get_active(as);
+}
+
+void on_cut_spectro_polyorder_changed(GtkSpinButton* button, gpointer user_data) {
+	gui.cut.bg_poly_order = gtk_spin_button_get_value(button);
+}
+
+void on_cut_spectro_plot_bg_toggled(GtkToggleButton *button, gpointer user_data) {
+	gui.cut.plot_spectro_bg = gtk_toggle_button_get_active(button);
 }
 
 //// Sequence Processing ////

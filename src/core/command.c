@@ -10205,7 +10205,7 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 		char *arg = word[i], *end;
 		if (!word[i])
 			break;
-		if (g_str_has_prefix(word[i], "-tri")) {
+		if (g_str_has_prefix(word[i], "-tri") || g_str_has_prefix(word[i], "-bgremove")) {
 			cut_args->tri = TRUE;
 		}
 		else if (g_str_has_prefix(word[i], "-cfa")) {
@@ -10289,6 +10289,10 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 		else if (g_str_has_prefix(arg, "-wavelength2=")) {
 			arg += 13;
 			cut_args->wavenumber2 = 10000000. / g_ascii_strtod(arg, &end);
+		}
+		else if (g_str_has_prefix(arg, "-bgpoly=")) {
+			arg += 8;
+			cut_args->bg_poly_order = g_ascii_strtod(arg, &end);
 		}
 		else if (g_str_has_prefix(arg, "-from=")) {
 			gchar *value;

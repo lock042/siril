@@ -30,8 +30,11 @@
 #include <gsl/gsl_fit.h>
 #include "core/siril.h"
 #include "core/proto.h"
+#include "algos/noise.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
+
+#define RANSAC_MAX_ITER 1000
 
 /************* robust linear fit *****************/
 
@@ -85,9 +88,26 @@ int robust_linear_fit(double *xdata, double *ydata, int n, double *a, double *b,
 	return retval;
 }
 
-#define MAX_ITER 1000
-#define THRESHOLD 1.0
-#define DEGREE 2
+// Function to compute threshold based on FITS noise sigma. Threshold is 2 * sigma,
+// which is relatively strict but provides good fit accuracy.
+
+#define THRESHOLD_SIGMA_MULTIPLIER 2.0
+
+static double compute_threshold() {
+	double retval;
+	struct noise_data *data = calloc(1, sizeof(struct noise_data));
+	data->fit = &gfit;
+	// All other members are FALSE / 0.0 anyway because of calloc()
+	noise_worker(data);
+	if (gfit.naxes[2] == 1)
+		retval = data->bgnoise[0];
+	else
+		retval = sqrt(	data->bgnoise[0] * data->bgnoise[0] +
+						data->bgnoise[1] * data->bgnoise[1] +
+						data->bgnoise[2] * data->bgnoise[2]);
+	free(data);
+	return THRESHOLD_SIGMA_MULTIPLIER * retval;
+}
 
 // Function to perform polynomial fitting using GSL
 static void gsl_polynomial_fit(double *x, double *y, int n, int degree, double *coeffs) {
@@ -130,32 +150,41 @@ double evaluate_polynomial(double *coeffs, int degree, double x) {
 	return result;
 }
 
-// RANSAC implementation for polynomial fitting
+// RANSAC for polynomial fit
 void ransac_polynomial_fit(double *x, double *y, int n, int degree, double *best_coeffs) {
 	int max_inliers = 0;
 	double best_error = INFINITY;
 	double *temp_coeffs = (double *)malloc((degree + 1) * sizeof(double));
 	int *inliers = (int *)malloc(n * sizeof(int));
-
-	for (int iter = 0; iter < MAX_ITER; iter++) {
+	double threshold = compute_threshold();
+	for (int iter = 0; iter < RANSAC_MAX_ITER; iter++) {
 		// Randomly select a subset of points
-		int idx1 = rand() % n;
-		int idx2 = rand() % n;
-		while (idx2 == idx1) idx2 = rand() % n;
+		int subset_size = degree + 1;
+		int subset_indices[subset_size];
+		for (int i = 0; i < subset_size; i++) {
+			subset_indices[i] = rand() % n;
+		}
 
-		double subset_x[] = {x[idx1], x[idx2]};
-		double subset_y[] = {y[idx1], y[idx2]};
+		double subset_x[subset_size];
+		double subset_y[subset_size];
+		for (int i = 0; i < subset_size; i++) {
+			subset_x[i] = x[subset_indices[i]];
+			subset_y[i] = y[subset_indices[i]];
+		}
 
 		// Fit polynomial to subset
-		gsl_polynomial_fit(subset_x, subset_y, 2, degree, temp_coeffs);
+		gsl_polynomial_fit(subset_x, subset_y, subset_size, degree, temp_coeffs);
 
 		// Count inliers
 		int num_inliers = 0;
 		double error_sum = 0.0;
 		for (int i = 0; i < n; i++) {
-			double y_pred = evaluate_polynomial(temp_coeffs, degree, x[i]);
+			double y_pred = 0.0;
+			for (int j = 0; j <= degree; j++) {
+				y_pred += temp_coeffs[j] * pow(x[i], j);
+			}
 			double error = fabs(y[i] - y_pred);
-			if (error < THRESHOLD) {
+			if (error < threshold) {
 				inliers[num_inliers++] = i;
 				error_sum += error;
 			}
