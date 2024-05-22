@@ -91,10 +91,10 @@ int robust_linear_fit(double *xdata, double *ydata, int n, double *a, double *b,
 
 #define THRESHOLD_SIGMA_MULTIPLIER 1.0
 
-static double compute_threshold() {
+static double compute_threshold(fits *fit) {
 	double retval;
 	struct noise_data *data = calloc(1, sizeof(struct noise_data));
-	data->fit = &gfit;
+	data->fit = fit;
 	// All other members are FALSE / 0.0 anyway because of calloc()
 	noise_worker(data);
 	if (gfit.naxes[2] == 1)
@@ -149,12 +149,12 @@ double evaluate_polynomial(double *coeffs, int degree, double x) {
 }
 
 // RANSAC for polynomial fit
-void ransac_polynomial_fit(double *x, double *y, int n, int degree, double *best_coeffs, double *threshold, int max_iters) {
+void ransac_polynomial_fit(double *x, double *y, int n, int degree, double *best_coeffs, double *threshold, int max_iters, fits *fit) {
 	int max_inliers = 0;
 	double best_error = INFINITY;
 	double *temp_coeffs = (double *)malloc((degree + 1) * sizeof(double));
 	int *inliers = (int *)malloc(n * sizeof(int));
-	*threshold = compute_threshold();
+	*threshold = compute_threshold(fit);
 	for (int iter = 0; iter < max_iters; iter++) {
 		// Randomly select a subset of points
 		int subset_size = degree + 1;

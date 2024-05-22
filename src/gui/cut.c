@@ -682,7 +682,7 @@ gpointer tri_cut(gpointer p) {
 		int degree = arg->bg_poly_order;
 		double *coeffs = calloc(degree + 1, sizeof(double));
 		double threshold = 0.0;
-		ransac_polynomial_fit(r[0], r[2], nbr_points, degree, coeffs, &threshold, arg->ransac_iters);
+		ransac_polynomial_fit(r[0], r[2], nbr_points, degree, coeffs, &threshold, arg->ransac_iters, arg->fit);
 		GString *text = g_string_new(_("Coefficients: y = "));
 		for (int i = 0 ; i <= degree ; i++) {
 			gchar *tmp = NULL;
