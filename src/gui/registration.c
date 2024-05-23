@@ -637,7 +637,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	if (!isapplyreg)
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(drizzle_checkbox), FALSE);
 	gtk_widget_set_visible(GTK_WIDGET(drizzle_checkbox), isapplyreg);
-	gtk_widget_set_sensitive(GTK_WIDGET(drizzle_checkbox), method->method_ptr == &register_apply_reg); // TODO: remove when we allow drizzle with astrometric
+//	gtk_widget_set_sensitive(GTK_WIDGET(drizzle_checkbox), method->method_ptr == &register_apply_reg); // TODO: remove when we allow drizzle with astrometric
 	gtk_widget_set_visible(GTK_WIDGET(reg_all_sel_box), !isapplyreg);
 	gtk_widget_set_visible(filter_box, isapplyreg);
 	gtk_widget_set_visible(GTK_WIDGET(filter_combo_init), isapplyreg);
@@ -679,7 +679,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 				gtk_label_set_text(labelreginfo, _("Unsupported CFA pattern detected"));
 				gtk_widget_set_tooltip_text(GTK_WIDGET(labelreginfo), _("This sequence cannot be registered with the CFA pattern intact. You must debayer it prior to registration"));
 				ready = FALSE;
-			}		
+			}
 		} else if (method->type == REGTYPE_APPLY && sequence_is_loaded()) {
 			ready = check_framing();
 		} else {

@@ -221,9 +221,14 @@ values, mostly zeroes.  Note, these are not *meaningful* values, just
 ones that help with memory management etc.  It is up to users of the
 struct, e.g. cdrizzle_, to fill the struct with valid parameters.
 */
+#ifdef __cplusplus
+extern "C" {
+#endif
 void
 driz_param_init(struct driz_param_t* p);
-
+#ifdef __cplusplus
+}
+#endif
 void
 driz_param_dump(struct driz_args_t* p);
 
