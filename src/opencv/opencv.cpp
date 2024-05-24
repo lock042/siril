@@ -1421,6 +1421,7 @@ int cvWarp_fromKR(fits *image, astrometric_roi *roi_in, Homography K, Homography
 			copyfits(&out, image, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 			image->keywords.date_obs = g_date_time_ref(out.keywords.date_obs);
 			clearfits(&out);
+			// TODO: allow the function to identify if seq is SEQ_SER
 //			if (args->seq->type == SEQ_SER || com.pref.force_16bit) {
 			if (/*args->seq->type == SEQ_SER ||*/ com.pref.force_16bit) {
 				fit_replace_buffer(image, float_buffer_to_ushort(image->fdata, image->rx * image->ry * image->naxes[2]), DATA_USHORT);
