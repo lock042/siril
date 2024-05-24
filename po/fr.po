@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-03-28 07:46+0100\n"
-"PO-Revision-Date: 2024-04-18 17:27+0000\n"
+"PO-Revision-Date: 2024-05-24 21:50+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.pixls.us/projects/siril/"
 "siril-application-1-2/fr/>\n"
@@ -23207,7 +23207,7 @@ msgstr "Meilleure image : #%d avec fwhm=%.3g.\n"
 #: src/registration/registration.c:1098
 #, c-format
 msgid "Registering %d images of the %d of the sequence"
-msgstr "Empilement de %d images sur %d de la séquence"
+msgstr "Alignement de %d images sur %d de la séquence"
 
 #: src/registration/registration.c:1165
 msgid "not available for sequences with variable image sizes"
