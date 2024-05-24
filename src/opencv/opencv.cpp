@@ -1236,9 +1236,9 @@ static void map_undistortion_S2D(disto_data *disto, int width, int height, Mat x
 		if (disto->order >= 3) {
 			U3 = U2.mul(U);
 			if (disto->order >= 4) {
-				U4 = U4.mul(U);
+				U4 = U3.mul(U);
 				if (disto->order >= 5) {
-					U5 = U5.mul(U);
+					U4 = U5.mul(U);
 				}
 			}
 		}
