@@ -1390,7 +1390,7 @@ int cvWarp_fromKR(fits *image, astrometric_roi *roi_in, Homography K, Homography
 				fit_replace_buffer(image, newbuf, DATA_FLOAT);
 			}
 			/* Set up output fits */
-			fits out;
+			fits out = { 0 };
 			copyfits(image, &out, CP_FORMAT, -1);
 			// copy the DATE_OBS
 			out.keywords.date_obs = g_date_time_ref(image->keywords.date_obs);
@@ -1437,8 +1437,10 @@ int cvWarp_fromKR(fits *image, astrometric_roi *roi_in, Homography K, Homography
 				image->keywords.lo = 0;
 			}
 
-			free(p->pixmap->xmap);
-			free(p->pixmap->ymap);
+// For astrometric drizzle the maps point to the Mat data so they will be deallocated by
+// the Mat destructor
+//			free(p->pixmap->xmap);
+//			free(p->pixmap->ymap);
 			free(p->pixmap);
 
 			// Get rid of the output_counts image, no longer required
