@@ -1142,8 +1142,6 @@ void cvcalcH_fromKKR(Homography Kref, Homography K, Homography R, Homography *H)
 }
 
 // TODO: Code below should be moved to a dedicated cvastrometric.cpp file
-#include "drizzle/cdrizzlebox.h"
-#include "drizzle/cdrizzleutil.h"
 
 // interpolates a dst->src map from the one saved in disto structure
 static void map_undistortion_map_2_D2S(disto_data *disto, int rx, int ry, Mat xmap, Mat ymap) {
@@ -1296,7 +1294,7 @@ static void map_undistortion_S2D(disto_data *disto, int width, int height, Mat x
  	}
 }
 
-int cvWarp_fromKR(fits *image, astrometric_roi *roi_in, Homography K, Homography R, float scale, struct driz_args_t *driz, int interpolation, gboolean clamp, disto_data *disto, astrometric_roi *roi_out) {
+int cvWarp_fromKR(fits *image, astrometric_roi *roi_in, Homography K, Homography R, float scale, int interpolation, gboolean clamp, disto_data *disto, astrometric_roi *roi_out) {
 	Mat in, out;
 	void *bgr = NULL;
 
@@ -1344,10 +1342,7 @@ int cvWarp_fromKR(fits *image, astrometric_roi *roi_in, Homography K, Homography
 			return 2;
 		Mat uxmap, uymap;
 		warper->buildMaps(szin, k, r, uxmap, uymap);
-		if (driz && disto->dtype != DISTO_NONE) {
-			map_undistortion_S2D(disto, szin.width, szin.height, uxmap, uymap);
-		}
-		else if (disto && disto->dtype != DISTO_NONE) {
+		if (disto && disto->dtype != DISTO_NONE) {
 			if (disto->dtype == DISTO_MAP_D2S) {
 				map_undistortion_map_2_D2S(disto, szin.width, szin.height, uxmap, uymap);
 			} else {
@@ -1355,124 +1350,29 @@ int cvWarp_fromKR(fits *image, astrometric_roi *roi_in, Homography K, Homography
 			}
 		}
 		Mat aux;
-		if (driz) {
-			struct driz_param_t *p = NULL;
-			scale = driz->scale;
-			p = (struct driz_param_t *) calloc(1, sizeof(struct driz_param_t));
-			driz_param_init(p);
-			p->kernel = driz->kernel;
-			p->driz = driz;
-			p->error = (struct driz_error_t *) malloc(sizeof(struct driz_error_t));
-			p->scale = driz->scale;
-			p->pixel_fraction = driz->pixel_fraction;
-			p->cfa = driz->cfa;
-			// Set bounds equal to whole image
-			p->xmin = p->ymin = 0;
-			p->xmax = image->rx - 1;
-			p->ymax = image->ry - 1;
-			p->pixmap = (imgmap_t*) calloc(1, sizeof(imgmap_t));
-			p->pixmap->rx = image->rx;
-			p->pixmap->ry = image->ry;
-			p->threads = com.max_thread; // TODO: pass threads as a function argument
-			p->pixmap->xmap = (float*) uxmap.data;
-			p->pixmap->ymap = (float*) uymap.data;
-			p->data = image;
-			// Convert fit to 32-bit float if required
-			float *newbuf = NULL;
-			if (image->type == DATA_USHORT) {
-				siril_debug_print("Replacing ushort buffer for drizzling\n");
-				size_t ndata = image->rx * image->ry * image->naxes[2];
-				newbuf = (float*) malloc(ndata * sizeof(float));
-				float invnorm = 1.f / USHRT_MAX_SINGLE;
-				for (size_t i = 0 ; i < ndata ; i++) {
-					newbuf[i] = image->data[i] * invnorm;
-				}
-				fit_replace_buffer(image, newbuf, DATA_FLOAT);
-			}
-			/* Set up output fits */
-			fits out = { 0 };
-			copyfits(image, &out, CP_FORMAT, -1);
-			// copy the DATE_OBS
-			out.keywords.date_obs = g_date_time_ref(image->keywords.date_obs);
-			out.rx = out.naxes[0] = out_w;
-			out.ry = out.naxes[1] = out_h;
-			out.naxes[2] = driz->is_bayer ? 3 : 1;
-			size_t chansize = out.rx * out.ry * sizeof(float);
-			out.fdata = (float*) calloc(out.naxes[2] * chansize, 1);
-			out.fpdata[0] = out.fdata;
-			out.fpdata[1] = out.naxes[2] == 1 ? out.fdata : out.fdata + chansize;
-			out.fpdata[2] = out.naxes[2] == 1 ? out.fdata : out.fdata + 2 * chansize;
-			p->output_data = &out;
-
-			// Set up the output_counts fits to store pixel hit counts
-			fits *output_counts = (fits*) calloc(1, sizeof(fits));
-			copyfits(&out, output_counts, CP_FORMAT, -1);
-			output_counts->fdata = (float*) calloc(output_counts->rx * output_counts->ry * output_counts->naxes[2], sizeof(float));
-			p->output_counts = output_counts;
-
-			p->weights = driz->flat;
-
-			if (dobox(p)) { // Do the drizzle
-				siril_log_color_message("s\n", p->error->last_message);
-				return 1;
-			}
-			clearfits(image);
-			// copy the DATE_OBS
-			copyfits(&out, image, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
-			image->keywords.date_obs = g_date_time_ref(out.keywords.date_obs);
-			clearfits(&out);
-			// TODO: allow the function to identify if seq is SEQ_SER
-//			if (args->seq->type == SEQ_SER || com.pref.force_16bit) {
-			if (/*args->seq->type == SEQ_SER ||*/ com.pref.force_16bit) {
-				fit_replace_buffer(image, float_buffer_to_ushort(image->fdata, image->rx * image->ry * image->naxes[2]), DATA_USHORT);
-			}
-			if (driz->is_bayer) {
-				/* we need to do something special here because it's a 1-channel sequence and
-				* image that will become 3-channel after this call, so stats caching will
-				* not be correct. Preprocessing does not compute new stats so we don't need
-				* to save them into cache now.
-				* Destroying the stats from the fit will also prevent saving them in the
-				* sequence, which may be done automatically by the caller.
-				*/
-				full_stats_invalidation_from_fit(image);
-				image->keywords.lo = 0;
-			}
-
-// For astrometric drizzle the maps point to the Mat data so they will be deallocated by
-// the Mat destructor
-//			free(p->pixmap->xmap);
-//			free(p->pixmap->ymap);
-			free(p->pixmap);
-
-			// Get rid of the output_counts image, no longer required
-			clearfits(output_counts);
-			free(output_counts);
-			output_counts = NULL;
+		if (roi_in) {
+			init_guide(image, sizes.width, sizes.height, &aux);
+			remap(in, aux, uxmap, uymap, interpolation, BORDER_TRANSPARENT);
 		} else {
+			remap(in, out, uxmap, uymap, interpolation, BORDER_TRANSPARENT);
+		}
+		if ((interpolation == OPENCV_LANCZOS4 || interpolation == OPENCV_CUBIC) && clamp) {
+			Mat guide, tmp1;
+			init_guide(image, sizes.width, sizes.height, &guide);
+			// Create guide image
+			remap(in, guide, uxmap, uymap, OPENCV_AREA, BORDER_TRANSPARENT);
+			Mat element = getStructuringElement(MORPH_ELLIPSE, Size(3, 3), Point(1,1));
 			if (roi_in) {
-				init_guide(image, sizes.width, sizes.height, &aux);
-				remap(in, aux, uxmap, uymap, interpolation, BORDER_TRANSPARENT);
+				tmp1 = (aux < CLAMPING_FACTOR * guide);
+				dilate(tmp1, tmp1, element);
+				copyTo(guide, aux, tmp1); // Guide copied to the clamped pixels
 			} else {
-				remap(in, out, uxmap, uymap, interpolation, BORDER_TRANSPARENT);
+				tmp1 = (out < CLAMPING_FACTOR * guide);
+				dilate(tmp1, tmp1, element);
+				copyTo(guide, out, tmp1); // Guide copied to the clamped pixels
 			}
-			if ((interpolation == OPENCV_LANCZOS4 || interpolation == OPENCV_CUBIC) && clamp) {
-				Mat guide, tmp1;
-				init_guide(image, sizes.width, sizes.height, &guide);
-				// Create guide image
-				remap(in, guide, uxmap, uymap, OPENCV_AREA, BORDER_TRANSPARENT);
-				Mat element = getStructuringElement(MORPH_ELLIPSE, Size(3, 3), Point(1,1));
-				if (roi_in) {
-					tmp1 = (aux < CLAMPING_FACTOR * guide);
-					dilate(tmp1, tmp1, element);
-					copyTo(guide, aux, tmp1); // Guide copied to the clamped pixels
-				} else {
-					tmp1 = (out < CLAMPING_FACTOR * guide);
-					dilate(tmp1, tmp1, element);
-					copyTo(guide, out, tmp1); // Guide copied to the clamped pixels
-				}
-				guide.release();
-				tmp1.release();
-			}
+			guide.release();
+			tmp1.release();
 		}
 		if (roi_in) {
 			Rect inr = Rect(roi_in->x, roi_in->y, roi_in->w, roi_in->h);

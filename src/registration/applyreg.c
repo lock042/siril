@@ -226,7 +226,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 // - H transf, the warping transformation in place
 // - H shift, the residual shift wrt to ref image
 // - the size of the transformed image after applying the transformation
-static void compute_Hmax(Homography *Himg, Homography *Href, int src_rx_in, int src_ry_in, double scale, Homography *H, Homography *Hshift, int *dst_rx_out, int *dst_ry_out) {
+void compute_Hmax(Homography *Himg, Homography *Href, int src_rx_in, int src_ry_in, double scale, Homography *H, Homography *Hshift, int *dst_rx_out, int *dst_ry_out) {
 	*dst_rx_out = 0;
 	*dst_ry_out = 0;
 	regframe framing = { 0 };
@@ -308,6 +308,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	struct registration_args *regargs = sadata->regargs;
 	struct driz_args_t *driz = regargs->driz;
 	float scale = 1.f;
+	struct driz_param_t *p = NULL;
 	if (regargs->driz)
 		scale = driz->scale;
 	else if (regargs->x2upscale)
@@ -336,7 +337,6 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		compute_Hmax(&Himg, &Htransf, fit->rx, fit->ry, scale, &H, &Hs, &dst_rx, &dst_ry);
 	}
 
-	struct driz_param_t *p = NULL;
 	if (regargs->driz) {
 		scale = driz->scale;
 		p = calloc(1, sizeof(struct driz_param_t));
