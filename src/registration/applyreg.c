@@ -378,7 +378,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 			fit_replace_buffer(fit, newbuf, DATA_FLOAT);
 		}
 		/* Set up output fits */
-		fits out;
+		fits out = { 0 };
 		copyfits(fit, &out, CP_FORMAT, -1);
 		// copy the DATE_OBS
 		out.keywords.date_obs = g_date_time_ref(fit->keywords.date_obs);
