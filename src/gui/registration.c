@@ -104,7 +104,7 @@ void _reg_selected_area_callback() {
 
 int populate_drizzle_data(struct driz_args_t *driz) {
 	driz->use_flats = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("driz_use_flats")));
-	driz->scale = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_driz_scale")));
+	driz->scale = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("reg_scaling_spin")));
 	driz->weight_scale = 1.f; // Not used for now
 	driz->kernel = (enum e_kernel_t) gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_driz_kernel")));
 	driz->pixel_fraction = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_driz_dropsize")));
@@ -154,24 +154,31 @@ int populate_drizzle_data(struct driz_args_t *driz) {
 	return 0;
 }
 
-void on_drizzleCheckButton_toggled(GtkToggleButton* button, gpointer user_data) {
-	gboolean state = gtk_toggle_button_get_active(button);
-	gtk_widget_set_visible(lookup_widget("box_drizzle_controls"), state);
-	if (state) {
-		gtk_notebook_set_current_page(GTK_NOTEBOOK(lookup_widget("notebook_registration")), REG_PAGE_APPLYREG);
+void on_radio_interp_group_changed(GtkToggleButton *button, gpointer user_data) {
+	GtkToggleButton *drizzle_button = GTK_TOGGLE_BUTTON(lookup_widget("radio_drizzle"));
+	GtkStack *stack = GTK_STACK(lookup_widget("interp_drizzle_stack"));
+	gboolean drizzle_state = gtk_toggle_button_get_active(drizzle_button);
+	if (drizzle_state) {
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("upscaleCheckButton")), FALSE);
+		gtk_stack_set_visible_child(stack, lookup_widget("grid_drizzle_controls"));
+	} else {
+		gtk_stack_set_visible_child(stack, lookup_widget("grid_interp_controls"));
+	}
+	gtk_widget_show_all(GTK_WIDGET(stack));
+}
+
+void on_reg_scaling_spin_value_changed(GtkSpinButton *button, gpointer user_data) {
+	double value = gtk_spin_button_get_value(button);
+	if (fabs(value - 2.0) > DBL_EPSILON) {
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("upscaleCheckButton")), FALSE);
 	}
-	gtk_widget_set_visible(lookup_widget("interp_box"), !state);
-	gtk_widget_set_visible(lookup_widget("toggle_reg_clamp"), !state);
-	gtk_widget_set_sensitive(lookup_widget("upscaleCheckButton"), !state);
-	gtk_widget_set_visible(lookup_widget("regNoOutput"), FALSE);
-
 }
 
 void on_upscaleCheckButton_toggled(GtkToggleButton* button, gpointer user_data) {
 	gboolean state = gtk_toggle_button_get_active(button);
 	if (state) {
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("drizzleCheckButton")), FALSE);
+		GtkSpinButton *spin_scale = GTK_SPIN_BUTTON(lookup_widget("reg_scaling_spin"));
+		gtk_spin_button_set_value(spin_scale, 2.0);
 	}
 	GtkWidget *regNoOut = lookup_widget("regNoOutput");
 	if (gtk_widget_get_visible(regNoOut) && state) {
@@ -574,7 +581,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	static GtkWidget *go_register = NULL, *follow = NULL, *cumul_data = NULL,
 	*noout = NULL, *toggle_reg_clamp = NULL, *onlyshift = NULL, *filter_box = NULL, *manualreg = NULL,
 	*interpolation_algo = NULL, *undistort_check = NULL, *scale_box = NULL,
-	*x2upscale = NULL, *go_estimate = NULL, *drizzle_checkbox = NULL;
+	*x2upscale = NULL, *go_estimate = NULL;
 	static GtkLabel *labelreginfo = NULL;
 	static GtkComboBox *reg_all_sel_box = NULL, *reglayer = NULL, *filter_combo_init = NULL;
 	static GtkNotebook *notebook_reg = NULL;
@@ -603,7 +610,6 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		scale_box = lookup_widget("reg_scaling_box");
 		undistort_check = lookup_widget("reg_undistort");
 		x2upscale = lookup_widget("upscaleCheckButton");
-		drizzle_checkbox = lookup_widget("drizzleCheckButton");
 	}
 
 	if (!dont_change_reg_radio) {
@@ -634,9 +640,9 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 
 	/* show the appropriate frame selection widgets */
 	gboolean isapplyreg = method->type == REGTYPE_APPLY;
-	if (!isapplyreg)
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(drizzle_checkbox), FALSE);
-	gtk_widget_set_visible(GTK_WIDGET(drizzle_checkbox), isapplyreg);
+//	if (!isapplyreg)
+//		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(drizzle_checkbox), FALSE);
+//	gtk_widget_set_visible(GTK_WIDGET(drizzle_checkbox), isapplyreg);
 //	gtk_widget_set_sensitive(GTK_WIDGET(drizzle_checkbox), method->method_ptr == &register_apply_reg); // TODO: remove when we allow drizzle with astrometric
 	gtk_widget_set_visible(GTK_WIDGET(reg_all_sel_box), !isapplyreg);
 	gtk_widget_set_visible(filter_box, isapplyreg);
@@ -735,8 +741,8 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	// for now, methods which do not save images but only shift in seq files are constrained to this option (no_output is true and unsensitive)
 
 	gboolean is_astrometric = method->method_ptr == &register_astrometric;
-	gtk_widget_set_visible(undistort_check, is_astrometric);
-	gtk_widget_set_visible(scale_box, is_astrometric);
+	gtk_widget_set_visible(undistort_check, is_astrometric || isapplyreg);
+	gtk_widget_set_visible(scale_box, is_astrometric || isapplyreg);
 
 	if (((method->method_ptr == &register_comet) ||
 			(method->method_ptr == &register_kombat) ||
@@ -978,7 +984,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	const gchar *caller = gtk_buildable_get_name(GTK_BUILDABLE(button));
 	if (!g_strcmp0(caller, "proj_estimate"))
 		reg_args->no_output = TRUE;
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("drizzleCheckButton")))) {
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("radio_drizzle")))) {
 		reg_args->driz = calloc(1, sizeof(struct driz_args_t));
 		if (populate_drizzle_data(reg_args->driz)) {
 			free(reg_args);
