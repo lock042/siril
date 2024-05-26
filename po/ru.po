@@ -6,10 +6,10 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-05-25 22:11+0200\n"
-"PO-Revision-Date: 2024-05-19 11:29+0000\n"
+"PO-Revision-Date: 2024-05-27 02:37+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
-"Language-Team: Russian <https://weblate.pixls.us/projects/siril/siril-"
-"application/ru/>\n"
+"Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
+"siril-application/ru/>\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -8863,7 +8863,7 @@ msgstr "Зарегистрировать только выбранные изо�
 
 #: src/gui/uifiles/siril.ui:6193
 msgid "Registering 0 images of the 0 of the sequence"
-msgstr "Выравнивание 0 изображений из 0 в последовательности"
+msgstr "Регистрация 0 изображений из 0 в последовательности"
 
 #: src/gui/uifiles/siril.ui:6211
 msgid ""
@@ -9071,7 +9071,7 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:6669
 msgid "Drizzle"
-msgstr ""
+msgstr "Сверхразрешение"
 
 #: src/gui/uifiles/siril.ui:6673
 msgid ""
@@ -9098,9 +9098,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/siril.ui:6716
-#, fuzzy
 msgid "WCS"
-msgstr "CDS"
+msgstr "WCS"
 
 #: src/gui/uifiles/siril.ui:6729
 #, fuzzy
@@ -9119,7 +9118,7 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:6753 src/gui/uifiles/siril.ui:6780
 msgid "1.00"
-msgstr ""
+msgstr "1.00"
 
 #: src/gui/uifiles/siril.ui:6768
 #, fuzzy
@@ -9158,14 +9157,12 @@ msgid "Turbo"
 msgstr ""
 
 #: src/gui/uifiles/siril.ui:6814
-#, fuzzy
 msgid "Lanczos2"
-msgstr "Ланцош-4"
+msgstr "Ланцош-2"
 
 #: src/gui/uifiles/siril.ui:6815
-#, fuzzy
 msgid "Lanczos3"
-msgstr "Ланцош-4"
+msgstr "Ланцош-3"
 
 #: src/gui/uifiles/siril.ui:6832
 msgid "Drizzle Mapping"
@@ -9376,6 +9373,7 @@ msgid "Set second preview"
 msgstr "Установить второй предпросмотр"
 
 #: src/gui/uifiles/siril.ui:7459 src/compositing/compositing.c:2022
+#, fuzzy
 msgid "Manual registration"
 msgstr "Регистрация вручную"
 
@@ -12359,9 +12357,8 @@ msgid "Crop Sequence"
 msgstr "Кадрировать последовательность"
 
 #: src/algos/geometry.c:788
-#, fuzzy
 msgid "Scale Sequence"
-msgstr "Очистить последовательность"
+msgstr "Масштабировать последовательность"
 
 #: src/algos/noise.c:57
 msgid "Noise standard deviation: calculating...\n"
@@ -14606,28 +14603,23 @@ msgstr ""
 "решение для опорного или текущего изображения\n"
 
 #: src/core/command.c:4442
-#, fuzzy
 msgid "Error: height cannot be less than 10, aborting.\n"
-msgstr ""
-"Значение длины или ширины не может быть пустым. Размер не изменяется.\n"
+msgstr "Ошибка: высота не может быть менее 10, прерывание.\n"
 
 #: src/core/command.c:4454
-#, fuzzy
 msgid "Error: width cannot be less than 10, aborting.\n"
-msgstr "Ошибка при открытии ser-файла %s, прерывание.\n"
+msgstr "Ошибка: ширина не может быть менее 10, прерывание.\n"
 
 #: src/core/command.c:4466 src/core/command.c:4518
-#, fuzzy
 msgid "Error: scale cannot be less than 0.01, aborting.\n"
-msgstr "Ошибка при открытии ser-файла %s, прерывание.\n"
+msgstr "Ошибка: масштаб не может быть менее 0.01, прерывание.\n"
 
 #: src/core/command.c:4473
-#, fuzzy, c-format
+#, c-format
 msgid "Error parsing argument to -scale= (%s), aborting.\n"
-msgstr "Ошибка при разборе аргументов, прерывание.\n"
+msgstr "Ошибка при разборе аргумента -scale= (%s), прерывание.\n"
 
 #: src/core/command.c:4526
-#, fuzzy
 msgid "Scale is 1.0, nothing to do.\n"
 msgstr "Масштаб 1.0. Ничего не делаем.\n"
 
@@ -15077,28 +15069,27 @@ msgstr "Нет данных регистрации для этой послед�
 
 #. handling mono case
 #: src/core/command.c:7377
-#, fuzzy
 msgid "This sequence is not mono / CFA, cannot drizzle.\n"
-msgstr "Это последовательность монохромная, игнорируем номер слоя.\n"
+msgstr ""
+"Это последовательность не монохромная / CFA, сверхразрешение неприменимо.\n"
 
 #: src/core/command.c:7422
-#, fuzzy
 msgid "Error: flat image already set. Aborting.\n"
-msgstr "Ошибка при разборе аргументов, прерывание.\n"
+msgstr "Ошибка: изображение плоского поля уже установлено, прерывание.\n"
 
 #: src/core/command.c:7426
-#, fuzzy
 msgid "Error: flat image cannot work with variable sized sequence.\n"
-msgstr "Ошибка: эта опция не может использоваться для последовательностей.\n"
+msgstr ""
+"Ошибка: изображение плоского поля не работает с последовательностями разного "
+"размера.\n"
 
 #: src/core/command.c:7435 src/core/preprocess.c:876 src/gui/registration.c:119
 msgid "NOT USING FLAT: could not parse the expression"
 msgstr "БЕЗ ПЛОСКОГО ПОЛЯ: не удалось разобрать выражение"
 
 #: src/core/command.c:7440 src/gui/registration.c:124
-#, fuzzy
 msgid "Error: no master flat specified in the preprocessing tab.\n"
-msgstr "Ошибка: не указано название файла, прерывание.\n"
+msgstr "Ошибка: мастер-файл плоского поля не указан на вкладке предобработки.\n"
 
 #: src/core/command.c:7446 src/core/preprocess.c:883 src/gui/registration.c:132
 msgid "NOT USING FLAT: number of channels is different"
@@ -15145,14 +15136,12 @@ msgstr ""
 "Не удалось загрузить опорное изображение в последовательности, прерывание.\n"
 
 #: src/core/command.c:7718
-#, fuzzy
 msgid "Scaling factor should be between 0.1 and 2, aborting.\n"
-msgstr "Ошибка параметра α: должен быть между 0 и 1e5, прерывание.\n"
+msgstr "Коэффициент масштаба должен быть между 0.1 и 2, прерывание.\n"
 
 #: src/core/command.c:7741
-#, fuzzy
 msgid "Registration: Applying existing astrometric data"
-msgstr "Регистрация: Применение существующих данных"
+msgstr "Регистрация: Применение существующих данных астрометрии"
 
 #: src/core/command.c:7763
 msgid ""
@@ -20196,13 +20185,13 @@ msgstr "Управление цветом активно.\n"
 
 #: src/core/icc_profile.c:484
 msgid "JPEG ICC profiles supported.\n"
-msgstr "Поддерживаются профили JPEG ICC.\n"
+msgstr "Поддерживаются ICC-профили JPEG.\n"
 
 #: src/core/icc_profile.c:486
 msgid ""
 "JPEG ICC profiles unsupported: libjpeg-turbo 2.0.0 or higher is required.\n"
 msgstr ""
-"Профили JPEG ICC не поддерживаются: необходима библиотека libjpeg-turbo "
+"ICC-профили JPEG не поддерживаются: необходима библиотека libjpeg-turbo "
 "версии 2.0.0 или выше.\n"
 
 #: src/core/icc_profile.c:508
