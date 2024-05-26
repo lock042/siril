@@ -147,7 +147,9 @@ char *word[MAX_COMMAND_WORDS];	// NULL terminated
 static gboolean sequence_cfa_warning_check(sequence* seq) {
 	gboolean retval;
 	fits tmpfit = { 0 };
-	seq_read_frame_metadata(seq, sequence_find_refimage(seq), &tmpfit);
+	if (seq_read_frame_metadata(seq, sequence_find_refimage(seq), &tmpfit)) {
+		return TRUE; // something has gone wrong but we will not highlight it here, the error will be detected and dealt with later
+	}
 	gboolean mono = (tmpfit.naxes[2] == 1);
 	gboolean cfa = (tmpfit.keywords.bayer_pattern[0] != '\0');
 	clearfits(&tmpfit);
@@ -821,12 +823,13 @@ int process_savetif(int nb){
 
 	for (int i = 2; i < nb; i++) {
 		if (word[i] && !g_strcmp0(word[i], "-astro")) {
+			if (astro_tiff) free(astro_tiff);
 			astro_tiff = AstroTiff_build_header(&gfit);
 		} else if (word[i] && !g_strcmp0(word[i], "-deflate")) {
 			tiff_compression = TRUE;
 		} else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
-			if (astro_tiff) g_free(astro_tiff);
+			if (astro_tiff) free(astro_tiff);
 			return CMD_ARG_ERROR;
 		}
 	}
@@ -841,7 +844,7 @@ int process_savetif(int nb){
 		retval = savetif(filename, &gfit, bitspersample, astro_tiff, com.pref.copyright, tiff_compression, TRUE, TRUE);
 		set_cursor_waiting(FALSE);
 	}
-	g_free(astro_tiff);
+	free(astro_tiff);
 	g_free(filename);
 	g_free(savename);
 	return retval;
@@ -1073,6 +1076,7 @@ int process_epf(int nb) {
 	gchar *filename = NULL;
 	fits *guidefit = NULL;
 	fits *fit = &gfit;
+	gboolean guide_needs_freeing = FALSE;
 
 	for (int i = 1 ; i < nb ; i++) {
 		gchar *arg = word[i];
@@ -1148,28 +1152,29 @@ int process_epf(int nb) {
 		 g_free(filename);
 		 return CMD_ARG_ERROR;
 	}
-
-	if (filter == EP_GUIDED || filename != NULL) {
+	if (filename != NULL)
 		filter = EP_GUIDED; // passing guideimage name is enough to set to guided
-		guidefit = calloc(1, sizeof(fits));
-		if (readfits(filename, guidefit, NULL, FALSE)) {
-			siril_log_color_message(_("Error: guide image could not be loaded\n"), "red");
-			clearfits(guidefit);
-			free(guidefit);
+	if (filter == EP_GUIDED) {
+		if (filename) {
+			guidefit = calloc(1, sizeof(fits));
+			if (readfits(filename, guidefit, NULL, FALSE)) {
+				siril_log_color_message(_("Error: guide image could not be loaded\n"), "red");
+				clearfits(guidefit);
+				free(guidefit);
+				g_free(filename);
+				return CMD_ARG_ERROR;
+			}
 			g_free(filename);
-			return CMD_ARG_ERROR;
+			if (guidefit->rx != gfit.rx || guidefit->ry != gfit.ry) {
+				siril_log_color_message(_("Error: guide image dimensions do not match\n"), "red");
+				clearfits(guidefit);
+				free(guidefit);
+				return CMD_ARG_ERROR;
+			}
+			guide_needs_freeing = TRUE;
+		} else {
+			guidefit = fit;
 		}
-		g_free(filename);
-		if (guidefit->rx != gfit.rx || guidefit->ry != gfit.ry) {
-			siril_log_color_message(_("Error: guide image dimensions do not match\n"), "red");
-			clearfits(guidefit);
-			free(guidefit);
-			return CMD_ARG_ERROR;
-		}
-	}
-	if (filter == EP_GUIDED && d == 0.0) {
-		siril_log_color_message(_("Warning: d = 0.0 cannot be used to specify automatic diameter when using a guided filter. Setting d to default value of 5.\n"), "salmon");
-		d = 5.0;
 	}
 	struct epfargs *args = calloc(1, sizeof(struct epfargs));
 	*args = (struct epfargs) {.fit = fit,
@@ -1179,6 +1184,7 @@ int process_epf(int nb) {
 							.sigma_space = sigma_space,
 							.mod = mod,
 							.filter = filter,
+							.guide_needs_freeing = guide_needs_freeing,
 							.verbose = TRUE };
 	start_in_new_thread(epfhandler, args);
 
@@ -1817,6 +1823,7 @@ int process_ccm(int nb) {
 			args->matrix[i][j] = g_ascii_strtod(word[word_index], &end);
 			if (end == word[word_index]) {
 				siril_log_message(_("Invalid matrix element (%d, %d) %s, aborting.\n"), i, j, word[word_index]);
+				free(args);
 				return CMD_ARG_ERROR;
 			}
 		}
@@ -1825,6 +1832,7 @@ int process_ccm(int nb) {
 		args->power = g_ascii_strtod(word[10 + offset], &end);
 			if (end == word[10 + offset] || args->power < 0.f || args->power > 10.f) {
 				siril_log_message(_("Invalid power %s, must be between 0.0 and 10.0: aborting.\n"), word[10 + offset]);
+				free(args);
 				return CMD_ARG_ERROR;
 			}
 	}
@@ -1858,7 +1866,7 @@ int process_ccm(int nb) {
 		gfit.history = g_slist_append(gfit.history, strdup(log));
 		snprintf(log, 89, "Power: %.4f", args->power);
 		gfit.history = g_slist_append(gfit.history, strdup(log));
-
+		free(args);
 		return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 
 	}
@@ -8394,9 +8402,11 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 				}
 			} else {
 				g_free(expression);
+				expression = NULL;
 				int status;
 				expression = path_parse(&reffit, word[i] + 6, PATHPARSE_MODE_READ, &status);
 				if (status) {
+					g_free(expression);
 					retvalue = CMD_GENERIC_ERROR;
 					break;
 				}
@@ -9217,27 +9227,35 @@ static int do_pcc(int nb, gboolean spectro) {
 			bw[BLAYER] = g_ascii_strtod(arg, NULL);
 		} else if (spectro && g_str_has_prefix(word[next_arg], "-monosensor=")) {
 			char *arg = word[next_arg] + 12;
+			if (monosensor) g_free(monosensor);
 			monosensor = g_strdup(arg);
 		} else if (spectro && g_str_has_prefix(word[next_arg], "-oscsensor=")) {
 			char *arg = word[next_arg] + 11;
+			if (oscsensor) g_free(oscsensor);
 			oscsensor = g_strdup(arg);
 		} else if (spectro && g_str_has_prefix(word[next_arg], "-rfilter=")) {
 			char *arg = word[next_arg] + 9;
+			if (rfilter) g_free(rfilter);
 			rfilter = g_strdup(arg);
 		} else if (spectro && g_str_has_prefix(word[next_arg], "-gfilter=")) {
 			char *arg = word[next_arg] + 9;
+			if (gfilter) g_free(gfilter);
 			gfilter = g_strdup(arg);
 		} else if (spectro && g_str_has_prefix(word[next_arg], "-bfilter=")) {
 			char *arg = word[next_arg] + 9;
+			if (bfilter) g_free(bfilter);
 			bfilter = g_strdup(arg);
 		} else if (spectro && g_str_has_prefix(word[next_arg], "-oscfilter=")) {
 			char *arg = word[next_arg] + 11;
+			if (oscfilter) g_free(oscfilter);
 			oscfilter = g_strdup(arg);
 		} else if (spectro && g_str_has_prefix(word[next_arg], "-osclpf=")) {
 			char *arg = word[next_arg] + 8;
-			gfilter = g_strdup(arg);
+			if (osclpf) g_free(osclpf);
+			osclpf = g_strdup(arg);
 		} else if (spectro && g_str_has_prefix(word[next_arg], "-whiteref=")) {
 			char *arg = word[next_arg] + 10;
+			if (whiteref) g_free(whiteref);
 			whiteref = g_strdup(arg);
 		} else {
 			siril_log_message(_("Invalid argument %s, aborting.\n"), word[next_arg]);
@@ -9795,6 +9813,7 @@ int process_conesearch(int nb) {
 				cat = CAT_IMCCE;
 				if (!gfit.keywords.date_obs) {
 					siril_log_color_message(_("This option only works on images that have observation date information\n"), "red");
+					g_free(obscode);
 					return CMD_INVALID_IMAGE;
 				}
 			} else {
