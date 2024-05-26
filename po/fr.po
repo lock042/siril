@@ -8,10 +8,10 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-05-25 22:11+0200\n"
-"PO-Revision-Date: 2024-05-24 21:50+0000\n"
+"PO-Revision-Date: 2024-05-27 02:37+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
-"Language-Team: French <https://weblate.pixls.us/projects/siril/siril-"
-"application/fr/>\n"
+"Language-Team: French <https://weblate.pixls.us/projects/siril/"
+"siril-application/fr/>\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -784,39 +784,40 @@ msgstr ""
 "position/résolution."
 
 #: src/gui/uifiles/astrometry_dialog.ui:1064
-#, fuzzy
 msgid "Use coordinates from headers"
-msgstr ""
-"Utilisation des coordonnées de la cible depuis l'en-tête de l'image : %f, "
-"%f\n"
+msgstr "Utiliser coordonnées de l'entête"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1068
 msgid ""
 "Use the coordinates contained in each image header instead of those given in "
 "this dialog"
 msgstr ""
+"Utilisez les coordonnées contenues dans l'en-tête de chaque image au lieu de "
+"celles données dans cette boîte de dialogue"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1081
-#, fuzzy
 msgid "Use pixel size from headers"
-msgstr "Utilisation de la taille de pixel de l'image : %.2f\n"
+msgstr "Utiliser taille de pixel de l'entête"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1085
 msgid ""
 "Use the pixel size contained in each image header instead of those given in "
 "this dialog"
 msgstr ""
+"Utiliser la taille des pixels contenue dans chaque en-tête d'image au lieu "
+"de celle indiquée dans cette boîte de dialogue"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1098
-#, fuzzy
 msgid "Use focal length from headers"
-msgstr "Utilisation de la longueur focale de l'image : %.2f\n"
+msgstr "Utiliser longueur focale de l'entête"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1102
 msgid ""
 "Use the focal length contained in each image header instead of those given "
 "in this dialog"
 msgstr ""
+"Utilisez la longueur focale contenue dans l'en-tête de chaque image au lieu "
+"de celle indiquée dans cette boîte de dialogue"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1119 src/gui/uifiles/siril.ui:4431
 #: src/gui/callbacks.c:2164
@@ -4411,52 +4412,49 @@ msgid "Sequences"
 msgstr "Séquences"
 
 #: src/gui/uifiles/mouse_actions.ui:9
-#, fuzzy
 msgid "Mouse Action Preferences"
-msgstr "Réinitialiser les Préférences"
+msgstr "Préférences d'action de la souris"
 
 #: src/gui/uifiles/mouse_actions.ui:111
 msgid "Add an extra mouse action"
-msgstr ""
+msgstr "Ajouter une action de souris supplémentaire"
 
 #: src/gui/uifiles/mouse_actions.ui:126
-#, fuzzy
 msgid "Remove the selected mouse action"
-msgstr "Supprimer les images sélectionnées"
+msgstr "Supprimer l'action de la souris sélectionnée"
 
 #: src/gui/uifiles/mouse_actions.ui:139 src/gui/mouse_action_preferences.c:720
-#, fuzzy
 msgid "Mouse button / scroll check"
-msgstr "Double clic sur le bouton du milieu"
+msgstr "Bouton de la souris / contrôle du défilement"
 
 #: src/gui/uifiles/mouse_actions.ui:156
 msgid ""
 "Click this area to check mouse button numbering and scroll direction, to "
 "ensure you set the correct number for mouse actions"
 msgstr ""
+"Cliquez sur cette zone pour vérifier la numérotation des boutons de la "
+"souris et la direction du défilement, afin de vous assurer que vous avez "
+"défini le bon numéro pour les actions de la souris"
 
 #: src/gui/uifiles/mouse_actions.ui:176
 msgid "Mouse Click Actions"
-msgstr ""
+msgstr "Actions sur le clic de la souris"
 
 #: src/gui/uifiles/mouse_actions.ui:227
-#, fuzzy
 msgid "Add a scroll action"
-msgstr "Ajouter une étoile à la liste à partir de la sélection"
+msgstr "Ajouter une action de défilement"
 
 #: src/gui/uifiles/mouse_actions.ui:242
-#, fuzzy
 msgid "Remove a scroll action"
-msgstr "allocation mémoire"
+msgstr "Supprimer une action de défilement"
 
 #: src/gui/uifiles/mouse_actions.ui:255
 msgid " "
-msgstr ""
+msgstr " "
 
 #: src/gui/uifiles/mouse_actions.ui:271
-#, fuzzy
 msgid "Scroll Actions"
-msgstr "Sélection"
+msgstr "Actions de défilement"
 
 #: src/gui/uifiles/pixelmath.ui:81 src/gui/uifiles/seqlist_dialog.ui:56
 msgid "Sequence List"
@@ -5623,6 +5621,8 @@ msgid ""
 "Preferred <a href=\"https://minorplanetcenter.net/iau/lists/ObsCodesF."
 "html\">IAU Observatory Code</a>"
 msgstr ""
+"Code préféré <a href=\"https://minorplanetcenter.net/iau/lists/ObsCodesF."
+"html\">Code de l'Observatoire de l'UAI</a>"
 
 #: src/gui/uifiles/settings_window.ui:1204
 msgid ""
@@ -5662,6 +5662,10 @@ msgid ""
 "accuracy in solar system cone searches. A full list can be found at https://"
 "minorplanetcenter.net/iau/lists/ObsCodesF.html"
 msgstr ""
+"Saisissez le code de l'observatoire de l'UAI le plus proche à utiliser par "
+"défaut pour améliorer la précision des recherches de cônes du système "
+"solaire. Une liste complète est disponible à l'adresse suivante : "
+"https://minorplanetcenter.net/iau/lists/ObsCodesF.html"
 
 #: src/gui/uifiles/settings_window.ui:1268
 msgid "Annotations"
@@ -6158,22 +6162,22 @@ msgstr "Rayon d'ouverture où le flux est mesuré."
 
 #: src/gui/uifiles/settings_window.ui:2701
 msgid "Automatic with a Radius/half-FWHM ratio of:"
-msgstr ""
+msgstr "Automatique avec un rapport Rayon/demi-FWHM de :"
 
 #: src/gui/uifiles/settings_window.ui:2705
-#, fuzzy
 msgid ""
 "Check this option to have Siril automatically calculate the aperture radius "
 "with the specified radius/half-FWHM ratio. When unchecked, you can set a "
 "fixed radius value in the box below."
 msgstr ""
 "Cochez cette option pour que Siril calcule automatiquement le rayon "
-"d'ouverture. Lorsque cette option n'est pas cochée, vous pouvez définir la "
-"valeur du rayon dans la case ci-dessous."
+"d'ouverture avec le rapport rayon/demi-FWHM spécifié. Si cette option n'est "
+"pas cochée, vous pouvez définir une valeur de rayon fixe dans la case ci-"
+"dessous."
 
 #: src/gui/uifiles/settings_window.ui:2720
 msgid "Radius/half-FWHM ratio"
-msgstr ""
+msgstr "Rapport rayon/demi-FWHM"
 
 #: src/gui/uifiles/settings_window.ui:2723
 msgid "3.00"
@@ -6481,14 +6485,12 @@ msgid "Zoom toggles between fit and 100%"
 msgstr "Le zoom permet de basculer entre l'ajustement et 100 %"
 
 #: src/gui/uifiles/settings_window.ui:3735
-#, fuzzy
 msgid "Configure mouse button actions"
-msgstr "Configuration"
+msgstr "Configurer les actions des boutons de la souris"
 
 #: src/gui/uifiles/settings_window.ui:3739
-#, fuzzy
 msgid "Open the mouse action configuration dialog"
-msgstr "Ouvrir la boîte de dialogue de la correction cosmétique"
+msgstr "Ouvrir la boîte de dialogue de configuration de l'action de la souris"
 
 #: src/gui/uifiles/settings_window.ui:3758
 msgid "Mouse Behaviour"
@@ -7752,14 +7754,12 @@ msgid "Median Filter..."
 msgstr "Filtre médian..."
 
 #: src/gui/uifiles/siril.ui:1441
-#, fuzzy
 msgid "Open the edge preserving filters dialog"
-msgstr "Ouvrir la boîte de dialogue du filtre médian"
+msgstr "Ouvrir la boîte de dialogue des filtres de préservation des contours"
 
 #: src/gui/uifiles/siril.ui:1443
-#, fuzzy
 msgid "Edge Preserving Filters..."
-msgstr ", préserve la luminosité"
+msgstr "Filtres de préservation des bords..."
 
 #: src/gui/uifiles/siril.ui:1456
 msgid "Open the denoise dialog"
@@ -9169,7 +9169,7 @@ msgstr "centre de gravité"
 
 #: src/gui/uifiles/siril.ui:6069
 msgid "Estimates the final size and space used by the stacked image."
-msgstr ""
+msgstr "Estime la taille finale et l'espace utilisé par l'image empilée."
 
 #: src/gui/uifiles/siril.ui:6135
 msgid "Registration method:"
@@ -9381,19 +9381,21 @@ msgid "Image selection:"
 msgstr "Sélection d'images :"
 
 #: src/gui/uifiles/siril.ui:6652 src/gui/uifiles/siril.ui:8953
-#, fuzzy
 msgid "Interpolation upscaling x2"
-msgstr "Interpolation contrainte"
+msgstr "Interpolation, mise à l'échelle x2"
 
 #: src/gui/uifiles/siril.ui:6656
 msgid ""
 "Applies an interpolation-based x2 upscaling. This is quicker than most of "
 "the proper drizzle kernels but will not provide results that are as sharp."
 msgstr ""
+"Applique un redimensionnement x2 basé sur l'interpolation. Cette méthode est "
+"plus rapide que la plupart des noyaux drizzle appropriés, mais elle ne "
+"permet pas d'obtenir des résultats aussi nets."
 
 #: src/gui/uifiles/siril.ui:6669
 msgid "Drizzle"
-msgstr ""
+msgstr "Drizzle"
 
 #: src/gui/uifiles/siril.ui:6673
 msgid ""
@@ -9411,6 +9413,21 @@ msgid ""
 "disk space needed to create and process drizzled images is multiplied by the "
 "square of the Drizzle factor."
 msgstr ""
+"La séquence sera alignée à l'aide de l'algorithme Drizzle, développé à "
+"l'origine pour les images du télescope spatial Hubble sous-échantillonnées. "
+"Cet algorithme peut être utile pour améliorer la résolution de vos images si "
+"elles sont sous-échantillonnées. Il peut également servir d'algorithme de "
+"dématriçage alternatif pour les images couleur (le motif CFA doit toujours "
+"être présent, vous ne devez donc pas les dématricer avant Drizzle), ce qui "
+"améliore la résolution du résultat et produit un bruit dont les "
+"caractéristiques sont plus faciles à traiter avec des algorithmes de "
+"réduction du bruit. Le drizzle d'images mono à l'échelle x2 ou d'images CFA "
+"à l'échelle x1 nécessite généralement un minimum d'une dizaine d'images dans "
+"la séquence.\n"
+"\n"
+"ATTENTION : la contrepartie de cette technique est que la quantité de "
+"mémoire et d'espace disque nécessaire à la création et au traitement des "
+"images drizzle est multipliée par le carré du facteur Drizzle."
 
 #: src/gui/uifiles/siril.ui:6712
 msgid ""
@@ -9420,18 +9437,16 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/siril.ui:6716
-#, fuzzy
 msgid "WCS"
-msgstr "CDS"
+msgstr "WCS"
 
 #: src/gui/uifiles/siril.ui:6729
-#, fuzzy
 msgid "Drizzle mapping method"
-msgstr "Méthode de cadrage"
+msgstr "Méthode de mapping du Drizzle"
 
 #: src/gui/uifiles/siril.ui:6741
 msgid "Drizzle Scale"
-msgstr ""
+msgstr "Échelle du Drizzle"
 
 #: src/gui/uifiles/siril.ui:6752
 msgid ""
