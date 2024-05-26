@@ -1837,3 +1837,22 @@ int count_lines_in_textfile(const gchar *filename) {
 
     return line_count;
 }
+
+void copy_filename(const char *filename, char *truncated_filename, size_t max_length) {
+	size_t filename_length = strlen(filename);
+
+	if (filename_length <= max_length) {
+		strncpy(truncated_filename, filename, max_length);
+		truncated_filename[filename_length] = '\0';
+		return;
+	}
+
+	size_t prefix_length = (max_length - 3) / 2;
+	size_t suffix_length = max_length - 3 - prefix_length;
+
+	strncpy(truncated_filename, filename, prefix_length);
+	strcpy(truncated_filename + prefix_length, "...");
+	strncpy(truncated_filename + prefix_length + 3, filename + filename_length - suffix_length, suffix_length);
+
+	truncated_filename[max_length] = '\0';
+}

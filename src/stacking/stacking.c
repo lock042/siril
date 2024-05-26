@@ -605,6 +605,7 @@ static gboolean end_stacking(gpointer p) {
 					failed = 1;
 				}
 			}
+			gfit.keywords.filename[0] = '\0'; // clear the reference to the original filename
 			if (failed) {
 				com.uniq->filename = strdup(_("Unsaved stacking result"));
 				com.uniq->fileexist = FALSE;
