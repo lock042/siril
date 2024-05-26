@@ -493,7 +493,7 @@ static int get_pcc_white_balance_coeffs(struct photometric_cc_data *args, float 
 	gint errors[PSF_ERR_MAX_VALUE] = { 0 };
 
 	cmsHPROFILE xyzprofile = NULL;
-	cmsHPROFILE profile = NULL;
+	cmsHPROFILE profile; // This is initialised in either the if or else branch
 	cmsHTRANSFORM transform = NULL;
 
 	// This transform is for normal PCC to transform the reference
@@ -910,7 +910,7 @@ pcc_star *convert_siril_cat_to_pcc_stars(siril_catalogue *siril_cat, int *nbstar
 	}
 	if (!has_field(siril_cat, RA) || !has_field(siril_cat, DEC) || !has_field(siril_cat, MAG) || !has_field(siril_cat, BMAG))
 		return NULL;
-	pcc_star *results = malloc(siril_cat->nbincluded * sizeof(pcc_star));
+	pcc_star *results = malloc(siril_cat->nbitems * sizeof(pcc_star));
 
 	int n = 0;
 	for (int i = 0; i < siril_cat->nbitems; i++) {

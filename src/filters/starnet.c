@@ -405,10 +405,9 @@ gpointer do_starnet(gpointer p) {
 	} else {
 		imagenoextorig = g_strdup_printf("image");
 	}
-	imagenoext = g_strdup(imagenoextorig);
-	starlessnoext = g_strdup_printf("%s%s", starlessprefix, imagenoext);
-	starmasknoext = g_strdup_printf("%s%s", starmaskprefix, imagenoext);
-	imagenoext = g_strdup_printf("%s%s", starnetprefix, imagenoext);
+	starlessnoext = g_strdup_printf("%s%s", starlessprefix, imagenoextorig);
+	starmasknoext = g_strdup_printf("%s%s", starmaskprefix, imagenoextorig);
+	imagenoext = g_strdup_printf("%s%s", starnetprefix, imagenoextorig);
 	temp = g_build_filename(com.wd, imagenoext, NULL);
 	g_free(imagenoext);
 	imagenoext = remove_ext_from_filename(temp);
@@ -632,8 +631,6 @@ gpointer do_starnet(gpointer p) {
 
 	// *** Call starnet++ *** //
 	retval = exec_prog_starnet(my_argv, version);
-	g_free(starnetcommand);
-	starnetcommand = NULL;
 	if (retval) {
 		siril_log_color_message(_("Error: StarNet did not execute correctly...\n"), "red");
 		goto CLEANUP;
@@ -813,9 +810,11 @@ gpointer do_starnet(gpointer p) {
 	if (verbose)
 		set_progress_bar_data("Ready.", PROGRESS_RESET);
 	g_free(currentdir);
+	g_free(starnetcommand); // command
 	g_free(starlesstif); // filename
 	g_free(starlessfit); // filename
 	g_free(starmaskfit); // filename
+	g_free(starmasktif); // filename
 	g_free(starlessnoext); // part filename
 	g_free(starmasknoext); // part filename
 	g_free(imagenoext); // part filename
