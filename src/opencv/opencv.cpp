@@ -1243,7 +1243,7 @@ static void map_undistortion_S2D(disto_data *disto, int width, int height, Mat x
 	}
 
 	for (int v = 0; v < height; ++v) {
-		V.at<double>(v) = disto->yref - (double)v;
+		V.at<double>(v) = (double)v - disto->yref;
 	}
 	if (disto->order >= 2) {
 		V2 = V.mul(V);
@@ -1289,7 +1289,7 @@ static void map_undistortion_S2D(disto_data *disto, int width, int height, Mat x
 				}
 			}
 			xmap.at<float>(v, u) = (float)(x + disto->xref);
-			ymap.at<float>(v, u) = (float)(disto->yref - y);
+			ymap.at<float>(v, u) = (float)(y + disto->yref);
  		}
  	}
 }
@@ -1398,15 +1398,9 @@ int init_disto_map(int rx, int ry, disto_data *disto) {
 	if (disto == NULL || (disto->dtype != DISTO_MAP_D2S && disto->dtype != DISTO_MAP_S2D))
 		return 1;
 
-	disto->xmap = (float *)malloc(rx * ry *sizeof(float));
-	disto->ymap = (float *)malloc(rx * ry *sizeof(float));
-	size_t s = 0;
-	for (int j = 0; j < ry; j++) {
-		for (int i = 0; i < rx; i++) {
-			disto->xmap[s] = (float)i;
-			disto->ymap[s] = (float)j;
-			s++;
-		}
+	if (!disto->xmap) {
+		disto->xmap = (float *)malloc(rx * ry *sizeof(float));
+		disto->ymap = (float *)malloc(rx * ry *sizeof(float));
 	}
 
 	if (!disto->xmap || !disto->ymap) {
@@ -1415,6 +1409,15 @@ int init_disto_map(int rx, int ry, disto_data *disto) {
 		disto->xmap = NULL;
 		disto->ymap = NULL;
 		return 2;
+	}
+
+	size_t s = 0;
+	for (int j = 0; j < ry; j++) {
+		for (int i = 0; i < rx; i++) {
+			disto->xmap[s] = (float)i;
+			disto->ymap[s] = (float)j;
+			s++;
+		}
 	}
 
 	Mat xmap = Mat(ry, rx, CV_32FC1, disto->xmap);

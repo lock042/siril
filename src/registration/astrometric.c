@@ -495,7 +495,7 @@ static int astrometric_image_hook(struct generic_seq_args *args, int out_index, 
 		} else {
 			compute_Hmax(&Himg, &Htransf, fit->rx, fit->ry, scale, &H, &Hs, &dst_rx, &dst_ry);
 		}
-		status = map_image_coordinates_h(fit, H, p->pixmap, dst_ry, driz->scale, threads);
+		status = map_image_coordinates_h(fit, H, p->pixmap, dst_ry, driz->scale, disto, threads);
 		H = Hs;
 
 		if (status) {
