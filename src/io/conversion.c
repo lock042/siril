@@ -999,6 +999,11 @@ static fits *read_fit(struct reader_data *reader, seqread_status *retval) {	// r
 			fit = any_to_new_fits(imagetype, reader->filename,
 					reader->debayer, reader->allow_32bits);
 			*retval = fit ? READ_OK : READ_FAILED;
+			if (*retval == READ_OK) {
+				/* Copy original filename in the header. Truncate if needed */
+				/** 65 is the maximum length taking into account total length of card with, keyword and spaces and without comment */
+				copy_filename(g_filename_display_basename(reader->filename), fit->keywords.filename, 65);
+			}
 		}
 	}
 	else *retval = NOT_READ;
