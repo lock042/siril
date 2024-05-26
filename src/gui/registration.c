@@ -741,6 +741,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	// for now, methods which do not save images but only shift in seq files are constrained to this option (no_output is true and unsensitive)
 
 	gboolean is_astrometric = method->method_ptr == &register_astrometric;
+	gboolean is_old_global = method->method_ptr == &register_star_alignment;
 	gtk_widget_set_visible(undistort_check, is_astrometric || isapplyreg);
 	gtk_widget_set_visible(scale_box, is_astrometric || isapplyreg);
 
@@ -760,8 +761,8 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), FALSE);
 		gtk_widget_set_sensitive(noout, FALSE);
 		gtk_widget_set_visible(noout, FALSE);
-		gtk_widget_set_visible(x2upscale, !is_astrometric);
-		gtk_widget_set_sensitive(x2upscale, !is_astrometric);
+		gtk_widget_set_visible(x2upscale, is_old_global); // only relevant to the original global method now
+		gtk_widget_set_sensitive(x2upscale, is_old_global);
 	} else {
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), save_state);
 		gtk_widget_set_sensitive(noout, TRUE);
