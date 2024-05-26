@@ -351,7 +351,7 @@ static void convert_MatH_to_H(Mat from, Homography *to) {
 
 void cvGetEye(Homography *Hom) {
 	Mat M = Mat::eye(3, 3, CV_64FC1);
-	convert_MatH_to_H(M, Hom);
+	convert_MatH_to_H(std::move(M), Hom);
 }
 
 void cvTransfPoint(double *x, double *y, Homography Href, Homography Himg, double scale) {

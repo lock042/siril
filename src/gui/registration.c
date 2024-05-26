@@ -115,11 +115,11 @@ int populate_drizzle_data(struct driz_args_t *driz) {
 		gchar *error = NULL;
 		int status;
 		gchar *expression = path_parse(&reffit, flat_filename, PATHPARSE_MODE_READ, &status);
+		g_free(expression);
 		if (status) {
 			error = _("NOT USING FLAT: could not parse the expression");
 			driz->use_flats = FALSE;
 		} else {
-			free(expression);
 			if (flat_filename[0] == '\0') {
 				siril_log_message(_("Error: no master flat specified in the preprocessing tab.\n"));
 				free(driz);
@@ -679,7 +679,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 				gtk_label_set_text(labelreginfo, _("Unsupported CFA pattern detected"));
 				gtk_widget_set_tooltip_text(GTK_WIDGET(labelreginfo), _("This sequence cannot be registered with the CFA pattern intact. You must debayer it prior to registration"));
 				ready = FALSE;
-			}		
+			}
 		} else if (method->type == REGTYPE_APPLY && sequence_is_loaded()) {
 			ready = check_framing();
 		} else {

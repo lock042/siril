@@ -1758,8 +1758,8 @@ int process_update_key(int nb) {
 	}
 	gchar *FITS_key, *value;
 
-	FITS_key = g_strdup(word[1]);
-	value = g_strdup(word[2]);
+	FITS_key = word[1];
+	value = word[2];
 
 	updateFITSKeyword(&gfit, FITS_key, value);
 
@@ -6408,9 +6408,10 @@ int process_jsonmetadata(int nb) {
 	gchar *output_filename = NULL;
 	gboolean use_gfit = FALSE, compute_stats = TRUE;
 	for (int i = 2; i < nb; i++) {
-		if (g_str_has_prefix(word[i], "-out=") && word[i][5] != '\0')
+		if (g_str_has_prefix(word[i], "-out=") && word[i][5] != '\0') {
+			if (output_filename) g_free(output_filename);
 			output_filename = g_strdup(word[i] + 5);
-		else if (!strcmp(word[i], "-stats_from_loaded")) {
+		} else if (!strcmp(word[i], "-stats_from_loaded")) {
 			use_gfit = TRUE;
 			if (!gfit.rx || !gfit.ry) {
 				siril_log_color_message(_("No image appears to be loaded, reloading from '%s'\n"), "salmon", input_filename);
@@ -6430,6 +6431,7 @@ int process_jsonmetadata(int nb) {
 	fitsfile *fptr;
 	if (siril_fits_open_diskfile_img(&fptr, input_filename, READONLY, &status)) {
 		report_fits_error(status);
+		g_free(output_filename);
 		return CMD_GENERIC_ERROR;
 	}
 
@@ -8685,6 +8687,8 @@ int process_set_compress(int nb) {
 		q = g_ascii_strtod(word[3], &end);
 		if (end == word[3] || (q == 0.0 && (method == RICE_COMP || method == HCOMPRESS_COMP))) {
 			siril_log_message(_("Quantization can only be equal to 0 for GZIP1 and GZIP2 algorithms.\n"));
+			g_free(comp);
+
 			return CMD_ARG_ERROR;
 		}
 		siril_log_message(_("Compression enabled with the %s algorithm and a quantization value of %.2lf\n"), comp, q);
@@ -9023,11 +9027,13 @@ static void rgb_extract_last_options(int next_arg, gchar **result_filename,
 
 	for (int i = next_arg; word[i]; i++) {
 		if (g_str_has_prefix(word[i], "-out=") && word[i][5] != '\0') {
-			filename = word[i] + 5;
-			if (g_str_has_suffix(filename, com.pref.ext))
-				filename = g_strdup(filename);
-			else
-				filename = g_strdup_printf("%s%s", filename, com.pref.ext);
+			gchar* val = word[i] + 5;
+			if (filename) g_free(filename);
+			if (g_str_has_suffix(val, com.pref.ext)) {
+				filename = g_strdup(val);
+			} else {
+				filename = g_strdup_printf("%s%s", val, com.pref.ext);
+			}
 		} else if (!g_strcmp0(word[i], "-nosum")) {
 			*do_sum = FALSE;
 		}

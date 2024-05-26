@@ -557,7 +557,9 @@ END:
 	free(b);
 	arg->vport = -1;
 	gboolean in_sequence = (arg->seq != NULL);
-	if (!in_sequence) {
+	if (in_sequence || !arg->display_graph) {
+		free_siril_plot_data(spl_data);
+	} else if (!in_sequence) {
 		if (arg->display_graph)
 			siril_add_idle(create_new_siril_plot_window, spl_data);
 		siril_add_idle(end_generic, NULL);

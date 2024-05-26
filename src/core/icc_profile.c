@@ -1464,6 +1464,7 @@ void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb) {
 	siril_plot_set_xlabel(spl_data, _("CIE x"));
 	siril_plot_set_savename(spl_data, "color_profile");
 	siril_plot_set_title(spl_data, title1);
+	g_free(title1);
 	siril_plot_set_ylabel(spl_data, _("CIE y"));
 	int n = 1;
 	siril_plot_add_xydata(spl_data, _("Color profile"), 4, colorspace_x, colorspace_y, NULL, NULL);
