@@ -119,8 +119,8 @@ int register_astrometric(struct registration_args *regargs) {
 	fits fit = { 0 };
 	double ra0 = 0., dec0 = 0.;
 	int n = regargs->seq->number;
-	double *RA = malloc(n * sizeof(double));
-	double *DEC = malloc(n * sizeof(double));
+	double *RA = calloc(n, sizeof(double)); // calloc to prevent possibility of uninit variable highlighted by coverity
+	double *DEC = calloc(n, sizeof(double)); // as above
 	double *dist = malloc(n * sizeof(double));
 	struct wcsprm *WCSDATA = calloc(n, sizeof(struct wcsprm));
 	astrometric_roi *rois = malloc(n * sizeof(astrometric_roi));
@@ -408,13 +408,15 @@ free_all:
 	free(DEC);
 	free(dist);
 	free(rois);
-	for (int i = 0; i < n; i++) {
-		if (!incl[i])
-			continue;
-		wcsfree(WCSDATA + i);
+	if (incl) {
+		for (int i = 0; i < n; i++) {
+			if (!incl[i])
+				continue;
+			wcsfree(WCSDATA + i);
+		}
+		free(incl);
 	}
 	free(WCSDATA);
-	free(incl);
 	if (!retval && !regargs->no_output) {
 		return astrometric_alignment(regargs, astargs, current_regdata);
 	}
@@ -425,6 +427,7 @@ free_all:
 	siril_log_color_message(_("Total: %d failed, %d registered.\n"), "green", failed, nb_aligned);
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
+	free_astrometric_args(astargs);
 	return retval;
 }
 
