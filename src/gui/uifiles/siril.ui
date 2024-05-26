@@ -6759,37 +6759,16 @@ This option is useful when sequence has previously been aligned using a method t
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkRadioButton" id="radio_interp">
-                                                            <property name="label" translatable="yes">Interpolation</property>
+                                                            <object class="GtkStackSwitcher">
                                                             <property name="visible">True</property>
-                                                            <property name="can-focus">True</property>
-                                                            <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Apply the registration using interpolation</property>
-                                                            <property name="active">True</property>
-                                                            <property name="draw-indicator">True</property>
-                                                            <signal name="toggled" handler="on_radio_interp_group_changed" swapped="no"/>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Choose whether to use an interpolation algorithm or Drizzle to apply registration</property>
+                                                            <property name="stack">interp_drizzle_stack</property>
                                                             </object>
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">5</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkRadioButton" id="radio_drizzle">
-                                                            <property name="label" translatable="yes">Drizzle</property>
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">True</property>
-                                                            <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Apply the registration using Drizzle</property>
-                                                            <property name="draw-indicator">True</property>
-                                                            <property name="group">radio_interp</property>
-                                                            <signal name="toggled" handler="on_radio_interp_group_changed" swapped="no"/>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">6</property>
+                                                            <property name="position">4</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -6811,7 +6790,7 @@ This option is useful when sequence has previously been aligned using a method t
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Applies an interpolation-based x2 upscaling. This is quicker than most of the proper drizzle kernels but will not provide results that are as sharp.</property>
+                                                            <property name="tooltip-text" translatable="yes">Applies an interpolation-based x2 upscaling. This is quicker than most of the proper drizzle kernels but will not provide results that are as sharp. Only applicable to immediately-applied global star registration.</property>
                                                             <property name="halign">start</property>
                                                             <property name="valign">start</property>
                                                             <property name="draw-indicator">True</property>
@@ -6839,7 +6818,7 @@ This option is useful when sequence has previously been aligned using a method t
                                                             <object class="GtkComboBoxText" id="ComboBoxRegInter">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Type of algorithm used for rotation</property>
+                                                            <property name="tooltip-text" translatable="yes">Set the interpolation algorithm</property>
                                                             <property name="halign">start</property>
                                                             <property name="valign">center</property>
                                                             <property name="active">3</property>
@@ -6866,7 +6845,7 @@ This option is useful when sequence has previously been aligned using a method t
                                                             <property name="receives-default">False</property>
                                                             <property name="tooltip-text" translatable="yes">Activates clamping of the Bicubic and Lancsoz4 interpolation algorithms
 
-The main issue of Lanczos and Bicubic interpolation algorithms is the generation of strong undershot artifacts (ringing). These artifacts are caused by the negative lobes of the interpolation functions falling on high contrast edges and isolated bright pixels (like in the stars). This usually only occurs with linear data.
+The main issue with Lanczos and Bicubic interpolation algorithms is the generation of strong undershot artifacts (ringing). These artifacts are caused by the negative lobes of the interpolation functions falling on high contrast edges and isolated bright pixels (like in the stars). This usually only occurs with linear data.
 
 In current Siril implementations, we have included a clamping mechanism that prevents negative interpolated values and ringing artifacts for most images.</property>
                                                             <property name="halign">start</property>
@@ -6883,7 +6862,7 @@ In current Siril implementations, we have included a clamping mechanism that pre
                                                             </object>
                                                             <packing>
                                                             <property name="name">page0</property>
-                                                            <property name="title" translatable="yes">page0</property>
+                                                            <property name="title" translatable="yes">Use interpolation</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -6980,7 +6959,7 @@ Note that the Gaussian and Lanczos models do not conserve flux and should not be
                                                             </object>
                                                             <packing>
                                                             <property name="name">page1</property>
-                                                            <property name="title" translatable="yes">page1</property>
+                                                            <property name="title" translatable="yes">Use drizzle</property>
                                                             <property name="position">1</property>
                                                             </packing>
                                                             </child>
@@ -6988,7 +6967,7 @@ Note that the Gaussian and Lanczos models do not conserve flux and should not be
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">7</property>
+                                                            <property name="position">8</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -7035,7 +7014,7 @@ Note that the Gaussian and Lanczos models do not conserve flux and should not be
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
                                                             <property name="padding">6</property>
-                                                            <property name="position">9</property>
+                                                            <property name="position">10</property>
                                                             </packing>
                                                             </child>
                                                             </object>

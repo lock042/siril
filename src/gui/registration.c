@@ -154,19 +154,6 @@ int populate_drizzle_data(struct driz_args_t *driz) {
 	return 0;
 }
 
-void on_radio_interp_group_changed(GtkToggleButton *button, gpointer user_data) {
-	GtkToggleButton *drizzle_button = GTK_TOGGLE_BUTTON(lookup_widget("radio_drizzle"));
-	GtkStack *stack = GTK_STACK(lookup_widget("interp_drizzle_stack"));
-	gboolean drizzle_state = gtk_toggle_button_get_active(drizzle_button);
-	if (drizzle_state) {
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("upscaleCheckButton")), FALSE);
-		gtk_stack_set_visible_child(stack, lookup_widget("grid_drizzle_controls"));
-	} else {
-		gtk_stack_set_visible_child(stack, lookup_widget("grid_interp_controls"));
-	}
-	gtk_widget_show_all(GTK_WIDGET(stack));
-}
-
 void on_reg_scaling_spin_value_changed(GtkSpinButton *button, gpointer user_data) {
 	double value = gtk_spin_button_get_value(button);
 	if (fabs(value - 2.0) > DBL_EPSILON) {
@@ -985,7 +972,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	const gchar *caller = gtk_buildable_get_name(GTK_BUILDABLE(button));
 	if (!g_strcmp0(caller, "proj_estimate"))
 		reg_args->no_output = TRUE;
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("radio_drizzle")))) {
+	if (gtk_stack_get_visible_child(GTK_STACK(lookup_widget("interp_drizzle_stack"))) == lookup_widget("grid_drizzle_controls")) {
 		reg_args->driz = calloc(1, sizeof(struct driz_args_t));
 		if (populate_drizzle_data(reg_args->driz)) {
 			free(reg_args);
