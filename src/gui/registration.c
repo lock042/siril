@@ -729,7 +729,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 
 	gboolean is_astrometric = method->method_ptr == &register_astrometric;
 	gboolean is_old_global = method->method_ptr == &register_star_alignment;
-	gtk_widget_set_visible(undistort_check, is_astrometric || isapplyreg);
+	gtk_widget_set_visible(undistort_check, is_astrometric);
 	gtk_widget_set_visible(scale_box, is_astrometric || isapplyreg);
 
 	if (((method->method_ptr == &register_comet) ||
