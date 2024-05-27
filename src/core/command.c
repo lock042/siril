@@ -1823,6 +1823,7 @@ int process_ccm(int nb) {
 			args->matrix[i][j] = g_ascii_strtod(word[word_index], &end);
 			if (end == word[word_index]) {
 				siril_log_message(_("Invalid matrix element (%d, %d) %s, aborting.\n"), i, j, word[word_index]);
+				free(prefix);
 				free(args);
 				return CMD_ARG_ERROR;
 			}
@@ -1832,6 +1833,7 @@ int process_ccm(int nb) {
 		args->power = g_ascii_strtod(word[10 + offset], &end);
 			if (end == word[10 + offset] || args->power < 0.f || args->power > 10.f) {
 				siril_log_message(_("Invalid power %s, must be between 0.0 and 10.0: aborting.\n"), word[10 + offset]);
+				free(prefix);
 				free(args);
 				return CMD_ARG_ERROR;
 			}
@@ -1852,6 +1854,8 @@ int process_ccm(int nb) {
 	} else {
 		if (!isrgb(&gfit)) {
 			siril_log_color_message(_("Color Conversion Matrices can only be applied to 3-channel images.\n"), "red");
+			g_free(args->seqEntry);
+			free(args);
 			return CMD_INVALID_IMAGE;
 		}
 
@@ -1866,6 +1870,7 @@ int process_ccm(int nb) {
 		gfit.history = g_slist_append(gfit.history, strdup(log));
 		snprintf(log, 89, "Power: %.4f", args->power);
 		gfit.history = g_slist_append(gfit.history, strdup(log));
+		g_free(args->seqEntry);
 		free(args);
 		return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 
@@ -6421,6 +6426,7 @@ int process_jsonmetadata(int nb) {
 			compute_stats = FALSE;
 		else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
+			g_free(output_filename);
 			return CMD_ARG_ERROR;
 		}
 	}
@@ -8456,6 +8462,7 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 			if (status) {
 				retvalue = CMD_GENERIC_ERROR;
 				free(args->flat);
+				g_free(expression);
 				break;
 			}
 			if (!readfits(expression, args->flat, NULL, !com.pref.force_16bit)) {
@@ -9824,6 +9831,7 @@ int process_conesearch(int nb) {
 				}
 			} else {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[arg_idx]);
+				g_free(obscode);
 				return CMD_ARG_ERROR;
 			}
 		} else if (g_str_has_prefix(word[arg_idx], "-obscode=")) {

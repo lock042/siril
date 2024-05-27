@@ -203,7 +203,7 @@ static void build_the_dialog() {
 
 // The process to perform a **Manual** Compstar List
 static void manual_photometry_data (sequence *seq) {
-	const gchar *entered_target_name = gtk_entry_get_text(GTK_ENTRY(manu_target_entry));
+	gchar *entered_target_name = g_strdup(gtk_entry_get_text(GTK_ENTRY(manu_target_entry)));
 	if (entered_target_name [0] == '\0') {
 		entered_target_name = g_strdup("V_SirilstarList_user");
 		gtk_entry_set_text(GTK_ENTRY(manu_target_entry), "V_SirilstarList_user");
@@ -221,6 +221,7 @@ static void manual_photometry_data (sequence *seq) {
 		g_free(target_name);
 		siril_log_color_message(_("One Variable star and one comparison star at least are required. Cannot create any file\n"), "salmon");
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("One Variable star and one comparison star at least are required. Cannot create any file"));
+		g_free(entered_target_name);
 		return;
 	}
 	point sel_item[MAX_SEQPSF];
@@ -228,6 +229,7 @@ static void manual_photometry_data (sequence *seq) {
 	for (int r = 0; r < MAX_SEQPSF && seq->photometry[r]; r++) {
 		if (get_ra_and_dec_from_star_pos(seq->photometry[r][seq->current], &ra, &dec)) {
 			siril_log_color_message(_("Problem with convertion\n"), "red"); // PB in the conversion pix->wcs
+			g_free(entered_target_name);
 			g_free(target_name);
 			return;
 		}
@@ -279,7 +281,7 @@ static void manual_photometry_data (sequence *seq) {
 	siril_catalog_free(comp_sta);
 	g_free(args->nina_file);
 	g_free(target_name);
-
+	g_free(entered_target_name);
 	free(args);
 }
 

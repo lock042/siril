@@ -608,6 +608,7 @@ static gchar *parse_remote_catalogue_filename(siril_catalogue *siril_cat, retrie
 		case CAT_IMCCE:
 			if (!siril_cat->IAUcode || !siril_cat->dateobs) {
 				siril_debug_print("Queries for solar system should pass date and location code\n");
+				g_free(ext);
 				return NULL;
 			}
 			dt = date_time_to_date_time(siril_cat->dateobs);

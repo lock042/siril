@@ -114,8 +114,8 @@ int register_astrometric(struct registration_args *regargs) {
 	fits fit = { 0 };
 	double ra0 = 0., dec0 = 0.;
 	int n = regargs->seq->number;
-	double *RA = malloc(n * sizeof(double));
-	double *DEC = malloc(n * sizeof(double));
+	double *RA = calloc(n, sizeof(double));
+	double *DEC = calloc(n, sizeof(double));
 	double *dist = malloc(n * sizeof(double));
 	struct wcsprm *WCSDATA = calloc(n, sizeof(struct wcsprm));
 	astrometric_roi *rois = malloc(n * sizeof(astrometric_roi));
@@ -386,7 +386,7 @@ int register_astrometric(struct registration_args *regargs) {
 		retval = 1;
 		goto free_all;
 	}
-	
+
 	gchar *downscale = (regargs->astrometric_scale != 1.f) ? g_strdup_printf(_(" (assuming a scaling factor of %.2f)"), regargs->astrometric_scale) : g_strdup("");
 	siril_log_color_message(_("Output image: %d x %d pixels%s\n"), "salmon", imagew, imageh, downscale);
 	g_free(downscale);
@@ -404,10 +404,12 @@ free_all:
 	free(DEC);
 	free(dist);
 	free(rois);
-	for (int i = 0; i < n; i++) {
-		if (!incl[i])
-			continue;
-		wcsfree(WCSDATA + i);
+	if (incl) {
+		for (int i = 0; i < n; i++) {
+			if (!incl[i])
+				continue;
+			wcsfree(WCSDATA + i);
+		}
 	}
 	free(WCSDATA);
 	free(incl);
@@ -416,6 +418,7 @@ free_all:
 	}
 	free(Ks);
 	free(Rs);
+	free_astrometric_args(astargs);
 	fix_selnum(regargs->seq, FALSE);
 	siril_log_message(_("Registration finished.\n"));
 	siril_log_color_message(_("Total: %d failed, %d registered.\n"), "green", failed, nb_aligned);
