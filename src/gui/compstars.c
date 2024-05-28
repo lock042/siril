@@ -205,6 +205,7 @@ static void build_the_dialog() {
 static void manual_photometry_data (sequence *seq) {
 	gchar *entered_target_name = g_strdup(gtk_entry_get_text(GTK_ENTRY(manu_target_entry)));
 	if (entered_target_name [0] == '\0') {
+		g_free(entered_target_name);
 		entered_target_name = g_strdup("V_SirilstarList_user");
 		gtk_entry_set_text(GTK_ENTRY(manu_target_entry), "V_SirilstarList_user");
 	}

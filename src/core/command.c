@@ -8439,6 +8439,7 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 			gchar *expression = path_parse(&reffit, word[i] + 6, PATHPARSE_MODE_READ, &status);
 			if (status > 0) { // negative status are warnings
 				retvalue = CMD_GENERIC_ERROR;
+				g_free(expression);
 				free(args->dark);
 				break;
 			}
@@ -9790,6 +9791,7 @@ int process_conesearch(int nb) {
 
 	if (!has_wcs(&gfit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
+		g_free(obscode);
 		return CMD_FOR_PLATE_SOLVED;
 	}
 	int arg_idx = 1;
@@ -9838,6 +9840,7 @@ int process_conesearch(int nb) {
 			char *arg = word[arg_idx] + 9;
 			if (strlen(arg) != 3) {
 				siril_log_color_message(_("The observatory should be coded as a 3-letter word\n"), "red");
+				g_free(obscode);
 				return CMD_ARG_ERROR;
 			}
 			if (obscode)
@@ -9853,6 +9856,7 @@ int process_conesearch(int nb) {
 			int trix = (int)g_ascii_strtoull(word[arg_idx] + 6, &end, 10);
 			if (trix < 0 || trix > 511) {
 				siril_log_color_message(_("Trixel number must be between 0 and 511\n"), "red");
+				g_free(obscode);
 				return CMD_ARG_ERROR;
 			}
 			trixel = trix;
@@ -9866,6 +9870,7 @@ int process_conesearch(int nb) {
 				display_log = BOOL_FALSE;
 			else {
 				siril_log_message(_("Wrong parameter values. Log must be set to on or off, aborting.\n"));
+				g_free(obscode);
 				return CMD_ARG_ERROR;
 			}
 		} else if (g_str_has_prefix(word[arg_idx], "-tag=")) {
@@ -9876,12 +9881,14 @@ int process_conesearch(int nb) {
 				display_tag = BOOL_FALSE;
 			else {
 				siril_log_message(_("Wrong parameter values. Tag must be set to on or off, aborting.\n"));
+				g_free(obscode);
 				return CMD_ARG_ERROR;
 			}
 		} else if (g_str_has_prefix(word[arg_idx], "-out=")) {
 			char *arg = word[arg_idx] + 5;
 			if (arg[0] == '\0') {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), word[arg_idx]);
+				g_free(obscode);
 				return CMD_ARG_ERROR;
 			}
 			outfilename = g_strdup(arg);
@@ -9890,6 +9897,8 @@ int process_conesearch(int nb) {
 			limit_mag = g_ascii_strtod(word[arg_idx], &end);
 			if (end == word[arg_idx]) {
 				siril_log_message(_("Invalid argument %s, aborting.\n"), word[arg_idx]);
+				g_free(obscode);
+
 				return CMD_ARG_ERROR;
 			}
 		}

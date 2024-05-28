@@ -1938,6 +1938,7 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 		// it was opened in READONLY mode, we close it
 		if (fitseq_close_file(arg->seq->fitseq_file)) {
 			siril_debug_print("error when closing fitseq\n");
+			g_free(filename);
 			return 1;
 		}
 		arg->seq->fitseq_file->fptr = NULL;

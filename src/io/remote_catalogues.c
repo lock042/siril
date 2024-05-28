@@ -875,6 +875,7 @@ static int submit_async_request(const char *url, const char *post_data, char **j
 			siril_debug_print("Job ID: %s\n", *job_id);
 		}
 	}
+	g_free(post_response);
 	return 0;
 }
 
@@ -1131,7 +1132,6 @@ datalink_download_error:
 		siril_log_color_message(_("Cannot create catalogue file %s (%s)\n"), "red", filepath, error->message);
 		g_clear_error(&error);
 		}
-	if (buffer) g_free(buffer);
 	if (output_stream)
 		g_object_unref(output_stream);
 	if (file) {
