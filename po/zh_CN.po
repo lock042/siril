@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-05-25 22:11+0200\n"
-"PO-Revision-Date: 2024-04-19 19:20+0000\n"
+"PO-Revision-Date: 2024-05-29 09:37+0000\n"
 "Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application/zh_Hans/>\n"
@@ -708,9 +708,8 @@ msgstr ""
 "场/分辨率。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1064
-#, fuzzy
 msgid "Use coordinates from headers"
-msgstr "使用图像文件头中的目标坐标： %f, %f\n"
+msgstr "使用文件头中的坐标"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1068
 msgid ""
@@ -719,9 +718,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/astrometry_dialog.ui:1081
-#, fuzzy
 msgid "Use pixel size from headers"
-msgstr "使用图像中的像素尺寸：%.2f\n"
+msgstr "使用文件头中的像素尺寸"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1085
 msgid ""
@@ -730,9 +728,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/astrometry_dialog.ui:1098
-#, fuzzy
 msgid "Use focal length from headers"
-msgstr "使用图像中的焦距：%.2f\n"
+msgstr "使用文件头中的焦距"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1102
 msgid ""
@@ -4004,52 +4001,46 @@ msgid "Sequences"
 msgstr "序列"
 
 #: src/gui/uifiles/mouse_actions.ui:9
-#, fuzzy
 msgid "Mouse Action Preferences"
-msgstr "重置偏好设置"
+msgstr "鼠标动作首选项"
 
 #: src/gui/uifiles/mouse_actions.ui:111
 msgid "Add an extra mouse action"
-msgstr ""
+msgstr "添加额外的鼠标动作"
 
 #: src/gui/uifiles/mouse_actions.ui:126
-#, fuzzy
 msgid "Remove the selected mouse action"
-msgstr "移除所选的图像"
+msgstr "删除选定的鼠标动作"
 
 #: src/gui/uifiles/mouse_actions.ui:139 src/gui/mouse_action_preferences.c:720
-#, fuzzy
 msgid "Mouse button / scroll check"
-msgstr "双击中键"
+msgstr "鼠标按钮/滚动检查"
 
 #: src/gui/uifiles/mouse_actions.ui:156
 msgid ""
 "Click this area to check mouse button numbering and scroll direction, to "
 "ensure you set the correct number for mouse actions"
-msgstr ""
+msgstr "单击此区域可检查鼠标按钮编号和滚动方向，以确保为鼠标动作设置正确的编号"
 
 #: src/gui/uifiles/mouse_actions.ui:176
 msgid "Mouse Click Actions"
-msgstr ""
+msgstr "鼠标单击动作"
 
 #: src/gui/uifiles/mouse_actions.ui:227
-#, fuzzy
 msgid "Add a scroll action"
-msgstr "将所选星点添加到列表中"
+msgstr "添加滚动动作"
 
 #: src/gui/uifiles/mouse_actions.ui:242
-#, fuzzy
 msgid "Remove a scroll action"
-msgstr "内存分配"
+msgstr "删除滚动动作"
 
 #: src/gui/uifiles/mouse_actions.ui:255
 msgid " "
-msgstr ""
+msgstr " "
 
 #: src/gui/uifiles/mouse_actions.ui:271
-#, fuzzy
 msgid "Scroll Actions"
-msgstr "选择"
+msgstr "滚动动作"
 
 #: src/gui/uifiles/pixelmath.ui:81 src/gui/uifiles/seqlist_dialog.ui:56
 msgid "Sequence List"
@@ -5113,6 +5104,8 @@ msgid ""
 "Preferred <a href=\"https://minorplanetcenter.net/iau/lists/ObsCodesF."
 "html\">IAU Observatory Code</a>"
 msgstr ""
+"首选的<a href=\"https://minorplanetcenter.net/iau/lists/ObsCodesF.html\">IAU "
+"天文台代码</a>"
 
 #: src/gui/uifiles/settings_window.ui:1204
 msgid ""
@@ -5148,6 +5141,8 @@ msgid ""
 "accuracy in solar system cone searches. A full list can be found at https://"
 "minorplanetcenter.net/iau/lists/ObsCodesF.html"
 msgstr ""
+"输入默认使用的最近的 IAU 天文台代码，以提高太阳系锥体搜索的准确性。"
+"完整列表可在 https://minorplanetcenter.net/iau/lists/ObsCodesF.html 找到"
 
 #: src/gui/uifiles/settings_window.ui:1268
 msgid "Annotations"
@@ -5596,25 +5591,23 @@ msgstr "测量光通量用的孔径圆形半径。"
 
 #: src/gui/uifiles/settings_window.ui:2701
 msgid "Automatic with a Radius/half-FWHM ratio of:"
-msgstr ""
+msgstr "自动，半径/半FWHM 比率为："
 
 #: src/gui/uifiles/settings_window.ui:2705
-#, fuzzy
 msgid ""
 "Check this option to have Siril automatically calculate the aperture radius "
 "with the specified radius/half-FWHM ratio. When unchecked, you can set a "
 "fixed radius value in the box below."
-msgstr ""
-"点选此项使Siril自动计算孔径圆形半径。不点选时，你可以在下面的窗口中输入半径"
-"值。"
+msgstr "勾选此选项可让 Siril 自动计算具有指定半径/半FWHM "
+"比率的孔径半径。取消勾选时，您可以在下面的框中设置固定半径值。"
 
 #: src/gui/uifiles/settings_window.ui:2720
 msgid "Radius/half-FWHM ratio"
-msgstr ""
+msgstr "半径/半FWHM 比率"
 
 #: src/gui/uifiles/settings_window.ui:2723
 msgid "3.00"
-msgstr ""
+msgstr "3.00"
 
 #: src/gui/uifiles/settings_window.ui:2750
 msgid "Flux Aperture"
@@ -5901,14 +5894,12 @@ msgid "Zoom toggles between fit and 100%"
 msgstr "缩放在适合和 100% 之间切换"
 
 #: src/gui/uifiles/settings_window.ui:3735
-#, fuzzy
 msgid "Configure mouse button actions"
-msgstr "配置"
+msgstr "配置鼠标按钮动作"
 
 #: src/gui/uifiles/settings_window.ui:3739
-#, fuzzy
 msgid "Open the mouse action configuration dialog"
-msgstr "打开坏点修正对话框"
+msgstr "打开鼠标动作配置对话框"
 
 #: src/gui/uifiles/settings_window.ui:3758
 msgid "Mouse Behaviour"
@@ -7080,14 +7071,12 @@ msgid "Median Filter..."
 msgstr "中位数滤波..."
 
 #: src/gui/uifiles/siril.ui:1441
-#, fuzzy
 msgid "Open the edge preserving filters dialog"
-msgstr "打开中位数滤波对话框"
+msgstr "打开边缘保留滤镜对话框"
 
 #: src/gui/uifiles/siril.ui:1443
-#, fuzzy
 msgid "Edge Preserving Filters..."
-msgstr "，保持亮度"
+msgstr "边缘保留滤镜..."
 
 #: src/gui/uifiles/siril.ui:1456
 msgid "Open the denoise dialog"
@@ -7887,7 +7876,6 @@ msgstr ""
 "出现一些可见的方块。"
 
 #: src/gui/uifiles/siril.ui:4708
-#, fuzzy
 msgid ""
 "Dark subtraction can be optimized. Siril offers two ways of doing this.\n"
 "- The first method automatically evaluates the coefficients to be applied so "
@@ -7904,8 +7892,8 @@ msgid ""
 "master-bias has not been subtracted beforehand."
 msgstr ""
 "可选择优化扣暗场的操作，Siril 提供了两种方法来做到这一点。\n"
-"- 第一种方法自动评估要应用的系数，以使所得图像（亮场减去暗场）的噪声最小"
-"化。\n"
+"- 第一种方法自动评估要应用的系数，以使所得图像（亮场减去暗场）的噪声最小化。"
+"\n"
 "- 第二种方法会考虑曝光时间，如果拍摄软件已输入。\n"
 "\n"
 "当未在最佳条件下拍摄暗场图像时，暗场优化非常有用。它会补偿暗场图像和亮场图像"
@@ -8570,19 +8558,19 @@ msgid "Image selection:"
 msgstr "图像选择："
 
 #: src/gui/uifiles/siril.ui:6652 src/gui/uifiles/siril.ui:8953
-#, fuzzy
 msgid "Interpolation upscaling x2"
-msgstr "插值保持"
+msgstr "插值放大 x2"
 
 #: src/gui/uifiles/siril.ui:6656
 msgid ""
 "Applies an interpolation-based x2 upscaling. This is quicker than most of "
 "the proper drizzle kernels but will not provide results that are as sharp."
-msgstr ""
+msgstr "应用基于插值的 x2 "
+"放大。这比大多数常规的drizzle内核要快，但不会提供那么清晰的结果。"
 
 #: src/gui/uifiles/siril.ui:6669
 msgid "Drizzle"
-msgstr ""
+msgstr "Drizzle"
 
 #: src/gui/uifiles/siril.ui:6673
 msgid ""
@@ -8600,6 +8588,15 @@ msgid ""
 "disk space needed to create and process drizzled images is multiplied by the "
 "square of the Drizzle factor."
 msgstr ""
+"该序列将使用最初开发用于欠采样哈勃太空望远镜图像的 Drizzle "
+"算法进行对齐。如果图像采样不足，这对于提高图像的分辨率很有用。它还可以用作 "
+"OSC 图像的替代去马赛克算法（CFA 模式必须仍然存在，因此您不能在 Drizzle 之前对"
+"它们进行去拜耳处理），这可以提高结果的分辨率并产生具有更容易处理的特征的噪声"
+"降噪算法。Drizzle 具有 x2 比例的单色图像或具有 x1 比例的 CFA "
+"图像通常需要序列中至少约 10 帧。\n"
+"\n"
+"警告：该技术的对应部分是创建和处理 Drizzle 图像所需的内存和磁盘空间量乘以 "
+"Drizzle 系数的平方。"
 
 #: src/gui/uifiles/siril.ui:6712
 msgid ""
@@ -8607,46 +8604,46 @@ msgid ""
 "sequence must contain registration data; for WCS, all images in the sequence "
 "must be plate solved (e.g. using the <b>seqplatesolve</b> command)"
 msgstr ""
+"选择单应性或 WCS 作为drizzle 映射方法。对于单应性，序列必须包含对齐数据；"
+"对于 WCS，必须对序列中的所有图像进行解析（例如使用 <b>seqplatesolve</b> "
+"命令）"
 
 #: src/gui/uifiles/siril.ui:6716
-#, fuzzy
 msgid "WCS"
-msgstr "CDS"
+msgstr "WCS"
 
 #: src/gui/uifiles/siril.ui:6729
-#, fuzzy
 msgid "Drizzle mapping method"
-msgstr "构图方式"
+msgstr "Drizzle 映射方法"
 
 #: src/gui/uifiles/siril.ui:6741
 msgid "Drizzle Scale"
-msgstr ""
+msgstr "Drizzle 比例"
 
 #: src/gui/uifiles/siril.ui:6752
 msgid ""
 "Sets the drizzle scale. A scale of 2 means the output pixel grid will have "
 "twice the resolution of the input pixel grid."
-msgstr ""
+msgstr "设置 drizzle 比例。比例为 2 "
+"意味着输出像素网格的分辨率是输入像素网格的分辨率的两倍。"
 
 #: src/gui/uifiles/siril.ui:6753 src/gui/uifiles/siril.ui:6780
-#, fuzzy
 msgid "1.00"
-msgstr "0.00"
+msgstr "1.00"
 
 #: src/gui/uifiles/siril.ui:6768
-#, fuzzy
 msgid "Pixel Fraction"
-msgstr "像素剔除："
+msgstr "像素分数"
 
 #: src/gui/uifiles/siril.ui:6779
 msgid ""
 "Sets the droplet size as a fraction of the input pixel size. Typically a "
 "good value for this is the reciprocal of the drizzle scale."
-msgstr ""
+msgstr "将液滴大小设置为输入像素大小的分数。通常，一个很好的值是 drizzle 比例的倒数。"
 
 #: src/gui/uifiles/siril.ui:6795
 msgid "Droplet Model"
-msgstr ""
+msgstr "液滴模型"
 
 #: src/gui/uifiles/siril.ui:6806
 msgid ""
@@ -8654,38 +8651,37 @@ msgid ""
 "Note that the Gaussian and Lanczos models do not conserve flux and should "
 "not be used f you wish to use the output for accurate photometry."
 msgstr ""
+"选择液滴模型。详细信息请参阅文档\n"
+"请注意，高斯模型和 Lanczos "
+"模型不守恒通量，如果您希望使用输出进行精确测光，则不应使用它们。"
 
 #: src/gui/uifiles/siril.ui:6810
-#, fuzzy
 msgid "Square"
 msgstr "平方"
 
 #: src/gui/uifiles/siril.ui:6812
-#, fuzzy
 msgid "Point"
-msgstr "黑点"
+msgstr "点"
 
 #: src/gui/uifiles/siril.ui:6813
 msgid "Turbo"
-msgstr ""
+msgstr "Turbo"
 
 #: src/gui/uifiles/siril.ui:6814
-#, fuzzy
 msgid "Lanczos2"
-msgstr "Lanczos4"
+msgstr "Lanczos2"
 
 #: src/gui/uifiles/siril.ui:6815
-#, fuzzy
 msgid "Lanczos3"
-msgstr "Lanczos4"
+msgstr "Lanczos3"
 
 #: src/gui/uifiles/siril.ui:6832
 msgid "Drizzle Mapping"
-msgstr ""
+msgstr "Drizzle 映射"
 
 #: src/gui/uifiles/siril.ui:6855
 msgid "Include master flat in initial pixel weighting"
-msgstr ""
+msgstr "在初始像素权重中包含主平场"
 
 #: src/gui/uifiles/siril.ui:6859
 msgid ""
@@ -8696,11 +8692,15 @@ msgid ""
 "\n"
 "The master flat must be set in the Calibration tab."
 msgstr ""
+"检查此项以将主平场包含在初始像素权重中。这将导致来自输入帧的渐晕较少区域的像"
+"素的权重高于来自渐晕较多区域的像素（它们落在相同的输出像素上）。这充其量只是"
+"一个小小的收获。\n"
+"\n"
+"必须在“校准”选项卡中设置主平场。"
 
 #: src/gui/uifiles/siril.ui:6872
-#, fuzzy
 msgid "Pixel weighting"
-msgstr "像素剔除："
+msgstr "像素权重"
 
 #: src/gui/uifiles/siril.ui:6901
 msgid "Save transformation in seq file only"
@@ -8738,25 +8738,24 @@ msgstr ""
 "行星/彗星对齐算法被使用过的情况下请不要选择。"
 
 #: src/gui/uifiles/siril.ui:6937
-#, fuzzy
 msgid "Undistort images"
-msgstr "不在图像中"
+msgstr "消除图像扭曲"
 
 #: src/gui/uifiles/siril.ui:6941
 msgid ""
 "When this box is checked, the transformed images are undistorted using the "
 "SIP data in the reference frame."
-msgstr ""
+msgstr "选中此框后，将使用参考帧中的 SIP 数据使变换后的图像不失真。"
 
 #: src/gui/uifiles/siril.ui:6960
 msgid "Scaling:"
-msgstr ""
+msgstr "比例："
 
 #: src/gui/uifiles/siril.ui:6973
 msgid ""
 "Scaling of the output images. Use Estimate button to determine the final "
 "image size."
-msgstr ""
+msgstr "输出图像的缩放比例。使用“估算”按钮确定最终图像尺寸。"
 
 #: src/gui/uifiles/siril.ui:7015
 msgid "Prefix:"
@@ -10893,9 +10892,9 @@ msgid "Up position wrt. N is undetermined (too close to a Pole)\n"
 msgstr "上端位置wrt. N无法确定（离天极太近）\n"
 
 #: src/algos/astrometry_solver.c:564
-#, fuzzy, c-format
+#, c-format
 msgid "Up is %+.2lf deg CounterclockWise wrt. N%s\n"
-msgstr "向上 %+.2lf 度，顺时针方向 N%s\n"
+msgstr "向上 %+.2lf 度，逆时针方向 N%s\n"
 
 #: src/algos/astrometry_solver.c:564
 msgid " (flipped)"
@@ -11667,9 +11666,8 @@ msgid "Crop Sequence"
 msgstr "裁切整个序列"
 
 #: src/algos/geometry.c:788
-#, fuzzy
 msgid "Scale Sequence"
-msgstr "清理序列"
+msgstr "缩放整个序列"
 
 #: src/algos/noise.c:57
 msgid "Noise standard deviation: calculating...\n"
@@ -12719,9 +12717,9 @@ msgid "This command is deprecated: %s should be used instead.\n"
 msgstr "此命令已弃用：应改用 %s。\n"
 
 #: src/core/command.c:136
-#, fuzzy, c-format
+#, c-format
 msgid "The %s option is deprecated: %s should be used instead.\n"
-msgstr "此命令已弃用：应改用 %s。\n"
+msgstr "%s 选项已弃用：应使用 %s。\n"
 
 #: src/core/command.c:156
 msgid ""
@@ -12966,19 +12964,16 @@ msgid "Warning: d > approx. 25 may result in lengthy execution times.\n"
 msgstr ""
 
 #: src/core/command.c:1129
-#, fuzzy
 msgid "-si= value must be > 0.0 and <= 65535\n"
-msgstr "错误：B必须>=0.0且<=15.0。\n"
+msgstr "-si= value must be > 0.0 and <= 65535\n"
 
 #: src/core/command.c:1134
-#, fuzzy
 msgid "-d= value must be > 0.0 and <= 20.0\n"
-msgstr "错误：D必须>0.0且<=10.0。\n"
+msgstr "-d= value must be > 0.0 and <= 20.0\n"
 
 #: src/core/command.c:1139
-#, fuzzy
 msgid "-ss= value must be > 0.0 and <= 32.0\n"
-msgstr "错误：D必须>0.0且<=10.0。\n"
+msgstr "-ss= value must be > 0.0 and <= 32.0\n"
 
 #: src/core/command.c:1144
 msgid ""
@@ -12987,19 +12982,16 @@ msgid ""
 msgstr ""
 
 #: src/core/command.c:1147
-#, fuzzy
 msgid "-mod= value must be > 0.0 and <= 1.0\n"
-msgstr "错误：D必须>0.0且<=10.0。\n"
+msgstr "-mod= value must be > 0.0 and <= 1.0\n"
 
 #: src/core/command.c:1156
-#, fuzzy
 msgid "Error: guide image could not be loaded\n"
-msgstr "错误：无法载入图像"
+msgstr "错误：无法载入导星图像\n"
 
 #: src/core/command.c:1164
-#, fuzzy
 msgid "Error: guide image dimensions do not match\n"
-msgstr "错误：图像不匹配"
+msgstr "错误：导星图像尺寸不匹配\n"
 
 #: src/core/command.c:1171
 msgid ""
@@ -13538,18 +13530,16 @@ msgid "minimum value must be smaller than the maximum\n"
 msgstr "最小值必须小于最大值\n"
 
 #: src/core/command.c:3501
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Local background annulus radius: %.1f to %.1f, %s: %.1f (%s), camera "
 "conversion gain: %f e-/ADU, using pixels with values ]%f, %f[\n"
-msgstr ""
-"局部背景环半径：%.1f 至 %.1f，孔径：%.1f （%s），相机转换增益：%f e-/ADU，使"
-"用像素值为 ]%f、%f[\n"
+msgstr "局部背景环半径：%.1f 至 %.1f，%s：%.1f (%s)，相机转换增益：%f e-/ADU，"
+"使用像素值为 ]%f、%f[\n"
 
 #: src/core/command.c:3504
-#, fuzzy
 msgid "aperture"
-msgstr "光通量孔径"
+msgstr "孔径"
 
 #: src/core/command.c:3504
 msgid "dynamic aperture"
@@ -13793,27 +13783,23 @@ msgstr ""
 "或当前图像\n"
 
 #: src/core/command.c:4442
-#, fuzzy
 msgid "Error: height cannot be less than 10, aborting.\n"
-msgstr "宽度和高度不能为空。缩放不成功。\n"
+msgstr "错误：高度不能小于10，异常中止。\n"
 
 #: src/core/command.c:4454
-#, fuzzy
 msgid "Error: width cannot be less than 10, aborting.\n"
-msgstr "打开SER文件 %s 失败，异常终止。\n"
+msgstr "错误：宽度不能小于 10，异常中止。\n"
 
 #: src/core/command.c:4466 src/core/command.c:4518
-#, fuzzy
 msgid "Error: scale cannot be less than 0.01, aborting.\n"
-msgstr "打开SER文件 %s 失败，异常终止。\n"
+msgstr "错误：比例不能小于 0.01，异常中止。\n"
 
 #: src/core/command.c:4473
-#, fuzzy, c-format
+#, c-format
 msgid "Error parsing argument to -scale= (%s), aborting.\n"
-msgstr "解析参数错误，异常终止。\n"
+msgstr "将参数解析为 -scale= (%s) 时出错，异常中止。\n"
 
 #: src/core/command.c:4526
-#, fuzzy
 msgid "Scale is 1.0, nothing to do.\n"
 msgstr "缩放比为 1.0。什么都不做。\n"
 
@@ -14238,28 +14224,24 @@ msgstr "该序列中没有对齐数据，异常终止\n"
 
 #. handling mono case
 #: src/core/command.c:7377
-#, fuzzy
 msgid "This sequence is not mono / CFA, cannot drizzle.\n"
-msgstr "序列为单色，忽略图层数。\n"
+msgstr "此序列不是单色/CFA，无法drizzle。\n"
 
 #: src/core/command.c:7422
-#, fuzzy
 msgid "Error: flat image already set. Aborting.\n"
-msgstr "解析参数错误，异常终止。\n"
+msgstr "错误：平场图像已设置，异常终止。\n"
 
 #: src/core/command.c:7426
-#, fuzzy
 msgid "Error: flat image cannot work with variable sized sequence.\n"
-msgstr "错误：此选项不能用于序列。\n"
+msgstr "错误：平场图像无法与可变大小的序列一起工作。\n"
 
 #: src/core/command.c:7435 src/core/preprocess.c:876 src/gui/registration.c:119
 msgid "NOT USING FLAT: could not parse the expression"
 msgstr "未使用平场：无法解析表达式"
 
 #: src/core/command.c:7440 src/gui/registration.c:124
-#, fuzzy
 msgid "Error: no master flat specified in the preprocessing tab.\n"
-msgstr "错误：未指定文件名，异常终止。\n"
+msgstr "错误：预处理选项卡中未指定主平场。\n"
 
 #: src/core/command.c:7446 src/core/preprocess.c:883 src/gui/registration.c:132
 msgid "NOT USING FLAT: number of channels is different"
@@ -14305,14 +14287,12 @@ msgid "Could not load the reference image of the sequence, aborting.\n"
 msgstr "无法载入序列的参考帧，异常中止。\n"
 
 #: src/core/command.c:7718
-#, fuzzy
 msgid "Scaling factor should be between 0.1 and 2, aborting.\n"
-msgstr "无效幂 %s，必须介于 0.0 和 10.0 之间：异常终止。\n"
+msgstr "缩放因子应在 0.1 至 2 之间，异常终止。\n"
 
 #: src/core/command.c:7741
-#, fuzzy
 msgid "Registration: Applying existing astrometric data"
-msgstr "对齐：应用现有数据"
+msgstr "对齐：应用现有的天体测量数据"
 
 #: src/core/command.c:7763
 msgid ""
@@ -14397,10 +14377,9 @@ msgstr ""
 "齐\n"
 
 #: src/core/command.c:7929
-#, fuzzy
 msgid ""
 "No registration data in the sequence. Maximize framing will be ignored\n"
-msgstr "该序列中没有对齐数据，异常终止\n"
+msgstr "序列中没有对齐数据。最大化取景将被忽略\n"
 
 #: src/core/command.c:7933
 msgid ""
@@ -14698,11 +14677,12 @@ msgid "A newer version of Siril is required, please update your version.\n"
 msgstr "需要较新版本的 Siril，请更新您的版本。\n"
 
 #: src/core/command.c:8939
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "The script you are executing has been marked as obsolete for this version of "
 "Siril (%s), aborting. Check for an update to the script.\n"
-msgstr "正在执行的脚本需要更新版本的Siril才能运行（%s），异常中止。\n"
+msgstr "对于此版本的 Siril "
+"（%s），您正在执行的脚本已标记为过时，异常中止。检查脚本的更新。\n"
 
 #: src/core/command.c:8941
 #, c-format
@@ -14956,7 +14936,7 @@ msgstr "参数错误。Tag必须设置为on或off，异常终止。\n"
 #: src/core/command.c:9879
 #, c-format
 msgid "Using default observatory code %s\n"
-msgstr ""
+msgstr "使用默认天文台代码 %s\n"
 
 #: src/core/command.c:9883
 msgid ""
@@ -15706,6 +15686,30 @@ msgid ""
 "than 1.0 a proportion of the original image will be mixed with the result, "
 "and for mod = 0.0 no filtering will be applied"
 msgstr ""
+"Applies an edge preserving filter. By default a bilateral filter is applied; "
+"a guided filter can be specified using the argument <b>-guided</b>. The "
+"filter diameter defaults to 3 and can be set using <b>-d=</b>. Be careful "
+"with values of d greater than 20 as the algorithm can be computationally "
+"expensive.\n"
+"\n"
+"The intensity filtering sigma value can be set using <b>-si=</b> and the "
+"spatial sigma value can be set using <b>-ss=</b>. Sigma values represent the "
+"difference in pixel values over which the filter acts strongly: for 32-bit "
+"images the value should be between 0 and 1.0, whereas for 16-bit images it "
+"should be between 0 and 65535. The defaults if not specified are for both to "
+"be set to 11. If <b>-d=0</b> is set then the filter diameter will be set "
+"automatically based on the value of <b>-ss</b>. <i>Note that when applying a "
+"guided filter, only <b>-sc</b> applies.</i>\n"
+"\n"
+"When specifying a guided filter, a guide image may be set using "
+"<b>-guideimage=</b>. The default if no guide image is specified is to "
+"perform a self-guided filter. <i>Note: the guide image must have the same "
+"dimensions as the image to be filtered!</i>\n"
+"\n"
+"The strength of the filter can be modulated using the <b>-mod=</b> argument. "
+"If mod = 1.0 the full effect of the filter will be applied; for mod less "
+"than 1.0 a proportion of the original image will be mixed with the result, "
+"and for mod = 0.0 no filtering will be applied"
 
 #: src/core/command_def.h:41
 msgid "Quits the application"
@@ -15731,7 +15735,6 @@ msgstr ""
 "件"
 
 #: src/core/command_def.h:44
-#, fuzzy
 msgid ""
 "Extracts H-Alpha signal from the loaded CFA image. It reads the Bayer matrix "
 "information from the image or the preferences and exports only the red "
@@ -15740,8 +15743,10 @@ msgid ""
 "resolution, for example to match other images produced by the same family of "
 "sensors. A new file is created, its name is prefixed with \"Ha_\""
 msgstr ""
-"从载入的CFA图像中提取H-Alpha信号。从图像文件头或偏好设置中读取拜耳滤镜排列模"
-"式，并将红色拜耳滤镜的数据导出为一半大小的、名称前缀为“Ha_”的新FITS文件"
+"从加载的 CFA 图像中提取 H-Alpha 信号。它从图像或首选项中读取拜耳矩阵信息，"
+"并仅将红色滤镜数据导出为新的一半大小的 FITS "
+"文档。如果参数<b>-upscale</b>提供后，输出将放大 x2 以匹配完整的传感器分辨率，"
+"例如匹配同一系列传感器生成的其他图像。创建一个新文档件，其名称前缀为“Ha_”"
 
 #: src/core/command_def.h:45
 msgid ""
@@ -16178,7 +16183,6 @@ msgstr ""
 "16位模式或使用THRESHLO命令"
 
 #: src/core/command_def.h:83
-#, fuzzy
 msgid ""
 "Analyses several stars with aperture photometry in a sequence of images and "
 "produces a light curve for one, calibrated by the others. The first "
@@ -16206,8 +16210,10 @@ msgstr ""
 "还可以使用<b>-ninastars=</b>选项，以NINA exolpanet插件星表的格式输出目标恒星"
 "和参考恒星的列表。在使用之前，Siril将验证所有参考恒星是否可用。在当前目录中创"
 "建一个数据文件light_curve.dat，Siril将结果绘制为PNG图像（如果可用）\n"
-"孔径测光的圆形半径可以在设置中配置，也可以用<b>-autoring</b>设置为参考图像"
-"FWHM的系数。\n"
+"孔径测光的圆形半径可以在设置中配置，也可以用<b>-autoring</b>设置为参考图像FWH"
+"M的系数。\n"
+"\n"
+"另请参见 <b>setphoto</b>命令以同样的方式设置光圈半径大小。\n"
 "\n"
 "单星操作参见SEQPSF"
 
@@ -16820,7 +16826,6 @@ msgstr ""
 "为“RGGB”、“BGGR”、“GRBG”或“GBRG”"
 
 #: src/core/command_def.h:116
-#, fuzzy
 msgid ""
 "Finds and optionally performs geometric transforms on images of the sequence "
 "given in argument so that they may be superimposed on the reference image. "
@@ -16865,32 +16870,32 @@ msgid ""
 "otherwise specified with <b>-prefix=</b> option"
 msgstr ""
 "查找参数中给定序列里的图像，并对其执行可选的几何变换，使其和参考图像重合。该"
-"算法使用星点来对齐，仅适用于深空图像。可以使用<b>SETFINDSTAR</b>或<i>动态"
-"PSF</i>对话框更改星点侦测选项。星点侦测是在彩色图像的绿色图层上完成的，除非用"
-"<b>-layer=</b>选项指定，取值范围从0到2（红色到蓝色）。\n"
+"算法使用星点来对齐，仅适用于深空图像。可以使用<b>SETFINDSTAR</b>或<i>动态PSF<"
+"/i>对话框更改星点侦测选项。星点侦测是在彩色图像的绿色图层上完成的，除非用<b>-"
+"layer=</b>选项指定，取值范围从0到2（红色到蓝色）。\n"
 "\n"
-"<b>-2pass</b>和<b>-noout</b>选项将只计算对齐，而不生成对齐后的图像。"
-"<b>-2pass</b>为算法会预先计算一次对齐，以便根据图像质量和取景范围找到好的参考"
-"图像，用于第二次真正的对齐。要在该过程之后生成对齐后的图像，请使用"
-"SEQAPPLYREG。<b>-nostarlist</b>禁用将星点列表保存到磁盘。\n"
+"<b>-2pass</b>和<b>-noout</b>选项将只计算对齐，而不生成对齐后的图像。<b>-2pass"
+"</b>为算法会预先计算一次对齐，以便根据图像质量和取景范围找到好的参考图像，用"
+"于第二次真正的对齐。要在该过程之后生成对齐后的图像，请使用SEQAPPLYREG。<b>-no"
+"starlist</b>禁用将星点列表保存到磁盘。\n"
 "\n"
 "选项<b>-transf=</b>分别指定使用<b>平移</b>、<b>同构</b>，<b>仿射</b>或<b>单应"
 "性</b>（默认）对齐模式。\n"
 "选项<b>-drizzle</b>将对齐生成的图像放大2倍，以便超分辨率叠加。\n"
 "选项<b>-minpairs=</b>将指定每帧与参考帧的最小配对星点数，小于该数的帧将被跳过"
 "并从序列中排除。\n"
-"选项<b>-maxstars=</b>将指定在每帧中要查找的最大星点数（必须在100到2000之"
-"间）。更多的星点可以计算出更准确的对齐，但运行需要更久。\n"
+"选项<b>-maxstars=</b>将指定在每帧中要查找的最大星点数（必须在100到2000之间）"
+"。更多的星点可以计算出更准确的对齐，但运行需要更久。\n"
 "\n"
-"像素插值方法可以用<b>interp=</b>参数指定，取值可以是：<b>no</b>[ne]，<b>ne</"
-"b>[arest]，<b>cu</b>[bic]，<b>la</b>[nczos4]，<b>li</b>[near]，<b>ar</"
-"b>[ea]。如果传递了<b>none</b>，则强制对齐模式为平移，并在不插值的情况下逐像素"
-"平移每个图像。\n"
-"双三次插值和lanczos4插值的保持机制是默认启用的，以避免伪影，但可以使用<b>-"
-"noclamp</b>参数禁用。\n"
+"像素插值方法可以用<b>interp=</b>参数指定，取值可以是：<b>no</b>[ne]，<b>ne</b"
+">[arest]，<b>cu</b>[bic]，<b>la</b>[nczos4]，<b>li</b>[near]，<b>ar</b>[ea]。"
+"如果传递了<b>none</b>，则强制对齐模式为平移，并在不插值的情况下逐像素平移每个"
+"图像。\n"
+"双三次插值和lanczos4插值的保持机制是默认启用的，以避免伪影，但可以使用<b>-noc"
+"lamp</b>参数禁用。\n"
 "\n"
-"如果传递选项<b>-selected</b>，将不会处理序列中已排除的图像，否则，序列中的全"
-"部图像都将被对齐\n"
+"如果传递选项<b>-selected</b>，将不会处理序列中已排除的图像，否则，"
+"序列中的全部图像都将被对齐\n"
 "\n"
 "输出序列名的前缀为“r_”，除非使用<b>-prefix=</b>选项指定"
 
@@ -17235,7 +17240,6 @@ msgstr ""
 "参见UNSELECT"
 
 #: src/core/command_def.h:139
-#, fuzzy
 msgid ""
 "Applies geometric transforms on images of the sequence given in argument so "
 "that they may be superimposed on the reference image, using astrometric data "
@@ -17270,32 +17274,24 @@ msgstr ""
 "\n"
 "输出序列名的前缀为<b>\"r_\"</b>，除非使用<b>-prefix=</b>选项指定。\n"
 "\n"
-"选项<b>-drizzle</b>对齐生成的图像放大2倍。\n"
-"\n"
-"像素插值方法可以用<b>interp=</b>参数指定，取值可以是：<b>no</b>[ne]，<b>ne</"
-"b>[arest]，<b>cu</b>[bic]，<b>la</b>[nczos4]，<b>li</b>[near]，<b>ar</"
-"b>[ea]。如果传递了<b>none</b>，则强制对齐模式为平移，并在不插值的情况下逐像素"
-"平移每个图像。\n"
-"双三次插值和lanczos4插值的保持机制是默认启用的，以避免伪影，但可以使用<b>-"
-"noclamp</b>参数禁用。\n"
-"\n"
-"对于RGB图像，默认使用存在对齐数据的第一层来应用变换，除非用<b>-layer=</b>选项"
-"指定（R、G和B分别为0、1或2）。\n"
+"像素插值方法可以用<b>-interp=</b>参数指定，参数后跟列表中的方法之一 "
+"<b>ne</b>[arest], <b>cu</b>[bic], <b>la</b>[nczos4], <b>li</b>[near], "
+"<b>ar</b>[ea]}.\n"
+"双三次插值和lanczos4插值的保持机制是默认启用的，以避免伪影，但可以使用<b>-noc"
+"lamp</b>参数禁用。\n"
 "\n"
 "输出序列的取景范围可以使用<b>-framing=</b>关键字指定，取值可以是{ current | "
 "min | max | cog }：\n"
 "<b>-framing=max</b>（并集）根据需要在每个图像周围添加黑色边框，在对齐时不会裁"
-"切图像的任何部分。\n"
+"切图像的任何部分。然后可以使用选项<b>-maximize</b>对所得序列进行叠加。 STACK "
+"命令将创建包含序列中所有图像的完整图像。\n"
 "<b>-framing=min</b>（交集）将每个图像裁切到序列里所有图像共有的区域。\n"
 "<b>-framing=cog</b>将全部图像的重心（cog）作为最佳构图位置。\n"
 "\n"
-"筛选图像：\n"
-"可以使用<b>-filter-*</b>选项，根据一些条件筛选要对齐的图像，比如只对齐已选中"
-"的图像或者只对齐FWHM最佳的图像。\n"
-"有关此命令的完整说明文档，参见command reference"
+"如果天体测量解中存在 SIP 系数，则输出图像将不失真，除非选项 <b>-noundistort</"
+"b> 已传递"
 
 #: src/core/command_def.h:140
-#, fuzzy
 msgid ""
 "Applies geometric transforms on images of the sequence given in argument so "
 "that they may be superimposed on the reference image, using registration "
@@ -17352,14 +17348,22 @@ msgstr ""
 "\n"
 "输出序列名的前缀为<b>\"r_\"</b>，除非使用<b>-prefix=</b>选项指定。\n"
 "\n"
-"选项<b>-drizzle</b>对齐生成的图像放大2倍。\n"
+"选项<b>-upscale</b>激活在转换序列中创建的图像的插值 x2 放大。\n"
 "\n"
-"像素插值方法可以用<b>interp=</b>参数指定，取值可以是：<b>no</b>[ne]，<b>ne</"
-"b>[arest]，<b>cu</b>[bic]，<b>la</b>[nczos4]，<b>li</b>[near]，<b>ar</"
-"b>[ea]。如果传递了<b>none</b>，则强制对齐模式为平移，并在不插值的情况下逐像素"
-"平移每个图像。\n"
-"双三次插值和lanczos4插值的保持机制是默认启用的，以避免伪影，但可以使用<b>-"
-"noclamp</b>参数禁用。\n"
+"选项 <b>-drizzle</b>激活 DRIZZLE 算法，它可以采用附加选项： <b>-scale=</b> "
+"设置图像比例因子（默认 = 1.0）； <b>-pixfrac=</b>设置像素分数（默认 = 1.0）。"
+" <b>-kernel=</b> 参数设置 DRIZZLE 内核，并且后面必须跟有 <b>point</b>、<b>tur"
+"bo</b>、<b>square</b>、<b>gaussian</b>、<b>lanczos2</b>或<b>lanczos3</b>之一"
+"。默认值为 <b>square</b>。 <b>-flat=</b>参数指定一个主平场来对drizzle输入像素"
+"进行加权（默认为无平场）。<b>-ocseq</b>参数指定生成带有附加前缀“oc_”的output_"
+"counts序列。\n"
+"\n"
+"像素插值方法（不使用 DRIZZLE 时）可以使用 <b>-interp=</b> 指定。"
+"参数后跟列表中的方法之一 <b>no</b>[ne]、<b>ne</b>[arest]、<b>cu</b>[bic]、<b>"
+"la</b>[nczos4]、<b>li</b>[near]、<b>ar</b>[ea]}。如果<b>none</b>传递后，则强"
+"制对齐模式为平移，并在不插值的情况下逐像素平移每个图像。\n"
+"双三次插值和lanczos4插值的保持机制是默认启用的，以避免伪影，但可以使用<b>-noc"
+"lamp</b>参数禁用。\n"
 "\n"
 "对于RGB图像，默认使用存在对齐数据的第一层来应用变换，除非用<b>-layer=</b>选项"
 "指定（R、G和B分别为0、1或2）。\n"
@@ -17367,7 +17371,8 @@ msgstr ""
 "输出序列的取景范围可以使用<b>-framing=</b>关键字指定，取值可以是{ current | "
 "min | max | cog }：\n"
 "<b>-framing=max</b>（并集）根据需要在每个图像周围添加黑色边框，在对齐时不会裁"
-"切图像的任何部分。\n"
+"切图像的任何部分。然后可以使用选项<b>-maximize</b>对所得序列进行叠加。 STACK "
+"命令将创建包含序列中所有图像的完整图像。\n"
 "<b>-framing=min</b>（交集）将每个图像裁切到序列里所有图像共有的区域。\n"
 "<b>-framing=cog</b>将全部图像的重心（cog）作为最佳构图位置。\n"
 "\n"
@@ -17783,7 +17788,6 @@ msgstr ""
 "制性的，-at=为目标恒星提供像素坐标，-wcs=提供J2000赤道坐标"
 
 #: src/core/command_def.h:164
-#, fuzzy
 msgid ""
 "Scales the sequence given in argument <b>sequencename</b>. Only selected "
 "images in the sequence are processed.\n"
@@ -17800,11 +17804,16 @@ msgid ""
 "The output sequence name starts with the prefix \"scaled_\" unless otherwise "
 "specified with <b>-prefix=</b> option"
 msgstr ""
-"裁切参数中给定的序列<b>sequencename</b>。仅处理序列中选定的图像。\n"
+"缩放参数中给定的序列<b>sequencename</b>。仅处理序列中选定的图像。\n"
 "\n"
-"裁切区域用左上角位置<b>x</b>和<b>y</b>以及区域宽度<b>width</b>和高度"
-"<b>height</b>来指定，类似于CROP。\n"
-"输出序列名前缀为\"cropped_\"，除非使用<b>-prefix=</b>选项指定"
+"比例因子由 <b>-scale=</b> 指定。参数或通过使用 <b>-width=</b> "
+"设置输出宽度或高度或<b>-height=</b>选项。\n"
+"\n"
+"可以使用<b>-interp=</b>来指定插值方法。参数后跟列表中的方法之一 <b>ne</b>[are"
+"st]、<b>cu</b>[bic]、<b>la</b>[nczos4]、<b>li</b>[near]、<b>ar</b>[ea]}.. "
+"嵌位适用于三次插值和 lanczos 插值。\n"
+"\n"
+"输出序列名前缀为\"scaled_\"，除非使用<b>-prefix=</b>选项指定"
 
 #: src/core/command_def.h:165
 msgid ""
@@ -18093,7 +18102,6 @@ msgstr ""
 "以使用SET设置固定量的内存，而不是内存比例"
 
 #: src/core/command_def.h:184
-#, fuzzy
 msgid ""
 "Gets or sets photometry settings, mostly used by SEQPSF. If arguments are "
 "provided, they will update the settings. None are mandatory, any can be "
@@ -18110,9 +18118,15 @@ msgid ""
 "Gain is used only if not available from the FITS header"
 msgstr ""
 "获取或设置测光设置，主要用在SEQPSF。如果提供了参数，将会用其更新设置。没有一"
-"项是强制性的，任何一项都可以提供，默认值用命令的语法表明。命令结束时，将打印"
-"使用中的配置。除非强制，不然aperture会是动态的，不会使用设置中的<b>aperture</"
-"b>值，而改用FWHM。只有在FITS文件头不可用时才使用gain"
+"项是强制性的，任何一项都可以提供，默认值用命令的语法表明。命令结束时，"
+"将打印使用中的配置\n"
+"\n"
+"除非强制，不然孔径会是动态的，不会使用设置中的<b>aperture</b>值。如果是动态的"
+"，孔径的半径由提供的动态比率（“半径/半FWHM”）定义。\n"
+"参数 <b>-dyn_ratio</b> 的允许值范围为 [1.0, 5."
+"0]。超出该范围的值将自动将孔径设置为固定值<b>-aperture</b>。\n"
+"\n"
+"仅当 FITS 头无法提供增益时才使用增益"
 
 #: src/core/command_def.h:185
 msgid ""
@@ -18251,7 +18265,6 @@ msgstr ""
 "阳系的对象。用<b>-mag=</b>更改极限星等，默认值为20"
 
 #: src/core/command_def.h:192
-#, fuzzy
 msgid ""
 "Stacks the <b>sequencename</b> sequence, using options.\n"
 "\n"
@@ -18314,30 +18327,30 @@ msgstr ""
 "使用选项堆叠<b>sequencename</b>序列。\n"
 "\n"
 "叠加类型：\n"
-"允许的类型为：<b>sum</b>、<b>max</b>，<b>min</b>，<b>med</b>（或<b>median</"
-"b>），和<b>rej</b>（或<b>mean</b>）。如果除了序列名之外没有提供任何参数，则默"
-"认为sum。\n"
+"允许的类型为：<b>sum</b>、<b>max</b>，<b>min</b>，<b>med</b>（或<b>median</b>"
+"），和<b>rej</b>（或<b>mean</b>）。如果除了序列名之外没有提供任何参数，则默认"
+"为sum。\n"
 "\n"
 "带剔除的叠加：\n"
 "叠加类型<b>rej</b>或<b>mean</b>需要使用额外的参数来指定剔除类型和参数。剔除类"
-"型有：<b>n[one]、p[ercentile]、s[igma]、m[edian]、w[insorized]、l[inear]、"
-"g[eneralized]、[m]a[d]</b>，分别指不剔除、百分数、Sigma、中位数Sigma、"
+"型有：<b>n[one]、p[ercentile]、s[igma]、m[edian]、w[insorized]、l[inear]、g[e"
+"neralized]、[m]a[d]</b>，分别指不剔除、百分数、Sigma、中位数Sigma、"
 "Winsorized Sigma、线性拟合、广义ESD检验、绝对中位差修剪。如果省略，则使用默认"
-"的Winsorized Sigma修剪。\n"
-"除非选择<b>none</b>，否则必须提供剔除的Sigma下限<b>sigma low</b>和Sigma上限"
-"<b>sigma high</b>。\n"
-"可以选择是否生成剔除图，显示被剔除的像素的位置（<b>-rejmap</b>生成一个总图，"
-"<b>-rejmaps</b>生成一个高切图和一个低切图）。\n"
+"的Winsorized。\n"
+"除非选择<b>none</b>，否则必须提供剔除的Sigma下限<b>sigma low</"
+"b>和Sigma上限<b>sigma high</b>。\n"
+"可以选择是否生成剔除图，显示被剔除的像素的位置（<b>-rejmap</b>生成一个总图，<"
+"b>-rejmaps</b>生成一个高切图和一个低切图）。\n"
 "\n"
 "输入图像的归一化：\n"
 "对于叠加类型<b>med</b>（或<b>median</b>）和<b>rej</b>（或<b>mean</b>），允许"
-"不同类型的归一化：<b>-normal=add</b>使用加法归一化，<b>-Norm=mul</b>使用乘法"
+"不同类型的归一化：<b>-normal=add</b>使用加法归一化，<b>-norm=mul</b>使用乘法"
 "归一化。选项<b>-norm=addscale</b>和<b>-norm=mulscale</b>使用带拉伸的加法和乘"
 "法归一化。<b> -nonorm</b>禁用归一化。默认使用带拉伸的加法归一化。\n"
 "<b>-fastnorm</b>指定使用快速归一化（使用中位数和绝对中位差，而不是默认的IKSS"
 "算法）。\n"
-"<b>-rgb_equal</b>启用RGB均衡来避免彩色图像背景偏色，如果不使用PCC或未链接的"
-"AUTOSTRETCH，则此功能非常有用。\n"
+"<b>-rgb_equal</b>启用RGB均衡来避免彩色图像背景偏色，如果不使用PCC或未链接的AU"
+"TOSTRETCH，则此功能非常有用。\n"
 "\n"
 "带剔除的叠加的其他选项：\n"
 "<b>-weight_from_noise</b>背景噪声越少，输入图像权重越高。\n"
@@ -18347,9 +18360,14 @@ msgstr ""
 "数量或wFWHM来加权。\n"
 "\n"
 "输出：\n"
-"使用<b>-out=</b>选项设置结果图像的名称。否则默认命名为"
-"<b>sequencename_stacked.fit</b>。\n"
+"使用<b>-out=</b>选项设置结果图像的名称。否则默认命名为<b>sequencename</b>_sta"
+"cked.fit。\n"
 "<b>-output_norm</b>将结果归一化至[0,1]范围内（仅限中位数和平均数叠加）。\n"
+"<b>-maximize</b>选项将使用序列中的对齐数据来创建包含序列中所有图像的叠加图像"
+"（适用于除中位数叠加之外的所有方法）。\n"
+"<b>-upscale</b>选项将在使用对齐数据进行叠加之前将序列放大 2 "
+"倍（适用于除中位数叠加之外的所有方法）。\n"
+"\n"
 "\n"
 "筛选图像：\n"
 "使用<b>-filter-*</b>，可以根据一些条件来筛选要堆叠的图像，如只叠加已选中的图"
@@ -19835,11 +19853,11 @@ msgstr "用于光通量计算的强制孔径"
 
 #: src/core/settings.c:373
 msgid "minimum valid pixel value for photometry"
-msgstr "光度测量的最小有效像素值"
+msgstr "用于测光的最小有效像素值"
 
 #: src/core/settings.c:374
 msgid "maximum valid pixel value for photometry"
-msgstr "光度测量的最大有效像素值"
+msgstr "用于测光的最大有效像素值"
 
 #: src/core/settings.c:375
 msgid ""
@@ -19944,9 +19962,8 @@ msgid "percent below and above the expected sampling to allow"
 msgstr "所允许的低于和高于预期采样的百分比"
 
 #: src/core/settings.c:402
-#, fuzzy
 msgid "default IAU observatory code"
-msgstr "缺省显示模式"
+msgstr "默认 IAU 天文台代码"
 
 #: src/core/settings.c:404
 msgid "panel size of aberration inspector"
@@ -20374,13 +20391,14 @@ msgstr "若要计算PSF，请框选一个星点。"
 #: src/core/siril_actions.c:408
 #, c-format
 msgid "Using preferred observatory code %s\n"
-msgstr ""
+msgstr "使用首选天文台代码 %s\n"
 
 #: src/core/siril_actions.c:413
 msgid ""
 "Invalid observatory code found in preferences. Code must be 3 characters. "
 "Resetting preference and using default geocentric observer code.\n"
-msgstr ""
+msgstr "在首选项中发现无效的天文台代码。代码必须为 3 "
+"个字符。重置首选项并使用默认的地心观测者代码。\n"
 
 #: src/core/siril_actions.c:417
 msgid "Using default geocentric observer code\n"
@@ -20599,9 +20617,8 @@ msgid "(invalid UTF-8 string)"
 msgstr "（无效的 UTF-8 字符串）"
 
 #: src/drizzle/cdrizzlebox.c:497
-#, fuzzy
 msgid "Out of memory"
-msgstr "内存不足\n"
+msgstr "内存不足"
 
 #: src/drizzle/cdrizzlebox.c:902
 msgid "Invalid kernel type"
@@ -22341,56 +22358,48 @@ msgstr ""
 msgid ""
 "This is the main Siril mouse action used for making selections, selecting "
 "background samples and previews, doing quick photometry etc."
-msgstr ""
+msgstr "这是 Siril 鼠标的主要操作，用于进行选择、选择背景样本和预览、进行快速测光等。"
 
 #: src/gui/mouse_action_functions.c:538
 msgid ""
 "Remove background samples or photometry boxes, or show the mouse context menu"
-msgstr ""
+msgstr "删除背景样本或测光框，或显示鼠标上下文菜单"
 
 #: src/gui/mouse_action_functions.c:581
 msgid "This action sets the photometry box"
-msgstr ""
+msgstr "此操作设置测光框"
 
 #: src/gui/mouse_action_functions.c:612
-#, fuzzy
 msgid "This action saves the current image"
-msgstr "Shows the negative view of the current image"
+msgstr "此动作将保存当前图像"
 
 #: src/gui/mouse_action_functions.c:624
-#, fuzzy
 msgid "This action saves the current image with a new name"
-msgstr "…或以同样的名称保存当前FITS图像"
+msgstr "此动作使用新文件名保存当前图像"
 
 #: src/gui/mouse_action_functions.c:632
-#, fuzzy
 msgid "This action saves a snapshot of the current image"
-msgstr "Shows the negative view of the current image"
+msgstr "此动作保存当前图像的快照"
 
 #: src/gui/mouse_action_functions.c:640
-#, fuzzy
 msgid "This action undoes the last operation"
-msgstr "用此按钮实现撤销操作"
+msgstr "此动作将撤消上一个操作"
 
 #: src/gui/mouse_action_functions.c:650
-#, fuzzy
 msgid "This action redoes the last operation"
-msgstr "用此按钮实现恢复操作"
+msgstr "此动作将重做上一个操作"
 
 #: src/gui/mouse_action_functions.c:660
-#, fuzzy
 msgid "This action finds stars in the current image"
-msgstr "无法在参考帧中找到星点，异常中止。\n"
+msgstr "此操作在当前图像中查找星点"
 
 #: src/gui/mouse_action_functions.c:672
-#, fuzzy
 msgid "This action plate solves the current image"
-msgstr "Shows the negative view of the current image"
+msgstr "此动作解析当前图像"
 
 #: src/gui/mouse_action_functions.c:680
-#, fuzzy
 msgid "This action opens the spectrophotometric color calibration dialog"
-msgstr "打开光谱法色彩校准对话框"
+msgstr "此动作将打开光谱法色彩校准对话框"
 
 #: src/gui/mouse_action_functions.c:698
 msgid "Scroll wheel zooms in / out"
@@ -22426,9 +22435,8 @@ msgstr ""
 #.
 #. Function metadata
 #: src/gui/mouse_action_functions.h:23
-#, fuzzy
 msgid "Main multifunction action"
-msgstr "最大值函数."
+msgstr "主要多功能动作"
 
 #: src/gui/mouse_action_functions.h:27
 msgid "Drag"
@@ -22443,9 +22451,8 @@ msgid "Configurable zoom toggle"
 msgstr ""
 
 #: src/gui/mouse_action_functions.h:43
-#, fuzzy
 msgid "Photometry box"
-msgstr "测光"
+msgstr "测光框"
 
 #: src/gui/mouse_action_functions.h:47
 msgid "Mouse Menu / Remove"
@@ -22550,15 +22557,13 @@ msgid "Warning: ignoring unconfigured action (\""
 msgstr ""
 
 #: src/gui/mouse_action_preferences.c:357
-#, fuzzy
 msgid "Mouse configuration updated successfully.\n"
-msgstr "Siril FFT wisdom 更新成功...\n"
+msgstr "鼠标配置已成功更新。\n"
 
 #. Connect the edited signal
 #: src/gui/mouse_action_preferences.c:487
-#, fuzzy
 msgid "Direction"
-msgstr "修正"
+msgstr "方向"
 
 #: src/gui/mouse_action_preferences.c:535
 #, c-format
@@ -22570,14 +22575,12 @@ msgid "Invalid mouse scroll action configuration"
 msgstr ""
 
 #: src/gui/mouse_action_preferences.c:608
-#, fuzzy
 msgid "Mouse scroll configuration updated successfully.\n"
-msgstr "Siril FFT wisdom 更新成功...\n"
+msgstr "鼠标滚动配置已成功更新。\n"
 
 #: src/gui/mouse_action_preferences.c:647
-#, fuzzy
 msgid "Reset Mouse Actions"
-msgstr "重置缩放比例为1。"
+msgstr "重置鼠标操作"
 
 #: src/gui/mouse_action_preferences.c:647
 msgid ""
@@ -22880,12 +22883,12 @@ msgstr "CSV文件 (*.csv)"
 #. Definition of all the graphical items
 #. Top label
 #: src/gui/nina_light_curve.c:75
-#, fuzzy
 msgid ""
 "Process a sequence to get a light curve on a star using the list\n"
 "of reference stars created by Siril or the NINA exoplanet plugin"
 msgstr ""
-"使用 Siril 或 NINA 系外行星插件创建的参考星列表来处理序列，以获取恒星的光曲线"
+"使用 Siril 或 NINA 系外行星插件创建的参考星列表来处理序列，\n"
+"以获取恒星的光曲线"
 
 #. Comp1 radio
 #: src/gui/nina_light_curve.c:84
@@ -22922,20 +22925,20 @@ msgid ""
 "The current aperture parameters are as follow:\n"
 "(they can be managed in the Preferences/Photometry tab)"
 msgstr ""
+"目前孔径参数如下：\n"
+"（它们可以在“首选项/测光”选项卡中进行管理）"
 
 #. Fill the 2nd box
 #. The label
 #: src/gui/nina_light_curve.c:154
-#, fuzzy
 msgid "Inner radius of the annulus (px):"
-msgstr "背景环的内半径"
+msgstr "圆环的内半径（像素）："
 
 #. Fill the 3rd box
 #. The label
 #: src/gui/nina_light_curve.c:171
-#, fuzzy
 msgid "Outer radius of the annulus (px):"
-msgstr "背景环的外半径"
+msgstr "圆环的外半径（像素）："
 
 #: src/gui/nina_light_curve.c:221
 msgid "Choose a comparison stars file"
@@ -23184,7 +23187,7 @@ msgstr "排除所选的点"
 msgid ""
 "Error: invalid IAU observatory code read from preferences file. Code must be "
 "a 3-character code.\n"
-msgstr ""
+msgstr "错误：从首选项中读取的 IAU 天文台代码无效。代码必须是 3 字符代码。\n"
 
 #: src/gui/preferences.c:503
 #, c-format
@@ -23209,7 +23212,7 @@ msgstr "无法刷新脚本列表"
 msgid ""
 "Inner radius value must be less than outer. Please change the value in "
 "Photometry tab."
-msgstr "内半径必须小于外半径，请在测光签中更改。"
+msgstr "内半径必须小于外半径，请在测光标签中更改。"
 
 #: src/gui/preferences.c:924
 msgid ""
@@ -23476,9 +23479,8 @@ msgid "Comet/Asteroid Registration"
 msgstr "彗星/小行星对齐"
 
 #: src/gui/registration.c:205
-#, fuzzy
 msgid "Apply Astrometric Registration"
-msgstr "应用现有对齐"
+msgstr "应用天体测量对齐"
 
 #: src/gui/registration.c:207
 msgid "Apply Existing Registration"
@@ -23983,7 +23985,7 @@ msgid ""
 "This menu is generally essential once pre-processing is complete."
 msgstr ""
 "这个新按钮汇集了以前分散在整个应用程序中的所有工具。它包括汉堡菜单中包含的一"
-"些内容，以及光度测量、天体测量等工具。预处理完成后，此菜单通常是必需的。"
+"些内容，以及测光、天体测量等工具。预处理完成后，此菜单通常是必需的。"
 
 #: src/gui/siril_intro.c:46
 msgid "Use this button to undo an operation"
@@ -26712,9 +26714,9 @@ msgstr "此图层中没有对齐数据\n"
 
 #: src/registration/applyreg.c:116 src/registration/applyreg.c:204
 #: src/registration/astrometric.c:370
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d has no overlap with the reference\n"
-msgstr "图像无法与参考星对齐\n"
+msgstr "图像 %d 与参考帧没有重叠\n"
 
 #: src/registration/applyreg.c:151 src/registration/astrometric.c:381
 msgid "The intersection of all images is null or negative\n"
@@ -27105,9 +27107,9 @@ msgid " (assuming a scaling factor of %.2f)"
 msgstr ""
 
 #: src/registration/astrometric.c:391
-#, fuzzy, c-format
+#, c-format
 msgid "Output image: %d x %d pixels%s\n"
-msgstr "新图像尺寸： %dx%d 像素。\n"
+msgstr "输出图像：%d x %d 像素%s\n"
 
 #: src/registration/astrometric.c:396
 #, c-format
