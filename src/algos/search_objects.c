@@ -279,7 +279,7 @@ int cached_object_lookup(sky_object_query_args *args) {
 	return args->retval;
 }
 
-void on_search_objects_entry_activate(GtkEntry *entry, gpointer user_data) {
+void search_object(GtkEntry *entry) {
 	if (!has_wcs(&gfit))
 		return;
 	control_window_switch_to_tab(OUTPUT_LOGS);
@@ -287,6 +287,10 @@ void on_search_objects_entry_activate(GtkEntry *entry, gpointer user_data) {
 	args->name = g_strdup(gtk_entry_get_text(GTK_ENTRY(entry)));
 	args->fit = &gfit;
 	start_in_new_thread(catsearch_worker, args);
+}
+
+void on_search_objects_entry_activate(GtkEntry *entry, gpointer user_data) {
+	search_object(entry);
 }
 
 

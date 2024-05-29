@@ -22,6 +22,7 @@ const char* ui_files[] = {
 	"/org/siril/ui/siril-shortcuts.ui",
 // Dialogs (sorted)
 	"/org/siril/ui/aavso_dialog.ui",
+	"/org/siril/ui/annotate_dialog.ui",
 	"/org/siril/ui/asinh_dialog.ui",
 	"/org/siril/ui/astrometry_dialog.ui",
 	"/org/siril/ui/background_extraction_dialog.ui",
@@ -63,7 +64,7 @@ const char* ui_files[] = {
 	"/org/siril/ui/savepopup.ui",
 	"/org/siril/ui/SCNR_dialog.ui",
 	"/org/siril/ui/script_contents_dialog.ui",
-	"/org/siril/ui/search_window.ui",
+//	"/org/siril/ui/search_window.ui",
 	"/org/siril/ui/seqlist_dialog.ui",
 	"/org/siril/ui/settings_window.ui",
 	"/org/siril/ui/spcc_details.ui",
