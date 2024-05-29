@@ -44,6 +44,7 @@
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Apply requested annotation.</property>
                 <signal name="clicked" handler="on_annotate_apply_clicked" swapped="no"/>
                 <style>
                   <class name="suggested-action"/>
@@ -300,6 +301,7 @@
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">Click this button to select a csv file.</property>
                         <property name="halign">start</property>
                         <property name="use-underline">True</property>
                         <signal name="clicked" handler="on_show_button_clicked" swapped="no"/>
@@ -335,6 +337,7 @@
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes"> If the passed file also contains a column name, names will be used as tags in the image and listed in the Console, unless toggled off with theses checkbuttons.</property>
                         <property name="active">True</property>
                         <property name="draw-indicator">True</property>
                       </object>
@@ -350,6 +353,7 @@
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes"> If the passed file also contains a column name, names will be used as tags in the image and listed in the Console, unless toggled off with theses checkbuttons.</property>
                         <property name="active">True</property>
                         <property name="draw-indicator">True</property>
                       </object>
