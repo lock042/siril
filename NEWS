@@ -79,6 +79,7 @@ siril 1.2.2 xx xx, 2024
 * Fixed ser orientation error (#1258, #1261)
 * Fixed crash during rejection stacking when using shift-registered sequence (#1294)
 * Fixed mouse scrollwheel scrolling too fast (#1151)
+* Fixed drag & drop in image display on macOS (#1310)
 
 siril 1.2.1 January 26, 2024
 
