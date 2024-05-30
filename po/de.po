@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-05-25 22:11+0200\n"
-"PO-Revision-Date: 2024-05-30 14:36+0000\n"
+"PO-Revision-Date: 2024-05-30 20:16+0000\n"
 "Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
 "Language-Team: German <https://weblate.pixls.us/projects/siril/"
 "siril-application/de/>\n"
@@ -786,6 +786,8 @@ msgid ""
 "Use the coordinates contained in each image header instead of those given in "
 "this dialog"
 msgstr ""
+"Verwende die Koordinaten, die in jedem Bildheader enthalten sind, anstelle "
+"der in diesem Dialog angegebenen"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1081
 msgid "Use pixel size from headers"
@@ -796,6 +798,8 @@ msgid ""
 "Use the pixel size contained in each image header instead of those given in "
 "this dialog"
 msgstr ""
+"Verwende die Pixelgröße, die in jedem Bildheader enthalten ist, anstelle der "
+"in diesem Dialog angegebenen"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1098
 msgid "Use focal length from headers"
@@ -806,6 +810,8 @@ msgid ""
 "Use the focal length contained in each image header instead of those given "
 "in this dialog"
 msgstr ""
+"Verwende die in jedem Bildheader enthaltene Brennweite anstelle der in "
+"diesem Dialog angegebenen"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1119 src/gui/uifiles/siril.ui:4431
 #: src/gui/callbacks.c:2164
@@ -4386,7 +4392,7 @@ msgstr "Einstellung Mausaktionen"
 
 #: src/gui/uifiles/mouse_actions.ui:111
 msgid "Add an extra mouse action"
-msgstr ""
+msgstr "Zusätzliche Mausaktion hinzufügen"
 
 #: src/gui/uifiles/mouse_actions.ui:126
 msgid "Remove the selected mouse action"
@@ -4401,10 +4407,13 @@ msgid ""
 "Click this area to check mouse button numbering and scroll direction, to "
 "ensure you set the correct number for mouse actions"
 msgstr ""
+"Klicken Sie auf diesen Bereich, um die Nummerierung der Maustasten und die "
+"Scrollrichtung zu überprüfen und sicherzustellen, dass Sie die richtige "
+"Nummer für die Mausaktionen festlegen."
 
 #: src/gui/uifiles/mouse_actions.ui:176
 msgid "Mouse Click Actions"
-msgstr ""
+msgstr "Mausklick-Aktionen"
 
 #: src/gui/uifiles/mouse_actions.ui:227
 msgid "Add a scroll action"
@@ -5580,6 +5589,8 @@ msgid ""
 "Preferred <a href=\"https://minorplanetcenter.net/iau/lists/ObsCodesF."
 "html\">IAU Observatory Code</a>"
 msgstr ""
+"Bevorzugt ein <a href=\"https://minorplanetcenter.net/iau/lists/ObsCodesF."
+"html\">IAU Observatory Code</a>"
 
 #: src/gui/uifiles/settings_window.ui:1204
 msgid ""
@@ -5619,6 +5630,10 @@ msgid ""
 "accuracy in solar system cone searches. A full list can be found at https://"
 "minorplanetcenter.net/iau/lists/ObsCodesF.html"
 msgstr ""
+"Geben Sie den Code Ihres nächstgelegenen IAU-Observatoriums ein, der "
+"standardmäßig verwendet werden soll, um die Genauigkeit bei der Suche nach "
+"Sonnensystemkegeln zu verbessern. Eine vollständige Liste finden Sie unter "
+"https://minorplanetcenter.net/iau/lists/ObsCodesF.html"
 
 #: src/gui/uifiles/settings_window.ui:1268
 msgid "Annotations"
@@ -6103,7 +6118,7 @@ msgstr "Aperturradius, an dem der Lichtstrom gemessen wird."
 
 #: src/gui/uifiles/settings_window.ui:2701
 msgid "Automatic with a Radius/half-FWHM ratio of:"
-msgstr ""
+msgstr "Automatisch mit einem Radius/Halb-FWHM-Verhältnis von:"
 
 #: src/gui/uifiles/settings_window.ui:2705
 msgid ""
@@ -6117,7 +6132,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:2720
 msgid "Radius/half-FWHM ratio"
-msgstr ""
+msgstr "Radius/Halb-FWHM-Verhältnis"
 
 #: src/gui/uifiles/settings_window.ui:2723
 msgid "3.00"
@@ -9093,6 +9108,8 @@ msgstr "Schwerpunkt"
 #: src/gui/uifiles/siril.ui:6069
 msgid "Estimates the final size and space used by the stacked image."
 msgstr ""
+"Schätzt die endgültige Größe und den vom gestackten Bild belegten "
+"Speicherplatz."
 
 #: src/gui/uifiles/siril.ui:6135
 msgid "Registration method:"
@@ -9311,6 +9328,9 @@ msgid ""
 "Applies an interpolation-based x2 upscaling. This is quicker than most of "
 "the proper drizzle kernels but will not provide results that are as sharp."
 msgstr ""
+"Wendet eine interpolationsbasierte x2-Hochskalierung an. Dies ist schneller "
+"als die meisten richtigen Drizzle-Kernels, liefert aber nicht so scharfe "
+"Ergebnisse."
 
 #: src/gui/uifiles/siril.ui:6669
 msgid "Drizzle"
@@ -9332,6 +9352,21 @@ msgid ""
 "disk space needed to create and process drizzled images is multiplied by the "
 "square of the Drizzle factor."
 msgstr ""
+"Die Sequenz wird mit dem Drizzle-Algorithmus registriert, der ursprünglich "
+"für die Verwendung mit unterabgetasteten Bildern des Hubble-"
+"Weltraumteleskops entwickelt wurde. Dies kann nützlich sein, um die "
+"Auflösung Ihrer Bilder zu verbessern, wenn sie unterabgetastet sind. Es kann "
+"auch als alternativer Demosaicing-Algorithmus für OSC-Bilder dienen (das CFA-"
+"Muster muss noch vorhanden sein, Sie dürfen sie also vor Drizzle nicht "
+"debayern), was die Auflösung des Ergebnisses verbessert und Rauschen mit "
+"einer Charakteristik erzeugt, die mit Rauschunterdrückungsalgorithmen "
+"leichter zu behandeln ist. Das Drizzling von Monobildern mit x2-Skalierung "
+"oder CFA-Bildern mit x1-Skalierung erfordert im Allgemeinen mindestens etwa "
+"10 Frames in der Sequenz.\n"
+"\n"
+"WARNUNG: Der Nachteil dieser Technik ist, dass die Menge an Speicher und "
+"Festplattenspeicher, die zum Erstellen und Verarbeiten von Drizzle-Bildern "
+"benötigt wird, mit dem Quadrat des Drizzle-Faktors steigt."
 
 #: src/gui/uifiles/siril.ui:6712
 msgid ""
@@ -9339,6 +9374,10 @@ msgid ""
 "sequence must contain registration data; for WCS, all images in the sequence "
 "must be plate solved (e.g. using the <b>seqplatesolve</b> command)"
 msgstr ""
+"Wählen Sie für die Drizzle-Mapping-Methode Homography oder WCS. Bei "
+"Homography muss die Sequenz Registrierungsdaten enthalten; bei WCS müssen "
+"alle Bilder in der Sequenz mit einer astrometrischen Lösung versehen sein ("
+"z. B. mit dem Befehl <b>seqplatesolve</b>)"
 
 #: src/gui/uifiles/siril.ui:6716
 msgid "WCS"
@@ -9357,6 +9396,8 @@ msgid ""
 "Sets the drizzle scale. A scale of 2 means the output pixel grid will have "
 "twice the resolution of the input pixel grid."
 msgstr ""
+"Legt den Drizzlefaktor fest. Ein Faktor von 2 bedeutet, dass das "
+"Ausgabepixelraster die doppelte Auflösung des Eingabepixelrasters hat."
 
 #: src/gui/uifiles/siril.ui:6753 src/gui/uifiles/siril.ui:6780
 msgid "1.00"
@@ -9371,10 +9412,12 @@ msgid ""
 "Sets the droplet size as a fraction of the input pixel size. Typically a "
 "good value for this is the reciprocal of the drizzle scale."
 msgstr ""
+"Legt die Tropfengröße als Bruchteil der Eingabepixelgröße fest. Ein guter "
+"Wert hierfür ist normalerweise der Kehrwert des Drizzlefaktors."
 
 #: src/gui/uifiles/siril.ui:6795
 msgid "Droplet Model"
-msgstr ""
+msgstr "Tröpfchenmodell"
 
 #: src/gui/uifiles/siril.ui:6806
 msgid ""
@@ -9382,6 +9425,11 @@ msgid ""
 "Note that the Gaussian and Lanczos models do not conserve flux and should "
 "not be used f you wish to use the output for accurate photometry."
 msgstr ""
+"Wählen Sie das Tropfenmodell aus. Weitere Einzelheiten finden Sie in der "
+"Dokumentation.\n"
+"Beachten Sie, dass die Modelle Gauß und Lanczos den Fluss nicht beibehalten "
+"und nicht verwendet werden sollten, wenn Sie die Ausgabe für eine genaue "
+"Photometrie verwenden möchten."
 
 #: src/gui/uifiles/siril.ui:6810
 msgid "Square"
@@ -9405,11 +9453,11 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:6832
 msgid "Drizzle Mapping"
-msgstr ""
+msgstr "Drizzleabbildung"
 
 #: src/gui/uifiles/siril.ui:6855
 msgid "Include master flat in initial pixel weighting"
-msgstr ""
+msgstr "Masterflat in anfängliche Pixelgewichtung einbeziehen"
 
 #: src/gui/uifiles/siril.ui:6859
 msgid ""
@@ -9420,6 +9468,13 @@ msgid ""
 "\n"
 "The master flat must be set in the Calibration tab."
 msgstr ""
+"Aktivieren Sie diese Option, um das Master-Flat in die anfängliche "
+"Pixelgewichtung einzubeziehen. Dies führt dazu, dass Pixel aus weniger "
+"vignettierten Bereichen der Eingabebilder stärker gewichtet werden als Pixel "
+"aus stärker vignettierten Bereichen, wenn sie auf demselben Ausgabepixel "
+"landen. Dies ist bestenfalls ein kleiner Gewinn.\n"
+"\n"
+"Das Master-Flat muss auf der Registerkarte „Kalibrierung“ eingestellt werden."
 
 #: src/gui/uifiles/siril.ui:6872
 msgid "Pixel weighting"
@@ -9474,16 +9529,20 @@ msgid ""
 "When this box is checked, the transformed images are undistorted using the "
 "SIP data in the reference frame."
 msgstr ""
+"Wenn dieses Kontrollkästchen aktiviert ist, werden die transformierten "
+"Bilder mithilfe der SIP-Daten im Referenzrahmen entzerrt."
 
 #: src/gui/uifiles/siril.ui:6960
 msgid "Scaling:"
-msgstr ""
+msgstr "Skalierung:"
 
 #: src/gui/uifiles/siril.ui:6973
 msgid ""
 "Scaling of the output images. Use Estimate button to determine the final "
 "image size."
 msgstr ""
+"Skalierung der Ausgabebilder. Verwenden Sie die Schaltfläche „Schätzen“, um "
+"die endgültige Bildgröße zu bestimmen."
 
 #: src/gui/uifiles/siril.ui:7015
 msgid "Prefix:"
@@ -10159,7 +10218,7 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:8938
 msgid "Maximize framing"
-msgstr ""
+msgstr "Rahmung maximieren"
 
 #: src/gui/uifiles/siril.ui:8941
 msgid ""
@@ -10167,6 +10226,9 @@ msgid ""
 "the selected frames of the sequence.\n"
 "                                                            "
 msgstr ""
+"Wenn Sie diese Schaltfläche aktivieren, wird die endgültige Bildgröße "
+"vergrößert, damit alle ausgewählten Frames der Sequenz hineinpassen.\n"
+"                                                            "
 
 #: src/gui/uifiles/siril.ui:8956
 msgid ""
@@ -10175,6 +10237,10 @@ msgid ""
 "registration but will not produced images as sharp.\n"
 "                                                            "
 msgstr ""
+"Wenn Sie diese Schaltfläche aktivieren, wird die endgültige Bildgröße um den "
+"Faktor 2 hochskaliert. Dies kann schneller sein als echtes Drizzeln, führt "
+"jedoch nicht zu so scharfen Bildern.\n"
+"                                                            "
 
 #. Must be short
 #: src/gui/uifiles/siril.ui:8983
@@ -12207,6 +12273,11 @@ msgid ""
 "software you will need to multiply the values by 100, for example using the "
 "Siril command \"fmul 100\"\n"
 msgstr ""
+"Hinweis: Der L*-Kanal ist so skaliert, dass er Werte im Bereich von 0,0 bis "
+"1,0 hat, um die Bearbeitung in Siril zu erleichtern. Der CIE L*a*b*-Farbraum "
+"definiert L* als einen Bereich von 0,0 bis 100,0. Wenn Sie dies also als "
+"echten L*-Kanal in anderer Software verwenden möchten, müssen Sie die Werte "
+"mit 100 multiplizieren, beispielsweise mit dem Siril-Befehl „fmul 100“.\n"
 
 #: src/algos/colors.c:1091 src/algos/colors.c:1182 src/algos/noise.c:86
 #: src/algos/photometric_cc.c:662 src/algos/star_finder.c:69
@@ -14054,7 +14125,7 @@ msgstr "Entropie: %.3f\n"
 
 #: src/core/command.c:1098
 msgid "Warning: d > approx. 25 may result in lengthy execution times.\n"
-msgstr ""
+msgstr "Achtung: d > ca. 25 kann zu langen Ausführungszeiten führen.\n"
 
 #: src/core/command.c:1129
 msgid "-si= value must be > 0.0 and <= 65535\n"
@@ -14073,6 +14144,8 @@ msgid ""
 "Warning: spatial sigma > approx. 20 with auto diameter may result in lengthy "
 "execution times.\n"
 msgstr ""
+"Warnung: Räumliches Sigma > ca. 20 mit automatischem Durchmesser kann zu "
+"langen Ausführungszeiten führen.\n"
 
 #: src/core/command.c:1147
 msgid "-mod= value must be > 0.0 and <= 1.0\n"
@@ -14091,6 +14164,9 @@ msgid ""
 "Warning: d = 0.0 cannot be used to specify automatic diameter when using a "
 "guided filter. Setting d to default value of 5.\n"
 msgstr ""
+"Achtung: d = 0,0 kann nicht verwendet werden, um den automatischen "
+"Durchmesser anzugeben, wenn ein geführter Filter verwendet wird. Setzen Sie "
+"d auf den Standardwert 5.\n"
 
 #: src/core/command.c:1197
 msgid "Reference image is undefined, the following would be used:\n"
@@ -14693,7 +14769,7 @@ msgstr "erzwungen"
 
 #: src/core/command.c:3506
 msgid "times the half-FWHM"
-msgstr ""
+msgstr "mal halbe FWHM"
 
 #: src/core/command.c:3526
 #, c-format
@@ -15195,7 +15271,7 @@ msgstr "CieLAB"
 
 #: src/core/command.c:5843
 msgid "Upscaling x2\n"
-msgstr ""
+msgstr "Hochskalierung x2\n"
 
 #: src/core/command.c:6064
 #, c-format
@@ -15207,6 +15283,8 @@ msgid ""
 "Statistics cannot be made on CFA images with a selection smaller than a 2x2 "
 "square, aborting\n"
 msgstr ""
+"Statistiken können nicht für CFA-Bilder mit einer Auswahl kleiner als ein "
+"2x2-Quadrat erstellt werden, Abbruch\n"
 
 #: src/core/command.c:6278
 #, c-format
@@ -15376,6 +15454,8 @@ msgstr "Nicht genug Speicherplatz um die Ausgabebilder zu speichern, Abbruch\n"
 #: src/core/command.c:7155
 msgid "Upscaling a sequence with -noout or -2pass has no effect, ignoring\n"
 msgstr ""
+"Das Hochskalieren einer Sequenz mit -noout oder -2pass hat keinen Effekt, "
+"wird ignoriert\n"
 
 #: src/core/command.c:7163
 msgid ""
@@ -15459,7 +15539,7 @@ msgstr "KEINE Flat-Frame-Benutzung: Anzahl der Kanäle unterschiedlich"
 #. no need to deal with bitdepth conversion as readfits has already forced conversion to float
 #: src/core/command.c:7452 src/gui/registration.c:138
 msgid "Master flat read for use as initial pixel weight\n"
-msgstr ""
+msgstr "Master-Flat für anfängliche Pixelgewichtung gelesen\n"
 
 #: src/core/command.c:7455 src/core/preprocess.c:892 src/gui/registration.c:140
 #: src/livestacking/gui.c:286
@@ -15482,6 +15562,8 @@ msgstr ""
 #: src/core/command.c:7559
 msgid "-upscale is not compatible with -drizzle, choose one or the other.\n"
 msgstr ""
+"-upscale ist nicht mit -drizzle kompatibel, wählen Sie das eine oder das "
+"andere.\n"
 
 #: src/core/command.c:7576
 msgid "Registration: Applying existing data"
@@ -15618,22 +15700,30 @@ msgid ""
 "The sequence has different image sizes and registration data. Forcing to "
 "maximize framing\n"
 msgstr ""
+"Die Sequenz hat unterschiedliche Bildgrößen und Registrierungsdaten. "
+"Erzwingen einer maximalen Rahmung\n"
 
 #: src/core/command.c:7937
 msgid ""
 "The sequence has different image sizes but no registration data, cannot "
 "stack. Aborting\n"
 msgstr ""
+"Die Sequenz hat unterschiedliche Bildgrößen, aber keine Registrierungsdaten "
+"und kann nicht gestackt werden. Abbruch\n"
 
 #: src/core/command.c:7942
 msgid ""
 "No registration data in the sequence or images with different sizes. Upscale "
 "at stacking will be ignored\n"
 msgstr ""
+"Keine Registrierungsdaten in der Sequenz oder Bilder mit unterschiedlichen "
+"Größen. Upscale beim Stapeln wird ignoriert\n"
 
 #: src/core/command.c:7946
 msgid "Cannot upscale or maximize framong with median stacking. Disabling\n"
 msgstr ""
+"Rahmung kann mit Median Stacking nicht hochskaliert oder maximiert werden. "
+"Deaktivieren\n"
 
 #: src/core/command.c:8011
 #, c-format
@@ -15932,6 +16022,8 @@ msgid ""
 "This script has been marked as obsolete for this version of Siril, please "
 "check for an update to the script.\n"
 msgstr ""
+"Dieses Skript wurde für diese Version von Siril als veraltet markiert. Bitte "
+"suchen Sie nach einer Aktualisierung des Skripts.\n"
 
 #: src/core/command.c:8935
 msgid "A newer version of Siril is required, please update your version.\n"
@@ -16239,7 +16331,7 @@ msgstr ""
 #: src/core/command.c:9879
 #, c-format
 msgid "Using default observatory code %s\n"
-msgstr ""
+msgstr "Standard Observatoriumscode %s verwenden\n"
 
 #: src/core/command.c:9883
 msgid ""
@@ -17112,6 +17204,32 @@ msgid ""
 "than 1.0 a proportion of the original image will be mixed with the result, "
 "and for mod = 0.0 no filtering will be applied"
 msgstr ""
+"Wendet einen kantenerhaltenden Filter an. Standardmäßig wird ein bilateraler "
+"Filter angewendet; ein geführter Filter kann mit dem Argument <b>-guided</b> "
+"angegeben werden. Der Filterdurchmesser ist standardmäßig auf 3 eingestellt "
+"und kann mit <b>-d=</b> festgelegt werden. Seien Sie vorsichtig mit d-Werten "
+"über 20, da der Algorithmus rechenintensiv sein kann.\n"
+"\n"
+"Der Sigma-Wert der Intensitätsfilterung kann mit <b>-si=</b> und der "
+"räumliche Sigma-Wert mit <b>-ss=</b> festgelegt werden. Sigma-Werte stellen "
+"den Unterschied in den Pixelwerten dar, über den der Filter stark wirkt: Für "
+"32-Bit-Bilder sollte der Wert zwischen 0 und 1,0 liegen, während er für 16"
+"-Bit-Bilder zwischen 0 und 65535 liegen sollte. Wenn nicht angegeben, ist "
+"der Standardwert für beide auf 11 festgelegt. Wenn <b>-d=0</b> festgelegt "
+"ist, wird der Filterdurchmesser automatisch basierend auf dem Wert von "
+"<b>-ss</b> festgelegt. <i>Beachten Sie, dass beim Anwenden eines geführten "
+"Filters nur <b>-sc</b> gilt.</i>\n"
+"\n"
+"Beim Angeben eines geführten Filters kann ein Führungsbild mit "
+"<b>-guideimage=</b> festgelegt werden. Wenn kein Führungsbild angegeben "
+"wird, wird standardmäßig ein selbstgeführter Filter ausgeführt. <i>Hinweis: "
+"Das Führungsbild muss dieselben Abmessungen haben wie das zu filternde "
+"Bild!</i>\n"
+"\n"
+"Die Stärke des Filters kann mit dem Argument <b>-mod=</b> moduliert werden. "
+"Wenn mod = 1,0 ist, wird die volle Wirkung des Filters angewendet; bei mod "
+"kleiner als 1,0 wird ein Teil des Originalbilds mit dem Ergebnis gemischt, "
+"und bei mod = 0,0 wird keine Filterung angewendet."
 
 #: src/core/command_def.h:41
 msgid "Quits the application"
@@ -18411,7 +18529,6 @@ msgstr ""
 "<i>bayerpattern</i> sollte entweder 'RGGB', 'BGGR', 'GRBG' oder 'GBRG' sein"
 
 #: src/core/command_def.h:116
-#, fuzzy
 msgid ""
 "Finds and optionally performs geometric transforms on images of the sequence "
 "given in argument so that they may be superimposed on the reference image. "
@@ -18469,34 +18586,34 @@ msgstr ""
 "<b>-2pass</b> fügt dem Algorithmus einen vorläufigen Durchgang hinzu. Finden "
 "Sie ein gutes Referenzbild, bevor Sie die Transformationen basierend auf "
 "Bildqualität und Bildausschnitt berechnen. Um nach diesem Durchgang "
-"transformierte Bilder zu generieren, verwenden Sie SEQAPPLYREG. <b>-"
-"nostarlist</b> deaktiviert das Speichern der Sternlisten auf der "
+"transformierte Bilder zu generieren, verwenden Sie SEQAPPLYREG. "
+"<b>-nostarlist</b> deaktiviert das Speichern der Sternlisten auf der "
 "Festplatte.\n"
 "\n"
 "Die Option <b>-transf=</b> legt fest, dass entweder <b>shift-</b>, "
-"<b>similarity-</b>, <b>affine-</b> oder <b>homography-</b>Transformationen "
-"(Standard) verwendet werden.\n"
-"Die Option <b>-drizzle</b> aktiviert das Subpixel-Stacking durch "
-"Hochskalierung der erzeugten Bilder um den Faktor 2.\n"
+"<b>similarity-</b>, <b>affine-</b> oder <b>homography-</b> (Standard) "
+"Transformationen verwendet werden.\n"
+"Die Option <b>-upscale</b> aktiviert eine interpolierende Hochskalierung der "
+"Bilder um den Faktor 2.\n"
 "Die Option <b>-minpairs=</b> gibt die minimale Anzahl von Sternpaaren an, "
-"die ein Bild mit dem Referenzbild haben muss, sonst wird das Bild "
-"verworfen.\n"
+"die ein Bild mit dem Referenzbild haben muss, sonst wird das Bild verworfen."
+"\n"
 "Die Option <b>-maxstars=</b> gibt die maximale Anzahl der Sterne an, die in "
 "jedem Bild gefunden werden sollen (muss zwischen 100 und 2000 liegen). Ein "
 "größerer Wert ermöglicht es, mehr Sterne zu finden und eine genauere "
 "Registrierung durchzuführen, benötigt aber mehr Zeit für die Ausführung.\n"
 "\n"
 "Die Pixel-Interpolationsmethode kann mit dem <b>-interp=</b> Schlüsselwort "
-"gefolgt von einer der Methoden aus der Liste <b>no</b>[ne], <b>ne</"
-"b>[arest], <b>cu</b>[bic], <b>la</b>[nczos4], <b>li</b>[near], <b>ar</b>[ea] "
-"gewält werde. Wenn <b>none</b> übergeben wird, wird eine pixelweise "
-"Verschiebung ohne jede Interpolation erzwungen.\n"
+"gefolgt von einer der Methoden aus der Liste <b>no</b>[ne], <b>ne</b>[arest]"
+", <b>cu</b>[bic], <b>la</b>[nczos4], <b>li</b>[near], <b>ar</b>[ea] gewält "
+"werde. Wenn <b>none</b> übergeben wird, wird eine pixelweise Verschiebung "
+"ohne jede Interpolation erzwungen.\n"
 "Eine Begrenzung der bikubischen and lanczos4-Interpolation ist der Default "
 "um Artefakte zu vermeiden, kann aber mit dem Argument <b>-noclamp</b> "
 "deaktiviert werden.\n"
 "\n"
-"Alle Bilder der Sequenz werden registriert, es sei denn, die Option <b>-"
-"selected</b> wird übergeben, in diesem Fall werden die ausgeschlossenen "
+"Alle Bilder der Sequenz werden registriert, es sei denn, die Option "
+"<b>-selected</b> wird übergeben, in diesem Fall werden die ausgeschlossenen "
 "Bilder nicht verarbeitet\n"
 "\n"
 "Wenn erstellt, beginnt der Name der Ausgabesequenz mit dem Präfix \"r_\", es "
@@ -18518,6 +18635,15 @@ msgid ""
 "1.2.x series and 1.3.x series, but will not run for any versions earlier "
 "than 1.2.0 or for version 1.4.0 or any later versions"
 msgstr ""
+"Gibt einen Fehler zurück, wenn die Version von Siril älter ist als die im "
+"ersten Argument angegebene erforderliche Mindestversion. Optional wird ein "
+"zweites Argument für die Siril-Version verwendet, bei der das Skript "
+"veraltet ist: Gibt einen Fehler zurück, wenn die Version von Siril <b>neuer "
+"oder gleich</b> der im zweiten Argument angegebenen Version ist.\n"
+"\n"
+"Beispiel: <i>erfordert 1.2.0 1.4.0</i> ermöglicht die Ausführung des Skripts "
+"für alle Versionen der 1.2.x- und 1.3.x-Reihen, jedoch nicht für Versionen "
+"vor 1.2.0 oder für Version 1.4.0 oder spätere Versionen."
 
 #: src/core/command_def.h:119
 msgid ""
@@ -18895,7 +19021,6 @@ msgstr ""
 "Siehe auch UNSELECT"
 
 #: src/core/command_def.h:139
-#, fuzzy
 msgid ""
 "Applies geometric transforms on images of the sequence given in argument so "
 "that they may be superimposed on the reference image, using astrometric data "
@@ -18937,17 +19062,17 @@ msgstr ""
 "\n"
 "Die Pixel-Interpolationsmethode kann mit dem Argument <b>-interp=</b> "
 "angegeben werden, gefolgt von einer der Methoden in der Liste <b>no</b>[ne], "
-"<b>ne</b>[arest], <b>cu</b>[bic], <b>la</b>[nczos4], <b>li</b>[near], <b>ar</"
-"b>[ea]}. Wenn <b>none</b> übergeben wird, wird eine pixelweise Verschiebung "
-"ohne jede Interpolation erzwungen.\n"
+"<b>ne</b>[arest], <b>cu</b>[bic], <b>la</b>[nczos4], <b>li</b>[near], "
+"<b>ar</b>[ea]}. Wenn <b>none</b> übergeben wird, wird eine pixelweise "
+"Verschiebung ohne jede Interpolation erzwungen.\n"
 "\n"
 "Die Registrierung erfolgt auf der ersten Ebene für die Daten existieren bei "
 "RGB-Bilder, es sei denn, sie wird durch die Option <b>-layer=</b> (0, 1 oder "
 "2 für R, G bzw. B) festgelegt.\n"
 "\n"
-"Der automatische Beschnitt der Ausgabesequenz kann mit dem Schlüsselwort <b>-"
-"framing=</b>, gefolgt von einer der Methoden in der Liste { current | min | "
-"max | cog } angegeben werden:\n"
+"Der automatische Beschnitt der Ausgabesequenz kann mit dem Schlüsselwort "
+"<b>-framing=</b>, gefolgt von einer der Methoden in der Liste { current | "
+"min | max | cog } angegeben werden:\n"
 "<b>-framing=max</b> (bounding box) fügt bei Bedarf einen schwarzen Rand um "
 "jedes Bild hinzu, damit kein Teil des Bildes bei der Registrierung "
 "abgeschnitten wird.\n"
@@ -18956,15 +19081,11 @@ msgstr ""
 "<b>-framing=cog</b> bestimmt die beste Bildposition als Schwerpunkt (cog) "
 "für alle Bilder\n"
 "\n"
-"Bilder herausfiltern:\n"
-"Bilder, die registriert werden sollen, können auf der Grundlage einiger "
-"Filter ausgewählt werden, wie z.B. die ausgewählten oder die mit der besten "
-"FWHM, mit einigen der <b>-filter-*</b> Optionen.\n"
-"Die vollständige Dokumentation zu diesem Befehl finden Sie in der "
-"Befehlsreferenz"
+"Wenn SIP-Koeffizienten in den astrometrischen Lösungen vorhanden sind, "
+"werden die Ausgabebilder unverzerrt sein, es sei denn, die Option "
+"<b>-noundistort</b> wird übergeben."
 
 #: src/core/command_def.h:140
-#, fuzzy
 msgid ""
 "Applies geometric transforms on images of the sequence given in argument so "
 "that they may be superimposed on the reference image, using registration "
@@ -19023,22 +19144,34 @@ msgstr ""
 "Der Name der Ausgabesequenz beginnt mit dem Präfix <b>\"r_\"</b>, sofern "
 "nicht mit der Option <b>-prefix=</b> anders angegeben.\n"
 "\n"
-"Die Option <b>-drizzle</b> aktiviert die Hochskalierung um 2 der in der "
+"Die Option <b>-upscale</b> aktiviert die Hochskalierung um 2 der in der "
 "transformierten Sequenz erzeugten Bilder.\n"
+"\n"
+"Die Option <b>-drizzle</b> aktiviert den DRIZZLE-Algorithmus, der folgende "
+"zusätzliche Optionen annehmen kann: <b>-scale=</b> legt den "
+"Bildskalierungsfaktor fest (Standard = 1,0); <b>-pixfrac=</b> legt den "
+"Pixelanteil fest (Standard = 1,0). Das Argument <b>-kernel=</b> legt den "
+"DRIZZLE-Kernel fest und muss von einem der folgenden Argumente gefolgt "
+"werden: <b>point</b>, <b>turbo</b>, <b>square</b>, <b>gaussian</b>, "
+"<b>lanczos2</b> oder <b>lanczos3</b>. Der Standardwert ist <b>square</b>. "
+"Das Argument <b>-flat=</b> gibt ein Master-Flat an, um die gedrizzelten "
+"Eingabepixel zu gewichten (Standard ist kein Flat). Das Argument <b>-ocseq</"
+"b> gibt die Generierung einer output_counts-Sequenz mit dem zusätzlichen "
+"Präfix „oc_“ an.\n"
 "\n"
 "Die Pixel-Interpolationsmethode kann mit dem Argument <b>-interp=</b> "
 "angegeben werden, gefolgt von einer der Methoden in der Liste <b>no</b>[ne], "
-"<b>ne</b>[arest], <b>cu</b>[bic], <b>la</b>[nczos4], <b>li</b>[near], <b>ar</"
-"b>[ea]}. Wenn <b>none</b> übergeben wird, wird eine pixelweise Verschiebung "
-"ohne jede Interpolation erzwungen.\n"
+"<b>ne</b>[arest], <b>cu</b>[bic], <b>la</b>[nczos4], <b>li</b>[near], "
+"<b>ar</b>[ea]}. Wenn <b>none</b> übergeben wird, wird eine pixelweise "
+"Verschiebung ohne jede Interpolation erzwungen.\n"
 "\n"
 "Die Registrierung erfolgt auf der ersten Ebene für die Daten existieren bei "
 "RGB-Bilder, es sei denn, sie wird durch die Option <b>-layer=</b> (0, 1 oder "
 "2 für R, G bzw. B) festgelegt.\n"
 "\n"
-"Der automatische Beschnitt der Ausgabesequenz kann mit dem Schlüsselwort <b>-"
-"framing=</b>, gefolgt von einer der Methoden in der Liste { current | min | "
-"max | cog } angegeben werden:\n"
+"Der automatische Beschnitt der Ausgabesequenz kann mit dem Schlüsselwort "
+"<b>-framing=</b>, gefolgt von einer der Methoden in der Liste { current | "
+"min | max | cog } angegeben werden:\n"
 "<b>-framing=max</b> (bounding box) fügt bei Bedarf einen schwarzen Rand um "
 "jedes Bild hinzu, damit kein Teil des Bildes bei der Registrierung "
 "abgeschnitten wird.\n"
@@ -19533,7 +19666,6 @@ msgstr ""
 "Äquatorialkoordinaten ermöglicht."
 
 #: src/core/command_def.h:164
-#, fuzzy
 msgid ""
 "Scales the sequence given in argument <b>sequencename</b>. Only selected "
 "images in the sequence are processed.\n"
@@ -19550,14 +19682,20 @@ msgid ""
 "The output sequence name starts with the prefix \"scaled_\" unless otherwise "
 "specified with <b>-prefix=</b> option"
 msgstr ""
-"Beschneidet die im Argument <b>sequencename</b> angegebene Sequenz. Es "
-"werden nur ausgewählte Bilder bearbeitet.\n"
+"Skaliert die im Argument <b>sequencename</b> angegebene Sequenz. Es werden "
+"nur ausgewählte Bilder bearbeitet.\n"
 "\n"
-"Die Auswahl des Ausschnitts wird durch die Position der oberen linken Ecke "
-"bestimmt <b>x</b> und <b>y</b> und der Auswahl <b>width</b> und <b>height</"
-"b>.\n"
-"Der Name der Ausgabesequenz beginnt mit dem Präfix \"cropped_\", sofern "
-"nicht mit der Option <b>-prefix=</b> anders angegeben"
+"Der Skalierungsfaktor wird entweder durch das Argument <b>-scale=</b> oder "
+"durch Festlegen der Ausgabebreite oder -höhe mit den Optionen <b>-width=</b> "
+"oder <b>-height=</b> angegeben.\n"
+"\n"
+"Eine Interpolationsmethode kann mit dem Argument <b>-interp=</b> angegeben "
+"werden, gefolgt von einer der Methoden in der Liste <b>ne</b>[arest], "
+"<b>cu</b>[bic], <b>la</b>[nczos4], <b>li</b>[near], <b>ar</b>[ea]}. Für "
+"kubische und Lanczos-Interpolation wird eine Klammerung angewendet.\n"
+"\n"
+"Der Name der Ausgabesequenz beginnt mit dem Präfix „scaled_“, sofern nicht "
+"anders mit der Option <b>-prefix=</b> angegeben"
 
 #: src/core/command_def.h:165
 msgid ""
@@ -19893,7 +20031,6 @@ msgstr ""
 "auch eine feste Speichermenge eingestellt werden"
 
 #: src/core/command_def.h:184
-#, fuzzy
 msgid ""
 "Gets or sets photometry settings, mostly used by SEQPSF. If arguments are "
 "provided, they will update the settings. None are mandatory, any can be "
@@ -19909,15 +20046,22 @@ msgid ""
 "\n"
 "Gain is used only if not available from the FITS header"
 msgstr ""
-"Ruft Photometrieeinstellungen ab oder legt diese fest, die hauptsächlich von "
-"SEQPSF verwendet werden. Wenn Argumente angegeben werden, werden die "
-"Einstellungen aktualisiert. Argumente sind nicht obligatorisch, alle können "
-"angegeben werden, Standardwerte werden in der Befehlssyntax angezeigt. Am "
-"Ende des Befehls wird die aktive Konfiguration gedruckt. Die Blende ist "
-"dynamisch, sofern sie nicht erzwungen wird. Der <b>aperture (Blendenwert)</"
-"b> aus den Einstellungen wird nicht verwendet, wenn dynamisch, stattdessen "
-"FWHM verwendet wird. Gain/Verstärkung wird nur verwendet, wenn sie nicht im "
-"FITS-Header verfügbar ist"
+"Ruft Photometrieeinstellungen ab oder legt sie fest, die hauptsächlich von "
+"SEQPSF verwendet werden. Wenn Argumente angegeben werden, aktualisieren sie "
+"die Einstellungen. Argumente sind nicht obligatorisch, es können Beliebige "
+"angegeben werden, Standardwerte werden in der Syntax des Befehls angezeigt. "
+"Am Ende des Befehls wird die aktive Konfiguration ausgegeben.\n"
+"\n"
+"Die Blendengröße ist dynamisch, sofern sie nicht erzwungen wird. In diesem "
+"Fall wird der <b>Blendenwert</b> (Aperture) aus den Einstellungen verwendet. "
+"Wenn dynamisch, wird der Radius der Blende durch das angegebene dynamische "
+"Verhältnis („Radius/halbe FWHM“) definiert.\n"
+"\n"
+"Erlaubte Werte für das Argument <b>-dyn_ratio</b> liegen im Bereich [1,0, "
+"5,0]. Ein Wert außerhalb dieses Bereichs setzt die Blende automatisch auf "
+"den festen Wert <b>-aperture</b>.\n"
+"\n"
+"Verstärkung wird nur verwendet, wenn sie nicht im FITS-Header verfügbar ist"
 
 #: src/core/command_def.h:185
 msgid ""
@@ -20079,7 +20223,6 @@ msgstr ""
 "ändern. Der Standardwert ist 20"
 
 #: src/core/command_def.h:192
-#, fuzzy
 msgid ""
 "Stacks the <b>sequencename</b> sequence, using options.\n"
 "\n"
@@ -20142,14 +20285,14 @@ msgstr ""
 "Stackt die <b>sequenzname</b>-Sequenz unter Verwendung von Optionen.\n"
 "\n"
 "Ausschluss-Typen:\n"
-"Die erlaubten Typen sind: \"sum\", \"max\", \"min\", \"med\" (oder "
-"\"median\") und \"rej\" (oder \"mean\"). Wird kein anderes Argument als der "
-"Name der Sequenz angegeben, wird der Summenstack angenommen.\n"
+"Die erlaubten Typen sind: \"sum\", \"max\", \"min\", \"med\" (oder \"median\""
+") und \"rej\" (oder \"mean\"). Wird kein anderes Argument als der Name der "
+"Sequenz angegeben, wird der Summenstack angenommen.\n"
 "\n"
-"Stapeln mit Ausschluss (Rejection):\n"
+"Stacking mit Ausschluss (Rejection):\n"
 "Die Typen <b>rej</b> oder <b>mean</b> erfordern die Verwendung zusätzlicher "
-"Argumente für Ablehnungstyp und -werte. Der Ablehnungstyp ist einer von "
-"{ n[one] | p[ercentile] | s[igma] | m[edian] | w[insorized] | l[inear] | "
+"Argumente für Ablehnungstyp und -werte. Der Ablehnungstyp ist einer von { "
+"n[one] | p[ercentile] | s[igma] | m[edian] | w[insorized] | l[inear] | "
 "g[eneralized] | [m]a[d]} für Percentile, Sigma, Median, Winsorized, Linear-"
 "Fit, Generalized Extreme Studentized Deviate Test oder k-MAD Clipping. Wird "
 "dies nicht angegeben, wird die Standardeinstellung (Winsorized) verwendet.\n"
@@ -20161,9 +20304,9 @@ msgstr ""
 "\n"
 "Normalisierung der Eingabebilder:\n"
 "Für die Stapeltypen<b>med</b> (oder <b>median</b>) und <b>rej</b> (oder "
-"<b>mean</b>) sind verschiedene Arten der Normalisierung zulässig: <b>-"
-"norm=add</b> für additiv, <b>-norm=mul</b> für multiplikativ. Die Optionen "
-"<b>-norm=addscale</b> und <b>-norm=mulscale</b> wenden die gleiche "
+"<b>mean</b>) sind verschiedene Arten der Normalisierung zulässig: "
+"<b>-norm=add</b> für additiv, <b>-norm=mul</b> für multiplikativ. Die "
+"Optionen <b>-norm=addscale</b> und <b>-norm=mulscale</b> wenden die gleiche "
 "Normalisierung an, aber mit Skalierungsoperationen. <b>-nonorm</b> ist die "
 "Option zum Ausschalten der Normalisierung. Ansonsten wird standardmäßig die "
 "additive Methode mit Skalierung angewendet.\n"
@@ -20187,6 +20330,12 @@ msgstr ""
 "werden. Andernfalls wird es als <b>sequencename</b>_stacked.fit benannt.\n"
 "<b>-output_norm</b> wendet eine Normalisierung am Ende des Stackings an, um "
 "das Ergebnis im Bereich [0, 1] neu zu skalieren.\n"
+"Die Option <b>-maximize</b> verwendet Registrierungsdaten aus der Sequenz, "
+"um ein gestacktes Bild zu erstellen, das alle Bilder der Sequenz umfasst ("
+"anwendbar auf alle Methoden außer Median-Stacking).\n"
+"Die Option <b>-upscale</b> skaliert die Sequenz vor dem Stapeln mithilfe der "
+"Registrierungsdaten um den Faktor 2 hoch (anwendbar auf alle Methoden außer "
+"Median-Stacking).\n"
 "\n"
 "Filtern von Bildern:\n"
 "Bilder, die gestackt werden sollen, können auf der Grundlage einiger Filter, "
@@ -21811,7 +21960,7 @@ msgstr "erzwingt Aperturwert"
 
 #: src/core/settings.c:371
 msgid "Radius/halfFWHM ratio"
-msgstr ""
+msgstr "Radius/Halb-FWHM Verhältnis"
 
 #: src/core/settings.c:372
 msgid "forced aperture for flux computation"
@@ -21930,9 +22079,8 @@ msgid "percent below and above the expected sampling to allow"
 msgstr "Erlaubter Prozentsatz unterhalb und oberhalb der erwarteten Probenahme"
 
 #: src/core/settings.c:402
-#, fuzzy
 msgid "default IAU observatory code"
-msgstr "Standard Anzeigemodus"
+msgstr "Standard IAU Observatoriumscode"
 
 #: src/core/settings.c:404
 msgid "panel size of aberration inspector"
@@ -22262,10 +22410,14 @@ msgstr "Lineare ICC-Farbprofile pedantisch zuweisen"
 #: src/core/settings.c:500
 msgid "mouse actions config. Opaque data structure, edit this using the GUI"
 msgstr ""
+"Mausaktionen-Konfiguration. Undurchsichtige Datenstruktur, bearbeiten Sie "
+"diese über die GUI"
 
 #: src/core/settings.c:501
 msgid "scroll actions config. Opaque data structure, edit this using the GUI"
 msgstr ""
+"Scroll-Aktionen-Konfiguration. Undurchsichtige Datenstruktur, bearbeiten Sie "
+"diese über die GUI"
 
 #: src/core/settings.c:502
 msgid "index of the compass position over grid"
@@ -22366,17 +22518,20 @@ msgstr "Um die PSF zu bestimmen, treffen Sie eine Auswahl um einen Stern."
 #: src/core/siril_actions.c:408
 #, c-format
 msgid "Using preferred observatory code %s\n"
-msgstr ""
+msgstr "Bevorzugten Observatoriumscode %s wird verwendet\n"
 
 #: src/core/siril_actions.c:413
 msgid ""
 "Invalid observatory code found in preferences. Code must be 3 characters. "
 "Resetting preference and using default geocentric observer code.\n"
 msgstr ""
+"Ungültiger Observatoriumscode in den Einstellungen gefunden. Der Code muss 3 "
+"Zeichen lang sein. Einstellungen werden zurückgesetzt und standardmäßiger "
+"geozentrischen Beobachtercode verwenden.\n"
 
 #: src/core/siril_actions.c:417
 msgid "Using default geocentric observer code\n"
-msgstr ""
+msgstr "Benutzte Standard geozentrischen Beobachtercode\n"
 
 #: src/core/siril_actions.c:487
 msgid "Save your changes before loading a frame of the sequence."
@@ -22604,13 +22759,12 @@ msgid "(invalid UTF-8 string)"
 msgstr "(ungültige UTF-8 Zeichenkette)"
 
 #: src/drizzle/cdrizzlebox.c:497
-#, fuzzy
 msgid "Out of memory"
-msgstr "Ungenügender Speicherplatz\n"
+msgstr "Ungenügender Speicherplatz"
 
 #: src/drizzle/cdrizzlebox.c:902
 msgid "Invalid kernel type"
-msgstr ""
+msgstr "Ungültiger Kerneltyp"
 
 #: src/drizzle/cdrizzleutil.c:123
 #, c-format
@@ -22621,6 +22775,11 @@ msgid ""
 "weight_scale:   %f\n"
 "scale:          %f\n"
 msgstr ""
+"DRIZZLE PARAMETER:\n"
+"Kernel:         %s\n"
+"Pixelanteil: %f\n"
+"Gewichtungsfaktor:   %f\n"
+"Skalierung:          %f\n"
 
 #: src/filters/asinh.c:77
 #, c-format
@@ -24463,96 +24622,96 @@ msgstr "Keine gültige Sequenz für das Cropping\n"
 
 #: src/gui/mouse_action_functions.c:309
 msgid "This action opens a new image if there is no image currently loaded"
-msgstr ""
+msgstr "Diese Aktion öffnet ein neues Bild, wenn aktuell kein Bild geladen ist"
 
 #: src/gui/mouse_action_functions.c:324
 msgid ""
 "This action starts a measurement from one point in the image to another. "
 "Releasing the button ends the measurement."
 msgstr ""
+"Mit dieser Aktion wird eine Messung von einem Punkt im Bild zum anderen "
+"gestartet. Durch Loslassen der Maustaste wird die Messung beendet."
 
 #: src/gui/mouse_action_functions.c:338
 msgid ""
 "This action toggles the image zoom level as configured in Preferences / User "
 "Interface"
 msgstr ""
+"Diese Aktion schaltet die Bildzoomstufe um, wie in Einstellungen / "
+"Benutzeroberfläche konfiguriert"
 
 #: src/gui/mouse_action_functions.c:378
 msgid "This action drags the image around the viewport"
-msgstr ""
+msgstr "Diese Aktion verschiebt das Bild im Ansichtsfenster"
 
 #: src/gui/mouse_action_functions.c:393
 msgid ""
 "This is the main Siril mouse action used for making selections, selecting "
 "background samples and previews, doing quick photometry etc."
 msgstr ""
+"Dies ist die wichtigste Siril-Mausaktion zum Erstellen von Auswahlen, "
+"Auswählen von Hintergrundbroben und Vorschaubereichen, zur schnellen "
+"Photometrie usw."
 
 #: src/gui/mouse_action_functions.c:538
 msgid ""
 "Remove background samples or photometry boxes, or show the mouse context menu"
 msgstr ""
+"Entfernt Hintergrundproben oder Photometrieboxen oder zeigt das "
+"Mauskontextmenü an"
 
 #: src/gui/mouse_action_functions.c:581
 msgid "This action sets the photometry box"
-msgstr ""
+msgstr "Diese Aktion setzt die Photometriebox"
 
 #: src/gui/mouse_action_functions.c:612
-#, fuzzy
 msgid "This action saves the current image"
-msgstr "Zeigt die inverse Darstellung des aktuellen Bildes"
+msgstr "Diese Aktion speichert das aktuelle Bild"
 
 #: src/gui/mouse_action_functions.c:624
-#, fuzzy
 msgid "This action saves the current image with a new name"
-msgstr "... oder speichern Sie das aktuelle FITS-Bild unter dem gleichen Namen"
+msgstr "Diese Aktion speichert das aktuelle Bild unter einem neuen Dateinamen"
 
 #: src/gui/mouse_action_functions.c:632
-#, fuzzy
 msgid "This action saves a snapshot of the current image"
-msgstr "Zeigt die inverse Darstellung des aktuellen Bildes"
+msgstr "Diese Aktion speichert einen Schnappschuss des aktuellen Bildes"
 
 #: src/gui/mouse_action_functions.c:640
-#, fuzzy
 msgid "This action undoes the last operation"
-msgstr ""
-"Verwenden Sie diese Schaltfläche, um eine Operation rückgängig zu machen"
+msgstr "Diese Aktion macht die letzte Operation rückgängig"
 
 #: src/gui/mouse_action_functions.c:650
-#, fuzzy
 msgid "This action redoes the last operation"
-msgstr "Verwenden Sie diese Schaltfläche, um eine Operation zu wiederholen"
+msgstr "Diese Option wiederholt den letzten Vorgang"
 
 #: src/gui/mouse_action_functions.c:660
-#, fuzzy
 msgid "This action finds stars in the current image"
-msgstr "Konnte im Referenzbild keine Sterne finden und breche ab.\n"
+msgstr "Diese Aktion findet Sterne im aktuellen Bild"
 
 #: src/gui/mouse_action_functions.c:672
-#, fuzzy
 msgid "This action plate solves the current image"
-msgstr "Zeigt die inverse Darstellung des aktuellen Bildes"
+msgstr "Diese Aktion erstellt eine astrometrische Lösung des aktuellen Bildes"
 
 #: src/gui/mouse_action_functions.c:680
-#, fuzzy
 msgid "This action opens the spectrophotometric color calibration dialog"
-msgstr "Dialog Spektrophotometrische Farb-Kalibrierung öffnen"
+msgstr "Diese Aktion öffnet den Dialog Spektrophotometrische Farb-Kalibrierung"
 
 #: src/gui/mouse_action_functions.c:698
 msgid "Scroll wheel zooms in / out"
-msgstr ""
+msgstr "Mausrad Zoom ein/aus"
 
 #: src/gui/mouse_action_functions.c:748
 msgid "Scroll wheel scrolls through the frames in the current sequence"
-msgstr ""
+msgstr "Mausrad scrollt durch die Bilder der aktuellen Sequenz"
 
 #: src/gui/mouse_action_functions.c:792
-#, fuzzy
 msgid "Error: image load failed, reloading reference image!\n"
-msgstr "Benutze %d als vorläufiges Referenzbild\n"
+msgstr ""
+"Fehler: Bild kann nicht geladen werden, Referenzbild wird erneut geladen!\n"
 
 #: src/gui/mouse_action_functions.c:799
 msgid "Scroll wheel scrolls through the Siril GUI tabs"
-msgstr ""
+msgstr "Mausrad scrollt durch die Tabs der Siril-Benutzeroberfläche"
 
 #. CHECKLIST FOR ADDING NEW MOUSE FUNCTIONS OR SCROLL FUNCTIONS
 #. *
@@ -24571,68 +24730,61 @@ msgstr ""
 #.
 #. Function metadata
 #: src/gui/mouse_action_functions.h:23
-#, fuzzy
 msgid "Main multifunction action"
-msgstr "Maximalfunktion."
+msgstr "Haupt-Multifunktionsaktion"
 
 #: src/gui/mouse_action_functions.h:27
 msgid "Drag"
-msgstr ""
+msgstr "Ziehen"
 
 #: src/gui/mouse_action_functions.h:35
 msgid "Open if nothing is loaded"
-msgstr ""
+msgstr "Öffnen falls nichts geladen ist"
 
 #: src/gui/mouse_action_functions.h:39
 msgid "Configurable zoom toggle"
-msgstr ""
+msgstr "Schalter für konfigurierbaren Zoom"
 
 #: src/gui/mouse_action_functions.h:43
-#, fuzzy
 msgid "Photometry box"
-msgstr "Photometrie"
+msgstr "Photometrie-Box"
 
 #: src/gui/mouse_action_functions.h:47
 msgid "Mouse Menu / Remove"
-msgstr ""
+msgstr "Maus Menu / Löschen"
 
 #: src/gui/mouse_action_functions.h:59
-#, fuzzy
 msgid "Save As"
-msgstr "Speichern"
+msgstr "Speichern Als"
 
 #: src/gui/mouse_action_functions.h:63
 msgid "Snapshot"
-msgstr ""
+msgstr "Schnappschuss"
 
 #: src/gui/mouse_action_functions.h:75
-#, fuzzy
 msgid "Find stars"
-msgstr "nb Sterne"
+msgstr "Finde Sterne"
 
 #: src/gui/mouse_action_functions.h:79
-#, fuzzy
 msgid "Plate solve"
-msgstr "Astrometrie / Plate Solving"
+msgstr "Astrometrische Lösung/Plate solve"
 
 #. Scroll functions
 #: src/gui/mouse_action_functions.h:88
 msgid "Scroll to zoom"
-msgstr ""
+msgstr "Scrollen zum Zoomen"
 
 #: src/gui/mouse_action_functions.h:92
-#, fuzzy
 msgid "Scroll through sequence"
-msgstr "Gesamte Sequenz lösen"
+msgstr "Durch die Sequenz scrollen"
 
 #: src/gui/mouse_action_functions.h:96
 msgid "Scroll through GUI tabs"
-msgstr ""
+msgstr "Scrollen durch Tabs der Benutzeroberfläche"
 
 #: src/gui/mouse_action_preferences.c:117
-#, fuzzy
 msgid "Mouse Configuration"
-msgstr "Konfiguration"
+msgstr "Mauskonfiguration"
 
 #: src/gui/mouse_action_preferences.c:117
 msgid ""
@@ -24641,29 +24793,33 @@ msgid ""
 "changed, the dialog can also be used to view current mouse action "
 "assignments and also provides a button to reset them to default settings."
 msgstr ""
+"Achtung: In diesem Dialog können Sie das Mausverhalten neu konfigurieren, "
+"sodass es möglicherweise nicht mehr der Dokumentation entspricht. Wenn Sie "
+"vergessen, welche Einstellungen Sie geändert haben, können Sie in diesem "
+"Dialog auch die aktuellen Mausaktionszuweisungen anzeigen und sie mit einer "
+"Schaltfläche auf die Standardeinstellungen zurücksetzen."
 
 #. Make the spin button editable and set digits to 0
 #. Connect the edited signal
 #: src/gui/mouse_action_preferences.c:210
 msgid "Button"
-msgstr ""
+msgstr "Taste"
 
 #. Connect the edited signal
 #: src/gui/mouse_action_preferences.c:219
-#, fuzzy
 msgid "Action"
-msgstr "Funktion"
+msgstr "Aktion"
 
 #. Connect the edited signal
 #: src/gui/mouse_action_preferences.c:231
 #: src/gui/mouse_action_preferences.c:499
 msgid "Modifier"
-msgstr ""
+msgstr "Modifikator"
 
 #: src/gui/mouse_action_preferences.c:272
 #, c-format
 msgid "Duplicate mouse_actions found with type: %d, state: %d, button: %d\n"
-msgstr ""
+msgstr "Doppelte Mausaktionen gefunden mit Typ: %d, Status: %d, Taste: %d\n"
 
 #: src/gui/mouse_action_preferences.c:278
 #, c-format
@@ -24671,16 +24827,20 @@ msgid ""
 "Double click action %s on button %u conflicts with single click action %s on "
 "the same button.\n"
 msgstr ""
+"Die Doppelklickaktion %s auf die Taste %u steht im Konflikt mit der "
+"Einzelklickaktion %s auf dieselbe Schaltfläche.\n"
 
 #: src/gui/mouse_action_preferences.c:283
 msgid ""
 "Main mouse action is not configured. This is essential for using Siril and "
 "must be assigned to a mouse action.\n"
 msgstr ""
+"Die Hauptmausaktion ist nicht konfiguriert. Diese ist für die Verwendung von "
+"Siril erforderlich und muss einer Mausaktion zugewiesen werden.\n"
 
 #: src/gui/mouse_action_preferences.c:288
 msgid "Invalid mouse action configuration"
-msgstr ""
+msgstr "Ungültige Konfiguration der Mausaktion"
 
 #: src/gui/mouse_action_preferences.c:288
 #: src/gui/mouse_action_preferences.c:541
@@ -24688,41 +24848,40 @@ msgid ""
 "There are conflicts between the actions you have configured. Please check "
 "the log for details and revise your action configuration."
 msgstr ""
+"Es gibt Konflikte zwischen den von Ihnen konfigurierten Aktionen. Bitte "
+"prüfen Sie das Protokoll auf Details und überarbeiten Sie Ihre "
+"Aktionskonfiguration."
 
 #: src/gui/mouse_action_preferences.c:331
 #: src/gui/mouse_action_preferences.c:569
 msgid "Warning: ignoring unconfigured action (\""
-msgstr ""
+msgstr "Warnung: Nicht konfigurierte Aktion wird ignoriert (\""
 
 #: src/gui/mouse_action_preferences.c:357
-#, fuzzy
 msgid "Mouse configuration updated successfully.\n"
-msgstr "Siril FFT-Weisheit erfolgreich aktualisiert...\n"
+msgstr "Mauskonfiguration erfolgreich aktualisiert.\n"
 
 #. Connect the edited signal
 #: src/gui/mouse_action_preferences.c:487
-#, fuzzy
 msgid "Direction"
-msgstr "Korrektur"
+msgstr "Richtung"
 
 #: src/gui/mouse_action_preferences.c:535
 #, c-format
 msgid "Duplicate scroll_actions found with state: %d, direction: %d\n"
-msgstr ""
+msgstr "Doppelte Scroll-Aktionen gefunden mit Status: %d, Richtung: %d\n"
 
 #: src/gui/mouse_action_preferences.c:541
 msgid "Invalid mouse scroll action configuration"
-msgstr ""
+msgstr "Ungültige Konfiguration der Maus-Scroll-Aktion"
 
 #: src/gui/mouse_action_preferences.c:608
-#, fuzzy
 msgid "Mouse scroll configuration updated successfully.\n"
-msgstr "Siril FFT-Weisheit erfolgreich aktualisiert...\n"
+msgstr "Maus-Scrollkonfiguration erfolgreich aktualisiert.\n"
 
 #: src/gui/mouse_action_preferences.c:647
-#, fuzzy
 msgid "Reset Mouse Actions"
-msgstr "Rücksetzen auf Zoom-Faktor = 1."
+msgstr "Mausaktionen zurücksetzen"
 
 #: src/gui/mouse_action_preferences.c:647
 msgid ""
@@ -24730,11 +24889,14 @@ msgid ""
 "It is not possible to undo this and you will need to reconfigure any "
 "changes. Are you sure?"
 msgstr ""
+"Dadurch werden alle Maustasten- und Scroll-Aktionen auf die "
+"Standardeinstellungen zurückgesetzt. Dies lässt sich nicht rückgängig machen "
+"und Sie müssen alle Änderungen neu konfigurieren. Sind Sie sicher?"
 
 #: src/gui/mouse_action_preferences.c:739
 #, c-format
 msgid "Scroll (vertical)"
-msgstr ""
+msgstr "Scroll (vertikal)"
 
 #: src/gui/mouse_action_preferences.c:743
 #, c-format
@@ -24744,17 +24906,17 @@ msgstr ""
 #: src/gui/mouse_action_preferences.c:749
 #, c-format
 msgid "Smooth scroll (vertical)"
-msgstr ""
+msgstr "Weiches Scrollen (vertikal)"
 
 #: src/gui/mouse_action_preferences.c:751
 #, c-format
 msgid "Smooth scroll (horizontal)"
-msgstr ""
+msgstr "Weiches Scrollen (horizontal)"
 
 #: src/gui/mouse_action_preferences.c:756
 #, c-format
 msgid "Button %u"
-msgstr ""
+msgstr "Taster %u"
 
 #: src/gui/mouse_action_preferences.c:811
 #: src/gui/mouse_action_preferences.c:819
@@ -24764,6 +24926,9 @@ msgid ""
 "Warning: when parsing mouse action config, config string parsed to an "
 "unknown function: \"%s\". Skipping..."
 msgstr ""
+"Warnung: Beim Parsen der Mausaktionskonfiguration wurde die "
+"Konfigurationszeichenfolge in eine unbekannte Funktion geparst: „%s“. Wird "
+"übersprungen..."
 
 #. Handle error: input format is incorrect
 #: src/gui/mouse_action_preferences.c:827
@@ -24772,6 +24937,8 @@ msgid ""
 "Warning: when parsing mouse action config, config string has incorrect "
 "format: \"%s\". Skipping..."
 msgstr ""
+"Warnung: Beim Parsen der Mausaktionskonfiguration hat die "
+"Konfigurationszeichenfolge das falsche Format: „%s“. Wird übersprungen..."
 
 #: src/gui/mouse_action_preferences.c:890
 #, c-format
@@ -24779,6 +24946,8 @@ msgid ""
 "Warning: when parsing scroll action config, string parsed to an unknown "
 "function: \"%s\". Skipping...\n"
 msgstr ""
+"Warnung: Beim Parsen der Scroll-Aktionskonfiguration wurde die Zeichenfolge "
+"in eine unbekannte Funktion geparst: „%s“. Wird übersprungen...\n"
 
 #. Handle error: input format is incorrect
 #: src/gui/mouse_action_preferences.c:898
@@ -24787,6 +24956,8 @@ msgid ""
 "Warning: when parsing mouse action config, string has incorrect format: "
 "\"%s\". Skipping...\n"
 msgstr ""
+"Warnung: Beim Parsen der Mausaktionskonfiguration hat die Zeichenfolge das "
+"falsche Format: „%s“. Wird übersprungen...\n"
 
 #: src/gui/newdeconv.c:280
 #, c-format
@@ -25063,14 +25234,13 @@ msgstr "CSV Datei (*.csv)"
 #. Definition of all the graphical items
 #. Top label
 #: src/gui/nina_light_curve.c:75
-#, fuzzy
 msgid ""
 "Process a sequence to get a light curve on a star using the list\n"
 "of reference stars created by Siril or the NINA exoplanet plugin"
 msgstr ""
-"Verarbeitet eine Sequenz, um eine Lichtkurve eines Sterns zu erhalten, indem "
-"Sie die Liste der Referenzsterne verwenden, die von Siril oder vom NINA "
-"Exoplanet Plugin erstellt wurde"
+"Verarbeitet eine Sequenz, um eine Lichtkurve für einen Stern zu erhalten,\n"
+"indem die von Siril oder dem NINA-Exoplaneten-Plugin erstellte Liste\n"
+"von Referenzsternen verwendet wird"
 
 #. Comp1 radio
 #: src/gui/nina_light_curve.c:84
@@ -25115,20 +25285,20 @@ msgid ""
 "The current aperture parameters are as follow:\n"
 "(they can be managed in the Preferences/Photometry tab)"
 msgstr ""
+"Die aktuellen Blendenparameter lauten wie folgt:\n"
+"(Sie können im Reiter „Einstellungen/Photometrie“ verwaltet werden)"
 
 #. Fill the 2nd box
 #. The label
 #: src/gui/nina_light_curve.c:154
-#, fuzzy
 msgid "Inner radius of the annulus (px):"
-msgstr "innerer Radius für den Hintergrundring"
+msgstr "Innerer Radius für den Hintergrundring (px):"
 
 #. Fill the 3rd box
 #. The label
 #: src/gui/nina_light_curve.c:171
-#, fuzzy
 msgid "Outer radius of the annulus (px):"
-msgstr "Außenradius für den Hintergrundring"
+msgstr "Außenradius für den Hintergrundring (px):"
 
 #: src/gui/nina_light_curve.c:221
 msgid "Choose a comparison stars file"
@@ -25389,6 +25559,8 @@ msgid ""
 "Error: invalid IAU observatory code read from preferences file. Code must be "
 "a 3-character code.\n"
 msgstr ""
+"Fehler: ungültiger IAU-Observatoriumscode aus der Voreinstellungsdatei "
+"gelesen. Der Code muss dreistellig sein.\n"
 
 #: src/gui/preferences.c:503
 #, c-format
@@ -25670,6 +25842,9 @@ msgid ""
 "<b>Apply Astrometric Registration</b>: This algorithm computes the "
 "transforms between plate-solved images  of a sequence and applies them"
 msgstr ""
+"<b>Astrometrische Registrierung anwenden</b>: Dieser Algorithmus berechnet "
+"die Transformationen zwischen astrometrisch gelösten Bildern einer Sequenz "
+"und wendet sie an"
 
 #: src/gui/registration.c:72
 msgid ""
@@ -25711,9 +25886,8 @@ msgid "Comet/Asteroid Registration"
 msgstr "Kometen-/Asteroiden-Registrierung"
 
 #: src/gui/registration.c:205
-#, fuzzy
 msgid "Apply Astrometric Registration"
-msgstr "Vorhandene Registrierung anwenden"
+msgstr "Astrometrische Registrierung anwenden"
 
 #: src/gui/registration.c:207
 msgid "Apply Existing Registration"
@@ -25732,6 +25906,8 @@ msgstr "Registriere %d Bildern aus %d aus der Sequenz"
 #: src/gui/registration.c:556
 msgid "Max framing not allowed with fitseq, change to regular FITS images"
 msgstr ""
+"Maximale Rahmung mit Fitseq nicht zulässig. Wechsel zu regulären FITS-"
+"Bildern."
 
 #: src/gui/registration.c:562
 msgid "Astrometric registration not allowed for SER sequences, change method"
@@ -25746,9 +25922,8 @@ msgid "Failed to determine registration method...\n"
 msgstr "Die Registrierungsmethode konnte nicht ermittelt werden...\n"
 
 #: src/gui/registration.c:676
-#, fuzzy
 msgid "Supported Bayer pattern detected"
-msgstr "Nicht gespeicherte Bayer-Musterzusammenführung"
+msgstr "Unterstütztes Bayermuster erkannt"
 
 #: src/gui/registration.c:677
 msgid ""
@@ -25757,9 +25932,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/registration.c:679
-#, fuzzy
 msgid "Unsupported CFA pattern detected"
-msgstr "Falsche Parameter festgestellt"
+msgstr "Nicht unterstützte CFA-Muster erkannt"
 
 #: src/gui/registration.c:680
 msgid ""
@@ -25768,9 +25942,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/registration.c:699
-#, fuzzy
 msgid "Platesolve the sequence first"
-msgstr "Laden Sie zuerst eine Sequenz"
+msgstr "Führen Sie zuerst eine astrometrische Lösung der Sequenz durch"
 
 #: src/gui/registration.c:717 src/gui/registration.c:726
 msgid "Select images in the sequence"
@@ -25815,17 +25988,15 @@ msgstr ""
 "nur eine Verschiebung sein. Abbruch\n"
 
 #: src/gui/registration.c:940
-#, fuzzy
 msgid ""
 "Insterpolation cannot be set to None for astrometric alignment. Aborting\n"
 msgstr ""
-"Wenn die Interpolation auf \"Nicht\" gesetzt ist, kann die Transformation "
-"nur eine Verschiebung sein. Abbruch\n"
+"Die Interpolation kann für die astrometrische Ausrichtung nicht auf None "
+"(Keine) eingestellt werden. Abbruch\n"
 
 #: src/gui/registration.c:968
-#, fuzzy
 msgid "Error: unable to read reference frame metadata\n"
-msgstr "Fehler: Sternloses Bild kann nicht aus TIFF gelesen werden...\n"
+msgstr "Fehler: Kann keine Metadaten aus dem Referenzbild laden\n"
 
 #: src/gui/registration_preview.c:76
 #, c-format
@@ -27770,9 +27941,8 @@ msgstr ""
 "Möchten Sie die Psf-Daten als Registrierungsdaten für diese Ebene speichern?"
 
 #: src/io/sequence.c:1961 src/registration/3stars.c:262
-#, fuzzy
 msgid "Could not load metadata"
-msgstr "Konnte Datei %s nicht einlesen"
+msgstr "Kann keine Metadaten laden"
 
 #: src/io/sequence.c:1974 src/registration/3stars.c:281
 msgid ""
@@ -29232,9 +29402,9 @@ msgstr "Für diese Ebene existieren keine Registrierungsdaten\n"
 
 #: src/registration/applyreg.c:116 src/registration/applyreg.c:204
 #: src/registration/astrometric.c:370
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d has no overlap with the reference\n"
-msgstr "Das Bild konnte nicht an den Referenzsternen ausgerichtet werden\n"
+msgstr "Bild %d überlappt das Referenzbild nicht\n"
 
 #: src/registration/applyreg.c:151 src/registration/astrometric.c:381
 msgid "The intersection of all images is null or negative\n"
@@ -29256,9 +29426,8 @@ msgid "Frame %d:\n"
 msgstr "Frame %d:\n"
 
 #: src/registration/applyreg.c:361
-#, fuzzy
 msgid "Error generating mapping array.\n"
-msgstr "Fehler beim Verschachteln des Bildes\n"
+msgstr "Fehler beim erzeugen der Mapping-Matrix\n"
 
 #: src/registration/applyreg.c:517
 msgid "Applying registration completed.\n"
@@ -29426,12 +29595,12 @@ msgid "Recomputing already existing registration for this layer\n"
 msgstr "Neuberechnung existierender Registrierung für diesen Layer\n"
 
 #: src/registration/global.c:145
-#, fuzzy
 msgid ""
 "Registering a sequence opened as CFA: the resulting sequence should be "
 "drizzled.\n"
 msgstr ""
-"Die Registrierung einer als CFA eröffneten Sequenz ist eine schlechte Idee.\n"
+"Registrierung einer als CFA eröffneten Sequenz: Die Ergebnissequenz sollte "
+"gedrizzelt werden.\n"
 
 #: src/registration/global.c:159
 #, c-format
@@ -29649,20 +29818,21 @@ msgstr ""
 "Sequenz cog entfernt ist, d.h. innerhalb der zulässigen Grenzen\n"
 
 #: src/registration/astrometric.c:144
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d has not been plate-solved, unselecting\n"
-msgstr "Das Bild hat bereits eine astrometrische Lösung. Wird übersprungen\n"
+msgstr "Bild %d hat keine astrometrische Lösung. Wird abgewählt\n"
 
 #: src/registration/astrometric.c:206
-#, fuzzy, c-format
+#, c-format
 msgid "Could not compute camera parameters of image %d from sequence %s\n"
-msgstr "Konnte Teilbild %d aus Sequenz %s nicht laden\n"
+msgstr ""
+"Kameraparameter des Bildes %d aus der Sequenz %s konnten nicht berechnet "
+"werden.\n"
 
 #. and we prepare the mapping that will be used for all images
 #: src/registration/astrometric.c:310
-#, fuzzy
 msgid "Computing distortion mapping\n"
-msgstr "Berechne Normalisierung\n"
+msgstr "Verzerrungsabbildung berechnen\n"
 
 #: src/registration/astrometric.c:312
 msgid "Done\n"
@@ -29674,9 +29844,9 @@ msgid " (assuming a scaling factor of %.2f)"
 msgstr ""
 
 #: src/registration/astrometric.c:391
-#, fuzzy, c-format
+#, c-format
 msgid "Output image: %d x %d pixels%s\n"
-msgstr "Neue Bildgröße: %dx%d Pixel.\n"
+msgstr "Ausgabebild: %d x %d Pixel%s\n"
 
 #: src/registration/astrometric.c:396
 #, c-format
