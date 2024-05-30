@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-05-25 22:11+0200\n"
-"PO-Revision-Date: 2024-05-30 14:32+0000\n"
+"PO-Revision-Date: 2024-05-30 14:36+0000\n"
 "Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
 "Language-Team: German <https://weblate.pixls.us/projects/siril/"
 "siril-application/de/>\n"
@@ -15607,10 +15607,11 @@ msgstr ""
 "vor dem Stacking anwenden\n"
 
 #: src/core/command.c:7929
-#, fuzzy
 msgid ""
 "No registration data in the sequence. Maximize framing will be ignored\n"
-msgstr "Für diese Sequenz existieren keine Registrierungsdaten, Abbruch\n"
+msgstr ""
+"Für diese Sequenz existieren keine Registrierungsdaten, Rahmungsmethode "
+"Maximum wird ignoriert\n"
 
 #: src/core/command.c:7933
 msgid ""
@@ -15937,13 +15938,14 @@ msgid "A newer version of Siril is required, please update your version.\n"
 msgstr "Eine neuere Version von SIRIL wird benötigt. Bitte aktualisieren.\n"
 
 #: src/core/command.c:8939
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "The script you are executing has been marked as obsolete for this version of "
 "Siril (%s), aborting. Check for an update to the script.\n"
 msgstr ""
-"Das Skript, das Sie ausführen, benötigt zur Ausführung eine neuere Version "
-"von SIRIL (%s) und wird abgebrochen.\n"
+"Das Skript, das Sie gerade ausführen, wurde für diese Version von Siril (%s) "
+"als veraltet markiert und wird abgebrochen. Prüfen Sie, ob eine "
+"Aktualisierung des Skripts vorliegt.\n"
 
 #: src/core/command.c:8941
 #, c-format
@@ -17137,7 +17139,6 @@ msgstr ""
 "eine neue Datei erstellt, ihrem Namen wird „Green_“ vorangestellt"
 
 #: src/core/command_def.h:44
-#, fuzzy
 msgid ""
 "Extracts H-Alpha signal from the loaded CFA image. It reads the Bayer matrix "
 "information from the image or the preferences and exports only the red "
@@ -17148,8 +17149,11 @@ msgid ""
 msgstr ""
 "Extrahiert das H-Alpha-Signal aus dem geladenen CFA-Bild. Es liest die Bayer-"
 "Matrix-Informationen aus dem Bild oder den Einstellungen und exportiert nur "
-"die Rotfilterdaten als neue FITS-Datei halber Größe. Eine neue Datei wird "
-"erstellt, ihrem Namen wird „Ha_“ vorangestellt"
+"die Rotfilterdaten als neue FITS-Datei halber Größe. Wenn das Argument "
+"<b>upscale</b> angegeben wird, wird die Ausgabe x2 hochskaliert, um die "
+"volle Sensorauflösung zu erreichen, z.B. um mit anderen Bildern der gleichen "
+"Sensorfamilie übereinzustimmen. Eine neue Datei wird erstellt, ihrem Namen "
+"wird „Ha_“ vorangestellt"
 
 #: src/core/command_def.h:45
 msgid ""
