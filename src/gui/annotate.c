@@ -236,12 +236,12 @@ static show_params* parse_show_ui() {
 	show_params *params = g_new0(show_params, 1);
 	params->display_log = BOOL_NOT_SET;
 	params->display_tag = BOOL_NOT_SET;
-	GtkEntry *show_entry = GTK_ENTRY(lookup_widget("show_file_entry"));
+	params->name = NULL;
 
 	const gchar *visible_child_name = gtk_stack_get_visible_child_name(GTK_STACK(lookup_widget("stack_show")));
 
 	if (!g_strcmp0("page0", visible_child_name)) {
-	    const gchar *input = gtk_entry_get_text(show_entry);
+	    const gchar *input = gtk_entry_get_text(GTK_ENTRY(lookup_widget("show_file_entry")));
 		if (input != NULL && strlen(input) != 0) {
 			params->file = g_strdup(input);
 		}
@@ -256,6 +256,10 @@ static show_params* parse_show_ui() {
 			params->coords = siril_world_cs_new_from_objct_ra_dec((gchar *)ra, (gchar *)dec);
 		} else {
 			params->coords = NULL;
+		}
+	    const gchar *name_entry = gtk_entry_get_text(GTK_ENTRY(lookup_widget("show_name_entry")));
+		if (name_entry != NULL && strlen(name_entry) != 0) {
+			params->name = g_strdup(name_entry);
 		}
 	}
 
