@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-05-25 22:11+0200\n"
-"PO-Revision-Date: 2024-05-29 09:37+0000\n"
+"PO-Revision-Date: 2024-05-30 11:37+0000\n"
 "Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application/zh_Hans/>\n"
@@ -715,7 +715,7 @@ msgstr "使用文件头中的坐标"
 msgid ""
 "Use the coordinates contained in each image header instead of those given in "
 "this dialog"
-msgstr ""
+msgstr "使用每个图像头中包含的坐标，而不是此对话框中给出的坐标"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1081
 msgid "Use pixel size from headers"
@@ -725,7 +725,7 @@ msgstr "使用文件头中的像素尺寸"
 msgid ""
 "Use the pixel size contained in each image header instead of those given in "
 "this dialog"
-msgstr ""
+msgstr "使用每个图像头中包含的像素尺寸，而不是此对话框中给出的像素尺寸"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1098
 msgid "Use focal length from headers"
@@ -735,7 +735,7 @@ msgstr "使用文件头中的焦距"
 msgid ""
 "Use the focal length contained in each image header instead of those given "
 "in this dialog"
-msgstr ""
+msgstr "使用每个图像头中包含的焦距，而不是此对话框中给出的焦距"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1119 src/gui/uifiles/siril.ui:4431
 #: src/gui/callbacks.c:2164
@@ -8363,7 +8363,7 @@ msgstr "重心"
 
 #: src/gui/uifiles/siril.ui:6069
 msgid "Estimates the final size and space used by the stacked image."
-msgstr ""
+msgstr "估算叠加后图像的最终大小和空间。"
 
 #: src/gui/uifiles/siril.ui:6135
 msgid "Registration method:"
@@ -9366,7 +9366,7 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:8938
 msgid "Maximize framing"
-msgstr ""
+msgstr "最大化取景"
 
 #: src/gui/uifiles/siril.ui:8941
 msgid ""
@@ -9374,6 +9374,8 @@ msgid ""
 "the selected frames of the sequence.\n"
 "                                                            "
 msgstr ""
+"如果选中此按钮，最终图像大小将被放大以适合序列的所有选定帧。\n"
+"                                                            "
 
 #: src/gui/uifiles/siril.ui:8956
 msgid ""
@@ -9382,6 +9384,9 @@ msgid ""
 "registration but will not produced images as sharp.\n"
 "                                                            "
 msgstr ""
+"如果选中此按钮，最终图像大小将放大 2 倍。这可能比在对齐期间获得的真实 "
+"drizzle 图像更快，但不会产生如此清晰的图像。\n"
+"                                                            "
 
 #. Must be short
 #: src/gui/uifiles/siril.ui:8983
@@ -11253,6 +11258,10 @@ msgid ""
 "software you will need to multiply the values by 100, for example using the "
 "Siril command \"fmul 100\"\n"
 msgstr ""
+"注意：L* 同道缩放为范围为 0.0 - 1.0 中的值，以帮助在 Siril 中进行编辑。CIE "
+"L*a*b* 色彩空间将 L* 定义为 0.0 - 100.0 的范围，因此，"
+"如果您需要在其他软件中将其用作真正的 L* 同道，则需要将值乘以 100，例如使用 "
+"Siril 命令“fmul 100”\n"
 
 #: src/algos/colors.c:1091 src/algos/colors.c:1182 src/algos/noise.c:86
 #: src/algos/photometric_cc.c:662 src/algos/star_finder.c:69
@@ -11800,13 +11809,13 @@ msgstr "使用 %d 颗星来校准光变曲线\n"
 #, c-format
 msgid ""
 "Error bars-- (%d images) median: %.2lfmmag, max: %.2lfmmag, min: %.2lfmmag\n"
-msgstr ""
+msgstr "误差线-（%d 图像）中位数：%.2lfmmag，最大值：%.2lfmmag，最小值：%.2lfmmag\n"
 
 #: src/algos/photometry.c:501
 #, c-format
 msgid ""
 "Variable star SNR-- (%d images) median: %.2lfdB, max: %.2lfdB, min: %.2lfdB\n"
-msgstr ""
+msgstr "变星信噪比--（%d图像）中值：%.2lfdB，最大值：%.2lfdB，最小值：%.2lfdB\n"
 
 #: src/algos/photometry.c:511
 #, c-format
@@ -12961,7 +12970,7 @@ msgstr "熵：%.3f\n"
 
 #: src/core/command.c:1098
 msgid "Warning: d > approx. 25 may result in lengthy execution times.\n"
-msgstr ""
+msgstr "警告：d > 大约 25 可能会导致执行时间过长。\n"
 
 #: src/core/command.c:1129
 msgid "-si= value must be > 0.0 and <= 65535\n"
@@ -12979,7 +12988,7 @@ msgstr "-ss= value must be > 0.0 and <= 32.0\n"
 msgid ""
 "Warning: spatial sigma > approx. 20 with auto diameter may result in lengthy "
 "execution times.\n"
-msgstr ""
+msgstr "警告：spatial sigma>约为 20 可能会导致执行时间过长。\n"
 
 #: src/core/command.c:1147
 msgid "-mod= value must be > 0.0 and <= 1.0\n"
@@ -12997,7 +13006,7 @@ msgstr "错误：导星图像尺寸不匹配\n"
 msgid ""
 "Warning: d = 0.0 cannot be used to specify automatic diameter when using a "
 "guided filter. Setting d to default value of 5.\n"
-msgstr ""
+msgstr "警告：使用导星滤镜时，d = 0.0 不能用于指定自动直径。将 d 设置为默认值 5。\n"
 
 #: src/core/command.c:1197
 msgid "Reference image is undefined, the following would be used:\n"
@@ -13543,7 +13552,7 @@ msgstr "孔径"
 
 #: src/core/command.c:3504
 msgid "dynamic aperture"
-msgstr ""
+msgstr "动态孔径"
 
 #: src/core/command.c:3506
 msgid "forced"
@@ -13551,7 +13560,7 @@ msgstr "强制"
 
 #: src/core/command.c:3506
 msgid "times the half-FWHM"
-msgstr ""
+msgstr "乘以半FWHM"
 
 #: src/core/command.c:3526
 #, c-format
@@ -14011,7 +14020,7 @@ msgstr "CieLAB"
 
 #: src/core/command.c:5843
 msgid "Upscaling x2\n"
-msgstr ""
+msgstr "放大 x2\n"
 
 #: src/core/command.c:6064
 #, c-format
@@ -14022,7 +14031,7 @@ msgstr "重构 %s 拜耳阵列。\n"
 msgid ""
 "Statistics cannot be made on CFA images with a selection smaller than a 2x2 "
 "square, aborting\n"
-msgstr ""
+msgstr "无法对选区小于 2x2 正方形的 CFA 图像进行统计，异常中止\n"
 
 #: src/core/command.c:6278
 #, c-format
@@ -14177,7 +14186,7 @@ msgstr "没有足够的空间来保存输出图像，异常终止。\n"
 
 #: src/core/command.c:7155
 msgid "Upscaling a sequence with -noout or -2pass has no effect, ignoring\n"
-msgstr ""
+msgstr "使用 -noout 或 -2pass 放大序列没有效果，忽略\n"
 
 #: src/core/command.c:7163
 msgid ""
@@ -14254,7 +14263,7 @@ msgstr "未使用平场：图像尺寸不一致"
 #. no need to deal with bitdepth conversion as readfits has already forced conversion to float
 #: src/core/command.c:7452 src/gui/registration.c:138
 msgid "Master flat read for use as initial pixel weight\n"
-msgstr ""
+msgstr "主平场读取，用作初始化像素权重\n"
 
 #: src/core/command.c:7455 src/core/preprocess.c:892 src/gui/registration.c:140
 #: src/livestacking/gui.c:286
@@ -14274,7 +14283,7 @@ msgstr "图层 #%d 的对齐数据不存在，将改用图层 #%d。\n"
 
 #: src/core/command.c:7559
 msgid "-upscale is not compatible with -drizzle, choose one or the other.\n"
-msgstr ""
+msgstr "-upscale 与 -drizzle 不兼容，选择一个或另一个。\n"
 
 #: src/core/command.c:7576
 msgid "Registration: Applying existing data"
@@ -14288,7 +14297,7 @@ msgstr "无法载入序列的参考帧，异常中止。\n"
 
 #: src/core/command.c:7718
 msgid "Scaling factor should be between 0.1 and 2, aborting.\n"
-msgstr "缩放因子应在 0.1 至 2 之间，异常终止。\n"
+msgstr "缩放比例应在 0.1 至 2 之间，异常终止。\n"
 
 #: src/core/command.c:7741
 msgid "Registration: Applying existing astrometric data"
@@ -14385,23 +14394,23 @@ msgstr "序列中没有对齐数据。最大化取景将被忽略\n"
 msgid ""
 "The sequence has different image sizes and registration data. Forcing to "
 "maximize framing\n"
-msgstr ""
+msgstr "该序列具有不同的图像大小和对齐数据。强制最大化取景\n"
 
 #: src/core/command.c:7937
 msgid ""
 "The sequence has different image sizes but no registration data, cannot "
 "stack. Aborting\n"
-msgstr ""
+msgstr "序列具有不同的图像大小，但没有对齐数据，无法叠加。异常中止\n"
 
 #: src/core/command.c:7942
 msgid ""
 "No registration data in the sequence or images with different sizes. Upscale "
 "at stacking will be ignored\n"
-msgstr ""
+msgstr "序列中没有对齐数据或存在不同大小的图像。叠加时的放大将被忽略\n"
 
 #: src/core/command.c:7946
 msgid "Cannot upscale or maximize framong with median stacking. Disabling\n"
-msgstr ""
+msgstr "无法通过中位数叠加来放大或最大化取景。禁用\n"
 
 #: src/core/command.c:8011
 #, c-format
@@ -14670,7 +14679,7 @@ msgstr "请求的Siril版本可用。\n"
 msgid ""
 "This script has been marked as obsolete for this version of Siril, please "
 "check for an update to the script.\n"
-msgstr ""
+msgstr "此脚本已在此版本的 Siril 中标记为过时，请检查脚本的更新。\n"
 
 #: src/core/command.c:8935
 msgid "A newer version of Siril is required, please update your version.\n"
@@ -16915,6 +16924,12 @@ msgid ""
 "1.2.x series and 1.3.x series, but will not run for any versions earlier "
 "than 1.2.0 or for version 1.4.0 or any later versions"
 msgstr ""
+"如果 Siril 的版本早于第一个参数中传递的最低要求版本，则返回错误。（可选）"
+"为脚本已过时的 Siril 版本获取第二个参数：如果 Siril "
+"的版本<b>新或等于</b>则返回错误。\n"
+"\n"
+"示例：<i>requires 1.2.0 1.4.0</i> 允许脚本针对所有 1.2.x 系列和 1.3.x "
+"系列运行，但不会针对 1.2.0 之前的任何版本或版本 1.4.0 或任何更高版本运行"
 
 #: src/core/command_def.h:119
 msgid ""
@@ -19845,7 +19860,7 @@ msgstr "强制光通量孔径"
 
 #: src/core/settings.c:371
 msgid "Radius/halfFWHM ratio"
-msgstr ""
+msgstr "半径/半FWHM比"
 
 #: src/core/settings.c:372
 msgid "forced aperture for flux computation"
@@ -20291,11 +20306,11 @@ msgstr "学术式地分配线性 ICC 描述文件"
 
 #: src/core/settings.c:500
 msgid "mouse actions config. Opaque data structure, edit this using the GUI"
-msgstr ""
+msgstr "鼠标动作配置。不透明的数据结构，请使用 GUI 进行编辑"
 
 #: src/core/settings.c:501
 msgid "scroll actions config. Opaque data structure, edit this using the GUI"
-msgstr ""
+msgstr "滚动操作配置。不透明的数据结构，请使用 GUI 进行编辑"
 
 #: src/core/settings.c:502
 msgid "index of the compass position over grid"
@@ -20402,7 +20417,7 @@ msgstr "在首选项中发现无效的天文台代码。代码必须为 3 "
 
 #: src/core/siril_actions.c:417
 msgid "Using default geocentric observer code\n"
-msgstr ""
+msgstr "使用默认的地心观测者代码\n"
 
 #: src/core/siril_actions.c:487
 msgid "Save your changes before loading a frame of the sequence."
@@ -20622,7 +20637,7 @@ msgstr "内存不足"
 
 #: src/drizzle/cdrizzlebox.c:902
 msgid "Invalid kernel type"
-msgstr ""
+msgstr "无效的内核类型"
 
 #: src/drizzle/cdrizzleutil.c:123
 #, c-format
@@ -20633,6 +20648,11 @@ msgid ""
 "weight_scale:   %f\n"
 "scale:          %f\n"
 msgstr ""
+"DRIZZLING 参数:\n"
+"kernel:         %s\n"
+"pixel_fraction: %f\n"
+"weight_scale:   %f\n"
+"scale:          %f\n"
 
 #: src/filters/asinh.c:77
 #, c-format
@@ -22336,23 +22356,23 @@ msgstr "此序列不能裁切。\n"
 
 #: src/gui/mouse_action_functions.c:309
 msgid "This action opens a new image if there is no image currently loaded"
-msgstr ""
+msgstr "如果当前没有加载任何图像，则此动作将打开一个新图像"
 
 #: src/gui/mouse_action_functions.c:324
 msgid ""
 "This action starts a measurement from one point in the image to another. "
 "Releasing the button ends the measurement."
-msgstr ""
+msgstr "此动作从图像中的一个点开始测量到另一个点。松开按钮结束测量。"
 
 #: src/gui/mouse_action_functions.c:338
 msgid ""
 "This action toggles the image zoom level as configured in Preferences / User "
 "Interface"
-msgstr ""
+msgstr "此动作切换在首选项/用户界面中配置的图像缩放级别"
 
 #: src/gui/mouse_action_functions.c:378
 msgid "This action drags the image around the viewport"
-msgstr ""
+msgstr "此动作将图像拖动到观察点周围"
 
 #: src/gui/mouse_action_functions.c:393
 msgid ""
@@ -22403,20 +22423,19 @@ msgstr "此动作将打开光谱法色彩校准对话框"
 
 #: src/gui/mouse_action_functions.c:698
 msgid "Scroll wheel zooms in / out"
-msgstr ""
+msgstr "滚轮放大/缩小"
 
 #: src/gui/mouse_action_functions.c:748
 msgid "Scroll wheel scrolls through the frames in the current sequence"
-msgstr ""
+msgstr "滚轮滚动浏览当前序列中的帧"
 
 #: src/gui/mouse_action_functions.c:792
-#, fuzzy
 msgid "Error: image load failed, reloading reference image!\n"
-msgstr "使用图像 %d 作为临时参考帧\n"
+msgstr "错误：图像加载失败，重新加载参考图像！\n"
 
 #: src/gui/mouse_action_functions.c:799
 msgid "Scroll wheel scrolls through the Siril GUI tabs"
-msgstr ""
+msgstr "滚轮滚动浏览 Siril GUI 选项卡"
 
 #. CHECKLIST FOR ADDING NEW MOUSE FUNCTIONS OR SCROLL FUNCTIONS
 #. *
@@ -22440,15 +22459,15 @@ msgstr "主要多功能动作"
 
 #: src/gui/mouse_action_functions.h:27
 msgid "Drag"
-msgstr ""
+msgstr "拖拽"
 
 #: src/gui/mouse_action_functions.h:35
 msgid "Open if nothing is loaded"
-msgstr ""
+msgstr "如果未加载任何内容，则打开"
 
 #: src/gui/mouse_action_functions.h:39
 msgid "Configurable zoom toggle"
-msgstr ""
+msgstr "可配置的缩放切换"
 
 #: src/gui/mouse_action_functions.h:43
 msgid "Photometry box"
@@ -22456,45 +22475,40 @@ msgstr "测光框"
 
 #: src/gui/mouse_action_functions.h:47
 msgid "Mouse Menu / Remove"
-msgstr ""
+msgstr "鼠标菜单/删除"
 
 #: src/gui/mouse_action_functions.h:59
-#, fuzzy
 msgid "Save As"
-msgstr "保存"
+msgstr "另存为"
 
 #: src/gui/mouse_action_functions.h:63
 msgid "Snapshot"
-msgstr ""
+msgstr "快照"
 
 #: src/gui/mouse_action_functions.h:75
-#, fuzzy
 msgid "Find stars"
-msgstr "星数"
+msgstr "查找星点"
 
 #: src/gui/mouse_action_functions.h:79
-#, fuzzy
 msgid "Plate solve"
-msgstr "图像解析"
+msgstr "解析"
 
 #. Scroll functions
 #: src/gui/mouse_action_functions.h:88
 msgid "Scroll to zoom"
-msgstr ""
+msgstr "滚动到缩放"
 
 #: src/gui/mouse_action_functions.h:92
-#, fuzzy
 msgid "Scroll through sequence"
-msgstr "解析整个序列"
+msgstr "滚动序列"
 
 #: src/gui/mouse_action_functions.h:96
 msgid "Scroll through GUI tabs"
-msgstr ""
+msgstr "滚动浏览 GUI 选项卡"
 
 #: src/gui/mouse_action_preferences.c:117
-#, fuzzy
 msgid "Mouse Configuration"
-msgstr "配置"
+msgstr "鼠标配置"
 
 #: src/gui/mouse_action_preferences.c:117
 msgid ""
@@ -22503,58 +22517,60 @@ msgid ""
 "changed, the dialog can also be used to view current mouse action "
 "assignments and also provides a button to reset them to default settings."
 msgstr ""
+"警告：此对话框允许您重新配置鼠标行为，使其可能不再与文档匹配。如果您忘记更改"
+"了哪些设置，该对话框还可用于查看当前的鼠标动作分配，并提供一个按钮将其重置为"
+"默认设置。"
 
 #. Make the spin button editable and set digits to 0
 #. Connect the edited signal
 #: src/gui/mouse_action_preferences.c:210
 msgid "Button"
-msgstr ""
+msgstr "按钮"
 
 #. Connect the edited signal
 #: src/gui/mouse_action_preferences.c:219
-#, fuzzy
 msgid "Action"
-msgstr "函数"
+msgstr "动作"
 
 #. Connect the edited signal
 #: src/gui/mouse_action_preferences.c:231
 #: src/gui/mouse_action_preferences.c:499
 msgid "Modifier"
-msgstr ""
+msgstr "修饰"
 
 #: src/gui/mouse_action_preferences.c:272
 #, c-format
 msgid "Duplicate mouse_actions found with type: %d, state: %d, button: %d\n"
-msgstr ""
+msgstr "找到的重复mouse_actions类型：%d，状态：%d，按钮：%d\n"
 
 #: src/gui/mouse_action_preferences.c:278
 #, c-format
 msgid ""
 "Double click action %s on button %u conflicts with single click action %s on "
 "the same button.\n"
-msgstr ""
+msgstr "双击按钮动作 %s 与同一按钮 %u 上的单击动作 %s 冲突。\n"
 
 #: src/gui/mouse_action_preferences.c:283
 msgid ""
 "Main mouse action is not configured. This is essential for using Siril and "
 "must be assigned to a mouse action.\n"
-msgstr ""
+msgstr "未配置鼠标主动作。这对于使用 Siril 至关重要，必须给鼠标分配动作。\n"
 
 #: src/gui/mouse_action_preferences.c:288
 msgid "Invalid mouse action configuration"
-msgstr ""
+msgstr "鼠标动作配置无效"
 
 #: src/gui/mouse_action_preferences.c:288
 #: src/gui/mouse_action_preferences.c:541
 msgid ""
 "There are conflicts between the actions you have configured. Please check "
 "the log for details and revise your action configuration."
-msgstr ""
+msgstr "您配置的动作之间存在冲突。请查看日志了解详细信息并修改您的动作配置。"
 
 #: src/gui/mouse_action_preferences.c:331
 #: src/gui/mouse_action_preferences.c:569
 msgid "Warning: ignoring unconfigured action (\""
-msgstr ""
+msgstr "警告：忽略未配置的动作 （”"
 
 #: src/gui/mouse_action_preferences.c:357
 msgid "Mouse configuration updated successfully.\n"
@@ -22568,11 +22584,11 @@ msgstr "方向"
 #: src/gui/mouse_action_preferences.c:535
 #, c-format
 msgid "Duplicate scroll_actions found with state: %d, direction: %d\n"
-msgstr ""
+msgstr "找到状态：%d，方向：%d 的重复scroll_actions\n"
 
 #: src/gui/mouse_action_preferences.c:541
 msgid "Invalid mouse scroll action configuration"
-msgstr ""
+msgstr "鼠标滚轮动作配置无效"
 
 #: src/gui/mouse_action_preferences.c:608
 msgid "Mouse scroll configuration updated successfully.\n"
@@ -22587,32 +22603,33 @@ msgid ""
 "This will reset all mouse button and scroll actions to the default settings. "
 "It is not possible to undo this and you will need to reconfigure any "
 "changes. Are you sure?"
-msgstr ""
+msgstr "这将重置所有鼠标按钮并将滚轮动作重置为默认设置。无法撤消此操作，您需要重新配"
+"置所有的更改。是否确定？"
 
 #: src/gui/mouse_action_preferences.c:739
 #, c-format
 msgid "Scroll (vertical)"
-msgstr ""
+msgstr "滚动（垂直）"
 
 #: src/gui/mouse_action_preferences.c:743
 #, c-format
 msgid "Scroll (horizontal)"
-msgstr ""
+msgstr "滚动（水平）"
 
 #: src/gui/mouse_action_preferences.c:749
 #, c-format
 msgid "Smooth scroll (vertical)"
-msgstr ""
+msgstr "平滑滚动（垂直）"
 
 #: src/gui/mouse_action_preferences.c:751
 #, c-format
 msgid "Smooth scroll (horizontal)"
-msgstr ""
+msgstr "平滑滚动（ 水平）"
 
 #: src/gui/mouse_action_preferences.c:756
 #, c-format
 msgid "Button %u"
-msgstr ""
+msgstr "按钮 %u"
 
 #: src/gui/mouse_action_preferences.c:811
 #: src/gui/mouse_action_preferences.c:819
@@ -22621,7 +22638,7 @@ msgstr ""
 msgid ""
 "Warning: when parsing mouse action config, config string parsed to an "
 "unknown function: \"%s\". Skipping..."
-msgstr ""
+msgstr "警告：解析鼠标动作配置时，配置字符串解析为未知功能：“%s”。跳过..."
 
 #. Handle error: input format is incorrect
 #: src/gui/mouse_action_preferences.c:827
@@ -22629,14 +22646,14 @@ msgstr ""
 msgid ""
 "Warning: when parsing mouse action config, config string has incorrect "
 "format: \"%s\". Skipping..."
-msgstr ""
+msgstr "警告：解析鼠标动作配置时，配置字符串的格式不正确：“%s”。跳过..."
 
 #: src/gui/mouse_action_preferences.c:890
 #, c-format
 msgid ""
 "Warning: when parsing scroll action config, string parsed to an unknown "
 "function: \"%s\". Skipping...\n"
-msgstr ""
+msgstr "警告：解析滚轮动作配置时，字符串解析为未知功能：“%s”。跳过...\n"
 
 #. Handle error: input format is incorrect
 #: src/gui/mouse_action_preferences.c:898
@@ -22644,7 +22661,7 @@ msgstr ""
 msgid ""
 "Warning: when parsing mouse action config, string has incorrect format: "
 "\"%s\". Skipping...\n"
-msgstr ""
+msgstr "警告：解析鼠标动作配置时，字符串的格式不正确：“%s”。跳过...\n"
 
 #: src/gui/newdeconv.c:280
 #, c-format
@@ -23442,7 +23459,7 @@ msgstr ""
 msgid ""
 "<b>Apply Astrometric Registration</b>: This algorithm computes the "
 "transforms between plate-solved images  of a sequence and applies them"
-msgstr ""
+msgstr "<b>应用天体测量对齐</b>：该算法计算序列已解析图像之间的变换并应用它们"
 
 #: src/gui/registration.c:72
 msgid ""
@@ -23498,11 +23515,11 @@ msgstr "对齐 %d 个图像于序列 %d"
 
 #: src/gui/registration.c:556
 msgid "Max framing not allowed with fitseq, change to regular FITS images"
-msgstr ""
+msgstr "fitseq 不允许最大取景，更改为常规 FITS 图像"
 
 #: src/gui/registration.c:562
 msgid "Astrometric registration not allowed for SER sequences, change method"
-msgstr ""
+msgstr "SER 序列不允许天体测量对齐，更改方法"
 
 #: src/gui/registration.c:626
 msgid "not available for sequences with variable image sizes"
@@ -23513,31 +23530,28 @@ msgid "Failed to determine registration method...\n"
 msgstr "无法确定对齐方法...\n"
 
 #: src/gui/registration.c:676
-#, fuzzy
 msgid "Supported Bayer pattern detected"
-msgstr "未保存的拜耳阵列合并"
+msgstr "检测到支持的拜耳阵列"
 
 #: src/gui/registration.c:677
 msgid ""
 "This sequence can be registered with the Bayer pattern intact based on "
 "registering the green layer with red and blue pixels interpolated"
-msgstr ""
+msgstr "该序列可以完整地对齐拜耳模式，这是基于用插值的红色和蓝色像素对齐绿色图层"
 
 #: src/gui/registration.c:679
-#, fuzzy
 msgid "Unsupported CFA pattern detected"
-msgstr "错误的参数"
+msgstr "检测到不支持的 CFA 模式"
 
 #: src/gui/registration.c:680
 msgid ""
 "This sequence cannot be registered with the CFA pattern intact. You must "
 "debayer it prior to registration"
-msgstr ""
+msgstr "此序列不能在 CFA 模式下完整的对齐。您必须在对齐前对其进行 debayer"
 
 #: src/gui/registration.c:699
-#, fuzzy
 msgid "Platesolve the sequence first"
-msgstr "请先载入序列"
+msgstr "请先对序列进行解析"
 
 #: src/gui/registration.c:717 src/gui/registration.c:726
 msgid "Select images in the sequence"
@@ -23576,15 +23590,13 @@ msgid ""
 msgstr "当插值设置为“无”时，变换只能设置为“平移”。异常中止\n"
 
 #: src/gui/registration.c:940
-#, fuzzy
 msgid ""
 "Insterpolation cannot be set to None for astrometric alignment. Aborting\n"
-msgstr "当插值设置为“无”时，变换只能设置为“平移”。异常中止\n"
+msgstr "对于天体测量对齐，Insterpolation 不能设置为 None。异常中止\n"
 
 #: src/gui/registration.c:968
-#, fuzzy
 msgid "Error: unable to read reference frame metadata\n"
-msgstr "错误：无法读取StarNet输出文件...\n"
+msgstr "错误：无法读取参考帧元数据\n"
 
 #: src/gui/registration_preview.c:76
 #, c-format
@@ -24225,7 +24237,7 @@ msgstr ""
 
 #: src/gui/utils.c:362
 msgid "Error: unknown CFA pattern\n"
-msgstr ""
+msgstr "错误：未知的 CFA 模式\n"
 
 #: src/io/aavso_extended.c:206
 msgid "Number of images is not enough\n"
@@ -25200,7 +25212,7 @@ msgstr "此序列文件由更新版本的siril创建，可能无法按预期载�
 msgid ""
 "Seq file had info to upscale at stacking. This must now be passed as a "
 "stacking option\n"
-msgstr ""
+msgstr "Seq文件有信息可以在叠加时放大。现在必须将其作为叠加选项传递\n"
 
 #: src/io/seqfile.c:542
 #, c-format
@@ -25371,9 +25383,8 @@ msgstr ""
 "是否要将psf数据作为本图层的对齐数据保存？"
 
 #: src/io/sequence.c:1961 src/registration/3stars.c:262
-#, fuzzy
 msgid "Could not load metadata"
-msgstr "无法加载文件"
+msgstr "无法加载元数据"
 
 #: src/io/sequence.c:1974 src/registration/3stars.c:281
 msgid ""
@@ -26720,7 +26731,7 @@ msgstr "图像 %d 与参考帧没有重叠\n"
 
 #: src/registration/applyreg.c:151 src/registration/astrometric.c:381
 msgid "The intersection of all images is null or negative\n"
-msgstr ""
+msgstr "所有图像的交集均为零或负\n"
 
 #: src/registration/applyreg.c:181
 #, c-format
@@ -26737,9 +26748,8 @@ msgid "Frame %d:\n"
 msgstr "第%d帧：\n"
 
 #: src/registration/applyreg.c:361
-#, fuzzy
 msgid "Error generating mapping array.\n"
-msgstr "交错图像时出错\n"
+msgstr "生成映射数组时出错。\n"
 
 #: src/registration/applyreg.c:517
 msgid "Applying registration completed.\n"
@@ -26756,11 +26766,11 @@ msgstr "变换中止。\n"
 
 #: src/registration/applyreg.c:678
 msgid "Initializing drizzle data..."
-msgstr ""
+msgstr "初始化 drizzle 数据..."
 
 #: src/registration/applyreg.c:721
 msgid "Unsupported SER CFA pattern detected. Treating as mono.\n"
-msgstr ""
+msgstr "检测到不受支持的 SER CFA 模式。被视为单色。\n"
 
 #: src/registration/applyreg.c:745
 msgid "Apply registration"
@@ -26817,7 +26827,7 @@ msgstr "取景范围\"cog\"要求全部图像尺寸相同，异常中止\n"
 #: src/registration/applyreg.c:915 src/registration/astrometric.c:385
 msgid ""
 "Unselect the images generating the error or change framing method to max\n"
-msgstr ""
+msgstr "取消选择生成错误的图像或将取景方法更改为最大化\n"
 
 #: src/registration/applyreg.c:923
 msgid ""
@@ -26885,11 +26895,10 @@ msgid "Recomputing already existing registration for this layer\n"
 msgstr "对该图层重新计算已经有的对齐数据\n"
 
 #: src/registration/global.c:145
-#, fuzzy
 msgid ""
 "Registering a sequence opened as CFA: the resulting sequence should be "
 "drizzled.\n"
-msgstr "在CFA模式的序列上进行对齐是个坏主意。\n"
+msgstr "对齐作为 CFA 打开的序列：生成的序列应进行 drizzle 处理。\n"
 
 #: src/registration/global.c:159
 #, c-format
@@ -27082,29 +27091,28 @@ msgid ""
 msgstr "序列对齐后，我们发现图像 %d 距离序列重心 %2.1fpx，即在允许的范围内\n"
 
 #: src/registration/astrometric.c:144
-#, fuzzy, c-format
+#, c-format
 msgid "Image %d has not been plate-solved, unselecting\n"
-msgstr "图像 %d 已解析，跳过\n"
+msgstr "图像 %d 尚未进行解析，取消选择\n"
 
 #: src/registration/astrometric.c:206
-#, fuzzy, c-format
+#, c-format
 msgid "Could not compute camera parameters of image %d from sequence %s\n"
-msgstr "无法载入部分图像%d，从序列%s中\n"
+msgstr "无法计算图像 %d 的相机参数，序列 %s\n"
 
 #. and we prepare the mapping that will be used for all images
 #: src/registration/astrometric.c:310
-#, fuzzy
 msgid "Computing distortion mapping\n"
-msgstr "计算归一化...\n"
+msgstr "计算失真映射\n"
 
 #: src/registration/astrometric.c:312
 msgid "Done\n"
-msgstr ""
+msgstr "完成\n"
 
 #: src/registration/astrometric.c:390
 #, c-format
 msgid " (assuming a scaling factor of %.2f)"
-msgstr ""
+msgstr " （假设缩放比例为 %.2f）"
 
 #: src/registration/astrometric.c:391
 #, c-format
@@ -27114,12 +27122,11 @@ msgstr "输出图像：%d x %d 像素%s\n"
 #: src/registration/astrometric.c:396
 #, c-format
 msgid "Space required for storage: %s\n"
-msgstr ""
+msgstr "存储所需空间：%s\n"
 
 #: src/registration/astrometric.c:492
-#, fuzzy
 msgid "Creating the warped images sequence"
-msgstr "创建对齐的图像序列"
+msgstr "创建扭曲图像序列"
 
 #: src/stacking/median_and_mean.c:77
 msgid "Opening images for stacking"
