@@ -330,8 +330,6 @@ static gboolean script_version_check(const gchar* filename) {
 			if (requires.major_version == 0 && requires.minor_version == 0 && requires.micro_version == 0)
 				continue;
 			if (versions[1]) {
-				if (fullObsoletedVersion) // ensure no storage is leaked if the while loop finds a second "requires"
-					g_free(fullObsoletedVersion);
 				fullObsoletedVersion = g_strsplit_set(versions[1], ".-", -1);
 				if (fullObsoletedVersion[0])
 					obsoleted.major_version = g_ascii_strtoull(fullObsoletedVersion[0], NULL, 10);
