@@ -8,10 +8,10 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-05-25 22:11+0200\n"
-"PO-Revision-Date: 2024-05-02 09:47+0000\n"
+"PO-Revision-Date: 2024-05-30 14:32+0000\n"
 "Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
-"Language-Team: German <https://weblate.pixls.us/projects/siril/siril-"
-"application/de/>\n"
+"Language-Team: German <https://weblate.pixls.us/projects/siril/"
+"siril-application/de/>\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -778,9 +778,8 @@ msgstr ""
 "Position/Auflösung verwendet."
 
 #: src/gui/uifiles/astrometry_dialog.ui:1064
-#, fuzzy
 msgid "Use coordinates from headers"
-msgstr "Nutze Koordinaten vom Bild-Header: %f, %f\n"
+msgstr "Beutze Koordinaten vom Bild-Header"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1068
 msgid ""
@@ -789,9 +788,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/astrometry_dialog.ui:1081
-#, fuzzy
 msgid "Use pixel size from headers"
-msgstr "Benutze Pixelgröße vom Bild: %.2f\n"
+msgstr "Benutze Pixelgröße vom Bild-Header"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1085
 msgid ""
@@ -800,9 +798,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/astrometry_dialog.ui:1098
-#, fuzzy
 msgid "Use focal length from headers"
-msgstr "Verwende Brennweite aus dem Bild: %.2f\n"
+msgstr "Verwende Brennweite aus dem Bild-Header"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1102
 msgid ""
@@ -4384,23 +4381,20 @@ msgid "Sequences"
 msgstr "Sequenzen"
 
 #: src/gui/uifiles/mouse_actions.ui:9
-#, fuzzy
 msgid "Mouse Action Preferences"
-msgstr "Einstellungen zurücksetzen"
+msgstr "Einstellung Mausaktionen"
 
 #: src/gui/uifiles/mouse_actions.ui:111
 msgid "Add an extra mouse action"
 msgstr ""
 
 #: src/gui/uifiles/mouse_actions.ui:126
-#, fuzzy
 msgid "Remove the selected mouse action"
-msgstr "Entferne ausgewählte Datei"
+msgstr "Entferne die ausgewählte Mausaktion"
 
 #: src/gui/uifiles/mouse_actions.ui:139 src/gui/mouse_action_preferences.c:720
-#, fuzzy
 msgid "Mouse button / scroll check"
-msgstr "Klick mit mittlerer Maustaste"
+msgstr "Mousetaste / Scroll-Check"
 
 #: src/gui/uifiles/mouse_actions.ui:156
 msgid ""
@@ -4413,23 +4407,20 @@ msgid "Mouse Click Actions"
 msgstr ""
 
 #: src/gui/uifiles/mouse_actions.ui:227
-#, fuzzy
 msgid "Add a scroll action"
-msgstr "Stern aus Auswahl zur Liste hinzufügen"
+msgstr "Scrollaktion hinzufügen"
 
 #: src/gui/uifiles/mouse_actions.ui:242
-#, fuzzy
 msgid "Remove a scroll action"
-msgstr "Speicherzuweisung"
+msgstr "Scrollaction entfernen"
 
 #: src/gui/uifiles/mouse_actions.ui:255
 msgid " "
 msgstr ""
 
 #: src/gui/uifiles/mouse_actions.ui:271
-#, fuzzy
 msgid "Scroll Actions"
-msgstr "Auswahl"
+msgstr "Scrollaktionen"
 
 #: src/gui/uifiles/pixelmath.ui:81 src/gui/uifiles/seqlist_dialog.ui:56
 msgid "Sequence List"
@@ -6115,15 +6106,14 @@ msgid "Automatic with a Radius/half-FWHM ratio of:"
 msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:2705
-#, fuzzy
 msgid ""
 "Check this option to have Siril automatically calculate the aperture radius "
 "with the specified radius/half-FWHM ratio. When unchecked, you can set a "
 "fixed radius value in the box below."
 msgstr ""
-"Aktivieren Sie diese Option, damit Siril den Blendenradius automatisch "
-"berechnet. Wenn diese Option nicht aktiviert ist, können Sie den Radiuswert "
-"im Feld darunter festlegen."
+"Aktivieren Sie diese Option, damit Siril den Blendenradius automatisch mit "
+"dem angegebenen Radius/Halbe.FWHM Verhältnis berechnet. Wenn diese Option "
+"nicht aktiviert ist, können Sie den Radiuswert im Feld darunter festlegen."
 
 #: src/gui/uifiles/settings_window.ui:2720
 msgid "Radius/half-FWHM ratio"
@@ -6433,14 +6423,12 @@ msgid "Zoom toggles between fit and 100%"
 msgstr "Zoom schaltet zwischen passend und 100% um"
 
 #: src/gui/uifiles/settings_window.ui:3735
-#, fuzzy
 msgid "Configure mouse button actions"
-msgstr "Konfiguration"
+msgstr "Konfiguration Aktionen der Maustasten"
 
 #: src/gui/uifiles/settings_window.ui:3739
-#, fuzzy
 msgid "Open the mouse action configuration dialog"
-msgstr "Öffnen Sie den Dialog zur kosmischen Korrektur"
+msgstr "Öffnen Sie den Dialog zur Konfiguration der Mausaktionen"
 
 #: src/gui/uifiles/settings_window.ui:3758
 msgid "Mouse Behaviour"
@@ -7700,14 +7688,12 @@ msgid "Median Filter..."
 msgstr "Median Filter..."
 
 #: src/gui/uifiles/siril.ui:1441
-#, fuzzy
 msgid "Open the edge preserving filters dialog"
-msgstr "Dialog Medianfilter öffnen"
+msgstr "Öffnet den Dialog für kantenerhaltende Filter"
 
 #: src/gui/uifiles/siril.ui:1443
-#, fuzzy
 msgid "Edge Preserving Filters..."
-msgstr ", helligkeitserhaltend"
+msgstr "Kantenerhaltende Filter..."
 
 #: src/gui/uifiles/siril.ui:1456
 msgid "Open the denoise dialog"
@@ -8562,7 +8548,6 @@ msgstr ""
 "Rahmen entsteht."
 
 #: src/gui/uifiles/siril.ui:4708
-#, fuzzy
 msgid ""
 "Dark subtraction can be optimized. Siril offers two ways of doing this.\n"
 "- The first method automatically evaluates the coefficients to be applied so "
@@ -8588,7 +8573,7 @@ msgstr ""
 "\n"
 "Dunkelbildoptimierung ist hilfreich, wenn die Darks nicht unter optimalen "
 "Bedingungen erstellt wurden. Es kompensiert Unterschiede in Temperatur und/"
-"oder Belichtungszeit zwischen Ligts und Darks.\n"
+"oder Belichtungszeit zwischen Lights und Darks.\n"
 "\n"
 "<b>WARNUNG:</b> Wenden SIe die Dunkelbildoptimierung nicht auf das Master-"
 "Dark an wenn vorher nicht das Master-Bias abgezogen wurde."
@@ -9318,9 +9303,8 @@ msgid "Image selection:"
 msgstr "Bildauswahl:"
 
 #: src/gui/uifiles/siril.ui:6652 src/gui/uifiles/siril.ui:8953
-#, fuzzy
 msgid "Interpolation upscaling x2"
-msgstr "Interpolation"
+msgstr "Interpolation Hochskalierung x2"
 
 #: src/gui/uifiles/siril.ui:6656
 msgid ""
@@ -9357,14 +9341,12 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/siril.ui:6716
-#, fuzzy
 msgid "WCS"
-msgstr "CDS"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:6729
-#, fuzzy
 msgid "Drizzle mapping method"
-msgstr "Rahmungsmethode"
+msgstr "Drizzle Mappingmethode"
 
 #: src/gui/uifiles/siril.ui:6741
 msgid "Drizzle Scale"
@@ -9381,9 +9363,8 @@ msgid "1.00"
 msgstr ""
 
 #: src/gui/uifiles/siril.ui:6768
-#, fuzzy
 msgid "Pixel Fraction"
-msgstr "Pixelausschluss:"
+msgstr "Pixelanteil"
 
 #: src/gui/uifiles/siril.ui:6779
 msgid ""
@@ -9403,28 +9384,24 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/siril.ui:6810
-#, fuzzy
 msgid "Square"
-msgstr "Quadriert"
+msgstr "Quadrat"
 
 #: src/gui/uifiles/siril.ui:6812
-#, fuzzy
 msgid "Point"
-msgstr "Schwarz-Punkt"
+msgstr "Punkt"
 
 #: src/gui/uifiles/siril.ui:6813
 msgid "Turbo"
 msgstr ""
 
 #: src/gui/uifiles/siril.ui:6814
-#, fuzzy
 msgid "Lanczos2"
-msgstr "Lanczos-4"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:6815
-#, fuzzy
 msgid "Lanczos3"
-msgstr "Lanczos-4"
+msgstr ""
 
 #: src/gui/uifiles/siril.ui:6832
 msgid "Drizzle Mapping"
@@ -9445,9 +9422,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/siril.ui:6872
-#, fuzzy
 msgid "Pixel weighting"
-msgstr "Pixelausschluss:"
+msgstr "Pixelgewichtung"
 
 #: src/gui/uifiles/siril.ui:6901
 msgid "Save transformation in seq file only"
@@ -9490,9 +9466,8 @@ msgstr ""
 "Asteroiden-Algorithmus mehrfach angewandt werden soll."
 
 #: src/gui/uifiles/siril.ui:6937
-#, fuzzy
 msgid "Undistort images"
-msgstr "nicht im Bild"
+msgstr "UnverzerrteBilder"
 
 #: src/gui/uifiles/siril.ui:6941
 msgid ""
@@ -11839,9 +11814,9 @@ msgstr ""
 "Die obere Position in Bezug auf N ist unbestimmt (zu nahe an einem Pol)\n"
 
 #: src/algos/astrometry_solver.c:564
-#, fuzzy, c-format
+#, c-format
 msgid "Up is %+.2lf deg CounterclockWise wrt. N%s\n"
-msgstr "Oben ist %+.2lf Grad im Uhrzeigersinn wrt. N%s\n"
+msgstr "Oben ist %+.2lf Grad entgegen dem Uhrzeigersinn wrt. N%s\n"
 
 #: src/algos/astrometry_solver.c:564
 msgid " (flipped)"
@@ -12668,9 +12643,8 @@ msgid "Crop Sequence"
 msgstr "Sequenz zuschneiden"
 
 #: src/algos/geometry.c:788
-#, fuzzy
 msgid "Scale Sequence"
-msgstr "Sequenz säubern"
+msgstr "Sequenz skalieren"
 
 #: src/algos/noise.c:57
 msgid "Noise standard deviation: calculating...\n"
@@ -13816,9 +13790,9 @@ msgid "This command is deprecated: %s should be used instead.\n"
 msgstr "Dieser Befehl ist veraltet: Stattdessen sollte %s verwendet werden.\n"
 
 #: src/core/command.c:136
-#, fuzzy, c-format
+#, c-format
 msgid "The %s option is deprecated: %s should be used instead.\n"
-msgstr "Dieser Befehl ist veraltet: Stattdessen sollte %s verwendet werden.\n"
+msgstr "Die Option %s ist veraltet: Stattdessen sollte %s verwendet werden.\n"
 
 #: src/core/command.c:156
 msgid ""
@@ -14083,19 +14057,16 @@ msgid "Warning: d > approx. 25 may result in lengthy execution times.\n"
 msgstr ""
 
 #: src/core/command.c:1129
-#, fuzzy
 msgid "-si= value must be > 0.0 and <= 65535\n"
-msgstr "Fehler: B muss >= 0,0 und <= 15,0 liegen.\n"
+msgstr "-si= Wert muss >0.0 und <=65535 sein\n"
 
 #: src/core/command.c:1134
-#, fuzzy
 msgid "-d= value must be > 0.0 and <= 20.0\n"
-msgstr "Fehler: D muss > 0,0 und <= 10,0 liegen.\n"
+msgstr "-d=Wert muss >0.0 und <=20.0 sein\n"
 
 #: src/core/command.c:1139
-#, fuzzy
 msgid "-ss= value must be > 0.0 and <= 32.0\n"
-msgstr "Fehler: D muss > 0,0 und <= 10,0 liegen.\n"
+msgstr "-ss= Wert muss >0.0 und <=32.0 sein\n"
 
 #: src/core/command.c:1144
 msgid ""
@@ -14104,19 +14075,16 @@ msgid ""
 msgstr ""
 
 #: src/core/command.c:1147
-#, fuzzy
 msgid "-mod= value must be > 0.0 and <= 1.0\n"
-msgstr "Fehler: D muss > 0,0 und <= 10,0 liegen.\n"
+msgstr "-mod= Wert muss >0.0 und <=1.0 sein\n"
 
 #: src/core/command.c:1156
-#, fuzzy
 msgid "Error: guide image could not be loaded\n"
-msgstr "Fehler: Bild konnte nicht geladen werden"
+msgstr "Fehler: Leitbild konnte nicht geladen werden\n"
 
 #: src/core/command.c:1164
-#, fuzzy
 msgid "Error: guide image dimensions do not match\n"
-msgstr "Fehler: Bilder stimmen nicht überein"
+msgstr "Fehler: Abmessungen des Leitbildes stimmen nicht überein\n"
 
 #: src/core/command.c:1171
 msgid ""
@@ -14702,19 +14670,18 @@ msgid "minimum value must be smaller than the maximum\n"
 msgstr "der Mindestwert muss kleiner sein als der Höchstwert\n"
 
 #: src/core/command.c:3501
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Local background annulus radius: %.1f to %.1f, %s: %.1f (%s), camera "
 "conversion gain: %f e-/ADU, using pixels with values ]%f, %f[\n"
 msgstr ""
-"Lokaler Hintergrund-Ringradius: %.1f bis %.1f, Blende: %.1f (%s), Kamera-"
-"Konversionsverstärkung: %f e-/ADU, unter Verwendung von Pixeln mit "
+"Lokaler Hintergrund-Radius des Annulus: %.1f bis %.1f, Blende: %.1f (%s), "
+"Kamera-Konversionsverstärkung: %f e-/ADU, unter Verwendung von Pixeln mit "
 "Werten ]%f, %f[\n"
 
 #: src/core/command.c:3504
-#, fuzzy
 msgid "aperture"
-msgstr "Flussblende"
+msgstr "Blende"
 
 #: src/core/command.c:3504
 msgid "dynamic aperture"
@@ -14984,29 +14951,25 @@ msgstr ""
 "der Referenz oder des aktuellen Bildes erforderlich ist\n"
 
 #: src/core/command.c:4442
-#, fuzzy
 msgid "Error: height cannot be less than 10, aborting.\n"
-msgstr "Breite und Höhe dürfen nicht 0 sein. Keine Größenanpassung.\n"
+msgstr "Fehler: Höhe kann nicht kleiner als 10 sein, breche ab\n"
 
 #: src/core/command.c:4454
-#, fuzzy
 msgid "Error: width cannot be less than 10, aborting.\n"
-msgstr "Fehler beim Öffnen der SER-Datei %s. Abbruch.\n"
+msgstr "Fehler: Breite kann nicht kleiner als 10 sein, breche ab\n"
 
 #: src/core/command.c:4466 src/core/command.c:4518
-#, fuzzy
 msgid "Error: scale cannot be less than 0.01, aborting.\n"
-msgstr "Fehler beim Öffnen der SER-Datei %s. Abbruch.\n"
+msgstr "Fehler: Maßstab kann nicht kleiner als 0.01 sein, breche ab\n"
 
 #: src/core/command.c:4473
-#, fuzzy, c-format
+#, c-format
 msgid "Error parsing argument to -scale= (%s), aborting.\n"
-msgstr "Falsche Argumente, Abbruch.\n"
+msgstr "Fehler beim interpretieren des Arguments -scale=(%s), breche ab\n"
 
 #: src/core/command.c:4526
-#, fuzzy
 msgid "Scale is 1.0, nothing to do.\n"
-msgstr "Skalierung ist 1.0. Tue nichts.\n"
+msgstr "Skalierung ist 1.0. Nichts zu tun\n"
 
 #: src/core/command.c:4549
 #, c-format
@@ -15464,28 +15427,26 @@ msgstr "Für diese Sequenz existieren keine Registrierungsdaten, Abbruch\n"
 
 #. handling mono case
 #: src/core/command.c:7377
-#, fuzzy
 msgid "This sequence is not mono / CFA, cannot drizzle.\n"
-msgstr "Diese Sequenz ist Mono, Layernummer wird ignoriert.\n"
+msgstr "Diese Sequenz ist nicht monochrom / CFA, kann nicht drizzeln.\n"
 
 #: src/core/command.c:7422
-#, fuzzy
 msgid "Error: flat image already set. Aborting.\n"
-msgstr "Falsche Argumente, Abbruch.\n"
+msgstr "Fehler: Flatbild bereits gesetzt, breche ab\n"
 
 #: src/core/command.c:7426
-#, fuzzy
 msgid "Error: flat image cannot work with variable sized sequence.\n"
-msgstr "Fehler: Diese Option kann nicht für Sequenzen verwendet werden.\n"
+msgstr ""
+"Fehler: Flatbild kann nicht mit Sequenzen mit variablen Abmessungen "
+"arbeiten\n"
 
 #: src/core/command.c:7435 src/core/preprocess.c:876 src/gui/registration.c:119
 msgid "NOT USING FLAT: could not parse the expression"
 msgstr "KEIN FLAT GENUTZT: Der Ausdruck konnte nicht geparst werden"
 
 #: src/core/command.c:7440 src/gui/registration.c:124
-#, fuzzy
 msgid "Error: no master flat specified in the preprocessing tab.\n"
-msgstr "Fehler: kein Dateiname angegeben, Abbruch.\n"
+msgstr "Fehler: Kein Master-Flat im Tab Kalibrierung angegeben\n"
 
 #: src/core/command.c:7446 src/core/preprocess.c:883 src/gui/registration.c:132
 msgid "NOT USING FLAT: number of channels is different"
@@ -15533,14 +15494,12 @@ msgid "Could not load the reference image of the sequence, aborting.\n"
 msgstr "Das Referenzbild der Sequenz konnte nicht geladen werden, Abbruch.\n"
 
 #: src/core/command.c:7718
-#, fuzzy
 msgid "Scaling factor should be between 0.1 and 2, aborting.\n"
-msgstr "Fehlerhafte Potenz %s, muß zwischen 0.0 und 10.0 liegen: Abbruch\n"
+msgstr "Skalierungsfaktor sollte zwischen 0.1 und 2 liegen, breche ab\n"
 
 #: src/core/command.c:7741
-#, fuzzy
 msgid "Registration: Applying existing astrometric data"
-msgstr "Registrierung: wende vorhandene Daten an"
+msgstr "Registrierung: Anwendung vorhandener astrometrischer Daten"
 
 #: src/core/command.c:7763
 msgid ""
@@ -22596,7 +22555,7 @@ msgstr "Sie haben keine Schreib-Berechtigung im Verzeichnis: %s\n"
 #: src/core/utils.c:1062
 #, c-format
 msgid "Setting CWD (Current Working Directory) to '%s'\n"
-msgstr "Legen Sie das aktuelle Arbeitsverzeichnis fest '%s'\n"
+msgstr "Lege das aktuelle Arbeitsverzeichnis fest '%s'\n"
 
 #: src/core/utils.c:1065
 #, c-format
@@ -29712,12 +29671,11 @@ msgstr "Neue Bildgröße: %dx%d Pixel.\n"
 #: src/registration/astrometric.c:396
 #, c-format
 msgid "Space required for storage: %s\n"
-msgstr ""
+msgstr "Benötigter Speicherplatz: %s\n"
 
 #: src/registration/astrometric.c:492
-#, fuzzy
 msgid "Creating the warped images sequence"
-msgstr "Erstellen der ausgerichteten Bildsequenz"
+msgstr "Erstellen der verzerrten Bildsequenz"
 
 #: src/stacking/median_and_mean.c:77
 msgid "Opening images for stacking"
