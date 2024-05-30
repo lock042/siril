@@ -189,6 +189,7 @@ double compute_mag_limit_from_position_and_fov(double ra, double dec, double fov
 }
 
 static void compute_limit_mag(struct astrometry_data *args) {
+	g_assert(args->ref_stars != NULL);
 	if (args->mag_mode == LIMIT_MAG_ABSOLUTE)
 		args->ref_stars->limitmag = args->magnitude_arg;
 	else {
