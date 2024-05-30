@@ -287,7 +287,6 @@
                     <property name="margin-bottom">5</property>
                     <property name="row-spacing">10</property>
                     <property name="column-spacing">10</property>
-                    <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
                     <child>
                       <object class="GtkCheckButton" id="show_tag">
                         <property name="label" translatable="yes">Tag</property>
