@@ -972,8 +972,15 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 	}
 
 	args->expression1 = expression1;
-	args->expression2 = single_rgb ? NULL : expression2;
-	args->expression3 = single_rgb ? NULL : expression3;
+	if (single_rgb) {
+		args->expression2 = NULL;
+		args->expression3 = NULL;
+		g_free(expression2);
+		g_free(expression3);
+	} else {
+		args->expression2 = expression2;
+		args->expression3 = expression3;
+	}
 	args->single_rgb = single_rgb;
 	args->rescale = rescale;
 	args->do_sum = do_sum;

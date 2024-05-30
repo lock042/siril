@@ -517,6 +517,7 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 	else {
 		siril_log_color_message(_("Warning: error in JSON file %s: unrecognised wavelength unit\n"), "salmon", data->filepath);
 		g_object_unref(parser);
+		g_free(wavelengthUnit);
 		return FALSE;
 	}
 	point *pairs = (point*) malloc(data->n * sizeof(point));
@@ -554,6 +555,7 @@ gboolean load_spcc_object_arrays(spcc_object *data) {
 
 	// Cleanup
 	g_object_unref(parser);
+	g_free(wavelengthUnit);
 	return TRUE;
 }
 

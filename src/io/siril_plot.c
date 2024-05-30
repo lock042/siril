@@ -527,10 +527,10 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 				g_string_append_printf(legend_text, "\n%s", plot->label);
 		}
 		kdata_destroy(d1);
-		d1 = NULL;
 		nb_graphs++;
 		nb_xygraphs++;
 	}
+	d1 = NULL;
 	// xy points with y error bars
 	for (GList *list = spl_data->plots; list; list = list->next) {
 		splxyerrdata *plots = (splxyerrdata *)list->data;
@@ -803,7 +803,7 @@ gboolean siril_plot_save_dat(siril_plot_data *spl_data, const char *datfilename,
 	}
 
 	// gathering all the data
-	data = malloc(nbpoints * nbcols * sizeof(double));
+	data = calloc(nbpoints, nbcols * sizeof(double)); // Initialize data to avoid possible use of uninitalized var in the loop that writes to the file
 	if (!data) {
 		PRINT_ALLOC_ERR;
 		retval = FALSE;

@@ -429,6 +429,7 @@ free_all:
 
 /* image alignment hooks and main process */
 static int astrometric_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads) {
+	g_assert(fit != NULL);
 	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
 	struct astrometric_args *astargs = sadata->astargs;

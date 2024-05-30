@@ -306,9 +306,13 @@ static gboolean script_version_check(const gchar* filename) {
 		gchar *ver = find_str_before_comment(buffer, "requires", "#");
 		if (ver) {
 			ver += 9;
+			if (versions)
+				g_free(versions); // ensure no storage is leaked if the while loop finds a second "requires"
 			versions = g_strsplit(ver, " ", 2);
 			version_number requires = { 0 }, obsoleted = { 0 };
 			obsoleted.major_version = UINT_MAX;
+			if (fullRequiresVersion) // ensure no storage is leaked if the while loop finds a second "requires"
+				g_free(fullRequiresVersion);
 			fullRequiresVersion = g_strsplit_set(versions[0], ".-", -1);
 			if (fullRequiresVersion[0])
 				requires.major_version = g_ascii_strtoull(fullRequiresVersion[0], NULL, 10);
@@ -326,6 +330,8 @@ static gboolean script_version_check(const gchar* filename) {
 			if (requires.major_version == 0 && requires.minor_version == 0 && requires.micro_version == 0)
 				continue;
 			if (versions[1]) {
+				if (fullObsoletedVersion) // ensure no storage is leaked if the while loop finds a second "requires"
+					g_free(fullObsoletedVersion);
 				fullObsoletedVersion = g_strsplit_set(versions[1], ".-", -1);
 				if (fullObsoletedVersion[0])
 					obsoleted.major_version = g_ascii_strtoull(fullObsoletedVersion[0], NULL, 10);

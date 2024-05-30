@@ -127,7 +127,8 @@ static void sitelong_handler_read(fits *fit, const char *comment, KeywordInfo *i
 	gsize token_size = g_strv_length(token);
 	if (token_size > 1 && token[1])	{
 		for (int i = 0; i < token_size; ++i) {
-			g_strlcat(sitelong_dump_tmp, token[i], sizeof(sitelong_dump_tmp));
+			if (g_strlcat(sitelong_dump_tmp, token[i], sizeof(sitelong_dump_tmp)) >= sizeof(sitelong_dump_tmp))
+				siril_debug_print("Truncation occurred in g_strlcat\n");
 			if (i < 3) strncat(sitelong_dump_tmp, i < 2 ? ":" : ".", 2);
 			d_sitelong_dump = parse_dms(sitelong_dump_tmp);
 		}
@@ -154,7 +155,8 @@ static void sitelat_handler_read(fits *fit, const char *comment, KeywordInfo *in
 	gsize token_size = g_strv_length(token);
 	if (token_size > 1 && token[1])	{	// Denotes presence of ":"
 		for (int i = 0; i < token_size; ++i) {
-			g_strlcat(sitelat_dump_tmp, token[i], sizeof(sitelat_dump_tmp));
+			if (g_strlcat(sitelat_dump_tmp, token[i], sizeof(sitelat_dump_tmp)) >= sizeof(sitelat_dump_tmp))
+				siril_debug_print("Truncation occurred in g_strlcat\n");
 			if (i < 3) strncat(sitelat_dump_tmp, i < 2 ? ":" : ".", 2);
 			d_sitelat_dump = parse_dms(sitelat_dump_tmp);
 		}

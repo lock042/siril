@@ -3068,12 +3068,27 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *value) {
 			fits_parse_value(card, oldvalue, comment, &status);
 
 		/* construct template for new keyword */
-		g_strlcpy(newcard, key, FLEN_CARD);
-		g_strlcat(newcard, " = ", FLEN_CARD);
-		g_strlcat(newcard, value, FLEN_CARD);
+		gsize len, maxlen = FLEN_CARD;
+		len = g_strlcpy(newcard, key, maxlen);
+		if (len >= maxlen)
+			siril_debug_print("Exceeded FTS card length\n");
+		maxlen = max(0, maxlen - len);
+		len = g_strlcat(newcard, " = ", maxlen);
+		if (len >= maxlen)
+			siril_debug_print("Exceeded FTS card length\n");
+		maxlen = max(0, maxlen - len);
+		len = g_strlcat(newcard, value, maxlen);
+		if (len >= maxlen)
+			siril_debug_print("Exceeded FTS card length\n");
+		maxlen = max(0, maxlen - len);
 		if (*card && *comment) { /* Restore comment if exist */
-			g_strlcat(newcard, " / ", FLEN_CARD);
-			g_strlcat(newcard, comment, FLEN_CARD);
+			len = g_strlcat(newcard, " / ", maxlen);
+			if (len >= maxlen)
+				siril_debug_print("Exceeded FTS card length\n");
+			maxlen = max(0, maxlen - len);
+			len = g_strlcat(newcard, comment, maxlen);
+			if (len >= maxlen)
+				siril_debug_print("Exceeded FTS card length\n");
 		}
 
 		fits_parse_template(newcard, card, &keytype, &status);

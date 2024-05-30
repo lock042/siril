@@ -901,6 +901,7 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 	GOutputStream *output_stream = NULL;
 	GFile *file = NULL;
 	gboolean remove_file = FALSE;
+	gchar *job_id = NULL;
 
 	gboolean catalog_is_in_cache, retrieval_product_is_in_cache;
 	gchar *csvfilepath = get_remote_catalogue_cached_path(siril_cat, &catalog_is_in_cache, NO_DATALINK_RETRIEVAL);
@@ -953,7 +954,6 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 			"%s", querystring->str
 		);
 		siril_debug_print("Query data: %s\n", data);
-		gchar *job_id = NULL;
 		siril_log_message(_("Submitting conesearch request to ESA Gaia DR3 catalog. This may take a few seconds to complete...\n"));
 		if (submit_async_request(url, data, &job_id)) {
 			siril_log_color_message(_("Error submitting conesearch request.\n"), "red");
@@ -1079,7 +1079,7 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 		siril_debug_print("datalink_buffer length: %lu\n", length);
 		g_string_free(datalink_url, TRUE);
 		datalink_url = NULL;
-
+		g_free(job_id);
 		if (retrieval_product_is_in_cache) {
 			siril_log_message(_("Using already downloaded datalink product\n"));
 
@@ -1120,6 +1120,7 @@ tap_error_and_cleanup:
 	// Cleanup
     g_free(url);
     g_free(data);
+	g_free(job_id);
 	g_free(csvfilepath);
 	g_free(filepath);
 	g_string_free(querystring, TRUE);
