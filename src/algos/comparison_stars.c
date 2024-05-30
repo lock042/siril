@@ -438,7 +438,7 @@ gpointer compstars_worker(gpointer p) {
 	int retval;
 	siril_log_color_message(_("Comparison stars: processing...\n"), "green");
 	struct compstars_arg *args = (struct compstars_arg *) p;
-
+	sky_object_query_args *query_args = NULL;
 	//0. check pre-requisites
 	if (!has_wcs(args->fit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
@@ -448,7 +448,7 @@ gpointer compstars_worker(gpointer p) {
 	g_assert(args->cat == CAT_APASS || args->cat == CAT_NOMAD);
 
 	// 1. search for the variable star
-	sky_object_query_args *query_args = init_sky_object_query(); // for the reference star
+	query_args = init_sky_object_query(); // for the reference star
 	query_args->fit = args->fit;
 	query_args->name = g_strdup(args->target_name);
 	query_args->server = QUERY_SERVER_SIMBAD_PHOTO;
