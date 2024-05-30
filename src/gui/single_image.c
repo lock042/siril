@@ -60,7 +60,7 @@ void on_drawingarea_drag_data_received(GtkWidget *widget,
 		return;
 	}
 
-	if (gdk_drag_context_get_suggested_action(context) == GDK_ACTION_COPY) {
+	if (gdk_drag_context_get_suggested_action(context) & GDK_ACTION_COPY) {
 		GError *error = NULL;
 		gboolean confirm = TRUE;
 		const guchar *data = gtk_selection_data_get_data(selection_data);
