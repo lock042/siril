@@ -28,6 +28,8 @@
                 <property name="label" translatable="yes">Close</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
+                <property name="has-focus">True</property>
+                <property name="is-focus">True</property>
                 <property name="receives-default">True</property>
                 <property name="tooltip-text" translatable="yes">Close the window.</property>
                 <signal name="clicked" handler="on_annotate_close_clicked" swapped="no"/>
@@ -43,6 +45,7 @@
                 <property name="label" translatable="yes">Apply</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
+                <property name="has-focus">True</property>
                 <property name="receives-default">True</property>
                 <property name="tooltip-text" translatable="yes">Apply requested annotation.</property>
                 <signal name="clicked" handler="on_annotate_apply_clicked" swapped="no"/>

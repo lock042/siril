@@ -115,6 +115,7 @@ void on_annotate_save_as_button_clicked(GtkButton *button, gpointer user_data) {
 		gchar *file = siril_file_chooser_get_filename(dialog);
 		GtkEntry* entry = GTK_ENTRY(lookup_widget("conesearch_save_entry"));
 		gtk_entry_set_text(entry, file);
+		gtk_editable_set_position(GTK_EDITABLE(entry), -1);
 		g_free(file);
 	}
 	siril_widget_destroy(widgetdialog);
@@ -140,6 +141,7 @@ void on_show_button_clicked(GtkButton *button, gpointer user_data) {
 		gchar *file = siril_file_chooser_get_filename(dialog);
 		GtkEntry* entry = GTK_ENTRY(lookup_widget("show_file_entry"));
 		gtk_entry_set_text(entry, file);
+		gtk_editable_set_position(GTK_EDITABLE(entry), -1);
 		g_free(file);
 	}
 	siril_widget_destroy(widgetdialog);
