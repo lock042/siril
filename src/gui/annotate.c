@@ -18,6 +18,8 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <ctype.h>
+
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/command_line_processor.h"
@@ -230,22 +232,67 @@ int execute_conesearch(conesearch_params *params) {
 	return CMD_OK;
 }
 
+gboolean is_string_numeric(const gchar *str) {
+	// Check if the string is NULL or empty
+	if (str == NULL || *str == '\0') {
+		return FALSE;
+	}
+
+	gboolean has_decimal_point = FALSE;
+	const gchar *p = str;
+
+	// Check for an optional leading sign
+	if (*p == '-' || *p == '+') {
+		p++;
+	}
+
+	// Check each character in the string
+	for (; *p != '\0'; p++) {
+		if (*p == '.') {
+			if (has_decimal_point) {
+				// More than one decimal point
+				return FALSE;
+			}
+			has_decimal_point = TRUE;
+		} else if (!g_ascii_isdigit(*p)) {
+			return FALSE;
+		}
+	}
+
+	return (p > str && (g_ascii_isdigit(*(p - 1)) || has_decimal_point));
+}
+
 static show_params* parse_show_ui() {
 	show_params *params = g_new0(show_params, 1);
 	params->display_log = BOOL_NOT_SET;
 	params->display_tag = BOOL_NOT_SET;
 	GtkEntry *show_entry = GTK_ENTRY(lookup_widget("show_file_entry"));
 
-    const gchar *input = gtk_entry_get_text(show_entry);
+	const gchar *visible_child_name = gtk_stack_get_visible_child_name(GTK_STACK(lookup_widget("stack_show")));
 
-    if (input != NULL && strlen(input) != 0) {
-        params->file = g_strdup(input);
-    }
+	if (!g_strcmp0("page0", visible_child_name)) {
+	    const gchar *input = gtk_entry_get_text(show_entry);
+		if (input != NULL && strlen(input) != 0) {
+			params->file = g_strdup(input);
+		}
+		params->coords = NULL;
+		params->name = NULL;
+	} else {
+		params->file = NULL;
+		const gchar *ra = gtk_entry_get_text(GTK_ENTRY(lookup_widget("show_ra_entry")));
+		const gchar *dec = gtk_entry_get_text(GTK_ENTRY(lookup_widget("show_dec_entry")));
+
+		if (is_string_numeric(ra) && is_string_numeric(dec)) {
+			params->coords = siril_world_cs_new_from_objct_ra_dec((gchar *)ra, (gchar *)dec);
+		} else {
+			params->coords = NULL;
+		}
+	}
+
     params->clear = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("show_clear")));
     params->display_log = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("show_log")));
     params->display_tag = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("show_tag")));
-    params->coords = NULL;
-    params->name = NULL;
+
 
 	return params;
 }
