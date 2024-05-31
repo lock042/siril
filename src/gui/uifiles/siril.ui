@@ -6561,27 +6561,24 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="orientation">vertical</property>
                                                             <property name="spacing">6</property>
                                                             <child>
-                                                            <object class="GtkBox" id="box_reg">
+                                                            <!-- n-columns=4 n-rows=3 -->
+                                                            <object class="GtkGrid">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="orientation">vertical</property>
-                                                            <child>
-                                                            <object class="GtkBox">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="spacing">6</property>
+                                                            <property name="row-spacing">6</property>
+                                                            <property name="column-spacing">6</property>
+                                                            <property name="row-homogeneous">True</property>
                                                             <child>
                                                             <object class="GtkLabel" id="framing_lbl">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
+                                                            <property name="halign">start</property>
                                                             <property name="valign">center</property>
                                                             <property name="label" translatable="yes">Framing method</property>
                                                             </object>
                                                             <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="padding">5</property>
-                                                            <property name="position">0</property>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">1</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -6604,9 +6601,19 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <signal name="changed" handler="on_comboreg_framing_changed" swapped="no"/>
                                                             </object>
                                                             <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">1</property>
+                                                            <property name="left-attach">1</property>
+                                                            <property name="top-attach">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkLabel">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="label" translatable="yes"> </property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">3</property>
+                                                            <property name="top-attach">1</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -6617,29 +6624,9 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="resource">/org/siril/ui/pixmaps/framing-default.svg</property>
                                                             </object>
                                                             <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">2</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkLabel">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="label" translatable="yes"> </property>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="pack-type">end</property>
-                                                            <property name="position">3</property>
-                                                            </packing>
-                                                            </child>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">1</property>
+                                                            <property name="left-attach">2</property>
+                                                            <property name="top-attach">0</property>
+                                                            <property name="height">3</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -6650,6 +6637,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="receives-default">True</property>
                                                             <property name="tooltip-text" translatable="yes">Estimates the final size and space used by the stacked image.</property>
                                                             <property name="halign">start</property>
+                                                            <property name="valign">start</property>
                                                             <property name="use-underline">True</property>
                                                             <signal name="clicked" handler="on_seqregister_button_clicked" swapped="no"/>
                                                             <style>
@@ -6657,11 +6645,24 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </style>
                                                             </object>
                                                             <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">False</property>
-                                                            <property name="padding">15</property>
-                                                            <property name="position">2</property>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">2</property>
                                                             </packing>
+                                                            </child>
+                                                            <child>
+                                                            <placeholder/>
+                                                            </child>
+                                                            <child>
+                                                            <placeholder/>
+                                                            </child>
+                                                            <child>
+                                                            <placeholder/>
+                                                            </child>
+                                                            <child>
+                                                            <placeholder/>
+                                                            </child>
+                                                            <child>
+                                                            <placeholder/>
                                                             </child>
                                                             </object>
                                                             <packing>
