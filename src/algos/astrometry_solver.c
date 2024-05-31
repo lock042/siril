@@ -2018,7 +2018,7 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 			aargs->focal_length = fit->keywords.focal_length;
 			if (aargs->focal_length <= 0.0) {
 				aargs->focal_length = com.pref.starfinder_conf.focal_length;
-				if (aargs->pixel_size <= 0.0) {
+				if (aargs->focal_length <= 0.0) {
 					siril_log_color_message(_("Could not retrieve focal length from image %s metadata or settings, skipping\n"), "red", root);
 					siril_catalog_free(aargs->ref_stars);
 					if (aargs->cat_center) // not filled if asnet blind solve

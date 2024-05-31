@@ -2528,6 +2528,8 @@ int new_fit_image_with_data(fits **fit, int width, int height, int nblayer, data
 			(*fit)->fpdata[GLAYER] = (*fit)->fdata;
 			(*fit)->fpdata[BLAYER] = (*fit)->fdata;
 		}
+	} else { // DATA_UNSUPPORTED
+		free(data);
 	}
 	// Note: FITS created in this way will initially not be color managed. The
 	// user, or the calling function, must assign an ICC profile if required.

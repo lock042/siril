@@ -5345,6 +5345,7 @@ int process_fixbanding(int nb) {
 				args->applyRotation = TRUE;
 			} else {
 				siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
+				free(args);
 				return CMD_ARG_ERROR;
 			}
 			arg_index++;
@@ -5542,10 +5543,14 @@ int process_subsky(int nb) {
 		args->fit = &gfit;
 		image_cfa_warning_check();
 
-		if (!generate_background_samples(samples, tolerance))
+		if (!generate_background_samples(samples, tolerance)) {
 			start_in_new_thread(remove_gradient_from_image, args);
+		} else {
+			siril_log_color_message(_("Error generating background samples\n"), "red");
+			free(args);
+			return CMD_GENERIC_ERROR;
+		}
 	}
-
 	return CMD_OK;
 }
 

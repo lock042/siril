@@ -315,19 +315,20 @@ static gboolean processJsonFile(const char *file_path) {
 					spcc_object_free(data, TRUE);
 					return FALSE;
 			}
-		}
-		else if (retval == 2) {
-			osc_sensor *osc = g_new0(osc_sensor, 1);
-			retval = load_osc_sensor_from_file(file_path, osc);
-			if (retval) {
-				siril_debug_print("Read JSON object: %s\n", osc->channel[0].model);
-				com.spcc_data.osc_sensors = g_list_append(com.spcc_data.osc_sensors, osc);
-				return TRUE;
-			} else {
-				siril_log_color_message(_("Error reading JSON object in file %s\n"), "red", file_path);
-				osc_sensor_free(osc, TRUE);
-				spcc_object_free(data, TRUE);
-				return FALSE;
+		} else {
+			spcc_object_free(data, TRUE);
+			if (retval == 2) {
+				osc_sensor *osc = g_new0(osc_sensor, 1);
+				retval = load_osc_sensor_from_file(file_path, osc);
+				if (retval) {
+					siril_debug_print("Read JSON object: %s\n", osc->channel[0].model);
+					com.spcc_data.osc_sensors = g_list_append(com.spcc_data.osc_sensors, osc);
+					return TRUE;
+				} else {
+					siril_log_color_message(_("Error reading JSON object in file %s\n"), "red", file_path);
+					osc_sensor_free(osc, TRUE);
+					return FALSE;
+				}
 			}
 		}
 	}

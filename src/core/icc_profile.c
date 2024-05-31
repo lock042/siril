@@ -359,9 +359,11 @@ void validate_custom_profiles() {
 		}
 		g_mutex_unlock(&monitor_profile_mutex);
 	} else {
+		g_mutex_lock(&monitor_profile_mutex);
 		if (gui.icc.monitor)
 			cmsCloseProfile(gui.icc.monitor);
 		gui.icc.monitor = com.pref.icc.rendering_intent == INTENT_PERCEPTUAL ? srgb_monitor_perceptual() : srgb_trc();
+		g_mutex_unlock(&monitor_profile_mutex);
 	}
 
 	if (com.pref.icc.icc_path_soft_proof && com.pref.icc.icc_path_soft_proof[0] != '\0') {

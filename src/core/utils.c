@@ -1151,7 +1151,10 @@ gchar* str_append(gchar** data, const gchar* newdata) {
 		return NULL;
 	}
 	*data = p;
-	g_strlcpy(*data + len, newdata, len + strlen(newdata));
+	gsize destsize = len + strlen(newdata);
+	if (g_strlcpy(*data + len, newdata, destsize) >= destsize) {
+		siril_debug_print("FIXME: truncation occurred in str_append()\n");
+	}
 	return *data;
 }
 

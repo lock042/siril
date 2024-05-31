@@ -551,6 +551,7 @@ static gpointer fetch_url(gpointer p) {
 	content = g_try_malloc(sizeof(struct ucontent));
 	if (content == NULL) {
 		PRINT_ALLOC_ERR;
+		free(args);
 		return NULL;
 	}
 
@@ -574,8 +575,10 @@ static gpointer fetch_url(gpointer p) {
 	retval |= curl_easy_setopt(curl, CURLOPT_WRITEDATA, content);
 	retval |= curl_easy_setopt(curl, CURLOPT_USERAGENT, "siril/0.0");
 	retval |= curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-	if (retval)
+	if (retval) {
 		siril_debug_print("Error in curl_easy_setopt()\n");
+		goto failed_curl_easy_setopt;
+	}
 
 	retval = curl_easy_perform(curl);
 	if (retval == CURLE_OK) {
@@ -621,6 +624,8 @@ static gpointer fetch_url(gpointer p) {
 		siril_log_color_message(_("Cannot retrieve information from the update URL. Error: [%ld]\n"), "red", retval);
 	}
 	set_progress_bar_data(NULL, PROGRESS_DONE);
+
+failed_curl_easy_setopt:
 
 	if (!result)
 		g_free(content->data);

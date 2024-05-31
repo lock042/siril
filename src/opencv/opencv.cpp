@@ -163,7 +163,9 @@ static int Mat_to_image(fits *image, Mat *in, Mat *out, void *bgr, int target_rx
 	if (bgr) free(bgr);
 	if (image->naxes[2] == 1) {
 		free(image->data);
+		image->data = NULL; // This must be set to NULL as the function can return on error before it is reassigned to point at the modified data
 		free(image->fdata);
+		image->data = NULL; // This must be set to NULL as the function can return on error before it is reassigned to point at the modified data
 	}
 
 	size_t ndata = target_rx * target_ry;

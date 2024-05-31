@@ -81,6 +81,8 @@ static void update_framing(regframe *framing, sequence *seq, int index) {
 }
 
 static gboolean compute_framing(struct registration_args *regargs) {
+	if (regargs->seq->number < 1)
+		return FALSE;
 	// validity of matrices has already been checked before this call
 	// and null matrices have been discarded
 	Homography Href = regargs->seq->regparam[regargs->layer][regargs->reference_image].H;

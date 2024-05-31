@@ -198,7 +198,7 @@ void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("Not in single image mode"), _("Unable to apply StarNet to a single image as no single image is loaded. Did you mean to apply to sequence?"));
 		}
 		set_cursor_waiting(FALSE);
-	} else if (gtk_toggle_button_get_active(toggle_starnet_sequence) == TRUE) {
+	} else {
 		if (sequence_is_loaded()) {
 			starnet_args->seq = &com.seq;
 			starnet_args->seqname = g_strdup_printf("starless_%s", starnet_args->seq->seqname);

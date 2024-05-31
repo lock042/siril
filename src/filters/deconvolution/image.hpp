@@ -101,6 +101,40 @@ public:
         : size(o.size), w(o.w), h(o.h), d(o.d), data(o.data) {
     }
 
+    img_t& operator=(img_t<T>&& o) noexcept {
+        if (this != &o) {  // Check for self-assignment
+            // Destroy any existing plans
+            if (forwardplanf)
+#ifdef _OPENMP
+#pragma omp critical (fftw)
+#endif
+                fftwf_destroy_plan(forwardplanf);
+            if (backwardplanf)
+#ifdef _OPENMP
+#pragma omp critical (fftw)
+#endif
+                fftwf_destroy_plan(backwardplanf);
+
+            // Transfer ownership of resources
+            w = o.w;
+            h = o.h;
+            d = o.d;
+            size = o.size;
+            data = std::move(o.data);
+            forwardplanf = o.forwardplanf;
+            backwardplanf = o.backwardplanf;
+
+            // Leave the source object in a valid state
+            o.w = 0;
+            o.h = 0;
+            o.d = 0;
+            o.size = 0;
+            o.forwardplanf = nullptr;
+            o.backwardplanf = nullptr;
+        }
+        return *this;
+    }
+
     img_t(img_t<T>&& o) noexcept : size(o.size), w(o.w), h(o.h), d(o.d), data(std::move(o.data)), forwardplanf(std::move(o.forwardplanf)), backwardplanf(std::move(o.backwardplanf)) {
         o.w = 0;
         o.h = 0;
