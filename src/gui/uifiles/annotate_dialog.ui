@@ -4,7 +4,7 @@
   <requires lib="gtk+" version="3.24"/>
   <object class="GtkAdjustment" id="adj_mag_limit">
     <property name="lower">8</property>
-    <property name="upper">20</property>
+    <property name="upper">29</property>
     <property name="value">13</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
@@ -26,6 +26,21 @@
             <property name="can-focus">False</property>
             <property name="layout-style">end</property>
             <child>
+              <object class="GtkButton" id="annotate_clear">
+                <property name="label" translatable="yes">Clear</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Clear all current annotations.</property>
+                <signal name="clicked" handler="on_annotate_clear_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkButton" id="annotate_close">
                 <property name="label" translatable="yes">Close</property>
                 <property name="visible">True</property>
@@ -39,7 +54,7 @@
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">0</property>
+                <property name="position">1</property>
               </packing>
             </child>
             <child>
@@ -58,7 +73,7 @@
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">1</property>
+                <property name="position">2</property>
               </packing>
             </child>
           </object>
@@ -106,7 +121,7 @@
                         <property name="tooltip-text" translatable="yes">List of catalogues.</property>
                         <property name="active">0</property>
                         <items>
-                          <item translatable="yes">automatique</item>
+                          <item translatable="yes">automatic</item>
                           <item translatable="yes">tycho2</item>
                           <item translatable="yes">nomad</item>
                           <item translatable="yes">gaia</item>
@@ -122,6 +137,7 @@
                           <item translatable="yes">aavso_chart</item>
                           <item translatable="yes">solsys</item>
                         </items>
+                        <signal name="changed" handler="on_conesearch_combo_changed" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
@@ -135,7 +151,7 @@
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">False</property>
-                        <property name="tooltip-text" translatable="yes">For stars catalogues containing photometric data, stars with no B-V information will be kept ; they can be excluded by check this option.</property>
+                        <property name="tooltip-text" translatable="yes">For stars catalogues containing photometric data, stars with no B-V information will be kept; they can be excluded by check this option.</property>
                         <property name="draw-indicator">True</property>
                       </object>
                       <packing>
@@ -172,18 +188,6 @@
                         <property name="left-attach">0</property>
                         <property name="top-attach">4</property>
                         <property name="width">3</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="halign">start</property>
-                        <property name="label" translatable="yes">Obs. code: </property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">0</property>
-                        <property name="top-attach">5</property>
                       </packing>
                     </child>
                     <child>
@@ -248,20 +252,48 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkEntry" id="annotate_obscode_entry">
+                      <object class="GtkBox" id="annotate_obscode_box">
                         <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="tooltip-text" translatable="yes">Enter your nearest IAU observatory code to use by default to improve accuracy in solar system cone searches. A full list can be found at https://minorplanetcenter.net/iau/lists/ObsCodesF.html</property>
-                        <property name="halign">start</property>
-                        <property name="valign">center</property>
-                        <property name="max-length">3</property>
-                        <property name="width-chars">5</property>
-                        <property name="max-width-chars">5</property>
+                        <property name="can-focus">False</property>
+                        <property name="spacing">10</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Obs. code: </property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkEntry" id="annotate_obscode_entry">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Enter your nearest IAU observatory code to use by default to improve accuracy in solar system cone searches. A full list can be found at https://minorplanetcenter.net/iau/lists/ObsCodesF.html</property>
+                            <property name="halign">start</property>
+                            <property name="valign">center</property>
+                            <property name="max-length">3</property>
+                            <property name="width-chars">5</property>
+                            <property name="max-width-chars">5</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <placeholder/>
+                        </child>
                       </object>
                       <packing>
-                        <property name="left-attach">1</property>
+                        <property name="left-attach">0</property>
                         <property name="top-attach">5</property>
-                        <property name="width">2</property>
+                        <property name="width">3</property>
                       </packing>
                     </child>
                     <child>
@@ -280,7 +312,7 @@
                   </packing>
                 </child>
                 <child>
-                  <!-- n-columns=3 n-rows=5 -->
+                  <!-- n-columns=3 n-rows=2 -->
                   <object class="GtkGrid">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
@@ -288,53 +320,6 @@
                     <property name="margin-bottom">5</property>
                     <property name="row-spacing">10</property>
                     <property name="column-spacing">10</property>
-                    <child>
-                      <object class="GtkCheckButton" id="show_tag">
-                        <property name="label" translatable="yes">Tag</property>
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="receives-default">False</property>
-                        <property name="tooltip-text" translatable="yes"> If the passed file also contains a column name, names will be used as tags in the image and listed in the Console, unless toggled off with theses checkbuttons.</property>
-                        <property name="active">True</property>
-                        <property name="draw-indicator">True</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">0</property>
-                        <property name="top-attach">3</property>
-                        <property name="width">3</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkCheckButton" id="show_log">
-                        <property name="label" translatable="yes">Log</property>
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="receives-default">False</property>
-                        <property name="tooltip-text" translatable="yes"> If the passed file also contains a column name, names will be used as tags in the image and listed in the Console, unless toggled off with theses checkbuttons.</property>
-                        <property name="active">True</property>
-                        <property name="draw-indicator">True</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">0</property>
-                        <property name="top-attach">4</property>
-                        <property name="width">3</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkCheckButton" id="show_clear">
-                        <property name="label" translatable="yes">Clear</property>
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="receives-default">False</property>
-                        <property name="tooltip-text" translatable="yes">This option clears the temporary user annotations catalogue before everything.</property>
-                        <property name="draw-indicator">True</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">0</property>
-                        <property name="top-attach">2</property>
-                        <property name="width">3</property>
-                      </packing>
-                    </child>
                     <child>
                       <object class="GtkStackSwitcher">
                         <property name="visible">True</property>
@@ -353,63 +338,110 @@
                         <property name="can-focus">False</property>
                         <property name="hexpand">True</property>
                         <child>
-                          <object class="GtkBox">
+                          <!-- n-columns=3 n-rows=3 -->
+                          <object class="GtkGrid">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="valign">center</property>
-                            <property name="spacing">10</property>
+                            <property name="row-spacing">10</property>
+                            <property name="column-spacing">10</property>
                             <child>
-                              <object class="GtkLabel">
+                              <object class="GtkBox">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="halign">start</property>
-                                <property name="valign">center</property>
-                                <property name="label" translatable="yes">File: </property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkEntry" id="show_file_entry">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="tooltip-text" translatable="yes">Several points are passed using a CSV file containing at least ra and dec columns. If the passed file also contains a column name, names will be used as tags in the image and listed in the Console.</property>
                                 <property name="valign">center</property>
                                 <property name="hexpand">True</property>
-                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">1</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkButton" id="show_button">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="receives-default">False</property>
-                                <property name="tooltip-text" translatable="yes">Click this button to select a csv file.</property>
-                                <property name="halign">start</property>
-                                <property name="valign">center</property>
-                                <property name="use-underline">True</property>
-                                <signal name="clicked" handler="on_show_button_clicked" swapped="no"/>
+                                <property name="spacing">10</property>
                                 <child>
-                                  <object class="GtkImage">
+                                  <object class="GtkLabel">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
+                                    <property name="halign">start</property>
                                     <property name="valign">center</property>
-                                    <property name="icon-name">document-open-symbolic</property>
+                                    <property name="label" translatable="yes">File: </property>
                                   </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkEntry" id="show_file_entry">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="tooltip-text" translatable="yes">Several points are passed using a CSV file containing at least ra and dec columns. If the passed file also contains a column name, names will be used as tags in the image and listed in the Console.</property>
+                                    <property name="valign">center</property>
+                                    <property name="hexpand">True</property>
+                                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkButton" id="show_button">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">False</property>
+                                    <property name="tooltip-text" translatable="yes">Click this button to select a csv file.</property>
+                                    <property name="halign">start</property>
+                                    <property name="valign">center</property>
+                                    <property name="use-underline">True</property>
+                                    <signal name="clicked" handler="on_show_button_clicked" swapped="no"/>
+                                    <child>
+                                      <object class="GtkImage">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="valign">center</property>
+                                        <property name="icon-name">document-open-symbolic</property>
+                                      </object>
+                                    </child>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">2</property>
+                                  </packing>
                                 </child>
                               </object>
                               <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">2</property>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">0</property>
+                                <property name="width">3</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkCheckButton" id="show_tag">
+                                <property name="label" translatable="yes">Tag</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">False</property>
+                                <property name="tooltip-text" translatable="yes"> If the passed file also contains a column name, names will be used as tags in the image and listed in the Console, unless toggled off with these checkbuttons.</property>
+                                <property name="active">True</property>
+                                <property name="draw-indicator">True</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">1</property>
+                                <property name="width">3</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkCheckButton" id="show_log">
+                                <property name="label" translatable="yes">Log</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">False</property>
+                                <property name="tooltip-text" translatable="yes"> If the passed file also contains a column name, names will be used as tags in the image and listed in the Console, unless toggled off with theses checkbuttons.</property>
+                                <property name="active">True</property>
+                                <property name="draw-indicator">True</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">2</property>
+                                <property name="width">3</property>
                               </packing>
                             </child>
                           </object>
@@ -419,14 +451,14 @@
                           </packing>
                         </child>
                         <child>
-                          <!-- n-columns=2 n-rows=3 -->
+                          <!-- n-columns=3 n-rows=3 -->
                           <object class="GtkGrid">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="row-spacing">10</property>
                             <property name="column-spacing">10</property>
                             <child>
-                              <object class="GtkLabel" id="show_ra">
+                              <object class="GtkLabel">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="halign">start</property>
@@ -438,7 +470,7 @@
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkLabel" id="show_dec">
+                              <object class="GtkLabel">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="halign">start</property>
@@ -490,6 +522,36 @@
                                 <property name="left-attach">1</property>
                                 <property name="top-attach">2</property>
                               </packing>
+                            </child>
+                            <child>
+                              <object class="GtkButton" id="show_button_save_to_DSO">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">False</property>
+                                <property name="tooltip-text" translatable="yes">Click this button to save the entry to the user DSO catalogue.</property>
+                                <property name="halign">start</property>
+                                <property name="valign">center</property>
+                                <property name="use-underline">True</property>
+                                <signal name="clicked" handler="on_show_button_save_to_DSO_clicked" swapped="no"/>
+                                <child>
+                                  <object class="GtkImage">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="valign">center</property>
+                                    <property name="icon-name">document-save-symbolic</property>
+                                  </object>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="left-attach">2</property>
+                                <property name="top-attach">2</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <placeholder/>
+                            </child>
+                            <child>
+                              <placeholder/>
                             </child>
                           </object>
                           <packing>

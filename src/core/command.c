@@ -63,7 +63,6 @@
 #include "io/remote_catalogues.h"
 #include "io/FITS_symlink.h"
 #include "drizzle/cdrizzleutil.h"
-#include "gui/annotate.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
 #include "gui/PSF_list.h"
@@ -9742,22 +9741,8 @@ int process_platesolve(int nb) {
 }
 
 static conesearch_params* parse_conesearch_args(int nb) {
-	conesearch_params *params = g_new0(conesearch_params, 1);
-	params->limit_mag = -1.0f;
-	params->photometric = FALSE;
-	params->display_tag = BOOL_NOT_SET;
-	params->display_log = BOOL_NOT_SET;
-	params->cat = CAT_AUTO;
-	params->obscode = NULL;
-	params->default_obscode_used = FALSE;
-	params->trixel = -1;
-	params->outfilename = NULL;
+	conesearch_params *params = init_conesearch_params();
 	gboolean local_cat = local_catalogues_available();
-
-	if (com.pref.astrometry.default_obscode != NULL) {
-		params->obscode = g_strdup(com.pref.astrometry.default_obscode);
-		params->default_obscode_used = TRUE;
-	}
 
 	int arg_idx = 1;
 	while (arg_idx < nb) {
@@ -9884,7 +9869,6 @@ int process_conesearch(int nb) {
 		return CMD_ARG_ERROR;
 	}
 	int result = execute_conesearch(params);
-	g_free(params);
 	return result;
 }
 
