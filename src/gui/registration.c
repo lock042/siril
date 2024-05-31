@@ -560,6 +560,7 @@ static gboolean check_framing() {
 	gtk_widget_set_tooltip_text(GTK_WIDGET(labelreginfo), "");
 	return TRUE;
 }
+
 /* Selects the "register all" or "register selected" according to the number of
  * selected images, if argument is false.
  * Verifies that enough images are selected and an area is selected.
@@ -729,6 +730,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	gboolean is_astrometric = method->method_ptr == &register_astrometric;
 	gboolean is_old_global = method->method_ptr == &register_star_alignment;
 	gtk_widget_set_visible(undistort_check, is_astrometric);
+	gtk_widget_set_visible(go_estimate, is_astrometric);
 	gtk_widget_set_visible(output_reg_frame, is_astrometric || isapplyreg);
 	gtk_widget_set_visible(GTK_WIDGET(notebook_reg), !(is_astrometric || isapplyreg));
 	if (((method->method_ptr == &register_comet) ||

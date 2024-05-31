@@ -5344,20 +5344,19 @@ When processing images, registration data is taken from the default layer if ava
                                                             <object class="GtkNotebook" id="notebook_registration">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
+                                                            <property name="valign">start</property>
                                                             <property name="margin-top">10</property>
                                                             <property name="show-tabs">False</property>
-                                                            <property name="show-border">False</property>
-                                                            <child>
-                                                            <object class="GtkBox">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="orientation">vertical</property>
                                                             <child>
                                                             <!-- n-columns=3 n-rows=6 -->
-                                                            <object class="GtkGrid">
+                                                            <object class="GtkGrid" id="global_page">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="margin-top">5</property>
+                                                            <property name="valign">start</property>
+                                                            <property name="margin-start">6</property>
+                                                            <property name="margin-end">6</property>
+                                                            <property name="margin-top">6</property>
+                                                            <property name="margin-bottom">6</property>
                                                             <property name="row-spacing">5</property>
                                                             <property name="column-spacing">5</property>
                                                             <child>
@@ -5553,18 +5552,12 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             <placeholder/>
                                                             </child>
                                                             </object>
-                                                            <packing>
-                                                            <property name="expand">True</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">1</property>
-                                                            </packing>
-                                                            </child>
-                                                            </object>
                                                             </child>
                                                             <child type="tab">
                                                             <object class="GtkLabel" id="notebook_reg_page1">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
+                                                            <property name="valign">start</property>
                                                             <property name="label">page 1</property>
                                                             </object>
                                                             <packing>
@@ -5572,9 +5565,14 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkBox">
+                                                            <object class="GtkBox" id="comet_page">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
+                                                            <property name="valign">start</property>
+                                                            <property name="margin-start">6</property>
+                                                            <property name="margin-end">6</property>
+                                                            <property name="margin-top">6</property>
+                                                            <property name="margin-bottom">7</property>
                                                             <property name="orientation">vertical</property>
                                                             <property name="spacing">5</property>
                                                             <child>
@@ -5733,12 +5731,14 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             </object>
                                                             <packing>
                                                             <property name="position">1</property>
+                                                            <property name="tab-fill">False</property>
                                                             </packing>
                                                             </child>
                                                             <child type="tab">
                                                             <object class="GtkLabel" id="notebook_reg_page2">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
+                                                            <property name="valign">start</property>
                                                             <property name="label">page 2</property>
                                                             </object>
                                                             <packing>
@@ -5747,9 +5747,14 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkBox">
+                                                            <object class="GtkBox" id="123star_page">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
+                                                            <property name="valign">start</property>
+                                                            <property name="margin-start">6</property>
+                                                            <property name="margin-end">6</property>
+                                                            <property name="margin-top">6</property>
+                                                            <property name="margin-bottom">6</property>
                                                             <property name="orientation">vertical</property>
                                                             <child>
                                                             <object class="GtkBox">
@@ -5950,12 +5955,14 @@ WARNING: enabling this option requires the registration to not be parallelized, 
                                                             </object>
                                                             <packing>
                                                             <property name="position">2</property>
+                                                            <property name="tab-fill">False</property>
                                                             </packing>
                                                             </child>
                                                             <child type="tab">
                                                             <object class="GtkLabel" id="notebook_reg_page3">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
+                                                            <property name="valign">start</property>
                                                             <property name="label">page 3</property>
                                                             </object>
                                                             <packing>
@@ -5964,10 +5971,15 @@ WARNING: enabling this option requires the registration to not be parallelized, 
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <!-- n-columns=3 n-rows=3 -->
-                                                            <object class="GtkGrid">
+                                                            <!-- n-columns=3 n-rows=1 -->
+                                                            <object class="GtkGrid" id="kombat_page">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
+                                                            <property name="valign">start</property>
+                                                            <property name="margin-start">6</property>
+                                                            <property name="margin-end">6</property>
+                                                            <property name="margin-top">6</property>
+                                                            <property name="margin-bottom">6</property>
                                                             <property name="column-homogeneous">True</property>
                                                             <child>
                                                             <object class="GtkSpinButton" id="spin_kombat_percent">
@@ -6003,37 +6015,22 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <child>
                                                             <placeholder/>
                                                             </child>
-                                                            <child>
-                                                            <placeholder/>
-                                                            </child>
-                                                            <child>
-                                                            <placeholder/>
-                                                            </child>
-                                                            <child>
-                                                            <placeholder/>
-                                                            </child>
-                                                            <child>
-                                                            <placeholder/>
-                                                            </child>
-                                                            <child>
-                                                            <placeholder/>
-                                                            </child>
-                                                            <child>
-                                                            <placeholder/>
-                                                            </child>
                                                             </object>
                                                             <packing>
                                                             <property name="position">3</property>
+                                                            <property name="tab-fill">False</property>
                                                             </packing>
                                                             </child>
                                                             <child>
                                                             <object class="GtkLabel" id="notebook_reg_page4">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
+                                                            <property name="valign">start</property>
                                                             <property name="label" translatable="yes"> </property>
                                                             </object>
                                                             <packing>
                                                             <property name="position">4</property>
+                                                            <property name="tab-fill">False</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -6572,7 +6569,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <object class="GtkBox">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="spacing">5</property>
+                                                            <property name="spacing">6</property>
                                                             <child>
                                                             <object class="GtkLabel" id="framing_lbl">
                                                             <property name="visible">True</property>
@@ -6616,13 +6613,26 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <object class="GtkImage" id="framing-image">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
+                                                            <property name="xpad">6</property>
                                                             <property name="resource">/org/siril/ui/pixmaps/framing-default.svg</property>
                                                             </object>
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="pack-type">end</property>
                                                             <property name="position">2</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkLabel">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="label" translatable="yes"> </property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="pack-type">end</property>
+                                                            <property name="position">3</property>
                                                             </packing>
                                                             </child>
                                                             </object>
@@ -6639,7 +6649,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">True</property>
                                                             <property name="tooltip-text" translatable="yes">Estimates the final size and space used by the stacked image.</property>
-                                                            <property name="halign">end</property>
+                                                            <property name="halign">start</property>
                                                             <property name="use-underline">True</property>
                                                             <signal name="clicked" handler="on_seqregister_button_clicked" swapped="no"/>
                                                             <style>
@@ -6650,7 +6660,6 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="expand">False</property>
                                                             <property name="fill">False</property>
                                                             <property name="padding">15</property>
-                                                            <property name="pack-type">end</property>
                                                             <property name="position">2</property>
                                                             </packing>
                                                             </child>
