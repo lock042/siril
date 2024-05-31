@@ -310,6 +310,7 @@ retrieve:
 			}
 			break;
 		default:
+			siril_log_color_message(_("Server unreachable or unresponsive (code %ld).\nServer returned: %s\n"), "red", code, content->data);
 			break;
 		}
 	}
@@ -777,7 +778,9 @@ download_error:
 	if (error) {
 		siril_log_color_message(_("Cannot create catalogue file %s (%s)\n"), "red", filepath, error->message);
 		g_clear_error(&error);
-		}
+	} else {
+		siril_log_color_message(_("Cannot create catalogue file %s (generic error)\n"), "red", filepath);
+	}
 	g_free(buffer);
 	if (output_stream)
 		g_object_unref(output_stream);
