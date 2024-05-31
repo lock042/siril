@@ -567,8 +567,8 @@ static gboolean check_framing() {
 void update_reg_interface(gboolean dont_change_reg_radio) {
 	static GtkWidget *go_register = NULL, *follow = NULL, *cumul_data = NULL,
 	*noout = NULL, *toggle_reg_clamp = NULL, *onlyshift = NULL, *filter_box = NULL, *manualreg = NULL,
-	*interpolation_algo = NULL, *undistort_check = NULL, *scale_box = NULL,
-	*x2upscale = NULL, *go_estimate = NULL;
+	*interpolation_algo = NULL, *undistort_check = NULL,
+	*x2upscale = NULL, *go_estimate = NULL, *output_reg_frame = NULL;
 	static GtkLabel *labelreginfo = NULL;
 	static GtkComboBox *reg_all_sel_box = NULL, *reglayer = NULL, *filter_combo_init = NULL;
 	static GtkNotebook *notebook_reg = NULL;
@@ -594,9 +594,9 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		filter_box = lookup_widget("seq_filters_box_reg");
 		manualreg = lookup_widget("manualreg_expander");
 		interpolation_algo = lookup_widget("ComboBoxRegInter");
-		scale_box = lookup_widget("reg_scaling_box");
 		undistort_check = lookup_widget("reg_undistort");
 		x2upscale = lookup_widget("upscaleCheckButton");
+		output_reg_frame = lookup_widget("output_reg_frame");
 	}
 
 	if (!dont_change_reg_radio) {
@@ -647,19 +647,18 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	/* registration data exists for the selected layer */
 	has_reg = layer_has_registration(&com.seq, gtk_combo_box_get_active(reglayer));
 
+	if (method->method_ptr == &register_star_alignment || method->method_ptr == &register_multi_step_global) {
+		gtk_notebook_set_current_page(notebook_reg, REG_PAGE_GLOBAL);
+	} else if (method->method_ptr == &register_comet) {
+		gtk_notebook_set_current_page(notebook_reg, REG_PAGE_COMET);
+	} else if (method->method_ptr == &register_3stars) {
+		gtk_notebook_set_current_page(notebook_reg, REG_PAGE_3_STARS);
+	} else if (method->method_ptr == &register_kombat) {
+		gtk_notebook_set_current_page(notebook_reg, REG_PAGE_KOMBAT);
+	} else {
+		gtk_notebook_set_current_page(notebook_reg, REG_PAGE_MISC);
+	}
 	if (method && nb_images_reg > 1 && (selection_is_done || method->sel == REQUIRES_NO_SELECTION) && (has_reg || method->type != REGTYPE_APPLY) ) {
-		if (method->method_ptr == &register_star_alignment || method->method_ptr == &register_multi_step_global) {
-			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_GLOBAL);
-		} else if (method->method_ptr == &register_comet) {
-			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_COMET);
-		} else if (method->method_ptr == &register_3stars) {
-			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_3_STARS);
-		} else if (method->method_ptr == &register_kombat) {
-			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_KOMBAT);
-		} else if (method->method_ptr == &register_apply_reg || method->method_ptr == &register_astrometric) {
-			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_APPLYREG);
-			gtk_widget_set_visible(go_estimate, method->method_ptr == &register_astrometric);
-		}
 		ready = TRUE;
 		if (method->method_ptr == &register_3stars) {
 			ready = _3stars_check_selection(); // checks that the right image is loaded based on doall and dofollow
@@ -730,8 +729,8 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	gboolean is_astrometric = method->method_ptr == &register_astrometric;
 	gboolean is_old_global = method->method_ptr == &register_star_alignment;
 	gtk_widget_set_visible(undistort_check, is_astrometric);
-	gtk_widget_set_visible(scale_box, is_astrometric || isapplyreg);
-
+	gtk_widget_set_visible(output_reg_frame, is_astrometric || isapplyreg);
+	gtk_widget_set_visible(GTK_WIDGET(notebook_reg), !(is_astrometric || isapplyreg));
 	if (((method->method_ptr == &register_comet) ||
 			(method->method_ptr == &register_kombat) ||
 			(method->method_ptr == &register_shift_dft) ||

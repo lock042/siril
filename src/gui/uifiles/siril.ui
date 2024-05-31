@@ -5341,52 +5341,6 @@ When processing images, registration data is taken from the default layer if ava
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkBox">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="spacing">5</property>
-                                                            <child>
-                                                            <object class="GtkCheckButton" id="followStarCheckButton">
-                                                            <property name="label" translatable="yes">Follow star movement</property>
-                                                            <property name="can-focus">True</property>
-                                                            <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Use this option to use the position of the star(s) found in the previous image as new centre for the current image registration. This allows the selection area to be smaller, registration faster, and accounts for drift or images with a large number of stars.
-WARNING: enabling this option requires the registration to not be parallelized, it will run on one CPU core only.</property>
-                                                            <property name="halign">start</property>
-                                                            <property name="draw-indicator">True</property>
-                                                            <signal name="toggled" handler="on_regfollowStar_toggled" swapped="no"/>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">0</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkCheckButton" id="onlyshift_checkbutton">
-                                                            <property name="label" translatable="yes">Shift only</property>
-                                                            <property name="can-focus">True</property>
-                                                            <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Use this option to compute only shifts (so no rotation) even if more than one star is selected. When only one star is selected, this is activated by default.</property>
-                                                            <property name="halign">start</property>
-                                                            <property name="draw-indicator">True</property>
-                                                            <signal name="toggled" handler="on_shiftonly_toggled" swapped="no"/>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">1</property>
-                                                            </packing>
-                                                            </child>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">False</property>
-                                                            <property name="padding">16</property>
-                                                            <property name="position">2</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
                                                             <object class="GtkNotebook" id="notebook_registration">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
@@ -5399,7 +5353,7 @@ WARNING: enabling this option requires the registration to not be parallelized, 
                                                             <property name="can-focus">False</property>
                                                             <property name="orientation">vertical</property>
                                                             <child>
-                                                            <!-- n-columns=3 n-rows=4 -->
+                                                            <!-- n-columns=3 n-rows=6 -->
                                                             <object class="GtkGrid">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
@@ -5550,6 +5504,43 @@ WARNING: enabling this option requires the registration to not be parallelized, 
                                                             <packing>
                                                             <property name="left-attach">2</property>
                                                             <property name="top-attach">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkCheckButton" id="regNoOutput">
+                                                            <property name="label" translatable="yes">Save transformation in seq file only</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-markup" translatable="yes">When this box is checked, the transformed images are not saved as a newly registered sequence.
+
+In both cases, the transformation matrices are saved to the sequence file. The registration data can then be inspected and some images unselected, prior to applying the transformations using the Apply Existing Registration method.</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="draw-indicator">True</property>
+                                                            <signal name="toggled" handler="on_regNoOutput_toggled" swapped="no"/>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">4</property>
+                                                            <property name="width">3</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkCheckButton" id="upscaleCheckButton">
+                                                            <property name="label" translatable="yes">Interpolation upscaling x2</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Applies an interpolation-based x2 upscaling. This is quicker than most of the proper drizzle kernels but will not provide results that are as sharp. Only applicable to immediately-applied global star registration.</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="valign">start</property>
+                                                            <property name="draw-indicator">True</property>
+                                                            <signal name="toggled" handler="on_upscaleCheckButton_toggled" swapped="no"/>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">5</property>
+                                                            <property name="width">3</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -5759,6 +5750,11 @@ WARNING: enabling this option requires the registration to not be parallelized, 
                                                             <object class="GtkBox">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
+                                                            <property name="orientation">vertical</property>
+                                                            <child>
+                                                            <object class="GtkBox">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
                                                             <property name="spacing">5</property>
                                                             <child>
                                                             <object class="GtkButton" id="pickstar1">
@@ -5900,6 +5896,59 @@ WARNING: enabling this option requires the registration to not be parallelized, 
                                                             </child>
                                                             </object>
                                                             <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkBox">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="spacing">5</property>
+                                                            <child>
+                                                            <object class="GtkCheckButton" id="followStarCheckButton">
+                                                            <property name="label" translatable="yes">Follow star movement</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Use this option to use the position of the star(s) found in the previous image as new centre for the current image registration. This allows the selection area to be smaller, registration faster, and accounts for drift or images with a large number of stars.
+WARNING: enabling this option requires the registration to not be parallelized, it will run on one CPU core only.</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="draw-indicator">True</property>
+                                                            <signal name="toggled" handler="on_regfollowStar_toggled" swapped="no"/>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkCheckButton" id="onlyshift_checkbutton">
+                                                            <property name="label" translatable="yes">Shift only</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Use this option to compute only shifts (so no rotation) even if more than one star is selected. When only one star is selected, this is activated by default.</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="draw-indicator">True</property>
+                                                            <signal name="toggled" handler="on_shiftonly_toggled" swapped="no"/>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">False</property>
+                                                            <property name="padding">16</property>
+                                                            <property name="position">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            </object>
+                                                            <packing>
                                                             <property name="position">2</property>
                                                             </packing>
                                                             </child>
@@ -5977,145 +6026,18 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="position">3</property>
                                                             </packing>
                                                             </child>
-                                                            <child type="tab">
+                                                            <child>
                                                             <object class="GtkLabel" id="notebook_reg_page4">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
-                                                            <property name="label">page 4</property>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="position">3</property>
-                                                            <property name="tab-fill">False</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkBox" id="box_reg">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="orientation">vertical</property>
-                                                            <child>
-                                                            <placeholder/>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkBox">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="spacing">5</property>
-                                                            <child>
-                                                            <object class="GtkLabel" id="framing_lbl">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="valign">center</property>
-                                                            <property name="label" translatable="yes">Framing method</property>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="padding">5</property>
-                                                            <property name="position">0</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkComboBoxText" id="comboreg_framing">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Specifies the framing method to be used:
-- "current" uses the current reference image
-- "maximum" (bounding box) adds a black border around each image as required so that no part of the image is cropped when registered.
-- "minimum" (common area) crops each image to the area it has in common with all images of the sequence.
-- "center of gravity" determines the best framing position as the center of gravity (cog) of all the images</property>
-                                                            <property name="valign">center</property>
-                                                            <property name="active">0</property>
-                                                            <items>
-                                                            <item translatable="yes">current</item>
-                                                            <item translatable="yes">maximum</item>
-                                                            <item translatable="yes">minimum</item>
-                                                            <item translatable="yes">center of gravity</item>
-                                                            </items>
-                                                            <signal name="changed" handler="on_comboreg_framing_changed" swapped="no"/>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">1</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkImage" id="framing-image">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="resource">/org/siril/ui/pixmaps/framing-default.svg</property>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="pack-type">end</property>
-                                                            <property name="position">2</property>
-                                                            </packing>
-                                                            </child>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">1</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkButton" id="proj_estimate">
-                                                            <property name="label" translatable="yes">Estimate</property>
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">True</property>
-                                                            <property name="receives-default">True</property>
-                                                            <property name="tooltip-text" translatable="yes">Estimates the final size and space used by the stacked image.</property>
-                                                            <property name="halign">end</property>
-                                                            <property name="use-underline">True</property>
-                                                            <signal name="clicked" handler="on_seqregister_button_clicked" swapped="no"/>
-                                                            <style>
-                                                            <class name="suggested-action"/>
-                                                            </style>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">False</property>
-                                                            <property name="padding">15</property>
-                                                            <property name="pack-type">end</property>
-                                                            <property name="position">2</property>
-                                                            </packing>
-                                                            </child>
+                                                            <property name="label" translatable="yes"> </property>
                                                             </object>
                                                             <packing>
                                                             <property name="position">4</property>
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkBox">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="orientation">vertical</property>
-                                                            <child>
                                                             <placeholder/>
-                                                            </child>
-                                                            <child>
-                                                            <placeholder/>
-                                                            </child>
-                                                            <child>
-                                                            <placeholder/>
-                                                            </child>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="position">5</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child type="tab">
-                                                            <object class="GtkLabel" id="notebook_reg_page5">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="label">page 5</property>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="position">5</property>
-                                                            <property name="tab-fill">False</property>
-                                                            </packing>
                                                             </child>
                                                             </object>
                                                             <packing>
@@ -6625,7 +6547,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                       </packing>
                                                     </child>
                                                     <child>
-                                                      <object class="GtkFrame">
+                                                      <object class="GtkFrame" id="output_reg_frame">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
                                                         <property name="label-xalign">0</property>
@@ -6636,30 +6558,102 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="can-focus">False</property>
                                                             <property name="left-padding">12</property>
                                                             <child>
-                                                            <object class="GtkBox" id="box4">
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="margin-top">5</property>
-                                                            <property name="orientation">vertical</property>
-                                                            <property name="spacing">5</property>
-                                                            <child>
                                                             <object class="GtkBox">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="orientation">vertical</property>
                                                             <property name="spacing">6</property>
                                                             <child>
-                                                            <object class="GtkCheckButton" id="regNoOutput">
-                                                            <property name="label" translatable="yes">Save transformation in seq file only</property>
+                                                            <object class="GtkBox" id="box_reg">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="orientation">vertical</property>
+                                                            <child>
+                                                            <object class="GtkBox">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="spacing">5</property>
+                                                            <child>
+                                                            <object class="GtkLabel" id="framing_lbl">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="valign">center</property>
+                                                            <property name="label" translatable="yes">Framing method</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="padding">5</property>
+                                                            <property name="position">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkComboBoxText" id="comboreg_framing">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Specifies the framing method to be used:
+- "current" uses the current reference image
+- "maximum" (bounding box) adds a black border around each image as required so that no part of the image is cropped when registered.
+- "minimum" (common area) crops each image to the area it has in common with all images of the sequence.
+- "center of gravity" determines the best framing position as the center of gravity (cog) of all the images</property>
+                                                            <property name="valign">center</property>
+                                                            <property name="active">0</property>
+                                                            <items>
+                                                            <item translatable="yes">current</item>
+                                                            <item translatable="yes">maximum</item>
+                                                            <item translatable="yes">minimum</item>
+                                                            <item translatable="yes">center of gravity</item>
+                                                            </items>
+                                                            <signal name="changed" handler="on_comboreg_framing_changed" swapped="no"/>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkImage" id="framing-image">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="resource">/org/siril/ui/pixmaps/framing-default.svg</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="pack-type">end</property>
+                                                            <property name="position">2</property>
+                                                            </packing>
+                                                            </child>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkButton" id="proj_estimate">
+                                                            <property name="label" translatable="yes">Estimate</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
-                                                            <property name="receives-default">False</property>
-                                                            <property name="tooltip-markup" translatable="yes">When this box is checked, the transformed images are not saved as a newly registered sequence.
-
-In both cases, the transformation matrices are saved to the sequence file. The registration data can then be inspected and some images unselected, prior to applying the transformations using the Apply Existing Registration method.</property>
-                                                            <property name="halign">start</property>
-                                                            <property name="draw-indicator">True</property>
-                                                            <signal name="toggled" handler="on_regNoOutput_toggled" swapped="no"/>
+                                                            <property name="receives-default">True</property>
+                                                            <property name="tooltip-text" translatable="yes">Estimates the final size and space used by the stacked image.</property>
+                                                            <property name="halign">end</property>
+                                                            <property name="use-underline">True</property>
+                                                            <signal name="clicked" handler="on_seqregister_button_clicked" swapped="no"/>
+                                                            <style>
+                                                            <class name="suggested-action"/>
+                                                            </style>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">False</property>
+                                                            <property name="padding">15</property>
+                                                            <property name="pack-type">end</property>
+                                                            <property name="position">2</property>
+                                                            </packing>
+                                                            </child>
                                                             </object>
                                                             <packing>
                                                             <property name="expand">False</property>
@@ -6681,7 +6675,7 @@ This option is useful when sequence has previously been aligned using a method t
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">1</property>
+                                                            <property name="position">2</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -6698,7 +6692,7 @@ This option is useful when sequence has previously been aligned using a method t
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">2</property>
+                                                            <property name="position">3</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -6755,7 +6749,7 @@ This option is useful when sequence has previously been aligned using a method t
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">3</property>
+                                                            <property name="position">4</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -6768,7 +6762,7 @@ This option is useful when sequence has previously been aligned using a method t
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">4</property>
+                                                            <property name="position">5</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -6777,31 +6771,13 @@ This option is useful when sequence has previously been aligned using a method t
                                                             <property name="can-focus">False</property>
                                                             <property name="transition-type">slide-up-down</property>
                                                             <child>
-                                                            <!-- n-columns=2 n-rows=3 -->
+                                                            <!-- n-columns=2 n-rows=2 -->
                                                             <object class="GtkGrid" id="grid_interp_controls">
                                                             <property name="name">grid_interp_controls</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="row-spacing">6</property>
                                                             <property name="column-spacing">6</property>
-                                                            <child>
-                                                            <object class="GtkCheckButton" id="upscaleCheckButton">
-                                                            <property name="label" translatable="yes">Interpolation upscaling x2</property>
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">True</property>
-                                                            <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Applies an interpolation-based x2 upscaling. This is quicker than most of the proper drizzle kernels but will not provide results that are as sharp. Only applicable to immediately-applied global star registration.</property>
-                                                            <property name="halign">start</property>
-                                                            <property name="valign">start</property>
-                                                            <property name="draw-indicator">True</property>
-                                                            <signal name="toggled" handler="on_upscaleCheckButton_toggled" swapped="no"/>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="left-attach">0</property>
-                                                            <property name="top-attach">1</property>
-                                                            <property name="width">2</property>
-                                                            </packing>
-                                                            </child>
                                                             <child>
                                                             <object class="GtkLabel" id="GtkLabelRegAlgo">
                                                             <property name="visible">True</property>
@@ -6855,7 +6831,7 @@ In current Siril implementations, we have included a clamping mechanism that pre
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
-                                                            <property name="top-attach">2</property>
+                                                            <property name="top-attach">1</property>
                                                             <property name="width">2</property>
                                                             </packing>
                                                             </child>
@@ -7018,35 +6994,6 @@ Note that the Gaussian and Lanczos models do not conserve flux and should not be
                                                             </packing>
                                                             </child>
                                                             </object>
-                                                            <packing>
-                                                            <property name="expand">False</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="padding">6</property>
-                                                            <property name="position">0</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkButton" id="goregister_button">
-                                                            <property name="label" translatable="yes">Go register</property>
-                                                            <property name="visible">True</property>
-                                                            <property name="sensitive">False</property>
-                                                            <property name="can-focus">True</property>
-                                                            <property name="receives-default">True</property>
-                                                            <property name="tooltip-text" translatable="yes">Start the registration process. It will register images in the loaded sequence using the selected method and reference layer (loaded in the 'Image sequences' tab, current sequence name is at the bottom of the window too).</property>
-                                                            <property name="use-underline">True</property>
-                                                            <signal name="clicked" handler="on_seqregister_button_clicked" swapped="no"/>
-                                                            <style>
-                                                            <class name="suggested-action"/>
-                                                            </style>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="expand">True</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="padding">16</property>
-                                                            <property name="position">8</property>
-                                                            </packing>
-                                                            </child>
-                                                            </object>
                                                             </child>
                                                           </object>
                                                         </child>
@@ -7068,6 +7015,27 @@ Note that the Gaussian and Lanczos models do not conserve flux and should not be
                                                       </packing>
                                                     </child>
                                                     <child>
+                                                      <object class="GtkButton" id="goregister_button">
+                                                        <property name="label" translatable="yes">Go register</property>
+                                                        <property name="visible">True</property>
+                                                        <property name="sensitive">False</property>
+                                                        <property name="can-focus">True</property>
+                                                        <property name="receives-default">True</property>
+                                                        <property name="tooltip-text" translatable="yes">Start the registration process. It will register images in the loaded sequence using the selected method and reference layer (loaded in the 'Image sequences' tab, current sequence name is at the bottom of the window too).</property>
+                                                        <property name="use-underline">True</property>
+                                                        <signal name="clicked" handler="on_seqregister_button_clicked" swapped="no"/>
+                                                        <style>
+                                                          <class name="suggested-action"/>
+                                                        </style>
+                                                      </object>
+                                                      <packing>
+                                                        <property name="expand">True</property>
+                                                        <property name="fill">True</property>
+                                                        <property name="padding">16</property>
+                                                        <property name="position">3</property>
+                                                      </packing>
+                                                    </child>
+                                                    <child>
                                                       <object class="GtkLabel" id="labelregisterinfo">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
@@ -7080,7 +7048,7 @@ Note that the Gaussian and Lanczos models do not conserve flux and should not be
                                                       <packing>
                                                         <property name="expand">False</property>
                                                         <property name="fill">True</property>
-                                                        <property name="position">3</property>
+                                                        <property name="position">4</property>
                                                       </packing>
                                                     </child>
                                                   </object>
