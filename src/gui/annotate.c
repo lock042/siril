@@ -331,6 +331,7 @@ void on_annotate_apply_clicked(GtkButton *button, gpointer user_data) {
 	case CONESEARCH_PAGE:
 		params_cone = parse_conesearch_ui();
 		if (!params_cone) {
+			set_cursor_waiting(FALSE);
 			return;
 		}
 		execute_conesearch(params_cone);
@@ -338,6 +339,7 @@ void on_annotate_apply_clicked(GtkButton *button, gpointer user_data) {
 	case SHOW_PAGE:
 		params_show = parse_show_ui();
 		if (!params_show) {
+			set_cursor_waiting(FALSE);
 			return;
 		}
 		execute_show_command(params_show);
