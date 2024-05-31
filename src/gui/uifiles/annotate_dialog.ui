@@ -118,7 +118,16 @@
                       <object class="GtkComboBoxText" id="conesearch_combo">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="tooltip-text" translatable="yes">List of catalogues.</property>
+                        <property name="tooltip-text" translatable="yes">These are the catalogs used for the loaded plate solved image:
+
+- Automatic: Uses local catalogs if available, otherwise defaults to nomad.
+
+You can also choose an alternate online catalog:
+
+- for stars: tycho2, nomad, gaia, ppmxl, bsc, apass, gcvs, vsx, simbad, aavso_chart
+- for exoplanets: exo
+- for deep-sky: pgc
+- for solar system objects: solsys (closest IAU observatory code can be passed in the dedicated text field.</property>
                         <property name="active">0</property>
                         <items>
                           <item translatable="yes">automatic</item>
