@@ -250,7 +250,6 @@ static int collect_single_coords_and_name(double *ra, double *dec, gchar **name)
 		*name = g_strdup(name_entry);
 	} else {
 		*name = NULL;
-		return 1;
 	}
 	return 0;
 }
