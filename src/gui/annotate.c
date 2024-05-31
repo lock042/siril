@@ -257,8 +257,10 @@ static int collect_single_coords_and_name(double *ra, double *dec, gchar **name)
 void on_show_button_save_to_DSO_clicked(GtkButton *button, gpointer user_data) {
 	double ra, dec;
 	gchar *name = NULL;
-	if (collect_single_coords_and_name(&ra, &dec, &name))
+	if (collect_single_coords_and_name(&ra, &dec, &name) || !name) {
+		siril_log_color_message(_("Could not parse coordinates or name, aborting\n"), "red");
 		return;
+	}
 	cat_item *item = calloc(1, sizeof(cat_item));
 	item->name = name;
 	item->ra = ra;
