@@ -234,8 +234,40 @@ void on_show_button_clicked(GtkButton *button, gpointer user_data) {
 	siril_widget_destroy(widgetdialog);
 }
 
+static int collect_single_coords_and_name(double *ra, double *dec, gchar **name) {
+	const gchar *ra_str = gtk_entry_get_text(show_ra_entry);
+	const gchar *dec_str = gtk_entry_get_text(show_dec_entry);
+
+	SirilWorldCS *coords = siril_world_cs_new_from_objct_ra_dec((gchar *)ra_str, (gchar *)dec_str);
+	if (!coords)
+		return 1;
+	*ra = siril_world_cs_get_alpha(coords);
+	*dec = siril_world_cs_get_delta(coords);
+	siril_world_cs_unref(coords);
+
+	const gchar *name_entry = gtk_entry_get_text(show_name_entry);
+	if (name_entry != NULL && strlen(name_entry) != 0) {
+		*name = g_strdup(name_entry);
+	} else {
+		*name = NULL;
+		return 1;
+	}
+	return 0;
+}
+
 void on_show_button_save_to_DSO_clicked(GtkButton *button, gpointer user_data) {
-	// TODO
+	double ra, dec;
+	gchar *name = NULL;
+	if (collect_single_coords_and_name(&ra, &dec, &name))
+		return;
+	cat_item *item = calloc(1, sizeof(cat_item));
+	item->name = name;
+	item->ra = ra;
+	item->dec = dec;
+	add_item_in_catalogue(item, CAT_AN_USER_DSO, TRUE);
+	set_annotation_visibility(CAT_AN_USER_DSO, TRUE);	// and display it
+	siril_catalog_free_item(item);
+	refresh_found_objects();
 }
 
 static conesearch_params* parse_conesearch_ui() {
@@ -271,29 +303,20 @@ static show_params* parse_show_ui() {
 		const gchar *input = gtk_entry_get_text(show_file_entry);
 		if (input != NULL && strlen(input) != 0) {
 			params->file = g_strdup(input);
+		} else {
+			return NULL;
 		}
 		params->coords = NULL;
 		params->name = NULL;
+		params->display_log = gtk_toggle_button_get_active(show_log);
+		params->display_tag = gtk_toggle_button_get_active(show_tag);
 	} else {
 		params->file = NULL;
-		const gchar *ra = gtk_entry_get_text(show_ra_entry);
-		const gchar *dec = gtk_entry_get_text(show_dec_entry);
-
-		if (is_string_numeric(ra) && is_string_numeric(dec)) {
-			params->coords = siril_world_cs_new_from_objct_ra_dec((gchar *)ra, (gchar *)dec);
-		} else {
-			params->coords = NULL;
-		}
-		const gchar *name_entry = gtk_entry_get_text(show_name_entry);
-		if (name_entry != NULL && strlen(name_entry) != 0) {
-			params->name = g_strdup(name_entry);
-		}
+		double ra = 0., dec = 0.;
+		if (collect_single_coords_and_name(&ra, &dec, &params->name))
+			return NULL;
+		params->coords = siril_world_cs_new_from_a_d(ra, dec);
 	}
-
-	params->display_log = gtk_toggle_button_get_active(show_log);
-	params->display_tag = gtk_toggle_button_get_active(show_tag);
-
-
 	return params;
 }
 
