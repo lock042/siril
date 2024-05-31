@@ -485,6 +485,7 @@
                               <object class="GtkEntry" id="show_ra_entry">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">These fields accept right ascension and declination. You can enter them in hms format (hours, minutes, seconds) or as decimal degrees (e.g., 184.000785, 14.899070).</property>
                               </object>
                               <packing>
                                 <property name="left-attach">1</property>
@@ -495,6 +496,7 @@
                               <object class="GtkEntry" id="show_dec_entry">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">These fields accept right ascension and declination. You can enter them in hms format (hours, minutes, seconds) or as decimal degrees (e.g., 184.000785, 14.899070).</property>
                               </object>
                               <packing>
                                 <property name="left-attach">1</property>
@@ -517,6 +519,7 @@
                               <object class="GtkEntry" id="show_name_entry">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">The display name will be used as a tag for the image and listed in the console.</property>
                               </object>
                               <packing>
                                 <property name="left-attach">1</property>
