@@ -224,21 +224,29 @@ static guint check_for_patch(gchar *version, gboolean *is_rc, gboolean *is_beta)
 	return (g_ascii_strtoull(version, NULL, 10));
 }
 
+static version_number get_version_number_from_strv(gchar **version_string) {
+	version_number version;
+	version.major_version = g_ascii_strtoull(version_string[0], NULL, 10);
+	version.minor_version = g_ascii_strtoull(version_string[1], NULL, 10);
+	version.micro_version = g_ascii_strtoull(version_string[2], NULL, 10);
+	if (version_string[3] == NULL) {
+		version.patched_version = 0;
+		version.rc_version = FALSE;
+		version.beta_version = FALSE;
+	} else {
+		version.patched_version = check_for_patch(version_string[3], &version.rc_version, &version.beta_version);
+	}
+
+	return version;
+}
+
 static version_number get_current_version_number() {
 	gchar **fullVersionNumber;
 	version_number version;
 
 	fullVersionNumber = g_strsplit_set(PACKAGE_VERSION, ".-", -1);
-	version.major_version = g_ascii_strtoull(fullVersionNumber[0], NULL, 10);
-	version.minor_version = g_ascii_strtoull(fullVersionNumber[1], NULL, 10);
-	version.micro_version = g_ascii_strtoull(fullVersionNumber[2], NULL, 10);
-	if (fullVersionNumber[3] == NULL) {
-		version.patched_version = 0;
-		version.rc_version = FALSE;
-		version.beta_version = FALSE;
-	} else {
-		version.patched_version = check_for_patch(fullVersionNumber[3], &version.rc_version, &version.beta_version);
-	}
+
+	version = get_version_number_from_strv(fullVersionNumber);
 
 	g_strfreev(fullVersionNumber);
 
@@ -611,13 +619,48 @@ static int parseJsonNotificationsString(const gchar *jsonString, GArray *validMe
 		GDateTime *validFrom = g_date_time_new_from_iso8601(json_object_get_string_member(single_message, "valid-from"), NULL);
 		GDateTime *validTo = g_date_time_new_from_iso8601(json_object_get_string_member(single_message, "valid-to"), NULL);
 
+		// Check for optional version-from and version-to fields and parse them if present
+		version_number empty_version = { 0 };
+		version_number current_version = get_current_version_number();
+		version_number valid_from_version = { 0 };
+		version_number valid_to_version = { 0 };
+		if (json_object_has_member(single_message, "version-from")) {
+			const gchar *version_from_str = json_object_get_string_member(single_message, "version-from");
+			gchar **fullVersionFrom = g_strsplit_set(version_from_str, ".-", -1);
+			valid_from_version = get_version_number_from_strv(fullVersionFrom);
+			g_strfreev(fullVersionFrom);
+		}
+		if (json_object_has_member(single_message, "version-to")) {
+			const gchar *version_to_str = json_object_get_string_member(single_message, "version-to");
+			gchar **fullVersionTo = g_strsplit_set(version_to_str, ".-", -1);
+			valid_to_version = get_version_number_from_strv(fullVersionTo);
+			g_strfreev(fullVersionTo);
+		}
+
 		// Parse status and append to GArray
 		int *status = g_malloc(sizeof(int));
 		*status = json_object_get_int_member(single_message, "priority");
 		g_array_append_val(validStatus, status);
 
+		gboolean valid = TRUE;
+
 		// Check if current time is within validity period
-		if (g_date_time_compare(currentTime, validFrom) >= 0 && g_date_time_compare(currentTime, validTo) <= 0) {
+		if (!(g_date_time_compare(currentTime, validFrom) >= 0 && g_date_time_compare(currentTime, validTo) <= 0))
+			valid = FALSE;
+
+		// Check if current version matches version constraints
+		// The memcmp() calls ensure the check only happens if version-from and / or
+		// version-to are present
+		if (memcmp(&valid_from_version, &empty_version, sizeof(version_number))) {
+			if (compare_version(current_version, valid_from_version) >= 0)
+				valid = FALSE;
+		}
+		if (memcmp(&valid_to_version, &empty_version, sizeof(version_number))) {
+			if (compare_version(current_version, valid_to_version) < 0)
+				valid = FALSE;
+		}
+
+		if (valid) {
 			// Store the message in a variable first
 			GString *messageString = g_string_new(json_object_get_string_member(single_message, "message"));
 			// Append the message to the array
