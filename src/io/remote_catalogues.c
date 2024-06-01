@@ -310,6 +310,7 @@ retrieve:
 			}
 			break;
 		default:
+			siril_log_color_message(_("Server unreachable or unresponsive (code %ld).\nServer returned: %s\n"), "red", code, content->data);
 			break;
 		}
 	}
@@ -506,48 +507,63 @@ static gboolean parse_AAVSO_Chart_buffer(gchar *buffer, GOutputStream *output_st
 			cat_items = calloc(nstars, sizeof(cat_item));
 		}
 		json_reader_read_element(reader, i);
-		// auid
-		json_reader_read_member(reader, "auid");
-		const gchar *name = json_reader_get_string_value(reader);
-		json_reader_end_member(reader);
-		// reading the data or V and B bands, bands being an array
-		json_reader_read_member(reader, "bands");
-		int nbands = json_reader_count_elements(reader);
-		const gchar *band = NULL;
+		const gchar *name = NULL;
+		double ra = NAN, dec = NAN;
 		double mag = 0., e_mag = 0., bmag = 0., e_bmag = 0.;
-		for (int j = 0; j < nbands; j++) {
-			json_reader_read_element(reader, j);
-			json_reader_read_member(reader, "band");
-			band = json_reader_get_string_value(reader);
-			json_reader_end_member(reader);
-			if (band && !strcmp(band, "V")) {
-				json_reader_read_member(reader, "error");
-				e_mag = json_reader_get_double_value(reader);
+		gchar **members = json_reader_list_members(reader);
+		int nbmembers = g_strv_length(members);
+		for (int m = 0; m < nbmembers; m++) {
+			if (!g_strcmp0(members[m], "auid")) { // auid
+				json_reader_read_member(reader, "auid");
+				name = json_reader_get_string_value(reader);
+				siril_debug_print("%2d: %s\n", i + 1, name);
 				json_reader_end_member(reader);
-				json_reader_read_member(reader, "mag");
-				mag = json_reader_get_double_value(reader);
+			} else if (!g_strcmp0(members[m], "ra")) { //ra
+				json_reader_read_member(reader, "ra");
+				const gchar *rastr = json_reader_get_string_value(reader);
+				ra = parse_hms(rastr);	// in hours
 				json_reader_end_member(reader);
-			} else if (band && !strcmp(band, "B")) {
-				json_reader_read_member(reader, "error");
-				e_bmag = json_reader_get_double_value(reader);
+			} else if (!g_strcmp0(members[m], "dec")) { //dec
+				json_reader_read_member(reader, "dec");
+				const gchar *decstr = json_reader_get_string_value(reader);
+				dec = parse_dms(decstr);
 				json_reader_end_member(reader);
-				json_reader_read_member(reader, "mag");
-				bmag = json_reader_get_double_value(reader);
+			} else if (!g_strcmp0(members[m], "bands")) { //bands
+				// reading the data or V and B bands, bands being an array
+				json_reader_read_member(reader, "bands");
+				int nbands = json_reader_count_elements(reader);
+				const gchar *band = NULL;
+				for (int j = 0; j < nbands; j++) {
+					json_reader_read_element(reader, j);
+					json_reader_read_member(reader, "band");
+					band = json_reader_get_string_value(reader);
+					json_reader_end_member(reader);
+					if (band && !strcmp(band, "V")) {
+						json_reader_read_member(reader, "mag");
+						mag = json_reader_get_double_value(reader);
+						json_reader_end_member(reader);
+						json_reader_read_member(reader, "error");
+						JsonNode *errnode = json_reader_get_value(reader);
+						if (!json_node_is_null(errnode)) {
+							e_mag = json_reader_get_double_value(reader);
+						}
+						json_reader_end_member(reader);
+					} else if (band && !strcmp(band, "B")) {
+						json_reader_read_member(reader, "mag");
+						bmag = json_reader_get_double_value(reader);
+						json_reader_end_member(reader);
+						json_reader_read_member(reader, "error");
+						JsonNode *errnode = json_reader_get_value(reader);
+						if (!json_node_is_null(errnode)) {
+							e_bmag = json_reader_get_double_value(reader);
+						}
+						json_reader_end_member(reader);
+					}
+					json_reader_end_element(reader);
+				}
 				json_reader_end_member(reader);
 			}
-			json_reader_end_element(reader);
 		}
-		json_reader_end_member(reader);
-		//dec
-		json_reader_read_member(reader, "dec");
-		const gchar *decstr = json_reader_get_string_value(reader);
-		double dec = parse_dms(decstr);
-		json_reader_end_member(reader);
-		//ra
-		json_reader_read_member(reader, "ra");
-		const gchar *rastr = json_reader_get_string_value(reader);
-		double ra = parse_hms(rastr);	// in hours
-		json_reader_end_member(reader);
 		if (!isnan(ra) && !isnan(dec)) {
 			cat_items[n].ra = ra;
 			cat_items[n].dec = dec;
@@ -558,6 +574,7 @@ static gboolean parse_AAVSO_Chart_buffer(gchar *buffer, GOutputStream *output_st
 			cat_items[n].name = g_strdup(name);
 			n++;
 		}
+		g_strfreev(members);
 		json_reader_end_element(reader);
 	}
 	g_object_unref(reader);
@@ -761,7 +778,9 @@ download_error:
 	if (error) {
 		siril_log_color_message(_("Cannot create catalogue file %s (%s)\n"), "red", filepath, error->message);
 		g_clear_error(&error);
-		}
+	} else {
+		siril_log_color_message(_("Cannot create catalogue file %s (generic error)\n"), "red", filepath);
+	}
 	g_free(buffer);
 	if (output_stream)
 		g_object_unref(output_stream);

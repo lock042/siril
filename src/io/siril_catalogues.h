@@ -150,6 +150,7 @@ typedef struct {
 } siril_catalogue;
 
 #define has_field(cat, column) (cat->columns & (1 << CAT_FIELD_##column))
+#define has_field_from_columns(columns, column) (columns & (1 << CAT_FIELD_##column))
 
 typedef struct {
 	// query parameters
@@ -173,6 +174,26 @@ typedef struct {
 	gchar *outfilename; // the name of the outputfile
 } conesearch_args;
 
+typedef struct {
+	float limit_mag;
+	gboolean photometric;
+	super_bool display_tag;
+	super_bool display_log;
+	siril_cat_index cat;
+	gchar *obscode;
+	gboolean default_obscode_used;
+	int trixel;
+	gchar *outfilename;
+} conesearch_params;
+
+typedef struct {
+	gboolean clear;
+	gchar *file;
+	gchar *name;
+	SirilWorldCS *coords;
+	gboolean display_log;
+	gboolean display_tag;
+} show_params;
 
 uint32_t siril_catalog_columns(siril_cat_index cat);
 void sort_cat_items_by_mag(siril_catalogue *siril_cat);
@@ -188,6 +209,7 @@ void siril_catalogue_copy_item(cat_item *from, cat_item *to);
 void siril_catalogue_copy(siril_catalogue *from, siril_catalogue *to, gboolean metadata_only);
 gboolean is_star_catalogue(siril_cat_index Catalog);
 gboolean display_names_for_catalogue(siril_cat_index Catalog);
+float siril_catalog_get_default_limit_mag(siril_cat_index cat);
 
 int siril_catalog_conesearch(siril_catalogue *siril_cat);
 int siril_catalog_load_from_file(siril_catalogue *siril_cat, const gchar *filename);
@@ -207,7 +229,9 @@ double compute_coords_distance(double ra1, double dec1, double ra2, double dec2)
 sky_object_query_args *init_sky_object_query();
 void free_sky_object_query(sky_object_query_args *args);
 int check_conesearch_args(conesearch_args *args);
-conesearch_args *init_conesearch();
-void free_conesearch(conesearch_args *args);
+conesearch_args *init_conesearch_args();
+conesearch_params *init_conesearch_params();
+int execute_conesearch(conesearch_params *params);
+int execute_show_command(show_params *params);
 
 #endif

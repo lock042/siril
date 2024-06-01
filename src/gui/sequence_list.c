@@ -1007,3 +1007,33 @@ int update_sequences_list(const char *sequence_name_to_select) {
 	return 0;
 }
 
+gboolean on_treeview1_query_tooltip(GtkWidget *widget, gint x, gint y,
+		gboolean keyboard_tip, GtkTooltip *tooltip, gpointer data) {
+	GtkTreeIter iter;
+	GtkTreeView *tree_view = GTK_TREE_VIEW(widget);
+	GtkTreeModel *model = gtk_tree_view_get_model(tree_view);
+	GtkTreePath *path = NULL;
+
+	if (!sequence_is_loaded()) return FALSE;
+
+	if (!gtk_tree_view_get_tooltip_context(tree_view, &x, &y, keyboard_tip, &model, &path, &iter)) {
+		return FALSE;
+	}
+	char buffer[512];
+	fits fit = { 0 };
+	gint real_index = get_real_index_from_index_in_list(model, &iter);
+	if (seq_read_frame_metadata(&com.seq, real_index, &fit)) {
+		return FALSE;
+	}
+
+	if (fit.keywords.filename[0] == '\0') return FALSE;
+
+	g_snprintf(buffer, 511, "<b>Original filename:</b> %s", fit.keywords.filename);
+	clearfits(&fit);
+	gtk_tooltip_set_markup(tooltip, buffer);
+
+	gtk_tree_view_set_tooltip_row(tree_view, tooltip, path);
+	gtk_tree_path_free(path);
+
+	return TRUE;
+}

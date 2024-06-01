@@ -29,6 +29,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <file compressed="true" preprocess="xml-stripblanks" alias="siril-shortcuts.ui">gui/siril-shortcuts.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="aavso_dialog.ui">gui/uifiles/aavso_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="aberration_inspector.ui">gui/uifiles/aberration_inspector.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="annotate_dialog.ui">gui/uifiles/annotate_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="asinh_dialog.ui">gui/uifiles/asinh_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="astrometry_dialog.ui">gui/uifiles/astrometry_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="background_extraction_dialog.ui">gui/uifiles/background_extraction_dialog.ui</file>
@@ -72,7 +73,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <file compressed="true" preprocess="xml-stripblanks" alias="savepopup.ui">gui/uifiles/savepopup.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="SCNR_dialog.ui">gui/uifiles/SCNR_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="script_contents_dialog.ui">gui/uifiles/script_contents_dialog.ui</file>
-    <file compressed="true" preprocess="xml-stripblanks" alias="search_window.ui">gui/uifiles/search_window.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="seqlist_dialog.ui">gui/uifiles/seqlist_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="settings_window.ui">gui/uifiles/settings_window.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="siril.ui">gui/uifiles/siril.ui</file>

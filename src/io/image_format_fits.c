@@ -1705,7 +1705,7 @@ int savefits(const char *name, fits *f) {
 	f->naxes[1] = f->ry;
 
 	if (f->naxis == 3 && f->naxes[2] != 3) {
-		printf("Trying to save a FITS color file with more than 3 channels?");
+		printf("Trying to save a FITS color file with more than 3 channels?\n");
 		return 1;
 	}
 

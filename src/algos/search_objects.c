@@ -280,7 +280,7 @@ int cached_object_lookup(sky_object_query_args *args) {
 	return args->retval;
 }
 
-void on_search_objects_entry_activate(GtkEntry *entry, gpointer user_data) {
+void search_object(GtkEntry *entry) {
 	if (!has_wcs(&gfit))
 		return;
 	control_window_switch_to_tab(OUTPUT_LOGS);
@@ -288,6 +288,10 @@ void on_search_objects_entry_activate(GtkEntry *entry, gpointer user_data) {
 	args->name = g_strdup(gtk_entry_get_text(GTK_ENTRY(entry)));
 	args->fit = &gfit;
 	start_in_new_thread(catsearch_worker, args);
+}
+
+void on_search_objects_entry_activate(GtkEntry *entry, gpointer user_data) {
+	search_object(entry);
 }
 
 
@@ -402,9 +406,10 @@ gboolean has_nonzero_coords() {
 // returns a string describing the site coordinates on Earth in a format suited for queries
 #ifdef HAVE_LIBCURL
 static gchar *retrieve_site_coord(fits *fit) {
-	if (fit->keywords.sitelat == 0.0 && fit->keywords.sitelong == 0.0)
+	if (fit->keywords.sitelat < -90.0 || fit->keywords.sitelong < 0.0)
 		return g_strdup("@500");
-	return g_strdup_printf("%+f,%+f,%f", fit->keywords.sitelat, fit->keywords.sitelong, fit->keywords.siteelev);
+	double elev = (fit->keywords.siteelev < DEFAULT_DOUBLE_VALUE + 1.) ? 0. : fit->keywords.siteelev;
+	return g_strdup_printf("%+f,%+f,%f", fit->keywords.sitelat, fit->keywords.sitelong, elev);
 }
 #endif
 
@@ -457,11 +462,12 @@ gchar *search_in_online_catalogs(sky_object_query_args *args) {
 		g_string_append_printf(string_url, "&-observer=%s", formatted_site);
 		siril_log_message(_("Searching for solar system object %s on observation date %s\n"),
 				name, formatted_date);
-		if (args->fit->keywords.sitelat == 0.0 && args->fit->keywords.sitelong == 0.0) {
+		if (args->fit->keywords.sitelat <-90. || args->fit->keywords.sitelong < 0.0) {
 			siril_log_color_message(_("No topocentric data available. Set to geocentric, positions may be inaccurate\n"), "salmon");
 		} else {
+			double elev = (args->fit->keywords.siteelev < DEFAULT_DOUBLE_VALUE + 1.) ? 0. : args->fit->keywords.siteelev;
 			siril_log_message(_("at lat: %f, long: %f, alt: %f\n"), args->fit->keywords.sitelat,
-				args->fit->keywords.sitelong, args->fit->keywords.siteelev);
+				args->fit->keywords.sitelong, elev);
 		}
 		g_free(formatted_site);
 		g_free(formatted_date);

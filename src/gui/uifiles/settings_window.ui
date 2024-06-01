@@ -2720,7 +2720,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                 <property name="tooltip-text" translatable="yes">Radius/half-FWHM ratio</property>
                                 <property name="halign">start</property>
                                 <property name="max-width-chars">7</property>
-                                <property name="text" translatable="yes">3.00</property>
+                                <property name="text">3.00</property>
                                 <property name="input-purpose">number</property>
                                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                 <property name="adjustment">adjratio</property>

@@ -1840,3 +1840,52 @@ int count_lines_in_textfile(const gchar *filename) {
 
     return line_count;
 }
+
+void copy_filename(const char *filename, char *truncated_filename, size_t max_length) {
+	size_t filename_length = strlen(filename);
+
+	if (filename_length <= max_length) {
+		strncpy(truncated_filename, filename, max_length);
+		truncated_filename[filename_length] = '\0';
+		return;
+	}
+
+	size_t prefix_length = (max_length - 3) / 2;
+	size_t suffix_length = max_length - 3 - prefix_length;
+
+	strncpy(truncated_filename, filename, prefix_length);
+	strcpy(truncated_filename + prefix_length, "...");
+	strncpy(truncated_filename + prefix_length + 3, filename + filename_length - suffix_length, suffix_length);
+
+	truncated_filename[max_length] = '\0';
+}
+
+gboolean is_string_numeric(const gchar *str) {
+	// Check if the string is NULL or empty
+	if (str == NULL || *str == '\0') {
+		return FALSE;
+	}
+
+	gboolean has_decimal_point = FALSE;
+	const gchar *p = str;
+
+	// Check for an optional leading sign
+	if (*p == '-' || *p == '+') {
+		p++;
+	}
+
+	// Check each character in the string
+	for (; *p != '\0'; p++) {
+		if (*p == '.') {
+			if (has_decimal_point) {
+				// More than one decimal point
+				return FALSE;
+			}
+			has_decimal_point = TRUE;
+		} else if (!g_ascii_isdigit(*p)) {
+			return FALSE;
+		}
+	}
+
+	return (p > str && (g_ascii_isdigit(*(p - 1)) || has_decimal_point));
+}

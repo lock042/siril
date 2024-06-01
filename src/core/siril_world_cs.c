@@ -113,6 +113,8 @@ SirilWorldCS* siril_world_cs_new_from_ra_dec(gdouble ra_h, gdouble ra_m, gdouble
 
 /* parse RA 'hours minutes seconds' or 'hours:minutes:seconds' to degrees */
 double parse_hms(const char *objctra) {
+	if (!objctra)
+		return NAN;
 	double ra = NAN;
 	int ra_h, ra_m;
 	gdouble ra_s;
@@ -124,6 +126,8 @@ double parse_hms(const char *objctra) {
 
 /* parse Dec 'degrees minutes seconds' or 'degrees:minutes:seconds' to degrees */
 double parse_dms(const char *objctdec) {
+	if (!objctdec)
+		return NAN;
 	double dec = NAN;
 	int dec_deg, dec_m;
 	gdouble dec_s;

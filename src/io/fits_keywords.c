@@ -140,6 +140,8 @@ static void sitelong_handler_read(fits *fit, const char *comment, KeywordInfo *i
 		gchar *end;
 		fit->keywords.sitelong = g_ascii_strtod(fit->keywords.sitelong_str, &end);
 		if (fit->keywords.sitelong_str == end) {
+			fit->keywords.sitelong = DEFAULT_DOUBLE_VALUE;
+			info->used = FALSE;
 			siril_debug_print("Cannot read SITELONG\n");
 		}
 	} else {
@@ -168,6 +170,8 @@ static void sitelat_handler_read(fits *fit, const char *comment, KeywordInfo *in
 		gchar *end;
 		fit->keywords.sitelat = g_ascii_strtod(fit->keywords.sitelat_str, &end);
 		if (fit->keywords.sitelat_str == end) {
+			fit->keywords.sitelat = DEFAULT_DOUBLE_VALUE;
+			info->used = FALSE;
 			siril_debug_print("Cannot read SITELAT\n");
 		}
 	} else {
@@ -290,6 +294,7 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 			KEYWORD_PRIMARY( "image", "PROGRAM", KTYPE_STR, "Software that created this HDU", &(fit->keywords.program), NULL, program_handler_save),
 			KEYWORD_SECONDA( "image", "SWCREATE", KTYPE_STR, "Software that created this HDU", &(fit->keywords.program), NULL, NULL),
 			/* We do not want to save datamax */
+			KEYWORD_PRIMARY( "image", "FILENAME", KTYPE_STR, "", &(fit->keywords.filename), NULL, NULL), // no comment to save space for filename
 			KEYWORD_SECONDA( "image", "DATAMAX", KTYPE_DOUBLE, "Maximum pixel value", &(fit->keywords.data_max), NULL, NULL),
 			KEYWORD_PRIMARY( "date",  "DATE", KTYPE_DATE, "UTC date that FITS file was created", &(fit->keywords.date), NULL, NULL),
 			KEYWORD_PRIMARY( "date",  "DATE-OBS", KTYPE_DATE, "YYYY-MM-DDThh:mm:ss observation start, UT", &(fit->keywords.date_obs), NULL, NULL),
@@ -838,7 +843,7 @@ static void set_to_default_not_used(fits *fit, GHashTable *keys_hash) {
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		KeywordInfo *keyword_info = (KeywordInfo*) value;
 
-		if (!keyword_info->used || should_use_keyword(fit, *keyword_info)) {
+		if (!keyword_info->used && should_use_keyword(fit, *keyword_info)) {
 			switch (keyword_info->type) {
 			case KTYPE_INT:
 				if (keyword_info->data && *((int*) keyword_info->data) == 0)
