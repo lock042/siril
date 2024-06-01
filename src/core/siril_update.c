@@ -42,7 +42,7 @@
 #define SIRIL_DOWNLOAD DOMAIN"download/"
 #define GITLAB_URL "https://gitlab.com/free-astro/siril/raw"
 #define BRANCH "master"
-#define SIRIL_NOTIFICATIONS "siril_notifications.json"
+#define SIRIL_NOTIFICATIONS "notifications/siril_notifications.json"
 
 static gchar *get_changelog(gchar *str);
 
@@ -542,6 +542,10 @@ static gboolean end_update_idle(gpointer p) {
 	return FALSE;
 }
 
+static void array_string_element_clear(GString *element) {
+	g_string_free(element, TRUE);
+}
+
 static int parseJsonNotificationsString(const gchar *jsonString, GArray *validMessages, GArray *validStatus) {
 	// Load JSON from string and check for errors
 	GError *error = NULL;
@@ -565,7 +569,7 @@ static int parseJsonNotificationsString(const gchar *jsonString, GArray *validMe
 
 	// The message array / object and number of messages (length is overwritten if an array is found)
 	JsonArray *messages = NULL;
-	JsonObject *message = NULL;
+	JsonObject *single_message = NULL;
 	guint length = 1;
 
 	// Get array of messages
@@ -574,14 +578,14 @@ static int parseJsonNotificationsString(const gchar *jsonString, GArray *validMe
 		length = json_array_get_length(messages);
 	} else {
 		if (JSON_NODE_HOLDS_OBJECT(node)) {
-			message = json_node_get_object(node);
+			single_message = json_node_get_object(node);
 		} else {
 			siril_log_color_message(_("Error parsing JSON from URL: unable to find a valid JSON object\n"), "red");
 			g_object_unref(parser);
 			return 1;
 		}
 	}
-	if (!messages && !message) {
+	if (!messages && !single_message) {
 		siril_log_color_message(_("Error parsing JSON from URL: unable to find any valid JSON objects\n"), "red");
 		g_object_unref(parser);
 		return 1;
@@ -589,30 +593,30 @@ static int parseJsonNotificationsString(const gchar *jsonString, GArray *validMe
 
 	// Iterate over messages
 	for (guint i = 0; i < length; i++) {
-		if (!message)
-			message = json_array_get_object_element(messages, i);
+		if (!single_message)
+			single_message = json_array_get_object_element(messages, i);
 		// Check the necessary json objects are there
-		if (!	(json_object_has_member(message, "valid-from")) &&
-				(json_object_has_member(message, "valid-to")) &&
-				(json_object_has_member(message, "message")) &&
-				(json_object_has_member(message, "priority"))) {
+		if (!(json_object_has_member(single_message, "valid-from")) &&
+				(json_object_has_member(single_message, "valid-to")) &&
+				(json_object_has_member(single_message, "message")) &&
+				(json_object_has_member(single_message, "priority"))) {
 			siril_log_color_message(_("Error parsing JSON from URL: required JSON members not found\n"), "red");
 			return 1;
 		}
 
 		// Parse valid-from and valid-to fields
-		GDateTime *validFrom = g_date_time_new_from_iso8601(json_object_get_string_member(message, "valid-from"), NULL);
-		GDateTime *validTo = g_date_time_new_from_iso8601(json_object_get_string_member(message, "valid-to"), NULL);
+		GDateTime *validFrom = g_date_time_new_from_iso8601(json_object_get_string_member(single_message, "valid-from"), NULL);
+		GDateTime *validTo = g_date_time_new_from_iso8601(json_object_get_string_member(single_message, "valid-to"), NULL);
 
 		// Parse status and append to GArray
 		int *status = malloc(sizeof(int));
-		*status = json_object_get_int_member(message, "priority");
+		*status = json_object_get_int_member(single_message, "priority");
 		g_array_append_val(validStatus, status);
 
 		// Check if current time is within validity period
 		if (g_date_time_compare(currentTime, validFrom) >= 0 && g_date_time_compare(currentTime, validTo) <= 0) {
 			// Store the message in a variable first
-			GString *messageString = g_string_new(json_object_get_string_member(message, "message"));
+			GString *messageString = g_string_new(json_object_get_string_member(single_message, "message"));
 			// Append the message to the array
 			g_array_append_val(validMessages, messageString);
 		}
@@ -622,7 +626,7 @@ static int parseJsonNotificationsString(const gchar *jsonString, GArray *validMe
 		g_date_time_unref(validTo);
 
 		// Reset the JsonObject
-		message = NULL;
+		single_message = NULL;
 	}
 
 	// Free allocated memory
@@ -634,6 +638,7 @@ static int parseJsonNotificationsString(const gchar *jsonString, GArray *validMe
 
 static gboolean end_notifier_idle(gpointer p) {
 	struct _update_data *args = (struct _update_data *) p;
+	GArray *validMessages = NULL, *validStatus = NULL;
 	if (args->content == NULL) {
 		switch(args->code) {
 		case 0:
@@ -641,21 +646,21 @@ static gboolean end_notifier_idle(gpointer p) {
 					"Please Check your network connection\n"));
 			break;
 		default:
-			siril_log_message(_("Unable to check notifications! Error: %ld\n"),
-					args->code);
+			siril_log_message(_("Unable to check notifications! Error: %ld\n"), args->code);
 		}
 	} else {
 		control_window_switch_to_tab(OUTPUT_LOGS);
 
 		// Create an array to store valid messages
-		GArray *validMessages = g_array_new(FALSE, FALSE, sizeof(GString*));
-		GArray *validStatus = g_array_new(FALSE, FALSE, sizeof(int*));
+		validMessages = g_array_new(FALSE, FALSE, sizeof(GString*));
+		g_array_set_clear_func(validMessages, (GDestroyNotify) array_string_element_clear);
+		validStatus = g_array_new(FALSE, FALSE, sizeof(int*));
+		g_array_set_clear_func(validStatus, (GDestroyNotify) free);
 
 		// Fetch and parse JSON file from URL and populate validMessages array
 		if (parseJsonNotificationsString(args->content, validMessages, validStatus) != 0) {
 			siril_log_message(_("Error fetching or parsing Siril notifications JSON file from URL\n"));
-			g_array_free(validMessages, TRUE);
-			return FALSE;
+			goto end_notifier_idle_error;
 		}
 
 		// Print and then free valid messages
@@ -667,12 +672,17 @@ static gboolean end_notifier_idle(gpointer p) {
 			g_string_free(msg, TRUE);
 			free(status);
 		}
-		g_array_free(validMessages, TRUE);
-		g_array_free(validStatus, TRUE);
 	}
 
-	/* free data */
+end_notifier_idle_error:
+
 	set_cursor_waiting(FALSE);
+
+	/* free data */
+	if (validMessages)
+		g_array_free(validMessages, TRUE);
+	if (validStatus)
+		g_array_free(validStatus, TRUE);
 	g_free(args->content);
 	g_free(args->url);
 	free(args);
