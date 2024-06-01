@@ -41,7 +41,8 @@
 #define SIRIL_VERSIONS DOMAIN"siril_versions.json"
 #define SIRIL_DOWNLOAD DOMAIN"download/"
 #define GITLAB_URL "https://gitlab.com/free-astro/siril/raw"
-#define BRANCH "master"
+#define BRANCH "notifier"
+//#define BRANCH "master"
 #define SIRIL_NOTIFICATIONS "notifications/siril_notifications.json"
 
 static gchar *get_changelog(gchar *str);
@@ -609,7 +610,7 @@ static int parseJsonNotificationsString(const gchar *jsonString, GArray *validMe
 		GDateTime *validTo = g_date_time_new_from_iso8601(json_object_get_string_member(single_message, "valid-to"), NULL);
 
 		// Parse status and append to GArray
-		int *status = malloc(sizeof(int));
+		int *status = g_malloc(sizeof(int));
 		*status = json_object_get_int_member(single_message, "priority");
 		g_array_append_val(validStatus, status);
 
@@ -655,7 +656,6 @@ static gboolean end_notifier_idle(gpointer p) {
 		validMessages = g_array_new(FALSE, FALSE, sizeof(GString*));
 		g_array_set_clear_func(validMessages, (GDestroyNotify) array_string_element_clear);
 		validStatus = g_array_new(FALSE, FALSE, sizeof(int*));
-		g_array_set_clear_func(validStatus, (GDestroyNotify) free);
 
 		// Fetch and parse JSON file from URL and populate validMessages array
 		if (parseJsonNotificationsString(args->content, validMessages, validStatus) != 0) {
