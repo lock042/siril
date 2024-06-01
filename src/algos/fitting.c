@@ -157,7 +157,7 @@ void ransac_polynomial_fit(double *x, double *y, int n, int degree, double *best
 	*threshold = compute_threshold(fit);
 	for (int iter = 0; iter < max_iters; iter++) {
 		// Randomly select a subset of points
-		int subset_size = degree + 1;
+		int subset_size = 3 * degree + 1;
 		int subset_indices[subset_size];
 		for (int i = 0; i < subset_size; i++) {
 			subset_indices[i] = rand() % n;
