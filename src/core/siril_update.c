@@ -603,6 +603,7 @@ static int parseJsonNotificationsString(const gchar *jsonString, GArray *validMe
 				(json_object_has_member(single_message, "priority"))) {
 			siril_log_color_message(_("Error parsing JSON from URL: required JSON members not found\n"), "red");
 			// No need to clean up any partially-filled GArrays as they will be freed by the caller
+		g_object_unref(parser);
 			return 1;
 		}
 
