@@ -544,7 +544,7 @@ static gboolean end_update_idle(gpointer p) {
 }
 
 static void array_string_element_clear(GString *element) {
-	g_string_free(element, TRUE);
+	g_free(element->str); // free the gchar* inside the GString but not the string itself
 }
 
 static int parseJsonNotificationsString(const gchar *jsonString, GArray *validMessages, GArray *validStatus) {
@@ -602,6 +602,7 @@ static int parseJsonNotificationsString(const gchar *jsonString, GArray *validMe
 				(json_object_has_member(single_message, "message")) &&
 				(json_object_has_member(single_message, "priority"))) {
 			siril_log_color_message(_("Error parsing JSON from URL: required JSON members not found\n"), "red");
+			// No need to clean up any partially-filled GArrays as they will be freed by the caller
 			return 1;
 		}
 
@@ -669,8 +670,6 @@ static gboolean end_notifier_idle(gpointer p) {
 			GString *msg = g_array_index(validMessages, GString*, i);
 			char *color = *status == 1 ? "green" : *status == 2 ? "salmon" : "red";
 			siril_log_color_message(_("*** SIRIL NOTIFICATION ***\n%s\n"), color, msg->str);
-			g_string_free(msg, TRUE);
-			free(status);
 		}
 	}
 
