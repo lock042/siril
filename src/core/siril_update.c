@@ -709,7 +709,7 @@ static gboolean end_notifier_idle(gpointer p) {
 
 		// Create an array to store valid messages
 		validMessages = g_array_new(FALSE, FALSE, sizeof(GString*));
-		g_array_set_clear_func(validMessages, (GDestroyNotify) array_string_element_clear);
+//		g_array_set_clear_func(validMessages, (GDestroyNotify) array_string_element_clear);
 		validStatus = g_array_new(FALSE, FALSE, sizeof(int*));
 
 		// Fetch and parse JSON file from URL and populate validMessages array
