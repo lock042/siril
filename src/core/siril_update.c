@@ -806,10 +806,7 @@ void siril_check_notifications(gboolean verbose) {
 
 	args = malloc(sizeof(struct _update_data));
 	GString *url = g_string_new(GITLAB_URL);
-	url = g_string_append(url, "/");
-	url = g_string_append(url, BRANCH);
-	url = g_string_append(url, "/");
-	url = g_string_append(url, SIRIL_NOTIFICATIONS);
+	g_string_append_printf(url, "/%s/%s", BRANCH, SIRIL_NOTIFICATIONS);
 	args->url = g_string_free(url, FALSE);
 	siril_debug_print("Notification URL: %s\n", args->url);
 	args->code = 0L;
