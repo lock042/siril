@@ -244,6 +244,7 @@ siril_common_SOURCES = \
 	filters/nlbayes/Utilities.h \
 	gui/about_dialog.c \
 	gui/about_dialog.h \
+	gui/annotate.c \
 	gui/annotations_pref.c \
 	gui/astrometry_solver.c \
 	gui/denoisegui.c \

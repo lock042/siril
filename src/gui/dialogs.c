@@ -39,6 +39,7 @@
 static const SirilDialogEntry entries[] =
 {
 	{"aavso_dialog", NULL, INFORMATION_DIALOG, FALSE, NULL},
+	{"annotate_dialog", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"asinh_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_asinh_cancel},
 	{"astrometry_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"denoise_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, close_denoise},
@@ -80,7 +81,6 @@ static const SirilDialogEntry entries[] =
 	{"satu_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_satu_cancel},
 	{"SCNR_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"script_contents_dialog", NULL, INFORMATION_DIALOG, FALSE, NULL},
-	{"search_objects", NULL, SEARCH_ENTRY_DIALOG, FALSE, NULL},
 	{"settings_window", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"seqlist_dialog", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"split_cfa_dialog", NULL, OTHER_DIALOG, FALSE, NULL},

@@ -3,6 +3,7 @@
 # after adding files here. the next lines of ui MUST always be here (it is not sorted)
 src/gui/uifiles/aavso_dialog.ui
 src/gui/uifiles/aberration_inspector.ui
+src/gui/uifiles/annotate_dialog.ui
 src/gui/uifiles/asinh_dialog.ui
 src/gui/uifiles/astrometry_dialog.ui
 src/gui/uifiles/background_extraction_dialog.ui
@@ -121,6 +122,8 @@ src/filters/starnet.c
 src/filters/synthstar.c
 src/filters/wavelets.c
 src/gui/about_dialog.c
+src/gui/annotations_pref.c
+src/gui/annotate.c
 src/gui/astrometry_solver.c
 src/gui/background_extraction.c
 src/gui/callbacks.c

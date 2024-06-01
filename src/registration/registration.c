@@ -30,7 +30,7 @@ int get_registration_layer(const sequence *seq) {
 	if (!com.script && seq == &com.seq) {
 		GtkComboBox *registbox = GTK_COMBO_BOX(lookup_widget("comboboxreglayer"));
 		int reglayer = gtk_combo_box_get_active(registbox);
-		if (!seq || !seq->regparam || seq->nb_layers < 0 || seq->nb_layers <= reglayer)
+		if (!seq || !seq->regparam || !seq->regparam[reglayer] || seq->nb_layers < 0 || seq->nb_layers <= reglayer)
 			return -1;
 		return reglayer;
 	} else {

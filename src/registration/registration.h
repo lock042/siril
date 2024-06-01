@@ -203,6 +203,7 @@ void translation_from_H(Homography H, double *dx, double *dy);
 Homography H_from_translation(double dx, double dy);
 void SetNullH(Homography *H);
 int shift_fit_from_reg(fits *fit, Homography H);
+void compute_Hmax(Homography *Himg, Homography *Href, int src_rx_in, int src_ry_in, double scale, Homography *H, Homography *Hshift, int *dst_rx_out, int *dst_ry_out);
 
 int minidx(const float *arr, const gboolean *mask, int nb, float *val);
 void get_reg_sequence_filtering_from_gui(seq_image_filter *filtering_criterion,
