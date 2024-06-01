@@ -39,6 +39,7 @@
 #include "core/siril_log.h"
 #include "core/siril_date.h"
 #include "core/processing.h"
+#include "core/command_line_processor.h"
 #include "algos/PSF.h"
 #include "algos/search_objects.h"
 #include "algos/siril_wcs.h"
@@ -51,6 +52,9 @@
 #include "gui/image_display.h"
 #include "gui/PSF_list.h"
 #include "gui/utils.h"
+
+static void free_conesearch_params(conesearch_params *params);
+static void free_conesearch_args(conesearch_args *args);
 
 // This list defines the columns that can possibly be found in any catalogue
 const gchar *cat_columns[] = {
@@ -190,9 +194,8 @@ uint32_t siril_catalog_columns(siril_cat_index cat) {
 			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC) | (1 << CAT_FIELD_PMRA) | (1 << CAT_FIELD_PMDEC) | (1 << CAT_FIELD_MAG) | (1 << CAT_FIELD_BMAG);
 		case CAT_AN_USER_TEMP:
 		case CAT_SHOW:
-			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC);
 		default:
-			return 0;
+			return (1 << CAT_FIELD_RA) | (1 << CAT_FIELD_DEC);
 	}
 }
 
@@ -214,7 +217,7 @@ void sort_cat_items_by_mag(siril_catalogue *siril_cat) {
 }
 
 // returns the default magnitude to be used in conesearch
-static float siril_catalog_get_default_limit_mag(siril_cat_index cat) {
+float siril_catalog_get_default_limit_mag(siril_cat_index cat) {
 	switch(cat) {
 		case CAT_IMCCE:
 			return 20.f;
@@ -1045,6 +1048,113 @@ int check_conesearch_args(conesearch_args *args) {
 	return 0;
 }
 
+int execute_conesearch(conesearch_params *params) {
+	if (!has_wcs(&gfit)) {
+		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
+		free_conesearch_params(params);
+		return CMD_FOR_PLATE_SOLVED;
+	}
+
+	// Preparing the catalogue query
+	siril_catalogue *siril_cat = siril_catalog_fill_from_fit(&gfit, params->cat, params->limit_mag);
+	siril_cat->phot = params->photometric;
+	if (params->cat == CAT_IMCCE) {
+		if (params->obscode) {
+			siril_cat->IAUcode = g_strdup(params->obscode);
+			if (params->default_obscode_used) {
+				siril_log_message(_("Using default observatory code %s\n"), params->obscode);
+			}
+		} else {
+			siril_cat->IAUcode = g_strdup("500");
+			siril_log_color_message(_("Did not specify an observatory code, using geocentric by default, positions may not be accurate\n"), "salmon");
+		}
+	} else if (params->obscode) {
+		g_free(params->obscode);
+		params->obscode = NULL;
+	}
+	if (params->cat == CAT_LOCAL_TRIX)
+		siril_cat->trixel = params->trixel;
+
+	siril_debug_print("centre coords: %f, %f, radius: %f arcmin\n", siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius);
+	conesearch_args *args = init_conesearch_args();
+	args->fit = &gfit;
+	args->siril_cat = siril_cat;
+	args->has_GUI = !com.script;
+	args->display_log = (params->display_log == BOOL_NOT_SET) ? display_names_for_catalogue(params->cat) : (gboolean) params->display_log;
+	args->display_tag = (params->display_tag == BOOL_NOT_SET) ? display_names_for_catalogue(params->cat) : (gboolean) params->display_tag;
+	args->outfilename = g_strdup(params->outfilename);
+	free_conesearch_params(params);
+	if (check_conesearch_args(args)) { // can't fail for now
+		free_conesearch_args(args);
+		return CMD_GENERIC_ERROR;
+	}
+
+	start_in_new_thread(conesearch_worker, args);
+	return CMD_OK;
+}
+
+int execute_show_command(show_params *params) {
+	if (!has_wcs(&gfit)) {
+		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
+		return CMD_FOR_PLATE_SOLVED;
+	}
+
+	if (params->clear) { // this is safe even in script/headless,used by the command, not the UI
+		purge_user_catalogue(CAT_AN_USER_TEMP);
+		redraw(REDRAW_OVERLAY);
+	}
+
+	siril_catalogue *siril_cat = calloc(1, sizeof(siril_catalogue));
+	siril_cat->cat_index = CAT_SHOW;
+	siril_cat->columns = siril_catalog_columns(siril_cat->cat_index);
+	conesearch_args *args = init_conesearch_args();
+	args->siril_cat = siril_cat;
+	args->has_GUI = TRUE;
+	args->fit = &gfit;
+
+	if (params->file) {
+		int check = siril_catalog_load_from_file(siril_cat, params->file);
+		if (check > 0) {
+			free_conesearch_args(args);
+			return CMD_ARG_ERROR;
+		}
+		if (check == -1) {
+			free_conesearch_args(args);
+			return CMD_OK;
+		}
+		args->display_log =
+				(params->display_log == BOOL_NOT_SET) ?
+						(gboolean) has_field(siril_cat, NAME) :
+						(gboolean) params->display_log;
+		args->display_tag =
+				(params->display_tag == BOOL_NOT_SET) ?
+						(gboolean) has_field(siril_cat, NAME) :
+						(gboolean) params->display_tag;
+		start_in_new_thread(conesearch_worker, args);
+		return CMD_OK;
+	}
+
+	if (params->coords) {
+		cat_item *item = calloc(1, sizeof(cat_item));
+		item->ra = siril_world_cs_get_alpha(params->coords);
+		item->dec = siril_world_cs_get_delta(params->coords);
+		siril_world_cs_unref(params->coords);
+		item->name = g_strdup(params->name);
+		siril_cat->columns |= (1 << CAT_FIELD_NAME);
+		args->display_log = TRUE;
+		args->display_tag = TRUE;
+
+		siril_catalog_append_item(siril_cat, item);
+		siril_catalog_free_item(item);
+		free(item);
+		start_in_new_thread(conesearch_worker, args);
+		return CMD_OK;
+	}
+
+	free_conesearch_args(args);
+	return CMD_ARG_ERROR;
+}
+
 // worker for the command conesearch
 gpointer conesearch_worker(gpointer p) {
 	conesearch_args *args = (conesearch_args *)p;
@@ -1170,7 +1280,7 @@ exit_conesearch:;
 		siril_catalog_free(temp_cat);
 		temp_cat = NULL;
 	}
-	free_conesearch(args);
+	free_conesearch_args(args);
 	if (go_idle) {
 		siril_add_idle(end_conesearch, temp_cat);
 	} else {
@@ -1300,7 +1410,7 @@ void free_sky_object_query(sky_object_query_args *args) {
 	free(args);
 }
 
-conesearch_args *init_conesearch() {
+conesearch_args *init_conesearch_args() {
 	conesearch_args *args = calloc(1, sizeof(conesearch_args));
 	if (!args) {
 		PRINT_ALLOC_ERR;
@@ -1309,11 +1419,37 @@ conesearch_args *init_conesearch() {
 	return args;
 }
 
-void free_conesearch(conesearch_args *args) {
+static void free_conesearch_args(conesearch_args *args) {
 	if (!args)
 		return;
 	siril_catalog_free(args->siril_cat);
 	g_free(args->outfilename);
 	free(args);
+}
+
+conesearch_params *init_conesearch_params() {
+	conesearch_params *params = g_new0(conesearch_params, 1);
+	params->limit_mag = -1.0f;
+	params->photometric = FALSE;
+	params->display_tag = BOOL_NOT_SET;
+	params->display_log = BOOL_NOT_SET;
+	params->cat = CAT_AUTO;
+	params->obscode = NULL;
+	params->default_obscode_used = FALSE;
+	params->trixel = -1;
+	params->outfilename = NULL;
+	if (com.pref.astrometry.default_obscode != NULL) {
+		params->obscode = g_strdup(com.pref.astrometry.default_obscode);
+		params->default_obscode_used = TRUE;
+	}
+	return params;
+}
+
+static void free_conesearch_params(conesearch_params *params) {
+	if (!params)
+		return;
+	g_free(params->obscode);
+	g_free(params->outfilename);
+	g_free(params); // was alloced with gnew0
 }
 

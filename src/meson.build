@@ -193,6 +193,7 @@ src_files = [
   'opencv/kombat/kombat.h',
 
   'gui/about_dialog.c',
+  'gui/annotate.c',
   'gui/annotations_pref.c',
   'gui/astrometry_solver.c',
   'gui/denoisegui.c',

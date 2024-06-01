@@ -139,6 +139,8 @@ static void sitelong_handler_read(fits *fit, const char *comment, KeywordInfo *i
 		gchar *end;
 		fit->keywords.sitelong = g_ascii_strtod(fit->keywords.sitelong_str, &end);
 		if (fit->keywords.sitelong_str == end) {
+			fit->keywords.sitelong = DEFAULT_DOUBLE_VALUE;
+			info->used = FALSE;
 			siril_debug_print("Cannot read SITELONG\n");
 		}
 	} else {
@@ -166,6 +168,8 @@ static void sitelat_handler_read(fits *fit, const char *comment, KeywordInfo *in
 		gchar *end;
 		fit->keywords.sitelat = g_ascii_strtod(fit->keywords.sitelat_str, &end);
 		if (fit->keywords.sitelat_str == end) {
+			fit->keywords.sitelat = DEFAULT_DOUBLE_VALUE;
+			info->used = FALSE;
 			siril_debug_print("Cannot read SITELAT\n");
 		}
 	} else {
@@ -837,7 +841,7 @@ static void set_to_default_not_used(fits *fit, GHashTable *keys_hash) {
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		KeywordInfo *keyword_info = (KeywordInfo*) value;
 
-		if (!keyword_info->used || should_use_keyword(fit, *keyword_info)) {
+		if (!keyword_info->used && should_use_keyword(fit, *keyword_info)) {
 			switch (keyword_info->type) {
 			case KTYPE_INT:
 				if (keyword_info->data && *((int*) keyword_info->data) == 0)

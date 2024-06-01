@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019-2023
 
@@ -2252,31 +2252,17 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
           </packing>
         </child>
         <child>
-          <object class="GtkModelButton" id="info_menu_search">
+          <object class="GtkModelButton" id="info_menu_annotate">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
-            <property name="action-name">win.search-object</property>
-            <property name="text" translatable="yes">Search Object...</property>
+            <property name="action-name">win.annotate-dialog</property>
+            <property name="text" translatable="yes">Annotate...</property>
           </object>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
             <property name="position">2</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkModelButton" id="info_menu_search_sso">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="action-name">win.search-solar</property>
-            <property name="text" translatable="yes">Solar System Objects</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">3</property>
           </packing>
         </child>
       </object>
