@@ -10108,11 +10108,6 @@ parse_coords:
 	if (nb > next_arg && !isalpha(word[next_arg][0]) && (isdigit(word[next_arg][0]) || isdigit(word[next_arg][1]))) {
 		char *sep = strchr(word[next_arg], ',');
 		if (!sep) {
-			if (nb <= next_arg) {
-				siril_log_message(_("Could not parse target coordinates\n"));
-				g_free(params);
-				return NULL;
-			}
 			params->coords = siril_world_cs_new_from_objct_ra_dec(word[next_arg], word[next_arg + 1]);
 			next_arg += 2;
 		} else {

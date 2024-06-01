@@ -268,6 +268,7 @@ void on_show_button_save_to_DSO_clicked(GtkButton *button, gpointer user_data) {
 	add_item_in_catalogue(item, CAT_AN_USER_DSO, TRUE);
 	set_annotation_visibility(CAT_AN_USER_DSO, TRUE);	// and display it
 	siril_catalog_free_item(item);
+	free(item);
 	refresh_found_objects();
 }
 
@@ -305,6 +306,7 @@ static show_params* parse_show_ui() {
 		if (input != NULL && strlen(input) != 0) {
 			params->file = g_strdup(input);
 		} else {
+			g_free(params);
 			return NULL;
 		}
 		params->coords = NULL;
@@ -314,8 +316,10 @@ static show_params* parse_show_ui() {
 	} else {
 		params->file = NULL;
 		double ra = 0., dec = 0.;
-		if (collect_single_coords_and_name(&ra, &dec, &params->name))
+		if (collect_single_coords_and_name(&ra, &dec, &params->name)) {
+			g_free(params);
 			return NULL;
+		}
 		params->coords = siril_world_cs_new_from_a_d(ra, dec);
 	}
 	return params;

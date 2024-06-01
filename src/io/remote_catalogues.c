@@ -557,7 +557,6 @@ static gboolean parse_AAVSO_Chart_buffer(gchar *buffer, GOutputStream *output_st
 						if (!json_node_is_null(errnode)) {
 							e_bmag = json_reader_get_double_value(reader);
 						}
-						e_bmag = json_reader_get_double_value(reader);
 						json_reader_end_member(reader);
 					}
 					json_reader_end_element(reader);
