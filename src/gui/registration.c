@@ -104,7 +104,7 @@ void _reg_selected_area_callback() {
 
 int populate_drizzle_data(struct driz_args_t *driz) {
 	driz->use_flats = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("driz_use_flats")));
-	driz->scale = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_driz_scale")));
+	driz->scale = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("reg_scaling_spin")));
 	driz->weight_scale = 1.f; // Not used for now
 	driz->kernel = (enum e_kernel_t) gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_driz_kernel")));
 	driz->pixel_fraction = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_driz_dropsize")));
@@ -154,24 +154,18 @@ int populate_drizzle_data(struct driz_args_t *driz) {
 	return 0;
 }
 
-void on_drizzleCheckButton_toggled(GtkToggleButton* button, gpointer user_data) {
-	gboolean state = gtk_toggle_button_get_active(button);
-	gtk_widget_set_visible(lookup_widget("box_drizzle_controls"), state);
-	if (state) {
-		gtk_notebook_set_current_page(GTK_NOTEBOOK(lookup_widget("notebook_registration")), REG_PAGE_APPLYREG);
+void on_reg_scaling_spin_value_changed(GtkSpinButton *button, gpointer user_data) {
+	double value = gtk_spin_button_get_value(button);
+	if (fabs(value - 2.0) > DBL_EPSILON) {
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("upscaleCheckButton")), FALSE);
 	}
-	gtk_widget_set_visible(lookup_widget("interp_box"), !state);
-	gtk_widget_set_visible(lookup_widget("toggle_reg_clamp"), !state);
-	gtk_widget_set_sensitive(lookup_widget("upscaleCheckButton"), !state);
-	gtk_widget_set_visible(lookup_widget("regNoOutput"), FALSE);
-
 }
 
 void on_upscaleCheckButton_toggled(GtkToggleButton* button, gpointer user_data) {
 	gboolean state = gtk_toggle_button_get_active(button);
 	if (state) {
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("drizzleCheckButton")), FALSE);
+		GtkSpinButton *spin_scale = GTK_SPIN_BUTTON(lookup_widget("reg_scaling_spin"));
+		gtk_spin_button_set_value(spin_scale, 2.0);
 	}
 	GtkWidget *regNoOut = lookup_widget("regNoOutput");
 	if (gtk_widget_get_visible(regNoOut) && state) {
@@ -566,6 +560,7 @@ static gboolean check_framing() {
 	gtk_widget_set_tooltip_text(GTK_WIDGET(labelreginfo), "");
 	return TRUE;
 }
+
 /* Selects the "register all" or "register selected" according to the number of
  * selected images, if argument is false.
  * Verifies that enough images are selected and an area is selected.
@@ -573,8 +568,8 @@ static gboolean check_framing() {
 void update_reg_interface(gboolean dont_change_reg_radio) {
 	static GtkWidget *go_register = NULL, *follow = NULL, *cumul_data = NULL,
 	*noout = NULL, *toggle_reg_clamp = NULL, *onlyshift = NULL, *filter_box = NULL, *manualreg = NULL,
-	*interpolation_algo = NULL, *undistort_check = NULL, *scale_box = NULL,
-	*x2upscale = NULL, *go_estimate = NULL, *drizzle_checkbox = NULL;
+	*interpolation_algo = NULL, *undistort_check = NULL,
+	*x2upscale = NULL, *go_estimate = NULL, *output_reg_frame = NULL;
 	static GtkLabel *labelreginfo = NULL;
 	static GtkComboBox *reg_all_sel_box = NULL, *reglayer = NULL, *filter_combo_init = NULL;
 	static GtkNotebook *notebook_reg = NULL;
@@ -600,10 +595,9 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		filter_box = lookup_widget("seq_filters_box_reg");
 		manualreg = lookup_widget("manualreg_expander");
 		interpolation_algo = lookup_widget("ComboBoxRegInter");
-		scale_box = lookup_widget("reg_scaling_box");
 		undistort_check = lookup_widget("reg_undistort");
 		x2upscale = lookup_widget("upscaleCheckButton");
-		drizzle_checkbox = lookup_widget("drizzleCheckButton");
+		output_reg_frame = lookup_widget("output_reg_frame");
 	}
 
 	if (!dont_change_reg_radio) {
@@ -634,10 +628,10 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 
 	/* show the appropriate frame selection widgets */
 	gboolean isapplyreg = method->type == REGTYPE_APPLY;
-	if (!isapplyreg)
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(drizzle_checkbox), FALSE);
-	gtk_widget_set_visible(GTK_WIDGET(drizzle_checkbox), isapplyreg);
-	gtk_widget_set_sensitive(GTK_WIDGET(drizzle_checkbox), method->method_ptr == &register_apply_reg); // TODO: remove when we allow drizzle with astrometric
+//	if (!isapplyreg)
+//		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(drizzle_checkbox), FALSE);
+//	gtk_widget_set_visible(GTK_WIDGET(drizzle_checkbox), isapplyreg);
+//	gtk_widget_set_sensitive(GTK_WIDGET(drizzle_checkbox), method->method_ptr == &register_apply_reg); // TODO: remove when we allow drizzle with astrometric
 	gtk_widget_set_visible(GTK_WIDGET(reg_all_sel_box), !isapplyreg);
 	gtk_widget_set_visible(filter_box, isapplyreg);
 	gtk_widget_set_visible(GTK_WIDGET(filter_combo_init), isapplyreg);
@@ -654,19 +648,18 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	/* registration data exists for the selected layer */
 	has_reg = layer_has_registration(&com.seq, gtk_combo_box_get_active(reglayer));
 
+	if (method->method_ptr == &register_star_alignment || method->method_ptr == &register_multi_step_global) {
+		gtk_notebook_set_current_page(notebook_reg, REG_PAGE_GLOBAL);
+	} else if (method->method_ptr == &register_comet) {
+		gtk_notebook_set_current_page(notebook_reg, REG_PAGE_COMET);
+	} else if (method->method_ptr == &register_3stars) {
+		gtk_notebook_set_current_page(notebook_reg, REG_PAGE_3_STARS);
+	} else if (method->method_ptr == &register_kombat) {
+		gtk_notebook_set_current_page(notebook_reg, REG_PAGE_KOMBAT);
+	} else {
+		gtk_notebook_set_current_page(notebook_reg, REG_PAGE_MISC);
+	}
 	if (method && nb_images_reg > 1 && (selection_is_done || method->sel == REQUIRES_NO_SELECTION) && (has_reg || method->type != REGTYPE_APPLY) ) {
-		if (method->method_ptr == &register_star_alignment || method->method_ptr == &register_multi_step_global) {
-			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_GLOBAL);
-		} else if (method->method_ptr == &register_comet) {
-			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_COMET);
-		} else if (method->method_ptr == &register_3stars) {
-			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_3_STARS);
-		} else if (method->method_ptr == &register_kombat) {
-			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_KOMBAT);
-		} else if (method->method_ptr == &register_apply_reg || method->method_ptr == &register_astrometric) {
-			gtk_notebook_set_current_page(notebook_reg, REG_PAGE_APPLYREG);
-			gtk_widget_set_visible(go_estimate, method->method_ptr == &register_astrometric);
-		}
 		ready = TRUE;
 		if (method->method_ptr == &register_3stars) {
 			ready = _3stars_check_selection(); // checks that the right image is loaded based on doall and dofollow
@@ -679,7 +672,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 				gtk_label_set_text(labelreginfo, _("Unsupported CFA pattern detected"));
 				gtk_widget_set_tooltip_text(GTK_WIDGET(labelreginfo), _("This sequence cannot be registered with the CFA pattern intact. You must debayer it prior to registration"));
 				ready = FALSE;
-			}		
+			}
 		} else if (method->type == REGTYPE_APPLY && sequence_is_loaded()) {
 			ready = check_framing();
 		} else {
@@ -735,9 +728,11 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	// for now, methods which do not save images but only shift in seq files are constrained to this option (no_output is true and unsensitive)
 
 	gboolean is_astrometric = method->method_ptr == &register_astrometric;
+	gboolean is_old_global = method->method_ptr == &register_star_alignment;
 	gtk_widget_set_visible(undistort_check, is_astrometric);
-	gtk_widget_set_visible(scale_box, is_astrometric);
-
+	gtk_widget_set_visible(go_estimate, is_astrometric);
+	gtk_widget_set_visible(output_reg_frame, is_astrometric || isapplyreg);
+	gtk_widget_set_visible(GTK_WIDGET(notebook_reg), !(is_astrometric || isapplyreg));
 	if (((method->method_ptr == &register_comet) ||
 			(method->method_ptr == &register_kombat) ||
 			(method->method_ptr == &register_shift_dft) ||
@@ -754,8 +749,8 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), FALSE);
 		gtk_widget_set_sensitive(noout, FALSE);
 		gtk_widget_set_visible(noout, FALSE);
-		gtk_widget_set_visible(x2upscale, !is_astrometric);
-		gtk_widget_set_sensitive(x2upscale, !is_astrometric);
+		gtk_widget_set_visible(x2upscale, is_old_global); // only relevant to the original global method now
+		gtk_widget_set_sensitive(x2upscale, is_old_global);
 	} else {
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), save_state);
 		gtk_widget_set_sensitive(noout, TRUE);
@@ -978,7 +973,7 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 	const gchar *caller = gtk_buildable_get_name(GTK_BUILDABLE(button));
 	if (!g_strcmp0(caller, "proj_estimate"))
 		reg_args->no_output = TRUE;
-	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("drizzleCheckButton")))) {
+	if (gtk_stack_get_visible_child(GTK_STACK(lookup_widget("interp_drizzle_stack"))) == lookup_widget("grid_drizzle_controls")) {
 		reg_args->driz = calloc(1, sizeof(struct driz_args_t));
 		if (populate_drizzle_data(reg_args->driz)) {
 			free(reg_args);

@@ -60,8 +60,14 @@ include some limited multi-kernel support.
 integer_t
 compute_bit_value(integer_t uuid);
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 int
 dobox(struct driz_param_t* p);
+#ifdef __cplusplus
+}
+#endif
 
 float
 compute_area(float is, float js, const float x[4], const float y[4]);
