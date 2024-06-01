@@ -269,6 +269,7 @@ void on_show_button_save_to_DSO_clicked(GtkButton *button, gpointer user_data) {
 	set_annotation_visibility(CAT_AN_USER_DSO, TRUE);	// and display it
 	siril_catalog_free_item(item);
 	refresh_found_objects();
+	g_free(item);
 }
 
 static conesearch_params* parse_conesearch_ui() {
