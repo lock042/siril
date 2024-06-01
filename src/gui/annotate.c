@@ -305,6 +305,7 @@ static show_params* parse_show_ui() {
 		if (input != NULL && strlen(input) != 0) {
 			params->file = g_strdup(input);
 		} else {
+			g_free(params);
 			return NULL;
 		}
 		params->coords = NULL;
@@ -314,8 +315,10 @@ static show_params* parse_show_ui() {
 	} else {
 		params->file = NULL;
 		double ra = 0., dec = 0.;
-		if (collect_single_coords_and_name(&ra, &dec, &params->name))
+		if (collect_single_coords_and_name(&ra, &dec, &params->name)) {
+			g_free(params);
 			return NULL;
+		}
 		params->coords = siril_world_cs_new_from_a_d(ra, dec);
 	}
 	return params;
