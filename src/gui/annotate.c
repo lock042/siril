@@ -270,6 +270,7 @@ void on_show_button_save_to_DSO_clicked(GtkButton *button, gpointer user_data) {
 	siril_catalog_free_item(item);
 	free(item);
 	refresh_found_objects();
+	g_free(item);
 }
 
 static conesearch_params* parse_conesearch_ui() {
