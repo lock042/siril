@@ -32,6 +32,10 @@
 #include "algos/astrometry_solver.h"
 #include "algos/siril_wcs.h"
 #include "algos/sorting.h"
+#include "algos/statistics.h"
+#include "drizzle/cdrizzlebox.h"
+#include "drizzle/cdrizzlemap.h"
+#include "drizzle/cdrizzleutil.h"
 #include "io/sequence.h"
 #include "io/siril_catalogues.h"
 #include "io/image_format_fits.h"
@@ -104,6 +108,7 @@ int register_astrometric(struct registration_args *regargs) {
 				regargs->seq, &regargs->filtering_criterion,
 				&regargs->filtering_parameter))
 		return 1;
+	float scale = (regargs->driz) ? regargs->driz->scale : regargs->astrometric_scale;
 
 	regdata *current_regdata = apply_reg_get_current_regdata(regargs); // clean the structure if it exists, allocates otherwise
 	if (!current_regdata)
@@ -114,8 +119,8 @@ int register_astrometric(struct registration_args *regargs) {
 	fits fit = { 0 };
 	double ra0 = 0., dec0 = 0.;
 	int n = regargs->seq->number;
-	double *RA = malloc(n * sizeof(double));
-	double *DEC = malloc(n * sizeof(double));
+	double *RA = calloc(n, sizeof(double)); // calloc to prevent possibility of uninit variable highlighted by coverity
+	double *DEC = calloc(n, sizeof(double)); // as above
 	double *dist = malloc(n * sizeof(double));
 	struct wcsprm *WCSDATA = calloc(n, sizeof(struct wcsprm));
 	astrometric_roi *rois = malloc(n * sizeof(astrometric_roi));
@@ -253,7 +258,7 @@ int register_astrometric(struct registration_args *regargs) {
 	regargs->seq->reference_image = refindex;
 
 	// Give the full output size
-	float scale = 0.5 * (fabs(Ks[refindex].h00) + fabs(Ks[refindex].h11)) * regargs->astrometric_scale;
+	float fscale = 0.5 * (fabs(Ks[refindex].h00) + fabs(Ks[refindex].h11)) * scale;
 	pointi tl, br; // top left and bottom-right
 	if (regargs->framing == FRAMING_MIN) {
 		tl = (pointi){ INT_MIN, INT_MIN };
@@ -271,7 +276,7 @@ int register_astrometric(struct registration_args *regargs) {
 		astargs->refindex = refindex;
 		astargs->Ks = Ks;
 		astargs->Rs = Rs;
-		astargs->scale = scale;
+		astargs->scale = fscale;
 		astargs->disto = NULL;
 		gboolean found = FALSE;
 		if (regargs->undistort) {
@@ -327,7 +332,7 @@ int register_astrometric(struct registration_args *regargs) {
 		astrometric_roi roi_in = {.x = 0, .y = 0, .w = rx, .h = ry};
 		Homography R = { 0 };
 		cvGetEye(&R); // initializing to unity
-		cvWarp_fromKR(NULL, &roi_in, Ks[refindex], R, scale, OPENCV_NONE, FALSE, NULL, rois + refindex);
+		cvWarp_fromKR(NULL, &roi_in, Ks[refindex], R, fscale, OPENCV_NONE, FALSE, NULL, rois + refindex);
 		tl.x = rois[refindex].x;
 		tl.y = rois[refindex].y;
 		br.x = rois[refindex].x + rois[refindex].w;
@@ -343,7 +348,7 @@ int register_astrometric(struct registration_args *regargs) {
 		int rx = (regargs->seq->is_variable) ? regargs->seq->imgparam[i].rx : regargs->seq->rx;
 		int ry = (regargs->seq->is_variable) ? regargs->seq->imgparam[i].ry : regargs->seq->ry;
 		astrometric_roi roi_in = {.x = 0, .y = 0, .w = rx, .h = ry};
-		cvWarp_fromKR(NULL, &roi_in, Ks[i], Rs[i], scale, OPENCV_NONE, FALSE, NULL, rois + i);
+		cvWarp_fromKR(NULL, &roi_in, Ks[i], Rs[i], fscale, OPENCV_NONE, FALSE, NULL, rois + i);
 		// first determine the corners
 		siril_debug_print("%d,%d,%d,%d,%d\n", i + 1, rois[i].x, rois[i].y, rois[i].w, rois[i].h);
 		switch (regargs->framing) {
@@ -369,7 +374,6 @@ int register_astrometric(struct registration_args *regargs) {
 							error = TRUE;
 							siril_log_color_message(_("Image %d has no overlap with the reference\n"), "red", i + 1);
 						}
-
 				}
 				break;
 		}
@@ -386,8 +390,8 @@ int register_astrometric(struct registration_args *regargs) {
 		retval = 1;
 		goto free_all;
 	}
-	
-	gchar *downscale = (regargs->astrometric_scale != 1.f) ? g_strdup_printf(_(" (assuming a scaling factor of %.2f)"), regargs->astrometric_scale) : g_strdup("");
+
+	gchar *downscale = (scale != 1.f) ? g_strdup_printf(_(" (assuming a scaling factor of %.2f)"), scale) : g_strdup("");
 	siril_log_color_message(_("Output image: %d x %d pixels%s\n"), "salmon", imagew, imageh, downscale);
 	g_free(downscale);
 	int64_t frame_size = (int64_t)imagew * imageh * regargs->seq->nb_layers;
@@ -404,13 +408,15 @@ free_all:
 	free(DEC);
 	free(dist);
 	free(rois);
-	for (int i = 0; i < n; i++) {
-		if (!incl[i])
-			continue;
-		wcsfree(WCSDATA + i);
+	if (incl) {
+		for (int i = 0; i < n; i++) {
+			if (!incl[i])
+				continue;
+			wcsfree(WCSDATA + i);
+		}
+		free(incl);
 	}
 	free(WCSDATA);
-	free(incl);
 	if (!retval && !regargs->no_output) {
 		return astrometric_alignment(regargs, astargs, current_regdata);
 	}
@@ -421,6 +427,7 @@ free_all:
 	siril_log_color_message(_("Total: %d failed, %d registered.\n"), "green", failed, nb_aligned);
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
+	free_astrometric_args(astargs);
 	return retval;
 }
 
@@ -429,13 +436,17 @@ static int astrometric_image_hook(struct generic_seq_args *args, int out_index, 
 	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
 	struct astrometric_args *astargs = sadata->astargs;
+	struct driz_args_t *driz = regargs->driz;
+	float scale = 1.f;
+	struct driz_param_t *p = NULL;
+	int status = 0;
 	Homography *Rs = astargs->Rs;
 	Homography *Ks = astargs->Ks;
 	astrometric_roi roi = { 0 };
 	Homography H = { 0 };
 	disto_data *disto = NULL;
 	if (regargs->undistort && astargs->disto) {
-		if (astargs->disto[0].dtype == DISTO_MAP_D2S) {
+		if (astargs->disto[0].dtype == DISTO_MAP_D2S || astargs->disto[0].dtype == DISTO_MAP_S2D) {
 			disto = &astargs->disto[0];
 		} else {
 			disto = &astargs->disto[in_index];
@@ -444,17 +455,126 @@ static int astrometric_image_hook(struct generic_seq_args *args, int out_index, 
 	cvGetEye(&H);
 
 	sadata->success[out_index] = 0;
-	// TODO: find in opencv codebase if smthg smart can be done with K/R to avoid the double-flip
-	fits_flip_top_to_bottom(fit);
-	astrometric_roi *roi_in = (regargs->framing != FRAMING_MAX) ?  &astargs->roi : NULL;
-	int status = cvWarp_fromKR(fit, roi_in, Ks[in_index], Rs[in_index], astargs->scale , regargs->interpolation, regargs->clamp, disto, &roi);
-	if (!status) {
+	if (!regargs->driz) {
+		// TODO: find in opencv codebase if smthg smart can be done with K/R to avoid the double-flip
 		fits_flip_top_to_bottom(fit);
-		if (regargs->framing == FRAMING_MAX) {
-			H.h02 = roi.x - astargs->roi.x;
-			H.h12 = roi.y - astargs->roi.y;
+		astrometric_roi *roi_in = (regargs->framing != FRAMING_MAX) ?  &astargs->roi : NULL;
+		status = cvWarp_fromKR(fit, roi_in, Ks[in_index], Rs[in_index], astargs->scale, regargs->interpolation, regargs->clamp, disto, &roi);
+		if (!status) {
+			fits_flip_top_to_bottom(fit);
+			if (regargs->framing == FRAMING_MAX) {
+				H.h02 = roi.x - astargs->roi.x;
+				H.h12 = roi.y - astargs->roi.y;
+			}
+			free_wcs(fit); // we remove astrometric solution
 		}
-		free_wcs(fit); // we remove astrometric solution
+	} else {
+		scale = driz->scale;
+		p = calloc(1, sizeof(struct driz_param_t));
+		driz_param_init(p);
+		p->kernel = driz->kernel;
+		p->driz = driz;
+		p->error = malloc(sizeof(struct driz_error_t));
+		p->scale = driz->scale;
+		p->pixel_fraction = driz->pixel_fraction;
+		p->cfa = driz->cfa;
+		// Set bounds equal to whole image
+		p->xmin = p->ymin = 0;
+		p->xmax = fit->rx - 1;
+		p->ymax = fit->ry - 1;
+		p->pixmap = calloc(1, sizeof(imgmap_t));
+		p->pixmap->rx = fit->rx;
+		p->pixmap->ry = fit->ry;
+		p->threads = threads;
+		Homography Hs = { 0 }, Himg = { 0 }, Htransf = { 0 };
+		cvGetEye(&Htransf);
+		cvGetEye(&Hs);
+		cvcalcH_fromKKR(Ks[regargs->seq->reference_image], Ks[in_index], Rs[in_index], &Himg);
+		int dst_rx, dst_ry;
+		if (regargs->framing != FRAMING_MAX) {
+			cvTransfH(Himg, Htransf, &H);
+			dst_rx = astargs->roi.w;
+			dst_ry = astargs->roi.h;
+		} else {
+			compute_Hmax(&Himg, &Htransf, fit->rx, fit->ry, scale, &H, &Hs, &dst_rx, &dst_ry);
+		}
+		status = map_image_coordinates_h(fit, H, p->pixmap, dst_ry, driz->scale, disto, threads);
+		H = Hs;
+
+		if (status) {
+			siril_log_color_message(_("Error generating mapping array.\n"), "red");
+			// TODO: need to handle this, cannot go on
+			free(p->error);
+			free(p->pixmap);
+			free(p);
+		}
+		p->data = fit;
+		// Convert fit to 32-bit float if required
+		float *newbuf = NULL;
+		if (fit->type == DATA_USHORT) {
+			siril_debug_print("Replacing ushort buffer for drizzling\n");
+			size_t ndata = fit->rx * fit->ry * fit->naxes[2];
+			newbuf = malloc(ndata * sizeof(float));
+			float invnorm = 1.f / USHRT_MAX_SINGLE;
+			for (size_t i = 0 ; i < ndata ; i++) {
+				newbuf[i] = fit->data[i] * invnorm;
+			}
+			fit_replace_buffer(fit, newbuf, DATA_FLOAT);
+		}
+		/* Set up output fits */
+		fits out = { 0 };
+		copyfits(fit, &out, CP_FORMAT, -1);
+		// copy the DATE_OBS
+		out.keywords.date_obs = g_date_time_ref(fit->keywords.date_obs);
+		out.rx = out.naxes[0] = dst_rx;
+		out.ry = out.naxes[1] = dst_ry;
+		out.naxes[2] = driz->is_bayer ? 3 : 1;
+		size_t chansize = out.rx * out.ry * sizeof(float);
+		out.fdata = calloc(out.naxes[2] * chansize, 1);
+		out.fpdata[0] = out.fdata;
+		out.fpdata[1] = out.naxes[2] == 1 ? out.fdata : out.fdata + chansize;
+		out.fpdata[2] = out.naxes[2] == 1 ? out.fdata : out.fdata + 2 * chansize;
+		p->output_data = &out;
+
+		// Set up the output_counts fits to store pixel hit counts
+		fits *output_counts = calloc(1, sizeof(fits));
+		copyfits(&out, output_counts, CP_FORMAT, -1);
+		output_counts->fdata = calloc(output_counts->rx * output_counts->ry * output_counts->naxes[2], sizeof(float));
+		p->output_counts = output_counts;
+
+		p->weights = driz->flat;
+
+		if ((status = dobox(p))) { // Do the drizzle
+			siril_log_color_message("s\n", p->error->last_message);
+			// TODO: need to handle this, cannot go on
+		}
+		clearfits(fit);
+		// copy the DATE_OBS
+		copyfits(&out, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+		fit->keywords.date_obs = g_date_time_ref(out.keywords.date_obs);
+		clearfits(&out);
+		if (args->seq->type == SEQ_SER || com.pref.force_16bit) {
+			fit_replace_buffer(fit, float_buffer_to_ushort(fit->fdata, fit->rx * fit->ry * fit->naxes[2]), DATA_USHORT);
+		}
+		if (driz->is_bayer) {
+			/* we need to do something special here because it's a 1-channel sequence and
+			* image that will become 3-channel after this call, so stats caching will
+			* not be correct. Preprocessing does not compute new stats so we don't need
+			* to save them into cache now.
+			* Destroying the stats from the fit will also prevent saving them in the
+			* sequence, which may be done automatically by the caller.
+			*/
+			full_stats_invalidation_from_fit(fit);
+			fit->keywords.lo = 0;
+		}
+
+		free(p->pixmap->xmap);
+		free(p->pixmap);
+
+		// Get rid of the output_counts image, no longer required
+		clearfits(output_counts);
+		free(output_counts);
+		output_counts = NULL;
 	}
 	regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
 	regargs->imgparam[out_index].incl = (int)(!status);
