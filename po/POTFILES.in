@@ -3,6 +3,7 @@
 # after adding files here. the next lines of ui MUST always be here (it is not sorted)
 src/gui/uifiles/aavso_dialog.ui
 src/gui/uifiles/aberration_inspector.ui
+src/gui/uifiles/annotate_dialog.ui
 src/gui/uifiles/asinh_dialog.ui
 src/gui/uifiles/astrometry_dialog.ui
 src/gui/uifiles/background_extraction_dialog.ui
@@ -35,6 +36,7 @@ src/gui/uifiles/linearmatch_dialog.ui
 src/gui/uifiles/livestacking_player.ui
 src/gui/uifiles/Median_dialog.ui
 src/gui/uifiles/merge_cfa_dialog.ui
+src/gui/uifiles/mouse_actions.ui
 src/gui/uifiles/pixelmath.ui
 src/gui/uifiles/resample_dialog.ui
 src/gui/uifiles/rgradient_dialog.ui
@@ -120,6 +122,8 @@ src/filters/starnet.c
 src/filters/synthstar.c
 src/filters/wavelets.c
 src/gui/about_dialog.c
+src/gui/annotations_pref.c
+src/gui/annotate.c
 src/gui/astrometry_solver.c
 src/gui/background_extraction.c
 src/gui/callbacks.c
@@ -137,6 +141,9 @@ src/gui/image_interactions.c
 src/gui/linear_match.c
 src/gui/menu_gray_geometry.c
 src/gui/message_dialog.c
+src/gui/mouse_action_functions.c
+src/gui/mouse_action_functions.h
+src/gui/mouse_action_preferences.c
 src/gui/newdeconv.c
 src/gui/nina_light_curve.c
 src/gui/open_dialog.c

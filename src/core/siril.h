@@ -242,10 +242,6 @@ typedef enum {
 	OPENCV_NONE = 5 // this one will use the pixel-wise shift transform w/o opencv
 } opencv_interpolation;
 
-typedef enum {
-	OPENCV_PLANE = 0,
-	OPENCV_SPHERICAL = 1
-} opencv_projector;
 
 typedef enum {
 	SEQ_REGULAR, SEQ_SER, SEQ_FITSEQ,
@@ -365,8 +361,6 @@ struct sequ {
 	int previewX[PREVIEW_NB], previewY[PREVIEW_NB];	// center, -1 is uninitialized value
 	int previewW[PREVIEW_NB], previewH[PREVIEW_NB];	// 0 is uninitialized value
 
-	double upscale_at_stacking;// up-scale factor during stacking (see #215)
-
 	gboolean needs_saving;	// a dirty flag for the sequence, avoid saving it too often
 	gboolean reg_invalidated; // a flag to detect if regframe can be plotted
 
@@ -415,6 +409,7 @@ typedef struct {
 	WORD hi;		// MIPS-HI key in FITS file, "Upper visualization cutoff"
 	float flo, fhi; // Same but float format.
 	char program[FLEN_VALUE];           // Software that created this HDU
+	char filename[FLEN_VALUE];           // Original Filename
 	double data_max;	// used to check if 32b float is in the [0, 1] range
 	double data_min;	// used to check if 32b float is in the [0, 1] range
 	double pixel_size_x, pixel_size_y;	// XPIXSZ and YPIXSZ keys
@@ -761,6 +756,8 @@ struct guiinf {
 	layer* comp_layer_centering;	// pointer to the layer to center in RGB compositing tool
 
 	roi_t roi; // Region of interest struct
+	GSList *mouse_actions;
+	GSList *scroll_actions;
 };
 
 struct common_icc {

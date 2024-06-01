@@ -1278,7 +1278,6 @@ void initialize_sequence(sequence *seq, gboolean is_zeroed) {
 		seq->previewX[i] = -1;
 		seq->previewY[i] = -1;
 	}
-	seq->upscale_at_stacking = 1.0;
 }
 
 /* call this to close a sequence. Second arg must be FALSE for com.seq
@@ -1424,6 +1423,18 @@ gboolean sequence_is_loaded() {
 gboolean check_seq_is_comseq(sequence *seq) {
 	if (!com.script && sequence_is_loaded() && !g_strcmp0(com.seq.seqname, seq->seqname))
 		return TRUE;
+	return FALSE;
+}
+
+gboolean check_seq_is_variable(sequence *seq) {
+	if(!seq || !seq->imgparam)
+		return FALSE;
+	int rx = seq->imgparam[0].rx;
+	int ry = seq->imgparam[0].ry;
+	for (int i = 1; i < seq->number; i++) {
+		if (seq->imgparam[i].rx != rx || seq->imgparam[i].ry != ry)
+			return TRUE;
+	}
 	return FALSE;
 }
 
@@ -2112,7 +2123,7 @@ gboolean sequence_drifts(sequence *seq, int reglayer, int threshold) {
 		if (!seq->imgparam[i].incl)
 			continue;
 		double x = orig_x, y = orig_y;
-		cvTransfPoint(&x, &y, seq->regparam[reglayer][i].H, seq->regparam[reglayer][seq->reference_image].H);
+		cvTransfPoint(&x, &y, seq->regparam[reglayer][i].H, seq->regparam[reglayer][seq->reference_image].H, 1.);
 		double dist = sqrt((x - orig_x) * (x - orig_x) + (y - orig_y) * (y - orig_y));
 		if (dist > threshold) {
 			siril_log_color_message(_("Warning: the sequence appears to have heavy drifted images (%d pixels for image %d), photometry will probably not be reliable. Check the sequence and exclude some images\n"), "salmon", (int)dist, i);

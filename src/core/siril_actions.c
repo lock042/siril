@@ -394,36 +394,8 @@ void seq_crop_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 	siril_open_dialog("crop_dialog");
 }
 
-void search_object_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (has_wcs(&gfit))
-		siril_open_dialog("search_objects");
-}
-
-void search_object_solar_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (has_wcs(&gfit)) {
-		siril_catalogue *siril_cat = siril_catalog_fill_from_fit(&gfit, CAT_IMCCE, -1.f);
-		if (com.pref.astrometry.default_obscode != NULL) {
-			if (strlen(com.pref.astrometry.default_obscode) == 3) {
-				siril_cat->IAUcode = g_strdup(com.pref.astrometry.default_obscode);
-				siril_log_message(_("Using preferred observatory code %s\n"), siril_cat->IAUcode);
-			} else {
-				g_free(com.pref.astrometry.default_obscode);
-				com.pref.astrometry.default_obscode = NULL;
-				siril_cat->IAUcode = g_strdup("500");
-				siril_log_color_message(_("Invalid observatory code found in preferences. Code must be 3 characters. Resetting preference and using default geocentric observer code.\n"), "red");
-			}
-		} else {
-			siril_cat->IAUcode = g_strdup("500");
-			siril_log_message(_("Using default geocentric observer code\n"));
-		}
-		conesearch_args *args = init_conesearch();
-		args->fit = &gfit;
-		args->has_GUI = TRUE;
-		args->siril_cat = siril_cat;
-		args->display_log = TRUE;
-		args->display_tag = TRUE;
-		start_in_new_thread(conesearch_worker, args);
-	}
+void annotate_dialog_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("annotate_dialog");
 }
 
 void annotate_object_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
@@ -597,6 +569,9 @@ void asinh_activate(GSimpleAction *action, GVariant *parameter, gpointer user_da
 	siril_open_dialog("asinh_dialog");
 }
 
+void epf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("epf_dialog");
+}
 void starnet_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("starnet_dialog");
 }

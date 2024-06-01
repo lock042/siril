@@ -55,8 +55,8 @@
 
 static struct stacking_args stackparam = {	// parameters passed to stacking
 	NULL, NULL, -1, NULL, -1.0, 0, NULL, NULL, NULL, NULL, FALSE,
-	FALSE, NO_NORM, { 0 }, FALSE, FALSE, TRUE, -1, FALSE,
-	NO_REJEC, { 0, 0 }, NULL, FALSE, FALSE, NULL, NULL,
+	FALSE, NO_NORM, { 0 }, FALSE, FALSE, TRUE, -1, FALSE, FALSE, { 0, 0 },
+	FALSE, NO_REJEC, { 0, 0 }, NULL, FALSE, FALSE, NULL, NULL,
 	FALSE, FALSE, FALSE, FALSE, NULL, NULL, NULL, { 0 }, 0, { 0 }
 };
 
@@ -168,7 +168,7 @@ void main_stack(struct stacking_args *args) {
 	if (do_normalization(args)) // does nothing if NO_NORM
 		return;
 	// 2. up-scale
-	if (upscale_sequence(args)) // does nothing if args->seq->upscale_at_stacking <= 1.05
+	if (upscale_sequence(args)) // does nothing if !args->upscale_at_stacking
 		return;
 	// 3. stack
 	args->retval = args->method(args);
@@ -194,8 +194,8 @@ static void start_stacking() {
 	gchar *error = NULL;
 	static GtkComboBox *method_combo = NULL, *rejec_combo = NULL, *norm_combo = NULL, *weighing_combo;
 	static GtkEntry *output_file = NULL;
-	static GtkToggleButton *overwrite = NULL, *force_norm = NULL,
-			       *fast_norm = NULL, *rejmaps = NULL, *merge_rejmaps = NULL;
+	static GtkToggleButton *overwrite = NULL, *force_norm = NULL, *max_framing = NULL,
+					*fast_norm = NULL, *rejmaps = NULL, *merge_rejmaps = NULL, *upscale_at_stacking = NULL;
 	static GtkSpinButton *sigSpin[2] = {NULL, NULL};
 	static GtkWidget *norm_to_max = NULL, *RGB_equal = NULL;
 
@@ -210,10 +210,12 @@ static void start_stacking() {
 		weighing_combo = GTK_COMBO_BOX(lookup_widget("comboweighing"));
 		force_norm = GTK_TOGGLE_BUTTON(lookup_widget("checkforcenorm"));
 		fast_norm = GTK_TOGGLE_BUTTON(lookup_widget("checkfastnorm"));
+		max_framing = GTK_TOGGLE_BUTTON(lookup_widget("check_maximize_framing"));
 		norm_to_max = lookup_widget("check_normalise_to_max");
 		RGB_equal = lookup_widget("check_RGBequal");
 		rejmaps = GTK_TOGGLE_BUTTON(lookup_widget("rejmaps_checkbutton"));
 		merge_rejmaps = GTK_TOGGLE_BUTTON(lookup_widget("merge_rejmaps_checkbutton"));
+		upscale_at_stacking = GTK_TOGGLE_BUTTON(lookup_widget("check_upscale_at_stacking"));
 	}
 
 	if (get_thread_run()) {
@@ -229,6 +231,8 @@ static void start_stacking() {
 	stackparam.normalize = gtk_combo_box_get_active(norm_combo);
 	stackparam.force_norm = gtk_toggle_button_get_active(force_norm);
 	stackparam.output_norm = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(norm_to_max)) && gtk_widget_is_visible(norm_to_max);
+	stackparam.maximize_framing = gtk_toggle_button_get_active(max_framing) && gtk_widget_is_visible(GTK_WIDGET(max_framing));
+	stackparam.upscale_at_stacking = gtk_toggle_button_get_active(upscale_at_stacking) && gtk_widget_is_visible(GTK_WIDGET(upscale_at_stacking));
 	stackparam.coeff.offset = NULL;
 	stackparam.coeff.mul = NULL;
 	stackparam.coeff.scale = NULL;
@@ -547,7 +551,7 @@ static gboolean end_stacking(gpointer p) {
 			icc_auto_assign(&gfit, ICC_ASSIGN_ON_STACK);
 		clear_stars_list(TRUE);
 		/* check in com.seq, because args->seq may have been replaced */
-		if (com.seq.upscale_at_stacking > 1.05)
+		if (args->upscale_at_stacking)
 			com.seq.current = SCALED_IMAGE;
 		else com.seq.current = RESULT_IMAGE;
 		/* Warning: the previous com.uniq is not freed, but calling
@@ -601,6 +605,7 @@ static gboolean end_stacking(gpointer p) {
 					failed = 1;
 				}
 			}
+			gfit.keywords.filename[0] = '\0'; // clear the reference to the original filename
 			if (failed) {
 				com.uniq->filename = strdup(_("Unsaved stacking result"));
 				com.uniq->fileexist = FALSE;
@@ -1155,7 +1160,8 @@ static void update_filter_label() {
  */
 void update_stack_interface(gboolean dont_change_stack_type) {
 	static GtkWidget *go_stack = NULL, *widgetnormalize = NULL, *force_norm =
-			NULL, *output_norm = NULL, *RGB_equal = NULL, *fast_norm = NULL;
+			NULL, *output_norm = NULL, *RGB_equal = NULL, *fast_norm = NULL, *max_framing = NULL,
+			*upscale_at_stacking = NULL;
 	static GtkComboBox *method_combo = NULL, *filter_combo = NULL;
 	static GtkLabel *result_label = NULL;
 	gchar *labelbuffer;
@@ -1170,6 +1176,8 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 		result_label = GTK_LABEL(lookup_widget("stackfilter_label"));
 		output_norm = lookup_widget("check_normalise_to_max");
 		RGB_equal = lookup_widget("check_RGBequal");
+		max_framing = lookup_widget("check_maximize_framing");
+		upscale_at_stacking = lookup_widget("check_upscale_at_stacking");
 	}
 	if (!sequence_is_loaded()) {
 		gtk_widget_set_sensitive(go_stack, FALSE);
@@ -1182,8 +1190,12 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 		gtk_combo_box_set_active(filter_combo, SELECTED_IMAGES);
 		g_signal_handlers_unblock_by_func(filter_combo, on_stacksel_changed, NULL);
 	}
+	gboolean can_reframe = layer_has_usable_registration(&com.seq, get_registration_layer(&com.seq));
+	gboolean can_upscale = can_reframe && !com.seq.is_variable;
+	gboolean must_reframe = can_reframe && com.seq.is_variable;
 
-	switch (gtk_combo_box_get_active(method_combo)) {
+	int stack_method = gtk_combo_box_get_active(method_combo);
+	switch (stack_method) {
 	default:
 	case STACK_SUM:
 	case STACK_MAX:
@@ -1193,6 +1205,12 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 		gtk_widget_set_sensitive(fast_norm, FALSE);
 		gtk_widget_set_visible(output_norm, FALSE);
 		gtk_widget_set_visible(RGB_equal, FALSE);
+		gtk_widget_set_visible(max_framing, can_reframe); // only shown if applicable
+		if (can_reframe) {
+			gtk_widget_set_sensitive(max_framing, !must_reframe);
+			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(max_framing), must_reframe);
+		}
+		gtk_widget_set_visible(upscale_at_stacking, can_upscale); // only shown if applicable
 		break;
 	case STACK_MEAN:
 	case STACK_MEDIAN:
@@ -1203,6 +1221,12 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 				gtk_combo_box_get_active(GTK_COMBO_BOX(widgetnormalize)) != 0);
 		gtk_widget_set_visible(output_norm, TRUE);
 		gtk_widget_set_visible(RGB_equal, TRUE);
+		gtk_widget_set_visible(max_framing, can_reframe && stack_method != STACK_MEDIAN); // only shown if applicable and not for median
+		gtk_widget_set_visible(upscale_at_stacking, can_upscale && stack_method != STACK_MEDIAN); // only shown if applicable and not for median
+		if (can_reframe && stack_method != STACK_MEDIAN) {
+			gtk_widget_set_sensitive(max_framing, !must_reframe);
+			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(max_framing), must_reframe);
+		}
 	}
 
 	if (com.seq.reference_image == -1)
@@ -1250,3 +1274,29 @@ static void stacking_args_deep_free(struct stacking_args *args) {
 	free(args);
 }
 
+// used by sum, min and max stacking
+// needs to take into account scale because those methods are called on the upscaled sequence
+void compute_max_framing(struct stacking_args *args, int output_size[2], int offset[2]) {
+	double xmin = DBL_MAX;
+	double xmax = -DBL_MAX;
+	double ymin = DBL_MAX;
+	double ymax = -DBL_MAX;
+	int nb_frames = args->nb_images_to_stack;
+	double scale = (args->upscale_at_stacking) ? 2. : 1.;
+	for (int i = 0; i < nb_frames; ++i) {
+		int image_index = args->image_indices[i]; // image index in sequence
+		regdata *regdat = args->seq->regparam[args->reglayer];
+		int rx = (args->seq->is_variable) ? args->seq->imgparam[image_index].rx : args->seq->rx;
+		int ry = (args->seq->is_variable) ? args->seq->imgparam[image_index].ry : args->seq->ry;
+		xmin = (xmin > regdat[image_index].H.h02 * scale) ? regdat[image_index].H.h02 * scale : xmin;
+		ymin = (ymin > regdat[image_index].H.h12 * scale) ? regdat[image_index].H.h12 * scale : ymin;
+		xmax = (xmax < regdat[image_index].H.h02 * scale + rx) ? regdat[image_index].H.h02 * scale + rx : xmax;
+		ymax = (ymax < regdat[image_index].H.h12 * scale + ry) ? regdat[image_index].H.h12 * scale + ry : ymax;
+	}
+	output_size[0] = (int)(ceil(xmax) - floor(xmin));
+	output_size[1] = (int)(ceil(ymax) - floor(ymin));
+	offset[0] = floor(xmin);
+	offset[1] = -ceil(ymax); // the stack is done with origin at bottom left but the shifts are computed from top right
+	siril_debug_print("new size: %d %d\n", output_size[0], output_size[1]);
+	siril_debug_print("new origin: %d %d\n", offset[0], offset[1]);
+}

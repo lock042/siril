@@ -151,7 +151,7 @@ void initialize_ips_dialog() {
 	// loads image metadata
 	on_GtkButton_IPS_metadata_clicked(NULL, NULL);	// fill it automatically
 	// sequence related controls
-	gboolean isseq = sequence_is_loaded();
+	gboolean isseq = sequence_is_loaded() && com.seq.current != RESULT_IMAGE;
 	gtk_widget_set_visible(GTK_WIDGET(flipbutton), !isseq);
 	gtk_expander_set_expanded(sequenceexp, isseq);
 	gtk_widget_set_visible(GTK_WIDGET(sequenceexp), isseq);
@@ -396,12 +396,6 @@ gboolean end_process_catsearch(gpointer p) {
 		} else {
 			refresh_found_objects();
 			redraw(REDRAW_OVERLAY);
-		}
-		// if was queried through the GUI, we clear the entry and close the dialog
-		GtkWidget *entry = lookup_widget("search_objects_entry");
-		if (gtk_widget_get_visible(entry)) {
-			gtk_entry_set_text(GTK_ENTRY(entry), "");
-			siril_close_dialog("search_objects");
 		}
 	}
 	free_sky_object_query(args);

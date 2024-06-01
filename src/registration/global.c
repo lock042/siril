@@ -181,18 +181,9 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	}
 	clearfits(&fit);
 
-	if (regargs->x2upscale) {
-		if (regargs->no_output) {
-			args->seq->upscale_at_stacking = 2.0;
-		} else {
-			sadata->ref.x *= 2.0;
-			sadata->ref.y *= 2.0;
-		}
-	}
-	else {
-		if (regargs->no_output) {
-			args->seq->upscale_at_stacking = 1.0;
-		}
+	if (regargs->x2upscale && !regargs->no_output) {
+		sadata->ref.x *= 2.0;
+		sadata->ref.y *= 2.0;
 	}
 
 	/* copying refstars to com.stars for display */
@@ -671,8 +662,6 @@ static void create_output_sequence_for_global_star(struct registration_args *arg
 	seq.selnum = args->new_total;
 	seq.fixed = args->seq->fixed;
 	seq.nb_layers = args->seq->nb_layers;
-	seq.rx = args->seq->rx;
-	seq.ry = args->seq->ry;
 	seq.imgparam = args->imgparam;
 	seq.regparam = calloc(seq.nb_layers, sizeof(regdata*));
 	seq.regparam[args->layer] = args->regparam;
@@ -680,7 +669,11 @@ static void create_output_sequence_for_global_star(struct registration_args *arg
 	seq.end = seq.imgparam[seq.number-1].filenum;
 	seq.type = args->seq->type;
 	seq.current = -1;
-	seq.is_variable = FALSE;
+	seq.is_variable = check_seq_is_variable(&seq);
+	if (!seq.is_variable) {
+		seq.rx = args->seq->rx;
+		seq.ry = args->seq->ry;
+	}
 	seq.fz = com.pref.comp.fits_enabled;
 	// don't copy from old sequence, it may not be the same image
 	seq.reference_image = sequence_find_refimage(&seq);
@@ -787,7 +780,7 @@ static void compute_dist(struct registration_args *regargs, float *dist, const g
 		if (!included[i]) continue;
 		point currcenter;
 		memcpy(&currcenter, &center, sizeof(point));
-		cvTransfPoint(&currcenter.x, &currcenter.y,regargs->seq->regparam[regargs->layer][i].H, Href);
+		cvTransfPoint(&currcenter.x, &currcenter.y,regargs->seq->regparam[regargs->layer][i].H, Href, 1.);
 		cogx += currcenter.x;
 		cogy += currcenter.y;
 		n++;
@@ -805,7 +798,7 @@ static void compute_dist(struct registration_args *regargs, float *dist, const g
 		point currcenter;
 		double dx, dy;
 		memcpy(&currcenter, &center, sizeof(point));
-		cvTransfPoint(&currcenter.x, &currcenter.y, regargs->seq->regparam[regargs->layer][i].H, Htransf);
+		cvTransfPoint(&currcenter.x, &currcenter.y, regargs->seq->regparam[regargs->layer][i].H, Htransf, 1.);
 		dx = currcenter.x - center.x;
 		dy = currcenter.y - center.y;
 		dist[i] = (float)sqrt(dx * dx + dy * dy);
@@ -971,9 +964,8 @@ int register_multi_step_global(struct registration_args *regargs) {
 
 	//intializing some useful info
 	int trials = 0;
-	int nb_valid_frames = 0, nb_meaningful = 0;
+	int nb_meaningful = 0;
 	for (int i = 0; i < regargs->seq->number; i++) {
-		if (included[i]) nb_valid_frames++;
 		if (meaningful[i]) nb_meaningful++;
 	}
 	int best_indexes[MAX_TRIALS_2PASS];

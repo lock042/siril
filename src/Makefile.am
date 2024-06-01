@@ -179,6 +179,8 @@ siril_common_SOURCES = \
 	filters/clahe.h \
 	filters/cosmetic_correction.c \
 	filters/cosmetic_correction.h \
+	filters/epf.c \
+	filters/epf.h \
 	filters/fft.c \
 	filters/fft.h \
 	filters/median.c \
@@ -240,6 +242,7 @@ siril_common_SOURCES = \
 	filters/nlbayes/Utilities.h \
 	gui/about_dialog.c \
 	gui/about_dialog.h \
+	gui/annotate.c \
 	gui/annotations_pref.c \
 	gui/astrometry_solver.c \
 	gui/denoisegui.c \
@@ -259,6 +262,8 @@ siril_common_SOURCES = \
 	gui/dialogs.h \
 	gui/documentation.c \
 	gui/documentation.h \
+	gui/epf.c \
+	gui/epf.h \
 	gui/fix_xtrans_af.c \
 	gui/fix_xtrans_af.h \
 	gui/histogram.c \
@@ -279,6 +284,9 @@ siril_common_SOURCES = \
 	gui/merge_cfa.c \
 	gui/message_dialog.c \
 	gui/message_dialog.h \
+	gui/mouse_action_functions.c \
+	gui/mouse_action_functions.h \
+	gui/mouse_action_preferences.c \
 	gui/newdeconv.c \
 	gui/nina_light_curve.c \
 	gui/nina_light_curve.h \
@@ -465,6 +473,8 @@ siril_common_SOURCES += \
 	io/SirilXISFWraper.h \
 	opencv/opencv.cpp \
 	opencv/opencv.h \
+	opencv/guidedfilter.cpp \
+	opencv/guidedfilter.h \
 	opencv/kombat/kombat.cpp \
 	opencv/kombat/kombat.h \
 	core/exif.cpp \

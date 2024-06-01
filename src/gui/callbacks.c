@@ -684,12 +684,9 @@ void update_MenuItem() {
 	/* fits header */
 	GAction *action_fits_header = g_action_map_lookup_action (G_ACTION_MAP(app_win), "fits-header");
 	g_simple_action_set_enabled(G_SIMPLE_ACTION(action_fits_header), any_image_is_loaded && gfit.header != NULL);
-	/* search object */
-	GAction *action_search_objectr = g_action_map_lookup_action (G_ACTION_MAP(app_win), "search-object");
-	g_simple_action_set_enabled(G_SIMPLE_ACTION(action_search_objectr), any_image_is_loaded && has_wcs(&gfit));
-	/* search SOLAR object */
-	GAction *action_search_solar = g_action_map_lookup_action (G_ACTION_MAP(app_win), "search-solar");
-	g_simple_action_set_enabled(G_SIMPLE_ACTION(action_search_solar), any_image_is_loaded && has_wcs(&gfit));
+	/* annotate dialog */
+	GAction *action_annotate_dialog = g_action_map_lookup_action (G_ACTION_MAP(app_win), "annotate-dialog");
+	g_simple_action_set_enabled(G_SIMPLE_ACTION(action_annotate_dialog), any_image_is_loaded && has_wcs(&gfit));
 	/* Lightcurve process */
 	GAction *action_nina_light_curve = g_action_map_lookup_action (G_ACTION_MAP(app_win), "nina_light_curve");
 	g_simple_action_set_enabled(G_SIMPLE_ACTION(action_nina_light_curve), sequence_is_loaded() && has_wcs(&gfit));
@@ -1321,8 +1318,7 @@ static void load_accels() {
 		"win.zoom-fit",               "<Primary>0", NULL,
 		"win.zoom-one",               "<Primary>1", NULL,
 
-		"win.search-object",          "<Primary>slash", NULL,
-		"win.search-solar",           "<Primary>slash", NULL,
+		"win.annotate-dialog",        "<Primary>slash", NULL,
 		"win.astrometry",             "<Primary><Shift>a", NULL,
 		"win.pcc-processing",         "<Primary><Shift>p", NULL,
 		"win.spcc-processing",        "<Primary><Shift>c", NULL,
@@ -1516,6 +1512,9 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	/* Keybord Shortcuts */
 	load_accels();
+
+	/* Mouse event mask */
+	set_mouse_event_mask();
 
 	/* Select combo boxes that trigger some text display or other things */
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("comboboxstack_methods")), 0);

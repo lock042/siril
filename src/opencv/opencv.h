@@ -34,13 +34,17 @@ int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homog
 
 int cvUnsharpFilter(fits* image, double sigma, double amount);
 
+int cvBilateralFilter(fits* image, double d, double sigma_col, double sigma_spatial);
+
+int cvGuidedFilter(fits* image, fits *guide, double r, double eps);
+
 int cvClahe(fits *image, double clip_limit, int size);
 
 void cvTransformImageRefPoint(Homography Hom, point refpointin, point *refpointout);
 
 void cvGetEye(Homography *H);
 
-void cvTransfPoint(double *x, double *y, Homography Href, Homography Himg);
+void cvTransfPoint(double *x, double *y, Homography Href, Homography Himg, double scale);
 
 void cvTransfH(Homography Href, Homography Himg, Homography *Hres);
 
@@ -60,7 +64,8 @@ void cvGetBoundingRectSize(fits *image, point center, double angle, int *w, int 
 gboolean cvRotMat3(double angles[3], rotation_type rottype[3], gboolean W2C, Homography *Hom);
 void cvRelRot(Homography *Ref, Homography *R);
 void cvcalcH_fromKKR(Homography Kref, Homography K, Homography R, Homography *H);
-int cvWarp_fromKR(fits *image, astrometric_roi *roi_in, Homography K, Homography R, float scale, int projector, int interpolation, gboolean clamp, disto_data *disto, astrometric_roi *roi_out);
+int cvWarp_fromKR(fits *image, astrometric_roi *roi_in, Homography K, Homography R, float scale, int interpolation, gboolean clamp, disto_data *disto, astrometric_roi *roi_out);
+int init_disto_map(int rx, int ry, disto_data *disto);
 #ifdef __cplusplus
 }
 #endif
