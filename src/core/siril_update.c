@@ -224,11 +224,33 @@ static guint check_for_patch(gchar *version, gboolean *is_rc, gboolean *is_beta)
 	return (g_ascii_strtoull(version, NULL, 10));
 }
 
-static version_number get_version_number_from_strv(gchar **version_string) {
-	version_number version;
+static const gchar* find_first_numeric(const gchar *string) {
+    if (string == NULL) {
+        return NULL;
+    }
+    for (const gchar *ptr = string; *ptr != '\0'; ptr++) {
+        if (g_ascii_isdigit(*ptr)) {
+            return ptr;
+        }
+    }
+    return NULL;
+}
+
+version_number get_version_number_from_string(const gchar *input) {
+	version_number version = { 0 };
+	const gchar *string = find_first_numeric(input);
+	if (!string)
+		goto the_end;
+	gchar **version_string = g_strsplit_set(string, ".-", -1);
 	version.major_version = g_ascii_strtoull(version_string[0], NULL, 10);
-	version.minor_version = g_ascii_strtoull(version_string[1], NULL, 10);
-	version.micro_version = g_ascii_strtoull(version_string[2], NULL, 10);
+	if (version_string[1])
+		version.minor_version = g_ascii_strtoull(version_string[1], NULL, 10);
+	else
+		goto the_end;
+	if (version_string[2])
+		version.micro_version = g_ascii_strtoull(version_string[2], NULL, 10);
+	else
+		goto the_end;
 	if (version_string[3] == NULL) {
 		version.patched_version = 0;
 		version.rc_version = FALSE;
@@ -236,21 +258,13 @@ static version_number get_version_number_from_strv(gchar **version_string) {
 	} else {
 		version.patched_version = check_for_patch(version_string[3], &version.rc_version, &version.beta_version);
 	}
-
+	g_strfreev(version_string);
+the_end:
 	return version;
 }
 
-static version_number get_current_version_number() {
-	gchar **fullVersionNumber;
-	version_number version;
-
-	fullVersionNumber = g_strsplit_set(PACKAGE_VERSION, ".-", -1);
-
-	version = get_version_number_from_strv(fullVersionNumber);
-
-	g_strfreev(fullVersionNumber);
-
-	return version;
+version_number get_current_version_number() {
+	return get_version_number_from_string(PACKAGE_VERSION);
 }
 
 static version_number get_last_version_number(gchar *version_str) {
@@ -280,7 +294,7 @@ static version_number get_last_version_number(gchar *version_str) {
  * @param v2 Second version number to be tested
  * @return -1 if v1 < v2, 1 if v1 > v2 and 0 if v1 is equal to v2
  */
-static int compare_version(version_number v1, version_number v2) {
+int compare_version(version_number v1, version_number v2) {
 	if (v1.major_version < v2.major_version)
 		return -1;
 	else if (v1.major_version > v2.major_version)
@@ -626,15 +640,11 @@ static int parseJsonNotificationsString(const gchar *jsonString, GArray *validMe
 		version_number valid_to_version = { 0 };
 		if (json_object_has_member(single_message, "version-from")) {
 			const gchar *version_from_str = json_object_get_string_member(single_message, "version-from");
-			gchar **fullVersionFrom = g_strsplit_set(version_from_str, ".-", -1);
-			valid_from_version = get_version_number_from_strv(fullVersionFrom);
-			g_strfreev(fullVersionFrom);
+			valid_from_version = get_version_number_from_string(version_from_str);
 		}
 		if (json_object_has_member(single_message, "version-to")) {
 			const gchar *version_to_str = json_object_get_string_member(single_message, "version-to");
-			gchar **fullVersionTo = g_strsplit_set(version_to_str, ".-", -1);
-			valid_to_version = get_version_number_from_strv(fullVersionTo);
-			g_strfreev(fullVersionTo);
+			valid_to_version = get_version_number_from_string(version_to_str);
 		}
 
 		// Parse status and append to GArray

@@ -31,6 +31,9 @@ typedef struct {
 	gboolean rc_version;
 } version_number;
 
+int compare_version(version_number v1, version_number v2);
+version_number get_version_number_from_string(const gchar *string);
+version_number get_current_version_number();
 void siril_check_updates(gboolean verbose);
 void siril_check_notifications(gboolean verbose);
 
