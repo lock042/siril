@@ -9740,169 +9740,136 @@ int process_platesolve(int nb) {
 	return CMD_OK;
 }
 
-int process_conesearch(int nb) {
-	float limit_mag = -1.0f;
-	gboolean photometric = FALSE;
-	super_bool display_tag = BOOL_NOT_SET;
-	super_bool display_log = BOOL_NOT_SET;
-	siril_cat_index cat = CAT_AUTO;
-	gchar *obscode = NULL;
-	gboolean default_obscode_used = FALSE;
-	int trixel = -1;
-	gchar *outfilename = NULL;
+static conesearch_params* parse_conesearch_args(int nb) {
+	conesearch_params *params = init_conesearch_params();
 	gboolean local_cat = local_catalogues_available();
 
-	if (com.pref.astrometry.default_obscode != NULL) {
-		obscode = g_strdup(com.pref.astrometry.default_obscode);
-		default_obscode_used = TRUE;
-	}
-
-	if (!has_wcs(&gfit)) {
-		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
-		return CMD_FOR_PLATE_SOLVED;
-	}
 	int arg_idx = 1;
 	while (arg_idx < nb) {
 		if (g_str_has_prefix(word[arg_idx], "-cat=")) {
 			char *arg = word[arg_idx] + 5;
 			if (!g_strcmp0(arg, "tycho2"))
-				cat = CAT_TYCHO2;
+				params->cat = CAT_TYCHO2;
 			else if (!g_strcmp0(arg, "nomad"))
-				cat = CAT_NOMAD;
+				params->cat = CAT_NOMAD;
 			else if (!g_strcmp0(arg, "gaia"))
-				cat = CAT_GAIADR3;
+				params->cat = CAT_GAIADR3;
 			else if (!g_strcmp0(arg, "ppmxl"))
-				cat = CAT_PPMXL;
+				params->cat = CAT_PPMXL;
 			else if (!g_strcmp0(arg, "bsc"))
-				cat = CAT_BSC;
+				params->cat = CAT_BSC;
 			else if (!g_strcmp0(arg, "apass"))
-				cat = CAT_APASS;
+				params->cat = CAT_APASS;
 			else if (!g_strcmp0(arg, "gcvs"))
-				cat = CAT_GCVS;
+				params->cat = CAT_GCVS;
 			else if (!g_strcmp0(arg, "vsx"))
-				cat = CAT_VSX;
+				params->cat = CAT_VSX;
 			else if (!g_strcmp0(arg, "varisum"))
-				cat = CAT_VARISUM;
+				params->cat = CAT_VARISUM;
 			else if (!g_strcmp0(arg, "simbad"))
-				cat = CAT_SIMBAD;
+				params->cat = CAT_SIMBAD;
 			else if (!g_strcmp0(arg, "exo"))
-				cat = CAT_EXOPLANETARCHIVE;
+				params->cat = CAT_EXOPLANETARCHIVE;
 			else if (!g_strcmp0(arg, "pgc"))
-				cat = CAT_PGC;
+				params->cat = CAT_PGC;
 			else if (!g_strcmp0(arg, "aavso_chart"))
-				cat = CAT_AAVSO_CHART;
+				params->cat = CAT_AAVSO_CHART;
 			else if (!g_strcmp0(arg, "solsys")) {
-				cat = CAT_IMCCE;
+				params->cat = CAT_IMCCE;
 				if (!gfit.keywords.date_obs) {
 					siril_log_color_message(_("This option only works on images that have observation date information\n"), "red");
-					return CMD_INVALID_IMAGE;
+					g_free(params);
+					return NULL;
 				}
 			} else {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[arg_idx]);
-				return CMD_ARG_ERROR;
+				g_free(params);
+				return NULL;
 			}
 		} else if (g_str_has_prefix(word[arg_idx], "-obscode=")) {
 			char *arg = word[arg_idx] + 9;
 			if (strlen(arg) != 3) {
 				siril_log_color_message(_("The observatory should be coded as a 3-letter word\n"), "red");
-				return CMD_ARG_ERROR;
+				g_free(params);
+				return NULL;
 			}
-			if (obscode)
-				g_free(obscode);
-			default_obscode_used = FALSE;
-			obscode = g_strdup(arg);
+			if (params->obscode)
+				g_free(params->obscode);
+			params->default_obscode_used = FALSE;
+			params->obscode = g_strdup(arg);
 		} else if (g_str_has_prefix(word[arg_idx], "-trix=")) {
 			if (!local_cat) {
 				siril_log_color_message(_("No local catalogues found, ignoring -trix option\n"), "red");
 				continue;
 			}
 			gchar *end;
-			int trix = (int)g_ascii_strtoull(word[arg_idx] + 6, &end, 10);
+			int trix = (int) g_ascii_strtoull(word[arg_idx] + 6, &end, 10);
 			if (trix < 0 || trix > 511) {
 				siril_log_color_message(_("Trixel number must be between 0 and 511\n"), "red");
-				return CMD_ARG_ERROR;
+				g_free(params);
+				return NULL;
 			}
-			trixel = trix;
+			params->trixel = trix;
 		} else if (!strcmp(word[arg_idx], "-phot")) {
-			photometric = TRUE;
+			params->photometric = TRUE;
 		} else if (g_str_has_prefix(word[arg_idx], "-log=")) {
 			char *arg = word[arg_idx] + 5;
 			if (!(g_ascii_strcasecmp(arg, "on")))
-				display_log = BOOL_TRUE;
+				params->display_log = BOOL_TRUE;
 			else if (!(g_ascii_strcasecmp(arg, "off")))
-				display_log = BOOL_FALSE;
+				params->display_log = BOOL_FALSE;
 			else {
 				siril_log_message(_("Wrong parameter values. Log must be set to on or off, aborting.\n"));
-				return CMD_ARG_ERROR;
+				g_free(params);
+				return NULL;
 			}
 		} else if (g_str_has_prefix(word[arg_idx], "-tag=")) {
 			char *arg = word[arg_idx] + 5;
 			if (!(g_ascii_strcasecmp(arg, "on")))
-				display_tag = BOOL_TRUE;
+				params->display_tag = BOOL_TRUE;
 			else if (!(g_ascii_strcasecmp(arg, "off")))
-				display_tag = BOOL_FALSE;
+				params->display_tag = BOOL_FALSE;
 			else {
 				siril_log_message(_("Wrong parameter values. Tag must be set to on or off, aborting.\n"));
-				return CMD_ARG_ERROR;
+				g_free(params);
+				return NULL;
 			}
 		} else if (g_str_has_prefix(word[arg_idx], "-out=")) {
 			char *arg = word[arg_idx] + 5;
 			if (arg[0] == '\0') {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), word[arg_idx]);
-				return CMD_ARG_ERROR;
+				g_free(params);
+				return NULL;
 			}
-			outfilename = g_strdup(arg);
+			params->outfilename = g_strdup(arg);
 		} else {
 			gchar *end;
-			limit_mag = g_ascii_strtod(word[arg_idx], &end);
+			params->limit_mag = g_ascii_strtod(word[arg_idx], &end);
 			if (end == word[arg_idx]) {
 				siril_log_message(_("Invalid argument %s, aborting.\n"), word[arg_idx]);
-				return CMD_ARG_ERROR;
+				g_free(params);
+				return NULL;
 			}
 		}
 		arg_idx++;
 	}
 
-	if (cat == CAT_AUTO) {
-		cat = (local_cat) ? CAT_LOCAL : CAT_NOMAD;
-		if (trixel >= 0 && cat == CAT_LOCAL)
-			cat = CAT_LOCAL_TRIX;
+	if (params->cat == CAT_AUTO) {
+		params->cat = (local_cat) ? CAT_LOCAL : CAT_NOMAD;
+		if (params->trixel >= 0 && params->cat == CAT_LOCAL)
+			params->cat = CAT_LOCAL_TRIX;
 	}
 
-	// preparing the catalogue query
-	siril_catalogue *siril_cat = siril_catalog_fill_from_fit(&gfit, cat, limit_mag);
-	siril_cat->phot = photometric;
-	if (cat == CAT_IMCCE) {
-		if (obscode) {
-			siril_cat->IAUcode = obscode;
-			if (default_obscode_used) {
-				siril_log_message(_("Using default observatory code %s\n"), obscode);
-			}
-		} else {
-			siril_cat->IAUcode = g_strdup("500");
-			siril_log_color_message(_("Did not specify an observatory code, using geocentric by default, positions may not be accurate\n"), "salmon");
-		}
-	} else if (obscode) {
-		g_free(obscode);
-		obscode = NULL;
-	}
-	if (cat == CAT_LOCAL_TRIX)
-		siril_cat->trixel = trixel;
+	return params;
+}
 
-	siril_debug_print("centre coords: %f, %f, radius: %f arcmin\n", siril_cat->center_ra, siril_cat->center_dec, siril_cat->radius);
-	conesearch_args *args = init_conesearch();
-	args->fit = &gfit;
-	args->siril_cat = siril_cat;
-	args->has_GUI = !com.script;
-	args->display_log = (display_log == BOOL_NOT_SET) ? display_names_for_catalogue(cat) : (gboolean)display_log;
-	args->display_tag = (display_tag == BOOL_NOT_SET) ? display_names_for_catalogue(cat) : (gboolean)display_tag;
-	args->outfilename = outfilename;
-	if (check_conesearch_args(args)) {// can't fail for now
-		free_conesearch(args);
-		return CMD_GENERIC_ERROR;
+int process_conesearch(int nb) {
+	conesearch_params *params = parse_conesearch_args(nb);
+	if (!params) {
+		return CMD_ARG_ERROR;
 	}
-	start_in_new_thread(conesearch_worker, args);
-	return CMD_OK;
+	int result = execute_conesearch(params);
+	return result;
 }
 
 int process_catsearch(int nb){
@@ -10090,121 +10057,89 @@ int process_parse(int nb) {
 	return CMD_OK;
 }
 
-int process_show(int nb) {
-	// show [-clear] { -list=file | [name] ra dec } [-log={on|off}] [-tag={on|off}]
-	SirilWorldCS *coords = NULL;
-	if (!has_wcs(&gfit)) {
-		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
-		return CMD_FOR_PLATE_SOLVED;
-	}
-	char *name = " ";
-	cat_item *item = NULL;
+static show_params* parse_show_args(int nb) {
+	show_params *params = g_new0(show_params, 1);
+	params->display_log = BOOL_NOT_SET;
+	params->display_tag = BOOL_NOT_SET;
 	int next_arg = 1;
+
 	if (!g_strcmp0(word[next_arg], "-clear")) {
+		params->clear = TRUE;
 		next_arg++;
-		purge_user_catalogue(CAT_AN_USER_TEMP);
 		if (nb == 2) {
-			redraw(REDRAW_OVERLAY);
-			return CMD_OK;
+			return params;
 		}
 	}
-	siril_catalogue *siril_cat = NULL;
-	conesearch_args *args = NULL;
-	super_bool display_tag = BOOL_NOT_SET;
-	super_bool display_log = BOOL_NOT_SET;
-	siril_cat = calloc(1, sizeof(siril_catalogue));
-	siril_cat->cat_index = CAT_SHOW;
-	siril_cat->columns = siril_catalog_columns(siril_cat->cat_index);
-	args = init_conesearch();
-	args->siril_cat = siril_cat;
-	args->has_GUI = TRUE;
-	args->fit = &gfit;
 
-	//passing a list
 	if (g_str_has_prefix(word[next_arg], "-list=")) {
-		const char *file = word[next_arg] + 6;
-		int check = siril_catalog_load_from_file(siril_cat, file);
-		if (check > 0) {
-			goto show_exit_on_failure;
-		}
-		if (check == -1) { // the file was read but empty
-			free_conesearch(args);
-			return CMD_OK;
-		}
+		params->file = g_strdup(word[next_arg] + 6);
 		next_arg++;
 		while (next_arg < nb) {
 			if (!g_ascii_strcasecmp(word[next_arg], "-nolog")) {
-				display_log = BOOL_FALSE;
+				params->display_log = BOOL_FALSE;
 			} else if (!g_ascii_strcasecmp(word[next_arg], "-notag")) {
-				display_tag = BOOL_FALSE;
+				params->display_tag = BOOL_FALSE;
 			} else {
 				siril_log_message(_("Invalid argument %s, aborting.\n"), word[next_arg]);
-				goto show_exit_on_failure;
+				g_free(params);
+				return NULL;
 			}
 			next_arg++;
 		}
-		args->display_log = (display_log == BOOL_NOT_SET) ? (gboolean)has_field(siril_cat, NAME) : (gboolean)display_log;
-		args->display_tag = (display_tag == BOOL_NOT_SET) ? (gboolean)has_field(siril_cat, NAME) : (gboolean)display_tag;
-		start_in_new_thread(conesearch_worker, args);
-		return CMD_OK;
+		return params;
 	}
 
-	// passing coords (and optionally name)
-parse_coords:
-	if (nb > next_arg && !isalpha(word[next_arg][0]) &&
-			(isdigit(word[next_arg][0]) || isdigit(word[next_arg][1]))) {
-		// code from process_pcc
-		char *sep = strchr(word[next_arg], ',');
-		if (!sep) {
-			if (nb <= next_arg) {
-				siril_log_message(_("Could not parse target coordinates\n"));
-				goto show_exit_on_failure;
-			}
-			coords = siril_world_cs_new_from_objct_ra_dec(word[next_arg], word[next_arg+1]);
-			next_arg += 2;
-		}
-		else {
-			*sep++ = '\0';
-			coords = siril_world_cs_new_from_objct_ra_dec(word[next_arg], sep);
-			next_arg++;
-		}
-		if (!coords) {
-			siril_log_message(_("Could not parse target coordinates\n"));
-			goto show_exit_on_failure;
-		}
-	}
-	else {
+	if (nb > next_arg && !isalpha(word[next_arg][0])
+			&& (isdigit(word[next_arg][0]) || isdigit(word[next_arg][1]))) {
+		goto parse_coords;
+	} else {
 		if (nb > next_arg + 1) {
-			name = word[next_arg];
+			params->name = g_strdup(word[next_arg]);
 			next_arg++;
 			goto parse_coords;
+		} else {
+			siril_log_message(_("Invalid argument %s, aborting.\n"), word[next_arg]);
+			g_free(params);
+			return NULL;
 		}
-		siril_log_message(_("Invalid argument %s, aborting.\n"), word[next_arg]);
-		goto show_exit_on_failure;
 	}
-	item = calloc(1, sizeof(cat_item));
-	item->ra = siril_world_cs_get_alpha(coords);
-	item->dec = siril_world_cs_get_delta(coords);
-	siril_world_cs_unref(coords);
-	if (name) {
-		item->name = g_strdup(name);
-		siril_cat->columns |= (1 << CAT_FIELD_NAME);
-		args->display_log = TRUE;
-		args->display_tag = TRUE;
-	} else {
-		item->name = g_strdup("object");
-		args->display_log = FALSE;
-		args->display_tag = FALSE;
-	}
-	siril_catalog_append_item(siril_cat, item);
-	siril_catalog_free_item(item);
-	free(item);
-	start_in_new_thread(conesearch_worker, args);
-	return CMD_OK;
 
-show_exit_on_failure:
-	free_conesearch(args);
-	return CMD_ARG_ERROR;
+parse_coords:
+	if (nb > next_arg && !isalpha(word[next_arg][0]) && (isdigit(word[next_arg][0]) || isdigit(word[next_arg][1]))) {
+		char *sep = strchr(word[next_arg], ',');
+		if (!sep) {
+			params->coords = siril_world_cs_new_from_objct_ra_dec(word[next_arg], word[next_arg + 1]);
+			next_arg += 2;
+		} else {
+			*sep++ = '\0';
+			params->coords = siril_world_cs_new_from_objct_ra_dec(word[next_arg], sep);
+			next_arg++;
+		}
+		if (!params->coords) {
+			siril_log_message(_("Could not parse target coordinates\n"));
+			g_free(params);
+			return NULL;
+		}
+		if (nb > next_arg) {
+			params->name = g_strdup(word[next_arg]);
+		} else {
+			params->name = g_strdup("object");
+		}
+	}
+
+	return params;
+}
+
+int process_show(int nb) {
+	show_params *params = parse_show_args(nb);
+	if (!params) {
+		return CMD_ARG_ERROR;
+	}
+	int result = execute_show_command(params);
+	g_free(params->name);
+	g_free(params->file);
+	g_free(params);
+	return result;
 }
 
 int read_cut_pair(char *value, point *pair) {

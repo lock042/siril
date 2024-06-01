@@ -1856,3 +1856,33 @@ void copy_filename(const char *filename, char *truncated_filename, size_t max_le
 
 	truncated_filename[max_length] = '\0';
 }
+
+gboolean is_string_numeric(const gchar *str) {
+	// Check if the string is NULL or empty
+	if (str == NULL || *str == '\0') {
+		return FALSE;
+	}
+
+	gboolean has_decimal_point = FALSE;
+	const gchar *p = str;
+
+	// Check for an optional leading sign
+	if (*p == '-' || *p == '+') {
+		p++;
+	}
+
+	// Check each character in the string
+	for (; *p != '\0'; p++) {
+		if (*p == '.') {
+			if (has_decimal_point) {
+				// More than one decimal point
+				return FALSE;
+			}
+			has_decimal_point = TRUE;
+		} else if (!g_ascii_isdigit(*p)) {
+			return FALSE;
+		}
+	}
+
+	return (p > str && (g_ascii_isdigit(*(p - 1)) || has_decimal_point));
+}
