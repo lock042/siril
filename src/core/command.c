@@ -51,6 +51,7 @@
 #include "core/sequence_filtering.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
+#include "core/siril_update.h"
 #include "core/undo.h"
 #include "io/Astro-TIFF.h"
 #include "io/conversion.h"
@@ -8900,88 +8901,24 @@ int process_reloadscripts(int nb){
 }
 
 int process_requires(int nb) {
-	gchar **version = NULL, **required = NULL, **max_required = NULL;
-	gint major, minor, micro;
-	gint req_major, req_minor, req_micro;
-	gint max_req_major = -1, max_req_minor = -1, max_req_micro = -1;
-	gchar *endmaj, *endmin, *endmicro, *endreqmaj, *endreqmin, *endreqmicro, *endreqmaxmaj, *endreqmaxminor, *endreqmaxmicro;
-
-	version = g_strsplit(PACKAGE_VERSION, ".", 3);
-	required = g_strsplit(word[1], ".", 3);
+	version_number current_version = get_current_version_number();
+	version_number required_version = get_version_number_from_string(word[1]);
+	version_number expired_version = { 0 };
+	int new_enough = compare_version(current_version, required_version);
+	int too_new = -1;
 	if (word[2]) {
-		max_required = g_strsplit(word[2], ".", 3);
+		expired_version = get_version_number_from_string(word[2]);
+		too_new = compare_version(current_version, expired_version);
 	}
-	if (g_strv_length(required) != 3 || (max_required && g_strv_length(required) != 3)) {
-		siril_log_color_message(_("Required version is not correct.\n"), "red");
-		g_strfreev(version);
-		g_strfreev(required);
-		g_strfreev(max_required);
+	if (new_enough < 0) {
+		siril_log_color_message(_("A newer version (>= %lu.%lu.%lu-%s%lu) of Siril is required in order to run this script: please update your installation.\n"), "red", required_version.major_version, required_version.minor_version, required_version.micro_version, required_version.beta_version ? _("beta"): required_version.rc_version ?_("RC"): "", required_version.patched_version);
+		return CMD_GENERIC_ERROR;
+	} else if (too_new >= 0) {
+		siril_log_color_message(_("This script has been marked as obsolete for this version of Siril, please check for an update to the script.\n"), "red");
 		return CMD_GENERIC_ERROR;
 	}
-
-	major = g_ascii_strtoull(version[0], &endmaj, 10);
-	minor = g_ascii_strtoull(version[1], &endmin, 10);
-	micro = g_ascii_strtoull(version[2], &endmicro, 10);
-
-	req_major = g_ascii_strtoull(required[0], &endreqmaj, 10);
-	req_minor = g_ascii_strtoull(required[1], &endreqmin, 10);
-	req_micro = g_ascii_strtoull(required[2], &endreqmicro, 10);
-
-	if (endmaj == version[0] || endmin == version[1] || endmicro == version[2]
-			|| endreqmaj == required[0] || endreqmin == required[1]
-			|| endreqmicro == required[2]) {
-		siril_log_message(_("Wrong parameters.\n"));
-		g_strfreev(version);
-		g_strfreev(required);
-		g_strfreev(max_required);
-		return CMD_ARG_ERROR;
-	}
-
-	if (max_required) {
-		max_req_major = g_ascii_strtoull(max_required[0], &endreqmaxmaj, 10);
-		max_req_minor = g_ascii_strtoull(max_required[1], &endreqmaxminor, 10);
-		max_req_micro = g_ascii_strtoull(max_required[2], &endreqmaxmicro, 10);
-		if (endreqmaj == max_required[0] || endreqmin == max_required[1] || endreqmicro == max_required[2]) {
-			siril_log_message(_("Wrong parameters.\n"));
-			g_strfreev(version);
-			g_strfreev(required);
-			g_strfreev(max_required);
-			return CMD_ARG_ERROR;
-		}
-	}
-	g_strfreev(version);
-	g_strfreev(required);
-	g_strfreev(max_required);
-	gboolean recent_enough, not_too_recent;
-	recent_enough = (major > req_major || (major == req_major && minor > req_minor)
-			|| (major == req_major && minor == req_minor && micro >= req_micro));
-	if (max_req_major == -1)
-		not_too_recent = TRUE; // no second argument passed
-	else
-		not_too_recent = (max_req_major > major || (max_req_major == major && max_req_minor > minor)
-			|| (max_req_major == major && max_req_minor == minor && max_req_micro > micro));
-	if (recent_enough && not_too_recent) {
-		// no need to output something in script conditions
-		if (!com.script) {
-			siril_log_message(_("The required version of Siril is ok.\n"));
-		}
-		return CMD_OK;
-	} else {
-		if (!com.script) {
-			if (!not_too_recent) {
-				siril_log_color_message(_("This script has been marked as obsolete for this version of Siril, please check for an update to the script.\n"), "red");
-			} else {
-				siril_log_color_message(_("A newer version of Siril is required, please update your version.\n"), "red");
-			}
-		} else {
-			if (!not_too_recent) {
-				siril_log_color_message(_("The script you are executing has been marked as obsolete for this version of Siril (%s), aborting. Check for an update to the script.\n"), "red", word[1]);
-			} else {
-				siril_log_color_message(_("The script you are executing requires a newer version of Siril to run (%s), aborting.\n"), "red", word[1]);
-			}
-		}
-		return CMD_GENERIC_ERROR;
-	}
+	siril_log_message(_("OK! This script is compatible with this version of Siril.\n"));
+	return CMD_OK;
 }
 
 int process_boxselect(int nb){

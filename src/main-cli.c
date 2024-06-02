@@ -40,6 +40,9 @@
 #elif _WIN32
 #include <windows.h>
 #endif
+#ifdef HAVE_LIBCURL
+#include <curl/curl.h>
+#endif
 
 #include "git-version.h"
 #include "core/siril.h"
@@ -194,6 +197,11 @@ static void siril_app_activate(GApplication *application) {
 
 	init_num_procs();
 	initialize_profiles_and_transforms(); // color management
+
+#if defined(HAVE_LIBCURL)
+	g_fprintf(stdout, "Initializing CURL\n");
+	curl_global_init(CURL_GLOBAL_ALL);
+#endif
 
 	if (main_option_script) {
 		GInputStream *input_stream = NULL;
