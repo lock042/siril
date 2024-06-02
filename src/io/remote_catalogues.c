@@ -224,29 +224,12 @@ static void free_cat_tap_query_fields(cat_tap_query_fields *tap) {
  * all the networking code out into a new file core/siril_networking.[ch]
  */
 
-static CURL *curl;
 static const int DEFAULT_FETCH_RETRIES = 3;
 
 struct ucontent {
 	char *data;
 	size_t len;
 };
-
-static void init() {
-	if (!curl) {
-		siril_debug_print("initializing CURL\n");
-		curl_global_init(CURL_GLOBAL_ALL);
-		curl = curl_easy_init();
-		if (g_getenv("CURL_CA_BUNDLE"))
-			if (curl_easy_setopt(curl, CURLOPT_CAINFO, g_getenv("CURL_CA_BUNDLE")))
-				siril_debug_print("Error in curl_easy_setopt()\n");
-	}
-
-	if (!curl) {
-		fprintf(stderr, "CURL won't initialize\n");
-		exit(EXIT_FAILURE);
-	}
-}
 
 static size_t cbk_curl(void *buffer, size_t size, size_t nmemb, void *userp) {
 	size_t realsize = size * nmemb;
@@ -262,13 +245,22 @@ static size_t cbk_curl(void *buffer, size_t size, size_t nmemb, void *userp) {
 }
 
 char *fetch_url(const gchar *url, gsize *length) {
+	CURL *curl = NULL;
 	struct ucontent *content = malloc(sizeof(struct ucontent));
 	char *result = NULL;
 	long code;
 	int retries;
 	unsigned int s;
 
-	init();
+	curl = curl_easy_init();
+	if (g_getenv("CURL_CA_BUNDLE"))
+		if (curl_easy_setopt(curl, CURLOPT_CAINFO, g_getenv("CURL_CA_BUNDLE")))
+			siril_debug_print("Error in curl_easy_setopt()\n");
+
+	if (!curl) {
+		siril_log_color_message(_("Error initialising CURL handle, URL functionality unavailable.\n"), "red");
+		return NULL;
+	}
 	retries = DEFAULT_FETCH_RETRIES;
 
 retrieve:
