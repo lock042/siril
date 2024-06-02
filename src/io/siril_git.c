@@ -569,6 +569,7 @@ static int update_git_repository(const gchar *repo_url, const gchar *local_path,
 	git_clone_options clone_opts = GIT_CLONE_OPTIONS_INIT;
 
 	git_repository *repo = NULL;
+	git_remote *remote = NULL;
 
 	// See if the repository already exists
 	int error = git_repository_open(&repo, local_path);
@@ -593,7 +594,6 @@ static int update_git_repository(const gchar *repo_url, const gchar *local_path,
 	*repo_available = TRUE;
 
 	// Check we are using the correct repository
-	git_remote *remote = NULL;
 	const char *remote_name = "origin";
 	error = git_remote_lookup(&remote, repo, remote_name);
 	if (error != 0) {

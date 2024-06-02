@@ -576,6 +576,7 @@ gpointer tri_cut(gpointer p) {
 	double starty = arg->fit->ry - 1 - arg->cut_start.y;
 	double endy = arg->fit->ry - 1 - arg->cut_end.y;
 	siril_plot_data *spl_data = NULL;
+	gchar *spllabels[3] = { NULL };
 
 	build_profile_filenames(arg, &filename, &imagefilename);
 
@@ -639,8 +640,6 @@ gpointer tri_cut(gpointer p) {
 			}
 		}
 	}
-
-	gchar *spllabels[3];
 
 	if (arg->vport == 0) {
 		if (arg->fit->naxes[2] == 3) {

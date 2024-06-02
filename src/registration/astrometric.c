@@ -100,7 +100,7 @@ static gboolean get_scales_and_framing(struct wcsprm *WCSDATA, Homography *K, do
 }
 
 int register_astrometric(struct registration_args *regargs) {
-
+	struct astrometric_args *astargs = NULL;
 	int retval = 0;
 	struct timeval t_start, t_end;
 	if (!regargs->filtering_criterion &&
@@ -268,7 +268,6 @@ int register_astrometric(struct registration_args *regargs) {
 		br = (pointi){ INT_MIN, INT_MIN };
 	}
 	gboolean savewarped = !regargs->no_output;
-	struct astrometric_args *astargs = NULL;
 	// if we have some output sequence, prepare the astrometric_args
 	if (savewarped) {
 		astargs = malloc(sizeof(struct astrometric_args));
@@ -418,7 +417,6 @@ free_all:
 		free(incl);
 	}
 	free(WCSDATA);
-	free(incl);
 	if (!retval && !regargs->no_output) {
 		return astrometric_alignment(regargs, astargs, current_regdata);
 	}

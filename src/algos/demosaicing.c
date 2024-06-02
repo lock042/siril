@@ -1336,6 +1336,10 @@ int mergecfa_image_hook(struct generic_seq_args *args, int out_index, int in_ind
 	char *cfa1_f = NULL;
 	char *cfa2_f = NULL;
 	char *cfa3_f = NULL;
+	fits cfa1 = { 0 };
+	fits cfa2 = { 0 };
+	fits cfa3 = { 0 };
+	fits *out = { 0 };
 	cfa0_f = seq_get_image_filename(args->seq, in_index, cfa0_f);
 	size_t len = strlen(merge_cfa_args->seqEntryIn);
 	char *prefix0 = calloc(len + 2, sizeof(BYTE));
@@ -1374,11 +1378,6 @@ int mergecfa_image_hook(struct generic_seq_args *args, int out_index, int in_ind
 		siril_log_message(_("Image %d: error identifying CFA3 filename\n"), args->seq->current);
 		goto CLEANUP_MERGECFA;
 	}
-
-	fits cfa1 = { 0 };
-	fits cfa2 = { 0 };
-	fits cfa3 = { 0 };
-	fits *out = { 0 };
 
 	retval = readfits(cfa1_f, &cfa1, NULL, FALSE);
 	if(retval != 0) {
