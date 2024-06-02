@@ -681,8 +681,9 @@ gpointer tri_cut(gpointer p) {
 		}
 		int degree = arg->bg_poly_order;
 		double *coeffs = calloc(degree + 1, sizeof(double));
+		double *uncertainties = calloc(degree + 1, sizeof(double));
 		double threshold = 0.0;
-		ransac_polynomial_fit(r[0], r[2], nbr_points, degree, coeffs, &threshold, arg->ransac_iters, arg->fit);
+		ransac_polynomial_fit(r[0], r[2], nbr_points, degree, coeffs, &threshold, arg->ransac_iters, arg->fit, uncertainties);
 		GString *text = g_string_new(_("Coefficients: y = "));
 		for (int i = 0 ; i <= degree ; i++) {
 			gchar *tmp = NULL;
@@ -698,6 +699,22 @@ gpointer tri_cut(gpointer p) {
 		gchar *coeffs_text = g_string_free(text, FALSE);
 		siril_log_message(_("Subtracting dark strips: RANSAC polynomial fit of degree %d, %d iterations:\n"), degree, arg->ransac_iters);
 		siril_log_message(_("RANSAC inlier threshold: %.2f (= background noise σ)\n"), threshold);
+		siril_log_message("%s\n", coeffs_text);
+		g_free(coeffs_text);
+
+		GString *text_u = g_string_new(_("Uncertainties: "));
+		for (int i = 0 ; i <= degree ; i++) {
+			gchar *tmp = NULL;
+			if (i == 0) {
+				tmp = g_strdup_printf("+/-%.2e ", uncertainties[0]);
+			} else {
+				tmp = g_strdup_printf("+/- %.2e * x^%d ", uncertainties[i], i);
+			}
+			text_u = g_string_append(text_u, tmp);
+			g_free(tmp);
+		}
+		g_string_append(text_u, "\n");
+		coeffs_text = g_string_free(text_u, FALSE);
 		siril_log_message("%s\n", coeffs_text);
 		g_free(coeffs_text);
 		for (int i = 0 ; i < nbr_points ; i++) {

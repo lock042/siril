@@ -94,6 +94,10 @@ int robust_linear_fit(double *xdata, double *ydata, int n, double *a, double *b,
 static double compute_threshold(fits *fit) {
 	double retval;
 	struct noise_data *data = calloc(1, sizeof(struct noise_data));
+    if (data == NULL) {
+        PRINT_ALLOC_ERR;
+        return NAN;
+    }
 	data->fit = fit;
 	// All other members are FALSE / 0.0 anyway because of calloc()
 	noise_worker(data);
@@ -108,7 +112,7 @@ static double compute_threshold(fits *fit) {
 }
 
 // Function to perform polynomial fitting using GSL
-static void gsl_polynomial_fit(double *x, double *y, int n, int degree, double *coeffs) {
+static void gsl_polynomial_fit(double *x, double *y, int n, int degree, double *coeffs, double *uncertainties) {
 	gsl_matrix *X, *cov;
 	gsl_vector *y_vec, *c;
 	double chisq;
@@ -131,6 +135,9 @@ static void gsl_polynomial_fit(double *x, double *y, int n, int degree, double *
 
 	for (int i = 0; i <= degree; i++) {
 		coeffs[i] = gsl_vector_get(c, i);
+		if (uncertainties != NULL) {
+			uncertainties[i] = sqrt(gsl_matrix_get(cov, i, i)); // Standard deviation (uncertainty)
+		}
 	}
 
 	gsl_matrix_free(X);
@@ -149,11 +156,17 @@ double evaluate_polynomial(double *coeffs, int degree, double x) {
 }
 
 // RANSAC for polynomial fit
-void ransac_polynomial_fit(double *x, double *y, int n, int degree, double *best_coeffs, double *threshold, int max_iters, fits *fit) {
+void ransac_polynomial_fit(double *x, double *y, int n, int degree, double *best_coeffs, double *threshold, int max_iters, fits *fit, double *best_uncertainties) {
 	int max_inliers = 0;
 	double best_error = INFINITY;
 	double *temp_coeffs = (double *)malloc((degree + 1) * sizeof(double));
 	int *inliers = (int *)malloc(n * sizeof(int));
+	if (!temp_coeffs || !inliers) {
+		PRINT_ALLOC_ERR;
+		free(temp_coeffs);
+		free(inliers);
+		return;
+	}
 	*threshold = compute_threshold(fit);
 	for (int iter = 0; iter < max_iters; iter++) {
 		// Randomly select a subset of points
@@ -171,16 +184,13 @@ void ransac_polynomial_fit(double *x, double *y, int n, int degree, double *best
 		}
 
 		// Fit polynomial to subset
-		gsl_polynomial_fit(subset_x, subset_y, subset_size, degree, temp_coeffs);
+		gsl_polynomial_fit(subset_x, subset_y, subset_size, degree, temp_coeffs, NULL);
 
 		// Count inliers
 		int num_inliers = 0;
 		double error_sum = 0.0;
 		for (int i = 0; i < n; i++) {
-			double y_pred = 0.0;
-			for (int j = 0; j <= degree; j++) {
-				y_pred += temp_coeffs[j] * pow(x[i], j);
-			}
+			double y_pred = evaluate_polynomial(temp_coeffs, degree, x[i]);
 			double error = fabs(y[i] - y_pred);
 			if (error < *threshold) {
 				inliers[num_inliers++] = i;
@@ -198,6 +208,23 @@ void ransac_polynomial_fit(double *x, double *y, int n, int degree, double *best
 		}
 	}
 
+	// Compute uncertainties for the best model
+	double *best_fit_x = (double *)malloc(max_inliers * sizeof(double));
+	double *best_fit_y = (double *)malloc(max_inliers * sizeof(double));
+	if (best_fit_x == NULL || best_fit_y == NULL) {
+		PRINT_ALLOC_ERR;
+		goto cleanup;
+	}
+	for (int i = 0; i < max_inliers; i++) {
+		best_fit_x[i] = x[inliers[i]];
+		best_fit_y[i] = y[inliers[i]];
+	}
+	gsl_polynomial_fit(best_fit_x, best_fit_y, max_inliers, degree, best_coeffs, best_uncertainties);
+
+cleanup:
+
 	free(temp_coeffs);
 	free(inliers);
+	free(best_fit_x);
+	free(best_fit_y);
 }
