@@ -565,11 +565,13 @@ static gboolean end_update_idle(gpointer p) {
 	return FALSE;
 }
 
-static void array_string_element_clear(GString *element) {
-	g_free(element->str); // free the gchar* inside the GString but not the string itself
-}
+// Define the notification struct
+typedef struct _notification {
+	GString *messageString;
+	int status;
+} notification;
 
-static int parseJsonNotificationsString(const gchar *jsonString, GArray *validMessages, GArray *validStatus) {
+static int parseJsonNotificationsString(const gchar *jsonString, GSList **validNotifications) {
 	// Load JSON from string and check for errors
 	GError *error = NULL;
 	JsonParser *parser = json_parser_new();
@@ -616,16 +618,17 @@ static int parseJsonNotificationsString(const gchar *jsonString, GArray *validMe
 
 	// Iterate over messages
 	for (guint i = 0; i < length; i++) {
-		if (!single_message)
-			single_message = json_array_get_object_element(messages, i);
-		// Check the necessary json objects are there
-		if (!(json_object_has_member(single_message, "valid-from")) &&
-				(json_object_has_member(single_message, "valid-to")) &&
-				(json_object_has_member(single_message, "message")) &&
-				(json_object_has_member(single_message, "priority"))) {
+		if (messages) {
+			single_message = json_array_get_object_element(messages, i);  // Get the current message from the array
+		}
+
+		// Check the necessary JSON objects are there
+		if (!(json_object_has_member(single_message, "valid-from") &&
+			json_object_has_member(single_message, "valid-to") &&
+			json_object_has_member(single_message, "message") &&
+			json_object_has_member(single_message, "priority"))) {
 			siril_log_color_message(_("Error parsing JSON from URL: required JSON members not found\n"), "red");
-			// No need to clean up any partially-filled GArrays as they will be freed by the caller
-		g_object_unref(parser);
+			g_object_unref(parser);
 			return 1;
 		}
 
@@ -647,10 +650,8 @@ static int parseJsonNotificationsString(const gchar *jsonString, GArray *validMe
 			valid_to_version = get_version_number_from_string(version_to_str);
 		}
 
-		// Parse status and append to GArray
-		int *status = g_malloc(sizeof(int));
-		*status = json_object_get_int_member(single_message, "priority");
-		g_array_append_val(validStatus, status);
+		// Parse status
+		int status = json_object_get_int_member(single_message, "priority");
 
 		gboolean valid = TRUE;
 
@@ -659,8 +660,6 @@ static int parseJsonNotificationsString(const gchar *jsonString, GArray *validMe
 			valid = FALSE;
 
 		// Check if current version matches version constraints
-		// The memcmp() calls ensure the check only happens if version-from and / or
-		// version-to are present
 		if (memcmp(&valid_from_version, &empty_version, sizeof(version_number))) {
 			if (compare_version(current_version, valid_from_version) >= 0)
 				valid = FALSE;
@@ -671,18 +670,18 @@ static int parseJsonNotificationsString(const gchar *jsonString, GArray *validMe
 		}
 
 		if (valid) {
-			// Store the message in a variable first
-			GString *messageString = g_string_new(json_object_get_string_member(single_message, "message"));
-			// Append the message to the array
-			g_array_append_val(validMessages, messageString);
+			// Store the message and status in a notification struct
+			notification *notif = g_new(notification, 1);
+			notif->messageString = g_string_new(json_object_get_string_member(single_message, "message"));
+			notif->status = status;
+
+			// Append the notification to the list
+			*validNotifications = g_slist_append(*validNotifications, notif);
 		}
 
 		// Free allocated memory
 		g_date_time_unref(validFrom);
 		g_date_time_unref(validTo);
-
-		// Reset the JsonObject
-		single_message = NULL;
 	}
 
 	// Free allocated memory
@@ -694,7 +693,8 @@ static int parseJsonNotificationsString(const gchar *jsonString, GArray *validMe
 
 static gboolean end_notifier_idle(gpointer p) {
 	struct _update_data *args = (struct _update_data *) p;
-	GArray *validMessages = NULL, *validStatus = NULL;
+	GSList *validNotifications = NULL;
+
 	if (args->content == NULL) {
 		switch(args->code) {
 		case 0:
@@ -707,24 +707,23 @@ static gboolean end_notifier_idle(gpointer p) {
 	} else {
 		control_window_switch_to_tab(OUTPUT_LOGS);
 
-		// Create an array to store valid messages
-		validMessages = g_array_new(FALSE, FALSE, sizeof(GString*));
-//		g_array_set_clear_func(validMessages, (GDestroyNotify) array_string_element_clear);
-		validStatus = g_array_new(FALSE, FALSE, sizeof(int*));
-
-		// Fetch and parse JSON file from URL and populate validMessages array
-		if (parseJsonNotificationsString(args->content, validMessages, validStatus) != 0) {
+		// Fetch and parse JSON file from URL and populate validNotifications list
+		if (parseJsonNotificationsString(args->content, &validNotifications) != 0) {
 			siril_log_message(_("Error fetching or parsing Siril notifications JSON file from URL\n"));
 			goto end_notifier_idle_error;
 		}
 
-		// Print and then free valid messages
-		for (guint i = 0; i < validMessages->len; i++) {
-			int *status = g_array_index(validStatus, int*, i);
-			GString *msg = g_array_index(validMessages, GString*, i);
-			char *color = *status == 1 ? "green" : *status == 2 ? "salmon" : "red";
-			siril_log_color_message(_("*** SIRIL NOTIFICATION ***\n%s\n"), color, msg->str);
+		// Print and then free valid notifications
+		for (GSList *iter = validNotifications; iter; iter = iter->next) {
+			notification *notif = (notification *) iter->data;
+			char *color = notif->status == 1 ? "green" : notif->status == 2 ? "salmon" : "red";
+			siril_log_color_message(_("*** SIRIL NOTIFICATION ***\n%s\n"), color, notif->messageString->str);
+
+			// Free allocated memory for notification
+			g_string_free(notif->messageString, TRUE);
+			g_free(notif);
 		}
+		g_slist_free(validNotifications);
 	}
 
 end_notifier_idle_error:
@@ -732,10 +731,6 @@ end_notifier_idle_error:
 	set_cursor_waiting(FALSE);
 
 	/* free data */
-	if (validMessages)
-		g_array_free(validMessages, TRUE);
-	if (validStatus)
-		g_array_free(validStatus, TRUE);
 	g_free(args->content);
 	g_free(args->url);
 	free(args);
