@@ -698,7 +698,7 @@ gpointer tri_cut(gpointer p) {
 			text = g_string_append(text, tmp);
 			g_free(tmp);
 		}
-		g_string_append(text, "\n");
+
 		gchar *coeffs_text = g_string_free(text, FALSE);
 		siril_log_message(_("Subtracting dark strips: RANSAC polynomial fit of degree %d, %d iterations:\n"), degree, arg->ransac_iters);
 		siril_log_message(_("RANSAC inlier threshold: %.2f (= background noise σ)\n"), threshold);
