@@ -688,9 +688,12 @@ gpointer tri_cut(gpointer p) {
 		for (int i = 0 ; i <= degree ; i++) {
 			gchar *tmp = NULL;
 			if (i == 0) {
-				tmp = g_strdup_printf("%.2e ", coeffs[0]);
+				tmp = g_strdup_printf("%.2e (±%.2e) ", coeffs[0], uncertainties[0]);
 			} else {
-				tmp = g_strdup_printf("+ %.2e * x^%d ", coeffs[i], i);
+				if (coeffs[i] >= 0.0)
+					tmp = g_strdup_printf("+ %.2e (±%.2e) * x^%d ", coeffs[i], uncertainties[i], i);
+				else
+					tmp = g_strdup_printf("- %.2e (±%.2e) * x^%d ", -coeffs[i], uncertainties[i], i);
 			}
 			text = g_string_append(text, tmp);
 			g_free(tmp);
@@ -699,24 +702,9 @@ gpointer tri_cut(gpointer p) {
 		gchar *coeffs_text = g_string_free(text, FALSE);
 		siril_log_message(_("Subtracting dark strips: RANSAC polynomial fit of degree %d, %d iterations:\n"), degree, arg->ransac_iters);
 		siril_log_message(_("RANSAC inlier threshold: %.2f (= background noise σ)\n"), threshold);
-		siril_log_message("%s\n", coeffs_text);
+		siril_log_color_message("%s\n", "blue", coeffs_text);
 		g_free(coeffs_text);
 
-		GString *text_u = g_string_new(_("Uncertainties: "));
-		for (int i = 0 ; i <= degree ; i++) {
-			gchar *tmp = NULL;
-			if (i == 0) {
-				tmp = g_strdup_printf("+/-%.2e ", uncertainties[0]);
-			} else {
-				tmp = g_strdup_printf("+/- %.2e * x^%d ", uncertainties[i], i);
-			}
-			text_u = g_string_append(text_u, tmp);
-			g_free(tmp);
-		}
-		g_string_append(text_u, "\n");
-		coeffs_text = g_string_free(text_u, FALSE);
-		siril_log_message("%s\n", coeffs_text);
-		g_free(coeffs_text);
 		for (int i = 0 ; i < nbr_points ; i++) {
 			r[0][i] = evaluate_polynomial(coeffs, degree, (double) i);
 			r[1][i] -= r[0][i];
