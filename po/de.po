@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-05-25 22:11+0200\n"
-"PO-Revision-Date: 2024-05-30 20:16+0000\n"
+"PO-Revision-Date: 2024-06-02 13:06+0000\n"
 "Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
 "Language-Team: German <https://weblate.pixls.us/projects/siril/"
 "siril-application/de/>\n"
@@ -12860,12 +12860,16 @@ msgstr "%d Stern werden zur Kalibrierung der Lichtkurve verwendet\n"
 msgid ""
 "Error bars-- (%d images) median: %.2lfmmag, max: %.2lfmmag, min: %.2lfmmag\n"
 msgstr ""
+"Fehlerbalken-- (%d Bilder) Median: %.2lfmmag, Max: %.2lfmmag, Min: %."
+"2lfmmag\n"
 
 #: src/algos/photometry.c:501
 #, c-format
 msgid ""
 "Variable star SNR-- (%d images) median: %.2lfdB, max: %.2lfdB, min: %.2lfdB\n"
 msgstr ""
+"Veränderlicher Starn SNR-- (%d Bilder) Median: %.2lfdB, Max: %.2lfdB, Min: %."
+"2lfdB\n"
 
 #: src/algos/photometry.c:511
 #, c-format
@@ -25912,6 +25916,7 @@ msgstr ""
 #: src/gui/registration.c:562
 msgid "Astrometric registration not allowed for SER sequences, change method"
 msgstr ""
+"Astrometrische Registrierung für SER-Sequenzen nicht erlaubt, Methode ändern"
 
 #: src/gui/registration.c:626
 msgid "not available for sequences with variable image sizes"
@@ -25930,6 +25935,8 @@ msgid ""
 "This sequence can be registered with the Bayer pattern intact based on "
 "registering the green layer with red and blue pixels interpolated"
 msgstr ""
+"Diese Sequenz kann mit dem intakten Bayer-Muster registriert werden, indem "
+"die grüneEbene mit roten und blauen Pixeln interpoliert wird"
 
 #: src/gui/registration.c:679
 msgid "Unsupported CFA pattern detected"
@@ -25940,6 +25947,8 @@ msgid ""
 "This sequence cannot be registered with the CFA pattern intact. You must "
 "debayer it prior to registration"
 msgstr ""
+"Diese Sequenz kann nicht mit intaktem CFA-Muster registriert werden. Sie "
+"müssen sie vor der Registrierung entschichten."
 
 #: src/gui/registration.c:699
 msgid "Platesolve the sequence first"
@@ -26699,7 +26708,7 @@ msgstr ""
 
 #: src/gui/utils.c:362
 msgid "Error: unknown CFA pattern\n"
-msgstr ""
+msgstr "FEHLER: Unbekanntes CFA-Muster\n"
 
 #: src/io/aavso_extended.c:206
 msgid "Number of images is not enough\n"
@@ -27755,6 +27764,8 @@ msgid ""
 "Seq file had info to upscale at stacking. This must now be passed as a "
 "stacking option\n"
 msgstr ""
+"Die Seq-Datei enthielt Informationen zur Hochskalierung beim Stacking. Dies "
+"muss nun als Stacking-Option übergeben werden\n"
 
 #: src/io/seqfile.c:542
 #, c-format
@@ -29408,7 +29419,7 @@ msgstr "Bild %d überlappt das Referenzbild nicht\n"
 
 #: src/registration/applyreg.c:151 src/registration/astrometric.c:381
 msgid "The intersection of all images is null or negative\n"
-msgstr ""
+msgstr "Die Schnittmenge aller Bilder ist null oder negativ\n"
 
 #: src/registration/applyreg.c:181
 #, c-format
@@ -29444,11 +29455,11 @@ msgstr "Transformation abgebrochen.\n"
 
 #: src/registration/applyreg.c:678
 msgid "Initializing drizzle data..."
-msgstr ""
+msgstr "Intialisiere Drizzledaten..."
 
 #: src/registration/applyreg.c:721
 msgid "Unsupported SER CFA pattern detected. Treating as mono.\n"
-msgstr ""
+msgstr "Nicht unterstütztes CFA-Muster in SER. Verarbeite als Mono\n"
 
 #: src/registration/applyreg.c:745
 msgid "Apply registration"
@@ -29520,6 +29531,8 @@ msgstr ""
 msgid ""
 "Unselect the images generating the error or change framing method to max\n"
 msgstr ""
+"Heben Sie die Auswahl der Bilder auf, die den Fehler verursachen, oder "
+"ändern Sie die Rahmungsmethode auf max\n"
 
 #: src/registration/applyreg.c:923
 msgid ""
@@ -29836,12 +29849,12 @@ msgstr "Verzerrungsabbildung berechnen\n"
 
 #: src/registration/astrometric.c:312
 msgid "Done\n"
-msgstr ""
+msgstr "Fertig\n"
 
 #: src/registration/astrometric.c:390
 #, c-format
 msgid " (assuming a scaling factor of %.2f)"
-msgstr ""
+msgstr " (nehme einen Skalierungsfaktor von %.2f an)"
 
 #: src/registration/astrometric.c:391
 #, c-format
