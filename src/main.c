@@ -41,6 +41,10 @@
 #include <windows.h>
 #endif
 
+#ifdef HAVE_LIBCURL
+#include <curl/curl.h>
+#endif
+
 #include "siril_resource.h"
 #include "git-version.h"
 #include "core/siril.h"
@@ -352,10 +356,14 @@ static void siril_app_activate(GApplication *application) {
 		/* Load state of the main windows (position and maximized) */
 		load_main_window_state();
 #if defined(HAVE_LIBCURL)
+		g_fprintf(stdout, "Initializing CURL\n");
+		curl_global_init(CURL_GLOBAL_ALL);
 		/* Check for update */
 		if (com.pref.check_update) {
 			siril_check_updates(FALSE);
 		}
+		siril_check_notifications(FALSE);
+
 #else
 		gtk_widget_set_visible(lookup_widget("main_menu_updates"), FALSE);
 		gtk_widget_set_visible(lookup_widget("frame24"), FALSE);
@@ -548,7 +556,6 @@ int main(int argc, char *argv[]) {
 		g_printerr("%s\n", help_msg);
 		g_free(help_msg);
 	}
-
 	pipe_stop();		// close the pipes and their threads
 	g_object_unref(app);
 	return status;
