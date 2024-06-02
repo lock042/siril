@@ -45,7 +45,7 @@
 //#define BRANCH "master"
 #define SIRIL_NOTIFICATIONS "notifications/siril_notifications.json"
 
-static gchar *get_changelog(gchar *str);
+static gchar *get_changelog(gchar *str, CURL *curl);
 
 // taken from gimp
 static gboolean siril_update_get_highest(JsonParser *parser,
@@ -351,7 +351,7 @@ static gchar *parse_changelog(gchar *changelog) {
 	return g_string_free(strResult, FALSE);
 }
 
-static gchar *check_version(gchar *version, gboolean *verbose, gchar **data) {
+static gchar *check_version(gchar *version, gboolean *verbose, gchar **data, CURL *curl) {
 	gchar *changelog = NULL;
 	gchar *msg = NULL;
 
@@ -381,7 +381,7 @@ static gchar *check_version(gchar *version, gboolean *verbose, gchar **data) {
 			}
 
 			msg = siril_log_message(_("New version is available. You can download it at <a href=\"%s\">%s</a>\n"), url, url);
-			changelog = get_changelog(version);
+			changelog = get_changelog(version, curl);
 			if (changelog) {
 				*data = parse_changelog(changelog);
 				/* force the verbose variable */
@@ -401,6 +401,7 @@ static gchar *check_version(gchar *version, gboolean *verbose, gchar **data) {
 }
 
 struct _update_data {
+	CURL *curl;
 	gchar *url;
 	long code;
 	gchar *content;
@@ -410,7 +411,6 @@ struct _update_data {
 
 
 static const int DEFAULT_FETCH_RETRIES = 5;
-static CURL *curl;
 
 struct ucontent {
 	gchar *data;
@@ -430,27 +430,7 @@ static size_t cbk_curl(void *buffer, size_t size, size_t nmemb, void *userp) {
 	return realsize;
 }
 
-static void init() {
-	if (!curl) {
-		g_fprintf(stdout, "initializing CURL\n");
-		curl_global_init(CURL_GLOBAL_ALL);
-		curl = curl_easy_init();
-		if (g_getenv("CURL_CA_BUNDLE"))
-			if (curl_easy_setopt(curl, CURLOPT_CAINFO, g_getenv("CURL_CA_BUNDLE")))
-				siril_debug_print("Error in curl_easy_setopt()\n");
-	}
-
-	if (!curl)
-		exit(EXIT_FAILURE);
-}
-
-static void http_cleanup() {
-	curl_easy_cleanup(curl);
-	curl_global_cleanup();
-	curl = NULL;
-}
-
-static gchar *get_changelog(gchar *str) {
+static gchar *get_changelog(gchar *str, CURL *curl) {
 	struct ucontent *changelog;
 	gchar *result = NULL;
 	gchar *changelog_url;
@@ -518,7 +498,7 @@ static gchar *check_update_version(struct _update_data *args) {
 	if (last_version) {
 		g_fprintf(stdout, "Last available version: %s\n", last_version);
 
-		msg = check_version(last_version, &(args->verbose), &data);
+		msg = check_version(last_version, &(args->verbose), &data, args->curl);
 		message_type = GTK_MESSAGE_INFO;
 	} else {
 		msg = siril_log_message(_("Cannot fetch version file\n"));
@@ -559,7 +539,6 @@ static gboolean end_update_idle(gpointer p) {
 	set_cursor_waiting(FALSE);
 	g_free(args->content);
 	free(args);
-	http_cleanup();
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 	stop_processing_thread();
 	return FALSE;
@@ -734,29 +713,37 @@ end_notifier_idle_error:
 	g_free(args->content);
 	g_free(args->url);
 	free(args);
-	http_cleanup();
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 	stop_processing_thread();
 	return FALSE;
 }
 
 static gpointer fetch_url(gpointer p) {
+	CURL *curl = NULL;
 	struct ucontent *content;
 	gchar *result;
 	long code = -1L;
 	int retries;
 	unsigned int s;
 	struct _update_data *args = (struct _update_data *) p;
+	g_fprintf(stdout, "fetch_url(): %s\n", args->url);
 
+	curl = curl_easy_init();
+	if (g_getenv("CURL_CA_BUNDLE"))
+		if (curl_easy_setopt(curl, CURLOPT_CAINFO, g_getenv("CURL_CA_BUNDLE")))
+			siril_debug_print("Error in curl_easy_setopt()\n");
+
+	if (!curl) {
+		siril_log_color_message(_("Error initialising CURL handle, URL functionality unavailable.\n"), "red");
+		return NULL;
+	}
+	args->curl = curl;
 	content = g_try_malloc(sizeof(struct ucontent));
 	if (content == NULL) {
 		PRINT_ALLOC_ERR;
 		return NULL;
 	}
 
-	g_fprintf(stdout, "fetch_url(): %s\n", args->url);
-
-	init();
 	set_progress_bar_data(NULL, 0.1);
 
 	result = NULL;
@@ -829,6 +816,7 @@ static gpointer fetch_url(gpointer p) {
 	args->content = result;
 
 	gdk_threads_add_idle(args->idle_function, args);
+	curl_easy_cleanup(curl);
 	return NULL;
 }
 
