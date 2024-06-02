@@ -41,9 +41,11 @@
 #define SIRIL_VERSIONS DOMAIN"siril_versions.json"
 #define SIRIL_DOWNLOAD DOMAIN"download/"
 #define GITLAB_URL "https://gitlab.com/free-astro/siril/raw"
+#define BRANCH "notifier"
+//#define BRANCH "master"
+#define SIRIL_NOTIFICATIONS "notifications/siril_notifications.json"
 
-static gchar *get_changelog(gchar *str);
-
+static gchar *get_changelog(gchar *str, CURL *curl);
 
 // taken from gimp
 static gboolean siril_update_get_highest(JsonParser *parser,
@@ -222,25 +224,47 @@ static guint check_for_patch(gchar *version, gboolean *is_rc, gboolean *is_beta)
 	return (g_ascii_strtoull(version, NULL, 10));
 }
 
-static version_number get_current_version_number() {
-	gchar **fullVersionNumber;
-	version_number version;
+static const gchar* find_first_numeric(const gchar *string) {
+    if (string == NULL) {
+        return NULL;
+    }
+    for (const gchar *ptr = string; *ptr != '\0'; ptr++) {
+        if (g_ascii_isdigit(*ptr)) {
+            return ptr;
+        }
+    }
+    return NULL;
+}
 
-	fullVersionNumber = g_strsplit_set(PACKAGE_VERSION, ".-", -1);
-	version.major_version = g_ascii_strtoull(fullVersionNumber[0], NULL, 10);
-	version.minor_version = g_ascii_strtoull(fullVersionNumber[1], NULL, 10);
-	version.micro_version = g_ascii_strtoull(fullVersionNumber[2], NULL, 10);
-	if (fullVersionNumber[3] == NULL) {
+version_number get_version_number_from_string(const gchar *input) {
+	version_number version = { 0 };
+	const gchar *string = find_first_numeric(input);
+	if (!string)
+		goto the_end;
+	gchar **version_string = g_strsplit_set(string, ".-", -1);
+	version.major_version = g_ascii_strtoull(version_string[0], NULL, 10);
+	if (version_string[1])
+		version.minor_version = g_ascii_strtoull(version_string[1], NULL, 10);
+	else
+		goto the_end;
+	if (version_string[2])
+		version.micro_version = g_ascii_strtoull(version_string[2], NULL, 10);
+	else
+		goto the_end;
+	if (version_string[3] == NULL) {
 		version.patched_version = 0;
 		version.rc_version = FALSE;
 		version.beta_version = FALSE;
 	} else {
-		version.patched_version = check_for_patch(fullVersionNumber[3], &version.rc_version, &version.beta_version);
+		version.patched_version = check_for_patch(version_string[3], &version.rc_version, &version.beta_version);
 	}
-
-	g_strfreev(fullVersionNumber);
-
+	g_strfreev(version_string);
+the_end:
 	return version;
+}
+
+version_number get_current_version_number() {
+	return get_version_number_from_string(PACKAGE_VERSION);
 }
 
 static version_number get_last_version_number(gchar *version_str) {
@@ -270,7 +294,7 @@ static version_number get_last_version_number(gchar *version_str) {
  * @param v2 Second version number to be tested
  * @return -1 if v1 < v2, 1 if v1 > v2 and 0 if v1 is equal to v2
  */
-static int compare_version(version_number v1, version_number v2) {
+int compare_version(version_number v1, version_number v2) {
 	if (v1.major_version < v2.major_version)
 		return -1;
 	else if (v1.major_version > v2.major_version)
@@ -327,7 +351,7 @@ static gchar *parse_changelog(gchar *changelog) {
 	return g_string_free(strResult, FALSE);
 }
 
-static gchar *check_version(gchar *version, gboolean *verbose, gchar **data) {
+static gchar *check_version(gchar *version, gboolean *verbose, gchar **data, CURL *curl) {
 	gchar *changelog = NULL;
 	gchar *msg = NULL;
 
@@ -357,7 +381,7 @@ static gchar *check_version(gchar *version, gboolean *verbose, gchar **data) {
 			}
 
 			msg = siril_log_message(_("New version is available. You can download it at <a href=\"%s\">%s</a>\n"), url, url);
-			changelog = get_changelog(version);
+			changelog = get_changelog(version, curl);
 			if (changelog) {
 				*data = parse_changelog(changelog);
 				/* force the verbose variable */
@@ -377,15 +401,16 @@ static gchar *check_version(gchar *version, gboolean *verbose, gchar **data) {
 }
 
 struct _update_data {
+	CURL *curl;
 	gchar *url;
 	long code;
 	gchar *content;
 	gboolean verbose;
+	gboolean (*idle_function)(gpointer args);
 };
 
 
 static const int DEFAULT_FETCH_RETRIES = 5;
-static CURL *curl;
 
 struct ucontent {
 	gchar *data;
@@ -405,27 +430,7 @@ static size_t cbk_curl(void *buffer, size_t size, size_t nmemb, void *userp) {
 	return realsize;
 }
 
-static void init() {
-	if (!curl) {
-		g_fprintf(stdout, "initializing CURL\n");
-		curl_global_init(CURL_GLOBAL_ALL);
-		curl = curl_easy_init();
-		if (g_getenv("CURL_CA_BUNDLE"))
-			if (curl_easy_setopt(curl, CURLOPT_CAINFO, g_getenv("CURL_CA_BUNDLE")))
-				siril_debug_print("Error in curl_easy_setopt()\n");
-	}
-
-	if (!curl)
-		exit(EXIT_FAILURE);
-}
-
-static void http_cleanup() {
-	curl_easy_cleanup(curl);
-	curl_global_cleanup();
-	curl = NULL;
-}
-
-static gchar *get_changelog(gchar *str) {
+static gchar *get_changelog(gchar *str, CURL *curl) {
 	struct ucontent *changelog;
 	gchar *result = NULL;
 	gchar *changelog_url;
@@ -493,7 +498,7 @@ static gchar *check_update_version(struct _update_data *args) {
 	if (last_version) {
 		g_fprintf(stdout, "Last available version: %s\n", last_version);
 
-		msg = check_version(last_version, &(args->verbose), &data);
+		msg = check_version(last_version, &(args->verbose), &data, args->curl);
 		message_type = GTK_MESSAGE_INFO;
 	} else {
 		msg = siril_log_message(_("Cannot fetch version file\n"));
@@ -534,29 +539,211 @@ static gboolean end_update_idle(gpointer p) {
 	set_cursor_waiting(FALSE);
 	g_free(args->content);
 	free(args);
-	http_cleanup();
+	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+	stop_processing_thread();
+	return FALSE;
+}
+
+// Define the notification struct
+typedef struct _notification {
+	GString *messageString;
+	int status;
+} notification;
+
+static int parseJsonNotificationsString(const gchar *jsonString, GSList **validNotifications) {
+	// Load JSON from string and check for errors
+	GError *error = NULL;
+	JsonParser *parser = json_parser_new();
+	if (!(json_parser_load_from_data(parser, jsonString, -1, &error))) {
+		siril_log_color_message(_("Error parsing JSON from URL: %s\n"), "red", error->message);
+		g_object_unref(parser);
+		return 1;
+	}
+
+	// Get root node
+	JsonNode *node = json_parser_get_root(parser);
+	if (!node) {
+		siril_log_color_message(_("Error parsing JSON from URL: unable to get root node\n"), "red");
+		g_object_unref(parser);
+		return 1;
+	}
+
+	// Get current time
+	GDateTime *currentTime = g_date_time_new_now_local();
+
+	// The message array / object and number of messages (length is overwritten if an array is found)
+	JsonArray *messages = NULL;
+	JsonObject *single_message = NULL;
+	guint length = 1;
+
+	// Get array of messages
+	if (JSON_NODE_HOLDS_ARRAY(node)) {
+		messages = json_node_get_array(node);
+		length = json_array_get_length(messages);
+	} else {
+		if (JSON_NODE_HOLDS_OBJECT(node)) {
+			single_message = json_node_get_object(node);
+		} else {
+			siril_log_color_message(_("Error parsing JSON from URL: unable to find a valid JSON object\n"), "red");
+			g_object_unref(parser);
+			return 1;
+		}
+	}
+	if (!messages && !single_message) {
+		siril_log_color_message(_("Error parsing JSON from URL: unable to find any valid JSON objects\n"), "red");
+		g_object_unref(parser);
+		return 1;
+	}
+
+	// Iterate over messages
+	for (guint i = 0; i < length; i++) {
+		if (messages) {
+			single_message = json_array_get_object_element(messages, i);  // Get the current message from the array
+		}
+
+		// Check the necessary JSON objects are there
+		if (!(json_object_has_member(single_message, "valid-from") &&
+			json_object_has_member(single_message, "valid-to") &&
+			json_object_has_member(single_message, "message") &&
+			json_object_has_member(single_message, "priority"))) {
+			siril_log_color_message(_("Error parsing JSON from URL: required JSON members not found\n"), "red");
+			g_object_unref(parser);
+			return 1;
+		}
+
+		// Parse valid-from and valid-to fields
+		GDateTime *validFrom = g_date_time_new_from_iso8601(json_object_get_string_member(single_message, "valid-from"), NULL);
+		GDateTime *validTo = g_date_time_new_from_iso8601(json_object_get_string_member(single_message, "valid-to"), NULL);
+
+		// Check for optional version-from and version-to fields and parse them if present
+		version_number empty_version = { 0 };
+		version_number current_version = get_current_version_number();
+		version_number valid_from_version = { 0 };
+		version_number valid_to_version = { 0 };
+		if (json_object_has_member(single_message, "version-from")) {
+			const gchar *version_from_str = json_object_get_string_member(single_message, "version-from");
+			valid_from_version = get_version_number_from_string(version_from_str);
+		}
+		if (json_object_has_member(single_message, "version-to")) {
+			const gchar *version_to_str = json_object_get_string_member(single_message, "version-to");
+			valid_to_version = get_version_number_from_string(version_to_str);
+		}
+
+		// Parse status
+		int status = json_object_get_int_member(single_message, "priority");
+
+		gboolean valid = TRUE;
+
+		// Check if current time is within validity period
+		if (!(g_date_time_compare(currentTime, validFrom) >= 0 && g_date_time_compare(currentTime, validTo) <= 0))
+			valid = FALSE;
+
+		// Check if current version matches version constraints
+		if (memcmp(&valid_from_version, &empty_version, sizeof(version_number))) {
+			if (compare_version(current_version, valid_from_version) >= 0)
+				valid = FALSE;
+		}
+		if (memcmp(&valid_to_version, &empty_version, sizeof(version_number))) {
+			if (compare_version(current_version, valid_to_version) < 0)
+				valid = FALSE;
+		}
+
+		if (valid) {
+			// Store the message and status in a notification struct
+			notification *notif = g_new(notification, 1);
+			notif->messageString = g_string_new(json_object_get_string_member(single_message, "message"));
+			notif->status = status;
+
+			// Append the notification to the list
+			*validNotifications = g_slist_append(*validNotifications, notif);
+		}
+
+		// Free allocated memory
+		g_date_time_unref(validFrom);
+		g_date_time_unref(validTo);
+	}
+
+	// Free allocated memory
+	g_date_time_unref(currentTime);
+	g_object_unref(parser);
+
+	return 0;
+}
+
+static gboolean end_notifier_idle(gpointer p) {
+	struct _update_data *args = (struct _update_data *) p;
+	GSList *validNotifications = NULL;
+
+	if (args->content == NULL) {
+		switch(args->code) {
+		case 0:
+			siril_log_message(_("Unable to check notifications! "
+					"Please Check your network connection\n"));
+			break;
+		default:
+			siril_log_message(_("Unable to check notifications! Error: %ld\n"), args->code);
+		}
+	} else {
+		control_window_switch_to_tab(OUTPUT_LOGS);
+
+		// Fetch and parse JSON file from URL and populate validNotifications list
+		if (parseJsonNotificationsString(args->content, &validNotifications) != 0) {
+			siril_log_message(_("Error fetching or parsing Siril notifications JSON file from URL\n"));
+			goto end_notifier_idle_error;
+		}
+
+		// Print and then free valid notifications
+		for (GSList *iter = validNotifications; iter; iter = iter->next) {
+			notification *notif = (notification *) iter->data;
+			char *color = notif->status == 1 ? "green" : notif->status == 2 ? "salmon" : "red";
+			siril_log_color_message(_("*** SIRIL NOTIFICATION ***\n%s\n"), color, notif->messageString->str);
+
+			// Free allocated memory for notification
+			g_string_free(notif->messageString, TRUE);
+			g_free(notif);
+		}
+		g_slist_free(validNotifications);
+	}
+
+end_notifier_idle_error:
+
+	set_cursor_waiting(FALSE);
+
+	/* free data */
+	g_free(args->content);
+	g_free(args->url);
+	free(args);
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 	stop_processing_thread();
 	return FALSE;
 }
 
 static gpointer fetch_url(gpointer p) {
+	CURL *curl = NULL;
 	struct ucontent *content;
 	gchar *result;
 	long code = -1L;
 	int retries;
 	unsigned int s;
 	struct _update_data *args = (struct _update_data *) p;
+	g_fprintf(stdout, "fetch_url(): %s\n", args->url);
 
+	curl = curl_easy_init();
+	if (g_getenv("CURL_CA_BUNDLE"))
+		if (curl_easy_setopt(curl, CURLOPT_CAINFO, g_getenv("CURL_CA_BUNDLE")))
+			siril_debug_print("Error in curl_easy_setopt()\n");
+
+	if (!curl) {
+		siril_log_color_message(_("Error initialising CURL handle, URL functionality unavailable.\n"), "red");
+		return NULL;
+	}
+	args->curl = curl;
 	content = g_try_malloc(sizeof(struct ucontent));
 	if (content == NULL) {
 		PRINT_ALLOC_ERR;
 		return NULL;
 	}
 
-	g_fprintf(stdout, "fetch_url(): %s\n", args->url);
-
-	init();
 	set_progress_bar_data(NULL, 0.1);
 
 	result = NULL;
@@ -628,7 +815,8 @@ static gpointer fetch_url(gpointer p) {
 
 	args->content = result;
 
-	gdk_threads_add_idle(end_update_idle, args);
+	gdk_threads_add_idle(args->idle_function, args);
+	curl_easy_cleanup(curl);
 	return NULL;
 }
 
@@ -636,10 +824,11 @@ void siril_check_updates(gboolean verbose) {
 	struct _update_data *args;
 
 	args = malloc(sizeof(struct _update_data));
-	args->url = SIRIL_VERSIONS;
+	args->url = g_strdup(SIRIL_VERSIONS);
 	args->code = 0L;
 	args->content = NULL;
 	args->verbose = verbose;
+	args->idle_function = end_update_idle;
 
 	set_progress_bar_data(_("Looking for updates..."), PROGRESS_NONE);
 	if (args->verbose)
@@ -647,6 +836,27 @@ void siril_check_updates(gboolean verbose) {
 
 	// this is a graphical operation, we don't use the main processing thread for it, it could block file opening
 	g_thread_new("siril-update", fetch_url, args);
+}
+
+void siril_check_notifications(gboolean verbose) {
+	struct _update_data *args;
+
+	args = malloc(sizeof(struct _update_data));
+	GString *url = g_string_new(GITLAB_URL);
+	g_string_append_printf(url, "/%s/%s", BRANCH, SIRIL_NOTIFICATIONS);
+	args->url = g_string_free(url, FALSE);
+	siril_debug_print("Notification URL: %s\n", args->url);
+	args->code = 0L;
+	args->content = NULL;
+	args->verbose = verbose;
+	args->idle_function = end_notifier_idle;
+	siril_debug_print("Checking notifications...\n");
+	set_progress_bar_data(_("Looking for notifications..."), PROGRESS_NONE);
+	if (args->verbose)
+		set_cursor_waiting(TRUE);
+
+	// this is a graphical operation, we don't use the main processing thread for it, it could block file opening
+	g_thread_new("siril-notifications", fetch_url, args);
 }
 
 #endif
