@@ -126,6 +126,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
             <property name="visible">True</property>
             <property name="can-focus">False</property>
             <property name="orientation">vertical</property>
+            <property name="spacing">10</property>
             <child>
               <object class="GtkFrame">
                 <property name="visible">True</property>
@@ -137,6 +138,8 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                   <object class="GtkGrid">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
+                    <property name="row-spacing">10</property>
+                    <property name="column-spacing">10</property>
                     <property name="column-homogeneous">True</property>
                     <child>
                       <object class="GtkLabel">
@@ -374,6 +377,8 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                   <object class="GtkLabel">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
+                    <property name="margin-top">5</property>
+                    <property name="margin-bottom">5</property>
                     <property name="label" translatable="yes">Spectroscopic Calibration Points</property>
                     <attributes>
                       <attribute name="weight" value="bold"/>
@@ -398,6 +403,8 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                   <object class="GtkGrid">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
+                    <property name="row-spacing">10</property>
+                    <property name="column-spacing">10</property>
                     <property name="column-homogeneous">True</property>
                     <child>
                       <object class="GtkLabel">
@@ -430,6 +437,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">False</property>
+                        <property name="halign">start</property>
                         <property name="draw-indicator">True</property>
                         <signal name="toggled" handler="on_cut_spectro_plot_bg_toggled" swapped="no"/>
                       </object>
