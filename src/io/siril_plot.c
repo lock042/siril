@@ -102,6 +102,11 @@ static splxyerrdata *alloc_xyerrplot_data(int nb) {
 	return plots;
 }
 
+static void free_legend(void *data) {
+	spllegend *legend = (spllegend*) data;
+	g_slice_free(spllegend, legend);
+}
+
 // allocate a legend entry
 static spllegend *new_legend_entry(spl_type type, const double color[3]) {
 	spllegend *legend = g_slice_new(spllegend);
@@ -674,7 +679,7 @@ gboolean siril_plot_draw(cairo_t *cr, siril_plot_data *spl_data, double width, d
 
 		// freeing
 		g_string_free(legend_text, TRUE);
-		g_list_free(legend);
+		g_list_free_full(legend, (GDestroyNotify) free_legend);
 	}
 
 	return TRUE;
