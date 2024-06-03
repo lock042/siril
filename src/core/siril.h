@@ -582,7 +582,6 @@ typedef struct cut_struct {
 	int bg_poly_order;	// polynomial order for background removal
 	gboolean plot_spectro_bg;
 	gboolean display_graph;
-	int ransac_iters;
 	gboolean save_png_too; // Only takes effect if display_graph == TRUE - ignored otherwise
 	char* filename;
 	gchar* title; // this is the working copy of the title

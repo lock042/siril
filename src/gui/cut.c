@@ -83,8 +83,6 @@ static void reset_cut_gui() {
 	gtk_label_set_text(wn2y, "");
 	GtkSpinButton *bgpoly = GTK_SPIN_BUTTON(lookup_widget("spin_spectro_bgpoly"));
 	gtk_spin_button_set_value(bgpoly, 3);
-	GtkSpinButton *iters = GTK_SPIN_BUTTON(lookup_widget("cut_ransac_iters"));
-	gtk_spin_button_set_value(iters, 1000);
 	GtkToggleButton *plot_spectro_bg = GTK_TOGGLE_BUTTON(lookup_widget("cut_spectro_plot_bg"));
 	gtk_toggle_button_set_active(plot_spectro_bg, FALSE);
 	GtkEntry *title = (GtkEntry*) lookup_widget("cut_title");
@@ -110,7 +108,6 @@ void initialize_cut_struct(cut_struct *arg) {
 	arg->wavenumber2 = -1;
 	arg->plot_spectro_bg = FALSE;
 	arg->bg_poly_order = 3;
-	arg->ransac_iters = 1000;
 	arg->tri = FALSE;
 	arg->mode = CUT_MONO;
 	arg->width = 1;
@@ -255,10 +252,7 @@ gboolean cut_struct_is_valid(cut_struct *arg) {
 		siril_log_message(_("Error: layer out of range.\n"));
 		return FALSE;
 	}
-	if (arg->ransac_iters < 100 || arg->ransac_iters > 20000) {
-		siril_log_message(_("Error: RANSAC iterations should be >= 100 and <= 20000.\n"));
-		return FALSE;
-	}
+
 	if (arg->bg_poly_order < 1 || arg->bg_poly_order > 6) {
 		siril_log_message(_("Error: background removal polynomial degree should be >= 1 and <= 6.\n"));
 		return FALSE;
@@ -682,8 +676,7 @@ gpointer tri_cut(gpointer p) {
 		int degree = arg->bg_poly_order;
 		double *coeffs = calloc(degree + 1, sizeof(double));
 		double *uncertainties = calloc(degree + 1, sizeof(double));
-		double threshold = 0.0;
-		ransac_polynomial_fit(r[0], r[2], nbr_points, degree, coeffs, &threshold, arg->ransac_iters, arg->fit, uncertainties);
+		siril_polynomial_fit(r[0], r[2], nbr_points, degree, coeffs, uncertainties);
 		GString *text = g_string_new(_("Coefficients: y = "));
 		for (int i = 0 ; i <= degree ; i++) {
 			gchar *tmp = NULL;
@@ -700,8 +693,7 @@ gpointer tri_cut(gpointer p) {
 		}
 
 		gchar *coeffs_text = g_string_free(text, FALSE);
-		siril_log_message(_("Subtracting dark strips: RANSAC polynomial fit of degree %d, %d iterations:\n"), degree, arg->ransac_iters);
-		siril_log_message(_("RANSAC inlier threshold: %.2f (= background noise σ)\n"), threshold);
+		siril_log_message(_("Subtracting dark strips: polynomial fit of degree %d:\n"), degree);
 		siril_log_color_message("%s\n", "blue", coeffs_text);
 		g_free(coeffs_text);
 
@@ -1276,11 +1268,6 @@ void on_cut_save_checkbutton_toggled(GtkToggleButton *button, gpointer user_data
 	gui.cut.save_dat = gtk_toggle_button_get_active(button);
 }
 
-void on_cut_spin_wavelength1_value_changed(GtkSpinButton* button, gpointer user_data);
-void on_cut_spin_wavelength2_value_changed(GtkSpinButton* button, gpointer user_data);
-void on_cut_spin_wavenumber1_value_changed(GtkSpinButton* button, gpointer user_data);
-void on_cut_spin_wavenumber2_value_changed(GtkSpinButton* button, gpointer user_data);
-
 
 void on_cut_spin_point1_value_changed(GtkSpinButton* button, gpointer user_data) {
 	gboolean wl_changed = ((GtkWidget*) button == lookup_widget("cut_spin_wavelength1"));
@@ -1315,10 +1302,6 @@ void on_cut_spectro_polyorder_changed(GtkSpinButton* button, gpointer user_data)
 
 void on_cut_spectro_plot_bg_toggled(GtkToggleButton *button, gpointer user_data) {
 	gui.cut.plot_spectro_bg = gtk_toggle_button_get_active(button);
-}
-
-void on_cut_ransac_iters_value_changed(GtkSpinButton *button, gpointer user_data) {
-	gui.cut.ransac_iters = (int) gtk_spin_button_get_value(button);
 }
 
 //// Sequence Processing ////
