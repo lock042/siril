@@ -237,10 +237,11 @@ static const gchar* find_first_numeric(const gchar *string) {
 
 version_number get_version_number_from_string(const gchar *input) {
 	version_number version = { 0 };
+	gchar **version_string = NULL;
 	const gchar *string = find_first_numeric(input);
 	if (!string)
 		goto the_end;
-	gchar **version_string = g_strsplit_set(string, ".-", -1);
+	version_string = g_strsplit_set(string, ".-", -1);
 	version.major_version = g_ascii_strtoull(version_string[0], NULL, 10);
 	if (version_string[1])
 		version.minor_version = g_ascii_strtoull(version_string[1], NULL, 10);
@@ -523,7 +524,8 @@ static gboolean end_update_idle(gpointer p) {
 
 	/* free data */
 	set_cursor_waiting(FALSE);
-	g_free(args->content);
+	free(args->content);
+	g_free(args->url);
 	free(args);
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 	stop_processing_thread();
@@ -685,7 +687,7 @@ end_notifier_idle_error:
 	set_cursor_waiting(FALSE);
 
 	/* free data */
-	g_free(args->content);
+	free(args->content);
 	g_free(args->url);
 	free(args);
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
@@ -710,6 +712,7 @@ static gpointer fetch_url(gpointer p) {
 
 	if (!curl) {
 		siril_log_color_message(_("Error initialising CURL handle, URL functionality unavailable.\n"), "red");
+		g_free(args->url);
 		free(args);
 		return NULL;
 	}
@@ -718,6 +721,7 @@ static gpointer fetch_url(gpointer p) {
 	content = calloc(1, sizeof(struct ucontent));
 	if (content == NULL) {
 		PRINT_ALLOC_ERR;
+		g_free(args->url);
 		free(args);
 		return NULL;
 	}
@@ -731,6 +735,7 @@ static gpointer fetch_url(gpointer p) {
 	content->data = calloc(1, 1);
 	if (content->data == NULL) {
 		PRINT_ALLOC_ERR;
+		g_free(args->url);
 		free(args);
 		free(content);
 		return NULL;
@@ -798,6 +803,7 @@ failed_curl_easy_setopt:
 	if (result) {
 		gdk_threads_add_idle(args->idle_function, args);
 	} else {
+		g_free(args->url);
 		free(args);
 		free(content->data);
 	}
