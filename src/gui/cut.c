@@ -676,7 +676,8 @@ gpointer tri_cut(gpointer p) {
 		int degree = arg->bg_poly_order;
 		double *coeffs = calloc(degree + 1, sizeof(double));
 		double *uncertainties = calloc(degree + 1, sizeof(double));
-		siril_polynomial_fit(r[0], r[2], nbr_points, degree, coeffs, uncertainties);
+		double sigma;
+		robust_polynomial_fit(r[0], r[2], nbr_points, degree, coeffs, uncertainties, NULL, &sigma);
 		GString *text = g_string_new(_("Coefficients: y = "));
 		for (int i = 0 ; i <= degree ; i++) {
 			gchar *tmp = NULL;
@@ -694,7 +695,7 @@ gpointer tri_cut(gpointer p) {
 
 		gchar *coeffs_text = g_string_free(text, FALSE);
 		siril_log_message(_("Subtracting dark strips: polynomial fit of degree %d:\n"), degree);
-		siril_log_color_message("%s\n", "blue", coeffs_text);
+		siril_log_color_message("%s\nFit σ: %.2e\n", "blue", coeffs_text, sigma);
 		g_free(coeffs_text);
 
 		for (int i = 0 ; i < nbr_points ; i++) {

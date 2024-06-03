@@ -107,6 +107,7 @@ src_files = [
   'filters/epf.c',
   'filters/fft.c',
   'filters/ght.c',
+  'filters/linear_match.c',
   'filters/median.c',
   'filters/mtf.c',
   'filters/rgradient.c',
