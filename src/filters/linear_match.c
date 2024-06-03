@@ -20,7 +20,6 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
-#include "core/siril_log.h"
 #include "algos/fitting.h"
 #include "algos/statistics.h"
 #include "io/single_image.h"
