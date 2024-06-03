@@ -203,13 +203,16 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 		if (strlen(film_filter) > 0)
 			film_filter[strlen(film_filter) - 1] = '\0';
 
+/*
+ * This is logically dead code as it is inside an exactly opposite conditional
 		if (whichdial != OD_CONVERT && whichdial != OD_OPEN) {
-		gtk_filter_add(chooser, _("Film Files (*.avi, *.mpg, ...)"), film_filter,
-				gui.file_ext_filter == TYPEAVI);
+			gtk_filter_add(chooser, _("Film Files (*.avi, *.mpg, ...)"), film_filter,
+					gui.file_ext_filter == TYPEAVI);
 		} else {
+*/
 			all_filter = g_string_append(all_filter, ";");
 			all_filter = g_string_append(all_filter, film_filter);
-		}
+//		}
 		free(film_filter);
 #endif
 		g_free(graphics_supported);

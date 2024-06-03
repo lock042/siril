@@ -1166,21 +1166,16 @@ int process_epf(int nb) {
 				return CMD_ARG_ERROR;
 			}
 			g_free(filename);
-			if (guidefit->rx != gfit.rx || guidefit->ry != gfit.ry) {
-				siril_log_color_message(_("Error: guide image dimensions do not match\n"), "red");
-				clearfits(guidefit);
-				free(guidefit);
-				return CMD_ARG_ERROR;
-			}
 			guide_needs_freeing = TRUE;
 		} else {
 			guidefit = fit;
 		}
-		g_free(filename);
 		if (guidefit->rx != gfit.rx || guidefit->ry != gfit.ry) {
 			siril_log_color_message(_("Error: guide image dimensions do not match\n"), "red");
-			clearfits(guidefit);
-			free(guidefit);
+			if (guide_needs_freeing) {
+				clearfits(guidefit);
+				free(guidefit);
+			}
 			return CMD_ARG_ERROR;
 		}
 	}
@@ -10067,20 +10062,10 @@ static show_params* parse_show_args(int nb) {
 	if (!g_strcmp0(word[next_arg], "-clear")) {
 		params->clear = TRUE;
 		next_arg++;
-		purge_user_catalogue(CAT_AN_USER_TEMP);
 		if (nb == 2) {
 			return params;
 		}
 	}
-	siril_catalogue *siril_cat = NULL;
-	conesearch_args *args = NULL;
-	siril_cat = calloc(1, sizeof(siril_catalogue));
-	siril_cat->cat_index = CAT_SHOW;
-	siril_cat->columns = siril_catalog_columns(siril_cat->cat_index);
-	args = init_conesearch_args();
-	args->siril_cat = siril_cat;
-	args->has_GUI = TRUE;
-	args->fit = &gfit;
 
 	//passing a list
 	if (g_str_has_prefix(word[next_arg], "-list=")) {

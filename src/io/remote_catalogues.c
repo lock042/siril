@@ -259,6 +259,7 @@ char *fetch_url(const gchar *url, gsize *length) {
 
 	if (!curl) {
 		siril_log_color_message(_("Error initialising CURL handle, URL functionality unavailable.\n"), "red");
+		free(content);
 		return NULL;
 	}
 	retries = DEFAULT_FETCH_RETRIES;

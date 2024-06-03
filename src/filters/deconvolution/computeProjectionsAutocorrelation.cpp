@@ -121,7 +121,7 @@ static void deconvolveAutocorrelation(std::vector<T>& acCompensatedRow,
     if (hasNegatives) {
         acCompensatedRow = acRow;
     } else {
-        acCompensatedRow = deconvRow;
+        acCompensatedRow = std::move(deconvRow);
     }
 }
 

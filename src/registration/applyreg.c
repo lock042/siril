@@ -176,6 +176,9 @@ static gboolean compute_framing(struct registration_args *regargs) {
 				cogy += currcogy;
 				n++;
 			}
+			if (n == 0)
+				return FALSE; // If there are no frames filtered in, we have nothing to do.
+
 			cogx /= (double)n;
 			cogy /= (double)n;
 			x0 = (int)(cogx - (double)rx * 0.5);

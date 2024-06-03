@@ -503,11 +503,12 @@ static int astrometric_image_hook(struct generic_seq_args *args, int out_index, 
 		H = Hs;
 
 		if (status) {
+			// need to handle this, cannot go on
 			siril_log_color_message(_("Error generating mapping array.\n"), "red");
-			// TODO: need to handle this, cannot go on
 			free(p->error);
 			free(p->pixmap);
 			free(p);
+			return 1;
 		}
 		p->data = fit;
 		// Convert fit to 32-bit float if required
@@ -547,7 +548,12 @@ static int astrometric_image_hook(struct generic_seq_args *args, int out_index, 
 
 		if ((status = dobox(p))) { // Do the drizzle
 			siril_log_color_message("s\n", p->error->last_message);
-			// TODO: need to handle this, cannot go on
+			// need to handle this, cannot go on
+			free(p->error);
+			free(p->pixmap->xmap);
+			free(p->pixmap);
+			free(p);
+			return 1;
 		}
 		clearfits(fit);
 		// copy the DATE_OBS
@@ -571,6 +577,7 @@ static int astrometric_image_hook(struct generic_seq_args *args, int out_index, 
 
 		free(p->pixmap->xmap);
 		free(p->pixmap);
+		free(p);
 
 		// Get rid of the output_counts image, no longer required
 		clearfits(output_counts);

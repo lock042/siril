@@ -810,7 +810,7 @@ public:
             }
         }
 
-        *this = out;
+        *this = std::move(out);
     }
 
     void ifftshift() {
@@ -856,7 +856,7 @@ public:
             }
         }
 
-        *this = out;
+        *this = std::move(out);
     }
 
     template <typename T2>

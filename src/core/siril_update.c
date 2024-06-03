@@ -257,8 +257,8 @@ version_number get_version_number_from_string(const gchar *input) {
 	} else {
 		version.patched_version = check_for_patch(version_string[3], &version.rc_version, &version.beta_version);
 	}
-	g_strfreev(version_string);
 the_end:
+	g_strfreev(version_string);
 	return version;
 }
 
@@ -402,7 +402,6 @@ static gchar *check_version(gchar *version, gboolean *verbose, gchar **data, CUR
 struct _update_data {
 	CURL *curl;
 	gchar *url;
-	long code;
 	gchar *content;
 	gboolean verbose;
 	gboolean (*idle_function)(gpointer args);
@@ -420,7 +419,7 @@ static size_t cbk_curl(void *buffer, size_t size, size_t nmemb, void *userp) {
 	size_t realsize = size * nmemb;
 	struct ucontent *mem = (struct ucontent *) userp;
 
-	mem->data = g_try_realloc(mem->data, mem->len + realsize + 1);
+	mem->data = realloc(mem->data, mem->len + realsize + 1);
 
 	memcpy(&(mem->data[mem->len]), buffer, realsize);
 	mem->len += realsize;
@@ -520,19 +519,7 @@ static gchar *check_update_version(struct _update_data *args) {
 static gboolean end_update_idle(gpointer p) {
 	struct _update_data *args = (struct _update_data *) p;
 
-	if (args->content == NULL) {
-		switch(args->code) {
-		case 0:
-			siril_log_message(_("Unable to check updates! "
-					"Please Check your network connection\n"));
-			break;
-		default:
-			siril_log_message(_("Unable to check updates! Error: %ld\n"),
-					args->code);
-		}
-	} else {
-		check_update_version(args);
-	}
+	check_update_version(args);
 
 	/* free data */
 	set_cursor_waiting(FALSE);
@@ -673,36 +660,25 @@ static gboolean end_notifier_idle(gpointer p) {
 	struct _update_data *args = (struct _update_data *) p;
 	GSList *validNotifications = NULL;
 
-	if (args->content == NULL) {
-		switch(args->code) {
-		case 0:
-			siril_log_message(_("Unable to check notifications! "
-					"Please Check your network connection\n"));
-			break;
-		default:
-			siril_log_message(_("Unable to check notifications! Error: %ld\n"), args->code);
-		}
-	} else {
-		control_window_switch_to_tab(OUTPUT_LOGS);
+	control_window_switch_to_tab(OUTPUT_LOGS);
 
-		// Fetch and parse JSON file from URL and populate validNotifications list
-		if (parseJsonNotificationsString(args->content, &validNotifications) != 0) {
-			siril_log_message(_("Error fetching or parsing Siril notifications JSON file from URL\n"));
-			goto end_notifier_idle_error;
-		}
-
-		// Print and then free valid notifications
-		for (GSList *iter = validNotifications; iter; iter = iter->next) {
-			notification *notif = (notification *) iter->data;
-			char *color = notif->status == 1 ? "green" : notif->status == 2 ? "salmon" : "red";
-			siril_log_color_message(_("*** SIRIL NOTIFICATION ***\n%s\n"), color, notif->messageString->str);
-
-			// Free allocated memory for notification
-			g_string_free(notif->messageString, TRUE);
-			g_free(notif);
-		}
-		g_slist_free(validNotifications);
+	// Fetch and parse JSON file from URL and populate validNotifications list
+	if (parseJsonNotificationsString(args->content, &validNotifications) != 0) {
+		siril_log_message(_("Error fetching or parsing Siril notifications JSON file from URL\n"));
+		goto end_notifier_idle_error;
 	}
+
+	// Print and then free valid notifications
+	for (GSList *iter = validNotifications; iter; iter = iter->next) {
+		notification *notif = (notification *) iter->data;
+		char *color = notif->status == 1 ? "green" : notif->status == 2 ? "salmon" : "red";
+		siril_log_color_message(_("*** SIRIL NOTIFICATION ***\n%s\n"), color, notif->messageString->str);
+
+		// Free allocated memory for notification
+		g_string_free(notif->messageString, TRUE);
+		g_free(notif);
+	}
+	g_slist_free(validNotifications);
 
 end_notifier_idle_error:
 
@@ -720,7 +696,7 @@ end_notifier_idle_error:
 static gpointer fetch_url(gpointer p) {
 	CURL *curl = NULL;
 	struct ucontent *content;
-	gchar *result;
+	gchar *result = NULL;
 	long code = -1L;
 	int retries;
 	unsigned int s;
@@ -730,14 +706,16 @@ static gpointer fetch_url(gpointer p) {
 	curl = curl_easy_init();
 	if (g_getenv("CURL_CA_BUNDLE"))
 		if (curl_easy_setopt(curl, CURLOPT_CAINFO, g_getenv("CURL_CA_BUNDLE")))
-			siril_debug_print("Error in curl_easy_setopt()\n");
+			siril_log_color_message(_("Error configuring CURL with CA bundle. https functionality unavailable.\n"), "red");
 
 	if (!curl) {
 		siril_log_color_message(_("Error initialising CURL handle, URL functionality unavailable.\n"), "red");
+		free(args);
 		return NULL;
 	}
 	args->curl = curl;
-	content = g_try_malloc(sizeof(struct ucontent));
+
+	content = calloc(1, sizeof(struct ucontent));
 	if (content == NULL) {
 		PRINT_ALLOC_ERR;
 		free(args);
@@ -746,13 +724,17 @@ static gpointer fetch_url(gpointer p) {
 
 	set_progress_bar_data(NULL, 0.1);
 
-	result = NULL;
-
 	retries = DEFAULT_FETCH_RETRIES;
 
-	retrieve: content->data = g_malloc(1);
-	content->data[0] = '\0';
-	content->len = 0;
+	retrieve:
+
+	content->data = calloc(1, 1);
+	if (content->data == NULL) {
+		PRINT_ALLOC_ERR;
+		free(args);
+		free(content);
+		return NULL;
+	}
 
 	CURLcode retval;
 	retval = curl_easy_setopt(curl, CURLOPT_URL, args->url);
@@ -793,7 +775,7 @@ static gpointer fetch_url(gpointer p) {
 				set_progress_bar_data(msg, progress);
 				g_usleep(s * 1E6);
 
-				g_free(content->data);
+				free(content->data);
 				retries--;
 				goto retrieve;
 			}
@@ -805,21 +787,22 @@ static gpointer fetch_url(gpointer p) {
 		}
 		g_fprintf(stderr, "Fetch succeeded with code %ld for URL %s\n", code,
 				args->url);
-		args->code = code;
 	} else {
 		siril_log_color_message(_("Cannot retrieve information from the update URL. Error: [%ld]\n"), "red", retval);
 	}
 	set_progress_bar_data(NULL, PROGRESS_DONE);
+	args->content = result;
 
 failed_curl_easy_setopt:
 
-	if (!result)
-		g_free(content->data);
-	g_free(content);
+	if (result) {
+		gdk_threads_add_idle(args->idle_function, args);
+	} else {
+		free(args);
+		free(content->data);
+	}
+	free(content);
 
-	args->content = result;
-
-	gdk_threads_add_idle(args->idle_function, args);
 	curl_easy_cleanup(curl);
 	return NULL;
 }
@@ -829,7 +812,6 @@ void siril_check_updates(gboolean verbose) {
 
 	args = malloc(sizeof(struct _update_data));
 	args->url = g_strdup(SIRIL_VERSIONS);
-	args->code = 0L;
 	args->content = NULL;
 	args->verbose = verbose;
 	args->idle_function = end_update_idle;
@@ -850,7 +832,6 @@ void siril_check_notifications(gboolean verbose) {
 	g_string_append_printf(url, "/%s/%s", BRANCH, SIRIL_NOTIFICATIONS);
 	args->url = g_string_free(url, FALSE);
 	siril_debug_print("Notification URL: %s\n", args->url);
-	args->code = 0L;
 	args->content = NULL;
 	args->verbose = verbose;
 	args->idle_function = end_notifier_idle;
