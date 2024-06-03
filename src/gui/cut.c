@@ -1250,6 +1250,7 @@ void on_cut_tri_cut_toggled(GtkToggleButton *button, gpointer user_data) {
 	if (gui.cut.tri) {
 		gui.cut.cfa = FALSE;
 	}
+	gtk_widget_set_sensitive(GTK_WIDGET(user_data), gui.cut.tri);
 	redraw(REDRAW_OVERLAY);
 }
 

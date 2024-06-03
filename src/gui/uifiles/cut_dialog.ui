@@ -179,7 +179,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="tooltip-text" translatable="yes">Generates 3 parallel intensity profiles separated by a given number of pixels. Tri-profiles always plot luminance along each profile.</property>
                 <property name="draw-indicator">True</property>
                 <property name="group">cut_radio_mono</property>
-                <signal name="toggled" handler="on_cut_tri_cut_toggled" swapped="no"/>
+                <signal name="toggled" handler="on_cut_tri_cut_toggled" object="cut_tricut_step" swapped="no"/>
               </object>
               <packing>
                 <property name="left-attach">0</property>
@@ -189,6 +189,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
             <child>
               <object class="GtkSpinButton" id="cut_tricut_step">
                 <property name="visible">True</property>
+                <property name="sensitive">False</property>
                 <property name="can-focus">True</property>
                 <property name="tooltip-text" translatable="yes">Set offset step size for tri-profile</property>
                 <property name="text" translatable="yes">1</property>
