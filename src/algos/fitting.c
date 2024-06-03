@@ -31,8 +31,6 @@
 #include "core/siril.h"
 #include "core/optimize_utils.h"
 #include "core/proto.h"
-#include "algos/noise.h"
-#include "core/processing.h"
 #include "core/siril_log.h"
 
 /************* robust 1D polynomial fit *****************/
