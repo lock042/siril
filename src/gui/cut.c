@@ -707,8 +707,6 @@ gpointer tri_cut(gpointer p) {
 		}
 	}
 
-	gchar *spllabels[3] = { NULL };
-
 	if (arg->vport == 0) {
 		if (do_spec) {
 			spllabels[1] = g_strdup(_("Intensity"));
