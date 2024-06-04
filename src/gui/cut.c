@@ -683,7 +683,7 @@ gpointer tri_cut(gpointer p) {
 		robust_polynomial_fit(r[0], r[2], nbr_points, degree, coeffs, uncertainties, NULL, &sigma);
 		GString *text = g_string_new(_("Coefficients: y = "));
 		for (int i = 0 ; i <= degree ; i++) {
-			gchar *tmp = NULL;
+			gchar *tmp;
 			if (i == 0) {
 				tmp = g_strdup_printf("%.2e (±%.2e) ", coeffs[0], uncertainties[0]);
 			} else {
