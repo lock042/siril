@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019-2023
 
@@ -113,8 +113,8 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
           <object class="GtkGrid" id="cut_controls_manualcoords">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="row-spacing">6</property>
-            <property name="column-spacing">6</property>
+            <property name="row-spacing">10</property>
+            <property name="column-spacing">10</property>
             <child>
               <object class="GtkSpinButton" id="cut_xstart_spin">
                 <property name="visible">True</property>
@@ -145,6 +145,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
               <object class="GtkLabel" id="cut_finishlabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="halign">start</property>
                 <property name="label" translatable="yes">End</property>
               </object>
               <packing>
@@ -167,6 +168,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
               <object class="GtkLabel" id="cut_startlabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="halign">start</property>
                 <property name="label" translatable="yes">Start</property>
               </object>
               <packing>
@@ -277,5 +279,4 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
       </object>
     </child>
   </object>
-
 </interface>

@@ -59,6 +59,8 @@ siril_common_SOURCES = \
 	algos/extraction.h \
 	algos/demosaicing.c \
 	algos/demosaicing.h \
+	algos/fitting.c \
+	algos/fitting.h \
 	algos/fix_xtrans_af.c \
 	algos/fix_xtrans_af.h \
 	algos/geometry.c \
@@ -183,6 +185,8 @@ siril_common_SOURCES = \
 	filters/epf.h \
 	filters/fft.c \
 	filters/fft.h \
+	filters/linear_match.c \
+	filters/linear_match.h \
 	filters/median.c \
 	filters/median.h \
 	filters/mtf.c \
@@ -277,7 +281,6 @@ siril_common_SOURCES = \
 	gui/image_interactions.c \
 	gui/image_interactions.h \
 	gui/linear_match.c \
-	gui/linear_match.h \
 	gui/menu_gray_geometry.c \
 	gui/menu_gray_geometry.h \
 	gui/menu_gray_selection.c \

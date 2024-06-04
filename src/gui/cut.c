@@ -20,6 +20,8 @@
 
 #include <math.h>
 #include "algos/extraction.h"
+#include "algos/fitting.h"
+#include "algos/statistics_float.h"
 #include "core/siril.h"
 #include "core/siril_log.h"
 #include "core/siril_date.h"
@@ -79,10 +81,13 @@ static void reset_cut_gui() {
 	gtk_label_set_text(wn1y, "");
 	gtk_label_set_text(wn2x, "");
 	gtk_label_set_text(wn2y, "");
+	GtkSpinButton *bgpoly = GTK_SPIN_BUTTON(lookup_widget("spin_spectro_bgpoly"));
+	gtk_spin_button_set_value(bgpoly, 3);
+	GtkToggleButton *plot_spectro_bg = GTK_TOGGLE_BUTTON(lookup_widget("cut_spectro_plot_bg"));
+	gtk_toggle_button_set_active(plot_spectro_bg, FALSE);
 	GtkEntry *title = (GtkEntry*) lookup_widget("cut_title");
 	gtk_entry_set_text(title, "Intensity Profile");
 	reset_cut_gui_filedependent();
-
 }
 
 void initialize_cut_struct(cut_struct *arg) {
@@ -101,6 +106,8 @@ void initialize_cut_struct(cut_struct *arg) {
 	arg->plot_as_wavenumber = FALSE;
 	arg->wavenumber1 = -1;
 	arg->wavenumber2 = -1;
+	arg->plot_spectro_bg = FALSE;
+	arg->bg_poly_order = 3;
 	arg->tri = FALSE;
 	arg->mode = CUT_MONO;
 	arg->width = 1;
@@ -245,6 +252,11 @@ gboolean cut_struct_is_valid(cut_struct *arg) {
 		siril_log_message(_("Error: layer out of range.\n"));
 		return FALSE;
 	}
+
+	if (arg->bg_poly_order < 1 || arg->bg_poly_order > 6) {
+		siril_log_message(_("Error: background removal polynomial degree should be >= 1 and <= 6.\n"));
+		return FALSE;
+	}
 	return TRUE;
 
 }
@@ -374,7 +386,12 @@ static void calc_zero_and_spacing(cut_struct *arg, double *zero, double *spectro
 	// To calculate the zero we will work from whichever of x or y has the biggest difference
 	double z2_z1 = fabs(wndelta.y) > fabs(wndelta.x) ? wndelta.y : wndelta.x;
 	double z1_z0 = fabs(wndelta.y) > fabs(wndelta.x) ? arg->cut_wn1.y - arg->cut_start.y : arg->cut_wn1.x - arg->cut_start.x;
+	double z2_z0 = fabs(wndelta.y) > fabs(wndelta.x) ? arg->cut_wn2.y - arg->cut_start.y : arg->cut_wn2.x - arg->cut_start.x;
 	*zero = wavelength1 - ( ( z1_z0 * wndiff ) / z2_z1 ); // Zero is in wavelength
+
+	// Check whether the spacing needs to be positive or negative
+	if ((fabs(z2_z0) < fabs(z1_z0) && wavelength1 < wavelength2))// || (fabs(z2_z0) > fabs(z1_z0) && wavelength1 > wavelength2))
+		*spectro_spacing *= -1.0;
 	return;
 }
 
@@ -588,9 +605,10 @@ gpointer tri_cut(gpointer p) {
 	}
 	int nbr_points = (int) length;
 	double point_spacing = length / nbr_points;
+	gboolean do_spec = spectroscopy_selections_are_valid(arg);
 	// If pref_as is set andmetadata allows, represent spacing as arcsec
 	double conversionfactor = get_conversion_factor(arg->fit);
-	if (arg->pref_as) {
+	if (arg->pref_as && !do_spec) {
 		if (conversionfactor != -DBL_MAX) {
 			point_spacing *= conversionfactor;
 		}
@@ -601,13 +619,22 @@ gpointer tri_cut(gpointer p) {
 	for (int i = 0 ; i < 3 ; i++)
 		r[i] = malloc(nbr_points * sizeof(double));
 	x = malloc(nbr_points * sizeof(double));
+	double zero = 0.0, spectro_spacing = 1.0;
+	if (do_spec)
+		calc_zero_and_spacing(arg, &zero, &spectro_spacing);
+	for (int i = 0 ; i < nbr_points ; i++) {
+		if (do_spec) {
+			x[i] = arg->plot_as_wavenumber ? 10000000. / (zero + i * spectro_spacing) : zero + i * spectro_spacing;
+		} else {
+			x[i] = i * point_spacing;
+		}
+	}
 	for (int offset = -1 ; offset < 2 ; offset++) {
 		double offstartx = arg->cut_start.x - (offset * point_spacing_y * arg->step);
 		double offstarty = starty + (offset * point_spacing_x * arg->step);
 		gboolean single_channel = (arg->vport == 0 || arg->vport == 1 || arg->vport == 2);
 		gboolean redvport = arg->vport < 3 ? arg->vport : 0;
 		for (int i = 0 ; i < nbr_points ; i++) {
-			x[i] = i * point_spacing;
 			if (hv) {
 				// Horizontal / vertical, no interpolation
 				r[offset+1][i] = nointerp(arg->fit, offstartx + point_spacing_x * i, offstarty + point_spacing_y * i, redvport, arg->width, (int) point_spacing_x, (int) point_spacing_y);
@@ -638,44 +665,92 @@ gpointer tri_cut(gpointer p) {
 		}
 	}
 
-	gchar *spllabels[3];
-
-	if (arg->vport == 0) {
-		if (arg->fit->naxes[2] == 3) {
-			spllabels[1] = g_strdup("R");
-		} else {
-			spllabels[1] = g_strdup("Mono");
+	// If spectroscopic options are set, use r[0] and r[2] as dark strips,
+	// to calibrate the spectrum. (This intentionally clobbers r[0] and r[2])
+	if (do_spec) {
+		for (int i = 0 ; i < nbr_points ; i++) {
+			// Average the dark strips on either side
+			r[2][i] = (r[0][i] + r[2][i]) / 2.0;
+			r[0][i] = (double) i;
+		}
+		int degree = arg->bg_poly_order;
+		double *coeffs = calloc(degree + 1, sizeof(double));
+		double *uncertainties = calloc(degree + 1, sizeof(double));
+		double sigma;
+		robust_polynomial_fit(r[0], r[2], nbr_points, degree, coeffs, uncertainties, NULL, &sigma);
+		GString *text = g_string_new(_("Coefficients: y = "));
+		for (int i = 0 ; i <= degree ; i++) {
+			gchar *tmp = NULL;
+			if (i == 0) {
+				tmp = g_strdup_printf("%.2e (±%.2e) ", coeffs[0], uncertainties[0]);
+			} else {
+				if (coeffs[i] >= 0.0)
+					tmp = g_strdup_printf("+ %.2e (±%.2e) * x^%d ", coeffs[i], uncertainties[i], i);
+				else
+					tmp = g_strdup_printf("- %.2e (±%.2e) * x^%d ", -coeffs[i], uncertainties[i], i);
+			}
+			text = g_string_append(text, tmp);
+			g_free(tmp);
 		}
 
+		gchar *coeffs_text = g_string_free(text, FALSE);
+		siril_log_message(_("Subtracting dark strips: polynomial fit of degree %d:\n"), degree);
+		siril_log_color_message("%s\nFit σ: %.2e\n", "blue", coeffs_text, sigma);
+		g_free(coeffs_text);
+
+		for (int i = 0 ; i < nbr_points ; i++) {
+			r[0][i] = evaluate_polynomial(coeffs, degree, (double) i);
+			r[1][i] -= r[0][i];
+		}
+	}
+
+	gchar *spllabels[3] = { NULL };
+
+	if (arg->vport == 0) {
+		if (do_spec) {
+			spllabels[1] = g_strdup(_("Intensity"));
+		} else if (arg->fit->naxes[2] == 3) {
+			spllabels[1] = g_strdup(_("R"));
+		} else {
+			spllabels[1] = g_strdup(_("Mono"));
+		}
 	}
 	else if (arg->vport == 1) {
-		spllabels[1] = g_strdup("G");
+		spllabels[1] = g_strdup(_("G"));
 	} else if (arg->vport == 2) {
-		spllabels[1] = g_strdup("B");
+		spllabels[1] = g_strdup(_("B"));
 	} else {
-		spllabels[1] = g_strdup("L");
+		spllabels[1] = do_spec ? g_strdup(_("Intensity")) : g_strdup(_("L"));
 	}
-	spllabels[0] = g_strdup_printf("%s(-%dpx)", spllabels[1], (int) arg->step);
-	spllabels[2] = g_strdup_printf("%s(+%dpx)", spllabels[1], (int) arg->step);
+	if (do_spec) {
+		spllabels[0] = g_strdup_printf(_("Fitted background"));
+		spllabels[2] = g_strdup_printf(_("Measured background"));
+	} else {
+		spllabels[0] = g_strdup_printf("%s(-%dpx)", spllabels[1], (int) arg->step);
+		spllabels[2] = g_strdup_printf("%s(+%dpx)", spllabels[1], (int) arg->step);
+	}
 
 	/* Plotting cut profile */
 	gchar *xlabel = NULL, *title = NULL;
 	title = cut_make_title(arg, FALSE); // must be freed with g_free()
-	if (arg->pref_as && conversionfactor != -DBL_MAX) {
+	if (do_spec) {
+		xlabel = arg->plot_as_wavenumber ? g_strdup_printf(_("Wavenumber / cm^{-1}")) : g_strdup_printf(_("Wavelength / nm"));
+	} else if (arg->pref_as && conversionfactor != -DBL_MAX) {
 		xlabel = g_strdup_printf(_("Distance along cut / arcsec"));
 	} else {
 		xlabel = g_strdup_printf(_("Distance along cut / px"));
 	}
-
 
 	spl_data = malloc(sizeof(siril_plot_data));
 	init_siril_plot_data(spl_data);
 	siril_plot_set_title(spl_data, title);
 	siril_plot_set_xlabel(spl_data, xlabel);
 	siril_plot_set_savename(spl_data, "profile");
-	siril_plot_add_xydata(spl_data, spllabels[0], nbr_points, x, r[0], NULL, NULL);
+	if (!do_spec || arg->plot_spectro_bg)
+		siril_plot_add_xydata(spl_data, spllabels[0], nbr_points, x, r[0], NULL, NULL);
 	siril_plot_add_xydata(spl_data, spllabels[1], nbr_points, x, r[1], NULL, NULL);
-	siril_plot_add_xydata(spl_data, spllabels[2], nbr_points, x, r[2], NULL, NULL);
+	if (!do_spec || arg->plot_spectro_bg)
+		siril_plot_add_xydata(spl_data, spllabels[2], nbr_points, x, r[2], NULL, NULL);
 	if (arg->save_dat)
 		siril_plot_save_dat(spl_data, filename, FALSE);
 	if (arg->save_png_too || !arg->display_graph)
@@ -948,9 +1023,41 @@ void on_cut_spectroscopic_button_clicked(GtkButton* button, gpointer user_data) 
 
 }
 
+void update_spectro_labels() {
+	GtkWidget* monobutton = lookup_widget("cut_radio_mono");
+	GtkWidget* colorbutton = lookup_widget("cut_radio_color");
+	GtkWidget* tributton = lookup_widget("cut_tri_cut");
+	GtkWidget* cfabutton = lookup_widget("cut_cfa");
+	GtkWidget* cut_offset_label = lookup_widget("cut_offset_label");
+	GtkWidget* pixels = lookup_widget("cut_dist_pref_px");
+	GtkWidget* arcsec = lookup_widget("cut_dist_pref_as");
+	if (spectroscopy_selections_are_valid(&gui.cut)) {
+		gtk_button_set_label(GTK_BUTTON(monobutton), _("Spectroscopic"));
+		gtk_widget_set_tooltip_text(monobutton, _("Reduces a spectrum without background removal. This is suitable when the entire image represents a calibrated spectrum"));
+		gtk_button_set_label(GTK_BUTTON(tributton), _("Spectro w/ bg removal"));
+		gtk_label_set_text(GTK_LABEL(cut_offset_label), _("Spectro bg offset (px)"));
+		gtk_widget_set_tooltip_text(tributton, _("Reduces a spectrum with background removal. This is suitable when background removal is required: the background is computed along parallel lines equidistant from the central spectral profile line"));
+		gtk_widget_set_visible(colorbutton, FALSE);
+		gtk_widget_set_visible(cfabutton, FALSE);
+		gtk_widget_set_visible(pixels, FALSE);
+		gtk_widget_set_visible(arcsec, FALSE);
+	} else {
+		gtk_button_set_label(GTK_BUTTON(monobutton), _("Mono"));
+		gtk_widget_set_tooltip_text(monobutton, _("Generates a single luminance profile along the profile line"));
+		gtk_button_set_label(GTK_BUTTON(tributton), _("Tri-profile (mono)"));
+		gtk_widget_set_tooltip_text(tributton, _("Generates 3 parallel intensity profiles separated by a given number of pixels. Tri-profiles always plot luminance along each profile"));
+		gtk_label_set_text(GTK_LABEL(cut_offset_label), _("Tri-profile offset (px)"));
+		gtk_widget_set_visible(colorbutton, TRUE);
+		gtk_widget_set_visible(cfabutton, TRUE);
+		gtk_widget_set_visible(pixels, TRUE);
+		gtk_widget_set_visible(arcsec, TRUE);
+	}
+}
+
 void on_cut_dialog_show(GtkWindow *dialog, gpointer user_data) {
 	GtkWidget* colorbutton = lookup_widget("cut_radio_color");
 	GtkWidget* cfabutton = lookup_widget("cut_cfa");
+	GtkToggleButton* plot_bg = GTK_TOGGLE_BUTTON(lookup_widget("cut_spectro_plot_bg"));
 	GtkToggleButton* seqbutton = (GtkToggleButton*) lookup_widget("cut_apply_to_sequence");
 	GtkToggleButton* pngbutton = (GtkToggleButton*) lookup_widget("cut_save_png");
 	gtk_widget_set_sensitive(colorbutton, (gfit.naxes[2] == 3));
@@ -962,7 +1069,8 @@ void on_cut_dialog_show(GtkWindow *dialog, gpointer user_data) {
 	GtkToggleButton *save_dat = (GtkToggleButton*) lookup_widget("cut_save_checkbutton");
 	gtk_toggle_button_set_active(save_dat, FALSE);
 	gui.cut.save_dat = gtk_toggle_button_get_active(save_dat);
-
+	update_spectro_labels();
+	gui.cut.plot_spectro_bg = gtk_toggle_button_get_active(plot_bg);
 }
 
 void on_cut_spectro_cancel_button_clicked(GtkButton *button, gpointer user_data) {
@@ -1142,6 +1250,7 @@ void on_cut_tri_cut_toggled(GtkToggleButton *button, gpointer user_data) {
 	if (gui.cut.tri) {
 		gui.cut.cfa = FALSE;
 	}
+	gtk_widget_set_sensitive(GTK_WIDGET(user_data), gui.cut.tri);
 	redraw(REDRAW_OVERLAY);
 }
 
@@ -1160,11 +1269,6 @@ void on_cut_cfa_toggled(GtkToggleButton *button, gpointer user_data) {
 void on_cut_save_checkbutton_toggled(GtkToggleButton *button, gpointer user_data) {
 	gui.cut.save_dat = gtk_toggle_button_get_active(button);
 }
-
-void on_cut_spin_wavelength1_value_changed(GtkSpinButton* button, gpointer user_data);
-void on_cut_spin_wavelength2_value_changed(GtkSpinButton* button, gpointer user_data);
-void on_cut_spin_wavenumber1_value_changed(GtkSpinButton* button, gpointer user_data);
-void on_cut_spin_wavenumber2_value_changed(GtkSpinButton* button, gpointer user_data);
 
 
 void on_cut_spin_point1_value_changed(GtkSpinButton* button, gpointer user_data) {
@@ -1192,6 +1296,14 @@ void on_cut_spin_point2_value_changed(GtkSpinButton* button, gpointer user_data)
 void on_cut_dist_pref_as_group_changed(GtkRadioButton* button, gpointer user_data) {
 	GtkToggleButton *as = (GtkToggleButton*) lookup_widget("cut_dist_pref_as");
 	gui.cut.pref_as = gtk_toggle_button_get_active(as);
+}
+
+void on_cut_spectro_polyorder_changed(GtkSpinButton* button, gpointer user_data) {
+	gui.cut.bg_poly_order = gtk_spin_button_get_value(button);
+}
+
+void on_cut_spectro_plot_bg_toggled(GtkToggleButton *button, gpointer user_data) {
+	gui.cut.plot_spectro_bg = gtk_toggle_button_get_active(button);
 }
 
 //// Sequence Processing ////
@@ -1241,24 +1353,6 @@ static int cut_image_hook(struct generic_seq_args *args, int o, int i, fits *fit
 	cut_struct *private_args = malloc(sizeof(cut_struct));
 	memcpy(private_args, cut_args, sizeof(cut_struct));
 	private_args->fit = fit;
-
-/*
-	// Check points are not out of bounds. The >=0 criterion is checked earlier
-	// but we have to check <fit.rx and <fit.ry for every image in case of
-	// sequences with variable image sizes.
-	// These checks shouldn't be needed as we check (!seq->is_variable)
-
-	if (private_args->cut_wn1.x > fit->rx - 1 || private_args->cut_wn2.x > fit->rx - 1 || private_args->cut_wn1.y > fit->ry - 1 || private_args->cut_wn2.y > fit->ry - 1) {
-		siril_log_message(_("Error: wavenumber point outside image dimensions.\n"));
-		free(private_args);
-		return 1;
-	}
-	if (private_args->cut_start.x > fit->rx - 1 || private_args->cut_start.y > fit->ry - 1 || private_args->cut_end.x > fit->rx - 1 || private_args->cut_end.y > fit->ry - 1) {
-		siril_log_message(_("Error: profile line endpoint outside image dimensions.\n"));
-		free(private_args);
-		return 1;
-	}
-*/
 	private_args->imgnumber = i;
 	if (private_args->cfa)
 		ret = GPOINTER_TO_INT(cfa_cut(private_args));
@@ -1286,4 +1380,3 @@ void apply_cut_to_sequence(cut_struct* cut_args) {
 
 	start_in_new_thread(generic_sequence_worker, args);
 }
-
