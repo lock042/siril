@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019-2023
 
@@ -90,18 +90,20 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
           </packing>
         </child>
         <child>
-          <!-- n-columns=2 n-rows=7 -->
+          <!-- n-columns=2 n-rows=8 -->
           <object class="GtkGrid">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="row-spacing">6</property>
-            <property name="column-spacing">6</property>
+            <property name="row-spacing">10</property>
+            <property name="column-spacing">10</property>
             <property name="column-homogeneous">True</property>
             <child>
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="halign">start</property>
+                <property name="margin-top">5</property>
+                <property name="margin-bottom">5</property>
                 <property name="label" translatable="yes">&lt;b&gt;Type of Profile&lt;/b&gt;</property>
                 <property name="use-markup">True</property>
               </object>
@@ -174,19 +176,20 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">False</property>
-                <property name="tooltip-text" translatable="yes">Generates 3 parallel intensity profiles separated by a given number of pixels. Tri-profiles always plot luminance along each profile and do not use spectrometric data.</property>
+                <property name="tooltip-text" translatable="yes">Generates 3 parallel intensity profiles separated by a given number of pixels. Tri-profiles always plot luminance along each profile.</property>
                 <property name="draw-indicator">True</property>
                 <property name="group">cut_radio_mono</property>
-                <signal name="toggled" handler="on_cut_tri_cut_toggled" swapped="no"/>
+                <signal name="toggled" handler="on_cut_tri_cut_toggled" object="cut_tricut_step" swapped="no"/>
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">3</property>
+                <property name="top-attach">4</property>
               </packing>
             </child>
             <child>
               <object class="GtkSpinButton" id="cut_tricut_step">
                 <property name="visible">True</property>
+                <property name="sensitive">False</property>
                 <property name="can-focus">True</property>
                 <property name="tooltip-text" translatable="yes">Set offset step size for tri-profile</property>
                 <property name="text" translatable="yes">1</property>
@@ -196,7 +199,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">3</property>
+                <property name="top-attach">4</property>
               </packing>
             </child>
             <child>
@@ -211,23 +214,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">4</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkRadioButton" id="cut_cfa">
-                <property name="label" translatable="yes">CFA</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">False</property>
-                <property name="tooltip-text" translatable="yes">Generates 3 parallel intensity profiles separated by a given number of pixels. Tri-profiles always plot luminance along each profile and do not use spectrometric data.</property>
-                <property name="draw-indicator">True</property>
-                <property name="group">cut_radio_mono</property>
-                <signal name="toggled" handler="on_cut_cfa_toggled" swapped="no"/>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">4</property>
+                <property name="top-attach">5</property>
               </packing>
             </child>
             <child>
@@ -242,7 +229,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">5</property>
+                <property name="top-attach">6</property>
               </packing>
             </child>
             <child>
@@ -257,7 +244,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">5</property>
+                <property name="top-attach">6</property>
               </packing>
             </child>
             <child>
@@ -273,7 +260,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">6</property>
+                <property name="top-attach">7</property>
               </packing>
             </child>
             <child>
@@ -289,8 +276,39 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">6</property>
+                <property name="top-attach">7</property>
               </packing>
+            </child>
+            <child>
+              <object class="GtkRadioButton" id="cut_cfa">
+                <property name="label" translatable="yes">CFA</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">Generates 3 parallel intensity profiles separated by a given number of pixels. Tri-profiles always plot luminance along each profile and do not use spectrometric data.</property>
+                <property name="draw-indicator">True</property>
+                <property name="group">cut_radio_mono</property>
+                <signal name="toggled" handler="on_cut_cfa_toggled" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="cut_offset_label">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Tri-Profile offset (px)</property>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">3</property>
+              </packing>
+            </child>
+            <child>
+              <placeholder/>
             </child>
             <child>
               <placeholder/>
@@ -309,25 +327,23 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
             <property name="label-xalign">0</property>
             <property name="shadow-type">none</property>
             <child>
-              <object class="GtkAlignment">
+              <object class="GtkEntry" id="cut_title">
                 <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="left-padding">12</property>
-                <child>
-                  <object class="GtkEntry" id="cut_title">
-                    <property name="visible">True</property>
-                    <property name="can-focus">True</property>
-                    <property name="tooltip-text" translatable="yes">Sets a custom title for the plot. If the title ends with (), if a sequence is processed the current image number / total will be added inside the brackets (e.g. Title (1/n)).</property>
-                    <property name="text" translatable="yes">Intensity Profile</property>
-                  </object>
-                </child>
+                <property name="can-focus">True</property>
+                <property name="tooltip-text" translatable="yes">Sets a custom title for the plot. If the title ends with (), if a sequence is processed the current image number / total will be added inside the brackets (e.g. Title (1/n)).</property>
+                <property name="text" translatable="yes">Intensity Profile</property>
               </object>
             </child>
             <child type="label">
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="margin-top">5</property>
+                <property name="margin-bottom">5</property>
                 <property name="label" translatable="yes">Plot Title</property>
+                <attributes>
+                  <attribute name="weight" value="bold"/>
+                </attributes>
               </object>
             </child>
           </object>
@@ -340,5 +356,4 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
       </object>
     </child>
   </object>
-
 </interface>

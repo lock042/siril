@@ -519,6 +519,7 @@ gboolean main_action_click(mouse_data *data) {
 				gtk_label_set_text(label_wn1_y, "");
 				gtk_label_set_text(label_wn2_x, "");
 				gtk_label_set_text(label_wn2_y, "");
+				update_spectro_labels();
 				register_release_callback(cut_select_release, data->event->button);
 				break;
 			case MOUSE_ACTION_CUT_WN1:
