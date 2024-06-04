@@ -16,7 +16,7 @@ struct noise_data {
 	int retval;
 };
 
-gpointer noise(gpointer p);
+gpointer noise_worker(gpointer p);
 void evaluate_noise_in_image();
 void bgnoise_async(fits *fit, gboolean display_values);
 double bgnoise_await();

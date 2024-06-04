@@ -73,7 +73,6 @@
 #include "gui/progress_and_log.h"
 #include "gui/image_display.h"
 #include "gui/image_interactions.h"
-#include "gui/linear_match.h"
 #include "gui/newdeconv.h"
 #include "gui/sequence_list.h"
 #include "gui/siril_preview.h"
@@ -88,6 +87,7 @@
 #include "filters/clahe.h"
 #include "filters/cosmetic_correction.h"
 #include "filters/deconvolution/deconvolution.h"
+#include "filters/linear_match.h"
 #include "filters/median.h"
 #include "filters/mtf.h"
 #include "filters/fft.h"
@@ -107,6 +107,7 @@
 #include "algos/ccd-inspector.h"
 #include "algos/demosaicing.h"
 #include "algos/extraction.h"
+#include "algos/fitting.h"
 #include "algos/colors.h"
 #include "algos/quality.h"
 #include "algos/noise.h"
@@ -10168,7 +10169,7 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 		char *arg = word[i], *end;
 		if (!word[i])
 			break;
-		if (g_str_has_prefix(word[i], "-tri")) {
+		if (g_str_has_prefix(word[i], "-tri") || g_str_has_prefix(word[i], "-bgremove")) {
 			cut_args->tri = TRUE;
 		}
 		else if (g_str_has_prefix(word[i], "-cfa")) {
@@ -10252,6 +10253,10 @@ cut_struct *parse_cut_args(int nb, sequence *seq, cmd_errors *err) {
 		else if (g_str_has_prefix(arg, "-wavelength2=")) {
 			arg += 13;
 			cut_args->wavenumber2 = 10000000. / g_ascii_strtod(arg, &end);
+		}
+		else if (g_str_has_prefix(arg, "-bgpoly=")) {
+			arg += 8;
+			cut_args->bg_poly_order = (int) g_ascii_strtod(arg, &end);
 		}
 		else if (g_str_has_prefix(arg, "-from=")) {
 			gchar *value;

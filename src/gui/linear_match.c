@@ -18,13 +18,11 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <gsl/gsl_fit.h>
-
 #include "core/siril.h"
 #include "core/proto.h"
-#include "core/optimize_utils.h"
 #include "core/undo.h"
 #include "core/siril_log.h"
+#include "algos/fitting.h"
 #include "algos/statistics.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
@@ -35,130 +33,7 @@
 #include "gui/progress_and_log.h"
 #include "gui/registration_preview.h"
 
-#include "linear_match.h"
-
-static int find_linear_coeff_ushort(fits *target_fit, fits *reference_fit, double low,
-		double high, double *a, double *b, gchar **error) {
-	double c0, c1, cov00, cov01, cov11, sumsq;
-	size_t ref_size = reference_fit->rx * reference_fit->ry;
-
-	if (memcmp(target_fit->naxes, reference_fit->naxes, sizeof target_fit->naxes)) {
-		gchar *err = siril_log_color_message(_("Images must have same dimensions.\n"), "red");
-		if (error) {
-			*error = err;
-		}
-		return -1;
-	}
-
-	low *= USHRT_MAX_DOUBLE;
-	high *= USHRT_MAX_DOUBLE;
-
-	siril_log_color_message(_("Linear fit functions:\n"), "green");
-	for (int channel = 0; channel < reference_fit->naxes[2]; channel++) {
-		size_t j = 0;
-		double *x = malloc(ref_size * sizeof(double));
-		double *y = malloc(ref_size * sizeof(double));
-		for (size_t i = 0; i < ref_size; i++) {
-			if (inInterval(reference_fit->pdata[channel][i], low, high) && (reference_fit->pdata[channel][i] != 0)) {
-				if (target_fit->type == DATA_FLOAT && (target_fit->fpdata[channel][i] != 0)) {
-					x[j] = (double) target_fit->fpdata[channel][i];
-				} else if (target_fit->type != DATA_FLOAT && target_fit->pdata[channel][i] != 0) {
-					x[j] = (double) target_fit->pdata[channel][i] * INV_USHRT_MAX_DOUBLE;
-				} else 	continue;
-				y[j] = (double) reference_fit->pdata[channel][i] * INV_USHRT_MAX_DOUBLE;
-				j++;
-			}
-		}
-		j--;
-		gsl_fit_linear(x, 1, y, 1, (int)j, &c0, &c1, &cov00, &cov01, &cov11, &sumsq);
-		siril_log_color_message("y_0 = %e + %e*x_0 (%d)\n", "blue", c0, c1, (int)j);
-		free(x);
-		free(y);
-		a[channel] = c1;
-		b[channel] = c0;
-	}
-	return 0;
-}
-
-static int find_linear_coeff_float(fits *target_fit, fits *reference_fit, double low,
-		double high, double *a, double *b, gchar **error) {
-	double c0, c1, cov00, cov01, cov11, sumsq;
-	size_t ref_size = reference_fit->rx * reference_fit->ry;
-
-	if (memcmp(target_fit->naxes, reference_fit->naxes, sizeof target_fit->naxes)) {
-		gchar *err = siril_log_color_message(_("Images must have same dimensions.\n"), "red");
-		if (error) {
-			*error = err;
-		}
-		return -1;
-	}
-
-	siril_log_color_message(_("Linear fit functions:\n"), "green");
-	for (int channel = 0; channel < reference_fit->naxes[2]; channel++) {
-		size_t j = 0;
-		double *x = malloc(ref_size * sizeof(double));
-		double *y = malloc(ref_size * sizeof(double));
-		for (size_t i = 0; i < ref_size; i++) {
-			if (inInterval(reference_fit->fpdata[channel][i], low, high) && (reference_fit->fpdata[channel][i] != 0)) {
-				if (target_fit->type == DATA_FLOAT && (target_fit->fpdata[channel][i] != 0)) {
-					x[j] = (double) target_fit->fpdata[channel][i];
-				} else if (target_fit->type != DATA_FLOAT && target_fit->pdata[channel][i] != 0) {
-					x[j] = (double) target_fit->pdata[channel][i] * INV_USHRT_MAX_DOUBLE;
-				} else 	continue;
-				y[j] = (double) reference_fit->fpdata[channel][i];
-				j++;
-			}
-		}
-		j--;
-		gsl_fit_linear(x, 1, y, 1, (int)j, &c0, &c1, &cov00, &cov01, &cov11,	&sumsq);
-		siril_log_color_message("y_0 = %e + %e*x_0 (%d)\n", "blue", c0, c1, (int)j);
-		free(x);
-		free(y);
-		a[channel] = c1;
-		b[channel] = c0;
-	}
-	return 0;
-}
-
-int find_linear_coeff(fits *target_fit, fits *reference_fit, double low,
-		double high, double *a, double *b, gchar **error) {
-	if (reference_fit->type == DATA_USHORT) {
-		return find_linear_coeff_ushort(target_fit, reference_fit, low, high, a, b, error);
-	} else if (reference_fit->type == DATA_FLOAT) {
-		return find_linear_coeff_float(target_fit, reference_fit, low, high, a, b, error);
-	}
-	return 1;
-}
-
-static void apply_linear_to_fits_ushort(fits *fit, const double *a, const double *b) {
-	size_t size = fit->rx * fit->ry;
-
-	invalidate_stats_from_fit(&gfit);
-	for (int channel = 0; channel < fit->naxes[2]; channel++) {
-		for (size_t i = 0; i < size; i++) {
-			fit->pdata[channel][i] = round_to_WORD(fit->pdata[channel][i] * a[channel] + b[channel] * USHRT_MAX_DOUBLE);
-		}
-	}
-}
-
-static void apply_linear_to_fits_float(fits *fit, const double *a, const double *b) {
-	size_t size = fit->rx * fit->ry;
-
-	invalidate_stats_from_fit(&gfit);
-	for (int channel = 0; channel < fit->naxes[2]; channel++) {
-		for (size_t i = 0; i < size; i++) {
-			fit->fpdata[channel][i] = fit->fpdata[channel][i] * a[channel] + b[channel];
-		}
-	}
-}
-
-void apply_linear_to_fits(fits *fit, double *a, double *b) {
-	if (fit->type == DATA_USHORT) {
-		apply_linear_to_fits_ushort(fit, a, b);
-	} else if (fit->type == DATA_FLOAT) {
-		apply_linear_to_fits_float(fit, a, b);
-	}
-}
+#include "filters/linear_match.h"
 
 static gchar *get_reference_filename() {
 	GtkFileChooser *linearmatch_ref = GTK_FILE_CHOOSER(lookup_widget("reference_filechooser_linearmatch"));

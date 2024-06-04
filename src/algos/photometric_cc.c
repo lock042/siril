@@ -30,6 +30,7 @@
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
 #include "algos/colors.h"
+#include "algos/fitting.h"
 #include "algos/sorting.h"
 #include "algos/statistics.h"
 #include "algos/statistics_float.h"
