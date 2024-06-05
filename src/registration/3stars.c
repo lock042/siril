@@ -45,7 +45,7 @@ static GtkWidget *three_buttons[3] = { 0 };
 static GtkWidget *go_register = NULL;
 static GtkLabel *labelreginfo = NULL;
 static GtkImage *image_3stars[3] = { NULL };
-static GtkWidget *follow = NULL, *onlyshift = NULL, *noout = NULL;
+static GtkWidget *follow = NULL, *onlyshift = NULL;
 static GtkComboBox *reg_all_sel_box = NULL;
 
 struct _3psf {
@@ -118,7 +118,6 @@ gboolean _3stars_check_selection() {
 		reg_all_sel_box = GTK_COMBO_BOX(GTK_COMBO_BOX_TEXT(lookup_widget("reg_sel_all_combobox")));
 		labelreginfo = GTK_LABEL(lookup_widget("labelregisterinfo"));
 		onlyshift = lookup_widget("onlyshift_checkbutton");
-		noout = lookup_widget("regNoOutput");
 	}
 	gboolean dofollow = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(follow));
 	gboolean doall = !gtk_combo_box_get_active(reg_all_sel_box);
@@ -161,18 +160,14 @@ void on_select_star_button_clicked(GtkButton *button, gpointer user_data) {
 		awaiting_star = 1;
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(onlyshift), TRUE);
 		gtk_widget_set_sensitive(onlyshift, FALSE);
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), TRUE);
-		gtk_widget_set_sensitive(noout, FALSE);
 	} else if (three_buttons[1] == widget) {
 		awaiting_star = 2;
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(onlyshift), FALSE);
 		gtk_widget_set_sensitive(onlyshift, TRUE);
-		gtk_widget_set_sensitive(noout, TRUE);
 	} else if (three_buttons[2] == widget) {
 		awaiting_star = 3;
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(onlyshift), FALSE);
 		gtk_widget_set_sensitive(onlyshift, TRUE);
-		gtk_widget_set_sensitive(noout, TRUE);
 	} else {
 		fprintf(stderr, "unknown button clicked\n");
 		return;
@@ -340,185 +335,6 @@ static int _3stars_seqpsf(struct registration_args *regargs) {
 	return regargs->retval;
 }
 
-/* image alignment hooks and main process */
-static int _3stars_align_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads) {
-	struct star_align_data *sadata = args->user;
-	struct registration_args *regargs = sadata->regargs;
-	int refimage = regargs->reference_image;
-
-	sadata->success[out_index] = 0;
-	gboolean upscale = regargs->output_scale != 1.f;
-
-	if (in_index != refimage) {
-		if (guess_transform_from_H(sadata->current_regdata[in_index].H) > NULL_TRANSFORMATION) {
-			if (regargs->interpolation <= OPENCV_LANCZOS4) {
-				if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, sadata->current_regdata[in_index].H, regargs->output_scale, regargs->interpolation, regargs->clamp)) {
-					return 1;
-				}
-			} else { //  Do we want to allow for no interp while the transformation has been computed as a similarity?
-				if (shift_fit_from_reg(fit, sadata->current_regdata[in_index].H)) {
-					return 1;
-				}
-			}
-		} else return 1;
-	} else {
-		// reference image
-		if (upscale && !regargs->no_output) {
-			if (cvResizeGaussian(fit, fit->rx * 2, fit->ry * 2, OPENCV_NEAREST, FALSE))
-				return 1;
-		}
-	}
-
-	if (!regargs->no_output) {
-		regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
-		regargs->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
-		regargs->imgparam[out_index].rx = sadata->ref.x;
-		regargs->imgparam[out_index].ry = sadata->ref.y;
-		regargs->regparam[out_index].fwhm = sadata->current_regdata[in_index].fwhm;
-		regargs->regparam[out_index].weighted_fwhm = sadata->current_regdata[in_index].weighted_fwhm;
-		regargs->regparam[out_index].roundness = sadata->current_regdata[in_index].roundness;
-		regargs->regparam[out_index].background_lvl = sadata->current_regdata[in_index].background_lvl;
-		regargs->regparam[out_index].number_of_stars = sadata->current_regdata[in_index].number_of_stars;
-		cvGetEye(&regargs->regparam[out_index].H);
-
-		if (upscale) {
-			fit->keywords.pixel_size_x /= 2;
-			fit->keywords.pixel_size_y /= 2;
-			regargs->regparam[out_index].fwhm *= 2.0;
-			regargs->regparam[out_index].weighted_fwhm *= 2.0;
-		}
-	}
-	sadata->success[out_index] = 1;
-	return 0;
-}
-
-static int _3stars_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
-	struct seqpsf_args *spsfargs = (struct seqpsf_args *)args->user;
-	unsigned int MB_per_orig_image, MB_per_scaled_image, MB_avail;
-	int limit = compute_nb_images_fit_memory(args->seq, args->upscale_ratio, FALSE,
-			&MB_per_orig_image, &MB_per_scaled_image, &MB_avail);
-	unsigned int required = MB_per_scaled_image;
-	int is_float = get_data_type(args->seq->bitpix) == DATA_FLOAT;
-
-	if (limit > 0) {
-		/* The registration memory consumption, n is original image size:
-		 * Monochrome: O(n) for loaded image, O(nscaled) for output image,
-		 *             so O(2n) for unscaled, O(n+nscaled) for scaled
-		 * Color:
-		 * 	allocations				sum
-		 *	O(n) for loaded image			O(n) as input
-		 *	O(n) for bgr image			O(2n)
-		 *	-O(n) for input				O(n)
-		 *	O(nscaled) for output			O(n+nscaled)
-		 *	-O(n) for bgr				O(nscaled)
-		 *	O(nscaled) pour alloc de data		O(2nscaled)
-		 *	-O(nscaled) for output			O(nscaled) as output
-		 * so maximum is O(2n) for unscaled and O(2nscaled) for scaled
-		 */
-		if (args->upscale_ratio == 1.0)
-			required = MB_per_orig_image * 2;
-		else if (args->seq->nb_layers == 3)
-			required = MB_per_scaled_image * 2;
-		else required = MB_per_orig_image + MB_per_scaled_image;
-
-		// If interpolation clamping is set, 2x additional Mats of the same format
-		// as the original image are required
-		struct star_align_data *sadata = args->user;
-		struct registration_args *regargs = sadata->regargs;
-		if (regargs->clamp && (regargs->interpolation == OPENCV_CUBIC ||
-				regargs->interpolation == OPENCV_LANCZOS4)) {
-			float factor = (is_float) ? 0.25 : 0.5;
-			required += (1 + factor) * MB_per_scaled_image;
-		} else if (spsfargs->bayer_pattern[0]) {
-			required += MB_per_orig_image;
-		}
-		regargs = NULL;
-		sadata = NULL;
-
-		int thread_limit = MB_avail / required;
-		if (thread_limit > com.max_thread)
-			thread_limit = com.max_thread;
-
-		if (for_writer) {
-			/* we allow the already allocated thread_limit images,
-			 * plus how many images can be stored in what remains
-			 * unused by the main processing */
-			limit = thread_limit + (MB_avail - required * thread_limit) / MB_per_scaled_image;
-		} else limit = thread_limit;
-	}
-
-	if (limit == 0) {
-		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
-		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
-
-		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per thread, %s considered available)\n"),
-				"red", args->description, mem_per_thread, mem_available);
-
-		g_free(mem_per_thread);
-		g_free(mem_available);
-	} else {
-#ifdef _OPENMP
-		if (for_writer) {
-			int max_queue_size = com.max_thread * 3;
-			if (limit > max_queue_size)
-				limit = max_queue_size;
-		}
-		siril_debug_print("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
-				required, MB_per_scaled_image, limit, for_writer ? "images" : "threads");
-#else
-		/* we still want the check of limit = 0 above */
-		if (!for_writer)
-			limit = 1;
-		else if (limit > 3)
-			limit = 3;
-#endif
-	}
-	return limit;
-}
-
-static int _3stars_alignment(struct registration_args *regargs, regdata *current_regdata) {
-	struct generic_seq_args *args = create_default_seqargs(&com.seq);
-	if (regargs->filters.filter_included) {
-		args->filtering_criterion = seq_filter_included;
-		args->nb_filtered_images = regargs->seq->selnum;
-	}
-	args->compute_mem_limits_hook = (regargs->no_output) ? NULL : _3stars_align_compute_mem_limits;
-	args->prepare_hook = star_align_prepare_results;
-	args->image_hook = _3stars_align_image_hook;
-	args->finalize_hook = star_align_finalize_hook;	// from global registration
-	args->stop_on_error = FALSE;
-	args->description = (!regargs->no_output) ? _("Creating the aligned image sequence") : _("Saving the transformation matrices");
-	args->has_output = !regargs->no_output;
-	args->output_type = get_data_type(args->seq->bitpix);
-	args->upscale_ratio = (double)regargs->output_scale;
-	args->new_seq_prefix = regargs->prefix;
-	args->load_new_sequence = !regargs->no_output;
-	args->already_in_a_thread = TRUE;
-
-	struct star_align_data *sadata = calloc(1, sizeof(struct star_align_data));
-	if (!sadata) {
-		free(args);
-		return -1;
-	}
-	sadata->regargs = regargs;
-	// we pass the regdata just to avoid recomputing it for the new sequence
-	sadata->current_regdata = current_regdata;
-	args->user = sadata;
-
-	// some prep work done in star_align_prepare_hook for global
-	// need to duplicate it here
-	sadata->ref.x = args->seq->rx;
-	sadata->ref.y = args->seq->ry;
-
-	sadata->ref.x *= regargs->output_scale;
-	sadata->ref.y *= regargs->output_scale;
-
-
-	generic_sequence_worker(args);
-	regargs->retval = args->retval;
-	free(args);
-	return regargs->retval;
-}
 
 /*
 This function runs seqpsfs on 1/2/3 stars as selected by the user
@@ -729,14 +545,11 @@ int register_3stars(struct registration_args *regargs) {
 	free(scores);
 	_3stars_free_results();
 
-	if (!regargs->no_output) {
-		return _3stars_alignment(regargs, current_regdata);
-	} else {
-		fix_selnum(regargs->seq, FALSE);
-		siril_log_message(_("Registration finished.\n"));
-		siril_log_color_message(_("Total: %d failed, %d registered.\n"), "green", failed, regargs->new_total);
-		gettimeofday(&t_end, NULL);
-		show_time(t_start, t_end);
-		return 0;
-	}
+	fix_selnum(regargs->seq, FALSE);
+	siril_log_message(_("Registration finished.\n"));
+	siril_log_color_message(_("Total: %d failed, %d registered.\n"), "green", failed, regargs->new_total);
+	gettimeofday(&t_end, NULL);
+	show_time(t_start, t_end);
+	return 0;
+
 }

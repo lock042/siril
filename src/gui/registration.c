@@ -39,8 +39,6 @@
 #include "io/image_format_fits.h"
 #include "stacking/stacking.h"
 
-static gboolean keep_noout_state = FALSE;
-
 #undef DEBUG
 static char *tooltip_text[] = {
 	N_("<b>1-2-3 Stars Registration</b>: This is the simplest method to register deep-sky images. "
@@ -151,28 +149,6 @@ int populate_drizzle_data(struct driz_args_t *driz) {
 		}
 	}
 	return 0;
-}
-
-void on_reg_scaling_spin_value_changed(GtkSpinButton *button, gpointer user_data) {
-	double value = gtk_spin_button_get_value(button);
-	if (fabs(value - 2.0) > DBL_EPSILON) {
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("upscaleCheckButton")), FALSE);
-	}
-}
-
-void on_upscaleCheckButton_toggled(GtkToggleButton* button, gpointer user_data) {
-	gboolean state = gtk_toggle_button_get_active(button);
-	if (state) {
-		GtkSpinButton *spin_scale = GTK_SPIN_BUTTON(lookup_widget("reg_scaling_spin"));
-		gtk_spin_button_set_value(spin_scale, 2.0);
-	}
-	GtkWidget *regNoOut = lookup_widget("regNoOutput");
-	if (gtk_widget_get_visible(regNoOut) && state) {
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(regNoOut), FALSE);
-		gtk_widget_set_sensitive(regNoOut, FALSE);
-	} else {
-		gtk_widget_set_sensitive(regNoOut, TRUE);
-	}
 }
 
 static struct registration_method *reg_methods[NUMBER_OF_METHODS + 1];
@@ -565,10 +541,10 @@ static gboolean check_framing() {
  * Verifies that enough images are selected and an area is selected.
  */
 void update_reg_interface(gboolean dont_change_reg_radio) {
-	static GtkWidget *go_register = NULL, *follow = NULL, //*cumul_data = NULL,
-	*noout = NULL, *toggle_reg_clamp = NULL, *onlyshift = NULL, *filter_box = NULL, *manualreg = NULL,
+	static GtkWidget *go_register = NULL, *follow = NULL,
+	*toggle_reg_clamp = NULL, *onlyshift = NULL, *filter_box = NULL, *manualreg = NULL,
 	*interpolation_algo = NULL, //*undistort_check = NULL,
-	*x2upscale = NULL, *go_estimate = NULL, *output_reg_frame = NULL;
+	*go_estimate = NULL, *output_reg_frame = NULL;
 	static GtkLabel *labelreginfo = NULL;
 	static GtkComboBox *reg_all_sel_box = NULL, *reglayer = NULL, *filter_combo_init = NULL;
 	static GtkNotebook *notebook_reg = NULL;
@@ -587,8 +563,6 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		reg_all_sel_box = GTK_COMBO_BOX(lookup_widget("reg_sel_all_combobox"));
 		labelreginfo = GTK_LABEL(lookup_widget("labelregisterinfo"));
 		notebook_reg = GTK_NOTEBOOK(lookup_widget("notebook_registration"));
-		// cumul_data = lookup_widget("check_button_comet");
-		noout = lookup_widget("regNoOutput");
 		reglayer = GTK_COMBO_BOX(lookup_widget("comboboxreglayer"));
 		filter_combo_init = GTK_COMBO_BOX(lookup_widget("combofilter4"));
 		toggle_reg_clamp = lookup_widget("toggle_reg_clamp");
@@ -596,7 +570,6 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		manualreg = lookup_widget("manualreg_expander");
 		interpolation_algo = lookup_widget("ComboBoxRegInter");
 		// undistort_check = lookup_widget("reg_undistort");
-		x2upscale = lookup_widget("upscaleCheckButton");
 		output_reg_frame = lookup_widget("output_reg_frame");
 		framing_grid = GTK_GRID(lookup_widget("grid_reg_framing"));
 	}
@@ -702,7 +675,6 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		method->method_ptr == &register_star_alignment || method->method_ptr == &register_astrometric ||
 		(method->method_ptr == &register_3stars && nbselstars > 1))
 		&& (interpolation_item == OPENCV_CUBIC || interpolation_item == OPENCV_LANCZOS4));
-		// gtk_widget_set_visible(cumul_data, method->method_ptr == &register_comet);
 	} else {
 		gtk_widget_set_sensitive(go_register, FALSE);
 		if (nb_images_reg <= 1 && !selection_is_done) {
@@ -724,9 +696,6 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 			gtk_label_set_text(labelreginfo, _("Select an area in image first"));
 		}
 	}
-	/* we temporary save value as keep_noout_state will be changed in the callback */
-	gboolean save_state = keep_noout_state;
-	// for now, methods which do not save images but only shift in seq files are constrained to this option (no_output is true and unsensitive)
 
 	gboolean is_astrometric = method->method_ptr == &register_astrometric;
 	gboolean is_old_global = method->method_ptr == &register_star_alignment;
@@ -735,70 +704,25 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	gtk_widget_set_visible(output_reg_frame, is_astrometric || isapplyreg || is_old_global);
 	gtk_widget_set_visible(GTK_WIDGET(notebook_reg), !(is_astrometric || isapplyreg));
 	gtk_widget_set_visible(GTK_WIDGET(framing_grid), is_astrometric || isapplyreg);
-	if (((method->method_ptr == &register_comet) ||
-			(method->method_ptr == &register_kombat) ||
-			(method->method_ptr == &register_shift_dft) ||
-			(method->method_ptr == &register_multi_step_global) ||
-			(method->method_ptr == &register_3stars && nbselstars <= 1))) {
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), TRUE);
-		gtk_widget_set_sensitive(noout, FALSE);
-		gtk_widget_set_visible(noout, TRUE);
-		gtk_widget_set_visible(x2upscale, TRUE);
-		gtk_widget_set_sensitive(x2upscale, FALSE);
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(x2upscale), FALSE);
-	} else if (method->method_ptr == &register_apply_reg ||
-				method->method_ptr == &register_astrometric ) { // cannot have no output with apply registration/astrometric method
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), FALSE);
-		gtk_widget_set_sensitive(noout, FALSE);
-		gtk_widget_set_visible(noout, FALSE);
-		gtk_widget_set_visible(x2upscale, is_old_global); // only relevant to the original global method now
-		gtk_widget_set_sensitive(x2upscale, is_old_global);
-	} else {
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), save_state);
-		gtk_widget_set_sensitive(noout, TRUE);
-		gtk_widget_set_visible(noout, TRUE);
-		gtk_widget_set_visible(x2upscale, TRUE);
-		gtk_widget_set_sensitive(x2upscale, TRUE);
-	}
-	keep_noout_state  = save_state;
 
 }
 
 
-/* callback for no output button */
-void on_regNoOutput_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
-	GtkWidget *Algo = lookup_widget("ComboBoxRegInter");
-	GtkWidget *clamping = lookup_widget("toggle_reg_clamp");
-	GtkWidget *Prefix = lookup_widget("regseqname_entry");
-	GtkWidget *x2upscale = lookup_widget("upscaleCheckButton");
-
+/* callback for 2pass button */
+void on_reg_2pass_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	gboolean toggled = gtk_toggle_button_get_active(togglebutton);
-
-	gtk_widget_set_sensitive(Algo, !toggled);
-	gtk_widget_set_sensitive(clamping, !toggled);
-	gtk_widget_set_sensitive(Prefix, !toggled);
-	gtk_widget_set_sensitive(x2upscale, !toggled);
-	if (toggled)
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(x2upscale), FALSE);
-
-	keep_noout_state = toggled;
+	GtkWidget *outputframe = lookup_widget("output_reg_frame");
+	gtk_widget_set_sensitive(outputframe, !toggled);
 }
 
 void on_regfollowStar_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	update_reg_interface(TRUE);
 }
 
-void on_shiftonly_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
-	gboolean toggled = gtk_toggle_button_get_active(togglebutton);
-	GtkWidget *noout = lookup_widget("regNoOutput");
-	gtk_widget_set_sensitive(noout, !toggled);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(noout), toggled);
-}
-
 static int fill_registration_structure_from_GUI(struct registration_args *reg_args) {
 	char *msg;
 	struct registration_method *method;
-	GtkToggleButton *follow, *matchSel, *x2upscale, *onlyshift;//, *undistort, *cumul;
+	GtkToggleButton *follow, *matchSel, *onlyshift, *check_2pass;//, *undistort;
 	GtkComboBox *cbbt_layers, *reg_all_sel_box;
 	GtkComboBoxText *ComboBoxRegInter, *ComboBoxTransfo, *ComboBoxMaxStars, *ComboBoxFraming;
 	GtkSpinButton *minpairs, *percent_moved, *scaling_spin;
@@ -831,17 +755,16 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 	follow = GTK_TOGGLE_BUTTON(lookup_widget("followStarCheckButton"));
 	onlyshift = GTK_TOGGLE_BUTTON(lookup_widget("onlyshift_checkbutton"));
 	matchSel = GTK_TOGGLE_BUTTON(lookup_widget("checkStarSelect"));
-	x2upscale = GTK_TOGGLE_BUTTON(lookup_widget("upscaleCheckButton"));
 	cbbt_layers = GTK_COMBO_BOX(lookup_widget("comboboxreglayer"));
 	ComboBoxRegInter = GTK_COMBO_BOX_TEXT(lookup_widget("ComboBoxRegInter"));
-	// cumul = GTK_TOGGLE_BUTTON(lookup_widget("check_button_comet"));
 	minpairs = GTK_SPIN_BUTTON(lookup_widget("spinbut_minpairs"));
 	percent_moved = GTK_SPIN_BUTTON(lookup_widget("spin_kombat_percent"));
 	ComboBoxMaxStars = GTK_COMBO_BOX_TEXT(lookup_widget("comboreg_maxstars"));
 	ComboBoxTransfo = GTK_COMBO_BOX_TEXT(lookup_widget("comboreg_transfo"));
 	ComboBoxFraming = GTK_COMBO_BOX_TEXT(lookup_widget("comboreg_framing"));
 	reg_all_sel_box = GTK_COMBO_BOX(GTK_COMBO_BOX_TEXT(lookup_widget("reg_sel_all_combobox")));
-	scaling_spin =GTK_SPIN_BUTTON(lookup_widget("reg_scaling_spin"));
+	scaling_spin = GTK_SPIN_BUTTON(lookup_widget("reg_scaling_spin"));
+	check_2pass = GTK_TOGGLE_BUTTON(lookup_widget("reg_2pass"));
 	// undistort =  GTK_TOGGLE_BUTTON(lookup_widget("reg_undistort"));
 
 	reg_args->clamp = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_reg_clamp")));
@@ -851,7 +774,7 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 	reg_args->reference_image = sequence_find_refimage(&com.seq);
 	reg_args->follow_star = gtk_toggle_button_get_active(follow);
 	reg_args->matchSelection = gtk_toggle_button_get_active(matchSel);
-	reg_args->no_output = keep_noout_state;
+	reg_args->no_output = !(method->method_ptr == &register_apply_reg || (method->method_ptr == &register_star_alignment && gtk_toggle_button_get_active(check_2pass)));
 	reg_args->cumul = FALSE; //gtk_toggle_button_get_active(cumul);
 	reg_args->prefix = strdup( gtk_entry_get_text(GTK_ENTRY(lookup_widget("regseqname_entry"))));
 	reg_args->min_pairs = gtk_spin_button_get_value_as_int(minpairs);
@@ -862,13 +785,10 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 		reg_args->type = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxTransfo));
 	else {
 		reg_args->type = (gtk_toggle_button_get_active(onlyshift)) ? SHIFT_TRANSFORMATION : SIMILARITY_TRANSFORMATION;
-		reg_args->no_output = (gtk_toggle_button_get_active(onlyshift)) ? TRUE : keep_noout_state;
 	}
 	reg_args->framing = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxFraming));
 	reg_args->undistort = TRUE; //gtk_toggle_button_get_active(undistort);
 
-//TODO : need to check conditions where we just have upscale and where the scale can be user-defined
-	reg_args->output_scale = (gtk_toggle_button_get_active(x2upscale)) ? 2.f : 1.f;
 	reg_args->output_scale = (float)gtk_spin_button_get_value(scaling_spin);
 #ifndef HAVE_CV44
 	if (reg_args->type == SHIFT_TRANSFORMATION && method->method_ptr != register_3stars) {

@@ -5335,7 +5335,7 @@ When processing images, registration data is taken from the default layer if ava
                                                             <property name="show-tabs">False</property>
                                                             <property name="show-border">False</property>
                                                             <child>
-                                                            <!-- n-columns=3 n-rows=6 -->
+                                                            <!-- n-columns=3 n-rows=5 -->
                                                             <object class="GtkGrid" id="global_page">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
@@ -5493,8 +5493,8 @@ When processing images, registration data is taken from the default layer if ava
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkCheckButton" id="regNoOutput">
-                                                            <property name="label" translatable="yes">Save transformation in seq file only</property>
+                                                            <object class="GtkCheckButton" id="reg_2pass">
+                                                            <property name="label" translatable="yes">2pass registration</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
@@ -5503,29 +5503,11 @@ When processing images, registration data is taken from the default layer if ava
 In both cases, the transformation matrices are saved to the sequence file. The registration data can then be inspected and some images unselected, prior to applying the transformations using the Apply Existing Registration method.</property>
                                                             <property name="halign">start</property>
                                                             <property name="draw-indicator">True</property>
-                                                            <signal name="toggled" handler="on_regNoOutput_toggled" swapped="no"/>
+                                                            <signal name="toggled" handler="on_reg_2pass_toggled" swapped="no"/>
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
                                                             <property name="top-attach">4</property>
-                                                            <property name="width">3</property>
-                                                            </packing>
-                                                            </child>
-                                                            <child>
-                                                            <object class="GtkCheckButton" id="upscaleCheckButton">
-                                                            <property name="label" translatable="yes">Interpolation upscaling x2</property>
-                                                            <property name="visible">True</property>
-                                                            <property name="can-focus">True</property>
-                                                            <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Applies an interpolation-based x2 upscaling. This is quicker than most of the proper drizzle kernels but will not provide results that are as sharp. Only applicable to immediately-applied global star registration.</property>
-                                                            <property name="halign">start</property>
-                                                            <property name="valign">start</property>
-                                                            <property name="draw-indicator">True</property>
-                                                            <signal name="toggled" handler="on_upscaleCheckButton_toggled" swapped="no"/>
-                                                            </object>
-                                                            <packing>
-                                                            <property name="left-attach">0</property>
-                                                            <property name="top-attach">5</property>
                                                             <property name="width">3</property>
                                                             </packing>
                                                             </child>
@@ -5923,7 +5905,6 @@ WARNING: enabling this option requires the registration to not be parallelized, 
                                                             <property name="tooltip-text" translatable="yes">Use this option to compute only shifts (so no rotation) even if more than one star is selected. When only one star is selected, this is activated by default.</property>
                                                             <property name="halign">start</property>
                                                             <property name="draw-indicator">True</property>
-                                                            <signal name="toggled" handler="on_shiftonly_toggled" swapped="no"/>
                                                             </object>
                                                             <packing>
                                                             <property name="expand">False</property>
@@ -6696,7 +6677,6 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="digits">2</property>
                                                             <property name="numeric">True</property>
                                                             <property name="value">1</property>
-                                                            <signal name="value-changed" handler="on_reg_scaling_spin_value_changed" swapped="no"/>
                                                             <style>
                                                             <class name="small-spinbutton"/>
                                                             </style>
