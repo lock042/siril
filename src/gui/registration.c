@@ -104,7 +104,6 @@ void _reg_selected_area_callback() {
 
 int populate_drizzle_data(struct driz_args_t *driz) {
 	driz->use_flats = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("driz_use_flats")));
-	driz->scale = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("reg_scaling_spin")));
 	driz->weight_scale = 1.f; // Not used for now
 	driz->kernel = (enum e_kernel_t) gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_driz_kernel")));
 	driz->pixel_fraction = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_driz_dropsize")));
@@ -566,13 +565,14 @@ static gboolean check_framing() {
  * Verifies that enough images are selected and an area is selected.
  */
 void update_reg_interface(gboolean dont_change_reg_radio) {
-	static GtkWidget *go_register = NULL, *follow = NULL, *cumul_data = NULL,
+	static GtkWidget *go_register = NULL, *follow = NULL, //*cumul_data = NULL,
 	*noout = NULL, *toggle_reg_clamp = NULL, *onlyshift = NULL, *filter_box = NULL, *manualreg = NULL,
-	*interpolation_algo = NULL, *undistort_check = NULL,
+	*interpolation_algo = NULL, //*undistort_check = NULL,
 	*x2upscale = NULL, *go_estimate = NULL, *output_reg_frame = NULL;
 	static GtkLabel *labelreginfo = NULL;
 	static GtkComboBox *reg_all_sel_box = NULL, *reglayer = NULL, *filter_combo_init = NULL;
 	static GtkNotebook *notebook_reg = NULL;
+	static GtkGrid *framing_grid = NULL;
 	int nb_images_reg; /* the number of images to register */
 	struct registration_method *method = NULL;
 	gboolean selection_is_done;
@@ -587,7 +587,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		reg_all_sel_box = GTK_COMBO_BOX(lookup_widget("reg_sel_all_combobox"));
 		labelreginfo = GTK_LABEL(lookup_widget("labelregisterinfo"));
 		notebook_reg = GTK_NOTEBOOK(lookup_widget("notebook_registration"));
-		cumul_data = lookup_widget("check_button_comet");
+		// cumul_data = lookup_widget("check_button_comet");
 		noout = lookup_widget("regNoOutput");
 		reglayer = GTK_COMBO_BOX(lookup_widget("comboboxreglayer"));
 		filter_combo_init = GTK_COMBO_BOX(lookup_widget("combofilter4"));
@@ -595,9 +595,10 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		filter_box = lookup_widget("seq_filters_box_reg");
 		manualreg = lookup_widget("manualreg_expander");
 		interpolation_algo = lookup_widget("ComboBoxRegInter");
-		undistort_check = lookup_widget("reg_undistort");
+		// undistort_check = lookup_widget("reg_undistort");
 		x2upscale = lookup_widget("upscaleCheckButton");
 		output_reg_frame = lookup_widget("output_reg_frame");
+		framing_grid = GTK_GRID(lookup_widget("grid_reg_framing"));
 	}
 
 	if (!dont_change_reg_radio) {
@@ -612,7 +613,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 
 	/* initialize default */
 	gtk_notebook_set_current_page(notebook_reg, REG_PAGE_MISC);
-	gtk_widget_set_visible(cumul_data, FALSE);
+	// gtk_widget_set_visible(cumul_data, FALSE);
 
 	/* lock manual registration if sequence is of variable image size*/
 	gtk_widget_set_sensitive(manualreg, !com.seq.is_variable);
@@ -701,7 +702,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		method->method_ptr == &register_star_alignment || method->method_ptr == &register_astrometric ||
 		(method->method_ptr == &register_3stars && nbselstars > 1))
 		&& (interpolation_item == OPENCV_CUBIC || interpolation_item == OPENCV_LANCZOS4));
-		gtk_widget_set_visible(cumul_data, method->method_ptr == &register_comet);
+		// gtk_widget_set_visible(cumul_data, method->method_ptr == &register_comet);
 	} else {
 		gtk_widget_set_sensitive(go_register, FALSE);
 		if (nb_images_reg <= 1 && !selection_is_done) {
@@ -729,10 +730,11 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 
 	gboolean is_astrometric = method->method_ptr == &register_astrometric;
 	gboolean is_old_global = method->method_ptr == &register_star_alignment;
-	gtk_widget_set_visible(undistort_check, is_astrometric);
-	gtk_widget_set_visible(go_estimate, is_astrometric);
-	gtk_widget_set_visible(output_reg_frame, is_astrometric || isapplyreg);
+	//gtk_widget_set_visible(undistort_check, is_astrometric);
+	gtk_widget_set_visible(go_estimate, is_astrometric || isapplyreg);
+	gtk_widget_set_visible(output_reg_frame, is_astrometric || isapplyreg || is_old_global);
 	gtk_widget_set_visible(GTK_WIDGET(notebook_reg), !(is_astrometric || isapplyreg));
+	gtk_widget_set_visible(GTK_WIDGET(framing_grid), is_astrometric || isapplyreg);
 	if (((method->method_ptr == &register_comet) ||
 			(method->method_ptr == &register_kombat) ||
 			(method->method_ptr == &register_shift_dft) ||
@@ -796,7 +798,7 @@ void on_shiftonly_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 static int fill_registration_structure_from_GUI(struct registration_args *reg_args) {
 	char *msg;
 	struct registration_method *method;
-	GtkToggleButton *follow, *matchSel, *x2upscale, *cumul, *onlyshift, *undistort;
+	GtkToggleButton *follow, *matchSel, *x2upscale, *onlyshift;//, *undistort, *cumul;
 	GtkComboBox *cbbt_layers, *reg_all_sel_box;
 	GtkComboBoxText *ComboBoxRegInter, *ComboBoxTransfo, *ComboBoxMaxStars, *ComboBoxFraming;
 	GtkSpinButton *minpairs, *percent_moved, *scaling_spin;
@@ -832,7 +834,7 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 	x2upscale = GTK_TOGGLE_BUTTON(lookup_widget("upscaleCheckButton"));
 	cbbt_layers = GTK_COMBO_BOX(lookup_widget("comboboxreglayer"));
 	ComboBoxRegInter = GTK_COMBO_BOX_TEXT(lookup_widget("ComboBoxRegInter"));
-	cumul = GTK_TOGGLE_BUTTON(lookup_widget("check_button_comet"));
+	// cumul = GTK_TOGGLE_BUTTON(lookup_widget("check_button_comet"));
 	minpairs = GTK_SPIN_BUTTON(lookup_widget("spinbut_minpairs"));
 	percent_moved = GTK_SPIN_BUTTON(lookup_widget("spin_kombat_percent"));
 	ComboBoxMaxStars = GTK_COMBO_BOX_TEXT(lookup_widget("comboreg_maxstars"));
@@ -840,7 +842,7 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 	ComboBoxFraming = GTK_COMBO_BOX_TEXT(lookup_widget("comboreg_framing"));
 	reg_all_sel_box = GTK_COMBO_BOX(GTK_COMBO_BOX_TEXT(lookup_widget("reg_sel_all_combobox")));
 	scaling_spin =GTK_SPIN_BUTTON(lookup_widget("reg_scaling_spin"));
-	undistort =  GTK_TOGGLE_BUTTON(lookup_widget("reg_undistort"));
+	// undistort =  GTK_TOGGLE_BUTTON(lookup_widget("reg_undistort"));
 
 	reg_args->clamp = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_reg_clamp")));
 
@@ -850,8 +852,7 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 	reg_args->follow_star = gtk_toggle_button_get_active(follow);
 	reg_args->matchSelection = gtk_toggle_button_get_active(matchSel);
 	reg_args->no_output = keep_noout_state;
-	reg_args->x2upscale = gtk_toggle_button_get_active(x2upscale);
-	reg_args->cumul = gtk_toggle_button_get_active(cumul);
+	reg_args->cumul = FALSE; //gtk_toggle_button_get_active(cumul);
 	reg_args->prefix = strdup( gtk_entry_get_text(GTK_ENTRY(lookup_widget("regseqname_entry"))));
 	reg_args->min_pairs = gtk_spin_button_get_value_as_int(minpairs);
 	reg_args->percent_moved = (float) gtk_spin_button_get_value(percent_moved) / 100.f;
@@ -864,8 +865,11 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 		reg_args->no_output = (gtk_toggle_button_get_active(onlyshift)) ? TRUE : keep_noout_state;
 	}
 	reg_args->framing = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxFraming));
-	reg_args->undistort = gtk_toggle_button_get_active(undistort);
-	reg_args->astrometric_scale = (float)gtk_spin_button_get_value(scaling_spin);
+	reg_args->undistort = TRUE; //gtk_toggle_button_get_active(undistort);
+
+//TODO : need to check conditions where we just have upscale and where the scale can be user-defined
+	reg_args->output_scale = (gtk_toggle_button_get_active(x2upscale)) ? 2.f : 1.f;
+	reg_args->output_scale = (float)gtk_spin_button_get_value(scaling_spin);
 #ifndef HAVE_CV44
 	if (reg_args->type == SHIFT_TRANSFORMATION && method->method_ptr != register_3stars) {
 		siril_log_color_message(_("Shift-only registration is only possible with OpenCV 4.4\n"), "red");
@@ -897,8 +901,8 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 
 		int nb_frames = reg_args->filters.filter_included ? reg_args->seq->selnum : reg_args->seq->number;
 		gint64 size = seq_compute_size(reg_args->seq, nb_frames, get_data_type(reg_args->seq->bitpix));
-		if (reg_args->x2upscale)
-			size *= 4;
+		if (reg_args->output_scale != 1.f)
+			size = (int64_t)(reg_args->output_scale * reg_args->output_scale * (float)size);
 		if (test_available_space(size)) {
 			siril_log_color_message(_("Not enough space to save the output images, aborting\n"), "red");
 			return 1;
@@ -922,7 +926,7 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 	reg_args->load_new_sequence = FALSE; // only TRUE for some methods. Will be updated in these cases
 
 	if (method->method_ptr == register_star_alignment) { // seqpplyreg case is dealt with in the sanity checks of the method
-		if (reg_args->interpolation == OPENCV_NONE && (reg_args->x2upscale || com.seq.is_variable)) {
+		if (reg_args->interpolation == OPENCV_NONE && (reg_args->output_scale != 1.f || com.seq.is_variable)) {
 			siril_log_color_message(_("When interpolation is set to None, the images must be of same size and no upscaling can be applied. Aborting\n"), "red");
 			return 1;
 		}

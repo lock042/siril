@@ -6978,7 +6978,7 @@ int process_register(int nb) {
 	reg_args->follow_star = FALSE;
 	reg_args->matchSelection = FALSE;
 	reg_args->no_output = FALSE;
-	reg_args->x2upscale = FALSE;
+	reg_args->output_scale = 1.f;
 	reg_args->prefix = strdup("r_");
 	reg_args->min_pairs = 10; // 10 is good enough to ensure good matching
 	reg_args->max_stars_candidates = MAX_STARS_FITTED;
@@ -6990,7 +6990,7 @@ int process_register(int nb) {
 	/* check for options */
 	for (int i = 2; i < nb; i++) {
 		if (!strcmp(word[i], "-upscale")) {
-			reg_args->x2upscale = TRUE;
+			reg_args->output_scale = 2.f;
 		} else if (!strcmp(word[i], "-noout")) {
 			reg_args->no_output = TRUE;
 		} else if (!strcmp(word[i], "-noclamp")) {
@@ -7146,15 +7146,14 @@ int process_register(int nb) {
 	if (!reg_args->no_output) {
 		int nb_frames = reg_args->filters.filter_included ? reg_args->seq->selnum : reg_args->seq->number;
 		int64_t size = seq_compute_size(reg_args->seq, nb_frames, get_data_type(seq->bitpix));
-		if (reg_args->x2upscale)
-			size *= 4;
+		if (reg_args->output_scale != 1.f)
+			size = (int64_t)(reg_args->output_scale * reg_args->output_scale * (float)size);
 		if (test_available_space(size)) {
 			siril_log_color_message(_("Not enough space to save the output images, aborting\n"), "red");
 			goto terminate_register_on_error;
 		}
-	} else if (reg_args->x2upscale) {
+	} else if (reg_args->output_scale != 1.f) {
 		siril_log_color_message(_("Upscaling a sequence with -noout or -2pass has no effect, ignoring\n"), "red");
-		reg_args->x2upscale = FALSE;
 	}
 
 
@@ -7169,7 +7168,7 @@ int process_register(int nb) {
 #endif
 	}
 
-	if (reg_args->interpolation == OPENCV_NONE && (reg_args->x2upscale || reg_args->seq->is_variable)) {
+	if (reg_args->interpolation == OPENCV_NONE && (reg_args->output_scale != 1.f || reg_args->seq->is_variable)) {
 		siril_log_color_message(_("When interpolation is set to None, the images must be of same size and no upscaling can be applied. Aborting\n"), "red");
 		goto terminate_register_on_error;
 	}
@@ -7362,18 +7361,16 @@ int process_seq_applyreg(int nb) {
 	reg_args->seq = seq;
 	reg_args->reference_image = sequence_find_refimage(seq);
 	reg_args->no_output = FALSE;
-	reg_args->x2upscale = FALSE;
 	reg_args->prefix = strdup("r_");
 	reg_args->layer = layer;
 	reg_args->interpolation = OPENCV_LANCZOS4;
 	reg_args->clamp = TRUE;
 	reg_args->framing = FRAMING_CURRENT;
+	reg_args->output_scale = 1.f;
 
 	/* check for options */
 	for (int i = 2; i < nb; i++) {
-		if (!strcmp(word[i], "-upscale")) {
-			reg_args->x2upscale = TRUE;
-		} else if (!strcmp(word[i], "-drizzle")) {
+		if (!strcmp(word[i], "-drizzle")) {
 			if (reg_args->seq->nb_layers != 1) {  // handling mono case
 				siril_log_message(_("This sequence is not mono / CFA, cannot drizzle.\n"));
 				goto terminate_register_on_error;
@@ -7389,6 +7386,7 @@ int process_seq_applyreg(int nb) {
 				siril_log_color_message(_("Invalid argument to %s, aborting.\n"), "red", word[i]);
 				goto terminate_register_on_error;
 			}
+			reg_args->output_scale = (float) value;
 			driz->scale = (float) value;
 		} else if (g_str_has_prefix(word[i], "-pixfrac=")) {
 			char *arg = word[i] + 9;
@@ -7556,10 +7554,6 @@ int process_seq_applyreg(int nb) {
 
 	if (drizzle) {
 		reg_args->driz = driz;
-		if (reg_args->x2upscale) {
-			siril_log_message(_("-upscale is not compatible with -drizzle, choose one or the other.\n"));
-			goto terminate_register_on_error;
-		}
 	} else {
 		free(driz);
 		driz = NULL;
@@ -7633,14 +7627,13 @@ int process_seq_applyastrometry(int nb) {
 	reg_args->seq = seq;
 	reg_args->reference_image = sequence_find_refimage(seq);
 	reg_args->no_output = FALSE;
-	reg_args->x2upscale = FALSE;
 	reg_args->prefix = strdup("r_");
 	reg_args->layer = layer;
 	reg_args->interpolation = OPENCV_LANCZOS4;
 	reg_args->clamp = TRUE;
 	reg_args->framing = FRAMING_CURRENT;
 	reg_args->undistort = TRUE;
-	reg_args->astrometric_scale = 1.f;
+	reg_args->output_scale = 1.f;
 
 	/* check for options */
 	for (int i = 2; i < nb; i++) {
@@ -7720,7 +7713,7 @@ int process_seq_applyastrometry(int nb) {
 				retval = CMD_ARG_ERROR;
 				goto terminate_register_on_error;
 			}
-			reg_args->astrometric_scale = g_ascii_strtod(arg, &end);
+			reg_args->output_scale = g_ascii_strtod(arg, &end);
 		} else if (parse_filter_args(word[i], &reg_args->filters)) {
 			;
 		} else {

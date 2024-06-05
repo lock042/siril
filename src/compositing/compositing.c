@@ -1922,22 +1922,12 @@ int manual_align_image_hook(struct generic_seq_args *args, int out_index, int in
 		args->seq->imgparam[in_index].incl = FALSE;
 		return 1;
 	}
-	if (!regargs->no_output) {
-		regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
-		regargs->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
-		regargs->imgparam[out_index].rx = sadata->ref.x;
-		regargs->imgparam[out_index].ry = sadata->ref.y;
-		cvGetEye(&regargs->regparam[out_index].H);
+	regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
+	regargs->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
+	regargs->imgparam[out_index].rx = sadata->ref.x;
+	regargs->imgparam[out_index].ry = sadata->ref.y;
+	cvGetEye(&regargs->regparam[out_index].H);
 
-		if (regargs->x2upscale) {
-			fit->keywords.pixel_size_x /= 2;
-			fit->keywords.pixel_size_y /= 2;
-		}
-	} else {
-		// TODO: check if H matrix needs to include a flip or not based on fit->top_down
-		// seems like not but this could backfire at some point
-		args->seq->imgparam[in_index].incl = SEQUENCE_DEFAULT_INCLUDE;
-	}
 	sadata->success[out_index] = 1;
 	return 0;
 }
@@ -2020,9 +2010,9 @@ int register_manual(struct registration_args *regargs) {
 	args->finalize_hook = manual_align_finalize_hook;
 	args->stop_on_error = FALSE;
 	args->description = _("Manual registration");
-	args->has_output = !regargs->no_output;
+	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
-	args->upscale_ratio = regargs->x2upscale ? 2.0 : 1.0;
+	args->upscale_ratio = 1.0;
 	args->new_seq_prefix = regargs->prefix;
 	args->load_new_sequence = !regargs->no_output;
 	args->already_in_a_thread = TRUE;

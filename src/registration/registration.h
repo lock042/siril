@@ -122,7 +122,6 @@ struct registration_args {
 	gboolean follow_star;		// follow star position between frames
 	gboolean matchSelection;	// Match stars found in the seleciton of reference image
 	rectangle selection;		// the selection rectangle
-	gboolean x2upscale;		// apply an x2 upscale for pseudo drizzle
 	gboolean cumul;			// cumul reg data with previous one
 	int min_pairs;			// Minimum number of star pairs for success
 	int max_stars_candidates;	// Max candidates after psf fitting for global reg
@@ -132,7 +131,7 @@ struct registration_args {
 	seq_image_filter filtering_criterion; // the filter, (seqapplyreg only)
 	double filtering_parameter;	// and its parameter (seqapplyreg only)
 	gboolean no_starlist;		// disable star list creation (2pass only)
-	float astrometric_scale;		// scaling factor (for mosaic only)
+	float output_scale;		// scaling factor
 	gboolean undistort;		// apply undistorsion with SIP data
 	struct driz_args_t *driz;	// drizzle-specific data
 

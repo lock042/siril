@@ -477,7 +477,7 @@ unsigned char *cvCalculH(s_star *star_array_img,
 }
 
 // transform an image using the homography.
-int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homography Hom, gboolean upscale2x, int interpolation, gboolean clamp) {
+int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homography Hom, float scale, int interpolation, gboolean clamp) {
 	Mat in, out;
 	void *bgr = NULL;
 	int target_rx = width, target_ry = height;
@@ -489,10 +489,10 @@ int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homog
 	Mat H = Mat(3, 3, CV_64FC1);
 	convert_H_to_MatH(&Hom, H);
 
-	if (upscale2x) {
+	if (scale != 1.f) {
 		Mat S = Mat::eye(3, 3, CV_64FC1);
-		S.at<double>(0,0) = 2.0;
-		S.at<double>(1,1) = 2.0;
+		S.at<double>(0,0) = scale;
+		S.at<double>(1,1) = scale;
 		H = S * H;
 	}
 

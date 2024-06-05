@@ -108,7 +108,7 @@ int register_astrometric(struct registration_args *regargs) {
 				regargs->seq, &regargs->filtering_criterion,
 				&regargs->filtering_parameter))
 		return 1;
-	float scale = (regargs->driz) ? regargs->driz->scale : regargs->astrometric_scale;
+	float scale = regargs->output_scale;
 
 	regdata *current_regdata = apply_reg_get_current_regdata(regargs); // clean the structure if it exists, allocates otherwise
 	if (!current_regdata)
@@ -437,7 +437,7 @@ static int astrometric_image_hook(struct generic_seq_args *args, int out_index, 
 	struct registration_args *regargs = sadata->regargs;
 	struct astrometric_args *astargs = sadata->astargs;
 	struct driz_args_t *driz = regargs->driz;
-	float scale = 1.f;
+	float scale = regargs->output_scale;
 	struct driz_param_t *p = NULL;
 	int status = 0;
 	Homography *Rs = astargs->Rs;
@@ -469,13 +469,13 @@ static int astrometric_image_hook(struct generic_seq_args *args, int out_index, 
 			free_wcs(fit); // we remove astrometric solution
 		}
 	} else {
-		scale = driz->scale;
+		scale = scale;
 		p = calloc(1, sizeof(struct driz_param_t));
 		driz_param_init(p);
 		p->kernel = driz->kernel;
 		p->driz = driz;
 		p->error = malloc(sizeof(struct driz_error_t));
-		p->scale = driz->scale;
+		p->scale = scale;
 		p->pixel_fraction = driz->pixel_fraction;
 		p->cfa = driz->cfa;
 		// Set bounds equal to whole image
@@ -498,7 +498,7 @@ static int astrometric_image_hook(struct generic_seq_args *args, int out_index, 
 		} else {
 			compute_Hmax(&Himg, &Htransf, fit->rx, fit->ry, scale, &H, &Hs, &dst_rx, &dst_ry);
 		}
-		status = map_image_coordinates_h(fit, H, p->pixmap, dst_ry, driz->scale, disto, threads);
+		status = map_image_coordinates_h(fit, H, p->pixmap, dst_ry, scale, disto, threads);
 		H = Hs;
 
 		if (status) {
@@ -588,10 +588,10 @@ static int astrometric_image_hook(struct generic_seq_args *args, int out_index, 
 	regargs->regparam[out_index].H = H;
 	sadata->success[out_index] = (int)(!status);
 	if (astargs->scale != 1.f) {
-		fit->keywords.pixel_size_x /= regargs->astrometric_scale;
-		fit->keywords.pixel_size_y /= regargs->astrometric_scale;
-		regargs->regparam[out_index].fwhm *= regargs->astrometric_scale;
-		regargs->regparam[out_index].weighted_fwhm *= regargs->astrometric_scale;
+		fit->keywords.pixel_size_x /= regargs->output_scale;
+		fit->keywords.pixel_size_y /= regargs->output_scale;
+		regargs->regparam[out_index].fwhm *= regargs->output_scale;
+		regargs->regparam[out_index].weighted_fwhm *= regargs->output_scale;
 	}
 	return status;
 }

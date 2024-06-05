@@ -210,13 +210,10 @@ static gboolean compute_framing(struct registration_args *regargs) {
 			return FALSE;
 	}
 	cvMultH(Href, Hshift, &Htransf);
-	if (regargs->driz) {
-		rx_out = rx_0 * regargs->driz->scale;
-		ry_out = ry_0 * regargs->driz->scale;
-	} else {
-		rx_out = rx_0 * ((regargs->x2upscale) ? 2. : 1.);
-		ry_out = ry_0 * ((regargs->x2upscale) ? 2. : 1.);
-	}
+
+	rx_out = rx_0 * regargs->output_scale;
+	ry_out = ry_0 * regargs->output_scale;
+
 	return retval;
 }
 
@@ -307,12 +304,8 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
 	struct driz_args_t *driz = regargs->driz;
-	float scale = 1.f;
+	float scale = regargs->output_scale;
 	struct driz_param_t *p = NULL;
-	if (regargs->driz)
-		scale = driz->scale;
-	else if (regargs->x2upscale)
-		scale = 2.f;
 
 	Homography H = { 0 };
 	Homography Himg = { 0 };
@@ -338,13 +331,12 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	}
 
 	if (regargs->driz) {
-		scale = driz->scale;
 		p = calloc(1, sizeof(struct driz_param_t));
 		driz_param_init(p);
 		p->kernel = driz->kernel;
 		p->driz = driz;
 		p->error = malloc(sizeof(struct driz_error_t));
-		p->scale = driz->scale;
+		p->scale = scale;
 		p->pixel_fraction = driz->pixel_fraction;
 		p->cfa = driz->cfa;
 		// Set bounds equal to whole image
@@ -356,7 +348,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		p->pixmap->ry = fit->ry;
 		p->threads = threads;
 
-		map_image_coordinates_h(fit, H, p->pixmap, dst_ry, driz->scale, NULL, threads);
+		map_image_coordinates_h(fit, H, p->pixmap, dst_ry, scale, NULL, threads);
 		if (!p->pixmap->xmap) {
 			siril_log_color_message(_("Error generating mapping array.\n"), "red");
 			free(p->error);
@@ -434,7 +426,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	}
 	else {
 		if (regargs->interpolation <= OPENCV_LANCZOS4) {
-			if (cvTransformImage(fit, dst_rx, dst_ry, H, regargs->x2upscale, regargs->interpolation, regargs->clamp)) {
+			if (cvTransformImage(fit, dst_rx, dst_ry, H, scale, regargs->interpolation, regargs->clamp)) {
 				return 1;
 			}
 		} else {
@@ -457,7 +449,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	regargs->regparam[out_index].number_of_stars = sadata->current_regdata[in_index].number_of_stars;
 	regargs->regparam[out_index].H = Hs;
 
-	if (regargs->driz || regargs->x2upscale) {
+	if (scale != 1.f) {
 		fit->keywords.pixel_size_x /= scale;
 		fit->keywords.pixel_size_y /= scale;
 		regargs->regparam[out_index].fwhm *= scale;
@@ -539,7 +531,7 @@ int apply_drz_compute_mem_limits(struct generic_seq_args *args, gboolean for_wri
 	struct registration_args *regargs = sadata->regargs;
 	struct driz_args_t *driz = regargs->driz;
 	unsigned int MB_per_orig_image, MB_per_scaled_image, MB_avail;
-	int limit = compute_nb_images_fit_memory(args->seq, driz->scale, args->force_float,
+	int limit = compute_nb_images_fit_memory(args->seq, regargs->output_scale, args->force_float,
 			&MB_per_orig_image, &MB_per_scaled_image, &MB_avail);
 	int is_float = get_data_type(args->seq->bitpix) == DATA_FLOAT;
 	int float_multiplier = (is_float) ? 1 : 2;
@@ -733,7 +725,7 @@ int register_apply_reg(struct registration_args *regargs) {
 		}
 	} else {
 		args->compute_mem_limits_hook = apply_reg_compute_mem_limits;
-		args->upscale_ratio = regargs->x2upscale ? 2.0 : 1.0;
+		args->upscale_ratio = regargs->output_scale;
 	}
 	args->prepare_hook = apply_reg_prepare_hook;
 	args->finalize_hook = apply_reg_finalize_hook;
@@ -860,7 +852,7 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 	}
 
 	// check the consistency of output images size if -interp=none
-	if (!driz && regargs->interpolation == OPENCV_NONE && (regargs->x2upscale || regargs->framing == FRAMING_MAX || regargs->framing == FRAMING_MIN)) {
+	if (!driz && regargs->interpolation == OPENCV_NONE && (regargs->output_scale != 1.f || regargs->framing == FRAMING_MAX || regargs->framing == FRAMING_MIN)) {
 		siril_log_color_message(_("Applying registration with changes in output image sizeis not allowed when interpolation is set to none , aborting\n"), "red");
 		return FALSE;
 	}
