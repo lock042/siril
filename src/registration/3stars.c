@@ -104,8 +104,7 @@ void reset_3stars(){
 	selected_stars = 0;
 }
 
-int _3stars_check_registration_ready() {
-	set_registration_ready((selected_stars >= 1) ? TRUE : FALSE);
+int _3stars_get_number_selected_stars() {
 	return selected_stars;
 }
 
@@ -135,7 +134,6 @@ gboolean _3stars_check_selection() {
 		update_label(_("Make sure you load an image which is included"));
 		return FALSE;
 	}
-	gtk_label_set_text(labelreginfo, "");
 	return TRUE;
 }
 
@@ -196,7 +194,7 @@ void on_select_star_button_clicked(GtkButton *button, gpointer user_data) {
 		}
 		update_icons(awaiting_star - 1, TRUE);
 		delete_selected_area();
-		_3stars_check_registration_ready();
+		_3stars_get_number_selected_stars();
 	}
 }
 
@@ -339,8 +337,7 @@ static int _3stars_seqpsf(struct registration_args *regargs) {
 /*
 This function runs seqpsfs on 1/2/3 stars as selected by the user
 then computes transformation matrix to the ref image
-and finally applies this transform if !no_output
-Registration data is saved to the input sequence in any case
+Registration data is saved to the input sequence
 */
 int register_3stars(struct registration_args *regargs) {
 	struct timeval t_start, t_end;

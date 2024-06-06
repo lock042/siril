@@ -41,19 +41,19 @@
 
 #undef DEBUG
 static char *tooltip_text[] = {
+	N_("<b>Global Star Alignment</b>: This is the go-to algorithm for deep-sky images"
+		"The global matching is based on triangle similarity method to automatically identify "
+		"common stars between images. A new sequence is created with the prefix of your choice "
+		"(r_ by default), unless you tick the 2pass check box. In that case, registration "
+		"data will be saved to the sequence and reference will be picked based on star detection "
+		" information. When choosing 2pass, you will then need to export the sequence using "
+		" the Apply Exiting Registration method"),
 	N_("<b>1-2-3 Stars Registration</b>: This is the simplest method to register deep-sky images. "
 		"Images are aligned using shifting, if you pick one star, "
 		"or shifting + rotation if 2 or 3 stars are selected.\n"
 		"If only shifts are computed, they are saved in the seq file and the aligned sequence does not need to be exported. "
 		"Images will be shifted pixel-wise during stacking step.\n"
 		"If rotation is also computed, then the aligned images need to be exported using Apply Existing Registration."),
-	N_("<b>Global Star Alignment</b>: This is a more powerful and accurate algorithm (but also "
-		"slower) to perform deep-sky images. The global matching is based on triangle "
-		"similarity method for automatically identify common stars in each image. A new "
-		"sequence is created with the prefix of your choice (r_ by default)."),
-	N_("<b>Two-Pass Global Star Alignment</b>: The global star alignment is done in two passes, "
-		"allowing the reference frame to be chosen from detected star information instead of "
-		"automatically choosing the first frame of the sequence."),
 	N_("<b>Image Pattern Alignment</b>: This is a simple registration by translation method "
 		"using cross correlation in the spatial domain. This method is fast and is used to "
 		"register planetary movies. It can also be used for some deep-sky images registration. "
@@ -65,12 +65,12 @@ static char *tooltip_text[] = {
 		"sequence of star aligned images. This methods makes a translation of a certain number "
 		"of pixels depending on the timestamp of each images and the global shift of the "
 		"object between the first and the last image."),
-	N_("<b>Apply Astrometric Registration</b>: This algorithm computes the transforms between plate-solved images "
-	    " of a sequence and applies them"),
+	// N_("<b>Apply Astrometric Registration</b>: This algorithm computes the transforms between plate-solved images "
+	//	 " of a sequence and applies them"),
 	N_("<b>Apply existing registration</b>: This is not an algorithm but rather a commodity to "
 		"apply previously computed registration data stored in the sequence file. The "
-		"interpolation method and simplified drizzle can be selected in the Output "
-		"Registration section and it can be applied on selected images only, to avoid saving "
+		"interpolation method or drizzling can be selected in the Output "
+		"Registration section and it can be applied on selected/filtered images only, to avoid saving "
 		"unnecessary images.")
 };
 
@@ -94,13 +94,149 @@ static char *filter_tooltip_text[] = {
 	N_("Number of standard deviations for rejection of worst images by k-sigma clipping algorithm.")
 };
 
+// Statics declarations
+static GtkAdjustment *register_minpairs = NULL;
+static GtkBox *vboxreg = NULL, *comet_page = NULL, *_123star_page = NULL, *seq_filters_box_reg = NULL;
+static GtkButton *button1_comet = NULL, *button2_comet = NULL, *pickstar1 = NULL, *pickstar2 = NULL, *pickstar3 = NULL, *filter_add4 = NULL, *filter_add5 = NULL, *filter_rem5 = NULL, *filter_rem6 = NULL, *proj_estimate = NULL, *goregister_button = NULL;
+static GtkComboBoxText *comboboxregmethod = NULL, *comboboxreglayer = NULL, *comboreg_maxstars = NULL, *comboreg_transfo = NULL, *reg_sel_all_combobox = NULL, *combofilter4 = NULL, *filter_type4 = NULL, *combofilter5 = NULL, *filter_type5 = NULL, *combofilter6 = NULL, *filter_type6 = NULL, *comboreg_framing = NULL, *ComboBoxRegInter = NULL, *combo_driz_kernel = NULL;
+static GtkDrawingArea *drawingarea_reg_manual_preview1 = NULL, *drawingarea_reg_manual_preview2 = NULL;
+static GtkEntry *entry1_x_comet = NULL, *entry2_x_comet = NULL, *entry1_y_comet = NULL, *entry2_y_comet = NULL, *regseqname_entry = NULL;
+static GtkExpander *autoreg_expander = NULL, *manualreg_expander = NULL;
+static GtkFrame *output_reg_frame = NULL;
+static GtkGrid *global_page = NULL, *kombat_page = NULL, *grid_reg_framing = NULL, *grid_interp_controls = NULL, *grid_drizzle_controls = NULL;
+static GtkImage *framing_image = NULL;
+static GtkLabel *label1_comet = NULL, *regfilter_label = NULL, *labelfilter4 = NULL, *labelfilter5 = NULL, *labelfilter6 = NULL, *labelregisterinfo = NULL, *labelRegRef = NULL;
+static GtkNotebook *notebook_registration = NULL;
+static GtkSpinButton *spinbut_minpairs = NULL, *spin_kombat_percent = NULL, *stackspin4 = NULL, *stackspin5 = NULL, *stackspin6 = NULL, *reg_scaling_spin = NULL, *spin_driz_dropsize = NULL, *spinbut_shiftx = NULL, *spinbut_shifty = NULL;
+static GtkStack *interp_drizzle_stack = NULL;
+static GtkToggleButton *checkStarSelect = NULL, *reg_2pass = NULL, *followStarCheckButton = NULL, *onlyshift_checkbutton = NULL, *toggle_reg_clamp = NULL, *driz_use_flats = NULL, *checkbutton_displayref = NULL, *toggle_reg_manual1 = NULL, *toggle_reg_manual2 = NULL;
+
+// additional statics
+static GtkComboBox *filter_combo[3] = { NULL };
+static GtkAdjustment *stackadj[3] = { NULL };
+static GtkWidget *spin[3] = { NULL };
+static GtkWidget *ksig[3] = { NULL };
+static GtkLabel *filter_label[3] = { NULL };
+
+// Statics init
+
+static void registration_init_statics() {
+		if (vboxreg == NULL) {
+				// GtkAdjustment
+				register_minpairs = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "register_minpairs"));
+				// GtkBox
+				vboxreg = GTK_BOX(gtk_builder_get_object(gui.builder, "vboxreg"));
+				comet_page = GTK_BOX(gtk_builder_get_object(gui.builder, "comet_page"));
+				_123star_page = GTK_BOX(gtk_builder_get_object(gui.builder, "123star_page"));
+				seq_filters_box_reg = GTK_BOX(gtk_builder_get_object(gui.builder, "seq_filters_box_reg"));
+				// GtkButton
+				button1_comet = GTK_BUTTON(gtk_builder_get_object(gui.builder, "button1_comet"));
+				button2_comet = GTK_BUTTON(gtk_builder_get_object(gui.builder, "button2_comet"));
+				pickstar1 = GTK_BUTTON(gtk_builder_get_object(gui.builder, "pickstar1"));
+				pickstar2 = GTK_BUTTON(gtk_builder_get_object(gui.builder, "pickstar2"));
+				pickstar3 = GTK_BUTTON(gtk_builder_get_object(gui.builder, "pickstar3"));
+				filter_add4 = GTK_BUTTON(gtk_builder_get_object(gui.builder, "filter_add4"));
+				filter_add5 = GTK_BUTTON(gtk_builder_get_object(gui.builder, "filter_add5"));
+				filter_rem5 = GTK_BUTTON(gtk_builder_get_object(gui.builder, "filter_rem5"));
+				filter_rem6 = GTK_BUTTON(gtk_builder_get_object(gui.builder, "filter_rem6"));
+				proj_estimate = GTK_BUTTON(gtk_builder_get_object(gui.builder, "proj_estimate"));
+				goregister_button = GTK_BUTTON(gtk_builder_get_object(gui.builder, "goregister_button"));
+				// GtkComboBoxText
+				comboboxregmethod = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "comboboxregmethod"));
+				comboboxreglayer = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "comboboxreglayer"));
+				comboreg_maxstars = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "comboreg_maxstars"));
+				comboreg_transfo = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "comboreg_transfo"));
+				reg_sel_all_combobox = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "reg_sel_all_combobox"));
+				combofilter4 = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "combofilter4"));
+				filter_type4 = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "filter_type4"));
+				combofilter5 = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "combofilter5"));
+				filter_type5 = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "filter_type5"));
+				combofilter6 = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "combofilter6"));
+				filter_type6 = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "filter_type6"));
+				comboreg_framing = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "comboreg_framing"));
+				ComboBoxRegInter = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "ComboBoxRegInter"));
+				combo_driz_kernel = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "combo_driz_kernel"));
+				// GtkDrawingArea
+				drawingarea_reg_manual_preview1 = GTK_DRAWING_AREA(gtk_builder_get_object(gui.builder, "drawingarea_reg_manual_preview1"));
+				drawingarea_reg_manual_preview2 = GTK_DRAWING_AREA(gtk_builder_get_object(gui.builder, "drawingarea_reg_manual_preview2"));
+				// GtkEntry
+				entry1_x_comet = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry1_x_comet"));
+				entry2_x_comet = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry2_x_comet"));
+				entry1_y_comet = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry1_y_comet"));
+				entry2_y_comet = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry2_y_comet"));
+				regseqname_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "regseqname_entry"));
+				// GtkExpander
+				autoreg_expander = GTK_EXPANDER(gtk_builder_get_object(gui.builder, "autoreg_expander"));
+				manualreg_expander = GTK_EXPANDER(gtk_builder_get_object(gui.builder, "manualreg_expander"));
+				// GtkFrame
+				output_reg_frame = GTK_FRAME(gtk_builder_get_object(gui.builder, "output_reg_frame"));
+				// GtkGrid
+				global_page = GTK_GRID(gtk_builder_get_object(gui.builder, "global_page"));
+				kombat_page = GTK_GRID(gtk_builder_get_object(gui.builder, "kombat_page"));
+				grid_reg_framing = GTK_GRID(gtk_builder_get_object(gui.builder, "grid_reg_framing"));
+				grid_interp_controls = GTK_GRID(gtk_builder_get_object(gui.builder, "grid_interp_controls"));
+				grid_drizzle_controls = GTK_GRID(gtk_builder_get_object(gui.builder, "grid_drizzle_controls"));
+				// GtkImage
+				framing_image = GTK_IMAGE(gtk_builder_get_object(gui.builder, "framing-image"));
+				// GtkLabel
+				label1_comet = GTK_LABEL(gtk_builder_get_object(gui.builder, "label1_comet"));
+				regfilter_label = GTK_LABEL(gtk_builder_get_object(gui.builder, "regfilter_label"));
+				labelfilter4 = GTK_LABEL(gtk_builder_get_object(gui.builder, "labelfilter4"));
+				labelfilter5 = GTK_LABEL(gtk_builder_get_object(gui.builder, "labelfilter5"));
+				labelfilter6 = GTK_LABEL(gtk_builder_get_object(gui.builder, "labelfilter6"));
+				labelregisterinfo = GTK_LABEL(gtk_builder_get_object(gui.builder, "labelregisterinfo"));
+				labelRegRef = GTK_LABEL(gtk_builder_get_object(gui.builder, "labelRegRef"));
+				// GtkNotebook
+				notebook_registration = GTK_NOTEBOOK(gtk_builder_get_object(gui.builder, "notebook_registration"));
+				// GtkSpinButton
+				spinbut_minpairs = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spinbut_minpairs"));
+				spin_kombat_percent = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_kombat_percent"));
+				stackspin4 = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "stackspin4"));
+				stackspin5 = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "stackspin5"));
+				stackspin6 = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "stackspin6"));
+				reg_scaling_spin = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "reg_scaling_spin"));
+				spin_driz_dropsize = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spin_driz_dropsize"));
+				spinbut_shiftx = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spinbut_shiftx"));
+				spinbut_shifty = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spinbut_shifty"));
+				// GtkStack
+				interp_drizzle_stack = GTK_STACK(gtk_builder_get_object(gui.builder, "interp_drizzle_stack"));
+				// GtkToggleButton
+				checkStarSelect = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "checkStarSelect"));
+				reg_2pass = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "reg_2pass"));
+				followStarCheckButton = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "followStarCheckButton"));
+				onlyshift_checkbutton = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "onlyshift_checkbutton"));
+				toggle_reg_clamp = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "toggle_reg_clamp"));
+				driz_use_flats = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "driz_use_flats"));
+				checkbutton_displayref = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "checkbutton_displayref"));
+				toggle_reg_manual1 = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "toggle_reg_manual1"));
+				toggle_reg_manual2 = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "toggle_reg_manual2"));
+
+				// additional statics
+				spin[0] = GTK_WIDGET(stackspin4);
+				spin[1] = GTK_WIDGET(stackspin5);
+				spin[2] = GTK_WIDGET(stackspin6);
+				stackadj[0] = gtk_spin_button_get_adjustment(GTK_SPIN_BUTTON(spin[0]));
+				stackadj[1] = gtk_spin_button_get_adjustment(GTK_SPIN_BUTTON(spin[1]));
+				stackadj[2] = gtk_spin_button_get_adjustment(GTK_SPIN_BUTTON(spin[2]));
+				filter_combo[0] = GTK_COMBO_BOX(combofilter4);
+				filter_combo[1] = GTK_COMBO_BOX(combofilter5);
+				filter_combo[2] = GTK_COMBO_BOX(combofilter6);
+				ksig[0] = GTK_WIDGET(filter_type4);
+				ksig[1] = GTK_WIDGET(filter_type5);
+				ksig[2] = GTK_WIDGET(filter_type6);
+				filter_label[0] = labelfilter4;
+				filter_label[1] = labelfilter5;
+				filter_label[2] = labelfilter6;
+		}
+}
+
 /* callback for the selected area event */
-void _reg_selected_area_callback() {
+static void _reg_selected_area_callback() {
 	if (!com.headless)
 		update_reg_interface(TRUE);
 }
 
-int populate_drizzle_data(struct driz_args_t *driz) {
+static int populate_drizzle_data(struct driz_args_t *driz) {
 	driz->use_flats = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("driz_use_flats")));
 	driz->weight_scale = 1.f; // Not used for now
 	driz->kernel = (enum e_kernel_t) gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_driz_kernel")));
@@ -154,56 +290,52 @@ int populate_drizzle_data(struct driz_args_t *driz) {
 static struct registration_method *reg_methods[NUMBER_OF_METHODS + 1];
 
 void initialize_registration_methods() {
-	GtkComboBoxText *regcombo;
 	int i = 0, j = 0;
 	GString *tip;
 	gchar *ctip;
+	registration_init_statics();
 
-	reg_methods[i++] = new_reg_method(_("1-2-3 Stars Registration (deep-sky)"),
-			&register_3stars, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
 	reg_methods[i++] = new_reg_method(_("Global Star Alignment (deep-sky)"),
 			&register_star_alignment, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
-	reg_methods[i++] = new_reg_method(_("Two-Pass Global Star Alignment (deep-sky)"),
-			&register_multi_step_global, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
+	reg_methods[i++] = new_reg_method(_("1-2-3 Stars Registration (deep-sky)"),
+			&register_3stars, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
 	reg_methods[i++] = new_reg_method(_("Image Pattern Alignment (planetary - full disk)"),
 			&register_shift_dft, REQUIRES_SQUARED_SELECTION, REGTYPE_PLANETARY);
 	reg_methods[i++] = new_reg_method(_("KOMBAT (planetary surfaces or full disk)"),
 			&register_kombat, REQUIRES_ANY_SELECTION, REGTYPE_PLANETARY);
 	reg_methods[i++] = new_reg_method(_("Comet/Asteroid Registration"),
 			&register_comet, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
-	reg_methods[i++] = new_reg_method(_("Apply Astrometric Registration"),
-			&register_astrometric, REQUIRES_NO_SELECTION, REGTYPE_APPLY);
 	reg_methods[i++] = new_reg_method(_("Apply Existing Registration"),
 			&register_apply_reg, REQUIRES_NO_SELECTION, REGTYPE_APPLY);
+	// we register 2-pass but we won't add it to the combo/tooltip
+	reg_methods[i++] = new_reg_method(_("Two-Pass Global Star Alignment (deep-sky)"),
+			&register_multi_step_global, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
 	reg_methods[i] = NULL;
 
 	tip = g_string_new ("");
-	for (j = 0; j < i; j ++) {
+	for (j = 0; j < i - 1; j ++) {
 		tip = g_string_append(tip, _(tooltip_text[j]));
 		if (j < i - 1)
 			tip = g_string_append(tip, "\n\n");
 	}
 	ctip = g_string_free (tip, FALSE);
-	gtk_widget_set_tooltip_markup(lookup_widget("comboboxregmethod"), ctip);
+	gtk_widget_set_tooltip_markup(GTK_WIDGET(comboboxregmethod), ctip);
 	g_free(ctip);
 
 	/* fill comboboxregmethod */
-	regcombo = GTK_COMBO_BOX_TEXT(lookup_widget("comboboxregmethod"));
-	gtk_combo_box_text_remove_all(regcombo);
-	i = 0;
-	while (reg_methods[i] != NULL) {
-		gtk_combo_box_text_append_text(regcombo, reg_methods[i]->name);
+	gtk_combo_box_text_remove_all(comboboxregmethod);
+	for (j = 0; j < i - 1; j ++) {
+		gtk_combo_box_text_append_text(comboboxregmethod, reg_methods[j]->name);
 		siril_log_message(_("Loading registration method: %s\n"),
-				reg_methods[i]->name);
-		i++;
+				reg_methods[j]->name);
 	}
 	if (i > 0) {
-		gtk_combo_box_set_active(GTK_COMBO_BOX(regcombo), com.pref.gui.reg_settings);
+		gtk_combo_box_set_active(GTK_COMBO_BOX(comboboxregmethod), com.pref.gui.reg_settings);
 	}
 
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("ComboBoxRegInter")), com.pref.gui.reg_interpolation);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_reg_clamp")), com.pref.gui.reg_clamping);
-	gtk_widget_set_sensitive(lookup_widget("toggle_reg_clamp"),
+	gtk_combo_box_set_active(GTK_COMBO_BOX(ComboBoxRegInter), com.pref.gui.reg_interpolation);
+	gtk_toggle_button_set_active(toggle_reg_clamp, com.pref.gui.reg_clamping);
+	gtk_widget_set_sensitive(GTK_WIDGET(toggle_reg_clamp),
 			com.pref.gui.reg_interpolation == OPENCV_LANCZOS4 || com.pref.gui.reg_interpolation == OPENCV_CUBIC);
 
 	/* register to the new area selected event */
@@ -211,23 +343,23 @@ void initialize_registration_methods() {
 }
 
 struct registration_method *get_selected_registration_method() {
-	GtkComboBoxText *regcombo = GTK_COMBO_BOX_TEXT(
-			gtk_builder_get_object(gui.builder, "comboboxregmethod"));
 	int index = 0;
-
-	gchar *text = gtk_combo_box_text_get_active_text (regcombo);
+	gchar *text = gtk_combo_box_text_get_active_text(comboboxregmethod);
 	while (reg_methods[index] && text != NULL) {
 		if (!strcmp(reg_methods[index]->name, text))
 			break;
 		index++;
 	}
 	g_free(text);
+
+	if (index == 0 && reg_2pass) // 2 pass method is global + 2pass button checked
+		index = 5;
 	return reg_methods[index];
 }
 
 void on_comboboxregmethod_changed(GtkComboBox *box, gpointer user_data) {
 	int index = 0;
-	gchar *text = gtk_combo_box_text_get_active_text (GTK_COMBO_BOX_TEXT(box));
+	gchar *text = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(box));
 
 	while (reg_methods[index] && text != NULL) {
 		if (!strcmp(reg_methods[index]->name, text))
@@ -243,19 +375,17 @@ void on_comboboxregmethod_changed(GtkComboBox *box, gpointer user_data) {
 
 void on_toggle_reg_clamp_toggled(GtkToggleButton *button, gpointer user_data) {
 	gboolean active = gtk_toggle_button_get_active(button);
-
 	com.pref.gui.reg_clamping = active;
 }
 
 void on_ComboBoxRegInter_changed(GtkComboBox *box, gpointer user_data) {
 	com.pref.gui.reg_interpolation = gtk_combo_box_get_active(box);
-	gtk_widget_set_sensitive(lookup_widget("toggle_reg_clamp"),
+	gtk_widget_set_sensitive(GTK_WIDGET(toggle_reg_clamp),
 			com.pref.gui.reg_interpolation == OPENCV_LANCZOS4
 					|| com.pref.gui.reg_interpolation == OPENCV_CUBIC);
 }
 
 void on_comboreg_transfo_changed(GtkComboBox *box, gpointer user_data) {
-	GtkAdjustment *register_minpairs = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "register_minpairs"));
 	double val = gtk_adjustment_get_value(register_minpairs);
 
 	switch(gtk_combo_box_get_active(box)) {
@@ -297,40 +427,40 @@ void on_regspinbut_percent_change(GtkSpinButton *spinbutton, gpointer user_data)
 }
 
 void on_filter_add4_clicked(GtkButton *button, gpointer user_data){
-	gtk_widget_set_visible(lookup_widget("combofilter5"), TRUE);
-	gtk_widget_set_visible(lookup_widget("stackspin5"), TRUE);
-	gtk_widget_set_visible(lookup_widget("filter_add5"), TRUE);
-	gtk_widget_set_visible(lookup_widget("filter_rem5"), TRUE);
-	gtk_widget_set_visible(lookup_widget("labelfilter5"), TRUE);
-	gtk_widget_set_visible(lookup_widget("filter_type5"), TRUE);
+	gtk_widget_set_visible(GTK_WIDGET(combofilter5), TRUE);
+	gtk_widget_set_visible(GTK_WIDGET(stackspin5), TRUE);
+	gtk_widget_set_visible(GTK_WIDGET(filter_add5), TRUE);
+	gtk_widget_set_visible(GTK_WIDGET(filter_rem5), TRUE);
+	gtk_widget_set_visible(GTK_WIDGET(labelfilter5), TRUE);
+	gtk_widget_set_visible(GTK_WIDGET(filter_type5), TRUE);
 	update_filters_registration(-1);
 }
 
 void on_filter_add5_clicked(GtkButton *button, gpointer user_data){
-	gtk_widget_set_visible(lookup_widget("combofilter6"), TRUE);
-	gtk_widget_set_visible(lookup_widget("stackspin6"), TRUE);
-	gtk_widget_set_visible(lookup_widget("filter_rem6"), TRUE);
-	gtk_widget_set_visible(lookup_widget("labelfilter6"), TRUE);
-	gtk_widget_set_visible(lookup_widget("filter_type6"), TRUE);
+	gtk_widget_set_visible(GTK_WIDGET(combofilter6), TRUE);
+	gtk_widget_set_visible(GTK_WIDGET(stackspin6), TRUE);
+	gtk_widget_set_visible(GTK_WIDGET(filter_rem6), TRUE);
+	gtk_widget_set_visible(GTK_WIDGET(labelfilter6), TRUE);
+	gtk_widget_set_visible(GTK_WIDGET(filter_type6), TRUE);
 	update_filters_registration(-1);
 }
 
 void on_filter_rem5_clicked(GtkButton *button, gpointer user_data){
-	gtk_widget_set_visible(lookup_widget("combofilter5"), FALSE);
-	gtk_widget_set_visible(lookup_widget("stackspin5"), FALSE);
-	gtk_widget_set_visible(lookup_widget("filter_add5"), FALSE);
-	gtk_widget_set_visible(lookup_widget("filter_rem5"), FALSE);
-	gtk_widget_set_visible(lookup_widget("labelfilter5"), FALSE);
-	gtk_widget_set_visible(lookup_widget("filter_type5"), FALSE);
+	gtk_widget_set_visible(GTK_WIDGET(combofilter5), FALSE);
+	gtk_widget_set_visible(GTK_WIDGET(stackspin5), FALSE);
+	gtk_widget_set_visible(GTK_WIDGET(filter_add5), FALSE);
+	gtk_widget_set_visible(GTK_WIDGET(filter_rem5), FALSE);
+	gtk_widget_set_visible(GTK_WIDGET(labelfilter5), FALSE);
+	gtk_widget_set_visible(GTK_WIDGET(filter_type5), FALSE);
 	update_filters_registration(-1);
 }
 
 void on_filter_rem6_clicked(GtkButton *button, gpointer user_data){
-	gtk_widget_set_visible(lookup_widget("combofilter6"), FALSE);
-	gtk_widget_set_visible(lookup_widget("stackspin6"), FALSE);
-	gtk_widget_set_visible(lookup_widget("filter_rem6"), FALSE);
-	gtk_widget_set_visible(lookup_widget("labelfilter6"), FALSE);
-	gtk_widget_set_visible(lookup_widget("filter_type6"), FALSE);
+	gtk_widget_set_visible(GTK_WIDGET(combofilter6), FALSE);
+	gtk_widget_set_visible(GTK_WIDGET(stackspin6), FALSE);
+	gtk_widget_set_visible(GTK_WIDGET(filter_rem6), FALSE);
+	gtk_widget_set_visible(GTK_WIDGET(labelfilter6), FALSE);
+	gtk_widget_set_visible(GTK_WIDGET(filter_type6), FALSE);
 	update_filters_registration(-1);
 }
 
@@ -339,24 +469,7 @@ void get_reg_sequence_filtering_from_gui(seq_image_filter *filtering_criterion,
 	int filter, guifilter, channel = 0, type;
 	gboolean is_ksig = FALSE;
 	double percent = 0.0;
-	static GtkComboBox *filter_combo[3] = { NULL };
-	static GtkAdjustment *stackadj[3] = { NULL };
-	static GtkWidget *spin[3] = { NULL };
-	static GtkWidget *ksig[3] = { NULL };
-	if (!spin[0]) {
-		spin[0] = lookup_widget("stackspin4");
-		spin[1] = lookup_widget("stackspin5");
-		spin[2] = lookup_widget("stackspin6");
-		stackadj[0] = gtk_spin_button_get_adjustment(GTK_SPIN_BUTTON(spin[0]));
-		stackadj[1] = gtk_spin_button_get_adjustment(GTK_SPIN_BUTTON(spin[1]));
-		stackadj[2] = gtk_spin_button_get_adjustment(GTK_SPIN_BUTTON(spin[2]));
-		filter_combo[0] = GTK_COMBO_BOX(lookup_widget("combofilter4"));
-		filter_combo[1] = GTK_COMBO_BOX(lookup_widget("combofilter5"));
-		filter_combo[2] = GTK_COMBO_BOX(lookup_widget("combofilter6"));
-		ksig[0] = lookup_widget("filter_type4");
-		ksig[1] = lookup_widget("filter_type5");
-		ksig[2] = lookup_widget("filter_type6");
-	}
+
 	for (filter = 0, guifilter = 0; guifilter < 3; guifilter++) {
 		if (!gtk_widget_get_visible(GTK_WIDGET(filter_combo[guifilter]))) {
 			continue;
@@ -447,24 +560,10 @@ void get_reg_sequence_filtering_from_gui(seq_image_filter *filtering_criterion,
 }
 
 static void update_filter_label(seq_image_filter filtering_criterion, double filtering_parameter) {
-	static GtkComboBox *filter_combo[3] = { NULL };
-	static GtkLabel *filter_label[3] = { NULL };
-	static GtkLabel *result_label = NULL;
-	if (!filter_combo[0]) {
-		filter_combo[0] = GTK_COMBO_BOX(lookup_widget("combofilter4"));
-		filter_combo[1] = GTK_COMBO_BOX(lookup_widget("combofilter5"));
-		filter_combo[2] = GTK_COMBO_BOX(lookup_widget("combofilter6"));
-		filter_label[0] = GTK_LABEL(lookup_widget("labelfilter4"));
-		filter_label[1] = GTK_LABEL(lookup_widget("labelfilter5"));
-		filter_label[2] = GTK_LABEL(lookup_widget("labelfilter6"));
-		result_label = GTK_LABEL(lookup_widget("regfilter_label"));
-	}
-
 	for (int filter = 0; filter < 3; filter++) {
 		if (!gtk_widget_get_visible(GTK_WIDGET(filter_combo[filter]))) {
 			break;
 		}
-
 		int type = gtk_combo_box_get_active(filter_combo[filter]);
 		double param = regfilters[filter].param;
 		gchar *filter_str;
@@ -503,7 +602,7 @@ static void update_filter_label(seq_image_filter filtering_criterion, double fil
 			filtering_criterion, filtering_parameter);
 	gchar *labelbuffer = g_strdup_printf(_("Registering %d images of the %d of the sequence"),
 			nb_images_to_stack, com.seq.number);
-	gtk_label_set_text(result_label, labelbuffer);
+	gtk_label_set_text(regfilter_label, labelbuffer);
 	g_free(labelbuffer);
 }
 
@@ -518,21 +617,11 @@ static void update_filters_registration(int update_adjustment) {
 }
 
 static gboolean check_framing() {
-	// TODO: need to cache
-	framing_type framingmethod = (framing_type)gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("comboreg_framing")));
-	GtkLabel *labelreginfo = GTK_LABEL(lookup_widget("labelregisterinfo"));
+	framing_type framingmethod = (framing_type)gtk_combo_box_get_active(GTK_COMBO_BOX(comboreg_framing));
 	if (framingmethod == FRAMING_MAX && com.seq.type == SEQ_FITSEQ) {
-		gtk_label_set_text(labelreginfo, _("Max framing not allowed with fitseq, change to regular FITS images"));
+		gtk_label_set_text(labelregisterinfo, _("Max framing not allowed with fitseq, change to regular FITS images"));
 		return FALSE;
 	}
-	// should not happen that often as the process checks the ref image is platesolved, which cannot happen for SER
-	// can still be a case if ref image alone is solved through the GUI
-	if (com.seq.type == SEQ_SER) {
-		gtk_label_set_text(labelreginfo, _("Astrometric registration not allowed for SER sequences, change method"));
-		return FALSE;
-	}
-	gtk_label_set_text(labelreginfo, "");
-	gtk_widget_set_tooltip_text(GTK_WIDGET(labelreginfo), "");
 	return TRUE;
 }
 
@@ -541,57 +630,34 @@ static gboolean check_framing() {
  * Verifies that enough images are selected and an area is selected.
  */
 void update_reg_interface(gboolean dont_change_reg_radio) {
-	static GtkWidget *go_register = NULL, *follow = NULL,
-	*toggle_reg_clamp = NULL, *onlyshift = NULL, *filter_box = NULL, *manualreg = NULL,
-	*interpolation_algo = NULL, //*undistort_check = NULL,
-	*go_estimate = NULL, *output_reg_frame = NULL;
-	static GtkLabel *labelreginfo = NULL;
-	static GtkComboBox *reg_all_sel_box = NULL, *reglayer = NULL, *filter_combo_init = NULL;
-	static GtkNotebook *notebook_reg = NULL;
-	static GtkGrid *framing_grid = NULL;
 	int nb_images_reg; /* the number of images to register */
 	struct registration_method *method = NULL;
 	gboolean selection_is_done;
-	gboolean has_reg, ready;
+	gboolean has_reg, has_output, has_drizzle, samesizeseq_required, check_bayer_ok, ready, seqloaded;
+	gboolean isapplyreg, is_global;
 	int nbselstars = 0;
+	sensor_pattern pattern = BAYER_FILTER_NONE;
 
-	if (!go_register) {
-		go_register = lookup_widget("goregister_button");
-		go_estimate = lookup_widget("proj_estimate");
-		follow = lookup_widget("followStarCheckButton");
-		onlyshift = lookup_widget("onlyshift_checkbutton");
-		reg_all_sel_box = GTK_COMBO_BOX(lookup_widget("reg_sel_all_combobox"));
-		labelreginfo = GTK_LABEL(lookup_widget("labelregisterinfo"));
-		notebook_reg = GTK_NOTEBOOK(lookup_widget("notebook_registration"));
-		reglayer = GTK_COMBO_BOX(lookup_widget("comboboxreglayer"));
-		filter_combo_init = GTK_COMBO_BOX(lookup_widget("combofilter4"));
-		toggle_reg_clamp = lookup_widget("toggle_reg_clamp");
-		filter_box = lookup_widget("seq_filters_box_reg");
-		manualreg = lookup_widget("manualreg_expander");
-		interpolation_algo = lookup_widget("ComboBoxRegInter");
-		// undistort_check = lookup_widget("reg_undistort");
-		output_reg_frame = lookup_widget("output_reg_frame");
-		framing_grid = GTK_GRID(lookup_widget("grid_reg_framing"));
-	}
+	seqloaded = sequence_is_loaded();
+	gtk_widget_set_sensitive(GTK_WIDGET(manualreg_expander), seqloaded);
+	gtk_expander_set_expanded(manualreg_expander, seqloaded);
+	gtk_widget_set_sensitive(GTK_WIDGET(autoreg_expander), seqloaded);
+	gtk_expander_set_expanded(autoreg_expander, seqloaded);
+	if (!seqloaded) // no need to go further, hide all and return
+		return;
 
 	if (!dont_change_reg_radio) {
 		if (com.seq.selnum < com.seq.number) {
-			gtk_combo_box_set_active(reg_all_sel_box, 1);
-			gtk_combo_box_set_active(filter_combo_init, 1);
+			gtk_combo_box_set_active(GTK_COMBO_BOX(reg_sel_all_combobox), 1);
+			gtk_combo_box_set_active(GTK_COMBO_BOX(combofilter4), 1);
 		} else
-			gtk_combo_box_set_active(reg_all_sel_box, 0);
+			gtk_combo_box_set_active(GTK_COMBO_BOX(reg_sel_all_combobox), 0);
 	}
 
 	selection_is_done = (com.selection.w > 0 && com.selection.h > 0);
-
-	/* initialize default */
-	gtk_notebook_set_current_page(notebook_reg, REG_PAGE_MISC);
-	// gtk_widget_set_visible(cumul_data, FALSE);
-
-	/* lock manual registration if sequence is of variable image size*/
-	gtk_widget_set_sensitive(manualreg, !com.seq.is_variable);
-	gtk_expander_set_expanded(GTK_EXPANDER(manualreg), !com.seq.is_variable);
-	gtk_widget_set_tooltip_text(manualreg, (!com.seq.is_variable) ? "" : _("not available for sequences with variable image sizes"));
+	
+	/* number of registered image */
+	nb_images_reg = gtk_combo_box_get_active(GTK_COMBO_BOX(reg_sel_all_combobox)) == 0 ? com.seq.number : com.seq.selnum;
 
 	/* getting the selected registration method */
 	method = get_selected_registration_method();
@@ -600,111 +666,112 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		return;
 	}
 
+	/* specific methods */
+	isapplyreg = method->method_ptr == &register_apply_reg;
+	is_global = method->method_ptr == &register_star_alignment;
+
+	/* registration data exists for the selected layer */
+	has_reg = layer_has_registration(&com.seq, gtk_combo_box_get_active(GTK_COMBO_BOX(comboboxreglayer)));
+	/* registration will produce output */
+	has_output = isapplyreg || is_global;
+	/* drizzle is selected */
+	has_drizzle = has_output && gtk_stack_get_visible_child(interp_drizzle_stack) == GTK_WIDGET(grid_drizzle_controls);
+
+
+	/* initialize default */
+	gtk_notebook_set_current_page(notebook_registration, REG_PAGE_MISC);
+	gtk_label_set_text(labelregisterinfo, "");
+	gtk_widget_set_tooltip_text(GTK_WIDGET(labelregisterinfo), "");
+
+	/* variable image sizes => disable manual reg */
+	gtk_widget_set_sensitive(GTK_WIDGET(manualreg_expander), !com.seq.is_variable);
+	gtk_expander_set_expanded(manualreg_expander, !com.seq.is_variable);
+	gtk_widget_set_tooltip_text(GTK_WIDGET(manualreg_expander), (!com.seq.is_variable) ? "" : _("not available for sequences with variable image sizes"));
+
 	/* show the appropriate frame selection widgets */
-	gboolean isapplyreg = method->type == REGTYPE_APPLY;
-//	if (!isapplyreg)
-//		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(drizzle_checkbox), FALSE);
-//	gtk_widget_set_visible(GTK_WIDGET(drizzle_checkbox), isapplyreg);
-//	gtk_widget_set_sensitive(GTK_WIDGET(drizzle_checkbox), method->method_ptr == &register_apply_reg); // TODO: remove when we allow drizzle with astrometric
-	gtk_widget_set_visible(GTK_WIDGET(reg_all_sel_box), !isapplyreg);
-	gtk_widget_set_visible(filter_box, isapplyreg);
-	gtk_widget_set_visible(GTK_WIDGET(filter_combo_init), isapplyreg);
+	gtk_widget_set_visible(GTK_WIDGET(reg_sel_all_combobox), !isapplyreg);
+	gtk_widget_set_visible(GTK_WIDGET(seq_filters_box_reg), isapplyreg);
+	gtk_widget_set_visible(GTK_WIDGET(combofilter4), isapplyreg);
 	if (isapplyreg) {
 		if (!dont_change_reg_radio && com.seq.selnum < com.seq.number) {
-			gtk_combo_box_set_active(filter_combo_init, SELECTED_IMAGES);
+			gtk_combo_box_set_active(GTK_COMBO_BOX(combofilter4), SELECTED_IMAGES);
 		}
 		update_filters_registration(-1);
 	}
 
-	/* number of registered image */
-	nb_images_reg = gtk_combo_box_get_active(reg_all_sel_box) == 0 ? com.seq.number : com.seq.selnum;
+	/* show the appropriate outputregframe widgets */
+	gtk_widget_set_visible(GTK_WIDGET(output_reg_frame), isapplyreg || is_global);
+	gtk_widget_set_visible(GTK_WIDGET(proj_estimate), isapplyreg);
+	gtk_widget_set_visible(GTK_WIDGET(notebook_registration), !isapplyreg);
+	gtk_widget_set_visible(GTK_WIDGET(grid_reg_framing), isapplyreg);
+	if (has_output && !has_drizzle) {
+		gint interpolation_item = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxRegInter));
+		gtk_widget_set_sensitive(GTK_WIDGET(toggle_reg_clamp), interpolation_item == OPENCV_CUBIC || interpolation_item == OPENCV_LANCZOS4);
+	}
 
-	/* registration data exists for the selected layer */
-	has_reg = layer_has_registration(&com.seq, gtk_combo_box_get_active(reglayer));
-
+	// show the relevant notebook page
 	if (method->method_ptr == &register_star_alignment || method->method_ptr == &register_multi_step_global) {
-		gtk_notebook_set_current_page(notebook_reg, REG_PAGE_GLOBAL);
+		gtk_notebook_set_current_page(notebook_registration, REG_PAGE_GLOBAL);
 	} else if (method->method_ptr == &register_comet) {
-		gtk_notebook_set_current_page(notebook_reg, REG_PAGE_COMET);
+		gtk_notebook_set_current_page(notebook_registration, REG_PAGE_COMET);
 	} else if (method->method_ptr == &register_3stars) {
-		gtk_notebook_set_current_page(notebook_reg, REG_PAGE_3_STARS);
+		gtk_notebook_set_current_page(notebook_registration, REG_PAGE_3_STARS);
 	} else if (method->method_ptr == &register_kombat) {
-		gtk_notebook_set_current_page(notebook_reg, REG_PAGE_KOMBAT);
-	} else {
-		gtk_notebook_set_current_page(notebook_reg, REG_PAGE_MISC);
+		gtk_notebook_set_current_page(notebook_registration, REG_PAGE_KOMBAT);
 	}
-	if (method && nb_images_reg > 1 && (selection_is_done || method->sel == REQUIRES_NO_SELECTION) && (has_reg || method->type != REGTYPE_APPLY) ) {
-		ready = TRUE;
-		if (method->method_ptr == &register_3stars) {
-			ready = _3stars_check_selection(); // checks that the right image is loaded based on doall and dofollow
-		} else if (gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] != '\0') {
-			sensor_pattern pattern = get_bayer_pattern(&gfit);
-			if (pattern <= BAYER_FILTER_MAX) {
-				gtk_label_set_text(labelreginfo, _("Supported Bayer pattern detected"));
-				gtk_widget_set_tooltip_text(GTK_WIDGET(labelreginfo), _("This sequence can be registered with the Bayer pattern intact based on registering the green layer with red and blue pixels interpolated"));
-			} else {
-				gtk_label_set_text(labelreginfo, _("Unsupported CFA pattern detected"));
-				gtk_widget_set_tooltip_text(GTK_WIDGET(labelreginfo), _("This sequence cannot be registered with the CFA pattern intact. You must debayer it prior to registration"));
-				ready = FALSE;
+
+	// checking bayer status is ok
+	check_bayer_ok = !has_output; //if no output, we don't need to check
+	check_bayer_ok |= gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] == '\0'; // mono sequence
+	check_bayer_ok |= gfit.naxes[2] == 3; // debayered sequence
+	check_bayer_ok |= com.seq.type == SEQ_SER; // SER can be debayered on-the-fly
+	check_bayer_ok |= has_drizzle; // bayer-drizzle will be applied to produce the output
+
+	// if not debayered, check that the bayer pattern is known
+	if (gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] != '\0') {
+		pattern = get_bayer_pattern(&gfit);
+	}
+
+	// checking if it requires same size sequence
+	samesizeseq_required = (method->method_ptr == &register_comet || method->method_ptr == &register_kombat 
+						|| method->method_ptr == &register_shift_dft || method->method_ptr == &register_3stars);
+
+	// preliminary checks
+	ready = TRUE;
+	ready = nb_images_reg > 1 && 
+			check_bayer_ok && 
+			(!samesizeseq_required || (samesizeseq_required && !com.seq.is_variable)) && 
+			(selection_is_done || method->sel == REQUIRES_NO_SELECTION) &&
+			pattern <= BAYER_FILTER_MAX;
+
+	if (ready) {
+		if (method->method_ptr == &register_3stars) { // the 3 stars method has special GUI requirements
+			if ((ready = _3stars_check_selection())) {// checks that the right image is loaded based on doall and dofollow
+				nbselstars = _3stars_get_number_selected_stars();
+				ready = nbselstars > 0;
 			}
-		} else if (method->type == REGTYPE_APPLY && sequence_is_loaded()) {
+		} else if (method->type == REGTYPE_APPLY) {
 			ready = check_framing();
-		} else {
-			gtk_label_set_text(labelreginfo, "");
-			gtk_widget_set_tooltip_text(GTK_WIDGET(labelreginfo), "");
-		}		// the 3 stars method has special GUI requirements
-		if (method->method_ptr == &register_3stars) {
-			if (!ready)
-				gtk_widget_set_sensitive(go_register, FALSE);
-			else
-				nbselstars = _3stars_check_registration_ready();
-		} else {
-			gtk_widget_set_sensitive(go_register, ready);
-			gtk_widget_set_sensitive(go_estimate, ready);
 		}
-		if (method->method_ptr == &register_astrometric && sequence_is_loaded() && !has_wcs(&gfit)) {
-			gtk_label_set_text(labelreginfo, _("Platesolve the sequence first"));
-			gtk_widget_set_sensitive(go_register, FALSE);
-			gtk_widget_set_sensitive(go_estimate, FALSE);
-		}
-
-		gtk_widget_set_visible(follow, method->method_ptr == &register_3stars);
-		gtk_widget_set_visible(onlyshift, method->method_ptr == &register_3stars);
-		gint interpolation_item = gtk_combo_box_get_active(GTK_COMBO_BOX(interpolation_algo));
-		gtk_widget_set_sensitive(toggle_reg_clamp, (method->method_ptr == &register_apply_reg ||
-		method->method_ptr == &register_star_alignment || method->method_ptr == &register_astrometric ||
-		(method->method_ptr == &register_3stars && nbselstars > 1))
-		&& (interpolation_item == OPENCV_CUBIC || interpolation_item == OPENCV_LANCZOS4));
-	} else {
-		gtk_widget_set_sensitive(go_register, FALSE);
-		if (nb_images_reg <= 1 && !selection_is_done) {
-			if (sequence_is_loaded()) {
-				if (method->sel == REQUIRES_NO_SELECTION) {
-					gtk_label_set_text(labelreginfo, _("Select images in the sequence"));
-				} else {
-					gtk_label_set_text(labelreginfo, _("Select an area in image first, and select images in the sequence"));
-				}
-			}
-			else {
-				gtk_label_set_text(labelreginfo, _("Load a sequence first"));
-			}
+	} else { // all the other cases not set by the checkers
+		if (method->sel > REQUIRES_NO_SELECTION && !selection_is_done ) {
+			gtk_label_set_text(labelregisterinfo, _("Select an area in image first"));
 		} else if (nb_images_reg <= 1) {
-			gtk_label_set_text(labelreginfo, _("Select images in the sequence"));
+			gtk_label_set_text(labelregisterinfo, _("Select images in the sequence"));
 		} else if (method->type == REGTYPE_APPLY && !has_reg){
-			gtk_label_set_text(labelreginfo, _("Select a layer with existing registration"));
-		} else {
-			gtk_label_set_text(labelreginfo, _("Select an area in image first"));
+			gtk_label_set_text(labelregisterinfo, _("Select a layer with existing registration"));
+		} else if (samesizeseq_required && !com.seq.is_variable) {
+			gtk_label_set_text(labelregisterinfo, _("not available for sequences with variable image sizes"));
+		} else if (pattern > BAYER_FILTER_MAX) {
+			gtk_label_set_text(labelregisterinfo, _("Unsupported CFA pattern detected"));
+			gtk_widget_set_tooltip_text(GTK_WIDGET(labelregisterinfo), _("This sequence cannot be registered with the CFA pattern intact. You must debayer it prior to registration"));
+		} else if (!check_bayer_ok) {
+			gtk_label_set_text(labelregisterinfo, _("CFA pattern detected"));
+			gtk_widget_set_tooltip_text(GTK_WIDGET(labelregisterinfo), _("This sequence cannot be registered with the CFA pattern intact. Select drizzle or debayer it prior to registration"));
 		}
 	}
-
-	gboolean is_astrometric = method->method_ptr == &register_astrometric;
-	gboolean is_old_global = method->method_ptr == &register_star_alignment;
-	//gtk_widget_set_visible(undistort_check, is_astrometric);
-	gtk_widget_set_visible(go_estimate, is_astrometric || isapplyreg);
-	gtk_widget_set_visible(output_reg_frame, is_astrometric || isapplyreg || is_old_global);
-	gtk_widget_set_visible(GTK_WIDGET(notebook_reg), !(is_astrometric || isapplyreg));
-	gtk_widget_set_visible(GTK_WIDGET(framing_grid), is_astrometric || isapplyreg);
-
+	gtk_widget_set_sensitive(GTK_WIDGET(goregister_button), ready);
+	gtk_widget_set_sensitive(GTK_WIDGET(proj_estimate), ready);
 }
 
 
@@ -722,7 +789,7 @@ void on_regfollowStar_toggled(GtkToggleButton *togglebutton, gpointer user_data)
 static int fill_registration_structure_from_GUI(struct registration_args *reg_args) {
 	char *msg;
 	struct registration_method *method;
-	GtkToggleButton *follow, *matchSel, *onlyshift, *check_2pass;//, *undistort;
+	GtkToggleButton *followStarCheckButton, *matchSel, *onlyshift_checkbutton, *check_2pass;//, *undistort;
 	GtkComboBox *cbbt_layers, *reg_all_sel_box;
 	GtkComboBoxText *ComboBoxRegInter, *ComboBoxTransfo, *ComboBoxMaxStars, *ComboBoxFraming;
 	GtkSpinButton *minpairs, *percent_moved, *scaling_spin;
@@ -752,8 +819,8 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
 	/* filling the arguments for registration */
-	follow = GTK_TOGGLE_BUTTON(lookup_widget("followStarCheckButton"));
-	onlyshift = GTK_TOGGLE_BUTTON(lookup_widget("onlyshift_checkbutton"));
+	followStarCheckButton = GTK_TOGGLE_BUTTON(lookup_widget("followStarCheckButton"));
+	onlyshift_checkbutton = GTK_TOGGLE_BUTTON(lookup_widget("onlyshift_checkbutton"));
 	matchSel = GTK_TOGGLE_BUTTON(lookup_widget("checkStarSelect"));
 	cbbt_layers = GTK_COMBO_BOX(lookup_widget("comboboxreglayer"));
 	ComboBoxRegInter = GTK_COMBO_BOX_TEXT(lookup_widget("ComboBoxRegInter"));
@@ -772,7 +839,7 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 	reg_args->func = method->method_ptr;
 	reg_args->seq = &com.seq;
 	reg_args->reference_image = sequence_find_refimage(&com.seq);
-	reg_args->follow_star = gtk_toggle_button_get_active(follow);
+	reg_args->follow_star = gtk_toggle_button_get_active(followStarCheckButton);
 	reg_args->matchSelection = gtk_toggle_button_get_active(matchSel);
 	reg_args->no_output = !(method->method_ptr == &register_apply_reg || (method->method_ptr == &register_star_alignment && gtk_toggle_button_get_active(check_2pass)));
 	reg_args->cumul = FALSE; //gtk_toggle_button_get_active(cumul);
@@ -784,7 +851,7 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 	if (method->method_ptr != register_3stars)
 		reg_args->type = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxTransfo));
 	else {
-		reg_args->type = (gtk_toggle_button_get_active(onlyshift)) ? SHIFT_TRANSFORMATION : SIMILARITY_TRANSFORMATION;
+		reg_args->type = (gtk_toggle_button_get_active(onlyshift_checkbutton)) ? SHIFT_TRANSFORMATION : SIMILARITY_TRANSFORMATION;
 	}
 	reg_args->framing = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxFraming));
 	reg_args->undistort = TRUE; //gtk_toggle_button_get_active(undistort);

@@ -5289,7 +5289,7 @@ FITS sequence: one FITS file for the whole sequence.</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <child>
-                                                            <object class="GtkLabel" id="label14">
+                                                            <object class="GtkLabel">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="halign">start</property>
@@ -5365,7 +5365,7 @@ When processing images, registration data is taken from the default layer if ava
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkLabel" id="label_minpairs">
+                                                            <object class="GtkLabel">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="halign">start</property>
@@ -5402,7 +5402,7 @@ When processing images, registration data is taken from the default layer if ava
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkLabel" id="label_maxstars">
+                                                            <object class="GtkLabel">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="halign">start</property>
@@ -5523,7 +5523,7 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             </object>
                                                             </child>
                                                             <child type="tab">
-                                                            <object class="GtkLabel" id="notebook_reg_page1">
+                                                            <object class="GtkLabel">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="valign">start</property>
@@ -5546,7 +5546,7 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             <property name="spacing">5</property>
                                                             <child>
                                                             <!-- n-columns=3 n-rows=3 -->
-                                                            <object class="GtkGrid" id="box_comet">
+                                                            <object class="GtkGrid">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="row-spacing">5</property>
@@ -5567,7 +5567,7 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkButton" id="button1_comet2">
+                                                            <object class="GtkButton" id="button2_comet">
                                                             <property name="label" translatable="yes">Pick object in #2</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
@@ -5663,7 +5663,7 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <child>
-                                                            <object class="GtkLabel" id="label2_comet">
+                                                            <object class="GtkLabel">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="tooltip-text" translatable="yes">Comet velocity in pixel per hour.</property>
@@ -5704,7 +5704,7 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             </packing>
                                                             </child>
                                                             <child type="tab">
-                                                            <object class="GtkLabel" id="notebook_reg_page2">
+                                                            <object class="GtkLabel">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="valign">start</property>
@@ -5883,6 +5883,7 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             <child>
                                                             <object class="GtkCheckButton" id="followStarCheckButton">
                                                             <property name="label" translatable="yes">Follow star movement</property>
+                                                            <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
                                                             <property name="tooltip-text" translatable="yes">Use this option to use the position of the star(s) found in the previous image as new centre for the current image registration. This allows the selection area to be smaller, registration faster, and accounts for drift or images with a large number of stars.
@@ -5900,6 +5901,7 @@ WARNING: enabling this option requires the registration to not be parallelized, 
                                                             <child>
                                                             <object class="GtkCheckButton" id="onlyshift_checkbutton">
                                                             <property name="label" translatable="yes">Shift only</property>
+                                                            <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
                                                             <property name="tooltip-text" translatable="yes">Use this option to compute only shifts (so no rotation) even if more than one star is selected. When only one star is selected, this is activated by default.</property>
@@ -5927,7 +5929,7 @@ WARNING: enabling this option requires the registration to not be parallelized, 
                                                             </packing>
                                                             </child>
                                                             <child type="tab">
-                                                            <object class="GtkLabel" id="notebook_reg_page3">
+                                                            <object class="GtkLabel">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="valign">start</property>
@@ -5990,7 +5992,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkLabel" id="notebook_reg_page4">
+                                                            <object class="GtkLabel">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="valign">start</property>
@@ -6033,13 +6035,13 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                       </packing>
                                                     </child>
                                                     <child>
-                                                      <object class="GtkFrame" id="reg_selection_frame">
+                                                      <object class="GtkFrame">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
                                                         <property name="label-xalign">0</property>
                                                         <property name="shadow-type">none</property>
                                                         <child>
-                                                          <object class="GtkAlignment" id="reg_incl_alignment">
+                                                          <object class="GtkAlignment">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="left-padding">12</property>
@@ -6537,7 +6539,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="column-spacing">6</property>
                                                             <property name="row-homogeneous">True</property>
                                                             <child>
-                                                            <object class="GtkLabel" id="framing_lbl">
+                                                            <object class="GtkLabel">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="halign">start</property>
@@ -6642,7 +6644,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkBox" id="reg_scaling_box">
+                                                            <object class="GtkBox">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="halign">start</property>
@@ -6724,7 +6726,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="row-spacing">6</property>
                                                             <property name="column-spacing">6</property>
                                                             <child>
-                                                            <object class="GtkLabel" id="GtkLabelRegAlgo">
+                                                            <object class="GtkLabel">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="halign">start</property>
@@ -6897,7 +6899,7 @@ Note that the Gaussian and Lanczos models do not conserve flux and should not be
                                                             <property name="can-focus">False</property>
                                                             <property name="spacing">6</property>
                                                             <child>
-                                                            <object class="GtkLabel" id="preproseqname_label1">
+                                                            <object class="GtkLabel">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="label" translatable="yes">Prefix:</property>
@@ -7083,7 +7085,7 @@ To be enabled, the reference image must have been explicitly set and already dis
                                                             <property name="halign">center</property>
                                                             <property name="spacing">10</property>
                                                             <child>
-                                                            <object class="GtkLabel" id="label38">
+                                                            <object class="GtkLabel">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="tooltip-text" translatable="yes">Change this value, using mouse wheel or up and down arrows, to align the image with the reference image on the X axis.</property>
@@ -7119,7 +7121,7 @@ To be enabled, the reference image must have been explicitly set and already dis
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkLabel" id="label39">
+                                                            <object class="GtkLabel">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="tooltip-text" translatable="yes">Change this value, using mouse wheel or up and down arrows, to align the image with the reference image on the Y axis.</property>
@@ -7169,7 +7171,7 @@ To be enabled, the reference image must have been explicitly set and already dis
                                                       </packing>
                                                     </child>
                                                     <child>
-                                                      <object class="GtkBox" id="box16">
+                                                      <object class="GtkBox">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
                                                         <property name="margin-top">5</property>
@@ -7181,7 +7183,7 @@ To be enabled, the reference image must have been explicitly set and already dis
                                                             <property name="orientation">vertical</property>
                                                             <property name="spacing">5</property>
                                                             <child>
-                                                            <object class="GtkToggleButton" id="togglebutton2">
+                                                            <object class="GtkToggleButton" id="toggle_reg_manual1">
                                                             <property name="label" translatable="yes">Set first preview</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
@@ -7197,7 +7199,7 @@ To be enabled, the reference image must have been explicitly set and already dis
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkDrawingArea" id="drawingarea_preview1">
+                                                            <object class="GtkDrawingArea" id="drawingarea_reg_manual_preview1">
                                                             <property name="height-request">200</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
@@ -7223,7 +7225,7 @@ To be enabled, the reference image must have been explicitly set and already dis
                                                             <property name="orientation">vertical</property>
                                                             <property name="spacing">5</property>
                                                             <child>
-                                                            <object class="GtkToggleButton" id="togglebutton3">
+                                                            <object class="GtkToggleButton" id="toggle_reg_manual2">
                                                             <property name="label" translatable="yes">Set second preview</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
@@ -7239,7 +7241,7 @@ To be enabled, the reference image must have been explicitly set and already dis
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkDrawingArea" id="drawingarea_preview2">
+                                                            <object class="GtkDrawingArea" id="drawingarea_reg_manual_preview2">
                                                             <property name="height-request">200</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>

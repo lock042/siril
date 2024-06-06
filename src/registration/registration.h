@@ -5,7 +5,7 @@
 #include "algos/PSF.h"
 #include "core/processing.h"
 
-#define NUMBER_OF_METHODS 8
+#define NUMBER_OF_METHODS 6
 #define MAX_DISTO_SIZE 7 // need to duplicate MAX_SIP_SIZE here because of circular refs with opencv
 
 struct registration_args;
@@ -166,7 +166,7 @@ int register_manual(struct registration_args *regargs); // defined in compositin
 int register_astrometric(struct registration_args *regargs);
 
 void reset_3stars();
-int _3stars_check_registration_ready();
+int _3stars_get_number_selected_stars();
 gboolean _3stars_check_selection();
 
 pointf get_velocity();
