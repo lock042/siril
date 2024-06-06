@@ -170,7 +170,7 @@ gpointer rgradient_filter(gpointer p) {
 		}
 	}
 
-	retval = soper(args->fit, fabs(global_min), OPER_ADD, TRUE);
+	retval = soper(args->fit, global_min, OPER_SUB, TRUE);
 	if (retval) { retval = 1; goto end_rgradient; }
 
 end_rgradient:
