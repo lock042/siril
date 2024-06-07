@@ -574,7 +574,9 @@ END:
 	free(b);
 	arg->vport = -1;
 	gboolean in_sequence = (arg->seq != NULL);
-	if (!in_sequence) {
+	if (in_sequence || !arg->display_graph) {
+		free_siril_plot_data(spl_data);
+	} else if (!in_sequence) {
 		if (arg->display_graph)
 			siril_add_idle(create_new_siril_plot_window, spl_data);
 		siril_add_idle(end_generic, NULL);
@@ -591,6 +593,7 @@ gpointer tri_cut(gpointer p) {
 	double starty = arg->fit->ry - 1 - arg->cut_start.y;
 	double endy = arg->fit->ry - 1 - arg->cut_end.y;
 	siril_plot_data *spl_data = NULL;
+	gchar *spllabels[3] = { NULL };
 
 	build_profile_filenames(arg, &filename, &imagefilename);
 
@@ -680,7 +683,7 @@ gpointer tri_cut(gpointer p) {
 		robust_polynomial_fit(r[0], r[2], nbr_points, degree, coeffs, uncertainties, NULL, &sigma);
 		GString *text = g_string_new(_("Coefficients: y = "));
 		for (int i = 0 ; i <= degree ; i++) {
-			gchar *tmp = NULL;
+			gchar *tmp;
 			if (i == 0) {
 				tmp = g_strdup_printf("%.2e (±%.2e) ", coeffs[0], uncertainties[0]);
 			} else {
@@ -703,8 +706,6 @@ gpointer tri_cut(gpointer p) {
 			r[1][i] -= r[0][i];
 		}
 	}
-
-	gchar *spllabels[3] = { NULL };
 
 	if (arg->vport == 0) {
 		if (do_spec) {

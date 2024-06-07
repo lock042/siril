@@ -413,7 +413,7 @@ static void interpolate_nongreen_ushort(fits *fit) {
 	const char *cfa = get_cfa_from_pattern(pattern);
 	if (!cfa)
 		return;
-	size_t cfadim = !cfa ? 1 : strlen(cfa) == 4 ? 2 : 6;
+	size_t cfadim = strlen(cfa) == 4 ? 2 : 6;
 	uint32_t width = fit->rx;
 	uint32_t height = fit->ry;
 	for (int row = 0; row < height - 1; row++) {

@@ -731,21 +731,22 @@ void refresh_star_list(){
 /* this can be called from any thread as long as refresh_GUI is false, it's
  * synchronized with the main thread with a mutex */
 void clear_stars_list(gboolean refresh_GUI) {
-	if (com.stars) {
+	g_mutex_lock(&com.mutex); // Lock at the beginning to protect the check and modification
+	psf_star **stars = com.stars;
+
+	if (stars) {
+		com.stars = NULL; // Set com.stars to NULL while holding the lock
+		g_mutex_unlock(&com.mutex);
+
 		if (refresh_GUI && !com.headless) {
 			get_stars_list_store();
 			gtk_list_store_clear(liststore_stars);
 		}
-		psf_star **stars = com.stars;
-
-		g_mutex_lock(&com.mutex); // also locked around the draw_stars() call
-		com.stars = NULL;
-		g_mutex_unlock(&com.mutex);
 
 		if (stars[0]) {
 			/* freeing found stars. It must not be done when the only star in
-			 * com.stars is the same as com.seq.imgparam[xxx].fwhm, as set in
-			 * set_fwhm_star_as_star_list(), because it will be reused */
+			* com.stars is the same as com.seq.imgparam[xxx].fwhm, as set in
+			* set_fwhm_star_as_star_list(), because it will be reused */
 			if (stars[1] || !com.star_is_seqdata) {
 				int i = 0;
 				while (i < MAX_STARS && stars[i])
@@ -753,13 +754,16 @@ void clear_stars_list(gboolean refresh_GUI) {
 			}
 			free(stars);
 		}
-
+	} else {
+		g_mutex_unlock(&com.mutex); // Unlock if com.stars is NULL
 	}
+
 	com.star_is_seqdata = FALSE;
 	gui.selected_star = -1;
 	if (refresh_GUI && !com.headless)
 		display_status();
 }
+
 
 struct star_update_s {
 	psf_star **stars;

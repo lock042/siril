@@ -557,7 +557,7 @@ void transformColorSpace(
 		}
 	}
 
-	io_im = imTmp;
+	io_im = std::move(imTmp);
 }
 
 /**
