@@ -241,7 +241,7 @@ void phaseRetrieval(img_t<T>& outkernel, const img_t<T>& blurredPatch,
         {
             if (currentScore < globalCurrentScore) {
                 globalCurrentScore = currentScore;
-                outkernel = bestKernel;
+                outkernel = std::move(bestKernel);
             }
         }
     }

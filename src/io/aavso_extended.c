@@ -145,22 +145,32 @@ static gboolean export_to_aavso_extended(siril_plot_data *data, aavso_dlg *aavso
 	const char *data_header = "#NAME,DATE,MAG,MERR,FILT,TRANS,MTYPE,CNAME,CMAG,KNAME,KMAG,AMASS,GROUP,CHART,NOTES";
 
 	strcpy(header.type, "EXTENDED");
-	g_strlcpy(header.obscode, aavso_ptr->obscode, 12);
-	g_strlcpy(header.software, PACKAGE_STRING, 256);
+	gboolean truncated = FALSE;
+	if (g_strlcpy(header.obscode, aavso_ptr->obscode, 12) >= 12) truncated = TRUE;
+	if (g_strlcpy(header.software, PACKAGE_STRING, 256) >= 256) truncated = TRUE;
 	header.delim = ',';
 	strcpy(header.date, "JD");
-	g_strlcpy(header.obstype, aavso_ptr->obstype, 5);
-	g_strlcpy(header.aavso_data_header, data_header, 512);
+	if (g_strlcpy(header.obstype, aavso_ptr->obstype, 5) >= 5) truncated = TRUE;
+	if (g_strlcpy(header.aavso_data_header, data_header, 512) >= 512) truncated = TRUE;
 
+	if (truncated) {
+		siril_log_color_message(_("Warning: at least one AAVSO header element was truncated.\n"), "salmon");
+		truncated = FALSE;
+	}
 	generate_aavso_header(&header, aavso_param);
 
-	g_strlcpy(adata.starid, aavso_ptr->starid, 31);
-	g_strlcpy(adata.filter, aavso_ptr->filter, 6);
-	g_strlcpy(adata.cname, aavso_ptr->cname, 21);
-	g_strlcpy(adata.kname, aavso_ptr->kname, 21);
-	g_strlcpy(adata.chart, aavso_ptr->chart, 21);
-	g_strlcpy(adata.notes, aavso_ptr->notes, strlen(aavso_ptr->notes) + 1);
+	if (g_strlcpy(adata.starid, aavso_ptr->starid, 31) >= 31) truncated = TRUE;
+	if (g_strlcpy(adata.filter, aavso_ptr->filter, 6) >= 6) truncated = TRUE;
+	if (g_strlcpy(adata.cname, aavso_ptr->cname, 21) >= 21) truncated = TRUE;
+	if (g_strlcpy(adata.kname, aavso_ptr->kname, 21) >= 21) truncated = TRUE;
+	if (g_strlcpy(adata.chart, aavso_ptr->chart, 21) >= 21) truncated = TRUE;
+	gsize len = strlen(aavso_ptr->notes) + 1;
+	if (g_strlcpy(adata.notes, aavso_ptr->notes, len) >= len) truncated = TRUE;
 
+	if (truncated) {
+		siril_log_color_message(_("Warning: at least one AAVSO data element was truncated.\n"), "salmon");
+		truncated = FALSE;
+	}
 	siril_plot_save_aavso(data, datfilename, aavso_param, &adata);
 
 	return TRUE;

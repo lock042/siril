@@ -6,8 +6,8 @@ struct savedial_data {
 	GtkEntry *entry;
 	gint bitspersamples;
 	gboolean tiff_compression;
-	char *description;
-	char *copyright;
+	gchar *description;
+	gchar *copyright;
 	gint quality;
 	gint jxl_effort;
 	gdouble jxl_quality;

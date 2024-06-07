@@ -529,6 +529,9 @@ int auto_update_gitscripts(gboolean sync) {
 		siril_debug_print("Remote URL: %s\n", remote_url);
 	} else {
 		siril_log_color_message(_("Error: cannot identify local repository's configured remote.\n"), "red");
+		git_remote_free(remote);
+		git_repository_free(repo);
+		git_libgit2_shutdown();
 		return 1;
 	}
 	if (strcmp(remote_url, SCRIPT_REPOSITORY_URL)) {
@@ -555,6 +558,7 @@ int auto_update_gitscripts(gboolean sync) {
 		if (error != 0) {
 			siril_log_color_message(_("Error performing hard reset. If the problem persists you may need to delete the local git repository and allow Siril to re-clone it.\n"), "red");
 			gui.script_repo_available = FALSE;
+			git_remote_free(remote);
 			git_repository_free(repo);
 			git_libgit2_shutdown();
 			return -1;
@@ -562,14 +566,14 @@ int auto_update_gitscripts(gboolean sync) {
 
 		// Perform the reset
 		error = git_reset(repo, target_commit, GIT_RESET_HARD, NULL);
+		git_object_free(target_commit);
 		if (error != 0) {
 			siril_log_color_message(_("Error performing hard reset. If the problem persists you may need to delete the local git repository and allow Siril to re-clone it.\n"), "red");
-			git_object_free(target_commit);
+			git_remote_free(remote);
 			git_repository_free(repo);
 			git_libgit2_shutdown();
 			return -1;
 		}
-
 		siril_log_color_message(_("Local scripts repository is up-to-date!\n"), "green");
 	}
 
@@ -600,8 +604,8 @@ int auto_update_gitscripts(gboolean sync) {
 
     // Cleanup
 cleanup:
-    if (repo)
-		git_repository_free(repo);
+	git_remote_free(remote);
+	git_repository_free(repo);
     git_libgit2_shutdown();
 
     return retval;
@@ -622,6 +626,7 @@ int auto_update_gitspcc(gboolean sync) {
 	git_clone_options clone_opts = GIT_CLONE_OPTIONS_INIT;
 
 	git_repository *repo = NULL;
+	git_remote *remote = NULL;
 
 	// See if the repository already exists
 	int error = git_repository_open(&repo, local_path);
@@ -647,7 +652,6 @@ int auto_update_gitspcc(gboolean sync) {
 	gui.spcc_repo_available = TRUE;
 
 	// Check we are using the correct repository
-	git_remote *remote = NULL;
 	const char *remote_name = "origin";
 	error = git_remote_lookup(&remote, repo, remote_name);
 	if (error != 0) {
@@ -662,6 +666,9 @@ int auto_update_gitspcc(gboolean sync) {
 		siril_debug_print("Remote URL: %s\n", remote_url);
 	} else {
 		siril_log_color_message(_("Error: cannot identify local repository's configured remote.\n"), "red");
+		git_remote_free(remote);
+		git_repository_free(repo);
+		git_libgit2_shutdown();
 		return 1;
 	}
 	if (strcmp(remote_url, SPCC_REPOSITORY_URL)) {
@@ -688,6 +695,7 @@ int auto_update_gitspcc(gboolean sync) {
 		if (error != 0) {
 			siril_log_color_message(_("Error performing hard reset. If the problem persists you may need to delete the local git repository and allow Siril to re-clone it.\n"), "red");
 			gui.spcc_repo_available = FALSE;
+			git_remote_free(remote);
 			git_repository_free(repo);
 			git_libgit2_shutdown();
 			return -1;
@@ -695,14 +703,14 @@ int auto_update_gitspcc(gboolean sync) {
 
 		// Perform the reset
 		error = git_reset(repo, target_commit, GIT_RESET_HARD, NULL);
+		git_object_free(target_commit);
 		if (error != 0) {
 			siril_log_color_message(_("Error performing hard reset. If the problem persists you may need to delete the local git repository and allow Siril to re-clone it.\n"), "red");
-			git_object_free(target_commit);
+			git_remote_free(remote);
 			git_repository_free(repo);
 			git_libgit2_shutdown();
 			return -1;
 		}
-
 		siril_log_color_message(_("Local SPCC database repository is up-to-date!\n"), "green");
 	}
 
@@ -711,11 +719,11 @@ int auto_update_gitspcc(gboolean sync) {
 
     // Cleanup
 cleanup:
-    if (repo)
-		git_repository_free(repo);
-    git_libgit2_shutdown();
+	git_remote_free(remote);
+	git_repository_free(repo);
+	git_libgit2_shutdown();
 
-    return retval;
+	return retval;
 }
 
 int preview_scripts_update(GString** git_pending_commit_buffer) {

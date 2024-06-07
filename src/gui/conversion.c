@@ -399,7 +399,10 @@ void on_treeview_convert_drag_data_received(GtkWidget *widget,
 				} else {
 					list = g_slist_prepend(list, path);
 				}
-			} else bad_files++;
+			} else {
+				bad_files++;
+				g_free(path);
+			}
 		} else {
 			fprintf(stderr, "Could not convert uri to local path: %s",
 					error->message);

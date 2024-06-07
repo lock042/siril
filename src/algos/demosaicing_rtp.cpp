@@ -207,8 +207,10 @@ WORD *debayer_buffer_new_ushort(WORD *buf, int *width, int *height,
 	free(blue);
 	free(green);
 	free(red);
-
-	return retval == RP_NO_ERROR ? newfitdata : NULL;
+	if (retval == RP_NO_ERROR)
+		return newfitdata;
+	free(newfitdata);
+	return NULL;
 }
 
 // Warning: buf may be destroyed in case of failure, to avoid data duplication
@@ -249,7 +251,7 @@ float *debayer_buffer_new_float(float *buf, int *width, int *height,
 		siril_debug_print("Normalisation for debayering: min = max (%f)\n", min);
 		return NULL;
 	}
-	factor = normvalue / range; 
+	factor = normvalue / range;
 	invfactor  = 1. / factor;
 
 	// map values from [min,max] to [0,normvalue] (no clipping, no overflow)
@@ -348,7 +350,7 @@ float *debayer_buffer_new_float(float *buf, int *width, int *height,
 	float min2 = FLT_MAX, max2 = -FLT_MAX;
 #endif
 	for (j = 0; j < n; j++) {
-		newdata[j] = newdata[j] * invfactor + min; 
+		newdata[j] = newdata[j] * invfactor + min;
 #ifdef SIRIL_OUTPUT_DEBUG
 		if (newdata[j] > max2)
 			max2 = newdata[j];

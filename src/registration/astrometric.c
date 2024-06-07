@@ -100,7 +100,7 @@ static gboolean get_scales_and_framing(struct wcsprm *WCSDATA, Homography *K, do
 }
 
 int register_astrometric(struct registration_args *regargs) {
-
+	struct astrometric_args *astargs = NULL;
 	int retval = 0;
 	struct timeval t_start, t_end;
 	if (!regargs->filtering_criterion &&
@@ -268,7 +268,6 @@ int register_astrometric(struct registration_args *regargs) {
 		br = (pointi){ INT_MIN, INT_MIN };
 	}
 	gboolean savewarped = !regargs->no_output;
-	struct astrometric_args *astargs = NULL;
 	// if we have some output sequence, prepare the astrometric_args
 	if (savewarped) {
 		astargs = malloc(sizeof(struct astrometric_args));
@@ -374,6 +373,7 @@ int register_astrometric(struct registration_args *regargs) {
 							error = TRUE;
 							siril_log_color_message(_("Image %d has no overlap with the reference\n"), "red", i + 1);
 						}
+
 				}
 				break;
 		}
@@ -422,17 +422,18 @@ free_all:
 	}
 	free(Ks);
 	free(Rs);
+	free_astrometric_args(astargs);
 	fix_selnum(regargs->seq, FALSE);
 	siril_log_message(_("Registration finished.\n"));
 	siril_log_color_message(_("Total: %d failed, %d registered.\n"), "green", failed, nb_aligned);
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
-	free_astrometric_args(astargs);
 	return retval;
 }
 
 /* image alignment hooks and main process */
 static int astrometric_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads) {
+	g_assert(fit != NULL);
 	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
 	struct astrometric_args *astargs = sadata->astargs;
@@ -503,10 +504,10 @@ static int astrometric_image_hook(struct generic_seq_args *args, int out_index, 
 
 		if (status) {
 			siril_log_color_message(_("Error generating mapping array.\n"), "red");
-			// TODO: need to handle this, cannot go on
 			free(p->error);
 			free(p->pixmap);
 			free(p);
+			return 1;
 		}
 		p->data = fit;
 		// Convert fit to 32-bit float if required
@@ -546,7 +547,11 @@ static int astrometric_image_hook(struct generic_seq_args *args, int out_index, 
 
 		if ((status = dobox(p))) { // Do the drizzle
 			siril_log_color_message("s\n", p->error->last_message);
-			// TODO: need to handle this, cannot go on
+			free(p->error);
+			free(p->pixmap->xmap);
+			free(p->pixmap);
+			free(p);
+			return 1;
 		}
 		clearfits(fit);
 		// copy the DATE_OBS
@@ -570,6 +575,7 @@ static int astrometric_image_hook(struct generic_seq_args *args, int out_index, 
 
 		free(p->pixmap->xmap);
 		free(p->pixmap);
+		free(p);
 
 		// Get rid of the output_counts image, no longer required
 		clearfits(output_counts);

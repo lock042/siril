@@ -108,10 +108,7 @@ template <typename T>
 inline plan_t<T>* make_plan(dim_t dim, int flags)
 {
     static std::unordered_map<dim_t, plan_t<T>> cache;
-    if (cache.find(dim) == cache.end()) {
-        cache.emplace(dim, plan_t<T>(dim, flags));
-    }
-    auto it = cache.find(dim);
+    auto [it, inserted] = cache.emplace(dim, plan_t<T>(dim, flags));
     return &it->second;
 }
 

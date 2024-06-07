@@ -199,6 +199,8 @@ int edge_preserving_filter(struct epfargs *args) {
 		sprintf(log, "Guided filtering, d: %.2f, sigma: %.2f, modulation: %.2f", d, sigma_col, mod);
 	}
 	gfit.history = g_slist_append(gfit.history, strdup(log));
+	if (args->guide_needs_freeing)
+		free(args->guidefit);
 	free(args);
 	return 0;
 }
