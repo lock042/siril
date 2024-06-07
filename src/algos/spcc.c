@@ -111,7 +111,7 @@ static double tau_R(double lambda, double H, double p) {
 
 // Function to calculate airmass X using the expression from Young (1994)
 
-static double airmass(double z) {
+double compute_airmass(double z) {
     double z_rad = z * M_PI / 180.0; // Convert degrees to radians
     double cos_z = cos(z_rad);
     double cos_z2 = cos_z * cos_z;
@@ -135,10 +135,9 @@ static double airmass(double z) {
 // Ozone Chappuis bands) and sharp lines at 688nm and 762nm (Fraunhofer A and B
 // bands), though above 700nm is not really important for SPCC.
 
-static double transmittance(double lambda, double H, double p, double z) {
+static double transmittance(double lambda, double H, double p, double X) {
 	lambda /= 1000.0; // tau_R requires wavelength in microns, we want to provide it in nm
 	H /= 1000.0; // tau_R requires H in km, we want to provide it in m
-	double X = airmass(z); // Calculate the airmass
     double tau = tau_R(lambda, H, p);
     return exp(-tau * X);
 }
@@ -160,19 +159,23 @@ static double pressure_at_height(double P0, double h) {
     return pressure;
 }
 
-void init_xpsampled_from_atmos_model(xpsampled *out, struct photometric_cc_data *args) {
+void fill_xpsampled_from_atmos_model(xpsampled *out, struct photometric_cc_data *args) {
 	double airmass;
-	if (args->fit->keywords.airmass != 999) {
+	double centalt = args->fit->keywords.centalt;
+	if (args->fit->keywords.airmass > 0.0) {
 		airmass = args->fit->keywords.airmass;
+	} else if (centalt > 0.0 && centalt <= 90.0) {
+		airmass = compute_airmass(90.0 - centalt);
 	} else {
-		airmass = 1.41; // TODO: Need to do better than this if airmass is unavailable, this is a key parameter
+// Final fallback: astrophotographers usually aim for > 30deg alt to minimize poor
+// seeing caused by turbulence. The average zenith angle for all parts of the sky
+// with zenith angle <= 60deg is 41.9deg
+		airmass = compute_airmass(41.9);
 	}
-	double height = 10.0; // TODO: Need a preference or setting for observer height
-	double slp = 1000.0; // Sea level pressure. TODO: User input
-	double pressure = pressure_at_height(slp, height);
+	double pressure = args->atmos_pressure_is_slp ? pressure_at_height(args->atmos_pressure, args->atmos_obs_height) : args->atmos_pressure;
 	double maxval = -DBL_MAX;
 	for (int i = 0 ; i < XPSAMPLED_LEN ; i++) {
-		out->y[i] = transmittance(out->x[i], height, pressure, zenithangle);
+		out->y[i] = transmittance(out->x[i], args->atmos_obs_height, pressure, airmass);
 		if (out->y[i] > maxval) maxval = out->y[i];
 	}
 	// Normalize
@@ -290,7 +293,7 @@ void get_spectrum_from_args(struct photometric_cc_data *args, xpsampled* spectru
 		// Atmospheric correction (if required)
 		if (args->atmos_corr) {
 			xpsampled spectrum4 = { spectrum->x, { 0.0 } };
-			init_xpsampled_from_atmos_model(&spectrum4, args);
+			fill_xpsampled_from_atmos_model(&spectrum4, args);
 			multiply_xpsampled(spectrum, spectrum, &spectrum4);
 		}
 	}
