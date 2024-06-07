@@ -1884,6 +1884,7 @@ void process_plate_solver_input(struct astrometry_data *args) {
 		args->ref_stars->radius = args->used_fov * 0.5;
 	} else {
 		siril_debug_print("Warning: args->ref_stars is NULL\n");
+		return;
 	}
 	if (croparea.w == args->fit->rx && croparea.h == args->fit->ry)
 		memset(&croparea, 0, sizeof(rectangle));
@@ -1918,6 +1919,10 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 		return 1;
 	args->fit = &fit;
 	process_plate_solver_input(args); // compute required data to get the catalog
+	if (!args->ref_stars) {
+		siril_log_color_message(_("Error: no reference stars available\n"), "red");
+		return 1;
+	}
 	args->layer = fit.naxes[2] == 1 ? 0 : 1;
 	regdata *current_regdata;
 	// if no registration data present, we will store the stats stored by the peaker and add identity matrices
@@ -1938,14 +1943,14 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 		gchar *filename = g_strdup(arg->seq->fitseq_file->filename);
 		// it was opened in READONLY mode, we close it
 		if (fitseq_close_file(arg->seq->fitseq_file)) {
-			siril_debug_print("error when closing fitseq\n");
+			siril_log_color_message(_("Error when closing fitseq\n"), "red");
 			g_free(filename);
 			return 1;
 		}
 		arg->seq->fitseq_file->fptr = NULL;
 		// and we reopen in READWRITE mode to update it
 		if(fitseq_open(filename, arg->seq->fitseq_file, READWRITE)) {
-			siril_debug_print("error when reopening fitseq\n");
+			siril_log_color_message(_("Error when reopening fitseq\n"), "red");
 			g_free(filename);
 			return 1;
 		}
@@ -1995,7 +2000,7 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 			}
 		}
 		if (!aargs->cat_center) {
-			siril_log_color_message(_("Could not set cat_center, skipping\n"), "red", root);
+			siril_debug_print("Could not set cat_center, skipping\n");
 			siril_catalog_free(aargs->ref_stars);
 			free(aargs);
 			return 1;
