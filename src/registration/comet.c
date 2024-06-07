@@ -145,6 +145,7 @@ void on_button1_comet_clicked(GtkButton *button, gpointer p) {
 		}
 		set_cursor_waiting(FALSE);
 	}
+	update_reg_interface(TRUE);
 }
 
 void on_button2_comet_clicked(GtkButton *button, gpointer p) {
@@ -187,6 +188,7 @@ void on_button2_comet_clicked(GtkButton *button, gpointer p) {
 		}
 		set_cursor_waiting(FALSE);
 	}
+	update_reg_interface(TRUE);
 }
 
 void on_entry_comet_changed(GtkEditable *editable, gpointer user_data) {

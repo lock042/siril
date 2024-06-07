@@ -288,34 +288,43 @@ static int populate_drizzle_data(struct driz_args_t *driz) {
 }
 
 static struct registration_method *reg_methods[NUMBER_OF_METHODS + 1];
+typedef enum {
+	REG_GLOBAL,
+	REG_3STARS,
+	REG_DFT,
+	REG_KOMBAT,
+	REG_COMET,
+	REG_APPLY,
+	REG_2PASS
+} regmethod_index;
 
 void initialize_registration_methods() {
-	int i = 0, j = 0;
+	int j = 0;
 	GString *tip;
 	gchar *ctip;
 	registration_init_statics();
 
-	reg_methods[i++] = new_reg_method(_("Global Star Alignment (deep-sky)"),
+	reg_methods[REG_GLOBAL] = new_reg_method(_("Global Star Alignment (deep-sky)"),
 			&register_star_alignment, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
-	reg_methods[i++] = new_reg_method(_("1-2-3 Stars Registration (deep-sky)"),
+	reg_methods[REG_3STARS] = new_reg_method(_("1-2-3 Stars Registration (deep-sky)"),
 			&register_3stars, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
-	reg_methods[i++] = new_reg_method(_("Image Pattern Alignment (planetary - full disk)"),
+	reg_methods[REG_DFT] = new_reg_method(_("Image Pattern Alignment (planetary - full disk)"),
 			&register_shift_dft, REQUIRES_SQUARED_SELECTION, REGTYPE_PLANETARY);
-	reg_methods[i++] = new_reg_method(_("KOMBAT (planetary surfaces or full disk)"),
+	reg_methods[REG_KOMBAT] = new_reg_method(_("KOMBAT (planetary surfaces or full disk)"),
 			&register_kombat, REQUIRES_ANY_SELECTION, REGTYPE_PLANETARY);
-	reg_methods[i++] = new_reg_method(_("Comet/Asteroid Registration"),
+	reg_methods[REG_COMET] = new_reg_method(_("Comet/Asteroid Registration"),
 			&register_comet, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
-	reg_methods[i++] = new_reg_method(_("Apply Existing Registration"),
+	reg_methods[REG_APPLY] = new_reg_method(_("Apply Existing Registration"),
 			&register_apply_reg, REQUIRES_NO_SELECTION, REGTYPE_APPLY);
 	// we register 2-pass but we won't add it to the combo/tooltip
-	reg_methods[i++] = new_reg_method(_("Two-Pass Global Star Alignment (deep-sky)"),
+	reg_methods[REG_2PASS] = new_reg_method(_("Two-Pass Global Star Alignment (deep-sky)"),
 			&register_multi_step_global, REQUIRES_NO_SELECTION, REGTYPE_DEEPSKY);
-	reg_methods[i] = NULL;
+	reg_methods[NUMBER_OF_METHODS] = NULL;
 
 	tip = g_string_new ("");
-	for (j = 0; j < i - 1; j ++) {
+	for (j = 0; j < NUMBER_OF_METHODS - 1; j ++) {
 		tip = g_string_append(tip, _(tooltip_text[j]));
-		if (j < i - 1)
+		if (j < NUMBER_OF_METHODS - 2)
 			tip = g_string_append(tip, "\n\n");
 	}
 	ctip = g_string_free (tip, FALSE);
@@ -324,14 +333,12 @@ void initialize_registration_methods() {
 
 	/* fill comboboxregmethod */
 	gtk_combo_box_text_remove_all(comboboxregmethod);
-	for (j = 0; j < i - 1; j ++) {
+	for (j = 0; j < NUMBER_OF_METHODS - 1; j ++) {
 		gtk_combo_box_text_append_text(comboboxregmethod, reg_methods[j]->name);
 		siril_log_message(_("Loading registration method: %s\n"),
 				reg_methods[j]->name);
 	}
-	if (i > 0) {
-		gtk_combo_box_set_active(GTK_COMBO_BOX(comboboxregmethod), com.pref.gui.reg_settings);
-	}
+	gtk_combo_box_set_active(GTK_COMBO_BOX(comboboxregmethod), com.pref.gui.reg_settings);
 
 	gtk_combo_box_set_active(GTK_COMBO_BOX(ComboBoxRegInter), com.pref.gui.reg_interpolation);
 	gtk_toggle_button_set_active(toggle_reg_clamp, com.pref.gui.reg_clamping);
@@ -352,8 +359,8 @@ struct registration_method *get_selected_registration_method() {
 	}
 	g_free(text);
 
-	if (index == 0 && reg_2pass) // 2 pass method is global + 2pass button checked
-		index = 5;
+	if (index == REG_GLOBAL && gtk_toggle_button_get_active(reg_2pass)) // 2 pass method is global + 2pass button checked
+		index = REG_2PASS;
 	return reg_methods[index];
 }
 
@@ -625,6 +632,15 @@ static gboolean check_framing() {
 	return TRUE;
 }
 
+static gboolean check_comet() {
+	pointf velocity = get_velocity();
+	if (velocity.x == 0.f && velocity.y == 0.f) {
+		gtk_label_set_text(labelregisterinfo, _("Pick object in 2 images"));
+		return FALSE;
+	}
+	return TRUE;
+}
+
 /* Selects the "register all" or "register selected" according to the number of
  * selected images, if argument is false.
  * Verifies that enough images are selected and an area is selected.
@@ -640,7 +656,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 
 	seqloaded = sequence_is_loaded();
 	gtk_widget_set_sensitive(GTK_WIDGET(manualreg_expander), seqloaded);
-	gtk_expander_set_expanded(manualreg_expander, seqloaded);
+	gtk_expander_set_expanded(manualreg_expander, FALSE); // no need to clutter the interface
 	gtk_widget_set_sensitive(GTK_WIDGET(autoreg_expander), seqloaded);
 	gtk_expander_set_expanded(autoreg_expander, seqloaded);
 	if (!seqloaded) // no need to go further, hide all and return
@@ -685,7 +701,6 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 
 	/* variable image sizes => disable manual reg */
 	gtk_widget_set_sensitive(GTK_WIDGET(manualreg_expander), !com.seq.is_variable);
-	gtk_expander_set_expanded(manualreg_expander, !com.seq.is_variable);
 	gtk_widget_set_tooltip_text(GTK_WIDGET(manualreg_expander), (!com.seq.is_variable) ? "" : _("not available for sequences with variable image sizes"));
 
 	/* show the appropriate frame selection widgets */
@@ -752,6 +767,8 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 			}
 		} else if (method->type == REGTYPE_APPLY) {
 			ready = check_framing();
+		} else if (method->method_ptr == &register_comet) {
+			ready = check_comet();
 		}
 	} else { // all the other cases not set by the checkers
 		if (method->sel > REQUIRES_NO_SELECTION && !selection_is_done ) {
