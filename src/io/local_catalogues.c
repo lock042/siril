@@ -50,6 +50,14 @@
 #endif
 #endif
 
+/* Used for sanitizing catalogue input. 1<<20 seems reasonable as a maximum limit
+ * both for the number of trixels in a catalogue and for the number of stars in a
+ * single trixel. These values are mostly used to sanitize the data to prevent
+ * asking malloc() to allocate nonsensical amounts of memory.
+ */
+#define MAX_NUM_TRIXELS 1<<20
+#define MAX_STARS_PER_TRIXEL 1<<20
+
 #define NAMEDSTARS_DAT "~/.local/share/kstars/namedstars.dat"
 #define UNNAMEDSTARS_DAT "~/.local/share/kstars/unnamedstars.dat"
 #define TYCHOSTARS_DAT "~/.local/share/kstars/deepstars.dat"
@@ -278,9 +286,9 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 	//		cat->ntrixels, cat->HTM_Level);
 
 	// ntrixels is tainted (read from external file): sanitize values
-	// Maximum of 2^20 currently seems reasonable (and allows plenty
+	// Maximum of 2^20 (MAX_NUM_TRIXELS) currently seems reasonable (and allows plenty
 	// of headroom)
-	if (cat->ntrixels < 1 || cat->ntrixels > 1<<20) {
+	if (cat->ntrixels < 1 || cat->ntrixels > MAX_NUM_TRIXELS) {
 		siril_log_color_message(_("Error: number of trixels reported by file is out of limits.\n"), "red");
 		free(cat);
 		return NULL;
@@ -311,6 +319,13 @@ static struct catalogue_file *catalogue_read_header(FILE *f) {
 		if (current->trixelID != i) {
 			siril_debug_print("expected trixel ID of %d, got %u\n", i, current->trixelID);
 			// if this is not right, we won't be able to use the indexing of the index
+			free(cat->indices);
+			free(cat);
+			return NULL;
+		}
+		if (current->nrecs > MAX_STARS_PER_TRIXEL) {
+			siril_debug_print("catalogue claims excessive number (%d) of stars in trixel ID %u. Potential data error or corruption\n", current->nrecs, current->trixelID);
+			// memory safety as this value is used for memory allocation
 			free(cat->indices);
 			free(cat);
 			return NULL;

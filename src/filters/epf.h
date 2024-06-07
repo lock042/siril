@@ -9,6 +9,7 @@ typedef enum {
 struct epfargs {
 	fits *fit;
 	fits *guidefit;
+	gboolean guide_needs_freeing;
 	double d;
 	double sigma_col;
 	double sigma_space;

@@ -359,9 +359,11 @@ void validate_custom_profiles() {
 		}
 		g_mutex_unlock(&monitor_profile_mutex);
 	} else {
+		g_mutex_lock(&monitor_profile_mutex);
 		if (gui.icc.monitor)
 			cmsCloseProfile(gui.icc.monitor);
 		gui.icc.monitor = com.pref.icc.rendering_intent == INTENT_PERCEPTUAL ? srgb_monitor_perceptual() : srgb_trc();
+		g_mutex_unlock(&monitor_profile_mutex);
 	}
 
 	if (com.pref.icc.icc_path_soft_proof && com.pref.icc.icc_path_soft_proof[0] != '\0') {
@@ -1464,6 +1466,7 @@ void siril_plot_colorspace(cmsHPROFILE profile, gboolean compare_srgb) {
 	siril_plot_set_xlabel(spl_data, _("CIE x"));
 	siril_plot_set_savename(spl_data, "color_profile");
 	siril_plot_set_title(spl_data, title1);
+	g_free(title1);
 	siril_plot_set_ylabel(spl_data, _("CIE y"));
 	int n = 1;
 	siril_plot_add_xydata(spl_data, _("Color profile"), 4, colorspace_x, colorspace_y, NULL, NULL);

@@ -48,17 +48,23 @@ class fftw_alloc {
             return &value;
         }
 
-        fftw_alloc() throw() {
+        fftw_alloc() noexcept {
         }
-        fftw_alloc(const fftw_alloc&) throw() {
+        fftw_alloc(const fftw_alloc&) noexcept {
         }
         template <class U>
-        fftw_alloc (const fftw_alloc<U>&) throw() {
+        fftw_alloc (const fftw_alloc<U>&) noexcept {
         }
-        ~fftw_alloc() throw() {
+        ~fftw_alloc() noexcept {
         }
 
-        size_type max_size () const throw() {
+        // Move constructor
+        fftw_alloc(fftw_alloc&&) noexcept = default;
+
+        // Move assignment operator
+        fftw_alloc& operator=(fftw_alloc&&) noexcept = default;
+
+        size_type max_size () const noexcept {
             return std::numeric_limits<std::size_t>::max() / sizeof(T);
         }
 
