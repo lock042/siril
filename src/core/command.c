@@ -825,13 +825,15 @@ int process_savetif(int nb){
 
 	for (int i = 2; i < nb; i++) {
 		if (word[i] && !g_strcmp0(word[i], "-astro")) {
-			if (astro_tiff) free(astro_tiff);
+			if (astro_tiff)
+				g_free(astro_tiff);
 			astro_tiff = AstroTiff_build_header(&gfit);
 		} else if (word[i] && !g_strcmp0(word[i], "-deflate")) {
 			tiff_compression = TRUE;
 		} else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
-			if (astro_tiff) free(astro_tiff);
+			if (astro_tiff)
+				g_free(astro_tiff);
 			return CMD_ARG_ERROR;
 		}
 	}

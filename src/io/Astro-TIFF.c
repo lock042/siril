@@ -64,5 +64,5 @@ gchar *AstroTiff_build_header(fits *fit) {
 	fits_close_file(tmpfit.fptr, &status);
 	free(memptr);
 
-	return strdup(fit->header);
+	return g_strdup(fit->header);
 }

@@ -1269,7 +1269,8 @@ static void apply_pixel_math() {
 	gchar *expression3 = get_pixel_math_expression3();
 	remove_spaces_from_str(expression3);
 
-	pixel_math_evaluate(expression1, expression2, expression3);
+	if (pixel_math_evaluate(expression1, expression2, expression3))
+		siril_log_color_message(_("Error evaluating pixelmath expression.\n"), "red");
 }
 
 void on_pixel_math_entry_activate(GtkEntry *entry, gpointer user_data) {

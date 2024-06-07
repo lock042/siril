@@ -503,7 +503,6 @@ static int astrometric_image_hook(struct generic_seq_args *args, int out_index, 
 		H = Hs;
 
 		if (status) {
-			// need to handle this, cannot go on
 			siril_log_color_message(_("Error generating mapping array.\n"), "red");
 			free(p->error);
 			free(p->pixmap);
@@ -548,7 +547,6 @@ static int astrometric_image_hook(struct generic_seq_args *args, int out_index, 
 
 		if ((status = dobox(p))) { // Do the drizzle
 			siril_log_color_message("s\n", p->error->last_message);
-			// need to handle this, cannot go on
 			free(p->error);
 			free(p->pixmap->xmap);
 			free(p->pixmap);

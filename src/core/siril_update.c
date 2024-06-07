@@ -412,7 +412,7 @@ struct _update_data {
 static const int DEFAULT_FETCH_RETRIES = 5;
 
 struct ucontent {
-	gchar *data;
+	char *data;
 	size_t len;
 };
 

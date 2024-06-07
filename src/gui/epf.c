@@ -62,7 +62,7 @@ static int epf_update_preview() {
 		guide = NULL;
 	}
 	struct epfargs *args = calloc(1, sizeof(struct epfargs));
-	*args = (struct epfargs) {	.fit = fit, .guidefit = guide, .d = epf_d_value, .sigma_col = epf_sigma_col_value,
+	*args = (struct epfargs) {.fit = fit, .guidefit = guide, .d = epf_d_value, .sigma_col = epf_sigma_col_value,
 								.sigma_space = epf_sigma_spatial_value, .mod = mod, .filter = filter_type,
 								.guide_needs_freeing = guide_needs_freeing, .verbose = FALSE };
 	set_cursor_waiting(TRUE);

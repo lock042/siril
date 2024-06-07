@@ -687,7 +687,7 @@ void get_tif_data_from_ui(fits *fit, gchar **description, gchar **copyright) {
 /*** This function save the current image into a uncompressed 8- or 16-bit file *************/
 
 int savetif(const char *name, fits *fit, uint16_t bitspersample,
-		const char *description, const char *copyright,
+		const gchar *description, const gchar *copyright,
 		gboolean tiff_compression, gboolean embeded_icc, gboolean verbose) {
 	int retval = 0;
 	float norm;
