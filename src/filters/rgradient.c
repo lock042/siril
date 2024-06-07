@@ -34,6 +34,7 @@
 #include "gui/dialogs.h"
 #include "gui/message_dialog.h"
 #include "gui/registration_preview.h"
+#include "filters/deconvolution/chelperfuncs.h"
 #include "opencv/opencv.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
@@ -61,27 +62,6 @@ static gboolean end_rgradient_filter(gpointer p) {
 
 	free(args);
 	return FALSE;
-}
-
-static float bilinear_interpolation(float *data, int width, int height, float x, float y) {
-	int x1 = (int) x;
-	int y1 = (int) y;
-	int x2 = x1 + 1;
-	int y2 = y1 + 1;
-
-	if (x1 < 0 || x2 >= width || y1 < 0 || y2 >= height) {
-		return 0.0f;
-	}
-
-	float fx = x - x1;
-	float fy = y - y1;
-
-	float a = data[x1 + y1 * width];
-	float b = data[x2 + y1 * width];
-	float c = data[x1 + y2 * width];
-	float d = data[x2 + y2 * width];
-
-	return (1 - fx) * (1 - fy) * a + fx * (1 - fy) * b + (1 - fx) * fy * c + fx * fy * d;
 }
 
 gpointer rgradient_filter(gpointer p) {
@@ -152,11 +132,11 @@ gpointer rgradient_filter(gpointer p) {
 
 				// Positive differential
 				to_cartesian(r - args->dR, theta + dAlpha, center, &delta1);
-				buf -= bilinear_interpolation(Abuf, args->fit->rx, args->fit->ry, delta1.x, delta1.y);
+				buf -= bilinear(Abuf, args->fit->rx, args->fit->ry, delta1.x, delta1.y);
 
 				// Negative differential
 				to_cartesian(r - args->dR, theta - dAlpha, center, &delta2);
-				buf -= bilinear_interpolation(Bbuf, args->fit->rx, args->fit->ry, delta2.x, delta2.y);
+				buf -= bilinear(Bbuf, args->fit->rx, args->fit->ry, delta2.x, delta2.y);
 
 				gbuf[i] = buf > 1.f ? 1.f : buf;
 
