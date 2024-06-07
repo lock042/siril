@@ -482,7 +482,6 @@ static int start_global_registration(sequence *seq) {
 	reg_args.matchSelection = FALSE;
 	//memcpy(&reg_args.selection, &com.selection, sizeof(rectangle));
 	reg_args.output_scale = 1.f;
-	reg_args.cumul = FALSE;
 	reg_args.min_pairs = 10;
 	reg_args.no_output = !reg_rotates;
 	reg_args.prefix = "r_";

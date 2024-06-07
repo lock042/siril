@@ -22,6 +22,17 @@ typedef enum {
 } registration_type;
 
 typedef enum {
+	REG_UNDEF = -1,
+	REG_GLOBAL,
+	REG_3STARS,
+	REG_DFT,
+	REG_KOMBAT,
+	REG_COMET,
+	REG_APPLY,
+	REG_2PASS
+} regmethod_index;
+
+typedef enum {
 	PLANETARY_FULLDISK, PLANETARY_SURFACE
 } planetary_type;
 
@@ -122,7 +133,6 @@ struct registration_args {
 	gboolean follow_star;		// follow star position between frames
 	gboolean matchSelection;	// Match stars found in the seleciton of reference image
 	rectangle selection;		// the selection rectangle
-	gboolean cumul;			// cumul reg data with previous one
 	int min_pairs;			// Minimum number of star pairs for success
 	int max_stars_candidates;	// Max candidates after psf fitting for global reg
 	transformation_type type;	// Use affine transform  or homography
@@ -149,19 +159,16 @@ struct registration_args {
 	double clamping_factor;		// used to set amount of interpolation clamping
 };
 
-// static struct registration_method *reg_methods[NUMBER_OF_METHODS + 1];
-
 struct registration_method *new_reg_method(const char *name, registration_function f,
 		selection_type s, registration_type t); // for compositing
-struct registration_method * get_selected_registration_method();
-int register_shift_dft(struct registration_args *args);
+int register_shift_dft(struct registration_args *args); // REG_DFT
 int register_shift_fwhm(struct registration_args *args);
-int register_star_alignment(struct registration_args *args);
-int register_multi_step_global(struct registration_args *regargs);
-int register_comet(struct registration_args *regargs);
-int register_3stars(struct registration_args *regargs);
-int register_apply_reg(struct registration_args *regargs);
-int register_kombat(struct registration_args *args);
+int register_star_alignment(struct registration_args *args); // REG_GLOBAL
+int register_multi_step_global(struct registration_args *regargs); // REG_2PASS
+int register_comet(struct registration_args *regargs); // REG_COMET
+int register_3stars(struct registration_args *regargs); // REG_3STARS
+int register_apply_reg(struct registration_args *regargs); // REG_APPLY
+int register_kombat(struct registration_args *args); // REG_KOMBAT
 int register_manual(struct registration_args *regargs); // defined in compositing/compositing.c
 int register_astrometric(struct registration_args *regargs);
 
@@ -205,9 +212,6 @@ int shift_fit_from_reg(fits *fit, Homography H);
 void compute_Hmax(Homography *Himg, Homography *Href, int src_rx_in, int src_ry_in, double scale, Homography *H, Homography *Hshift, int *dst_rx_out, int *dst_ry_out);
 
 int minidx(const float *arr, const gboolean *mask, int nb, float *val);
-void get_reg_sequence_filtering_from_gui(seq_image_filter *filtering_criterion,
-		double *filtering_parameter, int update_adjustment);
-
 void free_astrometric_args(struct astrometric_args *astargs);
 
 #endif

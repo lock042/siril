@@ -255,11 +255,7 @@ static int comet_align_image_hook(struct generic_seq_args *args, int out_index, 
 	struct registration_args *regargs = cadata->regargs;
 	pointf reg = { 0.f, 0.f };
 
-	if (!regargs->cumul) {
-		/* data initialization */
-		set_shifts(args->seq, in_index, regargs->layer, 0., 0., FALSE);
-	}
-
+	set_shifts(args->seq, in_index, regargs->layer, 0., 0., FALSE);
 	get_comet_shift(cadata->reference_date, fit->keywords.date_obs, velocity, &reg);
 
 	/* get_comet_shift does not care about orientation of image */
