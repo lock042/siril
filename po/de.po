@@ -9219,12 +9219,12 @@ msgstr "Fehlerhafte Zeile: %s\n"
 #: src/core/command.c:7227
 #, c-format
 msgid "Cannot create output folder: %s\n"
-msgstr "Kann Ausgabeverzeichnis nicht öffnen: %s\n"
+msgstr "Kann Ausgabeverzeichnis nicht erstellen: %s\n"
 
 #: src/algos/annotate.c:454
 msgid "Error: failed to write output to user catalogue.\n"
 msgstr ""
-"Fehler: Ausgabe kann nicht in den Benutzerkatalog geschrieben werden.\n"
+"Fehler: Ausgabe konnte nicht in den Benutzerkatalog geschrieben werden.\n"
 
 #: src/algos/annotate.c:503
 #, c-format
@@ -9232,7 +9232,7 @@ msgid ""
 "The object was already found in the %s catalog under the name %s, not adding "
 "it again\n"
 msgstr ""
-"Das Objekt wurde bereits im %s-Katalog unter dem Namen %s gefunden und wird "
+"Das Objekt wurde bereits im Katalog %s unter dem Namen %s gefunden und wird "
 "nicht erneut hinzugefügt\n"
 
 #: src/algos/annotate.c:626
@@ -9246,8 +9246,8 @@ msgid ""
 "be undone."
 msgstr ""
 "Sie sind dabei, den Sonnensystem-Benutzerkatalog zu löschen. Dies bedeutet, "
-"dass die Datei, die die manuell hinzugefügten Objekte enthält, gelöscht "
-"wird. Dieser Vorgang kann nicht rückgängig gemacht werden."
+"dass die Datei mit den manuell hinzugefügten Objekten, gelöscht wird. Dieser "
+"Vorgang kann nicht rückgängig gemacht werden."
 
 #: src/algos/annotate.c:629 src/algos/annotate.c:656
 msgid "Purge Catalogue"
