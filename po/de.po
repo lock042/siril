@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-05-25 22:11+0200\n"
-"PO-Revision-Date: 2024-06-02 13:06+0000\n"
+"PO-Revision-Date: 2024-06-09 17:37+0000\n"
 "Last-Translator: Udo Baumgart <ubit.de@gmx.de>\n"
 "Language-Team: German <https://weblate.pixls.us/projects/siril/"
 "siril-application/de/>\n"
@@ -15119,7 +15119,7 @@ msgstr ""
 #: src/io/remote_catalogues.c:653 src/io/siril_catalogues.c:788
 #, c-format
 msgid "Cannot create output folder: %s\n"
-msgstr "Kann Ausgabeverzeichnis nicht öffnen: %s\n"
+msgstr "Kann Ausgabeverzeichnis nicht erstellen: %s\n"
 
 #. handling mono case
 #: src/core/command.c:4840 src/core/command.c:7036 src/core/command.c:7532
