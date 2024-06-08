@@ -902,6 +902,10 @@ void on_spin_remix_D_right_value_changed(GtkSpinButton *button, gpointer user_da
 void on_spin_remix_B_left_value_changed(GtkSpinButton *button, gpointer user_data) {
 	left_changed = TRUE;
 	leftB = (float) gtk_spin_button_get_value(button);
+	if (fabsf(leftB) < 1.e-3f) {
+		leftB = 0.f;
+		gtk_spin_button_set_value(button, 0.f);
+	}
 	update_remix_histo_left();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
@@ -911,6 +915,10 @@ void on_spin_remix_B_left_value_changed(GtkSpinButton *button, gpointer user_dat
 void on_spin_remix_B_right_value_changed(GtkSpinButton *button, gpointer user_data) {
 	right_changed = TRUE;
 	rightB = (float) gtk_spin_button_get_value(button);
+	if (fabsf(rightB) < 1.e-3f) {
+		rightB = 0.f;
+		gtk_spin_button_set_value(button, 0.f);
+	}
 	update_remix_histo_right();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
