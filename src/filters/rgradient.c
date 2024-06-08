@@ -34,6 +34,7 @@
 #include "gui/dialogs.h"
 #include "gui/message_dialog.h"
 #include "gui/registration_preview.h"
+#include "filters/deconvolution/chelperfuncs.h"
 #include "opencv/opencv.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
@@ -75,11 +76,9 @@ gpointer rgradient_filter(gpointer p) {
 	fits imA = { 0 }, imB = { 0 };
 	int retval = 0;
 	const point center = {args->xc, args->yc};
-	const int w = args->fit->rx - 1;
-	const int h = args->fit->ry - 1;
 	const double dAlpha = M_PI / 180.0 * args->da;
 
-	int cur_nb = 0;	// only used for progress bar
+	int cur_nb = 0; // only used for progress bar
 	const double total = args->fit->ry * args->fit->naxes[2];	// only used for progress bar
 	set_progress_bar_data(_("Rotational gradient in progress..."), PROGRESS_RESET);
 
@@ -88,76 +87,71 @@ gpointer rgradient_filter(gpointer p) {
 	/* convenient transformation to not inverse y sign */
 	fits_flip_top_to_bottom(args->fit);
 
+	if (was_ushort) {
+		const long n = args->fit->naxes[0] * args->fit->naxes[1] * args->fit->naxes[2];
+		float *newbuf = ushort_buffer_to_float(args->fit->data, n);
+		if (!newbuf) { retval = 1; goto end_rgradient; }
+		fit_replace_buffer(args->fit, newbuf, DATA_FLOAT);
+	}
+
 	retval = copyfits(args->fit, &imA, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 	if (retval) { retval = 1; goto end_rgradient; }
-	if (was_ushort) {
-		const long n = imA.naxes[0] * imA.naxes[1] * imA.naxes[2];
-		float *newbuf = ushort_buffer_to_float(imA.data, n);
-		if (!newbuf) { retval = 1; goto end_rgradient; }
-		fit_replace_buffer(&imA, newbuf, DATA_FLOAT);
-	}
 
 	retval = copyfits(&imA, &imB, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 	if (retval) { retval = 1; goto end_rgradient; }
 
-	retval = soper(args->fit, 2.0f, OPER_MUL, TRUE);
-	if (retval) { retval = 1; goto end_rgradient; }
-	// args->fit will be float data after soper
-
 	int layer, y;
+	float global_min = FLT_MAX;
+
+	// Processing the image layers
 	for (layer = 0; layer < args->fit->naxes[2]; layer++) {
 		float *gbuf = args->fit->fpdata[layer];
 		float *Abuf = imA.fpdata[layer];
 		float *Bbuf = imB.fpdata[layer];
+
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) reduction(min:global_min)
 #endif
 		for (y = 0; y < args->fit->ry; y++) {
 			size_t i = y * args->fit->rx;
 #ifdef _OPENMP
-#pragma omp critical
-#endif
+			#pragma omp critical
+			#endif
 			{
 				set_progress_bar_data(NULL, cur_nb / total);
 				cur_nb++;
 			}
-			int x;
-			for (x = 0; x < args->fit->rx; x++) {
+
+			for (int x = 0; x < args->fit->rx; x++) {
+				float buf = gbuf[i] + gbuf[i];
+
 				double r, theta;
-				point delta;
+				point delta1, delta2;
 
 				to_polar(x, y, center, &r, &theta);
 
 				// Positive differential
-				to_cartesian(r + args->dR, theta + dAlpha, center, &delta);
-				if (delta.x < 0)
-					delta.x = fabs(delta.x);
-				else if (delta.x > w)
-					delta.x = 2 * w - delta.x;
-				if (delta.y < 0)
-					delta.y = fabs(delta.y);
-				else if (delta.y > h)
-					delta.y = 2 * h - delta.y;
-				gbuf[i] -= Abuf[(int)delta.x + (int)delta.y * args->fit->rx];
+				to_cartesian(r - args->dR, theta + dAlpha, center, &delta1);
+				buf -= bilinear(Abuf, args->fit->rx, args->fit->ry, delta1.x, delta1.y);
 
 				// Negative differential
-				to_cartesian(r - args->dR, theta - dAlpha, center, &delta);
-				if (delta.x < 0)
-					delta.x = fabs(delta.x);
-				else if (delta.x > w)
-					delta.x = 2 * w - delta.x;
-				if (delta.y < 0)
-					delta.y = fabs(delta.y);
-				else if (delta.y > h)
-					delta.y = 2 * h - delta.y;
-				gbuf[i] -= Bbuf[(int)delta.x + (int)delta.y * args->fit->rx];
+				to_cartesian(r - args->dR, theta - dAlpha, center, &delta2);
+				buf -= bilinear(Bbuf, args->fit->rx, args->fit->ry, delta2.x, delta2.y);
 
-				if (gbuf[i] > 1.0f) gbuf[i] = 1.0f;
-				else if (gbuf[i] < 0.0f) gbuf[i] = 0.0f;
+				gbuf[i] = buf > 1.f ? 1.f : buf;
+
+				// Update global minimum value
+				if (gbuf[i] < global_min) {
+					global_min = gbuf[i];
+				}
+
 				i++;
 			}
 		}
 	}
+
+	retval = soper(args->fit, global_min, OPER_SUB, TRUE);
+	if (retval) { retval = 1; goto end_rgradient; }
 
 end_rgradient:
 	fits_flip_top_to_bottom(args->fit);
