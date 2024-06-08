@@ -99,11 +99,11 @@ static struct registration_method *reg_methods[NUMBER_OF_METHODS + 1];
 
 // Statics declarations
 static GtkAdjustment *register_minpairs = NULL;
-static GtkBox *vboxreg = NULL, *comet_page = NULL, *_123star_page = NULL, *seq_filters_box_reg = NULL;
-static GtkButton *button1_comet = NULL, *button2_comet = NULL, *pickstar1 = NULL, *pickstar2 = NULL, *pickstar3 = NULL, *filter_add4 = NULL, *filter_add5 = NULL, *filter_rem5 = NULL, *filter_rem6 = NULL, *proj_estimate = NULL, *goregister_button = NULL;
-static GtkComboBoxText *comboboxregmethod = NULL, *comboboxreglayer = NULL, *comboreg_maxstars = NULL, *comboreg_transfo = NULL, *reg_sel_all_combobox = NULL, *combofilter4 = NULL, *filter_type4 = NULL, *combofilter5 = NULL, *filter_type5 = NULL, *combofilter6 = NULL, *filter_type6 = NULL, *comboreg_framing = NULL, *ComboBoxRegInter = NULL, *combo_driz_kernel = NULL;
+static GtkBox *vboxreg = NULL, *comet_page = NULL, *_123star_page = NULL, *seq_filters_box_reg = NULL, *reg_wcsfilechooser_box = NULL;
+static GtkButton *button1_comet = NULL, *button2_comet = NULL, *pickstar1 = NULL, *pickstar2 = NULL, *pickstar3 = NULL, *filter_add4 = NULL, *filter_add5 = NULL, *filter_rem5 = NULL, *filter_rem6 = NULL, *proj_estimate = NULL, *goregister_button = NULL, *reg_wcsfile_button = NULL;
+static GtkComboBoxText *comboboxregmethod = NULL, *comboboxreglayer = NULL, *comboreg_maxstars = NULL, *comboreg_transfo = NULL, *reg_sel_all_combobox = NULL, *combofilter4 = NULL, *filter_type4 = NULL, *combofilter5 = NULL, *filter_type5 = NULL, *combofilter6 = NULL, *filter_type6 = NULL, *comboreg_framing = NULL, *ComboBoxRegInter = NULL, *combo_driz_kernel = NULL, *comboreg_undistort = NULL;
 static GtkDrawingArea *drawingarea_reg_manual_preview1 = NULL, *drawingarea_reg_manual_preview2 = NULL;
-static GtkEntry *entry1_x_comet = NULL, *entry2_x_comet = NULL, *entry1_y_comet = NULL, *entry2_y_comet = NULL, *regseqname_entry = NULL, *flatname_entry = NULL;
+static GtkEntry *entry1_x_comet = NULL, *entry2_x_comet = NULL, *entry1_y_comet = NULL, *entry2_y_comet = NULL, *regseqname_entry = NULL, *flatname_entry = NULL, *reg_wcsfile_entry = NULL;
 static GtkExpander *autoreg_expander = NULL, *manualreg_expander = NULL;
 static GtkFrame *output_reg_frame = NULL;
 static GtkGrid *global_page = NULL, *kombat_page = NULL, *grid_reg_framing = NULL, *grid_interp_controls = NULL, *grid_drizzle_controls = NULL;
@@ -134,6 +134,7 @@ static void registration_init_statics() {
 		comet_page = GTK_BOX(gtk_builder_get_object(gui.builder, "comet_page"));
 		_123star_page = GTK_BOX(gtk_builder_get_object(gui.builder, "123star_page"));
 		seq_filters_box_reg = GTK_BOX(gtk_builder_get_object(gui.builder, "seq_filters_box_reg"));
+		reg_wcsfilechooser_box = GTK_BOX(gtk_builder_get_object(gui.builder, "reg_wcsfilechooser_box"));
 		// GtkButton
 		button1_comet = GTK_BUTTON(gtk_builder_get_object(gui.builder, "button1_comet"));
 		button2_comet = GTK_BUTTON(gtk_builder_get_object(gui.builder, "button2_comet"));
@@ -146,6 +147,7 @@ static void registration_init_statics() {
 		filter_rem6 = GTK_BUTTON(gtk_builder_get_object(gui.builder, "filter_rem6"));
 		proj_estimate = GTK_BUTTON(gtk_builder_get_object(gui.builder, "proj_estimate"));
 		goregister_button = GTK_BUTTON(gtk_builder_get_object(gui.builder, "goregister_button"));
+		reg_wcsfile_button = GTK_BUTTON(gtk_builder_get_object(gui.builder, "reg_wcsfile_button"));
 		// GtkComboBoxText
 		comboboxregmethod = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "comboboxregmethod"));
 		comboboxreglayer = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "comboboxreglayer"));
@@ -161,6 +163,7 @@ static void registration_init_statics() {
 		comboreg_framing = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "comboreg_framing"));
 		ComboBoxRegInter = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "ComboBoxRegInter"));
 		combo_driz_kernel = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "combo_driz_kernel"));
+		comboreg_undistort = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "comboreg_undistort"));
 		// GtkDrawingArea
 		drawingarea_reg_manual_preview1 = GTK_DRAWING_AREA(gtk_builder_get_object(gui.builder, "drawingarea_reg_manual_preview1"));
 		drawingarea_reg_manual_preview2 = GTK_DRAWING_AREA(gtk_builder_get_object(gui.builder, "drawingarea_reg_manual_preview2"));
@@ -171,6 +174,7 @@ static void registration_init_statics() {
 		entry2_y_comet = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry2_y_comet"));
 		regseqname_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "regseqname_entry"));
 		flatname_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "flatname_entry"));
+		reg_wcsfile_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "reg_wcsfile_entry"));
 		// GtkExpander
 		autoreg_expander = GTK_EXPANDER(gtk_builder_get_object(gui.builder, "autoreg_expander"));
 		manualreg_expander = GTK_EXPANDER(gtk_builder_get_object(gui.builder, "manualreg_expander"));
@@ -367,6 +371,15 @@ void on_comboreg_framing_changed(GtkComboBox *box, gpointer user_data) {
 
 		g_free(name);
 	}
+}
+
+void on_comboreg_undistort_changed(GtkComboBox *box, gpointer user_data) {
+	int i = gtk_combo_box_get_active(box);
+	gtk_widget_set_visible(GTK_WIDGET(reg_wcsfilechooser_box), i > 0);
+}
+
+void on_reg_wcsfile_button_clicked(GtkButton *button, gpointer user_data) {
+	// TODO: add filechooser
 }
 
 /****************************************************************/
@@ -630,7 +643,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	struct registration_method *method = NULL;
 	gboolean selection_is_done;
 	gboolean has_reg, has_output, has_drizzle, samesizeseq_required, check_bayer_ok, ready, seqloaded;
-	gboolean isapplyreg, is_global;
+	gboolean isapplyreg, is_global, is_star_align;
 	int nbselstars = 0;
 	sensor_pattern pattern = BAYER_FILTER_NONE;
 
@@ -666,6 +679,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	/* specific methods */
 	isapplyreg = method->method_ptr == &register_apply_reg;
 	is_global = method->method_ptr == &register_star_alignment;
+	is_star_align = regindex == REG_GLOBAL || regindex == REG_2PASS;
 
 	/* registration data exists for the selected layer */
 	has_reg = layer_has_registration(&com.seq, gtk_combo_box_get_active(GTK_COMBO_BOX(comboboxreglayer)));
@@ -693,6 +707,10 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 			gtk_combo_box_set_active(GTK_COMBO_BOX(combofilter4), SELECTED_IMAGES);
 		}
 		update_filters_registration(-1);
+	}
+	/* update star_align widgets*/
+	if (is_star_align) {
+		on_comboreg_undistort_changed(GTK_COMBO_BOX(comboreg_undistort), NULL);
 	}
 
 	/* show the appropriate outputregframe widgets */
