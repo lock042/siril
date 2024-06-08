@@ -1558,6 +1558,11 @@ void on_spin_ghtD_value_changed(GtkSpinButton *button, gpointer user_data) {
 
 void on_spin_ghtB_value_changed(GtkSpinButton *button, gpointer user_data) {
 	_B = (float) gtk_spin_button_get_value(button);
+	if (fabsf(_B) < 1.e-3f) {
+		_B = 0.f;
+		gtk_spin_button_set_value(button, 0.f);
+	}
+
 	update_histo_mtf();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = histo_update_preview;

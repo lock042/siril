@@ -1835,6 +1835,8 @@ int process_ght_args(int nb, gboolean ght_seq, int stretchtype, ght_params *para
 				if (stretchtype == STRETCH_PAYNE_NORMAL || stretchtype == STRETCH_PAYNE_INVERSE) {
 					arg += 3;
 					B = g_ascii_strtod(arg, &end);
+					if (fabsf(B) < 1.e-3)
+						B = 0.f;
 				} else {
 					return CMD_ARG_ERROR;
 				}
@@ -2704,6 +2706,8 @@ int process_autoghs(int nb) {
 		if (g_str_has_prefix(word[argidx], "-b=")) {
 			char *arg = word[argidx] + 3;
 			b = g_ascii_strtod(arg, &end);
+			if (fabsf(b) < 1.e-3f)
+				b = 0.f;
 			if (arg == end || b < -5.0f || b > 15.0f) {
 				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
 				return CMD_ARG_ERROR;
@@ -8663,7 +8667,7 @@ int process_pcc(int nb) {
 		if (sequence_is_loaded()) { // we are platesolving an image from a sequence, we can't allow to flip (may be registered)
 			noflip = TRUE;
 			siril_debug_print("forced no flip for solving an image from a sequence");
-		} 
+		}
 		args->flip_image = !noflip;
 		args->manual = FALSE;
 		process_plate_solver_input(args);
