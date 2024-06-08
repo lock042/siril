@@ -32,6 +32,7 @@ void updateprogress(const char *text, double percent);
 void sirillog(const char* text);
 int is_thread_stopped();
 int updatenoise(float *array, int nx, int ny, int nchans, double *noise);
+float bilinear(float *x, int w, int h, float i, float j);
 
 #ifdef __cplusplus
 }

@@ -178,7 +178,7 @@ void gaussblur(float *y, float *x, int w, int h, float sigma) {
 	fftwf_free(a);
 }
 
-static float bilinear(float *x, int w, int h, float i, float j) {
+float bilinear(float *x, int w, int h, float i, float j) {
 	int ii = (int) i;
 	int jj = (int) j;
 	float (*xx)[w] = (void*)x;
