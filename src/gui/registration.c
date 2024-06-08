@@ -375,6 +375,7 @@ void on_comboreg_framing_changed(GtkComboBox *box, gpointer user_data) {
 
 void on_comboreg_undistort_changed(GtkComboBox *box, gpointer user_data) {
 	update_reg_interface(TRUE);
+	gtk_widget_grab_focus(GTK_WIDGET(box));
 }
 
 void on_reg_wcsfile_button_clicked(GtkButton *button, gpointer user_data) {
