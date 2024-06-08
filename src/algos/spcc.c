@@ -102,7 +102,7 @@ cmsCIExyY xpsampled_to_xyY(xpsampled* xps, const cmf_pref cmf, const double minw
 // Function to calculate tau_R (the wavelength dependent Rayleigh scattering coefficient)
 
 static double tau_R(double lambda, double H, double p) {
-    double term1 = p / 1013.25;
+    double term1 = p / 1013.25; // standard atmospheric pressure in hPa
     double term2 = 0.00864 + 6.5e-6 * H;
     double exponent = -(3.916 + 0.074 * lambda + 0.050 / lambda);
     double term3 = pow(lambda, exponent);
@@ -138,25 +138,25 @@ double compute_airmass(double z) {
 static double transmittance(double lambda, double H, double p, double X) {
 	lambda /= 1000.0; // tau_R requires wavelength in microns, we want to provide it in nm
 	H /= 1000.0; // tau_R requires H in km, we want to provide it in m
-    double tau = tau_R(lambda, H, p);
-    return exp(-tau * X);
+	double tau = tau_R(lambda, H, p);
+	return exp(-tau * X);
 }
 
 // Function to calculate atmospheric pressure at height h from sea level pressure P0
 
 static double pressure_at_height(double P0, double h) {
-    // Constants
-    double L = 0.0065; // Temperature lapse rate in K/m
-    double T0 = 288.15; // Sea level standard temperature in K
-    double g = 9.80665; // Acceleration due to gravity in m/s^2
-    double M = 0.0289644; // Molar mass of Earth's air in kg/mol
-    double R = 8.3144598; // Universal gas constant in J/(mol·K)
+	// Constants
+	double L = 0.0065; // Temperature lapse rate in K/m
+	double T0 = 288.15; // Sea level standard temperature in K
+	double g = 9.80665; // Acceleration due to gravity in m/s^2
+	double M = 0.0289644; // Molar mass of Earth's air in kg/mol
+	double R = 8.3144598; // Universal gas constant in J/(mol·K)
 
-    // Calculate the pressure at height h
-    double exponent = (g * M) / (R * L);
-    double pressure = P0 * pow(1 - (L * h) / T0, exponent);
+	// Calculate the pressure at height h
+	double exponent = (g * M) / (R * L);
+	double pressure = P0 * pow(1 - (L * h) / T0, exponent);
 
-    return pressure;
+	return pressure;
 }
 
 void fill_xpsampled_from_atmos_model(xpsampled *out, struct photometric_cc_data *args) {

@@ -753,17 +753,8 @@ void on_spcc_plot_all_clicked(GtkButton *button, gpointer user_data) {
 	siril_plot_set_savename(spl_data, "SPCC_data");
 	siril_plot_set_title(spl_data, _("SPCC Data"));
 	siril_plot_set_ylabel(spl_data, _("Quantum Efficiency / Transmittance / Rel. Photon Count"));
-	gboolean is_dslr = FALSE;
-	if (!args.spcc_mono_sensor) {
-		GList *osc = g_list_nth(com.spcc_data.osc_sensors, gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_spcc_sensors_osc"))));
-		if (osc) {
-			osc_sensor *oscsensor = (osc_sensor*) osc->data;
-			is_dslr = oscsensor->channel[0].is_dslr;
-		} else {
-			is_dslr = com.pref.spcc.is_dslr;
-		}
-	}
-	const int max_plot = args.spcc_mono_sensor ? 5 : is_dslr ? 6 : 5;
+
+	int i = 0;
 	if (args.spcc_mono_sensor) {
 		spcc_object *sensor = NULL, *filter_r = NULL, *filter_g = NULL, *filter_b = NULL, *whiteref = NULL;
 		if (args.selected_sensor_m >= 0 && args.selected_sensor_m < g_list_length (sensor_list))
@@ -776,18 +767,19 @@ void on_spcc_plot_all_clicked(GtkButton *button, gpointer user_data) {
 			filter_b = (spcc_object*) g_list_nth(filter_list_b, args.selected_filter_b)->data;
 		if (args.selected_white_ref >= 0 && args.selected_white_ref < g_list_length (whiteref_list))
 			whiteref = (spcc_object*) g_list_nth(whiteref_list, args.selected_white_ref)->data;
-		spcc_object* structs[5] = {  whiteref, sensor, filter_r, filter_g, filter_b };
-		for (int i = 0 ; i < max_plot ; i++) {
-			if (structs[i]) {
-				load_spcc_object_arrays(structs[i]);
-				if (structs[i] == whiteref)
-					normalize_y(structs[i], 400, 700);
-				gchar *spl_legend = g_strdup(structs[i]->name);
-				siril_plot_add_xydata(spl_data, spl_legend, structs[i]->n, structs[i]->x, structs[i]->y, NULL, NULL);
-				siril_plot_set_nth_color(spl_data, i+1, (double[3]){(double) (i == 2), (double) ((i == 3) + ((i == 1) * 0.5)), (double) ((i == 4) + ((i == 1) * 0.5)) });
-				g_free(spl_legend);
-				spcc_object_free_arrays(structs[i]);
-			}
+		// there must not be any NULL spcc_object*s with non-NULL ones after them
+		// (these should all be populated anyway)
+		spcc_object* structs[6] = {  whiteref, sensor, filter_r, filter_g, filter_b, NULL };
+		while (structs[i]) {
+			load_spcc_object_arrays(structs[i]);
+			if (structs[i] == whiteref)
+				normalize_y(structs[i], 400, 700);
+			gchar *spl_legend = g_strdup(structs[i]->name);
+			siril_plot_add_xydata(spl_data, spl_legend, structs[i]->n, structs[i]->x, structs[i]->y, NULL, NULL);
+			siril_plot_set_nth_color(spl_data, i+1, (double[3]){(double) (i == 2), (double) ((i == 3) + ((i == 1) * 0.5)), (double) ((i == 4) + ((i == 1) * 0.5)) });
+			g_free(spl_legend);
+			spcc_object_free_arrays(structs[i]);
+			i++;
 		}
 	} else {
 		spcc_object *sensor_r = NULL, *sensor_g = NULL, *sensor_b = NULL, *filter_osc = NULL, *filter_lpf = NULL, *whiteref = NULL;
@@ -803,18 +795,18 @@ void on_spcc_plot_all_clicked(GtkButton *button, gpointer user_data) {
 			filter_lpf = (spcc_object*) g_list_nth(filter_list_lpf, args.selected_filter_lpf)->data;
 		if (args.selected_white_ref >= 0 && args.selected_white_ref < g_list_length (whiteref_list))
 			whiteref = (spcc_object*) g_list_nth(whiteref_list, args.selected_white_ref)->data;
-		spcc_object* structs[6] = { whiteref, sensor_r, sensor_g, sensor_b, filter_osc, filter_lpf };
-		for (int i = 0 ; i < max_plot ; i++) {
-			if (structs[i]) {
-				load_spcc_object_arrays(structs[i]);
-				if (structs[i] == whiteref)
-					normalize_y(structs[i], 400, 700);
-				gchar *spl_legend = g_strdup(structs[i]->name);
-				siril_plot_add_xydata(spl_data, spl_legend, structs[i]->n, structs[i]->x, structs[i]->y, NULL, NULL);
-				siril_plot_set_nth_color(spl_data, i+1, (double[3]){(double) (i == 1 || i == 4), (double) ((i == 2) + ((i == 5) * 0.5)), (double) ((i == 3 || i == 4) + ((i == 5) * 0.5)) });
-				g_free(spl_legend);
-				spcc_object_free_arrays(structs[i]);
-			}
+		// there must not be any NULL spcc_object*s with non-NULL ones after them
+		spcc_object* structs[7] = { whiteref, sensor_r, sensor_g, sensor_b, filter_osc, filter_lpf, NULL };
+		while (structs[i]) {
+			load_spcc_object_arrays(structs[i]);
+			if (structs[i] == whiteref)
+				normalize_y(structs[i], 400, 700);
+			gchar *spl_legend = g_strdup(structs[i]->name);
+			siril_plot_add_xydata(spl_data, spl_legend, structs[i]->n, structs[i]->x, structs[i]->y, NULL, NULL);
+			siril_plot_set_nth_color(spl_data, i+1, (double[3]){(double) (i == 1 || i == 4), (double) ((i == 2) + ((i == 5) * 0.5)), (double) ((i == 3 || i == 4) + ((i == 5) * 0.5)) });
+			g_free(spl_legend);
+			spcc_object_free_arrays(structs[i]);
+			i++;
 		}
 	}
 	if (args.atmos_corr) {
@@ -823,7 +815,7 @@ void on_spcc_plot_all_clicked(GtkButton *button, gpointer user_data) {
 		fill_xpsampled_from_atmos_model(&atmos, &args);
 		gchar *spl_legend = g_strdup(_("Atmosphere model"));
 		siril_plot_add_xydata(spl_data, spl_legend, XPSAMPLED_LEN, atmos.x, atmos.y, NULL, NULL);
-		siril_plot_set_nth_color(spl_data, max_plot, (double[3]){ 0.67, 0.67, 1.0 } );
+		siril_plot_set_nth_color(spl_data, i, (double[3]){ 0.67, 0.67, 1.0 } );
 		g_free(spl_legend);
 	}
 	spl_data->datamin.x = MIN_PLOT;
