@@ -374,8 +374,7 @@ void on_comboreg_framing_changed(GtkComboBox *box, gpointer user_data) {
 }
 
 void on_comboreg_undistort_changed(GtkComboBox *box, gpointer user_data) {
-	int i = gtk_combo_box_get_active(box);
-	gtk_widget_set_visible(GTK_WIDGET(reg_wcsfilechooser_box), i > 0);
+	update_reg_interface(TRUE);
 }
 
 void on_reg_wcsfile_button_clicked(GtkButton *button, gpointer user_data) {
@@ -595,7 +594,9 @@ static void update_filters_registration(int update_adjustment) {
 /****************************************************************/
 
 // Checkers
-static gboolean check_framing() {
+static gboolean check_framing(regmethod_index index) {
+	if (index != REG_APPLY)
+		return TRUE;
 	framing_type framingmethod = (framing_type)gtk_combo_box_get_active(GTK_COMBO_BOX(comboreg_framing));
 	if (framingmethod == FRAMING_MAX && com.seq.type == SEQ_FITSEQ) {
 		gtk_label_set_text(labelregisterinfo, _("Max framing not allowed with fitseq, change to regular FITS images"));
@@ -604,7 +605,9 @@ static gboolean check_framing() {
 	return TRUE;
 }
 
-static gboolean check_comet() {
+static gboolean check_comet(regmethod_index index) {
+	if (index != REG_COMET)
+		return TRUE;
 	pointf velocity = get_velocity();
 	if ((velocity.x == 0.0 && velocity.y == 0.0)
 				|| isinf(velocity.x) || isinf(velocity.y)) {
@@ -614,6 +617,33 @@ static gboolean check_comet() {
 	return TRUE;
 }
 
+static gboolean check_3stars(regmethod_index index) {
+	if (index != REG_3STARS)
+		return TRUE;
+	if (_3stars_check_selection()) {// checks that the right image is loaded based on doall and dofollow
+		int nbselstars = _3stars_get_number_selected_stars();
+		return nbselstars > 0;
+	}
+	return FALSE;
+}
+
+static gboolean check_disto(disto_apply index) {
+	if (index == DISTO_UNDEF)
+		return TRUE;
+	if (index == DISTO_IMAGE && !has_wcs(&gfit)) {
+		gtk_label_set_text(labelregisterinfo, _("Platesolve current image"));
+		gtk_widget_set_tooltip_text(GTK_WIDGET(labelregisterinfo), _("You have selected undistorsion from current image but it is not platesolved, perform astrometry first or disable distorsion"));
+		return FALSE;
+	}
+	if (index == DISTO_FILE) {
+		const gchar *text = gtk_entry_get_text(reg_wcsfile_entry);
+		if (*text == '\0') {
+			gtk_label_set_text(labelregisterinfo, _("Load a WCS file for distorsion"));
+			return FALSE;
+		}
+	}
+	return TRUE;
+}
 // Helpers
 struct registration_method *get_selected_registration_method(int *index) {
 	*index = REG_UNDEF;
@@ -644,8 +674,8 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	gboolean selection_is_done;
 	gboolean has_reg, has_output, has_drizzle, samesizeseq_required, check_bayer_ok, ready, seqloaded;
 	gboolean isapplyreg, is_global, is_star_align;
-	int nbselstars = 0;
 	sensor_pattern pattern = BAYER_FILTER_NONE;
+	disto_apply disto_apply_index = DISTO_UNDEF;
 
 	seqloaded = sequence_is_loaded();
 	gtk_widget_set_sensitive(GTK_WIDGET(manualreg_expander), seqloaded);
@@ -710,7 +740,8 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	}
 	/* update star_align widgets*/
 	if (is_star_align) {
-		on_comboreg_undistort_changed(GTK_COMBO_BOX(comboreg_undistort), NULL);
+		disto_apply_index = gtk_combo_box_get_active(GTK_COMBO_BOX(comboreg_undistort));
+		gtk_widget_set_visible(GTK_WIDGET(reg_wcsfilechooser_box), disto_apply_index == DISTO_FILE);
 	}
 
 	/* show the appropriate outputregframe widgets */
@@ -724,13 +755,13 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	}
 
 	// show the relevant notebook page
-	if (method->method_ptr == &register_star_alignment || method->method_ptr == &register_multi_step_global) {
+	if (is_star_align) {
 		gtk_notebook_set_current_page(notebook_registration, REG_PAGE_GLOBAL);
-	} else if (method->method_ptr == &register_comet) {
+	} else if (regindex == REG_COMET) {
 		gtk_notebook_set_current_page(notebook_registration, REG_PAGE_COMET);
-	} else if (method->method_ptr == &register_3stars) {
+	} else if (regindex == REG_3STARS) {
 		gtk_notebook_set_current_page(notebook_registration, REG_PAGE_3_STARS);
-	} else if (method->method_ptr == &register_kombat) {
+	} else if (regindex == REG_KOMBAT) {
 		gtk_notebook_set_current_page(notebook_registration, REG_PAGE_KOMBAT);
 	}
 
@@ -747,34 +778,25 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	}
 
 	// checking if it requires same size sequence
-	samesizeseq_required = (method->method_ptr == &register_comet || method->method_ptr == &register_kombat 
-						|| method->method_ptr == &register_shift_dft || method->method_ptr == &register_3stars);
+	samesizeseq_required = regindex >= REG_3STARS && regindex <= REG_KOMBAT;
 
-	// preliminary checks
-	ready = TRUE;
+	// performing all checks
 	ready = nb_images_reg > 1 && 
 			check_bayer_ok && 
 			(!samesizeseq_required || (samesizeseq_required && !com.seq.is_variable)) && 
 			(selection_is_done || method->sel == REQUIRES_NO_SELECTION) &&
-			pattern <= BAYER_FILTER_MAX;
+			pattern <= BAYER_FILTER_MAX &&
+			check_framing(regindex) &&
+			check_comet(regindex) &&
+			check_3stars(regindex) &&
+			check_disto(disto_apply_index);
 
-	if (ready) {
-		if (method->method_ptr == &register_3stars) { // the 3 stars method has special GUI requirements
-			if ((ready = _3stars_check_selection())) {// checks that the right image is loaded based on doall and dofollow
-				nbselstars = _3stars_get_number_selected_stars();
-				ready = nbselstars > 0;
-			}
-		} else if (method->type == REGTYPE_APPLY) {
-			ready = check_framing();
-		} else if (method->method_ptr == &register_comet) {
-			ready = check_comet();
-		}
-	} else { // all the other cases not set by the checkers
+	if (!ready) { // all the other cases not set by the checkers
 		if (method->sel > REQUIRES_NO_SELECTION && !selection_is_done ) {
 			gtk_label_set_text(labelregisterinfo, _("Select an area in image first"));
 		} else if (nb_images_reg <= 1) {
 			gtk_label_set_text(labelregisterinfo, _("Select images in the sequence"));
-		} else if (method->type == REGTYPE_APPLY && !has_reg){
+		} else if (regindex == REG_APPLY && !has_reg){
 			gtk_label_set_text(labelregisterinfo, _("Select a layer with existing registration"));
 		} else if (samesizeseq_required && !com.seq.is_variable) {
 			gtk_label_set_text(labelregisterinfo, _("not available for sequences with variable image sizes"));

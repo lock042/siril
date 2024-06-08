@@ -5528,6 +5528,7 @@ In both cases, the transformation matrices are saved to the sequence file. The r
 - distorsion solution from an existing WCS file</property>
                                                             <property name="active">0</property>
                                                             <items>
+                                                            <item translatable="yes">None</item>
                                                             <item translatable="yes">From image</item>
                                                             <item translatable="yes">From WCS file</item>
                                                             </items>

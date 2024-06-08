@@ -48,6 +48,12 @@ typedef enum {
 } transformation_type;
 
 typedef enum {
+	DISTO_UNDEF,
+	DISTO_IMAGE,
+	DISTO_FILE
+} disto_apply;
+
+typedef enum {
 	FRAMING_CURRENT,
 	FRAMING_MAX,
 	FRAMING_MIN,
