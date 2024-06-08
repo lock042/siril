@@ -86,6 +86,7 @@ xx/xx/24
 * Fixed mouse scrollwheel scrolling too fast (#1151)
 * Fixed drag & drop in image display on macOS (#1310)
 * Fixed bug in rgradient (Larson Sekanina) filter (#1313)
+* Fixed bug in generalized hyperbolic stretches (#1314)
 
 siril 1.2.1
 01/26/24
