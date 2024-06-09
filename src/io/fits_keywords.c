@@ -127,7 +127,8 @@ static void sitelong_handler_read(fits *fit, const char *comment, KeywordInfo *i
 	gsize token_size = g_strv_length(token);
 	if (token_size > 1 && token[1])	{
 		for (int i = 0; i < token_size; ++i) {
-			g_strlcat(sitelong_dump_tmp, token[i], sizeof(sitelong_dump_tmp));
+			if (g_strlcat(sitelong_dump_tmp, token[i], sizeof(sitelong_dump_tmp)) >= sizeof(sitelong_dump_tmp))
+				siril_debug_print("Truncation occurred in g_strlcat\n");
 			if (i < 3) strncat(sitelong_dump_tmp, i < 2 ? ":" : ".", 2);
 			d_sitelong_dump = parse_dms(sitelong_dump_tmp);
 		}
@@ -156,7 +157,8 @@ static void sitelat_handler_read(fits *fit, const char *comment, KeywordInfo *in
 	gsize token_size = g_strv_length(token);
 	if (token_size > 1 && token[1])	{	// Denotes presence of ":"
 		for (int i = 0; i < token_size; ++i) {
-			g_strlcat(sitelat_dump_tmp, token[i], sizeof(sitelat_dump_tmp));
+			if (g_strlcat(sitelat_dump_tmp, token[i], sizeof(sitelat_dump_tmp)) >= sizeof(sitelat_dump_tmp))
+				siril_debug_print("Truncation occurred in g_strlcat\n");
 			if (i < 3) strncat(sitelat_dump_tmp, i < 2 ? ":" : ".", 2);
 			d_sitelat_dump = parse_dms(sitelat_dump_tmp);
 		}
@@ -375,11 +377,11 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 			KEYWORD_FIXED(   "wcsdata", "CTYPE3", KTYPE_STR, "RGB image", "RGB", NULL, NULL),
 			KEYWORD_PRIMARY( "wcsdata", "OBJCTRA", KTYPE_STR, "Image center Right Ascension (hms)", &(fit->keywords.wcsdata.objctra), NULL, NULL),
 			KEYWORD_PRIMARY( "wcsdata", "OBJCTDEC", KTYPE_STR, "Image center Declination (dms)", &(fit->keywords.wcsdata.objctdec), NULL, NULL),
-			KEYWORD_PRIMARY( "wcsdata", "RA", KTYPE_DOUBLE, "Image center Right Ascension (deg)", &(fit->keywords.wcsdata.ra), NULL, NULL),
 			KEYWORD_SECONDA( "wcsdata", "RA", KTYPE_STR, "Image center Right Ascension (deg)", &(fit->keywords.wcsdata.objctra), ra_handler_read, NULL),
+			KEYWORD_PRIMARY( "wcsdata", "RA", KTYPE_DOUBLE, "Image center Right Ascension (deg)", &(fit->keywords.wcsdata.ra), NULL, NULL),
 			KEYWORD_SECONDA( "wcsdata", "RA_D", KTYPE_DOUBLE, "Image center Right Ascension (deg)", &(fit->keywords.wcsdata.ra), NULL, NULL),
-			KEYWORD_PRIMARY( "wcsdata", "DEC", KTYPE_DOUBLE, "Image center Declination (deg)", &(fit->keywords.wcsdata.dec), NULL, NULL),
 			KEYWORD_SECONDA( "wcsdata", "DEC", KTYPE_STR, "Image center Declination (deg)", &(fit->keywords.wcsdata.objctdec), dec_handler_read, NULL),
+			KEYWORD_PRIMARY( "wcsdata", "DEC", KTYPE_DOUBLE, "Image center Declination (deg)", &(fit->keywords.wcsdata.dec), NULL, NULL),
 			KEYWORD_SECONDA( "wcsdata", "DEC_D", KTYPE_DOUBLE, "Image center Declination (deg)", &(fit->keywords.wcsdata.dec), NULL, NULL),
 
 			/* This group must be the last one !!

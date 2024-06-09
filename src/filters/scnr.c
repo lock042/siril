@@ -80,13 +80,12 @@ gpointer scnr(gpointer p) {
 	cmsHPROFILE profile = args->fit->icc_profile ? copyICCProfile(args->fit->icc_profile) : srgb_trc();
 	cmsHPROFILE cielab_profile = NULL;
 	cmsUInt32Number src_type, dest_type;
-	cmsHTRANSFORM transform = NULL, invtransform = NULL;
 	cielab_profile = cmsCreateLab4Profile(NULL);
 	src_type = TYPE_RGB_FLT_PLANAR;
 	dest_type = TYPE_Lab_FLT_PLANAR;
 	// Use the single threaded lcms2 context as the transform will be done a line at a time within the OMP outer loop
-	transform = cmsCreateTransformTHR(com.icc.context_single, profile, src_type, cielab_profile, dest_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
-	invtransform = cmsCreateTransformTHR(com.icc.context_single, cielab_profile, dest_type, profile, src_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
+	cmsHTRANSFORM transform = cmsCreateTransformTHR(com.icc.context_single, profile, src_type, cielab_profile, dest_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
+	cmsHTRANSFORM invtransform = cmsCreateTransformTHR(com.icc.context_single, cielab_profile, dest_type, profile, src_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
 	cmsCloseProfile(profile);
 	cmsCloseProfile(cielab_profile);
 

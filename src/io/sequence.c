@@ -1959,6 +1959,7 @@ int seqpsf(sequence *seq, int layer, gboolean for_registration, gboolean regall,
 	fits fit = { 0 };
 	if (seq_read_frame(args->seq, seq->reference_image, &fit, FALSE, -1)) {
 		siril_log_color_message(_("Could not load metadata"), "red");
+		free(args);
 		free(spsfargs);
 		return -1;
 	} else {

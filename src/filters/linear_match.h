@@ -20,8 +20,6 @@
 #ifndef SRC_GUI_LINEAR_MATCH_H_
 #define SRC_GUI_LINEAR_MATCH_H_
 
-int find_linear_coeff(fits *target_fit, fits *reference_fit, double low,
-		double high, double *a, double *b, gchar **error);
 void apply_linear_to_fits(fits *fit, double *a, double *b);
 
 #endif /* SRC_GUI_LINEAR_MATCH_H_ */

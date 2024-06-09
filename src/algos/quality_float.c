@@ -214,7 +214,11 @@ static double Gradient(const float *buf, int width, int height) {
 				pixels++;
 			}
 	}
-
+	if (pixels == 0) {
+		siril_debug_print("Warning: pixels = 0 in Gradient(). Returning -1.0 to avoid div/0\n");
+		val = -1.0;
+		goto end;
+	}
 	val = val / (double)pixels; // normalise value to per-pixel
 	val = val / 10.0;
 end:

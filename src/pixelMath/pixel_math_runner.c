@@ -622,6 +622,7 @@ gpointer apply_pixel_math_operation(gpointer p) {
 	float minimum = +FLT_MAX;
 
 	if (args->single_rgb && args->fit->naxes[2] > 1) {
+		// No need to null check these two as they will be NULL if args->single_rgb is TRUE
 		args->expression2 = g_strdup(args->expression1);
 		args->expression3 = g_strdup(args->expression1);
 
@@ -907,6 +908,8 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 	int height = -1;
 	int channel = -1;
 
+	int retval = 0;
+
 	gboolean icc_warning_given = FALSE;
 	gboolean single_rgb = is_pm_use_rgb_button_checked();
 	gboolean rescale = is_pm_rescale_checked();
@@ -916,7 +919,10 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 
 	while (nb_rows < get_pixel_math_number_of_rows() && nb_rows < MAX_IMAGES) {
 		const gchar *path = get_pixel_math_var_paths(nb_rows);
-		if (readfits(path, &var_fit[nb_rows], NULL, TRUE)) return -1;
+		if (readfits(path, &var_fit[nb_rows], NULL, TRUE)) {
+			retval = 1;
+			goto free_expressions;
+		}
 
 		// Check ICC profiles are defined and the same
 		if (nb_rows > 0) {
@@ -947,33 +953,44 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 		if (channel == 3 && !single_rgb) {
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("Incompatible parameters"),
 					_("3 channel images are incompatible with the \"Use single RGB/K expression\" unchecked."));
-			return 1;
+			retval = 1;
+			goto free_expressions;
 		}
 		nb_rows++;
 	}
 
 	if (!nb_rows) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("No images loaded"), _("You must load images first."));
-		return 1;
+		retval = 1;
+		goto free_expressions;
 	}
 
 	channel = single_rgb ? channel : 3;
 
 	fits *fit = NULL;
-	if (new_fit_image(&fit, width, height, channel, DATA_FLOAT))
-		return 1;
+	if (new_fit_image(&fit, width, height, channel, DATA_FLOAT)) {
+		retval = 1;
+		goto free_expressions;
+	}
 
 	struct pixel_math_data *args = malloc(sizeof(struct pixel_math_data));
 
 	if (parse_parameters(&expression1, &expression2, &expression3)) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Parameter error"),
 				_("Parameter symbols could not be parsed."));
-		return 1;
+		retval = 1;
+		goto free_expressions;
 	}
 
-	args->expression1 = expression1;
-	args->expression2 = single_rgb ? NULL : expression2;
-	args->expression3 = single_rgb ? NULL : expression3;
+	args->expression1 = g_strdup(expression1);
+	if (single_rgb) {
+		args->expression2 = NULL;
+		args->expression3 = NULL;
+	} else {
+		args->expression2 = g_strdup(expression2);
+		args->expression3 = g_strdup(expression3);
+	}
+
 	args->single_rgb = single_rgb;
 	args->rescale = rescale;
 	args->do_sum = do_sum;
@@ -991,7 +1008,12 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 
 	start_in_new_thread(apply_pixel_math_operation, args);
 
-	return 0;
+free_expressions:
+	g_free(expression1);
+	g_free(expression2);
+	g_free(expression3);
+
+	return retval;
 }
 
 static gboolean allowed_char(char c) {
@@ -1230,7 +1252,8 @@ static void apply_pixel_math() {
 	gchar *expression3 = get_pixel_math_expression3();
 	remove_spaces_from_str(expression3);
 
-	pixel_math_evaluate(expression1, expression2, expression3);
+	if (pixel_math_evaluate(expression1, expression2, expression3))
+		siril_log_color_message(_("Error evaluating pixelmath expression.\n"), "red");
 }
 
 void on_pixel_math_entry_activate(GtkEntry *entry, gpointer user_data) {

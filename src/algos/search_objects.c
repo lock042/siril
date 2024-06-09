@@ -87,6 +87,7 @@ int parse_catalog_buffer(const gchar *buffer, sky_object_query_args *args) {
 			}
 			else if (g_str_has_prefix(token[rank], "Object")){
 				gchar **fields = g_strsplit(token[rank] + 7, " --- ", -1);
+				if (simbad_id) g_free(simbad_id); // because of the while loop, in case it has already been allocated
 				simbad_id = g_strdup(g_strstrip(fields[0]));
 				g_strfreev(fields);
 			}

@@ -171,7 +171,7 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 			args->offset[1] = -floor(ymin);
 			siril_debug_print("new size: %ld %ld\n", naxes[0], naxes[1]);
 			siril_debug_print("new origin: %d %d\n", args->offset[0], args->offset[1]);
-		} else if (args->reglayer >= 0){
+		} else if (layer_has_registration(args->seq, args->reglayer)) {
 			double dx, dy;
 			translation_from_H(args->seq->regparam[args->reglayer][args->ref_image].H, &dx, &dy);
 			args->offset[0] = (int)dx;

@@ -295,7 +295,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 	/* Backup the original pointer to fit. If there is a Bayer pattern we need
 	 * to interpolate non-green pixels, so make a copy we can work on. */
 	fits *orig_fit = fit;
-	if (regargs->bayer) {
+	if (regargs->bayer && in_index != regargs->reference_image) {
 		fit = calloc(1, sizeof(fits));
 		copyfits(orig_fit, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 		interpolate_nongreen(fit);

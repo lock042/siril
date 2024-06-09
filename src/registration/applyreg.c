@@ -81,6 +81,8 @@ static void update_framing(regframe *framing, sequence *seq, int index) {
 }
 
 static gboolean compute_framing(struct registration_args *regargs) {
+	if (regargs->seq->number < 1)
+		return FALSE;
 	// validity of matrices has already been checked before this call
 	// and null matrices have been discarded
 	Homography Href = regargs->seq->regparam[regargs->layer][regargs->reference_image].H;
@@ -174,6 +176,9 @@ static gboolean compute_framing(struct registration_args *regargs) {
 				cogy += currcogy;
 				n++;
 			}
+			if (n == 0)
+				return FALSE; // If there are no frames filtered in, we have nothing to do.
+
 			cogx /= (double)n;
 			cogy /= (double)n;
 			x0 = (int)(cogx - (double)rx * 0.5);

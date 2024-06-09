@@ -131,31 +131,15 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 
 		graphics_supported = g_string_free(s_supported_graph, FALSE);
 		graphics_filter = g_string_free(s_pattern, FALSE);
-		if (whichdial != OD_CONVERT && whichdial != OD_OPEN) {
-			gtk_filter_add(chooser, graphics_supported, graphics_filter,
-					gui.file_ext_filter == TYPEBMP || gui.file_ext_filter == TYPEJPG ||
-					gui.file_ext_filter == TYPEPNG || gui.file_ext_filter == TYPETIFF ||
-					gui.file_ext_filter == TYPEXISF);
 
-			/* NETPBM FILES */
-			gtk_filter_add(chooser, _("Netpbm Files (*.ppm, *.pnm, *.pgm)"),
-					netpbm_filter, gui.file_ext_filter == TYPEPNM);
-			/* IRIS FILES */
-			gtk_filter_add(chooser, _("IRIS PIC Files (*.pic)"), pic_filter,
-					gui.file_ext_filter == TYPEPIC);
-			/* SER FILES */
-			gtk_filter_add(chooser, _("SER files (*.ser)"), ser_filter,
-					gui.file_ext_filter == TYPESER);
-		} else {
-			all_filter = g_string_append(all_filter, ";");
-			all_filter = g_string_append(all_filter, graphics_filter);
-			all_filter = g_string_append(all_filter, ";");
-			all_filter = g_string_append(all_filter, netpbm_filter);
-			all_filter = g_string_append(all_filter, ";");
-			all_filter = g_string_append(all_filter, pic_filter);
-			all_filter = g_string_append(all_filter, ";");
-			all_filter = g_string_append(all_filter, ser_filter);
-		}
+		all_filter = g_string_append(all_filter, ";");
+		all_filter = g_string_append(all_filter, graphics_filter);
+		all_filter = g_string_append(all_filter, ";");
+		all_filter = g_string_append(all_filter, netpbm_filter);
+		all_filter = g_string_append(all_filter, ";");
+		all_filter = g_string_append(all_filter, pic_filter);
+		all_filter = g_string_append(all_filter, ";");
+		all_filter = g_string_append(all_filter, ser_filter);
 
 #ifdef HAVE_FFMS2
 		/* FILM FILES */
@@ -181,13 +165,9 @@ static void set_filters_dialog(GtkFileChooser *chooser, int whichdial) {
 		if (strlen(film_filter) > 0)
 			film_filter[strlen(film_filter) - 1] = '\0';
 
-		if (whichdial != OD_CONVERT && whichdial != OD_OPEN) {
-		gtk_filter_add(chooser, _("Film Files (*.avi, *.mpg, ...)"), film_filter,
-				gui.file_ext_filter == TYPEAVI);
-		} else {
-			all_filter = g_string_append(all_filter, ";");
-			all_filter = g_string_append(all_filter, film_filter);
-		}
+		all_filter = g_string_append(all_filter, ";");
+		all_filter = g_string_append(all_filter, film_filter);
+
 		free(film_filter);
 #endif
 		g_free(graphics_supported);

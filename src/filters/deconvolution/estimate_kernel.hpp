@@ -556,6 +556,6 @@ void preprocess_image(img_t<T>& out, const img_t<T>& _v, struct estimate_kernel_
         edgetaper(v, v, k);
     }
 
-    out = v;
+    out = std::move(v);
 }
 

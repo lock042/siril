@@ -164,7 +164,9 @@ static int Mat_to_image(fits *image, Mat *in, Mat *out, void *bgr, int target_rx
 	if (bgr) free(bgr);
 	if (image->naxes[2] == 1) {
 		free(image->data);
+		image->data = NULL; // This must be set to NULL as the function can return on error before it is reassigned to point at the modified data
 		free(image->fdata);
+		image->fdata = NULL; // This must be set to NULL as the function can return on error before it is reassigned to point at the modified data
 	}
 
 	size_t ndata = target_rx * target_ry;
@@ -352,7 +354,7 @@ static void convert_MatH_to_H(Mat from, Homography *to) {
 
 void cvGetEye(Homography *Hom) {
 	Mat M = Mat::eye(3, 3, CV_64FC1);
-	convert_MatH_to_H(M, Hom);
+	convert_MatH_to_H(std::move(M), Hom);
 }
 
 void cvTransfPoint(double *x, double *y, Homography Href, Homography Himg, double scale) {
@@ -388,7 +390,7 @@ void cvTransfH(Homography Href, Homography Himg, Homography *Hres) {
 	convert_H_to_MatH(&Href, H0);
 	convert_H_to_MatH(&Himg, H1);
 	H2 = H1.inv() * H0;
-	convert_MatH_to_H(H2, Hres);
+	convert_MatH_to_H(std::move(H2), Hres);
 }
 
 unsigned char *cvCalculH(s_star *star_array_img,
@@ -470,7 +472,7 @@ unsigned char *cvCalculH(s_star *star_array_img,
 		return NULL;
 	}
 
-	convert_MatH_to_H(H, Hom);
+	convert_MatH_to_H(std::move(H), Hom);
 
 	mask.release();
 	return ret;
@@ -931,7 +933,7 @@ double cvCalculRigidTransform(s_star *star_array_in,
 	}
 
 	Hom->Inliers = n;
-	convert_MatH_to_H(H, Hom);
+	convert_MatH_to_H(std::move(H), Hom);
 
 	return err;
 
@@ -944,7 +946,7 @@ void cvMultH(Homography H1, Homography H2, Homography *Hout) {
 	convert_H_to_MatH(&H1, _H1);
 	convert_H_to_MatH(&H2, _H2);
 	_H = _H1 * _H2;
-	convert_MatH_to_H(_H, Hout);
+	convert_MatH_to_H(std::move(_H), Hout);
 }
 
 void cvGetMatrixReframe(double x, double y, int w, int h, double angle, Homography *Hom) {
@@ -976,7 +978,7 @@ void cvGetMatrixReframe(double x, double y, int w, int h, double angle, Homograp
 	H = H.inv();
 	std::cout << H << std::endl;
 
-	convert_MatH_to_H(H, Hom);
+	convert_MatH_to_H(std::move(H), Hom);
 }
 
 void cvGetBoundingRectSize(fits *image, point center, double angle, int *w, int *h) {
@@ -992,7 +994,7 @@ void cvInvertH(Homography *Hom) {
 	Mat H = Mat(3, 3, CV_64FC1);
 	convert_H_to_MatH(Hom, H);
 	H = H.inv();
-	convert_MatH_to_H(H, Hom);
+	convert_MatH_to_H(std::move(H), Hom);
 	// std::cout << "H" << std::endl;
 	// std::cout << H << std::endl;
 }
@@ -1010,7 +1012,7 @@ void cvApplyFlips(Homography *Hom, int source_ry, int target_ry) {
 	F2.at<double>(1,2) = target_ry;
 
 	H = F2.inv() * H * F1;
-	convert_MatH_to_H(H, Hom);
+	convert_MatH_to_H(std::move(H), Hom);
 }
 
 void cvPrepareDrizzleH(Homography *Hom, double scale, int source_ry, int target_ry) {
@@ -1034,7 +1036,7 @@ void cvPrepareDrizzleH(Homography *Hom, double scale, int source_ry, int target_
 	F2.at<double>(1,2) = target_ry - 1.0;
 
 	H = F2.inv() * H * F1;
-	convert_MatH_to_H(H, Hom);
+	convert_MatH_to_H(std::move(H), Hom);
 }
 
 // Used to convert a H matrix written in display convention to opencv convention
@@ -1048,7 +1050,7 @@ void cvdisplay2ocv(Homography *Hom) {
 	S1.at<double>(1,2) = 0.5;
 
 	H = S1.inv() * H * S1;
-	convert_MatH_to_H(H, Hom);
+	convert_MatH_to_H(std::move(H), Hom);
 }
 
 /*
@@ -1109,7 +1111,7 @@ gboolean cvRotMat3(double angles[3], rotation_type rottype[3], gboolean W2C, Hom
 	}
 	if (W2C)
 		_R = _R.t(); // if we need W2C, we need to invert (i.e. transpose for R mats)
-	convert_MatH_to_H(_R, R);
+	convert_MatH_to_H(std::move(_R), R);
 	// std::cout << R << std::endl;
 	return retval;
 }
@@ -1123,7 +1125,7 @@ void cvRelRot(Homography *Ref, Homography *R) {
 	convert_H_to_MatH(Ref, _Ref);
 	convert_H_to_MatH(R, _R);
 	_R = _Ref.t() * _R;
-	convert_MatH_to_H(_R, R);
+	convert_MatH_to_H(std::move(_R), R);
 }
 
 // Computes Homography from cameras R and K
@@ -1138,7 +1140,7 @@ void cvcalcH_fromKKR(Homography Kref, Homography K, Homography R, Homography *H)
 
 	//Compute H and returning
 	_H = _Kref * _R * _K.inv();
-	convert_MatH_to_H(_H, H);
+	convert_MatH_to_H(std::move(_H), H);
 }
 
 // TODO: Code below should be moved to a dedicated cvastrometric.cpp file
@@ -1425,9 +1427,9 @@ int init_disto_map(int rx, int ry, disto_data *disto) {
 
 	if (disto->dtype == DISTO_MAP_D2S) {
 		Rect roidst = Rect_(0, 0, rx, ry);
-		map_undistortion_D2S(disto, roidst, xmap, ymap);
+		map_undistortion_D2S(disto, roidst, std::move(xmap), std::move(ymap));
 	} else
-		map_undistortion_S2D(disto, rx, ry, xmap, ymap);
+		map_undistortion_S2D(disto, rx, ry, std::move(xmap), std::move(ymap));
 	return 0;
 }
 

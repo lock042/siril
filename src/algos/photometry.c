@@ -418,9 +418,9 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 	double *vmag = calloc(nbImages, sizeof(double));	// Y is the calibrated magnitude
 	double *err = calloc(nbImages, sizeof(double));		// Y error bar
 	double *snr_opt = calloc(nbImages, sizeof(double));	// SNR
-	if (!date || !vmag || !err) {
+	if (!date || !vmag || !err || !snr_opt) {
 		PRINT_ALLOC_ERR;
-		free(date); free(vmag); free(err);
+		free(date); free(vmag); free(err); free(snr_opt);
 		return -1;
 	}
 	double min_date = DBL_MAX;
@@ -482,7 +482,7 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 	int nb_valid_images = j;
 	int julian0 = 0;
 
-	// Additionnal information on the error bars and variable SNR 
+	// Additionnal information on the error bars and variable SNR
 	// distributions if the auto aperture option is set
 	if (!lcargs->force_rad) {
 		double median_err, largest_err, smallest_err;
