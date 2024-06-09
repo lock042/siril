@@ -5554,8 +5554,7 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             <object class="GtkEntry" id="reg_wcsfile_entry">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
-                                                            <property name="tooltip-text" translatable="yes">Enter the master bias/offset file name here, or use the browse button.
-Select a file to read distorsion information from:
+                                                            <property name="tooltip-text" translatable="yes">Select a file to read distorsion information from:
 - a FITS file which has been platesolved with distorsion.
 - a wcs file which was written by a previous registration with distorsions.</property>
                                                             <property name="hexpand">True</property>

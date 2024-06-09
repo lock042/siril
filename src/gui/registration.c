@@ -1114,7 +1114,7 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 
 	if (regindex == REG_GLOBAL) { // seqpplyreg case is dealt with in the sanity checks of the method
 		if (reg_args->interpolation == OPENCV_NONE && (reg_args->output_scale != 1.f || com.seq.is_variable)) {
-			siril_log_color_message(_("When interpolation is set to None, the images must be of same size and no upscaling can be applied. Aborting\n"), "red");
+			siril_log_color_message(_("When interpolation is set to None, the images must be of same size and no scaling can be applied. Aborting\n"), "red");
 			return 1;
 		}
 		if (reg_args->interpolation == OPENCV_NONE && (reg_args->type > SHIFT_TRANSFORMATION)) {

@@ -515,8 +515,8 @@ int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 		 * Then, still in peaker(), image is filtered using Gaussian blur, duplicating
 		 * the reference channel to act as input and output of the filter as float O(m
 		 * as float for RT, current), O(2m as float for openCV).
-		 * Then, the image is rotated and upscaled by the generic function if enabled:
-		 * cvTransformImage is O(n) in mem for unscaled, O(nscaled)=O(4m) for
+		 * Then, the image is rotated and scaled by the generic function if enabled:
+		 * cvTransformImage is O(n) in mem for unscaled, O(nscaled)=O(scale^2*n) for
 		 * monochrome scaled and O(2nscaled)=O(21m) for color scaled
 		 * All this is in addition to the image being already loaded, except for the
 		 * color scaled image.
@@ -536,7 +536,7 @@ int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 		 */
 		int is_color = args->seq->nb_layers == 3;
 		int is_float = get_data_type(args->seq->bitpix) == DATA_FLOAT;
-		int is_scaled = args->upscale_ratio == 2.0;
+		int is_scaled = args->upscale_ratio != 1.f;
 		unsigned int float_multiplier = is_float ? 1 : 2;
 		unsigned int MB_per_float_image = MB_per_orig_image * float_multiplier;
 		unsigned int MB_per_float_channel = is_color ? MB_per_float_image / 3 : MB_per_float_image;
@@ -548,7 +548,7 @@ int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 		}
 		// here args->has_output is TRUE
 		else if (!is_color && is_scaled) {
-			required = MB_per_orig_image + 4 * MB_per_orig_channel;
+			required = MB_per_orig_image + (int)(args->upscale_ratio * args->upscale_ratio * MB_per_orig_channel);
 		}
 		else if (is_color && !is_scaled) {
 			required = 2 * MB_per_orig_image;

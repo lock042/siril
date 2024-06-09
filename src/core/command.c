@@ -7200,7 +7200,7 @@ int process_register(int nb) {
 	}
 
 	if (reg_args->interpolation == OPENCV_NONE && (reg_args->output_scale != 1.f || reg_args->seq->is_variable)) {
-		siril_log_color_message(_("When interpolation is set to None, the images must be of same size and no upscaling can be applied. Aborting\n"), "red");
+		siril_log_color_message(_("When interpolation is set to None, the images must be of same size and no scaling can be applied. Aborting\n"), "red");
 		goto terminate_register_on_error;
 	}
 

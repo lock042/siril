@@ -671,13 +671,13 @@ int register_apply_reg(struct registration_args *regargs) {
 	struct driz_args_t *driz = regargs->driz;
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
-	if (regargs->driz) {
-		set_progress_bar_data(_("Initializing drizzle data..."), PROGRESS_PULSATE);
-	}
-
 	if (!check_before_applyreg(regargs)) {
 		free(args);
 		return -1;
+	}
+
+	if (regargs->driz) {
+		set_progress_bar_data(_("Initializing drizzle data..."), PROGRESS_PULSATE);
 	}
 
 	if (driz) {
