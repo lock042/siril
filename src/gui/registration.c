@@ -107,14 +107,13 @@ static struct registration_method *reg_methods[NUMBER_OF_METHODS + 1];
 
 // Statics declarations
 static GtkAdjustment *register_minpairs = NULL;
-static GtkBox *vboxreg = NULL, *comet_page = NULL, *_123star_page = NULL, *seq_filters_box_reg = NULL, *reg_wcsfilechooser_box = NULL;
-static GtkButton *button1_comet = NULL, *button2_comet = NULL, *pickstar1 = NULL, *pickstar2 = NULL, *pickstar3 = NULL, *filter_add4 = NULL, *filter_add5 = NULL, *filter_rem5 = NULL, *filter_rem6 = NULL, *proj_estimate = NULL, *goregister_button = NULL, *reg_wcsfile_button = NULL;
+static GtkBox *seq_filters_box_reg = NULL, *reg_wcsfilechooser_box = NULL;
+static GtkButton *filter_add4 = NULL, *filter_add5 = NULL, *filter_rem5 = NULL, *filter_rem6 = NULL, *proj_estimate = NULL, *goregister_button = NULL, *reg_wcsfile_button = NULL;
 static GtkComboBoxText *comboboxregmethod = NULL, *comboboxreglayer = NULL, *comboreg_maxstars = NULL, *comboreg_transfo = NULL, *reg_sel_all_combobox = NULL, *combofilter4 = NULL, *filter_type4 = NULL, *combofilter5 = NULL, *filter_type5 = NULL, *combofilter6 = NULL, *filter_type6 = NULL, *comboreg_framing = NULL, *ComboBoxRegInter = NULL, *combo_driz_kernel = NULL, *comboreg_undistort = NULL;
-static GtkDrawingArea *drawingarea_reg_manual_preview1 = NULL, *drawingarea_reg_manual_preview2 = NULL;
 static GtkEntry *entry1_x_comet = NULL, *entry2_x_comet = NULL, *entry1_y_comet = NULL, *entry2_y_comet = NULL, *regseqname_entry = NULL, *flatname_entry = NULL, *reg_wcsfile_entry = NULL;
 static GtkExpander *autoreg_expander = NULL, *manualreg_expander = NULL;
 static GtkFrame *output_reg_frame = NULL;
-static GtkGrid *global_page = NULL, *kombat_page = NULL, *grid_reg_framing = NULL, *grid_interp_controls = NULL, *grid_drizzle_controls = NULL;
+static GtkGrid *grid_reg_framing = NULL, *grid_interp_controls = NULL, *grid_drizzle_controls = NULL;
 static GtkImage *framing_image = NULL;
 static GtkLabel *label1_comet = NULL, *regfilter_label = NULL, *labelfilter4 = NULL, *labelfilter5 = NULL, *labelfilter6 = NULL, *labelregisterinfo = NULL, *labelRegRef = NULL;
 static GtkNotebook *notebook_registration = NULL;
@@ -134,21 +133,13 @@ static GtkLabel *filter_label[3] = { NULL };
 /****************************************************************/
 
 static void registration_init_statics() {
-	if (vboxreg == NULL) {
+	if (register_minpairs == NULL) {
 		// GtkAdjustment
 		register_minpairs = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "register_minpairs"));
 		// GtkBox
-		vboxreg = GTK_BOX(gtk_builder_get_object(gui.builder, "vboxreg"));
-		comet_page = GTK_BOX(gtk_builder_get_object(gui.builder, "comet_page"));
-		_123star_page = GTK_BOX(gtk_builder_get_object(gui.builder, "123star_page"));
 		seq_filters_box_reg = GTK_BOX(gtk_builder_get_object(gui.builder, "seq_filters_box_reg"));
 		reg_wcsfilechooser_box = GTK_BOX(gtk_builder_get_object(gui.builder, "reg_wcsfilechooser_box"));
 		// GtkButton
-		button1_comet = GTK_BUTTON(gtk_builder_get_object(gui.builder, "button1_comet"));
-		button2_comet = GTK_BUTTON(gtk_builder_get_object(gui.builder, "button2_comet"));
-		pickstar1 = GTK_BUTTON(gtk_builder_get_object(gui.builder, "pickstar1"));
-		pickstar2 = GTK_BUTTON(gtk_builder_get_object(gui.builder, "pickstar2"));
-		pickstar3 = GTK_BUTTON(gtk_builder_get_object(gui.builder, "pickstar3"));
 		filter_add4 = GTK_BUTTON(gtk_builder_get_object(gui.builder, "filter_add4"));
 		filter_add5 = GTK_BUTTON(gtk_builder_get_object(gui.builder, "filter_add5"));
 		filter_rem5 = GTK_BUTTON(gtk_builder_get_object(gui.builder, "filter_rem5"));
@@ -172,9 +163,6 @@ static void registration_init_statics() {
 		ComboBoxRegInter = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "ComboBoxRegInter"));
 		combo_driz_kernel = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "combo_driz_kernel"));
 		comboreg_undistort = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "comboreg_undistort"));
-		// GtkDrawingArea
-		drawingarea_reg_manual_preview1 = GTK_DRAWING_AREA(gtk_builder_get_object(gui.builder, "drawingarea_reg_manual_preview1"));
-		drawingarea_reg_manual_preview2 = GTK_DRAWING_AREA(gtk_builder_get_object(gui.builder, "drawingarea_reg_manual_preview2"));
 		// GtkEntry
 		entry1_x_comet = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry1_x_comet"));
 		entry2_x_comet = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry2_x_comet"));
@@ -189,8 +177,6 @@ static void registration_init_statics() {
 		// GtkFrame
 		output_reg_frame = GTK_FRAME(gtk_builder_get_object(gui.builder, "output_reg_frame"));
 		// GtkGrid
-		global_page = GTK_GRID(gtk_builder_get_object(gui.builder, "global_page"));
-		kombat_page = GTK_GRID(gtk_builder_get_object(gui.builder, "kombat_page"));
 		grid_reg_framing = GTK_GRID(gtk_builder_get_object(gui.builder, "grid_reg_framing"));
 		grid_interp_controls = GTK_GRID(gtk_builder_get_object(gui.builder, "grid_interp_controls"));
 		grid_drizzle_controls = GTK_GRID(gtk_builder_get_object(gui.builder, "grid_drizzle_controls"));
