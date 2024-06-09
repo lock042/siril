@@ -795,7 +795,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="halign">start</property>
-                                <property name="label" translatable="yes">Observer height / m</property>
+                                <property name="label" translatable="yes">Observer height / m:</property>
                               </object>
                               <packing>
                                 <property name="left-attach">0</property>
@@ -822,7 +822,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="halign">start</property>
-                                <property name="label" translatable="yes">Atmospheric pressure / hPa</property>
+                                <property name="label" translatable="yes">Atmospheric pressure / hPa:</property>
                               </object>
                               <packing>
                                 <property name="left-attach">0</property>
@@ -864,7 +864,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="halign">start</property>
-                                <property name="label" translatable="yes">Airmass</property>
+                                <property name="label" translatable="yes">Airmass:</property>
                               </object>
                               <packing>
                                 <property name="left-attach">0</property>
@@ -884,9 +884,11 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkLabel" id="spcc_airmass_label">
+                              <object class="GtkEntry" id="spcc_airmass_entry">
                                 <property name="visible">True</property>
-                                <property name="can-focus">False</property>
+                                <property name="sensitive">False</property>
+                                <property name="can-focus">True</property>
+                                <property name="editable">False</property>
                               </object>
                               <packing>
                                 <property name="left-attach">1</property>
@@ -902,6 +904,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                           <object class="GtkLabel">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
+                            <property name="margin-bottom">5</property>
                             <property name="label" translatable="yes">Atmospheric Parameters</property>
                             <attributes>
                               <attribute name="weight" value="bold"/>

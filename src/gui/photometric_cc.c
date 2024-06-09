@@ -240,7 +240,7 @@ void initialize_spectrophotometric_cc_dialog() {
 	spcc_nb_controls = lookup_widget("spcc_nb_controls");
 	spcc_toggle_nb = lookup_widget("spcc_toggle_nb");
 	monoselector = GTK_SWITCH(lookup_widget("spcc_sensor_switch"));
-	GtkWidget *spcc_airmass_label = lookup_widget("spcc_airmass_label");
+	GtkWidget *spcc_airmass_entry = lookup_widget("spcc_airmass_entry");
 
 	parent = GTK_WINDOW(lookup_widget("s_pcc_dialog"));
 
@@ -288,8 +288,8 @@ void initialize_spectrophotometric_cc_dialog() {
 		tooltip = g_strdup(N_("No airmass data available or computable. Estimating airmass based on average observation height of 48.1°"));
 	}
 	gchar *txt = g_strdup_printf("%.3f", airmass);
-	gtk_label_set_text(GTK_LABEL(spcc_airmass_label), txt);
-	gtk_widget_set_tooltip_text(spcc_airmass_label, tooltip);
+	gtk_entry_set_text(GTK_ENTRY(spcc_airmass_entry), txt);
+	gtk_widget_set_tooltip_text(spcc_airmass_entry, tooltip);
 	g_free(txt);
 	g_free(tooltip);
 
