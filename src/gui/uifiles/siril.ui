@@ -5555,8 +5555,9 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="tooltip-text" translatable="yes">Enter the master bias/offset file name here, or use the browse button.
-The bias/offset master image will be removed from all images in the sequence.
-Instead of an image, you can also specify a uniform level to be subtracted, starting with an "=" sign, such as =256 or =64*$OFFSET</property>
+Select a file to read distorsion information from:
+- a FITS file which has been platesolved with distorsion.
+- a wcs file which was written by a previous registration with distorsions.</property>
                                                             <property name="hexpand">True</property>
                                                             <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                                             </object>
