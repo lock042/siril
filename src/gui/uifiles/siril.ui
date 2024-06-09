@@ -5645,7 +5645,7 @@ Instead of an image, you can also specify a uniform level to be subtracted, star
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">True</property>
                                                             <property name="tooltip-text" translatable="yes">Select an area around the asteroid or the comet core in the first selected image, then click on this button. The pixel coordinates of the object will be computed and displayed.</property>
-                                                            <signal name="clicked" handler="on_button1_comet_clicked" swapped="no"/>
+                                                            <signal name="clicked" handler="on_button_comet_clicked" swapped="no"/>
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
@@ -5659,7 +5659,7 @@ Instead of an image, you can also specify a uniform level to be subtracted, star
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">True</property>
                                                             <property name="tooltip-text" translatable="yes">Select an area around the asteroid or the comet core in the last selected image, then click on this button. The pixel coordinates of the object will be computed and displayed.</property>
-                                                            <signal name="clicked" handler="on_button2_comet_clicked" swapped="no"/>
+                                                            <signal name="clicked" handler="on_button_comet_clicked" swapped="no"/>
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>

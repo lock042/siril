@@ -143,6 +143,7 @@ struct registration_args {
 	int max_stars_candidates;	// Max candidates after psf fitting for global reg
 	transformation_type type;	// Use affine transform  or homography
 	float percent_moved;		// for KOMBAT algorithm
+	pointf velocity;			// for comet algorithm
 	gboolean two_pass;		// use the two-pass computation to find a good ref image
 	seq_image_filter filtering_criterion; // the filter, (seqapplyreg only)
 	double filtering_parameter;	// and its parameter (seqapplyreg only)
@@ -150,6 +151,10 @@ struct registration_args {
 	float output_scale;		// scaling factor
 	gboolean undistort;		// apply undistorsion with SIP data
 	struct driz_args_t *driz;	// drizzle-specific data
+	opencv_interpolation interpolation; // type of rotation interpolation
+	framing_type framing;		// used by seqapplyreg to determine framing
+	gboolean clamp;				// should Bicubic and Lanczos4 interpolation be clamped?
+	double clamping_factor;		// used to set amount of interpolation clamping
 
 	/* data for generated sequence, for star alignment/mosaic registration */
 	gboolean no_output;		// write transformation to .seq
@@ -159,10 +164,6 @@ struct registration_args {
 	char *prefix;		// prefix of the created sequence if any
 	gboolean load_new_sequence;	// load the new sequence if success
 	gchar *new_seq_name;
-	opencv_interpolation interpolation; // type of rotation interpolation
-	framing_type framing;		// used by seqapplyreg to determine framing
-	gboolean clamp;				// should Bicubic and Lanczos4 interpolation be clamped?
-	double clamping_factor;		// used to set amount of interpolation clamping
 };
 
 struct registration_method *new_reg_method(const char *name, registration_function f,
@@ -178,9 +179,14 @@ int register_kombat(struct registration_args *args); // REG_KOMBAT
 int register_manual(struct registration_args *regargs); // defined in compositing/compositing.c
 int register_astrometric(struct registration_args *regargs);
 
+// 3 stars
 void reset_3stars();
 int _3stars_get_number_selected_stars();
 gboolean _3stars_check_selection();
+
+// comet
+pointf compute_velocity(GDateTime *t1, GDateTime *t2, point d1, point d2);
+int get_comet_shift(GDateTime *ref, GDateTime *img, pointf px_per_hour, pointf *reg);
 
 pointf get_velocity();
 void update_reg_interface(gboolean dont_change_reg_radio);

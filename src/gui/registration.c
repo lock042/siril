@@ -38,6 +38,7 @@
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
 #include "stacking/stacking.h"
+#include "opencv/opencv.h"
 
 #undef DEBUG
 static char *tooltip_text[] = {
@@ -94,6 +95,13 @@ static char *filter_tooltip_text[] = {
 	N_("Number of standard deviations for rejection of worst images by k-sigma clipping algorithm.")
 };
 static struct filtering_tuple regfilters[MAX_FILTERS] = { 0 };
+
+// comet specific statics
+static pointf velocity = { 0.f, 0.f };
+static GDateTime *t_of_image_1 = NULL;
+static GDateTime *t_of_image_2 = NULL;
+static point pos_of_image1 = { 0 };
+static point pos_of_image2 = { 0 };
 
 static struct registration_method *reg_methods[NUMBER_OF_METHODS + 1];
 
@@ -383,6 +391,92 @@ void on_reg_wcsfile_button_clicked(GtkButton *button, gpointer user_data) {
 }
 
 /****************************************************************/
+/* comet specific callbacks                                       */
+/****************************************************************/
+
+static void update_velocity() {
+	velocity = compute_velocity(t_of_image_1, t_of_image_2, pos_of_image1, pos_of_image2);
+	gchar *v_txt = g_strdup_printf("Δx: %.2lf, Δy: %.2lf", velocity.x, -velocity.y);
+	gtk_label_set_text(label1_comet, v_txt);
+	g_free(v_txt);
+}
+
+static void update_comet_entry(point pt, GtkEntry *entry_x, GtkEntry *entry_y) {
+	gchar *txt_x, *txt_y;
+	txt_x = g_strdup_printf("%7.2f", pt.x);
+	txt_y = g_strdup_printf("%7.2f", pt.y);
+	gtk_entry_set_text(entry_x, txt_x);
+	gtk_entry_set_text(entry_y, txt_y);
+	g_free(txt_x);
+	g_free(txt_y);
+}
+
+void on_button_comet_clicked(GtkButton *button, gpointer p) {
+	psf_star *result = NULL;
+	int layer = gtk_combo_box_get_active(GTK_COMBO_BOX(comboboxreglayer));
+	const gchar *caller = gtk_buildable_get_name(GTK_BUILDABLE(button));
+	gboolean first = !g_strcmp0(caller, "button1_comet");
+
+	if (com.selection.h && com.selection.w) {
+		set_cursor_waiting(TRUE);
+		result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, NULL);
+		if (result) {
+			point pos;
+			if (first) { // comet1 clicked
+				pos_of_image1.x = result->x0 + com.selection.x;
+				pos_of_image1.y = com.selection.y + com.selection.h - result->y0;
+				pos = pos_of_image1;
+			} else { // comet2 clicked
+				pos_of_image2.x = result->x0 + com.selection.x;
+				pos_of_image2.y = com.selection.y + com.selection.h - result->y0;
+				pos = pos_of_image2;
+			}
+			if (layer_has_registration(&com.seq, layer) &&
+					guess_transform_from_H(com.seq.regparam[layer][com.seq.reference_image].H) > NULL_TRANSFORMATION &&
+					guess_transform_from_H(com.seq.regparam[layer][com.seq.current].H) > NULL_TRANSFORMATION) {
+				cvTransfPoint(&pos.x, &pos.y, com.seq.regparam[layer][com.seq.current].H, com.seq.regparam[layer][com.seq.reference_image].H, 1.);
+			}
+			free_psf(result);
+			if (!gfit.keywords.date_obs) {
+				siril_message_dialog(GTK_MESSAGE_ERROR,
+						_("There is no timestamp stored in the file"),
+						_("Siril cannot perform the registration without date information in the file."));
+			} else {
+				GDateTime *time = g_date_time_ref(gfit.keywords.date_obs);
+				if (!time) {
+					siril_message_dialog(GTK_MESSAGE_ERROR,
+							_("Unable to convert DATE-OBS to a valid date"),
+							_("Siril cannot convert the DATE-OBS keyword into a valid date needed in the alignment."));
+				}
+				if (first) {
+					if (t_of_image_1) {
+						g_date_time_unref(t_of_image_1);
+					}
+					t_of_image_1 = time;
+					update_comet_entry(pos_of_image1, entry1_x_comet, entry1_y_comet);
+				} else {
+					if (t_of_image_2) {
+						g_date_time_unref(t_of_image_2);
+					}
+					t_of_image_2 = time;
+					update_comet_entry(pos_of_image2, entry2_x_comet, entry2_y_comet);
+				}
+			}
+		}
+		set_cursor_waiting(FALSE);
+	}
+	update_reg_interface(TRUE);
+}
+
+void on_entry_comet_changed(GtkEditable *editable, gpointer user_data) {
+	pos_of_image1.x = g_ascii_strtod(gtk_entry_get_text(entry1_x_comet), NULL);
+	pos_of_image1.y = g_ascii_strtod(gtk_entry_get_text(entry1_y_comet), NULL);
+	pos_of_image2.x = g_ascii_strtod(gtk_entry_get_text(entry2_x_comet), NULL);
+	pos_of_image2.y = g_ascii_strtod(gtk_entry_get_text(entry2_y_comet), NULL);
+	update_velocity();
+}
+
+/****************************************************************/
 /* Filters                                                      */
 /****************************************************************/
 
@@ -609,7 +703,6 @@ static gboolean check_framing(regmethod_index index) {
 static gboolean check_comet(regmethod_index index) {
 	if (index != REG_COMET)
 		return TRUE;
-	pointf velocity = get_velocity();
 	if ((velocity.x == 0.0 && velocity.y == 0.0)
 				|| isinf(velocity.x) || isinf(velocity.y)) {
 		gtk_label_set_text(labelregisterinfo, _("Pick object in two images"));
@@ -708,9 +801,9 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	}
 
 	/* specific methods */
-	isapplyreg = method->method_ptr == &register_apply_reg;
-	is_global = method->method_ptr == &register_star_alignment;
-	is_star_align = regindex == REG_GLOBAL || regindex == REG_2PASS;
+	isapplyreg = regindex == REG_APPLY;
+	is_global = regindex == REG_GLOBAL;
+	is_star_align = is_global || regindex == REG_2PASS;
 
 	/* registration data exists for the selected layer */
 	has_reg = layer_has_registration(&com.seq, gtk_combo_box_get_active(GTK_COMBO_BOX(comboboxreglayer)));
@@ -918,6 +1011,9 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 	}
 	if (regindex == REG_KOMBAT) {
 		reg_args->percent_moved = (float)gtk_spin_button_get_value(spin_kombat_percent) / 100.f;
+	}
+	if (regindex == REG_COMET) {
+		reg_args->velocity = velocity;
 	}
 	if (regindex == REG_APPLY) {
 		reg_args->framing = gtk_combo_box_get_active(GTK_COMBO_BOX(comboreg_framing));
