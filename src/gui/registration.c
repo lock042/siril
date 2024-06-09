@@ -25,6 +25,8 @@
 #include "algos/siril_wcs.h"
 #include "drizzle/cdrizzleutil.h"
 #include "gui/callbacks.h"
+#include "gui/dialogs.h"
+#include "gui/open_dialog.h"
 #include "gui/utils.h"
 #include "gui/image_display.h"
 #include "gui/image_interactions.h"
@@ -113,13 +115,14 @@ static GtkComboBoxText *comboboxregmethod = NULL, *comboboxreglayer = NULL, *com
 static GtkEntry *entry1_x_comet = NULL, *entry2_x_comet = NULL, *entry1_y_comet = NULL, *entry2_y_comet = NULL, *regseqname_entry = NULL, *flatname_entry = NULL, *reg_wcsfile_entry = NULL;
 static GtkExpander *autoreg_expander = NULL, *manualreg_expander = NULL;
 static GtkFrame *output_reg_frame = NULL;
-static GtkGrid *grid_reg_framing = NULL, *grid_interp_controls = NULL, *grid_drizzle_controls = NULL;
+static GtkGrid *grid_reg_framing = NULL, *grid_interp_controls = NULL, *grid_drizzle_controls = NULL, *grid_reg_wcs = NULL;
 static GtkImage *framing_image = NULL;
 static GtkLabel *label1_comet = NULL, *regfilter_label = NULL, *labelfilter4 = NULL, *labelfilter5 = NULL, *labelfilter6 = NULL, *labelregisterinfo = NULL, *labelRegRef = NULL;
 static GtkNotebook *notebook_registration = NULL;
 static GtkSpinButton *spinbut_minpairs = NULL, *spin_kombat_percent = NULL, *stackspin4 = NULL, *stackspin5 = NULL, *stackspin6 = NULL, *reg_scaling_spin = NULL, *spin_driz_dropsize = NULL, *spinbut_shiftx = NULL, *spinbut_shifty = NULL;
 static GtkStack *interp_drizzle_stack = NULL;
 static GtkToggleButton *checkStarSelect = NULL, *reg_2pass = NULL, *followStarCheckButton = NULL, *onlyshift_checkbutton = NULL, *toggle_reg_clamp = NULL, *driz_use_flats = NULL, *checkbutton_displayref = NULL, *toggle_reg_manual1 = NULL, *toggle_reg_manual2 = NULL;
+GtkWindow *control_window = NULL;
 
 // additional statics
 static GtkComboBox *filter_combo[3] = { NULL };
@@ -180,6 +183,7 @@ static void registration_init_statics() {
 		grid_reg_framing = GTK_GRID(gtk_builder_get_object(gui.builder, "grid_reg_framing"));
 		grid_interp_controls = GTK_GRID(gtk_builder_get_object(gui.builder, "grid_interp_controls"));
 		grid_drizzle_controls = GTK_GRID(gtk_builder_get_object(gui.builder, "grid_drizzle_controls"));
+		grid_reg_wcs = GTK_GRID(gtk_builder_get_object(gui.builder, "grid_reg_wcs"));
 		// GtkImage
 		framing_image = GTK_IMAGE(gtk_builder_get_object(gui.builder, "framing-image"));
 		// GtkLabel
@@ -214,6 +218,7 @@ static void registration_init_statics() {
 		checkbutton_displayref = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "checkbutton_displayref"));
 		toggle_reg_manual1 = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "toggle_reg_manual1"));
 		toggle_reg_manual2 = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "toggle_reg_manual2"));
+		control_window = GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
 
 		// additional statics
 		spin[0] = GTK_WIDGET(stackspin4);
@@ -373,7 +378,27 @@ void on_comboreg_undistort_changed(GtkComboBox *box, gpointer user_data) {
 }
 
 void on_reg_wcsfile_button_clicked(GtkButton *button, gpointer user_data) {
-	// TODO: add filechooser
+		SirilWidget *widgetdialog;
+		GtkFileChooser *dialog = NULL;
+		GtkWindow *control_window = GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window")));
+		widgetdialog = siril_file_chooser_open(control_window, GTK_FILE_CHOOSER_ACTION_OPEN);
+		dialog = GTK_FILE_CHOOSER(widgetdialog);
+		gtk_file_chooser_set_current_folder(dialog, com.wd);
+		gtk_file_chooser_set_local_only(dialog, FALSE);
+		gtk_file_chooser_set_select_multiple(dialog, FALSE);
+		gtk_filter_add(dialog, _("FITS Files (*.fit, *.fits, *.fts, *.fit.fz, *.fits.fz, *.fts.fz)"),
+				"*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fit.fz;*.FIT.fz;*.fits.fz;*.FITS.fz;*.fts.fz;*.FTS.fz", gui.file_ext_filter == TYPEFITS);
+		gtk_filter_add(dialog, _("WCS Files (*.wcs)"),
+				"*.wcs", FALSE);
+		gint res = siril_dialog_run(widgetdialog);
+		if (res == GTK_RESPONSE_ACCEPT) {
+			gchar *file = siril_file_chooser_get_filename(dialog);
+			gtk_entry_set_text(reg_wcsfile_entry, file);
+			gtk_editable_set_position(GTK_EDITABLE(reg_wcsfile_entry), -1);
+			g_free(file);
+		}
+		siril_widget_destroy(widgetdialog);
+		update_reg_interface(TRUE);
 }
 
 /****************************************************************/
@@ -710,16 +735,43 @@ static gboolean check_3stars(regmethod_index index) {
 static gboolean check_disto(disto_apply index) {
 	if (index == DISTO_UNDEF)
 		return TRUE;
-	if (index == DISTO_IMAGE && !has_wcs(&gfit)) {
-		gtk_label_set_text(labelregisterinfo, _("Platesolve current image"));
-		gtk_widget_set_tooltip_text(GTK_WIDGET(labelregisterinfo), _("You have selected undistorsion from current image but it is not platesolved, perform astrometry first or disable distorsion"));
-		return FALSE;
+	if (index == DISTO_IMAGE) {
+		if (!has_wcs(&gfit)) {
+			gtk_label_set_text(labelregisterinfo, _("Platesolve current image"));
+			gtk_widget_set_tooltip_text(GTK_WIDGET(labelregisterinfo), _("You have selected undistorsion from current image but it is not platesolved, perform astrometry first or disable distorsion"));
+			return FALSE;
+		}
+		if (!gfit.keywords.wcslib->lin.dispre) {
+			gtk_label_set_text(labelregisterinfo, _("Platesolve current image with distorsions"));
+			gtk_widget_set_tooltip_text(GTK_WIDGET(labelregisterinfo), _("You have selected undistorsion from current image but it is has no distorsion terms, perform astrometry with SIP enabled or disable distorsion"));
+			return FALSE;
+		}
 	}
 	if (index == DISTO_FILE) {
 		const gchar *text = gtk_entry_get_text(reg_wcsfile_entry);
 		if (*text == '\0') {
-			gtk_label_set_text(labelregisterinfo, _("Load a WCS file for distorsion"));
+			gtk_label_set_text(labelregisterinfo, _("Load a FITS/WCS file for distorsion"));
 			return FALSE;
+		} else {
+			fits fit = { 0 };
+			if (read_fits_metadata_from_path(text, &fit)) {
+				gtk_label_set_text(labelregisterinfo, _("Could not load FITS image"));
+				return FALSE;
+			}
+			if (!has_wcs(&fit)) {
+				gtk_label_set_text(labelregisterinfo, _("Selected file has no WCS information"));
+				gtk_widget_set_tooltip_text(GTK_WIDGET(labelregisterinfo), _("You have selected undistorsion from file but it is not platesolved, perform astrometry first or disable distorsion"));
+				return FALSE;
+			}
+			if (!fit.keywords.wcslib->lin.dispre) {
+				gtk_label_set_text(labelregisterinfo, _("Selected file has no distorsion information"));
+				gtk_widget_set_tooltip_text(GTK_WIDGET(labelregisterinfo), _("You have selected undistorsion from file but it is has no distorsion terms, perform astrometry with SIP enabled or disable distorsion"));
+				return FALSE;
+			}
+			if (fit.rx != gfit.rx || fit.ry != gfit.ry) {
+				gtk_label_set_text(labelregisterinfo, _("Selected file and current sequence do not have the same size"));
+				return FALSE;
+			}
 		}
 	}
 	return TRUE;
@@ -820,8 +872,11 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	}
 	/* update star_align widgets*/
 	if (is_star_align) {
-		disto_apply_index = gtk_combo_box_get_active(GTK_COMBO_BOX(comboreg_undistort));
-		gtk_widget_set_visible(GTK_WIDGET(reg_wcsfilechooser_box), disto_apply_index == DISTO_FILE);
+		gtk_widget_set_visible(GTK_WIDGET(grid_reg_wcs), !com.seq.is_variable);
+		if (!com.seq.is_variable) {
+			disto_apply_index = gtk_combo_box_get_active(GTK_COMBO_BOX(comboreg_undistort));
+			gtk_widget_set_visible(GTK_WIDGET(reg_wcsfilechooser_box), disto_apply_index == DISTO_FILE);
+		}
 	}
 
 	/* show the appropriate outputregframe widgets */

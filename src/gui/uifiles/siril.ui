@@ -5335,7 +5335,7 @@ When processing images, registration data is taken from the default layer if ava
                                                             <property name="show-tabs">False</property>
                                                             <property name="show-border">False</property>
                                                             <child>
-                                                            <!-- n-columns=4 n-rows=5 -->
+                                                            <!-- n-columns=4 n-rows=4 -->
                                                             <object class="GtkGrid" id="global_page">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
@@ -5508,6 +5508,13 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             </packing>
                                                             </child>
                                                             <child>
+                                                            <!-- n-columns=4 n-rows=2 -->
+                                                            <object class="GtkGrid" id="grid_reg_wcs">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="row-spacing">5</property>
+                                                            <property name="column-spacing">5</property>
+                                                            <child>
                                                             <object class="GtkLabel">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
@@ -5516,13 +5523,13 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">0</property>
-                                                            <property name="top-attach">3</property>
+                                                            <property name="top-attach">0</property>
                                                             </packing>
                                                             </child>
                                                             <child>
                                                             <object class="GtkComboBoxText" id="comboreg_undistort">
                                                             <property name="visible">True</property>
-                                                            <property name="can-focus">True</property>
+                                                            <property name="can-focus">False</property>
                                                             <property name="tooltip-markup" translatable="yes">To correct images for distorsions, you can either select:
 - distorsion solution from current platesolved image
 - distorsion solution from an existing WCS file</property>
@@ -5536,7 +5543,7 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">1</property>
-                                                            <property name="top-attach">3</property>
+                                                            <property name="top-attach">0</property>
                                                             </packing>
                                                             </child>
                                                             <child>
@@ -5550,6 +5557,7 @@ In both cases, the transformation matrices are saved to the sequence file. The r
                                                             <property name="tooltip-text" translatable="yes">Enter the master bias/offset file name here, or use the browse button.
 The bias/offset master image will be removed from all images in the sequence.
 Instead of an image, you can also specify a uniform level to be subtracted, starting with an "=" sign, such as =256 or =64*$OFFSET</property>
+                                                            <property name="hexpand">True</property>
                                                             <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                                             </object>
                                                             <packing>
@@ -5584,7 +5592,7 @@ Instead of an image, you can also specify a uniform level to be subtracted, star
                                                             </object>
                                                             <packing>
                                                             <property name="left-attach">1</property>
-                                                            <property name="top-attach">4</property>
+                                                            <property name="top-attach">1</property>
                                                             <property name="width">3</property>
                                                             </packing>
                                                             </child>
@@ -5596,6 +5604,13 @@ Instead of an image, you can also specify a uniform level to be subtracted, star
                                                             </child>
                                                             <child>
                                                             <placeholder/>
+                                                            </child>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">3</property>
+                                                            <property name="width">4</property>
+                                                            </packing>
                                                             </child>
                                                             <child>
                                                             <placeholder/>

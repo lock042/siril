@@ -32,6 +32,7 @@
 #include "gui/utils.h"
 #include "gui/message_dialog.h"
 #include "gui/dialog_preview.h"
+#include "gui/dialogs.h"
 #include "gui/icc_profile.h"
 #include "gui/utils.h"
 #include "gui/image_display.h"
@@ -47,21 +48,6 @@
 
 static image_type type_of_image = TYPEUNDEF;
 static SirilWidget *saveDialog = NULL;
-
-static void gtk_filter_add(GtkFileChooser *file_chooser, const gchar *title,
-		const gchar *pattern, gboolean set_default) {
-	GtkFileFilter *f = gtk_file_filter_new();
-	gtk_file_filter_set_name(f, title);
-	/* get the patterns */
-	gchar **patterns = g_strsplit(pattern, ";", -1);
-	for (gint i = 0; patterns[i] != NULL; i++)
-		gtk_file_filter_add_pattern(f, patterns[i]);
-	/* free the patterns */
-	g_strfreev(patterns);
-	gtk_file_chooser_add_filter(file_chooser, f);
-	if (set_default)
-		gtk_file_chooser_set_filter(file_chooser, f);
-}
 
 static void set_filters_save_dialog(GtkFileChooser *chooser) {
 	GString *all_filter = NULL;
