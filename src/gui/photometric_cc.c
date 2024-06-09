@@ -992,3 +992,30 @@ void on_nb_spin_changed(GtkSpinButton *button, gpointer user_data) {
 void on_spcc_atmos_corr_toggled(GtkToggleButton *button, gpointer user_data) {
 	gtk_expander_set_expanded(GTK_EXPANDER(lookup_widget("spcc_atmos_widgets")), gtk_toggle_button_get_active(button));
 }
+
+void on_spcc_plot_atmos_clicked(GtkButton* button, gpointer user_data) {
+	siril_plot_data *spl_data = NULL;
+	spl_data = malloc(sizeof(siril_plot_data));
+	init_siril_plot_data(spl_data);
+	siril_plot_set_xlabel(spl_data, _("Wavelength / nm"));
+	siril_plot_set_savename(spl_data, "SPCC_data");
+	gchar *title = g_strdup_printf(_("SPCC Data: Atmospheric model"));
+	siril_plot_set_title(spl_data, title);
+	g_free(title);
+	siril_plot_set_ylabel(spl_data, _("Transmittance"));
+
+	// Generate data
+	xpsampled data = init_xpsampled();
+	struct photometric_cc_data args = { 0 };
+	set_spcc_args(&args);
+	args.fit = &gfit;
+	fill_xpsampled_from_atmos_model(&data, &args);
+	gchar *spl_legend = g_strdup_printf(_("Atmospheric model\nHeight: %d m\nPressure: %.2f hPa (%s)"), (int) args.atmos_obs_height, args.atmos_pressure, args.atmos_pressure_is_slp ? N_("sea level") : N_("local"));
+	siril_plot_add_xydata(spl_data, spl_legend, XPSAMPLED_LEN, data.x, data.y, NULL, NULL);
+	g_free(spl_legend);
+	spl_data->datamin.x = MIN_PLOT;
+	spl_data->datamax.x = MAX_PLOT;
+	spl_data->cfgdata.line.sz = 2;
+	siril_add_idle(create_new_siril_plot_window, spl_data);
+	siril_add_idle(end_generic, NULL);
+}

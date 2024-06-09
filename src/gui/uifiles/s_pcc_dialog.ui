@@ -874,9 +874,11 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                             <child>
                               <object class="GtkButton" id="spcc_plot_atmos">
                                 <property name="label" translatable="yes">Plot</property>
+                                <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">True</property>
                                 <property name="tooltip-text" translatable="yes">Plot atmosphere model</property>
+                                <signal name="clicked" handler="on_spcc_plot_atmos_clicked" swapped="no"/>
                               </object>
                               <packing>
                                 <property name="left-attach">2</property>
