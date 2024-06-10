@@ -16,6 +16,7 @@ xx/xx/24
 * Fixed drag & drop in image display on macOS (#1310)
 * Fixed bug in rgradient (Larson Sekanina) filter (#1313)
 * Fixed bug in generalized hyperbolic stretches (#1314)
+* Fixed path parsing error with savetif (#1318)
 
 siril 1.2.1
 01/26/24

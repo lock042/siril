@@ -741,7 +741,7 @@ int process_savetif(int nb){
 		retval = 1;
 	} else {
 		set_cursor_waiting(TRUE);
-		retval = savetif(filename, &gfit, bitspersample, astro_tiff, com.pref.copyright, tiff_compression, TRUE, TRUE);
+		retval = savetif(savename, &gfit, bitspersample, astro_tiff, com.pref.copyright, tiff_compression, TRUE, TRUE);
 		set_cursor_waiting(FALSE);
 	}
 	g_free(astro_tiff);
