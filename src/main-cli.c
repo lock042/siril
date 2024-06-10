@@ -79,7 +79,6 @@ static gchar *main_option_initfile = NULL;
 static gchar *main_option_rpipe_path = NULL;
 static gchar *main_option_wpipe_path = NULL;
 static gboolean main_option_pipe = FALSE;
-static gboolean force_offline = FALSE;
 
 static gboolean _print_version_and_exit(const gchar *option_name,
 		const gchar *value, gpointer data, GError **error) {
@@ -109,7 +108,6 @@ static gboolean _print_list_of_formats_and_exit(const gchar *option_name,
 static gboolean _set_offline(const gchar *option_name,
 		const gchar *value, gpointer data, GError **error) {
 	set_online_status(FALSE);
-	siril_log_message(_("Starting in offline mode.\n"));
 	return TRUE;
 }
 

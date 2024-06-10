@@ -29,6 +29,7 @@
 #include "core/siril.h"
 #include "core/siril_log.h"
 #include "core/siril_app_dirs.h"
+#include "core/siril_networking.h"
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
 #include "gui/message_dialog.h"
@@ -495,18 +496,26 @@ int auto_update_gitscripts(gboolean sync) {
 
 	if (error != 0) {
 		const git_error *e = giterr_last();
-		siril_log_color_message(_("Cannot open repository: %s\nAttempting to clone from remote source...\n"), "salmon", e->message);
-		// Perform the clone operation
-		error = git_clone(&repo, SCRIPT_REPOSITORY_URL, local_path, &clone_opts);
+		siril_log_color_message(_("Cannot open repository: %s\n"), "salmon", e->message);
+		if (is_online()) {
+			siril_log_message(_("Attempting to clone from remote source...\n"));
+			// Perform the clone operation
+			error = git_clone(&repo, SCRIPT_REPOSITORY_URL, local_path, &clone_opts);
 
-		if (error != 0) {
-			e = giterr_last();
-			siril_log_color_message(_("Error cloning repository: %s\n"), "red", e->message);
+			if (error != 0) {
+				e = giterr_last();
+				siril_log_color_message(_("Error cloning repository: %s\n"), "red", e->message);
+				gui.script_repo_available = FALSE;
+				git_libgit2_shutdown();
+				return 1;
+			} else {
+				siril_log_message(_("Repository cloned successfully!\n"));
+			}
+		} else {
+			siril_log_message(_("Siril is in offline mode. Will not attempt to clone remote repository.\n"));
 			gui.script_repo_available = FALSE;
 			git_libgit2_shutdown();
 			return 1;
-		} else {
-			siril_log_message(_("Repository cloned successfully!\n"));
 		}
 	} else {
 		siril_debug_print("Local scripts repository opened successfully!\n");

@@ -308,6 +308,7 @@ gboolean is_online() {
 
 gboolean set_online_status(gboolean status) {
 	online_status = status;
+	siril_log_message(online_status ? N_("Siril is in online mode.\n") : N_("Siril is in offline mode.\n"));
 	if (!siril_compiled_with_networking())
 		return FALSE;
 	return online_status;
