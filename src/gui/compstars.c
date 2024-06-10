@@ -203,22 +203,26 @@ static void build_the_dialog() {
 
 // The process to perform a **Manual** Compstar List
 static void manual_photometry_data (sequence *seq) {
-	const gchar *entered_target_name = gtk_entry_get_text(GTK_ENTRY(manu_target_entry));
+	gchar *entered_target_name = g_strdup(gtk_entry_get_text(GTK_ENTRY(manu_target_entry)));
 	if (entered_target_name [0] == '\0') {
+		g_free(entered_target_name);
 		entered_target_name = g_strdup("V_SirilstarList_user");
 		gtk_entry_set_text(GTK_ENTRY(manu_target_entry), "V_SirilstarList_user");
 	}
 
-	gchar *target_name = g_strdup(entered_target_name);
-	g_strstrip(target_name);
-	target_name = g_strdup_printf("%s.csv", target_name);
+	gchar *temp_name = g_strdup(entered_target_name);
+	g_strstrip(temp_name);
+	gchar *target_name = g_strdup_printf("%s.csv", temp_name);
+	g_free(temp_name);
 
 	double ra, dec;
 	// Gather the selected stars by hand
 	int nb_ref_stars = 0;
 	if (!seq->photometry[0] || !seq->photometry[1]) {
+		g_free(target_name);
 		siril_log_color_message(_("One Variable star and one comparison star at least are required. Cannot create any file\n"), "salmon");
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("One Variable star and one comparison star at least are required. Cannot create any file"));
+		g_free(entered_target_name);
 		return;
 	}
 	point sel_item[MAX_SEQPSF];
@@ -226,7 +230,8 @@ static void manual_photometry_data (sequence *seq) {
 	for (int r = 0; r < MAX_SEQPSF && seq->photometry[r]; r++) {
 		if (get_ra_and_dec_from_star_pos(seq->photometry[r][seq->current], &ra, &dec)) {
 			siril_log_color_message(_("Problem with convertion\n"), "red"); // PB in the conversion pix->wcs
-
+			g_free(entered_target_name);
+			g_free(target_name);
 			return;
 		}
 		sel_item[r].x = ra;
@@ -277,7 +282,7 @@ static void manual_photometry_data (sequence *seq) {
 	siril_catalog_free(comp_sta);
 	g_free(args->nina_file);
 	g_free(target_name);
-
+	g_free(entered_target_name);
 	free(args);
 }
 
@@ -287,6 +292,7 @@ static void auto_photometry_data () {
 	gchar *target_name = g_strdup(entered_target_name);
 	g_strstrip(target_name);
 	if (target_name[0] == '\0') {
+		g_free(target_name);
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Enter the name of the target star"));
 		return;
 	}
@@ -296,18 +302,21 @@ static void auto_photometry_data () {
 	double delta_Vmag = g_ascii_strtod(text, &end);
 	if (text == end || delta_Vmag <= 0.0 || delta_Vmag > 6.0) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Vmag range not accepted (should be ]0, 6])"));
+		g_free(target_name);
 		return;
 	}
 	text = gtk_entry_get_text(GTK_ENTRY(delta_bv_entry));
 	double delta_BV = g_ascii_strtod(text, &end);
 	if (text == end || delta_BV <= 0.0 || delta_BV > 0.7) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("BV range not accepted (should be ]0, 0.7]"));
+		g_free(target_name);
 		return;
 	}
 	text = gtk_entry_get_text(GTK_ENTRY(emag_entry));
 	double emag = g_ascii_strtod(text, &end);
 	if (text == end || emag <= 0.0 || emag > 0.1) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Magnitude error not accepted (should be ]0, 0.1["));
+		g_free(target_name);
 		return;
 	}
 
@@ -318,6 +327,7 @@ static void auto_photometry_data () {
 	struct compstars_arg *args = calloc(1, sizeof(struct compstars_arg));
 	args->fit = &gfit;
 	args->target_name = g_strdup(target_name);
+	g_free(target_name);
 	args->narrow_fov = narrow;
 	args->cat = use_apass ? CAT_APASS : CAT_NOMAD;
 	args->delta_Vmag = delta_Vmag;

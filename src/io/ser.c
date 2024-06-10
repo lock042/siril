@@ -1199,13 +1199,16 @@ static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *
 	BYTE *data8 = NULL;	// for 8-bit files
 	WORD *data16 = NULL;	// for 16-bit files
 
+	if (!fit)
+		return SER_GENERIC_ERROR;
+
 	// return bottom-up fits to top-down ser row_order (not if the image is already top-down)
 	if (fit->top_down) {
 		snprintf(fit->keywords.bayer_pattern, FLEN_VALUE, "%s", flip_bayer_pattern(fit->keywords.bayer_pattern));
 		fits_flip_top_to_bottom(fit);
 	}
 
-if (!ser_file || ser_file->file == NULL || !fit)
+	if (!ser_file || ser_file->file == NULL)
 		return SER_GENERIC_ERROR;
 	if (ser_file->number_of_planes == 0) {
 		// adding first frame of a new sequence, use it to populate the header

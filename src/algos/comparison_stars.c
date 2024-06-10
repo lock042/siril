@@ -313,7 +313,7 @@ int sort_compstars(struct compstars_arg *args) {
 		// (discards BORDER_RATIO of the width/height on both borders)
 		if ((item->x > xmin && item->x < xmax && item->y > ymin && item->y < ymax) &&
 				d_mag <= args->delta_Vmag &&		// Criteria #1: nearly same V magnitude
-				fabs(BVi - BV0) <= args->delta_BV &&	// Criteria #2: nearly same colors 
+				fabs(BVi - BV0) <= args->delta_BV &&	// Criteria #2: nearly same colors
 				((args->cat == CAT_APASS) ? (item->e_mag > 0. && item->e_mag <= args->max_emag) : TRUE) &&	// Criteria #3: e_mag smaller than threshold, for catalogues that have the info
 				(!cat2discard || !is_var_star(item, args->var_stars_cat, nb_disc))) {// Criteria #4: not a variable star - we search here to avoid comparing long lists to long lists
 			sorter[nb_phot_stars] = (compstar_dist){i, compute_coords_distance(siril_cat->center_ra, siril_cat->center_dec, item->ra, item->dec)};
@@ -438,7 +438,7 @@ gpointer compstars_worker(gpointer p) {
 	int retval;
 	siril_log_color_message(_("Comparison stars: processing...\n"), "green");
 	struct compstars_arg *args = (struct compstars_arg *) p;
-
+	sky_object_query_args *query_args = NULL;
 	//0. check pre-requisites
 	if (!has_wcs(args->fit)) {
 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
@@ -448,7 +448,7 @@ gpointer compstars_worker(gpointer p) {
 	g_assert(args->cat == CAT_APASS || args->cat == CAT_NOMAD);
 
 	// 1. search for the variable star
-	sky_object_query_args *query_args = init_sky_object_query(); // for the reference star
+	query_args = init_sky_object_query(); // for the reference star
 	query_args->fit = args->fit;
 	query_args->name = g_strdup(args->target_name);
 	query_args->server = QUERY_SERVER_SIMBAD_PHOTO;
@@ -504,6 +504,7 @@ end:
 		args->has_GUI = FALSE;
 		end_compstars(args);	// we still need to free all
 	}
+	free_sky_object_query(query_args);
 	return GINT_TO_POINTER(retval);
 }
 

@@ -44,6 +44,7 @@ static ep_filter_t filter_type = EP_BILATERAL;
 static fits *guide = NULL, loaded_fit = { 0 };
 
 static int epf_update_preview() {
+	gboolean guide_needs_freeing = FALSE;
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("epf_preview"))))
 		copy_backup_to_gfit();
 	fits *fit = gui.roi.active ? &gui.roi.fit : &gfit;
@@ -61,7 +62,9 @@ static int epf_update_preview() {
 		guide = NULL;
 	}
 	struct epfargs *args = calloc(1, sizeof(struct epfargs));
-	*args = (struct epfargs) { fit, guide, epf_d_value, epf_sigma_col_value, epf_sigma_spatial_value, mod, filter_type, FALSE };
+	*args = (struct epfargs) {.fit = fit, .guidefit = guide, .d = epf_d_value, .sigma_col = epf_sigma_col_value,
+								.sigma_space = epf_sigma_spatial_value, .mod = mod, .filter = filter_type,
+								.guide_needs_freeing = guide_needs_freeing, .verbose = FALSE };
 	set_cursor_waiting(TRUE);
 	edge_preserving_filter(args);
 	set_cursor_waiting(FALSE);
@@ -106,22 +109,27 @@ static int epf_process_all() {
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("epf_preview"))))
 		copy_backup_to_gfit();
 	fits *fit = &gfit;
+	gboolean guide_needs_freeing = FALSE;
+	struct epfargs *args = calloc(1, sizeof(struct epfargs));
 	if (filter_type != EP_BILATERAL) {
 		if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("guided_filter_selfguide")))) {
 			guide = fit;
 		} else {
 			if (loaded_fit.rx != 0) {
 				guide = &loaded_fit;
+				guide_needs_freeing = TRUE;
 			} else {
 				siril_log_color_message(_("Error, no guide image loaded."), "red");
+				free(args);
 				return 1;
 			}
 		}
 	} else {
 		guide = NULL;
 	}
-	struct epfargs *args = calloc(1, sizeof(struct epfargs));
-	*args = (struct epfargs) { fit, guide, epf_d_value, epf_sigma_col_value, epf_sigma_spatial_value, mod, filter_type, FALSE };
+	*args = (struct epfargs) {	.fit = fit, .guidefit = guide, .d = epf_d_value, .sigma_col = epf_sigma_col_value,
+								.sigma_space = epf_sigma_spatial_value, .mod = mod, .filter = filter_type,
+								.guide_needs_freeing = guide_needs_freeing, .verbose = FALSE };
 	epfhandler(args);
 	populate_roi();
 	notify_gfit_modified();

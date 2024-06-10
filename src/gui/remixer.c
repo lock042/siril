@@ -513,13 +513,17 @@ int remixer() {
 	if (gfit.naxes[2] == 1) {
 		switch (gfit.type) {
 			case DATA_FLOAT:
-				for (size_t i = 0 ; i < npixels ; i++) {
-					gfit.fdata[i] = fit_left_calc.fdata[i] + fit_right_calc.fdata[i] - fit_left_calc.fdata[i] * fit_right_calc.fdata[i];
+				if (gfit.fdata) {
+					for (size_t i = 0 ; i < npixels ; i++) {
+						gfit.fdata[i] = fit_left_calc.fdata[i] + fit_right_calc.fdata[i] - fit_left_calc.fdata[i] * fit_right_calc.fdata[i];
+					}
 				}
 				break;
 			case DATA_USHORT:
-				for (size_t i = 0 ; i < npixels ; i++) {
-					gfit.data[i] = roundf_to_WORD(norm * (1.f - (1.f - (fit_left_calc.data[i]*invnorm))*(1.f - (fit_right_calc.data[i]*invnorm))));
+				if (gfit.data) {
+					for (size_t i = 0 ; i < npixels ; i++) {
+						gfit.data[i] = roundf_to_WORD(norm * (1.f - (1.f - (fit_left_calc.data[i]*invnorm))*(1.f - (fit_right_calc.data[i]*invnorm))));
+					}
 				}
 				break;
 			default:

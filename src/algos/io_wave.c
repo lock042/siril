@@ -111,6 +111,11 @@
 #include "algos/Def_Mem.h"
 #include "algos/Def_Wavelet.h"
 
+// This is bigger than the actual supported maximum, it is only used as a
+// sanitization value to prevent memory allocation issues when using a number
+// read from a file as an argument to calloc.
+#define MAX_NBR_PLANS 10
+
 /****************************************************************************/
 
 int wave_io_size_data(int Nl, int Nc, int Nbr_Plan, int Type_Wave_Transform) {
@@ -175,6 +180,12 @@ int wave_io_read(char *File_Name_In, wave_transf_des *Wave_Trans) {
 	Nl = Wave_Trans->Nbr_Ligne;
 	Nc = Wave_Trans->Nbr_Col;
 	Nbr_Plan = Wave_Trans->Nbr_Plan;
+
+	if (Nbr_Plan <= 0 || Nbr_Plan > MAX_NBR_PLANS) {
+		printf("wave_io_read: file metadata fails validity checking\n");
+		fclose(File_Des);
+		return 1;
+	}
 
 	if (Nl < 1 || Nc < 1 || Nl > MAX_IMAGE_DIM || Nc > MAX_IMAGE_DIM) {
 		printf("wave_io_read: file metadata fails validity checking\n");

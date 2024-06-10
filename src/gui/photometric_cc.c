@@ -855,9 +855,7 @@ void on_spcc_details_plot_clicked(GtkButton *button, gpointer user_data) {
 		g_free(title);
 		siril_plot_set_ylabel(spl_data, (object->type == MONO_SENSORS || object->type == OSC_SENSORS) ? _("Quantum Efficiency") : object->type == WB_REFS ? _("Relative photon count") : _("Transmittance"));
 
-		gchar *spl_legend = g_strdup(object->name);
-
-		siril_plot_add_xydata(spl_data, spl_legend, object->n, object->x, object->y, NULL, NULL);
+		siril_plot_add_xydata(spl_data, object->name, object->n, object->x, object->y, NULL, NULL);
 		spcc_object_free_arrays(object);
 	}
 	spl_data->datamin.x = MIN_PLOT;
