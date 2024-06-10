@@ -260,7 +260,7 @@ int cached_object_lookup(sky_object_query_args *args) {
 		gchar *result = search_in_online_catalogs(args);
 		if (result) {
 			parse_catalog_buffer(result, args);
-			free_fetch_result(result);
+			free(result);
 		} else {
 			args->retval = 1;
 		}
@@ -413,8 +413,8 @@ static gchar *retrieve_site_coord(fits *fit) {
 }
 #endif
 
-// free the result with free_fetch_result
-gchar *search_in_online_catalogs(sky_object_query_args *args) {
+// free the result with free
+char *search_in_online_catalogs(sky_object_query_args *args) {
 #ifndef HAVE_LIBCURL
 	siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
 	return NULL;

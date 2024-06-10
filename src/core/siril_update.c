@@ -23,11 +23,11 @@
 #endif
 #if defined(HAVE_LIBCURL)
 #include <json-glib/json-glib.h>
-#include <curl/curl.h>
 
 #include <string.h>
 
 #include "core/siril.h"
+#include "core/siril_networking.h"
 #include "core/proto.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
@@ -43,8 +43,6 @@
 #define GITLAB_URL "https://gitlab.com/free-astro/siril/raw"
 #define BRANCH "master"
 #define SIRIL_NOTIFICATIONS "notifications/siril_notifications.json"
-
-static gchar *get_changelog(gchar *str, CURL *curl);
 
 // taken from gimp
 static gboolean siril_update_get_highest(JsonParser *parser,
@@ -351,7 +349,7 @@ static gchar *parse_changelog(gchar *changelog) {
 	return g_string_free(strResult, FALSE);
 }
 
-static gchar *check_version(gchar *version, gboolean *verbose, gchar **data, CURL *curl) {
+static gchar *check_version(gchar *version, gboolean *verbose, gchar **data) {
 	gchar *changelog = NULL;
 	gchar *msg = NULL;
 
@@ -381,7 +379,12 @@ static gchar *check_version(gchar *version, gboolean *verbose, gchar **data, CUR
 			}
 
 			msg = siril_log_message(_("New version is available. You can download it at <a href=\"%s\">%s</a>\n"), url, url);
-			changelog = get_changelog(version, curl);
+			GString *urlstring = g_string_new(GITLAB_URL);
+			g_string_append_printf(urlstring, "/%s/ChangeLog", version);
+			gchar *changelog_url = g_string_free(urlstring, FALSE);
+			gsize length;
+			changelog = fetch_url(changelog_url, &length);
+			g_free(changelog_url);
 			if (changelog) {
 				*data = parse_changelog(changelog);
 				/* force the verbose variable */
@@ -400,78 +403,7 @@ static gchar *check_version(gchar *version, gboolean *verbose, gchar **data, CUR
 	return msg;
 }
 
-struct _update_data {
-	CURL *curl;
-	gchar *url;
-	gchar *content;
-	gboolean verbose;
-	gboolean (*idle_function)(gpointer args);
-};
-
-
-static const int DEFAULT_FETCH_RETRIES = 5;
-
-struct ucontent {
-	char *data;
-	size_t len;
-};
-
-static size_t cbk_curl(void *buffer, size_t size, size_t nmemb, void *userp) {
-	size_t realsize = size * nmemb;
-	struct ucontent *mem = (struct ucontent *) userp;
-
-	mem->data = realloc(mem->data, mem->len + realsize + 1);
-
-	memcpy(&(mem->data[mem->len]), buffer, realsize);
-	mem->len += realsize;
-	mem->data[mem->len] = 0;
-
-	return realsize;
-}
-
-static gchar *get_changelog(gchar *str, CURL *curl) {
-	struct ucontent *changelog;
-	gchar *result = NULL;
-	gchar *changelog_url;
-	long code;
-
-	changelog = g_try_malloc(sizeof(struct ucontent));
-	if (changelog == NULL) {
-		PRINT_ALLOC_ERR;
-		return NULL;
-	}
-
-	changelog->data = g_malloc(1);
-	changelog->data[0] = '\0';
-	changelog->len = 0;
-
-	GString *url = g_string_new(GITLAB_URL);
-	url = g_string_append(url, "/");
-	url = g_string_append(url, str);
-	url = g_string_append(url, "/ChangeLog");
-
-	changelog_url = g_string_free(url, FALSE);
-	CURLcode ret;
-	ret = curl_easy_setopt(curl, CURLOPT_URL, changelog_url);
-	ret |= curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-	ret |= curl_easy_setopt(curl, CURLOPT_WRITEDATA, changelog);
-	if (ret)
-		siril_debug_print("Error in curl_easy_setopt()\n");
-	if (curl_easy_perform(curl) == CURLE_OK) {
-		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
-		if (code == 200) {
-			result = g_strdup(changelog->data);
-		}
-	}
-	if (!result)
-		g_free(changelog->data);
-	g_free(changelog);
-	g_free(changelog_url);
-
-	return result;
-}
-
-static gchar *check_update_version(struct _update_data *args) {
+static gchar *check_update_version(fetch_url_async_data *args) {
 	JsonParser *parser;
 	gchar *last_version = NULL;
 	gchar *build_comment = NULL;
@@ -497,7 +429,7 @@ static gchar *check_update_version(struct _update_data *args) {
 	if (last_version) {
 		g_fprintf(stdout, "Last available version: %s\n", last_version);
 
-		msg = check_version(last_version, &(args->verbose), &data, args->curl);
+		msg = check_version(last_version, &(args->verbose), &data);
 		message_type = GTK_MESSAGE_INFO;
 	} else {
 		msg = siril_log_message(_("Cannot fetch version file\n"));
@@ -518,7 +450,7 @@ static gchar *check_update_version(struct _update_data *args) {
 }
 
 static gboolean end_update_idle(gpointer p) {
-	struct _update_data *args = (struct _update_data *) p;
+	fetch_url_async_data *args = (fetch_url_async_data *) p;
 
 	check_update_version(args);
 
@@ -659,7 +591,7 @@ static int parseJsonNotificationsString(const gchar *jsonString, GSList **validN
 }
 
 static gboolean end_notifier_idle(gpointer p) {
-	struct _update_data *args = (struct _update_data *) p;
+	fetch_url_async_data *args = (fetch_url_async_data *) p;
 	GSList *validNotifications = NULL;
 
 	control_window_switch_to_tab(OUTPUT_LOGS);
@@ -695,128 +627,10 @@ end_notifier_idle_error:
 	return FALSE;
 }
 
-static gpointer fetch_url(gpointer p) {
-	CURL *curl = NULL;
-	struct ucontent *content;
-	gchar *result = NULL;
-	long code = -1L;
-	int retries;
-	unsigned int s;
-	struct _update_data *args = (struct _update_data *) p;
-	g_fprintf(stdout, "fetch_url(): %s\n", args->url);
-
-	curl = curl_easy_init();
-	if (g_getenv("CURL_CA_BUNDLE"))
-		if (curl_easy_setopt(curl, CURLOPT_CAINFO, g_getenv("CURL_CA_BUNDLE")))
-			siril_log_color_message(_("Error configuring CURL with CA bundle. https functionality unavailable.\n"), "red");
-
-	if (!curl) {
-		siril_log_color_message(_("Error initialising CURL handle, URL functionality unavailable.\n"), "red");
-		g_free(args->url);
-		free(args);
-		return NULL;
-	}
-	args->curl = curl;
-
-	content = calloc(1, sizeof(struct ucontent));
-	if (content == NULL) {
-		PRINT_ALLOC_ERR;
-		g_free(args->url);
-		free(args);
-		return NULL;
-	}
-
-	set_progress_bar_data(NULL, 0.1);
-
-	retries = DEFAULT_FETCH_RETRIES;
-
-	retrieve:
-
-	content->data = calloc(1, 1);
-	if (content->data == NULL) {
-		PRINT_ALLOC_ERR;
-		g_free(args->url);
-		free(args);
-		free(content);
-		return NULL;
-	}
-
-	CURLcode retval;
-	retval = curl_easy_setopt(curl, CURLOPT_URL, args->url);
-	retval |= curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
-	retval |= curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cbk_curl);
-	retval |= curl_easy_setopt(curl, CURLOPT_WRITEDATA, content);
-	retval |= curl_easy_setopt(curl, CURLOPT_USERAGENT, "siril/0.0");
-	retval |= curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-	if (retval) {
-		siril_debug_print("Error in curl_easy_setopt()\n");
-		goto failed_curl_easy_setopt;
-	}
-
-	retval = curl_easy_perform(curl);
-	if (retval == CURLE_OK) {
-		if (retries == DEFAULT_FETCH_RETRIES) set_progress_bar_data(NULL, 0.4);
-		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
-		if (retries == DEFAULT_FETCH_RETRIES) set_progress_bar_data(NULL, 0.6);
-
-		switch (code) {
-		case 200:
-			result = content->data;
-			break;
-		case 500:
-		case 502:
-		case 503:
-		case 504:
-			g_fprintf(stderr, "Fetch failed with code %ld for URL %s\n", code,
-					args->url);
-
-			if (retries && get_thread_run()) {
-				double progress = (DEFAULT_FETCH_RETRIES - retries) / (double) DEFAULT_FETCH_RETRIES;
-				progress *= 0.4;
-				progress += 0.6;
-				s = 2 * (DEFAULT_FETCH_RETRIES - retries) + 2;
-				char *msg = siril_log_message(_("Error: %ld. Wait %us before retry\n"), code, s);
-				msg[strlen(msg) - 1] = 0; /* we remove '\n' at the end */
-				set_progress_bar_data(msg, progress);
-				g_usleep(s * 1E6);
-
-				free(content->data);
-				retries--;
-				goto retrieve;
-			}
-
-			break;
-		default:
-			g_fprintf(stderr, "Fetch failed with code %ld for URL %s\n", code,
-					args->url);
-		}
-		g_fprintf(stderr, "Fetch succeeded with code %ld for URL %s\n", code,
-				args->url);
-	} else {
-		siril_log_color_message(_("Cannot retrieve information from the update URL. Error: [%ld]\n"), "red", retval);
-	}
-	set_progress_bar_data(NULL, PROGRESS_DONE);
-	args->content = result;
-
-failed_curl_easy_setopt:
-
-	if (result) {
-		gdk_threads_add_idle(args->idle_function, args);
-	} else {
-		g_free(args->url);
-		free(args);
-		free(content->data);
-	}
-	free(content);
-
-	curl_easy_cleanup(curl);
-	return NULL;
-}
-
 void siril_check_updates(gboolean verbose) {
-	struct _update_data *args;
+	fetch_url_async_data *args;
 
-	args = malloc(sizeof(struct _update_data));
+	args = malloc(sizeof(fetch_url_async_data));
 	args->url = g_strdup(SIRIL_VERSIONS);
 	args->content = NULL;
 	args->verbose = verbose;
@@ -827,13 +641,13 @@ void siril_check_updates(gboolean verbose) {
 		set_cursor_waiting(TRUE);
 
 	// this is a graphical operation, we don't use the main processing thread for it, it could block file opening
-	g_thread_new("siril-update", fetch_url, args);
+	g_thread_new("siril-update", fetch_url_async, args);
 }
 
 void siril_check_notifications(gboolean verbose) {
-	struct _update_data *args;
+	fetch_url_async_data *args;
 
-	args = malloc(sizeof(struct _update_data));
+	args = malloc(sizeof(fetch_url_async_data));
 	GString *url = g_string_new(GITLAB_URL);
 	g_string_append_printf(url, "/%s/%s", BRANCH, SIRIL_NOTIFICATIONS);
 	args->url = g_string_free(url, FALSE);
@@ -847,7 +661,7 @@ void siril_check_notifications(gboolean verbose) {
 		set_cursor_waiting(TRUE);
 
 	// this is a graphical operation, we don't use the main processing thread for it, it could block file opening
-	g_thread_new("siril-notifications", fetch_url, args);
+	g_thread_new("siril-notifications", fetch_url_async, args);
 }
 
 #endif

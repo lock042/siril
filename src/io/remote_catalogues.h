@@ -58,6 +58,7 @@ typedef enum _retrieval_type { // For use with Gaia DR3 Datalink query URLs
 	ALL
 } retrieval_type;
 
+// 1 minute timeout in usec
 #define ASYNC_JOB_TIMEOUT 60000000
 
 int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type, gchar** datalink_path, int max_datalink_sources);
