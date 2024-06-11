@@ -19,11 +19,11 @@
  */
 
 #include <math.h>
+#include "core/siril_networking.h"
 #include "algos/search_objects.h"
 #include "core/siril_log.h"
 #include "core/siril_date.h"
 #include "core/processing.h"
-#include "core/siril_networking.h"
 #include "io/annotation_catalogues.h"
 #include "algos/PSF.h"
 #include "algos/siril_wcs.h"
