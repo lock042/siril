@@ -39,6 +39,15 @@
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
+  <object class="GtkImage" id="gaia_status_widget">
+    <property name="visible">True</property>
+    <property name="sensitive">False</property>
+    <property name="can-focus">False</property>
+    <property name="tooltip-text" translatable="yes">Checking Gaia archive status...</property>
+    <property name="valign">center</property>
+    <property name="yalign">0.5</property>
+    <property name="resource">/org/siril/ui/pixmaps/status_grey.svg</property>
+  </object>
   <object class="GtkAdjustment" id="nb_b_bw">
     <property name="lower">1</property>
     <property name="upper">40</property>
@@ -96,6 +105,24 @@
             <property name="can-focus">False</property>
             <property name="layout-style">end</property>
             <child>
+              <object class="GtkButton" id="button_gaia_status_check">
+                <property name="label" translatable="yes">Status: </property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Click to update Gaia archive status check</property>
+                <property name="valign">center</property>
+                <property name="image">gaia_status_widget</property>
+                <property name="image-position">right</property>
+                <signal name="clicked" handler="on_button_gaia_status_check_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkButton" id="buttonPCC_close">
                 <property name="label" translatable="yes">Close</property>
                 <property name="visible">True</property>
@@ -107,7 +134,8 @@
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">0</property>
+                <property name="pack-type">end</property>
+                <property name="position">1</property>
               </packing>
             </child>
             <child>
@@ -125,7 +153,8 @@
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">1</property>
+                <property name="pack-type">end</property>
+                <property name="position">2</property>
               </packing>
             </child>
             <child>
@@ -142,13 +171,14 @@
               <packing>
                 <property name="expand">True</property>
                 <property name="fill">True</property>
-                <property name="position">2</property>
+                <property name="pack-type">end</property>
+                <property name="position">3</property>
               </packing>
             </child>
           </object>
           <packing>
-            <property name="expand">False</property>
-            <property name="fill">False</property>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
             <property name="position">0</property>
           </packing>
         </child>

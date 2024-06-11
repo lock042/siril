@@ -83,6 +83,10 @@ void on_S_PCC_Mag_Limit_toggled(GtkToggleButton *button, gpointer user) {
 }
 
 static gboolean end_gaiacheck_idle(gpointer p) {
+	GtkWidget *image = lookup_widget("gaia_status_widget");
+	gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_grey.svg");
+	gtk_widget_set_tooltip_text(image, N_("Checking Gaia archive status..."));
+	gtk_widget_show(image);
 	fetch_url_async_data *args = (fetch_url_async_data *) p;
 	size_t retval;
 	if (args->content) {
@@ -94,28 +98,35 @@ static gboolean end_gaiacheck_idle(gpointer p) {
 	gchar *colortext;
 	switch (retval) {
 		case 0:
-			text = N_("Gaia archive available\n");
+			text = N_("Gaia archive available");
 			colortext = "green";
+			gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_green.svg");
 			break;
 		case 1:
 			text = N_("Gaia archive running but performing slightly slower\n");
 			colortext = "green";
+			gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_green.svg");
 			break;
 		case 2:
-			text = N_("Gaia archive running but performing vert slowly\n");
+			text = N_("Gaia archive running but performing very slowly");
 			colortext = "salmon";
+			gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_yellow.svg");
 			break;
 		case 3:
 		case 4:
-			text = N_("Gaia archive unavailable\n");
+			text = N_("Gaia archive unavailable");
+			gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_red.svg");
 			colortext = "red";
 			break;
 		case 5:
-			text = N_("Gaia archive unreachable\n");
+			text = N_("Gaia archive unreachable");
+			gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_red.svg");
 			colortext = "red";
 			break;
 	}
-	siril_log_color_message(text, colortext);
+	gtk_widget_show(image);
+	gtk_widget_set_tooltip_text(GTK_WIDGET(image), text);
+	siril_log_color_message("%s\n", colortext, text);
 	free(args->content);
 	g_free(args->url);
 	free(args);
@@ -203,7 +214,7 @@ void initialize_photometric_cc_dialog() {
 	GtkWidget *button_cc_ok, *button_spcc_ok, *catalog_label,
 			*pcc_catalog_label, *catalog_box_pcc, *frame_cc_bkg,
 			*catalog_label_pcc, *spcc_options, *spcc_do_plot, *spcc_nb_controls,
-			*spcc_toggle_nb;
+			*spcc_toggle_nb, *gaia_status_check;
 	GtkWindow *parent;
 	GtkAdjustment *selection_cc_black_adjustment[4];
 
@@ -218,6 +229,7 @@ void initialize_photometric_cc_dialog() {
 	spcc_do_plot = lookup_widget("spcc_plot_fits");
 	spcc_nb_controls = lookup_widget("spcc_nb_controls");
 	spcc_toggle_nb = lookup_widget("spcc_toggle_nb");
+	gaia_status_check = lookup_widget("button_gaia_status_check");
 
 	parent = GTK_WINDOW(lookup_widget("s_pcc_dialog"));
 
@@ -237,6 +249,7 @@ void initialize_photometric_cc_dialog() {
 	gtk_widget_set_visible(spcc_do_plot, FALSE);
 	gtk_widget_set_visible(spcc_nb_controls, FALSE);
 	gtk_widget_set_visible(spcc_toggle_nb, FALSE);
+	gtk_widget_set_visible(gaia_status_check, FALSE);
 	gtk_widget_grab_focus(button_cc_ok);
 
 	gtk_window_set_title(parent, _("Photometric Color Calibration"));
@@ -274,7 +287,7 @@ void initialize_spectrophotometric_cc_dialog() {
 	GtkWidget *button_cc_ok, *button_spcc_ok, *catalog_label,
 			*pcc_catalog_label, *catalog_box_pcc, *frame_cc_bkg,
 			*catalog_label_pcc, *spcc_options, *spcc_do_plot, *spcc_nb_controls,
-			*spcc_toggle_nb;
+			*spcc_toggle_nb, *gaia_status_check;
 	GtkSwitch *monoselector;
 	GtkWindow *parent;
 	GtkAdjustment *selection_cc_black_adjustment[4];
@@ -291,6 +304,7 @@ void initialize_spectrophotometric_cc_dialog() {
 	spcc_nb_controls = lookup_widget("spcc_nb_controls");
 	spcc_toggle_nb = lookup_widget("spcc_toggle_nb");
 	monoselector = GTK_SWITCH(lookup_widget("spcc_sensor_switch"));
+	gaia_status_check = lookup_widget("button_gaia_status_check");
 
 	parent = GTK_WINDOW(lookup_widget("s_pcc_dialog"));
 
@@ -309,6 +323,7 @@ void initialize_spectrophotometric_cc_dialog() {
 	gtk_widget_set_visible(spcc_options, TRUE);
 	gtk_widget_set_visible(spcc_do_plot, TRUE);
 	gtk_widget_grab_focus(button_cc_ok);
+	gtk_widget_set_visible(gaia_status_check, TRUE);
 	gtk_widget_set_visible(spcc_nb_controls, com.pref.spcc.nb_mode);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(spcc_toggle_nb), com.pref.spcc.nb_mode);
 	gtk_widget_set_visible(spcc_toggle_nb, TRUE);
@@ -1006,4 +1021,8 @@ void on_nb_spin_changed(GtkSpinButton *button, gpointer user_data) {
 	} else if (button == GTK_SPIN_BUTTON(lookup_widget("spcc_nb_b_bw"))) {
 		com.pref.spcc.blue_bw = gtk_spin_button_get_value(button);
 	}
+}
+
+void on_button_gaia_status_check_clicked(GtkButton *button, gpointer user_data) {
+	check_gaia_archive_status();
 }
