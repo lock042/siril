@@ -9091,6 +9091,9 @@ static int do_pcc(int nb, gboolean spectro) {
 	double bw[3] = { -1.0 , -1.0, -1.0}; // for SPCC
 	double t0 = -2.8, t1 = 2.0; // background correction tolerance
 
+	gboolean atmos = FALSE, slp = TRUE;
+	double pressure = 1013.25; // standard atmosphere
+	double obsheight = gfit.keywords.siteelev > -998.0 ? gfit.keywords.siteelev : 10.0;
 	gboolean local_cat = local_catalogues_available();
 	int next_arg = 1;
 
@@ -9177,6 +9180,25 @@ static int do_pcc(int nb, gboolean spectro) {
 		} else if (spectro && g_str_has_prefix(word[next_arg], "-whiteref=")) {
 			char *arg = word[next_arg] + 10;
 			whiteref = g_strdup(arg);
+		} else if (spectro && !g_strcmp0(word[next_arg], "-atmos")) {
+			atmos = TRUE;
+		} else if (spectro && !g_strcmp0(word[next_arg], "-slp")) {
+			slp = TRUE;
+		} else if (spectro && g_str_has_prefix(word[next_arg], "-obsheight=")) {
+			char *arg = word[next_arg] + 11, *end;
+			obsheight = g_ascii_strtod(arg, &end);
+				return CMD_ARG_ERROR;
+			if (end == arg) {
+				siril_log_message(_("Invalid argument %s, aborting.\n"), word[next_arg]);
+				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
+			}
+		} else if (spectro && g_str_has_prefix(word[next_arg], "-pressure=")) {
+			char *arg = word[next_arg] + 10, *end;
+			pressure = g_ascii_strtod(arg, &end);
+			if (end == arg) {
+				siril_log_message(_("Invalid argument %s, aborting.\n"), word[next_arg]);
+				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
+			}
 		} else {
 			siril_log_message(_("Invalid argument %s, aborting.\n"), word[next_arg]);
 			for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
@@ -9231,6 +9253,10 @@ static int do_pcc(int nb, gboolean spectro) {
 			memcpy(&pcc_args->nb_center, wl, sizeof(double[3]));
 			memcpy(&pcc_args->nb_bandwidth, bw, sizeof(double[3]));
 		}
+		pcc_args->atmos_corr = atmos;
+		pcc_args->atmos_obs_height = obsheight;
+		pcc_args->atmos_pressure = pressure;
+		pcc_args->atmos_pressure_is_slp = slp;
 		if (oscsensor || mono_or_osc == 1) {
 			pcc_args->selected_sensor_osc = get_favourite_oscsensor(com.spcc_data.osc_sensors, oscsensor ? oscsensor : com.pref.spcc.oscsensorpref);
 			GList *osc = g_list_nth(com.spcc_data.osc_sensors, pcc_args->selected_sensor_osc);

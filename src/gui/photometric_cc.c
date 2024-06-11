@@ -241,6 +241,7 @@ void initialize_spectrophotometric_cc_dialog() {
 	spcc_toggle_nb = lookup_widget("spcc_toggle_nb");
 	monoselector = GTK_SWITCH(lookup_widget("spcc_sensor_switch"));
 	GtkWidget *spcc_airmass_entry = lookup_widget("spcc_airmass_entry");
+	GtkSpinButton *spcc_height = GTK_SPIN_BUTTON(lookup_widget("spcc_height"));
 
 	parent = GTK_WINDOW(lookup_widget("s_pcc_dialog"));
 
@@ -276,7 +277,7 @@ void initialize_spectrophotometric_cc_dialog() {
 	gtk_adjustment_set_value(selection_cc_black_adjustment[3], 0);
 
 	gchar *tooltip = NULL;
-	double airmass, centalt = gfit.keywords.centalt;
+	double airmass, centalt = gfit.keywords.centalt, height = gfit.keywords.siteelev;
 	if (gfit.keywords.airmass > 0.0) {
 		airmass = gfit.keywords.airmass;
 		tooltip = g_strdup(N_("Airmass read from FITS header AIRMASS card"));
@@ -286,6 +287,15 @@ void initialize_spectrophotometric_cc_dialog() {
 	} else {
 		airmass = compute_airmass(41.9);
 		tooltip = g_strdup(N_("No airmass data available or computable. Estimating airmass based on average observation height of 48.1°"));
+	}
+	if (height > -998.0) {
+		gtk_spin_button_set_value(spcc_height, height);
+		gtk_widget_set_tooltip_text(GTK_WIDGET(spcc_height), N_("Observer height read from FITS header SITEELEV card"));
+		gtk_widget_set_sensitive(GTK_WIDGET(spcc_height), FALSE);
+	} else {
+		gtk_spin_button_set_value(spcc_height, 10.0);
+		gtk_widget_set_tooltip_text(GTK_WIDGET(spcc_height), "");
+		gtk_widget_set_sensitive(GTK_WIDGET(spcc_height), TRUE);
 	}
 	gchar *txt = g_strdup_printf("%.3f", airmass);
 	gtk_entry_set_text(GTK_ENTRY(spcc_airmass_entry), txt);

@@ -427,7 +427,7 @@ typedef struct {
 	double sitelat, sitelong;		// SITE LAT and LONG as double
 	char sitelat_str[FLEN_VALUE];		// SITE LATITUDE key as string
 	char sitelong_str[FLEN_VALUE];		// SITE LONGITUDE key as string
-	double siteelev;			// SITE LONGITUDE key as double
+	double siteelev;			// SITE ELEVATION key as double
 	char bayer_pattern[FLEN_VALUE];		// BAYERPAT key Bayer Pattern if available
 	int bayer_xoffset, bayer_yoffset;
 	double airmass;                   // relative optical path length through atmosphere.
