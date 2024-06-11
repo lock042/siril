@@ -8,10 +8,10 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-06-11 13:48+0200\n"
-"PO-Revision-Date: 2024-05-27 02:37+0000\n"
+"PO-Revision-Date: 2024-06-11 14:59+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
-"Language-Team: French <https://weblate.pixls.us/projects/siril/siril-"
-"application/fr/>\n"
+"Language-Team: French <https://weblate.pixls.us/projects/siril/"
+"siril-application/fr/>\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -257,9 +257,8 @@ msgid "Aberration Inspector"
 msgstr "Inspecteur d'aberration"
 
 #: src/gui/uifiles/annotate_dialog.ui:14
-#, fuzzy
 msgid "Annotate"
-msgstr "Annotations"
+msgstr "Annoter"
 
 #: src/gui/uifiles/annotate_dialog.ui:30
 #: src/gui/uifiles/background_extraction_dialog.ui:470
@@ -310,67 +309,64 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/annotate_dialog.ui:133
-#, fuzzy
 msgid "automatic"
-msgstr "Automatique"
+msgstr "automatique"
 
 #: src/gui/uifiles/annotate_dialog.ui:134
-#, fuzzy
 msgid "tycho2"
-msgstr "Tycho-2"
+msgstr "tycho2"
 
 #: src/gui/uifiles/annotate_dialog.ui:135
 msgid "nomad"
-msgstr ""
+msgstr "nomad"
 
 #: src/gui/uifiles/annotate_dialog.ui:136
 msgid "gaia"
-msgstr ""
+msgstr "gaia"
 
 #: src/gui/uifiles/annotate_dialog.ui:137
 msgid "ppmxl"
-msgstr ""
+msgstr "ppmxl"
 
 #: src/gui/uifiles/annotate_dialog.ui:138
 msgid "bsc"
-msgstr ""
+msgstr "bsc"
 
 #: src/gui/uifiles/annotate_dialog.ui:139
-#, fuzzy
 msgid "apass"
-msgstr "Boussole"
+msgstr "apass"
 
 #: src/gui/uifiles/annotate_dialog.ui:140
 msgid "gcvs"
-msgstr ""
+msgstr "gcvs"
 
 #: src/gui/uifiles/annotate_dialog.ui:141
 msgid "vsx"
-msgstr ""
+msgstr "vsx"
 
 #: src/gui/uifiles/annotate_dialog.ui:142
 msgid "varisum"
-msgstr ""
+msgstr "varisum"
 
 #: src/gui/uifiles/annotate_dialog.ui:143
 msgid "simbad"
-msgstr ""
+msgstr "simbad"
 
 #: src/gui/uifiles/annotate_dialog.ui:144
 msgid "exo"
-msgstr ""
+msgstr "exo"
 
 #: src/gui/uifiles/annotate_dialog.ui:145
 msgid "pgc"
-msgstr ""
+msgstr "pgc"
 
 #: src/gui/uifiles/annotate_dialog.ui:146
 msgid "aavso_chart"
-msgstr ""
+msgstr "aavso_chart"
 
 #: src/gui/uifiles/annotate_dialog.ui:147
 msgid "solsys"
-msgstr ""
+msgstr "solsys"
 
 #: src/gui/uifiles/annotate_dialog.ui:159
 #: src/gui/uifiles/composition_dialog.ui:425
@@ -385,9 +381,8 @@ msgstr ""
 
 #: src/gui/uifiles/annotate_dialog.ui:174
 #: src/gui/uifiles/annotate_dialog.ui:426
-#, fuzzy
 msgid "Tag"
-msgstr "Mag"
+msgstr "Étiquette"
 
 #: src/gui/uifiles/annotate_dialog.ui:178
 #: src/gui/uifiles/annotate_dialog.ui:193
@@ -403,14 +398,12 @@ msgstr ""
 
 #: src/gui/uifiles/annotate_dialog.ui:189
 #: src/gui/uifiles/annotate_dialog.ui:442
-#, fuzzy
 msgid "Log"
 msgstr "Console"
 
 #: src/gui/uifiles/annotate_dialog.ui:207
-#, fuzzy
 msgid "Save to: "
-msgstr "Enregistrer dans :"
+msgstr "Sauvegarder dans : "
 
 #: src/gui/uifiles/annotate_dialog.ui:239
 msgid ""
@@ -446,7 +439,7 @@ msgstr ""
 
 #: src/gui/uifiles/annotate_dialog.ui:317
 msgid "Conesearch"
-msgstr ""
+msgstr "Recherche en cône"
 
 #: src/gui/uifiles/annotate_dialog.ui:369
 #, fuzzy
@@ -480,9 +473,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/annotate_dialog.ui:459
-#, fuzzy
 msgid "Import CSV"
-msgstr "Exporter en CSV"
+msgstr "Importer CSV"
 
 #: src/gui/uifiles/annotate_dialog.ui:474
 #: src/gui/uifiles/astrometry_dialog.ui:299
@@ -504,9 +496,8 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/annotate_dialog.ui:520
-#, fuzzy
 msgid "Display Name:"
-msgstr "Affichage"
+msgstr "Nom affiché :"
 
 #: src/gui/uifiles/annotate_dialog.ui:531
 #, fuzzy
@@ -521,14 +512,12 @@ msgid "Click this button to save the entry to the user DSO catalogue."
 msgstr "Cliquer sur ce bouton pour montrer le gradient calculé."
 
 #: src/gui/uifiles/annotate_dialog.ui:571
-#, fuzzy
 msgid "Single Coordinates"
-msgstr "Coordonnées"
+msgstr "Coordonnées uniques"
 
 #: src/gui/uifiles/annotate_dialog.ui:591
-#, fuzzy
 msgid "Show"
-msgstr "Montrer le tilt"
+msgstr "Montrer"
 
 #: src/gui/uifiles/annotate_dialog.ui:611
 msgid ""
@@ -553,9 +542,8 @@ msgstr ""
 "les recherches précédentes."
 
 #: src/gui/uifiles/annotate_dialog.ui:630
-#, fuzzy
 msgid "Name: "
-msgstr "Nom"
+msgstr "Nom : "
 
 #: src/gui/uifiles/annotate_dialog.ui:646
 msgid "Search Object"
@@ -8310,9 +8298,8 @@ msgid "Image Plate Solver..."
 msgstr "Résolution astrométrique..."
 
 #: src/gui/uifiles/siril.ui:2260
-#, fuzzy
 msgid "Annotate..."
-msgstr "Annotations"
+msgstr "Annoter..."
 
 #: src/gui/uifiles/siril.ui:2286 src/gui/uifiles/siril.ui:2528
 msgid "Image Analysis"
