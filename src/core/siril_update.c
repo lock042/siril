@@ -221,18 +221,6 @@ static guint check_for_patch(gchar *version, gboolean *is_rc, gboolean *is_beta)
 	return (g_ascii_strtoull(version, NULL, 10));
 }
 
-static const gchar* find_first_numeric(const gchar *string) {
-    if (string == NULL) {
-        return NULL;
-    }
-    for (const gchar *ptr = string; *ptr != '\0'; ptr++) {
-        if (g_ascii_isdigit(*ptr)) {
-            return ptr;
-        }
-    }
-    return NULL;
-}
-
 version_number get_version_number_from_string(const gchar *input) {
 	version_number version = { 0 };
 	gchar **version_string = NULL;
@@ -383,8 +371,11 @@ static gchar *check_version(gchar *version, gboolean *verbose, gchar **data) {
 			g_string_append_printf(urlstring, "/%s/ChangeLog", version);
 			gchar *changelog_url = g_string_free(urlstring, FALSE);
 			gsize length;
-			changelog = fetch_url(changelog_url, &length);
+			int error;
+			changelog = fetch_url(changelog_url, &length, &error);
 			g_free(changelog_url);
+			if (error)
+				return NULL;
 			if (changelog) {
 				*data = parse_changelog(changelog);
 				/* force the verbose variable */

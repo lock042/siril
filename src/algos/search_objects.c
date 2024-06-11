@@ -23,6 +23,7 @@
 #include "core/siril_log.h"
 #include "core/siril_date.h"
 #include "core/processing.h"
+#include "core/siril_networking.h"
 #include "io/annotation_catalogues.h"
 #include "algos/PSF.h"
 #include "algos/siril_wcs.h"
@@ -487,7 +488,8 @@ char *search_in_online_catalogs(sky_object_query_args *args) {
 	g_free(url);
 	siril_debug_print("URL: %s\n", cleaned_url);
 	gsize length;
-	char *result = fetch_url(cleaned_url, &length);
+	int error;
+	char *result = fetch_url(cleaned_url, &length, &error);
 
 	g_free(cleaned_url);
 	return result;

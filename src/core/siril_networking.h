@@ -18,7 +18,7 @@ typedef struct _fetch_url_async_data {
 } fetch_url_async_data;
 
 gpointer fetch_url_async(gpointer p);
-char *fetch_url(const gchar *url, gsize *length);
+char *fetch_url(const gchar *url, gsize *length, int *error);
 int submit_post_request(const char *url, const char *post_data, char **post_response);
 
 // HAVE_LIBCURL

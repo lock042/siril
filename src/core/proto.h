@@ -177,7 +177,8 @@ int interleave(fits *fit, int max_bitdepth, void **interleaved_buffer, int *bit_
 int count_lines_in_textfile(const gchar *filename);
 void copy_filename(const char *filename, char *truncated_filename, size_t max_length);
 gboolean is_string_numeric(const gchar *str);
-
+const gchar* find_first_numeric(const gchar *string);
+const gchar* find_first_nonnumeric(const gchar *string);
 /****************** quantize.h ***************/
 int siril_fits_img_stats_ushort(WORD *array, long nx, long ny, int nullcheck,
 		WORD nullvalue, long *ngoodpix, WORD *minvalue, WORD *maxvalue,

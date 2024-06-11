@@ -616,11 +616,12 @@ static gchar *download_catalog(siril_catalogue *siril_cat) {
 	}
 	siril_log_message(_("Contacting server\n"));
 	gsize length;
-	buffer = fetch_url(url, &length);
+	int fetch_url_error;
+	buffer = fetch_url(url, &length, &fetch_url_error);
 	g_free(url);
 
 	/* save (and parse if required)*/
-	if (buffer) {
+	if (buffer && !error) {
 		switch (siril_cat->cat_index) {
 			case CAT_TYCHO2 ... CAT_EXOPLANETARCHIVE: // TAP query, no parsing, we just write the whole buffer to the output stream
 				if (!g_output_stream_write_all(output_stream, buffer, strlen(buffer), NULL, NULL, &error)) {
@@ -707,11 +708,12 @@ static int submit_async_request(const char *url, const char *post_data, char **j
 	}
 	gchar *post_response = NULL;
 	int res = submit_post_request(url, post_data, &post_response);
+//	siril_debug_print(post_response);
 	if (res) return 1;
-	gchar *location_header = strstr(post_response, "Location: ");
+	gchar *location_header = strstr(post_response, "jobId");
 	if (location_header != NULL) {
-		gchar *start = strrchr(location_header, '/') + 1;
-		gchar *end = strchr(start, '\n');
+		const gchar *start = find_first_numeric(location_header);
+		gchar *end = strchr(start, ']');
 		if (end != NULL) {
 			*end = '\0';
 			*job_id = g_strdup(start);
@@ -820,7 +822,12 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 				siril_log_color_message(_("Timeout on Gaia DR3 query\n"), "red");
 				break;
 			}
-			buffer = fetch_url(job_check, &length);
+			int fetch_url_error;
+			buffer = fetch_url(job_check, &length, &fetch_url_error);
+			if (fetch_url_error) {
+				g_free(buffer);
+				goto tap_error_and_cleanup;
+			}
 			gboolean error = (g_strrstr(buffer, "ERROR") != NULL);
 			if (!error)
 				error = (g_strrstr(buffer, "ABORTED") != NULL);
@@ -845,7 +852,8 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 
 		// Retrieve the TAP+ query result
 		gchar *job_retrieval = g_strdup_printf("https://gea.esac.esa.int/tap-server/tap/async/%s/results/result", job_id);
-		gchar *buffer = fetch_url(job_retrieval, &length);
+		int fetch_url_error;
+		gchar *buffer = fetch_url(job_retrieval, &length, &fetch_url_error);
 		siril_debug_print("buffer length: %lu\n", length);
 		g_free(job_retrieval);
 
@@ -917,15 +925,16 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 
 		siril_debug_print("Datalink url: %s\n", datalink_url->str);
 		siril_log_message(_("Submitting spectral data request to ESA Gaia DR3 catalog. This may take several seconds to complete...\n"));
-		gchar *datalink_buffer = fetch_url(datalink_url->str, &length);
+		gchar *datalink_buffer = fetch_url(datalink_url->str, &length, &fetch_url_error);
 
 		siril_debug_print("datalink_buffer length: %lu\n", length);
 		g_string_free(datalink_url, TRUE);
 		datalink_url = NULL;
+		if (fetch_url_error)
+			goto datalink_download_error;
 		g_free(job_id);
 		if (retrieval_product_is_in_cache) {
 			siril_log_message(_("Using already downloaded datalink product\n"));
-
 			return 0;
 		}
 

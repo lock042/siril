@@ -25,6 +25,7 @@
 
 #include "core/siril_log.h"
 #include "core/processing.h"
+#include "core/siril_networking.h"
 #include "algos/photometric_cc.h"
 #include "algos/spcc.h"
 #include "algos/siril_wcs.h"
@@ -79,6 +80,35 @@ void on_S_PCC_Mag_Limit_toggled(GtkToggleButton *button, gpointer user) {
 
 	spinmag = lookup_widget("GtkSpinPCC_Mag_Limit");
 	gtk_widget_set_sensitive(spinmag, !gtk_toggle_button_get_active(button));
+}
+
+static gboolean end_gaiacheck_idle(gpointer p) {
+	fetch_url_async_data *args = (fetch_url_async_data *) p;
+	gboolean retval = FALSE;
+	if (args->content) {
+		if (strstr(args->content, "Gaia Archive unavailable")) {
+			retval = FALSE;
+		} else {
+			retval = TRUE;
+		}
+	}
+	if (!retval) {
+		siril_log_color_message(_("Warning: Gaia archive status page reports the archive is unavailable. Unless the status page is incorrect (unlikely except for major hardware outages), SPCC will not work.\n"), "salmon");
+	} else {
+		siril_log_color_message(_("Gaia archive available\n"), "green");
+	}
+	free(args->content);
+	g_free(args->url);
+	free(args);
+	stop_processing_thread();
+	return retval;
+}
+
+static void check_gaia_archive_status() {
+	fetch_url_async_data *args = calloc(1, sizeof(fetch_url_async_data));
+	args->url = g_strdup("https://gaia.esac.esa.int/gaiastatus/");
+	args->idle_function = end_gaiacheck_idle;
+	g_thread_new("gaia-status-check", fetch_url_async, args);
 }
 
 
@@ -221,6 +251,7 @@ void populate_nb_spinbuttons() {
 }
 
 void initialize_spectrophotometric_cc_dialog() {
+	check_gaia_archive_status();
 	GtkWidget *button_cc_ok, *button_spcc_ok, *catalog_label,
 			*pcc_catalog_label, *catalog_box_pcc, *frame_cc_bkg,
 			*catalog_label_pcc, *spcc_options, *spcc_do_plot, *spcc_nb_controls,

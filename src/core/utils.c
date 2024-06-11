@@ -1889,3 +1889,27 @@ gboolean is_string_numeric(const gchar *str) {
 
 	return (p > str && (g_ascii_isdigit(*(p - 1)) || has_decimal_point));
 }
+
+const gchar* find_first_numeric(const gchar *string) {
+    if (string == NULL) {
+        return NULL;
+    }
+    for (const gchar *ptr = string; *ptr != '\0'; ptr++) {
+        if (g_ascii_isdigit(*ptr)) {
+            return ptr;
+        }
+    }
+    return NULL;
+}
+
+const gchar* find_first_nonnumeric(const gchar *string) {
+    if (string == NULL) {
+        return NULL;
+    }
+    for (const gchar *ptr = string; *ptr != '\0'; ptr++) {
+        if (!g_ascii_isdigit(*ptr)) {
+            return ptr;
+        }
+    }
+    return NULL;
+}

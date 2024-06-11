@@ -42,9 +42,6 @@ typedef struct {
 	gchar *tap_server;
 } cat_tap_query_fields;
 
-gchar *fetch_url(const gchar *url, gsize *length);
-void free_fetch_result(gchar *result);
-
 int siril_catalog_get_stars_from_online_catalogues(siril_catalogue *siril_cat);
 
 typedef enum _retrieval_type { // For use with Gaia DR3 Datalink query URLs
