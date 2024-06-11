@@ -2,6 +2,7 @@
 #define SIRIL_NETWORKING_H
 
 #if defined(HAVE_LIBCURL)
+#include <glib/glib.h>
 #include <curl/curl.h>
 
 struct ucontent {
