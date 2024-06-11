@@ -68,6 +68,7 @@ xx/xx/xx
 * Extended `requires` command to take optional second expiry parameter. (!674)
 * Added a new keyword FILENAME to save the original filename after conversion. (!678)
 * Added UI for conesearch and show commands (!680)
+* Refactor networking code, add offline mode and add Gaia archive status indication (!687)
 
 siril 1.2.2
 xx/xx/24
