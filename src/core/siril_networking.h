@@ -1,9 +1,7 @@
 #ifndef SIRIL_NETWORKING_H
 #define SIRIL_NETWORKING_H
 
-#if defined(HAVE_LIBCURL)
 #include <glib.h>
-#include <curl/curl.h>
 
 struct ucontent {
 	char *data;
@@ -23,7 +21,7 @@ char *fetch_url(const gchar *url, gsize *length, int *error);
 int submit_post_request(const char *url, const char *post_data, char **post_response);
 
 // HAVE_LIBCURL
-#endif
+//#endif
 
 gboolean siril_compiled_with_networking();
 gboolean is_online();

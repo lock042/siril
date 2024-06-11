@@ -22,6 +22,7 @@
 #include <config.h>
 #endif
 #if defined(HAVE_LIBCURL)
+#include <curl/curl.h>
 #include <json-glib/json-glib.h>
 
 #include <string.h>
@@ -41,13 +42,10 @@ static const int DEFAULT_FETCH_RETRIES = 5;
 static size_t cbk_curl(void *buffer, size_t size, size_t nmemb, void *userp) {
 	size_t realsize = size * nmemb;
 	struct ucontent *mem = (struct ucontent *) userp;
-
 	mem->data = realloc(mem->data, mem->len + realsize + 1);
-
 	memcpy(&(mem->data[mem->len]), buffer, realsize);
 	mem->len += realsize;
 	mem->data[mem->len] = 0;
-
 	return realsize;
 }
 
@@ -58,12 +56,10 @@ typedef enum {
 
 static CURL* initialize_curl(const gchar *url, struct ucontent *content, HttpRequestType request_type, const gchar *post_data) {
 	CURL *curl = curl_easy_init();
-
 	if (!curl) {
 		siril_log_color_message(_("Error initialising CURL handle, URL functionality unavailable.\n"), "red");
 		return NULL;
 	}
-
 	CURLcode retval;
 	retval = curl_easy_setopt(curl, CURLOPT_URL, url);
 	retval |= curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
@@ -71,42 +67,35 @@ static CURL* initialize_curl(const gchar *url, struct ucontent *content, HttpReq
 	retval |= curl_easy_setopt(curl, CURLOPT_WRITEDATA, content);
 	retval |= curl_easy_setopt(curl, CURLOPT_USERAGENT, "siril/0.0");
 	retval |= curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-
 	if (request_type == HTTP_POST) {
 		retval |= curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_data);
 		retval |= curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)strlen(post_data));
 	}
-
 	if (retval) {
 		siril_debug_print("Error in curl_easy_setopt()\n");
 		curl_easy_cleanup(curl);
 		return NULL;
 	}
-
 	if (g_getenv("CURL_CA_BUNDLE")) {
 		if (curl_easy_setopt(curl, CURLOPT_CAINFO, g_getenv("CURL_CA_BUNDLE"))) {
 			siril_log_color_message(_("Error configuring CURL with CA bundle. https functionality unavailable.\n"), "red");
 		}
 	}
-
 	return curl;
 }
 
 static char* handle_curl_response(CURL *curl, struct ucontent *content, const gchar *url, int *retries, long *code) {
 	char *result = NULL;
 	unsigned int s;
-
 	do {
 		content->data = calloc(1, 1);
 		if (content->data == NULL) {
 			PRINT_ALLOC_ERR;
 			return NULL;
 		}
-
 		CURLcode retval = curl_easy_perform(curl);
 		if (retval == CURLE_OK) {
 			curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, code);
-
 			switch (*code) {
 				case 200:
 					result = content->data;
@@ -135,35 +124,26 @@ static char* handle_curl_response(CURL *curl, struct ucontent *content, const gc
 	if (!(*retries)) {
 		siril_log_color_message(_("After %ld tries, Server unreachable or unresponsive (%s).\n"), "salmon", DEFAULT_FETCH_RETRIES, url);
 	}
-
 	return result;
 }
 
 gpointer fetch_url_async(gpointer p) {
 	fetch_url_async_data *args = (fetch_url_async_data *) p;
-	g_fprintf(stdout, "fetch_url(): %s\n", args->url);
-
 	struct ucontent content = {NULL, 0};
-
-	set_progress_bar_data(NULL, 0.1);
-
 	int retries = DEFAULT_FETCH_RETRIES;
-
+	set_progress_bar_data(NULL, 0.1);
 	CURL *curl = initialize_curl(args->url, &content, HTTP_GET, NULL);
 	if (!curl) {
 		g_free(args->url);
 		free(args);
 		return NULL;
 	}
-
 	long code;
 	char *result = handle_curl_response(curl, &content, args->url, &retries, &code);
 	curl_easy_cleanup(curl);
 	args->length = content.len;
 	args->content = result;
-
 	set_progress_bar_data(NULL, PROGRESS_DONE);
-
 	if (result) {
 		gdk_threads_add_idle(args->idle_function, args);
 	} else {
@@ -171,53 +151,44 @@ gpointer fetch_url_async(gpointer p) {
 		free(args);
 		free(content.data);
 	}
-
 	return NULL;
 }
 
 char* fetch_url(const gchar *url, gsize *length, int *error) {
 	*error = 0;
 	struct ucontent content = {NULL, 0};
-
 	int retries = DEFAULT_FETCH_RETRIES;
-
+	set_progress_bar_data(NULL, 0.1);
 	CURL *curl = initialize_curl(url, &content, HTTP_GET, NULL);
 	if (!curl) {
 		*error = 1;
 		return NULL;
 	}
-
 	long code;
 	char *result = handle_curl_response(curl, &content, url, &retries, &code);
 	curl_easy_cleanup(curl);
 	*length = content.len;
-
 	if (!result || content.len == 0 || code != 200) {
 		free(content.data);
 		result = NULL;
 		*error = 1;
 	}
-
 	return result;
 }
 
 int submit_post_request(const char *url, const char *post_data, char **post_response) {
 	struct ucontent chunk = {NULL, 0};  // will be grown as needed by realloc above
-
 	CURL *curl = initialize_curl(url, &chunk, HTTP_POST, post_data);
 	if (!curl) {
 		free(chunk.data);
 		return 1;
 	}
-
 	CURLcode res = curl_easy_perform(curl);
-
 	if (res != CURLE_OK) {
 		siril_log_color_message(_("Error fetching URL: %s\n"), "red", curl_easy_strerror(res));
 	} else {
 		*post_response = g_strdup(chunk.data);
 	}
-
 	free(chunk.data);
 	curl_easy_cleanup(curl);
 	return (res != CURLE_OK ? 1 : 0);
