@@ -84,19 +84,38 @@ void on_S_PCC_Mag_Limit_toggled(GtkToggleButton *button, gpointer user) {
 
 static gboolean end_gaiacheck_idle(gpointer p) {
 	fetch_url_async_data *args = (fetch_url_async_data *) p;
-	gboolean retval = FALSE;
+	size_t retval;
 	if (args->content) {
-		if (strstr(args->content, "Gaia Archive unavailable")) {
-			retval = FALSE;
-		} else {
-			retval = TRUE;
-		}
-	}
-	if (!retval) {
-		siril_log_color_message(_("Warning: Gaia archive status page reports the archive is unavailable. Unless the status page is incorrect (unlikely except for major hardware outages), SPCC will not work.\n"), "salmon");
+		retval = g_ascii_strtoull(args->content, NULL, 10);
 	} else {
-		siril_log_color_message(_("Gaia archive available\n"), "green");
+		retval = 5;
 	}
+	gchar *text;
+	gchar *colortext;
+	switch (retval) {
+		case 0:
+			text = N_("Gaia archive available\n");
+			colortext = "green";
+			break;
+		case 1:
+			text = N_("Gaia archive running but performing slightly slower\n");
+			colortext = "green";
+			break;
+		case 2:
+			text = N_("Gaia archive running but performing vert slowly\n");
+			colortext = "salmon";
+			break;
+		case 3:
+		case 4:
+			text = N_("Gaia archive unavailable\n");
+			colortext = "red";
+			break;
+		case 5:
+			text = N_("Gaia archive unreachable\n");
+			colortext = "red";
+			break;
+	}
+	siril_log_color_message(text, colortext);
 	free(args->content);
 	g_free(args->url);
 	free(args);
@@ -106,7 +125,7 @@ static gboolean end_gaiacheck_idle(gpointer p) {
 
 static void check_gaia_archive_status() {
 	fetch_url_async_data *args = calloc(1, sizeof(fetch_url_async_data));
-	args->url = g_strdup("https://gaia.esac.esa.int/gaiastatus/");
+	args->url = g_strdup("https://gaia.esac.esa.int/gaiastatus/latest_check_value.out");
 	args->idle_function = end_gaiacheck_idle;
 	g_thread_new("gaia-status-check", fetch_url_async, args);
 }
