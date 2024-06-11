@@ -160,7 +160,7 @@ double get_radius_deg(double resolution, int rx, int ry) {
 	return radius / 3600.0;	// in degrees
 }
 
-/* computes the limiting magnitude to have approx Nstars within fov 
+/* computes the limiting magnitude to have approx Nstars within fov
    this accounts for the position in the sky (converted to galactic coordinates)
    as star density is much scarcer when close to the galactic pole
 */
@@ -189,13 +189,14 @@ double compute_mag_limit_from_position_and_fov(double ra, double dec, double fov
 }
 
 static void compute_limit_mag(struct astrometry_data *args) {
+	g_assert(args->ref_stars != NULL);
 	if (args->mag_mode == LIMIT_MAG_ABSOLUTE)
 		args->ref_stars->limitmag = args->magnitude_arg;
 	else {
 		// compute limit mag to have approx BRIGHTEST_STARS (i.e. 500) stars in the fov
 		// same as the number of stars detected in an image
 		args->ref_stars->limitmag = compute_mag_limit_from_position_and_fov(
-		siril_world_cs_get_alpha(args->cat_center), 
+		siril_world_cs_get_alpha(args->cat_center),
 		siril_world_cs_get_delta(args->cat_center),
 		args->used_fov / 60.0, BRIGHTEST_STARS);
 		if (args->mag_mode == LIMIT_MAG_AUTO_WITH_OFFSET)
@@ -241,7 +242,7 @@ static void update_wcsdata_from_wcs(struct astrometry_data *args) {
 	g_sprintf(args->fit->keywords.wcsdata.objctdec, "%s", dec);
 	g_free(ra);
 	g_free(dec);
-	
+
 }
 
 static gboolean check_affine_TRANS_sanity(TRANS *trans) {
@@ -479,7 +480,7 @@ gchar *platesolve_msg(struct astrometry_data *args) {
 	switch (args->ret) {
 	// warnings
 		case SOLVE_LINONLY:
-			return g_strdup_printf(_("%s could not find distortion polynomials for the order specified (%d) and returned a linear solution, try with a lower order or increase magnitude\n"), 
+			return g_strdup_printf(_("%s could not find distortion polynomials for the order specified (%d) and returned a linear solution, try with a lower order or increase magnitude\n"),
 			solvername, args->trans_order);
 		case SOLVE_LASTSOLVE:
 			return g_strdup(_("Siril solver could not find a final solution at the updated center, solution may be inaccurate\n"));
@@ -958,7 +959,7 @@ gpointer plate_solver(gpointer p) {
 	if (args->verbose)
 		siril_log_message(_("Using %d detected stars from image.\n"), nb_stars);
 
-	/* 2. Plate solving 
+	/* 2. Plate solving
 		No modifications done to args or args->fit
 		We can read from them but cannot write
 	*/
@@ -1051,19 +1052,22 @@ clearup:
 			siril_log_color_message(_("Plate solving warning: %s"), "salmon", msg);
 		else if (args->ret > 0)
 			siril_log_color_message(_("Plate solving failed: %s"), "red", msg);
-		else 
+		else
 			siril_log_color_message("%s", "green", msg);
 		g_free(msg);
 	}
 	int ret = args->ret;
+	gboolean is_verbose = args->verbose;
 	if (!args->for_sequence) {
 		if (com.child_is_running == EXT_ASNET && g_unlink("stop"))
 			siril_debug_print("g_unlink() failed\n");
 		com.child_is_running = EXT_NONE;
 		siril_add_idle(end_plate_solver, args);
 	}
-	else free(args);
-	if (args->verbose)
+	else {
+		free(args);
+	}
+	if (is_verbose)
 		set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 	return GINT_TO_POINTER(ret > 0);
 }
@@ -1601,6 +1605,7 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 	if (save_list_as_FITS_table(table_filename, stars, nb_stars, args->rx_solver, args->ry_solver)) {
 		siril_log_message(_("Failed to create the input data for solve-field\n"));
 		g_free(table_filename);
+		g_free(stopfile);
 		return SOLVE_ASNET_PROC;
 	}
 
@@ -1875,8 +1880,12 @@ void process_plate_solver_input(struct astrometry_data *args) {
 		args->near_solve = TRUE;
 		return;
 	}
-	args->ref_stars->radius = args->used_fov * 0.5;
-
+	if (args->ref_stars) {
+		args->ref_stars->radius = args->used_fov * 0.5;
+	} else {
+		siril_debug_print("Warning: args->ref_stars is NULL\n");
+		return;
+	}
 	if (croparea.w == args->fit->rx && croparea.h == args->fit->ry)
 		memset(&croparea, 0, sizeof(rectangle));
 	else siril_debug_print("reduced area for the solve: %d, %d, %d x %d%s\n",
@@ -1910,6 +1919,10 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 		return 1;
 	args->fit = &fit;
 	process_plate_solver_input(args); // compute required data to get the catalog
+	if (!args->ref_stars) {
+		siril_log_color_message(_("Error: no reference stars available\n"), "red");
+		return 1;
+	}
 	args->layer = fit.naxes[2] == 1 ? 0 : 1;
 	regdata *current_regdata;
 	// if no registration data present, we will store the stats stored by the peaker and add identity matrices
@@ -1930,13 +1943,15 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 		gchar *filename = g_strdup(arg->seq->fitseq_file->filename);
 		// it was opened in READONLY mode, we close it
 		if (fitseq_close_file(arg->seq->fitseq_file)) {
-			siril_debug_print("error when closing fitseq\n");
+			siril_log_color_message(_("Error when closing fitseq\n"), "red");
+			g_free(filename);
 			return 1;
-		}	
+		}
 		arg->seq->fitseq_file->fptr = NULL;
 		// and we reopen in READWRITE mode to update it
 		if(fitseq_open(filename, arg->seq->fitseq_file, READWRITE)) {
-			siril_debug_print("error when reopening fitseq\n");
+			siril_log_color_message(_("Error when reopening fitseq\n"), "red");
+			g_free(filename);
 			return 1;
 		}
 		g_free(filename);
@@ -1978,17 +1993,17 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 		if (!aargs->forced_metadata[FORCED_CENTER] && aargs->cat_center) { // center coordinates where not forced, we need to read new ones from header or skip if blind for asnet
 			siril_world_cs_unref(aargs->cat_center);
 			SirilWorldCS *target_coords = get_eqs_from_header(fit);
-			if (!target_coords) {
-				siril_log_color_message(_("Could not retrieve target coordinates from image %s metadata, skipping\n"), "red", root);
-				siril_catalog_free(aargs->ref_stars);
-				free(aargs);
-				return 1;
-			}
 			aargs->cat_center = target_coords;
-			if (aargs->ref_stars) {
+			if (aargs->ref_stars && target_coords) {
 				aargs->ref_stars->center_ra = siril_world_cs_get_alpha(target_coords);
 				aargs->ref_stars->center_dec = siril_world_cs_get_delta(target_coords);
 			}
+		}
+		if (!aargs->cat_center) {
+			siril_debug_print("Could not set cat_center, skipping\n");
+			siril_catalog_free(aargs->ref_stars);
+			free(aargs);
+			return 1;
 		}
 		if (!aargs->forced_metadata[FORCED_PIXEL]) { // pixel size was not forced, we need to read new one from header/settings
 			aargs->pixel_size = max(fit->keywords.pixel_size_x, fit->keywords.pixel_size_y);
@@ -2008,7 +2023,7 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 			aargs->focal_length = fit->keywords.focal_length;
 			if (aargs->focal_length <= 0.0) {
 				aargs->focal_length = com.pref.starfinder_conf.focal_length;
-				if (aargs->pixel_size <= 0.0) {
+				if (aargs->focal_length <= 0.0) {
 					siril_log_color_message(_("Could not retrieve focal length from image %s metadata or settings, skipping\n"), "red", root);
 					siril_catalog_free(aargs->ref_stars);
 					if (aargs->cat_center) // not filled if asnet blind solve
@@ -2026,7 +2041,7 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 	int nb_stars;
 	int detection_layer = fit->naxes[2] == 1 ? 0 : 1;
 	image im = { .fit = fit, .from_seq = NULL, .index_in_seq = -1 };
-	
+
 	aargs->stars = peaker(&im, detection_layer, &com.pref.starfinder_conf, &nb_stars,
 				NULL, FALSE, TRUE,
 				BRIGHTEST_STARS, com.pref.starfinder_conf.profile, threads);
@@ -2065,7 +2080,7 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 		if (arg->seq->type == SEQ_REGULAR) { // regular sequence, fit->fptr has been closed after loading the frame, we can reopen to update
 			fit_sequence_get_image_filename(arg->seq, i, root, TRUE);
 			int status = 0;
-			// we don't want to overwrite original files, so we test for symlinks 
+			// we don't want to overwrite original files, so we test for symlinks
 			if (is_symlink_file(root))
 				siril_debug_print("Image %s was a symlink, creating a new file to keep original untouched\n", root);
 			status = savefits(root, fit);
@@ -2099,6 +2114,7 @@ static int astrometry_finalize_hook(struct generic_seq_args *arg) {
 		// it was opened in READWRITE mode, we close it to save everything
 		if (fitseq_close_file(arg->seq->fitseq_file)) {
 			siril_debug_print("error when closing again fitseq\n");
+			g_free(filename);
 			retval = 1;
 			goto finish;
 		}

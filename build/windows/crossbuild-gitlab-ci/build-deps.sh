@@ -12,6 +12,7 @@ crossroad install lcms2 \
                   libheif \
                   ffms2 \
                   cfitsio \
+                  curl \
                   libgit2 \
                   libxisf \
 # need to uninstall crt-git

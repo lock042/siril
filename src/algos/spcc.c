@@ -102,25 +102,25 @@ cmsCIExyY xpsampled_to_xyY(xpsampled* xps, const cmf_pref cmf, const double minw
 // Function to calculate tau_R (the wavelength dependent Rayleigh scattering coefficient)
 
 static double tau_R(double lambda, double H, double p) {
-    double term1 = p / 1013.25; // standard atmospheric pressure in hPa
-    double term2 = 0.00864 + 6.5e-6 * H;
-    double exponent = -(3.916 + 0.074 * lambda + 0.050 / lambda);
-    double term3 = pow(lambda, exponent);
-    return term1 * term2 * term3;
+	double term1 = p / 1013.25; // standard atmospheric pressure in hPa
+	double term2 = 0.00864 + 6.5e-6 * H;
+	double exponent = -(3.916 + 0.074 * lambda + 0.050 / lambda);
+	double term3 = pow(lambda, exponent);
+	return term1 * term2 * term3;
 }
 
 // Function to calculate airmass X using the expression from Young (1994)
 
 double compute_airmass(double z) {
-    double z_rad = z * M_PI / 180.0; // Convert degrees to radians
-    double cos_z = cos(z_rad);
-    double cos_z2 = cos_z * cos_z;
-    double cos_z3 = cos_z2 * cos_z;
+	double z_rad = z * M_PI / 180.0; // Convert degrees to radians
+	double cos_z = cos(z_rad);
+	double cos_z2 = cos_z * cos_z;
+	double cos_z3 = cos_z2 * cos_z;
 
-    double numerator = 1.002432 * cos_z2 + 0.148386 * cos_z + 0.0096467;
-    double denominator = cos_z3 + 0.149864 * cos_z2 + 0.0102963 * cos_z + 0.000303978;
+	double numerator = 1.002432 * cos_z2 + 0.148386 * cos_z + 0.0096467;
+	double denominator = cos_z3 + 0.149864 * cos_z2 + 0.0102963 * cos_z + 0.000303978;
 
-    return numerator / denominator;
+	return numerator / denominator;
 }
 
 // Function to calculate transmittance
@@ -167,9 +167,9 @@ void fill_xpsampled_from_atmos_model(xpsampled *out, struct photometric_cc_data 
 	} else if (centalt > 0.0 && centalt <= 90.0) {
 		airmass = compute_airmass(90.0 - centalt);
 	} else {
-// Final fallback: astrophotographers usually aim for > 30deg alt to minimize poor
-// seeing caused by turbulence. The average zenith angle for all parts of the sky
-// with zenith angle <= 60deg is 41.9deg
+		// Final fallback: astrophotographers usually aim for > 30deg alt to minimize poor
+		// seeing caused by turbulence. The average zenith angle for all parts of the sky
+		// with zenith angle <= 60deg is 41.9deg
 		airmass = compute_airmass(41.9);
 	}
 	double pressure = args->atmos_pressure_is_slp ? pressure_at_height(args->atmos_pressure, args->atmos_obs_height) : args->atmos_pressure;

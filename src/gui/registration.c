@@ -115,11 +115,11 @@ int populate_drizzle_data(struct driz_args_t *driz) {
 		gchar *error = NULL;
 		int status;
 		gchar *expression = path_parse(&reffit, flat_filename, PATHPARSE_MODE_READ, &status);
+		g_free(expression);
 		if (status) {
 			error = _("NOT USING FLAT: could not parse the expression");
 			driz->use_flats = FALSE;
 		} else {
-			free(expression);
 			if (flat_filename[0] == '\0') {
 				siril_log_message(_("Error: no master flat specified in the preprocessing tab.\n"));
 				free(driz);

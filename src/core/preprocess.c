@@ -794,7 +794,7 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 				has_error = TRUE;
 			}
 			g_free(expression);
-			
+
 		}
 
 		if (args->use_dark) {
@@ -890,8 +890,8 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 					}
 
 				} else error = _("NOT USING FLAT: cannot open the file");
-				g_free(expression);
 			}
+			g_free(expression); // expression not used again after here, free before it falls out of scope
 			if (error) {
 				siril_log_color_message("%s\n", "red", error);
 				set_progress_bar_data(error, PROGRESS_DONE);

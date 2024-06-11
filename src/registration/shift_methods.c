@@ -69,7 +69,6 @@ int register_shift_dft(struct registration_args *args) {
 	int ref_image;
 	regdata *current_regdata;
 	double q_max = 0, q_min = DBL_MAX;
-	int q_index = -1;
 	char pattern[37] = { 0 };
 
 	/* the selection needs to be squared for the DFT */
@@ -209,7 +208,7 @@ int register_shift_dft(struct registration_args *args) {
 	set_shifts(args->seq, ref_image, args->layer, 0.0, 0.0, FALSE);
 
 	q_min = q_max = current_regdata[ref_image].quality;
-	q_index = ref_image;
+	int q_index = ref_image;
 
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(guided) \
@@ -379,7 +378,6 @@ int register_kombat(struct registration_args *args) {
 	int ret, ret2;
 	int abort = 0;
 	rectangle full = { 0 };
-	int q_index = -1;
 
 	reg_kombat ref_align;
 
@@ -426,9 +424,16 @@ int register_kombat(struct registration_args *args) {
 		}
 	} else {
 		ret = seq_read_frame_metadata(args->seq, ref_idx, &fit_ref);
+		if (ret) {
+			siril_log_color_message(_("Error reading frame metadata\n"), "red");
+			free(current_regdata);
+			clearfits(&fit_ref);
+			clearfits(&fit_templ);
+			return 1;
+		}
 		strcpy(pattern, fit_ref.keywords.bayer_pattern);
 	}
-	q_index = ref_idx;
+	int q_index = ref_idx;
 
 	set_progress_bar_data(
 			_("Register using KOMBAT: loading and processing reference frame"),
@@ -461,6 +466,7 @@ int register_kombat(struct registration_args *args) {
 				_("Register: could not load first image to register, aborting.\n"));
 		args->seq->regparam[args->layer] = NULL;
 		free(current_regdata);
+		clearfits(&fit_ref);
 		clearfits(&fit_templ);
 		return 1;
 	}

@@ -48,7 +48,7 @@ enum {
 };
 
 // caching all UI elements
-static GtkToggleButton *flipbutton = NULL, *automagbutton = NULL, *DEC_S = NULL, 
+static GtkToggleButton *flipbutton = NULL, *automagbutton = NULL, *DEC_S = NULL,
 	*manualbutton = NULL, *downsamplebutton = NULL, *autocropbutton = NULL, *autocatbutton = NULL,
 	*nonearbutton = NULL, *blindposbutton = NULL, *blindresbutton = NULL,
 	*seqsolvebutton = NULL, *seqnocache = NULL, *seqskipsolved = NULL,
@@ -804,7 +804,7 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 		if (!args->asnet_blind_pos) {
 			args->searchradius = gtk_spin_button_get_value(radiusspin);
 			args->cat_center = catalog_center;
-		} else if (catalog_center) {
+		} else {
 			args->cat_center = NULL;
 			siril_world_cs_unref(catalog_center);
 		}

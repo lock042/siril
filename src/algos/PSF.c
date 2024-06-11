@@ -128,7 +128,7 @@ static gsl_vector* psf_init_data(gsl_matrix* z, double bg, gboolean frompeaker) 
 	gsl_matrix *m_tmp = prepare_init_matrix(z, bg, frompeaker);
 	if (!m_tmp) return NULL;
 	// if the data is coming from the peaker, we know the central pixel is already
-	// the max intensity pixel. We don't bother searching it as it may catch another 
+	// the max intensity pixel. We don't bother searching it as it may catch another
 	// brighter star located in the box
 	if (!frompeaker) {
 		max = gsl_matrix_max(m_tmp);
@@ -178,29 +178,29 @@ static gsl_vector* psf_init_data(gsl_matrix* z, double bg, gboolean frompeaker) 
 	// This is based on computing centroid, fwhm, roundness and angle of the trace
 	// of the star above the half amplitude. We use the trace instead of the actual
 	// data in order to be resilient to outlier values.
-	// In order to only account for the star (and not data from an adjacent star 
-	// also in the box), we use the central row of the trace first, and then move 
+	// In order to only account for the star (and not data from an adjacent star
+	// also in the box), we use the central row of the trace first, and then move
 	// downwards. We only select pixels which are adjacent to the previous row by moving
 	// left and right cursors. For the right cursor, this means:
 	// - If the pixel one down the previous right boundary is >halfA, we search if we need
 	//  to move right (and stop when we don't find a new pixel > halfA or hit the end of the row)
 	// -If not, we move left until we find again a pixel > halfA or we hit the left cursor
-	// We then do same for the left cursor on same row until the cursors are same and 
+	// We then do same for the left cursor on same row until the cursors are same and
 	// we are not anymore above halfA
 	// And again, starting from the central row but upwards
 	// For all the pixels above halfA, we compute their zero, first and second moments
 	// wrt origin.
 	// Centroid position wrt origin is then simply M1/M0
-	// Inertia matrix about the centroid is assembled by correcting each M2 by 
+	// Inertia matrix about the centroid is assembled by correcting each M2 by
 	// M0.xx, M0.yy and M0.xy
 	// Then assuming that the trace is an ellipse, we use Singular Value Decomposition
 	// to find the principal inertia moments and the rotation (angle)
 	// From the inertia moments, we can then calculate main FWHM and roundness
-	// As positions are 0 at the center of first pixel, 0.5 is added to centroids to 
+	// As positions are 0 at the center of first pixel, 0.5 is added to centroids to
 	// keep consistency with the convention.
 
 	// There is still a shortfall with this init, which is that for saturated stars,
-	// the amplitude is unknown and we will definitely init the optimization 
+	// the amplitude is unknown and we will definitely init the optimization
 	// with too small a value. But there's no quick and esay way to estimate A,
 	// so we'll have to live with that for now.
 
@@ -234,7 +234,7 @@ static gsl_vector* psf_init_data(gsl_matrix* z, double bg, gboolean frompeaker) 
 			}
 		}
 		if (cr == cl && gsl_matrix_get(m_tmp, y, cr) <= halfA) {
-			goon = FALSE;
+//			goon = FALSE; // Not needed, after the break goon is overwritten immediately
 			break;
 		}
 		// we've found all the valid pixels, we can compute all the useful quantities
