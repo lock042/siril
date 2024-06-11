@@ -10,9 +10,9 @@ struct ucontent {
 };
 
 typedef struct _fetch_url_async_data {
-	CURL *curl;
 	gchar *url;
 	gchar *content;
+	gsize length;
 	gboolean verbose;
 	gboolean (*idle_function)(gpointer args);
 } fetch_url_async_data;

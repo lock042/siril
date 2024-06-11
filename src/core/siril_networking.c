@@ -156,12 +156,13 @@ gpointer fetch_url_async(gpointer p) {
 		return NULL;
 	}
 
-	args->curl = curl;
 	long code;
 	char *result = handle_curl_response(curl, &content, args->url, &retries, &code);
+	curl_easy_cleanup(curl);
+	args->length = content.len;
+	args->content = result;
 
 	set_progress_bar_data(NULL, PROGRESS_DONE);
-	args->content = result;
 
 	if (result) {
 		gdk_threads_add_idle(args->idle_function, args);
@@ -171,7 +172,6 @@ gpointer fetch_url_async(gpointer p) {
 		free(content.data);
 	}
 
-	curl_easy_cleanup(curl);
 	return NULL;
 }
 
@@ -189,7 +189,6 @@ char* fetch_url(const gchar *url, gsize *length, int *error) {
 
 	long code;
 	char *result = handle_curl_response(curl, &content, url, &retries, &code);
-
 	curl_easy_cleanup(curl);
 	*length = content.len;
 
