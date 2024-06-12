@@ -232,7 +232,7 @@ static int get_spcc_white_balance_coeffs(struct photometric_cc_data *args, float
 		get_spectrum_from_args(args, &response[chan], chan);
 		/* The idea here is that in narrowband mode we integrate the interpolated response (with no filtering
 		 * included) over a very precise wavelength range, so as to get an accurate value. In broadband mode
-		 * we include the effect of the filter in the resposne and we integrate over the full xp_sampled
+		 * we include the effect of the filter in the response and we integrate over the full xp_sampled
 		 * wavelength range. This principle is used in the flux and WB calcs too. */
 		minwl[chan] = args->nb_mode ? args->nb_center[chan] - (args->nb_bandwidth[chan]/2) : XPSAMPLED_MIN_WL;
 		maxwl[chan] = args->nb_mode ? args->nb_center[chan] + (args->nb_bandwidth[chan]/2) : XPSAMPLED_MAX_WL;

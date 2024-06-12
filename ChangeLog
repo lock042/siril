@@ -68,6 +68,9 @@ xx/xx/xx
 * Extended `requires` command to take optional second expiry parameter. (!674)
 * Added a new keyword FILENAME to save the original filename after conversion. (!678)
 * Added UI for conesearch and show commands (!680)
+* Added atmosphere model for SPCC (accounts for Rayleigh scattering) (!684)
+* Fixed a crash in ROI selection (#1320)
+* Optimised GHT code (~2x speedup) and fixed associated bugs (#1194, #1314, #1319)
 
 siril 1.2.2
 xx/xx/24
@@ -87,6 +90,7 @@ xx/xx/24
 * Fixed drag & drop in image display on macOS (#1310)
 * Fixed bug in rgradient (Larson Sekanina) filter (#1313)
 * Fixed bug in generalized hyperbolic stretches (#1314)
+* Fixed path parsing error with savetif (#1318)
 
 siril 1.2.1
 01/26/24

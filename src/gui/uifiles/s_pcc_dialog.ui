@@ -39,6 +39,19 @@
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
+  <object class="GtkAdjustment" id="adjustment_spcc_height">
+    <property name="upper">5700</property>
+    <property name="value">10</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_spcc_pressure">
+    <property name="lower">500</property>
+    <property name="upper">1100</property>
+    <property name="value">1013.25</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
   <object class="GtkAdjustment" id="nb_b_bw">
     <property name="lower">1</property>
     <property name="upper">40</property>
@@ -165,7 +178,7 @@
                 <property name="margin-top">5</property>
                 <property name="margin-bottom">5</property>
                 <child>
-                  <!-- n-columns=4 n-rows=11 -->
+                  <!-- n-columns=4 n-rows=13 -->
                   <object class="GtkGrid">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
@@ -681,7 +694,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">10</property>
+                        <property name="top-attach">12</property>
                         <property name="width">4</property>
                       </packing>
                     </child>
@@ -748,6 +761,163 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                       <packing>
                         <property name="left-attach">3</property>
                         <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="spcc_atmos_corr">
+                        <property name="label" translatable="yes">Atmospheric corrections</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">Apply an atmosphere model to account for wavelength-dependent atmospheric extinction.</property>
+                        <property name="draw-indicator">True</property>
+                        <signal name="toggled" handler="on_spcc_atmos_corr_toggled" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">10</property>
+                        <property name="width">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkExpander" id="spcc_atmos_widgets">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <child>
+                          <!-- n-columns=3 n-rows=3 -->
+                          <object class="GtkGrid">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="row-spacing">6</property>
+                            <property name="column-spacing">6</property>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Observer height / m:</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="spcc_height">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Observer's height (altitude) above sea level.</property>
+                                <property name="text" translatable="yes">10.0</property>
+                                <property name="adjustment">adjustment_spcc_height</property>
+                                <property name="digits">1</property>
+                                <property name="value">10</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Atmospheric pressure / hPa:</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="spcc_pressure">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Atmospheric pressure in hPa. If the "sea level" check box is checked this is taken to be sea level pressure, otherwise it is taken to be local pressure at the observer's height.</property>
+                                <property name="text" translatable="yes">1013.00</property>
+                                <property name="adjustment">adjustment_spcc_pressure</property>
+                                <property name="digits">2</property>
+                                <property name="value">1013</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkCheckButton" id="spcc_pressure_is_slp">
+                                <property name="label" translatable="yes">sea level</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">False</property>
+                                <property name="halign">start</property>
+                                <property name="active">True</property>
+                                <property name="draw-indicator">True</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">2</property>
+                                <property name="top-attach">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Airmass:</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">2</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkButton" id="spcc_plot_atmos">
+                                <property name="label" translatable="yes">Plot</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">True</property>
+                                <property name="tooltip-text" translatable="yes">Plot atmosphere model</property>
+                                <signal name="clicked" handler="on_spcc_plot_atmos_clicked" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="left-attach">2</property>
+                                <property name="top-attach">2</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkEntry" id="spcc_airmass_entry">
+                                <property name="visible">True</property>
+                                <property name="sensitive">False</property>
+                                <property name="can-focus">True</property>
+                                <property name="editable">False</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">2</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <placeholder/>
+                            </child>
+                          </object>
+                        </child>
+                        <child type="label">
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="margin-bottom">5</property>
+                            <property name="label" translatable="yes">Atmospheric Parameters</property>
+                            <attributes>
+                              <attribute name="weight" value="bold"/>
+                            </attributes>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">11</property>
+                        <property name="width">4</property>
                       </packing>
                     </child>
                   </object>

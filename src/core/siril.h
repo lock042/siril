@@ -28,6 +28,9 @@
 #define DEBUG_TEST 0
 #endif
 
+#define START_TIMER struct timeval t_start, t_end ; gettimeofday(&t_start, NULL);
+#define END_TIMER gettimeofday(&t_end, NULL); show_time(t_start, t_end);
+
 #if defined (HAVE_FFTW3F_OMP) || defined (HAVE_FFTW3F_THREADS)
 #define HAVE_FFTW3F_MULTITHREAD
 #endif
@@ -220,6 +223,13 @@ typedef enum {
 	NORMAL_COLOR,
 	RAINBOW_COLOR
 } color_map;
+
+typedef enum {
+	CLIP,
+	RESCALE,
+	RGBBLEND,
+	RESCALEGLOBAL
+} clip_mode_t;
 
 typedef enum {
 	MIPSLOHI,
@@ -427,7 +437,7 @@ typedef struct {
 	double sitelat, sitelong;		// SITE LAT and LONG as double
 	char sitelat_str[FLEN_VALUE];		// SITE LATITUDE key as string
 	char sitelong_str[FLEN_VALUE];		// SITE LONGITUDE key as string
-	double siteelev;			// SITE LONGITUDE key as double
+	double siteelev;			// SITE ELEVATION key as double
 	char bayer_pattern[FLEN_VALUE];		// BAYERPAT key Bayer Pattern if available
 	int bayer_xoffset, bayer_yoffset;
 	double airmass;                   // relative optical path length through atmosphere.
