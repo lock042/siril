@@ -288,7 +288,7 @@ void initialize_spectrophotometric_cc_dialog() {
 		airmass = compute_airmass(41.9);
 		tooltip = g_strdup(N_("No airmass data available or computable. Estimating airmass based on average observation height of 48.1°"));
 	}
-	if (height > -998.0) {
+	if (height != DEFAULT_DOUBLE_VALUE) {
 		gtk_spin_button_set_value(spcc_height, height);
 		gtk_widget_set_tooltip_text(GTK_WIDGET(spcc_height), N_("Observer height read from FITS header SITEELEV card"));
 		gtk_widget_set_sensitive(GTK_WIDGET(spcc_height), FALSE);

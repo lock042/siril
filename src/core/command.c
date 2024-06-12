@@ -9131,7 +9131,7 @@ static int do_pcc(int nb, gboolean spectro) {
 
 	gboolean atmos = FALSE, slp = TRUE;
 	double pressure = 1013.25; // standard atmosphere
-	double obsheight = gfit.keywords.siteelev > -998.0 ? gfit.keywords.siteelev : 10.0;
+	double obsheight = gfit.keywords.siteelev != DEFAULT_DOUBLE_VALUE ? gfit.keywords.siteelev : 10.0;
 	gboolean local_cat = local_catalogues_available();
 	int next_arg = 1;
 
