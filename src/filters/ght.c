@@ -614,7 +614,6 @@ void apply_linked_ght_to_Wbuf_indep(WORD* in, WORD* out, size_t layersize, size_
 }
 
 void apply_linked_ght_to_fits(fits *from, fits *to, ght_params *params, gboolean multithreaded) {
-	START_TIMER
 	g_assert(from);
 	g_assert(from->naxes[2] == 1 || from->naxes[2] == 3);
 	g_assert(from->type == to->type);
@@ -632,7 +631,6 @@ void apply_linked_ght_to_fits(fits *from, fits *to, ght_params *params, gboolean
 			apply_linked_ght_to_Wbuf_indep(from->data, to->data, npixels, from->naxes[2], params, multithreaded);
 		}
 	}
-	END_TIMER
 	invalidate_stats_from_fit(to);
 	return;
 }
