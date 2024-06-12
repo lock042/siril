@@ -1939,7 +1939,7 @@ void copy_roi_into_gfit() {
 		for (uint32_t c = 0 ; c < gui.roi.fit.naxes[2] ; c++) {
 			for (uint32_t y = 0; y < gui.roi.selection.h ; y++) {
 				const float *rowindex = gui.roi.fit.fdata + (y * gui.roi.fit.rx) + (c * npixels_roi);
-				float *destindex = gfit.fdata + (c * npixels_gfit) + ((gfit.ry - gui.roi.selection.y - y) * gfit.rx) + gui.roi.selection.x;
+				float *destindex = gfit.fdata + (c * npixels_gfit) + ((gfit.ry - gui.roi.selection.y - y - 1) * gfit.rx) + gui.roi.selection.x;
 				memcpy(destindex, rowindex, gui.roi.selection.w * sizeof(float));
 			}
 		}
@@ -1950,7 +1950,7 @@ void copy_roi_into_gfit() {
 		for (uint32_t c = 0 ; c < gui.roi.fit.naxes[2] ; c++) {
 			for (uint32_t y = 0; y < gui.roi.selection.h ; y++) {
 				const WORD *rowindex = gui.roi.fit.data + (y * gui.roi.fit.rx) + (c * npixels_roi);
-				WORD *destindex = gfit.data + (npixels_gfit * c) + ((gfit.ry - gui.roi.selection.y - y) * gfit.rx) + gui.roi.selection.x;
+				WORD *destindex = gfit.data + (npixels_gfit * c) + ((gfit.ry - gui.roi.selection.y - y - 1) * gfit.rx) + gui.roi.selection.x;
 				memcpy(destindex, rowindex, gui.roi.selection.w * sizeof(WORD));
 			}
 		}

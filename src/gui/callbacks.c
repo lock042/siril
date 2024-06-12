@@ -258,7 +258,7 @@ int populate_roi() {
 		gui.roi.fit.fpdata[2] = rgb? gui.roi.fit.fdata + 2 * npixels_roi : gui.roi.fit.fdata;
 		for (uint32_t c = 0 ; c < nchans ; c++) {
 			for (uint32_t y = 0; y < gui.roi.selection.h ; y++) {
-				float *srcindex = gfit.fdata + (npixels_gfit * c) + ((gfit.ry - y - gui.roi.selection.y) * gfit.rx) + gui.roi.selection.x;
+				float *srcindex = gfit.fdata + (npixels_gfit * c) + ((gfit.ry - y - (gui.roi.selection.y + 1)) * gfit.rx) + gui.roi.selection.x;
 				float *destindex = gui.roi.fit.fdata + (npixels_roi * c) + (gui.roi.fit.rx * y);
 				memcpy(destindex, srcindex, (gui.roi.selection.w) * sizeof(float));
 			}
@@ -272,7 +272,7 @@ int populate_roi() {
 		gui.roi.fit.pdata[2] = rgb? gui.roi.fit.data + 2 * npixels_roi : gui.roi.fit.data;
 		for (uint32_t c = 0 ; c < nchans ; c++) {
 			for (uint32_t y = 0; y < gui.roi.selection.h ; y++) {
-				WORD *srcindex = gfit.data + (npixels_gfit * c) + ((gfit.ry - y - gui.roi.selection.y) * gfit.rx) + gui.roi.selection.x;
+				WORD *srcindex = gfit.data + (npixels_gfit * c) + ((gfit.ry - y - (gui.roi.selection.y + 1)) * gfit.rx) + gui.roi.selection.x;
 				WORD *destindex = gui.roi.fit.data + (npixels_roi * c) + y * gui.roi.fit.rx;
 				memcpy(destindex, srcindex, gui.roi.selection.w * sizeof(WORD));
 			}
