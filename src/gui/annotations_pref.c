@@ -26,14 +26,14 @@
 static GtkListStore *list_store_catalogue = NULL;
 
 static gchar *astro_catalogue[] = {
-		"Messier Catalogue (M)",
-		"New General Catalogue (NGC)",
-		"Index Catalogue (IC)",
-		"Lynds Catalogue of Dark Nebulae (LdN)",
-		"Sharpless Catalogue (Sh2)",
-		"Star Catalogue",
-		"User Deep Sky Objects Catalogue",
-		"User Solar System Objects Catalogue"
+		N_("Messier Catalogue (M)"),
+		N_("New General Catalogue (NGC)"),
+		N_("Index Catalogue (IC)"),
+		N_("Lynds Catalogue of Dark Nebulae (LdN)"),
+		N_("Sharpless Catalogue (Sh2)"),
+		N_("Star Catalogue"),
+		N_("User Deep Sky Objects Catalogue"),
+		N_("User Solar System Objects Catalogue")
 };
 // update the size of gui_config.catalog if changed
 
