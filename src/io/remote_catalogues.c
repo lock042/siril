@@ -617,7 +617,7 @@ static gchar *download_catalog(siril_catalogue *siril_cat) {
 	siril_log_message(_("Contacting server\n"));
 	gsize length;
 	int fetch_url_error;
-	buffer = fetch_url(url, &length, &fetch_url_error);
+	buffer = fetch_url(url, &length, &fetch_url_error, FALSE);
 	g_free(url);
 
 	/* save (and parse if required)*/
@@ -823,7 +823,7 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 				break;
 			}
 			int fetch_url_error;
-			buffer = fetch_url(job_check, &length, &fetch_url_error);
+			buffer = fetch_url(job_check, &length, &fetch_url_error, FALSE);
 			if (fetch_url_error) {
 				g_free(buffer);
 				goto tap_error_and_cleanup;
@@ -853,7 +853,7 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 		// Retrieve the TAP+ query result
 		gchar *job_retrieval = g_strdup_printf("https://gea.esac.esa.int/tap-server/tap/async/%s/results/result", job_id);
 		int fetch_url_error;
-		gchar *buffer = fetch_url(job_retrieval, &length, &fetch_url_error);
+		gchar *buffer = fetch_url(job_retrieval, &length, &fetch_url_error, FALSE);
 		siril_debug_print("buffer length: %lu\n", length);
 		g_free(job_retrieval);
 
@@ -925,7 +925,7 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 
 		siril_debug_print("Datalink url: %s\n", datalink_url->str);
 		siril_log_message(_("Submitting spectral data request to ESA Gaia DR3 catalog. This may take several seconds to complete...\n"));
-		gchar *datalink_buffer = fetch_url(datalink_url->str, &length, &fetch_url_error);
+		gchar *datalink_buffer = fetch_url(datalink_url->str, &length, &fetch_url_error, FALSE);
 
 		siril_debug_print("datalink_buffer length: %lu\n", length);
 		g_string_free(datalink_url, TRUE);

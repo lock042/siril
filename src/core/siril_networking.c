@@ -36,8 +36,7 @@
 
 static gboolean online_status = TRUE;
 
-static const int DEFAULT_FETCH_RETRIES = 5;
-
+static const int DEFAULT_FETCH_RETRIES = 3;
 
 static size_t cbk_curl(void *buffer, size_t size, size_t nmemb, void *userp) {
 	size_t realsize = size * nmemb;
@@ -84,9 +83,10 @@ static CURL* initialize_curl(const gchar *url, struct ucontent *content, HttpReq
 	return curl;
 }
 
-static char* handle_curl_response(CURL *curl, struct ucontent *content, const gchar *url, int *retries, long *code) {
+static char* handle_curl_response(CURL *curl, struct ucontent *content, const gchar *url, int *retries, long *code, gboolean verbose) {
 	char *result = NULL;
 	unsigned int s;
+	int original_retries = min(1, *retries);
 	do {
 		content->data = calloc(1, 1);
 		if (content->data == NULL) {
@@ -101,36 +101,40 @@ static char* handle_curl_response(CURL *curl, struct ucontent *content, const gc
 					result = content->data;
 					break;
 				default:
-					g_fprintf(stderr, "Fetch failed with code %ld for URL %s\n", *code, url);
+					if (verbose)
+						g_fprintf(stderr, "Fetch failed with code %ld for URL %s\n", *code, url);
 					if (*retries) {
-						double progress = (DEFAULT_FETCH_RETRIES - *retries) / (double)DEFAULT_FETCH_RETRIES;
+						double progress = (original_retries - *retries) / (double)original_retries;
 						progress *= 0.4;
 						progress += 0.6;
-						s = 2 * (DEFAULT_FETCH_RETRIES - *retries) + 2;
-						char *msg = siril_log_message(_("Error: %ld. Wait %us before retry\n"), *code, s);
-						msg[strlen(msg) - 1] = 0;  // remove '\n' at the end
-						set_progress_bar_data(msg, progress);
+						s = 2 * (original_retries - *retries) + 2;
+						if (verbose) {
+							char *msg = siril_log_message(_("Error: %ld. Wait %us before retry\n"), *code, s);
+							msg[strlen(msg) - 1] = 0;  // remove '\n' at the end
+							set_progress_bar_data(msg, progress);
+						}
 						g_usleep(s * 1E6);
 						free(content->data);
 						content->data = NULL; // Must be NULL to avoid problems in the caller
+						result = NULL;
 						(*retries)--;
+						if (!(*retries) && verbose) {
+							siril_log_color_message(_("After %ld tries, Server unreachable or unresponsive (%s).\n"), "salmon", DEFAULT_FETCH_RETRIES, url);
+						}
 					}
 			}
 		} else {
-			siril_log_color_message(_("Cannot retrieve information from the update URL. Error: [%ld]\n"), "red", retval);
+			siril_log_color_message(_("URL retrieval failed. libcurl error: [%ld]\n"), "red", retval);
 		}
 	} while (*retries && !result && get_thread_run());
 
-	if (!(*retries)) {
-		siril_log_color_message(_("After %ld tries, Server unreachable or unresponsive (%s).\n"), "salmon", DEFAULT_FETCH_RETRIES, url);
-	}
 	return result;
 }
 
 gpointer fetch_url_async(gpointer p) {
 	fetch_url_async_data *args = (fetch_url_async_data *) p;
 	struct ucontent content = {NULL, 0};
-	int retries = DEFAULT_FETCH_RETRIES;
+	int retries = args->abort_on_fail ? 0 : DEFAULT_FETCH_RETRIES;
 	set_progress_bar_data(NULL, 0.1);
 	CURL *curl = initialize_curl(args->url, &content, HTTP_GET, NULL);
 	if (!curl) {
@@ -138,26 +142,21 @@ gpointer fetch_url_async(gpointer p) {
 		free(args);
 		return NULL;
 	}
-	long code;
-	char *result = handle_curl_response(curl, &content, args->url, &retries, &code);
+	char *result = handle_curl_response(curl, &content, args->url, &retries, &args->code, args->verbose);
 	curl_easy_cleanup(curl);
+	g_free(args->url);
+	args->url = NULL;
 	args->length = content.len;
 	args->content = result;
 	set_progress_bar_data(NULL, PROGRESS_DONE);
-	if (result) {
-		gdk_threads_add_idle(args->idle_function, args);
-	} else {
-		g_free(args->url);
-		free(args);
-		free(content.data);
-	}
+	siril_add_idle(args->idle_function, args);
 	return NULL;
 }
 
-char* fetch_url(const gchar *url, gsize *length, int *error) {
+char* fetch_url(const gchar *url, gsize *length, int *error, gboolean abort_on_fail) {
 	*error = 0;
 	struct ucontent content = {NULL, 0};
-	int retries = DEFAULT_FETCH_RETRIES;
+	int retries = abort_on_fail ? 0 : DEFAULT_FETCH_RETRIES;
 	set_progress_bar_data(NULL, 0.1);
 	CURL *curl = initialize_curl(url, &content, HTTP_GET, NULL);
 	if (!curl) {
@@ -165,7 +164,7 @@ char* fetch_url(const gchar *url, gsize *length, int *error) {
 		return NULL;
 	}
 	long code;
-	char *result = handle_curl_response(curl, &content, url, &retries, &code);
+	char *result = handle_curl_response(curl, &content, url, &retries, &code, (!abort_on_fail));
 	curl_easy_cleanup(curl);
 	*length = content.len;
 	if (!result || content.len == 0 || code != 200) {

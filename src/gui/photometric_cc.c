@@ -89,56 +89,63 @@ static gboolean end_gaiacheck_idle(gpointer p) {
 	gtk_widget_show(image);
 	fetch_url_async_data *args = (fetch_url_async_data *) p;
 	size_t retval;
-	if (args->content) {
-		retval = g_ascii_strtoull(args->content, NULL, 10);
+	gchar *text, *colortext;
+	if (args->code != 200) {
+		// status page is down
+		text = N_("The Gaia archive status indicator is not responding. This does not necessarily mean the Gaia archive is offline, however if it is then SPCC will be unavailable. Further information may be available at https://www.cosmos.esa.int/web/gaia/");
+		colortext = "salmon";
+		gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_yellow.svg");
 	} else {
-		retval = 5;
-	}
-	gchar *text;
-	gchar *colortext;
-	switch (retval) {
-		case 0:
-			text = N_("Gaia archive available");
-			colortext = "green";
-			gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_green.svg");
-			break;
-		case 1:
-			text = N_("Gaia archive running but performing slightly slower\n");
-			colortext = "green";
-			gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_green.svg");
-			break;
-		case 2:
-			text = N_("Gaia archive running but performing very slowly");
-			colortext = "salmon";
-			gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_yellow.svg");
-			break;
-		case 3:
-		case 4:
-			text = N_("Gaia archive unavailable");
-			gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_red.svg");
-			colortext = "red";
-			break;
-		case 5:
-			text = N_("Gaia archive unreachable");
-			gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_red.svg");
-			colortext = "red";
-			break;
+		if (args->content) {
+			retval = g_ascii_strtoull(args->content, NULL, 10);
+		} else {
+			retval = 5;
+		}
+		switch (retval) {
+			case 0:
+				text = N_("Gaia archive available");
+				colortext = "green";
+				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_green.svg");
+				break;
+			case 1:
+				text = N_("Gaia archive running but performing slightly slower\n");
+				colortext = "green";
+				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_green.svg");
+				break;
+			case 2:
+				text = N_("Gaia archive running but performing very slowly");
+				colortext = "salmon";
+				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_yellow.svg");
+				break;
+			case 3:
+			case 4:
+				text = N_("Gaia archive unavailable");
+				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_red.svg");
+				colortext = "red";
+				break;
+			case 5:
+				text = N_("Gaia archive unreachable");
+				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_red.svg");
+				colortext = "red";
+				break;
+		}
 	}
 	gtk_widget_show(image);
 	gtk_widget_set_tooltip_text(GTK_WIDGET(image), text);
 	siril_log_color_message("%s\n", colortext, text);
+
 	free(args->content);
-	g_free(args->url);
 	free(args);
 	stop_processing_thread();
-	return retval;
+	return FALSE;
 }
 
 static void check_gaia_archive_status() {
 	fetch_url_async_data *args = calloc(1, sizeof(fetch_url_async_data));
 	args->url = g_strdup("https://gaia.esac.esa.int/gaiastatus/latest_check_value.out");
 	args->idle_function = end_gaiacheck_idle;
-	g_thread_new("gaia-status-check", fetch_url_async, args);
+	args->abort_on_fail = TRUE;
+	g_thread_unref(g_thread_new("gaia-status-check", fetch_url_async, args));
 }
 
 static void start_photometric_cc(gboolean spcc) {

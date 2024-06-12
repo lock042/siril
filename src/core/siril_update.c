@@ -372,7 +372,7 @@ static gchar *check_version(gchar *version, gboolean *verbose, gchar **data) {
 			gchar *changelog_url = g_string_free(urlstring, FALSE);
 			gsize length;
 			int error;
-			changelog = fetch_url(changelog_url, &length, &error);
+			changelog = fetch_url(changelog_url, &length, &error, FALSE);
 			g_free(changelog_url);
 			if (error)
 				return NULL;
@@ -442,13 +442,12 @@ static gchar *check_update_version(fetch_url_async_data *args) {
 
 static gboolean end_update_idle(gpointer p) {
 	fetch_url_async_data *args = (fetch_url_async_data *) p;
-
-	check_update_version(args);
+	if (args->content)
+		check_update_version(args);
 
 	/* free data */
 	set_cursor_waiting(FALSE);
 	free(args->content);
-	g_free(args->url);
 	free(args);
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 	stop_processing_thread();
@@ -583,6 +582,8 @@ static int parseJsonNotificationsString(const gchar *jsonString, GSList **validN
 
 static gboolean end_notifier_idle(gpointer p) {
 	fetch_url_async_data *args = (fetch_url_async_data *) p;
+	if (!args->content)
+		goto end_notifier_idle_error;
 	GSList *validNotifications = NULL;
 
 	control_window_switch_to_tab(OUTPUT_LOGS);
@@ -608,10 +609,8 @@ static gboolean end_notifier_idle(gpointer p) {
 end_notifier_idle_error:
 
 	set_cursor_waiting(FALSE);
-
 	/* free data */
 	free(args->content);
-	g_free(args->url);
 	free(args);
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 	stop_processing_thread();

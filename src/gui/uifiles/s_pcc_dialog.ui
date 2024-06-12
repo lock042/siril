@@ -47,6 +47,7 @@
     <property name="valign">center</property>
     <property name="yalign">0.5</property>
     <property name="resource">/org/siril/ui/pixmaps/status_grey.svg</property>
+  </object>
   <object class="GtkAdjustment" id="adjustment_spcc_height">
     <property name="upper">5700</property>
     <property name="value">10</property>
