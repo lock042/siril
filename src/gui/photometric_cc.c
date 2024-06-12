@@ -90,6 +90,7 @@ static gboolean end_gaiacheck_idle(gpointer p) {
 	fetch_url_async_data *args = (fetch_url_async_data *) p;
 	size_t retval;
 	gchar *text, *colortext;
+	stop_processing_thread();
 	if (args->code != 200) {
 		// status page is down
 		text = N_("The Gaia archive status indicator is not responding. This does not necessarily mean the Gaia archive is offline, however if it is then SPCC will be unavailable. Further information may be available at https://www.cosmos.esa.int/web/gaia/");
@@ -136,7 +137,6 @@ static gboolean end_gaiacheck_idle(gpointer p) {
 
 	free(args->content);
 	free(args);
-	stop_processing_thread();
 	return FALSE;
 }
 

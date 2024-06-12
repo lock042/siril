@@ -620,7 +620,7 @@ end_notifier_idle_error:
 void siril_check_updates(gboolean verbose) {
 	fetch_url_async_data *args;
 
-	args = calloc(sizeof(fetch_url_async_data));
+	args = calloc(1, sizeof(fetch_url_async_data));
 	args->url = g_strdup(SIRIL_VERSIONS);
 	args->content = NULL;
 	args->verbose = verbose;
@@ -638,7 +638,7 @@ void siril_check_updates(gboolean verbose) {
 void siril_check_notifications(gboolean verbose) {
 	fetch_url_async_data *args;
 
-	args = calloc(sizeof(fetch_url_async_data));
+	args = calloc(1, sizeof(fetch_url_async_data));
 	GString *url = g_string_new(GITLAB_URL);
 	g_string_append_printf(url, "/%s/%s", BRANCH, SIRIL_NOTIFICATIONS);
 	args->url = g_string_free(url, FALSE);

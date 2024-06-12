@@ -70,11 +70,8 @@ xx/xx/xx
 * Added UI for conesearch and show commands (!680)
 * Added atmosphere model for SPCC (accounts for Rayleigh scattering) (!684)
 * Fixed a crash in ROI selection (#1320)
-<<<<<<< HEAD
-* Refactor networking code, add offline mode and add Gaia archive status indication (!687)
-=======
 * Optimised GHT code (~2x speedup) and fixed associated bugs (#1194, #1314, #1319)
->>>>>>> origin
+* Refactor networking code, add offline mode and add Gaia archive status indication (!687)
 
 siril 1.2.2
 xx/xx/24
