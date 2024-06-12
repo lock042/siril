@@ -125,6 +125,7 @@ static char* handle_curl_response(CURL *curl, struct ucontent *content, const gc
 			}
 		} else {
 			siril_log_color_message(_("URL retrieval failed. libcurl error: [%ld]\n"), "red", retval);
+			*retries = 0;
 		}
 	} while (*retries && !result && get_thread_run());
 
@@ -133,6 +134,7 @@ static char* handle_curl_response(CURL *curl, struct ucontent *content, const gc
 
 gpointer fetch_url_async(gpointer p) {
 	fetch_url_async_data *args = (fetch_url_async_data *) p;
+	g_assert(args->idle_function != NULL);
 	struct ucontent content = {NULL, 0};
 	int retries = args->abort_on_fail ? 0 : DEFAULT_FETCH_RETRIES;
 	set_progress_bar_data(NULL, 0.1);
@@ -161,11 +163,13 @@ char* fetch_url(const gchar *url, gsize *length, int *error, gboolean abort_on_f
 	CURL *curl = initialize_curl(url, &content, HTTP_GET, NULL);
 	if (!curl) {
 		*error = 1;
+		set_progress_bar_data(NULL, PROGRESS_DONE);
 		return NULL;
 	}
 	long code;
 	char *result = handle_curl_response(curl, &content, url, &retries, &code, (!abort_on_fail));
 	curl_easy_cleanup(curl);
+	set_progress_bar_data(NULL, PROGRESS_DONE);
 	*length = content.len;
 	if (!result || content.len == 0 || code != 200) {
 		free(content.data);

@@ -806,6 +806,7 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 		}
 
 		// Print job id
+		siril_debug_print("Gaia DR3 Job ID: %s\n", job_id);
 		if (job_id == NULL) {
 			siril_log_color_message(_("Job id not found in the response.\n"), "red");
 			goto tap_error_and_cleanup;
