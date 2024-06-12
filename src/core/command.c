@@ -2008,6 +2008,7 @@ int process_ght_args(int nb, gboolean ght_seq, int stretchtype, ght_params *para
 	gboolean do_red = TRUE;
 	gboolean do_green = TRUE;
 	gboolean do_blue = TRUE;
+	clip_mode_t clip_mode = RGBBLEND;
 	double D = NAN, B = 0.0 , LP = 0.0, SP = 0.0, HP = 1.0, BP = NAN;
 
 	for (int i = (ght_seq ? 2 : 1) ; i < nb ; i++) {
@@ -2034,6 +2035,21 @@ int process_ght_args(int nb, gboolean ght_seq, int stretchtype, ght_params *para
 		}
 		else if (!strcmp(arg, "GB")) {
 			do_red = FALSE;
+		}
+		else if (g_str_has_prefix(word[i], "-clipmode=")) {
+			char *argument = word[i] + 10;
+			if (!g_ascii_strncasecmp(argument, "clip", 4))
+				clip_mode = CLIP;
+			else if (!g_ascii_strncasecmp(argument, "rescale", 7))
+				clip_mode = RESCALE;
+			else if (!g_ascii_strncasecmp(argument, "globalrescale", 13))
+				clip_mode = RESCALEGLOBAL;
+			else if (!g_ascii_strncasecmp(argument, "rgbblend", 8))
+				clip_mode = RGBBLEND;
+			else {
+				siril_log_color_message(_("Error, unknown clip mode %s specified\n"), "red", argument);
+				return CMD_ARG_ERROR;
+			}
 		}
 		else if (g_str_has_prefix(word[i], "-prefix=")) {
 			if (ght_seq) {
@@ -2080,6 +2096,8 @@ int process_ght_args(int nb, gboolean ght_seq, int stretchtype, ght_params *para
 				if (stretchtype == STRETCH_PAYNE_NORMAL || stretchtype == STRETCH_PAYNE_INVERSE) {
 					arg += 3;
 					B = g_ascii_strtod(arg, &end);
+					if (fabsf(B) < 1.e-3f)
+						B = 0.f;
 				} else {
 					return CMD_ARG_ERROR;
 				}
@@ -2161,6 +2179,7 @@ int process_ght_args(int nb, gboolean ght_seq, int stretchtype, ght_params *para
 	params->do_red = do_red;
 	params->do_green = do_green;
 	params->do_blue = do_blue;
+	params->clip_mode = clip_mode;
 	return CMD_OK;
 }
 
@@ -2252,7 +2271,7 @@ int process_ghs(int nb, int stretchtype) {
 	}
 	image_cfa_warning_check();
 	if (params->payne_colourstretchmodel == COL_SAT)
-		apply_sat_ght_to_fits(&gfit, &gfit, params, TRUE);
+		apply_sat_ght_to_fits(&gfit, params, TRUE);
 	else
 		apply_linked_ght_to_fits(&gfit, &gfit, params, TRUE);
 	char log[100];
@@ -2394,6 +2413,7 @@ int process_linear_match(int nb) {
 
 int process_asinh(int nb) {
 	gboolean human_luminance = FALSE;
+	clip_mode_t clip_mode = RGBBLEND;
 	gchar *end;
 	int arg_offset = 1;
 	if (!strcmp(word[1], "-human")) {
@@ -2404,23 +2424,40 @@ int process_asinh(int nb) {
 		return CMD_WRONG_N_ARG;
 	double beta = g_ascii_strtod(word[arg_offset], &end);
 	if (end == word[arg_offset] || beta < 1.0) {
-		siril_log_message(_("Stretch must be greater than or equal to 1\n"));
+		siril_log_color_message(_("Stretch must be greater than or equal to 1\n"), "red");
 		return CMD_ARG_ERROR;
 	}
 	arg_offset++;
 
 	double offset = 0.0;
-	if (nb > arg_offset) {
-		offset = g_ascii_strtod(word[arg_offset], &end);
-		if (end == word[arg_offset]) {
-			siril_log_message(_("Invalid argument %s, aborting.\n"), word[arg_offset]);
-			return CMD_ARG_ERROR;
+	while (arg_offset < nb) {
+		if (g_str_has_prefix(word[arg_offset], "-clipmode=")) {
+			char *argument = word[arg_offset] + 10;
+			if (!g_ascii_strncasecmp(argument, "clip", 4))
+				clip_mode = CLIP;
+			else if (!g_ascii_strncasecmp(argument, "rescale", 7))
+				clip_mode = RESCALE;
+			else if (!g_ascii_strncasecmp(argument, "globalrescale", 13))
+				clip_mode = RESCALEGLOBAL;
+			else if (!g_ascii_strncasecmp(argument, "rgbblend", 8))
+				clip_mode = RGBBLEND;
+			else {
+				siril_log_color_message(_("Invalid clip mode %s, aborting.\n"), "red", argument);
+				return CMD_ARG_ERROR;
+			}
+		} else {
+			offset = g_ascii_strtod(word[arg_offset], &end);
+			if (end == word[arg_offset]) {
+				siril_log_color_message(_("Invalid argument %s, aborting.\n"), "red", word[arg_offset]);
+				return CMD_ARG_ERROR;
+			}
 		}
+		arg_offset++;
 	}
 
 	set_cursor_waiting(TRUE);
 	image_cfa_warning_check();
-	asinhlut(&gfit, beta, offset, human_luminance);
+	command_asinh(&gfit, beta, offset, human_luminance, clip_mode);
 
 	char log[90];
 	sprintf(log, "Asinh stretch (amount: %.1f, offset: %.1f, human: %s)", beta, offset, human_luminance ? "yes" : "no");
@@ -2916,6 +2953,7 @@ int process_mtf(int nb) {
 int process_autoghs(int nb) {
 	int argidx = 1;
 	gboolean linked = FALSE;
+	clip_mode_t clip_mode = RGBBLEND;
 	float shadows_clipping, b = 13.0f, hp = 0.7f, lp = 0.0f;
 
 	if (!g_strcmp0(word[1], "-linked")) {
@@ -2942,6 +2980,8 @@ int process_autoghs(int nb) {
 		if (g_str_has_prefix(word[argidx], "-b=")) {
 			char *arg = word[argidx] + 3;
 			b = g_ascii_strtod(arg, &end);
+			if (fabsf(b) < 1.e-3f)
+				b = 0.f;
 			if (arg == end || b < -5.0f || b > 15.0f) {
 				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
 				return CMD_ARG_ERROR;
@@ -2960,6 +3000,21 @@ int process_autoghs(int nb) {
 			lp = g_ascii_strtod(arg, &end);
 			if (arg == end || lp < 0.0f || lp > 1.0f) {
 				siril_log_message(_("Invalid argument %s, aborting.\n"), word[argidx]);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(word[argidx], "-clipmode=")) {
+			char *argument = word[argidx] + 10;
+			if (!g_ascii_strncasecmp(argument, "clip", 4))
+				clip_mode = CLIP;
+			else if (!g_ascii_strncasecmp(argument, "rescale", 7))
+				clip_mode = RESCALE;
+			else if (!g_ascii_strncasecmp(argument, "globalrescale", 13))
+				clip_mode = RESCALEGLOBAL;
+			else if (!g_ascii_strncasecmp(argument, "rgbblend", 8))
+				clip_mode = RGBBLEND;
+			else {
+				siril_log_color_message(_("Error, unknown clip mode %s specified\n"), "red", argument);
 				return CMD_ARG_ERROR;
 			}
 		}
@@ -2991,14 +3046,13 @@ int process_autoghs(int nb) {
 		siril_log_message(_("Symmetry point SP=%f\n"), SP);
 
 		ght_params params = { .B = b, .D = amount, .LP = lp, .SP = SP, .HP = hp,
-			.BP = 0.0, STRETCH_PAYNE_NORMAL, COL_INDEP, TRUE, TRUE, TRUE };
+			.BP = 0.0, STRETCH_PAYNE_NORMAL, COL_INDEP, TRUE, TRUE, TRUE, clip_mode };
 		apply_linked_ght_to_fits(&gfit, &gfit, &params, TRUE);
 	} else {
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) if(nb_channels > 1)
 #endif
 		for (int i = 0; i < nb_channels; ++i) {
-			gboolean do_red = i == 0, do_green = i == 1, do_blue = i == 2;
 			if (stats[i]) {
 				float SP = stats[i]->median + shadows_clipping * stats[i]->sigma;
 				if (gfit.type == DATA_USHORT)
@@ -3006,8 +3060,8 @@ int process_autoghs(int nb) {
 				siril_log_message(_("Symmetry point for channel %d: SP=%f\n"), i, SP);
 
 				ght_params params = { .B = b, .D = amount, .LP = lp, .SP = SP, .HP = hp,
-					.BP = 0.0, STRETCH_PAYNE_NORMAL, COL_INDEP, do_red, do_green, do_blue};
-				apply_linked_ght_to_fits(&gfit, &gfit, &params, TRUE);
+					.BP = 0.0, STRETCH_PAYNE_NORMAL, COL_INDEP, TRUE, TRUE, TRUE};
+				apply_ght_to_fits_channel(&gfit, &gfit, i, &params, TRUE);
 
 				free_stats(stats[i]);
 			}

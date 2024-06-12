@@ -69,6 +69,7 @@ xx/xx/xx
 * Added a new keyword FILENAME to save the original filename after conversion. (!678)
 * Added UI for conesearch and show commands (!680)
 * Fixed a crash in ROI selection (#1320)
+* Optimised GHT code (~2x speedup) and fixed associated bugs (#1194, #1314, #1319)
 
 siril 1.2.2
 xx/xx/24

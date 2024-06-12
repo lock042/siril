@@ -54,13 +54,14 @@
  * separately. That is useful for display purposes, but not currently used.
  */
 
-// Type of invocation - HISTO_STRETCH or GHT_STRETCH (maybe others in future?)
+// Type of invocation - HISTO_STRETCH or GHT_STRETCH
 static int invocation = NO_STRETCH_SET_YET;
 
 static gboolean closing = FALSE;
 static gboolean sequence_working = FALSE;
 // Parameters for use in calculations
 static float _B = 0.5f, _D = 0.0f, _BP = 0.0f, _LP = 0.0f, _SP = 0.0f, _HP = 1.0f;
+static clip_mode_t _clip_mode = RGBBLEND;
 static gboolean do_channel[3];
 static int _stretchtype = STRETCH_PAYNE_NORMAL;
 static int _payne_colourstretchmodel = COL_INDEP;
@@ -252,7 +253,7 @@ static void histo_recompute() {
 		apply_linked_mtf_to_fits(fit, fit, params, TRUE);
 	// com.layers_hist should be good, update_histo_mtf() is always called before
 	} else if (invocation == GHT_STRETCH) {
-		struct ght_params params_ght = { .B = _B, .D = _D, .LP = (float) _LP, .SP = (float) _SP, .HP = (float) _HP, .BP = _BP, .stretchtype = _stretchtype, .payne_colourstretchmodel = _payne_colourstretchmodel, do_channel[0], do_channel[1], do_channel[2] };
+		struct ght_params params_ght = { .B = _B, .D = _D, .LP = (float) _LP, .SP = (float) _SP, .HP = (float) _HP, .BP = _BP, .stretchtype = _stretchtype, .payne_colourstretchmodel = _payne_colourstretchmodel, .do_red = do_channel[0], .do_green = do_channel[1], .do_blue = do_channel[2], .clip_mode = _clip_mode };
 		if (_payne_colourstretchmodel == COL_SAT) {
 			apply_linked_ght_to_fbuf_indep(satbuf_orig, satbuf_working, fit->rx * fit->ry, 1, &params_ght, TRUE);
 			hsl_to_gfit(huebuf, satbuf_working, lumbuf);
@@ -989,7 +990,7 @@ static int ght_image_hook(struct generic_seq_args *args, int o, int i, fits *fit
 		rectangle *_, int threads) {
 	struct ght_data *m_args = (struct ght_data*) args->user;
 	if (m_args->params_ght->payne_colourstretchmodel == COL_SAT)
-		apply_sat_ght_to_fits(fit, fit, m_args->params_ght, FALSE);
+		apply_sat_ght_to_fits(fit, m_args->params_ght, FALSE);
 	else
 		apply_linked_ght_to_fits(fit, fit, m_args->params_ght, FALSE);
 	return 0;
@@ -1336,6 +1337,7 @@ void setup_histo_dialog() {
 			// Make visible the UI elements required by histogram stretch
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("histoToolAutoStretch")), TRUE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("grid32")), TRUE);
+			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("histo_clip_settings")), FALSE); // MTF linked stretch cannot clip anyway
 
 			//Force dialog size to size of visible widgets only
 			gtk_window_resize(GTK_WINDOW(lookup_widget("histogram_dialog")),1,1);
@@ -1349,6 +1351,7 @@ void setup_ght_dialog() {
 			// Make visible and configure the GHT controls
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("box_ghtcontrols")), TRUE);
 			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("eyedropper_button")), TRUE);
+			gtk_widget_set_visible(GTK_WIDGET(lookup_widget("histo_clip_settings")), (gfit.naxes[2] == 3));
 			GtkWidget *w;
 			if (com.pref.gui.combo_theme == 0) {
 				w = gtk_image_new_from_resource("/org/siril/ui/pixmaps/eyedropper_dark.svg");
@@ -1646,6 +1649,10 @@ void on_spin_ghtD_value_changed(GtkSpinButton *button, gpointer user_data) {
 
 void on_spin_ghtB_value_changed(GtkSpinButton *button, gpointer user_data) {
 	_B = (float) gtk_spin_button_get_value(button);
+	if (fabsf(_B) < 1.e-3f) {
+		_B = 0.f;
+		gtk_spin_button_set_value(button, 0.f);
+	}
 	update_histo_mtf();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = histo_update_preview;
@@ -1759,6 +1766,16 @@ void on_spin_ghtBP_value_changed(GtkSpinButton *button, gpointer user_data) {
 		param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckPreview")));
 		notify_update((gpointer) param);
 	}
+}
+
+void on_histo_clip_mode_changed(GtkComboBox *combo, gpointer user_data) {
+	_clip_mode = (clip_mode_t) gtk_combo_box_get_active(combo);
+	update_histo_mtf();
+	queue_window_redraw();
+	update_image *param = malloc(sizeof(update_image));
+	param->update_preview_fn = histo_update_preview;
+	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckPreview")));
+	notify_update((gpointer) param);
 }
 
 void on_payneType_changed(GtkComboBox *combo, gpointer user_data) {
