@@ -52,6 +52,7 @@
 // 2 if called from Siril menu
 static int invocation = 0;
 
+static clip_mode_t clip_mode = RGBBLEND;
 static float leftD = 0.0f, rightD = 0.0f;
 static float leftB = 0.0f, rightB = 0.0f;
 static float leftLP = 0.0f, rightLP = 0.0f;
@@ -258,7 +259,7 @@ gboolean redraw_remix_histo_right(GtkWidget *widget, cairo_t *cr, gpointer data)
 static void update_remix_histo_left() {
 	if (!remix_histlayers_left[0]) return;
 	float norm = (float)gsl_histogram_bins(remix_histlayers_left[0]) - 1;
-	params_histo_left = (ght_params) { leftB, leftD, leftLP, leftSP, leftHP, leftBP, type_left, colour_left, TRUE, TRUE, TRUE };
+	params_histo_left = (ght_params) { leftB, leftD, leftLP, leftSP, leftHP, leftBP, type_left, colour_left, TRUE, TRUE, TRUE, clip_mode };
 
 	GHTsetup(&cp_histo_left, params_histo_left.B, params_histo_left.D, params_histo_left.LP, params_histo_left.SP, params_histo_left.HP, params_histo_left.stretchtype);
 	for (size_t i = 0; i < fit_left.naxes[2]; i++) {
@@ -277,7 +278,7 @@ static void update_remix_histo_left() {
 static void update_remix_histo_right() {
 	if (!remix_histlayers_right[0]) return;
 	float norm = (float)gsl_histogram_bins(remix_histlayers_right[0]) - 1;
-	params_histo_right = (ght_params) { rightB, rightD, rightLP, rightSP, rightHP, rightBP, type_right, colour_right, TRUE, TRUE, TRUE };
+	params_histo_right = (ght_params) { rightB, rightD, rightLP, rightSP, rightHP, rightBP, type_right, colour_right, TRUE, TRUE, TRUE, clip_mode };
 
 	int nlayers = fit_right.naxes[2];
 	GHTsetup(&cp_histo_right, params_histo_right.B, params_histo_right.D, params_histo_right.LP, params_histo_right.SP, params_histo_right.HP, params_histo_right.stretchtype);
@@ -471,8 +472,8 @@ int remixer() {
 	if(!permit_calculation)
 		return 1;
 
-	params_left = (ght_params) { leftB, leftD, leftLP, leftSP, leftHP, leftBP, type_left, colour_left, TRUE, TRUE, TRUE };
-	params_right = (ght_params) { rightB, rightD, rightLP, rightSP, rightHP, rightBP, type_right, colour_right, TRUE, TRUE, TRUE };
+	params_left = (ght_params) { leftB, leftD, leftLP, leftSP, leftHP, leftBP, type_left, colour_left, TRUE, TRUE, TRUE, clip_mode };
+	params_right = (ght_params) { rightB, rightD, rightLP, rightSP, rightHP, rightBP, type_right, colour_right, TRUE, TRUE, TRUE, clip_mode };
 
 	// Process left image
 	if (left_loaded && (left_changed || leftBP_changed)) {
@@ -795,7 +796,8 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 			gfit.keywords.stackcnt = fit_left.keywords.stackcnt;
 			gfit.keywords.livetime = fit_left.keywords.livetime;
 			initialise_image();
-
+			GtkWidget *clip = lookup_widget("remixer_clip_mode_settings");
+			gtk_widget_set_visible(clip, (fit_left.naxes[2] == 3));
 			gtk_widget_set_visible(lookup_widget("remix_filechooser_left"), FALSE);
 			gtk_widget_set_visible(lookup_widget("remix_filechooser_right"), FALSE);
 			update_image *param = malloc(sizeof(update_image));
@@ -922,6 +924,10 @@ void on_spin_remix_D_right_value_changed(GtkSpinButton *button, gpointer user_da
 void on_spin_remix_B_left_value_changed(GtkSpinButton *button, gpointer user_data) {
 	left_changed = TRUE;
 	leftB = (float) gtk_spin_button_get_value(button);
+	if (fabsf(leftB) < 1.e-3f) {
+		leftB = 0.f;
+		gtk_spin_button_set_value(button, 0.f);
+	}
 	update_remix_histo_left();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
@@ -931,7 +937,10 @@ void on_spin_remix_B_left_value_changed(GtkSpinButton *button, gpointer user_dat
 void on_spin_remix_B_right_value_changed(GtkSpinButton *button, gpointer user_data) {
 	right_changed = TRUE;
 	rightB = (float) gtk_spin_button_get_value(button);
-	update_remix_histo_right();
+	if (fabsf(rightB) < 1.e-3f) {
+		rightB = 0.f;
+		gtk_spin_button_set_value(button, 0.f);
+	}	update_remix_histo_right();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = remixer_update_preview;
 	param->show_preview = TRUE;
@@ -1193,6 +1202,8 @@ void on_remix_filechooser_left_file_set(GtkFileChooser *filechooser, gpointer us
 		copyfits(&fit_left, &fit_right_calc, (CP_ALLOC | CP_INIT | CP_FORMAT), 0);
 	}
 	remix_histo_startup_left();
+	GtkWidget *clip = lookup_widget("remixer_clip_mode_settings");
+	gtk_widget_set_visible(clip, (fit_left.naxes[2] == 3));
 	if (left_loaded || right_loaded)
 		permit_calculation = TRUE;
 	else
@@ -1288,6 +1299,8 @@ void on_remix_filechooser_right_file_set(GtkFileChooser *filechooser, gpointer u
 		copyfits(&fit_right, &fit_left_calc, (CP_ALLOC | CP_INIT | CP_FORMAT), 0);
 	}
 	remix_histo_startup_right();
+	GtkWidget *clip = lookup_widget("remixer_clip_mode_settings");
+	gtk_widget_set_visible(clip, (fit_right.naxes[2] == 3));
 	if (left_loaded || right_loaded)
 		permit_calculation = TRUE;
 	else
@@ -1450,4 +1463,16 @@ void on_remixer_help_okay_clicked(GtkButton *button, gpointer user_data) {
 
 void on_remix_histos_button_clicked(GtkButton *button, gpointer user_data) {
 	siril_open_dialog("remixer_histos");
+}
+
+void on_remixer_clipmode_changed(GtkComboBox *combo, gpointer user_data) {
+	left_changed = TRUE;
+	right_changed = TRUE;
+	clip_mode = (clip_mode_t) gtk_combo_box_get_active(combo);
+	update_remix_histo_left();
+	update_remix_histo_right();
+	update_image *param = malloc(sizeof(update_image));
+	param->update_preview_fn = remixer_update_preview;
+	param->show_preview = TRUE;
+	notify_update((gpointer) param);
 }

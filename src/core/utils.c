@@ -121,9 +121,15 @@ BYTE roundf_to_BYTE(float f) {
  * @return a truncated and rounded WORD
  */
 WORD roundf_to_WORD(float f) {
-	if (f < 0.5f) return 0;
-	if (f >= USHRT_MAX - 0.5f) return USHRT_MAX;
-	return (WORD)(f + 0.5f);
+	WORD retval;
+	if (f < 0.5f) {
+		retval = 0;
+	} else if (f >= USHRT_MAX - 0.5f) {
+		retval = USHRT_MAX;
+	} else {
+		retval = (WORD)(f + 0.5f);
+	}
+	return retval;
 }
 
 /**

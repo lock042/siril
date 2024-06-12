@@ -9,6 +9,8 @@
 // SPCC functions
 void init_spcc_filters();
 xpsampled init_xpsampled();
+double compute_airmass(double z);
+void fill_xpsampled_from_atmos_model(xpsampled *out, struct photometric_cc_data *args);
 void init_xpsampled_from_library(xpsampled *out, spcc_object *in);
 void multiply_xpsampled(xpsampled *result, const xpsampled *a, const xpsampled *b);
 void multiply_xpsampled_scalar(xpsampled *a, const float b);

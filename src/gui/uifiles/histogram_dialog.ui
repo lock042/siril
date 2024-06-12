@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019-2023
 
@@ -734,16 +734,66 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkCheckButton" id="HistoCheckPreview">
-                    <property name="label" translatable="yes">Preview</property>
+                  <object class="GtkBox" id="histo_clip_settings">
                     <property name="visible">True</property>
-                    <property name="can-focus">True</property>
-                    <property name="receives-default">False</property>
-                    <property name="tooltip-text" translatable="yes">Toggle preview on / off</property>
-                    <property name="halign">start</property>
-                    <property name="active">True</property>
-                    <property name="draw-indicator">True</property>
-                    <signal name="toggled" handler="on_histo_preview_toggled" swapped="no"/>
+                    <property name="can-focus">False</property>
+                    <property name="spacing">6</property>
+                    <property name="homogeneous">True</property>
+                    <child>
+                      <object class="GtkCheckButton" id="HistoCheckPreview">
+                        <property name="label" translatable="yes">Preview</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">Toggle preview on / off</property>
+                        <property name="halign">start</property>
+                        <property name="active">True</property>
+                        <property name="draw-indicator">True</property>
+                        <signal name="toggled" handler="on_histo_preview_toggled" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">end</property>
+                        <property name="label" translatable="yes">Clip mode:</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkComboBoxText" id="histo_clip_mode">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-markup" translatable="yes">Select blend mode.
+Clip: clips values to the range 0.0 - 1.0
+Rescale: rescales RGB values of clipped pixels to not exceed 1.0 per pixel
+RGB blend: applies a blending function for smooth reconstructed highlight colors. &lt;b&gt;Default&lt;/b&gt;
+Globa rescale: Same as Rescale, but rescales to the global maximum component value</property>
+                        <property name="active">2</property>
+                        <items>
+                          <item translatable="yes">Clip</item>
+                          <item translatable="yes">Rescale</item>
+                          <item translatable="yes">RGB Blend</item>
+                          <item translatable="yes">Global rescale</item>
+                        </items>
+                        <signal name="changed" handler="on_histo_clip_mode_changed" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">2</property>
+                      </packing>
+                    </child>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -1355,5 +1405,4 @@ Note: human-weighted luminance is not allowed if less than 3 colour channels are
       </object>
     </child>
   </object>
-
 </interface>

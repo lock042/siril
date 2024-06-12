@@ -19,6 +19,7 @@ typedef struct ght_params {
 	float B, D, LP, SP, HP, BP;
 	int stretchtype, payne_colourstretchmodel;
 	gboolean do_red, do_green, do_blue;
+	clip_mode_t clip_mode;
 } ght_params;
 
 typedef struct ght_compute_params {
@@ -26,11 +27,11 @@ typedef struct ght_compute_params {
 } ght_compute_params;
 
 int GHTsetup(ght_compute_params* compute_params, float B, float D, float LP, float SP, float HP, int stretchtype);
-
-float GHT(float in, float B, float D, float LP, float SP, float HP, float BP, int stretchtype, const ght_compute_params *compute_params);
+float GHT(float in, float B, float D, float LP, float SP, float HP, float BP, int stretchtype, const ght_compute_params *c);
 float GHTp(float in, const ght_params *params, const ght_compute_params *compute_params);
 void apply_linked_ght_to_fits(fits *from, fits *to, ght_params *params, gboolean multithreaded);
-void apply_sat_ght_to_fits(fits *from, fits *to, ght_params *params, gboolean multithreaded);
+void apply_sat_ght_to_fits(fits *fit, ght_params *params, gboolean multithreaded);
 void apply_linked_ght_to_fbuf_indep(float* in, float* out, size_t layersize, size_t nchans, ght_params *params, gboolean multithreaded);
-
+void apply_linked_ght_to_Wbuf_indep(WORD* in, WORD* out, size_t layersize, size_t nchans, ght_params *params, gboolean multithreaded);
+void apply_ght_to_fits_channel(fits *from, fits *to, int channel, ght_params *params, gboolean multithreaded);
 #endif
