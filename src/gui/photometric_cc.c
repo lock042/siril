@@ -81,7 +81,6 @@ void on_S_PCC_Mag_Limit_toggled(GtkToggleButton *button, gpointer user) {
 	gtk_widget_set_sensitive(spinmag, !gtk_toggle_button_get_active(button));
 }
 
-
 static void start_photometric_cc(gboolean spcc) {
 	GtkToggleButton *auto_bkg = GTK_TOGGLE_BUTTON(lookup_widget("button_cc_bkg_auto"));
 
@@ -241,6 +240,8 @@ void initialize_spectrophotometric_cc_dialog() {
 	spcc_nb_controls = lookup_widget("spcc_nb_controls");
 	spcc_toggle_nb = lookup_widget("spcc_toggle_nb");
 	monoselector = GTK_SWITCH(lookup_widget("spcc_sensor_switch"));
+	GtkWidget *spcc_airmass_entry = lookup_widget("spcc_airmass_entry");
+	GtkSpinButton *spcc_height = GTK_SPIN_BUTTON(lookup_widget("spcc_height"));
 
 	parent = GTK_WINDOW(lookup_widget("s_pcc_dialog"));
 
@@ -274,6 +275,33 @@ void initialize_spectrophotometric_cc_dialog() {
 	gtk_adjustment_set_value(selection_cc_black_adjustment[1], 0);
 	gtk_adjustment_set_value(selection_cc_black_adjustment[2], 0);
 	gtk_adjustment_set_value(selection_cc_black_adjustment[3], 0);
+
+	gchar *tooltip = NULL;
+	double airmass, centalt = gfit.keywords.centalt, height = gfit.keywords.siteelev;
+	if (gfit.keywords.airmass > 0.0) {
+		airmass = gfit.keywords.airmass;
+		tooltip = g_strdup(N_("Airmass read from FITS header AIRMASS card"));
+	} else if (centalt > 0.0 && centalt < 90.0) {
+		airmass = compute_airmass(90.0 - centalt);
+		tooltip = g_strdup(N_("Airmass computed from FITS header CENTALT card"));
+	} else {
+		airmass = compute_airmass(41.9);
+		tooltip = g_strdup(N_("No airmass data available or computable. Estimating airmass based on average observation height of 48.1°"));
+	}
+	if (height != DEFAULT_DOUBLE_VALUE) {
+		gtk_spin_button_set_value(spcc_height, height);
+		gtk_widget_set_tooltip_text(GTK_WIDGET(spcc_height), N_("Observer height read from FITS header SITEELEV card"));
+		gtk_widget_set_sensitive(GTK_WIDGET(spcc_height), FALSE);
+	} else {
+		gtk_spin_button_set_value(spcc_height, 10.0);
+		gtk_widget_set_tooltip_text(GTK_WIDGET(spcc_height), "");
+		gtk_widget_set_sensitive(GTK_WIDGET(spcc_height), TRUE);
+	}
+	gchar *txt = g_strdup_printf("%.3f", airmass);
+	gtk_entry_set_text(GTK_ENTRY(spcc_airmass_entry), txt);
+	gtk_widget_set_tooltip_text(spcc_airmass_entry, tooltip);
+	g_free(txt);
+	g_free(tooltip);
 
 	populate_spcc_combos();
 	on_combophoto_catalog_changed(GTK_COMBO_BOX(catalog_box_pcc), NULL);
@@ -394,7 +422,15 @@ static int set_spcc_args(struct photometric_cc_data *args) {
 	GtkWidget *nb_r_bw = lookup_widget("spcc_nb_r_bw");
 	GtkWidget *nb_g_bw = lookup_widget("spcc_nb_g_bw");
 	GtkWidget *nb_b_bw = lookup_widget("spcc_nb_b_bw");
+	GtkWidget *spcc_atmos_corr = lookup_widget("spcc_atmos_corr");
+	GtkWidget *spcc_height = lookup_widget("spcc_height");
+	GtkWidget *spcc_pressure = lookup_widget("spcc_pressure");
+	GtkWidget *spcc_pressure_is_slp = lookup_widget("spcc_pressure_is_slp");
 
+	args->atmos_corr = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(spcc_atmos_corr));
+	args->atmos_obs_height = gtk_spin_button_get_value(GTK_SPIN_BUTTON(spcc_height));
+	args->atmos_pressure = gtk_spin_button_get_value(GTK_SPIN_BUTTON(spcc_pressure));
+	args->atmos_pressure_is_slp = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(spcc_pressure_is_slp));
 	args->spcc_mono_sensor = gtk_switch_get_active(GTK_SWITCH(mono_sensor_check));
 	args->selected_white_ref = gtk_combo_box_get_active(GTK_COMBO_BOX(whiteref));
 	args->selected_sensor_m = gtk_combo_box_get_active(GTK_COMBO_BOX(monosensor));
@@ -727,6 +763,8 @@ void on_spcc_plot_all_clicked(GtkButton *button, gpointer user_data) {
 	siril_plot_set_savename(spl_data, "SPCC_data");
 	siril_plot_set_title(spl_data, _("SPCC Data"));
 	siril_plot_set_ylabel(spl_data, _("Quantum Efficiency / Transmittance / Rel. Photon Count"));
+
+	int i = 0;
 	if (args.spcc_mono_sensor) {
 		spcc_object *sensor = NULL, *filter_r = NULL, *filter_g = NULL, *filter_b = NULL, *whiteref = NULL;
 		if (args.selected_sensor_m >= 0 && args.selected_sensor_m < g_list_length (sensor_list))
@@ -739,28 +777,21 @@ void on_spcc_plot_all_clicked(GtkButton *button, gpointer user_data) {
 			filter_b = (spcc_object*) g_list_nth(filter_list_b, args.selected_filter_b)->data;
 		if (args.selected_white_ref >= 0 && args.selected_white_ref < g_list_length (whiteref_list))
 			whiteref = (spcc_object*) g_list_nth(whiteref_list, args.selected_white_ref)->data;
-		spcc_object* structs[5] = {  whiteref, sensor, filter_r, filter_g, filter_b };
-		for (int i = 0 ; i <5 ; i++) {
-			if (structs[i]) {
-				load_spcc_object_arrays(structs[i]);
-				if (structs[i] == whiteref)
-					normalize_y(structs[i], 400, 700);
-				gchar *spl_legend = g_strdup(structs[i]->name);
-				siril_plot_add_xydata(spl_data, spl_legend, structs[i]->n, structs[i]->x, structs[i]->y, NULL, NULL);
-				siril_plot_set_nth_color(spl_data, i+1, (double[3]){(double) (i == 2), (double) ((i == 3) + ((i == 1) * 0.5)), (double) ((i == 4) + ((i == 1) * 0.5)) });
-				g_free(spl_legend);
-				spcc_object_free_arrays(structs[i]);
-			}
+		// there must not be any NULL spcc_object*s with non-NULL ones after them
+		// (these should all be populated anyway)
+		spcc_object* structs[6] = {  whiteref, sensor, filter_r, filter_g, filter_b, NULL };
+		while (structs[i]) {
+			load_spcc_object_arrays(structs[i]);
+			if (structs[i] == whiteref)
+				normalize_y(structs[i], 400, 700);
+			gchar *spl_legend = g_strdup(structs[i]->name);
+			siril_plot_add_xydata(spl_data, spl_legend, structs[i]->n, structs[i]->x, structs[i]->y, NULL, NULL);
+			siril_plot_set_nth_color(spl_data, i+1, (double[3]){(double) (i == 2), (double) ((i == 3) + ((i == 1) * 0.5)), (double) ((i == 4) + ((i == 1) * 0.5)) });
+			g_free(spl_legend);
+			spcc_object_free_arrays(structs[i]);
+			i++;
 		}
 	} else {
-		gboolean is_dslr;
-		GList *osc = g_list_nth(com.spcc_data.osc_sensors, gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_spcc_sensors_osc"))));
-		if (osc) {
-			osc_sensor *oscsensor = (osc_sensor*) osc->data;
-			is_dslr = oscsensor->channel[0].is_dslr;
-		} else {
-			is_dslr = com.pref.spcc.is_dslr;
-		}
 		spcc_object *sensor_r = NULL, *sensor_g = NULL, *sensor_b = NULL, *filter_osc = NULL, *filter_lpf = NULL, *whiteref = NULL;
 		if (args.selected_sensor_osc >= 0 && args.selected_sensor_osc < g_list_length (sensor_list)) {
 			osc_sensor *osc = (osc_sensor*) g_list_nth(sensor_list, args.selected_sensor_osc)->data;
@@ -774,20 +805,28 @@ void on_spcc_plot_all_clicked(GtkButton *button, gpointer user_data) {
 			filter_lpf = (spcc_object*) g_list_nth(filter_list_lpf, args.selected_filter_lpf)->data;
 		if (args.selected_white_ref >= 0 && args.selected_white_ref < g_list_length (whiteref_list))
 			whiteref = (spcc_object*) g_list_nth(whiteref_list, args.selected_white_ref)->data;
-		spcc_object* structs[6] = { whiteref, sensor_r, sensor_g, sensor_b, filter_osc, filter_lpf };
-		int max_plot = is_dslr ? 6 : 5;
-		for (int i = 0 ; i < max_plot ; i++) {
-			if (structs[i]) {
-				load_spcc_object_arrays(structs[i]);
-				if (structs[i] == whiteref)
-					normalize_y(structs[i], 400, 700);
-				gchar *spl_legend = g_strdup(structs[i]->name);
-				siril_plot_add_xydata(spl_data, spl_legend, structs[i]->n, structs[i]->x, structs[i]->y, NULL, NULL);
-				siril_plot_set_nth_color(spl_data, i+1, (double[3]){(double) (i == 1 || i == 4), (double) ((i == 2) + ((i == 5) * 0.5)), (double) ((i == 3 || i == 4) + ((i == 5) * 0.5)) });
-				g_free(spl_legend);
-				spcc_object_free_arrays(structs[i]);
-			}
+		// there must not be any NULL spcc_object*s with non-NULL ones after them
+		spcc_object* structs[7] = { whiteref, sensor_r, sensor_g, sensor_b, filter_osc, filter_lpf, NULL };
+		while (structs[i]) {
+			load_spcc_object_arrays(structs[i]);
+			if (structs[i] == whiteref)
+				normalize_y(structs[i], 400, 700);
+			gchar *spl_legend = g_strdup(structs[i]->name);
+			siril_plot_add_xydata(spl_data, spl_legend, structs[i]->n, structs[i]->x, structs[i]->y, NULL, NULL);
+			siril_plot_set_nth_color(spl_data, i+1, (double[3]){(double) (i == 1 || i == 4), (double) ((i == 2) + ((i == 5) * 0.5)), (double) ((i == 3 || i == 4) + ((i == 5) * 0.5)) });
+			g_free(spl_legend);
+			spcc_object_free_arrays(structs[i]);
+			i++;
 		}
+	}
+	if (args.atmos_corr) {
+		if (!args.fit) args.fit = &gfit;
+		xpsampled atmos = init_xpsampled();
+		fill_xpsampled_from_atmos_model(&atmos, &args);
+		gchar *spl_legend = g_strdup(_("Atmosphere model"));
+		siril_plot_add_xydata(spl_data, spl_legend, XPSAMPLED_LEN, atmos.x, atmos.y, NULL, NULL);
+		siril_plot_set_nth_color(spl_data, i, (double[3]){ 0.67, 0.67, 1.0 } );
+		g_free(spl_legend);
 	}
 	spl_data->datamin.x = MIN_PLOT;
 	spl_data->datamax.x = MAX_PLOT;
@@ -956,4 +995,35 @@ void on_nb_spin_changed(GtkSpinButton *button, gpointer user_data) {
 	} else if (button == GTK_SPIN_BUTTON(lookup_widget("spcc_nb_b_bw"))) {
 		com.pref.spcc.blue_bw = gtk_spin_button_get_value(button);
 	}
+}
+
+void on_spcc_atmos_corr_toggled(GtkToggleButton *button, gpointer user_data) {
+	gtk_expander_set_expanded(GTK_EXPANDER(lookup_widget("spcc_atmos_widgets")), gtk_toggle_button_get_active(button));
+}
+
+void on_spcc_plot_atmos_clicked(GtkButton* button, gpointer user_data) {
+	siril_plot_data *spl_data = NULL;
+	spl_data = malloc(sizeof(siril_plot_data));
+	init_siril_plot_data(spl_data);
+	siril_plot_set_xlabel(spl_data, _("Wavelength / nm"));
+	siril_plot_set_savename(spl_data, "SPCC_data");
+	gchar *title = g_strdup_printf(_("SPCC Data: Atmospheric model"));
+	siril_plot_set_title(spl_data, title);
+	g_free(title);
+	siril_plot_set_ylabel(spl_data, _("Transmittance"));
+
+	// Generate data
+	xpsampled data = init_xpsampled();
+	struct photometric_cc_data args = { 0 };
+	set_spcc_args(&args);
+	args.fit = &gfit;
+	fill_xpsampled_from_atmos_model(&data, &args);
+	gchar *spl_legend = g_strdup_printf(_("Atmospheric model\nHeight: %d m\nPressure: %.2f hPa (%s)"), (int) args.atmos_obs_height, args.atmos_pressure, args.atmos_pressure_is_slp ? N_("sea level") : N_("local"));
+	siril_plot_add_xydata(spl_data, spl_legend, XPSAMPLED_LEN, data.x, data.y, NULL, NULL);
+	g_free(spl_legend);
+	spl_data->datamin.x = MIN_PLOT;
+	spl_data->datamax.x = MAX_PLOT;
+	spl_data->cfgdata.line.sz = 2;
+	siril_add_idle(create_new_siril_plot_window, spl_data);
+	siril_add_idle(end_generic, NULL);
 }

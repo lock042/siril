@@ -26,7 +26,10 @@ struct photometric_cc_data {
 	siril_cat_index catalog;		// catalog used for photometry
 	limit_mag_mode mag_mode;	// automatically limit magnitude of the catalog
 	double magnitude_arg;		// if not automatic, use this limit magnitude
-
+	gboolean atmos_corr;		// whether to correct for wavelength dependent atmospheric effects
+	double atmos_obs_height;	// observer height for atmosphere model
+	double atmos_pressure;		// atmospheric pressure
+	gboolean atmos_pressure_is_slp;	// is atmospheric pressure sea level pressure?
 	pcc_star *stars;		// the list of stars with BV index in the image
 	int nb_stars;			// the number of stars in the array
 	float fwhm;			// representative FWHM for stars

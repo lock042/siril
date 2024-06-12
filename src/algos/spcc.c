@@ -61,7 +61,6 @@ cmsCIExyY xpsampled_to_xyY(xpsampled* xps, const cmf_pref cmf, const double minw
 	double	*dbl_si_x = malloc(XPSAMPLED_LEN * sizeof(double)),
 			*dbl_si_y = malloc(XPSAMPLED_LEN * sizeof(double)),
 			*dbl_si_z = malloc(XPSAMPLED_LEN * sizeof(double));
-fprintf(stderr,"wl xi yi zi\n");
 	if (cmf == CMF_1931_2DEG) {
 		for (int i = 0 ; i < XPSAMPLED_LEN ; i++) {
 			dbl_si_x[i] = xps->y[i] * x1931(xps->x[i]);
@@ -95,6 +94,94 @@ fprintf(stderr,"wl xi yi zi\n");
 	gsl_interp_accel_free(acc);
 	cmsXYZ2xyY(&xyY, &XYZ);
 	return xyY;
+}
+
+// Functions dealing with atmospheric correction
+// =============================================
+
+// Function to calculate tau_R (the wavelength dependent Rayleigh scattering coefficient)
+
+static double tau_R(double lambda, double H, double p) {
+	double term1 = p / 1013.25; // standard atmospheric pressure in hPa
+	double term2 = 0.00864 + 6.5e-6 * H;
+	double exponent = -(3.916 + 0.074 * lambda + 0.050 / lambda);
+	double term3 = pow(lambda, exponent);
+	return term1 * term2 * term3;
+}
+
+// Function to calculate airmass X using the expression from Young (1994)
+
+double compute_airmass(double z) {
+	double z_rad = z * M_PI / 180.0; // Convert degrees to radians
+	double cos_z = cos(z_rad);
+	double cos_z2 = cos_z * cos_z;
+	double cos_z3 = cos_z2 * cos_z;
+
+	double numerator = 1.002432 * cos_z2 + 0.148386 * cos_z + 0.0096467;
+	double denominator = cos_z3 + 0.149864 * cos_z2 + 0.0102963 * cos_z + 0.000303978;
+
+	return numerator / denominator;
+}
+
+// Function to calculate transmittance
+// -----------------------------------
+// This currently only models Rayleigh scattering, which is simple to model and highly stable
+// Aerosol extinction is omitted: the extinction coefficients are small, not very
+// wavelength dependent in the visible region and more variable with atmospheric
+// conditions.
+// TODO: consider a simplified absorption model. Absorption bands have pretty low
+// extinction coefficients over the visible spectrum but there is a small wavelength
+// dependence (broad but weak absorption at red wavelengths around 600nm due to
+// Ozone Chappuis bands) and sharp lines at 688nm and 762nm (Fraunhofer A and B
+// bands), though above 700nm is not really important for SPCC.
+
+static double transmittance(double lambda, double H, double p, double X) {
+	lambda /= 1000.0; // tau_R requires wavelength in microns, we want to provide it in nm
+	H /= 1000.0; // tau_R requires H in km, we want to provide it in m
+	double tau = tau_R(lambda, H, p);
+	return exp(-tau * X);
+}
+
+// Function to calculate atmospheric pressure at height h from sea level pressure P0
+
+static double pressure_at_height(double P0, double h) {
+	// Constants
+	double L = 0.0065; // Temperature lapse rate in K/m
+	double T0 = 288.15; // Sea level standard temperature in K
+	double g = 9.80665; // Acceleration due to gravity in m/s^2
+	double M = 0.0289644; // Molar mass of Earth's air in kg/mol
+	double R = 8.3144598; // Universal gas constant in J/(mol·K)
+
+	// Calculate the pressure at height h
+	double exponent = (g * M) / (R * L);
+	double pressure = P0 * pow(1 - (L * h) / T0, exponent);
+
+	return pressure;
+}
+
+void fill_xpsampled_from_atmos_model(xpsampled *out, struct photometric_cc_data *args) {
+	double airmass;
+	double centalt = args->fit->keywords.centalt;
+	if (args->fit->keywords.airmass > 0.0) {
+		airmass = args->fit->keywords.airmass;
+	} else if (centalt > 0.0 && centalt <= 90.0) {
+		airmass = compute_airmass(90.0 - centalt);
+	} else {
+		// Final fallback: astrophotographers usually aim for > 30deg alt to minimize poor
+		// seeing caused by turbulence. The average zenith angle for all parts of the sky
+		// with zenith angle <= 60deg is 41.9deg
+		airmass = compute_airmass(41.9);
+	}
+	double pressure = args->atmos_pressure_is_slp ? pressure_at_height(args->atmos_pressure, args->atmos_obs_height) : args->atmos_pressure;
+	double maxval = -DBL_MAX;
+	for (int i = 0 ; i < XPSAMPLED_LEN ; i++) {
+		out->y[i] = transmittance(out->x[i], args->atmos_obs_height, pressure, airmass);
+		if (out->y[i] > maxval) maxval = out->y[i];
+	}
+	// Normalize
+	for (int i = 0 ; i < XPSAMPLED_LEN ; i++) {
+		out->y[i] /= maxval;
+	}
 }
 
 /* Fills a destination xpsampled at evenly spaced wavelength intervals
@@ -202,6 +289,12 @@ void get_spectrum_from_args(struct photometric_cc_data *args, xpsampled* spectru
 			init_xpsampled_from_library(&spectrum3, lpf);
 			spcc_object_free_arrays(lpf);
 			multiply_xpsampled(spectrum, spectrum, &spectrum3);
+		}
+		// Atmospheric correction (if required)
+		if (args->atmos_corr) {
+			xpsampled spectrum4 = { spectrum->x, { 0.0 } };
+			fill_xpsampled_from_atmos_model(&spectrum4, args);
+			multiply_xpsampled(spectrum, spectrum, &spectrum4);
 		}
 	}
 }
