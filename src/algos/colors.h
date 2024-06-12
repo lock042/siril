@@ -1,5 +1,6 @@
 #ifndef _COLORS_H_
 #define _COLORS_H_
+#include <math.h>
 
 typedef enum {
 	EXTRACT_RGB,
@@ -28,9 +29,9 @@ struct ccm_data {
 void rgb_to_hsl_float_sat(float, float, float, float, float *, float *, float *);
 void hsl_to_rgb_float_sat(float, float, float, float *, float *, float *);
 void rgb_to_hsl(double, double, double, double *, double *, double *);
-void rgb_to_hslf(float r, float g, float b, float *h, float *s, float *l);
 void hsl_to_rgb(double, double, double, double *, double *, double *);
-void hsl_to_rgbf(float h, float s, float l, float * r, float * g, float * b);
+void rgb_to_hslf(float r, float g, float b, float *h, float *s, float *l);
+void hsl_to_rgbf(float h, float s, float l, float *r, float *g, float *b);
 void rgb_to_hsv(double, double, double, double *, double *, double *);
 void hsv_to_rgb(double, double, double, double *, double *, double *);
 void rgb_to_xyz(double, double, double, double *, double *, double *);

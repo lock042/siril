@@ -57,6 +57,7 @@ static gchar *add_filter_str[] = { "R", "G", "B"};
  *  * given h,s,l on [0..1],
  *   * return r,g,b on [0..1]
  *    */
+
 void hsl_to_rgb_float_sat(float h, float sl, float l, float * r, float * g,
 		float * b) {
 	float v;
@@ -271,99 +272,55 @@ void rgb_to_hsl(double r, double g, double b, double *h, double *s, double *l) {
 	*h /= 6;
 }
 
-// Single precision versions of the above
-void hsl_to_rgbf(float h, float s, float l, float * r, float * g,
-		float * b) {
-	float v;
+void rgb_to_hslf(float r, float g, float b, float *h, float *s, float *l) {
+    float v = fmaxf(fmaxf(r, g), b);
+    float m = fminf(fminf(r, g), b);
+    float vm = v - m;
 
-	assert(h >= 0.f && h <= 1.f);
-	if (h >= 1.f) h -= 1.f;		// this code doesn't work for h = 1
-	v = (l <= 0.5f) ? (l * (1.f + s)) : (l + s - l * s);
-	if (v <= 0.f) {
-		*r = *g = *b = 0.f;
-	} else {
-		float m;
-		float sv;
-		int sextant;
-		float fract, vsf, mid1, mid2;
+    *l = (m + v) / 2.0f;
 
-		m = l + l - v;
-		sv = (v - m) / v;
-		h *= 6.f;
-		sextant = h;
-		fract = h - sextant;
-		vsf = v * sv * fract;
-		mid1 = m + vsf;
-		mid2 = v - vsf;
-		switch (sextant) {
-			case 0:
-				*r = v;
-				*g = mid1;
-				*b = m;
-				break;
-			case 1:
-				*r = mid2;
-				*g = v;
-				*b = m;
-				break;
-			case 2:
-				*r = m;
-				*g = v;
-				*b = mid1;
-				break;
-			case 3:
-				*r = m;
-				*g = mid2;
-				*b = v;
-				break;
-			case 4:
-				*r = mid1;
-				*g = m;
-				*b = v;
-				break;
-			case 5:
-				*r = v;
-				*g = m;
-				*b = mid2;
-				break;
-		}
-	}
+    if (vm == 0.0f) {
+        *h = 0.0f;
+        *s = 0.0f;
+        return;
+    }
+
+    *s = (*l <= 0.5f) ? (vm / (v + m)) : (vm / (2.0f - v - m));
+
+    float r2 = (v - r) / vm;
+    float g2 = (v - g) / vm;
+    float b2 = (v - b) / vm;
+
+    float hr = (r == v) * (g == m ? 5.0f + b2 : 1.0f - g2);
+    float hg = (g == v) * (b == m ? 1.0f + r2 : 3.0f - b2);
+    float hb = (b == v) * (r == m ? 3.0f + g2 : 5.0f - r2);
+
+    *h = hr + hg + hb;
+    *h /= 6.0f;
 }
 
-void rgb_to_hslf(float r, float g, float b, float *h, float *s, float *l) {
-	float v;
-	float m;
-	float vm;
-	float r2, g2, b2;
+void hsl_to_rgbf(float h, float s, float l, float *r, float *g, float *b) {
 
-	v = max(r, g);
-	v = max(v, b);
-	m = min(r, g);
-	m = min(m, b);
-	*h = 0.f;
-	*s = 0.f;	// init values
+    h = fmodf(h, 1.0f);  // ensure h is in the range [0, 1)
+    float v = (l <= 0.5f) ? (l * (1.f + s)) : (l + s - l * s);
 
-	if ((*l = (m + v) / 2.f) <= 0.f) {
-		*l = 0.f;
-		return;
-	}
-	if ((*s = vm = v - m) > 0.f) {
-		*s /= (*l <= 0.5f) ? (v + m) : (2.f - v - m);
-	} else
-		return;
+    if (v <= 0.f) {
+        *r = *g = *b = 0.f;
+        return;
+    }
 
-	r2 = (v - r) / vm;
-	g2 = (v - g) / vm;
-	b2 = (v - b) / vm;
+    float m = l + l - v;
+    float sv = (v - m) / v;
+    float h6 = h * 6.0f;
+    int sextant = (int)h6;
+    float fract = h6 - sextant;
+    float vsf = v * sv * fract;
+    float mid1 = m + vsf;
+    float mid2 = v - vsf;
 
-	if (r == v)
-		*h = (g == m ? 5.f + b2 : 1.f - g2);
-	else if (g == v)
-		*h = (b == m ? 1.f + r2 : 3.f - b2);
-	else
-		*h = (r == m ? 3.f + g2 : 5.f - r2);
-
-	*h /= 6.f;
+    *r = (sextant == 0 || sextant == 5) ? v : (sextant == 1 || sextant == 4) ? mid2 : m;
+    *g = (sextant == 1 || sextant == 2) ? v : (sextant == 0 || sextant == 3) ? mid1 : m;
+    *b = (sextant == 3 || sextant == 4) ? v : (sextant == 2 || sextant == 5) ? mid1 : m;
 }
 
 /* all variables are between 0 and 1. h takes 0 for grey */
@@ -539,7 +496,6 @@ void yuv_to_rgbf(float y, float u, float v, float *red, float *green, float *blu
 	*green = (a * y) - (c * v);
 	*blue = (a * y) - (b * u) + (c * 0.5f * v);
 }
-
 
 void xyz_to_LAB(double x, double y, double z, double *L, double *a, double *b) {
 	x /= 95.047;
