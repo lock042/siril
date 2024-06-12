@@ -52,9 +52,6 @@
 static void create_output_sequence_for_apply_reg(struct registration_args *args);
 static int new_ref_index = -1;
 
-static Homography Htransf = {0};
-static int rx_out, ry_out;
-
 regdata *apply_reg_get_current_regdata(struct registration_args *regargs) {
 	regdata *current_regdata;
 	if (regargs->seq->regparam[regargs->layer]) {
@@ -147,8 +144,8 @@ static gboolean compute_framing(struct registration_args *regargs) {
 				if (xmax > xs[2]) xmax = xs[2];
 				if (ymax > ys[2]) ymax = ys[2];
 			}
-			rx_0 = (int)(floor(xmax) - ceil(xmin));
-			ry_0 = (int)(floor(ymax) - ceil(ymin));
+			rx_0 = (int)(floor(xmax) - ceil(xmin)) + 1;
+			ry_0 = (int)(floor(ymax) - ceil(ymin)) + 1;
 			if (rx_0 < 0 || ry_0 < 0) {
 				siril_log_color_message(_("The intersection of all images is null or negative\n"), "red");
 				retval = FALSE;
@@ -188,7 +185,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 			Hshift.h12 = (double)y0;
 			Homography newHref = { 0 };
 			cvMultH(Href, Hshift, &newHref);
-		// we now check overlaps
+			// we now check overlaps
 			for (int i = 0; i < regargs->seq->number; i++) {
 				if (!regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
 					continue;
@@ -214,10 +211,9 @@ static gboolean compute_framing(struct registration_args *regargs) {
 		default:
 			return FALSE;
 	}
-	cvMultH(Href, Hshift, &Htransf);
-
-	rx_out = rx_0 * regargs->output_scale;
-	ry_out = ry_0 * regargs->output_scale;
+	cvMultH(Href, Hshift, &regargs->framingd.Htransf);
+	regargs->framingd.roi_out.w = (int)((float)rx_0 * regargs->output_scale);
+	regargs->framingd.roi_out.h = (int)((float)ry_0 * regargs->output_scale);
 
 	return retval;
 }
@@ -250,34 +246,11 @@ void compute_Hmax(Homography *Himg, Homography *Href, int src_rx_in, int src_ry_
 	*dst_ry_out = (int)(ceil(ymax) - floor(ymin)) + 1;
 	Hshift->h02 = (double)floor(xmin);
 	Hshift->h12 = (double)floor(ymin);
-	cvTransfH(*Himg, *Href, H);
+	cvTransfH(Himg, Href, H);
 	// the shift matrix is at the final scale, while the transformation matrix
 	// is still at the orginal scale (will be upscaled in cvTransformImage)
 	H->h02 -= Hshift->h02 / scale;
 	H->h12 -= Hshift->h12 / scale;
-}
-
-int apply_reg_prepare_results(struct generic_seq_args *args) {
-	struct star_align_data *sadata = args->user;
-	struct registration_args *regargs = sadata->regargs;
-
-	// allocate destination sequence data
-	regargs->imgparam = calloc(args->nb_filtered_images, sizeof(imgdata));
-	regargs->regparam = calloc(args->nb_filtered_images, sizeof(regdata));
-	if (!regargs->imgparam  || !regargs->regparam) {
-		PRINT_ALLOC_ERR;
-		return 1;
-	}
-
-	if (seq_prepare_hook(args))
-		return 1;
-
-	sadata->success = calloc(args->nb_filtered_images, sizeof(BYTE));
-	if (!sadata->success) {
-		PRINT_ALLOC_ERR;
-		return 1;
-	}
-	return 0;
 }
 
 int apply_reg_prepare_hook(struct generic_seq_args *args) {
@@ -294,14 +267,12 @@ int apply_reg_prepare_hook(struct generic_seq_args *args) {
 	if (seq_read_frame_metadata(args->seq, regargs->reference_image, &fit)) {
 		siril_log_message(_("Could not load reference image\n"));
 		args->seq->regparam[regargs->layer] = NULL;
-		free(sadata->current_regdata);
 		return 1;
 	}
 	if (!regargs->driz && fit.naxes[2] == 1 && fit.keywords.bayer_pattern[0] != '\0')
 		siril_log_color_message(_("Applying transformation on a sequence opened as CFA is a bad idea.\n"), "red");
-	free_wcs(&fit);
-	reset_wcsdata(&fit);
-	return apply_reg_prepare_results(args);
+	clearfits(&fit);
+	return star_align_prepare_results(args);
 }
 
 /* reads the image and apply existing transformation */
@@ -316,8 +287,8 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	Homography Himg = { 0 };
 	Homography Hs = { 0 };
 	cvGetEye(&Hs);
-	int dst_rx = rx_out;
-	int dst_ry = ry_out;
+	int dst_rx = regargs->framingd.roi_out.w;
+	int dst_ry = regargs->framingd.roi_out.h;
 	int filenum = args->seq->imgparam[in_index].filenum;	// for display purposes
 
 	if (args->seq->type == SEQ_SER || args->seq->type == SEQ_FITSEQ) {
@@ -330,9 +301,9 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		return 1; // in case H is null and -selected was not passed
 
 	if (regargs->framing != FRAMING_MAX)
-		cvTransfH(Himg, Htransf, &H);
+		cvTransfH(&Himg, &regargs->framingd.Htransf, &H);
 	else {
-		compute_Hmax(&Himg, &Htransf, fit->rx, fit->ry, scale, &H, &Hs, &dst_rx, &dst_ry);
+		compute_Hmax(&Himg, &regargs->framingd.Htransf, fit->rx, fit->ry, scale, &H, &Hs, &dst_rx, &dst_ry);
 	}
 
 	if (regargs->driz) {
@@ -858,13 +829,18 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 
 	// check the consistency of output images size if -interp=none
 	if (!driz && regargs->interpolation == OPENCV_NONE && (regargs->output_scale != 1.f || regargs->framing == FRAMING_MAX || regargs->framing == FRAMING_MIN)) {
-		siril_log_color_message(_("Applying registration with changes in output image sizeis not allowed when interpolation is set to none , aborting\n"), "red");
+		siril_log_color_message(_("Applying registration with changes in output image size is not allowed when interpolation is set to none , aborting\n"), "red");
 		return FALSE;
 	}
 
 	// check the consistency of images size if -interp=none
 	if (!driz && regargs->interpolation == OPENCV_NONE && regargs->seq->is_variable) {
 		siril_log_color_message(_("Applying registration on images with different sizes when interpolation is set to none is not allowed, aborting\n"), "red");
+		return FALSE;
+	}
+
+	if (!driz && regargs->interpolation == OPENCV_NONE && regargs->undistort) {
+		siril_log_color_message(_("Applying registration on images with distorsions when interpolation is set to none is not allowed, aborting\n"), "red");
 		return FALSE;
 	}
 
@@ -916,7 +892,7 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 	// make sure we apply registration only if the output sequence has a meaningful size
 	int rx0 = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
 	int ry0 = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
-	if (rx_out < rx0 * MIN_RATIO || ry_out < ry0 * MIN_RATIO) {
+	if (regargs->framingd.roi_out.w < rx0 * MIN_RATIO || regargs->framingd.roi_out.h < ry0 * MIN_RATIO) {
 		siril_log_color_message(_("The output sequence is too small compared to reference image (too much rotation or little overlap?)\n"), "red");
 		siril_log_color_message(_("You should change framing method, aborting\n"), "red");
 		return FALSE;
@@ -924,7 +900,7 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 
 	// cannot use seq_compute_size as rx_out/ry_out are not necessarily consistent with seq->rx/ry
 	// rx_out/ry_out already account for 2x upscale if any
-	int64_t size = (int64_t) rx_out * ry_out * regargs->seq->nb_layers;
+	int64_t size = (int64_t) regargs->framingd.roi_out.w * regargs->framingd.roi_out.h * regargs->seq->nb_layers;
 	if (regargs->seq->type == SEQ_SER) {
 		size *= regargs->seq->ser_file->byte_pixel_depth;
 		size *= nb_frames;

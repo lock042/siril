@@ -83,7 +83,7 @@ typedef enum {
 /* same as rectangle but avoids conflicts with rectangle defined in opencv namespace */
 typedef struct {
 	int x, y, w, h;
-} astrometric_roi;
+} framing_roi;
 
 typedef enum {
 	DISTO_NONE, // none defined
@@ -111,7 +111,7 @@ struct astrometric_args{
 	Homography *Ks;
 	disto_data *disto;
 	float scale;
-	astrometric_roi roi;
+	framing_roi roi;
 };
 
 /**** star alignment (global and 3-star) registration ****/
@@ -125,6 +125,11 @@ struct star_align_data {
 	BYTE *success;
 	point ref;
 };
+
+typedef struct {
+	Homography Htransf;
+	framing_roi roi_out;
+} framing_data;
 
 /* arguments passed to registration functions */
 struct registration_args {
@@ -150,9 +155,12 @@ struct registration_args {
 	gboolean no_starlist;		// disable star list creation (2pass only)
 	float output_scale;		// scaling factor
 	gboolean undistort;		// apply undistorsion with SIP data
+	disto_data *disto;	// undistorsion information
 	struct driz_args_t *driz;	// drizzle-specific data
-	opencv_interpolation interpolation; // type of rotation interpolation
 	framing_type framing;		// used by seqapplyreg to determine framing
+	framing_data framingd;	// precomputed framing data
+
+	opencv_interpolation interpolation; // type of rotation interpolation
 	gboolean clamp;				// should Bicubic and Lanczos4 interpolation be clamped?
 	double clamping_factor;		// used to set amount of interpolation clamping
 
@@ -204,6 +212,7 @@ int star_align_prepare_results(struct generic_seq_args *args);
 int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads);
 int star_align_finalize_hook(struct generic_seq_args *args);
 int star_match_and_checks(psf_star **ref_stars, psf_star **stars, int nb_ref_stars, int nb_stars, struct registration_args *regargs, int filenum, Homography *H);
+int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads);
 
 const char *describe_transformation_type(transformation_type type);
 

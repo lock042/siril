@@ -123,7 +123,7 @@ int register_astrometric(struct registration_args *regargs) {
 	double *DEC = calloc(n, sizeof(double)); // as above
 	double *dist = malloc(n * sizeof(double));
 	struct wcsprm *WCSDATA = calloc(n, sizeof(struct wcsprm));
-	astrometric_roi *rois = malloc(n * sizeof(astrometric_roi));
+	framing_roi *rois = malloc(n * sizeof(framing_roi));
 	int failed = 0, nb_aligned = 0;
 	Homography *Rs = NULL, *Ks = NULL;
 	Rs = calloc(n, sizeof(Homography)); // camera rotation matrices
@@ -328,7 +328,7 @@ int register_astrometric(struct registration_args *regargs) {
 	if (regargs->framing == FRAMING_COG || regargs->framing == FRAMING_CURRENT) {
 		int rx = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
 		int ry = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
-		astrometric_roi roi_in = {.x = 0, .y = 0, .w = rx, .h = ry};
+		framing_roi roi_in = {.x = 0, .y = 0, .w = rx, .h = ry};
 		Homography R = { 0 };
 		cvGetEye(&R); // initializing to unity
 		cvWarp_fromKR(NULL, &roi_in, Ks[refindex], R, fscale, OPENCV_NONE, FALSE, NULL, rois + refindex);
@@ -346,7 +346,7 @@ int register_astrometric(struct registration_args *regargs) {
 			continue;
 		int rx = (regargs->seq->is_variable) ? regargs->seq->imgparam[i].rx : regargs->seq->rx;
 		int ry = (regargs->seq->is_variable) ? regargs->seq->imgparam[i].ry : regargs->seq->ry;
-		astrometric_roi roi_in = {.x = 0, .y = 0, .w = rx, .h = ry};
+		framing_roi roi_in = {.x = 0, .y = 0, .w = rx, .h = ry};
 		cvWarp_fromKR(NULL, &roi_in, Ks[i], Rs[i], fscale, OPENCV_NONE, FALSE, NULL, rois + i);
 		// first determine the corners
 		siril_debug_print("%d,%d,%d,%d,%d\n", i + 1, rois[i].x, rois[i].y, rois[i].w, rois[i].h);
@@ -400,7 +400,7 @@ int register_astrometric(struct registration_args *regargs) {
 	siril_log_color_message(_("Space required for storage: %s\n"), "salmon", mem);
 	g_free(mem);
 	if (savewarped) {
-		astargs->roi = (astrometric_roi) {.x = tl.x, .y = tl.y, .w = imagew, .h = imageh};
+		astargs->roi = (framing_roi) {.x = tl.x, .y = tl.y, .w = imagew, .h = imageh};
 	}
 
 free_all:
@@ -443,7 +443,7 @@ static int astrometric_image_hook(struct generic_seq_args *args, int out_index, 
 	int status = 0;
 	Homography *Rs = astargs->Rs;
 	Homography *Ks = astargs->Ks;
-	astrometric_roi roi = { 0 };
+	framing_roi roi = { 0 };
 	Homography H = { 0 };
 	disto_data *disto = NULL;
 	if (regargs->undistort && astargs->disto) {
@@ -459,7 +459,7 @@ static int astrometric_image_hook(struct generic_seq_args *args, int out_index, 
 	if (!regargs->driz) {
 		// TODO: find in opencv codebase if smthg smart can be done with K/R to avoid the double-flip
 		fits_flip_top_to_bottom(fit);
-		astrometric_roi *roi_in = (regargs->framing != FRAMING_MAX) ?  &astargs->roi : NULL;
+		framing_roi *roi_in = (regargs->framing != FRAMING_MAX) ?  &astargs->roi : NULL;
 		status = cvWarp_fromKR(fit, roi_in, Ks[in_index], Rs[in_index], astargs->scale, regargs->interpolation, regargs->clamp, disto, &roi);
 		if (!status) {
 			fits_flip_top_to_bottom(fit);
@@ -493,7 +493,7 @@ static int astrometric_image_hook(struct generic_seq_args *args, int out_index, 
 		cvcalcH_fromKKR(Ks[regargs->seq->reference_image], Ks[in_index], Rs[in_index], &Himg);
 		int dst_rx, dst_ry;
 		if (regargs->framing != FRAMING_MAX) {
-			cvTransfH(Himg, Htransf, &H);
+			cvTransfH(&Himg, &Htransf, &H);
 			dst_rx = astargs->roi.w;
 			dst_ry = astargs->roi.h;
 		} else {

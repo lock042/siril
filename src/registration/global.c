@@ -184,6 +184,10 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	if (!regargs->no_output) {
 		sadata->ref.x *= regargs->output_scale;
 		sadata->ref.y *= regargs->output_scale;
+		regargs->framing = FRAMING_CURRENT;
+		cvGetEye(&regargs->framingd.Htransf);
+		regargs->framingd.roi_out.w = sadata->ref.x;
+		regargs->framingd.roi_out.h = sadata->ref.y;
 	}
 
 	/* copying refstars to com.stars for display */
@@ -300,10 +304,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		copyfits(orig_fit, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 		interpolate_nongreen(fit);
 	}
-	if (regargs->no_output) {
-		/* if "save transformation only", we choose to initialize all frames
-		 * to exclude status. If registration is ok, the status is
-		 * set to include */
+	if (regargs->no_output) {  // used by livestacking but not by register which always ouputs sequence
 		args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 	}
 
@@ -314,6 +315,8 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		}
 
 		/* sometimes sequence are not consistent.... They shouldn't but ..... */
+		// This now normally checked in processing... but ok, livestacking may use this check
+		// Wouldn't it be safer to compare fit->naxes[2] to regargs->seq->nb_layers?
 		int layer;
 		if (regargs->layer > RLAYER && !isrgb(fit)) {
 			layer = RLAYER;
@@ -348,9 +351,6 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 			args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 			return 1;
 		}
-#ifdef _OPENMP
-#pragma omp critical
-#endif
 
 		if (regargs->bayer) {
 			// Get rid of the temporary copy and restore the original frame fits
@@ -360,6 +360,9 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 			fit = orig_fit;
 		}
 
+#ifdef _OPENMP
+#pragma omp critical
+#endif
 		print_alignment_results(H, filenum, FWHMx, FWHMy/FWHMx, units);
 
 		sadata->current_regdata[in_index].roundness = FWHMy/FWHMx;
@@ -373,7 +376,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 
 		if (!regargs->no_output) {
 			if (regargs->interpolation <= OPENCV_LANCZOS4) {
-				if (cvTransformImage(fit, sadata->ref.x, sadata->ref.y, H, regargs->output_scale, regargs->interpolation, regargs->clamp)) {
+				if (apply_reg_image_hook(args, out_index, in_index, fit, _, threads)) {
 					args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 					return 1;
 				}
@@ -388,10 +391,8 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		// reference image
 		cvGetEye(&H);
 		sadata->current_regdata[in_index].H = H;
-		if (regargs->output_scale != 1.f && !regargs->no_output) {
-			int rx_out = (int)((float)fit->rx * regargs->output_scale);
-			int ry_out = (int)((float)fit->ry * regargs->output_scale);
-			if (cvResizeGaussian(fit, rx_out, ry_out, OPENCV_NEAREST, FALSE)) {
+		if (!regargs->no_output && (regargs->output_scale != 1.f || regargs->driz)) {
+			if (apply_reg_image_hook(args, out_index, in_index, fit, _, threads)) {
 				args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 				return 1;
 			}
@@ -399,23 +400,23 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 	}
 
 	if (!regargs->no_output) {
-		regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
-		regargs->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
-		regargs->imgparam[out_index].rx = sadata->ref.x;
-		regargs->imgparam[out_index].ry = sadata->ref.y;
-		regargs->regparam[out_index].fwhm = sadata->current_regdata[in_index].fwhm;
-		regargs->regparam[out_index].weighted_fwhm = sadata->current_regdata[in_index].weighted_fwhm;
-		regargs->regparam[out_index].roundness = sadata->current_regdata[in_index].roundness;
-		regargs->regparam[out_index].background_lvl = sadata->current_regdata[in_index].background_lvl;
-		regargs->regparam[out_index].number_of_stars = sadata->current_regdata[in_index].number_of_stars;
-		cvGetEye(&regargs->regparam[out_index].H);
+		// regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
+		// regargs->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
+		// regargs->imgparam[out_index].rx = sadata->ref.x;
+		// regargs->imgparam[out_index].ry = sadata->ref.y;
+		// regargs->regparam[out_index].fwhm = sadata->current_regdata[in_index].fwhm;
+		// regargs->regparam[out_index].weighted_fwhm = sadata->current_regdata[in_index].weighted_fwhm;
+		// regargs->regparam[out_index].roundness = sadata->current_regdata[in_index].roundness;
+		// regargs->regparam[out_index].background_lvl = sadata->current_regdata[in_index].background_lvl;
+		// regargs->regparam[out_index].number_of_stars = sadata->current_regdata[in_index].number_of_stars;
+		// cvGetEye(&regargs->regparam[out_index].H);
 
-		if (regargs->output_scale != 1.f) { // Removed in favour of proper drizzle after registration
-			fit->keywords.pixel_size_x /= regargs->output_scale;
-			fit->keywords.pixel_size_y /= regargs->output_scale;
-			regargs->regparam[out_index].fwhm *= regargs->output_scale;
-			regargs->regparam[out_index].weighted_fwhm *= regargs->output_scale;
-		}
+		// if (regargs->output_scale != 1.f) { // Removed in favour of proper drizzle after registration
+		// 	fit->keywords.pixel_size_x /= regargs->output_scale;
+		// 	fit->keywords.pixel_size_y /= regargs->output_scale;
+		// 	regargs->regparam[out_index].fwhm *= regargs->output_scale;
+		// 	regargs->regparam[out_index].weighted_fwhm *= regargs->output_scale;
+		// }
 	} else {
 		// TODO: check if H matrix needs to include a flip or not based on fit->top_down
 		// seems like not but this could backfire at some point
@@ -846,7 +847,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 	sf_args->max_stars_fitted = regargs->max_stars_candidates;
 	float *fwhm = NULL, *roundness = NULL, *A = NULL, *B = NULL, *Acut = NULL, *scores = NULL;
 	float *dist = NULL;
-	// local flag (and its copy)accounting both for process_all_frames flag and collecting failures along the process
+	// local flag (and its copy) accounting both for process_all_frames flag and collecting failures along the process
 	gboolean *included = NULL, *tmp_included = NULL;
 	// local flag to make checks only on frames that matter
 	gboolean *meaningful = NULL;

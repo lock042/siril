@@ -959,11 +959,11 @@ static int populate_drizzle_data(struct driz_args_t *driz) {
 		gchar *error = NULL;
 		int status;
 		gchar *expression = path_parse(&reffit, flat_filename, PATHPARSE_MODE_READ, &status);
+		g_free(expression);
 		if (status) {
 			error = _("NOT USING FLAT: could not parse the expression");
 			driz->use_flats = FALSE;
 		} else {
-			free(expression);
 			if (flat_filename[0] == '\0') {
 				siril_log_message(_("Error: no master flat specified in the preprocessing tab.\n"));
 				free(driz);
@@ -1078,6 +1078,24 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 			reg_args->interpolation = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxRegInter));
 			reg_args->clamp = gtk_toggle_button_get_active(toggle_reg_clamp) && (reg_args->interpolation == OPENCV_CUBIC || reg_args->interpolation == OPENCV_LANCZOS4);
 		}
+		gint disto_apply_index = gtk_combo_box_get_active(GTK_COMBO_BOX(comboreg_undistort));
+		if (disto_apply_index > DISTO_UNDEF) {
+			reg_args->undistort = TRUE;
+			struct wcsprm *wcs = NULL;
+			if (disto_apply_index == DISTO_IMAGE) {
+				wcs = gfit.keywords.wcslib;
+			} else {
+				const gchar *text = gtk_entry_get_text(reg_wcsfile_entry);
+				fits fit = { 0 };
+				int status = read_fits_metadata_from_path(text, &fit);
+				wcs = fit.keywords.wcslib;
+			}
+			reg_args->disto = calloc(1, sizeof(disto_data));
+			reg_args->disto[0].order = extract_SIP_order_and_matrices(wcs->lin.dispre, reg_args->disto[0].A, reg_args->disto[0].B, reg_args->disto[0].AP, reg_args->disto[0].BP);
+			reg_args->disto[0].xref = wcs->crpix[0] - 1.; // -1 comes from the difference of convention between opencv and wcs
+			reg_args->disto[0].yref = wcs->crpix[1] - 1.;
+			reg_args->disto[0].dtype = (reg_args->driz) ? DISTO_S2D: DISTO_D2S;
+		}
 	}
 
 	/* getting the selected registration layer from the combo box. The value is the index
@@ -1112,13 +1130,17 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 		}
 	}
 
-	if (regindex == REG_GLOBAL) { // seqpplyreg case is dealt with in the sanity checks of the method
-		if (reg_args->interpolation == OPENCV_NONE && (reg_args->output_scale != 1.f || com.seq.is_variable)) {
+	if (regindex == REG_GLOBAL && reg_args->interpolation == OPENCV_NONE) { // seqpplyreg case is dealt with in the sanity checks of the method
+		if (reg_args->output_scale != 1.f || com.seq.is_variable) {
 			siril_log_color_message(_("When interpolation is set to None, the images must be of same size and no scaling can be applied. Aborting\n"), "red");
 			return 1;
 		}
-		if (reg_args->interpolation == OPENCV_NONE && (reg_args->type > SHIFT_TRANSFORMATION)) {
+		if (reg_args->type > SHIFT_TRANSFORMATION) {
 			siril_log_color_message(_("When interpolation is set to None, the transformation can only be set to Shift. Aborting\n"), "red");
+			return 1;
+		}
+		if (reg_args->undistort) {
+			siril_log_color_message(_("When interpolation is set to None, distorsions must be set to None as well. Aborting\n"), "red");
 			return 1;
 		}
 	}

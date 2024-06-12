@@ -380,15 +380,15 @@ void cvTransfPoint(double *x, double *y, Homography Href, Homography Himg, doubl
 	*y = dst(1,0) / dst(2,0);
 }
 
-void cvTransfH(Homography Href, Homography Himg, Homography *Hres) {
+void cvTransfH(Homography *Href, Homography *Himg, Homography *Hres) {
 	Mat_<double> ref(3,1);
 	Mat_<double> dst;
 	Mat H0 = Mat(3, 3, CV_64FC1);
 	Mat H1 = Mat(3, 3, CV_64FC1);
 	Mat H2 = Mat(3, 3, CV_64FC1);
 
-	convert_H_to_MatH(&Href, H0);
-	convert_H_to_MatH(&Himg, H1);
+	convert_H_to_MatH(Href, H0);
+	convert_H_to_MatH(Himg, H1);
 	H2 = H1.inv() * H0;
 	convert_MatH_to_H(std::move(H2), Hres);
 }
@@ -1296,7 +1296,7 @@ static void map_undistortion_S2D(disto_data *disto, int width, int height, Mat x
  	}
 }
 
-int cvWarp_fromKR(fits *image, astrometric_roi *roi_in, Homography K, Homography R, float scale, int interpolation, gboolean clamp, disto_data *disto, astrometric_roi *roi_out) {
+int cvWarp_fromKR(fits *image, framing_roi *roi_in, Homography K, Homography R, float scale, int interpolation, gboolean clamp, disto_data *disto, framing_roi *roi_out) {
 	Mat in, out;
 	void *bgr = NULL;
 
@@ -1329,7 +1329,7 @@ int cvWarp_fromKR(fits *image, astrometric_roi *roi_in, Homography K, Homography
 	corners = roi.tl();
 	sizes = roi.size();
 	if (roi_out)
-		*roi_out = (astrometric_roi) {.x = corners.x, .y = corners.y, .w = sizes.width, .h = sizes.height};
+		*roi_out = (framing_roi) {.x = corners.x, .y = corners.y, .w = sizes.width, .h = sizes.height};
 
 	// in case we just want to assess final size, we skip warping the image
 	// we just pass a NULL image
@@ -1498,7 +1498,7 @@ static void drizzle_map_undistortion(disto_data *disto, Rect roi, Mat xmap, Mat 
  	}
 }
 
-int cvDrizzleWarpMapSpherical(gboolean get_size_only, astrometric_roi *roi_in, Homography K, Homography R, float scale, int projectortype, disto_data *undisto, astrometric_roi *roi_out, float *xmap_data_ptr, float *ymap_data_ptr) {
+int cvDrizzleWarpMapSpherical(gboolean get_size_only, framing_roi *roi_in, Homography K, Homography R, float scale, int projectortype, disto_data *undisto, framing_roi *roi_out, float *xmap_data_ptr, float *ymap_data_ptr) {
 	Mat _R = Mat(3, 3, CV_64FC1);
 	Mat _K = Mat(3, 3,CV_64FC1);
 	convert_H_to_MatH(&R, _R);
@@ -1541,7 +1541,7 @@ int cvDrizzleWarpMapSpherical(gboolean get_size_only, astrometric_roi *roi_in, H
 	corners = roi.tl();
 	sizes = roi.size();
 	if (roi_out)
-		*roi_out = (astrometric_roi) {.x = corners.x, .y = corners.y, .w = sizes.width, .h = sizes.height};
+		*roi_out = (framing_roi) {.x = corners.x, .y = corners.y, .w = sizes.width, .h = sizes.height};
 	// We call this function twice, once with get_size_only to populate roi_out which we use to calculate
 	// how much memory to allocate in the mapping float arrays, then we call it again to actually generate
 	// the mapping arrays.
@@ -1573,7 +1573,7 @@ int cvDrizzleWarpMapSpherical(gboolean get_size_only, astrometric_roi *roi_in, H
 	return 0;
 }
 
-int cvDrizzleWarpMapPlanar(gboolean get_size_only, astrometric_roi *roi_in, Homography K, Homography R, float scale, int projectortype, disto_data *undisto, astrometric_roi *roi_out, float *xmap_data_ptr, float *ymap_data_ptr) {
+int cvDrizzleWarpMapPlanar(gboolean get_size_only, framing_roi *roi_in, Homography K, Homography R, float scale, int projectortype, disto_data *undisto, framing_roi *roi_out, float *xmap_data_ptr, float *ymap_data_ptr) {
 	Mat _R = Mat(3, 3, CV_64FC1);
 	Mat _K = Mat(3, 3,CV_64FC1);
 	convert_H_to_MatH(&R, _R);
@@ -1616,7 +1616,7 @@ int cvDrizzleWarpMapPlanar(gboolean get_size_only, astrometric_roi *roi_in, Homo
 	corners = roi.tl();
 	sizes = roi.size();
 	if (roi_out)
-		*roi_out = (astrometric_roi) {.x = corners.x, .y = corners.y, .w = sizes.width, .h = sizes.height};
+		*roi_out = (framing_roi) {.x = corners.x, .y = corners.y, .w = sizes.width, .h = sizes.height};
 	// We call this function twice, once with get_size_only to populate roi_out which we use to calculate
 	// how much memory to allocate in the mapping float arrays, then we call it again to actually generate
 	// the mapping arrays.
