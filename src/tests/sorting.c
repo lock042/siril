@@ -52,9 +52,9 @@ int compare_median_algos(int datasize, int threads)
 	data = malloc(datasize * sizeof(WORD));
 	data_backup = malloc(datasize * sizeof(WORD));
 	for (i=0; i<datasize; i++) {
-		WORD val = siril_random_WORD();
-		data[i] = val;
-		data_backup[i] = val;
+		int val = rand() % USHRT_MAX;
+		WORD data[i] = val;
+		WORD data_backup[i] = val;
 	}
 
 	quicksort_s(data, datasize);
