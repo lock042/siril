@@ -71,7 +71,8 @@ siril 1.4.0 xx xx, xx
 * Fixed a crash in ROI selection (#1320)
 * Optimised GHT code (~2x speedup) and fixed associated bugs (#1194, #1314, #1319)
 
-siril 1.2.2 xx xx, 2024
+siril 1.2.2 June 14, 2024
+
 * Removed background extraction samples after using it in script (#1265)
 * Fixed catalog parser problem with negative declination (less than 1°) (#1270)
 * Fixed weighting by number of stars during stacking if number of stars is the same accross the sequence (#1273)
