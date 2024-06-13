@@ -166,7 +166,7 @@ elif platform_windows
   siril_cpp_flag += ['-D_WIN32_WINNT=0x0600', '-DWINVER=0x0600']
 elif platform_osx
   # on OSX ObjC and C sources are mixed so adding objc to the linkflags
-  siril_link_arg += ['-Wl,-framework,Foundation', '-Wl,-framework,AppKit', '-Wl,framework,Security', '-ObjC']
+  siril_link_arg += ['-Wl,-framework,Foundation', '-Wl,-framework,AppKit', '-Wl,-framework,Security', '-ObjC']
   add_project_arguments('-ObjC', language: [ 'c'])
   add_project_link_arguments(siril_link_arg, language: [ 'c', 'cpp' ])
 else
