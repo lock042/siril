@@ -71,7 +71,8 @@ siril 1.4.0 xx xx, xx
 * Fixed a crash in ROI selection (#1320)
 * Optimised GHT code (~2x speedup) and fixed associated bugs (#1194, #1314, #1319)
 
-siril 1.2.2 xx xx, 2024
+siril 1.2.2 June 14, 2024
+
 * Removed background extraction samples after using it in script (#1265)
 * Fixed catalog parser problem with negative declination (less than 1°) (#1270)
 * Fixed weighting by number of stars during stacking if number of stars is the same accross the sequence (#1273)
@@ -88,6 +89,7 @@ siril 1.2.2 xx xx, 2024
 * Fixed bug in rgradient (Larson Sekanina) filter (#1313)
 * Fixed bug in generalized hyperbolic stretches (#1314)
 * Fixed path parsing error with savetif (#1318)
+* Added handling of empty command pipe reads (closes #1277)
 
 siril 1.2.1 January 26, 2024
 

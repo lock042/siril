@@ -26,6 +26,9 @@ AC_CONFIG_SRCDIR([src/main.c])
 AC_CONFIG_MACRO_DIR([m4])
 
 SIRIL_UNSTABLE=siril_unstable
+SIRIL_MAJOR_VERSION=siril_major_version
+SIRIL_MINOR_VERSION=siril_minor_version
+SIRIL_MICRO_VERSION=siril_micro_version
 
 dnl ================================================================
 dnl Gettext stuff.
@@ -33,6 +36,14 @@ dnl ================================================================
 IT_PROG_INTLTOOL([0.50])
 AC_SUBST([GETTEXT_PACKAGE], [siril])
 AC_SUBST(SIRIL_UNSTABLE)
+AC_SUBST(SIRIL_MAJOR_VERSION)
+AC_SUBST(SIRIL_MINOR_VERSION)
+AC_SUBST(SIRIL_MICRO_VERSION)
+
+dnl Define these values in config.h
+AC_DEFINE([SIRIL_MAJOR_VERSION], [siril_major_version], [Major version of Siril])
+AC_DEFINE([SIRIL_MINOR_VERSION], [siril_minor_version], [Minor version of Siril])
+AC_DEFINE([SIRIL_MICRO_VERSION], [siril_micro_version], [Micro version of Siril])
 
 remember_set_CFLAGS="$CFLAGS"
 

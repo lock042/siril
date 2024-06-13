@@ -467,7 +467,6 @@ gpointer compstars_worker(gpointer p) {
 		retval = 1;
 		goto end;
 	}
-	free_sky_object_query(query_args);
 	// 2. get a catalogue of stars for the field
 	double radius;
 	args->cat_stars = get_catstars(args, args->cat, &radius);

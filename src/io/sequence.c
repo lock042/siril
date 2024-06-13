@@ -1701,7 +1701,9 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 	/* Backup the original pointer to fit. If there is a Bayer pattern we need
 	 * to interpolate non-green pixels, so make a copy we can work on. */
 	fits *orig_fit = fit;
-	if (spsfargs->bayer_pattern[0]) {
+	const char t = spsfargs->bayer_pattern[0];
+	gboolean handle_cfa = (t == 'R' || t == 'G' || t == 'B');
+	if (handle_cfa) {
 		fit = calloc(1, sizeof(fits));
 		copyfits(orig_fit, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 		memcpy(fit->keywords.bayer_pattern, spsfargs->bayer_pattern, FLEN_VALUE);
@@ -1753,7 +1755,7 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 				"red", index, area->x, area->y, psf_error_to_string(error));
 		}
 	}
-	if (spsfargs->bayer_pattern[0]) {
+	if (handle_cfa) {
 		// Get rid of the temporary copy and restore the original frame fits
 		// now that we have computed the actual registration data
 		clearfits(fit);
