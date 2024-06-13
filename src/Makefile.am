@@ -83,6 +83,7 @@ siril_common_SOURCES = \
 	algos/reconstr.c \
 	algos/search_objects.c \
 	algos/search_objects.h \
+	algos/siril_random.cpp \
 	algos/siril_wcs.h \
 	algos/siril_wcs.c \
 	algos/sorting.c \
