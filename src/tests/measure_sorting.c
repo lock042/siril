@@ -63,8 +63,8 @@ clock_t perf_test(double (*function)(WORD *data, size_t datasize),
 	for (draws = 0; draws < nb_draws; draws++) {
 		for (i=0; i<datasize; i++) {
 			int val = rand() % USHRT_MAX;
-			data[i] = (WORD) val;
-			data_backup[i] = (WORD) val;
+			data[i] = (WORD)val;
+			data_backup[i] = (WORD)val;
 		}
 
 		for (times = 0; times < nb_times_each; times++) {
