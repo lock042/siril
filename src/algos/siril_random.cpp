@@ -28,6 +28,7 @@
  */
 
 #include "core/siril.h"
+#undef TBYTE
 #include "core/proto.h"
 #include <stdio.h>
 #include <stdlib.h>
