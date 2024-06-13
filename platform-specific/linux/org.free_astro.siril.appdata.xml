@@ -90,6 +90,29 @@
   <update_contact>cyril_at_free-astro.org</update_contact>
   <content_rating type="oars-1.0"/>
   <releases>
+    <release version="1.2.2" type="stable" date="2024-06-14">
+      <url type="details">https://siril.org/download/1.2.2</url>
+      <description>
+        <p>
+          Siril 1.2.2 is a bug fix release, containing a lot of fixes. and some improvements
+          The most important fixes are:
+        </p>
+        <ul>
+          <li>
+          Fixed catalog parser problem with negative declination
+          </li>
+          <li>
+          Improved mouse pan and zoom control to enable one-handed operation
+          </li>
+          <li>
+          Fixed ser orientation error
+          </li>
+          <li>
+          Fixed bug in rgradient (Larson Sekanina) filter
+          </li>
+        </ul>
+      </description>
+    </release>
     <release version="1.2.1" type="stable" date="2024-01-26">
       <url type="details">https://siril.org/download/1.2.1</url>
       <description>
