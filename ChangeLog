@@ -1,6 +1,5 @@
-
 siril 1.2.2
-xx/xx/24
+06/14/24
 
 * Removed background extraction samples after using it in script (#1265)
 * Fixed catalog parser problem with negative declination (less than 1°) (#1270)
