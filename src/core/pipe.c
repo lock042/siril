@@ -382,17 +382,20 @@ void *read_pipe(void *p) {
 		int bufstart = 0;
 		char buf[PIPE_MSG_SZ];
 		do {
-			int retval;
+			int select_return;
+			pipe_read_status read_return;
 			fd_set rfds;
 			FD_ZERO(&rfds);
 			FD_SET(pipe_fd_r, &rfds);
 
-			retval = select(pipe_fd_r+1, &rfds, NULL, NULL, NULL);
-			if (retval == 1) {
+			select_return = select(pipe_fd_r+1, &rfds, NULL, NULL, NULL);
+			if (select_return == 1) {
 				int len = read(pipe_fd_r, buf+bufstart, PIPE_MSG_SZ-1-bufstart);
-				if (len == -1 || len == 0)
-					retval = -1;
-				else {
+				if (len == -1) {
+					read_return = PIPE_READ_ERROR;
+				} else if (len == 0) {
+					read_return = PIPE_READ_EMPTY;
+				} else {
 					int i = 0, nbnl = 0;
 					buf[len] = '\0';
 					while (i < len && buf[i] != '\0') {
@@ -402,10 +405,12 @@ void *read_pipe(void *p) {
 					}
 					if (nbnl == 0) {
 						pipe_send_message(PIPE_STATUS, PIPE_ERROR, _("command too long or malformed\n"));
-						retval = -1;
+						read_return = PIPE_READ_ERROR;
+					} else {
+						read_return = PIPE_READ_SUCCESS;
 					}
 
-					if (retval == 1) {
+					if (read_return == PIPE_READ_SUCCESS) {
 						/* we have several commands in the buffer, we need to
 						 * cut them, enqueue them and prepare next buffer for
 						 * incomplete commands */
@@ -421,7 +426,7 @@ void *read_pipe(void *p) {
 								bufstart = i + 1;
 
 								if (enqueue_command(command)) {
-									retval = -1;
+									read_return = PIPE_READ_ERROR;
 									free(command);
 									break;
 								}
@@ -433,14 +438,16 @@ void *read_pipe(void *p) {
 					}
 				}
 			}
-			if (retval <= 0) {
+			if (select_return == 0 || read_return == PIPE_READ_EMPTY || read_return == PIPE_READ_ERROR) {
 				fprintf(stdout, "closed read pipe\n");
 				close(pipe_fd_r);
 				pipe_fd_r = -1;
-				empty_command_queue();
-				if (get_thread_run()) {
-					stop_processing_thread();
-					pipe_send_message(PIPE_STATUS, PIPE_ERROR, _("command interrupted\n"));
+				if (read_return == PIPE_READ_ERROR) {
+					empty_command_queue();
+					if (get_thread_run()) {
+						stop_processing_thread();
+						pipe_send_message(PIPE_STATUS, PIPE_ERROR, _("command interrupted\n"));
+					}
 				}
 				break;
 			}
