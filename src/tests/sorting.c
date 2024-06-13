@@ -53,8 +53,8 @@ int compare_median_algos(int datasize, int threads)
 	data_backup = malloc(datasize * sizeof(WORD));
 	for (i=0; i<datasize; i++) {
 		int val = rand() % USHRT_MAX;
-		WORD data[i] = val;
-		WORD data_backup[i] = val;
+		data[i] = (WORD) val;
+		data_backup[i] = (WORD) val;
 	}
 
 	quicksort_s(data, datasize);
