@@ -47,7 +47,7 @@
 #endif
 
 #if defined(__APPLE__)
-#include <Security/Security.h>
+#include <Security/SecRandom.h>
 #endif
 
 static gsl_rng *r;
