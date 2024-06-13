@@ -88,6 +88,7 @@ siril 1.2.2 xx xx, 2024
 * Fixed bug in rgradient (Larson Sekanina) filter (#1313)
 * Fixed bug in generalized hyperbolic stretches (#1314)
 * Fixed path parsing error with savetif (#1318)
+* Added handling of empty command pipe reads (closes #1277)
 
 siril 1.2.1 January 26, 2024
 
