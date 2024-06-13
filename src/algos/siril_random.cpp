@@ -36,6 +36,7 @@
 #include <errno.h>
 #include <time.h>
 #include <gsl/gsl_rng.h>
+#include <type_traits>
 
 #if defined(_WIN32) || defined(_WIN64)
 #include <windows.h>
