@@ -4,6 +4,7 @@
 #include "core/siril.h"
 #include "algos/PSF.h"
 #include "core/processing.h"
+#include "algos/star_finder.h"
 
 #define NUMBER_OF_METHODS 7
 #define MAX_DISTO_SIZE 7 // need to duplicate MAX_SIP_SIZE here because of circular refs with opencv
@@ -48,9 +49,10 @@ typedef enum {
 } transformation_type;
 
 typedef enum {
-	DISTO_UNDEF,
-	DISTO_IMAGE,
-	DISTO_FILE
+	DISTO_UNDEF, // No distorsion
+	DISTO_IMAGE, // Distorsion from current image
+	DISTO_FILE,  // Distorsion from given file
+	DISTO_FILES, // Distorsion stored in each file
 } disto_apply;
 
 typedef enum {
@@ -144,6 +146,7 @@ struct registration_args {
 	gboolean follow_star;		// follow star position between frames
 	gboolean matchSelection;	// Match stars found in the seleciton of reference image
 	rectangle selection;		// the selection rectangle
+	struct starfinder_data *sfargs;		// star finder configuration for global/2pass
 	int min_pairs;			// Minimum number of star pairs for success
 	int max_stars_candidates;	// Max candidates after psf fitting for global reg
 	transformation_type type;	// Use affine transform  or homography

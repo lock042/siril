@@ -1020,6 +1020,14 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 		return 1;
 	}
 
+	/* getting the selected registration layer from the combo box. The value is the index
+	 * of the selected line, and they are in the same order than layers so there should be
+	 * an exact matching between the two */
+	reg_args->layer = gtk_combo_box_get_active(GTK_COMBO_BOX(comboboxreglayer));
+	get_the_registration_area(reg_args, method);	// sets selection
+	reg_args->run_in_thread = TRUE;
+	reg_args->load_new_sequence = FALSE; // only TRUE for some methods. Will be updated in these cases
+
 	/* specific methods */
 	gboolean isapplyreg = regindex == REG_APPLY;
 	gboolean is_global = regindex == REG_GLOBAL;
@@ -1037,9 +1045,15 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 		reg_args->type = (gtk_toggle_button_get_active(onlyshift_checkbutton)) ? SHIFT_TRANSFORMATION : SIMILARITY_TRANSFORMATION;
 	}
 	if (is_star_align) {
+		reg_args->sfargs = calloc(1, sizeof(struct starfinder_data));
+		reg_args->sfargs->im.from_seq = reg_args->seq;
+		reg_args->sfargs->layer = reg_args->layer;
+		reg_args->sfargs->keep_stars = is_global;
+		reg_args->sfargs->save_to_file = TRUE; // TODO make this a pref
 		reg_args->min_pairs = gtk_spin_button_get_value_as_int(spinbut_minpairs);
 		int starmaxactive = gtk_combo_box_get_active(GTK_COMBO_BOX(comboreg_maxstars));
 		reg_args->max_stars_candidates = (starmaxactive == -1) ? MAX_STARS_FITTED : maxstars_values[starmaxactive];
+		reg_args->sfargs->max_stars_fitted = reg_args->max_stars_candidates;
 		reg_args->type = gtk_combo_box_get_active(GTK_COMBO_BOX(comboreg_transfo));
 		reg_args->matchSelection = gtk_toggle_button_get_active(checkStarSelect);
 		if (reg_args->matchSelection && reg_args->seq->is_variable) {
@@ -1097,14 +1111,6 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 			reg_args->disto[0].dtype = (reg_args->driz) ? DISTO_S2D: DISTO_D2S;
 		}
 	}
-
-	/* getting the selected registration layer from the combo box. The value is the index
-	 * of the selected line, and they are in the same order than layers so there should be
-	 * an exact matching between the two */
-	reg_args->layer = gtk_combo_box_get_active(GTK_COMBO_BOX(comboboxreglayer));
-	get_the_registration_area(reg_args, method);	// sets selection
-	reg_args->run_in_thread = TRUE;
-	reg_args->load_new_sequence = FALSE; // only TRUE for some methods. Will be updated in these cases
 
 	//Checks
 
