@@ -121,6 +121,7 @@ static GtkLabel *label1_comet = NULL, *regfilter_label = NULL, *labelfilter4 = N
 static GtkNotebook *notebook_registration = NULL;
 static GtkSpinButton *spinbut_minpairs = NULL, *spin_kombat_percent = NULL, *stackspin4 = NULL, *stackspin5 = NULL, *stackspin6 = NULL, *reg_scaling_spin = NULL, *spin_driz_dropsize = NULL, *spinbut_shiftx = NULL, *spinbut_shifty = NULL;
 static GtkStack *interp_drizzle_stack = NULL;
+static GtkStackSwitcher *interp_drizzle_stack_switcher = NULL;
 static GtkToggleButton *checkStarSelect = NULL, *reg_2pass = NULL, *followStarCheckButton = NULL, *onlyshift_checkbutton = NULL, *toggle_reg_clamp = NULL, *driz_use_flats = NULL, *checkbutton_displayref = NULL, *toggle_reg_manual1 = NULL, *toggle_reg_manual2 = NULL;
 GtkWindow *control_window = NULL;
 
@@ -208,6 +209,8 @@ static void registration_init_statics() {
 		spinbut_shifty = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "spinbut_shifty"));
 		// GtkStack
 		interp_drizzle_stack = GTK_STACK(gtk_builder_get_object(gui.builder, "interp_drizzle_stack"));
+		// GtkStackSwitcher
+		interp_drizzle_stack_switcher = GTK_STACK_SWITCHER(gtk_builder_get_object(gui.builder, "interp_drizzle_stack_switcher"));
 		// GtkToggleButton
 		checkStarSelect = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "checkStarSelect"));
 		reg_2pass = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "reg_2pass"));
@@ -810,7 +813,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	int nb_images_reg; /* the number of images to register */
 	struct registration_method *method = NULL;
 	gboolean selection_is_done;
-	gboolean has_reg, has_output, has_drizzle, samesizeseq_required, check_bayer_ok, ready, seqloaded;
+	gboolean has_reg, has_output, has_drizzle, must_have_drizzle, must_have_interp, samesizeseq_required, check_bayer_ok, ready, seqloaded;
 	gboolean isapplyreg, is_global, is_star_align;
 	sensor_pattern pattern = BAYER_FILTER_NONE;
 	disto_apply disto_apply_index = DISTO_UNDEF;
@@ -855,6 +858,9 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	has_output = isapplyreg || is_global;
 	/* drizzle is selected */
 	has_drizzle = has_output && gtk_stack_get_visible_child(interp_drizzle_stack) == GTK_WIDGET(grid_drizzle_controls);
+	/* must enforce drizzle/interp */
+	must_have_drizzle = has_output && gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] != '\0';
+	must_have_interp  = has_output && gfit.naxes[2] == 3;
 
 
 	/* initialize default */
@@ -890,6 +896,15 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	gtk_widget_set_visible(GTK_WIDGET(proj_estimate), isapplyreg);
 	gtk_widget_set_visible(GTK_WIDGET(notebook_registration), !isapplyreg);
 	gtk_widget_set_visible(GTK_WIDGET(grid_reg_framing), isapplyreg);
+	if (must_have_drizzle) {
+		gtk_stack_set_visible_child(interp_drizzle_stack, GTK_WIDGET(grid_drizzle_controls));
+		has_drizzle = TRUE;
+	}
+	if (must_have_interp) {
+		gtk_stack_set_visible_child(interp_drizzle_stack, GTK_WIDGET(grid_interp_controls));
+		has_drizzle = FALSE;
+	}
+	gtk_widget_set_sensitive(GTK_WIDGET(interp_drizzle_stack_switcher), !(must_have_drizzle || must_have_interp));
 	if (has_output && !has_drizzle) {
 		gint interpolation_item = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxRegInter));
 		gtk_widget_set_sensitive(GTK_WIDGET(toggle_reg_clamp), interpolation_item == OPENCV_CUBIC || interpolation_item == OPENCV_LANCZOS4);
@@ -959,6 +974,7 @@ static int populate_drizzle_data(struct driz_args_t *driz) {
 	driz->weight_scale = 1.f; // Not used for now
 	driz->kernel = (enum e_kernel_t) gtk_combo_box_get_active(GTK_COMBO_BOX(combo_driz_kernel));
 	driz->pixel_fraction = gtk_spin_button_get_value(spin_driz_dropsize);
+	driz->is_bayer = gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] != '\0';
 	if (driz->use_flats) {
 		fits reffit = { 0 };
 		const gchar *flat_filename = gtk_entry_get_text(flatname_entry);
@@ -1233,8 +1249,6 @@ gboolean end_register_idle(gpointer p) {
 	if (args->func == &register_3stars) reset_3stars();
 
 	free(args->new_seq_name);
-	if (!check_seq_is_comseq(args->seq))
-		free_sequence(args->seq, TRUE);
 	free(args->driz);
 	free(args);
 	return FALSE;

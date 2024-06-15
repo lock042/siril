@@ -6801,7 +6801,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkStackSwitcher">
+                                                            <object class="GtkStackSwitcher" id="interp_drizzle_stack_switcher">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="tooltip-text" translatable="yes">Choose whether to use an interpolation algorithm or Drizzle to apply registration</property>

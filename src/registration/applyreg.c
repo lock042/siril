@@ -49,7 +49,6 @@
 
 #define MIN_RATIO 0.1 // minimum fraction of ref image dimensions to validate output sequence is worth creating
 
-static void create_output_sequence_for_apply_reg(struct registration_args *args);
 static int new_ref_index = -1;
 
 regdata *apply_reg_get_current_regdata(struct registration_args *regargs) {
@@ -491,7 +490,7 @@ int apply_reg_finalize_hook(struct generic_seq_args *args) {
 		g_free(str);
 		if (!(args->seq->type == SEQ_INTERNAL)) {
 			// explicit sequence creation to copy imgparam and regparam
-			create_output_sequence_for_apply_reg(regargs);
+			create_output_sequence_for_global_star(regargs, new_ref_index);
 			// will be loaded in the idle function if (load_new_sequence)
 			regargs->load_new_sequence = TRUE; // only case where a new sequence must be loaded
 		}
@@ -730,45 +729,6 @@ int register_apply_reg(struct registration_args *regargs) {
 	regargs->retval = args->retval;
 	free(args);
 	return regargs->retval;
-}
-
-static void create_output_sequence_for_apply_reg(struct registration_args *args) {
-	sequence seq = { 0 };
-	initialize_sequence(&seq, TRUE);
-
-	/* we are not interested in the whole path */
-	gchar *seqname = g_path_get_basename(args->seq->seqname);
-	char *rseqname = malloc(
-			strlen(args->prefix) + strlen(seqname) + 5);
-	sprintf(rseqname, "%s%s.seq", args->prefix, seqname);
-	g_free(seqname);
-	g_unlink(rseqname);	// remove previous to overwrite
-	args->new_seq_name = remove_ext_from_filename(rseqname);
-	free(rseqname);
-	seq.seqname = strdup(args->new_seq_name);
-	seq.number = args->new_total;
-	seq.selnum = args->new_total;
-	seq.fixed = args->seq->fixed;
-	seq.nb_layers = (args->driz && args->driz->is_bayer) ? 3 : args->seq->nb_layers;
-	seq.imgparam = args->imgparam;
-	seq.regparam = calloc(seq.nb_layers, sizeof(regdata*));
-	seq.regparam[args->layer] = args->regparam;
-	seq.beg = seq.imgparam[0].filenum;
-	seq.end = seq.imgparam[seq.number-1].filenum;
-	seq.type = args->seq->type;
-	seq.current = -1;
-	seq.is_variable = check_seq_is_variable(&seq);
-	if (!seq.is_variable) {
-		seq.rx = args->seq->rx;
-		seq.ry = args->seq->ry;
-	}
-	seq.fz = com.pref.comp.fits_enabled;
-	// update with the new numbering
-	seq.reference_image = new_ref_index;
-	seq.needs_saving = TRUE;
-	writeseqfile(&seq);
-	free_sequence(&seq, FALSE);
-	new_ref_index = -1; // resetting
 }
 
 transformation_type guess_transform_from_H(Homography H) {

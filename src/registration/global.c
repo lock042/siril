@@ -38,6 +38,7 @@
 #include "io/sequence.h"
 #include "io/ser.h"
 #include "io/image_format_fits.h"
+#include "drizzle/cdrizzleutil.h"
 #include "registration/registration.h"
 #include "registration/matching/atpmatch.h"
 #include "registration/matching/match.h"
@@ -49,7 +50,6 @@
 # define MAX_SHIFT_RATIO 0.25f // max ratio of image rx for ref image offset from sequence cog
 # define MAX_TRIALS_2PASS 5 // max number of trialsto find the best ref
 
-static void create_output_sequence_for_global_star(struct registration_args *args);
 static void print_alignment_results(Homography H, int filenum, float FWHMx, float FWHMy, char *units);
 
 static int get_min_requires_stars(transformation_type type) {
@@ -140,10 +140,6 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 		args->seq->regparam[regargs->layer] = NULL;
 		free(sadata->current_regdata);
 		return 1;
-	}
-	if (fit.naxes[2] == 1 && fit.keywords.bayer_pattern[0] != '\0') {
-		siril_log_color_message(_("Registering a sequence opened as CFA: the resulting sequence should be drizzled.\n"), "salmon");
-		interpolate_nongreen(&fit);
 	}
 
 	siril_log_color_message(_("Reference Image:\n"), "green");
@@ -466,7 +462,7 @@ int star_align_finalize_hook(struct generic_seq_args *args) {
 		g_free(str);
 		if (!regargs->no_output && (args->seq->type != SEQ_INTERNAL)) {
 			// explicit sequence creation to copy imgparam and regparam
-			create_output_sequence_for_global_star(regargs);
+			create_output_sequence_for_global_star(regargs, -1);
 			// will be loaded in the idle function if (load_new_sequence)
 			regargs->load_new_sequence = TRUE; // only case where a new sequence must be loaded
 		}
@@ -628,7 +624,7 @@ int register_star_alignment(struct registration_args *regargs) {
 	return regargs->retval;
 }
 
-static void create_output_sequence_for_global_star(struct registration_args *args) {
+void create_output_sequence_for_global_star(struct registration_args *args, int refindex) {
 	sequence seq = { 0 };
 	initialize_sequence(&seq, TRUE);
 
@@ -645,7 +641,7 @@ static void create_output_sequence_for_global_star(struct registration_args *arg
 	seq.number = args->new_total;
 	seq.selnum = args->new_total;
 	seq.fixed = args->seq->fixed;
-	seq.nb_layers = args->seq->nb_layers;
+	seq.nb_layers = (args->driz && args->driz->is_bayer) ? 3 : args->seq->nb_layers;
 	seq.imgparam = args->imgparam;
 	seq.regparam = calloc(seq.nb_layers, sizeof(regdata*));
 	seq.regparam[args->layer] = args->regparam;
@@ -660,7 +656,10 @@ static void create_output_sequence_for_global_star(struct registration_args *arg
 	}
 	seq.fz = com.pref.comp.fits_enabled;
 	// don't copy from old sequence, it may not be the same image
-	seq.reference_image = sequence_find_refimage(&seq);
+	if (refindex == -1)
+		seq.reference_image = sequence_find_refimage(&seq); //global
+	else
+		seq.reference_image = refindex; //applyreg
 	seq.needs_saving = TRUE;
 	writeseqfile(&seq);
 	free_sequence(&seq, FALSE);

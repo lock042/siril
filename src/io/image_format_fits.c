@@ -1054,7 +1054,7 @@ int read_icc_profile_from_fits(fits *fit) {
 	char extname[FLEN_VALUE], comment[FLEN_COMMENT];
 	int ihdu, nhdus, hdutype, orig_hdu = 1;
 	fits_get_hdu_num(fit->fptr, &orig_hdu);
-	siril_debug_print("Original HDU before looking for ICC profile: %d\n", orig_hdu);
+	// siril_debug_print("Original HDU before looking for ICC profile: %d\n", orig_hdu);
 	if (fit->icc_profile)
 		cmsCloseProfile(fit->icc_profile);
 	fit->icc_profile = NULL;
