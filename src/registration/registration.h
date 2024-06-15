@@ -52,7 +52,7 @@ typedef enum {
 	DISTO_UNDEF, // No distorsion
 	DISTO_IMAGE, // Distorsion from current image
 	DISTO_FILE,  // Distorsion from given file
-	DISTO_FILES, // Distorsion stored in each file
+	DISTO_FILES, // Distorsion stored in each file (from seq platesolve)
 } disto_apply;
 
 typedef enum {
@@ -157,7 +157,7 @@ struct registration_args {
 	double filtering_parameter;	// and its parameter (seqapplyreg only)
 	gboolean no_starlist;		// disable star list creation (2pass only)
 	float output_scale;		// scaling factor
-	gboolean undistort;		// apply undistorsion with SIP data
+	disto_apply undistort;		// type of undistorsion to apply
 	disto_data *disto;	// undistorsion information
 	struct driz_args_t *driz;	// drizzle-specific data
 	framing_type framing;		// used by seqapplyreg to determine framing

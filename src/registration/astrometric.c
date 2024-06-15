@@ -320,7 +320,7 @@ int register_astrometric(struct registration_args *regargs) {
 				siril_debug_print("no distorsion terms found in any of the images, disabling undistort\n");
 				free(astargs->disto); // we don't need to call free_disto_args as maps have not been allocated
 				astargs->disto = NULL;
-				regargs->undistort = FALSE;
+				regargs->undistort = DISTO_UNDEF;
 			}
 		}
 	}

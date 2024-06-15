@@ -66,7 +66,8 @@ wcsprm_t *wcs_deepcopy(wcsprm_t *wcssrc, int *status) {
 	wcsdst = calloc(1, sizeof(wcsprm_t));
 	if (!wcsdst) {
 		PRINT_ALLOC_ERR;
-		*status = WCSERR_MEMORY;
+		if (status)
+			*status = WCSERR_MEMORY;
 		return NULL;
 	}
 	wcsdst->flag = -1;
@@ -78,7 +79,8 @@ wcsprm_t *wcs_deepcopy(wcsprm_t *wcssrc, int *status) {
 	}
 	wcsdst->flag = 0;
 	wcsset(wcsdst);
-	*status = 0;
+	if (status)
+		*status = 0;
 	return wcsdst;
 }
 

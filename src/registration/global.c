@@ -155,7 +155,6 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 
 	siril_log_message(_("Found %d stars in reference, channel #%d\n"), nb_stars, regargs->layer);
 
-
 	if (!sadata->refstars || nb_stars < get_min_requires_stars(regargs->type)) {
 		siril_log_message(
 				_("There are not enough stars in reference image to perform alignment\n"));
@@ -163,6 +162,10 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 		free(sadata->current_regdata);
 		clearfits(&fit);
 		return 1;
+	}
+
+	if (regargs->undistort) {
+		
 	}
 
 	sadata->ref.x = fit.rx;

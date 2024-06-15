@@ -764,7 +764,7 @@ static gboolean check_disto(disto_apply index) {
 		} else {
 			fits fit = { 0 };
 			if (read_fits_metadata_from_path(text, &fit)) {
-				gtk_label_set_text(labelregisterinfo, _("Could not load FITS image"));
+				gtk_label_set_text(labelregisterinfo, _("Could not load FITS image for distorsion"));
 				return FALSE;
 			}
 			if (!has_wcs(&fit)) {
@@ -1100,7 +1100,7 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 		reg_args->filters.filter_included = gtk_combo_box_get_active(GTK_COMBO_BOX(reg_sel_all_combobox));
 	}
 	
-	reg_args->undistort = TRUE; //gtk_toggle_button_get_active(undistort);
+	reg_args->undistort = DISTO_UNDEF;
 
 	if (has_output) {
 		reg_args->prefix = strdup(gtk_entry_get_text(regseqname_entry));
@@ -1114,23 +1114,45 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 			reg_args->interpolation = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxRegInter));
 			reg_args->clamp = gtk_toggle_button_get_active(toggle_reg_clamp) && (reg_args->interpolation == OPENCV_CUBIC || reg_args->interpolation == OPENCV_LANCZOS4);
 		}
-		gint disto_apply_index = gtk_combo_box_get_active(GTK_COMBO_BOX(comboreg_undistort));
-		if (disto_apply_index > DISTO_UNDEF) {
-			reg_args->undistort = TRUE;
+		reg_args->undistort = gtk_combo_box_get_active(GTK_COMBO_BOX(comboreg_undistort));
+		if (reg_args->undistort > DISTO_UNDEF) {
 			struct wcsprm *wcs = NULL;
-			if (disto_apply_index == DISTO_IMAGE) {
-				wcs = gfit.keywords.wcslib;
-			} else {
-				const gchar *text = gtk_entry_get_text(reg_wcsfile_entry);
-				fits fit = { 0 };
-				int status = read_fits_metadata_from_path(text, &fit);
-				wcs = fit.keywords.wcslib;
+			switch (reg_args->undistort) {
+				case DISTO_IMAGE:
+					wcs = wcs_deepcopy(gfit.keywords.wcslib, NULL);
+					break;
+				case DISTO_FILE:
+					const gchar *text = gtk_entry_get_text(reg_wcsfile_entry);
+					fits fit = { 0 };
+					int status = read_fits_metadata_from_path(text, &fit);
+					if (!status) {
+						siril_log_color_message(_("Could not load FITS image for distorsion"), "red");
+						siril_log_color_message(_("\nComuting registration without distorsion correction\n"), "red");
+						clearfits(&fit);
+						return 1;
+					}
+					wcs = wcs_deepcopy(fit.keywords.wcslib, &status);
+					if (!status) {
+						siril_log_color_message(_("Could not copy WCS information for distorsion"), "red");
+						siril_log_color_message(_("\nComuting registration without distorsion correction\n"), "red");
+						clearfits(&fit);
+						return 1;
+					}
+					clearfits(&fit);
+					// checking that wcslib has disto term has been checked when updating the reg interface
+					break;
+				case DISTO_FILES:
+				default:
+					break;
 			}
-			reg_args->disto = calloc(1, sizeof(disto_data));
-			reg_args->disto[0].order = extract_SIP_order_and_matrices(wcs->lin.dispre, reg_args->disto[0].A, reg_args->disto[0].B, reg_args->disto[0].AP, reg_args->disto[0].BP);
-			reg_args->disto[0].xref = wcs->crpix[0] - 1.; // -1 comes from the difference of convention between opencv and wcs
-			reg_args->disto[0].yref = wcs->crpix[1] - 1.;
-			reg_args->disto[0].dtype = (reg_args->driz) ? DISTO_S2D: DISTO_D2S;
+			if (reg_args->undistort == DISTO_IMAGE || reg_args->undistort == DISTO_FILE) { // we only have one disto spec, we can init the disto structure
+				reg_args->disto = calloc(1, sizeof(disto_data));
+				reg_args->disto[0].order = extract_SIP_order_and_matrices(wcs->lin.dispre, reg_args->disto[0].A, reg_args->disto[0].B, reg_args->disto[0].AP, reg_args->disto[0].BP);
+				reg_args->disto[0].xref = wcs->crpix[0] - 1.; // -1 comes from the difference of convention between opencv and wcs
+				reg_args->disto[0].yref = wcs->crpix[1] - 1.;
+				reg_args->disto[0].dtype = (reg_args->driz) ? DISTO_MAP_S2D: DISTO_MAP_D2S;
+				wcsfree(wcs);
+			}
 		}
 	}
 
