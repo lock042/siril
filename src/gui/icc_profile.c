@@ -832,48 +832,58 @@ void on_iccmaker_apply_clicked(GtkButton *button, gpointer user_data) {
 			return;
 		}
 		switch (preset_index) {
-			case 0:
+			case 0:;
 				if (target) {
 					cmsCloseProfile(target);
 					target = NULL;
 				}
 				target = make_default_srgb_profile(is_linear);
 				break;
-			case 1:
+			case 1:;
 				if (target) {
 					cmsCloseProfile(target);
 					target = NULL;
 				}
 				target = make_default_display_p3_profile(is_linear);
 				break;
-			case 2:
+			case 2:;
 				if (target) {
 					cmsCloseProfile(target);
 					target = NULL;
 				}
 				target = make_default_adobergb_compat_profile(is_linear);
 				break;
-			case 3:
+			case 3:;
 				if (target) {
 					cmsCloseProfile(target);
 					target = NULL;
 				}
 				target = make_default_rec2020_profile(is_linear);
 				break;
-			case 4:
+			case 4:;
 				if (target) {
 					cmsCloseProfile(target);
 					target = NULL;
 				}
 				target = make_default_prophoto_compat_profile(is_linear);
 				break;
-			case 5:
+			case 5:;
 				if (target) {
 					cmsCloseProfile(target);
 					target = NULL;
 				}
 				target = make_default_rec709_mono_profile(is_linear);
 				break;
+			case 6:;
+				if (target) {
+					cmsCloseProfile(target);
+					target = NULL;
+				}
+				target = make_default_srgb_mono_profile(is_linear);
+				break;
+			default:;
+				siril_debug_print("Error: unknown preset index\n");
+				return;
 		}
 	} else {
 		GString *manufacturer = g_string_new(NULL);
@@ -883,7 +893,7 @@ void on_iccmaker_apply_clicked(GtkButton *button, gpointer user_data) {
 		cmsToneCurve *tonecurve = NULL;
 		int gamut_index = gtk_combo_box_get_active(iccmaker_combo_gamut);
 		switch (gamut_index) {
-			case 0:
+			case 0:;
 				primaries = (cmsCIExyYTRIPLE) {
 					{ gtk_spin_button_get_value(iccmaker_spin_rx), gtk_spin_button_get_value(iccmaker_spin_ry), 1.0 },
 					{ gtk_spin_button_get_value(iccmaker_spin_gx), gtk_spin_button_get_value(iccmaker_spin_gy), 1.0 },
@@ -896,37 +906,37 @@ void on_iccmaker_apply_clicked(GtkButton *button, gpointer user_data) {
 				g_string_append_printf(manufacturer, "Custom chromaticities: R %.2f,%.2f G %.2f,%.2f B %.2f,%.2f", primaries.Red.x, primaries.Red.y, primaries.Green.x, primaries.Green.y, primaries.Blue.x, primaries.Blue.y);
 				break;
 				g_string_append(description, "custom_chromaticities-");
-			case 1:
+			case 1:;
 				primaries = PRIMARIES_SRGB;
 				g_string_append(manufacturer, SRGB_MANUFACTURER_TEXT);
 				g_string_append(description, "sRGB_chromaticities-");
 				break;
-			case 2:
+			case 2:;
 				primaries = PRIMARIES_P3;
 				g_string_append(manufacturer, P3_MANUFACTURER_TEXT);
 				g_string_append(description, "P3_chromaticities-");
 				break;
-			case 3:
+			case 3:;
 				primaries = PRIMARIES_ADOBE;
 				g_string_append(manufacturer, ADOBE_MANUFACTURER_TEXT);
 				g_string_append(description, "AdobeRGB_chromaticities-");
 				break;
-			case 4:
+			case 4:;
 				primaries = PRIMARIES_REC2020;
 				g_string_append(manufacturer, REC2020_MANUFACTURER_TEXT);
 				g_string_append(description, "Rec2020_chromaticities-");
 				break;
-			case 5:
+			case 5:;
 				primaries = PRIMARIES_ROMM;
 				g_string_append(manufacturer, ROMM_MANUFACTURER_TEXT);
 				g_string_append(description, "ROMM_chromaticities-");
 				break;
-			case 6:
+			case 6:;
 				primaries = PRIMARIES_ACES_CG;
 				g_string_append(manufacturer, ACESCG_MANUFACTURER_TEXT);
 				g_string_append(description, "ACEScg_chromaticities-");
 				break;
-			case 7:
+			case 7:;
 				primaries = PRIMARIES__ACES;
 				g_string_append(manufacturer, ACES_MANUFACTURER_TEXT);
 				g_string_append(description, "ACES_chromaticities-");
@@ -937,11 +947,11 @@ void on_iccmaker_apply_clicked(GtkButton *button, gpointer user_data) {
 		}
 		int trc_index = gtk_combo_box_get_active(iccmaker_combo_trc);
 		switch (trc_index) {
-			case 0:
+			case 0:;
 				tonecurve = cmsBuildGamma(NULL, 1.0);
 				g_string_append(description, "linear-");
 				break;
-			case 1:
+			case 1:;
 				double gamma = gtk_spin_button_get_value(iccmaker_spin_gamma);
 				g_string_append_printf(description, "gamma=%.2f-", gamma);
 				if (fabs(gamma - 1.8) > DBL_EPSILON) // Account for hex quantization, for key known gamma values
@@ -950,28 +960,28 @@ void on_iccmaker_apply_clicked(GtkButton *button, gpointer user_data) {
 					gamma = 2.19921875;
 				tonecurve = cmsBuildGamma(NULL, gamma);
 				break;
-			case 2:
+			case 2:;
 				cmsFloat64Number srgb_parameters[5] = SRGBPARAMS;
 				tonecurve = cmsBuildParametricToneCurve(NULL, 4, srgb_parameters);
 				g_string_append(description, "sRGB_trc-");
 				break;
-			case 3:
+			case 3:;
 				cmsFloat64Number rec709_parameters[5] = REC709PARAMS;
 				tonecurve = cmsBuildParametricToneCurve(NULL, 4, rec709_parameters);
 				g_string_append(description, "Rec709_trc-");
 				break;
-			case 4:
+			case 4:;
 				cmsFloat64Number labl_parameters[5] = LABLPARAMS;
 				tonecurve = cmsBuildParametricToneCurve(NULL, 4, labl_parameters);
 				g_string_append(description, "LABl_trc-");
 				break;
-			default:
+			default:;
 				siril_debug_print("Unknown TRC index\n");
 				return;
 		}
 		int whitepoint_index = gtk_combo_box_get_active(iccmaker_combo_whitepoint);
 		switch (whitepoint_index) {
-			case 0:
+			case 0:;
 				g_string_append(description, "D50-V4-siril");
 				cmsCIExyYTRIPLE romm_primaries = PRIMARIES_ROMM;
 				if (!memcmp(&primaries, &romm_primaries, sizeof(cmsCIExyYTRIPLE))) {
@@ -983,15 +993,15 @@ void on_iccmaker_apply_clicked(GtkButton *button, gpointer user_data) {
 					whitepoint = D50_ILLUMINANT_WHITEPOINT;
 				}
 				break;
-			case 1:
+			case 1:;
 				g_string_append(description, "D60-V4-siril");
 				whitepoint = D60_WHITEPOINT;
 				break;
-			case 2:
+			case 2:;
 				g_string_append(description, "D65-V4-siril");
 				whitepoint = D65_SRGB_WHITEPOINT;
 				break;
-			default:
+			default:;
 				siril_debug_print("Unknown white point index\n");
 				return;
 		}

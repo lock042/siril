@@ -105,6 +105,7 @@ cmsHPROFILE make_default_adobergb_compat_profile(gboolean is_linear);
 cmsHPROFILE make_default_rec2020_profile(gboolean is_linear);
 cmsHPROFILE make_default_prophoto_compat_profile(gboolean is_linear);
 cmsHPROFILE make_default_rec709_mono_profile(gboolean is_linear);
+cmsHPROFILE make_default_srgb_mono_profile(gboolean is_linear);
 void export_profile(cmsHPROFILE profile, const char *provided_filename);
 void color_manage(fits *fit, gboolean active);
 void lock_display_transform();

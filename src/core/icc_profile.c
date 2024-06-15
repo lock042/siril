@@ -172,10 +172,11 @@ cmsHPROFILE rec2020_trcv2() {
 }
 
 cmsHPROFILE gray_linear() {
+	// For linear it doesn't matter if we call this or the srgb tone curve equivalent
 	return make_default_rec709_mono_profile(TRUE);
 }
 cmsHPROFILE gray_srgbtrc() {
-	return cmsOpenProfileFromMem(Gray_elle_V4_srgbtrc_icc, Gray_elle_V4_srgbtrc_icc_len);
+	return make_default_srgb_mono_profile(FALSE);
 }
 cmsHPROFILE gray_rec709trc() {
 	return make_default_rec709_mono_profile(FALSE);
@@ -360,9 +361,26 @@ cmsHPROFILE make_default_rec709_mono_profile(gboolean is_linear) {
 	return sirilCreateMonoProfileV4(&whitepoint, tonecurve, manufacturer_text, description_text);
 }
 
+cmsHPROFILE make_default_srgb_mono_profile(gboolean is_linear) {
+	cmsToneCurve *tonecurve;
+	const char* description_text;
+	if (is_linear) {
+		tonecurve = cmsBuildGamma(NULL, 1.0);
+		description_text = "Gray-Linear_TRC-D50-V4-siril";
+	} else {
+		cmsFloat64Number srgb_parameters[5] = SRGBPARAMS;
+		tonecurve = cmsBuildParametricToneCurve(NULL, 4, srgb_parameters);
+		description_text = "Gray-sRGB_TRC-D50-V4-siril";
+	}
+	cmsCIExyY whitepoint = D50_ILLUMINANT_WHITEPOINT;
+	const char* manufacturer_text = "Monochrome (gray) D50 ICC profile";
+	return sirilCreateMonoProfileV4(&whitepoint, tonecurve, manufacturer_text, description_text);
+}
+
 void lock_display_transform() {
 	g_mutex_lock(&display_transform_mutex);
 }
+
 void unlock_display_transform() {
 	g_mutex_unlock(&display_transform_mutex);
 }

@@ -123,6 +123,7 @@
                               <item translatable="yes">Rec.2020</item>
                               <item translatable="yes">Compatible with ProPhoto</item>
                               <item translatable="yes">Mono (Rec.709 tone curve)</item>
+                              <item translatable="yes">Mono (sRGB tone curve)</item>
                             </items>
                           </object>
                           <packing>
