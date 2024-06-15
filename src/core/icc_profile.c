@@ -152,33 +152,33 @@ void icc_profile_set_tag (cmsHPROFILE profile,
 }
 
 cmsHPROFILE srgb_linear() {
-	return cmsOpenProfileFromMem(sRGB_elle_V4_g10_icc, sRGB_elle_V4_g10_icc_len);
+	return make_default_srgb_profile(TRUE);
 }
 cmsHPROFILE srgb_trc() {
-	return cmsOpenProfileFromMem(sRGB_elle_V4_srgbtrc_icc, sRGB_elle_V4_srgbtrc_icc_len);
+	return make_default_srgb_profile(FALSE);
 }
 cmsHPROFILE srgb_trcv2() {
 	return cmsOpenProfileFromMem(sRGB_elle_V2_srgbtrc_icc, sRGB_elle_V2_srgbtrc_icc_len);
 }
 
 cmsHPROFILE rec2020_linear() {
-	return cmsOpenProfileFromMem(Rec2020_elle_V4_g10_icc, Rec2020_elle_V4_g10_icc_len);
+	return make_default_rec2020_profile(TRUE);
 }
 cmsHPROFILE rec2020_trc() {
-	return cmsOpenProfileFromMem(Rec2020_elle_V4_rec709_icc, Rec2020_elle_V4_rec709_icc_len);
+	return make_default_rec2020_profile(FALSE);
 }
 cmsHPROFILE rec2020_trcv2() {
 	return cmsOpenProfileFromMem(Rec2020_elle_V2_rec709_icc, Rec2020_elle_V2_rec709_icc_len);
 }
 
 cmsHPROFILE gray_linear() {
-	return cmsOpenProfileFromMem(Gray_elle_V4_g10_icc, Gray_elle_V4_g10_icc_len);
+	return make_default_rec709_mono_profile(TRUE);
 }
 cmsHPROFILE gray_srgbtrc() {
 	return cmsOpenProfileFromMem(Gray_elle_V4_srgbtrc_icc, Gray_elle_V4_srgbtrc_icc_len);
 }
 cmsHPROFILE gray_rec709trc() {
-	return cmsOpenProfileFromMem(Gray_elle_V4_rec709_icc, Gray_elle_V4_rec709_icc_len);
+	return make_default_rec709_mono_profile(FALSE);
 }
 cmsHPROFILE gray_srgbtrcv2() {
 	return cmsOpenProfileFromMem(Gray_elle_V2_srgbtrc_icc, Gray_elle_V2_srgbtrc_icc_len);
@@ -212,6 +212,152 @@ void export_profile(cmsHPROFILE profile, const char *provided_filename) {
 		siril_log_color_message(_("Failed to export ICC profile to %s\n"), "red", path);
 	}
 	free(path);
+}
+
+cmsHPROFILE sirilCreateRGBProfileV4(cmsCIExyY *whitepoint,
+								  cmsCIExyYTRIPLE *primaries,
+								  cmsToneCurve** curve,
+								  const char* manufacturer_text,
+								  const char* description_text) {
+	cmsHPROFILE profile = cmsCreateRGBProfile(whitepoint, primaries, curve);
+	// Write some tags
+	cmsMLU *copyright = cmsMLUalloc(NULL, 1);
+	cmsMLUsetASCII(copyright, "en", "US", ICC_COPYRIGHT_TEXT);
+	cmsWriteTag(profile, cmsSigCopyrightTag, copyright);
+	cmsMLUfree(copyright);
+
+	cmsMLU *MfgDesc = cmsMLUalloc(NULL, 1);
+	cmsMLUsetASCII(MfgDesc, "en", "US", manufacturer_text);
+	cmsWriteTag(profile, cmsSigDeviceMfgDescTag, MfgDesc);
+	cmsMLUfree(MfgDesc);
+
+	cmsMLU *descriptionMLU = cmsMLUalloc(NULL, 1);
+	cmsMLUsetASCII(descriptionMLU, "en", "US", description_text);
+	cmsWriteTag(profile, cmsSigProfileDescriptionTag, descriptionMLU);
+	cmsMLUfree(descriptionMLU);
+	return profile;
+}
+
+cmsHPROFILE sirilCreateMonoProfileV4(cmsCIExyY *whitepoint,
+								  cmsToneCurve* curve,
+								  const char* manufacturer_text,
+								  const char* description_text) {
+	cmsHPROFILE profile = cmsCreateGrayProfile(whitepoint, curve);
+	// Write some tags
+	cmsMLU *copyright = cmsMLUalloc(NULL, 1);
+	cmsMLUsetASCII(copyright, "en", "US", ICC_COPYRIGHT_TEXT);
+	cmsWriteTag(profile, cmsSigCopyrightTag, copyright);
+	cmsMLUfree(copyright);
+
+	cmsMLU *MfgDesc = cmsMLUalloc(NULL, 1);
+	cmsMLUsetASCII(MfgDesc, "en", "US", manufacturer_text);
+	cmsWriteTag(profile, cmsSigDeviceMfgDescTag, MfgDesc);
+	cmsMLUfree(MfgDesc);
+
+	cmsMLU *descriptionMLU = cmsMLUalloc(NULL, 1);
+	cmsMLUsetASCII(descriptionMLU, "en", "US", description_text);
+	cmsWriteTag(profile, cmsSigProfileDescriptionTag, descriptionMLU);
+	cmsMLUfree(descriptionMLU);
+	return profile;
+}
+
+cmsHPROFILE make_default_srgb_profile(gboolean is_linear) {
+	cmsCIExyYTRIPLE primaries = PRIMARIES_SRGB;
+	cmsToneCurve *tonecurve;
+	if (is_linear) {
+		tonecurve = cmsBuildGamma(NULL, 1.0);
+	} else {
+		cmsFloat64Number srgb_parameters[5] = SRGBPARAMS;
+		tonecurve = cmsBuildParametricToneCurve(NULL, 4, srgb_parameters);
+	}
+	cmsToneCurve *curve[3] = {tonecurve, tonecurve, tonecurve};
+	cmsCIExyY whitepoint = D65_SRGB_WHITEPOINT;
+	const char* manufacturer_text = SRGB_MANUFACTURER_TEXT;
+	const char* description_text = "sRGB-sRGB_TRC-D65-V4-siril";
+	return sirilCreateRGBProfileV4(&whitepoint, &primaries, curve, manufacturer_text, description_text);
+}
+
+cmsHPROFILE make_default_display_p3_profile(gboolean is_linear) {
+	cmsCIExyYTRIPLE primaries = PRIMARIES_P3;
+	// Display P3 uses the sRGB TRC (unlike DCI-P3 which uses a gamma of 2.6)
+	cmsToneCurve *tonecurve;
+	if (is_linear) {
+		tonecurve = cmsBuildGamma(NULL, 1.0);
+	} else {
+		cmsFloat64Number srgb_parameters[5] = SRGBPARAMS;
+		tonecurve = cmsBuildParametricToneCurve(NULL, 4, srgb_parameters);
+	}
+	cmsToneCurve *curve[3] = {tonecurve, tonecurve, tonecurve};
+	cmsCIExyY whitepoint = D65_SRGB_WHITEPOINT;
+	const char* manufacturer_text = P3_MANUFACTURER_TEXT;
+	const char* description_text = "Display_P3-D65-V4-siril";
+	return sirilCreateRGBProfileV4(&whitepoint, &primaries, curve, manufacturer_text, description_text);
+}
+
+cmsHPROFILE make_default_adobergb_compat_profile(gboolean is_linear) {
+	cmsCIExyYTRIPLE primaries = PRIMARIES_ADOBE;
+	cmsToneCurve *tonecurve;
+	tonecurve = cmsBuildGamma(NULL, is_linear ? 1.0 : 2.19921875);
+	const char* description_text;
+	if (is_linear) {
+		description_text = "ClayRGB / Adobe RGB compatible";
+	} else {
+		description_text = "ClayRGB / Adobe RGB compatible, linear TRC";
+	}
+	cmsToneCurve *curve[3] = {tonecurve, tonecurve, tonecurve};
+	cmsCIExyY whitepoint = D65_SRGB_WHITEPOINT;
+	const char* manufacturer_text = ADOBE_MANUFACTURER_TEXT;
+	return sirilCreateRGBProfileV4(&whitepoint, &primaries, curve, manufacturer_text, description_text);
+}
+
+cmsHPROFILE make_default_rec2020_profile(gboolean is_linear) {
+	cmsCIExyYTRIPLE primaries = PRIMARIES_REC2020;
+	cmsToneCurve *tonecurve;
+	const char* description_text;
+	if (is_linear) {
+		tonecurve = cmsBuildGamma(NULL, 1.0);
+		description_text = "Rec2020-Rec709_TRC-D65-V4-siril";
+	} else {
+		cmsFloat64Number rec709_parameters[5] = REC709PARAMS;
+		tonecurve = cmsBuildParametricToneCurve(NULL, 4, rec709_parameters);
+		description_text = "Rec2020-Rec709_TRC-D65-V4-siril";
+	}
+	cmsToneCurve *curve[3] = {tonecurve, tonecurve, tonecurve};
+	cmsCIExyY whitepoint = D65_SRGB_WHITEPOINT;
+	const char* manufacturer_text = REC2020_MANUFACTURER_TEXT;
+	return sirilCreateRGBProfileV4(&whitepoint, &primaries, curve, manufacturer_text, description_text);
+}
+
+cmsHPROFILE make_default_prophoto_compat_profile(gboolean is_linear) {
+	cmsCIExyYTRIPLE primaries = PRIMARIES_ROMM;
+	cmsToneCurve *tonecurve;
+	tonecurve = cmsBuildGamma(NULL, is_linear ? 1.0 : 1.80078125);
+	const char* description_text;
+	if (is_linear) {
+		description_text = "LargeRGB / ROMM / ProPhoto RGB compatible";
+	} else {
+		description_text = "LargeRGB / ROMM / ProPhoto RGB compatible, linear TRC";
+	}
+	cmsToneCurve *curve[3] = {tonecurve, tonecurve, tonecurve};
+	cmsCIExyY whitepoint = ROMMSPEC_WHITEPOINT;
+	const char* manufacturer_text = ROMM_MANUFACTURER_TEXT;
+	return sirilCreateRGBProfileV4(&whitepoint, &primaries, curve, manufacturer_text, description_text);
+}
+
+cmsHPROFILE make_default_rec709_mono_profile(gboolean is_linear) {
+	cmsToneCurve *tonecurve;
+	const char* description_text;
+	if (is_linear) {
+		tonecurve = cmsBuildGamma(NULL, 1.0);
+		description_text = "Gray-Linear_TRC-D50-V4-siril";
+	} else {
+		cmsFloat64Number rec709_parameters[5] = REC709PARAMS;
+		tonecurve = cmsBuildParametricToneCurve(NULL, 4, rec709_parameters);
+		description_text = "Gray-Rec709_TRC-D50-V4-siril";
+	}
+	cmsCIExyY whitepoint = D50_ILLUMINANT_WHITEPOINT;
+	const char* manufacturer_text = "Monochrome (gray) D50 ICC profile";
+	return sirilCreateMonoProfileV4(&whitepoint, tonecurve, manufacturer_text, description_text);
 }
 
 void lock_display_transform() {

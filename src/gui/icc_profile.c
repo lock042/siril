@@ -785,11 +785,12 @@ void disable_iso12646_conditions(gboolean revert_zoom, gboolean revert_panel, gb
 
 // Statics declarations
 
+// Widgets
 GtkButton *iccmaker_cancel = NULL, *iccmaker_apply = NULL;
-GtkComboBoxText *iccmaker_combo_defaults = NULL, *iccmaker_combo_gamut = NULL, *iccmaker_combo_trc = NULL, *iccmaker_combo_whitepoint = NULL;
+GtkComboBox *iccmaker_combo_defaults = NULL, *iccmaker_combo_gamut = NULL, *iccmaker_combo_trc = NULL, *iccmaker_combo_whitepoint = NULL;
 GtkSpinButton *iccmaker_spin_gamma = NULL, *iccmaker_spin_rx = NULL, *iccmaker_spin_ry = NULL, *iccmaker_spin_gx = NULL, *iccmaker_spin_gy = NULL, *iccmaker_spin_bx = NULL, *iccmaker_spin_by = NULL;
-GtkToggleButton *iccmaker_toggle_linear = NULL, *iccmaker_use_custom = NULL, *iccmaker_defaults_controls = NULL, *iccmaker_custom_controls = NULL, *iccmaker_chromaticities_grid = NULL;
-
+GtkToggleButton *iccmaker_toggle_linear = NULL, *iccmaker_use_custom = NULL;
+GtkWidget *iccmaker_defaults_controls = NULL, *iccmaker_custom_controls = NULL, *iccmaker_chromaticities_grid = NULL;
 
 // Statics init
 
@@ -799,10 +800,10 @@ void icc_creator_init_statics() {
 			iccmaker_cancel = GTK_BUTTON(gtk_builder_get_object(gui.builder, "iccmaker_cancel"));
 			iccmaker_apply = GTK_BUTTON(gtk_builder_get_object(gui.builder, "iccmaker_apply"));
 			// GtkComboBoxText
-			iccmaker_combo_defaults = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "iccmaker_combo_defaults"));
-			iccmaker_combo_gamut = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "iccmaker_combo_gamut"));
-			iccmaker_combo_trc = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "iccmaker_combo_trc"));
-			iccmaker_combo_whitepoint = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(gui.builder, "iccmaker_combo_whitepoint"));
+			iccmaker_combo_defaults = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "iccmaker_combo_defaults"));
+			iccmaker_combo_gamut = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "iccmaker_combo_gamut"));
+			iccmaker_combo_trc = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "iccmaker_combo_trc"));
+			iccmaker_combo_whitepoint = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "iccmaker_combo_whitepoint"));
 			// GtkSpinButton
 			iccmaker_spin_gamma = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "iccmaker_spin_gamma"));
 			iccmaker_spin_rx = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "iccmaker_spin_rx"));
@@ -847,16 +848,16 @@ void on_iccmaker_combo_gamut_changed(GtkComboBox *combo, gpointer user_data) {
 
 void on_iccmaker_combo_trc_changed(GtkComboBox *combo, gpointer user_data) {
 	int gamut_index = gtk_combo_box_get_active(combo);
-	gtk_widget_set_sensitive(iccmaker_spin_gamma, 1);
+	gtk_widget_set_sensitive(GTK_WIDGET(iccmaker_spin_gamma), (gamut_index == 1));
 	// Gamma must always be at pos 1 in the combo (makes sense there, just after linear)
 }
 
 void on_iccmaker_apply_clicked(GtkButton *button, gpointer user_data) {
 	cmsHPROFILE *profile = NULL;
 	gboolean is_linear = gtk_toggle_button_get_active(iccmaker_toggle_linear);
-	gboolean preset = (!gtk_toggle_button_get_active(iccmaker_use_custom_clicked);
+	gboolean preset = (!gtk_toggle_button_get_active(iccmaker_use_custom));
 	if (preset) { // Standard presets
-		int preset_index = gtk_combo_box_get_active(iccmaker_combo_default);
+		int preset_index = gtk_combo_box_get_active(iccmaker_combo_defaults);
 		if (gfit.naxes[2] == 1 && preset_index < 5) {
 			siril_log_color_message(_("Error: attempting to assign RGB profile to mono image\n"), "red");
 			return;
@@ -882,40 +883,56 @@ void on_iccmaker_apply_clicked(GtkButton *button, gpointer user_data) {
 				break;
 		}
 	} else {
+		GString *manufacturer = g_string_new(NULL);
+		GString *description = g_string_new("siril-");
 		cmsCIExyYTRIPLE primaries;
-		cmsCIEXYZ media_whitepoint;
-		cmsCIEXYZ media_blackpoint = {0.0, 0.0, 0.0};
 		cmsCIExyY whitepoint;
 		cmsToneCurve *tonecurve = NULL;
 		int gamut_index = gtk_combo_box_get_active(iccmaker_combo_gamut);
 		switch (gamut_index) {
 			case 0:
-				primaries = {
-					{ gtk_spin_button_get_active(iccmaker_spin_rx), gtk_spin_button_get_active(iccmaker_spin_ry), 1.0 },
-					{ gtk_spin_button_get_active(iccmaker_spin_gx), gtk_spin_button_get_active(iccmaker_spin_gy), 1.0 },
-					{ gtk_spin_button_get_active(iccmaker_spin_bx), gtk_spin_button_get_active(iccmaker_spin_by), 1.0 }
+				primaries = (cmsCIExyYTRIPLE) {
+					{ gtk_spin_button_get_value(iccmaker_spin_rx), gtk_spin_button_get_value(iccmaker_spin_ry), 1.0 },
+					{ gtk_spin_button_get_value(iccmaker_spin_gx), gtk_spin_button_get_value(iccmaker_spin_gy), 1.0 },
+					{ gtk_spin_button_get_value(iccmaker_spin_bx), gtk_spin_button_get_value(iccmaker_spin_by), 1.0 }
 				};
+				g_string_append_printf(manufacturer, "Custom chromaticities: R %.2f,%.2f G %.2f,%.2f B %.2f,%.2f", primaries.Red.x, primaries.Red.y, primaries.Green.x, primaries.Green.y, primaries.Blue.x, primaries.Blue.y);
 				break;
+				g_string_append(description, "custom_chromaticities-");
 			case 1:
-				primaries = srgb_primaries;
+				primaries = PRIMARIES_SRGB;
+				g_string_append(manufacturer, SRGB_MANUFACTURER_TEXT);
+				g_string_append(description, "sRGB_chromaticities-");
 				break;
 			case 2:
-				primaries = p3_primaries;
+				primaries = PRIMARIES_P3;
+				g_string_append(manufacturer, P3_MANUFACTURER_TEXT);
+				g_string_append(description, "P3_chromaticities-");
 				break;
 			case 3:
-				primaries = adobe_primaries;
+				primaries = PRIMARIES_ADOBE;
+				g_string_append(manufacturer, ADOBE_MANUFACTURER_TEXT);
+				g_string_append(description, "AdobeRGB_chromaticities-");
 				break;
 			case 4:
-				primaries = rec2020_primaries;
+				primaries = PRIMARIES_REC2020;
+				g_string_append(manufacturer, REC2020_MANUFACTURER_TEXT);
+				g_string_append(description, "Rec2020_chromaticities-");
 				break;
 			case 5:
-				primaries = romm_primaries;
+				primaries = PRIMARIES_ROMM;
+				g_string_append(manufacturer, ROMM_MANUFACTURER_TEXT);
+				g_string_append(description, "ROMM_chromaticities-");
 				break;
 			case 6:
-				primaries = acescg_primaries;
+				primaries = PRIMARIES_ACES_CG;
+				g_string_append(manufacturer, ACESCG_MANUFACTURER_TEXT);
+				g_string_append(description, "ACEScg_chromaticities-");
 				break;
 			case 7:
-				primaries = aces_primaries;
+				primaries = PRIMARIES__ACES;
+				g_string_append(manufacturer, ACES_MANUFACTURER_TEXT);
+				g_string_append(description, "ACES_chromaticities-");
 				break;
 			default:
 				return;
@@ -924,9 +941,11 @@ void on_iccmaker_apply_clicked(GtkButton *button, gpointer user_data) {
 		switch (trc_index) {
 			case 0:
 				tonecurve = cmsBuildGamma(NULL, 1.0);
+				g_string_append(description, "linear-");
 				break;
 			case 1:
-				double gamma = gtk_spin_button_get_active(iccmaker_spin_gamma);
+				double gamma = gtk_spin_button_get_value(iccmaker_spin_gamma);
+				g_string_append_printf(description, "gamma=%.2f-", gamma);
 				if (fabs(gamma - 1.8) > DBL_EPSILON) // Account for hex quantization, for key known gamma values
 					gamma = 1.80078125;
 				else if (fabs(gamma - 2.2) > DBL_EPSILON)
@@ -934,16 +953,19 @@ void on_iccmaker_apply_clicked(GtkButton *button, gpointer user_data) {
 				tonecurve = cmsBuildGamma(NULL, gamma);
 				break;
 			case 2:
-				cmsFloat64Number srgb_parameters[5] = { 2.4, 1.0 / 1.055,  0.055 / 1.055, 1.0 / 12.92, 0.04045 };
+				cmsFloat64Number srgb_parameters[5] = SRGBPARAMS;
 				tonecurve = cmsBuildParametricToneCurve(NULL, 4, srgb_parameters);
+				g_string_append(description, "sRGB_trc-");
 				break;
 			case 3:
-				cmsFloat64Number rec709_parameters[5] = { 1.0 / 0.45, 1.0 / 1.099,  0.099 / 1.099,  1.0 / 4.5, 0.081 };
+				cmsFloat64Number rec709_parameters[5] = REC709PARAMS;
 				tonecurve = cmsBuildParametricToneCurve(NULL, 4, rec709_parameters);
+				g_string_append(description, "Rec709_trc-");
 				break;
 			case 4:
-				cmsFloat64Number labl_parameters[5] = { 3.0, 1.0 / 1.16,  0.16 / 1.16, 2700.0 / 24389.0, 0.08000 };
+				cmsFloat64Number labl_parameters[5] = LABLPARAMS;
 				tonecurve = cmsBuildParametricToneCurve(NULL, 4, labl_parameters);
+				g_string_append(description, "LABl_trc-");
 				break;
 			default:
 				return;
@@ -951,22 +973,38 @@ void on_iccmaker_apply_clicked(GtkButton *button, gpointer user_data) {
 		int whitepoint_index = gtk_combo_box_get_active(iccmaker_combo_whitepoint);
 		switch (whitepoint_index) {
 			case 0:
-				whitepoint = D50_whitepoint;
-				media_whitepoint = D50_media_whitepoint;
+				g_string_append(description, "D50-V4-siril");
+				cmsCIExyYTRIPLE romm_primaries = PRIMARIES_ROMM;
+				if (!memcmp(&primaries, &romm_primaries, sizeof(cmsCIExyYTRIPLE))) {
+					// The ROMM whitepoint is slightly different to that calculated
+					// from the ICC D50 illuminant XYZ values. If the user has selected
+					// the ROMM primaries, they probably want the matching whitepoint.
+					whitepoint = ROMMSPEC_WHITEPOINT;
+				} else {
+					whitepoint = D50_ILLUMINANT_WHITEPOINT;
+				}
 				break;
 			case 1:
-				whitepoint = D60_whitepoint;
-				media_whitepoint = D60_media_whitepoint;
+				g_string_append(description, "D60-V4-siril");
+				whitepoint = D60_WHITEPOINT;
 				break;
 			case 2:
-				whitepoint = D65_whitepoint;
-				media_whitepoint = D65_media_whitepoint;
+				g_string_append(description, "D65-V4-siril");
+				whitepoint = D65_SRGB_WHITEPOINT;
 				break;
 			default:
 				return;
 		}
-		profile = make_custom_profile(primaries, media_whitepoint, whitepoint, media_blackpoint, tonecurve);
+		cmsToneCurve *curve[3] = { tonecurve, tonecurve, tonecurve };
+
+		// Create custom profile
+		gchar *manufacturer_text = g_string_free(manufacturer, FALSE);
+		gchar *description_text = g_string_free(description, FALSE);
+		profile = sirilCreateRGBProfileV4(&whitepoint, &primaries, curve, manufacturer_text, description_text);
+		g_free(manufacturer_text);
+		g_free(description_text);
 	}
+
 	// Clear any ROI that has been set before changing the color profile
 	on_clear_roi();
 
