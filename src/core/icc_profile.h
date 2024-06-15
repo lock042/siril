@@ -22,7 +22,7 @@
 #include <stdint.h>
 #include <lcms2.h>
 
-#define ICC_COPYRIGHT_TEXT "Copyright 2024, Team free-astro (http://siril.org/), CC-BY-SA 3.0 Unported (https://creativecommons.org/licenses/by-sa/3.0/legalcode)."
+#define ICC_COPYRIGHT_TEXT "Copyright 2024, Team free-astro (http://siril.org/), CC-0 (https://creativecommons.org/publicdomain/zero/1.0/legalcode)."
 #define SRGB_MANUFACTURER_TEXT "sRGB chromaticities from A Standard Default Color Space for the Internet - sRGB, http://www.w3.org/Graphics/Color/sRGB; also see http://www.color.org/specification/ICC1v43_2010-12.pdf"
 #define P3_MANUFACTURER_TEXT "P3 chromaticities from https://en.wikipedia.org/wiki/DCI-P3"
 #define ADOBE_MANUFACTURER_TEXT "Chromaticities as given in Adobe RGB (1998) Color Image Encoding, Version 2005-05, https://www.adobe.com/digitalimag/pdfs/AdobeRGB1998.pdf"

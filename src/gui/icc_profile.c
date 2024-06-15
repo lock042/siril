@@ -285,9 +285,7 @@ void on_icc_cancel_clicked(GtkButton* button, gpointer* user_data) {
 	GtkLabel* label4 = (GtkLabel*) lookup_widget("icc_current_profile_label");
 	GtkLabel* label5 = (GtkLabel*) lookup_widget("icc_mfr_label");
 	GtkLabel* label6 = (GtkLabel*) lookup_widget("icc_copyright_label");
-	GtkComboBox* target_combo = (GtkComboBox*) lookup_widget("icc_target_combo");
 	GtkFileChooser* filechooser = (GtkFileChooser*) lookup_widget("icc_target_filechooser");
-	gtk_combo_box_set_active(target_combo, 0);
 	gtk_file_chooser_unselect_all(filechooser);
 	if (target) {
 		cmsCloseProfile(target);
@@ -403,49 +401,6 @@ void on_icc_convertto_clicked(GtkButton* button, gpointer* user_data) {
 	close_tab();
 	init_right_tab();
 	notify_gfit_modified();
-}
-
-void on_icc_target_combo_changed(GtkComboBox* combo, gpointer* user_data) {
-	GtkFileChooser* filechooser = (GtkFileChooser*) lookup_widget("icc_target_filechooser");
-	internal_icc target_index = gtk_combo_box_get_active(combo);
-	GtkLabel* label = (GtkLabel*) lookup_widget("icc_target_profile_label");
-	gtk_file_chooser_unselect_all(filechooser);
-	if (target) {
-		cmsCloseProfile(target);
-		target = NULL;
-	}
-	GtkLabel *mfr_label = NULL, *copyright_label = NULL;
-	switch (target_index) {
-		case NONE:
-			mfr_label = (GtkLabel*) lookup_widget("icc_target_mfr_label");
-			copyright_label = (GtkLabel*) lookup_widget("icc_target_copyright_label");
-			gtk_label_set_text(label, "");
-			gtk_label_set_text(copyright_label, "");
-			gtk_label_set_text(mfr_label, "");
-			return;
-		case SRGB_LINEAR:
-			target = srgb_linear();
-			break;
-		case SRGB_TRC:
-			target = srgb_trc();
-			break;
-		case REC2020_LINEAR:
-			target = rec2020_linear();
-			break;
-		case REC2020_TRC:
-			target = rec2020_trc();
-			break;
-		case GRAY_LINEAR:
-			target = gray_linear();
-			break;
-		case GRAY_SRGBTRC:
-			target = gray_srgbtrc();
-			break;
-		case GRAY_REC709TRC:
-			target = gray_rec709trc();
-			break;
-	}
-	set_target_information();
 }
 
 void on_icc_target_filechooser_file_set(GtkFileChooser* filechooser, gpointer* user_data) {
@@ -828,13 +783,21 @@ Object iccmaker_apply - GtkButton::clicked ==> on_iccmaker_apply_clicked
 void on_iccmaker_dialog_show(GtkDialog *dialog, gpointer user_data) {
 	if (!iccmaker_cancel)
 		icc_creator_init_statics();
+	gboolean state = gtk_toggle_button_get_active(iccmaker_use_custom);
+	gtk_widget_set_sensitive(iccmaker_defaults_controls, !state);
+	gtk_widget_set_sensitive(iccmaker_custom_controls, state);
+	int gamut_index = gtk_combo_box_get_active(iccmaker_combo_gamut);
+	gtk_widget_set_sensitive(iccmaker_chromaticities_grid, (gamut_index == 0));
+	int trc_index = gtk_combo_box_get_active(iccmaker_combo_trc);
+	gtk_widget_set_sensitive(GTK_WIDGET(iccmaker_spin_gamma), (trc_index == 1));
+
 }
 
 void on_iccmaker_cancel_clicked(GtkDialog *dialog, gpointer user_data) {
 	siril_close_dialog("iccmaker_dialog");
 }
 
-void on_iccmaker_use_custom_clicked(GtkToggleButton *button, gpointer user_data) {
+void on_iccmaker_use_custom_toggled(GtkToggleButton *button, gpointer user_data) {
 	gboolean state = gtk_toggle_button_get_active(button);
 	gtk_widget_set_sensitive(iccmaker_defaults_controls, !state);
 	gtk_widget_set_sensitive(iccmaker_custom_controls, state);
@@ -847,13 +810,12 @@ void on_iccmaker_combo_gamut_changed(GtkComboBox *combo, gpointer user_data) {
 }
 
 void on_iccmaker_combo_trc_changed(GtkComboBox *combo, gpointer user_data) {
-	int gamut_index = gtk_combo_box_get_active(combo);
-	gtk_widget_set_sensitive(GTK_WIDGET(iccmaker_spin_gamma), (gamut_index == 1));
+	int trc_index = gtk_combo_box_get_active(combo);
+	gtk_widget_set_sensitive(GTK_WIDGET(iccmaker_spin_gamma), (trc_index == 1));
 	// Gamma must always be at pos 1 in the combo (makes sense there, just after linear)
 }
 
 void on_iccmaker_apply_clicked(GtkButton *button, gpointer user_data) {
-	cmsHPROFILE *profile = NULL;
 	gboolean is_linear = gtk_toggle_button_get_active(iccmaker_toggle_linear);
 	gboolean preset = (!gtk_toggle_button_get_active(iccmaker_use_custom));
 	if (preset) { // Standard presets
@@ -864,22 +826,46 @@ void on_iccmaker_apply_clicked(GtkButton *button, gpointer user_data) {
 		}
 		switch (preset_index) {
 			case 0:
-				profile = make_default_srgb_profile(is_linear);
+				if (target) {
+					cmsCloseProfile(target);
+					target = NULL;
+				}
+				target = make_default_srgb_profile(is_linear);
 				break;
 			case 1:
-				profile = make_default_display_p3_profile(is_linear);
+				if (target) {
+					cmsCloseProfile(target);
+					target = NULL;
+				}
+				target = make_default_display_p3_profile(is_linear);
 				break;
 			case 2:
-				profile = make_default_adobergb_compat_profile(is_linear);
+				if (target) {
+					cmsCloseProfile(target);
+					target = NULL;
+				}
+				target = make_default_adobergb_compat_profile(is_linear);
 				break;
 			case 3:
-				profile = make_default_rec2020_profile(is_linear);
+				if (target) {
+					cmsCloseProfile(target);
+					target = NULL;
+				}
+				target = make_default_rec2020_profile(is_linear);
 				break;
 			case 4:
-				profile = make_default_prophoto_compat_profile(is_linear);
+				if (target) {
+					cmsCloseProfile(target);
+					target = NULL;
+				}
+				target = make_default_prophoto_compat_profile(is_linear);
 				break;
 			case 5:
-				profile = make_default_rec709_mono_profile(is_linear);
+				if (target) {
+					cmsCloseProfile(target);
+					target = NULL;
+				}
+				target = make_default_rec709_mono_profile(is_linear);
 				break;
 		}
 	} else {
@@ -896,6 +882,10 @@ void on_iccmaker_apply_clicked(GtkButton *button, gpointer user_data) {
 					{ gtk_spin_button_get_value(iccmaker_spin_gx), gtk_spin_button_get_value(iccmaker_spin_gy), 1.0 },
 					{ gtk_spin_button_get_value(iccmaker_spin_bx), gtk_spin_button_get_value(iccmaker_spin_by), 1.0 }
 				};
+				if (primaries.Red == primaries.Green || primaries.Red == primaries.Blue || primaries.Green == primaries.Blue) {
+					siril_log_color_message(_("Error: two or more of the chromaticities are the same. Cannot create this profile.\n"), "red");
+					return;
+				}
 				g_string_append_printf(manufacturer, "Custom chromaticities: R %.2f,%.2f G %.2f,%.2f B %.2f,%.2f", primaries.Red.x, primaries.Red.y, primaries.Green.x, primaries.Green.y, primaries.Blue.x, primaries.Blue.y);
 				break;
 				g_string_append(description, "custom_chromaticities-");
@@ -935,6 +925,7 @@ void on_iccmaker_apply_clicked(GtkButton *button, gpointer user_data) {
 				g_string_append(description, "ACES_chromaticities-");
 				break;
 			default:
+				siril_debug_print("Unknown chromaticity index\n");
 				return;
 		}
 		int trc_index = gtk_combo_box_get_active(iccmaker_combo_trc);
@@ -968,6 +959,7 @@ void on_iccmaker_apply_clicked(GtkButton *button, gpointer user_data) {
 				g_string_append(description, "LABl_trc-");
 				break;
 			default:
+				siril_debug_print("Unknown TRC index\n");
 				return;
 		}
 		int whitepoint_index = gtk_combo_box_get_active(iccmaker_combo_whitepoint);
@@ -993,6 +985,7 @@ void on_iccmaker_apply_clicked(GtkButton *button, gpointer user_data) {
 				whitepoint = D65_SRGB_WHITEPOINT;
 				break;
 			default:
+				siril_debug_print("Unknown white point index\n");
 				return;
 		}
 		cmsToneCurve *curve[3] = { tonecurve, tonecurve, tonecurve };
@@ -1000,51 +993,22 @@ void on_iccmaker_apply_clicked(GtkButton *button, gpointer user_data) {
 		// Create custom profile
 		gchar *manufacturer_text = g_string_free(manufacturer, FALSE);
 		gchar *description_text = g_string_free(description, FALSE);
-		profile = sirilCreateRGBProfileV4(&whitepoint, &primaries, curve, manufacturer_text, description_text);
+		if (target) {
+			cmsCloseProfile(target);
+			target = NULL;
+		}
+		target = sirilCreateRGBProfileV4(&whitepoint, &primaries, curve, manufacturer_text, description_text);
 		g_free(manufacturer_text);
 		g_free(description_text);
 	}
-
-	// Clear any ROI that has been set before changing the color profile
-	on_clear_roi();
-
-	if (!gfit.color_managed || !gfit.icc_profile) {
-		// Handle initial assignment of an ICC profile
-		cmsUInt32Number gfit_colorspace = cmsGetColorSpace(gfit.icc_profile);
-		cmsUInt32Number gfit_colorspace_channels = cmsChannelsOf(gfit_colorspace);
-		cmsUInt32Number target_colorspace = cmsGetColorSpace(profile);
-		cmsUInt32Number target_colorspace_channels = cmsChannelsOf(target_colorspace);
-
-		if (gfit_colorspace_channels != target_colorspace_channels) {
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Transform not supported"), _("Image cannot be assigned a color profile with a different number of channels to its current color profile"));
-			cmsCloseProfile(profile);
-			return;
-		}
-		undo_save_state(&gfit, _("Color profile assignment"));
-		if (gfit.icc_profile) {
-			cmsCloseProfile(gfit.icc_profile);
-			gfit.icc_profile = NULL;
-		}
-		gfit.icc_profile = copyICCProfile(profile);
-	} else {
-		// Handle conversion from an existing ICC profile
-		if (gfit.icc_profile) {
-			cmsCloseProfile(gfit.icc_profile);
-			gfit.icc_profile = NULL;
-		}
-		undo_save_state(&gfit, _("Color profile conversion"));
-		cmsUInt32Number temp_intent = com.pref.icc.processing_intent;
-		com.pref.icc.processing_intent = com.pref.icc.export_intent;
-		siril_colorspace_transform(&gfit, profile);
-		com.pref.icc.processing_intent = temp_intent;
-
-	}
-	if (gfit.icc_profile)
-		color_manage(&gfit, TRUE);
-	gtk_widget_set_sensitive(lookup_widget("icc_convertto"), gfit.color_managed);
-	gtk_widget_set_sensitive(lookup_widget("icc_remove"), gfit.color_managed);
-	set_source_information();
-	refresh_icc_transforms();
-	notify_gfit_modified();
+	set_target_information();
+	siril_close_dialog("iccmaker_dialog");
 	return;
+}
+
+void on_icc_builtins_clicked(GtkButton *button, gpointer user_data) {
+	GtkWidget *win = lookup_widget("iccmaker_dialog");
+	gtk_window_set_transient_for(GTK_WINDOW(win), GTK_WINDOW(lookup_widget("icc_dialog")));
+	/* Here this is wanted that we do not use siril_open_dialog */
+	gtk_widget_show(win);
 }

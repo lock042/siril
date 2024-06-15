@@ -67,6 +67,7 @@ static const SirilDialogEntry entries[] =
 	{"histogram_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_histo_cancel},
 	{"keywords_dialog", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"icc_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"iccmaker_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"astrometry_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"linearmatch_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"Median_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, median_close},

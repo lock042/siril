@@ -407,7 +407,7 @@ static void grid_add_row(int layer, int index, int first_time) {
 	}
 }
 
-/* load all glade data, connect signals, configure the dynamic objects of the
+/* load all UI data, connect signals, configure the dynamic objects of the
  * composition window and make it visible */
 void open_compositing_window() {
 	int i;
@@ -474,15 +474,12 @@ void open_compositing_window() {
 		/* not the first load, update the CWD just in case it changed in the meantime */
 		i = 0;
 
-//		close_sequence(FALSE);
-//		close_single_image();
 		do {
 			gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(layers[i]->chooser), com.wd);
 			if (!reference)
 				reference = copyICCProfile(layers[i]->the_fit.icc_profile);
 			i++;
 		} while (layers[i]);
-//		update_result(1);
 		update_MenuItem();
 	}
 	if (compositing_loaded == 1)
@@ -1061,12 +1058,7 @@ static void increment_pixel_components_from_layer_value(int fits_index, GdkRGBA 
  * particular layer. GdkRGBA values are stored in the [0, 1] interval. */
 static void increment_pixel_components_from_layer_saturated_value(int fits_index, GdkRGBA *rgbpixel, float layer_pixel_value) {
 	GdkRGBA *layer_color = &layers[fits_index]->saturated_color;
-	if (layer_pixel_value > 1.0f) {
-		/* images could have pixel values above 1, especially when
-		 * demosaicing is used, we shouldn't count them as overflow
-		 * here */
-		layer_pixel_value = 1.0f;
-	}
+	layer_pixel_value = fminf(layer_pixel_value, 1.f);
 	rgbpixel->red += layer_color->red * layer_pixel_value;
 	rgbpixel->green += layer_color->green * layer_pixel_value;
 	rgbpixel->blue += layer_color->blue * layer_pixel_value;
@@ -1083,9 +1075,6 @@ static void update_compositing_registration_interface() {
 		// DFT shift ad KOMBAT require a selection to be made
 		gtk_label_set_text(label, _("An image area must be selected for align"));
 		gtk_widget_set_sensitive(lookup_widget("button_align"), FALSE);
-	/*} else if (ref_layer == -1 || (!luminance_mode && ref_layer == 0)) {
-		gtk_label_set_text(label, "A reference layer must be selected for align");
-		gtk_widget_set_sensitive(lookup_widget("button_align"), FALSE);*/
 	} else if (number_of_images_loaded() < 2) {
 		gtk_label_set_text(label, _("At least 2 channels must be loaded for align"));
 		gtk_widget_set_sensitive(lookup_widget("button_align"), FALSE);

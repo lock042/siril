@@ -365,29 +365,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkComboBoxText" id="icc_target_combo">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="tooltip-text" translatable="yes">Select a built-in ICC profile. This tool is only for converting the profile of an image, not its type, so you cannot convert a RGB image to a Gray profile or vice versa.</property>
-                        <property name="active">0</property>
-                        <items>
-                          <item translatable="yes">None selected</item>
-                          <item translatable="yes">sRGB (linear TRC)</item>
-                          <item translatable="yes">sRGB (standard sRGB TRC)</item>
-                          <item translatable="yes">Rec2020 (linear TRC)</item>
-                          <item translatable="yes">Rec2020 (standard Rec709 TRC)</item>
-                          <item translatable="yes">Gray (linear TRC)</item>
-                          <item translatable="yes">Gray (sRGB TRC)</item>
-                          <item translatable="yes">Gray (Rec709 TRC)</item>
-                        </items>
-                        <signal name="changed" handler="on_icc_target_combo_changed" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="left-attach">0</property>
-                        <property name="top-attach">5</property>
-                      </packing>
-                    </child>
-                    <child>
                       <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
@@ -410,6 +387,19 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
+                        <property name="top-attach">5</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="icc_builtins">
+                        <property name="label" translatable="yes">Built-in presets and custom profiles</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                        <signal name="clicked" handler="on_icc_builtins_clicked" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
                         <property name="top-attach">5</property>
                       </packing>
                     </child>
