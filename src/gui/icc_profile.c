@@ -408,10 +408,6 @@ void on_icc_target_filechooser_file_set(GtkFileChooser* filechooser, gpointer* u
 		cmsCloseProfile(target);
 		target = NULL;
 	}
-	GtkComboBox* target_combo = (GtkComboBox*) lookup_widget("icc_target_combo");
-	g_signal_handlers_block_by_func(target_combo, on_icc_target_combo_changed, NULL);
-	gtk_combo_box_set_active(target_combo, 0);
-	g_signal_handlers_unblock_by_func(target_combo, on_icc_target_combo_changed, NULL);
 	gchar *filename = siril_file_chooser_get_filename(filechooser);
 	if (filename) {
 		target = cmsOpenProfileFromFile(filename, "r");
@@ -815,6 +811,17 @@ void on_iccmaker_combo_trc_changed(GtkComboBox *combo, gpointer user_data) {
 	// Gamma must always be at pos 1 in the combo (makes sense there, just after linear)
 }
 
+static gboolean degenerate_primaries(cmsCIExyYTRIPLE *primaries) {
+	gboolean retval = FALSE;
+	if (!memcmp(&primaries->Red, &primaries->Green, sizeof(cmsCIExyY)))
+		retval = TRUE;
+	else if (!memcmp(&primaries->Red, &primaries->Blue, sizeof(cmsCIExyY)))
+		retval = TRUE;
+	else if (!memcmp(&primaries->Green, &primaries->Blue, sizeof(cmsCIExyY)))
+		retval = TRUE;
+	return retval;
+}
+
 void on_iccmaker_apply_clicked(GtkButton *button, gpointer user_data) {
 	gboolean is_linear = gtk_toggle_button_get_active(iccmaker_toggle_linear);
 	gboolean preset = (!gtk_toggle_button_get_active(iccmaker_use_custom));
@@ -882,7 +889,7 @@ void on_iccmaker_apply_clicked(GtkButton *button, gpointer user_data) {
 					{ gtk_spin_button_get_value(iccmaker_spin_gx), gtk_spin_button_get_value(iccmaker_spin_gy), 1.0 },
 					{ gtk_spin_button_get_value(iccmaker_spin_bx), gtk_spin_button_get_value(iccmaker_spin_by), 1.0 }
 				};
-				if (primaries.Red == primaries.Green || primaries.Red == primaries.Blue || primaries.Green == primaries.Blue) {
+				if (degenerate_primaries(&primaries)) {
 					siril_log_color_message(_("Error: two or more of the chromaticities are the same. Cannot create this profile.\n"), "red");
 					return;
 				}
