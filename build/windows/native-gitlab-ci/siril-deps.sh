@@ -3,6 +3,7 @@ mingw-w64-x86_64-toolchain \
 mingw-w64-x86_64-cmake \
 git \
 automake \
+wget \
 mingw-w64-x86_64-autotools \
 mingw-w64-x86_64-lcms2 \
 mingw-w64-x86_64-curl \
@@ -17,7 +18,6 @@ mingw-w64-x86_64-gsl \
 mingw-w64-x86_64-opencv \
 mingw-w64-x86_64-libheif \
 mingw-w64-x86_64-ffms2 \
-mingw-w64-x86_64-cfitsio \
 
 # Build LibRaw from github
 mkdir _deps && cd _deps
@@ -27,4 +27,8 @@ autoreconf -fi && \
 ./configure --disable-examples --disable-static && \
 make install -j$(nproc) || exit 1
 cd ..
+
+# Fetch older version of cfitsio (4.3.1-1)
+wget https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-cfitsio-1~4.3.1-1-any.pkg.tar.zst
+pacman -U mingw-w64-x86_64-cfitsio-1~4.3.1-1-any.pkg.tar.zst
 
