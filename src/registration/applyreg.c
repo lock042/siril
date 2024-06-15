@@ -636,9 +636,63 @@ int apply_reg_compute_mem_limits(struct generic_seq_args *args, gboolean for_wri
 	return limit;
 }
 
+// Used by both apply_reg and global methods: definition is in registration.h
+int initialize_drizzle_params(struct generic_seq_args *args, struct registration_args *regargs) {
+	struct driz_args_t *driz = regargs->driz;
+	set_progress_bar_data(_("Initializing drizzle data..."), PROGRESS_PULSATE);
+	args->compute_mem_limits_hook = apply_drz_compute_mem_limits;
+	args->upscale_ratio = 1.0; // Drizzle scale dealt with separately
+	driz_param_dump(driz); // Print some info to the log
+	/* preparing reference data from reference fit and making sanity checks*/
+	fits fit = { 0 };
+
+	/* fit will now hold the reference frame */
+	if (seq_read_frame_metadata(regargs->seq, regargs->reference_image, &fit)) {
+		siril_log_message(_("Could not load reference image\n"));
+		args->seq->regparam[0] = NULL;
+		free(args);
+		return 1;
+	}
+	sensor_pattern pattern;
+	if (args->seq->type == SEQ_SER && args->seq->ser_file ) {
+		driz->is_bayer = TRUE;
+		switch (args->seq->ser_file->color_id) {
+			case SER_MONO:
+				pattern = get_cfa_pattern_index_from_string("");
+				driz->is_bayer = FALSE;
+				break;
+			case SER_BAYER_RGGB:
+				pattern = get_cfa_pattern_index_from_string("RGGB");
+				break;
+			case SER_BAYER_GRBG:
+				pattern = get_cfa_pattern_index_from_string("GRBG");
+				break;
+			case SER_BAYER_GBRG:
+				pattern = get_cfa_pattern_index_from_string("GBRG");
+				break;
+			case SER_BAYER_BGGR:
+				pattern = get_cfa_pattern_index_from_string("BGGR");
+				break;
+			default:
+				siril_log_message(_("Unsupported SER CFA pattern detected. Treating as mono.\n"));
+				driz->is_bayer = FALSE;
+		}
+	} else {
+		const gchar bayertest = fit.keywords.bayer_pattern[0];
+		driz->is_bayer = (bayertest == 'R' || bayertest == 'G' || bayertest == 'B'); // If there is a CFA pattern we need to CFA drizzle
+		pattern = com.pref.debayer.use_bayer_header ? get_cfa_pattern_index_from_string(fit.keywords.bayer_pattern) : com.pref.debayer.bayer_pattern;
+	}
+	if (driz->is_bayer) {
+		adjust_Bayer_pattern(&fit, &pattern);
+		driz->cfa = get_cfa_from_pattern(pattern);
+		if (!driz->cfa) // if fit.bayer_pattern exists and get_cfa_from_pattern returns NULL then there is a problem.
+			return 1;
+	}
+	return 0;
+}
+
 int register_apply_reg(struct registration_args *regargs) {
 	struct generic_seq_args *args = create_default_seqargs(regargs->seq);
-	struct driz_args_t *driz = regargs->driz;
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
 	if (!check_before_applyreg(regargs)) {
@@ -647,56 +701,9 @@ int register_apply_reg(struct registration_args *regargs) {
 	}
 
 	if (regargs->driz) {
-		set_progress_bar_data(_("Initializing drizzle data..."), PROGRESS_PULSATE);
-	}
-
-	if (driz) {
-		args->compute_mem_limits_hook = apply_drz_compute_mem_limits;
-		args->upscale_ratio = 1.0; // Drizzle scale dealt with separately
-		driz_param_dump(driz); // Print some info to the log
-		/* preparing reference data from reference fit and making sanity checks*/
-		fits fit = { 0 };
-
-		/* fit will now hold the reference frame */
-		if (seq_read_frame_metadata(regargs->seq, regargs->reference_image, &fit)) {
-			siril_log_message(_("Could not load reference image\n"));
-			args->seq->regparam[0] = NULL;
+		if (initialize_drizzle_params(args, regargs)) {
 			free(args);
-			return 1;
-		}
-		sensor_pattern pattern;
-		if (args->seq->type == SEQ_SER && args->seq->ser_file ) {
-			driz->is_bayer = TRUE;
-			switch (args->seq->ser_file->color_id) {
-				case SER_MONO:
-					pattern = get_cfa_pattern_index_from_string("");
-					driz->is_bayer = FALSE;
-					break;
-				case SER_BAYER_RGGB:
-					pattern = get_cfa_pattern_index_from_string("RGGB");
-					break;
-				case SER_BAYER_GRBG:
-					pattern = get_cfa_pattern_index_from_string("GRBG");
-					break;
-				case SER_BAYER_GBRG:
-					pattern = get_cfa_pattern_index_from_string("GBRG");
-					break;
-				case SER_BAYER_BGGR:
-					pattern = get_cfa_pattern_index_from_string("BGGR");
-					break;
-				default:
-					siril_log_message(_("Unsupported SER CFA pattern detected. Treating as mono.\n"));
-					driz->is_bayer = FALSE;
-			}
-		} else {
-			driz->is_bayer = (fit.keywords.bayer_pattern[0] != '\0'); // If there is a CFA pattern we need to CFA drizzle
-			pattern = com.pref.debayer.use_bayer_header ? get_cfa_pattern_index_from_string(fit.keywords.bayer_pattern) : com.pref.debayer.bayer_pattern;
-		}
-		if (driz->is_bayer) {
-			adjust_Bayer_pattern(&fit, &pattern);
-			driz->cfa = get_cfa_from_pattern(pattern);
-			if (!driz->cfa) // if fit.bayer_pattern exists and get_cfa_from_pattern returns NULL then there is a problem.
-				return 1;
+			return -1;
 		}
 	} else {
 		args->compute_mem_limits_hook = apply_reg_compute_mem_limits;

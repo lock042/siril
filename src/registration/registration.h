@@ -238,5 +238,5 @@ void compute_Hmax(Homography *Himg, Homography *Href, int src_rx_in, int src_ry_
 
 int minidx(const float *arr, const gboolean *mask, int nb, float *val);
 void free_astrometric_args(struct astrometric_args *astargs);
-
+int initialize_drizzle_params(struct generic_seq_args *args, struct registration_args *regargs);
 #endif

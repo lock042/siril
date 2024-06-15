@@ -596,7 +596,15 @@ int register_star_alignment(struct registration_args *regargs) {
 		args->filtering_criterion = seq_filter_included;
 		args->nb_filtered_images = regargs->seq->selnum;
 	}
-	args->compute_mem_limits_hook = star_align_compute_mem_limits;
+	if (regargs->driz) {
+		if (initialize_drizzle_params(args, regargs)) {
+			free(args);
+			return -1;
+		}
+	} else {
+		args->compute_mem_limits_hook = star_align_compute_mem_limits;
+		args->upscale_ratio = regargs->output_scale;
+	}
 	args->prepare_hook = star_align_prepare_hook;
 	args->image_hook = star_align_image_hook;
 	args->finalize_hook = star_align_finalize_hook;
@@ -604,7 +612,6 @@ int register_star_alignment(struct registration_args *regargs) {
 	args->description = _("Global star registration");
 	args->has_output = !regargs->no_output;
 	args->output_type = get_data_type(args->seq->bitpix);
-	args->upscale_ratio = regargs->output_scale;
 	args->new_seq_prefix = regargs->prefix;
 	args->load_new_sequence = !regargs->no_output;
 	args->already_in_a_thread = TRUE;
