@@ -1,3 +1,9 @@
+siril 1.2.3
+XX/XX/XX
+
+* Fixed handling wide-char characters in filenames on Windows (cfitsio rollback) (#1324)
+
+
 siril 1.2.2
 06/14/24
 

@@ -1,3 +1,8 @@
+siril 1.2.3 xxx xx, 2024
+
+* Fixed handling wide-char characters in filenames on Windows (cfitsio rollback) (#1324)
+
+
 siril 1.2.2 June 14, 2024
 
 * Removed background extraction samples after using it in script (#1265)
