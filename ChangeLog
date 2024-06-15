@@ -71,6 +71,14 @@ xx/xx/xx
 * Added atmosphere model for SPCC (accounts for Rayleigh scattering) (!684)
 * Fixed a crash in ROI selection (#1320)
 * Optimised GHT code (~2x speedup) and fixed associated bugs (#1194, #1314, #1319)
+* Fixed handling wide-char characters in filenames on Windows (with cfitsio >= 4.4) (#1324)
+
+
+siril 1.2.3
+XX/XX/XX
+
+* Fixed handling wide-char characters in filenames on Windows (cfitsio rollback) (#1324)
+
 
 siril 1.2.2
 06/14/24
