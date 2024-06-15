@@ -147,17 +147,14 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	}
 
 	siril_log_color_message(_("Reference Image:\n"), "green");
-	image refimage = { .fit = &fit, .from_seq = args->seq, .index_in_seq = regargs->reference_image };
 
-	if (regargs->matchSelection && regargs->selection.w > 0 && regargs->selection.h > 0) {
-		sadata->refstars = peaker(&refimage, regargs->layer, &com.pref.starfinder_conf, &nb_stars, &regargs->selection, FALSE, TRUE, regargs->max_stars_candidates, com.pref.starfinder_conf.profile, com.max_thread);
-	}
-	else { // peaking or using cached list in lst
-		struct starfinder_data *sf_data = findstar_image_worker(regargs->sfargs, -1, regargs->reference_image, &fit, NULL, com.max_thread);
-		if (sf_data) {
-			sadata->refstars = *sf_data->stars;
-			nb_stars = *sf_data->nb_stars;
-		}
+	// peaking or using cached list in lst(if no selection is made)
+	// For now selection is using com.selection
+	struct starfinder_data *sf_data = findstar_image_worker(regargs->sfargs, -1, regargs->reference_image, &fit, NULL, com.max_thread);
+	if (sf_data) {
+		sadata->refstars = *sf_data->stars;
+		nb_stars = *sf_data->nb_stars;
+		free(sf_data);
 	}
 
 	siril_log_message(_("Found %d stars in reference, channel #%d\n"), nb_stars, regargs->layer);
@@ -300,20 +297,12 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 	int filenum = args->seq->imgparam[in_index].filenum;	// for display purposes
 	siril_debug_print("registration of image %d using %d threads\n", in_index, threads);
 
-	/* Backup the original pointer to fit. If there is a Bayer pattern we need
-	 * to interpolate non-green pixels, so make a copy we can work on. */
-	fits *orig_fit = fit;
-	if (regargs->bayer && in_index != regargs->reference_image) {
-		fit = calloc(1, sizeof(fits));
-		copyfits(orig_fit, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
-		interpolate_nongreen(fit);
-	}
-	if (regargs->no_output) {  // used by livestacking but not by register which always ouputs sequence
+	if (regargs->no_output) {  // used by livestacking but not by register which always outputs sequence
 		args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 	}
 
 	if (in_index != regargs->reference_image) {
-		psf_star **stars;
+		psf_star **stars = NULL;
 		if (args->seq->type == SEQ_SER || args->seq->type == SEQ_FITSEQ) {
 			siril_log_color_message(_("Frame %d:\n"), "bold", filenum);
 		}
@@ -321,31 +310,24 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		/* sometimes sequence are not consistent.... They shouldn't but ..... */
 		// This now normally checked in processing... but ok, livestacking may use this check
 		// Wouldn't it be safer to compare fit->naxes[2] to regargs->seq->nb_layers?
-		int layer;
 		if (regargs->layer > RLAYER && !isrgb(fit)) {
-			layer = RLAYER;
 			siril_log_color_message(_("It looks like your sequence contains a mix of monochrome and RGB images.\n"), "salmon");
-		} else {
-			layer = regargs->layer;
 		}
 
-		image im = { .fit = fit, .from_seq = args->seq, .index_in_seq = in_index };
-		if (regargs->matchSelection && regargs->selection.w > 0 && regargs->selection.h > 0) {
-			stars = peaker(&im, layer, &com.pref.starfinder_conf, &nb_stars, &regargs->selection, FALSE, TRUE, regargs->max_stars_candidates, com.pref.starfinder_conf.profile, threads);
-			siril_log_message(_("Found %d stars in image %d, channel #%d\n"), nb_stars, filenum, regargs->layer);
-		}
-		else {
-			struct starfinder_data *sf_data = findstar_image_worker(regargs->sfargs, out_index, in_index, fit, _, threads);
-			if (sf_data) {
-				stars = *sf_data->stars;
-				nb_stars = *sf_data->nb_stars;
-			}
+		// peaking or using cached list in lst(if no selection is made)
+		// For now selection is using com.selection
+		struct starfinder_data *sf_data = findstar_image_worker(regargs->sfargs, -1, in_index, fit, NULL, com.max_thread);
+		if (sf_data) {
+			stars = *sf_data->stars;
+			nb_stars = *sf_data->nb_stars;
+			free(sf_data);
 		}
 
 		if (!stars || nb_stars < get_min_requires_stars(regargs->type)) {
 			siril_log_message(
 					_("Not enough stars. Image %d skipped\n"), filenum);
-			if (stars) free_fitted_stars(stars);
+			if (stars)
+				free_fitted_stars(stars);
 			args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 			return 1;
 		}
@@ -357,14 +339,6 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		if (not_matched) {
 			args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 			return 1;
-		}
-
-		if (regargs->bayer) {
-			// Get rid of the temporary copy and restore the original frame fits
-			// now that we have computed the actual registration data
-			clearfits(fit);
-			free(fit);
-			fit = orig_fit;
 		}
 
 #ifdef _OPENMP
@@ -406,7 +380,27 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		}
 	}
 
-	if (regargs->no_output) {
+	if (!regargs->no_output) {
+		regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
+		regargs->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
+		regargs->imgparam[out_index].rx = sadata->ref.x;
+		regargs->imgparam[out_index].ry = sadata->ref.y;
+		regargs->regparam[out_index].fwhm = sadata->current_regdata[in_index].fwhm;
+		regargs->regparam[out_index].weighted_fwhm = sadata->current_regdata[in_index].weighted_fwhm;
+		regargs->regparam[out_index].roundness = sadata->current_regdata[in_index].roundness;
+		regargs->regparam[out_index].background_lvl = sadata->current_regdata[in_index].background_lvl;
+		regargs->regparam[out_index].number_of_stars = sadata->current_regdata[in_index].number_of_stars;
+		cvGetEye(&regargs->regparam[out_index].H);
+
+		if (regargs->output_scale != 1.f) { // Removed in favour of proper drizzle after registration
+			fit->keywords.pixel_size_x /= regargs->output_scale;
+			fit->keywords.pixel_size_y /= regargs->output_scale;
+			regargs->regparam[out_index].fwhm *= regargs->output_scale;
+			regargs->regparam[out_index].weighted_fwhm *= regargs->output_scale;
+		}
+	} else {
+		// TODO: check if H matrix needs to include a flip or not based on fit->top_down
+		// seems like not but this could backfire at some point
 		args->seq->imgparam[in_index].incl = SEQUENCE_DEFAULT_INCLUDE;
 	}
 	sadata->success[out_index] = 1;

@@ -303,6 +303,7 @@ void on_reg_2pass_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	gboolean toggled = gtk_toggle_button_get_active(togglebutton);
 	GtkWidget *outputframe = GTK_WIDGET(output_reg_frame);
 	gtk_widget_set_sensitive(outputframe, !toggled);
+	update_reg_interface(TRUE);
 }
 
 void on_regfollowStar_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
@@ -401,6 +402,11 @@ void on_reg_wcsfile_button_clicked(GtkButton *button, gpointer user_data) {
 		update_reg_interface(TRUE);
 }
 
+gboolean on_switcher_stack_clicked(GtkWidget *widget,
+	GdkEventButton *event, gpointer user_data) {
+	update_reg_interface(TRUE);
+	return TRUE;
+}
 /****************************************************************/
 /* comet specific callbacks                                       */
 /****************************************************************/
@@ -901,11 +907,11 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	}
 
 	// checking bayer status is ok
-	check_bayer_ok = !has_output; //if no output, we don't need to check
-	check_bayer_ok |= gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] == '\0'; // mono sequence
-	check_bayer_ok |= gfit.naxes[2] == 3; // debayered sequence
-	check_bayer_ok |= com.seq.type == SEQ_SER; // SER can be debayered on-the-fly
-	check_bayer_ok |= has_drizzle; // bayer-drizzle will be applied to produce the output
+	check_bayer_ok = !has_output || //if no output, we don't need to check
+					 (gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] == '\0') || // mono sequence
+					 gfit.naxes[2] == 3 || // debayered sequence
+					 com.seq.type == SEQ_SER || // SER can be debayered on-the-fly
+					 (has_drizzle && gfit.naxes[2] == 1); // drizzle or bayer-drizzle will be applied to produce the output
 
 	// if not debayered, check that the bayer pattern is known
 	if (gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] != '\0') {
@@ -1045,15 +1051,9 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 		reg_args->type = (gtk_toggle_button_get_active(onlyshift_checkbutton)) ? SHIFT_TRANSFORMATION : SIMILARITY_TRANSFORMATION;
 	}
 	if (is_star_align) {
-		reg_args->sfargs = calloc(1, sizeof(struct starfinder_data));
-		reg_args->sfargs->im.from_seq = reg_args->seq;
-		reg_args->sfargs->layer = reg_args->layer;
-		reg_args->sfargs->keep_stars = is_global;
-		reg_args->sfargs->save_to_file = TRUE; // TODO make this a pref
 		reg_args->min_pairs = gtk_spin_button_get_value_as_int(spinbut_minpairs);
 		int starmaxactive = gtk_combo_box_get_active(GTK_COMBO_BOX(comboreg_maxstars));
 		reg_args->max_stars_candidates = (starmaxactive == -1) ? MAX_STARS_FITTED : maxstars_values[starmaxactive];
-		reg_args->sfargs->max_stars_fitted = reg_args->max_stars_candidates;
 		reg_args->type = gtk_combo_box_get_active(GTK_COMBO_BOX(comboreg_transfo));
 		reg_args->matchSelection = gtk_toggle_button_get_active(checkStarSelect);
 		if (reg_args->matchSelection && reg_args->seq->is_variable) {
@@ -1063,6 +1063,12 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 		if (!reg_args->matchSelection) {
 			delete_selected_area(); // otherwise it is enforced
 		}
+		reg_args->sfargs = calloc(1, sizeof(struct starfinder_data));
+		reg_args->sfargs->im.from_seq = reg_args->seq;
+		reg_args->sfargs->layer = reg_args->layer;
+		reg_args->sfargs->keep_stars = is_global;
+		reg_args->sfargs->save_to_file = !reg_args->matchSelection; // TODO make this a pref
+		reg_args->sfargs->max_stars_fitted = reg_args->max_stars_candidates;
 	}
 	if (regindex == REG_KOMBAT) {
 		reg_args->percent_moved = (float)gtk_spin_button_get_value(spin_kombat_percent) / 100.f;

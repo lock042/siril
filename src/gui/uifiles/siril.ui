@@ -6806,6 +6806,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="can-focus">False</property>
                                                             <property name="tooltip-text" translatable="yes">Choose whether to use an interpolation algorithm or Drizzle to apply registration</property>
                                                             <property name="stack">interp_drizzle_stack</property>
+                                                            <signal name="button-release-event" handler="on_switcher_stack_clicked" swapped="no"/>
                                                             </object>
                                                             <packing>
                                                             <property name="expand">False</property>
