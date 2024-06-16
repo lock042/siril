@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-06-11 13:48+0200\n"
-"PO-Revision-Date: 2024-06-16 05:37+0000\n"
+"PO-Revision-Date: 2024-06-17 07:37+0000\n"
 "Last-Translator: Stefan Beck <siril@cometchaser.de>\n"
 "Language-Team: German <https://weblate.pixls.us/projects/siril/"
 "siril-application/de/>\n"
@@ -209,7 +209,7 @@ msgstr "0"
 
 #: src/gui/uifiles/aavso_dialog.ui:328
 msgid "Check star: "
-msgstr "Kontrollsstern: "
+msgstr "Kontrollstern: "
 
 #: src/gui/uifiles/aavso_dialog.ui:339
 msgid "The number of the check star."
