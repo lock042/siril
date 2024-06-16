@@ -139,21 +139,18 @@ void populate_seqcombo(const gchar *realname) {
  * takes a string and
  * - removes the extension if known
  * - appends _ at the end if required and add_underscore is TRUE
- * also calls get_locale_filename() to solve Windows localized string problems
  * returns a newly allocated string to be freed with free
  */
 char *normalize_seqname(char *name, gboolean add_underscore) {
-	gchar *locname = get_locale_filename(name);
 	char *file_no_ext;
-	if (g_str_has_suffix(locname, ".seq") || g_str_has_suffix(locname, ".fit") || g_str_has_suffix(locname, ".fits") ||
-	g_str_has_suffix(locname, ".fts") || g_str_has_suffix(locname, ".ser")) {
-		file_no_ext = remove_ext_from_filename(locname);
+	if (g_str_has_suffix(name, ".seq") || g_str_has_suffix(name, ".fit") || g_str_has_suffix(name, ".fits") ||
+	g_str_has_suffix(name, ".fts") || g_str_has_suffix(name, ".ser")) {
+		file_no_ext = remove_ext_from_filename(name);
 	} else {
-		file_no_ext = strdup(locname);
+		file_no_ext = strdup(name);
 	}
 	gboolean needs_underscore = add_underscore && !g_str_has_suffix(name, "_");
 	gchar *outname = g_strdup_printf("%s%s", file_no_ext, needs_underscore ? "_" : "");
-	g_free(locname);
 	free(file_no_ext);
 	return outname;
 }
@@ -1701,7 +1698,9 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 	/* Backup the original pointer to fit. If there is a Bayer pattern we need
 	 * to interpolate non-green pixels, so make a copy we can work on. */
 	fits *orig_fit = fit;
-	if (spsfargs->bayer_pattern[0]) {
+	const char t = spsfargs->bayer_pattern[0];
+	gboolean handle_cfa = (t == 'R' || t == 'G' || t == 'B');
+	if (handle_cfa) {
 		fit = calloc(1, sizeof(fits));
 		copyfits(orig_fit, fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 		memcpy(fit->keywords.bayer_pattern, spsfargs->bayer_pattern, FLEN_VALUE);
@@ -1753,7 +1752,7 @@ int seqpsf_image_hook(struct generic_seq_args *args, int out_index, int index, f
 				"red", index, area->x, area->y, psf_error_to_string(error));
 		}
 	}
-	if (spsfargs->bayer_pattern[0]) {
+	if (handle_cfa) {
 		// Get rid of the temporary copy and restore the original frame fits
 		// now that we have computed the actual registration data
 		clearfits(fit);
