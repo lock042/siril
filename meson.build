@@ -499,6 +499,10 @@ else
   warning('OpenCV 4.4 was not found, using a lower version that does not support translation-only registration instead.')
 endif
 
+if cfitsio_dep.version().version_compare('<4.4.0') and platform_windows
+  warning('Using a version of cfitsio lower than 4.4.0 can cause problems under Windows with non-ascii characters.')
+endif
+
 if gsl_dep.found()
   if gsl_dep.version().version_compare('>=2.0')
     conf_data.set('HAVE_GSL_1', 0, description : 'Use GSL 1.')
