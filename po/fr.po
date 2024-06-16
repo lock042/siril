@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-06-11 13:48+0200\n"
-"PO-Revision-Date: 2024-06-12 13:29+0000\n"
+"PO-Revision-Date: 2024-06-14 12:34+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.pixls.us/projects/siril/"
 "siril-application/fr/>\n"
@@ -12403,7 +12403,7 @@ msgstr "L'image %d est résolue et mise à jour\n"
 #: src/algos/astrometry_solver.c:2107
 #, c-format
 msgid "%d images successfully platesolved out of %d included\n"
-msgstr "%d images transférées avec succès sur %d images incluses\n"
+msgstr "%d images résolues avec succès sur %d images incluses\n"
 
 #: src/algos/astrometry_solver.c:2109
 #, c-format

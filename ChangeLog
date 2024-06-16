@@ -71,10 +71,16 @@ xx/xx/xx
 * Added atmosphere model for SPCC (accounts for Rayleigh scattering) (!684)
 * Fixed a crash in ROI selection (#1320)
 * Optimised GHT code (~2x speedup) and fixed associated bugs (#1194, #1314, #1319)
+* Fixed handling wide-char characters in filenames on Windows (with cfitsio >= 4.4) (#1324)
 * Improve use of prngs (mt19937 now used throughout in place of rand() etc.) (!689)
 
+siril 1.2.3
+XX/XX/XX
+
+* Fixed handling wide-char characters in filenames on Windows (cfitsio rollback) (#1324)
+
 siril 1.2.2
-xx/xx/24
+06/14/24
 
 * Removed background extraction samples after using it in script (#1265)
 * Fixed catalog parser problem with negative declination (less than 1°) (#1270)
@@ -92,6 +98,7 @@ xx/xx/24
 * Fixed bug in rgradient (Larson Sekanina) filter (#1313)
 * Fixed bug in generalized hyperbolic stretches (#1314)
 * Fixed path parsing error with savetif (#1318)
+* Added handling of empty command pipe reads (closes #1277)
 
 siril 1.2.1
 01/26/24

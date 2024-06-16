@@ -258,7 +258,11 @@ elif cc.links('''#include <fftw3.h>
   have_fftw3fthreads = true
 endif
 
-cfitsio_dep = dependency('cfitsio', required : true)
+if platform_windows
+  cfitsio_dep = dependency('cfitsio', required : true, version: '>= 4.4.0') # for #1324
+else
+  cfitsio_dep = dependency('cfitsio', required : true)
+endif
 cairo_dep = dependency('cairo', required : true)
 kplot_dep = dependency('kplot', fallback : ['kplot', 'kplot_dep'], required : true)
 opencv4_dep = dependency('opencv4', required : true, version: '>= 4.2.0')
