@@ -257,7 +257,11 @@ elif cc.links('''#include <fftw3.h>
   have_fftw3fthreads = true
 endif
 
-cfitsio_dep = dependency('cfitsio', required : true)
+if platform_windows
+  cfitsio_dep = dependency('cfitsio', required : true, version: '>= 4.4.0') # for #1324
+else
+  cfitsio_dep = dependency('cfitsio', required : true)
+endif
 cairo_dep = dependency('cairo', required : true)
 kplot_dep = dependency('kplot', fallback : ['kplot', 'kplot_dep'], required : true)
 opencv4_dep = dependency('opencv4', required : true, version: '>= 4.2.0')
@@ -497,10 +501,6 @@ if opencv4_dep.version().version_compare('>=4.4.0')
   conf_data.set('HAVE_CV44', 1, description : 'Using OpenCV 4.4 and all registration features.')
 else
   warning('OpenCV 4.4 was not found, using a lower version that does not support translation-only registration instead.')
-endif
-
-if cfitsio_dep.version().version_compare('<4.4.0') and platform_windows
-  warning('Using a version of cfitsio lower than 4.4.0 can cause problems under Windows with non-ascii characters.')
 endif
 
 if gsl_dep.found()
