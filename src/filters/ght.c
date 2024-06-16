@@ -579,6 +579,7 @@ void apply_linked_ght_to_Wbuf_lum(WORD* buf, WORD* out, size_t layersize, size_t
 }
 
 void apply_linked_ght_to_Wbuf_indep(WORD* in, WORD* out, size_t layersize, size_t nchans, ght_params *params, gboolean multithreaded) {
+	START_TIMER
 	const gboolean do_channel[3] = { params->do_red, params->do_green, params->do_blue };
 	const float invnorm = 1.0f / USHRT_MAX_SINGLE;
 	int active_channels = 3;
@@ -599,18 +600,28 @@ void apply_linked_ght_to_Wbuf_indep(WORD* in, WORD* out, size_t layersize, size_
 	// Do calcs that can be done prior to the loop
 	GHTsetup(&compute_params, params->B, params->D, params->LP, params->SP, params->HP, params->stretchtype);
 
+	// Set up a LUT
+	WORD *lut = malloc(65536 * sizeof(WORD));
+#ifdef _OPENMP
+	// This is only a small loop: 8 threads seems to be about as many as is worthwhile
+	// because of the thread startup cost
+	int threads = min(com.max_thread, 8);
+#pragma omp parallel for simd num_threads(threads) schedule(static) if (multithreaded)
+#endif
+	for (int i = 0 ; i < USHRT_MAX ; i++) {
+		lut[i] = roundf_to_WORD(USHRT_MAX_SINGLE * GHTp(i * invnorm, params, &compute_params));
+	}
 	// Independent stretching of mono or RGB channels
 #ifdef _OPENMP
 #pragma omp parallel for simd num_threads(com.max_thread) schedule(static) collapse(2) if (multithreaded)
 #endif
 	for (size_t chan=0; chan < nchans; chan++) {
 		for (size_t i = 0; i < layersize; i++) {
-			// GHT is intended to operate on values in [0.f, 1.f]
-			// Clip to this range.
-			float x = fminf(1.f, fmaxf(0.f, Wpbuf[chan][i] * invnorm));
-			Wpout[chan][i] = do_channel[chan] ? ((x == 0.0f) ? 0 : roundf_to_WORD(USHRT_MAX_SINGLE * GHTp(x, params, &compute_params))) : ((x == 0.0f) ? 0 : roundf_to_WORD(USHRT_MAX_SINGLE * x));
+			Wpout[chan][i] = do_channel[chan] ? lut[Wpbuf[chan][i]] : Wpbuf[chan][i];
 		}
 	}
+	free(lut);
+	END_TIMER
 }
 
 void apply_linked_ght_to_fits(fits *from, fits *to, ght_params *params, gboolean multithreaded) {
