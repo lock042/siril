@@ -1,6 +1,6 @@
 #!/bin/sh
 
-version="1.2.2"
+version="1.2.3"
 siril_dir="siril-$version"
 
 echo 'cloning'
