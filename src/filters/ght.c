@@ -496,6 +496,20 @@ void apply_linked_ght_to_Wbuf_lum(WORD* buf, WORD* out, size_t layersize, size_t
 	// Do calcs that can be done prior to the loop
 	GHTsetup(&compute_params, params->B, params->D, params->LP, params->SP, params->HP, params->stretchtype);
 	float globalmax = -FLT_MAX;
+
+	// Set up a LUT
+	WORD *lut = malloc(65536 * sizeof(WORD));
+#ifdef _OPENMP
+	// This is only a small loop: 8 threads seems to be about as many as is worthwhile
+	// because of the thread startup cost
+	int threads = min(com.max_thread, 8);
+#pragma omp parallel for simd num_threads(threads) schedule(static) if (multithreaded)
+#endif
+	for (int i = 0 ; i <= USHRT_MAX ; i++) {
+		lut[i] = roundf_to_WORD(USHRT_MAX_SINGLE * GHTp(i * invnorm, params, &compute_params));
+	}
+
+	// Loop over pixels
 #ifdef _OPENMP
 #pragma omp parallel for simd num_threads(com.max_thread) schedule(static) if (multithreaded)
 #endif
@@ -508,9 +522,9 @@ void apply_linked_ght_to_Wbuf_lum(WORD* buf, WORD* out, size_t layersize, size_t
 			for (size_t chan = 0; chan < 3 ; chan++)
 				f[chan] = Wpbuf[chan][i] * invnorm;
 		}
-		float fbar = (int) do_channel[0] * factor_red * f[0] + (int) do_channel[1] * factor_green * f[1] + (int) do_channel[2] * factor_blue * f[2];
-		float sfbar = GHTp(fbar, params, &compute_params);
-		float stretch_factor = (fbar == 0.f) ? 0.f : sfbar / fbar;
+		WORD fbar = roundf_to_WORD(USHRT_MAX_SINGLE * (do_channel[0] * factor_red * f[0] + do_channel[1] * factor_green * f[1] + do_channel[2] * factor_blue * f[2]));
+		WORD sfbar = lut[fbar];
+		float stretch_factor = (fbar == 0.f) ? 0.f : (float) sfbar / (float) fbar;
 		blend_data data = { .do_channel = do_channel };
 		//Calculate the luminance and independent channel stretches for the pixel
 		for (size_t chan = 0; chan < 3 ; chan++) {
@@ -519,7 +533,7 @@ void apply_linked_ght_to_Wbuf_lum(WORD* buf, WORD* out, size_t layersize, size_t
 		if (clip_mode == RGBBLEND) {
 			for (size_t chan = 0; chan < 3 ; chan++) {
 				if (do_channel[chan]) {
-					data.tf[chan] = GHTp(f[chan], params, &compute_params);
+					data.tf[chan] = invnorm * lut[roundf_to_WORD(USHRT_MAX_SINGLE * f[chan])];
 				}
 			}
 		}
@@ -554,6 +568,7 @@ void apply_linked_ght_to_Wbuf_lum(WORD* buf, WORD* out, size_t layersize, size_t
 				break;
 		}
 	}
+	free(lut);
 	if (clip_mode == RESCALEGLOBAL) {
 #ifdef _OPENMP
 #pragma omp parallel for simd num_threads(com.max_thread) schedule(static) if (multithreaded)
@@ -579,7 +594,6 @@ void apply_linked_ght_to_Wbuf_lum(WORD* buf, WORD* out, size_t layersize, size_t
 }
 
 void apply_linked_ght_to_Wbuf_indep(WORD* in, WORD* out, size_t layersize, size_t nchans, ght_params *params, gboolean multithreaded) {
-	START_TIMER
 	const gboolean do_channel[3] = { params->do_red, params->do_green, params->do_blue };
 	const float invnorm = 1.0f / USHRT_MAX_SINGLE;
 	int active_channels = 3;
@@ -608,10 +622,11 @@ void apply_linked_ght_to_Wbuf_indep(WORD* in, WORD* out, size_t layersize, size_
 	int threads = min(com.max_thread, 8);
 #pragma omp parallel for simd num_threads(threads) schedule(static) if (multithreaded)
 #endif
-	for (int i = 0 ; i < USHRT_MAX ; i++) {
+	for (int i = 0 ; i <= USHRT_MAX ; i++) {
 		lut[i] = roundf_to_WORD(USHRT_MAX_SINGLE * GHTp(i * invnorm, params, &compute_params));
 	}
-	// Independent stretching of mono or RGB channels
+
+	// Loop over pixels: independent stretching of mono or RGB channels
 #ifdef _OPENMP
 #pragma omp parallel for simd num_threads(com.max_thread) schedule(static) collapse(2) if (multithreaded)
 #endif
@@ -621,7 +636,6 @@ void apply_linked_ght_to_Wbuf_indep(WORD* in, WORD* out, size_t layersize, size_
 		}
 	}
 	free(lut);
-	END_TIMER
 }
 
 void apply_linked_ght_to_fits(fits *from, fits *to, ght_params *params, gboolean multithreaded) {
@@ -667,7 +681,7 @@ void apply_sat_ght_to_fits(fits *fit, ght_params *params, gboolean multithreaded
 	if (fit->naxes[2] == 1)
 		return;
 	size_t npixels = fit->rx * fit->ry;
-	size_t ndata = npixels * fit->naxes[2];
+	START_TIMER
 
 	if (fit->type == DATA_FLOAT) {
 #ifdef _OPENMP
@@ -683,7 +697,7 @@ void apply_sat_ght_to_fits(fits *fit, ght_params *params, gboolean multithreaded
 #pragma omp barrier
 #pragma omp single
 #endif
-			apply_linked_ght_to_fbuf_indep(fit->fpdata[0], fit->fpdata[0], npixels, 1, params, multithreaded);
+			apply_linked_ght_to_fbuf_indep(fit->fpdata[1], fit->fpdata[1], npixels, 1, params, multithreaded);
 
 #ifdef _OPENMP
 #pragma omp for simd schedule(static)
@@ -695,11 +709,6 @@ void apply_sat_ght_to_fits(fits *fit, ght_params *params, gboolean multithreaded
 		}
 #endif
 	} else if (fit->type == DATA_USHORT) {
-		float* buf = malloc(ndata * sizeof(float));
-		float* pbuf[3];
-		for (long i = 0; i < fit->naxes[2]; i++)
-			pbuf[i] = buf + i * npixels;
-		float invnorm = 1.0f / USHRT_MAX_SINGLE;
 
 #ifdef _OPENMP
 #pragma omp parallel num_threads(com.max_thread) if (multithreaded)
@@ -707,44 +716,27 @@ void apply_sat_ght_to_fits(fits *fit, ght_params *params, gboolean multithreaded
 #pragma omp for simd schedule(static)
 #endif
 			for (long i = 0; i < npixels; i++) {
-				pbuf[0][i] = (float) fit->pdata[0][i] * invnorm;
-				pbuf[1][i] = (float) fit->pdata[1][i] * invnorm;
-				pbuf[2][i] = (float) fit->pdata[2][i] * invnorm;
-			}
-
-#ifdef _OPENMP
-#pragma omp for simd schedule(static)
-#endif
-			for (long i = 0; i < npixels; i++) {
-				rgb_to_hslf(pbuf[0][i], pbuf[1][i], pbuf[2][i], &pbuf[0][i], &pbuf[1][i], &pbuf[2][i]);
+				rgbw_to_hslw(fit->pdata[0][i], fit->pdata[1][i], fit->pdata[2][i], &fit->pdata[0][i], &fit->pdata[1][i], &fit->pdata[2][i]);
 			}
 
 #ifdef _OPENMP
 #pragma omp barrier
 #pragma omp single
 #endif
-			apply_linked_ght_to_fbuf_indep(pbuf[1], pbuf[1], npixels, 1, params, multithreaded);
+			apply_linked_ght_to_Wbuf_indep(fit->pdata[1], fit->pdata[1], npixels, 1, params, multithreaded);
 
 #ifdef _OPENMP
 #pragma omp for simd schedule(static)
 #endif
 			for (long i = 0; i < npixels; i++) {
-				hsl_to_rgbf(pbuf[0][i], pbuf[1][i], pbuf[2][i], &pbuf[0][i], &pbuf[1][i], &pbuf[2][i]);
+				hslw_to_rgbw(fit->pdata[0][i], fit->pdata[1][i], fit->pdata[2][i], &fit->pdata[0][i], &fit->pdata[1][i], &fit->pdata[2][i]);
 			}
 
-#ifdef _OPENMP
-#pragma omp for simd schedule(static)
-#endif
-			for (long i = 0; i < npixels; i++) {
-				fit->pdata[0][i] = roundf_to_WORD(pbuf[0][i] * USHRT_MAX_SINGLE);
-				fit->pdata[1][i] = roundf_to_WORD(pbuf[1][i] * USHRT_MAX_SINGLE);
-				fit->pdata[2][i] = roundf_to_WORD(pbuf[2][i] * USHRT_MAX_SINGLE);
-			}
 #ifdef _OPENMP
 		}
 #endif
-		free(buf);
 	}
+	END_TIMER
 	invalidate_stats_from_fit(fit);
 	return;
 }
