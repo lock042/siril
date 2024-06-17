@@ -205,7 +205,7 @@
                 {
                     "type": "git",
                     "url": "https://github.com/FFMS/ffms2.git",
-                    "branch": "master"
+		            "commit": "a8ed11c21eea1f2ba4c84d1ea0d2cadcc8ae9422"
                 }
             ]
         },
