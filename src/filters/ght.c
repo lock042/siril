@@ -681,7 +681,6 @@ void apply_sat_ght_to_fits(fits *fit, ght_params *params, gboolean multithreaded
 	if (fit->naxes[2] == 1)
 		return;
 	size_t npixels = fit->rx * fit->ry;
-	START_TIMER
 
 	if (fit->type == DATA_FLOAT) {
 #ifdef _OPENMP
@@ -736,7 +735,6 @@ void apply_sat_ght_to_fits(fits *fit, ght_params *params, gboolean multithreaded
 		}
 #endif
 	}
-	END_TIMER
 	invalidate_stats_from_fit(fit);
 	return;
 }
