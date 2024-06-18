@@ -524,7 +524,7 @@ void apply_linked_ght_to_Wbuf_lum(WORD* buf, WORD* out, size_t layersize, size_t
 		}
 		WORD fbar = roundf_to_WORD(USHRT_MAX_SINGLE * (do_channel[0] * factor_red * f[0] + do_channel[1] * factor_green * f[1] + do_channel[2] * factor_blue * f[2]));
 		WORD sfbar = lut[fbar];
-		float stretch_factor = (fbar == 0.f) ? 0.f : (float) sfbar / (float) fbar;
+		float stretch_factor = (fbar == 0) ? 0.f : (float) sfbar / (float) fbar;
 		blend_data data = { .do_channel = do_channel };
 		//Calculate the luminance and independent channel stretches for the pixel
 		for (size_t chan = 0; chan < 3 ; chan++) {
