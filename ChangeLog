@@ -1,8 +1,9 @@
 siril 1.2.3
-XX/XX/XX
+06/19/24
 
 * Fixed handling wide-char characters in filenames on Windows (cfitsio rollback) (#1324)
-
+* Fixed compression error (files were not compressed anymore) (#1328)
+* Fixed internet connection in macOS version (packaging issue)
 
 siril 1.2.2
 06/14/24
