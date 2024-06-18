@@ -579,7 +579,7 @@ void apply_linked_ght_to_Wbuf_lum(WORD* buf, WORD* out, size_t layersize, size_t
 				f[chan] = Wpbuf[chan][i] * invnorm;
 			float fbar = (int) do_channel[0] * factor_red * f[0] + (int) do_channel[1] * factor_green * f[1] + (int) do_channel[2] * factor_blue * f[2];
 			float sfbar = GHTp(fbar, params, &compute_params);
-			float stretch_factor = (fbar == 0.f) ? 0.f : sfbar / fbar;
+			float stretch_factor = (fbar == 0) ? 0.f : sfbar / fbar;
 			blend_data data = { .do_channel = do_channel };
 			//Calculate the luminance and independent channel stretches for the pixel
 			for (size_t chan = 0; chan < 3 ; chan++) {
