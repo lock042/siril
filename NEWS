@@ -71,12 +71,13 @@ siril 1.4.0 xx xx, xx
 * Fixed a crash in ROI selection (#1320)
 * Optimised GHT code (~2x speedup) and fixed associated bugs (#1194, #1314, #1319)
 * Fixed handling wide-char characters in filenames on Windows (with cfitsio >= 4.4) (#1324)
+* Fix bug in GHT when only 1 or 2 channels are selected (#1329)
 
-
-siril 1.2.3 xxx xx, 2024
+siril 1.2.3 June 19, 2024
 
 * Fixed handling wide-char characters in filenames on Windows (cfitsio rollback) (#1324)
-
+* Fixed compression error (files were not compressed anymore) (#1328)
+* Fixed internet connection in macOS version (packaging issue)
 
 siril 1.2.2 June 14, 2024
 
