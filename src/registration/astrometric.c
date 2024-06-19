@@ -470,7 +470,6 @@ static int astrometric_image_hook(struct generic_seq_args *args, int out_index, 
 			free_wcs(fit); // we remove astrometric solution
 		}
 	} else {
-		scale = scale;
 		p = calloc(1, sizeof(struct driz_param_t));
 		driz_param_init(p);
 		p->kernel = driz->kernel;

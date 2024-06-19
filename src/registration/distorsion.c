@@ -353,7 +353,7 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq) {
 			distoparam->index = DISTO_FILE; // this will be written to the seq file
 			distoparam->filename = wcsname;
 			break;
-		case DISTO_FILE:
+		case DISTO_FILE:;
 			fits fit = { 0 };
 			int status = read_fits_metadata_from_path_first_HDU(distoparam->filename, &fit);
 			if (status) {
