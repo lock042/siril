@@ -194,7 +194,6 @@ void on_select_star_button_clicked(GtkButton *button, gpointer user_data) {
 		}
 		update_icons(awaiting_star - 1, TRUE);
 		delete_selected_area();
-		_3stars_get_number_selected_stars();
 	}
 }
 

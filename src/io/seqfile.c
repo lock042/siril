@@ -164,7 +164,7 @@ sequence * readseqfile(const char *name){
 						seq->regparam = calloc(seq->nb_layers, sizeof(regdata*));
 						if (ser_is_cfa(seq->ser_file))
 							seq->regparam_bkp = calloc(3, sizeof(regdata*));
-						seq->distoparam = calloc(seq->nb_layers, sizeof(disto_params*));
+						seq->distoparam = calloc(seq->nb_layers, sizeof(disto_params));
 					}
 				} else if (line[1] >= '0' && line[1] <= '9') {
 					/* in the future, wavelength and name of each layer will be added here */

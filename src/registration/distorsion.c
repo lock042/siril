@@ -151,7 +151,7 @@ void map_undistortion_S2D(disto_data *disto, int rx, int ry, float *xmap, float 
 	double x, y;
 	double *U = malloc(rx * sizeof(double));
 	double *V = malloc(ry * sizeof(double));
-	double *U2, *V2, *U3, *V3, *U4, *V4, *U5, *V5;
+	double *U2 = NULL, *V2 = NULL, *U3 = NULL, *V3 = NULL, *U4 = NULL, *V4 = NULL, *U5 = NULL, *V5 = NULL;
 	if (disto->order >= 2) {
 		U2 = malloc(rx * sizeof(double));
 		V2 = malloc(ry * sizeof(double));
@@ -236,6 +236,16 @@ void map_undistortion_S2D(disto_data *disto, int rx, int ry, float *xmap, float 
  		}
 		r += rx;
  	}
+	free(U);
+	free(U2);
+	free(U3);
+	free(U4);
+	free(U5);
+	free(V);
+	free(V2);
+	free(V3);
+	free(V4);
+	free(V5);
 }
 
 

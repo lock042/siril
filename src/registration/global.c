@@ -890,6 +890,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 	if (regargs->undistort) {
 		regargs->disto = init_disto_data(&regargs->distoparam, regargs->seq);
 		if (!regargs->disto) {
+			goto free_all;
 			return -1;
 		}
 		regargs->disto->dtype = (regargs->driz) ? DISTO_MAP_S2D: DISTO_MAP_D2S;

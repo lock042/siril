@@ -827,7 +827,6 @@ static gboolean check_star_list(gchar *filename, struct starfinder_data *sfargs)
 	int star = 0, nb_stars = -1;
 	while (fgets(buffer, 300, fd)) {
 		if (buffer[0] != '#' && !params_ok) {
-			fclose(fd);
 			read_failure = TRUE;
 			break;
 		}
@@ -1159,7 +1158,10 @@ static gboolean findstar_image_read_hook(struct generic_seq_args *args, int inde
 	if (findstar_args->save_to_file)
 		curr_findstar_args->starfile = star_filename;
 
-	return !check_star_list(star_filename, curr_findstar_args);
+	gboolean status = check_star_list(star_filename, curr_findstar_args);
+	free(curr_findstar_args);
+	g_free(star_filename);
+	return status;
 }
 
 // contrarily to findstar_worker, this function first checks if a lst file exists:
@@ -1194,14 +1196,15 @@ struct starfinder_data *findstar_image_worker(const struct starfinder_data *find
 			free(curr_findstar_args);
 			return NULL;
 		}
-		gchar *star_filename = g_strdup_printf("%s.lst", root);
-
-		if (findstar_args->save_to_file)
-			curr_findstar_args->starfile = star_filename;
+		star_filename = g_strdup_printf("%s.lst", root);
 
 		if (seq->type == SEQ_INTERNAL || !check_starfile_date(seq, i, star_filename) ||
 				!check_star_list(star_filename, curr_findstar_args))
 				can_use_cache = FALSE;
+		if (findstar_args->save_to_file)
+			curr_findstar_args->starfile = star_filename;
+		else
+			g_free(star_filename);
 	}
 
 	if (!can_use_cache) {
@@ -1219,7 +1222,6 @@ struct starfinder_data *findstar_image_worker(const struct starfinder_data *find
 			curr_findstar_args = NULL;
 		}
 	}
-	g_free(star_filename);
 	return curr_findstar_args;
 }
 
