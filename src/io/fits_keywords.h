@@ -60,4 +60,6 @@ int read_fits_keywords(fits *fit);
 
 void set_all_keywords_default(fits *fit);
 
+int parse_wcs_image_dimensions(fits *fit, int *rx, int *ry);
+
 #endif /* SRC_IO_FITS_KEYWORDS_H_ */

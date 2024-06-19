@@ -198,9 +198,10 @@ src/opencv/opencv.cpp
 src/pixelMath/pixel_math_runner.c
 src/registration/3stars.c
 src/registration/applyreg.c
-src/registration/comet.c
-src/registration/global.c
 src/registration/astrometric.c
+src/registration/comet.c
+src/registration/distorsion.c
+src/registration/global.c
 src/registration/registration.c
 src/stacking/median_and_mean.c
 src/stacking/normalization.c

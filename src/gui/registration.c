@@ -39,6 +39,7 @@
 #include "io/path_parse.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
+#include "io/fits_keywords.h"
 #include "stacking/stacking.h"
 #include "opencv/opencv.h"
 
@@ -390,10 +391,10 @@ void on_reg_wcsfile_button_clicked(GtkButton *button, gpointer user_data) {
 		gtk_file_chooser_set_current_folder(dialog, com.wd);
 		gtk_file_chooser_set_local_only(dialog, FALSE);
 		gtk_file_chooser_set_select_multiple(dialog, FALSE);
-		gtk_filter_add(dialog, _("FITS Files (*.fit, *.fits, *.fts, *.fit.fz, *.fits.fz, *.fts.fz)"),
-				"*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fit.fz;*.FIT.fz;*.fits.fz;*.FITS.fz;*.fts.fz;*.FTS.fz", gui.file_ext_filter == TYPEFITS);
 		gtk_filter_add(dialog, _("WCS Files (*.wcs)"),
 				"*.wcs", FALSE);
+		gtk_filter_add(dialog, _("FITS Files (*.fit, *.fits, *.fts, *.fit.fz, *.fits.fz, *.fts.fz)"),
+				"*.fit;*.FIT;*.fits;*.FITS;*.fts;*.FTS;*.fit.fz;*.FIT.fz;*.fits.fz;*.FITS.fz;*.fts.fz;*.FTS.fz", gui.file_ext_filter == TYPEFITS);
 		gint res = siril_dialog_run(widgetdialog);
 		if (res == GTK_RESPONSE_ACCEPT) {
 			gchar *file = siril_file_chooser_get_filename(dialog);
@@ -741,7 +742,7 @@ static gboolean check_3stars(regmethod_index index) {
 	return FALSE;
 }
 
-static gboolean check_disto(disto_apply index) {
+static gboolean check_disto(disto_source index) {
 	if (index == DISTO_UNDEF)
 		return TRUE;
 	if (index == DISTO_IMAGE) {
@@ -763,22 +764,33 @@ static gboolean check_disto(disto_apply index) {
 			return FALSE;
 		} else {
 			fits fit = { 0 };
-			if (read_fits_metadata_from_path(text, &fit)) {
+			if (read_fits_metadata_from_path_first_HDU(text, &fit)) {
 				gtk_label_set_text(labelregisterinfo, _("Could not load FITS image for distorsion"));
+				clearfits(&fit);
 				return FALSE;
 			}
 			if (!has_wcs(&fit)) {
 				gtk_label_set_text(labelregisterinfo, _("Selected file has no WCS information"));
 				gtk_widget_set_tooltip_text(GTK_WIDGET(labelregisterinfo), _("You have selected undistorsion from file but it is not platesolved, perform astrometry first or disable distorsion"));
+				clearfits(&fit);
 				return FALSE;
 			}
 			if (!fit.keywords.wcslib->lin.dispre) {
 				gtk_label_set_text(labelregisterinfo, _("Selected file has no distorsion information"));
 				gtk_widget_set_tooltip_text(GTK_WIDGET(labelregisterinfo), _("You have selected undistorsion from file but it is has no distorsion terms, perform astrometry with SIP enabled or disable distorsion"));
+				clearfits(&fit);
 				return FALSE;
 			}
-			if (fit.rx != gfit.rx || fit.ry != gfit.ry) {
+			int rx = fit.rx;
+			int ry = fit.ry;
+			if ((rx == 0 || ry == 0) && parse_wcs_image_dimensions(&fit, &rx, &ry)) {
+				gtk_label_set_text(labelregisterinfo, _("Selected file has no dimensions information"));
+				clearfits(&fit);
+				return FALSE;
+			}
+			if (rx != gfit.rx || ry != gfit.ry) {
 				gtk_label_set_text(labelregisterinfo, _("Selected file and current sequence do not have the same size"));
+				clearfits(&fit);
 				return FALSE;
 			}
 		}
@@ -816,7 +828,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	gboolean has_reg, has_output, has_drizzle, must_have_drizzle, must_have_interp, samesizeseq_required, check_bayer_ok, ready, seqloaded;
 	gboolean isapplyreg, is_global, is_star_align;
 	sensor_pattern pattern = BAYER_FILTER_NONE;
-	disto_apply disto_apply_index = DISTO_UNDEF;
+	disto_source disto_source_index = DISTO_UNDEF;
 
 	seqloaded = sequence_is_loaded();
 	gtk_widget_set_sensitive(GTK_WIDGET(manualreg_expander), seqloaded);
@@ -886,8 +898,8 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	if (is_star_align) {
 		gtk_widget_set_visible(GTK_WIDGET(grid_reg_wcs), !com.seq.is_variable);
 		if (!com.seq.is_variable) {
-			disto_apply_index = gtk_combo_box_get_active(GTK_COMBO_BOX(comboreg_undistort));
-			gtk_widget_set_visible(GTK_WIDGET(reg_wcsfilechooser_box), disto_apply_index == DISTO_FILE);
+			disto_source_index = gtk_combo_box_get_active(GTK_COMBO_BOX(comboreg_undistort));
+			gtk_widget_set_visible(GTK_WIDGET(reg_wcsfilechooser_box), disto_source_index == DISTO_FILE);
 		}
 	}
 
@@ -945,7 +957,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 			check_framing(regindex) &&
 			check_comet(regindex) &&
 			check_3stars(regindex) &&
-			check_disto(disto_apply_index);
+			check_disto(disto_source_index);
 
 	if (!ready) { // all the other cases not set by the checkers
 		if (method->sel > REQUIRES_NO_SELECTION && !selection_is_done ) {
@@ -1020,7 +1032,7 @@ static int populate_drizzle_data(struct driz_args_t *driz) {
 	return 0;
 }
 
-static int fill_registration_structure_from_GUI(struct registration_args *reg_args) {
+static int fill_registration_structure_from_GUI(struct registration_args *regargs) {
 	struct registration_method *method;
 
 	if (!reserve_thread()) {	// reentrant from here
@@ -1045,10 +1057,10 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 	/* getting the selected registration layer from the combo box. The value is the index
 	 * of the selected line, and they are in the same order than layers so there should be
 	 * an exact matching between the two */
-	reg_args->layer = gtk_combo_box_get_active(GTK_COMBO_BOX(comboboxreglayer));
-	get_the_registration_area(reg_args, method);	// sets selection
-	reg_args->run_in_thread = TRUE;
-	reg_args->load_new_sequence = FALSE; // only TRUE for some methods. Will be updated in these cases
+	regargs->layer = gtk_combo_box_get_active(GTK_COMBO_BOX(comboboxreglayer));
+	get_the_registration_area(regargs, method);	// sets selection
+	regargs->run_in_thread = TRUE;
+	regargs->load_new_sequence = FALSE; // only TRUE for some methods. Will be updated in these cases
 
 	/* specific methods */
 	gboolean isapplyreg = regindex == REG_APPLY;
@@ -1058,100 +1070,69 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 	gboolean has_output = isapplyreg || is_global;
 	gboolean has_drizzle = has_output && gtk_stack_get_visible_child(interp_drizzle_stack) == GTK_WIDGET(grid_drizzle_controls);
 
-	reg_args->func = method->method_ptr;
-	reg_args->seq = &com.seq;
-	reg_args->reference_image = sequence_find_refimage(&com.seq);
-	reg_args->no_output = !has_output;
+	regargs->func = method->method_ptr;
+	regargs->seq = &com.seq;
+	regargs->reference_image = sequence_find_refimage(&com.seq);
+	regargs->no_output = !has_output;
 	if (regindex == REG_3STARS) {
-		reg_args->follow_star = gtk_toggle_button_get_active(followStarCheckButton);
-		reg_args->type = (gtk_toggle_button_get_active(onlyshift_checkbutton)) ? SHIFT_TRANSFORMATION : SIMILARITY_TRANSFORMATION;
+		regargs->follow_star = gtk_toggle_button_get_active(followStarCheckButton);
+		regargs->type = (gtk_toggle_button_get_active(onlyshift_checkbutton)) ? SHIFT_TRANSFORMATION : SIMILARITY_TRANSFORMATION;
 	}
 	if (is_star_align) {
-		reg_args->min_pairs = gtk_spin_button_get_value_as_int(spinbut_minpairs);
+		regargs->min_pairs = gtk_spin_button_get_value_as_int(spinbut_minpairs);
 		int starmaxactive = gtk_combo_box_get_active(GTK_COMBO_BOX(comboreg_maxstars));
-		reg_args->max_stars_candidates = (starmaxactive == -1) ? MAX_STARS_FITTED : maxstars_values[starmaxactive];
-		reg_args->type = gtk_combo_box_get_active(GTK_COMBO_BOX(comboreg_transfo));
-		reg_args->matchSelection = gtk_toggle_button_get_active(checkStarSelect);
-		if (reg_args->matchSelection && reg_args->seq->is_variable) {
+		regargs->max_stars_candidates = (starmaxactive == -1) ? MAX_STARS_FITTED : maxstars_values[starmaxactive];
+		regargs->type = gtk_combo_box_get_active(GTK_COMBO_BOX(comboreg_transfo));
+		regargs->matchSelection = gtk_toggle_button_get_active(checkStarSelect);
+		if (regargs->matchSelection && regargs->seq->is_variable) {
 			siril_log_color_message(_("Cannot use area selection on a sequence with variable image sizes\n"), "red");
 			return 1;
 		}
-		if (!reg_args->matchSelection) {
+		if (!regargs->matchSelection) {
 			delete_selected_area(); // otherwise it is enforced
 		}
-		reg_args->sfargs = calloc(1, sizeof(struct starfinder_data));
-		reg_args->sfargs->im.from_seq = reg_args->seq;
-		reg_args->sfargs->layer = reg_args->layer;
-		reg_args->sfargs->keep_stars = is_global;
-		reg_args->sfargs->save_to_file = !reg_args->matchSelection; // TODO make this a pref
-		reg_args->sfargs->max_stars_fitted = reg_args->max_stars_candidates;
+		regargs->sfargs = calloc(1, sizeof(struct starfinder_data));
+		regargs->sfargs->im.from_seq = regargs->seq;
+		regargs->sfargs->layer = regargs->layer;
+		regargs->sfargs->keep_stars = is_global;
+		regargs->sfargs->save_to_file = !regargs->matchSelection; // TODO make this a pref
+		regargs->sfargs->max_stars_fitted = regargs->max_stars_candidates;
 	}
 	if (regindex == REG_KOMBAT) {
-		reg_args->percent_moved = (float)gtk_spin_button_get_value(spin_kombat_percent) / 100.f;
+		regargs->percent_moved = (float)gtk_spin_button_get_value(spin_kombat_percent) / 100.f;
 	}
 	if (regindex == REG_COMET) {
-		reg_args->velocity = velocity;
+		regargs->velocity = velocity;
 	}
 	if (regindex == REG_APPLY) {
-		reg_args->framing = gtk_combo_box_get_active(GTK_COMBO_BOX(comboreg_framing));
+		regargs->framing = gtk_combo_box_get_active(GTK_COMBO_BOX(comboreg_framing));
 		get_reg_sequence_filtering_from_gui(
-				&reg_args->filtering_criterion, &reg_args->filtering_parameter, -1);
+				&regargs->filtering_criterion, &regargs->filtering_parameter, -1);
 	} else {
-		reg_args->filters.filter_included = gtk_combo_box_get_active(GTK_COMBO_BOX(reg_sel_all_combobox));
+		regargs->filters.filter_included = gtk_combo_box_get_active(GTK_COMBO_BOX(reg_sel_all_combobox));
 	}
-	
-	reg_args->undistort = DISTO_UNDEF;
 
 	if (has_output) {
-		reg_args->prefix = strdup(gtk_entry_get_text(regseqname_entry));
-		reg_args->output_scale = (float)gtk_spin_button_get_value(reg_scaling_spin);
+		regargs->prefix = strdup(gtk_entry_get_text(regseqname_entry));
+		regargs->output_scale = (float)gtk_spin_button_get_value(reg_scaling_spin);
 		if (has_drizzle) {
-			reg_args->driz = calloc(1, sizeof(struct driz_args_t));
-			if (populate_drizzle_data(reg_args->driz)) {
+			regargs->driz = calloc(1, sizeof(struct driz_args_t));
+			if (populate_drizzle_data(regargs->driz)) {
 				return 1;
 			}
 		} else { // interpolation
-			reg_args->interpolation = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxRegInter));
-			reg_args->clamp = gtk_toggle_button_get_active(toggle_reg_clamp) && (reg_args->interpolation == OPENCV_CUBIC || reg_args->interpolation == OPENCV_LANCZOS4);
+			regargs->interpolation = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxRegInter));
+			regargs->clamp = gtk_toggle_button_get_active(toggle_reg_clamp) && (regargs->interpolation == OPENCV_CUBIC || regargs->interpolation == OPENCV_LANCZOS4);
 		}
-		reg_args->undistort = gtk_combo_box_get_active(GTK_COMBO_BOX(comboreg_undistort));
-		if (reg_args->undistort > DISTO_UNDEF) {
-			struct wcsprm *wcs = NULL;
-			switch (reg_args->undistort) {
-				case DISTO_IMAGE:
-					wcs = wcs_deepcopy(gfit.keywords.wcslib, NULL);
-					break;
-				case DISTO_FILE:
-					const gchar *text = gtk_entry_get_text(reg_wcsfile_entry);
-					fits fit = { 0 };
-					int status = read_fits_metadata_from_path(text, &fit);
-					if (!status) {
-						siril_log_color_message(_("Could not load FITS image for distorsion"), "red");
-						siril_log_color_message(_("\nComuting registration without distorsion correction\n"), "red");
-						clearfits(&fit);
-						return 1;
-					}
-					wcs = wcs_deepcopy(fit.keywords.wcslib, &status);
-					if (!status) {
-						siril_log_color_message(_("Could not copy WCS information for distorsion"), "red");
-						siril_log_color_message(_("\nComuting registration without distorsion correction\n"), "red");
-						clearfits(&fit);
-						return 1;
-					}
-					clearfits(&fit);
-					// checking that wcslib has disto term has been checked when updating the reg interface
-					break;
-				case DISTO_FILES:
-				default:
-					break;
-			}
-			if (reg_args->undistort == DISTO_IMAGE || reg_args->undistort == DISTO_FILE) { // we only have one disto spec, we can init the disto structure
-				reg_args->disto = calloc(1, sizeof(disto_data));
-				reg_args->disto[0].order = extract_SIP_order_and_matrices(wcs->lin.dispre, reg_args->disto[0].A, reg_args->disto[0].B, reg_args->disto[0].AP, reg_args->disto[0].BP);
-				reg_args->disto[0].xref = wcs->crpix[0] - 1.; // -1 comes from the difference of convention between opencv and wcs
-				reg_args->disto[0].yref = wcs->crpix[1] - 1.;
-				reg_args->disto[0].dtype = (reg_args->driz) ? DISTO_MAP_S2D: DISTO_MAP_D2S;
-				wcsfree(wcs);
+	}
+
+	regargs->undistort = DISTO_UNDEF;
+	if (is_star_align) {
+		regargs->undistort = gtk_combo_box_get_active(GTK_COMBO_BOX(comboreg_undistort));
+		if (regargs->undistort > DISTO_UNDEF) {
+			regargs->distoparam.index = regargs->undistort;
+			if (regargs->undistort == DISTO_FILE) {
+				regargs->distoparam.filename = g_strdup(gtk_entry_get_text(reg_wcsfile_entry));
 			}
 		}
 	}
@@ -1159,9 +1140,9 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 	//Checks
 
 #ifndef HAVE_CV44
-	if (reg_args->type == SHIFT_TRANSFORMATION && is_star_align) {
+	if (regargs->type == SHIFT_TRANSFORMATION && is_star_align) {
 		siril_log_color_message(_("Shift-only registration is only possible with OpenCV 4.4\n"), "red");
-		free(reg_args->prefix);
+		free(regargs->prefix);
 		return 1;
 	}
 #endif
@@ -1170,26 +1151,26 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 	the registration method produces a new sequence
 	*/
 	if (has_output) {
-		int nb_frames = reg_args->filters.filter_included ? reg_args->seq->selnum : reg_args->seq->number;
-		gint64 size = seq_compute_size(reg_args->seq, nb_frames, get_data_type(reg_args->seq->bitpix));
-		if (reg_args->output_scale != 1.f)
-			size = (int64_t)(reg_args->output_scale * reg_args->output_scale * (float)size);
+		int nb_frames = regargs->filters.filter_included ? regargs->seq->selnum : regargs->seq->number;
+		gint64 size = seq_compute_size(regargs->seq, nb_frames, get_data_type(regargs->seq->bitpix));
+		if (regargs->output_scale != 1.f)
+			size = (int64_t)(regargs->output_scale * regargs->output_scale * (float)size);
 		if (test_available_space(size)) {
 			siril_log_color_message(_("Not enough space to save the output images, aborting\n"), "red");
 			return 1;
 		}
 	}
 
-	if (regindex == REG_GLOBAL && reg_args->interpolation == OPENCV_NONE) { // seqpplyreg case is dealt with in the sanity checks of the method
-		if (reg_args->output_scale != 1.f || com.seq.is_variable) {
+	if (regindex == REG_GLOBAL && regargs->interpolation == OPENCV_NONE) { // seqpplyreg case is dealt with in the sanity checks of the method
+		if (regargs->output_scale != 1.f || com.seq.is_variable) {
 			siril_log_color_message(_("When interpolation is set to None, the images must be of same size and no scaling can be applied. Aborting\n"), "red");
 			return 1;
 		}
-		if (reg_args->type > SHIFT_TRANSFORMATION) {
+		if (regargs->type > SHIFT_TRANSFORMATION) {
 			siril_log_color_message(_("When interpolation is set to None, the transformation can only be set to Shift. Aborting\n"), "red");
 			return 1;
 		}
-		if (reg_args->undistort) {
+		if (regargs->undistort) {
 			siril_log_color_message(_("When interpolation is set to None, distorsions must be set to None as well. Aborting\n"), "red");
 			return 1;
 		}
@@ -1204,23 +1185,23 @@ static int fill_registration_structure_from_GUI(struct registration_args *reg_ar
 /* callback for 'Go register' button, GTK thread */
 void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 
-	struct registration_args *reg_args = calloc(1, sizeof(struct registration_args));
+	struct registration_args *regargs = calloc(1, sizeof(struct registration_args));
 
 	char *msg;
-	if (fill_registration_structure_from_GUI(reg_args)) {
-		free(reg_args);
+	if (fill_registration_structure_from_GUI(regargs)) {
+		free(regargs);
 		unreserve_thread();
 		return;
 	}
 	fits fit_ref = { 0 };
-	int ret = seq_read_frame_metadata(reg_args->seq, reg_args->reference_image, &fit_ref);
+	int ret = seq_read_frame_metadata(regargs->seq, regargs->reference_image, &fit_ref);
 	if (ret) {
 		siril_log_message(_("Error: unable to read reference frame metadata\n"));
-		free(reg_args);
+		free(regargs);
 		unreserve_thread();
 		return;
 	}
-	reg_args->bayer = (fit_ref.keywords.bayer_pattern[0] != '\0');
+	regargs->bayer = (fit_ref.keywords.bayer_pattern[0] != '\0');
 	clearfits(&fit_ref);
 
 	regmethod_index regindex = REG_UNDEF;
@@ -1228,17 +1209,17 @@ void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 
 	const gchar *caller = gtk_buildable_get_name(GTK_BUILDABLE(button));
 	if (!g_strcmp0(caller, "proj_estimate"))
-		reg_args->no_output = TRUE;
+		regargs->no_output = TRUE;
 
 	msg = siril_log_color_message(_("Registration: processing using method: %s\n"),
 			"green", method->name);
 	msg[strlen(msg) - 1] = '\0';
 
-	if (reg_args->clamp)
+	if (regargs->clamp)
 		siril_log_message(_("Interpolation clamping active\n"));
 	set_progress_bar_data(msg, PROGRESS_RESET);
 
-	start_in_reserved_thread(register_thread_func, reg_args);
+	start_in_reserved_thread(register_thread_func, regargs);
 }
 
 // end of registration, GTK thread. Executed when started from the GUI and in
@@ -1271,7 +1252,6 @@ gboolean end_register_idle(gpointer p) {
 	if (args->func == &register_3stars) reset_3stars();
 
 	free(args->new_seq_name);
-	free(args->driz);
 	free(args);
 	return FALSE;
 }

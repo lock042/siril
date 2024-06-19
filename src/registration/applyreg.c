@@ -281,6 +281,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	struct driz_args_t *driz = regargs->driz;
 	float scale = regargs->output_scale;
 	struct driz_param_t *p = NULL;
+	disto_data *disto = NULL;
 
 	Homography H = { 0 };
 	Homography Himg = { 0 };
@@ -305,6 +306,14 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		compute_Hmax(&Himg, &regargs->framingd.Htransf, fit->rx, fit->ry, scale, &H, &Hs, &dst_rx, &dst_ry);
 	}
 
+	if (regargs->undistort) {
+		if (regargs->disto->dtype == DISTO_MAP_D2S || regargs->disto->dtype == DISTO_MAP_S2D) {
+			disto = regargs->disto;
+		} else {
+			disto = &regargs->disto[in_index];
+		}
+	}
+
 	if (regargs->driz) {
 		p = calloc(1, sizeof(struct driz_param_t));
 		driz_param_init(p);
@@ -323,7 +332,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		p->pixmap->ry = fit->ry;
 		p->threads = threads;
 
-		map_image_coordinates_h(fit, H, p->pixmap, dst_ry, scale, NULL, threads);
+		map_image_coordinates_h(fit, H, p->pixmap, dst_ry, scale, disto, threads);
 		if (!p->pixmap->xmap) {
 			siril_log_color_message(_("Error generating mapping array.\n"), "red");
 			free(p->error);
@@ -401,7 +410,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 	}
 	else {
 		if (regargs->interpolation <= OPENCV_LANCZOS4) {
-			if (cvTransformImage(fit, dst_rx, dst_ry, H, scale, regargs->interpolation, regargs->clamp)) {
+			if (cvTransformImage(fit, dst_rx, dst_ry, H, scale, regargs->interpolation, regargs->clamp, disto)) {
 				return 1;
 			}
 		} else {
@@ -642,6 +651,7 @@ int initialize_drizzle_params(struct generic_seq_args *args, struct registration
 	set_progress_bar_data(_("Initializing drizzle data..."), PROGRESS_PULSATE);
 	args->compute_mem_limits_hook = apply_drz_compute_mem_limits;
 	args->upscale_ratio = 1.0; // Drizzle scale dealt with separately
+	driz->scale = regargs->output_scale;
 	driz_param_dump(driz); // Print some info to the log
 	/* preparing reference data from reference fit and making sanity checks*/
 	fits fit = { 0 };

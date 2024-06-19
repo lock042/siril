@@ -86,4 +86,6 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *value);
 int associate_header_to_memfile(const char *header, fitsfile *fptr);
 int fits_parse_header_str(fits *fit, const char *header);
 
+int save_wcs_fits(fits *f, const gchar *filename);
+
 #endif

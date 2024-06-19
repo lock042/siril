@@ -286,6 +286,13 @@ typedef enum {
 	SCALING_OIII_DOWN
 } extraction_scaling;
 
+typedef enum {
+	DISTO_UNDEF, // No distorsion
+	DISTO_IMAGE, // Distorsion from current image
+	DISTO_FILE,  // Distorsion from given file
+	DISTO_FILES, // Distorsion stored in each file (from seq platesolve)
+} disto_source;
+
 /* image data, exists once for each image */
 typedef struct {
 	int filenum;		/* real file index in the sequence, i.e. for mars9.fit = 9 */
@@ -321,9 +328,15 @@ typedef struct {
 	double quality;
 	float background_lvl;
 	int number_of_stars;
-
 	Homography H;
 } regdata;
+
+// to be stored in the seq file
+typedef struct {
+	disto_source index; // disto_source enum
+	gchar *filename; // filename if DISTO_FILE
+	int n; // number of images if DISTO_FILES
+} disto_params;
 
 /* see explanation about sequence and single image management in io/sequence.c */
 
@@ -345,6 +358,7 @@ struct sequ {
 	 * and use everything that was in the seqfile, so we back them up here */
 	regdata **regparam_bkp;	// *regparam[3], null if nothing to back up
 	imstats ***stats_bkp;	// statistics of the images for 3 layers, may be null too
+	disto_params *distoparam;	// the distorsion parameters used for the registration if any, one per layer
 
 	/* beg and end are used prior to imgparam allocation, hence their usefulness */
 	int beg;		// imgparam[0]->filenum

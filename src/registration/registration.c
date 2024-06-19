@@ -77,6 +77,12 @@ int seq_has_any_regdata(const sequence *seq) {
 	return -1;
 }
 
+gboolean layer_has_distorsion(const sequence *seq, int layer) {
+	if (!seq || layer < 0 || !seq->distoparam || seq->nb_layers < 0 || layer >= seq->nb_layers || seq->distoparam[layer].index == DISTO_UNDEF) return FALSE;
+	return TRUE;
+}
+
+
 /* try to maximize the area within the image size (based on gfit)
  * hsteps and vsteps are used to resize the selection zone when it is larger than the image
  * they must be at least 2 */
@@ -135,13 +141,13 @@ void compute_fitting_selection(rectangle *area, int hsteps, int vsteps, int pres
 	return compute_fitting_selection(area, hsteps, vsteps, preserve_square);
 }
 
-void get_the_registration_area(struct registration_args *reg_args, const struct registration_method *method) {
+void get_the_registration_area(struct registration_args *regargs, const struct registration_method *method) {
 	int max;
 	switch (method->sel) {
 		/* even in the case of REQUIRES_NO_SELECTION selection is needed for MatchSelection of starAlignment */
 		case REQUIRES_NO_SELECTION:
 		case REQUIRES_ANY_SELECTION:
-			memcpy(&reg_args->selection, &com.selection, sizeof(rectangle));
+			memcpy(&regargs->selection, &com.selection, sizeof(rectangle));
 			break;
 		case REQUIRES_SQUARED_SELECTION:
 			/* Passed arguments are X,Y of the center of the square and the size of
@@ -151,17 +157,17 @@ void get_the_registration_area(struct registration_args *reg_args, const struct 
 			else
 				max = com.selection.h;
 
-			reg_args->selection.x = com.selection.x + com.selection.w / 2 - max / 2;
-			reg_args->selection.w = max;
-			reg_args->selection.y = com.selection.y + com.selection.h / 2 - max / 2;
-			reg_args->selection.h = max;
-			compute_fitting_selection(&reg_args->selection, 2, 2, 1);
+			regargs->selection.x = com.selection.x + com.selection.w / 2 - max / 2;
+			regargs->selection.w = max;
+			regargs->selection.y = com.selection.y + com.selection.h / 2 - max / 2;
+			regargs->selection.h = max;
+			compute_fitting_selection(&regargs->selection, 2, 2, 1);
 
 			/* save it back to com.selection do display it properly */
-			memcpy(&com.selection, &reg_args->selection, sizeof(rectangle));
-			fprintf(stdout, "final area: %d,%d,\t%dx%d\n", reg_args->selection.x,
-					reg_args->selection.y, reg_args->selection.w,
-					reg_args->selection.h);
+			memcpy(&com.selection, &regargs->selection, sizeof(rectangle));
+			fprintf(stdout, "final area: %d,%d,\t%dx%d\n", regargs->selection.x,
+					regargs->selection.y, regargs->selection.w,
+					regargs->selection.h);
 			redraw(REDRAW_OVERLAY);
 			break;
 	}
@@ -180,8 +186,15 @@ gpointer register_thread_func(gpointer p) {
 		// also done in generated sequence in global.c
 		args->seq->reference_image = sequence_find_refimage(args->seq);
 	}
-	if (!args->retval) writeseqfile(args->seq);
+	if (!args->retval)
+		writeseqfile(args->seq);
 	retval = args->retval;
+	if (args->disto) {
+		free_disto_args(args->disto);
+	}
+	if (args->driz) {
+		free(args->driz);
+	}
 	if (!siril_add_idle(end_register_idle, args)) {
 		free_sequence(args->seq, TRUE);
 		free(args);

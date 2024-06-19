@@ -5,9 +5,9 @@
 #include "algos/PSF.h"
 #include "core/processing.h"
 #include "algos/star_finder.h"
+#include "registration/distorsion.h"
 
 #define NUMBER_OF_METHODS 7
-#define MAX_DISTO_SIZE 7 // need to duplicate MAX_SIP_SIZE here because of circular refs with opencv
 
 struct registration_args;
 typedef int (*registration_function)(struct registration_args *);
@@ -49,13 +49,6 @@ typedef enum {
 } transformation_type;
 
 typedef enum {
-	DISTO_UNDEF, // No distorsion
-	DISTO_IMAGE, // Distorsion from current image
-	DISTO_FILE,  // Distorsion from given file
-	DISTO_FILES, // Distorsion stored in each file (from seq platesolve)
-} disto_apply;
-
-typedef enum {
 	FRAMING_CURRENT,
 	FRAMING_MAX,
 	FRAMING_MIN,
@@ -86,25 +79,6 @@ typedef enum {
 typedef struct {
 	int x, y, w, h;
 } framing_roi;
-
-typedef enum {
-	DISTO_NONE, // none defined
-	DISTO_D2S,  // computed for each image dst->src (regular interpolation)
-	DISTO_S2D,  // computed for each image src->dst (drizzle interpolation)
-	DISTO_MAP_D2S,  // computed from the ref image dst->src (regular interpolation)
-	DISTO_MAP_S2D  // computed from the ref image dst->src (drizzle interpolation)
-} disto_type;
-
-typedef struct {
-	disto_type dtype;
-	double A[MAX_DISTO_SIZE][MAX_DISTO_SIZE];
-	double B[MAX_DISTO_SIZE][MAX_DISTO_SIZE];
-	double AP[MAX_DISTO_SIZE][MAX_DISTO_SIZE];
-	double BP[MAX_DISTO_SIZE][MAX_DISTO_SIZE];
-	int order;
-	double xref, yref;
-	float *xmap, *ymap;
-} disto_data;
 
 struct astrometric_args{
 	int nb;
@@ -157,8 +131,9 @@ struct registration_args {
 	double filtering_parameter;	// and its parameter (seqapplyreg only)
 	gboolean no_starlist;		// disable star list creation (2pass only)
 	float output_scale;		// scaling factor
-	disto_apply undistort;		// type of undistorsion to apply
-	disto_data *disto;	// undistorsion information
+	disto_source undistort;		// type of undistorsion to apply
+	disto_params distoparam;		// type of undistorsion to apply
+	disto_data *disto;			// undistorsion information
 	struct driz_args_t *driz;	// drizzle-specific data
 	framing_type framing;		// used by seqapplyreg to determine framing
 	framing_data framingd;	// precomputed framing data
@@ -202,7 +177,7 @@ int get_comet_shift(GDateTime *ref, GDateTime *img, pointf px_per_hour, pointf *
 pointf get_velocity();
 void update_reg_interface(gboolean dont_change_reg_radio);
 void compute_fitting_selection(rectangle *area, int hsteps, int vsteps, int preserve_square);
-void get_the_registration_area(struct registration_args *reg_args, const struct registration_method *method); // for compositing
+void get_the_registration_area(struct registration_args *regargs, const struct registration_method *method); // for compositing
 gpointer register_thread_func(gpointer p);
 
 /** getter */
@@ -227,6 +202,7 @@ transformation_type guess_transform_from_H(Homography H);
 gboolean check_before_applyreg(struct registration_args *regargs);
 gboolean layer_has_registration(const sequence *seq, int layer);
 gboolean layer_has_usable_registration(sequence *seq, int layer);
+gboolean layer_has_distorsion(const sequence *seq, int layer);
 int get_first_selected(sequence *seq);
 regdata *apply_reg_get_current_regdata(struct registration_args *regargs);
 

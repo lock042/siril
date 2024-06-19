@@ -64,5 +64,6 @@ typedef enum {
 
 gchar *path_parse(fits *fit, const gchar *expression, pathparse_mode mode, int *status);
 gchar *update_header_and_parse(fits *fit, gchar *expression, pathparse_mode mode, gboolean createdir, int *status);
+pathparse_errors read_key_from_header_text(gchar **headers, gchar *key, double *numvalue, gchar *strvalue);
 
 #endif /* SRC_IO_PATH_PARSE_H_ */

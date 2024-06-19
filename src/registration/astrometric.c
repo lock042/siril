@@ -641,15 +641,6 @@ static int astrometric_alignment(struct registration_args *regargs, struct astro
 	return regargs->retval;
 }
 
-static void free_disto_args(disto_data *disto) {
-	if (!disto)
-		return;
-	// we only need to free the maps for the 2 types which store them (disto has only one element in that case)
-	if (disto->dtype == DISTO_MAP_D2S || disto->dtype == DISTO_MAP_S2D) {
-		free(disto->xmap);
-		free(disto->ymap);
-	}
-}
 
 void free_astrometric_args(struct astrometric_args *astargs) {
 	if (!astargs)

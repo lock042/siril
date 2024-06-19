@@ -40,6 +40,7 @@
 #include "io/image_format_fits.h"
 #include "drizzle/cdrizzleutil.h"
 #include "registration/registration.h"
+#include "registration/distorsion.h"
 #include "registration/matching/atpmatch.h"
 #include "registration/matching/match.h"
 #include "registration/matching/misc.h"
@@ -136,7 +137,7 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 
 	/* first we're looking for stars in reference image */
 	if (seq_read_frame(args->seq, regargs->reference_image, &fit, FALSE, -1)) {
-		siril_log_message(_("Could not load reference image\n"));
+		siril_log_color_message(_("Could not load reference image\n"), "red");
 		args->seq->regparam[regargs->layer] = NULL;
 		free(sadata->current_regdata);
 		return 1;
@@ -156,16 +157,59 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	siril_log_message(_("Found %d stars in reference, channel #%d\n"), nb_stars, regargs->layer);
 
 	if (!sadata->refstars || nb_stars < get_min_requires_stars(regargs->type)) {
-		siril_log_message(
-				_("There are not enough stars in reference image to perform alignment\n"));
+		siril_log_color_message(
+				_("There are not enough stars in reference image to perform alignment\n"), "red");
 		args->seq->regparam[regargs->layer] = NULL;
 		free(sadata->current_regdata);
 		clearfits(&fit);
 		return 1;
 	}
 
-	if (regargs->undistort) {
-		
+	/* copying refstars to com.stars for display
+	/ * we make this cop before distorsion correction */
+	if (!com.script && &com.seq == args->seq && com.seq.current == regargs->reference_image) {
+		psf_star **stars = new_fitted_stars(MAX_STARS);
+		if (stars) {
+			for (int i = 0; i < nb_stars && sadata->refstars[i]; i++) {
+				psf_star *tmp = new_psf_star();
+				if (!tmp) {
+					PRINT_ALLOC_ERR;
+					stars[i] = NULL;
+					break;
+				}
+				memcpy(tmp, sadata->refstars[i], sizeof(psf_star));
+				stars[i] = tmp;
+				stars[i+1] = NULL;
+			}
+		}
+		update_star_list(stars, FALSE);
+	}
+
+	// We prepare the distorsion structure maps if required
+	if (regargs->undistort && init_disto_map(fit.rx, fit.ry, regargs->disto)) {
+		siril_log_color_message(
+				_("Could not init distorsion mapping\n"), "red");
+		args->seq->regparam[regargs->layer] = NULL;
+		free(sadata->current_regdata);
+		clearfits(&fit);
+		return 1;
+	}
+
+	// we correct the reference stars for distorsions
+	// we'll do the same for each imagebefore matching the 2 lists
+	// The star lists are not saved with distorsions as they may be re-used
+	// later on with a different distorsion setting
+	// Instead, when registration has been computed accounting for SIP,
+	// the distorsion source is logged together with the registration info in the .seq file
+	// Note: for global reg, disto source can only by DISTO_IMAGE or DISTO_FILE
+	// i.e regargs->disto is of size 1
+	if (regargs->undistort && disto_correct_stars(sadata->refstars, regargs->disto)) {
+		siril_log_color_message(
+			_("Could not correct the stars position with SIP coeffients\n"), "red");
+		args->seq->regparam[regargs->layer] = NULL;
+		free(sadata->current_regdata);
+		clearfits(&fit);
+		return 1;
 	}
 
 	sadata->ref.x = fit.rx;
@@ -188,25 +232,6 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 		cvGetEye(&regargs->framingd.Htransf);
 		regargs->framingd.roi_out.w = sadata->ref.x;
 		regargs->framingd.roi_out.h = sadata->ref.y;
-	}
-
-	/* copying refstars to com.stars for display */
-	if (!com.script && &com.seq == args->seq && com.seq.current == regargs->reference_image) {
-		psf_star **stars = new_fitted_stars(MAX_STARS);
-		if (stars) {
-			for (int i = 0; i < nb_stars && sadata->refstars[i]; i++) {
-				psf_star *tmp = new_psf_star();
-				if (!tmp) {
-					PRINT_ALLOC_ERR;
-					stars[i] = NULL;
-					break;
-				}
-				memcpy(tmp, sadata->refstars[i], sizeof(psf_star));
-				stars[i] = tmp;
-				stars[i+1] = NULL;
-			}
-		}
-		update_star_list(stars, FALSE);
 	}
 
 	if (nb_stars >= MAX_STARS_FITTED) {
@@ -330,6 +355,16 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 			args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 			return 1;
 		}
+		// if distorsion correction is included, we correct the current starlist
+		// before performing the match
+		if (regargs->undistort && disto_correct_stars(stars, regargs->disto)) {
+			siril_log_color_message(
+				_("Could not correct the stars position with SIP coeffients\n"), "red");
+			if (stars)
+				free_fitted_stars(stars);
+			args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
+			return 1;
+		}
 
 		int not_matched = star_match_and_checks(sadata->refstars, stars, sadata->fitted_stars, nb_stars, regargs, filenum, &H);
 		if (!not_matched)
@@ -371,7 +406,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 		// reference image
 		cvGetEye(&H);
 		sadata->current_regdata[in_index].H = H;
-		if (!regargs->no_output && (regargs->output_scale != 1.f || regargs->driz)) {
+		if (!regargs->no_output && (regargs->output_scale != 1.f || regargs->driz || regargs->undistort)) {
 			if (apply_reg_image_hook(args, out_index, in_index, fit, _, threads)) {
 				args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 				return 1;
@@ -421,6 +456,7 @@ int star_align_finalize_hook(struct generic_seq_args *args) {
 			if (!sadata->success[i])
 				failed++;
 		regargs->new_total = args->nb_filtered_images - failed;
+		regargs->seq->distoparam[regargs->layer] = regargs->distoparam;
 
 		if (!regargs->no_output) {
 			if (failed) {
@@ -608,6 +644,15 @@ int register_star_alignment(struct registration_args *regargs) {
 		args->compute_mem_limits_hook = star_align_compute_mem_limits;
 		args->upscale_ratio = regargs->output_scale;
 	}
+	if (regargs->undistort) {
+		regargs->disto = init_disto_data(&regargs->distoparam, regargs->seq);
+		if (!regargs->disto) {
+			free(args);
+			return -1;
+		}
+		regargs->disto->dtype = (regargs->driz) ? DISTO_MAP_S2D: DISTO_MAP_D2S;
+	}
+
 	args->prepare_hook = star_align_prepare_hook;
 	args->image_hook = star_align_image_hook;
 	args->finalize_hook = star_align_finalize_hook;
@@ -841,6 +886,15 @@ int register_multi_step_global(struct registration_args *regargs) {
 	gboolean *included = NULL, *tmp_included = NULL;
 	// local flag to make checks only on frames that matter
 	gboolean *meaningful = NULL;
+
+	if (regargs->undistort) {
+		regargs->disto = init_disto_data(&regargs->distoparam, regargs->seq);
+		if (!regargs->disto) {
+			return -1;
+		}
+		regargs->disto->dtype = (regargs->driz) ? DISTO_MAP_S2D: DISTO_MAP_D2S;
+	} 
+
 	sf_args->stars = calloc(regargs->seq->number, sizeof(psf_star **));
 	if (!sf_args->stars) {
 		PRINT_ALLOC_ERR;
@@ -895,6 +949,12 @@ int register_multi_step_global(struct registration_args *regargs) {
 			regargs->seq->imgparam[i].incl = FALSE;
 			failed++;
 			continue;
+		}
+		// we apply distorsion (if any) before matching
+		if (regargs->undistort && disto_correct_stars(sf_args->stars[i], regargs->disto)) {
+			siril_log_color_message(_("Could not correct the stars position with SIP coeffients\n"), "red");
+			retval = 1;
+			goto free_all;
 		}
 		included[i] = TRUE;
 		float FWHMx, FWHMy;
@@ -1052,6 +1112,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 	for (int i = 0; i < regargs->seq->number; i++) {
 		regargs->seq->imgparam[i].incl = included[i];
 	}
+	regargs->seq->distoparam[regargs->layer] = regargs->distoparam;
 
 	// images may have been excluded but selnum wasn't updated
 	fix_selnum(regargs->seq, FALSE);

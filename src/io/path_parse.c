@@ -94,7 +94,7 @@ static void display_path_parse_error(pathparse_errors err, const gchar *addstr) 
 	siril_log_color_message("%s %d - %s%s - %s\n", color, startstr, err, msg, addbuf, endstr);
 }
 
-static pathparse_errors read_key_from_header_text(gchar **headers, gchar *key, double *numvalue, gchar *strvalue) {
+pathparse_errors read_key_from_header_text(gchar **headers, gchar *key, double *numvalue, gchar *strvalue) {
 	pathparse_errors status = PATHPARSE_ERR_OK;
 	if (!headers)
 		return PATHPARSE_ERR_HEADER_NULL;

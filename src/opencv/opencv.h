@@ -11,6 +11,7 @@ extern "C" {
 
 #include <stdint.h>
 #include "registration/registration.h"
+#include "registration/distorsion.h"
 #include "registration/matching/misc.h"
 #include "registration/matching/atpmatch.h"
 #include "gui/progress_and_log.h"
@@ -30,7 +31,7 @@ unsigned char *cvCalculH(s_star *star_array_img,
 		struct s_star *star_array_ref, int n, Homography *H, transformation_type type, float offset);
 
 
-int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homography Hom, float scale, int interpolation, gboolean clamp);
+int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homography Hom, float scale, int interpolation, gboolean clamp, disto_data *disto);
 
 int cvUnsharpFilter(fits* image, double sigma, double amount);
 
@@ -65,7 +66,6 @@ gboolean cvRotMat3(double angles[3], rotation_type rottype[3], gboolean W2C, Hom
 void cvRelRot(Homography *Ref, Homography *R);
 void cvcalcH_fromKKR(Homography Kref, Homography K, Homography R, Homography *H);
 int cvWarp_fromKR(fits *image, framing_roi *roi_in, Homography K, Homography R, float scale, int interpolation, gboolean clamp, disto_data *disto, framing_roi *roi_out);
-int init_disto_map(int rx, int ry, disto_data *disto);
 #ifdef __cplusplus
 }
 #endif

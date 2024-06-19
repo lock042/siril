@@ -3172,3 +3172,45 @@ int fits_parse_header_str(fits *fit, const char *header){
 	return status;
 }
 
+int save_wcs_fits(fits *f, const gchar *name) {
+	int status;
+
+	if (!name)
+		return 1;
+
+	if (g_unlink(name))
+		siril_debug_print("g_unlink() failed\n");
+
+	status = 0;
+	if (siril_fits_create_diskfile(&(f->fptr), name, &status)) {
+		report_fits_error(status);
+		return 1;
+	}
+	// Prepare the minimal header
+	fits_write_key(f->fptr, TLOGICAL, "SIMPLE", &(int){1}, "conforms to FITS standard", &status);
+	fits_write_key(f->fptr, TINT, "BITPIX", &(int){8}, "ASCII or bytes array", &status);
+	fits_write_key(f->fptr, TINT, "NAXIS", &(int){0}, "Minimal header", &status);
+	fits_write_key(f->fptr, TLOGICAL, "EXTEND", &(int){1}, "There may be FITS ext", &status);
+	fits_write_key(f->fptr, TINT, "WCSAXES", &(int){2}, NULL, &status);
+	fits_write_key(f->fptr, TINT, "IMAGEW", &f->rx, "Image width in pixels", &status);
+	fits_write_key(f->fptr, TINT, "IMAGEH", &f->ry, "Image height in pixels", &status);
+
+	// Write the WCS data
+	if (save_wcs_keywords(f)) {
+		report_fits_error(status);
+		fits_close_file(f->fptr, &status);
+		f->fptr = NULL;
+		return 1;
+	}
+
+	status = 0;
+	fits_close_file(f->fptr, &status);
+	if (!status) {
+		siril_log_message(_("Saving WCS: file %s\n"), name);
+	} else {
+		report_fits_error(status);
+	}
+	f->fptr = NULL;
+	return status;
+}
+

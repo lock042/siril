@@ -1,0 +1,394 @@
+/*
+ * This file is part of Siril, an astronomy image processor.
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
+ *
+ * Siril is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Siril is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Siril. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+
+#include "core/siril.h"
+#include "core/proto.h"
+#include "core/siril_log.h"
+#include "algos/siril_wcs.h"
+#include "algos/PSF.h"
+#include "io/image_format_fits.h"
+#include "distorsion.h"
+
+// applies a distorsion correction to the xpos/ypos members of psf_star list
+int disto_correct_stars(psf_star **stars, disto_data *disto) {
+	if(!stars || !disto || disto->dtype == DISTO_NONE)
+		return 1;
+	double U, V, x, y;
+	double U2, V2, U3, V3, U4, V4, U5, V5;
+	int i = 0;
+	while (stars && stars[i]) {
+		U = stars[i]->xpos - disto->xref;
+		V = disto->yref - stars[i]->ypos; // opencv convention is y down while wcs is y up
+		// V = stars[i]->ypos - disto->yref; // opencv convention is y down while wcs is y up
+		x = U + disto->A[0][0] + disto->A[1][0] * U + disto->A[0][1] * V;
+		y = V + disto->B[0][0] + disto->B[1][0] * U + disto->B[0][1] * V;
+		if (disto->order >= 2) {
+			U2 = U * U;
+			V2 = V * V;
+			double UV = U * V;
+			x += disto->A[2][0] * U2 + disto->A[1][1] * UV + disto->A[0][2] * V2;
+			y += disto->B[2][0] * U2 + disto->B[1][1] * UV + disto->B[0][2] * V2;
+			if (disto->order >= 3) {
+				U3 = U2 * U;
+				V3 = V2 * V;
+				double U2V = U2 * V;
+				double UV2 = U * V2;
+				x += disto->A[3][0] * U3 + disto->A[2][1] * U2V + disto->A[1][2] * UV2 + disto->A[0][3] * V3;
+				y += disto->B[3][0] * U3 + disto->B[2][1] * U2V + disto->B[1][2] * UV2 + disto->B[0][3] * V3;
+				if (disto->order >= 4) {
+					U4 = U3 * U;
+					V4 = V3 * V;
+					double U3V = U3 * V;
+					double U2V2 = U2 * V2;
+					double UV3 = U * V3;
+					x += disto->A[4][0] * U4 + disto->A[3][1] * U3V + disto->A[2][2] * U2V2 + disto->A[1][3] * UV3 + disto->A[0][4] * V4;
+					y += disto->B[4][0] * U4 + disto->B[3][1] * U3V + disto->B[2][2] * U2V2 + disto->B[1][3] * UV3 + disto->B[0][4] * V4;
+					if (disto->order >= 5) {
+						U5 = U4 * U;
+						V5 = V4 * V;
+						double U4V = U4 * V;
+						double U3V2 = U3 * V2;
+						double U2V3 = U2 * V3;
+						double UV4 = U * V4;
+						x += disto->A[5][0] * U5 + disto->A[4][1] * U4V + disto->A[3][2] * U3V2 + disto->A[2][3] * U2V3 + disto->A[1][4] * UV4 + disto->A[0][5] * V5;
+						y += disto->B[5][0] * U5 + disto->B[4][1] * U4V + disto->B[3][2] * U3V2 + disto->B[2][3] * U2V3 + disto->B[1][4] * UV4 + disto->B[0][5] * V5;
+					}
+				}
+			}
+
+		}
+		stars[i]->xpos = (x + disto->xref);
+		stars[i]->ypos = (disto->yref - y);
+		i++;
+	}
+	return 0;
+}
+
+// maps undistortion dst to src (for interpolation)
+void map_undistortion_D2S(disto_data *disto, int rx, int ry, float *xmap, float *ymap) {
+	g_assert(disto != NULL);
+	g_assert(xmap != NULL);
+	g_assert(ymap != NULL);
+	double U, V, x, y;
+	double U2, V2, U3, V3, U4, V4, U5, V5;
+	int r = 0;
+	for (int v = 0; v < ry; ++v) {
+		float *rxptr = xmap + r;
+		float *ryptr = ymap + r;
+		for (int u = 0; u < rx; ++u) {
+			U = (double)rxptr[u] - disto->xref;
+			V = disto->yref - (double)ryptr[u]; // opencv convention is y down while wcs is y up
+			x = U + disto->AP[0][0] + disto->AP[1][0] * U + disto->AP[0][1] * V;
+			y = V + disto->BP[0][0] + disto->BP[1][0] * U + disto->BP[0][1] * V;
+			if (disto->order >= 2) {
+				U2 = U * U;
+				V2 = V * V;
+				double UV = U * V;
+				x += disto->AP[2][0] * U2 + disto->AP[1][1] * UV + disto->AP[0][2] * V2;
+				y += disto->BP[2][0] * U2 + disto->BP[1][1] * UV + disto->BP[0][2] * V2;
+				if (disto->order >= 3) {
+					U3 = U2 * U;
+					V3 = V2 * V;
+					double U2V = U2 * V;
+					double UV2 = U * V2;
+					x += disto->AP[3][0] * U3 + disto->AP[2][1] * U2V + disto->AP[1][2] * UV2 + disto->AP[0][3] * V3;
+					y += disto->BP[3][0] * U3 + disto->BP[2][1] * U2V + disto->BP[1][2] * UV2 + disto->BP[0][3] * V3;
+					if (disto->order >= 4) {
+						U4 = U3 * U;
+						V4 = V3 * V;
+						double U3V = U3 * V;
+						double U2V2 = U2 * V2;
+						double UV3 = U * V3;
+						x += disto->AP[4][0] * U4 + disto->AP[3][1] * U3V + disto->AP[2][2] * U2V2 + disto->AP[1][3] * UV3 + disto->AP[0][4] * V4;
+						y += disto->BP[4][0] * U4 + disto->BP[3][1] * U3V + disto->BP[2][2] * U2V2 + disto->BP[1][3] * UV3 + disto->BP[0][4] * V4;
+						if (disto->order >= 5) {
+							U5 = U4 * U;
+							V5 = V4 * V;
+							double U4V = U4 * V;
+							double U3V2 = U3 * V2;
+							double U2V3 = U2 * V3;
+							double UV4 = U * V4;
+							x += disto->AP[5][0] * U5 + disto->AP[4][1] * U4V + disto->AP[3][2] * U3V2 + disto->AP[2][3] * U2V3 + disto->AP[1][4] * UV4 + disto->AP[0][5] * V5;
+							y += disto->BP[5][0] * U5 + disto->BP[4][1] * U4V + disto->BP[3][2] * U3V2 + disto->BP[2][3] * U2V3 + disto->BP[1][4] * UV4 + disto->BP[0][5] * V5;
+						}
+					}
+				}
+			}
+			rxptr[u] = (float)(x + disto->xref);
+			ryptr[u] = (float)(disto->yref - y);
+ 		}
+		r += rx;
+ 	}
+}
+
+// maps undistortion src to dst (for drizzle)
+void map_undistortion_S2D(disto_data *disto, int rx, int ry, float *xmap, float *ymap) {
+	g_assert(disto != NULL);
+	g_assert(xmap != NULL);
+	g_assert(ymap != NULL);
+	double x, y;
+	double *U = malloc(rx * sizeof(double));
+	double *V = malloc(ry * sizeof(double));
+	double *U2, *V2, *U3, *V3, *U4, *V4, *U5, *V5;
+	if (disto->order >= 2) {
+		U2 = malloc(rx * sizeof(double));
+		V2 = malloc(ry * sizeof(double));
+	}
+	if (disto->order >= 3) {
+		U3 = malloc(rx * sizeof(double));
+		V3 = malloc(ry * sizeof(double));
+	}
+	if (disto->order >= 4) {
+		U4 = malloc(rx * sizeof(double));
+		V4 = malloc(ry * sizeof(double));
+	}
+	if (disto->order >= 5) {
+		U5 = malloc(rx * sizeof(double));
+		V5 = malloc(ry * sizeof(double));
+	}
+	for (int u = 0; u < rx; ++u) {
+		U[u] = (double)u - disto->xref;
+		if (disto->order >= 2) {
+			U2[u] = U[u] * U[u];
+			if (disto->order >= 3) {
+				U3[u] = U2[u] * U[u];
+				if (disto->order >= 4) {
+					U4[u] = U3[u] * U[u];
+					if (disto->order >= 5) {
+						U5[u] = U4[u] * U[u];
+					}
+				}
+			}
+		}
+	}
+
+	for (int v = 0; v < ry; ++v) {
+		V[v] = (double)v - disto->yref;
+		if (disto->order >= 2) {
+			V2[v] = V[v] * V[v];
+			if (disto->order >= 3) {
+				V3[v] = V2[v] * V[v];
+				if (disto->order >= 4) {
+					V4[v] = V3[v] * V[v];
+					if (disto->order >= 5) {
+						V5[v] = V4[v] * V[v];
+					}
+				}
+			}
+		}
+	}
+
+	int r = 0;
+	for (int v = 0; v < ry; ++v) {
+		for (int u = 0; u < rx; ++u) {
+			x = U[u] + disto->A[0][0] + disto->A[1][0] * U[u] + disto->A[0][1] * V[v];
+			y = V[v] + disto->B[0][0] + disto->B[1][0] * U[u] + disto->B[0][1] * V[v];
+			if (disto->order >= 2) {
+				double UV = U[u] * V[v];
+				x += disto->A[2][0] * U2[u] + disto->A[1][1] * UV + disto->A[0][2] * V2[v];
+				y += disto->B[2][0] * U2[u] + disto->B[1][1] * UV + disto->B[0][2] * V2[v];
+				if (disto->order >= 3) {
+					double U2V = U2[u] * V[v];
+					double UV2 = U[u] * V2[v];
+					x += disto->A[3][0] * U3[u] + disto->A[2][1] * U2V + disto->A[1][2] * UV2 + disto->A[0][3] * V3[v];
+					y += disto->B[3][0] * U3[u] + disto->B[2][1] * U2V + disto->B[1][2] * UV2 + disto->B[0][3] * V3[v];
+					if (disto->order >= 4) {
+						double U3V = U3[u] * V[v];
+						double U2V2 = U2[u] * V2[v];
+						double UV3 = U[u] * V3[v];
+						x += disto->A[4][0] * U4[u] + disto->A[3][1] * U3V + disto->A[2][2] * U2V2 + disto->A[1][3] * UV3 + disto->A[0][4] * V4[v];
+						y += disto->B[4][0] * U4[u] + disto->B[3][1] * U3V + disto->B[2][2] * U2V2 + disto->B[1][3] * UV3 + disto->B[0][4] * V4[v];
+						if (disto->order >= 5) {
+							double U4V = U4[u] * V[v];
+							double U3V2 = U3[u] * V2[v];
+							double U2V3 = U2[u] * V3[v];
+							double UV4 = U[u] * V4[v];
+							x += disto->A[5][0] * U5[u] + disto->A[4][1] * U4V + disto->A[3][2] * U3V2 + disto->A[2][3] * U2V3 + disto->A[1][4] * UV4 + disto->A[0][5] * V5[v];
+							y += disto->B[5][0] * U5[u] + disto->B[4][1] * U4V + disto->B[3][2] * U3V2 + disto->B[2][3] * U2V3 + disto->B[1][4] * UV4 + disto->B[0][5] * V5[v];
+						}
+					}
+				}
+			}
+			xmap[r + u] = (float)(x + disto->xref);
+			ymap[r + u] = (float)(y + disto->yref);
+ 		}
+		r += rx;
+ 	}
+}
+
+
+// Computes the distortion map and stores it in the disto structure
+int init_disto_map(int rx, int ry, disto_data *disto) {
+	if (disto == NULL || (disto->dtype != DISTO_MAP_D2S && disto->dtype != DISTO_MAP_S2D)) //nothing to do
+		return 0;
+
+	if (!disto->xmap) {
+		disto->xmap = malloc(rx * ry *sizeof(float));
+		disto->ymap = malloc(rx * ry *sizeof(float));
+	}
+
+	if (!disto->xmap || !disto->ymap) {
+		free(disto->xmap);
+		free(disto->ymap);
+		disto->xmap = NULL;
+		disto->ymap = NULL;
+		return 2;
+	}
+
+	size_t s = 0;
+	for (int j = 0; j < ry; j++) {
+		for (int i = 0; i < rx; i++) {
+			disto->xmap[s] = (float)i;
+			disto->ymap[s] = (float)j;
+			s++;
+		}
+	}
+
+	if (disto->dtype == DISTO_MAP_D2S) {
+		map_undistortion_D2S(disto, rx, ry, disto->xmap, disto->ymap);
+	} else
+		map_undistortion_S2D(disto, rx, ry, disto->xmap, disto->ymap);
+	return 0;
+}
+
+// interpolates a disto map from the one saved in disto structure
+static void map_undistortion_interp(disto_data *disto, int rx_in, int ry_in, int rx_out, int ry, float *xmap, float *ymap) {
+	g_assert(disto != NULL);
+	g_assert(xmap != NULL);
+	g_assert(ymap != NULL);
+	int r = 0;
+	for (int v = 0; v < ry; ++v) {
+		float *rxptr = xmap + r;
+		float *ryptr = ymap + r;
+		for (int u = 0; u < rx_out; ++u) {
+			int i = floor(rxptr[u]);
+			int j = floor(ryptr[u]);
+			if (i < 0 || i > rx_in - 2 || j < 0 || j > ry_in - 2) {
+				rxptr[u] = -1.f;
+				ryptr[u] = -1.f;
+			} else {
+				int s = j * rx_in + i;
+				float c1 = rxptr[u] - (float)i;
+				float c2 = ryptr[u] - (float)j;
+				float w11 = (1.f - c1) * (1.f - c2);
+				float w12 = c1 * (1.f - c2);
+				float w21 = (1.f - c1) * c2;
+				float w22 = c1 * c2;
+				rxptr[u] = w11 * disto->xmap[s] + w12 * disto->xmap[s + 1] + w21 * disto->xmap[s + rx_in] + w22 * disto->xmap[s + rx_in + 1];
+				ryptr[u] = w11 * disto->ymap[s] + w12 * disto->ymap[s + 1] + w21 * disto->ymap[s + rx_in] + w22 * disto->ymap[s + rx_in + 1];
+			}
+		}
+		r += rx_out;
+	}
+}
+
+// computes the dst->src map from homography and corrects the mapping for distorsions
+void prepare_H_with_disto_4remap(double *H, int rx_in, int ry_in, int rx_out, int ry_out, disto_data *disto, float *xmap, float *ymap) {
+	size_t index = 0;
+	for (int y = 0; y < ry_out; y++) {
+		for (int x = 0; x < rx_out; x++) {
+			float x0 = (float)x;
+			float y0 = (float)y;
+			float z = 1. / (x0 * H[6] + y0 * H[7] + H[8]);
+			xmap[index] = (x0 * H[0] + y0 * H[1] + H[2]) * z;
+			ymap[index++] = (x0 * H[3] + y0 * H[4] + H[5]) * z;
+		}
+	}
+	if (disto->dtype == DISTO_D2S) {
+		map_undistortion_D2S(disto, rx_out, ry_out, xmap, ymap);
+	} else {
+		map_undistortion_interp(disto, rx_in, ry_in, rx_out, ry_out, xmap, ymap);
+	}
+}
+
+disto_data *init_disto_data(disto_params *distoparam, sequence *seq) {
+	if (!distoparam)
+		return NULL;
+	struct wcsprm *wcs = NULL;
+	disto_data *disto = NULL;
+	switch (distoparam->index) {
+		case DISTO_IMAGE:
+			wcs = wcs_deepcopy(gfit.keywords.wcslib, NULL);
+			char *namewoext = remove_ext_from_filename(seq->seqname);
+			gchar *wcsname = g_strdup_printf("%s%s", namewoext, ".wcs");
+			free(namewoext);
+			if (save_wcs_fits(&gfit, wcsname)) {
+				siril_log_color_message(_("Could not save WCS file for distorsion\n"), "red");
+				siril_log_color_message(_("Computing registration without distorsion correction\n"), "red");
+				wcsfree(wcs);
+				return NULL;
+			}
+			distoparam->index = DISTO_FILE; // this will be written to the seq file
+			distoparam->filename = wcsname;
+			break;
+		case DISTO_FILE:
+			fits fit = { 0 };
+			int status = read_fits_metadata_from_path_first_HDU(distoparam->filename, &fit);
+			if (status) {
+				siril_log_color_message(_("Could not load FITS file for distorsion\n"), "red");
+				siril_log_color_message(_("Computing registration without distorsion correction\n"), "red");
+				clearfits(&fit);
+				return NULL;
+			}
+			wcs = wcs_deepcopy(fit.keywords.wcslib, &status);
+			if (status) {
+				siril_log_color_message(_("Could not copy WCS information for distorsion\n"), "red");
+				siril_log_color_message(_("Computing registration without distorsion correction\n"), "red");
+				clearfits(&fit);
+				return NULL;
+			}
+			clearfits(&fit);
+			// checking that wcslib has disto term has been checked when updating the reg interface
+			break;
+		case DISTO_FILES:
+			break;
+		default:
+			return NULL;
+			break;
+	}
+	if (distoparam->index == DISTO_IMAGE || distoparam->index == DISTO_FILE) { // we only have one disto spec, we can init the disto structure
+		disto = calloc(1, sizeof(disto_data));
+		disto[0].order = extract_SIP_order_and_matrices(wcs->lin.dispre, disto[0].A, disto[0].B, disto[0].AP, disto[0].BP);
+		disto[0].xref = wcs->crpix[0] - 1.; // -1 comes from the difference of convention between opencv and wcs
+		disto[0].yref = wcs->crpix[1] - 1.;
+		wcsfree(wcs);
+	}
+	if (distoparam->index == DISTO_FILES) {
+		disto = calloc(distoparam->n, sizeof(disto_data));
+		// TODO: expand
+	}
+	return disto;
+}
+
+
+void free_disto_args(disto_data *disto) {
+	if (!disto)
+		return;
+	// we only need to free the maps for the 2 types which store them (disto has only one element in that case)
+	if (disto->dtype == DISTO_MAP_D2S || disto->dtype == DISTO_MAP_S2D) {
+		free(disto->xmap);
+		free(disto->ymap);
+	}
+}

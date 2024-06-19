@@ -25,6 +25,7 @@
 #include "core/siril_world_cs.h"
 #include "algos/siril_wcs.h"
 #include "io/image_format_fits.h"
+#include "io/path_parse.h"
 
 #include "fits_keywords.h"
 
@@ -647,9 +648,9 @@ int save_wcs_keywords(fits *fit) {
 	}
 	if (fit->keywords.wcsdata.ra > 0) {
 		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "RA", &(fit->keywords.wcsdata.ra), "[deg] Image center Right Ascension", &status);
+		fits_update_key(fit->fptr, TDOUBLE, "RA", &(fit->keywords.wcsdata.ra), "[deg] Image center Right Ascension", &status);
 		status = 0;
-		fits_update_key(fit->fptr, TDOUBLE, "DEC", &(fit->keywords.wcsdata.dec), "[deg] Image center Declination", &status);
+		fits_update_key(fit->fptr, TDOUBLE, "DEC", &(fit->keywords.wcsdata.dec), "[deg] Image center Declination", &status);
 	}
 	status = 0;
 
@@ -1051,3 +1052,23 @@ int read_fits_keywords(fits *fit) {
 	return 0;
 }
 
+int parse_wcs_image_dimensions(fits *fit, int *rx, int *ry) {
+	*rx = 0;
+	*ry = 0;
+	if (!fit)
+		return 1;
+	if (strlen(fit->unknown_keys) > 0) {
+		gchar **headerkeys = g_strsplit(fit->unknown_keys, "\n", 0);
+		double drx = 0., dry = 0.;
+		int status_w = read_key_from_header_text(headerkeys, "IMAGEW", &drx, NULL);
+		int status_h = read_key_from_header_text(headerkeys, "IMAGEH", &dry, NULL);
+		g_strfreev(headerkeys);
+		if (status_w || status_h)
+			return 1;
+		*rx = (int)drx;
+		*ry = (int)dry;
+		siril_debug_print("IMAGEW: %d, IMAGEH: %d\n", *rx, *ry);
+		return 0;
+	}
+	return 1;
+}

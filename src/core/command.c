@@ -7042,7 +7042,7 @@ int process_convert(int nb) {
 }
 
 int process_register(int nb) {
-	struct registration_args *reg_args = NULL;
+	struct registration_args *regargs = NULL;
 	struct registration_method *method = NULL;
 	char *msg;
 
@@ -7055,38 +7055,38 @@ int process_register(int nb) {
 		seq = &com.seq;
 	}
 
-	reg_args = calloc(1, sizeof(struct registration_args));
+	regargs = calloc(1, sizeof(struct registration_args));
 
 	/* filling the arguments for registration */
-	reg_args->seq = seq;
-	reg_args->reference_image = sequence_find_refimage(seq);
-	reg_args->follow_star = FALSE;
-	reg_args->matchSelection = FALSE;
-	reg_args->no_output = FALSE;
-	reg_args->output_scale = 1.f;
-	reg_args->prefix = strdup("r_");
-	reg_args->min_pairs = 10; // 10 is good enough to ensure good matching
-	reg_args->max_stars_candidates = MAX_STARS_FITTED;
-	reg_args->type = HOMOGRAPHY_TRANSFORMATION;
-	reg_args->layer = (reg_args->seq->nb_layers == 3) ? 1 : 0;
-	reg_args->interpolation = OPENCV_LANCZOS4;
-	reg_args->clamp = TRUE;
+	regargs->seq = seq;
+	regargs->reference_image = sequence_find_refimage(seq);
+	regargs->follow_star = FALSE;
+	regargs->matchSelection = FALSE;
+	regargs->no_output = FALSE;
+	regargs->output_scale = 1.f;
+	regargs->prefix = strdup("r_");
+	regargs->min_pairs = 10; // 10 is good enough to ensure good matching
+	regargs->max_stars_candidates = MAX_STARS_FITTED;
+	regargs->type = HOMOGRAPHY_TRANSFORMATION;
+	regargs->layer = (regargs->seq->nb_layers == 3) ? 1 : 0;
+	regargs->interpolation = OPENCV_LANCZOS4;
+	regargs->clamp = TRUE;
 
 	/* check for options */
 	for (int i = 2; i < nb; i++) {
 		if (!strcmp(word[i], "-upscale")) {
-			reg_args->output_scale = 2.f;
+			regargs->output_scale = 2.f;
 		} else if (!strcmp(word[i], "-noout")) {
-			reg_args->no_output = TRUE;
+			regargs->no_output = TRUE;
 		} else if (!strcmp(word[i], "-noclamp")) {
-			reg_args->clamp = FALSE;
+			regargs->clamp = FALSE;
 		} else if (!strcmp(word[i], "-2pass")) {
-			reg_args->two_pass = TRUE;
-			reg_args->no_output = TRUE;
+			regargs->two_pass = TRUE;
+			regargs->no_output = TRUE;
 		} else if (!strcmp(word[i], "-nostarlist")) {
-			reg_args->no_starlist = TRUE;
+			regargs->no_starlist = TRUE;
 		} else if (!strcmp(word[i], "-selected")) {
-			reg_args->filters.filter_included = TRUE;
+			regargs->filters.filter_included = TRUE;
 		} else if (g_str_has_prefix(word[i], "-transf=")) {
 			char *current = word[i], *value;
 			value = current + 8;
@@ -7096,7 +7096,7 @@ int process_register(int nb) {
 			}
 			if(!g_ascii_strncasecmp(value, "shift", 5)) {
 #ifdef HAVE_CV44
-				reg_args->type = SHIFT_TRANSFORMATION;
+				regargs->type = SHIFT_TRANSFORMATION;
 				continue;
 #else
 				siril_log_color_message(_("Shift-only registration is only possible with OpenCV 4.4\n"), "red");
@@ -7104,21 +7104,21 @@ int process_register(int nb) {
 #endif
 			}
 			if(!g_ascii_strncasecmp(value, "similarity", 10)) {
-				reg_args->type = SIMILARITY_TRANSFORMATION;
+				regargs->type = SIMILARITY_TRANSFORMATION;
 				continue;
 			}
 			if(!g_ascii_strncasecmp(value, "affine", 6)) {
-				reg_args->type = AFFINE_TRANSFORMATION;
+				regargs->type = AFFINE_TRANSFORMATION;
 				continue;
 			}
 			if(!g_ascii_strncasecmp(value, "homography", 10)) {
-				reg_args->type = HOMOGRAPHY_TRANSFORMATION;
+				regargs->type = HOMOGRAPHY_TRANSFORMATION;
 				continue;
 			}
 			siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
 			goto terminate_register_on_error;
 		} else if (g_str_has_prefix(word[i], "-layer=")) {
-			if (reg_args->seq->nb_layers == 1) {  // handling mono case
+			if (regargs->seq->nb_layers == 1) {  // handling mono case
 				siril_log_message(_("This sequence is mono, ignoring layer number.\n"));
 				continue;
 			}
@@ -7131,7 +7131,7 @@ int process_register(int nb) {
 				if (end == value) break;
 				else continue;
 			}
-			reg_args->layer = layer;
+			regargs->layer = layer;
 		} else if (g_str_has_prefix(word[i], "-prefix=")) {
 			char *current = word[i], *value;
 			value = current + 8;
@@ -7139,7 +7139,7 @@ int process_register(int nb) {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
 				goto terminate_register_on_error;
 			}
-			reg_args->prefix = strdup(value);
+			regargs->prefix = strdup(value);
 		} else if (g_str_has_prefix(word[i], "-minpairs=")) {
 			char *current = word[i], *value;
 			value = current + 10;
@@ -7150,12 +7150,12 @@ int process_register(int nb) {
 			gchar *end;
 			int min_pairs = g_ascii_strtoull(value, &end, 10);
 			if (end == value || min_pairs < 4) { // using absolute min_pairs required by homography
-				gchar *str = g_strdup_printf(_("%d smaller than minimum allowable star pairs: %d, aborting.\n"), min_pairs, reg_args->min_pairs);
+				gchar *str = g_strdup_printf(_("%d smaller than minimum allowable star pairs: %d, aborting.\n"), min_pairs, regargs->min_pairs);
 				siril_log_message(str);
 				g_free(str);
 				goto terminate_register_on_error;
 			}
-			reg_args->min_pairs = min_pairs;
+			regargs->min_pairs = min_pairs;
 		} else if (g_str_has_prefix(word[i], "-maxstars=")) {
 			char *current = word[i], *value;
 			value = current + 10;
@@ -7170,7 +7170,7 @@ int process_register(int nb) {
 				siril_log_message(_("Max number of stars %s not allowed. Should be between %d and %d.\n"), value, MIN_STARS_FITTED, MAX_STARS_FITTED);
 				goto terminate_register_on_error;
 			}
-			reg_args->max_stars_candidates = max_stars;
+			regargs->max_stars_candidates = max_stars;
 		} else if (g_str_has_prefix(word[i], "-interp=")) {
 			char *current = word[i], *value;
 			value = current + 8;
@@ -7179,27 +7179,27 @@ int process_register(int nb) {
 				goto terminate_register_on_error;
 			}
 			if(!g_ascii_strncasecmp(value, "nearest", 7) || !g_ascii_strncasecmp(value, "ne", 2)) {
-				reg_args->interpolation = OPENCV_NEAREST;
+				regargs->interpolation = OPENCV_NEAREST;
 				continue;
 			}
 			if(!g_ascii_strncasecmp(value, "cubic", 5) || !g_ascii_strncasecmp(value, "cu", 2)) {
-				reg_args->interpolation = OPENCV_CUBIC;
+				regargs->interpolation = OPENCV_CUBIC;
 				continue;
 			}
 			if(!g_ascii_strncasecmp(value, "lanczos4", 8) || !g_ascii_strncasecmp(value, "la", 2)) {
-				reg_args->interpolation = OPENCV_LANCZOS4;
+				regargs->interpolation = OPENCV_LANCZOS4;
 				continue;
 			}
 			if(!g_ascii_strncasecmp(value, "linear", 6) || !g_ascii_strncasecmp(value, "li", 2)) {
-				reg_args->interpolation = OPENCV_LINEAR;
+				regargs->interpolation = OPENCV_LINEAR;
 				continue;
 			}
 			if(!g_ascii_strncasecmp(value, "none", 4) || !g_ascii_strncasecmp(value, "no", 2)) {
-				reg_args->interpolation = OPENCV_NONE;
+				regargs->interpolation = OPENCV_NONE;
 				continue;
 			}
 			if(!g_ascii_strncasecmp(value, "area", 4) || !g_ascii_strncasecmp(value, "ar", 2)) {
-				reg_args->interpolation = OPENCV_AREA;
+				regargs->interpolation = OPENCV_AREA;
 				continue;
 			}
 			siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
@@ -7213,7 +7213,7 @@ int process_register(int nb) {
 
 	/* getting the selected registration method */
 	method = malloc(sizeof(struct registration_method));
-	if (reg_args->two_pass) {
+	if (regargs->two_pass) {
 		method->name = _("Two-Pass Global Star Alignment (deep-sky)");
 		method->method_ptr = &register_multi_step_global;
 	} else {
@@ -7222,29 +7222,29 @@ int process_register(int nb) {
 	}
 	method->sel = REQUIRES_NO_SELECTION;
 	method->type = REGTYPE_DEEPSKY;
-	reg_args->func = method->method_ptr;
+	regargs->func = method->method_ptr;
 
-	if (reg_args->no_starlist && !reg_args->two_pass)
+	if (regargs->no_starlist && !regargs->two_pass)
 		siril_log_message(_("The -nostarlist option has an effect only when -2pass is used, ignoring\n"));
 
 	// testing free space
-	if (!reg_args->no_output) {
-		int nb_frames = reg_args->filters.filter_included ? reg_args->seq->selnum : reg_args->seq->number;
-		int64_t size = seq_compute_size(reg_args->seq, nb_frames, get_data_type(seq->bitpix));
-		if (reg_args->output_scale != 1.f)
-			size = (int64_t)(reg_args->output_scale * reg_args->output_scale * (float)size);
+	if (!regargs->no_output) {
+		int nb_frames = regargs->filters.filter_included ? regargs->seq->selnum : regargs->seq->number;
+		int64_t size = seq_compute_size(regargs->seq, nb_frames, get_data_type(seq->bitpix));
+		if (regargs->output_scale != 1.f)
+			size = (int64_t)(regargs->output_scale * regargs->output_scale * (float)size);
 		if (test_available_space(size)) {
 			siril_log_color_message(_("Not enough space to save the output images, aborting\n"), "red");
 			goto terminate_register_on_error;
 		}
-	} else if (reg_args->output_scale != 1.f) {
+	} else if (regargs->output_scale != 1.f) {
 		siril_log_color_message(_("Upscaling a sequence with -noout or -2pass has no effect, ignoring\n"), "red");
 	}
 
 
-	if (reg_args->interpolation == OPENCV_NONE && !(reg_args->type == SHIFT_TRANSFORMATION)) {
+	if (regargs->interpolation == OPENCV_NONE && !(regargs->type == SHIFT_TRANSFORMATION)) {
 #ifdef HAVE_CV44
-		reg_args->type = SHIFT_TRANSFORMATION;
+		regargs->type = SHIFT_TRANSFORMATION;
 		siril_log_color_message(_("Forcing the registration transformation to shift, which is the only transformation compatible with no interpolation\n"), "salmon");
 
 #else
@@ -7253,35 +7253,35 @@ int process_register(int nb) {
 #endif
 	}
 
-	if (reg_args->interpolation == OPENCV_NONE && (reg_args->output_scale != 1.f || reg_args->seq->is_variable)) {
+	if (regargs->interpolation == OPENCV_NONE && (regargs->output_scale != 1.f || regargs->seq->is_variable)) {
 		siril_log_color_message(_("When interpolation is set to None, the images must be of same size and no scaling can be applied. Aborting\n"), "red");
 		goto terminate_register_on_error;
 	}
 
-	get_the_registration_area(reg_args, method);	// sets selection
-	reg_args->run_in_thread = TRUE;
-	reg_args->load_new_sequence = FALSE;	// don't load it for command line execution
+	get_the_registration_area(regargs, method);	// sets selection
+	regargs->run_in_thread = TRUE;
+	regargs->load_new_sequence = FALSE;	// don't load it for command line execution
 
 	msg = siril_log_color_message(_("Registration: processing using method: %s\n"), "green", method->name);
 	free(method);
 	msg[strlen(msg) - 1] = '\0';
 
-	if (reg_args->interpolation == OPENCV_AREA ||
-			reg_args->interpolation == OPENCV_LINEAR ||
-			reg_args->interpolation == OPENCV_NEAREST ||
-			reg_args->interpolation == OPENCV_NONE ||
-			reg_args->no_output)
-		reg_args->clamp = FALSE;
-	if (reg_args->clamp && !reg_args->no_output)
+	if (regargs->interpolation == OPENCV_AREA ||
+			regargs->interpolation == OPENCV_LINEAR ||
+			regargs->interpolation == OPENCV_NEAREST ||
+			regargs->interpolation == OPENCV_NONE ||
+			regargs->no_output)
+		regargs->clamp = FALSE;
+	if (regargs->clamp && !regargs->no_output)
 		siril_log_message(_("Interpolation clamping active\n"));
 
 	set_progress_bar_data(msg, PROGRESS_RESET);
 
-	start_in_new_thread(register_thread_func, reg_args);
+	start_in_new_thread(register_thread_func, regargs);
 	return CMD_OK;
 
 terminate_register_on_error:
-	free(reg_args);
+	free(regargs);
 	free_sequence(seq, TRUE);
 	free(method);
 	return CMD_ARG_ERROR;
@@ -7410,14 +7410,14 @@ static int parse_filter_args(char *current, struct seq_filter_config *arg) {
 }
 
 int process_seq_applyreg(int nb) {
-	struct registration_args *reg_args = NULL;
+	struct registration_args *regargs = NULL;
 	gboolean drizzle = FALSE;
 
 	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq)
 		return CMD_SEQUENCE_NOT_FOUND;
 
-	reg_args = calloc(1, sizeof(struct registration_args));
+	regargs = calloc(1, sizeof(struct registration_args));
 	struct driz_args_t *driz = calloc(1, sizeof(struct driz_args_t));
 	// Default values for the driz_args_t
 	driz->use_flats = FALSE;
@@ -7442,21 +7442,21 @@ int process_seq_applyreg(int nb) {
 	}
 
 	/* filling the arguments for registration */
-	reg_args->func = &register_apply_reg;
-	reg_args->seq = seq;
-	reg_args->reference_image = sequence_find_refimage(seq);
-	reg_args->no_output = FALSE;
-	reg_args->prefix = strdup("r_");
-	reg_args->layer = layer;
-	reg_args->interpolation = OPENCV_LANCZOS4;
-	reg_args->clamp = TRUE;
-	reg_args->framing = FRAMING_CURRENT;
-	reg_args->output_scale = 1.f;
+	regargs->func = &register_apply_reg;
+	regargs->seq = seq;
+	regargs->reference_image = sequence_find_refimage(seq);
+	regargs->no_output = FALSE;
+	regargs->prefix = strdup("r_");
+	regargs->layer = layer;
+	regargs->interpolation = OPENCV_LANCZOS4;
+	regargs->clamp = TRUE;
+	regargs->framing = FRAMING_CURRENT;
+	regargs->output_scale = 1.f;
 
 	/* check for options */
 	for (int i = 2; i < nb; i++) {
 		if (!strcmp(word[i], "-drizzle")) {
-			if (reg_args->seq->nb_layers != 1) {  // handling mono case
+			if (regargs->seq->nb_layers != 1) {  // handling mono case
 				siril_log_message(_("This sequence is not mono / CFA, cannot drizzle.\n"));
 				goto terminate_register_on_error;
 			}
@@ -7471,7 +7471,7 @@ int process_seq_applyreg(int nb) {
 				siril_log_color_message(_("Invalid argument to %s, aborting.\n"), "red", word[i]);
 				goto terminate_register_on_error;
 			}
-			reg_args->output_scale = (float) value;
+			regargs->output_scale = (float) value;
 			driz->scale = (float) value;
 		} else if (g_str_has_prefix(word[i], "-pixfrac=")) {
 			char *arg = word[i] + 9;
@@ -7550,9 +7550,9 @@ int process_seq_applyreg(int nb) {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
 				goto terminate_register_on_error;
 			}
-			reg_args->prefix = strdup(value);
+			regargs->prefix = strdup(value);
 		} else if (!strcmp(word[i], "-noclamp")) {
-			reg_args->clamp = FALSE;
+			regargs->clamp = FALSE;
 		} else if (g_str_has_prefix(word[i], "-interp=")) {
 			char *current = word[i], *value;
 			value = current + 8;
@@ -7561,27 +7561,27 @@ int process_seq_applyreg(int nb) {
 				goto terminate_register_on_error;
 			}
 			if(!g_ascii_strncasecmp(value, "nearest", 7) || !g_ascii_strncasecmp(value, "ne", 2)) {
-				reg_args->interpolation = OPENCV_NEAREST;
+				regargs->interpolation = OPENCV_NEAREST;
 				continue;
 			}
 			if(!g_ascii_strncasecmp(value, "cubic", 5) || !g_ascii_strncasecmp(value, "cu", 2)) {
-				reg_args->interpolation = OPENCV_CUBIC;
+				regargs->interpolation = OPENCV_CUBIC;
 				continue;
 			}
 			if(!g_ascii_strncasecmp(value, "lanczos4", 8) || !g_ascii_strncasecmp(value, "la", 2)) {
-				reg_args->interpolation = OPENCV_LANCZOS4;
+				regargs->interpolation = OPENCV_LANCZOS4;
 				continue;
 			}
 			if(!g_ascii_strncasecmp(value, "linear", 6) || !g_ascii_strncasecmp(value, "li", 2)) {
-				reg_args->interpolation = OPENCV_LINEAR;
+				regargs->interpolation = OPENCV_LINEAR;
 				continue;
 			}
 			if(!g_ascii_strncasecmp(value, "none", 4) || !g_ascii_strncasecmp(value, "no", 2)) {
-				reg_args->interpolation = OPENCV_NONE;
+				regargs->interpolation = OPENCV_NONE;
 				continue;
 			}
 			if(!g_ascii_strncasecmp(value, "area", 4) || !g_ascii_strncasecmp(value, "ar", 2)) {
-				reg_args->interpolation = OPENCV_AREA;
+				regargs->interpolation = OPENCV_AREA;
 				continue;
 			}
 			siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
@@ -7594,25 +7594,25 @@ int process_seq_applyreg(int nb) {
 				goto terminate_register_on_error;
 			}
 			if(!g_ascii_strncasecmp(value, "current", 7)) {
-				reg_args->framing = FRAMING_CURRENT;
+				regargs->framing = FRAMING_CURRENT;
 				continue;
 			}
 			if(!g_ascii_strncasecmp(value, "min", 3)) {
-				reg_args->framing = FRAMING_MIN;
+				regargs->framing = FRAMING_MIN;
 				continue;
 			}
 			if(!g_ascii_strncasecmp(value, "max", 3)) {
-				reg_args->framing = FRAMING_MAX;
+				regargs->framing = FRAMING_MAX;
 				continue;
 			}
 			if(!g_ascii_strncasecmp(value, "cog", 3)) {
-				reg_args->framing = FRAMING_COG;
+				regargs->framing = FRAMING_COG;
 				continue;
 			}
 			siril_log_message(_("Unknown framing type %s, aborting.\n"), value);
 			goto terminate_register_on_error;
 		} else if (g_str_has_prefix(word[i], "-layer=")) {
-			if (reg_args->seq->nb_layers == 1) {  // handling mono case
+			if (regargs->seq->nb_layers == 1) {  // handling mono case
 				siril_log_message(_("This sequence is mono, ignoring layer number.\n"));
 				continue;
 			}
@@ -7628,8 +7628,8 @@ int process_seq_applyreg(int nb) {
 				siril_log_color_message(_("Registration data does not exist for layer #%d, will use layer #%d instead.\n"), "red", layer2, layer);
 				continue;
 			}
-			reg_args->layer = layer2;
-		} else if (parse_filter_args(word[i], &reg_args->filters)) {
+			regargs->layer = layer2;
+		} else if (parse_filter_args(word[i], &regargs->filters)) {
 			;
 		} else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
@@ -7638,45 +7638,45 @@ int process_seq_applyreg(int nb) {
 	}
 
 	if (drizzle) {
-		reg_args->driz = driz;
+		regargs->driz = driz;
 	} else {
 		free(driz);
 		driz = NULL;
 	}
 	// sanity checks are done in register_apply_reg
 
-	reg_args->run_in_thread = TRUE;
-	reg_args->load_new_sequence = FALSE;	// don't load it for command line execution
+	regargs->run_in_thread = TRUE;
+	regargs->load_new_sequence = FALSE;	// don't load it for command line execution
 
-	if (reg_args->interpolation == OPENCV_AREA || reg_args->interpolation == OPENCV_LINEAR || reg_args->interpolation == OPENCV_NEAREST || reg_args->interpolation == OPENCV_NONE)
-		reg_args->clamp = FALSE;
-	if (reg_args->clamp && !reg_args->no_output && !drizzle)
+	if (regargs->interpolation == OPENCV_AREA || regargs->interpolation == OPENCV_LINEAR || regargs->interpolation == OPENCV_NEAREST || regargs->interpolation == OPENCV_NONE)
+		regargs->clamp = FALSE;
+	if (regargs->clamp && !regargs->no_output && !drizzle)
 		siril_log_message(_("Interpolation clamping active\n"));
 
 	set_progress_bar_data(_("Registration: Applying existing data"), PROGRESS_RESET);
 
-	start_in_new_thread(register_thread_func, reg_args);
+	start_in_new_thread(register_thread_func, regargs);
 	return CMD_OK;
 
 terminate_register_on_error:
 	free(driz);
 	if (!check_seq_is_comseq(seq))
 		free_sequence(seq, TRUE);
-	free(reg_args->prefix);
-	free(reg_args->new_seq_name);
-	free(reg_args);
+	free(regargs->prefix);
+	free(regargs->new_seq_name);
+	free(regargs);
 	return CMD_ARG_ERROR;
 }
 
 // int process_seq_applyastrometry(int nb) {
-// 	struct registration_args *reg_args = NULL;
+// 	struct registration_args *regargs = NULL;
 // 	int retval = CMD_GENERIC_ERROR;
 
 // 	sequence *seq = load_sequence(word[1], NULL);
 // 	if (!seq)
 // 		return CMD_SEQUENCE_NOT_FOUND;
 
-// 	reg_args = calloc(1, sizeof(struct registration_args));
+// 	regargs = calloc(1, sizeof(struct registration_args));
 
 // 	// check that registration exists for one layer at least
 // 	int layer = -1;
@@ -7708,17 +7708,17 @@ terminate_register_on_error:
 // 	clearfits(&reffit);
 
 // 	/* filling the arguments for registration */
-// 	reg_args->func = &register_astrometric;
-// 	reg_args->seq = seq;
-// 	reg_args->reference_image = sequence_find_refimage(seq);
-// 	reg_args->no_output = FALSE;
-// 	reg_args->prefix = strdup("r_");
-// 	reg_args->layer = layer;
-// 	reg_args->interpolation = OPENCV_LANCZOS4;
-// 	reg_args->clamp = TRUE;
-// 	reg_args->framing = FRAMING_CURRENT;
-// 	reg_args->undistort = DISTO_UNDEF;
-// 	reg_args->output_scale = 1.f;
+// 	regargs->func = &register_astrometric;
+// 	regargs->seq = seq;
+// 	regargs->reference_image = sequence_find_refimage(seq);
+// 	regargs->no_output = FALSE;
+// 	regargs->prefix = strdup("r_");
+// 	regargs->layer = layer;
+// 	regargs->interpolation = OPENCV_LANCZOS4;
+// 	regargs->clamp = TRUE;
+// 	regargs->framing = FRAMING_CURRENT;
+// 	regargs->undistort = DISTO_UNDEF;
+// 	regargs->output_scale = 1.f;
 
 // 	/* check for options */
 // 	for (int i = 2; i < nb; i++) {
@@ -7729,11 +7729,11 @@ terminate_register_on_error:
 // 				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
 // 				goto terminate_register_on_error;
 // 			}
-// 			reg_args->prefix = strdup(value);
+// 			regargs->prefix = strdup(value);
 // 		} else if (!strcmp(word[i], "-noclamp")) {
-// 			reg_args->clamp = FALSE;
+// 			regargs->clamp = FALSE;
 // 		} else if (!strcmp(word[i], "-noundistort")) {
-// 			reg_args->undistort = FALSE;
+// 			regargs->undistort = FALSE;
 // 		} else if (g_str_has_prefix(word[i], "-interp=")) {
 // 			char *current = word[i], *value;
 // 			value = current + 8;
@@ -7742,23 +7742,23 @@ terminate_register_on_error:
 // 				goto terminate_register_on_error;
 // 			}
 // 			if(!g_ascii_strncasecmp(value, "nearest", 7) || !g_ascii_strncasecmp(value, "ne", 2)) {
-// 				reg_args->interpolation = OPENCV_NEAREST;
+// 				regargs->interpolation = OPENCV_NEAREST;
 // 				continue;
 // 			}
 // 			if(!g_ascii_strncasecmp(value, "cubic", 5) || !g_ascii_strncasecmp(value, "cu", 2)) {
-// 				reg_args->interpolation = OPENCV_CUBIC;
+// 				regargs->interpolation = OPENCV_CUBIC;
 // 				continue;
 // 			}
 // 			if(!g_ascii_strncasecmp(value, "lanczos4", 8) || !g_ascii_strncasecmp(value, "la", 2)) {
-// 				reg_args->interpolation = OPENCV_LANCZOS4;
+// 				regargs->interpolation = OPENCV_LANCZOS4;
 // 				continue;
 // 			}
 // 			if(!g_ascii_strncasecmp(value, "linear", 6) || !g_ascii_strncasecmp(value, "li", 2)) {
-// 				reg_args->interpolation = OPENCV_LINEAR;
+// 				regargs->interpolation = OPENCV_LINEAR;
 // 				continue;
 // 			}
 // 			if(!g_ascii_strncasecmp(value, "area", 4) || !g_ascii_strncasecmp(value, "ar", 2)) {
-// 				reg_args->interpolation = OPENCV_AREA;
+// 				regargs->interpolation = OPENCV_AREA;
 // 				continue;
 // 			}
 // 			siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
@@ -7772,19 +7772,19 @@ terminate_register_on_error:
 // 				goto terminate_register_on_error;
 // 			}
 // 			if(!g_ascii_strncasecmp(value, "current", 7)) {
-// 				reg_args->framing = FRAMING_CURRENT;
+// 				regargs->framing = FRAMING_CURRENT;
 // 				continue;
 // 			}
 // 			if(!g_ascii_strncasecmp(value, "min", 3)) {
-// 				reg_args->framing = FRAMING_MIN;
+// 				regargs->framing = FRAMING_MIN;
 // 				continue;
 // 			}
 // 			if(!g_ascii_strncasecmp(value, "max", 3)) {
-// 				reg_args->framing = FRAMING_MAX;
+// 				regargs->framing = FRAMING_MAX;
 // 				continue;
 // 			}
 // 			if(!g_ascii_strncasecmp(value, "cog", 3)) {
-// 				reg_args->framing = FRAMING_COG;
+// 				regargs->framing = FRAMING_COG;
 // 				continue;
 // 			}
 // 			siril_log_message(_("Unknown framing type %s, aborting.\n"), value);
@@ -7798,8 +7798,8 @@ terminate_register_on_error:
 // 				retval = CMD_ARG_ERROR;
 // 				goto terminate_register_on_error;
 // 			}
-// 			reg_args->output_scale = g_ascii_strtod(arg, &end);
-// 		} else if (parse_filter_args(word[i], &reg_args->filters)) {
+// 			regargs->output_scale = g_ascii_strtod(arg, &end);
+// 		} else if (parse_filter_args(word[i], &regargs->filters)) {
 // 			;
 // 		} else {
 // 			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
@@ -7809,24 +7809,24 @@ terminate_register_on_error:
 
 // 	// sanity checks are done in register_apply_reg
 
-// 	reg_args->run_in_thread = TRUE;
-// 	reg_args->load_new_sequence = FALSE;	// don't load it for command line execution
+// 	regargs->run_in_thread = TRUE;
+// 	regargs->load_new_sequence = FALSE;	// don't load it for command line execution
 
-// 	if (reg_args->interpolation == OPENCV_AREA || reg_args->interpolation == OPENCV_LINEAR || reg_args->interpolation == OPENCV_NEAREST || reg_args->interpolation == OPENCV_NONE)
-// 		reg_args->clamp = FALSE;
-// 	if (reg_args->clamp)
+// 	if (regargs->interpolation == OPENCV_AREA || regargs->interpolation == OPENCV_LINEAR || regargs->interpolation == OPENCV_NEAREST || regargs->interpolation == OPENCV_NONE)
+// 		regargs->clamp = FALSE;
+// 	if (regargs->clamp)
 // 		siril_log_message(_("Interpolation clamping active\n"));
 
 // 	set_progress_bar_data(_("Registration: Applying existing astrometric data"), PROGRESS_RESET);
 
-// 	start_in_new_thread(register_thread_func, reg_args);
+// 	start_in_new_thread(register_thread_func, regargs);
 // 	return CMD_OK;
 
 // terminate_register_on_error:
 // 	if (!check_seq_is_comseq(seq))
 // 		free_sequence(seq, TRUE);
-// 	free(reg_args->new_seq_name);
-// 	free(reg_args);
+// 	free(regargs->new_seq_name);
+// 	free(regargs);
 // 	return retval;
 // }
 

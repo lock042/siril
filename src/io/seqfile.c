@@ -164,6 +164,7 @@ sequence * readseqfile(const char *name){
 						seq->regparam = calloc(seq->nb_layers, sizeof(regdata*));
 						if (ser_is_cfa(seq->ser_file))
 							seq->regparam_bkp = calloc(3, sizeof(regdata*));
+						seq->distoparam = calloc(seq->nb_layers, sizeof(disto_params*));
 					}
 				} else if (line[1] >= '0' && line[1] <= '9') {
 					/* in the future, wavelength and name of each layer will be added here */
@@ -222,7 +223,30 @@ sequence * readseqfile(const char *name){
 				}
 				++i;
 				break;
-
+			case 'D': // Distorsion data - from version 5 onwards
+				current_layer = line[1] - '0';
+				if (current_layer < 0 || current_layer > seq->nb_layers) {
+					fprintf(stderr, "readseqfile: sequence file bad distorsion layer: %s\n", line);
+					goto error;
+				}
+				int index;
+				char buf[256];
+				nb_tokens = sscanf(line+3, "%d %s\n",
+							&index,
+							buf);
+				if (nb_tokens < 1 || nb_tokens > 2) {
+					fprintf(stderr, "readseqfile: sequence file bad distorsion param: %s\n", line);
+					goto error;
+				}
+				seq->distoparam[current_layer].index = index;
+				if (index == DISTO_FILE) {
+					if (nb_tokens == 1) {
+						fprintf(stderr, "readseqfile: sequence file bad distorsion param: %s\n", line);
+					}
+					seq->distoparam[current_layer].filename = g_strdup(buf);
+				}
+				++i;
+				break;
 			case 'R':
 				/* registration info */
 				if (line[1] == '*') {
@@ -630,7 +654,18 @@ int writeseqfile(sequence *seq){
 
 	for (layer = 0; layer < seq->nb_layers; layer++) {
 		if (seq->regparam && seq->regparam[layer]) {
-			for (i=0; i < seq->number; ++i) {
+			if (layer_has_distorsion(seq, layer)) {
+				if (seq->distoparam[layer].index == DISTO_FILE)
+					fprintf(seqfile, "D%c %d %s\n",
+					seq->cfa_opened_monochrome ? '*' : '0' + layer,
+					DISTO_FILE,
+					seq->distoparam[layer].filename);
+				else if (seq->distoparam[layer].index == DISTO_FILES)
+					fprintf(seqfile, "D%c %d\n",
+					seq->cfa_opened_monochrome ? '*' : '0' + layer,
+					DISTO_FILES);
+			}
+			for (i = 0; i < seq->number; ++i) {
 				fprintf(seqfile, "R%c %g %g %g %g %g %d H %g %g %g %g %g %g %g %g %g\n",
 						seq->cfa_opened_monochrome ? '*' : '0' + layer,
 						seq->regparam[layer][i].fwhm,
