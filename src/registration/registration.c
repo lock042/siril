@@ -82,6 +82,14 @@ gboolean layer_has_distorsion(const sequence *seq, int layer) {
 	return TRUE;
 }
 
+gboolean seq_has_any_distorsion(const sequence *seq) {
+	for (int i = 0; i < seq->nb_layers; i++) {
+		if (layer_has_distorsion(seq, i))
+			return TRUE;
+	}
+	return FALSE;
+}
+
 
 /* try to maximize the area within the image size (based on gfit)
  * hsteps and vsteps are used to resize the selection zone when it is larger than the image

@@ -183,6 +183,7 @@ gpointer register_thread_func(gpointer p);
 /** getter */
 int get_registration_layer(const sequence *seq);
 int seq_has_any_regdata(const sequence *seq); // same as get_registration_layer but does not rely on GUI for com.seq
+gboolean seq_has_any_distorsion(const sequence *seq);
 
 regdata *apply_reg_get_current_regdata(struct registration_args *regargs);
 regdata *star_align_get_current_regdata(struct registration_args *regargs);
