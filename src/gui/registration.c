@@ -905,6 +905,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 
 	/* show the appropriate outputregframe widgets */
 	gtk_widget_set_visible(GTK_WIDGET(output_reg_frame), isapplyreg || is_global);
+	gtk_widget_set_sensitive(GTK_WIDGET(output_reg_frame), isapplyreg || is_global);
 	gtk_widget_set_visible(GTK_WIDGET(proj_estimate), isapplyreg);
 	gtk_widget_set_visible(GTK_WIDGET(notebook_registration), !isapplyreg);
 	gtk_widget_set_visible(GTK_WIDGET(grid_reg_framing), isapplyreg);
@@ -966,7 +967,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 			gtk_label_set_text(labelregisterinfo, _("Select images in the sequence"));
 		} else if (regindex == REG_APPLY && !has_reg){
 			gtk_label_set_text(labelregisterinfo, _("Select a layer with existing registration"));
-		} else if (samesizeseq_required && !com.seq.is_variable) {
+		} else if (samesizeseq_required && com.seq.is_variable) {
 			gtk_label_set_text(labelregisterinfo, _("not available for sequences with variable image sizes"));
 		} else if (pattern > BAYER_FILTER_MAX) {
 			gtk_label_set_text(labelregisterinfo, _("Unsupported CFA pattern detected"));

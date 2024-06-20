@@ -264,12 +264,27 @@ int apply_reg_prepare_hook(struct generic_seq_args *args) {
 
 
 	if (seq_read_frame_metadata(args->seq, regargs->reference_image, &fit)) {
-		siril_log_message(_("Could not load reference image\n"));
+		siril_log_color_message(_("Could not load reference image\n"), "red");
 		args->seq->regparam[regargs->layer] = NULL;
+		clearfits(&fit);
 		return 1;
 	}
 	if (!regargs->driz && fit.naxes[2] == 1 && fit.keywords.bayer_pattern[0] != '\0')
 		siril_log_color_message(_("Applying transformation on a sequence opened as CFA is a bad idea.\n"), "red");
+
+	if (regargs->undistort) {
+		siril_log_message(_("Distorsion data was found in the sequence file, undistorsion will be applied\n"));
+	}
+
+		// We prepare the distorsion structure maps if required
+	if (regargs->undistort && init_disto_map(fit.rx, fit.ry, regargs->disto)) {
+		siril_log_color_message(
+				_("Could not init distorsion mapping\n"), "red");
+		args->seq->regparam[regargs->layer] = NULL;
+		free(sadata->current_regdata);
+		clearfits(&fit);
+		return 1;
+	}
 	clearfits(&fit);
 	return star_align_prepare_results(args);
 }
@@ -650,7 +665,6 @@ int initialize_drizzle_params(struct generic_seq_args *args, struct registration
 	struct driz_args_t *driz = regargs->driz;
 	set_progress_bar_data(_("Initializing drizzle data..."), PROGRESS_PULSATE);
 	args->compute_mem_limits_hook = apply_drz_compute_mem_limits;
-	args->upscale_ratio = 1.0; // Drizzle scale dealt with separately
 	driz->scale = regargs->output_scale;
 	driz_param_dump(driz); // Print some info to the log
 	/* preparing reference data from reference fit and making sanity checks*/
@@ -716,8 +730,9 @@ int register_apply_reg(struct registration_args *regargs) {
 		}
 	} else {
 		args->compute_mem_limits_hook = apply_reg_compute_mem_limits;
-		args->upscale_ratio = regargs->output_scale;
+		
 	}
+	args->upscale_ratio = regargs->output_scale;
 	args->prepare_hook = apply_reg_prepare_hook;
 	args->finalize_hook = apply_reg_finalize_hook;
 	args->filtering_criterion = regargs->filtering_criterion;
@@ -739,6 +754,16 @@ int register_apply_reg(struct registration_args *regargs) {
 	}
 	sadata->regargs = regargs;
 	args->user = sadata;
+
+	regargs->undistort = layer_has_distorsion(regargs->seq, regargs->layer);
+	if (regargs->undistort) {
+		regargs->distoparam = regargs->seq->distoparam[regargs->layer];
+		regargs->disto = init_disto_data(&regargs->distoparam, regargs->seq);
+		if (!regargs->disto) {
+			return -1;
+		}
+		regargs->disto->dtype = (regargs->driz) ? DISTO_MAP_S2D: DISTO_MAP_D2S;
+	} 
 
 	generic_sequence_worker(args);
 

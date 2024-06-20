@@ -369,14 +369,30 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq) {
 				clearfits(&fit);
 				return NULL;
 			}
+			if (!g_str_has_suffix(distoparam->filename, ".wcs")) { // we willr refer to seq.wcs when saving
+				g_free(distoparam->filename);
+				char *namewoext = remove_ext_from_filename(seq->seqname);
+				gchar *wcsname = g_strdup_printf("%s%s", namewoext, ".wcs");
+				free(namewoext);
+				distoparam->filename = wcsname;
+			}
 			clearfits(&fit);
-			// checking that wcslib has disto term has been checked when updating the reg interface
 			break;
 		case DISTO_FILES:
 			break;
 		default:
 			return NULL;
 			break;
+	}
+	if (!wcs)
+		return disto;
+	if (!wcs->lin.dispre) {
+		siril_log_color_message(_("Selected file has no distorsion information\n"), "red");
+		wcsfree(wcs);
+		return NULL;
+		g_free(distoparam->filename);
+		distoparam->n = 0;
+		distoparam->index = DISTO_UNDEF;
 	}
 	if (distoparam->index == DISTO_IMAGE || distoparam->index == DISTO_FILE) { // we only have one disto spec, we can init the disto structure
 		disto = calloc(1, sizeof(disto_data));
