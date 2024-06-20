@@ -117,6 +117,33 @@ static gboolean compute_framing(struct registration_args *regargs) {
 			}
 			break;
 		case FRAMING_MAX:
+			xmin = DBL_MAX;
+			xmax = -DBL_MAX;
+			ymin = DBL_MAX;
+			ymax = -DBL_MAX;
+			for (int i = 0; i < regargs->seq->number; i++) {
+				if (!regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
+					continue;
+				siril_debug_print("Image #%d:\n", i);
+				regframe current_framing = framing;
+				update_framing(&current_framing, regargs->seq, i);
+				for (int j = 0; j < 4; j++) {
+					cvTransfPoint(&current_framing.pt[j].x, &current_framing.pt[j].y,regargs->seq->regparam[regargs->layer][i].H, Href, 1.);
+					if (xmin > current_framing.pt[j].x) xmin = current_framing.pt[j].x;
+					if (ymin > current_framing.pt[j].y) ymin = current_framing.pt[j].y;
+					if (xmax < current_framing.pt[j].x) xmax = current_framing.pt[j].x;
+					if (ymax < current_framing.pt[j].y) ymax = current_framing.pt[j].y;
+					siril_debug_print("Point #%d: %3.2f %3.2f\n", j, current_framing.pt[j].x, current_framing.pt[j].y);
+				}
+			}
+			rx_0 = (int)(ceil(xmax) - floor(xmin)) + 1;
+			ry_0 = (int)(ceil(ymax) - floor(ymin)) + 1;
+			x0 = floor(xmin);
+			y0 = floor(ymin);
+			siril_debug_print("new size: %d %d\n", rx_0, ry_0);
+			siril_debug_print("new origin: %d %d\n", x0, y0);
+			Hshift.h02 = (double)x0;
+			Hshift.h12 = (double)y0;
 			break;
 		case FRAMING_MIN:
 			xmin = -DBL_MAX;
@@ -213,6 +240,10 @@ static gboolean compute_framing(struct registration_args *regargs) {
 	cvMultH(Href, Hshift, &regargs->framingd.Htransf);
 	regargs->framingd.roi_out.w = (int)((float)rx_0 * regargs->output_scale);
 	regargs->framingd.roi_out.h = (int)((float)ry_0 * regargs->output_scale);
+
+	gchar *downscale = (regargs->output_scale != 1.f) ? g_strdup_printf(_(" (assuming a scaling factor of %.2f)"), regargs->output_scale) : g_strdup("");
+	siril_log_color_message(_("Output image: %d x %d pixels%s\n"), "salmon", regargs->framingd.roi_out.w, regargs->framingd.roi_out.h, downscale);
+	g_free(downscale);
 
 	return retval;
 }
@@ -722,6 +753,10 @@ int register_apply_reg(struct registration_args *regargs) {
 		free(args);
 		return -1;
 	}
+	if (regargs->no_output) {
+		free(args);
+		return 0;
+	}
 
 	if (regargs->driz) {
 		if (initialize_drizzle_params(args, regargs)) {
@@ -730,7 +765,6 @@ int register_apply_reg(struct registration_args *regargs) {
 		}
 	} else {
 		args->compute_mem_limits_hook = apply_reg_compute_mem_limits;
-		
 	}
 	args->upscale_ratio = regargs->output_scale;
 	args->prepare_hook = apply_reg_prepare_hook;
@@ -915,7 +949,7 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 	siril_debug_print("Apply Registration: sequence out size: %s\n", size_msg);
 	g_free(size_msg);
 	if (test_available_space(size)) {
-		siril_log_color_message(_("Not enough space to save the output images, aborting\n"), "red");
+		siril_log_color_message(_("Not enough space to save the output images\n"), "red");
 		return FALSE;
 	}
 	return TRUE;
