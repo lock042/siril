@@ -213,6 +213,8 @@ void SetNullH(Homography *H);
 int shift_fit_from_reg(fits *fit, Homography H);
 void compute_Hmax(Homography *Himg, Homography *Href, int src_rx_in, int src_ry_in, double scale, Homography *H, Homography *Hshift, int *dst_rx_out, int *dst_ry_out);
 
+int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_type framing, int layer);
+
 int minidx(const float *arr, const gboolean *mask, int nb, float *val);
 void free_astrometric_args(struct astrometric_args *astargs);
 int initialize_drizzle_params(struct generic_seq_args *args, struct registration_args *regargs);

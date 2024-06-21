@@ -99,6 +99,144 @@ static gboolean get_scales_and_framing(struct wcsprm *WCSDATA, Homography *K, do
 	return TRUE;
 }
 
+int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_type framing, int layer) {
+	int retval = 0;
+	double ra0 = 0., dec0 = 0.;
+	int n = seq->number;
+	double *RA = calloc(n, sizeof(double)); // calloc to prevent possibility of uninit variable highlighted by coverity
+	double *DEC = calloc(n, sizeof(double)); // as above
+	double *dist = malloc(n * sizeof(double));
+	Homography *Rs = NULL, *Ks = NULL;
+	Rs = calloc(n, sizeof(Homography)); // camera rotation matrices
+	Ks = calloc(n, sizeof(Homography)); // camera intrinsic matrices
+	gboolean *incl = calloc(n, sizeof(gboolean));
+	if (!RA || !DEC || !dist || !WCSDATA || !Rs || !Ks || !incl) {
+		PRINT_ALLOC_ERR;
+		retval = 1;
+		goto free_all;
+	}
+	// collect all the centers
+	for (int i = 0; i < n; i++) {
+		if (!seq->imgparam[i].incl)
+			continue;
+		int width = (seq->is_variable) ? seq->imgparam[i].rx : seq->rx;
+		int height = (seq->is_variable) ? seq->imgparam[i].ry : seq->ry;
+		center2wcs2(WCSDATA + i, width, height, RA + i, DEC + i);
+		siril_log_message(_("Image #%5d - RA:%7.3f - DEC:%+7.3f\n"), i + 1, RA[i], DEC[i]);
+		incl[i] = TRUE;
+	}
+
+	// find sequence cog and closest image to use as reference
+	compute_center_cog(RA, DEC, n, incl, &ra0, &dec0);
+	ra0 = (ra0 < 0) ? ra0 + 360. : ra0;
+	siril_log_message(_("Sequence COG - RA:%7.3f - DEC:%+7.3f\n"), ra0, dec0);
+	int refindex = -1;
+	double mindist = DBL_MAX;
+	for (int i = 0; i < n; i++) {
+		if (!incl[i])
+			continue;
+		dist[i] = compute_coords_distance(RA[i], DEC[i], ra0, dec0);
+		if (dist[i] < mindist) {
+			mindist = dist[i];
+			refindex = i;
+		}
+	}
+	siril_log_message(_("Image closest to center is #%d - RA:%7.3f - DEC:%+7.3f\n"), refindex + 1, RA[refindex], DEC[refindex]);
+
+	// Obtaining Camera extrinsic and instrinsic matrices (resp. R and K)
+	// ##################################################################
+	// We will define the rotations made by the camera wrt World:
+	// - We start with the camera pointing towards North Pole, X (sensor width) aligned with RA = 0deg
+	// - We first make a rotation around cam Z axis of 90 + RA degrees
+	// - We then make a rotation around cam X axis of 90 - DEC degrees (0 to 180 from N to S pole)
+	// - We finally rotate the camera around its Z axis to get the correct framing (called "framing" angle below)
+	// We repeat this calc for each image
+	// We can then compute the relative rotation matrix between the images and refimage
+	// This is made by computing Rref.t()*Rimg, this is the extrinsic matrix for a pure rotation wrt. mosaic ref
+	// The intrisic camera matrix is obtained thanks to the CDij or PCij+CDELTi WCS values:
+	// The focal length is 180 / pi / average of abs(CDELTi) - Note: CDELTi * 3600 = image sampling in "/px
+	// The "framing" angle is obtained by making the PC matrix a true rotation matrix (averaging of CROTAi)
+
+	rotation_type rottypes[3] = { ROTZ, ROTX, ROTZ};
+	double framingref = 0.;
+	int framingref_index = (framing == FRAMING_CURRENT) ? seq->reference_image : refindex;
+	for (int i = 0; i < n; i++) {
+		if (!incl[i])
+			continue;
+		double angles[3];
+		angles[0] = 90. - RA[i]; // TODO: need to understand why 90- instead of 90 + .... opencv vs wcs convention?
+		angles[1] = 90. - DEC[i];
+		// initializing K with center point (-0.5 is for opencv convention)
+		cvGetEye(Ks + i); // initializing to unity
+		Ks[i].h02 = 0.5 * ((seq->is_variable) ? seq->imgparam[i].rx : seq->rx) - 0.5;
+		Ks[i].h12 = 0.5 * ((seq->is_variable) ? seq->imgparam[i].ry : seq->ry) - 0.5;
+		if (!get_scales_and_framing(WCSDATA + i, Ks + i, angles + 2)) {
+			siril_log_message(_("Could not compute camera parameters of image %d from sequence %s\n"),
+			i + 1, seq->seqname);
+			retval = 1;
+			goto free_all;
+		}
+		cvRotMat3(angles, rottypes, TRUE, Rs + i);
+		siril_debug_print("Image #%d - rot:%.3f\n", i + 1, angles[2]);
+		if (i == framingref_index)
+			framingref = angles[2];
+	}
+
+	// computing relative rotations wrt to proj center + central image framing
+	Homography Rref = { 0 };
+	double angles[3];
+	switch (framing) {
+		case FRAMING_CURRENT:
+		default:
+			angles[0] = 90. - RA[seq->reference_image];
+			angles[1] = 90. - DEC[seq->reference_image];
+			break;
+		case FRAMING_COG:
+		case FRAMING_MAX:
+		case FRAMING_MIN:
+			angles[0] = 90. - ra0;
+			angles[1] = 90. - dec0;
+			break;
+	}
+	angles[2] = framingref;
+	cvRotMat3(angles, rottypes, TRUE, &Rref);
+	for (int i = 0; i < n; i++) {
+		if (!incl[i])
+			continue;
+		cvRelRot(&Rref, Rs + i);
+	}
+	regdata *current_regdata = seq->regparam[layer];
+
+	// We compute the H matrices wrt to ref as Kref * Rrel * Kimg^-1
+	// The K matrices have the focals on the diag and (rx/2, ry/2) for the translation terms
+	// We add to the seq in order to display a first alignment
+	for (int i = 0;  i < n; i++) {
+		if (!incl[i])
+			continue;
+		Homography H = { 0 };
+		cvcalcH_fromKKR(Ks[refindex], Ks[i], Rs[i], &H);
+		current_regdata[i].H = H;
+	}
+	seq->reference_image = refindex;
+free_all:
+	free(RA);
+	free(DEC);
+	free(dist);
+	if (incl) {
+		for (int i = 0; i < n; i++) {
+			if (!incl[i])
+				continue;
+			wcsfree(WCSDATA + i);
+		}
+		free(incl);
+	}
+	free(WCSDATA);
+	free(Ks);
+	free(Rs);
+	siril_log_message(_("Registration finished.\n"));
+	return retval;
+}
+
 int register_astrometric(struct registration_args *regargs) {
 	struct astrometric_args *astargs = NULL;
 	int retval = 0;

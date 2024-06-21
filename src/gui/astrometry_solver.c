@@ -48,11 +48,13 @@ enum {
 };
 
 // caching all UI elements
+static GtkBox *IPSbox_seq_info = NULL;
 static GtkToggleButton *flipbutton = NULL, *automagbutton = NULL, *DEC_S = NULL,
 	*manualbutton = NULL, *downsamplebutton = NULL, *autocropbutton = NULL, *autocatbutton = NULL,
 	*nonearbutton = NULL, *blindposbutton = NULL, *blindresbutton = NULL,
 	*seqsolvebutton = NULL, *seqnocache = NULL, *seqskipsolved = NULL,
-	*sequseheadercoords = NULL, *sequseheaderpixel = NULL, *sequseheaderfocal = NULL;
+	*sequseheadercoords = NULL, *sequseheaderpixel = NULL, *sequseheaderfocal = NULL,
+	*checkbutton_IPS_useforreg = NULL;
 static GtkSpinButton *magspin = NULL, *RA_h = NULL, *RA_m = NULL, *DEC_d = NULL, *DEC_m = NULL, *radiusspin = NULL;
 static GtkComboBox *catalogbox = NULL, *orderbox = NULL, *solverbox = NULL, *serverbox = NULL;
 static GtkLabel *cataloglabel = NULL, *radiuslabel = NULL;
@@ -104,6 +106,7 @@ static void load_all_ips_statics() {
 		sequseheadercoords = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_IPS_sequseheadercoords"));
 		sequseheaderpixel = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_IPS_sequseheaderpixel"));
 		sequseheaderfocal = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_IPS_sequseheaderfocal"));
+		checkbutton_IPS_useforreg = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_IPS_useforreg"));
 		// combos
 		catalogbox = GTK_COMBO_BOX(lookup_widget("ComboBoxIPSCatalog"));
 		orderbox = GTK_COMBO_BOX(lookup_widget("ComboBoxIPS_order"));
@@ -136,6 +139,8 @@ static void load_all_ips_statics() {
 		cataloguesexp = GTK_EXPANDER(lookup_widget("labelIPSCatalogParameters"));
 		stardetectionexp = GTK_EXPANDER(lookup_widget("Frame_IPS_star_detection"));
 		sequenceexp = GTK_EXPANDER(lookup_widget("Frame_IPS_sequence"));
+		// box
+		IPSbox_seq_info = GTK_BOX(lookup_widget("IPSbox_seq_info"));
 	}
 }
 
@@ -698,11 +703,8 @@ void on_GtkCheckButton_solveseq_toggled(GtkToggleButton *button, gpointer user) 
 		gboolean uselocal = use_local_catalogue();
 		shownocache = (!uselocal) && (has_coords || has_pixel || has_focal);
 	}
+	gtk_widget_set_visible(GTK_WIDGET(IPSbox_seq_info), solveseq);
 	gtk_widget_set_visible(GTK_WIDGET(seqnocache), solveseq && shownocache);
-	gtk_widget_set_visible(GTK_WIDGET(seqskipsolved), solveseq);
-	gtk_widget_set_visible(GTK_WIDGET(sequseheadercoords), solveseq);
-	gtk_widget_set_visible(GTK_WIDGET(sequseheaderpixel), solveseq);
-	gtk_widget_set_visible(GTK_WIDGET(sequseheaderfocal), solveseq);
 }
 
 void on_GtkCheckButton_nonear_toggled(GtkToggleButton *button, gpointer user) {
@@ -752,6 +754,13 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 		args->numthreads = com.max_thread;
 	} else {
 		args->force = !gtk_toggle_button_get_active(seqskipsolved);
+		args->update_reg = gtk_toggle_button_get_active(checkbutton_IPS_useforreg);
+		args->sfargs = calloc(1, sizeof(struct starfinder_data));
+		args->sfargs->im.from_seq = &com.seq;
+		args->sfargs->layer = (gfit.naxes[2] == 1) ? 0 : 1;
+		args->sfargs->keep_stars = TRUE;
+		args->sfargs->save_to_file = com.selection.w == 0 || com.selection.h == 0; // TODO make this a pref
+		args->sfargs->max_stars_fitted = BRIGHTEST_STARS;
 	}
 	args->downsample = is_downsample_activated();
 	args->trans_order = get_order();

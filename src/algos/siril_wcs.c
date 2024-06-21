@@ -294,6 +294,25 @@ void center2wcs(fits *fit, double *r, double *d) {
 	*d = world[1];
 }
 
+/* get image center celestial coordinates - lower level from wcs and image width/height */
+void center2wcs2(struct wcsprm *wcs, int width, int height, double *r, double *d) {
+	*r = -1.0;
+	*d = -1.0;
+	int status, stat[NWCSFIX];
+	double imgcrd[NWCSFIX], phi, pixcrd[NWCSFIX], theta, world[NWCSFIX];
+
+	// In WCS convention, origin of the grid is at (-0.5, -0.5) wrt siril grid
+	pixcrd[0] = (double)(width) * 0.5 + 0.5;
+	pixcrd[1] = (double)(height) * 0.5 + 0.5;
+
+	status = wcsp2s(wcs, 1, 2, pixcrd, imgcrd, &phi, &theta, world, stat);
+	if (status != 0)
+		return;
+
+	*r = world[0];
+	*d = world[1];
+}
+
 void wcs_pc2mat(wcsprm_t *prm, double pc[NAXIS][NAXIS]) {
 	if (!prm || !prm->pc)
 		return;

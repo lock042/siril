@@ -2146,7 +2146,7 @@ void clean_sequence(sequence *seq, gboolean cleanreg, gboolean cleanstat, gboole
 				siril_log_message(_("Registration data cleared for layer %d\n"), i);
 			}
 		}
-		remove_prefixed_star_files(seq, "");
+		// remove_prefixed_star_files(seq, "");
 	}
 	if (cleanreg && seq->regparam_bkp) {
 		for (int i = 0; i < seq->nb_layers; i++) {

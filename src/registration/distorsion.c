@@ -369,7 +369,7 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq) {
 				clearfits(&fit);
 				return NULL;
 			}
-			if (!g_str_has_suffix(distoparam->filename, ".wcs")) { // we willr refer to seq.wcs when saving
+			if (!g_str_has_suffix(distoparam->filename, ".wcs")) { // we will refer to seq.wcs when saving
 				g_free(distoparam->filename);
 				char *namewoext = remove_ext_from_filename(seq->seqname);
 				gchar *wcsname = g_strdup_printf("%s%s", namewoext, ".wcs");

@@ -1924,19 +1924,26 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 		return 1;
 	}
 	args->layer = fit.naxes[2] == 1 ? 0 : 1;
-	regdata *current_regdata;
-	// if no registration data present, we will store the stats stored by the peaker and add identity matrices
-	if (!arg->seq->regparam[args->layer]) {
-		current_regdata = (regdata*)calloc(arg->seq->number, sizeof(regdata));
-		if (current_regdata == NULL) {
-			PRINT_ALLOC_ERR;
-			return 1;
-		}
-		arg->seq->regparam[args->layer] = current_regdata;
-		args->update_reg = TRUE;
-	}
-	clearfits(&fit);
 	args->fit = NULL;
+	clearfits(&fit);
+	// prepare for astrometric registration
+	if (args->update_reg) {
+		if (!arg->seq->regparam[args->layer]) {
+			regdata *current_regdata = calloc(arg->seq->number, sizeof(regdata));
+			if (current_regdata == NULL) {
+				PRINT_ALLOC_ERR;
+				return 1;
+			}
+			arg->seq->regparam[args->layer] = current_regdata;
+		} else {
+			siril_log_message(
+					_("Recomputing already existing registration for this layer\n"));
+			/* we reset all values as we may register different images */
+			memset(arg->seq->regparam[args->layer], 0, arg->seq->number * sizeof(regdata));
+		}
+		args->WCSDATA = calloc(arg->seq->number, sizeof(struct wcsprm));
+		arg->seq->distoparam[args->layer].index = DISTO_FILES;
+	}
 	if (arg->has_output)
 		seq_prepare_hook(arg);
 	else if (arg->seq->type == SEQ_FITSEQ) {
@@ -1969,16 +1976,65 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 
 static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fits *fit, rectangle *area, int threads) {
 	struct astrometry_data *aargs_master = (struct astrometry_data *)arg->user;
-	if (!aargs_master->force && has_wcs(fit)) {
+	if (!aargs_master->force && has_wcs(fit) && !aargs_master->update_reg) { // if we need to store regdata, we still need to detect stars
 		g_atomic_int_inc(&aargs_master->seqskipped);
 		g_atomic_int_inc(&aargs_master->seqprogress);
 		siril_log_color_message(_("Image %d already platesolved, skipping\n"), "salmon", i + 1);
 		return 0;
 	}
+
+	// we detect stars first (using aargs_master)
+	int nb_stars;
+	psf_star **stars = NULL;
+
+	struct starfinder_data *sf_data = findstar_image_worker(aargs_master->sfargs, -1, i, fit, area, threads);
+	if (sf_data) {
+		stars = *sf_data->stars;
+		nb_stars = *sf_data->nb_stars;
+		free(sf_data);
+	}
+
+	if (aargs_master->update_reg && nb_stars) {
+		float FWHMx, FWHMy, B;
+		char *units;
+		FWHM_stats(stars, nb_stars, arg->seq->bitpix, &FWHMx, &FWHMy, &units, &B, NULL, 0.);
+		regdata *current_regdata = arg->seq->regparam[aargs_master->layer];
+		current_regdata[o].roundness = FWHMy/FWHMx;
+		current_regdata[o].fwhm = FWHMx;
+		current_regdata[o].weighted_fwhm = FWHMx;
+		current_regdata[o].background_lvl = B;
+		current_regdata[o].number_of_stars = nb_stars;
+		current_regdata[o].H = (Homography){ 0 }; // we will update it in the finalize_hook
+	}
+
+	if (!nb_stars) {
+		siril_log_color_message(_("Image %d: no stars found\n"), "red", i + 1);
+		arg->seq->imgparam[o].incl = FALSE;
+		return 1;
+	}
+
+	if (!aargs_master->force && has_wcs(fit)) { // we have filled the regparam and allow to skip, we skip now
+		int status = 0;
+		struct wcsprm *wcs = wcs_deepcopy(fit->keywords.wcslib, &status);
+		if (status) {
+			siril_log_color_message(_("Could not copy WCS data, skipping image %d\n"), "salmon", i + 1);
+		} else {
+			memcpy(aargs_master->WCSDATA + i, wcs, sizeof(*wcs));
+			g_atomic_int_inc(&aargs_master->seqskipped);
+			g_atomic_int_inc(&aargs_master->seqprogress);
+			siril_log_color_message(_("Image %d already platesolved, skipping\n"), "salmon", i + 1);
+		}
+		free_fitted_stars(stars);
+		return status;
+	}
+
+	// We prepare to platesolve and collect the catalog inputs
 	struct astrometry_data *aargs = copy_astrometry_args(aargs_master);
 	if (!aargs)
 		return 1;
 	aargs->fit = fit;
+	aargs->manual = TRUE;
+	aargs->stars = stars;
 
 	char root[256];
 	if (!fit_sequence_get_image_filename(arg->seq, i, root, FALSE)) {
@@ -2038,37 +2094,6 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 		aargs->filename = g_strdup(root);	// for localasnet
 	process_plate_solver_input(aargs);
 
-	int nb_stars;
-	int detection_layer = fit->naxes[2] == 1 ? 0 : 1;
-	image im = { .fit = fit, .from_seq = NULL, .index_in_seq = -1 };
-
-	aargs->stars = peaker(&im, detection_layer, &com.pref.starfinder_conf, &nb_stars,
-				NULL, FALSE, TRUE,
-				BRIGHTEST_STARS, com.pref.starfinder_conf.profile, threads);
-	aargs->manual = TRUE;
-	// siril_log_message(_("FWHMx:%*.2f %s\n"), 12, FWHMx, units);
-	// siril_log_message(_("FWHMy:%*.2f %s\n"), 12, FWHMy, units);
-	if (aargs->update_reg && nb_stars) {
-		float FWHMx, FWHMy, B;
-		char *units;
-		FWHM_stats(aargs->stars, nb_stars, arg->seq->bitpix, &FWHMx, &FWHMy, &units, &B, NULL, 0.);
-		regdata *current_regdata = arg->seq->regparam[aargs->layer];
-		current_regdata[o].roundness = FWHMy/FWHMx;
-		current_regdata[o].fwhm = FWHMx;
-		current_regdata[o].weighted_fwhm = FWHMx;
-		current_regdata[o].background_lvl = B;
-		current_regdata[o].number_of_stars = nb_stars;
-		Homography H = { 0 };
-		cvGetEye(&H);
-		current_regdata[o].H = H;
-	}
-	if (!nb_stars) {
-		siril_log_color_message(_("Image %s did not solve\n"), "red", root);
-		arg->seq->imgparam[o].incl = FALSE;
-		free(aargs);
-		return 1;
-	}
-
 	int retval = GPOINTER_TO_INT(plate_solver(aargs));
 
 	if (retval) {
@@ -2096,8 +2121,20 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 			siril_log_color_message(_("Image %d platesolved and updated\n"), "salmon", i + 1);
 		}
 	}
-	if (!retval)
-		g_atomic_int_inc(&aargs_master->seqprogress);
+	if (!retval) {
+		if (aargs_master->update_reg) {
+			int status = 0;
+			struct wcsprm *wcs = wcs_deepcopy(fit->keywords.wcslib, &status);
+			if (status) {
+				siril_log_color_message(_("Could not copy WCS data, skipping image %d\n"), "salmon", i + 1);
+			} else {
+				memcpy(aargs_master->WCSDATA + i, wcs, sizeof(*wcs));
+				g_atomic_int_inc(&aargs_master->seqprogress);
+			}
+		} else {
+			g_atomic_int_inc(&aargs_master->seqprogress);
+		}
+	}
 	return retval;
 }
 
@@ -2122,6 +2159,10 @@ static int astrometry_finalize_hook(struct generic_seq_args *arg) {
 		siril_log_color_message(_("File %s updated\n"), "salmon", filename);
 		arg->seq->fitseq_file->filename = filename; // we may need to reopen in the idle so we save it here
 		arg->seq->fitseq_file->hdu_index = NULL;
+	}
+	if (aargs->update_reg) {
+		siril_log_color_message(_("Computing astrometric registration...\n"), "green");
+		arg->retval = compute_Hs_from_astrometry(arg->seq, aargs->WCSDATA, FRAMING_COG, aargs->layer);
 	}
 	if (!arg->retval)
 		writeseqfile(arg->seq);
