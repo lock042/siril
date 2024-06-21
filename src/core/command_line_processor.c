@@ -411,9 +411,7 @@ gpointer execute_script(gpointer p) {
 		com.script_thread_exited = TRUE;
 	}
 	/* If called from the GUI, re-enable widgets blocked during the script */
-	if (!com.headless) {
-		script_widgets_enable(TRUE);
-	}
+	siril_add_idle(script_widgets_idle, NULL);
 	return GINT_TO_POINTER(retval);
 }
 

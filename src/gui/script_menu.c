@@ -113,6 +113,11 @@ void script_widgets_enable(gboolean status) {
 	gtk_widget_set_sensitive(toolbarbox, status);
 }
 
+gboolean script_widgets_idle(gpointer user_data) {
+	script_widgets_enable(TRUE);
+	return FALSE;
+}
+
 static GSList *search_script(const char *path) {
 	GSList *list = NULL;
 	GDir *dir;
