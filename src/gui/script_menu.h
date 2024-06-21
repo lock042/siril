@@ -9,5 +9,5 @@ int initialize_script_menu(gboolean verbose);
 int refresh_script_menu(gboolean verbose);
 int refresh_scripts(gboolean update_list, gchar **error);
 void siril_get_on_script_pages();
-
+void script_widgets_enable(gboolean status);
 #endif /* SRC_GUI_SCRIPT_MENU_H_ */

@@ -43,7 +43,7 @@
 #include "algos/sorting.h"
 #include "script_menu.h"
 
-#define CONFIRM_RUN_SCRIPTS _("You are about to use scripts. Running automatic scripts is something that is easy and generally it provides a nice image. However you have to keep in mind that scripts are not magic; automatic choices are made where human decision would probably be better. Also, every commands used in a script are available on the interface with a better parameter control.")
+#define CONFIRM_RUN_SCRIPTS _("You are about to use scripts. Running automatic scripts is something that is easy and generally it provides a nice image. However you have to keep in mind that scripts are not magic; automatic choices are made where human decision would probably be better. Also, every command used in a script is available on the interface with a better parameter control.")
 
 static GtkWidget *menuscript = NULL;
 
@@ -98,6 +98,19 @@ static void clear_gtk_list() {
 	gtk_text_buffer_get_start_iter(tbuf, &start_iter);
 	gtk_text_buffer_get_end_iter(tbuf, &end_iter);
 	gtk_text_buffer_delete(tbuf, &start_iter, &end_iter);
+}
+
+void script_widgets_enable(gboolean status) {
+	GtkWidget *notebook_center_box = lookup_widget("notebook_center_box");
+	GtkWidget *command = lookup_widget("command");
+	GtkWidget *notebook1 = lookup_widget("notebook1");
+	GtkWidget *headerbar = lookup_widget("headerbar");
+	GtkWidget *toolbarbox = lookup_widget("toolbarbox");
+	gtk_widget_set_sensitive(notebook_center_box, status);
+	gtk_widget_set_sensitive(command, status);
+	gtk_widget_set_sensitive(notebook1, status);
+	gtk_widget_set_sensitive(headerbar, status);
+	gtk_widget_set_sensitive(toolbarbox, status);
 }
 
 static GSList *search_script(const char *path) {
@@ -173,6 +186,9 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 			g_object_unref(file);
 			return;
 		}
+		/* Last thing before running the script, disable widgets except for Stop */
+		script_widgets_enable(FALSE);
+
 		/* Run the script */
 		siril_log_message(_("Starting script %s\n"), script_file);
 		com.script_thread = g_thread_new("script", execute_script, input_stream);
