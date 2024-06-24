@@ -76,7 +76,7 @@ siril 1.4.0 xx xx, xx
 * Improve use of prngs (mt19937 now used throughout in place of rand() etc.) (!689)
 * Refactor networking code, add offline mode and add Gaia archive status indication (!687)
 
-siril 1.2.3 xxx xx, 2024
+siril 1.2.3 June 19, 2024
 
 * Fixed handling wide-char characters in filenames on Windows (cfitsio rollback) (#1324)
 * Fixed compression error (files were not compressed anymore) (#1328)
