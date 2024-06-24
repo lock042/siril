@@ -31,6 +31,9 @@ void apply_linked_mtf_to_fits(fits *from, fits *to, struct mtf_params params, gb
 	g_assert(from->naxes[2] == 1 || from->naxes[2] == 3);
 	const size_t layersize = from->naxes[0] * from->naxes[1];
 	g_assert(from->type == to->type);
+#ifdef _OPENMP
+	int threads = min(com.max_thread, 2); // not worth using many threads here
+#endif
 
 	siril_log_message(_("Applying MTF with values %f, %f, %f\n"),
 			params.shadows, params.midtones, params.highlights);
@@ -38,19 +41,31 @@ void apply_linked_mtf_to_fits(fits *from, fits *to, struct mtf_params params, gb
 	if (from->type == DATA_USHORT) {
 		float norm = (float)get_normalized_value(from);
 		float invnorm = 1.0f / norm;
+		// Set up a LUT
+		WORD *lut = malloc((USHRT_MAX + 1) * sizeof(WORD));
+
+		// This is only a small loop: 8 threads seems to be about as many as is worthwhile
+		// because of the thread startup cost
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(threads) schedule(static) if (threads > 1)
+#endif
+		for (int i = 0 ; i <= USHRT_MAX ; i++) { // Fill LUT
+			lut[i] = roundf_to_WORD(USHRT_MAX_SINGLE * MTFp(i * invnorm, params));
+		}
+
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) if(multithreaded)
 #endif
 		for (size_t j = 0; j < from->naxes[2] ; j++) {
 			if (do_channel[j]) {
+				WORD *tolayer = to->pdata[j], *fromlayer = from->pdata[j];
 				for (size_t i = 0; i < layersize; i++) {
-					float pxl = from->pdata[j][i] * invnorm;
-					float mtf = MTFp(pxl, params);
-					to->pdata[j][i] = roundf_to_WORD(mtf * norm);
+					tolayer[i] = lut[fromlayer[i]];
 				}
 			} else
 				memcpy(to->pdata[j], from->pdata[j], layersize * sizeof(WORD));
 		}
+		free(lut);
 	}
 	else if (from->type == DATA_FLOAT) {
 #ifdef _OPENMP
@@ -58,8 +73,9 @@ void apply_linked_mtf_to_fits(fits *from, fits *to, struct mtf_params params, gb
 #endif
 		for (size_t j = 0; j < from->naxes[2] ; j++) {
 			if (do_channel[j]) {
+				float *tolayer = to->fpdata[j], *fromlayer = from->fpdata[j];
 				for (size_t i = 0; i < layersize; i++) {
-					to->fpdata[j][i] = MTFp(from->fpdata[j][i], params);
+					tolayer[i] = MTFp(fromlayer[i], params);
 				}
 			} else
 				memcpy(to->fpdata[j], from->fpdata[j], layersize * sizeof(float));
@@ -103,25 +119,34 @@ void apply_linked_pseudoinverse_mtf_to_fits(fits *from, fits *to, struct mtf_par
 	g_assert(from->type == to->type);
 
 	const gboolean do_channel[3] = { params.do_red, params.do_green, params.do_blue };
-
+#ifdef _OPENMP
+	int threads = min(com.max_thread, 2); // not worth using many threads here
+#endif
 	siril_log_message(_("Applying inverse MTF with values %f, %f, %f\n"),
 			params.shadows, params.midtones, params.highlights);
 	if (from->type == DATA_USHORT) {
 		float norm = (float)get_normalized_value(from);
 		float invnorm = 1.0f / norm;
+		// Set up a LUT
+		WORD *lut = malloc((USHRT_MAX + 1) * sizeof(WORD));
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(threads) schedule(static) if(multithreaded)
+#endif
+		for (int i = 0 ; i <= USHRT_MAX ; i++) { // Fill LUT
+			lut[i] = roundf_to_WORD(USHRT_MAX_SINGLE * MTF_pseudoinverse(i * invnorm, params));
+		}
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static) if(multithreaded)
 #endif
 		for (size_t j = 0; j < from->naxes[2] ; j++) {
 			if (do_channel[j]) {
 				for (size_t i = 0; i < layersize; i++) {
-					float pxl = from->pdata[j][i] * invnorm;
-					float mtf = MTF_pseudoinverse(pxl, params);
-					to->pdata[j][i] = roundf_to_WORD(mtf * norm);
+					to->pdata[j][i] = lut[from->pdata[j][i]];
 				}
 			} else
 				memcpy(to->pdata[j], from->pdata[j], layersize * sizeof(WORD));
 		}
+		free(lut);
 	}
 	else if (from->type == DATA_FLOAT) {
 #ifdef _OPENMP
@@ -135,8 +160,6 @@ void apply_linked_pseudoinverse_mtf_to_fits(fits *from, fits *to, struct mtf_par
 			} else
 				memcpy(to->fpdata[j], from->fpdata[j], layersize * sizeof(float));
 		}
-
-
 
 	}
 	else return;
@@ -218,38 +241,46 @@ int find_linked_midtones_balance_default(fits *fit, struct mtf_params *result) {
 }
 
 void apply_unlinked_mtf_to_fits(fits *from, fits *to, struct mtf_params *params) {
+	START_TIMER;
 	g_assert(from->naxes[2] == 1 || from->naxes[2] == 3);
 	const size_t ndata = from->naxes[0] * from->naxes[1];
 	g_assert(from->type == to->type);
+#ifdef _OPENMP
+	int threads = min(com.max_thread, 2); // not worth using many threads here
+#endif
 
 	if (from->type == DATA_USHORT) {
 		float norm = (float)get_normalized_value(from);
 		float invnorm = 1.0f / norm;
-#ifdef _OPENMP
-		int threads = com.max_thread >= 3 ? 3 : com.max_thread;
-#endif
+		// Set up a LUT
+		WORD *lut = malloc((USHRT_MAX + 1) * sizeof(WORD));
+
 		for (int chan = 0; chan < (int)from->naxes[2]; chan++) {
+			// This is only a small loop: 8 threads seems to be about as many as is worthwhile
+			// because of the thread startup cost
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(threads) schedule(static) if (threads > 1)
+#endif
+			for (int i = 0 ; i <= USHRT_MAX ; i++) { // Fill LUT
+				lut[i] = roundf_to_WORD(USHRT_MAX_SINGLE * MTFp(i * invnorm, params[chan]));
+			}
 			siril_log_message(_("Applying MTF to channel %d with values %f, %f, %f\n"), chan,
 					params[chan].shadows, params[chan].midtones, params[chan].highlights);
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(threads) schedule(static) if (threads > 1)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
 			for (size_t i = 0; i < ndata; i++) {
-				float pxl = (float)from->pdata[chan][i] * invnorm;
-				float mtf = MTFp(pxl, params[chan]);
-				to->pdata[chan][i] = roundf_to_WORD(mtf * norm);
+				to->pdata[chan][i] = lut[from->pdata[chan][i]];
 			}
 		}
+		free(lut);
 	}
 	else if (from->type == DATA_FLOAT) {
-#ifdef _OPENMP
-		int threads = com.max_thread >= 3 ? 3 : com.max_thread;
-#endif
 		for (int chan = 0; chan < (int)from->naxes[2]; chan++) {
 			siril_log_message(_("Applying MTF to channel %d with values %f, %f, %f\n"), chan,
 					params[chan].shadows, params[chan].midtones, params[chan].highlights);
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(threads) schedule(static) if (threads > 1)
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (threads > 1)
 #endif
 			for (size_t i = 0; i < ndata; i++) {
 				to->fpdata[chan][i] = MTFp(from->fpdata[chan][i], params[chan]);
@@ -257,7 +288,7 @@ void apply_unlinked_mtf_to_fits(fits *from, fits *to, struct mtf_params *params)
 		}
 	}
 	else return;
-
+	END_TIMER;
 	invalidate_stats_from_fit(to);
 }
 

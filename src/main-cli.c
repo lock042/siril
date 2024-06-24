@@ -59,6 +59,7 @@
 #include "core/siril_log.h"
 #include "core/siril_networking.h"
 #include "core/OS_utils.h"
+#include "algos/siril_random.h"
 #include "algos/star_finder.h"
 #include "io/sequence.h"
 #include "io/conversion.h"
@@ -158,7 +159,7 @@ static void siril_app_activate(GApplication *application) {
 
 	com.script = TRUE;
 	com.headless = TRUE;
-
+	siril_initialize_rng();
 	global_initialization();
 
 	/* initialize sequence-related stuff */
