@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-06-11 13:48+0200\n"
-"PO-Revision-Date: 2024-06-19 10:27+0000\n"
+"PO-Revision-Date: 2024-06-24 12:18+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -4561,23 +4561,20 @@ msgid "Sequences"
 msgstr "Последовательности"
 
 #: src/gui/uifiles/mouse_actions.ui:9
-#, fuzzy
 msgid "Mouse Action Preferences"
-msgstr "Вернуть исходные параметры"
+msgstr "Настройка действий мыши"
 
 #: src/gui/uifiles/mouse_actions.ui:111
 msgid "Add an extra mouse action"
 msgstr ""
 
 #: src/gui/uifiles/mouse_actions.ui:126
-#, fuzzy
 msgid "Remove the selected mouse action"
-msgstr "Удалить выделенное изображение"
+msgstr "Удалить выбранное действие"
 
 #: src/gui/uifiles/mouse_actions.ui:139 src/gui/mouse_action_preferences.c:720
-#, fuzzy
 msgid "Mouse button / scroll check"
-msgstr "Двойной клик средней кнопкой"
+msgstr "Проверка кнопки мыши / прокрутки"
 
 #: src/gui/uifiles/mouse_actions.ui:156
 msgid ""
@@ -4587,17 +4584,15 @@ msgstr ""
 
 #: src/gui/uifiles/mouse_actions.ui:176
 msgid "Mouse Click Actions"
-msgstr ""
+msgstr "Действия при нажатии"
 
 #: src/gui/uifiles/mouse_actions.ui:227
-#, fuzzy
 msgid "Add a scroll action"
-msgstr "Добавить звезду из выделения в список"
+msgstr "Добавить действие при прокрутке"
 
 #: src/gui/uifiles/mouse_actions.ui:242
-#, fuzzy
 msgid "Remove a scroll action"
-msgstr "выделение памяти"
+msgstr "Удалить действие при прокрутке"
 
 #: src/gui/uifiles/mouse_actions.ui:255 src/gui/uifiles/siril.ui:6015
 #: src/gui/uifiles/siril.ui:6598
@@ -4605,9 +4600,8 @@ msgid " "
 msgstr ""
 
 #: src/gui/uifiles/mouse_actions.ui:271
-#, fuzzy
 msgid "Scroll Actions"
-msgstr "Выделение"
+msgstr "Действия при прокрутке"
 
 #: src/gui/uifiles/pixelmath.ui:81 src/gui/uifiles/seqlist_dialog.ui:56
 msgid "Sequence List"
@@ -6523,14 +6517,12 @@ msgid "Zoom toggles between fit and 100%"
 msgstr "Уместить в окне или 100% масштаб"
 
 #: src/gui/uifiles/settings_window.ui:3735
-#, fuzzy
 msgid "Configure mouse button actions"
-msgstr "Конфигурация"
+msgstr "Настройка кнопок мыши"
 
 #: src/gui/uifiles/settings_window.ui:3739
-#, fuzzy
 msgid "Open the mouse action configuration dialog"
-msgstr "Диалог косметической коррекции"
+msgstr "Диалог настройки поведения кнопок мыши"
 
 #: src/gui/uifiles/settings_window.ui:3758
 msgid "Mouse Behaviour"
@@ -7966,7 +7958,6 @@ msgid "Image Plate Solver..."
 msgstr "Астрономическое решение..."
 
 #: src/gui/uifiles/siril.ui:2260
-#, fuzzy
 msgid "Annotate..."
 msgstr "Аннотировать..."
 
@@ -9475,9 +9466,8 @@ msgid "Square"
 msgstr "Квадратичный"
 
 #: src/gui/uifiles/siril.ui:6899
-#, fuzzy
 msgid "Point"
-msgstr "Точка чёрного"
+msgstr "Точка"
 
 #: src/gui/uifiles/siril.ui:6900
 msgid "Turbo"
@@ -9600,7 +9590,6 @@ msgid "Set second preview"
 msgstr "Установить второй предпросмотр"
 
 #: src/gui/uifiles/siril.ui:7326 src/compositing/compositing.c:2023
-#, fuzzy
 msgid "Manual registration"
 msgstr "Регистрация вручную"
 
@@ -11763,9 +11752,9 @@ msgstr ""
 "Положение верха относительно С. неопределенно (слишком близко к Полюсу)\n"
 
 #: src/algos/astrometry_solver.c:565
-#, fuzzy, c-format
+#, c-format
 msgid "Up is %+.2lf deg CounterclockWise wrt. N%s\n"
-msgstr "Верх %+.2lf° по часовой стрелке относительно С.%s\n"
+msgstr "Верх %+.2lf° против часовой стрелки относительно С.%s\n"
 
 #: src/algos/astrometry_solver.c:565
 msgid " (flipped)"
@@ -13691,9 +13680,9 @@ msgid "This command is deprecated: %s should be used instead.\n"
 msgstr "Устаревшая команда: используйте %s.\n"
 
 #: src/core/command.c:138
-#, fuzzy, c-format
+#, c-format
 msgid "The %s option is deprecated: %s should be used instead.\n"
-msgstr "Устаревшая команда: используйте %s.\n"
+msgstr "Опция %s устарела. Вместо неё следует использовать %s.\n"
 
 #: src/core/command.c:160
 msgid ""
@@ -15792,12 +15781,13 @@ msgstr[1] "процессора"
 msgstr[2] "процессоров"
 
 #: src/core/command.c:8912
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "A newer version (>= %lu.%lu.%lu-%s%lu) of Siril is required in order to run "
 "this script: please update your installation.\n"
 msgstr ""
-"Необходима более новая версия Siril, пожалуйста, обновите вашу версию.\n"
+"Чтобы выполнить сценарий, необходима более новая версия Siril (>= "
+"%lu.%lu.%lu-%s%lu). Пожалуйста, обновите вашу установку.\n"
 
 #: src/core/command.c:8912
 #, fuzzy
@@ -15805,9 +15795,8 @@ msgid "beta"
 msgstr "бета (β)"
 
 #: src/core/command.c:8912
-#, fuzzy
 msgid "RC"
-msgstr "RCD"
+msgstr "RC"
 
 #: src/core/command.c:8915
 msgid ""
@@ -22003,9 +21992,9 @@ msgid "Software Update"
 msgstr "Обновление приложения"
 
 #: src/core/siril_update.c:546
-#, fuzzy, c-format
+#, c-format
 msgid "Error parsing JSON from URL: %s\n"
-msgstr "Ошибка загрузки JSON-файла SPCC: %s\n"
+msgstr "Ошибка разбора JSON из URL: %s\n"
 
 #: src/core/siril_update.c:554
 msgid "Error parsing JSON from URL: unable to get root node\n"
@@ -22174,9 +22163,8 @@ msgid "(invalid UTF-8 string)"
 msgstr "(неверная строка UTF-8)"
 
 #: src/drizzle/cdrizzlebox.c:497
-#, fuzzy
 msgid "Out of memory"
-msgstr "Недостаточно памяти\n"
+msgstr "Недостаточно памяти"
 
 #: src/drizzle/cdrizzlebox.c:902
 msgid "Invalid kernel type"
@@ -22725,9 +22713,8 @@ msgid "Visit the Siril website"
 msgstr "Перейти на сайт Siril"
 
 #: src/gui/annotate.c:172
-#, fuzzy
 msgid "csv files (*.csv)"
-msgstr "Файл CSV (*.csv)"
+msgstr "файлы CSV (*.csv)"
 
 #: src/gui/annotate.c:261
 #, fuzzy
@@ -23544,7 +23531,6 @@ msgid "R"
 msgstr "R"
 
 #: src/gui/cut.c:724
-#, fuzzy
 msgid "L"
 msgstr "L"
 
@@ -23554,9 +23540,9 @@ msgid "Fitted background"
 msgstr "фон"
 
 #: src/gui/cut.c:728
-#, fuzzy, c-format
+#, c-format
 msgid "Measured background"
-msgstr "Сохранить фон"
+msgstr "Измеренный фон"
 
 #: src/gui/cut.c:804 src/gui/cut.c:810
 msgid "Error: failed to split FITS into CFA sub-patterns.\n"
@@ -23600,7 +23586,6 @@ msgid ""
 msgstr ""
 
 #: src/gui/cut.c:1048
-#, fuzzy
 msgid "Tri-profile (mono)"
 msgstr "Трёхпрофильный (моно)"
 
@@ -23860,7 +23845,6 @@ msgstr "Обратная обобщённая гиперболическая ф�
 #. Also we use this function to export the ICC sRGB perceptual display profile,
 #. but use a confirmation dialog to confirm the ICC's terms of use.
 #: src/gui/icc_profile.c:101
-#, fuzzy
 msgid "Terms of Use"
 msgstr "Условия использования"
 
@@ -24076,18 +24060,24 @@ msgstr "Недопустимая последовательность для к�
 #: src/gui/mouse_action_functions.c:309
 msgid "This action opens a new image if there is no image currently loaded"
 msgstr ""
+"Это действие открывает новое изображение, если в данный момент нет "
+"загруженного изображения"
 
 #: src/gui/mouse_action_functions.c:324
 msgid ""
 "This action starts a measurement from one point in the image to another. "
 "Releasing the button ends the measurement."
 msgstr ""
+"Это действие запускает измерение от одной точки изображения до другой. При "
+"отпускании кнопки измерение завершается."
 
 #: src/gui/mouse_action_functions.c:338
 msgid ""
 "This action toggles the image zoom level as configured in Preferences / User "
 "Interface"
 msgstr ""
+"Это действие переключает между уровнями масштабирования, указанными в "
+"разделе Настройки / Интерфейс"
 
 #: src/gui/mouse_action_functions.c:378
 msgid "This action drags the image around the viewport"
@@ -24109,24 +24099,20 @@ msgid "This action sets the photometry box"
 msgstr ""
 
 #: src/gui/mouse_action_functions.c:613
-#, fuzzy
 msgid "This action saves the current image"
-msgstr "Сохранить текущее изображение FITS"
+msgstr "Это действие сохраняет текущее изображение"
 
 #: src/gui/mouse_action_functions.c:625
-#, fuzzy
 msgid "This action saves the current image with a new name"
-msgstr "...либо прямо в текущий файл в формате FITS"
+msgstr "Это действие сохраняет текущее изображение под новым именем"
 
 #: src/gui/mouse_action_functions.c:633
-#, fuzzy
 msgid "This action saves a snapshot of the current image"
-msgstr "Сделать снимок текущего вида изображения."
+msgstr "Это действие сохраняет снимок текущего изображения"
 
 #: src/gui/mouse_action_functions.c:641
-#, fuzzy
 msgid "This action undoes the last operation"
-msgstr "Используйте эту кнопку, чтобы отменить операцию"
+msgstr "Это действие отменяет последнюю операцию"
 
 #: src/gui/mouse_action_functions.c:651
 #, fuzzy
@@ -24149,8 +24135,9 @@ msgid "This action opens the spectrophotometric color calibration dialog"
 msgstr "Открыть диалог спектрофотометрической калибровки цвета"
 
 #: src/gui/mouse_action_functions.c:699
+#, fuzzy
 msgid "Scroll wheel zooms in / out"
-msgstr ""
+msgstr "Колесо прокрутки приближает / отдаляет изображение"
 
 #: src/gui/mouse_action_functions.c:749
 msgid "Scroll wheel scrolls through the frames in the current sequence"
@@ -24187,8 +24174,9 @@ msgid "Main multifunction action"
 msgstr "Функция максимума."
 
 #: src/gui/mouse_action_functions.h:27
+#, fuzzy
 msgid "Drag"
-msgstr ""
+msgstr "Потянуть"
 
 #: src/gui/mouse_action_functions.h:35
 msgid "Open if nothing is loaded"
@@ -24213,8 +24201,9 @@ msgid "Save As"
 msgstr "Сохранить"
 
 #: src/gui/mouse_action_functions.h:63
+#, fuzzy
 msgid "Snapshot"
-msgstr ""
+msgstr "Снимок"
 
 #: src/gui/mouse_action_functions.h:75
 #, fuzzy
@@ -24246,18 +24235,25 @@ msgid "Mouse Configuration"
 msgstr "Конфигурация"
 
 #: src/gui/mouse_action_preferences.c:117
+#, fuzzy
 msgid ""
 "Warning: this dialog allows you to reconfigure mouse behaviour so that it "
 "may no longer match the documentation. If you forget what settings you have "
 "changed, the dialog can also be used to view current mouse action "
 "assignments and also provides a button to reset them to default settings."
 msgstr ""
+"Внимание: этот диалог позволяет перенастроить поведение мыши таким "
+"образом,что оно более не будет соответствовать документации. Если вы забыли "
+"какие настройки были изменены, здесь можно посмотреть текущую конфигурацию "
+"поведения мыши. Так же в диалоге есть кнопка для сброса к настройкам по "
+"умолчанию."
 
 #. Make the spin button editable and set digits to 0
 #. Connect the edited signal
 #: src/gui/mouse_action_preferences.c:210
+#, fuzzy
 msgid "Button"
-msgstr ""
+msgstr "Кнопка"
 
 #. Connect the edited signal
 #: src/gui/mouse_action_preferences.c:219
@@ -24268,8 +24264,9 @@ msgstr "Функция"
 #. Connect the edited signal
 #: src/gui/mouse_action_preferences.c:231
 #: src/gui/mouse_action_preferences.c:499
+#, fuzzy
 msgid "Modifier"
-msgstr ""
+msgstr "Модификатор"
 
 #: src/gui/mouse_action_preferences.c:272
 #, c-format
@@ -24314,7 +24311,7 @@ msgstr "Siril успешно обновил информацию FFT...\n"
 #: src/gui/mouse_action_preferences.c:487
 #, fuzzy
 msgid "Direction"
-msgstr "Коррекция"
+msgstr "Направление"
 
 #: src/gui/mouse_action_preferences.c:535
 #, c-format
@@ -24343,29 +24340,29 @@ msgid ""
 msgstr ""
 
 #: src/gui/mouse_action_preferences.c:739
-#, c-format
+#, c-format, fuzzy
 msgid "Scroll (vertical)"
-msgstr ""
+msgstr "Прокрутка (вертикальная)"
 
 #: src/gui/mouse_action_preferences.c:743
-#, c-format
+#, c-format, fuzzy
 msgid "Scroll (horizontal)"
-msgstr ""
+msgstr "Прокрутка (горизонтальная)"
 
 #: src/gui/mouse_action_preferences.c:749
-#, c-format
+#, c-format, fuzzy
 msgid "Smooth scroll (vertical)"
-msgstr ""
+msgstr "Плавная прокрутка (вертикальная)"
 
 #: src/gui/mouse_action_preferences.c:751
-#, c-format
+#, c-format, fuzzy
 msgid "Smooth scroll (horizontal)"
-msgstr ""
+msgstr "Плавная прокрутка (горизонтальная)"
 
 #: src/gui/mouse_action_preferences.c:756
-#, c-format
+#, c-format, fuzzy
 msgid "Button %u"
-msgstr ""
+msgstr "Кнопка %u"
 
 #: src/gui/mouse_action_preferences.c:811
 #: src/gui/mouse_action_preferences.c:819
