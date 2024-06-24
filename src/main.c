@@ -50,6 +50,7 @@
 #include "core/siril.h"
 #include "core/icc_profile.h"
 #include "core/proto.h"
+#include "algos/siril_random.h"
 #include "core/siril_actions.h"
 #include "core/initfile.h"
 #include "core/command_line_processor.h"
@@ -246,7 +247,7 @@ static void siril_app_activate(GApplication *application) {
 #if defined(_WIN32) && !defined(SIRIL_UNSTABLE)
 	ShowWindow(GetConsoleWindow(), SW_MINIMIZE); //hiding the console
 #endif
-
+	siril_initialize_rng();
 	global_initialization();
 
 	/* initialize sequence-related stuff */

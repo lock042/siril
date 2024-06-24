@@ -33,6 +33,7 @@
 #include "algos/PSF.h"
 #include "algos/extraction.h"
 #include "algos/geometry.h"
+#include "algos/siril_random.h"
 #include "algos/statistics.h"
 #include "algos/sorting.h"
 #include "algos/star_finder.h"
@@ -164,9 +165,8 @@ void makedisc(float *psf, int size, float width, float lum, float xoffset, float
 #pragma omp simd
 #endif
 				for (int randiter = 0 ; randiter < maxranditer; randiter++) {
-					// Not aiming for cryptographic levels of randomness, rand() will do.
-					float xrandoff = (float) ((float)rand()/(float)(RAND_MAX)) - 0.5f;
-					float yrandoff = (float) ((float)rand()/(float)(RAND_MAX)) - 0.5f;
+					float xrandoff = siril_random_float();
+					float yrandoff = siril_random_float();
 					float xf = x - xoffset + xrandoff + 0.5f;
 					float yf = y - yoffset + yrandoff - 0.5f;
 					if ((xf * xf + yf * yf) < radiussq)

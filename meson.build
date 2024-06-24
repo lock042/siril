@@ -161,11 +161,12 @@ elif platform_windows
   siril_link_arg += '-Wl,--export-all-symbols'
   siril_link_arg += '-lpsapi'
   siril_link_arg += '-ldbghelp'
+  siril_link_arg += '-lbcrypt'
   siril_c_flag += ['-D_WIN32_WINNT=0x0600', '-DWINVER=0x0600']
   siril_cpp_flag += ['-D_WIN32_WINNT=0x0600', '-DWINVER=0x0600']
 elif platform_osx
   # on OSX ObjC and C sources are mixed so adding objc to the linkflags
-  siril_link_arg += ['-Wl,-framework,Foundation', '-Wl,-framework,AppKit', '-ObjC']
+  siril_link_arg += ['-Wl,-framework,Foundation', '-Wl,-framework,AppKit', '-Wl,-framework,Security', '-ObjC']
   add_project_arguments('-ObjC', language: [ 'c'])
   add_project_link_arguments(siril_link_arg, language: [ 'c', 'cpp' ])
 else
