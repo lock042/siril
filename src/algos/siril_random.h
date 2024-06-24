@@ -3,16 +3,14 @@
 
 #ifdef __cplusplus
 #include <cstdint>
-#include "core/siril.h"
-#undef _
 extern "C" {
 #endif
 
 void siril_initialize_rng();
 double siril_random_double();
 float siril_random_float();
-WORD siril_random_WORD();
-BYTE siril_random_BYTE();
+uint16_t siril_random_WORD();
+uint8_t siril_random_BYTE();
 uint32_t siril_random_uint();
 int32_t siril_random_int();
 
