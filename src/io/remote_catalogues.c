@@ -838,7 +838,6 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 			}
 			gboolean completed = (g_strrstr(buffer,"COMPLETED") != NULL);
 			g_free(buffer);
-			buffer = NULL;
 			if (completed) {
 				success = TRUE;
 				break;
