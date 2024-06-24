@@ -29,6 +29,7 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "algos/siril_random.h"
 #include "core/processing.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
@@ -510,13 +511,7 @@ static double get_background_mean(GSList *list, int num_channels) {
 	return mean / n / num_channels;
 }
 
-static unsigned int _rand(guint64 *const p_rng) {
-	*p_rng = *p_rng * 1103515245 + 12345U;
-	return (unsigned int) *p_rng;
-}
-
 static gboolean convert_fits_to_img(fits *fit, double *image, int channel, gboolean add_dither) {
-	guint64 seed = time(NULL);
 
 	double invnorm = 1.0 / USHRT_MAX;
 	const int height = fit->ry;
@@ -527,7 +522,7 @@ static gboolean convert_fits_to_img(fits *fit, double *image, int channel, gbool
 				image[y * width + x] = fit->pdata[channel][(height - y - 1) * width + x] * invnorm;
 				if (add_dither) {
 					/* add dithering in order to avoid colour banding */
-					image[y * width + x] += (_rand(&seed) % 1048576) * 0.000000000095367431640625f;
+					image[y * width + x] += (siril_random_uint() % 1048576) * 0.000000000095367431640625f;
 				}
 			}
 		}
@@ -537,7 +532,7 @@ static gboolean convert_fits_to_img(fits *fit, double *image, int channel, gbool
 				image[y * width + x] = fit->fpdata[channel][(height - y - 1) * width + x];
 				if (add_dither) {
 					/* add dithering in order to avoid colour banding */
-					image[y * width + x] += (_rand(&seed) % 1048576) * 0.000000000095367431640625f;
+					image[y * width + x] += (siril_random_uint() % 1048576) * 0.000000000095367431640625f;
 				}
 			}
 		}
