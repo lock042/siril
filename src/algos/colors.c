@@ -323,6 +323,30 @@ void hsl_to_rgbf(float h, float s, float l, float *r, float *g, float *b) {
 	*b = (sextant == 3 || sextant == 4) ? v : (sextant == 0 || sextant == 1) ? m : (sextant == 2) ? mid1 : mid2;
 }
 
+void rgbw_to_hslw(uint16_t r, uint16_t g, uint16_t b, uint16_t *h, uint16_t *s, uint16_t *l) {
+	// Normalize RGB values to [0, 1]
+	float rf = r / USHRT_MAX_SINGLE;
+	float gf = g / USHRT_MAX_SINGLE;
+	float bf = b / USHRT_MAX_SINGLE;
+	float hf, sf, lf;
+	rgb_to_hslf(rf, gf, bf, &hf, &sf, &lf);
+	*h = roundf_to_WORD(hf * USHRT_MAX_SINGLE);
+	*s = roundf_to_WORD(sf * USHRT_MAX_SINGLE);
+	*l = roundf_to_WORD(lf * USHRT_MAX_SINGLE);
+}
+
+void hslw_to_rgbw(uint16_t h, uint16_t s, uint16_t l, uint16_t *r, uint16_t *g, uint16_t *b) {
+	// Normalize HSL values to [0, 1]
+	float hf = h / USHRT_MAX_SINGLE;
+	float sf = s / USHRT_MAX_SINGLE;
+	float lf = l / USHRT_MAX_SINGLE;
+	float rf, gf, bf;
+	hsl_to_rgbf(hf, sf, lf, &rf, &gf, &bf);
+	*r = roundf_to_WORD(rf * USHRT_MAX_SINGLE);
+	*g = roundf_to_WORD(gf * USHRT_MAX_SINGLE);
+	*b = roundf_to_WORD(bf * USHRT_MAX_SINGLE);
+}
+
 /* all variables are between 0 and 1. h takes 0 for grey */
 void rgb_to_hsv(double r, double g, double b, double *h, double *s, double *v) {
 	double cmax, cmin, delta;
