@@ -26,6 +26,11 @@
 #include "algos/colors.h"
 #include "core/siril_log.h"
 
+// For clarity when referring to HSL layers
+enum {
+	HLAYER, SLAYER, LLAYER
+};
+
 int GHTsetup(ght_compute_params *c, float B, float D, float LP, float SP, float HP, int stretchtype) {
 	if (D == 0.0f || stretchtype == STRETCH_LINEAR) {
 		c->qlp = c->q0 = c->qwp = c->q1 = c->q = c->b1 = c->a2 = c->b2 = c->c2 = c->d2 = c->a3 = c->b3 = c->c3 = c->d3 = c->a4 = c->b4 = 0.0f;
@@ -498,7 +503,7 @@ void apply_linked_ght_to_Wbuf_lum(WORD* buf, WORD* out, size_t layersize, size_t
 	float globalmax = -FLT_MAX;
 
 	// Set up a LUT
-	WORD *lut = malloc(65536 * sizeof(WORD));
+	WORD *lut = malloc((USHRT_MAX + 1) * sizeof(WORD));
 #ifdef _OPENMP
 	// This is only a small loop: 8 threads seems to be about as many as is worthwhile
 	// because of the thread startup cost
@@ -615,7 +620,7 @@ void apply_linked_ght_to_Wbuf_indep(WORD* in, WORD* out, size_t layersize, size_
 	GHTsetup(&compute_params, params->B, params->D, params->LP, params->SP, params->HP, params->stretchtype);
 
 	// Set up a LUT
-	WORD *lut = malloc(65536 * sizeof(WORD));
+	WORD *lut = malloc((USHRT_MAX + 1) * sizeof(WORD));
 #ifdef _OPENMP
 	// This is only a small loop: 8 threads seems to be about as many as is worthwhile
 	// because of the thread startup cost
@@ -689,20 +694,20 @@ void apply_sat_ght_to_fits(fits *fit, ght_params *params, gboolean multithreaded
 #pragma omp for simd schedule(static)
 #endif
 			for (long i = 0; i < npixels; i++) {
-				rgb_to_hslf(fit->fpdata[0][i], fit->fpdata[1][i], fit->fpdata[2][i], &fit->fpdata[0][i], &fit->fpdata[1][i], &fit->fpdata[2][i]);
+				rgb_to_hslf(fit->fpdata[RLAYER][i], fit->fpdata[GLAYER][i], fit->fpdata[BLAYER][i], &fit->fpdata[HLAYER][i], &fit->fpdata[SLAYER][i], &fit->fpdata[LLAYER][i]);
 			}
 
 #ifdef _OPENMP
 #pragma omp barrier
 #pragma omp single
 #endif
-			apply_linked_ght_to_fbuf_indep(fit->fpdata[1], fit->fpdata[1], npixels, 1, params, multithreaded);
+			apply_linked_ght_to_fbuf_indep(fit->fpdata[SLAYER], fit->fpdata[SLAYER], npixels, 1, params, multithreaded);
 
 #ifdef _OPENMP
 #pragma omp for simd schedule(static)
 #endif
 			for (long i = 0; i < npixels; i++) {
-				hsl_to_rgbf(fit->fpdata[0][i], fit->fpdata[1][i], fit->fpdata[2][i], &fit->fpdata[0][i], &fit->fpdata[1][i], &fit->fpdata[2][i]);
+				hsl_to_rgbf(fit->fpdata[HLAYER][i], fit->fpdata[SLAYER][i], fit->fpdata[LLAYER][i], &fit->fpdata[RLAYER][i], &fit->fpdata[GLAYER][i], &fit->fpdata[BLAYER][i]);
 			}
 #ifdef _OPENMP
 		}
@@ -715,20 +720,20 @@ void apply_sat_ght_to_fits(fits *fit, ght_params *params, gboolean multithreaded
 #pragma omp for simd schedule(static)
 #endif
 			for (long i = 0; i < npixels; i++) {
-				rgbw_to_hslw(fit->pdata[0][i], fit->pdata[1][i], fit->pdata[2][i], &fit->pdata[0][i], &fit->pdata[1][i], &fit->pdata[2][i]);
+				rgbw_to_hslw(fit->pdata[RLAYER][i], fit->pdata[GLAYER][i], fit->pdata[BLAYER][i], &fit->pdata[HLAYER][i], &fit->pdata[SLAYER][i], &fit->pdata[LLAYER][i]);
 			}
 
 #ifdef _OPENMP
 #pragma omp barrier
 #pragma omp single
 #endif
-			apply_linked_ght_to_Wbuf_indep(fit->pdata[1], fit->pdata[1], npixels, 1, params, multithreaded);
+			apply_linked_ght_to_Wbuf_indep(fit->pdata[SLAYER], fit->pdata[SLAYER], npixels, 1, params, multithreaded);
 
 #ifdef _OPENMP
 #pragma omp for simd schedule(static)
 #endif
 			for (long i = 0; i < npixels; i++) {
-				hslw_to_rgbw(fit->pdata[0][i], fit->pdata[1][i], fit->pdata[2][i], &fit->pdata[0][i], &fit->pdata[1][i], &fit->pdata[2][i]);
+				hslw_to_rgbw(fit->pdata[HLAYER][i], fit->pdata[SLAYER][i], fit->pdata[LLAYER][i], &fit->pdata[RLAYER][i], &fit->pdata[GLAYER][i], &fit->pdata[BLAYER][i]);
 			}
 
 #ifdef _OPENMP

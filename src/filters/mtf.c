@@ -42,7 +42,7 @@ void apply_linked_mtf_to_fits(fits *from, fits *to, struct mtf_params params, gb
 		float norm = (float)get_normalized_value(from);
 		float invnorm = 1.0f / norm;
 		// Set up a LUT
-		WORD *lut = malloc(65536 * sizeof(WORD));
+		WORD *lut = malloc((USHRT_MAX + 1) * sizeof(WORD));
 
 		// This is only a small loop: 8 threads seems to be about as many as is worthwhile
 		// because of the thread startup cost
@@ -128,7 +128,7 @@ void apply_linked_pseudoinverse_mtf_to_fits(fits *from, fits *to, struct mtf_par
 		float norm = (float)get_normalized_value(from);
 		float invnorm = 1.0f / norm;
 		// Set up a LUT
-		WORD *lut = malloc(65536 * sizeof(WORD));
+		WORD *lut = malloc((USHRT_MAX + 1) * sizeof(WORD));
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(threads) schedule(static) if(multithreaded)
 #endif
@@ -253,7 +253,7 @@ void apply_unlinked_mtf_to_fits(fits *from, fits *to, struct mtf_params *params)
 		float norm = (float)get_normalized_value(from);
 		float invnorm = 1.0f / norm;
 		// Set up a LUT
-		WORD *lut = malloc(65536 * sizeof(WORD));
+		WORD *lut = malloc((USHRT_MAX + 1) * sizeof(WORD));
 
 		for (int chan = 0; chan < (int)from->naxes[2]; chan++) {
 			// This is only a small loop: 8 threads seems to be about as many as is worthwhile
