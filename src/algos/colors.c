@@ -336,11 +336,11 @@ void rgbw_to_hslw(uint16_t r, uint16_t g, uint16_t b, uint16_t *h, uint16_t *s, 
 }
 
 void hslw_to_rgbw(uint16_t h, uint16_t s, uint16_t l, uint16_t *r, uint16_t *g, uint16_t *b) {
-    // Normalize HSL values to [0, 1]
-    float hf = h / USHRT_MAX_SINGLE;
-    float sf = s / USHRT_MAX_SINGLE;
-    float lf = l / USHRT_MAX_SINGLE;
-    float rf, gf, bf;
+	// Normalize HSL values to [0, 1]
+	float hf = h / USHRT_MAX_SINGLE;
+	float sf = s / USHRT_MAX_SINGLE;
+	float lf = l / USHRT_MAX_SINGLE;
+	float rf, gf, bf;
 	hsl_to_rgbf(hf, sf, lf, &rf, &gf, &bf);
 	*r = roundf_to_WORD(rf * USHRT_MAX_SINGLE);
 	*g = roundf_to_WORD(gf * USHRT_MAX_SINGLE);
