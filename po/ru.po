@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-06-11 13:48+0200\n"
-"PO-Revision-Date: 2024-06-24 12:18+0000\n"
+"PO-Revision-Date: 2024-06-26 08:37+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -5701,6 +5701,8 @@ msgid ""
 "Preferred <a href=\"https://minorplanetcenter.net/iau/lists/ObsCodesF."
 "html\">IAU Observatory Code</a>"
 msgstr ""
+"Предпочитаемый <a href=\"https://minorplanetcenter.net/iau/lists/ObsCodesF."
+"html\">код обсерватории</a>"
 
 #: src/gui/uifiles/settings_window.ui:1204
 msgid ""
@@ -6210,21 +6212,21 @@ msgstr "Радиус апертуры, в которой измеряется с
 
 #: src/gui/uifiles/settings_window.ui:2701
 msgid "Automatic with a Radius/half-FWHM ratio of:"
-msgstr ""
+msgstr "Авто с отношением радиус/половина FWHM:"
 
 #: src/gui/uifiles/settings_window.ui:2705
-#, fuzzy
 msgid ""
 "Check this option to have Siril automatically calculate the aperture radius "
 "with the specified radius/half-FWHM ratio. When unchecked, you can set a "
 "fixed radius value in the box below."
 msgstr ""
 "Если этот флажок установлен, Siril будет автоматически рассчитывать радиус "
-"апертуры. Когда флажок снят, радиус может быть указан в диалоге ниже."
+"апертуры с указанным отношением радиус/половина FWHM. Когда флажок снят, "
+"фиксированное значение радиуса может быть указано в диалоге ниже."
 
 #: src/gui/uifiles/settings_window.ui:2720
 msgid "Radius/half-FWHM ratio"
-msgstr ""
+msgstr "Отношение радиус/половина FWHM"
 
 #: src/gui/uifiles/settings_window.ui:2750
 msgid "Flux Aperture"
@@ -8552,7 +8554,6 @@ msgstr ""
 "кадров и кадров шума считывания."
 
 #: src/gui/uifiles/siril.ui:4694
-#, fuzzy
 msgid ""
 "Dark subtraction can be optimized. Siril offers two ways of doing this.\n"
 "- The first method automatically evaluates the coefficients to be applied so "
@@ -8578,11 +8579,12 @@ msgstr ""
 "\n"
 "Опция оптимизации темновых кадров полезна, если темновые изображения не были "
 "сняты в оптимальных условиях. Она компенсирует разницу в температуре и/или "
-"длительности экспозиции между темновыми кадрами и отдельными "
-"субэскопзициями.\n"
+"длительности экспозиции между темновыми кадрами и отдельными субэскопзициями."
 "\n"
-"<b>ВНИМАНИЕ</b>: не используйте оптимизацию темновых кадров, если мастер-"
-"кадр шума считывания предварительно не был вычтен из темнового мастер-кадра."
+"\n"
+"<b>ВНИМАНИЕ:</b> не используйте оптимизацию темновых кадров к темновому "
+"мастер-кадру, если предварительно из него не был вычтен мастер-кадр шума "
+"считывания."
 
 #: src/gui/uifiles/siril.ui:4703
 msgid "No dark optimization"
@@ -9399,7 +9401,6 @@ msgid "Set the interpolation algorithm"
 msgstr "Запустить поиск астрономического решения."
 
 #: src/gui/uifiles/siril.ui:6818
-#, fuzzy
 msgid ""
 "Activates clamping of the Bicubic and Lancsoz4 interpolation algorithms\n"
 "\n"
@@ -9412,14 +9413,14 @@ msgid ""
 "In current Siril implementations, we have included a clamping mechanism that "
 "prevents negative interpolated values and ringing artifacts for most images."
 msgstr ""
-"Включает фиксацию при интерполяции в случае использования алгоритма Ланцоша "
+"Включает фиксацию при интерполяции в случае использования алгоритма Ланцош-4 "
 "или бикубической интерполяции\n"
 "\n"
 "Основной проблемой алгоритма Ланцоша и бикубической интерполяции является "
 "появление сильных артефактов от очень малых пиковых значений (\"звона\"). "
 "Эти артефакты вызваны отрицательными участками функции интерполяции, "
-"попадающими на высококонтрастные края и изолированные яркие пиксели "
-"(например, звёзды). Обычно это происходит только с линейными данными.\n"
+"попадающими на сильноконтрастные края и изолированные яркие пиксели ("
+"например, звёзды). Обычно это происходит только с линейными данными.\n"
 "\n"
 "В текущей реализации Siril присутствует механизм фиксации, предотвращающий "
 "интерполяцию отрицательных значений и артефакты \"звона\" на большинстве "
@@ -11454,10 +11455,9 @@ msgid "Open light curve dialog"
 msgstr "Открыть диалог световой кривой"
 
 #: src/gui/siril-shortcuts.ui:205
-#, fuzzy
 msgctxt "shortcut window"
 msgid "Open dialog for annotations"
-msgstr "Стандартные аннотации:"
+msgstr "Открыть диалог для аннотаций"
 
 #: src/gui/siril-shortcuts.ui:212
 msgctxt "shortcut window"
@@ -11947,19 +11947,16 @@ msgid "Selection is not used in manual star selection mode\n"
 msgstr "Выделение не используется при ручном выборе звёзд\n"
 
 #: src/algos/astrometry_solver.c:1923
-#, fuzzy
 msgid "Error: no reference stars available\n"
-msgstr "Ошибка: GNUplot недоступен\n"
+msgstr "Ошибка: опорные звёзды недоступны\n"
 
 #: src/algos/astrometry_solver.c:1946
-#, fuzzy
 msgid "Error when closing fitseq\n"
-msgstr "Ошибка при открытии файла"
+msgstr "Ошибка при закрытии fitseq\n"
 
 #: src/algos/astrometry_solver.c:1953
-#, fuzzy
 msgid "Error when reopening fitseq\n"
-msgstr "Ошибка при открытии файла"
+msgstr "Ошибка при повторном открытии fitseq\n"
 
 #: src/algos/astrometry_solver.c:1975
 #, c-format
@@ -12173,9 +12170,8 @@ msgid "Color Conversion Matrices can only be applied to 3-channel images.\n"
 msgstr "Эту операцию нельзя применить к 8-разрядным изображениям\n"
 
 #: src/algos/colors.c:1323
-#, fuzzy
 msgid "Color Conversion Matrices"
-msgstr "Матрица преобразования цвета"
+msgstr "Матрицы преобразования цвета"
 
 #: src/algos/comparison_stars.c:137
 #, c-format
@@ -14549,12 +14545,12 @@ msgid "minimum value must be smaller than the maximum\n"
 msgstr "минимальное значение должно быть меньше максимального\n"
 
 #: src/core/command.c:3524
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Local background annulus radius: %.1f to %.1f, %s: %.1f (%s), camera "
 "conversion gain: %f e-/ADU, using pixels with values ]%f, %f[\n"
 msgstr ""
-"Радиус кольца локального фона: %.1f до %.1f, апертура: %.1f (%s), усиление "
+"Радиус кольца локального фона: %.1f до %.1f, %s: %.1f (%s), усиление "
 "преобразования камеры: %f e-/ADU, значения использованных пикселей ]%f, %f[\n"
 
 #: src/core/command.c:3527
@@ -15022,9 +15018,8 @@ msgstr ""
 "параметр сглаживания не используется с полиномиальной моделью, игнорируем.\n"
 
 #: src/core/command.c:5559
-#, fuzzy
 msgid "Error generating background samples\n"
-msgstr "Не удалось создать образцы фона для изображения %s\n"
+msgstr "Ошибка создания образцов фона\n"
 
 #: src/core/command.c:5588
 msgid "Sigma low must be positive.\n"
@@ -16186,9 +16181,8 @@ msgid "OSC Low-Pass Filters"
 msgstr ""
 
 #: src/core/command.c:10533
-#, fuzzy
 msgid "White References"
-msgstr "Ориентир белого"
+msgstr "Ориентиры белого"
 
 #: src/core/command.c:10535
 msgid "Unknown SPCC list\n"
@@ -24174,7 +24168,6 @@ msgid "Main multifunction action"
 msgstr "Функция максимума."
 
 #: src/gui/mouse_action_functions.h:27
-#, fuzzy
 msgid "Drag"
 msgstr "Потянуть"
 
@@ -24196,12 +24189,10 @@ msgid "Mouse Menu / Remove"
 msgstr ""
 
 #: src/gui/mouse_action_functions.h:59
-#, fuzzy
 msgid "Save As"
-msgstr "Сохранить"
+msgstr "Сохранить как"
 
 #: src/gui/mouse_action_functions.h:63
-#, fuzzy
 msgid "Snapshot"
 msgstr "Снимок"
 
@@ -24235,23 +24226,21 @@ msgid "Mouse Configuration"
 msgstr "Конфигурация"
 
 #: src/gui/mouse_action_preferences.c:117
-#, fuzzy
 msgid ""
 "Warning: this dialog allows you to reconfigure mouse behaviour so that it "
 "may no longer match the documentation. If you forget what settings you have "
 "changed, the dialog can also be used to view current mouse action "
 "assignments and also provides a button to reset them to default settings."
 msgstr ""
-"Внимание: этот диалог позволяет перенастроить поведение мыши таким "
-"образом,что оно более не будет соответствовать документации. Если вы забыли "
-"какие настройки были изменены, здесь можно посмотреть текущую конфигурацию "
+"Внимание: этот диалог позволяет перенастроить поведение мыши таким образом, "
+"что оно более не будет соответствовать документации. Если вы забыли какие "
+"настройки были изменены, здесь можно посмотреть текущую конфигурацию "
 "поведения мыши. Так же в диалоге есть кнопка для сброса к настройкам по "
 "умолчанию."
 
 #. Make the spin button editable and set digits to 0
 #. Connect the edited signal
 #: src/gui/mouse_action_preferences.c:210
-#, fuzzy
 msgid "Button"
 msgstr "Кнопка"
 
@@ -24259,12 +24248,11 @@ msgstr "Кнопка"
 #: src/gui/mouse_action_preferences.c:219
 #, fuzzy
 msgid "Action"
-msgstr "Функция"
+msgstr "Действие"
 
 #. Connect the edited signal
 #: src/gui/mouse_action_preferences.c:231
 #: src/gui/mouse_action_preferences.c:499
-#, fuzzy
 msgid "Modifier"
 msgstr "Модификатор"
 
