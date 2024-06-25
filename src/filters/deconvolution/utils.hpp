@@ -69,7 +69,7 @@ namespace utils {
     {
         img_t<T> f(_f.w + hw*2, _f.h + hh*2, _f.d);
         f.set_value(T(0));
-        slice(f, _(hw, -hw-1), _(hh, -hh-1)).map(_f);
+        slice(f, _sl(hw, -hw-1), _sl(hh, -hh-1)).map(_f);
         return f;
     }
 
@@ -79,7 +79,7 @@ namespace utils {
     {
         img_t<T> f(_f.w + hw*2, _f.h + hh*2, _f.d);
         f.set_value(T(0));
-        slice(f, _(hw, -hw-1), _(hh, -hh-1)).map(_f);
+        slice(f, _sl(hw, -hw-1), _sl(hh, -hh-1)).map(_f);
         // replicate borders
         for (int y = 0; y < hh; y++) {
             for (int x = 0; x < f.w; x++) {
@@ -110,7 +110,7 @@ namespace utils {
     template <typename T>
     img_t<T> remove_padding(const img_t<T>& f, int hw, int hh)
     {
-        return to_img(slice(f, _(hw, -hw-1), _(hh, -hh-1)));
+        return to_img(slice(f, _sl(hw, -hw-1), _sl(hh, -hh-1)));
     }
 
     template <typename T>
@@ -127,7 +127,7 @@ namespace utils {
             xcrop = 1;
         if (f.h % 2)
             ycrop = 1;
-        return to_img(slice(f, _(0, -xcrop-1), _(0, -ycrop-1)));
+        return to_img(slice(f, _sl(0, -xcrop-1), _sl(0, -ycrop-1)));
     }
 
     template <typename T>

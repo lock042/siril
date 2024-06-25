@@ -288,42 +288,52 @@ void gf_kernel(img_t<T>& kernel, const img_t<T>& img,
     // convert the image to greyscale
     img_t<T> grey(img.w, img.h);
     grey.greyfromcolor(img);
-
+    siril_debug_print("Grey image created\n");
     // search a blurred patch which will be used for kernel evaluation
     img_t<T> blurredPatch;
     searchBlurredPatch(blurredPatch, grey, 150, 100);
+    siril_debug_print("Blurred patch search complete\n");
 
     // compute the angle set
     std::vector<angle_t> angleSet;
     computeProjectionAngleSet(angleSet, kernelSize*2);
+    siril_debug_print("Projection angle set computed\n");
 
     // compute the autocorrelation of the projection of the whitened image
     img_t<T> acProjections;
     computeProjectionsAutocorrelation(acProjections, grey, angleSet, kernelSize*2, opts.compensationFactor);
     int acRadius = acProjections.w / 2;
+    siril_debug_print("Projection autocorrelations computed\n");
 
     // initial support estimation
     std::vector<int> support;
     initialSupportEstimation(support, acProjections);
+    siril_debug_print("Initial support estimated\n");
 
     // iterative estimation
     img_t<T> powerSpectrum;
     img_t<T> acProjectionsCorrected;
     for (int i = 0; i < opts.Nouter; i++) {
+        siril_debug_print("Starting iter %d of %d: ", i, opts.Nouter);
         // adjust the autocorrelation using the estimated support
         adjustAutocorrelations(acProjectionsCorrected, acProjections, support, opts.medianFilter);
-
+        siril_debug_print("ac; ");
         // compute the power spectrum from the autocorrelation
         reconstructPowerspectrum(powerSpectrum, acProjectionsCorrected, angleSet, acRadius);
+        siril_debug_print("rp; ");
 
         // retrieve a kernel in spatial domain using the power spectrum
         phaseRetrieval(kernel, blurredPatch, powerSpectrum, kernelSize, opts);
+        siril_debug_print("pr\n");
 
-        if (is_thread_stopped())
+        if (is_thread_stopped()) {
+            siril_debug_print("Thread stopped, aborting...\n");
             break;
+        }
 
         // reestimate the kernel support
         reestimateKernelSupport(support, kernel, angleSet, acRadius);
+        siril_debug_print("Finished iter %d of %d\n", i, opts.Nouter);
     }
 }
 
@@ -338,8 +348,6 @@ extern "C" float *gf_estimate_kernel(estk_data *args, int max_threads) {
     opts.medianFilter = args->medianfilter;
     opts.finalDeconvolutionWeight = args->finaldeconvolutionweight;
     opts.intermediateDeconvolutionWeight = args->intermediatedeconvolutionweight;
-
-    img_t<float>::use_threading(max_threads);
 
     img_t<float> v(args->rx, args->ry, args->nchans, args->fdata);
     img_t<float> k;

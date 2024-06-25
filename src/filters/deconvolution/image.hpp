@@ -48,6 +48,7 @@ free-astro 2022-2023.
 #include <functional>
 #include <vector>
 #include <numeric>
+#include "core/siril.h"
 #include "chelperfuncs.h"
 
 #include <fftw3.h>

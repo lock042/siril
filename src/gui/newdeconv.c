@@ -1056,7 +1056,6 @@ gpointer estimate_only(gpointer p) {
 	cppfftwflags = com.pref.fftw_conf.strategy;
 	cppfftwtimelimit = com.pref.fftw_conf.timelimit;
 	cppfftwmultithreaded = com.pref.fftw_conf.multithreaded;
-	set_cursor_waiting(TRUE);
 	set_wisdom_file();
 	if (args.psftype == PSF_BLIND) {
 		if (fftwf_import_wisdom_from_filename(com.pref.fftw_conf.wisdom_file) == 1) {
@@ -1401,8 +1400,10 @@ void on_bdeconv_estimate_clicked(GtkButton *button, gpointer user_data) {
 		set_estimate_params(); // Do this before entering the thread as it contains GTK functions
 	if (args.psftype == PSF_STARS || args.psftype == PSF_BLIND)
 		abort = !check_ok_if_cfa();
-	if (!abort)
+	if (!abort) {
+		set_cursor_waiting(TRUE);
 		start_in_new_thread(estimate_only, NULL);
+	}
 }
 
 // Actual drawing function

@@ -193,7 +193,7 @@ void phaseRetrieval(img_t<T>& outkernel, const img_t<T>& blurredPatch,
     magnitude.ifftshift(); // unshift the magnitude
 
     T globalCurrentScore = std::numeric_limits<T>::max();
-#pragma omp parallel
+#pragma omp parallel num_threads(cppmaxthreads)
     {
         img_t<T> kernel;
         img_t<T> kernel_mirror;
