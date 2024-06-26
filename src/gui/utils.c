@@ -538,7 +538,7 @@ gboolean value_check() {
 	int retval = compute_all_channels_statistics_single_image(&gfit, STATS_MINMAX, MULTI_THREADED, stats);
 	double maxval, minval;
 	if (retval) {
-		siril_log_color_message(_("Error: statistics computation failed. Proceeding, but cannot check for out-of-range values.\n"), "red");
+		siril_log_color_message(_("Error: statistics computation failed. Proceeding, but cannot check for out-of-range values:.\n"), "red");
 	} else {
 		maxval = max(max(stats[RLAYER]->max, stats[GLAYER]->max), stats[BLAYER]->max);
 		minval = min(max(stats[RLAYER]->min, stats[GLAYER]->min), stats[BLAYER]->min);
@@ -549,9 +549,11 @@ gboolean value_check() {
 	if (retval)
 		return TRUE;
 	if (maxval > 1.0 || minval < 0.0) {
-		GtkWidget *dialog = create_overrange_dialog(siril_get_active_window(), _("Warning"), _("This image contains pixel values outside the range 0.0 - 1.0. This will cause unwanted behaviour. Choose how to handle this."));
+		gchar *msg = g_strdup_printf(_("This image contains pixel values outside the range 0.0 - 1.0 (min = %.3f, max = %.3f). This will cause unwanted behaviour. Choose how to handle this.\n"), minval, maxval);
+		GtkWidget *dialog = create_overrange_dialog(siril_get_active_window(), _("Warning"), msg);
 		OverrangeResponse result = (OverrangeResponse) gtk_dialog_run(GTK_DIALOG(dialog));
 		gtk_widget_destroy(dialog);
+		g_free(msg);
 		switch (result) {
 			case RESPONSE_CANCEL:
 				return FALSE;
