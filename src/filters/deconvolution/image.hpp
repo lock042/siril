@@ -268,138 +268,129 @@ public:
 
         img_t<T> out(x.w, x.h, x.d);
         const int ix = (k.w-1)/2;
-// Do all the inside
-#ifdef _OPENMP
-#pragma omp parallel for schedule(static,16) collapse(3) num_threads(cppmaxthreads)
-#endif
-        for (int c = 0 ; c < d ; c++) {
-            for (int i = ix ; i < x.w-ix ; i++) {
-                for (int j = ix ; j < x.h-ix ; j++) {
-                    T val = T(0);
-#ifdef _OPENMP
-#pragma omp simd collapse(2)
-#endif
-                    for (int m = -ix ; m < ix+1 ; m++) {
-                        for (int n = -ix ; n < ix+1 ; n++) {
-                            val += x(i+m, j+n, c) * k(m+ix, n+ix, 0);
-                        }
-                    }
-                    out(i, j, c) = val;// / norm;
-                }
-            }
-        }
-// Now do the borders
-// Left
-#ifdef _OPENMP
-#pragma omp parallel for schedule(static,16) collapse(3) num_threads(cppmaxthreads)
-#endif
-        for (int c = 0 ; c < d ; c++) {
-            for (int i = 0 ; i < ix ; i++) {
-                for (int j = 0 ; j < x.h ; j++) {
-                    T val = T(0);
-                    T norm = T(0);
-#ifdef _OPENMP
-#pragma omp simd collapse(2)
-#endif
-                    for (int m = -ix ; m < ix+1 ; m++) {
-                        for (int n = -ix ; n < ix+1 ; n++) {
-                            int im =i + m, jn = j+n;
-                            if (im >= ix && im < x.w - ix && jn >= ix && jn < x.h - ix) {
-                                val += x(im, jn, c) * k(m+ix, n+ix, 0);
-                                norm += k(m+ix, n+ix, 0);
+
+        // Main convolution (excluding borders)
+        #pragma omp parallel num_threads(cppmaxthreads)
+        {
+            #pragma omp for collapse(3) schedule(guided)
+            for (int c = 0; c < d; c++) {
+                for (int i = ix; i < x.w-ix; i++) {
+                    for (int j = ix; j < x.h-ix; j++) {
+                        T val = T(0);
+                        #pragma omp simd reduction(+:val)
+                        for (int m = -ix; m < ix+1; m++) {
+                            for (int n = -ix; n < ix+1; n++) {
+                                val += x(i+m, j+n, c) * k(m+ix, n+ix, 0);
                             }
                         }
+                        out(i, j, c) = val;
                     }
-                    out(i, j, c) = val;// / norm;
                 }
             }
-        }
-// Right
-#ifdef _OPENMP
-#pragma omp parallel for schedule(static,16) collapse(3) num_threads(cppmaxthreads)
-#endif
-        for (int c = 0 ; c < d ; c++) {
-            for (int i = x.w - ix ; i < x.w ; i++) {
-                for (int j = 0 ; j < x.h ; j++) {
-                    T val = T(0);
-                    T norm = T(0);
-#ifdef _OPENMP
-#pragma omp simd collapse(2)
-#endif
-                    for (int m = -ix ; m < ix+1 ; m++) {
-                        for (int n = -ix ; n < ix+1 ; n++) {
-                            int im =i + m, jn = j+n;
-                            if (im >= ix && im < x.w - ix && jn >= ix && jn < x.h - ix) {
-                                val += x(im, jn, c) * k(m+ix, n+ix, 0);
-                                norm += k(m+ix, n+ix, 0);
+
+            // Left border
+            #pragma omp for collapse(3) schedule(guided)
+            for (int c = 0; c < d; c++) {
+                for (int i = 0; i < ix; i++) {
+                    for (int j = 0; j < x.h; j++) {
+                        T val = T(0);
+                        #pragma omp simd reduction(+:val)
+                        for (int m = -ix; m < ix+1; m++) {
+                            for (int n = -ix; n < ix+1; n++) {
+                                int im = i + m, jn = j + n;
+                                if (im >= 0 && im < x.w && jn >= 0 && jn < x.h) {
+                                    val += x(im, jn, c) * k(m+ix, n+ix, 0);
+                                }
                             }
                         }
+                        out(i, j, c) = val;
                     }
-                    out(i, j, c) = val;// / norm;
                 }
             }
-        }
-// Top
-#ifdef _OPENMP
-#pragma omp parallel for schedule(static,16) collapse(3) num_threads(cppmaxthreads)
-#endif
-        for (int c = 0 ; c < d ; c++) {
-            for (int i = 0 ; i < x.w ; i++) {
-                for (int j = 0 ; j < ix ; j++) {
-                    T val = T(0);
-                    T norm = T(0);
-#ifdef _OPENMP
-#pragma omp simd collapse(2)
-#endif
-                    for (int m = -ix ; m < ix+1 ; m++) {
-                        for (int n = -ix ; n < ix+1 ; n++) {
-                            int im =i + m, jn = j+n;
-                            if (im >= ix && im < x.w - ix && jn >= ix && jn < x.h - ix) {
-                                val += x(im, jn, c) * k(m+ix, n+ix, 0);
-                                norm += k(m+ix, n+ix, 0);
+
+            // Right border
+            #pragma omp for collapse(3) schedule(guided)
+            for (int c = 0; c < d; c++) {
+                for (int i = x.w - ix; i < x.w; i++) {
+                    for (int j = 0; j < x.h; j++) {
+                        T val = T(0);
+                        #pragma omp simd reduction(+:val)
+                        for (int m = -ix; m < ix+1; m++) {
+                            for (int n = -ix; n < ix+1; n++) {
+                                int im = i + m, jn = j + n;
+                                if (im >= 0 && im < x.w && jn >= 0 && jn < x.h) {
+                                    val += x(im, jn, c) * k(m+ix, n+ix, 0);
+                                }
                             }
                         }
+                        out(i, j, c) = val;
                     }
-                    out(i, j, c) = val;// / norm;
                 }
             }
-        }
-// Bottom
-#ifdef _OPENMP
-#pragma omp parallel for schedule(static,16) collapse(3) num_threads(cppmaxthreads)
-#endif
-        for (int c = 0 ; c < d ; c++) {
-            for (int i = 0 ; i < x.w ; i++) {
-                for (int j = x.h-ix ; j < x.h ; j++) {
-                    T val = T(0);
-                    T norm = T(0);
-#ifdef _OPENMP
-#pragma omp simd collapse(2)
-#endif
-                    for (int m = -ix ; m < ix+1 ; m++) {
-                        for (int n = -ix ; n < ix+1 ; n++) {
-                            int im =i + m, jn = j+n;
-                            if (im >= ix && im < x.w - ix && jn >= ix && jn < x.h - ix) {
-                                val += x(im, jn, c) * k(m+ix, n+ix, 0);
-                                norm += k(m+ix, n+ix, 0);
+
+            // Top border (excluding corners already handled by left/right)
+            #pragma omp for collapse(3) schedule(guided)
+            for (int c = 0; c < d; c++) {
+                for (int i = ix; i < x.w - ix; i++) {
+                    for (int j = 0; j < ix; j++) {
+                        T val = T(0);
+                        #pragma omp simd reduction(+:val)
+                        for (int m = -ix; m < ix+1; m++) {
+                            for (int n = -ix; n < ix+1; n++) {
+                                int im = i + m, jn = j + n;
+                                if (im >= 0 && im < x.w && jn >= 0 && jn < x.h) {
+                                    val += x(im, jn, c) * k(m+ix, n+ix, 0);
+                                }
                             }
                         }
+                        out(i, j, c) = val;
                     }
-                    out(i, j, c) = val;// / norm;
+                }
+            }
+
+            // Bottom border (excluding corners already handled by left/right)
+            #pragma omp for collapse(3) schedule(guided)
+            for (int c = 0; c < d; c++) {
+                for (int i = ix; i < x.w - ix; i++) {
+                    for (int j = x.h - ix; j < x.h; j++) {
+                        T val = T(0);
+                        #pragma omp simd reduction(+:val)
+                        for (int m = -ix; m < ix+1; m++) {
+                            for (int n = -ix; n < ix+1; n++) {
+                                int im = i + m, jn = j + n;
+                                if (im >= 0 && im < x.w && jn >= 0 && jn < x.h) {
+                                    val += x(im, jn, c) * k(m+ix, n+ix, 0);
+                                }
+                            }
+                        }
+                        out(i, j, c) = val;
+                    }
                 }
             }
         }
+
         (*this).map(out);
     }
 
-// Don't use this - it causes problems for the MacOS build
-/*
-    void mapf(const std::function<T(T)>& f) {
+    // Updated mapf() function, hopefully should avoid the MacOS problems
+    template <typename F>
+    void mapf(F&& f) {
+        #pragma omp parallel for schedule(static) num_threads(cppmaxthreads)
         for (int i = 0; i < size; i++) {
             (*this)[i] = f((*this)[i]);
         }
     }
-*/
+
+    // Overload for when the function returns a different type
+    template <typename F, typename R = std::invoke_result_t<F, T>>
+    std::enable_if_t<!std::is_same_v<R, T>, img_t<R>> mapf(F&& f) const {
+        img_t<R> result(w, h, d);
+        #pragma omp parallel for schedule(static) num_threads(cppmaxthreads)
+        for (int i = 0; i < size; i++) {
+            result[i] = f((*this)[i]);
+        }
+        return result;
+    }
 
 /*
 // Keeping these functions for later work, not needed yet
@@ -466,7 +457,7 @@ public:
     void map(const img_t<T2>& o, const F& f) {
         assert(o.similar(*this));
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
+#pragma omp parallel for schedule(static) num_threads(cppmaxthreads)
 #endif
         for (int i = 0; i < size; i++) {
             (*this)[i] = f(o[i]);
@@ -478,7 +469,7 @@ public:
         assert(o.similar(*this));
 
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) collapse(3) num_threads(cppmaxthreads)
+#pragma omp parallel for schedule(static) collapse(3) num_threads(cppmaxthreads)
 #endif
        for (int y = 0; y < o.h; y++) {
             for (int x = 0; x < o.w; x++) {
@@ -508,226 +499,221 @@ public:
     template <typename T2>
     void gradients(const img_t<T2>& u_) {
         const img_t<typename T::value_type>& u = *static_cast<const img_t<typename T::value_type>*>(&u_);
+        #pragma omp parallel for collapse(3) schedule(guided) num_threads(cppmaxthreads)
         for (int l = 0; l < d; l++) {
-#ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
-#endif
-            for (int y = 0; y < h; y++)
-                for (int x = 0; x < w-1; x++)
-                    (*this)(x, y, l)[0] = u(x+1, y, l) - u(x, y, l);
-            for (int y = 0; y < h; y++)
-                (*this)(w-1, y, l)[0] = 0;
-
-#ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
-#endif
-            for (int y = 0; y < h-1; y++)
-                for (int x = 0; x < w; x++)
-                    (*this)(x, y, l)[1] = u(x, y+1, l) - u(x, y, l);
-            for (int x = 0; x < w; x++)
-                (*this)(x, h-1, l)[1] = 0;
+            for (int y = 0; y < h; y++) {
+                for (int x = 0; x < w; x++) {
+                    (*this)(x, y, l)[0] = (x < w - 1) ? (u(x+1, y, l) - u(x, y, l)) : 0;
+                    (*this)(x, y, l)[1] = (y < h - 1) ? (u(x, y+1, l) - u(x, y, l)) : 0;
+                }
+            }
         }
     }
 
     template <typename T2>
     void circular_gradients(const img_t<T2>& u_) {
         const img_t<typename T::value_type>& u = *static_cast<const img_t<typename T::value_type>*>(&u_);
-        for (int l = 0; l < d; l++) {
-#ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
-#endif
-            for (int y = 0; y < h; y++)
-                for (int x = 0; x < w; x++)
-                    (*this)(x, y, l)[0] = u((x+1)%w, y, l) - u(x, y, l);
-
-#ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
-#endif
-            for (int y = 0; y < h; y++)
-                for (int x = 0; x < w; x++)
-                    (*this)(x, y, l)[1] = u(x, (y+1)%h, l) - u(x, y, l);
+        #pragma omp parallel num_threads(cppmaxthreads)
+        {
+            #pragma omp for collapse(3) schedule(guided)
+            for (int l = 0; l < d; l++) {
+                for (int y = 0; y < h; y++) {
+                    for (int x = 0; x < w; x++) {
+                        (*this)(x, y, l)[0] = u((x+1)%w, y, l) - u(x, y, l);
+                        (*this)(x, y, l)[1] = u(x, (y+1)%h, l) - u(x, y, l);
+                    }
+                }
+            }
         }
     }
 
     void gradientx(const img_t<T>& u) {
-        for (int l = 0; l < d; l++) {
-#ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
-#endif
-            for (int y = 0; y < h; y++)
-                for (int x = 0; x < w-1; x++)
-                    (*this)(x, y, l) = u(x+1, y, l) - u(x, y, l);
-            for (int y = 0; y < h; y++)
-                (*this)(w-1, y, l) = 0;
+        #pragma omp parallel num_threads(cppmaxthreads)
+        {
+            #pragma omp for collapse(2) schedule(guided)
+            for (int l = 0; l < d; l++) {
+                for (int y = 0; y < h; y++) {
+                    #pragma omp simd
+                    for (int x = 0; x < w-1; x++) {
+                        (*this)(x, y, l) = u(x+1, y, l) - u(x, y, l);
+                    }
+                    (*this)(w-1, y, l) = 0;
+                }
+            }
         }
     }
+
     void gradienty(const img_t<T>& u) {
+        #pragma omp parallel for collapse(3) schedule(guided) num_threads(cppmaxthreads)
         for (int l = 0; l < d; l++) {
-#ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
-#endif
-            for (int y = 0; y < h-1; y++)
-                for (int x = 0; x < w; x++)
-                    (*this)(x, y, l) = u(x, y+1, l) - u(x, y, l);
-#ifdef _OPENMP
-#pragma omp simd
-#endif
-            for (int x = 0; x < w; x++)
-                (*this)(x, h-1, l) = 0;
-        }
-    }
-
-    void gradientxx(const img_t<T>&u) {
-        for (int l = 0 ; l < d ; l++) {
-#ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) collapse(2) num_threads(cppmaxthreads)
-#endif
-            for (int y = 0 ; y < h ; y++)
-                for (int x = 1 ; x < w-1 ; x++)
-                    (*this)(x, y, l) = u(x+1, y, l) + u(x-1, y, l) - 2 * u(x, y, l);
-#ifdef _OPENMP
-#pragma omp simd
-#endif
-            for (int y = 0 ; y < h ; y++) { // Only SIMD for this loop as it's unlikely to be big
-                // enough to be worth spinning up a team of threads
-                (*this)(0, y, l) = 0;
-                (*this)(w-1, y, l) = 0;
+            for (int y = 0; y < h; y++) {
+                for (int x = 0; x < w; x++) {
+                    (*this)(x, y, l) = (y < h - 1) ? (u(x, y+1, l) - u(x, y, l)) : 0;
+                }
             }
         }
     }
 
-    void gradientyy(const img_t<T>&u) {
-        for (int l = 0 ; l < d ; l++) {
-#ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
-#endif
-            for (int y = 1 ; y < h-1 ; y++)
-                for (int x = 0 ; x < w ; x++)
-                    (*this)(x, y, l) = u(x, y+1, l) + u(x, y-1, l) - 2 * u(x, y, l);
-#ifdef _OPENMP
-#pragma omp simd
-#endif
-            for (int x = 0 ; x < w ; x++) {
-                (*this)(x, 0, l) = 0;
-                (*this)(x, h-1, l) = 0;
+    void gradientxx(const img_t<T>& u) {
+        #pragma omp parallel num_threads(cppmaxthreads)
+        {
+            #pragma omp for collapse(2) schedule(guided)
+            for (int l = 0; l < d; l++) {
+                for (int y = 0; y < h; y++) {
+                    #pragma omp simd
+                    for (int x = 1; x < w-1; x++) {
+                        (*this)(x, y, l) = u(x+1, y, l) + u(x-1, y, l) - 2 * u(x, y, l);
+                    }
+                    (*this)(0, y, l) = 0;
+                    (*this)(w-1, y, l) = 0;
+                }
             }
         }
     }
 
-    void gradientxy(const img_t<T>&u) {
-        for (int l = 0 ; l < d ; l++) {
-#ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
-#endif
-            for (int y = 1 ; y < h-1 ; y++)
-                for (int x = 0 ; x < w-1 ; x++)
-                    (*this)(x, y, l) = u(x+1, y+1, l) - u(x+1, y, l) - u(x, y+1, l) + u(x, y, l);
-#ifdef _OPENMP
-#pragma omp simd
-#endif
-            for (int x = 0 ; x < w ; x++)
-                (*this)(x, h-1, l) = 0;
-#ifdef _OPENMP
-#pragma omp simd
-#endif
-            for (int y = 0 ; y < h ; y++)
-                (*this)(w-1, y, 0) = 0;
+    void gradientyy(const img_t<T>& u) {
+        #pragma omp parallel num_threads(cppmaxthreads)
+        {
+            #pragma omp for collapse(2) schedule(guided)
+            for (int l = 0; l < d; l++) {
+                for (int x = 0; x < w; x++) {
+                    #pragma omp simd
+                    for (int y = 1; y < h-1; y++) {
+                        (*this)(x, y, l) = u(x, y+1, l) + u(x, y-1, l) - 2 * u(x, y, l);
+                    }
+                    (*this)(x, 0, l) = 0;
+                    (*this)(x, h-1, l) = 0;
+                }
+            }
+        }
+    }
+
+    void gradientxy(const img_t<T>& u) {
+        #pragma omp parallel for collapse(3) schedule(guided) num_threads(cppmaxthreads)
+        for (int l = 0; l < d; l++) {
+            for (int y = 0; y < h; y++) {
+                for (int x = 0; x < w; x++) {
+                    (*this)(x, y, l) = (x < w - 1 && y < h - 1) ?
+                        (u(x+1, y+1, l) - u(x+1, y, l) - u(x, y+1, l) + u(x, y, l)) : 0;
+                }
+            }
         }
     }
 
     template <typename T2>
     void divergence(const img_t<T2>& g) {
-        for (int l = 0; l < d; l++) {
-            // center
-#ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
-#endif
-            for (int y = 1; y < h-1; y++)
-            for (int x = 1; x < w-1; x++)
-                (*this)(x, y, l) = g(x, y, l)[0] - g(x-1, y, l)[0] + g(x, y, l)[1] - g(x, y-1, l)[1];
+        #pragma omp parallel num_threads(cppmaxthreads)
+        {
+            for (int l = 0; l < d; l++) {
+                #pragma omp for schedule(guided)
+                for (int y = 1; y < h-1; y++) {
+                    #pragma omp simd
+                    for (int x = 1; x < w-1; x++) {
+                        (*this)(x, y, l) = g(x, y, l)[0] - g(x-1, y, l)[0] + g(x, y, l)[1] - g(x, y-1, l)[1];
+                    }
+                }
 
-            // 4 corners
-            (*this)(0, 0, l) = g(0, 0, l)[0] + g(0, 0, l)[1];
-            (*this)(w-1, 0, l) = -g(w-2, 0, l)[0] + g(w-1, 0, l)[1];
-            (*this)(0, h-1, l) = g(0, h-1, l)[0] - g(0, h-2, l)[1];
-            (*this)(w-1, h-1, l) = -g(w-2, h-1, l)[0] - g(w-1, h-2, l)[1];
+                #pragma omp single
+                {
+                    (*this)(0, 0, l) = g(0, 0, l)[0] + g(0, 0, l)[1];
+                    (*this)(w-1, 0, l) = -g(w-2, 0, l)[0] + g(w-1, 0, l)[1];
+                    (*this)(0, h-1, l) = g(0, h-1, l)[0] - g(0, h-2, l)[1];
+                    (*this)(w-1, h-1, l) = -g(w-2, h-1, l)[0] - g(w-1, h-2, l)[1];
+                }
 
-            // borders
-#ifdef _OPENMP
-#pragma omp simd
-#endif
-            for (int y = 1; y < h-1; y++)
-                (*this)(0, y, l) = g(0, y, l)[0] + g(0, y, l)[1] - g(0, y-1, l)[1];
-#ifdef _OPENMP
-#pragma omp simd
-#endif
-            for (int x = 1; x < w-1; x++)
-                (*this)(x, 0, l) = g(x, 0, l)[0] - g(x-1, 0, l)[0] + g(x, 0, l)[1];
-#ifdef _OPENMP
-#pragma omp simd
-#endif
-            for (int y = 1; y < h-1; y++)
-                (*this)(w-1, y, l) = -g(w-2, y, l)[0] + g(w-1, y, l)[1] - g(w-1, y-1, l)[1];
-#ifdef _OPENMP
-#pragma omp simd
-#endif
-            for (int x = 1; x < w-1; x++)
-                (*this)(x, h-1, l) = g(x, h-1, l)[0] - g(x-1, h-1, l)[0] - g(x, h-2, l)[1];
+                #pragma omp sections
+                {
+                    #pragma omp section
+                    {
+                        #pragma omp simd
+                        for (int y = 1; y < h-1; y++)
+                            (*this)(0, y, l) = g(0, y, l)[0] + g(0, y, l)[1] - g(0, y-1, l)[1];
+                    }
+                    #pragma omp section
+                    {
+                        #pragma omp simd
+                        for (int x = 1; x < w-1; x++)
+                            (*this)(x, 0, l) = g(x, 0, l)[0] - g(x-1, 0, l)[0] + g(x, 0, l)[1];
+                    }
+                    #pragma omp section
+                    {
+                        #pragma omp simd
+                        for (int y = 1; y < h-1; y++)
+                            (*this)(w-1, y, l) = -g(w-2, y, l)[0] + g(w-1, y, l)[1] - g(w-1, y-1, l)[1];
+                    }
+                    #pragma omp section
+                    {
+                        #pragma omp simd
+                        for (int x = 1; x < w-1; x++)
+                            (*this)(x, h-1, l) = g(x, h-1, l)[0] - g(x-1, h-1, l)[0] - g(x, h-2, l)[1];
+                    }
+                }
+            }
         }
     }
 
     template <typename T2>
     void circular_divergence(const img_t<T2>& g) {
-#ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) collapse(3) num_threads(cppmaxthreads)
-#endif
+        #pragma omp parallel for collapse(3) schedule(guided) num_threads(cppmaxthreads)
         for (int l = 0; l < d; l++) {
-            for (int y = 0; y < h; y++)
-                for (int x = 0; x < w; x++)
+            for (int y = 0; y < h; y++) {
+                for (int x = 0; x < w; x++) {
                     (*this)(x, y, l) = g(x, y, l)[0] - g((x-1+w)%w, y, l)[0] + g(x, y, l)[1] - g(x, (y-1+h)%h, l)[1];
+                }
+            }
         }
     }
 
     void divergence(const img_t<T>& gx, const img_t<T>& gy) {
-        for (int l = 0; l < d; l++) {
-            // center
-#ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
-#endif
-            for (int y = 1; y < h-1; y++)
-                for (int x = 1; x < w-1; x++)
-                    (*this)(x, y, l) = gx(x, y, l) - gx(x-1, y, l) + gy(x, y, l) - gy(x, y-1, l);
+        #pragma omp parallel num_threads(cppmaxthreads)
+        {
+            for (int l = 0; l < d; l++) {
+                #pragma omp for schedule(guided)
+                for (int y = 1; y < h-1; y++) {
+                    #pragma omp simd
+                    for (int x = 1; x < w-1; x++) {
+                        (*this)(x, y, l) = gx(x, y, l) - gx(x-1, y, l) + gy(x, y, l) - gy(x, y-1, l);
+                    }
+                }
 
-            // 4 corners
-            (*this)(0, 0, l) = gx(0, 0, l) + gy(0, 0, l);
-            (*this)(w-1, 0, l) = -gx(w-2, 0, l) + gy(w-1, 0);
-            (*this)(0, h-1, l) = gx(0, h-1, l) - gy(0, h-2, l);
-            (*this)(w-1, h-1, l) = -gx(w-2, h-1, l) - gy(w-1, h-2, l);
+                #pragma omp single
+                {
+                    (*this)(0, 0, l) = gx(0, 0, l) + gy(0, 0, l);
+                    (*this)(w-1, 0, l) = -gx(w-2, 0, l) + gy(w-1, 0, l);
+                    (*this)(0, h-1, l) = gx(0, h-1, l) - gy(0, h-2, l);
+                    (*this)(w-1, h-1, l) = -gx(w-2, h-1, l) - gy(w-1, h-2, l);
+                }
 
-            // borders
-#ifdef _OPENMP
-#pragma omp simd
-#endif
-            for (int y = 1; y < h-1; y++)
-                (*this)(0, y, l) = gx(0, y, l) + gy(0, y, l) - gy(0, y-1, l);
-#ifdef _OPENMP
-#pragma omp simd
-#endif
-            for (int x = 1; x < w-1; x++)
-                (*this)(x, 0, l) = gx(x, 0, l) - gx(x-1, 0, l) + gy(x, 0, l);
-#ifdef _OPENMP
-#pragma omp simd
-#endif
-            for (int y = 1; y < h-1; y++)
-                (*this)(w-1, y, l) = -gx(w-2, y, l) + gy(w-1, y, l) - gy(w-1, y-1, l);
-#ifdef _OPENMP
-#pragma omp simd
-#endif
-            for (int x = 1; x < w-1; x++)
-                (*this)(x, h-1, l) = gx(x, h-1, l) - gx(x-1, h-1, l) - gy(x, h-2, l);
+                #pragma omp sections
+                {
+                    #pragma omp section
+                    {
+                        #pragma omp simd
+                        for (int y = 1; y < h-1; y++)
+                            (*this)(0, y, l) = gx(0, y, l) + gy(0, y, l) - gy(0, y-1, l);
+                    }
+                    #pragma omp section
+                    {
+                        #pragma omp simd
+                        for (int x = 1; x < w-1; x++)
+                            (*this)(x, 0, l) = gx(x, 0, l) - gx(x-1, 0, l) + gy(x, 0, l);
+                    }
+                    #pragma omp section
+                    {
+                        #pragma omp simd
+                        for (int y = 1; y < h-1; y++)
+                            (*this)(w-1, y, l) = -gx(w-2, y, l) + gy(w-1, y, l) - gy(w-1, y-1, l);
+                    }
+                    #pragma omp section
+                    {
+                        #pragma omp simd
+                        for (int x = 1; x < w-1; x++)
+                            (*this)(x, h-1, l) = gx(x, h-1, l) - gx(x-1, h-1, l) - gy(x, h-2, l);
+                    }
+                }
+            }
         }
     }
-
     void fft(const img_t<std::complex<float> >& o) {
         static_assert(std::is_same<T, std::complex<float>>::value, "T must be complex float");
         assert(w == o.w);
@@ -772,41 +758,40 @@ public:
         img_t<T> out;
         out.resize(*this);
 
-        int halfw = (this->w + 1) / 2.;
-        int halfh = (this->h + 1) / 2.;
+        int halfw = (this->w + 1) / 2;
+        int halfh = (this->h + 1) / 2;
         int ohalfw = this->w - halfw;
         int ohalfh = this->h - halfh;
-        for (int l = 0; l < this->d; l++) {
-#ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
-#endif
-            for (int y = 0; y < halfh; y++) {
-                for (int x = 0; x < ohalfw; x++) {
-                    out(x, y + ohalfh, l) = (*this)(x + halfw, y, l);
+
+        #pragma omp parallel num_threads(cppmaxthreads)
+        {
+            for (int l = 0; l < this->d; l++) {
+                #pragma omp for collapse(2) schedule(static)
+                for (int y = 0; y < halfh; y++) {
+                    for (int x = 0; x < ohalfw; x++) {
+                        out(x, y + ohalfh, l) = (*this)(x + halfw, y, l);
+                    }
                 }
-            }
-#ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
-#endif
-            for (int y = 0; y < halfh; y++) {
-                for (int x = 0; x < halfw; x++) {
-                    out(x + ohalfw, y + ohalfh, l) = (*this)(x, y, l);
+
+                #pragma omp for collapse(2) schedule(static)
+                for (int y = 0; y < halfh; y++) {
+                    for (int x = 0; x < halfw; x++) {
+                        out(x + ohalfw, y + ohalfh, l) = (*this)(x, y, l);
+                    }
                 }
-            }
-#ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
-#endif
-            for (int y = 0; y < ohalfh; y++) {
-                for (int x = 0; x < ohalfw; x++) {
-                    out(x, y, l) = (*this)(x + halfw, y + halfh, l);
+
+                #pragma omp for collapse(2) schedule(static)
+                for (int y = 0; y < ohalfh; y++) {
+                    for (int x = 0; x < ohalfw; x++) {
+                        out(x, y, l) = (*this)(x + halfw, y + halfh, l);
+                    }
                 }
-            }
-#ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
-#endif
-            for (int y = 0; y < ohalfh; y++) {
-                for (int x = 0; x < halfw; x++) {
-                    out(x + ohalfw, y, l) = (*this)(x, y + halfh, l);
+
+                #pragma omp for collapse(2) schedule(static)
+                for (int y = 0; y < ohalfh; y++) {
+                    for (int x = 0; x < halfw; x++) {
+                        out(x + ohalfw, y, l) = (*this)(x, y + halfh, l);
+                    }
                 }
             }
         }
@@ -818,41 +803,40 @@ public:
         img_t<T> out;
         out.resize(*this);
 
-        int halfw = (this->w + 1) / 2.;
-        int halfh = (this->h + 1) / 2.;
+        int halfw = (this->w + 1) / 2;
+        int halfh = (this->h + 1) / 2;
         int ohalfw = this->w - halfw;
         int ohalfh = this->h - halfh;
-        for (int l = 0; l < this->d; l++) {
-#ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
-#endif
-            for (int y = 0; y < ohalfh; y++) {
-                for (int x = 0; x < halfw; x++) {
-                    out(x, y + halfh, l) = (*this)(x + ohalfw, y, l);
+
+        #pragma omp parallel num_threads(cppmaxthreads)
+        {
+            for (int l = 0; l < this->d; l++) {
+                #pragma omp for collapse(2) schedule(static)
+                for (int y = 0; y < ohalfh; y++) {
+                    for (int x = 0; x < halfw; x++) {
+                        out(x, y + halfh, l) = (*this)(x + ohalfw, y, l);
+                    }
                 }
-            }
-#ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
-#endif
-            for (int y = 0; y < ohalfh; y++) {
-                for (int x = 0; x < ohalfw; x++) {
-                    out(x + halfw, y + halfh, l) = (*this)(x, y, l);
+
+                #pragma omp for collapse(2) schedule(static)
+                for (int y = 0; y < ohalfh; y++) {
+                    for (int x = 0; x < ohalfw; x++) {
+                        out(x + halfw, y + halfh, l) = (*this)(x, y, l);
+                    }
                 }
-            }
-#ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
-#endif
-            for (int y = 0; y < halfh; y++) {
-                for (int x = 0; x < halfw; x++) {
-                    out(x, y, l) = (*this)(x + ohalfw, y + ohalfh, l);
+
+                #pragma omp for collapse(2) schedule(static)
+                for (int y = 0; y < halfh; y++) {
+                    for (int x = 0; x < halfw; x++) {
+                        out(x, y, l) = (*this)(x + ohalfw, y + ohalfh, l);
+                    }
                 }
-            }
-#ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
-#endif
-            for (int y = 0; y < halfh; y++) {
-                for (int x = 0; x < ohalfw; x++) {
-                    out(x + halfw, y, l) = (*this)(x, y + ohalfh, l);
+
+                #pragma omp for collapse(2) schedule(static)
+                for (int y = 0; y < halfh; y++) {
+                    for (int x = 0; x < ohalfw; x++) {
+                        out(x + halfw, y, l) = (*this)(x, y + ohalfh, l);
+                    }
                 }
             }
         }
@@ -865,41 +849,50 @@ public:
         set_value(0);
         int ww = o.w / 2;
         int hh = o.h / 2;
-        for (int dd = 0; dd < d; dd++) {
-            int od = 0;
-            if (d == o.d)
-                od = dd;
-            else if (o.d == 1)
-                od = 0;
-            else {
-                printf("Error: depths are %d and %d\n", d, o.d);
-                assert(false);
-            }
-#ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
-#endif
-            for (int y = 0; y < hh; y++) {
-                for (int x = 0; x < ww; x++) {
-                    (*this)(w  - ww + x, h  - hh + y, dd) = o(x, y, od);
+
+        #pragma omp parallel num_threads(cppmaxthreads)
+        {
+            for (int dd = 0; dd < d; dd++) {
+                int od = 0;
+                if (d == o.d)
+                    od = dd;
+                else if (o.d == 1)
+                    od = 0;
+                else {
+                    printf("Error: depths are %d and %d\n", d, o.d);
+                    assert(false);
                 }
-                for (int x = ww; x < o.w; x++) {
-                    (*this)(- ww + x, h  - hh + y, dd) = o(x, y, od);
+
+                #pragma omp for collapse(2) schedule(static)
+                for (int y = 0; y < hh; y++) {
+                    for (int x = 0; x < ww; x++) {
+                        (*this)(w - ww + x, h - hh + y, dd) = o(x, y, od);
+                    }
                 }
-            }
-#ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
-#endif
-            for (int y = hh; y < o.h; y++) {
-                for (int x = 0; x < ww; x++) {
-                    (*this)(w  - ww + x, - hh + y, dd) = o(x, y, od);
+
+                #pragma omp for collapse(2) schedule(static)
+                for (int y = 0; y < hh; y++) {
+                    for (int x = ww; x < o.w; x++) {
+                        (*this)(- ww + x, h - hh + y, dd) = o(x, y, od);
+                    }
                 }
-                for (int x = ww; x < o.w; x++) {
-                    (*this)(- ww + x, - hh + y, dd) = o(x, y, od);
+
+                #pragma omp for collapse(2) schedule(static)
+                for (int y = hh; y < o.h; y++) {
+                    for (int x = 0; x < ww; x++) {
+                        (*this)(w - ww + x, - hh + y, dd) = o(x, y, od);
+                    }
+                }
+
+                #pragma omp for collapse(2) schedule(static)
+                for (int y = hh; y < o.h; y++) {
+                    for (int x = ww; x < o.w; x++) {
+                        (*this)(- ww + x, - hh + y, dd) = o(x, y, od);
+                    }
                 }
             }
         }
     }
-
     void ensure_size(int w, int h, int d=1) {
         assert(w > 0);
         assert(h > 0);
@@ -940,10 +933,8 @@ public:
     }
 
     void sanitize() {
-#ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
-#endif
-        for (int i = 0 ; i < size ; i++) {
+        #pragma omp parallel for schedule(static) num_threads(cppmaxthreads)
+        for (int i = 0; i < size; i++) {
             if (((*this)[i] != (*this)[i]) || (*this)[i] == T(0))
                 (*this)[i] = T(1.e-9);
         }
@@ -953,6 +944,7 @@ public:
         assert(d == 1);
         assert(w == color.w);
         assert(h == color.h);
+        #pragma omp parallel for schedule(static) num_threads(cppmaxthreads)
         for (int i = 0; i < size; i++) {
             T val(0);
             for (int dd = 0; dd < color.d; dd++) {
@@ -963,28 +955,25 @@ public:
     }
 
     void desaturate() {
-        for (int i = 0 ; i < w ; i++) {
-            for (int j = 0 ; j < h ; j++) {
+        #pragma omp parallel for collapse(2) schedule(static) num_threads(cppmaxthreads)
+        for (int i = 0; i < w; i++) {
+            for (int j = 0; j < h; j++) {
                 T val = T(0);
-                for (int c = 0 ; c < d ; c++) {
+                for (int c = 0; c < d; c++) {
                     val += (*this)(i, j, c);
                 }
-                (*this)(i,j,0) = val / d;
+                (*this)(i, j, 0) = val / d;
             }
         }
         d = 1;
         data.resize(w * h);
     }
 
-
-
     void transpose() {
         img_t<T> o(*this);
         this->w = o.h;
         this->h = o.w;
-#ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
-#endif
+        #pragma omp parallel for collapse(2) schedule(static) num_threads(cppmaxthreads)
         for (int y = 0; y < o.h; y++) {
             for (int x = 0; x < o.w; x++) {
                 for (int dd = 0; dd < d; dd++) {
@@ -996,9 +985,7 @@ public:
 
     void transposeToMatlab() {
         img_t<T> o(*this);
-#ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
-#endif
+        #pragma omp parallel for collapse(2) schedule(static) num_threads(cppmaxthreads)
         for (int y = 0; y < h; y++) {
             for (int x = 0; x < w; x++) {
                 for (int dd = 0; dd < d; dd++) {
@@ -1010,9 +997,7 @@ public:
 
     void transposeFromMatlab() {
         img_t<T> o(*this);
-#ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
-#endif
+        #pragma omp parallel for collapse(2) schedule(static) num_threads(cppmaxthreads)
         for (int y = 0; y < h; y++) {
             for (int x = 0; x < w; x++) {
                 for (int dd = 0; dd < d; dd++) {
@@ -1021,16 +1006,13 @@ public:
             }
         }
     }
-
 };
 
 namespace img {
     template <typename T, typename E>
     T sum(const E& img) {
         T a(0);
-#ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads)
-#endif
+        #pragma omp parallel for reduction(+:a) schedule(static) num_threads(cppmaxthreads)
         for (int i = 0; i < img.size; i++) {
             a += img[i];
         }
@@ -1053,12 +1035,9 @@ namespace img {
     void rgb2ycbcr(img_t<T>& out, const img_t<T>& in)
     {
         assert(in.d == 3);
-
         out.ensure_size(in.w, in.h, in.d);
 
-#ifdef _OPENMP
-#pragma omp parallel for simd schedule(static, 16) num_threads(cppmaxthreads)
-#endif
+        #pragma omp parallel for schedule(static) num_threads(cppmaxthreads)
         for (int i = 0; i < out.w*out.h; i++) {
             T r = in[i*3+0];
             T g = in[i*3+1];
@@ -1074,12 +1053,9 @@ namespace img {
     void ycbcr2rgb(img_t<T>& out, const img_t<T>& in)
     {
         assert(in.d == 3);
-
         out.ensure_size(in.w, in.h, in.d);
 
-#ifdef _OPENMP
-#pragma omp parallel for simd schedule(static, 16) num_threads(cppmaxthreads)
-#endif
+        #pragma omp parallel for schedule(static) num_threads(cppmaxthreads)
         for (int i = 0; i < out.w*out.h; i++) {
             T y = in[i*3+0];
             T cb = in[i*3+1];
@@ -1089,6 +1065,5 @@ namespace img {
             out[i*3+2] = y + 1.773 * (cb - 0.5);
         }
     }
-
 };
 
