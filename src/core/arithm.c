@@ -448,3 +448,19 @@ void rgbblend(blend_data *data, float* r, float* g, float* b, float m_CB) {
 		*out[chan] = data->do_channel[chan] ? (1.f - k) * data->tf[chan] + k * data->sf[chan] : *out[chan];
 	}
 }
+
+void clip(fits *fit) {
+	if (fit->type == DATA_USHORT) return; // USHORT cannot be out of range
+	size_t ndata = fit->rx * fit->ry * fit->naxes[2];
+	for (size_t i = 0 ; i < ndata ; i++) {
+		fit->fdata[i] = fit->fdata[i] < 0.f ? 0.f : fit->fdata[i] > 1.f ? 1.f : fit->fdata[i];
+	}
+}
+
+void clipneg(fits *fit) {
+	if (fit->type == DATA_USHORT) return; // USHORT cannot be out of range
+	size_t ndata = fit->rx * fit->ry * fit->naxes[2];
+	for (size_t i = 0 ; i < ndata ; i++) {
+		fit->fdata[i] = fit->fdata[i] < 0.f ? 0.f : fit->fdata[i];
+	}
+}

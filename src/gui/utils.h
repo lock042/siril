@@ -53,5 +53,6 @@ point closest_point_on_line(point in, point p1, point p2);
 void siril_set_file_filter(const gchar* widget_name, const gchar* filter_name);
 const char* get_cfa_from_pattern(sensor_pattern pattern);
 void interpolate_nongreen(fits *fit);
+gboolean value_check(); // checks for pixel values outside [0.0, 1.0]
 
 #endif /* SRC_GUI_UTILS_H_ */

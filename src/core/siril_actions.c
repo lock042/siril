@@ -552,7 +552,8 @@ void negative_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 }
 
 void histo_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	toggle_histogram_window_visibility(1);
+	if (value_check())
+		toggle_histogram_window_visibility(1);
 }
 
 void fix_banding_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -582,7 +583,8 @@ void deconvolution_activate(GSimpleAction *action, GVariant *parameter, gpointer
 }
 
 void payne_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	toggle_histogram_window_visibility(2);
+	if (value_check())
+		toggle_histogram_window_visibility(2);
 }
 
 void binning_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {

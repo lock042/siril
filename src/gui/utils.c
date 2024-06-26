@@ -23,6 +23,9 @@
 #include <glib.h>
 
 #include "algos/demosaicing.h"
+#include "algos/statistics.h"
+#include "core/arithm.h"
+#include "gui/callbacks.h"
 #include "utils.h"
 #include "core/siril_log.h"
 #include "message_dialog.h"
@@ -456,4 +459,112 @@ void interpolate_nongreen(fits *fit) {
 		interpolate_nongreen_ushort(fit);
 	}
 	siril_debug_print("Interpolating non-green pixels\n");
+}
+
+typedef enum {
+    RESPONSE_CANCEL = 1,
+    RESPONSE_CLIP,
+    RESPONSE_RESCALE,
+	RESPONSE_PROCEED
+} OverrangeResponse;
+
+static GtkWidget* create_overrange_dialog(GtkWindow *parent, const gchar *title, const gchar *message) {
+	GtkWidget *dialog;
+	GtkWidget *content_area;
+	GtkWidget *hbox;
+	GtkWidget *image;
+	GtkWidget *label;
+
+	dialog = gtk_dialog_new_with_buttons(
+		title,
+		parent,
+		GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+		_("Cancel"), RESPONSE_CANCEL,
+		_("Clip"), RESPONSE_CLIP,
+		_("Rescale"), RESPONSE_RESCALE,
+		_("Proceed"), RESPONSE_PROCEED,
+		NULL
+	);
+
+	content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+
+	// Create a horizontal box to hold the icon and message
+	hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
+	gtk_container_set_border_width(GTK_CONTAINER(hbox), 12);
+
+	// Add warning icon
+	image = gtk_image_new_from_icon_name("dialog-warning", GTK_ICON_SIZE_DIALOG);
+	gtk_box_pack_start(GTK_BOX(hbox), image, FALSE, FALSE, 0);
+
+	// Create label with the message
+	label = gtk_label_new(message);
+	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
+	gtk_label_set_max_width_chars(GTK_LABEL(label), 50);  // Constrain maximum width
+	gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
+
+	// Add the hbox to the content area
+	gtk_container_add(GTK_CONTAINER(content_area), hbox);
+
+	// Add padding between the message and the button row
+	gtk_widget_set_margin_bottom(hbox, 12);
+
+	// Set dialog to be resizable
+	gtk_window_set_resizable(GTK_WINDOW(dialog), TRUE);
+
+	// Set a reasonable default size
+	gtk_window_set_default_size(GTK_WINDOW(dialog), 300, -1);
+	// Set tooltips for buttons
+	GtkWidget *cancel_button = gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), RESPONSE_CANCEL);
+	gtk_widget_set_tooltip_text(cancel_button, _("Cancel without making any changes"));
+
+	GtkWidget *clip_button = gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), RESPONSE_CLIP);
+	gtk_widget_set_tooltip_text(clip_button, _("Clip pixel values to the range 0.0 - 1.0"));
+
+	GtkWidget *rescale_button = gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), RESPONSE_RESCALE);
+	gtk_widget_set_tooltip_text(rescale_button, _("Rescale pixel values to fit the range 0.0 - 1.0"));
+
+	GtkWidget *proceed_button = gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), RESPONSE_PROCEED);
+	gtk_widget_set_tooltip_text(proceed_button, _("Ignore the warning and proceed"));
+
+	gtk_widget_show_all(dialog);
+
+	return dialog;
+}
+
+gboolean value_check() {
+	if (gfit.type == DATA_USHORT)
+		return TRUE;
+	imstats *stats[3] = { NULL };
+	int retval = compute_all_channels_statistics_single_image(&gfit, STATS_MINMAX, MULTI_THREADED, stats);
+	double maxval, minval;
+	if (retval) {
+		siril_log_color_message(_("Error: statistics computation failed. Proceeding, but cannot check for out-of-range values.\n"), "red");
+	} else {
+		maxval = max(max(stats[RLAYER]->max, stats[GLAYER]->max), stats[BLAYER]->max);
+		minval = min(max(stats[RLAYER]->min, stats[GLAYER]->min), stats[BLAYER]->min);
+		for (int i = 0 ; i < 3;  i++) {
+			free_stats(stats[i]);
+		}
+	}
+	if (retval)
+		return TRUE;
+	if (maxval > 1.0 || minval < 0.0) {
+		GtkWidget *dialog = create_overrange_dialog(siril_get_active_window(), _("Warning"), _("This image contains pixel values outside the range 0.0 - 1.0. This will cause unwanted behaviour. Choose how to handle this."));
+		OverrangeResponse result = (OverrangeResponse) gtk_dialog_run(GTK_DIALOG(dialog));
+		gtk_widget_destroy(dialog);
+		switch (result) {
+			case RESPONSE_CANCEL:
+				return FALSE;
+			case RESPONSE_CLIP:
+				clip(&gfit);
+				break;
+			case RESPONSE_RESCALE:
+				soper(&gfit, (1.0 / maxval), OPER_MUL, TRUE);
+				clipneg(&gfit);
+				break;
+			case RESPONSE_PROCEED:
+				break;
+		}
+	}
+	return TRUE;
 }
