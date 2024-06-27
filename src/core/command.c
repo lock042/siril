@@ -10691,14 +10691,16 @@ int process_limit(int nb) {
 		siril_log_message(_("No pixels require clipping. Nothing to do...\n"));
 		return CMD_OK;
 	}
-	if (!g_ascii_strncasecmp(word[2], "-clip", 5)) {
+	if (!g_ascii_strncasecmp(word[1], "-clip", 5)) {
 		clip(&gfit);
-	} else if (!g_ascii_strncasecmp(word[2], "-rescale", 8)) {
+	} else if (!g_ascii_strncasecmp(word[1], "-rescale", 8)) {
 		soper(&gfit, (1.0 / maxval), OPER_MUL, TRUE);
 		clipneg(&gfit);
 	} else {
 		siril_log_color_message(_("Error: unknown argument!\n"), "red");
 		return CMD_ARG_ERROR;
 	}
+	invalidate_stats_from_fit(&gfit);
+	siril_log_message(_("Pixel limits applied successfully.\n"));
 	return CMD_OK;
 }
