@@ -10665,3 +10665,40 @@ int process_trixel(int nb) {
 	}
 	return CMD_OK;
 }
+
+int process_limit(int nb) {
+	if (nb != 2)
+		return CMD_WRONG_N_ARG;
+	if (gfit.type == DATA_USHORT) {
+		siril_log_message(_("16-bit images cannot have out-of-range pixels: nothing to do.\n"));
+		return CMD_OK;
+	}
+	imstats *stats[3] = { NULL };
+	int retval = compute_all_channels_statistics_single_image(&gfit, STATS_MINMAX, MULTI_THREADED, stats);
+	double maxval, minval;
+	if (retval) {
+		siril_log_color_message(_("Error: statistics computation failed. Unable to check for out-of-range values:.\n"), "red");
+	} else {
+		maxval = max(max(stats[RLAYER]->max, stats[GLAYER]->max), stats[BLAYER]->max);
+		minval = min(max(stats[RLAYER]->min, stats[GLAYER]->min), stats[BLAYER]->min);
+		for (int i = 0 ; i < 3;  i++) {
+			free_stats(stats[i]);
+		}
+	}
+	if (retval)
+		return CMD_GENERIC_ERROR;
+	if (maxval <= 1.0 && minval >= 0.0) {
+		siril_log_message(_("No pixels require clipping. Nothing to do...\n"));
+		return CMD_OK;
+	}
+	if (!g_ascii_strncasecmp(word[2], "-clip", 5)) {
+		clip(&gfit);
+	} else if (!g_ascii_strncasecmp(word[2], "-rescale", 8)) {
+		soper(&gfit, (1.0 / maxval), OPER_MUL, TRUE);
+		clipneg(&gfit);
+	} else {
+		siril_log_color_message(_("Error: unknown argument!\n"), "red");
+		return CMD_ARG_ERROR;
+	}
+	return CMD_OK;
+}

@@ -525,7 +525,8 @@ void remove_green_activate(GSimpleAction *action, GVariant *parameter, gpointer 
 }
 
 void saturation_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	siril_open_dialog("satu_dialog");
+	if (value_check())
+		siril_open_dialog("satu_dialog");
 }
 
 void color_calib_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -569,7 +570,8 @@ void background_extr_activate(GSimpleAction *action, GVariant *parameter, gpoint
 }
 
 void asinh_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	siril_open_dialog("asinh_dialog");
+	if (value_check())
+		siril_open_dialog("asinh_dialog");
 }
 
 void epf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {

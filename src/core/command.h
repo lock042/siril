@@ -106,6 +106,7 @@ int	process_imoper(int nb);
 int	process_inspector(int nb);
 
 int	process_light_curve(int nb);
+int	process_limit(int nb);
 int	process_link(int nb);
 int	process_linear_match(int nb);
 int	process_load(int nb);

@@ -549,7 +549,7 @@ gboolean value_check() {
 	if (retval)
 		return TRUE;
 	if (maxval > 1.0 || minval < 0.0) {
-		gchar *msg = g_strdup_printf(_("This image contains pixel values outside the range 0.0 - 1.0 (min = %.3f, max = %.3f). This will cause unwanted behaviour. Choose how to handle this.\n"), minval, maxval);
+		gchar *msg = g_strdup_printf(_("This image contains pixel values outside the range 0.0 - 1.0 (min = %.3f, max = %.3f). This can cause unwanted behaviour. Choose how to handle this.\n"), minval, maxval);
 		GtkWidget *dialog = create_overrange_dialog(siril_get_active_window(), _("Warning"), msg);
 		OverrangeResponse result = (OverrangeResponse) gtk_dialog_run(GTK_DIALOG(dialog));
 		gtk_widget_destroy(dialog);
