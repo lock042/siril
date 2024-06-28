@@ -227,26 +227,90 @@ void on_button_resample_close_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("resample_dialog");
 }
 
-void on_spinbutton_resample_X_value_changed(GtkSpinButton *spinbutton,
-		gpointer user_data) {
-	GtkToggleButton *ratio = GTK_TOGGLE_BUTTON(lookup_widget("button_sample_ratio"));
-	double xvalue = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_X")));
+void on_spinbutton_resample_X_value_changed(GtkSpinButton *spinbutton, gpointer user_data);
+void on_spinbutton_resample_Y_value_changed(GtkSpinButton *spinbutton, gpointer user_data);
+void on_spinbutton_resample_X_px_value_changed(GtkSpinButton *spinbutton, gpointer user_data);
+void on_spinbutton_resample_Y_px_value_changed(GtkSpinButton *spinbutton, gpointer user_data);
 
-	if (gtk_toggle_button_get_active(ratio))
-		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_Y")), xvalue);
+static void pause_resample_signal_handlers() {
+	g_signal_handlers_block_by_func(lookup_widget("spinbutton_resample_X"), on_spinbutton_resample_X_value_changed, NULL);
+	g_signal_handlers_block_by_func(lookup_widget("spinbutton_resample_Y"), on_spinbutton_resample_Y_value_changed, NULL);
+	g_signal_handlers_block_by_func(lookup_widget("spinbutton_resample_X_px"), on_spinbutton_resample_X_px_value_changed, NULL);
+	g_signal_handlers_block_by_func(lookup_widget("spinbutton_resample_Y_px"), on_spinbutton_resample_Y_px_value_changed, NULL);
 }
 
-void on_spinbutton_resample_Y_value_changed(GtkSpinButton *spinbutton,
-		gpointer user_data) {
-	GtkToggleButton *ratio = GTK_TOGGLE_BUTTON(
-			lookup_widget("button_sample_ratio"));
-	double yvalue = gtk_spin_button_get_value(
-			GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_Y")));
+static void restart_resample_signal_handlers() {
+	g_signal_handlers_unblock_by_func(lookup_widget("spinbutton_resample_X"), on_spinbutton_resample_X_value_changed, NULL);
+	g_signal_handlers_unblock_by_func(lookup_widget("spinbutton_resample_Y"), on_spinbutton_resample_Y_value_changed, NULL);
+	g_signal_handlers_unblock_by_func(lookup_widget("spinbutton_resample_X_px"), on_spinbutton_resample_X_px_value_changed, NULL);
+	g_signal_handlers_unblock_by_func(lookup_widget("spinbutton_resample_Y_px"), on_spinbutton_resample_Y_px_value_changed, NULL);
+}
 
-	if (gtk_toggle_button_get_active(ratio))
-		gtk_spin_button_set_value(
-				GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_X")),
-				yvalue);
+void on_resample_dialog_show(GtkWidget *dialog, gpointer user_data) {
+	pause_resample_signal_handlers();
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_X_px")), gfit.rx);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_Y_px")), gfit.ry);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_X")), 100.0);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_Y")), 100.0);
+	restart_resample_signal_handlers();
+}
+
+void on_spinbutton_resample_X_value_changed(GtkSpinButton *spinbutton, gpointer user_data) {
+	pause_resample_signal_handlers();
+	GtkToggleButton *ratio = GTK_TOGGLE_BUTTON(lookup_widget("button_sample_ratio"));
+	double xvalue = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_X")));
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_X_px")), round_to_int(gfit.rx * xvalue / 100.0));
+
+	if (gtk_toggle_button_get_active(ratio)) {
+		double yvalue = xvalue;
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_Y")), yvalue);
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_Y_px")), round_to_int(gfit.ry * yvalue / 100.0));
+	}
+	restart_resample_signal_handlers();
+}
+
+void on_spinbutton_resample_Y_value_changed(GtkSpinButton *spinbutton, gpointer user_data) {
+	pause_resample_signal_handlers();
+	GtkToggleButton *ratio = GTK_TOGGLE_BUTTON(lookup_widget("button_sample_ratio"));
+	double yvalue = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_Y")));
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_Y_px")), round_to_int(gfit.ry * yvalue / 100.0));
+
+	if (gtk_toggle_button_get_active(ratio)) {
+		double xvalue = yvalue;
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_X")), xvalue);
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_X_px")), round_to_int(gfit.rx * xvalue / 100.0));
+	}
+	restart_resample_signal_handlers();
+}
+
+void on_spinbutton_resample_X_px_value_changed(GtkSpinButton *spinbutton, gpointer user_data) {
+	pause_resample_signal_handlers();
+	GtkToggleButton *ratio_button = GTK_TOGGLE_BUTTON(lookup_widget("button_sample_ratio"));
+	double xpix = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_X_px")));
+	double ratio = xpix / gfit.rx;
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_X")), ratio * 100.0);
+
+	if (gtk_toggle_button_get_active(ratio_button)) {
+		double ypix = round_to_int(gfit.ry * ratio);
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_Y")), ratio * 100.0);
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_Y_px")), ypix);
+	}
+	restart_resample_signal_handlers();
+}
+
+void on_spinbutton_resample_Y_px_value_changed(GtkSpinButton *spinbutton, gpointer user_data) {
+	pause_resample_signal_handlers();
+	GtkToggleButton *ratio_button = GTK_TOGGLE_BUTTON(lookup_widget("button_sample_ratio"));
+	double ypix = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_Y_px")));
+	double ratio = ypix / gfit.ry;
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_Y")), ratio * 100.0);
+
+	if (gtk_toggle_button_get_active(ratio_button)) {
+		double xpix = round_to_int(gfit.rx * ratio);
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_X")), ratio * 100.0);
+		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_resample_X_px")), xpix);
+	}
+	restart_resample_signal_handlers();
 }
 
 void on_button_sample_ratio_toggled(GtkToggleButton *button, gpointer user_data) {
