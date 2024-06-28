@@ -41,6 +41,7 @@ src_files = [
   'algos/quality_float.c',
   'algos/quantize.c',
   'algos/reconstr.c',
+  'algos/siril_random.cpp',
   'algos/siril_wcs.c',
   'algos/sorting.c',
   'algos/star_finder.c',

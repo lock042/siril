@@ -28,8 +28,8 @@
 #define DEBUG_TEST 0
 #endif
 
-#define START_TIMER struct timeval t_start, t_end ; gettimeofday(&t_start, NULL);
-#define END_TIMER gettimeofday(&t_end, NULL); show_time(t_start, t_end);
+#define START_TIMER struct timeval t_start, t_end ; gettimeofday(&t_start, NULL)
+#define END_TIMER gettimeofday(&t_end, NULL); show_time(t_start, t_end)
 
 #if defined (HAVE_FFTW3F_OMP) || defined (HAVE_FFTW3F_THREADS)
 #define HAVE_FFTW3F_MULTITHREAD
