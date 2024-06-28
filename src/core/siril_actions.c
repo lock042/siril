@@ -549,7 +549,8 @@ void split_channel_activate(GSimpleAction *action, GVariant *parameter,gpointer 
 }
 
 void negative_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	negative_processing();
+	if (value_check())
+		negative_processing();
 }
 
 void histo_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
