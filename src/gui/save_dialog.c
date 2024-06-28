@@ -491,6 +491,69 @@ static gboolean initialize_data(gpointer p) {
 	return test_for_viewer_mode();
 }
 
+static long calculate_jpeg_size(struct savedial_data *args) {
+	char const *tmp_dir = g_get_tmp_dir();
+	gchar *tmp_filename_template = (com.uniq->filename != NULL) ? g_path_get_basename(com.uniq->filename) : g_strdup(_("preview"));
+	gchar *tmp_filename = NULL;
+/* Due to a Windows behavior and Mingw temp file name,
+ * we escapes the special characters by inserting a '\' before them */
+#ifdef _WIN32
+	gchar *tmp = g_build_filename(tmp_dir, tmp_filename_template, NULL);
+	tmp_filename = g_strescape(tmp, NULL);
+	g_free(tmp);
+#else
+    tmp_filename = g_build_filename(tmp_dir, tmp_filename_template, NULL);
+#endif
+	g_free(tmp_filename_template);
+	if (!g_str_has_suffix(tmp_filename, ".jpg") && (!g_str_has_suffix(tmp_filename, ".jpeg"))) {
+		tmp_filename = str_append(&tmp_filename, ".jpg");
+	}
+	if (g_file_test(tmp_filename, G_FILE_TEST_EXISTS)) {
+		if (g_unlink(tmp_filename)) {
+			siril_debug_print("Failed to remove existing temporary file");
+			g_free(tmp_filename);
+			return -1;
+		}
+	}
+	// Save JPEG to temporary file
+	if (savejpg(tmp_filename, &gfit, args->quality, FALSE)) {
+		siril_debug_print("Failed to save JPEG to temporary file");
+		g_free(tmp_filename);
+		return -1;
+	}
+	// Get file size
+    GStatBuf stat_buf;
+    goffset file_size = 0L;
+    if (g_stat(tmp_filename, &stat_buf) == 0) {
+        file_size = stat_buf.st_size;
+    } else {
+        g_warning("Unable to get file size for '%s': %s", tmp_filename, g_strerror(errno));
+    }
+    if (g_unlink(tmp_filename))
+		siril_debug_print("Error removing temporary file\n");
+	g_free(tmp_filename);
+	return (long) file_size;
+}
+
+static gboolean end_calculate_jpeg_size(gpointer p) {
+	struct savedial_data *args = (struct savedial_data *) p;
+	stop_processing_thread();
+	set_cursor_waiting(FALSE);
+	g_free(args->copyright);
+	g_free(args->description);
+	free(args);
+	return FALSE;
+}
+
+static gpointer calculate_jpeg_size_thread(gpointer p) {
+	struct savedial_data *args = (struct savedial_data *) p;
+	long file_size = calculate_jpeg_size(args);
+	gchar *txt = g_format_size_full(file_size, G_FORMAT_SIZE_IEC_UNITS);
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("size_estimate_entry")), txt);
+	siril_add_idle(end_calculate_jpeg_size, args);
+	return NULL;
+}
+
 static gpointer mini_save_dialog(gpointer p) {
 	struct savedial_data *args = (struct savedial_data *) p;
 #ifdef HAVE_LIBPNG
@@ -505,7 +568,7 @@ static gpointer mini_save_dialog(gpointer p) {
 			break;
 #ifdef HAVE_LIBJPEG
 		case TYPEJPG:
-			args->retval = savejpg(args->filename, &gfit, args->quality);
+			args->retval = savejpg(args->filename, &gfit, args->quality, TRUE);
 			break;
 #endif
 #ifdef HAVE_LIBJXL
@@ -584,6 +647,26 @@ void on_savetxt_changed(GtkEditable *editable, gpointer user_data) {
 
 	const gchar *name = gtk_entry_get_text(entry);
 	gtk_widget_set_sensitive(button, (*name != '\0'));
+}
+
+void on_size_estimate_toggle_toggled(GtkToggleButton *button, gpointer user_data) {
+	struct savedial_data *args = calloc(1, sizeof(struct savedial_data));
+	if (gtk_toggle_button_get_active(button)) {
+		if (initialize_data(args) && !get_thread_run()) {
+			start_in_new_thread(calculate_jpeg_size_thread, args);
+		}
+	} else {
+		gtk_entry_set_text(GTK_ENTRY(lookup_widget("size_estimate_entry")), "");
+	}
+}
+
+void on_quality_spinbutton_value_changed(GtkSpinButton *button, gpointer user_data) {
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("size_estimate_toggle")))) {
+		struct savedial_data *args = calloc(1, sizeof(struct savedial_data));
+		if (initialize_data(args) && !get_thread_run()) {
+			start_in_new_thread(calculate_jpeg_size_thread, args);
+		}
+	}
 }
 
 void on_button_savepopup_clicked(GtkButton *button, gpointer user_data) {

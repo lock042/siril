@@ -738,7 +738,7 @@ int process_savejpg(int nb){
 		retval = 1;
 	} else {
 		set_cursor_waiting(TRUE);
-		retval = savejpg(savename, &gfit, quality);
+		retval = savejpg(savename, &gfit, quality, TRUE);
 		set_cursor_waiting(FALSE);
 	}
 	g_free(filename);
