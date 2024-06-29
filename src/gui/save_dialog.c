@@ -565,7 +565,7 @@ static gpointer mini_save_dialog(gpointer p) {
 			args->retval = savebmp(args->filename, &gfit);
 			break;
 #ifdef HAVE_LIBJPEG
-		case TYPEJPG:
+		case TYPEJPG:;
 			gboolean success = FALSE;
 			if (tmp_filename && g_file_test(tmp_filename, G_FILE_TEST_EXISTS)) {
 				GError *error = NULL;
