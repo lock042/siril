@@ -312,9 +312,8 @@ if enable_openmp
     siril_link_arg += ['-lomp']
     siril_cpp_flag += ['-Xpreprocessor', '-fopenmp']
     siril_c_flag += ['-Xpreprocessor', '-fopenmp']
-  else
-  openmp_dep = dependency('openmp', required : true)
   endif
+  openmp_dep = dependency('openmp', required : true)
 else
   message('OpenMP disabled')
 endif
@@ -747,7 +746,7 @@ summary(
 
 summary(
   {
-    'openmp'    : get_option('openmp'),
+    'openmp'    : openmp_dep.found(),
   }, section: 'Optional features'
 )
 
