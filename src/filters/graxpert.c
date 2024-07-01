@@ -124,7 +124,7 @@ static int exec_prog_graxpert(char **argv, gboolean is_gui) {
 				siril_log_message(_("GraXpert caught buffer: %s : exit successful\n"), buffer);
 #endif
 		} else if (doprint && verbose) {
-			if (!g_strstr_len(buffer, -1, "ForkProcess")) { // These are not useful messages
+			if (!g_strstr_len(buffer, -1, "ForkProcess") && !g_strstr_len(buffer, -1, "ai_version")) { // These are not useful messages
 				gchar *print_from = g_strstr_len(buffer, -1, "INFO");
 				if (print_from) {
 					print_from += 9;
