@@ -3,25 +3,25 @@
 # This file is distributed under the same license as the siril package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: siril\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-06-12 11:26+0200\n"
-"PO-Revision-Date: 2024-07-01 14:23+0200\n"
-"Last-Translator: \n"
-"Language-Team: \n"
+"PO-Revision-Date: 2024-07-02 14:37+0000\n"
+"Last-Translator: Shun-Chia Yang <a26413768@gmail.com>\n"
+"Language-Team: Chinese (Traditional) <https://weblate.pixls.us/projects/"
+"siril/siril-application/zh_Hant/>\n"
 "Language: zh_TW\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Poedit 3.4.4\n"
+"X-Generator: Weblate 5.4.2\n"
 
 #: src/gui/uifiles/aavso_dialog.ui:7
 msgid "AAVSO parameters"
-msgstr ""
+msgstr "AAVSO 參數"
 
 #: src/gui/uifiles/aavso_dialog.ui:22 src/gui/uifiles/annotate_dialog.ui:45
 #: src/gui/uifiles/astrometry_dialog.ui:113
@@ -50,7 +50,7 @@ msgstr ""
 #: src/gui/uifiles/split_cfa_dialog.ui:51
 #: src/gui/uifiles/stars_list_window.ui:157 src/gui/uifiles/StatWindow.ui:78
 msgid "Close"
-msgstr ""
+msgstr "關閉"
 
 #: src/gui/uifiles/aavso_dialog.ui:36 src/gui/uifiles/annotate_dialog.ui:62
 #: src/gui/uifiles/asinh_dialog.ui:91
@@ -76,34 +76,34 @@ msgstr ""
 #: src/gui/uifiles/settings_window.ui:267 src/gui/uifiles/split_cfa_dialog.ui:66
 #: src/gui/uifiles/wavelets_dialog.ui:126
 msgid "Apply"
-msgstr ""
+msgstr "套用"
 
 #: src/gui/uifiles/aavso_dialog.ui:69
 #: src/gui/uifiles/file_information_dialog.ui:96
 msgid "Non-square pixels can be entered but will not be used in most cases."
-msgstr ""
+msgstr "可以輸入非方形像素，但大多數情況下不會使用它們。"
 
 #: src/gui/uifiles/aavso_dialog.ui:71
 msgid "Obstype: "
-msgstr ""
+msgstr "觀測類型： "
 
 #: src/gui/uifiles/aavso_dialog.ui:82
 msgid ""
 "The official AAVSO Observer Code for the observer which was previously "
 "assigned by the AAVSO."
-msgstr ""
+msgstr "先前被分配的AAVSO官方觀測者編號。"
 
 #: src/gui/uifiles/aavso_dialog.ui:101
 msgid "Obscode: "
-msgstr ""
+msgstr "觀測者編號： "
 
 #: src/gui/uifiles/aavso_dialog.ui:113
 msgid "Filter: "
-msgstr ""
+msgstr "濾鏡： "
 
 #: src/gui/uifiles/aavso_dialog.ui:124
 msgid "The filter used for the observation."
-msgstr ""
+msgstr "觀測使用的濾鏡。"
 
 #: src/gui/uifiles/aavso_dialog.ui:171
 msgid "Cname: "
@@ -118,23 +118,26 @@ msgid ""
 "Comparison star name or label such as the AUID (much preferred) or the chart "
 "label for the comparison star used. If not present, use \"na\". Limit: 20 "
 "characters."
-msgstr ""
+msgstr "參考星的名稱或標籤，例如AUID（更優先）或參考星的星圖標籤。如果沒有,使用\"na\""
+"。限制:20個字符。"
 
 #: src/gui/uifiles/aavso_dialog.ui:211
 msgid ""
 "Check star name or label such as the AUID (much preferred) or the chart label "
 "for the check star. If not present, use \"na\". Limit: 20 characters."
-msgstr ""
+msgstr "目標星的名稱或標籤，例如AUID（更優先）或目標星的星圖標籤。如果沒有,使用\"na\""
+"。限制:20個字符。"
 
 #: src/gui/uifiles/aavso_dialog.ui:229
 msgid "Starid: "
-msgstr ""
+msgstr "恆星Id： "
 
 #: src/gui/uifiles/aavso_dialog.ui:240
 msgid ""
 "The star's identifier. It can be the AAVSO Designation, the AAVSO Name, or the "
 "AAVSO Unique Identifier, but NOT more than one of these. Limit: 30 characters."
-msgstr ""
+msgstr "恆星的識別碼。可以是AAVSO指定名稱、AAVSO名稱或AAVSO唯一識別碼，但不能超過一種"
+"。限制：30個字符。"
 
 #: src/gui/uifiles/aavso_dialog.ui:258
 msgid ""
@@ -142,14 +145,16 @@ msgid ""
 "Photoelectric Photometry). If absent, it is assumed to be CCD.  If you use a "
 "CMOS camera please report it as CCD."
 msgstr ""
+"數據的觀測類型。可以是CCD、單眼、 PEP (Photoelectric "
+"Photometry)。如果不確定，請標記為CCD。如果您使用CMOS相機，請標記為CCD。"
 
 #: src/gui/uifiles/aavso_dialog.ui:275
 msgid "Comparaison star: "
-msgstr ""
+msgstr "參考星： "
 
 #: src/gui/uifiles/aavso_dialog.ui:286
 msgid "The number of the comparison star."
-msgstr ""
+msgstr "參考星的數量。"
 
 #: src/gui/uifiles/aavso_dialog.ui:299
 msgid "Cstd: "
@@ -165,6 +170,11 @@ msgid ""
 "instrumental value of the comparison, and Cstd is the chart magnitude for the "
 "comparison."
 msgstr ""
+"變星的標準化星等由以下等式得出\n"
+"\n"
+"Vstd = (Vins - Cins) + Cstd\n"
+"\n"
+"其中Vstd是變星的儀器星等，Cins是參考星的星等，Cstd是參考星的星表星等。"
 
 #: src/gui/uifiles/aavso_dialog.ui:315 src/gui/uifiles/astrometry_dialog.ui:180
 #: src/gui/uifiles/astrometry_dialog.ui:202
@@ -176,15 +186,15 @@ msgstr ""
 #: src/gui/uifiles/s_pcc_dialog.ui:1189 src/gui/uifiles/s_pcc_dialog.ui:1207
 #: src/gui/uifiles/s_pcc_dialog.ui:1225 src/gui/uifiles/s_pcc_dialog.ui:1243
 msgid "0"
-msgstr ""
+msgstr "0"
 
 #: src/gui/uifiles/aavso_dialog.ui:328
 msgid "Check star: "
-msgstr ""
+msgstr "目標星： "
 
 #: src/gui/uifiles/aavso_dialog.ui:339
 msgid "The number of the check star."
-msgstr ""
+msgstr "目標星的數量。"
 
 #: src/gui/uifiles/aavso_dialog.ui:351
 msgid ""
@@ -197,26 +207,31 @@ msgid ""
 "a proper chart name like \"APASS DR10\". Then add information on the comp "
 "stars in the notes. Limit: 20 characters."
 msgstr ""
+"請使用你在測光表頂部附近以粗體字寫的序列ID。該ID出現在一個句子中，句子內容為"
+"「在觀測報告的星表欄位中將此序列報告為[ID]」。如果你使用了自己的參考星（例如"
+"序列小組沒有時間創建序列，出現時間敏感警報的情況下），請不要給出星表ID，即使"
+"你使用VSP繪製了星圖。使用註解編號K（非AAVSO星表）並給出適當的星表名稱，如「"
+"APASS DR10」。然後在備註中添加有關參考星的信息。限制：20個字符。"
 
 #: src/gui/uifiles/aavso_dialog.ui:367
 msgid "Chart: "
-msgstr ""
+msgstr "星表： "
 
 #: src/gui/uifiles/aavso_dialog.ui:379
 msgid "Notes: "
-msgstr ""
+msgstr "備註： "
 
 #: src/gui/uifiles/aavso_dialog.ui:390
 msgid "Comments or notes about the observation. If no comments, use \"na\"."
-msgstr ""
+msgstr "關於觀測的註解或備註。如果沒有，請輸入\"na\"。"
 
 #: src/gui/uifiles/aberration_inspector.ui:32 src/gui/uifiles/siril.ui:2331
 msgid "Aberration Inspector"
-msgstr ""
+msgstr "像差測量器"
 
 #: src/gui/uifiles/annotate_dialog.ui:14
 msgid "Annotate"
-msgstr ""
+msgstr "標記"
 
 #: src/gui/uifiles/annotate_dialog.ui:30
 #: src/gui/uifiles/background_extraction_dialog.ui:470
@@ -227,25 +242,25 @@ msgstr ""
 #: src/gui/uifiles/settings_window.ui:4295
 #: src/gui/uifiles/settings_window.ui:5793 src/gui/uifiles/siril.ui:3556
 msgid "Clear"
-msgstr ""
+msgstr "清除"
 
 #: src/gui/uifiles/annotate_dialog.ui:34
 msgid "Clear all current annotations."
-msgstr ""
+msgstr "清除所有標記。"
 
 #: src/gui/uifiles/annotate_dialog.ui:51 src/gui/uifiles/astrometry_dialog.ui:117
 #: src/gui/uifiles/background_extraction_dialog.ui:77
 #: src/gui/uifiles/s_pcc_dialog.ui:117
 msgid "Close the window."
-msgstr ""
+msgstr "關閉視窗。"
 
 #: src/gui/uifiles/annotate_dialog.ui:67
 msgid "Apply requested annotation."
-msgstr ""
+msgstr "套用請求的標記。"
 
 #: src/gui/uifiles/annotate_dialog.ui:110
 msgid "Catalogue: "
-msgstr ""
+msgstr "星表： "
 
 #: src/gui/uifiles/annotate_dialog.ui:121
 msgid ""
@@ -262,81 +277,93 @@ msgid ""
 "- for solar system objects: solsys (closest IAU observatory code can be passed "
 "in the dedicated text field."
 msgstr ""
+"這些是用來解星的星表：\n"
+"\n"
+"- 自動: 使用本機星表，如果沒有預設使用nomad。\n"
+"\n"
+"你也可以選擇使用線上星表：\n"
+"\n"
+"- 恆星: tycho2, nomad, gaia, ppmxl, bsc, apass, gcvs, vsx, simbad, "
+"aavso_chart\n"
+"- 系外行星: exo\n"
+"- 深空天體: pgc\n"
+"- 太陽系天體: solsys (可以在對應的地方輸入最近的IAU天文台編號。"
 
 #: src/gui/uifiles/annotate_dialog.ui:133
 msgid "automatic"
-msgstr ""
+msgstr "自動"
 
 #: src/gui/uifiles/annotate_dialog.ui:134
 msgid "tycho2"
-msgstr ""
+msgstr "第谷第二星表"
 
 #: src/gui/uifiles/annotate_dialog.ui:135
 msgid "nomad"
-msgstr ""
+msgstr "nomad星表"
 
 #: src/gui/uifiles/annotate_dialog.ui:136
 msgid "gaia"
-msgstr ""
+msgstr "蓋亞星表"
 
 #: src/gui/uifiles/annotate_dialog.ui:137
 msgid "ppmxl"
-msgstr ""
+msgstr "ppmxl星表"
 
 #: src/gui/uifiles/annotate_dialog.ui:138
 msgid "bsc"
-msgstr ""
+msgstr "bsc星表"
 
 #: src/gui/uifiles/annotate_dialog.ui:139
 msgid "apass"
-msgstr ""
+msgstr "apass星表"
 
 #: src/gui/uifiles/annotate_dialog.ui:140
 msgid "gcvs"
-msgstr ""
+msgstr "gcvs星表"
 
 #: src/gui/uifiles/annotate_dialog.ui:141
 msgid "vsx"
-msgstr ""
+msgstr "vsx星表"
 
 #: src/gui/uifiles/annotate_dialog.ui:142
 msgid "varisum"
-msgstr ""
+msgstr "varisum星表"
 
 #: src/gui/uifiles/annotate_dialog.ui:143
 msgid "simbad"
-msgstr ""
+msgstr "simbad星表"
 
 #: src/gui/uifiles/annotate_dialog.ui:144
 msgid "exo"
-msgstr ""
+msgstr "exo星表"
 
 #: src/gui/uifiles/annotate_dialog.ui:145
 msgid "pgc"
-msgstr ""
+msgstr "pgc星表"
 
 #: src/gui/uifiles/annotate_dialog.ui:146
 msgid "aavso_chart"
-msgstr ""
+msgstr "aavso_chart"
 
 #: src/gui/uifiles/annotate_dialog.ui:147
 msgid "solsys"
-msgstr ""
+msgstr "solsys星表"
 
 #: src/gui/uifiles/annotate_dialog.ui:159
 #: src/gui/uifiles/composition_dialog.ui:425
 msgid "Photometric"
-msgstr ""
+msgstr "測光"
 
 #: src/gui/uifiles/annotate_dialog.ui:163
 msgid ""
 "For stars catalogues containing photometric data, stars with no B-V "
 "information will be kept; they can be excluded by check this option."
-msgstr ""
+msgstr "對於含有測光數據的星表,沒有B-V資訊的恆星將被保留; "
+"可以勾選這個選項來排除這些恆星。"
 
 #: src/gui/uifiles/annotate_dialog.ui:174 src/gui/uifiles/annotate_dialog.ui:426
 msgid "Tag"
-msgstr ""
+msgstr "標籤"
 
 #: src/gui/uifiles/annotate_dialog.ui:178 src/gui/uifiles/annotate_dialog.ui:193
 msgid ""
@@ -348,32 +375,37 @@ msgid ""
 "button to display names alongside markers and log check button to list the "
 "objects in the console log."
 msgstr ""
+"有些目錄(bsc、gcvs、pgc、exo、aavso_chart、varisum和solsys)也會預設在顯示畫面"
+"和紀錄中同時顯示天體名稱。而對於有較多天體的星表,如vsx和simbad,此資訊也可以顯"
+"示,不過可能會使畫面過於雜亂,所以預設未啟用。您可以透過勾選標籤來切換是否在顯"
+"示畫面上同時顯示物體名稱,以及是否在主控台紀錄中列出物件。"
 
 #: src/gui/uifiles/annotate_dialog.ui:189 src/gui/uifiles/annotate_dialog.ui:442
 msgid "Log"
-msgstr ""
+msgstr "日誌"
 
 #: src/gui/uifiles/annotate_dialog.ui:207
 msgid "Save to: "
-msgstr ""
+msgstr "儲存到： "
 
 #: src/gui/uifiles/annotate_dialog.ui:239
 msgid ""
 "The list of elements present in the image can be saved in a csv file by "
 "filling in this text field or by clicking on the button to the right."
-msgstr ""
+msgstr "您可以在這個文字欄位填入資訊,或是點選右側的按鈕,將影像中所呈現的各項元素資訊"
+"儲存為CSV檔案。"
 
 #: src/gui/uifiles/annotate_dialog.ui:252
 msgid "Limit magnitude used in the query."
-msgstr ""
+msgstr "極限星等。"
 
 #: src/gui/uifiles/annotate_dialog.ui:253
 msgid "13"
-msgstr ""
+msgstr "13"
 
 #: src/gui/uifiles/annotate_dialog.ui:273
 msgid "Obs. code: "
-msgstr ""
+msgstr "觀測者編號： "
 
 #: src/gui/uifiles/annotate_dialog.ui:285 src/gui/uifiles/settings_window.ui:1240
 msgid ""
@@ -381,14 +413,16 @@ msgid ""
 "in solar system cone searches. A full list can be found at https://"
 "minorplanetcenter.net/iau/lists/ObsCodesF.html"
 msgstr ""
+"預設輸入使用的最近的 IAU 天文台編號，以提高太陽系天體錐狀搜尋的準確性。"
+"完整列表可在 https://minorplanetcenter.net/iau/lists/ObsCodesF.html 找到"
 
 #: src/gui/uifiles/annotate_dialog.ui:317
 msgid "Conesearch"
-msgstr ""
+msgstr "錐狀搜尋"
 
 #: src/gui/uifiles/annotate_dialog.ui:369
 msgid "File: "
-msgstr ""
+msgstr "檔案： "
 
 #: src/gui/uifiles/annotate_dialog.ui:381
 msgid ""
@@ -396,38 +430,43 @@ msgid ""
 "columns. If the passed file also contains a column name, names will be used as "
 "tags in the image and listed in the Console."
 msgstr ""
+"若您使用一個包含至少「right ascension」和「declination」欄位的CSV檔案傳入多個"
+"座標點,如果該檔案也包含有欄位名稱,這些名稱將會被用作影像中的標籤,並列在主控台"
+"中。"
 
 #: src/gui/uifiles/annotate_dialog.ui:397
 msgid "Click this button to select a csv file."
-msgstr ""
+msgstr "點擊這個按鈕選取csv檔案。"
 
 #: src/gui/uifiles/annotate_dialog.ui:430
 msgid ""
 " If the passed file also contains a column name, names will be used as tags in "
 "the image and listed in the Console, unless toggled off with these "
 "checkbuttons."
-msgstr ""
+msgstr " 如果輸入的CSV檔案包含有欄位名稱,這些名稱將會被用在影像中的標籤,並列在主控台"
+"中,除非反勾選這個核取方塊將其關閉。"
 
 #: src/gui/uifiles/annotate_dialog.ui:446
 msgid ""
 " If the passed file also contains a column name, names will be used as tags in "
 "the image and listed in the Console, unless toggled off with theses "
 "checkbuttons."
-msgstr ""
+msgstr " 如果輸入的CSV檔案包含有欄位名稱,這些名稱將會被用在影像中的標籤,並列在主控台"
+"中,除非反勾選這個核取方塊將其關閉。"
 
 #: src/gui/uifiles/annotate_dialog.ui:459
 msgid "Import CSV"
-msgstr ""
+msgstr "匯入CSV檔"
 
 #: src/gui/uifiles/annotate_dialog.ui:474
 #: src/gui/uifiles/astrometry_dialog.ui:299
 msgid "Right Ascension: "
-msgstr ""
+msgstr "赤經： "
 
 #: src/gui/uifiles/annotate_dialog.ui:486
 #: src/gui/uifiles/astrometry_dialog.ui:310
 msgid "Declination: "
-msgstr ""
+msgstr "赤緯： "
 
 #: src/gui/uifiles/annotate_dialog.ui:497 src/gui/uifiles/annotate_dialog.ui:508
 msgid ""
@@ -436,27 +475,30 @@ msgid ""
 "minutes, seconds) for declination, or as decimal degrees (e.g., 184.000785, "
 "14.899070)."
 msgstr ""
+"這些欄位可以接受「right ascension」(赤經)和「declination」(赤緯)。您可以以時"
+"分秒格式(時、分、秒)輸入赤經,以度分秒格式(度、分、秒)輸入赤緯,或是以十進位度"
+"數(如184.000785, 14.899070)的方式輸入。"
 
 #: src/gui/uifiles/annotate_dialog.ui:520
 msgid "Display Name:"
-msgstr ""
+msgstr "顯示名稱："
 
 #: src/gui/uifiles/annotate_dialog.ui:531
 msgid ""
 "The display name will be used as a tag for the image and listed in the console."
-msgstr ""
+msgstr "顯示名稱將會被用在影像中的標籤,並列在主控台中。"
 
 #: src/gui/uifiles/annotate_dialog.ui:543
 msgid "Click this button to save the entry to the user DSO catalogue."
-msgstr ""
+msgstr "點擊這個按鈕可以將輸入的內容儲存至使用者自訂的深空天體(DSO)目錄。"
 
 #: src/gui/uifiles/annotate_dialog.ui:571
 msgid "Single Coordinates"
-msgstr ""
+msgstr "座標"
 
 #: src/gui/uifiles/annotate_dialog.ui:591
 msgid "Show"
-msgstr ""
+msgstr "檢視"
 
 #: src/gui/uifiles/annotate_dialog.ui:611
 msgid ""
@@ -469,18 +511,23 @@ msgid ""
 "will be added with a date in their name, with no duplicate check. Purge the "
 "User Catalogue to remove previous searches."
 msgstr ""
+"請在此輸入您想在線上資料庫(如SIMBAD或小行星中心資料庫)搜尋的天體名稱。\n"
+"對於太陽系天體,您可以使用它們的編號或名稱,但需要加上前綴以表示類型,例如 "
+"'a:1'或'a:Ceres'、'p:mars'或'c:C/2017 T2'。\n"
+"如果找到相應的天體,它們將被新增至使用者自訂目錄。太陽系天體將被新增時附帶日期"
+",不會檢查是否重複。如需清除先前的搜尋結果,可以清空使用者目錄。"
 
 #: src/gui/uifiles/annotate_dialog.ui:630
 msgid "Name: "
-msgstr ""
+msgstr "名稱： "
 
 #: src/gui/uifiles/annotate_dialog.ui:646
 msgid "Search Object"
-msgstr ""
+msgstr "搜尋目標"
 
 #: src/gui/uifiles/asinh_dialog.ui:45
 msgid "Asinh Transformation"
-msgstr ""
+msgstr "反雙曲線轉換（Asinh Transformation）"
 
 #: src/gui/uifiles/asinh_dialog.ui:63 src/gui/uifiles/ccm_dialog.ui:43
 #: src/gui/uifiles/CLAHE_dialog.ui:68 src/gui/uifiles/dialog_star_remix.ui:1544
@@ -491,7 +538,7 @@ msgstr ""
 #: src/gui/uifiles/settings_window.ui:239 src/gui/uifiles/wavelets_dialog.ui:95
 #: src/gui/mouse_action_preferences.c:648
 msgid "Reset"
-msgstr ""
+msgstr "復原"
 
 #: src/gui/uifiles/asinh_dialog.ui:77 src/gui/uifiles/CLAHE_dialog.ui:82
 #: src/gui/uifiles/denoise_dialog.ui:73 src/gui/uifiles/merge_cfa_dialog.ui:49
@@ -499,39 +546,40 @@ msgstr ""
 #: src/gui/uifiles/settings_window.ui:253 src/gui/uifiles/starnet_dialog.ui:60
 #: src/gui/uifiles/wavelets_dialog.ui:111
 msgid "Cancel"
-msgstr ""
+msgstr "取消"
 
 #: src/gui/uifiles/asinh_dialog.ui:123
 msgid "Stretch factor"
-msgstr ""
+msgstr "拉伸係數"
 
 #: src/gui/uifiles/asinh_dialog.ui:160
 msgid "The parameter stretch factor allows to adjust the non-linearity factor."
-msgstr ""
+msgstr "拉伸係數可以調整非線性項。"
 
 #: src/gui/uifiles/asinh_dialog.ui:182
 msgid "Black Point"
-msgstr ""
+msgstr "黑點"
 
 #: src/gui/uifiles/asinh_dialog.ui:218
 msgid "Constant value that is subtracted from the image."
-msgstr ""
+msgstr "該值以下為全黑。"
 
 #: src/gui/uifiles/asinh_dialog.ui:234
 msgid "Human-weighted luminance"
-msgstr ""
+msgstr "人眼亮度（Human-weighted luminance）"
 
 #: src/gui/uifiles/asinh_dialog.ui:238
 msgid ""
 "For colour images, use human eye luminous efficiency weights to compute the "
 "luminance used to compute the stretch for each pixel."
-msgstr ""
+msgstr "對於彩色影像,請使用人眼亮度（Human-weighted "
+"luminance）來計算亮度,再用此亮度來調整每個像素的拉伸。"
 
 #: src/gui/uifiles/asinh_dialog.ui:252 src/gui/uifiles/CLAHE_dialog.ui:254
 #: src/gui/uifiles/histogram_dialog.ui:744 src/gui/uifiles/satu_dialog.ui:280
 #: src/gui/uifiles/wavelets_dialog.ui:751
 msgid "Preview"
-msgstr ""
+msgstr "預覽"
 
 #: src/gui/uifiles/asinh_dialog.ui:276
 msgid "Clip mode"
@@ -550,7 +598,7 @@ msgstr ""
 #: src/gui/uifiles/asinh_dialog.ui:292 src/gui/uifiles/dialog_star_remix.ui:165
 #: src/gui/uifiles/histogram_dialog.ui:786
 msgid "RGB Blend"
-msgstr ""
+msgstr "RGB疊合"
 
 #: src/gui/uifiles/asinh_dialog.ui:293
 msgid "Global Rescale"
@@ -558,16 +606,16 @@ msgstr ""
 
 #: src/gui/uifiles/astrometry_dialog.ui:97
 msgid "Image Plate Solver"
-msgstr ""
+msgstr "解星"
 
 #: src/gui/uifiles/astrometry_dialog.ui:128 src/gui/uifiles/s_pcc_dialog.ui:128
 #: src/gui/uifiles/s_pcc_dialog.ui:146
 msgid "OK"
-msgstr ""
+msgstr "好"
 
 #: src/gui/uifiles/astrometry_dialog.ui:133
 msgid "Start the plate solving algorithm."
-msgstr ""
+msgstr "開始解星。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:175
 #: src/gui/uifiles/astrometry_dialog.ui:197
@@ -578,15 +626,15 @@ msgstr ""
 msgid ""
 "Initial equatorial coordinates. Input value must be inside the image, close to "
 "the centre."
-msgstr ""
+msgstr "初始座標。輸入座標須位於影像內，接近中央。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:319
 msgid "S"
-msgstr ""
+msgstr "S"
 
 #: src/gui/uifiles/astrometry_dialog.ui:323
 msgid "This button is checked for negative declination (southern hemisphere)."
-msgstr ""
+msgstr "勾選這個按鈕表示處理的座標位於南天區域(負赤緯)。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:337
 msgid ""
@@ -596,10 +644,14 @@ msgid ""
 "If coordinates are already filled when clicking on the Get Metadata From Image "
 "button below, this is probably not required."
 msgstr ""
+"請輸入影像中央附近天體的編號或名稱。這個功能需要網際網路連線(預設查詢SIMBAD,"
+"或是右側選擇的伺服器)。\n"
+"如果在點擊下方「從影像取得元資料」按鈕時,座標欄位已經填入資料,那麼就不需要再"
+"輸入編號或名稱。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:353
 msgid "Find"
-msgstr ""
+msgstr "尋找"
 
 #: src/gui/uifiles/astrometry_dialog.ui:357
 msgid ""
@@ -609,6 +661,10 @@ msgid ""
 "If coordinates are already filled when clicking on the Get Metadata From Image "
 "button below, this is probably not required."
 msgstr ""
+"開始搜尋天體的座標資訊。這個功能需要網際網路連線(預設查詢SIMBAD,或是右側選擇"
+"的伺服器)。\n"
+"如果在點擊下方「從影像取得元資料」按鈕時,座標欄位已經填入資料,那麼就不需要再"
+"輸入編號或名稱。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:372
 #: src/gui/uifiles/astrometry_dialog.ui:408
@@ -616,7 +672,8 @@ msgid ""
 "Effective focal length of the optical system in millimeter. Even if the input "
 "value has not to be very accurate, try to give a value with an error not "
 "exceeding 20%."
-msgstr ""
+msgstr "光學系統的有效焦距,單位為毫米。即使輸入值不需要非常精確,也請盡量提供一個錯誤"
+"不超過20%的值。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:390
 msgid ""
@@ -624,18 +681,20 @@ msgid ""
 "already multiplied by the camera binning if the \"Real pixel size\" box is "
 "checked in the Tool->Image Information dialog box."
 msgstr ""
+"像素大小,單位為微米。假設影像有正方形像素。如果在「工具」->「影像資訊」對話框"
+"中勾選了「實際像素大小」選項,則此值已經乘上相機的 Binning 係數。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:409
 msgid "Focal length (mm):"
-msgstr ""
+msgstr "焦長（毫米）："
 
 #: src/gui/uifiles/astrometry_dialog.ui:420
 msgid "Pixel size in microns. The image is assumed to have square pixels."
-msgstr ""
+msgstr "像素大小,單位為微米。假設像素為正方形。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:421
 msgid "Pixel size (µm):"
-msgstr ""
+msgstr "像素大小（微米）："
 
 #: src/gui/uifiles/astrometry_dialog.ui:432
 #: src/gui/uifiles/astrometry_dialog.ui:447
@@ -643,11 +702,11 @@ msgstr ""
 msgid ""
 "The resolution of the image that is automatically determined from the focal "
 "and pixel size value. Unit is arc second per pixel."
-msgstr ""
+msgstr "影像的解析度是根據焦長和像素大小自動計算得出的,單位為每像素角秒。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:435
 msgid "Resolution: "
-msgstr ""
+msgstr "解析度： "
 
 #: src/gui/uifiles/astrometry_dialog.ui:472
 msgid ""
@@ -655,78 +714,81 @@ msgid ""
 "about getting the coordinates of the centre of the object. Choosing one item "
 "or the others should not influence the plate-solving or the photometry data, "
 "which is based on the selected catalogue."
-msgstr ""
+msgstr "這個列表中可以找到並顯示多個解星軟體。目的僅是為了獲取以影像的座標。選擇其中"
+"的任何一個都不應該影響解星或測光的結果。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:481
 msgid "Resolver"
-msgstr ""
+msgstr "解星軟體"
 
 #. Connect the edited signal
 #: src/gui/uifiles/astrometry_dialog.ui:492 src/gui/uifiles/siril.ui:3453
 #: src/gui/uifiles/spcc_details.ui:83 src/gui/uifiles/StatWindow.ui:148
 #: src/gui/mouse_action_preferences.c:203 src/gui/mouse_action_preferences.c:478
 msgid "Name"
-msgstr ""
+msgstr "名稱"
 
 #: src/gui/uifiles/astrometry_dialog.ui:512
 msgid "Flip image if needed"
-msgstr ""
+msgstr "翻轉影像，如果有需要"
 
 #: src/gui/uifiles/astrometry_dialog.ui:516
 msgid "Flip image at the end of the platesolving if image is mirrored."
-msgstr ""
+msgstr "翻轉影像，如果解星結果顯示影像呈現鏡像。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:528
 msgid "Downsample image"
-msgstr ""
+msgstr "縮小影像"
 
 #: src/gui/uifiles/astrometry_dialog.ui:532
 msgid ""
 "Sometimes, for oversampled images (like with Drizzle), it is complicated to "
 "resolve astrometry data. In consequence, downsampling data generally helps and "
 "also makes star detection run faster."
-msgstr ""
+msgstr "對於過採樣的影像(像是經過Drizzle處理過的)來說，解星可能會比較慢。因此,通常縮"
+"小影像會對解星有幫助，同時也能讓星點偵測執行得更快。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:543
 msgid "Auto-crop (for wide field)"
-msgstr ""
+msgstr "自動裁切（用於廣角影像）"
 
 #: src/gui/uifiles/astrometry_dialog.ui:547
 msgid ""
 "Only use the center of the image (or selection) if the field is too wide, "
 "larger than 5 degrees."
-msgstr ""
+msgstr "當視野超過五度時，只使用影像中央的區域（或選取的區域）。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:560
 msgid "Get Metadata From Image"
-msgstr ""
+msgstr "從影像取得元資料"
 
 #: src/gui/uifiles/astrometry_dialog.ui:564
 msgid ""
 "Click on this button to get focal length, pixel size and RA/Dec pointing "
 "coordinates from the header of the file if they exist."
-msgstr ""
+msgstr "點擊這個按鈕可以從影像檔案的標頭中讀取焦長、像素大小及座標(如果這些資訊存在的"
+"話)。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:592
 msgid ""
 "Select the server that searches the coordinates of the entered object name."
-msgstr ""
+msgstr "選擇搜尋天體座標的伺服器。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:595
 msgid "CDS"
-msgstr ""
+msgstr "CDS星表"
 
 #: src/gui/uifiles/astrometry_dialog.ui:596
 msgid "VizieR"
-msgstr ""
+msgstr "VizieR星表"
 
 #: src/gui/uifiles/astrometry_dialog.ui:597 src/io/siril_catalogues.c:256
 msgid "SIMBAD"
-msgstr ""
+msgstr "SIMBAD星表"
 
 #: src/gui/uifiles/astrometry_dialog.ui:611
 msgid "Server:"
-msgstr ""
+msgstr "伺服器："
 
 #: src/gui/uifiles/astrometry_dialog.ui:622
 msgid ""
@@ -737,88 +799,94 @@ msgid ""
 "When selecting an order with distortions, additional terms are added to the "
 "solution, using SIP convention"
 msgstr ""
+"請選擇影像變形方程式的次數：\n"
+"線性假設影像中沒有變形\n"
+"二次、三次、四次或五次項會包含二次到五次多項式變形。\n"
+"選擇有變形的次數時，會增加額外的項到方程式中，根據SIP(Simple Imaging "
+"Polynomial) convention"
 
 #: src/gui/uifiles/astrometry_dialog.ui:646
 msgid "Solution order: "
-msgstr ""
+msgstr "方程式次數： "
 
 #: src/gui/uifiles/astrometry_dialog.ui:657
 msgid ""
 "Choose Siril internal solver or local Astrometry.net (needs to be installed on "
 "your system)"
-msgstr ""
+msgstr "請選擇使用Siril內部的解星,或是本機安裝的Astrometry."
+"net(需要您的系統上已經安裝了Astrometry.net)"
 
 #: src/gui/uifiles/astrometry_dialog.ui:660
 msgid "Siril solver"
-msgstr ""
+msgstr "Siril解星"
 
 #: src/gui/uifiles/astrometry_dialog.ui:661
 msgid "Astrometry.net (local)"
-msgstr ""
+msgstr "Astrometry.net (本機）"
 
 #: src/gui/uifiles/astrometry_dialog.ui:674
 msgid "Radius used by the solver to search around the target."
-msgstr ""
+msgstr "解星搜尋目標周圍所使用的半徑。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:695
 msgid "Search radius:"
-msgstr ""
+msgstr "搜尋半徑："
 
 #: src/gui/uifiles/astrometry_dialog.ui:704
 msgid "disable near search"
-msgstr ""
+msgstr "停用近距離搜尋"
 
 #: src/gui/uifiles/astrometry_dialog.ui:708
 msgid ""
 "Tick this box to disable searching around target position with Siril internal "
 "solver."
-msgstr ""
+msgstr "勾選此選項可以停用Siril解星目標周圍位置的搜尋。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:727
 msgid "Ignore position (blind solve)"
-msgstr ""
+msgstr "忽略座標（盲解）"
 
 #: src/gui/uifiles/astrometry_dialog.ui:731
 msgid ""
 "Tick this box to ignore target position when solving with local Astrometry.net"
-msgstr ""
+msgstr "勾選此選項可以在使用本機Astrometry.net解星時忽略目標座標"
 
 #: src/gui/uifiles/astrometry_dialog.ui:743
 msgid "Ignore sampling (blind solve)"
-msgstr ""
+msgstr "忽略解析度（盲解）"
 
 #: src/gui/uifiles/astrometry_dialog.ui:747
 msgid "Tick this box to ignore sampling when solving with local Astrometry.net"
-msgstr ""
+msgstr "勾選此選項可以在使用本機Astrometry.net解星時忽略解析度資訊"
 
 #: src/gui/uifiles/astrometry_dialog.ui:805
 msgid "Image Parameters"
-msgstr ""
+msgstr "影像參數"
 
 #: src/gui/uifiles/astrometry_dialog.ui:837 src/gui/uifiles/s_pcc_dialog.ui:963
 msgid "Catalogue Limit Mag: "
-msgstr ""
+msgstr "星表極限星等： "
 
 #: src/gui/uifiles/astrometry_dialog.ui:849 src/gui/uifiles/s_pcc_dialog.ui:975
 msgid ""
 "Maximum star magnitude used in the catalog queries. Wider is the field, lower "
 "is the value."
-msgstr ""
+msgstr "星表查詢中使用的最大星等。視野越廣，此值應該越低。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:862
 #: src/gui/uifiles/astrometry_dialog.ui:919 src/gui/uifiles/s_pcc_dialog.ui:989
 msgid "Auto"
-msgstr ""
+msgstr "自動"
 
 #: src/gui/uifiles/astrometry_dialog.ui:866 src/gui/uifiles/s_pcc_dialog.ui:993
 msgid ""
 "The limit magnitude is automatically determined using the approximation of the "
 "Field Of View."
-msgstr ""
+msgstr "自動根據視野大小的估算解星用極限星等。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:882
 msgid "Star Catalogue: "
-msgstr ""
+msgstr "星表： "
 
 #: src/gui/uifiles/astrometry_dialog.ui:894
 msgid ""
@@ -843,26 +911,38 @@ msgid ""
 "V, plus Sloan u', g′, r′, i′, z_s and Z. It is valid from about 7th magnitude "
 "to about 17th magnitude for over 37 million stars."
 msgstr ""
+"請選擇您希望與影像進行比對的線上星表：\n"
+"TYCHO-2星表包含了銀河系最亮2,539,913顆星的位置、自行和雙色測光數據。\n"
+"NOMAD是由Hipparcos、Tycho-2、UCAC2、Yellow-Blue 6和USNO-B等目錄合併而成的天測"
+"和光學測光數據集，補充了2MASS近紅外資料，包含約11億顆星的天測和測光數據。\n"
+"Gaia DR3於2022年6月13日發布，提供了約14.6億源5個參數，包括天球坐標(α, "
+"δ)、視差和自行，極限星等為G = 21。\n"
+"PPMXL是一個包含9億顆星和銀河系天體的位置、自行和2MASS/光學測光數據的目錄。\n"
+"Bright Star Catalogue列出了所有視星等6."
+"5等或更亮的星星，即地球上肉眼可見的所有星星，共包含9,110個天體。\n"
+"APASS是AAVSO全天測光巡天,在Johnson B、V及Sloan "
+"u'、g'、r'、i'、z_s和Z共8個濾光器下對從7等到17等的3700多萬顆星進行了測光。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:923
 msgid ""
 "The catalogue is automatically determined using the approximation of the Field "
 "Of View and magnitude."
-msgstr ""
+msgstr "根據視野角和星等的估算，會自動選擇星表。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:938
 msgid ""
 "The TYCHO2, NOMAD and Bright Stars catalogues can be installed locally to not "
 "rely on an Internet connection for this operation."
-msgstr ""
+msgstr "可以將TYCHO2、NOMAD和Bright "
+"Stars目錄安裝在本機,這樣不需要網際網路就能進行此操作。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:956 src/gui/uifiles/s_pcc_dialog.ui:1057
 msgid "Catalogue Parameters"
-msgstr ""
+msgstr "星表參數"
 
 #: src/gui/uifiles/astrometry_dialog.ui:977
 msgid "Manual detection"
-msgstr ""
+msgstr "手動偵測"
 
 #: src/gui/uifiles/astrometry_dialog.ui:981
 msgid ""
@@ -872,33 +952,36 @@ msgid ""
 "Use the Dynamic PSF tool, or the findstar command, adjusting the settings to "
 "your image."
 msgstr ""
+"如果您希望手動挑選每顆星星，請勾選此選項。在Siril無法找到足夠的星星的某些情況"
+"下，這可能很有用。請選擇影像中最亮的星星。\n"
+"使用Dynamic PSF工具或findstar命令，調整設定以適合您的影像。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:991
 #: src/gui/uifiles/stars_list_window.ui:865
 msgid "Star Detection"
-msgstr ""
+msgstr "星點偵測"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1015
 msgid "Solve whole sequence"
-msgstr ""
+msgstr "解星整個序列"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1019
 msgid "Tick this box to solve the whole sequence."
-msgstr ""
+msgstr "勾選此選項解星整個序列。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1031
 msgid "Skip already solved images"
-msgstr ""
+msgstr "跳過已解星的影像"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1035
 msgid ""
 "Tick this box to skip solving the images of the sequence that already have a "
 "solution."
-msgstr ""
+msgstr "勾選此選項跳過已解星過的影像。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1048
 msgid "Fetch stars for each image"
-msgstr ""
+msgstr "擷取每張影像的星點"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1052
 msgid ""
@@ -908,46 +991,49 @@ msgid ""
 "box to fetch a new catalogue for each image. The information contained in the "
 "headers will be used to recompute the new position/resolution."
 msgstr ""
+"當使用Siril解星搭配線上星表時，預設是為整個序列獲取一個星表。如果您的影像來自"
+"不同視角或有不同解析度，這種做法很可能會失敗。在這種情況下，勾選此選項可以為"
+"每張影像獲取新的星表。將使用影像標頭中的資訊重新計算新的座標和解析度。"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1064
 msgid "Use coordinates from headers"
-msgstr ""
+msgstr "使用影像標頭的座標"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1068
 msgid ""
 "Use the coordinates contained in each image header instead of those given in "
 "this dialog"
-msgstr ""
+msgstr "使用每張影像標頭中的座標，而非在這個對話框中提供的座標"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1081
 msgid "Use pixel size from headers"
-msgstr ""
+msgstr "使用影像標頭的像素大小"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1085
 msgid ""
 "Use the pixel size contained in each image header instead of those given in "
 "this dialog"
-msgstr ""
+msgstr "使用每張影像標頭中的像素大小，而非在這個對話框中提供的像素大小"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1098
 msgid "Use focal length from headers"
-msgstr ""
+msgstr "使用影像標頭的焦長"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1102
 msgid ""
 "Use the focal length contained in each image header instead of those given in "
 "this dialog"
-msgstr ""
+msgstr "使用每張影像標頭中的焦長，而非在這個對話框中提供的焦長"
 
 #: src/gui/uifiles/astrometry_dialog.ui:1119 src/gui/uifiles/siril.ui:4417
 #: src/gui/callbacks.c:2160
 msgid "Sequence"
-msgstr ""
+msgstr "影像序列"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:55
 #: src/algos/background_extraction.c:1066
 msgid "Background Extraction"
-msgstr ""
+msgstr "背景提取"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:93
 msgid ""
@@ -956,10 +1042,13 @@ msgid ""
 "sequence</b> button is checked, this will compute the model and apply it to "
 "the whole sequence."
 msgstr ""
+"這將確認先前使用 <b>計算背景 "
+"<b>按鈕所套用的背景模型。但如果是處理一個影像序列，勾選 <b>套用至序列 "
+"<b>按鈕，則會計算模型並套用到整個序列。"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:127
 msgid "Choose between interpolation methods."
-msgstr ""
+msgstr "選擇內插算法。"
 
 #: src/gui/uifiles/background_extraction_dialog.ui:131
 msgid "RBF"
@@ -3262,7 +3351,7 @@ msgstr ""
 
 #: src/gui/uifiles/file_information_dialog.ui:231
 msgid "Real pixel size"
-msgstr ""
+msgstr "實際像素大小"
 
 #: src/gui/uifiles/file_information_dialog.ui:235
 msgid ""
