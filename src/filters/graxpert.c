@@ -57,7 +57,7 @@ static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 	g_spawn_close_pid(pid);
 }
 
-static int exec_prog_graxpert(char **argv) {
+static int exec_prog_graxpert(char **argv, gboolean is_gui) {
 	const gchar *progress_key = "Progress: ";
 	gint child_stderr;
 	GPid child_pid;
@@ -122,11 +122,13 @@ static int exec_prog_graxpert(char **argv) {
 				siril_log_message(_("GraXpert caught buffer: %s : exit successful\n"), buffer);
 #endif
 		} else if (doprint && verbose) {
-			gchar *print_from = g_strstr_len(buffer, -1, "INFO");
-			if (print_from) {
-				print_from += 9;
+			if (!g_strstr_len(buffer, -1, "ForkProcess")) { // These are not useful messages
+				gchar *print_from = g_strstr_len(buffer, -1, "INFO");
 				if (print_from) {
-					siril_log_message("GraXpert: %s\n", print_from);
+					print_from += 9;
+					if (print_from) {
+						siril_log_message("GraXpert: %s\n", print_from);
+					}
 				}
 			}
 		}
@@ -134,6 +136,11 @@ static int exec_prog_graxpert(char **argv) {
 		lastbuffer = g_strdup(buffer);
 #endif
 		g_free(buffer);
+	}
+	if (is_gui) {
+		siril_log_message(_("GraXpert GUI finished.\n"));
+		set_progress_bar_data(_("Done."), 1.0);
+		retval = 0; // No "Finished" log message is printed when closing the GUI, so we assume success
 	}
 #ifdef GRAXPERT_DEBUG
 	if (retval)
@@ -298,6 +305,7 @@ gpointer do_graxpert (gpointer p) {
 
 	// Configure GraXpert commandline
 	int nb = 0;
+	gboolean is_gui = FALSE;
 	my_argv[nb++] = g_strdup(com.pref.graxpert_path);
 	if (args->operation == GRAXPERT_BG) {
 		my_argv[nb++] = g_strdup("-cli");
@@ -327,7 +335,12 @@ gpointer do_graxpert (gpointer p) {
 		}
 		my_argv[nb++] = g_strdup("-strength");
 		my_argv[nb++] = g_strdup_printf("%.2f", args->denoise_strength);
-	} else if (args->operation != GRAXPERT_GUI) {
+	} else if (args->operation == GRAXPERT_GUI) {
+		siril_log_message(_("GraXpert GUI will open with the current image. When you have finished, save the "
+							"image and return to Siril. You will need to check and re-assign the ICC profile "
+							"as GraXpert does not preserve ICC profiles embedded in FITS files.\n"));
+		is_gui = TRUE;
+	} else {
 		siril_log_message(_("Error: unknown GraXpert operation\n"));
 		g_free(my_argv[0]);
 		goto ERROR_OR_FINISHED;
@@ -339,13 +352,18 @@ gpointer do_graxpert (gpointer p) {
 		args->backup_icc = copyICCProfile(gfit.icc_profile);
 
 	// Execute GraXpert
-	retval = exec_prog_graxpert(my_argv);
+	struct timeval t_start, t_end;
+	gettimeofday(&t_start, NULL);
+	retval = exec_prog_graxpert(my_argv, is_gui);
+	gettimeofday(&t_end, NULL);
+	if (verbose)
+		show_time(t_start, t_end);
 	if (retval)
 		goto ERROR_OR_FINISHED;
 
-	args->path = g_strdup(path);
+	if (!is_gui) // In the GUI the user may change the saved file name, so we won't assume a filename
+		args->path = g_strdup(path);
 	g_free(path);
-//	read_single_image(path, &gfit, NULL, FALSE, NULL, FALSE, !com.pref.force_16bit);
 
 ERROR_OR_FINISHED:
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
