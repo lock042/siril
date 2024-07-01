@@ -245,8 +245,7 @@ static version_number graxpert_executablecheck(gchar* executable) {
 	return version;
 }
 
-gboolean save_graxpert_config(const gchar *filename, GSList *bg_points,
-						graxpert_data *args) {
+gboolean save_graxpert_config(const gchar *filename, graxpert_data *args) {
 	JsonBuilder *builder;
 	JsonGenerator *generator;
 	JsonNode *root;
@@ -268,10 +267,10 @@ gboolean save_graxpert_config(const gchar *filename, GSList *bg_points,
 	json_builder_add_int_value(builder, gfit.ry);
 
 	// Add background points
-	if (bg_points) {
+	if (args->bg_points) {
 		json_builder_set_member_name(builder, "background_points");
 		json_builder_begin_array(builder);
-		for (GSList *l = bg_points; l != NULL; l = l->next) {
+		for (GSList *l = args->bg_points; l != NULL; l = l->next) {
 			background_sample *s = (background_sample *)l->data;
 			json_builder_begin_array(builder);
 			json_builder_add_int_value(builder, min(gfit.rx - 1, round_to_int(s->position.x)));
@@ -384,6 +383,7 @@ graxpert_data *new_graxpert_data() {
 	p->bg_pts_option = 15;
 	p->path = NULL;
 	p->backup_icc = NULL;
+	p->bg_points = NULL;
 	return p;
 }
 
@@ -468,7 +468,7 @@ gpointer do_graxpert (gpointer p) {
 			my_argv[nb++] = g_strdup("-preferences_file");
 			gchar *configfile = g_build_filename(com.wd, "siril-graxpert.pref", NULL);
 			my_argv[nb++] = g_strdup(configfile);
-			// save_graxpert_config(configfile, args);
+			save_graxpert_config(configfile, args);
 		}
 		if (args->keep_bg)
 			my_argv[nb++] = g_strdup("-bg");
