@@ -70,8 +70,8 @@
 #include "starnet.h"
 
 #ifdef HAVE_LIBTIFF
-fits *current_fit = NULL;
-gboolean verbose = TRUE;
+static fits *current_fit = NULL;
+static gboolean verbose = TRUE;
 
 static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 	siril_debug_print("starnet is being closed\n");

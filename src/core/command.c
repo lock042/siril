@@ -89,6 +89,7 @@
 #include "filters/deconvolution/deconvolution.h"
 #include "filters/linear_match.h"
 #include "filters/median.h"
+#include "filters/graxpert.h"
 #include "filters/mtf.h"
 #include "filters/fft.h"
 #include "filters/rgradient.h"
@@ -10456,6 +10457,14 @@ int process_seq_profile(int nb) {
 
 	apply_cut_to_sequence(cut_args);
 
+	return CMD_OK;
+}
+
+int process_graxpert(int nb) {
+	// Test code
+	graxpert_data *data = calloc(1, sizeof(graxpert_data));
+	*data = (graxpert_data) {GRAXPERT_DENOISE, 0.0, GRAXPERT_BG_UNSET, GRAXPERT_MODE_UNSET, FALSE, 0.8, TRUE };
+	start_in_new_thread(do_graxpert, data);
 	return CMD_OK;
 }
 

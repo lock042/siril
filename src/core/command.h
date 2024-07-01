@@ -92,6 +92,7 @@ int	process_fmul(int nb);
 
 int	process_gauss(int nb);
 int	process_getref(int nb);
+int	process_graxpert(int nb);
 int	process_grey_flat(int nb);
 
 int	process_help(int nb);

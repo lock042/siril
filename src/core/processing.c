@@ -729,7 +729,7 @@ void kill_child_process(gboolean onexit) {
 	if (onexit)
 		printf("making sure no child is left behind\n");
 	// abort starnet by killing the process
-	if (com.child_is_running == EXT_STARNET) {
+	if (com.child_is_running == EXT_STARNET || com.child_is_running == EXT_GRAXPERT) {
 #ifdef _WIN32
 		TerminateProcess(com.childhandle, 1);
 		com.childhandle = NULL;
