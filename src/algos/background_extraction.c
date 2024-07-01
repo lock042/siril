@@ -49,15 +49,6 @@
 
 #define SAMPLE_SIZE 25		// must be odd to compute a radius
 
-struct sample {
-	double median[3]; // median of each channel of the sample (if color)
-	double mean; // mean of the 3 channel of the sample (if color)
-	double min, max;
-	size_t size;
-	point position;
-	gboolean valid;
-};
-
 //C contains background function
 #define C(i) (gsl_vector_get(c,(i)))
 

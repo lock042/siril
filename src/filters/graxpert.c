@@ -32,6 +32,8 @@
 #include <sys/wait.h> // for waitpid(2)
 #include <gio/gunixinputstream.h>
 #endif
+#include <json-glib/json-glib.h>
+#include "algos/background_extraction.h"
 #include "core/siril.h"
 #include "core/icc_profile.h"
 #include "core/proto.h"
@@ -243,9 +245,151 @@ static version_number graxpert_executablecheck(gchar* executable) {
 	return version;
 }
 
-void free_graxpert_data(graxpert_data *p) {
-	g_free(p->path);
-	free(p);
+gboolean save_graxpert_config(const gchar *filename, GSList *bg_points,
+						graxpert_data *args) {
+	JsonBuilder *builder;
+	JsonGenerator *generator;
+	JsonNode *root;
+	gchar *json_data;
+	gsize json_length;
+	gboolean success = FALSE;
+
+	builder = json_builder_new();
+	json_builder_begin_object(builder);
+
+	// Add working directory
+	json_builder_set_member_name(builder, "working_dir");
+	json_builder_add_string_value(builder, com.wd);
+
+	// Add width and height
+	json_builder_set_member_name(builder, "width");
+	json_builder_add_int_value(builder, gfit.rx);
+	json_builder_set_member_name(builder, "height");
+	json_builder_add_int_value(builder, gfit.ry);
+
+	// Add background points
+	if (bg_points) {
+		json_builder_set_member_name(builder, "background_points");
+		json_builder_begin_array(builder);
+		for (GSList *l = bg_points; l != NULL; l = l->next) {
+			background_sample *s = (background_sample *)l->data;
+			json_builder_begin_array(builder);
+			json_builder_add_int_value(builder, min(gfit.rx - 1, round_to_int(s->position.x)));
+			json_builder_add_int_value(builder, min(gfit.ry - 1, round_to_int(s->position.y)));
+			json_builder_add_int_value(builder, 1);
+			json_builder_end_array(builder);
+		}
+		json_builder_end_array(builder);
+	}
+
+	// Add other options
+	json_builder_set_member_name(builder, "bg_pts_option");
+	json_builder_add_int_value(builder, args->bg_pts_option);
+
+	json_builder_set_member_name(builder, "stretch_option");
+	json_builder_add_string_value(builder,
+		args->stretch_option == STRETCH_OPTION_10_BG_3_SIGMA ? "10% Bg, 3 sigma" :
+		args->stretch_option == STRETCH_OPTION_15_BG_3_SIGMA ? "15% Bg, 3 sigma":
+		args->stretch_option == STRETCH_OPTION_20_BG_3_SIGMA ? "20% Bg, 3 sigma":
+		args->stretch_option == STRETCH_OPTION_30_BG_2_SIGMA ? "30% Bg, 2 sigma":
+		"No Stretch");
+
+	json_builder_set_member_name(builder, "bg_tol_option");
+	json_builder_add_double_value(builder,
+		args->bg_tol_option < -2.0 ? -2.0 : args->bg_tol_option > 10.0 ? 10.0 : args->bg_tol_option);
+
+	json_builder_set_member_name(builder, "interpol_type_option");
+	json_builder_add_string_value(builder, args->bg_algo == GRAXPERT_BG_KRIGING ? "Kriging" :
+		args->bg_algo == GRAXPERT_BG_RBF ? "RBF" :
+		args->bg_algo == GRAXPERT_BG_SPLINE ? "Splines" :
+		"AI");
+
+	json_builder_set_member_name(builder, "smoothing_option");
+	json_builder_add_double_value(builder, args->bg_smoothing);
+
+	if (args->ai_batch_size != -1) {
+		json_builder_set_member_name(builder, "ai_batch_size");
+		json_builder_add_int_value(builder, args->ai_batch_size);
+	}
+
+	if (args->sample_size != -1) {
+		json_builder_set_member_name(builder, "sample_size");
+		json_builder_add_int_value(builder, args->sample_size);
+	}
+
+	if (args->spline_order != -1) {
+		json_builder_set_member_name(builder, "spline_order");
+		json_builder_add_int_value(builder, args->spline_order);
+	}
+
+	json_builder_set_member_name(builder, "corr_type");
+	json_builder_add_string_value(builder, args->bg_mode == GRAXPERT_SUBTRACTION ? "Subtraction" :
+	"Division");
+
+	json_builder_set_member_name(builder, "RBF_kernel");
+	json_builder_add_string_value(builder, args->kernel == GRAXPERT_THIN_PLATE ? "thin_plate" :
+	args->kernel == GRAXPERT_QUINTIC ? "quintic" :
+	args->kernel == GRAXPERT_CUBIC ? "cubic" :
+	"linear");
+
+//	json_builder_set_member_name(builder, "bge_ai_version");
+//	json_builder_add_string_value(builder, "latest");
+
+//	json_builder_set_member_name(builder, "denoise_ai_version");
+//	json_builder_add_string_value(builder, "latest");
+
+	json_builder_set_member_name(builder, "denoise_strength");
+	json_builder_add_double_value(builder, args->denoise_strength);
+
+	json_builder_set_member_name(builder, "saveas_option");
+	json_builder_add_string_value(builder,
+		gfit.type == DATA_FLOAT ? "32 bit Fits" : "16 bit Fits");
+
+	json_builder_end_object(builder);
+
+	root = json_builder_get_root(builder);
+	generator = json_generator_new();
+	json_generator_set_root(generator, root);
+	json_generator_set_pretty(generator, TRUE);
+
+	json_data = json_generator_to_data(generator, &json_length);
+
+	if (g_file_set_contents(filename, json_data, json_length, NULL)) {
+		success = TRUE;
+	}
+
+	g_free(json_data);
+	json_node_free(root);
+	g_object_unref(generator);
+	g_object_unref(builder);
+
+	return success;
+}
+
+graxpert_data *new_graxpert_data() {
+	graxpert_data *p = calloc(1, sizeof(graxpert_data));
+	p->operation = GRAXPERT_GUI;
+	p->bg_smoothing = 0.5;
+	p->bg_algo = GRAXPERT_BG_AI;
+	p->bg_mode = GRAXPERT_SUBTRACTION;
+	p->kernel = GRAXPERT_THIN_PLATE;
+	p->stretch_option = STRETCH_OPTION_10_BG_3_SIGMA;
+	p->sample_size = 25;
+	p->spline_order = 3;
+	p->bg_tol_option = 2;
+	p->keep_bg = FALSE;
+	p->denoise_strength = 0.75;
+	p->use_gpu = TRUE;
+	p->ai_batch_size = 4;
+	p->bg_pts_option = 15;
+	p->path = NULL;
+	p->backup_icc = NULL;
+	return p;
+}
+
+void free_graxpert_data(graxpert_data *args) {
+	g_free(args->path);
+	free(args);
 }
 
 static gboolean end_graxpert(gpointer p) {
@@ -311,13 +455,20 @@ gpointer do_graxpert (gpointer p) {
 		my_argv[nb++] = g_strdup("-cli");
 		my_argv[nb++] = g_strdup("-cmd");
 		my_argv[nb++] = g_strdup("background-extraction");
-		my_argv[nb++] = g_strdup("-correction");
-		my_argv[nb++] = g_strdup_printf("%s", args->bg_mode == GRAXPERT_SUBTRACTION ? "Subtraction" : "Division");
-		my_argv[nb++] = g_strdup("-smoothing");
-		my_argv[nb++] = g_strdup_printf("%f", args->bg_smoothing);
-		if (args->use_gpu) {
-			my_argv[nb++] = g_strdup("-gpu");
-			my_argv[nb++] = g_strdup("true");
+		if (args->bg_algo == GRAXPERT_BG_AI) {
+			my_argv[nb++] = g_strdup("-correction");
+			my_argv[nb++] = g_strdup_printf("%s", args->bg_mode == GRAXPERT_SUBTRACTION ? "Subtraction" : "Division");
+			my_argv[nb++] = g_strdup("-smoothing");
+			my_argv[nb++] = g_strdup_printf("%f", args->bg_smoothing);
+			if (args->use_gpu) {
+				my_argv[nb++] = g_strdup("-gpu");
+				my_argv[nb++] = g_strdup("true");
+			}
+		} else {
+			my_argv[nb++] = g_strdup("-preferences_file");
+			gchar *configfile = g_build_filename(com.wd, "siril-graxpert.pref", NULL);
+			my_argv[nb++] = g_strdup(configfile);
+			// save_graxpert_config(configfile, args);
 		}
 		if (args->keep_bg)
 			my_argv[nb++] = g_strdup("-bg");
@@ -337,7 +488,7 @@ gpointer do_graxpert (gpointer p) {
 		my_argv[nb++] = g_strdup_printf("%.2f", args->denoise_strength);
 	} else if (args->operation == GRAXPERT_GUI) {
 		siril_log_message(_("GraXpert GUI will open with the current image. When you have finished, save the "
-							"image and return to Siril. You will need to check and re-assign the ICC profile "
+							"image and return to Siril.\nYou will need to check and re-assign the ICC profile "
 							"as GraXpert does not preserve ICC profiles embedded in FITS files.\n"));
 		is_gui = TRUE;
 	} else {

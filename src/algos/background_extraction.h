@@ -36,7 +36,14 @@ struct background_data {
 	char *seqEntry;
 };
 
-typedef struct sample background_sample;
+typedef struct sample {
+	double median[3]; // median of each channel of the sample (if color)
+	double mean; // mean of the 3 channel of the sample (if color)
+	double min, max;
+	size_t size;
+	point position;
+	gboolean valid;
+} background_sample;
 
 int get_background_sample_radius();
 void free_background_sample_list(GSList *list);

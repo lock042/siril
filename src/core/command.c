@@ -10462,8 +10462,8 @@ int process_seq_profile(int nb) {
 
 int process_graxpert(int nb) {
 	// Test code
-	graxpert_data *data = calloc(1, sizeof(graxpert_data));
-	*data = (graxpert_data) {GRAXPERT_DENOISE, 0.0, GRAXPERT_BG_UNSET, GRAXPERT_MODE_UNSET, FALSE, 0.8, TRUE };
+	graxpert_data *data = new_graxpert_data();
+	*data = (graxpert_data) {GRAXPERT_DENOISE, 0.0, GRAXPERT_BG_AI, GRAXPERT_SUBTRACTION, FALSE, 0.8, TRUE };
 	start_in_new_thread(do_graxpert, data);
 	return CMD_OK;
 }
