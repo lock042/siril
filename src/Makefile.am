@@ -194,6 +194,8 @@ siril_common_SOURCES = \
 	filters/mtf.h \
 	filters/ght.c \
 	filters/ght.h \
+	filters/graxpert.c \
+	filters/graxpert.h \
 	filters/rgradient.c \
 	filters/rgradient.h \
 	filters/saturation.c \
