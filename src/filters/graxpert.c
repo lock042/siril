@@ -46,6 +46,7 @@
 #include "gui/progress_and_log.h"
 #include "gui/callbacks.h"
 #include "io/image_format_fits.h"
+#include "io/sequence.h"
 #include "io/single_image.h"
 #include "filters/graxpert.h"
 
@@ -413,14 +414,12 @@ static gboolean end_graxpert(gpointer p) {
 	// If successful, open the result image
 	if (args->path) {
 		disable_profile_check_verbose();
-		open_single_image(args->path);
+		fits *result = calloc(1, sizeof(fits));
+		readfits(args->path, result, NULL, !com.pref.force_16bit);
+		copyfits(result, args->fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+		copy_fits_metadata(result, &gfit);
+		g_unlink(args->path);
 		enable_profile_check_verbose();
-		if (args->backup_icc) {
-			if (args->fit->icc_profile)
-				cmsCloseProfile(args->fit->icc_profile);
-			args->fit->icc_profile = copyICCProfile(args->backup_icc);
-			color_manage(args->fit, TRUE);
-		}
 	}
 	free_graxpert_data(args);
 	notify_gfit_modified();
@@ -548,4 +547,52 @@ ERROR_OR_FINISHED:
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 	siril_add_idle(end_graxpert, args); // this loads the result
 	return GINT_TO_POINTER(retval);
+}
+
+/******** SEQUENCE FUNCTIONS *********/
+
+static int graxpert_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
+//	GraXpert cannot run in parallel as it fully utilizes the GPU / CPU. This function therefore
+//	returns a maximum of 1 and all images will be processed in series.
+	unsigned int MB_per_image, MB_avail, required;
+	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_image, NULL, &MB_avail);
+	if (limit > 0) {
+		required = MB_per_image;
+		limit = MB_avail / required;
+	}
+	limit = (limit >= 1 ? 1 : 0);
+	siril_log_message(_("Note: the GraXpert sequence memory limit calculation is based on system RAM only. If you are using the GPU option and have insufficient GPU memory, GraXpert may still fail.\n"));
+	return limit;
+}
+
+static int graxpert_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
+	int ret = 0;
+	graxpert_data *data = (graxpert_data *) args->user;
+	data->fit = fit;
+	siril_log_color_message(_("GraXpert: Processing image %d\n"), "green", o + 1);
+	do_graxpert(data);
+	return ret;
+}
+
+void apply_graxpert_to_sequence(graxpert_data *args) {
+	version_number graxpert_version = graxpert_executablecheck(com.pref.graxpert_path);
+	if (compare_version(graxpert_version, (version_number) {.major_version = 3, .minor_version = 0, .micro_version = 2}) < 0) {
+		siril_log_color_message(_("Error: GraXpert version is too old. You have version %d.%d.%d; at least version 3.0.2 is required.\n"), "red", graxpert_version.major_version, graxpert_version.minor_version, graxpert_version.micro_version);
+		return;
+	}
+	args->fit = NULL;
+	struct generic_seq_args *seqargs = create_default_seqargs(args->seq);
+	seqargs->seq = args->seq;
+	seqargs->filtering_criterion = seq_filter_included;
+	seqargs->nb_filtered_images = args->seq->selnum;
+	seqargs->compute_mem_limits_hook = graxpert_compute_mem_limits;
+	seqargs->image_hook = graxpert_image_hook;
+	seqargs->description = _("GraXpert");
+	seqargs->has_output = TRUE;
+	seqargs->output_type = get_data_type(seqargs->seq->bitpix);
+	seqargs->new_seq_prefix = "graxpert_";
+	seqargs->load_new_sequence = TRUE;
+	seqargs->user = args;
+	set_progress_bar_data(_("GraXpert: Processing..."), 0.);
+	start_in_new_thread(generic_sequence_worker, seqargs);
 }

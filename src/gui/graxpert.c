@@ -38,7 +38,7 @@ GtkComboBox *combo_graxpert_operation = NULL, *combo_graxpert_algorithm = NULL, 
 GtkDialog *graxpert_dialog = NULL;
 GtkExpander *graxpert_bg_settings = NULL, *graxpert_denoise_settings = NULL;
 GtkSpinButton *spin_graxpert_smoothing = NULL, *graxpert_spin_bgtol = NULL, *graxpert_spin_nb_samples = NULL, *spin_graxpert_strength = NULL, *graxpert_spin_sample_size = NULL, *graxpert_spin_spline_order = NULL;
-GtkToggleButton *toggle_graxpert_gpu = NULL, *graxpert_toggle_keep_background = NULL;
+GtkToggleButton *toggle_graxpert_gpu = NULL, *graxpert_toggle_keep_background = NULL, *graxpert_toggle_apply_to_sequence = NULL;
 
 void initialize_graxpert_widgets_if_needed() {
 	if (button_graxpert_cancel == NULL) {
@@ -67,6 +67,7 @@ void initialize_graxpert_widgets_if_needed() {
 		// GtkToggleButton
 		toggle_graxpert_gpu = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "toggle_graxpert_gpu"));
 		graxpert_toggle_keep_background = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "graxpert_toggle_keep_background"));
+		graxpert_toggle_apply_to_sequence = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "graxpert_toggle_apply_to_sequence"));
 	}
 }
 
@@ -128,7 +129,11 @@ void on_combo_graxpert_operation_changed(GtkComboBox *combo, gpointer user_data)
 void on_button_graxpert_apply_clicked(GtkWidget *widget, gpointer user_data) {
 	graxpert_data *data = fill_graxpert_data_from_gui();
 	// Undo is not possible, as the result is read as a new image
-	start_in_new_thread(do_graxpert, data);
+	if (gtk_toggle_button_get_active(graxpert_toggle_apply_to_sequence)) {
+	//	apply_graxpert_to_sequence(data);
+	} else {
+		start_in_new_thread(do_graxpert, data);
+	}
 }
 
 void on_button_graxpert_cancel_clicked(GtkWidget *widget, gpointer user_data) {

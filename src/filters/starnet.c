@@ -983,6 +983,7 @@ static int starnet_prepare_hook(struct generic_seq_args *args) {
 
 	return 0;
 }
+
 void apply_starnet_to_sequence(struct starnet_data *seqdata) {
 	seqdata->starnet_fit = NULL;
 	struct generic_seq_args *seqargs = create_default_seqargs(seqdata->seq);
