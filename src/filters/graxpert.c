@@ -260,9 +260,9 @@ gboolean save_graxpert_config(graxpert_data *args) {
 
 	// Add width and height
 	json_builder_set_member_name(builder, "width");
-	json_builder_add_int_value(builder, gfit.rx);
+	json_builder_add_int_value(builder, args->fit->rx);
 	json_builder_set_member_name(builder, "height");
-	json_builder_add_int_value(builder, gfit.ry);
+	json_builder_add_int_value(builder, args->fit->ry);
 
 	// Add background points
 	if (com.grad_samples) {
@@ -271,8 +271,8 @@ gboolean save_graxpert_config(graxpert_data *args) {
 		for (GSList *l = com.grad_samples; l != NULL; l = l->next) {
 			background_sample *s = (background_sample *)l->data;
 			json_builder_begin_array(builder);
-			json_builder_add_int_value(builder, min(gfit.rx - 1, round_to_int(s->position.x)));
-			json_builder_add_int_value(builder, min(gfit.ry - 1, round_to_int(s->position.y)));
+			json_builder_add_int_value(builder, min(args->fit->rx - 1, round_to_int(s->position.x)));
+			json_builder_add_int_value(builder, min(args->fit->ry - 1, round_to_int(s->position.y)));
 			json_builder_add_int_value(builder, 1);
 			json_builder_end_array(builder);
 		}
@@ -340,7 +340,7 @@ gboolean save_graxpert_config(graxpert_data *args) {
 
 	json_builder_set_member_name(builder, "saveas_option");
 	json_builder_add_string_value(builder,
-		gfit.type == DATA_FLOAT ? "32 bit Fits" : "16 bit Fits");
+		args->fit->type == DATA_FLOAT ? "32 bit Fits" : "16 bit Fits");
 
 	json_builder_end_object(builder);
 
@@ -365,6 +365,7 @@ gboolean save_graxpert_config(graxpert_data *args) {
 
 graxpert_data *new_graxpert_data() {
 	graxpert_data *p = calloc(1, sizeof(graxpert_data));
+	p->fit = &gfit;
 	p->operation = GRAXPERT_BG;
 	p->bg_smoothing = 0.5;
 	p->bg_algo = GRAXPERT_BG_AI;
@@ -402,10 +403,10 @@ static gboolean end_graxpert(gpointer p) {
 		open_single_image(args->path);
 		enable_profile_check_verbose();
 		if (args->backup_icc) {
-			if (gfit.icc_profile)
-				cmsCloseProfile(gfit.icc_profile);
-			gfit.icc_profile = copyICCProfile(args->backup_icc);
-			color_manage(&gfit, TRUE);
+			if (args->fit->icc_profile)
+				cmsCloseProfile(args->fit->icc_profile);
+			args->fit->icc_profile = copyICCProfile(args->backup_icc);
+			color_manage(args->fit, TRUE);
 		}
 	}
 	free_graxpert_data(args);
@@ -418,7 +419,6 @@ gpointer do_graxpert (gpointer p) {
 	graxpert_data *args = (graxpert_data *) p;
 	char *my_argv[64] = { 0 };
 	int retval = 1;
-
 	version_number graxpert_version = graxpert_executablecheck(com.pref.graxpert_path);
 	if (compare_version(graxpert_version, (version_number) {.major_version = 3, .minor_version = 0, .micro_version = 2}) < 0) {
 		siril_log_color_message(_("Error: GraXpert version is too old. You have version %d.%d.%d; at least version 3.0.2 is required.\n"), "red", graxpert_version.major_version, graxpert_version.minor_version, graxpert_version.micro_version);
@@ -456,7 +456,7 @@ gpointer do_graxpert (gpointer p) {
 	g_free(temp);
 	g_free(filename);
 	// Save current image as input filename
-	savefits(path, &gfit);
+	savefits(path, args->fit);
 	com.pref.comp.fits_enabled = pref_fitscomp;
 
 	// Configure GraXpert commandline
@@ -518,8 +518,8 @@ gpointer do_graxpert (gpointer p) {
 	my_argv[nb++] = g_strdup_printf("%s", path);
 
 	// Save a copy of the current ICC profile, as GraXpert does not preserve these
-	if (gfit.icc_profile)
-		args->backup_icc = copyICCProfile(gfit.icc_profile);
+	if (args->fit->icc_profile)
+		args->backup_icc = copyICCProfile(args->fit->icc_profile);
 
 	// Execute GraXpert
 	struct timeval t_start, t_end;

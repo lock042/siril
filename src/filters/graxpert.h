@@ -35,6 +35,7 @@ typedef enum {
 } graxpert_stretch;
 
 typedef struct _graxpert_data {
+	fits *fit;
 	graxpert_operation operation;
 	double bg_smoothing;
 	graxpert_bg_algo bg_algo;
