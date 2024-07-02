@@ -490,7 +490,7 @@ gpointer do_graxpert (gpointer p) {
 			my_argv[nb++] = g_strdup(args->use_gpu ? "true" : "false");
 		} else {
 			if (!com.grad_samples) {
-				siril_log_color_message(_("Background samples must be computed for GraXpert RBF, spline and Kriging methods\n"), "red");
+				siril_log_color_message(_("Background samples must be computed for GraXpert RBF, Spline and Kriging methods\n"), "red");
 				goto ERROR_OR_FINISHED;
 			}
 			my_argv[nb++] = g_strdup("-preferences_file");

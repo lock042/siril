@@ -23,6 +23,7 @@
 #include "core/proto.h"
 #include "core/siril_log.h"
 #include "core/processing.h"
+#include "core/undo.h"
 #include "algos/background_extraction.h"
 #include "filters/graxpert.h"
 #include "gui/dialogs.h"
@@ -126,6 +127,7 @@ void on_combo_graxpert_operation_changed(GtkComboBox *combo, gpointer user_data)
 
 void on_button_graxpert_apply_clicked(GtkWidget *widget, gpointer user_data) {
 	graxpert_data *data = fill_graxpert_data_from_gui();
+	// Undo is not possible, as the result is read as a new image
 	start_in_new_thread(do_graxpert, data);
 }
 
