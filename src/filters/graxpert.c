@@ -398,7 +398,9 @@ static gboolean end_graxpert(gpointer p) {
 
 	// If successful, open the result image
 	if (args->path) {
+		disable_profile_check_verbose();
 		open_single_image(args->path);
+		enable_profile_check_verbose();
 		if (args->backup_icc) {
 			if (gfit.icc_profile)
 				cmsCloseProfile(gfit.icc_profile);
@@ -424,7 +426,7 @@ gpointer do_graxpert (gpointer p) {
 	}
 
 	// Configure input filename
-	gchar *filename = NULL, *path = NULL;
+	gchar *filename = NULL, *path = NULL, *outpath = NULL;
 	if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
 		filename = g_path_get_basename(com.uniq->filename);
 		gchar *temp = remove_ext_from_filename(filename);
@@ -436,13 +438,22 @@ gpointer do_graxpert (gpointer p) {
 	}
 
 	// We have to forcibly disable FITS compression as GraXpert cannot open compressed FITS (true as of GraXpert 3.0.2)
+	// We also have to force the extension ".fits" to avoid GraXpert adding it onto other extensions
 	gboolean pref_fitscomp = com.pref.comp.fits_enabled;
+	gchar *backup_ext = g_strdup(com.pref.ext);
+	g_free(com.pref.ext);
+	com.pref.ext = g_strdup(".fits");
 	com.pref.comp.fits_enabled = FALSE;
 	gchar *temp = set_right_extension(filename);
 	g_free(filename);
 	filename = temp;
+	g_free(com.pref.ext);
+	com.pref.ext = backup_ext;
 
 	path = g_build_filename(com.wd, filename, NULL);
+	temp = g_strdup(path);
+	outpath = remove_ext_from_filename(temp);
+	g_free(temp);
 	g_free(filename);
 	// Save current image as input filename
 	savefits(path, &gfit);
@@ -479,14 +490,14 @@ gpointer do_graxpert (gpointer p) {
 		if (args->keep_bg)
 			my_argv[nb++] = g_strdup("-bg");
 		my_argv[nb++] = g_strdup("-output");
-		my_argv[nb++] = g_strdup_printf("%s", path);
+		my_argv[nb++] = g_strdup_printf("%s", outpath);
 		graxpert_no_exit_report = TRUE;
 	} else if (args->operation == GRAXPERT_DENOISE) {
 		my_argv[nb++] = g_strdup("-cli");
 		my_argv[nb++] = g_strdup("-cmd");
 		my_argv[nb++] = g_strdup("denoising");
 		my_argv[nb++] = g_strdup_printf("-output");
-		my_argv[nb++] = g_strdup_printf("%s", path);
+		my_argv[nb++] = g_strdup_printf("%s", outpath);
 		if (args->use_gpu) {
 			my_argv[nb++] = g_strdup("-gpu");
 			my_argv[nb++] = g_strdup("true");
