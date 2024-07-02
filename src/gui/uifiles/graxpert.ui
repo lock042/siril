@@ -40,7 +40,6 @@
     <property name="value">25</property>
     <property name="step-increment">2</property>
     <property name="page-increment">2</property>
-    <signal name="changed" handler="on_adj_graxpert_sample_size_changed" swapped="no"/>
   </object>
   <object class="GtkAdjustment" id="adj_graxpert_spline_order">
     <property name="lower">1</property>
@@ -391,6 +390,7 @@
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="adjustment">adj_graxpert_sample_size</property>
+                        <signal name="value-changed" handler="on_graxpert_spin_sample_size_value_changed" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
