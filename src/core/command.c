@@ -10463,7 +10463,23 @@ int process_seq_profile(int nb) {
 int process_graxpert(int nb) {
 	// Test code
 	graxpert_data *data = new_graxpert_data();
-	*data = (graxpert_data) {GRAXPERT_DENOISE, 0.0, GRAXPERT_BG_AI, GRAXPERT_SUBTRACTION, FALSE, 0.8, TRUE };
+	*data = (graxpert_data) {
+		.operation = GRAXPERT_BG,
+		.bg_smoothing = 0.7,
+		.bg_algo = GRAXPERT_BG_RBF,
+		.bg_mode = GRAXPERT_SUBTRACTION,
+		.stretch_option = STRETCH_OPTION_NONE,
+		.kernel = GRAXPERT_THIN_PLATE,
+		.sample_size = 25,
+		.spline_order = 3,
+		.bg_tol_option = 0.5,
+		.keep_bg = FALSE,
+		.denoise_strength = 0.0,
+		.use_gpu = TRUE,
+		.ai_batch_size = 4,
+		.bg_pts_option = 17,
+		.path = NULL,
+		.backup_icc = NULL};
 	start_in_new_thread(do_graxpert, data);
 	return CMD_OK;
 }

@@ -273,6 +273,8 @@ siril_common_SOURCES = \
 	gui/epf.h \
 	gui/fix_xtrans_af.c \
 	gui/fix_xtrans_af.h \
+	gui/graxpert.c \
+	gui/graxpert.h \
 	gui/histogram.c \
 	gui/histogram.h \
 	gui/keywords_tree.c \

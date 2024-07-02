@@ -19,7 +19,7 @@
 */
 
 // Comment out this #define before public release
-//#define STARNET_DEBUG
+//#define GRAXPERT_DEBUG
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -37,7 +37,6 @@
 #include "core/siril.h"
 #include "core/icc_profile.h"
 #include "core/proto.h"
-#include "core/icc_profile.h"
 #include "core/arithm.h"
 #include "core/undo.h"
 #include "core/processing.h"
@@ -50,8 +49,6 @@
 #include "io/single_image.h"
 #include "filters/graxpert.h"
 
-//#define GRAXPERT_DEBUG
-
 static gboolean verbose = TRUE;
 
 static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
@@ -59,7 +56,7 @@ static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 	g_spawn_close_pid(pid);
 }
 
-static int exec_prog_graxpert(char **argv, gboolean is_gui) {
+static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report) {
 	const gchar *progress_key = "Progress: ";
 	gint child_stderr;
 	GPid child_pid;
@@ -75,7 +72,7 @@ static int exec_prog_graxpert(char **argv, gboolean is_gui) {
 	set_progress_bar_data(_("Starting GraXpert..."), 0.0);
 	g_spawn_async_with_pipes(NULL, argv, NULL,
 			G_SPAWN_SEARCH_PATH |
-			G_SPAWN_LEAVE_DESCRIPTORS_OPEN | /*G_SPAWN_STDERR_TO_DEV_NULL |*/ G_SPAWN_DO_NOT_REAP_CHILD,
+			G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_DO_NOT_REAP_CHILD,
 			NULL, NULL, &child_pid, NULL, NULL,
 			&child_stderr, &error);
 
@@ -139,7 +136,7 @@ static int exec_prog_graxpert(char **argv, gboolean is_gui) {
 #endif
 		g_free(buffer);
 	}
-	if (is_gui) {
+	if (graxpert_no_exit_report) {
 		siril_log_message(_("GraXpert GUI finished.\n"));
 		set_progress_bar_data(_("Done."), 1.0);
 		retval = 0; // No "Finished" log message is printed when closing the GUI, so we assume success
@@ -169,7 +166,7 @@ static version_number graxpert_executablecheck(gchar* executable) {
 		return version; // It's not executable so return a zero version number
 	}
 
-	// Change to the GraXpert installation directory
+/*	// Change to the GraXpert installation directory
 	gchar *dir = g_path_get_dirname(executable);
 	gchar *currentdir = g_get_current_dir();
 	int retval2 = g_chdir(dir);
@@ -178,7 +175,7 @@ static version_number graxpert_executablecheck(gchar* executable) {
 		g_free(currentdir);
 		return version;
 	}
-	g_free(dir);
+	g_free(dir);*/
 
 	int nb = 0;
 	test_argv[nb++] = executable;
@@ -232,7 +229,7 @@ static version_number graxpert_executablecheck(gchar* executable) {
 	if (!g_close(child_stderr, &error))
 		siril_debug_print("%s\n", error->message);
 
-	// Change back to the prior working directory
+/*	// Change back to the prior working directory
 	retval2 = g_chdir(currentdir);
 	if (retval2) {
 		retval2 = g_chdir(com.wd);
@@ -240,12 +237,13 @@ static version_number graxpert_executablecheck(gchar* executable) {
 			siril_log_color_message(_("Error: unable to change back to Siril working directory...\n"), "red");
 		}
 	}
-	g_free(currentdir);
+	g_free(currentdir);*/
 
 	return version;
 }
 
-gboolean save_graxpert_config(const gchar *filename, graxpert_data *args) {
+gboolean save_graxpert_config(graxpert_data *args) {
+	const gchar *filename = args->configfile;
 	JsonBuilder *builder;
 	JsonGenerator *generator;
 	JsonNode *root;
@@ -267,10 +265,10 @@ gboolean save_graxpert_config(const gchar *filename, graxpert_data *args) {
 	json_builder_add_int_value(builder, gfit.ry);
 
 	// Add background points
-	if (args->bg_points) {
+	if (com.grad_samples) {
 		json_builder_set_member_name(builder, "background_points");
 		json_builder_begin_array(builder);
-		for (GSList *l = args->bg_points; l != NULL; l = l->next) {
+		for (GSList *l = com.grad_samples; l != NULL; l = l->next) {
 			background_sample *s = (background_sample *)l->data;
 			json_builder_begin_array(builder);
 			json_builder_add_int_value(builder, min(gfit.rx - 1, round_to_int(s->position.x)));
@@ -367,7 +365,7 @@ gboolean save_graxpert_config(const gchar *filename, graxpert_data *args) {
 
 graxpert_data *new_graxpert_data() {
 	graxpert_data *p = calloc(1, sizeof(graxpert_data));
-	p->operation = GRAXPERT_GUI;
+	p->operation = GRAXPERT_BG;
 	p->bg_smoothing = 0.5;
 	p->bg_algo = GRAXPERT_BG_AI;
 	p->bg_mode = GRAXPERT_SUBTRACTION;
@@ -376,25 +374,29 @@ graxpert_data *new_graxpert_data() {
 	p->sample_size = 25;
 	p->spline_order = 3;
 	p->bg_tol_option = 2;
-	p->keep_bg = FALSE;
 	p->denoise_strength = 0.75;
 	p->use_gpu = TRUE;
 	p->ai_batch_size = 4;
 	p->bg_pts_option = 15;
-	p->path = NULL;
-	p->backup_icc = NULL;
-	p->bg_points = NULL;
 	return p;
 }
 
 void free_graxpert_data(graxpert_data *args) {
 	g_free(args->path);
+	if (args->backup_icc)
+		cmsCloseProfile(args->backup_icc);
 	free(args);
 }
 
 static gboolean end_graxpert(gpointer p) {
 	stop_processing_thread();
 	graxpert_data *args = (graxpert_data *) p;
+
+	// Clean up config file if one was used
+	if (args->configfile && g_unlink(args->configfile))
+		siril_debug_print("Failed to remove GraXpert config file\n");
+
+	// If successful, open the result image
 	if (args->path) {
 		open_single_image(args->path);
 		if (args->backup_icc) {
@@ -402,7 +404,6 @@ static gboolean end_graxpert(gpointer p) {
 				cmsCloseProfile(gfit.icc_profile);
 			gfit.icc_profile = copyICCProfile(args->backup_icc);
 			color_manage(&gfit, TRUE);
-			cmsCloseProfile(args->backup_icc);
 		}
 	}
 	free_graxpert_data(args);
@@ -449,6 +450,7 @@ gpointer do_graxpert (gpointer p) {
 
 	// Configure GraXpert commandline
 	int nb = 0;
+	gboolean graxpert_no_exit_report = FALSE;
 	gboolean is_gui = FALSE;
 	my_argv[nb++] = g_strdup(com.pref.graxpert_path);
 	if (args->operation == GRAXPERT_BG) {
@@ -465,15 +467,20 @@ gpointer do_graxpert (gpointer p) {
 				my_argv[nb++] = g_strdup("true");
 			}
 		} else {
+			if (!com.grad_samples) {
+				siril_log_color_message(_("Background samples must be computed for GraXpert RBF, spline and Kriging methods\n"), "red");
+				goto ERROR_OR_FINISHED;
+			}
 			my_argv[nb++] = g_strdup("-preferences_file");
-			gchar *configfile = g_build_filename(com.wd, "siril-graxpert.pref", NULL);
-			my_argv[nb++] = g_strdup(configfile);
-			save_graxpert_config(configfile, args);
+			args->configfile = g_build_filename(com.wd, "siril-graxpert.pref", NULL);
+			my_argv[nb++] = args->configfile;
+			save_graxpert_config(args);
 		}
 		if (args->keep_bg)
 			my_argv[nb++] = g_strdup("-bg");
-		my_argv[nb++] = g_strdup(" -output");
+		my_argv[nb++] = g_strdup("-output");
 		my_argv[nb++] = g_strdup_printf("%s", path);
+		graxpert_no_exit_report = TRUE;
 	} else if (args->operation == GRAXPERT_DENOISE) {
 		my_argv[nb++] = g_strdup("-cli");
 		my_argv[nb++] = g_strdup("-cmd");
@@ -490,6 +497,7 @@ gpointer do_graxpert (gpointer p) {
 		siril_log_message(_("GraXpert GUI will open with the current image. When you have finished, save the "
 							"image and return to Siril.\nYou will need to check and re-assign the ICC profile "
 							"as GraXpert does not preserve ICC profiles embedded in FITS files.\n"));
+		graxpert_no_exit_report = TRUE;
 		is_gui = TRUE;
 	} else {
 		siril_log_message(_("Error: unknown GraXpert operation\n"));
@@ -505,14 +513,14 @@ gpointer do_graxpert (gpointer p) {
 	// Execute GraXpert
 	struct timeval t_start, t_end;
 	gettimeofday(&t_start, NULL);
-	retval = exec_prog_graxpert(my_argv, is_gui);
+	retval = exec_prog_graxpert(my_argv, graxpert_no_exit_report);
 	gettimeofday(&t_end, NULL);
 	if (verbose)
 		show_time(t_start, t_end);
 	if (retval)
 		goto ERROR_OR_FINISHED;
 
-	if (!is_gui) // In the GUI the user may change the saved file name, so we won't assume a filename
+	if (!is_gui)
 		args->path = g_strdup(path);
 	g_free(path);
 

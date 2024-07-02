@@ -50,8 +50,8 @@ typedef struct _graxpert_data {
 	int ai_batch_size;
 	int bg_pts_option; // points per row
 	gchar *path;
+	gchar *configfile;
 	cmsHPROFILE backup_icc;
-	GSList *bg_points;
 } graxpert_data;
 
 graxpert_data *new_graxpert_data();

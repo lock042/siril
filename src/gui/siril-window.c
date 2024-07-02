@@ -110,7 +110,8 @@ static GActionEntry any_processing_entries[] = {
 	{ "cosmetic-processing", cosmetic_activate },
 	{ "background-extr-processing", background_extr_activate },
 	{ "icc-tool", icc_activate },
-	{ "clear_roi", clear_roi }
+	{ "clear_roi", clear_roi },
+	{ "graxpert-processing", graxpert_activate }
 };
 
 static GActionEntry any_mono_processing_entries[] = {
@@ -218,6 +219,7 @@ void siril_window_enable_rgb_proc_actions(GtkApplicationWindow *window, gboolean
 void siril_window_enable_any_rgb_proc_actions(GtkApplicationWindow *window, gboolean enable) {
 	static const gchar *any_rgb_processing_actions[] = {
 		"ccm-processing",
+		"graxpert-processing",
 		NULL,
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), any_rgb_processing_actions, enable);
