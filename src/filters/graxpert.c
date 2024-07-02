@@ -54,6 +54,13 @@ static gboolean verbose = TRUE;
 static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 	siril_debug_print("GraXpert is being closed\n");
 	g_spawn_close_pid(pid);
+	// GraXpert has exited, reset the stored pid
+	com.child_is_running = EXT_NONE;
+#ifdef _WIN32
+	com.childhandle = 0;		// For Windows, handle of a child process
+#else
+	com.childpid = 0;			// For other OSes, PID of a child process
+#endif
 }
 
 static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report) {
@@ -136,6 +143,12 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report) {
 #endif
 		g_free(buffer);
 	}
+	// GraXpert has exited, reset the stored pid
+#ifdef _WIN32
+	com.childhandle = 0;		// For Windows, handle of a child process
+#else
+	com.childpid = 0;			// For other OSes, PID of a child process
+#endif
 	if (graxpert_no_exit_report) {
 		siril_log_message(_("GraXpert GUI finished.\n"));
 		set_progress_bar_data(_("Done."), 1.0);
@@ -473,10 +486,8 @@ gpointer do_graxpert (gpointer p) {
 			my_argv[nb++] = g_strdup_printf("%s", args->bg_mode == GRAXPERT_SUBTRACTION ? "Subtraction" : "Division");
 			my_argv[nb++] = g_strdup("-smoothing");
 			my_argv[nb++] = g_strdup_printf("%f", args->bg_smoothing);
-			if (args->use_gpu) {
-				my_argv[nb++] = g_strdup("-gpu");
-				my_argv[nb++] = g_strdup("true");
-			}
+			my_argv[nb++] = g_strdup("-gpu");
+			my_argv[nb++] = g_strdup(args->use_gpu ? "true" : "false");
 		} else {
 			if (!com.grad_samples) {
 				siril_log_color_message(_("Background samples must be computed for GraXpert RBF, spline and Kriging methods\n"), "red");
@@ -498,10 +509,8 @@ gpointer do_graxpert (gpointer p) {
 		my_argv[nb++] = g_strdup("denoising");
 		my_argv[nb++] = g_strdup_printf("-output");
 		my_argv[nb++] = g_strdup_printf("%s", outpath);
-		if (args->use_gpu) {
-			my_argv[nb++] = g_strdup("-gpu");
-			my_argv[nb++] = g_strdup("true");
-		}
+		my_argv[nb++] = g_strdup("-gpu");
+		my_argv[nb++] = g_strdup(args->use_gpu ? "true" : "false");
 		my_argv[nb++] = g_strdup("-strength");
 		my_argv[nb++] = g_strdup_printf("%.2f", args->denoise_strength);
 	} else if (args->operation == GRAXPERT_GUI) {

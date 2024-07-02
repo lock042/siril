@@ -22,6 +22,7 @@
 #include "core/icc_profile.h"
 #include "core/proto.h"
 #include "core/siril_log.h"
+#include "core/processing.h"
 #include "algos/background_extraction.h"
 #include "filters/graxpert.h"
 #include "gui/dialogs.h"
@@ -125,7 +126,7 @@ void on_combo_graxpert_operation_changed(GtkComboBox *combo, gpointer user_data)
 
 void on_button_graxpert_apply_clicked(GtkWidget *widget, gpointer user_data) {
 	graxpert_data *data = fill_graxpert_data_from_gui();
-	do_graxpert(data);
+	start_in_new_thread(do_graxpert, data);
 }
 
 void on_button_graxpert_cancel_clicked(GtkWidget *widget, gpointer user_data) {
@@ -133,11 +134,14 @@ void on_button_graxpert_cancel_clicked(GtkWidget *widget, gpointer user_data) {
 }
 
 void on_graxpert_clear_samples_clicked(GtkWidget *widget, gpointer user_data) {
+	free_background_sample_list(com.grad_samples);
+	com.grad_samples = NULL;
+	redraw(REDRAW_OVERLAY);
 }
 
 void on_graxpert_spin_sample_size_value_changed(GtkSpinButton *button, gpointer user_data) {
 	int sample_size = (int) gtk_spin_button_get_value(button);
-	if (!(sample_size % 2))
+	if (!(sample_size % 2)) // Must be odd
 		sample_size++;
 	g_signal_handlers_block_by_func(button, on_graxpert_spin_sample_size_value_changed, NULL);
 	gtk_spin_button_set_value(button, sample_size);

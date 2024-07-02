@@ -739,7 +739,7 @@ void kill_child_process(gboolean onexit) {
 #endif
 		com.child_is_running = EXT_NONE;
 		if (onexit)
-			printf("starnet has been stopped on exit\n");
+			printf("An external process (Starnet or GraXpert) has been stopped on exit\n");
 	}
 	// abort asnet by writing a file named stop in wd
 	if (com.child_is_running == EXT_ASNET) {
