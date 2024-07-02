@@ -383,7 +383,7 @@ void *read_pipe(void *p) {
 		char buf[PIPE_MSG_SZ];
 		do {
 			int select_return;
-			pipe_read_status read_return;
+			pipe_read_status read_return = PIPE_READ_UNUSED;
 			fd_set rfds;
 			FD_ZERO(&rfds);
 			FD_SET(pipe_fd_r, &rfds);

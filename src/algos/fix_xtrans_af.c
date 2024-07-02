@@ -22,6 +22,7 @@
 #include "core/siril.h"
 #include "core/siril_log.h"
 #include "algos/statistics.h"
+#include "algos/siril_random.h"
 #include "io/conversion.h"
 #include "io/image_format_fits.h"
 
@@ -141,7 +142,7 @@ static int subtract_fudge(fits *fit, rectangle af, float fudge, af_pixel_matrix 
 					// This is an auto focus pixel.  Subtract the fudge.
 
 					// Randomly add a 1 to some pixels to bring the average correction close to the computed value.
-					WORD fudgew_rand = rand() / (float) RAND_MAX >= fudge - (float) fudgew ? fudgew : fudgew + 1;
+					WORD fudgew_rand = siril_random_float() >= fudge - (float) fudgew ? fudgew : fudgew + 1;
 
 					// Save for debugging.
 					total_fudgew += fudgew_rand;

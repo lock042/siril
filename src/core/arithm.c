@@ -445,6 +445,6 @@ void rgbblend(blend_data *data, float* r, float* g, float* b, float m_CB) {
 	// Loop over channels
 	for (size_t chan = 0; chan < 3; chan++) {
 		// Compute the output using the precomputed k
-		*out[chan] = data->do_channel[chan] ? (1.f - k) * data->tf[chan] + k * data->sf[chan] : 0.f;
+		*out[chan] = data->do_channel[chan] ? (1.f - k) * data->tf[chan] + k * data->sf[chan] : *out[chan];
 	}
 }

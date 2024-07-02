@@ -92,7 +92,7 @@ static gboolean _click_on_histo = FALSE;
 static ScaleType _type_of_scale;
 static gboolean lp_warning_given, hp_warning_given = FALSE;
 
-float *huebuf = NULL, *satbuf_orig = NULL, *satbuf_working = NULL, *lumbuf = NULL;
+void *huebuf = NULL, *satbuf_orig = NULL, *satbuf_working = NULL, *lumbuf = NULL;
 
 static void set_histogram(gsl_histogram *histo, int layer);
 
@@ -197,25 +197,27 @@ static void histo_close(gboolean revert, gboolean update_image_if_needed) {
 	remove_roi_callback(histo_change_between_roi_and_image);
 }
 
-static void hsl_to_gfit (float* h, float* s, float* l) {
+static void hsl_to_fit (void* h, void* s, void* l) {
 	size_t npixels = fit->rx * fit->ry;
 	if (fit->type == DATA_FLOAT) {
+		float *hf = (float*) h;
+		float* sf = (float*) s;
+		float* lf = (float*) l;
 #ifdef _OPENMP
 #pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
 #endif
 		for (size_t i = 0 ; i < npixels ; i++) {
-			hsl_to_rgbf(h[i], s[i], l[i], &fit->fpdata[0][i], &fit->fpdata[1][i], &fit->fpdata[2][i]);
+			hsl_to_rgbf(hf[i], sf[i], lf[i], &fit->fpdata[0][i], &fit->fpdata[1][i], &fit->fpdata[2][i]);
 		}
 	} else {
+		WORD *hw = (WORD*) h;
+		WORD* sw = (WORD*) s;
+		WORD* lw = (WORD*) l;
 #ifdef _OPENMP
 #pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
 #endif
 		for (size_t i = 0 ; i < npixels ; i++) {
-			float r, g, b;
-			hsl_to_rgbf(h[i], s[i], l[i], &r, &g, &b);
-			fit->pdata[0][i] = roundf_to_WORD(r * USHRT_MAX_SINGLE);
-			fit->pdata[1][i] = roundf_to_WORD(g * USHRT_MAX_SINGLE);
-			fit->pdata[2][i] = roundf_to_WORD(b * USHRT_MAX_SINGLE);
+			hslw_to_rgbw(hw[i], sw[i], lw[i], &fit->pdata[0][i], &fit->pdata[1][i], &fit->pdata[2][i]);
 		}
 	}
 }
@@ -223,23 +225,28 @@ static void hsl_to_gfit (float* h, float* s, float* l) {
 static void fit_to_hsl() {
 	size_t npixels = fit->rx * fit->ry;
 	if (fit->type == DATA_FLOAT) {
-#ifdef _OPENMP
-#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
-#endif
-		for (size_t i = 0 ; i < npixels ; i++)
-			rgb_to_hslf(fit->fpdata[0][i], fit->fpdata[1][i], fit->fpdata[2][i], &huebuf[i], &satbuf_orig[i], &lumbuf[i]);
-	} else {
+		float* hf = (float*) huebuf;
+		float* sf = (float*) satbuf_orig;
+		float* lf = (float*) lumbuf;
 #ifdef _OPENMP
 #pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
 #endif
 		for (size_t i = 0 ; i < npixels ; i++) {
-			float r = (float) fit->pdata[0][i] / USHRT_MAX_SINGLE;
-			float g = (float) fit->pdata[1][i] / USHRT_MAX_SINGLE;
-			float b = (float) fit->pdata[2][i] / USHRT_MAX_SINGLE;
-			rgb_to_hslf(r, g, b, &huebuf[i], &satbuf_orig[i], &lumbuf[i]);
+			rgb_to_hslf(fit->fpdata[0][i], fit->fpdata[1][i], fit->fpdata[2][i], &hf[i], &sf[i], &lf[i]);
 		}
+		memcpy(satbuf_working, satbuf_orig, npixels * sizeof(float));
+	} else {
+		WORD *hw = (WORD*) huebuf;
+		WORD* sw = (WORD*) satbuf_orig;
+		WORD* lw = (WORD*) lumbuf;
+#ifdef _OPENMP
+#pragma omp parallel for simd num_threads(com.max_thread) schedule(static)
+#endif
+		for (size_t i = 0 ; i < npixels ; i++) {
+			rgbw_to_hslw(fit->pdata[0][i], fit->pdata[1][i], fit->pdata[2][i], &hw[i], &sw[i], &lw[i]);
+		}
+		memcpy(satbuf_working, satbuf_orig, npixels * sizeof(WORD));
 	}
-	memcpy(satbuf_working, satbuf_orig, npixels * sizeof(float));
 }
 
 static void histo_recompute() {
@@ -255,8 +262,11 @@ static void histo_recompute() {
 	} else if (invocation == GHT_STRETCH) {
 		struct ght_params params_ght = { .B = _B, .D = _D, .LP = (float) _LP, .SP = (float) _SP, .HP = (float) _HP, .BP = _BP, .stretchtype = _stretchtype, .payne_colourstretchmodel = _payne_colourstretchmodel, .do_red = do_channel[0], .do_green = do_channel[1], .do_blue = do_channel[2], .clip_mode = _clip_mode };
 		if (_payne_colourstretchmodel == COL_SAT) {
-			apply_linked_ght_to_fbuf_indep(satbuf_orig, satbuf_working, fit->rx * fit->ry, 1, &params_ght, TRUE);
-			hsl_to_gfit(huebuf, satbuf_working, lumbuf);
+			if (fit->type == DATA_FLOAT)
+				apply_linked_ght_to_fbuf_indep((float*) satbuf_orig, (float*) satbuf_working, fit->rx * fit->ry, 1, &params_ght, TRUE);
+			else
+				apply_linked_ght_to_Wbuf_indep((WORD*) satbuf_orig, (WORD*) satbuf_working, fit->rx * fit->ry, 1, &params_ght, TRUE);
+			hsl_to_fit(huebuf, satbuf_working, lumbuf);
 		} else {
 			apply_linked_ght_to_fits(fit, fit, &params_ght, TRUE);
 		}
@@ -495,7 +505,7 @@ gsl_histogram* computeHisto(fits *fit, int layer) {
 }
 
 // create a new histogram object for the passed float buffer (used for sat)
-gsl_histogram* computeHistoSat(float* buf) {
+gsl_histogram* computeHistoSat(void* buf) {
 	size_t i, ndata, size;
 
 	size = get_histo_size(&gfit);
@@ -509,12 +519,23 @@ gsl_histogram* computeHistoSat(float* buf) {
 	{
 		gsl_histogram *histo_thr = gsl_histogram_alloc(size + 1);
 		gsl_histogram_set_ranges_uniform(histo_thr, 0, 1.0 + 1.0 / size);
-
+		if (fit->type == DATA_FLOAT) {
+			float *fbuf = (float*) buf;
 #ifdef _OPENMP
 #pragma omp for private(i) schedule(static)
 #endif
-		for (i = 0; i < ndata; i++) {
-			gsl_histogram_increment(histo_thr, (double) buf[i]);
+			for (i = 0; i < ndata; i++) {
+				gsl_histogram_increment(histo_thr, (double) fbuf[i]);
+			}
+		} else {
+			double invnorm = 1.0 / USHRT_MAX_DOUBLE;
+			WORD * Wbuf = (WORD*) buf;
+#ifdef _OPENMP
+#pragma omp for private(i) schedule(static)
+#endif
+			for (i = 0; i < ndata; i++) {
+				gsl_histogram_increment(histo_thr, Wbuf[i] * invnorm);
+			}
 		}
 #ifdef _OPENMP
 #pragma omp critical
@@ -999,16 +1020,29 @@ static int ght_image_hook(struct generic_seq_args *args, int o, int i, fits *fit
 static void setup_hsl() {
 	if (huebuf)
 		free(huebuf);
-	huebuf = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
-	if (satbuf_orig)
-		free(satbuf_orig);
-	satbuf_orig = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
-	if (satbuf_working)
-		free(satbuf_working);
-	satbuf_working = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
-	if (lumbuf)
-		free(lumbuf);
-	lumbuf = malloc(fit->rx * fit->ry * fit->naxes[2] * sizeof(float));
+	if (fit->type == DATA_FLOAT) {
+		huebuf = malloc(fit->rx * fit->ry * sizeof(float));
+		if (satbuf_orig)
+			free(satbuf_orig);
+		satbuf_orig = malloc(fit->rx * fit->ry * sizeof(float));
+		if (satbuf_working)
+			free(satbuf_working);
+		satbuf_working = malloc(fit->rx * fit->ry * sizeof(float));
+		if (lumbuf)
+			free(lumbuf);
+		lumbuf = malloc(fit->rx * fit->ry * sizeof(float));
+	} else {
+		huebuf = malloc(fit->rx * fit->ry * sizeof(WORD));
+		if (satbuf_orig)
+			free(satbuf_orig);
+		satbuf_orig = malloc(fit->rx * fit->ry * sizeof(WORD));
+		if (satbuf_working)
+			free(satbuf_working);
+		satbuf_working = malloc(fit->rx * fit->ry * sizeof(WORD));
+		if (lumbuf)
+			free(lumbuf);
+		lumbuf = malloc(fit->rx * fit->ry * sizeof(WORD));
+	}
 	fit_to_hsl();
 	set_sat_histogram(computeHistoSat(satbuf_working));
 	if (hist_sat_backup)

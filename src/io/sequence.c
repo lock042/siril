@@ -139,21 +139,18 @@ void populate_seqcombo(const gchar *realname) {
  * takes a string and
  * - removes the extension if known
  * - appends _ at the end if required and add_underscore is TRUE
- * also calls get_locale_filename() to solve Windows localized string problems
  * returns a newly allocated string to be freed with free
  */
 char *normalize_seqname(char *name, gboolean add_underscore) {
-	gchar *locname = get_locale_filename(name);
 	char *file_no_ext;
-	if (g_str_has_suffix(locname, ".seq") || g_str_has_suffix(locname, ".fit") || g_str_has_suffix(locname, ".fits") ||
-	g_str_has_suffix(locname, ".fts") || g_str_has_suffix(locname, ".ser")) {
-		file_no_ext = remove_ext_from_filename(locname);
+	if (g_str_has_suffix(name, ".seq") || g_str_has_suffix(name, ".fit") || g_str_has_suffix(name, ".fits") ||
+	g_str_has_suffix(name, ".fts") || g_str_has_suffix(name, ".ser")) {
+		file_no_ext = remove_ext_from_filename(name);
 	} else {
-		file_no_ext = strdup(locname);
+		file_no_ext = strdup(name);
 	}
 	gboolean needs_underscore = add_underscore && !g_str_has_suffix(name, "_");
 	gchar *outname = g_strdup_printf("%s%s", file_no_ext, needs_underscore ? "_" : "");
-	g_free(locname);
 	free(file_no_ext);
 	return outname;
 }

@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: Siril 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-06-11 13:48+0200\n"
-"PO-Revision-Date: 2024-05-30 11:37+0000\n"
-"Last-Translator: Zachary Wu <zachary_wu@me.com>\n"
+"PO-Revision-Date: 2024-07-01 08:37+0000\n"
+"Last-Translator: Shun-Chia Yang <a26413768@gmail.com>\n"
 "Language-Team: Chinese (Simplified) <https://weblate.pixls.us/projects/siril/"
 "siril-application/zh_Hans/>\n"
 "Language: zh_CN\n"
@@ -14285,7 +14285,7 @@ msgstr "重构 %s 拜耳阵列。\n"
 msgid ""
 "Statistics cannot be made on CFA images with a selection smaller than a 2x2 "
 "square, aborting\n"
-msgstr "无法对选区小于 2x2 正方形的 CFA 图像进行统计，异常中止\n"
+msgstr "在CFA图像中，不能统计小于2×2像素的选区。异常中止。\n"
 
 #: src/core/command.c:6307
 #, c-format
@@ -25416,7 +25416,7 @@ msgstr "进行中"
 
 #: src/io/path_parse.c:34
 msgid "aborting"
-msgstr "异常终止"
+msgstr "异常中止。"
 
 #: src/io/path_parse.c:43
 msgid "Header is empty"
