@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: siril\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-06-12 11:26+0200\n"
-"PO-Revision-Date: 2024-07-03 15:37+0000\n"
-"Last-Translator: 陳冠岳 <smallfatty.com@gmail.com>\n"
+"PO-Revision-Date: 2024-07-03 19:37+0000\n"
+"Last-Translator: Yen-Hsing Lin <julius52700@gmail.com>\n"
 "Language-Team: Chinese (Traditional) <https://weblate.pixls.us/projects/"
 "siril/siril-application/zh_Hant/>\n"
 "Language: zh_TW\n"
@@ -3436,7 +3436,7 @@ msgstr ""
 
 #: src/gui/uifiles/histogram_dialog.ui:424
 msgid "Show grids"
-msgstr ""
+msgstr "開啟網格"
 
 #: src/gui/uifiles/histogram_dialog.ui:441
 msgid "Show transfer curve plus the line y=x"
@@ -9881,17 +9881,17 @@ msgstr "順時針旋轉 90 度"
 #: src/gui/siril-shortcuts.ui:115
 msgctxt "shortcut window"
 msgid "Rotate 90 degrees, counter-clockwise"
-msgstr ""
+msgstr "逆時針旋轉 90 度"
 
 #: src/gui/siril-shortcuts.ui:122
 msgctxt "shortcut window"
 msgid "Horizontal mirror"
-msgstr ""
+msgstr "水平翻轉"
 
 #: src/gui/siril-shortcuts.ui:129
 msgctxt "shortcut window"
 msgid "Vertical mirror"
-msgstr ""
+msgstr "垂直翻轉"
 
 #: src/gui/siril-shortcuts.ui:137
 msgctxt "shortcut window"
@@ -9971,7 +9971,7 @@ msgstr ""
 #: src/gui/siril-shortcuts.ui:239
 msgctxt "shortcut window"
 msgid "Fullscreen on / off"
-msgstr ""
+msgstr "全螢幕開啟/關閉"
 
 #: src/gui/siril-shortcuts.ui:246
 msgctxt "shortcut window"
