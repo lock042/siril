@@ -132,8 +132,8 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report) {
 			if (!g_strstr_len(buffer, -1, "ForkProcess") && !g_strstr_len(buffer, -1, "ai_version")) { // These are not useful messages
 				gchar *print_from = g_strstr_len(buffer, -1, "INFO");
 				if (print_from) {
-					print_from += 9;
-					if (print_from) {
+					if (strlen(print_from) > 9) {
+						print_from += 9;
 						siril_log_message("GraXpert: %s\n", print_from);
 					}
 				}
@@ -438,8 +438,8 @@ gpointer do_graxpert (gpointer p) {
 	char *my_argv[64] = { 0 };
 	int retval = 1;
 	version_number graxpert_version = graxpert_executablecheck(com.pref.graxpert_path);
-	if (compare_version(graxpert_version, (version_number) {.major_version = 3, .minor_version = 0, .micro_version = 2}) < 0) {
-		siril_log_color_message(_("Error: GraXpert version is too old. You have version %d.%d.%d; at least version 3.0.2 is required.\n"), "red", graxpert_version.major_version, graxpert_version.minor_version, graxpert_version.micro_version);
+	if (compare_version(graxpert_version, (version_number) {.major_version = 3, .minor_version = 0, .micro_version = 0}) < 0) {
+		siril_log_color_message(_("Error: GraXpert version is too old. You have version %d.%d.%d; at least version 3.0.0 is required.\n"), "red", graxpert_version.major_version, graxpert_version.minor_version, graxpert_version.micro_version);
 		goto ERROR_OR_FINISHED;
 	}
 
