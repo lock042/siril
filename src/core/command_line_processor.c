@@ -36,6 +36,7 @@
 #include "gui/callbacks.h"
 #include "gui/histogram.h"
 #include "gui/preferences.h"
+#include "gui/script_menu.h"
 #include "core/processing.h"
 #include "core/command_list.h"
 #include "io/sequence.h"
@@ -409,6 +410,8 @@ gpointer execute_script(gpointer p) {
 		siril_debug_print("Script thread exiting\n");
 		com.script_thread_exited = TRUE;
 	}
+	/* If called from the GUI, re-enable widgets blocked during the script */
+	siril_add_idle(script_widgets_idle, NULL);
 	return GINT_TO_POINTER(retval);
 }
 
