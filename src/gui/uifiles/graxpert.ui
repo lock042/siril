@@ -456,6 +456,7 @@
               <object class="GtkExpander" id="graxpert_denoise_settings">
                 <property name="name">graxpert-denoising-settings</property>
                 <property name="visible">True</property>
+                <property name="sensitive">False</property>
                 <property name="can-focus">True</property>
                 <child>
                   <!-- n-columns=2 n-rows=1 -->

@@ -219,7 +219,6 @@ void siril_window_enable_rgb_proc_actions(GtkApplicationWindow *window, gboolean
 void siril_window_enable_any_rgb_proc_actions(GtkApplicationWindow *window, gboolean enable) {
 	static const gchar *any_rgb_processing_actions[] = {
 		"ccm-processing",
-		"graxpert-processing",
 		NULL,
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), any_rgb_processing_actions, enable);
@@ -246,6 +245,7 @@ void siril_window_enable_any_proc_actions(GtkApplicationWindow *window, gboolean
 		"background-extr-processing",
 		"icc-tool",
 		"clear_roi",
+		"graxpert-processing",
 		NULL,
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), any_processing_actions, enable);

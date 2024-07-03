@@ -123,7 +123,9 @@ void on_graxpert_dialog_hide(GtkWidget *widget, gpointer user_data) {
 void on_combo_graxpert_operation_changed(GtkComboBox *combo, gpointer user_data) {
 	graxpert_operation operation = (graxpert_operation) gtk_combo_box_get_active(combo);
 	gtk_expander_set_expanded(graxpert_bg_settings, (operation == GRAXPERT_BG));
+	gtk_widget_set_sensitive(GTK_WIDGET(graxpert_bg_settings), (operation == GRAXPERT_BG));
 	gtk_expander_set_expanded(graxpert_denoise_settings, (operation == GRAXPERT_DENOISE));
+	gtk_widget_set_sensitive(GTK_WIDGET(graxpert_denoise_settings), (operation == GRAXPERT_DENOISE));
 }
 
 void on_button_graxpert_apply_clicked(GtkWidget *widget, gpointer user_data) {
