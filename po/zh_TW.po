@@ -9,7 +9,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-06-12 11:26+0200\n"
 "PO-Revision-Date: 2024-07-03 15:37+0000\n"
-"Last-Translator: Shun-Chia Yang <a26413768@gmail.com>\n"
+"Last-Translator: 陳冠岳 <smallfatty.com@gmail.com>\n"
 "Language-Team: Chinese (Traditional) <https://weblate.pixls.us/projects/"
 "siril/siril-application/zh_Hant/>\n"
 "Language: zh_TW\n"
@@ -593,7 +593,7 @@ msgstr ""
 #: src/gui/uifiles/asinh_dialog.ui:291 src/gui/uifiles/dialog_star_remix.ui:164
 #: src/gui/uifiles/histogram_dialog.ui:785
 msgid "Rescale"
-msgstr ""
+msgstr "重新縮放"
 
 #: src/gui/uifiles/asinh_dialog.ui:292 src/gui/uifiles/dialog_star_remix.ui:165
 #: src/gui/uifiles/histogram_dialog.ui:786
@@ -602,7 +602,7 @@ msgstr "RGB疊合"
 
 #: src/gui/uifiles/asinh_dialog.ui:293
 msgid "Global Rescale"
-msgstr ""
+msgstr "全域重新縮放"
 
 #: src/gui/uifiles/astrometry_dialog.ui:97
 msgid "Image Plate Solver"
@@ -1479,11 +1479,11 @@ msgstr ""
 msgid ""
 "Telescope focal length (this should account for any multiplication factor "
 "introduced by Barlows or field flatteners)"
-msgstr ""
+msgstr "望遠鏡焦距（這應該考慮到巴羅鏡（增距鏡）或平場鏡等影響因素）"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:950
 msgid "Diameter of the telescope primary aperture"
-msgstr ""
+msgstr "望遠鏡主鏡直徑"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:967
 msgid "Central Obstruction / %"
@@ -6493,7 +6493,7 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:357
 msgid "arcsec"
-msgstr ""
+msgstr "角秒"
 
 #: src/gui/uifiles/siril.ui:494
 msgid "Siril Manual"
@@ -24483,7 +24483,7 @@ msgstr ""
 
 #: src/pixelMath/pixel_math_runner.c:1225
 msgid "Cannot load new image"
-msgstr ""
+msgstr "無法下載新圖片"
 
 #: src/pixelMath/pixel_math_runner.c:1226
 msgid "You've reached the maximum of loaded image file."
@@ -24877,22 +24877,22 @@ msgstr ""
 #: src/registration/global.c:712
 #, c-format
 msgid "dx:%+*.2f px\n"
-msgstr ""
+msgstr "寬度:%+*.2f px\n"
 
 #: src/registration/global.c:713
 #, c-format
 msgid "dy:%+*.2f px\n"
-msgstr ""
+msgstr "長度:%+*.2f px\n"
 
 #: src/registration/global.c:714
 #, c-format
 msgid "FWHM:%*.2f %s\n"
-msgstr ""
+msgstr "半高全寬:%*.2f %s\n"
 
 #: src/registration/global.c:715
 #, c-format
 msgid "roundness:%*.2f\n"
-msgstr ""
+msgstr "圓度:%*.2f\n"
 
 #: src/registration/global.c:917
 msgid "The number of stars has capped, readapting threshold and filtering\n"
@@ -24968,7 +24968,7 @@ msgstr ""
 
 #: src/registration/astrometric.c:316
 msgid "Done\n"
-msgstr ""
+msgstr "完成\n"
 
 #: src/registration/astrometric.c:394
 #, c-format
@@ -25037,7 +25037,7 @@ msgstr ""
 
 #: src/stacking/median_and_mean.c:1008
 msgid "number of stars"
-msgstr ""
+msgstr "星星數量"
 
 #: src/stacking/median_and_mean.c:1062
 #, c-format
@@ -25098,15 +25098,15 @@ msgstr ""
 
 #: src/stacking/median_and_mean.c:1313
 msgid "Starting stacking...\n"
-msgstr ""
+msgstr "開始疊圖...\n"
 
 #: src/stacking/median_and_mean.c:1315
 msgid "Rejection stacking in progress..."
-msgstr ""
+msgstr "排除疊圖正在進行中..."
 
 #: src/stacking/median_and_mean.c:1316
 msgid "Median stacking in progress..."
-msgstr ""
+msgstr "中位數疊圖正在進行中..."
 
 #: src/stacking/median_and_mean.c:1527 src/stacking/stackminmax.c:228
 msgid "Finalizing stacking..."
@@ -25123,7 +25123,7 @@ msgstr ""
 
 #: src/stacking/median_and_mean.c:1569
 msgid "Median stacking failed. Check the log."
-msgstr ""
+msgstr "中位數疊圖失敗。檢查日誌。"
 
 #: src/stacking/median_and_mean.c:1571
 msgid "Stacking operation was cancelled.\n"
@@ -25131,7 +25131,7 @@ msgstr ""
 
 #: src/stacking/median_and_mean.c:1572 src/stacking/stackminmax.c:267
 msgid "Stacking failed.\n"
-msgstr ""
+msgstr "疊圖失敗\n"
 
 #: src/stacking/median_and_mean.c:1575
 msgid "Rejection stacking complete."
@@ -25253,7 +25253,7 @@ msgstr ""
 #: src/stacking/stacking.c:309 src/stacking/stacking.c:314
 #: src/stacking/stacking.c:346
 msgid "none"
-msgstr ""
+msgstr "沒有"
 
 #: src/stacking/stacking.c:317
 msgid "additive"
@@ -25373,11 +25373,11 @@ msgstr ""
 
 #: src/stacking/stacking.c:561
 msgid "Stacking result image"
-msgstr ""
+msgstr "疊圖結果"
 
 #: src/stacking/stacking.c:610
 msgid "Unsaved stacking result"
-msgstr ""
+msgstr "未儲存的疊圖結果"
 
 #: src/stacking/stacking.c:802
 msgid "Low clipping factor for the percentile clipping rejection algorithm."
@@ -25462,11 +25462,11 @@ msgstr ""
 
 #: src/stacking/stackminmax.c:266
 msgid "Stacking failed. Check the log."
-msgstr ""
+msgstr "疊圖失敗。請查看日誌。"
 
 #: src/stacking/stackminmax.c:269
 msgid "Stacking complete."
-msgstr ""
+msgstr "疊圖完成。"
 
 #: src/stacking/sum.c:241
 msgid ""
