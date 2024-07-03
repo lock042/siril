@@ -103,7 +103,7 @@
 #define STR_NEW N_("Creates a new image filled with zeros with a size of <b>width</b> x <b>height</b>.\n\nThe image is in 32-bit format, and it contains <b>nb_channel</b> channels, <b>nb_channel</b> being 1 or 3. It is not saved, but becomes the loaded image and it is displayed and can be saved afterwards")
 #define STR_NOZERO N_("Replaces null values by <b>level</b> values. Useful before an idiv or fdiv operation, mostly for 16-bit images")
 
-#define STR_OFFLINE N_("Sets Siril to offline mode. In this mode no networking functions such as remote catalogue lookups, update of git repositories etc. may be used. Cached data is still accessible")
+#define STR_OFFLINE N_("Sets Siril to offline mode. In this mode networking functions such as remote catalogue lookups, update of git repositories etc. are unavailable. Cached data is still accessible")
 #define STR_OFFSET N_("Adds the constant <b>value</b> (specified in ADU) to the current image. This constant can take a negative value.\n\nIn 16-bit mode, values of pixels that fall outside of [0, 65535] are clipped. In 32-bit mode, no clipping occurs")
 #define STR_ONLINE N_("Sets Siril to online mode. In this mode networking functions such as remote catalogue lookups, update of git repositories etc. is allowed")
 

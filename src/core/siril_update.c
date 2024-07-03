@@ -618,9 +618,11 @@ end_notifier_idle_error:
 }
 
 void siril_check_updates(gboolean verbose) {
-	fetch_url_async_data *args;
-
-	args = calloc(1, sizeof(fetch_url_async_data));
+	if (!is_online()) {
+		siril_log_color_message(_("Error: Siril is in offline mode, cannot check updates.\n"), "red");
+		return;
+	}
+	fetch_url_async_data *args = calloc(1, sizeof(fetch_url_async_data));
 	args->url = g_strdup(SIRIL_VERSIONS);
 	args->content = NULL;
 	args->verbose = verbose;
