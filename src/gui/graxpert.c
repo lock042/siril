@@ -128,7 +128,19 @@ void on_combo_graxpert_operation_changed(GtkComboBox *combo, gpointer user_data)
 
 void on_button_graxpert_apply_clicked(GtkWidget *widget, gpointer user_data) {
 	graxpert_data *data = fill_graxpert_data_from_gui();
-	// Undo is not possible, as the result is read as a new image
+	gchar *text = NULL;
+	switch (data->operation) {
+		case GRAXPERT_BG:
+			text = g_strdup_printf(_("GraXpert BG extraction, smoothness %.3f"), data->bg_smoothing);
+			break;
+		case GRAXPERT_DENOISE:
+			text = g_strdup_printf(_("GraXpert denoising, strength %.3f"), data->denoise_strength);
+			break;
+		default:
+			text = g_strdup(_("GraXpert operations using GUI"));
+	}
+	undo_save_state(&gfit, text);
+	g_free(text);
 	if (gtk_toggle_button_get_active(graxpert_toggle_apply_to_sequence)) {
 		data->seq = &com.seq;
 		apply_graxpert_to_sequence(data);

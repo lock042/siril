@@ -403,12 +403,16 @@ void free_graxpert_data(graxpert_data *args) {
 	free(args);
 }
 
-static void save_and_open_graxpert_result(graxpert_data *args) {
+static void open_graxpert_result(graxpert_data *args) {
 	// Clean up config file if one was used
 	if (args->configfile && g_unlink(args->configfile))
 		siril_debug_print("Failed to remove GraXpert config file\n");
 
 	// If successful, open the result image
+	/* Note: we do this even when sequence working: it's a bit inefficient to read it in,
+	 * delete it and save it again but it works for all sequence types (incl. ser and
+	 * FITSEQ) whereas simply moving the file saved by GraXpert would only work for
+	 * sequences of individual FITS files. */
 	if (args->path) {
 		disable_profile_check_verbose();
 		fits *result = calloc(1, sizeof(fits));
@@ -422,7 +426,7 @@ static void save_and_open_graxpert_result(graxpert_data *args) {
 
 static gboolean end_graxpert(gpointer p) {
 	stop_processing_thread();
-	save_and_open_graxpert_result((graxpert_data *) p);
+	open_graxpert_result((graxpert_data *) p);
 	free_graxpert_data((graxpert_data *) p);
 	notify_gfit_modified();
 	launch_clipboard_survey();
@@ -550,7 +554,7 @@ ERROR_OR_FINISHED:
 	if (!args->seq)
 		siril_add_idle(end_graxpert, args); // this loads the result
 	else
-		save_and_open_graxpert_result(args);
+		open_graxpert_result(args);
 	return GINT_TO_POINTER(retval);
 }
 
