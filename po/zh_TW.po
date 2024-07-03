@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: siril\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-06-12 11:26+0200\n"
-"PO-Revision-Date: 2024-07-02 14:37+0000\n"
-"Last-Translator: Shun-Chia Yang <a26413768@gmail.com>\n"
+"PO-Revision-Date: 2024-07-03 15:37+0000\n"
+"Last-Translator: Yen-Hsing Lin <julius52700@gmail.com>\n"
 "Language-Team: Chinese (Traditional) <https://weblate.pixls.us/projects/"
 "siril/siril-application/zh_Hant/>\n"
 "Language: zh_TW\n"
@@ -1483,7 +1483,7 @@ msgstr ""
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1048
 msgid "Lambda (λ)"
-msgstr ""
+msgstr "Lambda (λ)"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1061
 msgid "Blind Deconvolution PSF Estimation"
@@ -1505,7 +1505,7 @@ msgstr ""
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1127
 msgid "Gamma (γ)"
-msgstr ""
+msgstr "伽瑪 (γ)"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1138
 msgid "PSF estimation regularisation parameter"
@@ -2395,7 +2395,7 @@ msgstr ""
 
 #: src/gui/uifiles/cut_coords_dialog.ui:60
 msgid "Coordinates"
-msgstr ""
+msgstr "座標"
 
 #: src/gui/uifiles/cut_coords_dialog.ui:122
 #: src/gui/uifiles/cut_coords_dialog.ui:135
@@ -9806,52 +9806,52 @@ msgstr ""
 #: src/gui/siril-shortcuts.ui:47
 msgctxt "shortcut window"
 msgid "Zoom in"
-msgstr ""
+msgstr "放大"
 
 #: src/gui/siril-shortcuts.ui:54
 msgctxt "shortcut window"
 msgid "Zoom out"
-msgstr ""
+msgstr "縮小"
 
 #: src/gui/siril-shortcuts.ui:61
 msgctxt "shortcut window"
 msgid "Fit the image to the window"
-msgstr ""
+msgstr "縮放至視窗大小"
 
 #: src/gui/siril-shortcuts.ui:68
 msgctxt "shortcut window"
 msgid "Zoom to 100%"
-msgstr ""
+msgstr "縮放至 100%"
 
 #: src/gui/siril-shortcuts.ui:76
 msgctxt "shortcut window"
 msgid "Undo and Redo"
-msgstr ""
+msgstr "復原與取消復原"
 
 #: src/gui/siril-shortcuts.ui:81
 msgctxt "shortcut window"
 msgid "Undo previous command"
-msgstr ""
+msgstr "復原上一個動作"
 
 #: src/gui/siril-shortcuts.ui:88
 msgctxt "shortcut window"
 msgid "Redo previous command"
-msgstr ""
+msgstr "重複上一個動作"
 
 #: src/gui/siril-shortcuts.ui:96
 msgctxt "shortcut window"
 msgid "Image Processing"
-msgstr ""
+msgstr "影像處理"
 
 #: src/gui/siril-shortcuts.ui:101
 msgctxt "shortcut window"
 msgid "Negative transformation"
-msgstr ""
+msgstr "負片顯示"
 
 #: src/gui/siril-shortcuts.ui:108
 msgctxt "shortcut window"
 msgid "Rotate 90 degrees, clockwise"
-msgstr ""
+msgstr "順時針旋轉 90 度"
 
 #: src/gui/siril-shortcuts.ui:115
 msgctxt "shortcut window"
@@ -9871,7 +9871,7 @@ msgstr ""
 #: src/gui/siril-shortcuts.ui:137
 msgctxt "shortcut window"
 msgid "Tools"
-msgstr ""
+msgstr "工具"
 
 #: src/gui/siril-shortcuts.ui:142
 msgctxt "shortcut window"
