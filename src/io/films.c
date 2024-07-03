@@ -29,6 +29,7 @@
 #include <string.h>
 
 #include "core/siril.h"
+#include "algos/siril_random.h"
 #include "core/siril_log.h"
 #include "gui/progress_and_log.h"
 #include "io/films.h"
@@ -216,7 +217,7 @@ int film_open_file(const char *sourcefile, struct film_struct *film) {
 }
 
 static int randPixel(int nb_pixels) {
-	return rand() % nb_pixels;
+	return siril_random_int() % nb_pixels;
 }
 
 static int *randomIndex(int n) {
