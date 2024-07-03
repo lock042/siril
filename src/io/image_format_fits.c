@@ -1714,12 +1714,6 @@ int savefits(const char *name, fits *f) {
 		return 1;
 	}
 
-	if (fits_create_img(f->fptr, f->bitpix, f->naxis, f->naxes, &status)) {
-		report_fits_error(status);
-		g_free(filename);
-		return 1;
-	}
-
 	if (com.pref.comp.fits_enabled) {
 		status = siril_fits_compress(f);
 		if (status) {
@@ -1727,6 +1721,12 @@ int savefits(const char *name, fits *f) {
 			g_free(filename);
 			return 1;
 		}
+	}
+	
+	if (fits_create_img(f->fptr, f->bitpix, f->naxis, f->naxes, &status)) {
+		report_fits_error(status);
+		g_free(filename);
+		return 1;
 	}
 
 	if (save_opened_fits(f)) {

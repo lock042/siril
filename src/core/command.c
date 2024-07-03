@@ -9287,10 +9287,10 @@ static int do_pcc(int nb, gboolean spectro) {
 		} else if (spectro && g_str_has_prefix(word[next_arg], "-obsheight=")) {
 			char *arg = word[next_arg] + 11, *end;
 			obsheight = g_ascii_strtod(arg, &end);
-				return CMD_ARG_ERROR;
 			if (end == arg) {
 				siril_log_message(_("Invalid argument %s, aborting.\n"), word[next_arg]);
 				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
+				return CMD_ARG_ERROR;
 			}
 		} else if (spectro && g_str_has_prefix(word[next_arg], "-pressure=")) {
 			char *arg = word[next_arg] + 10, *end;
@@ -9298,6 +9298,7 @@ static int do_pcc(int nb, gboolean spectro) {
 			if (end == arg) {
 				siril_log_message(_("Invalid argument %s, aborting.\n"), word[next_arg]);
 				for (int z = 0 ; z < 8 ; z++) { g_free(spcc_strings_to_free[z]); }
+				return CMD_ARG_ERROR;
 			}
 		} else {
 			siril_log_message(_("Invalid argument %s, aborting.\n"), word[next_arg]);
