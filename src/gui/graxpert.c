@@ -130,7 +130,8 @@ void on_button_graxpert_apply_clicked(GtkWidget *widget, gpointer user_data) {
 	graxpert_data *data = fill_graxpert_data_from_gui();
 	// Undo is not possible, as the result is read as a new image
 	if (gtk_toggle_button_get_active(graxpert_toggle_apply_to_sequence)) {
-	//	apply_graxpert_to_sequence(data);
+		data->seq = &com.seq;
+		apply_graxpert_to_sequence(data);
 	} else {
 		start_in_new_thread(do_graxpert, data);
 	}

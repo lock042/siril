@@ -403,10 +403,7 @@ void free_graxpert_data(graxpert_data *args) {
 	free(args);
 }
 
-static gboolean end_graxpert(gpointer p) {
-	stop_processing_thread();
-	graxpert_data *args = (graxpert_data *) p;
-
+static void save_and_open_graxpert_result(graxpert_data *args) {
 	// Clean up config file if one was used
 	if (args->configfile && g_unlink(args->configfile))
 		siril_debug_print("Failed to remove GraXpert config file\n");
@@ -421,7 +418,12 @@ static gboolean end_graxpert(gpointer p) {
 		g_unlink(args->path);
 		enable_profile_check_verbose();
 	}
-	free_graxpert_data(args);
+}
+
+static gboolean end_graxpert(gpointer p) {
+	stop_processing_thread();
+	save_and_open_graxpert_result((graxpert_data *) p);
+	free_graxpert_data((graxpert_data *) p);
 	notify_gfit_modified();
 	launch_clipboard_survey();
 	return end_generic(NULL);
@@ -545,7 +547,10 @@ gpointer do_graxpert (gpointer p) {
 
 ERROR_OR_FINISHED:
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
-	siril_add_idle(end_graxpert, args); // this loads the result
+	if (!args->seq)
+		siril_add_idle(end_graxpert, args); // this loads the result
+	else
+		save_and_open_graxpert_result(args);
 	return GINT_TO_POINTER(retval);
 }
 
@@ -570,7 +575,9 @@ static int graxpert_image_hook(struct generic_seq_args *args, int o, int i, fits
 	graxpert_data *data = (graxpert_data *) args->user;
 	data->fit = fit;
 	siril_log_color_message(_("GraXpert: Processing image %d\n"), "green", o + 1);
+	verbose = FALSE;
 	do_graxpert(data);
+	verbose = TRUE;
 	return ret;
 }
 
@@ -590,7 +597,7 @@ void apply_graxpert_to_sequence(graxpert_data *args) {
 	seqargs->description = _("GraXpert");
 	seqargs->has_output = TRUE;
 	seqargs->output_type = get_data_type(seqargs->seq->bitpix);
-	seqargs->new_seq_prefix = "graxpert_";
+	seqargs->new_seq_prefix = strdup("graxpert_");
 	seqargs->load_new_sequence = TRUE;
 	seqargs->user = args;
 	set_progress_bar_data(_("GraXpert: Processing..."), 0.);
