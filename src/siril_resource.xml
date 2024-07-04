@@ -130,6 +130,10 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/siril.svg</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/starfinder.svg</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/starfinder_dark.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/status_green.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/status_grey.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/status_red.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/status_yellow.svg</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/sum.svg</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/sum_dark.svg</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/wcs-grid.svg</file>

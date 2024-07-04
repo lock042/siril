@@ -123,7 +123,9 @@ static command commands[] = {
 	{"new", 3, "new width height nb_channel", process_new, STR_NEW, FALSE, REQ_CMD_NONE},
 	{"nozero", 1, "nozero level", process_nozero, STR_NOZERO, TRUE, REQ_CMD_SINGLE_IMAGE},
 
+	{"offline", 0, "offline", process_offline, STR_OFFLINE, TRUE, REQ_CMD_NONE},
 	{"offset", 1, "offset value", process_offset, STR_OFFSET, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"online", 0, "online", process_online, STR_ONLINE, TRUE, REQ_CMD_NONE},
 
 	{"parse", 1, "parse str [-r]", process_parse, STR_PARSE, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"pcc", 0, "pcc [-limitmag=[+-]] [-catalog=] [-bgtol=lower,upper]", process_pcc, STR_PCC, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_RGB },
