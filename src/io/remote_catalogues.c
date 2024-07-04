@@ -25,19 +25,11 @@
 /* useful if no libcurl */
 #include <stdlib.h>
 
-#ifdef HAVE_LIBCURL
-#include <curl/curl.h>
-#ifdef _WIN32
-#include <winsock2.h>
-#include <windows.h>
-#else
-#include <unistd.h>
-#endif
-
 #include <json-glib/json-glib.h>
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/siril_networking.h"
 #include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
 #include "core/siril_date.h"
@@ -209,118 +201,7 @@ static void free_cat_tap_query_fields(cat_tap_query_fields *tap) {
 	free(tap);
 }
 
-/*              _ _                                    _
- *   ___  _ __ | (_)_ __   ___    __ _ _   _  ___ _ __(_) ___  ___
- *  / _ \| '_ \| | | '_ \ / _ \  / _` | | | |/ _ \ '__| |/ _ \/ __|
- * | (_) | | | | | | | | |  __/ | (_| | |_| |  __/ |  | |  __/\__ \
- *  \___/|_| |_|_|_|_| |_|\___|  \__, |\__,_|\___|_|  |_|\___||___/
- *                                  |_|
- * querying servers
- */
-
-/* TODO: fetch_url is also defined in siril update checking, can we merge them? */
-/* NOTE: checked while writing SPCC code, the two fetch_urls look mergeable
- * with a little extra code added to check_updates. We should probably split
- * all the networking code out into a new file core/siril_networking.[ch]
- */
-
-static const int DEFAULT_FETCH_RETRIES = 3;
-
-struct ucontent {
-	char *data;
-	size_t len;
-};
-
-static size_t cbk_curl(void *buffer, size_t size, size_t nmemb, void *userp) {
-	size_t realsize = size * nmemb;
-	struct ucontent *mem = (struct ucontent *) userp;
-
-	mem->data = realloc(mem->data, mem->len + realsize + 1);
-
-	memcpy(&(mem->data[mem->len]), buffer, realsize);
-	mem->len += realsize;
-	mem->data[mem->len] = 0;
-
-	return realsize;
-}
-
-char *fetch_url(const gchar *url, gsize *length) {
-	CURL *curl = NULL;
-	struct ucontent *content = malloc(sizeof(struct ucontent));
-	char *result = NULL;
-	long code;
-	int retries;
-	unsigned int s;
-
-	curl = curl_easy_init();
-	if (g_getenv("CURL_CA_BUNDLE"))
-		if (curl_easy_setopt(curl, CURLOPT_CAINFO, g_getenv("CURL_CA_BUNDLE")))
-			siril_debug_print("Error in curl_easy_setopt()\n");
-
-	if (!curl) {
-		siril_log_color_message(_("Error initialising CURL handle, URL functionality unavailable.\n"), "red");
-		free(content);
-		return NULL;
-	}
-	retries = DEFAULT_FETCH_RETRIES;
-
-retrieve:
-	content->data = malloc(1);
-	content->data[0] = '\0';
-	content->len = 0;
-
-	CURLcode ret = curl_easy_setopt(curl, CURLOPT_URL, url);
-	ret |= curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
-	ret |= curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cbk_curl);
-	ret |= curl_easy_setopt(curl, CURLOPT_WRITEDATA, content);
-	ret |= curl_easy_setopt(curl, CURLOPT_USERAGENT, PACKAGE_STRING);
-	if (ret)
-		siril_debug_print("Error in curl_easy_setopt()\n");
-
-	siril_debug_print("fetch_url(): %s\n", url);
-	if (curl_easy_perform(curl) == CURLE_OK) {
-		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
-
-		switch (code) {
-		case 200:
-			result = content->data;
-			siril_debug_print("downloaded %zd bytes\n", content->len);
-			break;
-		case 500:
-		case 502:
-		case 503:
-		case 504:
-			siril_debug_print("Failed to download page %s (error %ld)\n", url, code);
-			if (retries) {
-				s = 2 * (DEFAULT_FETCH_RETRIES - retries) + 2;
-				siril_debug_print("Wait %us before retry\n", s);
-				g_usleep(s * 1E6);
-				free(content->data);
-				retries--;
-				goto retrieve;
-			} else {
-				siril_log_color_message(_("After %ld tries, Server unreachable or unresponsive. (%s)\n"), "salmon", DEFAULT_FETCH_RETRIES, content->data);
-			}
-			break;
-		default:
-			siril_log_color_message(_("Server unreachable or unresponsive (code %ld).\nServer returned: %s\n"), "red", code, content->data);
-			break;
-		}
-	}
-	else siril_log_color_message(_("Internet Connection failure.\n"), "red");
-
-	curl_easy_cleanup(curl);
-	curl = NULL;
-	if (!result || content->len == 0) {
-		free(content->data);
-		result = NULL;
-	}
-	*length = content->len;
-	free(content);
-	return result;
-}
-
-// Returns url to be queried based on catalog type and query
+/// Returns url to be queried based on catalog type and query
 static gchar *siril_catalog_conesearch_get_url(siril_catalogue *siril_cat) {
 	GString *url;
 	gchar *fmtstr, *dt;
@@ -715,6 +596,10 @@ static gchar *download_catalog(siril_catalogue *siril_cat) {
 		g_free(str);
 		return NULL;
 	}
+	if (!is_online()) {
+		siril_log_message(_("Offline: cannot download catalog\n"));
+		return NULL;
+	}
 
 	// the catalog needs to be downloaded, prepare the output stream
 	file = g_file_new_for_path(filepath);
@@ -731,11 +616,12 @@ static gchar *download_catalog(siril_catalogue *siril_cat) {
 	}
 	siril_log_message(_("Contacting server\n"));
 	gsize length;
-	buffer = fetch_url(url, &length);
+	int fetch_url_error;
+	buffer = fetch_url(url, &length, &fetch_url_error, FALSE);
 	g_free(url);
 
 	/* save (and parse if required)*/
-	if (buffer) {
+	if (buffer && !error) {
 		switch (siril_cat->cat_index) {
 			case CAT_TYCHO2 ... CAT_EXOPLANETARCHIVE: // TAP query, no parsing, we just write the whole buffer to the output stream
 				if (!g_output_stream_write_all(output_stream, buffer, strlen(buffer), NULL, NULL, &error)) {
@@ -815,72 +701,19 @@ int siril_catalog_get_stars_from_online_catalogues(siril_catalogue *siril_cat) {
 	return 0;
 }
 
-#endif // HAVE_LIBCURL
-
-void free_fetch_result(char *result) {
-	free(result);
-}
-
-#ifdef HAVE_LIBCURL
-
-static int submit_post_request(const char *url, const char *post_data, char **post_response) {
-	CURL *curl;
-	CURLcode res = CURLE_OK;
-	struct ucontent chunk;
-
-	chunk.data = malloc(1);  /* will be grown as needed by realloc above */
-	chunk.len = 0;    /* no data at this point */
-
-	curl_global_init(CURL_GLOBAL_ALL);
-	curl = curl_easy_init();
-	if (curl) {
-		res = curl_easy_setopt(curl, CURLOPT_URL, url);
-
-		// send all data to this function
-		if (!res) res = curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cbk_curl);
-
-		// we pass our 'chunk' struct to the callback function
-		if (!res) res = curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
-
-		// some servers do not like requests that are made without a user-agent
-		// field, so we provide one
-		if (!res) res = curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
-
-		if (!res) res = curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_data);
-
-		// if we do not provide POSTFIELDSIZE, libcurl will strlen() by itself
-		if (!res) res = curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)strlen(post_data));
-
-		// Perform the request, res will get the return code
-		if (!res) res = curl_easy_perform(curl);
-
-		// Check for errors
-		if(res != CURLE_OK) {
-			fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
-		} else {
-			// Set the response data
-			*post_response = g_strdup(chunk.data);
-		}
-
-		// always cleanup
-		curl_easy_cleanup(curl);
-	} else {
-		res = CURLE_FAILED_INIT;
-	}
-
-	free(chunk.data);
-	curl_global_cleanup();
-    return (res != CURLE_OK ? 1 : 0);
-}
-
 static int submit_async_request(const char *url, const char *post_data, char **job_id) {
+	if (!is_online()) {
+		siril_log_message(_("Offline, cannot retrieve URL.\n"));
+		return 1;
+	}
 	gchar *post_response = NULL;
 	int res = submit_post_request(url, post_data, &post_response);
+//	siril_debug_print(post_response);
 	if (res) return 1;
-	gchar *location_header = strstr(post_response, "Location: ");
+	gchar *location_header = strstr(post_response, "jobId");
 	if (location_header != NULL) {
-		gchar *start = strrchr(location_header, '/') + 1;
-		gchar *end = strchr(start, '\n');
+		const gchar *start = find_first_numeric(location_header);
+		gchar *end = strchr(start, ']');
 		if (end != NULL) {
 			*end = '\0';
 			*job_id = g_strdup(start);
@@ -891,18 +724,18 @@ static int submit_async_request(const char *url, const char *post_data, char **j
 	return 0;
 }
 
-
-#endif
-
 // Returns url to be submitted as a Gaia DR3 job. This allows the job ID to be used as
 // the source of source_ids for a subsequent datalink query. This is intended for use
 // with SPCC but may be useful in the future for other types of datalink query.
 // The path to the datalink FITS is set and the catalogue is populated
 int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type, gchar** datalink_path, int max_datalink_sources) {
-#ifndef HAVE_LIBCURL
-	siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
-	return -1;
-#endif
+	if (!(siril_compiled_with_networking())) {
+		siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
+		return -1;
+	} else if (!(is_online())) {
+		siril_log_color_message(_("Offline: cannot fetch catalog\n"), "red");
+		return -1;
+	}
 	GError *error = NULL;
 	gsize length;
 	const gchar *host = "https://gea.esac.esa.int";
@@ -973,6 +806,7 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 		}
 
 		// Print job id
+		siril_debug_print("Gaia DR3 Job ID: %s\n", job_id);
 		if (job_id == NULL) {
 			siril_log_color_message(_("Job id not found in the response.\n"), "red");
 			goto tap_error_and_cleanup;
@@ -989,7 +823,12 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 				siril_log_color_message(_("Timeout on Gaia DR3 query\n"), "red");
 				break;
 			}
-			buffer = fetch_url(job_check, &length);
+			int fetch_url_error;
+			buffer = fetch_url(job_check, &length, &fetch_url_error, FALSE);
+			if (fetch_url_error) {
+				g_free(buffer);
+				goto tap_error_and_cleanup;
+			}
 			gboolean error = (g_strrstr(buffer, "ERROR") != NULL);
 			if (!error)
 				error = (g_strrstr(buffer, "ABORTED") != NULL);
@@ -1013,7 +852,8 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 
 		// Retrieve the TAP+ query result
 		gchar *job_retrieval = g_strdup_printf("https://gea.esac.esa.int/tap-server/tap/async/%s/results/result", job_id);
-		gchar *buffer = fetch_url(job_retrieval, &length);
+		int fetch_url_error;
+		gchar *buffer = fetch_url(job_retrieval, &length, &fetch_url_error, FALSE);
 		siril_debug_print("buffer length: %lu\n", length);
 		g_free(job_retrieval);
 
@@ -1085,15 +925,16 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 
 		siril_debug_print("Datalink url: %s\n", datalink_url->str);
 		siril_log_message(_("Submitting spectral data request to ESA Gaia DR3 catalog. This may take several seconds to complete...\n"));
-		gchar *datalink_buffer = fetch_url(datalink_url->str, &length);
+		gchar *datalink_buffer = fetch_url(datalink_url->str, &length, &fetch_url_error, FALSE);
 
 		siril_debug_print("datalink_buffer length: %lu\n", length);
 		g_string_free(datalink_url, TRUE);
 		datalink_url = NULL;
+		if (fetch_url_error)
+			goto datalink_download_error;
 		g_free(job_id);
 		if (retrieval_product_is_in_cache) {
 			siril_log_message(_("Using already downloaded datalink product\n"));
-
 			return 0;
 		}
 
