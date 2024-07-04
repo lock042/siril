@@ -9,7 +9,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-06-12 11:26+0200\n"
 "PO-Revision-Date: 2024-07-05 07:37+0000\n"
-"Last-Translator: Shun-Chia Yang <a26413768@gmail.com>\n"
+"Last-Translator: Yen-Hsing Lin <julius52700@gmail.com>\n"
 "Language-Team: Chinese (Traditional) <https://weblate.pixls.us/projects/"
 "siril/siril-application/zh_Hant/>\n"
 "Language: zh_TW\n"
@@ -2344,11 +2344,11 @@ msgstr ""
 
 #: src/gui/uifiles/composition_dialog.ui:541
 msgid "Align"
-msgstr ""
+msgstr "對齊"
 
 #: src/gui/uifiles/composition_dialog.ui:545
 msgid "Automatic alignment using the selected registration method."
-msgstr ""
+msgstr "使用目前選擇的方法自動對齊"
 
 #: src/gui/uifiles/cosmetic_dialog.ui:53 src/gui/uifiles/denoise_dialog.ui:148
 #: src/filters/cosmetic_correction.c:434 src/filters/cosmetic_correction.c:605
@@ -2367,7 +2367,7 @@ msgstr ""
 
 #: src/gui/uifiles/cosmetic_dialog.ui:121 src/gui/uifiles/siril.ui:4851
 msgid "Cold Sigma:"
-msgstr ""
+msgstr "冷像素標準差："
 
 #: src/gui/uifiles/cosmetic_dialog.ui:125
 msgid ""
@@ -2383,7 +2383,7 @@ msgstr ""
 
 #: src/gui/uifiles/cosmetic_dialog.ui:187 src/gui/uifiles/siril.ui:4881
 msgid "Hot Sigma:"
-msgstr ""
+msgstr "熱像素標準差："
 
 #: src/gui/uifiles/cosmetic_dialog.ui:191
 msgid ""
@@ -2434,7 +2434,7 @@ msgstr ""
 
 #: src/gui/uifiles/cut_coords_dialog.ui:149
 msgid "End"
-msgstr ""
+msgstr "結束"
 
 #: src/gui/uifiles/cut_coords_dialog.ui:160
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:281
@@ -2443,7 +2443,7 @@ msgstr ""
 
 #: src/gui/uifiles/cut_coords_dialog.ui:172
 msgid "Start"
-msgstr ""
+msgstr "開始"
 
 #: src/gui/uifiles/cut_coords_dialog.ui:183
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:270 src/gui/uifiles/siril.ui:4323
