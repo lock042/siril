@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: siril\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-06-12 11:26+0200\n"
-"PO-Revision-Date: 2024-07-03 19:37+0000\n"
-"Last-Translator: Yen-Hsing Lin <julius52700@gmail.com>\n"
+"PO-Revision-Date: 2024-07-05 07:37+0000\n"
+"Last-Translator: Shun-Chia Yang <a26413768@gmail.com>\n"
 "Language-Team: Chinese (Traditional) <https://weblate.pixls.us/projects/"
 "siril/siril-application/zh_Hant/>\n"
 "Language: zh_TW\n"
@@ -378,7 +378,7 @@ msgstr ""
 "有些目錄(bsc、gcvs、pgc、exo、aavso_chart、varisum和solsys)也會預設在顯示畫面"
 "和紀錄中同時顯示天體名稱。而對於有較多天體的星表,如vsx和simbad,此資訊也可以顯"
 "示,不過可能會使畫面過於雜亂,所以預設未啟用。您可以透過勾選標籤來切換是否在顯"
-"示畫面上同時顯示物體名稱,以及是否在主控台紀錄中列出物件。"
+"示畫面上同時顯示天體名稱,以及是否在主控台紀錄中列出物件。"
 
 #: src/gui/uifiles/annotate_dialog.ui:189 src/gui/uifiles/annotate_dialog.ui:442
 msgid "Log"
@@ -1473,7 +1473,8 @@ msgid ""
 "Wavelength to calculate the diffraction pattern for. May be specified exactly "
 "for narrowband filters, or for broadband / OSC / luminance filters just use a "
 "representative central wavelength."
-msgstr ""
+msgstr "計算繞射圖樣的波長。對於窄帶濾鏡可以精確指定，對於寬帶/光害濾鏡，可以使用中心"
+"波長。"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:934
 msgid ""
@@ -1487,7 +1488,7 @@ msgstr "望遠鏡主鏡直徑"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:967
 msgid "Central Obstruction / %"
-msgstr ""
+msgstr "中央遮蔽率 / %"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:978
 msgid ""
@@ -1495,16 +1496,18 @@ msgid ""
 "is zero for refractors, typically around 10-20% for fast Newtonians and may be "
 "as much as 40% for a Corrected Dall-Kirkham."
 msgstr ""
+"設定中央遮擋面積佔總口徑面積的百分比。折射望遠鏡為零，短焦牛頓反射式望遠鏡通"
+"常在10-20%左右，修正型 Dall-Kirkham 望遠鏡最高可達40%。"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1001
 msgid "Manual PSF Parameters"
-msgstr ""
+msgstr "手動PSF(點擴散函數)參數"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1033
 msgid ""
 "Regularization parameter for PSF estimation. Try decreasing this value for "
 "noisy images."
-msgstr ""
+msgstr "PSF 估計的正規化參數。對於雜訊較大的影像，可嘗試降低此值。"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1048
 msgid "Lambda (λ)"
@@ -23602,7 +23605,7 @@ msgstr ""
 
 #: src/io/siril_catalogues.c:246
 msgid "PPMXL"
-msgstr ""
+msgstr "PPMXL星表"
 
 #: src/io/siril_catalogues.c:248
 msgid "bright stars"
