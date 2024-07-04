@@ -59,6 +59,7 @@
 #include "core/signals.h"
 #include "core/siril_app_dirs.h"
 #include "core/siril_language.h"
+#include "core/siril_networking.h"
 #include "core/siril_update.h"
 #include "core/siril_log.h"
 #include "core/OS_utils.h"
@@ -111,6 +112,12 @@ static gboolean _print_list_of_formats_and_exit(const gchar *option_name,
 	return TRUE;
 }
 
+static gboolean _set_offline(const gchar *option_name,
+		const gchar *value, gpointer data, GError **error) {
+	set_online_status(FALSE);
+	return TRUE;
+}
+
 static GOptionEntry main_option[] = {
 	{ "directory", 'd', 0, G_OPTION_ARG_FILENAME, &main_option_directory, N_("changing the current working directory as the argument"), NULL },
 	{ "script", 's', 0, G_OPTION_ARG_FILENAME, &main_option_script, N_("run the siril commands script in console mode. If argument is equal to \"-\", then siril will read stdin input"), NULL },
@@ -119,6 +126,7 @@ static GOptionEntry main_option[] = {
 	{ "inpipe", 'r', 0, G_OPTION_ARG_FILENAME, &main_option_rpipe_path, N_("specify the path for the read pipe, the one receiving commands"), NULL },
 	{ "outpipe", 'w', 0, G_OPTION_ARG_FILENAME, &main_option_wpipe_path, N_("specify the path for the write pipe, the one outputing messages"), NULL },
 	{ "format", 'f', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _print_list_of_formats_and_exit, N_("print all supported image file formats (depending on installed libraries)" ), NULL },
+	{ "offline", 'o', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _set_offline, N_("start in offline mode"), NULL },
 	{ "version", 'v', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _print_version_and_exit, N_("print the application’s version"), NULL},
 	{ "copyright", 'c', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _print_copyright_and_exit, N_("print the copyright"), NULL},
 	{ NULL },
@@ -222,7 +230,6 @@ static void global_initialization() {
 
 static void siril_app_startup(GApplication *application) {
 	signals_init();
-
 	/*
 	 * Force C locale for numbers to avoid "," being used as decimal separator.
 	 * Called here and not in main() because setlocale(LC_ALL, "") is called as
@@ -244,6 +251,7 @@ static void siril_app_activate(GApplication *application) {
 		com.script = TRUE;
 		com.headless = TRUE;
 	}
+
 #if defined(_WIN32) && !defined(SIRIL_UNSTABLE)
 	ShowWindow(GetConsoleWindow(), SW_MINIMIZE); //hiding the console
 #endif
@@ -298,14 +306,18 @@ static void siril_app_activate(GApplication *application) {
 	initialize_profiles_and_transforms(); // color management
 
 #ifdef HAVE_LIBGIT2
-	if (com.pref.use_scripts_repository)
-		auto_update_gitscripts(com.pref.auto_script_update);
-	else
-		siril_log_message(_("Online scripts repository not enabled. Not fetching or updating siril-scripts...\n"));
-	if (com.pref.spcc.use_spcc_repository)
-		auto_update_gitspcc(com.pref.spcc.auto_spcc_update);
-	else
-		siril_log_message(_("Online SPCC-database repository not enabled. Not fetching or updating siril-spcc-database...\n"));
+	if (is_online()) {
+		if (com.pref.use_scripts_repository)
+			auto_update_gitscripts(com.pref.auto_script_update);
+		else
+			siril_log_message(_("Online scripts repository not enabled. Not fetching or updating siril-scripts...\n"));
+		if (com.pref.spcc.use_spcc_repository)
+			auto_update_gitspcc(com.pref.spcc.auto_spcc_update);
+		else
+			siril_log_message(_("Online SPCC-database repository not enabled. Not fetching or updating siril-spcc-database...\n"));
+	} else {
+		siril_log_message(_("Siril started in offline mode. Will not attempt to update siril-scripts or siril-spcc-database...\n"));
+	}
 #else
 	siril_log_message(_("Siril was compiled without libgit2 support. Remote repositories cannot be automatically fetched...\n"));
 #endif
@@ -357,13 +369,14 @@ static void siril_app_activate(GApplication *application) {
 		/* Load state of the main windows (position and maximized) */
 		load_main_window_state();
 #if defined(HAVE_LIBCURL)
-		g_fprintf(stdout, "Initializing CURL\n");
 		curl_global_init(CURL_GLOBAL_ALL);
 		/* Check for update */
-		if (com.pref.check_update) {
-			siril_check_updates(FALSE);
+		if (is_online()) {
+			if (com.pref.check_update) {
+				siril_check_updates(FALSE);
+			}
+			siril_check_notifications(FALSE);
 		}
-		siril_check_notifications(FALSE);
 
 #else
 		gtk_widget_set_visible(lookup_widget("main_menu_updates"), FALSE);
