@@ -51,6 +51,7 @@
 #include "core/sequence_filtering.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
+#include "core/siril_networking.h"
 #include "core/siril_update.h"
 #include "core/undo.h"
 #include "io/Astro-TIFF.h"
@@ -10702,5 +10703,15 @@ int process_limit(int nb) {
 	}
 	invalidate_stats_from_fit(&gfit);
 	siril_log_message(_("Pixel limits applied successfully.\n"));
+	return CMD_OK;
+}
+
+int process_online(int nb) {
+	set_online_status(TRUE);
+	return CMD_OK;
+}
+
+int process_offline(int nb) {
+	set_online_status(FALSE);
 	return CMD_OK;
 }

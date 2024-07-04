@@ -160,6 +160,8 @@ siril_common_SOURCES = \
 	core/siril_language.h \
 	core/siril_log.c \
 	core/siril_log.h \
+	core/siril_networking.c \
+	core/siril_networking.h \
 	core/siril_update.c \
 	core/siril_update.h \
 	core/siril_world_cs.c \

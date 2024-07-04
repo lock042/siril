@@ -132,6 +132,9 @@ int	process_invmodasinh(int nb);
 int	process_linstretch(int nb);
 int	process_modasinh(int nb);
 
+int	process_offline(int nb);
+int	process_online(int nb);
+
 int	process_parse(int nb);
 int	process_pcc(int nb);
 int	process_platesolve(int nb);
