@@ -16,7 +16,7 @@ typedef enum {
 
 typedef enum {
 	GRAXPERT_SUBTRACTION,
-	GRAXPERT_DIVISON
+	GRAXPERT_DIVISION
 } graxpert_bg_mode;
 
 typedef enum {

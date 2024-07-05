@@ -10493,6 +10493,14 @@ static graxpert_data *fill_graxpert_data_from_cmdline(int nb, sequence *seq) {
 				data->bg_algo = GRAXPERT_BG_SPLINE;
 			}
 		}
+		else if (g_str_has_prefix(arg, "-mode=")) {
+			arg += 6;
+			if (!g_ascii_strncasecmp(arg, "sub", 3)) {
+				data->bg_mode = GRAXPERT_SUBTRACTION;
+			} else if (!g_ascii_strncasecmp(arg, "div", 3)) {
+				data->bg_mode = GRAXPERT_DIVISION;
+			}
+		}
 		else if (g_str_has_prefix(arg, "-kernel=")) {
 			arg += 8;
 			if (!g_ascii_strncasecmp(arg, "thinplate", 9)) {
