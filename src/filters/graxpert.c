@@ -389,7 +389,7 @@ graxpert_data *new_graxpert_data() {
 	p->sample_size = 25;
 	p->spline_order = 3;
 	p->bg_tol_option = 2;
-	p->denoise_strength = 0.75;
+	p->denoise_strength = 0.8;
 	p->use_gpu = TRUE;
 	p->ai_batch_size = 4;
 	p->bg_pts_option = 15;
@@ -570,18 +570,27 @@ static int graxpert_compute_mem_limits(struct generic_seq_args *args, gboolean f
 		limit = MB_avail / required;
 	}
 	limit = (limit >= 1 ? 1 : 0);
-	siril_log_message(_("Note: the GraXpert sequence memory limit calculation is based on system RAM only. If you are using the GPU option and have insufficient GPU memory, GraXpert may still fail.\n"));
 	return limit;
 }
 
 static int graxpert_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
 	int ret = 0;
 	graxpert_data *data = (graxpert_data *) args->user;
+	if (data->operation == GRAXPERT_BG && data->bg_algo != GRAXPERT_BG_AI) {
+		const char *err;
+		com.grad_samples = generate_samples(fit, data->bg_pts_option, data->bg_tol_option, data->sample_size, &err, TRUE);
+		if (!com.grad_samples) {
+			siril_log_color_message(_("Failed to generate background samples for image: %s\n"), "red", _(err));
+			return 1;
+		}
+	}
 	data->fit = fit;
 	siril_log_color_message(_("GraXpert: Processing image %d\n"), "green", o + 1);
 	verbose = FALSE;
 	do_graxpert(data);
 	verbose = TRUE;
+	free_background_sample_list(com.grad_samples);
+	com.grad_samples = NULL;
 	return ret;
 }
 
@@ -591,12 +600,17 @@ void apply_graxpert_to_sequence(graxpert_data *args) {
 		siril_log_color_message(_("Error: GraXpert version is too old. You have version %d.%d.%d; at least version 3.0.2 is required.\n"), "red", graxpert_version.major_version, graxpert_version.minor_version, graxpert_version.micro_version);
 		return;
 	}
+	if (args->operation == GRAXPERT_BG && args->bg_algo != GRAXPERT_BG_AI) {
+		free_background_sample_list(com.grad_samples);
+		com.grad_samples = NULL;
+	}
 	args->fit = NULL;
 	struct generic_seq_args *seqargs = create_default_seqargs(args->seq);
 	seqargs->seq = args->seq;
 	seqargs->filtering_criterion = seq_filter_included;
 	seqargs->nb_filtered_images = args->seq->selnum;
 	seqargs->compute_mem_limits_hook = graxpert_compute_mem_limits;
+	seqargs->prepare_hook = seq_prepare_hook;
 	seqargs->image_hook = graxpert_image_hook;
 	seqargs->description = _("GraXpert");
 	seqargs->has_output = TRUE;

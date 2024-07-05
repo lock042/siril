@@ -37,7 +37,6 @@ typedef enum {
 typedef struct _graxpert_data {
 	fits *fit;
 	sequence *seq;
-	int imgnumber;
 	graxpert_operation operation;
 	double bg_smoothing;
 	graxpert_bg_algo bg_algo;

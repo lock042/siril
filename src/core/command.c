@@ -10461,27 +10461,168 @@ int process_seq_profile(int nb) {
 	return CMD_OK;
 }
 
-int process_graxpert(int nb) {
-	// Test code
+static graxpert_data *fill_graxpert_data_from_cmdline(int nb, sequence *seq) {
 	graxpert_data *data = new_graxpert_data();
-	*data = (graxpert_data) {
-		.operation = GRAXPERT_BG,
-		.bg_smoothing = 0.7,
-		.bg_algo = GRAXPERT_BG_RBF,
-		.bg_mode = GRAXPERT_SUBTRACTION,
-		.stretch_option = STRETCH_OPTION_NONE,
-		.kernel = GRAXPERT_THIN_PLATE,
-		.sample_size = 25,
-		.spline_order = 3,
-		.bg_tol_option = 0.5,
-		.keep_bg = FALSE,
-		.denoise_strength = 0.0,
-		.use_gpu = TRUE,
-		.ai_batch_size = 4,
-		.bg_pts_option = 17,
-		.path = NULL,
-		.backup_icc = NULL};
+	int start = (seq == NULL) ? 1 : 2;
+	gboolean opselected = FALSE;
+	if (seq)
+		data->seq = seq;
+	else
+		data->fit = &gfit;
+	for (int i = start ; i < nb ; i++) {
+		char *arg = word[i], *end;
+		if (!word[i])
+			break;
+		else if (!g_ascii_strncasecmp(arg, "-bg", 3)) {
+			data->operation = GRAXPERT_BG;
+			opselected = TRUE;
+		}
+		else if (!g_ascii_strncasecmp(arg, "-denoise", 8)) {
+			data->operation = GRAXPERT_DENOISE;
+			opselected = TRUE;
+		}
+		else if (g_str_has_prefix(arg, "-algo=")) {
+			arg += 6;
+			if (!g_ascii_strncasecmp(arg, "ai", 2)) {
+				data->bg_algo = GRAXPERT_BG_AI;
+			} else if (!g_ascii_strncasecmp(arg, "rbf", 3)) {
+				data->bg_algo = GRAXPERT_BG_RBF;
+			} else if (!g_ascii_strncasecmp(arg, "kriging", 7)) {
+				data->bg_algo = GRAXPERT_BG_KRIGING;
+			} else if (!g_ascii_strncasecmp(arg, "spline", 6)) {
+				data->bg_algo = GRAXPERT_BG_SPLINE;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-kernel=")) {
+			arg += 8;
+			if (!g_ascii_strncasecmp(arg, "thinplate", 9)) {
+				data->kernel = GRAXPERT_THIN_PLATE;
+			} else if (!g_ascii_strncasecmp(arg, "quintic", 7)) {
+				data->kernel = GRAXPERT_QUINTIC;
+			} else if (!g_ascii_strncasecmp(arg, "cubic", 5)) {
+				data->kernel = GRAXPERT_CUBIC;
+			} else if (!g_ascii_strncasecmp(arg, "linear", 6)) {
+				data->kernel = GRAXPERT_LINEAR;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-ai_batch_size=")) {
+			arg += 15;
+			data->ai_batch_size = (int) g_ascii_strtod(arg, &end);
+			if (arg == end) {
+				siril_log_message(_("Error: no AI batch size specified\n"));
+				goto GRAX_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-pts_per_row=")) {
+			arg += 13;
+			data->bg_pts_option = (int) g_ascii_strtod(arg, &end);
+			if (arg == end) {
+				siril_log_message(_("Error: no pts_per_row specified\n"));
+				goto GRAX_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-splineorder=")) {
+			arg += 13;
+			data->spline_order = (int) g_ascii_strtod(arg, &end);
+			if (arg == end) {
+				siril_log_message(_("Error: no spline order specified\n"));
+				goto GRAX_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-samplesize=")) {
+			arg += 12;
+			data->sample_size = (int) g_ascii_strtod(arg, &end);
+			if (arg == end) {
+				siril_log_message(_("Error: no sample size specified\n"));
+				goto GRAX_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-smoothing=")) {
+			arg += 11;
+			data->bg_smoothing = g_ascii_strtod(arg, &end);
+			if (arg == end) {
+				siril_log_message(_("Error: no smoothing value specified\n"));
+				goto GRAX_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-bgtol=")) {
+			arg += 7;
+			data->bg_tol_option = g_ascii_strtod(arg, &end);
+			if (arg == end) {
+				siril_log_message(_("Error: no smoothing value specified\n"));
+				goto GRAX_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-strength=")) {
+			arg += 10;
+			data->denoise_strength = g_ascii_strtod(arg, &end);
+			if (arg == end) {
+				siril_log_message(_("Error: no smoothing value specified\n"));
+				goto GRAX_ARG_ERROR;
+			}
+		}
+		else if (!g_ascii_strncasecmp(arg, "-gpu", 3)) {
+			data->use_gpu = TRUE;
+		}
+		else if (!g_ascii_strncasecmp(arg, "-cpu", 3)) {
+			data->use_gpu = FALSE;
+		}
+		else if (!g_ascii_strncasecmp(arg, "-keep_bg", 8)) {
+			data->keep_bg = TRUE;
+		}
+	}
+
+	// Check an operation (bg or denoise) has been chosen
+	if (!opselected) {
+		siril_log_color_message(_("Error: either -bg or -denoise must be selected.\n"), "red");
+		goto GRAX_ARG_ERROR;
+	}
+	// Enforce bounds on data submitted
+	if (data->bg_smoothing < 0.0)
+		data->bg_smoothing = 0.0;
+	else if (data->bg_smoothing > 1.0)
+		data->bg_smoothing = 1.0;
+	if (data->denoise_strength < 0.0)
+		data->denoise_strength = 0.0;
+	else if (data->denoise_strength > 1.0)
+		data->denoise_strength = 1.0;
+	if (data->bg_tol_option < -2.0)
+		data->bg_tol_option = -2.0;
+	else if (data->bg_tol_option > 6.0)
+		data->bg_tol_option = 6.0;
+
+	return data;
+
+GRAX_ARG_ERROR:
+
+	free(data);
+	return NULL;
+}
+
+int process_graxpert(int nb) {
+	graxpert_data *data = fill_graxpert_data_from_cmdline(nb, NULL);
+	if (data->operation == GRAXPERT_BG && data->bg_algo != GRAXPERT_BG_AI) {
+		free_background_sample_list(com.grad_samples);
+		const char *err;
+		com.grad_samples = generate_samples(&gfit, data->bg_pts_option, data->bg_tol_option, data->sample_size, &err, TRUE);
+		if (!com.grad_samples) {
+			siril_log_color_message(_("Failed to generate background samples for image: %s\n"), "red", _(err));
+			free_graxpert_data(data);
+			return CMD_GENERIC_ERROR;
+		}
+	}
 	start_in_new_thread(do_graxpert, data);
+	return CMD_OK;
+}
+
+int process_seq_graxpert(int nb) {
+	sequence *seq = load_sequence(word[1], NULL);
+	if (!seq) {
+		siril_log_color_message(_("Error: unable to load sequence\n"), "red");
+		return CMD_SEQUENCE_NOT_FOUND;
+	}
+	graxpert_data *data = fill_graxpert_data_from_cmdline(nb, seq);
+	apply_graxpert_to_sequence(data);
 	return CMD_OK;
 }
 
