@@ -84,13 +84,14 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report) {
 			NULL, NULL, &child_pid, NULL, NULL,
 			&child_stderr, &error);
 
+	int i = 0;
+	while (argv[i])
+		g_free(argv[i++]);
+
 	if (error != NULL) {
 		siril_log_color_message(_("Spawning GraXpert failed: %s\n"), "red", error->message);
 		return retval;
 	}
-	int i = 0;
-	while (argv[i])
-		g_free(argv[i++]);
 	g_child_watch_add(child_pid, child_watch_cb, NULL);
 	com.child_is_running = EXT_GRAXPERT;
 #ifdef _WIN32
@@ -182,7 +183,7 @@ static version_number graxpert_executablecheck(gchar* executable) {
 
 	int nb = 0;
 	test_argv[nb++] = executable;
-	gchar *versionarg = g_strdup("-v");
+	gchar *versionarg = "-v";
 	test_argv[nb++] = versionarg;
 	// g_spawn handles wchar so not need to convert
 	g_spawn_async_with_pipes(NULL, test_argv, NULL,
@@ -390,10 +391,15 @@ static void open_graxpert_result(graxpert_data *args) {
 	if (args->path) {
 		disable_profile_check_verbose();
 		fits *result = calloc(1, sizeof(fits));
-		readfits(args->path, result, NULL, !com.pref.force_16bit);
+		if (readfits(args->path, result, NULL, !com.pref.force_16bit)) {
+			siril_log_color_message(_("Error opening GraXpert result. Check the file %s\n"), "red", args->path);
+			enable_profile_check_verbose();
+			return;
+		}
 		copyfits(result, args->fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 		copy_fits_metadata(result, &gfit);
-		g_unlink(args->path);
+		if (g_unlink(args->path))
+			siril_debug_print("Failed to unlink GraXpert working file\n");
 		enable_profile_check_verbose();
 	}
 }
@@ -504,6 +510,7 @@ gpointer do_graxpert (gpointer p) {
 		goto ERROR_OR_FINISHED;
 	}
 	my_argv[nb++] = g_strdup_printf("%s", path);
+	g_free(outpath);
 
 	// Save a copy of the current ICC profile, as GraXpert does not preserve these
 	if (args->fit->icc_profile)

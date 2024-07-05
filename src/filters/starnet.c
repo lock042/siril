@@ -270,7 +270,6 @@ starnet_version starnet_executablecheck(gchar* executable) {
 
 END:
 	g_free(v1dir);
-
 	return retval;
 }
 
