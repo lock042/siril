@@ -76,6 +76,7 @@ xx/xx/xx
 * Improve use of prngs (mt19937 now used throughout in place of rand() etc.) (!689)
 * Update Image processing menu (!700)
 * Refactor networking code, add offline mode and add Gaia archive status indication (!687)
+* Added GraXpert interface (!699)
 
 siril 1.2.3
 06/19/24
