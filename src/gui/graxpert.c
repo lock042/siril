@@ -156,6 +156,8 @@ void on_button_graxpert_apply_clicked(GtkWidget *widget, gpointer user_data) {
 }
 
 void on_button_graxpert_cancel_clicked(GtkWidget *widget, gpointer user_data) {
+	free_background_sample_list(com.grad_samples);
+	com.grad_samples = NULL;
 	siril_close_dialog("graxpert_dialog");
 }
 

@@ -379,8 +379,8 @@ void free_graxpert_data(graxpert_data *args) {
 
 static void open_graxpert_result(graxpert_data *args) {
 	// Clean up config file if one was used
-//	if (args->configfile && g_unlink(args->configfile))
-//		siril_debug_print("Failed to remove GraXpert config file\n");
+	if (args->configfile && g_unlink(args->configfile))
+		siril_debug_print("Failed to remove GraXpert config file\n");
 
 	// If successful, open the result image
 	/* Note: we do this even when sequence working: it's a bit inefficient to read it in,
