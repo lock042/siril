@@ -183,7 +183,7 @@ static version_number graxpert_executablecheck(gchar* executable) {
 
 	int nb = 0;
 	test_argv[nb++] = executable;
-	gchar *versionarg = "-v";
+	gchar *versionarg = g_strdup("-v");
 	test_argv[nb++] = versionarg;
 	// g_spawn handles wchar so not need to convert
 	g_spawn_async_with_pipes(NULL, test_argv, NULL,
@@ -416,6 +416,7 @@ static gboolean end_graxpert(gpointer p) {
 gpointer do_graxpert (gpointer p) {
 	graxpert_data *args = (graxpert_data *) p;
 	char *my_argv[64] = { 0 };
+	gchar *filename = NULL, *path = NULL, *outpath = NULL;
 	int retval = 1;
 	version_number graxpert_version = graxpert_executablecheck(com.pref.graxpert_path);
 	if (compare_version(graxpert_version, (version_number) {.major_version = 3, .minor_version = 0, .micro_version = 0}) < 0) {
@@ -424,7 +425,6 @@ gpointer do_graxpert (gpointer p) {
 	}
 
 	// Configure input filename
-	gchar *filename = NULL, *path = NULL, *outpath = NULL;
 	if (single_image_is_loaded() && com.uniq && com.uniq->filename) {
 		filename = g_path_get_basename(com.uniq->filename);
 		gchar *temp = remove_ext_from_filename(filename);
@@ -510,7 +510,6 @@ gpointer do_graxpert (gpointer p) {
 		goto ERROR_OR_FINISHED;
 	}
 	my_argv[nb++] = g_strdup_printf("%s", path);
-	g_free(outpath);
 
 	// Save a copy of the current ICC profile, as GraXpert does not preserve these
 	if (args->fit->icc_profile)
@@ -531,6 +530,7 @@ gpointer do_graxpert (gpointer p) {
 	g_free(path);
 
 ERROR_OR_FINISHED:
+	g_free(outpath);
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 	if (!args->seq)
 		siril_add_idle(end_graxpert, args); // this loads the result
