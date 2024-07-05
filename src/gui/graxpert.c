@@ -141,6 +141,10 @@ void on_button_graxpert_apply_clicked(GtkWidget *widget, gpointer user_data) {
 		default:
 			text = g_strdup(_("GraXpert operations using GUI"));
 	}
+	if (com.grad_samples) {
+		data->bg_samples = com.grad_samples;
+		com.grad_samples = NULL;
+	}
 	undo_save_state(&gfit, text);
 	g_free(text);
 	if (gtk_toggle_button_get_active(graxpert_toggle_apply_to_sequence)) {

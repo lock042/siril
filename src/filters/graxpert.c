@@ -180,17 +180,6 @@ static version_number graxpert_executablecheck(gchar* executable) {
 		return version; // It's not executable so return a zero version number
 	}
 
-/*	// Change to the GraXpert installation directory
-	gchar *dir = g_path_get_dirname(executable);
-	gchar *currentdir = g_get_current_dir();
-	int retval2 = g_chdir(dir);
-	if (retval2) {
-		g_free(dir);
-		g_free(currentdir);
-		return version;
-	}
-	g_free(dir);*/
-
 	int nb = 0;
 	test_argv[nb++] = executable;
 	gchar *versionarg = g_strdup("-v");
@@ -243,16 +232,6 @@ static version_number graxpert_executablecheck(gchar* executable) {
 	if (!g_close(child_stderr, &error))
 		siril_debug_print("%s\n", error->message);
 
-/*	// Change back to the prior working directory
-	retval2 = g_chdir(currentdir);
-	if (retval2) {
-		retval2 = g_chdir(com.wd);
-		if (retval2) {
-			siril_log_color_message(_("Error: unable to change back to Siril working directory...\n"), "red");
-		}
-	}
-	g_free(currentdir);*/
-
 	return version;
 }
 
@@ -279,10 +258,10 @@ gboolean save_graxpert_config(graxpert_data *args) {
 	json_builder_add_int_value(builder, args->fit->ry);
 
 	// Add background points
-	if (com.grad_samples) {
+	if (args->bg_samples) {
 		json_builder_set_member_name(builder, "background_points");
 		json_builder_begin_array(builder);
-		for (GSList *l = com.grad_samples; l != NULL; l = l->next) {
+		for (GSList *l = args->bg_samples; l != NULL; l = l->next) {
 			background_sample *s = (background_sample *)l->data;
 			json_builder_begin_array(builder);
 			json_builder_add_int_value(builder, min(args->fit->rx - 1, round_to_int(s->position.x)));
@@ -343,12 +322,6 @@ gboolean save_graxpert_config(graxpert_data *args) {
 	args->kernel == GRAXPERT_CUBIC ? "cubic" :
 	"linear");
 
-//	json_builder_set_member_name(builder, "bge_ai_version");
-//	json_builder_add_string_value(builder, "latest");
-
-//	json_builder_set_member_name(builder, "denoise_ai_version");
-//	json_builder_add_string_value(builder, "latest");
-
 	json_builder_set_member_name(builder, "denoise_strength");
 	json_builder_add_double_value(builder, args->denoise_strength);
 
@@ -398,6 +371,7 @@ graxpert_data *new_graxpert_data() {
 
 void free_graxpert_data(graxpert_data *args) {
 	g_free(args->path);
+	free_background_sample_list(args->bg_samples);
 	if (args->backup_icc)
 		cmsCloseProfile(args->backup_icc);
 	free(args);
@@ -405,8 +379,8 @@ void free_graxpert_data(graxpert_data *args) {
 
 static void open_graxpert_result(graxpert_data *args) {
 	// Clean up config file if one was used
-	if (args->configfile && g_unlink(args->configfile))
-		siril_debug_print("Failed to remove GraXpert config file\n");
+//	if (args->configfile && g_unlink(args->configfile))
+//		siril_debug_print("Failed to remove GraXpert config file\n");
 
 	// If successful, open the result image
 	/* Note: we do this even when sequence working: it's a bit inefficient to read it in,
@@ -494,7 +468,7 @@ gpointer do_graxpert (gpointer p) {
 			my_argv[nb++] = g_strdup("-gpu");
 			my_argv[nb++] = g_strdup(args->use_gpu ? "true" : "false");
 		} else {
-			if (!com.grad_samples) {
+			if (!args->bg_samples) {
 				siril_log_color_message(_("Background samples must be computed for GraXpert RBF, Spline and Kriging methods\n"), "red");
 				goto ERROR_OR_FINISHED;
 			}
@@ -578,8 +552,8 @@ static int graxpert_image_hook(struct generic_seq_args *args, int o, int i, fits
 	graxpert_data *data = (graxpert_data *) args->user;
 	if (data->operation == GRAXPERT_BG && data->bg_algo != GRAXPERT_BG_AI) {
 		const char *err;
-		com.grad_samples = generate_samples(fit, data->bg_pts_option, data->bg_tol_option, data->sample_size, &err, TRUE);
-		if (!com.grad_samples) {
+		data->bg_samples = generate_samples(fit, data->bg_pts_option, data->bg_tol_option, data->sample_size, &err, TRUE);
+		if (!data->bg_samples) {
 			siril_log_color_message(_("Failed to generate background samples for image: %s\n"), "red", _(err));
 			return 1;
 		}
@@ -589,8 +563,7 @@ static int graxpert_image_hook(struct generic_seq_args *args, int o, int i, fits
 	verbose = FALSE;
 	do_graxpert(data);
 	verbose = TRUE;
-	free_background_sample_list(com.grad_samples);
-	com.grad_samples = NULL;
+	free_background_sample_list(data->bg_samples);
 	return ret;
 }
 
@@ -599,10 +572,6 @@ void apply_graxpert_to_sequence(graxpert_data *args) {
 	if (compare_version(graxpert_version, (version_number) {.major_version = 3, .minor_version = 0, .micro_version = 2}) < 0) {
 		siril_log_color_message(_("Error: GraXpert version is too old. You have version %d.%d.%d; at least version 3.0.2 is required.\n"), "red", graxpert_version.major_version, graxpert_version.minor_version, graxpert_version.micro_version);
 		return;
-	}
-	if (args->operation == GRAXPERT_BG && args->bg_algo != GRAXPERT_BG_AI) {
-		free_background_sample_list(com.grad_samples);
-		com.grad_samples = NULL;
 	}
 	args->fit = NULL;
 	struct generic_seq_args *seqargs = create_default_seqargs(args->seq);

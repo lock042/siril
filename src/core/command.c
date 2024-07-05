@@ -10602,10 +10602,9 @@ GRAX_ARG_ERROR:
 int process_graxpert(int nb) {
 	graxpert_data *data = fill_graxpert_data_from_cmdline(nb, NULL);
 	if (data->operation == GRAXPERT_BG && data->bg_algo != GRAXPERT_BG_AI) {
-		free_background_sample_list(com.grad_samples);
 		const char *err;
-		com.grad_samples = generate_samples(&gfit, data->bg_pts_option, data->bg_tol_option, data->sample_size, &err, TRUE);
-		if (!com.grad_samples) {
+		data->bg_samples = generate_samples(&gfit, data->bg_pts_option, data->bg_tol_option, data->sample_size, &err, TRUE);
+		if (!data->bg_samples) {
 			siril_log_color_message(_("Failed to generate background samples for image: %s\n"), "red", _(err));
 			free_graxpert_data(data);
 			return CMD_GENERIC_ERROR;
