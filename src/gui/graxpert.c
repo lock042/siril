@@ -28,6 +28,7 @@
 #include "filters/graxpert.h"
 #include "gui/dialogs.h"
 #include "gui/image_display.h"
+#include "gui/image_interactions.h"
 #include "gui/progress_and_log.h"
 #include "gui/utils.h"
 
@@ -113,10 +114,14 @@ void on_graxpert_generate_samples_clicked(GtkButton *button, gpointer user_data)
 }
 
 void on_graxpert_dialog_show(GtkWidget *widget, gpointer user_data) {
+	mouse_status = MOUSE_ACTION_DRAW_SAMPLES;
 	initialize_graxpert_widgets_if_needed();
 }
 
 void on_graxpert_dialog_hide(GtkWidget *widget, gpointer user_data) {
+	mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
+	free_background_sample_list(com.grad_samples);
+	com.grad_samples = NULL;
 	siril_close_dialog("graxpert_dialog");
 };
 
@@ -153,12 +158,6 @@ void on_button_graxpert_apply_clicked(GtkWidget *widget, gpointer user_data) {
 	} else {
 		start_in_new_thread(do_graxpert, data);
 	}
-}
-
-void on_button_graxpert_cancel_clicked(GtkWidget *widget, gpointer user_data) {
-	free_background_sample_list(com.grad_samples);
-	com.grad_samples = NULL;
-	siril_close_dialog("graxpert_dialog");
 }
 
 void on_graxpert_clear_samples_clicked(GtkWidget *widget, gpointer user_data) {

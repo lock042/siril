@@ -84,7 +84,7 @@
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <signal name="clicked" handler="on_button_graxpert_cancel_clicked" swapped="no"/>
+                <signal name="clicked" handler="on_graxpert_dialog_hide" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">True</property>
