@@ -12,6 +12,7 @@
   <object class="GtkAdjustment" id="adj_graxpert_bg_tol">
     <property name="lower">-2</property>
     <property name="upper">6</property>
+    <property name="value">2</property>
     <property name="step-increment">0.10</property>
     <property name="page-increment">1</property>
   </object>
@@ -23,7 +24,7 @@
   </object>
   <object class="GtkAdjustment" id="adj_graxpert_denoise_strength">
     <property name="upper">1</property>
-    <property name="value">0.5</property>
+    <property name="value">0.80</property>
     <property name="step-increment">0.01</property>
     <property name="page-increment">0.10</property>
   </object>
@@ -173,7 +174,7 @@
                 <property name="can-focus">True</property>
                 <property name="expanded">True</property>
                 <child>
-                  <!-- n-columns=2 n-rows=10 -->
+                  <!-- n-columns=2 n-rows=12 -->
                   <object class="GtkGrid">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
@@ -219,7 +220,7 @@
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">1</property>
+                        <property name="top-attach">2</property>
                       </packing>
                     </child>
                     <child>
@@ -234,7 +235,7 @@
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
-                        <property name="top-attach">1</property>
+                        <property name="top-attach">2</property>
                       </packing>
                     </child>
                     <child>
@@ -246,7 +247,7 @@
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">2</property>
+                        <property name="top-attach">4</property>
                       </packing>
                     </child>
                     <child>
@@ -264,7 +265,7 @@
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
-                        <property name="top-attach">2</property>
+                        <property name="top-attach">4</property>
                       </packing>
                     </child>
                     <child>
@@ -276,7 +277,7 @@
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">6</property>
+                        <property name="top-attach">8</property>
                       </packing>
                     </child>
                     <child>
@@ -289,7 +290,7 @@
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
-                        <property name="top-attach">6</property>
+                        <property name="top-attach">8</property>
                       </packing>
                     </child>
                     <child>
@@ -301,7 +302,7 @@
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">3</property>
+                        <property name="top-attach">5</property>
                       </packing>
                     </child>
                     <child>
@@ -314,7 +315,84 @@
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
+                        <property name="top-attach">5</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes"># samples per row</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">6</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkSpinButton" id="graxpert_spin_nb_samples">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">Set the number of samples per row in the sampling grid</property>
+                        <property name="adjustment">adj_graxpert_nb_samples</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">6</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Sample size / px</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">7</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkSpinButton" id="graxpert_spin_sample_size">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">Set the GraXpert sample size of each background sample. Larger samples may give better statistical properties but have a bigger risk of including non-background pixels such as stars.</property>
+                        <property name="adjustment">adj_graxpert_sample_size</property>
+                        <signal name="value-changed" handler="on_graxpert_spin_sample_size_value_changed" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">7</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkScale">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="adjustment">adj_graxpert_bgextract_smoothing</property>
+                        <property name="round-digits">1</property>
+                        <property name="draw-value">False</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
                         <property name="top-attach">3</property>
+                        <property name="width">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkScale">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="adjustment">adj_graxpert_bg_tol</property>
+                        <property name="round-digits">1</property>
+                        <property name="draw-value">False</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">9</property>
+                        <property name="width">2</property>
                       </packing>
                     </child>
                     <child>
@@ -326,7 +404,7 @@
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">7</property>
+                        <property name="top-attach">1</property>
                       </packing>
                     </child>
                     <child>
@@ -342,45 +420,22 @@
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
-                        <property name="top-attach">7</property>
+                        <property name="top-attach">1</property>
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkLabel">
+                      <object class="GtkCheckButton" id="graxpert_toggle_keep_background">
+                        <property name="label" translatable="yes">Keep background</property>
                         <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="halign">start</property>
-                        <property name="label" translatable="yes"># samples per row</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">The generated background model will be saved with the affix "_background"</property>
+                        <property name="draw-indicator">True</property>
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">4</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkSpinButton" id="graxpert_spin_nb_samples">
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="tooltip-text" translatable="yes">Set the number of samples per row in the sampling grid</property>
-                        <property name="adjustment">adj_graxpert_nb_samples</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">1</property>
-                        <property name="top-attach">4</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="graxpert_clear_samples">
-                        <property name="label" translatable="yes">Clear samples</property>
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="receives-default">True</property>
-                        <property name="tooltip-text" translatable="yes">Clear background samples</property>
-                        <signal name="clicked" handler="on_graxpert_clear_samples_clicked" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="left-attach">1</property>
-                        <property name="top-attach">9</property>
+                        <property name="top-attach">10</property>
+                        <property name="width">2</property>
                       </packing>
                     </child>
                     <child>
@@ -397,47 +452,21 @@
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">9</property>
+                        <property name="top-attach">11</property>
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="halign">start</property>
-                        <property name="label" translatable="yes">Sample size / px</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">0</property>
-                        <property name="top-attach">5</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkSpinButton" id="graxpert_spin_sample_size">
+                      <object class="GtkButton" id="graxpert_clear_samples">
+                        <property name="label" translatable="yes">Clear samples</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
-                        <property name="tooltip-text" translatable="yes">Set the GraXpert sample size of each background sample. Larger samples may give better statistical properties but have a bigger risk of including non-background pixels such as stars.</property>
-                        <property name="adjustment">adj_graxpert_sample_size</property>
-                        <signal name="value-changed" handler="on_graxpert_spin_sample_size_value_changed" swapped="no"/>
+                        <property name="receives-default">True</property>
+                        <property name="tooltip-text" translatable="yes">Clear background samples</property>
+                        <signal name="clicked" handler="on_graxpert_clear_samples_clicked" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
-                        <property name="top-attach">5</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkCheckButton" id="graxpert_toggle_keep_background">
-                        <property name="label" translatable="yes">Keep background</property>
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="receives-default">False</property>
-                        <property name="tooltip-text" translatable="yes">The generated background model will be saved with the affix "_background"</property>
-                        <property name="draw-indicator">True</property>
-                      </object>
-                      <packing>
-                        <property name="left-attach">0</property>
-                        <property name="top-attach">8</property>
-                        <property name="width">2</property>
+                        <property name="top-attach">11</property>
                       </packing>
                     </child>
                   </object>
@@ -467,7 +496,7 @@
                 <property name="sensitive">False</property>
                 <property name="can-focus">True</property>
                 <child>
-                  <!-- n-columns=2 n-rows=1 -->
+                  <!-- n-columns=2 n-rows=2 -->
                   <object class="GtkGrid">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
@@ -494,11 +523,25 @@
                         <property name="text" translatable="yes">0.50</property>
                         <property name="adjustment">adj_graxpert_denoise_strength</property>
                         <property name="digits">2</property>
-                        <property name="value">0.5</property>
+                        <property name="value">0.80</property>
                       </object>
                       <packing>
                         <property name="left-attach">1</property>
                         <property name="top-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkScale">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="adjustment">adj_graxpert_denoise_strength</property>
+                        <property name="round-digits">1</property>
+                        <property name="draw-value">False</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">1</property>
+                        <property name="width">2</property>
                       </packing>
                     </child>
                   </object>
