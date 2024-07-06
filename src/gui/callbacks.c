@@ -336,6 +336,7 @@ void roi_supported(gboolean state) {
 static GMutex roi_mutex;
 
 gpointer on_set_roi() {
+	cancel_pending_update();
 	gboolean val = g_mutex_trylock(&roi_mutex);
 	if (val) {
 		if (gui.roi.operation_supports_roi && com.pref.gui.enable_roi_warning)
@@ -357,11 +358,10 @@ gpointer on_set_roi() {
 }
 
 gpointer on_clear_roi() {
-	if (!gui.roi.active)
-		return GINT_TO_POINTER(0);
-
+	cancel_pending_update();
 	gboolean val = g_mutex_trylock(&roi_mutex);
 	if (val) {
+		copy_backup_to_gfit();
 		clearfits(&gui.roi.fit);
 		memset(&gui.roi, 0, sizeof(roi_t));
 		// Call any callbacks that need calling
