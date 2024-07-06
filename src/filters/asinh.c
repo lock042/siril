@@ -417,9 +417,10 @@ void on_asinh_RGBspace_toggled(GtkToggleButton *togglebutton, gpointer user_data
 }
 
 void on_asinh_preview_toggled(GtkToggleButton *button, gpointer user_data) {
-	if (!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview")))) {
-		copy_backup_to_gfit();
-		redraw(REMAP_ALL);
+	cancel_pending_update();
+	if (!gtk_toggle_button_get_active(button)) {
+		waiting_for_thread();
+		siril_preview_hide();
 	} else {
 		copy_gfit_to_backup();
 

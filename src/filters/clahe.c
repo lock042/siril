@@ -184,7 +184,9 @@ void on_clahe_tiles_size_spin_value_changed(GtkSpinButton *button, gpointer user
 }
 
 void on_clahe_preview_toggled(GtkToggleButton *button, gpointer user_data) {
-	if (clahe_show_preview == TRUE) {
+	cancel_pending_update();
+	clahe_show_preview = gtk_toggle_button_get_active(button);
+	if (!clahe_show_preview) {
 		/* if user click very fast */
 		waiting_for_thread();
 		siril_preview_hide();
@@ -196,6 +198,5 @@ void on_clahe_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 		param->show_preview = TRUE;
 		notify_update((gpointer) param);
 	}
-	clahe_show_preview = !clahe_show_preview;
 }
 
