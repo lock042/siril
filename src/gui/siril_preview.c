@@ -35,7 +35,6 @@
 
 #define PREVIEW_DELAY 200
 
-static GMutex preview_mutex;
 static guint timer_id = 0;
 static gboolean notify_is_blocked;
 static gboolean preview_is_active;

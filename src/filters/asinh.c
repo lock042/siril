@@ -25,6 +25,7 @@
 #include "core/icc_profile.h"
 #include "algos/statistics.h"
 #include "core/arithm.h"
+#include "core/processing.h"
 #include "io/single_image.h"
 #include "gui/callbacks.h"
 #include "gui/image_display.h"

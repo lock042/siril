@@ -28,6 +28,7 @@
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "opencv/opencv.h"
+#include "gui/callbacks.h"
 
 #include "filters/epf.h"
 
