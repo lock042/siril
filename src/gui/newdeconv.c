@@ -576,6 +576,8 @@ void deconv_roi_callback() {
 	gui.roi.operation_supports_roi = TRUE;
 	gtk_widget_set_visible(lookup_widget("bdeconv_roi_preview"), gui.roi.active);
 	the_fit = gui.roi.active ? &gui.roi.fit : &gfit;
+	copy_backup_to_gfit();
+	notify_gfit_modified();
 }
 
 void close_deconv() {
@@ -1004,6 +1006,7 @@ gboolean estimate_idle(gpointer arg) {
 }
 
 gpointer estimate_only(gpointer p) {
+	lock_roi_mutex();
 	int retval = 0;
 	if (p != NULL) {
 		estk_data *command_data = (estk_data *) p;
@@ -1105,6 +1108,7 @@ ENDEST:
 		free(args.fdata);
 		args.fdata = NULL;
 	}
+	unlock_roi_mutex();
 	return GINT_TO_POINTER(retval);
 }
 
@@ -1138,6 +1142,8 @@ gboolean deconvolve_idle(gpointer arg) {
 }
 
 gpointer deconvolve(gpointer p) {
+	lock_roi_mutex(); // Prevent the ROI change / clear callbacks running until we are
+	// done, in order not to have the_fit changed under us
 	struct timeval t_start, t_end;
 	if (p != NULL) {
 		estk_data *command_data = (estk_data *) p;
@@ -1336,6 +1342,7 @@ ENDDECONV:
 		free(args.fdata);
 		args.fdata = NULL;
 	}
+	unlock_roi_mutex();
 	return GINT_TO_POINTER(retval);
 }
 

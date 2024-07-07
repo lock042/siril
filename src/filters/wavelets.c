@@ -401,8 +401,10 @@ void on_spin_w5_value_changed(GtkSpinButton *button, gpointer user_data) {
 }
 
 void on_wavelet_preview_toggled(GtkToggleButton *button, gpointer user_data) {
-	if (wavelet_show_preview == TRUE) {
-		/* if user click very fast */
+	wavelet_show_preview = gtk_toggle_button_get_active(button);
+	cancel_pending_update();
+	if (!wavelet_show_preview) {
+	/* if user click very fast */
 		waiting_for_thread();
 		siril_preview_hide();
 	} else {
@@ -413,6 +415,5 @@ void on_wavelet_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 		param->show_preview = TRUE;
 		notify_update((gpointer) param);
 	}
-	wavelet_show_preview = !wavelet_show_preview;
 }
 
