@@ -2166,11 +2166,11 @@ void keep_only_first_channel(fits *fit) {
 
 void copy_fits_metadata(fits *from, fits *to) {
 	// Copy simple fields
-    memcpy(&to->keywords, &from->keywords, sizeof(fkeywords));
+	memcpy(&to->keywords, &from->keywords, sizeof(fkeywords));
 
-    // Copy other structures
-    memcpy(&to->keywords.dft, &from->keywords.dft, sizeof(dft_info));
-    memcpy(&to->keywords.wcsdata, &from->keywords.wcsdata, sizeof(wcs_info));
+	// Copy other structures
+	memcpy(&to->keywords.dft, &from->keywords.dft, sizeof(dft_info));
+	memcpy(&to->keywords.wcsdata, &from->keywords.wcsdata, sizeof(wcs_info));
 
 	to->keywords.date = NULL; // will be set at save
 	// Copy date_obs
@@ -2188,6 +2188,9 @@ void copy_fits_metadata(fits *from, fits *to) {
 		}
 	}
 
+	if (from->unknown_keys) {
+		to->unknown_keys = g_strdup(from->unknown_keys);
+	}
 	// Set boolean flags
 //	to->pixelkey = (from->keywords.pixel_size_x > 0.);
 //	to->focalkey = (from->keywords.focal_length > 0.);

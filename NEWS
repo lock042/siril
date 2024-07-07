@@ -1,5 +1,7 @@
 siril 1.4.0 xx xx, xx
 
+* Added support for unknown keywords with path parsing (#1333)
+* Fixed fits header parsing for integer values stored in scientific notation (#1331)
 * Added support for JPEG XL image format
 * Added comparison star list creation from Siril (!381)
 * Allowed object search with their common name, from the annotations catalogues (!381)
