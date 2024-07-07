@@ -22,16 +22,6 @@
 #include <config.h>
 #endif
 
-#ifdef HAVE_LIBCURL
-#include <curl/curl.h>
-#ifdef _WIN32
-#include <winsock2.h>
-#include <windows.h>
-#else
-#include <unistd.h>
-#endif
-#endif
-
 #include <gtk/gtk.h>
 #include "core/siril.h"
 #include "core/proto.h"

@@ -23,7 +23,7 @@ SOFTWARE.
 */
 #include <vector>
 #include "image.hpp"
-
+#include "algos/siril_random.h"
 #include "computeProjectionsAutocorrelation.hpp"
 #include "reconstructPowerspectrum.hpp"
 #include "phaseRetrieval.hpp"
@@ -43,8 +43,8 @@ static void searchBlurredPatch(img_t<T>& window, const img_t<T>& blurredImage,
     int best_y = 0;
     for (int i = 0; i < searchSamples; i++) {
         // draw a random position
-        int x = (blurredImage.w - windowSize) * (T)rand() / (T)RAND_MAX;
-        int y = (blurredImage.h - windowSize) * (T)rand() / (T)RAND_MAX;
+        int x = (blurredImage.w - windowSize) * siril_templated_random<T>()/siril_templated_random_max<T>();
+        int y = (blurredImage.h - windowSize) * siril_templated_random<T>()/siril_templated_random_max<T>();
 
         // compute the mean
         T mean = 0.;

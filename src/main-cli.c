@@ -57,7 +57,9 @@
 #include "core/siril_app_dirs.h"
 #include "core/siril_language.h"
 #include "core/siril_log.h"
+#include "core/siril_networking.h"
 #include "core/OS_utils.h"
+#include "algos/siril_random.h"
 #include "algos/star_finder.h"
 #include "io/sequence.h"
 #include "io/conversion.h"
@@ -104,6 +106,12 @@ static gboolean _print_list_of_formats_and_exit(const gchar *option_name,
 	return TRUE;
 }
 
+static gboolean _set_offline(const gchar *option_name,
+		const gchar *value, gpointer data, GError **error) {
+	set_online_status(FALSE);
+	return TRUE;
+}
+
 static GOptionEntry main_option[] = {
 	{ "directory", 'd', 0, G_OPTION_ARG_FILENAME, &main_option_directory, N_("changing the current working directory as the argument"), NULL },
 	{ "script", 's', 0, G_OPTION_ARG_FILENAME, &main_option_script, N_("run the siril commands script in console mode. If argument is equal to \"-\", then siril will read stdin input"), NULL },
@@ -112,6 +120,7 @@ static GOptionEntry main_option[] = {
 	{ "inpipe", 'r', 0, G_OPTION_ARG_FILENAME, &main_option_rpipe_path, N_("specify the path for the read pipe, the one receiving commands"), NULL },
 	{ "outpipe", 'w', 0, G_OPTION_ARG_FILENAME, &main_option_wpipe_path, N_("specify the path for the write pipe, the one outputing messages"), NULL },
 	{ "format", 'f', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _print_list_of_formats_and_exit, N_("print all supported image file formats (depending on installed libraries)" ), NULL },
+	{ "offline", 'o', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _set_offline, N_("start in offline mode"), NULL },
 	{ "version", 'v', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _print_version_and_exit, N_("print the application’s version"), NULL},
 	{ "copyright", 'c', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK, _print_copyright_and_exit, N_("print the copyright"), NULL},
 	{ NULL },
@@ -150,7 +159,7 @@ static void siril_app_activate(GApplication *application) {
 
 	com.script = TRUE;
 	com.headless = TRUE;
-
+	siril_initialize_rng();
 	global_initialization();
 
 	/* initialize sequence-related stuff */
@@ -199,7 +208,6 @@ static void siril_app_activate(GApplication *application) {
 	initialize_profiles_and_transforms(); // color management
 
 #if defined(HAVE_LIBCURL)
-	g_fprintf(stdout, "Initializing CURL\n");
 	curl_global_init(CURL_GLOBAL_ALL);
 #endif
 

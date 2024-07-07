@@ -27,7 +27,7 @@
 
 project('siril',
   ['c','cpp'],
-  version : '1.3.1-alpha-dev',
+  version : '1.3.2-alpha-dev',
   license : ['GPL3'],
   meson_version: '>=0.56.0',
   default_options : [
@@ -161,11 +161,12 @@ elif platform_windows
   siril_link_arg += '-Wl,--export-all-symbols'
   siril_link_arg += '-lpsapi'
   siril_link_arg += '-ldbghelp'
+  siril_link_arg += '-lbcrypt'
   siril_c_flag += ['-D_WIN32_WINNT=0x0600', '-DWINVER=0x0600']
   siril_cpp_flag += ['-D_WIN32_WINNT=0x0600', '-DWINVER=0x0600']
 elif platform_osx
   # on OSX ObjC and C sources are mixed so adding objc to the linkflags
-  siril_link_arg += ['-Wl,-framework,Foundation', '-Wl,-framework,AppKit', '-ObjC']
+  siril_link_arg += ['-Wl,-framework,Foundation', '-Wl,-framework,AppKit', '-Wl,-framework,Security', '-ObjC']
   add_project_arguments('-ObjC', language: [ 'c'])
   add_project_link_arguments(siril_link_arg, language: [ 'c', 'cpp' ])
 else

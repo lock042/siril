@@ -25,6 +25,7 @@ SOFTWARE.
 #include <cmath>
 #include <complex>
 #include <cassert>
+#include "algos/siril_random.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846  /* pi */
@@ -58,7 +59,7 @@ static void singlePhaseRetrieval(img_t<T>& kernel, const img_t<T>& magnitude,
     img_t<char> omega(g.w, g.h); // can't use bool because of std::vector
 
     for (int i = 0; i < ftkernel.size; i++) {
-        T phase = ((T)rand()/(T)RAND_MAX) * M_PI * 2 - M_PI;
+        T phase = (siril_templated_random<T>() / siril_templated_random_max<T>()) * M_PI * 2 - M_PI;
         ftkernel[i] = magnitude[i] * std::exp(I * phase);
     }
     ftkernel.ifft(ftkernel);
