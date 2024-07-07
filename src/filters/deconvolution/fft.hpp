@@ -150,7 +150,9 @@ namespace fft {
         int ohalfh = in.h - halfh;
         for (int l = 0; l < in.d; l++) {
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(in.size > 40000 && cppmaxthreads > 1)
+#pragma omp parallel num_threads(cppmaxthreads) if(in.size > 40000 && cppmaxthreads > 1)
+{
+#pragma omp for simd schedule(static) collapse(2)
 #endif
             for (int y = 0; y < halfh; y++) {
                 for (int x = 0; x < ohalfw; x++) {
@@ -158,7 +160,7 @@ namespace fft {
                 }
             }
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(in.size > 40000 && cppmaxthreads > 1)
+#pragma omp for simd schedule(static) collapse(2)
 #endif
             for (int y = 0; y < halfh; y++) {
                 for (int x = 0; x < halfw; x++) {
@@ -166,7 +168,7 @@ namespace fft {
                 }
             }
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(in.size > 40000 && cppmaxthreads > 1)
+#pragma omp for simd schedule(static) collapse(2)
 #endif
             for (int y = 0; y < ohalfh; y++) {
                 for (int x = 0; x < ohalfw; x++) {
@@ -174,13 +176,16 @@ namespace fft {
                 }
             }
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(in.size > 40000 && cppmaxthreads > 1)
+#pragma omp for simd schedule(static) collapse(2)
 #endif
             for (int y = 0; y < ohalfh; y++) {
                 for (int x = 0; x < halfw; x++) {
                     out(x + ohalfw, y, l) = in(x, y + halfh, l);
                 }
             }
+#ifdef _OPENMP
+}
+#endif
         }
 
         return out;
@@ -279,7 +284,9 @@ namespace ifft {
         int ohalfh = in.h - halfh;
         for (int l = 0; l < in.d; l++) {
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(in.size > 40000 && cppmaxthreads > 1)
+#pragma omp parallel num_threads(cppmaxthreads) if(in.size > 40000 && cppmaxthreads > 1)
+{
+#pragma omp for simd schedule(static) collapse(2)
 #endif
             for (int y = 0; y < ohalfh; y++) {
                 for (int x = 0; x < halfw; x++) {
@@ -287,7 +294,7 @@ namespace ifft {
                 }
             }
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(in.size > 40000 && cppmaxthreads > 1)
+#pragma omp for simd schedule(static) collapse(2)
 #endif
             for (int y = 0; y < ohalfh; y++) {
                 for (int x = 0; x < ohalfw; x++) {
@@ -295,7 +302,7 @@ namespace ifft {
                 }
             }
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(in.size > 40000 && cppmaxthreads > 1)
+#pragma omp for simd schedule(static) collapse(2)
 #endif
             for (int y = 0; y < halfh; y++) {
                 for (int x = 0; x < halfw; x++) {
@@ -303,15 +310,17 @@ namespace ifft {
                 }
             }
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(in.size > 40000 && cppmaxthreads > 1)
+#pragma omp for simd schedule(static) collapse(2)
 #endif
             for (int y = 0; y < halfh; y++) {
                 for (int x = 0; x < ohalfw; x++) {
                     out(x + halfw, y, l) = in(x, y + ohalfh, l);
                 }
             }
+#ifdef _OPENMP
+}
+#endif
         }
-
         return out;
     }
 }
