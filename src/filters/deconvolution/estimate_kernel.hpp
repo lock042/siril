@@ -114,81 +114,63 @@ public:
     }
 
     void solve(img_t<T>& u, const img_t<T>& K,
-            T lambda, T beta_init, T beta_rate, T beta_max, const estimate_kernel_options& opts) {
+               T lambda, T beta_init, T beta_rate, T beta_max, const estimate_kernel_options& opts) {
         assert(K.w % 2);
         assert(K.h % 2);
-        // Initialize all the necessary variables
+
+        // vector field g
         vec2<img_t<T>> g;
         g[0].resize(v.w, v.h);
         g[1].resize(v.w, v.h);
-        img_t<T> divergence(v.w, v.h);
-        img_t<std::complex<T>> K_otf(v.w, v.h);
+        img_t<T> divergence;
+
+        // compute F(k) at the size of the blurry image
+        img_t<std::complex<T>> K_otf;
+        fft::psf2otf(K_otf, K, v.w, v.h);
+
+        // compute conj(F(k)).F(v)
         img_t<std::complex<T>> Ktf(v.w, v.h);
+        for (int i = 0; i < Ktf.size; i++)
+            Ktf[i] = std::conj(K_otf[i]) * fv[i];
+
+        // compute |F(k)|^2
         img_t<T> KtK(v.w, v.h);
+        for (int i = 0; i < KtK.size; i++)
+            // std::norm(c) returns the squared magnitude of c
+            KtK[i] = std::norm(K_otf[i]);
+
         img_t<std::complex<T>> div(v.w, v.h);
-        img_t<std::complex<T>> adj(v.w, v.h);
 
-        // Start the parallel region
-        #pragma omp parallel num_threads(cppmaxthreads)
-        {
-            // Compute F(k) at the size of the blurry image
-            #pragma omp single
-            {
-                fft::psf2otf(K_otf, K, v.w, v.h);
+        T beta = beta_init;
+        while (beta < beta_max) {
+            // compute the gradient of u
+            utils::circular_gradients(g, u);
+
+            // hard-thresholding (solve the 'g' update)
+            for (int i = 0; i < v.w * v.h; i++) {
+                T n = std::pow(g[0][i], T(2)) + std::pow(g[1][i], T(2));
+                if (n < lambda / beta) {
+                    g[0][i] = 0;
+                    g[1][i] = 0;
+                }
             }
 
-            // Compute conj(F(k)).F(v) and |F(k)|^2
-            #pragma omp for nowait
-            for (int i = 0; i < Ktf.size; i++) {
-                Ktf[i] = std::conj(K_otf[i]) * fv[i];
-                KtK[i] = std::norm(K_otf[i]);
+            // compute the divergence of the field
+            utils::circular_divergence(divergence, g);
+            img_t<std::complex<T>> adj = fft::r2c(divergence);
+
+            // solve the 'u' update
+            for (int i = 0; i < div.size; i++) {
+                std::complex<T> num = Ktf[i] - beta * adj[i];
+                T denom = KtK[i] + beta * DtD[i];
+                div[i] = num / denom;
             }
 
-            T beta = beta_init;
-            while (beta < beta_max) {
-                // Compute the gradient of u
-                utils::circular_gradients(g, u);
+            u = ifft::c2r(div);
 
-                // Hard-thresholding (solve the 'g' update)
-                #pragma omp for nowait
-                for (int i = 0; i < v.w * v.h; i++) {
-                    T n = std::pow(g[0][i], T(2)) + std::pow(g[1][i], T(2));
-                    if (n < lambda / beta) {
-                        g[0][i] = 0;
-                        g[1][i] = 0;
-                    }
-                }
-
-                // Compute the divergence of the field
-                utils::circular_divergence(divergence, g);
-
-                // FFT and solve the 'u' update
-                #pragma omp sections
-                {
-                    #pragma omp section
-                    {
-                        adj = fft::r2c(divergence);
-                    }
-                    #pragma omp section
-                    {
-                        for (int i = 0; i < div.size; i++) {
-                            std::complex<T> num = Ktf[i] - beta * adj[i];
-                            T denom = KtK[i] + beta * DtD[i];
-                            div[i] = num / denom;
-                        }
-                    }
-                }
-
-                // IFFT
-                #pragma omp single
-                {
-                    u = ifft::c2r(div);
-                }
-
-                // Increase beta
-                beta *= beta_rate;
-            }
-        } // End of parallel region
+            // increase beta
+            beta *= beta_rate;
+        }
     }
 };
 
@@ -218,31 +200,23 @@ public:
     // implements Algorithm 3
     void solve(img_t<T>& k, const img_t<T>& u, const struct estimate_kernel_options& opts) {
         k.resize(ks, ks);
+
         // solves the Equation (28)
         img_t<std::complex<T>> div(u.w, u.h);
-
-        #pragma omp parallel
         {
-            #pragma omp single
-            {
-                vec2<img_t<T>> gu;
-                compute_gradients(gu, u);
+            vec2<img_t<T>> gu;
+            compute_gradients(gu, u);
 
-                #pragma omp task
-                {
-                    vec2<img_t<std::complex<T>>> fgu;
-                    fgu[0] = fft::r2c(gu[0]);
-                    fgu[1] = fft::r2c(gu[1]);
+            vec2<img_t<std::complex<T>>> fgu;
+            fgu[0] = fft::r2c(gu[0]);
+            fgu[1] = fft::r2c(gu[1]);
 
-                    // solve the linear system
-                    #pragma omp parallel for schedule(static)
-                    for (int i = 0; i < div.size; i++) {
-                        // std::norm(c) returns the squared magnitude of c
-                        std::complex<T> num = std::conj(fgu[0][i]) * fgv[0][i] + std::conj(fgu[1][i]) * fgv[1][i];
-                        T denum = std::norm(fgu[0][i]) + std::norm(fgu[1][i]) + opts.gamma;
-                        div[i] = num / denum;
-                    }
-                }
+            // solve the linear system
+            for (int i = 0; i < div.size; i++) {
+                // std::norm(c) returns the squared magnitude of c
+                std::complex<T> num = std::conj(fgu[0][i]) * fgv[0][i] + std::conj(fgu[1][i]) * fgv[1][i];
+                T denum = std::norm(fgu[0][i]) + std::norm(fgu[1][i]) + opts.gamma;
+                div[i] = num / denum;
             }
         }
 
@@ -252,7 +226,6 @@ public:
         // crop the center of the otf to get the kernel
         int left = otf.w / 2 - k.w / 2;
         int top = otf.h / 2 - k.h / 2;
-        #pragma omp parallel for collapse(2) schedule(static)
         for (int y = 0; y < k.h; y++) {
             for (int x = 0; x < k.w; x++) {
                 k(x, y) = otf(left + x, top + y);
@@ -260,16 +233,13 @@ public:
         }
 
         // enforce positivity of the kernel
-        #pragma omp parallel for schedule(static)
         for (int i = 0; i < k.size; i++) {
             k[i] = std::max(T(0), k[i]);
         }
 
         // threshold the kernel at some percentage of the max value
         if (opts.kernel_threshold_max > 0.f) {
-            T max_val = k.max();
-            T th = max_val * opts.kernel_threshold_max;
-            #pragma omp parallel for schedule(static)
+            T th = k.max() * opts.kernel_threshold_max;
             for (int i = 0; i < k.size; i++)
                 k[i] = k[i] < th ? T(0) : k[i];
         }
@@ -285,7 +255,6 @@ public:
         // normalize
         T sum = k.sum();
         if (sum > 0) {
-            #pragma omp parallel for schedule(static)
             for (int i = 0; i < k.size; i++) {
                 k[i] /= sum;
             }
