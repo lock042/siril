@@ -35,7 +35,7 @@
 
 #define PREVIEW_DELAY 200
 
-static guint timer_id;
+static guint timer_id = 0;
 static gboolean notify_is_blocked;
 static gboolean preview_is_active;
 static cmsHPROFILE preview_icc_backup = NULL;
@@ -43,9 +43,9 @@ static fits preview_roi_backup;
 static fits preview_gfit_backup = { 0 };
 
 static gboolean update_preview(gpointer user_data) {
+	if (notify_is_blocked)
+		return FALSE;
 	update_image *im = (update_image*) user_data;
-
-	if (notify_is_blocked) return FALSE;
 
 	if (im->show_preview) {
 		siril_debug_print("update preview\n");
@@ -149,6 +149,13 @@ void clear_backup() {
 
 void set_notify_block(gboolean value) {
 	notify_is_blocked = value;
+}
+
+void cancel_pending_update() {
+    if (timer_id != 0) {
+        g_source_remove(timer_id);
+        timer_id = 0;
+    }
 }
 
 void siril_preview_hide() {

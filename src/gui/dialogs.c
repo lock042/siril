@@ -160,6 +160,7 @@ void siril_open_dialog(gchar *id) {
 
 void siril_close_dialog(gchar *id) {
 	gtk_widget_hide(get_widget_by_id(id));
+	gtk_widget_hide_on_delete(get_widget_by_id(id));
 }
 
 void siril_close_preview_dialogs() {

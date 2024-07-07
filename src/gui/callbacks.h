@@ -17,6 +17,8 @@ void add_roi_callback(ROICallback func);
 void remove_roi_callback(ROICallback func);
 void update_roi_config();
 
+void lock_roi_mutex();
+void unlock_roi_mutex();
 void roi_supported(gboolean state);
 void initialize_all_GUI(gchar *files);
 void siril_set_theme(int active);
