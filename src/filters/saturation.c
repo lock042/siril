@@ -400,7 +400,9 @@ void on_spin_satu_bkg_value_changed(GtkSpinButton *button, gpointer user_data) {
 }
 
 void on_satu_preview_toggled(GtkToggleButton *button, gpointer user_data) {
-	if (satu_show_preview == TRUE) {
+	cancel_pending_update();
+	satu_show_preview = gtk_toggle_button_get_active(button);
+	if (!satu_show_preview) {
 		/* if user click very fast */
 		waiting_for_thread();
 		copy_backup_to_gfit();
@@ -413,5 +415,4 @@ void on_satu_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 		param->show_preview = TRUE;
 		notify_update((gpointer) param);
 	}
-	satu_show_preview = !satu_show_preview;
 }
