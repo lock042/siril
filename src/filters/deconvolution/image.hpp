@@ -254,7 +254,7 @@ public:
         assert(o.similar(*this));
         int n = w * h * d;
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static,16) num_threads(cppmaxthreads)
+#pragma omp parallel for if(omp_get_num_threads() == 1) schedule(static) num_threads(cppmaxthreads)
 #endif
         for (int i = 0; i < n; i++)
             data[i] = o[i];
@@ -270,7 +270,7 @@ public:
         const int ix = (k.w-1)/2;
 
         // Main convolution (excluding borders)
-        #pragma omp parallel num_threads(cppmaxthreads)
+        #pragma omp parallel if(omp_get_num_threads() == 1) num_threads(cppmaxthreads)
         {
             #pragma omp for collapse(3) schedule(guided)
             for (int c = 0; c < d; c++) {
@@ -375,7 +375,7 @@ public:
     // Updated mapf() function, hopefully should avoid the MacOS problems
     template <typename F>
     void mapf(F&& f) {
-        #pragma omp parallel for schedule(static) num_threads(cppmaxthreads)
+        #pragma omp parallel for if(omp_get_num_threads() == 1) schedule(static) num_threads(cppmaxthreads)
         for (int i = 0; i < size; i++) {
             (*this)[i] = f((*this)[i]);
         }
@@ -385,7 +385,7 @@ public:
     template <typename F, typename R = std::invoke_result_t<F, T>>
     std::enable_if_t<!std::is_same_v<R, T>, img_t<R>> mapf(F&& f) const {
         img_t<R> result(w, h, d);
-        #pragma omp parallel for schedule(static) num_threads(cppmaxthreads)
+        #pragma omp parallel for if(omp_get_num_threads() == 1) schedule(static) num_threads(cppmaxthreads)
         for (int i = 0; i < size; i++) {
             result[i] = f((*this)[i]);
         }
@@ -457,7 +457,7 @@ public:
     void map(const img_t<T2>& o, const F& f) {
         assert(o.similar(*this));
 #ifdef _OPENMP
-#pragma omp parallel for schedule(static) num_threads(cppmaxthreads)
+#pragma omp parallel for if(omp_get_num_threads() == 1) schedule(static) num_threads(cppmaxthreads)
 #endif
         for (int i = 0; i < size; i++) {
             (*this)[i] = f(o[i]);
@@ -469,7 +469,7 @@ public:
         assert(o.similar(*this));
 
 #ifdef _OPENMP
-#pragma omp parallel for schedule(static) collapse(3) num_threads(cppmaxthreads)
+#pragma omp parallel for if(omp_get_num_threads() == 1) schedule(static) collapse(3) num_threads(cppmaxthreads)
 #endif
        for (int y = 0; y < o.h; y++) {
             for (int x = 0; x < o.w; x++) {
@@ -499,7 +499,7 @@ public:
     template <typename T2>
     void gradients(const img_t<T2>& u_) {
         const img_t<typename T::value_type>& u = *static_cast<const img_t<typename T::value_type>*>(&u_);
-        #pragma omp parallel for collapse(3) schedule(guided) num_threads(cppmaxthreads)
+        #pragma omp parallel for if(omp_get_num_threads() == 1) collapse(3) schedule(guided) num_threads(cppmaxthreads)
         for (int l = 0; l < d; l++) {
             for (int y = 0; y < h; y++) {
                 for (int x = 0; x < w; x++) {
@@ -513,7 +513,7 @@ public:
     template <typename T2>
     void circular_gradients(const img_t<T2>& u_) {
         const img_t<typename T::value_type>& u = *static_cast<const img_t<typename T::value_type>*>(&u_);
-        #pragma omp parallel num_threads(cppmaxthreads)
+        #pragma omp parallel if(omp_get_num_threads() == 1) num_threads(cppmaxthreads)
         {
             #pragma omp for collapse(3) schedule(guided)
             for (int l = 0; l < d; l++) {
@@ -528,7 +528,7 @@ public:
     }
 
     void gradientx(const img_t<T>& u) {
-        #pragma omp parallel num_threads(cppmaxthreads)
+        #pragma omp parallel if(omp_get_num_threads() == 1) num_threads(cppmaxthreads)
         {
             #pragma omp for collapse(2) schedule(guided)
             for (int l = 0; l < d; l++) {
@@ -544,7 +544,7 @@ public:
     }
 
     void gradienty(const img_t<T>& u) {
-        #pragma omp parallel for collapse(3) schedule(guided) num_threads(cppmaxthreads)
+        #pragma omp parallel for if(omp_get_num_threads() == 1) collapse(3) schedule(guided) num_threads(cppmaxthreads)
         for (int l = 0; l < d; l++) {
             for (int y = 0; y < h; y++) {
                 for (int x = 0; x < w; x++) {
@@ -555,7 +555,7 @@ public:
     }
 
     void gradientxx(const img_t<T>& u) {
-        #pragma omp parallel num_threads(cppmaxthreads)
+        #pragma omp parallel if(omp_get_num_threads() == 1) num_threads(cppmaxthreads)
         {
             #pragma omp for collapse(2) schedule(guided)
             for (int l = 0; l < d; l++) {
@@ -572,7 +572,7 @@ public:
     }
 
     void gradientyy(const img_t<T>& u) {
-        #pragma omp parallel num_threads(cppmaxthreads)
+        #pragma omp parallel if(omp_get_num_threads() == 1) num_threads(cppmaxthreads)
         {
             #pragma omp for collapse(2) schedule(guided)
             for (int l = 0; l < d; l++) {
@@ -589,7 +589,7 @@ public:
     }
 
     void gradientxy(const img_t<T>& u) {
-        #pragma omp parallel for collapse(3) schedule(guided) num_threads(cppmaxthreads)
+        #pragma omp parallel for if(omp_get_num_threads() == 1) collapse(3) schedule(guided) num_threads(cppmaxthreads)
         for (int l = 0; l < d; l++) {
             for (int y = 0; y < h; y++) {
                 for (int x = 0; x < w; x++) {
@@ -602,7 +602,7 @@ public:
 
     template <typename T2>
     void divergence(const img_t<T2>& g) {
-        #pragma omp parallel num_threads(cppmaxthreads)
+        #pragma omp parallel if(omp_get_num_threads() == 1) num_threads(cppmaxthreads)
         {
             for (int l = 0; l < d; l++) {
                 #pragma omp for schedule(guided)
@@ -654,7 +654,7 @@ public:
 
     template <typename T2>
     void circular_divergence(const img_t<T2>& g) {
-        #pragma omp parallel for collapse(3) schedule(guided) num_threads(cppmaxthreads)
+        #pragma omp parallel for if(omp_get_num_threads() == 1) collapse(3) schedule(guided) num_threads(cppmaxthreads)
         for (int l = 0; l < d; l++) {
             for (int y = 0; y < h; y++) {
                 for (int x = 0; x < w; x++) {
@@ -665,7 +665,7 @@ public:
     }
 
     void divergence(const img_t<T>& gx, const img_t<T>& gy) {
-        #pragma omp parallel num_threads(cppmaxthreads)
+        #pragma omp parallel if(omp_get_num_threads() == 1) num_threads(cppmaxthreads)
         {
             for (int l = 0; l < d; l++) {
                 #pragma omp for schedule(guided)
@@ -763,7 +763,7 @@ public:
         int ohalfw = this->w - halfw;
         int ohalfh = this->h - halfh;
 
-        #pragma omp parallel num_threads(cppmaxthreads)
+        #pragma omp parallel if(omp_get_num_threads() == 1) num_threads(cppmaxthreads)
         {
             for (int l = 0; l < this->d; l++) {
                 #pragma omp for collapse(2) schedule(static)
@@ -808,7 +808,7 @@ public:
         int ohalfw = this->w - halfw;
         int ohalfh = this->h - halfh;
 
-        #pragma omp parallel num_threads(cppmaxthreads)
+        #pragma omp parallel if(omp_get_num_threads() == 1) num_threads(cppmaxthreads)
         {
             for (int l = 0; l < this->d; l++) {
                 #pragma omp for collapse(2) schedule(static)
@@ -850,7 +850,7 @@ public:
         int ww = o.w / 2;
         int hh = o.h / 2;
 
-        #pragma omp parallel num_threads(cppmaxthreads)
+        #pragma omp parallel if(omp_get_num_threads() == 1) num_threads(cppmaxthreads)
         {
             for (int dd = 0; dd < d; dd++) {
                 int od = 0;
@@ -933,7 +933,7 @@ public:
     }
 
     void sanitize() {
-        #pragma omp parallel for schedule(static) num_threads(cppmaxthreads)
+        #pragma omp parallel for if(omp_get_num_threads() == 1) schedule(static) num_threads(cppmaxthreads)
         for (int i = 0; i < size; i++) {
             if (((*this)[i] != (*this)[i]) || (*this)[i] == T(0))
                 (*this)[i] = T(1.e-9);
@@ -944,7 +944,7 @@ public:
         assert(d == 1);
         assert(w == color.w);
         assert(h == color.h);
-        #pragma omp parallel for schedule(static) num_threads(cppmaxthreads)
+        #pragma omp parallel for if(omp_get_num_threads() == 1) schedule(static) num_threads(cppmaxthreads)
         for (int i = 0; i < size; i++) {
             T val(0);
             for (int dd = 0; dd < color.d; dd++) {
@@ -955,7 +955,7 @@ public:
     }
 
     void desaturate() {
-        #pragma omp parallel for collapse(2) schedule(static) num_threads(cppmaxthreads)
+        #pragma omp parallel for if(omp_get_num_threads() == 1) collapse(2) schedule(static) num_threads(cppmaxthreads)
         for (int i = 0; i < w; i++) {
             for (int j = 0; j < h; j++) {
                 T val = T(0);
@@ -973,7 +973,7 @@ public:
         img_t<T> o(*this);
         this->w = o.h;
         this->h = o.w;
-        #pragma omp parallel for collapse(2) schedule(static) num_threads(cppmaxthreads)
+        #pragma omp parallel for if(omp_get_num_threads() == 1) collapse(2) schedule(static) num_threads(cppmaxthreads)
         for (int y = 0; y < o.h; y++) {
             for (int x = 0; x < o.w; x++) {
                 for (int dd = 0; dd < d; dd++) {
@@ -985,7 +985,7 @@ public:
 
     void transposeToMatlab() {
         img_t<T> o(*this);
-        #pragma omp parallel for collapse(2) schedule(static) num_threads(cppmaxthreads)
+        #pragma omp parallel for if(omp_get_num_threads() == 1) collapse(2) schedule(static) num_threads(cppmaxthreads)
         for (int y = 0; y < h; y++) {
             for (int x = 0; x < w; x++) {
                 for (int dd = 0; dd < d; dd++) {
@@ -997,7 +997,7 @@ public:
 
     void transposeFromMatlab() {
         img_t<T> o(*this);
-        #pragma omp parallel for collapse(2) schedule(static) num_threads(cppmaxthreads)
+        #pragma omp parallel for if(omp_get_num_threads() == 1) collapse(2) schedule(static) num_threads(cppmaxthreads)
         for (int y = 0; y < h; y++) {
             for (int x = 0; x < w; x++) {
                 for (int dd = 0; dd < d; dd++) {
@@ -1012,7 +1012,7 @@ namespace img {
     template <typename T, typename E>
     T sum(const E& img) {
         T a(0);
-        #pragma omp parallel for reduction(+:a) schedule(static) num_threads(cppmaxthreads)
+        #pragma omp parallel for if(omp_get_num_threads() == 1) reduction(+:a) schedule(static) num_threads(cppmaxthreads)
         for (int i = 0; i < img.size; i++) {
             a += img[i];
         }
@@ -1037,7 +1037,7 @@ namespace img {
         assert(in.d == 3);
         out.ensure_size(in.w, in.h, in.d);
 
-        #pragma omp parallel for schedule(static) num_threads(cppmaxthreads)
+        #pragma omp parallel for if(omp_get_num_threads() == 1) schedule(static) num_threads(cppmaxthreads)
         for (int i = 0; i < out.w*out.h; i++) {
             T r = in[i*3+0];
             T g = in[i*3+1];
@@ -1055,7 +1055,7 @@ namespace img {
         assert(in.d == 3);
         out.ensure_size(in.w, in.h, in.d);
 
-        #pragma omp parallel for schedule(static) num_threads(cppmaxthreads)
+        #pragma omp parallel for if(omp_get_num_threads() == 1) schedule(static) num_threads(cppmaxthreads)
         for (int i = 0; i < out.w*out.h; i++) {
             T y = in[i*3+0];
             T cb = in[i*3+1];

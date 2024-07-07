@@ -155,14 +155,12 @@ static T evaluateKernel(const img_t<T>& kernel, const img_t<T>& blurredPatch, T 
     img_t<T> intermediateBlurredPatch;
     intermediateBlurredPatch = utils::add_padding(blurredPatch, kernel);
     edgetaper(paddedBlurredPatch, intermediateBlurredPatch, kernel, 4);
-//    pad_and_taper(paddedBlurredPatch, blurredPatch, kernel);
 
     img_t<T> deconvPadded;
     deconvBregman(deconvPadded, paddedBlurredPatch, kernel, 10, deconvLambda);
     img_t<T> deconv;
 
     deconv = utils::remove_padding(deconvPadded, kernel);
-//    unpad(deconv, deconvPadded, kernel);
 
     // compute the l1 and l2 norm of the gradient of the deconvolved patch
     T normL1 = 0.;
@@ -199,7 +197,7 @@ void phaseRetrieval(img_t<T>& outkernel, const img_t<T>& blurredPatch,
         img_t<T> kernel_mirror;
         T currentScore = std::numeric_limits<T>::max();
         img_t<T> bestKernel;
-#pragma omp for nowait
+#pragma omp for schedule(guided) nowait
         for (int k = 0; k < opts.Ntries; k++) {
 
             if (is_thread_stopped()) continue;

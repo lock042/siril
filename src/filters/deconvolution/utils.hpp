@@ -37,7 +37,6 @@ namespace utils {
         gaussblur(&out[0], (float*) &in[0], in.w, in.h, sigma);
     }
 
-    // upsample an image
     inline void upsample(img_t<float>& out, const img_t<float>& _in, float factor,
                          int targetw, int targeth) {
         img_t<float> in = _in; // copy input
@@ -54,6 +53,7 @@ namespace utils {
         }
 
         out.resize(in.h, in.w, in.d);
+        #pragma omp parallel for if(omp_get_num_threads() == 1) collapse(3) schedule(static) num_threads(omp_get_max_threads())
         for (int d = 0; d < in.d; d++) {
             for (int y = 0; y < in.h; y++) {
                 for (int x = 0; x < in.w; x++) {
@@ -63,17 +63,6 @@ namespace utils {
         }
     }
 
-    // add zero padding of the size of the kernel
-    template <typename T>
-    img_t<T> zero_pad(const img_t<T>& _f, int hw, int hh)
-    {
-        img_t<T> f(_f.w + hw*2, _f.h + hh*2, _f.d);
-        f.set_value(T(0));
-        slice(f, _sl(hw, -hw-1), _sl(hh, -hh-1)).map(_f);
-        return f;
-    }
-
-    // add symmetric padding of the size of the kernel
     template <typename T>
     img_t<T> add_padding(const img_t<T>& _f, int hw, int hh)
     {
@@ -81,6 +70,7 @@ namespace utils {
         f.set_value(T(0));
         slice(f, _sl(hw, -hw-1), _sl(hh, -hh-1)).map(_f);
         // replicate borders
+        #pragma omp parallel for if(omp_get_num_threads() == 1) collapse(2) schedule(static) num_threads(omp_get_max_threads())
         for (int y = 0; y < hh; y++) {
             for (int x = 0; x < f.w; x++) {
                 for (int l = 0; l < f.d; l++) {
@@ -89,21 +79,20 @@ namespace utils {
                 }
             }
         }
+        #pragma omp parallel for if(omp_get_num_threads() == 1) collapse(2) schedule(static) num_threads(omp_get_max_threads())
         for (int y = 0; y < f.h; y++) {
             for (int x = 0; x < hw; x++) {
                 for (int l = 0; l < f.d; l++) {
                     f(x, y, l) = f(2*hw - x, y, l);
                     f(f.w-1-x, y, l) = f(f.w-1-2*hw+x, y, l);
                 }
-            }
-        }
+            }        }
         return f;
     }
 
     template <typename T>
     img_t<T> add_padding(const img_t<T>& f, const img_t<T>& K)
     {
-//        printf("Kernel width %d and height %d\n", K.w, K.h);
         return add_padding(f, K.w/2, K.h/2);
     }
 
@@ -120,21 +109,11 @@ namespace utils {
     }
 
     template <typename T>
-    img_t<T> crop_to_evens(const img_t<T>& f)
-    {
-        int xcrop = 0, ycrop = 0;
-        if (f.w % 2)
-            xcrop = 1;
-        if (f.h % 2)
-            ycrop = 1;
-        return to_img(slice(f, _sl(0, -xcrop-1), _sl(0, -ycrop-1)));
-    }
-
-    template <typename T>
     void center_kernel(img_t<T>& kernel) {
         T dx = 0.f;
         T dy = 0.f;
         T sum = kernel.sum();
+        #pragma omp parallel for if(omp_get_num_threads() == 1) reduction(+:dx,dy) schedule(static) num_threads(omp_get_max_threads())
         for (int y = 0; y < kernel.h; y++) {
             for (int x = 0; x < kernel.w; x++) {
                 dx += kernel(x, y) * x;
@@ -146,6 +125,7 @@ namespace utils {
 
         img_t<T> copy(kernel);
         kernel.set_value(0);
+        #pragma omp parallel for if(omp_get_num_threads() == 1) collapse(2) schedule(static) num_threads(omp_get_max_threads())
         for (int y = 0; y < kernel.h; y++) {
             for (int x = 0; x < kernel.w; x++) {
                 int nx = x + (int)dx - kernel.w/2;
@@ -157,23 +137,6 @@ namespace utils {
         }
     }
 
-    // compute connected component of the support of k
-    // and set to zero pixels belonging to low intensity connected components
-    template <typename T>
-    void remove_isolated_cc(img_t<T>& k) {
-        T sum = k.sum();
-        for (int i = 0; i < k.size; i++)
-            k[i] /= sum;
-        img_t<int> lab;
-        labeling::labels(lab, k);
-        auto sums = labeling::sum(lab, k);
-        for (int i = 0; i < k.size; i++) {
-            if (sums[lab[i]] < T(0.1))
-                k[i] = T(0);
-        }
-    }
-
-    // compute the circular gradients by forward difference
     template <typename T>
     void circular_gradients(vec2<img_t<T>>& out, const img_t<T>& in) {
         out[0].resize(in);
@@ -182,18 +145,17 @@ namespace utils {
         int w = in.w;
         int h = in.h;
         int d = in.d;
+        #pragma omp parallel for if(omp_get_num_threads() == 1) collapse(3) schedule(static) num_threads(omp_get_max_threads())
         for (int l = 0; l < d; l++) {
-            for (int y = 0; y < h; y++)
-                for (int x = 0; x < w; x++)
+            for (int y = 0; y < h; y++) {
+                for (int x = 0; x < w; x++) {
                     out[0](x, y, l) = in((x+1)%w, y, l) - in(x, y, l);
-
-            for (int y = 0; y < h; y++)
-                for (int x = 0; x < w; x++)
                     out[1](x, y, l) = in(x, (y+1)%h, l) - in(x, y, l);
+                }
+            }
         }
     }
 
-    // compute the circular divergence by backward difference
     template <typename T>
     void circular_divergence(img_t<T>& out, const vec2<img_t<T>>& in) {
         out.resize(in[0]);
@@ -201,79 +163,80 @@ namespace utils {
         int w = out.w;
         int h = out.h;
         int d = out.d;
+        #pragma omp parallel for if(omp_get_num_threads() == 1) collapse(3) schedule(static) num_threads(omp_get_max_threads())
         for (int l = 0; l < d; l++) {
-            for (int y = 0; y < h; y++)
-            for (int x = 0; x < w; x++)
-                out(x, y, l) = in[0](x, y, l) - in[0]((x-1+w)%w, y, l)
-                             + in[1](x, y, l) - in[1](x, (y-1+h)%h, l);
+            for (int y = 0; y < h; y++) {
+                for (int x = 0; x < w; x++) {
+                    out(x, y, l) = in[0](x, y, l) - in[0]((x-1+w)%w, y, l)
+                                 + in[1](x, y, l) - in[1](x, (y-1+h)%h, l);
+                }
+            }
         }
     }
 
     template <typename T>
-    T getpixel_1(const img_t<T>& x, int i, int j, int d=0)
-    {
-        i = std::max(std::min(i, x.w - 1), 0);
-        j = std::max(std::min(j, x.h - 1), 0);
-        return x(i, j, d);
-    }
-
-    template <typename T>
-    void downsa2(img_t<T>& out, const img_t<T>& in)
-    {
+    void downsa2(img_t<T>& out, const img_t<T>& in) {
         if (out.size == 0)
             out.resize(in.w/2, in.h/2, in.d);
-        for (int d = 0; d < out.d; d++)
-        for (int j = 0; j < out.h; j++)
-        for (int i = 0; i < out.w; i++)
-        {
-            T m = getpixel_1(in, 2*i, 2*j, d)
-                + getpixel_1(in, 2*i+1, 2*j, d)
-                + getpixel_1(in, 2*i, 2*j+1, d)
-                + getpixel_1(in, 2*i+1, 2*j+1, d);
-            out(i, j, d) = m / T(4);
+        #pragma omp parallel for if(omp_get_num_threads() == 1) collapse(3) schedule(static) num_threads(omp_get_max_threads())
+        for (int d = 0; d < out.d; d++) {
+            for (int j = 0; j < out.h; j++) {
+                for (int i = 0; i < out.w; i++) {
+                    T m = getpixel_1(in, 2*i, 2*j, d)
+                        + getpixel_1(in, 2*i+1, 2*j, d)
+                        + getpixel_1(in, 2*i, 2*j+1, d)
+                        + getpixel_1(in, 2*i+1, 2*j+1, d);
+                    out(i, j, d) = m / T(4);
+                }
+            }
         }
     }
 
     template <typename T>
-    T evaluate_bilinear_cell(T a[4], float x, float y)
-    {
-        T r = 0;
-        r += a[0] * (1-x) * (1-y);
-        r += a[1] * ( x ) * (1-y);
-        r += a[2] * (1-x) * ( y );
-        r += a[3] * ( x ) * ( y );
-        return r;
-    }
-
-    template <typename T>
-    T bilinear_interpolation(const img_t<T>& x, float p, float q, int d)
-    {
-        int ip = floor(p);
-        int iq = floor(q);
-        T a[4] = {
-            getpixel_1(x, ip  , iq  , d),
-            getpixel_1(x, ip+1, iq  , d),
-            getpixel_1(x, ip  , iq+1, d),
-            getpixel_1(x, ip+1, iq+1, d)
-        };
-        T r = evaluate_bilinear_cell(a, p-ip, q-iq);
-        return r;
-    }
-
-    template <typename T>
-    void upsa2(img_t<T>& out, const img_t<T>& in)
-    {
+    void upsa2(img_t<T>& out, const img_t<T>& in) {
         if (out.size == 0)
             out.resize(in.w*2, in.h*2, in.d);
-        for (int d = 0; d < out.d; d++)
-        for (int j = 0; j < out.h; j++)
-        for (int i = 0; i < out.w; i++)
-        {
-            float x = (i - 0.5) / 2;
-            float y = (j - 0.5) / 2;
-            out(i, j, d) = bilinear_interpolation(in, x, y, d);
+        #pragma omp parallel for if(omp_get_num_threads() == 1) collapse(3) schedule(static) num_threads(omp_get_max_threads())
+        for (int d = 0; d < out.d; d++) {
+            for (int j = 0; j < out.h; j++) {
+                for (int i = 0; i < out.w; i++) {
+                    float x = (i - 0.5) / 2;
+                    float y = (j - 0.5) / 2;
+                    out(i, j, d) = bilinear_interpolation(in, x, y, d);
+                }
+            }
         }
     }
 
-}
+    template <typename T>
+    void remove_isolated_cc(img_t<T>& k) {
+        T sum = k.sum();
+        img_t<int> lab;
+        std::vector<T> sums;
+        #pragma omp parallel if(omp_get_num_threads() == 1) num_threads(omp_get_max_threads())
+        {
+            // First loop: normalize k
+            #pragma omp for schedule(static)
+            for (int i = 0; i < k.size; i++)
+                k[i] /= sum;
 
+            // Synchronize threads before sequential operations
+            #pragma omp single
+            {
+                labeling::labels(lab, k);
+                std::map<int, T> sum_map = labeling::sum(lab, k);
+                sums.reserve(sum_map.size());
+                for (const auto& pair : sum_map) {
+                    sums.push_back(pair.second);
+                }
+            }
+
+            // Second loop: remove low-intensity components
+            #pragma omp for schedule(static)
+            for (int i = 0; i < k.size; i++) {
+                if (sums[lab[i]] < T(0.1))
+                    k[i] = T(0);
+            }
+        }
+    }
+}

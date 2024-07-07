@@ -1078,7 +1078,9 @@ gpointer estimate_only(gpointer p) {
 	}
 
 	set_progress_bar_data(_("Starting PSF computation..."), PROGRESS_PULSATE);
+	START_TIMER;
 	get_kernel();
+	END_TIMER;
 	if (args.psftype == PSF_BLIND) {
 		if (fftwf_export_wisdom_to_filename(com.pref.fftw_conf.wisdom_file) == 1) {
 			siril_log_message(_("Siril FFT wisdom updated successfully...\n"));
