@@ -28,6 +28,7 @@
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
 #include "opencv/opencv.h"
+#include "gui/callbacks.h"
 
 #include "filters/epf.h"
 
@@ -39,11 +40,13 @@ gboolean end_epf(gpointer p) {
 }
 
 gpointer epfhandler (gpointer args) {
+	lock_roi_mutex();
 	struct epfargs *p = (struct epfargs*) args;
 	set_cursor_waiting(TRUE);
 	int retval = edge_preserving_filter(p);
 	if (!com.script)
 		siril_add_idle(end_epf, NULL);
+	unlock_roi_mutex();
 	return GINT_TO_POINTER(retval);
 }
 

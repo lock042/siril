@@ -367,6 +367,7 @@ static gchar *check_version(gchar *version, gboolean *verbose, gchar **data) {
 			}
 
 			msg = siril_log_message(_("New version is available. You can download it at <a href=\"%s\">%s</a>\n"), url, url);
+			g_free(url);
 			GString *urlstring = g_string_new(GITLAB_URL);
 			g_string_append_printf(urlstring, "/%s/ChangeLog", version);
 			gchar *changelog_url = g_string_free(urlstring, FALSE);
@@ -381,7 +382,6 @@ static gchar *check_version(gchar *version, gboolean *verbose, gchar **data) {
 				/* force the verbose variable */
 				*verbose = TRUE;
 			}
-			g_free(url);
 		} else if (compare_version(current_version, last_version_available) > 0) {
 			if (*verbose)
 				msg = siril_log_message(_("No update check: this is a development version\n"));

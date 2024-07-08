@@ -89,7 +89,7 @@ static gboolean end_gaiacheck_idle(gpointer p) {
 	gtk_widget_show(image);
 	fetch_url_async_data *args = (fetch_url_async_data *) p;
 	size_t retval;
-	gchar *text, *colortext;
+	gchar *text = NULL, *colortext = NULL;
 	stop_processing_thread();
 	if (args->code != 200) {
 		// status page is down
@@ -129,6 +129,10 @@ static gboolean end_gaiacheck_idle(gpointer p) {
 				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_red.svg");
 				colortext = "red";
 				break;
+			default:
+				text = N_("Unknown Gaia archive status");
+				gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_grey.svg");
+				colortext = "red";
 		}
 	}
 	gtk_widget_show(image);

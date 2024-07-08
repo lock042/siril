@@ -353,12 +353,12 @@ int process_unclip(int nb) {
 }
 
 static gboolean end_denoise(gpointer p) {
+	stop_processing_thread();
 	struct denoise_args *args = (struct denoise_args *) p;
 	if (!args->previewing) {
 		copy_gfit_to_backup();
 		populate_roi();
 	}
-	stop_processing_thread();// can it be done here in case there is no thread?
 	adjust_cutoff_from_updated_gfit();
 	redraw(REMAP_ALL);
 	redraw_previews();
@@ -368,6 +368,7 @@ static gboolean end_denoise(gpointer p) {
 }
 
 gpointer run_nlbayes_on_fit(gpointer p) {
+	lock_roi_mutex();
 	copy_backup_to_gfit();
 	denoise_args *args = (denoise_args *) p;
 	struct timeval t_start, t_end;
@@ -476,6 +477,7 @@ gpointer run_nlbayes_on_fit(gpointer p) {
 	show_time_msg(t_start, t_end, _("NL-Bayes execution time"));
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 	siril_add_idle(end_denoise, args);
+	unlock_roi_mutex();
 	return GINT_TO_POINTER(retval | CMD_NOTIFY_GFIT_MODIFIED);
 }
 
