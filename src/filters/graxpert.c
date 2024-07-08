@@ -45,6 +45,7 @@
 #include "core/siril_log.h"
 #include "gui/progress_and_log.h"
 #include "gui/callbacks.h"
+#include "gui/siril_preview.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
@@ -53,7 +54,7 @@
 static gboolean verbose = TRUE;
 
 static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
-	siril_debug_print("GraXpert is being closed\n");
+	siril_debug_print("GraXpert exited with status %d\n", status);
 	g_spawn_close_pid(pid);
 	// GraXpert has exited, reset the stored pid
 	com.child_is_running = EXT_NONE;
@@ -390,18 +391,33 @@ static void open_graxpert_result(graxpert_data *args) {
 	 * sequences of individual FITS files. */
 	if (args->path) {
 		disable_profile_check_verbose();
-		fits *result = calloc(1, sizeof(fits));
-		if (readfits(args->path, result, NULL, !com.pref.force_16bit)) {
-			siril_log_color_message(_("Error opening GraXpert result. Check the file %s\n"), "red", args->path);
-			enable_profile_check_verbose();
-			return;
+		if (args->previewing) {
+			if (readfits(args->path, &gui.roi.fit, NULL, (gui.roi.fit.type == DATA_FLOAT))) {
+				siril_log_color_message(_("Error opening GraXpert result. Check the file %s\n"), "red", args->path);
+				enable_profile_check_verbose();
+				goto END_AND_RETURN;
+			}
+		} else {
+			fits *result = calloc(1, sizeof(fits));
+			if (readfits(args->path, result, NULL, !com.pref.force_16bit)) {
+				siril_log_color_message(_("Error opening GraXpert result. Check the file %s\n"), "red", args->path);
+				enable_profile_check_verbose();
+				goto END_AND_RETURN;
+			}
+			copyfits(result, args->fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+			copy_fits_metadata(result, &gfit);
+			clearfits(result);
+			free(result);
+			copy_gfit_to_backup();
+			populate_roi();
 		}
-		copyfits(result, args->fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
-		copy_fits_metadata(result, &gfit);
 		if (g_unlink(args->path))
 			siril_debug_print("Failed to unlink GraXpert working file\n");
 		enable_profile_check_verbose();
 	}
+END_AND_RETURN:
+	unlock_roi_mutex();
+	return;
 }
 
 static gboolean end_graxpert(gpointer p) {
@@ -414,7 +430,24 @@ static gboolean end_graxpert(gpointer p) {
 }
 
 gpointer do_graxpert (gpointer p) {
+	lock_roi_mutex();
+	copy_backup_to_gfit();
 	graxpert_data *args = (graxpert_data *) p;
+	if (!args->previewing && !com.script) {
+		gchar *text = NULL;
+		switch (args->operation) {
+			case GRAXPERT_BG:
+				text = g_strdup_printf(_("GraXpert BG extraction, smoothness %.3f"), args->bg_smoothing);
+				break;
+			case GRAXPERT_DENOISE:
+				text = g_strdup_printf(_("GraXpert denoising, strength %.3f"), args->denoise_strength);
+				break;
+			default:
+				text = g_strdup(_("GraXpert operations using GUI"));
+		}
+		undo_save_state(&gfit, text);
+		g_free(text);
+	}
 	char *my_argv[64] = { 0 };
 	gchar *filename = NULL, *path = NULL, *outpath = NULL;
 	int retval = 1;
@@ -522,8 +555,11 @@ gpointer do_graxpert (gpointer p) {
 	gettimeofday(&t_end, NULL);
 	if (verbose)
 		show_time(t_start, t_end);
-	if (retval)
+	if (retval) {
+		if (g_unlink(path))
+			siril_debug_print("Error removing temporary file %s\n", path);
 		goto ERROR_OR_FINISHED;
+	}
 
 	if (!is_gui)
 		args->path = g_strdup(path);

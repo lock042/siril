@@ -66,12 +66,12 @@
             <property name="can-focus">False</property>
             <property name="layout-style">end</property>
             <child>
-              <object class="GtkCheckButton" id="graxpert_toggle_apply_to_sequence">
-                <property name="label" translatable="yes">Apply to sequence</property>
+              <object class="GtkButton" id="button_graxpert_cancel">
+                <property name="label" translatable="yes">Cancel</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
-                <property name="receives-default">False</property>
-                <property name="draw-indicator">True</property>
+                <property name="receives-default">True</property>
+                <signal name="clicked" handler="on_graxpert_dialog_hide" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">True</property>
@@ -80,12 +80,12 @@
               </packing>
             </child>
             <child>
-              <object class="GtkButton" id="button_graxpert_cancel">
-                <property name="label" translatable="yes">Cancel</property>
-                <property name="visible">True</property>
+              <object class="GtkButton" id="button_graxpert_roipreview">
+                <property name="label" translatable="yes">ROI Preview</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <signal name="clicked" handler="on_graxpert_dialog_hide" swapped="no"/>
+                <property name="tooltip-text" translatable="yes">Preview the current settings on a region of interest.</property>
+                <signal name="clicked" handler="on_button_graxpert_apply_clicked" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">True</property>
@@ -576,7 +576,7 @@
                     <property name="can-focus">False</property>
                     <property name="left-padding">12</property>
                     <child>
-                      <!-- n-columns=2 n-rows=2 -->
+                      <!-- n-columns=2 n-rows=3 -->
                       <object class="GtkGrid">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
@@ -621,6 +621,20 @@
                           <packing>
                             <property name="left-attach">1</property>
                             <property name="top-attach">1</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkCheckButton" id="graxpert_toggle_apply_to_sequence">
+                            <property name="label" translatable="yes">Apply to sequence</property>
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="receives-default">False</property>
+                            <property name="draw-indicator">True</property>
+                          </object>
+                          <packing>
+                            <property name="left-attach">0</property>
+                            <property name="top-attach">2</property>
+                            <property name="width">2</property>
                           </packing>
                         </child>
                       </object>

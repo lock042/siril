@@ -55,6 +55,7 @@ typedef struct _graxpert_data {
 	gchar *path;
 	gchar *configfile;
 	cmsHPROFILE backup_icc;
+	gboolean previewing;
 } graxpert_data;
 
 graxpert_data *new_graxpert_data();

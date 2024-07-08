@@ -26,20 +26,27 @@
 #include "core/undo.h"
 #include "algos/background_extraction.h"
 #include "filters/graxpert.h"
+#include "gui/callbacks.h"
 #include "gui/dialogs.h"
 #include "gui/image_display.h"
 #include "gui/image_interactions.h"
+#include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
+#include "gui/siril_preview.h"
 #include "gui/utils.h"
+#include "io/single_image.h"
 
 // Statics declarations
 
-GtkButton *button_graxpert_cancel = NULL, *button_graxpert_apply = NULL, *graxpert_clear_samples = NULL, *graxpert_generate_samples = NULL;
-GtkComboBox *combo_graxpert_operation = NULL, *combo_graxpert_algorithm = NULL, *combo_graxpert_correction = NULL, *combo_graxpert_kernel = NULL;
-GtkDialog *graxpert_dialog = NULL;
-GtkExpander *graxpert_bg_settings = NULL, *graxpert_denoise_settings = NULL;
-GtkSpinButton *spin_graxpert_smoothing = NULL, *graxpert_spin_bgtol = NULL, *graxpert_spin_nb_samples = NULL, *spin_graxpert_strength = NULL, *graxpert_spin_sample_size = NULL, *graxpert_spin_spline_order = NULL;
-GtkToggleButton *toggle_graxpert_gpu = NULL, *graxpert_toggle_keep_background = NULL, *graxpert_toggle_apply_to_sequence = NULL;
+static GtkButton *button_graxpert_cancel = NULL, *button_graxpert_apply = NULL, *graxpert_clear_samples = NULL, *graxpert_generate_samples = NULL, *button_graxpert_roipreview = NULL;
+static GtkComboBox *combo_graxpert_operation = NULL, *combo_graxpert_algorithm = NULL, *combo_graxpert_correction = NULL, *combo_graxpert_kernel = NULL;
+static GtkDialog *graxpert_dialog = NULL;
+static GtkExpander *graxpert_bg_settings = NULL, *graxpert_denoise_settings = NULL;
+static GtkSpinButton *spin_graxpert_smoothing = NULL, *graxpert_spin_bgtol = NULL, *graxpert_spin_nb_samples = NULL, *spin_graxpert_strength = NULL, *graxpert_spin_sample_size = NULL, *graxpert_spin_spline_order = NULL;
+static GtkToggleButton *toggle_graxpert_gpu = NULL, *graxpert_toggle_keep_background = NULL, *graxpert_toggle_apply_to_sequence = NULL;
+
+static gboolean is_bg = TRUE;
+static graxpert_operation previous_operation = GRAXPERT_BG;
 
 void initialize_graxpert_widgets_if_needed() {
 	if (button_graxpert_cancel == NULL) {
@@ -48,6 +55,7 @@ void initialize_graxpert_widgets_if_needed() {
 		button_graxpert_apply = GTK_BUTTON(gtk_builder_get_object(gui.builder, "button_graxpert_apply"));
 		graxpert_clear_samples = GTK_BUTTON(gtk_builder_get_object(gui.builder, "graxpert_clear_samples"));
 		graxpert_generate_samples = GTK_BUTTON(gtk_builder_get_object(gui.builder, "graxpert_generate_samples"));
+		button_graxpert_roipreview = GTK_BUTTON(gtk_builder_get_object(gui.builder, "button_graxpert_roipreview"));
 		// GtkComboBoxText
 		combo_graxpert_operation = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_graxpert_operation"));
 		combo_graxpert_algorithm = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_graxpert_algorithm"));
@@ -72,9 +80,10 @@ void initialize_graxpert_widgets_if_needed() {
 	}
 }
 
-graxpert_data* fill_graxpert_data_from_gui() {
+graxpert_data* fill_graxpert_data_from_gui(gboolean previewing) {
 	graxpert_data *p = calloc(1, sizeof(graxpert_data));
-	p->fit = &gfit;
+	p->previewing = previewing;
+	p->fit = previewing ? &gui.roi.fit : &gfit;
 	p->operation = (graxpert_operation) gtk_combo_box_get_active(combo_graxpert_operation);
 	p->bg_smoothing = gtk_spin_button_get_value(spin_graxpert_smoothing);
 	p->bg_algo = (graxpert_bg_algo) gtk_combo_box_get_active(combo_graxpert_algorithm);
@@ -90,6 +99,14 @@ graxpert_data* fill_graxpert_data_from_gui() {
 	p->ai_batch_size = 4;
 	p->bg_pts_option = gtk_spin_button_get_value(graxpert_spin_nb_samples);
 	return p;
+}
+
+void graxpert_roi_callback() {
+	// ROI not supported for GraXpert background removal
+	gui.roi.operation_supports_roi = !is_bg;
+	gtk_widget_set_visible(GTK_WIDGET(button_graxpert_roipreview), (!is_bg && gui.roi.active));
+	copy_backup_to_gfit();
+	notify_gfit_modified();
 }
 
 void on_graxpert_generate_samples_clicked(GtkButton *button, gpointer user_data) {
@@ -113,12 +130,33 @@ void on_graxpert_generate_samples_clicked(GtkButton *button, gpointer user_data)
 	set_cursor_waiting(FALSE);
 }
 
+void configure_graxpert_dialog_for_roi() {
+	if (!is_bg) {
+		roi_supported(TRUE);
+		graxpert_roi_callback();
+		add_roi_callback(graxpert_roi_callback);
+		mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
+		free_background_sample_list(com.grad_samples);
+		com.grad_samples = NULL;
+		copy_gfit_to_backup();
+	} else {
+		roi_supported(FALSE);
+		siril_preview_hide();
+		remove_roi_callback(graxpert_roi_callback);
+		mouse_status = MOUSE_ACTION_DRAW_SAMPLES;
+	}
+}
+
 void on_graxpert_dialog_show(GtkWidget *widget, gpointer user_data) {
 	mouse_status = MOUSE_ACTION_DRAW_SAMPLES;
 	initialize_graxpert_widgets_if_needed();
+	configure_graxpert_dialog_for_roi();
 }
 
 void on_graxpert_dialog_hide(GtkWidget *widget, gpointer user_data) {
+	roi_supported(FALSE);
+	siril_preview_hide();
+	remove_roi_callback(graxpert_roi_callback);
 	mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
 	free_background_sample_list(com.grad_samples);
 	com.grad_samples = NULL;
@@ -126,32 +164,37 @@ void on_graxpert_dialog_hide(GtkWidget *widget, gpointer user_data) {
 };
 
 void on_combo_graxpert_operation_changed(GtkComboBox *combo, gpointer user_data) {
-	graxpert_operation operation = (graxpert_operation) gtk_combo_box_get_active(combo);
-	gtk_expander_set_expanded(graxpert_bg_settings, (operation == GRAXPERT_BG));
-	gtk_widget_set_sensitive(GTK_WIDGET(graxpert_bg_settings), (operation == GRAXPERT_BG));
-	gtk_expander_set_expanded(graxpert_denoise_settings, (operation == GRAXPERT_DENOISE));
-	gtk_widget_set_sensitive(GTK_WIDGET(graxpert_denoise_settings), (operation == GRAXPERT_DENOISE));
+	gboolean user_cancelled = FALSE;
+	if ((com.child_is_running == EXT_NONE) || (com.child_is_running == EXT_GRAXPERT &&
+		(user_cancelled = siril_confirm_dialog(_("Warning!"), _("GraXpert is running. Changing the GraXpert operation will cancel the current GraXpert process. Proceed?"), _("Yes"))))) {
+		kill_child_process(FALSE);
+		if (user_cancelled) {
+			siril_log_color_message(_("GraXpert operation cancelled by user\n"), "red");
+		}
+		graxpert_operation operation = (graxpert_operation) gtk_combo_box_get_active(combo);
+		previous_operation = operation;
+		gtk_expander_set_expanded(graxpert_bg_settings, (operation == GRAXPERT_BG));
+		gtk_widget_set_sensitive(GTK_WIDGET(graxpert_bg_settings), (operation == GRAXPERT_BG));
+		gtk_expander_set_expanded(graxpert_denoise_settings, (operation == GRAXPERT_DENOISE));
+		gtk_widget_set_sensitive(GTK_WIDGET(graxpert_denoise_settings), (operation == GRAXPERT_DENOISE));
+		is_bg = (operation == GRAXPERT_BG);
+		gtk_widget_set_visible(GTK_WIDGET(button_graxpert_roipreview), (!is_bg && gui.roi.active));
+		configure_graxpert_dialog_for_roi();
+		redraw(REDRAW_OVERLAY);
+	} else {
+		g_signal_handlers_block_by_func(combo, on_combo_graxpert_operation_changed, NULL);
+		gtk_combo_box_set_active(combo, (gint) previous_operation);
+		g_signal_handlers_unblock_by_func(combo, on_combo_graxpert_operation_changed, NULL);
+	}
 }
 
-void on_button_graxpert_apply_clicked(GtkWidget *widget, gpointer user_data) {
-	graxpert_data *data = fill_graxpert_data_from_gui();
-	gchar *text = NULL;
-	switch (data->operation) {
-		case GRAXPERT_BG:
-			text = g_strdup_printf(_("GraXpert BG extraction, smoothness %.3f"), data->bg_smoothing);
-			break;
-		case GRAXPERT_DENOISE:
-			text = g_strdup_printf(_("GraXpert denoising, strength %.3f"), data->denoise_strength);
-			break;
-		default:
-			text = g_strdup(_("GraXpert operations using GUI"));
-	}
+void on_button_graxpert_apply_clicked(GtkButton *button, gpointer user_data) {
+	gboolean previewing = (button == button_graxpert_roipreview);
+	graxpert_data *data = fill_graxpert_data_from_gui(previewing);
 	if (com.grad_samples) {
 		data->bg_samples = com.grad_samples;
 		com.grad_samples = NULL;
 	}
-	undo_save_state(&gfit, text);
-	g_free(text);
 	if (gtk_toggle_button_get_active(graxpert_toggle_apply_to_sequence)) {
 		data->seq = &com.seq;
 		apply_graxpert_to_sequence(data);
