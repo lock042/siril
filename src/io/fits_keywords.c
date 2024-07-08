@@ -28,7 +28,8 @@
 
 #include "fits_keywords.h"
 
-#define DEBUG_PRINT_HEADER 0
+// Uncomment to print debug verbose
+// #define DEBUG_PRINT_HEADER
 
 #define PRINT_PARSING_ERROR \
 		do { \
