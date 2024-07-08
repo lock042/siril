@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: siril\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-06-12 11:26+0200\n"
-"PO-Revision-Date: 2024-07-07 03:37+0000\n"
-"Last-Translator: 陳冠岳 <smallfatty.com@gmail.com>\n"
+"PO-Revision-Date: 2024-07-08 22:12+0000\n"
+"Last-Translator: Yen-Hsing Lin <julius52700@gmail.com>\n"
 "Language-Team: Chinese (Traditional) <https://weblate.pixls.us/projects/"
 "siril/siril-application/zh_Hant/>\n"
 "Language: zh_TW\n"
@@ -2665,11 +2665,11 @@ msgstr ""
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:358
 #: src/gui/uifiles/s_pcc_dialog.ui:560
 msgid "Wavelength"
-msgstr ""
+msgstr "波長"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:359
 msgid "Wavenumber"
-msgstr ""
+msgstr "波數"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:382
 msgid "Spectroscopic Calibration Points"
@@ -2695,7 +2695,7 @@ msgstr ""
 
 #: src/gui/uifiles/data_dialog.ui:50
 msgid "More details..."
-msgstr ""
+msgstr "更多..."
 
 #: src/gui/uifiles/denoise_dialog.ui:52
 msgid "Image Denoising"
@@ -2703,7 +2703,7 @@ msgstr ""
 
 #: src/gui/uifiles/denoise_dialog.ui:133
 msgid "Remove salt and pepper noise"
-msgstr ""
+msgstr "移除椒鹽雜訊"
 
 #: src/gui/uifiles/denoise_dialog.ui:137
 msgid ""
@@ -2901,7 +2901,7 @@ msgstr ""
 
 #: src/gui/uifiles/dialog_star_remix.ui:112
 msgid "Log histograms"
-msgstr ""
+msgstr "對數直方圖"
 
 #. gtk_widget_set_visible(lookup_widget("ghtBPcontrols1"), FALSE);
 #: src/gui/uifiles/dialog_star_remix.ui:127 src/gui/remixer.c:696
@@ -2966,25 +2966,25 @@ msgstr ""
 #: src/gui/uifiles/dialog_star_remix.ui:955
 #: src/gui/uifiles/histogram_dialog.ui:858
 msgid "Generalised hyperbolic transform"
-msgstr ""
+msgstr "廣義雙曲變換（GHS）"
 
 #: src/gui/uifiles/dialog_star_remix.ui:319
 #: src/gui/uifiles/dialog_star_remix.ui:956
 #: src/gui/uifiles/histogram_dialog.ui:859
 msgid "Inverse generalised hyperbolic transform"
-msgstr ""
+msgstr "反向廣義雙曲變換（Inverse-GHS）"
 
 #: src/gui/uifiles/dialog_star_remix.ui:320
 #: src/gui/uifiles/dialog_star_remix.ui:957
 #: src/gui/uifiles/histogram_dialog.ui:860
 msgid "Modified arcsinh transform"
-msgstr ""
+msgstr "修正反雙曲正弦（asinh）變換"
 
 #: src/gui/uifiles/dialog_star_remix.ui:321
 #: src/gui/uifiles/dialog_star_remix.ui:958
 #: src/gui/uifiles/histogram_dialog.ui:861
 msgid "Inverse modified arcsinh transform"
-msgstr ""
+msgstr "反向修正反雙曲正弦（inverse-asinh）變換"
 
 #: src/gui/uifiles/dialog_star_remix.ui:349
 #: src/gui/uifiles/dialog_star_remix.ui:986
@@ -3264,23 +3264,23 @@ msgstr ""
 #: src/gui/uifiles/extract_channel_dialog.ui:189 src/gui/uifiles/siril.ui:3363
 #: src/core/command.c:5787 src/core/command.c:5791
 msgid "RGB"
-msgstr ""
+msgstr "RGB"
 
 #: src/gui/uifiles/extract_channel_dialog.ui:190 src/core/command.c:5778
 msgid "HSL"
-msgstr ""
+msgstr "HSL"
 
 #: src/gui/uifiles/extract_channel_dialog.ui:191 src/core/command.c:5781
 msgid "HSV"
-msgstr ""
+msgstr "HSV"
 
 #: src/gui/uifiles/extract_channel_dialog.ui:192
 msgid "CIE L*a*b*"
-msgstr ""
+msgstr "CIE L*a*b*"
 
 #: src/gui/uifiles/extract_channel_dialog.ui:206
 msgid "Color Space:"
-msgstr ""
+msgstr "色彩空間："
 
 #: src/gui/uifiles/extract_wavelet_layers_dialog.ui:42
 msgid "Wavelets Layers Extraction"
@@ -3333,7 +3333,7 @@ msgstr ""
 
 #: src/gui/uifiles/file_information_dialog.ui:98
 msgid "Pixel size (micron): "
-msgstr ""
+msgstr "像素大小（微米）： "
 
 #: src/gui/uifiles/file_information_dialog.ui:109
 msgid ""
@@ -3349,7 +3349,7 @@ msgstr ""
 
 #: src/gui/uifiles/file_information_dialog.ui:145
 msgid "Focal length (mm): "
-msgstr ""
+msgstr "焦長（mm）： "
 
 #: src/gui/uifiles/file_information_dialog.ui:156
 msgid ""
@@ -3401,7 +3401,7 @@ msgstr ""
 
 #: src/gui/uifiles/histogram_dialog.ui:138 src/gui/histogram.c:1332
 msgid "Histogram Transformation"
-msgstr ""
+msgstr "直方圖變換"
 
 #: src/gui/uifiles/histogram_dialog.ui:192
 msgid "Apply histogram transformation"
@@ -3455,15 +3455,15 @@ msgstr ""
 
 #: src/gui/uifiles/histogram_dialog.ui:518
 msgid "Highlights: "
-msgstr ""
+msgstr "高光： "
 
 #: src/gui/uifiles/histogram_dialog.ui:530
 msgid "Midtones: "
-msgstr ""
+msgstr "中間調： "
 
 #: src/gui/uifiles/histogram_dialog.ui:542
 msgid "Shadows: "
-msgstr ""
+msgstr "暗部： "
 
 #: src/gui/uifiles/histogram_dialog.ui:553
 msgid "Midtones balance"
@@ -3524,8 +3524,9 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/histogram_dialog.ui:862
+#, fuzzy
 msgid "Linear stretch (BP shift)"
-msgstr ""
+msgstr "線性拉伸（BP shift）"
 
 #: src/gui/uifiles/histogram_dialog.ui:904
 msgid ""
@@ -3848,7 +3849,7 @@ msgstr ""
 #: src/gui/uifiles/livestacking_player.ui:192 src/gui/uifiles/siril.ui:712
 #: src/gui/uifiles/StatWindow.ui:48 src/algos/statistics.c:938
 msgid "Statistics"
-msgstr ""
+msgstr "統計"
 
 #: src/gui/uifiles/livestacking_player.ui:220
 msgid "waiting for input files"
@@ -3856,7 +3857,7 @@ msgstr ""
 
 #: src/gui/uifiles/livestacking_player.ui:229 src/gui/uifiles/siril.ui:8952
 msgid "Stacking"
-msgstr ""
+msgstr "疊合"
 
 #: src/gui/uifiles/livestacking_player.ui:298
 msgid "Master-dark and cosmetic correction"
@@ -4249,13 +4250,13 @@ msgstr ""
 #: src/gui/uifiles/siril.ui:6799 src/algos/geometry.c:301
 #: src/algos/geometry.c:395
 msgid "Bilinear"
-msgstr ""
+msgstr "雙線性"
 
 #: src/gui/uifiles/resample_dialog.ui:180 src/gui/uifiles/rotation_dialog.ui:205
 #: src/gui/uifiles/siril.ui:6800 src/algos/geometry.c:305
 #: src/algos/geometry.c:401
 msgid "Bicubic"
-msgstr ""
+msgstr "雙三次"
 
 #: src/gui/uifiles/resample_dialog.ui:181 src/gui/uifiles/rotation_dialog.ui:206
 #: src/gui/uifiles/siril.ui:6801 src/algos/geometry.c:303
@@ -4479,7 +4480,7 @@ msgstr ""
 
 #: src/gui/uifiles/savepopup.ui:543
 msgid "TIFF"
-msgstr ""
+msgstr "TIFF"
 
 #: src/gui/uifiles/savepopup.ui:603 src/gui/uifiles/savepopup.ui:891
 msgid "Quality: "
@@ -4487,7 +4488,7 @@ msgstr ""
 
 #: src/gui/uifiles/savepopup.ui:657
 msgid "JPEG"
-msgstr ""
+msgstr "JPEG"
 
 #: src/gui/uifiles/savepopup.ui:692 src/gui/uifiles/savepopup.ui:725
 #: src/gui/uifiles/savepopup.ui:742
@@ -4512,7 +4513,7 @@ msgstr ""
 
 #: src/gui/uifiles/savepopup.ui:826
 msgid "FITS"
-msgstr ""
+msgstr "FITS"
 
 #: src/gui/uifiles/savepopup.ui:872
 msgid ""
@@ -4850,15 +4851,15 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:645
 msgid ".fit"
-msgstr ""
+msgstr ".fit"
 
 #: src/gui/uifiles/settings_window.ui:646
 msgid ".fits"
-msgstr ""
+msgstr ".fits"
 
 #: src/gui/uifiles/settings_window.ui:647
 msgid ".fts"
-msgstr ""
+msgstr ".fts"
 
 #: src/gui/uifiles/settings_window.ui:660
 msgid "Extension:"
@@ -5406,15 +5407,15 @@ msgstr ""
 #: src/gui/uifiles/settings_window.ui:3069 src/gui/uifiles/siril.ui:2395
 #: src/gui/uifiles/siril.ui:2470 src/gui/uifiles/siril.ui:2556
 msgid "Photometry"
-msgstr ""
+msgstr "測光"
 
 #: src/gui/uifiles/settings_window.ui:2571
 msgid "Inner radius: "
-msgstr ""
+msgstr "內圈半徑： "
 
 #: src/gui/uifiles/settings_window.ui:2583
 msgid "Outer radius:"
-msgstr ""
+msgstr "外圈半徑："
 
 #: src/gui/uifiles/settings_window.ui:2594
 msgid ""
