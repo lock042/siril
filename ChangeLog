@@ -1,6 +1,8 @@
 siril 1.4.0
 xx/xx/xx
 
+* Added support for unknown keywords with path parsing (#1333)
+* Fixed fits header parsing for integer values stored in scientific notation (#1331)
 * Added support for JPEG XL image format
 * Added comparison star list creation from Siril (!381)
 * Allowed object search with their common name, from the annotations catalogues (!381)
@@ -76,6 +78,7 @@ xx/xx/xx
 * Improve use of prngs (mt19937 now used throughout in place of rand() etc.) (!689)
 * Update Image processing menu (!700)
 * Refactor networking code, add offline mode and add Gaia archive status indication (!687)
+* Improve interaction of threaded functions and previews with ROI code (!701)
 
 siril 1.2.3
 06/19/24

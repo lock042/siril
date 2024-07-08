@@ -2007,9 +2007,11 @@ void apply_ght_to_sequence(struct ght_data *ght_args) {
 }
 
 void on_histo_preview_toggled(GtkToggleButton *button, gpointer user_data) {
+	cancel_pending_update();
 	if (!gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckPreview")))) {
-		copy_backup_to_gfit();
-		redraw(REMAP_ALL);
+		/* if user click very fast */
+		waiting_for_thread();
+		siril_preview_hide();
 	} else {
 		copy_gfit_to_backup();
 
