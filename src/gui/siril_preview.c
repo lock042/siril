@@ -43,6 +43,7 @@ static fits preview_roi_backup;
 static fits preview_gfit_backup = { 0 };
 
 static gboolean update_preview(gpointer user_data) {
+	lock_roi_mutex();
 	if (notify_is_blocked)
 		return FALSE;
 	update_image *im = (update_image*) user_data;
@@ -57,6 +58,7 @@ static gboolean update_preview(gpointer user_data) {
 	set_progress_bar_data(NULL, PROGRESS_DONE);
 	set_cursor_waiting(FALSE);
 	// Don't notify_gfit_modified() here, it must be done by the callers
+	unlock_roi_mutex();
 	return FALSE;
 }
 
