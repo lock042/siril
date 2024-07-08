@@ -37,11 +37,10 @@ int updatenoise(float *array, int nx, int ny, int nchans, double *noise);
 }
 #endif
 
-#ifndef non_externs
 extern int cppmaxthreads;
 extern unsigned cppfftwflags;
 extern double cppfftwtimelimit;
 extern int cppfftwmultithreaded;
-#endif
+extern int sequence_is_running;
 
 #endif // CPLUSPLUS_HELPER_FUNCTIONS_H

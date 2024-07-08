@@ -106,6 +106,7 @@ src_files = [
   'filters/banding.c',
   'filters/clahe.c',
   'filters/cosmetic_correction.c',
+  'filters/deconvolution.c',
   'filters/epf.c',
   'filters/fft.c',
   'filters/ght.c',

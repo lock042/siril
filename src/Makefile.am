@@ -184,6 +184,7 @@ siril_common_SOURCES = \
 	filters/clahe.h \
 	filters/cosmetic_correction.c \
 	filters/cosmetic_correction.h \
+	filters/deconvolution.c \
 	filters/epf.c \
 	filters/epf.h \
 	filters/fft.c \
