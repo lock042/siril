@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-06-12 11:26+0200\n"
-"PO-Revision-Date: 2024-07-08 22:12+0000\n"
+"PO-Revision-Date: 2024-07-09 12:15+0000\n"
 "Last-Translator: Yen-Hsing Lin <julius52700@gmail.com>\n"
 "Language-Team: Chinese (Traditional) <https://weblate.pixls.us/projects/"
 "siril/siril-application/zh_Hant/>\n"
@@ -6194,7 +6194,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:5066
 msgid "Script"
-msgstr ""
+msgstr "腳本"
 
 #: src/gui/uifiles/settings_window.ui:5109
 msgid "<b>Siril Scripts Repository</b>"
@@ -6243,7 +6243,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:5253
 msgid "<b>Memory management</b>"
-msgstr ""
+msgstr "<b>記憶體管理</b>"
 
 #: src/gui/uifiles/settings_window.ui:5286
 msgid "Default bit depth for HD AutoStretch"
@@ -6469,7 +6469,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:5912
 msgid "Update"
-msgstr ""
+msgstr "更新"
 
 #: src/gui/uifiles/siril.ui:286
 msgid "Clear all curves displayed in photometry."
@@ -6509,7 +6509,7 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:522
 msgid "Get Scripts"
-msgstr ""
+msgstr "取得腳本"
 
 #: src/gui/uifiles/siril.ui:536
 msgid "Keyboard Shortcuts"
@@ -6517,11 +6517,11 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:550 src/gui/about_dialog.c:71
 msgid "About Siril"
-msgstr ""
+msgstr "關於 Siril"
 
 #: src/gui/uifiles/siril.ui:627
 msgid "AutoStretch"
-msgstr ""
+msgstr "自動拉伸"
 
 #: src/gui/uifiles/siril.ui:639
 msgid "High definition"
@@ -6546,15 +6546,15 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:751 src/gui/mouse_action_functions.h:67
 msgid "Undo"
-msgstr ""
+msgstr "復原"
 
 #: src/gui/uifiles/siril.ui:760 src/gui/mouse_action_functions.h:71
 msgid "Redo"
-msgstr ""
+msgstr "取消復原"
 
 #: src/gui/uifiles/siril.ui:775
 msgid "PSF"
-msgstr ""
+msgstr "點擴散函數（PSF）"
 
 #: src/gui/uifiles/siril.ui:782
 msgid ""
