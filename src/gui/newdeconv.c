@@ -59,60 +59,162 @@ extern gboolean next_psf_is_previous;
 static gboolean first_time = TRUE;
 extern fits* the_fit;
 extern estk_data args;
-static GtkWidget *drawingPSF = NULL;
 static cairo_surface_t *surface = NULL;
 extern int sequence_is_running;
+
+// Static widget pointers
+static GtkButton *bdeconv_close = NULL, *bdeconv_roi_preview = NULL, *bdeconv_apply = NULL, *bdeconv_estimate = NULL, *bdeconv_savekernel = NULL, *bdeconv_advice_button = NULL;
+static GtkComboBox *bdeconv_blindtype = NULL, *bdeconv_profile = NULL, *bdeconv_nonblindtype = NULL, *bdeconv_rl_regularization = NULL, *bdeconv_rl_method = NULL;
+static GtkDialog *bdeconv_dialog = NULL;
+static GtkDrawingArea *bdeconv_drawingarea = NULL;
+static GtkEntry *bdeconv_seq_prefix = NULL;
+static GtkExpander *bdeconv_expander = NULL;
+static GtkFileChooser *bdeconv_filechooser = NULL;
+static GtkFrame *bdeconv_psfcontrols = NULL, *bdeconv_blindcontrols = NULL, *bdeconv_l0controls = NULL, *bdeconv_gfcontrols = NULL, *bdeconv_starpsf_details = NULL;
+static GtkGrid *bdeconv_manual_stars = NULL, *bdeconv_manual_airy = NULL;
+static GtkLabel *bdeconv_starprofile_text = NULL, *bdeconv_starfwhm_text = NULL, *bdeconv_starratio_text = NULL, *bdeconv_starangle_text = NULL, *bdeconv_starbeta_text = NULL, *bdeconv_iterlabel = NULL, *regul_label = NULL, *bdeconv_steplabel = NULL, *algo_method_label = NULL;
+static GtkToggleButton *bdeconv_psfblind = NULL, *bdeconv_psfstars = NULL, *bdeconv_psfmanual = NULL, *bdeconv_psfprevious = NULL, *bdeconv_psfselection = NULL;
+static GtkSpinButton *bdeconv_ks = NULL, *bdeconv_psfratio = NULL, *bdeconv_psfwhm = NULL, *bdeconv_psfangle = NULL, *bdeconv_psfbeta = NULL, *airy_pixelsize = NULL, *airy_wl = NULL, *airy_fl = NULL, *airy_diameter = NULL, *airy_obstruction = NULL, *bdeconv_gflambda = NULL, *bdeconv_gamma = NULL, *bdeconv_iters = NULL, *bdeconv_lambdaratio = NULL, *bdeconv_lambdamin = NULL, *bdeconv_scalefactor = NULL, *bdeconv_upsampleblur = NULL, *bdeconv_downsampleblur = NULL, *bdeconv_kthresh = NULL, *bdeconv_kl1 = NULL, *bdeconv_ncomp = NULL, *bdeconv_ntries = NULL, *bdeconv_nouter = NULL, *bdeconv_ninner = NULL, *bdeconv_finaliters = NULL, *bdeconv_alpha = NULL, *bdeconv_stopcriterion = NULL, *bdeconv_stepsize = NULL;
+static GtkToggleButton *bdeconv_multiscale = NULL, *bdeconv_betterkernel = NULL, *bdeconv_symkern = NULL, *bdeconv_stopping_toggle = NULL, *bdeconv_seqapply = NULL;
+
+void bdeconv_dialog_init_statics() {
+	if (bdeconv_close == NULL) {
+		// GtkButton
+		bdeconv_close = GTK_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_close"));
+		bdeconv_roi_preview = GTK_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_roi_preview"));
+		bdeconv_apply = GTK_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_apply"));
+		bdeconv_estimate = GTK_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_estimate"));
+		bdeconv_savekernel = GTK_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_savekernel"));
+		bdeconv_advice_button = GTK_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_advice_button"));
+		// GtkComboBoxText
+		bdeconv_blindtype = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "bdeconv_blindtype"));
+		bdeconv_profile = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "bdeconv_profile"));
+		bdeconv_nonblindtype = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "bdeconv_nonblindtype"));
+		bdeconv_rl_regularization = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "bdeconv_rl_regularization"));
+		bdeconv_rl_method = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "bdeconv_rl_method"));
+		// GtkDialog
+		bdeconv_dialog = GTK_DIALOG(gtk_builder_get_object(gui.builder, "bdeconv_dialog"));
+		// GtkDrawingArea
+		bdeconv_drawingarea = GTK_DRAWING_AREA(gtk_builder_get_object(gui.builder, "bdeconv_drawingarea"));
+		// GtkEntry
+		bdeconv_seq_prefix = GTK_ENTRY(gtk_builder_get_object(gui.builder, "bdeconv_seq_prefix"));
+		// GtkExpander
+		bdeconv_expander = GTK_EXPANDER(gtk_builder_get_object(gui.builder, "bdeconv_expander"));
+		// GtkFileChooserButton (cast as a GtkFileChooser*)
+		bdeconv_filechooser = GTK_FILE_CHOOSER(gtk_builder_get_object(gui.builder, "bdeconv_filechooser"));
+		// GtkFrame
+		bdeconv_psfcontrols = GTK_FRAME(gtk_builder_get_object(gui.builder, "bdeconv_psfcontrols"));
+		bdeconv_blindcontrols = GTK_FRAME(gtk_builder_get_object(gui.builder, "bdeconv_blindcontrols"));
+		bdeconv_l0controls = GTK_FRAME(gtk_builder_get_object(gui.builder, "bdeconv_l0controls"));
+		bdeconv_gfcontrols = GTK_FRAME(gtk_builder_get_object(gui.builder, "bdeconv_gfcontrols"));
+		bdeconv_starpsf_details = GTK_FRAME(gtk_builder_get_object(gui.builder, "bdeconv_starpsf_details"));
+		// GtkGrid
+		bdeconv_manual_stars = GTK_GRID(gtk_builder_get_object(gui.builder, "bdeconv_manual_stars"));
+		bdeconv_manual_airy = GTK_GRID(gtk_builder_get_object(gui.builder, "bdeconv_manual_airy"));
+		// GtkLabel
+		bdeconv_starprofile_text = GTK_LABEL(gtk_builder_get_object(gui.builder, "bdeconv_starprofile_text"));
+		bdeconv_starfwhm_text = GTK_LABEL(gtk_builder_get_object(gui.builder, "bdeconv_starfwhm_text"));
+		bdeconv_starratio_text = GTK_LABEL(gtk_builder_get_object(gui.builder, "bdeconv_starratio_text"));
+		bdeconv_starangle_text = GTK_LABEL(gtk_builder_get_object(gui.builder, "bdeconv_starangle_text"));
+		bdeconv_starbeta_text = GTK_LABEL(gtk_builder_get_object(gui.builder, "bdeconv_starbeta_text"));
+		bdeconv_iterlabel = GTK_LABEL(gtk_builder_get_object(gui.builder, "bdeconv_iterlabel"));
+		regul_label = GTK_LABEL(gtk_builder_get_object(gui.builder, "regul_label"));
+		bdeconv_steplabel = GTK_LABEL(gtk_builder_get_object(gui.builder, "bdeconv_steplabel"));
+		algo_method_label = GTK_LABEL(gtk_builder_get_object(gui.builder, "algo_method_label"));
+		// GtkRadioButton (treat these as toggle buttons)
+		bdeconv_psfblind = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_psfblind"));
+		bdeconv_psfstars = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_psfstars"));
+		bdeconv_psfmanual = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_psfmanual"));
+		bdeconv_psfprevious = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_psfprevious"));
+		bdeconv_psfselection = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_psfselection"));
+		// GtkSpinButton
+		bdeconv_ks = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_ks"));
+		bdeconv_psfratio = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_psfratio"));
+		bdeconv_psfwhm = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_psfwhm"));
+		bdeconv_psfangle = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_psfangle"));
+		bdeconv_psfbeta = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_psfbeta"));
+		airy_pixelsize = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "airy_pixelsize"));
+		airy_wl = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "airy_wl"));
+		airy_fl = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "airy_fl"));
+		airy_diameter = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "airy_diameter"));
+		airy_obstruction = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "airy_obstruction"));
+		bdeconv_gflambda = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_gflambda"));
+		bdeconv_gamma = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_gamma"));
+		bdeconv_iters = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_iters"));
+		bdeconv_lambdaratio = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_lambdaratio"));
+		bdeconv_lambdamin = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_lambdamin"));
+		bdeconv_scalefactor = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_scalefactor"));
+		bdeconv_upsampleblur = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_upsampleblur"));
+		bdeconv_downsampleblur = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_downsampleblur"));
+		bdeconv_kthresh = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_kthresh"));
+		bdeconv_kl1 = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_kl1"));
+		bdeconv_ncomp = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_ncomp"));
+		bdeconv_ntries = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_ntries"));
+		bdeconv_nouter = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_nouter"));
+		bdeconv_ninner = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_ninner"));
+		bdeconv_finaliters = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_finaliters"));
+		bdeconv_alpha = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_alpha"));
+		bdeconv_stopcriterion = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_stopcriterion"));
+		bdeconv_stepsize = GTK_SPIN_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_stepsize"));
+		// GtkToggleButton
+		bdeconv_multiscale = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_multiscale"));
+		bdeconv_betterkernel = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_betterkernel"));
+		bdeconv_symkern = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_symkern"));
+		bdeconv_stopping_toggle = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_stopping_toggle"));
+		bdeconv_seqapply = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "bdeconv_seqapply"));
+	}
+}
 
 //set below flag to zero to avoid kernel printout to stdout
 #define DEBUG_PSF 0
 
 void reset_conv_controls() {
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("bdeconv_profile")), args.profile);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("bdeconv_blindtype")), args.blindtype);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("bdeconv_nonblindtype")), args.nonblindtype);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("bdeconv_rl_regularization")), args.regtype);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("bdeconv_rl_method")), args.rl_method);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_multiscale")), args.multiscale);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_psfblind")), TRUE);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_lambdaratio")), args.lambda_ratio);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_lambdamin")), args.lambda_min);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_gamma")), args.gamma);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_iters")), args.iterations);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_scalefactor")), args.scalefactor);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_kthresh")), args.kernel_threshold_max);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_betterkernel")), args.better_kernel);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_upsampleblur")), args.upscaleblur);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_downsampleblur")), args.downscaleblur);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_kl1")), args.k_l1);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_alpha")), 1.f / args.alpha);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_psfwhm")), args.psf_fwhm);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_psfbeta")), args.psf_beta);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_psfratio")), args.psf_ratio);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("airy_diameter")), args.airy_diameter);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("airy_fl")), args.airy_fl);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("airy_wl")), args.airy_wl);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("airy_pixelsize")), args.airy_pixelsize);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("airy_obstruction")), args.airy_obstruction);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ninner")), args.ninner);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ntries")), args.ntries);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_nouter")), args.nouter);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_finaliters")), args.finaliters);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_stopcriterion")), args.stopcriterion);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_stepsize")), args.stepsize);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ncomp")), args.compensationfactor);
+	gtk_combo_box_set_active(bdeconv_profile, args.profile);
+	gtk_combo_box_set_active(bdeconv_blindtype, args.blindtype);
+	gtk_combo_box_set_active(bdeconv_nonblindtype, args.nonblindtype);
+	gtk_combo_box_set_active(bdeconv_rl_regularization, args.regtype);
+	gtk_combo_box_set_active(bdeconv_rl_method, args.rl_method);
+	gtk_toggle_button_set_active(bdeconv_multiscale, args.multiscale);
+	gtk_toggle_button_set_active(bdeconv_psfblind, TRUE);
+	gtk_spin_button_set_value(bdeconv_lambdaratio, args.lambda_ratio);
+	gtk_spin_button_set_value(bdeconv_lambdamin, args.lambda_min);
+	gtk_spin_button_set_value(bdeconv_gamma, args.gamma);
+	gtk_spin_button_set_value(bdeconv_iters, args.iterations);
+	gtk_spin_button_set_value(bdeconv_scalefactor, args.scalefactor);
+	gtk_spin_button_set_value(bdeconv_kthresh, args.kernel_threshold_max);
+	gtk_toggle_button_set_active(bdeconv_betterkernel, args.better_kernel);
+	gtk_spin_button_set_value(bdeconv_upsampleblur, args.upscaleblur);
+	gtk_spin_button_set_value(bdeconv_downsampleblur, args.downscaleblur);
+	gtk_spin_button_set_value(bdeconv_kl1, args.k_l1);
+	gtk_spin_button_set_value(bdeconv_alpha, 1.f / args.alpha);
+	gtk_spin_button_set_value(bdeconv_psfwhm, args.psf_fwhm);
+	gtk_spin_button_set_value(bdeconv_psfbeta, args.psf_beta);
+	gtk_spin_button_set_value(bdeconv_psfratio, args.psf_ratio);
+	gtk_spin_button_set_value(airy_diameter, args.airy_diameter);
+	gtk_spin_button_set_value(airy_fl, args.airy_fl);
+	gtk_spin_button_set_value(airy_wl, args.airy_wl);
+	gtk_spin_button_set_value(airy_pixelsize, args.airy_pixelsize);
+	gtk_spin_button_set_value(airy_obstruction, args.airy_obstruction);
+	gtk_spin_button_set_value(bdeconv_ninner, args.ninner);
+	gtk_spin_button_set_value(bdeconv_ntries, args.ntries);
+	gtk_spin_button_set_value(bdeconv_nouter, args.nouter);
+	gtk_spin_button_set_value(bdeconv_finaliters, args.finaliters);
+	gtk_spin_button_set_value(bdeconv_stopcriterion, args.stopcriterion);
+	gtk_spin_button_set_value(bdeconv_stepsize, args.stepsize);
+	gtk_spin_button_set_value(bdeconv_ncomp, args.compensationfactor);
 }
 
 void on_bdeconv_psfblind_toggled(GtkToggleButton *button, gpointer user_data) {
 	args.psftype = PSF_BLIND;
-	gtk_widget_set_visible(lookup_widget("bdeconv_blindcontrols"), TRUE);
-	gtk_widget_set_visible(lookup_widget("bdeconv_psfcontrols"), FALSE);
-	gtk_widget_set_visible(lookup_widget("bdeconv_starpsf_details"), FALSE);
+	gtk_widget_set_visible(GTK_WIDGET(bdeconv_blindcontrols), TRUE);
+	gtk_widget_set_visible(GTK_WIDGET(bdeconv_psfcontrols), FALSE);
+	gtk_widget_set_visible(GTK_WIDGET(bdeconv_starpsf_details), FALSE);
 	if (args.blindtype == BLIND_SI) {
-		gtk_widget_set_visible(lookup_widget("bdeconv_gfcontrols"), TRUE);
-		gtk_widget_set_visible(lookup_widget("bdeconv_l0controls"), FALSE);
+		gtk_widget_set_visible(GTK_WIDGET(bdeconv_gfcontrols), TRUE);
+		gtk_widget_set_visible(GTK_WIDGET(bdeconv_l0controls), FALSE);
 	} else if (args.blindtype == BLIND_L0) {
-		gtk_widget_set_visible(lookup_widget("bdeconv_gfcontrols"), FALSE);
-		gtk_widget_set_visible(lookup_widget("bdeconv_l0controls"), TRUE);
+		gtk_widget_set_visible(GTK_WIDGET(bdeconv_gfcontrols), FALSE);
+		gtk_widget_set_visible(GTK_WIDGET(bdeconv_l0controls), TRUE);
 	}
 }
 
@@ -186,21 +288,21 @@ void on_bdeconv_advice_button_clicked(GtkButton *button, gpointer user_data) {
 void on_bdeconv_blindtype_changed(GtkComboBox *combo, gpointer user_data) {
 	args.blindtype = gtk_combo_box_get_active(combo);
 	if (args.psftype == PSF_BLIND) {
-		gtk_widget_set_visible(lookup_widget("bdeconv_psfcontrols"), FALSE);
+		gtk_widget_set_visible(GTK_WIDGET(bdeconv_psfcontrols), FALSE);
 		switch (args.blindtype) {
 			case BLIND_SI:
-				gtk_widget_set_visible(lookup_widget("bdeconv_l0controls"), FALSE);
-				gtk_widget_set_visible(lookup_widget("bdeconv_gfcontrols"), TRUE);
+				gtk_widget_set_visible(GTK_WIDGET(bdeconv_l0controls), FALSE);
+				gtk_widget_set_visible(GTK_WIDGET(bdeconv_gfcontrols), TRUE);
 				args.intermediatedeconvolutionweight = 15.f;
 				args.finaldeconvolutionweight = 15.f;
 				args.lambda = 1.f / 15.f;
-				gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_gflambda")), 15.);
+				gtk_spin_button_set_value(bdeconv_gflambda, 15.);
 				break;
 			case BLIND_L0:
-				gtk_widget_set_visible(lookup_widget("bdeconv_l0controls"), TRUE);
-				gtk_widget_set_visible(lookup_widget("bdeconv_gfcontrols"), FALSE);
+				gtk_widget_set_visible(GTK_WIDGET(bdeconv_l0controls), TRUE);
+				gtk_widget_set_visible(GTK_WIDGET(bdeconv_gfcontrols), FALSE);
 				args.lambda = 1.f / 3000.f;
-				gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_gflambda")), 3000.);
+				gtk_spin_button_set_value(bdeconv_gflambda, 3000.);
 				break;
 		}
 	}
@@ -211,85 +313,82 @@ void on_bdeconv_nonblindtype_changed(GtkComboBox *combo, gpointer user_data) {
 	switch (args.nonblindtype) {
 		case DECONV_SB:
 			args.finaliters = 1; // Default niters for Split Bregman
-			gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_finaliters")), (double) args.finaliters);
+			gtk_spin_button_set_value(bdeconv_finaliters, (double) args.finaliters);
 			args.alpha = 3000.f;
-			gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_alpha")), (double) args.alpha);
-			gtk_widget_set_visible(lookup_widget("regul_label"), FALSE);
-			gtk_widget_set_visible(lookup_widget("bdeconv_rl_regularization"), FALSE);
-			gtk_widget_set_visible(lookup_widget("algo_method_label"), FALSE);
-			gtk_widget_set_visible(lookup_widget("bdeconv_rl_method"), FALSE);
-			gtk_widget_set_visible(lookup_widget("bdeconv_stopping_toggle"), FALSE);
-			gtk_widget_set_visible(lookup_widget("bdeconv_stopcriterion"), FALSE);
-			gtk_widget_set_visible(lookup_widget("bdeconv_stepsize"), FALSE);
-			gtk_widget_set_visible(lookup_widget("bdeconv_steplabel"), FALSE);
-			gtk_widget_set_visible(lookup_widget("bdeconv_finaliters"), TRUE);
-			gtk_widget_set_visible(lookup_widget("bdeconv_iterlabel"), TRUE);
+			gtk_spin_button_set_value(bdeconv_alpha, (double) args.alpha);
+			gtk_widget_set_visible(GTK_WIDGET(regul_label), FALSE);
+			gtk_widget_set_visible(GTK_WIDGET(bdeconv_rl_regularization), FALSE);
+			gtk_widget_set_visible(GTK_WIDGET(algo_method_label), FALSE);
+			gtk_widget_set_visible(GTK_WIDGET(bdeconv_rl_method), FALSE);
+			gtk_widget_set_visible(GTK_WIDGET(bdeconv_stopping_toggle), FALSE);
+			gtk_widget_set_visible(GTK_WIDGET(bdeconv_stopcriterion), FALSE);
+			gtk_widget_set_visible(GTK_WIDGET(bdeconv_stepsize), FALSE);
+			gtk_widget_set_visible(GTK_WIDGET(bdeconv_steplabel), FALSE);
+			gtk_widget_set_visible(GTK_WIDGET(bdeconv_finaliters), TRUE);
+			gtk_widget_set_visible(GTK_WIDGET(bdeconv_iterlabel), TRUE);
 			break;
 		case DECONV_RL:
 			args.finaliters = 10; // Default niters for RL. Reduce this if using the multiplicative
 			// algorithm in order to avoid burning holes round your stars!
-			gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_finaliters")), (double) args.finaliters);
+			gtk_spin_button_set_value(bdeconv_finaliters, (double) args.finaliters);
 			args.alpha = 3000.f;
-			gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_alpha")), (double) args.alpha);
-			gtk_widget_set_visible(lookup_widget("regul_label"), TRUE);
-			gtk_widget_set_visible(lookup_widget("bdeconv_rl_regularization"), TRUE);
-			gtk_widget_set_visible(lookup_widget("algo_method_label"), TRUE);
-			gtk_widget_set_visible(lookup_widget("bdeconv_rl_method"), TRUE);
-			gtk_widget_set_visible(lookup_widget("bdeconv_stopping_toggle"), TRUE);
-			gtk_widget_set_visible(lookup_widget("bdeconv_stopcriterion"), TRUE);
-			gtk_widget_set_visible(lookup_widget("bdeconv_stepsize"), TRUE);
-			gtk_widget_set_visible(lookup_widget("bdeconv_steplabel"), TRUE);
-			gtk_widget_set_visible(lookup_widget("bdeconv_finaliters"), TRUE);
-			gtk_widget_set_visible(lookup_widget("bdeconv_iterlabel"), TRUE);
+			gtk_spin_button_set_value(bdeconv_alpha, (double) args.alpha);
+			gtk_widget_set_visible(GTK_WIDGET(regul_label), TRUE);
+			gtk_widget_set_visible(GTK_WIDGET(bdeconv_rl_regularization), TRUE);
+			gtk_widget_set_visible(GTK_WIDGET(algo_method_label), TRUE);
+			gtk_widget_set_visible(GTK_WIDGET(bdeconv_rl_method), TRUE);
+			gtk_widget_set_visible(GTK_WIDGET(bdeconv_stopping_toggle), TRUE);
+			gtk_widget_set_visible(GTK_WIDGET(bdeconv_stopcriterion), TRUE);
+			gtk_widget_set_visible(GTK_WIDGET(bdeconv_stepsize), TRUE);
+			gtk_widget_set_visible(GTK_WIDGET(bdeconv_steplabel), TRUE);
+			gtk_widget_set_visible(GTK_WIDGET(bdeconv_finaliters), TRUE);
+			gtk_widget_set_visible(GTK_WIDGET(bdeconv_iterlabel), TRUE);
 			break;
 		case DECONV_WIENER:
 			args.alpha = 500.f;
-			gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_alpha")), (double) args.alpha);
-			gtk_widget_set_visible(lookup_widget("regul_label"), FALSE);
-			gtk_widget_set_visible(lookup_widget("bdeconv_rl_regularization"), FALSE);
-			gtk_widget_set_visible(lookup_widget("algo_method_label"), FALSE);
-			gtk_widget_set_visible(lookup_widget("bdeconv_rl_method"), FALSE);
-			gtk_widget_set_visible(lookup_widget("bdeconv_stopping_toggle"), FALSE);
-			gtk_widget_set_visible(lookup_widget("bdeconv_stopcriterion"), FALSE);
-			gtk_widget_set_visible(lookup_widget("bdeconv_stepsize"), FALSE);
-			gtk_widget_set_visible(lookup_widget("bdeconv_steplabel"), FALSE);
-			gtk_widget_set_visible(lookup_widget("bdeconv_finaliters"), FALSE);
-			gtk_widget_set_visible(lookup_widget("bdeconv_iterlabel"), FALSE);
+			gtk_spin_button_set_value(bdeconv_alpha, (double) args.alpha);
+			gtk_widget_set_visible(GTK_WIDGET(regul_label), FALSE);
+			gtk_widget_set_visible(GTK_WIDGET(bdeconv_rl_regularization), FALSE);
+			gtk_widget_set_visible(GTK_WIDGET(algo_method_label), FALSE);
+			gtk_widget_set_visible(GTK_WIDGET(bdeconv_rl_method), FALSE);
+			gtk_widget_set_visible(GTK_WIDGET(bdeconv_stopping_toggle), FALSE);
+			gtk_widget_set_visible(GTK_WIDGET(bdeconv_stopcriterion), FALSE);
+			gtk_widget_set_visible(GTK_WIDGET(bdeconv_stepsize), FALSE);
+			gtk_widget_set_visible(GTK_WIDGET(bdeconv_steplabel), FALSE);
+			gtk_widget_set_visible(GTK_WIDGET(bdeconv_finaliters), FALSE);
+			gtk_widget_set_visible(GTK_WIDGET(bdeconv_iterlabel), FALSE);
 			break;
 	}
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_finaliters")), args.finaliters);
+	gtk_spin_button_set_value(bdeconv_finaliters, args.finaliters);
 }
 
 void on_bdeconv_expander_activate(GtkExpander *expander, gpointer user_data) {
-	gtk_window_resize(GTK_WINDOW(lookup_widget("bdeconv_dialog")), 1, 1);
+	gtk_window_resize(GTK_WINDOW(bdeconv_dialog), 1, 1);
 	// This callback is just to prevent excessive blank space after shrinking the expander
 }
 
-void on_airy_diameter_value_changed(GtkSpinButton *button, gpointer user_data) {
-	GtkWidget *the_button = lookup_widget("airy_diameter");
+void on_airy_diameter_value_changed(GtkWidget *button, gpointer user_data) {
 	GtkCssProvider *css = gtk_css_provider_new();
 	gtk_css_provider_load_from_data(css, "* { background-image:none; color:@theme_color;}",-1,NULL);
-	GtkStyleContext * context = gtk_widget_get_style_context(the_button);
+	GtkStyleContext * context = gtk_widget_get_style_context(button);
 
 	gtk_style_context_add_provider(context, GTK_STYLE_PROVIDER(css),GTK_STYLE_PROVIDER_PRIORITY_USER);
 	g_object_unref(css);
 }
 
-void on_airy_fl_value_changed(GtkSpinButton *button, gpointer user_data) {
-	GtkWidget *the_button = lookup_widget("airy_fl");
+void on_airy_fl_value_changed(GtkWidget *button, gpointer user_data) {
 	GtkCssProvider *css = gtk_css_provider_new();
 	gtk_css_provider_load_from_data(css, "* { background-image:none; color:@theme_color;}",-1,NULL);
-	GtkStyleContext * context = gtk_widget_get_style_context(the_button);
+	GtkStyleContext * context = gtk_widget_get_style_context(button);
 
 	gtk_style_context_add_provider(context, GTK_STYLE_PROVIDER(css),GTK_STYLE_PROVIDER_PRIORITY_USER);
 	g_object_unref(css);
 }
 
-void on_airy_pixelsize_value_changed(GtkSpinButton *button, gpointer user_data) {
-	GtkWidget *the_button = lookup_widget("airy_pixelsize");
+void on_airy_pixelsize_value_changed(GtkWidget *button, gpointer user_data) {
 	GtkCssProvider *css = gtk_css_provider_new();
 	gtk_css_provider_load_from_data(css, "* { background-image:none; color:@theme_color;}",-1,NULL);
-	GtkStyleContext * context = gtk_widget_get_style_context(the_button);
+	GtkStyleContext * context = gtk_widget_get_style_context(button);
 
 	gtk_style_context_add_provider(context, GTK_STYLE_PROVIDER(css),GTK_STYLE_PROVIDER_PRIORITY_USER);
 	g_object_unref(css);
@@ -298,9 +397,9 @@ void on_airy_pixelsize_value_changed(GtkSpinButton *button, gpointer user_data) 
 static void initialize_airy_parameters() {
 	// Get initial stab at parameters for Airy function from FITS header. Not essential they be correct as they are user-editable in the UI.
 	args.airy_fl = the_fit->keywords.focal_length;
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("airy_fl")), args.airy_fl);
+	gtk_spin_button_set_value(airy_fl, args.airy_fl);
 	if (the_fit->keywords.focal_length < 10.) {
-		GtkWidget *button = lookup_widget("airy_fl");
+		GtkWidget *button = GTK_WIDGET(airy_fl);
 		GtkCssProvider *css = gtk_css_provider_new();
 		gtk_css_provider_load_from_data(css, "* { background-image:none; color:salmon;}",-1,NULL);
 		GtkStyleContext * context = gtk_widget_get_style_context(button);
@@ -308,9 +407,9 @@ static void initialize_airy_parameters() {
 		g_object_unref(css);
 	}
 	args.airy_diameter = the_fit->keywords.aperture;
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("airy_diameter")), args.airy_diameter);
+	gtk_spin_button_set_value(airy_diameter, args.airy_diameter);
 	if (the_fit->keywords.aperture < 10.) {
-		GtkWidget *button = lookup_widget("airy_diameter");
+		GtkWidget *button = GTK_WIDGET(airy_diameter);
 		GtkCssProvider *css = gtk_css_provider_new();
 		gtk_css_provider_load_from_data(css, "* { background-image:none; color:salmon;}",-1,NULL);
 		GtkStyleContext * context = gtk_widget_get_style_context(button);
@@ -318,9 +417,9 @@ static void initialize_airy_parameters() {
 		g_object_unref(css);
 	}
 	args.airy_pixelsize = the_fit->keywords.pixel_size_x;
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("airy_pixelsize")), args.airy_pixelsize);
+	gtk_spin_button_set_value(airy_pixelsize, args.airy_pixelsize);
 	if (the_fit->keywords.pixel_size_x <=1.) {
-		GtkWidget *button = lookup_widget("airy_pixelsize");
+		GtkWidget *button = GTK_WIDGET(airy_pixelsize);
 		GtkCssProvider *css = gtk_css_provider_new();
 		gtk_css_provider_load_from_data(css, "* { background-image:none; color:salmon;}",-1,NULL);
 		GtkStyleContext * context = gtk_widget_get_style_context(button);
@@ -328,29 +427,29 @@ static void initialize_airy_parameters() {
 		g_object_unref(css);
 	}
 	args.airy_wl = 525.f; // Approximation of the average wavelength of light accepted by an OSC camera covering 400-656nm. User editable to give precise values e.g. for narrowband.
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("airy_wl")), args.airy_wl);
+	gtk_spin_button_set_value(airy_wl, args.airy_wl);
 }
 
 void on_bdeconv_psfmanual_toggled(GtkToggleButton *button, gpointer user_data) {
 	args.psftype = PSF_MANUAL;
-	gtk_widget_set_visible(lookup_widget("bdeconv_psfcontrols"), TRUE);
-	gtk_widget_set_visible(lookup_widget("bdeconv_l0controls"), FALSE);
-	gtk_widget_set_visible(lookup_widget("bdeconv_gfcontrols"), FALSE);
-	gtk_widget_set_visible(lookup_widget("bdeconv_blindcontrols"), FALSE);
-	gtk_widget_set_visible(lookup_widget("bdeconv_starpsf_details"), FALSE);
+	gtk_widget_set_visible(GTK_WIDGET(bdeconv_psfcontrols), TRUE);
+	gtk_widget_set_visible(GTK_WIDGET(bdeconv_l0controls), FALSE);
+	gtk_widget_set_visible(GTK_WIDGET(bdeconv_gfcontrols), FALSE);
+	gtk_widget_set_visible(GTK_WIDGET(bdeconv_blindcontrols), FALSE);
+	gtk_widget_set_visible(GTK_WIDGET(bdeconv_starpsf_details), FALSE);
 }
 
 void on_bdeconv_profile_changed(GtkComboBox *combo, gpointer user_data) {
 	int profile = gtk_combo_box_get_active(combo);
 	if (profile != PROFILE_AIRY) {
-		gtk_widget_set_visible(lookup_widget("bdeconv_manual_stars"), TRUE);
-		gtk_widget_set_visible(lookup_widget("bdeconv_manual_airy"), FALSE);
-		gtk_widget_set_sensitive(lookup_widget("bdeconv_psfangle"), (profile == PROFILE_MOFFAT || profile == PROFILE_GAUSSIAN));
-		gtk_widget_set_sensitive(lookup_widget("bdeconv_psfratio"), (profile == PROFILE_MOFFAT || profile == PROFILE_GAUSSIAN));
-		gtk_widget_set_sensitive(lookup_widget("bdeconv_psfbeta"), profile == PROFILE_MOFFAT);
+		gtk_widget_set_visible(GTK_WIDGET(bdeconv_manual_stars), TRUE);
+		gtk_widget_set_visible(GTK_WIDGET(bdeconv_manual_airy), FALSE);
+		gtk_widget_set_sensitive(GTK_WIDGET(bdeconv_psfangle), (profile == PROFILE_MOFFAT || profile == PROFILE_GAUSSIAN));
+		gtk_widget_set_sensitive(GTK_WIDGET(bdeconv_psfratio), (profile == PROFILE_MOFFAT || profile == PROFILE_GAUSSIAN));
+		gtk_widget_set_sensitive(GTK_WIDGET(bdeconv_psfbeta), profile == PROFILE_MOFFAT);
 	} else {
-		gtk_widget_set_visible(lookup_widget("bdeconv_manual_stars"), FALSE);
-		gtk_widget_set_visible(lookup_widget("bdeconv_manual_airy"), TRUE);
+		gtk_widget_set_visible(GTK_WIDGET(bdeconv_manual_stars), FALSE);
+		gtk_widget_set_visible(GTK_WIDGET(bdeconv_manual_airy), TRUE);
 		if (!aperture_warning_given) {
 			aperture_warning_given = TRUE;
 			if (args.airy_diameter < 10.f) {
@@ -367,7 +466,7 @@ void on_bdeconv_profile_changed(GtkComboBox *combo, gpointer user_data) {
 }
 
 void on_bdeconv_rl_method_changed(GtkComboBox *combo, gpointer user_data) {
-	gtk_widget_set_sensitive(lookup_widget("bdeconv_stepsize"), gtk_combo_box_get_active(combo) == 1);
+	gtk_widget_set_sensitive(GTK_WIDGET(bdeconv_stepsize), gtk_combo_box_get_active(combo) == 1);
 }
 
 void on_bdeconv_psfprevious_toggled(GtkToggleButton *button, gpointer user_data) {
@@ -430,22 +529,22 @@ void calculate_parameters() {
 		args.psf_angle = (float) angle / (float) n;
 		if (!com.headless && !com.script) {
 			if (com.stars[0]->profile == PSF_GAUSSIAN)
-				gtk_label_set_text(GTK_LABEL(lookup_widget("bdeconv_starprofile_text")), _("Gaussian"));
+				gtk_label_set_text(bdeconv_starprofile_text, _("Gaussian"));
 			else
-				gtk_label_set_text(GTK_LABEL(lookup_widget("bdeconv_starprofile_text")), _("Moffat"));
+				gtk_label_set_text(bdeconv_starprofile_text, _("Moffat"));
 			char temp[10];
 			sprintf(temp, "%.2f", args.psf_fwhm);
-			gtk_label_set_text(GTK_LABEL(lookup_widget("bdeconv_starfwhm_text")), temp);
+			gtk_label_set_text(bdeconv_starfwhm_text, temp);
 			sprintf(temp, "%.2f", args.psf_ratio);
-			gtk_label_set_text(GTK_LABEL(lookup_widget("bdeconv_starratio_text")), temp);
+			gtk_label_set_text(bdeconv_starratio_text, temp);
 			sprintf(temp, "%.2f", args.psf_angle);
-			gtk_label_set_text(GTK_LABEL(lookup_widget("bdeconv_starangle_text")), temp);
+			gtk_label_set_text(bdeconv_starangle_text, temp);
 			sprintf(temp, "%.2f", args.psf_beta);
-			gtk_label_set_text(GTK_LABEL(lookup_widget("bdeconv_starbeta_text")), temp);
+			gtk_label_set_text(bdeconv_starbeta_text, temp);
 			return;
 		}
 	} else if (!com.headless && !com.script) {
-		gtk_label_set_text(GTK_LABEL(lookup_widget("bdeconv_starprofile_text")), _("No stars selected"));
+		gtk_label_set_text(bdeconv_starprofile_text, _("No stars selected"));
 	}
 	return;
 }
@@ -453,16 +552,16 @@ void calculate_parameters() {
 void on_bdeconv_psfstars_toggled(GtkToggleButton *button, gpointer user_data) {
 	args.psftype = PSF_STARS;
 	calculate_parameters();
-	gtk_widget_set_visible(lookup_widget("bdeconv_psfcontrols"), FALSE);
-	gtk_widget_set_visible(lookup_widget("bdeconv_l0controls"), FALSE);
-	gtk_widget_set_visible(lookup_widget("bdeconv_gfcontrols"), FALSE);
-	gtk_widget_set_visible(lookup_widget("bdeconv_blindcontrols"), FALSE);
-	gtk_widget_set_visible(lookup_widget("bdeconv_starpsf_details"), TRUE);
+	gtk_widget_set_visible(GTK_WIDGET(bdeconv_psfcontrols), FALSE);
+	gtk_widget_set_visible(GTK_WIDGET(bdeconv_l0controls), FALSE);
+	gtk_widget_set_visible(GTK_WIDGET(bdeconv_gfcontrols), FALSE);
+	gtk_widget_set_visible(GTK_WIDGET(bdeconv_blindcontrols), FALSE);
+	gtk_widget_set_visible(GTK_WIDGET(bdeconv_starpsf_details), TRUE);
 }
 
 void deconv_roi_callback() {
 	gui.roi.operation_supports_roi = TRUE;
-	gtk_widget_set_visible(lookup_widget("bdeconv_roi_preview"), gui.roi.active);
+	gtk_widget_set_visible(GTK_WIDGET(bdeconv_roi_preview), gui.roi.active);
 	the_fit = gui.roi.active ? &gui.roi.fit : &gfit;
 	copy_backup_to_gfit();
 	notify_gfit_modified();
@@ -480,6 +579,7 @@ void on_bdeconv_close_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_bdeconv_dialog_show(GtkWidget *widget, gpointer user_data) {
+	bdeconv_dialog_init_statics();
 	the_fit = gui.roi.active ? &gui.roi.fit : &gfit;
 	roi_supported(TRUE);
 	deconv_roi_callback();
@@ -491,7 +591,7 @@ void on_bdeconv_dialog_show(GtkWidget *widget, gpointer user_data) {
 	}
 	if (com.kernel && com.kernelsize > 0) {
 		args.psftype = PSF_PREVIOUS;
-			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_psfprevious")), TRUE);
+			gtk_toggle_button_set_active(bdeconv_psfprevious, TRUE);
 	}
 	calculate_parameters();
 	initialize_airy_parameters();
@@ -543,7 +643,7 @@ void on_bdeconv_savekernel_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void set_kernel_size_in_gui() {
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ks")), com.kernelsize);
+	gtk_spin_button_set_value(bdeconv_ks, com.kernelsize);
 }
 
 void on_bdeconv_filechooser_file_set(GtkFileChooser *filechooser, gpointer user_data) {
@@ -562,7 +662,7 @@ void on_bdeconv_filechooser_file_set(GtkFileChooser *filechooser, gpointer user_
 		bad_load = FALSE;
 	} else {
 		args.psftype = PSF_PREVIOUS; // Set to use previous kernel
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_psfprevious")), TRUE);
+		gtk_toggle_button_set_active(bdeconv_psfprevious, TRUE);
 	}
 	return;
 }
@@ -570,41 +670,41 @@ void on_bdeconv_filechooser_file_set(GtkFileChooser *filechooser, gpointer user_
 void set_estimate_params() {
 	if (com.headless)
 		return;
-	args.ks = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ks")));
-	args.gamma = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_gamma")));
-	args.iterations = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_iters")));
-	args.lambda_ratio = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_lambdaratio")));
-	args.lambda_min = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_lambdamin")));
-	args.scalefactor = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_scalefactor")));
-	args.upscaleblur = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_upsampleblur")));
-	args.downscaleblur = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_downsampleblur")));
-	args.kernel_threshold_max = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_kthresh")));
-	args.k_l1 = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_kl1")));
-	args.ninner = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ninner")));
-	args.ntries = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ntries")));
-	args.nouter = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ntries")));
-	args.compensationfactor = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_ntries")));
-	args.intermediatedeconvolutionweight = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_gflambda")));
+	args.ks = gtk_spin_button_get_value(bdeconv_ks);
+	args.gamma = gtk_spin_button_get_value(bdeconv_gamma);
+	args.iterations = gtk_spin_button_get_value(bdeconv_iters);
+	args.lambda_ratio = gtk_spin_button_get_value(bdeconv_lambdaratio);
+	args.lambda_min = gtk_spin_button_get_value(bdeconv_lambdamin);
+	args.scalefactor = gtk_spin_button_get_value(bdeconv_scalefactor);
+	args.upscaleblur = gtk_spin_button_get_value(bdeconv_upsampleblur);
+	args.downscaleblur = gtk_spin_button_get_value(bdeconv_downsampleblur);
+	args.kernel_threshold_max = gtk_spin_button_get_value(bdeconv_kthresh);
+	args.k_l1 = gtk_spin_button_get_value(bdeconv_kl1);
+	args.ninner = gtk_spin_button_get_value(bdeconv_ninner);
+	args.ntries = gtk_spin_button_get_value(bdeconv_ntries);
+	args.nouter = gtk_spin_button_get_value(bdeconv_ntries);
+	args.compensationfactor = gtk_spin_button_get_value(bdeconv_ntries);
+	args.intermediatedeconvolutionweight = gtk_spin_button_get_value(bdeconv_gflambda);
 	args.finaldeconvolutionweight = args.intermediatedeconvolutionweight;
 	args.lambda = 1.f / args.intermediatedeconvolutionweight;
-	args.profile = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("bdeconv_profile")));
-	args.psf_fwhm = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_psfwhm")));
-	args.psf_ratio = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_psfratio")));
-	args.psf_beta = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_psfbeta")));
-	args.psf_angle = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_psfangle")));
-	args.airy_diameter = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("airy_diameter")));
-	args.airy_fl = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("airy_fl")));
-	args.airy_wl = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("airy_wl")));
-	args.airy_pixelsize = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("airy_pixelsize")));
-	args.airy_obstruction = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("airy_obstruction"))) / 100.f;
-	args.better_kernel = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_betterkernel")));
-	args.multiscale = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_multiscale")));
+	args.profile = gtk_combo_box_get_active(bdeconv_profile);
+	args.psf_fwhm = gtk_spin_button_get_value(bdeconv_psfwhm);
+	args.psf_ratio = gtk_spin_button_get_value(bdeconv_psfratio);
+	args.psf_beta = gtk_spin_button_get_value(bdeconv_psfbeta);
+	args.psf_angle = gtk_spin_button_get_value(bdeconv_psfangle);
+	args.airy_diameter = gtk_spin_button_get_value(airy_diameter);
+	args.airy_fl = gtk_spin_button_get_value(airy_fl);
+	args.airy_wl = gtk_spin_button_get_value(airy_wl);
+	args.airy_pixelsize = gtk_spin_button_get_value(airy_pixelsize);
+	args.airy_obstruction = gtk_spin_button_get_value(airy_obstruction) / 100.f;
+	args.better_kernel = gtk_toggle_button_get_active(bdeconv_betterkernel);
+	args.multiscale = gtk_toggle_button_get_active(bdeconv_multiscale);
 }
 
 gboolean estimate_idle(gpointer arg) {
 	if (args.psftype == PSF_BLIND || args.psftype == PSF_STARS) {
 		args.psftype = PSF_PREVIOUS; // If a blind estimate is done, switch to previous kernel in order to avoid recalculating it when Apply is clicked
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_psfprevious")), TRUE);
+		gtk_toggle_button_set_active(bdeconv_psfprevious, TRUE);
 	}
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 	set_cursor_waiting(FALSE);
@@ -619,13 +719,13 @@ gboolean estimate_idle(gpointer arg) {
 void set_deconvolve_params() {
 	if (com.headless)
 		return;
-	args.finaliters = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_finaliters")));
-	args.alpha = 1.f / gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_alpha")));
-	args.stopcriterion = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_stopcriterion")));
-	args.stopcriterion_active = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_stopping_toggle"))) ? 1 : 0;
-	args.rl_method = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("bdeconv_rl_method")));
-	args.stepsize = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("bdeconv_stepsize")));
-	args.regtype = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("bdeconv_rl_regularization")));
+	args.finaliters = gtk_spin_button_get_value(bdeconv_finaliters);
+	args.alpha = 1.f / gtk_spin_button_get_value(bdeconv_alpha);
+	args.stopcriterion = gtk_spin_button_get_value(bdeconv_stopcriterion);
+	args.stopcriterion_active = gtk_toggle_button_get_active(bdeconv_stopping_toggle) ? 1 : 0;
+	args.rl_method = gtk_combo_box_get_active(bdeconv_rl_method);
+	args.stepsize = gtk_spin_button_get_value(bdeconv_stepsize);
+	args.regtype = gtk_combo_box_get_active(bdeconv_rl_regularization);
 }
 
 gboolean deconvolve_idle(gpointer arg) {
@@ -639,7 +739,7 @@ gboolean deconvolve_idle(gpointer arg) {
 	notify_gfit_modified(); // Also stops the thread and updates the cursor
 	if (next_psf_is_previous && !com.headless && !com.script) {
 		args.psftype = PSF_PREVIOUS;
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_psfprevious")), TRUE);
+		gtk_toggle_button_set_active(bdeconv_psfprevious, TRUE);
 	}
 	siril_debug_print("Deconvolve idle stopping processing thread\n");
 	return FALSE;
@@ -653,13 +753,12 @@ void on_bdeconv_symkern_toggled(GtkToggleButton *button, gpointer user_data) {
 void on_bdeconv_roi_preview_clicked(GtkButton *button, gpointer user_data) {
 	sequence_is_running = 0;
 	control_window_switch_to_tab(OUTPUT_LOGS);
-	GtkToggleButton* seq = GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_seqapply"));
 	set_estimate_params(); // Do this before entering the thread as it contains GTK functions
 	set_deconvolve_params();
 	if (!check_ok_if_cfa())
 		return;
 	set_cursor_waiting(TRUE);
-	if (gtk_toggle_button_get_active(seq) && sequence_is_loaded()) {
+	if (gtk_toggle_button_get_active(bdeconv_seqapply) && sequence_is_loaded()) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Sequence selected"), _("Preview cannot be used with \"Apply to Sequence\" selected"));
 	} else {
 		copy_backup_to_gfit();
@@ -672,20 +771,18 @@ void on_bdeconv_roi_preview_clicked(GtkButton *button, gpointer user_data) {
 void on_bdeconv_apply_clicked(GtkButton *button, gpointer user_data) {
 	sequence_is_running = 0;
 	control_window_switch_to_tab(OUTPUT_LOGS);
-	GtkToggleButton* seq = GTK_TOGGLE_BUTTON(lookup_widget("bdeconv_seqapply"));
 	deconvolution_sequence_data* seqargs = NULL;
-	GtkEntry* deconvolutionSeqEntry = GTK_ENTRY(lookup_widget("bdeconv_seq_prefix"));
 	set_estimate_params(); // Do this before entering the thread as it contains GTK functions
 	set_deconvolve_params();
 	args.previewing = FALSE;
 	if (!check_ok_if_cfa())
 		return;
 	set_cursor_waiting(TRUE);
-	if (gtk_toggle_button_get_active(seq) && sequence_is_loaded()) {
+	if (gtk_toggle_button_get_active(bdeconv_seqapply) && sequence_is_loaded()) {
 		seqargs = malloc(sizeof(deconvolution_sequence_data));
 		seqargs->seq = &com.seq;
 		seqargs->from_command = FALSE;
-		seqargs->seqEntry = strdup(gtk_entry_get_text(deconvolutionSeqEntry));
+		seqargs->seqEntry = strdup(gtk_entry_get_text(bdeconv_seq_prefix));
 		if (seqargs->seqEntry && seqargs->seqEntry[0] == '\0')
 			seqargs->seqEntry = strdup("dec_");
 		apply_deconvolve_to_sequence(seqargs);
@@ -700,7 +797,7 @@ void on_bdeconv_estimate_clicked(GtkButton *button, gpointer user_data) {
 	sequence_is_running = 0;
 	gboolean abort = FALSE;
 	control_window_switch_to_tab(OUTPUT_LOGS);
-	gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(lookup_widget("bdeconv_filechooser")));
+	gtk_file_chooser_unselect_all(bdeconv_filechooser);
 	if(!sequence_is_loaded())
 		the_fit = &gfit; // The blind estimate is still always done on the whole image.
 		// TODO: consider if this should be done on the ROI if active...
@@ -769,9 +866,9 @@ void drawing_the_PSF(GtkWidget *widget, cairo_t *cr) {
 // PSF drawing callback
 gboolean on_PSFkernel_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	if (get_imageorientation() != args.kernelorientation) {
-		gtk_widget_set_tooltip_text(GTK_WIDGET(lookup_widget("bdeconv_drawingarea")), _("Image row order has changed since PSF was generated. The PSF orientation will be updated to match before applying to this image."));
+		gtk_widget_set_tooltip_text(GTK_WIDGET(bdeconv_drawingarea), _("Image row order has changed since PSF was generated. The PSF orientation will be updated to match before applying to this image."));
 	} else {
-		gtk_widget_set_tooltip_text(GTK_WIDGET(lookup_widget("bdeconv_drawingarea")), "");
+		gtk_widget_set_tooltip_text(GTK_WIDGET(bdeconv_drawingarea), "");
 	}
 	drawing_the_PSF(widget, cr);
 	return FALSE;
@@ -779,8 +876,5 @@ gboolean on_PSFkernel_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 
 // caller
 void DrawPSF() {
-	if (!drawingPSF) {
-		drawingPSF = lookup_widget("bdeconv_drawingarea");
-	}
-	gtk_widget_queue_draw(drawingPSF);
+	gtk_widget_queue_draw(GTK_WIDGET(bdeconv_drawingarea));
 }
