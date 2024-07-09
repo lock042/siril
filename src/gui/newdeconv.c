@@ -46,7 +46,6 @@
 #include "gui/progress_and_log.h"
 #include "gui/newdeconv.h"
 #include "filters/deconvolution/deconvolution.h"
-#include "filters/deconvolution/chelperfuncs.h"
 #include "filters/synthstar.h"
 #include "algos/statistics.h"
 #include "algos/PSF.h"
@@ -62,6 +61,7 @@ extern fits* the_fit;
 extern estk_data args;
 static GtkWidget *drawingPSF = NULL;
 static cairo_surface_t *surface = NULL;
+extern int sequence_is_running;
 
 //set below flag to zero to avoid kernel printout to stdout
 #define DEBUG_PSF 0

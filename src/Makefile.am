@@ -220,8 +220,6 @@ siril_common_SOURCES = \
 	filters/deconvolution/angleSet.cpp \
 	filters/deconvolution/angleSet.hpp \
 	filters/deconvolution/better_than_std.hpp \
-	filters/deconvolution/chelperfuncs.c \
-	filters/deconvolution/chelperfuncs.h \
 	filters/deconvolution/deconvolution.h \
 	filters/deconvolution/deconvolve.cpp \
 	filters/deconvolution/deconvolve.hpp \
