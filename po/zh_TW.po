@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-06-12 11:26+0200\n"
-"PO-Revision-Date: 2024-07-03 19:37+0000\n"
+"PO-Revision-Date: 2024-07-09 12:15+0000\n"
 "Last-Translator: Yen-Hsing Lin <julius52700@gmail.com>\n"
 "Language-Team: Chinese (Traditional) <https://weblate.pixls.us/projects/"
 "siril/siril-application/zh_Hant/>\n"
@@ -378,7 +378,7 @@ msgstr ""
 "有些目錄(bsc、gcvs、pgc、exo、aavso_chart、varisum和solsys)也會預設在顯示畫面"
 "和紀錄中同時顯示天體名稱。而對於有較多天體的星表,如vsx和simbad,此資訊也可以顯"
 "示,不過可能會使畫面過於雜亂,所以預設未啟用。您可以透過勾選標籤來切換是否在顯"
-"示畫面上同時顯示物體名稱,以及是否在主控台紀錄中列出物件。"
+"示畫面上同時顯示天體名稱,以及是否在主控台紀錄中列出物件。"
 
 #: src/gui/uifiles/annotate_dialog.ui:189 src/gui/uifiles/annotate_dialog.ui:442
 msgid "Log"
@@ -1473,7 +1473,8 @@ msgid ""
 "Wavelength to calculate the diffraction pattern for. May be specified exactly "
 "for narrowband filters, or for broadband / OSC / luminance filters just use a "
 "representative central wavelength."
-msgstr ""
+msgstr "計算繞射圖樣的波長。對於窄帶濾鏡可以精確指定，對於寬帶/光害濾鏡，可以使用中心"
+"波長。"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:934
 msgid ""
@@ -1487,7 +1488,7 @@ msgstr "望遠鏡主鏡直徑"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:967
 msgid "Central Obstruction / %"
-msgstr ""
+msgstr "中央遮蔽率 / %"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:978
 msgid ""
@@ -1495,16 +1496,18 @@ msgid ""
 "is zero for refractors, typically around 10-20% for fast Newtonians and may be "
 "as much as 40% for a Corrected Dall-Kirkham."
 msgstr ""
+"設定中央遮擋面積佔總口徑面積的百分比。折射望遠鏡為零，短焦牛頓反射式望遠鏡通"
+"常在10-20%左右，修正型 Dall-Kirkham 望遠鏡最高可達40%。"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1001
 msgid "Manual PSF Parameters"
-msgstr ""
+msgstr "手動PSF(點擴散函數)參數"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1033
 msgid ""
 "Regularization parameter for PSF estimation. Try decreasing this value for "
 "noisy images."
-msgstr ""
+msgstr "PSF 估計的正規化參數。對於雜訊較大的影像，可嘗試降低此值。"
 
 #: src/gui/uifiles/bdeconv_dialog.ui:1048
 msgid "Lambda (λ)"
@@ -2341,11 +2344,11 @@ msgstr ""
 
 #: src/gui/uifiles/composition_dialog.ui:541
 msgid "Align"
-msgstr ""
+msgstr "對齊"
 
 #: src/gui/uifiles/composition_dialog.ui:545
 msgid "Automatic alignment using the selected registration method."
-msgstr ""
+msgstr "使用目前選擇的方法自動對齊"
 
 #: src/gui/uifiles/cosmetic_dialog.ui:53 src/gui/uifiles/denoise_dialog.ui:148
 #: src/filters/cosmetic_correction.c:434 src/filters/cosmetic_correction.c:605
@@ -2364,7 +2367,7 @@ msgstr ""
 
 #: src/gui/uifiles/cosmetic_dialog.ui:121 src/gui/uifiles/siril.ui:4851
 msgid "Cold Sigma:"
-msgstr ""
+msgstr "冷像素標準差："
 
 #: src/gui/uifiles/cosmetic_dialog.ui:125
 msgid ""
@@ -2380,7 +2383,7 @@ msgstr ""
 
 #: src/gui/uifiles/cosmetic_dialog.ui:187 src/gui/uifiles/siril.ui:4881
 msgid "Hot Sigma:"
-msgstr ""
+msgstr "熱像素標準差："
 
 #: src/gui/uifiles/cosmetic_dialog.ui:191
 msgid ""
@@ -2431,7 +2434,7 @@ msgstr ""
 
 #: src/gui/uifiles/cut_coords_dialog.ui:149
 msgid "End"
-msgstr ""
+msgstr "結束"
 
 #: src/gui/uifiles/cut_coords_dialog.ui:160
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:281
@@ -2440,7 +2443,7 @@ msgstr ""
 
 #: src/gui/uifiles/cut_coords_dialog.ui:172
 msgid "Start"
-msgstr ""
+msgstr "開始"
 
 #: src/gui/uifiles/cut_coords_dialog.ui:183
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:270 src/gui/uifiles/siril.ui:4323
@@ -2662,11 +2665,11 @@ msgstr ""
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:358
 #: src/gui/uifiles/s_pcc_dialog.ui:560
 msgid "Wavelength"
-msgstr ""
+msgstr "波長"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:359
 msgid "Wavenumber"
-msgstr ""
+msgstr "波數"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:382
 msgid "Spectroscopic Calibration Points"
@@ -2692,7 +2695,7 @@ msgstr ""
 
 #: src/gui/uifiles/data_dialog.ui:50
 msgid "More details..."
-msgstr ""
+msgstr "更多..."
 
 #: src/gui/uifiles/denoise_dialog.ui:52
 msgid "Image Denoising"
@@ -2700,7 +2703,7 @@ msgstr ""
 
 #: src/gui/uifiles/denoise_dialog.ui:133
 msgid "Remove salt and pepper noise"
-msgstr ""
+msgstr "移除椒鹽雜訊"
 
 #: src/gui/uifiles/denoise_dialog.ui:137
 msgid ""
@@ -2898,7 +2901,7 @@ msgstr ""
 
 #: src/gui/uifiles/dialog_star_remix.ui:112
 msgid "Log histograms"
-msgstr ""
+msgstr "對數直方圖"
 
 #. gtk_widget_set_visible(lookup_widget("ghtBPcontrols1"), FALSE);
 #: src/gui/uifiles/dialog_star_remix.ui:127 src/gui/remixer.c:696
@@ -2963,25 +2966,25 @@ msgstr ""
 #: src/gui/uifiles/dialog_star_remix.ui:955
 #: src/gui/uifiles/histogram_dialog.ui:858
 msgid "Generalised hyperbolic transform"
-msgstr ""
+msgstr "廣義雙曲變換（GHS）"
 
 #: src/gui/uifiles/dialog_star_remix.ui:319
 #: src/gui/uifiles/dialog_star_remix.ui:956
 #: src/gui/uifiles/histogram_dialog.ui:859
 msgid "Inverse generalised hyperbolic transform"
-msgstr ""
+msgstr "反向廣義雙曲變換（Inverse-GHS）"
 
 #: src/gui/uifiles/dialog_star_remix.ui:320
 #: src/gui/uifiles/dialog_star_remix.ui:957
 #: src/gui/uifiles/histogram_dialog.ui:860
 msgid "Modified arcsinh transform"
-msgstr ""
+msgstr "修正反雙曲正弦（asinh）變換"
 
 #: src/gui/uifiles/dialog_star_remix.ui:321
 #: src/gui/uifiles/dialog_star_remix.ui:958
 #: src/gui/uifiles/histogram_dialog.ui:861
 msgid "Inverse modified arcsinh transform"
-msgstr ""
+msgstr "反向修正反雙曲正弦（inverse-asinh）變換"
 
 #: src/gui/uifiles/dialog_star_remix.ui:349
 #: src/gui/uifiles/dialog_star_remix.ui:986
@@ -3261,23 +3264,23 @@ msgstr ""
 #: src/gui/uifiles/extract_channel_dialog.ui:189 src/gui/uifiles/siril.ui:3363
 #: src/core/command.c:5787 src/core/command.c:5791
 msgid "RGB"
-msgstr ""
+msgstr "RGB"
 
 #: src/gui/uifiles/extract_channel_dialog.ui:190 src/core/command.c:5778
 msgid "HSL"
-msgstr ""
+msgstr "HSL"
 
 #: src/gui/uifiles/extract_channel_dialog.ui:191 src/core/command.c:5781
 msgid "HSV"
-msgstr ""
+msgstr "HSV"
 
 #: src/gui/uifiles/extract_channel_dialog.ui:192
 msgid "CIE L*a*b*"
-msgstr ""
+msgstr "CIE L*a*b*"
 
 #: src/gui/uifiles/extract_channel_dialog.ui:206
 msgid "Color Space:"
-msgstr ""
+msgstr "色彩空間："
 
 #: src/gui/uifiles/extract_wavelet_layers_dialog.ui:42
 msgid "Wavelets Layers Extraction"
@@ -3330,7 +3333,7 @@ msgstr ""
 
 #: src/gui/uifiles/file_information_dialog.ui:98
 msgid "Pixel size (micron): "
-msgstr ""
+msgstr "像素大小（微米）： "
 
 #: src/gui/uifiles/file_information_dialog.ui:109
 msgid ""
@@ -3346,7 +3349,7 @@ msgstr ""
 
 #: src/gui/uifiles/file_information_dialog.ui:145
 msgid "Focal length (mm): "
-msgstr ""
+msgstr "焦長（mm）： "
 
 #: src/gui/uifiles/file_information_dialog.ui:156
 msgid ""
@@ -3398,7 +3401,7 @@ msgstr ""
 
 #: src/gui/uifiles/histogram_dialog.ui:138 src/gui/histogram.c:1332
 msgid "Histogram Transformation"
-msgstr ""
+msgstr "直方圖變換"
 
 #: src/gui/uifiles/histogram_dialog.ui:192
 msgid "Apply histogram transformation"
@@ -3452,15 +3455,15 @@ msgstr ""
 
 #: src/gui/uifiles/histogram_dialog.ui:518
 msgid "Highlights: "
-msgstr ""
+msgstr "高光： "
 
 #: src/gui/uifiles/histogram_dialog.ui:530
 msgid "Midtones: "
-msgstr ""
+msgstr "中間調： "
 
 #: src/gui/uifiles/histogram_dialog.ui:542
 msgid "Shadows: "
-msgstr ""
+msgstr "暗部： "
 
 #: src/gui/uifiles/histogram_dialog.ui:553
 msgid "Midtones balance"
@@ -3521,8 +3524,9 @@ msgid ""
 msgstr ""
 
 #: src/gui/uifiles/histogram_dialog.ui:862
+#, fuzzy
 msgid "Linear stretch (BP shift)"
-msgstr ""
+msgstr "線性拉伸（BP shift）"
 
 #: src/gui/uifiles/histogram_dialog.ui:904
 msgid ""
@@ -3845,7 +3849,7 @@ msgstr ""
 #: src/gui/uifiles/livestacking_player.ui:192 src/gui/uifiles/siril.ui:712
 #: src/gui/uifiles/StatWindow.ui:48 src/algos/statistics.c:938
 msgid "Statistics"
-msgstr ""
+msgstr "統計"
 
 #: src/gui/uifiles/livestacking_player.ui:220
 msgid "waiting for input files"
@@ -3853,7 +3857,7 @@ msgstr ""
 
 #: src/gui/uifiles/livestacking_player.ui:229 src/gui/uifiles/siril.ui:8952
 msgid "Stacking"
-msgstr ""
+msgstr "疊合"
 
 #: src/gui/uifiles/livestacking_player.ui:298
 msgid "Master-dark and cosmetic correction"
@@ -4246,13 +4250,13 @@ msgstr ""
 #: src/gui/uifiles/siril.ui:6799 src/algos/geometry.c:301
 #: src/algos/geometry.c:395
 msgid "Bilinear"
-msgstr ""
+msgstr "雙線性"
 
 #: src/gui/uifiles/resample_dialog.ui:180 src/gui/uifiles/rotation_dialog.ui:205
 #: src/gui/uifiles/siril.ui:6800 src/algos/geometry.c:305
 #: src/algos/geometry.c:401
 msgid "Bicubic"
-msgstr ""
+msgstr "雙三次"
 
 #: src/gui/uifiles/resample_dialog.ui:181 src/gui/uifiles/rotation_dialog.ui:206
 #: src/gui/uifiles/siril.ui:6801 src/algos/geometry.c:303
@@ -4476,7 +4480,7 @@ msgstr ""
 
 #: src/gui/uifiles/savepopup.ui:543
 msgid "TIFF"
-msgstr ""
+msgstr "TIFF"
 
 #: src/gui/uifiles/savepopup.ui:603 src/gui/uifiles/savepopup.ui:891
 msgid "Quality: "
@@ -4484,7 +4488,7 @@ msgstr ""
 
 #: src/gui/uifiles/savepopup.ui:657
 msgid "JPEG"
-msgstr ""
+msgstr "JPEG"
 
 #: src/gui/uifiles/savepopup.ui:692 src/gui/uifiles/savepopup.ui:725
 #: src/gui/uifiles/savepopup.ui:742
@@ -4509,7 +4513,7 @@ msgstr ""
 
 #: src/gui/uifiles/savepopup.ui:826
 msgid "FITS"
-msgstr ""
+msgstr "FITS"
 
 #: src/gui/uifiles/savepopup.ui:872
 msgid ""
@@ -4847,15 +4851,15 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:645
 msgid ".fit"
-msgstr ""
+msgstr ".fit"
 
 #: src/gui/uifiles/settings_window.ui:646
 msgid ".fits"
-msgstr ""
+msgstr ".fits"
 
 #: src/gui/uifiles/settings_window.ui:647
 msgid ".fts"
-msgstr ""
+msgstr ".fts"
 
 #: src/gui/uifiles/settings_window.ui:660
 msgid "Extension:"
@@ -5403,15 +5407,15 @@ msgstr ""
 #: src/gui/uifiles/settings_window.ui:3069 src/gui/uifiles/siril.ui:2395
 #: src/gui/uifiles/siril.ui:2470 src/gui/uifiles/siril.ui:2556
 msgid "Photometry"
-msgstr ""
+msgstr "測光"
 
 #: src/gui/uifiles/settings_window.ui:2571
 msgid "Inner radius: "
-msgstr ""
+msgstr "內圈半徑： "
 
 #: src/gui/uifiles/settings_window.ui:2583
 msgid "Outer radius:"
-msgstr ""
+msgstr "外圈半徑："
 
 #: src/gui/uifiles/settings_window.ui:2594
 msgid ""
@@ -6190,7 +6194,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:5066
 msgid "Script"
-msgstr ""
+msgstr "腳本"
 
 #: src/gui/uifiles/settings_window.ui:5109
 msgid "<b>Siril Scripts Repository</b>"
@@ -6239,7 +6243,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:5253
 msgid "<b>Memory management</b>"
-msgstr ""
+msgstr "<b>記憶體管理</b>"
 
 #: src/gui/uifiles/settings_window.ui:5286
 msgid "Default bit depth for HD AutoStretch"
@@ -6465,7 +6469,7 @@ msgstr ""
 
 #: src/gui/uifiles/settings_window.ui:5912
 msgid "Update"
-msgstr ""
+msgstr "更新"
 
 #: src/gui/uifiles/siril.ui:286
 msgid "Clear all curves displayed in photometry."
@@ -6505,7 +6509,7 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:522
 msgid "Get Scripts"
-msgstr ""
+msgstr "取得腳本"
 
 #: src/gui/uifiles/siril.ui:536
 msgid "Keyboard Shortcuts"
@@ -6513,11 +6517,11 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:550 src/gui/about_dialog.c:71
 msgid "About Siril"
-msgstr ""
+msgstr "關於 Siril"
 
 #: src/gui/uifiles/siril.ui:627
 msgid "AutoStretch"
-msgstr ""
+msgstr "自動拉伸"
 
 #: src/gui/uifiles/siril.ui:639
 msgid "High definition"
@@ -6542,15 +6546,15 @@ msgstr ""
 
 #: src/gui/uifiles/siril.ui:751 src/gui/mouse_action_functions.h:67
 msgid "Undo"
-msgstr ""
+msgstr "復原"
 
 #: src/gui/uifiles/siril.ui:760 src/gui/mouse_action_functions.h:71
 msgid "Redo"
-msgstr ""
+msgstr "取消復原"
 
 #: src/gui/uifiles/siril.ui:775
 msgid "PSF"
-msgstr ""
+msgstr "點擴散函數（PSF）"
 
 #: src/gui/uifiles/siril.ui:782
 msgid ""
@@ -23602,7 +23606,7 @@ msgstr ""
 
 #: src/io/siril_catalogues.c:246
 msgid "PPMXL"
-msgstr ""
+msgstr "PPMXL星表"
 
 #: src/io/siril_catalogues.c:248
 msgid "bright stars"
@@ -25102,7 +25106,7 @@ msgstr "開始疊圖...\n"
 
 #: src/stacking/median_and_mean.c:1315
 msgid "Rejection stacking in progress..."
-msgstr "排除疊圖正在進行中..."
+msgstr "排異疊圖正在進行中..."
 
 #: src/stacking/median_and_mean.c:1316
 msgid "Median stacking in progress..."
@@ -25119,7 +25123,7 @@ msgstr ""
 
 #: src/stacking/median_and_mean.c:1568
 msgid "Rejection stacking failed. Check the log."
-msgstr ""
+msgstr "排除疊圖失敗。檢查日誌。"
 
 #: src/stacking/median_and_mean.c:1569
 msgid "Median stacking failed. Check the log."
@@ -25135,7 +25139,7 @@ msgstr "疊圖失敗\n"
 
 #: src/stacking/median_and_mean.c:1575
 msgid "Rejection stacking complete."
-msgstr ""
+msgstr "排除疊圖完成。"
 
 #: src/stacking/median_and_mean.c:1576
 #, c-format
@@ -25144,12 +25148,12 @@ msgstr ""
 
 #: src/stacking/median_and_mean.c:1578
 msgid "Median stacking complete."
-msgstr ""
+msgstr "中位數疊圖完成。"
 
 #: src/stacking/median_and_mean.c:1579
 #, c-format
 msgid "Median stacking complete. %d images have been stacked.\n"
-msgstr ""
+msgstr "中位數疊圖完成。已疊合%d張圖片\n"
 
 #: src/stacking/normalization.c:45
 msgid "Normalization computation time"
