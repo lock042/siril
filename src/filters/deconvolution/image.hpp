@@ -49,14 +49,18 @@ free-astro 2022-2023.
 #include <vector>
 #include <numeric>
 #include "core/siril.h"
-#include "chelperfuncs.h"
-
 #include <fftw3.h>
 #include "fftw_allocator.hpp"
 
 #ifdef _OPENMP
 #include <omp.h>
 #endif
+
+extern int cppmaxthreads;
+extern unsigned cppfftwflags;
+extern double cppfftwtimelimit;
+extern int cppfftwmultithreaded;
+extern int sequence_is_running;
 
 template <typename T>
 class img_t {

@@ -23,11 +23,11 @@ SOFTWARE.
 */
 #pragma once
 
+#include "core/arithm.h"
 #include "image.hpp"
 #include "image_expr.hpp"
 #include "labeling.hpp"
 #include "vec2.hpp"
-#include "chelperfuncs.h"
 
 namespace utils {
 

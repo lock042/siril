@@ -26,6 +26,7 @@ SOFTWARE.
 #include <complex>
 #include <cassert>
 #include "algos/siril_random.h"
+#include "core/processing.h" // for get_thread_run()
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846  /* pi */
@@ -35,7 +36,6 @@ SOFTWARE.
 #include "deconvBregman.hpp"
 #include "utils.hpp"
 #include "edgetaper.hpp"
-#include "chelperfuncs.h"
 
 /// Algorithm 6
 template <typename T>
@@ -202,7 +202,7 @@ void phaseRetrieval(img_t<T>& outkernel, const img_t<T>& blurredPatch,
 #pragma omp for schedule(guided) nowait
         for (int k = 0; k < opts.Ntries; k++) {
 
-            if (is_thread_stopped()) continue;
+            if (!get_thread_run()) continue;
 
             // retrieve one possible kernel
             singlePhaseRetrieval(kernel, magnitude, kernelSize, opts.Ninner);

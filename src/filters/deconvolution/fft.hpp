@@ -31,7 +31,6 @@ SOFTWARE.
 
 #include "image.hpp"
 #include "image_expr.hpp"
-#include "chelperfuncs.h"
 
 #include <map>
 #include <unordered_map>

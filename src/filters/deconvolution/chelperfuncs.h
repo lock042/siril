@@ -25,9 +25,6 @@
 extern "C" {
 #endif
 
-void magnify(float *y, const float *x, int W, int H, int pd, int w, int h, float n);
-void shrink(float *y, float *x, int outw, int outh, int inw, int inh, float scale, float sigma);
-void gaussblur(float*, float*, int, int, float);
 void updateprogress(const char *text, double percent);
 void sirillog(const char* text);
 int is_thread_stopped();

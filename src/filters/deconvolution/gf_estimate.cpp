@@ -24,6 +24,8 @@ SOFTWARE.
 #include <vector>
 #include "image.hpp"
 #include "algos/siril_random.h"
+#include "core/arithm.h"
+#include "core/processing.h"
 #include "computeProjectionsAutocorrelation.hpp"
 #include "reconstructPowerspectrum.hpp"
 #include "phaseRetrieval.hpp"
@@ -326,7 +328,7 @@ void gf_kernel(img_t<T>& kernel, const img_t<T>& img,
         phaseRetrieval(kernel, blurredPatch, powerSpectrum, kernelSize, opts);
         siril_debug_print("pr\n");
 
-        if (is_thread_stopped()) {
+        if (!get_thread_run()) {
             siril_debug_print("Thread stopped, aborting...\n");
             break;
         }

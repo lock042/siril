@@ -4,6 +4,10 @@
 #include "sequence_filtering.h"
 #include "io/fits_sequence.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * \file processing.h
  * \brief Manages background computation and parallel image processing.
@@ -186,5 +190,9 @@ struct generic_seq_metadata_args {
 gpointer generic_sequence_metadata_worker(gpointer args);
 
 void kill_child_process(gboolean on_exit);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

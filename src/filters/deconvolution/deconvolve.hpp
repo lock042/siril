@@ -26,8 +26,13 @@
 #include "optimization.hpp"
 #include "fft.hpp"
 #include "utils.hpp"
-#include "chelperfuncs.h"
-#include "rlstrings.h"
+#include "core/processing.h" // for get_thread_run()
+#include "core/siril_log.h" // for siril_log_message()
+#include "gui/progress_and_log.h" // for set_progress_bar_data()
+
+extern char* msg_earlystop;
+extern char* msg_rl;
+extern char* msg_wiener;
 
 namespace deconvolve {
     template <typename T>
@@ -54,17 +59,17 @@ namespace deconvolve {
         // Generate |H^2| = H * complex conjugate of H
         denom.map((img::conj(H) * H) + sigma);
         denom.sanitize(); // Avoid NaNs and zeros in the denominator
-        updateprogress(msg_wiener, 0.33);
+        set_progress_bar_data(msg_wiener, 0.33);
 
         // Take the FFT of the image f, call this G
         G.map(f);
         G.fft(G);
-        updateprogress(msg_wiener, 0.66);
+        set_progress_bar_data(msg_wiener, 0.66);
 
         // Apply the Wiener filter
         G.map((G * img::conj(H)) / denom);
         G.ifft(G);
-        updateprogress(msg_wiener, 1.0);
+        set_progress_bar_data(msg_wiener, 1.0);
 
         x.map(img::real(G));
     }
@@ -101,7 +106,7 @@ namespace deconvolve {
         img_t<T> gxy(f.w, f.h, f.d);
         img_t<T> gyy(f.w, f.h, f.d);
         for (int iter = 0 ; iter < maxiter ; iter++) {
-            if (is_thread_stopped())
+            if (!get_thread_run())
                 continue;
             w.map(img::real(est));
             if (regtype == 0 || regtype == 3) {
@@ -162,7 +167,7 @@ namespace deconvolve {
                     break;
             }
             if (sequence_is_running == 0)
-                updateprogress(msg_rl, (static_cast<float>(iter + 1) / static_cast<float>(maxiter)));
+                set_progress_bar_data(msg_rl, (static_cast<float>(iter + 1) / static_cast<float>(maxiter)));
             if (stopcriterion_active == 1) {
                 // Stopping criterion?
                 gxy.map((img::abs(img::real(est) - gxy)) / img::abs(gxy));
@@ -170,7 +175,7 @@ namespace deconvolve {
                 if (stopping < stopcriterion) {
                     char msg[100];
                     sprintf(msg, "%s %d\n", msg_earlystop, iter+1);
-                    sirillog(msg);
+                    siril_log_message(msg);
                     iter = maxiter;
                 }
             }
@@ -194,7 +199,7 @@ namespace deconvolve {
         img_t<T> gxy(f.w, f.h, f.d);
         img_t<T> gyy(f.w, f.h, f.d);
         for (int iter = 0 ; iter < maxiter ; iter++) {
-            if (is_thread_stopped())
+            if (!get_thread_run())
                 continue;
             // Regularization calcs
             w.map(x);
@@ -246,14 +251,14 @@ namespace deconvolve {
                     break;
             }
             if (sequence_is_running == 0)
-                updateprogress(msg_rl, (static_cast<float>(iter + 1) / static_cast<float>(maxiter)));
+                set_progress_bar_data(msg_rl, (static_cast<float>(iter + 1) / static_cast<float>(maxiter)));
             if (stopcriterion_active == 1) {
                 gxy.map((img::abs(x - gxy)) / img::abs(gxy));
                 T stopping = gxy.sum() / gxy.size;
                 if (stopping < stopcriterion) {
                     char msg[100];
                     sprintf(msg, "%s %d\n", msg_earlystop, iter+1);
-                    sirillog(msg);
+                    siril_log_message(msg);
                     iter = maxiter;
                 }
             }
@@ -272,7 +277,7 @@ namespace deconvolve {
         f_ft.map(f);
         f_ft.fft(f_ft);
 
-        if (is_thread_stopped())
+        if (!get_thread_run())
             return;
 
         img_t<std::complex<T>> dx_otf(f.w, f.h, f.d);
@@ -285,7 +290,7 @@ namespace deconvolve {
         }
         dx_otf.fft(dx_otf);
 
-        if (is_thread_stopped())
+        if (!get_thread_run())
             return;
 
         img_t<std::complex<T>> dy_otf(f.w, f.h, f.d);
@@ -298,7 +303,7 @@ namespace deconvolve {
         }
         dy_otf.fft(dy_otf);
 
-        if (is_thread_stopped())
+        if (!get_thread_run())
             return;
 
         img_t<std::complex<T>> K_otf(f.w, f.h, f.d);
@@ -306,7 +311,7 @@ namespace deconvolve {
         K_otf.map(K_otf * std::complex<T>(K.d) / K.sum());
         K_otf.fft(K_otf);
 
-        if (is_thread_stopped())
+        if (!get_thread_run())
             return;
 
         auto Kf = img::conj(K_otf) * f_ft;
@@ -322,15 +327,15 @@ namespace deconvolve {
         img_t<std::complex<T>> w1_ft(f.w, f.h, f.d);
         img_t<std::complex<T>> x_ft(f.w, f.h, f.d);
         while (beta < max_beta) {
-            if (is_thread_stopped())
+            if (!get_thread_run())
                 break;
             if (sequence_is_running == 0)
-                updateprogress("Split Bregman deconvolution...", ((beta - b_0) / (max_beta - b_0)));
+                set_progress_bar_data("Split Bregman deconvolution...", ((beta - b_0) / (max_beta - b_0)));
             T gamma = beta / lambda;
             auto denom = ksq + gamma * dxdysq;
 
             for (int inner = 0; inner < iters; inner++) {
-                if (is_thread_stopped())
+                if (!get_thread_run())
                     break;
                 auto grad = gradient.direct(x);
                 w.map(grad * (T(1) - T(1) / (img::max(T(1), beta * img::hypot(grad)))));

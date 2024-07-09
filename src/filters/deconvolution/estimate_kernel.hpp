@@ -28,9 +28,7 @@ SOFTWARE.
 #include "fft.hpp"
 #include "utils.hpp"
 #include "edgetaper.hpp"
-#include "chelperfuncs.h"
-
-extern "C" void shrink(float *y, float *x, int outw, int outh, int inw, int inh, float scale, float sigma);
+#include "core/processing.h"
 
 // downsample an image with Gaussian filtering
 void gaussian_downsample(img_t<float>& out, const img_t<float>& _in, float factor, float sigma=1.6f) {
@@ -429,7 +427,7 @@ void l0_kernel_estimation(img_t<T>& k, img_t<T>& u, const img_t<T>& v,
 
     // alternate between estimating k and u, while decreasing lambda
     for (int i = 0; i < opts.iterations; i++) {
-        if (is_thread_stopped())
+        if (!get_thread_run())
             break;
         if (opts.verbose) {
             printf("Iteration %d/%d: lambda=%f\n", i+1, opts.iterations, opts.lambda);

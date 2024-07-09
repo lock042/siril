@@ -10,11 +10,19 @@
 #define PROGRESS_DONE 1.0		// fill the progress bar
 #define PROGRESS_TEXT_RESET ""		// reset the progress bar's text
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void initialize_log_tags();
 void gui_log_message(const char* msg, const char* color);
 
 void set_progress_bar_data(const char *text, double percent);
 void set_cursor_waiting(gboolean waiting);
 void set_cursor(const gchar* cursor_name);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

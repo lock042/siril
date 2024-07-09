@@ -50,7 +50,7 @@ extern "C" int wienerdec(float *fdata, unsigned rx, unsigned ry, unsigned nchans
             fdata[c * rx * ry + i] = u.data[i];
     }
     if (sequence_is_running == 0)
-        updateprogress("Ready.", 0.);
+        set_progress_bar_data("Ready.", 0.);
     return 0;
 }
 
@@ -80,7 +80,7 @@ extern "C" int fft_richardson_lucy(float *fdata, unsigned rx, unsigned ry, unsig
         }
     }
     if (sequence_is_running == 0)
-        updateprogress("Ready.", 0.);
+        set_progress_bar_data("Ready.", 0.);
     return 0;
 }
 
@@ -110,7 +110,7 @@ extern "C" int naive_richardson_lucy(float *fdata, unsigned rx, unsigned ry, uns
         }
     }
     if (sequence_is_running == 0)
-        updateprogress("Ready.", 0.);
+        set_progress_bar_data("Ready.", 0.);
     return 0;
 }
 
@@ -140,6 +140,6 @@ extern "C" int split_bregman(float *fdata, unsigned rx, unsigned ry, unsigned nc
         }
     }
     if (sequence_is_running == 0)
-        updateprogress("Ready.", 0.);
+        set_progress_bar_data("Ready.", 0.);
     return 0;
 }
