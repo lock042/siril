@@ -509,17 +509,22 @@ void gaussblur(float *y, float *x, int w, int h, float sigma) {
 	fftwf_plan p = fftwf_plan_dft_2d(h, w, a, fx, FFTW_FORWARD, FFTW_ESTIMATE);
 	fftwf_plan q = fftwf_plan_dft_2d(h, w, a, fk, FFTW_FORWARD, FFTW_ESTIMATE);
 	fftwf_plan r = fftwf_plan_dft_2d(h, w, a, fk, FFTW_BACKWARD, FFTW_ESTIMATE);
-	for (int i = 0 ; i < (w * h); i++) {
-		a[i] = x[i];
-	}
 	float *k = malloc(w * h * sizeof(float));
 	float (*kk)[w] = (void *)k;
 	float invss = 1/(sigma * sigma);
 	float alpha = invss / (M_PI);
+	float scale = 1.f / (w * h);
+	float sum = 0;
 #ifdef _OPENMP
 #pragma omp parallel num_threads(com.max_thread) if (com.max_thread > 1)
 {
-#pragma omp for simd schedule(static) collapse(2)
+#pragma omp for simd schedule(static)
+#endif
+	for (int i = 0 ; i < (w * h); i++) {
+		a[i] = x[i];
+	}
+#ifdef _OPENMP
+#pragma omp for simd schedule(static,16) collapse(2)
 #endif
 	for (int j = 0 ; j < h ; j++) {
 		for (int i = 0 ; i < w ; i++) {
@@ -527,7 +532,6 @@ void gaussblur(float *y, float *x, int w, int h, float sigma) {
 			kk[j][i] = alpha * expf(-r*r*invss);
 		}
 	}
-	float sum = 0;
 #ifdef _OPENMP
 #pragma omp for simd schedule(static,16) collapse(2)
 #endif
@@ -550,34 +554,56 @@ void gaussblur(float *y, float *x, int w, int h, float sigma) {
 	for (int i = 0 ; i < (w * h); i++) {
 		a[i] = k[i];
 	}
+#ifdef _OPENMP
+#pragma omp single
+{
+#endif
 	free(k);
 	fftwf_execute(p);
 	fftwf_destroy_plan(p);
 #ifdef _OPENMP
+}
 #pragma omp for simd schedule(static)
 #endif
 	for (int i = 0 ; i < w * h ; i++) {
 		fx[i] = fx[i] * fk[i];
 	}
+#ifdef _OPENMP
+#pragma omp single
+{
+#endif
 	fftwf_execute(q);
 	fftwf_destroy_plan(q);
 #ifdef _OPENMP
+}
 #pragma omp for simd schedule(static)
 #endif
 	for (int i = 0 ; i < w * h; i++) {
 		a[i] = fx[i];
 	}
+#ifdef _OPENMP
+#pragma omp single
+{
+#endif
 	fftwf_free(fx);
 	fftwf_execute(r); // Reuse fk here to hold the output
 	fftwf_destroy_plan(r);
-	float scale = 1.f / (w * h);
+#ifdef _OPENMP
+}
+#pragma omp for simd schedule(static)
+#endif
 	for (int i = 0 ; i < w * h; i++) {
 		fftwf_complex z = fk[i] * scale;
 		y[i] = crealf(z);
 	}
+#ifdef _OPENMP
+#pragma omp single
+{
+#endif
 	fftwf_free(fk);
 	fftwf_free(a);
 #ifdef _OPENMP
+}
 }
 #endif
 }

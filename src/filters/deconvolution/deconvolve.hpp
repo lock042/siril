@@ -26,13 +26,10 @@
 #include "optimization.hpp"
 #include "fft.hpp"
 #include "utils.hpp"
+#include "core/siril.h"
 #include "core/processing.h" // for get_thread_run()
 #include "core/siril_log.h" // for siril_log_message()
 #include "gui/progress_and_log.h" // for set_progress_bar_data()
-
-extern char* msg_earlystop;
-extern char* msg_rl;
-extern char* msg_wiener;
 
 namespace deconvolve {
     template <typename T>
@@ -59,17 +56,17 @@ namespace deconvolve {
         // Generate |H^2| = H * complex conjugate of H
         denom.map((img::conj(H) * H) + sigma);
         denom.sanitize(); // Avoid NaNs and zeros in the denominator
-        set_progress_bar_data(msg_wiener, 0.33);
+        set_progress_bar_data(_("Wiener deconvolution..."), 0.33);
 
         // Take the FFT of the image f, call this G
         G.map(f);
         G.fft(G);
-        set_progress_bar_data(msg_wiener, 0.66);
+        set_progress_bar_data(_("Wiener deconvolution..."), 0.66);
 
         // Apply the Wiener filter
         G.map((G * img::conj(H)) / denom);
         G.ifft(G);
-        set_progress_bar_data(msg_wiener, 1.0);
+        set_progress_bar_data(_("Wiener deconvolution..."), 1.0);
 
         x.map(img::real(G));
     }
@@ -167,14 +164,14 @@ namespace deconvolve {
                     break;
             }
             if (sequence_is_running == 0)
-                set_progress_bar_data(msg_rl, (static_cast<float>(iter + 1) / static_cast<float>(maxiter)));
+                set_progress_bar_data(_("Richardson-Lucy deconvolution..."), (static_cast<float>(iter + 1) / static_cast<float>(maxiter)));
             if (stopcriterion_active == 1) {
                 // Stopping criterion?
                 gxy.map((img::abs(img::real(est) - gxy)) / img::abs(gxy));
                 T stopping = gxy.sum() / gxy.size;
                 if (stopping < stopcriterion) {
                     char msg[100];
-                    sprintf(msg, "%s %d\n", msg_earlystop, iter+1);
+                    sprintf(msg, "%s %d\n", _("Richardson-Lucy halted early by the stopping criterion after iteration"), iter+1);
                     siril_log_message(msg);
                     iter = maxiter;
                 }
@@ -251,13 +248,13 @@ namespace deconvolve {
                     break;
             }
             if (sequence_is_running == 0)
-                set_progress_bar_data(msg_rl, (static_cast<float>(iter + 1) / static_cast<float>(maxiter)));
+                set_progress_bar_data(_("Richardson-Lucy deconvolution..."), (static_cast<float>(iter + 1) / static_cast<float>(maxiter)));
             if (stopcriterion_active == 1) {
                 gxy.map((img::abs(x - gxy)) / img::abs(gxy));
                 T stopping = gxy.sum() / gxy.size;
                 if (stopping < stopcriterion) {
                     char msg[100];
-                    sprintf(msg, "%s %d\n", msg_earlystop, iter+1);
+                    sprintf(msg, "%s %d\n", _("Richardson-Lucy halted early by the stopping criterion after iteration"), iter+1);
                     siril_log_message(msg);
                     iter = maxiter;
                 }
