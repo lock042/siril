@@ -25,7 +25,6 @@ SOFTWARE.
 #include <stdlib.h>
 #include <math.h>
 #include <stdio.h>
-#include <omp.h>
 #include <algorithm>
 
 #ifndef M_PI

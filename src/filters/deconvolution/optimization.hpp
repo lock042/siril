@@ -1,8 +1,5 @@
 #pragma once
 
-#include <numeric>
-#include <omp.h>
-
 #include "image.hpp"
 #include "image_expr.hpp"
 #include "vec2.hpp"

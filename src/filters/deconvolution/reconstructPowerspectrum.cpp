@@ -26,7 +26,9 @@ SOFTWARE.
 #include <cmath>
 #include <complex>
 #include <cassert>
+#ifdef _OPENMP
 #include <omp.h>
+#endif
 #include "image.hpp"
 #include "angleSet.hpp"
 

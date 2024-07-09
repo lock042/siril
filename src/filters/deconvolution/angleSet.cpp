@@ -27,7 +27,9 @@ SOFTWARE.
 #include <algorithm>
 #include <vector>
 #include <numeric> // For std::gcd in C++17
-#include <omp.h> // OpenMP header
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 #include "image.hpp"
 #include "angleSet.hpp"

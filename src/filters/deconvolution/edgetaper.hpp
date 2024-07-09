@@ -29,7 +29,9 @@ SOFTWARE.
 #include "image.hpp"
 #include <glib.h>
 
+#ifdef _OPENMP
 #include <omp.h>
+#endif
 
 template <typename T>
 void edgetaper(img_t<T>& out, const img_t<T>& in, const img_t<T>& kernel, int iterations=1)
