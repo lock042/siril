@@ -44,9 +44,9 @@ gpointer epfhandler (gpointer args) {
 	struct epfargs *p = (struct epfargs*) args;
 	set_cursor_waiting(TRUE);
 	int retval = edge_preserving_filter(p);
+	unlock_roi_mutex();
 	if (!com.script)
 		siril_add_idle(end_epf, NULL);
-	unlock_roi_mutex();
 	return GINT_TO_POINTER(retval);
 }
 
