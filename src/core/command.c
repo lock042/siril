@@ -1766,7 +1766,7 @@ int process_unsharp(int nb) {
 }
 
 int process_update_key(int nb) {
-	if (nb > 2) {
+	if (nb != 3) {
 		return CMD_ARG_ERROR;
 	}
 	gchar *FITS_key, *value;
