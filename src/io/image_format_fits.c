@@ -3050,12 +3050,6 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *value) {
 	tmpfit.fptr = fptr;
 	save_fits_header(&tmpfit);
 
-	if (fits_read_card(fptr, key, card, &status)) {
-		siril_log_color_message("Keyword does not exist or is not managed by Siril\n", "red");
-		goto cleanup;
-	} else
-		siril_debug_print("%s\n", card);
-
 	/* check if this is a protected keyword that must not be changed */
 	if (*card && fits_get_keyclass(card) == TYP_STRUC_KEY) {
 		siril_log_color_message("Protected keyword cannot be modified.\n", "red");
@@ -3106,7 +3100,7 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *value) {
 	if (status)
 		fits_report_error(stderr, status);
 
-cleanup:
+//cleanup:
 	fits_close_file(tmpfit.fptr, &status);
 	clearfits(&tmpfit);
 	free(memptr);

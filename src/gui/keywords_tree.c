@@ -284,7 +284,73 @@ void on_key_selection_changed(GtkTreeSelection *selection, gpointer user_data) {
 	gtk_widget_set_sensitive(widget, !is_empty && are_selected);
 }
 
+static void to_uppercase(char *str) {
+	for (int i = 0; str[i]; i++) {
+		str[i] = g_ascii_toupper((unsigned char) str[i]);
+	}
+}
 
+void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
+	GtkWidget *dialog;
+	GtkWidget *content_area;
+	GtkWidget *vbox;
+	GtkWidget *hbox_name;
+	GtkWidget *hbox_value;
+	GtkWidget *label_name;
+	GtkWidget *label_value;
+	GtkWidget *entry_name;
+	GtkWidget *entry_value;
+	GtkDialogFlags flags = GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT;
+
+	// Create the dialog window with buttons
+	dialog = gtk_dialog_new_with_buttons("Add New Keyword", GTK_WINDOW(user_data),
+			flags, "_Cancel", GTK_RESPONSE_CANCEL, "_Add", GTK_RESPONSE_OK,
+			NULL);
+
+	// Set the dialog to be non-resizable
+	gtk_window_set_resizable(GTK_WINDOW(dialog), FALSE);
+
+	// Get the content area of the dialog
+	content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+
+	// Create a vertical box to hold the labels and entries
+	vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+	gtk_container_add(GTK_CONTAINER(content_area), vbox);
+
+	// Create the Name label and entry
+	hbox_name = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+	label_name = gtk_label_new("Name:");
+	entry_name = gtk_entry_new();
+	gtk_entry_set_max_length(GTK_ENTRY(entry_name), 8); // Set the max length to 8. Don't want HIERARCH convention
+	gtk_box_pack_start(GTK_BOX(hbox_name), label_name, FALSE, FALSE, 5);
+	gtk_box_pack_start(GTK_BOX(hbox_name), entry_name, TRUE, TRUE, 5);
+	gtk_box_pack_start(GTK_BOX(vbox), hbox_name, FALSE, FALSE, 5);
+
+	// Create the Value label and entry
+	hbox_value = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+	label_value = gtk_label_new("Value:");
+	entry_value = gtk_entry_new();
+	gtk_box_pack_start(GTK_BOX(hbox_value), label_value, FALSE, FALSE, 5);
+	gtk_box_pack_start(GTK_BOX(hbox_value), entry_value, TRUE, TRUE, 5);
+	gtk_box_pack_start(GTK_BOX(vbox), hbox_value, FALSE, FALSE, 5);
+
+	gtk_widget_show_all(dialog);
+
+	gint result = gtk_dialog_run(GTK_DIALOG(dialog));
+	if (result == GTK_RESPONSE_OK) {
+		const gchar *FITS_key_text = gtk_entry_get_text(GTK_ENTRY(entry_name));
+		gchar FITS_key[9];
+		strncpy(FITS_key, FITS_key_text, 8);
+		FITS_key[8] = '\0'; // Ensure null termination
+		to_uppercase(FITS_key);
+
+		const gchar *value = gtk_entry_get_text(GTK_ENTRY(entry_value));
+		updateFITSKeyword(&gfit, FITS_key, value);
+		refresh_keywords_dialog();
+	}
+
+	gtk_widget_destroy(dialog);
+}
 
 static void save_key_to_clipboard() {
 	/* Get the clipboard object */
