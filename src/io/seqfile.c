@@ -238,6 +238,8 @@ sequence * readseqfile(const char *name){
 					fprintf(stderr, "readseqfile: sequence file bad distorsion param: %s\n", line);
 					goto error;
 				}
+				if (!seq->distoparam)
+					seq->distoparam = calloc(seq->nb_layers, sizeof(disto_params));
 				seq->distoparam[current_layer].index = index;
 				if (index == DISTO_FILE) {
 					if (nb_tokens == 1) {
@@ -307,6 +309,8 @@ sequence * readseqfile(const char *name){
 						seq->regparam_bkp[current_layer] = regparam;
 					else seq->regparam[current_layer] = regparam;
 				}
+				if (!seq->distoparam)
+					seq->distoparam = calloc(seq->nb_layers, sizeof(disto_params));
 				if (i >= seq->number) {
 					fprintf(stderr, "\nreadseqfile: out of array bounds in reg info!\n\n");
 					goto error;

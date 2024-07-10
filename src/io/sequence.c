@@ -1543,6 +1543,7 @@ void check_or_allocate_regparam(sequence *seq, int layer) {
 	assert(layer < seq->nb_layers);
 	if (!seq->regparam && seq->nb_layers > 0) {
 		seq->regparam = calloc(seq->nb_layers, sizeof(regdata*));
+		seq->distoparam = calloc(seq->nb_layers, sizeof(disto_params));
 	}
 	if (seq->regparam && !seq->regparam[layer] && seq->number > 0) {
 		seq->regparam[layer] = calloc(seq->number, sizeof(regdata));

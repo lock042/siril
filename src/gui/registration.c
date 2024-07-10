@@ -1137,6 +1137,10 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 			}
 		}
 	}
+	if (isapplyreg && seq_has_any_distorsion(regargs->seq)) {
+		regargs->undistort = regargs->seq->distoparam[regargs->layer].index;
+		regargs->distoparam = regargs->seq->distoparam[regargs->layer];
+	}
 
 	//Checks
 

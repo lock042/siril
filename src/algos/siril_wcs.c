@@ -32,7 +32,7 @@
 
 
 // Use this flag to print wcslib related verbose - not for production
-#define DEBUG_WCS 0
+#define DEBUG_WCS
 
 gboolean has_wcs(fits *fit) {
 	return fit->keywords.wcslib != NULL;
@@ -89,7 +89,7 @@ wcsprm_t *load_WCS_from_hdr(char *header, int nkeyrec) {
 	wcsprm_t *data = NULL, *wcs = NULL;
 	int nreject, nwcs;
 	int ctrl = 0;
-#if DEBUG_WCS
+#ifdef DEBUG_WCS
 	ctrl = 2; // writes rejected WCS cards
 #endif
 	/** There was a bug with wcspih that it is not really thread-safe for wcslib version < 7.5.
@@ -121,15 +121,15 @@ wcsprm_t *load_WCS_from_hdr(char *header, int nkeyrec) {
 						wcs_mat2cd(wcs, cd);
 						wcs->flag = 0;
 						wcsset(wcs);
-						siril_debug_print("contains PC\n");
+						// siril_debug_print("contains PC\n");
 					} else { // contained some keywords but not enough to define at least a linear projection
 						siril_debug_print("wcs did not contain enough info\n");
 						free(wcs);
 						wcs = NULL;
 						break;
 					}
-					siril_debug_print("at header readout\n");
-					wcs_print(wcs);
+					// siril_debug_print("at header readout\n");
+					// wcs_print(wcs);
 					break;
 				} else {
 					siril_debug_print("wcssub error %d: %s.\n", status, wcs_errmsg[status]);
@@ -463,7 +463,7 @@ void update_SIP_keys(struct disprm *dis,
 }
 
 void wcs_print(wcsprm_t *prm) {
-#if DEBUG_WCS
+#ifdef DEBUG_WCS
 	printf("CRPIX\n");
 	int c = 0;
 	for (int i = 0; i < NAXIS; i++) {

@@ -134,6 +134,7 @@ struct registration_args {
 	disto_source undistort;		// type of undistorsion to apply
 	disto_params distoparam;		// type of undistorsion to apply
 	disto_data *disto;			// undistorsion information
+	struct wcsprm* WCSDATA;		// wcs structs for the whole structure (for seqapplyreg with astrometric solution) 
 	struct driz_args_t *driz;	// drizzle-specific data
 	framing_type framing;		// used by seqapplyreg to determine framing
 	framing_data framingd;	// precomputed framing data
@@ -207,12 +208,14 @@ gboolean layer_has_distorsion(const sequence *seq, int layer);
 int get_first_selected(sequence *seq);
 regdata *apply_reg_get_current_regdata(struct registration_args *regargs);
 
+void compute_roi(Homography *H, int rx, int ry, framing_roi *roi);
 void translation_from_H(Homography H, double *dx, double *dy);
 Homography H_from_translation(double dx, double dy);
 void SetNullH(Homography *H);
 int shift_fit_from_reg(fits *fit, Homography H);
 void compute_Hmax(Homography *Himg, Homography *Href, int src_rx_in, int src_ry_in, double scale, Homography *H, Homography *Hshift, int *dst_rx_out, int *dst_ry_out);
 
+int collect_sequence_astrometry(struct registration_args *regargs);
 int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_type framing, int layer);
 
 int minidx(const float *arr, const gboolean *mask, int nb, float *val);

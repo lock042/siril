@@ -160,11 +160,12 @@ int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_ty
 	rotation_type rottypes[3] = { ROTZ, ROTX, ROTZ};
 	double framingref = 0.;
 	int framingref_index = (framing == FRAMING_CURRENT) ? seq->reference_image : refindex;
+	int anglecount = 0;
 	for (int i = 0; i < n; i++) {
 		if (!incl[i])
 			continue;
 		double angles[3];
-		angles[0] = 90. - RA[i]; // TODO: need to understand why 90- instead of 90 + .... opencv vs wcs convention?
+		angles[0] = 90 - RA[i];
 		angles[1] = 90. - DEC[i];
 		// initializing K with center point (-0.5 is for opencv convention)
 		cvGetEye(Ks + i); // initializing to unity
@@ -178,13 +179,21 @@ int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_ty
 		}
 		cvRotMat3(angles, rottypes, TRUE, Rs + i);
 		siril_debug_print("Image #%d - rot:%.3f\n", i + 1, angles[2]);
-		if (i == framingref_index)
+		if (framing == FRAMING_CURRENT && i == framingref_index) {
 			framingref = angles[2];
+			anglecount++;
+		}
+		if (framing != FRAMING_CURRENT) {
+			framingref += (angles[2] < 0.) ? angles[2] + 180. : angles[2];
+			anglecount++;
+		}
 	}
+	framingref /= anglecount;
+	siril_log_message("Framing: %.3f\n", framingref);
 
 	// computing relative rotations wrt to proj center + central image framing
 	Homography Rref = { 0 };
-	double angles[3];
+	double angles[3] = { 0 };
 	switch (framing) {
 		case FRAMING_CURRENT:
 		default:
@@ -207,6 +216,21 @@ int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_ty
 	}
 	regdata *current_regdata = seq->regparam[layer];
 
+	float fscale = 0.5 * (fabs(Ks[refindex].h00) + fabs(Ks[refindex].h11));
+
+	// We compute the H matrices wrt to ref as Kref * Rrel * Kimg^-1
+	// The K matrices have the focals on the diag and (rx/2, ry/2) for the translation terms
+	// We add to the seq in order to display the alignment
+	// Homography Kref = Ks[refindex];
+	Homography Kref = { 0 };
+	cvGetEye(&Kref);
+	Kref.h00 = fscale;
+	Kref.h11 = fscale;
+	Kref.h02 = Ks[refindex].h02;
+	Kref.h12 = Ks[refindex].h12;
+
+	siril_debug_print("Scale: %.3f\n", fscale);
+
 	// We compute the H matrices wrt to ref as Kref * Rrel * Kimg^-1
 	// The K matrices have the focals on the diag and (rx/2, ry/2) for the translation terms
 	// We add to the seq in order to display a first alignment
@@ -214,26 +238,65 @@ int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_ty
 		if (!incl[i])
 			continue;
 		Homography H = { 0 };
-		cvcalcH_fromKKR(Ks[refindex], Ks[i], Rs[i], &H);
+		cvcalcH_fromKKR(Kref, Ks[i], Rs[i], &H);
+		framing_roi roi = { 0 };
+		int rx = ((seq->is_variable) ? seq->imgparam[i].rx : seq->rx);
+		int ry = ((seq->is_variable) ? seq->imgparam[i].ry : seq->ry);
+		compute_roi(&H, rx, ry, &roi);
+		// cvApplyFlips(&H, ry, roi.h);
 		current_regdata[i].H = H;
+		printf("Image %d\n", i + 1);
+		// print_H(Ks + i);
+		// print_H(Rs + i);
+		print_H(&H);
+		printf("%d,%d,%d,%d,%d\n", i + 1, roi.x, roi.y, roi.w, roi.h);
 	}
 	seq->reference_image = refindex;
 free_all:
 	free(RA);
 	free(DEC);
 	free(dist);
-	if (incl) {
-		for (int i = 0; i < n; i++) {
-			if (!incl[i])
-				continue;
-			wcsfree(WCSDATA + i);
-		}
-		free(incl);
-	}
-	free(WCSDATA);
+	// if (incl) {
+	// 	for (int i = 0; i < n; i++) {
+	// 		if (!incl[i])
+	// 			continue;
+	// 		wcsfree(WCSDATA + i);
+	// 	}
+	// 	free(incl);
+	// }
+	// free(WCSDATA);
 	free(Ks);
 	free(Rs);
 	siril_log_message(_("Registration finished.\n"));
+	return retval;
+}
+
+int collect_sequence_astrometry(struct registration_args *regargs) {
+	int n = regargs->seq->number;
+	int retval = 0;
+	fits fit = { 0 };
+	for (int i = 0; i < n; i++) {
+		if (regargs->filtering_criterion && !regargs->filtering_criterion(regargs->seq, i, regargs->filtering_parameter))
+			continue;
+		if (seq_read_frame_metadata(regargs->seq, i, &fit)) {
+			siril_log_message(_("Could not load image %d from sequence %s\n"),
+			i + 1, regargs->seq->seqname);
+			retval = 1;
+			break;
+		}
+		if (!has_wcs(&fit)) {
+			siril_log_message(_("Image %d has not been plate-solved, unselecting\n"), i + 1);
+			regargs->seq->imgparam[i].incl = FALSE;
+			regargs->filters.filter_included = TRUE;
+			convert_parsed_filter_to_filter(&regargs->filters,
+				regargs->seq, &regargs->filtering_criterion,
+				&regargs->filtering_parameter);
+			continue;
+		}
+		regargs->WCSDATA[i].flag = -1;
+		wcssub(1, fit.keywords.wcslib, NULL, NULL, regargs->WCSDATA + i); // copying wcsprm structure for each fit to avoid reopening
+		clearfits(&fit);
+	}
 	return retval;
 }
 

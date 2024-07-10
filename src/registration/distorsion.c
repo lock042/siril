@@ -99,7 +99,7 @@ void map_undistortion_D2S(disto_data *disto, int rx, int ry, float *xmap, float 
 		float *ryptr = ymap + r;
 		for (int u = 0; u < rx; ++u) {
 			U = (double)rxptr[u] - disto->xref;
-			V = disto->yref - (double)ryptr[u]; // opencv convention is y down while wcs is y up
+			V = (double)ryptr[u] - disto->yref;
 			x = U + disto->AP[0][0] + disto->AP[1][0] * U + disto->AP[0][1] * V;
 			y = V + disto->BP[0][0] + disto->BP[1][0] * U + disto->BP[0][1] * V;
 			if (disto->order >= 2) {
@@ -137,7 +137,7 @@ void map_undistortion_D2S(disto_data *disto, int rx, int ry, float *xmap, float 
 				}
 			}
 			rxptr[u] = (float)(x + disto->xref);
-			ryptr[u] = (float)(disto->yref - y);
+			ryptr[u] = (float)(y + disto->yref);
  		}
 		r += rx;
  	}
@@ -251,7 +251,7 @@ void map_undistortion_S2D(disto_data *disto, int rx, int ry, float *xmap, float 
 
 // Computes the distortion map and stores it in the disto structure
 int init_disto_map(int rx, int ry, disto_data *disto) {
-	if (disto == NULL || (disto->dtype != DISTO_MAP_D2S && disto->dtype != DISTO_MAP_S2D)) //nothing to do
+	if (disto == NULL) //nothing to do
 		return 0;
 
 	if (!disto->xmap) {
@@ -333,7 +333,8 @@ void prepare_H_with_disto_4remap(double *H, int rx_in, int ry_in, int rx_out, in
 	}
 }
 
-disto_data *init_disto_data(disto_params *distoparam, sequence *seq) {
+disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsprm *WCSDATA, gboolean drizzle, int *status) {
+	*status = 1;
 	if (!distoparam)
 		return NULL;
 	struct wcsprm *wcs = NULL;
@@ -355,15 +356,15 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq) {
 			break;
 		case DISTO_FILE:;
 			fits fit = { 0 };
-			int status = read_fits_metadata_from_path_first_HDU(distoparam->filename, &fit);
-			if (status) {
+			int statusread = read_fits_metadata_from_path_first_HDU(distoparam->filename, &fit);
+			if (statusread) {
 				siril_log_color_message(_("Could not load FITS file for distorsion\n"), "red");
 				siril_log_color_message(_("Computing registration without distorsion correction\n"), "red");
 				clearfits(&fit);
 				return NULL;
 			}
-			wcs = wcs_deepcopy(fit.keywords.wcslib, &status);
-			if (status) {
+			wcs = wcs_deepcopy(fit.keywords.wcslib, &statusread);
+			if (statusread) {
 				siril_log_color_message(_("Could not copy WCS information for distorsion\n"), "red");
 				siril_log_color_message(_("Computing registration without distorsion correction\n"), "red");
 				clearfits(&fit);
@@ -384,27 +385,50 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq) {
 			return NULL;
 			break;
 	}
-	if (!wcs)
-		return disto;
-	if (!wcs->lin.dispre) {
-		siril_log_color_message(_("Selected file has no distorsion information\n"), "red");
-		wcsfree(wcs);
-		return NULL;
-		g_free(distoparam->filename);
-		distoparam->n = 0;
-		distoparam->index = DISTO_UNDEF;
-	}
+
 	if (distoparam->index == DISTO_IMAGE || distoparam->index == DISTO_FILE) { // we only have one disto spec, we can init the disto structure
+		if (!wcs)
+			return disto;
+		if (!wcs->lin.dispre) {
+			siril_log_color_message(_("Selected file has no distorsion information\n"), "red");
+			wcsfree(wcs);
+			g_free(distoparam->filename);
+			distoparam->index = DISTO_UNDEF;
+			return NULL;
+		}
 		disto = calloc(1, sizeof(disto_data));
 		disto[0].order = extract_SIP_order_and_matrices(wcs->lin.dispre, disto[0].A, disto[0].B, disto[0].AP, disto[0].BP);
 		disto[0].xref = wcs->crpix[0] - 1.; // -1 comes from the difference of convention between opencv and wcs
 		disto[0].yref = wcs->crpix[1] - 1.;
+		disto[0].dtype = (drizzle) ? DISTO_MAP_S2D: DISTO_MAP_D2S;
 		wcsfree(wcs);
 	}
 	if (distoparam->index == DISTO_FILES) {
-		disto = calloc(distoparam->n, sizeof(disto_data));
-		// TODO: expand
+		disto = calloc(seq->number, sizeof(disto_data));
+		gboolean found = FALSE;
+		for (int i = 0;  i < seq->number; i++) {
+			if (!seq->imgparam[i].incl)
+				continue;
+			if (WCSDATA[i].lin.dispre) {
+				found = TRUE;
+				disto[i].order = extract_SIP_order_and_matrices(WCSDATA[i].lin.dispre, disto[i].A, disto[i].B, disto[i].AP, disto[i].BP);
+				disto[i].xref = WCSDATA[i].crpix[0] - 1.; // -1 comes from the difference of convention between opencv and wcs
+				disto[i].yref = WCSDATA[i].crpix[1] - 1.;
+				disto[i].dtype = (drizzle) ? DISTO_S2D: DISTO_D2S;
+			} else {
+				disto[i].dtype = DISTO_NONE;
+			}
+		}
+		// we haven't found any disto
+		// this case happens when we have used astrometric registration with no SIP
+		// it's ok, we'll just set regargs->undistort to DISTO_UNDEF
+		// so as not to use maps and use optimized image transform instead
+		if (!found) {
+			free(disto);
+			disto = NULL;
+		}
 	}
+	*status = 0;
 	return disto;
 }
 

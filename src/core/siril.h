@@ -335,7 +335,6 @@ typedef struct {
 typedef struct {
 	disto_source index; // disto_source enum
 	gchar *filename; // filename if DISTO_FILE
-	int n; // number of images if DISTO_FILES
 } disto_params;
 
 /* see explanation about sequence and single image management in io/sequence.c */

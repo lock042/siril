@@ -50,6 +50,7 @@
 #define MIN_RATIO 0.1 // minimum fraction of ref image dimensions to validate output sequence is worth creating
 
 static int new_ref_index = -1;
+static gboolean check_applyreg_output(struct registration_args *regargs);
 
 regdata *apply_reg_get_current_regdata(struct registration_args *regargs) {
 	regdata *current_regdata;
@@ -63,6 +64,30 @@ regdata *apply_reg_get_current_regdata(struct registration_args *regargs) {
 		return NULL;
 	}
 	return current_regdata;
+}
+
+// This is the equivalent of opencv cv::detail::RotationWarper warpRoi
+void compute_roi(Homography *H, int rx, int ry, framing_roi *roi) {
+	double xmin = DBL_MAX;
+	double xmax = -DBL_MAX;
+	double ymin = DBL_MAX;
+	double ymax = -DBL_MAX;
+	Homography Href = { 0 };
+	cvGetEye(&Href);
+	regframe framing = (regframe){(point){0., 0.}, (point){(double)rx - 1., 0.}, (point){(double)rx - 1., (double)ry - 1.}, (point){0., (double)ry - 1.}};
+	for (int j = 0; j < 4; j++) {
+		cvTransfPoint(&framing.pt[j].x, &framing.pt[j].y, *H,  Href, 1.);
+		if (xmin > framing.pt[j].x) xmin = framing.pt[j].x;
+		if (ymin > framing.pt[j].y) ymin = framing.pt[j].y;
+		if (xmax < framing.pt[j].x) xmax = framing.pt[j].x;
+		if (ymax < framing.pt[j].y) ymax = framing.pt[j].y;
+		siril_debug_print("Point #%d: %3.2f %3.2f\n", j, framing.pt[j].x, framing.pt[j].y);
+	}
+	int x0 = (int)xmin;
+	int y0 = (int)ymin;
+	int w = (int)xmax - xmin + 1;
+	int h = (int)ymax - ymin + 1;
+	*roi = (framing_roi){ x0, y0, w, h};
 }
 
 static void update_framing(regframe *framing, sequence *seq, int index) {
@@ -81,7 +106,9 @@ static gboolean compute_framing(struct registration_args *regargs) {
 		return FALSE;
 	// validity of matrices has already been checked before this call
 	// and null matrices have been discarded
-	Homography Href = regargs->seq->regparam[regargs->layer][regargs->reference_image].H;
+	// Homography Href = regargs->seq->regparam[regargs->layer][regargs->reference_image].H;
+	Homography Href = { 0 };
+	cvGetEye(&Href);
 	Homography Hshift = { 0 };
 	cvGetEye(&Hshift);
 	int rx = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
@@ -258,12 +285,13 @@ void compute_Hmax(Homography *Himg, Homography *Href, int src_rx_in, int src_ry_
 	*dst_rx_out = 0;
 	*dst_ry_out = 0;
 	regframe framing = { 0 };
-	framing = (regframe){(point){0., 0.}, (point){(double)src_rx_in, 0.}, (point){(double)src_rx_in, (double)src_ry_in}, (point){0., (double)src_ry_in}};
+	framing = (regframe){(point){0., 0.}, (point){(double)src_rx_in - 1., 0.}, (point){(double)src_rx_in - 1., (double)src_ry_in - 1.}, (point){0., (double)src_ry_in - 1.}};
 	double xmin, xmax, ymin, ymax;
 	xmin = DBL_MAX;
 	xmax = -DBL_MAX;
 	ymin = DBL_MAX;
 	ymax = -DBL_MAX;
+	cvGetEye(Href);
 	for (int j = 0; j < 4; j++) {
 		cvTransfPoint(&framing.pt[j].x, &framing.pt[j].y, *Himg, *Href, scale);
 		if (xmin > framing.pt[j].x) xmin = framing.pt[j].x;
@@ -279,8 +307,11 @@ void compute_Hmax(Homography *Himg, Homography *Href, int src_rx_in, int src_ry_
 	cvTransfH(Himg, Href, H);
 	// the shift matrix is at the final scale, while the transformation matrix
 	// is still at the orginal scale (will be upscaled in cvTransformImage)
-	H->h02 -= Hshift->h02 / scale;
-	H->h12 -= Hshift->h12 / scale;
+	Homography Hcorr = { 0 };
+	cvGetEye(&Hcorr);
+	Hcorr.h02 = -Hshift->h02 / scale;
+	Hcorr.h12 = -Hshift->h12 / scale;
+	cvMultH(Hcorr, *H, H);
 }
 
 int apply_reg_prepare_hook(struct generic_seq_args *args) {
@@ -749,10 +780,47 @@ int register_apply_reg(struct registration_args *regargs) {
 	struct generic_seq_args *args = create_default_seqargs(regargs->seq);
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
-	if (!check_before_applyreg(regargs)) {
+	if (!check_before_applyreg(regargs)) { // checks for input arguments wrong combinations
 		free(args);
 		return -1;
 	}
+
+	if (!regargs->filtering_criterion &&
+			convert_parsed_filter_to_filter(&regargs->filters,
+				regargs->seq, &regargs->filtering_criterion,
+				&regargs->filtering_parameter)) {
+		return -1;
+	}
+	// Prepare sequence filtering
+	int nb_frames = compute_nb_filtered_images(regargs->seq,
+			regargs->filtering_criterion, regargs->filtering_parameter);
+	regargs->new_total = nb_frames;	// to avoid recomputing it later
+	gchar *str = describe_filter(regargs->seq, regargs->filtering_criterion,
+			regargs->filtering_parameter);
+	siril_log_message(str);
+	g_free(str);
+
+	// This is an astrometric aligned sequence,
+	// we need to collect the WCS structures and 
+	// recompute the homographies based on selected frames
+	if (regargs->undistort == DISTO_FILES) {
+		regargs->WCSDATA = calloc(regargs->seq->number, sizeof(struct wcsprm));
+		if (collect_sequence_astrometry(regargs)) {
+			free(args);
+			return -1;
+		}
+		if (compute_Hs_from_astrometry(regargs->seq, regargs->WCSDATA, regargs->framing, regargs->layer)) {
+			free(args);
+			return -1;
+		}
+	}
+
+	// We can now compute the framing and check the output size
+	if (!check_applyreg_output(regargs)) {
+		free(args);
+		return -1;
+	}
+
 	if (regargs->no_output) {
 		free(args);
 		return 0;
@@ -766,6 +834,7 @@ int register_apply_reg(struct registration_args *regargs) {
 	} else {
 		args->compute_mem_limits_hook = apply_reg_compute_mem_limits;
 	}
+
 	args->upscale_ratio = regargs->output_scale;
 	args->prepare_hook = apply_reg_prepare_hook;
 	args->finalize_hook = apply_reg_finalize_hook;
@@ -792,11 +861,14 @@ int register_apply_reg(struct registration_args *regargs) {
 	regargs->undistort = layer_has_distorsion(regargs->seq, regargs->layer);
 	if (regargs->undistort) {
 		regargs->distoparam = regargs->seq->distoparam[regargs->layer];
-		regargs->disto = init_disto_data(&regargs->distoparam, regargs->seq);
-		if (!regargs->disto) {
+		int status = 1;
+		regargs->disto = init_disto_data(&regargs->distoparam, regargs->seq, regargs->WCSDATA, regargs->driz != NULL, &status);
+		if (status) {
 			return -1;
 		}
-		regargs->disto->dtype = (regargs->driz) ? DISTO_MAP_S2D: DISTO_MAP_D2S;
+		if (!regargs->disto) {
+			regargs->undistort = DISTO_UNDEF;
+		}
 	} 
 
 	generic_sequence_worker(args);
@@ -844,6 +916,46 @@ void guess_transform_from_seq(sequence *seq, int layer,
 	}
 	if (excludenull && needs_sel_update)
 		fix_selnum(seq, FALSE);
+}
+
+static gboolean check_applyreg_output(struct registration_args *regargs) {
+	/* compute_framing uses the filtered list of images, so we compute the filter here */
+
+	// determines the reference homography (including framing shift) and output size
+	if (!compute_framing(regargs)) {
+		siril_log_color_message(_("Unselect the images generating the error or change framing method to max\n"), "red");
+		return FALSE;
+	}
+
+	// make sure we apply registration only if the output sequence has a meaningful size
+	int rx0 = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
+	int ry0 = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
+	if (regargs->framingd.roi_out.w < rx0 * MIN_RATIO || regargs->framingd.roi_out.h < ry0 * MIN_RATIO) {
+		siril_log_color_message(_("The output sequence is too small compared to reference image (too much rotation or little overlap?)\n"), "red");
+		siril_log_color_message(_("You should change framing method, aborting\n"), "red");
+		return FALSE;
+	}
+	
+	int nb_frames = regargs->seq->selnum;
+	// cannot use seq_compute_size as rx_out/ry_out are not necessarily consistent with seq->rx/ry
+	int64_t size = (int64_t) regargs->framingd.roi_out.w * regargs->framingd.roi_out.h * regargs->seq->nb_layers;
+	if (regargs->seq->type == SEQ_SER) {
+		size *= regargs->seq->ser_file->byte_pixel_depth;
+		size *= nb_frames;
+		size += SER_HEADER_LEN;
+	} else {
+		size *= (get_data_type(regargs->seq->bitpix) == DATA_USHORT) ? sizeof(WORD) : sizeof(float);
+		size += FITS_DOUBLE_BLOC_SIZE; // FITS double HDU size
+		size *= nb_frames;
+	}
+	gchar* size_msg = g_format_size_full(size, G_FORMAT_SIZE_IEC_UNITS);
+	siril_debug_print("Apply Registration: sequence out size: %s\n", size_msg);
+	g_free(size_msg);
+	if (test_available_space(size)) {
+		siril_log_color_message(_("Not enough space to save the output images\n"), "red");
+		return FALSE;
+	}
+	return TRUE;
 }
 
 gboolean check_before_applyreg(struct registration_args *regargs) {
@@ -900,56 +1012,6 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 	// cog framing method requires all images to be of same size
 	if (regargs->framing == FRAMING_COG && regargs->seq->is_variable) {
 		siril_log_color_message(_("Framing method \"cog\" requires all images to be of same size, aborting\n"), "red");
-		return FALSE;
-	}
-
-	/* compute_framing uses the filtered list of images, so we compute the filter here */
-	if (!regargs->filtering_criterion &&
-			convert_parsed_filter_to_filter(&regargs->filters,
-				regargs->seq, &regargs->filtering_criterion,
-				&regargs->filtering_parameter)) {
-		return FALSE;
-	}
-	int nb_frames = compute_nb_filtered_images(regargs->seq,
-			regargs->filtering_criterion, regargs->filtering_parameter);
-	regargs->new_total = nb_frames;	// to avoid recomputing it later
-	gchar *str = describe_filter(regargs->seq, regargs->filtering_criterion,
-			regargs->filtering_parameter);
-	siril_log_message(str);
-	g_free(str);
-
-	// determines the reference homography (including framing shift) and output size
-	if (!compute_framing(regargs)) {
-		siril_log_color_message(_("Unselect the images generating the error or change framing method to max\n"), "red");
-		return FALSE;
-	}
-
-	// make sure we apply registration only if the output sequence has a meaningful size
-	int rx0 = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
-	int ry0 = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
-	if (regargs->framingd.roi_out.w < rx0 * MIN_RATIO || regargs->framingd.roi_out.h < ry0 * MIN_RATIO) {
-		siril_log_color_message(_("The output sequence is too small compared to reference image (too much rotation or little overlap?)\n"), "red");
-		siril_log_color_message(_("You should change framing method, aborting\n"), "red");
-		return FALSE;
-	}
-
-	// cannot use seq_compute_size as rx_out/ry_out are not necessarily consistent with seq->rx/ry
-	// rx_out/ry_out already account for 2x upscale if any
-	int64_t size = (int64_t) regargs->framingd.roi_out.w * regargs->framingd.roi_out.h * regargs->seq->nb_layers;
-	if (regargs->seq->type == SEQ_SER) {
-		size *= regargs->seq->ser_file->byte_pixel_depth;
-		size *= nb_frames;
-		size += SER_HEADER_LEN;
-	} else {
-		size *= (get_data_type(regargs->seq->bitpix) == DATA_USHORT) ? sizeof(WORD) : sizeof(float);
-		size += FITS_DOUBLE_BLOC_SIZE; // FITS double HDU size
-		size *= nb_frames;
-	}
-	gchar* size_msg = g_format_size_full(size, G_FORMAT_SIZE_IEC_UNITS);
-	siril_debug_print("Apply Registration: sequence out size: %s\n", size_msg);
-	g_free(size_msg);
-	if (test_available_space(size)) {
-		siril_log_color_message(_("Not enough space to save the output images\n"), "red");
 		return FALSE;
 	}
 	return TRUE;

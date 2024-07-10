@@ -645,12 +645,15 @@ int register_star_alignment(struct registration_args *regargs) {
 		args->upscale_ratio = regargs->output_scale;
 	}
 	if (regargs->undistort) {
-		regargs->disto = init_disto_data(&regargs->distoparam, regargs->seq);
-		if (!regargs->disto) {
+		int status = 1;
+		regargs->disto = init_disto_data(&regargs->distoparam, regargs->seq, NULL, regargs->driz != NULL, &status);
+		if (status) {
 			free(args);
 			return -1;
 		}
-		regargs->disto->dtype = (regargs->driz) ? DISTO_MAP_S2D: DISTO_MAP_D2S;
+		if (!regargs->disto) {
+			regargs->undistort = DISTO_UNDEF;
+		}
 	}
 
 	args->prepare_hook = star_align_prepare_hook;
@@ -876,10 +879,6 @@ int minidx(const float *arr, const gboolean *mask, int nb, float *val) {
 int register_multi_step_global(struct registration_args *regargs) {
 	// 1. finding stars
 	int retval = 0;
-	struct starfinder_data *sf_args = calloc(1, sizeof(struct starfinder_data));
-	sf_args->im.from_seq = regargs->seq;
-	sf_args->layer = regargs->layer;
-	sf_args->max_stars_fitted = regargs->max_stars_candidates;
 	float *fwhm = NULL, *roundness = NULL, *A = NULL, *B = NULL, *Acut = NULL, *scores = NULL;
 	float *dist = NULL;
 	// local flag (and its copy) accounting both for process_all_frames flag and collecting failures along the process
@@ -888,14 +887,20 @@ int register_multi_step_global(struct registration_args *regargs) {
 	gboolean *meaningful = NULL;
 
 	if (regargs->undistort) {
-		regargs->disto = init_disto_data(&regargs->distoparam, regargs->seq);
-		if (!regargs->disto) {
-			goto free_all;
+		int status = 1;
+		regargs->disto = init_disto_data(&regargs->distoparam, regargs->seq, NULL, regargs->driz != NULL, &status);
+		if (status) {
 			return -1;
 		}
-		regargs->disto->dtype = (regargs->driz) ? DISTO_MAP_S2D: DISTO_MAP_D2S;
+		if (!regargs->disto) {
+			regargs->undistort = DISTO_UNDEF;
+		}
 	} 
 
+	struct starfinder_data *sf_args = calloc(1, sizeof(struct starfinder_data));
+	sf_args->im.from_seq = regargs->seq;
+	sf_args->layer = regargs->layer;
+	sf_args->max_stars_fitted = regargs->max_stars_candidates;
 	sf_args->stars = calloc(regargs->seq->number, sizeof(psf_star **));
 	if (!sf_args->stars) {
 		PRINT_ALLOC_ERR;
