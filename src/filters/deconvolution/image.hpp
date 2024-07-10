@@ -730,7 +730,9 @@ public:
 
             copy(tmp);
         }
-        this->copy(o);
+        if (this != &o) {
+            this->copy(o);
+        }
         fftwf_execute(forwardplanf);
     }
 
@@ -750,7 +752,13 @@ public:
             copy(tmp);
         }
         float norm = w * h;
-        this->map(o, [norm](T x){ return x / norm; });
+        if (this == &o) {
+            for (auto& x : data) {
+                x /= norm;
+            }
+        } else {
+            this->map(o, [norm](T x){ return x / norm; });
+        }
         fftwf_execute(backwardplanf);
     }
 

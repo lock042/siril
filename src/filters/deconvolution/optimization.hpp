@@ -193,8 +193,10 @@ namespace optimization {
                 #pragma omp parallel for
                 for (int i = 0; i < weights.size; i++) {
                     T sum = 0;
+                    #pragma omp simd
                     for (auto& p : weights[i])
                         sum += p.w;
+                    #pragma omp simd
                     for (auto& p : weights[i])
                         p.w /= sum;
                 }
@@ -206,6 +208,7 @@ namespace optimization {
 
                 #pragma omp parallel for
                 for (int i = 0; i < nlu.size; i++) {
+                    #pragma omp simd
                     for (auto& p : weights[i])
                         nlu[i] += p.w * u(p.x, p.y, p.d);
                 }

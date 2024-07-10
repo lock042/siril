@@ -105,6 +105,9 @@ public:
         fft::psf2otf(dy_otf, dy, v.w, v.h);
 
         // compute |F(\partial_x)|^2 + |F(\partial_y)|^2
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static) num_threads(com.fftw_max_thread)
+#endif
         for (int i = 0; i < DtD.size; i++) {
             // std::norm(c) returns the squared magnitude of c
             DtD[i] = std::norm(dx_otf[i]) + std::norm(dy_otf[i]);
@@ -145,6 +148,9 @@ public:
             utils::circular_gradients(g, u);
 
             // hard-thresholding (solve the 'g' update)
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static) num_threads(com.fftw_max_thread)
+#endif
             for (int i = 0; i < v.w * v.h; i++) {
                 T n = std::pow(g[0][i], T(2)) + std::pow(g[1][i], T(2));
                 if (n < lambda / beta) {
@@ -158,6 +164,9 @@ public:
             img_t<std::complex<T>> adj = fft::r2c(divergence);
 
             // solve the 'u' update
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static) num_threads(com.fftw_max_thread)
+#endif
             for (int i = 0; i < div.size; i++) {
                 std::complex<T> num = Ktf[i] - beta * adj[i];
                 T denom = KtK[i] + beta * DtD[i];
@@ -198,7 +207,7 @@ public:
     // implements Algorithm 3
     void solve(img_t<T>& k, const img_t<T>& u, const struct estimate_kernel_options& opts) {
         k.resize(ks, ks);
-
+        T sum;
         // solves the Equation (28)
         img_t<std::complex<T>> div(u.w, u.h);
         {
@@ -210,11 +219,14 @@ public:
             fgu[1] = fft::r2c(gu[1]);
 
             // solve the linear system
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static) num_threads(com.fftw_max_thread)
+#endif
             for (int i = 0; i < div.size; i++) {
                 // std::norm(c) returns the squared magnitude of c
                 std::complex<T> num = std::conj(fgu[0][i]) * fgv[0][i] + std::conj(fgu[1][i]) * fgv[1][i];
-                T denum = std::norm(fgu[0][i]) + std::norm(fgu[1][i]) + opts.gamma;
-                div[i] = num / denum;
+                T denom = std::norm(fgu[0][i]) + std::norm(fgu[1][i]) + opts.gamma;
+                div[i] = num / denom;
             }
         }
 
@@ -224,6 +236,11 @@ public:
         // crop the center of the otf to get the kernel
         int left = otf.w / 2 - k.w / 2;
         int top = otf.h / 2 - k.h / 2;
+#ifdef _OPENMP
+#pragma omp parallel num_threads(com.fftw_max_thread)
+{
+#pragma omp for simd schedule(static) collapse(2)
+#endif
         for (int y = 0; y < k.h; y++) {
             for (int x = 0; x < k.w; x++) {
                 k(x, y) = otf(left + x, top + y);
@@ -231,6 +248,9 @@ public:
         }
 
         // enforce positivity of the kernel
+#ifdef _OPENMP
+#pragma omp for simd schedule(static)
+#endif
         for (int i = 0; i < k.size; i++) {
             k[i] = std::max(T(0), k[i]);
         }
@@ -238,10 +258,16 @@ public:
         // threshold the kernel at some percentage of the max value
         if (opts.kernel_threshold_max > 0.f) {
             T th = k.max() * opts.kernel_threshold_max;
+#ifdef _OPENMP
+#pragma omp for simd schedule(static)
+#endif
             for (int i = 0; i < k.size; i++)
                 k[i] = k[i] < th ? T(0) : k[i];
         }
-
+#ifdef _OPENMP
+#pragma omp single
+{
+#endif
         // remove isolated connected components
         if (opts.remove_isolated) {
             utils::remove_isolated_cc(k);
@@ -251,12 +277,22 @@ public:
         utils::center_kernel(k);
 
         // normalize
-        T sum = k.sum();
+        sum = k.sum();
+#ifdef _OPENMP
+}
+#endif
         if (sum > 0) {
+#ifdef _OPENMP
+#pragma omp for simd schedule(static)
+#endif
             for (int i = 0; i < k.size; i++) {
                 k[i] /= sum;
             }
         }
+#ifdef _OPENMP
+}
+#endif
+
     }
 
 private:
@@ -336,6 +372,9 @@ public:
             fft::psf2otf(k_otf, k, u.w, u.h);
 
             // solve the linear system
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static) num_threads(com.fftw_max_thread)
+#endif
             for (int i = 0; i < div.size; i++) {
                 // std::norm(c) returns the squared magnitude of c
                 std::complex<T> num;
@@ -356,6 +395,7 @@ public:
             // crop the center of the otf to get the kernel
             int left = otf.w / 2 - k.w / 2;
             int top = otf.h / 2 - k.h / 2;
+#pragma omp simd collapse(2)
             for (int y = 0; y < k.h; y++) {
                 for (int x = 0; x < k.w; x++) {
                     k(x, y) = otf(left + x, top + y);
@@ -363,6 +403,7 @@ public:
             }
 
             // enforce positivity of the kernel + prox l1
+#pragma omp simd
             for (int i = 0; i < k.size; i++) {
                 k[i] = std::max(T(0), k[i] - opts.k_l1 / gamma);
             }
@@ -373,6 +414,7 @@ public:
         // threshold the kernel at some percentage of the max value
         if (opts.kernel_threshold_max > 0.f) {
             T th = k.max() * opts.kernel_threshold_max;
+#pragma omp simd
             for (int i = 0; i < k.size; i++)
                 k[i] = k[i] < th ? T(0) : k[i];
         }
@@ -388,11 +430,13 @@ public:
         // renormalize after centering since some values can be lost
         T sum = k.sum();
         if (sum > 1e-6) {
+#pragma omp simd
             for (int i = 0; i < k.size; i++) {
                 k[i] /= sum;
             }
         } else {
             // reset the kernel
+#pragma omp simd
             for (int i = 0; i < k.size; i++) {
                 k[i] = 0;
             }
