@@ -34,6 +34,7 @@
 #include "core/OS_utils.h"
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
+#include "gui/script_menu.h"
 #include "io/sequence.h"
 #include "io/ser.h"
 #include "io/seqwriter.h"
@@ -766,6 +767,8 @@ void on_processes_button_cancel_clicked(GtkButton *button, gpointer user_data) {
 	com.stop_script = TRUE;
 	stop_processing_thread();
 	wait_for_script_thread();
+	if (!com.headless)
+		script_widgets_enable(TRUE);
 }
 
 struct generic_seq_args *create_default_seqargs(sequence *seq) {

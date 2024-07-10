@@ -155,10 +155,18 @@ void on_denoise_apply_clicked(GtkButton *button, gpointer user_data) {
 	GtkSpinButton *spin_denoise_modulation = GTK_SPIN_BUTTON(lookup_widget("spin_denoise_modulation"));
 	denoise_modulation = (float)gtk_spin_button_get_value(spin_denoise_modulation);
 	gboolean suppress_artefacts = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_denoise_suppress_artefacts")));
+	if (gui.roi.active)
+		restore_roi();
 	denoise_args *args = calloc(1, sizeof(denoise_args));
+	args->modulation = denoise_modulation;
+	if (args->modulation == 0.f) {
+		siril_log_message(_("Modulation is zero: doing nothing.\n"));
+		free(args);
+		return;
+	}
+	control_window_switch_to_tab(OUTPUT_LOGS);
 	args->previewing = ((GtkWidget*) button == lookup_widget("denoise_roi_preview"));
 	siril_debug_print("Previewing: %d\n", args->previewing);
-	args->fit = (gui.roi.active && args->previewing) ? &gui.roi.fit : &gfit;
 	args->da3d = da3d;
 	args->sos = 1;
 	args->rho = sos_rho;
@@ -167,14 +175,6 @@ void on_denoise_apply_clicked(GtkButton *button, gpointer user_data) {
 	args->suppress_artefacts = suppress_artefacts;
 	if (sos == 1)
 		args->sos = sos_iters;
-	args->modulation = denoise_modulation;
-	if (args->modulation == 0.f) {
-		siril_log_message(_("Modulation is zero: doing nothing.\n"));
-		free(args);
-		return;
-	}
-	if (gui.roi.active)
-		restore_roi();
-	control_window_switch_to_tab(OUTPUT_LOGS);
+	args->fit = (gui.roi.active && args->previewing) ? &gui.roi.fit : &gfit;
 	start_in_new_thread(run_nlbayes_on_fit, args);
 }

@@ -257,8 +257,11 @@ gchar *path_parse(fits *fit, const gchar *expression, pathparse_mode mode, int *
 	gchar *pattern = "\\$(.+?)\\$";
 	gchar **tokens = g_regex_split_simple(pattern, localexpression, G_REGEX_RAW, 0);
 	gchar **headerkeys = NULL;
+
 	if (fit->header) { // avoiding split in case we are in nofail and header is empty
-		headerkeys = g_strsplit(fit->header, "\n", 0);
+		gchar *fullheader = g_strconcat(fit->header, "\n", fit->unknown_keys, NULL);
+		headerkeys = g_strsplit(fullheader, "\n", 0);
+		g_free(fullheader);
 	}
 	for (int i = 0; i < g_strv_length(tokens); i++) {
 		if (!tokens[i] || tokens[i][0] == '\0')

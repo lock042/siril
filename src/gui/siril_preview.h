@@ -39,6 +39,7 @@ void clear_backup();
 
 void siril_preview_hide();
 
+void cancel_pending_update();
 void set_notify_block(gboolean value);
 void notify_update(gpointer user_data);
 

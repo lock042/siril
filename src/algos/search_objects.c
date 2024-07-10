@@ -23,6 +23,7 @@
 #include "core/siril_log.h"
 #include "core/siril_date.h"
 #include "core/processing.h"
+#include "core/siril_networking.h"
 #include "io/annotation_catalogues.h"
 #include "algos/PSF.h"
 #include "algos/siril_wcs.h"
@@ -260,7 +261,7 @@ int cached_object_lookup(sky_object_query_args *args) {
 		gchar *result = search_in_online_catalogs(args);
 		if (result) {
 			parse_catalog_buffer(result, args);
-			free_fetch_result(result);
+			free(result);
 		} else {
 			args->retval = 1;
 		}
@@ -413,8 +414,8 @@ static gchar *retrieve_site_coord(fits *fit) {
 }
 #endif
 
-// free the result with free_fetch_result
-gchar *search_in_online_catalogs(sky_object_query_args *args) {
+// free the result with free
+char *search_in_online_catalogs(sky_object_query_args *args) {
 #ifndef HAVE_LIBCURL
 	siril_log_color_message(_("Siril was compiled without networking support, cannot do this operation\n"), "red");
 	return NULL;
@@ -487,7 +488,8 @@ gchar *search_in_online_catalogs(sky_object_query_args *args) {
 	g_free(url);
 	siril_debug_print("URL: %s\n", cleaned_url);
 	gsize length;
-	char *result = fetch_url(cleaned_url, &length);
+	int error;
+	char *result = fetch_url(cleaned_url, &length, &error, FALSE);
 
 	g_free(cleaned_url);
 	return result;

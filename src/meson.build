@@ -92,6 +92,7 @@ src_files = [
   'core/siril_date.c',
   'core/siril_language.c',
   'core/siril_log.c',
+  'core/siril_networking.c',
   'core/siril_update.c',
   'core/siril_world_cs.c',
   'core/undo.c',

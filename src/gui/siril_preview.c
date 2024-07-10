@@ -28,6 +28,7 @@
 #include "core/undo.h"
 #include "gui/progress_and_log.h"
 #include "gui/image_display.h"
+#include "gui/callbacks.h"
 #include "gui/registration_preview.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
@@ -35,7 +36,7 @@
 
 #define PREVIEW_DELAY 200
 
-static guint timer_id;
+static guint timer_id = 0;
 static gboolean notify_is_blocked;
 static gboolean preview_is_active;
 static cmsHPROFILE preview_icc_backup = NULL;
@@ -43,9 +44,10 @@ static fits preview_roi_backup;
 static fits preview_gfit_backup = { 0 };
 
 static gboolean update_preview(gpointer user_data) {
+	lock_roi_mutex();
+	if (notify_is_blocked)
+		return FALSE;
 	update_image *im = (update_image*) user_data;
-
-	if (notify_is_blocked) return FALSE;
 
 	if (im->show_preview) {
 		siril_debug_print("update preview\n");
@@ -57,6 +59,7 @@ static gboolean update_preview(gpointer user_data) {
 	set_progress_bar_data(NULL, PROGRESS_DONE);
 	set_cursor_waiting(FALSE);
 	// Don't notify_gfit_modified() here, it must be done by the callers
+	unlock_roi_mutex();
 	return FALSE;
 }
 
@@ -149,6 +152,13 @@ void clear_backup() {
 
 void set_notify_block(gboolean value) {
 	notify_is_blocked = value;
+}
+
+void cancel_pending_update() {
+    if (timer_id != 0) {
+        g_source_remove(timer_id);
+        timer_id = 0;
+    }
 }
 
 void siril_preview_hide() {

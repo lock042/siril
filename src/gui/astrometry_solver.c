@@ -541,7 +541,7 @@ static void add_object_in_tree_view(const gchar *object) {
 			struct sky_object obj;
 			parse_resolver_buffer(result, &obj);
 			if (!has_nonzero_coords()) {
-				free_fetch_result(result);
+				free(result);
 				set_cursor_waiting(FALSE);
 				// the list is empty, it will just write "No object found" as the first entry
 				g_signal_handlers_block_by_func(treeviewIPS, on_GtkTreeViewIPS_cursor_changed, NULL);
@@ -553,7 +553,7 @@ static void add_object_in_tree_view(const gchar *object) {
 			g_signal_handlers_block_by_func(treeviewIPS, on_GtkTreeViewIPS_cursor_changed, NULL);
 			add_object_to_list();
 			g_signal_handlers_unblock_by_func(treeviewIPS, on_GtkTreeViewIPS_cursor_changed, NULL);
-			free_fetch_result(result);
+			free(result);
 			found = TRUE;
 		}
 		free_sky_object_query(args);

@@ -51,6 +51,7 @@
 #include "core/sequence_filtering.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
+#include "core/siril_networking.h"
 #include "core/siril_update.h"
 #include "core/undo.h"
 #include "io/Astro-TIFF.h"
@@ -352,12 +353,12 @@ int process_unclip(int nb) {
 }
 
 static gboolean end_denoise(gpointer p) {
+	stop_processing_thread();
 	struct denoise_args *args = (struct denoise_args *) p;
 	if (!args->previewing) {
 		copy_gfit_to_backup();
 		populate_roi();
 	}
-	stop_processing_thread();// can it be done here in case there is no thread?
 	adjust_cutoff_from_updated_gfit();
 	redraw(REMAP_ALL);
 	redraw_previews();
@@ -367,6 +368,7 @@ static gboolean end_denoise(gpointer p) {
 }
 
 gpointer run_nlbayes_on_fit(gpointer p) {
+	lock_roi_mutex();
 	copy_backup_to_gfit();
 	denoise_args *args = (denoise_args *) p;
 	struct timeval t_start, t_end;
@@ -474,6 +476,7 @@ gpointer run_nlbayes_on_fit(gpointer p) {
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, _("NL-Bayes execution time"));
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+	unlock_roi_mutex();
 	siril_add_idle(end_denoise, args);
 	return GINT_TO_POINTER(retval | CMD_NOTIFY_GFIT_MODIFIED);
 }
@@ -1763,7 +1766,7 @@ int process_unsharp(int nb) {
 }
 
 int process_update_key(int nb) {
-	if (nb > 2) {
+	if (nb != 3) {
 		return CMD_ARG_ERROR;
 	}
 	gchar *FITS_key, *value;
@@ -10656,5 +10659,15 @@ int process_trixel(int nb) {
 		siril_log_message(_("Unknown parameter %s, aborting.\n"), word[2]);
 		return CMD_ARG_ERROR;
 	}
+	return CMD_OK;
+}
+
+int process_online(int nb) {
+	set_online_status(TRUE);
+	return CMD_OK;
+}
+
+int process_offline(int nb) {
+	set_online_status(FALSE);
 	return CMD_OK;
 }

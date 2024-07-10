@@ -433,7 +433,9 @@ int convert_single_film_to_ser(sequence *seq) {
 	args->start = 1;
 	args->list = files_to_convert;
 	args->total = 1;
-	args->destroot = g_strdup_printf("%s_converted.ser", seq->film_file->filename);
+	gchar *basename = remove_ext_from_filename(seq->film_file->filename);
+	args->destroot = g_strdup_printf("%s_converted.ser", basename);
+	g_free(basename);
 	args->input_has_a_seq = TRUE;
 	args->input_has_a_film = TRUE;
 	args->debayer = FALSE;

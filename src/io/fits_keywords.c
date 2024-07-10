@@ -29,18 +29,20 @@
 
 #include "fits_keywords.h"
 
+// Uncomment to print debug verbose
+// #define DEBUG_PRINT_HEADER
+
 #define PRINT_PARSING_ERROR \
-    do { \
-        siril_debug_print("Error parsing value: %s\n", value); \
-        siril_debug_print("Parsing stopped at: %s\n", end); \
-    } while (0)
+		do { \
+				siril_debug_print("Error parsing value: %s\n", value); \
+				siril_debug_print("Parsing stopped at: %s\n", end); \
+		} while (0)
 
 
 #define KEYWORD_PRIMARY(group, key, type, comment, data, handler_read, handler_save) { group, key, type, comment, data, handler_read, handler_save, TRUE, FALSE }
 #define KEYWORD_SECONDA(group, key, type, comment, data, handler_read, handler_save) { group, key, type, comment, data, handler_read, handler_save, FALSE, FALSE }
 #define KEYWORD_FIXED(group, key, type, comment, data, handler_read, handler_save) { group, key, type, comment, data, handler_read, handler_save, TRUE, TRUE }
 #define KEYWORD_WCS(group, key, type) { group, key, type, NULL, NULL, NULL, NULL, FALSE, TRUE }
-#define UNKNOWN_KEYWORDS "**********************Unknown keywords**********************"
 
 static gboolean should_use_keyword(const fits *fit, KeywordInfo keyword) {
 
@@ -59,10 +61,6 @@ static gboolean should_use_keyword(const fits *fit, KeywordInfo keyword) {
 		return fit->keywords.bayer_pattern[0] != '\0';
 	} else if (g_strcmp0(keyword.key, "YBAYROFF") == 0) {
 		return fit->keywords.bayer_pattern[0] != '\0';
-	} else if (g_strcmp0(keyword.key, "DFTNORM2") == 0) {
-		return fit->naxes[2] > 1;
-	} else if (g_strcmp0(keyword.key, "DFTNORM3") == 0) {
-		return fit->naxes[2] > 1;
 	} else if (g_strcmp0(keyword.key, "CTYPE3") == 0) {
 		return (fit->naxes[2] == 3 && com.pref.rgb_aladin);
 	}
@@ -500,7 +498,7 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 
 			KEYWORD_WCS( "wcsdata", "PLTSOLVD", KTYPE_BOOL),
 			{NULL, NULL, KTYPE_BOOL, NULL, NULL, NULL, FALSE, TRUE }
-    };
+	};
 
 	int num_keywords = G_N_ELEMENTS(keyword_list) - 1; // remove last line
 
@@ -773,8 +771,6 @@ int save_fits_unknown_keywords(fits *fit) {
 	int status = 0;
 	/*** Save list of unknown keys ***/
 	if (fit->unknown_keys) {
-		status = 0;
-		fits_write_comment(fit->fptr, UNKNOWN_KEYWORDS, &status);
 		status = associate_header_to_memfile(fit->unknown_keys, fit->fptr);
 	}
 	return status;
@@ -884,13 +880,23 @@ void set_all_keywords_default(fits *fit) {
 	free(keys);
 }
 
+const char* fits_type_to_string(const char type) {
+	switch (type) {
+		case 'C': return "string";
+		case 'L': return "logical";
+		case 'I': return "integer";
+		case 'F': return "float";
+		case 'X': return "complex";
+		default: return "unknown";
+	}
+}
+
 int read_fits_keywords(fits *fit) {
 	// Initialize keywords and get hash table
 	GHashTable *keys_hash;
 	KeywordInfo *keys = initialize_keywords(fit, &keys_hash);
 	int status = 0;
 	int key_number = 1;
-	gboolean end_of_header = FALSE;
 	GString *unknown_keys = g_string_new(NULL);
 
 	read_fits_date_obs_header(fit); // handle very special case
@@ -898,6 +904,9 @@ int read_fits_keywords(fits *fit) {
 	fits_get_hdrspace(fit->fptr, &key_number, NULL, &status); /* get # of keywords */
 
 	// Loop through each keyword
+#ifdef DEBUG_PRINT_HEADER
+	printf("FITS Header:\n");
+#endif
 	for (int ii = 1; ii <= key_number; ii++) {
 		char card[FLEN_CARD];
 		status = 0;
@@ -914,27 +923,31 @@ int read_fits_keywords(fits *fit) {
 		fits_get_keyname(card, keyname, &length, &status);
 		fits_parse_value(card, value, comment, &status);
 		fits_get_keytype(value, &type, &status);
+
+#ifdef DEBUG_PRINT_HEADER
+		printf("%2d: Keyname: %8s, Type: %7s, Value: %30s, Comment: %s\n",
+					ii, keyname, fits_type_to_string(type), value, comment);
+#endif
 		status = 0;
 
-		if (g_strcmp0(comment, UNKNOWN_KEYWORDS) == 0) {
-			end_of_header = TRUE;
-			continue;
-		}
-
-		/* DATE-OBS has already been processed */
+		// Skip the FITS structure keys and the DATE-OBS key since they have already been processed.
 		if (g_strcmp0(keyname, "DATE-OBS") == 0 || fits_get_keyclass(card) == TYP_STRUC_KEY) {
 			continue;
 		}
 
 		// Retrieve KeywordInfo from the hash table
 		KeywordInfo *current_key = g_hash_table_lookup(keys_hash, keyname);
-		if ((current_key == NULL || end_of_header)) {
+
+		// If the keyword is not found in the hash table, it is either an unknown or HISTORY keyword.
+		if ((current_key == NULL)) {
 			if (strncmp(card, "HISTORY", 7) == 0) continue;
 			// Handle unknown keys
 			unknown_keys = g_string_append(unknown_keys, card);
 			unknown_keys = g_string_append(unknown_keys, "\n");
 			continue;
 		}
+
+		// At this point, the keyword is known and we can process it via the KeywordInfo list.
 
 		if (current_key->fixed_value) {
 			continue;
@@ -950,9 +963,16 @@ int read_fits_keywords(fits *fit) {
 		char *end = NULL;
 
 		// Process the value based on the type of the keyword
+		// Expected integer types may be included in the FITS file in scientific notation, e.g., 5.600E+01.
+		// Hence we read integer values as double and then cast them to the respective integer type.
 		switch (current_key->type) {
 		case KTYPE_INT:
-			int_value = g_ascii_strtoll(value, &end, 10);
+			double_value = g_ascii_strtod(value, &end);
+			if (double_value < G_MININT || double_value > G_MAXINT) {
+				siril_log_color_message("Warning: FITS value for keyname '%s' out of range for INT: %s\n",
+						"salmon", keyname, value);
+			}
+			int_value = (int) double_value;
 			if (value != end) {
 				*((int*) current_key->data) = int_value;
 				current_key->used = TRUE;
@@ -961,7 +981,12 @@ int read_fits_keywords(fits *fit) {
 			}
 			break;
 		case KTYPE_UINT:
-			uint_value = g_ascii_strtoll(value, &end, 10);
+			double_value = g_ascii_strtod(value, &end);
+			if (double_value < 0 || double_value > G_MAXUINT) {
+				siril_log_color_message("Warning: FITS value for keyname '%s' out of range for UINT: %s\n",
+						"salmon", keyname, value);
+			}
+			uint_value = (guint) double_value;
 			if (value != end) {
 				*((guint*) current_key->data) = uint_value;
 				current_key->used = TRUE;
@@ -970,7 +995,12 @@ int read_fits_keywords(fits *fit) {
 			}
 			break;
 		case KTYPE_USHORT:
-			ushort_value = g_ascii_strtoll(value, &end, 10);
+			double_value = g_ascii_strtod(value, &end);
+			if (double_value < 0 || double_value > G_MAXUSHORT) {
+				siril_log_color_message("Warning: FITS value for keyname '%s' out of range for USHORT: %s\n",
+						"salmon", keyname, value);
+			}
+			ushort_value = (gushort) double_value;
 			if (value != end) {
 				*((gushort*) current_key->data) = ushort_value;
 				current_key->used = TRUE;
