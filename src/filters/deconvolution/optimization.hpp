@@ -19,7 +19,7 @@ namespace optimization {
         typedef T in_type;
         typedef T2 out_type;
         auto direct(const img_t<T>& x);
-        auto adjoint(const img_t<T>& x);
+        auto adjoint(const img_t<T2>& x);
     };
 
     namespace operators {

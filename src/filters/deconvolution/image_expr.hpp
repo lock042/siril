@@ -6,8 +6,8 @@
 namespace img {
     template<typename T>
     std::complex<T> complex_fma(const std::complex<T>& a, const std::complex<T>& b, const std::complex<T>& c) {
-        T real_part = std::fma(a.real(), b.real(), c.real()) - std::fma(a.imag(), b.imag(), 0);
-        T imag_part = std::fma(a.real(), b.imag(), c.imag()) + std::fma(a.imag(), b.real(), 0);
+        T real_part = std::fma(a.real(), b.real(), c.real()) - (a.imag() * b.imag());
+        T imag_part = std::fma(a.real(), b.imag(), c.imag()) + (a.imag() * b.real());
         return std::complex<T>(real_part, imag_part);
     }
 
