@@ -254,7 +254,8 @@ public:
         assert(o.similar(*this));
         int n = w * h * d;
 #ifdef _OPENMP
-#pragma omp parallel for if(omp_get_num_threads() == 1) schedule(static) num_threads(com.fftw_max_thread)
+        int available_threads = com.max_thread - omp_get_num_threads();
+#pragma omp parallel for schedule(static) num_threads(available_threads) if (available_threads > 1)
 #endif
         for (int i = 0; i < n; i++)
             data[i] = o[i];
@@ -271,7 +272,8 @@ public:
 
         // Main convolution (excluding borders)
 #ifdef _OPENMP
-        #pragma omp parallel if(omp_get_num_threads() == 1) num_threads(com.fftw_max_thread)
+        int available_threads = com.max_thread - omp_get_num_threads();
+        #pragma omp parallel num_threads(available_threads) if (available_threads > 1)
         {
             #pragma omp for collapse(3) schedule(guided)
 #endif
@@ -398,7 +400,8 @@ public:
     template <typename F>
     void mapf(F&& f) {
 #ifdef _OPENMP
-        #pragma omp parallel for if(omp_get_num_threads() == 1) schedule(static) num_threads(com.fftw_max_thread)
+        int available_threads = com.max_thread - omp_get_num_threads();
+        #pragma omp parallel for schedule(static) num_threads(available_threads) if (available_threads > 1)
 #endif
         for (int i = 0; i < size; i++) {
             (*this)[i] = f((*this)[i]);
@@ -410,7 +413,8 @@ public:
     std::enable_if_t<!std::is_same_v<R, T>, img_t<R>> mapf(F&& f) const {
         img_t<R> result(w, h, d);
 #ifdef _OPENMP
-        #pragma omp parallel for if(omp_get_num_threads() == 1) schedule(static) num_threads(com.fftw_max_thread)
+        int available_threads = com.max_thread - omp_get_num_threads();
+        #pragma omp parallel for schedule(static) num_threads(available_threads) if (available_threads > 1)
 #endif
         for (int i = 0; i < size; i++) {
             result[i] = f((*this)[i]);
@@ -483,7 +487,8 @@ public:
     void map(const img_t<T2>& o, const F& f) {
         assert(o.similar(*this));
 #ifdef _OPENMP
-#pragma omp parallel for if(omp_get_num_threads() == 1) schedule(static) num_threads(com.fftw_max_thread)
+        int available_threads = com.max_thread - omp_get_num_threads();
+        #pragma omp parallel for schedule(static) num_threads(available_threads) if (available_threads > 1)
 #endif
         for (int i = 0; i < size; i++) {
             (*this)[i] = f(o[i]);
@@ -495,7 +500,8 @@ public:
         assert(o.similar(*this));
 
 #ifdef _OPENMP
-#pragma omp parallel for if(omp_get_num_threads() == 1) schedule(static) collapse(3) num_threads(com.fftw_max_thread)
+        int available_threads = com.max_thread - omp_get_num_threads();
+        #pragma omp parallel for schedule(static) collapse(3) num_threads(available_threads) if (available_threads > 1)
 #endif
        for (int y = 0; y < o.h; y++) {
             for (int x = 0; x < o.w; x++) {
@@ -526,7 +532,8 @@ public:
     void gradients(const img_t<T2>& u_) {
         const img_t<typename T::value_type>& u = *static_cast<const img_t<typename T::value_type>*>(&u_);
 #ifdef _OPENMP
-        #pragma omp parallel for if(omp_get_num_threads() == 1) collapse(3) schedule(guided) num_threads(com.fftw_max_thread)
+        int available_threads = com.max_thread - omp_get_num_threads();
+        #pragma omp parallel for schedule(static) collapse(3) num_threads(available_threads) if (available_threads > 1)
 #endif
         for (int l = 0; l < d; l++) {
             for (int y = 0; y < h; y++) {
@@ -542,7 +549,8 @@ public:
     void circular_gradients(const img_t<T2>& u_) {
         const img_t<typename T::value_type>& u = *static_cast<const img_t<typename T::value_type>*>(&u_);
 #ifdef _OPENMP
-        #pragma omp parallel if(omp_get_num_threads() == 1) num_threads(com.fftw_max_thread)
+        int available_threads = com.max_thread - omp_get_num_threads();
+        #pragma omp parallel num_threads(available_threads) if (available_threads > 1)
         {
             #pragma omp for collapse(3) schedule(guided)
 #endif
@@ -561,7 +569,8 @@ public:
 
     void gradientx(const img_t<T>& u) {
 #ifdef _OPENMP
-        #pragma omp parallel if(omp_get_num_threads() == 1) num_threads(com.fftw_max_thread)
+        int available_threads = com.max_thread - omp_get_num_threads();
+        #pragma omp parallel num_threads(available_threads) if (available_threads > 1)
         {
             #pragma omp for collapse(2) schedule(guided)
 #endif
@@ -583,7 +592,8 @@ public:
 
     void gradienty(const img_t<T>& u) {
 #ifdef _OPENMP
-        #pragma omp parallel for if(omp_get_num_threads() == 1) collapse(3) schedule(guided) num_threads(com.fftw_max_thread)
+        int available_threads = com.max_thread - omp_get_num_threads();
+        #pragma omp parallel for schedule(static) collapse(3) num_threads(available_threads) if (available_threads > 1)
 #endif
         for (int l = 0; l < d; l++) {
             for (int y = 0; y < h; y++) {
@@ -596,7 +606,8 @@ public:
 
     void gradientxx(const img_t<T>& u) {
 #ifdef _OPENMP
-        #pragma omp parallel if(omp_get_num_threads() == 1) num_threads(com.fftw_max_thread)
+        int available_threads = com.max_thread - omp_get_num_threads();
+        #pragma omp parallel num_threads(available_threads) if (available_threads > 1)
         {
             #pragma omp for collapse(2) schedule(guided)
 #endif
@@ -619,7 +630,8 @@ public:
 
     void gradientyy(const img_t<T>& u) {
 #ifdef _OPENMP
-        #pragma omp parallel if(omp_get_num_threads() == 1) num_threads(com.fftw_max_thread)
+        int available_threads = com.max_thread - omp_get_num_threads();
+        #pragma omp parallel num_threads(available_threads) if (available_threads > 1)
         {
             #pragma omp for collapse(2) schedule(guided)
 #endif
@@ -642,7 +654,8 @@ public:
 
     void gradientxy(const img_t<T>& u) {
 #ifdef _OPENMP
-        #pragma omp parallel for if(omp_get_num_threads() == 1) collapse(3) schedule(guided) num_threads(com.fftw_max_thread)
+        int available_threads = com.max_thread - omp_get_num_threads();
+        #pragma omp parallel for schedule(static) collapse(3) num_threads(available_threads) if (available_threads > 1)
 #endif
         for (int l = 0; l < d; l++) {
             for (int y = 0; y < h; y++) {
@@ -657,7 +670,8 @@ public:
     template <typename T2>
     void divergence(const img_t<T2>& g) {
 #ifdef _OPENMP
-        #pragma omp parallel if(omp_get_num_threads() == 1) num_threads(com.fftw_max_thread)
+        int available_threads = com.max_thread - omp_get_num_threads();
+        #pragma omp parallel num_threads(available_threads) if (available_threads > 1)
         {
 #endif
             for (int l = 0; l < d; l++) {
@@ -729,7 +743,8 @@ public:
     template <typename T2>
     void circular_divergence(const img_t<T2>& g) {
 #ifdef _OPENMP
-        #pragma omp parallel for if(omp_get_num_threads() == 1) collapse(3) schedule(guided) num_threads(com.fftw_max_thread)
+        int available_threads = com.max_thread - omp_get_num_threads();
+        #pragma omp parallel for schedule(static) collapse(3) num_threads(available_threads) if (available_threads > 1)
 #endif
         for (int l = 0; l < d; l++) {
             for (int y = 0; y < h; y++) {
@@ -742,7 +757,8 @@ public:
 
     void divergence(const img_t<T>& gx, const img_t<T>& gy) {
 #ifdef _OPENMP
-        #pragma omp parallel if(omp_get_num_threads() == 1) num_threads(com.fftw_max_thread)
+        int available_threads = com.max_thread - omp_get_num_threads();
+        #pragma omp parallel num_threads(available_threads) if (available_threads > 1)
         {
 #endif
             for (int l = 0; l < d; l++) {
@@ -872,7 +888,8 @@ public:
         int ohalfh = this->h - halfh;
 
 #ifdef _OPENMP
-        #pragma omp parallel if(omp_get_num_threads() == 1) num_threads(com.fftw_max_thread)
+        int available_threads = com.max_thread - omp_get_num_threads();
+        #pragma omp parallel num_threads(available_threads) if (available_threads > 1)
         {
 #endif
             for (int l = 0; l < this->d; l++) {
@@ -929,7 +946,8 @@ public:
         int ohalfh = this->h - halfh;
 
 #ifdef _OPENMP
-        #pragma omp parallel if(omp_get_num_threads() == 1) num_threads(com.fftw_max_thread)
+        int available_threads = com.max_thread - omp_get_num_threads();
+        #pragma omp parallel num_threads(available_threads) if (available_threads > 1)
         {
 #endif
             for (int l = 0; l < this->d; l++) {
@@ -983,7 +1001,8 @@ public:
         int hh = o.h / 2;
 
 #ifdef _OPENMP
-        #pragma omp parallel if(omp_get_num_threads() == 1) num_threads(com.fftw_max_thread)
+        int available_threads = com.max_thread - omp_get_num_threads();
+        #pragma omp parallel num_threads(available_threads) if (available_threads > 1)
         {
 #endif
             for (int dd = 0; dd < d; dd++) {
@@ -1082,7 +1101,8 @@ public:
 
     void sanitize() {
 #ifdef _OPENMP
-        #pragma omp parallel for if(omp_get_num_threads() == 1) schedule(static) num_threads(com.fftw_max_thread)
+        int available_threads = com.max_thread - omp_get_num_threads();
+        #pragma omp parallel for schedule(static) num_threads(available_threads) if (available_threads > 1)
 #endif
         for (int i = 0; i < size; i++) {
             if (((*this)[i] != (*this)[i]) || (*this)[i] == T(0))
@@ -1095,7 +1115,8 @@ public:
         assert(w == color.w);
         assert(h == color.h);
 #ifdef _OPENMP
-        #pragma omp parallel for if(omp_get_num_threads() == 1) schedule(static) num_threads(com.fftw_max_thread)
+        int available_threads = com.max_thread - omp_get_num_threads();
+        #pragma omp parallel for schedule(static) num_threads(available_threads) if (available_threads > 1)
 #endif
         for (int i = 0; i < size; i++) {
             T val(0);
@@ -1108,7 +1129,8 @@ public:
 
     void desaturate() {
 #ifdef _OPENMP
-        #pragma omp parallel for if(omp_get_num_threads() == 1) collapse(2) schedule(static) num_threads(com.fftw_max_thread)
+        int available_threads = com.max_thread - omp_get_num_threads();
+        #pragma omp parallel for collapse(2) schedule(static) num_threads(available_threads) if (available_threads > 1)
 #endif
         for (int i = 0; i < w; i++) {
             for (int j = 0; j < h; j++) {
@@ -1128,7 +1150,8 @@ public:
         this->w = o.h;
         this->h = o.w;
 #ifdef _OPENMP
-        #pragma omp parallel for if(omp_get_num_threads() == 1) collapse(2) schedule(static) num_threads(com.fftw_max_thread)
+        int available_threads = com.max_thread - omp_get_num_threads();
+        #pragma omp parallel for collapse(3) schedule(static) num_threads(available_threads) if (available_threads > 1)
 #endif
         for (int y = 0; y < o.h; y++) {
             for (int x = 0; x < o.w; x++) {
@@ -1142,7 +1165,8 @@ public:
     void transposeToMatlab() {
         img_t<T> o(*this);
 #ifdef _OPENMP
-        #pragma omp parallel for if(omp_get_num_threads() == 1) collapse(2) schedule(static) num_threads(com.fftw_max_thread)
+        int available_threads = com.max_thread - omp_get_num_threads();
+        #pragma omp parallel for collapse(3) schedule(static) num_threads(available_threads) if (available_threads > 1)
 #endif
         for (int y = 0; y < h; y++) {
             for (int x = 0; x < w; x++) {
@@ -1156,7 +1180,8 @@ public:
     void transposeFromMatlab() {
         img_t<T> o(*this);
 #ifdef _OPENMP
-        #pragma omp parallel for if(omp_get_num_threads() == 1) collapse(2) schedule(static) num_threads(com.fftw_max_thread)
+        int available_threads = com.max_thread - omp_get_num_threads();
+        #pragma omp parallel for collapse(3) schedule(static) num_threads(available_threads) if (available_threads > 1)
 #endif
         for (int y = 0; y < h; y++) {
             for (int x = 0; x < w; x++) {
@@ -1173,7 +1198,8 @@ namespace img {
     T sum(const E& img) {
         T a(0);
 #ifdef _OPENMP
-        #pragma omp parallel for if(omp_get_num_threads() == 1) reduction(+:a) schedule(static) num_threads(com.fftw_max_thread)
+        int available_threads = com.max_thread - omp_get_num_threads();
+        #pragma omp parallel for reduction(+:a) schedule(static) num_threads(available_threads) if (available_threads > 1)
 #endif
         for (int i = 0; i < img.size; i++) {
             a += img[i];
@@ -1200,7 +1226,8 @@ namespace img {
         out.ensure_size(in.w, in.h, in.d);
 
 #ifdef _OPENMP
-        #pragma omp parallel for if(omp_get_num_threads() == 1) schedule(static) num_threads(com.fftw_max_thread)
+        int available_threads = com.max_thread - omp_get_num_threads();
+        #pragma omp parallel for schedule(static) num_threads(available_threads) if (available_threads > 1)
 #endif
         for (int i = 0; i < out.w*out.h; i++) {
             T r = in[i*3+0];
@@ -1220,7 +1247,8 @@ namespace img {
         out.ensure_size(in.w, in.h, in.d);
 
 #ifdef _OPENMP
-        #pragma omp parallel for if(omp_get_num_threads() == 1) schedule(static) num_threads(com.fftw_max_thread)
+        int available_threads = com.max_thread - omp_get_num_threads();
+        #pragma omp parallel for schedule(static) num_threads(available_threads) if (available_threads > 1)
 #endif
         for (int i = 0; i < out.w*out.h; i++) {
             T y = in[i*3+0];
