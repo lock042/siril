@@ -105,7 +105,7 @@ public:
 
     /* This constructor allows for wrapping an img_t class around an existing
      * array (e.g. a float*). img_t methods can then be used, and when the
-     * img_t is deleted the original T* remains accessbile. */
+     * img_t is deleted the original T* remains accessbile.*/
 
     // Wrap external data pointer without copying
     img_t(T* data, int w, int h, int d, bool wrap)

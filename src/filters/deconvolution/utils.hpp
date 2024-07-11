@@ -56,7 +56,7 @@ namespace utils {
         out.resize(in.h, in.w, in.d);
 #ifdef _OPENMP
         int available_threads = com.max_thread - omp_get_num_threads();
-        #pragma omp parallel for simd collapse(3) schedule(static) num_threads(available_threads) if (available_threads > 1)
+        #pragma omp parallel for collapse(3) schedule(static) num_threads(available_threads) if (available_threads > 1)
 #endif
         for (int d = 0; d < in.d; d++) {
             for (int y = 0; y < in.h; y++) {
@@ -78,7 +78,7 @@ namespace utils {
         int available_threads = com.max_thread - omp_get_num_threads();
         #pragma omp parallel num_threads(available_threads) if (available_threads > 1)
 {
-#pragma omp for simd collapse(2) schedule(static)
+        #pragma omp for collapse(3) schedule(static)
 #endif
         for (int y = 0; y < hh; y++) {
             for (int x = 0; x < f.w; x++) {
@@ -89,7 +89,7 @@ namespace utils {
             }
         }
 #ifdef _OPENMP
-        #pragma omp for simd collapse(3) schedule(static)
+        #pragma omp for collapse(3) schedule(static)
 #endif
         for (int y = 0; y < f.h; y++) {
             for (int x = 0; x < hw; x++) {
@@ -128,44 +128,71 @@ namespace utils {
         T dx = 0.f;
         T dy = 0.f;
         T sum = kernel.sum();
-        img_t<T> copy;
-#ifdef _OPENMP
+    #ifdef _OPENMP
         int available_threads = com.max_thread - omp_get_num_threads();
         #pragma omp parallel num_threads(available_threads) if (available_threads > 1)
-{
-#pragma omp for simd schedule(static)
-#endif
+        {
+            T local_dx = 0.f;
+            T local_dy = 0.f;
+
+            #pragma omp for schedule(static) nowait
+            for (int y = 0; y < kernel.h; y++) {
+                for (int x = 0; x < kernel.w; x++) {
+                    local_dx += kernel(x, y) * x;
+                    local_dy += kernel(x, y) * y;
+                }
+            }
+
+            #pragma omp atomic
+            dx += local_dx;
+            #pragma omp atomic
+            dy += local_dy;
+
+            #pragma omp barrier
+
+            #pragma omp single
+            {
+                dx = std::round(dx / sum);
+                dy = std::round(dy / sum);
+            }
+
+            img_t<T> copy(kernel);
+
+            #pragma omp for collapse(2) schedule(static)
+            for (int y = 0; y < kernel.h; y++) {
+                for (int x = 0; x < kernel.w; x++) {
+                    int nx = x + static_cast<int>(dx) - kernel.w / 2;
+                    int ny = y + static_cast<int>(dy) - kernel.h / 2;
+                    if (nx >= 0 && nx < kernel.w && ny >= 0 && ny < kernel.h) {
+                        kernel(x, y) = copy(nx, ny);
+                    }
+                }
+            }
+        }
+    #else
         for (int y = 0; y < kernel.h; y++) {
             for (int x = 0; x < kernel.w; x++) {
                 dx += kernel(x, y) * x;
                 dy += kernel(x, y) * y;
             }
         }
-#ifdef _OPENMP
-#pragma omp critical
-{
-#endif
+
         dx = std::round(dx / sum);
         dy = std::round(dy / sum);
 
-        copy = kernel;
+        img_t<T> copy(kernel);
         kernel.set_value(0);
-#ifdef _OPENMP
-}
-#pragma omp for simd collapse(2) schedule(static)
-#endif
+
         for (int y = 0; y < kernel.h; y++) {
             for (int x = 0; x < kernel.w; x++) {
-                int nx = x + (int)dx - kernel.w/2;
-                int ny = y + (int)dy - kernel.h/2;
+                int nx = x + static_cast<int>(dx) - kernel.w / 2;
+                int ny = y + static_cast<int>(dy) - kernel.h / 2;
                 if (nx >= 0 && nx < kernel.w && ny >= 0 && ny < kernel.h) {
                     kernel(x, y) = copy(nx, ny);
                 }
             }
         }
-#ifdef _OPENMP
-}
-#endif
+    #endif
     }
 
     template <typename T>
@@ -178,7 +205,7 @@ namespace utils {
         int d = in.d;
 #ifdef _OPENMP
         int available_threads = com.max_thread - omp_get_num_threads();
-        #pragma omp parallel for simd collapse(3) schedule(static) num_threads(available_threads) if (available_threads > 1)
+        #pragma omp parallel for collapse(3) schedule(static) num_threads(available_threads) if (available_threads > 1)
 #endif
         for (int l = 0; l < d; l++) {
             for (int y = 0; y < h; y++) {
@@ -199,7 +226,7 @@ namespace utils {
         int d = out.d;
 #ifdef _OPENMP
         int available_threads = com.max_thread - omp_get_num_threads();
-        #pragma omp parallel for simd collapse(3) schedule(static) num_threads(available_threads) if (available_threads > 1)
+        #pragma omp parallel for collapse(3) schedule(static) num_threads(available_threads) if (available_threads > 1)
 #endif
         for (int l = 0; l < d; l++) {
             for (int y = 0; y < h; y++) {
@@ -217,7 +244,7 @@ namespace utils {
             out.resize(in.w/2, in.h/2, in.d);
 #ifdef _OPENMP
         int available_threads = com.max_thread - omp_get_num_threads();
-        #pragma omp parallel for simd collapse(3) schedule(static) num_threads(available_threads) if (available_threads > 1)
+        #pragma omp parallel for collapse(3) schedule(static) num_threads(available_threads) if (available_threads > 1)
 #endif
         for (int d = 0; d < out.d; d++) {
             for (int j = 0; j < out.h; j++) {
@@ -238,7 +265,7 @@ namespace utils {
             out.resize(in.w*2, in.h*2, in.d);
 #ifdef _OPENMP
         int available_threads = com.max_thread - omp_get_num_threads();
-        #pragma omp parallel for simd collapse(3) schedule(static) num_threads(available_threads) if (available_threads > 1)
+        #pragma omp parallel for collapse(3) schedule(static) num_threads(available_threads) if (available_threads > 1)
 #endif
         for (int d = 0; d < out.d; d++) {
             for (int j = 0; j < out.h; j++) {
