@@ -48,6 +48,7 @@ free-astro 2022-2023.
 #include <functional>
 #include <vector>
 #include <numeric>
+#include <memory>
 #include "core/siril.h"
 #include <fftw3.h>
 #include "fftw_allocator.hpp"
@@ -100,6 +101,23 @@ public:
 
     img_t(const img_t<T>& o)
         : size(o.size), w(o.w), h(o.h), d(o.d), data(o.data) {
+    }
+
+    /* This constructor allows for wrapping an img_t class around an existing
+     * array (e.g. a float*). img_t methods can then be used, and when the
+     * img_t is deleted the original T* remains accessbile. */
+
+    // Wrap external data pointer without copying
+    img_t(T* data, int w, int h, int d, bool wrap)
+        : size(w * h * d), w(w), h(h), d(d) {
+        if (wrap) {
+            // Use a custom deleter that does nothing
+            auto deleter = [](T*) {};
+            std::shared_ptr<T> ptr(data, deleter);
+            this->data = std::vector<T, fftw_alloc<T>>(ptr, ptr + w * h * d);
+        } else {
+            this->data.assign(data, data + w * h * d);
+        }
     }
 
     img_t& operator=(img_t<T>&& o) noexcept {
@@ -255,7 +273,7 @@ public:
         int n = w * h * d;
 #ifdef _OPENMP
         int available_threads = com.max_thread - omp_get_num_threads();
-#pragma omp parallel for schedule(static) num_threads(available_threads) if (available_threads > 1)
+#pragma omp parallel for simd schedule(static) num_threads(available_threads) if (available_threads > 1)
 #endif
         for (int i = 0; i < n; i++)
             data[i] = o[i];
@@ -401,7 +419,7 @@ public:
     void mapf(F&& f) {
 #ifdef _OPENMP
         int available_threads = com.max_thread - omp_get_num_threads();
-        #pragma omp parallel for schedule(static) num_threads(available_threads) if (available_threads > 1)
+        #pragma omp parallel for simd schedule(static) num_threads(available_threads) if (available_threads > 1)
 #endif
         for (int i = 0; i < size; i++) {
             (*this)[i] = f((*this)[i]);

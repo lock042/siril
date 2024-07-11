@@ -107,8 +107,8 @@ static void singlePhaseRetrieval(img_t<T>& kernel, const img_t<T>& magnitude,
     }
 
     for (int y = 0; y < kernelSize; y++)
-    for (int x = 0; x < kernelSize; x++)
-        kernel(x, y) = g2(x, y) >= T(0.) ? g2(x, y) : T(0.);
+        for (int x = 0; x < kernelSize; x++)
+            kernel(x, y) = g2(x, y) >= T(0.) ? g2(x, y) : T(0.);
     kernel.normalize();
 
     // apply the thresholding of 1/255
