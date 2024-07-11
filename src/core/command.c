@@ -3671,7 +3671,7 @@ int process_set_photometry(int nb) {
 		}
 		if (aperture > 0.0)
 			com.pref.phot_set.aperture = aperture;
-		if (force && force >= 1.0 && force <= 5.0) {
+		if (force && force >= 1.0 && force <= 10.0) {
 			com.pref.phot_set.force_radius = FALSE;
 			com.pref.phot_set.auto_aperture_factor = (double)force;
 		} else {
