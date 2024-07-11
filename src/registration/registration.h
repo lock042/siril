@@ -80,22 +80,12 @@ typedef struct {
 	int x, y, w, h;
 } framing_roi;
 
-struct astrometric_args{
-	int nb;
-	int refindex;
-	Homography *Rs;
-	Homography *Ks;
-	disto_data *disto;
-	float scale;
-	framing_roi roi;
-};
 
 /**** star alignment (global and 3-star) registration ****/
 
 struct star_align_data {
 	struct registration_args *regargs;
 	regdata *current_regdata;
-	struct astrometric_args *astargs;
 	psf_star **refstars;
 	int fitted_stars;
 	BYTE *success;
@@ -164,7 +154,6 @@ int register_3stars(struct registration_args *regargs); // REG_3STARS
 int register_apply_reg(struct registration_args *regargs); // REG_APPLY
 int register_kombat(struct registration_args *args); // REG_KOMBAT
 int register_manual(struct registration_args *regargs); // defined in compositing/compositing.c
-int register_astrometric(struct registration_args *regargs);
 
 // 3 stars
 void reset_3stars();
@@ -175,7 +164,6 @@ gboolean _3stars_check_selection();
 pointf compute_velocity(GDateTime *t1, GDateTime *t2, point d1, point d2);
 int get_comet_shift(GDateTime *ref, GDateTime *img, pointf px_per_hour, pointf *reg);
 
-pointf get_velocity();
 void update_reg_interface(gboolean dont_change_reg_radio);
 void compute_fitting_selection(rectangle *area, int hsteps, int vsteps, int preserve_square);
 void get_the_registration_area(struct registration_args *regargs, const struct registration_method *method); // for compositing
@@ -219,6 +207,5 @@ int collect_sequence_astrometry(struct registration_args *regargs);
 int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_type framing, int layer);
 
 int minidx(const float *arr, const gboolean *mask, int nb, float *val);
-void free_astrometric_args(struct astrometric_args *astargs);
 int initialize_drizzle_params(struct generic_seq_args *args, struct registration_args *regargs);
 #endif
