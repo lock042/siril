@@ -622,4 +622,3 @@ auto reduce_d(const E& e, std::function<typename E::value_type(typename E::value
 {
     return reduce1_img_expr_t<decltype(to_expr(e))>(to_expr(e), reductor);
 }
-

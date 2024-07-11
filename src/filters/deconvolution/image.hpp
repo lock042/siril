@@ -63,14 +63,13 @@ template <typename T>
 class img_t {
 public:
     static void use_threading(int n) {
-#ifdef HAVE_FFTW3F_MULTITHREAD
         fftwf_set_timelimit(com.pref.fftw_conf.timelimit);
+#ifdef HAVE_FFTW3F_MULTITHREAD
         if (n > 1) {
             fftwf_plan_with_nthreads(n);
         }
-        fprintf(stdout, "fftwf initialized with %d threads, planning time limit %.1f seconds\n", n, com.pref.fftw_conf.timelimit);
-
 #endif
+        fprintf(stdout, "fftwf initialized with %d threads, planning time limit %.1f seconds\n", n, com.pref.fftw_conf.timelimit);
     }
 
     typedef T value_type;
