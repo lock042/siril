@@ -184,7 +184,7 @@ int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_ty
 			anglecount++;
 		}
 		if (framing != FRAMING_CURRENT) {
-			framingref += (angles[2] < 0.) ? angles[2] + 180. : angles[2];
+			framingref += (angles[2] < -90.) ? angles[2] + 180. : (angles[2] > 90.) ? angles[2] - 180 : angles[2];
 			anglecount++;
 		}
 	}
