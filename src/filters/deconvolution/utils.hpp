@@ -54,7 +54,9 @@ namespace utils {
         }
 
         out.resize(in.h, in.w, in.d);
+#ifdef _OPENMP
         #pragma omp parallel for if(omp_get_num_threads() == 1) collapse(3) schedule(static) num_threads(com.max_thread)
+#endif
         for (int d = 0; d < in.d; d++) {
             for (int y = 0; y < in.h; y++) {
                 for (int x = 0; x < in.w; x++) {
@@ -71,7 +73,9 @@ namespace utils {
         f.set_value(T(0));
         slice(f, _sl(hw, -hw-1), _sl(hh, -hh-1)).map(_f);
         // replicate borders
+#ifdef _OPENMP
         #pragma omp parallel for if(omp_get_num_threads() == 1) collapse(2) schedule(static) num_threads(com.max_thread)
+#endif
         for (int y = 0; y < hh; y++) {
             for (int x = 0; x < f.w; x++) {
                 for (int l = 0; l < f.d; l++) {
@@ -80,7 +84,9 @@ namespace utils {
                 }
             }
         }
+#ifdef _OPENMP
         #pragma omp parallel for if(omp_get_num_threads() == 1) collapse(2) schedule(static) num_threads(com.max_thread)
+#endif
         for (int y = 0; y < f.h; y++) {
             for (int x = 0; x < hw; x++) {
                 for (int l = 0; l < f.d; l++) {
@@ -114,7 +120,9 @@ namespace utils {
         T dx = 0.f;
         T dy = 0.f;
         T sum = kernel.sum();
+#ifdef _OPENMP
         #pragma omp parallel for if(omp_get_num_threads() == 1) reduction(+:dx,dy) schedule(static) num_threads(com.max_thread)
+#endif
         for (int y = 0; y < kernel.h; y++) {
             for (int x = 0; x < kernel.w; x++) {
                 dx += kernel(x, y) * x;
@@ -126,7 +134,9 @@ namespace utils {
 
         img_t<T> copy(kernel);
         kernel.set_value(0);
+#ifdef _OPENMP
         #pragma omp parallel for if(omp_get_num_threads() == 1) collapse(2) schedule(static) num_threads(com.max_thread)
+#endif
         for (int y = 0; y < kernel.h; y++) {
             for (int x = 0; x < kernel.w; x++) {
                 int nx = x + (int)dx - kernel.w/2;
@@ -146,7 +156,9 @@ namespace utils {
         int w = in.w;
         int h = in.h;
         int d = in.d;
+#ifdef _OPENMP
         #pragma omp parallel for simd if (omp_get_num_threads() == 1) collapse(3) schedule(static) num_threads(com.max_thread)
+#endif
         for (int l = 0; l < d; l++) {
             for (int y = 0; y < h; y++) {
                 for (int x = 0; x < w; x++) {
@@ -164,7 +176,9 @@ namespace utils {
         int w = out.w;
         int h = out.h;
         int d = out.d;
+#ifdef _OPENMP
         #pragma omp parallel for simd if (omp_get_num_threads() == 1) collapse(3) schedule(static) num_threads(com.max_thread)
+#endif
         for (int l = 0; l < d; l++) {
             for (int y = 0; y < h; y++) {
                 for (int x = 0; x < w; x++) {
@@ -179,7 +193,9 @@ namespace utils {
     void downsa2(img_t<T>& out, const img_t<T>& in) {
         if (out.size == 0)
             out.resize(in.w/2, in.h/2, in.d);
+#ifdef _OPENMP
         #pragma omp parallel for simd if(omp_get_num_threads() == 1) collapse(3) schedule(static) num_threads(com.max_thread)
+#endif
         for (int d = 0; d < out.d; d++) {
             for (int j = 0; j < out.h; j++) {
                 for (int i = 0; i < out.w; i++) {
@@ -197,7 +213,9 @@ namespace utils {
     void upsa2(img_t<T>& out, const img_t<T>& in) {
         if (out.size == 0)
             out.resize(in.w*2, in.h*2, in.d);
+#ifdef _OPENMP
         #pragma omp parallel for if(omp_get_num_threads() == 1) collapse(3) schedule(static) num_threads(com.max_thread)
+#endif
         for (int d = 0; d < out.d; d++) {
             for (int j = 0; j < out.h; j++) {
                 for (int i = 0; i < out.w; i++) {
@@ -214,30 +232,38 @@ namespace utils {
         T sum = k.sum();
         img_t<int> lab;
         std::vector<T> sums;
+#ifdef _OPENMP
         #pragma omp parallel if(omp_get_num_threads() == 1) num_threads(com.max_thread)
         {
-            // First loop: normalize k
             #pragma omp for schedule(static)
+#endif
+            // First loop: normalize k
             for (int i = 0; i < k.size; i++)
                 k[i] /= sum;
 
             // Synchronize threads before sequential operations
+#ifdef _OPENMP
             #pragma omp single
             {
+#endif
                 labeling::labels(lab, k);
                 std::map<int, T> sum_map = labeling::sum(lab, k);
                 sums.reserve(sum_map.size());
                 for (const auto& pair : sum_map) {
                     sums.push_back(pair.second);
                 }
+#ifdef _OPENMP
             }
 
-            // Second loop: remove low-intensity components
             #pragma omp for schedule(static)
+#endif
+            // Second loop: remove low-intensity components
             for (int i = 0; i < k.size; i++) {
                 if (sums[lab[i]] < T(0.1))
                     k[i] = T(0);
             }
+#ifdef _OPENMP
         }
+#endif
     }
 }

@@ -395,7 +395,9 @@ public:
             // crop the center of the otf to get the kernel
             int left = otf.w / 2 - k.w / 2;
             int top = otf.h / 2 - k.h / 2;
+#ifdef _OPENMP
 #pragma omp simd collapse(2)
+#endif
             for (int y = 0; y < k.h; y++) {
                 for (int x = 0; x < k.w; x++) {
                     k(x, y) = otf(left + x, top + y);
@@ -403,7 +405,9 @@ public:
             }
 
             // enforce positivity of the kernel + prox l1
+#ifdef _OPENMP
 #pragma omp simd
+#endif
             for (int i = 0; i < k.size; i++) {
                 k[i] = std::max(T(0), k[i] - opts.k_l1 / gamma);
             }
@@ -414,7 +418,9 @@ public:
         // threshold the kernel at some percentage of the max value
         if (opts.kernel_threshold_max > 0.f) {
             T th = k.max() * opts.kernel_threshold_max;
+#ifdef _OPENMP
 #pragma omp simd
+#endif
             for (int i = 0; i < k.size; i++)
                 k[i] = k[i] < th ? T(0) : k[i];
         }
@@ -430,13 +436,17 @@ public:
         // renormalize after centering since some values can be lost
         T sum = k.sum();
         if (sum > 1e-6) {
+#ifdef _OPENMP
 #pragma omp simd
+#endif
             for (int i = 0; i < k.size; i++) {
                 k[i] /= sum;
             }
         } else {
             // reset the kernel
+#ifdef _OPENMP
 #pragma omp simd
+#endif
             for (int i = 0; i < k.size; i++) {
                 k[i] = 0;
             }

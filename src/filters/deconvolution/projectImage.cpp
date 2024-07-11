@@ -53,12 +53,16 @@ void projectImage(img_t<T>& projections, const img_t<T>& u_x, const img_t<T>& u_
     img_t<T> u_xt = u_x;
     u_xt.transpose();
 
+#ifdef _OPENMP
     #pragma omp parallel
     {
+#endif
         std::vector<T> accumulationLine(maxSize);
         std::vector<int> countLine(maxSize);
 
+#ifdef _OPENMP
         #pragma omp for schedule(dynamic)
+#endif
         for (unsigned a = 0; a < angleSet.size(); a++) {
             // Reset the accumulators
             std::fill(accumulationLine.begin(), accumulationLine.end(), 0.);
@@ -78,7 +82,9 @@ void projectImage(img_t<T>& projections, const img_t<T>& u_x, const img_t<T>& u_
 
             if (horizontalShear) {
                 int start = (maxSize - w - factor*h) / 2;
+#ifdef _OPENMP
                 #pragma omp simd
+#endif
                 for (int y = 0; y < h; y++) {
                     int offset = start + round(factor * y);
                     for (int x = 0; x < w; x++) {
@@ -88,7 +94,9 @@ void projectImage(img_t<T>& projections, const img_t<T>& u_x, const img_t<T>& u_
                 }
             } else {
                 int start = (maxSize - h - factor*w) / 2;
+#ifdef _OPENMP
                 #pragma omp simd
+#endif
                 for (int x = 0; x < w; x++) {
                     int offset = start + round(factor * x);
                     for (int y = 0; y < h; y++) {
@@ -99,7 +107,9 @@ void projectImage(img_t<T>& projections, const img_t<T>& u_x, const img_t<T>& u_
             }
 
             // Replace values that didn't get any samples by NAN
+#ifdef _OPENMP
             #pragma omp simd
+#endif
             for (int i = 0; i < maxSize; i++) {
                 if (!countLine[i])
                     accumulationLine[i] = NAN;
@@ -108,7 +118,9 @@ void projectImage(img_t<T>& projections, const img_t<T>& u_x, const img_t<T>& u_
             // Copy to the resulting image
             std::copy(accumulationLine.begin(), accumulationLine.end(), &projections(0, a));
         }
+#ifdef _OPENMP
     }
+#endif
 }
 
 /// project the intensity by shearing + accumulation
@@ -126,12 +138,16 @@ void projectImage(img_t<T>& projections, const img_t<T>& u,
     img_t<T> ut = u;
     ut.transpose();
 
+#ifdef _OPENMP
     #pragma omp parallel
     {
+#endif
         std::vector<T> accumulationLine(maxSize);
         std::vector<int> countLine(maxSize);
 
+#ifdef _OPENMP
         #pragma omp for schedule(dynamic)
+#endif
         for (unsigned a = 0; a < angleSet.size(); a++) {
             // Reset the accumulators
             std::fill(accumulationLine.begin(), accumulationLine.end(), 0.);
@@ -149,7 +165,9 @@ void projectImage(img_t<T>& projections, const img_t<T>& u,
 
             if (horizontalShear) {
                 int start = (maxSize - w - factor*h) / 2;
+#ifdef _OPENMP
                 #pragma omp simd
+#endif
                 for (int y = 0; y < h; y++) {
                     int offset = start + round(factor * y);
                     for (int x = 0; x < w; x++) {
@@ -159,7 +177,9 @@ void projectImage(img_t<T>& projections, const img_t<T>& u,
                 }
             } else {
                 int start = (maxSize - h - factor*w) / 2;
+#ifdef _OPENMP
                 #pragma omp simd
+#endif
                 for (int x = 0; x < w; x++) {
                     int offset = start + round(factor * x);
                     for (int y = 0; y < h; y++) {
@@ -170,8 +190,10 @@ void projectImage(img_t<T>& projections, const img_t<T>& u,
             }
 
             // Replace values that didn't get any samples by NAN
+#ifdef _OPENMP
             #pragma omp simd
-            for (int i = 0; i < maxSize; i++) {
+#endif
+for (int i = 0; i < maxSize; i++) {
                 if (!countLine[i])
                     accumulationLine[i] = NAN;
             }
@@ -179,5 +201,7 @@ void projectImage(img_t<T>& projections, const img_t<T>& u,
             // Copy to the resulting image
             std::copy(accumulationLine.begin(), accumulationLine.end(), &projections(0, a));
         }
+#ifdef _OPENMP
     }
+#endif
 }

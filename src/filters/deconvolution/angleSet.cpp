@@ -43,10 +43,14 @@ static void computeProjectionHalfAngleSet(std::vector<angle_t>& angles, int kern
     // Reserve approximate space to reduce reallocations
     localAngles.reserve((kernelSize + 1) * (kernelSize + 1) / 2);
 
+#ifdef _OPENMP
     #pragma omp parallel
     {
+#endif
         std::vector<angle_t> privateAngles;
+#ifdef _OPENMP
         #pragma omp for nowait
+#endif
         for (int x = 0; x <= kernelSize; ++x) {
             for (int y = 0; y <= kernelSize; ++y) {
                 // If gcd(x, y) is not one, skip to avoid duplicate angles
@@ -60,9 +64,13 @@ static void computeProjectionHalfAngleSet(std::vector<angle_t>& angles, int kern
                 privateAngles.push_back(angle);
             }
         }
+#ifdef _OPENMP
         #pragma omp critical
+#endif
         localAngles.insert(localAngles.end(), privateAngles.begin(), privateAngles.end());
+#ifdef _OPENMP
     }
+#endif
 
     // Sort by angle in descending order
     std::sort(localAngles.begin(), localAngles.end(), [](const angle_t& a, const angle_t& b) {
@@ -85,7 +93,9 @@ void computeProjectionAngleSet(std::vector<angle_t>& angles, int kernelSize)
     // Add mirrored angles
     std::vector<angle_t> mirroredAngles(s - 2);
 
+#ifdef _OPENMP
     #pragma omp parallel for
+#endif
     for (int i = 1; i < s - 1; ++i) { // Start from 1 to skip theta = pi/2 and go to s-1 to skip theta = 0
         angle_t ref = angles[s - 1 - i];
         mirroredAngles[i - 1].angle = -ref.angle;

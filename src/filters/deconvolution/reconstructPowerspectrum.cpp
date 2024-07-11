@@ -41,12 +41,16 @@ void reconstructPowerspectrum(img_t<T>& powerSpectrum, const img_t<T>& acProject
     powerSpectrum.ensure_size(psSize*2+1, psSize*2+1);
     powerSpectrum.set_value(0.);
 
+#ifdef _OPENMP
     #pragma omp parallel
     {
+#endif
         img_t<std::complex<T>> ftAutocorrelation(acProjections.w, 1);
         img_t<T> powerSpectrumSlice(acProjections.w, 1);
 
+#ifdef _OPENMP
         #pragma omp for schedule(dynamic)
+#endif
         for (unsigned j = 0; j < angleSet.size(); j++) {
             // compute the discrete Fourier transform of the autocorrelation
             // (= power spectrum by the Wiener-Khinchin theorem)
@@ -75,14 +79,20 @@ void reconstructPowerspectrum(img_t<T>& powerSpectrum, const img_t<T>& acProject
                 // place the sample in the 2D power spectrum
                 int sliceOffset = std::max(std::abs(xOffset), std::abs(yOffset));
 
+#ifdef _OPENMP
                 #pragma omp critical
                 {
+#endif
                     powerSpectrum(psSize + xOffset, psSize + yOffset) = powerSpectrumSlice[psSize + sliceOffset];
                     powerSpectrum(psSize - xOffset, psSize - yOffset) = powerSpectrumSlice[psSize + sliceOffset];
+#ifdef _OPENMP
                 }
+#endif
             }
         }
+#ifdef _OPENMP
     }
+#endif
 
     // the DC value of the kernel is 1
     powerSpectrum(psSize, psSize) = 1.;

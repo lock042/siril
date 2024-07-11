@@ -18,15 +18,19 @@ int labels(img_t<int>& labels, const img_t<T>& img) {
     int nblabels = 0;
 
     // Parallel region for the main loop
+#ifdef _OPENMP
     #pragma omp parallel num_threads(com.fftw_max_thread)
     {
+#endif
         // Each thread will have its own local nblabels
         int local_nblabels = 0;
         std::vector<int> local_equiv;
         local_equiv.push_back(0);
 
         // Parallelize the outermost loop
+#ifdef _OPENMP
         #pragma omp for schedule(dynamic) collapse(2)
+#endif
         for (int d = 0; d < img.d; d++) {
             for (int y = 0; y < img.h; y++) {
                 for (int x = 0; x < img.w; x++) {
@@ -62,7 +66,9 @@ int labels(img_t<int>& labels, const img_t<T>& img) {
         }
 
         // Combine local results
+#ifdef _OPENMP
         #pragma omp critical
+#endif
         {
             int offset = nblabels;
             nblabels += local_nblabels;
@@ -72,8 +78,9 @@ int labels(img_t<int>& labels, const img_t<T>& img) {
                 equiv.push_back(local_equiv[i] + offset);
             }
         }
+#ifdef _OPENMP
     }
-
+#endif
     // Assign one label per connected component
     std::function<int(int)> getroot = [&](int l) {
         while (l != equiv[l]) {
@@ -83,7 +90,9 @@ int labels(img_t<int>& labels, const img_t<T>& img) {
         return l;
     };
 
+#ifdef _OPENMP
     #pragma omp parallel for num_threads(com.fftw_max_thread)
+#endif
     for (int i = 0; i < labels.size; i++) {
         labels[i] = getroot(labels[i]);
     }

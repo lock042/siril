@@ -193,13 +193,17 @@ void phaseRetrieval(img_t<T>& outkernel, const img_t<T>& blurredPatch,
     magnitude.ifftshift(); // unshift the magnitude
 
     T globalCurrentScore = std::numeric_limits<T>::max();
+#ifdef _OPENMP
 #pragma omp parallel num_threads(com.fftw_max_thread)
     {
+#endif
         img_t<T> kernel;
         img_t<T> kernel_mirror;
         T currentScore = std::numeric_limits<T>::max();
         img_t<T> bestKernel;
+#ifdef _OPENMP
 #pragma omp for schedule(guided) nowait
+#endif
         for (int k = 0; k < opts.Ntries; k++) {
 
             if (!get_thread_run()) continue;
@@ -237,13 +241,17 @@ void phaseRetrieval(img_t<T>& outkernel, const img_t<T>& blurredPatch,
         }
 
         // aggregate results by keeping the best kernel
+#ifdef _OPENMP
 #pragma omp critical
         {
+#endif
             if (currentScore < globalCurrentScore) {
                 globalCurrentScore = currentScore;
                 outkernel = std::move(bestKernel);
             }
+#ifdef _OPENMP
         }
+#endif
     }
 }
 

@@ -38,7 +38,9 @@ void edgetaper(img_t<T>& out, const img_t<T>& in, const img_t<T>& kernel, int it
 {
     img_t<T> weights(in.w, in.h);
     // kind of tukey window
+#ifdef _OPENMP
     #pragma omp parallel for collapse(2)
+#endif
     for (int y = 0; y < in.h; y++) {
         for (int x = 0; x < in.w; x++) {
             T wy = 1.;
@@ -69,7 +71,9 @@ void edgetaper(img_t<T>& out, const img_t<T>& in, const img_t<T>& kernel, int it
         blurred_ft.copy(out);
         blurred_ft.fft(blurred_ft);
 
+#ifdef _OPENMP
         #pragma omp parallel for collapse(3)
+#endif
         for (int y = 0; y < out.h; y++)
             for (int x = 0; x < out.w; x++)
                 for (int l = 0; l < out.d; l++)
@@ -77,12 +81,16 @@ void edgetaper(img_t<T>& out, const img_t<T>& in, const img_t<T>& kernel, int it
 
         blurred_ft.ifft(blurred_ft);
 
+#ifdef _OPENMP
         #pragma omp parallel for
+#endif
         for (int i = 0; i < blurred.size; i++)
             blurred[i] = std::real(blurred_ft[i]);
 
         // blend the images
+#ifdef _OPENMP
         #pragma omp parallel for collapse(2)
+#endif
         for (int y = 0; y < out.h; y++) {
             for (int x = 0; x < out.w; x++) {
                 T w = weights(x, y);
