@@ -82,7 +82,7 @@ int check_loaded_fits_params(fits *ref, ...);
 void merge_fits_headers_to_result2(fits *result, fits **f, gboolean do_sum);
 void merge_fits_headers_to_result(fits *result, gboolean do_sum, fits *f1,...);
 int get_xpsampled(xpsampled* xps, const gchar *filename, int i);
-int updateFITSKeyword(fits *fit, const gchar *key, const gchar *value);
+int updateFITSKeyword(fits *fit, const gchar *key, const gchar *value, const gchar *comment);
 int associate_header_to_memfile(const char *header, fitsfile *fptr);
 int fits_parse_header_str(fits *fit, const char *header);
 

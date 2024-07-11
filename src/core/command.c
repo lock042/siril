@@ -1766,15 +1766,17 @@ int process_unsharp(int nb) {
 }
 
 int process_update_key(int nb) {
-	if (nb != 3) {
+	if (nb != 3 && nb != 4) {
 		return CMD_ARG_ERROR;
 	}
-	gchar *FITS_key, *value;
+	gchar *FITS_key, *value, *comment = NULL;
 
 	FITS_key = word[1];
 	value = word[2];
+	if (nb == 4)
+		comment = word[3];
 
-	updateFITSKeyword(&gfit, FITS_key, value);
+	updateFITSKeyword(&gfit, FITS_key, value, comment);
 
 	return CMD_OK;
 }

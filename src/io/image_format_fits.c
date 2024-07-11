@@ -3013,9 +3013,9 @@ error:
 	return 1;
 }
 
-int updateFITSKeyword(fits *fit, const gchar *key, const gchar *value) {
+int updateFITSKeyword(fits *fit, const gchar *key, const gchar *value, const gchar *comment) {
 	char card[FLEN_CARD], newcard[FLEN_CARD];
-	char oldvalue[FLEN_VALUE], comment[FLEN_COMMENT] = { 0 };
+	char oldvalue[FLEN_VALUE], oldcomment[FLEN_COMMENT] = { 0 };
 	int keytype;
 	void *memptr;
 	size_t memsize = IOBUFLEN;
@@ -3056,7 +3056,7 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *value) {
 	} else {
 		/* get the comment string */
 		if (*card)
-			fits_parse_value(card, oldvalue, comment, &status);
+			fits_parse_value(card, oldvalue, oldcomment, &status);
 
 		/* construct template for new keyword */
 		gsize len, maxlen = FLEN_CARD;
@@ -3072,12 +3072,16 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *value) {
 		if (len >= maxlen)
 			siril_debug_print("Exceeded FTS card length\n");
 		maxlen = max(0, maxlen - len);
-		if (*card && *comment) { /* Restore comment if exist */
+		if (*card && (*oldcomment || comment)) { /* Restore comment if exist */
 			len = g_strlcat(newcard, " / ", maxlen);
 			if (len >= maxlen)
 				siril_debug_print("Exceeded FTS card length\n");
 			maxlen = max(0, maxlen - len);
-			len = g_strlcat(newcard, comment, maxlen);
+			if (comment) {
+				len = g_strlcat(newcard, comment, maxlen);
+			} else {
+				len = g_strlcat(newcard, oldcomment, maxlen);
+			}
 			if (len >= maxlen)
 				siril_debug_print("Exceeded FTS card length\n");
 		}

@@ -249,7 +249,7 @@ static command commands[] = {
 	{"unselect", 3, "unselect sequencename from to", process_unselect, STR_UNSELECT, TRUE, REQ_CMD_NONE},
 	{"unsetmag", 0, "unsetmag", process_unset_mag, STR_UNSETMAG, FALSE, REQ_CMD_NONE},
 	{"unsharp", 2, "unsharp sigma multi", process_unsharp, STR_UNSHARP, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"update_key", 2, "update_key key value", process_update_key, STR_UPDATE_KEY, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"update_key", 2, "update_key key value [comment]", process_update_key, STR_UPDATE_KEY, TRUE, REQ_CMD_SINGLE_IMAGE},
 
 	{"visu", 2, "visu low high", process_visu, STR_VISU, FALSE, REQ_CMD_SINGLE_IMAGE},
 

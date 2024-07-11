@@ -204,12 +204,12 @@ void on_keywords_dialog_show(GtkWidget *dialog, gpointer user_data) {
 void on_val_edited(GtkCellRendererText *renderer, char *path, char *new_val, gpointer user_data) {
 	GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(lookup_widget("key_treeview")));
 	GtkTreeIter iter;
-	gchar *FITS_key;
+	gchar *FITS_key, *FITS_comment;
 	gboolean protected;
 	char dtype;
 
 	gtk_tree_model_get_iter_from_string(model, &iter, path);
-	gtk_tree_model_get(model, &iter, COLUMN_KEY, &FITS_key, COLUMN_DTYPE, &dtype, COLUMN_PROTECTED, &protected, -1);
+	gtk_tree_model_get(model, &iter, COLUMN_KEY, &FITS_key, COLUMN_COMMENT, &FITS_comment, COLUMN_DTYPE, &dtype, COLUMN_PROTECTED, &protected, -1);
 	if (!protected) {
 		char valstring[FLEN_VALUE];
 		int status = 0;
@@ -219,7 +219,7 @@ void on_val_edited(GtkCellRendererText *renderer, char *path, char *new_val, gpo
 		} else {
 			strcpy(valstring, new_val);
 		}
-		if (!updateFITSKeyword(&gfit, FITS_key, valstring)) {
+		if (!updateFITSKeyword(&gfit, FITS_key, valstring, FITS_comment)) {
 			gtk_list_store_set(key_liststore, &iter, COLUMN_VALUE, valstring, -1);
 		}
 	}
@@ -293,18 +293,19 @@ static void to_uppercase(char *str) {
 void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 	GtkWidget *dialog;
 	GtkWidget *content_area;
-	GtkWidget *vbox;
-	GtkWidget *hbox_name;
-	GtkWidget *hbox_value;
+	GtkWidget *grid;
 	GtkWidget *label_name;
 	GtkWidget *label_value;
+	GtkWidget *label_comment;
 	GtkWidget *entry_name;
 	GtkWidget *entry_value;
+	GtkWidget *entry_comment;
 	GtkDialogFlags flags = GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT;
 
 	// Create the dialog window with buttons
-	dialog = gtk_dialog_new_with_buttons("Add New Keyword", GTK_WINDOW(user_data),
-			flags, "_Cancel", GTK_RESPONSE_CANCEL, "_Add", GTK_RESPONSE_OK,
+	dialog = gtk_dialog_new_with_buttons("Add New Keyword",
+			GTK_WINDOW(user_data), flags, "_Cancel", GTK_RESPONSE_CANCEL,
+			"_Add", GTK_RESPONSE_OK,
 			NULL);
 
 	// Set the dialog to be non-resizable
@@ -313,26 +314,35 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 	// Get the content area of the dialog
 	content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
 
-	// Create a vertical box to hold the labels and entries
-	vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
-	gtk_container_add(GTK_CONTAINER(content_area), vbox);
+	// Create a grid to hold the labels and entries
+	grid = gtk_grid_new();
+	gtk_grid_set_column_homogeneous(GTK_GRID(grid), TRUE);
+	gtk_grid_set_row_spacing(GTK_GRID(grid), 5); // Set row spacing to 5
+	gtk_grid_set_column_spacing(GTK_GRID(grid), 5); // Set column spacing to 5
+	gtk_widget_set_margin_bottom(grid, 10); // Set bottom margin to 10 pixels
+	gtk_container_add(GTK_CONTAINER(content_area), grid);
 
 	// Create the Name label and entry
-	hbox_name = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
 	label_name = gtk_label_new("Name:");
+	gtk_widget_set_halign(label_name, GTK_ALIGN_START); // Align label to the start (left)
 	entry_name = gtk_entry_new();
 	gtk_entry_set_max_length(GTK_ENTRY(entry_name), 8); // Set the max length to 8. Don't want HIERARCH convention
-	gtk_box_pack_start(GTK_BOX(hbox_name), label_name, FALSE, FALSE, 5);
-	gtk_box_pack_start(GTK_BOX(hbox_name), entry_name, TRUE, TRUE, 5);
-	gtk_box_pack_start(GTK_BOX(vbox), hbox_name, FALSE, FALSE, 5);
+	gtk_grid_attach(GTK_GRID(grid), label_name, 0, 0, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid), entry_name, 1, 0, 1, 1);
 
 	// Create the Value label and entry
-	hbox_value = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
 	label_value = gtk_label_new("Value:");
+	gtk_widget_set_halign(label_value, GTK_ALIGN_START); // Align label to the start (left)
 	entry_value = gtk_entry_new();
-	gtk_box_pack_start(GTK_BOX(hbox_value), label_value, FALSE, FALSE, 5);
-	gtk_box_pack_start(GTK_BOX(hbox_value), entry_value, TRUE, TRUE, 5);
-	gtk_box_pack_start(GTK_BOX(vbox), hbox_value, FALSE, FALSE, 5);
+	gtk_grid_attach(GTK_GRID(grid), label_value, 0, 1, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid), entry_value, 1, 1, 1, 1);
+
+	// Create the Comment label and entry
+	label_comment = gtk_label_new("Comment:");
+	gtk_widget_set_halign(label_comment, GTK_ALIGN_START); // Align label to the start (left)
+	entry_comment = gtk_entry_new();
+	gtk_grid_attach(GTK_GRID(grid), label_comment, 0, 2, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid), entry_comment, 1, 2, 1, 1);
 
 	gtk_widget_show_all(dialog);
 
@@ -345,11 +355,26 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 		to_uppercase(FITS_key);
 
 		const gchar *value = gtk_entry_get_text(GTK_ENTRY(entry_value));
-		updateFITSKeyword(&gfit, FITS_key, value);
-		refresh_keywords_dialog();
+		const gchar *comment = gtk_entry_get_text(GTK_ENTRY(entry_comment));
+
+        if (g_strcmp0(FITS_key_text, "") != 0 && g_strcmp0(value, "") != 0) {
+			updateFITSKeyword(&gfit, FITS_key, value, comment);
+			refresh_keywords_dialog();
+		}
 	}
 
 	gtk_widget_destroy(dialog);
+}
+
+static void show_header_text(char *text) {
+	GtkTextView *tv = GTK_TEXT_VIEW(lookup_widget("FITS_header_txt"));
+	GtkTextBuffer *tbuf = gtk_text_view_get_buffer(tv);
+	GtkTextIter itDebut;
+	GtkTextIter itFin;
+
+	gtk_text_buffer_get_bounds(tbuf, &itDebut, &itFin);
+	gtk_text_buffer_delete(tbuf, &itDebut, &itFin);
+	gtk_text_buffer_set_text(tbuf, text, strlen(text));
 }
 
 static void save_key_to_clipboard() {
@@ -372,4 +397,6 @@ void refresh_keywords_dialog() {
 			(com.seq.current == RESULT_IMAGE || com.seq.current == SCALED_IMAGE)));
 	listFITSKeywords(&gfit, is_a_single_image_loaded);
 	gtk_widget_set_visible(lookup_widget("add_keyword_button"), is_a_single_image_loaded);
+	if (gfit.header)
+		show_header_text(gfit.header);
 }
