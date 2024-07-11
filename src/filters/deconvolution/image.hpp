@@ -102,23 +102,6 @@ public:
         : size(o.size), w(o.w), h(o.h), d(o.d), data(o.data) {
     }
 
-    /* This constructor allows for wrapping an img_t class around an existing
-     * array (e.g. a float*). img_t methods can then be used, and when the
-     * img_t is deleted the original T* remains accessbile.*/
-
-    // Wrap external data pointer without copying
-    img_t(T* data, int w, int h, int d, bool wrap)
-        : size(w * h * d), w(w), h(h), d(d) {
-        if (wrap) {
-            // Use a custom deleter that does nothing
-            auto deleter = [](T*) {};
-            std::shared_ptr<T> ptr(data, deleter);
-            this->data = std::vector<T, fftw_alloc<T>>(ptr, ptr + w * h * d);
-        } else {
-            this->data.assign(data, data + w * h * d);
-        }
-    }
-
     img_t& operator=(img_t<T>&& o) noexcept {
         if (this != &o) {  // Check for self-assignment
             // Destroy any existing plans
