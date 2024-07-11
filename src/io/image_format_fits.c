@@ -3050,7 +3050,12 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *value, const gch
 	tmpfit.fptr = fptr;
 	save_fits_header(&tmpfit);
 
-	if (!fits_read_card(fptr, key, card, &status))
+	if (fits_read_card(fptr, key, card, &status)) {
+		siril_debug_print("Keyword does not exist\n");
+		card[0] = '\0';
+		oldcomment[0] = '\0';
+		status = 0; /* reset status after error */
+	} else
 		siril_debug_print("%s\n", card);
 
 
@@ -3066,20 +3071,20 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *value, const gch
 		gsize len, maxlen = FLEN_CARD;
 		len = g_strlcpy(newcard, key, maxlen);
 		if (len >= maxlen)
-			siril_debug_print("Exceeded FTS card length\n");
+			siril_debug_print("Exceeded FITS card length\n");
 		maxlen = max(0, maxlen - len);
 		len = g_strlcat(newcard, " = ", maxlen);
 		if (len >= maxlen)
-			siril_debug_print("Exceeded FTS card length\n");
+			siril_debug_print("Exceeded FITS card length\n");
 		maxlen = max(0, maxlen - len);
 		len = g_strlcat(newcard, value, maxlen);
 		if (len >= maxlen)
-			siril_debug_print("Exceeded FTS card length\n");
+			siril_debug_print("Exceeded FITS card length\n");
 		maxlen = max(0, maxlen - len);
-		if (*card && (*oldcomment || comment)) { /* Restore comment if exist, or use new one */
+		if (*oldcomment || comment) { /* Restore comment if exist, or use new one */
 			len = g_strlcat(newcard, " / ", maxlen);
 			if (len >= maxlen)
-				siril_debug_print("Exceeded FTS card length\n");
+				siril_debug_print("Exceeded FITS card length\n");
 			maxlen = max(0, maxlen - len);
 			if (comment) {
 				len = g_strlcat(newcard, comment, maxlen);
@@ -3087,7 +3092,7 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *value, const gch
 				len = g_strlcat(newcard, oldcomment, maxlen);
 			}
 			if (len >= maxlen)
-				siril_debug_print("Exceeded FTS card length\n");
+				siril_debug_print("Exceeded FITS card length\n");
 		}
 
 		fits_parse_template(newcard, card, &keytype, &status);

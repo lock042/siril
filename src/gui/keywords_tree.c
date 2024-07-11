@@ -290,6 +290,25 @@ static void to_uppercase(char *str) {
 	}
 }
 
+static void on_entry_changed(GtkEntry *entry, gpointer user_data) {
+	GtkEntry *entry_value = GTK_ENTRY(user_data);
+	GtkEntry *entry_comment = GTK_ENTRY(entry);
+
+	const gchar *value_text = gtk_entry_get_text(entry_value);
+	const gchar *comment_text = gtk_entry_get_text(entry_comment);
+
+	gint total_length = strlen(value_text) + strlen(comment_text);
+
+	if (total_length > FLEN_VALUE) {
+		gint max_length = FLEN_VALUE - strlen(value_text);
+		gchar *new_text = g_strndup(comment_text, max_length);
+		g_signal_handlers_block_by_func(entry, G_CALLBACK(on_entry_changed), user_data);
+		gtk_entry_set_text(entry_comment, new_text);
+		g_signal_handlers_unblock_by_func(entry, G_CALLBACK(on_entry_changed), user_data);
+		g_free(new_text);
+	}
+}
+
 void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 	GtkWidget *dialog;
 	GtkWidget *content_area;
@@ -343,6 +362,10 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 	entry_comment = gtk_entry_new();
 	gtk_grid_attach(GTK_GRID(grid), label_comment, 0, 2, 1, 1);
 	gtk_grid_attach(GTK_GRID(grid), entry_comment, 1, 2, 1, 1);
+
+    // Connect the changed signal for both entry_value and entry_comment
+	g_signal_connect(entry_value, "changed", G_CALLBACK(on_entry_changed), entry_comment);
+	g_signal_connect(entry_comment, "changed", G_CALLBACK(on_entry_changed), entry_value);
 
 	gtk_widget_show_all(dialog);
 
