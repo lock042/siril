@@ -567,7 +567,9 @@ public:
 #endif
             for (int l = 0; l < d; l++) {
                 for (int y = 0; y < h; y++) {
+#ifdef _OPENMP
                     #pragma omp simd
+#endif
                     for (int x = 0; x < w-1; x++) {
                         (*this)(x, y, l) = u(x+1, y, l) - u(x, y, l);
                     }
@@ -633,7 +635,9 @@ public:
                     (*this)(x, h-1, l) = 0;
                 }
             }
+#ifdef _OPENMP
         }
+#endif
     }
 
     void gradientxy(const img_t<T>& u) {

@@ -251,7 +251,7 @@ void phaseRetrieval(img_t<T>& outkernel, const img_t<T>& blurredPatch,
             }
 #ifdef _OPENMP
         }
-#endif
     }
+#endif
 }
 
