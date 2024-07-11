@@ -74,6 +74,7 @@
 #include "gui/progress_and_log.h"
 #include "gui/image_display.h"
 #include "gui/image_interactions.h"
+#include "gui/keywords_tree.h"
 #include "gui/newdeconv.h"
 #include "gui/sequence_list.h"
 #include "gui/siril_preview.h"
@@ -1777,6 +1778,7 @@ int process_update_key(int nb) {
 		comment = word[3];
 
 	updateFITSKeyword(&gfit, FITS_key, value, comment);
+	if (!com.script) refresh_keywords_dialog();
 
 	return CMD_OK;
 }

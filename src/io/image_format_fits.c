@@ -3050,6 +3050,10 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *value, const gch
 	tmpfit.fptr = fptr;
 	save_fits_header(&tmpfit);
 
+	if (!fits_read_card(fptr, key, card, &status))
+		siril_debug_print("%s\n", card);
+
+
 	/* check if this is a protected keyword that must not be changed */
 	if (*card && fits_get_keyclass(card) == TYP_STRUC_KEY) {
 		siril_log_color_message("Protected keyword cannot be modified.\n", "red");
@@ -3072,7 +3076,7 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *value, const gch
 		if (len >= maxlen)
 			siril_debug_print("Exceeded FTS card length\n");
 		maxlen = max(0, maxlen - len);
-		if (*card && (*oldcomment || comment)) { /* Restore comment if exist */
+		if (*card && (*oldcomment || comment)) { /* Restore comment if exist, or use new one */
 			len = g_strlcat(newcard, " / ", maxlen);
 			if (len >= maxlen)
 				siril_debug_print("Exceeded FTS card length\n");
