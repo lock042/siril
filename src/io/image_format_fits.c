@@ -3070,29 +3070,29 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *value, const gch
 		/* construct template for new keyword */
 		gsize len, maxlen = FLEN_CARD;
 		len = g_strlcpy(newcard, key, maxlen);
-		if (len >= maxlen)
-			siril_debug_print("Exceeded FITS card length\n");
-		maxlen = max(0, maxlen - len);
+//		if (len >= maxlen)
+//			siril_debug_print("Exceeded FITS card length\n");
+//		maxlen = max(0, maxlen - len);
 		len = g_strlcat(newcard, " = ", maxlen);
-		if (len >= maxlen)
-			siril_debug_print("Exceeded FITS card length\n");
-		maxlen = max(0, maxlen - len);
+//		if (len >= maxlen)
+//			siril_debug_print("Exceeded FITS card length\n");
+//		maxlen = max(0, maxlen - len);
 		len = g_strlcat(newcard, value, maxlen);
-		if (len >= maxlen)
-			siril_debug_print("Exceeded FITS card length\n");
-		maxlen = max(0, maxlen - len);
+//		if (len >= maxlen)
+//			siril_debug_print("Exceeded FITS card length\n");
+//		maxlen = max(0, maxlen - len);
 		if (*oldcomment || comment) { /* Restore comment if exist, or use new one */
 			len = g_strlcat(newcard, " / ", maxlen);
-			if (len >= maxlen)
-				siril_debug_print("Exceeded FITS card length\n");
-			maxlen = max(0, maxlen - len);
+//			if (len >= maxlen)
+//				siril_debug_print("Exceeded FITS card length\n");
+//			maxlen = max(0, maxlen - len);
 			if (comment) {
 				len = g_strlcat(newcard, comment, maxlen);
 			} else {
 				len = g_strlcat(newcard, oldcomment, maxlen);
 			}
-			if (len >= maxlen)
-				siril_debug_print("Exceeded FITS card length\n");
+//			if (len >= maxlen)
+//				siril_debug_print("Exceeded FITS card length\n");
 		}
 
 		fits_parse_template(newcard, card, &keytype, &status);
