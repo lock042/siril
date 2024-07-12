@@ -477,29 +477,30 @@ static float cubic(float p[4][4], float x, float y)
 
 void magnify(float *out, const float *in, int out_w, int out_h, int d, int in_w, int in_h, float factor) {
 #ifdef _OPENMP
-#pragma omp parallel for schedule(static) collapse(2) num_threads(com.max_thread) if (com.max_thread > 1)
+	int available_threads = com.max_thread - omp_get_num_threads();
+#pragma omp parallel for schedule(static) collapse(2) num_threads(available_threads) if (available_threads > 1)
 #endif
 	for (int j = 0; j < out_h; j++) {
-        for (int i = 0; i < out_w; i++) {
-            float tmp[d];
-            float x = i / factor - 1;
-            float y = j / factor - 1;
-            int ix = floor(x);
-            int iy = floor(y);
-            for (int c = 0; c < d; c++) {
-                float block[4][4];
-                for (int j = 0; j < 4; j++) {
-                    for (int i = 0; i < 4; i++) {
-                        block[i][j] = sample(in, in_w, in_h, d, ix + i, iy + j, c);
+		for (int i = 0; i < out_w; i++) {
+			float tmp[d];
+			float x = i / factor - 1;
+			float y = j / factor - 1;
+			int ix = floor(x);
+			int iy = floor(y);
+			for (int c = 0; c < d; c++) {
+				float block[4][4];
+				for (int j = 0; j < 4; j++) {
+					for (int i = 0; i < 4; i++) {
+						block[i][j] = sample(in, in_w, in_h, d, ix + i, iy + j, c);
 					}
 				}
-                tmp[c] = cubic(block, x - ix, y - iy);
-                if (!(i < 0 || i >= out_w || j < 0 || j >= out_h || c < 0 || c >= d)) {
+				tmp[c] = cubic(block, x - ix, y - iy);
+				if (!(i < 0 || i >= out_w || j < 0 || j >= out_h || c < 0 || c >= d)) {
 					out[(i+j*out_w)*d + c] = tmp[c];
 				}
-            }
-        }
-    }
+			}
+		}
+	}
 }
 
 void gaussblur(float *y, float *x, int w, int h, float sigma) {
@@ -516,7 +517,8 @@ void gaussblur(float *y, float *x, int w, int h, float sigma) {
 	float scale = 1.f / (w * h);
 	float sum = 0;
 #ifdef _OPENMP
-#pragma omp parallel num_threads(com.max_thread) if (com.max_thread > 1)
+	int available_threads = com.max_thread - omp_get_num_threads();
+#pragma omp parallel num_threads(available_threads) if (available_threads > 1)
 {
 #pragma omp for simd schedule(static)
 #endif
@@ -638,12 +640,15 @@ float bilinear_ushort(WORD *x, int w, int h, float i, float j) {
 }
 
 void shrink(float *out, float *in, int outw, int outh, int inw, int inh, float scale, float sigma) {
+#ifdef _OPENMP
+	int available_threads = com.max_thread - omp_get_num_threads();
+#endif
 	if (scale == -2) {
 		assert(2*outw == inw && 2 * outh == inh);
 		float (*y)[outw] = (void*)out;
 		float (*x)[inw] = (void*)in;
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static, 16) collapse(2) num_threads(com.max_thread) if (com.max_thread > 1)
+#pragma omp parallel for simd schedule(static, 16) collapse(2) num_threads(available_threads) if (available_threads > 1)
 #endif
 		for (int j = 0; j < outh; j++) {
 			for (int i = 0; i < outw; i++) {
@@ -660,11 +665,10 @@ void shrink(float *out, float *in, int outw, int outh, int inw, int inh, float s
 	if (outw < inw || outh < inh) {
 		gaussblur(gaussian, in, inw, inh, blur_size);
 	} else {
-		for (int i = 0; i < inw * inh; i++)
-			gaussian[i] = in[i];
+		memcpy(gaussian, in, inw * inh * sizeof(float));
 	}
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static,16) collapse(2) num_threads(com.max_thread) if (com.max_thread > 1)
+#pragma omp parallel for simd schedule(static,16) collapse(2) num_threads(available_threads) if (available_threads > 1)
 #endif
 	for (int j = 0; j < outh; j++) {
 		for (int i = 0; i < outw; i++) {
