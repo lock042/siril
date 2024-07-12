@@ -291,43 +291,53 @@ static void to_uppercase(char *str) {
 }
 
 static void on_entry_comment_changed(GtkEntry *entry, gpointer user_data) {
-    GtkEntry *entry_value = GTK_ENTRY(user_data);
-    GtkEntry *entry_comment = GTK_ENTRY(entry);
-    gint max_length = FLEN_CARD - 8 - 2 - 3;
+	GtkEntry *entry_value = GTK_ENTRY(user_data);
+	GtkEntry *entry_comment = GTK_ENTRY(entry);
+	gint max_length = 67; // FLEN_CARD - 8 - 2 - 3 - 1
 
-    const gchar *value_text = gtk_entry_get_text(entry_value);
-    const gchar *comment_text = gtk_entry_get_text(entry_comment);
+	const gchar *value_text = gtk_entry_get_text(entry_value);
+	const gchar *comment_text = gtk_entry_get_text(entry_comment);
 
-    gint total_length = strlen(value_text) + strlen(comment_text);
+	/* In fact, there may be an error of 2 for strings in value,
+	 when the two ' are automatically added.
+	 We leave it like that, I think it's not too serious because we have
+	 a mechanism that will truncate the character string during recording.
+	 */
+	gint total_length = strlen(value_text) + strlen(comment_text);
 
-    if (total_length > max_length) {
-        gint allowed_length = max_length - strlen(value_text);
-        gchar *new_text = g_strndup(comment_text, allowed_length);
-        g_signal_handlers_block_by_func(entry, G_CALLBACK(on_entry_comment_changed), user_data);
-        gtk_entry_set_text(entry_comment, new_text);
-        g_signal_handlers_unblock_by_func(entry, G_CALLBACK(on_entry_comment_changed), user_data);
-        g_free(new_text);
-    }
+	if (total_length >= max_length) {
+		gint allowed_length = max_length - strlen(value_text);
+		gchar *new_text = g_strndup(comment_text, allowed_length);
+		g_signal_handlers_block_by_func(entry, G_CALLBACK(on_entry_comment_changed), user_data);
+		gtk_entry_set_text(entry_comment, new_text);
+		g_signal_handlers_unblock_by_func(entry, G_CALLBACK(on_entry_comment_changed), user_data);
+		g_free(new_text);
+	}
 }
 
 static void on_entry_value_changed(GtkEntry *entry, gpointer user_data) {
-    GtkEntry *entry_comment = GTK_ENTRY(user_data);
-    GtkEntry *entry_value = GTK_ENTRY(entry);
-    gint max_length = FLEN_CARD - 8 - 2 - 3;
+	GtkEntry *entry_comment = GTK_ENTRY(user_data);
+	GtkEntry *entry_value = GTK_ENTRY(entry);
+	gint max_length = 67; // FLEN_CARD - 8 - 2 - 3 - 1
 
-    const gchar *value_text = gtk_entry_get_text(entry_value);
-    const gchar *comment_text = gtk_entry_get_text(entry_comment);
+	const gchar *value_text = gtk_entry_get_text(entry_value);
+	const gchar *comment_text = gtk_entry_get_text(entry_comment);
 
-    gint total_length = strlen(value_text) + strlen(comment_text);
+	/* In fact, there may be an error of 2 for strings in value,
+	 when the two ' are automatically added.
+	 We leave it like that, I think it's not too serious because we have
+	 a mechanism that will truncate the character string during recording.
+	 */
+	gint total_length = strlen(value_text) + strlen(comment_text);
 
-    if (total_length > max_length) {
-        gint allowed_length = max_length - strlen(comment_text);
-        gchar *new_text = g_strndup(value_text, allowed_length);
-        g_signal_handlers_block_by_func(entry, G_CALLBACK(on_entry_value_changed), user_data);
-        gtk_entry_set_text(entry_value, new_text);
-        g_signal_handlers_unblock_by_func(entry, G_CALLBACK(on_entry_value_changed), user_data);
-        g_free(new_text);
-    }
+	if (total_length >= max_length) {
+		gint allowed_length = max_length - strlen(comment_text);
+		gchar *new_text = g_strndup(value_text, allowed_length);
+		g_signal_handlers_block_by_func(entry, G_CALLBACK(on_entry_value_changed), user_data);
+		gtk_entry_set_text(entry_value, new_text);
+		g_signal_handlers_unblock_by_func(entry, G_CALLBACK(on_entry_value_changed), user_data);
+		g_free(new_text);
+	}
 }
 
 void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
