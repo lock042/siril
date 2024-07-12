@@ -137,10 +137,10 @@
                             <property name="sort-column-id">2</property>
                             <child>
                               <object class="GtkCellRendererText" id="com">
-                                <property name="editable">True</property>
                                 <signal name="edited" handler="on_comment_edited" swapped="no"/>
                               </object>
                               <attributes>
+                                <attribute name="editable">6</attribute>
                                 <attribute name="text">2</attribute>
                               </attributes>
                             </child>
@@ -187,6 +187,8 @@
                   <object class="GtkBox">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
+                    <property name="margin-top">5</property>
+                    <property name="margin-bottom">5</property>
                     <child>
                       <object class="GtkButton" id="add_keyword_button">
                         <property name="visible">True</property>
@@ -235,7 +237,7 @@
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="label" translatable="yes">Editor</property>
+                <property name="label" translatable="yes">Header Editor</property>
               </object>
               <packing>
                 <property name="tab-fill">False</property>
