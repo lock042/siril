@@ -136,7 +136,10 @@
                             <property name="clickable">True</property>
                             <property name="sort-column-id">2</property>
                             <child>
-                              <object class="GtkCellRendererText" id="com"/>
+                              <object class="GtkCellRendererText" id="com">
+                                <property name="editable">True</property>
+                                <signal name="edited" handler="on_comment_edited" swapped="no"/>
+                              </object>
                               <attributes>
                                 <attribute name="text">2</attribute>
                               </attributes>
@@ -232,7 +235,7 @@
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="label" translatable="yes">Live Header</property>
+                <property name="label" translatable="yes">Editor</property>
               </object>
               <packing>
                 <property name="tab-fill">False</property>

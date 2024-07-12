@@ -213,7 +213,7 @@ void on_val_edited(GtkCellRendererText *renderer, char *path, char *new_val, gpo
 	if (!protected) {
 		char valstring[FLEN_VALUE];
 		int status = 0;
-		/* update FITS */
+		/* update FITS key */
 		if (dtype == 'C' && (new_val[0] != '\'' || new_val[strlen(new_val) - 1] != '\'')) {
 			ffs2c(new_val, valstring, &status);
 		} else {
@@ -221,6 +221,25 @@ void on_val_edited(GtkCellRendererText *renderer, char *path, char *new_val, gpo
 		}
 		if (!updateFITSKeyword(&gfit, FITS_key, valstring, FITS_comment)) {
 			gtk_list_store_set(key_liststore, &iter, COLUMN_VALUE, valstring, -1);
+		}
+	}
+}
+
+void on_comment_edited(GtkCellRendererText *renderer, char *path, char *new_comment, gpointer user_data) {
+	GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(lookup_widget("key_treeview")));
+	GtkTreeIter iter;
+	gchar *FITS_key, *valstring;
+	gboolean protected;
+	char dtype;
+
+	gtk_tree_model_get_iter_from_string(model, &iter, path);
+	gtk_tree_model_get(model, &iter, COLUMN_KEY, &FITS_key, COLUMN_VALUE, &valstring, COLUMN_DTYPE, &dtype, COLUMN_PROTECTED, &protected, -1);
+	if (!protected) {
+		char commentstring[FLEN_COMMENT];
+		/* update FITS comment */
+			strcpy(commentstring, new_comment);
+		if (!updateFITSKeyword(&gfit, FITS_key, valstring, commentstring)) {
+			gtk_list_store_set(key_liststore, &iter, COLUMN_COMMENT, commentstring, -1);
 		}
 	}
 }
