@@ -62,6 +62,14 @@ extern int sequence_is_running;
 template <typename T>
 class img_t {
 public:
+    // Data
+    typedef T value_type;
+    int size, w, h, d;
+    std::vector<T, fftw_alloc<T>> data;
+    fftwf_plan forwardplanf = nullptr;
+    fftwf_plan backwardplanf = nullptr;
+
+    // Methods
     static void use_threading(int n) {
         fftwf_set_timelimit(com.pref.fftw_conf.timelimit);
 #ifdef HAVE_FFTW3F_MULTITHREAD
@@ -71,12 +79,6 @@ public:
 #endif
         fprintf(stdout, "fftwf initialized with %d threads, planning time limit %.1f seconds\n", n, com.pref.fftw_conf.timelimit);
     }
-
-    typedef T value_type;
-    int size, w, h, d;
-    std::vector<T, fftw_alloc<T>> data;
-    fftwf_plan forwardplanf = nullptr;
-    fftwf_plan backwardplanf = nullptr;
 
     auto begin() {
         return data.begin();
@@ -192,6 +194,18 @@ public:
         std::fill(data.begin(), data.end(), v);
     }
 
+    template <typename T2>
+    void fill_array(T2** array) {
+        size_t size = data.size();
+        T2* temp = (T2*) realloc((*array), size * sizeof(T));
+        if (!temp) {
+            PRINT_ALLOC_ERR;
+            return;
+        } else {
+            (*array) = temp;
+            memcpy((*array), data.data(), data.size() * sizeof(T2));
+        }
+    }
 
     T sum() const {
         return fold<T>(std::plus<T>());

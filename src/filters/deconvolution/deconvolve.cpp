@@ -46,8 +46,7 @@ extern "C" int wienerdec(float *fdata, unsigned rx, unsigned ry, unsigned nchans
         u = utils::remove_padding(u, K);
         if (max != 1.0f)
             u.map(u * max);
-        for (unsigned i = 0; i < rx * ry; i++)
-            fdata[c * rx * ry + i] = u.data[i];
+        memcpy(fdata, u.data.data(), u.data.size() * sizeof(float));
     }
     if (sequence_is_running == 0)
         set_progress_bar_data("Ready.", 0.);
@@ -75,9 +74,7 @@ extern "C" int fft_richardson_lucy(float *fdata, unsigned rx, unsigned ry, unsig
         u = utils::remove_padding(u, K);
         if (max != 1.0f)
             u.map(u * max);
-        for (unsigned i = 0; i < rx * ry; i++) {
-            fdata[i + rx * ry * c] = u.data[i];
-        }
+        memcpy(fdata, u.data.data(), u.data.size() * sizeof(float));
     }
     if (sequence_is_running == 0)
         set_progress_bar_data("Ready.", 0.);
@@ -105,9 +102,7 @@ extern "C" int naive_richardson_lucy(float *fdata, unsigned rx, unsigned ry, uns
         u = utils::remove_padding(u, 2*K.w, 2*K.w);
         if (max != 1.0f)
             u.map(u * max);
-        for (unsigned i = 0; i < rx * ry; i++) {
-            fdata[i + c * rx * ry] = u.data[i];
-        }
+        memcpy(fdata, u.data.data(), u.data.size() * sizeof(float));
     }
     if (sequence_is_running == 0)
         set_progress_bar_data("Ready.", 0.);
@@ -135,9 +130,7 @@ extern "C" int split_bregman(float *fdata, unsigned rx, unsigned ry, unsigned nc
         u = utils::remove_padding(u, K);
         if (max != 1.0f)
             u.map(u * max);
-        for (unsigned i = 0; i < rx * ry; i++) {
-            fdata[c * rx * ry + i] = u.data[i];
-        }
+        memcpy(fdata, u.data.data(), u.data.size() * sizeof(float));
     }
     if (sequence_is_running == 0)
         set_progress_bar_data("Ready.", 0.);
