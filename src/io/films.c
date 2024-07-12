@@ -217,7 +217,7 @@ int film_open_file(const char *sourcefile, struct film_struct *film) {
 }
 
 static int randPixel(int nb_pixels) {
-	return siril_random_int() % nb_pixels;
+	return siril_random_uint() % nb_pixels;
 }
 
 static int *randomIndex(int n) {
