@@ -107,8 +107,8 @@ static gboolean compute_framing(struct registration_args *regargs) {
 	// validity of matrices has already been checked before this call
 	// and null matrices have been discarded
 	// Homography Href = regargs->seq->regparam[regargs->layer][regargs->reference_image].H;
-	Homography Href = { 0 };
-	cvGetEye(&Href);
+	Homography Href = regargs->framingd.Htransf;
+	// cvGetEye(&Href);
 	Homography Hshift = { 0 };
 	cvGetEye(&Hshift);
 	int rx = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].rx : regargs->seq->rx;
@@ -809,10 +809,14 @@ int register_apply_reg(struct registration_args *regargs) {
 			free(args);
 			return -1;
 		}
-		if (compute_Hs_from_astrometry(regargs->seq, regargs->WCSDATA, regargs->framing, regargs->layer)) {
+		Homography Href = { 0 };
+		if (compute_Hs_from_astrometry(regargs->seq, regargs->WCSDATA, regargs->framing, regargs->layer, &Href)) {
 			free(args);
 			return -1;
 		}
+		regargs->framingd.Htransf = Href;
+	} else {
+		regargs->framingd.Htransf = regargs->seq->regparam[regargs->layer][regargs->reference_image].H;
 	}
 
 	// We can now compute the framing and check the output size
@@ -863,7 +867,9 @@ int register_apply_reg(struct registration_args *regargs) {
 		regargs->distoparam = regargs->seq->distoparam[regargs->layer];
 		int status = 1;
 		regargs->disto = init_disto_data(&regargs->distoparam, regargs->seq, regargs->WCSDATA, regargs->driz != NULL, &status);
+		free(regargs->WCSDATA); // init_disto_data has freed each individual wcs, we can now free the array
 		if (status) {
+			free(args);
 			return -1;
 		}
 		if (!regargs->disto) {

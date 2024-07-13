@@ -418,6 +418,7 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 			} else {
 				disto[i].dtype = DISTO_NONE;
 			}
+			wcsfree(WCSDATA + i);
 		}
 		// we haven't found any disto
 		// this case happens when we have used astrometric registration with no SIP

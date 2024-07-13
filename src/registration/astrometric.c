@@ -98,13 +98,13 @@ static gboolean get_scales_and_framing(struct wcsprm *WCSDATA, Homography *K, do
 	return TRUE;
 }
 
-int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_type framing, int layer) {
+int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_type framing, int layer, Homography *Hout) {
 	int retval = 0;
 	double ra0 = 0., dec0 = 0.;
 	int n = seq->number;
 	double *RA = calloc(n, sizeof(double)); // calloc to prevent possibility of uninit variable highlighted by coverity
 	double *DEC = calloc(n, sizeof(double)); // as above
-	double *dist = malloc(n * sizeof(double));
+	double *dist = calloc(n, sizeof(double));
 	Homography *Rs = NULL, *Ks = NULL;
 	Rs = calloc(n, sizeof(Homography)); // camera rotation matrices
 	Ks = calloc(n, sizeof(Homography)); // camera intrinsic matrices
@@ -121,7 +121,6 @@ int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_ty
 		int width = (seq->is_variable) ? seq->imgparam[i].rx : seq->rx;
 		int height = (seq->is_variable) ? seq->imgparam[i].ry : seq->ry;
 		center2wcs2(WCSDATA + i, width, height, RA + i, DEC + i);
-		siril_log_message(_("Image #%5d - RA:%7.3f - DEC:%+7.3f\n"), i + 1, RA[i], DEC[i]);
 		incl[i] = TRUE;
 	}
 
@@ -141,6 +140,8 @@ int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_ty
 		}
 	}
 	siril_log_message(_("Image closest to center is #%d - RA:%7.3f - DEC:%+7.3f\n"), refindex + 1, RA[refindex], DEC[refindex]);
+	if (framing == FRAMING_CURRENT)
+		refindex = seq->reference_image;
 
 	// Obtaining Camera extrinsic and instrinsic matrices (resp. R and K)
 	// ##################################################################
@@ -158,7 +159,6 @@ int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_ty
 
 	rotation_type rottypes[3] = { ROTZ, ROTX, ROTZ};
 	double framingref = 0.;
-	int framingref_index = (framing == FRAMING_CURRENT) ? seq->reference_image : refindex;
 	int anglecount = 0;
 	for (int i = 0; i < n; i++) {
 		if (!incl[i])
@@ -178,7 +178,7 @@ int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_ty
 		}
 		cvRotMat3(angles, rottypes, TRUE, Rs + i);
 		siril_debug_print("Image #%d - rot:%.3f\n", i + 1, angles[2]);
-		if (framing == FRAMING_CURRENT && i == framingref_index) {
+		if (framing == FRAMING_CURRENT && i == refindex) {
 			framingref = angles[2];
 			anglecount++;
 		}
@@ -186,9 +186,10 @@ int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_ty
 			framingref += (angles[2] < -90.) ? angles[2] + 180. : (angles[2] > 90.) ? angles[2] - 180 : angles[2];
 			anglecount++;
 		}
+		siril_log_message(_("Image #%5d - RA:%7.3f - DEC:%+7.3f - Rotation:%+6.1f\n"), i + 1, RA[i], DEC[i], angles[2]);
 	}
 	framingref /= anglecount;
-	siril_log_message("Framing: %.3f\n", framingref);
+	siril_log_message("Sequence framing: %.3f\n", framingref);
 
 	// computing relative rotations wrt to proj center + central image framing
 	Homography Rref = { 0 };
@@ -215,19 +216,16 @@ int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_ty
 	}
 	regdata *current_regdata = seq->regparam[layer];
 
-	float fscale = 0.5 * (fabs(Ks[refindex].h00) + fabs(Ks[refindex].h11));
-
 	// We compute the H matrices wrt to ref as Kref * Rrel * Kimg^-1
 	// The K matrices have the focals on the diag and (rx/2, ry/2) for the translation terms
 	// We add to the seq in order to display the alignment
-	// Homography Kref = Ks[refindex];
+	float fscale = 0.5 * (fabs(Ks[refindex].h00) + fabs(Ks[refindex].h11));
 	Homography Kref = { 0 };
 	cvGetEye(&Kref);
 	Kref.h00 = fscale;
 	Kref.h11 = fscale;
 	Kref.h02 = Ks[refindex].h02;
 	Kref.h12 = Ks[refindex].h12;
-
 	siril_debug_print("Scale: %.3f\n", fscale);
 
 	// We compute the H matrices wrt to ref as Kref * Rrel * Kimg^-1
@@ -242,31 +240,26 @@ int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_ty
 		int rx = ((seq->is_variable) ? seq->imgparam[i].rx : seq->rx);
 		int ry = ((seq->is_variable) ? seq->imgparam[i].ry : seq->ry);
 		compute_roi(&H, rx, ry, &roi);
-		// cvApplyFlips(&H, ry, roi.h);
 		current_regdata[i].H = H;
-		printf("Image %d\n", i + 1);
+		siril_debug_print("Image %d\n", i + 1);
 		// print_H(Ks + i);
 		// print_H(Rs + i);
 		print_H(&H);
-		printf("%d,%d,%d,%d,%d\n", i + 1, roi.x, roi.y, roi.w, roi.h);
+		siril_debug_print("%d,%d,%d,%d,%d\n", i + 1, roi.x, roi.y, roi.w, roi.h);
 	}
 	seq->reference_image = refindex;
 free_all:
 	free(RA);
 	free(DEC);
 	free(dist);
-	// if (incl) {
-	// 	for (int i = 0; i < n; i++) {
-	// 		if (!incl[i])
-	// 			continue;
-	// 		wcsfree(WCSDATA + i);
-	// 	}
-	// 	free(incl);
-	// }
-	// free(WCSDATA);
+	free(incl);
 	free(Ks);
 	free(Rs);
-	siril_log_message(_("Registration finished.\n"));
+	siril_log_message(_("Astrometric registration computed.\n"));
+	if (Hout) {
+		cvGetEye(Hout);
+	}
+	// we don't free WCSDATA as it will be further used to initialize distorsion data
 	return retval;
 }
 
