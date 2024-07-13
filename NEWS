@@ -1,3 +1,7 @@
+siril 1.2.4 xxx xx, 2024
+
+* Fixed CFA statistics (#1342)
+
 siril 1.2.3 June 19, 2024
 
 * Fixed handling wide-char characters in filenames on Windows (cfitsio rollback) (#1324)
