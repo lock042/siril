@@ -487,6 +487,7 @@ int seq_check_basic_data(sequence *seq, gboolean load_ref_into_gfit) {
 				clearfits(fit);
 				return 1;
 			}
+			seq->distoparam = calloc(seq->nb_layers, sizeof(disto_params));
 		}
 		seq->needs_saving = TRUE;
 

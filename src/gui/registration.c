@@ -710,7 +710,7 @@ static void update_filters_registration(int update_adjustment) {
 /****************************************************************/
 
 // Checkers
-static gboolean check_framing(regmethod_index index) {
+static gboolean check_applyreg(regmethod_index index) {
 	if (index != REG_APPLY)
 		return TRUE;
 	framing_type framingmethod = (framing_type)gtk_combo_box_get_active(GTK_COMBO_BOX(comboreg_framing));
@@ -955,7 +955,8 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 			(!samesizeseq_required || (samesizeseq_required && !com.seq.is_variable)) && 
 			(selection_is_done || method->sel == REQUIRES_NO_SELECTION) &&
 			pattern <= BAYER_FILTER_MAX &&
-			check_framing(regindex) &&
+			(!isapplyreg || has_reg) && // must have reg data if applyreg
+			check_applyreg(regindex) &&
 			check_comet(regindex) &&
 			check_3stars(regindex) &&
 			check_disto(disto_source_index);
