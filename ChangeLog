@@ -80,6 +80,11 @@ xx/xx/xx
 * Refactor networking code, add offline mode and add Gaia archive status indication (!687)
 * Improve interaction of threaded functions and previews with ROI code (!701)
 
+siril 1.2.4
+xx/xx/24
+
+* Fixed CFA statistics (#1342)
+
 siril 1.2.3
 06/19/24
 
