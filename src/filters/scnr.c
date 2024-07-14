@@ -55,7 +55,9 @@ const char *scnr_type_to_string(scnr_type t) {
 
 /* Subtractive Chromatic Noise Reduction */
 gpointer scnr(gpointer p) {
-	lock_roi_mutex();
+	lock_roi_mutex(); // this prevents changes to the ROI occurring while the thread
+	// is running as this could rip out data structures from under us
+
 	// Ensure we are starting with a fresh copy of gfit with no previous
 	// ROI preview data
 	copy_backup_to_gfit();
@@ -225,8 +227,8 @@ gpointer scnr(gpointer p) {
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
 
+	unlock_roi_mutex(); // We're done, so unlock the ROI mutex to allow ROI changes to happen again
 	notify_gfit_modified();
-	unlock_roi_mutex();
 	return GINT_TO_POINTER(error);
 }
 

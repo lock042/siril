@@ -1102,12 +1102,12 @@ ENDEST:
 		args.savepsf_filename = NULL;
 		args.save_after = FALSE;
 	}
+	unlock_roi_mutex();
 	siril_add_idle(estimate_idle, NULL);
 	if (com.script) {
 		free(args.fdata);
 		args.fdata = NULL;
 	}
-	unlock_roi_mutex();
 	return GINT_TO_POINTER(retval);
 }
 
@@ -1335,13 +1335,13 @@ ENDDECONV:
 		com.stars = NULL;
 		stars_need_clearing = FALSE;
 	}
+	unlock_roi_mutex();
 	if (sequence_is_running == 0)
 		siril_add_idle(deconvolve_idle, NULL);
 	else {
 		free(args.fdata);
 		args.fdata = NULL;
 	}
-	unlock_roi_mutex();
 	return GINT_TO_POINTER(retval);
 }
 
