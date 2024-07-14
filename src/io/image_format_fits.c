@@ -3109,7 +3109,6 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *value, const gch
 	if (status)
 		fits_report_error(stderr, status);
 
-//cleanup:
 	fits_close_file(tmpfit.fptr, &status);
 	clearfits(&tmpfit);
 	free(memptr);
