@@ -335,9 +335,9 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 			KEYWORD_SECONDA( "camera", "TEMPERAT", KTYPE_DOUBLE, "[degC] CCD temperature", &(fit->keywords.ccd_temp), NULL, NULL),
 			KEYWORD_SECONDA( "camera", "CAMTCCD", KTYPE_DOUBLE, "[degC] CCD temperature", &(fit->keywords.ccd_temp), NULL, NULL),
 			KEYWORD_PRIMARY( "camera", "SET-TEMP", KTYPE_DOUBLE, "[degC] CCD temperature setpoint", &(fit->keywords.set_temp), NULL, NULL),
-			KEYWORD_PRIMARY( "camera", "GAIN", KTYPE_USHORT, "Sensor gain", &(fit->keywords.key_gain), NULL, NULL),
-			KEYWORD_PRIMARY( "camera", "OFFSET", KTYPE_USHORT, "Sensor gain offset", &(fit->keywords.key_offset), NULL, NULL),
-			KEYWORD_SECONDA( "camera", "BLKLEVEL", KTYPE_USHORT, "Sensor gain offset", &(fit->keywords.key_offset), NULL, NULL),
+			KEYWORD_PRIMARY( "camera", "GAIN", KTYPE_UINT, "Sensor gain", &(fit->keywords.key_gain), NULL, NULL),
+			KEYWORD_PRIMARY( "camera", "OFFSET", KTYPE_UINT, "Sensor gain offset", &(fit->keywords.key_offset), NULL, NULL),
+			KEYWORD_SECONDA( "camera", "BLKLEVEL", KTYPE_UINT, "Sensor gain offset", &(fit->keywords.key_offset), NULL, NULL),
 			KEYWORD_PRIMARY( "camera", "CVF", KTYPE_DOUBLE, "[e-/ADU] Electrons per A/D unit", &(fit->keywords.cvf), NULL, NULL),
 			KEYWORD_SECONDA( "camera", "EGAIN", KTYPE_DOUBLE, "[e-/ADU] Electrons per A/D unit", &(fit->keywords.cvf), NULL, NULL),
 			KEYWORD_PRIMARY( "camera", "BAYERPAT", KTYPE_STR, "Bayer color pattern", &(fit->keywords.bayer_pattern), NULL, NULL),
@@ -565,7 +565,7 @@ int save_fits_keywords(fits *fit) {
 		case KTYPE_UINT:
 			status = 0;
 			ui = (*((guint*) keys->data));
-			if (ui) {
+			if (ui != DEFAULT_UINT_VALUE) {
 				fits_update_key(fit->fptr, TUINT, keys->key, &ui, keys->comment, &status);
 			}
 			break;
