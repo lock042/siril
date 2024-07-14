@@ -802,9 +802,9 @@ gpointer median_filter(gpointer p) {
 		return median_filter_ushort(p);
 	if (args->fit->type == DATA_FLOAT)
 		return median_filter_float(p);
+	unlock_roi_mutex();
 	siril_add_idle(end_median_filter, args);
 	if (com.script && (args->fit == &gfit))
 		notify_gfit_modified();
-	unlock_roi_mutex();
 	return GINT_TO_POINTER(1);
 }

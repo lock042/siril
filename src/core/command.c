@@ -476,8 +476,8 @@ gpointer run_nlbayes_on_fit(gpointer p) {
 	gettimeofday(&t_end, NULL);
 	show_time_msg(t_start, t_end, _("NL-Bayes execution time"));
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
-	siril_add_idle(end_denoise, args);
 	unlock_roi_mutex();
+	siril_add_idle(end_denoise, args);
 	return GINT_TO_POINTER(retval | CMD_NOTIFY_GFIT_MODIFIED);
 }
 
@@ -1766,7 +1766,7 @@ int process_unsharp(int nb) {
 }
 
 int process_update_key(int nb) {
-	if (nb > 2) {
+	if (nb != 3) {
 		return CMD_ARG_ERROR;
 	}
 	gchar *FITS_key, *value;

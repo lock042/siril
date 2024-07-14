@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: Siril 0.98.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-06-11 13:48+0200\n"
-"PO-Revision-Date: 2024-06-26 08:37+0000\n"
+"PO-Revision-Date: 2024-07-05 07:37+0000\n"
 "Last-Translator: Alexander <akalachev.imb@gmail.com>\n"
 "Language-Team: Russian <https://weblate.pixls.us/projects/siril/"
 "siril-application/ru/>\n"
@@ -6512,11 +6512,11 @@ msgstr "Уместить в окне"
 
 #: src/gui/uifiles/settings_window.ui:3724
 msgid "Zoom 100% centred on mouse"
-msgstr "100% масштаб в позиции курсора"
+msgstr "Полный размер в позиции курсора"
 
 #: src/gui/uifiles/settings_window.ui:3725
 msgid "Zoom toggles between fit and 100%"
-msgstr "Уместить в окне или 100% масштаб"
+msgstr "Уместить в окне или Полный размер"
 
 #: src/gui/uifiles/settings_window.ui:3735
 msgid "Configure mouse button actions"
