@@ -434,7 +434,7 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 		const gchar *value = gtk_entry_get_text(GTK_ENTRY(entry_value));
 		const gchar *comment = gtk_entry_get_text(GTK_ENTRY(entry_comment));
 
-        if (g_strcmp0(FITS_key_text, "") != 0 && g_strcmp0(value, "") != 0) {
+		if (g_strcmp0(FITS_key_text, "") != 0 && g_strcmp0(value, "") != 0) {
 			updateFITSKeyword(&gfit, FITS_key, value, comment);
 			refresh_keywords_dialog();
 		}
