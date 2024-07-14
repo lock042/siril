@@ -375,6 +375,8 @@ void on_comboreg_framing_changed(GtkComboBox *box, gpointer user_data) {
 
 		g_free(name);
 	}
+	// Re-check framing is OK for the seq type and reg method
+	update_reg_interface(TRUE);
 }
 
 void on_comboreg_undistort_changed(GtkComboBox *box, gpointer user_data) {
@@ -847,7 +849,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	}
 
 	selection_is_done = (com.selection.w > 0 && com.selection.h > 0);
-	
+
 	/* number of registered image */
 	nb_images_reg = gtk_combo_box_get_active(GTK_COMBO_BOX(reg_sel_all_combobox)) == 0 ? com.seq.number : com.seq.selnum;
 
@@ -950,9 +952,9 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	samesizeseq_required = regindex >= REG_3STARS && regindex <= REG_KOMBAT;
 
 	// performing all checks
-	ready = nb_images_reg > 1 && 
-			check_bayer_ok && 
-			(!samesizeseq_required || (samesizeseq_required && !com.seq.is_variable)) && 
+	ready = nb_images_reg > 1 &&
+			check_bayer_ok &&
+			(!samesizeseq_required || (samesizeseq_required && !com.seq.is_variable)) &&
 			(selection_is_done || method->sel == REQUIRES_NO_SELECTION) &&
 			pattern <= BAYER_FILTER_MAX &&
 			(!isapplyreg || has_reg) && // must have reg data if applyreg
