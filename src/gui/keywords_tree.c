@@ -417,7 +417,7 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 	gtk_grid_attach(GTK_GRID(grid), label_comment, 0, 2, 1, 1);
 	gtk_grid_attach(GTK_GRID(grid), entry_comment, 1, 2, 1, 1);
 
-    // Connect the changed signal for both entry_value and entry_comment
+	// Connect the changed signal for both entry_value and entry_comment
 	g_signal_connect(entry_value, "changed", G_CALLBACK(on_entry_value_changed), entry_comment);
 	g_signal_connect(entry_comment, "changed", G_CALLBACK(on_entry_comment_changed), entry_value);
 
