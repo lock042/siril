@@ -792,6 +792,7 @@ static gpointer median_filter_float(gpointer p) {
  * ksize x ksize aperture. Each channel of a multi-channel image is
  * processed independently. In-place operation is supported. */
 gpointer median_filter(gpointer p) {
+	lock_roi_mutex();
 	struct median_filter_data *args = (struct median_filter_data *)p;
 	copy_backup_to_gfit();
 	if (!com.script && !args->previewing)
@@ -801,6 +802,7 @@ gpointer median_filter(gpointer p) {
 		return median_filter_ushort(p);
 	if (args->fit->type == DATA_FLOAT)
 		return median_filter_float(p);
+	unlock_roi_mutex();
 	siril_add_idle(end_median_filter, args);
 	if (com.script && (args->fit == &gfit))
 		notify_gfit_modified();

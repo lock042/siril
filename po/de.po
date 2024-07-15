@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-06-11 13:48+0200\n"
-"PO-Revision-Date: 2024-06-17 07:37+0000\n"
+"PO-Revision-Date: 2024-07-08 05:37+0000\n"
 "Last-Translator: Stefan Beck <siril@cometchaser.de>\n"
 "Language-Team: German <https://weblate.pixls.us/projects/siril/"
 "siril-application/de/>\n"
@@ -103,7 +103,7 @@ msgstr ""
 
 #: src/gui/uifiles/aavso_dialog.ui:101
 msgid "Obscode: "
-msgstr ""
+msgstr "Observatoriumscode: "
 
 #: src/gui/uifiles/aavso_dialog.ui:113
 msgid "Filter: "
@@ -308,6 +308,20 @@ msgid ""
 "- for solar system objects: solsys (closest IAU observatory code can be "
 "passed in the dedicated text field."
 msgstr ""
+"Dies sind die Kataloge, die für das geladene, astrometrisch gelöste Bild "
+"verwendet werden:\n"
+"\n"
+"- Automatisch: Verwendet lokale Kataloge, falls verfügbar, andernfalls wird "
+"standardmäßig Nomad verwendet.\n"
+"\n"
+"Sie können auch einen alternativen Online-Katalog auswählen:\n"
+"\n"
+"- für Sterne: TYCHO2, NOMAD, GAIA, PPXML, BSC, APASS, GCVS, VSX, Simbad, "
+"AAVSO_Karte\n"
+"- für Exoplaneten: EXO\n"
+"- für den Deep-Sky: PGC\n"
+"- für Sonnensystemobjekte: SOLSYS (der Code der nächstgelegenen IAU-"
+"Sternwarte kann in das entsprechende Textfeld eingegeben werden."
 
 #: src/gui/uifiles/annotate_dialog.ui:133
 #, fuzzy
@@ -336,9 +350,8 @@ msgid "bsc"
 msgstr "BSC"
 
 #: src/gui/uifiles/annotate_dialog.ui:139
-#, fuzzy
 msgid "apass"
-msgstr "Kompass"
+msgstr "APASS"
 
 #: src/gui/uifiles/annotate_dialog.ui:140
 msgid "gcvs"
@@ -366,7 +379,7 @@ msgstr "PGC"
 
 #: src/gui/uifiles/annotate_dialog.ui:146
 msgid "aavso_chart"
-msgstr ""
+msgstr "AAVSO_Karte"
 
 #: src/gui/uifiles/annotate_dialog.ui:147
 msgid "solsys"
@@ -382,6 +395,9 @@ msgid ""
 "For stars catalogues containing photometric data, stars with no B-V "
 "information will be kept; they can be excluded by check this option."
 msgstr ""
+"Bei Sternenkatalogen, die photometrische Daten enthalten, werden Sterne ohne "
+"B-V-Informationen beibehalten; sie können durch Aktivieren dieser Option "
+"ausgeschlossen werden."
 
 #: src/gui/uifiles/annotate_dialog.ui:174
 #: src/gui/uifiles/annotate_dialog.ui:426
@@ -416,6 +432,9 @@ msgid ""
 "The list of elements present in the image can be saved in a csv file by "
 "filling in this text field or by clicking on the button to the right."
 msgstr ""
+"Die Liste der im Bild vorhandenen Elemente kann in einer CSV-Datei "
+"gespeichert werden, indem Sie dieses Textfeld ausfüllen oder auf die "
+"Schaltfläche rechts daneben klicken."
 
 #: src/gui/uifiles/annotate_dialog.ui:252
 msgid "Limit magnitude used in the query."
@@ -457,6 +476,10 @@ msgid ""
 "columns. If the passed file also contains a column name, names will be used "
 "as tags in the image and listed in the Console."
 msgstr ""
+"Mehrere Punkte werden mit einer CSV-Datei übergeben, die mindestens RA und "
+"DEC Spalten enthält. Wenn die übergebene Datei auch einen Spaltennamen "
+"enthält, werden die Namen als Tags im Bild verwendet und in der Konsole "
+"aufgeführt."
 
 #: src/gui/uifiles/annotate_dialog.ui:397
 msgid "Click this button to select a csv file."
@@ -468,6 +491,9 @@ msgid ""
 "in the image and listed in the Console, unless toggled off with these "
 "checkbuttons."
 msgstr ""
+" Wenn die übergebene Datei auch einen Spaltennamen enthält, werden die Namen "
+"als Tags im Bild verwendet und in der Konsole aufgelistet, sofern sie nicht "
+"mit diesen Kontrollkästchen deaktiviert werden."
 
 #: src/gui/uifiles/annotate_dialog.ui:446
 msgid ""
@@ -475,6 +501,9 @@ msgid ""
 "in the image and listed in the Console, unless toggled off with theses "
 "checkbuttons."
 msgstr ""
+" Wenn die übergebene Datei auch einen Spaltennamen enthält, werden die Namen "
+"als Tags im Bild verwendet und in der Konsole aufgelistet, sofern sie nicht "
+"mit diesen Kontrollkästchen ausgeschaltet werden."
 
 #: src/gui/uifiles/annotate_dialog.ui:459
 msgid "Import CSV"
@@ -498,6 +527,10 @@ msgid ""
 "(degrees, minutes, seconds) for declination, or as decimal degrees (e.g., "
 "184.000785, 14.899070)."
 msgstr ""
+"Diese Felder akzeptieren Rektaszension und Deklination. Sie können sie im "
+"hms-Format (Stunden, Minuten, Sekunden) für die Rektaszension und im dms-"
+"Format (Grad, Minuten, Sekunden) für die Deklination oder als Dezimalgrad ("
+"z. B. 184.000785, 14.899070) eingeben."
 
 #: src/gui/uifiles/annotate_dialog.ui:520
 #, fuzzy
@@ -3049,6 +3082,8 @@ msgid ""
 "Sets the degree of polynomial used for background fitting, between 1 (linear "
 "fit) and 6 (sextic polynomial)"
 msgstr ""
+"Legt den Grad des für die Hintergrundanpassung verwendeten Polynoms fest, "
+"zwischen 1 (lineare Anpassung) und 6 (sextes Polynom)"
 
 #: src/gui/uifiles/cut_spectroscopy_dialog.ui:436
 #, fuzzy
@@ -9679,6 +9714,8 @@ msgid ""
 "Choose whether to use an interpolation algorithm or Drizzle to apply "
 "registration"
 msgstr ""
+"Wählen Sie, ob Sie einen Interpolationsalgorithmus oder Drizzle für die "
+"Registrierung verwenden möchten"
 
 #: src/gui/uifiles/siril.ui:6782
 msgid "Algorithm: "
@@ -14997,7 +15034,7 @@ msgstr "Blende"
 
 #: src/core/command.c:3527
 msgid "dynamic aperture"
-msgstr ""
+msgstr "dynamische Blende"
 
 #: src/core/command.c:3529
 msgid "forced"
@@ -22833,22 +22870,32 @@ msgstr "Fehler beim Laden der SPCC JSON-Datei: %s\n"
 #: src/core/siril_update.c:554
 msgid "Error parsing JSON from URL: unable to get root node\n"
 msgstr ""
+"Fehler beim Parsen von JSON aus URL: Root-Eintrag kann nicht abgerufen "
+"werden\n"
 
 #: src/core/siril_update.c:575
 msgid "Error parsing JSON from URL: unable to find a valid JSON object\n"
 msgstr ""
+"Fehler beim Parsen von JSON aus der URL: Es konnte kein gültiges JSON-Objekt "
+"gefunden werden\n"
 
 #: src/core/siril_update.c:581
 msgid "Error parsing JSON from URL: unable to find any valid JSON objects\n"
 msgstr ""
+"Fehler beim Parsen von JSON aus der URL: Es konnten keine gültigen JSON-"
+"Objekte gefunden werden\n"
 
 #: src/core/siril_update.c:597
 msgid "Error parsing JSON from URL: required JSON members not found\n"
 msgstr ""
+"Fehler beim Parsen von JSON aus URL: erforderliche JSON-Elemente nicht "
+"gefunden\n"
 
 #: src/core/siril_update.c:669
 msgid "Error fetching or parsing Siril notifications JSON file from URL\n"
 msgstr ""
+"Fehler beim Abrufen oder Parsen der JSON-Datei für Siril-Benachrichtigungen "
+"von der URL\n"
 
 #: src/core/siril_update.c:677
 #, c-format
@@ -22856,15 +22903,21 @@ msgid ""
 "*** SIRIL NOTIFICATION ***\n"
 "%s\n"
 msgstr ""
+"*** SIRIL BENACHRICHTIGUNG ***\n"
+"%s\n"
 
 #: src/core/siril_update.c:711
 msgid ""
 "Error configuring CURL with CA bundle. https functionality unavailable.\n"
 msgstr ""
+"Fehler bei der Konfiguration von CURL mit CA-Bundle. https-Funktionalität "
+"nicht verfügbar.\n"
 
 #: src/core/siril_update.c:714 src/io/remote_catalogues.c:261
 msgid "Error initialising CURL handle, URL functionality unavailable.\n"
 msgstr ""
+"Fehler beim Initialisieren des CURL-Handles, URL-Funktionalität nicht "
+"verfügbar.\n"
 
 #: src/core/siril_update.c:778
 #, c-format
@@ -24331,6 +24384,8 @@ msgstr "Fehler: Layer außerhalb des Bereichs.\n"
 #: src/gui/cut.c:257
 msgid "Error: background removal polynomial degree should be >= 1 and <= 6.\n"
 msgstr ""
+"Fehler: Der Grad des Polynoms für die Hintergrundentfernung sollte >= 1 und "
+"<= 6 sein.\n"
 
 #: src/gui/cut.c:287
 #, c-format
@@ -24373,12 +24428,12 @@ msgstr "Abstand entlang des Schnitts / Pixel"
 
 #: src/gui/cut.c:684
 msgid "Coefficients: y = "
-msgstr ""
+msgstr "Koeffizienten: y = "
 
 #: src/gui/cut.c:700
 #, c-format
 msgid "Subtracting dark strips: polynomial fit of degree %d:\n"
-msgstr ""
+msgstr "Subtraktion dunkler Streifen: Polynom-Anpassung vom Grad %d:\n"
 
 #: src/gui/cut.c:712 src/gui/cut.c:724
 #, fuzzy
@@ -24427,6 +24482,8 @@ msgid ""
 "Reduces a spectrum without background removal. This is suitable when the "
 "entire image represents a calibrated spectrum"
 msgstr ""
+"Reduziert ein Spektrum ohne Hintergrundentfernung. Dies ist geeignet, wenn "
+"das gesamte Bild ein kalibriertes Spektrum darstellt"
 
 #: src/gui/cut.c:1038
 #, fuzzy
@@ -24443,6 +24500,10 @@ msgid ""
 "removal is required: the background is computed along parallel lines "
 "equidistant from the central spectral profile line"
 msgstr ""
+"Reduziert ein Spektrum mit Hintergrundentfernung. Dies ist geeignet, wenn "
+"die Entfernung des Hintergrunds erforderlich ist: Der Hintergrund wird "
+"entlang paralleler Linien in gleichem Abstand zur zentralen "
+"Spektralprofillinie berechnet"
 
 #: src/gui/cut.c:1048
 #, fuzzy
@@ -25230,7 +25291,7 @@ msgstr "Scroll (vertikal)"
 #: src/gui/mouse_action_preferences.c:743
 #, c-format
 msgid "Scroll (horizontal)"
-msgstr ""
+msgstr "Scrollen (horizontal)"
 
 #: src/gui/mouse_action_preferences.c:749
 #, c-format

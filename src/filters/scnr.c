@@ -55,15 +55,19 @@ const char *scnr_type_to_string(scnr_type t) {
 
 /* Subtractive Chromatic Noise Reduction */
 gpointer scnr(gpointer p) {
+	lock_roi_mutex(); // this prevents changes to the ROI occurring while the thread
+	// is running as this could rip out data structures from under us
+
+	// Ensure we are starting with a fresh copy of gfit with no previous
+	// ROI preview data
+	copy_backup_to_gfit();
 	struct scnr_data *args = (struct scnr_data *) p;
 	g_assert(args->fit->type == DATA_USHORT || args->fit->type == DATA_FLOAT);
 	gint nb_above_1 = 0;
 	struct timeval t_start, t_end;
+	gettimeofday(&t_start, NULL);
 	double norm = get_normalized_value(args->fit);
 	double invnorm = 1.0 / norm;
-	// Ensure we are starting with a fresh copy of gfit with no previous
-	// ROI preview data
-	copy_backup_to_gfit();
 	// If we aren't being run from a command or ROI previewing, set undo state
 	if (!com.script && !args->previewing)
 		undo_save_state(&gfit, _("SCNR (type=%s, amount=%0.2lf, preserve=%s)"),
@@ -72,7 +76,6 @@ gpointer scnr(gpointer p) {
 	siril_log_color_message(_("SCNR: processing with %s algorithm%s...\n"),
 			"green", scnr_type_to_string(args->type),
 			args->preserve ? _(", preserving lightness") : "");
-	gettimeofday(&t_start, NULL);
 
 	int error = 0;
 
@@ -224,6 +227,7 @@ gpointer scnr(gpointer p) {
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
 
+	unlock_roi_mutex(); // We're done, so unlock the ROI mutex to allow ROI changes to happen again
 	notify_gfit_modified();
 	return GINT_TO_POINTER(error);
 }
@@ -240,12 +244,13 @@ void scnr_roi_callback() {
 
 void on_SCNR_dialog_show(GtkWidget *widget, gpointer user_data) {
 	// Notify the overlay that this dialog supports ROI processing
+	copy_gfit_to_backup();
 	roi_supported(TRUE);
 	// Call this directly on dialog start to set the ROI preview visibility
 	scnr_roi_callback();
+	add_roi_callback(scnr_roi_callback);
 	// Set up the backup (this is used to go back to a fresh copy of the
 	// image after abandoning a ROI preview)
-	copy_gfit_to_backup();
 	GtkComboBox *comboscnr = GTK_COMBO_BOX(
 			gtk_builder_get_object(gui.builder, "combo_scnr"));
 	int type = gtk_combo_box_get_active(comboscnr);
