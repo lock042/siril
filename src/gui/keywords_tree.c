@@ -376,9 +376,9 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 	GtkDialogFlags flags = GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT;
 
 	// Create the dialog window with buttons
-	dialog = gtk_dialog_new_with_buttons("Add New Keyword",
-			GTK_WINDOW(user_data), flags, "_Cancel", GTK_RESPONSE_CANCEL,
-			"_Add", GTK_RESPONSE_OK,
+	dialog = gtk_dialog_new_with_buttons(_("Add New Keyword"),
+			GTK_WINDOW(user_data), flags, _("_Cancel"), GTK_RESPONSE_CANCEL,
+			_("_Add"), GTK_RESPONSE_OK,
 			NULL);
 
 	// Set the dialog to be non-resizable
