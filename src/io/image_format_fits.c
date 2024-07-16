@@ -166,8 +166,10 @@ static void fits_read_history(fitsfile *fptr, GSList **history) {
 	do {
 		status = 0;
 		fits_movrel_hdu(fptr, 1, &type, &status);
-		if (status)
+		if (status) {
+			fits_report_error(stderr, status);
 			break;
+		}
 		hdu_changed = TRUE;
 		if (type == IMAGE_HDU)
 			break;
