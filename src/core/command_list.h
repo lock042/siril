@@ -202,6 +202,7 @@ static command commands[] = {
 	{"seqsubsky", 2, "seqsubsky sequencename { -rbf | degree } [-nodither] [-samples=20] [-tolerance=1.0] [-smooth=0.5] [-prefix=]", process_subsky, STR_SEQSUBSKY CMD_CAT(SUBSKY) STR_SUBSKY, TRUE, REQ_CMD_NONE},
 	{"seqtilt", 1, "seqtilt sequencename", process_seq_tilt, STR_SEQTILT CMD_CAT(TILT) STR_TILT, TRUE, REQ_CMD_NO_THREAD},
 	{"sequnsetmag", 0, "sequnsetmag", process_unset_mag_seq, STR_SEQUNSETMAG, FALSE, REQ_CMD_SEQUENCE },
+	{"sequpdate_key", 2, "sequpdate_key sequencename key value [comment]", process_seq_update_key, STR_SEQUPDATE_KEY, TRUE, REQ_CMD_NONE},
 	{"seqwiener", 1, "wiener sequencename [-loadpsf=] [-alpha=]", process_seq_wiener, STR_SEQWIENER CMD_CAT(WIENER) STR_WIENER, TRUE, REQ_CMD_NONE},
 	{"set", 1, "set { -import=inifilepath | variable=value }", process_set, STR_SET, TRUE, REQ_CMD_NONE},
 	{"set16bits", 0, "set16bits", process_set_32bits, STR_SET16, TRUE, REQ_CMD_NONE},

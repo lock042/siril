@@ -20,11 +20,14 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/processing.h"
 #include "core/siril_date.h"
 #include "core/siril_log.h"
 #include "core/siril_world_cs.h"
 #include "algos/siril_wcs.h"
+#include "gui/keywords_tree.h"
 #include "io/image_format_fits.h"
+#include "io/sequence.h"
 
 #include "fits_keywords.h"
 
@@ -1080,4 +1083,113 @@ int read_fits_keywords(fits *fit) {
 	free(keys);
 	return 0;
 }
+
+static int keywords_prepare_hook(struct generic_seq_args *arg) {
+	struct keywords_data *kargs = (struct keywords_data *)arg->user;
+	siril_log_color_message("Keyword will be updated with:\n", "green");
+	siril_log_message("%s, %s, %s\n", kargs->FITS_key, kargs->value, kargs->comment);
+	if (arg->seq->type == SEQ_FITSEQ) {
+		gchar *filename = g_strdup(arg->seq->fitseq_file->filename);
+		// it was opened in READONLY mode, we close it
+		if (fitseq_close_file(arg->seq->fitseq_file)) {
+			siril_log_color_message(_("Error when closing fitseq\n"), "red");
+			g_free(filename);
+			return 1;
+		}
+		arg->seq->fitseq_file->fptr = NULL;
+		// and we reopen in READWRITE mode to update it
+		if (fitseq_open(filename, arg->seq->fitseq_file, READWRITE)) {
+			siril_log_color_message(_("Error when reopening fitseq\n"), "red");
+			g_free(filename);
+			return 1;
+		}
+		g_free(filename);
+	}
+	return 0;
+}
+
+static int keywords_image_hook(struct generic_seq_args *arg, int o, int i, fits *fit, rectangle *area, int threads) {
+	struct keywords_data *kargs = (struct keywords_data *)arg->user;
+
+	int retval = updateFITSKeyword(fit, kargs->FITS_key, kargs->value, kargs->comment, FALSE);
+	if (arg->seq->type == SEQ_REGULAR) {
+		char root[256];
+		if (!retval) {
+			if (!fit_sequence_get_image_filename(arg->seq, i, root, FALSE)) {
+				return 1;
+			}
+			savefits(root, fit);
+		}
+	} else if (arg->seq->type == SEQ_FITSEQ) { // case SEQ_FITSEQ, fit already holds its fptr, we just update
+		save_fits_header(fit);
+		siril_log_color_message(_("FITS header of image %d updated\n"), "salmon", i + 1);
+	}
+	return 0;
+}
+
+static int keywords_finalize_hook(struct generic_seq_args *arg) {
+	struct keywords_data *kargs = (struct keywords_data *)arg->user;
+	int retval = 0;
+	if (arg->seq->type == SEQ_FITSEQ) {
+		gchar *filename = g_strdup(arg->seq->fitseq_file->filename);
+		// it was opened in READWRITE mode, we close it to save everything
+		if (fitseq_close_file(arg->seq->fitseq_file)) {
+			siril_debug_print("error when closing again fitseq\n");
+			g_free(filename);
+			retval = 1;
+			goto finish;
+		}
+		arg->seq->fitseq_file->fptr = NULL;
+		siril_log_color_message(_("File %s updated\n"), "salmon", filename);
+		arg->seq->fitseq_file->filename = filename; // we may need to reopen in the idle so we save it here
+		arg->seq->fitseq_file->hdu_index = NULL;
+	}
+	if (!arg->retval)
+		writeseqfile(arg->seq);
+finish:
+	free(kargs->FITS_key);
+	free(kargs->value);
+	free(kargs->comment);
+	free(kargs);
+	return retval;
+}
+
+gboolean end_keywords_sequence(gpointer p) {
+	struct generic_seq_args *args = (struct generic_seq_args *) p;
+	if (check_seq_is_comseq(args->seq)) {
+		if (args->seq->type == SEQ_FITSEQ) { // if FITSEQ, we need to repoen in READONLY mode
+			if (fitseq_open(args->seq->fitseq_file->filename, args->seq->fitseq_file, READONLY)) {
+				siril_debug_print("error when finally re-opening fitseq\n");
+			}
+		}
+		update_sequences_list(args->seq->seqname);
+		refresh_keywords_dialog();
+	}
+	if (!check_seq_is_comseq(args->seq))
+		free_sequence(args->seq, TRUE);
+	free(p);
+	return end_generic(NULL);
+}
+
+void start_sequence_keywords(sequence *seq, struct keywords_data *args) {
+	struct generic_seq_args *seqargs = create_default_seqargs(seq);
+	seqargs->filtering_criterion = seq_filter_included;
+	seqargs->nb_filtered_images = seq->selnum;
+	seqargs->stop_on_error = FALSE;
+	seqargs->parallel = seq->type != SEQ_FITSEQ;
+	seqargs->prepare_hook = keywords_prepare_hook;
+	seqargs->image_hook =  keywords_image_hook;
+	seqargs->finalize_hook =  keywords_finalize_hook;
+	seqargs->idle_function = end_keywords_sequence;
+	seqargs->has_output = (seq->type == SEQ_SER); // we don't update keywords for SER file
+	seqargs->output_type = get_data_type(seq->bitpix);
+	seqargs->description = "keywords update";
+	if (seq->type == SEQ_SER) {
+		siril_log_color_message(_("This command won't work for SER sequence.\n"), "red");
+		return;
+	}
+	seqargs->user = args;
+	start_in_new_thread(generic_sequence_worker, seqargs);
+}
+
 

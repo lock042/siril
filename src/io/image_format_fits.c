@@ -3013,7 +3013,7 @@ error:
 	return 1;
 }
 
-int updateFITSKeyword(fits *fit, const gchar *key, const gchar *value, const gchar *comment) {
+int updateFITSKeyword(fits *fit, const gchar *key, const gchar *value, const gchar *comment, gboolean verbose) {
 	char card[FLEN_CARD], newcard[FLEN_CARD];
 	char oldvalue[FLEN_VALUE], oldcomment[FLEN_COMMENT] = { 0 };
 	int keytype;
@@ -3094,8 +3094,10 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *value, const gch
 		fits_parse_template(newcard, card, &keytype, &status);
 		fits_update_card(tmpfit.fptr, key, card, &status);
 
-		siril_log_color_message("Keyword has been changed to:\n", "green");
-		siril_log_message("%s\n", card);
+		if (verbose) {
+			siril_log_color_message("Keyword has been changed to:\n", "green");
+			siril_log_message("%s\n", card);
+		}
 
 		/* populate all structures */
 		read_fits_header(&tmpfit);

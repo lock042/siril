@@ -64,6 +64,7 @@
 #include "io/local_catalogues.h"
 #include "io/remote_catalogues.h"
 #include "io/FITS_symlink.h"
+#include "io/fits_keywords.h"
 #include "drizzle/cdrizzleutil.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
@@ -1777,8 +1778,30 @@ int process_update_key(int nb) {
 	if (nb == 4)
 		comment = word[3];
 
-	updateFITSKeyword(&gfit, FITS_key, value, comment);
+	updateFITSKeyword(&gfit, FITS_key, value, comment, TRUE);
 	if (!com.script) refresh_keywords_dialog();
+
+	return CMD_OK;
+}
+
+int process_seq_update_key(int nb) {
+	sequence *seq = load_sequence(word[1], NULL);
+	if (!seq) {
+		return CMD_SEQUENCE_NOT_FOUND;
+	}
+
+	struct keywords_data *args = calloc(1, sizeof(struct keywords_data));
+	if (!args) {
+		free_sequence(seq, TRUE);
+		return CMD_ARG_ERROR;
+	}
+
+	siril_log_color_message(_("Upating keywords...\n"), "green");
+	args->FITS_key = g_strdup(word[2]);
+	args->value = g_strdup(word[3]);
+	if (nb == 5)
+		args->comment = g_strdup(word[4]);
+	start_sequence_keywords(seq, args);
 
 	return CMD_OK;
 }

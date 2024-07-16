@@ -173,6 +173,7 @@
 #define STR_SEQSUBSKY N_("Same command as SUBSKY but for the sequence <b>sequencename</b>.\nDithering, required for low dynamic gradients, can be disabled with <b>-nodither</b>.\n\nThe output sequence name starts with the prefix \"bkg_\" unless otherwise specified with <b>-prefix=</b> option. Only selected images in the sequence are processed")
 #define STR_SEQTILT N_("Same command as TILT but for the sequence <b>sequencename</b>. It generally gives better results")
 #define STR_SEQUNSETMAG N_("Resets the magnitude calibration and reference star for the sequence. See SEQSETMAG")
+#define STR_SEQUPDATE_KEY N_("Same command as UPDATE_KEY but for the sequence <b>sequencename</b>. However, this command won't work on SER sequence")
 #define STR_SEQWIENER N_("The same as the <b>WIENER</b> command, but applies to a sequence which must be specified as the first argument")
 #define STR_SET N_("Updates a setting value, using its variable name, with the given value, or a set of values using an existing ini file with <b>-import=</b> option.\nSee GET to get values or the list of variables")
 #define STR_SET16 N_("Forbids images to be saved with 32 bits per channel on processing, use 16 bits instead")

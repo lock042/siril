@@ -220,7 +220,7 @@ void on_val_edited(GtkCellRendererText *renderer, char *path, char *new_val, gpo
 			strcpy(valstring, new_val);
 		}
 		if (g_strcmp0(original_val, valstring)) {
-			if (!updateFITSKeyword(&gfit, FITS_key, valstring, FITS_comment)) {
+			if (!updateFITSKeyword(&gfit, FITS_key, valstring, FITS_comment, TRUE)) {
 				gtk_list_store_set(key_liststore, &iter, COLUMN_VALUE, valstring, -1);
 			}
 		}
@@ -241,7 +241,7 @@ void on_comment_edited(GtkCellRendererText *renderer, char *path, char *new_comm
 		/* update FITS comment */
 		strcpy(commentstring, new_comment);
 		if (g_strcmp0(original_comment, new_comment)) {
-			if (!updateFITSKeyword(&gfit, FITS_key, valstring, commentstring)) {
+			if (!updateFITSKeyword(&gfit, FITS_key, valstring, commentstring, TRUE)) {
 				gtk_list_store_set(key_liststore, &iter, COLUMN_COMMENT, commentstring, -1);
 			}
 		}
@@ -435,7 +435,7 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 		const gchar *comment = gtk_entry_get_text(GTK_ENTRY(entry_comment));
 
 		if (g_strcmp0(FITS_key_text, "") != 0 && g_strcmp0(value, "") != 0) {
-			updateFITSKeyword(&gfit, FITS_key, value, comment);
+			updateFITSKeyword(&gfit, FITS_key, value, comment, TRUE);
 			refresh_keywords_dialog();
 		}
 	}

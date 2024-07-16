@@ -51,6 +51,14 @@ struct KeywordInfo {
     gboolean used;
 };
 
+struct keywords_data {
+	fits *fit;
+	sequence *seq;
+	gchar *FITS_key;
+	gchar *value;
+	gchar *comment;
+};
+
 int save_fits_keywords(fits *fit);
 int save_fits_unknown_keywords(fits *fit);
 int save_history_keywords(fits *fit);
@@ -59,5 +67,7 @@ void read_fits_date_obs_header(fits *fit);
 int read_fits_keywords(fits *fit);
 
 void set_all_keywords_default(fits *fit);
+
+void start_sequence_keywords(sequence *seq, struct keywords_data *args);
 
 #endif /* SRC_IO_FITS_KEYWORDS_H_ */

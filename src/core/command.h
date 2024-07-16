@@ -206,6 +206,7 @@ int	process_seq_split_cfa(int nb);
 int	process_seq_starnet(int nb);
 int	process_seq_stat(int nb);
 int	process_seq_tilt(int nb);
+int	process_seq_update_key(int nb);
 int	process_seq_wiener(int nb);
 int	process_set(int nb);
 int	process_set_32bits(int nb);
