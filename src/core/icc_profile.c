@@ -60,6 +60,8 @@ static GMutex soft_proof_profile_mutex;
 static GMutex default_profiles_mutex;
 static GMutex display_transform_mutex;
 
+static gboolean profile_check_verbose = TRUE;
+
 ////// Functions //////
 
 void color_manage(fits *fit, gboolean active) {
@@ -945,8 +947,6 @@ cmsHPROFILE siril_color_profile_linear_from_color_profile (cmsHPROFILE profile) 
  * been stretched in the past, to decide whether to assign a linear or non-
  * linear profile.
  */
-
-static gboolean profile_check_verbose = TRUE;
 
 void check_profile_correct(fits* fit) {
 	if (!fit->icc_profile) {
