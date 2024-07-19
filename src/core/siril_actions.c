@@ -770,3 +770,7 @@ void set_roi(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 void ccm_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("ccm_dialog");
 }
+
+void graxpert_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("graxpert_dialog");
+}
