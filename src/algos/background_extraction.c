@@ -49,15 +49,6 @@
 
 #define SAMPLE_SIZE 25		// must be odd to compute a radius
 
-struct sample {
-	double median[3]; // median of each channel of the sample (if color)
-	double mean; // mean of the 3 channel of the sample (if color)
-	double min, max;
-	size_t size;
-	point position;
-	gboolean valid;
-};
-
 //C contains background function
 #define C(i) (gsl_vector_get(c,(i)))
 
@@ -617,7 +608,7 @@ static void convert_img_to_fits(double *image, fits *fit, int channel) {
 	}
 }
 
-static GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, int size, const char **error, threading_type threads) {
+GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, int size, const char **error, threading_type threads) {
 	int nx = fit->rx;
 	int ny = fit->ry;
 	size_t n = fit->naxes[0] * fit->naxes[1];
