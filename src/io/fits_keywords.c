@@ -1097,6 +1097,7 @@ static int keywords_prepare_hook(struct generic_seq_args *arg) {
 			return 1;
 		}
 		arg->seq->fitseq_file->fptr = NULL;
+		arg->seq->fitseq_file->filename = g_strdup(filename); // freed in fitseq_destroy
 		// and we reopen in READWRITE mode to update it
 		if (fitseq_open(filename, arg->seq->fitseq_file, READWRITE)) {
 			siril_log_color_message(_("Error when reopening fitseq\n"), "red");
