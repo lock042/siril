@@ -391,6 +391,7 @@ struct pref_struct {
 	gchar *starnet_exe;	// Location of starnet++ executable
 	gchar *starnet_weights;	// Location of StarNet weights file (optional, Torch based StarNet only)
 	gchar *asnet_dir;	// Location of solve-field or asnet-ansvr installation on Windows
+	gchar *graxpert_path; // Location of GraXpert executable
 
 	star_finder_params starfinder_conf;
 	struct prepro_config prepro;
