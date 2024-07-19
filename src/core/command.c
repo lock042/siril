@@ -1790,6 +1790,10 @@ int process_seq_update_key(int nb) {
 	if (!seq) {
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
+	if (check_seq_is_comseq(seq)) {
+		free_sequence(seq, TRUE);
+		seq = &com.seq;
+	}
 
 	struct keywords_data *args = calloc(1, sizeof(struct keywords_data));
 	if (!args) {
