@@ -79,6 +79,7 @@ siril 1.4.0 xx xx, xx
 * Update Image processing menu (!700)
 * Refactor networking code, add offline mode and add Gaia archive status indication (!687)
 * Improve interaction of threaded functions and previews with ROI code (!701)
+* Added GraXpert interface (!699)
 
 siril 1.2.4 xxx xx, 2024
 

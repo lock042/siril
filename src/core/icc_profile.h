@@ -90,6 +90,8 @@ unsigned char* get_icc_profile_data(cmsHPROFILE profile, guint32 *len);
 cmsBool fit_icc_is_linear(fits *fit);
 cmsHPROFILE siril_color_profile_linear_from_color_profile (cmsHPROFILE profile);
 void check_profile_correct(fits* fit);
+void enable_profile_check_verbose();
+void disable_profile_check_verbose();
 cmsHPROFILE copyICCProfile(cmsHPROFILE profile);
 void fits_initialize_icc(fits *fit, cmsUInt8Number* EmbedBuffer, cmsUInt32Number EmbedLen);
 cmsBool profiles_identical(cmsHPROFILE a, cmsHPROFILE b);
