@@ -1084,6 +1084,52 @@ int read_fits_keywords(fits *fit) {
 	return 0;
 }
 
+static void remove_keyword(const gchar *keyword, fits *fit, GHashTable *keys_hash) {
+	GHashTableIter iter;
+	gpointer key, value;
+	g_hash_table_iter_init(&iter, keys_hash);
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		KeywordInfo *keyword_info = (KeywordInfo*) value;
+		if (keyword_info->data && !g_strcmp0(keyword_info->key, keyword)) {
+			switch (keyword_info->type) {
+			case KTYPE_INT:
+				*((int*) keyword_info->data) = DEFAULT_INT_VALUE;
+				break;
+			case KTYPE_UINT:
+				*((guint*) keyword_info->data) = DEFAULT_UINT_VALUE;
+				break;
+			case KTYPE_USHORT:
+				*((gushort*) keyword_info->data) = DEFAULT_USHORT_VALUE;
+				break;
+			case KTYPE_DOUBLE:
+				*((double*) keyword_info->data) = DEFAULT_DOUBLE_VALUE;
+				break;
+			case KTYPE_FLOAT:
+				*((float*) keyword_info->data) = DEFAULT_FLOAT_VALUE;
+				break;
+			case KTYPE_STR:
+				memset((char*) keyword_info->data, 0, FLEN_VALUE);
+				break;
+			case KTYPE_DATE:
+				if ((GDateTime*) keyword_info->data)
+					g_date_time_unref((GDateTime*) keyword_info->data);
+				break;
+			default:
+				break;
+			}
+		}
+	}
+}
+
+void remove_keyword_in_fit_keywords(const gchar *keyword, fits *fit) {
+	GHashTable *keys_hash;
+	KeywordInfo *keys = initialize_keywords(fit, &keys_hash);
+	remove_keyword(keyword, fit, keys_hash);
+
+	g_hash_table_destroy(keys_hash);
+	free(keys);
+}
+
 static int keywords_prepare_hook(struct generic_seq_args *arg) {
 	struct keywords_data *kargs = (struct keywords_data *)arg->user;
 	siril_log_color_message("Keyword will be updated with:\n", "green");

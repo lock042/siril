@@ -125,6 +125,16 @@ static void init_dialog() {
 	gtk_list_store_clear(key_liststore);
 }
 
+static gboolean is_protected(const gchar *keyname) {
+	if ((g_strcmp0(keyname, "BZERO") == 0 ) ||
+			(g_strcmp0(keyname, "BSCALE") == 0 ) ||
+			(g_strcmp0(keyname, "PROGRAM") == 0 ) ||
+			(g_strcmp0(keyname, "DATE") == 0 )) {
+		return TRUE;
+	}
+	return FALSE;
+}
+
 static int listFITSKeywords(fits *fit, gboolean editable) {
 	char card[FLEN_CARD];
 	void *memptr;
@@ -175,7 +185,7 @@ static int listFITSKeywords(fits *fit, gboolean editable) {
 		fits_parse_value(card, value, comment, &status);
 		fits_get_keytype(value, &dtype, &status);
 		status = 0;
-		add_key_to_tree(keyname, value, comment, dtype, fits_get_keyclass(card) == TYP_STRUC_KEY, editable);
+		add_key_to_tree(keyname, value, comment, dtype, (fits_get_keyclass(card) == TYP_STRUC_KEY) || is_protected(keyname), editable);
 	}
 
 

@@ -167,7 +167,7 @@ static void fits_read_history(fitsfile *fptr, GSList **history) {
 		status = 0;
 		fits_movrel_hdu(fptr, 1, &type, &status);
 		if (status) {
-			fits_report_error(stderr, status);
+			//fits_report_error(stderr, status);
 			break;
 		}
 		hdu_changed = TRUE;
@@ -3120,6 +3120,7 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *value, const gch
 		case -1:
 			// Delete the key
 			fits_delete_key(tmpfit.fptr, key, &status);
+			remove_keyword_in_fit_keywords(key, &tmpfit);
 			if (verbose) {
 				siril_log_color_message("Keyword %s has been removed\n", "green", key);
 			}
@@ -3151,8 +3152,8 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *value, const gch
 		fit->header = copy_header(&tmpfit);
 	}
 
-//	if (status)
-//		fits_report_error(stderr, status);
+	if (status)
+		fits_report_error(stderr, status);
 
 	fits_close_file(tmpfit.fptr, &status);
 	clearfits(&tmpfit);
