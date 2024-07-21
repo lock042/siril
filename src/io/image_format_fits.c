@@ -3197,6 +3197,11 @@ int save_wcs_fits(fits *f, const gchar *name) {
 	fits_write_key(f->fptr, TINT, "WCSAXES", &(int){2}, NULL, &status);
 	fits_write_key(f->fptr, TINT, "IMAGEW", &f->rx, "Image width in pixels", &status);
 	fits_write_key(f->fptr, TINT, "IMAGEH", &f->ry, "Image height in pixels", &status);
+	if (f->keywords.date_obs) {
+		gchar *formatted_date = date_time_to_FITS_date(f->keywords.date_obs);
+		fits_update_key(f->fptr, TSTRING, "DATE-OBS", formatted_date, "YYYY-MM-DDThh:mm:ss observation start, UT", &status);
+		g_free(formatted_date);
+	}
 
 	// Write the WCS data
 	if (save_wcs_keywords(f)) {
@@ -3209,7 +3214,7 @@ int save_wcs_fits(fits *f, const gchar *name) {
 	status = 0;
 	fits_close_file(f->fptr, &status);
 	if (!status) {
-		siril_log_message(_("Saving WCS: file %s\n"), name);
+		siril_log_message(_("Saving WCS file %s\n"), name);
 	} else {
 		report_fits_error(status);
 	}

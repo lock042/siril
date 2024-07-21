@@ -77,6 +77,9 @@ static void display_path_parse_error(pathparse_errors err, const gchar *addstr) 
 		case PATHPARSE_ERR_MORE_THAN_ONE_HIT:
 			msg = _("More than one match for: ");
 			break;
+		case PATHPARSE_ERR_HITS_ALL_NEWER:
+			msg = _("All hits newer than: ");
+			break;
 		case PATHPARSE_ERR_NO_HIT_FOUND:
 			msg = _("No match found for: ");
 			break;
@@ -130,12 +133,46 @@ pathparse_errors read_key_from_header_text(gchar **headers, gchar *key, double *
 	return status;
 }
 
+typedef struct _file_date {
+	GDate *date;
+	gchar *filename;
+} file_date;
+
+static file_date *new_file_date(GDateTime *date, gchar *filename) {
+	file_date *fd = g_slice_new(file_date);
+	GDateTime *date_ref = g_date_time_add_hours(date, -12.);
+	gint year, month, day;
+	g_date_time_get_ymd(date_ref, &year, &month, &day);
+	fd->date = g_date_new_dmy(day, month, year);
+	fd->filename = g_strdup(filename);
+	g_date_time_unref(date_ref);
+	return fd;
+}
+
+static gint file_date_compare(const file_date *a, const file_date *b) {
+	int res = g_date_compare(a->date, b->date);
+	if (!res)
+		return (strlen(a->filename) == 1) ? 1 : -1; // we want filename "." (the ref file), to be after
+	return res;
+}
+
+static gint file_date_match_file(const file_date *a, gchar *data) {
+	return g_strcmp0(a->filename, data);
+}
+
+static void file_date_free(gpointer data) {
+	file_date *fd = (file_date *)data;
+	g_free(fd->filename);
+	g_date_free(fd->date);
+	g_slice_free(file_date, fd);
+}
+
 /*
 This function takes an expression with potentially a wildcard in it
 Searches the directory for files matching the pattern
 and returns the first occurence of the match if any
 */
-static gchar *wildcard_check(gchar *expression, int *status) {
+static gchar *wildcard_check(gchar *expression, int *status, GDateTime *date_obs) {
 	gchar *out = NULL, *dirname = NULL, *basename = NULL, *currfile = NULL;
 	const gchar *file = NULL;
 	GDir *dir;
@@ -143,6 +180,7 @@ static gchar *wildcard_check(gchar *expression, int *status) {
 	GPatternSpec *patternspec;
 	gint count = 0;
 	struct stat fileInfo, currfileInfo;
+	GList *fds = NULL;
 
 	if (!g_utf8_strchr(expression, -1, '*')) {
 		return g_strdup(expression);
@@ -161,33 +199,69 @@ static gchar *wildcard_check(gchar *expression, int *status) {
 		return out;
 	}
 	patternspec = g_pattern_spec_new(basename);
+
+	if (date_obs) { // Init for date_obs
+		fds = g_list_append(fds, new_file_date(date_obs, "."));
+	}
+
 	while ((file = g_dir_read_name(dir)) != NULL) {
 #if GLIB_CHECK_VERSION(2,70,0)
 		if (g_pattern_spec_match(patternspec, strlen(file), file, NULL)) {
 #else
 		if (g_pattern_match(patternspec, strlen(file), file, NULL)) {
 #endif
-			if (!count) {
-				out = g_build_filename(dirname, file, NULL);
-					if (stat(out, &fileInfo))
-						siril_debug_print("stat() failed\n");
-			} else {
-				currfile = g_build_filename(dirname, file, NULL);
-				if (stat(currfile, &currfileInfo))
-						siril_debug_print("stat() failed\n");
-				if (currfileInfo.st_ctime > fileInfo.st_ctime) { // currfile is more recent
+			if (!date_obs) { // No date_obs we fetch the most recent file based on stat
+				if (!count) {
 					out = g_build_filename(dirname, file, NULL);
-					if (stat(out, &fileInfo))
-						siril_debug_print("stat() failed\n");
+						if (stat(out, &fileInfo))
+							siril_debug_print("stat() failed\n");
+				} else {
+					currfile = g_build_filename(dirname, file, NULL);
+					if (stat(currfile, &currfileInfo))
+							siril_debug_print("stat() failed\n");
+					if (currfileInfo.st_ctime > fileInfo.st_ctime) { // currfile is more recent
+						out = g_build_filename(dirname, file, NULL);
+						if (stat(out, &fileInfo))
+							siril_debug_print("stat() failed\n");
+					}
 				}
+				count++;
+			} else {
+				fits currfit  = { 0 };
+				out = g_build_filename(dirname, file, NULL);
+				if (read_fits_metadata_from_path_first_HDU(out, &currfit)) {
+					siril_debug_print("reading %s header failed\n", out);
+					g_free(out);
+					out = NULL;
+					continue;
+				}
+				if (currfit.keywords.date_obs) {
+					fds = g_list_append(fds, new_file_date(currfit.keywords.date_obs, out));
+					count++;
+				}
+				clearfits(&currfit);
+				g_free(out);
+				out = NULL;
 			}
-			count++;
 		}
 	}
-	if (count > 1) {
+
+	if (!date_obs && count > 1) {
 		*status = PATHPARSE_ERR_MORE_THAN_ONE_HIT;
 		display_path_parse_error(*status, basename);
 		siril_log_color_message(_("Using most recent matching file: %s\n"), "salmon", out);
+	} else if (date_obs && count >= 1) { // we sort the date_file list
+		fds = g_list_sort(fds, (GCompareFunc)file_date_compare);
+		GList *ref = g_list_find_custom(fds, ".", (GCompareFunc)file_date_match_file);
+		gint refpos = g_list_position(fds, ref);
+		if (refpos == 0) { // all files matching have newer DATE-OBS
+			out = g_strdup(((file_date *)g_list_nth_data(fds, 1))->filename);
+			*status = PATHPARSE_ERR_HITS_ALL_NEWER;
+			display_path_parse_error(*status, basename);
+			siril_log_color_message(_("Using the closest matching file: %s\n"), "salmon", out);
+		} else { // we return the file which has DATE-OBS lteq to reference
+			out = g_strdup(((file_date *)g_list_nth_data(fds, refpos - 1))->filename);
+		}
 	} else if (!count) {
 		*status = PATHPARSE_ERR_NO_HIT_FOUND;
 		display_path_parse_error(*status, expression);
@@ -196,6 +270,7 @@ static gchar *wildcard_check(gchar *expression, int *status) {
 	g_free(dirname);
 	g_free(basename);
 	g_free(currfile);
+	g_list_free_full(fds, (GDestroyNotify)file_date_free);
 	g_pattern_spec_free(patternspec);
 	return out;
 }
@@ -492,7 +567,7 @@ gchar *path_parse(fits *fit, const gchar *expression, pathparse_mode mode, int *
 	siril_debug_print("String in: %s\n", expression);
 	siril_debug_print("String out: %s\n", out);
 	if (mode == PATHPARSE_MODE_READ) {
-		gchar *foundmatch = wildcard_check(out, status);
+		gchar *foundmatch = wildcard_check(out, status, fit->keywords.date_obs);
 		g_free(out);
 		out = NULL;
 		if (*status <= 0) out = g_strdup(foundmatch);
