@@ -64,6 +64,7 @@ int	process_convert(int nb);
 int	process_cosme(int nb);
 
 int	process_ddp(int nb);
+int process_delete_key(int nb);
 int	process_disto(int nb);
 int	process_dumpheader(int nb);
 
@@ -186,6 +187,7 @@ int	process_seq_applyastrometry(int nb);
 int	process_seq_clean(int nb);
 int	process_seq_cosme(int nb);
 int	process_seq_crop(int nb);
+int process_seq_delete_key(int nb);
 int	process_seq_extractHa(int nb);
 int	process_seq_extractGreen(int nb);
 int	process_seq_extractHaOIII(int nb);

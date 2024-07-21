@@ -1785,6 +1785,20 @@ int process_update_key(int nb) {
 	return CMD_OK;
 }
 
+int process_delete_key(int nb) {
+	if (nb != 2) {
+		return CMD_ARG_ERROR;
+	}
+	gchar *FITS_key = NULL;
+
+	FITS_key = word[1];
+
+	updateFITSKeyword(&gfit, FITS_key, NULL, NULL, TRUE);
+	if (!com.script) refresh_keywords_dialog();
+
+	return CMD_OK;
+}
+
 int process_seq_update_key(int nb) {
 	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq) {
@@ -1806,6 +1820,31 @@ int process_seq_update_key(int nb) {
 	args->value = g_strdup(word[3]);
 	if (nb == 5)
 		args->comment = g_strdup(word[4]);
+	start_sequence_keywords(seq, args);
+
+	return CMD_OK;
+}
+
+int process_seq_delete_key(int nb) {
+	sequence *seq = load_sequence(word[1], NULL);
+	if (!seq) {
+		return CMD_SEQUENCE_NOT_FOUND;
+	}
+	if (check_seq_is_comseq(seq)) {
+		free_sequence(seq, TRUE);
+		seq = &com.seq;
+	}
+
+	struct keywords_data *args = calloc(1, sizeof(struct keywords_data));
+	if (!args) {
+		free_sequence(seq, TRUE);
+		return CMD_ARG_ERROR;
+	}
+
+	siril_log_color_message(_("Deleting keywords...\n"), "green");
+	args->FITS_key = g_strdup(word[2]);
+	args->value = NULL;
+	args->comment = NULL;
 	start_sequence_keywords(seq, args);
 
 	return CMD_OK;

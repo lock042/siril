@@ -3060,45 +3060,86 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *value, const gch
 	} else
 		siril_debug_print("%s\n", card);
 
-
 	/* check if this is a protected keyword that must not be changed */
 	if (*card && fits_get_keyclass(card) == TYP_STRUC_KEY) {
 		siril_log_color_message("Protected keyword cannot be modified.\n", "red");
 	} else {
-		/* get the comment string */
-		if (*card)
-			fits_parse_value(card, oldvalue, oldcomment, &status);
-
-		/* construct template for new keyword */
-		gsize len, maxlen = FLEN_CARD;
-		len = g_strlcpy(newcard, key, maxlen);
-		if (len >= maxlen)
-			siril_debug_print("Exceeded FITS card length\n");
-		len = g_strlcat(newcard, " = ", maxlen);
-		if (len >= maxlen)
-			siril_debug_print("Exceeded FITS card length\n");
-		len = g_strlcat(newcard, value, maxlen);
-		if (len >= maxlen)
-			siril_debug_print("Exceeded FITS card length\n");
-		if (*oldcomment || comment) { /* Restore comment if exist, or use new one */
-			len = g_strlcat(newcard, " / ", maxlen);
+		if (comment == NULL && value == NULL) {
+			gsize len, maxlen = FLEN_CARD;
+			len = g_strlcpy(newcard, "- ", maxlen);
 			if (len >= maxlen)
 				siril_debug_print("Exceeded FITS card length\n");
-			if (comment) {
-				len = g_strlcat(newcard, comment, maxlen);
-			} else {
-				len = g_strlcat(newcard, oldcomment, maxlen);
+			len = g_strlcat(newcard, key, maxlen);
+		} else {
+			/* get the comment string */
+			if (*card)
+				fits_parse_value(card, oldvalue, oldcomment, &status);
+
+			/* construct template for new keyword */
+			gsize len, maxlen = FLEN_CARD;
+			len = g_strlcpy(newcard, key, maxlen);
+			if (len >= maxlen)
+				siril_debug_print("Exceeded FITS card length\n");
+			len = g_strlcat(newcard, " = ", maxlen);
+			if (len >= maxlen)
+				siril_debug_print("Exceeded FITS card length\n");
+			len = g_strlcat(newcard, value, maxlen);
+			if (len >= maxlen)
+				siril_debug_print("Exceeded FITS card length\n");
+			if (*oldcomment || comment) { /* Restore comment if exist, or use new one */
+				len = g_strlcat(newcard, " / ", maxlen);
+				if (len >= maxlen)
+					siril_debug_print("Exceeded FITS card length\n");
+				if (comment) {
+					len = g_strlcat(newcard, comment, maxlen);
+				} else {
+					len = g_strlcat(newcard, oldcomment, maxlen);
+				}
+				if (len >= maxlen)
+					siril_debug_print("Exceeded FITS card length\n");
 			}
-			if (len >= maxlen)
-				siril_debug_print("Exceeded FITS card length\n");
 		}
-
+		status = 0;
 		fits_parse_template(newcard, card, &keytype, &status);
-		fits_update_card(tmpfit.fptr, key, card, &status);
 
-		if (verbose) {
-			siril_log_color_message("Keyword has been changed to:\n", "green");
-			siril_log_message("%s\n", card);
+		switch (keytype) {
+		case -2:
+			// Rename the key: the old name is returned in the first 8 chars of card
+			// and the new name is returned in characters 41-48 of card
+			card[8] = '\0';
+			char *new_name = card + 40;
+			char *end = strchr(new_name, ' ');
+			if (end)
+				*end = '\0';
+			card[48] = '\0';
+			fits_modify_name(tmpfit.fptr, card, new_name, &status);
+			if (verbose) {
+				siril_log_color_message("Keyword %s has been renamed to %s\n", "green", card, new_name);
+			}
+			break;
+		case -1:
+			// Delete the key
+			fits_delete_key(tmpfit.fptr, key, &status);
+			if (verbose) {
+				siril_log_color_message("Keyword %s has been removed\n", "green", key);
+			}
+			break;
+		case 0:
+			// Update the card if it already exists, otherwise append a new card
+			fits_update_card(tmpfit.fptr, key, card, &status);
+			if (verbose) {
+				siril_log_color_message("Keyword has been changed to:\n", "green");
+				siril_log_message("%s\n", card);
+			}
+			break;
+		case 1:
+			// Append the record (for HISTORY or COMMENT cards)
+			fits_write_record(tmpfit.fptr, card, &status);
+			break;
+		case 2:
+		default:
+			// This is for END records: do nothing
+			break;
 		}
 
 		/* populate all structures */
@@ -3110,8 +3151,8 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *value, const gch
 		fit->header = copy_header(&tmpfit);
 	}
 
-	if (status)
-		fits_report_error(stderr, status);
+//	if (status)
+//		fits_report_error(stderr, status);
 
 	fits_close_file(tmpfit.fptr, &status);
 	clearfits(&tmpfit);

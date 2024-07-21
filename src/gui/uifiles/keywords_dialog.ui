@@ -95,6 +95,7 @@
                         <property name="model">key_liststore</property>
                         <property name="headers-clickable">False</property>
                         <property name="search-column">0</property>
+                        <signal name="key-release-event" handler="on_key_treeview_key_release_event" swapped="no"/>
                         <child internal-child="selection">
                           <object class="GtkTreeSelection" id="key_selection">
                             <signal name="changed" handler="on_key_selection_changed" swapped="no"/>
@@ -108,6 +109,7 @@
                             <child>
                               <object class="GtkCellRendererText" id="key"/>
                               <attributes>
+                                <attribute name="editable">6</attribute>
                                 <attribute name="foreground">5</attribute>
                                 <attribute name="text">0</attribute>
                               </attributes>
@@ -200,7 +202,7 @@
                           <object class="GtkImage">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="icon-name">add</property>
+                            <property name="icon-name">list-add</property>
                           </object>
                         </child>
                       </object>
@@ -208,6 +210,27 @@
                         <property name="expand">False</property>
                         <property name="fill">True</property>
                         <property name="position">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="delete_keyword_button">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                        <property name="tooltip-text" translatable="yes">Delete keyword in the FITS header.</property>
+                        <signal name="clicked" handler="on_delete_keyword_button_clicked" swapped="no"/>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="icon-name">list-remove</property>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">1</property>
                       </packing>
                     </child>
                     <child>
@@ -221,7 +244,7 @@
                       <packing>
                         <property name="expand">True</property>
                         <property name="fill">True</property>
-                        <property name="position">1</property>
+                        <property name="position">2</property>
                       </packing>
                     </child>
                   </object>

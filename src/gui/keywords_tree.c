@@ -443,6 +443,52 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 	gtk_widget_destroy(dialog);
 }
 
+void remove_selected_keys () {
+	GtkTreeSelection *selection;
+	GList *references;
+
+	GtkTreeView *treeView = GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "key_treeview"));
+	GtkTreeModel *treeModel = gtk_tree_view_get_model(treeView);
+
+	selection = gtk_tree_view_get_selection(treeView);
+	references = get_row_references_of_selected_rows(selection, treeModel);
+
+	for (GList *list = references; list; list = list->next) {
+		GtkTreeIter iter;
+		GtkTreePath *path = gtk_tree_row_reference_get_path((GtkTreeRowReference*)list->data);
+		if (path) {
+			if (gtk_tree_model_get_iter(treeModel, &iter, path)) {
+				GValue g_key = G_VALUE_INIT;
+				gtk_tree_model_get_value(treeModel, &iter, COLUMN_KEY, &g_key);
+			    if (G_VALUE_HOLDS_STRING(&g_key)) {
+			        gchar *FITS_key;
+
+			        FITS_key = (gchar *)g_value_get_string(&g_key);
+					updateFITSKeyword(&gfit, FITS_key, NULL, NULL, TRUE);
+
+			        g_value_unset(&g_key);
+			    }
+
+			}
+			gtk_tree_path_free(path);
+		}
+	}
+	refresh_keywords_dialog();
+}
+
+void on_delete_keyword_button_clicked(GtkButton *button, gpointer user_data) {
+	remove_selected_keys();
+}
+
+void on_key_treeview_key_release_event(GtkWidget *widget, GdkEventKey *event,
+		gpointer user_data) {
+	if (event->keyval == GDK_KEY_Delete || event->keyval == GDK_KEY_KP_Delete
+			|| event->keyval == GDK_KEY_BackSpace) {
+
+		remove_selected_keys();
+	}
+}
+
 static void show_header_text(char *text) {
 	GtkTextView *tv = GTK_TEXT_VIEW(lookup_widget("FITS_header_txt"));
 	GtkTextBuffer *tbuf = gtk_text_view_get_buffer(tv);

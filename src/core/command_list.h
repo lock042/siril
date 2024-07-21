@@ -40,6 +40,7 @@ static command commands[] = {
 	{"crop", 0, "crop [x y width height]", process_crop, STR_CROP, TRUE, REQ_CMD_SINGLE_IMAGE},
 
 	{"ddp", 3, "ddp level coef sigma", process_ddp, STR_DDP, FALSE, REQ_CMD_SINGLE_IMAGE},
+	{"delete_key", 1, "delete_key key", process_delete_key, STR_DELETE_KEY, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"denoise", 0, "denoise [-nocosmetic] [-mod=m] [ -vst | -da3d | -sos=n [-rho=r] ] [-indep]", process_denoise, STR_DENOISE, TRUE, REQ_CMD_SINGLE_IMAGE},
 #ifdef _WIN32
 	{"dir", 0, "dir", process_ls, STR_LS, FALSE, REQ_CMD_NONE},
@@ -175,6 +176,7 @@ static command commands[] = {
 	{"seqcosme", 2, "seqcosme sequencename [filename].lst [-prefix=]", process_seq_cosme, STR_SEQCOSME CMD_CAT(COSME) STR_COSME, TRUE, REQ_CMD_NONE},
 	{"seqcosme_cfa", 2, "seqcosme_cfa sequencename [filename].lst [-prefix=]", process_seq_cosme, STR_SEQCOSME_CFA CMD_CAT(COSME_CFA) STR_COSME_CFA, TRUE, REQ_CMD_NONE},
 	{"seqcrop", 5, "seqcrop sequencename x y width height [-prefix=]", process_seq_crop, STR_SEQCROP, TRUE, REQ_CMD_NO_THREAD},
+	{"seqdelete_key", 1, "seqdelete_key key", process_seq_delete_key, STR_SEQDELETE_KEY, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"seqextract_Green", 1, "seqextract_Green sequencename [-prefix=]", process_seq_extractGreen, STR_SEQEXTRACTGREEN CMD_CAT(EXTRACT_GREEN) STR_EXTRACTGREEN, TRUE, REQ_CMD_NO_THREAD},
 	{"seqextract_Ha", 1, "seqextract_Ha sequencename [-prefix=] [-upscale]", process_seq_extractHa, STR_SEQEXTRACTHA CMD_CAT(EXTRACT_HA) STR_EXTRACTHA, TRUE, REQ_CMD_NO_THREAD},
 	{"seqextract_HaOIII", 1, "seqextract_HaOIII sequencename [-resample=]", process_seq_extractHaOIII, STR_SEQEXTRACTHAOIII CMD_CAT(EXTRACT_HAOIII) STR_EXTRACTHAOIII, TRUE, REQ_CMD_NO_THREAD},
