@@ -264,8 +264,12 @@ void on_key_edited(GtkCellRendererText *renderer, char *path, char *new_val, gpo
 	if (!protected) {
 		/* update FITS keyname */
 		if (g_strcmp0(old_keyname, new_val)) {
-			if (!updateFITSKeyword(&gfit, old_keyname, new_val, NULL, NULL, TRUE)) {
-				gtk_list_store_set(key_liststore, &iter, COLUMN_KEY, new_val, -1);
+			if (strlen(new_val) > 8) {
+				siril_log_color_message(_("Keyname can contain a maximum of 8 characters.\n"), "red");
+			} else {
+				if (!updateFITSKeyword(&gfit, old_keyname, new_val, NULL, NULL, TRUE)) {
+					gtk_list_store_set(key_liststore, &iter, COLUMN_KEY, new_val, -1);
+				}
 			}
 		}
 	}
@@ -328,7 +332,7 @@ void on_key_close_btn_clicked(GtkButton *button, gpointer user_data) {
 	siril_close_dialog("keywords_dialog");
 }
 
-static gchar *list_all_keywords() {
+static gchar *list_all_selected_keywords() {
 	GtkTreeSelection *selection;
 	GList *references, *list;
 	GtkTreeView *tree_view = GTK_TREE_VIEW(lookup_widget("key_treeview"));
@@ -538,7 +542,7 @@ static void save_key_to_clipboard() {
 	/* Get the clipboard object */
 	GtkClipboard *clipboard = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
 
-	gchar *list = list_all_keywords();
+	gchar *list = list_all_selected_keywords();
 	gtk_clipboard_set_text(clipboard, list, -1);
 	g_free(list);
 }
@@ -556,4 +560,10 @@ void refresh_keywords_dialog() {
 	gtk_widget_set_visible(lookup_widget("add_keyword_button"), is_a_single_image_loaded);
 	if (gfit.header)
 		show_header_text(gfit.header);
+}
+
+void on_notebook_keywords_switch_page (GtkNotebook* self, GtkWidget* page, guint page_num, gpointer user_data) {
+	GtkWidget *button = GTK_WIDGET(user_data);
+
+	gtk_widget_set_visible(button, page_num == 0);
 }

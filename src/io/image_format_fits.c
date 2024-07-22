@@ -3018,7 +3018,6 @@ error:
 gboolean keyword_is_protected(char *card) {
 	char keyname[9];
 	g_strlcpy(keyname, card, sizeof(keyname));
-	keyname[8] = '\0';
 	if ((g_strcmp0(keyname, "BZERO   ") == 0)
 			|| (g_strcmp0(keyname, "BSCALE  ") == 0)
 			|| (g_strcmp0(keyname, "PROGRAM ") == 0)

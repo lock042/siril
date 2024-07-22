@@ -75,9 +75,10 @@
           </packing>
         </child>
         <child>
-          <object class="GtkNotebook">
+          <object class="GtkNotebook" id="notebook-keywords">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
+            <signal name="switch-page" handler="on_notebook_keywords_switch_page" object="export_keywords_button" swapped="no"/>
             <child>
               <object class="GtkBox">
                 <property name="visible">True</property>
