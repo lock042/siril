@@ -546,7 +546,7 @@ int save_fits_keywords(fits *fit) {
 	int ii;
 	double dbl;
 	float flt;
-	GDateTime *date;
+	GDateTime *date = NULL;
 
 	while (keys->group) {
 		/* Handle special cases */
@@ -863,7 +863,7 @@ static void set_to_default_not_used(fits *fit, GHashTable *keys_hash) {
 				break;
 			case KTYPE_DOUBLE:
 				if (keyword_info->data && *((double*) keyword_info->data) == 0.0)
-				*((double*) keyword_info->data) = DEFAULT_DOUBLE_VALUE;
+					*((double*) keyword_info->data) = DEFAULT_DOUBLE_VALUE;
 				break;
 			case KTYPE_FLOAT:
 				if (keyword_info->data && *((float*) keyword_info->data) == 0.f)
@@ -887,6 +887,7 @@ void set_all_keywords_default(fits *fit) {
 	free(keys);
 }
 
+#ifdef DEBUG_PRINT_HEADER
 const char* fits_type_to_string(const char type) {
 	switch (type) {
 		case 'C': return "string";
@@ -897,6 +898,7 @@ const char* fits_type_to_string(const char type) {
 		default: return "unknown";
 	}
 }
+#endif
 
 int read_fits_keywords(fits *fit) {
 	// Initialize keywords and get hash table
@@ -1119,8 +1121,10 @@ static void remove_keyword(const gchar *keyword, fits *fit, GHashTable *keys_has
 				memset((char*) keyword_info->data, 0, FLEN_VALUE);
 				break;
 			case KTYPE_DATE:
-				if ((GDateTime*) keyword_info->data)
+				if ((GDateTime*) keyword_info->data) {
 					g_date_time_unref((GDateTime*) keyword_info->data);
+					keyword_info->data = NULL;
+				}
 				break;
 			default:
 				break;

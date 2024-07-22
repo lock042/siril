@@ -3084,6 +3084,7 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *newkey, const gc
 	/* check if this is a protected keyword that must not be changed */
 	if (*card && keyword_is_protected(card)) {
 		siril_log_color_message("Protected keyword cannot be modified.\n", "red");
+		return 1;
 	} else {
 		/* Modifying keyname */
 		if (newkey != NULL) {

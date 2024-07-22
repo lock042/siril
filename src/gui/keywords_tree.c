@@ -584,6 +584,7 @@ void refresh_keywords_dialog() {
 			(com.seq.current == RESULT_IMAGE || com.seq.current == SCALED_IMAGE)));
 	listFITSKeywords(&gfit, is_a_single_image_loaded);
 	gtk_widget_set_visible(lookup_widget("add_keyword_button"), is_a_single_image_loaded);
+	gtk_widget_set_visible(lookup_widget("delete_keyword_button"), is_a_single_image_loaded);
 	if (gfit.header)
 		show_header_text(gfit.header);
 }
