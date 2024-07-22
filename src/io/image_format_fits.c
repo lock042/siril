@@ -3015,7 +3015,7 @@ error:
 	return 1;
 }
 
-int updateFITSKeyword(fits *fit, const gchar *key, const gchar *value, const gchar *comment, gboolean verbose) {
+int updateFITSKeyword(fits *fit, const gchar *key, const gchar *newkey, const gchar *value, const gchar *comment, gboolean verbose) {
 	char card[FLEN_CARD], newcard[FLEN_CARD];
 	char oldvalue[FLEN_VALUE], oldcomment[FLEN_COMMENT] = { 0 };
 	int keytype;
@@ -3064,12 +3064,30 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *value, const gch
 	if (*card && fits_get_keyclass(card) == TYP_STRUC_KEY) {
 		siril_log_color_message("Protected keyword cannot be modified.\n", "red");
 	} else {
-		if (comment == NULL && value == NULL) {
+		/* Modifying keyname */
+		if (newkey != NULL) {
 			gsize len, maxlen = FLEN_CARD;
 			len = g_strlcpy(newcard, "- ", maxlen);
 			if (len >= maxlen)
 				siril_debug_print("Exceeded FITS card length\n");
 			len = g_strlcat(newcard, key, maxlen);
+			if (len >= maxlen)
+				siril_debug_print("Exceeded FITS card length\n");
+			len = g_strlcpy(newcard, " ", maxlen);
+			if (len >= maxlen)
+				siril_debug_print("Exceeded FITS card length\n");
+			len = g_strlcat(newcard, newkey, maxlen);
+			if (len >= maxlen)
+				siril_debug_print("Exceeded FITS card length\n");
+			/* Deleting keyname */
+		} else if (comment == NULL && value == NULL) {
+			gsize len, maxlen = FLEN_CARD;
+			len = g_strlcpy(newcard, "- ", maxlen);
+			if (len >= maxlen)
+				siril_debug_print("Exceeded FITS card length\n");
+			len = g_strlcat(newcard, key, maxlen);
+			if (len >= maxlen)
+				siril_debug_print("Exceeded FITS card length\n");
 		} else {
 			/* get the comment string */
 			if (*card)

@@ -537,6 +537,8 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 int save_fits_keywords(fits *fit) {
 	KeywordInfo *keys = initialize_keywords(fit, NULL);
 	KeywordInfo *keys_start = keys;
+	super_bool sbool;
+	gboolean bool;
 	int status;
 	gchar *str;
 	gushort us;
@@ -618,8 +620,11 @@ int save_fits_keywords(fits *fit) {
 			break;
 		case KTYPE_BOOL:
 			status = 0;
-			fits_update_key(fit->fptr, TLOGICAL, keys->key,
-					&(*((gboolean*) keys->data)), keys->comment, &status);
+			sbool = *((super_bool*) keys->data);
+			if (sbool != BOOL_NOT_SET) {
+				bool = (sbool == BOOL_FALSE) ? FALSE : TRUE;
+				fits_update_key(fit->fptr, TLOGICAL, keys->key, &(bool), keys->comment, &status);
+			}
 			break;
 		default:
 			siril_debug_print("Save_fits_keywords: Error. Type is not handled: %s.\n", keys->key);
@@ -961,7 +966,7 @@ int read_fits_keywords(fits *fit) {
 		float float_value;
 		gchar *str_value = NULL, *unquoted = NULL;
 		GDateTime *date;
-		gboolean bool_value;
+		super_bool bool_value;
 		char *end = NULL;
 
 		// Process the value based on the type of the keyword
@@ -1048,8 +1053,8 @@ int read_fits_keywords(fits *fit) {
 			g_free(unquoted);
 			break;
 		case KTYPE_BOOL:
-			bool_value = value[0] == 'T' ? TRUE : FALSE;
-			*((gboolean*) current_key->data) = bool_value;
+			bool_value = value[0] == 'T' ? BOOL_TRUE : BOOL_FALSE;
+			*((super_bool*) current_key->data) = bool_value;
 			current_key->used = TRUE;
 			break;
 		default:
@@ -1092,6 +1097,9 @@ static void remove_keyword(const gchar *keyword, fits *fit, GHashTable *keys_has
 		KeywordInfo *keyword_info = (KeywordInfo*) value;
 		if (keyword_info->data && !g_strcmp0(keyword_info->key, keyword)) {
 			switch (keyword_info->type) {
+			case KTYPE_BOOL:
+				*((super_bool*) keyword_info->data) = BOOL_NOT_SET;
+				break;
 			case KTYPE_INT:
 				*((int*) keyword_info->data) = DEFAULT_INT_VALUE;
 				break;
@@ -1158,7 +1166,7 @@ static int keywords_prepare_hook(struct generic_seq_args *arg) {
 static int keywords_image_hook(struct generic_seq_args *arg, int o, int i, fits *fit, rectangle *area, int threads) {
 	struct keywords_data *kargs = (struct keywords_data *)arg->user;
 
-	int retval = updateFITSKeyword(fit, kargs->FITS_key, kargs->value, kargs->comment, FALSE);
+	int retval = updateFITSKeyword(fit, kargs->FITS_key, NULL, kargs->value, kargs->comment, FALSE);
 	if (arg->seq->type == SEQ_REGULAR) {
 		char root[256];
 		if (!retval) {

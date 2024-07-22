@@ -107,7 +107,11 @@
                             <property name="clickable">True</property>
                             <property name="sort-column-id">0</property>
                             <child>
-                              <object class="GtkCellRendererText" id="key"/>
+                              <object class="GtkCellRendererText" id="key">
+                                <signal name="edited" handler="on_key_edited" object="key_treeview" swapped="no"/>
+                                <signal name="editing-canceled" handler="on_cell_editing_canceled" object="key_treeview" swapped="no"/>
+                                <signal name="editing-started" handler="on_cell_editing_started" object="key_treeview" swapped="no"/>
+                              </object>
                               <attributes>
                                 <attribute name="editable">6</attribute>
                                 <attribute name="foreground">5</attribute>
@@ -123,7 +127,9 @@
                             <property name="sort-column-id">1</property>
                             <child>
                               <object class="GtkCellRendererText" id="val">
-                                <signal name="edited" handler="on_val_edited" swapped="no"/>
+                                <signal name="edited" handler="on_val_edited" object="key_treeview" swapped="no"/>
+                                <signal name="editing-canceled" handler="on_cell_editing_canceled" object="key_treeview" swapped="no"/>
+                                <signal name="editing-started" handler="on_cell_editing_started" object="key_treeview" swapped="no"/>
                               </object>
                               <attributes>
                                 <attribute name="editable">6</attribute>
@@ -139,7 +145,9 @@
                             <property name="sort-column-id">2</property>
                             <child>
                               <object class="GtkCellRendererText" id="com">
-                                <signal name="edited" handler="on_comment_edited" swapped="no"/>
+                                <signal name="edited" handler="on_comment_edited" object="key_treeview" swapped="no"/>
+                                <signal name="editing-canceled" handler="on_cell_editing_canceled" object="key_treeview" swapped="no"/>
+                                <signal name="editing-started" handler="on_cell_editing_started" object="key_treeview" swapped="no"/>
                               </object>
                               <attributes>
                                 <attribute name="editable">6</attribute>

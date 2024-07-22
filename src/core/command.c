@@ -1779,7 +1779,7 @@ int process_update_key(int nb) {
 	if (nb == 4)
 		comment = word[3];
 
-	updateFITSKeyword(&gfit, FITS_key, value, comment, TRUE);
+	updateFITSKeyword(&gfit, FITS_key, NULL, value, comment, TRUE);
 	if (!com.script) refresh_keywords_dialog();
 
 	return CMD_OK;
@@ -1793,7 +1793,7 @@ int process_delete_key(int nb) {
 
 	FITS_key = word[1];
 
-	updateFITSKeyword(&gfit, FITS_key, NULL, NULL, TRUE);
+	updateFITSKeyword(&gfit, FITS_key, NULL, NULL, NULL, TRUE);
 	if (!com.script) refresh_keywords_dialog();
 
 	return CMD_OK;
