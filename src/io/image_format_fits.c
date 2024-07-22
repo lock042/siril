@@ -3016,8 +3016,8 @@ error:
 }
 
 int updateFITSKeyword(fits *fit, const gchar *key, const gchar *newkey, const gchar *value, const gchar *comment, gboolean verbose) {
-	char card[FLEN_CARD], newcard[FLEN_CARD];
-	char oldvalue[FLEN_VALUE], oldcomment[FLEN_COMMENT] = { 0 };
+	char card[FLEN_CARD] = { 0 }, newcard[FLEN_CARD] = { 0 };
+	char oldvalue[FLEN_VALUE] = { 0 }, oldcomment[FLEN_COMMENT] = { 0 };
 	int keytype;
 	void *memptr;
 	size_t memsize = IOBUFLEN;
@@ -3073,7 +3073,7 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *newkey, const gc
 			len = g_strlcat(newcard, key, maxlen);
 			if (len >= maxlen)
 				siril_debug_print("Exceeded FITS card length\n");
-			len = g_strlcpy(newcard, " ", maxlen);
+			len = g_strlcat(newcard, " ", maxlen);
 			if (len >= maxlen)
 				siril_debug_print("Exceeded FITS card length\n");
 			len = g_strlcat(newcard, newkey, maxlen);
@@ -3129,8 +3129,9 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *newkey, const gc
 			char *end = strchr(new_name, ' ');
 			if (end)
 				*end = '\0';
-			card[48] = '\0';
+			card[47] = '\0';
 			fits_modify_name(tmpfit.fptr, card, new_name, &status);
+			remove_keyword_in_fit_keywords(key, &tmpfit); // needed to manage known keywords
 			if (verbose) {
 				siril_log_color_message("Keyword %s has been renamed to %s\n", "green", card, new_name);
 			}
@@ -3138,7 +3139,7 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *newkey, const gc
 		case -1:
 			// Delete the key
 			fits_delete_key(tmpfit.fptr, key, &status);
-			remove_keyword_in_fit_keywords(key, &tmpfit);
+			remove_keyword_in_fit_keywords(key, &tmpfit); // needed to manage known keywords
 			if (verbose) {
 				siril_log_color_message("Keyword %s has been removed\n", "green", key);
 			}
