@@ -3015,6 +3015,28 @@ error:
 	return 1;
 }
 
+gboolean keyword_is_protected(char *card) {
+	char keyname[9];
+	g_strlcpy(keyname, card, sizeof(keyname));
+	keyname[8] = '\0';
+	if ((g_strcmp0(keyname, "BZERO   ") == 0)
+			|| (g_strcmp0(keyname, "BSCALE  ") == 0)
+			|| (g_strcmp0(keyname, "PROGRAM ") == 0)
+			|| (g_strcmp0(keyname, "DATE    ") == 0)) {
+		return TRUE;
+	}
+	return fits_get_keyclass(card) == TYP_STRUC_KEY;
+}
+
+typedef gsize (*StrlFunc)(char *dest, const char *src, gsize maxlen);
+
+static void strl_with_check(char *dest, const char *src, gsize maxlen, StrlFunc strl_func) {
+	gsize len = strl_func(dest, src, maxlen);
+	if (len >= maxlen) {
+		siril_debug_print("Exceeded FITS card length\n");
+	}
+}
+
 int updateFITSKeyword(fits *fit, const gchar *key, const gchar *newkey, const gchar *value, const gchar *comment, gboolean verbose) {
 	char card[FLEN_CARD] = { 0 }, newcard[FLEN_CARD] = { 0 };
 	char oldvalue[FLEN_VALUE] = { 0 }, oldcomment[FLEN_COMMENT] = { 0 };
@@ -3061,60 +3083,36 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *newkey, const gc
 		siril_debug_print("%s\n", card);
 
 	/* check if this is a protected keyword that must not be changed */
-	if (*card && fits_get_keyclass(card) == TYP_STRUC_KEY) {
+	if (*card && keyword_is_protected(card)) {
 		siril_log_color_message("Protected keyword cannot be modified.\n", "red");
 	} else {
 		/* Modifying keyname */
 		if (newkey != NULL) {
-			gsize len, maxlen = FLEN_CARD;
-			len = g_strlcpy(newcard, "- ", maxlen);
-			if (len >= maxlen)
-				siril_debug_print("Exceeded FITS card length\n");
-			len = g_strlcat(newcard, key, maxlen);
-			if (len >= maxlen)
-				siril_debug_print("Exceeded FITS card length\n");
-			len = g_strlcat(newcard, " ", maxlen);
-			if (len >= maxlen)
-				siril_debug_print("Exceeded FITS card length\n");
-			len = g_strlcat(newcard, newkey, maxlen);
-			if (len >= maxlen)
-				siril_debug_print("Exceeded FITS card length\n");
+			strl_with_check(newcard, "- ", FLEN_CARD, g_strlcpy);
+			strl_with_check(newcard, key, FLEN_CARD, g_strlcat);
+			strl_with_check(newcard, " ", FLEN_CARD, g_strlcat);
+			strl_with_check(newcard, newkey, FLEN_CARD, g_strlcat);
 			/* Deleting keyname */
 		} else if (comment == NULL && value == NULL) {
-			gsize len, maxlen = FLEN_CARD;
-			len = g_strlcpy(newcard, "- ", maxlen);
-			if (len >= maxlen)
-				siril_debug_print("Exceeded FITS card length\n");
-			len = g_strlcat(newcard, key, maxlen);
-			if (len >= maxlen)
-				siril_debug_print("Exceeded FITS card length\n");
+			strl_with_check(newcard, "- ", FLEN_CARD, g_strlcpy);
+			strl_with_check(newcard, key, FLEN_CARD, g_strlcat);
 		} else {
 			/* get the comment string */
 			if (*card)
 				fits_parse_value(card, oldvalue, oldcomment, &status);
 
 			/* construct template for new keyword */
-			gsize len, maxlen = FLEN_CARD;
-			len = g_strlcpy(newcard, key, maxlen);
-			if (len >= maxlen)
-				siril_debug_print("Exceeded FITS card length\n");
-			len = g_strlcat(newcard, " = ", maxlen);
-			if (len >= maxlen)
-				siril_debug_print("Exceeded FITS card length\n");
-			len = g_strlcat(newcard, value, maxlen);
-			if (len >= maxlen)
-				siril_debug_print("Exceeded FITS card length\n");
+			strl_with_check(newcard, key, FLEN_CARD, g_strlcpy);
+			strl_with_check(newcard, " = ", FLEN_CARD, g_strlcat);
+			strl_with_check(newcard, value, FLEN_CARD, g_strlcat);
+
 			if (*oldcomment || comment) { /* Restore comment if exist, or use new one */
-				len = g_strlcat(newcard, " / ", maxlen);
-				if (len >= maxlen)
-					siril_debug_print("Exceeded FITS card length\n");
+				strl_with_check(newcard, " / ", FLEN_CARD, g_strlcat);
 				if (comment) {
-					len = g_strlcat(newcard, comment, maxlen);
+					strl_with_check(newcard, comment, FLEN_CARD, g_strlcat);
 				} else {
-					len = g_strlcat(newcard, oldcomment, maxlen);
+					strl_with_check(newcard, oldcomment, FLEN_CARD, g_strlcat);
 				}
-				if (len >= maxlen)
-					siril_debug_print("Exceeded FITS card length\n");
 			}
 		}
 		status = 0;

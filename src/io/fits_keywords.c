@@ -938,7 +938,7 @@ int read_fits_keywords(fits *fit) {
 		status = 0;
 
 		// Skip the FITS structure keys and the DATE-OBS key since they have already been processed.
-		if (g_strcmp0(keyname, "DATE-OBS") == 0 || fits_get_keyclass(card) == TYP_STRUC_KEY) {
+		if (g_strcmp0(keyname, "DATE-OBS") == 0 || keyword_is_protected(card)) {
 			continue;
 		}
 
