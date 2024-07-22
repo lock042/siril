@@ -31,6 +31,11 @@
 #include "keywords_tree.h"
 
 static GtkListStore *key_liststore = NULL;
+static GtkTreeView *key_treeview = NULL;
+static GtkTextView *key_textview = NULL;
+static GtkNotebook *key_notebook = NULL;
+static GtkTreeSelection *key_selection = NULL;
+static GtkWidget *key_export_button = NULL;
 
 static int ffs2c(const char *instr, /* I - null terminated input string  */
 char *outstr, /* O - null terminated quoted output string */
@@ -94,9 +99,24 @@ enum {
 	N_COLUMNS
 };
 
-static void get_keylist_store() {
-	if (key_liststore == NULL)
+static void on_mark_set(GtkTextBuffer *buffer, GtkTextIter *iter, GtkTextMark *mark, gpointer user_data) {
+    GtkTextIter start, end;
+
+    GtkWidget *widget = lookup_widget("export_keywords_button");
+    gtk_widget_set_sensitive(widget, gtk_text_buffer_get_selection_bounds(buffer, &start, &end));
+}
+
+static void init_static_ui() {
+	if (key_liststore == NULL) {
 		key_liststore = GTK_LIST_STORE(gtk_builder_get_object(gui.builder, "key_liststore"));
+		key_treeview = GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "key_treeview"));
+		key_textview = GTK_TEXT_VIEW(lookup_widget("FITS_header_txt"));
+		key_notebook = GTK_NOTEBOOK(lookup_widget("notebook-keywords"));
+		key_selection = GTK_TREE_SELECTION(gtk_builder_get_object(gui.builder, "key_selection"));
+		key_export_button = lookup_widget("export_keywords_button");
+
+	    g_signal_connect(gtk_text_view_get_buffer(GTK_TEXT_VIEW(key_textview)), "mark-set", G_CALLBACK(on_mark_set), NULL);
+	}
 }
 
 
@@ -116,12 +136,9 @@ static void add_key_to_tree(const gchar *key, const gchar *value, const gchar *c
 }
 
 static void init_dialog() {
-	static GtkTreeSelection *selection = NULL;
-	get_keylist_store();
-	if (!selection) {
-		selection = GTK_TREE_SELECTION(gtk_builder_get_object(gui.builder, "key_selection"));
-	}
-	gtk_tree_selection_set_mode(selection, GTK_SELECTION_MULTIPLE);
+	init_static_ui();
+
+	gtk_tree_selection_set_mode(key_selection, GTK_SELECTION_MULTIPLE);
 	gtk_list_store_clear(key_liststore);
 }
 
@@ -204,10 +221,9 @@ static void remove_selected_keys () {
 	GtkTreeSelection *selection;
 	GList *references;
 
-	GtkTreeView *treeView = GTK_TREE_VIEW(gtk_builder_get_object(gui.builder, "key_treeview"));
-	GtkTreeModel *treeModel = gtk_tree_view_get_model(treeView);
+	GtkTreeModel *treeModel = gtk_tree_view_get_model(key_treeview);
 
-	selection = gtk_tree_view_get_selection(treeView);
+	selection = gtk_tree_view_get_selection(key_treeview);
 	references = get_row_references_of_selected_rows(selection, treeModel);
 
 	for (GList *list = references; list; list = list->next) {
@@ -335,11 +351,10 @@ void on_key_close_btn_clicked(GtkButton *button, gpointer user_data) {
 static gchar *list_all_selected_keywords() {
 	GtkTreeSelection *selection;
 	GList *references, *list;
-	GtkTreeView *tree_view = GTK_TREE_VIEW(lookup_widget("key_treeview"));
-	GtkTreeModel *model = gtk_tree_view_get_model(tree_view);
+	GtkTreeModel *model = gtk_tree_view_get_model(key_treeview);
 	GString *string = g_string_new("");
 
-	selection = gtk_tree_view_get_selection(tree_view);
+	selection = gtk_tree_view_get_selection(key_treeview);
 	references = get_row_references_of_selected_rows(selection, model);
 
 	for (list = references; list; list = list->next) {
@@ -370,11 +385,9 @@ static gchar *list_all_selected_keywords() {
 
 void on_key_selection_changed(GtkTreeSelection *selection, gpointer user_data) {
 	GtkTreeIter iter;
-	GtkWidget *widget;
 	GList *list;
 
-	GtkTreeView *tree_view = GTK_TREE_VIEW(lookup_widget("key_treeview"));
-	GtkTreeModel *model = gtk_tree_view_get_model(tree_view);
+	GtkTreeModel *model = gtk_tree_view_get_model(key_treeview);
 	gboolean is_empty = gtk_tree_model_get_iter_first(model, &iter) == FALSE;
 	gboolean are_selected = FALSE;
 
@@ -383,8 +396,7 @@ void on_key_selection_changed(GtkTreeSelection *selection, gpointer user_data) {
 		are_selected = g_list_length(list)  > 0;
 	}
 
-	widget = lookup_widget("export_keywords_button");
-	gtk_widget_set_sensitive(widget, !is_empty && are_selected);
+	gtk_widget_set_sensitive(key_export_button, !is_empty && are_selected);
 }
 
 static void to_uppercase(char *str) {
@@ -528,8 +540,7 @@ void on_delete_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 }
 
 static void show_header_text(char *text) {
-	GtkTextView *tv = GTK_TEXT_VIEW(lookup_widget("FITS_header_txt"));
-	GtkTextBuffer *tbuf = gtk_text_view_get_buffer(tv);
+	GtkTextBuffer *tbuf = gtk_text_view_get_buffer(key_textview);
 	GtkTextIter itDebut;
 	GtkTextIter itFin;
 
@@ -541,10 +552,25 @@ static void show_header_text(char *text) {
 static void save_key_to_clipboard() {
 	/* Get the clipboard object */
 	GtkClipboard *clipboard = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
+	GtkTextBuffer *buffer;
+	GtkTextIter start, end;
+	gchar *list = NULL;
 
-	gchar *list = list_all_selected_keywords();
-	gtk_clipboard_set_text(clipboard, list, -1);
-	g_free(list);
+	switch (gtk_notebook_get_current_page(key_notebook)) {
+	case 0:
+		list = list_all_selected_keywords();
+		break;
+	case 1:
+		buffer = gtk_text_view_get_buffer(key_textview);
+		if (gtk_text_buffer_get_selection_bounds(buffer, &start, &end)) {
+			list = gtk_text_buffer_get_text(buffer, &start, &end, FALSE);
+		}
+		break;
+	}
+	if (list) {
+		gtk_clipboard_set_text(clipboard, list, -1);
+		g_free(list);
+	}
 }
 
 void on_export_keywords_button_clicked(GtkButton *button, gpointer user_data) {
@@ -564,6 +590,20 @@ void refresh_keywords_dialog() {
 
 void on_notebook_keywords_switch_page (GtkNotebook* self, GtkWidget* page, guint page_num, gpointer user_data) {
 	GtkWidget *button = GTK_WIDGET(user_data);
+    GtkTreeSelection *selection;
+    GtkTextBuffer *buffer;
+    GtkTextIter start, end;
 
-	gtk_widget_set_visible(button, page_num == 0);
+	switch(page_num) {
+	case 0:
+	    selection = gtk_tree_view_get_selection(key_treeview);
+
+		gtk_widget_set_sensitive(button, gtk_tree_selection_count_selected_rows(selection) > 0);
+		break;
+	case 1:
+	    buffer = gtk_text_view_get_buffer(key_textview);
+
+		gtk_widget_set_sensitive(button, gtk_text_buffer_get_selection_bounds(buffer, &start, &end));
+		break;
+	}
 }
