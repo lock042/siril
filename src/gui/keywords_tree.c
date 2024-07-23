@@ -532,6 +532,11 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 	gtk_grid_attach(GTK_GRID(grid), label_comment, 0, 2, 1, 1);
 	gtk_grid_attach(GTK_GRID(grid), entry_comment, 1, 2, 1, 1);
 
+	// Set tooltips for each entry
+	gtk_widget_set_tooltip_text(entry_name, "Enter the name of the keyword. Maximum 8 characters. Only ASCII characters are accepted.");
+	gtk_widget_set_tooltip_text(entry_value, "Enter the value for the keyword. Only ASCII characters are accepted.");
+	gtk_widget_set_tooltip_text(entry_comment, "Enter a comment or description for the keyword. Only ASCII characters are accepted.");
+
 	// Connect the changed signal for both entry_value and entry_comment
 	g_signal_connect(entry_value, "changed", G_CALLBACK(on_entry_value_changed), entry_comment);
 	g_signal_connect(entry_comment, "changed", G_CALLBACK(on_entry_comment_changed), entry_value);
