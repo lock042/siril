@@ -25,6 +25,7 @@
 #include "algos/demosaicing.h"
 #include "algos/statistics.h"
 #include "core/arithm.h"
+#include "io/single_image.h"
 #include "gui/callbacks.h"
 #include "utils.h"
 #include "core/siril_log.h"
@@ -540,9 +541,14 @@ gboolean value_check() {
 	if (retval) {
 		siril_log_color_message(_("Error: statistics computation failed. Proceeding, but cannot check for out-of-range values:.\n"), "red");
 	} else {
-		maxval = max(max(stats[RLAYER]->max, stats[GLAYER]->max), stats[BLAYER]->max);
-		minval = min(max(stats[RLAYER]->min, stats[GLAYER]->min), stats[BLAYER]->min);
-		for (int i = 0 ; i < 3;  i++) {
+		if (gfit.naxes[2] == 1) {
+			maxval = stats[0]->max;
+			minval = stats[0]->min;
+		} else {
+			maxval = max(max(stats[RLAYER]->max, stats[GLAYER]->max), stats[BLAYER]->max);
+			minval = min(max(stats[RLAYER]->min, stats[GLAYER]->min), stats[BLAYER]->min);
+		}
+		for (int i = 0 ; i < gfit.naxes[2];  i++) {
 			free_stats(stats[i]);
 		}
 	}
@@ -559,10 +565,15 @@ gboolean value_check() {
 				return FALSE;
 			case RESPONSE_CLIP:
 				clip(&gfit);
+				notify_gfit_modified();
 				break;
 			case RESPONSE_RESCALE:
-				soper(&gfit, (1.0 / maxval), OPER_MUL, TRUE);
-				clipneg(&gfit);
+				double range = maxval - minval;
+				if (minval < 0.0)
+					soper(&gfit, minval, OPER_SUB, TRUE);
+				if (range > 1.0)
+					soper(&gfit, (1.0 / range), OPER_MUL, TRUE);
+				notify_gfit_modified();
 				break;
 			case RESPONSE_PROCEED:
 				break;

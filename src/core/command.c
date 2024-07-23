@@ -10907,9 +10907,14 @@ int process_limit(int nb) {
 	if (retval) {
 		siril_log_color_message(_("Error: statistics computation failed. Unable to check for out-of-range values:.\n"), "red");
 	} else {
-		maxval = max(max(stats[RLAYER]->max, stats[GLAYER]->max), stats[BLAYER]->max);
-		minval = min(max(stats[RLAYER]->min, stats[GLAYER]->min), stats[BLAYER]->min);
-		for (int i = 0 ; i < 3;  i++) {
+		if (gfit.naxes[2] == 1) {
+			maxval = stats[0]->max;
+			minval = stats[0]->min;
+		} else {
+			maxval = max(max(stats[RLAYER]->max, stats[GLAYER]->max), stats[BLAYER]->max);
+			minval = min(max(stats[RLAYER]->min, stats[GLAYER]->min), stats[BLAYER]->min);
+		}
+		for (int i = 0 ; i < gfit.naxes[2];  i++) {
 			free_stats(stats[i]);
 		}
 	}
@@ -10921,14 +10926,21 @@ int process_limit(int nb) {
 	}
 	if (!g_ascii_strncasecmp(word[1], "-clip", 5)) {
 		clip(&gfit);
-	} else if (!g_ascii_strncasecmp(word[1], "-rescale", 8)) {
-		soper(&gfit, (1.0 / maxval), OPER_MUL, TRUE);
+	} else if (!g_ascii_strncasecmp(word[1], "-posrescale", 11)) {
+		if (maxval > 1.0)
+			soper(&gfit, (1.0 / maxval), OPER_MUL, TRUE);
 		clipneg(&gfit);
+	} else if (!g_ascii_strncasecmp(word[1], "-rescale", 8)) {
+		double range = maxval - minval;
+		if (minval < 0.0)
+			soper(&gfit, minval, OPER_SUB, TRUE);
+		if (range > 1.0)
+			soper(&gfit, (1.0 / range), OPER_MUL, TRUE);
 	} else {
 		siril_log_color_message(_("Error: unknown argument!\n"), "red");
 		return CMD_ARG_ERROR;
 	}
-	invalidate_stats_from_fit(&gfit);
+	notify_gfit_modified();
 	siril_log_message(_("Pixel limits applied successfully.\n"));
 	return CMD_OK;
 }
