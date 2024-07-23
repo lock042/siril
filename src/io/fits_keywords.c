@@ -1143,9 +1143,6 @@ void remove_keyword_in_fit_keywords(const gchar *keyword, fits *fit) {
 }
 
 static int keywords_prepare_hook(struct generic_seq_args *arg) {
-	struct keywords_data *kargs = (struct keywords_data *)arg->user;
-	siril_log_color_message("Keyword will be updated with:\n", "green");
-	siril_log_message("%s, %s, %s\n", kargs->FITS_key, kargs->value, kargs->comment);
 	if (arg->seq->type == SEQ_FITSEQ) {
 		gchar *filename = g_strdup(arg->seq->fitseq_file->filename);
 		// it was opened in READONLY mode, we close it
@@ -1170,7 +1167,7 @@ static int keywords_prepare_hook(struct generic_seq_args *arg) {
 static int keywords_image_hook(struct generic_seq_args *arg, int o, int i, fits *fit, rectangle *area, int threads) {
 	struct keywords_data *kargs = (struct keywords_data *)arg->user;
 
-	int retval = updateFITSKeyword(fit, kargs->FITS_key, NULL, kargs->value, kargs->comment, FALSE);
+	int retval = updateFITSKeyword(fit, kargs->FITS_key, kargs->newkey, kargs->value, kargs->comment, FALSE);
 	if (arg->seq->type == SEQ_REGULAR) {
 		char root[256];
 		if (!retval) {

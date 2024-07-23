@@ -1768,33 +1768,45 @@ int process_unsharp(int nb) {
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
+/**
+ * update_key key value [comment]
+ * update_key -remove key
+ * update_key -modify key newkey
+ * update_key -comment comment
+ */
 int process_update_key(int nb) {
-	if (nb != 3 && nb != 4) {
-		return CMD_ARG_ERROR;
+	gchar *key = NULL, *value = NULL, *comment = NULL;
+
+	/* manage options */
+	if (word[1][0] == '-') {
+		if (!g_strcmp0(word[1], "-remove") && word[2]) {
+			key = replace_wide_char(word[2]);
+			updateFITSKeyword(&gfit, key, NULL, NULL, NULL, TRUE);
+		} else if (!g_strcmp0(word[1], "-modify") && word[2] && word[3]) {
+			key = replace_wide_char(word[2]);
+			value = replace_wide_char(word[3]);
+			updateFITSKeyword(&gfit, key, value, NULL, NULL, TRUE);
+		} else if (!g_strcmp0(word[1], "-comment") && word[2]) {
+			comment = replace_wide_char(word[2]);
+			updateFITSKeyword(&gfit, NULL, NULL, NULL, comment, TRUE);
+		} else {
+			return CMD_ARG_ERROR;
+		}
+
+	/* without options */
+	} else {
+		key = replace_wide_char(word[1]);
+		value = replace_wide_char(word[2]);
+		if (nb == 4)
+			comment = replace_wide_char(word[3]);
+
+		updateFITSKeyword(&gfit, key, NULL, value, comment, TRUE);
 	}
-	gchar *FITS_key, *value, *comment = NULL;
-
-	FITS_key = word[1];
-	value = word[2];
-	if (nb == 4)
-		comment = word[3];
-
-	updateFITSKeyword(&gfit, FITS_key, NULL, value, comment, TRUE);
 	if (!com.script) refresh_keywords_dialog();
 
-	return CMD_OK;
-}
-
-int process_delete_key(int nb) {
-	if (nb != 2) {
-		return CMD_ARG_ERROR;
-	}
-	gchar *FITS_key = NULL;
-
-	FITS_key = word[1];
-
-	updateFITSKeyword(&gfit, FITS_key, NULL, NULL, NULL, TRUE);
-	if (!com.script) refresh_keywords_dialog();
+	g_free(key);
+	g_free(value);
+	g_free(comment);
 
 	return CMD_OK;
 }
@@ -1815,36 +1827,28 @@ int process_seq_update_key(int nb) {
 		return CMD_ARG_ERROR;
 	}
 
+
 	siril_log_color_message(_("Upating keywords...\n"), "green");
-	args->FITS_key = g_strdup(word[2]);
-	args->value = g_strdup(word[3]);
-	if (nb == 5)
-		args->comment = g_strdup(word[4]);
-	start_sequence_keywords(seq, args);
 
-	return CMD_OK;
-}
-
-int process_seq_delete_key(int nb) {
-	sequence *seq = load_sequence(word[1], NULL);
-	if (!seq) {
-		return CMD_SEQUENCE_NOT_FOUND;
+	/* manage options */
+	if (word[2][0] == '-') {
+		if (!g_strcmp0(word[2], "-remove") && word[3]) {
+			args->FITS_key = replace_wide_char(word[3]);
+		} else if (!g_strcmp0(word[2], "-modify") && word[3] && word[4]) {
+			args->FITS_key = replace_wide_char(word[3]);
+			args->newkey = replace_wide_char(word[4]);
+		} else if (!g_strcmp0(word[2], "-comment") && word[3]) {
+			args->comment = replace_wide_char(word[3]);
+		} else {
+			return CMD_ARG_ERROR;
+		}
+	/* without options */
+	} else {
+		args->FITS_key = replace_wide_char(word[2]);
+		args->value = replace_wide_char(word[3]);
+		if (nb == 5)
+			args->comment = replace_wide_char(word[4]);
 	}
-	if (check_seq_is_comseq(seq)) {
-		free_sequence(seq, TRUE);
-		seq = &com.seq;
-	}
-
-	struct keywords_data *args = calloc(1, sizeof(struct keywords_data));
-	if (!args) {
-		free_sequence(seq, TRUE);
-		return CMD_ARG_ERROR;
-	}
-
-	siril_log_color_message(_("Deleting keywords...\n"), "green");
-	args->FITS_key = g_strdup(word[2]);
-	args->value = NULL;
-	args->comment = NULL;
 	start_sequence_keywords(seq, args);
 
 	return CMD_OK;

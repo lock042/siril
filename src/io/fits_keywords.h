@@ -55,6 +55,7 @@ struct keywords_data {
 	fits *fit;
 	sequence *seq;
 	gchar *FITS_key;
+	gchar *newkey;
 	gchar *value;
 	gchar *comment;
 };

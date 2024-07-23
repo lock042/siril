@@ -40,7 +40,6 @@ static command commands[] = {
 	{"crop", 0, "crop [x y width height]", process_crop, STR_CROP, TRUE, REQ_CMD_SINGLE_IMAGE},
 
 	{"ddp", 3, "ddp level coef sigma", process_ddp, STR_DDP, FALSE, REQ_CMD_SINGLE_IMAGE},
-	{"delete_key", 1, "delete_key key", process_delete_key, STR_DELETE_KEY, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"denoise", 0, "denoise [-nocosmetic] [-mod=m] [ -vst | -da3d | -sos=n [-rho=r] ] [-indep]", process_denoise, STR_DENOISE, TRUE, REQ_CMD_SINGLE_IMAGE},
 #ifdef _WIN32
 	{"dir", 0, "dir", process_ls, STR_LS, FALSE, REQ_CMD_NONE},
@@ -176,7 +175,6 @@ static command commands[] = {
 	{"seqcosme", 2, "seqcosme sequencename [filename].lst [-prefix=]", process_seq_cosme, STR_SEQCOSME CMD_CAT(COSME) STR_COSME, TRUE, REQ_CMD_NONE},
 	{"seqcosme_cfa", 2, "seqcosme_cfa sequencename [filename].lst [-prefix=]", process_seq_cosme, STR_SEQCOSME_CFA CMD_CAT(COSME_CFA) STR_COSME_CFA, TRUE, REQ_CMD_NONE},
 	{"seqcrop", 5, "seqcrop sequencename x y width height [-prefix=]", process_seq_crop, STR_SEQCROP, TRUE, REQ_CMD_NO_THREAD},
-	{"seqdelete_key", 1, "seqdelete_key key", process_seq_delete_key, STR_SEQDELETE_KEY, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"seqextract_Green", 1, "seqextract_Green sequencename [-prefix=]", process_seq_extractGreen, STR_SEQEXTRACTGREEN CMD_CAT(EXTRACT_GREEN) STR_EXTRACTGREEN, TRUE, REQ_CMD_NO_THREAD},
 	{"seqextract_Ha", 1, "seqextract_Ha sequencename [-prefix=] [-upscale]", process_seq_extractHa, STR_SEQEXTRACTHA CMD_CAT(EXTRACT_HA) STR_EXTRACTHA, TRUE, REQ_CMD_NO_THREAD},
 	{"seqextract_HaOIII", 1, "seqextract_HaOIII sequencename [-resample=]", process_seq_extractHaOIII, STR_SEQEXTRACTHAOIII CMD_CAT(EXTRACT_HAOIII) STR_EXTRACTHAOIII, TRUE, REQ_CMD_NO_THREAD},
@@ -208,7 +206,10 @@ static command commands[] = {
 	{"seqsubsky", 2, "seqsubsky sequencename { -rbf | degree } [-nodither] [-samples=20] [-tolerance=1.0] [-smooth=0.5] [-prefix=]", process_subsky, STR_SEQSUBSKY CMD_CAT(SUBSKY) STR_SUBSKY, TRUE, REQ_CMD_NONE},
 	{"seqtilt", 1, "seqtilt sequencename", process_seq_tilt, STR_SEQTILT CMD_CAT(TILT) STR_TILT, TRUE, REQ_CMD_NO_THREAD},
 	{"sequnsetmag", 0, "sequnsetmag", process_unset_mag_seq, STR_SEQUNSETMAG, FALSE, REQ_CMD_SEQUENCE },
-	{"sequpdate_key", 2, "sequpdate_key sequencename key value [comment]", process_seq_update_key, STR_SEQUPDATE_KEY, TRUE, REQ_CMD_NONE},
+	{"sequpdate_key", 2, "sequpdate_key sequencename key value [comment]\n"
+			"sequpdate_key sequencename -remove key\n"
+			"sequpdate_key sequencename -modify key newkey\n"
+			"sequpdate_key sequencename -comment comment", process_seq_update_key, STR_SEQUPDATE_KEY, TRUE, REQ_CMD_NONE},
 	{"seqwiener", 1, "wiener sequencename [-loadpsf=] [-alpha=]", process_seq_wiener, STR_SEQWIENER CMD_CAT(WIENER) STR_WIENER, TRUE, REQ_CMD_NONE},
 	{"set", 1, "set { -import=inifilepath | variable=value }", process_set, STR_SET, TRUE, REQ_CMD_NONE},
 	{"set16bits", 0, "set16bits", process_set_32bits, STR_SET16, TRUE, REQ_CMD_NONE},
@@ -256,7 +257,10 @@ static command commands[] = {
 	{"unselect", 3, "unselect sequencename from to", process_unselect, STR_UNSELECT, TRUE, REQ_CMD_NONE},
 	{"unsetmag", 0, "unsetmag", process_unset_mag, STR_UNSETMAG, FALSE, REQ_CMD_NONE},
 	{"unsharp", 2, "unsharp sigma multi", process_unsharp, STR_UNSHARP, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"update_key", 2, "update_key key value [comment]", process_update_key, STR_UPDATE_KEY, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"update_key", 2, "update_key key value [comment]\n"
+					"update_key -remove key\n"
+					"update_key -modify key newkey\n"
+					"update_key -comment comment", process_update_key, STR_UPDATE_KEY, TRUE, REQ_CMD_SINGLE_IMAGE},
 
 	{"visu", 2, "visu low high", process_visu, STR_VISU, FALSE, REQ_CMD_SINGLE_IMAGE},
 
