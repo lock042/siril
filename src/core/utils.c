@@ -1479,6 +1479,16 @@ void replace_spaces_from_str(gchar *s, gchar c) {
 	} while((*s++ = *d++));
 }
 
+void replace_char_from_str(gchar *s, gchar in, gchar out) {
+	gchar *d = s;
+	while (*d) {
+		if (*d == in) {
+			*d = out;
+		}
+		d++;
+	}
+}
+
 /**
  * Recomposes a string from words, with a space between each.
  * @param words a NULL-terminated array of words

@@ -25,7 +25,7 @@
 // negative errors are warnings
 typedef enum {
 	// warning for wilcard read mode
-	PATHPARSE_ERR_DATE_WILDCARDS_NOFAIL = -12,
+	PATHPARSE_ERR_WILDCARD_SYNTAX_NOFAIL = -12,
 	PATHPARSE_ERR_HITS_ALL_NEWER = -11,
 	PATHPARSE_ERR_MORE_THAN_ONE_HIT = -10,
 	// warnings for write_nofail mode (exact opposite of errors betw 1 and 10)
@@ -53,7 +53,7 @@ typedef enum {
 	// errors for read mode with wildcards
 	PATHPARSE_ERR_NO_HIT_FOUND = 10,
 	PATHPARSE_ERR_NO_DIR = 11,
-	PATHPARSE_ERR_DATE_WILDCARDS = 12,
+	PATHPARSE_ERR_WILDCARD_SYNTAX = 12,
 	// internal errors
 	PATHPARSE_ERR_WRONG_CALL = 20,
 	PATHPARSE_ERR_TMPFIT = 21

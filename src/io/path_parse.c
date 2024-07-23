@@ -77,9 +77,9 @@ static void display_path_parse_error(pathparse_errors err, const gchar *addstr) 
 		case PATHPARSE_ERR_BADSTRING_NOFAIL:
 			msg = _("Wrongly formatted string: ");
 			break;
-		case PATHPARSE_ERR_DATE_WILDCARDS:
-		case PATHPARSE_ERR_DATE_WILDCARDS_NOFAIL:
-			msg = _("Cannot use more than one date with wildcard: ");
+		case PATHPARSE_ERR_WILDCARD_SYNTAX:
+		case PATHPARSE_ERR_WILDCARD_SYNTAX_NOFAIL:
+			msg = _("Wrong wildcard usage: ");
 			break;
 		case PATHPARSE_ERR_MORE_THAN_ONE_HIT:
 			msg = _("More than one match for: ");
@@ -202,27 +202,25 @@ static gchar *wildcard_check(gchar *expression, int *status, gchar *target_date,
 	struct stat fileInfo, currfileInfo;
 	GList *fds = NULL;
 
-#ifdef _WIN32 // regexp '\' gets confused with OS sep
-	if (target_date) {
-		GString *newexp = g_string_new(expression);
-		int rep = g_string_replace(newexp, (isdatetime) ? DT_PATTERN : DM_PATTERN, "{}", 0);
-		gchar *tmpexp = g_string_free(newexp, FALSE);
-		gchar *tmpdirname = g_path_get_dirname(tmpexp);
-		gchar *tmpbasename = g_path_get_basename(tmpexp);
-		GString *repdirname = g_string_new(tmpdirname);
-		GString *repbasename = g_string_new(tmpbasename);
-		rep = g_string_replace(repdirname, "{}", (isdatetime) ? DT_PATTERN : DM_PATTERN, 0);
-		rep = g_string_replace(repbasename, "{}", (isdatetime) ? DT_PATTERN : DM_PATTERN, 0);
-		dirname = g_string_free(repdirname, FALSE);
-		basename = g_string_free(repbasename, FALSE);
+	//we need to check that the folder path does not contain wildcards
+	GString *newexp = g_string_new(expression);
+	g_string_replace(newexp, (isdatetime) ? DT_PATTERN : DM_PATTERN, "[DATE]", 0);
+	gchar *tmpexp = g_string_free(newexp, FALSE);
+	gchar *tmpdirname = g_path_get_dirname(tmpexp);
+	gchar *tmpbasename = g_path_get_basename(tmpexp);
+	if (g_strstr_len(tmpdirname, -1, "[DATE]") || g_strstr_len(tmpdirname, -1, "*")) {
+		*status = PATHPARSE_ERR_WILDCARD_SYNTAX;
+		display_path_parse_error(*status, tmpdirname);
 		g_free(tmpexp);
 		g_free(tmpdirname);
-		g_free(tmpbasename);
+		return NULL;
 	}
-#else
-	dirname = g_path_get_dirname(expression);
-	basename = g_path_get_basename(expression);
-#endif
+	GString *newdir = g_string_new(tmpdirname);
+	g_string_replace(newdir, "[DATE]", (isdatetime) ? DT_PATTERN : DM_PATTERN, 0);
+	dirname =  g_string_free(newdir, FALSE);
+	GString *newbase = g_string_new(tmpbasename);
+	g_string_replace(newbase, "[DATE]", (isdatetime) ? DT_PATTERN : DM_PATTERN, 0);
+	basename =  g_string_free(newbase, FALSE);
 
 	if ((dir = g_dir_open(dirname, 0, &error)) == NULL) {
 		siril_debug_print("wildcard dircheck: %s\n", error->message);
@@ -239,7 +237,7 @@ static gchar *wildcard_check(gchar *expression, int *status, gchar *target_date,
 	}
 
 	while ((file = g_dir_read_name(dir)) != NULL) {
-		if (g_regex_match_simple(basename, file, G_REGEX_RAW, 0)) { // TODO: need to check full path not only file
+		if (g_regex_match_simple(basename, file, G_REGEX_RAW, 0)) {
 			if (!target_date) { // No date_obs we fetch the most recent file based on stat
 				if (!count) {
 					out = g_build_filename(dirname, file, NULL);
@@ -338,7 +336,7 @@ gchar *path_parse(fits *fit, const gchar *expression, pathparse_mode mode, int *
 
 	// Checking that we don't have 2 date with wildcards, this is not allowed
 	if (count_pattern_occurence(expression, "\\$\\*DATE") > 1) {
-		*status = nofail * PATHPARSE_ERR_DATE_WILDCARDS;
+		*status = nofail * PATHPARSE_ERR_WILDCARD_SYNTAX;
 		if (*status > 0) {
 			display_path_parse_error(*status, expression);
 			return out;
@@ -354,6 +352,8 @@ gchar *path_parse(fits *fit, const gchar *expression, pathparse_mode mode, int *
 			localexpression = g_strdup(com.pref.prepro.flat_lib);
 		} else if (!g_strcmp0(expression + 4, "stack")) {
 			localexpression = g_strdup(com.pref.prepro.stack_default);
+		} else if (!g_strcmp0(expression + 4, "disto")) {
+			localexpression = g_strdup(com.pref.prepro.disto_lib);
 		} else {
 			*status = nofail * PATHPARSE_ERR_WRONG_RESERVED_KEYWORD;
 			display_path_parse_error(*status, expression);
