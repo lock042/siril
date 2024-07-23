@@ -240,15 +240,16 @@ static void remove_selected_keys () {
 
 			        FITS_key = (gchar *)g_value_get_string(&g_key);
 					updateFITSKeyword(&gfit, FITS_key, NULL, NULL, NULL, TRUE);
+					gtk_list_store_remove(GTK_LIST_STORE(treeModel), &iter);
 
 			        g_value_unset(&g_key);
 			    }
-
 			}
 			gtk_tree_path_free(path);
 		}
 	}
-	refresh_keywords_dialog();
+	gtk_tree_selection_unselect_all(selection);
+    g_list_free_full(references, (GDestroyNotify)gtk_tree_row_reference_free);
 }
 
 void on_key_treeview_key_release_event(GtkWidget *widget, GdkEventKey *event,
@@ -380,7 +381,8 @@ static gchar *list_all_selected_keywords() {
 			gtk_tree_path_free(path);
 		}
 	}
-	g_list_free(references);
+	gtk_tree_selection_unselect_all(selection);
+    g_list_free_full(references, (GDestroyNotify)gtk_tree_row_reference_free);
 
 	return g_string_free(string, FALSE);
 }
@@ -468,6 +470,23 @@ static void insert_text_handler(GtkEntry *entry, const gchar *text, gint length,
 static void on_entry_activate(GtkEntry *entry, gpointer user_data) {
 	GtkWidget *add_button = GTK_WIDGET(user_data);
 	gtk_button_clicked(GTK_BUTTON(add_button));
+}
+
+static void scroll_to_end() {
+	GtkTreePath *path;
+	GtkTreeIter iter;
+
+	GtkTreeModel *model = gtk_tree_view_get_model(key_treeview);
+	gint rows = gtk_tree_model_iter_n_children(model, NULL);
+
+	if (rows > 0) {
+		path = gtk_tree_path_new_from_indices(rows - 1, -1);
+
+		gtk_tree_model_get_iter(model, &iter, path);
+		gtk_tree_view_scroll_to_cell(key_treeview, path, NULL, FALSE, 0.0, 0.0);
+
+		gtk_tree_path_free(path);
+	}
 }
 
 void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
@@ -566,6 +585,7 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 		if (comment || value || key) {
 			updateFITSKeyword(&gfit, key, NULL, value, comment, TRUE);
 			refresh_keywords_dialog();
+			scroll_to_end();
 		}
 	}
 	gtk_widget_destroy(dialog);
