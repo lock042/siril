@@ -3073,7 +3073,7 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *newkey, const gc
 	tmpfit.fptr = fptr;
 	save_fits_header(&tmpfit);
 
-	if (fits_read_card(fptr, key, card, &status)) {
+	if (key && fits_read_card(fptr, key, card, &status)) { // key is NULL if only comment
 		siril_debug_print("Keyword does not exist\n");
 		card[0] = '\0';
 		oldcomment[0] = '\0';
@@ -3096,6 +3096,10 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *newkey, const gc
 		} else if (comment == NULL && value == NULL) {
 			strl_with_check(newcard, "- ", FLEN_CARD, g_strlcpy);
 			strl_with_check(newcard, key, FLEN_CARD, g_strlcat);
+			/* Adding comment */
+		} else if (key == NULL && value == NULL && comment != NULL) {
+			strl_with_check(newcard, "        ", FLEN_CARD, g_strlcpy);
+			strl_with_check(newcard, comment, FLEN_CARD, g_strlcat);
 		} else {
 			/* get the comment string */
 			if (*card)
@@ -3152,7 +3156,8 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *newkey, const gc
 			break;
 		case 1:
 			// Append the record (for HISTORY or COMMENT cards)
-			fits_write_record(tmpfit.fptr, card, &status);
+			//fits_write_record(tmpfit.fptr, card, &status);
+			fits_write_comment(tmpfit.fptr, g_strstrip(card), &status); // here we use card for comment
 			break;
 		case 2:
 		default:

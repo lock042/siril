@@ -226,6 +226,8 @@ static void remove_selected_keys () {
 	selection = gtk_tree_view_get_selection(key_treeview);
 	references = get_row_references_of_selected_rows(selection, treeModel);
 
+	if (g_list_length(references) <= 0) return;
+
 	for (GList *list = references; list; list = list->next) {
 		GtkTreeIter iter;
 		GtkTreePath *path = gtk_tree_row_reference_get_path((GtkTreeRowReference*)list->data);
@@ -399,12 +401,6 @@ void on_key_selection_changed(GtkTreeSelection *selection, gpointer user_data) {
 	gtk_widget_set_sensitive(key_export_button, !is_empty && are_selected);
 }
 
-static void to_uppercase(char *str) {
-	for (int i = 0; str[i]; i++) {
-		str[i] = g_ascii_toupper((unsigned char) str[i]);
-	}
-}
-
 static void on_entry_comment_changed(GtkEntry *entry, gpointer user_data) {
 	GtkEntry *entry_value = GTK_ENTRY(user_data);
 	GtkEntry *entry_comment = GTK_ENTRY(entry);
@@ -455,6 +451,11 @@ static void on_entry_value_changed(GtkEntry *entry, gpointer user_data) {
 	}
 }
 
+static void on_entry_activate(GtkEntry *entry, gpointer user_data) {
+	GtkWidget *add_button = GTK_WIDGET(user_data);
+	gtk_button_clicked(GTK_BUTTON(add_button));
+}
+
 void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 	GtkWidget *dialog;
 	GtkWidget *content_area;
@@ -465,6 +466,7 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 	GtkWidget *entry_name;
 	GtkWidget *entry_value;
 	GtkWidget *entry_comment;
+	GtkWidget *add_button;
 	GtkDialogFlags flags = GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT;
 
 	// Create the dialog window with buttons
@@ -472,6 +474,13 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 			GTK_WINDOW(user_data), flags, _("_Cancel"), GTK_RESPONSE_CANCEL,
 			_("_Add"), GTK_RESPONSE_OK,
 			NULL);
+
+	add_button = gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_OK);
+	gtk_widget_grab_focus(add_button);
+
+	// Add the suggested-action style class to the Add button
+	GtkStyleContext *context = gtk_widget_get_style_context(add_button);
+	gtk_style_context_add_class(context, "suggested-action");
 
 	// Set the dialog to be non-resizable
 	gtk_window_set_resizable(GTK_WINDOW(dialog), FALSE);
@@ -513,25 +522,29 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 	g_signal_connect(entry_value, "changed", G_CALLBACK(on_entry_value_changed), entry_comment);
 	g_signal_connect(entry_comment, "changed", G_CALLBACK(on_entry_comment_changed), entry_value);
 
+    // Connect the activate signal of each entry to activate the OK button
+    g_signal_connect(entry_name, "activate", G_CALLBACK(on_entry_activate), add_button);
+    g_signal_connect(entry_value, "activate", G_CALLBACK(on_entry_activate), add_button);
+    g_signal_connect(entry_comment, "activate", G_CALLBACK(on_entry_activate), add_button);
+
+
 	gtk_widget_show_all(dialog);
 
 	gint result = gtk_dialog_run(GTK_DIALOG(dialog));
 	if (result == GTK_RESPONSE_OK) {
-		const gchar *FITS_key_text = gtk_entry_get_text(GTK_ENTRY(entry_name));
-		gchar FITS_key[9];
-		strncpy(FITS_key, FITS_key_text, 8);
-		FITS_key[8] = '\0'; // Ensure null termination
-		to_uppercase(FITS_key);
-
+		const gchar *key = gtk_entry_get_text(GTK_ENTRY(entry_name));
 		const gchar *value = gtk_entry_get_text(GTK_ENTRY(entry_value));
 		const gchar *comment = gtk_entry_get_text(GTK_ENTRY(entry_comment));
 
-		if (g_strcmp0(FITS_key_text, "") != 0 && g_strcmp0(value, "") != 0) {
-			updateFITSKeyword(&gfit, FITS_key, NULL, value, comment, TRUE);
+		if (g_strcmp0(key, "") == 0) key = NULL;
+		if (g_strcmp0(value, "") == 0) value = NULL;
+		if (g_strcmp0(comment, "") == 0) comment = NULL;
+
+		if (comment || value || key) {
+			updateFITSKeyword(&gfit, key, NULL, value, comment, TRUE);
 			refresh_keywords_dialog();
 		}
 	}
-
 	gtk_widget_destroy(dialog);
 }
 
