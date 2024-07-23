@@ -567,7 +567,7 @@ gboolean value_check() {
 				clip(&gfit);
 				notify_gfit_modified();
 				break;
-			case RESPONSE_RESCALE:
+			case RESPONSE_RESCALE:;
 				double range = maxval - minval;
 				if (minval < 0.0)
 					soper(&gfit, minval, OPER_SUB, TRUE);
