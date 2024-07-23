@@ -1901,3 +1901,22 @@ const gchar* find_first_nonnumeric(const gchar *string) {
     }
     return NULL;
 }
+
+int count_pattern_occurence(const gchar *string, const gchar *pattern) {
+	GRegex *regex;
+	GMatchInfo *match_info;
+	int count = 0;
+
+	regex = g_regex_new(pattern, G_REGEX_RAW, 0, NULL);
+	g_regex_match(regex, string, 0, &match_info);
+	
+	// Loop through the matches
+	while (g_match_info_matches(match_info)) {
+		count++;
+		g_match_info_next(match_info, NULL);
+	}
+
+	g_match_info_free(match_info);
+	g_regex_unref(regex);
+	return count;
+}

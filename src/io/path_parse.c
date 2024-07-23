@@ -28,14 +28,17 @@
 #include "io/path_parse.h"
 #include "io/sequence.h"
 
+#define DM_PATTERN "\\d{4}-\\d{2}-\\d{2}"
+#define DT_PATTERN  "\\d{4}-\\d{2}-\\d{2}T\\d{2}-\\d{2}-\\d{2}"
+
 static void display_path_parse_error(pathparse_errors err, const gchar *addstr) {
 	if (!err) return;
 	gchar *startstr = (err < 0) ? _("Warning code:"): _("Error code:");
 	gchar *endstr = (err < 0) ? _("going on") : _("aborting");
 	gchar *msg = NULL;
 	gchar *color = (err < 0) ? "salmon" : "red";
-	gchar addbuf[FLEN_VALUE];
-	g_snprintf(addbuf, FLEN_VALUE - 1, "%s", (!addstr) ? "" : addstr);
+	gchar addbuf[256];
+	g_snprintf(addbuf, 255, "%s", (!addstr) ? "" : addstr);
 
 	switch (err) {
 		case PATHPARSE_ERR_HEADER_NULL:
@@ -73,6 +76,10 @@ static void display_path_parse_error(pathparse_errors err, const gchar *addstr) 
 		case PATHPARSE_ERR_BADSTRING:
 		case PATHPARSE_ERR_BADSTRING_NOFAIL:
 			msg = _("Wrongly formatted string: ");
+			break;
+		case PATHPARSE_ERR_DATE_WILDCARDS:
+		case PATHPARSE_ERR_DATE_WILDCARDS_NOFAIL:
+			msg = _("Cannot use more than one date with wildcard: ");
 			break;
 		case PATHPARSE_ERR_MORE_THAN_ONE_HIT:
 			msg = _("More than one match for: ");
@@ -134,23 +141,37 @@ pathparse_errors read_key_from_header_text(gchar **headers, gchar *key, double *
 }
 
 typedef struct _file_date {
-	GDate *date;
+	GDateTime *date;
 	gchar *filename;
 } file_date;
 
-static file_date *new_file_date(GDateTime *date, gchar *filename) {
+static file_date *new_file_date(const gchar *date, const gchar *filename, gboolean isdatetime) {
 	file_date *fd = g_slice_new(file_date);
-	GDateTime *date_ref = g_date_time_add_hours(date, -12.);
-	gint year, month, day;
-	g_date_time_get_ymd(date_ref, &year, &month, &day);
-	fd->date = g_date_new_dmy(day, month, year);
+	gboolean set = FALSE;
+	gint year, month, day, hour, min, sec;
+	GTimeZone *tz = g_time_zone_new_utc();
+	if (isdatetime) {
+		if (sscanf(date, "%d-%d-%dT%d-%d-%d", &year, &month, &day, &hour, &min,	&sec) == 6) {
+			fd->date = g_date_time_new(tz, year, month, day, hour, min, (double)sec);
+			set = TRUE;
+		}
+	} else {
+		if (sscanf(date, "%d-%d-%d", &year, &month, &day) == 3) {
+			fd->date = g_date_time_new(tz, year, month, day, 0, 0, 0.);
+			set = TRUE;
+		}
+	}
+	g_time_zone_unref(tz);
+	if (!set) {
+		g_slice_free(file_date, fd);
+		return NULL;
+	}
 	fd->filename = g_strdup(filename);
-	g_date_time_unref(date_ref);
 	return fd;
 }
 
 static gint file_date_compare(const file_date *a, const file_date *b) {
-	int res = g_date_compare(a->date, b->date);
+	int res = g_date_time_compare(a->date, b->date);
 	if (!res)
 		return (strlen(a->filename) == 1) ? 1 : -1; // we want filename "." (the ref file), to be after
 	return res;
@@ -163,7 +184,7 @@ static gint file_date_match_file(const file_date *a, gchar *data) {
 static void file_date_free(gpointer data) {
 	file_date *fd = (file_date *)data;
 	g_free(fd->filename);
-	g_date_free(fd->date);
+	g_date_time_unref(fd->date);
 	g_slice_free(file_date, fd);
 }
 
@@ -172,22 +193,36 @@ This function takes an expression with potentially a wildcard in it
 Searches the directory for files matching the pattern
 and returns the first occurence of the match if any
 */
-static gchar *wildcard_check(gchar *expression, int *status, GDateTime *date_obs) {
+static gchar *wildcard_check(gchar *expression, int *status, gchar *target_date, gboolean isdatetime) {
 	gchar *out = NULL, *dirname = NULL, *basename = NULL, *currfile = NULL;
 	const gchar *file = NULL;
 	GDir *dir;
 	GError *error = NULL;
-	GPatternSpec *patternspec;
 	gint count = 0;
 	struct stat fileInfo, currfileInfo;
 	GList *fds = NULL;
 
-	if (!g_utf8_strchr(expression, -1, '*')) {
-		return g_strdup(expression);
+#ifdef _WIN32 // regexp '\' gets confused with OS sep
+	if (target_date) {
+		GString *newexp = g_string_new(expression);
+		int rep = g_string_replace(newexp, (isdatetime) ? DT_PATTERN : DM_PATTERN, "{}", 0);
+		gchar *tmpexp = g_string_free(newexp, FALSE);
+		gchar *tmpdirname = g_path_get_dirname(tmpexp);
+		gchar *tmpbasename = g_path_get_basename(tmpexp);
+		GString *repdirname = g_string_new(tmpdirname);
+		GString *repbasename = g_string_new(tmpbasename);
+		rep = g_string_replace(repdirname, "{}", (isdatetime) ? DT_PATTERN : DM_PATTERN, 0);
+		rep = g_string_replace(repbasename, "{}", (isdatetime) ? DT_PATTERN : DM_PATTERN, 0);
+		dirname = g_string_free(repdirname, FALSE);
+		basename = g_string_free(repbasename, FALSE);
+		g_free(tmpexp);
+		g_free(tmpdirname);
+		g_free(tmpbasename);
 	}
-
+#else
 	dirname = g_path_get_dirname(expression);
 	basename = g_path_get_basename(expression);
+#endif
 
 	if ((dir = g_dir_open(dirname, 0, &error)) == NULL) {
 		siril_debug_print("wildcard dircheck: %s\n", error->message);
@@ -198,19 +233,14 @@ static gchar *wildcard_check(gchar *expression, int *status, GDateTime *date_obs
 		g_free(basename);
 		return out;
 	}
-	patternspec = g_pattern_spec_new(basename);
 
-	if (date_obs) { // Init for date_obs
-		fds = g_list_append(fds, new_file_date(date_obs, "."));
+	if (target_date) { // Init with target_date
+		fds = g_list_append(fds, new_file_date(target_date, ".", isdatetime));
 	}
 
 	while ((file = g_dir_read_name(dir)) != NULL) {
-#if GLIB_CHECK_VERSION(2,70,0)
-		if (g_pattern_spec_match(patternspec, strlen(file), file, NULL)) {
-#else
-		if (g_pattern_match(patternspec, strlen(file), file, NULL)) {
-#endif
-			if (!date_obs) { // No date_obs we fetch the most recent file based on stat
+		if (g_regex_match_simple(basename, file, G_REGEX_RAW, 0)) { // TODO: need to check full path not only file
+			if (!target_date) { // No date_obs we fetch the most recent file based on stat
 				if (!count) {
 					out = g_build_filename(dirname, file, NULL);
 						if (stat(out, &fileInfo))
@@ -227,30 +257,30 @@ static gchar *wildcard_check(gchar *expression, int *status, GDateTime *date_obs
 				}
 				count++;
 			} else {
-				fits currfit  = { 0 };
 				out = g_build_filename(dirname, file, NULL);
-				if (read_fits_metadata_from_path_first_HDU(out, &currfit)) {
-					siril_debug_print("reading %s header failed\n", out);
-					g_free(out);
-					out = NULL;
-					continue;
-				}
-				if (currfit.keywords.date_obs) {
-					fds = g_list_append(fds, new_file_date(currfit.keywords.date_obs, out));
+				GRegex *regex = g_regex_new((isdatetime) ? DT_PATTERN : DM_PATTERN, 0, 0, NULL);
+				GMatchInfo *match_info;
+				g_regex_match(regex, out, 0, &match_info);
+				if (g_match_info_matches(match_info)) {
+					gchar *date = g_match_info_fetch(match_info, 0);
+					siril_debug_print("Captured date: %s\n", date);
+					fds = g_list_append(fds, new_file_date(date, out, isdatetime));
+					g_free(date);
 					count++;
 				}
-				clearfits(&currfit);
 				g_free(out);
 				out = NULL;
+				g_match_info_free(match_info);
+				g_regex_unref(regex);
 			}
 		}
 	}
 
-	if (!date_obs && count > 1) {
+	if (!target_date && count > 1) {
 		*status = PATHPARSE_ERR_MORE_THAN_ONE_HIT;
 		display_path_parse_error(*status, basename);
 		siril_log_color_message(_("Using most recent matching file: %s\n"), "salmon", out);
-	} else if (date_obs && count >= 1) { // we sort the date_file list
+	} else if (target_date && count >= 1) { // we sort the date_file list
 		fds = g_list_sort(fds, (GCompareFunc)file_date_compare);
 		GList *ref = g_list_find_custom(fds, ".", (GCompareFunc)file_date_match_file);
 		gint refpos = g_list_position(fds, ref);
@@ -271,7 +301,6 @@ static gchar *wildcard_check(gchar *expression, int *status, GDateTime *date_obs
 	g_free(basename);
 	g_free(currfile);
 	g_list_free_full(fds, (GDestroyNotify)file_date_free);
-	g_pattern_spec_free(patternspec);
 	return out;
 }
 
@@ -291,6 +320,9 @@ In write mode "nofail", it will try to return something no matter what
 */
 gchar *path_parse(fits *fit, const gchar *expression, pathparse_mode mode, int *status) {
 	*status = PATHPARSE_ERR_OK;
+	gboolean has_wildcard = FALSE;
+	gchar *target_date = NULL; // for date wildcard in READMODE
+	gboolean isdatetime = FALSE; // for date wildcard in READMODE
 	if (!g_utf8_strchr(expression, -1, '$')) { // nothing to parse, return original string
 		return g_strdup(expression);
 	}
@@ -303,6 +335,16 @@ gchar *path_parse(fits *fit, const gchar *expression, pathparse_mode mode, int *
 			return out;
 		}
 	}
+
+	// Checking that we don't have 2 date with wildcards, this is not allowed
+	if (count_pattern_occurence(expression, "\\$\\*DATE") > 1) {
+		*status = nofail * PATHPARSE_ERR_DATE_WILDCARDS;
+		if (*status > 0) {
+			display_path_parse_error(*status, expression);
+			return out;
+		}
+	}
+
 	if (g_str_has_prefix(expression, "$def")) { // using reserved keywords $defbias, $defdark, $defflat, $defstack
 		if (!g_strcmp0(expression + 4, "bias")) {
 			localexpression = g_strdup(com.pref.prepro.bias_lib);
@@ -374,9 +416,22 @@ gchar *path_parse(fits *fit, const gchar *expression, pathparse_mode mode, int *
 		}
 		// Check if expression starts with a * wildcard
 		// Behavior will depend if we are in read or write mode
+		gboolean has_wildcard_date = FALSE;
 		if (subs[0][0] == '*') {
 			if (mode == PATHPARSE_MODE_READ) {
-				g_snprintf(buf, 2, "%s", "*");
+				has_wildcard = TRUE;
+				if ((g_str_has_prefix(subs[1],"dm"))) {
+					g_snprintf(buf, strlen(DM_PATTERN) + 1, "%s", DM_PATTERN);
+					has_wildcard_date = TRUE; // we still need to parse the target date without copying to buf
+					g_snprintf(key, 9, "%s", subs[0] + 1);
+				} else if ((g_str_has_prefix(subs[1],"dt"))) {
+					g_snprintf(buf, strlen(DT_PATTERN) + 1, "%s", DT_PATTERN);
+					has_wildcard_date = TRUE; // we still need to parse the target date without copying to buf
+					g_snprintf(key, 9, "%s", subs[0] + 1);
+					isdatetime = TRUE;
+				} else {
+					g_snprintf(buf, 2, "%s", "*");
+				}
 			} else {
 				g_snprintf(key, 9, "%s", subs[0] + 1);
 			}
@@ -436,7 +491,7 @@ gchar *path_parse(fits *fit, const gchar *expression, pathparse_mode mode, int *
 			double minus_hour = -1. * g_ascii_strtod(subs[1] + 2, NULL);
 			char val[FLEN_VALUE];
 			if (!headerkeys) {
-				*status = 1;
+				*status = nofail * PATHPARSE_ERR_HEADER_NULL;
 			} else {
 				*status = nofail * read_key_from_header_text(headerkeys, key, NULL, val);
 				display_path_parse_error(*status, key);
@@ -458,7 +513,11 @@ gchar *path_parse(fits *fit, const gchar *expression, pathparse_mode mode, int *
 				if (*status == 0) {
 					GDateTime *read_time_corr = g_date_time_add_hours(read_time, minus_hour);
 					gchar *fmtdate = date_time_to_date(read_time_corr);
-					strncpy(buf, fmtdate, FLEN_VALUE - 1);
+					if (has_wildcard_date) {
+						target_date = g_strdup(fmtdate);
+					} else {
+						strncpy(buf, fmtdate, FLEN_VALUE - 1);
+					}
 					g_date_time_unref(read_time);
 					g_date_time_unref(read_time_corr);
 					g_free(fmtdate);
@@ -488,7 +547,11 @@ gchar *path_parse(fits *fit, const gchar *expression, pathparse_mode mode, int *
 				}
 				if (*status == 0) {
 					gchar *fmtdate = date_time_to_date_time(read_time);
-					strncpy(buf, fmtdate, FLEN_VALUE - 1);
+					if (has_wildcard_date) {
+						target_date = g_strdup(fmtdate);
+					} else {
+						strncpy(buf, fmtdate, FLEN_VALUE - 1);
+					}
 					g_date_time_unref(read_time);
 					g_free(fmtdate);
 				}
@@ -566,8 +629,8 @@ gchar *path_parse(fits *fit, const gchar *expression, pathparse_mode mode, int *
 	out = g_strjoinv("", tokens);
 	siril_debug_print("String in: %s\n", expression);
 	siril_debug_print("String out: %s\n", out);
-	if (mode == PATHPARSE_MODE_READ) {
-		gchar *foundmatch = wildcard_check(out, status, fit->keywords.date_obs);
+	if (has_wildcard) {
+		gchar *foundmatch = wildcard_check(out, status, target_date, isdatetime);
 		g_free(out);
 		out = NULL;
 		if (*status <= 0) out = g_strdup(foundmatch);

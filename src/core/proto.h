@@ -178,6 +178,7 @@ void copy_filename(const char *filename, char *truncated_filename, size_t max_le
 gboolean is_string_numeric(const gchar *str);
 const gchar* find_first_numeric(const gchar *string);
 const gchar* find_first_nonnumeric(const gchar *string);
+int count_pattern_occurence(const gchar *string, const gchar *pattern);
 /****************** quantize.h ***************/
 int siril_fits_img_stats_ushort(WORD *array, long nx, long ny, int nullcheck,
 		WORD nullvalue, long *ngoodpix, WORD *minvalue, WORD *maxvalue,

@@ -174,6 +174,17 @@ static void update_prepro_preferences() {
 		com.pref.prepro.use_flat_lib = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_flat")));
 	}
 
+	if (com.pref.prepro.disto_lib) {
+		g_free(com.pref.prepro.disto_lib);
+		com.pref.prepro.disto_lib = NULL;
+	}
+	const gchar *distoentry = gtk_entry_get_text(GTK_ENTRY(lookup_widget("distolib_entry")));
+	if (distoentry && g_strrstr(distoentry, "*DATE-OBS")) {
+		com.pref.prepro.disto_lib = g_strdup(distoentry);
+	} else {
+		siril_log_color_message(_("Distorsion master string must contain the expression \"*DATE-OBS\"\n"), "red", distoentry);
+	}
+
 	if (com.pref.prepro.stack_default) {
 		g_free(com.pref.prepro.stack_default);
 		com.pref.prepro.stack_default = NULL;
