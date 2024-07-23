@@ -451,6 +451,20 @@ static void on_entry_value_changed(GtkEntry *entry, gpointer user_data) {
 	}
 }
 
+static void insert_text_handler(GtkEntry *entry, const gchar *text, gint length,
+		gint *position, gpointer data) {
+	GtkEditable *editable = GTK_EDITABLE(entry);
+	gchar *result = replace_wide_char(text);
+
+	g_signal_handlers_block_by_func(G_OBJECT (editable), G_CALLBACK (insert_text_handler), data);
+	gtk_editable_insert_text(editable, result, strlen(result), position);
+	g_signal_handlers_unblock_by_func(G_OBJECT (editable), G_CALLBACK (insert_text_handler), data);
+
+	g_signal_stop_emission_by_name(G_OBJECT(editable), "insert_text");
+
+	g_free(result);
+}
+
 static void on_entry_activate(GtkEntry *entry, gpointer user_data) {
 	GtkWidget *add_button = GTK_WIDGET(user_data);
 	gtk_button_clicked(GTK_BUTTON(add_button));
@@ -522,11 +536,15 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 	g_signal_connect(entry_value, "changed", G_CALLBACK(on_entry_value_changed), entry_comment);
 	g_signal_connect(entry_comment, "changed", G_CALLBACK(on_entry_comment_changed), entry_value);
 
-    // Connect the activate signal of each entry to activate the OK button
-    g_signal_connect(entry_name, "activate", G_CALLBACK(on_entry_activate), add_button);
-    g_signal_connect(entry_value, "activate", G_CALLBACK(on_entry_activate), add_button);
-    g_signal_connect(entry_comment, "activate", G_CALLBACK(on_entry_activate), add_button);
+	// Connect the activate signal of each entry to activate the Add button
+	g_signal_connect(entry_name, "activate", G_CALLBACK(on_entry_activate), add_button);
+	g_signal_connect(entry_value, "activate", G_CALLBACK(on_entry_activate), add_button);
+	g_signal_connect(entry_comment, "activate", G_CALLBACK(on_entry_activate), add_button);
 
+	// Connect the insert-text signal of each entry
+	g_signal_connect(entry_name, "insert-text", G_CALLBACK(insert_text_handler), add_button);
+	g_signal_connect(entry_value, "insert-text", G_CALLBACK(insert_text_handler), add_button);
+	g_signal_connect(entry_comment, "insert-text", G_CALLBACK(insert_text_handler), add_button);
 
 	gtk_widget_show_all(dialog);
 

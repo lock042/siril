@@ -822,6 +822,34 @@ void replace_invalid_chars(char *name, char repl) {
 	return;
 }
 
+gchar* replace_wide_char(const gchar *str) {
+	gchar *normalized_str = g_utf8_normalize(str, -1, G_NORMALIZE_NFD);
+	if (normalized_str == NULL) {
+		return NULL;
+	}
+
+	GString *ascii_str = g_string_new(NULL);
+	for (const gchar *p = normalized_str; *p != '\0'; p = g_utf8_next_char(p)) {
+		gunichar ch = g_utf8_get_char(p);
+		if (g_unichar_isprint(ch)) {
+			if (ch <= 0x7F) {
+				g_string_append_unichar(ascii_str, ch);
+			} else {
+				gchar decomposed[5] = { 0 };
+				gint decomposed_len = g_unichar_to_utf8(ch, decomposed);
+				for (gint i = 0; i < decomposed_len; i++) {
+					if (decomposed[i] >= 0x20 && decomposed[i] <= 0x7E) { // ASCII printable
+						g_string_append_c(ascii_str, decomposed[i]);
+					}
+				}
+			}
+		}
+	}
+
+	g_free(normalized_str);
+	return g_string_free(ascii_str, FALSE);
+}
+
 /** Tests if filename is the canonical name of a known file type
  *  If filename contains an extension, only this file name is tested, else all
  *  extensions are tested for the file name until one is found.

@@ -3158,6 +3158,9 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *newkey, const gc
 			// Append the record (for HISTORY or COMMENT cards)
 			//fits_write_record(tmpfit.fptr, card, &status);
 			fits_write_comment(tmpfit.fptr, g_strstrip(card), &status); // here we use card for comment
+			if (verbose) {
+				siril_log_color_message("Comment \"%s\" has been added\n", "green", g_strstrip(card));
+			}
 			break;
 		case 2:
 		default:

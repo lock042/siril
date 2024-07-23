@@ -138,6 +138,7 @@ int is_symlink_file(const char *filename);
 gboolean is_forbiden_in_filename(gchar c);
 gboolean file_name_has_invalid_chars(const char *name);
 void replace_invalid_chars(char *name, char repl);
+gchar* replace_wide_char(const gchar *str);
 int stat_file(const char *filename2, image_type *type, char **realname);
 const char* get_filename_ext(const char *filename);
 
