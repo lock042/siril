@@ -61,6 +61,7 @@ preferences pref_init = {
 	.copyright = NULL,
 	.starnet_exe = NULL,
 	.starnet_weights = NULL,
+	.graxpert_path = NULL,
 	.asnet_dir = NULL,
 	.selected_scripts = NULL,
 	.use_scripts_repository = TRUE,
@@ -270,6 +271,8 @@ void free_preferences(preferences *pref) {
 	pref->copyright = NULL;
 	g_free(pref->starnet_exe);
 	pref->starnet_exe = NULL;
+	g_free(pref->graxpert_path);
+	pref->graxpert_path = NULL;
 	g_free(pref->starnet_weights);
 	pref->starnet_weights = NULL;
 	g_free(pref->asnet_dir);
@@ -342,6 +345,7 @@ struct settings_access all_settings[] = {
 	{ "core", "copyright", STYPE_STR, N_("user copyright to put in file header"), &com.pref.copyright },
 	{ "core", "starnet_exe", STYPE_STR, N_("location of the StarNet executable"), &com.pref.starnet_exe },
 	{ "core", "starnet_weights", STYPE_STR, N_("location of the StarNet-torch weights file"), &com.pref.starnet_weights },
+	{ "core", "graxpert_path", STYPE_STR, N_("location of the GraXpert executable"), &com.pref.graxpert_path },
 #ifdef _WIN32
 	{ "core", "asnet_dir", STYPE_STR, N_("directory of the asnet_ansvr installation"), &com.pref.asnet_dir },
 #else

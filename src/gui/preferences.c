@@ -55,7 +55,6 @@
 #endif
 
 static gchar *sw_dir = NULL;
-static gchar *st_exe = NULL;
 static gchar *st_weights = NULL;
 static starnet_version st_version = NIL;
 static gboolean update_custom_gamut = FALSE;
@@ -376,11 +375,13 @@ static void update_misc_preferences() {
 	GtkFileChooser *swap_dir = GTK_FILE_CHOOSER(lookup_widget("filechooser_swap"));
 	GtkFileChooser *starnet_exe = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet"));
 	GtkFileChooser *starnet_weights = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet_weights"));
+	GtkFileChooser *graxpert_exe = GTK_FILE_CHOOSER(lookup_widget("filechooser_graxpert"));
 
 	com.pref.swap_dir = gtk_file_chooser_get_filename(swap_dir);
 
 	com.pref.starnet_exe = gtk_file_chooser_get_filename(starnet_exe);
 	com.pref.starnet_weights = gtk_file_chooser_get_filename(starnet_weights);
+	com.pref.graxpert_path = gtk_file_chooser_get_filename(graxpert_exe);
 
 	com.pref.gui.silent_quit = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit")));
 	com.pref.gui.silent_linear = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskSave")));
@@ -417,6 +418,13 @@ void initialize_path_directory(const gchar *path) {
 		gtk_file_chooser_set_filename (swap_dir, path);
 	} else {
 		gtk_file_chooser_set_filename (swap_dir, g_get_tmp_dir());
+	}
+}
+
+void initialize_graxpert_executable(gchar *path) {
+	GtkFileChooser *graxpert_exe = GTK_FILE_CHOOSER(lookup_widget("filechooser_graxpert"));
+	if (path && path[0] != '\0') {
+		gtk_file_chooser_set_filename (graxpert_exe, path);
 	}
 }
 
@@ -535,10 +543,6 @@ void on_filechooser_starnet_file_set(GtkFileChooserButton *fileChooser, gpointer
 		gtk_file_chooser_set_filename(starnet_exe, com.pref.starnet_exe);
 		return;
 	}
-	if (st_exe) {
-		g_free(st_exe);
-	}
-	st_exe = path;
 	st_version = starnet_executablecheck(path);
 	GtkWidget *starnet_weights_reset = GTK_WIDGET(lookup_widget("starnet_weights_clear"));
 	GtkWidget *starnet_weights = GTK_WIDGET(lookup_widget("filechooser_starnet_weights"));
@@ -840,6 +844,7 @@ void update_preferences_from_model() {
 
 	/* tab Miscellaneous */
 	initialize_path_directory(pref->swap_dir);
+	initialize_graxpert_executable(pref->graxpert_path);
 	initialize_starnet_executable(pref->starnet_exe);
 	initialize_starnet_weights(pref->starnet_weights);
 	initialize_asnet_directory(pref->asnet_dir);
@@ -901,6 +906,7 @@ void on_settings_window_show(GtkWidget *widget, gpointer user_data) {
 	siril_set_file_filter("custom_gray_icc_matching_trc", "icc_filter");
 	siril_set_file_filter("pref_custom_monitor_profile", "icc_filter");
 	siril_set_file_filter("pref_soft_proofing_profile", "icc_filter");
+	siril_set_file_filter("filechooser_graxpert", "all_files");
 	siril_set_file_filter("filechooser_starnet", "all_files");
 	siril_set_file_filter("filechooser_starnet_weights", "all_files");
 	GtkLabel* spcc_path_label = GTK_LABEL(lookup_widget("label_spcc_repo_path"));
@@ -1023,14 +1029,6 @@ gchar *get_swap_dir() {
 		sw_dir = gtk_file_chooser_get_filename(swap_dir);
 	}
 	return sw_dir;
-}
-
-gchar *get_starnet_exe() {
-	GtkFileChooser *starnet_exe = GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet"));
-	if (st_exe)
-		st_exe = gtk_file_chooser_get_filename(starnet_exe);
-
-	return st_exe;
 }
 
 /* these one are not on the preference dialog */

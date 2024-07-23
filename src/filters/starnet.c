@@ -70,8 +70,8 @@
 #include "starnet.h"
 
 #ifdef HAVE_LIBTIFF
-fits *current_fit = NULL;
-gboolean verbose = TRUE;
+static fits *current_fit = NULL;
+static gboolean verbose = TRUE;
 
 static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 	siril_debug_print("starnet is being closed\n");
@@ -270,7 +270,6 @@ starnet_version starnet_executablecheck(gchar* executable) {
 
 END:
 	g_free(v1dir);
-
 	return retval;
 }
 
@@ -983,6 +982,7 @@ static int starnet_prepare_hook(struct generic_seq_args *args) {
 
 	return 0;
 }
+
 void apply_starnet_to_sequence(struct starnet_data *seqdata) {
 	seqdata->starnet_fit = NULL;
 	struct generic_seq_args *seqargs = create_default_seqargs(seqdata->seq);

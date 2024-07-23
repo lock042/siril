@@ -730,9 +730,9 @@ void wait_for_script_thread() {
 // if onexit is TRUE, also do some cleaning
 void kill_child_process(gboolean onexit) {
 	if (onexit)
-		printf("making sure no child is left behind\n");
+		printf("Making sure no child is left behind...\n");
 	// abort starnet by killing the process
-	if (com.child_is_running == EXT_STARNET) {
+	if (com.child_is_running == EXT_STARNET || com.child_is_running == EXT_GRAXPERT) {
 #ifdef _WIN32
 		TerminateProcess(com.childhandle, 1);
 		com.childhandle = NULL;
@@ -742,7 +742,7 @@ void kill_child_process(gboolean onexit) {
 #endif
 		com.child_is_running = EXT_NONE;
 		if (onexit)
-			printf("starnet has been stopped on exit\n");
+			printf("An external process (Starnet or GraXpert) has been stopped on exit\n");
 	}
 	// abort asnet by writing a file named stop in wd
 	if (com.child_is_running == EXT_ASNET) {
@@ -756,8 +756,6 @@ void kill_child_process(gboolean onexit) {
 			printf("asnet has been stopped on exit\n");
 		}
 	}
-	if (onexit)
-		printf("done\n");
 }
 
 void on_processes_button_cancel_clicked(GtkButton *button, gpointer user_data) {

@@ -278,6 +278,7 @@ typedef enum {
 	EXT_NONE,
 	EXT_STARNET,
 	EXT_ASNET,
+	EXT_GRAXPERT
 } external_program;
 
 typedef enum {
