@@ -57,7 +57,7 @@ int readxisf(const char *name, fits *fit, gboolean force_float);
 
 #ifdef HAVE_LIBJPEG
 int readjpg(const char*, fits*);
-int savejpg(const char*, fits*, int);
+int savejpg(const char*, fits*, int quality, gboolean verbose);
 #endif
 
 #ifdef HAVE_LIBPNG
