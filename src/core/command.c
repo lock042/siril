@@ -1769,17 +1769,17 @@ int process_unsharp(int nb) {
 }
 
 #define CHECK_KEY_LENGTH(__key__) \
-    do { \
-        if (strlen(__key__) > 8) { \
-            siril_log_color_message(_("The size of the key can't exceed 8 characters.\n"), "red"); \
-            g_free(__key__); \
-            return CMD_ARG_ERROR; \
-        } \
-    } while(0)
+	do { \
+		if (strlen(__key__) > 8) { \
+			siril_log_color_message(_("The size of the key can't exceed 8 characters.\n"), "red"); \
+			g_free(__key__); \
+			return CMD_ARG_ERROR; \
+		} \
+	} while(0)
 
 /**
  * update_key key value [comment]
- * update_key -remove key
+ * update_key -delete key
  * update_key -modify key newkey
  * update_key -comment comment
  */
@@ -1823,6 +1823,18 @@ int process_update_key(int nb) {
 	return CMD_OK;
 }
 
+#define CHECK_KEY_LENGTH_SEQ(__key__, __seq__, __args__) \
+	do { \
+		if (strlen(__key__) > 8) { \
+			siril_log_color_message(_("The size of the key can't exceed 8 characters.\n"), "red"); \
+			g_free(__key__); \
+			if (!check_seq_is_comseq(seq)) \
+				free_sequence(__seq__, TRUE); \
+			free(__args__); \
+			return CMD_ARG_ERROR; \
+		} \
+	} while(0)
+
 int process_seq_update_key(int nb) {
 	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq) {
@@ -1835,21 +1847,21 @@ int process_seq_update_key(int nb) {
 
 	struct keywords_data *args = calloc(1, sizeof(struct keywords_data));
 	if (!args) {
-		free_sequence(seq, TRUE);
+		if (!check_seq_is_comseq(seq))
+			free_sequence(seq, TRUE);
 		return CMD_ARG_ERROR;
 	}
-
 
 	siril_log_color_message(_("Upating keywords...\n"), "green");
 
 	/* manage options */
 	if (word[2][0] == '-') {
-		if (!g_strcmp0(word[2], "-remove") && word[3]) {
+		if (!g_strcmp0(word[2], "-delete") && word[3]) {
 			args->FITS_key = replace_wide_char(word[3]);
-			CHECK_KEY_LENGTH(args->FITS_key);
+			CHECK_KEY_LENGTH_SEQ(args->FITS_key, seq, args);
 		} else if (!g_strcmp0(word[2], "-modify") && word[3] && word[4]) {
 			args->FITS_key = replace_wide_char(word[3]);
-			CHECK_KEY_LENGTH(args->FITS_key);
+			CHECK_KEY_LENGTH_SEQ(args->FITS_key, seq, args);
 			args->newkey = replace_wide_char(word[4]);
 		} else if (!g_strcmp0(word[2], "-comment") && word[3]) {
 			args->comment = replace_wide_char(word[3]);
@@ -1859,7 +1871,7 @@ int process_seq_update_key(int nb) {
 	/* without options */
 	} else {
 		args->FITS_key = replace_wide_char(word[2]);
-		CHECK_KEY_LENGTH(args->FITS_key);
+		CHECK_KEY_LENGTH_SEQ(args->FITS_key, seq, args);
 		args->value = replace_wide_char(word[3]);
 		if (nb == 5)
 			args->comment = replace_wide_char(word[4]);
