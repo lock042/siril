@@ -1859,6 +1859,7 @@ int process_seq_update_key(int nb) {
 	/* without options */
 	} else {
 		args->FITS_key = replace_wide_char(word[2]);
+		CHECK_KEY_LENGTH(args->FITS_key);
 		args->value = replace_wide_char(word[3]);
 		if (nb == 5)
 			args->comment = replace_wide_char(word[4]);
