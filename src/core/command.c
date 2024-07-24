@@ -1768,6 +1768,15 @@ int process_unsharp(int nb) {
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
+#define CHECK_KEY_LENGTH(__key__) \
+    do { \
+        if (strlen(__key__) > 8) { \
+            siril_log_color_message(_("The size of the key can't exceed 8 characters.\n"), "red"); \
+            g_free(__key__); \
+            return CMD_ARG_ERROR; \
+        } \
+    } while(0)
+
 /**
  * update_key key value [comment]
  * update_key -remove key
@@ -1781,9 +1790,11 @@ int process_update_key(int nb) {
 	if (word[1][0] == '-') {
 		if (!g_strcmp0(word[1], "-remove") && word[2]) {
 			key = replace_wide_char(word[2]);
+			CHECK_KEY_LENGTH(key);
 			updateFITSKeyword(&gfit, key, NULL, NULL, NULL, TRUE);
 		} else if (!g_strcmp0(word[1], "-modify") && word[2] && word[3]) {
 			key = replace_wide_char(word[2]);
+			CHECK_KEY_LENGTH(key);
 			value = replace_wide_char(word[3]);
 			updateFITSKeyword(&gfit, key, value, NULL, NULL, TRUE);
 		} else if (!g_strcmp0(word[1], "-comment") && word[2]) {
@@ -1796,6 +1807,7 @@ int process_update_key(int nb) {
 	/* without options */
 	} else {
 		key = replace_wide_char(word[1]);
+		CHECK_KEY_LENGTH(key);
 		value = replace_wide_char(word[2]);
 		if (nb == 4)
 			comment = replace_wide_char(word[3]);
@@ -1834,8 +1846,10 @@ int process_seq_update_key(int nb) {
 	if (word[2][0] == '-') {
 		if (!g_strcmp0(word[2], "-remove") && word[3]) {
 			args->FITS_key = replace_wide_char(word[3]);
+			CHECK_KEY_LENGTH(args->FITS_key);
 		} else if (!g_strcmp0(word[2], "-modify") && word[3] && word[4]) {
 			args->FITS_key = replace_wide_char(word[3]);
+			CHECK_KEY_LENGTH(args->FITS_key);
 			args->newkey = replace_wide_char(word[4]);
 		} else if (!g_strcmp0(word[2], "-comment") && word[3]) {
 			args->comment = replace_wide_char(word[3]);
