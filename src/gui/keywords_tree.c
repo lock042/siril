@@ -23,8 +23,10 @@
 
 #include "io/image_format_fits.h"
 #include "core/siril_log.h"
+#include "io/fits_keywords.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
+#include "gui/message_dialog.h"
 #include "gui/dialogs.h"
 #include "gui/utils.h"
 
@@ -138,7 +140,7 @@ static void add_key_to_tree(const gchar *key, const gchar *value, const gchar *c
 static void init_dialog() {
 	init_static_ui();
 
-	gtk_tree_selection_set_mode(key_selection, GTK_SELECTION_MULTIPLE);
+	gtk_tree_selection_set_mode(key_selection, sequence_is_loaded() ? GTK_SELECTION_SINGLE : GTK_SELECTION_MULTIPLE);
 	gtk_list_store_clear(key_liststore);
 }
 
@@ -224,32 +226,57 @@ static void remove_selected_keys () {
 	GtkTreeModel *treeModel = gtk_tree_view_get_model(key_treeview);
 
 	selection = gtk_tree_view_get_selection(key_treeview);
-	references = get_row_references_of_selected_rows(selection, treeModel);
 
-	if (g_list_length(references) <= 0) return;
-
-	for (GList *list = references; list; list = list->next) {
+	if (sequence_is_loaded()) {
+		struct keywords_data *kargs = calloc(1, sizeof(struct keywords_data));
 		GtkTreeIter iter;
-		GtkTreePath *path = gtk_tree_row_reference_get_path((GtkTreeRowReference*)list->data);
-		if (path) {
-			if (gtk_tree_model_get_iter(treeModel, &iter, path)) {
-				GValue g_key = G_VALUE_INIT;
-				gtk_tree_model_get_value(treeModel, &iter, COLUMN_KEY, &g_key);
-			    if (G_VALUE_HOLDS_STRING(&g_key)) {
-			        gchar *FITS_key;
+		GValue g_key = G_VALUE_INIT;
+		gboolean valid_selection = gtk_tree_selection_get_selected(selection, &treeModel, &iter);
 
-			        FITS_key = (gchar *)g_value_get_string(&g_key);
-					updateFITSKeyword(&gfit, FITS_key, NULL, NULL, NULL, TRUE);
+		if (valid_selection) {
+			gtk_tree_model_get_value(treeModel, &iter, COLUMN_KEY, &g_key);
+			if (G_VALUE_HOLDS_STRING(&g_key)) {
+
+				kargs->FITS_key = g_strdup((gchar *)g_value_get_string(&g_key));
+				kargs->value = NULL;
+				kargs->comment = NULL;
+
+				if (siril_confirm_dialog(_("Operation on the sequence"),
+						_("These keywords will be deleted on each image of "
+						"the entire sequence. Are you sure?”"), _("Proceed"))) {
 					gtk_list_store_remove(GTK_LIST_STORE(treeModel), &iter);
 
-			        g_value_unset(&g_key);
-			    }
+					start_sequence_keywords(&com.seq, kargs);
+				}
+		        g_value_unset(&g_key);
 			}
-			gtk_tree_path_free(path);
 		}
+	} else {
+		references = get_row_references_of_selected_rows(selection, treeModel);
+
+		if (g_list_length(references) <= 0) return;
+
+		for (GList *list = references; list; list = list->next) {
+			GtkTreeIter iter;
+			GtkTreePath *path = gtk_tree_row_reference_get_path((GtkTreeRowReference*)list->data);
+			if (path) {
+				if (gtk_tree_model_get_iter(treeModel, &iter, path)) {
+					GValue g_key = G_VALUE_INIT;
+					gtk_tree_model_get_value(treeModel, &iter, COLUMN_KEY, &g_key);
+				    if (G_VALUE_HOLDS_STRING(&g_key)) {
+				        gchar *FITS_key = (gchar *)g_value_get_string(&g_key);
+						updateFITSKeyword(&gfit, FITS_key, NULL, NULL, NULL, TRUE);
+						gtk_list_store_remove(GTK_LIST_STORE(treeModel), &iter);
+
+				        g_value_unset(&g_key);
+				    }
+				}
+				gtk_tree_path_free(path);
+			}
+		}
+		gtk_tree_selection_unselect_all(selection);
+	    g_list_free_full(references, (GDestroyNotify)gtk_tree_row_reference_free);
 	}
-	gtk_tree_selection_unselect_all(selection);
-    g_list_free_full(references, (GDestroyNotify)gtk_tree_row_reference_free);
 }
 
 void on_key_treeview_key_release_event(GtkWidget *widget, GdkEventKey *event,
@@ -583,9 +610,23 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 		if (g_strcmp0(comment, "") == 0) comment = NULL;
 
 		if (comment || value || key) {
-			updateFITSKeyword(&gfit, key, NULL, value, comment, TRUE);
-			refresh_keywords_dialog();
-			scroll_to_end();
+			if (sequence_is_loaded()) {
+				struct keywords_data *kargs = calloc(1, sizeof(struct keywords_data));
+
+				kargs->FITS_key = g_strdup(key);
+				kargs->value = g_strdup(value);
+				kargs->comment = g_strdup(comment);
+
+				if (siril_confirm_dialog(_("Operation on the sequence"),
+						_("These keywords will be added / modified on each image of "
+								"the entire sequence. Are you sure?”"), _("Proceed"))) {
+					start_sequence_keywords(&com.seq, kargs);
+				}
+			} else {
+				updateFITSKeyword(&gfit, key, NULL, value, comment, TRUE);
+				refresh_keywords_dialog();
+				scroll_to_end();
+			}
 		}
 	}
 	gtk_widget_destroy(dialog);
@@ -639,8 +680,6 @@ void refresh_keywords_dialog() {
 			(!sequence_is_loaded() || (sequence_is_loaded() &&
 			(com.seq.current == RESULT_IMAGE || com.seq.current == SCALED_IMAGE)));
 	listFITSKeywords(&gfit, is_a_single_image_loaded);
-	gtk_widget_set_visible(lookup_widget("add_keyword_button"), is_a_single_image_loaded);
-	gtk_widget_set_visible(lookup_widget("delete_keyword_button"), is_a_single_image_loaded);
 	if (gfit.header)
 		show_header_text(gfit.header);
 }

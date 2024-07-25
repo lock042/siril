@@ -1234,7 +1234,7 @@ void start_sequence_keywords(sequence *seq, struct keywords_data *args) {
 	seqargs->stop_on_error = FALSE;
 	seqargs->parallel = seq->type != SEQ_FITSEQ;
 	seqargs->prepare_hook = keywords_prepare_hook;
-	seqargs->image_hook =  keywords_image_hook;
+	seqargs->image_hook = keywords_image_hook;
 	seqargs->finalize_hook =  keywords_finalize_hook;
 	seqargs->idle_function = end_keywords_sequence;
 	seqargs->has_output = (seq->type == SEQ_SER); // we don't update keywords for SER file
