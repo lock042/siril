@@ -637,6 +637,23 @@ int save_fits_keywords(fits *fit) {
 	return 0;
 }
 
+int remove_all_fits_keywords(fits *fit) {
+	int status = 0, nkeys = 0;
+	char keyname[FLEN_KEYWORD];
+	char value[FLEN_VALUE];
+
+	fits_get_hdrspace(fit->fptr, &nkeys, NULL, &status); /* get # of keywords */
+	for (int i = nkeys; i > 0; i--) { // we start from the end because the keys are removed in place
+		fits_read_keyn(fit->fptr, i, keyname, value, NULL, &status);
+		siril_debug_print("%3d:%s=%s\n", i, keyname, value);
+		if (!keyword_is_protected(keyname)) {
+			fits_delete_record(fit->fptr, i, &status);
+			siril_debug_print("%s removed\n", keyname);
+		}
+	}
+	return 0;
+}
+
 int save_wcs_keywords(fits *fit) {
 	int status = 0;
 	/* Needed for Aladin compatibility */
@@ -1167,7 +1184,7 @@ static int keywords_prepare_hook(struct generic_seq_args *arg) {
 static int keywords_image_hook(struct generic_seq_args *arg, int o, int i, fits *fit, rectangle *area, int threads) {
 	struct keywords_data *kargs = (struct keywords_data *)arg->user;
 
-	int retval = updateFITSKeyword(fit, kargs->FITS_key, kargs->newkey, kargs->value, kargs->comment, FALSE);
+	int retval = updateFITSKeyword(fit, kargs->FITS_key, kargs->newkey, kargs->value, kargs->comment, FALSE, arg->seq->type == SEQ_FITSEQ);
 	if (arg->seq->type == SEQ_REGULAR) {
 		char root[256];
 		if (!retval) {

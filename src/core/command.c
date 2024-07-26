@@ -1791,15 +1791,15 @@ int process_update_key(int nb) {
 		if (!g_strcmp0(word[1], "-remove") && word[2]) {
 			key = replace_wide_char(word[2]);
 			CHECK_KEY_LENGTH(key);
-			updateFITSKeyword(&gfit, key, NULL, NULL, NULL, TRUE);
+			updateFITSKeyword(&gfit, key, NULL, NULL, NULL, TRUE, FALSE);
 		} else if (!g_strcmp0(word[1], "-modify") && word[2] && word[3]) {
 			key = replace_wide_char(word[2]);
 			CHECK_KEY_LENGTH(key);
 			value = replace_wide_char(word[3]);
-			updateFITSKeyword(&gfit, key, value, NULL, NULL, TRUE);
+			updateFITSKeyword(&gfit, key, value, NULL, NULL, TRUE, FALSE);
 		} else if (!g_strcmp0(word[1], "-comment") && word[2]) {
 			comment = replace_wide_char(word[2]);
-			updateFITSKeyword(&gfit, NULL, NULL, NULL, comment, TRUE);
+			updateFITSKeyword(&gfit, NULL, NULL, NULL, comment, TRUE, FALSE);
 		} else {
 			return CMD_ARG_ERROR;
 		}
@@ -1812,7 +1812,7 @@ int process_update_key(int nb) {
 		if (nb == 4)
 			comment = replace_wide_char(word[3]);
 
-		updateFITSKeyword(&gfit, key, NULL, value, comment, TRUE);
+		updateFITSKeyword(&gfit, key, NULL, value, comment, TRUE, FALSE);
 	}
 	if (!com.script) refresh_keywords_dialog();
 

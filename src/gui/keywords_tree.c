@@ -265,7 +265,7 @@ static void remove_selected_keys () {
 					gtk_tree_model_get_value(treeModel, &iter, COLUMN_KEY, &g_key);
 				    if (G_VALUE_HOLDS_STRING(&g_key)) {
 				        gchar *FITS_key = (gchar *)g_value_get_string(&g_key);
-						updateFITSKeyword(&gfit, FITS_key, NULL, NULL, NULL, TRUE);
+						updateFITSKeyword(&gfit, FITS_key, NULL, NULL, NULL, TRUE, FALSE);
 						gtk_list_store_remove(GTK_LIST_STORE(treeModel), &iter);
 
 				        g_value_unset(&g_key);
@@ -313,7 +313,7 @@ void on_key_edited(GtkCellRendererText *renderer, char *path, char *new_val, gpo
 			if (strlen(new_val) > 8) {
 				siril_log_color_message(_("Keyname can contain a maximum of 8 characters.\n"), "red");
 			} else {
-				if (!updateFITSKeyword(&gfit, old_keyname, new_val, NULL, NULL, TRUE)) {
+				if (!updateFITSKeyword(&gfit, old_keyname, new_val, NULL, NULL, TRUE, FALSE)) {
 					gtk_list_store_set(key_liststore, &iter, COLUMN_KEY, new_val, -1);
 				}
 			}
@@ -343,7 +343,7 @@ void on_val_edited(GtkCellRendererText *renderer, char *path, char *new_val, gpo
 			strcpy(valstring, new_val);
 		}
 		if (g_strcmp0(original_val, valstring)) {
-			if (!updateFITSKeyword(&gfit, FITS_key, NULL, valstring, FITS_comment, TRUE)) {
+			if (!updateFITSKeyword(&gfit, FITS_key, NULL, valstring, FITS_comment, TRUE, FALSE)) {
 				gtk_list_store_set(key_liststore, &iter, COLUMN_VALUE, valstring, -1);
 			}
 		}
@@ -366,7 +366,7 @@ void on_comment_edited(GtkCellRendererText *renderer, char *path, char *new_comm
 		/* update FITS comment */
 		strcpy(commentstring, new_comment);
 		if (g_strcmp0(original_comment, new_comment)) {
-			if (!updateFITSKeyword(&gfit, FITS_key, NULL, valstring, commentstring, TRUE)) {
+			if (!updateFITSKeyword(&gfit, FITS_key, NULL, valstring, commentstring, TRUE, FALSE)) {
 				gtk_list_store_set(key_liststore, &iter, COLUMN_COMMENT, commentstring, -1);
 			}
 		}
@@ -623,7 +623,7 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 					start_sequence_keywords(&com.seq, kargs);
 				}
 			} else {
-				updateFITSKeyword(&gfit, key, NULL, value, comment, TRUE);
+				updateFITSKeyword(&gfit, key, NULL, value, comment, TRUE, FALSE);
 				refresh_keywords_dialog();
 				scroll_to_end();
 			}

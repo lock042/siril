@@ -861,7 +861,6 @@ void save_fits_header(fits *fit) {
 	save_fits_keywords(fit);
 	save_wcs_keywords(fit);
 	save_history_keywords(fit);
-
 	save_fits_unknown_keywords(fit);
 }
 
@@ -3018,13 +3017,11 @@ error:
 gboolean keyword_is_protected(char *card) {
 	char keyname[9];
 	g_strlcpy(keyname, card, sizeof(keyname));
-	if ((g_strcmp0(keyname, "BZERO   ") == 0)
-			|| (g_strcmp0(keyname, "BSCALE  ") == 0)
-			|| (g_strcmp0(keyname, "PROGRAM ") == 0)
+	if ( (g_strcmp0(keyname, "PROGRAM ") == 0)
 			|| (g_strcmp0(keyname, "DATE    ") == 0)) {
 		return TRUE;
 	}
-	return fits_get_keyclass(card) == TYP_STRUC_KEY;
+	return (fits_get_keyclass(card) == TYP_STRUC_KEY || fits_get_keyclass(card) == TYP_CMPRS_KEY || fits_get_keyclass(card) == TYP_SCAL_KEY);
 }
 
 typedef gsize (*StrlFunc)(char *dest, const char *src, gsize maxlen);
@@ -3036,7 +3033,7 @@ static void strl_with_check(char *dest, const char *src, gsize maxlen, StrlFunc 
 	}
 }
 
-int updateFITSKeyword(fits *fit, const gchar *key, const gchar *newkey, const gchar *value, const gchar *comment, gboolean verbose) {
+int updateFITSKeyword(fits *fit, const gchar *key, const gchar *newkey, const gchar *value, const gchar *comment, gboolean verbose, gboolean isfitseq) {
 	char card[FLEN_CARD] = { 0 }, newcard[FLEN_CARD] = { 0 };
 	char oldvalue[FLEN_VALUE] = { 0 }, oldcomment[FLEN_COMMENT] = { 0 };
 	int keytype;
@@ -3170,6 +3167,8 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *newkey, const gc
 
 		/* populate all structures */
 		read_fits_header(&tmpfit);
+		if (isfitseq)
+			remove_all_fits_keywords(fit);
 		copy_fits_metadata(&tmpfit, fit);
 
 		if (fit->header)
