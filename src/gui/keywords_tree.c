@@ -364,7 +364,7 @@ void on_comment_edited(GtkCellRendererText *renderer, char *path, char *new_comm
 	if (!protected) {
 		char commentstring[FLEN_COMMENT];
 		/* update FITS comment */
-		strcpy(commentstring, new_comment);
+		g_strlcpy(commentstring, new_comment, FLEN_COMMENT);
 		if (g_strcmp0(original_comment, new_comment)) {
 			if (!updateFITSKeyword(&gfit, FITS_key, NULL, valstring, commentstring, TRUE, FALSE)) {
 				gtk_list_store_set(key_liststore, &iter, COLUMN_COMMENT, commentstring, -1);
