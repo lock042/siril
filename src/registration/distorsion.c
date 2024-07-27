@@ -29,6 +29,8 @@
 #include "algos/siril_wcs.h"
 #include "algos/PSF.h"
 #include "io/image_format_fits.h"
+#include "io/path_parse.h"
+#include "io/sequence.h"
 #include "distorsion.h"
 
 // applies a distorsion correction to the xpos/ypos members of psf_star list
@@ -333,6 +335,29 @@ void prepare_H_with_disto_4remap(double *H, int rx_in, int ry_in, int rx_out, in
 	}
 }
 
+// get the master disto name if set
+// otherwise, returns seqname.wcs
+static gchar *get_wcs_filename(sequence *seq) {
+	gchar *wcsname = NULL;
+	gboolean found = FALSE;
+	if (com.pref.prepro.disto_lib) { //we have a distorsion master
+		int status = 0; 
+		wcsname = path_parse(&gfit, com.pref.prepro.disto_lib, PATHPARSE_MODE_WRITE, &status);
+		if (status) {
+			siril_log_color_message(_("Could not parse the distorsion master, ignoring\n"), "salmon");
+			g_free(wcsname);
+		} else {
+			found = TRUE;
+		}
+	}
+	if (!found) {
+		char *namewoext = remove_ext_from_filename(seq->seqname);
+		wcsname = g_strdup_printf("%s%s", namewoext, ".wcs");
+		free(namewoext);
+	}
+	return wcsname;
+}
+
 disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsprm *WCSDATA, gboolean drizzle, int *status) {
 	*status = 1;
 	if (!distoparam)
@@ -342,9 +367,7 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 	switch (distoparam->index) {
 		case DISTO_IMAGE:
 			wcs = wcs_deepcopy(gfit.keywords.wcslib, NULL);
-			char *namewoext = remove_ext_from_filename(seq->seqname);
-			gchar *wcsname = g_strdup_printf("%s%s", namewoext, ".wcs");
-			free(namewoext);
+			gchar *wcsname = get_wcs_filename(seq);
 			if (save_wcs_fits(&gfit, wcsname)) {
 				siril_log_color_message(_("Could not save WCS file for distorsion\n"), "red");
 				siril_log_color_message(_("Computing registration without distorsion correction\n"), "red");
@@ -370,20 +393,73 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 				clearfits(&fit);
 				return NULL;
 			}
-			if (!g_str_has_suffix(distoparam->filename, ".wcs")) { // we will refer to seq.wcs when saving
+			if (!g_str_has_suffix(distoparam->filename, ".wcs")) { // we will refer to this wcs when saving
 				g_free(distoparam->filename);
-				char *namewoext = remove_ext_from_filename(seq->seqname);
-				gchar *wcsname = g_strdup_printf("%s%s", namewoext, ".wcs");
-				free(namewoext);
+				gchar *wcsname = get_wcs_filename(seq);
 				distoparam->filename = wcsname;
 			}
 			clearfits(&fit);
 			break;
 		case DISTO_FILES:
+		case DISTO_MASTER:
 			break;
 		default:
 			return NULL;
 			break;
+	}
+
+	if (distoparam->index == DISTO_MASTER) {
+		fits fit  = { 0 };
+		disto = calloc(seq->number, sizeof(disto_data));
+		gboolean found = FALSE;
+		for (int i = 0;  i < seq->number; i++) {
+			if (!seq->imgparam[i].incl)
+				continue;
+			if (seq_read_frame_metadata(seq, i, &fit)) {
+				siril_log_color_message(_("Could not load image# %d, deselecting\n"), "red", i + 1);
+				seq->imgparam[i].incl = FALSE;
+				clearfits(&fit);
+				free_disto_args(disto);
+			}
+			int statusread = 0;
+			gchar *wcsname = path_parse(&fit, com.pref.prepro.disto_lib, PATHPARSE_MODE_READ, &statusread);
+			clearfits(&fit);
+			if (statusread) {
+				siril_log_color_message(_("Could not parse master file name for distorsion\n"), "red");
+				siril_log_color_message(_("Computing registration without distorsion correction\n"), "red");
+				free_disto_args(disto);
+				return NULL;
+			}
+			statusread = read_fits_metadata_from_path_first_HDU(wcsname, &fit);
+			if (statusread) {
+				siril_log_color_message(_("Could not load master file for distorsion\n"), "red");
+				siril_log_color_message(_("Computing registration without distorsion correction\n"), "red");
+				clearfits(&fit);
+				free_disto_args(disto);
+				return NULL;
+			}
+			wcs = wcs_deepcopy(fit.keywords.wcslib, &statusread);
+			clearfits(&fit);
+			if (statusread) {
+				siril_log_color_message(_("Could not copy WCS information for distorsion\n"), "red");
+				siril_log_color_message(_("Computing registration without distorsion correction\n"), "red");
+				free_disto_args(disto);
+				return NULL;
+			}
+			if (wcs->lin.dispre) {
+				found = TRUE;
+				disto[i].order = extract_SIP_order_and_matrices(wcs->lin.dispre, disto[i].A, disto[i].B, disto[i].AP, disto[i].BP);
+				disto[i].xref = wcs->crpix[0] - 1.; // -1 comes from the difference of convention between opencv and wcs
+				disto[i].yref = wcs->crpix[1] - 1.;
+				disto[i].dtype = (drizzle) ? DISTO_S2D: DISTO_D2S;
+			} else {
+				disto[i].dtype = DISTO_NONE;
+			}
+			if (!found) {
+				free(disto);
+				disto = NULL;
+			}
+		}
 	}
 
 	if (distoparam->index == DISTO_IMAGE || distoparam->index == DISTO_FILE) { // we only have one disto spec, we can init the disto structure

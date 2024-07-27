@@ -178,10 +178,8 @@ static void update_prepro_preferences() {
 		com.pref.prepro.disto_lib = NULL;
 	}
 	const gchar *distoentry = gtk_entry_get_text(GTK_ENTRY(lookup_widget("distolib_entry")));
-	if (distoentry && g_strrstr(distoentry, "*DATE-OBS")) {
+	if (distoentry) {
 		com.pref.prepro.disto_lib = g_strdup(distoentry);
-	} else {
-		siril_log_color_message(_("Distorsion master string must contain the expression \"*DATE-OBS\"\n"), "red", distoentry);
 	}
 
 	if (com.pref.prepro.stack_default) {

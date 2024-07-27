@@ -291,6 +291,7 @@ typedef enum {
 	DISTO_UNDEF, // No distorsion
 	DISTO_IMAGE, // Distorsion from current image
 	DISTO_FILE,  // Distorsion from given file
+	DISTO_MASTER, // Distorsion from master files
 	DISTO_FILES, // Distorsion stored in each file (true only from seq platesolve, even with no distorsion, it will be checked upon reloading)
 } disto_source;
 

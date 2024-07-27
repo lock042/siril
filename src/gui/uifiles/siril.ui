@@ -5706,7 +5706,8 @@ When this box is unchecked, the global star registration will be calculated and 
                                                             <items>
                                                             <item translatable="yes">None</item>
                                                             <item translatable="yes">From image</item>
-                                                            <item translatable="yes">From WCS file</item>
+                                                            <item translatable="yes">From FITS/WCS file</item>
+                                                            <item translatable="yes">From distorsion master</item>
                                                             </items>
                                                             <signal name="changed" handler="on_comboreg_undistort_changed" swapped="no"/>
                                                             </object>

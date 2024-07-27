@@ -290,7 +290,7 @@ static void opendial(int whichdial) {
 		gboolean anything_loaded;
 		GtkFileChooser *chooser = GTK_FILE_CHOOSER(dialog);
 		GtkEntry *flat_entry, *dark_entry, *bias_entry, *bad_pixel_entry;
-		GtkEntry *flatlib_entry, *darklib_entry, *biaslib_entry;
+		GtkEntry *flatlib_entry, *darklib_entry, *biaslib_entry, *distolib_entry;
 		GtkToggleButton *flat_button, *dark_button, *bias_button;
 		GtkWidget *pbutton;
 
@@ -312,6 +312,7 @@ static void opendial(int whichdial) {
 		flatlib_entry = GTK_ENTRY(lookup_widget("flatlib_entry"));
 		darklib_entry = GTK_ENTRY(lookup_widget("darklib_entry"));
 		biaslib_entry = GTK_ENTRY(lookup_widget("biaslib_entry"));
+		distolib_entry = GTK_ENTRY(lookup_widget("distolib_entry"));
 		bad_pixel_entry = GTK_ENTRY(lookup_widget("pixelmap_entry"));
 
 		flat_button = GTK_TOGGLE_BUTTON(lookup_widget("useflat_button"));
@@ -349,6 +350,10 @@ static void opendial(int whichdial) {
 
 		case OD_OFFSETLIB:
 			gtk_entry_set_text(biaslib_entry, filename);
+			break;
+
+		case OD_DISTOLIB:
+			gtk_entry_set_text(distolib_entry, filename);
 			break;
 
 		case OD_CWD:
@@ -415,6 +420,10 @@ void on_darklibfile_button_clicked(GtkButton *button, gpointer user_data) {
 
 void on_flatlibfile_button_clicked(GtkButton *button, gpointer user_data) {
 	opendial(OD_FLATLIB);
+}
+
+void on_distolibfile_button_clicked(GtkButton *button, gpointer user_data) {
+	opendial(OD_DISTOLIB);
 }
 
 void header_open_button_clicked() {
