@@ -420,7 +420,7 @@ int verbose_rotate_image(fits *image, rectangle area, double angle, int interpol
 	// The original matrix will still be used to reframe astrometry data
 	Hocv = H;
 	cvdisplay2ocv(&Hocv);
-	if (cvTransformImage(image, target_rx, target_ry, Hocv, FALSE, interpolation, clamp, NULL)) return 1;
+	if (cvTransformImage(image, target_rx, target_ry, Hocv, 1.f, interpolation, clamp, NULL)) return 1;
 
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
