@@ -242,7 +242,7 @@ static void remove_selected_keys () {
 				kargs->comment = NULL;
 
 				if (siril_confirm_dialog(_("Operation on the sequence"),
-						_("These keywords will be deleted on each image of "
+						_("These keywords will be deleted from each image of "
 						"the entire sequence. Are you sure?”"), _("Proceed"))) {
 					gtk_list_store_remove(GTK_LIST_STORE(treeModel), &iter);
 
@@ -618,7 +618,7 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 				kargs->comment = g_strdup(comment);
 
 				if (siril_confirm_dialog(_("Operation on the sequence"),
-						_("These keywords will be added / modified on each image of "
+						_("These keywords will be added / modified in each image of "
 								"the entire sequence. Are you sure?”"), _("Proceed"))) {
 					start_sequence_keywords(&com.seq, kargs);
 				}
