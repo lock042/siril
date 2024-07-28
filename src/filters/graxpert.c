@@ -425,27 +425,13 @@ static void open_graxpert_result(graxpert_data *args) {
 						"do not match those of the original image. Please report this as a bug.\n"), "red");
 				goto END_AND_RETURN;
 			}
-			// Free the old image data and move the image data pointer from result to gfit
-			free(args->fit->fdata);
-			free(args->fit->data);
-			args->fit->data = result->data;
-			args->fit->fdata = result->fdata;
-			args->fit->fpdata[0] = args->fit->fdata;
-			if (args->fit->data) {
-				args->fit->pdata[1] = args->fit->naxes[2] > 1 ? args->fit->data + (args->fit->rx * args->fit->ry) : args->fit->data;
-				args->fit->pdata[2] = args->fit->naxes[2] > 1 ? args->fit->data + (2 * args->fit->rx * args->fit->ry) : args->fit->data;
-			} else {
-				args->fit->pdata[1] = args->fit->pdata[2] = NULL;
+			// Swap the image data pointers. This way the data originally in args->fit
+			// gets freed by the call to clearfits(result) and the result data becomes
+			// owned by args->fit
+			if (fits_swap_image_data(args->fit, result)) {
+				siril_debug_print("Error, NULL fits passed to fits_swap_image_data()\n");
+				goto END_AND_RETURN;
 			}
-			if (args->fit->fdata) {
-				args->fit->fpdata[1] = args->fit->naxes[2] > 1 ? args->fit->fdata + (args->fit->rx * args->fit->ry) : args->fit->fdata;
-				args->fit->fpdata[2] = args->fit->naxes[2] > 1 ? args->fit->fdata + (2 * args->fit->rx * args->fit->ry) : args->fit->fdata;
-			} else {
-				args->fit->fpdata[1] = args->fit->fpdata[2] = NULL;
-			}
-			// Null the data pointers in result so they don't get freed by clearfits()
-			result->data = NULL;
-			result->fdata = NULL;
 			clearfits(result);
 			free(result);
 			if (args->fit == &gfit) {

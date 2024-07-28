@@ -1722,7 +1722,7 @@ int savefits(const char *name, fits *f) {
 			return 1;
 		}
 	}
-	
+
 	if (fits_create_img(f->fptr, f->bitpix, f->naxis, f->naxes, &status)) {
 		report_fits_error(status);
 		g_free(filename);
@@ -3175,3 +3175,25 @@ int fits_parse_header_str(fits *fit, const char *header){
 	return status;
 }
 
+int fits_swap_image_data(fits *a, fits *b) {
+	if (a == NULL || b == NULL) return 1;
+	float *ftmp;
+	WORD *tmp;
+	tmp = a->data;
+	a->data = b->data;
+	b->data = tmp;
+	for (int i = 0 ; i < 3 ; i++) {
+		tmp = a->pdata[i];
+		a->pdata[i] = b->pdata[i];
+		b->pdata[i] = tmp;
+	}
+	ftmp = a->fdata;
+	a->fdata = b->fdata;
+	b->fdata = ftmp;
+	for (int i = 0 ; i < 3 ; i++) {
+		ftmp = a->fpdata[i];
+		a->fpdata[i] = b->fpdata[i];
+		b->fpdata[i] = ftmp;
+	}
+	return 0;
+}
