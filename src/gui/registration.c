@@ -797,6 +797,17 @@ static gboolean check_disto(disto_source index) {
 			}
 		}
 	}
+	if (index == DISTO_MASTER) {
+		if (!com.pref.prepro.disto_lib || com.pref.prepro.disto_lib[0] == '\0') {
+			gtk_label_set_text(labelregisterinfo, _("You need to set a distortion master template in Preferences/Preprocessing"));
+			return FALSE;
+		}
+		gchar *wcsfilename = get_wcs_filename(PATHPARSE_MODE_READ, NULL);
+		if (!wcsfilename) {
+			gtk_label_set_text(labelregisterinfo, _("Distortion master could not be parsed"));
+			return FALSE;
+		}
+	}
 	return TRUE;
 }
 // Helpers

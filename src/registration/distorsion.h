@@ -2,6 +2,7 @@
 #define REGISTRATION_DISTORSION_H_
 
 #include "core/siril.h"
+#include "io/path_parse.h"
 
 #define MAX_DISTO_SIZE 7 // need to duplicate MAX_DISTO_SIZE here because of circular refs with opencv
 
@@ -30,6 +31,7 @@ void map_undistortion_D2S(disto_data *disto, int rx, int ry, float *xmap, float 
 void map_undistortion_S2D(disto_data *disto, int rx, int ry, float *xmap, float *ymap);
 
 disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsprm *WCSDATA, gboolean drizzle, int *status);
+gchar *get_wcs_filename(pathparse_mode mode, sequence *seq);
 void free_disto_args(disto_data *disto);
 
 #ifdef __cplusplus

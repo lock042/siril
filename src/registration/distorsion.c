@@ -337,20 +337,21 @@ void prepare_H_with_disto_4remap(double *H, int rx_in, int ry_in, int rx_out, in
 
 // get the master disto name if set
 // otherwise, returns seqname.wcs
-static gchar *get_wcs_filename(sequence *seq) {
+gchar *get_wcs_filename(pathparse_mode mode, sequence *seq) {
 	gchar *wcsname = NULL;
 	gboolean found = FALSE;
 	if (com.pref.prepro.disto_lib) { //we have a distortion master
 		int status = 0; 
-		wcsname = path_parse(&gfit, com.pref.prepro.disto_lib, PATHPARSE_MODE_WRITE, &status);
+		wcsname = path_parse(&gfit, com.pref.prepro.disto_lib, mode, &status);
 		if (status) {
-			siril_log_color_message(_("Could not parse the distortion master, ignoring\n"), "salmon");
+			siril_log_color_message(_("Could not parse the distortion master, aborting\n"), "red");
 			g_free(wcsname);
+			wcsname = NULL;
 		} else {
 			found = TRUE;
 		}
 	}
-	if (!found) {
+	if (!found && seq) {
 		char *namewoext = remove_ext_from_filename(seq->seqname);
 		wcsname = g_strdup_printf("%s%s", namewoext, ".wcs");
 		free(namewoext);
@@ -367,10 +368,9 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 	switch (distoparam->index) {
 		case DISTO_IMAGE:
 			wcs = wcs_deepcopy(gfit.keywords.wcslib, NULL);
-			gchar *wcsname = get_wcs_filename(seq);
-			if (save_wcs_fits(&gfit, wcsname)) {
+			gchar *wcsname = get_wcs_filename(PATHPARSE_MODE_WRITE, seq);
+			if (!wcsname || save_wcs_fits(&gfit, wcsname)) {
 				siril_log_color_message(_("Could not save WCS file for distortion\n"), "red");
-				siril_log_color_message(_("Computing registration without distortion correction\n"), "red");
 				wcsfree(wcs);
 				return NULL;
 			}
@@ -382,20 +382,18 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 			int statusread = read_fits_metadata_from_path_first_HDU(distoparam->filename, &fit);
 			if (statusread) {
 				siril_log_color_message(_("Could not load FITS file for distortion\n"), "red");
-				siril_log_color_message(_("Computing registration without distortion correction\n"), "red");
 				clearfits(&fit);
 				return NULL;
 			}
 			wcs = wcs_deepcopy(fit.keywords.wcslib, &statusread);
 			if (statusread) {
 				siril_log_color_message(_("Could not copy WCS information for distortion\n"), "red");
-				siril_log_color_message(_("Computing registration without distortion correction\n"), "red");
 				clearfits(&fit);
 				return NULL;
 			}
 			if (!g_str_has_suffix(distoparam->filename, ".wcs")) { // we will refer to this wcs when saving
 				g_free(distoparam->filename);
-				gchar *wcsname = get_wcs_filename(seq);
+				gchar *wcsname = get_wcs_filename(PATHPARSE_MODE_WRITE, seq);
 				distoparam->filename = wcsname;
 			}
 			clearfits(&fit);
