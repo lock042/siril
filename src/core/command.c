@@ -1866,6 +1866,7 @@ int process_seq_update_key(int nb) {
 		} else if (!g_strcmp0(word[2], "-comment") && word[3]) {
 			args->comment = replace_wide_char(word[3]);
 		} else {
+			free(args);
 			return CMD_ARG_ERROR;
 		}
 	/* without options */

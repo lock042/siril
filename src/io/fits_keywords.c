@@ -1259,6 +1259,7 @@ void start_sequence_keywords(sequence *seq, struct keywords_data *args) {
 	seqargs->description = "keywords update";
 	if (seq->type == SEQ_SER) {
 		siril_log_color_message(_("This command won't work for SER sequence.\n"), "red");
+		free(seqargs);
 		return;
 	}
 	seqargs->user = args;

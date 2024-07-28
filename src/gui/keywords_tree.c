@@ -228,7 +228,6 @@ static void remove_selected_keys () {
 	selection = gtk_tree_view_get_selection(key_treeview);
 
 	if (sequence_is_loaded()) {
-		struct keywords_data *kargs = calloc(1, sizeof(struct keywords_data));
 		GtkTreeIter iter;
 		GValue g_key = G_VALUE_INIT;
 		gboolean valid_selection = gtk_tree_selection_get_selected(selection, &treeModel, &iter);
@@ -236,6 +235,7 @@ static void remove_selected_keys () {
 		if (valid_selection) {
 			gtk_tree_model_get_value(treeModel, &iter, COLUMN_KEY, &g_key);
 			if (G_VALUE_HOLDS_STRING(&g_key)) {
+				struct keywords_data *kargs = calloc(1, sizeof(struct keywords_data));
 
 				kargs->FITS_key = g_strdup((gchar *)g_value_get_string(&g_key));
 				kargs->value = NULL;
@@ -247,6 +247,8 @@ static void remove_selected_keys () {
 					gtk_list_store_remove(GTK_LIST_STORE(treeModel), &iter);
 
 					start_sequence_keywords(&com.seq, kargs);
+				} else {
+					free(kargs);
 				}
 		        g_value_unset(&g_key);
 			}
@@ -364,7 +366,10 @@ void on_comment_edited(GtkCellRendererText *renderer, char *path, char *new_comm
 	if (!protected) {
 		char commentstring[FLEN_COMMENT];
 		/* update FITS comment */
-		g_strlcpy(commentstring, new_comment, FLEN_COMMENT);
+		gsize len = g_strlcpy(commentstring, new_comment, FLEN_COMMENT);
+		if (len >= FLEN_COMMENT) {
+			siril_debug_print("Exceeded FITS COMMENT length\n");
+		}
 		if (g_strcmp0(original_comment, new_comment)) {
 			if (!updateFITSKeyword(&gfit, FITS_key, NULL, valstring, commentstring, TRUE, FALSE)) {
 				gtk_list_store_set(key_liststore, &iter, COLUMN_COMMENT, commentstring, -1);
@@ -621,6 +626,8 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 						_("These keywords will be added / modified in each image of "
 								"the entire sequence. Are you sure?”"), _("Proceed"))) {
 					start_sequence_keywords(&com.seq, kargs);
+				} else {
+					free(kargs);
 				}
 			} else {
 				updateFITSKeyword(&gfit, key, NULL, value, comment, TRUE, FALSE);
