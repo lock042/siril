@@ -49,6 +49,7 @@
 #include "algos/spcc.h"
 #include "algos/siril_wcs.h"
 #include "io/image_format_fits.h"
+#include "io/fits_keywords.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "io/siril_catalogues.h"
@@ -2092,6 +2093,7 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 				return 1;
 			}
 		} else if (arg->seq->type == SEQ_FITSEQ) { // case SEQ_FITSEQ, fit already holds its fptr, we just update
+			remove_all_fits_keywords(fit);
 			save_fits_header(fit);
 			siril_log_color_message(_("Image %d platesolved and updated\n"), "salmon", i + 1);
 		}

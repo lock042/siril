@@ -206,6 +206,10 @@ static command commands[] = {
 	{"seqsubsky", 2, "seqsubsky sequencename { -rbf | degree } [-nodither] [-samples=20] [-tolerance=1.0] [-smooth=0.5] [-prefix=]", process_subsky, STR_SEQSUBSKY CMD_CAT(SUBSKY) STR_SUBSKY, TRUE, REQ_CMD_NONE},
 	{"seqtilt", 1, "seqtilt sequencename", process_seq_tilt, STR_SEQTILT CMD_CAT(TILT) STR_TILT, TRUE, REQ_CMD_NO_THREAD},
 	{"sequnsetmag", 0, "sequnsetmag", process_unset_mag_seq, STR_SEQUNSETMAG, FALSE, REQ_CMD_SEQUENCE },
+	{"sequpdate_key", 2, "sequpdate_key sequencename key value [keycomment]\n"
+			"sequpdate_key sequencename -delete key\n"
+			"sequpdate_key sequencename -modify key newkey\n"
+			"sequpdate_key sequencename -comment comment", process_seq_update_key, STR_SEQUPDATE_KEY, TRUE, REQ_CMD_NONE},
 	{"seqwiener", 1, "wiener sequencename [-loadpsf=] [-alpha=]", process_seq_wiener, STR_SEQWIENER CMD_CAT(WIENER) STR_WIENER, TRUE, REQ_CMD_NONE},
 	{"set", 1, "set { -import=inifilepath | variable=value }", process_set, STR_SET, TRUE, REQ_CMD_NONE},
 	{"set16bits", 0, "set16bits", process_set_32bits, STR_SET16, TRUE, REQ_CMD_NONE},
@@ -253,7 +257,10 @@ static command commands[] = {
 	{"unselect", 3, "unselect sequencename from to", process_unselect, STR_UNSELECT, TRUE, REQ_CMD_NONE},
 	{"unsetmag", 0, "unsetmag", process_unset_mag, STR_UNSETMAG, FALSE, REQ_CMD_NONE},
 	{"unsharp", 2, "unsharp sigma multi", process_unsharp, STR_UNSHARP, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"update_key", 2, "update_key key value", process_update_key, STR_UPDATE_KEY, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"update_key", 2, "update_key key value [keycomment]\n"
+					"update_key -delete key\n"
+					"update_key -modify key newkey\n"
+					"update_key -comment comment", process_update_key, STR_UPDATE_KEY, TRUE, REQ_CMD_SINGLE_IMAGE},
 
 	{"visu", 2, "visu low high", process_visu, STR_VISU, FALSE, REQ_CMD_SINGLE_IMAGE},
 
