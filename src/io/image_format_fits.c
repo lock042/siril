@@ -812,6 +812,16 @@ int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,
 }
 
 int siril_fits_create_diskfile(fitsfile **fptr, const char *filename, int *status) {
+	*status = 0;
+	gchar *dirname = g_path_get_dirname(filename);
+	GDir *dir = g_dir_open(dirname, 0, NULL);
+	if (!dir && g_mkdir_with_parents(dirname, 0755) < 0) {
+		siril_log_color_message(_("Cannot create output folder: %s\n"), "red", dirname);
+		*status = 1;
+		return *status;
+	}
+	g_free(dirname);
+	g_free(dir);
 	fits_create_diskfile(fptr, filename, status);
 	return *status;
 }
@@ -3183,6 +3193,7 @@ int save_wcs_fits(fits *f, const gchar *name) {
 
 	if (g_unlink(name))
 		siril_debug_print("g_unlink() failed\n");
+	
 
 	status = 0;
 	if (siril_fits_create_diskfile(&(f->fptr), name, &status)) {

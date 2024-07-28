@@ -77,6 +77,7 @@ struct astrometry_data {
 	double searchradius; // radius of the cone if nearsearch in degrees
 	gboolean forced_metadata[3]; // flags using for seq, to indicate if center, pixel and focal where forced
 	gboolean force; // flag to force solving again already solved images from sequence
+	gboolean save_master; // flag to save master distorsion
 
 	/* program-processed input, by process_plate_solver_input() */
 	double scale;		// scale (resolution) in arcsec per pixel

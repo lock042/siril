@@ -54,7 +54,7 @@ static GtkToggleButton *flipbutton = NULL, *automagbutton = NULL, *DEC_S = NULL,
 	*nonearbutton = NULL, *blindposbutton = NULL, *blindresbutton = NULL,
 	*seqsolvebutton = NULL, *seqnocache = NULL, *seqskipsolved = NULL,
 	*sequseheadercoords = NULL, *sequseheaderpixel = NULL, *sequseheaderfocal = NULL,
-	*checkbutton_IPS_useforreg = NULL;
+	*checkbutton_IPS_useforreg = NULL, *masterbutton = NULL;
 static GtkSpinButton *magspin = NULL, *RA_h = NULL, *RA_m = NULL, *DEC_d = NULL, *DEC_m = NULL, *radiusspin = NULL;
 static GtkComboBox *catalogbox = NULL, *orderbox = NULL, *solverbox = NULL, *serverbox = NULL;
 static GtkLabel *cataloglabel = NULL, *radiuslabel = NULL;
@@ -69,7 +69,9 @@ static gboolean have_local_cat = FALSE, radius_set = FALSE, order_set = FALSE, h
 
 void on_comboastro_catalog_changed(GtkComboBox *combo, gpointer user_data);
 void on_comboastro_solver_changed(GtkComboBox *combo, gpointer user_data);
+void on_comboastro_order_changed(GtkComboBox *combo, gpointer user_data);
 void on_GtkCheckButton_solveseq_toggled(GtkToggleButton *button, gpointer user);
+static int get_order();
 extern struct sky_object platedObject[RESOLVER_NUMBER];
 
 static void unselect_all_items();
@@ -107,6 +109,7 @@ static void load_all_ips_statics() {
 		sequseheaderpixel = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_IPS_sequseheaderpixel"));
 		sequseheaderfocal = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_IPS_sequseheaderfocal"));
 		checkbutton_IPS_useforreg = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_IPS_useforreg"));
+		masterbutton = GTK_TOGGLE_BUTTON(lookup_widget("master_ips_button"));
 		// combos
 		catalogbox = GTK_COMBO_BOX(lookup_widget("ComboBoxIPSCatalog"));
 		orderbox = GTK_COMBO_BOX(lookup_widget("ComboBoxIPS_order"));
@@ -171,6 +174,8 @@ void initialize_ips_dialog() {
 		gtk_widget_set_sensitive(GTK_WIDGET(sequseheaderpixel), has_pixel);
 		gtk_widget_set_sensitive(GTK_WIDGET(sequseheaderfocal), has_focal);
 	}
+	gtk_toggle_button_set_active(nonearbutton, isseq);
+	on_comboastro_order_changed(NULL, NULL);
 	// solver-related controls
 	on_comboastro_catalog_changed(NULL, NULL);
 }
@@ -291,6 +296,10 @@ static gboolean is_downsample_activated() {
 
 static gboolean is_autocrop_activated() {
 	return gtk_toggle_button_get_active(autocropbutton);
+}
+
+static gboolean is_save_master_activated() {
+	return gtk_widget_get_sensitive(GTK_WIDGET(masterbutton)) && gtk_toggle_button_get_active(masterbutton);
 }
 
 static void update_pixel_size() {
@@ -766,6 +775,7 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 	args->trans_order = get_order();
 	args->pixel_size = get_pixel();
 	args->focal_length = get_focal();
+	args->save_master = is_save_master_activated();
 	SirilWorldCS *catalog_center = get_center_of_catalog();
 	gboolean no_coords = siril_world_cs_get_alpha(catalog_center) == 0.0 &&
 			siril_world_cs_get_delta(catalog_center) == 0.0;
@@ -862,6 +872,11 @@ void on_comboastro_catalog_changed(GtkComboBox *combo, gpointer user_data) {
 		gtk_label_set_text(cataloglabel, _("(online catalogue)"));
 	else gtk_label_set_text(cataloglabel, _("(local catalogue)"));
 	on_comboastro_solver_changed(NULL, NULL);
+}
+
+void on_comboastro_order_changed(GtkComboBox *combo, gpointer user_data) {
+	gboolean enable = com.pref.prepro.disto_lib && com.pref.prepro.disto_lib[0] != '\0' && get_order() > 1;
+	gtk_widget_set_sensitive(GTK_WIDGET(masterbutton), enable);
 }
 
 void on_comboastro_solver_changed(GtkComboBox *combo, gpointer user_data) {

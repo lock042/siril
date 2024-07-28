@@ -53,6 +53,7 @@
 #include "io/sequence.h"
 #include "io/siril_catalogues.h"
 #include "io/local_catalogues.h"
+#include "io/path_parse.h"
 #include "opencv/opencv.h"
 #include "registration/registration.h"
 #include "registration/matching/match.h"
@@ -1019,6 +1020,25 @@ gpointer plate_solver(gpointer p) {
 		com.pref.starfinder_conf.focal_length = focal_length;
 		com.pref.starfinder_conf.pixel_size_x = args->pixel_size;
 		siril_log_message(_("Saved focal length %.2f and pixel size %.2f as default values\n"), focal_length, args->pixel_size);
+	}
+
+	/* 5.a Save distorsion master
+		We need to do it before flipping
+	*/
+	if (args->save_master) {
+		if (args->fit->keywords.wcslib->lin.dispre) {
+			int mstatus = 0;
+			gchar *mastername = path_parse(args->fit, com.pref.prepro.disto_lib, PATHPARSE_MODE_WRITE, &mstatus);
+			if (mstatus) {
+				siril_log_color_message(_("Could not save distorsion master file, skipping\n"), "salmon");
+			}
+			if (!mstatus && save_wcs_fits(args->fit, mastername)) {
+				siril_log_color_message(_("Could not save distorsion master file, skipping\n"), "salmon");
+			}
+		} else {
+			siril_log_color_message(_("Solution has no distorsion\n"), "salmon");
+			siril_log_color_message(_("Could not save distorsion master file, skipping\n"), "salmon");
+		}
 	}
 
 	/* 5. Flip image if needed */
@@ -2092,6 +2112,10 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 	}
 	if (aargs->solver == SOLVER_LOCALASNET)
 		aargs->filename = g_strdup(root);	// for localasnet
+	
+	if (i != arg->seq->reference_image) { // we want to save master distorsion only once for ref image
+		aargs->save_master = FALSE;
+	}
 	process_plate_solver_input(aargs);
 
 	int retval = GPOINTER_TO_INT(plate_solver(aargs));
@@ -2121,20 +2145,16 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 			siril_log_color_message(_("Image %d platesolved and updated\n"), "salmon", i + 1);
 		}
 	}
-	if (!retval) {
-		if (aargs_master->update_reg) {
-			int status = 0;
-			struct wcsprm *wcs = wcs_deepcopy(fit->keywords.wcslib, &status);
-			if (status) {
-				siril_log_color_message(_("Could not copy WCS data, skipping image %d\n"), "salmon", i + 1);
-			} else {
-				memcpy(aargs_master->WCSDATA + i, wcs, sizeof(*wcs));
-				g_atomic_int_inc(&aargs_master->seqprogress);
-			}
+	if (!retval && aargs_master->update_reg) {
+		int status = 0;
+		struct wcsprm *wcs = wcs_deepcopy(fit->keywords.wcslib, &status);
+		if (status) {
+			siril_log_color_message(_("Could not copy WCS data, skipping image %d\n"), "salmon", i + 1);
 		} else {
-			g_atomic_int_inc(&aargs_master->seqprogress);
+			memcpy(aargs_master->WCSDATA + i, wcs, sizeof(*wcs));
 		}
 	}
+	g_atomic_int_inc(&aargs_master->seqprogress);
 	return retval;
 }
 
