@@ -20,11 +20,14 @@
 
 #include "core/siril.h"
 #include "core/proto.h"
+#include "core/processing.h"
 #include "core/siril_date.h"
 #include "core/siril_log.h"
 #include "core/siril_world_cs.h"
 #include "algos/siril_wcs.h"
+#include "gui/keywords_tree.h"
 #include "io/image_format_fits.h"
+#include "io/sequence.h"
 #include "io/path_parse.h"
 
 #include "fits_keywords.h"
@@ -336,9 +339,9 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 			KEYWORD_SECONDA( "camera", "TEMPERAT", KTYPE_DOUBLE, "[degC] CCD temperature", &(fit->keywords.ccd_temp), NULL, NULL),
 			KEYWORD_SECONDA( "camera", "CAMTCCD", KTYPE_DOUBLE, "[degC] CCD temperature", &(fit->keywords.ccd_temp), NULL, NULL),
 			KEYWORD_PRIMARY( "camera", "SET-TEMP", KTYPE_DOUBLE, "[degC] CCD temperature setpoint", &(fit->keywords.set_temp), NULL, NULL),
-			KEYWORD_PRIMARY( "camera", "GAIN", KTYPE_USHORT, "Sensor gain", &(fit->keywords.key_gain), NULL, NULL),
-			KEYWORD_PRIMARY( "camera", "OFFSET", KTYPE_USHORT, "Sensor gain offset", &(fit->keywords.key_offset), NULL, NULL),
-			KEYWORD_SECONDA( "camera", "BLKLEVEL", KTYPE_USHORT, "Sensor gain offset", &(fit->keywords.key_offset), NULL, NULL),
+			KEYWORD_PRIMARY( "camera", "GAIN", KTYPE_UINT, "Sensor gain", &(fit->keywords.key_gain), NULL, NULL),
+			KEYWORD_PRIMARY( "camera", "OFFSET", KTYPE_UINT, "Sensor gain offset", &(fit->keywords.key_offset), NULL, NULL),
+			KEYWORD_SECONDA( "camera", "BLKLEVEL", KTYPE_UINT, "Sensor gain offset", &(fit->keywords.key_offset), NULL, NULL),
 			KEYWORD_PRIMARY( "camera", "CVF", KTYPE_DOUBLE, "[e-/ADU] Electrons per A/D unit", &(fit->keywords.cvf), NULL, NULL),
 			KEYWORD_SECONDA( "camera", "EGAIN", KTYPE_DOUBLE, "[e-/ADU] Electrons per A/D unit", &(fit->keywords.cvf), NULL, NULL),
 			KEYWORD_PRIMARY( "camera", "BAYERPAT", KTYPE_STR, "Bayer color pattern", &(fit->keywords.bayer_pattern), NULL, NULL),
@@ -535,6 +538,8 @@ KeywordInfo *initialize_keywords(fits *fit, GHashTable **hash) {
 int save_fits_keywords(fits *fit) {
 	KeywordInfo *keys = initialize_keywords(fit, NULL);
 	KeywordInfo *keys_start = keys;
+	super_bool sbool;
+	gboolean bool;
 	int status;
 	gchar *str;
 	gushort us;
@@ -542,7 +547,7 @@ int save_fits_keywords(fits *fit) {
 	int ii;
 	double dbl;
 	float flt;
-	GDateTime *date;
+	GDateTime *date = NULL;
 
 	while (keys->group) {
 		/* Handle special cases */
@@ -566,7 +571,7 @@ int save_fits_keywords(fits *fit) {
 		case KTYPE_UINT:
 			status = 0;
 			ui = (*((guint*) keys->data));
-			if (ui) {
+			if (ui != DEFAULT_UINT_VALUE) {
 				fits_update_key(fit->fptr, TUINT, keys->key, &ui, keys->comment, &status);
 			}
 			break;
@@ -616,8 +621,11 @@ int save_fits_keywords(fits *fit) {
 			break;
 		case KTYPE_BOOL:
 			status = 0;
-			fits_update_key(fit->fptr, TLOGICAL, keys->key,
-					&(*((gboolean*) keys->data)), keys->comment, &status);
+			sbool = *((super_bool*) keys->data);
+			if (sbool != BOOL_NOT_SET) {
+				bool = (sbool == BOOL_FALSE) ? FALSE : TRUE;
+				fits_update_key(fit->fptr, TLOGICAL, keys->key, &(bool), keys->comment, &status);
+			}
 			break;
 		default:
 			siril_debug_print("Save_fits_keywords: Error. Type is not handled: %s.\n", keys->key);
@@ -627,6 +635,23 @@ int save_fits_keywords(fits *fit) {
 
 	free(keys_start);
 
+	return 0;
+}
+
+int remove_all_fits_keywords(fits *fit) {
+	int status = 0, nkeys = 0;
+	char keyname[FLEN_KEYWORD];
+	char value[FLEN_VALUE];
+
+	fits_get_hdrspace(fit->fptr, &nkeys, NULL, &status); /* get # of keywords */
+	for (int i = nkeys; i > 0; i--) { // we start from the end because the keys are removed in place
+		fits_read_keyn(fit->fptr, i, keyname, value, NULL, &status);
+		siril_debug_print("%3d:%s=%s\n", i, keyname, value);
+		if (!keyword_is_protected(keyname)) {
+			fits_delete_record(fit->fptr, i, &status);
+			siril_debug_print("%s removed\n", keyname);
+		}
+	}
 	return 0;
 }
 
@@ -856,7 +881,7 @@ static void set_to_default_not_used(fits *fit, GHashTable *keys_hash) {
 				break;
 			case KTYPE_DOUBLE:
 				if (keyword_info->data && *((double*) keyword_info->data) == 0.0)
-				*((double*) keyword_info->data) = DEFAULT_DOUBLE_VALUE;
+					*((double*) keyword_info->data) = DEFAULT_DOUBLE_VALUE;
 				break;
 			case KTYPE_FLOAT:
 				if (keyword_info->data && *((float*) keyword_info->data) == 0.f)
@@ -880,6 +905,7 @@ void set_all_keywords_default(fits *fit) {
 	free(keys);
 }
 
+#ifdef DEBUG_PRINT_HEADER
 const char* fits_type_to_string(const char type) {
 	switch (type) {
 		case 'C': return "string";
@@ -890,6 +916,7 @@ const char* fits_type_to_string(const char type) {
 		default: return "unknown";
 	}
 }
+#endif
 
 int read_fits_keywords(fits *fit) {
 	// Initialize keywords and get hash table
@@ -931,7 +958,7 @@ int read_fits_keywords(fits *fit) {
 		status = 0;
 
 		// Skip the FITS structure keys and the DATE-OBS key since they have already been processed.
-		if (g_strcmp0(keyname, "DATE-OBS") == 0 || fits_get_keyclass(card) == TYP_STRUC_KEY) {
+		if (g_strcmp0(keyname, "DATE-OBS") == 0 || keyword_is_protected(card)) {
 			continue;
 		}
 
@@ -959,7 +986,7 @@ int read_fits_keywords(fits *fit) {
 		float float_value;
 		gchar *str_value = NULL, *unquoted = NULL;
 		GDateTime *date;
-		gboolean bool_value;
+		super_bool bool_value;
 		char *end = NULL;
 
 		// Process the value based on the type of the keyword
@@ -1046,8 +1073,8 @@ int read_fits_keywords(fits *fit) {
 			g_free(unquoted);
 			break;
 		case KTYPE_BOOL:
-			bool_value = value[0] == 'T' ? TRUE : FALSE;
-			*((gboolean*) current_key->data) = bool_value;
+			bool_value = value[0] == 'T' ? BOOL_TRUE : BOOL_FALSE;
+			*((super_bool*) current_key->data) = bool_value;
 			current_key->used = TRUE;
 			break;
 		default:
@@ -1081,6 +1108,166 @@ int read_fits_keywords(fits *fit) {
 	free(keys);
 	return 0;
 }
+
+
+static void remove_keyword(const gchar *keyword, fits *fit, GHashTable *keys_hash) {
+	GHashTableIter iter;
+	gpointer key, value;
+	g_hash_table_iter_init(&iter, keys_hash);
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		KeywordInfo *keyword_info = (KeywordInfo*) value;
+		if (keyword_info->data && !g_strcmp0(keyword_info->key, keyword)) {
+			switch (keyword_info->type) {
+			case KTYPE_BOOL:
+				*((super_bool*) keyword_info->data) = BOOL_NOT_SET;
+				break;
+			case KTYPE_INT:
+				*((int*) keyword_info->data) = DEFAULT_INT_VALUE;
+				break;
+			case KTYPE_UINT:
+				*((guint*) keyword_info->data) = DEFAULT_UINT_VALUE;
+				break;
+			case KTYPE_USHORT:
+				*((gushort*) keyword_info->data) = DEFAULT_USHORT_VALUE;
+				break;
+			case KTYPE_DOUBLE:
+				*((double*) keyword_info->data) = DEFAULT_DOUBLE_VALUE;
+				break;
+			case KTYPE_FLOAT:
+				*((float*) keyword_info->data) = DEFAULT_FLOAT_VALUE;
+				break;
+			case KTYPE_STR:
+				memset((char*) keyword_info->data, 0, FLEN_VALUE);
+				break;
+			case KTYPE_DATE:
+				if ((GDateTime*) keyword_info->data) {
+					g_date_time_unref((GDateTime*) keyword_info->data);
+					keyword_info->data = NULL;
+				}
+				break;
+			default:
+				break;
+			}
+		}
+	}
+}
+
+void remove_keyword_in_fit_keywords(const gchar *keyword, fits *fit) {
+	GHashTable *keys_hash;
+	KeywordInfo *keys = initialize_keywords(fit, &keys_hash);
+	remove_keyword(keyword, fit, keys_hash);
+
+	g_hash_table_destroy(keys_hash);
+	free(keys);
+}
+
+static int keywords_prepare_hook(struct generic_seq_args *arg) {
+	if (arg->seq->type == SEQ_FITSEQ) {
+		gchar *filename = g_strdup(arg->seq->fitseq_file->filename);
+		// it was opened in READONLY mode, we close it
+		if (fitseq_close_file(arg->seq->fitseq_file)) {
+			siril_log_color_message(_("Error when closing fitseq\n"), "red");
+			g_free(filename);
+			return 1;
+		}
+		arg->seq->fitseq_file->fptr = NULL;
+		arg->seq->fitseq_file->filename = g_strdup(filename); // freed in fitseq_destroy
+		// and we reopen in READWRITE mode to update it
+		if (fitseq_open(filename, arg->seq->fitseq_file, READWRITE)) {
+			siril_log_color_message(_("Error when reopening fitseq\n"), "red");
+			g_free(filename);
+			return 1;
+		}
+		g_free(filename);
+	}
+	return 0;
+}
+
+static int keywords_image_hook(struct generic_seq_args *arg, int o, int i, fits *fit, rectangle *area, int threads) {
+	struct keywords_data *kargs = (struct keywords_data *)arg->user;
+
+	int retval = updateFITSKeyword(fit, kargs->FITS_key, kargs->newkey, kargs->value, kargs->comment, FALSE, arg->seq->type == SEQ_FITSEQ);
+	if (arg->seq->type == SEQ_REGULAR) {
+		char root[256];
+		if (!retval) {
+			if (!fit_sequence_get_image_filename(arg->seq, i, root, FALSE)) {
+				return 1;
+			}
+			savefits(root, fit);
+		}
+	} else if (arg->seq->type == SEQ_FITSEQ) { // case SEQ_FITSEQ, fit already holds its fptr, we just update
+		save_fits_header(fit);
+		siril_log_color_message(_("FITS header of image %d updated\n"), "salmon", i + 1);
+	}
+	return 0;
+}
+
+static int keywords_finalize_hook(struct generic_seq_args *arg) {
+	struct keywords_data *kargs = (struct keywords_data *)arg->user;
+	int retval = 0;
+	if (arg->seq->type == SEQ_FITSEQ) {
+		gchar *filename = g_strdup(arg->seq->fitseq_file->filename);
+		// it was opened in READWRITE mode, we close it to save everything
+		if (fitseq_close_file(arg->seq->fitseq_file)) {
+			siril_debug_print("error when closing again fitseq\n");
+			g_free(filename);
+			retval = 1;
+			goto finish;
+		}
+		arg->seq->fitseq_file->fptr = NULL;
+		siril_log_color_message(_("File %s updated\n"), "salmon", filename);
+		arg->seq->fitseq_file->filename = filename; // we may need to reopen in the idle so we save it here
+		arg->seq->fitseq_file->hdu_index = NULL;
+	}
+	if (!arg->retval)
+		writeseqfile(arg->seq);
+finish:
+	free(kargs->FITS_key);
+	free(kargs->value);
+	free(kargs->comment);
+	free(kargs);
+	return retval;
+}
+
+gboolean end_keywords_sequence(gpointer p) {
+	struct generic_seq_args *args = (struct generic_seq_args *) p;
+	if (check_seq_is_comseq(args->seq)) {
+		if (args->seq->type == SEQ_FITSEQ) { // if FITSEQ, we need to repoen in READONLY mode
+			if (fitseq_open(args->seq->fitseq_file->filename, args->seq->fitseq_file, READONLY)) {
+				siril_debug_print("error when finally re-opening fitseq\n");
+			}
+		}
+		update_sequences_list(args->seq->seqname);
+		refresh_keywords_dialog();
+	}
+	if (!check_seq_is_comseq(args->seq))
+		free_sequence(args->seq, TRUE);
+	free(p);
+	return end_generic(NULL);
+}
+
+void start_sequence_keywords(sequence *seq, struct keywords_data *args) {
+	struct generic_seq_args *seqargs = create_default_seqargs(seq);
+	seqargs->filtering_criterion = seq_filter_included;
+	seqargs->nb_filtered_images = seq->selnum;
+	seqargs->stop_on_error = FALSE;
+	seqargs->parallel = seq->type != SEQ_FITSEQ;
+	seqargs->prepare_hook = keywords_prepare_hook;
+	seqargs->image_hook = keywords_image_hook;
+	seqargs->finalize_hook =  keywords_finalize_hook;
+	seqargs->idle_function = end_keywords_sequence;
+	seqargs->has_output = (seq->type == SEQ_SER); // we don't update keywords for SER file
+	seqargs->output_type = get_data_type(seq->bitpix);
+	seqargs->description = "keywords update";
+	if (seq->type == SEQ_SER) {
+		siril_log_color_message(_("This command won't work for SER sequence.\n"), "red");
+		free(seqargs);
+		return;
+	}
+	seqargs->user = args;
+	start_in_new_thread(generic_sequence_worker, seqargs);
+}
+
 
 int parse_wcs_image_dimensions(fits *fit, int *rx, int *ry) {
 	*rx = 0;

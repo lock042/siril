@@ -409,13 +409,18 @@ static int fitseq_destroy(fitseq *fitseq, gboolean abort) {
 	fits_close_file(fitseq->fptr, &status);
 	if ((retval || !frame_count) && fitseq->filename) {
 		siril_log_message(_("Removing failed FITS sequence file: %s\n"), fitseq->filename);
+		report_fits_error(status);
 		if (g_unlink(fitseq->filename))
 			siril_debug_print("g_unlink() failed\n");
 	}
-	if (fitseq->filename)
+	if (fitseq->filename) {
 		free(fitseq->filename);
-	if (fitseq->hdu_index)
+		fitseq->filename = NULL;
+	}
+	if (fitseq->hdu_index) {
 		free(fitseq->hdu_index);
+		fitseq->hdu_index = NULL;
+	}
 	return retval;
 }
 
@@ -457,7 +462,7 @@ static int fitseq_multiple_close(fitseq *fitseq) {
 	}
 	free(fitseq->thread_fptr);
 	fitseq->thread_fptr = NULL;
-	siril_debug_print("closing FITS sequence fd for %d threads\n", fitseq->num_threads);
+	siril_debug_print("closed FITS sequence %s fd for %d threads\n", fitseq->filename, fitseq->num_threads);
 	return retval;
 }
 

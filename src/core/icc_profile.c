@@ -66,7 +66,7 @@ static gboolean profile_check_verbose = TRUE;
 
 void color_manage(fits *fit, gboolean active) {
 	fit->color_managed = active;
-	if (fit == &gfit && !com.headless) {
+	if (fit == &gfit && !com.script) {
 		gchar *buffer = NULL, *monitor = NULL, *proof = NULL;
 		gchar *name = g_build_filename("/org/siril/ui/", "pixmaps", active ? "color_management.svg" : "color_management_off.svg", NULL);
 		gchar *tooltip = NULL;

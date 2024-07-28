@@ -1781,6 +1781,10 @@ void on_combobinning_changed(GtkComboBox *box, gpointer user_data) {
 			gfit.keywords.binning_x = 1;
 			gfit.keywords.binning_y = 3;
 			break;
+		case -1:
+			gfit.keywords.binning_x = gfit.keywords.binning_y = 1;
+			gtk_combo_box_set_active(box, 0);
+			break;
 		default:
 			fprintf(stderr, "Should not happen\n");
 	}

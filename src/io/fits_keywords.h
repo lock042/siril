@@ -51,14 +51,27 @@ struct KeywordInfo {
     gboolean used;
 };
 
+struct keywords_data {
+	fits *fit;
+	sequence *seq;
+	gchar *FITS_key;
+	gchar *newkey;
+	gchar *value;
+	gchar *comment;
+};
+
 int save_fits_keywords(fits *fit);
 int save_fits_unknown_keywords(fits *fit);
 int save_history_keywords(fits *fit);
 int save_wcs_keywords(fits *fit);
 void read_fits_date_obs_header(fits *fit);
 int read_fits_keywords(fits *fit);
+int remove_all_fits_keywords(fits *fit);
 
 void set_all_keywords_default(fits *fit);
+void remove_keyword_in_fit_keywords(const gchar *keyword, fits *fit);
+
+void start_sequence_keywords(sequence *seq, struct keywords_data *args);
 
 int parse_wcs_image_dimensions(fits *fit, int *rx, int *ry);
 
