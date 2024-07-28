@@ -229,6 +229,7 @@ static gchar *wildcard_check(gchar *expression, int *status, gchar *target_date,
 		g_clear_error(&error);
 		g_free(dirname);
 		g_free(basename);
+		g_free(tmpdirname);
 		return out;
 	}
 
@@ -298,6 +299,7 @@ static gchar *wildcard_check(gchar *expression, int *status, gchar *target_date,
 	g_free(dirname);
 	g_free(basename);
 	g_free(currfile);
+	g_free(tmpdirname);
 	g_list_free_full(fds, (GDestroyNotify)file_date_free);
 	return out;
 }

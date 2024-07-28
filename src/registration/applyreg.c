@@ -789,6 +789,7 @@ int register_apply_reg(struct registration_args *regargs) {
 			convert_parsed_filter_to_filter(&regargs->filters,
 				regargs->seq, &regargs->filtering_criterion,
 				&regargs->filtering_parameter)) {
+		free(args);
 		return -1;
 	}
 	// Prepare sequence filtering

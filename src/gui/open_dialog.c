@@ -217,6 +217,7 @@ static void opendial(int whichdial) {
 	case OD_FLATLIB:
 	case OD_DARKLIB:
 	case OD_OFFSETLIB:
+	case OD_DISTOLIB:
 		widgetdialog = siril_file_chooser_open(control_window, GTK_FILE_CHOOSER_ACTION_OPEN);
 		dialog = GTK_FILE_CHOOSER(widgetdialog);
 		gtk_file_chooser_set_current_folder(dialog, com.wd);

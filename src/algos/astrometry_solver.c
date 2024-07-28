@@ -2004,7 +2004,7 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 	}
 
 	// we detect stars first (using aargs_master)
-	int nb_stars;
+	int nb_stars = 0;
 	psf_star **stars = NULL;
 
 	struct starfinder_data *sf_data = findstar_image_worker(aargs_master->sfargs, -1, i, fit, area, threads);

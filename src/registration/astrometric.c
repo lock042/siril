@@ -188,6 +188,10 @@ int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_ty
 		}
 		siril_log_message(_("Image #%5d - RA:%7.3f - DEC:%+7.3f - Rotation:%+6.1f\n"), i + 1, RA[i], DEC[i], angles[2]);
 	}
+	if (!anglecount) {
+		siril_log_color_message(_("No image selected after computing transformations, aborting%s\n"), "red");
+		goto free_all;
+	}
 	framingref /= anglecount;
 	siril_log_message("Sequence framing: %.3f\n", framingref);
 
