@@ -239,6 +239,12 @@ static void opendial(int whichdial) {
 				gtk_file_chooser_set_current_folder(dialog, path);
 				g_free(path);
 			}
+		} else if (whichdial == OD_DISTOLIB) {
+			if (com.pref.prepro.disto_lib != NULL) {
+				gchar *path = g_path_get_dirname(com.pref.prepro.disto_lib);
+				gtk_file_chooser_set_current_folder(dialog, path);
+				g_free(path);
+			}
 		}
 		gtk_file_chooser_set_select_multiple(dialog, FALSE);
 		set_filters_dialog(dialog, whichdial);

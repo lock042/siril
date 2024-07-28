@@ -700,6 +700,10 @@ void update_preferences_from_model() {
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_flat")), pref->prepro.use_flat_lib);
 	}
 
+	if (pref->prepro.disto_lib) {
+		gtk_entry_set_text(GTK_ENTRY(lookup_widget("distolib_entry")),pref->prepro.disto_lib);
+	}
+
 	if (pref->prepro.stack_default) {
 		gtk_entry_set_text(GTK_ENTRY(lookup_widget("stack_default_entry")),pref->prepro.stack_default);
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_stack")), pref->prepro.use_stack_default);
