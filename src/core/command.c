@@ -7774,17 +7774,15 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 				args->cc_from_dark = TRUE;
 				//either we use the default sigmas or we try to read the next two checking for sigma low and high
 				if (i + 2 < nb) {
-					gchar *end1, *end2;
-					args->sigma[0] = g_ascii_strtod(word[i + 1], &end1);
-					args->sigma[1] = g_ascii_strtod(word[i + 2], &end2);
-
+					gchar *end1 = NULL, *end2 = NULL;
+					double sigma0 = g_ascii_strtod(word[i + 1], &end1);
+					double sigma1 = g_ascii_strtod(word[i + 2], &end2);
 					if (word[i + 1] && word[i + 2] && word[i + 1] != end1
 							&& word[i + 2] != end2) {
 						i += 2;
+						args->sigma[0] = (sigma0 == 0.0) ? -1.00 : sigma0;
+						args->sigma[1] = (sigma1 == 0.0) ? -1.00 : sigma1;
 					}
-
-					if (args->sigma[0] == 0.0) args->sigma[0] = -1.00;
-					if (args->sigma[1] == 0.0) args->sigma[1] = -1.00;
 				}
 				if (args->sigma[0] > 0)
 					siril_log_message(_("Cosmetic correction from masterdark: using sigma %.2lf for cold pixels.\n"), args->sigma[0]);
