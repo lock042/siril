@@ -742,7 +742,7 @@ int process_savejpg(int nb){
 		retval = 1;
 	} else {
 		set_cursor_waiting(TRUE);
-		retval = savejpg(savename, &gfit, quality);
+		retval = savejpg(savename, &gfit, quality, TRUE);
 		set_cursor_waiting(FALSE);
 	}
 	g_free(filename);
@@ -3170,14 +3170,27 @@ int process_resample(int nb) {
 				return CMD_ARG_ERROR;
 			}
 			toY = round_to_int(gfit.ry * (double)toX / gfit.rx);
+		} else if (g_str_has_prefix(word[1], "-maxdim=")) {
+			double maxdim = g_ascii_strtoull(word[1] + 8, &end, 10);
+			if (end == word[1]+9) {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), word[1]);
+				return CMD_ARG_ERROR;
+			}
+			if (gfit.rx > gfit.ry) {
+				toX = maxdim;
+				toY = round_to_int(gfit.ry * (double)toX / gfit.rx);
+			} else {
+				toY = maxdim;
+				toX = round_to_int(gfit.rx * (double)toY / gfit.ry);
+			}
 		} else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[1]);
 			return CMD_ARG_ERROR;
 		}
 	} else {
 		double factor = g_ascii_strtod(word[1], &end);
-		if (end == word[1] || factor <= 0.0 || factor > 5.0) {
-			siril_log_message(_("Scale %lf not allowed. Should be between 0.0 and 5.0.\n"), factor);
+		if (end == word[1] || factor <= 0.2 || factor > 5.0) {
+			siril_log_message(_("Scale %lf not allowed. Should be between 0.2 and 5.0.\n"), factor);
 			return CMD_ARG_ERROR;
 		}
 		if (factor == 1.0) {
@@ -4539,8 +4552,22 @@ int process_seq_resample(int nb) {
 					return CMD_ARG_ERROR;
 				}
 				args->scale = toX / (double) seq->rx;
-			}
-			else if (g_str_has_prefix(word[i], "-scale=")) {
+			} else if (g_str_has_prefix(word[1], "-maxdim=")) {
+				char *current = word[i] + 8, *end;
+				double maxdim = g_ascii_strtoull(current, &end, 10);
+				if (maxdim < 10) {
+					siril_log_message(_("Error: max dimension cannot be less than 10, aborting.\n"));
+						if (!check_seq_is_comseq(seq))
+							free_sequence(seq, TRUE);
+						free(args->prefix);
+					return CMD_ARG_ERROR;
+				}
+				if (gfit.rx > gfit.ry) {
+					args->scale = maxdim / (double) seq->rx;
+				} else {
+					args->scale = maxdim / (double) seq->ry;
+				}
+			} else if (g_str_has_prefix(word[i], "-scale=")) {
 				char *current = word[i] + 7, *end;
 				args->scale = g_ascii_strtod(current, &end);
 				if (args->scale < 0.01) {
@@ -8600,17 +8627,15 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 				args->cc_from_dark = TRUE;
 				//either we use the default sigmas or we try to read the next two checking for sigma low and high
 				if (i + 2 < nb) {
-					gchar *end1, *end2;
-					args->sigma[0] = g_ascii_strtod(word[i + 1], &end1);
-					args->sigma[1] = g_ascii_strtod(word[i + 2], &end2);
-
+					gchar *end1 = NULL, *end2 = NULL;
+					double sigma0 = g_ascii_strtod(word[i + 1], &end1);
+					double sigma1 = g_ascii_strtod(word[i + 2], &end2);
 					if (word[i + 1] && word[i + 2] && word[i + 1] != end1
 							&& word[i + 2] != end2) {
 						i += 2;
+						args->sigma[0] = (sigma0 == 0.0) ? -1.00 : sigma0;
+						args->sigma[1] = (sigma1 == 0.0) ? -1.00 : sigma1;
 					}
-
-					if (args->sigma[0] == 0.0) args->sigma[0] = -1.00;
-					if (args->sigma[1] == 0.0) args->sigma[1] = -1.00;
 				}
 				if (args->sigma[0] > 0)
 					siril_log_message(_("Cosmetic correction from masterdark: using sigma %.2lf for cold pixels.\n"), args->sigma[0]);

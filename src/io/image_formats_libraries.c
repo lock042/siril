@@ -1217,7 +1217,7 @@ int readjpg(const char* name, fits *fit){
 	return cinfo.output_components;
 }
 
-int savejpg(const char *name, fits *fit, int quality){
+int savejpg(const char *name, fits *fit, int quality, gboolean verbose) {
 	struct jpeg_compress_struct cinfo;    // Basic info for JPEG properties.
 	struct jpeg_error_mgr jerr;           // In case of error.
 
@@ -1403,7 +1403,8 @@ int savejpg(const char *name, fits *fit, int quality){
 	fclose(f);
 	jpeg_destroy_compress(&cinfo);
 	free(image_buffer);
-	siril_log_message(_("Saving JPG: file %s, quality=%d%%, %ld layer(s), %ux%u pixels\n"),
+	if (verbose)
+		siril_log_message(_("Saving JPG: file %s, quality=%d%%, %ld layer(s), %ux%u pixels\n"),
 						filename, quality, fit->naxes[2], fit->rx, fit->ry);
 	free(filename);
 	free(profile);
