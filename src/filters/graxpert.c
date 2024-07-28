@@ -429,7 +429,7 @@ static void open_graxpert_result(graxpert_data *args) {
 			// gets freed by the call to clearfits(result) and the result data becomes
 			// owned by args->fit
 			if (fits_swap_image_data(args->fit, result)) {
-				siril_debug_print("Error, NULL fits passed to fits_swap_image_data()\n");
+				siril_log_color_message(_("Error: mismatch between original image and the GraXpert result. Please report this as a bug.\n"), "red");
 				goto END_AND_RETURN;
 			}
 			clearfits(result);

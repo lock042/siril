@@ -3176,7 +3176,10 @@ int fits_parse_header_str(fits *fit, const char *header){
 }
 
 int fits_swap_image_data(fits *a, fits *b) {
-	if (a == NULL || b == NULL) return 1;
+	if (a == NULL || b == NULL)
+		return 1;
+	if (a->rx != b->rx || a->ry != b->ry || a->naxes[2] != b->naxes[2] || a->type != b->type)
+		return 1;
 	float *ftmp;
 	WORD *tmp;
 	tmp = a->data;
