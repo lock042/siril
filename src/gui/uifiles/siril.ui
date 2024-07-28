@@ -5701,13 +5701,14 @@ When this box is unchecked, the global star registration will be calculated and 
                                                             <property name="can-focus">False</property>
                                                             <property name="tooltip-markup" translatable="yes">To correct images for distortions, you can either select:
 - distortion solution from current platesolved image
-- distortion solution from an existing WCS file</property>
+- distortion solution from an existing WCS file
+- distortion solution from distortions masters</property>
                                                             <property name="active">0</property>
                                                             <items>
                                                             <item translatable="yes">None</item>
                                                             <item translatable="yes">From image</item>
                                                             <item translatable="yes">From FITS/WCS file</item>
-                                                            <item translatable="yes">From distortion master</item>
+                                                            <item translatable="yes">From distortion masters</item>
                                                             </items>
                                                             <signal name="changed" handler="on_comboreg_undistort_changed" swapped="no"/>
                                                             </object>

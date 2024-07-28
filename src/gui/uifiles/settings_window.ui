@@ -2138,7 +2138,7 @@ On Windows, you must point to the location of cygwin_ansvr folder only if not in
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">False</property>
-                                <property name="tooltip-text" translatable="yes">Choose a master-flat that can be used as generic master-flat by clicking on the button "Use it as default".</property>
+                                <property name="tooltip-text" translatable="yes">Choose a master-distortion that can be used as generic master-distortion by clicking on the button "Use it as default".</property>
                                 <property name="halign">start</property>
                                 <property name="use-underline">True</property>
                                 <signal name="clicked" handler="on_distolibfile_button_clicked" swapped="no"/>
