@@ -425,15 +425,13 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 			gchar *wcsname = path_parse(&fit, com.pref.prepro.disto_lib, PATHPARSE_MODE_READ, &statusread);
 			clearfits(&fit);
 			if (statusread) {
-				siril_log_color_message(_("Could not parse master file name for distorsion\n"), "red");
-				siril_log_color_message(_("Computing registration without distorsion correction\n"), "red");
+				siril_log_color_message(_("Could not parse master file name for distorsion, aborting\n"), "red");
 				free_disto_args(disto);
 				return NULL;
 			}
 			statusread = read_fits_metadata_from_path_first_HDU(wcsname, &fit);
 			if (statusread) {
-				siril_log_color_message(_("Could not load master file for distorsion\n"), "red");
-				siril_log_color_message(_("Computing registration without distorsion correction\n"), "red");
+				siril_log_color_message(_("Could not load master file for distorsion, aborting\n"), "red");
 				clearfits(&fit);
 				free_disto_args(disto);
 				return NULL;
@@ -441,8 +439,7 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 			wcs = wcs_deepcopy(fit.keywords.wcslib, &statusread);
 			clearfits(&fit);
 			if (statusread) {
-				siril_log_color_message(_("Could not copy WCS information for distorsion\n"), "red");
-				siril_log_color_message(_("Computing registration without distorsion correction\n"), "red");
+				siril_log_color_message(_("Could not copy WCS information for distorsion, aborting\n"), "red");
 				free_disto_args(disto);
 				return NULL;
 			}
@@ -455,10 +452,13 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 			} else {
 				disto[i].dtype = DISTO_NONE;
 			}
-			if (!found) {
-				free(disto);
-				disto = NULL;
-			}
+			wcsfree(wcs);
+			wcs = NULL;
+		}
+		if (!found) {
+			free(disto);
+			distoparam->index = DISTO_UNDEF;
+			return NULL;
 		}
 	}
 
@@ -502,7 +502,8 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 		// so as not to use maps and use optimized image transform instead
 		if (!found) {
 			free(disto);
-			disto = NULL;
+			distoparam->index = DISTO_UNDEF;
+			return NULL;
 		}
 	}
 	*status = 0;
