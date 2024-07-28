@@ -3175,10 +3175,11 @@ int fits_parse_header_str(fits *fit, const char *header){
 	return status;
 }
 
+// Swaps all image-data related elements of two FITS (the data pointers themselves,
+// also dimensions and statistics, but not the header, keywords or fptr).
+
 int fits_swap_image_data(fits *a, fits *b) {
 	if (a == NULL || b == NULL)
-		return 1;
-	if (a->rx != b->rx || a->ry != b->ry || a->naxes[2] != b->naxes[2] || a->type != b->type)
 		return 1;
 	float *ftmp;
 	WORD *tmp;
@@ -3198,5 +3199,43 @@ int fits_swap_image_data(fits *a, fits *b) {
 		a->fpdata[i] = b->fpdata[i];
 		b->fpdata[i] = ftmp;
 	}
+	int temp = a->bitpix;
+	a->bitpix = b->bitpix;
+	b->bitpix = temp;
+	temp = a->orig_bitpix;
+	a->orig_bitpix = b->orig_bitpix;
+	b->orig_bitpix = temp;
+	temp = a->naxis;
+	a->naxis = b->naxis;
+	b->naxis = temp;
+	unsigned int uitmp = a->rx;
+	a->rx = b->rx;
+	b->rx = uitmp;
+	uitmp = a->ry;
+	a->ry = b->ry;
+	b->ry = uitmp;
+	long temp_naxes[3];
+	memcpy(temp_naxes, a->naxes, sizeof(temp_naxes));
+	memcpy(a->naxes, b->naxes, sizeof(temp_naxes));
+	memcpy(b->naxes, temp_naxes, sizeof(temp_naxes));
+	data_type dtmp = a->type;
+	a->type = b->type;
+	b->type = dtmp;;
+	gboolean btmp = a->top_down;
+	a->top_down = b->top_down;
+	b->top_down = btmp;
+	imstats **stmp = a->stats;
+	a->stats = b->stats;
+	b->stats = stmp;
+	double fftmp = a->mini;
+	a->mini = b->mini;
+	b->mini = fftmp;
+	fftmp = a->maxi;
+	a->maxi = b->maxi;
+	b->maxi = fftmp;
+	float tmpf = a->neg_ratio;
+	a->neg_ratio = b->neg_ratio;
+	b->neg_ratio = tmpf;
+
 	return 0;
 }
