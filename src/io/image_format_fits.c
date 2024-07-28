@@ -166,8 +166,10 @@ static void fits_read_history(fitsfile *fptr, GSList **history) {
 	do {
 		status = 0;
 		fits_movrel_hdu(fptr, 1, &type, &status);
-		if (status)
+		if (status) {
+			//fits_report_error(stderr, status);
 			break;
+		}
 		hdu_changed = TRUE;
 		if (type == IMAGE_HDU)
 			break;
@@ -859,7 +861,6 @@ void save_fits_header(fits *fit) {
 	save_fits_keywords(fit);
 	save_wcs_keywords(fit);
 	save_history_keywords(fit);
-
 	save_fits_unknown_keywords(fit);
 }
 
@@ -3013,9 +3014,28 @@ error:
 	return 1;
 }
 
-int updateFITSKeyword(fits *fit, const gchar *key, const gchar *value) {
-	char card[FLEN_CARD], newcard[FLEN_CARD];
-	char oldvalue[FLEN_VALUE], comment[FLEN_COMMENT] = { 0 };
+typedef gsize (*StrlFunc)(char *dest, const char *src, gsize maxlen);
+
+static void strl_with_check(char *dest, const char *src, gsize maxlen, StrlFunc strl_func) {
+	gsize len = strl_func(dest, src, maxlen);
+	if (len >= maxlen) {
+		siril_debug_print("Exceeded FITS card length\n");
+	}
+}
+
+gboolean keyword_is_protected(char *card) {
+	char keyname[9];
+	strl_with_check(keyname, card, sizeof(keyname), g_strlcpy);
+	if ((g_strcmp0(keyname, "PROGRAM ") == 0)
+			|| (g_strcmp0(keyname, "DATE    ") == 0)) {
+		return TRUE;
+	}
+	return (fits_get_keyclass(card) == TYP_STRUC_KEY || fits_get_keyclass(card) == TYP_CMPRS_KEY || fits_get_keyclass(card) == TYP_SCAL_KEY);
+}
+
+int updateFITSKeyword(fits *fit, const gchar *key, const gchar *newkey, const gchar *value, const gchar *comment, gboolean verbose, gboolean isfitseq) {
+	char card[FLEN_CARD] = { 0 }, newcard[FLEN_CARD] = { 0 };
+	char oldvalue[FLEN_VALUE] = { 0 }, oldcomment[FLEN_COMMENT] = { 0 };
 	int keytype;
 	void *memptr;
 	size_t memsize = IOBUFLEN;
@@ -3050,52 +3070,105 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *value) {
 	tmpfit.fptr = fptr;
 	save_fits_header(&tmpfit);
 
-	if (fits_read_card(fptr, key, card, &status)) {
-		siril_log_color_message("Keyword does not exist or is not managed by Siril\n", "red");
-		goto cleanup;
+	if (key && fits_read_card(fptr, key, card, &status)) { // key is NULL if only comment
+		siril_debug_print("Keyword does not exist\n");
+		card[0] = '\0';
+		oldcomment[0] = '\0';
+		status = 0; /* reset status after error */
 	} else
 		siril_debug_print("%s\n", card);
 
 	/* check if this is a protected keyword that must not be changed */
-	if (*card && fits_get_keyclass(card) == TYP_STRUC_KEY) {
+	if (*card && keyword_is_protected(card)) {
 		siril_log_color_message("Protected keyword cannot be modified.\n", "red");
+		return 1;
 	} else {
-		/* get the comment string */
-		if (*card)
-			fits_parse_value(card, oldvalue, comment, &status);
+		/* Modifying keyname */
+		if (newkey != NULL) {
+			strl_with_check(newcard, "- ", FLEN_CARD, g_strlcpy);
+			strl_with_check(newcard, key, FLEN_CARD, g_strlcat);
+			strl_with_check(newcard, " ", FLEN_CARD, g_strlcat);
+			strl_with_check(newcard, newkey, FLEN_CARD, g_strlcat);
+			/* Deleting keyname */
+		} else if (comment == NULL && value == NULL) {
+			strl_with_check(newcard, "- ", FLEN_CARD, g_strlcpy);
+			strl_with_check(newcard, key, FLEN_CARD, g_strlcat);
+			/* Adding comment */
+		} else if (key == NULL && value == NULL && comment != NULL) {
+			strl_with_check(newcard, "        ", FLEN_CARD, g_strlcpy);
+			strl_with_check(newcard, comment, FLEN_CARD, g_strlcat);
+		} else {
+			/* get the comment string */
+			if (*card)
+				fits_parse_value(card, oldvalue, oldcomment, &status);
 
-		/* construct template for new keyword */
-		gsize len, maxlen = FLEN_CARD;
-		len = g_strlcpy(newcard, key, maxlen);
-		if (len >= maxlen)
-			siril_debug_print("Exceeded FTS card length\n");
-		maxlen = max(0, maxlen - len);
-		len = g_strlcat(newcard, " = ", maxlen);
-		if (len >= maxlen)
-			siril_debug_print("Exceeded FTS card length\n");
-		maxlen = max(0, maxlen - len);
-		len = g_strlcat(newcard, value, maxlen);
-		if (len >= maxlen)
-			siril_debug_print("Exceeded FTS card length\n");
-		maxlen = max(0, maxlen - len);
-		if (*card && *comment) { /* Restore comment if exist */
-			len = g_strlcat(newcard, " / ", maxlen);
-			if (len >= maxlen)
-				siril_debug_print("Exceeded FTS card length\n");
-			maxlen = max(0, maxlen - len);
-			len = g_strlcat(newcard, comment, maxlen);
-			if (len >= maxlen)
-				siril_debug_print("Exceeded FTS card length\n");
+			/* construct template for new keyword */
+			strl_with_check(newcard, key, FLEN_CARD, g_strlcpy);
+			strl_with_check(newcard, " = ", FLEN_CARD, g_strlcat);
+			strl_with_check(newcard, value, FLEN_CARD, g_strlcat);
+
+			if (*oldcomment || comment) { /* Restore comment if exist, or use new one */
+				strl_with_check(newcard, " / ", FLEN_CARD, g_strlcat);
+				if (comment) {
+					strl_with_check(newcard, comment, FLEN_CARD, g_strlcat);
+				} else {
+					strl_with_check(newcard, oldcomment, FLEN_CARD, g_strlcat);
+				}
+			}
 		}
-
+		status = 0;
 		fits_parse_template(newcard, card, &keytype, &status);
-		fits_update_card(tmpfit.fptr, key, card, &status);
 
-		siril_log_color_message("Keyword has been changed to:\n", "green");
-		siril_log_message("%s\n", card);
+		switch (keytype) {
+		case -2:
+			// Rename the key: the old name is returned in the first 8 chars of card
+			// and the new name is returned in characters 41-48 of card
+			card[8] = '\0';
+			char *new_name = card + 40;
+			char *end = strchr(new_name, ' ');
+			if (end)
+				*end = '\0';
+			card[47] = '\0';
+			fits_modify_name(tmpfit.fptr, card, new_name, &status);
+			remove_keyword_in_fit_keywords(key, &tmpfit); // needed to manage known keywords
+			if (verbose) {
+				siril_log_color_message("Keyword %s has been renamed to %s\n", "green", card, new_name);
+			}
+			break;
+		case -1:
+			// Delete the key
+			fits_delete_key(tmpfit.fptr, key, &status);
+			remove_keyword_in_fit_keywords(key, &tmpfit); // needed to manage known keywords
+			if (verbose) {
+				siril_log_color_message("Keyword %s has been removed\n", "green", key);
+			}
+			break;
+		case 0:
+			// Update the card if it already exists, otherwise append a new card
+			fits_update_card(tmpfit.fptr, key, card, &status);
+			if (verbose) {
+				siril_log_color_message("Keyword has been changed to:\n", "green");
+				siril_log_message("%s\n", card);
+			}
+			break;
+		case 1:
+			// Append the record (for HISTORY or COMMENT cards)
+			//fits_write_record(tmpfit.fptr, card, &status);
+			fits_write_comment(tmpfit.fptr, g_strstrip(card), &status); // here we use card for comment
+			if (verbose) {
+				siril_log_color_message("Comment \"%s\" has been added\n", "green", g_strstrip(card));
+			}
+			break;
+		case 2:
+		default:
+			// This is for END records: do nothing
+			break;
+		}
 
 		/* populate all structures */
 		read_fits_header(&tmpfit);
+		if (isfitseq)
+			remove_all_fits_keywords(fit);
 		copy_fits_metadata(&tmpfit, fit);
 
 		if (fit->header)
@@ -3106,7 +3179,6 @@ int updateFITSKeyword(fits *fit, const gchar *key, const gchar *value) {
 	if (status)
 		fits_report_error(stderr, status);
 
-cleanup:
 	fits_close_file(tmpfit.fptr, &status);
 	clearfits(&tmpfit);
 	free(memptr);

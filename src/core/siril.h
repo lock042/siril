@@ -410,8 +410,8 @@ typedef enum { DATA_USHORT, DATA_FLOAT, DATA_UNSUPPORTED } data_type;
 #define DEFAULT_DOUBLE_VALUE -999.0
 #define DEFAULT_FLOAT_VALUE -999.f
 #define DEFAULT_INT_VALUE -INT_MAX
-#define DEFAULT_UINT_VALUE 0
-#define DEFAULT_USHORT_VALUE DEFAULT_UINT_VALUE
+#define DEFAULT_UINT_VALUE INT_MAX
+#define DEFAULT_USHORT_VALUE 0
 
 typedef struct {
 	/* data obtained from the FITS file */

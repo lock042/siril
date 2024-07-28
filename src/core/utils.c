@@ -822,6 +822,61 @@ void replace_invalid_chars(char *name, char repl) {
 	return;
 }
 
+/**
+ * Replace non-ASCII characters with their ASCII equivalents if possible.
+ *
+ * This function normalizes the input UTF-8 string by decomposing
+ * accented characters into their base characters plus accent marks.
+ * It then filters out non-ASCII characters and retains only printable ASCII characters.
+ *
+ * @param str The input UTF-8 string to be processed.
+ * @return A newly allocated UTF-8 string where non-ASCII characters are replaced
+ *         with their ASCII equivalents or removed if no equivalent exists.
+ *         The caller is responsible for freeing the returned string.
+ */
+gchar* replace_wide_char(const gchar *str) {
+	// Normalize the input string to NFD (Normalization Form Decomposition)
+	// This separates combined characters into their base and accent components
+	gchar *normalized_str = g_utf8_normalize(str, -1, G_NORMALIZE_NFD);
+	if (normalized_str == NULL) {
+		// If normalization fails, return NULL
+		return NULL;
+	}
+
+	// Create a new GString to accumulate the ASCII result
+	GString *ascii_str = g_string_new(NULL);
+
+	for (const gchar *p = normalized_str; *p != '\0'; p = g_utf8_next_char(p)) {
+		// Get the Unicode code point for the current character
+		gunichar ch = g_utf8_get_char(p);
+
+		// Check if the character is printable
+		if (g_unichar_isprint(ch)) {
+			// If the character is an ASCII character (code points 0x00 to 0x7F)
+			if (ch <= 0x7F) {
+				// Append the ASCII character directly to the result string
+				g_string_append_unichar(ascii_str, ch);
+			} else {
+				// For non-ASCII characters, decompose them into their UTF-8 representation
+				gchar decomposed[5] = { 0 }; // Buffer to hold the decomposed UTF-8 characters
+				gint decomposed_len = g_unichar_to_utf8(ch, decomposed);
+
+				// Iterate over each decomposed character
+				for (gint i = 0; i < decomposed_len; i++) {
+					// Append only printable ASCII characters (code points 0x20 to 0x7E) to the result string
+					if (decomposed[i] >= 0x20 && decomposed[i] <= 0x7E) {
+						g_string_append_c(ascii_str, decomposed[i]);
+					}
+				}
+			}
+		}
+	}
+
+	g_free(normalized_str);
+
+	return g_string_free(ascii_str, FALSE);
+}
+
 /** Tests if filename is the canonical name of a known file type
  *  If filename contains an extension, only this file name is tested, else all
  *  extensions are tested for the file name until one is found.
