@@ -7545,18 +7545,23 @@ int process_seq_applyreg(int nb) {
 			fits reffit = { 0 };
 			gchar *error = NULL;
 			int status;
+			if (seq_read_frame_metadata(seq, seq->reference_image, &reffit)) {
+				siril_log_color_message(_("NOT USING FLAT: Could not load reference image\n"), "red");
+				clearfits(&reffit);
+				goto terminate_register_on_error;
+			}
 			gchar *expression = path_parse(&reffit, flat_filename, PATHPARSE_MODE_READ, &status);
+			clearfits(&reffit);
 			if (status) {
 				error = _("NOT USING FLAT: could not parse the expression");
-				driz->use_flats = FALSE;
+				goto terminate_register_on_error;
 			} else {
-				free(expression);
-				if (flat_filename[0] == '\0') {
+				if (expression[0] == '\0') {
 					siril_log_message(_("Error: no master flat specified in the preprocessing tab.\n"));
 					goto terminate_register_on_error;
 				} else {
 					driz->flat = calloc(1, sizeof(fits));
-					if (!readfits(flat_filename, driz->flat, NULL, TRUE)) {
+					if (!readfits(expression, driz->flat, NULL, TRUE)) {
 						if (driz->flat->naxes[2] != seq->nb_layers) {
 							error = _("NOT USING FLAT: number of channels is different");
 						} else if (driz->flat->naxes[0] != seq->rx ||

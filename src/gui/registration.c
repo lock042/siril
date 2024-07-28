@@ -985,31 +985,39 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 }
 
 // Functions to collect GUI data
-static int populate_drizzle_data(struct driz_args_t *driz) {
+static int populate_drizzle_data(struct driz_args_t *driz, sequence *seq) {
 	driz->use_flats = gtk_toggle_button_get_active(driz_use_flats);
 	driz->weight_scale = 1.f; // Not used for now
 	driz->kernel = (enum e_kernel_t) gtk_combo_box_get_active(GTK_COMBO_BOX(combo_driz_kernel));
 	driz->pixel_fraction = gtk_spin_button_get_value(spin_driz_dropsize);
 	driz->is_bayer = gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] != '\0';
+	int status;
+	gchar *error = NULL;
+	gchar *expression = NULL;
 	if (driz->use_flats) {
 		fits reffit = { 0 };
+		if (seq_read_frame_metadata(seq, seq->reference_image, &reffit)) {
+			siril_log_color_message(_("NOT USING FLAT: Could not load reference image\n"), "red");
+			free(driz);
+			clearfits(&reffit);
+			return 1;
+		}
 		const gchar *flat_filename = gtk_entry_get_text(flatname_entry);
-		gchar *error = NULL;
-		int status;
-		gchar *expression = path_parse(&reffit, flat_filename, PATHPARSE_MODE_READ, &status);
-		g_free(expression);
+		expression = path_parse(&reffit, flat_filename, PATHPARSE_MODE_READ, &status);
+		clearfits(&reffit);
 		if (status) {
 			error = _("NOT USING FLAT: could not parse the expression");
-			driz->use_flats = FALSE;
+			free(driz);
+			return 1;
 		} else {
-			if (flat_filename[0] == '\0') {
+			if (expression[0] == '\0') {
 				siril_log_message(_("Error: no master flat specified in the preprocessing tab.\n"));
 				free(driz);
 				return 1;
 			} else {
 				set_progress_bar_data(_("Opening flat image..."), PROGRESS_NONE);
 				driz->flat = calloc(1, sizeof(fits));
-				if (!readfits(flat_filename, driz->flat, NULL, TRUE)) {
+				if (!readfits(expression, driz->flat, NULL, TRUE)) {
 					if (driz->flat->naxes[2] != com.seq.nb_layers) {
 						error = _("NOT USING FLAT: number of channels is different");
 					} else if (driz->flat->naxes[0] != com.seq.rx ||
@@ -1121,7 +1129,7 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 		regargs->output_scale = (float)gtk_spin_button_get_value(reg_scaling_spin);
 		if (has_drizzle) {
 			regargs->driz = calloc(1, sizeof(struct driz_args_t));
-			if (populate_drizzle_data(regargs->driz)) {
+			if (populate_drizzle_data(regargs->driz, regargs->seq)) {
 				return 1;
 			}
 		} else { // interpolation
