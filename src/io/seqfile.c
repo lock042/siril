@@ -241,7 +241,7 @@ sequence * readseqfile(const char *name){
 				if (!seq->distoparam)
 					seq->distoparam = calloc(seq->nb_layers, sizeof(disto_params));
 				seq->distoparam[current_layer].index = index;
-				if (index == DISTO_FILE) {
+				if (index == DISTO_FILE || index == DISTO_MASTER) {
 					if (nb_tokens == 1) {
 						fprintf(stderr, "readseqfile: sequence file bad distorsion param: %s\n", line);
 					}
@@ -668,6 +668,12 @@ int writeseqfile(sequence *seq){
 					fprintf(seqfile, "D%c %d\n",
 					seq->cfa_opened_monochrome ? '*' : '0' + layer,
 					DISTO_FILES);
+				else if (seq->distoparam[layer].index == DISTO_MASTER) {
+					fprintf(seqfile, "D%c %d %s\n",
+					seq->cfa_opened_monochrome ? '*' : '0' + layer,
+					DISTO_MASTER,
+					seq->distoparam[layer].filename);
+				}
 			}
 			for (i = 0; i < seq->number; ++i) {
 				fprintf(seqfile, "R%c %g %g %g %g %g %d H %g %g %g %g %g %g %g %g %g\n",

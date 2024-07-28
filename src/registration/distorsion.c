@@ -400,9 +400,10 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 			}
 			clearfits(&fit);
 			break;
-		case DISTO_FILES:
 		case DISTO_MASTER:
+			distoparam->filename = g_strdup(com.pref.prepro.disto_lib);
 			break;
+		case DISTO_FILES:
 		default:
 			return NULL;
 			break;
