@@ -2114,7 +2114,7 @@ On Windows, you must point to the location of cygwin_ansvr folder only if not in
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="halign">start</property>
-                                <property name="label" translatable="yes">Master-distorsion:</property>
+                                <property name="label" translatable="yes">Master-distortion:</property>
                               </object>
                               <packing>
                                 <property name="left-attach">0</property>
@@ -2166,7 +2166,7 @@ On Windows, you must point to the location of cygwin_ansvr folder only if not in
                             <property name="can-focus">False</property>
                             <property name="margin-top">10</property>
                             <property name="margin-bottom">10</property>
-                            <property name="label" translatable="yes">Dark/Bias/Flat/Distorsion Libraries</property>
+                            <property name="label" translatable="yes">Dark/Bias/Flat/Distortion Libraries</property>
                             <property name="single-line-mode">True</property>
                             <attributes>
                               <attribute name="weight" value="bold"/>

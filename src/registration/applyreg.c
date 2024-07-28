@@ -335,13 +335,13 @@ int apply_reg_prepare_hook(struct generic_seq_args *args) {
 		siril_log_color_message(_("Applying transformation on a sequence opened as CFA is a bad idea.\n"), "red");
 
 	if (regargs->undistort) {
-		siril_log_message(_("Distorsion data was found in the sequence file, undistorsion will be applied\n"));
+		siril_log_message(_("Distortion data was found in the sequence file, undistortion will be applied\n"));
 	}
 
-		// We prepare the distorsion structure maps if required
+		// We prepare the distortion structure maps if required
 	if (regargs->undistort && init_disto_map(fit.rx, fit.ry, regargs->disto)) {
 		siril_log_color_message(
-				_("Could not init distorsion mapping\n"), "red");
+				_("Could not init distortion mapping\n"), "red");
 		args->seq->regparam[regargs->layer] = NULL;
 		free(sadata->current_regdata);
 		clearfits(&fit);
@@ -862,7 +862,7 @@ int register_apply_reg(struct registration_args *regargs) {
 	sadata->regargs = regargs;
 	args->user = sadata;
 
-	regargs->undistort = layer_has_distorsion(regargs->seq, regargs->layer);
+	regargs->undistort = layer_has_distortion(regargs->seq, regargs->layer);
 	if (regargs->undistort) {
 		regargs->distoparam = regargs->seq->distoparam[regargs->layer];
 		int status = 1;
@@ -993,7 +993,7 @@ gboolean check_before_applyreg(struct registration_args *regargs) {
 	}
 
 	if (!driz && regargs->interpolation == OPENCV_NONE && regargs->undistort) {
-		siril_log_color_message(_("Applying registration on images with distorsions when interpolation is set to none is not allowed, aborting\n"), "red");
+		siril_log_color_message(_("Applying registration on images with distortions when interpolation is set to none is not allowed, aborting\n"), "red");
 		return FALSE;
 	}
 

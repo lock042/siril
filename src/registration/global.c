@@ -166,7 +166,7 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	}
 
 	/* copying refstars to com.stars for display
-	/ * we make this cop before distorsion correction */
+	/ * we make this cop before distortion correction */
 	if (!com.script && &com.seq == args->seq && com.seq.current == regargs->reference_image) {
 		psf_star **stars = new_fitted_stars(MAX_STARS);
 		if (stars) {
@@ -185,22 +185,22 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 		update_star_list(stars, FALSE);
 	}
 
-	// We prepare the distorsion structure maps if required
+	// We prepare the distortion structure maps if required
 	if (regargs->undistort && init_disto_map(fit.rx, fit.ry, regargs->disto)) {
 		siril_log_color_message(
-				_("Could not init distorsion mapping\n"), "red");
+				_("Could not init distortion mapping\n"), "red");
 		args->seq->regparam[regargs->layer] = NULL;
 		free(sadata->current_regdata);
 		clearfits(&fit);
 		return 1;
 	}
 
-	// we correct the reference stars for distorsions
+	// we correct the reference stars for distortions
 	// we'll do the same for each imagebefore matching the 2 lists
-	// The star lists are not saved with distorsions as they may be re-used
-	// later on with a different distorsion setting
+	// The star lists are not saved with distortions as they may be re-used
+	// later on with a different distortion setting
 	// Instead, when registration has been computed accounting for SIP,
-	// the distorsion source is logged together with the registration info in the .seq file
+	// the distortion source is logged together with the registration info in the .seq file
 	// Note: for global reg, disto source can only by DISTO_IMAGE or DISTO_FILE
 	// i.e regargs->disto is of size 1
 	if (regargs->undistort && disto_correct_stars(sadata->refstars, regargs->disto)) {
@@ -355,7 +355,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 			args->seq->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 			return 1;
 		}
-		// if distorsion correction is included, we correct the current starlist
+		// if distortion correction is included, we correct the current starlist
 		// before performing the match
 		if (regargs->undistort && disto_correct_stars(stars, regargs->disto)) {
 			siril_log_color_message(
@@ -954,7 +954,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 			failed++;
 			continue;
 		}
-		// we apply distorsion (if any) before matching
+		// we apply distortion (if any) before matching
 		if (regargs->undistort && disto_correct_stars(sf_args->stars[i], regargs->disto)) {
 			siril_log_color_message(_("Could not correct the stars position with SIP coeffients\n"), "red");
 			retval = 1;

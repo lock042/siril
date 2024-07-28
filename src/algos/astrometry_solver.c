@@ -1022,7 +1022,7 @@ gpointer plate_solver(gpointer p) {
 		siril_log_message(_("Saved focal length %.2f and pixel size %.2f as default values\n"), focal_length, args->pixel_size);
 	}
 
-	/* 5.a Save distorsion master
+	/* 5.a Save distortion master
 		We need to do it before flipping
 	*/
 	if (args->save_master) {
@@ -1030,14 +1030,14 @@ gpointer plate_solver(gpointer p) {
 			int mstatus = 0;
 			gchar *mastername = path_parse(args->fit, com.pref.prepro.disto_lib, PATHPARSE_MODE_WRITE, &mstatus);
 			if (mstatus) {
-				siril_log_color_message(_("Could not save distorsion master file, skipping\n"), "salmon");
+				siril_log_color_message(_("Could not save distortion master file, skipping\n"), "salmon");
 			}
 			if (!mstatus && save_wcs_fits(args->fit, mastername)) {
-				siril_log_color_message(_("Could not save distorsion master file, skipping\n"), "salmon");
+				siril_log_color_message(_("Could not save distortion master file, skipping\n"), "salmon");
 			}
 		} else {
-			siril_log_color_message(_("Solution has no distorsion\n"), "salmon");
-			siril_log_color_message(_("Could not save distorsion master file, skipping\n"), "salmon");
+			siril_log_color_message(_("Solution has no distortion\n"), "salmon");
+			siril_log_color_message(_("Could not save distortion master file, skipping\n"), "salmon");
 		}
 	}
 
@@ -2113,7 +2113,7 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 	if (aargs->solver == SOLVER_LOCALASNET)
 		aargs->filename = g_strdup(root);	// for localasnet
 	
-	if (i != arg->seq->reference_image) { // we want to save master distorsion only once for ref image
+	if (i != arg->seq->reference_image) { // we want to save master distortion only once for ref image
 		aargs->save_master = FALSE;
 	}
 	process_plate_solver_input(aargs);

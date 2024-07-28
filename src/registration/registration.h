@@ -121,9 +121,9 @@ struct registration_args {
 	double filtering_parameter;	// and its parameter (seqapplyreg only)
 	gboolean no_starlist;		// disable star list creation (2pass only)
 	float output_scale;		// scaling factor
-	disto_source undistort;		// type of undistorsion to apply
-	disto_params distoparam;		// type of undistorsion to apply
-	disto_data *disto;			// undistorsion information
+	disto_source undistort;		// type of undistortion to apply
+	disto_params distoparam;		// type of undistortion to apply
+	disto_data *disto;			// undistortion information
 	struct wcsprm* WCSDATA;		// wcs structs for the whole structure (for seqapplyreg with astrometric solution) 
 	struct driz_args_t *driz;	// drizzle-specific data
 	framing_type framing;		// used by seqapplyreg to determine framing
@@ -172,7 +172,7 @@ gpointer register_thread_func(gpointer p);
 /** getter */
 int get_registration_layer(const sequence *seq);
 int seq_has_any_regdata(const sequence *seq); // same as get_registration_layer but does not rely on GUI for com.seq
-gboolean seq_has_any_distorsion(const sequence *seq);
+gboolean seq_has_any_distortion(const sequence *seq);
 
 regdata *apply_reg_get_current_regdata(struct registration_args *regargs);
 regdata *star_align_get_current_regdata(struct registration_args *regargs);
@@ -192,7 +192,7 @@ transformation_type guess_transform_from_H(Homography H);
 gboolean check_before_applyreg(struct registration_args *regargs);
 gboolean layer_has_registration(const sequence *seq, int layer);
 gboolean layer_has_usable_registration(sequence *seq, int layer);
-gboolean layer_has_distorsion(const sequence *seq, int layer);
+gboolean layer_has_distortion(const sequence *seq, int layer);
 int get_first_selected(sequence *seq);
 regdata *apply_reg_get_current_regdata(struct registration_args *regargs);
 

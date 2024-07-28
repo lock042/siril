@@ -223,10 +223,10 @@ sequence * readseqfile(const char *name){
 				}
 				++i;
 				break;
-			case 'D': // Distorsion data - from version 5 onwards
+			case 'D': // Distortion data - from version 5 onwards
 				current_layer = line[1] - '0';
 				if (current_layer < 0 || current_layer > seq->nb_layers) {
-					fprintf(stderr, "readseqfile: sequence file bad distorsion layer: %s\n", line);
+					fprintf(stderr, "readseqfile: sequence file bad distortion layer: %s\n", line);
 					goto error;
 				}
 				int index;
@@ -235,7 +235,7 @@ sequence * readseqfile(const char *name){
 							&index,
 							buf);
 				if (nb_tokens < 1 || nb_tokens > 2) {
-					fprintf(stderr, "readseqfile: sequence file bad distorsion param: %s\n", line);
+					fprintf(stderr, "readseqfile: sequence file bad distortion param: %s\n", line);
 					goto error;
 				}
 				if (!seq->distoparam)
@@ -243,7 +243,7 @@ sequence * readseqfile(const char *name){
 				seq->distoparam[current_layer].index = index;
 				if (index == DISTO_FILE || index == DISTO_MASTER) {
 					if (nb_tokens == 1) {
-						fprintf(stderr, "readseqfile: sequence file bad distorsion param: %s\n", line);
+						fprintf(stderr, "readseqfile: sequence file bad distortion param: %s\n", line);
 					}
 					seq->distoparam[current_layer].filename = g_strdup(buf);
 				}
@@ -658,7 +658,7 @@ int writeseqfile(sequence *seq){
 
 	for (layer = 0; layer < seq->nb_layers; layer++) {
 		if (seq->regparam && seq->regparam[layer]) {
-			if (layer_has_distorsion(seq, layer)) {
+			if (layer_has_distortion(seq, layer)) {
 				if (seq->distoparam[layer].index == DISTO_FILE)
 					fprintf(seqfile, "D%c %d %s\n",
 					seq->cfa_opened_monochrome ? '*' : '0' + layer,

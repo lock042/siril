@@ -288,11 +288,11 @@ typedef enum {
 } extraction_scaling;
 
 typedef enum {
-	DISTO_UNDEF, // No distorsion
-	DISTO_IMAGE, // Distorsion from current image
-	DISTO_FILE,  // Distorsion from given file
-	DISTO_MASTER, // Distorsion from master files
-	DISTO_FILES, // Distorsion stored in each file (true only from seq platesolve, even with no distorsion, it will be checked upon reloading)
+	DISTO_UNDEF, // No distortion
+	DISTO_IMAGE, // Distortion from current image
+	DISTO_FILE,  // Distortion from given file
+	DISTO_MASTER, // Distortion from master files
+	DISTO_FILES, // Distortion stored in each file (true only from seq platesolve, even with no distortion, it will be checked upon reloading)
 } disto_source;
 
 /* image data, exists once for each image */
@@ -359,7 +359,7 @@ struct sequ {
 	 * and use everything that was in the seqfile, so we back them up here */
 	regdata **regparam_bkp;	// *regparam[3], null if nothing to back up
 	imstats ***stats_bkp;	// statistics of the images for 3 layers, may be null too
-	disto_params *distoparam;	// the distorsion parameters used for the registration if any, one per layer
+	disto_params *distoparam;	// the distortion parameters used for the registration if any, one per layer
 
 	/* beg and end are used prior to imgparam allocation, hence their usefulness */
 	int beg;		// imgparam[0]->filenum

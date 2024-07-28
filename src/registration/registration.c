@@ -77,14 +77,14 @@ int seq_has_any_regdata(const sequence *seq) {
 	return -1;
 }
 
-gboolean layer_has_distorsion(const sequence *seq, int layer) {
+gboolean layer_has_distortion(const sequence *seq, int layer) {
 	if (!seq || layer < 0 || !seq->distoparam || seq->nb_layers < 0 || layer >= seq->nb_layers || seq->distoparam[layer].index == DISTO_UNDEF) return FALSE;
 	return TRUE;
 }
 
-gboolean seq_has_any_distorsion(const sequence *seq) {
+gboolean seq_has_any_distortion(const sequence *seq) {
 	for (int i = 0; i < seq->nb_layers; i++) {
-		if (layer_has_distorsion(seq, i))
+		if (layer_has_distortion(seq, i))
 			return TRUE;
 	}
 	return FALSE;

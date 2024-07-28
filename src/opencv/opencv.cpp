@@ -510,7 +510,7 @@ int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homog
 
 	H = F2.inv() * H * F1;
 
-	// no distorsion case
+	// no distortion case
 	if (!disto) {
 		// OpenCV function
 		warpPerspective(in, out, H, Size(target_rx, target_ry), interpolation, BORDER_TRANSPARENT);
@@ -531,7 +531,7 @@ int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homog
 		return Mat_to_image(image, &in, &out, bgr, target_rx, target_ry);
 	}
 
-	// distorsion case - we need to compute maps to pass to remapping to avoid double interpolation
+	// distortion case - we need to compute maps to pass to remapping to avoid double interpolation
 	float *xmap, *ymap;
 	Mat Hinv = H.inv();  // dst->src
 	xmap = (float *)malloc(target_rx * target_ry *sizeof(float));

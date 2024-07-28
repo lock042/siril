@@ -750,36 +750,36 @@ static gboolean check_disto(disto_source index) {
 	if (index == DISTO_IMAGE) {
 		if (!has_wcs(&gfit)) {
 			gtk_label_set_text(labelregisterinfo, _("Platesolve current image"));
-			gtk_widget_set_tooltip_text(GTK_WIDGET(labelregisterinfo), _("You have selected undistorsion from current image but it is not platesolved, perform astrometry first or disable distorsion"));
+			gtk_widget_set_tooltip_text(GTK_WIDGET(labelregisterinfo), _("You have selected undistortion from current image but it is not platesolved, perform astrometry first or disable distortion"));
 			return FALSE;
 		}
 		if (!gfit.keywords.wcslib->lin.dispre) {
-			gtk_label_set_text(labelregisterinfo, _("Platesolve current image with distorsions"));
-			gtk_widget_set_tooltip_text(GTK_WIDGET(labelregisterinfo), _("You have selected undistorsion from current image but it is has no distorsion terms, perform astrometry with SIP enabled or disable distorsion"));
+			gtk_label_set_text(labelregisterinfo, _("Platesolve current image with distortions"));
+			gtk_widget_set_tooltip_text(GTK_WIDGET(labelregisterinfo), _("You have selected undistortion from current image but it is has no distortion terms, perform astrometry with SIP enabled or disable distortion"));
 			return FALSE;
 		}
 	}
 	if (index == DISTO_FILE) {
 		const gchar *text = gtk_entry_get_text(reg_wcsfile_entry);
 		if (*text == '\0') {
-			gtk_label_set_text(labelregisterinfo, _("Load a FITS/WCS file for distorsion"));
+			gtk_label_set_text(labelregisterinfo, _("Load a FITS/WCS file for distortion"));
 			return FALSE;
 		} else {
 			fits fit = { 0 };
 			if (read_fits_metadata_from_path_first_HDU(text, &fit)) {
-				gtk_label_set_text(labelregisterinfo, _("Could not load FITS image for distorsion"));
+				gtk_label_set_text(labelregisterinfo, _("Could not load FITS image for distortion"));
 				clearfits(&fit);
 				return FALSE;
 			}
 			if (!has_wcs(&fit)) {
 				gtk_label_set_text(labelregisterinfo, _("Selected file has no WCS information"));
-				gtk_widget_set_tooltip_text(GTK_WIDGET(labelregisterinfo), _("You have selected undistorsion from file but it is not platesolved, perform astrometry first or disable distorsion"));
+				gtk_widget_set_tooltip_text(GTK_WIDGET(labelregisterinfo), _("You have selected undistortion from file but it is not platesolved, perform astrometry first or disable distortion"));
 				clearfits(&fit);
 				return FALSE;
 			}
 			if (!fit.keywords.wcslib->lin.dispre) {
-				gtk_label_set_text(labelregisterinfo, _("Selected file has no distorsion information"));
-				gtk_widget_set_tooltip_text(GTK_WIDGET(labelregisterinfo), _("You have selected undistorsion from file but it is has no distorsion terms, perform astrometry with SIP enabled or disable distorsion"));
+				gtk_label_set_text(labelregisterinfo, _("Selected file has no distortion information"));
+				gtk_widget_set_tooltip_text(GTK_WIDGET(labelregisterinfo), _("You have selected undistortion from file but it is has no distortion terms, perform astrometry with SIP enabled or disable distortion"));
 				clearfits(&fit);
 				return FALSE;
 			}
@@ -1148,7 +1148,7 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 			}
 		}
 	}
-	if (isapplyreg && seq_has_any_distorsion(regargs->seq)) {
+	if (isapplyreg && seq_has_any_distortion(regargs->seq)) {
 		regargs->undistort = regargs->seq->distoparam[regargs->layer].index;
 		regargs->distoparam = regargs->seq->distoparam[regargs->layer];
 	}
@@ -1187,7 +1187,7 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 			return 1;
 		}
 		if (regargs->undistort) {
-			siril_log_color_message(_("When interpolation is set to None, distorsions must be set to None as well. Aborting\n"), "red");
+			siril_log_color_message(_("When interpolation is set to None, distortions must be set to None as well. Aborting\n"), "red");
 			return 1;
 		}
 	}

@@ -259,7 +259,7 @@ free_all:
 	if (Hout) {
 		cvGetEye(Hout);
 	}
-	// we don't free WCSDATA as it will be further used to initialize distorsion data
+	// we don't free WCSDATA as it will be further used to initialize distortion data
 	return retval;
 }
 
