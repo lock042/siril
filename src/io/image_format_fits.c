@@ -823,7 +823,7 @@ int siril_fits_create_diskfile(fitsfile **fptr, const char *filename, int *statu
 		g_free(dirname);
 		return *status;
 	}
-	g_dir_close(dirname);
+	g_dir_close(dir);
 	g_free(dirname);
 	fits_create_diskfile(fptr, filename, status);
 	return *status;
