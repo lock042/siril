@@ -3019,13 +3019,14 @@ typedef gsize (*StrlFunc)(char *dest, const char *src, gsize maxlen);
 static void strl_with_check(char *dest, const char *src, gsize maxlen, StrlFunc strl_func) {
 	gsize len = strl_func(dest, src, maxlen);
 	if (len >= maxlen) {
-		siril_debug_print("Exceeded FITS card length\n");
+		siril_debug_print("Exceeded FITS card length: %s, %lu, %lu\n", dest, len, maxlen);
 	}
 }
 
 gboolean keyword_is_protected(char *card) {
 	char keyname[9];
-	strl_with_check(keyname, card, sizeof(keyname), g_strlcpy);
+	strncpy(keyname, card, 8);
+	keyname[8] = '\0';
 	if ((g_strcmp0(keyname, "PROGRAM ") == 0)
 			|| (g_strcmp0(keyname, "DATE    ") == 0)) {
 		return TRUE;
