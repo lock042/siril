@@ -1151,7 +1151,7 @@ static gboolean findstar_image_read_hook(struct generic_seq_args *args, int inde
 	char root[256];
 	if (!fit_sequence_get_image_filename(args->seq, index, root, FALSE)) {
 		free(curr_findstar_args);
-		return FALSE;
+		return TRUE; // we will let the processing function detect readout failure if required
 	}
 	gchar *star_filename = g_strdup_printf("%s.lst", root);
 
@@ -1161,7 +1161,7 @@ static gboolean findstar_image_read_hook(struct generic_seq_args *args, int inde
 	gboolean status = check_star_list(star_filename, curr_findstar_args);
 	free(curr_findstar_args);
 	g_free(star_filename);
-	return status;
+	return !status; // check_star_list returns TRUE on success
 }
 
 // contrarily to findstar_worker, this function first checks if a lst file exists:
@@ -1252,7 +1252,7 @@ gboolean end_findstar_sequence(gpointer p) {
 	return end_generic(NULL);
 }
 
-int findstar_finalize_hook (struct generic_seq_args *args) {
+int findstar_finalize_hook(struct generic_seq_args *args) {
 	struct starfinder_data *data = (struct starfinder_data *) args->user;
 	if (data->ref_wcs) {
 		if (!wcsfree(data->ref_wcs))
