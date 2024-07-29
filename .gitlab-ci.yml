@@ -276,24 +276,19 @@ macos:
     - macos
     - ${ARCHITECTURE}
   variables:
-    REP_DIR: /Users/Shared/build/dmgs
-    WRK_DIR: /Users/Shared/work
-    SIRIL_BUILD: $CI_PIPELINE_IID
-    RELEASE_ARCHIVE: jhb-0.49_$ARCHITECTURE.dmg
-    RELEASE_TAG: r16
+    RELEASE_ARCHIVE: jhb-0.52_$ARCHITECTURE.dmg
+    RELEASE_TAG: r17
     RELEASE_URLS: $CI_API_V4_URL/projects/40985653/packages/generic/dependencies/$RELEASE_TAG/$RELEASE_ARCHIVE
+    REP_DIR: $CI_PROJECT_DIR
+    SIRIL_BUILD: $CI_PIPELINE_IID
+    WRK_DIR: /Users/Shared/work
   script:
-    - rm -f $REP_DIR/$RELEASE_ARCHIVE  # force download, we cannot differentiate releases by filename
     - |
       git clone https://gitlab.com/free-astro/siril_macos.git
       git -C siril_macos checkout $RELEASE_TAG
       git -C siril_macos submodule update --init --recursive
-    - siril_macos/jhb/usr/bin/archive uninstall_dmg  # after_script doesn't run for cancelled/timed out jobs
     - siril_macos/jhb/usr/bin/archive install_dmg
-    - |
-      cd siril_macos
-      ./build_siril.sh
-      mv Siril*.dmg ..
+    - siril_macos/build_siril.sh
   after_script:
     - siril_macos/jhb/usr/bin/archive uninstall_dmg
   needs: []
