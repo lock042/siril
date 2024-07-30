@@ -1561,11 +1561,15 @@ void set_shifts(sequence *seq, int frame, int layer, double shiftx, double shift
 				data_is_top_down ? -shifty : shifty);
 	}
 }
-/* cum shift values for registration data of a sequence, depending on its type and sign */
-void cum_shifts(sequence *seq, int frame, int layer, double shiftx, double shifty, gboolean data_is_top_down) {
+
+void cum_shifts(sequence *seq, int frame, int layer, double shiftx, double shifty) {
 	if (seq->regparam[layer]) {
-		seq->regparam[layer][frame].H = H_from_translation(shiftx + seq->regparam[layer][frame].H.h02,
-				(data_is_top_down ? -shifty : shifty) - seq->regparam[layer][frame].H.h12);
+		Homography Hshift = { 0 }, res = { 0 };
+		cvGetEye(&Hshift);
+		Hshift.h02 = shiftx;
+		Hshift.h12 = shifty;
+		cvMultH(Hshift, seq->regparam[layer][frame].H, &res);
+		seq->regparam[layer][frame].H = res;
 	}
 }
 

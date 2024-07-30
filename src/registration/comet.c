@@ -83,8 +83,7 @@ static int comet_align_prepare_hook(struct generic_seq_args *args) {
 	/* loading reference frame */
 	ref_image = sequence_find_refimage(args->seq);
 
-	// TODO: reading only the date can be made in a less resource-consuming way
-	if (seq_read_frame(args->seq, ref_image, &ref, FALSE, -1)) {
+	if (seq_read_frame_metadata(args->seq, ref_image, &ref)) {
 		siril_log_message(_("Could not load reference image\n"));
 		args->seq->regparam[regargs->layer] = NULL;
 		free(cadata->current_regdata);
@@ -101,11 +100,10 @@ static int comet_align_image_hook(struct generic_seq_args *args, int out_index, 
 	struct registration_args *regargs = cadata->regargs;
 	pointf reg = { 0.f, 0.f };
 
-	set_shifts(args->seq, in_index, regargs->layer, 0., 0., FALSE);
 	get_comet_shift(cadata->reference_date, fit->keywords.date_obs, regargs->velocity, &reg);
 
 	/* get_comet_shift does not care about orientation of image */
-	cum_shifts(args->seq, in_index, regargs->layer, -reg.x, reg.y, FALSE);
+	cum_shifts(args->seq, in_index, regargs->layer, -reg.x, -reg.y);
 	return 0;
 }
 

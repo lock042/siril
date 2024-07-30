@@ -458,6 +458,10 @@ void on_button_comet_clicked(GtkButton *button, gpointer p) {
 					guess_transform_from_H(com.seq.regparam[layer][com.seq.reference_image].H) > NULL_TRANSFORMATION &&
 					guess_transform_from_H(com.seq.regparam[layer][com.seq.current].H) > NULL_TRANSFORMATION) {
 				cvTransfPoint(&pos.x, &pos.y, com.seq.regparam[layer][com.seq.current].H, com.seq.regparam[layer][com.seq.reference_image].H, 1.);
+				if (first)
+					pos_of_image1 = pos;
+				else
+					pos_of_image2 = pos;
 			}
 			free_psf(result);
 			if (!gfit.keywords.date_obs) {
@@ -845,7 +849,8 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 
 	seqloaded = sequence_is_loaded();
 	gtk_widget_set_sensitive(GTK_WIDGET(manualreg_expander), seqloaded);
-	gtk_expander_set_expanded(manualreg_expander, FALSE); // no need to clutter the interface
+	if (!seqloaded)
+		gtk_expander_set_expanded(manualreg_expander, FALSE); // no need to clutter the interface, but we don't want to reset if user has expanded it
 	gtk_widget_set_sensitive(GTK_WIDGET(autoreg_expander), seqloaded);
 	gtk_expander_set_expanded(autoreg_expander, seqloaded);
 	if (!seqloaded) // no need to go further, hide all and return
@@ -895,6 +900,8 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 
 	/* variable image sizes => disable manual reg */
 	gtk_widget_set_sensitive(GTK_WIDGET(manualreg_expander), !com.seq.is_variable);
+	if (com.seq.is_variable)
+		gtk_expander_set_expanded(manualreg_expander, FALSE); // no need to clutter the interface
 	gtk_widget_set_tooltip_text(GTK_WIDGET(manualreg_expander), (!com.seq.is_variable) ? "" : _("not available for sequences with variable image sizes"));
 
 	/* show the appropriate frame selection widgets */
