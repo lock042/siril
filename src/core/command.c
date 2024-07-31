@@ -64,6 +64,7 @@
 #include "io/local_catalogues.h"
 #include "io/remote_catalogues.h"
 #include "io/FITS_symlink.h"
+#include "io/fits_keywords.h"
 #include "drizzle/cdrizzleutil.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
@@ -74,6 +75,7 @@
 #include "gui/progress_and_log.h"
 #include "gui/image_display.h"
 #include "gui/image_interactions.h"
+#include "gui/keywords_tree.h"
 #include "gui/newdeconv.h"
 #include "gui/sequence_list.h"
 #include "gui/siril_preview.h"
@@ -1766,16 +1768,116 @@ int process_unsharp(int nb) {
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
+#define CHECK_KEY_LENGTH(__key__) \
+	do { \
+		if (strlen(__key__) > 8) { \
+			siril_log_color_message(_("The size of the key can't exceed 8 characters.\n"), "red"); \
+			g_free(__key__); \
+			return CMD_ARG_ERROR; \
+		} \
+	} while(0)
+
+/**
+ * update_key key value [comment]
+ * update_key -delete key
+ * update_key -modify key newkey
+ * update_key -comment comment
+ */
 int process_update_key(int nb) {
-	if (nb != 3) {
+	gchar *key = NULL, *value = NULL, *comment = NULL;
+
+	/* manage options */
+	if (word[1][0] == '-') {
+		if (!g_strcmp0(word[1], "-remove") && word[2]) {
+			key = replace_wide_char(word[2]);
+			CHECK_KEY_LENGTH(key);
+			updateFITSKeyword(&gfit, key, NULL, NULL, NULL, TRUE, FALSE);
+		} else if (!g_strcmp0(word[1], "-modify") && word[2] && word[3]) {
+			key = replace_wide_char(word[2]);
+			CHECK_KEY_LENGTH(key);
+			value = replace_wide_char(word[3]);
+			updateFITSKeyword(&gfit, key, value, NULL, NULL, TRUE, FALSE);
+		} else if (!g_strcmp0(word[1], "-comment") && word[2]) {
+			comment = replace_wide_char(word[2]);
+			updateFITSKeyword(&gfit, NULL, NULL, NULL, comment, TRUE, FALSE);
+		} else {
+			return CMD_ARG_ERROR;
+		}
+
+	/* without options */
+	} else {
+		key = replace_wide_char(word[1]);
+		CHECK_KEY_LENGTH(key);
+		value = replace_wide_char(word[2]);
+		if (nb == 4)
+			comment = replace_wide_char(word[3]);
+
+		updateFITSKeyword(&gfit, key, NULL, value, comment, TRUE, FALSE);
+	}
+	if (!com.script) refresh_keywords_dialog();
+
+	g_free(key);
+	g_free(value);
+	g_free(comment);
+
+	return CMD_OK;
+}
+
+#define CHECK_KEY_LENGTH_SEQ(__key__, __seq__, __args__) \
+	do { \
+		if (strlen(__key__) > 8) { \
+			siril_log_color_message(_("The size of the key can't exceed 8 characters.\n"), "red"); \
+			g_free(__key__); \
+			if (!check_seq_is_comseq(seq)) \
+				free_sequence(__seq__, TRUE); \
+			free(__args__); \
+			return CMD_ARG_ERROR; \
+		} \
+	} while(0)
+
+int process_seq_update_key(int nb) {
+	sequence *seq = load_sequence(word[1], NULL);
+	if (!seq) {
+		return CMD_SEQUENCE_NOT_FOUND;
+	}
+	if (check_seq_is_comseq(seq)) {
+		free_sequence(seq, TRUE);
+		seq = &com.seq;
+	}
+
+	struct keywords_data *args = calloc(1, sizeof(struct keywords_data));
+	if (!args) {
+		if (!check_seq_is_comseq(seq))
+			free_sequence(seq, TRUE);
 		return CMD_ARG_ERROR;
 	}
-	gchar *FITS_key, *value;
 
-	FITS_key = word[1];
-	value = word[2];
+	siril_log_color_message(_("Upating keywords...\n"), "green");
 
-	updateFITSKeyword(&gfit, FITS_key, value);
+	/* manage options */
+	if (word[2][0] == '-') {
+		if (!g_strcmp0(word[2], "-delete") && word[3]) {
+			args->FITS_key = replace_wide_char(word[3]);
+			CHECK_KEY_LENGTH_SEQ(args->FITS_key, seq, args);
+		} else if (!g_strcmp0(word[2], "-modify") && word[3] && word[4]) {
+			args->FITS_key = replace_wide_char(word[3]);
+			CHECK_KEY_LENGTH_SEQ(args->FITS_key, seq, args);
+			args->newkey = replace_wide_char(word[4]);
+		} else if (!g_strcmp0(word[2], "-comment") && word[3]) {
+			args->comment = replace_wide_char(word[3]);
+		} else {
+			free(args);
+			return CMD_ARG_ERROR;
+		}
+	/* without options */
+	} else {
+		args->FITS_key = replace_wide_char(word[2]);
+		CHECK_KEY_LENGTH_SEQ(args->FITS_key, seq, args);
+		args->value = replace_wide_char(word[3]);
+		if (nb == 5)
+			args->comment = replace_wide_char(word[4]);
+	}
+	start_sequence_keywords(seq, args);
 
 	return CMD_OK;
 }
@@ -8634,17 +8736,15 @@ struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
 				args->cc_from_dark = TRUE;
 				//either we use the default sigmas or we try to read the next two checking for sigma low and high
 				if (i + 2 < nb) {
-					gchar *end1, *end2;
-					args->sigma[0] = g_ascii_strtod(word[i + 1], &end1);
-					args->sigma[1] = g_ascii_strtod(word[i + 2], &end2);
-
+					gchar *end1 = NULL, *end2 = NULL;
+					double sigma0 = g_ascii_strtod(word[i + 1], &end1);
+					double sigma1 = g_ascii_strtod(word[i + 2], &end2);
 					if (word[i + 1] && word[i + 2] && word[i + 1] != end1
 							&& word[i + 2] != end2) {
 						i += 2;
+						args->sigma[0] = (sigma0 == 0.0) ? -1.00 : sigma0;
+						args->sigma[1] = (sigma1 == 0.0) ? -1.00 : sigma1;
 					}
-
-					if (args->sigma[0] == 0.0) args->sigma[0] = -1.00;
-					if (args->sigma[1] == 0.0) args->sigma[1] = -1.00;
 				}
 				if (args->sigma[0] > 0)
 					siril_log_message(_("Cosmetic correction from masterdark: using sigma %.2lf for cold pixels.\n"), args->sigma[0]);

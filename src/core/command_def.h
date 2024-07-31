@@ -177,6 +177,7 @@
 #define STR_SEQSUBSKY N_("Same command as SUBSKY but for the sequence <b>sequencename</b>.\nDithering, required for low dynamic gradients, can be disabled with <b>-nodither</b>.\n\nThe output sequence name starts with the prefix \"bkg_\" unless otherwise specified with <b>-prefix=</b> option. Only selected images in the sequence are processed")
 #define STR_SEQTILT N_("Same command as TILT but for the sequence <b>sequencename</b>. It generally gives better results")
 #define STR_SEQUNSETMAG N_("Resets the magnitude calibration and reference star for the sequence. See SEQSETMAG")
+#define STR_SEQUPDATE_KEY N_("Same command as UPDATE_KEY but for the sequence <b>sequencename</b>. However, this command won't work on SER sequence")
 #define STR_SEQWIENER N_("The same as the <b>WIENER</b> command, but applies to a sequence which must be specified as the first argument")
 #define STR_SET N_("Updates a setting value, using its variable name, with the given value, or a set of values using an existing ini file with <b>-import=</b> option.\nSee GET to get values or the list of variables")
 #define STR_SET16 N_("Forbids images to be saved with 32 bits per channel on processing, use 16 bits instead")
@@ -214,7 +215,7 @@
 #define STR_UNSELECT N_("Allows easy mass unselection of images in the sequence <b>sequencename</b> (from <b>from</b> to <b>to</b> included). See SELECT")
 #define STR_UNSETMAG N_("Resets the magnitude calibration to 0. See SETMAG")
 #define STR_UNSHARP N_("Applies an unsharp mask, actually a Gaussian filtered image  with sigma <b>sigma</b> and a blend with the parameter <b>amount</b> used as such: out = in * (1 + amount) + filtered * (-amount).\n\nSee also GAUSS, the same without blending")
-#define STR_UPDATE_KEY N_("Updates FITS keyword. The argument <b>key</b> must be an FITS keyword found in the header and managed by Siril. Please note that the validity of <b>value</b> is not checked. This verification is the responsibility of the user")
+#define STR_UPDATE_KEY N_("Updates FITS keyword. Please note that the validity of <b>value</b> is not checked. This verification is the responsibility of the user. It is also possible to delete a key with the -delete option in front of the name of the key to be deleted, or to modify the key with the -modify option. The latter must be followed by the key to be modified and the new key name. Finally, the -comment option, followed by text, adds a comment to the FITS header. Please note that any text containing spaces must be enclosed in double quotation marks")
 
 #define STR_VISU N_("Displays the loaded image with <b>low</b> and <b>high</b> as the low and high threshold, GUI only")
 

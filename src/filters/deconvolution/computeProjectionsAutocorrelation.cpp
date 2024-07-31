@@ -158,10 +158,14 @@ void computeProjectionsAutocorrelation(img_t<T>& acProjections, const img_t<T>& 
         }
     }
 
+#ifdef _OPENMP
 #pragma omp parallel
     {
+#endif
         std::vector<T> proj1d(projections.h);
+#ifdef _OPENMP
 #pragma omp for
+#endif
         for (int j = 0; j < projections.h; j++) {
             // extract meaningful values of the projections
             proj1d.resize(0);
@@ -205,6 +209,8 @@ void computeProjectionsAutocorrelation(img_t<T>& acProjections, const img_t<T>& 
             auto start = &autocorrelation[0] + autocorrelation.size() / 2 - acProjections.w / 2;
             std::copy(start, start + acProjections.w, &acProjections(0, j));
         }
+#ifdef _OPENMP
     }
+#endif
 }
 

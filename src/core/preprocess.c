@@ -878,7 +878,7 @@ static gboolean test_for_master_files(struct preprocessing_data *args) {
 			} else {
 				set_progress_bar_data(_("Opening flat image..."), PROGRESS_NONE);
 				args->flat = calloc(1, sizeof(fits));
-				if (!readfits(filename, args->flat, NULL, !com.pref.force_16bit)) {
+				if (!readfits(expression, args->flat, NULL, !com.pref.force_16bit)) {
 					if (args->flat->naxes[2] != gfit.naxes[2]) {
 						error = _("NOT USING FLAT: number of channels is different");
 					} else if (args->flat->naxes[0] != gfit.naxes[0] ||

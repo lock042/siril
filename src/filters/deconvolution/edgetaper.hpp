@@ -29,19 +29,26 @@ SOFTWARE.
 #include "image.hpp"
 #include <glib.h>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 template <typename T>
 void edgetaper(img_t<T>& out, const img_t<T>& in, const img_t<T>& kernel, int iterations=1)
 {
     img_t<T> weights(in.w, in.h);
     // kind of tukey window
+#ifdef _OPENMP
+    #pragma omp parallel for collapse(2)
+#endif
     for (int y = 0; y < in.h; y++) {
-        T wy = 1.;
-        if (y < kernel.h) {
-            wy = std::pow(std::sin(y * G_PI / (kernel.h*2 - 1)), 2.);
-        } else if (y > in.h - kernel.h) {
-            wy = std::pow(std::sin((in.h-1 - y) * G_PI / (kernel.h*2 - 1)), 2.);
-        }
         for (int x = 0; x < in.w; x++) {
+            T wy = 1.;
+            if (y < kernel.h) {
+                wy = std::pow(std::sin(y * G_PI / (kernel.h*2 - 1)), 2.);
+            } else if (y > in.h - kernel.h) {
+                wy = std::pow(std::sin((in.h-1 - y) * G_PI / (kernel.h*2 - 1)), 2.);
+            }
             T wx = 1.;
             if (x < kernel.w) {
                 wx = std::pow(std::sin(x * G_PI / (kernel.w*2 - 1)), 2.);
@@ -57,24 +64,33 @@ void edgetaper(img_t<T>& out, const img_t<T>& in, const img_t<T>& kernel, int it
     img_t<std::complex<T>> kernel_ft(in.w, in.h, in.d);
     kernel_ft.padcirc(kernel);
     kernel_ft.fft(kernel_ft);
-
     img_t<std::complex<T>> blurred_ft(in.w, in.h, in.d);
-
     out = in;
+
     for (int i = 0; i < iterations; i++) {
         blurred_ft.copy(out);
-
         blurred_ft.fft(blurred_ft);
+
+#ifdef _OPENMP
+        #pragma omp parallel for collapse(3)
+#endif
         for (int y = 0; y < out.h; y++)
             for (int x = 0; x < out.w; x++)
                 for (int l = 0; l < out.d; l++)
                     blurred_ft(x, y, l) *= kernel_ft(x, y);
+
         blurred_ft.ifft(blurred_ft);
 
+#ifdef _OPENMP
+        #pragma omp parallel for
+#endif
         for (int i = 0; i < blurred.size; i++)
             blurred[i] = std::real(blurred_ft[i]);
 
         // blend the images
+#ifdef _OPENMP
+        #pragma omp parallel for collapse(2)
+#endif
         for (int y = 0; y < out.h; y++) {
             for (int x = 0; x < out.w; x++) {
                 T w = weights(x, y);
@@ -85,5 +101,3 @@ void edgetaper(img_t<T>& out, const img_t<T>& in, const img_t<T>& kernel, int it
         }
     }
 }
-
-
