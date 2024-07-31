@@ -193,20 +193,22 @@ namespace optimization {
                 }
 
 #ifdef _OPENMP
-                #pragma omp parallel for
+#pragma omp parallel for
 #endif
                 for (int i = 0; i < weights.size; i++) {
                     T sum = 0;
 #ifdef _OPENMP
-                    #pragma omp simd
+#pragma omp simd reduction(+:sum)
 #endif
-                    for (auto& p : weights[i])
-                        sum += p.w;
+                    for (int j = 0; j < weights[i].size(); j++) {
+                        sum += weights[i][j].w;
+                    }
 #ifdef _OPENMP
-                    #pragma omp simd
+#pragma omp simd
 #endif
-                    for (auto& p : weights[i])
-                        p.w /= sum;
+                    for (int j = 0; j < weights[i].size(); j++) {
+                        weights[i][j].w /= sum;
+                    }
                 }
             }
 
