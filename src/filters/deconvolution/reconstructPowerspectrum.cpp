@@ -21,11 +21,14 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
+
 #include <cstdlib>
 #include <cmath>
 #include <complex>
 #include <cassert>
-
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 #include "image.hpp"
 #include "angleSet.hpp"
 
@@ -38,43 +41,59 @@ void reconstructPowerspectrum(img_t<T>& powerSpectrum, const img_t<T>& acProject
     powerSpectrum.ensure_size(psSize*2+1, psSize*2+1);
     powerSpectrum.set_value(0.);
 
-    img_t<std::complex<T>> ftAutocorrelation(acProjections.w, 1);
-    img_t<T> powerSpectrumSlice(acProjections.w, 1);
+#ifdef _OPENMP
+    #pragma omp parallel
+    {
+#endif
+        img_t<std::complex<T>> ftAutocorrelation(acProjections.w, 1);
+        img_t<T> powerSpectrumSlice(acProjections.w, 1);
 
-    for (unsigned j = 0; j < angleSet.size(); j++) {
-        // compute the discrete Fourier transform of the autocorrelation
-        // (= power spectrum by the Wiener-Khinchin theorem)
-        for (int x = 0; x < ftAutocorrelation.w; x++)
-            ftAutocorrelation[x] = acProjections(x, j);
-        ftAutocorrelation.fft(ftAutocorrelation);
+#ifdef _OPENMP
+        #pragma omp for schedule(dynamic)
+#endif
+        for (unsigned j = 0; j < angleSet.size(); j++) {
+            // compute the discrete Fourier transform of the autocorrelation
+            // (= power spectrum by the Wiener-Khinchin theorem)
+            for (int x = 0; x < ftAutocorrelation.w; x++)
+                ftAutocorrelation[x] = acProjections(x, j);
+            ftAutocorrelation.fft(ftAutocorrelation);
 
-        for (int x = 0; x < acProjections.w; x++) {
-            powerSpectrumSlice[x] = std::abs(ftAutocorrelation[x]);
+            for (int x = 0; x < acProjections.w; x++) {
+                powerSpectrumSlice[x] = std::abs(ftAutocorrelation[x]);
+            }
+
+            T normalize = powerSpectrumSlice[0];
+            for (int x = 0; x < acProjections.w; x++) {
+                powerSpectrumSlice[x] /= normalize;
+            }
+
+            powerSpectrumSlice.fftshift();
+
+            // extract and place back the coefficient that intersect the grid
+            for (int i = 1; i < psSize + 1; i++) {
+                int xOffset = i * angleSet[j].x;
+                int yOffset = i * angleSet[j].y;
+                if (std::abs(xOffset) > psSize || std::abs(yOffset) > psSize)
+                    break;
+
+                // place the sample in the 2D power spectrum
+                int sliceOffset = std::max(std::abs(xOffset), std::abs(yOffset));
+
+#ifdef _OPENMP
+                #pragma omp critical
+                {
+#endif
+                    powerSpectrum(psSize + xOffset, psSize + yOffset) = powerSpectrumSlice[psSize + sliceOffset];
+                    powerSpectrum(psSize - xOffset, psSize - yOffset) = powerSpectrumSlice[psSize + sliceOffset];
+#ifdef _OPENMP
+                }
+#endif
+            }
         }
-
-        T normalize = powerSpectrumSlice[0];
-        for (int x = 0; x < acProjections.w; x++) {
-            powerSpectrumSlice[x] /= normalize;
-        }
-
-        powerSpectrumSlice.fftshift();
-
-        // extract and place back the coefficient that intersect the grid
-        for (int i = 1; i < psSize + 1; i++) {
-            int xOffset = i * angleSet[j].x;
-            int yOffset = i * angleSet[j].y;
-
-            if (std::abs(xOffset) > psSize || std::abs(yOffset) > psSize)
-                break;
-
-            // place the sample in the 2D power spectrum
-            int sliceOffset = std::max(std::abs(xOffset), std::abs(yOffset));
-            powerSpectrum(psSize + xOffset, psSize + yOffset) = powerSpectrumSlice[psSize + sliceOffset];
-            powerSpectrum(psSize - xOffset, psSize - yOffset) = powerSpectrumSlice[psSize + sliceOffset];
-        }
+#ifdef _OPENMP
     }
+#endif
 
     // the DC value of the kernel is 1
     powerSpectrum(psSize, psSize) = 1.;
 }
-
