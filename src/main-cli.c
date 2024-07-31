@@ -40,8 +40,13 @@
 #elif _WIN32
 #include <windows.h>
 #endif
+
 #ifdef HAVE_LIBCURL
 #include <curl/curl.h>
+#endif
+
+#ifdef _OPENMP
+#include <omp.h>
 #endif
 
 #include "git-version.h"
@@ -147,6 +152,10 @@ static void global_initialization() {
 #ifdef HAVE_FFTW3F_OMP
 	fftwf_init_threads(); // Should really only be called once so do it at startup
 #endif
+#ifdef _OPENMP
+	omp_set_nested(TRUE);
+#endif
+
 }
 
 static void siril_app_activate(GApplication *application) {

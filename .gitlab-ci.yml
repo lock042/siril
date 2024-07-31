@@ -260,44 +260,57 @@ siril-win64:
 
 macos:
   stage: packaging
-  image: macos-12-xcode-13
   parallel:
     matrix:
-      - RUNNER: [ "macosarm", "macosintel" ]
+      - ARCHITECTURE: [ "arm64", "x86_64" ]
   rules:
     - if: $CI_PROJECT_NAMESPACE != "free-astro" && $CI_PROJECT_NAMESPACE != "dehesselle"
       when: never  # job requires custom runner, not suitable outside the project
-    - if: $RUNNER == "macosarm"
+    - if: $ARCHITECTURE == "arm64"
       variables:
-        ARCHITECTURE: arm64
         SDKROOT: /opt/sdks/MacOSX11.3.sdk
-    - if: $RUNNER == "macosintel"
+    - if: $ARCHITECTURE == "x86_64"
       variables:
-        ARCHITECTURE: x86_64
         SDKROOT: /opt/sdks/MacOSX10.15.6.sdk
   tags:
-    - ${RUNNER}
+    - macos
+    - ${ARCHITECTURE}
   variables:
-    REP_DIR: /Users/Shared/build/dmgs
-    WRK_DIR: /Users/Shared/work
+    CCACHE_DIR: /Users/Shared/work/ccache
+    REP_DIR: $CI_PROJECT_DIR
     SIRIL_BUILD: $CI_PIPELINE_IID
-    RELEASE_ARCHIVE: jhb-0.49_$ARCHITECTURE.dmg
-    RELEASE_TAG: r28
-    RELEASE_URLS: $CI_API_V4_URL/projects/40985653/packages/generic/dependencies/$RELEASE_TAG/$RELEASE_ARCHIVE
+    SM_REPO_REF: ae4e3bb8a65f00450f6dece39292ea079e828388
+    SM_REPO_URL: https://gitlab.com/free-astro/siril_macos.git
+    WRK_DIR: $CI_PROJECT_DIR
   script:
-    - rm -f $REP_DIR/$RELEASE_ARCHIVE  # force download, we cannot differentiate releases by filename
+    # Clone the repo containing all the build scripts.
     - |
-      git clone https://gitlab.com/free-astro/siril_macos.git
-      git -C siril_macos checkout $RELEASE_TAG
-      git -C siril_macos submodule update --init --recursive
-    - siril_macos/jhb/usr/bin/archive uninstall_dmg  # after_script doesn't run for cancelled/timed out jobs
-    - siril_macos/jhb/usr/bin/archive install_dmg
+      git clone $SM_REPO_URL sm
+      git -C sm checkout $SM_REPO_REF
+      git -C sm submodule update --recursive --init
+    # Build the dependencies and then Siril. Dependencies are uploaded to the
+    # package registry so they don't have to be rebuilt every time if there
+    # haven't been any changes. Changes to dependencies are detected by
+    # checksumming all the files and using that checksum as a version number.
     - |
-      cd siril_macos
-      ./build_siril.sh
-      mv Siril*.dmg ..
+      echo $CI_PROJECT_DIR > sm/ci_project_dir.txt
+      SM_SHA=$(LANG=C find -s sm -type f -not -wholename '*.git/*' -exec cat {} \+ | shasum | awk '{ print $1 }')
+      VER_DIR=$(sm/jhb/usr/bin/config get VER_DIR)
+      PACKAGE_URL=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/macos-deps/${SM_SHA}/$(basename $VER_DIR)_${ARCHITECTURE}.dmg
+      if ! curl -H "JOB-TOKEN: $CI_JOB_TOKEN" -fLO $PACKAGE_URL; then
+        export FORCE_BUILD_FROM_SOURCE=true
+        sm/build_toolset.sh
+        sm/jhb/usr/bin/jhb run rustup self uninstall -y || true
+        sm/jhb/usr/bin/archive remove_nonessentials
+        sm/jhb/usr/bin/archive create_dmg
+        curl --fail-with-body -H "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file $(basename $PACKAGE_URL) $PACKAGE_URL
+        rm -rf ${VER_DIR:?}
+        unset FORCE_BUILD_FROM_SOURCE
+      fi
+    - sm/jhb/usr/bin/archive install_dmg
+    - sm/build_siril.sh
   after_script:
-    - siril_macos/jhb/usr/bin/archive uninstall_dmg
+    - sm/jhb/usr/bin/archive uninstall_dmg
   needs: []
   artifacts:
     name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"

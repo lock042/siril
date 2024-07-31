@@ -1,7 +1,4 @@
-
 #pragma once
-
-#include <numeric>
 
 #include "image.hpp"
 #include "image_expr.hpp"
@@ -166,8 +163,11 @@ namespace optimization {
                 int hS = S / 2;
                 int hN = N / 2;
                 T h2 = std::pow(h, T(2));
+
+#ifdef _OPENMP
+                #pragma omp parallel for collapse(3)
+#endif
                 for (int d = 0; d < u.d; d++) {
-                    printf("d=%d\n", d);
                     for (int y = 0; y < u.h; y++) {
                         for (int x = 0; x < u.w; x++) {
                             weights(x, y, d).resize(0);
@@ -184,19 +184,27 @@ namespace optimization {
                                                 similarity += std::pow(u(x + wdx, y + wdy, d) - u(x + pdx + wdx, y + pdy + wdy, d), T(2));
                                         }
                                     }
-                                    //similarity -= 2*variance;
-                                    similarity = std::exp(- similarity / h2);
-                                    weights(x, y, d).push_back(point_t{.w=similarity, .x=x+pdx, .y=y+pdy, .d=d});
+                                    similarity = std::exp(-similarity / h2);
+                                    weights(x, y, d).push_back(point_t{similarity, x + pdx, y + pdy, d});
                                 }
                             }
                         }
                     }
                 }
 
+#ifdef _OPENMP
+                #pragma omp parallel for
+#endif
                 for (int i = 0; i < weights.size; i++) {
                     T sum = 0;
+#ifdef _OPENMP
+                    #pragma omp simd
+#endif
                     for (auto& p : weights[i])
                         sum += p.w;
+#ifdef _OPENMP
+                    #pragma omp simd
+#endif
                     for (auto& p : weights[i])
                         p.w /= sum;
                 }
@@ -205,7 +213,14 @@ namespace optimization {
             auto nl(const img_t<T>& u) {
                 nlu.similar(u);
                 nlu.set_value(T(0));
+
+#ifdef _OPENMP
+                #pragma omp parallel for
+#endif
                 for (int i = 0; i < nlu.size; i++) {
+#ifdef _OPENMP
+                    #pragma omp simd
+#endif
                     for (auto& p : weights[i])
                         nlu[i] += p.w * u(p.x, p.y, p.d);
                 }
@@ -256,4 +271,3 @@ namespace optimization {
         }
     }
 }
-

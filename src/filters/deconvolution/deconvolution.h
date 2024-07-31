@@ -23,7 +23,7 @@
 #include <glib.h>
 
 #ifdef __cplusplus
-#define EXTERNC extern "C" {
+#define EXTERNC extern "C"
 #else
 #define EXTERNC
 #endif
@@ -100,36 +100,9 @@ EXTERNC typedef struct estk_data {
 	gboolean previewing;
 } estk_data;
 
-#ifdef __cplusplus
-}
-#endif
-
 EXTERNC float *estimate_kernel(estk_data *args, int max_threads);
-#ifdef __cplusplus
-}
-#endif
-
 EXTERNC float *gf_estimate_kernel(estk_data *args, int max_threads);
-#ifdef __cplusplus
-}
-#endif
-
 EXTERNC int split_bregman(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, unsigned kchans, float lambda, int iters, int max_threads);
-#ifdef __cplusplus
-}
-#endif
-
 EXTERNC int fft_richardson_lucy(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, unsigned kchans, float lambda, int maxiter, float stopcriterion, int max_threads, int regtype, float stepsize, int stopcriterion_active);
-#ifdef __cplusplus
-}
-#endif
-
 EXTERNC int naive_richardson_lucy(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, unsigned kchans, float lambda, int maxiter, float stopcriterion, int max_threads, int regtype, float stepsize, int stopcriterion_active);
-#ifdef __cplusplus
-}
-#endif
-
 EXTERNC int wienerdec(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, unsigned kchans, float sigma, int max_threads);
-#ifdef __cplusplus
-}
-#endif
