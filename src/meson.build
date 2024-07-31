@@ -106,6 +106,7 @@ src_files = [
   'filters/banding.c',
   'filters/clahe.c',
   'filters/cosmetic_correction.c',
+  'filters/deconvolution.c',
   'filters/epf.c',
   'filters/fft.c',
   'filters/ght.c',
@@ -131,7 +132,6 @@ src_files = [
 
   'filters/deconvolution/angleSet.cpp',
   'filters/deconvolution/better_than_std.hpp',
-  'filters/deconvolution/chelperfuncs.c',
   'filters/deconvolution/deconvolution.h',
   'filters/deconvolution/deconvolve.cpp',
   'filters/deconvolution/deconvolve.hpp',
