@@ -80,11 +80,14 @@ xx/xx/xx
 * Refactor networking code, add offline mode and add Gaia archive status indication (!687)
 * Improve interaction of threaded functions and previews with ROI code (!701)
 * Added GraXpert interface (!699)
+* Added the ability to resample by mnaximum dimension and preview jpg file size (!698)
 
 siril 1.2.4
 xx/xx/24
 
 * Fixed CFA statistics (#1342)
+* Fixed calibration command bug disabling cosmetic correction (#1348)
+* Fixed calibration GUI not parsing correcting flat when using path parsing (#1348)
 
 siril 1.2.3
 06/19/24
