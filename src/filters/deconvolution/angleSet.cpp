@@ -45,12 +45,12 @@ static void computeProjectionHalfAngleSet(std::vector<angle_t>& angles, int kern
 
 #ifdef _OPENMP
     int available_threads = com.max_thread - omp_get_num_threads();
-    #pragma omp parallel num_threads(available_threads) if (available_threads > 1)
+#pragma omp parallel num_threads(available_threads) if (available_threads > 1)
     {
 #endif
         std::vector<angle_t> privateAngles;
 #ifdef _OPENMP
-        #pragma omp for collapse(2)
+#pragma omp for collapse(2)
 #endif
         for (int x = 0; x <= kernelSize; ++x) {
             for (int y = 0; y <= kernelSize; ++y) {
@@ -66,7 +66,7 @@ static void computeProjectionHalfAngleSet(std::vector<angle_t>& angles, int kern
             }
         }
 #ifdef _OPENMP
-        #pragma omp critical
+#pragma omp critical
 #endif
         localAngles.insert(localAngles.end(), privateAngles.begin(), privateAngles.end());
 #ifdef _OPENMP
@@ -96,7 +96,7 @@ void computeProjectionAngleSet(std::vector<angle_t>& angles, int kernelSize)
 
 #ifdef _OPENMP
     int available_threads = com.max_thread - omp_get_num_threads();
-    #pragma omp parallel for schedule(static) num_threads(available_threads) if (available_threads > 1)
+#pragma omp parallel for schedule(static) num_threads(available_threads) if (available_threads > 1)
 #endif
     for (int i = 1; i < s - 1; ++i) { // Start from 1 to skip theta = pi/2 and go to s-1 to skip theta = 0
         angle_t ref = angles[s - 1 - i];

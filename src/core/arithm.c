@@ -17,7 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
-#include <assert.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -459,20 +458,20 @@ void rgbblend(blend_data *data, float* r, float* g, float* b, float m_CB) {
 // Scaling functions
 
 inline static float sample(const float *buf, int w, int h, int d, int i, int j, int c) {
-    i = min(max(i, 0), w - 1);
-    j = min(max(j, 0), h - 1);
-    c = min(max(c, 0), d - 1);
+	i = min(max(i, 0), w - 1);
+	j = min(max(j, 0), h - 1);
+	c = min(max(c, 0), d - 1);
 	return buf[(i+j*w)*d + c];
 }
 
 static float cubic(float p[4][4], float x, float y)
 {
 	float v[4];
-    v[0] = p[0][1] + 0.5f * y*(p[0][2] - p[0][0] + y*(2.f*p[0][0] - 5.f*p[0][1] + 4.f*p[0][2] - p[0][3] + y*(3.f*(p[0][1] - p[0][2]) + p[0][3] - p[0][0])));
-    v[1] = p[1][1] + 0.5f * y*(p[1][2] - p[1][0] + y*(2.f*p[1][0] - 5.f*p[1][1] + 4.f*p[1][2] - p[1][3] + y*(3.f*(p[1][1] - p[1][2]) + p[1][3] - p[1][0])));
-    v[2] = p[2][1] + 0.5f * y*(p[2][2] - p[2][0] + y*(2.f*p[2][0] - 5.f*p[2][1] + 4.f*p[2][2] - p[2][3] + y*(3.f*(p[2][1] - p[2][2]) + p[2][3] - p[2][0])));
-    v[3] = p[3][1] + 0.5f * y*(p[3][2] - p[3][0] + y*(2.f*p[3][0] - 5.f*p[3][1] + 4.f*p[3][2] - p[3][3] + y*(3.f*(p[3][1] - p[3][2]) + p[3][3] - p[3][0])));
-    return v[1] + 0.5f * x*(v[2] - v[0] + x*(2.f*v[0] - 5.f*v[1] + 4.f*v[2] - v[3] + x*(3.f*(v[1] - v[2]) + v[3] - v[0])));
+	v[0] = p[0][1] + 0.5f * y*(p[0][2] - p[0][0] + y*(2.f*p[0][0] - 5.f*p[0][1] + 4.f*p[0][2] - p[0][3] + y*(3.f*(p[0][1] - p[0][2]) + p[0][3] - p[0][0])));
+	v[1] = p[1][1] + 0.5f * y*(p[1][2] - p[1][0] + y*(2.f*p[1][0] - 5.f*p[1][1] + 4.f*p[1][2] - p[1][3] + y*(3.f*(p[1][1] - p[1][2]) + p[1][3] - p[1][0])));
+	v[2] = p[2][1] + 0.5f * y*(p[2][2] - p[2][0] + y*(2.f*p[2][0] - 5.f*p[2][1] + 4.f*p[2][2] - p[2][3] + y*(3.f*(p[2][1] - p[2][2]) + p[2][3] - p[2][0])));
+	v[3] = p[3][1] + 0.5f * y*(p[3][2] - p[3][0] + y*(2.f*p[3][0] - 5.f*p[3][1] + 4.f*p[3][2] - p[3][3] + y*(3.f*(p[3][1] - p[3][2]) + p[3][3] - p[3][0])));
+	return v[1] + 0.5f * x*(v[2] - v[0] + x*(2.f*v[0] - 5.f*v[1] + 4.f*v[2] - v[3] + x*(3.f*(v[1] - v[2]) + v[3] - v[0])));
 }
 
 void magnify(float *out, const float *in, int out_w, int out_h, int d, int in_w, int in_h, float factor) {
@@ -644,7 +643,7 @@ void shrink(float *out, float *in, int outw, int outh, int inw, int inh, float s
 	int available_threads = com.max_thread - omp_get_num_threads();
 #endif
 	if (scale == -2) {
-		assert(2*outw == inw && 2 * outh == inh);
+		g_assert(2*outw == inw && 2 * outh == inh);
 		float (*y)[outw] = (void*)out;
 		float (*x)[inw] = (void*)in;
 #ifdef _OPENMP
