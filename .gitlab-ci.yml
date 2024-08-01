@@ -480,10 +480,6 @@ build-paper:
     - apk update
     - apk add --no-cache docker-compose
   script:
-    - docker run --rm \
-      --volume $CI_PROJECT_DIR/paper:/data \
-      --user $(id -u):$(id -g) \
-      --env JOURNAL=joss \
-      openjournals/inara
+    - docker run --rm --volume "$CI_PROJECT_DIR/paper:/data" --user "$(id -u):$(id -g)" --env JOURNAL=joss openjournals/inara
   needs: []
   dependencies: []
