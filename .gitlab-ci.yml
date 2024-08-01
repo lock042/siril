@@ -467,3 +467,24 @@ win64-native-installer:
     - powershell -File .\build\windows\installer\siril-win-installer.ps1 2>&1 > installer.log
   needs: ["win64-native"]
   allow_failure: true
+
+################################################################################ 
+build-paper:
+  rules:
+    *run_ondemand_schedule_tag
+  stage: distribution
+  image: docker:latest
+  services:
+    - docker:dind
+  artifacts:
+    expire_in: 1 week
+    when: always
+    paths:
+    - paper/paper.pdf
+  before_script:
+    - apk update
+    - apk add --no-cache docker-compose
+  script:
+    - docker run --rm --volume "$CI_PROJECT_DIR/paper:/data" --user "$(id -u):$(id -g)" --env JOURNAL=joss openjournals/inara
+  needs: []
+  dependencies: []
