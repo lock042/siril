@@ -11,7 +11,7 @@ authors:
     orcid: 0000-0002-8882-8448
     affiliation: 1
   - name: Vincent Hourdin
-    orcid: 0000-0000-0000-0000
+    orcid: 0009-0005-3901-552X
     affiliation: 2
   - name: Cécile Melis
     orcid: 0009-0008-4722-3371
