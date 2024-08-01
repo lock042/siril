@@ -476,12 +476,11 @@ build-paper:
   image: docker:latest
   services:
     - docker:dind
-    artifacts:
+  artifacts:
     expire_in: 1 week
     when: always
     paths:
-      - ${$CI_PROJECT_DIR/paper}
-
+    - ${$CI_PROJECT_DIR/paper}
   before_script:
     - apk update
     - apk add --no-cache docker-compose
