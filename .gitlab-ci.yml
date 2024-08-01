@@ -467,3 +467,12 @@ win64-native-installer:
     - powershell -File .\build\windows\installer\siril-win-installer.ps1 2>&1 > installer.log
   needs: ["win64-native"]
   allow_failure: true
+  
+build-paper:
+  stage: siril
+  script:
+    - docker run --rm \
+      --volume $CI_PROJECT_DIR/paper:/data \
+      --user $(id -u):$(id -g) \
+      --env JOURNAL=joss \
+      openjournals/inara
