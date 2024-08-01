@@ -482,3 +482,5 @@ build-paper:
       --user $(id -u):$(id -g) \
       --env JOURNAL=joss \
       openjournals/inara
+  needs: []
+  dependencies: []
