@@ -473,11 +473,15 @@ build-paper:
   rules:
     *run_ondemand_schedule_tag
   stage: distribution
+  image: docker:latest
+  services:
+    - docker:dind
+  before_script:
+    - apk update
+    - apk add --no-cache docker-compose
   script:
     - docker run --rm \
       --volume $CI_PROJECT_DIR/paper:/data \
       --user $(id -u):$(id -g) \
       --env JOURNAL=joss \
       openjournals/inara
-  needs: []
-  dependencies: []
