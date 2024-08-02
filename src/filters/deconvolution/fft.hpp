@@ -31,7 +31,6 @@ SOFTWARE.
 
 #include "image.hpp"
 #include "image_expr.hpp"
-#include "chelperfuncs.h"
 
 #include <map>
 #include <unordered_map>
@@ -118,7 +117,7 @@ namespace fft {
     auto c2c(const E& o, bool fast=true) {
         using T = typename E::value_type::value_type;
         dim_t dim = {.h=o.h, .w=o.w, .d=o.d};
-        const auto plan = make_plan<T>(dim, fast ? FFTW_ESTIMATE : cppfftwflags);
+        const auto plan = make_plan<T>(dim, fast ? FFTW_ESTIMATE : com.pref.fftw_conf.strategy);
         auto tmp = to_img(o);
         plan->execute_forward(&tmp[0]);
         return tmp;
@@ -150,7 +149,9 @@ namespace fft {
         int ohalfh = in.h - halfh;
         for (int l = 0; l < in.d; l++) {
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(in.size > 40000 && cppmaxthreads > 1)
+#pragma omp parallel num_threads(com.fftw_max_thread) if(in.size > 40000 && com.fftw_max_thread > 1)
+{
+#pragma omp for simd schedule(static) collapse(2)
 #endif
             for (int y = 0; y < halfh; y++) {
                 for (int x = 0; x < ohalfw; x++) {
@@ -158,7 +159,7 @@ namespace fft {
                 }
             }
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(in.size > 40000 && cppmaxthreads > 1)
+#pragma omp for simd schedule(static) collapse(2)
 #endif
             for (int y = 0; y < halfh; y++) {
                 for (int x = 0; x < halfw; x++) {
@@ -166,7 +167,7 @@ namespace fft {
                 }
             }
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(in.size > 40000 && cppmaxthreads > 1)
+#pragma omp for simd schedule(static) collapse(2)
 #endif
             for (int y = 0; y < ohalfh; y++) {
                 for (int x = 0; x < ohalfw; x++) {
@@ -174,13 +175,16 @@ namespace fft {
                 }
             }
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(in.size > 40000 && cppmaxthreads > 1)
+#pragma omp for simd schedule(static) collapse(2)
 #endif
             for (int y = 0; y < ohalfh; y++) {
                 for (int x = 0; x < halfw; x++) {
                     out(x + ohalfw, y, l) = in(x, y + halfh, l);
                 }
             }
+#ifdef _OPENMP
+}
+#endif
         }
 
         return out;
@@ -244,7 +248,7 @@ namespace ifft {
     img_t<typename E::value_type> c2c(const E& o, bool fast=true) {
         using T = typename E::value_type::value_type;
         dim_t dim = {.h=o.h, .w=o.w, .d=o.d};
-        const auto plan = make_plan<T>(dim, fast ? FFTW_ESTIMATE : cppfftwflags);
+        const auto plan = make_plan<T>(dim, fast ? FFTW_ESTIMATE : com.pref.fftw_conf.strategy);
         auto tmp = to_img(o);
         plan->execute_backward(&tmp[0]);
 
@@ -279,7 +283,9 @@ namespace ifft {
         int ohalfh = in.h - halfh;
         for (int l = 0; l < in.d; l++) {
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(in.size > 40000 && cppmaxthreads > 1)
+#pragma omp parallel num_threads(com.max_thread) if(in.size > 40000 && com.max_thread > 1)
+{
+#pragma omp for simd schedule(static) collapse(2)
 #endif
             for (int y = 0; y < ohalfh; y++) {
                 for (int x = 0; x < halfw; x++) {
@@ -287,7 +293,7 @@ namespace ifft {
                 }
             }
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(in.size > 40000 && cppmaxthreads > 1)
+#pragma omp for simd schedule(static) collapse(2)
 #endif
             for (int y = 0; y < ohalfh; y++) {
                 for (int x = 0; x < ohalfw; x++) {
@@ -295,7 +301,7 @@ namespace ifft {
                 }
             }
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(in.size > 40000 && cppmaxthreads > 1)
+#pragma omp for simd schedule(static) collapse(2)
 #endif
             for (int y = 0; y < halfh; y++) {
                 for (int x = 0; x < halfw; x++) {
@@ -303,15 +309,17 @@ namespace ifft {
                 }
             }
 #ifdef _OPENMP
-#pragma omp parallel for simd schedule(static) num_threads(cppmaxthreads) if(in.size > 40000 && cppmaxthreads > 1)
+#pragma omp for simd schedule(static) collapse(2)
 #endif
             for (int y = 0; y < halfh; y++) {
                 for (int x = 0; x < ohalfw; x++) {
                     out(x + halfw, y, l) = in(x, y + ohalfh, l);
                 }
             }
+#ifdef _OPENMP
+}
+#endif
         }
-
         return out;
     }
 }

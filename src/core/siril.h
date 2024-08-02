@@ -830,6 +830,7 @@ struct cominf {
 
 	int max_images;			// max number of image threads used for parallel execution
 	int max_thread;			// max total number of threads used for parallel execution
+	int fftw_max_thread;	// max number of threads for FFTW execution
 
 	rectangle selection;		// coordinates of the selection rectangle
 

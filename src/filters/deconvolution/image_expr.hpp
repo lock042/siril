@@ -3,6 +3,21 @@
 #include <memory>
 #include <type_traits>
 
+namespace img {
+    template<typename T>
+    std::complex<T> complex_fma(const std::complex<T>& a, const std::complex<T>& b, const std::complex<T>& c) {
+        T real_part = std::fma(a.real(), b.real(), c.real()) - (a.imag() * b.imag());
+        T imag_part = std::fma(a.real(), b.imag(), c.imag()) + (a.imag() * b.real());
+        return std::complex<T>(real_part, imag_part);
+    }
+
+    // Overload for real numbers to use std::fma
+    template<typename T>
+    T complex_fma(const T& a, const T& b, const T& c) {
+        return std::fma(a, b, c);
+    }
+}
+
 template <typename T>
 class img_t;
 
@@ -80,6 +95,11 @@ to_expr(T t) {
     return scalar_img_expr_t<T>(t);
 }
 
+template<typename T>
+struct is_img_expr : std::is_base_of<dummy_img_expr_t, T> {};
+
+template<typename T>
+inline constexpr bool is_img_expr_v = is_img_expr<T>::value;
 
 template <typename T>
 class func0_img_expr_t : public img_expr_t<T> {
@@ -234,6 +254,68 @@ DEFINE_EXPR_2(sub_img_expr_t, -)
 DEFINE_EXPR_2(div_img_expr_t, /)
 DEFINE_EXPR_2(mul_img_expr_t, *)
 
+#define DEFINE_BOOL_EXPR_2(name, operand) \
+template <typename E1, typename E2> \
+class name : \
+    public img_expr_t<bool> { \
+public: \
+    E1 e1; \
+    E2 e2; \
+    int size, w, h, d; \
+\
+    name(const E1& e1, const E2& e2) : e1(e1), e2(e2), size(e1.size | e2.size), \
+                                       w(e1.w | e2.w), h(e1.h | e2.h), d(e1.d | e2.d) { \
+    } \
+\
+    bool operator[](int i) const { \
+        return e1[i] operand e2[i]; \
+    } \
+    \
+    template <typename E3> \
+    bool similar(const E3& o) const { \
+        return e1.similar(o) && e2.similar(o); \
+    } \
+}; \
+\
+template <typename E1, typename E2, \
+          typename std::enable_if_t<is_img_expr_v<E1> || is_img_expr_v<E2>, int> = 0> \
+name<decltype(to_expr(std::declval<E1>())), decltype(to_expr(std::declval<E2>()))> \
+operator operand(const E1& e1, const E2& e2) { \
+    return name<decltype(to_expr(e1)), decltype(to_expr(e2))>(to_expr(e1), to_expr(e2)); \
+};
+
+DEFINE_BOOL_EXPR_2(and_img_expr_t, &&)
+DEFINE_BOOL_EXPR_2(or_img_expr_t, ||)
+DEFINE_BOOL_EXPR_2(eq_img_expr_t, ==)
+DEFINE_BOOL_EXPR_2(neq_img_expr_t, !=)
+DEFINE_BOOL_EXPR_2(lt_img_expr_t, <)
+DEFINE_BOOL_EXPR_2(gt_img_expr_t, >)
+DEFINE_BOOL_EXPR_2(lte_img_expr_t, <=)
+DEFINE_BOOL_EXPR_2(gte_img_expr_t, >=)
+
+template <typename E>
+class not_img_expr_t : public img_expr_t<bool> {
+public:
+    E e;
+    int size, w, h, d;
+
+    not_img_expr_t(const E& e) : e(e), size(e.size), w(e.w), h(e.h), d(e.d) {}
+
+    bool operator[](int i) const {
+        return !e[i];
+    }
+
+    template <typename E2>
+    bool similar(const E2& o) const {
+        return e.similar(o);
+    }
+};
+
+template <typename E, typename std::enable_if_t<is_img_expr_v<E>, int> = 0>
+not_img_expr_t<decltype(to_expr(std::declval<E>()))> operator!(const E& e) {
+    return not_img_expr_t<decltype(to_expr(e))>(to_expr(e));
+}
+
 #define DEFINE_FUNC_1(name, call) \
     template <typename E> \
     auto name(const E& e) { \
@@ -313,8 +395,14 @@ namespace img {
     DEFINE_FUNC_1(hypot, std::hypot)
     DEFINE_FUNC_2(hypot, std::hypot)
     // Fast Multiply & Add
-    DEFINE_FUNC_3(fma, std::fma) // Note: std::fma() doesn't work with complex arguments, so
-                                 // this mapping doesn't work with img_t<std::complex<T>>
+    template <typename E1, typename E2, typename E3>
+    auto fma(const E1& e1, const E2& e2, const E3& e3) {
+        return func3_img_expr_t<decltype(img::complex_fma(std::declval<typename decltype(to_expr(e1))::value_type>(),
+                                                        std::declval<typename decltype(to_expr(e2))::value_type>(),
+                                                        std::declval<typename decltype(to_expr(e3))::value_type>())),
+                                decltype(to_expr(e1)), decltype(to_expr(e2)), decltype(to_expr(e3))>
+            ([](auto e1, auto e2, auto e3) { return img::complex_fma(e1, e2, e3); }, to_expr(e1), to_expr(e2), to_expr(e3));
+    }
     DEFINE_FUNC_3(ternary, std::ternary)
                                  // Note: img::ternary isn't as useful yet as it would be if I
                                  // could get boolean operators to work as elementwise image
@@ -328,6 +416,7 @@ img_t<T> to_img(const E& e)
     img.map(e);
     return img;
 }
+
 template <typename T>
 const img_t<T>& to_img(const img_t<T>& img)
 {
@@ -346,7 +435,20 @@ std::unique_ptr<img_t<T2>> to_img(const img_t<T>& img)
 template <typename E>
 img_t<typename E::value_type> to_img(const E& e)
 {
-    return to_img<typename E::value_type>(e);
+    img_t<typename E::value_type> img(e.w, e.h, e.d);
+    img.map(e);
+    return img;
+}
+
+// Specialization for boolean expressions
+template <typename E, typename std::enable_if<std::is_same<typename E::value_type, bool>::value, int>::type = 0>
+img_t<uint8_t> to_img(const E& e)
+{
+    img_t<uint8_t> img(e.w, e.h, e.d);
+    for (int i = 0; i < e.size; ++i) {
+        img[i] = e[i] ? 255 : 0;
+    }
+    return img;
 }
 
 static struct slice_t {
@@ -357,7 +459,7 @@ static struct slice_t {
     slice_t operator()(int s, int e) const {
         return {.s=s, .e=e};
     }
-} _ = {.s=0, .e=-1};
+} _sl = {.s=0, .e=-1};
 
 template <typename E>
 class slice_img_expr_t : public img_expr_t<typename E::value_type> {
@@ -466,13 +568,13 @@ public:
 };
 
 template <typename E>
-auto slice(const E& e, slice_t w, slice_t h, slice_t d=_)
+auto slice(const E& e, slice_t w, slice_t h, slice_t d=_sl)
 {
     return slice_img_expr_t<decltype(to_expr(e))>(to_expr(e), w, h, d);
 }
 
 template <typename T>
-auto slice(img_t<T>& i, slice_t w, slice_t h, slice_t d=_)
+auto slice(img_t<T>& i, slice_t w, slice_t h, slice_t d=_sl)
 {
     return mappable_slice_img_expr_t<T>(&i, w, h, d);
 }
@@ -520,4 +622,3 @@ auto reduce_d(const E& e, std::function<typename E::value_type(typename E::value
 {
     return reduce1_img_expr_t<decltype(to_expr(e))>(to_expr(e), reductor);
 }
-

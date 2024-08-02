@@ -45,6 +45,10 @@
 #include <curl/curl.h>
 #endif
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "siril_resource.h"
 #include "git-version.h"
 #include "core/siril.h"
@@ -224,6 +228,10 @@ static void global_initialization() {
 	void fftw_threads_set_callback(
 		void (*parallel_loop)(void *(*work)(char *), char *jobdata, size_t elsize, int njobs,
 		void *data), void *data);
+#endif
+
+#ifdef _OPENMP
+	omp_set_nested(TRUE);
 #endif
 
 }

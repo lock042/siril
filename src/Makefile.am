@@ -184,6 +184,7 @@ siril_common_SOURCES = \
 	filters/clahe.h \
 	filters/cosmetic_correction.c \
 	filters/cosmetic_correction.h \
+	filters/deconvolution.c \
 	filters/epf.c \
 	filters/epf.h \
 	filters/fft.c \
@@ -221,8 +222,6 @@ siril_common_SOURCES = \
 	filters/deconvolution/angleSet.cpp \
 	filters/deconvolution/angleSet.hpp \
 	filters/deconvolution/better_than_std.hpp \
-	filters/deconvolution/chelperfuncs.c \
-	filters/deconvolution/chelperfuncs.h \
 	filters/deconvolution/deconvolution.h \
 	filters/deconvolution/deconvolve.cpp \
 	filters/deconvolution/deconvolve.hpp \

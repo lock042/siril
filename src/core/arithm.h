@@ -22,6 +22,10 @@
 
 #include <math.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* operations on image data */
 typedef enum {
 	OPER_ADD,
@@ -47,5 +51,15 @@ int soper_unscaled_div_ushort_to_float(fits *a, int scalar);
 // RGB clipping modes
 
 void rgbblend(blend_data *data, float* r, float* g, float* b, float m_CB);
+
+// Scaling / blurring functions
+
+void magnify(float *y, const float *x, int W, int H, int pd, int w, int h, float n);
+void shrink(float *y, float *x, int outw, int outh, int inw, int inh, float scale, float sigma);
+void gaussblur(float *y, float *x, int w, int h, float sigma);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SRC_CORE_ARITHM_H_ */

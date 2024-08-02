@@ -719,7 +719,8 @@ int read_fits_with_convert(fits* fit, const char* filename, gboolean force_float
 		 */
 		fits_read_img(fit->fptr, TFLOAT, 1, nbdata, &zero, fit->fdata, &zero, &status);
 		if ((fit->bitpix == USHORT_IMG || fit->bitpix == SHORT_IMG
-				|| fit->bitpix == BYTE_IMG) || fit->keywords.data_max > 2.0) { // needed for some FLOAT_IMG
+				// needed for some FLOAT_IMG. 10.0 is probably a good number to represent the limit at which we judge that these are not clip-on pixels.
+				|| fit->bitpix == BYTE_IMG) || fit->keywords.data_max > 10.0) {
 			convert_floats(fit->bitpix, fit->fdata, nbdata);
 		}
 		fit->bitpix = FLOAT_IMG;
@@ -3030,13 +3031,14 @@ typedef gsize (*StrlFunc)(char *dest, const char *src, gsize maxlen);
 static void strl_with_check(char *dest, const char *src, gsize maxlen, StrlFunc strl_func) {
 	gsize len = strl_func(dest, src, maxlen);
 	if (len >= maxlen) {
-		siril_debug_print("Exceeded FITS card length\n");
+		siril_debug_print("Exceeded FITS card length: %s, %lu, %lu\n", dest, len, maxlen);
 	}
 }
 
 gboolean keyword_is_protected(char *card) {
 	char keyname[9];
-	strl_with_check(keyname, card, sizeof(keyname), g_strlcpy);
+	strncpy(keyname, card, 8);
+	keyname[8] = '\0';
 	if ((g_strcmp0(keyname, "PROGRAM ") == 0)
 			|| (g_strcmp0(keyname, "DATE    ") == 0)) {
 		return TRUE;

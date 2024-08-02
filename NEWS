@@ -80,6 +80,7 @@ siril 1.4.0 xx xx, xx
 * Improve interaction of threaded functions and previews with ROI code (!701)
 * Added GraXpert interface (!699)
 * Added the ability to resample by mnaximum dimension and preview jpg file size (!698)
+* Optimised and refactored deconvolution code (!702)
 
 siril 1.2.4 xxx xx, 2024
 
