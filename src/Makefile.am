@@ -504,11 +504,13 @@ if PLATFORM_WIN32
 AM_LDFLAGS += -Wl,--export-all-symbols
 if !SIRIL_DEBUG
 AM_LDFLAGS += -mwindows -lbcrypt
-endif #!SIRIL_DEBUG
+endif
 else
-if !PLATFORM_OSX
-AM_LDFLAGS += -rdynamic, -Wl,-framework,Security
-endif #!PLATFORM_OSX
-endif #PLATFORM_WIN32
+if PLATFORM_OSX
+AM_LDFLAGS += -rdynamic -Wl,-framework,Security
+else
+AM_LDFLAGS += -rdynamic
+endif
+endif
 
 siril_LINK = $(CXXLINK)

@@ -1956,3 +1956,14 @@ const gchar* find_first_nonnumeric(const gchar *string) {
     }
     return NULL;
 }
+
+/* useful for debugging, checking when an image buffer changes or differs between runs */
+/*uint32_t djb33_hash(const char* s, size_t len) {
+    uint32_t h = 5381;
+    while (len--) {
+        // h = 33 * h ^ s[i];
+        h += (h << 5);
+        h ^= *s++;
+    }
+    return h;
+}*/
