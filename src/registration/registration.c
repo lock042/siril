@@ -25,7 +25,9 @@
 #include "gui/image_display.h"
 #include "gui/registration.h"
 #include "opencv/opencv.h"
+#include "drizzle/cdrizzleutil.h"
 
+// TODO:move to GUI file
 int get_registration_layer(const sequence *seq) {
 	if (!com.script && seq == &com.seq) {
 		GtkComboBox *registbox = GTK_COMBO_BOX(lookup_widget("comboboxreglayer"));
@@ -90,6 +92,46 @@ gboolean seq_has_any_distortion(const sequence *seq) {
 	return FALSE;
 }
 
+void create_output_sequence_for_registration(struct registration_args *args, int refindex) {
+	sequence seq = { 0 };
+	initialize_sequence(&seq, TRUE);
+
+	/* we are not interested in the whole path */
+	gchar *seqname = g_path_get_basename(args->seq->seqname);
+	char *rseqname = malloc(
+			strlen(args->prefix) + strlen(seqname) + 5);
+	sprintf(rseqname, "%s%s.seq", args->prefix, seqname);
+	g_unlink(rseqname);	// remove previous to overwrite
+	args->new_seq_name = remove_ext_from_filename(rseqname);
+	free(rseqname);
+	seq.seqname = strdup(args->new_seq_name);
+	seq.number = args->new_total;
+	seq.selnum = args->new_total;
+	seq.fixed = args->seq->fixed;
+	seq.nb_layers = (args->driz && args->driz->is_bayer) ? 3 : args->seq->nb_layers;
+	seq.imgparam = args->imgparam;
+	seq.regparam = calloc(seq.nb_layers, sizeof(regdata*));
+	seq.regparam[args->layer] = args->regparam;
+	seq.beg = seq.imgparam[0].filenum;
+	seq.end = seq.imgparam[seq.number-1].filenum;
+	seq.type = args->seq->type;
+	seq.current = -1;
+	seq.is_variable = check_seq_is_variable(&seq);
+	if (!seq.is_variable) {
+		seq.rx = args->seq->rx;
+		seq.ry = args->seq->ry;
+	}
+	seq.fz = com.pref.comp.fits_enabled;
+	// don't copy from old sequence, it may not be the same image
+	if (refindex == -1)
+		seq.reference_image = sequence_find_refimage(&seq); //global
+	else
+		seq.reference_image = refindex; //applyreg
+	seq.needs_saving = TRUE;
+	writeseqfile(&seq);
+	g_free(seqname);
+	free_sequence(&seq, FALSE);
+}
 
 /* try to maximize the area within the image size (based on gfit)
  * hsteps and vsteps are used to resize the selection zone when it is larger than the image

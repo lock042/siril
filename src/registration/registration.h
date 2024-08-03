@@ -179,7 +179,7 @@ regdata *star_align_get_current_regdata(struct registration_args *regargs);
 int star_align_prepare_results(struct generic_seq_args *args);
 int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads);
 int star_align_finalize_hook(struct generic_seq_args *args);
-void create_output_sequence_for_global_star(struct registration_args *args, int refindex);
+void create_output_sequence_for_registration(struct registration_args *args, int refindex);
 int star_match_and_checks(psf_star **ref_stars, psf_star **stars, int nb_ref_stars, int nb_stars, struct registration_args *regargs, int filenum, Homography *H);
 int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads);
 

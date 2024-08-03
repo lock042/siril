@@ -113,7 +113,7 @@ static GtkAdjustment *register_minpairs = NULL;
 static GtkBox *seq_filters_box_reg = NULL, *reg_wcsfilechooser_box = NULL;
 static GtkButton *filter_add4 = NULL, *filter_add5 = NULL, *filter_rem5 = NULL, *filter_rem6 = NULL, *proj_estimate = NULL, *goregister_button = NULL, *reg_wcsfile_button = NULL;
 static GtkComboBoxText *comboboxregmethod = NULL, *comboboxreglayer = NULL, *comboreg_maxstars = NULL, *comboreg_transfo = NULL, *reg_sel_all_combobox = NULL, *combofilter4 = NULL, *filter_type4 = NULL, *combofilter5 = NULL, *filter_type5 = NULL, *combofilter6 = NULL, *filter_type6 = NULL, *comboreg_framing = NULL, *ComboBoxRegInter = NULL, *combo_driz_kernel = NULL, *comboreg_undistort = NULL;
-static GtkEntry *entry1_x_comet = NULL, *entry2_x_comet = NULL, *entry1_y_comet = NULL, *entry2_y_comet = NULL, *regseqname_entry = NULL, *flatname_entry = NULL, *reg_wcsfile_entry = NULL;
+static GtkEntry *entry1_x_comet = NULL, *entry2_x_comet = NULL, *entry1_y_comet = NULL, *entry2_y_comet = NULL, *regseqname_entry = NULL, *flatname_entry = NULL, *reg_wcsfile_entry = NULL, *cometseqname_entry = NULL;
 static GtkExpander *autoreg_expander = NULL, *manualreg_expander = NULL;
 static GtkFrame *output_reg_frame = NULL;
 static GtkGrid *grid_reg_framing = NULL, *grid_interp_controls = NULL, *grid_drizzle_controls = NULL, *grid_reg_wcs = NULL;
@@ -173,6 +173,7 @@ static void registration_init_statics() {
 		entry2_x_comet = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry2_x_comet"));
 		entry1_y_comet = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry1_y_comet"));
 		entry2_y_comet = GTK_ENTRY(gtk_builder_get_object(gui.builder, "entry2_y_comet"));
+		cometseqname_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "cometseqname_entry"));
 		regseqname_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "regseqname_entry"));
 		flatname_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "flatname_entry"));
 		reg_wcsfile_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "reg_wcsfile_entry"));
@@ -443,51 +444,52 @@ void on_button_comet_clicked(GtkButton *button, gpointer p) {
 	if (com.selection.h && com.selection.w) {
 		set_cursor_waiting(TRUE);
 		result = psf_get_minimisation(&gfit, layer, &com.selection, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, NULL);
-		if (result) {
-			point pos;
-			if (first) { // comet1 clicked
-				pos_of_image1.x = result->x0 + com.selection.x;
-				pos_of_image1.y = com.selection.y + com.selection.h - result->y0;
-				pos = pos_of_image1;
-			} else { // comet2 clicked
-				pos_of_image2.x = result->x0 + com.selection.x;
-				pos_of_image2.y = com.selection.y + com.selection.h - result->y0;
-				pos = pos_of_image2;
-			}
-			if (layer_has_registration(&com.seq, layer) &&
-					guess_transform_from_H(com.seq.regparam[layer][com.seq.reference_image].H) > NULL_TRANSFORMATION &&
-					guess_transform_from_H(com.seq.regparam[layer][com.seq.current].H) > NULL_TRANSFORMATION) {
-				cvTransfPoint(&pos.x, &pos.y, com.seq.regparam[layer][com.seq.current].H, com.seq.regparam[layer][com.seq.reference_image].H, 1.);
-				if (first)
-					pos_of_image1 = pos;
-				else
-					pos_of_image2 = pos;
-			}
+		if (result && (result->x0 <= 0. || result->x0 >= com.selection.w || result->y0 <= 0. || result->x0 >= com.selection.h)) { // we check result is inside the selection box
+			siril_log_color_message(_("Comet PSF center is out of the box, will use selection center instead\n"), "salmon");
 			free_psf(result);
-			if (!gfit.keywords.date_obs) {
+			result = NULL;
+		}
+		point pos;
+		if (result) {
+			pos.x = result->x0 + com.selection.x;
+			pos.y = com.selection.y + com.selection.h - result->y0;
+			free_psf(result);
+		} else { // if psf fails we use the center of selection
+			pos.x = 0.5 * (double)com.selection.w + com.selection.x;
+			pos.y = com.selection.y + com.selection.h - 0.5 * (double)com.selection.h;
+		}
+		if (layer_has_registration(&com.seq, layer) &&
+				guess_transform_from_H(com.seq.regparam[layer][com.seq.reference_image].H) > NULL_TRANSFORMATION &&
+				guess_transform_from_H(com.seq.regparam[layer][com.seq.current].H) > NULL_TRANSFORMATION) {
+			cvTransfPoint(&pos.x, &pos.y, com.seq.regparam[layer][com.seq.current].H, com.seq.regparam[layer][com.seq.reference_image].H, 1.);
+		}
+		if (first) // comet1_clicked
+			pos_of_image1 = pos;
+		else
+			pos_of_image2 = pos;
+		if (!gfit.keywords.date_obs) {
+			siril_message_dialog(GTK_MESSAGE_ERROR,
+					_("There is no timestamp stored in the file"),
+					_("Siril cannot perform the registration without date information in the file."));
+		} else {
+			GDateTime *time = g_date_time_ref(gfit.keywords.date_obs);
+			if (!time) {
 				siril_message_dialog(GTK_MESSAGE_ERROR,
-						_("There is no timestamp stored in the file"),
-						_("Siril cannot perform the registration without date information in the file."));
+						_("Unable to convert DATE-OBS to a valid date"),
+						_("Siril cannot convert the DATE-OBS keyword into a valid date needed in the alignment."));
+			}
+			if (first) {
+				if (t_of_image_1) {
+					g_date_time_unref(t_of_image_1);
+				}
+				t_of_image_1 = time;
+				update_comet_entry(pos_of_image1, entry1_x_comet, entry1_y_comet);
 			} else {
-				GDateTime *time = g_date_time_ref(gfit.keywords.date_obs);
-				if (!time) {
-					siril_message_dialog(GTK_MESSAGE_ERROR,
-							_("Unable to convert DATE-OBS to a valid date"),
-							_("Siril cannot convert the DATE-OBS keyword into a valid date needed in the alignment."));
+				if (t_of_image_2) {
+					g_date_time_unref(t_of_image_2);
 				}
-				if (first) {
-					if (t_of_image_1) {
-						g_date_time_unref(t_of_image_1);
-					}
-					t_of_image_1 = time;
-					update_comet_entry(pos_of_image1, entry1_x_comet, entry1_y_comet);
-				} else {
-					if (t_of_image_2) {
-						g_date_time_unref(t_of_image_2);
-					}
-					t_of_image_2 = time;
-					update_comet_entry(pos_of_image2, entry2_x_comet, entry2_y_comet);
-				}
+				t_of_image_2 = time;
+				update_comet_entry(pos_of_image2, entry2_x_comet, entry2_y_comet);
 			}
 		}
 		set_cursor_waiting(FALSE);
@@ -1097,13 +1099,13 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 	gboolean is_global = regindex == REG_GLOBAL;
 	gboolean is_star_align = is_global || regindex == REG_2PASS;
 	/* registration will produce output */
-	gboolean has_output = isapplyreg || is_global;
-	gboolean has_drizzle = has_output && gtk_stack_get_visible_child(interp_drizzle_stack) == GTK_WIDGET(grid_drizzle_controls);
+	gboolean has_output_images = isapplyreg || is_global;
+	gboolean has_drizzle = has_output_images && gtk_stack_get_visible_child(interp_drizzle_stack) == GTK_WIDGET(grid_drizzle_controls);
 
 	regargs->func = method->method_ptr;
 	regargs->seq = &com.seq;
 	regargs->reference_image = sequence_find_refimage(&com.seq);
-	regargs->no_output = !has_output;
+	regargs->no_output = !has_output_images && regindex != REG_COMET; // comet produces a new sequence with symlinks to previous images
 	if (regindex == REG_3STARS) {
 		regargs->follow_star = gtk_toggle_button_get_active(followStarCheckButton);
 		regargs->type = (gtk_toggle_button_get_active(onlyshift_checkbutton)) ? SHIFT_TRANSFORMATION : SIMILARITY_TRANSFORMATION;
@@ -1133,6 +1135,7 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 	}
 	if (regindex == REG_COMET) {
 		regargs->velocity = velocity;
+		regargs->prefix = g_strdup(gtk_entry_get_text(cometseqname_entry)); //to create the .seq file
 	}
 	if (regindex == REG_APPLY) {
 		regargs->framing = gtk_combo_box_get_active(GTK_COMBO_BOX(comboreg_framing));
@@ -1142,7 +1145,7 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 		regargs->filters.filter_included = gtk_combo_box_get_active(GTK_COMBO_BOX(reg_sel_all_combobox));
 	}
 
-	if (has_output) {
+	if (has_output_images) {
 		regargs->prefix = strdup(gtk_entry_get_text(regseqname_entry));
 		regargs->output_scale = (float)gtk_spin_button_get_value(reg_scaling_spin);
 		if (has_drizzle) {
@@ -1182,9 +1185,9 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 #endif
 
 	/* We check that available disk space is enough when
-	the registration method produces a new sequence
+	the registration method produces a new sequence with images
 	*/
-	if (has_output) {
+	if (has_output_images) {
 		int nb_frames = regargs->filters.filter_included ? regargs->seq->selnum : regargs->seq->number;
 		gint64 size = seq_compute_size(regargs->seq, nb_frames, get_data_type(regargs->seq->bitpix));
 		if (regargs->output_scale != 1.f)

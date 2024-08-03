@@ -1562,14 +1562,14 @@ void set_shifts(sequence *seq, int frame, int layer, double shiftx, double shift
 	}
 }
 
-void cum_shifts(sequence *seq, int frame, int layer, double shiftx, double shifty) {
-	if (seq->regparam[layer]) {
+void cum_shifts(regdata *regparam, int frame, double shiftx, double shifty) {
+	if (regparam) {
 		Homography Hshift = { 0 }, res = { 0 };
 		cvGetEye(&Hshift);
 		Hshift.h02 = shiftx;
 		Hshift.h12 = shifty;
-		cvMultH(Hshift, seq->regparam[layer][frame].H, &res);
-		seq->regparam[layer][frame].H = res;
+		cvMultH(Hshift, regparam[frame].H, &res);
+		regparam[frame].H = res;
 	}
 }
 

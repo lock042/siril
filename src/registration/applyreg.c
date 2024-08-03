@@ -576,7 +576,7 @@ int apply_reg_finalize_hook(struct generic_seq_args *args) {
 		g_free(str);
 		if (!(args->seq->type == SEQ_INTERNAL)) {
 			// explicit sequence creation to copy imgparam and regparam
-			create_output_sequence_for_global_star(regargs, new_ref_index);
+			create_output_sequence_for_registration(regargs, new_ref_index);
 			// will be loaded in the idle function if (load_new_sequence)
 			regargs->load_new_sequence = TRUE; // only case where a new sequence must be loaded
 		}

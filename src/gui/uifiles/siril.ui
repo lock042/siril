@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019-2023
 
@@ -1443,12 +1443,9 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
           </packing>
         </child>
         <child>
-          <object class="GtkModelButton" id="proc_composition">
+          <object class="GtkSeparator">
             <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="text" translatable="yes">Composition</property>
-            <property name="menu-name">composition_menu</property>
+            <property name="can-focus">False</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -1457,9 +1454,12 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
           </packing>
         </child>
         <child>
-          <object class="GtkSeparator">
+          <object class="GtkModelButton" id="proc_composition">
             <property name="visible">True</property>
-            <property name="can-focus">False</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="text" translatable="yes">Composition</property>
+            <property name="menu-name">composition_menu</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -5817,13 +5817,52 @@ When this box is unchecked, the global star registration will be calculated and 
                                                             <property name="orientation">vertical</property>
                                                             <property name="spacing">5</property>
                                                             <child>
-                                                            <!-- n-columns=3 n-rows=3 -->
+                                                            <!-- n-columns=3 n-rows=4 -->
                                                             <object class="GtkGrid">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="row-spacing">5</property>
                                                             <property name="column-spacing">5</property>
                                                             <property name="column-homogeneous">True</property>
+                                                            <child>
+                                                            <object class="GtkBox">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <child>
+                                                            <object class="GtkLabel">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Comet velocity in pixel per hour.</property>
+                                                            <property name="halign">end</property>
+                                                            <property name="label" translatable="yes">Velocity: </property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">True</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkLabel" id="label1_comet">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Comet velocity in pixel per hour.</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="label">Δx: 0.00, Δy: 0.00</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">True</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">1</property>
+                                                            </packing>
+                                                            </child>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">3</property>
+                                                            <property name="width">3</property>
+                                                            </packing>
+                                                            </child>
                                                             <child>
                                                             <object class="GtkButton" id="button1_comet">
                                                             <property name="label" translatable="yes">Pick object in #1</property>
@@ -5927,46 +5966,50 @@ When this box is unchecked, the global star registration will be calculated and 
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">2</property>
+                                                            <property name="position">0</property>
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkBox">
+                                                            <!-- n-columns=2 n-rows=1 -->
+                                                            <object class="GtkGrid">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
+                                                            <property name="row-spacing">5</property>
+                                                            <property name="column-spacing">5</property>
                                                             <child>
                                                             <object class="GtkLabel">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="tooltip-text" translatable="yes">Comet velocity in pixel per hour.</property>
                                                             <property name="halign">end</property>
-                                                            <property name="label" translatable="yes">Velocity: </property>
+                                                            <property name="label" translatable="yes">Prefix: </property>
                                                             </object>
                                                             <packing>
-                                                            <property name="expand">True</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">0</property>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">0</property>
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkLabel" id="label1_comet">
+                                                            <object class="GtkEntry" id="cometseqname_entry">
                                                             <property name="visible">True</property>
-                                                            <property name="can-focus">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Comet velocity in pixel per hour.</property>
-                                                            <property name="halign">start</property>
-                                                            <property name="label">Δx: 0.00, Δy: 0.00</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="tooltip-text" translatable="yes">Prefix of the sequence resulting from the registration. Only the seq file is created, not new images.</property>
+                                                            <property name="max-length">10</property>
+                                                            <property name="width-chars">10</property>
+                                                            <property name="text">comet_</property>
+                                                            <property name="caps-lock-warning">False</property>
+                                                            <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                                             </object>
                                                             <packing>
-                                                            <property name="expand">True</property>
-                                                            <property name="fill">True</property>
-                                                            <property name="position">1</property>
+                                                            <property name="left-attach">1</property>
+                                                            <property name="top-attach">0</property>
                                                             </packing>
                                                             </child>
                                                             </object>
                                                             <packing>
                                                             <property name="expand">False</property>
                                                             <property name="fill">True</property>
-                                                            <property name="position">3</property>
+                                                            <property name="position">2</property>
                                                             </packing>
                                                             </child>
                                                             </object>

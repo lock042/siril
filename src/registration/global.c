@@ -112,7 +112,7 @@ int star_align_prepare_results(struct generic_seq_args *args) {
 			return 1;
 		}
 
-		if (seq_prepare_hook(args))
+		if (args->seq->type == SEQ_REGULAR && seq_prepare_hook(args)) // we don't prepare a writer for ftseq or seq
 			return 1;
 	}
 
@@ -501,7 +501,7 @@ int star_align_finalize_hook(struct generic_seq_args *args) {
 		g_free(str);
 		if (!regargs->no_output && (args->seq->type != SEQ_INTERNAL)) {
 			// explicit sequence creation to copy imgparam and regparam
-			create_output_sequence_for_global_star(regargs, -1);
+			create_output_sequence_for_registration(regargs, -1);
 			// will be loaded in the idle function if (load_new_sequence)
 			regargs->load_new_sequence = TRUE; // only case where a new sequence must be loaded
 		}
@@ -678,47 +678,6 @@ int register_star_alignment(struct registration_args *regargs) {
 	regargs->retval = args->retval;
 	free(args);
 	return regargs->retval;
-}
-
-void create_output_sequence_for_global_star(struct registration_args *args, int refindex) {
-	sequence seq = { 0 };
-	initialize_sequence(&seq, TRUE);
-
-	/* we are not interested in the whole path */
-	gchar *seqname = g_path_get_basename(args->seq->seqname);
-	char *rseqname = malloc(
-			strlen(args->prefix) + strlen(seqname) + 5);
-	sprintf(rseqname, "%s%s.seq", args->prefix, seqname);
-	g_free(seqname);
-	g_unlink(rseqname);	// remove previous to overwrite
-	args->new_seq_name = remove_ext_from_filename(rseqname);
-	free(rseqname);
-	seq.seqname = strdup(args->new_seq_name);
-	seq.number = args->new_total;
-	seq.selnum = args->new_total;
-	seq.fixed = args->seq->fixed;
-	seq.nb_layers = (args->driz && args->driz->is_bayer) ? 3 : args->seq->nb_layers;
-	seq.imgparam = args->imgparam;
-	seq.regparam = calloc(seq.nb_layers, sizeof(regdata*));
-	seq.regparam[args->layer] = args->regparam;
-	seq.beg = seq.imgparam[0].filenum;
-	seq.end = seq.imgparam[seq.number-1].filenum;
-	seq.type = args->seq->type;
-	seq.current = -1;
-	seq.is_variable = check_seq_is_variable(&seq);
-	if (!seq.is_variable) {
-		seq.rx = args->seq->rx;
-		seq.ry = args->seq->ry;
-	}
-	seq.fz = com.pref.comp.fits_enabled;
-	// don't copy from old sequence, it may not be the same image
-	if (refindex == -1)
-		seq.reference_image = sequence_find_refimage(&seq); //global
-	else
-		seq.reference_image = refindex; //applyreg
-	seq.needs_saving = TRUE;
-	writeseqfile(&seq);
-	free_sequence(&seq, FALSE);
 }
 
 static void print_alignment_results(Homography H, int filenum, float fwhm, float roundness, char *units) {

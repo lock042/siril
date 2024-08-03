@@ -3,6 +3,7 @@
 
 #include "sequence_filtering.h"
 #include "io/fits_sequence.h"
+#include "io/ser.h"
 
 #ifdef __cplusplus
 extern "C" {
