@@ -1359,6 +1359,8 @@ int process_deconvolve(int nb, nonblind_t type) {
 	estk_data* data = calloc(1, sizeof(estk_data));
 	reset_conv_args(data);
 	data->regtype = REG_NONE_GRAD;
+	if (com.kernel && com.kernelsize > 0)
+		data->ks = com.kernelsize;
 	if (type == DECONV_SB)
 		data->finaliters = 1;
 	if (type == DECONV_WIENER)
@@ -1386,7 +1388,7 @@ int process_deconvolve(int nb, nonblind_t type) {
 				return CMD_ARG_ERROR;
 			}
 			if (!error) {
-				data->alpha = alpha;
+				data->alpha = 1.f / alpha;
 			}
 		}
 		else if (g_str_has_prefix(arg, "-iters=")) {
@@ -1481,6 +1483,8 @@ int process_seqdeconvolve(int nb, nonblind_t type) {
 	estk_data* data = calloc(1, sizeof(estk_data));
 	reset_conv_args(data);
 	data->regtype = REG_NONE_GRAD;
+	if (com.kernel && com.kernelsize > 0)
+		data->ks = com.kernelsize;
 	if (type == DECONV_SB)
 		data->finaliters = 1;
 	if (type == DECONV_WIENER)
@@ -1510,7 +1514,7 @@ int process_seqdeconvolve(int nb, nonblind_t type) {
 				return CMD_ARG_ERROR;
 			}
 			if (!error) {
-				data->alpha = alpha;
+				data->alpha = 1.f / alpha;
 			}
 		}
 		else if (g_str_has_prefix(arg, "-iters=")) {

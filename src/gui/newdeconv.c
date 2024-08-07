@@ -1193,10 +1193,11 @@ gpointer deconvolve(gpointer p) {
 	}
 
 	// Get the kernel
-	if (sequence_is_running == 0)
-		set_progress_bar_data(_("Starting PSF estimation..."), PROGRESS_PULSATE);
-	if (args.psftype != PSF_PREVIOUS)
+	if (args.psftype != PSF_PREVIOUS) {
+		if (sequence_is_running == 0)
+			set_progress_bar_data(_("Starting PSF estimation..."), PROGRESS_PULSATE);
 		get_kernel();
+	}
 	if (!com.kernel) {
 		siril_debug_print("Kernel missing!\n");
 		retval = 1;
