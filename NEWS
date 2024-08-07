@@ -3,6 +3,7 @@ siril 1.2.4 xxx xx, 2024
 * Fixed CFA statistics (#1342)
 * Fixed calibration command bug disabling cosmetic correction (#1348)
 * Fixed calibration GUI not parsing correcting flat when using path parsing (#1348)
+* Fixed incorrect deconvolution command arg setting (issue raised on pixls.us)
 
 siril 1.2.3 June 19, 2024
 
