@@ -1586,6 +1586,7 @@ int parse_deconvolve(int first_arg, int nb,  estk_data*data, nonblind_t type) {
 	gboolean error = FALSE;
 	gboolean kernel_loaded = FALSE;
 	reset_conv_args(data);
+	data->regtype = REG_NONE_GRAD;
 	if (com.kernel && com.kernelsize > 0)
 		data->ks = com.kernelsize;
 	if (type == DECONV_SB)
