@@ -719,7 +719,8 @@ int read_fits_with_convert(fits* fit, const char* filename, gboolean force_float
 		 */
 		fits_read_img(fit->fptr, TFLOAT, 1, nbdata, &zero, fit->fdata, &zero, &status);
 		if ((fit->bitpix == USHORT_IMG || fit->bitpix == SHORT_IMG
-				|| fit->bitpix == BYTE_IMG) || fit->keywords.data_max > 2.0) { // needed for some FLOAT_IMG
+				// needed for some FLOAT_IMG. 10.0 is probably a good number to represent the limit at which we judge that these are not clip-on pixels.
+				|| fit->bitpix == BYTE_IMG) || fit->keywords.data_max > 10.0) {
 			convert_floats(fit->bitpix, fit->fdata, nbdata);
 		}
 		fit->bitpix = FLOAT_IMG;
