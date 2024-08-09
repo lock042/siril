@@ -1219,6 +1219,13 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 	return 0;
 }
 
+int get_registration_layer_from_GUI(const sequence *seq) {
+	int reglayer = gtk_combo_box_get_active(GTK_COMBO_BOX(comboboxreglayer));
+	if (!seq || !seq->regparam || !seq->regparam[reglayer] || seq->nb_layers < 0 || seq->nb_layers <= reglayer)
+		return -1;
+	return reglayer;
+}
+
 /* callback for 'Go register' button, GTK thread */
 void on_seqregister_button_clicked(GtkButton *button, gpointer user_data) {
 

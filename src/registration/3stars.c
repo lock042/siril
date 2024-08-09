@@ -370,7 +370,7 @@ int register_3stars(struct registration_args *regargs) {
 	}
 	delete_selected_area();
 
-	regdata *current_regdata = star_align_get_current_regdata(regargs);
+	regdata *current_regdata = registration_get_current_regdata(regargs);
 	if (!current_regdata) return -2;
 
 	char *msg;

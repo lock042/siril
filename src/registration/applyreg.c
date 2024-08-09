@@ -52,7 +52,7 @@
 static int new_ref_index = -1;
 static gboolean check_applyreg_output(struct registration_args *regargs);
 
-regdata *apply_reg_get_current_regdata(struct registration_args *regargs) {
+static regdata *apply_reg_get_current_regdata(struct registration_args *regargs) {
 	regdata *current_regdata;
 	if (regargs->seq->regparam[regargs->layer]) {
 		siril_log_message(
@@ -64,30 +64,6 @@ regdata *apply_reg_get_current_regdata(struct registration_args *regargs) {
 		return NULL;
 	}
 	return current_regdata;
-}
-
-// This is the equivalent of opencv cv::detail::RotationWarper warpRoi
-void compute_roi(Homography *H, int rx, int ry, framing_roi *roi) {
-	double xmin = DBL_MAX;
-	double xmax = -DBL_MAX;
-	double ymin = DBL_MAX;
-	double ymax = -DBL_MAX;
-	Homography Href = { 0 };
-	cvGetEye(&Href);
-	regframe framing = (regframe){(point){0., 0.}, (point){(double)rx - 1., 0.}, (point){(double)rx - 1., (double)ry - 1.}, (point){0., (double)ry - 1.}};
-	for (int j = 0; j < 4; j++) {
-		cvTransfPoint(&framing.pt[j].x, &framing.pt[j].y, *H,  Href, 1.);
-		if (xmin > framing.pt[j].x) xmin = framing.pt[j].x;
-		if (ymin > framing.pt[j].y) ymin = framing.pt[j].y;
-		if (xmax < framing.pt[j].x) xmax = framing.pt[j].x;
-		if (ymax < framing.pt[j].y) ymax = framing.pt[j].y;
-		siril_debug_print("Point #%d: %3.2f %3.2f\n", j, framing.pt[j].x, framing.pt[j].y);
-	}
-	int x0 = (int)xmin;
-	int y0 = (int)ymin;
-	int w = (int)xmax - xmin + 1;
-	int h = (int)ymax - ymin + 1;
-	*roi = (framing_roi){ x0, y0, w, h};
 }
 
 static void update_framing(regframe *framing, sequence *seq, int index) {
@@ -281,7 +257,7 @@ static gboolean compute_framing(struct registration_args *regargs) {
 // - H transf, the warping transformation in place
 // - H shift, the residual shift wrt to ref image
 // - the size of the transformed image after applying the transformation
-void compute_Hmax(Homography *Himg, Homography *Href, int src_rx_in, int src_ry_in, double scale, Homography *H, Homography *Hshift, int *dst_rx_out, int *dst_ry_out) {
+static void compute_Hmax(Homography *Himg, Homography *Href, int src_rx_in, int src_ry_in, double scale, Homography *H, Homography *Hshift, int *dst_rx_out, int *dst_ry_out) {
 	*dst_rx_out = 0;
 	*dst_ry_out = 0;
 	regframe framing = { 0 };
@@ -348,7 +324,7 @@ int apply_reg_prepare_hook(struct generic_seq_args *args) {
 		return 1;
 	}
 	clearfits(&fit);
-	return star_align_prepare_results(args);
+	return registration_prepare_results(args);
 }
 
 /* reads the image and apply existing transformation */

@@ -80,26 +80,7 @@ const char *describe_transformation_type(transformation_type type) {
 	}
 }
 
-regdata *star_align_get_current_regdata(struct registration_args *regargs) {
-	regdata *current_regdata;
-	if (regargs->seq->regparam[regargs->layer]) {
-		siril_log_message(
-				_("Recomputing already existing registration for this layer\n"));
-		current_regdata = regargs->seq->regparam[regargs->layer];
-		/* we reset all values as we may register different images */
-		memset(current_regdata, 0, regargs->seq->number * sizeof(regdata));
-	} else {
-		current_regdata = calloc(regargs->seq->number, sizeof(regdata));
-		if (current_regdata == NULL) {
-			PRINT_ALLOC_ERR;
-			return NULL;
-		}
-		regargs->seq->regparam[regargs->layer] = current_regdata;
-	}
-	return current_regdata;
-}
-
-int star_align_prepare_results(struct generic_seq_args *args) {
+int registration_prepare_results(struct generic_seq_args *args) {
 	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
 
@@ -112,7 +93,7 @@ int star_align_prepare_results(struct generic_seq_args *args) {
 			return 1;
 		}
 
-		if (args->seq->type == SEQ_REGULAR && seq_prepare_hook(args)) // we don't prepare a writer for ftseq or seq
+		if (seq_prepare_hook(args))
 			return 1;
 	}
 
@@ -132,7 +113,7 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	fits fit = { 0 };
 	int nb_stars = 0;
 
-	sadata->current_regdata = star_align_get_current_regdata(regargs);
+	sadata->current_regdata = registration_get_current_regdata(regargs);
 	if (!sadata->current_regdata) return -2;
 
 	/* first we're looking for stars in reference image */
@@ -249,10 +230,10 @@ int star_align_prepare_hook(struct generic_seq_args *args) {
 	sadata->current_regdata[regargs->reference_image].background_lvl = B;
 	sadata->current_regdata[regargs->reference_image].number_of_stars = sadata->fitted_stars;
 
-	return star_align_prepare_results(args);
+	return registration_prepare_results(args);
 }
 
-int star_match_and_checks(psf_star **ref_stars, psf_star **stars, int nb_ref_stars, int nb_stars, struct registration_args *regargs, int filenum, Homography *H) {
+static int star_match_and_checks(psf_star **ref_stars, psf_star **stars, int nb_ref_stars, int nb_stars, struct registration_args *regargs, int filenum, Homography *H) {
 	double scale_min = 0.9;
 	double scale_max = 1.1;
 	int attempt = 1;
@@ -441,7 +422,7 @@ int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_i
 	return 0;
 }
 
-int star_align_finalize_hook(struct generic_seq_args *args) {
+static int star_align_finalize_hook(struct generic_seq_args *args) {
 	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
 	int failed = 0;
@@ -714,7 +695,7 @@ static void print_alignment_results(Homography H, int filenum, float fwhm, float
 }
 
 static int compute_transform(struct registration_args *regargs, struct starfinder_data *sf_args, gboolean *included, int *failed, const float *fwhm, const float *roundness, const float *B, gboolean verbose) {
-	regdata *current_regdata = star_align_get_current_regdata(regargs); // clean the structure if it exists, allocates otherwise
+	regdata *current_regdata = registration_get_current_regdata(regargs); // clean the structure if it exists, allocates otherwise
 	if (!current_regdata) return -1;
 	int nb_ref_stars = sf_args->nb_stars[regargs->seq->reference_image];
 	int nb_aligned = 0;

@@ -21,20 +21,16 @@
 
 
 #include "core/proto.h"
+#include "core/siril_log.h"
 #include "gui/utils.h"
 #include "gui/image_display.h"
 #include "gui/registration.h"
 #include "opencv/opencv.h"
 #include "drizzle/cdrizzleutil.h"
 
-// TODO:move to GUI file
 int get_registration_layer(const sequence *seq) {
 	if (!com.script && seq == &com.seq) {
-		GtkComboBox *registbox = GTK_COMBO_BOX(lookup_widget("comboboxreglayer"));
-		int reglayer = gtk_combo_box_get_active(registbox);
-		if (!seq || !seq->regparam || !seq->regparam[reglayer] || seq->nb_layers < 0 || seq->nb_layers <= reglayer)
-			return -1;
-		return reglayer;
+		return get_registration_layer_from_GUI(seq);
 	} else {
 		// find first available regdata
 		if (!seq || !seq->regparam || seq->nb_layers < 0)
@@ -90,6 +86,25 @@ gboolean seq_has_any_distortion(const sequence *seq) {
 			return TRUE;
 	}
 	return FALSE;
+}
+
+regdata *registration_get_current_regdata(struct registration_args *regargs) {
+	regdata *current_regdata;
+	if (regargs->seq->regparam[regargs->layer]) {
+		siril_log_message(
+				_("Recomputing already existing registration for this layer\n"));
+		current_regdata = regargs->seq->regparam[regargs->layer];
+		/* we reset all values as we may register different images */
+		memset(current_regdata, 0, regargs->seq->number * sizeof(regdata));
+	} else {
+		current_regdata = calloc(regargs->seq->number, sizeof(regdata));
+		if (current_regdata == NULL) {
+			PRINT_ALLOC_ERR;
+			return NULL;
+		}
+		regargs->seq->regparam[regargs->layer] = current_regdata;
+	}
+	return current_regdata;
 }
 
 void create_output_sequence_for_registration(struct registration_args *args, int refindex) {

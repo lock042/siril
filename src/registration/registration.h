@@ -155,57 +155,52 @@ int register_apply_reg(struct registration_args *regargs); // REG_APPLY
 int register_kombat(struct registration_args *args); // REG_KOMBAT
 int register_manual(struct registration_args *regargs); // defined in compositing/compositing.c
 
-// 3 stars
-void reset_3stars();
-int _3stars_get_number_selected_stars();
-gboolean _3stars_check_selection();
-
-// comet
+// comet specific calcs
 pointf compute_velocity(GDateTime *t1, GDateTime *t2, point d1, point d2);
 int get_comet_shift(GDateTime *ref, GDateTime *img, pointf px_per_hour, pointf *reg);
 
-void update_reg_interface(gboolean dont_change_reg_radio);
 void compute_fitting_selection(rectangle *area, int hsteps, int vsteps, int preserve_square);
 void get_the_registration_area(struct registration_args *regargs, const struct registration_method *method); // for compositing
 gpointer register_thread_func(gpointer p);
 
-/** getter */
+// getters - checkers
 int get_registration_layer(const sequence *seq);
 int seq_has_any_regdata(const sequence *seq); // same as get_registration_layer but does not rely on GUI for com.seq
 gboolean seq_has_any_distortion(const sequence *seq);
-
-regdata *apply_reg_get_current_regdata(struct registration_args *regargs);
-regdata *star_align_get_current_regdata(struct registration_args *regargs);
-int star_align_prepare_results(struct generic_seq_args *args);
-int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads);
-int star_align_finalize_hook(struct generic_seq_args *args);
-void create_output_sequence_for_registration(struct registration_args *args, int refindex);
-int star_match_and_checks(psf_star **ref_stars, psf_star **stars, int nb_ref_stars, int nb_stars, struct registration_args *regargs, int filenum, Homography *H);
-int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads);
-
-const char *describe_transformation_type(transformation_type type);
-
-void selection_H_transform(rectangle *selection, Homography Href, Homography Himg);
 void guess_transform_from_seq(sequence *seq, int layer,
 		transformation_type *min, transformation_type *max, gboolean excludenull);
 transformation_type guess_transform_from_H(Homography H);
-gboolean check_before_applyreg(struct registration_args *regargs);
 gboolean layer_has_registration(const sequence *seq, int layer);
 gboolean layer_has_usable_registration(sequence *seq, int layer);
 gboolean layer_has_distortion(const sequence *seq, int layer);
 int get_first_selected(sequence *seq);
-regdata *apply_reg_get_current_regdata(struct registration_args *regargs);
 
-void compute_roi(Homography *H, int rx, int ry, framing_roi *roi);
+// preparation required by more than one reg method
+regdata *registration_get_current_regdata(struct registration_args *regargs);
+int registration_prepare_results(struct generic_seq_args *args);
+void create_output_sequence_for_registration(struct registration_args *args, int refindex);
+int initialize_drizzle_params(struct generic_seq_args *args, struct registration_args *regargs);
+
+// image hooks required by more than one reg method
+int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads);
+int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads);
+
+const char *describe_transformation_type(transformation_type type);
+
+// Homography-related functions
+void selection_H_transform(rectangle *selection, Homography Href, Homography Himg);
 void translation_from_H(Homography H, double *dx, double *dy);
 Homography H_from_translation(double dx, double dy);
 void SetNullH(Homography *H);
-int shift_fit_from_reg(fits *fit, Homography H);
-void compute_Hmax(Homography *Himg, Homography *Href, int src_rx_in, int src_ry_in, double scale, Homography *H, Homography *Hshift, int *dst_rx_out, int *dst_ry_out);
 
+//astrometry-related functions
 int collect_sequence_astrometry(struct registration_args *regargs);
 int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_type framing, int layer, Homography *Href);
 
+//image shift
+int shift_fit_from_reg(fits *fit, Homography H);
+
 int minidx(const float *arr, const gboolean *mask, int nb, float *val);
-int initialize_drizzle_params(struct generic_seq_args *args, struct registration_args *regargs);
+
+gboolean check_before_applyreg(struct registration_args *regargs);
 #endif

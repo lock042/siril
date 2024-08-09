@@ -75,6 +75,30 @@ static void compute_center_cog(double *ra, double *dec, int n, gboolean *incl, d
 	*DEC = atan2(z, sqrt(x * x + y * y)) * RADTODEG;
 }
 
+// This is the equivalent of opencv cv::detail::RotationWarper warpRoi
+static void compute_roi(Homography *H, int rx, int ry, framing_roi *roi) {
+	double xmin = DBL_MAX;
+	double xmax = -DBL_MAX;
+	double ymin = DBL_MAX;
+	double ymax = -DBL_MAX;
+	Homography Href = { 0 };
+	cvGetEye(&Href);
+	regframe framing = (regframe){(point){0., 0.}, (point){(double)rx - 1., 0.}, (point){(double)rx - 1., (double)ry - 1.}, (point){0., (double)ry - 1.}};
+	for (int j = 0; j < 4; j++) {
+		cvTransfPoint(&framing.pt[j].x, &framing.pt[j].y, *H,  Href, 1.);
+		if (xmin > framing.pt[j].x) xmin = framing.pt[j].x;
+		if (ymin > framing.pt[j].y) ymin = framing.pt[j].y;
+		if (xmax < framing.pt[j].x) xmax = framing.pt[j].x;
+		if (ymax < framing.pt[j].y) ymax = framing.pt[j].y;
+		siril_debug_print("Point #%d: %3.2f %3.2f\n", j, framing.pt[j].x, framing.pt[j].y);
+	}
+	int x0 = (int)xmin;
+	int y0 = (int)ymin;
+	int w = (int)xmax - xmin + 1;
+	int h = (int)ymax - ymin + 1;
+	*roi = (framing_roi){ x0, y0, w, h};
+}
+
 static gboolean get_scales_and_framing(struct wcsprm *WCSDATA, Homography *K, double *framing) {
 	K->h00 = -1;
 	K->h11 = -1;

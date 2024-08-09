@@ -94,7 +94,7 @@ static void create_output_sequence_for_comet(struct registration_args *args, int
 	seq.current = -1;
 	seq.is_variable = FALSE;
 	seq.fz = args->seq->fz;
-	seq.reference_image = refindex; //applyreg / comet
+	seq.reference_image = refindex;
 	seq.needs_saving = TRUE;
 	fix_selnum(&seq, FALSE);
 	writeseqfile(&seq);
