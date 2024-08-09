@@ -628,6 +628,7 @@ int register_star_alignment(struct registration_args *regargs) {
 		regargs->disto = init_disto_data(&regargs->distoparam, regargs->seq, NULL, regargs->driz != NULL, &status);
 		if (status) {
 			free(args);
+			siril_log_color_message(_("Could not initialize distortion data, aborting\n"), "red");
 			return -1;
 		}
 		if (!regargs->disto) {
@@ -828,7 +829,7 @@ int register_multi_step_global(struct registration_args *regargs) {
 		int status = 1;
 		regargs->disto = init_disto_data(&regargs->distoparam, regargs->seq, NULL, regargs->driz != NULL, &status);
 		if (status) {
-			return -1;
+			siril_log_color_message(_("Could not initialize distortion data, aborting\n"), "red");
 		}
 		if (!regargs->disto) {
 			regargs->undistort = DISTO_UNDEF;

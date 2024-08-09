@@ -28,6 +28,7 @@
 #include "core/siril_log.h"
 #include "algos/siril_wcs.h"
 #include "algos/PSF.h"
+#include "io/fits_keywords.h"
 #include "io/image_format_fits.h"
 #include "io/path_parse.h"
 #include "io/sequence.h"
@@ -506,9 +507,92 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 		}
 	}
 	*status = 0;
+	siril_log_color_message(_("Distortion data is valid and will be used\n"), "green");
 	return disto;
 }
 
+gboolean validate_disto_params(fits *reffit, const gchar *text, disto_source index, gchar **msg1, gchar **msg2) {
+	if (index == DISTO_UNDEF)
+		return TRUE;
+	if (index == DISTO_IMAGE) {
+		if (!has_wcs(reffit)) {
+			*msg1 = g_strdup(_("You have selected undistortion from current image but it is not platesolved, perform astrometry first or disable distortion"));
+			if (msg2)
+				*msg2 = g_strdup(_("Platesolve current image"));
+			return FALSE;
+		}
+		if (!reffit->keywords.wcslib->lin.dispre) {
+			*msg1 = g_strdup(_("You have selected undistortion from current image but it is not platesolved, perform astrometry first or disable distortion"));
+			if (msg2)
+				*msg2 = g_strdup(_("Platesolve current image with distortions"));
+			return FALSE;
+		}
+	}
+	if (index == DISTO_FILE) {
+		if (!text || *text == '\0') {
+			*msg1 = g_strdup(_("You have selected undistortion from an existing file, you need to specify the filename"));
+			if (msg2)
+				*msg2 = g_strdup(_("Load a FITS/WCS file for distortion"));
+			return FALSE;
+		} else {
+			fits fit = { 0 };
+			if (read_fits_metadata_from_path_first_HDU(text, &fit)) {
+				*msg1 = g_strdup(_("Could not load FITS image for distortion"));
+				if (msg2)
+					*msg2 = g_strdup(_("Could not load FITS image for distortion"));
+				clearfits(&fit);
+				return FALSE;
+			}
+			if (!has_wcs(&fit)) {
+				*msg1 = g_strdup(_("You have selected undistortion from file but it is not platesolved, perform astrometry first or disable distortion"));
+				if (msg2)
+					*msg2 = g_strdup(_("Selected file has no WCS information"));
+				clearfits(&fit);
+				return FALSE;
+			}
+			if (!fit.keywords.wcslib->lin.dispre) {
+				*msg1 = g_strdup(_("You have selected undistortion from file but it is has no distortion terms, perform astrometry with SIP enabled or disable distortion"));
+				if (msg2)
+					*msg2 = g_strdup(_("Selected file has no distortion information"));
+				clearfits(&fit);
+				return FALSE;
+			}
+			int rx = fit.rx;
+			int ry = fit.ry;
+			if ((rx == 0 || ry == 0) && parse_wcs_image_dimensions(&fit, &rx, &ry)) {
+				*msg1 = g_strdup(_("Selected file has no dimensions information"));
+				if (msg2)
+					*msg2 = g_strdup(_("Selected file has no dimensions information"));
+				clearfits(&fit);
+				return FALSE;
+			}
+			if (rx != reffit->rx || ry != reffit->ry) {
+				*msg1 = g_strdup(_("Selected file and current sequence do not have the same size"));
+				if (msg2)
+					*msg2 = g_strdup(_("Selected file and current sequence do not have the same size"));
+				clearfits(&fit);
+				return FALSE;
+			}
+			clearfits(&fit);
+		}
+	}
+	if (index == DISTO_MASTER) {
+		if (!com.pref.prepro.disto_lib || com.pref.prepro.disto_lib[0] == '\0') {
+			*msg1 = g_strdup(_("You need to set a distortion master template in Preferences/Preprocessing"));
+			if (msg2)
+				*msg2 = g_strdup(_("You need to set a distortion master template in Preferences/Preprocessing"));
+			return FALSE;
+		}
+		gchar *wcsfilename = get_wcs_filename(PATHPARSE_MODE_READ, NULL);
+		if (!wcsfilename) {
+			*msg1 = g_strdup(_("Distortion master could not be parsed"));
+			if (msg2)
+				*msg2 = g_strdup(_("Distortion master could not be parsed"));
+			return FALSE;
+		}
+	}
+	return TRUE;
+}
 
 void free_disto_args(disto_data *disto) {
 	if (!disto)

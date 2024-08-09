@@ -30,6 +30,7 @@ int init_disto_map(int rx, int ry, disto_data *disto);
 void map_undistortion_D2S(disto_data *disto, int rx, int ry, float *xmap, float *ymap);
 void map_undistortion_S2D(disto_data *disto, int rx, int ry, float *xmap, float *ymap);
 
+gboolean validate_disto_params(fits *reffit, const gchar *text, disto_source index, gchar **msg1, gchar **msg2);
 disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsprm *WCSDATA, gboolean drizzle, int *status);
 gchar *get_wcs_filename(pathparse_mode mode, sequence *seq);
 void free_disto_args(disto_data *disto);

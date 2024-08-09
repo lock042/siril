@@ -847,6 +847,7 @@ int register_apply_reg(struct registration_args *regargs) {
 		free(regargs->WCSDATA); // init_disto_data has freed each individual wcs, we can now free the array
 		if (status) {
 			free(args);
+			siril_log_color_message(_("Could not initialize distortion data, aborting\n"), "red");
 			return -1;
 		}
 		if (!regargs->disto) {

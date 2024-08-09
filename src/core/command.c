@@ -7205,13 +7205,12 @@ int process_register(int nb) {
 	regargs->layer = (regargs->seq->nb_layers == 3) ? 1 : 0;
 	regargs->interpolation = OPENCV_LANCZOS4;
 	regargs->clamp = TRUE;
+	regargs->undistort = DISTO_UNDEF;
 
 	/* check for options */
 	for (int i = 2; i < nb; i++) {
 		if (!strcmp(word[i], "-upscale")) {
 			regargs->output_scale = 2.f;
-		} else if (!strcmp(word[i], "-noout")) {
-			regargs->no_output = TRUE;
 		} else if (!strcmp(word[i], "-noclamp")) {
 			regargs->clamp = FALSE;
 		} else if (!strcmp(word[i], "-2pass")) {
@@ -7338,6 +7337,56 @@ int process_register(int nb) {
 			}
 			siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
 			goto terminate_register_on_error;
+		} else if (g_str_has_prefix(word[i], "-disto=")) {
+			char *current = word[i], *value;
+			value = current + 7;
+			gchar *filename = NULL;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+				goto terminate_register_on_error;
+			}
+			if (!g_ascii_strncasecmp(value, "image", 5)) {
+				regargs->undistort = DISTO_IMAGE;
+			} else if (!g_ascii_strncasecmp(value, "file", 4)) {
+				regargs->undistort = DISTO_FILE;
+				if (i + 1 >= nb) {
+					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+					goto terminate_register_on_error;
+				}
+				filename = word[i + 1];
+			} else if (!g_ascii_strncasecmp(value, "master", 6)) {
+				regargs->undistort = DISTO_MASTER;
+			} else {
+				siril_log_message(_("Unknown distorsion type %s, aborting.\n"), value);
+				goto terminate_register_on_error;
+			}
+			// we now check the distorsion params are ok
+			fits reffit = { 0 };
+			fits *preffit = &reffit;
+			if (!check_seq_is_comseq(seq)) { // processing an image from the current sequence
+				int image_to_load = sequence_find_refimage(seq);
+				if (seq_read_frame_metadata(seq, image_to_load, preffit)) {
+					siril_log_message(_("Could not load the reference image of the sequence, aborting.\n"));
+					goto terminate_register_on_error;
+				}
+			} else
+				preffit = &gfit;
+			gchar *msgdisto = NULL;
+			gboolean disto_valid = validate_disto_params(preffit, filename, regargs->undistort, &msgdisto, NULL);
+			if (preffit != &gfit)
+				clearfits(preffit);
+			if (!disto_valid) {
+				siril_log_color_message("%s\n", "red", msgdisto);
+				g_free(msgdisto);
+				goto terminate_register_on_error;
+			} else if(regargs->undistort == DISTO_FILE) {
+				i++; // we have consumed one more argument for the filename
+			}
+			regargs->distoparam.index = regargs->undistort;
+			if (filename) {
+				regargs->distoparam.filename = g_strdup(filename);
+			}
+			continue;
 		}
 		else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
@@ -7372,7 +7421,7 @@ int process_register(int nb) {
 			goto terminate_register_on_error;
 		}
 	} else if (regargs->output_scale != 1.f) {
-		siril_log_color_message(_("Upscaling a sequence with -noout or -2pass has no effect, ignoring\n"), "red");
+		siril_log_color_message(_("Upscaling a sequence with -2pass has no effect, ignoring\n"), "red");
 	}
 
 
@@ -7416,7 +7465,9 @@ int process_register(int nb) {
 
 terminate_register_on_error:
 	free(regargs);
-	free_sequence(seq, TRUE);
+	if (!check_seq_is_comseq(seq)) {
+		free_sequence(seq, TRUE);
+	}
 	free(method);
 	return CMD_ARG_ERROR;
 }
@@ -7806,168 +7857,6 @@ terminate_register_on_error:
 	free(regargs);
 	return CMD_ARG_ERROR;
 }
-
-// int process_seq_applyastrometry(int nb) {
-// 	struct registration_args *regargs = NULL;
-// 	int retval = CMD_GENERIC_ERROR;
-
-// 	sequence *seq = load_sequence(word[1], NULL);
-// 	if (!seq)
-// 		return CMD_SEQUENCE_NOT_FOUND;
-
-// 	regargs = calloc(1, sizeof(struct registration_args));
-
-// 	// check that registration exists for one layer at least
-// 	int layer = -1;
-// 	if (seq->regparam) {
-// 		for (int i = 0; i < seq->nb_layers; i++) {
-// 			if (seq->regparam[i]) {
-// 				layer = i;
-// 				break;
-// 			}
-// 		}
-// 	}
-// 	if (layer == -1) {
-// 		siril_log_color_message(_("No registration data exists for this sequence, aborting\n"), "red");
-// 		goto terminate_register_on_error;
-// 	}
-// 	fits reffit = { 0 };
-// 	int image_to_load = sequence_find_refimage(seq);
-// 	if (seq_read_frame_metadata(seq, image_to_load, &reffit)) {
-// 		siril_log_message(_("Could not load the reference image of the sequence, aborting.\n"));
-// 		retval = CMD_INVALID_IMAGE;
-// 		goto terminate_register_on_error;
-// 	}
-// 	if (!has_wcs(&reffit)) {
-// 		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
-// 		retval = CMD_FOR_PLATE_SOLVED;
-// 		clearfits(&reffit);
-// 		goto terminate_register_on_error;
-// 	}
-// 	clearfits(&reffit);
-
-// 	/* filling the arguments for registration */
-// 	regargs->func = &register_astrometric;
-// 	regargs->seq = seq;
-// 	regargs->reference_image = sequence_find_refimage(seq);
-// 	regargs->no_output = FALSE;
-// 	regargs->prefix = strdup("r_");
-// 	regargs->layer = layer;
-// 	regargs->interpolation = OPENCV_LANCZOS4;
-// 	regargs->clamp = TRUE;
-// 	regargs->framing = FRAMING_CURRENT;
-// 	regargs->undistort = DISTO_UNDEF;
-// 	regargs->output_scale = 1.f;
-
-// 	/* check for options */
-// 	for (int i = 2; i < nb; i++) {
-// 		if (g_str_has_prefix(word[i], "-prefix=")) {
-// 			char *current = word[i], *value;
-// 			value = current + 8;
-// 			if (value[0] == '\0') {
-// 				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-// 				goto terminate_register_on_error;
-// 			}
-// 			regargs->prefix = strdup(value);
-// 		} else if (!strcmp(word[i], "-noclamp")) {
-// 			regargs->clamp = FALSE;
-// 		} else if (!strcmp(word[i], "-noundistort")) {
-// 			regargs->undistort = FALSE;
-// 		} else if (g_str_has_prefix(word[i], "-interp=")) {
-// 			char *current = word[i], *value;
-// 			value = current + 8;
-// 			if (value[0] == '\0') {
-// 				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-// 				goto terminate_register_on_error;
-// 			}
-// 			if(!g_ascii_strncasecmp(value, "nearest", 7) || !g_ascii_strncasecmp(value, "ne", 2)) {
-// 				regargs->interpolation = OPENCV_NEAREST;
-// 				continue;
-// 			}
-// 			if(!g_ascii_strncasecmp(value, "cubic", 5) || !g_ascii_strncasecmp(value, "cu", 2)) {
-// 				regargs->interpolation = OPENCV_CUBIC;
-// 				continue;
-// 			}
-// 			if(!g_ascii_strncasecmp(value, "lanczos4", 8) || !g_ascii_strncasecmp(value, "la", 2)) {
-// 				regargs->interpolation = OPENCV_LANCZOS4;
-// 				continue;
-// 			}
-// 			if(!g_ascii_strncasecmp(value, "linear", 6) || !g_ascii_strncasecmp(value, "li", 2)) {
-// 				regargs->interpolation = OPENCV_LINEAR;
-// 				continue;
-// 			}
-// 			if(!g_ascii_strncasecmp(value, "area", 4) || !g_ascii_strncasecmp(value, "ar", 2)) {
-// 				regargs->interpolation = OPENCV_AREA;
-// 				continue;
-// 			}
-// 			siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
-// 			retval = CMD_ARG_ERROR;
-// 			goto terminate_register_on_error;
-// 		} else if (g_str_has_prefix(word[i], "-framing=")) {
-// 			char *current = word[i], *value;
-// 			value = current + 9;
-// 			if (value[0] == '\0') {
-// 				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-// 				goto terminate_register_on_error;
-// 			}
-// 			if(!g_ascii_strncasecmp(value, "current", 7)) {
-// 				regargs->framing = FRAMING_CURRENT;
-// 				continue;
-// 			}
-// 			if(!g_ascii_strncasecmp(value, "min", 3)) {
-// 				regargs->framing = FRAMING_MIN;
-// 				continue;
-// 			}
-// 			if(!g_ascii_strncasecmp(value, "max", 3)) {
-// 				regargs->framing = FRAMING_MAX;
-// 				continue;
-// 			}
-// 			if(!g_ascii_strncasecmp(value, "cog", 3)) {
-// 				regargs->framing = FRAMING_COG;
-// 				continue;
-// 			}
-// 			siril_log_message(_("Unknown framing type %s, aborting.\n"), value);
-// 			goto terminate_register_on_error;
-// 		} else if (g_str_has_prefix(word[i], "-scale=")) {
-// 			char *arg = word[i] + 7;
-// 			gchar *end;
-// 			float scale = (float)g_ascii_strtod(arg, &end);
-// 			if (scale < 0.1f || scale > 2.f) {
-// 				siril_log_message(_("Scaling factor should be between 0.1 and 2, aborting.\n"));
-// 				retval = CMD_ARG_ERROR;
-// 				goto terminate_register_on_error;
-// 			}
-// 			regargs->output_scale = g_ascii_strtod(arg, &end);
-// 		} else if (parse_filter_args(word[i], &regargs->filters)) {
-// 			;
-// 		} else {
-// 			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
-// 			goto terminate_register_on_error;
-// 		}
-// 	}
-
-// 	// sanity checks are done in register_apply_reg
-
-// 	regargs->run_in_thread = TRUE;
-// 	regargs->load_new_sequence = FALSE;	// don't load it for command line execution
-
-// 	if (regargs->interpolation == OPENCV_AREA || regargs->interpolation == OPENCV_LINEAR || regargs->interpolation == OPENCV_NEAREST || regargs->interpolation == OPENCV_NONE)
-// 		regargs->clamp = FALSE;
-// 	if (regargs->clamp)
-// 		siril_log_message(_("Interpolation clamping active\n"));
-
-// 	set_progress_bar_data(_("Registration: Applying existing astrometric data"), PROGRESS_RESET);
-
-// 	start_in_new_thread(register_thread_func, regargs);
-// 	return CMD_OK;
-
-// terminate_register_on_error:
-// 	if (!check_seq_is_comseq(seq))
-// 		free_sequence(seq, TRUE);
-// 	free(regargs->new_seq_name);
-// 	free(regargs);
-// 	return retval;
-// }
 
 // parse normalization and filters from the stack command line, starting at word `first'
 static int parse_stack_command_line(struct stacking_configuration *arg, int first,
