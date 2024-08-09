@@ -1587,6 +1587,8 @@ int parse_deconvolve(int first_arg, int nb,  estk_data*data, nonblind_t type) {
 	gboolean kernel_loaded = FALSE;
 	reset_conv_args(data);
 	data->regtype = REG_NONE_GRAD;
+	if (com.kernel && com.kernelsize > 0)
+		data->ks = com.kernelsize;
 	if (type == DECONV_SB)
 		data->finaliters = 1;
 	if (type == DECONV_WIENER)
@@ -1612,7 +1614,7 @@ int parse_deconvolve(int first_arg, int nb,  estk_data*data, nonblind_t type) {
 				return CMD_ARG_ERROR;
 			}
 			if (!error) {
-				data->alpha = alpha;
+				data->alpha = 1.f / alpha;
 			}
 		}
 		else if (g_str_has_prefix(arg, "-iters=")) {
@@ -1691,7 +1693,6 @@ int parse_deconvolve(int first_arg, int nb,  estk_data*data, nonblind_t type) {
 
 int process_deconvolve(int nb, nonblind_t type) {
 	estk_data* data = calloc(1, sizeof(estk_data));
-	reset_conv_args(data);
 
 	int ret = parse_deconvolve(1, nb, data, type);
 	if (ret == CMD_OK){
