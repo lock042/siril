@@ -187,7 +187,7 @@ sensor_pattern get_bayer_pattern(fits *fit) {
 			}
 		} else {
 			siril_log_message(_("XTRANS pattern not supported for this feature.\n"));
-			return 1;
+			return XTRANS_FILTER_1;
 		}
 	}
 	if (tmp_pattern >= BAYER_FILTER_MIN && tmp_pattern <= BAYER_FILTER_MAX) {
@@ -195,7 +195,8 @@ sensor_pattern get_bayer_pattern(fits *fit) {
 				filter_pattern[tmp_pattern]);
 	}
 
-	adjust_Bayer_pattern(fit, &tmp_pattern);
+	if (adjust_Bayer_pattern(fit, &tmp_pattern))
+		return BAYER_FILTER_NONE;
 	return tmp_pattern;
 }
 

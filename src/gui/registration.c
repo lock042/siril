@@ -750,7 +750,6 @@ static gboolean check_3stars(regmethod_index index) {
 	return FALSE;
 }
 
-
 static gboolean check_disto(disto_source index) {
 	gchar *label = NULL;
 	gchar *tooltip = NULL;

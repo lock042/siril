@@ -7179,6 +7179,7 @@ int process_register(int nb) {
 	struct registration_args *regargs = NULL;
 	struct registration_method *method = NULL;
 	char *msg;
+	gboolean drizzle;
 
 	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq) {
@@ -7207,15 +7208,21 @@ int process_register(int nb) {
 	regargs->clamp = TRUE;
 	regargs->undistort = DISTO_UNDEF;
 
+	struct driz_args_t *driz = calloc(1, sizeof(struct driz_args_t));
+	// Default values for the driz_args_t
+	driz->use_flats = FALSE;
+	driz->scale = 1.f;
+	driz->kernel = kernel_square;
+	driz->weight_scale = 1.f;
+	driz->pixel_fraction = 1.f;
+
 	/* check for options */
 	for (int i = 2; i < nb; i++) {
-		if (!strcmp(word[i], "-upscale")) {
-			regargs->output_scale = 2.f;
-		} else if (!strcmp(word[i], "-noclamp")) {
-			regargs->clamp = FALSE;
-		} else if (!strcmp(word[i], "-2pass")) {
+		if (!strcmp(word[i], "-2pass")) {
 			regargs->two_pass = TRUE;
 			regargs->no_output = TRUE;
+		} else if (!strcmp(word[i], "-noclamp")) {
+			regargs->clamp = FALSE;
 		} else if (!strcmp(word[i], "-nostarlist")) {
 			regargs->no_starlist = TRUE;
 		} else if (!strcmp(word[i], "-selected")) {
@@ -7386,12 +7393,130 @@ int process_register(int nb) {
 			if (filename) {
 				regargs->distoparam.filename = g_strdup(filename);
 			}
-			continue;
-		}
-		else {
+		} else if (!strcmp(word[i], "-drizzle")) {
+			if (regargs->seq->nb_layers != 1) {  // handling mono case
+				siril_log_message(_("This sequence is not mono / CFA, cannot drizzle.\n"));
+				goto terminate_register_on_error;
+			}
+			drizzle = TRUE;
+		// Drizzle options
+		} else if (g_str_has_prefix(word[i], "-scale=")) {
+			char *arg = word[i] + 7;
+			gchar *end;
+			double value;
+			value = g_ascii_strtod(arg, &end);
+			if (end == arg || value < 0.1 || value > 2.) {
+				siril_log_color_message(_("Invalid argument to %s, aborting.\n"), "red", word[i]);
+				goto terminate_register_on_error;
+			}
+			regargs->output_scale = (float)value;
+			driz->scale = (float)value;
+		} else if (g_str_has_prefix(word[i], "-pixfrac=")) {
+			char *arg = word[i] + 9;
+			gchar *end;
+			double value;
+			value = g_ascii_strtod(arg, &end);
+			if (end == arg) {
+				siril_log_color_message(_("Invalid argument to %s, aborting.\n"), "red", word[i]);
+				goto terminate_register_on_error;
+			}
+			driz->pixel_fraction = (float) value;
+		} else if (g_str_has_prefix(word[i], "-kernel=")) {
+			char *arg = word[i] + 8;
+			if (!g_ascii_strncasecmp(arg, "point", 5))
+				driz->kernel = kernel_point;
+			else if (!g_ascii_strncasecmp(arg, "turbo", 5))
+				driz->kernel = kernel_turbo;
+			else if (!g_ascii_strncasecmp(arg, "square", 6))
+				driz->kernel = kernel_square;
+			else if (!g_ascii_strncasecmp(arg, "gaussian", 8))
+				driz->kernel = kernel_gaussian;
+			else if (!g_ascii_strncasecmp(arg, "lanczos2", 8))
+				driz->kernel = kernel_lanczos2;
+			else if (!g_ascii_strncasecmp(arg, "lanczos3", 8))
+				driz->kernel = kernel_lanczos3;
+			else {
+				siril_log_color_message(_("Invalid argument to %s, aborting.\n"), "red", word[i]);
+				goto terminate_register_on_error;
+			}
+		} else if (g_str_has_prefix(word[i], "-flat=")) {
+			if (driz->flat) {
+				siril_log_color_message(_("Error: flat image already set. Aborting.\n"), "red");
+				goto terminate_register_on_error;
+			}
+			if (seq->is_variable) {
+				siril_log_color_message(_("Error: flat image cannot work with variable sized sequence.\n"), "red");
+				goto terminate_register_on_error;
+			}
+			char *flat_filename = word[i] + 6;
+			fits reffit = { 0 };
+			gchar *error = NULL;
+			int status;
+			if (seq_read_frame_metadata(seq, seq->reference_image, &reffit)) {
+				siril_log_color_message(_("NOT USING FLAT: Could not load reference image\n"), "red");
+				clearfits(&reffit);
+				goto terminate_register_on_error;
+			}
+			gchar *expression = path_parse(&reffit, flat_filename, PATHPARSE_MODE_READ, &status);
+			clearfits(&reffit);
+			if (status) {
+				error = _("NOT USING FLAT: could not parse the expression");
+				goto terminate_register_on_error;
+			} else {
+				if (expression[0] == '\0') {
+					siril_log_message(_("Error: no master flat specified in the preprocessing tab.\n"));
+					goto terminate_register_on_error;
+				} else {
+					driz->flat = calloc(1, sizeof(fits));
+					if (!readfits(expression, driz->flat, NULL, TRUE)) {
+						if (driz->flat->naxes[2] != seq->nb_layers) {
+							error = _("NOT USING FLAT: number of channels is different");
+						} else if (driz->flat->naxes[0] != seq->rx ||
+								driz->flat->naxes[1] != seq->ry) {
+							error = _("NOT USING FLAT: image dimensions are different");
+						} else {
+							// no need to deal with bitdepth conversion as readfits has already forced conversion to float
+							siril_log_message(_("Master flat read for use as initial pixel weight\n"));
+						}
+
+					} else error = _("NOT USING FLAT: cannot open the file");
+					if (error) {
+						goto terminate_register_on_error;
+					}
+				}
+			}
+		} else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
 			goto terminate_register_on_error;
 		}
+	}
+
+	if (drizzle) {
+		regargs->driz = driz;
+		// we now check the distorsion params are ok
+		fits reffit = { 0 };
+		fits *preffit = &reffit;
+		if (!check_seq_is_comseq(seq)) { // processing an image from the current sequence
+			int image_to_load = sequence_find_refimage(seq);
+			if (seq_read_frame_metadata(seq, image_to_load, preffit)) {
+				siril_log_color_message(_("Could not load the reference image of the sequence, aborting.\n"), "red");
+				goto terminate_register_on_error;
+			}
+		} else
+			preffit = &gfit;
+		if (preffit->naxes[2] == 1 && preffit->keywords.bayer_pattern[0] != '\0') {
+			sensor_pattern pattern = get_bayer_pattern(preffit);
+			if (pattern >= BAYER_FILTER_MIN && pattern <= BAYER_FILTER_MAX) {
+				siril_log_color_message(_("Cannot use drizzle on non-bayer sensors, aborting.\n"), "red");
+				clearfits(preffit);
+				goto terminate_register_on_error;
+			}
+			driz->is_bayer = TRUE;
+		}
+		clearfits(preffit);
+	} else {
+		free(driz);
+		driz = NULL;
 	}
 
 	/* getting the selected registration method */
@@ -7407,9 +7532,6 @@ int process_register(int nb) {
 	method->type = REGTYPE_DEEPSKY;
 	regargs->func = method->method_ptr;
 
-	if (regargs->no_starlist && !regargs->two_pass)
-		siril_log_message(_("The -nostarlist option has an effect only when -2pass is used, ignoring\n"));
-
 	// testing free space
 	if (!regargs->no_output) {
 		int nb_frames = regargs->filters.filter_included ? regargs->seq->selnum : regargs->seq->number;
@@ -7421,7 +7543,7 @@ int process_register(int nb) {
 			goto terminate_register_on_error;
 		}
 	} else if (regargs->output_scale != 1.f) {
-		siril_log_color_message(_("Upscaling a sequence with -2pass has no effect, ignoring\n"), "red");
+		siril_log_color_message(_("Scaling a sequence with -2pass has no effect, ignoring\n"), "salmon");
 	}
 
 
@@ -7453,9 +7575,9 @@ int process_register(int nb) {
 			regargs->interpolation == OPENCV_LINEAR ||
 			regargs->interpolation == OPENCV_NEAREST ||
 			regargs->interpolation == OPENCV_NONE ||
-			regargs->no_output)
+			regargs->no_output || drizzle)
 		regargs->clamp = FALSE;
-	if (regargs->clamp && !regargs->no_output)
+	if (regargs->clamp)
 		siril_log_message(_("Interpolation clamping active\n"));
 
 	set_progress_bar_data(msg, PROGRESS_RESET);
@@ -7829,6 +7951,27 @@ int process_seq_applyreg(int nb) {
 
 	if (drizzle) {
 		regargs->driz = driz;
+		// we now check the distorsion params are ok
+		fits reffit = { 0 };
+		fits *preffit = &reffit;
+		if (!check_seq_is_comseq(seq)) { // processing an image from the current sequence
+			int image_to_load = sequence_find_refimage(seq);
+			if (seq_read_frame_metadata(seq, image_to_load, preffit)) {
+				siril_log_color_message(_("Could not load the reference image of the sequence, aborting.\n"), "red");
+				goto terminate_register_on_error;
+			}
+		} else
+			preffit = &gfit;
+		if (preffit->naxes[2] == 1 && preffit->keywords.bayer_pattern[0] != '\0') {
+			sensor_pattern pattern = get_bayer_pattern(preffit);
+			if (pattern >= BAYER_FILTER_MIN && pattern <= BAYER_FILTER_MAX) {
+				siril_log_color_message(_("Cannot use drizzle on non-bayer sensors, aborting.\n"), "red");
+				clearfits(preffit);
+				goto terminate_register_on_error;
+			}
+			driz->is_bayer = TRUE;
+		}
+		clearfits(preffit);
 	} else {
 		free(driz);
 		driz = NULL;
@@ -7840,7 +7983,7 @@ int process_seq_applyreg(int nb) {
 
 	if (regargs->interpolation == OPENCV_AREA || regargs->interpolation == OPENCV_LINEAR || regargs->interpolation == OPENCV_NEAREST || regargs->interpolation == OPENCV_NONE)
 		regargs->clamp = FALSE;
-	if (regargs->clamp && !regargs->no_output && !drizzle)
+	if (regargs->clamp && !drizzle)
 		siril_log_message(_("Interpolation clamping active\n"));
 
 	set_progress_bar_data(_("Registration: Applying existing data"), PROGRESS_RESET);
