@@ -39,7 +39,7 @@
 #endif
 #include "dialog_preview.h"
 
-static gboolean preview_allocated = FALSE; // flag needed when user load image before preview was displayed.
+static gboolean preview_is_loaded = FALSE; // flag needed when user load image before preview was displayed.
 
 struct _updta_preview_data {
 	GtkFileChooser *file_chooser;
@@ -122,6 +122,8 @@ static gboolean end_update_preview_cb(gpointer p) {
 		}
 		gtk_image_set_pixel_size(GTK_IMAGE(preview->image), com.pref.gui.thumbnail_size);
 	}
+
+	preview_is_loaded = TRUE;
 
 	/* information strings */
 	const char *format = "<span style=\"italic\">%s</span>";
@@ -229,7 +231,7 @@ static gpointer update_preview(gpointer p) {
 				&mime_type)) {
 			// Scale the image to the correct size
 			GdkPixbuf *tmp;
-				GdkPixbufLoader *loader = gdk_pixbuf_loader_new();
+			GdkPixbufLoader *loader = gdk_pixbuf_loader_new();
 			if (!gdk_pixbuf_loader_write(loader, buffer, size, NULL))
 				goto cleanup;
 			// Calling gdk_pixbuf_loader_close forces the data to be parsed by the
@@ -307,7 +309,7 @@ static void update_preview_cb(GtkFileChooser *file_chooser, gpointer p) {
 
 void siril_preview_free(fileChooserPreview *preview) {
 	g_free(preview);
-	preview_allocated = FALSE;
+	preview_is_loaded = FALSE;
 }
 
 void siril_file_chooser_add_preview(GtkFileChooser *dialog, fileChooserPreview *preview) {
@@ -318,7 +320,6 @@ void siril_file_chooser_add_preview(GtkFileChooser *dialog, fileChooserPreview *
 		gtk_container_set_border_width(GTK_CONTAINER(vbox), 12);
 
 		preview = new_preview_object();
-		preview_allocated = TRUE;
 
 		gtk_label_set_justify(GTK_LABEL(preview->name_label), GTK_JUSTIFY_CENTER);
 		gtk_label_set_justify(GTK_LABEL(preview->dim_label), GTK_JUSTIFY_CENTER);
