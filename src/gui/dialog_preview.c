@@ -78,7 +78,7 @@ static gboolean end_update_preview_cb(gpointer p) {
 	fileChooserPreview *preview = args->preview;
 	siril_debug_print("preview idle\n");
 
-	if (!preview_allocated || !preview || !(GTK_IS_IMAGE((preview->image)))) {
+	if (!preview_is_loaded || !preview || !(GTK_IS_IMAGE((preview->image)))) {
 		set_cursor_waiting(FALSE);
 		return FALSE;
 	}
