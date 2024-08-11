@@ -9915,9 +9915,11 @@ int process_platesolve(int nb) {
 	args->downsample = downsample;
 	args->autocrop = autocrop && solver == SOLVER_SIRIL && cat != CAT_LOCAL; // we don't crop fov when using local catalogues or asnet
 	args->nocache = nocache || solver == SOLVER_LOCALASNET || cat == CAT_LOCAL;
-	if (!searchradius && solver == SOLVER_LOCALASNET && !asnet_blind_pos) { // we solve each image individually when using local catalogues or asnet
+	if (!searchradius && solver == SOLVER_LOCALASNET && !asnet_blind_pos) {
 		args->searchradius = com.pref.astrometry.radius_degrees;
 		siril_log_color_message(_("Cannot force null radius for localasnet if not blind solving, using default instead\n"), "red");
+	} else {
+		args->searchradius = searchradius;
 	}
 	args->force = force;
 	memcpy(&args->forced_metadata, forced_metadata, 3 * sizeof(gboolean));
