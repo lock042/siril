@@ -196,7 +196,7 @@ psf_star **peaker(image *image, int layer, star_finder_params *sf, int *nb_stars
 	if (norm == 0.0f)
 		return NULL;
 
-	siril_debug_print("Threshold: %f (background: %f, norm: %f)\n", threshold, bg, norm);
+	siril_debug_print("Threshold: %f (background level: %f, noise: %f, norm: %f)\n", threshold, bg, bgnoise, norm);
 
 	/* Applying a Gaussian filter to select candidates */
 	if (extract_fits(image->fit, &smooth_fit, layer, TRUE)) {
