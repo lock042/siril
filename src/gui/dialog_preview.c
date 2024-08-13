@@ -81,6 +81,7 @@ static gboolean end_update_preview_cb(gpointer p) {
 
 	if (!preview_allocated || !preview || !(GTK_IS_IMAGE(preview->image))) {
 		set_cursor_waiting(FALSE);
+		preview_is_loaded = TRUE;
 		return FALSE;
 	}
 
@@ -89,6 +90,7 @@ static gboolean end_update_preview_cb(gpointer p) {
 	if (!args->file_info) {
 		g_free(name_str);
 		set_cursor_waiting(FALSE);
+		preview_is_loaded = TRUE;
 		return FALSE;
 	}
 	type = g_file_info_get_file_type(args->file_info);
