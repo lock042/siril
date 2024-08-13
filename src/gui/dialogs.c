@@ -33,6 +33,7 @@
 #include "gui/newdeconv.h"
 #include "filters/nlbayes/call_nlbayes.h"
 #include "gui/dialogs.h"
+#include "gui/dialog_preview.h"
 #include "nina_light_curve.h"
 #include "compstars.h"
 
