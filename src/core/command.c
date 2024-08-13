@@ -5939,8 +5939,8 @@ int process_stat(int nb){
 
 		if (option == STATS_BASIC) {
 			if (gfit.type == DATA_USHORT) {
-				siril_log_message(_("%s layer: Mean: %0.1f, Median: %0.1f, Sigma: %0.1f, "
-							"Min: %0.1f, Max: %0.1f, bgnoise: %0.1f\n"),
+				siril_log_message(_("%s layer: Mean: %0.6f, Median: %0.1f, Sigma: %0.6f, "
+							"Min: %0.1f, Max: %0.1f, bgnoise: %0.6f\n"),
 						layername, stat->mean, stat->median, stat->sigma,
 						stat->min, stat->max, stat->bgnoise);
 			} else {

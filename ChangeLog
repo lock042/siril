@@ -4,6 +4,7 @@ xx/xx/24
 * Fixed CFA statistics (#1342)
 * Fixed calibration command bug disabling cosmetic correction (#1348)
 * Fixed calibration GUI not parsing correcting flat when using path parsing (#1348)
+* Fixed non-deterministic parallel subsky RBF (#1352)
 * Fixed incorrect deconvolution command arg setting (issue raised on pixls.us)
 
 siril 1.2.3
