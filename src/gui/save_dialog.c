@@ -292,7 +292,6 @@ static void init_dialog() {
 
 static void close_dialog() {
 	if (saveDialog != NULL) {
-		while (!is_preview_loaded());
 		siril_widget_destroy(saveDialog);
 		saveDialog = NULL;
 	}

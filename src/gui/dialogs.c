@@ -208,5 +208,8 @@ gint siril_dialog_run(SirilWidget *widgetdialog) {
 }
 
 void siril_widget_destroy(SirilWidget *widgetdialog) {
+    while (!is_callback_called()) {
+        g_main_context_iteration(NULL, FALSE);
+    }
 	gtk_widget_destroy(widgetdialog);
 }
