@@ -292,6 +292,7 @@ static void init_dialog() {
 
 static void close_dialog() {
 	if (saveDialog != NULL) {
+		while (!is_preview_loaded());
 		siril_widget_destroy(saveDialog);
 		saveDialog = NULL;
 	}
@@ -429,7 +430,7 @@ static gboolean end_save(gpointer p) {
 	display_filename(); // update filename display
 	set_precision_switch();
 	set_cursor_waiting(FALSE);
-	close_dialog();	// is this different from the hide above?
+	close_dialog();
 	update_MenuItem();
 
 	g_free(args->copyright);

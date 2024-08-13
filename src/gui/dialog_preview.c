@@ -40,6 +40,7 @@
 #include "dialog_preview.h"
 
 static gboolean preview_allocated = FALSE; // flag needed when user load image before preview was displayed.
+static gboolean preview_is_loaded = FALSE;
 
 struct _updta_preview_data {
 	GtkFileChooser *file_chooser;
@@ -78,7 +79,7 @@ static gboolean end_update_preview_cb(gpointer p) {
 	fileChooserPreview *preview = args->preview;
 	siril_debug_print("preview idle\n");
 
-	if (!preview_allocated || !preview ) {
+	if (!preview_allocated || !preview || !(GTK_IS_IMAGE(preview->image))) {
 		set_cursor_waiting(FALSE);
 		return FALSE;
 	}
@@ -147,6 +148,7 @@ static gboolean end_update_preview_cb(gpointer p) {
 	free(args);
 	args = NULL;
 	set_cursor_waiting(FALSE);
+	preview_is_loaded = TRUE;
 	return FALSE;
 }
 
@@ -276,6 +278,7 @@ static void update_preview_cb(GtkFileChooser *file_chooser, gpointer p) {
 	GFileInfo *file_info;
 	fileChooserPreview *preview = (fileChooserPreview *)p;
 
+	preview_is_loaded = FALSE;
 	uri = gtk_file_chooser_get_preview_uri(file_chooser);
 	if (uri == NULL) {
 		gtk_file_chooser_set_preview_widget_active(file_chooser, FALSE);
@@ -339,4 +342,8 @@ void siril_file_chooser_add_preview(GtkFileChooser *dialog, fileChooserPreview *
 
 		g_signal_connect(dialog, "update-preview", G_CALLBACK(update_preview_cb), (gpointer)preview);
 	}
+}
+
+gboolean is_preview_loaded() {
+	return preview_is_loaded;
 }

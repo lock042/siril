@@ -24,5 +24,6 @@ typedef struct _fileChooserPreview fileChooserPreview;
 
 void siril_file_chooser_add_preview(GtkFileChooser *dialog, fileChooserPreview *preview);
 void siril_preview_free(fileChooserPreview *preview);
+gboolean is_preview_loaded();
 
 #endif /* SRC_GUI_DIALOG_PREVIEW_H_ */
