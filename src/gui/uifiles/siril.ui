@@ -1457,17 +1457,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
           </packing>
         </child>
         <child>
-          <object class="GtkSeparator">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">18</property>
-          </packing>
-        </child>
-        <child>
           <object class="GtkModelButton" id="proc_pixelmath">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
