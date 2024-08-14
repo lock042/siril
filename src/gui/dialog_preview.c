@@ -40,7 +40,7 @@
 #include "dialog_preview.h"
 
 static gboolean preview_allocated = FALSE; // flag needed when user load image before preview was displayed.
-static gboolean callback_is_called = FALSE;
+static gboolean callback_is_called = TRUE;
 
 struct _updta_preview_data {
 	GtkFileChooser *file_chooser;
