@@ -88,6 +88,7 @@ siril 1.2.4 xxx xx, 2024
 * Fixed calibration command bug disabling cosmetic correction (#1348)
 * Fixed calibration GUI not parsing correcting flat when using path parsing (#1348)
 * Fixed incorrect deconvolution command arg setting (issue raised on pixls.us)
+* Fixed crash when saving image (#1353)
 
 siril 1.2.3 June 19, 2024
 
