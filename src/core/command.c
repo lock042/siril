@@ -9597,7 +9597,7 @@ int process_spcc(int nb) {
 // used for platesolve and seqplatesolve commands
 int process_platesolve(int nb) {
 	gboolean noflip = FALSE, force = FALSE, downsample = FALSE, autocrop = TRUE, nocache = FALSE,
-		asnet_blind_pos = FALSE, asnet_blind_res = FALSE;
+		asnet_blind_pos = FALSE, asnet_blind_res = FALSE, noreg = FALSE;
 	gboolean forced_metadata[3] = { 0 }; // used for sequences in the image hook, for center, pixel and focal
 	SirilWorldCS *target_coords = NULL;
 	double forced_focal = -1.0, forced_pixsize = -1.0;
@@ -9659,6 +9659,8 @@ int process_platesolve(int nb) {
 			downsample = TRUE;
 		else if (!strcmp(word[next_arg], "-nocache"))
 			nocache = TRUE;
+		else if (!strcmp(word[next_arg], "-noreg"))
+			noreg = TRUE;
 		else if (!strcmp(word[next_arg], "-blindpos"))
 			asnet_blind_pos = TRUE;
 		else if (!strcmp(word[next_arg], "-blindres"))
@@ -9922,6 +9924,7 @@ int process_platesolve(int nb) {
 		args->searchradius = searchradius;
 	}
 	args->force = force;
+	args->update_reg = !noreg;
 	memcpy(&args->forced_metadata, forced_metadata, 3 * sizeof(gboolean));
 	if (seqps || sequence_is_loaded()) { // we are platesolving an image from a sequence or a sequence, we can't allow to flip (may be registered)
 		noflip = TRUE;
