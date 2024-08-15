@@ -33,6 +33,7 @@
 #include "gui/newdeconv.h"
 #include "filters/nlbayes/call_nlbayes.h"
 #include "gui/dialogs.h"
+#include "gui/dialog_preview.h"
 #include "nina_light_curve.h"
 #include "compstars.h"
 
@@ -208,5 +209,8 @@ gint siril_dialog_run(SirilWidget *widgetdialog) {
 }
 
 void siril_widget_destroy(SirilWidget *widgetdialog) {
+    while (!is_callback_called()) {
+        g_main_context_iteration(NULL, FALSE);
+    }
 	gtk_widget_destroy(widgetdialog);
 }
