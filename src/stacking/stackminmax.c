@@ -71,8 +71,9 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 	} else {
 		output_size[0] = args->seq->rx;
 		output_size[1] = args->seq->ry;
-		double dx, dy;
-		translation_from_H(args->seq->regparam[reglayer][args->ref_image].H, &dx, &dy);
+		double dx = 0., dy = 0.;
+		if (reglayer >= 0)
+			translation_from_H(args->seq->regparam[reglayer][args->ref_image].H, &dx, &dy);
 		offset[0] = (int)dx;
 		offset[1] = (int)dy;
 	}
