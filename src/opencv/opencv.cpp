@@ -617,7 +617,7 @@ static int cvClahe_ushort(fits *image, double clip_limit, int size) {
 			case BYTE_IMG:
 				in.convertTo(in, CV_8U, 1.0);
 				clahe->apply(in, out);
-				out.convertTo(out, CV_16UC3, 1.0);
+				out.convertTo(out, CV_16UC1, 1.0);
 				// dynamic range is important with CLAHE, use 16 bits output
 				break;
 			default:
@@ -637,7 +637,7 @@ static int cvClahe_ushort(fits *image, double clip_limit, int size) {
 		memcpy(image->data + nbpixels * 2, channel[0].data, ndata);
 		image->pdata[RLAYER] = image->data;
 		image->pdata[GLAYER] = image->data + nbpixels;
-		image->pdata[BLAYER] = image->data + nbpixels* 2;
+		image->pdata[BLAYER] = image->data + nbpixels * 2;
 	} else {
 		memcpy(image->data, channel[0].data, ndata);
 		image->pdata[RLAYER] = image->data;
@@ -650,12 +650,6 @@ static int cvClahe_ushort(fits *image, double clip_limit, int size) {
 	image->naxes[0] = image->rx;
 	image->naxes[1] = image->ry;
 
-	/* free data */
-	in.release();
-	out.release();
-	channel[0].release();
-	channel[1].release();
-	channel[2].release();
 	invalidate_stats_from_fit(image);
 
 	return 0;
@@ -722,7 +716,7 @@ static int cvClahe_float(fits *image, double clip_limit, int size) {
 		memcpy(image->fdata + nbpixels * 2, channel[0].data, ndata);
 		image->fpdata[RLAYER] = image->fdata;
 		image->fpdata[GLAYER] = image->fdata + nbpixels;
-		image->fpdata[BLAYER] = image->fdata + nbpixels* 2;
+		image->fpdata[BLAYER] = image->fdata + nbpixels * 2;
 	} else {
 		memcpy(image->fdata, channel[0].data, ndata);
 		image->fpdata[RLAYER] = image->fdata;
@@ -735,12 +729,6 @@ static int cvClahe_float(fits *image, double clip_limit, int size) {
 	image->naxes[0] = image->rx;
 	image->naxes[1] = image->ry;
 
-	/* free data */
-	in.release();
-	out.release();
-	channel[0].release();
-	channel[1].release();
-	channel[2].release();
 	invalidate_stats_from_fit(image);
 
 	return 0;
