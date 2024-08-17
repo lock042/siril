@@ -1945,6 +1945,7 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 		return 1;
 	}
 	args->layer = fit.naxes[2] == 1 ? 0 : 1;
+	args->sfargs->layer = fit.naxes[2] == 1 ? 0 : 1;
 	args->fit = NULL;
 	clearfits(&fit);
 	// prepare for astrometric registration

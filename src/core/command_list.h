@@ -132,7 +132,7 @@ static command commands[] = {
 	{"parse", 1, "parse str [-r]", process_parse, STR_PARSE, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"pcc", 0, "pcc [-limitmag=[+-]] [-catalog=] [-bgtol=lower,upper]", process_pcc, STR_PCC, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_RGB },
 	{"platesolve", 0, "platesolve [-force] [image_center_coords] [-focal=] [-pixelsize=]\n"
-						"platesolve sequencename ... [-noflip] [-downscale] [-order=] [-radius=]\n"
+						"platesolve sequencename ... [-noflip] [-downscale] [-order=] [-radius=] [-savemaster]\n"
 						"platesolve sequencename ... [-limitmag=[+-]] [-catalog=] [-nocrop]\n"
 						"platesolve sequencename ... [-localasnet [-blindpos] [-blindres]]", process_platesolve, STR_PLATESOLVE, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"pm", 1, "pm \"expression\" [-rescale [low] [high]] [-nosum]", process_pm, STR_PM, TRUE, REQ_CMD_NONE},
@@ -203,7 +203,7 @@ static command commands[] = {
 	{"seqprofile", 3, "seqprofile sequence -from=x,y -to=x,y [-tri] [-cfa] [-arcsec] [-savedat] [-layer=] [-width=] [-spacing=] [ {-xaxis=wavelength | -xaxis=wavenumber } ] [{-wavenumber1= | -wavelength1=} -wn1at=x,y {-wavenumber2= | -wavelength2=} -wn2at=x,y] [\"-title=My Plot\"]", process_seq_profile, STR_SEQPROFILE CMD_CAT(PROFILE) STR_PROFILE, TRUE, REQ_CMD_NONE},
 	{"seqpsf", 0, "seqpsf [sequencename channel { -at=x,y | -wcs=ra,dec }]", process_seq_psf, STR_SEQPSF, TRUE, REQ_CMD_NO_THREAD},
 	{"seqplatesolve", 1, "seqplatesolve sequencename [image_center_coords] [-focal=] [-pixelsize=]\n"
-							"seqplatesolve sequencename ... [-downscale] [-order=] [-radius=] [-force] [-noreg]\n"
+							"seqplatesolve sequencename ... [-downscale] [-order=] [-radius=] [-force] [-noreg] [-savemaster]\n"
 							"seqplatesolve sequencename ... [-limitmag=[+-]] [-catalog=] [-nocrop] [-nocache]\n"
 							"seqplatesolve sequencename ... [-localasnet [-blindpos] [-blindres]]", process_platesolve, STR_SEQPLATESOLVE, TRUE, REQ_CMD_NO_THREAD},
 	{"seqresample", 1, "seqresample sequencename { -scale= | -width= | -height= } [-interp=] [-prefix=]", process_seq_resample, STR_SEQRESAMPLE, TRUE, REQ_CMD_NO_THREAD},

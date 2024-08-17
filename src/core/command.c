@@ -9597,7 +9597,7 @@ int process_spcc(int nb) {
 // used for platesolve and seqplatesolve commands
 int process_platesolve(int nb) {
 	gboolean noflip = FALSE, force = FALSE, downsample = FALSE, autocrop = TRUE, nocache = FALSE,
-		asnet_blind_pos = FALSE, asnet_blind_res = FALSE, noreg = FALSE;
+		asnet_blind_pos = FALSE, asnet_blind_res = FALSE, noreg = FALSE, savemaster = FALSE;
 	gboolean forced_metadata[3] = { 0 }; // used for sequences in the image hook, for center, pixel and focal
 	SirilWorldCS *target_coords = NULL;
 	double forced_focal = -1.0, forced_pixsize = -1.0;
@@ -9665,6 +9665,8 @@ int process_platesolve(int nb) {
 			asnet_blind_pos = TRUE;
 		else if (!strcmp(word[next_arg], "-blindres"))
 			asnet_blind_res = TRUE;
+		else if (!strcmp(word[next_arg], "-savemaster"))
+			savemaster = TRUE;
 		else if (g_str_has_prefix(word[next_arg], "-focal=")) {
 			char *arg = word[next_arg] + 7;
 			gchar *end;
@@ -9923,6 +9925,13 @@ int process_platesolve(int nb) {
 	} else {
 		args->searchradius = searchradius;
 	}
+	if (savemaster) {
+		if (!(com.pref.prepro.disto_lib && com.pref.prepro.disto_lib[0] != '\0' && order > 1)) {
+			siril_log_color_message(_("Cannot save distortion master if not set in Preferences or solution order is equal to 1, ignoring\n"), "red");
+		} else {
+			args->save_master = TRUE;
+		}
+	}
 	args->force = force;
 	args->update_reg = !noreg;
 	memcpy(&args->forced_metadata, forced_metadata, 3 * sizeof(gboolean));
@@ -9952,6 +9961,12 @@ int process_platesolve(int nb) {
 
 	// sequence
 	if (seqps) {
+		args->sfargs = calloc(1, sizeof(struct starfinder_data));
+		args->sfargs->im.from_seq = seq;
+		args->sfargs->layer = -1;
+		args->sfargs->keep_stars = TRUE;
+		args->sfargs->save_to_file = TRUE; // TODO make this a pref
+		args->sfargs->max_stars_fitted = BRIGHTEST_STARS;
 		start_sequence_astrometry(seq, args);
 		return CMD_OK;
 	}
