@@ -51,26 +51,26 @@ static char *tooltip_text[] = {
 		"(r_ by default), unless you tick the 2pass check box. In that case, registration "
 		"data will be saved to the sequence and reference will be picked based on star detection "
 		" information. When choosing 2pass, you will then need to export the sequence using "
-		" the Apply Exiting Registration method"),
+		" the Apply Existing Registration method"),
 	N_("<b>1-2-3 Stars Registration</b>: This is the simplest method to register deep-sky images. "
 		"Images are aligned using shifting, if you pick one star, "
 		"or shifting + rotation if 2 or 3 stars are selected.\n"
-		"If only shifts are computed, they are saved in the seq file and the aligned sequence does not need to be exported. "
-		"Images will be shifted pixel-wise during stacking step.\n"
-		"If rotation is also computed, then the aligned images need to be exported using Apply Existing Registration."),
+		"Transformations are saved to the input sequence file."),
 	N_("<b>Image Pattern Alignment</b>: This is a simple registration by translation method "
 		"using cross correlation in the spatial domain. This method is fast and is used to "
 		"register planetary movies. It can also be used for some deep-sky images registration. "
-		"Shifts at pixel precision are saved in seq file."),
+		"Shifts at pixel precision are saved to the input sequence file."),
 	N_("<b>KOMBAT</b>: This simple algorithm tries to locate a single pattern on images and to "
-		"align them accordingly. Only translation is taken into account yet."),
+		"align them accordingly. Only translation is taken into account. "
+		"Shifts at pixel precision are saved to the input sequence file."),
 	N_("<b>Comet/Asteroid Registration</b>: This algorithm is dedicated to the comet and asteroid "
 		"registration. It is necessary to have timestamps stored in FITS header and to load a "
 		"sequence of star aligned images. This methods makes a translation of a certain number "
-		"of pixels depending on the timestamp of each images and the global shift of the "
-		"object between the first and the last image."),
-	// N_("<b>Apply Astrometric Registration</b>: This algorithm computes the transforms between plate-solved images "
-	//	 " of a sequence and applies them"),
+		"of pixels depending on the timestamp of each image and the global shift of the "
+		"object between the first and the last image. If some registration data already exists,"
+		" the shifts are composed with the existing transformations. A new sequence is created, "
+		"with the prefix of your choice (comet_ by default), but the images are not duplicated, they "
+		"are symlinked to the input images."),
 	N_("<b>Apply existing registration</b>: This is not an algorithm but rather a commodity to "
 		"apply previously computed registration data stored in the sequence file. The "
 		"interpolation method or drizzling can be selected in the Output "
