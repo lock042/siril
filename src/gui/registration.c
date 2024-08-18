@@ -1070,12 +1070,6 @@ static int fill_registration_structure_from_GUI(struct registration_args *regarg
 		if (!regargs->matchSelection) {
 			delete_selected_area(); // otherwise it is enforced
 		}
-		regargs->sfargs = calloc(1, sizeof(struct starfinder_data));
-		regargs->sfargs->im.from_seq = regargs->seq;
-		regargs->sfargs->layer = regargs->layer;
-		regargs->sfargs->keep_stars = is_global;
-		regargs->sfargs->save_to_file = !regargs->matchSelection; // TODO make this a pref
-		regargs->sfargs->max_stars_fitted = regargs->max_stars_candidates;
 	}
 	if (regindex == REG_KOMBAT) {
 		regargs->percent_moved = (float)gtk_spin_button_get_value(spin_kombat_percent) / 100.f;
