@@ -7178,8 +7178,8 @@ int process_convert(int nb) {
 int process_register(int nb) {
 	struct registration_args *regargs = NULL;
 	struct registration_method *method = NULL;
-	char *msg;
-	gboolean drizzle;
+	char *msg = NULL;
+	gboolean drizzle = FALSE;
 
 	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq) {
