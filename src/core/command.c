@@ -7779,7 +7779,7 @@ int process_seq_applyreg(int nb) {
 				siril_log_color_message(_("Invalid argument to %s, aborting.\n"), "red", word[i]);
 				goto terminate_register_on_error;
 			}
-			regargs->output_scale = (float) value;
+			regargs->output_scale = (float)value;
 			driz->scale = (float) value;
 		} else if (g_str_has_prefix(word[i], "-pixfrac=")) {
 			char *arg = word[i] + 9;

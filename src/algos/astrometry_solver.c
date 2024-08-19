@@ -1036,6 +1036,7 @@ gpointer plate_solver(gpointer p) {
 			if (!mstatus && save_wcs_fits(args->fit, mastername)) {
 				siril_log_color_message(_("Could not save distortion master file, skipping\n"), "salmon");
 			}
+			g_free(mastername);
 		} else {
 			siril_log_color_message(_("Solution has no distortion\n"), "salmon");
 			siril_log_color_message(_("Could not save distortion master file, skipping\n"), "salmon");
@@ -2043,10 +2044,10 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 		} else {
 			memcpy(aargs_master->WCSDATA + i, wcs, sizeof(*wcs));
 			g_atomic_int_inc(&aargs_master->seqskipped);
-			g_atomic_int_inc(&aargs_master->seqprogress);
 			siril_log_color_message(_("Image %d already platesolved, skipping\n"), "salmon", i + 1);
 		}
 		free_fitted_stars(stars);
+		g_atomic_int_inc(&aargs_master->seqprogress);
 		return status;
 	}
 
@@ -2140,6 +2141,7 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 			} else {
 				siril_log_color_message(_("Image %s platesolved but could not be saved\n"), "red", root);
 				free(aargs);
+				g_atomic_int_inc(&aargs_master->seqprogress);
 				return 1;
 			}
 		} else if (arg->seq->type == SEQ_FITSEQ) { // case SEQ_FITSEQ, fit already holds its fptr, we just update
