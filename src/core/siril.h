@@ -278,6 +278,7 @@ typedef enum {
 	EXT_NONE,
 	EXT_STARNET,
 	EXT_ASNET,
+	EXT_GRAXPERT
 } external_program;
 
 typedef enum {
@@ -409,8 +410,8 @@ typedef enum { DATA_USHORT, DATA_FLOAT, DATA_UNSUPPORTED } data_type;
 #define DEFAULT_DOUBLE_VALUE -999.0
 #define DEFAULT_FLOAT_VALUE -999.f
 #define DEFAULT_INT_VALUE -INT_MAX
-#define DEFAULT_UINT_VALUE 0
-#define DEFAULT_USHORT_VALUE DEFAULT_UINT_VALUE
+#define DEFAULT_UINT_VALUE INT_MAX
+#define DEFAULT_USHORT_VALUE 0
 
 typedef struct {
 	/* data obtained from the FITS file */
@@ -815,6 +816,7 @@ struct cominf {
 
 	int max_images;			// max number of image threads used for parallel execution
 	int max_thread;			// max total number of threads used for parallel execution
+	int fftw_max_thread;	// max number of threads for FFTW execution
 
 	rectangle selection;		// coordinates of the selection rectangle
 

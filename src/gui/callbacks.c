@@ -364,15 +364,17 @@ gpointer on_set_roi() {
 }
 
 gpointer on_clear_roi() {
-	g_mutex_lock(&roi_mutex); // Wait until any thread previews are finished
-	cancel_pending_update();
-	copy_backup_to_gfit();
-	clearfits(&gui.roi.fit);
-	memset(&gui.roi, 0, sizeof(roi_t));
-	// Call any callbacks that need calling
-	call_roi_callbacks();
-	queue_redraw(REDRAW_OVERLAY);
-	g_mutex_unlock(&roi_mutex);
+	if (gui.roi.active) {
+		g_mutex_lock(&roi_mutex); // Wait until any thread previews are finished
+		cancel_pending_update();
+		copy_backup_to_gfit();
+		clearfits(&gui.roi.fit);
+		memset(&gui.roi, 0, sizeof(roi_t));
+		// Call any callbacks that need calling
+		call_roi_callbacks();
+		queue_redraw(REDRAW_OVERLAY);
+		g_mutex_unlock(&roi_mutex);
+	}
 	return GINT_TO_POINTER(0);
 }
 
@@ -1778,6 +1780,10 @@ void on_combobinning_changed(GtkComboBox *box, gpointer user_data) {
 		case 5:
 			gfit.keywords.binning_x = 1;
 			gfit.keywords.binning_y = 3;
+			break;
+		case -1:
+			gfit.keywords.binning_x = gfit.keywords.binning_y = 1;
+			gtk_combo_box_set_active(box, 0);
 			break;
 		default:
 			fprintf(stderr, "Should not happen\n");

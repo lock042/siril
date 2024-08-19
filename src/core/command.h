@@ -92,6 +92,8 @@ int	process_fmul(int nb);
 
 int	process_gauss(int nb);
 int	process_getref(int nb);
+int	process_graxpert_bg(int nb);
+int	process_graxpert_denoise(int nb);
 int	process_grey_flat(int nb);
 
 int	process_help(int nb);
@@ -190,6 +192,8 @@ int	process_seq_extractHaOIII(int nb);
 int	process_seq_findstar(int nb);
 int	process_seq_fixbanding(int nb);
 int	process_seq_ght(int nb);
+int	process_seq_graxpert_bg(int nb);
+int	process_seq_graxpert_denoise(int nb);
 int	process_seq_header(int nb);
 int	process_seq_invght(int nb);
 int	process_seq_invmodasinh(int nb);
@@ -206,6 +210,7 @@ int	process_seq_split_cfa(int nb);
 int	process_seq_starnet(int nb);
 int	process_seq_stat(int nb);
 int	process_seq_tilt(int nb);
+int	process_seq_update_key(int nb);
 int	process_seq_wiener(int nb);
 int	process_set(int nb);
 int	process_set_32bits(int nb);

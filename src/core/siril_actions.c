@@ -548,6 +548,7 @@ void split_channel_activate(GSimpleAction *action, GVariant *parameter,gpointer 
 }
 
 void negative_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_close_preview_dialogs();
 	negative_processing();
 }
 
@@ -699,6 +700,7 @@ void merge_cfa_activate(GSimpleAction *action, GVariant *parameter, gpointer use
 void star_desaturate_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;
+	siril_close_preview_dialogs();
 	undo_save_state(&gfit, "Synthetic stars: desaturate clipped stars");
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	start_in_new_thread(fix_saturated_stars, NULL);
@@ -763,4 +765,8 @@ void set_roi(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 
 void ccm_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("ccm_dialog");
+}
+
+void graxpert_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	siril_open_dialog("graxpert_dialog");
 }

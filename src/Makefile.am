@@ -184,6 +184,7 @@ siril_common_SOURCES = \
 	filters/clahe.h \
 	filters/cosmetic_correction.c \
 	filters/cosmetic_correction.h \
+	filters/deconvolution.c \
 	filters/epf.c \
 	filters/epf.h \
 	filters/fft.c \
@@ -196,6 +197,8 @@ siril_common_SOURCES = \
 	filters/mtf.h \
 	filters/ght.c \
 	filters/ght.h \
+	filters/graxpert.c \
+	filters/graxpert.h \
 	filters/rgradient.c \
 	filters/rgradient.h \
 	filters/saturation.c \
@@ -219,8 +222,6 @@ siril_common_SOURCES = \
 	filters/deconvolution/angleSet.cpp \
 	filters/deconvolution/angleSet.hpp \
 	filters/deconvolution/better_than_std.hpp \
-	filters/deconvolution/chelperfuncs.c \
-	filters/deconvolution/chelperfuncs.h \
 	filters/deconvolution/deconvolution.h \
 	filters/deconvolution/deconvolve.cpp \
 	filters/deconvolution/deconvolve.hpp \
@@ -273,6 +274,8 @@ siril_common_SOURCES = \
 	gui/epf.h \
 	gui/fix_xtrans_af.c \
 	gui/fix_xtrans_af.h \
+	gui/graxpert.c \
+	gui/graxpert.h \
 	gui/histogram.c \
 	gui/histogram.h \
 	gui/keywords_tree.c \
@@ -501,11 +504,13 @@ if PLATFORM_WIN32
 AM_LDFLAGS += -Wl,--export-all-symbols
 if !SIRIL_DEBUG
 AM_LDFLAGS += -mwindows -lbcrypt
-endif #!SIRIL_DEBUG
+endif
 else
-if !PLATFORM_OSX
-AM_LDFLAGS += -rdynamic, -Wl,-framework,Security
-endif #!PLATFORM_OSX
-endif #PLATFORM_WIN32
+if PLATFORM_OSX
+AM_LDFLAGS += -rdynamic -Wl,-framework,Security
+else
+AM_LDFLAGS += -rdynamic
+endif
+endif
 
 siril_LINK = $(CXXLINK)

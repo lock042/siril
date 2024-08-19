@@ -60,11 +60,13 @@ static GMutex soft_proof_profile_mutex;
 static GMutex default_profiles_mutex;
 static GMutex display_transform_mutex;
 
+static gboolean profile_check_verbose = TRUE;
+
 ////// Functions //////
 
 void color_manage(fits *fit, gboolean active) {
 	fit->color_managed = active;
-	if (fit == &gfit && !com.headless) {
+	if (fit == &gfit && !com.script) {
 		gchar *buffer = NULL, *monitor = NULL, *proof = NULL;
 		gchar *name = g_build_filename("/org/siril/ui/", "pixmaps", active ? "color_management.svg" : "color_management_off.svg", NULL);
 		gchar *tooltip = NULL;
@@ -945,16 +947,19 @@ cmsHPROFILE siril_color_profile_linear_from_color_profile (cmsHPROFILE profile) 
  * been stretched in the past, to decide whether to assign a linear or non-
  * linear profile.
  */
+
 void check_profile_correct(fits* fit) {
 	if (!fit->icc_profile) {
 		if (com.icc.srgb_hint) {
-			siril_log_message(_("FITS did not contain an ICC profile but is declared to be stretched. Assigning a sRGB color profile.\n"));
+			if (profile_check_verbose)
+				siril_log_message(_("FITS did not contain an ICC profile but is declared to be stretched. Assigning a sRGB color profile.\n"));
 			// sRGB because this is the implicit assumption made in older versions
 			fit->icc_profile = fit->naxes[2] == 1 ? gray_srgbtrc() : srgb_trc();
 			// Clear the hint
 			com.icc.srgb_hint = FALSE;
 		} else if (fit_appears_stretched(fit)) {
-			siril_log_message(_("FITS did not contain an ICC profile. It appears to have been stretched using an older version of Siril. Assigning a sRGB color profile.\n"));
+			if (profile_check_verbose)
+				siril_log_message(_("FITS did not contain an ICC profile. It appears to have been stretched using an older version of Siril. Assigning a sRGB color profile.\n"));
 			// sRGB because this is the implicit assumption made in older versions
 			fit->icc_profile = fit->naxes[2] == 1 ? gray_srgbtrc() : srgb_trc();
 			color_manage(fit, TRUE);
@@ -977,6 +982,14 @@ void check_profile_correct(fits* fit) {
 		color_manage(fit, FALSE);
 		siril_debug_print("fit->color_managed inconsistent with missing profile");
 	}
+}
+
+void enable_profile_check_verbose() {
+	profile_check_verbose = TRUE;
+}
+
+void disable_profile_check_verbose() {
+	profile_check_verbose = FALSE;
 }
 
 /* This function returns a separate copy of the cmsHPROFILE provided as the

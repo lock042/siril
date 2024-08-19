@@ -49,15 +49,6 @@
 
 #define SAMPLE_SIZE 25		// must be odd to compute a radius
 
-struct sample {
-	double median[3]; // median of each channel of the sample (if color)
-	double mean; // mean of the 3 channel of the sample (if color)
-	double min, max;
-	size_t size;
-	point position;
-	gboolean valid;
-};
-
 //C contains background function
 #define C(i) (gsl_vector_get(c,(i)))
 
@@ -105,7 +96,7 @@ static double siril_gsl_vector_sum(const gsl_vector *v) {
 	return sum;
 }
 
-static gboolean computeBackground_RBF(GSList *list, double *background, int channel, unsigned int width, unsigned int height, double smoothing, gchar **err, int threads, gboolean processing) {
+static gboolean computeBackground_RBF(GSList *list, double *background, int channel, unsigned int width, unsigned int height, double smoothing, gchar **err, int threads) {
 	/* Implementation of RBF interpolation with a thin-plate Kernel k(r) = r^2 * log(r)
 
 	References:
@@ -124,19 +115,13 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 		Deterministic Computer Models. AIAA journal, 43(4):853–863, 2005.
 	*/
 
-	if (processing) {
-		char *msg = siril_log_color_message(_("RBF Extraction: processing channel %d...\n"), "green", channel);
-		msg[strlen(msg) - 1] = '\0';
-		set_progress_bar_data(msg, PROGRESS_RESET);
-	}
-
-	double pixel;
 	gsl_matrix *K;
-	gsl_vector *f, *coef, *A;
+	gsl_vector *f, *coef;
 	GSList *l_i;
 	guint n = g_slist_length(list);
 	double mean = 0.0;
 	double (*list_array)[3];
+	siril_debug_print("RBF: %d samples, channel %d, w %u, h %u, smooth %f, %d threads\n", n, channel, width, height, smoothing, threads);
 
 	K = gsl_matrix_calloc(n + 1, n + 1);
 	f = gsl_vector_calloc(n + 1);
@@ -239,13 +224,11 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 	}
 
 	/* Calculate background from coefficients coef */
-	double total = height_scaled * width_scaled;
-	int progress = 0;
 #ifdef _OPENMP
-#pragma omp parallel shared(background_scaled) private(A) num_threads(threads)
+#pragma omp parallel num_threads(threads)
 #endif
 	{
-		A = gsl_vector_calloc(n + 1);
+		gsl_vector *A = gsl_vector_calloc(n + 1);
 #ifdef _OPENMP
 #pragma omp for
 #endif
@@ -260,24 +243,14 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 				gsl_vector_set(A, n, 1.0);
 				gsl_vector_mul(A, coef);
 
-				pixel = siril_gsl_vector_sum(A);
+				double pixel = siril_gsl_vector_sum(A);
 				background_scaled[j + i * width_scaled] = pixel;
-
-				if (processing) {
-#ifdef _OPENMP
-#pragma omp critical
-#endif
-					{
-						++progress;
-						if (!(progress % 1024)) {
-							set_progress_bar_data(NULL,	(double) progress / total);
-						}
-					}
-				}
 			}
 		}
+
 		gsl_vector_free(A);
 	}
+
 
 	cvResizeArray(background_scaled, background, height_scaled, width_scaled, height, width);
 
@@ -288,11 +261,6 @@ static gboolean computeBackground_RBF(GSList *list, double *background, int chan
 	free(background_scaled);
 	free(kernel_scaled);
 	free(list_array);
-
-	if (processing) {
-		set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
-	}
-
 	return TRUE;
 }
 
@@ -617,7 +585,7 @@ static void convert_img_to_fits(double *image, fits *fit, int channel) {
 	}
 }
 
-static GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, int size, const char **error, threading_type threads) {
+GSList *generate_samples(fits *fit, int nb_per_line, double tolerance, int size, const char **error, threading_type threads) {
 	int nx = fit->rx;
 	int ny = fit->ry;
 	size_t n = fit->naxes[0] * fit->naxes[1];
@@ -720,9 +688,6 @@ static GSList *update_median_samples(GSList *orig, fits *fit) {
 }
 
 static void remove_gradient(double *img, const double *background, double background_mean, size_t ndata, background_correction type, threading_type threads) {
-	size_t i;
-	double mean;
-
 	switch (type) {
 		default:
 		case BACKGROUND_CORRECTION_SUBTRACT:
@@ -730,20 +695,22 @@ static void remove_gradient(double *img, const double *background, double backgr
 			limit_threading(&threads, 300000, ndata);
 #pragma omp parallel for num_threads(threads) schedule(static)
 #endif
-			for (i = 0; i < ndata; i++) {
+			for (size_t i = 0; i < ndata; i++) {
 				img[i] -= background[i];
 				img[i] += background_mean;
 			}
 			break;
 		case BACKGROUND_CORRECTION_DIVIDE:
-			mean = gsl_stats_mean(img, 1, ndata);
+			{
+				double mean = gsl_stats_mean(img, 1, ndata);
 #ifdef _OPENMP
-			limit_threading(&threads, 300000, ndata);
+				limit_threading(&threads, 300000, ndata);
 #pragma omp parallel for num_threads(threads) schedule(static)
 #endif
-			for (i = 0; i < ndata; i++) {
-				img[i] /= background[i];
-				img[i] *= mean;
+				for (size_t i = 0; i < ndata; i++) {
+					img[i] /= background[i];
+					img[i] *= mean;
+				}
 			}
 	}
 }
@@ -870,7 +837,7 @@ gpointer remove_gradient_from_image(gpointer p) {
 					gfit.rx, gfit.ry, args->degree, &error);
 		} else {
 			interpolation_worked = computeBackground_RBF(com.grad_samples, background, channel,
-					gfit.rx, gfit.ry, args->smoothing, &error, args->threads, TRUE);
+					gfit.rx, gfit.ry, args->smoothing, &error, args->threads);
 		}
 
 		if (!interpolation_worked) {
@@ -895,6 +862,7 @@ gpointer remove_gradient_from_image(gpointer p) {
 		convert_fits_to_img(&gfit, image, channel, args->dither);
 		remove_gradient(image, background, background_mean, n, args->correction, MULTI_THREADED);
 		convert_img_to_fits(image, &gfit, channel);
+
 	}
 	siril_log_message(_("Background with %s interpolation computed.\n"),
 			(args->interpolation_method == BACKGROUND_INTER_POLY) ? "polynomial" : "RBF");
@@ -955,7 +923,7 @@ static int background_image_hook(struct generic_seq_args *args, int o, int i, fi
 		if (b_args->interpolation_method == BACKGROUND_INTER_POLY){
 			interpolation_worked = computeBackground_Polynom(samples, background, channel, fit->rx, fit->ry, b_args->degree, &error);
 		} else {
-			interpolation_worked = computeBackground_RBF(samples, background, channel, fit->rx, fit->ry, b_args->smoothing, &error, threads, FALSE);
+			interpolation_worked = computeBackground_RBF(samples, background, channel, fit->rx, fit->ry, b_args->smoothing, &error, threads);
 		}
 
 		if (!interpolation_worked) {

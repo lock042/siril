@@ -21,10 +21,12 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
+
 #include <cmath>
 #include <complex>
 #include <cassert>
 #include "algos/siril_random.h"
+#include "core/processing.h" // for get_thread_run()
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846  /* pi */
@@ -34,7 +36,6 @@ SOFTWARE.
 #include "deconvBregman.hpp"
 #include "utils.hpp"
 #include "edgetaper.hpp"
-#include "chelperfuncs.h"
 
 /// Algorithm 6
 template <typename T>
@@ -106,8 +107,8 @@ static void singlePhaseRetrieval(img_t<T>& kernel, const img_t<T>& magnitude,
     }
 
     for (int y = 0; y < kernelSize; y++)
-    for (int x = 0; x < kernelSize; x++)
-        kernel(x, y) = g2(x, y) >= T(0.) ? g2(x, y) : T(0.);
+        for (int x = 0; x < kernelSize; x++)
+            kernel(x, y) = g2(x, y) >= T(0.) ? g2(x, y) : T(0.);
     kernel.normalize();
 
     // apply the thresholding of 1/255
@@ -156,14 +157,12 @@ static T evaluateKernel(const img_t<T>& kernel, const img_t<T>& blurredPatch, T 
     img_t<T> intermediateBlurredPatch;
     intermediateBlurredPatch = utils::add_padding(blurredPatch, kernel);
     edgetaper(paddedBlurredPatch, intermediateBlurredPatch, kernel, 4);
-//    pad_and_taper(paddedBlurredPatch, blurredPatch, kernel);
 
     img_t<T> deconvPadded;
     deconvBregman(deconvPadded, paddedBlurredPatch, kernel, 10, deconvLambda);
     img_t<T> deconv;
 
     deconv = utils::remove_padding(deconvPadded, kernel);
-//    unpad(deconv, deconvPadded, kernel);
 
     // compute the l1 and l2 norm of the gradient of the deconvolved patch
     T normL1 = 0.;
@@ -194,16 +193,20 @@ void phaseRetrieval(img_t<T>& outkernel, const img_t<T>& blurredPatch,
     magnitude.ifftshift(); // unshift the magnitude
 
     T globalCurrentScore = std::numeric_limits<T>::max();
-#pragma omp parallel
+#ifdef _OPENMP
+#pragma omp parallel num_threads(com.fftw_max_thread)
     {
+#endif
         img_t<T> kernel;
         img_t<T> kernel_mirror;
         T currentScore = std::numeric_limits<T>::max();
         img_t<T> bestKernel;
-#pragma omp for nowait
+#ifdef _OPENMP
+#pragma omp for schedule(guided) nowait
+#endif
         for (int k = 0; k < opts.Ntries; k++) {
 
-            if (is_thread_stopped()) continue;
+            if (!get_thread_run()) continue;
 
             // retrieve one possible kernel
             singlePhaseRetrieval(kernel, magnitude, kernelSize, opts.Ninner);
@@ -238,13 +241,17 @@ void phaseRetrieval(img_t<T>& outkernel, const img_t<T>& blurredPatch,
         }
 
         // aggregate results by keeping the best kernel
+#ifdef _OPENMP
 #pragma omp critical
         {
+#endif
             if (currentScore < globalCurrentScore) {
                 globalCurrentScore = currentScore;
                 outkernel = std::move(bestKernel);
             }
+#ifdef _OPENMP
         }
     }
+#endif
 }
 

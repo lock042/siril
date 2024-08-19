@@ -74,6 +74,8 @@ static command commands[] = {
 	{"get", 1, "get { -a | -A | variable }", process_set, STR_GET, TRUE, REQ_CMD_NONE},
 	{"getref", 1, "getref sequencename", process_getref, STR_GETREF, TRUE, REQ_CMD_NONE},
 	{"ght", 1, "ght -D= [-B=] [-LP=] [-SP=] [-HP=] [-clipmode=] [-human | -even | -independent | -sat] [channels]", process_ght, STR_GHT, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"graxpert_bg", 1, "graxpert_bg [-algo=] [-mode=] [-kernel=] [-ai_batch_size=] [-pts_per_row=] [-splineorder=] [-samplesize=] [-smoothing=] [-bgtol=] [ { -gpu | -cpu } ] [-keep_bg]", process_graxpert_bg, STR_GRAXPERT_BG, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"graxpert_denoise", 1, "graxpert_denoise [-strength=] [ { -gpu | -cpu } ]", process_graxpert_denoise, STR_GRAXPERT_DENOISE, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"grey_flat", 0, "grey_flat", process_grey_flat, STR_GREY_FLAT, TRUE, REQ_CMD_SINGLE_IMAGE},
 
 	{"help", 0, "help [command]", process_help, STR_HELP, TRUE, REQ_CMD_NONE},
@@ -137,7 +139,7 @@ static command commands[] = {
 	{"register", 1, "register sequencename [-2pass] [-noout] [-upscale] [-prefix=] [-minpairs=] [-transf=] [-layer=] [-maxstars=] [-nostarlist] [-interp=] [-noclamp] [-selected]", process_register, STR_REGISTER, TRUE, REQ_CMD_NO_THREAD},
 	{"reloadscripts", 0, "reloadscripts", process_reloadscripts, STR_RELOADSCRIPTS, FALSE, REQ_CMD_NONE},
 	{"requires", 1, "requires min_version [obsolete_version]", process_requires, STR_REQUIRES, TRUE, REQ_CMD_NONE},
-	{"resample", 1, "resample { factor | -width= | -height= } [-interp=] [-noclamp]", process_resample, STR_RESAMPLE, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"resample", 1, "resample { factor | -width= | -height= | -maxdim= } [-interp=] [-noclamp]", process_resample, STR_RESAMPLE, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"rgbcomp", 2, "rgbcomp red green blue [-out=result_filename] [-nosum]\n"
 				"rgbcomp -lum=image { rgb_image | red green blue } [-out=result_filename] [-nosum]", process_rgbcomp, STR_RGBCOMP, TRUE, REQ_CMD_NONE},
 	{"rgradient", 4, "rgradient xc yc dR dalpha", process_rgradient, STR_RGRADIENT, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_NO_THREAD},
@@ -181,6 +183,8 @@ static command commands[] = {
 	{"seqfindstar", 1, "seqfindstar sequencename [-layer=] [-maxstars=]", process_seq_findstar, STR_SEQFINDSTAR CMD_CAT(FINDSTAR) STR_FINDSTAR, TRUE, REQ_CMD_NONE},
 	{"seqfixbanding", 3, "seqfixbanding sequencename amount sigma [-prefix=] [-vertical]", process_seq_fixbanding, STR_SEQFIXBANDING CMD_CAT(FIXBANDING) STR_FIXBANDING, TRUE, REQ_CMD_NONE},
 	{"seqght", 2, "seqght sequence -D= [-B=] [-LP=] [-SP=] [-HP=] [-clipmode=] [-human | -even | -independent | -sat] [channels] [-prefix=]", process_seq_ght, STR_SEQGHT CMD_CAT(GHT) STR_GHT, TRUE, REQ_CMD_NONE},
+	{"seqgraxpert_bg", 2, "seqgraxpert_bg sequencename [-algo=] [-mode=] [-kernel=] [-ai_batch_size=] [-pts_per_row=] [-splineorder=] [-samplesize=] [-smoothing=] [-bgtol=] [ { -gpu | -cpu } ] [-keep_bg]", process_seq_graxpert_bg, STR_SEQGRAXPERT_BG, TRUE, REQ_CMD_NONE},
+	{"seqgraxpert_denoise", 2, "seqgraxpert_denoise sequencename [-strength=] [ { -gpu | -cpu } ]", process_seq_graxpert_denoise, STR_SEQGRAXPERT_DENOISE, TRUE, REQ_CMD_NONE},
 	{"seqheader", 2, "seqheader sequencename keyword [keyword2 ...] [-sel] [-out=file.csv]", process_seq_header, STR_SEQHEADER, TRUE, REQ_CMD_NONE},
 	{"seqinvght", 2, "seqinvght sequence -D= [-B=] [-LP=] [-SP=] [-HP=] [-clipmode=] [-human | -even | -independent | -sat] [channels] [-prefix=]", process_seq_invght, STR_SEQINVGHT CMD_CAT(INVGHT) STR_INVGHT CMD_CAT(GHT) STR_GHT, TRUE, REQ_CMD_NONE},
 	{"seqinvmodasinh", 2, "seqinvmodasinh sequence -D= [-LP=] [-SP=] [-HP=] [-clipmode=] [-human | -even | -independent | -sat] [channels] [-prefix=]", process_seq_invmodasinh, STR_SEQINVMODASINH CMD_CAT(INVMODASINH) STR_INVMODASINH CMD_CAT(MODASINH) STR_MODASINH, TRUE, REQ_CMD_NONE},
@@ -202,6 +206,10 @@ static command commands[] = {
 	{"seqsubsky", 2, "seqsubsky sequencename { -rbf | degree } [-nodither] [-samples=20] [-tolerance=1.0] [-smooth=0.5] [-prefix=]", process_subsky, STR_SEQSUBSKY CMD_CAT(SUBSKY) STR_SUBSKY, TRUE, REQ_CMD_NONE},
 	{"seqtilt", 1, "seqtilt sequencename", process_seq_tilt, STR_SEQTILT CMD_CAT(TILT) STR_TILT, TRUE, REQ_CMD_NO_THREAD},
 	{"sequnsetmag", 0, "sequnsetmag", process_unset_mag_seq, STR_SEQUNSETMAG, FALSE, REQ_CMD_SEQUENCE },
+	{"sequpdate_key", 2, "sequpdate_key sequencename key value [keycomment]\n"
+			"sequpdate_key sequencename -delete key\n"
+			"sequpdate_key sequencename -modify key newkey\n"
+			"sequpdate_key sequencename -comment comment", process_seq_update_key, STR_SEQUPDATE_KEY, TRUE, REQ_CMD_NONE},
 	{"seqwiener", 1, "wiener sequencename [-loadpsf=] [-alpha=]", process_seq_wiener, STR_SEQWIENER CMD_CAT(WIENER) STR_WIENER, TRUE, REQ_CMD_NONE},
 	{"set", 1, "set { -import=inifilepath | variable=value }", process_set, STR_SET, TRUE, REQ_CMD_NONE},
 	{"set16bits", 0, "set16bits", process_set_32bits, STR_SET16, TRUE, REQ_CMD_NONE},
@@ -249,7 +257,10 @@ static command commands[] = {
 	{"unselect", 3, "unselect sequencename from to", process_unselect, STR_UNSELECT, TRUE, REQ_CMD_NONE},
 	{"unsetmag", 0, "unsetmag", process_unset_mag, STR_UNSETMAG, FALSE, REQ_CMD_NONE},
 	{"unsharp", 2, "unsharp sigma multi", process_unsharp, STR_UNSHARP, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"update_key", 2, "update_key key value", process_update_key, STR_UPDATE_KEY, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"update_key", 2, "update_key key value [keycomment]\n"
+					"update_key -delete key\n"
+					"update_key -modify key newkey\n"
+					"update_key -comment comment", process_update_key, STR_UPDATE_KEY, TRUE, REQ_CMD_SINGLE_IMAGE},
 
 	{"visu", 2, "visu low high", process_visu, STR_VISU, FALSE, REQ_CMD_SINGLE_IMAGE},
 

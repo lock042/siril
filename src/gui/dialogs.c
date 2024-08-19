@@ -33,6 +33,7 @@
 #include "gui/newdeconv.h"
 #include "filters/nlbayes/call_nlbayes.h"
 #include "gui/dialogs.h"
+#include "gui/dialog_preview.h"
 #include "nina_light_curve.h"
 #include "compstars.h"
 
@@ -64,6 +65,7 @@ static const SirilDialogEntry entries[] =
 	{"extract_channel_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
 	{"extract_wavelets_layers_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
 	{"file_information", NULL, INFORMATION_DIALOG, FALSE, NULL},
+	{"graxpert_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL },
 	{"histogram_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_histo_cancel},
 	{"keywords_dialog", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"icc_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
@@ -207,5 +209,8 @@ gint siril_dialog_run(SirilWidget *widgetdialog) {
 }
 
 void siril_widget_destroy(SirilWidget *widgetdialog) {
+    while (!is_callback_called()) {
+        g_main_context_iteration(NULL, FALSE);
+    }
 	gtk_widget_destroy(widgetdialog);
 }

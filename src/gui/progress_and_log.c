@@ -39,8 +39,7 @@
 static void progress_bar_set_text(const char *text) {
 	static GtkProgressBar *pbar = NULL;
 	if (pbar == NULL)
-		pbar = GTK_PROGRESS_BAR(
-				gtk_builder_get_object(gui.builder, "progressbar1"));
+		pbar = GTK_PROGRESS_BAR(gtk_builder_get_object(gui.builder, "progressbar1"));
 	/* It will not happen that text is NULL here, because it's
 	 * catched by set_progress_bar_data() */
 	if (!text || text[0] == '\0')
@@ -52,8 +51,7 @@ static void progress_bar_set_text(const char *text) {
 static void progress_bar_set_percent(double percent) {
 	static GtkProgressBar *pbar = NULL;
 	if (pbar == NULL)
-		pbar = GTK_PROGRESS_BAR(
-				gtk_builder_get_object(gui.builder, "progressbar1"));
+		pbar = GTK_PROGRESS_BAR(gtk_builder_get_object(gui.builder, "progressbar1"));
 	if (percent == PROGRESS_PULSATE) {
 		gtk_progress_bar_pulse(pbar);
 	}

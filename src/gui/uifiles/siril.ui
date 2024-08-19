@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0 
+<!-- Generated with glade 3.40.0
 
 Copyright (C) The free-astro development team, 2019-2023
 
@@ -1388,6 +1388,21 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
           </packing>
         </child>
         <child>
+          <object class="GtkModelButton" id="proc_graxpert">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Open the GraXpert external tool interface</property>
+            <property name="action-name">win.graxpert-processing</property>
+            <property name="text" translatable="yes">GraXpert interface...</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">14</property>
+          </packing>
+        </child>
+        <child>
           <object class="GtkModelButton" id="proc_extraction">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
@@ -1398,7 +1413,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">14</property>
+            <property name="position">15</property>
           </packing>
         </child>
         <child>
@@ -1413,7 +1428,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">15</property>
+            <property name="position">16</property>
           </packing>
         </child>
         <child>
@@ -1424,7 +1439,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">16</property>
+            <property name="position">17</property>
           </packing>
         </child>
         <child>
@@ -1434,17 +1449,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
             <property name="receives-default">True</property>
             <property name="text" translatable="yes">Composition</property>
             <property name="menu-name">composition_menu</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">17</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkSeparator">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -1464,7 +1468,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">19</property>
+            <property name="position">20</property>
           </packing>
         </child>
       </object>
