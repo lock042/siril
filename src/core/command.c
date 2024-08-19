@@ -7591,6 +7591,7 @@ terminate_register_on_error:
 	if (!check_seq_is_comseq(seq)) {
 		free_sequence(seq, TRUE);
 	}
+	free(driz);
 	free(method);
 	return CMD_ARG_ERROR;
 }

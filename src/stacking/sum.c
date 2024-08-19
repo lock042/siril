@@ -284,7 +284,7 @@ int stack_summing_generic(struct stacking_args *stackargs) {
 	} else {
 		ssdata->output_size[0] = args->seq->rx;
 		ssdata->output_size[1] = args->seq->ry;
-		double dx, dy;
+		double dx = 0., dy = 0.;
 		if (ssdata->reglayer >= 0)
 			translation_from_H(args->seq->regparam[ssdata->reglayer][ssdata->ref_image].H, &dx, &dy);
 		ssdata->offset[0] = (int)dx;
