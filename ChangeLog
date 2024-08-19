@@ -89,6 +89,10 @@ xx/xx/24
 * Fixed CFA statistics (#1342)
 * Fixed calibration command bug disabling cosmetic correction (#1348)
 * Fixed calibration GUI not parsing correcting flat when using path parsing (#1348)
+* Fixed non-deterministic parallel subsky RBF (#1352)
+* Fixed incorrect deconvolution command arg setting (issue raised on pixls.us)
+* Fixed crash when saving image (#1353)
+* Fixed CLAHE crash on mono image (#1354)
 
 siril 1.2.3
 06/19/24
