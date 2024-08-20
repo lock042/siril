@@ -702,6 +702,7 @@ Markesteijn demosaicing algorithm, 1 is the default, 3 may be slightly better bu
                                 <property name="receives-default">False</property>
                                 <property name="tooltip-text" translatable="yes">This can be useful to open scientific FITS files that were not created by Siril and that contain multiple images of different dimensions, which would otherwise considered as invalid Siril FITSEQ files.</property>
                                 <property name="halign">start</property>
+                                <property name="margin-start">12</property>
                                 <property name="draw-indicator">True</property>
                               </object>
                               <packing>
@@ -740,6 +741,7 @@ Markesteijn demosaicing algorithm, 1 is the default, 3 may be slightly better bu
                           <object class="GtkBox">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
+                            <property name="margin-start">12</property>
                             <property name="orientation">vertical</property>
                             <property name="spacing">6</property>
                             <child>
@@ -1763,6 +1765,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                         <property name="can-focus">True</property>
                                         <property name="receives-default">False</property>
                                         <property name="tooltip-text" translatable="yes">The list of stars is passed to solve-field as a FITS table, check this to keep the file in the working directory.</property>
+                                        <property name="margin-start">12</property>
                                         <property name="draw-indicator">True</property>
                                       </object>
                                       <packing>
@@ -1777,6 +1780,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                         <property name="can-focus">True</property>
                                         <property name="receives-default">False</property>
                                         <property name="tooltip-text" translatable="yes">The results from solve-field are stored in a FITS header with a file name ending in .wcs. Check this to not remove this file.</property>
+                                        <property name="margin-start">12</property>
                                         <property name="draw-indicator">True</property>
                                       </object>
                                       <packing>
@@ -1821,6 +1825,7 @@ On Windows, you must point to the location of cygwin_ansvr folder only if not in
                                         <property name="can-focus">True</property>
                                         <property name="receives-default">False</property>
                                         <property name="tooltip-text" translatable="yes">Show the output of solve-field, the astrometry.net local solver, in the main Siril log.</property>
+                                        <property name="margin-start">12</property>
                                         <property name="draw-indicator">True</property>
                                       </object>
                                       <packing>
@@ -2654,7 +2659,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                         <property name="label-xalign">0</property>
                         <property name="shadow-type">none</property>
                         <child>
-                          <!-- n-columns=2 n-rows=3 -->
+                          <!-- n-columns=2 n-rows=2 -->
                           <object class="GtkGrid">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
@@ -2730,12 +2735,6 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                 <property name="left-attach">1</property>
                                 <property name="top-attach">0</property>
                               </packing>
-                            </child>
-                            <child>
-                              <placeholder/>
-                            </child>
-                            <child>
-                              <placeholder/>
                             </child>
                           </object>
                         </child>
@@ -2944,6 +2943,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                               <object class="GtkGrid">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
+                                <property name="margin-start">12</property>
                                 <property name="row-spacing">6</property>
                                 <property name="column-spacing">6</property>
                                 <property name="column-homogeneous">True</property>
@@ -3428,6 +3428,7 @@ It is strongly recommended to leave this enabled. If you choose not to use the r
                                             <property name="receives-default">False</property>
                                             <property name="tooltip-text" translatable="yes">Show preview, if possible, in the file chooser dialog box when opening an unique file.</property>
                                             <property name="halign">start</property>
+                                            <property name="margin-start">12</property>
                                             <property name="active">True</property>
                                             <property name="draw-indicator">True</property>
                                             <signal name="toggled" handler="on_show_preview_button_toggled" swapped="no"/>
@@ -3697,6 +3698,7 @@ It is strongly recommended to leave this enabled. If you choose not to use the r
                                       <object class="GtkGrid">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
+                                        <property name="margin-start">12</property>
                                         <property name="row-spacing">6</property>
                                         <property name="column-spacing">6</property>
                                         <property name="column-homogeneous">True</property>
@@ -4636,6 +4638,7 @@ Note: if the format does not support ICC profile embedding, images will always b
 * a newly composed image
 * a newly stacked image
 assign a linear ICC profile. This is technically correct but generally unnecessary.</property>
+                                        <property name="margin-start">12</property>
                                         <property name="draw-indicator">True</property>
                                       </object>
                                       <packing>
@@ -4681,6 +4684,7 @@ assign a linear ICC profile. This is technically correct but generally unnecessa
                                       <object class="GtkGrid">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
+                                        <property name="margin-start">12</property>
                                         <property name="column-homogeneous">True</property>
                                         <child>
                                           <object class="GtkLabel">
@@ -4966,6 +4970,7 @@ assign a linear ICC profile. This is technically correct but generally unnecessa
 
 &lt;b&gt;Note:&lt;/b&gt;
 Activating the repository will take place immediately, so that you can select scripts once the list populates. Deactivating the repository will only take place when the Apply button is clicked, in the usual way.</property>
+                                <property name="margin-start">12</property>
                                 <property name="draw-indicator">True</property>
                                 <signal name="toggled" handler="on_pref_use_gitscripts_toggled" swapped="no"/>
                               </object>
@@ -4988,6 +4993,7 @@ Activating the repository will take place immediately, so that you can select sc
                                     <property name="can-focus">True</property>
                                     <property name="receives-default">False</property>
                                     <property name="tooltip-text" translatable="yes">Automatically update the repository at startup.</property>
+                                    <property name="margin-start">12</property>
                                     <property name="draw-indicator">True</property>
                                   </object>
                                   <packing>
@@ -5365,6 +5371,7 @@ Configuring a memory amount larger than what is available on your system may res
                           <object class="GtkGrid">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
+                            <property name="margin-start">12</property>
                             <property name="row-spacing">6</property>
                             <property name="column-spacing">6</property>
                             <property name="row-homogeneous">True</property>
@@ -5727,6 +5734,7 @@ This setting is used in Deconvolution, but is ignored by the Fourier Transform f
                           <object class="GtkGrid">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
+                            <property name="margin-start">12</property>
                             <property name="row-spacing">6</property>
                             <property name="column-spacing">6</property>
                             <child>
