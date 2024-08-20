@@ -85,8 +85,8 @@ int compare_points(const void *a, const void *b) {
 }
 
 // Curve points
-GList *curve_points = NULL;
-point *selected_point = NULL;
+static GList *curve_points = NULL;
+static point *selected_point = NULL;
 static double point_size = 5.0;
 
 enum curve_algorithm algorithm = CUBIC_SPLINE;
@@ -376,7 +376,7 @@ static void adjust_curves_vport_size() {
 	current_height = gtk_widget_get_allocated_height(curves_viewport);
 
 	target_width = (int) (((double) current_width) * zoom);
-	target_height = (int) (((double) current_height) * zoom);
+	target_height = (int) (((double) current_height) * 1.0); // The vertical zoom is always 1.0
 	gtk_widget_set_size_request(curves_drawingarea, target_width, target_height);
 }
 
@@ -512,7 +512,7 @@ gboolean redraw_curves(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	erase_curves_histogram_display(cr, width, height);
 
 	for (i = 0; i < MAXVPORT; i++)
-		display_histo(display_histogram[i], cr, i, width, height, zoom, zoom, FALSE);
+		display_histo(display_histogram[i], cr, i, width, height, zoom, 1.0, FALSE);
 
 	return FALSE;
 }
@@ -719,9 +719,9 @@ gboolean on_curves_drawingarea_motion_notify_event(GtkWidget *widget, GdkEventMo
 		}
 	}
 
-	if (prev->x >= xpos)
+	if (prev && prev->x >= xpos)
 		selected_point->x = prev->x + 0.00001;
-	else if (next->x <= xpos)
+	else if (next && next->x <= xpos)
 		selected_point->x = next->x - 0.00001;
 	else
 		selected_point->x = xpos;
