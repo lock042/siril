@@ -86,6 +86,7 @@ gboolean keyword_is_protected(char *card);
 int updateFITSKeyword(fits *fit, const gchar *key, const gchar *newkey, const gchar *value, const gchar *comment, gboolean verbose, gboolean isfitseq);
 int associate_header_to_memfile(const char *header, fitsfile *fptr);
 int fits_parse_header_str(fits *fit, const char *header);
+int fits_swap_image_data(fits *a, fits *b);
 
 int save_wcs_fits(fits *f, const gchar *filename);
 

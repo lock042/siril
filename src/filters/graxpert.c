@@ -402,6 +402,7 @@ static void open_graxpert_result(graxpert_data *args) {
 	if (args->path) {
 		disable_profile_check_verbose();
 		if (args->previewing) {
+			siril_log_message(_("Reading result from the temporary working file...\n"));
 			if (readfits(args->path, &gui.roi.fit, NULL, (gui.roi.fit.type == DATA_FLOAT))) {
 				siril_log_color_message(_("Error opening GraXpert result. Check the file %s\n"), "red", args->path);
 				enable_profile_check_verbose();
@@ -409,18 +410,36 @@ static void open_graxpert_result(graxpert_data *args) {
 			}
 		} else {
 			fits *result = calloc(1, sizeof(fits));
+			siril_log_message(_("Reading result from the temporary working file...\n"));
 			if (readfits(args->path, result, NULL, !com.pref.force_16bit)) {
 				siril_log_color_message(_("Error opening GraXpert result. Check the file %s\n"), "red", args->path);
 				enable_profile_check_verbose();
 				goto END_AND_RETURN;
 			}
-			copyfits(result, args->fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
-			copy_fits_metadata(result, &gfit);
+			// Check the result dimensions and bit depth match what we expect
+			// This should never fail, but we shouldn't trust external software too
+			// much and a dimension mismatch would result in a crash
+			if (args->fit->rx != result->rx || args->fit->ry != result->ry || args->fit->naxes[2] != result->naxes[2]
+					|| args->fit->type != result->type) {
+				siril_log_color_message(_("Error: the GraXpert image dimensions and bit depth "
+						"do not match those of the original image. Please report this as a bug.\n"), "red");
+				goto END_AND_RETURN;
+			}
+			// Swap the image data pointers. This way the data originally in args->fit
+			// gets freed by the call to clearfits(result) and the result data becomes
+			// owned by args->fit
+			if (fits_swap_image_data(args->fit, result)) {
+				siril_debug_print("Error, NULL pointer passed to fits_swap_image_data\n");
+				goto END_AND_RETURN;
+			}
 			clearfits(result);
 			free(result);
-			copy_gfit_to_backup();
-			populate_roi();
+			if (args->fit == &gfit) {
+				copy_gfit_to_backup();
+				populate_roi();
+			}
 		}
+		siril_log_message(_("Removing the temporary working file...\n"));
 		if (g_unlink(args->path))
 			siril_debug_print("Failed to unlink GraXpert working file\n");
 		enable_profile_check_verbose();
@@ -441,8 +460,9 @@ static gboolean end_graxpert(gpointer p) {
 
 gpointer do_graxpert (gpointer p) {
 	lock_roi_mutex();
-	copy_backup_to_gfit();
 	graxpert_data *args = (graxpert_data *) p;
+	if (args->fit == &gfit)
+		copy_backup_to_gfit();
 	if (!args->previewing && !com.script) {
 		gchar *text = NULL;
 		switch (args->operation) {
@@ -494,6 +514,7 @@ gpointer do_graxpert (gpointer p) {
 	g_free(temp);
 	g_free(filename);
 	// Save current image as input filename
+	siril_log_message(_("Saving temporary working file...\n"));
 	if (savefits(path, args->fit)) {
 		siril_log_color_message(_("Error: failed to save temporary FITS\n"), "red");
 		goto ERROR_OR_FINISHED;

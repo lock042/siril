@@ -1517,6 +1517,21 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
           </packing>
         </child>
         <child>
+          <object class="GtkModelButton" id="proc_curves">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Open the curves transform dialog</property>
+            <property name="action-name">win.curves-processing</property>
+            <property name="text" translatable="no">Curves Transformation...</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
+        <child>
           <object class="GtkModelButton" id="proc_histo">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
@@ -1528,7 +1543,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">2</property>
+            <property name="position">3</property>
           </packing>
         </child>
         <child>
@@ -1543,7 +1558,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">3</property>
+            <property name="position">4</property>
           </packing>
         </child>
       </object>
