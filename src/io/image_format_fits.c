@@ -1881,10 +1881,6 @@ int save_opened_fits(fits *f) {
 		f->header = copy_header(f);
 	}
 
-	fits_write_chksum(f->fptr, &status);
-	if (status)
-		fits_report_error(stderr, status);
-
 	return 0;
 }
 
