@@ -455,6 +455,7 @@ static gboolean initialize_data(gpointer p) {
 	GtkToggleButton *fits_16s = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_save_fit16s"));
 	GtkToggleButton *fits_16 = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_save_fit16"));
 	GtkToggleButton *update_hilo = (GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_update_hilo")));
+	GtkToggleButton *checksum = (GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_chksum")));
 #ifdef HAVE_LIBJPEG
 	GtkSpinButton *qlty_spin_button = GTK_SPIN_BUTTON(lookup_widget("quality_spinbutton"));
 	args->quality = gtk_spin_button_get_value_as_int(qlty_spin_button);
@@ -487,6 +488,7 @@ static gboolean initialize_data(gpointer p) {
 		args->bitpix = FLOAT_IMG;
 
 	args->update_hilo = gtk_toggle_button_get_active(update_hilo);
+	args->checksum = gtk_toggle_button_get_active(checksum);
 
 	return test_for_viewer_mode();
 }
@@ -645,6 +647,7 @@ static gpointer mini_save_dialog(gpointer p) {
 				gfit.keywords.hi = 0;
 				gfit.keywords.lo = 0;
 			}
+			gfit.checksum = args->checksum;
 			args->retval = savefits(args->filename, &gfit);
 			if (!args->retval && single_image_is_loaded()) {
 				com.uniq->filename = strdup(args->filename);
