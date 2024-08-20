@@ -44,6 +44,7 @@
 #include "gui/utils.h"
 #include "gui/colors.h"
 #include "gui/callbacks.h"
+#include "gui/curves.h"
 #include "gui/documentation.h"
 #include "gui/histogram.h"
 #include "gui/icc_profile.h"
@@ -554,6 +555,10 @@ void negative_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 
 void histo_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	toggle_histogram_window_visibility(1);
+}
+
+void curves_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+    toggle_curves_window_visibility();
 }
 
 void fix_banding_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
