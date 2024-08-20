@@ -189,7 +189,7 @@ validation_error:
 static int compare_spcc_chan(const void *a, const void *b) {
 	const spcc_object *obj_a = (spcc_object*) a;
 	const spcc_object *obj_b = (spcc_object*) b;
-	return obj_a->n - obj_b->n;
+	return obj_a->channel - obj_b->channel;
 }
 
 static gboolean load_osc_sensor_from_file(const gchar *jsonFilePath, osc_sensor *data) {
