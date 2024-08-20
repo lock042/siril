@@ -9599,7 +9599,7 @@ int process_spcc(int nb) {
 // used for platesolve and seqplatesolve commands
 int process_platesolve(int nb) {
 	gboolean noflip = FALSE, force = FALSE, downsample = FALSE, autocrop = TRUE, nocache = FALSE,
-		asnet_blind_pos = FALSE, asnet_blind_res = FALSE, noreg = FALSE, savemaster = FALSE;
+		asnet_blind_pos = FALSE, asnet_blind_res = FALSE, noreg = FALSE;
 	gboolean forced_metadata[3] = { 0 }; // used for sequences in the image hook, for center, pixel and focal
 	SirilWorldCS *target_coords = NULL;
 	double forced_focal = -1.0, forced_pixsize = -1.0;
@@ -9609,6 +9609,7 @@ int process_platesolve(int nb) {
 	gboolean seqps = word[0][0] == 's';
 	sequence *seq = NULL;
 	platesolve_solver solver = SOLVER_SIRIL;
+	gchar *distofilename = NULL;
 
 	gboolean local_cat = local_catalogues_available();
 	int next_arg = 1;
@@ -9667,8 +9668,6 @@ int process_platesolve(int nb) {
 			asnet_blind_pos = TRUE;
 		else if (!strcmp(word[next_arg], "-blindres"))
 			asnet_blind_res = TRUE;
-		else if (!strcmp(word[next_arg], "-savemaster"))
-			savemaster = TRUE;
 		else if (g_str_has_prefix(word[next_arg], "-focal=")) {
 			char *arg = word[next_arg] + 7;
 			gchar *end;
@@ -9751,6 +9750,16 @@ int process_platesolve(int nb) {
 					siril_world_cs_unref(target_coords);
 				return CMD_ARG_ERROR;
 			}
+		}
+		else if (g_str_has_prefix(word[next_arg], "-disto=")) {
+			gchar *arg  = word[next_arg] + 7;
+			if (arg[0] == '\0') {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
+				if (target_coords)
+					siril_world_cs_unref(target_coords);
+				return CMD_ARG_ERROR;
+			}
+			distofilename = g_strdup(arg);
 		}
 		else if (!g_ascii_strcasecmp(word[next_arg], "-localasnet")) {
 			if (cat != CAT_AUTO)
@@ -9927,12 +9936,8 @@ int process_platesolve(int nb) {
 	} else {
 		args->searchradius = searchradius;
 	}
-	if (savemaster) {
-		if (!(com.pref.prepro.disto_lib && com.pref.prepro.disto_lib[0] != '\0' && order > 1)) {
-			siril_log_color_message(_("Cannot save distortion master if not set in Preferences or solution order is equal to 1, ignoring\n"), "red");
-		} else {
-			args->save_master = TRUE;
-		}
+	if (distofilename) {
+		args->distofilename = distofilename;
 	}
 	args->force = force;
 	args->update_reg = !noreg;

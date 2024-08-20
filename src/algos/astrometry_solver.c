@@ -119,6 +119,7 @@ static struct astrometry_data *copy_astrometry_args(struct astrometry_data *args
 	}
 	ret->fit = NULL;
 	ret->filename = NULL;
+	ret->distofilename = NULL;
 	return ret;
 }
 
@@ -1026,10 +1027,10 @@ gpointer plate_solver(gpointer p) {
 	/* 5.a Save distortion master
 		We need to do it before flipping
 	*/
-	if (args->save_master) {
+	if (args->distofilename) {
 		if (args->fit->keywords.wcslib->lin.dispre) {
 			int mstatus = 0;
-			gchar *mastername = path_parse(args->fit, com.pref.prepro.disto_lib, PATHPARSE_MODE_WRITE, &mstatus);
+			gchar *mastername = path_parse(args->fit, args->distofilename, PATHPARSE_MODE_WRITE, &mstatus);
 			if (mstatus) {
 				siril_log_color_message(_("Could not save distortion master file, skipping\n"), "salmon");
 			}
@@ -1041,6 +1042,7 @@ gpointer plate_solver(gpointer p) {
 			siril_log_color_message(_("Solution has no distortion\n"), "salmon");
 			siril_log_color_message(_("Could not save distortion master file, skipping\n"), "salmon");
 		}
+		g_free(args->distofilename);
 	}
 
 	/* 5. Flip image if needed */
@@ -2116,8 +2118,8 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 	if (aargs->solver == SOLVER_LOCALASNET)
 		aargs->filename = g_strdup(root);	// for localasnet
 	
-	if (i != arg->seq->reference_image) { // we want to save master distortion only once for ref image
-		aargs->save_master = FALSE;
+	if (i == arg->seq->reference_image) { // we want to save master distortion only once for ref image
+		aargs->distofilename = g_strdup(aargs_master->distofilename);
 	}
 	process_plate_solver_input(aargs);
 
@@ -2196,6 +2198,8 @@ finish:
 		siril_world_cs_unref(aargs->cat_center);
 	if (aargs->ref_stars)
 		siril_catalog_free(aargs->ref_stars);
+	if (aargs->distofilename)
+		g_free(aargs->distofilename);
 	free(aargs);
 	if (com.child_is_running == EXT_ASNET && g_unlink("stop"))
 		siril_debug_print("g_unlink() failed\n");

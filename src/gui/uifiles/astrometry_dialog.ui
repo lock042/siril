@@ -630,7 +630,7 @@ When selecting an order with distortions, additional terms are added to the solu
                           <item>Quartic (SIP)</item>
                           <item>Quintic (SIP)</item>
                         </items>
-                      <signal name="changed" handler="on_comboastro_order_changed" swapped="no"/>
+                        <signal name="changed" handler="on_comboastro_order_changed" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left-attach">3</property>
@@ -763,21 +763,55 @@ When selecting an order with distortions, additional terms are added to the solu
                     </child>
                     <child>
                       <object class="GtkCheckButton" id="master_ips_button">
-                        <property name="label" translatable="yes">Save distortion master</property>
+                        <property name="label" translatable="yes">Save distortion</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">False</property>
-                        <property name="tooltip-text" translatable="yes">Saves the solution as a distortion master, to be used to undistort images during registration.
+                        <property name="tooltip-text" translatable="yes">Saves the solution as a distortion file, to be used to undistort images during registration.
 This option is enabled only if the solution order is larger than 1.
-You must have set distortion master path in Preferences/Preprocessing menu.
-When platesolving a sequence, the distortion master is saved from the reference image.</property>
+When platesolving a sequence, the distortion file is saved from the reference image.</property>
                         <property name="halign">start</property>
-                        <property name="active">True</property>
+                        <property name="active">False</property>
                         <property name="draw-indicator">True</property>
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
                         <property name="top-attach">13</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkEntry" id="distomaster_entry">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="hexpand">True</property>
+                        <property name="tooltip-text" translatable="yes">Path to the distortion file to be created (ending with a *.wcs extension)</property>
+                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">14</property>
+                        <property name="width">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="distomaster_save_button">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="halign">end</property>
+                        <property name="use-underline">True</property>
+                        <signal name="clicked" handler="on_distomaster_save_button_clicked" swapped="no"/>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="icon-name">document-open-symbolic</property>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="left-attach">4</property>
+                        <property name="top-attach">14</property>
                       </packing>
                     </child>
                     <child>

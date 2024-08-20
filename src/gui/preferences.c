@@ -180,6 +180,7 @@ static void update_prepro_preferences() {
 	const gchar *distoentry = gtk_entry_get_text(GTK_ENTRY(lookup_widget("distolib_entry")));
 	if (distoentry) {
 		com.pref.prepro.disto_lib = g_strdup(distoentry);
+		com.pref.prepro.use_disto_lib = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_disto")));
 	}
 
 	if (com.pref.prepro.stack_default) {
@@ -702,6 +703,7 @@ void update_preferences_from_model() {
 
 	if (pref->prepro.disto_lib) {
 		gtk_entry_set_text(GTK_ENTRY(lookup_widget("distolib_entry")),pref->prepro.disto_lib);
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_disto")), pref->prepro.use_disto_lib);
 	}
 
 	if (pref->prepro.stack_default) {
