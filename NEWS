@@ -81,6 +81,7 @@ siril 1.4.0 xx xx, xx
 * Added GraXpert interface (!699)
 * Added the ability to resample by mnaximum dimension and preview jpg file size (!698)
 * Optimised and refactored deconvolution code (!702)
+* Added Curves Transformation tool (!677)
 
 siril 1.2.4 xxx xx, 2024
 

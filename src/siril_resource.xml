@@ -43,6 +43,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <file compressed="true" preprocess="xml-stripblanks" alias="composition_dialog.ui">gui/uifiles/composition_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="cosmetic_dialog.ui">gui/uifiles/cosmetic_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="crop_dialog.ui">gui/uifiles/crop_dialog.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="curves_dialog.ui">gui/uifiles/curves_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="cut_coords_dialog.ui">gui/uifiles/cut_coords_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="cut_dialog.ui">gui/uifiles/cut_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="cut_spectroscopy_dialog.ui">gui/uifiles/cut_spectroscopy_dialog.ui</file>
@@ -84,6 +85,8 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <file compressed="true" preprocess="xml-stripblanks" alias="StatWindow.ui">gui/uifiles/StatWindow.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="wavelets_dialog.ui">gui/uifiles/wavelets_dialog.ui</file>
 
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/arrow_left.svg</file>
+    <file compressed="true" preprocess="xml-stripblanks">pixmaps/arrow_right.svg</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/astrometry.svg</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/astrometry_dark.svg</file>
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/b.svg</file>
