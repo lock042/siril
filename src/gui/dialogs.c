@@ -22,6 +22,7 @@
 #include "core/proto.h"
 #include "gui/utils.h"
 #include "gui/histogram.h"
+#include "gui/curves.h"
 #include "algos/background_extraction.h"
 #include "filters/asinh.h"
 #include "filters/epf.h"
@@ -54,6 +55,7 @@ static const SirilDialogEntry entries[] =
 	{"color_calibration", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"cosmetic_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"crop_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
+	{"curves_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_curves_cancel},
 	{"cut_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"cut_coords_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
 	{"cut_spectroscopy_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
