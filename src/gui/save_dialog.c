@@ -579,15 +579,17 @@ static gpointer mini_save_dialog(gpointer p) {
 					siril_debug_print("Failed to remove existing file");
 				}
 				// Attempt to move the file
-				GFile *for_move = g_file_new_for_path(tmp_filename);
-				success = g_file_move(for_move,
-											g_file_new_for_path(filename),
+				GFile *move_from = g_file_new_for_path(tmp_filename);
+				GFile *move_to = g_file_new_for_path(filename);
+				success = g_file_move(move_from,
+											move_to,
 											G_FILE_COPY_NONE,
 											NULL,
 											NULL,
 											NULL,
 											&error);
-				g_object_unref(for_move);
+				g_object_unref(move_from);
+				g_object_unref(move_to);
 				if (success) {
 					siril_log_message(_("Saving JPG: file %s, quality=%d%%, %ld layer(s), %ux%u pixels\n"),
 						filename, args->quality, gfit.naxes[2], gfit.rx, gfit.ry);
@@ -698,19 +700,19 @@ void on_size_estimate_toggle_toggled(GtkToggleButton *button, gpointer user_data
 	if (gtk_toggle_button_get_active(button)) {
 		if (initialize_data(args) && !get_thread_run()) {
 			start_in_new_thread(calculate_jpeg_size_thread, args);
+			return;
 		}
-	} else {
-		// Clear preview size
-		gtk_entry_set_text(GTK_ENTRY(lookup_widget("size_estimate_entry")), "");
-		// Remove temporary file and free and reset tmp_filename to NULL
-		if (tmp_filename && g_unlink(tmp_filename))
-			siril_debug_print("Error removing temporary file\n");
-		g_free(tmp_filename);
-		tmp_filename = NULL;
-		g_free(args->description);
-		g_free(args->copyright);
-		free (args);
 	}
+	// Clear preview size
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("size_estimate_entry")), "");
+	// Remove temporary file and free and reset tmp_filename to NULL
+	if (tmp_filename && g_unlink(tmp_filename))
+		siril_debug_print("Error removing temporary file\n");
+	g_free(tmp_filename);
+	tmp_filename = NULL;
+	g_free(args->description);
+	g_free(args->copyright);
+	free (args);
 }
 
 void on_quality_spinbutton_value_changed(GtkSpinButton *button, gpointer user_data) {
