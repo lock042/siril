@@ -36,6 +36,7 @@
 #include "gui/cut.h"
 #include "gui/keywords_tree.h"
 #include "gui/registration.h"
+#include "gui/photometric_cc.h"
 #include "algos/siril_wcs.h"
 #include "algos/star_finder.h"
 #include "io/annotation_catalogues.h"
@@ -1503,6 +1504,10 @@ gboolean on_main_panel_button_release_event(GtkWidget *widget,
 }
 
 void initialize_all_GUI(gchar *supported_files) {
+	/* populate SPCC combos in a thread */
+	g_thread_unref(g_thread_new("spcc_combos", populate_spcc_combos_async, NULL));
+	/* pre-check the Gaia archive status */
+	check_gaia_archive_status();
 	/* initializing internal structures with widgets (drawing areas) */
 	gui.view[RED_VPORT].drawarea  = lookup_widget("drawingarear");
 	gui.view[GREEN_VPORT].drawarea= lookup_widget("drawingareag");

@@ -54,6 +54,7 @@ static int set_spcc_args(struct photometric_cc_data *args);
 void populate_spcc_combos();
 void on_spcc_toggle_nb_toggled(GtkToggleButton *button, gpointer user_data);
 void on_spcc_sensor_switch_state_set(GtkSwitch *widget, gboolean state, gpointer user_data);
+static GMutex combos_filling = { 0 };
 
 void reset_spcc_filters() {
 	spcc_filters_initialized = FALSE;
@@ -136,7 +137,7 @@ static gboolean end_gaiacheck_idle(gpointer p) {
 		}
 	}
 	gtk_widget_show(image);
-	gtk_widget_set_tooltip_text(GTK_WIDGET(image), text);
+	gtk_widget_set_tooltip_text(image, text);
 	siril_log_color_message("%s\n", colortext, text);
 
 	free(args->content);
@@ -144,7 +145,15 @@ static gboolean end_gaiacheck_idle(gpointer p) {
 	return FALSE;
 }
 
-static void check_gaia_archive_status() {
+void check_gaia_archive_status() {
+	if (!is_online()) {
+		GtkWidget *image = lookup_widget("gaia_status_widget");
+		gtk_image_set_from_resource(GTK_IMAGE(image), "/org/siril/ui/pixmaps/status_red.svg");
+		const gchar *text = N_("Siril is offline or built without networking. Gaia archive is unavailable.\n");
+		gtk_widget_set_tooltip_text(image, text);
+		siril_log_color_message("%s\n", "red", text);
+		return;
+	}
 	fetch_url_async_data *args = calloc(1, sizeof(fetch_url_async_data));
 	args->url = g_strdup("https://gaia.esac.esa.int/gaiastatus/latest_check_value.out");
 	args->idle_function = end_gaiacheck_idle;
@@ -379,7 +388,6 @@ void initialize_spectrophotometric_cc_dialog() {
 	g_free(txt);
 	g_free(tooltip);
 
-	populate_spcc_combos();
 	on_combophoto_catalog_changed(GTK_COMBO_BOX(catalog_box_pcc), NULL);
 	gtk_label_set_text(GTK_LABEL(lookup_widget("astrometry_catalog_label")), "");
 	g_signal_handlers_block_by_func(G_OBJECT(monoselector), on_spcc_sensor_switch_state_set, NULL);
@@ -628,6 +636,13 @@ void populate_spcc_combos() {
 		GtkSwitch *switch_widget = GTK_SWITCH(lookup_widget("spcc_sensor_switch"));
 		gtk_switch_set_active(switch_widget, com.pref.spcc.is_mono);
 	}
+}
+
+gpointer populate_spcc_combos_async(gpointer user_data) {
+	g_mutex_lock(&combos_filling);
+	populate_spcc_combos();
+	g_mutex_unlock(&combos_filling);
+	return GINT_TO_POINTER(0);
 }
 
 static void set_osc_lpf_visibility() {
