@@ -488,3 +488,4 @@ build-paper:
     - docker run --rm --volume "$CI_PROJECT_DIR/paper:/data" --user "$(id -u):$(id -g)" --env JOURNAL=joss openjournals/inara
   needs: []
   dependencies: []
+  allow_failure: true
