@@ -1452,9 +1452,7 @@ void updateGHTcontrols() {
 }
 
 void toggle_histogram_window_visibility(int _invocation) {
-    if (gtk_widget_get_visible(lookup_widget("curves_dialog"))) {
-        siril_close_dialog("curves_dialog");
-    }
+	siril_close_preview_dialogs();
 
 	invocation = _invocation;
 	for (int i=0;i<3;i++) {

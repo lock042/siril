@@ -92,7 +92,9 @@ xx/xx/24
 * Fixed calibration GUI not parsing correcting flat when using path parsing (#1348)
 * Fixed non-deterministic parallel subsky RBF (#1352)
 * Fixed incorrect deconvolution command arg setting (issue raised on pixls.us)
+* Fixed GHT and HT not reverting previews from other dialogs (#1356)
 * Fixed crash when saving image (#1353)
+* Fixed execute button in wavelets not reverting preview (#1362)
 * Fixed CLAHE crash on mono image (#1354)
 
 siril 1.2.3
