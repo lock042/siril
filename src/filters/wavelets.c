@@ -234,6 +234,11 @@ void on_button_cancel_w_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_button_compute_w_clicked(GtkButton *button, gpointer user_data) {
+	if (wavelet_show_preview) {
+		copy_backup_to_gfit();
+		undo_save_state(get_preview_gfit_backup(), _("Wavelets Transformation"));
+	}
+
 	int Type_Transform, Nbr_Plan, maxplan, mins, i;
 	int nb_chan = gfit.naxes[2];
 	char *File_Name_Transform[3] = { "r_rawdata.wave", "g_rawdata.wave",
