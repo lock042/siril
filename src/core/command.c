@@ -10601,9 +10601,10 @@ static graxpert_data *fill_graxpert_data_from_cmdline(int nb, sequence *seq, gra
 	if (operation == GRAXPERT_BG) {
 		data->operation = GRAXPERT_BG;
 	} else if (operation == GRAXPERT_DENOISE) {
-		data->operation = GRAXPERT_BG;
+		data->operation = GRAXPERT_DENOISE;
 	} else {
 		siril_log_color_message(_("Error: unknown GraXpert operation!\n"), "red");
+		free_graxpert_data(data);
 		return NULL;
 	}
 	for (int i = start ; i < nb ; i++) {
@@ -10715,7 +10716,7 @@ static graxpert_data *fill_graxpert_data_from_cmdline(int nb, sequence *seq, gra
 					goto GRAX_ARG_ERROR;
 				}
 			}
-			else if (operation == GRAXPERT_DENOISE) {
+			else { // operation must be GRAXPERT_DENOISE because of the earlier check
 				if (g_str_has_prefix(arg, "-strength=")) {
 					arg += 10;
 					data->denoise_strength = g_ascii_strtod(arg, &end);
@@ -10728,10 +10729,6 @@ static graxpert_data *fill_graxpert_data_from_cmdline(int nb, sequence *seq, gra
 					siril_log_color_message(_("Error: unknown argument!\n"), "red");
 					goto GRAX_ARG_ERROR;
 				}
-			}
-			else {
-				siril_log_color_message(_("Error: unknown argument!\n"), "red");
-				goto GRAX_ARG_ERROR;
 			}
 		}
 	}
