@@ -4,11 +4,13 @@
 #include <stdio.h>
 #include <glib.h>
 
+void check_gaia_archive_status();
 void get_spectrum_from_ui(xpsampled *spectrum, int chan);
 void initialize_photometric_cc_dialog();
 void initialize_spectrophotometric_cc_dialog();
 int get_photometry_catalog_from_GUI();
 void populate_spcc_combos();
+gpointer populate_spcc_combos_async(gpointer user_data);
 void reset_spcc_filters();
 
 #endif /* SRC_GUI_PHOTOMETRIC_CC_H_ */

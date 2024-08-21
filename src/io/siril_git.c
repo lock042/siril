@@ -991,7 +991,8 @@ void on_manual_spcc_sync_button_clicked(GtkButton* button, gpointer user_data) {
 		GtkWidget *spcc_dialog = lookup_widget("s_pcc_dialog");
 		if (gtk_widget_get_visible(spcc_dialog)) {
 			siril_debug_print("Reloading SPCC comboboxes\n");
-			populate_spcc_combos();
+			/* populate SPCC combos in a thread */
+			g_thread_unref(g_thread_new("spcc_combos", populate_spcc_combos_async, NULL));
 		}
 	}
 	set_cursor_waiting(FALSE);
