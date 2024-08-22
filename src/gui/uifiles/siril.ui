@@ -5003,7 +5003,7 @@ Uncheck if images come from a monochrome sensor.</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="tooltip-text" translatable="yes">How many times the standard deviation, the pixel value must differ to be considered as defective.</property>
                                                             <property name="max-width-chars">5</property>
-                                                            <property name="text">3,000</property>
+                                                            <property name="text">3.000</property>
                                                             <property name="input-purpose">number</property>
                                                             <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                                             <property name="adjustment">adjCalSigCosmeCold</property>
@@ -5071,7 +5071,7 @@ Uncheck if images come from a monochrome sensor.</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="tooltip-text" translatable="yes">How many times the standard deviation, the pixel value must differ to be considered as defective.</property>
                                                             <property name="max-width-chars">6</property>
-                                                            <property name="text">3,000</property>
+                                                            <property name="text">3.000</property>
                                                             <property name="input-purpose">number</property>
                                                             <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                                             <property name="adjustment">adjCalCosmeHot</property>
@@ -6283,7 +6283,7 @@ By default, the pattern is only searched on 25% of the total image size around t
 
 Higher values give more tolerance in alignment and smaller numbers lead to faster computations.</property>
                                                             <property name="valign">center</property>
-                                                            <property name="text" translatable="yes">25,00</property>
+                                                            <property name="text" translatable="yes">25.00</property>
                                                             <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                                             <property name="adjustment">adj_kombat_percent</property>
                                                             <property name="digits">2</property>
@@ -6461,7 +6461,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="invisible-char">●</property>
                                                             <property name="width-chars">6</property>
                                                             <property name="max-width-chars">5</property>
-                                                            <property name="text">90,00</property>
+                                                            <property name="text">90.00</property>
                                                             <property name="input-purpose">number</property>
                                                             <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                                             <property name="adjustment">adjustment4</property>
@@ -6589,7 +6589,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="invisible-char">●</property>
                                                             <property name="width-chars">6</property>
                                                             <property name="max-width-chars">5</property>
-                                                            <property name="text">90,00</property>
+                                                            <property name="text">90.00</property>
                                                             <property name="input-purpose">number</property>
                                                             <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                                             <property name="adjustment">adjustment5</property>
@@ -6729,7 +6729,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="invisible-char">●</property>
                                                             <property name="width-chars">6</property>
                                                             <property name="max-width-chars">5</property>
-                                                            <property name="text">90,00</property>
+                                                            <property name="text">90.00</property>
                                                             <property name="input-purpose">number</property>
                                                             <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                                             <property name="adjustment">adjustment6</property>
@@ -6963,7 +6963,7 @@ Higher values give more tolerance in alignment and smaller numbers lead to faste
                                                             <property name="invisible-char">●</property>
                                                             <property name="width-chars">6</property>
                                                             <property name="max-width-chars">5</property>
-                                                            <property name="text">1,00</property>
+                                                            <property name="text">1.00</property>
                                                             <property name="input-purpose">number</property>
                                                             <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                                             <property name="adjustment">adjustment_scaling</property>
@@ -7156,7 +7156,7 @@ Note that the Gaussian and Lanczos models do not conserve flux and should not be
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="tooltip-text" translatable="yes">Sets the droplet size as a fraction of the input pixel size. Typically a good value for this is the reciprocal of the drizzle scale.</property>
-                                                            <property name="text" translatable="yes">1,00</property>
+                                                            <property name="text" translatable="yes">1.00</property>
                                                             <property name="adjustment">adj_driz_dropsize</property>
                                                             <property name="digits">2</property>
                                                             <property name="value">1</property>
@@ -8214,7 +8214,7 @@ Pixels of the image are replaced by pixels at the same coordinates if intensity 
                                                             <property name="can-focus">True</property>
                                                             <property name="width-chars">5</property>
                                                             <property name="max-width-chars">6</property>
-                                                            <property name="text">4,000</property>
+                                                            <property name="text">4.000</property>
                                                             <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                                             <property name="adjustment">stack_siglow_adjustment</property>
                                                             <property name="climb-rate">0.05</property>
@@ -8248,7 +8248,7 @@ Pixels of the image are replaced by pixels at the same coordinates if intensity 
                                                             <property name="can-focus">True</property>
                                                             <property name="width-chars">5</property>
                                                             <property name="max-width-chars">6</property>
-                                                            <property name="text">3,000</property>
+                                                            <property name="text">3.000</property>
                                                             <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                                             <property name="adjustment">stack_sighigh_adjustment</property>
                                                             <property name="climb-rate">0.05</property>

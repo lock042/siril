@@ -873,7 +873,7 @@ It depends on the acquistion software used to create the FITS.</property>
                                 <property name="halign">start</property>
                                 <property name="valign">center</property>
                                 <property name="width-chars">9</property>
-                                <property name="text">8,00</property>
+                                <property name="text">8.00</property>
                                 <property name="input-purpose">number</property>
                                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                 <property name="adjustment">adj_comp_fits_quantization</property>
@@ -975,7 +975,7 @@ It depends on the acquistion software used to create the FITS.</property>
                                 <property name="halign">start</property>
                                 <property name="valign">center</property>
                                 <property name="width-chars">9</property>
-                                <property name="text">4,00</property>
+                                <property name="text">4.00</property>
                                 <property name="input-purpose">number</property>
                                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                 <property name="adjustment">adj_comp_fits_hcompress_scale</property>
@@ -2943,7 +2943,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                 <property name="tooltip-text" translatable="yes">A/D converter gain in electrons per ADU. Default value is 2.300.</property>
                                 <property name="halign">start</property>
                                 <property name="max-width-chars">7</property>
-                                <property name="text">2,3000</property>
+                                <property name="text">2.3000</property>
                                 <property name="input-purpose">number</property>
                                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                 <property name="adjustment">adjGain</property>
@@ -5276,7 +5276,7 @@ Configuring a memory amount larger than what is available on your system may res
                                 <property name="halign">start</property>
                                 <property name="valign">center</property>
                                 <property name="width-chars">5</property>
-                                <property name="text">0,90</property>
+                                <property name="text">0.90</property>
                                 <property name="input-purpose">number</property>
                                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                 <property name="adjustment">adj_mem_ratio</property>
@@ -5296,7 +5296,7 @@ Configuring a memory amount larger than what is available on your system may res
                                 <property name="can-focus">True</property>
                                 <property name="halign">start</property>
                                 <property name="width-chars">5</property>
-                                <property name="text">4,00</property>
+                                <property name="text">4.00</property>
                                 <property name="input-purpose">number</property>
                                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                 <property name="adjustment">adj_mem_amount</property>

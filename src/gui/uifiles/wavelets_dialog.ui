@@ -329,7 +329,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                               <object class="GtkSpinButton" id="spin_w0">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
-                                <property name="text">0,99</property>
+                                <property name="text">0.99</property>
                                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                 <property name="adjustment">adj_w0</property>
                                 <property name="digits">2</property>
@@ -399,7 +399,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                               <object class="GtkSpinButton" id="spin_w1">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
-                                <property name="text">1,00</property>
+                                <property name="text">1.00</property>
                                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                 <property name="adjustment">adj_w1</property>
                                 <property name="digits">2</property>
@@ -469,7 +469,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                               <object class="GtkSpinButton" id="spin_w2">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
-                                <property name="text">1,00</property>
+                                <property name="text">1.00</property>
                                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                 <property name="adjustment">adj_w2</property>
                                 <property name="digits">2</property>
@@ -539,7 +539,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                               <object class="GtkSpinButton" id="spin_3">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
-                                <property name="text">1,00</property>
+                                <property name="text">1.00</property>
                                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                 <property name="adjustment">adj_w3</property>
                                 <property name="digits">2</property>
@@ -609,7 +609,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                               <object class="GtkSpinButton" id="spin_w4">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
-                                <property name="text">1,00</property>
+                                <property name="text">1.00</property>
                                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                 <property name="adjustment">adj_w4</property>
                                 <property name="digits">2</property>
@@ -679,7 +679,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                               <object class="GtkSpinButton" id="spin_w5">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
-                                <property name="text">1,00</property>
+                                <property name="text">1.00</property>
                                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                 <property name="adjustment">adj_w5</property>
                                 <property name="digits">2</property>
