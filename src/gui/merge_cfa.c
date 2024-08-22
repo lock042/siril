@@ -51,7 +51,8 @@ void reset_controls() {
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("merge_cfa_pattern")), 0);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("merge_cfa_seqapply")), FALSE);
 	gtk_widget_set_visible(GTK_WIDGET(lookup_widget("merge_cfa_seq_controls")), FALSE);
-
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entryMergeCFAin")), "CFA_");
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entryMergeCFAout")), "mCFA_");
 }
 
 void on_merge_cfa_close_clicked(GtkButton *button, gpointer user_data) {
