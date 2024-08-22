@@ -116,14 +116,10 @@ void on_CLAHE_dialog_close(GtkDialog *dialog, gpointer user_data) {
 }
 
 void on_clahe_undo_clicked(GtkButton *button, gpointer user_data) {
-	GtkSpinButton *liit_value = GTK_SPIN_BUTTON(lookup_widget("spin_clahe"));
-	GtkSpinButton *tiles_size = GTK_SPIN_BUTTON(lookup_widget("clahe_tiles_size_spin"));
-	clahe_limit_value = 2.0;
-	clahe_tile_size = 8;
-
 	set_notify_block(TRUE);
-	gtk_spin_button_set_value(liit_value, clahe_limit_value);
-	gtk_spin_button_set_value(tiles_size, clahe_tile_size);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_clahe")), 2);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("clahe_tiles_size_spin")), 8);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("clahe_preview")), TRUE);
 	set_notify_block(FALSE);
 
 	copy_backup_to_gfit();
