@@ -41,13 +41,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="step-increment">3</property>
     <property name="page-increment">10</property>
   </object>
-  <object class="GtkAdjustment" id="adjustment_quality">
-    <property name="lower">10</property>
-    <property name="upper">100</property>
-    <property name="value">100</property>
-    <property name="step-increment">3</property>
-    <property name="page-increment">10</property>
-  </object>
   <object class="GtkDialog" id="savepopup">
     <property name="width-request">-1</property>
     <property name="height-request">-1</property>
@@ -64,7 +57,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
       <object class="GtkBox" id="dialog-vbox11">
         <property name="can-focus">False</property>
         <property name="orientation">vertical</property>
-        <property name="spacing">2</property>
+        <property name="spacing">10</property>
         <child internal-child="action_area">
           <object class="GtkButtonBox" id="dialog-action_area11">
             <property name="can-focus">False</property>
@@ -121,26 +114,20 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
             <property name="label-xalign">0</property>
             <property name="shadow-type">none</property>
             <child>
-              <object class="GtkAlignment" id="alignment7">
+              <object class="GtkEntry" id="savetxt">
                 <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="left-padding">12</property>
-                <child>
-                  <object class="GtkEntry" id="savetxt">
-                    <property name="visible">True</property>
-                    <property name="can-focus">True</property>
-                    <property name="can-default">True</property>
-                    <property name="has-tooltip">True</property>
-                    <property name="tooltip-markup" translatable="yes">root name of the converted images (the &amp;apos;dest&amp;apos; in dest1.fit)</property>
-                    <property name="tooltip-text" translatable="yes">root name of the converted images (the 'dest' in dest1.fit)</property>
-                    <property name="margin-right">11</property>
-                    <property name="invisible-char">•</property>
-                    <property name="width-chars">26</property>
-                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                    <signal name="activate" handler="on_savetxt_activate" swapped="no"/>
-                    <signal name="changed" handler="on_savetxt_changed" swapped="no"/>
-                  </object>
-                </child>
+                <property name="can-focus">True</property>
+                <property name="can-default">True</property>
+                <property name="has-tooltip">True</property>
+                <property name="tooltip-markup" translatable="yes">root name of the converted images (the &amp;apos;dest&amp;apos; in dest1.fit)</property>
+                <property name="tooltip-text" translatable="yes">root name of the converted images (the 'dest' in dest1.fit)</property>
+                <property name="margin-start">12</property>
+                <property name="margin-top">5</property>
+                <property name="invisible-char">•</property>
+                <property name="width-chars">26</property>
+                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                <signal name="activate" handler="on_savetxt_activate" swapped="no"/>
+                <signal name="changed" handler="on_savetxt_changed" swapped="no"/>
               </object>
             </child>
             <child type="label">
@@ -188,66 +175,60 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                             <property name="label-xalign">0</property>
                             <property name="shadow-type">none</property>
                             <child>
-                              <object class="GtkAlignment" id="alignment8">
+                              <object class="GtkBox" id="box26">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="left-padding">12</property>
+                                <property name="margin-start">12</property>
+                                <property name="margin-top">5</property>
+                                <property name="orientation">vertical</property>
+                                <property name="spacing">10</property>
                                 <child>
-                                  <object class="GtkBox" id="box26">
+                                  <object class="GtkRadioButton" id="radiobutton8bits">
+                                    <property name="label" translatable="yes">8-bit unsigned integer</property>
                                     <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="orientation">vertical</property>
-                                    <property name="spacing">10</property>
-                                    <child>
-                                      <object class="GtkRadioButton" id="radiobutton8bits">
-                                        <property name="label" translatable="yes">8-bit unsigned integer</property>
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">True</property>
-                                        <property name="receives-default">False</property>
-                                        <property name="halign">start</property>
-                                        <property name="draw-indicator">True</property>
-                                        <property name="group">radiobutton16bits</property>
-                                      </object>
-                                      <packing>
-                                        <property name="expand">False</property>
-                                        <property name="fill">True</property>
-                                        <property name="position">0</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkRadioButton" id="radiobutton16bits">
-                                        <property name="label" translatable="yes">16-bit unsigned integer</property>
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">True</property>
-                                        <property name="receives-default">False</property>
-                                        <property name="halign">start</property>
-                                        <property name="active">True</property>
-                                        <property name="draw-indicator">True</property>
-                                      </object>
-                                      <packing>
-                                        <property name="expand">False</property>
-                                        <property name="fill">True</property>
-                                        <property name="position">1</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkRadioButton" id="radiobutton32bits">
-                                        <property name="label" translatable="yes">32-bit floating point</property>
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">True</property>
-                                        <property name="receives-default">False</property>
-                                        <property name="halign">start</property>
-                                        <property name="active">True</property>
-                                        <property name="draw-indicator">True</property>
-                                        <property name="group">radiobutton16bits</property>
-                                      </object>
-                                      <packing>
-                                        <property name="expand">False</property>
-                                        <property name="fill">True</property>
-                                        <property name="position">2</property>
-                                      </packing>
-                                    </child>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="draw-indicator">True</property>
+                                    <property name="group">radiobutton16bits</property>
                                   </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkRadioButton" id="radiobutton16bits">
+                                    <property name="label" translatable="yes">16-bit unsigned integer</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="active">True</property>
+                                    <property name="draw-indicator">True</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkRadioButton" id="radiobutton32bits">
+                                    <property name="label" translatable="yes">32-bit floating point</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="draw-indicator">True</property>
+                                    <property name="group">radiobutton16bits</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">2</property>
+                                  </packing>
                                 </child>
                               </object>
                             </child>
@@ -274,50 +255,45 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                             <property name="label-xalign">0</property>
                             <property name="shadow-type">none</property>
                             <child>
-                              <object class="GtkAlignment" id="alignment9">
+                              <object class="GtkBox" id="box35">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="left-padding">12</property>
+                                <property name="margin-start">12</property>
+                                <property name="margin-top">5</property>
+                                <property name="orientation">vertical</property>
                                 <child>
-                                  <object class="GtkBox" id="box35">
+                                  <object class="GtkRadioButton" id="radiobuttonCompNone">
+                                    <property name="label" translatable="yes">None</property>
                                     <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="orientation">vertical</property>
-                                    <child>
-                                      <object class="GtkRadioButton" id="radiobuttonCompNone">
-                                        <property name="label" translatable="yes">None</property>
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">True</property>
-                                        <property name="receives-default">False</property>
-                                        <property name="halign">start</property>
-                                        <property name="active">True</property>
-                                        <property name="draw-indicator">True</property>
-                                      </object>
-                                      <packing>
-                                        <property name="expand">False</property>
-                                        <property name="fill">True</property>
-                                        <property name="padding">11</property>
-                                        <property name="position">0</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkRadioButton" id="radiobuttonCompDeflate">
-                                        <property name="label" translatable="yes">Deflate compression</property>
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">False</property>
-                                        <property name="receives-default">False</property>
-                                        <property name="tooltip-text" translatable="yes">Deflate compression</property>
-                                        <property name="halign">start</property>
-                                        <property name="draw-indicator">True</property>
-                                        <property name="group">radiobuttonCompNone</property>
-                                      </object>
-                                      <packing>
-                                        <property name="expand">False</property>
-                                        <property name="fill">True</property>
-                                        <property name="position">1</property>
-                                      </packing>
-                                    </child>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="active">True</property>
+                                    <property name="draw-indicator">True</property>
                                   </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="padding">11</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkRadioButton" id="radiobuttonCompDeflate">
+                                    <property name="label" translatable="yes">Deflate compression</property>
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">False</property>
+                                    <property name="tooltip-text" translatable="yes">Deflate compression</property>
+                                    <property name="halign">start</property>
+                                    <property name="draw-indicator">True</property>
+                                    <property name="group">radiobuttonCompNone</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">1</property>
+                                  </packing>
                                 </child>
                               </object>
                             </child>
@@ -344,42 +320,37 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                             <property name="label-xalign">0</property>
                             <property name="shadow-type">none</property>
                             <child>
-                              <object class="GtkAlignment" id="alignment28">
+                              <object class="GtkBox">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="left-padding">12</property>
+                                <property name="margin-start">12</property>
+                                <property name="orientation">vertical</property>
+                                <property name="spacing">10</property>
                                 <child>
-                                  <object class="GtkBox">
+                                  <object class="GtkLabel">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
-                                    <property name="orientation">vertical</property>
-                                    <child>
-                                      <object class="GtkLabel">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">False</property>
-                                        <property name="halign">start</property>
-                                        <property name="label" translatable="yes">&lt;b&gt;ICC Profile&lt;/b&gt;</property>
-                                        <property name="use-markup">True</property>
-                                      </object>
-                                      <packing>
-                                        <property name="expand">False</property>
-                                        <property name="fill">True</property>
-                                        <property name="position">0</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <object class="GtkLabel" id="icc_save_label">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">False</property>
-                                        <property name="halign">start</property>
-                                      </object>
-                                      <packing>
-                                        <property name="expand">False</property>
-                                        <property name="fill">True</property>
-                                        <property name="position">1</property>
-                                      </packing>
-                                    </child>
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">&lt;b&gt;ICC Profile&lt;/b&gt;</property>
+                                    <property name="use-markup">True</property>
                                   </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel" id="icc_save_label">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">start</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">1</property>
+                                  </packing>
                                 </child>
                               </object>
                             </child>
@@ -420,28 +391,22 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                             <property name="label-xalign">0</property>
                             <property name="shadow-type">none</property>
                             <child>
-                              <object class="GtkAlignment" id="alignment11">
+                              <object class="GtkScrolledWindow" id="scrolledwindow3">
                                 <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="left-padding">12</property>
+                                <property name="can-focus">True</property>
+                                <property name="margin-start">12</property>
+                                <property name="margin-top">5</property>
+                                <property name="shadow-type">in</property>
                                 <child>
-                                  <object class="GtkScrolledWindow" id="scrolledwindow3">
+                                  <object class="GtkTextView" id="Description_txt">
                                     <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="margin-right">11</property>
-                                    <property name="shadow-type">in</property>
-                                    <child>
-                                      <object class="GtkTextView" id="Description_txt">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">True</property>
-                                        <property name="accepts-tab">False</property>
-                                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                                        <property name="monospace">True</property>
-                                        <style>
-                                          <class name="monospace"/>
-                                        </style>
-                                      </object>
-                                    </child>
+                                    <property name="can-focus">True</property>
+                                    <property name="accepts-tab">False</property>
+                                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                    <property name="monospace">True</property>
+                                    <style>
+                                      <class name="monospace"/>
+                                    </style>
                                   </object>
                                 </child>
                               </object>
@@ -469,29 +434,23 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                             <property name="label-xalign">0</property>
                             <property name="shadow-type">none</property>
                             <child>
-                              <object class="GtkAlignment" id="alignment12">
+                              <object class="GtkScrolledWindow" id="scrolledwindow4">
                                 <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="left-padding">12</property>
+                                <property name="can-focus">True</property>
+                                <property name="margin-start">12</property>
+                                <property name="margin-top">5</property>
+                                <property name="shadow-type">in</property>
                                 <child>
-                                  <object class="GtkScrolledWindow" id="scrolledwindow4">
+                                  <object class="GtkTextView" id="Copyright_txt">
                                     <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="margin-right">11</property>
-                                    <property name="shadow-type">in</property>
-                                    <child>
-                                      <object class="GtkTextView" id="Copyright_txt">
-                                        <property name="visible">True</property>
-                                        <property name="can-focus">True</property>
-                                        <property name="wrap-mode">word</property>
-                                        <property name="accepts-tab">False</property>
-                                        <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                                        <property name="monospace">True</property>
-                                        <style>
-                                          <class name="monospace"/>
-                                        </style>
-                                      </object>
-                                    </child>
+                                    <property name="can-focus">True</property>
+                                    <property name="wrap-mode">word</property>
+                                    <property name="accepts-tab">False</property>
+                                    <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                    <property name="monospace">True</property>
+                                    <style>
+                                      <class name="monospace"/>
+                                    </style>
                                   </object>
                                 </child>
                               </object>
@@ -559,93 +518,81 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                         <property name="label-xalign">0</property>
                         <property name="shadow-type">none</property>
                         <child>
-                          <object class="GtkAlignment" id="alignment10">
+                          <!-- n-columns=3 n-rows=2 -->
+                          <object class="GtkGrid" id="grid5">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="left-padding">12</property>
+                            <property name="margin-start">12</property>
+                            <property name="margin-top">5</property>
+                            <property name="row-spacing">10</property>
+                            <property name="column-spacing">6</property>
                             <child>
-                              <!-- n-columns=3 n-rows=3 -->
-                              <object class="GtkGrid" id="grid5">
+                              <object class="GtkScale" id="quality_scale">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="hexpand">True</property>
+                                <property name="adjustment">adjustment_quality</property>
+                                <property name="draw-value">False</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="quality_spinbutton">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="has-tooltip">True</property>
+                                <property name="invisible-char">•</property>
+                                <property name="text" translatable="yes">100</property>
+                                <property name="adjustment">adjustment_quality</property>
+                                <property name="numeric">True</property>
+                                <property name="value">100</property>
+                                <signal name="value-changed" handler="on_quality_spinbutton_value_changed" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="left-attach">2</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="label158">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="column-spacing">5</property>
-                                <child>
-                                  <object class="GtkScale" id="quality_scale">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="hexpand">True</property>
-                                    <property name="adjustment">adjustment_quality</property>
-                                    <property name="draw-value">False</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">1</property>
-                                    <property name="top-attach">0</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkSpinButton" id="quality_spinbutton">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="has-tooltip">True</property>
-                                    <property name="margin-left">18</property>
-                                    <property name="invisible-char">•</property>
-                                    <property name="adjustment">adjustment_quality</property>
-                                    <property name="numeric">True</property>
-                                    <signal name="value-changed" handler="on_quality_spinbutton_value_changed" swapped="no"/>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">2</property>
-                                    <property name="top-attach">0</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkLabel" id="label158">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="label" translatable="yes">Quality: </property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">0</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkCheckButton" id="size_estimate_toggle">
-                                    <property name="label" translatable="yes">Estimate size</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">False</property>
-                                    <property name="tooltip-text" translatable="yes">Computes the size of the compressed file</property>
-                                    <property name="draw-indicator">True</property>
-                                    <signal name="toggled" handler="on_size_estimate_toggle_toggled" swapped="no"/>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">1</property>
-                                    <property name="width">2</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkEntry" id="size_estimate_entry">
-                                    <property name="visible">True</property>
-                                    <property name="sensitive">False</property>
-                                    <property name="can-focus">True</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">2</property>
-                                    <property name="top-attach">1</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
+                                <property name="label" translatable="yes">Quality: </property>
                               </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkCheckButton" id="size_estimate_toggle">
+                                <property name="label" translatable="yes">Estimate size</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">False</property>
+                                <property name="tooltip-text" translatable="yes">Computes the size of the compressed file</property>
+                                <property name="draw-indicator">True</property>
+                                <signal name="toggled" handler="on_size_estimate_toggle_toggled" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">1</property>
+                                <property name="width">2</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkEntry" id="size_estimate_entry">
+                                <property name="visible">True</property>
+                                <property name="sensitive">False</property>
+                                <property name="can-focus">True</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">2</property>
+                                <property name="top-attach">1</property>
+                              </packing>
                             </child>
                           </object>
                         </child>
@@ -694,83 +641,79 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                         <property name="label-xalign">0</property>
                         <property name="shadow-type">none</property>
                         <child>
-                          <object class="GtkAlignment" id="alignment46">
+                          <object class="GtkBox" id="box66">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="left-padding">12</property>
+                            <property name="margin-start">12</property>
+                            <property name="margin-top">5</property>
+                            <property name="orientation">vertical</property>
+                            <property name="spacing">10</property>
                             <child>
-                              <object class="GtkBox" id="box66">
+                              <object class="GtkRadioButton" id="radiobutton_save_fit8">
+                                <property name="label" translatable="yes">8-bit unsigned integer</property>
                                 <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="orientation">vertical</property>
-                                <child>
-                                  <object class="GtkRadioButton" id="radiobutton_save_fit8">
-                                    <property name="label" translatable="yes">8-bit unsigned integer</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">False</property>
-                                    <property name="tooltip-text" translatable="yes">Not available</property>
-                                    <property name="halign">start</property>
-                                    <property name="draw-indicator">True</property>
-                                    <property name="group">radiobutton_save_fit16</property>
-                                  </object>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">True</property>
-                                    <property name="position">0</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkRadioButton" id="radiobutton_save_fit16">
-                                    <property name="label" translatable="yes">16-bit unsigned integer</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">False</property>
-                                    <property name="halign">start</property>
-                                    <property name="active">True</property>
-                                    <property name="draw-indicator">True</property>
-                                  </object>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">True</property>
-                                    <property name="position">1</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkRadioButton" id="radiobutton_save_fit16s">
-                                    <property name="label" translatable="yes">16-bit signed integer</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">False</property>
-                                    <property name="tooltip-text" translatable="yes">Not available</property>
-                                    <property name="halign">start</property>
-                                    <property name="draw-indicator">True</property>
-                                    <property name="group">radiobutton_save_fit16</property>
-                                  </object>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">True</property>
-                                    <property name="position">2</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkRadioButton" id="radiobutton_save_fit32f">
-                                    <property name="label" translatable="yes">32-bit floating point</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">False</property>
-                                    <property name="tooltip-text" translatable="yes">Not available</property>
-                                    <property name="halign">start</property>
-                                    <property name="draw-indicator">True</property>
-                                    <property name="group">radiobutton_save_fit16</property>
-                                  </object>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">True</property>
-                                    <property name="position">3</property>
-                                  </packing>
-                                </child>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">False</property>
+                                <property name="tooltip-text" translatable="yes">Not available</property>
+                                <property name="halign">start</property>
+                                <property name="draw-indicator">True</property>
+                                <property name="group">radiobutton_save_fit16</property>
                               </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkRadioButton" id="radiobutton_save_fit16">
+                                <property name="label" translatable="yes">16-bit unsigned integer</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">False</property>
+                                <property name="halign">start</property>
+                                <property name="active">True</property>
+                                <property name="draw-indicator">True</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkRadioButton" id="radiobutton_save_fit16s">
+                                <property name="label" translatable="yes">16-bit signed integer</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">False</property>
+                                <property name="tooltip-text" translatable="yes">Not available</property>
+                                <property name="halign">start</property>
+                                <property name="draw-indicator">True</property>
+                                <property name="group">radiobutton_save_fit16</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">2</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkRadioButton" id="radiobutton_save_fit32f">
+                                <property name="label" translatable="yes">32-bit floating point</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">False</property>
+                                <property name="tooltip-text" translatable="yes">Not available</property>
+                                <property name="halign">start</property>
+                                <property name="draw-indicator">True</property>
+                                <property name="group">radiobutton_save_fit16</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">3</property>
+                              </packing>
                             </child>
                           </object>
                         </child>
@@ -799,50 +742,45 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                         <property name="label-xalign">0</property>
                         <property name="shadow-type">none</property>
                         <child>
-                          <object class="GtkAlignment" id="alignment45">
+                          <object class="GtkBox">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="left-padding">12</property>
+                            <property name="margin-start">12</property>
+                            <property name="margin-top">5</property>
+                            <property name="orientation">vertical</property>
+                            <property name="spacing">10</property>
                             <child>
-                              <object class="GtkBox">
+                              <object class="GtkCheckButton" id="checkbutton_update_hilo">
+                                <property name="label" translatable="yes">Save MIPS-HI and MIPS-LO values</property>
                                 <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="orientation">vertical</property>
-                                <property name="spacing">6</property>
-                                <child>
-                                  <object class="GtkCheckButton" id="checkbutton_update_hilo">
-                                    <property name="label" translatable="yes">Save MIPS-HI and MIPS-LO values</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">False</property>
-                                    <property name="halign">start</property>
-                                    <property name="valign">start</property>
-                                    <property name="active">True</property>
-                                    <property name="draw-indicator">True</property>
-                                  </object>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">True</property>
-                                    <property name="position">0</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkCheckButton" id="checkbutton_chksum">
-                                    <property name="label" translatable="yes">Save CHECKSUM and DATASUM keywords</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">False</property>
-                                    <property name="halign">start</property>
-                                    <property name="valign">start</property>
-                                    <property name="draw-indicator">True</property>
-                                  </object>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">True</property>
-                                    <property name="position">1</property>
-                                  </packing>
-                                </child>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">False</property>
+                                <property name="halign">start</property>
+                                <property name="valign">start</property>
+                                <property name="active">True</property>
+                                <property name="draw-indicator">True</property>
                               </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkCheckButton" id="checkbutton_chksum">
+                                <property name="label" translatable="yes">Save CHECKSUM and DATASUM keywords</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">False</property>
+                                <property name="halign">start</property>
+                                <property name="valign">start</property>
+                                <property name="draw-indicator">True</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
                             </child>
                           </object>
                         </child>
@@ -1042,7 +980,7 @@ NOTE: lossy compression gives bad results when saving linear data owing to the v
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">2</property>
+                <property name="position">3</property>
               </packing>
             </child>
           </object>
@@ -1058,5 +996,12 @@ NOTE: lossy compression gives bad results when saving linear data owing to the v
       <action-widget response="0">button_cancelpopup</action-widget>
       <action-widget response="0">button_savepopup</action-widget>
     </action-widgets>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_quality">
+    <property name="lower">10</property>
+    <property name="upper">100</property>
+    <property name="value">100</property>
+    <property name="step-increment">3</property>
+    <property name="page-increment">10</property>
   </object>
 </interface>

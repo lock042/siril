@@ -149,7 +149,7 @@ static command commands[] = {
 	{"rotatePi", 0, "rotatePi", process_rotatepi, STR_ROTATEPI, TRUE, REQ_CMD_SINGLE_IMAGE},
 
 	{"satu", 1, "satu amount [background_factor [hue_range_index]]", process_satu, STR_SATU, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_FOR_RGB | REQ_CMD_NO_THREAD},
-	{"save", 1, "save filename", process_save, STR_SAVE, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
+	{"save", 1, "save filename [-chksum]", process_save, STR_SAVE, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 	{"savebmp", 1, "savebmp filename", process_savebmp, STR_SAVEBMP, TRUE, REQ_CMD_SINGLE_IMAGE},
 #ifdef HAVE_LIBJPEG
 	{"savejpg", 1, "savejpg filename [quality]", process_savejpg, STR_SAVEJPG, TRUE, REQ_CMD_SINGLE_IMAGE},
