@@ -333,7 +333,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                 <property name="adjustment">adj_w0</property>
                                 <property name="digits">2</property>
-                                <property name="value">0.98999999999999999</property>
+                                <property name="value">1</property>
                                 <signal name="value-changed" handler="on_spin_w0_value_changed" swapped="no"/>
                               </object>
                               <packing>

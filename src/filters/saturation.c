@@ -359,13 +359,14 @@ void on_combo_saturation_changed(GtkComboBox* box, gpointer user_data) {
 void on_satu_undo_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
 	double prev_satu = satu_amount;
-	satu_amount = 0.0;
-	background_factor = 1.0;
 
 	set_notify_block(TRUE);
-	gtk_range_set_value(GTK_RANGE(lookup_widget("scale_satu")), satu_amount);
-	gtk_range_set_value(GTK_RANGE(lookup_widget("scale_satu_bkg")), background_factor);
+	gtk_range_set_value(GTK_RANGE(lookup_widget("scale_satu")), 0);
+	gtk_range_set_value(GTK_RANGE(lookup_widget("scale_satu_bkg")), 1);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("satu_preview")), TRUE);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_saturation")), 6);
 	set_notify_block(FALSE);
+
 	// Update preview only if required
 	if (prev_satu != 0.0) {
 		copy_backup_to_gfit();

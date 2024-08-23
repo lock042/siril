@@ -702,7 +702,6 @@ Markesteijn demosaicing algorithm, 1 is the default, 3 may be slightly better bu
                                 <property name="receives-default">False</property>
                                 <property name="tooltip-text" translatable="yes">This can be useful to open scientific FITS files that were not created by Siril and that contain multiple images of different dimensions, which would otherwise considered as invalid Siril FITSEQ files.</property>
                                 <property name="halign">start</property>
-                                <property name="margin-start">12</property>
                                 <property name="draw-indicator">True</property>
                               </object>
                               <packing>
@@ -752,7 +751,6 @@ Markesteijn demosaicing algorithm, 1 is the default, 3 may be slightly better bu
                                 <property name="receives-default">False</property>
                                 <property name="tooltip-text" translatable="yes">Aladin considers a 3D FITS cube as a RGB image (Red, Blue and Green components) if the FITS keyword CTYPE3 = 'RGB ' is specified in the header. In this case any BITPIX value are supported. Without the FITS keyword CTYPE3 = 'RGB ' set, only FITS cube with 3 frames sharing the same dimension and with a BITPIX=8 will be automatically detected as RGB FITS.</property>
                                 <property name="halign">start</property>
-                                <property name="margin-start">12</property>
                                 <property name="draw-indicator">True</property>
                               </object>
                               <packing>
@@ -770,7 +768,6 @@ Markesteijn demosaicing algorithm, 1 is the default, 3 may be slightly better bu
                                 <property name="tooltip-text" translatable="yes">Used for image sampling computation, pixel size can be given in two different ways: the real pixel size is given but has to be multiplied by the binning (checked), the already multiplied pixel size is given (unchecked).
 It depends on the acquistion software used to create the FITS.</property>
                                 <property name="halign">start</property>
-                                <property name="margin-start">12</property>
                                 <property name="active">True</property>
                                 <property name="draw-indicator">True</property>
                               </object>
@@ -1527,6 +1524,7 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                   <object class="GtkBox">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
+                                    <property name="margin-start">12</property>
                                     <property name="orientation">vertical</property>
                                     <property name="spacing">6</property>
                                     <child>
@@ -1536,7 +1534,6 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                         <property name="can-focus">True</property>
                                         <property name="receives-default">False</property>
                                         <property name="tooltip-text" translatable="yes">When an astrometric solution is found, the computed focal length and input pixel size are stored in the settings as default values for images that don't have the corresponding medatada.</property>
-                                        <property name="margin-start">12</property>
                                         <property name="draw-indicator">True</property>
                                       </object>
                                       <packing>
@@ -1549,7 +1546,6 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       <object class="GtkBox">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
-                                        <property name="margin-start">12</property>
                                         <property name="spacing">6</property>
                                         <property name="homogeneous">True</property>
                                         <child>
@@ -1592,7 +1588,6 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       <object class="GtkBox">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
-                                        <property name="margin-start">12</property>
                                         <property name="spacing">6</property>
                                         <property name="homogeneous">True</property>
                                         <child>
@@ -1636,7 +1631,6 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       <object class="GtkBox">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
-                                        <property name="margin-start">12</property>
                                         <property name="spacing">6</property>
                                         <property name="homogeneous">True</property>
                                         <child>
@@ -1682,7 +1676,6 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                       <object class="GtkBox">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
-                                        <property name="margin-start">12</property>
                                         <property name="spacing">6</property>
                                         <property name="homogeneous">True</property>
                                         <child>
@@ -1767,7 +1760,6 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                         <property name="can-focus">True</property>
                                         <property name="receives-default">False</property>
                                         <property name="tooltip-text" translatable="yes">The list of stars is passed to solve-field as a FITS table, check this to keep the file in the working directory.</property>
-                                        <property name="margin-start">12</property>
                                         <property name="draw-indicator">True</property>
                                       </object>
                                       <packing>
@@ -1782,7 +1774,6 @@ FITS keywords CDi_j encodes the product Si*Mij. The units of xi are given by FIT
                                         <property name="can-focus">True</property>
                                         <property name="receives-default">False</property>
                                         <property name="tooltip-text" translatable="yes">The results from solve-field are stored in a FITS header with a file name ending in .wcs. Check this to not remove this file.</property>
-                                        <property name="margin-start">12</property>
                                         <property name="draw-indicator">True</property>
                                       </object>
                                       <packing>
@@ -1827,7 +1818,6 @@ On Windows, you must point to the location of cygwin_ansvr folder only if not in
                                         <property name="can-focus">True</property>
                                         <property name="receives-default">False</property>
                                         <property name="tooltip-text" translatable="yes">Show the output of solve-field, the astrometry.net local solver, in the main Siril log.</property>
-                                        <property name="margin-start">12</property>
                                         <property name="draw-indicator">True</property>
                                       </object>
                                       <packing>
@@ -2997,111 +2987,104 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                         <property name="label-xalign">0</property>
                         <property name="shadow-type">none</property>
                         <child>
-                          <object class="GtkAlignment">
+                          <!-- n-columns=3 n-rows=3 -->
+                          <object class="GtkGrid">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="left-padding">12</property>
+                            <property name="margin-start">12</property>
+                            <property name="row-spacing">6</property>
+                            <property name="column-spacing">6</property>
+                            <property name="column-homogeneous">True</property>
                             <child>
-                              <!-- n-columns=3 n-rows=3 -->
-                              <object class="GtkGrid">
+                              <object class="GtkLabel">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="margin-start">12</property>
-                                <property name="row-spacing">6</property>
-                                <property name="column-spacing">6</property>
-                                <property name="column-homogeneous">True</property>
-                                <child>
-                                  <object class="GtkLabel">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="halign">start</property>
-                                    <property name="label" translatable="yes">siril-spcc-database repository:</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">0</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkCheckButton" id="spcc_repo_enable">
-                                    <property name="label" translatable="yes">Enable repository</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">False</property>
-                                    <property name="tooltip-text" translatable="yes">Enable the git repository. This provides the filter and sensor data required to use SPCC.
-It is strongly recommended to leave this enabled. If you choose not to use the repository, you will need to download the .json files manually and unpack them into the repository path shown below in order to use SPCC.</property>
-                                    <property name="active">True</property>
-                                    <property name="draw-indicator">True</property>
-                                    <signal name="toggled" handler="on_spcc_repo_enable_toggled" swapped="no"/>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">1</property>
-                                    <property name="top-attach">0</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkLabel">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="halign">start</property>
-                                    <property name="label" translatable="yes">Repository path:</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">2</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkLabel" id="label_spcc_repo_path">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">False</property>
-                                    <property name="tooltip-text" translatable="yes">If you disable the repository, any SPCC data json files you need must be placed in this directory.</property>
-                                    <property name="halign">start</property>
-                                    <property name="label">label</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">1</property>
-                                    <property name="top-attach">2</property>
-                                    <property name="width">2</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkCheckButton" id="spcc_repo_sync_at_startup">
-                                    <property name="label" translatable="yes">Sync at startup</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">False</property>
-                                    <property name="tooltip-text" translatable="yes">Synchronise the repository at Siril startup.</property>
-                                    <property name="halign">start</property>
-                                    <property name="active">True</property>
-                                    <property name="draw-indicator">True</property>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">0</property>
-                                    <property name="top-attach">1</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkButton" id="spcc_repo_manual_sync">
-                                    <property name="label" translatable="yes">Manual sync</property>
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="receives-default">True</property>
-                                    <property name="tooltip-text" translatable="yes">Manually synchronise the repository</property>
-                                    <signal name="clicked" handler="on_manual_spcc_sync_button_clicked" swapped="no"/>
-                                  </object>
-                                  <packing>
-                                    <property name="left-attach">1</property>
-                                    <property name="top-attach">1</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
-                                <child>
-                                  <placeholder/>
-                                </child>
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">siril-spcc-database repository:</property>
                               </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkCheckButton" id="spcc_repo_enable">
+                                <property name="label" translatable="yes">Enable repository</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">False</property>
+                                <property name="tooltip-text" translatable="yes">Enable the git repository. This provides the filter and sensor data required to use SPCC.
+It is strongly recommended to leave this enabled. If you choose not to use the repository, you will need to download the .json files manually and unpack them into the repository path shown below in order to use SPCC.</property>
+                                <property name="active">True</property>
+                                <property name="draw-indicator">True</property>
+                                <signal name="toggled" handler="on_spcc_repo_enable_toggled" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Repository path:</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">2</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="label_spcc_repo_path">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-text" translatable="yes">If you disable the repository, any SPCC data json files you need must be placed in this directory.</property>
+                                <property name="halign">start</property>
+                                <property name="label">label</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">2</property>
+                                <property name="width">2</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkCheckButton" id="spcc_repo_sync_at_startup">
+                                <property name="label" translatable="yes">Sync at startup</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">False</property>
+                                <property name="tooltip-text" translatable="yes">Synchronise the repository at Siril startup.</property>
+                                <property name="halign">start</property>
+                                <property name="active">True</property>
+                                <property name="draw-indicator">True</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkButton" id="spcc_repo_manual_sync">
+                                <property name="label" translatable="yes">Manual sync</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">True</property>
+                                <property name="tooltip-text" translatable="yes">Manually synchronise the repository</property>
+                                <signal name="clicked" handler="on_manual_spcc_sync_button_clicked" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <placeholder/>
+                            </child>
+                            <child>
+                              <placeholder/>
                             </child>
                           </object>
                         </child>
@@ -3491,7 +3474,6 @@ It is strongly recommended to leave this enabled. If you choose not to use the r
                                             <property name="receives-default">False</property>
                                             <property name="tooltip-text" translatable="yes">Show preview, if possible, in the file chooser dialog box when opening an unique file.</property>
                                             <property name="halign">start</property>
-                                            <property name="margin-start">12</property>
                                             <property name="active">True</property>
                                             <property name="draw-indicator">True</property>
                                             <signal name="toggled" handler="on_show_preview_button_toggled" swapped="no"/>
@@ -3819,6 +3801,9 @@ It is strongly recommended to leave this enabled. If you choose not to use the r
                                         <property name="can-focus">False</property>
                                         <property name="ypad">6</property>
                                         <property name="label" translatable="yes">Mouse Behaviour</property>
+                                        <attributes>
+                                          <attribute name="weight" value="bold"/>
+                                        </attributes>
                                       </object>
                                     </child>
                                   </object>
@@ -4701,7 +4686,6 @@ Note: if the format does not support ICC profile embedding, images will always b
 * a newly composed image
 * a newly stacked image
 assign a linear ICC profile. This is technically correct but generally unnecessary.</property>
-                                        <property name="margin-start">12</property>
                                         <property name="draw-indicator">True</property>
                                       </object>
                                       <packing>

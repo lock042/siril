@@ -204,17 +204,13 @@ void on_epf_dialog_close(GtkDialog *dialog, gpointer user_data) {
 }
 
 void on_epf_undo_clicked(GtkButton *button, gpointer user_data) {
-	GtkSpinButton *spin_d = GTK_SPIN_BUTTON(lookup_widget("spin_epf_d"));
-	GtkSpinButton *spin_epf_sigma_col = GTK_SPIN_BUTTON(lookup_widget("spin_epf_sigma_col"));
-	GtkSpinButton *spin_epf_sigma_spatial = GTK_SPIN_BUTTON(lookup_widget("spin_epf_sigma_spatial"));
-	epf_d_value = 0.0;
-	epf_sigma_col_value = 11.0;
-	epf_sigma_spatial_value = 11.0;
-
 	set_notify_block(TRUE);
-	gtk_spin_button_set_value(spin_d, epf_d_value);
-	gtk_spin_button_set_value(spin_epf_sigma_col, epf_sigma_col_value);
-	gtk_spin_button_set_value(spin_epf_sigma_spatial, epf_sigma_spatial_value);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_epf_d")), 0);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_epf_sigma_col")), 11);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_epf_sigma_spatial")), 11);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_epf_mod")), 1);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("ep_filter_type")), EP_BILATERAL);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("epf_preview")), TRUE);
 	set_notify_block(FALSE);
 
 	copy_backup_to_gfit();

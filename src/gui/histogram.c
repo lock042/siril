@@ -846,7 +846,28 @@ static void apply_ght_to_histo(gsl_histogram *histo, float norm,
 	gsl_histogram_free(mtf_histo);
 }
 
+void on_histoZoom100_clicked(GtkButton *button, gpointer user_data) {
+	GtkAdjustment *histoAdjZoomH, *histoAdjZoomV;
+
+	histoAdjZoomH = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "histoAdjZoomH"));
+	histoAdjZoomV = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "histoAdjZoomV"));
+
+	gtk_adjustment_set_value(histoAdjZoomH, 1.0);
+	gtk_adjustment_set_value(histoAdjZoomV, 1.0);
+}
+
 static void reset_cursors_and_values() {
+	gtk_toggle_tool_button_set_active(toggleGrid, TRUE);
+	gtk_toggle_tool_button_set_active(toggleCurve, TRUE);
+	gtk_toggle_tool_button_set_active(toggleOrig, BOOL_TRUE);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckLogButton")),
+                                 (com.pref.gui.display_histogram_mode == LOG_DISPLAY ? TRUE : FALSE));
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkMTFSeq")), FALSE);
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entryMTFSeq")), "stretch_");
+	on_histoZoom100_clicked(NULL, NULL);
+	for (int i = 0; i < 4; ++i)
+		gtk_toggle_tool_button_set_active(toggles[i], TRUE);
+
 	if (invocation == HISTO_STRETCH) {
 		_shadows = 0.f;
 		_midtones = 0.5f;
@@ -864,6 +885,10 @@ static void reset_cursors_and_values() {
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_ghtLP")), _LP);
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_ghtHP")), _HP);
 		gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_ghtBP")), _BP);
+		gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_payne_colour_stretch_model")), 0);
+		gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combo_payneTyp")), 0);
+		gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("histo_clip_mode")), 2);
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckPreview")), TRUE);
 	}
 	_init_clipped_pixels();
 	_initialize_clip_text();
@@ -1325,16 +1350,6 @@ void apply_histo_cancel() {
 	set_cursor_waiting(FALSE);
 }
 
-void on_histoZoom100_clicked(GtkButton *button, gpointer user_data) {
-	GtkAdjustment *histoAdjZoomH, *histoAdjZoomV;
-
-	histoAdjZoomH = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "histoAdjZoomH"));
-	histoAdjZoomV = GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, "histoAdjZoomV"));
-
-	gtk_adjustment_set_value(histoAdjZoomH, 1.0);
-	gtk_adjustment_set_value(histoAdjZoomV, 1.0);
-}
-
 void on_histoSpinZoom_value_changed(GtkRange *range, gpointer user_data) {
 	adjust_histogram_vport_size();
 	queue_window_redraw();
@@ -1452,9 +1467,7 @@ void updateGHTcontrols() {
 }
 
 void toggle_histogram_window_visibility(int _invocation) {
-    if (gtk_widget_get_visible(lookup_widget("curves_dialog"))) {
-        siril_close_dialog("curves_dialog");
-    }
+	siril_close_preview_dialogs();
 
 	invocation = _invocation;
 	for (int i=0;i<3;i++) {

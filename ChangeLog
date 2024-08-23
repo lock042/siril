@@ -83,6 +83,9 @@ xx/xx/xx
 * Added the ability to resample by mnaximum dimension and preview jpg file size (!698)
 * Optimised and refactored deconvolution code (!702)
 * Added Curves Transformation tool (!677)
+* Made reset buttons reset all GUI elements in a dialog window (!719)
+* Fixed GHT and HT sharing states for a some GUI elements (#1357)
+* Reads and compares checksum (DATASUM and CHECKSUM) if present in the FITS header (!723)
 
 siril 1.2.4
 xx/xx/24
@@ -92,7 +95,9 @@ xx/xx/24
 * Fixed calibration GUI not parsing correcting flat when using path parsing (#1348)
 * Fixed non-deterministic parallel subsky RBF (#1352)
 * Fixed incorrect deconvolution command arg setting (issue raised on pixls.us)
+* Fixed GHT and HT not reverting previews from other dialogs (#1356)
 * Fixed crash when saving image (#1353)
+* Fixed execute button in wavelets not reverting preview (#1362)
 * Fixed CLAHE crash on mono image (#1354)
 
 siril 1.2.3
