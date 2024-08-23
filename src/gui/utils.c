@@ -465,71 +465,70 @@ void interpolate_nongreen(fits *fit) {
 typedef enum {
     RESPONSE_CANCEL = 1,
     RESPONSE_CLIP,
-    RESPONSE_RESCALE,
-	RESPONSE_PROCEED
+    RESPONSE_RESCALE_CLIPNEG,
+    RESPONSE_RESCALE_ALL,
+    RESPONSE_PROCEED
 } OverrangeResponse;
 
 static GtkWidget* create_overrange_dialog(GtkWindow *parent, const gchar *title, const gchar *message) {
-	GtkWidget *dialog;
-	GtkWidget *content_area;
-	GtkWidget *hbox;
-	GtkWidget *image;
-	GtkWidget *label;
+    GtkWidget *dialog;
+    GtkWidget *content_area;
+    GtkWidget *hbox;
+    GtkWidget *image;
+    GtkWidget *label;
 
-	dialog = gtk_dialog_new_with_buttons(
-		title,
-		parent,
-		GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
-		_("Cancel"), RESPONSE_CANCEL,
-		_("Clip"), RESPONSE_CLIP,
-		_("Rescale"), RESPONSE_RESCALE,
-		_("Proceed"), RESPONSE_PROCEED,
-		NULL
-	);
+    dialog = gtk_dialog_new_with_buttons(
+        title,
+        parent,
+        GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+        NULL, NULL  // We'll add buttons manually
+    );
 
-	content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+    content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
 
-	// Create a horizontal box to hold the icon and message
-	hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
-	gtk_container_set_border_width(GTK_CONTAINER(hbox), 12);
+    // Create a horizontal box to hold the icon and message
+    hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
+    gtk_container_set_border_width(GTK_CONTAINER(hbox), 12);
 
-	// Add warning icon
-	image = gtk_image_new_from_icon_name("dialog-warning", GTK_ICON_SIZE_DIALOG);
-	gtk_box_pack_start(GTK_BOX(hbox), image, FALSE, FALSE, 0);
+    // Add warning icon
+    image = gtk_image_new_from_icon_name("dialog-warning", GTK_ICON_SIZE_DIALOG);
+    gtk_box_pack_start(GTK_BOX(hbox), image, FALSE, FALSE, 0);
 
-	// Create label with the message
-	label = gtk_label_new(message);
-	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
-	gtk_label_set_max_width_chars(GTK_LABEL(label), 50);  // Constrain maximum width
-	gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
+    // Create label with the message
+    label = gtk_label_new(message);
+    gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
+    gtk_label_set_max_width_chars(GTK_LABEL(label), 50);  // Constrain maximum width
+    gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
 
-	// Add the hbox to the content area
-	gtk_container_add(GTK_CONTAINER(content_area), hbox);
+    // Add the hbox to the content area
+    gtk_box_pack_start(GTK_BOX(content_area), hbox, TRUE, TRUE, 0);
 
-	// Add padding between the message and the button row
-	gtk_widget_set_margin_bottom(hbox, 12);
+    // Create and add buttons vertically
+    const char* button_labels[] = {
+        _("Cancel"), _("Clip"), _("Rescale (clip -ve)"), _("Rescale (shift -ve)"), _("Proceed")
+    };
+    const char* button_tooltips[] = {
+        _("Cancel without making any changes"),
+        _("Clip pixel values to the range 0.0 - 1.0"),
+        _("Rescale pixel values to fit the range 0.0 - 1.0, clipping negative pixel values"),
+        _("Rescale pixel values to fit the range 0.0 to 1.0, applying an offset to bring negatve pixel values into range"),
+        _("Ignore the warning and proceed")
+    };
+    OverrangeResponse responses[] = {
+        RESPONSE_CANCEL, RESPONSE_CLIP, RESPONSE_RESCALE_CLIPNEG, RESPONSE_RESCALE_ALL, RESPONSE_PROCEED
+    };
 
-	// Set dialog to be resizable
-	gtk_window_set_resizable(GTK_WINDOW(dialog), TRUE);
+    for (int i = 0; i < 5; i++) {
+        GtkWidget *button = gtk_dialog_add_button(GTK_DIALOG(dialog), button_labels[i], responses[i]);
+        gtk_widget_set_tooltip_text(button, button_tooltips[i]);
+    }
 
-	// Set a reasonable default size
-	gtk_window_set_default_size(GTK_WINDOW(dialog), 300, -1);
-	// Set tooltips for buttons
-	GtkWidget *cancel_button = gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), RESPONSE_CANCEL);
-	gtk_widget_set_tooltip_text(cancel_button, _("Cancel without making any changes"));
+    // Set dialog to be not resizable
+    gtk_window_set_resizable(GTK_WINDOW(dialog), FALSE);
 
-	GtkWidget *clip_button = gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), RESPONSE_CLIP);
-	gtk_widget_set_tooltip_text(clip_button, _("Clip pixel values to the range 0.0 - 1.0"));
+    gtk_widget_show_all(dialog);
 
-	GtkWidget *rescale_button = gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), RESPONSE_RESCALE);
-	gtk_widget_set_tooltip_text(rescale_button, _("Rescale pixel values to fit the range 0.0 - 1.0"));
-
-	GtkWidget *proceed_button = gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), RESPONSE_PROCEED);
-	gtk_widget_set_tooltip_text(proceed_button, _("Ignore the warning and proceed"));
-
-	gtk_widget_show_all(dialog);
-
-	return dialog;
+    return dialog;
 }
 
 gboolean value_check() {
@@ -567,7 +566,13 @@ gboolean value_check() {
 				clip(&gfit);
 				notify_gfit_modified();
 				break;
-			case RESPONSE_RESCALE:;
+			case RESPONSE_RESCALE_CLIPNEG:;
+				clipneg(&gfit);
+				if (maxval > 1.0)
+					soper(&gfit, (1.0 / maxval), OPER_MUL, TRUE);
+				notify_gfit_modified();
+				break;
+			case RESPONSE_RESCALE_ALL:;
 				double range = maxval - minval;
 				if (minval < 0.0)
 					soper(&gfit, minval, OPER_SUB, TRUE);

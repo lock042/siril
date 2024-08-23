@@ -563,7 +563,8 @@ void histo_activate(GSimpleAction *action, GVariant *parameter, gpointer user_da
 }
 
 void curves_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-    toggle_curves_window_visibility();
+	if (value_check())
+		toggle_curves_window_visibility();
 }
 
 void fix_banding_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
