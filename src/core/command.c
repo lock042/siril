@@ -7364,10 +7364,10 @@ int process_register(int nb) {
 			} else if (!g_ascii_strncasecmp(value, "master", 6)) {
 				regargs->undistort = DISTO_MASTER;
 			} else {
-				siril_log_message(_("Unknown distorsion type %s, aborting.\n"), value);
+				siril_log_message(_("Unknown distortion type %s, aborting.\n"), value);
 				goto terminate_register_on_error;
 			}
-			// we now check the distorsion params are ok
+			// we now check the distortion params are ok
 			fits reffit = { 0 };
 			fits *preffit = &reffit;
 			if (!check_seq_is_comseq(seq)) { // processing an image from the current sequence
@@ -7953,7 +7953,7 @@ int process_seq_applyreg(int nb) {
 
 	if (drizzle) {
 		regargs->driz = driz;
-		// we now check the distorsion params are ok
+		// we now check the distortion params are ok
 		fits reffit = { 0 };
 		fits *preffit = &reffit;
 		if (!check_seq_is_comseq(seq)) { // processing an image from the current sequence
