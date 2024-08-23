@@ -794,6 +794,22 @@ It depends on the acquistion software used to create the FITS.</property>
                                 <property name="position">2</property>
                               </packing>
                             </child>
+                            <child>
+                              <object class="GtkCheckButton" id="checkbutton_fits_chksum">
+                                <property name="label" translatable="yes">Verify file checksums in FITS header (DATASUM and CHECKSUM)</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">False</property>
+                                <property name="tooltip-text" translatable="yes">Verify file checksums if they exist. The verification occurs each time the file is read, which may significantly impact Siril's performance when using a sequence.</property>
+                                <property name="halign">start</property>
+                                <property name="draw-indicator">True</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">3</property>
+                              </packing>
+                            </child>
                           </object>
                         </child>
                         <child type="label">
