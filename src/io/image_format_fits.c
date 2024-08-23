@@ -1216,20 +1216,22 @@ int readfits(const char *filename, fits *fit, char *realname, gboolean force_flo
 	if (status)
 		goto close_readfits;
 
-	fits_verify_chksum(fit->fptr, &dataok, &hduok, &status);
-	if (hduok == -1 || dataok == -1) {
-		status = 0;
-		fits_get_chksum(fit->fptr, &datasum, &hdusum, &status);
-		if (hduok == -1) {
-			char checksum[FLEN_VALUE], ascii[FLEN_VALUE];
-			fits_read_key(fit->fptr, TSTRING, "CHECKSUM", &checksum, NULL, &status);
-			fits_encode_chksum(hdusum, TRUE, ascii);
-			siril_log_color_message(_("Error: HDU checksum mismatch. Expected %s, got %s.\n"), "red", ascii, checksum);
-		}
-		if (dataok == -1) {
-			char checksum[FLEN_VALUE];
-			fits_read_key(fit->fptr, TSTRING, "DATASUM", &checksum, NULL, &status);
-			siril_log_color_message(_("Error: Data checksum mismatch. Expected %lu, got %s.\n"), "red", datasum, checksum);
+	if (com.pref.use_checksum) {
+		fits_verify_chksum(fit->fptr, &dataok, &hduok, &status);
+		if (hduok == -1 || dataok == -1) {
+			status = 0;
+			fits_get_chksum(fit->fptr, &datasum, &hdusum, &status);
+			if (hduok == -1) {
+				char checksum[FLEN_VALUE], ascii[FLEN_VALUE];
+				fits_read_key(fit->fptr, TSTRING, "CHECKSUM", &checksum, NULL, &status);
+				fits_encode_chksum(hdusum, TRUE, ascii);
+				siril_log_color_message(_("Error: HDU checksum mismatch. Expected %s, got %s.\n"), "red", ascii, checksum);
+			}
+			if (dataok == -1) {
+				char checksum[FLEN_VALUE];
+				fits_read_key(fit->fptr, TSTRING, "DATASUM", &checksum, NULL, &status);
+				siril_log_color_message(_("Error: Data checksum mismatch. Expected %lu, got %s.\n"), "red", datasum, checksum);
+			}
 		}
 	}
 
