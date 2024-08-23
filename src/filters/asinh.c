@@ -369,17 +369,13 @@ void on_asinh_dialog_close(GtkDialog *dialog, gpointer user_data) {
 void on_asinh_undo_clicked(GtkButton *button, gpointer user_data) {
 	double prev_stretch = asinh_stretch_value;
 	double prev_bp = asinh_black_value;
-	GtkSpinButton *spin_stretch = GTK_SPIN_BUTTON(lookup_widget("spin_asinh"));
-	GtkSpinButton *spin_black_p = GTK_SPIN_BUTTON(lookup_widget("black_point_spin_asinh"));
-	GtkToggleButton *toggle_rgb = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_RGBspace"));
-	asinh_stretch_value = 0.0;
-	asinh_black_value = 0.0;
-	asinh_rgb_space = TRUE;
 
 	set_notify_block(TRUE);
-	gtk_toggle_button_set_active(toggle_rgb, asinh_rgb_space);
-	gtk_spin_button_set_value(spin_stretch, asinh_stretch_value);
-	gtk_spin_button_set_value(spin_black_p, asinh_black_value);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_RGBspace")), TRUE);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("black_point_spin_asinh")), 0);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spin_asinh")), 0);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("asinh_clipmode")), 2);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("asinh_preview")), TRUE);
 	set_notify_block(FALSE);
 
 	copy_backup_to_gfit();
