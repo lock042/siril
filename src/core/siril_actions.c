@@ -526,7 +526,7 @@ void remove_green_activate(GSimpleAction *action, GVariant *parameter, gpointer 
 }
 
 void saturation_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (value_check())
+	if (value_check( &gfit))
 		siril_open_dialog("satu_dialog");
 }
 
@@ -546,24 +546,24 @@ void spcc_activate(GSimpleAction *action, GVariant *parameter,gpointer user_data
 }
 
 void split_channel_activate(GSimpleAction *action, GVariant *parameter,gpointer user_data) {
-	if (value_check())
-	siril_open_dialog("extract_channel_dialog");
+	if (value_check(&gfit))
+		siril_open_dialog("extract_channel_dialog");
 }
 
 void negative_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (value_check()) {
+	if (value_check(&gfit)) {
 		siril_close_preview_dialogs();
 		negative_processing();
 	}
 }
 
 void histo_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (value_check())
+	if (value_check(&gfit))
 		toggle_histogram_window_visibility(1);
 }
 
 void curves_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (value_check())
+	if (value_check(&gfit))
 		toggle_curves_window_visibility();
 }
 
@@ -580,7 +580,7 @@ void background_extr_activate(GSimpleAction *action, GVariant *parameter, gpoint
 }
 
 void asinh_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (value_check())
+	if (value_check(&gfit))
 		siril_open_dialog("asinh_dialog");
 }
 
@@ -595,7 +595,7 @@ void deconvolution_activate(GSimpleAction *action, GVariant *parameter, gpointer
 }
 
 void payne_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (value_check())
+	if (value_check(&gfit))
 		toggle_histogram_window_visibility(2);
 }
 

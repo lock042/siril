@@ -11026,46 +11026,30 @@ int process_limit(int nb) {
 		siril_log_message(_("16-bit images cannot have out-of-range pixels: nothing to do.\n"));
 		return CMD_OK;
 	}
-	imstats *stats[3] = { NULL };
-	int retval = compute_all_channels_statistics_single_image(&gfit, STATS_MINMAX, MULTI_THREADED, stats);
+
 	double maxval, minval;
-	if (retval) {
-		siril_log_color_message(_("Error: statistics computation failed. Unable to check for out-of-range values:.\n"), "red");
-	} else {
-		if (gfit.naxes[2] == 1) {
-			maxval = stats[0]->max;
-			minval = stats[0]->min;
-		} else {
-			maxval = max(max(stats[RLAYER]->max, stats[GLAYER]->max), stats[BLAYER]->max);
-			minval = min(max(stats[RLAYER]->min, stats[GLAYER]->min), stats[BLAYER]->min);
-		}
-		for (int i = 0 ; i < gfit.naxes[2];  i++) {
-			free_stats(stats[i]);
-		}
-	}
+	int retval = quick_minmax(&gfit, &minval, &maxval);
 	if (retval)
 		return CMD_GENERIC_ERROR;
+
 	if (maxval <= 1.0 && minval >= 0.0) {
 		siril_log_message(_("No pixels require clipping. Nothing to do...\n"));
 		return CMD_OK;
 	}
+
+	OverrangeResponse method;
 	if (!g_ascii_strncasecmp(word[1], "-clip", 5)) {
-		clip(&gfit);
+		method = RESPONSE_CLIP;
 	} else if (!g_ascii_strncasecmp(word[1], "-posrescale", 11)) {
-		if (maxval > 1.0)
-			soper(&gfit, (1.0 / maxval), OPER_MUL, TRUE);
-		clipneg(&gfit);
+		method = RESPONSE_RESCALE_CLIPNEG;
 	} else if (!g_ascii_strncasecmp(word[1], "-rescale", 8)) {
-		double range = maxval - minval;
-		if (minval < 0.0)
-			soper(&gfit, minval, OPER_SUB, TRUE);
-		if (range > 1.0)
-			soper(&gfit, (1.0 / range), OPER_MUL, TRUE);
+		method = RESPONSE_RESCALE_ALL;
 	} else {
 		siril_log_color_message(_("Error: unknown argument!\n"), "red");
 		return CMD_ARG_ERROR;
 	}
-	notify_gfit_modified();
+
+	apply_limits(&gfit, minval, maxval, method);
 	siril_log_message(_("Pixel limits applied successfully.\n"));
 	return CMD_OK;
 }
