@@ -85,7 +85,7 @@ xx/xx/xx
 * Added Curves Transformation tool (!677)
 * Made reset buttons reset all GUI elements in a dialog window (!719)
 * Fixed GHT and HT sharing states for a some GUI elements (#1357)
-* Reads and compares data if present in the FITS header (!723)
+* Reads and compares checksum (DATASUM and CHECKSUM) if present in the FITS header (!723)
 
 siril 1.2.4
 xx/xx/24

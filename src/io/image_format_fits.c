@@ -1756,15 +1756,6 @@ int savefits(const char *name, fits *f) {
 		return 1;
 	}
 
-	if (gfit.checksum) {
-	    status = 0;
-		fits_write_chksum(f->fptr, &status);
-		if (status) {
-			fits_report_error(stderr, status);
-			return 1;
-		}
-	}
-
 	if (com.pref.fits_save_icc && f->color_managed) {
 		/* Only write the ICC profile for color managed FITS. This avoids writing
 		 * ICC profiles to things like extracted channels where it doesn't really
@@ -1773,6 +1764,15 @@ int savefits(const char *name, fits *f) {
 			write_icc_profile_to_fits(f);
 		} else {
 			siril_debug_print("Info: FITS has no assigned ICC profile, saving without one.\n");
+		}
+	}
+
+	if (f->checksum) {
+		status = 0;
+		fits_write_chksum(f->fptr, &status);
+		if (status) {
+			fits_report_error(stderr, status);
+			return 1;
 		}
 	}
 
