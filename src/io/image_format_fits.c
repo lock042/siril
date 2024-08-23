@@ -1206,7 +1206,7 @@ int readfits(const char *filename, fits *fit, char *realname, gboolean force_flo
 		goto close_readfits;
 
 	fits_verify_chksum(fit->fptr, &dataok, &hduok, &status);
-	if (status || hduok == -1 || dataok == -1) {
+	if (hduok == -1 || dataok == -1) {
 		status = 0;
 		fits_get_chksum(fit->fptr, &datasum, &hdusum, &status);
 		if (hduok == -1) {
@@ -1220,7 +1220,6 @@ int readfits(const char *filename, fits *fit, char *realname, gboolean force_flo
 			fits_read_key(fit->fptr, TSTRING, "DATASUM", &checksum, NULL, &status);
 			siril_log_color_message(_("Error: Data checksum mismatch. Expected %lu, got %s.\n"), "red", datasum, checksum);
 		}
-		goto close_readfits;
 	}
 
 	retval = read_fits_with_convert(fit, filename, force_float);
