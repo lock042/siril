@@ -82,8 +82,9 @@ siril 1.4.0 xx xx, xx
 * Added the ability to resample by mnaximum dimension and preview jpg file size (!698)
 * Optimised and refactored deconvolution code (!702)
 * Added Curves Transformation tool (!677)
-* Made reest buttons reset all GUI elements in a dialog window
+* Made reset buttons reset all GUI elements in a dialog window
 * Fixed GHT and HT sharing states for a some GUI elements
+* Reads and compares data if present in the FITS header (!723)
 
 siril 1.2.4 xxx xx, 2024
 
