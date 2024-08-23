@@ -965,8 +965,11 @@ int read_fits_keywords(fits *fit) {
 		KeywordInfo *current_key = g_hash_table_lookup(keys_hash, keyname);
 
 		// If the keyword is not found in the hash table, it is either an unknown or HISTORY keyword.
+		// we don't want to load checksum keywords neither
 		if ((current_key == NULL)) {
 			if (strncmp(card, "HISTORY", 7) == 0) continue;
+			if (strncmp(card, "CHECKSUM", 8) == 0) continue;
+			if (strncmp(card, "DATASUM", 7) == 0) continue;
 			// Handle unknown keys
 			unknown_keys = g_string_append(unknown_keys, card);
 			unknown_keys = g_string_append(unknown_keys, "\n");

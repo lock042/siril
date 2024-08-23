@@ -489,7 +489,8 @@ struct ffit {
 	 * For RGB images, naxes[2] is 3 and naxis is 3.
 	 * */
 
-	fkeywords keywords;
+	fkeywords keywords; // keywords structure
+	gboolean checksum; // flag to save checksum
 
 	char *header;		// entire header of the FITS file. NULL for non-FITS file.
 	gchar *unknown_keys; // list of unknown keys

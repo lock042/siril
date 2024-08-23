@@ -1171,8 +1171,9 @@ void manage_bitpix(fitsfile *fptr, int *bitpix, int *orig_bitpix) {
 
 // return 0 on success, fills realname if not NULL with the opened file's name
 int readfits(const char *filename, fits *fit, char *realname, gboolean force_float) {
-	int status, retval = 1;
+	int status, retval = 1, dataok = 0, hduok = 0;
 	char *name = NULL;
+	unsigned long datasum, hdusum;
 	gchar *basename;
 	image_type imagetype;
 
@@ -1183,9 +1184,7 @@ int readfits(const char *filename, fits *fit, char *realname, gboolean force_flo
 		return 1;
 	}
 	if (imagetype != TYPEFITS) {
-		siril_log_message(
-				_("The file %s is not a FITS file or doesn't exists with FITS extensions.\n"),
-						filename);
+		siril_log_message(_("The file %s is not a FITS file or doesn't exists with FITS extensions.\n"), filename);
 		free(name);
 		return 1;
 	}
@@ -1205,6 +1204,24 @@ int readfits(const char *filename, fits *fit, char *realname, gboolean force_flo
 	status = read_fits_metadata(fit);
 	if (status)
 		goto close_readfits;
+
+	fits_verify_chksum(fit->fptr, &dataok, &hduok, &status);
+	if (status || hduok == -1 || dataok == -1) {
+		status = 0;
+		fits_get_chksum(fit->fptr, &datasum, &hdusum, &status);
+		if (hduok == -1) {
+			char checksum[FLEN_VALUE], ascii[FLEN_VALUE];
+			fits_read_key(fit->fptr, TSTRING, "CHECKSUM", &checksum, NULL, &status);
+			fits_encode_chksum(hdusum, TRUE, ascii);
+			siril_log_color_message(_("Error: HDU checksum mismatch. Expected %s, got %s.\n"), "red", ascii, checksum);
+		}
+		if (dataok == -1) {
+			char checksum[FLEN_VALUE];
+			fits_read_key(fit->fptr, TSTRING, "DATASUM", &checksum, NULL, &status);
+			siril_log_color_message(_("Error: Data checksum mismatch. Expected %lu, got %s.\n"), "red", datasum, checksum);
+		}
+		goto close_readfits;
+	}
 
 	retval = read_fits_with_convert(fit, filename, force_float);
 	fit->top_down = FALSE;
@@ -1750,6 +1767,15 @@ int savefits(const char *name, fits *f) {
 		}
 	}
 
+	if (f->checksum) {
+		status = 0;
+		fits_write_chksum(f->fptr, &status);
+		if (status) {
+			fits_report_error(stderr, status);
+			return 1;
+		}
+	}
+
 	status = 0;
 	fits_close_file(f->fptr, &status);
 	if (!status) {
@@ -1769,6 +1795,7 @@ int save_opened_fits(fits *f) {
 	signed short *data;
 
 	save_fits_header(f);
+
 	pixel_count = f->naxes[0] * f->naxes[1] * f->naxes[2];
 
 	status = 0;
