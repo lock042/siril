@@ -2577,46 +2577,6 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                             <property name="row-homogeneous">True</property>
                             <property name="column-homogeneous">True</property>
                             <child>
-                              <object class="GtkSpinButton" id="spinInner1">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="tooltip-text" translatable="yes">Inner radius of the annulus used to measure local background. Default value is 20.00.</property>
-                                <property name="halign">start</property>
-                                <property name="max-width-chars">7</property>
-                                <property name="text">20.00</property>
-                                <property name="input-purpose">number</property>
-                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                                <property name="adjustment">adjInner</property>
-                                <property name="digits">2</property>
-                                <property name="numeric">True</property>
-                                <property name="value">20</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">2</property>
-                                <property name="top-attach">1</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkSpinButton" id="spinOuter1">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="tooltip-text" translatable="yes">Outer radius of the annulus used to measure local background. Default value is 30.00.</property>
-                                <property name="halign">start</property>
-                                <property name="max-width-chars">7</property>
-                                <property name="text">30.00</property>
-                                <property name="input-purpose">number</property>
-                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                                <property name="adjustment">adjOuter</property>
-                                <property name="digits">2</property>
-                                <property name="numeric">True</property>
-                                <property name="value">30</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">2</property>
-                                <property name="top-attach">2</property>
-                              </packing>
-                            </child>
-                            <child>
                               <object class="GtkCheckButton">
                                 <property name="label" translatable="yes">Ratio of half-FWHM</property>
                                 <property name="visible">True</property>
@@ -2656,16 +2616,6 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkSpinButton">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">2</property>
-                                <property name="top-attach">3</property>
-                              </packing>
-                            </child>
-                            <child>
                               <object class="GtkLabel">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
@@ -2702,66 +2652,6 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkSpinButton">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">3</property>
-                                <property name="top-attach">1</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkSpinButton">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">4</property>
-                                <property name="top-attach">1</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkSpinButton">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">3</property>
-                                <property name="top-attach">2</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkSpinButton">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">4</property>
-                                <property name="top-attach">2</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkSpinButton">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">3</property>
-                                <property name="top-attach">3</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkSpinButton">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">4</property>
-                                <property name="top-attach">3</property>
-                              </packing>
-                            </child>
-                            <child>
                               <object class="GtkLabel">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
@@ -2795,6 +2685,152 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                               </packing>
                             </child>
                             <child>
+                              <object class="GtkSpinButton" id="spinFlux">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Flux cutoff value. Default is 1%</property>
+                                <property name="halign">start</property>
+                                <property name="max-width-chars">7</property>
+                                <property name="text">1.0</property>
+                                <property name="input-purpose">number</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                <property name="adjustment">adjFlux</property>
+                                <property name="digits">1</property>
+                                <property name="numeric">True</property>
+                                <property name="value">1</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">2</property>
+                                <property name="top-attach">3</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="spinInner2">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Inner radius of the annulus used to measure local background. Default value is 20.00.</property>
+                                <property name="halign">start</property>
+                                <property name="max-width-chars">7</property>
+                                <property name="text">20.00</property>
+                                <property name="input-purpose">number</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                <property name="adjustment">adjInner</property>
+                                <property name="digits">2</property>
+                                <property name="numeric">True</property>
+                                <property name="value">20</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">3</property>
+                                <property name="top-attach">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="spinOuter2">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Outer radius of the annulus used to measure local background. Default value is 30.00.</property>
+                                <property name="halign">start</property>
+                                <property name="max-width-chars">7</property>
+                                <property name="text">30.00</property>
+                                <property name="input-purpose">number</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                <property name="adjustment">adjOuter</property>
+                                <property name="digits">2</property>
+                                <property name="numeric">True</property>
+                                <property name="value">30</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">4</property>
+                                <property name="top-attach">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="spinRadRatio1">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Aperture Radius/half-FWHM ratio</property>
+                                <property name="halign">start</property>
+                                <property name="max-width-chars">7</property>
+                                <property name="text">5.60</property>
+                                <property name="input-purpose">number</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                <property name="adjustment">adjratio</property>
+                                <property name="digits">2</property>
+                                <property name="numeric">True</property>
+                                <property name="value">5.5999999999999996</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">2</property>
+                                <property name="top-attach">2</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="spinAperture1">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Aperture radius where the flux is measured.</property>
+                                <property name="halign">start</property>
+                                <property name="max-width-chars">7</property>
+                                <property name="text">20.00</property>
+                                <property name="input-purpose">number</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                <property name="adjustment">adjFlux</property>
+                                <property name="digits">2</property>
+                                <property name="numeric">True</property>
+                                <property name="value">20</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">2</property>
+                                <property name="top-attach">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="spinRadRatio2">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Inner Radius/half-FWHM ratio</property>
+                                <property name="halign">start</property>
+                                <property name="max-width-chars">7</property>
+                                <property name="text">5.60</property>
+                                <property name="input-purpose">number</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                <property name="adjustment">adjratio</property>
+                                <property name="digits">2</property>
+                                <property name="numeric">True</property>
+                                <property name="value">5.5999999999999996</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">3</property>
+                                <property name="top-attach">2</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkSpinButton" id="spinRadRatio3">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Outer Radius/half-FWHM ratio</property>
+                                <property name="halign">start</property>
+                                <property name="max-width-chars">7</property>
+                                <property name="text">5.60</property>
+                                <property name="input-purpose">number</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                <property name="adjustment">adjratio</property>
+                                <property name="digits">2</property>
+                                <property name="numeric">True</property>
+                                <property name="value">5.5999999999999996</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">4</property>
+                                <property name="top-attach">2</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <placeholder/>
+                            </child>
+                            <child>
+                              <placeholder/>
+                            </child>
+                            <child>
                               <placeholder/>
                             </child>
                             <child>
@@ -2823,211 +2859,10 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkFrame" id="framePhotAnnulus">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="label-xalign">0</property>
-                        <property name="shadow-type">none</property>
-                        <child>
-                          <!-- n-columns=2 n-rows=2 -->
-                          <object class="GtkGrid">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="margin-start">12</property>
-                            <property name="row-spacing">6</property>
-                            <property name="column-spacing">6</property>
-                            <property name="column-homogeneous">True</property>
-                            <child>
-                              <object class="GtkLabel" id="label3">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="halign">start</property>
-                                <property name="label" translatable="yes">Inner radius: </property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">0</property>
-                                <property name="top-attach">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkLabel" id="label61">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="halign">start</property>
-                                <property name="label" translatable="yes">Outer radius:</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">0</property>
-                                <property name="top-attach">1</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkSpinButton" id="spinInner">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="tooltip-text" translatable="yes">Inner radius of the annulus used to measure local background. Default value is 20.00.</property>
-                                <property name="halign">start</property>
-                                <property name="max-width-chars">7</property>
-                                <property name="text">20,00</property>
-                                <property name="input-purpose">number</property>
-                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                                <property name="adjustment">adjInner</property>
-                                <property name="digits">2</property>
-                                <property name="numeric">True</property>
-                                <property name="value">20</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">1</property>
-                                <property name="top-attach">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkSpinButton" id="spinOuter">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="tooltip-text" translatable="yes">Outer radius of the annulus used to measure local background. Default value is 30.00.</property>
-                                <property name="halign">start</property>
-                                <property name="max-width-chars">7</property>
-                                <property name="text">30,00</property>
-                                <property name="input-purpose">number</property>
-                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                                <property name="adjustment">adjOuter</property>
-                                <property name="digits">2</property>
-                                <property name="numeric">True</property>
-                                <property name="value">30</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">1</property>
-                                <property name="top-attach">1</property>
-                              </packing>
-                            </child>
-                          </object>
-                        </child>
-                        <child type="label">
-                          <object class="GtkLabel" id="label145">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="margin-top">10</property>
-                            <property name="margin-bottom">10</property>
-                            <property name="label" translatable="yes">Background Annulus (NOT USED ANYMORE)</property>
-                            <property name="single-line-mode">True</property>
-                            <attributes>
-                              <attribute name="weight" value="bold"/>
-                            </attributes>
-                          </object>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">2</property>
-                      </packing>
+                      <placeholder/>
                     </child>
                     <child>
-                      <object class="GtkFrame" id="frameflux">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="label-xalign">0</property>
-                        <property name="shadow-type">none</property>
-                        <child>
-                          <!-- n-columns=2 n-rows=2 -->
-                          <object class="GtkGrid">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="margin-start">12</property>
-                            <property name="row-spacing">6</property>
-                            <property name="column-spacing">6</property>
-                            <property name="column-homogeneous">True</property>
-                            <child>
-                              <object class="GtkLabel" id="label111">
-                                <property name="visible">True</property>
-                                <property name="can-focus">False</property>
-                                <property name="halign">start</property>
-                                <property name="label" translatable="yes">Aperture radius:</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">0</property>
-                                <property name="top-attach">1</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkSpinButton" id="spinAperture">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="tooltip-text" translatable="yes">Aperture radius where the flux is measured.</property>
-                                <property name="halign">start</property>
-                                <property name="max-width-chars">7</property>
-                                <property name="text">20,00</property>
-                                <property name="input-purpose">number</property>
-                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                                <property name="adjustment">adjFlux</property>
-                                <property name="digits">2</property>
-                                <property name="numeric">True</property>
-                                <property name="value">20</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">1</property>
-                                <property name="top-attach">1</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkCheckButton" id="photometry_force_radius_button">
-                                <property name="label" translatable="yes">Automatic with a Radius/half-FWHM ratio of:</property>
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="receives-default">False</property>
-                                <property name="tooltip-text" translatable="yes">Check this option to have Siril automatically calculate the aperture radius with the specified radius/half-FWHM ratio. When unchecked, you can set a fixed radius value in the box below.</property>
-                                <property name="halign">start</property>
-                                <property name="draw-indicator">True</property>
-                                <signal name="toggled" handler="on_photometry_force_radius_button_toggled" object="spinAperture" swapped="no"/>
-                              </object>
-                              <packing>
-                                <property name="left-attach">0</property>
-                                <property name="top-attach">0</property>
-                                <property name="width">2</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkSpinButton" id="spinRadRatio">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="tooltip-text" translatable="yes">Radius/half-FWHM ratio</property>
-                                <property name="halign">start</property>
-                                <property name="max-width-chars">7</property>
-                                <property name="text">5.60</property>
-                                <property name="input-purpose">number</property>
-                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                                <property name="adjustment">adjratio</property>
-                                <property name="digits">2</property>
-                                <property name="numeric">True</property>
-                                <property name="value">5.5999999999999996</property>
-                              </object>
-                              <packing>
-                                <property name="left-attach">1</property>
-                                <property name="top-attach">0</property>
-                              </packing>
-                            </child>
-                          </object>
-                        </child>
-                        <child type="label">
-                          <object class="GtkLabel" id="label112">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="margin-top">10</property>
-                            <property name="margin-bottom">10</property>
-                            <property name="label" translatable="yes">Flux Aperture (NOT USED ANYMORE)</property>
-                            <property name="single-line-mode">True</property>
-                            <attributes>
-                              <attribute name="weight" value="bold"/>
-                            </attributes>
-                          </object>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">4</property>
-                      </packing>
+                      <placeholder/>
                     </child>
                     <child>
                       <object class="GtkFrame" id="framePhotRange">
