@@ -802,7 +802,7 @@ int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,
 			if (status) break;
 			int status2 = 0;
 			fits_read_key(fptr, TDOUBLE, "DATAMAX", &data_max, NULL, &status2);
-			if (status2 == 0 && data_max > 2.0) { // needed for some FLOAT_IMG
+			if (status2 == 0 && data_max > 10.0) { // needed for some FLOAT_IMG
 				convert_floats(bitpix, dest, nbdata);
 			}
 			break;
