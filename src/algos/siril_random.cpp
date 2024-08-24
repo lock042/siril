@@ -41,7 +41,6 @@
 #if defined(_WIN32) || defined(_WIN64)
 #include <windows.h>
 #include <bcrypt.h>
-#pragma comment(lib, "bcrypt.lib")
 #else
 #include <fcntl.h>
 #include <unistd.h>

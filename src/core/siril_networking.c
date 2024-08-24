@@ -196,6 +196,7 @@ int submit_post_request(const char *url, const char *post_data, char **post_resp
 	curl_easy_cleanup(curl);
 	return (res != CURLE_OK ? 1 : 0);
 }
+
 gboolean siril_compiled_with_networking() {
 	return TRUE;
 }

@@ -455,6 +455,7 @@ static gboolean initialize_data(gpointer p) {
 	GtkToggleButton *fits_16s = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_save_fit16s"));
 	GtkToggleButton *fits_16 = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_save_fit16"));
 	GtkToggleButton *update_hilo = (GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_update_hilo")));
+	GtkToggleButton *checksum = (GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_chksum")));
 #ifdef HAVE_LIBJPEG
 	GtkSpinButton *qlty_spin_button = GTK_SPIN_BUTTON(lookup_widget("quality_spinbutton"));
 	args->quality = gtk_spin_button_get_value_as_int(qlty_spin_button);
@@ -487,6 +488,7 @@ static gboolean initialize_data(gpointer p) {
 		args->bitpix = FLOAT_IMG;
 
 	args->update_hilo = gtk_toggle_button_get_active(update_hilo);
+	args->checksum = gtk_toggle_button_get_active(checksum);
 
 	return test_for_viewer_mode();
 }
@@ -579,13 +581,17 @@ static gpointer mini_save_dialog(gpointer p) {
 					siril_debug_print("Failed to remove existing file");
 				}
 				// Attempt to move the file
-				success = g_file_move(g_file_new_for_path(tmp_filename),
-											g_file_new_for_path(filename),
+				GFile *move_from = g_file_new_for_path(tmp_filename);
+				GFile *move_to = g_file_new_for_path(filename);
+				success = g_file_move(move_from,
+											move_to,
 											G_FILE_COPY_NONE,
 											NULL,
 											NULL,
 											NULL,
 											&error);
+				g_object_unref(move_from);
+				g_object_unref(move_to);
 				if (success) {
 					siril_log_message(_("Saving JPG: file %s, quality=%d%%, %ld layer(s), %ux%u pixels\n"),
 						filename, args->quality, gfit.naxes[2], gfit.rx, gfit.ry);
@@ -645,6 +651,7 @@ static gpointer mini_save_dialog(gpointer p) {
 				gfit.keywords.hi = 0;
 				gfit.keywords.lo = 0;
 			}
+			gfit.checksum = args->checksum;
 			args->retval = savefits(args->filename, &gfit);
 			if (!args->retval && single_image_is_loaded()) {
 				com.uniq->filename = strdup(args->filename);
@@ -689,27 +696,48 @@ void on_savepopup_hide(GtkWidget *widget, gpointer user_data) {
 
 void on_size_estimate_toggle_toggled(GtkToggleButton *button, gpointer user_data) {
 	struct savedial_data *args = calloc(1, sizeof(struct savedial_data));
+	if (!args) {
+		PRINT_ALLOC_ERR;
+		return;
+	}
 	if (gtk_toggle_button_get_active(button)) {
 		if (initialize_data(args) && !get_thread_run()) {
 			start_in_new_thread(calculate_jpeg_size_thread, args);
+			return;
 		}
-	} else {
-		// Clear preview size
-		gtk_entry_set_text(GTK_ENTRY(lookup_widget("size_estimate_entry")), "");
-		// Remove temporary file and free and reset tmp_filename to NULL
-		if (tmp_filename && g_unlink(tmp_filename))
-			siril_debug_print("Error removing temporary file\n");
-		g_free(tmp_filename);
-		tmp_filename = NULL;
-
 	}
+	// Clear preview size
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("size_estimate_entry")), "");
+	// Remove temporary file and free and reset tmp_filename to NULL
+	if (tmp_filename && g_unlink(tmp_filename))
+		siril_debug_print("Error removing temporary file\n");
+	g_free(tmp_filename);
+	tmp_filename = NULL;
+	g_free(args->description);
+	g_free(args->copyright);
+	free (args);
 }
 
 void on_quality_spinbutton_value_changed(GtkSpinButton *button, gpointer user_data) {
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("size_estimate_toggle")))) {
 		struct savedial_data *args = calloc(1, sizeof(struct savedial_data));
-		if (initialize_data(args) && !get_thread_run()) {
+		if (!args) {
+			PRINT_ALLOC_ERR;
+			return;
+		}
+		if (!initialize_data(args)) {
+			g_free(args->description);
+			g_free(args->copyright);
+			free (args);
+			return;
+		}
+		if (!get_thread_run()) {
 			start_in_new_thread(calculate_jpeg_size_thread, args);
+		} else {
+			g_free(args->description);
+			g_free(args->copyright);
+			free (args);
+			return;
 		}
 	}
 }

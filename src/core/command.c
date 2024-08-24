@@ -304,11 +304,20 @@ int process_satu(int nb){
 
 int process_save(int nb){
 	gchar *filename = g_strdup(word[1]);
+	int status, retval;
+
+	gfit.checksum = FALSE;
+	for (int i = 2; i < nb; i++) {
+		if (word[i] && !g_strcmp0(word[i], "-chksum")) {
+			gfit.checksum = TRUE;
+		}
+	}
+
 	if (!com.script) {
 		gfit.keywords.lo = gui.lo;
 		gfit.keywords.hi = gui.hi;
 	}
-	int status, retval;
+
 	gchar *savename = update_header_and_parse(&gfit, filename, PATHPARSE_MODE_WRITE_NOFAIL, TRUE, &status);
 	if (status > 0) {
 		retval = 1;
@@ -318,6 +327,7 @@ int process_save(int nb){
 		set_cursor_waiting(FALSE);
 	}
 	set_precision_switch();
+
 	g_free(filename);
 	g_free(savename);
 	return retval;
@@ -10601,9 +10611,10 @@ static graxpert_data *fill_graxpert_data_from_cmdline(int nb, sequence *seq, gra
 	if (operation == GRAXPERT_BG) {
 		data->operation = GRAXPERT_BG;
 	} else if (operation == GRAXPERT_DENOISE) {
-		data->operation = GRAXPERT_BG;
+		data->operation = GRAXPERT_DENOISE;
 	} else {
 		siril_log_color_message(_("Error: unknown GraXpert operation!\n"), "red");
+		free_graxpert_data(data);
 		return NULL;
 	}
 	for (int i = start ; i < nb ; i++) {
@@ -10715,7 +10726,7 @@ static graxpert_data *fill_graxpert_data_from_cmdline(int nb, sequence *seq, gra
 					goto GRAX_ARG_ERROR;
 				}
 			}
-			else if (operation == GRAXPERT_DENOISE) {
+			else { // operation must be GRAXPERT_DENOISE because of the earlier check
 				if (g_str_has_prefix(arg, "-strength=")) {
 					arg += 10;
 					data->denoise_strength = g_ascii_strtod(arg, &end);
@@ -10728,10 +10739,6 @@ static graxpert_data *fill_graxpert_data_from_cmdline(int nb, sequence *seq, gra
 					siril_log_color_message(_("Error: unknown argument!\n"), "red");
 					goto GRAX_ARG_ERROR;
 				}
-			}
-			else {
-				siril_log_color_message(_("Error: unknown argument!\n"), "red");
-				goto GRAX_ARG_ERROR;
 			}
 		}
 	}

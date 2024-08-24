@@ -1171,8 +1171,9 @@ void manage_bitpix(fitsfile *fptr, int *bitpix, int *orig_bitpix) {
 
 // return 0 on success, fills realname if not NULL with the opened file's name
 int readfits(const char *filename, fits *fit, char *realname, gboolean force_float) {
-	int status, retval = 1;
+	int status, retval = 1, dataok = 0, hduok = 0;
 	char *name = NULL;
+	unsigned long datasum, hdusum;
 	gchar *basename;
 	image_type imagetype;
 
@@ -1183,9 +1184,7 @@ int readfits(const char *filename, fits *fit, char *realname, gboolean force_flo
 		return 1;
 	}
 	if (imagetype != TYPEFITS) {
-		siril_log_message(
-				_("The file %s is not a FITS file or doesn't exists with FITS extensions.\n"),
-						filename);
+		siril_log_message(_("The file %s is not a FITS file or doesn't exists with FITS extensions.\n"), filename);
 		free(name);
 		return 1;
 	}
@@ -1205,6 +1204,25 @@ int readfits(const char *filename, fits *fit, char *realname, gboolean force_flo
 	status = read_fits_metadata(fit);
 	if (status)
 		goto close_readfits;
+
+	if (com.pref.use_checksum) {
+		fits_verify_chksum(fit->fptr, &dataok, &hduok, &status);
+		if (hduok == -1 || dataok == -1) {
+			status = 0;
+			fits_get_chksum(fit->fptr, &datasum, &hdusum, &status);
+			if (hduok == -1) {
+				char checksum[FLEN_VALUE], ascii[FLEN_VALUE];
+				fits_read_key(fit->fptr, TSTRING, "CHECKSUM", &checksum, NULL, &status);
+				fits_encode_chksum(hdusum, TRUE, ascii);
+				siril_log_color_message(_("Error: HDU checksum mismatch. Expected %s, got %s.\n"), "red", ascii, checksum);
+			}
+			if (dataok == -1) {
+				char checksum[FLEN_VALUE];
+				fits_read_key(fit->fptr, TSTRING, "DATASUM", &checksum, NULL, &status);
+				siril_log_color_message(_("Error: Data checksum mismatch. Expected %lu, got %s.\n"), "red", datasum, checksum);
+			}
+		}
+	}
 
 	retval = read_fits_with_convert(fit, filename, force_float);
 	fit->top_down = FALSE;
@@ -1724,7 +1742,7 @@ int savefits(const char *name, fits *f) {
 			return 1;
 		}
 	}
-	
+
 	if (fits_create_img(f->fptr, f->bitpix, f->naxis, f->naxes, &status)) {
 		report_fits_error(status);
 		g_free(filename);
@@ -1750,6 +1768,15 @@ int savefits(const char *name, fits *f) {
 		}
 	}
 
+	if (f->checksum) {
+		status = 0;
+		fits_write_chksum(f->fptr, &status);
+		if (status) {
+			fits_report_error(stderr, status);
+			return 1;
+		}
+	}
+
 	status = 0;
 	fits_close_file(f->fptr, &status);
 	if (!status) {
@@ -1769,6 +1796,7 @@ int save_opened_fits(fits *f) {
 	signed short *data;
 
 	save_fits_header(f);
+
 	pixel_count = f->naxes[0] * f->naxes[1] * f->naxes[2];
 
 	status = 0;
@@ -3249,3 +3277,67 @@ int fits_parse_header_str(fits *fit, const char *header){
 	return status;
 }
 
+// Swaps all image-data related elements of two FITS (the data pointers themselves,
+// also dimensions and statistics, but not the header, keywords or fptr).
+
+int fits_swap_image_data(fits *a, fits *b) {
+	if (a == NULL || b == NULL)
+		return 1;
+	float *ftmp;
+	WORD *tmp;
+	tmp = a->data;
+	a->data = b->data;
+	b->data = tmp;
+	for (int i = 0 ; i < 3 ; i++) {
+		tmp = a->pdata[i];
+		a->pdata[i] = b->pdata[i];
+		b->pdata[i] = tmp;
+	}
+	ftmp = a->fdata;
+	a->fdata = b->fdata;
+	b->fdata = ftmp;
+	for (int i = 0 ; i < 3 ; i++) {
+		ftmp = a->fpdata[i];
+		a->fpdata[i] = b->fpdata[i];
+		b->fpdata[i] = ftmp;
+	}
+	int temp = a->bitpix;
+	a->bitpix = b->bitpix;
+	b->bitpix = temp;
+	temp = a->orig_bitpix;
+	a->orig_bitpix = b->orig_bitpix;
+	b->orig_bitpix = temp;
+	temp = a->naxis;
+	a->naxis = b->naxis;
+	b->naxis = temp;
+	unsigned int uitmp = a->rx;
+	a->rx = b->rx;
+	b->rx = uitmp;
+	uitmp = a->ry;
+	a->ry = b->ry;
+	b->ry = uitmp;
+	long temp_naxes[3];
+	memcpy(temp_naxes, a->naxes, sizeof(temp_naxes));
+	memcpy(a->naxes, b->naxes, sizeof(temp_naxes));
+	memcpy(b->naxes, temp_naxes, sizeof(temp_naxes));
+	data_type dtmp = a->type;
+	a->type = b->type;
+	b->type = dtmp;;
+	gboolean btmp = a->top_down;
+	a->top_down = b->top_down;
+	b->top_down = btmp;
+	imstats **stmp = a->stats;
+	a->stats = b->stats;
+	b->stats = stmp;
+	double fftmp = a->mini;
+	a->mini = b->mini;
+	b->mini = fftmp;
+	fftmp = a->maxi;
+	a->maxi = b->maxi;
+	b->maxi = fftmp;
+	float tmpf = a->neg_ratio;
+	a->neg_ratio = b->neg_ratio;
+	b->neg_ratio = tmpf;
+
+	return 0;
+}

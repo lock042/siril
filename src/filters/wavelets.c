@@ -45,19 +45,15 @@ static gboolean wavelet_show_preview;
 static void reset_scale_w() {
 	static GtkRange *range_w[6] = { NULL, NULL, NULL, NULL, NULL, NULL };
 
-	if (range_w[0] == NULL) {
-		range_w[0] = GTK_RANGE(lookup_widget("scale_w0"));
-		range_w[1] = GTK_RANGE(lookup_widget("scale_w1"));
-		range_w[2] = GTK_RANGE(lookup_widget("scale_w2"));
-		range_w[3] = GTK_RANGE(lookup_widget("scale_w3"));
-		range_w[4] = GTK_RANGE(lookup_widget("scale_w4"));
-		range_w[5] = GTK_RANGE(lookup_widget("scale_w5"));
-	}
-
 	set_notify_block(TRUE);
 	for (int i = 0; i < 6; i++) {
+		char widget_name[10];
+		sprintf(widget_name, "scale_w%d", i);
+		range_w[i] = GTK_RANGE(lookup_widget(widget_name));
 		gtk_range_set_value(range_w[i], 1.f);
 	}
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinbutton_plans_w")), 6);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("wavelet_preview")), TRUE);
 	set_notify_block(FALSE);
 }
 
@@ -205,6 +201,7 @@ void on_wavelets_dialog_hide(GtkWidget *widget, gpointer user_data) {
 }
 
 void on_button_reset_w_clicked(GtkButton *button, gpointer user_data) {
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("combobox_type_w")), 1);
 	reset_scale_w();
 	update_wavelets();
 }
@@ -235,6 +232,11 @@ void on_button_cancel_w_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_button_compute_w_clicked(GtkButton *button, gpointer user_data) {
+	if (wavelet_show_preview) {
+		copy_backup_to_gfit();
+		undo_save_state(get_preview_gfit_backup(), _("Wavelets Transformation"));
+	}
+
 	int Type_Transform, Nbr_Plan, maxplan, mins, i;
 	int nb_chan = gfit.naxes[2];
 	char *File_Name_Transform[3] = { "r_rawdata.wave", "g_rawdata.wave",

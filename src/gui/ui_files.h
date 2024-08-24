@@ -36,6 +36,7 @@ const char* ui_files[] = {
 	"/org/siril/ui/composition_dialog.ui",
 	"/org/siril/ui/cosmetic_dialog.ui",
 	"/org/siril/ui/crop_dialog.ui",
+	"/org/siril/ui/curves_dialog.ui",
 	"/org/siril/ui/cut_coords_dialog.ui",
 	"/org/siril/ui/cut_dialog.ui",
 	"/org/siril/ui/cut_spectroscopy_dialog.ui",
