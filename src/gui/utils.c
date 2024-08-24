@@ -526,15 +526,15 @@ static GtkWidget* create_overrange_dialog(GtkWindow *parent, const gchar *title,
 // Function to apply limits based on the chosen method
 void apply_limits(fits *fit, double minval, double maxval, OverrangeResponse method) {
 	switch (method) {
-		case RESPONSE_CLIP:
+		case RESPONSE_CLIP:;
 			clip(fit);
 			break;
-		case RESPONSE_RESCALE_CLIPNEG:
+		case RESPONSE_RESCALE_CLIPNEG:;
 			clipneg(fit);
 			if (maxval > 1.0)
 				soper(fit, (1.0 / maxval), OPER_MUL, TRUE);
 			break;
-		case RESPONSE_RESCALE_ALL:
+		case RESPONSE_RESCALE_ALL:;
 			double range = maxval - minval;
 			if (minval < 0.0)
 				soper(fit, minval, OPER_SUB, TRUE);
