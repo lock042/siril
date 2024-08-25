@@ -170,7 +170,7 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report) {
 	return retval;
 }
 
-static gboolean graxpert_executablecheck(gchar* executable, graxpert_operation operation) {
+gboolean graxpert_executablecheck(gchar* executable, graxpert_operation operation) {
 	const gchar *version_key = "version: ";
 	char *test_argv[3] = { NULL };
 	gint child_stderr;
