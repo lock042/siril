@@ -149,6 +149,11 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
+  <object class="GtkAdjustment" id="adjfluxcut">
+    <property name="upper">100</property>
+    <property name="step-increment">0.10</property>
+    <property name="page-increment">10</property>
+  </object>
   <object class="GtkAdjustment" id="adjmaxpxval">
     <property name="upper">65535</property>
     <property name="value">65535</property>
@@ -160,6 +165,16 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="upper">65535</property>
     <property name="step-increment">1</property>
     <property name="page-increment">100</property>
+  </object>
+  <object class="GtkAdjustment" id="adjratIn">
+    <property name="upper">100</property>
+    <property name="step-increment">0.10</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjratOut">
+    <property name="upper">100</property>
+    <property name="step-increment">0.10</property>
+    <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="adjratio">
     <property name="lower">1</property>
@@ -2577,12 +2592,13 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                             <property name="row-homogeneous">True</property>
                             <property name="column-homogeneous">True</property>
                             <child>
-                              <object class="GtkCheckButton">
+                              <object class="GtkCheckButton" id="ape_strat_rat">
                                 <property name="label" translatable="yes">Ratio of half-FWHM</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">False</property>
                                 <property name="draw-indicator">True</property>
+                                <signal name="toggled" handler="on_aperture_strategy_radio_toggled" swapped="no"/>
                               </object>
                               <packing>
                                 <property name="left-attach">0</property>
@@ -2590,12 +2606,13 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkCheckButton">
+                              <object class="GtkCheckButton" id="ape_strat_flu">
                                 <property name="label" translatable="yes">Flux cut</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">False</property>
                                 <property name="draw-indicator">True</property>
+                                <signal name="toggled" handler="on_aperture_strategy_radio_toggled" swapped="no"/>
                               </object>
                               <packing>
                                 <property name="left-attach">0</property>
@@ -2603,12 +2620,13 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkCheckButton">
+                              <object class="GtkCheckButton" id="ape_strat_fix">
                                 <property name="label" translatable="yes">Fixed Radii</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">False</property>
                                 <property name="draw-indicator">True</property>
+                                <signal name="toggled" handler="on_aperture_strategy_radio_toggled" swapped="no"/>
                               </object>
                               <packing>
                                 <property name="left-attach">0</property>
@@ -2685,7 +2703,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkSpinButton" id="spinFlux">
+                              <object class="GtkSpinButton" id="spinFluxCut">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="tooltip-text" translatable="yes">Flux cutoff value. Default is 1%</property>
@@ -2694,8 +2712,8 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                 <property name="text">1.0</property>
                                 <property name="input-purpose">number</property>
                                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                                <property name="adjustment">adjFlux</property>
-                                <property name="digits">1</property>
+                                <property name="adjustment">adjfluxcut</property>
+                                <property name="digits">2</property>
                                 <property name="numeric">True</property>
                                 <property name="value">1</property>
                               </object>
@@ -2705,7 +2723,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkSpinButton" id="spinInner2">
+                              <object class="GtkSpinButton" id="spinInner">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="tooltip-text" translatable="yes">Inner radius of the annulus used to measure local background. Default value is 20.00.</property>
@@ -2725,7 +2743,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkSpinButton" id="spinOuter2">
+                              <object class="GtkSpinButton" id="spinOuter">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="tooltip-text" translatable="yes">Outer radius of the annulus used to measure local background. Default value is 30.00.</property>
@@ -2745,7 +2763,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkSpinButton" id="spinRadRatio1">
+                              <object class="GtkSpinButton" id="spinRadRatioAp">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="tooltip-text" translatable="yes">Aperture Radius/half-FWHM ratio</property>
@@ -2765,7 +2783,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkSpinButton" id="spinAperture1">
+                              <object class="GtkSpinButton" id="spinAperture">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="tooltip-text" translatable="yes">Aperture radius where the flux is measured.</property>
@@ -2785,19 +2803,19 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkSpinButton" id="spinRadRatio2">
+                              <object class="GtkSpinButton" id="spinRadRatioI">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="tooltip-text" translatable="yes">Inner Radius/half-FWHM ratio</property>
                                 <property name="halign">start</property>
                                 <property name="max-width-chars">7</property>
-                                <property name="text">5.60</property>
+                                <property name="text">8.2</property>
                                 <property name="input-purpose">number</property>
                                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                                <property name="adjustment">adjratio</property>
+                                <property name="adjustment">adjratIn</property>
                                 <property name="digits">2</property>
                                 <property name="numeric">True</property>
-                                <property name="value">5.5999999999999996</property>
+                                <property name="value">8.199999999999999</property>
                               </object>
                               <packing>
                                 <property name="left-attach">3</property>
@@ -2805,19 +2823,19 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkSpinButton" id="spinRadRatio3">
+                              <object class="GtkSpinButton" id="spinRadRatioOut">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="tooltip-text" translatable="yes">Outer Radius/half-FWHM ratio</property>
                                 <property name="halign">start</property>
                                 <property name="max-width-chars">7</property>
-                                <property name="text">5.60</property>
+                                <property name="text">9.60</property>
                                 <property name="input-purpose">number</property>
                                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
-                                <property name="adjustment">adjratio</property>
+                                <property name="adjustment">adjratOut</property>
                                 <property name="digits">2</property>
                                 <property name="numeric">True</property>
-                                <property name="value">5.5999999999999996</property>
+                                <property name="value">9.599999999999999</property>
                               </object>
                               <packing>
                                 <property name="left-attach">4</property>

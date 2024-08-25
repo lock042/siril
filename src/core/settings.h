@@ -136,7 +136,13 @@ struct phot_config {
 	double auto_outer_factor;// factor for automatic outer radius computation from FWHM
 	double aperture;	// flux aperture
 	double auto_aperture_factor;	// ratio between the aperture and the half-FWHM, used with the dynamic aperture option
+	double flux_cut_factor;	// flux cutoff rate
 	gboolean force_radius;	// force the aperture radius value
+	int ape_strat; 	// encodes the aperture strategy to be used
+				// consider this integer in its binary form:
+				// b0 (LSB) sets (or not) the fixed apertures (flux/inner/outer)
+				// b1 sets (or not) the half-FWHM related radii
+				// b2 sets (or not) the Flux cutoff methode
 	double minval, maxval;	// consider pixels outside this range as invalid for photometry
 				// minval and maxval are stored as int, but adapted to image type
 				// when used, so normalized to 1 for float, hence the double type
