@@ -213,6 +213,8 @@
                       <object class="GtkGrid" id="graxpert_classical_settings">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
+                        <property name="row-spacing">6</property>
+                        <property name="column-spacing">6</property>
                         <property name="column-homogeneous">True</property>
                         <child>
                           <object class="GtkLabel">
@@ -393,6 +395,8 @@
                       <object class="GtkGrid" id="graxpert_rbf_settings">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
+                        <property name="row-spacing">6</property>
+                        <property name="column-spacing">6</property>
                         <property name="column-homogeneous">True</property>
                         <child>
                           <object class="GtkLabel">
@@ -442,6 +446,8 @@
                       <object class="GtkGrid" id="graxpert_spline_settings">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
+                        <property name="row-spacing">6</property>
+                        <property name="column-spacing">6</property>
                         <property name="column-homogeneous">True</property>
                         <child>
                           <object class="GtkLabel">
@@ -485,6 +491,7 @@
                     <child>
                       <object class="GtkButtonBox" id="graxpert_samples_controls">
                         <property name="can-focus">False</property>
+                        <property name="spacing">6</property>
                         <property name="layout-style">end</property>
                         <child>
                           <object class="GtkButton" id="graxpert_clear_samples">
@@ -657,6 +664,8 @@
                           <object class="GtkGrid" id="graxpert_ai_settings">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
+                            <property name="row-spacing">6</property>
+                            <property name="column-spacing">6</property>
                             <property name="column-homogeneous">True</property>
                             <child>
                               <object class="GtkCheckButton" id="toggle_graxpert_gpu">
