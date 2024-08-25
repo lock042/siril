@@ -97,6 +97,7 @@ siril 1.2.4 xxx xx, 2024
 * Fixed crash when saving image (#1353)
 * Fixed execute button in wavelets not reverting preview (#1362)
 * Fixed CLAHE crash on mono image (#1354)
+* Blocked certain processes when a processing dialog box is open (#1355)
 
 siril 1.2.3 June 19, 2024
 
