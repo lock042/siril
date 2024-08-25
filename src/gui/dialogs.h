@@ -23,6 +23,8 @@ struct _SirilDialogEntry {
 void siril_open_dialog(gchar *id);
 void siril_close_dialog(gchar *id);
 void siril_close_preview_dialogs();
+gboolean siril_widget_hide_on_delete(GtkWidget *widget);
+gboolean is_a_dialog_opened();
 
 SirilWidget* siril_file_chooser_open(GtkWindow *parent, GtkFileChooserAction action);
 SirilWidget* siril_file_chooser_add(GtkWindow *parent, GtkFileChooserAction action);
