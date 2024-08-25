@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019-2023
 
@@ -1394,7 +1394,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
             <property name="receives-default">True</property>
             <property name="tooltip-text" translatable="yes">Open the GraXpert external tool interface</property>
             <property name="action-name">win.graxpert-processing</property>
-            <property name="text" translatable="yes">GraXpert interface...</property>
+            <property name="text" translatable="yes">GraXpert Interface...</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -1523,7 +1523,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
             <property name="receives-default">True</property>
             <property name="tooltip-text" translatable="yes">Open the curves transform dialog</property>
             <property name="action-name">win.curves-processing</property>
-            <property name="text" translatable="no">Curves Transformation...</property>
+            <property name="text">Curves Transformation...</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -1644,159 +1644,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
       <packing>
         <property name="submenu">menu_cc</property>
         <property name="position">3</property>
-      </packing>
-    </child>
-    <child>
-      <object class="GtkBox">
-        <property name="visible">True</property>
-        <property name="can-focus">False</property>
-        <property name="border-width">4</property>
-        <property name="orientation">vertical</property>
-        <property name="spacing">2</property>
-        <child>
-          <object class="GtkModelButton" id="back_to_geometry">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="tooltip-text" translatable="yes">Go back to main menu</property>
-            <property name="text" translatable="yes">Geometry</property>
-            <property name="menu-name">main</property>
-            <property name="inverted">True</property>
-            <property name="centered">True</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkModelButton" id="proc_geo_rot90">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="tooltip-text" translatable="yes">Rotate  image 90 degrees, clockwise</property>
-            <property name="action-name">win.rotation90-processing</property>
-            <property name="text" translatable="yes">Rotate 90 degrees, clockwise</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">1</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkModelButton" id="proc_geo_rot270">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="tooltip-text" translatable="yes">Rotate image 90 degrees, counter-clockwise</property>
-            <property name="action-name">win.rotation270-processing</property>
-            <property name="text" translatable="yes">Rotate 90 degrees, counter-clockwise</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">2</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkModelButton" id="proc_geo_rotation">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="tooltip-text" translatable="yes">Open the rotation dialog</property>
-            <property name="action-name">win.rotation-processing</property>
-            <property name="text" translatable="yes">Rotate&amp;Crop</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">3</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkSeparator">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">4</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkModelButton" id="proc_geo_mirrorx">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="action-name">win.mirrorx-processing</property>
-            <property name="text" translatable="yes">Horizontal Mirror</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">5</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkModelButton" id="proc_geo_mirrory">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="action-name">win.mirrory-processing</property>
-            <property name="text" translatable="yes">Vertical Mirror</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">6</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkSeparator">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">7</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkModelButton" id="proc_geo_binning">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="action-name">win.binning-processing</property>
-            <property name="text" translatable="yes">Binning...</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">8</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkModelButton" id="proc_geo_resample">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="receives-default">True</property>
-            <property name="action-name">win.resample-processing</property>
-            <property name="text" translatable="yes">Resample...</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">9</property>
-          </packing>
-        </child>
-      </object>
-      <packing>
-        <property name="submenu">geometry_menu</property>
-        <property name="position">4</property>
       </packing>
     </child>
     <child>
@@ -2233,6 +2080,159 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
       <packing>
         <property name="submenu">menu_filters</property>
         <property name="position">7</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkBox">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="border-width">4</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">2</property>
+        <child>
+          <object class="GtkModelButton" id="back_to_geometry">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Go back to main menu</property>
+            <property name="text" translatable="yes">Geometry</property>
+            <property name="menu-name">main</property>
+            <property name="inverted">True</property>
+            <property name="centered">True</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="proc_geo_rot90">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Rotate  image 90 degrees, clockwise</property>
+            <property name="action-name">win.rotation90-processing</property>
+            <property name="text" translatable="yes">Rotate 90 degrees, clockwise</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="proc_geo_rot270">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Rotate image 90 degrees, counter-clockwise</property>
+            <property name="action-name">win.rotation270-processing</property>
+            <property name="text" translatable="yes">Rotate 90 degrees, counter-clockwise</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="proc_geo_rotation">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Open the rotation dialog</property>
+            <property name="action-name">win.rotation-processing</property>
+            <property name="text" translatable="yes">Rotate&amp;Crop</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">3</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkSeparator">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">4</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="proc_geo_mirrorx">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">win.mirrorx-processing</property>
+            <property name="text" translatable="yes">Horizontal Mirror</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">5</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="proc_geo_mirrory">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">win.mirrory-processing</property>
+            <property name="text" translatable="yes">Vertical Mirror</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">6</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkSeparator">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">7</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="proc_geo_binning">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">win.binning-processing</property>
+            <property name="text" translatable="yes">Binning...</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">8</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkModelButton" id="proc_geo_resample">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">win.resample-processing</property>
+            <property name="text" translatable="yes">Resample...</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">9</property>
+          </packing>
+        </child>
+      </object>
+      <packing>
+        <property name="submenu">geometry_menu</property>
+        <property name="position">8</property>
       </packing>
     </child>
   </object>
