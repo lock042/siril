@@ -691,7 +691,7 @@ void display_scale(cairo_t *cr, int width, int height) {
 }
 
 void display_histo(gsl_histogram *histo, cairo_t *cr, int layer, int width,
-		int height, double zoomH, double zoomV, gboolean isOrig) {
+		int height, double zoomH, double zoomV, gboolean isOrig, gboolean is_log) {
 	if (!histo) return;
 	if (width <= 0) return;
 	int current_bin;
@@ -744,7 +744,7 @@ void display_histo(gsl_histogram *histo, cairo_t *cr, int layer, int width,
 			bin_val += gsl_histogram_get(histo, i);
 			i++;
 		}
-		if (is_log_scale() && bin_val != 0.f) {
+		if (is_log && bin_val != 0.f) {
 			bin_val = logf(bin_val);
 		}
 		displayed_values[current_bin] = bin_val;
@@ -1131,17 +1131,17 @@ gboolean redraw_histo(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	for (i = 0; i < MAXVPORT; i++) {
 		if (com.layers_hist[i]) {
 			if (gtk_toggle_tool_button_get_active(toggleOrig)) {
-				display_histo(hist_backup[i], cr, i, width, height - GRADIENT_HEIGHT, zoomH, zoomV, TRUE);
+				display_histo(hist_backup[i], cr, i, width, height - GRADIENT_HEIGHT, zoomH, zoomV, TRUE, is_log_scale());
 			}
 			if (!toggles[i] || gtk_toggle_tool_button_get_active(toggles[i])) {
-				display_histo(com.layers_hist[i], cr, i, width, height - GRADIENT_HEIGHT, zoomH, zoomV, FALSE);
+				display_histo(com.layers_hist[i], cr, i, width, height - GRADIENT_HEIGHT, zoomH, zoomV, FALSE, is_log_scale());
 			}
 		}
 	}
 	if (invocation == GHT_STRETCH && _payne_colourstretchmodel == COL_SAT && fit->naxes[2] == 3) {
-		display_histo(com.sat_hist, cr, -1, width, height - GRADIENT_HEIGHT, zoomH, zoomV, FALSE);
+		display_histo(com.sat_hist, cr, -1, width, height - GRADIENT_HEIGHT, zoomH, zoomV, FALSE, is_log_scale());
 		if (gtk_toggle_tool_button_get_active(toggleOrig))
-			display_histo(hist_sat_backup, cr, -2, width, height - GRADIENT_HEIGHT, zoomH, zoomV, FALSE);
+			display_histo(hist_sat_backup, cr, -2, width, height - GRADIENT_HEIGHT, zoomH, zoomV, FALSE, is_log_scale());
 	}
 	display_scale(cr, width, height);
 	return FALSE;
