@@ -68,6 +68,14 @@
 
 #include "siril_actions.h"
 
+#define CHECK_FOR_OPENED_DIALOG \
+    do { \
+        if (is_a_dialog_opened()) { \
+            siril_message_dialog(GTK_MESSAGE_INFO, _("Cannot process image"), _("The image can't be processed while another processing dialog is opened.")); \
+            return; \
+        } \
+    } while (0)
+
 void open_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	header_open_button_clicked();
 	launch_clipboard_survey();
@@ -608,18 +616,22 @@ void rotation_activate(GSimpleAction *action, GVariant *parameter, gpointer user
 }
 
 void rotation90_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	CHECK_FOR_OPENED_DIALOG;
 	siril_rotate90();
 }
 
 void rotation270_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	CHECK_FOR_OPENED_DIALOG;
 	siril_rotate270();
 }
 
 void mirrorx_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	CHECK_FOR_OPENED_DIALOG;
 	mirrorx_gui(&gfit);
 }
 
 void mirrory_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	CHECK_FOR_OPENED_DIALOG;
 	mirrory_gui(&gfit);
 }
 
