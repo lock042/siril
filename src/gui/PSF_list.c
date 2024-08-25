@@ -394,6 +394,28 @@ static void display_status() {
 	g_free(text);
 }
 
+static gboolean attempt_scroll(GtkTreeView *treeview) {
+	GtkTreeSelection *selection = gtk_tree_view_get_selection(treeview);
+	GList *selected_rows = gtk_tree_selection_get_selected_rows(selection, NULL);
+
+	if (selected_rows) {
+		GtkTreePath *path = (GtkTreePath*) g_list_nth_data(selected_rows, 0);
+		gtk_tree_view_scroll_to_cell(treeview, path, NULL, TRUE, 0.5, 0.0);
+		g_list_free_full(selected_rows, (GDestroyNotify) gtk_tree_path_free);
+		return FALSE; // Stop callback after successful scroll
+	} else {
+		return TRUE; // Retry if path is not yet selected
+	}
+}
+
+static gboolean idle_scroll_to_selected_star(GtkTreeView *treeview) {
+	gtk_widget_queue_draw(GTK_WIDGET(treeview));
+	while (gtk_events_pending())
+		gtk_main_iteration();
+
+	return attempt_scroll(treeview);
+}
+
 void set_iter_of_clicked_psf(double x, double y) {
 	GtkTreeView *treeview = GTK_TREE_VIEW(lookup_widget("Stars_stored"));
 	GtkTreeModel *model = gtk_tree_view_get_model(treeview);
@@ -403,14 +425,18 @@ void set_iter_of_clicked_psf(double x, double y) {
 	const double radian_conversion = ((3600.0 * 180.0) / M_PI) / 1.0E3;
 	double invpixscalex = 1.0;
 	double bin_X = com.pref.binning_update ? (double) gfit.keywords.binning_x : 1.0;
-	if (com.stars && com.stars[0]) {// If the first star has units of arcsec, all should have
+
+	if (com.stars && com.stars[0]) {
 		is_as = (strcmp(com.stars[0]->units, "px"));
 	} else {
-		return; // If com.stars is empty there is no point carrying on
+		return;
 	}
+
 	if (is_as) {
-		invpixscalex = 1.0 / (radian_conversion * (double) gfit.keywords.pixel_size_x / gfit.keywords.focal_length) * bin_X;
+		invpixscalex = 1.0 / (radian_conversion * (double) gfit.keywords.pixel_size_x
+						/ gfit.keywords.focal_length) * bin_X;
 	}
+
 	valid = gtk_tree_model_get_iter_first(model, &iter);
 	while (valid) {
 		gdouble xpos, ypos, fwhmx;
@@ -419,25 +445,32 @@ void set_iter_of_clicked_psf(double x, double y) {
 		gtk_tree_model_get(model, &iter, COLUMN_FWHMX, &fwhmx, -1);
 		fwhmx *= invpixscalex;
 		gdouble distsq = (xpos - x) * (xpos - x) + (ypos - y) * (ypos - y);
-		gdouble psflimsq = 6. * fwhmx * fwhmx;
+		gdouble psflimsq = 6.0 * fwhmx * fwhmx;
+
 		if (distsq < psflimsq) {
 			GtkTreeSelection *selection = gtk_tree_view_get_selection(treeview);
 			GtkTreePath *path = gtk_tree_model_get_path(model, &iter);
-			if (!path) return;
+			if (!path) {
+				g_printerr("Failed to get path from model\n");
+				return;
+			}
+
 			gtk_tree_selection_unselect_all(selection);
 			gtk_tree_selection_select_path(selection, path);
-			gtk_tree_view_scroll_to_cell(treeview, path, NULL, TRUE, 0.5, 0.0);
-			gtk_tree_path_free(path);
+
+			g_idle_add((GSourceFunc) idle_scroll_to_selected_star, treeview);
+
 			gui.selected_star = get_index_of_selected_star(xpos, ypos);
 			gtk_window_present(GTK_WINDOW(lookup_widget("stars_list_window")));
 			display_status();
 			redraw(REDRAW_OVERLAY);
+			gtk_tree_path_free(path);
 			return;
 		}
 		valid = gtk_tree_model_iter_next(model, &iter);
 	}
+
 	siril_debug_print("Point clicked does not correspond to a known star\n");
-	return;
 }
 
 static int compare(void const *a, void const *b) {
