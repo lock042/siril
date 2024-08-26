@@ -122,10 +122,18 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report) {
 					NULL, NULL))) {
 		gchar *arg = g_strstr_len(buffer, -1, progress_key);
 		double value = -1.0;
+		gchar *errmsg = NULL;
 		if (arg)
 			value = g_ascii_strtod(arg + strlen(progress_key), NULL);
 		if (value > 0.0 && value == value && verbose) {
 			set_progress_bar_data(_("Running GraXpert"), value / 100.0);
+		} else if ( (errmsg = g_strstr_len(buffer, -1, "ERROR")) ) {
+			set_progress_bar_data(_("GraXpert failed with an error."), 1.0);
+			if (strlen(errmsg) > 9) {
+				errmsg += 9;
+				siril_log_color_message("GraXpert: %s\n", "red", errmsg);
+			}
+			retval = 1;
 		} else if (g_strrstr(buffer, "Finished")) {
 			set_progress_bar_data(_("Done."), 1.0);
 			retval = 0;
@@ -155,7 +163,7 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report) {
 #else
 	com.childpid = 0;			// For other OSes, PID of a child process
 #endif
-	if (graxpert_no_exit_report) {
+	if (graxpert_no_exit_report && retval == -1) {
 		siril_log_message(_("GraXpert GUI finished.\n"));
 		set_progress_bar_data(_("Done."), 1.0);
 		retval = 0; // No "Finished" log message is printed when closing the GUI, so we assume success
