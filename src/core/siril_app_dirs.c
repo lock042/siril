@@ -35,12 +35,10 @@ static const gchar *siril_spcc_repo_dir = NULL;
 
 /* To set the data dir we are looking for the glade file */
 static void search_for_data_dir() {
-	gchar *path;
-
 	/* First we are looking for in the package_data_dir */
 #ifdef _WIN32 // in the case where the app is started with double click on seq file
 	gchar *execname = g_win32_get_package_installation_directory_of_module(NULL);
-	path = g_build_filename(execname, "share", PACKAGE, NULL);
+	gchar *path = g_build_filename(execname, "share", PACKAGE, NULL);
 	g_free(execname);
 	if (g_file_test(path, G_FILE_TEST_IS_DIR)) {
 		siril_share_dir = g_strdup(path);
@@ -49,7 +47,7 @@ static void search_for_data_dir() {
 #elif defined(ENABLE_RELOCATABLE_RESOURCES) && defined(OS_OSX)
 	const gchar *relocated_path = g_getenv("SIRIL_RELOCATED_RES_DIR");
 	if (relocated_path != NULL) {
-		path = g_build_filename(relocated_path, "share", PACKAGE, NULL);
+		gchar *path = g_build_filename(relocated_path, "share", PACKAGE, NULL);
 		if (g_file_test(path, G_FILE_TEST_IS_DIR)) {
 			siril_share_dir = g_strdup(path);
 		}
@@ -62,7 +60,7 @@ static void search_for_data_dir() {
 		siril_share_dir = g_strdup(g_build_filename(relocated_path, "usr", "share", PACKAGE, NULL));
 	}
 #else
-	path = g_build_filename(PACKAGE_DATA_DIR, NULL);
+	gchar *path = g_build_filename(PACKAGE_DATA_DIR, NULL);
 	if (g_file_test(path, G_FILE_TEST_IS_DIR)) {
 		siril_share_dir = g_strdup(path);
 	}

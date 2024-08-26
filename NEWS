@@ -85,6 +85,7 @@ siril 1.4.0 xx xx, xx
 * Made reset buttons reset all GUI elements in a dialog window (!719)
 * Fixed GHT and HT sharing states for a some GUI elements (#1357)
 * Reads and compares checksum (DATASUM and CHECKSUM) if present in the FITS header (!723)
+* Blocked certain processes when a processing dialog box is open (#1355)
 
 siril 1.2.4 xxx xx, 2024
 

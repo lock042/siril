@@ -50,5 +50,5 @@ void apply_ght_to_sequence(struct ght_data *ght_args);
 void erase_histo_display(cairo_t *cr, int width, int height);
 void draw_grid(cairo_t *cr, int width, int height);
 void display_scale(cairo_t *cr, int width, int height);
-void display_histo(gsl_histogram *histo, cairo_t *cr, int layer, int width, int height, double zoomH, double zoomV, gboolean isOrig);
+void display_histo(gsl_histogram *histo, cairo_t *cr, int layer, int width, int height, double zoomH, double zoomV, gboolean isOrig, gboolean is_log);
 #endif

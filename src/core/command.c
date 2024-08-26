@@ -2213,7 +2213,7 @@ int process_ght_args(int nb, gboolean ght_seq, int stretchtype, ght_params *para
 				if (stretchtype == STRETCH_PAYNE_NORMAL || stretchtype == STRETCH_PAYNE_INVERSE) {
 					arg += 3;
 					B = g_ascii_strtod(arg, &end);
-					if (fabsf(B) < 1.e-3f)
+					if (fabs(B) < 1.e-3f)
 						B = 0.f;
 				} else {
 					return CMD_ARG_ERROR;
