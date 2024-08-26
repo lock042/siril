@@ -149,6 +149,16 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
+  <object class="GtkAdjustment" id="adjfluIn">
+    <property name="upper">100</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjfluOut">
+    <property name="upper">100</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
   <object class="GtkAdjustment" id="adjfluxcut">
     <property name="upper">100</property>
     <property name="step-increment">0.10</property>
@@ -2607,7 +2617,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                             </child>
                             <child>
                               <object class="GtkCheckButton" id="ape_strat_flu">
-                                <property name="label" translatable="yes">Flux cut</property>
+                                <property name="label" translatable="yes">Flux cutoff</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">False</property>
@@ -2695,7 +2705,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                               <object class="GtkLabel">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="label" translatable="yes">(%norm flux)</property>
+                                <property name="label" translatable="yes">(% normalized flux)</property>
                               </object>
                               <packing>
                                 <property name="left-attach">1</property>
@@ -2726,7 +2736,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                               <object class="GtkSpinButton" id="spinInner">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
-                                <property name="tooltip-text" translatable="yes">Inner radius of the annulus used to measure local background. Default value is 20.00.</property>
+                                <property name="tooltip-text" translatable="yes">Inner radius of the annulus used to measure local background.</property>
                                 <property name="halign">start</property>
                                 <property name="max-width-chars">7</property>
                                 <property name="text">20.00</property>
@@ -2746,7 +2756,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                               <object class="GtkSpinButton" id="spinOuter">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
-                                <property name="tooltip-text" translatable="yes">Outer radius of the annulus used to measure local background. Default value is 30.00.</property>
+                                <property name="tooltip-text" translatable="yes">Outer radius of the annulus used to measure local background.</property>
                                 <property name="halign">start</property>
                                 <property name="max-width-chars">7</property>
                                 <property name="text">30.00</property>
@@ -2843,10 +2853,50 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                               </packing>
                             </child>
                             <child>
-                              <placeholder/>
+                              <object class="GtkSpinButton" id="spinRadFluxIn">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Inner_Radius/Aperture_Radius.
+Default value set to 1.75 times the Aperture Radius.
+Not modifiable by user.</property>
+                                <property name="halign">start</property>
+                                <property name="editable">False</property>
+                                <property name="max-width-chars">7</property>
+                                <property name="text">1.75</property>
+                                <property name="input-purpose">number</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                <property name="adjustment">adjfluIn</property>
+                                <property name="digits">3</property>
+                                <property name="numeric">True</property>
+                                <property name="value">1.75</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">3</property>
+                                <property name="top-attach">3</property>
+                              </packing>
                             </child>
                             <child>
-                              <placeholder/>
+                              <object class="GtkSpinButton" id="spinRadFluxOut">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Outer_Radius/Aperture_Radius.
+Default value set to 1.5 times the Inner Radius.
+Not modifiable by user.</property>
+                                <property name="halign">start</property>
+                                <property name="editable">False</property>
+                                <property name="max-width-chars">7</property>
+                                <property name="text">3.25</property>
+                                <property name="input-purpose">number</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                                <property name="adjustment">adjfluOut</property>
+                                <property name="digits">3</property>
+                                <property name="numeric">True</property>
+                                <property name="value">3.25</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">4</property>
+                                <property name="top-attach">3</property>
+                              </packing>
                             </child>
                             <child>
                               <placeholder/>

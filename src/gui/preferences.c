@@ -204,6 +204,8 @@ static void update_photometry_preferences() {
 	com.pref.phot_set.auto_inner_factor = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinRadRatioI")));
 	com.pref.phot_set.auto_outer_factor = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinRadRatioOut")));
 	com.pref.phot_set.flux_cut_factor = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinFluxCut")));
+	com.pref.phot_set.flux_inner_factor = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinRadFluxIn")));
+	com.pref.phot_set.flux_outer_factor = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinRadFluxOut")));
 
 	com.pref.phot_set.ape_strat = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("ape_strat_fix"))) ? 1 : com.pref.phot_set.ape_strat;
 	com.pref.phot_set.ape_strat = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("ape_strat_rat"))) ? 2 : com.pref.phot_set.ape_strat;
@@ -522,7 +524,9 @@ void on_aperture_strategy_radio_toggled (GtkToggleButton *togglebutton, gpointer
 		*fwhm_ap = lookup_widget("spinRadRatioAp"),
 		*fwhm_in = lookup_widget("spinRadRatioI"),
 		*fwhm_out = lookup_widget("spinRadRatioOut"),
-		*flux_ct = lookup_widget("spinFluxCut");
+		*flux_ap = lookup_widget("spinFluxCut"),
+		*flux_in = lookup_widget("spinRadFluxIn"),
+		*flux_out = lookup_widget("spinRadFluxOut");
 
 
 //	GtkToggleButton *disabled = GTK_TOGGLE_BUTTON(lookup_widget("comp_fits_disabled_radio"));
@@ -538,9 +542,11 @@ void on_aperture_strategy_radio_toggled (GtkToggleButton *togglebutton, gpointer
 	gtk_widget_set_sensitive (fixd_in, togglebutton == fixd_method);
 	gtk_widget_set_sensitive (fixd_out, togglebutton == fixd_method);
 	gtk_widget_set_sensitive (fwhm_ap, togglebutton == fwhm_method );
-	gtk_widget_set_sensitive (fwhm_in, togglebutton == fwhm_method || togglebutton == flux_method);
-	gtk_widget_set_sensitive (fwhm_out, togglebutton == fwhm_method || togglebutton == flux_method);
-	gtk_widget_set_sensitive (flux_ct, togglebutton == flux_method);
+	gtk_widget_set_sensitive (fwhm_in, togglebutton == fwhm_method);
+	gtk_widget_set_sensitive (fwhm_out, togglebutton == fwhm_method);
+	gtk_widget_set_sensitive (flux_ap, togglebutton == flux_method);
+	gtk_widget_set_sensitive (flux_in, togglebutton == flux_method);
+	gtk_widget_set_sensitive (flux_out, togglebutton == flux_method);
 
 
 	if (togglebutton == fixd_method) {
@@ -798,9 +804,13 @@ void update_preferences_from_model() {
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinRadRatioAp")), pref->phot_set.auto_aperture_factor);
 	gtk_widget_set_sensitive(lookup_widget("spinRadRatioAp"), pref->phot_set.ape_strat == 2);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinRadRatioI")), pref->phot_set.auto_inner_factor);
-	gtk_widget_set_sensitive(lookup_widget("spinRadRatioI"), pref->phot_set.ape_strat == 2 || pref->phot_set.ape_strat == 3);
+	gtk_widget_set_sensitive(lookup_widget("spinRadRatioI"), pref->phot_set.ape_strat == 2);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinRadRatioOut")), pref->phot_set.auto_outer_factor);
-	gtk_widget_set_sensitive(lookup_widget("spinRadRatioOut"), pref->phot_set.ape_strat == 2 || pref->phot_set.ape_strat == 3);
+	gtk_widget_set_sensitive(lookup_widget("spinRadRatioOut"), pref->phot_set.ape_strat == 2);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinRadFluxIn")), pref->phot_set.flux_inner_factor);
+	gtk_widget_set_sensitive(lookup_widget("spinRadFluxIn"), pref->phot_set.ape_strat == 3);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinRadFluxOut")), pref->phot_set.flux_outer_factor);
+	gtk_widget_set_sensitive(lookup_widget("spinRadFluxOut"), pref->phot_set.ape_strat == 3);
 	
 
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinGain")), pref->phot_set.gain);

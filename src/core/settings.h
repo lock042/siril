@@ -137,6 +137,8 @@ struct phot_config {
 	double aperture;	// flux aperture
 	double auto_aperture_factor;	// ratio between the aperture and the half-FWHM, used with the dynamic aperture option
 	double flux_cut_factor;	// flux cutoff rate
+	double flux_inner_factor;// factor for automatic inner radius computation from Flux cutoff meth
+	double flux_outer_factor;// factor for automatic outer radius computation from Flux cutoff meth
 	gboolean force_radius;	// force the aperture radius value
 	int ape_strat; 	// encodes the aperture strategy to be used
 				// consider this integer in its binary form:
