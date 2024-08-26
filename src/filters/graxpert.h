@@ -54,10 +54,14 @@ typedef struct _graxpert_data {
 	int bg_pts_option; // points per row
 	gchar *path;
 	gchar *configfile;
+	gchar *ai_version;
 	cmsHPROFILE backup_icc;
 	gboolean previewing;
 } graxpert_data;
 
+gpointer graxpert_setup_async(gpointer user_data);
+void ai_versions_to_log(graxpert_operation operation);
+gboolean check_graxpert_version(const gchar *version, graxpert_operation operation);
 gboolean graxpert_executablecheck(gchar* executable, graxpert_operation operation);
 graxpert_data *new_graxpert_data();
 void free_graxpert_data(graxpert_data *p);
