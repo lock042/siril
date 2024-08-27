@@ -86,6 +86,8 @@ void noise_activate(GSimpleAction *action, GVariant *parameter, gpointer user_da
 void ccd_inspector_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void show_tilt_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void show_tilt_state(GSimpleAction *action, GVariant *state, gpointer user_data);
+void show_disto_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void show_disto_state(GSimpleAction *action, GVariant *state, gpointer user_data);
 void image_information_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void image_fits_header_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 

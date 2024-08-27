@@ -519,6 +519,28 @@ void show_tilt_state(GSimpleAction *action, GVariant *state, gpointer user_data)
 	set_cursor_waiting(FALSE);
 }
 
+void show_disto_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	GVariant *state;
+
+	state = g_action_get_state(G_ACTION(action));
+	g_action_change_state(G_ACTION(action), g_variant_new_boolean(!g_variant_get_boolean(state)));
+	g_variant_unref(state);
+}
+
+void show_disto_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
+	if (!has_wcs(&gfit) || !gfit.keywords.wcslib->lin.dispre) {
+		siril_log_color_message(_("This command only works on plate solved images with distortions included\n"), "red");
+		return;
+	}
+	set_cursor_waiting(TRUE);
+
+	gui.show_wcs_disto = g_variant_get_boolean(state);
+	redraw(REDRAW_OVERLAY);
+	g_simple_action_set_state(action, state);
+
+	set_cursor_waiting(FALSE);
+}
+
 void image_information_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("file_information");
 }
