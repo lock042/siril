@@ -46,6 +46,7 @@
 #include "gui/progress_and_log.h"
 #include "gui/callbacks.h"
 #include "gui/siril_preview.h"
+#include "gui/graxpert.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
@@ -62,7 +63,7 @@ void set_graxpert_aborted(gboolean state) {
 }
 
 const gchar** get_ai_models(graxpert_operation operation) {
-    return (const gchar**) operation == GRAXPERT_DENOISE ? denoise_ai_models : background_ai_models;
+    return (const gchar**) (operation == GRAXPERT_DENOISE ? denoise_ai_models : background_ai_models);
 }
 
 static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
@@ -137,7 +138,7 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report) {
 			value = g_ascii_strtod(arg + strlen(progress_key), NULL);
 		if (value > 0.0 && value == value && verbose) {
 			set_progress_bar_data(_("Running GraXpert"), value / 100.0);
-		} else if ( (errmsg = g_strstr_len(buffer, -1, "ERROR") && !graxpert_aborted) ) {
+		} else if ( ((errmsg = g_strstr_len(buffer, -1, "ERROR")) && !graxpert_aborted) ) {
 			set_progress_bar_data(_("GraXpert failed with an error."), 1.0);
 			if (!graxpert_error_warning_given) {
 				siril_log_color_message(_("The following error messages are produced by GraXpert. "

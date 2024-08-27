@@ -238,6 +238,7 @@ void on_graxpert_dialog_show(GtkWidget *widget, gpointer user_data) {
 	initialize_graxpert_widgets_if_needed();
 	set_widgets();
 	confirm_availability();
+	clear_backup();
 }
 
 void on_graxpert_dialog_hide(GtkWidget *widget, gpointer user_data) {
