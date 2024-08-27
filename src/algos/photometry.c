@@ -483,27 +483,27 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 	int julian0 = 0;
 
 	// Additionnal information on the error bars and variable SNR
-	// distributions if the auto aperture option is set
-	if (!lcargs->force_rad) {
-		double median_err, largest_err, smallest_err;
-		gsl_stats_minmax (&smallest_err, &largest_err, err, 1, nb_valid_images);
-		median_err = quickmedian_double(err, nb_valid_images);
+	// 
+//	if (!lcargs->force_rad) {
+	double median_err, largest_err, smallest_err;
+	gsl_stats_minmax (&smallest_err, &largest_err, err, 1, nb_valid_images);
+	median_err = quickmedian_double(err, nb_valid_images);
 
-		double median_snr, largest_snr, smallest_snr;
-		gsl_stats_minmax (&smallest_snr, &largest_snr, snr_opt, 1, nb_valid_images);
-		median_snr = quickmedian_double(snr_opt, nb_valid_images);
+	double median_snr, largest_snr, smallest_snr;
+	gsl_stats_minmax (&smallest_snr, &largest_snr, snr_opt, 1, nb_valid_images);
+	median_snr = quickmedian_double(snr_opt, nb_valid_images);
 
-		siril_log_color_message(_("Error bars-- (%d images) median: %.2lfmmag, max: %.2lfmmag, min: %.2lfmmag\n"), "blue",
-			nb_valid_images,
-			1000 * median_err,
-			1000 * largest_err,
-			1000 * smallest_err);
-		siril_log_color_message(_("Variable star SNR-- (%d images) median: %.2lfdB, max: %.2lfdB, min: %.2lfdB\n"), "blue",
-			nb_valid_images,
-			median_snr,
-			largest_snr,
-			smallest_snr);
-	}
+	siril_log_color_message(_("Error bars-- (%d images) median: %.2lfmmag, max: %.2lfmmag, min: %.2lfmmag\n"), "blue",
+		nb_valid_images,
+		1000 * median_err,
+		1000 * largest_err,
+		1000 * smallest_err);
+	siril_log_color_message(_("Variable star SNR-- (%d images) median: %.2lfdB, max: %.2lfdB, min: %.2lfdB\n"), "blue",
+		nb_valid_images,
+		median_snr,
+		largest_snr,
+		smallest_snr);
+//	}
 
 	if (min_date != DBL_MAX)
 		julian0 = (int)min_date;
