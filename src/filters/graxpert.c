@@ -55,6 +55,11 @@ static gboolean verbose = TRUE;
 static version_number graxpert_version = { 0 };
 static gchar **background_ai_models = NULL;
 static gchar **denoise_ai_models = NULL;
+static gboolean graxpert_aborted = FALSE;
+
+void set_graxpert_aborted(gboolean state) {
+	graxpert_aborted = state;
+}
 
 const gchar** get_ai_models(graxpert_operation operation) {
     return (const gchar**) operation == GRAXPERT_DENOISE ? denoise_ai_models : background_ai_models;
@@ -122,6 +127,7 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report) {
 #ifdef GRAXPERT_DEBUG
 	gchar *lastbuffer = NULL;
 #endif
+	gboolean graxpert_error_warning_given = FALSE;
 	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length,
 					NULL, NULL))) {
 		gchar *arg = g_strstr_len(buffer, -1, progress_key);
@@ -131,8 +137,16 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report) {
 			value = g_ascii_strtod(arg + strlen(progress_key), NULL);
 		if (value > 0.0 && value == value && verbose) {
 			set_progress_bar_data(_("Running GraXpert"), value / 100.0);
-		} else if ( (errmsg = g_strstr_len(buffer, -1, "ERROR")) ) {
+		} else if ( (errmsg = g_strstr_len(buffer, -1, "ERROR") && !graxpert_aborted) ) {
 			set_progress_bar_data(_("GraXpert failed with an error."), 1.0);
+			if (!graxpert_error_warning_given) {
+				siril_log_color_message(_("The following error messages are produced by GraXpert. "
+						"They may indicate an installation error or misconfiguration "
+						"such as missing AI model files that you should fix yourself, "
+						"or they may indicate a bug that requires reporting to the "
+						"Siril or GraXpert development teams.\n"), "red");
+				graxpert_error_warning_given = TRUE;
+			}
 			if (strlen(errmsg) > 9) {
 				errmsg += 9;
 				siril_log_color_message("GraXpert: %s\n", "red", errmsg);
@@ -641,6 +655,7 @@ static gboolean end_graxpert(gpointer p) {
 
 gpointer do_graxpert (gpointer p) {
 	lock_roi_mutex();
+	set_graxpert_aborted(FALSE);
 	graxpert_data *args = (graxpert_data *) p;
 	if (args->fit == &gfit)
 		copy_backup_to_gfit();

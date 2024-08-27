@@ -59,6 +59,7 @@ typedef struct _graxpert_data {
 	gboolean previewing;
 } graxpert_data;
 
+void set_graxpert_aborted(gboolean state);
 gpointer graxpert_setup_async(gpointer user_data);
 void ai_versions_to_log(graxpert_operation operation);
 gboolean check_graxpert_version(const gchar *version, graxpert_operation operation);
