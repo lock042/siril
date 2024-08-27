@@ -177,7 +177,7 @@ static int comet_save_hook(struct generic_seq_args *args, int out_index, int in_
 	if (args->seq->type == SEQ_REGULAR) {
 		char src[PATH_MAX];
 		seq_get_image_filename(args->seq, in_index, src);
-		gchar *dest = fit_sequence_get_image_filename_prefixed(args->seq, regargs->prefix, out_index);
+		gchar *dest = fit_sequence_get_image_filename_prefixed(args->seq, regargs->prefix, in_index);
 		int res = symlink_uniq_file(src, dest, TRUE);
 		g_free(dest);
 		return res;
