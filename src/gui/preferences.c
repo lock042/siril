@@ -62,6 +62,12 @@ void on_working_gamut_changed(GtkComboBox *combo, gpointer user_data);
 
 static gboolean scripts_updated = FALSE;
 
+typedef enum {
+	FIXED,
+	FWHM_VAR,
+	FLUX_CUT
+} aperture_strategy;
+
 void notify_script_update() {
 	scripts_updated = TRUE;
 }
@@ -206,10 +212,10 @@ static void update_photometry_preferences() {
 	com.pref.phot_set.flux_inner_factor = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinRadFluxIn")));
 	com.pref.phot_set.flux_outer_factor = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinRadFluxOut")));
 
-	com.pref.phot_set.ape_strat = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("ape_strat_fix"))) ? 1 : com.pref.phot_set.ape_strat;
-	com.pref.phot_set.ape_strat = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("ape_strat_rat"))) ? 2 : com.pref.phot_set.ape_strat;
-	com.pref.phot_set.ape_strat = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("ape_strat_flu"))) ? 3 : com.pref.phot_set.ape_strat;
-	com.pref.phot_set.force_radius = (com.pref.phot_set.ape_strat == 1) ? TRUE : FALSE;	// This variable is kept as it is used elsewhere in 3rd party process
+	com.pref.phot_set.ape_strat = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("ape_strat_fix"))) ? FIXED : com.pref.phot_set.ape_strat;
+	com.pref.phot_set.ape_strat = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("ape_strat_rat"))) ? FWHM_VAR : com.pref.phot_set.ape_strat;
+	com.pref.phot_set.ape_strat = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("ape_strat_flu"))) ? FLUX_CUT : com.pref.phot_set.ape_strat;
+	com.pref.phot_set.force_radius = (com.pref.phot_set.ape_strat == FIXED) ? TRUE : FALSE;	// This variable is kept as it is used elsewhere in 3rd party process
 
 	com.pref.phot_set.minval = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinMinPhot")));
 	com.pref.phot_set.maxval = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinMaxPhot")));
@@ -508,8 +514,6 @@ void on_aperture_strategy_radio_toggled (GtkToggleButton *togglebutton, gpointer
 	GtkToggleButton *fixd_method = GTK_TOGGLE_BUTTON(lookup_widget("ape_strat_fix")),
 		*fwhm_method = GTK_TOGGLE_BUTTON(lookup_widget("ape_strat_rat")),
 		*flux_method = GTK_TOGGLE_BUTTON(lookup_widget("ape_strat_flu"));
-
-
 	GtkWidget *fixd_ap = lookup_widget("spinAperture"),
 		*fixd_in = lookup_widget("spinInner"),
 		*fixd_out = lookup_widget("spinOuter"),
@@ -519,14 +523,6 @@ void on_aperture_strategy_radio_toggled (GtkToggleButton *togglebutton, gpointer
 		*flux_ap = lookup_widget("spinFluxCut"),
 		*flux_in = lookup_widget("spinRadFluxIn"),
 		*flux_out = lookup_widget("spinRadFluxOut");
-
-
-//	GtkToggleButton *disabled = GTK_TOGGLE_BUTTON(lookup_widget("comp_fits_disabled_radio"));
-//	GtkWidget *method_box = lookup_widget("combobox_comp_fits_method"),
-//		*quantization_spin = lookup_widget("spinbutton_comp_fits_quantization"),
-//		*tilex_spin = lookup_widget("spinbutton_comp_fits_tileX"),
-//		*tiley_spin = lookup_widget("spinbutton_comp_fits_tileY"),
-//		*hcompress_scale_spin = lookup_widget("spinbutton_comp_fits_hcompress_scale");
 
 	if (!gtk_toggle_button_get_active(togglebutton)) return;
 
@@ -539,7 +535,6 @@ void on_aperture_strategy_radio_toggled (GtkToggleButton *togglebutton, gpointer
 	gtk_widget_set_sensitive (flux_ap, togglebutton == flux_method);
 	gtk_widget_set_sensitive (flux_in, togglebutton == flux_method);
 	gtk_widget_set_sensitive (flux_out, togglebutton == flux_method);
-
 
 	if (togglebutton == fixd_method) {
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("ape_strat_fix")), TRUE);	// Case fixed apertures
@@ -780,9 +775,9 @@ void update_preferences_from_model() {
 
 	/* tab Photometry */
 
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("ape_strat_fix")), com.pref.phot_set.ape_strat == 1);	// Case fixed apertures
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("ape_strat_rat")), com.pref.phot_set.ape_strat == 2);	// Case variable apertures depending on FWHM
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("ape_strat_flu")), com.pref.phot_set.ape_strat == 3);	// Case variable aperture depending flux cutoff
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("ape_strat_fix")), com.pref.phot_set.ape_strat == FIXED);	// Case fixed apertures
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("ape_strat_rat")), com.pref.phot_set.ape_strat == FWHM_VAR);	// Case variable apertures depending on FWHM
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("ape_strat_flu")), com.pref.phot_set.ape_strat == FLUX_CUT);	// Case variable aperture depending flux cutoff
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinAperture")), pref->phot_set.aperture);
 	gtk_widget_set_sensitive(lookup_widget("spinAperture"), pref->phot_set.ape_strat == 1);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinOuter")), pref->phot_set.outer);
