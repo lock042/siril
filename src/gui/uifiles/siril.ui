@@ -1394,7 +1394,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
             <property name="receives-default">True</property>
             <property name="tooltip-text" translatable="yes">Open the GraXpert external tool interface</property>
             <property name="action-name">win.graxpert-processing</property>
-            <property name="text" translatable="yes">GraXpert interface...</property>
+            <property name="text" translatable="yes">GraXpert Interface...</property>
           </object>
           <packing>
             <property name="expand">False</property>

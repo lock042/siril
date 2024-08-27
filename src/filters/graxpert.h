@@ -58,6 +58,7 @@ typedef struct _graxpert_data {
 	gboolean previewing;
 } graxpert_data;
 
+gboolean graxpert_executablecheck(gchar* executable, graxpert_operation operation);
 graxpert_data *new_graxpert_data();
 void free_graxpert_data(graxpert_data *p);
 gpointer do_graxpert (gpointer p);

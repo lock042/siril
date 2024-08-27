@@ -967,7 +967,7 @@ int read_fits_keywords(fits *fit) {
 
 		// If the keyword is not found in the hash table, it is either an unknown or HISTORY keyword.
 		// we don't want to load checksum keywords neither
-		if ((current_key == NULL)) {
+		if (current_key == NULL) {
 			if (strncmp(card, "HISTORY", 7) == 0) continue;
 			if (strncmp(card, "CHECKSUM", 8) == 0) continue;
 			if (strncmp(card, "DATASUM", 7) == 0) continue;
