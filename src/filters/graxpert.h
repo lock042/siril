@@ -67,5 +67,6 @@ graxpert_data *new_graxpert_data();
 void free_graxpert_data(graxpert_data *p);
 gpointer do_graxpert (gpointer p);
 void apply_graxpert_to_sequence(graxpert_data *args);
+const gchar** get_ai_models(graxpert_operation operation);
 
 #endif

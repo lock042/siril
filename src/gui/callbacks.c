@@ -35,6 +35,7 @@
 #include "core/siril_log.h"
 #include "filters/graxpert.h"
 #include "gui/cut.h"
+#include "gui/graxpert.h"
 #include "gui/keywords_tree.h"
 #include "gui/registration.h"
 #include "gui/photometric_cc.h"

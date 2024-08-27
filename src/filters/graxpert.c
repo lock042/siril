@@ -56,6 +56,10 @@ static version_number graxpert_version = { 0 };
 static gchar **background_ai_models = NULL;
 static gchar **denoise_ai_models = NULL;
 
+const gchar** get_ai_models(graxpert_operation operation) {
+    return (const gchar**) operation == GRAXPERT_DENOISE ? denoise_ai_models : background_ai_models;
+}
+
 static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 	siril_debug_print("GraXpert exited with status %d\n", status);
 	g_spawn_close_pid(pid);
@@ -404,6 +408,10 @@ gpointer graxpert_setup_async(gpointer user_data) {
 	siril_debug_print("GraXpert version %d.%d.%d found\n", graxpert_version.major_version, graxpert_version.minor_version, graxpert_version.micro_version);
 	fill_graxpert_version_arrays();
 	siril_debug_print("GraXpert AI model arrays populated\n");
+	if (!com.headless) {
+		initialize_graxpert_widgets_if_needed();
+		populate_graxpert_ai_combos();
+	}
 	return GINT_TO_POINTER(0);
 }
 
