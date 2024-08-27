@@ -615,8 +615,7 @@ static void open_graxpert_result(graxpert_data *args) {
 			// Check the result dimensions and bit depth match what we expect
 			// This should never fail, but we shouldn't trust external software too
 			// much and a dimension mismatch would result in a crash
-			if (args->fit->rx != result->rx || args->fit->ry != result->ry || args->fit->naxes[2] != result->naxes[2]
-					|| args->fit->type != result->type) {
+			if (args->fit->rx != result->rx || args->fit->ry != result->ry || args->fit->naxes[2] != result->naxes[2]) {
 				siril_log_color_message(_("Error: the GraXpert image dimensions and bit depth "
 						"do not match those of the original image. Please report this as a bug.\n"), "red");
 				goto END_AND_RETURN;
@@ -627,6 +626,17 @@ static void open_graxpert_result(graxpert_data *args) {
 			if (fits_swap_image_data(args->fit, result)) {
 				siril_debug_print("Error, NULL pointer passed to fits_swap_image_data\n");
 				goto END_AND_RETURN;
+			}
+			if (args->fit->type == DATA_FLOAT && com.pref.force_16bit) {
+				size_t npixels = args->fit->rx * args->fit->ry * args->fit->naxes[2];
+				WORD *newbuf = malloc(npixels * sizeof(WORD));
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (npixels > 50000)
+#endif
+				for (size_t i = 0 ; i < npixels; i++) {
+					newbuf[i] = roundf_to_WORD(args->fit->fdata[i] * USHRT_MAX_SINGLE);
+				}
+				fit_replace_buffer(args->fit, newbuf, DATA_USHORT);
 			}
 			clearfits(result);
 			free(result);
