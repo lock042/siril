@@ -167,6 +167,7 @@ int rgb_align(int m) {
 	regargs.interpolation = OPENCV_LANCZOS4;
 	regargs.clamp = TRUE;
 	regargs.framing = framing;
+	regargs.output_scale = 1.f;
 	regargs.percent_moved = 0.50f; // Only needed for KOMBAT
 	regargs.two_pass = (method->method_ptr == register_multi_step_global &&
 						framing != FRAMING_CURRENT) ? TRUE : FALSE;
