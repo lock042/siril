@@ -490,7 +490,7 @@ static gboolean convert_fits_to_img(fits *fit, double *image, int channel, gbool
 				image[y * width + x] = fit->pdata[channel][(height - y - 1) * width + x] * invnorm;
 				if (add_dither) {
 					/* add dithering in order to avoid colour banding */
-					image[y * width + x] += (siril_random_uint() & 0xFFFFF) * (1.0f / (1 << 20));
+					image[y * width + x] += (siril_random_uint() & 0xFFFFF) * (1.0f / (1ULL << 36));
 				}
 			}
 		}
@@ -500,7 +500,7 @@ static gboolean convert_fits_to_img(fits *fit, double *image, int channel, gbool
 				image[y * width + x] = fit->fpdata[channel][(height - y - 1) * width + x];
 				if (add_dither) {
 					/* add dithering in order to avoid colour banding */
-					image[y * width + x] += (siril_random_uint() & 0xFFFFF) * (1.0f / (1 << 20));
+					image[y * width + x] += (siril_random_uint() & 0xFFFFF) * (1.0f / (1ULL << 36));
 				}
 			}
 		}
