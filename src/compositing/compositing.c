@@ -896,6 +896,7 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	regargs.max_stars_candidates = MAX_STARS_FITTED;
 	regargs.run_in_thread = FALSE;
 	regargs.interpolation = OPENCV_LANCZOS4;
+	regargs.output_scale = 1.f;
 	regargs.clamp = TRUE;
 	regargs.framing = framing;
 	regargs.percent_moved = 0.50f; // Only needed for KOMBAT
