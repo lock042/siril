@@ -208,8 +208,12 @@ static void populate_combo_box(GtkComboBoxText *combo, const gchar **models) {
 }
 
 void populate_graxpert_ai_combos() {
-	populate_combo_box(GTK_COMBO_BOX_TEXT(combo_graxpert_ai_models_bg), get_ai_models(GRAXPERT_BG));
-	populate_combo_box(GTK_COMBO_BOX_TEXT(combo_graxpert_ai_models_denoise), get_ai_models(GRAXPERT_DENOISE));
+	const gchar** ai_models_bg = get_ai_models(GRAXPERT_BG);
+	if (combo_graxpert_ai_models_bg && ai_models_bg)
+		populate_combo_box(GTK_COMBO_BOX_TEXT(combo_graxpert_ai_models_bg), ai_models_bg);
+	const gchar** ai_models_denoise = get_ai_models(GRAXPERT_DENOISE);
+	if (combo_graxpert_ai_models_denoise && ai_models_denoise)
+		populate_combo_box(GTK_COMBO_BOX_TEXT(combo_graxpert_ai_models_denoise), get_ai_models(GRAXPERT_DENOISE));
 }
 
 static void set_widgets() {

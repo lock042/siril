@@ -78,6 +78,49 @@ static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 #endif
 }
 
+// This ensures GraXpert is always called with a wide enough environment variable
+// terminal width to prevent munging of the output we need to parse to get version
+// information.
+
+static GError *spawn_graxpert(gchar **argv, gint columns,
+                                                 GPid *child_pid, gint *stdin_fd,
+                                                 gint *stdout_fd, gint *stderr_fd) {
+    GError *error = NULL;
+    gchar **env = g_get_environ();
+    gchar *columns_str = g_strdup_printf("%d", columns);
+
+    env = g_environ_setenv(env, "COLUMNS", columns_str, TRUE);
+
+    // On Windows, also set ANSICON_COLUMNS and ANSICON_LINES
+    #ifdef G_OS_WIN32
+    env = g_environ_setenv(env, "ANSICON_COLUMNS", columns_str, TRUE);
+    #endif
+
+    gboolean spawn_result = g_spawn_async_with_pipes(
+        NULL,           // working directory
+        argv,           // argument vector
+        env,            // environment
+        G_SPAWN_SEARCH_PATH | G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_DO_NOT_REAP_CHILD,
+        NULL,           // child setup function
+        NULL,           // user data for child setup
+        child_pid,      // child process id
+        stdin_fd,       // stdin file descriptor
+        stdout_fd,      // stdout file descriptor
+        stderr_fd,      // stderr file descriptor
+        &error
+    );
+
+    g_strfreev(env);
+    g_free(columns_str);
+
+    if (!spawn_result) {
+        return error;
+    }
+
+    return NULL;
+}
+
+
 static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report) {
 	const gchar *progress_key = "Progress: ";
 	gint child_stderr;
@@ -92,11 +135,8 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report) {
 	fprintf(stdout, "\n");
 	// g_spawn handles wchar so not need to convert
 	set_progress_bar_data(_("Starting GraXpert..."), 0.0);
-	g_spawn_async_with_pipes(NULL, argv, NULL,
-			G_SPAWN_SEARCH_PATH |
-			G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_DO_NOT_REAP_CHILD,
-			NULL, NULL, &child_pid, NULL, NULL,
-			&child_stderr, &error);
+	error = spawn_graxpert(argv, 200, &child_pid, NULL, NULL,
+			&child_stderr);
 
 	int i = 0;
 	while (argv[i])
@@ -200,41 +240,43 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report) {
 }
 
 static gchar** parse_ai_versions(const char* version_line) {
-
 	// Extract the versions string
-    const char* versions_start = strchr(version_line, '[');
-    const char* versions_end = strchr(versions_start, ']');
-    if (!versions_start || !versions_end || versions_start >= versions_end) {
-        return NULL;
-    }
+	const char* versions_start = strchr(version_line, '[');
+	const char* versions_end = strchr(versions_start, ']');
+	if (!versions_start || !versions_end || versions_start >= versions_end) {
+		return NULL;
+	}
 
-    // Copy the versions string (excluding brackets)
-    gchar* versions_str = g_strndup(versions_start + 1, versions_end - versions_start - 1);
+	// Copy the versions string (excluding brackets)
+	gchar* versions_str = g_strndup(versions_start + 1, versions_end - versions_start - 1);
 
-    // Split the versions string into an array
-    gchar** versions_array = g_strsplit(versions_str, ", ", -1);
-    g_free(versions_str);
+	// Split the versions string into an array
+	gchar** versions_array = g_strsplit(versions_str, ", ", -1);
+	g_free(versions_str);
 
-    // Count the number of versions
-    int count = g_strv_length(versions_array);
+	// Count the number of versions
+	int count = g_strv_length(versions_array);
 
-    // Allocate the final array (including space for NULL terminator)
-    gchar** result = g_malloc((count + 1) * sizeof(char*));
+	// Allocate the final array (including space for NULL terminator)
+	gchar** result = g_malloc((count + 1) * sizeof(char*));
 
-    // Copy each version string
-    for (int i = 0; i < count; i++) {
-        result[i] = g_strdup(g_strstrip(versions_array[i]));
-    }
-    result[count] = NULL;  // NULL-terminate the array
+	// Copy each version string
+	for (int i = 0; i < count; i++) {
+		result[i] = g_strdup(g_strstrip(versions_array[i]));
+		siril_debug_print("%s ", result[i]);
+	}
+	siril_debug_print("\n");
+	result[count] = NULL;  // NULL-terminate the array
 
-    g_strfreev(versions_array);
+	g_strfreev(versions_array);
 
-    return result;
+	return result;
 }
 
 static GMutex ai_version_check_mutex = { 0 };
 
 gchar** ai_version_check(gchar* executable, graxpert_operation operation) {
+	siril_debug_print("AI version check\n");
 	g_mutex_lock(&ai_version_check_mutex);
 	const gchar *key = "available remotely: [";
 	char *test_argv[5] = { NULL };
@@ -244,10 +286,12 @@ gchar** ai_version_check(gchar* executable, graxpert_operation operation) {
 	version_number null_version = { 0 };
 	if (memcmp(&graxpert_version, &null_version, sizeof(version_number))) {
 		if (!executable || executable[0] == '\0') {
+			siril_debug_print("No executable defined\n");
 			g_mutex_unlock(&ai_version_check_mutex);
 			return FALSE;
 		}
 		if (!g_file_test(executable, G_FILE_TEST_IS_EXECUTABLE)) {
+			siril_debug_print("Executable indicates it is not executable\n");
 			g_mutex_unlock(&ai_version_check_mutex);
 			return FALSE; // It's not executable so return a zero version number
 		}
@@ -259,11 +303,9 @@ gchar** ai_version_check(gchar* executable, graxpert_operation operation) {
 		test_argv[nb++] = versionarg;
 		test_argv[nb++] = "--help";
 		// g_spawn handles wchar so not need to convert
-		g_spawn_async_with_pipes(NULL, test_argv, NULL,
-				G_SPAWN_SEARCH_PATH |
-				G_SPAWN_LEAVE_DESCRIPTORS_OPEN,
-				NULL, NULL, NULL, NULL, NULL,
-				&child_stderr, &error);
+		GPid child_pid;
+		error = spawn_graxpert(test_argv, 200, &child_pid, NULL, NULL,
+				&child_stderr);
 
 		if (error != NULL) {
 			siril_log_color_message(_("Spawning GraXpert failed during available AI model versions check: %s\n"), "red", error->message);
@@ -284,9 +326,11 @@ gchar** ai_version_check(gchar* executable, graxpert_operation operation) {
 		gboolean done = FALSE;
 		while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length,
 						NULL, NULL)) && !done) {
+			siril_debug_print("%s\n", buffer);
 			// Find the start of the version substring
 			gchar *start = g_strstr_len(buffer, -1, key);
 			if (start) {
+				siril_debug_print("Version string found\n");
 				result = parse_ai_versions(start);
 				g_free(buffer);
 				break;
@@ -350,11 +394,9 @@ static gboolean graxpert_fetchversion(gchar* executable) {
 	gchar *versionarg = g_strdup("-v");
 	test_argv[nb++] = versionarg;
 	// g_spawn handles wchar so not need to convert
-	g_spawn_async_with_pipes(NULL, test_argv, NULL,
-			G_SPAWN_SEARCH_PATH |
-			G_SPAWN_LEAVE_DESCRIPTORS_OPEN,
-			NULL, NULL, NULL, NULL, NULL,
-			&child_stderr, &error);
+	GPid child_pid;
+	error = spawn_graxpert(test_argv, 200, &child_pid, NULL, NULL,
+			&child_stderr);
 
 	if (error != NULL) {
 		siril_log_color_message(_("Spawning GraXpert failed during version check: %s\n"), "red", error->message);
@@ -423,7 +465,8 @@ gpointer graxpert_setup_async(gpointer user_data) {
 	siril_debug_print("GraXpert version %d.%d.%d found\n", graxpert_version.major_version, graxpert_version.minor_version, graxpert_version.micro_version);
 	fill_graxpert_version_arrays();
 	siril_debug_print("GraXpert AI model arrays populated\n");
-	if (!com.headless) {
+	version_number null_version = { 0 };
+	if (!com.headless && memcmp(&graxpert_version, &null_version, sizeof(version_number))) {
 		initialize_graxpert_widgets_if_needed();
 		populate_graxpert_ai_combos();
 	}
