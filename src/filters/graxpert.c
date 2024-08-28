@@ -83,41 +83,41 @@ static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 // information.
 
 static GError *spawn_graxpert(gchar **argv, gint columns,
-                                                 GPid *child_pid, gint *stdin_fd,
-                                                 gint *stdout_fd, gint *stderr_fd) {
-    GError *error = NULL;
-    gchar **env = g_get_environ();
-    gchar *columns_str = g_strdup_printf("%d", columns);
+												GPid *child_pid, gint *stdin_fd,
+												gint *stdout_fd, gint *stderr_fd) {
+	GError *error = NULL;
+	gchar **env = g_get_environ();
+	gchar *columns_str = g_strdup_printf("%d", columns);
 
-    env = g_environ_setenv(env, "COLUMNS", columns_str, TRUE);
+	env = g_environ_setenv(env, "COLUMNS", columns_str, TRUE);
 
-    // On Windows, also set ANSICON_COLUMNS and ANSICON_LINES
-    #ifdef G_OS_WIN32
-    env = g_environ_setenv(env, "ANSICON_COLUMNS", columns_str, TRUE);
-    #endif
+	// On Windows, also set ANSICON_COLUMNS and ANSICON_LINES
+	#ifdef G_OS_WIN32
+	env = g_environ_setenv(env, "ANSICON_COLUMNS", columns_str, TRUE);
+	#endif
 
-    gboolean spawn_result = g_spawn_async_with_pipes(
-        NULL,           // working directory
-        argv,           // argument vector
-        env,            // environment
-        G_SPAWN_SEARCH_PATH | G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_DO_NOT_REAP_CHILD,
-        NULL,           // child setup function
-        NULL,           // user data for child setup
-        child_pid,      // child process id
-        stdin_fd,       // stdin file descriptor
-        stdout_fd,      // stdout file descriptor
-        stderr_fd,      // stderr file descriptor
-        &error
-    );
+	gboolean spawn_result = g_spawn_async_with_pipes(
+		NULL,           // working directory
+		argv,           // argument vector
+		env,            // environment
+		G_SPAWN_SEARCH_PATH | G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_DO_NOT_REAP_CHILD,
+		NULL,           // child setup function
+		NULL,           // user data for child setup
+		child_pid,      // child process id
+		stdin_fd,       // stdin file descriptor
+		stdout_fd,      // stdout file descriptor
+		stderr_fd,      // stderr file descriptor
+		&error
+	);
 
-    g_strfreev(env);
-    g_free(columns_str);
+	g_strfreev(env);
+	g_free(columns_str);
 
-    if (!spawn_result) {
-        return error;
-    }
+	if (!spawn_result) {
+		return error;
+	}
 
-    return NULL;
+	return NULL;
 }
 
 
