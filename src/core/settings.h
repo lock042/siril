@@ -130,15 +130,19 @@ struct astrometry_config {
 /* This structure is used for storing all parameters used in photometry module */
 struct phot_config {
 	double gain;		// A/D converter gain in electrons per ADU
+	double aperture;	// flux aperture
 	double inner;		// Inner radius of the annulus used to measure local background.
 	double outer;		// Outer radius of the annulus used to measure local background.
 	double auto_inner_factor;// factor for automatic inner radius computation from FWHM
 	double auto_outer_factor;// factor for automatic outer radius computation from FWHM
-	double aperture;	// flux aperture
 	double auto_aperture_factor;	// ratio between the aperture and the half-FWHM, used with the dynamic aperture option
 	double flux_cut_factor;	// flux cutoff rate
 	double flux_inner_factor;// factor for automatic inner radius computation from Flux cutoff meth
 	double flux_outer_factor;// factor for automatic outer radius computation from Flux cutoff meth
+	double dump_fwhmx;	// temporary value
+	double dump_fwhmy;// temporary value
+
+
 	gboolean force_radius;	// force the aperture radius value
 	int ape_strat; 	// encodes the aperture strategy to be used
 				// consider this integer in its binary form:

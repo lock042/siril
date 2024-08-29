@@ -62,12 +62,6 @@ void on_working_gamut_changed(GtkComboBox *combo, gpointer user_data);
 
 static gboolean scripts_updated = FALSE;
 
-typedef enum {
-	FIXED,
-	FWHM_VAR,
-	FLUX_CUT
-} aperture_strategy;
-
 void notify_script_update() {
 	scripts_updated = TRUE;
 }
@@ -212,10 +206,10 @@ static void update_photometry_preferences() {
 	com.pref.phot_set.flux_inner_factor = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinRadFluxIn")));
 	com.pref.phot_set.flux_outer_factor = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinRadFluxOut")));
 
-	com.pref.phot_set.ape_strat = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("ape_strat_fix"))) ? FIXED : com.pref.phot_set.ape_strat;
+	com.pref.phot_set.ape_strat = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("ape_strat_fix"))) ? FIXED_AP : com.pref.phot_set.ape_strat;
 	com.pref.phot_set.ape_strat = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("ape_strat_rat"))) ? FWHM_VAR : com.pref.phot_set.ape_strat;
 	com.pref.phot_set.ape_strat = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("ape_strat_flu"))) ? FLUX_CUT : com.pref.phot_set.ape_strat;
-	com.pref.phot_set.force_radius = (com.pref.phot_set.ape_strat == FIXED) ? TRUE : FALSE;	// This variable is kept as it is used elsewhere in 3rd party process
+	com.pref.phot_set.force_radius = (com.pref.phot_set.ape_strat == FIXED_AP) ? TRUE : FALSE;	// This variable is kept as it is used elsewhere in 3rd party process
 
 	com.pref.phot_set.minval = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinMinPhot")));
 	com.pref.phot_set.maxval = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spinMaxPhot")));
@@ -775,7 +769,7 @@ void update_preferences_from_model() {
 
 	/* tab Photometry */
 
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("ape_strat_fix")), com.pref.phot_set.ape_strat == FIXED);	// Case fixed apertures
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("ape_strat_fix")), com.pref.phot_set.ape_strat == FIXED_AP);	// Case fixed apertures
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("ape_strat_rat")), com.pref.phot_set.ape_strat == FWHM_VAR);	// Case variable apertures depending on FWHM
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("ape_strat_flu")), com.pref.phot_set.ape_strat == FLUX_CUT);	// Case variable aperture depending flux cutoff
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("spinAperture")), pref->phot_set.aperture);

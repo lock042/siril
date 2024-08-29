@@ -83,14 +83,31 @@ struct phot_config *phot_set_adjusted_for_image(const fits *fit) {
 	return retval;
 }
 
-/* Function that compute all photometric data. The result must be freed */
+void fluxCut_factors (const psf_star *psf, double* in_rad, double* out_rad, double* ap_rad){
+//	struct phot_config *phot_set2 = (struct phot_config *)psf;
+//	siril_log_message(_("2-phot_set2->dump_fwhmx= %i\n"), phot_set2->dump_fwhmx);
+	double threshold = 0.01 * com.pref.phot_set.flux_cut_factor;
+	double fwhm_m = fmax(psf->fwhmx, psf->fwhmy);
+	if (psf->profile == PSF_GAUSSIAN) {
+		*ap_rad = fwhm_m *INV_2_SQRT_2_LOG2 * sqrt(-2.0 * log(threshold));
+	}
+	if (psf->profile == PSF_MOFFAT_BFREE || psf->profile == PSF_MOFFAT_BFIXED) {
+		double inv_beta = 1. / psf->beta;
+		double const1 = (pow(threshold, -inv_beta) - 1.);
+		double const2 = (pow(2., inv_beta) - 1.);
+		*ap_rad = 0.5 * fwhm_m * sqrt(const1 / const2);
+	}
+	*in_rad = *ap_rad * com.pref.phot_set.flux_inner_factor;
+	*out_rad = *ap_rad * com.pref.phot_set.flux_outer_factor;
+}
+
 photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 		struct phot_config *phot_set, gboolean verbose, psf_error *error) {
 	int width = z->size2;
 	int height = z->size1;
 	int n_sky = 0, ret;
 	int x, y, x1, y1, x2, y2;
-	double r1, r2, r, rmin_sq, appRadius;
+	double r1 = 0, r2 = 0, r = 0, rmin_sq = 0, appRadius = 0;
 	double apmag = 0.0, mean = 0.0, stdev = 0.0, area = 0.0;
 	gboolean valid = TRUE;
 	photometry *phot;
@@ -109,9 +126,50 @@ photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 		return NULL;
 	}
 
-	r1 = phot_set->inner;
-	r2 = phot_set->outer;
-	appRadius = phot_set->force_radius ? phot_set->aperture : 0.5 * psf->fwhmx * phot_set->auto_aperture_factor;
+/*
+// phot_set a definir ici)
+struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
+seq->photometry[ref][i]
+reference_image
+////////////////////////////
+*/
+	double r1_ref = 0.0, fwhm_ref = 0.0;
+	const sequence *seq = &com.seq;
+	if (seq) {
+		int ref_imagefd = seq->reference_image;
+//		siril_log_message(_("REFERENCE IMAGE= %i\n"), ref_imagefd);
+//		siril_log_message(_("REFERENCE IMAGE= %i\n"), seq->photometry[ref_imagefd][0]->A);
+//		r1_ref = seq->photometry[seq->reference_image][0]->fwhmx;
+//		r1_ref = seq->photometry[seq->reference_image][0]->fwhmx;
+//		fwhm_ref = seq->photometry[seq->reference_image][0]->fwhmx;
+	}
+
+
+	switch (phot_set->ape_strat){
+		case FIXED_AP:
+			r1 = phot_set->inner;
+			r2 = phot_set->outer;
+			appRadius = phot_set->aperture;
+			break;
+		case FWHM_VAR:	
+			r1 = 0.5 * psf->fwhmx * phot_set->auto_inner_factor;
+			r2 = 0.5 * psf->fwhmx * phot_set->auto_outer_factor;
+			appRadius = 0.5 * psf->fwhmx * phot_set->auto_aperture_factor;
+			break;
+		case FLUX_CUT:
+			double in_rad, out_rad, ap_rad;
+			fluxCut_factors (psf, &in_rad, &out_rad, &ap_rad);
+			r1 = in_rad;
+			r2 = out_rad;
+			appRadius = ap_rad;
+			break;
+	}
+	siril_log_message(_("Aperture: %lf, Inner: %lf Outer: %lf\n"), appRadius, r1, r2);
+//	appRadius = phot_set->aperture;
+//	r1 = phot_set->inner;
+//	r2 = phot_set->outer;
+//	r1 = phot_set->force_radius ? phot_set->aperture : 0.5 * psf->fwhmx * phot_set->auto_aperture_factor;
+//	appRadius = phot_set->force_radius ? phot_set->aperture : 0.5 * psf->fwhmx * phot_set->auto_aperture_factor;
 	if (appRadius >= r1 && !phot_set->force_radius) {
 		if (verbose) {
 			/* Translator note: radii is plural for radius */
@@ -466,6 +524,7 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 				++nb_ref;
 			}
 		}
+
 		/* Converting back to magnitude */
 		if (nb_ref == nb_ref_stars) {
 			/* we consider an image to be invalid if all references are not valid,
@@ -593,11 +652,25 @@ void free_light_curve_args(struct light_curve_args *args) {
 gpointer light_curve_worker(gpointer arg) {
 	int retval = 0;
 	struct light_curve_args *args = (struct light_curve_args *)arg;
-
+//	struct fwhm_struct *psf = (struct fwhm_struct *)arg;
+//	struct phot_config *phot_set = (struct phot_config *)psf;
 	framing_mode framing = REGISTERED_FRAME;
 	if (framing == REGISTERED_FRAME && !args->seq->regparam[args->layer])
 		framing = FOLLOW_STAR_FRAME;
 	// someday we should move the area in the seqpsf args, not needed for now
+
+
+/*	com.selection = args->areas[0];
+	psf->is_done = TRUE;
+	if (seqpsf(args->seq, args->layer, FALSE, FALSE, framing, FALSE, TRUE)) {
+		siril_log_message(_("Failed to analyse the variable star photometry\n"));
+		}
+	phot_set->dump_fwhmx = psf->fwhmx;
+	phot_set->dump_fwhmy = psf->fwhmy;
+	siril_log_message(_("1-phot_set2->dump_fwhmx= %i\n"), phot_set->dump_fwhmx);
+	
+*/	
+		
 	for (int star_index = 0; star_index < args->nb; star_index++) {
 		com.selection = args->areas[star_index];
 		if (seqpsf(args->seq, args->layer, FALSE, FALSE, framing, FALSE, TRUE)) {

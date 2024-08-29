@@ -6,6 +6,7 @@
 #include "algos/star_finder.h"
 
 #define _2_SQRT_2_LOG2 2.35482004503
+#define INV_2_SQRT_2_LOG2 0.4246609001
 #define INV_4_LOG2 0.360673760222241
 #define MOFFAT_BETA_UBOUND 10.		// Max allowable value for Moffat beta
 
@@ -42,6 +43,7 @@ struct fwhm_struct {
 	photometry *phot;	/* photometry data */
 	gboolean phot_is_valid;	/* valid if computed by photometry and no saturated pixel detected */
 	double BV;	/* only used to pass data in photometric color calibration */
+	gboolean is_done;	/* a special marker for fred */
 
 	/* uncertainties */
 	double B_err;
