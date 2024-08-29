@@ -287,6 +287,12 @@ typedef enum {
 	SCALING_OIII_DOWN
 } extraction_scaling;
 
+typedef enum {
+	FIXED_AP,
+	FWHM_VAR,
+	FLUX_CUT
+} aperture_strategy;
+
 /* image data, exists once for each image */
 typedef struct {
 	int filenum;		/* real file index in the sequence, i.e. for mars9.fit = 9 */
