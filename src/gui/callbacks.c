@@ -491,7 +491,7 @@ void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data
 		gtk_label_set_text(label_display_menu, gtk_menu_item_get_label(GTK_MENU_ITEM(checkmenuitem)));
 
 	GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
-	siril_window_autostretch_actions(app_win, gui.rendering_mode == STF_DISPLAY && gfit.naxes[2] == 3);
+//	siril_window_autostretch_actions(app_win, gui.rendering_mode == STF_DISPLAY && gfit.naxes[2] == 3);
 
 	gui.icc.same_primaries = same_primaries(gfit.icc_profile, gui.icc.monitor, gui.icc.soft_proof ? gui.icc.soft_proof : NULL);
 
