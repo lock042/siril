@@ -90,8 +90,10 @@ static gint64 find_space(const gchar *name) {
 	struct statvfs st;
 	gint64 available, purgeable_memory = 0;
 
-	if (statvfs(name, &st))
+	if (statvfs(name, &st)) {
+		siril_log_message("statvfs error\n");
 		return (gint64) -1;
+	}
 
 	available = st.f_bavail;  // force 64 bits
 	gint64 free_space = available * st.f_frsize;
@@ -99,15 +101,22 @@ static gint64 find_space(const gchar *name) {
 	mach_msg_type_number_t count = HOST_VM_INFO_COUNT;
 	vm_statistics64_data_t vm_stats;
 
-	kern_return_t kr = host_statistics64(mach_host_self(), HOST_VM_INFO,
-	                                     (host_info64_t)&vm_stats, &count);
+	kern_return_t kr = host_statistics64(mach_host_self(), HOST_VM_INFO, (host_info64_t)&vm_stats, &count);
 	if (kr == KERN_SUCCESS) {
 		int page_size;
 		kr = host_page_size(mach_host_self(), (vm_size_t *)&page_size);
 		if (kr == KERN_SUCCESS) {
 			purgeable_memory = vm_stats.purgeable_count * page_size;
+			siril_log_message("Purgeable memory: %lld bytes\n", (long long)purgeable_memory);
+		} else {
+			siril_log_message("host_page_size error\n");
 		}
+	} else {
+		siril_log_message("host_statistics64 error\n");
 	}
+
+	siril_log_message("Free space: %lld bytes\n", (long long)free_space);
+	siril_log_message("Total (free + purgeable): %lld bytes\n", (long long)(free_space + purgeable_memory));
 
 	return free_space + purgeable_memory;
 }
