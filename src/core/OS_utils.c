@@ -86,7 +86,6 @@
  * @return the disk space remaining in bytes, or a negative value if error
  */
 #if defined OS_OSX
-
 static gint64 find_space(const gchar *name) {
 	struct statvfs st;
 	gint64 available, purgeable_memory = 0;
@@ -136,7 +135,7 @@ static gint64 find_space(const gchar *name) {
 	gint64 sz;
 
 	gchar *localdir = g_path_get_dirname(name);
-	wchar_t *wdirname = g_utf8_to_utf16(localdir, -1, NULL, NULL);
+	wchar_t *wdirname = g_utf8_to_utf16(localdir, -1, NULL, NULL, NULL);
 
 	if (!GetDiskFreeSpaceExW(wdirname, &avail, NULL, NULL))
 		sz = (gint64) -1;
