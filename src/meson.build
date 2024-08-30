@@ -230,8 +230,10 @@ src_files = [
   'rt/rt_algo.cc'
 ]
 
-if host_machine.system() == 'darwin'
-  src_files += 'core/FileSystemInfo.m'
+objc_compiler = meson.get_compiler('objc')
+
+if objc_compiler.get_id() == 'clang'
+  src_files += 'FileSystemInfo.m'
 endif
 
 siril_lib = static_library('siril',
