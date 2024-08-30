@@ -100,7 +100,6 @@ static gint64 find_space(const gchar *name) {
 	if (statfs (name, &st))
 		return (gint64) -1;
 	available = st.f_bfree;        // force 64 bits
-	siril_log_message("Available: %ld\n", available);
 	return available * st.f_bsize;
 }
 #elif defined _WIN32
