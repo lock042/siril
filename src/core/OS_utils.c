@@ -83,7 +83,13 @@
  * @param name the path of the directory to be tested
  * @return the disk space remaining in bytes, or a negative value if error
  */
-#if HAVE_SYS_STATVFS_H
+#if defined(__APPLE__) && defined(__MACH__)
+// macOS implementation
+#include "FileSystemInfo.h"
+int64_t find_space(const char *path) {
+    return macos_find_space(path);
+}
+#elif HAVE_SYS_STATVFS_H
 static gint64 find_space(const gchar *name) {
 	struct statvfs st;
 	gint64 available;

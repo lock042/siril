@@ -230,6 +230,10 @@ src_files = [
   'rt/rt_algo.cc'
 ]
 
+if host_machine.system() == 'darwin'
+  src_files += 'core/FileSystemInfo.m'
+endif
+
 siril_lib = static_library('siril',
                            src_files,
                            dependencies: externals_dep,
