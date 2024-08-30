@@ -230,8 +230,6 @@ src_files = [
   'rt/rt_algo.cc'
 ]
 
-objc_compiler = meson.get_compiler('objc')
-
 if objc_compiler.get_id() == 'clang'
   src_files += 'FileSystemInfo.m'
 endif

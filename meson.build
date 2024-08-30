@@ -37,6 +37,11 @@ project('siril',
   ],
 )
 
+# Conditionally add Objective-C files and support if building on macOS
+if host_machine.system() == 'darwin'
+  objc_compiler = meson.get_compiler('objc')  # Ensure Meson knows about the Objective-C compiler
+endif
+
 rootInclude = include_directories('.')
 srcInclude  = include_directories('src')
 
