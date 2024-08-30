@@ -83,39 +83,7 @@
  * @param name the path of the directory to be tested
  * @return the disk space remaining in bytes, or a negative value if error
  */
-#if defined(__APPLE__) && defined(__MACH__)
-
-#include <sys/param.h>
-#include <sys/mount.h>
-#include <objc/objc.h>
-#include <objc/message.h>
-#include <CoreFoundation/CoreFoundation.h>
-
-static gint64 find_space(const gchar *name) {
-	struct statfs st;
-	gint64 free_space;
-
-	// Get the available space (f_bavail)
-	if (statfs(name, &st)) {
-		return (gint64) -1;
-	}
-	free_space = (gint64)st.f_bavail * st.f_bsize;
-
-	// Get the purgeable space using Objective-C and NSFileManager
-	@autoreleasepool {
-		id fileManager = objc_msgSend(objc_getClass("NSFileManager"), sel_registerName("defaultManager"));
-		id url = objc_msgSend(objc_getClass("NSURL"), sel_registerName("fileURLWithPath:"), CFStringCreateWithCString(NULL, name, kCFStringEncodingUTF8));
-		NSError *error = nil;
-		NSDictionary *attributes = objc_msgSend(fileManager, sel_registerName("attributesOfFileSystemForPath:error:"), url, &error);
-		if (attributes && !error) {
-			NSNumber *purgeableSpace = objc_msgSend(attributes, sel_registerName("objectForKey:"), CFSTR("NSFileSystemPurgeableSize"));
-			free_space += [purgeableSpace longLongValue];
-		}
-	}
-
-	return free_space;
-}
-#elif HAVE_SYS_STATVFS_H
+#if HAVE_SYS_STATVFS_H
 static gint64 find_space(const gchar *name) {
 	struct statvfs st;
 	gint64 available;
