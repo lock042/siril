@@ -25,8 +25,17 @@
 ################################################################################
 # Define project
 
+# Initialize the languages array with common languages
+languages = ['c', 'cpp']
+
+# Conditionally add 'objc' if the build is on macOS
+if host_machine.system() == 'darwin'
+  languages += 'objc'
+endif
+
+# Use the dynamic language list in the project declaration
 project('siril',
-  ['c','cpp'],
+  languages,
   version : '1.2.3',
   license : ['GPL3'],
   meson_version: '>=0.56.0',
@@ -36,11 +45,6 @@ project('siril',
     'buildtype=debugoptimized',
   ],
 )
-
-# Conditionally add Objective-C files and support if building on macOS
-if host_machine.system() == 'darwin'
-  objc_compiler = meson.get_compiler('objc')  # Ensure Meson knows about the Objective-C compiler
-endif
 
 rootInclude = include_directories('.')
 srcInclude  = include_directories('src')
