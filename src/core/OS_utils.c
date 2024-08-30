@@ -51,11 +51,13 @@
 #endif
 #ifdef OS_OSX
 #include <mach/task.h>
+#include <mach/mach.h>
 #include <mach/mach_init.h>
 #include <mach/mach_types.h>
 #include <mach/mach_host.h>
 #include <sys/sysctl.h>
 #include <mach/vm_statistics.h>
+#include <sys/statvfs.h>
 #endif
 #ifdef HAVE_SYS_STATVFS_H
 #include <sys/statvfs.h>
@@ -83,23 +85,50 @@
  * @param name the path of the directory to be tested
  * @return the disk space remaining in bytes, or a negative value if error
  */
-#if HAVE_SYS_STATVFS_H
+#if defined OS_OSX
+
+static gint64 find_space(const gchar *name) {
+	struct statvfs st;
+	gint64 available, purgeable_memory = 0;
+
+	if (statvfs(name, &st))
+		return (gint64) -1;
+
+	available = st.f_bavail;  // force 64 bits
+	gint64 free_space = available * st.f_frsize;
+
+	mach_msg_type_number_t count = HOST_VM_INFO_COUNT;
+	vm_statistics64_data_t vm_stats;
+
+	kern_return_t kr = host_statistics64(mach_host_self(), HOST_VM_INFO,
+	                                     (host_info64_t)&vm_stats, &count);
+	if (kr == KERN_SUCCESS) {
+		int page_size;
+		kr = host_page_size(mach_host_self(), (vm_size_t *)&page_size);
+		if (kr == KERN_SUCCESS) {
+			purgeable_memory = vm_stats.purgeable_count * page_size;
+		}
+	}
+
+	return free_space + purgeable_memory;
+}
+#elif HAVE_SYS_STATVFS_H
 static gint64 find_space(const gchar *name) {
 	struct statvfs st;
 	gint64 available;
-	if (statvfs (name, &st))
+	if (statvfs(name, &st))
 		return (gint64) -1;
-	available = st.f_bavail;        // force 64 bits
+	available = st.f_bavail;  // force 64 bits
 	return available * st.f_frsize;
 }
 #elif (HAVE_SYS_VFS_H || HAVE_SYS_MOUNT_H)
 static gint64 find_space(const gchar *name) {
 	struct statfs st;
 	gint64 available;
-	if (statfs (name, &st))
+	if (statfs(name, &st))
 		return (gint64) -1;
-	available = st.f_bavail;        // force 64 bits
-        return available * st.f_bsize;
+	available = st.f_bavail;  // force 64 bits
+	return available * st.f_bsize;
 }
 #elif defined _WIN32
 static gint64 find_space(const gchar *name) {
@@ -107,7 +136,7 @@ static gint64 find_space(const gchar *name) {
 	gint64 sz;
 
 	gchar *localdir = g_path_get_dirname(name);
-	wchar_t *wdirname = g_utf8_to_utf16(localdir, -1, NULL, NULL, NULL);
+	wchar_t *wdirname = g_utf8_to_utf16(localdir, -1, NULL, NULL);
 
 	if (!GetDiskFreeSpaceExW(wdirname, &avail, NULL, NULL))
 		sz = (gint64) -1;
@@ -123,6 +152,7 @@ static gint64 find_space(const gchar *name) {
 	return (gint64) -1;
 }
 #endif /*HAVE_SYS_STATVFS_H*/
+
 
 /**
  * Compute the used RAM and returns the value in bytes.
