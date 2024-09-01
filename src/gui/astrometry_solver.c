@@ -927,7 +927,7 @@ void on_comboastro_catalog_changed(GtkComboBox *combo, gpointer user_data) {
 }
 
 void on_comboastro_order_changed(GtkComboBox *combo, gpointer user_data) {
-	gboolean enable = com.pref.prepro.disto_lib && com.pref.prepro.disto_lib[0] != '\0' && get_order() > 1;
+	gboolean enable = get_order() > 1;
 	gtk_widget_set_sensitive(GTK_WIDGET(masterbutton), enable);
 	gtk_widget_set_sensitive(GTK_WIDGET(distomaster_entry), enable);
 	gtk_widget_set_sensitive(GTK_WIDGET(distomaster_save_button), enable);

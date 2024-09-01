@@ -1943,7 +1943,7 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 		return 1;
 	args->fit = &fit;
 	process_plate_solver_input(args); // compute required data to get the catalog
-	if (!args->ref_stars) {
+	if (args->solver == SOLVER_SIRIL && !args->ref_stars) {
 		siril_log_color_message(_("Error: no reference stars available\n"), "red");
 		return 1;
 	}

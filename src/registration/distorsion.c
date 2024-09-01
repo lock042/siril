@@ -403,6 +403,7 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 			distoparam->filename = g_strdup(com.pref.prepro.disto_lib);
 			break;
 		case DISTO_FILES:
+			break;
 		default:
 			return NULL;
 			break;

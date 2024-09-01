@@ -155,6 +155,7 @@ static int comet_align_image_hook(struct generic_seq_args *args, int out_index, 
 	if (cadata->current_regdata) {
 		if (guess_transform_from_H(cadata->current_regdata[in_index].H) == NULL_TRANSFORMATION) {
 			siril_log_color_message(_("Image %d has no registration data, removing\n"), "red", in_index + 1);
+			regargs->imgparam[in_index].incl = !SEQUENCE_DEFAULT_INCLUDE;
 			return 1;
 		}
 		regargs->regparam[in_index].H = cadata->current_regdata[in_index].H; // previous reg exists, we set H with the initial H matrix
