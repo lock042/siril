@@ -32,7 +32,7 @@
 
 
 // Use this flag to print wcslib related verbose - not for production
-#define DEBUG_WCS
+// #define DEBUG_WCS
 
 gboolean has_wcs(fits *fit) {
 	return fit->keywords.wcslib != NULL;
@@ -511,4 +511,11 @@ void wcs_print(wcsprm_t *prm) {
 		}
 	}
 #endif
+}
+
+void remove_dis_from_wcs(wcsprm_t *prm) {
+	disfree(prm->lin.dispre);
+	prm->lin.dispre = NULL;
+	prm->flag = 0;
+	wcsset(prm);
 }

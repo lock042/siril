@@ -67,4 +67,6 @@ void update_SIP_keys(struct disprm *dis,
 		double BP[MAX_SIP_SIZE][MAX_SIP_SIZE]);
 void wcs_print(wcsprm_t *prm);
 
+void remove_dis_from_wcs(wcsprm_t *prm);
+
 #endif /* SRC_ALGOS_SIRIL_WCS_H_ */

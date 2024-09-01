@@ -536,6 +536,10 @@ int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homog
 	Mat Hinv = H.inv();  // dst->src
 	xmap = (float *)malloc(target_rx * target_ry *sizeof(float));
 	ymap = (float *)malloc(target_rx * target_ry *sizeof(float));
+	if (!xmap || !ymap) {
+		PRINT_ALLOC_ERR;
+		return 2;
+	}
 	prepare_H_with_disto_4remap(Hinv.ptr<double>(0), image->rx, image->ry, target_rx, target_ry, disto, xmap, ymap);
 	Mat uxmap = Mat(target_ry, target_rx, CV_32FC1, xmap);
 	Mat uymap = Mat(target_ry, target_rx, CV_32FC1, ymap);

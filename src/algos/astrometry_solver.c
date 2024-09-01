@@ -470,7 +470,7 @@ static int add_disto_to_wcslib(struct wcsprm *wcslib, TRANS *trans, int rx, int 
 	return 0;
 }
 
-static void flip_bottom_up_astrometry_data(fits *fit) {
+void flip_bottom_up_astrometry_data(fits *fit) {
 	Homography H = { 0 };
 	cvGetEye(&H);
 	H.h11 = -1.;

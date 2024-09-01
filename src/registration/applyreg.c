@@ -365,7 +365,12 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		} else {
 			disto = &regargs->disto[in_index];
 		}
+		remove_dis_from_wcs(fit->keywords.wcslib); // we remove distortions as the output is undistorted
 	}
+	// we need to flip in and out before reframing astrometry
+	flip_bottom_up_astrometry_data(fit);
+	reframe_astrometry_data(fit, H);
+	flip_bottom_up_astrometry_data(fit);
 
 	if (regargs->driz) {
 		p = calloc(1, sizeof(struct driz_param_t));
