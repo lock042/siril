@@ -810,7 +810,7 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 		args->fit = &gfit;
 		args->manual = is_detection_manual();
 		args->verbose = TRUE;
-		args->flip_image = flip_image_after_ps() && !sequence_is_loaded();
+		args->flip_image = flip_image_after_ps() && (!sequence_is_loaded() || com.seq.current == RESULT_IMAGE);
 		args->numthreads = com.max_thread;
 	} else {
 		args->force = !gtk_toggle_button_get_active(seqskipsolved);
