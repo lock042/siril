@@ -170,8 +170,8 @@
                 <property name="can-focus">True</property>
                 <property name="expanded">True</property>
                 <child>
-                  <!-- n-columns=4 n-rows=5 -->
-                  <object class="GtkGrid" id="graxpert_bg_rbf_options">
+                  <!-- n-columns=4 n-rows=7 -->
+                  <object class="GtkGrid">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="row-spacing">6</property>
@@ -209,7 +209,7 @@
                       </packing>
                     </child>
                     <child>
-                      <!-- n-columns=4 n-rows=4 -->
+                      <!-- n-columns=4 n-rows=3 -->
                       <object class="GtkGrid" id="graxpert_classical_settings">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
@@ -221,10 +221,90 @@
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="halign">start</property>
-                            <property name="label" translatable="yes">Correction</property>
+                            <property name="label" translatable="yes"># samples per row</property>
                           </object>
                           <packing>
                             <property name="left-attach">0</property>
+                            <property name="top-attach">2</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="graxpert_spin_nb_samples">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Set the number of samples per row in the sampling grid</property>
+                            <property name="text" translatable="yes">15</property>
+                            <property name="adjustment">adj_graxpert_nb_samples</property>
+                            <property name="value">15</property>
+                          </object>
+                          <packing>
+                            <property name="left-attach">1</property>
+                            <property name="top-attach">2</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Sample size / px</property>
+                          </object>
+                          <packing>
+                            <property name="left-attach">2</property>
+                            <property name="top-attach">2</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="graxpert_spin_sample_size">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Set the GraXpert sample size of each background sample. Larger samples may give better statistical properties but have a bigger risk of including non-background pixels such as stars.</property>
+                            <property name="text" translatable="yes">25</property>
+                            <property name="adjustment">adj_graxpert_sample_size</property>
+                            <property name="value">25</property>
+                            <signal name="value-changed" handler="on_graxpert_spin_sample_size_value_changed" swapped="no"/>
+                          </object>
+                          <packing>
+                            <property name="left-attach">3</property>
+                            <property name="top-attach">2</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Background Tolerance</property>
+                          </object>
+                          <packing>
+                            <property name="left-attach">0</property>
+                            <property name="top-attach">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="graxpert_spin_bgtol">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Set the background tolerance: the allowed range is -2.0 to +6.0. Higer values are more tolerant of strong background gradients; lower values are better at rejecting background samples in areas representing real neblosity</property>
+                            <property name="text" translatable="yes">2,00</property>
+                            <property name="adjustment">adj_graxpert_bg_tol</property>
+                            <property name="digits">2</property>
+                            <property name="value">2</property>
+                          </object>
+                          <packing>
+                            <property name="left-attach">1</property>
+                            <property name="top-attach">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Correction</property>
+                          </object>
+                          <packing>
+                            <property name="left-attach">2</property>
                             <property name="top-attach">0</property>
                           </packing>
                         </child>
@@ -240,78 +320,11 @@
                             </items>
                           </object>
                           <packing>
-                            <property name="left-attach">1</property>
+                            <property name="left-attach">3</property>
                             <property name="top-attach">0</property>
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkLabel">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="halign">start</property>
-                            <property name="label" translatable="yes">Smoothing</property>
-                          </object>
-                          <packing>
-                            <property name="left-attach">0</property>
-                            <property name="top-attach">1</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkSpinButton" id="spin_graxpert_smoothing">
-                            <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <property name="tooltip-text" translatable="yes">Set the level of smoothing to be applied by GraXpert, between 0.0 and 1.0</property>
-                            <property name="text" translatable="yes">0,50</property>
-                            <property name="adjustment">adj_graxpert_bgextract_smoothing</property>
-                            <property name="digits">2</property>
-                            <property name="value">0.5</property>
-                          </object>
-                          <packing>
-                            <property name="left-attach">1</property>
-                            <property name="top-attach">1</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkLabel">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="halign">start</property>
-                            <property name="label" translatable="yes">Background Tolerance</property>
-                          </object>
-                          <packing>
-                            <property name="left-attach">2</property>
-                            <property name="top-attach">1</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkSpinButton" id="graxpert_spin_bgtol">
-                            <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <property name="tooltip-text" translatable="yes">Set the background tolerance: the allowed range is -2.0 to +6.0. Higer values are more tolerant of strong background gradients; lower values are better at rejecting background samples in areas representing real neblosity</property>
-                            <property name="text" translatable="yes">2,00</property>
-                            <property name="adjustment">adj_graxpert_bg_tol</property>
-                            <property name="digits">2</property>
-                            <property name="value">2</property>
-                          </object>
-                          <packing>
-                            <property name="left-attach">3</property>
-                            <property name="top-attach">1</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkScale">
-                            <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <property name="adjustment">adj_graxpert_bgextract_smoothing</property>
-                            <property name="draw-value">False</property>
-                          </object>
-                          <packing>
-                            <property name="left-attach">0</property>
-                            <property name="top-attach">2</property>
-                            <property name="width">2</property>
-                          </packing>
-                        </child>
-                        <child>
                           <object class="GtkScale">
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
@@ -319,62 +332,9 @@
                             <property name="draw-value">False</property>
                           </object>
                           <packing>
-                            <property name="left-attach">2</property>
-                            <property name="top-attach">2</property>
-                            <property name="width">2</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkLabel">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="halign">start</property>
-                            <property name="label" translatable="yes"># samples per row</property>
-                          </object>
-                          <packing>
                             <property name="left-attach">0</property>
-                            <property name="top-attach">3</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkSpinButton" id="graxpert_spin_nb_samples">
-                            <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <property name="tooltip-text" translatable="yes">Set the number of samples per row in the sampling grid</property>
-                            <property name="text" translatable="yes">15</property>
-                            <property name="adjustment">adj_graxpert_nb_samples</property>
-                            <property name="value">15</property>
-                          </object>
-                          <packing>
-                            <property name="left-attach">1</property>
-                            <property name="top-attach">3</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkLabel">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="halign">start</property>
-                            <property name="label" translatable="yes">Sample size / px</property>
-                          </object>
-                          <packing>
-                            <property name="left-attach">2</property>
-                            <property name="top-attach">3</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkSpinButton" id="graxpert_spin_sample_size">
-                            <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <property name="tooltip-text" translatable="yes">Set the GraXpert sample size of each background sample. Larger samples may give better statistical properties but have a bigger risk of including non-background pixels such as stars.</property>
-                            <property name="text" translatable="yes">25</property>
-                            <property name="adjustment">adj_graxpert_sample_size</property>
-                            <property name="value">25</property>
-                            <signal name="value-changed" handler="on_graxpert_spin_sample_size_value_changed" swapped="no"/>
-                          </object>
-                          <packing>
-                            <property name="left-attach">3</property>
-                            <property name="top-attach">3</property>
+                            <property name="top-attach">1</property>
+                            <property name="width">2</property>
                           </packing>
                         </child>
                         <child>
@@ -386,7 +346,7 @@
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">1</property>
+                        <property name="top-attach">3</property>
                         <property name="width">4</property>
                       </packing>
                     </child>
@@ -437,7 +397,7 @@
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">2</property>
+                        <property name="top-attach">4</property>
                         <property name="width">4</property>
                       </packing>
                     </child>
@@ -484,7 +444,7 @@
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">3</property>
+                        <property name="top-attach">5</property>
                         <property name="width">4</property>
                       </packing>
                     </child>
@@ -529,7 +489,7 @@
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">4</property>
+                        <property name="top-attach">6</property>
                         <property name="width">4</property>
                       </packing>
                     </child>
@@ -547,6 +507,58 @@
                         <property name="top-attach">0</property>
                         <property name="width">2</property>
                       </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">start</property>
+                        <property name="label" translatable="yes">Smoothing</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkSpinButton" id="spin_graxpert_smoothing">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="tooltip-text" translatable="yes">Set the level of smoothing to be applied by GraXpert, between 0.0 and 1.0</property>
+                        <property name="text" translatable="yes">0,50</property>
+                        <property name="adjustment">adj_graxpert_bgextract_smoothing</property>
+                        <property name="digits">2</property>
+                        <property name="value">0.5</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkScale">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="adjustment">adj_graxpert_bgextract_smoothing</property>
+                        <property name="draw-value">False</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">2</property>
+                        <property name="width">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
                     </child>
                   </object>
                 </child>
