@@ -2080,7 +2080,7 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 				aargs->ref_stars->center_dec = siril_world_cs_get_delta(target_coords);
 			}
 		}
-		if (!aargs->cat_center) {
+		if (aargs->solver == SOLVER_SIRIL && !aargs->cat_center) { // we need a cat_center for Siril
 			siril_debug_print("Could not set cat_center, skipping\n");
 			siril_catalog_free(aargs->ref_stars);
 			free(aargs);
