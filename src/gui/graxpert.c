@@ -39,13 +39,13 @@
 // Statics declarations
 
 static GtkButton *button_graxpert_cancel = NULL, *button_graxpert_apply = NULL, *graxpert_clear_samples = NULL, *graxpert_generate_samples = NULL, *button_graxpert_roipreview = NULL;
-static GtkComboBox *combo_graxpert_operation = NULL, *combo_graxpert_algorithm = NULL, *combo_graxpert_correction = NULL, *combo_graxpert_kernel = NULL;
+static GtkComboBox *combo_graxpert_operation = NULL, *combo_graxpert_algorithm = NULL, *combo_graxpert_correction = NULL, *combo_graxpert_kernel = NULL, *combo_graxpert_ai_models_bg = NULL, *combo_graxpert_ai_models_denoise = NULL;
 static GtkDialog *graxpert_dialog = NULL;
 static GtkExpander *graxpert_bg_settings = NULL, *graxpert_denoise_settings = NULL;
 static GtkSpinButton *spin_graxpert_smoothing = NULL, *graxpert_spin_bgtol = NULL, *graxpert_spin_nb_samples = NULL, *spin_graxpert_strength = NULL, *graxpert_spin_sample_size = NULL, *graxpert_spin_spline_order = NULL;
 static GtkToggleButton *toggle_graxpert_gpu = NULL, *graxpert_toggle_keep_background = NULL, *graxpert_toggle_apply_to_sequence = NULL;
 static GtkLabel *graxpert_available = NULL;
-static GtkWidget *graxpert_ai_settings = NULL, *graxpert_classical_settings = NULL, *graxpert_samples_controls = NULL, *graxpert_rbf_settings = NULL, *graxpert_spline_settings = NULL;
+static GtkWidget *graxpert_ai_settings = NULL, *graxpert_classical_settings = NULL, *graxpert_samples_controls = NULL, *graxpert_rbf_settings = NULL, *graxpert_spline_settings = NULL, *ai_model_settings_bg = NULL, *ai_model_settings_denoise = NULL;
 
 static gboolean is_bg = TRUE;
 static graxpert_operation previous_operation = GRAXPERT_BG;
@@ -63,6 +63,8 @@ void initialize_graxpert_widgets_if_needed() {
 		combo_graxpert_algorithm = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_graxpert_algorithm"));
 		combo_graxpert_correction = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_graxpert_correction"));
 		combo_graxpert_kernel = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_graxpert_kernel"));
+		combo_graxpert_ai_models_bg = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_graxpert_ai_models_bg"));
+		combo_graxpert_ai_models_denoise = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "combo_graxpert_ai_models_denoise"));
 		// GtkDialog
 		graxpert_dialog = GTK_DIALOG(gtk_builder_get_object(gui.builder, "graxpert_dialog"));
 		// GtkExpander
@@ -87,6 +89,9 @@ void initialize_graxpert_widgets_if_needed() {
 		graxpert_classical_settings = GTK_WIDGET(gtk_builder_get_object(gui.builder, "graxpert_classical_settings"));
 		graxpert_rbf_settings = GTK_WIDGET(gtk_builder_get_object(gui.builder, "graxpert_rbf_settings"));
 		graxpert_spline_settings = GTK_WIDGET(gtk_builder_get_object(gui.builder, "graxpert_spline_settings"));
+		ai_model_settings_bg = GTK_WIDGET(gtk_builder_get_object(gui.builder, "ai_model_settings_bg"));
+		ai_model_settings_denoise = GTK_WIDGET(gtk_builder_get_object(gui.builder, "ai_model_settings_denoise"));
+
 	}
 }
 
@@ -108,6 +113,21 @@ graxpert_data* fill_graxpert_data_from_gui(gboolean previewing) {
 	p->use_gpu = gtk_toggle_button_get_active(toggle_graxpert_gpu);
 	p->ai_batch_size = 4;
 	p->bg_pts_option = gtk_spin_button_get_value(graxpert_spin_nb_samples);
+	if (p->operation == GRAXPERT_DENOISE) {
+		int n = gtk_combo_box_get_active(combo_graxpert_ai_models_denoise);
+		const gchar **ai_models = get_ai_models(GRAXPERT_DENOISE);
+		int num_models = g_strv_length((gchar**) ai_models);
+		if (n < num_models) {
+			p->ai_version = g_strdup(ai_models[n]);
+		}
+	} else if (p->operation == GRAXPERT_BG && p->bg_algo == GRAXPERT_BG_AI) {
+		int n = gtk_combo_box_get_active(combo_graxpert_ai_models_bg);
+		const gchar **ai_models = get_ai_models(GRAXPERT_BG);
+		int num_models = g_strv_length((gchar**) ai_models);
+		if (n < num_models) {
+			p->ai_version = g_strdup(ai_models[n]);
+		}
+	}
 	return p;
 }
 
@@ -169,6 +189,33 @@ static void confirm_availability() {
 	}
 }
 
+static void populate_combo_box(GtkComboBoxText *combo, const gchar **models) {
+	int i;
+
+	// Clear existing entries
+	gtk_combo_box_text_remove_all(combo);
+
+	// Add entries from the models array
+	for (i = 0; models[i] != NULL; ++i) {
+		gtk_combo_box_text_append_text(combo, models[i]);
+	}
+
+	// Add "latest" entry
+	gtk_combo_box_text_append_text(combo, "latest");
+
+	// Set "latest" as the active (default) item
+	gtk_combo_box_set_active(GTK_COMBO_BOX(combo), i);  // i is now the index of "latest"
+}
+
+void populate_graxpert_ai_combos() {
+	const gchar** ai_models_bg = get_ai_models(GRAXPERT_BG);
+	if (combo_graxpert_ai_models_bg && ai_models_bg)
+		populate_combo_box(GTK_COMBO_BOX_TEXT(combo_graxpert_ai_models_bg), ai_models_bg);
+	const gchar** ai_models_denoise = get_ai_models(GRAXPERT_DENOISE);
+	if (combo_graxpert_ai_models_denoise && ai_models_denoise)
+		populate_combo_box(GTK_COMBO_BOX_TEXT(combo_graxpert_ai_models_denoise), get_ai_models(GRAXPERT_DENOISE));
+}
+
 static void set_widgets() {
 	graxpert_operation operation = (graxpert_operation) gtk_combo_box_get_active(combo_graxpert_operation);
 	previous_operation = operation;
@@ -179,6 +226,8 @@ static void set_widgets() {
 	gtk_widget_set_visible(graxpert_samples_controls, algorithm != GRAXPERT_BG_AI);
 	gtk_widget_set_visible(graxpert_rbf_settings, algorithm == GRAXPERT_BG_RBF ||  algorithm == GRAXPERT_BG_KRIGING);
 	gtk_widget_set_visible(graxpert_spline_settings, algorithm == GRAXPERT_BG_SPLINE);
+	gtk_widget_set_visible(ai_model_settings_bg, operation == GRAXPERT_BG && algorithm == GRAXPERT_BG_AI);
+	gtk_widget_set_visible(ai_model_settings_denoise, operation == GRAXPERT_DENOISE);
 	gtk_widget_set_sensitive(GTK_WIDGET(graxpert_bg_settings), (operation == GRAXPERT_BG));
 	gtk_expander_set_expanded(graxpert_denoise_settings, (operation == GRAXPERT_DENOISE));
 	gtk_widget_set_sensitive(GTK_WIDGET(graxpert_denoise_settings), (operation == GRAXPERT_DENOISE));
@@ -193,6 +242,7 @@ void on_graxpert_dialog_show(GtkWidget *widget, gpointer user_data) {
 	initialize_graxpert_widgets_if_needed();
 	set_widgets();
 	confirm_availability();
+	clear_backup();
 }
 
 void on_graxpert_dialog_hide(GtkWidget *widget, gpointer user_data) {
