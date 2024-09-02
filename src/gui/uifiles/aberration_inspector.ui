@@ -32,7 +32,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <property name="title" translatable="yes">Aberration Inspector</property>
     <property name="resizable">False</property>
     <property name="transient-for">control_window</property>
-    <signal name="delete-event" handler="gtk_widget_hide_on_delete" swapped="no"/>
+    <signal name="delete-event" handler="siril_widget_hide_on_delete" swapped="no"/>
     <child>
       <!-- n-columns=3 n-rows=3 -->
       <object class="GtkGrid">

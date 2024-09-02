@@ -56,7 +56,7 @@ static GtkAdjustment *curves_adj_zoom = NULL;
 static GtkComboBoxText *curves_interpolation_combo = NULL;
 static GtkEntry *curves_id_entry = NULL, *curves_x_entry = NULL, *curves_y_entry = NULL, *curves_clip_low = NULL, *curves_clip_high = NULL, *curves_seq_entry = NULL;
 static GtkGrid *curves_point_grid = NULL;
-static GtkToggleButton *curves_sequence_check = NULL, *curves_preview_check = NULL;
+static GtkToggleButton *curves_sequence_check = NULL, *curves_preview_check = NULL, *curves_log_check = NULL;
 static GtkToggleToolButton *curves_red_toggle = NULL, *curves_green_toggle = NULL, *curves_blue_toggle = NULL, *curves_grid_toggle = NULL;
 static GtkWidget *curves_drawingarea = NULL, *curves_viewport = NULL, *curves_dialog = NULL;
 
@@ -113,6 +113,7 @@ void curves_dialog_init_statics() {
 		// GtkToggleButton
 		curves_sequence_check = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "curves_sequence_check"));
 		curves_preview_check = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "curves_preview_check"));
+		curves_log_check = GTK_TOGGLE_BUTTON(gtk_builder_get_object(gui.builder, "curves_log_check"));
 		// GtkToggleToolButton
 		curves_red_toggle = GTK_TOGGLE_TOOL_BUTTON(gtk_builder_get_object(gui.builder, "curves_red_toggle"));
 		curves_green_toggle = GTK_TOGGLE_TOOL_BUTTON(gtk_builder_get_object(gui.builder, "curves_green_toggle"));
@@ -456,6 +457,7 @@ static void reset_cursors_and_values() {
 	gtk_toggle_tool_button_set_active(curves_green_toggle, TRUE);
 	gtk_toggle_tool_button_set_active(curves_blue_toggle, TRUE);
 	gtk_toggle_tool_button_set_active(curves_grid_toggle, TRUE);
+	gtk_toggle_button_set_active(curves_log_check, com.pref.gui.display_histogram_mode == LOG_DISPLAY ? TRUE : FALSE);
 	reset_curve_points();
 	_update_entry_text();
 	update_gfit_curves_histogram_if_needed();
@@ -466,6 +468,10 @@ static int curves_update_preview() {
 	if (!closing)
 		curves_recompute();
 	return 0;
+}
+
+static gboolean is_curves_log_scale() {
+	return (gtk_toggle_button_get_active(curves_log_check));
 }
 
 static void set_histogram(gsl_histogram *histo, int layer) {
@@ -512,7 +518,7 @@ gboolean redraw_curves(GtkWidget *widget, cairo_t *cr, gpointer data) {
 	erase_curves_histogram_display(cr, width, height);
 
 	for (i = 0; i < MAXVPORT; i++)
-		display_histo(display_histogram[i], cr, i, width, height, zoom, 1.0, FALSE);
+		display_histo(display_histogram[i], cr, i, width, height, zoom, 1.0, FALSE, is_curves_log_scale());
 
 	return FALSE;
 }
@@ -553,8 +559,8 @@ void on_curves_apply_button_clicked(GtkButton *button, gpointer user_data) {
 	if (!check_ok_if_cfa())
 		return;
 
-    siril_log_message(_("Applying %s curve transformation with %d points\n"),
-                      algorithm == LINEAR ? "linear" : "cubic spline", g_list_length(curve_points));
+	siril_log_message(_("Applying %s curve transformation with %d points\n"),
+					  algorithm == LINEAR ? "linear" : "cubic spline", g_list_length(curve_points));
 
 	if (gtk_toggle_button_get_active(curves_sequence_check)
 		&& sequence_is_loaded()) {
@@ -934,4 +940,8 @@ void on_curves_preview_toggled(GtkToggleButton *button, gpointer user_data) {
 		copy_gfit_to_backup();
 		curves_update_image();
 	}
+}
+
+void on_curves_log_check_toggled(GtkToggleButton *button, gpointer user_data) {
+	gtk_widget_queue_draw(curves_drawingarea);
 }

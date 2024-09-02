@@ -26,6 +26,7 @@
 #include "algos/comparison_stars.h"
 #include "gui/message_dialog.h"
 #include "gui/utils.h"
+#include "gui/dialogs.h"
 #include "gui/PSF_list.h"
 
 static GtkWidget *dialog = NULL;	// the window, a GtkDialog
@@ -53,7 +54,7 @@ static void build_the_dialog() {
 	// the GtkDialog::response signal with the corresponding response ID
 	gtk_window_set_default_size(GTK_WINDOW(dialog), 400, 200);
 	gtk_window_set_resizable(GTK_WINDOW(dialog), FALSE);
-	g_signal_connect(G_OBJECT(dialog), "delete-event", G_CALLBACK(gtk_widget_hide_on_delete), NULL);
+	g_signal_connect(G_OBJECT(dialog), "delete-event", G_CALLBACK(siril_widget_hide_on_delete), NULL);
 	g_signal_connect(G_OBJECT(dialog), "response", G_CALLBACK(on_compstars_response), NULL);
 
 	// Sets the "OK" button as default one

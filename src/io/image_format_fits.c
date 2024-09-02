@@ -802,7 +802,7 @@ int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,
 			if (status) break;
 			int status2 = 0;
 			fits_read_key(fptr, TDOUBLE, "DATAMAX", &data_max, NULL, &status2);
-			if (status2 == 0 && data_max > 2.0) { // needed for some FLOAT_IMG
+			if (status2 == 0 && data_max > 10.0) { // needed for some FLOAT_IMG
 				convert_floats(bitpix, dest, nbdata);
 			}
 			break;
@@ -1205,22 +1205,23 @@ int readfits(const char *filename, fits *fit, char *realname, gboolean force_flo
 	if (status)
 		goto close_readfits;
 
-	fits_verify_chksum(fit->fptr, &dataok, &hduok, &status);
-	if (status || hduok == -1 || dataok == -1) {
-		status = 0;
-		fits_get_chksum(fit->fptr, &datasum, &hdusum, &status);
-		if (hduok == -1) {
-			char checksum[FLEN_VALUE], ascii[FLEN_VALUE];
-			fits_read_key(fit->fptr, TSTRING, "CHECKSUM", &checksum, NULL, &status);
-			fits_encode_chksum(hdusum, TRUE, ascii);
-			siril_log_color_message(_("Error: HDU checksum mismatch. Expected %s, got %s.\n"), "red", ascii, checksum);
+	if (com.pref.use_checksum) {
+		fits_verify_chksum(fit->fptr, &dataok, &hduok, &status);
+		if (hduok == -1 || dataok == -1) {
+			status = 0;
+			fits_get_chksum(fit->fptr, &datasum, &hdusum, &status);
+			if (hduok == -1) {
+				char checksum[FLEN_VALUE], ascii[FLEN_VALUE];
+				fits_read_key(fit->fptr, TSTRING, "CHECKSUM", &checksum, NULL, &status);
+				fits_encode_chksum(hdusum, TRUE, ascii);
+				siril_log_color_message(_("Error: HDU checksum mismatch. Expected %s, got %s.\n"), "red", ascii, checksum);
+			}
+			if (dataok == -1) {
+				char checksum[FLEN_VALUE];
+				fits_read_key(fit->fptr, TSTRING, "DATASUM", &checksum, NULL, &status);
+				siril_log_color_message(_("Error: Data checksum mismatch. Expected %lu, got %s.\n"), "red", datasum, checksum);
+			}
 		}
-		if (dataok == -1) {
-			char checksum[FLEN_VALUE];
-			fits_read_key(fit->fptr, TSTRING, "DATASUM", &checksum, NULL, &status);
-			siril_log_color_message(_("Error: Data checksum mismatch. Expected %lu, got %s.\n"), "red", datasum, checksum);
-		}
-		goto close_readfits;
 	}
 
 	retval = read_fits_with_convert(fit, filename, force_float);

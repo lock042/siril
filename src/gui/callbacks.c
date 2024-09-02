@@ -33,7 +33,9 @@
 #include "core/siril_language.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
+#include "filters/graxpert.h"
 #include "gui/cut.h"
+#include "gui/graxpert.h"
 #include "gui/keywords_tree.h"
 #include "gui/registration.h"
 #include "gui/photometric_cc.h"
@@ -1504,6 +1506,8 @@ gboolean on_main_panel_button_release_event(GtkWidget *widget,
 }
 
 void initialize_all_GUI(gchar *supported_files) {
+	/* GraXpert checks, if required */
+	g_thread_unref(g_thread_new("graxpert_checks", graxpert_setup_async, NULL));
 	/* populate SPCC combos in a thread */
 	g_thread_unref(g_thread_new("spcc_combos", populate_spcc_combos_async, NULL));
 	/* pre-check the Gaia archive status */
@@ -1586,10 +1590,10 @@ void initialize_all_GUI(gchar *supported_files) {
 	/* Due to another bug in glade we write these callbacks here
 	 * In glade there are not sorted as we want */
 	g_signal_connect(lookup_widget("dialog_star_remix"), "delete-event", G_CALLBACK(on_remix_close_clicked), NULL);
-	g_signal_connect(lookup_widget("dialog_star_remix"), "delete-event", G_CALLBACK(gtk_widget_hide_on_delete), NULL);
+	g_signal_connect(lookup_widget("dialog_star_remix"), "delete-event", G_CALLBACK(siril_widget_hide_on_delete), NULL);
 
 	g_signal_connect(lookup_widget("histogram_dialog"), "delete-event", G_CALLBACK(on_button_histo_close_clicked), NULL);
-	g_signal_connect(lookup_widget("histogram_dialog"), "delete-event", G_CALLBACK(gtk_widget_hide_on_delete), NULL);
+	g_signal_connect(lookup_widget("histogram_dialog"), "delete-event", G_CALLBACK(siril_widget_hide_on_delete), NULL);
 
 	selection = GTK_TREE_SELECTION(gtk_builder_get_object(gui.builder, "treeview-selection"));
 	gtk_tree_selection_set_mode(selection, GTK_SELECTION_MULTIPLE);

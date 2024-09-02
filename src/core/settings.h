@@ -386,6 +386,7 @@ struct pref_struct {
 	gchar *catalogue_paths[4]; // local star catalogues for plate solving and PCC
 
 	gboolean rgb_aladin;	// Add CTYPE3='RGB' in the FITS header
+	gboolean use_checksum;  // Verify checksum in FITS header
 	gchar *copyright;	// User copyright when saving image as TIFF
 
 	gchar *starnet_exe;	// Location of starnet++ executable
