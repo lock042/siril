@@ -420,20 +420,6 @@ gboolean on_switcher_stack_clicked(GtkWidget *widget,
 	return TRUE;
 }
 
-static void set_switcher_buttons_colors(int n) {
-	GList *l = switcher_buttons;
-	int i = 0;
-	while (l != NULL) {
-		GtkWidget *button = (GtkWidget *) l->data;
-		if (i == n) {
-			set_suggested(button);
-		} else {
-			unset_suggested(button);
-		}
-		l = l->next;
-		i++;
-	}
-}
 /****************************************************************/
 /* comet specific callbacks                                       */
 /****************************************************************/
@@ -907,7 +893,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		has_drizzle = FALSE;
 	}
 	gtk_widget_set_sensitive(GTK_WIDGET(interp_drizzle_stack_switcher), !(must_have_drizzle || must_have_interp));
-	set_switcher_buttons_colors((has_drizzle) ? 1 : 0);
+	set_switcher_buttons_colors(switcher_buttons, (has_drizzle) ? 1 : 0);
 	if (has_output && !has_drizzle) {
 		gint interpolation_item = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxRegInter));
 		gtk_widget_set_sensitive(GTK_WIDGET(toggle_reg_clamp), interpolation_item == OPENCV_CUBIC || interpolation_item == OPENCV_LANCZOS4);
