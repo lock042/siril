@@ -3,38 +3,46 @@
 
 ##Prerequisites
 -------
-* First, you need to compile Siril
+* Siril test suites use [criterion](criterion
+  https://criterion.readthedocs.io/en/master/intro.html), install it. If your
+distribution does not have any packages, you need to compile it by following
+instruction [here](https://github.com/Snaipe/Criterion.git).
 
+* The automated test system is only available through meson, Build with
+  criterion enabled by passing `-Dcriterion=true`, it's disabled by default:
     mkdir _build
-    meson --buildtype release _build
-    cd _build
-    ninja
-    ninja install
+    meson _build -Dcriterion=true
+    ninja -C _build
+    ninja -C _build install
 
-* Then, Siril test suites use [criterion](criterion https://criterion.readthedocs.io/en/master/intro.html). If your distribution does not have any packages, you need to compile it by following instruction [here](https://github.com/Snaipe/Criterion.git).
-    
-
+* Run the tests with:
+    meson test -v
 
 ##Running tests
 ------
-###What are inside test directory?
-There are different kinds of files in this directory:
+As shown above, the integrated unit test system is available through meson. For
+different settings, see this [meson documentation
+page](https://mesonbuild.com/Unit-tests.html). Tests can be run several times,
+selected to run only by their name, run wrapped in valgrind, and so on.
+
+Originally, the tests were compiled as executables using autotools and the
+build.sh script in this directory. There are also two special files in here that
+are not unit tests:
 - `compare_fits` is a program that can be used to compare FITS files, to verify
   that an algorithm always computes the same thing for example
 - `sorting` is a unit test on the three sorting implementations that provide the
-  median. It also contains a performance evaluation between them.
+  median, but it also contains a performance evaluation between them, so it
+takes more time than a simple unit test.
 
-Other files are used for the build of these executables. Since they depend on
-siril's code and we don't want to pull all the files here, we had to redefine
-the functions used in the direct dependencies in dummy.c, they should not be
-used in the tests.
+###Using test script (autotools)
+Because on some OS the debugging of tests in meson is not supported, tests
+can also be compiled as a regular executable, with the criterion calls replaced
+by a macro that displays errors.
 
-###Using criterion
-
-    meson test (or meson test -C _build from src)
-    meson test -v
-
-###Using test script
+Since the executables depend on siril's code and we don't want to pull all the
+files here, we had to redefine the functions used in the direct dependencies in
+dummy.c, they should not be used in the tests. This is rarely updated and
+probably doesn't work as is.
 
 To compile the test programs, compile siril with the autotools/make method,
 then run ./build.sh in src/tests.
@@ -43,21 +51,21 @@ to have realistic values.
 
 If build error occurs, check that the basic build script has all required
 package links for your OS and options for your compiler.
-If link error occurs, add the missing functions in dummy.c
+If link error occurs, or a segmentation fault happens on launch, add the missing
+functions in dummy.c
 
 ## Debugging scripts
 
-The script creates executables for some tests, which can be debugged like any other.
-For the meson and criterion method, there are a few useful commands:
+With the autotools way, the script creates executables for the tests which can
+be debugged like any program. With the meson and criterion method, there are a
+few useful commands:
 
     # run the test 'ser_test' with valgrind and print logs to stdout
-    meson test --wrap=valgrind ser_test --print-errorlogs
+    meson test -C _build --wrap=valgrind ser_test --print-errorlogs
 
-    # run the test ser_test with gdb (just run it on prompt)
-    meson test --gdb ser_test
-
-Unfortunately meson --gdb doesn't work on raspbian, it never breaks.
-The criterion debug method with gdbserver doesn't work either.
-For this reason, some tests can also be compiled as a regular executable, with
-the criterion calls replaced by a macro that displays errors.
+Unfortunately meson --gdb doesn't work, it never breaks, even if there is a
+segmentation fault in the test. Debugging with gdb using the method [documented
+in criterion](https://criterion.readthedocs.io/en/master/debug.html), where the
+test is started in gdb but another remote gdb session is required to access it,
+works on linux and probably mac.
 
