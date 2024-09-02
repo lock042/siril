@@ -171,7 +171,8 @@ void configure_graxpert_dialog_for_roi() {
 		copy_gfit_to_backup();
 	} else {
 		roi_supported(FALSE);
-		siril_preview_hide();
+		if (is_preview_active())
+			siril_preview_hide();
 		remove_roi_callback(graxpert_roi_callback);
 		mouse_status = MOUSE_ACTION_DRAW_SAMPLES;
 	}
@@ -247,7 +248,8 @@ void on_graxpert_dialog_show(GtkWidget *widget, gpointer user_data) {
 
 void on_graxpert_dialog_hide(GtkWidget *widget, gpointer user_data) {
 	roi_supported(FALSE);
-	siril_preview_hide();
+	if (is_preview_active())
+		siril_preview_hide();
 	remove_roi_callback(graxpert_roi_callback);
 	mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
 	free_background_sample_list(com.grad_samples);
