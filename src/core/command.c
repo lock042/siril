@@ -10687,6 +10687,10 @@ static graxpert_data *fill_graxpert_data_from_cmdline(int nb, sequence *seq, gra
 		else if (!g_ascii_strncasecmp(arg, "-keep_bg", 8)) {
 			data->keep_bg = TRUE;
 		}
+		else if (!g_ascii_strncasecmp(arg, "-ai_version=", 12)) {
+			arg += 12;
+			data->ai_version = g_strdup(arg);
+		}
 		else {
 			if (operation == GRAXPERT_BG) {
 				if (g_str_has_prefix(arg, "-algo=")) {
@@ -10813,6 +10817,13 @@ static graxpert_data *fill_graxpert_data_from_cmdline(int nb, sequence *seq, gra
 		data->bg_tol_option = -2.0;
 	else if (data->bg_tol_option > 6.0)
 		data->bg_tol_option = 6.0;
+	if (data->operation == GRAXPERT_DENOISE || data->bg_algo == GRAXPERT_BG_AI) {
+		if (!check_graxpert_version(data->ai_version, data->operation)) {
+			siril_log_color_message(_("Error: the requested AI model version is unavailable. Available versions are:\n"), "red");
+			ai_versions_to_log(operation);
+			goto GRAX_ARG_ERROR;
+		}
+	}
 
 	return data;
 
