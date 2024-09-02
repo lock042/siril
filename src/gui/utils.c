@@ -497,7 +497,7 @@ static GtkWidget* create_overrange_dialog(GtkWindow *parent, const gchar *title,
 
 	// Create and add buttons vertically
 	const char* button_labels[] = {
-		_("Cancel"), _("Clip"), _("Rescale (clip -ve)"), _("Rescale (shift -ve)"), _("Proceed")
+		_("Cancel"), _("Clip"), _("Rescale\n(+ve values only)"), _("Rescale\n(all values)"), _("Proceed")
 	};
 	const char* button_tooltips[] = {
 		_("Cancel without making any changes"),
@@ -512,6 +512,16 @@ static GtkWidget* create_overrange_dialog(GtkWindow *parent, const gchar *title,
 
 	for (int i = 0; i < 5; i++) {
 		GtkWidget *button = gtk_dialog_add_button(GTK_DIALOG(dialog), button_labels[i], responses[i]);
+		// Get the label widget from the button
+		GtkWidget *label = gtk_bin_get_child(GTK_BIN(button));
+
+		// Check if the child is a label
+		if (GTK_IS_LABEL(label)) {
+			// Set the alignment to center
+			gtk_label_set_justify(GTK_LABEL(label), GTK_JUSTIFY_CENTER);
+			gtk_label_set_xalign(GTK_LABEL(label), 0.5);
+			gtk_widget_set_valign(label, GTK_ALIGN_CENTER);
+		}
 		gtk_widget_set_tooltip_text(button, button_tooltips[i]);
 	}
 
