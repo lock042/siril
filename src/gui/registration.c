@@ -133,6 +133,8 @@ static GtkWidget *spin[3] = { NULL };
 static GtkWidget *ksig[3] = { NULL };
 static GtkLabel *filter_label[3] = { NULL };
 
+static GList *switcher_buttons = NULL;
+
 /****************************************************************/
 /* Initialization                                               */
 /****************************************************************/
@@ -241,6 +243,9 @@ static void registration_init_statics() {
 		filter_label[0] = labelfilter4;
 		filter_label[1] = labelfilter5;
 		filter_label[2] = labelfilter6;
+
+		// switcher buttons list
+		switcher_buttons = gtk_container_get_children(GTK_CONTAINER(interp_drizzle_stack_switcher));
 	}
 }
 
@@ -413,6 +418,21 @@ gboolean on_switcher_stack_clicked(GtkWidget *widget,
 	GdkEventButton *event, gpointer user_data) {
 	update_reg_interface(TRUE);
 	return TRUE;
+}
+
+static void set_switcher_buttons_colors(int n) {
+	GList *l = switcher_buttons;
+	int i = 0;
+	while (l != NULL) {
+		GtkWidget *button = (GtkWidget *) l->data;
+		if (i == n) {
+			set_suggested(button);
+		} else {
+			unset_suggested(button);
+		}
+		l = l->next;
+		i++;
+	}
 }
 /****************************************************************/
 /* comet specific callbacks                                       */
@@ -887,6 +907,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 		has_drizzle = FALSE;
 	}
 	gtk_widget_set_sensitive(GTK_WIDGET(interp_drizzle_stack_switcher), !(must_have_drizzle || must_have_interp));
+	set_switcher_buttons_colors((has_drizzle) ? 1 : 0);
 	if (has_output && !has_drizzle) {
 		gint interpolation_item = gtk_combo_box_get_active(GTK_COMBO_BOX(ComboBoxRegInter));
 		gtk_widget_set_sensitive(GTK_WIDGET(toggle_reg_clamp), interpolation_item == OPENCV_CUBIC || interpolation_item == OPENCV_LANCZOS4);
