@@ -79,7 +79,7 @@ static double histo_color_b[] = { 0.0, 0.0, 1.0, 0.0 };
 // static float graph_height = 0.f;	// the max value of all bins
 static guint64 clipped[] = { 0, 0 };
 
-static GtkToggleToolButton *toggles[MAXVPORT] = { NULL };
+static GtkToggleToolButton *toggles[3] = { NULL };
 static GtkToggleToolButton *toggleGrid = NULL, *toggleCurve = NULL, *toggleOrig = NULL;
 
 /* the original histogram, used as starting point of each computation */
@@ -865,7 +865,7 @@ static void reset_cursors_and_values() {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkMTFSeq")), FALSE);
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entryMTFSeq")), "stretch_");
 	on_histoZoom100_clicked(NULL, NULL);
-	for (int i = 0; i < 4; ++i)
+	for (int i = 0; i < 3; ++i)
 		gtk_toggle_tool_button_set_active(toggles[i], TRUE);
 
 	if (invocation == HISTO_STRETCH) {
@@ -1169,7 +1169,7 @@ void on_histo_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	update_histo_mtf();
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = histo_update_preview;
-	param->show_preview = TRUE; // no need of preview button. This is always in preview
+	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckPreview")));
 	notify_update((gpointer) param);
 }
 
@@ -1200,9 +1200,11 @@ void on_button_histo_reset_clicked(GtkButton *button, gpointer user_data) {
 
 gboolean on_scale_key_release_event(GtkWidget *widget, GdkEvent *event,
 		gpointer user_data) {
-	set_cursor_waiting(TRUE);
 	update_histo_mtf();
-	set_cursor_waiting(FALSE);
+	update_image *param = malloc(sizeof(update_image));
+	param->update_preview_fn = histo_update_preview;
+	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckPreview")));
+	notify_update((gpointer) param);
 	return FALSE;
 }
 
@@ -1836,9 +1838,12 @@ void on_payneType_changed(GtkComboBox *combo, gpointer user_data) {
 		else
 			gtk_widget_set_tooltip_text(GTK_WIDGET(lookup_widget("drawingarea_histograms")), _("Clicking on the histogram sets SP"));
 	updateGHTcontrols();
-	set_cursor_waiting(TRUE);
-	histo_update_preview();
-	set_cursor_waiting(FALSE);
+	update_histo_mtf();
+	queue_window_redraw();
+	update_image *param = malloc(sizeof(update_image));
+	param->update_preview_fn = histo_update_preview;
+	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckPreview")));
+	notify_update((gpointer) param);
 }
 
 void on_payne_colour_stretch_model_changed(GtkComboBox *combo, gpointer user_data) {
