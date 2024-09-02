@@ -352,8 +352,7 @@
                         {
                             "type": "shell",
                             "commands": [ 
-                                 "make",
-                                 "make install"
+                                 "make"
                             ]
                         }
                     ]
@@ -369,8 +368,7 @@
                         {
                             "type": "shell",
                             "commands": [ 
-                                 "make",
-                                 "make install"
+                                 "make"
                             ]
                         }
                     ]
