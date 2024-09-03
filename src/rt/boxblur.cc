@@ -26,7 +26,13 @@
 
 #include "rt_math.h"
 #include "opthelper.h"
-
+#ifdef _WIN32
+#define ALIGNED_ALLOC _aligned_alloc
+#define ALIGNED_FREE _aligned_free
+#else
+#define ALIGNED_ALLOC std::aligned_alloc
+#define ALIGNED_FREE free
+#endif
 namespace rtengine
 {
 
@@ -297,13 +303,13 @@ void boxabsblur(float** src, float** dst, int radius, int W, int H, bool multiTh
 #endif
     {
         const std::size_t bufferSize = numCols * (radius + 1);
-        float* buffer = static_cast<float*>(std::aligned_alloc(64, bufferSize * sizeof(float)));
+        float* buffer = static_cast<float*>(ALIGNED_ALLOC(64, bufferSize * sizeof(float)));
 
         if (!buffer) {
             throw std::bad_alloc(); // Handle memory allocation failure
         }
 
-        auto bufferDeleter = [](float* ptr) { std::free(ptr); };
+        auto bufferDeleter = [](float* ptr) { ALIGNED_FREE(ptr); };
         std::unique_ptr<float, decltype(bufferDeleter)> alignedBuffer(buffer, bufferDeleter);
 
         float* const lineBuffer = alignedBuffer.get();
