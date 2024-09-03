@@ -31,8 +31,6 @@
 #include "opthelper.h"
 #include "rt_math.h"
 
-using namespace std;
-
 namespace
 {
 template <typename T, std::size_t Alignment>
@@ -54,20 +52,31 @@ public:
             throw std::bad_alloc();
         }
 
-        // Calculate the total size needed and ensure it is a multiple of alignment
-        std::size_t total_size = n * sizeof(T);
-        total_size = (total_size + Alignment - 1) & ~(Alignment - 1);
+        void* ptr = nullptr;
 
-        void* ptr = aligned_alloc(Alignment, total_size);
+#ifdef _WIN32
+        // Use Windows-specific aligned memory allocation
+        ptr = _aligned_malloc(n * sizeof(T), Alignment);
         if (!ptr) {
             throw std::bad_alloc();
         }
-
+#else
+        // Use POSIX-compliant aligned memory allocation
+        if (posix_memalign(&ptr, Alignment, n * sizeof(T)) != 0) {
+            throw std::bad_alloc();
+        }
+#endif
         return static_cast<T*>(ptr);
     }
 
     void deallocate(T* p, std::size_t) noexcept {
-        std::free(p);
+#ifdef _WIN32
+        // Use Windows-specific aligned memory deallocation
+        _aligned_free(p);
+#else
+        // Use standard free for POSIX systems
+        free(p);
+#endif
     }
 
     template <typename U>
@@ -75,6 +84,7 @@ public:
         using other = AlignedAllocator<U, Alignment>;
     };
 
+    // Comparison operators for the allocator
     bool operator==(const AlignedAllocator&) const noexcept {
         return true;
     }
