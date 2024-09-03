@@ -497,7 +497,7 @@ static GtkWidget* create_overrange_dialog(GtkWindow *parent, const gchar *title,
 
 	// Create and add buttons vertically
 	const char* button_labels[] = {
-		_("Cancel"), _("Clip"), _("Rescale\n(+ve values only)"), _("Rescale\n(all values)"), _("Proceed")
+		_("Cancel"), _("Clip"), _("Rescale\n(values > 0 only)"), _("Rescale\n(all values)"), _("Proceed")
 	};
 	const char* button_tooltips[] = {
 		_("Cancel without making any changes"),
