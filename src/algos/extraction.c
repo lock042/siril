@@ -686,7 +686,7 @@ static int cfa_extract_compute_mem_limits(struct generic_seq_args *args, gboolea
 	struct split_cfa_data *cfa_args = (struct split_cfa_data *) args->user;
 
 	if (args->image_hook == extractHa_image_hook || args->image_hook == extractGreen_image_hook) {
-		MB_per_output_image = min(1, MB_per_input_image / 4);
+		MB_per_output_image = max(1, MB_per_input_image / 4);
 		required = 5 * MB_per_input_image / 4;
 	}
 	else if (args->image_hook == extractHaOIII_image_hook) {
@@ -696,7 +696,7 @@ static int cfa_extract_compute_mem_limits(struct generic_seq_args *args, gboolea
 		} else {
 			if (cfa_args->scaling == SCALING_HA_UP)
 				MB_per_output_image = MB_per_input_image * 2;
-			else MB_per_output_image = min(1, MB_per_input_image / 2);
+			else MB_per_output_image = max(1, MB_per_input_image / 2);
 
 			// Very slightly less for upscaling Ha but this is close enough
 			required = 7 * MB_per_input_image / 2;

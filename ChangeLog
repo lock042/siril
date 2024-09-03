@@ -10,6 +10,7 @@ xx/xx/24
 * Fixed crash when saving image (#1353)
 * Fixed execute button in wavelets not reverting preview (#1362)
 * Fixed CLAHE crash on mono image (#1354)
+* Fixed crash while extracting Green channel on CFA FITSEQ (#1305)
 
 siril 1.2.3
 06/19/24
