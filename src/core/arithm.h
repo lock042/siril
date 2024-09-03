@@ -47,7 +47,8 @@ int siril_fdiv(fits *a, fits *b, float scalar, gboolean allow_32bits);
 int siril_ndiv(fits *a, fits *b);
 
 int soper_unscaled_div_ushort_to_float(fits *a, int scalar);
-
+void clip(fits *fit);
+void clipneg(fits *fit);
 // RGB clipping modes
 
 void rgbblend(blend_data *data, float* r, float* g, float* b, float m_CB);

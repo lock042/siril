@@ -1201,3 +1201,25 @@ double robust_median_w(fits *fit, rectangle *area, int chan, float lower, float 
 
 	return retval;
 }
+
+// Function to quickly compute min and max values
+int quick_minmax(fits *fit, double *minval, double *maxval) {
+    imstats *stats[3] = { NULL };
+    int retval = compute_all_channels_statistics_single_image(fit, STATS_MINMAX, MULTI_THREADED, stats);
+
+    if (retval) {
+        siril_log_color_message(_("Error: statistics computation failed. Unable to check for out-of-range values.\n"), "red");
+    } else {
+        if (fit->naxes[2] == 1) {
+            *maxval = stats[0]->max;
+            *minval = stats[0]->min;
+        } else {
+            *maxval = max(max(stats[RLAYER]->max, stats[GLAYER]->max), stats[BLAYER]->max);
+            *minval = min(min(stats[RLAYER]->min, stats[GLAYER]->min), stats[BLAYER]->min);
+        }
+        for (int i = 0; i < fit->naxes[2]; i++) {
+            free_stats(stats[i]);
+        }
+    }
+    return retval;
+}

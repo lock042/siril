@@ -120,6 +120,14 @@ typedef GtkWidget SirilWidget;
 #endif
 
 typedef enum {
+	RESPONSE_CANCEL = 1,
+	RESPONSE_CLIP,
+	RESPONSE_RESCALE_CLIPNEG,
+	RESPONSE_RESCALE_ALL,
+	RESPONSE_PROCEED
+} OverrangeResponse;
+
+typedef enum {
 	TYPEUNDEF = (1 << 1),
 	TYPEFITS = (1 << 2),
 	TYPETIFF = (1 << 3),
