@@ -20,11 +20,22 @@
 
 #include <memory>
 #include <cmath>
+#include <vector>
+#include <cstdlib>
 
 #include "boxblur.h"
 
 #include "rt_math.h"
 #include "opthelper.h"
+#ifdef _WIN32
+#define ALIGNED_ALLOC _aligned_malloc
+#define ALIGNED_FREE _aligned_free
+#else
+#define ALIGNED_ALLOC aligned_alloc
+#define ALIGNED_FREE free
+#endif
+
+using namespace std;
 
 namespace rtengine
 {
@@ -295,10 +306,19 @@ void boxabsblur(float** src, float** dst, int radius, int W, int H, bool multiTh
     #pragma omp parallel if (multiThread)
 #endif
     {
-        float buffer[numCols * (radius + 1)] ALIGNED64;
+        std::size_t bufferSize = numCols * (radius + 1);
+        int alignment = 64;
+        bufferSize = (bufferSize + alignment - 1) & ~(alignment - 1);
+        float* buffer = static_cast<float*>(ALIGNED_ALLOC(alignment, bufferSize * sizeof(float)));
 
-        //horizontal blur
-        float* const lineBuffer = buffer;
+        if (!buffer) {
+            throw std::bad_alloc(); // Handle memory allocation failure
+        }
+
+        auto bufferDeleter = [](float* ptr) { ALIGNED_FREE(ptr); };
+        std::unique_ptr<float, decltype(bufferDeleter)> alignedBuffer(buffer, bufferDeleter);
+
+        float* const lineBuffer = alignedBuffer.get();
 #ifdef _OPENMP
         #pragma omp for
 #endif
@@ -398,8 +418,10 @@ void boxabsblur(float** src, float** dst, int radius, int W, int H, bool multiTh
 
 void boxblur(float* src, float* dst, int radius, int W, int H, bool multiThread)
 {
-    float* srcp[H];
-    float* dstp[H];
+    std::vector<float*> srcpv(H);
+    float** srcp = srcpv.data();
+    std::vector<float*> dstpv(H);
+    float** dstp = dstpv.data();
     for (int i = 0; i < H; ++i) {
         srcp[i] = src + i * W;
         dstp[i] = dst + i * W;
@@ -409,8 +431,10 @@ void boxblur(float* src, float* dst, int radius, int W, int H, bool multiThread)
 
 void boxabsblur(float* src, float* dst, int radius, int W, int H, bool multiThread)
 {
-    float* srcp[H];
-    float* dstp[H];
+    std::vector<float*> srcpv(H);
+    float** srcp = srcpv.data();
+    std::vector<float*> dstpv(H);
+    float** dstp = dstpv.data();
     for (int i = 0; i < H; ++i) {
         srcp[i] = src + i * W;
         dstp[i] = dst + i * W;
