@@ -11097,6 +11097,41 @@ int process_trixel(int nb) {
 	return CMD_OK;
 }
 
+int process_limit(int nb) {
+	if (nb != 2)
+		return CMD_WRONG_N_ARG;
+	if (gfit.type == DATA_USHORT) {
+		siril_log_message(_("16-bit images cannot have out-of-range pixels: nothing to do.\n"));
+		return CMD_OK;
+	}
+
+	double maxval, minval;
+	int retval = quick_minmax(&gfit, &minval, &maxval);
+	if (retval)
+		return CMD_GENERIC_ERROR;
+
+	if (maxval <= 1.0 && minval >= 0.0) {
+		siril_log_message(_("No pixels require clipping. Nothing to do...\n"));
+		return CMD_OK;
+	}
+
+	OverrangeResponse method;
+	if (!g_ascii_strncasecmp(word[1], "-clip", 5)) {
+		method = RESPONSE_CLIP;
+	} else if (!g_ascii_strncasecmp(word[1], "-posrescale", 11)) {
+		method = RESPONSE_RESCALE_CLIPNEG;
+	} else if (!g_ascii_strncasecmp(word[1], "-rescale", 8)) {
+		method = RESPONSE_RESCALE_ALL;
+	} else {
+		siril_log_color_message(_("Error: unknown argument!\n"), "red");
+		return CMD_ARG_ERROR;
+	}
+
+	apply_limits(&gfit, minval, maxval, method);
+	siril_log_message(_("Pixel limits applied successfully.\n"));
+	return CMD_OK;
+}
+
 int process_online(int nb) {
 	set_online_status(TRUE);
 	return CMD_OK;

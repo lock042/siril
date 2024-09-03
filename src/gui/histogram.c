@@ -28,6 +28,7 @@
 #include "core/icc_profile.h"
 #include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
+#include "core/arithm.h"
 #include "algos/statistics.h"
 #include "algos/colors.h"
 #include "io/single_image.h"
@@ -865,7 +866,7 @@ static void reset_cursors_and_values() {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkMTFSeq")), FALSE);
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entryMTFSeq")), "stretch_");
 	on_histoZoom100_clicked(NULL, NULL);
-	for (int i = 0; i < 4; ++i)
+	for (int i = 0; i < 3; ++i)
 		gtk_toggle_tool_button_set_active(toggles[i], TRUE);
 
 	if (invocation == HISTO_STRETCH) {

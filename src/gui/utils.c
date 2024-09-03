@@ -23,6 +23,10 @@
 #include <glib.h>
 
 #include "algos/demosaicing.h"
+#include "algos/statistics.h"
+#include "core/arithm.h"
+#include "io/single_image.h"
+#include "gui/callbacks.h"
 #include "utils.h"
 #include "core/siril_log.h"
 #include "message_dialog.h"
@@ -473,4 +477,128 @@ void interpolate_nongreen(fits *fit) {
 		interpolate_nongreen_ushort(fit);
 	}
 	siril_debug_print("Interpolating non-green pixels\n");
+}
+
+static GtkWidget* create_overrange_dialog(GtkWindow *parent, const gchar *title, const gchar *message) {
+	GtkWidget *dialog;
+	GtkWidget *content_area;
+	GtkWidget *hbox;
+	GtkWidget *image;
+	GtkWidget *label;
+
+	dialog = gtk_dialog_new_with_buttons(
+		title,
+		parent,
+		GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+		NULL, NULL  // We'll add buttons manually
+	);
+
+	content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+
+	// Create a horizontal box to hold the icon and message
+	hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
+	gtk_container_set_border_width(GTK_CONTAINER(hbox), 12);
+
+	// Add warning icon
+	image = gtk_image_new_from_icon_name("dialog-warning", GTK_ICON_SIZE_DIALOG);
+	gtk_box_pack_start(GTK_BOX(hbox), image, FALSE, FALSE, 0);
+
+	// Create label with the message
+	label = gtk_label_new(message);
+	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
+	gtk_label_set_max_width_chars(GTK_LABEL(label), 50);  // Constrain maximum width
+	gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
+
+	// Add the hbox to the content area
+	gtk_box_pack_start(GTK_BOX(content_area), hbox, TRUE, TRUE, 0);
+
+	// Create and add buttons vertically
+	const char* button_labels[] = {
+		_("Cancel"), _("Clip"), _("Rescale\n(values > 0 only)"), _("Rescale\n(all values)"), _("Proceed")
+	};
+	const char* button_tooltips[] = {
+		_("Cancel without making any changes"),
+		_("Clip pixel values to the range 0.0 - 1.0"),
+		_("Rescale pixel values to fit the range 0.0 - 1.0, clipping negative pixel values"),
+		_("Rescale pixel values to fit the range 0.0 to 1.0, applying an offset to bring negatve pixel values into range"),
+		_("Ignore the warning and proceed")
+	};
+	OverrangeResponse responses[] = {
+		RESPONSE_CANCEL, RESPONSE_CLIP, RESPONSE_RESCALE_CLIPNEG, RESPONSE_RESCALE_ALL, RESPONSE_PROCEED
+	};
+
+	for (int i = 0; i < 5; i++) {
+		GtkWidget *button = gtk_dialog_add_button(GTK_DIALOG(dialog), button_labels[i], responses[i]);
+		// Get the label widget from the button
+		GtkWidget *label = gtk_bin_get_child(GTK_BIN(button));
+
+		// Check if the child is a label
+		if (GTK_IS_LABEL(label)) {
+			// Set the alignment to center
+			gtk_label_set_justify(GTK_LABEL(label), GTK_JUSTIFY_CENTER);
+			gtk_label_set_xalign(GTK_LABEL(label), 0.5);
+			gtk_widget_set_valign(label, GTK_ALIGN_CENTER);
+		}
+		gtk_widget_set_tooltip_text(button, button_tooltips[i]);
+	}
+
+	// Set dialog to be not resizable
+	gtk_window_set_resizable(GTK_WINDOW(dialog), FALSE);
+
+	gtk_widget_show_all(dialog);
+
+	return dialog;
+}
+
+// Function to apply limits based on the chosen method
+void apply_limits(fits *fit, double minval, double maxval, OverrangeResponse method) {
+	switch (method) {
+		case RESPONSE_CLIP:;
+			clip(fit);
+			break;
+		case RESPONSE_RESCALE_CLIPNEG:;
+			clipneg(fit);
+			if (maxval > 1.0)
+				soper(fit, (1.0 / maxval), OPER_MUL, TRUE);
+			break;
+		case RESPONSE_RESCALE_ALL:;
+			double range = maxval - minval;
+			if (minval < 0.0)
+				soper(fit, minval, OPER_SUB, TRUE);
+			if (range > 1.0)
+				soper(fit, (1.0 / range), OPER_MUL, TRUE);
+			break;
+		default:
+			// Covers RESPONSE_PROCEED and RESPONSE_CANCEL
+			// (RESPONSE_CANCEL should never happen)
+			// Do nothing, no need to notify gfit modified so just return
+			return;
+	}
+
+	if (fit == &gfit)
+		notify_gfit_modified();
+}
+
+gboolean value_check(fits *fit) {
+	if (fit->type == DATA_USHORT)
+		return TRUE;
+
+	double maxval, minval;
+	int retval = quick_minmax(fit, &minval, &maxval);
+	if (retval)
+		return TRUE;
+
+	if (maxval > 1.0 || minval < 0.0) {
+		gchar *msg = g_strdup_printf(_("This image contains pixel values outside the range 0.0 - 1.0 (min = %.3f, max = %.3f). This can cause unwanted behaviour. Choose how to handle this.\n"), minval, maxval);
+		GtkWidget *dialog = create_overrange_dialog(siril_get_active_window(), _("Warning"), msg);
+		OverrangeResponse result = (OverrangeResponse) gtk_dialog_run(GTK_DIALOG(dialog));
+		gtk_widget_destroy(dialog);
+		g_free(msg);
+
+		if (result == RESPONSE_CANCEL)
+			return FALSE;
+
+		apply_limits(fit, minval, maxval, result);
+	}
+	return TRUE;
 }
