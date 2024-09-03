@@ -18,7 +18,11 @@
  */
 #include <cmath>
 #include <cstdlib>
+#include <stdexcept>
 #include <cstring>
+#include <memory>
+#include <array>
+#include <vector>
 
 #include "gauss.h"
 
@@ -28,6 +32,46 @@
 
 namespace
 {
+
+
+template <typename T, std::size_t Alignment = 16>
+class AlignedAllocator {
+public:
+    using value_type = T;
+
+    AlignedAllocator() noexcept = default;
+
+    template <class U>
+    constexpr AlignedAllocator(const AlignedAllocator<U, Alignment>&) noexcept {}
+
+    [[nodiscard]] T* allocate(std::size_t n) {
+        void* ptr = nullptr;
+        if (posix_memalign(&ptr, Alignment, n * sizeof(T)) != 0) {
+            throw std::bad_alloc();
+        }
+        return static_cast<T*>(ptr);
+    }
+
+    void deallocate(T* p, std::size_t) noexcept {
+        std::free(p);
+    }
+
+    template <typename U>
+    struct rebind {
+        using other = AlignedAllocator<U, Alignment>;
+    };
+};
+
+// Comparisons for allocators (required by standard)
+template <typename T, std::size_t TAlign, typename U, std::size_t UAlign>
+bool operator==(const AlignedAllocator<T, TAlign>&, const AlignedAllocator<U, UAlign>&) noexcept {
+    return TAlign == UAlign;
+}
+
+template <typename T, std::size_t TAlign, typename U, std::size_t UAlign>
+bool operator!=(const AlignedAllocator<T, TAlign>&, const AlignedAllocator<U, UAlign>&) noexcept {
+    return TAlign != UAlign;
+}
 
 void compute7x7kernel(float sigma, float kernel[7][7]) {
     const double temp = -2.f * rtengine::SQR(sigma);
@@ -425,8 +469,9 @@ template<class T> void gauss5x5mult (T** RESTRICT src, T** RESTRICT dst, const i
 // use separated filter if the support window is small and src == dst
 template<class T> void gaussHorizontal3 (T** src, T** dst, int W, int H, const float c0, const float c1)
 {
-    T temp[W] ALIGNED16;
-#ifdef _OPENMP
+    std::vector<T, AlignedAllocator<T, 16>> tempv(W);
+    T *temp = tempv.data();
+    #ifdef _OPENMP
     #pragma omp for
 #endif
 
@@ -483,7 +528,8 @@ template<class T> void gaussVertical3 (T** src, T** dst, int W, int H, const flo
     }
 
 // Borders are done without SSE
-    float temp[H] ALIGNED16;
+    std::vector<float, AlignedAllocator<float, 16>> tempv(H);
+    float* temp = tempv.data();
 #ifdef _OPENMP
     #pragma omp single
 #endif
@@ -543,7 +589,7 @@ template<class T> void gaussHorizontalSse (T** src, T** dst, const int W, const 
     vfloat Tv, Tm2v, Tm3v;
     vfloat Bv, b1v, b2v, b3v;
     vfloat temp2W, temp2Wp1;
-    float tmp[W][4] ALIGNED16;
+    std::vector<std::array<float, 4>, AlignedAllocator<std::array<float, 4>, 16>> tmp(W);
     Bv = F2V(B);
     b1v = F2V(b1);
     b2v = F2V(b2);
@@ -652,7 +698,8 @@ template<class T> void gaussHorizontal (T** src, T** dst, const int W, const int
             M[i][j] /= (1.0 + b1 - b2 + b3) * (1.0 + b2 + (b1 - b3) * b3);
         }
 
-    double temp2[W] ALIGNED16;
+    std::vector<double, AlignedAllocator<double, 16>> tempv(W);
+    double *temp2 = tempv.data();
 
 #ifdef _OPENMP
     #pragma omp for
@@ -699,7 +746,7 @@ template<class T> void gaussVerticalSse (T** src, T** dst, const int W, const in
             M[i][j] /= (1.0 + b1 - b2 + b3) * (1.0 - b1 - b2 - b3);
         }
 
-    float tmp[H][8] ALIGNED16;
+    std::vector<std::array<float, 8>, AlignedAllocator<std::array<float, 8>, 16>> tmp(H);
     vfloat Rv;
     vfloat Tv, Tm2v, Tm3v;
     vfloat Rv1;
@@ -842,7 +889,7 @@ template<class T> void gaussVerticalSsemult (T** RESTRICT src, T** RESTRICT dst,
             M[i][j] /= (1.0 + b1 - b2 + b3) * (1.0 - b1 - b2 - b3);
         }
 
-    float tmp[H][8] ALIGNED16;
+    std::vector<std::array<float, 8>, AlignedAllocator<std::array<float, 8>, 16>> tmp(H);
     vfloat Rv;
     vfloat Tv, Tm2v, Tm3v;
     vfloat Rv1;
@@ -983,7 +1030,7 @@ template<class T> void gaussVerticalSsediv (T** src, T** dst, T** divBuffer, con
             M[i][j] /= (1.0 + b1 - b2 + b3) * (1.0 - b1 - b2 - b3);
         }
 
-    float tmp[H][8] ALIGNED16;
+    std::vector<std::array<float, 8>, AlignedAllocator<std::array<float, 8>, 16>> tmp(H);
     vfloat Rv;
     vfloat Tv, Tm2v, Tm3v;
     vfloat Rv1;
@@ -1129,8 +1176,18 @@ template<class T> void gaussVertical (T** src, T** dst, const int W, const int H
 
     // process 'numcols' columns for better usage of L1 cpu cache (especially faster for large values of H)
     static const int numcols = 8;
-    double temp2[H][numcols] ALIGNED16;
-    double temp2Hm1[numcols], temp2H[numcols], temp2Hp1[numcols];
+    // Allocate numcols, avoiding use of VLAs
+    // Allocate aligned memory for a 2D array
+    std::vector<double, AlignedAllocator<double, 16>> temp2_storage(H * numcols);
+
+    // Create an array of pointers to represent rows
+    std::unique_ptr<double*[]> temp2(new double*[H]);
+
+    for (int i = 0; i < H; ++i) {
+        temp2[i] = &temp2_storage[i * numcols];
+    }
+    std::vector<double> temp2Hm1v(numcols), temp2Hv(numcols), temp2Hp1v(numcols);
+    double *temp2Hm1 = temp2Hm1v.data(), *temp2H = temp2Hv.data(), *temp2Hp1 = temp2Hp1v.data();
 #ifdef _OPENMP
     #pragma omp for nowait
 #endif
@@ -1391,7 +1448,8 @@ template<class T> void gaussianBlurImpl(T** src, T** dst, const int W, const int
         double mIdeal = (12 * sigma * sigma - n * wl * wl - 4 * n * wl - 3 * n) / (-4 * wl - 4);
         int m = round(mIdeal);
 
-        int sizes[n];
+        std::vector<int> sizesv(n);
+        int *sizes = sizesv.data();
 
         for(int i = 0; i < n; i++) {
             sizes[i] = ((i < m ? wl : wu) - 1) / 2;

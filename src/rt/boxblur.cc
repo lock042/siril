@@ -20,6 +20,7 @@
 
 #include <memory>
 #include <cmath>
+#include <vector>
 
 #include "boxblur.h"
 
@@ -295,10 +296,17 @@ void boxabsblur(float** src, float** dst, int radius, int W, int H, bool multiTh
     #pragma omp parallel if (multiThread)
 #endif
     {
-        float buffer[numCols * (radius + 1)] ALIGNED64;
+        const std::size_t bufferSize = numCols * (radius + 1);
+        float* buffer = static_cast<float*>(std::aligned_alloc(64, bufferSize * sizeof(float)));
 
-        //horizontal blur
-        float* const lineBuffer = buffer;
+        if (!buffer) {
+            throw std::bad_alloc(); // Handle memory allocation failure
+        }
+
+        auto bufferDeleter = [](float* ptr) { std::free(ptr); };
+        std::unique_ptr<float, decltype(bufferDeleter)> alignedBuffer(buffer, bufferDeleter);
+
+        float* const lineBuffer = alignedBuffer.get();
 #ifdef _OPENMP
         #pragma omp for
 #endif
@@ -398,8 +406,10 @@ void boxabsblur(float** src, float** dst, int radius, int W, int H, bool multiTh
 
 void boxblur(float* src, float* dst, int radius, int W, int H, bool multiThread)
 {
-    float* srcp[H];
-    float* dstp[H];
+    std::vector<float*> srcpv(H);
+    float** srcp = srcpv.data();
+    std::vector<float*> dstpv(H);
+    float** dstp = dstpv.data();
     for (int i = 0; i < H; ++i) {
         srcp[i] = src + i * W;
         dstp[i] = dst + i * W;
@@ -409,8 +419,10 @@ void boxblur(float* src, float* dst, int radius, int W, int H, bool multiThread)
 
 void boxabsblur(float* src, float* dst, int radius, int W, int H, bool multiThread)
 {
-    float* srcp[H];
-    float* dstp[H];
+    std::vector<float*> srcpv(H);
+    float** srcp = srcpv.data();
+    std::vector<float*> dstpv(H);
+    float** dstp = dstpv.data();
     for (int i = 0; i < H; ++i) {
         srcp[i] = src + i * W;
         dstp[i] = dst + i * W;
