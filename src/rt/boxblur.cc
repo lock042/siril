@@ -21,6 +21,7 @@
 #include <memory>
 #include <cmath>
 #include <vector>
+#include <cstdlib>
 
 #include "boxblur.h"
 
