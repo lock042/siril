@@ -248,7 +248,8 @@ pair<Image, Image> DA3D_block(int &retval, const Image &noisy, const Image &guid
   DftPatch g_m(s, s, guide.channels());
   int pr, pc;  // coordinates of the central pixel
   vector<pair<float, float>> reg_plane(guide.channels());  // parameters of the regression plane
-  float yt[guide.channels()];  // weighted average of the patch
+  vector<float> ytv(guide.channels());
+  float* yt = ytv.data();  // weighted average of the patch
   WeightMap agg_weights(guide.rows() - s + 1, guide.columns() - s + 1);  // line 1
 
   Image output(guide.rows(), guide.columns(), guide.channels());
