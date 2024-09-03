@@ -23,6 +23,7 @@
 #include <memory>
 #include <array>
 #include <vector>
+#include <new>
 
 #include "gauss.h"
 
@@ -32,46 +33,66 @@
 
 namespace
 {
-
-
-template <typename T, std::size_t Alignment = 16>
+template <typename T, std::size_t Alignment>
 class AlignedAllocator {
 public:
     using value_type = T;
 
     AlignedAllocator() noexcept = default;
 
-    template <class U>
-    constexpr AlignedAllocator(const AlignedAllocator<U, Alignment>&) noexcept {}
+    template <typename U>
+    AlignedAllocator(const AlignedAllocator<U, Alignment>&) noexcept {}
 
-    [[nodiscard]] T* allocate(std::size_t n) {
+    T* allocate(std::size_t n) {
+        if (n == 0) {
+            return nullptr;
+        }
+
+        if (n > static_cast<std::size_t>(-1) / sizeof(T)) {
+            throw std::bad_alloc();
+        }
+
         void* ptr = nullptr;
+
+#ifdef _WIN32
+        // Use Windows-specific aligned memory allocation
+        ptr = _aligned_malloc(n * sizeof(T), Alignment);
+        if (!ptr) {
+            throw std::bad_alloc();
+        }
+#else
+        // Use POSIX-compliant aligned memory allocation
         if (posix_memalign(&ptr, Alignment, n * sizeof(T)) != 0) {
             throw std::bad_alloc();
         }
+#endif
         return static_cast<T*>(ptr);
     }
 
     void deallocate(T* p, std::size_t) noexcept {
-        std::free(p);
+#ifdef _WIN32
+        // Use Windows-specific aligned memory deallocation
+        _aligned_free(p);
+#else
+        // Use standard free for POSIX systems
+        free(p);
+#endif
     }
 
     template <typename U>
     struct rebind {
         using other = AlignedAllocator<U, Alignment>;
     };
+
+    // Comparison operators for the allocator
+    bool operator==(const AlignedAllocator&) const noexcept {
+        return true;
+    }
+
+    bool operator!=(const AlignedAllocator& other) const noexcept {
+        return !(*this == other);
+    }
 };
-
-// Comparisons for allocators (required by standard)
-template <typename T, std::size_t TAlign, typename U, std::size_t UAlign>
-bool operator==(const AlignedAllocator<T, TAlign>&, const AlignedAllocator<U, UAlign>&) noexcept {
-    return TAlign == UAlign;
-}
-
-template <typename T, std::size_t TAlign, typename U, std::size_t UAlign>
-bool operator!=(const AlignedAllocator<T, TAlign>&, const AlignedAllocator<U, UAlign>&) noexcept {
-    return TAlign != UAlign;
-}
 
 void compute7x7kernel(float sigma, float kernel[7][7]) {
     const double temp = -2.f * rtengine::SQR(sigma);
