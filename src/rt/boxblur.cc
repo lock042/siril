@@ -306,10 +306,10 @@ void boxabsblur(float** src, float** dst, int radius, int W, int H, bool multiTh
     #pragma omp parallel if (multiThread)
 #endif
     {
-        const std::size_t bufferSize = numCols * (radius + 1);
+        std::size_t bufferSize = numCols * (radius + 1);
         int alignment = 64;
-        alloc_size = (bufferSize + alignment - 1) & ~(alignment - 1);
-        float* buffer = static_cast<float*>(ALIGNED_ALLOC(alignment, alloc_size * sizeof(float)));
+        bufferSize = (bufferSize + alignment - 1) & ~(alignment - 1);
+        float* buffer = static_cast<float*>(ALIGNED_ALLOC(alignment, bufferSize * sizeof(float)));
 
         if (!buffer) {
             throw std::bad_alloc(); // Handle memory allocation failure
