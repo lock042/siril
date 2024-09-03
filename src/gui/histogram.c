@@ -28,6 +28,7 @@
 #include "core/icc_profile.h"
 #include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
+#include "core/arithm.h"
 #include "algos/statistics.h"
 #include "algos/colors.h"
 #include "io/single_image.h"

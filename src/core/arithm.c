@@ -455,7 +455,22 @@ void rgbblend(blend_data *data, float* r, float* g, float* b, float m_CB) {
 	}
 }
 
-// Scaling functions
+void clip(fits *fit) {
+	if (fit->type == DATA_USHORT) return; // USHORT cannot be out of range
+	size_t ndata = fit->rx * fit->ry * fit->naxes[2];
+	for (size_t i = 0 ; i < ndata ; i++) {
+		fit->fdata[i] = fit->fdata[i] < 0.f ? 0.f : fit->fdata[i] > 1.f ? 1.f : fit->fdata[i];
+	}
+}
+
+void clipneg(fits *fit) {
+	if (fit->type == DATA_USHORT) return; // USHORT cannot be out of range
+	size_t ndata = fit->rx * fit->ry * fit->naxes[2];
+	for (size_t i = 0 ; i < ndata ; i++) {
+		fit->fdata[i] = fit->fdata[i] < 0.f ? 0.f : fit->fdata[i];
+	}
+}
+	// Scaling functions
 
 inline static float sample(const float *buf, int w, int h, int d, int i, int j, int c) {
 	i = min(max(i, 0), w - 1);
