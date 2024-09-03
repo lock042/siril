@@ -28,7 +28,7 @@
 #include "rt_math.h"
 #include "opthelper.h"
 #ifdef _WIN32
-#define ALIGNED_ALLOC _aligned_alloc
+#define ALIGNED_ALLOC _aligned_malloc
 #define ALIGNED_FREE _aligned_free
 #elif defined __APPLE__
 #define ALIGNED_ALLOC aligned_alloc
