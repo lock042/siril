@@ -30,13 +30,13 @@
 #ifdef _WIN32
 #define ALIGNED_ALLOC _aligned_malloc
 #define ALIGNED_FREE _aligned_free
-#elif defined __APPLE__
+#else
 #define ALIGNED_ALLOC aligned_alloc
 #define ALIGNED_FREE free
-#else
-#define ALIGNED_ALLOC std::aligned_alloc
-#define ALIGNED_FREE free
 #endif
+
+using namespace std;
+
 namespace rtengine
 {
 
