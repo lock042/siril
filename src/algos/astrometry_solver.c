@@ -773,10 +773,13 @@ void reframe_astrometry_data(fits *fit, Homography H) {
 	pc2_2 = H.h10 * fit->keywords.wcslib->pc[2] + H.h11 * fit->keywords.wcslib->pc[3];
 	// we go back to cd formulation just to separate back again cdelt and pc
 	double cd[2][2], pc[2][2];
+	double scale_2 = fabs(H.h00 * H.h11 - H.h10 * H.h01);
 	pc[0][0] = pc1_1;
 	pc[0][1] = pc1_2;
 	pc[1][0] = pc2_1;
 	pc[1][1] = pc2_2;
+	fit->keywords.wcslib->cdelt[0] /= scale_2;
+	fit->keywords.wcslib->cdelt[1] /= scale_2;
 	// we recombine pc and cdelt, and decompose it
 	wcs_pc_to_cd(pc, fit->keywords.wcslib->cdelt, cd);
 	wcs_decompose_cd(fit->keywords.wcslib, cd);
