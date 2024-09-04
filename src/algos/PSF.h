@@ -43,7 +43,6 @@ struct fwhm_struct {
 	photometry *phot;	/* photometry data */
 	gboolean phot_is_valid;	/* valid if computed by photometry and no saturated pixel detected */
 	double BV;	/* only used to pass data in photometric color calibration */
-	gboolean is_done;	/* a special marker for fred */
 
 	/* uncertainties */
 	double B_err;
