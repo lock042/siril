@@ -118,7 +118,7 @@ static GtkExpander *autoreg_expander = NULL, *manualreg_expander = NULL;
 static GtkFrame *output_reg_frame = NULL;
 static GtkGrid *grid_reg_framing = NULL, *grid_interp_controls = NULL, *grid_drizzle_controls = NULL, *grid_reg_wcs = NULL;
 static GtkImage *framing_image = NULL;
-static GtkLabel *label1_comet = NULL, *regfilter_label = NULL, *labelfilter4 = NULL, *labelfilter5 = NULL, *labelfilter6 = NULL, *labelregisterinfo = NULL, *labelRegRef = NULL;
+static GtkLabel *label1_comet = NULL, *regfilter_label = NULL, *labelfilter4 = NULL, *labelfilter5 = NULL, *labelfilter6 = NULL, *labelregisterinfo = NULL, *labelRegRef = NULL, *estimate_label = NULL;
 static GtkNotebook *notebook_registration = NULL;
 static GtkSpinButton *spinbut_minpairs = NULL, *spin_kombat_percent = NULL, *stackspin4 = NULL, *stackspin5 = NULL, *stackspin6 = NULL, *reg_scaling_spin = NULL, *spin_driz_dropsize = NULL, *spinbut_shiftx = NULL, *spinbut_shifty = NULL;
 static GtkStack *interp_drizzle_stack = NULL;
@@ -199,6 +199,7 @@ static void registration_init_statics() {
 		labelfilter6 = GTK_LABEL(gtk_builder_get_object(gui.builder, "labelfilter6"));
 		labelregisterinfo = GTK_LABEL(gtk_builder_get_object(gui.builder, "labelregisterinfo"));
 		labelRegRef = GTK_LABEL(gtk_builder_get_object(gui.builder, "labelRegRef"));
+		estimate_label = GTK_LABEL(gtk_builder_get_object(gui.builder, "estimate_label"));
 		// GtkNotebook
 		notebook_registration = GTK_NOTEBOOK(gtk_builder_get_object(gui.builder, "notebook_registration"));
 		// GtkSpinButton
@@ -954,6 +955,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 			gtk_widget_set_tooltip_text(GTK_WIDGET(labelregisterinfo), _("This sequence cannot be registered with the CFA pattern intact. Select drizzle or debayer it prior to registration"));
 		}
 	}
+	gtk_label_set_text(estimate_label, "");
 	gtk_widget_set_sensitive(GTK_WIDGET(goregister_button), ready);
 	gtk_widget_set_sensitive(GTK_WIDGET(proj_estimate), ready);
 }
@@ -1242,6 +1244,16 @@ gboolean end_register_idle(gpointer p) {
 
 	set_cursor_waiting(FALSE);
 	if (args->func == &register_3stars) reset_3stars();
+
+	if (args->func == &register_apply_reg && args->no_output) { // Estimate was pressed, we need to update the label
+		gchar *downscale = (args->output_scale != 1.f) ? g_strdup_printf(_(" (assuming a scaling factor of %.2f)"), args->output_scale) : g_strdup("");
+		gchar *scalemsg = g_strdup_printf(_("Output image: %d x %d pixels%s\n"), args->framingd.roi_out.w, args->framingd.roi_out.h, downscale);
+		gtk_label_set_text(estimate_label, scalemsg);
+		g_free(downscale);
+		g_free(scalemsg);
+		if (!args->retval)
+			control_window_switch_to_tab(REGISTRATION); // if there are some warnings we stay on the Console tab
+	}
 
 	free(args->new_seq_name);
 	free(args);

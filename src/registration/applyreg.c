@@ -244,9 +244,9 @@ static gboolean compute_framing(struct registration_args *regargs) {
 	regargs->framingd.roi_out.w = (int)((float)rx_0 * regargs->output_scale);
 	regargs->framingd.roi_out.h = (int)((float)ry_0 * regargs->output_scale);
 
-	gchar *downscale = (regargs->output_scale != 1.f) ? g_strdup_printf(_(" (assuming a scaling factor of %.2f)"), regargs->output_scale) : g_strdup("");
-	siril_log_color_message(_("Output image: %d x %d pixels%s\n"), "salmon", regargs->framingd.roi_out.w, regargs->framingd.roi_out.h, downscale);
-	g_free(downscale);
+	// gchar *downscale = (regargs->output_scale != 1.f) ? g_strdup_printf(_(" (assuming a scaling factor of %.2f)"), regargs->output_scale) : g_strdup("");
+	// siril_log_color_message(_("Output image: %d x %d pixels%s\n"), "salmon", regargs->framingd.roi_out.w, regargs->framingd.roi_out.h, downscale);
+	// g_free(downscale);
 
 	return retval;
 }
