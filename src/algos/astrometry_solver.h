@@ -126,6 +126,7 @@ double compute_mag_limit_from_position_and_fov(double ra, double dec, double fov
 gboolean confirm_delete_wcs_keywords(fits *fit);
 void reframe_astrometry_data(fits *fit, Homography H);
 void flip_bottom_up_astrometry_data(fits *fit);
+void update_wcsdata_from_wcs(fits *fit);
 
 void init_astrometry();
 void reset_astrometry_checks();

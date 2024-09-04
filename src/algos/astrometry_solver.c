@@ -224,28 +224,28 @@ SirilWorldCS *get_eqs_from_header(fits *fit) {
 	return NULL;
 }
 
-static void update_wcsdata_from_wcs(struct astrometry_data *args) {
-	if (has_wcsdata(args->fit))
-		reset_wcsdata(args->fit);
+void update_wcsdata_from_wcs(fits *fit) {
 	double ra0, dec0;
-	if (args->solver == SOLVER_LOCALASNET) {
-		center2wcs(args->fit, &ra0, &dec0); // asnet sometimes does not return solution at center despite the center flag
-		snprintf(args->fit->keywords.wcsdata.pltsolvd_comment, FLEN_COMMENT, "Solved by Astrometry.net (%s)", asnet_version);
-	} else {
-		ra0 = args->fit->keywords.wcslib->crval[0];
-		dec0 = args->fit->keywords.wcslib->crval[1];
-		g_snprintf(args->fit->keywords.wcsdata.pltsolvd_comment, FLEN_COMMENT, "Siril internal solver");
-	}
-	args->fit->keywords.wcsdata.ra = ra0;
-	args->fit->keywords.wcsdata.dec = dec0;
-	args->fit->keywords.wcsdata.pltsolvd = TRUE;
+	center2wcs(fit, &ra0, &dec0);
+	fit->keywords.wcsdata.ra = ra0;
+	fit->keywords.wcsdata.dec = dec0;
 	gchar *ra = siril_world_cs_alpha_format_from_double(ra0, "%02d %02d %.3lf");
 	gchar *dec = siril_world_cs_delta_format_from_double(dec0, "%c%02d %02d %.3lf");
-	g_sprintf(args->fit->keywords.wcsdata.objctra, "%s", ra);
-	g_sprintf(args->fit->keywords.wcsdata.objctdec, "%s", dec);
+	g_sprintf(fit->keywords.wcsdata.objctra, "%s", ra);
+	g_sprintf(fit->keywords.wcsdata.objctdec, "%s", dec);
 	g_free(ra);
 	g_free(dec);
-
+}
+static void update_wcsdata_after_ps(struct astrometry_data *args) {
+	if (has_wcsdata(args->fit))
+		reset_wcsdata(args->fit);
+	args->fit->keywords.wcsdata.pltsolvd = TRUE;
+	if (args->solver == SOLVER_LOCALASNET) {
+		snprintf(args->fit->keywords.wcsdata.pltsolvd_comment, FLEN_COMMENT, "Solved by Astrometry.net (%s)", asnet_version);
+	} else {
+		g_snprintf(args->fit->keywords.wcsdata.pltsolvd_comment, FLEN_COMMENT, "Siril internal solver");
+	}
+	update_wcsdata_from_wcs(args->fit);
 }
 
 static gboolean check_affine_TRANS_sanity(TRANS *trans) {
@@ -1007,7 +1007,7 @@ gpointer plate_solver(gpointer p) {
 		wcsfree(args->fit->keywords.wcslib);
 	args->fit->keywords.wcslib = solution.wcslib;
 	print_updated_wcs(args->fit->keywords.wcslib);
-	update_wcsdata_from_wcs(args);
+	update_wcsdata_after_ps(args);
 	if (args->verbose)
 		print_platesolving_results_from_wcs(args);
 	double resolution = get_wcs_image_resolution(args->fit) * 3600.0;
@@ -1054,6 +1054,7 @@ gpointer plate_solver(gpointer p) {
 			siril_log_color_message(_("Flipping image and updating astrometry data.\n"), "salmon");
 		fits_flip_top_to_bottom(args->fit);
 		flip_bottom_up_astrometry_data(args->fit);
+		update_wcsdata_after_ps(args);
 		args->image_flipped = TRUE;
 	}
 
