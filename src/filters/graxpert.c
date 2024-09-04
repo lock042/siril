@@ -46,6 +46,7 @@
 #include "gui/progress_and_log.h"
 #include "gui/callbacks.h"
 #include "gui/siril_preview.h"
+#include "gui/graxpert.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
@@ -53,6 +54,17 @@
 
 static gboolean verbose = TRUE;
 static version_number graxpert_version = { 0 };
+static gchar **background_ai_models = NULL;
+static gchar **denoise_ai_models = NULL;
+static gboolean graxpert_aborted = FALSE;
+
+void set_graxpert_aborted(gboolean state) {
+	graxpert_aborted = state;
+}
+
+const gchar** get_ai_models(graxpert_operation operation) {
+    return (const gchar**) (operation == GRAXPERT_DENOISE ? denoise_ai_models : background_ai_models);
+}
 
 static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 	siril_debug_print("GraXpert exited with status %d\n", status);
@@ -65,6 +77,49 @@ static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
 	com.childpid = 0;			// For other OSes, PID of a child process
 #endif
 }
+
+// This ensures GraXpert is always called with a wide enough environment variable
+// terminal width to prevent munging of the output we need to parse to get version
+// information.
+
+static GError *spawn_graxpert(gchar **argv, gint columns,
+												GPid *child_pid, gint *stdin_fd,
+												gint *stdout_fd, gint *stderr_fd) {
+	GError *error = NULL;
+	gchar **env = g_get_environ();
+	gchar *columns_str = g_strdup_printf("%d", columns);
+
+	env = g_environ_setenv(env, "COLUMNS", columns_str, TRUE);
+
+	// On Windows, also set ANSICON_COLUMNS and ANSICON_LINES
+	#ifdef G_OS_WIN32
+	env = g_environ_setenv(env, "ANSICON_COLUMNS", columns_str, TRUE);
+	#endif
+
+	gboolean spawn_result = g_spawn_async_with_pipes(
+		NULL,           // working directory
+		argv,           // argument vector
+		env,            // environment
+		G_SPAWN_SEARCH_PATH | G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_DO_NOT_REAP_CHILD,
+		NULL,           // child setup function
+		NULL,           // user data for child setup
+		child_pid,      // child process id
+		stdin_fd,       // stdin file descriptor
+		stdout_fd,      // stdout file descriptor
+		stderr_fd,      // stderr file descriptor
+		&error
+	);
+
+	g_strfreev(env);
+	g_free(columns_str);
+
+	if (!spawn_result) {
+		return error;
+	}
+
+	return NULL;
+}
+
 
 static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report) {
 	const gchar *progress_key = "Progress: ";
@@ -80,11 +135,8 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report) {
 	fprintf(stdout, "\n");
 	// g_spawn handles wchar so not need to convert
 	set_progress_bar_data(_("Starting GraXpert..."), 0.0);
-	g_spawn_async_with_pipes(NULL, argv, NULL,
-			G_SPAWN_SEARCH_PATH |
-			G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_DO_NOT_REAP_CHILD,
-			NULL, NULL, &child_pid, NULL, NULL,
-			&child_stderr, &error);
+	error = spawn_graxpert(argv, 200, &child_pid, NULL, NULL,
+			&child_stderr);
 
 	int i = 0;
 	while (argv[i])
@@ -116,14 +168,31 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report) {
 #ifdef GRAXPERT_DEBUG
 	gchar *lastbuffer = NULL;
 #endif
+	gboolean graxpert_error_warning_given = FALSE;
 	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length,
 					NULL, NULL))) {
 		gchar *arg = g_strstr_len(buffer, -1, progress_key);
 		double value = -1.0;
+		gchar *errmsg = NULL;
 		if (arg)
 			value = g_ascii_strtod(arg + strlen(progress_key), NULL);
 		if (value > 0.0 && value == value && verbose) {
 			set_progress_bar_data(_("Running GraXpert"), value / 100.0);
+		} else if ( ((errmsg = g_strstr_len(buffer, -1, "ERROR")) && !graxpert_aborted) ) {
+			set_progress_bar_data(_("GraXpert failed with an error."), 1.0);
+			if (!graxpert_error_warning_given) {
+				siril_log_color_message(_("The following error messages are produced by GraXpert. "
+						"They may indicate an installation error or misconfiguration "
+						"such as missing AI model files that you should fix yourself, "
+						"or they may indicate a bug that requires reporting to the "
+						"Siril or GraXpert development teams.\n"), "red");
+				graxpert_error_warning_given = TRUE;
+			}
+			if (strlen(errmsg) > 9) {
+				errmsg += 9;
+				siril_log_color_message("GraXpert: %s\n", "red", errmsg);
+			}
+			retval = 1;
 		} else if (g_strrstr(buffer, "Finished")) {
 			set_progress_bar_data(_("Done."), 1.0);
 			retval = 0;
@@ -153,7 +222,7 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report) {
 #else
 	com.childpid = 0;			// For other OSes, PID of a child process
 #endif
-	if (graxpert_no_exit_report) {
+	if (graxpert_no_exit_report && retval == -1) {
 		siril_log_message(_("GraXpert GUI finished.\n"));
 		set_progress_bar_data(_("Done."), 1.0);
 		retval = 0; // No "Finished" log message is printed when closing the GUI, so we assume success
@@ -170,34 +239,78 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report) {
 	return retval;
 }
 
-gboolean graxpert_executablecheck(gchar* executable, graxpert_operation operation) {
-	const gchar *version_key = "version: ";
-	char *test_argv[3] = { NULL };
+static gchar** parse_ai_versions(const char* version_line) {
+	// Extract the versions string
+	const char* versions_start = strchr(version_line, '[');
+	const char* versions_end = strchr(versions_start, ']');
+	if (!versions_start || !versions_end || versions_start >= versions_end) {
+		return NULL;
+	}
+
+	// Copy the versions string (excluding brackets)
+	gchar* versions_str = g_strndup(versions_start + 1, versions_end - versions_start - 1);
+
+	// Split the versions string into an array
+	gchar** versions_array = g_strsplit(versions_str, ", ", -1);
+	g_free(versions_str);
+
+	// Count the number of versions
+	int count = g_strv_length(versions_array);
+
+	// Allocate the final array (including space for NULL terminator)
+	gchar** result = g_malloc((count + 1) * sizeof(char*));
+
+	// Copy each version string
+	for (int i = 0; i < count; i++) {
+		result[i] = g_strdup(g_strstrip(versions_array[i]));
+		siril_debug_print("%s ", result[i]);
+	}
+	siril_debug_print("\n");
+	result[count] = NULL;  // NULL-terminate the array
+
+	g_strfreev(versions_array);
+
+	return result;
+}
+
+static GMutex ai_version_check_mutex = { 0 };
+
+gchar** ai_version_check(gchar* executable, graxpert_operation operation) {
+	siril_debug_print("AI version check\n");
+	g_mutex_lock(&ai_version_check_mutex);
+	const gchar *key = "available remotely: [";
+	char *test_argv[5] = { NULL };
+	gchar **result = NULL;
 	gint child_stderr;
 	g_autoptr(GError) error = NULL;
 	version_number null_version = { 0 };
-	if (!memcmp(&graxpert_version, &null_version, sizeof(version_number))) {
+	if (memcmp(&graxpert_version, &null_version, sizeof(version_number))) {
 		if (!executable || executable[0] == '\0') {
+			siril_debug_print("No executable defined\n");
+			g_mutex_unlock(&ai_version_check_mutex);
 			return FALSE;
 		}
 		if (!g_file_test(executable, G_FILE_TEST_IS_EXECUTABLE)) {
+			siril_debug_print("Executable indicates it is not executable\n");
+			g_mutex_unlock(&ai_version_check_mutex);
 			return FALSE; // It's not executable so return a zero version number
 		}
 
 		int nb = 0;
 		test_argv[nb++] = executable;
-		gchar *versionarg = g_strdup("-v");
+		test_argv[nb++] = "-cmd";
+		gchar *versionarg = g_strdup(operation == GRAXPERT_DENOISE ? "denoising" : "background-extraction");
 		test_argv[nb++] = versionarg;
+		test_argv[nb++] = "--help";
 		// g_spawn handles wchar so not need to convert
-		g_spawn_async_with_pipes(NULL, test_argv, NULL,
-				G_SPAWN_SEARCH_PATH |
-				G_SPAWN_LEAVE_DESCRIPTORS_OPEN,
-				NULL, NULL, NULL, NULL, NULL,
-				&child_stderr, &error);
+		GPid child_pid;
+		error = spawn_graxpert(test_argv, 200, &child_pid, NULL, NULL,
+				&child_stderr);
 
 		if (error != NULL) {
-			siril_log_color_message(_("Spawning GraXpert failed during version check: %s\n"), "red", error->message);
+			siril_log_color_message(_("Spawning GraXpert failed during available AI model versions check: %s\n"), "red", error->message);
 			g_free(versionarg);
+			g_mutex_unlock(&ai_version_check_mutex);
 			return FALSE;
 		}
 
@@ -213,18 +326,12 @@ gboolean graxpert_executablecheck(gchar* executable, graxpert_operation operatio
 		gboolean done = FALSE;
 		while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length,
 						NULL, NULL)) && !done) {
+			siril_debug_print("%s\n", buffer);
 			// Find the start of the version substring
-			gchar *version_start = g_strstr_len(buffer, -1, version_key);
-			if (version_start) {
-				version_start += strlen(version_key); // Move past "version: "
-
-				// Find the end of the version substring
-				gchar *version_end = g_strstr_len(version_start, -1, " ");
-				*version_end = '\0';
-
-				// Extract the version substring
-				graxpert_version = get_version_number_from_string(version_start);
-
+			gchar *start = g_strstr_len(buffer, -1, key);
+			if (start) {
+				siril_debug_print("Version string found\n");
+				result = parse_ai_versions(start);
 				g_free(buffer);
 				break;
 			}
@@ -237,12 +344,143 @@ gboolean graxpert_executablecheck(gchar* executable, graxpert_operation operatio
 			siril_debug_print("%s\n", error->message);
 		}
 	}
+	g_mutex_unlock(&ai_version_check_mutex);
+	return result;
+}
+
+void fill_graxpert_version_arrays() {
+	background_ai_models = ai_version_check(com.pref.graxpert_path, GRAXPERT_BG);
+	denoise_ai_models = ai_version_check(com.pref.graxpert_path, GRAXPERT_DENOISE);
+}
+
+gboolean check_graxpert_version(const gchar *version, graxpert_operation operation) {
+	if (version == NULL)
+		return FALSE;
+	if (operation == GRAXPERT_DENOISE) {
+		if (denoise_ai_models == NULL)
+			return FALSE;
+		for (int i = 0 ; denoise_ai_models[i] != NULL ; i++) {
+			if (!strcmp(version, denoise_ai_models[i]))
+				return TRUE;
+		}
+	} else {
+		if (background_ai_models == NULL)
+			return FALSE;
+		for (int i = 0 ; background_ai_models[i] != NULL ; i++) {
+			if (!strcmp(version, background_ai_models[i]))
+				return TRUE;
+		}
+	}
+	return FALSE;
+}
+
+static GMutex graxpert_version_mutex = { 0 };
+
+static gboolean graxpert_fetchversion(gchar* executable) {
+	char *test_argv[3] = { NULL };
+	const gchar *version_key = "version: ";
+	gint child_stderr;
+	g_autoptr(GError) error = NULL;
+
+	if (!executable || executable[0] == '\0') {
+		return FALSE;
+	}
+	if (!g_file_test(executable, G_FILE_TEST_IS_EXECUTABLE)) {
+		return FALSE; // It's not executable so return a zero version number
+	}
+	g_mutex_lock(&graxpert_version_mutex);
+	int nb = 0;
+	test_argv[nb++] = executable;
+	gchar *versionarg = g_strdup("-v");
+	test_argv[nb++] = versionarg;
+	// g_spawn handles wchar so not need to convert
+	GPid child_pid;
+	error = spawn_graxpert(test_argv, 200, &child_pid, NULL, NULL,
+			&child_stderr);
+
+	if (error != NULL) {
+		siril_log_color_message(_("Spawning GraXpert failed during version check: %s\n"), "red", error->message);
+		g_free(versionarg);
+		g_mutex_unlock(&graxpert_version_mutex);
+		return FALSE;
+	}
+
+	GInputStream *stream = NULL;
+#ifdef _WIN32
+	stream = g_win32_input_stream_new((HANDLE)_get_osfhandle(child_stderr), FALSE);
+#else
+	stream = g_unix_input_stream_new(child_stderr, FALSE);
+#endif
+	gchar *buffer;
+	gsize length = 0;
+	GDataInputStream *data_input = g_data_input_stream_new(stream);
+	gboolean done = FALSE;
+	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length,
+					NULL, NULL)) && !done) {
+		// Find the start of the version substring
+		gchar *version_start = g_strstr_len(buffer, -1, version_key);
+		if (version_start) {
+			version_start += strlen(version_key); // Move past "version: "
+
+			// Find the end of the version substring
+			gchar *version_end = g_strstr_len(version_start, -1, " ");
+			*version_end = '\0';
+
+			// Extract the version substring
+			graxpert_version = get_version_number_from_string(version_start);
+
+			g_free(buffer);
+			break;
+		}
+		g_free(buffer);
+	}
+	g_object_unref(data_input);
+	g_object_unref(stream);
+	g_free(versionarg);
+	if (!g_close(child_stderr, &error)) {
+		siril_debug_print("%s\n", error->message);
+	}
+	g_mutex_unlock(&graxpert_version_mutex);
+	return TRUE;
+}
+
+gboolean graxpert_executablecheck(gchar* executable, graxpert_operation operation) {
+	version_number null_version = { 0 };
+	if (!memcmp(&graxpert_version, &null_version, sizeof(version_number))) {
+		if (!graxpert_fetchversion(executable)) {
+			return FALSE;
+		}
+	}
 
 	if (compare_version(graxpert_version, (version_number) {.major_version = 3, .minor_version = 0, .micro_version = 0}) < 0) {
 		siril_log_color_message(_("Error: GraXpert version is too old. You have version %d.%d.%d; at least version 3.0.0 is required.\n"), "red", graxpert_version.major_version, graxpert_version.minor_version, graxpert_version.micro_version);
 		return FALSE;
 	} else {
 		return TRUE;
+	}
+}
+
+gpointer graxpert_setup_async(gpointer user_data) {
+	graxpert_fetchversion(com.pref.graxpert_path);
+	siril_debug_print("GraXpert version %d.%d.%d found\n", graxpert_version.major_version, graxpert_version.minor_version, graxpert_version.micro_version);
+	fill_graxpert_version_arrays();
+	siril_debug_print("GraXpert AI model arrays populated\n");
+	version_number null_version = { 0 };
+	if (!com.headless && memcmp(&graxpert_version, &null_version, sizeof(version_number))) {
+		initialize_graxpert_widgets_if_needed();
+		populate_graxpert_ai_combos();
+	}
+	return GINT_TO_POINTER(0);
+}
+
+void ai_versions_to_log(graxpert_operation operation) {
+	gchar** array = operation == GRAXPERT_DENOISE ? denoise_ai_models : background_ai_models;
+	if (!array) {
+		siril_log_message(_("None!\n"));
+	} else {
+		for (int i = 0 ; array[i] ; i++) {
+			siril_log_message("%s\n", array[i]);
+		}
 	}
 }
 
@@ -383,6 +621,7 @@ graxpert_data *new_graxpert_data() {
 void free_graxpert_data(graxpert_data *args) {
 	g_free(args->path);
 	g_free(args->configfile);
+	g_free(args->ai_version);
 	free_background_sample_list(args->bg_samples);
 	if (args->backup_icc)
 		cmsCloseProfile(args->backup_icc);
@@ -419,8 +658,7 @@ static void open_graxpert_result(graxpert_data *args) {
 			// Check the result dimensions and bit depth match what we expect
 			// This should never fail, but we shouldn't trust external software too
 			// much and a dimension mismatch would result in a crash
-			if (args->fit->rx != result->rx || args->fit->ry != result->ry || args->fit->naxes[2] != result->naxes[2]
-					|| args->fit->type != result->type) {
+			if (args->fit->rx != result->rx || args->fit->ry != result->ry || args->fit->naxes[2] != result->naxes[2]) {
 				siril_log_color_message(_("Error: the GraXpert image dimensions and bit depth "
 						"do not match those of the original image. Please report this as a bug.\n"), "red");
 				goto END_AND_RETURN;
@@ -431,6 +669,17 @@ static void open_graxpert_result(graxpert_data *args) {
 			if (fits_swap_image_data(args->fit, result)) {
 				siril_debug_print("Error, NULL pointer passed to fits_swap_image_data\n");
 				goto END_AND_RETURN;
+			}
+			if (args->fit->type == DATA_FLOAT && com.pref.force_16bit) {
+				size_t npixels = args->fit->rx * args->fit->ry * args->fit->naxes[2];
+				WORD *newbuf = malloc(npixels * sizeof(WORD));
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static) if (npixels > 50000)
+#endif
+				for (size_t i = 0 ; i < npixels; i++) {
+					newbuf[i] = roundf_to_WORD(args->fit->fdata[i] * USHRT_MAX_SINGLE);
+				}
+				fit_replace_buffer(args->fit, newbuf, DATA_USHORT);
 			}
 			clearfits(result);
 			free(result);
@@ -460,6 +709,7 @@ static gboolean end_graxpert(gpointer p) {
 
 gpointer do_graxpert (gpointer p) {
 	lock_roi_mutex();
+	set_graxpert_aborted(FALSE);
 	graxpert_data *args = (graxpert_data *) p;
 	if (args->fit == &gfit)
 		copy_backup_to_gfit();
@@ -538,6 +788,10 @@ gpointer do_graxpert (gpointer p) {
 			my_argv[nb++] = g_strdup_printf("%f", args->bg_smoothing);
 			my_argv[nb++] = g_strdup("-gpu");
 			my_argv[nb++] = g_strdup(args->use_gpu ? "true" : "false");
+			if (args->ai_version != NULL) {
+				my_argv[nb++] = g_strdup("-ai_version");
+				my_argv[nb++] = g_strdup(args->ai_version);
+			}
 		} else {
 			if (!args->bg_samples) {
 				siril_log_color_message(_("Background samples must be computed for GraXpert RBF, Spline and Kriging methods\n"), "red");
@@ -563,6 +817,10 @@ gpointer do_graxpert (gpointer p) {
 		my_argv[nb++] = g_strdup(args->use_gpu ? "true" : "false");
 		my_argv[nb++] = g_strdup("-strength");
 		my_argv[nb++] = g_strdup_printf("%.2f", args->denoise_strength);
+		if (args->ai_version != NULL) {
+			my_argv[nb++] = g_strdup("-ai_version");
+			my_argv[nb++] = g_strdup(args->ai_version);
+		}
 	} else if (args->operation == GRAXPERT_GUI) {
 		siril_log_message(_("GraXpert GUI will open with the current image. When you have finished, save the "
 							"image and return to Siril.\nYou will need to check and re-assign the ICC profile "

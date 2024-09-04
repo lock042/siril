@@ -534,7 +534,8 @@ void remove_green_activate(GSimpleAction *action, GVariant *parameter, gpointer 
 }
 
 void saturation_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	siril_open_dialog("satu_dialog");
+	if (value_check( &gfit))
+		siril_open_dialog("satu_dialog");
 }
 
 void color_calib_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -553,20 +554,25 @@ void spcc_activate(GSimpleAction *action, GVariant *parameter,gpointer user_data
 }
 
 void split_channel_activate(GSimpleAction *action, GVariant *parameter,gpointer user_data) {
-	siril_open_dialog("extract_channel_dialog");
+	if (value_check(&gfit))
+		siril_open_dialog("extract_channel_dialog");
 }
 
 void negative_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	CHECK_FOR_OPENED_DIALOG;
-	negative_processing();
+	if (value_check(&gfit)) {
+		CHECK_FOR_OPENED_DIALOG;
+		negative_processing();
+	}
 }
 
 void histo_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	toggle_histogram_window_visibility(1);
+	if (value_check(&gfit))
+		toggle_histogram_window_visibility(1);
 }
 
 void curves_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-    toggle_curves_window_visibility();
+	if (value_check(&gfit))
+		toggle_curves_window_visibility();
 }
 
 void fix_banding_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -582,7 +588,8 @@ void background_extr_activate(GSimpleAction *action, GVariant *parameter, gpoint
 }
 
 void asinh_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	siril_open_dialog("asinh_dialog");
+	if (value_check(&gfit))
+		siril_open_dialog("asinh_dialog");
 }
 
 void epf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -596,7 +603,8 @@ void deconvolution_activate(GSimpleAction *action, GVariant *parameter, gpointer
 }
 
 void payne_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	toggle_histogram_window_visibility(2);
+	if (value_check(&gfit))
+		toggle_histogram_window_visibility(2);
 }
 
 void binning_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
