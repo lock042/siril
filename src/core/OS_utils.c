@@ -50,6 +50,7 @@
 #include <sys/param.h>		// define or not BSD macro
 #endif
 #ifdef OS_OSX
+#include <AppKit/AppKit.h>
 #include <mach/task.h>
 #include <mach/mach_init.h>
 #include <mach/mach_types.h>
