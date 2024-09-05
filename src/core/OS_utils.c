@@ -83,13 +83,22 @@
  * @param name the path of the directory to be tested
  * @return the disk space remaining in bytes, or a negative value if error
  */
-#if HAVE_SYS_STATVFS_H
+#if OS_OSX
+static gint64 find_space(const gchar *name) {
+	NSDictionary* fileAttributes = [[NSFileManager defaultManager] attributesOfFileSystemForPath:@"/"
+                                                                                   error:&error];
+	unsigned long long freeSpace = [[fileAttributes objectForKey:NSFileSystemFreeSize] longLongValue];
+	siril_log_message("Available: %dGB\n", (int)(freeSpace / 1073741824));
+
+	return freeSpace;
+}
+#elif HAVE_SYS_STATVFS_H
 static gint64 find_space(const gchar *name) {
 	struct statvfs st;
 	gint64 available;
 	if (statvfs (name, &st))
 		return (gint64) -1;
-	available = st.f_bfree;        // force 64 bits
+	available = st.f_bavail;        // force 64 bits
 	siril_log_message("Available: %ld\n", available);
 	return available * st.f_frsize;
 }
@@ -100,7 +109,7 @@ static gint64 find_space(const gchar *name) {
 	if (statfs (name, &st))
 		return (gint64) -1;
 	available = st.f_bfree;        // force 64 bits
-	return available * st.f_bsize;
+	return available * st.f_bavail;
 }
 #elif defined _WIN32
 static gint64 find_space(const gchar *name) {
