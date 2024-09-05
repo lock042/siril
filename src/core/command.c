@@ -10630,6 +10630,10 @@ static graxpert_data *fill_graxpert_data_from_cmdline(int nb, sequence *seq, gra
 		else if (!g_ascii_strncasecmp(arg, "-keep_bg", 8)) {
 			data->keep_bg = TRUE;
 		}
+		else if (!g_ascii_strncasecmp(arg, "-ai_version=", 12)) {
+			arg += 12;
+			data->ai_version = g_strdup(arg);
+		}
 		else {
 			if (operation == GRAXPERT_BG) {
 				if (g_str_has_prefix(arg, "-algo=")) {
@@ -10756,6 +10760,13 @@ static graxpert_data *fill_graxpert_data_from_cmdline(int nb, sequence *seq, gra
 		data->bg_tol_option = -2.0;
 	else if (data->bg_tol_option > 6.0)
 		data->bg_tol_option = 6.0;
+	if (data->operation == GRAXPERT_DENOISE || data->bg_algo == GRAXPERT_BG_AI) {
+		if (!check_graxpert_version(data->ai_version, data->operation)) {
+			siril_log_color_message(_("Error: the requested AI model version is unavailable. Available versions are:\n"), "red");
+			ai_versions_to_log(operation);
+			goto GRAX_ARG_ERROR;
+		}
+	}
 
 	return data;
 
@@ -11026,6 +11037,41 @@ int process_trixel(int nb) {
 		siril_log_message(_("Unknown parameter %s, aborting.\n"), word[2]);
 		return CMD_ARG_ERROR;
 	}
+	return CMD_OK;
+}
+
+int process_limit(int nb) {
+	if (nb != 2)
+		return CMD_WRONG_N_ARG;
+	if (gfit.type == DATA_USHORT) {
+		siril_log_message(_("16-bit images cannot have out-of-range pixels: nothing to do.\n"));
+		return CMD_OK;
+	}
+
+	double maxval, minval;
+	int retval = quick_minmax(&gfit, &minval, &maxval);
+	if (retval)
+		return CMD_GENERIC_ERROR;
+
+	if (maxval <= 1.0 && minval >= 0.0) {
+		siril_log_message(_("No pixels require clipping. Nothing to do...\n"));
+		return CMD_OK;
+	}
+
+	OverrangeResponse method;
+	if (!g_ascii_strncasecmp(word[1], "-clip", 5)) {
+		method = RESPONSE_CLIP;
+	} else if (!g_ascii_strncasecmp(word[1], "-posrescale", 11)) {
+		method = RESPONSE_RESCALE_CLIPNEG;
+	} else if (!g_ascii_strncasecmp(word[1], "-rescale", 8)) {
+		method = RESPONSE_RESCALE_ALL;
+	} else {
+		siril_log_color_message(_("Error: unknown argument!\n"), "red");
+		return CMD_ARG_ERROR;
+	}
+
+	apply_limits(&gfit, minval, maxval, method);
+	siril_log_message(_("Pixel limits applied successfully.\n"));
 	return CMD_OK;
 }
 

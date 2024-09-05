@@ -74,8 +74,8 @@ static command commands[] = {
 	{"get", 1, "get { -a | -A | variable }", process_set, STR_GET, TRUE, REQ_CMD_NONE},
 	{"getref", 1, "getref sequencename", process_getref, STR_GETREF, TRUE, REQ_CMD_NONE},
 	{"ght", 1, "ght -D= [-B=] [-LP=] [-SP=] [-HP=] [-clipmode=] [-human | -even | -independent | -sat] [channels]", process_ght, STR_GHT, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"graxpert_bg", 1, "graxpert_bg [-algo=] [-mode=] [-kernel=] [-ai_batch_size=] [-pts_per_row=] [-splineorder=] [-samplesize=] [-smoothing=] [-bgtol=] [ { -gpu | -cpu } ] [-keep_bg]", process_graxpert_bg, STR_GRAXPERT_BG, TRUE, REQ_CMD_SINGLE_IMAGE},
-	{"graxpert_denoise", 1, "graxpert_denoise [-strength=] [ { -gpu | -cpu } ]", process_graxpert_denoise, STR_GRAXPERT_DENOISE, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"graxpert_bg", 1, "graxpert_bg [-algo=] [-mode=] [-kernel=] [-ai_batch_size=] [-pts_per_row=] [-splineorder=] [-samplesize=] [-smoothing=] [-bgtol=] [ { -gpu | -cpu } ] [-ai_version=] [-keep_bg]", process_graxpert_bg, STR_GRAXPERT_BG, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"graxpert_denoise", 1, "graxpert_denoise [-strength=] [ { -gpu | -cpu } [-ai_version=] ]", process_graxpert_denoise, STR_GRAXPERT_DENOISE, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"grey_flat", 0, "grey_flat", process_grey_flat, STR_GREY_FLAT, TRUE, REQ_CMD_SINGLE_IMAGE},
 
 	{"help", 0, "help [command]", process_help, STR_HELP, TRUE, REQ_CMD_NONE},
@@ -98,6 +98,7 @@ static command commands[] = {
 
 	{"light_curve", 3, "light_curve sequencename channel [-autoring] { -at=x,y | -wcs=ra,dec } { -refat=x,y | -refwcs=ra,dec } ...\n"
 				"light_curve sequencename channel [-autoring] -ninastars=file", process_light_curve, STR_LIGHTCURVE, TRUE, REQ_CMD_NO_THREAD},
+	{"limit", 1, "limit { -clip | -posrescale | -rescale }", process_limit, STR_LIMIT, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"linear_match", 2, "linear_match reference low high", process_linear_match, STR_LMATCH, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"link", 1, "link basename [-date] [-start=index] [-out=]", process_link, STR_LINK, TRUE, REQ_CMD_NO_THREAD},
 	{"linstretch", 1, "linstretch -BP= [-sat] [-clipmode=] [channels] [-clipmode=]", process_linstretch, STR_LINSTRETCH, TRUE, REQ_CMD_SINGLE_IMAGE},
