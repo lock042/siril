@@ -86,8 +86,9 @@
  */
 #if OS_OSX
 static gint64 find_space(const gchar *name) {
-	NSDictionary* fileAttributes = [[NSFileManager defaultManager] attributesOfFileSystemForPath:@"/"
-                                                                                   error:&error];
+	NSError *error = nil;
+
+	NSDictionary* fileAttributes = [[NSFileManager defaultManager] attributesOfFileSystemForPath:@"/" error:&error];
 	unsigned long long freeSpace = [[fileAttributes objectForKey:NSFileSystemFreeSize] longLongValue];
 	siril_log_message("Available: %dGB\n", (int)(freeSpace / 1073741824));
 
