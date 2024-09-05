@@ -84,8 +84,8 @@ struct phot_config *phot_set_adjusted_for_image(const fits *fit) {
 }
 
 void fluxCut_factors (const psf_star *psf, struct phot_config *phot_set, double fwhm_ref, double* in_rad, double* out_rad, double* ap_rad){
-	siril_log_message(_("2-phot_set->dump_fwhmx= %lf\n"), phot_set->dump_fwhmx);
-	siril_log_message(_("2-fwhm_ref= %lf\n"), fwhm_ref);
+//	siril_log_message(_("2-phot_set->dump_fwhmx= %lf\n"), phot_set->dump_fwhmx);
+//	siril_log_message(_("2-fwhm_ref= %lf\n"), fwhm_ref);
 	double threshold = 0.01 * com.pref.phot_set.flux_cut_factor;
 //	double fwhm_m = fmax(psf->fwhmx, psf->fwhmy);
 //	double fwhm_m = phot_set->dump_fwhmx;
@@ -144,23 +144,24 @@ reference_image
 		phot_set->ape_strat = FIXED_AP;
 	}
 */
-	siril_log_message(_("Before wtfuck = %i, auto_inner_factor: %lf\n"), phot_set->wtfuck, phot_set->auto_inner_factor);
-	phot_set->wtfuck = 1;
-	siril_log_message(_("After wtfuck = %i\n"), phot_set->wtfuck);
-	int strat_bkp = phot_set->ape_strat;
+
+//	siril_log_message(_("com.pref.phot_set.isitdone = %i, phot_set.isitdone = %i\n"), com.pref.phot_set.isitdone, phot_set->isitdone);
+	int strat_bkp = phot_set->ape_strat;	// Back up of the selected photometry strategy
 	if (!com.pref.phot_set.isitdone) {
 		strat_bkp = phot_set->ape_strat;
 		phot_set->ape_strat = FIXED_AP;
 //		fwhm_ref = fmax(psf->fwhmx, psf->fwhmy);
-		phot_set->dump_fwhmx = psf->fwhmx;
-		fwhm_ref = phot_set->dump_fwhmx;
-	} else fwhm_ref = phot_set->dump_fwhmx;
+		com.pref.phot_set.dump_fwhmx = psf->fwhmx;
+//		phot_set->dump_fwhmx = psf->fwhmx;
+		fwhm_ref = com.pref.phot_set.dump_fwhmx;
+//		siril_log_message(_("1-psf->fwhmx = %lf, phot_set->dump_fwhmx = %lf, fwhm_ref = %lf\n"), psf->fwhmx, com.pref.phot_set.dump_fwhmx, fwhm_ref);
+	} else fwhm_ref = com.pref.phot_set.dump_fwhmx;
 
 	//*******************************************
 ///	fwhm_ref = 3.624383;	// FIXEE POUR TEST MAIS CE N4EST PAS SATISFAISANT
 	//*******************************************
 
-
+//	siril_log_message(_("2-psf->fwhmx = %lf, phot_set->dump_fwhmx = %lf, fwhm_ref = %lf\n"), psf->fwhmx, com.pref.phot_set.dump_fwhmx, fwhm_ref);
 
 //		siril_log_message(_("REFERENCE IMAGE= %i\n"), ref_imagefd);
 //		siril_log_message(_("REFERENCE IMAGE= %i\n"), seq->photometry[ref_imagefd][0]->A);
@@ -190,11 +191,10 @@ reference_image
 			appRadius = ap_rad;
 			break;
 	}
-	siril_log_message(_("Aperture: %lf, Inner: %lf Outer: %lf\n"), appRadius, r1, r2);
-//	appRadius = phot_set->aperture;
+//	siril_log_message(_("Aperture: %lf, Inner: %lf Outer: %lf\n"), appRadius, r1, r2);
+
 //	r1 = phot_set->inner;
 //	r2 = phot_set->outer;
-//	r1 = phot_set->force_radius ? phot_set->aperture : 0.5 * psf->fwhmx * phot_set->auto_aperture_factor;
 //	appRadius = phot_set->force_radius ? phot_set->aperture : 0.5 * psf->fwhmx * phot_set->auto_aperture_factor;
 	if (appRadius >= r1 && !phot_set->force_radius) {
 		if (verbose) {
@@ -309,15 +309,14 @@ reference_image
 
 	if (!com.pref.phot_set.isitdone) {
 		fwhm_ref = psf->fwhmx;
-		siril_log_message(_("1-FREEEED!!---fwhmx_ref= %lf\n"), fwhm_ref);
+//		siril_log_message(_("1-FREEEED!!---fwhmx_ref= %lf\n"), fwhm_ref);
 		com.pref.phot_set.isitdone = TRUE;
 		phot_set->dump_fwhmx = fwhm_ref;
 		phot_set->ape_strat = strat_bkp;
 //		siril_log_message(_("fwhmx= %lf, dump_fwhm= %lf, isitdone= %i\n"), fwhm_ref, phot_set->dump_fwhmx, com.pref.phot_set.isitdone);
 //		siril_log_message(_("OUTPUT--strat BKP= %i\n"), strat_bkp);
 	}
-	siril_log_message(_("2-FREEEED!!---fwhmx_ref= %lf, com.pref.phot_set.isitdone= %i\n"), fwhm_ref, com.pref.phot_set.isitdone);
-	siril_log_message(_("LOOOONG After wtfuck = %i\n"), phot_set->wtfuck);
+//	siril_log_message(_("2-FREEEED!!---fwhmx_ref= %lf, com.pref.phot_set.isitdone= %i\n"), fwhm_ref, com.pref.phot_set.isitdone);
 	return phot;
 }
 
@@ -710,7 +709,7 @@ gpointer light_curve_worker(gpointer arg) {
 			else siril_log_message(_("Failed to analyse the photometry of reference star %d\n"),
 					star_index);
 		}
-		siril_log_message(_("ATTENTION!! show current fwhmx : %lf\n"), (*args->seq->photometry[star_index])->fwhmx);
+		siril_log_message(_("ATTENTION!! show current star (%i) fwhmx : %lf\n"), star_index, (*args->seq->photometry[star_index])->fwhmx);
 		if (args->seq == &com.seq)
 			queue_redraw(REDRAW_OVERLAY);
 	}
