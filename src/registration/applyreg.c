@@ -365,7 +365,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		} else {
 			disto = &regargs->disto[in_index];
 		}
-		if (fit->keywords.wcslib->lin.dispre)
+		if (fit->keywords.wcslib && fit->keywords.wcslib->lin.dispre)
 			remove_dis_from_wcs(fit->keywords.wcslib); // we remove distortions as the output is undistorted
 	}
 	// we need to flip in and out + scale before reframing astrometry
