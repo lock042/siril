@@ -87,6 +87,7 @@ xx/xx/xx
 * Fixed GHT and HT sharing states for a some GUI elements (#1357)
 * Reads and compares checksum (DATASUM and CHECKSUM) if present in the FITS header (!723)
 * Blocked certain processes when a processing dialog box is open (#1355)
+* Fixed a bug with histogram / GHT widgets updating the image when the preview toggle was off (#1358)
 * Check for and resolve pixel values outside [0 1] before certain operations (!697)
 
 siril 1.2.4
