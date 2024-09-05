@@ -89,10 +89,12 @@ static gint64 find_space(const gchar *name) {
 	NSError *error = nil;
 
 	NSDictionary* fileAttributes = [[NSFileManager defaultManager] attributesOfFileSystemForPath:@"/" error:&error];
+	if (fileAttributes == nil) {
+		return -1;
+	}
 	unsigned long long freeSpace = [[fileAttributes objectForKey:NSFileSystemFreeSize] longLongValue];
-	siril_log_message("Available: %dGB\n", (int)(freeSpace / 1073741824));
 
-	return freeSpace;
+	return (gint64)freeSpace;
 }
 #elif HAVE_SYS_STATVFS_H
 static gint64 find_space(const gchar *name) {
