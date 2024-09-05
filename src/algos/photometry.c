@@ -84,11 +84,7 @@ struct phot_config *phot_set_adjusted_for_image(const fits *fit) {
 }
 
 void fluxCut_factors (const psf_star *psf, struct phot_config *phot_set, double fwhm_ref, double* in_rad, double* out_rad, double* ap_rad){
-//	siril_log_message(_("2-phot_set->dump_fwhmx= %lf\n"), phot_set->dump_fwhmx);
-//	siril_log_message(_("2-fwhm_ref= %lf\n"), fwhm_ref);
 	double threshold = 0.01 * com.pref.phot_set.flux_cut_factor;
-//	double fwhm_m = fmax(psf->fwhmx, psf->fwhmy);
-//	double fwhm_m = phot_set->dump_fwhmx;
 	double fwhm_m = fwhm_ref;
 	if (psf->profile == PSF_GAUSSIAN) {
 		*ap_rad = fwhm_m *INV_2_SQRT_2_LOG2 * sqrt(-2.0 * log(threshold));
@@ -148,7 +144,7 @@ reference_image
 //	siril_log_message(_("com.pref.phot_set.isitdone = %i, phot_set.isitdone = %i\n"), com.pref.phot_set.isitdone, phot_set->isitdone);
 	int strat_bkp = phot_set->ape_strat;	// Back up of the selected photometry strategy
 	if (!com.pref.phot_set.isitdone) {
-		strat_bkp = phot_set->ape_strat;
+//		strat_bkp = phot_set->ape_strat;
 		phot_set->ape_strat = FIXED_AP;
 //		fwhm_ref = fmax(psf->fwhmx, psf->fwhmy);
 		com.pref.phot_set.dump_fwhmx = psf->fwhmx;
@@ -161,15 +157,15 @@ reference_image
 ///	fwhm_ref = 3.624383;	// FIXEE POUR TEST MAIS CE N4EST PAS SATISFAISANT
 	//*******************************************
 
-//	siril_log_message(_("2-psf->fwhmx = %lf, phot_set->dump_fwhmx = %lf, fwhm_ref = %lf\n"), psf->fwhmx, com.pref.phot_set.dump_fwhmx, fwhm_ref);
+////	siril_log_message(_("2-psf->fwhmx = %lf, phot_set->dump_fwhmx = %lf, fwhm_ref = %lf\n"), psf->fwhmx, com.pref.phot_set.dump_fwhmx, fwhm_ref);
 
-//		siril_log_message(_("REFERENCE IMAGE= %i\n"), ref_imagefd);
-//		siril_log_message(_("REFERENCE IMAGE= %i\n"), seq->photometry[ref_imagefd][0]->A);
-//		r1_ref = seq->photometry[seq->reference_image][0]->fwhmx;
+
+////		siril_log_message(_("REFERENCE IMAGE= %i\n"), com.seq.reference_image);
+//(*args->seq->photometry[star_index])->fwhmx		
+//		r1_ref = &com.seq.photometry[com.seq.reference_image][0]->fwhmx;
 //		r1_ref = seq->photometry[seq->reference_image][0]->fwhmx;
 //		fwhm_ref = seq->photometry[seq->reference_image][0]->fwhmx;
-//	siril_log_message(_("INPUT--strat BKP= %i\n"), strat_bkp);
-//	siril_log_message(_("INPUT--fwhmx= %lf, fwhm_dump = %lf, isitdone= %i, strat= %i\n"), fwhm_ref, phot_set->dump_fwhmx, com.pref.phot_set.isitdone, phot_set->ape_strat);
+//	siril_log_message(_("r1_ref: %lf\n"), (*com.seq.photometry[com.seq.reference_image])->fwhmx);
 
 
 	switch (phot_set->ape_strat){
@@ -191,7 +187,7 @@ reference_image
 			appRadius = ap_rad;
 			break;
 	}
-//	siril_log_message(_("Aperture: %lf, Inner: %lf Outer: %lf\n"), appRadius, r1, r2);
+////	siril_log_message(_("Aperture: %lf, Inner: %lf Outer: %lf\n"), appRadius, r1, r2);
 
 //	r1 = phot_set->inner;
 //	r2 = phot_set->outer;
@@ -697,6 +693,10 @@ gpointer light_curve_worker(gpointer arg) {
 		framing = FOLLOW_STAR_FRAME;
 	// someday we should move the area in the seqpsf args, not needed for now
 
+////	siril_log_message(_("ATTENTION!! Reference image (%i)\n"), args->seq->reference_image);
+
+
+
 	com.pref.phot_set.isitdone = FALSE;
 	for (int star_index = 0; star_index < args->nb; star_index++) {
 		com.selection = args->areas[star_index];
@@ -709,7 +709,10 @@ gpointer light_curve_worker(gpointer arg) {
 			else siril_log_message(_("Failed to analyse the photometry of reference star %d\n"),
 					star_index);
 		}
+
 		siril_log_message(_("ATTENTION!! show current star (%i) fwhmx : %lf\n"), star_index, (*args->seq->photometry[star_index])->fwhmx);
+		com.pref.phot_set.isitdone = FALSE;
+
 		if (args->seq == &com.seq)
 			queue_redraw(REDRAW_OVERLAY);
 	}
