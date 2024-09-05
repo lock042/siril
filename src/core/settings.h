@@ -140,10 +140,9 @@ struct phot_config {
 	double flux_inner_factor;// factor for automatic inner radius computation from Flux cutoff meth
 	double flux_outer_factor;// factor for automatic outer radius computation from Flux cutoff meth
 
-	double dump_fwhmx, dump_fwhmy; /* FWHM in x and y axis for temporary use*/
+	double dump_fwhmx; /* FWHM in x and y axis for temporary use*/
 	gboolean force_radius;	// force the aperture radius value
 	gboolean isitdone;	// force the aperture radius value
-	gboolean wtfuck;	// force the aperture radius value
 	int ape_strat; 	// encodes the aperture strategy to be used
 				// consider this integer in its binary form:
 				// b0 (LSB) sets (or not) the fixed apertures (flux/inner/outer)
