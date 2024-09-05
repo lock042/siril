@@ -32,6 +32,7 @@
 #include "core/siril_log.h"
 #include "core/sequence_filtering.h"
 #include "core/OS_utils.h"
+#include "filters/graxpert.h" // for set_graxpert_aborted()
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "gui/script_menu.h"
@@ -759,6 +760,8 @@ void kill_child_process(gboolean onexit) {
 void on_processes_button_cancel_clicked(GtkButton *button, gpointer user_data) {
 	if (com.thread != NULL)
 		siril_log_color_message(_("Process aborted by user\n"), "red");
+	if (com.child_is_running == EXT_GRAXPERT)
+		set_graxpert_aborted(TRUE);
 	kill_child_process(FALSE);
 	com.stop_script = TRUE;
 	stop_processing_thread();
