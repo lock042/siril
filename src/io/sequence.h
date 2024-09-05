@@ -6,6 +6,7 @@
 #include "../core/processing.h"
 #include "../algos/PSF.h"
 
+gboolean get_seqtype(const char *name, sequence_type *retval);
 void populate_seqcombo(const gchar *realname);
 int	read_single_sequence(char *realname, image_type imagetype);
 char *normalize_seqname(char *name, gboolean add_underscore);

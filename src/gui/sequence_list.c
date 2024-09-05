@@ -904,10 +904,25 @@ static int ListSequences(const gchar *sDir, const char *sequence_name_to_select,
 			if (cFileName == NULL) {
 				return 1;
 			}
+/*
 			sequence *seq = readseqfile(cFileName);
 			if (seq != NULL) {
 				strncpy(filename, cFileName, 255);
 				free_sequence(seq, TRUE);
+				gtk_combo_box_text_append_text(seqcombo, filename);
+				if (sequence_name_to_select
+						&& !strncmp(filename, sequence_name_to_select,
+							strlen(filename))) {
+					*index_of_seq_to_load = number_of_loaded_sequences;
+					*found = TRUE;
+				}
+				++number_of_loaded_sequences;
+			}
+*/
+			sequence_type type;
+			gboolean identified = get_seqtype(cFileName, &type);
+			if (identified) {
+				strncpy(filename, cFileName, 255);
 				gtk_combo_box_text_append_text(seqcombo, filename);
 				if (sequence_name_to_select
 						&& !strncmp(filename, sequence_name_to_select,

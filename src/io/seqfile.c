@@ -74,6 +74,60 @@
  * image size are unknown and some properties of the sequence are null or unset.
  * Returns NULL if the sequence could not be loaded.
  */
+
+gboolean get_seqtype(const char *name, sequence_type *retval) {
+	gboolean identified = FALSE;
+	char line[512];
+	char *seqfilename = NULL;
+	FILE *seqfile = NULL;
+
+	if (!name) return FALSE;
+	fprintf(stdout, "Reading sequence file `%s'.\n", name);
+
+	if(!g_str_has_suffix(name, ".seq")){
+		seqfilename = malloc(strlen(name) + 6);	/* 6 stands for a max length of 4 + '.' + '\0' */
+		sprintf(seqfilename, "%s.seq", name);
+	} else {
+		seqfilename = strdup(name);
+	}
+
+	if ((seqfile = g_fopen(seqfilename, "r")) == NULL) {
+		siril_log_color_message(_("Reading sequence failed, file cannot be opened: %s.\n"), "red", seqfilename);
+		free(seqfilename);
+		return FALSE;
+	}
+
+	while (fgets(line, 511, seqfile) && !identified) {
+		switch (line[0]) {
+			case 'T':
+				/* sequence type (several files or a single file) */
+				if (line[1] == 'S') {
+					*retval = SEQ_SER;
+					identified = TRUE;
+				} else if (line[1] == 'F') {
+					*retval = SEQ_FITSEQ;
+					identified = TRUE;
+				} else if (line[1] == 'A') {
+					*retval = SEQ_AVI;
+					identified = TRUE;
+				}
+				else {
+					*retval = SEQ_REGULAR;
+					identified = TRUE;
+				}
+			default:
+				break;
+		}
+	}
+	if (!identified) {
+		siril_log_color_message(_("The sequence file %s seems to be corrupted\n"), "salmon", seqfilename);
+	}
+
+	fclose(seqfile);
+	free(seqfilename);
+	return identified;
+}
+
 sequence * readseqfile(const char *name){
 	char line[512], *scanformat;
 	char filename[512], *seqfilename;
