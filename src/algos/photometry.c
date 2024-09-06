@@ -124,50 +124,22 @@ photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 		return NULL;
 	}
 
-/*
-// phot_set a definir ici)
-struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
-seq->photometry[ref][i]
-reference_image
-////////////////////////////
-*/
-	double r1_ref = 0.0, fwhm_ref;
-/*
-	if (!com.pref.phot_set.isitdone) {
-		fwhm_ref = fmax(psf->fwhmx, psf->fwhmy);
-		com.pref.phot_set.isitdone = TRUE;
-		phot_set->dump_fwhmx = fwhm_ref;
-		phot_set->ape_strat = FIXED_AP;
-	}
-*/
 
-//	siril_log_message(_("com.pref.phot_set.isitdone = %i, phot_set.isitdone = %i\n"), com.pref.phot_set.isitdone, phot_set->isitdone);
+///*******************************************
+///	The goal would be to set fwhm_ref to a particular value:
+///	*the fwhm of the variable star in the 1st image of the sequence
+///	*or in the ref image, whether the sequence is registered or not 
+	double fwhm_ref;
 	int strat_bkp = phot_set->ape_strat;	// Back up of the selected photometry strategy
 	if (!com.pref.phot_set.isitdone) {
-//		strat_bkp = phot_set->ape_strat;
 		phot_set->ape_strat = FIXED_AP;
-//		fwhm_ref = fmax(psf->fwhmx, psf->fwhmy);
 		com.pref.phot_set.dump_fwhmx = psf->fwhmx;
-//		phot_set->dump_fwhmx = psf->fwhmx;
 		fwhm_ref = com.pref.phot_set.dump_fwhmx;
-//		siril_log_message(_("1-psf->fwhmx = %lf, phot_set->dump_fwhmx = %lf, fwhm_ref = %lf\n"), psf->fwhmx, com.pref.phot_set.dump_fwhmx, fwhm_ref);
 	} else fwhm_ref = com.pref.phot_set.dump_fwhmx;
 
-	//*******************************************
-///	fwhm_ref = 3.624383;	// FIXEE POUR TEST MAIS CE N4EST PAS SATISFAISANT
-	//*******************************************
 
-////	siril_log_message(_("2-psf->fwhmx = %lf, phot_set->dump_fwhmx = %lf, fwhm_ref = %lf\n"), psf->fwhmx, com.pref.phot_set.dump_fwhmx, fwhm_ref);
-
-
-////		siril_log_message(_("REFERENCE IMAGE= %i\n"), com.seq.reference_image);
-//(*args->seq->photometry[star_index])->fwhmx		
-//		r1_ref = &com.seq.photometry[com.seq.reference_image][0]->fwhmx;
-//		r1_ref = seq->photometry[seq->reference_image][0]->fwhmx;
-//		fwhm_ref = seq->photometry[seq->reference_image][0]->fwhmx;
-//	siril_log_message(_("r1_ref: %lf\n"), (*com.seq.photometry[com.seq.reference_image])->fwhmx);
-
-
+///*******************************************
+///	According to the choosen startegy, computation of the radii:
 	switch (phot_set->ape_strat){
 		case FIXED_AP:
 			r1 = phot_set->inner;
@@ -187,11 +159,19 @@ reference_image
 			appRadius = ap_rad;
 			break;
 	}
-////	siril_log_message(_("Aperture: %lf, Inner: %lf Outer: %lf\n"), appRadius, r1, r2);
+	siril_log_message(_("Aperture: %lf, Inner: %lf Outer: %lf\n"), appRadius, r1, r2);
+
+///*******************************************
+/// The 3 following lines are the original ones.
+///	For each selected star of each image, the radii are re-computed
+/// That's what is not satisfying
+/// Just have to uncomment them to retrieve the former bahaviour 
+///*******************************************
 
 //	r1 = phot_set->inner;
 //	r2 = phot_set->outer;
 //	appRadius = phot_set->force_radius ? phot_set->aperture : 0.5 * psf->fwhmx * phot_set->auto_aperture_factor;
+
 	if (appRadius >= r1 && !phot_set->force_radius) {
 		if (verbose) {
 			/* Translator note: radii is plural for radius */
@@ -312,6 +292,7 @@ reference_image
 //		siril_log_message(_("fwhmx= %lf, dump_fwhm= %lf, isitdone= %i\n"), fwhm_ref, phot_set->dump_fwhmx, com.pref.phot_set.isitdone);
 //		siril_log_message(_("OUTPUT--strat BKP= %i\n"), strat_bkp);
 	}
+	siril_log_message(_("fwhmx= %lf, dump_fwhm= %lf, isitdone= %i\n"), fwhm_ref, phot_set->dump_fwhmx, com.pref.phot_set.isitdone);
 //	siril_log_message(_("2-FREEEED!!---fwhmx_ref= %lf, com.pref.phot_set.isitdone= %i\n"), fwhm_ref, com.pref.phot_set.isitdone);
 	return phot;
 }
@@ -684,18 +665,10 @@ void free_light_curve_args(struct light_curve_args *args) {
 gpointer light_curve_worker(gpointer arg) {
 	int retval = 0;
 	struct light_curve_args *args = (struct light_curve_args *)arg;
-//	struct fwhm_struct *psf = (struct fwhm_struct *)arg;
-//	struct sequ *seqa = (struct sequ *)args;
-//	sequence *seq = args->seq;
-//	struct phot_config *phot_set = (struct phot_config *)psf;
 	framing_mode framing = REGISTERED_FRAME;
 	if (framing == REGISTERED_FRAME && !args->seq->regparam[args->layer])
 		framing = FOLLOW_STAR_FRAME;
 	// someday we should move the area in the seqpsf args, not needed for now
-
-////	siril_log_message(_("ATTENTION!! Reference image (%i)\n"), args->seq->reference_image);
-
-
 
 	com.pref.phot_set.isitdone = FALSE;
 	for (int star_index = 0; star_index < args->nb; star_index++) {
