@@ -2668,8 +2668,11 @@ int process_mtf(int nb) {
 
 	if (inverse)
 		apply_linked_pseudoinverse_mtf_to_fits(&gfit, &gfit, params, TRUE);
-	else apply_linked_mtf_to_fits(&gfit, &gfit, params, TRUE);
-
+	else {
+		apply_linked_mtf_to_fits(&gfit, &gfit, params, TRUE);
+		siril_log_message(_("Applying MTF with values %f, %f, %f\n"),
+			params.shadows, params.midtones, params.highlights);
+	}
 	char log[90];
 	sprintf(log, "%s transfer (%.3f, %.4f, %.3f)",
 			inverse ? "Inverse midtones" : "Midtones",
@@ -2828,6 +2831,9 @@ int process_autostretch(int nb) {
 		params.do_green = TRUE;
 		params.do_blue = TRUE;
 		apply_linked_mtf_to_fits(&gfit, &gfit, params, TRUE);
+		siril_log_message(_("Applying MTF with values %f, %f, %f\n"),
+			params.shadows, params.midtones, params.highlights);
+
 	} else {
 		struct mtf_params params[3];
 		find_unlinked_midtones_balance(&gfit, shadows_clipping, target_bg, params);
