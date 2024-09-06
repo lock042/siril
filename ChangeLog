@@ -89,6 +89,7 @@ xx/xx/xx
 * Blocked certain processes when a processing dialog box is open (#1355)
 * Fixed a bug with histogram / GHT widgets updating the image when the preview toggle was off (#1358)
 * Check for and resolve pixel values outside [0 1] before certain operations (!697)
+* Fixed a bug with histogram hi / mid / lo entry callback behaviour (!tbc)
 
 siril 1.2.4
 xx/xx/24

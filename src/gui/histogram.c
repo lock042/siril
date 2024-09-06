@@ -1868,7 +1868,6 @@ gboolean on_histoShadEntry_focus_out_event(GtkWidget *widget, GdkEvent *event,
 	GtkEntry *entry = GTK_ENTRY(lookup_widget("histoShadEntry"));
 	float lo = g_ascii_strtod(gtk_entry_get_text(entry), NULL);
 	if (lo <= 0.f) lo = 0.f;
-//	if (lo >= _highlights) lo = _highlights;
 	_shadows = lo;
 	set_cursor_waiting(TRUE);
 	update_histo_mtf();
@@ -1887,7 +1886,6 @@ gboolean on_histoShadEntry_focus_out_event(GtkWidget *widget, GdkEvent *event,
 void on_histoShadEntry_activate(GtkEntry *entry, gpointer user_data) {
 	float lo = g_ascii_strtod(gtk_entry_get_text(entry), NULL);
 	if (lo <= 0.f) lo = 0.f;
-//	if (lo >= _highlights) lo = _highlights;
 	_shadows = lo;
 	set_cursor_waiting(TRUE);
 	update_histo_mtf();
@@ -1903,8 +1901,6 @@ void on_histoShadEntry_activate(GtkEntry *entry, gpointer user_data) {
 
 void on_histoMidEntry_activate(GtkEntry *entry, gpointer user_data) {
 	float mid = g_ascii_strtod(gtk_entry_get_text(entry), NULL);
-//	if (mid <= _shadows) mid = _shadows;
-//	if (mid >= _highlights) mid = _highlights;
 	_midtones = mid;
 	set_cursor_waiting(TRUE);
 	update_histo_mtf();
@@ -1923,8 +1919,6 @@ gboolean on_histoMidEntry_focus_out_event(GtkWidget *widget, GdkEvent *event,
 
 	GtkEntry *entry = GTK_ENTRY(lookup_widget("histoMidEntry"));
 	float mid = g_ascii_strtod(gtk_entry_get_text(entry), NULL);
-//	if (mid <= _shadows) mid = _shadows;
-//	if (mid >= _highlights) mid = _highlights;
 	_midtones = mid;
 	set_cursor_waiting(TRUE);
 	update_histo_mtf();
