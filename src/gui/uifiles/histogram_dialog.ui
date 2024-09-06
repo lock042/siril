@@ -523,15 +523,21 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkLabel" id="label135">
+                          <object class="GtkEntry" id="histoHighEntry">
                             <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="halign">start</property>
-                            <property name="label" translatable="yes">Midtones: </property>
+                            <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Highlights clipping</property>
+                            <property name="hexpand">True</property>
+                            <property name="has-frame">False</property>
+                            <property name="width-chars">10</property>
+                            <property name="text">1.0000000</property>
+                            <property name="input-purpose">number</property>
+                            <signal name="activate" handler="on_histoHighEntry_activate" swapped="no"/>
+                            <signal name="focus-out-event" handler="on_histoHighEntry_focus_out_event" swapped="no"/>
                           </object>
                           <packing>
-                            <property name="left-attach">0</property>
-                            <property name="top-attach">0</property>
+                            <property name="left-attach">1</property>
+                            <property name="top-attach">2</property>
                           </packing>
                         </child>
                         <child>
@@ -540,6 +546,18 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                             <property name="can-focus">False</property>
                             <property name="halign">start</property>
                             <property name="label" translatable="yes">Shadows: </property>
+                          </object>
+                          <packing>
+                            <property name="left-attach">0</property>
+                            <property name="top-attach">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="label135">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Midtones: </property>
                           </object>
                           <packing>
                             <property name="left-attach">0</property>
@@ -561,7 +579,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                           </object>
                           <packing>
                             <property name="left-attach">1</property>
-                            <property name="top-attach">0</property>
+                            <property name="top-attach">1</property>
                           </packing>
                         </child>
                         <child>
@@ -572,32 +590,14 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                             <property name="hexpand">True</property>
                             <property name="has-frame">False</property>
                             <property name="width-chars">10</property>
-                            <property name="text">0.0000000</property>
+                            <property name="text" translatable="yes">0.0000000</property>
                             <property name="input-purpose">number</property>
                             <signal name="activate" handler="on_histoShadEntry_activate" swapped="no"/>
                             <signal name="focus-out-event" handler="on_histoShadEntry_focus_out_event" swapped="no"/>
                           </object>
                           <packing>
                             <property name="left-attach">1</property>
-                            <property name="top-attach">1</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkEntry" id="histoHighEntry">
-                            <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <property name="tooltip-text" translatable="yes">Highlights clipping</property>
-                            <property name="hexpand">True</property>
-                            <property name="has-frame">False</property>
-                            <property name="width-chars">10</property>
-                            <property name="text">1.0000000</property>
-                            <property name="input-purpose">number</property>
-                            <signal name="activate" handler="on_histoHighEntry_activate" swapped="no"/>
-                            <signal name="focus-out-event" handler="on_histoHighEntry_focus_out_event" swapped="no"/>
-                          </object>
-                          <packing>
-                            <property name="left-attach">1</property>
-                            <property name="top-attach">2</property>
+                            <property name="top-attach">0</property>
                           </packing>
                         </child>
                       </object>
