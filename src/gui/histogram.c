@@ -1295,6 +1295,8 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 		populate_roi();
 		// partial cleanup
 		if (invocation == HISTO_STRETCH) {
+			siril_log_message(_("Applying MTF with values %f, %f, %f\n"),
+				_shadows, _midtones, _highlights);
 			siril_debug_print("Applying histogram (mid=%.3f, lo=%.3f, hi=%.3f)\n",
 				_midtones, _shadows, _highlights);
 			undo_save_state(get_preview_gfit_backup(),
