@@ -1657,45 +1657,6 @@ gboolean on_drawingarea_histograms_button_release_event(GtkWidget *widget,
 	return FALSE;
 }
 
-void on_histoMidEntry_activate(GtkEntry *entry, gpointer user_data) {
-	float mid = g_ascii_strtod(gtk_entry_get_text(entry), NULL);
-	if (mid <= _shadows) mid = _shadows;
-	if (mid >= _highlights) mid = _highlights;
-	_midtones = mid;
-	set_cursor_waiting(TRUE);
-	update_histo_mtf();
-	update_image *param = malloc(sizeof(update_image));
-	param->update_preview_fn = histo_update_preview;
-	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckPreview")));
-	notify_update((gpointer) param);
-	gchar *str = g_strdup_printf("%8.7f", mid);
-	gtk_entry_set_text(entry, str);
-	g_free(str);
-	set_cursor_waiting(FALSE);
-}
-
-gboolean on_histoMidEntry_focus_out_event(GtkWidget *widget, GdkEvent *event,
-		gpointer user_data) {
-
-	GtkEntry *entry = GTK_ENTRY(lookup_widget("histoMidEntry"));
-	float mid = g_ascii_strtod(gtk_entry_get_text(entry), NULL);
-	if (mid <= _shadows) mid = _shadows;
-	if (mid >= _highlights) mid = _highlights;
-	_midtones = mid;
-	set_cursor_waiting(TRUE);
-	update_histo_mtf();
-	update_image *param = malloc(sizeof(update_image));
-	param->update_preview_fn = histo_update_preview;
-	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckPreview")));
-	notify_update((gpointer) param);
-	gchar *str = g_strdup_printf("%8.7f", mid);
-	gtk_entry_set_text(entry, str);
-	g_free(str);
-	set_cursor_waiting(FALSE);
-
-	return FALSE;
-}
-
 void on_spin_ghtD_value_changed(GtkSpinButton *button, gpointer user_data) {
 	_D = (float) expm1(gtk_spin_button_get_value(button));
 	update_histo_mtf();
@@ -1905,7 +1866,7 @@ gboolean on_histoShadEntry_focus_out_event(GtkWidget *widget, GdkEvent *event,
 	GtkEntry *entry = GTK_ENTRY(lookup_widget("histoShadEntry"));
 	float lo = g_ascii_strtod(gtk_entry_get_text(entry), NULL);
 	if (lo <= 0.f) lo = 0.f;
-	if (lo >= _highlights) lo = _highlights;
+//	if (lo >= _highlights) lo = _highlights;
 	_shadows = lo;
 	set_cursor_waiting(TRUE);
 	update_histo_mtf();
@@ -1924,7 +1885,7 @@ gboolean on_histoShadEntry_focus_out_event(GtkWidget *widget, GdkEvent *event,
 void on_histoShadEntry_activate(GtkEntry *entry, gpointer user_data) {
 	float lo = g_ascii_strtod(gtk_entry_get_text(entry), NULL);
 	if (lo <= 0.f) lo = 0.f;
-	if (lo >= _highlights) lo = _highlights;
+//	if (lo >= _highlights) lo = _highlights;
 	_shadows = lo;
 	set_cursor_waiting(TRUE);
 	update_histo_mtf();
@@ -1938,11 +1899,50 @@ void on_histoShadEntry_activate(GtkEntry *entry, gpointer user_data) {
 	set_cursor_waiting(FALSE);
 }
 
+void on_histoMidEntry_activate(GtkEntry *entry, gpointer user_data) {
+	float mid = g_ascii_strtod(gtk_entry_get_text(entry), NULL);
+//	if (mid <= _shadows) mid = _shadows;
+//	if (mid >= _highlights) mid = _highlights;
+	_midtones = mid;
+	set_cursor_waiting(TRUE);
+	update_histo_mtf();
+	update_image *param = malloc(sizeof(update_image));
+	param->update_preview_fn = histo_update_preview;
+	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckPreview")));
+	notify_update((gpointer) param);
+	gchar *str = g_strdup_printf("%8.7f", mid);
+	gtk_entry_set_text(entry, str);
+	g_free(str);
+	set_cursor_waiting(FALSE);
+}
+
+gboolean on_histoMidEntry_focus_out_event(GtkWidget *widget, GdkEvent *event,
+		gpointer user_data) {
+
+	GtkEntry *entry = GTK_ENTRY(lookup_widget("histoMidEntry"));
+	float mid = g_ascii_strtod(gtk_entry_get_text(entry), NULL);
+//	if (mid <= _shadows) mid = _shadows;
+//	if (mid >= _highlights) mid = _highlights;
+	_midtones = mid;
+	set_cursor_waiting(TRUE);
+	update_histo_mtf();
+	update_image *param = malloc(sizeof(update_image));
+	param->update_preview_fn = histo_update_preview;
+	param->show_preview = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckPreview")));
+	notify_update((gpointer) param);
+	gchar *str = g_strdup_printf("%8.7f", mid);
+	gtk_entry_set_text(entry, str);
+	g_free(str);
+	set_cursor_waiting(FALSE);
+
+	return FALSE;
+}
+
 gboolean on_histoHighEntry_focus_out_event(GtkWidget *widget, GdkEvent *event,
 		gpointer user_data) {
 	GtkEntry *entry = GTK_ENTRY(lookup_widget("histoHighEntry"));
 	float hi = g_ascii_strtod(gtk_entry_get_text(entry), NULL);
-	if (hi <= _shadows) hi = _shadows;
+//	if (hi <= _shadows) hi = _shadows;
 	if (hi >= 1.f) hi = 1.f;
 	_highlights = hi;
 	set_cursor_waiting(TRUE);
@@ -1961,7 +1961,7 @@ gboolean on_histoHighEntry_focus_out_event(GtkWidget *widget, GdkEvent *event,
 
 void on_histoHighEntry_activate(GtkEntry *entry, gpointer user_data) {
 	float hi = g_ascii_strtod(gtk_entry_get_text(entry), NULL);
-	if (hi <= _shadows) hi = _shadows;
+//	if (hi <= _shadows) hi = _shadows;
 	if (hi >= 1.f) hi = 1.f;
 	_highlights = hi;
 	set_cursor_waiting(TRUE);
