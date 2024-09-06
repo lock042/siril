@@ -924,7 +924,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	}
 
 	// checking if it requires same size sequence
-	samesizeseq_required = regindex >= REG_3STARS && regindex <= REG_KOMBAT;
+	samesizeseq_required = (regindex >= REG_3STARS && regindex <= REG_KOMBAT) || ((is_star_align || isapplyreg) && has_drizzle);
 
 	// performing all checks
 	ready = nb_images_reg > 1 &&

@@ -7502,6 +7502,10 @@ int process_register(int nb) {
 	}
 
 	if (drizzle) {
+		if (seq->is_variable) {
+			siril_log_color_message(_("Cannot drizzle sequences with images of different sizes, aborting.\n"), "red");
+			goto terminate_register_on_error;
+		}
 		regargs->driz = driz;
 		// we now check the drizzle params are ok
 		fits reffit = { 0 };
