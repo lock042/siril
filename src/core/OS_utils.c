@@ -96,13 +96,12 @@ static gint64 find_space(const gchar *name) {
 
 
 	NSURL *fileURL = [[NSURL alloc] initFileURLWithPath:@"/"];
-	NSError *error = nil;
-	NSDictionary *results = [fileURL resourceValuesForKeys:@[NSURLVolumeAvailableCapacityForImportantUsageKey] error:&error];
+	NSDictionary *results = [fileURL resourceValuesForKeys:@[NSURLVolumeAvailableCapacityForOpportunisticUsageKey] error:&error];
 	if (!results) {
 	    siril_log_message("Error retrieving resource keys: %s\n%s\n", [[error localizedDescription] UTF8String], [[[error userInfo] description] UTF8String]);
 	    abort();
 	}
-	siril_log_message("Available capacity for important usage: %s\n", [[results[NSURLVolumeAvailableCapacityForImportantUsageKey] description] UTF8String]);
+	siril_log_message("Available capacity for opportunistic usage: %s\n", [[results[NSURLVolumeAvailableCapacityForOpportunisticUsageKey] description] UTF8String]);
 
 
 
