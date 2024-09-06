@@ -86,27 +86,20 @@
  */
 #if OS_OSX
 static gint64 find_space(const gchar *name) {
+	NSURL *fileURL = [[NSURL alloc] initFileURLWithPath:@"/"];
 	NSError *error = nil;
+	NSDictionary *results = [fileURL resourceValuesForKeys:@[NSURLVolumeAvailableCapacityForImportantUsageKey] error:&error];
 
-	NSDictionary* fileAttributes = [[NSFileManager defaultManager] attributesOfFileSystemForPath:@"/" error:&error];
-	if (fileAttributes == nil) {
+	if (!results) {
 		return -1;
 	}
-	unsigned long long freeSpace = [[fileAttributes objectForKey:NSFileSystemFreeSize] longLongValue];
 
-
-	NSURL *fileURL = [[NSURL alloc] initFileURLWithPath:@"/"];
-	NSDictionary *results = [fileURL resourceValuesForKeys:@[NSURLVolumeAvailableCapacityForOpportunisticUsageKey] error:&error];
-	if (!results) {
-	    siril_log_message("Error retrieving resource keys: %s\n%s\n", [[error localizedDescription] UTF8String], [[[error userInfo] description] UTF8String]);
-	    abort();
+	NSNumber *freeSpace = results[NSURLVolumeAvailableCapacityForImportantUsageKey];
+	if (freeSpace) {
+		return (gint64)[freeSpace longLongValue];
+	} else {
+		return -1;
 	}
-	siril_log_message("Available capacity for opportunistic usage: %s\n", [[results[NSURLVolumeAvailableCapacityForOpportunisticUsageKey] description] UTF8String]);
-
-
-
-
-	return (gint64)freeSpace;
 }
 #elif HAVE_SYS_STATVFS_H
 static gint64 find_space(const gchar *name) {
