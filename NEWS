@@ -86,7 +86,9 @@ siril 1.4.0 xx xx, xx
 * Fixed GHT and HT sharing states for a some GUI elements (#1357)
 * Reads and compares checksum (DATASUM and CHECKSUM) if present in the FITS header (!723)
 * Blocked certain processes when a processing dialog box is open (#1355)
+* Fixed a bug with histogram / GHT widgets updating the image when the preview toggle was off (#1358)
 * Check for and resolve pixel values outside [0 1] before certain operations (!697)
+* Fixed seqpsf for images which write ADU in float (#1322)
 
 siril 1.2.4 xxx xx, 2024
 
@@ -100,6 +102,7 @@ siril 1.2.4 xxx xx, 2024
 * Fixed execute button in wavelets not reverting preview (#1362)
 * Fixed CLAHE crash on mono image (#1354)
 * Fixed crash while extracting Green channel on CFA FITSEQ (#1305)
+* Fixed inverted sequences on exporting to SER (#1361)
 
 siril 1.2.3 June 19, 2024
 
