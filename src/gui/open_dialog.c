@@ -248,7 +248,11 @@ static void opendial(int whichdial) {
 			}
 		}
 		gtk_file_chooser_set_select_multiple(dialog, FALSE);
-		set_filters_dialog(dialog, whichdial);
+		if (whichdial == OD_DISTOLIB) {
+			set_single_filter_dialog(dialog, _("Master-distortion: file (*.wcs)"), "*.wcs;*.WCS");
+		} else {
+			set_filters_dialog(dialog, whichdial);
+		}
 		siril_file_chooser_add_preview(dialog, preview);
 		break;
 	case OD_CWD:
