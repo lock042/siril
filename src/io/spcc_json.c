@@ -31,6 +31,9 @@
 #include "algos/spcc.h"
 #include <json-glib/json-glib.h>
 
+// Uncomment the following line for verbose confirmation of loading each JSON object
+// #define DEBUG_JSON
+
 void spcc_object_free(spcc_object *data, gboolean free_struct);
 void osc_sensor_free(osc_sensor *data, gboolean free_struct);
 spcc_object* spcc_object_copy(spcc_object *data);
@@ -275,7 +278,9 @@ static gboolean processJsonFile(const char *file_path) {
 
 		retval = load_spcc_object_from_file(file_path, data, index, FALSE);
 		if (retval == 1) {
+#ifdef DEBUG_JSON
 			siril_debug_print("Read JSON object: %s\n", data->name);
+#endif
 			// Place the data into the correct list based on its type
 			switch (data->type) {
 				case MONO_SENSORS:
@@ -321,7 +326,9 @@ static gboolean processJsonFile(const char *file_path) {
 				osc_sensor *osc = g_new0(osc_sensor, 1);
 				retval = load_osc_sensor_from_file(file_path, osc);
 				if (retval) {
+#ifdef JSON_DEBUG
 					siril_debug_print("Read JSON object: %s\n", osc->channel[0].model);
+#endif
 					com.spcc_data.osc_sensors = g_list_append(com.spcc_data.osc_sensors, osc);
 					return TRUE;
 				} else {
@@ -639,6 +646,7 @@ void load_all_spcc_metadata() {
 
 	const gchar *path = siril_get_spcc_repo_path();
 	processDirectory(path);
+	siril_debug_print("SPCC JSON metadata loaded\n");
 
 	com.spcc_data.wb_ref = g_list_sort(com.spcc_data.wb_ref, compare_spcc_object_names);
 	com.spcc_data.osc_sensors = g_list_sort(com.spcc_data.osc_sensors, compare_osc_object_models);
