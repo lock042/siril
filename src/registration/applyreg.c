@@ -369,9 +369,11 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 			remove_dis_from_wcs(fit->keywords.wcslib); // we remove distortions as the output is undistorted
 	}
 	// we need to flip in and out + scale before reframing astrometry
-	Homography Hastro = H;
-	cvPrepareDrizzleH(&Hastro, scale, fit->ry, dst_ry);
-	reframe_astrometry_data(fit, Hastro);
+	if (has_wcs(fit)) {
+		Homography Hastro = H;
+		cvPrepareDrizzleH(&Hastro, scale, fit->ry, dst_ry);
+		reframe_astrometry_data(fit, Hastro);
+	}
 
 	if (regargs->driz) {
 		p = calloc(1, sizeof(struct driz_param_t));
