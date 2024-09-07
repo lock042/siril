@@ -198,7 +198,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
   </object>
   <object class="GtkAdjustment" id="adjustment_scaling">
     <property name="lower">0.10</property>
-    <property name="upper">5</property>
+    <property name="upper">2</property>
     <property name="value">1</property>
     <property name="step-increment">0.10</property>
     <property name="page-increment">0.20</property>
