@@ -50,6 +50,7 @@
 #include <sys/param.h>		// define or not BSD macro
 #endif
 #ifdef OS_OSX
+#include <AppKit/AppKit.h>
 #include <mach/task.h>
 #include <mach/mach_init.h>
 #include <mach/mach_types.h>
@@ -83,7 +84,24 @@
  * @param name the path of the directory to be tested
  * @return the disk space remaining in bytes, or a negative value if error
  */
-#if HAVE_SYS_STATVFS_H
+#if OS_OSX
+static gint64 find_space(const gchar *name) {
+	NSURL *fileURL = [[NSURL alloc] initFileURLWithPath:@"/"];
+	NSError *error = nil;
+	NSDictionary *results = [fileURL resourceValuesForKeys:@[NSURLVolumeAvailableCapacityForImportantUsageKey] error:&error];
+
+	if (!results) {
+		return -1;
+	}
+
+	NSNumber *freeSpace = results[NSURLVolumeAvailableCapacityForImportantUsageKey];
+	if (freeSpace) {
+		return (gint64)[freeSpace longLongValue];
+	} else {
+		return -1;
+	}
+}
+#elif HAVE_SYS_STATVFS_H
 static gint64 find_space(const gchar *name) {
 	struct statvfs st;
 	gint64 available;
@@ -99,7 +117,7 @@ static gint64 find_space(const gchar *name) {
 	if (statfs (name, &st))
 		return (gint64) -1;
 	available = st.f_bavail;        // force 64 bits
-        return available * st.f_bsize;
+	return available * st.f_bsize;
 }
 #elif defined _WIN32
 static gint64 find_space(const gchar *name) {
