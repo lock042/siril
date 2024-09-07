@@ -969,16 +969,16 @@ int read_fits_keywords(fits *fit) {
 		// we don't want to load checksum keywords neither
 		if (current_key == NULL) {
 			/* We remove the obsolete WCS keyword (CROTA) and the unmanaged keywords: TRi_j. */
-		    GRegex *regex = g_regex_new("TR[0-9]+_[0-9]+|CROTA[0-9]", 0, 0, NULL);
+			GRegex *regex = g_regex_new("TR[0-9]+_[0-9]+|CROTA[0-9]", 0, 0, NULL);
 			if (strncmp(card, "HISTORY", 7) == 0) continue;
 			if (strncmp(card, "CHECKSUM", 8) == 0) continue;
 			if (strncmp(card, "DATASUM", 7) == 0) continue;
-		    GMatchInfo *match_info = NULL;
-		    if (g_regex_match(regex, card, 0, &match_info)) {
-		        g_match_info_free(match_info);
-		        continue;
-		    }
-		    g_match_info_free(match_info);
+			GMatchInfo *match_info = NULL;
+			if (g_regex_match(regex, card, 0, &match_info)) {
+				g_match_info_free(match_info);
+				continue;
+			}
+			g_match_info_free(match_info);
 			// Handle unknown keys
 			unknown_keys = g_string_append(unknown_keys, card);
 			unknown_keys = g_string_append(unknown_keys, "\n");
