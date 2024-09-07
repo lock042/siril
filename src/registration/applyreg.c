@@ -500,7 +500,8 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		regargs->regparam[out_index].fwhm *= scale;
 		regargs->regparam[out_index].weighted_fwhm *= scale;
 	}
-	update_wcsdata_from_wcs(fit); // we need to do it when image dimensions have been changed
+	if (has_wcs(fit))
+		update_wcsdata_from_wcs(fit); // we need to do it when image dimensions have been changed
 
 	sadata->success[out_index] = 1;
 	return 0;
