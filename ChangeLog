@@ -13,6 +13,7 @@ xx/xx/24
 * Fixed crash while extracting Green channel on CFA FITSEQ (#1305)
 * Fixed inverted sequences on exporting to SER (#1361)
 * Fixed a bug with histogram hi / mid / lo entry callback behaviour (!735)
+* Fixed free space disk computation on macOS (#1368)
 
 siril 1.2.3
 06/19/24
