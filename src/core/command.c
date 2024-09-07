@@ -7415,7 +7415,7 @@ int process_register(int nb) {
 			gchar *end;
 			double value;
 			value = g_ascii_strtod(arg, &end);
-			if (end == arg || value < 0.1 || value > 2.) {
+			if (end == arg || value < 0.1 || value > 3.) {
 				siril_log_color_message(_("Invalid argument to %s, aborting.\n"), "red", word[i]);
 				goto terminate_register_on_error;
 			}
