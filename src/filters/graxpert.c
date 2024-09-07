@@ -52,6 +52,9 @@
 #include "io/single_image.h"
 #include "filters/graxpert.h"
 
+// Uncomment the following line for highly verbose debugging messages
+// #define GRAXPERT_DEBUG
+
 static gboolean verbose = TRUE;
 static version_number graxpert_version = { 0 };
 static gchar **background_ai_models = NULL;
@@ -326,7 +329,9 @@ gchar** ai_version_check(gchar* executable, graxpert_operation operation) {
 		gboolean done = FALSE;
 		while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length,
 						NULL, NULL)) && !done) {
+#ifdef GRAXPERT_DEBUG
 			siril_debug_print("%s\n", buffer);
+#endif
 			// Find the start of the version substring
 			gchar *start = g_strstr_len(buffer, -1, key);
 			if (start) {
