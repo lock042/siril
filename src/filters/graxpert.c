@@ -18,9 +18,6 @@
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
 */
 
-// Comment out this #define before public release
-//#define GRAXPERT_DEBUG
-
 #ifdef _WIN32
 #include <winsock2.h>
 #include <windows.h>
@@ -54,6 +51,8 @@
 
 // Uncomment the following line for highly verbose debugging messages
 // #define GRAXPERT_DEBUG
+// The following line keeps the config file
+// #define GRAXPERT_CONFIG_DEBUG
 
 static gboolean verbose = TRUE;
 static version_number graxpert_version = { 0 };
@@ -171,9 +170,11 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report) {
 #ifdef GRAXPERT_DEBUG
 	gchar *lastbuffer = NULL;
 #endif
-	gboolean graxpert_error_warning_given = FALSE;
 	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length,
 					NULL, NULL))) {
+#ifdef GRAXPERT_DEBUG
+		siril_debug_print("%s\n", buffer);
+#endif
 		gchar *arg = g_strstr_len(buffer, -1, progress_key);
 		double value = -1.0;
 		gchar *errmsg = NULL;
@@ -182,21 +183,14 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report) {
 		if (value > 0.0 && value == value && verbose) {
 			set_progress_bar_data(_("Running GraXpert"), value / 100.0);
 		} else if ( ((errmsg = g_strstr_len(buffer, -1, "ERROR")) && !graxpert_aborted) ) {
-			set_progress_bar_data(_("GraXpert failed with an error."), 1.0);
-			if (!graxpert_error_warning_given) {
-				siril_log_color_message(_("The following error messages are produced by GraXpert. "
-						"They may indicate an installation error or misconfiguration "
-						"such as missing AI model files that you should fix yourself, "
-						"or they may indicate a bug that requires reporting to the "
-						"Siril or GraXpert development teams.\n"), "red");
-				graxpert_error_warning_given = TRUE;
-			}
+			set_progress_bar_data(_("GraXpert reported an error"), max(value, 0.0) / 100);
 			if (strlen(errmsg) > 9) {
 				errmsg += 9;
-				siril_log_color_message("GraXpert: %s\n", "red", errmsg);
+				const gchar* color = g_strstr_len(buffer, -1, "Warning") ? "salmon" : "red";
+				siril_log_color_message("GraXpert: %s\n", color, errmsg);
 			}
 			retval = 1;
-		} else if (g_strrstr(buffer, "Finished")) {
+		} else if (g_strrstr(buffer, "Finished") || g_strrstr(buffer, "finished")) {
 			set_progress_bar_data(_("Done."), 1.0);
 			retval = 0;
 #ifdef GRAXPERT_DEBUG
@@ -635,9 +629,10 @@ void free_graxpert_data(graxpert_data *args) {
 
 static void open_graxpert_result(graxpert_data *args) {
 	// Clean up config file if one was used
+#ifndef GRAXPERT_CONFIG_DEBUG
 	if (args->configfile && g_unlink(args->configfile))
 		siril_debug_print("Failed to remove GraXpert config file\n");
-
+#endif
 	// If successful, open the result image
 	/* Note: we do this even when sequence working: it's a bit inefficient to read it in,
 	 * delete it and save it again but it works for all sequence types (incl. ser and
@@ -804,7 +799,7 @@ gpointer do_graxpert (gpointer p) {
 			}
 			my_argv[nb++] = g_strdup("-preferences_file");
 			args->configfile = g_build_filename(com.wd, "siril-graxpert.pref", NULL);
-			my_argv[nb++] = args->configfile;
+			my_argv[nb++] = g_strdup(args->configfile);
 			save_graxpert_config(args);
 		}
 		if (args->keep_bg)
