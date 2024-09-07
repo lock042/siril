@@ -374,6 +374,7 @@ int verbose_rotate_fast(fits *image, int angle) {
 		cvApplyFlips(&H, orig_ry, target_ry);
 		reframe_astrometry_data(image, H);
 		update_wcsdata_from_wcs(image);
+		update_fits_header(image);
 		refresh_annotations(FALSE);
 	}
 	return 0;
@@ -430,6 +431,7 @@ int verbose_rotate_image(fits *image, rectangle area, double angle, int interpol
 		cvApplyFlips(&H, orig_ry, target_ry);
 		reframe_astrometry_data(image, H);
 		update_wcsdata_from_wcs(image);
+		update_fits_header(image);
 		refresh_annotations(FALSE);
 	}
 	return 0;
@@ -524,6 +526,7 @@ void mirrorx(fits *fit, gboolean verbose) {
 		H.h12 = (double)fit->ry;
 		reframe_astrometry_data(fit, H);
 		update_wcsdata_from_wcs(fit);
+		update_fits_header(fit);
 		refresh_annotations(FALSE);
 	}
 }
@@ -553,6 +556,7 @@ void mirrory(fits *fit, gboolean verbose) {
 		H.h02 = (double)fit->rx;
 		reframe_astrometry_data(fit, H);
 		update_wcsdata_from_wcs(fit);
+		update_fits_header(fit);
 		refresh_annotations(FALSE);
 	}
 }
@@ -647,6 +651,7 @@ int crop(fits *fit, rectangle *bounds) {
 		cvApplyFlips(&H, orig_ry, target_ry);
 		reframe_astrometry_data(fit, H);
 		update_wcsdata_from_wcs(fit);
+		update_fits_header(fit);
 		refresh_annotations(FALSE);
 	}
 	return 0;

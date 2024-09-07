@@ -236,6 +236,7 @@ void update_wcsdata_from_wcs(fits *fit) {
 	g_free(ra);
 	g_free(dec);
 }
+
 static void update_wcsdata_after_ps(struct astrometry_data *args) {
 	if (has_wcsdata(args->fit))
 		reset_wcsdata(args->fit);
