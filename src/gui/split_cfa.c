@@ -39,62 +39,49 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 
 
 	if (gtk_toggle_button_get_active(seq) && sequence_is_loaded()) {
-		if (method == 0 || method == 2) {
-			struct multi_output_data *args = calloc(1, sizeof(struct multi_output_data));
+		struct multi_output_data *args = calloc(1, sizeof(struct multi_output_data));
 
-			set_cursor_waiting(TRUE);
-			args->seq = &com.seq;
-			args->scaling = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_haoiii_scaling")));
-			args->seqEntry = strdup(gtk_entry_get_text(entrySplitCFA));
+		set_cursor_waiting(TRUE);
+		args->seq = &com.seq;
+		args->scaling = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_haoiii_scaling")));
+		args->seqEntry = strdup(gtk_entry_get_text(entrySplitCFA));
 
-			switch (method) {
-				case 0:
-					args->n = 4;
-					args->prefixes = calloc(5, sizeof(const char*));
-					args->prefixes[0] = g_strdup("CFA0_");
-					args->prefixes[1] = g_strdup("CFA1_");
-					args->prefixes[2] = g_strdup("CFA2_");
-					args->prefixes[3] = g_strdup("CFA3_");
-					apply_split_cfa_to_sequence(args);
-					break;
-				case 2:
-					args->n = 2;
-					args->prefixes = calloc(3, sizeof(const char*));
-					args->prefixes[0] = g_strdup("Ha_");
-					args->prefixes[1] = g_strdup("Oiii_");
-					apply_extractHaOIII_to_sequence(args);
-					break;
-			}
-		} else {
-			struct split_cfa_data *args = calloc(1, sizeof(struct multi_output_data));
-
-			set_cursor_waiting(TRUE);
-			args->seq = &com.seq;
-			args->scaling = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_haoiii_scaling")));
-			args->seqEntry = strdup(gtk_entry_get_text(entrySplitCFA));
-
-			if ((com.seq.type == SEQ_SER || com.seq.type == SEQ_FITSEQ) && method == 0) {
-				siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: sequence is SER or FITSEQ"),
-							_("Only FITS format is supported for sequence CFA splitting"));
-				free(args->seqEntry);
+		switch (method) {
+			case 0:
+				args->n = 4;
+				args->prefixes = calloc(5, sizeof(const char*));
+				if (args->seqEntry && args->seqEntry[0] == '\0')
+					args->seqEntry = strdup("CFA");
+				size_t len = strlen(args->seqEntry);
+				// Strip any trailing '_' in order to insert the frame number
+				if (len > 0 && args->seqEntry[len - 1] == '_') {
+					args->seqEntry[len - 1] = '\0';  // Replace trailing '_' with null terminator
+				}
+				for (int i = 0 ; i < 4 ; i++) {
+					args->prefixes[i] = g_strdup_printf("%s%d_", args->seqEntry, i);
+				}
+				apply_split_cfa_to_sequence(args);
+				break;
+			case 1:
+				if (args->seqEntry && args->seqEntry[0] == '\0')
+					args->seqEntry = strdup("Ha_");
+				apply_extractHa_to_sequence(args);
+				break;
+			case 2:
+				args->n = 2;
+				args->prefixes = calloc(3, sizeof(const char*));
+				args->prefixes[0] = g_strdup("Ha_");
+				args->prefixes[1] = g_strdup("Oiii_");
+				apply_extractHaOIII_to_sequence(args);
+				break;
+			case 3:
+				if (args->seqEntry && args->seqEntry[0] == '\0')
+					args->seqEntry = strdup("Green_");
+				apply_extractGreen_to_sequence(args);
+				break;
+			default:
+				siril_debug_print("unhandled case!\n");
 				free(args);
-				return;
-			}
-			switch (method) {
-				case 1:
-					if (args->seqEntry && args->seqEntry[0] == '\0')
-						args->seqEntry = strdup("Ha_");
-					apply_extractHa_to_sequence(args);
-					break;
-				case 3:
-					if (args->seqEntry && args->seqEntry[0] == '\0')
-						args->seqEntry = strdup("Green_");
-					apply_extractGreen_to_sequence(args);
-					break;
-				default:
-					siril_debug_print("unhandled case!\n");
-					free(args);
-			}
 		}
 	} else {
 		int scaling = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_haoiii_scaling")));
