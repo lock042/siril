@@ -83,11 +83,9 @@ struct phot_config *phot_set_adjusted_for_image(const fits *fit) {
 	return retval;
 }
 
-void fluxCut_factors (const psf_star *psf, double* in_rad, double* out_rad, double* ap_rad){
-//	struct phot_config *phot_set2 = (struct phot_config *)psf;
-//	siril_log_message(_("2-phot_set2->dump_fwhmx= %i\n"), phot_set2->dump_fwhmx);
+void fluxCut_factors (const psf_star *psf, struct phot_config *phot_set, double fwhm_ref, double* in_rad, double* out_rad, double* ap_rad){
 	double threshold = 0.01 * com.pref.phot_set.flux_cut_factor;
-	double fwhm_m = fmax(psf->fwhmx, psf->fwhmy);
+	double fwhm_m = fwhm_ref;
 	if (psf->profile == PSF_GAUSSIAN) {
 		*ap_rad = fwhm_m *INV_2_SQRT_2_LOG2 * sqrt(-2.0 * log(threshold));
 	}
@@ -126,25 +124,22 @@ photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 		return NULL;
 	}
 
-/*
-// phot_set a definir ici)
-struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
-seq->photometry[ref][i]
-reference_image
-////////////////////////////
-*/
-	double r1_ref = 0.0, fwhm_ref = 0.0;
-	const sequence *seq = &com.seq;
-	if (seq) {
-		int ref_imagefd = seq->reference_image;
-//		siril_log_message(_("REFERENCE IMAGE= %i\n"), ref_imagefd);
-//		siril_log_message(_("REFERENCE IMAGE= %i\n"), seq->photometry[ref_imagefd][0]->A);
-//		r1_ref = seq->photometry[seq->reference_image][0]->fwhmx;
-//		r1_ref = seq->photometry[seq->reference_image][0]->fwhmx;
-//		fwhm_ref = seq->photometry[seq->reference_image][0]->fwhmx;
-	}
+
+///*******************************************
+///	The goal would be to set fwhm_ref to a particular value:
+///	*the fwhm of the variable star in the 1st image of the sequence
+///	*or in the ref image, whether the sequence is registered or not 
+	double fwhm_ref;
+	int strat_bkp = phot_set->ape_strat;	// Back up of the selected photometry strategy
+	if (!com.pref.phot_set.isitdone) {
+		phot_set->ape_strat = FIXED_AP;
+		com.pref.phot_set.dump_fwhmx = psf->fwhmx;
+		fwhm_ref = com.pref.phot_set.dump_fwhmx;
+	} else fwhm_ref = com.pref.phot_set.dump_fwhmx;
 
 
+///*******************************************
+///	According to the choosen startegy, computation of the radii:
 	switch (phot_set->ape_strat){
 		case FIXED_AP:
 			r1 = phot_set->inner;
@@ -152,24 +147,31 @@ reference_image
 			appRadius = phot_set->aperture;
 			break;
 		case FWHM_VAR:	
-			r1 = 0.5 * psf->fwhmx * phot_set->auto_inner_factor;
-			r2 = 0.5 * psf->fwhmx * phot_set->auto_outer_factor;
-			appRadius = 0.5 * psf->fwhmx * phot_set->auto_aperture_factor;
+			r1 = 0.5 * fwhm_ref * phot_set->auto_inner_factor;
+			r2 = 0.5 * fwhm_ref * phot_set->auto_outer_factor;
+			appRadius = 0.5 * fwhm_ref * phot_set->auto_aperture_factor;
 			break;
 		case FLUX_CUT:
 			double in_rad, out_rad, ap_rad;
-			fluxCut_factors (psf, &in_rad, &out_rad, &ap_rad);
+			fluxCut_factors (psf, phot_set, fwhm_ref, &in_rad, &out_rad, &ap_rad);
 			r1 = in_rad;
 			r2 = out_rad;
 			appRadius = ap_rad;
 			break;
 	}
 	siril_log_message(_("Aperture: %lf, Inner: %lf Outer: %lf\n"), appRadius, r1, r2);
-//	appRadius = phot_set->aperture;
+
+///*******************************************
+/// The 3 following lines are the original ones.
+///	For each selected star of each image, the radii are re-computed
+/// That's what is not satisfying
+/// Just have to uncomment them to retrieve the former bahaviour 
+///*******************************************
+
 //	r1 = phot_set->inner;
 //	r2 = phot_set->outer;
-//	r1 = phot_set->force_radius ? phot_set->aperture : 0.5 * psf->fwhmx * phot_set->auto_aperture_factor;
 //	appRadius = phot_set->force_radius ? phot_set->aperture : 0.5 * psf->fwhmx * phot_set->auto_aperture_factor;
+
 	if (appRadius >= r1 && !phot_set->force_radius) {
 		if (verbose) {
 			/* Translator note: radii is plural for radius */
@@ -281,6 +283,17 @@ reference_image
 		phot->valid = valid;
 	}
 
+	if (!com.pref.phot_set.isitdone) {
+		fwhm_ref = psf->fwhmx;
+//		siril_log_message(_("1-FREEEED!!---fwhmx_ref= %lf\n"), fwhm_ref);
+		com.pref.phot_set.isitdone = TRUE;
+		phot_set->dump_fwhmx = fwhm_ref;
+		phot_set->ape_strat = strat_bkp;
+//		siril_log_message(_("fwhmx= %lf, dump_fwhm= %lf, isitdone= %i\n"), fwhm_ref, phot_set->dump_fwhmx, com.pref.phot_set.isitdone);
+//		siril_log_message(_("OUTPUT--strat BKP= %i\n"), strat_bkp);
+	}
+	siril_log_message(_("fwhmx= %lf, dump_fwhm= %lf, isitdone= %i\n"), fwhm_ref, phot_set->dump_fwhmx, com.pref.phot_set.isitdone);
+//	siril_log_message(_("2-FREEEED!!---fwhmx_ref= %lf, com.pref.phot_set.isitdone= %i\n"), fwhm_ref, com.pref.phot_set.isitdone);
 	return phot;
 }
 
@@ -652,25 +665,12 @@ void free_light_curve_args(struct light_curve_args *args) {
 gpointer light_curve_worker(gpointer arg) {
 	int retval = 0;
 	struct light_curve_args *args = (struct light_curve_args *)arg;
-//	struct fwhm_struct *psf = (struct fwhm_struct *)arg;
-//	struct phot_config *phot_set = (struct phot_config *)psf;
 	framing_mode framing = REGISTERED_FRAME;
 	if (framing == REGISTERED_FRAME && !args->seq->regparam[args->layer])
 		framing = FOLLOW_STAR_FRAME;
 	// someday we should move the area in the seqpsf args, not needed for now
 
-
-/*	com.selection = args->areas[0];
-	psf->is_done = TRUE;
-	if (seqpsf(args->seq, args->layer, FALSE, FALSE, framing, FALSE, TRUE)) {
-		siril_log_message(_("Failed to analyse the variable star photometry\n"));
-		}
-	phot_set->dump_fwhmx = psf->fwhmx;
-	phot_set->dump_fwhmy = psf->fwhmy;
-	siril_log_message(_("1-phot_set2->dump_fwhmx= %i\n"), phot_set->dump_fwhmx);
-	
-*/	
-		
+	com.pref.phot_set.isitdone = FALSE;
 	for (int star_index = 0; star_index < args->nb; star_index++) {
 		com.selection = args->areas[star_index];
 		if (seqpsf(args->seq, args->layer, FALSE, FALSE, framing, FALSE, TRUE)) {
@@ -683,6 +683,9 @@ gpointer light_curve_worker(gpointer arg) {
 					star_index);
 		}
 
+		siril_log_message(_("ATTENTION!! show current star (%i) fwhmx : %lf\n"), star_index, (*args->seq->photometry[star_index])->fwhmx);
+		com.pref.phot_set.isitdone = FALSE;
+
 		if (args->seq == &com.seq)
 			queue_redraw(REDRAW_OVERLAY);
 	}
@@ -694,6 +697,7 @@ gpointer light_curve_worker(gpointer arg) {
 	if (!retval && args->display_graph && args->spl_data) {
 		siril_add_idle(create_new_siril_plot_window, args->spl_data);
 	}
+	com.pref.phot_set.isitdone = FALSE;
 	free_light_curve_args(args); // this will not free args->spl_data which is free by siril_plot window upon closing
 	siril_add_idle(end_light_curve_worker, NULL);
 	return GINT_TO_POINTER(retval);
