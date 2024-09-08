@@ -1,4 +1,4 @@
-siril 1.2.4 xxx xx, 2024
+siril 1.2.4 September 11, 2024
 
 * Fixed CFA statistics (#1342)
 * Fixed calibration command bug disabling cosmetic correction (#1348)
