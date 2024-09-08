@@ -6362,11 +6362,10 @@ int process_seq_extractHa(int nb) {
 		return CMD_FOR_CFA_IMAGE;
 	}
 
-	struct multi_output_data *args = calloc(1, sizeof(struct multi_output_data));
+	struct simple_extract_data *args = calloc(1, sizeof(struct simple_extract_data));
 
 	args->seq = seq;
 	args->seqEntry = strdup("Ha_");
-	args->user_data = malloc(sizeof(int*));
 
 	int startoptargs = 2;
 	if (nb > startoptargs) {
@@ -6386,7 +6385,7 @@ int process_seq_extractHa(int nb) {
 					args->seqEntry = strdup(value);
 				}
 				else if (g_str_has_prefix(word[i], "-upscale")) {
-					*(extraction_scaling*) args->user_data = SCALING_HA_UP;
+					args->scaling = SCALING_HA_UP;
 				}
 				else {
 					siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
@@ -6415,7 +6414,7 @@ int process_seq_extractGreen(int nb) {
 		return CMD_FOR_CFA_IMAGE;
 	}
 
-	struct multi_output_data *args = calloc(1, sizeof(struct multi_output_data));
+	struct simple_extract_data *args = calloc(1, sizeof(struct simple_extract_data));
 
 	args->seq = seq;
 	args->seqEntry = strdup("Green_");
