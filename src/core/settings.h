@@ -141,6 +141,7 @@ struct phot_config {
 	double flux_outer_factor;// factor for automatic outer radius computation from Flux cutoff meth
 	double dump_fwhmx;	// temporary value
 	double dump_fwhmy;// temporary value
+	gboolean isitdone;	// tmporary variable, should be renamed if used
 
 
 	gboolean force_radius;	// force the aperture radius value
