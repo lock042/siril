@@ -1098,13 +1098,6 @@ int read_fits_keywords(fits *fit) {
 		}
 	}
 
-	if (fit->unknown_keys != NULL) {
-		g_free(fit->unknown_keys);
-	}
-	fit->unknown_keys = g_string_free(unknown_keys, FALSE);
-
-	set_to_default_not_used(fit, keys_hash);
-
 	gboolean not_from_siril = (strstr(fit->keywords.program, "Siril") == NULL);
 	if ((fit->bitpix == FLOAT_IMG && not_from_siril) || fit->bitpix == DOUBLE_IMG) {
 		float mini, maxi;
@@ -1113,6 +1106,13 @@ int read_fits_keywords(fits *fit) {
 		fit->keywords.data_max = (double) maxi;
 		fit->keywords.data_min = (double) mini;
 	}
+
+	if (fit->unknown_keys != NULL) {
+		g_free(fit->unknown_keys);
+	}
+	fit->unknown_keys = g_string_free(unknown_keys, FALSE);
+
+	set_to_default_not_used(fit, keys_hash);
 
 	// Free the hash table and unknown keys
 	g_hash_table_destroy(keys_hash);

@@ -3075,8 +3075,7 @@ gboolean keyword_is_protected(char *card) {
 	char keyname[9];
 	strncpy(keyname, card, 8);
 	keyname[8] = '\0';
-	if ((g_strcmp0(keyname, "PROGRAM ") == 0)
-			|| (g_strcmp0(keyname, "DATE    ") == 0)) {
+	if (g_strcmp0(keyname, "DATE    ") == 0) {
 		return TRUE;
 	}
 	return (fits_get_keyclass(card) == TYP_STRUC_KEY || fits_get_keyclass(card) == TYP_CMPRS_KEY || fits_get_keyclass(card) == TYP_SCAL_KEY);
