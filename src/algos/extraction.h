@@ -6,25 +6,6 @@
 #include "io/ser.h"
 #include "io/fits_sequence.h"
 
-struct multi_output_data {
-	fits *fit;
-	sequence *seq;
-	int n;
-	char *seqEntry;
-	gchar **prefixes;
-	struct ser_struct **new_ser;
-	fitseq **new_fitseq;
-
-	GList *processed_images;
-
-	extraction_scaling scaling;
-};
-
-struct _multi_split {
-	int index;
-	fits **images;
-};
-
 void update_filter_information(fits *fit, char *filter, gboolean append);
 
 int extractHa_ushort(fits *in, fits *Ha, sensor_pattern pattern, extraction_scaling scaling);

@@ -60,114 +60,6 @@ void update_filter_information(fits *fit, char *filter, gboolean append) {
 	g_free(filtername);
 }
 
-int extractHa_ushort(fits *in, fits *Ha, sensor_pattern pattern, extraction_scaling scaling) {
-	int width = in->rx / 2, height = in->ry / 2;
-
-	if (strlen(in->keywords.bayer_pattern) > 4) {
-		siril_log_message(_("Extract_Ha does not work on non-Bayer filter camera images!\n"));
-		return 1;
-	}
-	if (new_fit_image(&Ha, width, height, 1, DATA_USHORT)) {
-		return 1;
-	}
-
-	int j = 0;
-
-	for (int row = 0; row < in->ry - 1; row += 2) {
-		for (int col = 0; col < in->rx - 1; col += 2) {
-			WORD c0 = in->data[col + row * in->rx];
-			WORD c1 = in->data[1 + col + row * in->rx];
-			WORD c2 = in->data[col + (1 + row) * in->rx];
-			WORD c3 = in->data[1 + col + (1 + row) * in->rx];
-
-			switch(pattern) {
-			case BAYER_FILTER_RGGB:
-				Ha->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c0) : c0;
-				break;
-			case BAYER_FILTER_BGGR:
-				Ha->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c3) : c3;
-				break;
-			case BAYER_FILTER_GRBG:
-				Ha->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c1) : c1;
-				break;
-			case BAYER_FILTER_GBRG:
-				Ha->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c2) : c2;
-				break;
-			default:
-				clearfits(Ha);
-				printf("Should not happen.\n");
-				return 1;
-			}
-			j++;
-		}
-	}
-	if (scaling == SCALING_HA_UP) {
-		verbose_resize_gaussian(Ha, Ha->rx * 2, Ha->ry * 2, OPENCV_LANCZOS4, TRUE);
-	}
-
-	/* We update FITS keywords */
-	copy_fits_metadata(in, Ha);
-	update_sampling_information(Ha, scaling ? 1.f : 2.f);
-	update_filter_information(Ha, "Ha", TRUE);
-	Ha->history = g_slist_append(Ha->history, g_strdup(_("Ha channel")));
-
-	return 0;
-}
-
-int extractHa_float(fits *in, fits *Ha, sensor_pattern pattern, extraction_scaling scaling) {
-	int width = in->rx / 2, height = in->ry / 2;
-
-	if (strlen(in->keywords.bayer_pattern) > 4) {
-		siril_log_message(_("Extract_Ha does not work on non-Bayer filter camera images!\n"));
-		return 1;
-	}
-	if (new_fit_image(&Ha, width, height, 1, DATA_FLOAT)) {
-		return 1;
-	}
-
-	int j = 0;
-
-	for (int row = 0; row < in->ry - 1; row += 2) {
-		for (int col = 0; col < in->rx - 1; col += 2) {
-			float c0 = in->fdata[col + row * in->rx];
-			float c1 = in->fdata[1 + col + row * in->rx];
-			float c2 = in->fdata[col + (1 + row) * in->rx];
-			float c3 = in->fdata[1 + col + (1 + row) * in->rx];
-
-			switch(pattern) {
-			case BAYER_FILTER_RGGB:
-				Ha->fdata[j] = c0;
-				break;
-			case BAYER_FILTER_BGGR:
-				Ha->fdata[j] = c3;
-				break;
-			case BAYER_FILTER_GRBG:
-				Ha->fdata[j] = c1;
-				break;
-			case BAYER_FILTER_GBRG:
-				Ha->fdata[j] = c2;
-				break;
-			default:
-				printf("Should not happen.\n");
-				return 1;
-			}
-			j++;
-		}
-	}
-
-	if (scaling == SCALING_HA_UP) {
-		verbose_resize_gaussian(Ha, Ha->rx * 2, Ha->ry * 2, OPENCV_LANCZOS4, TRUE);
-	}
-
-	/* We update FITS keywords */
-	copy_fits_metadata(in, Ha);
-	update_sampling_information(Ha, scaling ? 1.f : 2.f);
-	update_filter_information(Ha, "Ha", TRUE);
-	Ha->history = g_slist_append(Ha->history, g_strdup(_("Ha channel")));
-
-	return 0;
-}
-
 sensor_pattern get_bayer_pattern(fits *fit) {
 	/* Get Bayer informations from header if available */
 	sensor_pattern tmp_pattern = com.pref.debayer.bayer_pattern;
@@ -199,71 +91,15 @@ sensor_pattern get_bayer_pattern(fits *fit) {
 	return tmp_pattern;
 }
 
-int extract_finalize_hook(struct generic_seq_args *args) {
-	struct multi_output_data *data = (struct multi_output_data *) args->user;
-	int retval = seq_finalize_hook(args);
-	free(data->new_ser);
-	free(data->new_fitseq);
-	free(data->prefixes);
-	free(data);
-	return retval;
-}
-
-int split_finalize_hook(struct generic_seq_args *args) {
-	struct multi_output_data *data = (struct multi_output_data *) args->user;
-	free(data->new_ser);
-	free(data->new_fitseq);
-	free(data->prefixes);
-	free(data);
-	return 0;
-}
-
-int extractHa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
-	struct multi_output_data *data = (struct multi_output_data *) args->user;
-	int ret = 1;
-	fits f_Ha = { 0 };
-	sensor_pattern pattern = get_bayer_pattern(fit);
-
-	if (fit->type == DATA_USHORT)
-		ret = extractHa_ushort(fit, &f_Ha, pattern, data->scaling);
-	else if (fit->type == DATA_FLOAT)
-		ret = extractHa_float(fit, &f_Ha, pattern, data->scaling);
-	else return 1;
-	if (!ret) {
-		clearfits(fit);
-		memcpy(fit, &f_Ha, sizeof(fits));
-	}
-	return ret;
-}
-
 static int extract_prepare_hook(struct generic_seq_args *args) {
-	int retval = seq_prepare_hook(args);
+	int retval = multi_prepare(args);
 	if (!retval && args->new_ser) {
 		retval = ser_reset_to_monochrome(args->new_ser);
 	}
 	return retval;
 }
 
-void apply_extractHa_to_sequence(struct multi_output_data *multi_output_args) {
-	struct generic_seq_args *args = create_default_seqargs(multi_output_args->seq);
-	args->seq = multi_output_args->seq;
-	args->filtering_criterion = seq_filter_included;
-	args->nb_filtered_images = multi_output_args->seq->selnum;
-	args->compute_mem_limits_hook = cfa_extract_compute_mem_limits;
-	args->prepare_hook = extract_prepare_hook;
-	args->finalize_hook = extract_finalize_hook;
-	args->image_hook = extractHa_image_hook;
-	args->description = _("Extract Ha");
-	args->has_output = TRUE;
-	args->new_seq_prefix = multi_output_args->seqEntry;
-	args->load_new_sequence = TRUE;
-	args->force_ser_output = FALSE;
-	args->user = multi_output_args;
-
-	multi_output_args->fit = NULL;	// not used here
-
-	start_in_new_thread(generic_sequence_worker, args);
-}
+/* Green Extraction Functions */
 
 int extractGreen_ushort(fits *in, fits *green, sensor_pattern pattern) {
 	int width = in->rx / 2, height = in->ry / 2;
@@ -379,7 +215,7 @@ void apply_extractGreen_to_sequence(struct multi_output_data *multi_output_args)
 	args->nb_filtered_images = multi_output_args->seq->selnum;
 	args->compute_mem_limits_hook = cfa_extract_compute_mem_limits;
 	args->prepare_hook = extract_prepare_hook;
-	args->finalize_hook = extract_finalize_hook;
+	args->finalize_hook = multi_finalize;
 	args->image_hook = extractGreen_image_hook;
 	args->description = _("Extract Green");
 	args->has_output = TRUE;
@@ -393,420 +229,157 @@ void apply_extractGreen_to_sequence(struct multi_output_data *multi_output_args)
 	start_in_new_thread(generic_sequence_worker, args);
 }
 
-int extractHaOIII_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
+/* Ha Extraction Functions */
+
+int extractHa_ushort(fits *in, fits *Ha, sensor_pattern pattern, extraction_scaling scaling) {
+	int width = in->rx / 2, height = in->ry / 2;
+
+	if (strlen(in->keywords.bayer_pattern) > 4) {
+		siril_log_message(_("Extract_Ha does not work on non-Bayer filter camera images!\n"));
+		return 1;
+	}
+	if (new_fit_image(&Ha, width, height, 1, DATA_USHORT)) {
+		return 1;
+	}
+
+	int j = 0;
+
+	for (int row = 0; row < in->ry - 1; row += 2) {
+		for (int col = 0; col < in->rx - 1; col += 2) {
+			WORD c0 = in->data[col + row * in->rx];
+			WORD c1 = in->data[1 + col + row * in->rx];
+			WORD c2 = in->data[col + (1 + row) * in->rx];
+			WORD c3 = in->data[1 + col + (1 + row) * in->rx];
+
+			switch(pattern) {
+			case BAYER_FILTER_RGGB:
+				Ha->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c0) : c0;
+				break;
+			case BAYER_FILTER_BGGR:
+				Ha->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c3) : c3;
+				break;
+			case BAYER_FILTER_GRBG:
+				Ha->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c1) : c1;
+				break;
+			case BAYER_FILTER_GBRG:
+				Ha->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c2) : c2;
+				break;
+			default:
+				clearfits(Ha);
+				printf("Should not happen.\n");
+				return 1;
+			}
+			j++;
+		}
+	}
+	if (scaling == SCALING_HA_UP) {
+		verbose_resize_gaussian(Ha, Ha->rx * 2, Ha->ry * 2, OPENCV_LANCZOS4, TRUE);
+	}
+
+	/* We update FITS keywords */
+	copy_fits_metadata(in, Ha);
+	update_sampling_information(Ha, scaling ? 1.f : 2.f);
+	update_filter_information(Ha, "Ha", TRUE);
+	Ha->history = g_slist_append(Ha->history, g_strdup(_("Ha channel")));
+
+	return 0;
+}
+
+int extractHa_float(fits *in, fits *Ha, sensor_pattern pattern, extraction_scaling scaling) {
+	int width = in->rx / 2, height = in->ry / 2;
+
+	if (strlen(in->keywords.bayer_pattern) > 4) {
+		siril_log_message(_("Extract_Ha does not work on non-Bayer filter camera images!\n"));
+		return 1;
+	}
+	if (new_fit_image(&Ha, width, height, 1, DATA_FLOAT)) {
+		return 1;
+	}
+
+	int j = 0;
+
+	for (int row = 0; row < in->ry - 1; row += 2) {
+		for (int col = 0; col < in->rx - 1; col += 2) {
+			float c0 = in->fdata[col + row * in->rx];
+			float c1 = in->fdata[1 + col + row * in->rx];
+			float c2 = in->fdata[col + (1 + row) * in->rx];
+			float c3 = in->fdata[1 + col + (1 + row) * in->rx];
+
+			switch(pattern) {
+			case BAYER_FILTER_RGGB:
+				Ha->fdata[j] = c0;
+				break;
+			case BAYER_FILTER_BGGR:
+				Ha->fdata[j] = c3;
+				break;
+			case BAYER_FILTER_GRBG:
+				Ha->fdata[j] = c1;
+				break;
+			case BAYER_FILTER_GBRG:
+				Ha->fdata[j] = c2;
+				break;
+			default:
+				printf("Should not happen.\n");
+				return 1;
+			}
+			j++;
+		}
+	}
+
+	if (scaling == SCALING_HA_UP) {
+		verbose_resize_gaussian(Ha, Ha->rx * 2, Ha->ry * 2, OPENCV_LANCZOS4, TRUE);
+	}
+
+	/* We update FITS keywords */
+	copy_fits_metadata(in, Ha);
+	update_sampling_information(Ha, scaling ? 1.f : 2.f);
+	update_filter_information(Ha, "Ha", TRUE);
+	Ha->history = g_slist_append(Ha->history, g_strdup(_("Ha channel")));
+
+	return 0;
+}
+
+int extractHa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
+	struct multi_output_data *data = (struct multi_output_data *) args->user;
 	int ret = 1;
-	struct multi_output_data *multi_args = (struct multi_output_data *) args->user;
+	fits f_Ha = { 0 };
 	sensor_pattern pattern = get_bayer_pattern(fit);
 
-	/* Demosaic and store images for write */
-	struct _multi_split *multi_data = malloc(sizeof(struct _multi_split));
-	multi_data->index = o;
-	multi_data->images = calloc(3, sizeof(fits*));
-	for (int i = 0 ; i < 3 ; i++) {
-		multi_data->images[i] = calloc(1, sizeof(fits));
-	}
-
-	if (fit->type == DATA_USHORT) {
-		ret = extractHaOIII_ushort(fit, multi_data->images[0], multi_data->images[1], pattern, multi_args->scaling, threads);
-	}
-	else if (fit->type == DATA_FLOAT) {
-		ret = extractHaOIII_float(fit, multi_data->images[0], multi_data->images[1], pattern, multi_args->scaling, threads);
-	}
-
-	if (ret) {
-		for (int i = 0 ; i < 2 ; i++) {
-			clearfits(multi_data->images[i]);
-			free(multi_data->images[i]);
-		}
-	} else {
-#ifdef _OPENMP
-		omp_set_lock(&args->lock);
-#endif
-		multi_args->processed_images = g_list_append(multi_args->processed_images, multi_data);
-#ifdef _OPENMP
-		omp_unset_lock(&args->lock);
-#endif
-		siril_debug_print("%s: processed images added to the save list (%d)\n", args->description, o);
+	if (fit->type == DATA_USHORT)
+		ret = extractHa_ushort(fit, &f_Ha, pattern, data->scaling);
+	else if (fit->type == DATA_FLOAT)
+		ret = extractHa_float(fit, &f_Ha, pattern, data->scaling);
+	else return 1;
+	if (!ret) {
+		clearfits(fit);
+		memcpy(fit, &f_Ha, sizeof(fits));
 	}
 	return ret;
 }
 
-static int multi_prepare(struct generic_seq_args *args) {
-	struct multi_output_data *multi_args = (struct multi_output_data *) args->user;
-	int n = multi_args->n;
-	multi_args->new_ser = calloc(n, sizeof(char*));
-	multi_args->new_fitseq = calloc(n, sizeof(char*));
-	// we call the generic prepare n times with different prefixes
-	for (int i = 0 ; i < n ; i++) {
-		args->new_seq_prefix = multi_args->prefixes[i];
-		if (extract_prepare_hook(args))
-			return 1;
-		// but we copy the result between each call
-		multi_args->new_ser[i] = args->new_ser;
-		multi_args->new_fitseq[i] = args->new_fitseq;
-	}
-
-	args->new_seq_prefix = NULL;
-	args->new_ser = NULL;
-	args->new_fitseq = NULL;
-
-	seqwriter_set_number_of_outputs(n);
-	return 0;
-}
-
-static int multi_finalize(struct generic_seq_args *args) {
-	struct multi_output_data *multi_args = (struct multi_output_data *) args->user;
-	int n = multi_args->n;
-	int retval;
-	for (int i = 0 ; i < n ; i++) {
-		args->new_ser = multi_args->new_ser[i];
-		args->new_fitseq = multi_args->new_fitseq[i];
-		retval |= seq_finalize_hook(args);
-		multi_args->new_ser[i] = NULL;
-		multi_args->new_fitseq[i] = NULL;
-	}
-	seqwriter_set_number_of_outputs(1);
-	free(multi_args->prefixes);
-	free(multi_args->new_ser);
-	free(multi_args->new_fitseq);
-	free(multi_args);
-	return retval;
-}
-
-static int multi_save(struct generic_seq_args *args, int out_index, int in_index, fits *fit) {
-	struct multi_output_data *multi_args = (struct multi_output_data *) args->user;
-	struct _multi_split *multi_data = NULL;
-	// images are passed from the image_hook to the save in a list, because
-	// there are n, which is unsupported by the generic arguments
-#ifdef _OPENMP
-	omp_set_lock(&args->lock);
-#endif
-	GList *list = multi_args->processed_images;
-	while (list) {
-		if (((struct _multi_split *)list->data)->index == out_index) {
-			multi_data = list->data;
-			break;
-		}
-		list = g_list_next(multi_args->processed_images);
-	}
-	if (multi_data)
-		multi_args->processed_images = g_list_remove(multi_args->processed_images, multi_data);
-#ifdef _OPENMP
-	omp_unset_lock(&args->lock);
-#endif
-	if (!multi_data) {
-		siril_log_color_message(_("Image %d not found for writing\n"), "red", in_index);
-		return 1;
-	}
-	int n = multi_args->n;
-	siril_debug_print("Multiple (%d) images to be saved (%d)\n", n, out_index);
-	for (int i = 0 ; i < n ; i++) {
-		if (multi_data->images[i]->naxes[0] == 0) {
-			siril_debug_print("empty data\n");
-			return 1;
-		}
-	}
-
-	int retval = 0;
-
-	if (args->force_ser_output || args->seq->type == SEQ_SER) {
-		for (int i = 0 ; i < n ; i++) {
-			retval |= ser_write_frame_from_fit(multi_args->new_ser[i], multi_data->images[i], out_index);
-		}
-		// the two fits are freed by the writing thread
-		if (!retval) {
-			/* special case because it's not done in the generic */
-			clearfits(fit);
-			free(fit);
-		}
-	} else if (args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) {
-		for (int i = 0 ; i < n ; i++) {
-			retval |= fitseq_write_image(multi_args->new_fitseq[i], multi_data->images[i], out_index);
-		}
-		// the two fits are freed by the writing thread
-		if (!retval) {
-			/* special case because it's not done in the generic */
-			clearfits(fit);
-			free(fit);
-		}
-	} else {
-		for (int i = 0 ; i < n ; i++) {
-			char *dest = fit_sequence_get_image_filename_prefixed(args->seq, multi_args->prefixes[i], in_index);
-			if (fit->type == DATA_USHORT) {
-				retval |= save1fits16(dest, multi_data->images[i], RLAYER);
-			} else {
-				retval |= save1fits32(dest, multi_data->images[i], RLAYER);
-			}
-			free(dest);
-		}
-	}
-	gboolean tally_fitseq = FALSE, tally_ser = FALSE;
-	for (int i = 0 ; i < n ; i++) {
-		if (multi_args->new_fitseq[i])
-			tally_fitseq = TRUE;
-		if (multi_args->new_ser[i])
-			tally_ser = TRUE;
-	}
-	if (!tally_ser && !tally_fitseq) { // detect if there is a seqwriter
-		for (int i = 0 ; i < n ; i++) {
-			clearfits(multi_data->images[i]);
-			free(multi_data->images[i]);
-		}
-	}
-	free(multi_data->images);
-	free(multi_data);
-	return retval;
-}
-
-void apply_extractHaOIII_to_sequence(struct multi_output_data *multi_args) {
-	struct generic_seq_args *args = create_default_seqargs(multi_args->seq);
-	args->seq = multi_args->seq;
+void apply_extractHa_to_sequence(struct multi_output_data *multi_output_args) {
+	struct generic_seq_args *args = create_default_seqargs(multi_output_args->seq);
+	args->seq = multi_output_args->seq;
 	args->filtering_criterion = seq_filter_included;
-	args->nb_filtered_images = multi_args->seq->selnum;
+	args->nb_filtered_images = multi_output_args->seq->selnum;
 	args->compute_mem_limits_hook = cfa_extract_compute_mem_limits;
-	args->prepare_hook = multi_prepare;
-	args->image_hook = extractHaOIII_image_hook;
-	args->has_output = TRUE;
-	args->output_type = get_data_type(args->seq->bitpix);
-	args->save_hook = multi_save;
+	args->prepare_hook = extract_prepare_hook;
+	args->image_hook = extractHa_image_hook;
+	// Uses the generic save hook
 	args->finalize_hook = multi_finalize;
-	args->description = _("Extract Ha and OIII");
-	args->upscale_ratio = 1.23;	// sqrt(1.5), for memory management
-	args->new_seq_prefix = NULL;
-	args->user = multi_args;
+	args->description = _("Extract Ha");
+	args->has_output = TRUE;
+	args->new_seq_prefix = multi_output_args->seqEntry;
+	args->load_new_sequence = TRUE;
+	args->force_ser_output = FALSE;
+	args->user = multi_output_args;
 
-	multi_args->fit = NULL;	// not used here
+	multi_output_args->fit = NULL;	// not used here
 
 	start_in_new_thread(generic_sequence_worker, args);
 }
 
-int split_cfa_ushort(fits *in, fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3) {
-	int width = in->rx / 2, height = in->ry / 2;
-
-	if (strlen(in->keywords.bayer_pattern) > 4) {
-		siril_log_message(_("Split CFA does not work on non-Bayer filter camera images!\n"));
-		return 1;
-	}
-	if (new_fit_image(&cfa0, width, height, 1, DATA_USHORT) ||
-			new_fit_image(&cfa1, width, height, 1, DATA_USHORT) ||
-			new_fit_image(&cfa2, width, height, 1, DATA_USHORT) ||
-			new_fit_image(&cfa3, width, height, 1, DATA_USHORT)) {
-		return 1;
-	}
-
-	int j = 0;
-	for (int row = 0; row < in->ry - 1; row += 2) {
-		for (int col = 0; col < in->rx - 1; col += 2) {
-			/* not c0, c1, c2 and c3 because of the read orientation */
-			WORD c1 = in->data[col + row * in->rx];
-			WORD c3 = in->data[1 + col + row * in->rx];
-			WORD c0 = in->data[col + (1 + row) * in->rx];
-			WORD c2 = in->data[1 + col + (1 + row) * in->rx];
-
-			cfa0->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c0) : c0;
-			cfa1->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c1) : c1;
-			cfa2->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c2) : c2;
-			cfa3->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c3) : c3;
-			j++;
-		}
-	}
-
-	copy_fits_metadata(in, cfa0);
-	copy_fits_metadata(in, cfa1);
-	copy_fits_metadata(in, cfa2);
-	copy_fits_metadata(in, cfa3);
-
-	/* we remove Bayer header because not needed now */
-	clear_Bayer_information(cfa0);
-	clear_Bayer_information(cfa1);
-	clear_Bayer_information(cfa2);
-	clear_Bayer_information(cfa3);
-
-	/* Update history */
-	cfa0->history = g_slist_append(cfa0->history, g_strdup(_("CFA0 Bayer channel\n")));
-	cfa1->history = g_slist_append(cfa1->history, g_strdup(_("CFA1 Bayer channel\n")));
-	cfa2->history = g_slist_append(cfa2->history, g_strdup(_("CFA2 Bayer channel\n")));
-	cfa3->history = g_slist_append(cfa3->history, g_strdup(_("CFA3 Bayer channel\n")));
-
-	return 0;
-}
-
-int split_cfa_float(fits *in, fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3) {
-	int width = in->rx / 2, height = in->ry / 2;
-
-	if (strlen(in->keywords.bayer_pattern) > 4) {
-		siril_log_message(_("Split CFA does not work on non-Bayer filter camera images!\n"));
-		return 1;
-	}
-	if (new_fit_image(&cfa0, width, height, 1, DATA_FLOAT) ||
-			new_fit_image(&cfa1, width, height, 1, DATA_FLOAT) ||
-			new_fit_image(&cfa2, width, height, 1, DATA_FLOAT) ||
-			new_fit_image(&cfa3, width, height, 1, DATA_FLOAT)) {
-		return 1;
-	}
-
-	int j = 0;
-
-	for (int row = 0; row < in->ry - 1; row += 2) {
-		for (int col = 0; col < in->rx - 1; col += 2) {
-			/* not c0, c1, c2 and c3 because of the read orientation */
-			float c1 = in->fdata[col + row * in->rx];
-			float c3 = in->fdata[1 + col + row * in->rx];
-			float c0 = in->fdata[col + (1 + row) * in->rx];
-			float c2 = in->fdata[1 + col + (1 + row) * in->rx];
-
-			cfa0->fdata[j] = c0;
-			cfa1->fdata[j] = c1;
-			cfa2->fdata[j] = c2;
-			cfa3->fdata[j] = c3;
-			j++;
-		}
-	}
-
-	copy_fits_metadata(in, cfa0);
-	copy_fits_metadata(in, cfa1);
-	copy_fits_metadata(in, cfa2);
-	copy_fits_metadata(in, cfa3);
-
-	/* we remove Bayer header because not needed now */
-	clear_Bayer_information(cfa0);
-	clear_Bayer_information(cfa1);
-	clear_Bayer_information(cfa2);
-	clear_Bayer_information(cfa3);
-
-	/* Update history */
-	cfa0->history = g_slist_append(cfa0->history, g_strdup(_("CFA0 Bayer channel\n")));
-	cfa1->history = g_slist_append(cfa1->history, g_strdup(_("CFA1 Bayer channel\n")));
-	cfa2->history = g_slist_append(cfa2->history, g_strdup(_("CFA2 Bayer channel\n")));
-	cfa3->history = g_slist_append(cfa3->history, g_strdup(_("CFA3 Bayer channel\n")));
-
-	return 0;
-}
-
-int split_cfa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
-	int ret = 1;
-	struct multi_output_data *multi_args = (struct multi_output_data *) args->user;
-	struct _multi_split *multi_data = calloc(1, sizeof(struct _multi_split));
-	multi_data->index = o;
-	multi_data->images = calloc(5, sizeof(fits*));
-	for (int i = 0 ; i < 4 ; i++) {
-		multi_data->images[i] = calloc(1, sizeof(fits));
-	}
-	if (fit->type == DATA_USHORT) {
-		ret = split_cfa_ushort(fit, multi_data->images[0], multi_data->images[1], multi_data->images[2], multi_data->images[3]);
-	}
-	else if (fit->type == DATA_FLOAT) {
-		ret = split_cfa_float(fit, multi_data->images[0], multi_data->images[1], multi_data->images[2], multi_data->images[3]);
-	}
-	if (ret) {
-		for (int i = 0 ; i < 4 ; i++) {
-			clearfits(multi_data->images[i]);
-			free(multi_data->images[i]);
-		}
-	} else {
-#ifdef _OPENMP
-		omp_set_lock(&args->lock);
-#endif
-		multi_args->processed_images = g_list_append(multi_args->processed_images, multi_data);
-#ifdef _OPENMP
-		omp_unset_lock(&args->lock);
-#endif
-		siril_debug_print("%s: processed imaages added to the save list (%d)\n", args->description, o);
-	}
-	return ret;
-}
-
-static int cfa_extract_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
-	unsigned int MB_per_input_image, MB_per_output_image, MB_avail, required;
-	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_input_image, NULL, &MB_avail);
-	const struct multi_output_data *cfa_args = (struct multi_output_data *) args->user;
-
-	if (args->image_hook == extractHa_image_hook || args->image_hook == extractGreen_image_hook) {
-		MB_per_output_image = max(1, MB_per_input_image / 4);
-		required = 5 * MB_per_input_image / 4;
-	}
-	else if (args->image_hook == extractHaOIII_image_hook) {
-		if (cfa_args->scaling == SCALING_NONE) {
-			required = 3 * MB_per_input_image / 2;
-			MB_per_output_image = 5 * MB_per_input_image / 4;
-		} else {
-			if (cfa_args->scaling == SCALING_HA_UP)
-				MB_per_output_image = MB_per_input_image * 2;
-			else MB_per_output_image = max(1, MB_per_input_image / 2);
-
-			// Very slightly less for upscaling Ha but this is close enough
-			required = 7 * MB_per_input_image / 2;
-		}
-	} else if (args->image_hook == split_cfa_image_hook) {
-		required = 2 * MB_per_input_image;
-		MB_per_output_image = MB_per_input_image;	// no writer for this split
-	} else {
-		required = MB_per_input_image;
-		MB_per_output_image = MB_per_input_image;
-		siril_log_color_message("unknown extraction type\n", "red");
-	}
-
-	if (limit > 0) {
-		int thread_limit = MB_avail / required;
-		if (thread_limit > com.max_thread)
-			thread_limit = com.max_thread;
-
-		if (for_writer) {
-			/* we allow the already allocated thread_limit images,
-			 * plus how many images can be stored in what remains
-			 * unused by the main processing */
-			limit = thread_limit + (MB_avail - required * thread_limit) / MB_per_output_image;
-		}
-		else limit = thread_limit;
-	}
-	if (limit == 0) {
-		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
-		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
-
-		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"),
-				"red", args->description, mem_per_thread, mem_available);
-
-		g_free(mem_per_thread);
-		g_free(mem_available);
-	} else {
-		if (for_writer) {
-			int max_queue_size = com.max_thread * 3;
-			if (limit > max_queue_size)
-				limit = max_queue_size;
-		}
-#ifdef _OPENMP
-		siril_debug_print("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
-				required, MB_per_input_image, limit, for_writer ? "images" : "threads");
-#else
-		/* we still want the check of limit = 0 above */
-		if (!for_writer)
-			limit = 1;
-		else if (limit > 3)
-			limit = 3;
-#endif
-	}
-	return limit;
-}
-
-void apply_split_cfa_to_sequence(struct multi_output_data *multi_args) {
-	struct generic_seq_args *args = create_default_seqargs(multi_args->seq);
-	args->filtering_criterion = seq_filter_included;
-	args->nb_filtered_images = multi_args->seq->selnum;
-	args->compute_mem_limits_hook = cfa_extract_compute_mem_limits;
-	args->prepare_hook = multi_prepare;
-	args->image_hook = split_cfa_image_hook;
-	args->has_output = TRUE;
-	args->output_type = get_data_type(args->seq->bitpix);
-	args->save_hook = multi_save;
-	args->finalize_hook = multi_finalize;
-	args->description = _("Split CFA");
-	args->new_seq_prefix = NULL;
-	args->user = multi_args;
-	args->finalize_hook = split_finalize_hook;
-	multi_args->fit = NULL;	// not used here
-
-	start_in_new_thread(generic_sequence_worker, args);
-}
+/* Ha-OIII Extraction Functions */
 
 #define SQRTF_2 1.41421356f
 
@@ -1264,3 +837,293 @@ int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, 
 
 	return 0;
 }
+
+int extractHaOIII_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
+	int ret = 1;
+	struct multi_output_data *multi_args = (struct multi_output_data *) args->user;
+	sensor_pattern pattern = get_bayer_pattern(fit);
+
+	/* Demosaic and store images for write */
+	struct _multi_split *multi_data = malloc(sizeof(struct _multi_split));
+	multi_data->index = o;
+	multi_data->images = calloc(3, sizeof(fits*));
+	for (int i = 0 ; i < 3 ; i++) {
+		multi_data->images[i] = calloc(1, sizeof(fits));
+	}
+
+	if (fit->type == DATA_USHORT) {
+		ret = extractHaOIII_ushort(fit, multi_data->images[0], multi_data->images[1], pattern, multi_args->scaling, threads);
+	}
+	else if (fit->type == DATA_FLOAT) {
+		ret = extractHaOIII_float(fit, multi_data->images[0], multi_data->images[1], pattern, multi_args->scaling, threads);
+	}
+
+	if (ret) {
+		for (int i = 0 ; i < 2 ; i++) {
+			clearfits(multi_data->images[i]);
+			free(multi_data->images[i]);
+		}
+	} else {
+#ifdef _OPENMP
+		omp_set_lock(&args->lock);
+#endif
+		multi_args->processed_images = g_list_append(multi_args->processed_images, multi_data);
+#ifdef _OPENMP
+		omp_unset_lock(&args->lock);
+#endif
+		siril_debug_print("%s: processed images added to the save list (%d)\n", args->description, o);
+	}
+	return ret;
+}
+
+void apply_extractHaOIII_to_sequence(struct multi_output_data *multi_args) {
+	struct generic_seq_args *args = create_default_seqargs(multi_args->seq);
+	args->seq = multi_args->seq;
+	args->filtering_criterion = seq_filter_included;
+	args->nb_filtered_images = multi_args->seq->selnum;
+	args->compute_mem_limits_hook = cfa_extract_compute_mem_limits;
+	args->prepare_hook = extract_prepare_hook;
+	args->image_hook = extractHaOIII_image_hook;
+	args->has_output = TRUE;
+	args->output_type = get_data_type(args->seq->bitpix);
+	args->save_hook = multi_save;
+	args->finalize_hook = multi_finalize;
+	args->description = _("Extract Ha and OIII");
+	args->upscale_ratio = 1.23;	// sqrt(1.5), for memory management
+	args->new_seq_prefix = NULL;
+	args->user = multi_args;
+
+	multi_args->fit = NULL;	// not used here
+
+	start_in_new_thread(generic_sequence_worker, args);
+}
+
+/* Split CFA Functions */
+
+int split_cfa_ushort(fits *in, fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3) {
+	int width = in->rx / 2, height = in->ry / 2;
+
+	if (strlen(in->keywords.bayer_pattern) > 4) {
+		siril_log_message(_("Split CFA does not work on non-Bayer filter camera images!\n"));
+		return 1;
+	}
+	if (new_fit_image(&cfa0, width, height, 1, DATA_USHORT) ||
+			new_fit_image(&cfa1, width, height, 1, DATA_USHORT) ||
+			new_fit_image(&cfa2, width, height, 1, DATA_USHORT) ||
+			new_fit_image(&cfa3, width, height, 1, DATA_USHORT)) {
+		return 1;
+	}
+
+	int j = 0;
+	for (int row = 0; row < in->ry - 1; row += 2) {
+		for (int col = 0; col < in->rx - 1; col += 2) {
+			/* not c0, c1, c2 and c3 because of the read orientation */
+			WORD c1 = in->data[col + row * in->rx];
+			WORD c3 = in->data[1 + col + row * in->rx];
+			WORD c0 = in->data[col + (1 + row) * in->rx];
+			WORD c2 = in->data[1 + col + (1 + row) * in->rx];
+
+			cfa0->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c0) : c0;
+			cfa1->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c1) : c1;
+			cfa2->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c2) : c2;
+			cfa3->data[j] = (in->bitpix == 8) ? truncate_to_BYTE(c3) : c3;
+			j++;
+		}
+	}
+
+	copy_fits_metadata(in, cfa0);
+	copy_fits_metadata(in, cfa1);
+	copy_fits_metadata(in, cfa2);
+	copy_fits_metadata(in, cfa3);
+
+	/* we remove Bayer header because not needed now */
+	clear_Bayer_information(cfa0);
+	clear_Bayer_information(cfa1);
+	clear_Bayer_information(cfa2);
+	clear_Bayer_information(cfa3);
+
+	/* Update history */
+	cfa0->history = g_slist_append(cfa0->history, g_strdup(_("CFA0 Bayer channel\n")));
+	cfa1->history = g_slist_append(cfa1->history, g_strdup(_("CFA1 Bayer channel\n")));
+	cfa2->history = g_slist_append(cfa2->history, g_strdup(_("CFA2 Bayer channel\n")));
+	cfa3->history = g_slist_append(cfa3->history, g_strdup(_("CFA3 Bayer channel\n")));
+
+	return 0;
+}
+
+int split_cfa_float(fits *in, fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3) {
+	int width = in->rx / 2, height = in->ry / 2;
+
+	if (strlen(in->keywords.bayer_pattern) > 4) {
+		siril_log_message(_("Split CFA does not work on non-Bayer filter camera images!\n"));
+		return 1;
+	}
+	if (new_fit_image(&cfa0, width, height, 1, DATA_FLOAT) ||
+			new_fit_image(&cfa1, width, height, 1, DATA_FLOAT) ||
+			new_fit_image(&cfa2, width, height, 1, DATA_FLOAT) ||
+			new_fit_image(&cfa3, width, height, 1, DATA_FLOAT)) {
+		return 1;
+	}
+
+	int j = 0;
+
+	for (int row = 0; row < in->ry - 1; row += 2) {
+		for (int col = 0; col < in->rx - 1; col += 2) {
+			/* not c0, c1, c2 and c3 because of the read orientation */
+			float c1 = in->fdata[col + row * in->rx];
+			float c3 = in->fdata[1 + col + row * in->rx];
+			float c0 = in->fdata[col + (1 + row) * in->rx];
+			float c2 = in->fdata[1 + col + (1 + row) * in->rx];
+
+			cfa0->fdata[j] = c0;
+			cfa1->fdata[j] = c1;
+			cfa2->fdata[j] = c2;
+			cfa3->fdata[j] = c3;
+			j++;
+		}
+	}
+
+	copy_fits_metadata(in, cfa0);
+	copy_fits_metadata(in, cfa1);
+	copy_fits_metadata(in, cfa2);
+	copy_fits_metadata(in, cfa3);
+
+	/* we remove Bayer header because not needed now */
+	clear_Bayer_information(cfa0);
+	clear_Bayer_information(cfa1);
+	clear_Bayer_information(cfa2);
+	clear_Bayer_information(cfa3);
+
+	/* Update history */
+	cfa0->history = g_slist_append(cfa0->history, g_strdup(_("CFA0 Bayer channel\n")));
+	cfa1->history = g_slist_append(cfa1->history, g_strdup(_("CFA1 Bayer channel\n")));
+	cfa2->history = g_slist_append(cfa2->history, g_strdup(_("CFA2 Bayer channel\n")));
+	cfa3->history = g_slist_append(cfa3->history, g_strdup(_("CFA3 Bayer channel\n")));
+
+	return 0;
+}
+
+int split_cfa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
+	int ret = 1;
+	struct multi_output_data *multi_args = (struct multi_output_data *) args->user;
+	struct _multi_split *multi_data = calloc(1, sizeof(struct _multi_split));
+	multi_data->index = o;
+	multi_data->images = calloc(5, sizeof(fits*));
+	for (int i = 0 ; i < 4 ; i++) {
+		multi_data->images[i] = calloc(1, sizeof(fits));
+	}
+	if (fit->type == DATA_USHORT) {
+		ret = split_cfa_ushort(fit, multi_data->images[0], multi_data->images[1], multi_data->images[2], multi_data->images[3]);
+	}
+	else if (fit->type == DATA_FLOAT) {
+		ret = split_cfa_float(fit, multi_data->images[0], multi_data->images[1], multi_data->images[2], multi_data->images[3]);
+	}
+	if (ret) {
+		for (int i = 0 ; i < 4 ; i++) {
+			clearfits(multi_data->images[i]);
+			free(multi_data->images[i]);
+		}
+	} else {
+#ifdef _OPENMP
+		omp_set_lock(&args->lock);
+#endif
+		multi_args->processed_images = g_list_append(multi_args->processed_images, multi_data);
+#ifdef _OPENMP
+		omp_unset_lock(&args->lock);
+#endif
+		siril_debug_print("%s: processed imaages added to the save list (%d)\n", args->description, o);
+	}
+	return ret;
+}
+
+static int cfa_extract_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
+	unsigned int MB_per_input_image, MB_per_output_image, MB_avail, required;
+	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_input_image, NULL, &MB_avail);
+	const struct multi_output_data *cfa_args = (struct multi_output_data *) args->user;
+
+	if (args->image_hook == extractHa_image_hook || args->image_hook == extractGreen_image_hook) {
+		MB_per_output_image = max(1, MB_per_input_image / 4);
+		required = 5 * MB_per_input_image / 4;
+	}
+	else if (args->image_hook == extractHaOIII_image_hook) {
+		if (cfa_args->scaling == SCALING_NONE) {
+			required = 3 * MB_per_input_image / 2;
+			MB_per_output_image = 5 * MB_per_input_image / 4;
+		} else {
+			if (cfa_args->scaling == SCALING_HA_UP)
+				MB_per_output_image = MB_per_input_image * 2;
+			else MB_per_output_image = max(1, MB_per_input_image / 2);
+
+			// Very slightly less for upscaling Ha but this is close enough
+			required = 7 * MB_per_input_image / 2;
+		}
+	} else if (args->image_hook == split_cfa_image_hook) {
+		required = 2 * MB_per_input_image;
+		MB_per_output_image = MB_per_input_image;	// no writer for this split
+	} else {
+		required = MB_per_input_image;
+		MB_per_output_image = MB_per_input_image;
+		siril_log_color_message("unknown extraction type\n", "red");
+	}
+
+	if (limit > 0) {
+		int thread_limit = MB_avail / required;
+		if (thread_limit > com.max_thread)
+			thread_limit = com.max_thread;
+
+		if (for_writer) {
+			/* we allow the already allocated thread_limit images,
+			 * plus how many images can be stored in what remains
+			 * unused by the main processing */
+			limit = thread_limit + (MB_avail - required * thread_limit) / MB_per_output_image;
+		}
+		else limit = thread_limit;
+	}
+	if (limit == 0) {
+		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+
+		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per image, %s considered available)\n"),
+				"red", args->description, mem_per_thread, mem_available);
+
+		g_free(mem_per_thread);
+		g_free(mem_available);
+	} else {
+		if (for_writer) {
+			int max_queue_size = com.max_thread * 3;
+			if (limit > max_queue_size)
+				limit = max_queue_size;
+		}
+#ifdef _OPENMP
+		siril_debug_print("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
+				required, MB_per_input_image, limit, for_writer ? "images" : "threads");
+#else
+		/* we still want the check of limit = 0 above */
+		if (!for_writer)
+			limit = 1;
+		else if (limit > 3)
+			limit = 3;
+#endif
+	}
+	return limit;
+}
+
+void apply_split_cfa_to_sequence(struct multi_output_data *multi_args) {
+	struct generic_seq_args *args = create_default_seqargs(multi_args->seq);
+	args->filtering_criterion = seq_filter_included;
+	args->nb_filtered_images = multi_args->seq->selnum;
+	args->compute_mem_limits_hook = cfa_extract_compute_mem_limits;
+	args->prepare_hook = extract_prepare_hook;
+	args->image_hook = split_cfa_image_hook;
+	args->has_output = TRUE;
+	args->output_type = get_data_type(args->seq->bitpix);
+	args->save_hook = multi_save;
+	args->finalize_hook = multi_finalize;
+	args->description = _("Split CFA");
+	args->new_seq_prefix = NULL;
+	args->user = multi_args;
+	multi_args->fit = NULL;	// not used here
+
+	start_in_new_thread(generic_sequence_worker, args);
+}
+

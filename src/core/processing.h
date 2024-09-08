@@ -140,6 +140,26 @@ struct generic_seq_args {
 #endif
 };
 
+/* The following structs are for multi-output sequences */
+struct multi_output_data {
+	fits *fit;
+	sequence *seq;
+	int n;
+	char *seqEntry;
+	gchar **prefixes;
+	struct ser_struct **new_ser;
+	fitseq **new_fitseq;
+
+	GList *processed_images;
+
+	extraction_scaling scaling;
+};
+
+struct _multi_split {
+	int index;
+	fits **images;
+};
+
 gpointer generic_sequence_worker(gpointer p);
 gboolean end_generic_sequence(gpointer p);
 
@@ -149,6 +169,9 @@ int seq_prepare_hook(struct generic_seq_args *args);
 int seq_prepare_writer(struct generic_seq_args *args);
 int seq_finalize_hook(struct generic_seq_args *args);
 int generic_save(struct generic_seq_args *, int, int, fits *);
+int multi_prepare(struct generic_seq_args *args);
+int multi_save(struct generic_seq_args *args, int out_index, int in_index, fits *fit);
+int multi_finalize(struct generic_seq_args *args);
 
 void start_in_new_thread(gpointer(*f)(gpointer p), gpointer p);
 gpointer waiting_for_thread();
