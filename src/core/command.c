@@ -6366,6 +6366,7 @@ int process_seq_extractHa(int nb) {
 
 	args->seq = seq;
 	args->seqEntry = strdup("Ha_");
+	args->user_data = malloc(sizeof(int*));
 
 	int startoptargs = 2;
 	if (nb > startoptargs) {
@@ -6385,7 +6386,7 @@ int process_seq_extractHa(int nb) {
 					args->seqEntry = strdup(value);
 				}
 				else if (g_str_has_prefix(word[i], "-upscale")) {
-					args->scaling = SCALING_HA_UP;
+					*(extraction_scaling*) args->user_data = SCALING_HA_UP;
 				}
 				else {
 					siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
@@ -6464,7 +6465,8 @@ int process_seq_extractHaOIII(int nb) {
 	}
 
 	struct multi_output_data *args = calloc(1, sizeof(struct multi_output_data));
-	args->scaling = SCALING_NONE;
+	args->user_data = malloc(sizeof(extraction_scaling));
+	*(extraction_scaling *) args->user_data = (extraction_scaling) SCALING_NONE;
 	args->seq = seq;
 	args->seqEntry = strdup("CFA"); // propose to default to "CFA" for consistency of output names with single image split_cfa
 	args->n = 2;
@@ -6481,9 +6483,9 @@ int process_seq_extractHaOIII(int nb) {
 				free(args);
 				return CMD_ARG_ERROR;
 			} else if (!strcmp(value, "ha")) {
-				args->scaling = SCALING_HA_UP;
+				*(extraction_scaling*) args->user_data = SCALING_HA_UP;
 			} else if (!strcmp(value, "oiii")) {
-				args->scaling = SCALING_OIII_DOWN;
+				*(extraction_scaling*) args->user_data = SCALING_OIII_DOWN;
 			}
 		}
 	}

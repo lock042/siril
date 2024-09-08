@@ -224,8 +224,6 @@ void apply_extractGreen_to_sequence(struct multi_output_data *multi_output_args)
 	args->force_ser_output = FALSE;
 	args->user = multi_output_args;
 
-	multi_output_args->fit = NULL;	// not used here
-
 	start_in_new_thread(generic_sequence_worker, args);
 }
 
@@ -346,9 +344,9 @@ int extractHa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 	sensor_pattern pattern = get_bayer_pattern(fit);
 
 	if (fit->type == DATA_USHORT)
-		ret = extractHa_ushort(fit, &f_Ha, pattern, data->scaling);
+		ret = extractHa_ushort(fit, &f_Ha, pattern, *(extraction_scaling*) data->user_data);
 	else if (fit->type == DATA_FLOAT)
-		ret = extractHa_float(fit, &f_Ha, pattern, data->scaling);
+		ret = extractHa_float(fit, &f_Ha, pattern, *(extraction_scaling*) data->user_data);
 	else return 1;
 	if (!ret) {
 		clearfits(fit);
@@ -373,8 +371,6 @@ void apply_extractHa_to_sequence(struct multi_output_data *multi_output_args) {
 	args->load_new_sequence = TRUE;
 	args->force_ser_output = FALSE;
 	args->user = multi_output_args;
-
-	multi_output_args->fit = NULL;	// not used here
 
 	start_in_new_thread(generic_sequence_worker, args);
 }
@@ -842,7 +838,7 @@ int extractHaOIII_image_hook(struct generic_seq_args *args, int o, int i, fits *
 	int ret = 1;
 	struct multi_output_data *multi_args = (struct multi_output_data *) args->user;
 	sensor_pattern pattern = get_bayer_pattern(fit);
-
+	extraction_scaling scaling = *(extraction_scaling*) multi_args->user_data;
 	/* Demosaic and store images for write */
 	struct _multi_split *multi_data = malloc(sizeof(struct _multi_split));
 	multi_data->index = o;
@@ -852,10 +848,10 @@ int extractHaOIII_image_hook(struct generic_seq_args *args, int o, int i, fits *
 	}
 
 	if (fit->type == DATA_USHORT) {
-		ret = extractHaOIII_ushort(fit, multi_data->images[0], multi_data->images[1], pattern, multi_args->scaling, threads);
+		ret = extractHaOIII_ushort(fit, multi_data->images[0], multi_data->images[1], pattern, scaling, threads);
 	}
 	else if (fit->type == DATA_FLOAT) {
-		ret = extractHaOIII_float(fit, multi_data->images[0], multi_data->images[1], pattern, multi_args->scaling, threads);
+		ret = extractHaOIII_float(fit, multi_data->images[0], multi_data->images[1], pattern, scaling, threads);
 	}
 
 	if (ret) {
@@ -892,8 +888,6 @@ void apply_extractHaOIII_to_sequence(struct multi_output_data *multi_args) {
 	args->upscale_ratio = 1.23;	// sqrt(1.5), for memory management
 	args->new_seq_prefix = NULL;
 	args->user = multi_args;
-
-	multi_args->fit = NULL;	// not used here
 
 	start_in_new_thread(generic_sequence_worker, args);
 }
@@ -1046,11 +1040,11 @@ static int cfa_extract_compute_mem_limits(struct generic_seq_args *args, gboolea
 		required = 5 * MB_per_input_image / 4;
 	}
 	else if (args->image_hook == extractHaOIII_image_hook) {
-		if (cfa_args->scaling == SCALING_NONE) {
+		if (*(extraction_scaling*) cfa_args->user_data == SCALING_NONE) {
 			required = 3 * MB_per_input_image / 2;
 			MB_per_output_image = 5 * MB_per_input_image / 4;
 		} else {
-			if (cfa_args->scaling == SCALING_HA_UP)
+			if (*(extraction_scaling*) cfa_args->user_data == SCALING_HA_UP)
 				MB_per_output_image = MB_per_input_image * 2;
 			else MB_per_output_image = max(1, MB_per_input_image / 2);
 
@@ -1122,7 +1116,6 @@ void apply_split_cfa_to_sequence(struct multi_output_data *multi_args) {
 	args->description = _("Split CFA");
 	args->new_seq_prefix = NULL;
 	args->user = multi_args;
-	multi_args->fit = NULL;	// not used here
 
 	start_in_new_thread(generic_sequence_worker, args);
 }

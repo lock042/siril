@@ -142,17 +142,14 @@ struct generic_seq_args {
 
 /* The following structs are for multi-output sequences */
 struct multi_output_data {
-	fits *fit;
 	sequence *seq;
 	int n;
 	char *seqEntry;
 	gchar **prefixes;
 	struct ser_struct **new_ser;
 	fitseq **new_fitseq;
-
 	GList *processed_images;
-
-	extraction_scaling scaling;
+	gpointer user_data; // generic pointer to store operation-specific data
 };
 
 struct _multi_split {

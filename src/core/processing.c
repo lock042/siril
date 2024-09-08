@@ -724,6 +724,7 @@ int multi_finalize(struct generic_seq_args *args) {
 	free(multi_args->prefixes);
 	free(multi_args->new_ser);
 	free(multi_args->new_fitseq);
+	free(multi_args->user_data);
 	free(multi_args);
 	return retval;
 }
