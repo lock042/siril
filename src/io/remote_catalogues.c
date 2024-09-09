@@ -827,7 +827,7 @@ int siril_gaiadr3_datalink_query(siril_catalogue *siril_cat, retrieval_type type
 			buffer = fetch_url(job_check, &length, &fetch_url_error, FALSE);
 			if (fetch_url_error) {
 				g_free(buffer);
-				goto tap_error_and_cleanup;
+				break;
 			}
 			gboolean error = (g_strrstr(buffer, "ERROR") != NULL);
 			if (!error)
