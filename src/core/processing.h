@@ -144,10 +144,6 @@ struct generic_seq_args {
 struct multi_output_data {
 	sequence *seq;
 	int n;
-	gboolean block_first_free; // some image hooks may copy the sequence worker
-	// fits pointer to multi_data->images[0]; they must set this to prevent a
-	// double free.
-	// to multi_data->images
 	char *seqEntry;
 	gchar **prefixes;
 	struct ser_struct **new_ser;

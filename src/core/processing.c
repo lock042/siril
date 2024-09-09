@@ -701,8 +701,7 @@ int multi_save(struct generic_seq_args *args, int out_index, int in_index, fits 
 	if (!tally_ser && !tally_fitseq) { // detect if there is a seqwriter
 		for (int i = 0 ; i < n ; i++) {
 			clearfits(multi_data->images[i]);
-			if (i > 0 || !multi_args->block_first_free)
-				free(multi_data->images[i]);
+			free(multi_data->images[i]);
 		}
 	}
 	free(multi_data->images);

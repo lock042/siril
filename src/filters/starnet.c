@@ -889,10 +889,12 @@ int starnet_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, r
 		multi_data->index = o;
 		int nb_out = ((int) seqdata->starmask) + 1;
 		multi_data->images = calloc(nb_out, sizeof(fits*));
-		for (int i = 0 ; i < nb_out ; i++) {
-			multi_data->images[i] = calloc(1, sizeof(fits));
-		}
-		multi_data->images[0] = seqdata->starnet_fit;
+		// We allocate images[0] and move the data from fit. This avoids any clash
+		// between the generic sequence worker which frees fit and the multi_save
+		// hook which frees all the fits in images.
+		multi_data->images[0] = calloc(1, sizeof(fits));
+		copy_fits_metadata(fit, multi_data->images[0]);
+		fits_swap_image_data(fit, multi_data->images[0]);
 		seqdata->starnet_fit = NULL;
 		if (seqdata->starmask) {
 			multi_data->images[1] = seqdata->starmask_fit;
@@ -911,7 +913,6 @@ int starnet_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, r
 }
 
 void apply_starnet_to_sequence(struct multi_output_data *multi_args) {
-	multi_args->block_first_free = TRUE;
 	struct generic_seq_args *seqargs = create_default_seqargs(multi_args->seq);
 	seqargs->description = _("StarNet");
 	seqargs->seq = multi_args->seq;
