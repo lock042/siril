@@ -2,7 +2,8 @@
 #define _PROCESSING_H_
 
 #include "sequence_filtering.h"
-#include "io/fits_sequence.h"
+#include "io/fits_sequence.h" // for fitseq
+#include "io/ser.h" // for struct ser_struct
 
 #ifdef __cplusplus
 extern "C" {
