@@ -178,8 +178,6 @@ void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 		sgui_starnet_stride = 256;
 	starnet_data *starnet_args;
 	starnet_args = calloc(1, sizeof(starnet_data));
-	starnet_args->seqname = NULL;
-	starnet_args->seq = NULL;
 	starnet_args->starnet_fit = &gfit;
 	starnet_args->imgnumber = -1;
 	starnet_args->customstride = sgui_customstride;
@@ -201,9 +199,18 @@ void on_starnet_execute_clicked(GtkButton *button, gpointer user_data) {
 		set_cursor_waiting(FALSE);
 	} else {
 		if (sequence_is_loaded()) {
-			starnet_args->seq = &com.seq;
-			starnet_args->seqname = g_strdup_printf("starless_%s", starnet_args->seq->seqname);
-			apply_starnet_to_sequence(starnet_args);
+			starnet_args->follow_on = FALSE;
+			struct multi_output_data *multi_args = calloc(1, sizeof(struct multi_output_data));
+			multi_args->user_data = (gpointer) starnet_args;
+			starnet_args->multi_args = multi_args;
+			multi_args->seq = &com.seq;
+			multi_args->n = sgui_starmask ? 2 : 1;
+			multi_args->prefixes = calloc(multi_args->n, sizeof(char*));
+			multi_args->prefixes[0] = g_strdup("starless_");
+			if (sgui_starmask) {
+				multi_args->prefixes[1] = g_strdup("starmask_");
+			}
+			apply_starnet_to_sequence(multi_args);
 			siril_close_dialog("starnet_dialog");
 		} else {
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("No sequence loaded"), _("Unable to apply StarNet to a sequence as no sequence is loaded. Did you mean to uncheck the apply to sequence option?"));

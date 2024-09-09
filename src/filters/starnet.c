@@ -274,7 +274,7 @@ END:
 }
 
 void free_starnet_args(starnet_data *args) {
-	g_free(args->seqEntry);
+	// do not free multi_args, it is only a reference
 	g_free(args->stride);
 	free(args);
 	siril_debug_print("starnet_args freed\n");
@@ -303,8 +303,8 @@ gpointer do_starnet(gpointer p) {
 	int retval2 = 0;
 	fits workingfit = { 0 }, fit = { 0 };
 	starnet_data *args = (starnet_data *) p;
-	verbose = (args->seq == NULL); // To suppress log messages during seq working
-	args->follow_on = args->seq ? FALSE : args->follow_on;
+	verbose = (args->multi_args == NULL); // To suppress log messages during seq working
+	args->follow_on = args->multi_args ? FALSE : args->follow_on;
 	current_fit = args->starnet_fit;
 	int orig_x = current_fit->rx, orig_y = current_fit->ry;
 	struct remixargs *blendargs = NULL;
@@ -399,8 +399,8 @@ gpointer do_starnet(gpointer p) {
 		temp = g_path_get_basename(com.uniq->filename);
 		imagenoextorig = g_strdup_printf("%s", temp);
 		g_free(temp);
-	} else if (args->seq) {
-		imagenoextorig = g_strdup_printf("%s%.5d", args->seq->seqname, args->imgnumber + 1);
+	} else if (args->multi_args) {
+		imagenoextorig = g_strdup_printf("%s%.5d", args->multi_args->seq->seqname, args->imgnumber + 1);
 	} else {
 		imagenoextorig = g_strdup_printf("image");
 	}
@@ -666,11 +666,11 @@ gpointer do_starnet(gpointer p) {
 	//force_16_bit needs to be generated carefully because of the stacking result corner case
 	gboolean force_16bit = com.pref.force_16bit;
 	if (sequence_is_loaded()) {
-		if ((!(com.seq.current == RESULT_IMAGE || com.seq.current == UNRELATED_IMAGE)) && args->seq && (args->seq->type == SEQ_SER || args->force_ser)) {
+		if ((!(com.seq.current == RESULT_IMAGE || com.seq.current == UNRELATED_IMAGE)) && args->multi_args && args->multi_args->seq && (args->multi_args->seq->type == SEQ_SER || args->force_ser)) {
 			force_16bit = TRUE;
 		}
-	} else if (args->seq) {
-		if (args->seq->type == SEQ_SER || args->force_ser) {
+	} else if (args->multi_args && args->multi_args->seq) {
+		if (args->multi_args->seq->type == SEQ_SER || args->force_ser) {
 			force_16bit = TRUE;
 		}
 	}
@@ -709,7 +709,7 @@ gpointer do_starnet(gpointer p) {
 
 	// Save workingfit as starless stretched image fits
 	update_filter_information(&workingfit, "Starless", TRUE);
-	if ((!args->seq) && get_thread_run()) { // sequence worker will handle saving this in the sequence
+	if ((!args->multi_args) && get_thread_run()) { // sequence worker will handle saving this in the sequence
 		retval = savefits(starlessfit, &workingfit);
 		if (retval) {
 			siril_log_color_message(_("Error: unable to save starless image as FITS...\n"), "red");
@@ -736,7 +736,7 @@ gpointer do_starnet(gpointer p) {
 
 		// Save fit as starmask fits
 		if (get_thread_run()) {
-			if ((!args->seq)) {
+			if ((!args->multi_args)) {
 				retval = savefits(starmaskfit, &fit);
 				if (retval) {
 					siril_log_color_message(_("Error: unable to save starmask image as FITS...\n"), "red");
@@ -767,7 +767,7 @@ gpointer do_starnet(gpointer p) {
 	if (verbose)
 		siril_log_color_message(_("StarNet: job completed.\n"), "green");
 
-	if ((!args->seq)) {
+	if ((!args->multi_args)) {
 		free(com.uniq->filename);
 		com.uniq->filename = strdup(starlessfit);
 		if (args->follow_on) {
@@ -828,7 +828,7 @@ gpointer do_starnet(gpointer p) {
 	gettimeofday(&t_end, NULL);
 	if (verbose)
 		show_time(t_start, t_end);
-	if ((!args->seq)) {
+	if ((!args->multi_args)) {
 		if (args->follow_on) {
 			free_starnet_args(args);
 			if (!(retval)) {
@@ -873,137 +873,62 @@ static int starnet_compute_mem_limits(struct generic_seq_args *args, gboolean fo
 	return limit;
 }
 
-static int starnet_finalize_hook(struct generic_seq_args *args) {
-	struct starnet_data *starnet_args = (struct starnet_data *) args->user;
-	if (starnet_args->too_small)
-		siril_log_color_message(_("Warning: some images in the sequence were smaller than 512x512. Some versions of StarNet may fail to process these images.\n"), "salmon");
-	args->new_ser = starnet_args->new_ser_starless;
-	args->new_fitseq = starnet_args->new_fitseq_starless;
-	int retval = seq_finalize_hook(args);
-	starnet_args->new_ser_starless = NULL;
-	starnet_args->new_fitseq_starless = NULL;
-
-	if (starnet_args->starmask) {
-		args->new_ser = starnet_args->new_ser_starmask;
-		args->new_fitseq = starnet_args->new_fitseq_starmask;
-		retval |= seq_finalize_hook(args);
-		starnet_args->new_ser_starmask = NULL;
-		starnet_args->new_fitseq_starmask = NULL;
-		seqwriter_set_number_of_outputs(1);
-	}
-	free_starnet_args(starnet_args);
-	return retval;
-}
-
-static int starnet_save_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit) {
-	starnet_data *seqdata = (starnet_data *) args->user;
-	if (!get_thread_run()) {
-		return 1;
-	}
-	int retval1, retval2 = 0;
-	if (args->force_ser_output || args->seq->type == SEQ_SER) {
-		retval1 = ser_write_frame_from_fit(seqdata->new_ser_starless, seqdata->starnet_fit, out_index);
-		if (seqdata->starmask) {
-			retval2 = ser_write_frame_from_fit(seqdata->new_ser_starmask, seqdata->starmask_fit, out_index);
-		}
-		// the two fits are freed by the writing thread
-	} else if (args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) {
-		retval1 = fitseq_write_image(seqdata->new_fitseq_starless, seqdata->starnet_fit, out_index);
-		if (seqdata->starmask) {
-			retval2 = fitseq_write_image(seqdata->new_fitseq_starmask, seqdata->starmask_fit, out_index);
-		}
-	} else {
-		char *dest = fit_sequence_get_image_filename_prefixed(args->seq, "starless_", in_index);
-		retval1 = savefits(dest, seqdata->starnet_fit);
-		free(dest);
-		clearfits(seqdata->starnet_fit);
-		seqdata->starnet_fit = NULL;
-		if (seqdata->starmask) {
-			dest = fit_sequence_get_image_filename_prefixed(args->seq, "starmask_", in_index);
-			retval2 = savefits(dest, seqdata->starmask_fit);
-			free(dest);
-			clearfits(seqdata->starmask_fit);
-			free(seqdata->starmask_fit);
-			seqdata->starmask_fit = NULL;
-		}
-	}
-	return retval1 || retval2;
-}
-
 int starnet_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
-	int ret = 0;
-	starnet_data *seqdata = (starnet_data *) args->user;
-	seqdata->force_ser = args->force_ser_output;
+	struct multi_output_data *multi_args = (struct multi_output_data*) args->user;
+	starnet_data *seqdata = (starnet_data *) multi_args->user_data;
 	seqdata->starnet_fit = fit;
 	if (seqdata->starmask)
 		seqdata->starmask_fit = calloc(1, sizeof(fits));
-	seqdata->imgnumber = o;
+	seqdata->force_ser = args->force_ser_output;
 	siril_log_color_message(_("Starnet: Processing image %d\n"), "green", o + 1);
-	do_starnet(seqdata);
-	return ret;
-}
-
-static int starnet_basic_prepare_hook(struct generic_seq_args *args) {
-	int retval = seq_prepare_hook(args);
-	if (!retval && args->new_ser) {
-		retval = ser_reset_to_monochrome(args->new_ser);
+	// Call the starnet process
+	int retval = GPOINTER_TO_INT(do_starnet(seqdata));
+	if (!retval) {
+		// Store results in a struct _multi_split
+		struct _multi_split *multi_data = malloc(sizeof(struct _multi_split));
+		multi_data->index = o;
+		int nb_out = ((int) seqdata->starmask) + 1;
+		multi_data->images = calloc(nb_out, sizeof(fits*));
+		for (int i = 0 ; i < nb_out ; i++) {
+			multi_data->images[i] = calloc(1, sizeof(fits));
+		}
+		multi_data->images[0] = seqdata->starnet_fit;
+		seqdata->starnet_fit = NULL;
+		if (seqdata->starmask) {
+			multi_data->images[1] = seqdata->starmask_fit;
+			seqdata->starmask_fit = NULL;
+		}
+#ifdef _OPENMP
+		omp_set_lock(&args->lock);
+#endif
+		multi_args->processed_images = g_list_append(multi_args->processed_images, multi_data);
+#ifdef _OPENMP
+		omp_unset_lock(&args->lock);
+#endif
+		siril_debug_print("%s: processed images added to the save list (%d)\n", args->description, o);
 	}
 	return retval;
 }
 
-static int starnet_prepare_hook(struct generic_seq_args *args) {
-	struct starnet_data *starnet_args = (struct starnet_data *) args->user;
-	// we call the generic prepare twice with different prefixes
-	args->new_seq_prefix = strdup("starless_");
-	if (starnet_basic_prepare_hook(args))
-		return 1;
-	// but we copy the result between each call
-	starnet_args->new_ser_starless = args->new_ser;
-	starnet_args->new_fitseq_starless = args->new_fitseq;
-	free(args->new_seq_prefix);
-
-	if (starnet_args->starmask) {
-		args->new_seq_prefix = strdup("starmask_");
-		if (starnet_basic_prepare_hook(args))
-			return 1;
-		starnet_args->new_ser_starmask = args->new_ser;
-		starnet_args->new_fitseq_starmask = args->new_fitseq;
-		free(args->new_seq_prefix);
-	}
-	// Set the prefix for the sequence we want loaded afterwards
-	args->new_seq_prefix = strdup("starless_");
-	args->new_ser = NULL;
-	args->new_fitseq = NULL;
-
-	if (starnet_args->starmask)
-		seqwriter_set_number_of_outputs(2);
-	else
-		seqwriter_set_number_of_outputs(1);
-
-	return 0;
-}
-
-void apply_starnet_to_sequence(struct starnet_data *seqdata) {
-	seqdata->starnet_fit = NULL;
-	struct generic_seq_args *seqargs = create_default_seqargs(seqdata->seq);
-	seqargs->seq = seqdata->seq;
-	seqargs->filtering_criterion = seq_filter_included;
-	seqargs->nb_filtered_images = seqdata->seq->selnum;
-	seqargs->compute_mem_limits_hook = starnet_compute_mem_limits;
-	seqargs->finalize_hook = starnet_finalize_hook;
-	seqargs->save_hook = starnet_save_hook;
-	seqargs->image_hook = starnet_image_hook;
-	seqargs->prepare_hook = starnet_prepare_hook;
+void apply_starnet_to_sequence(struct multi_output_data *multi_args) {
+	multi_args->block_first_free = TRUE;
+	struct generic_seq_args *seqargs = create_default_seqargs(multi_args->seq);
 	seqargs->description = _("StarNet");
+	seqargs->seq = multi_args->seq;
+	seqargs->filtering_criterion = seq_filter_included;
+	seqargs->nb_filtered_images = multi_args->seq->selnum;
+	seqargs->parallel = FALSE;
+	seqargs->max_parallel_images = 1;
+	seqargs->compute_mem_limits_hook = starnet_compute_mem_limits;
+	seqargs->prepare_hook = multi_prepare;
+	seqargs->image_hook = starnet_image_hook;
 	seqargs->has_output = TRUE;
 	seqargs->output_type = get_data_type(seqargs->seq->bitpix);
-	seqargs->new_seq_prefix = seqdata->seqEntry;
+	seqargs->save_hook = multi_save;
+	seqargs->new_seq_prefix = multi_args->seqEntry;
+	seqargs->finalize_hook = multi_finalize;
 	seqargs->load_new_sequence = TRUE;
-	seqargs->user = seqdata;
-	const char *ptr = strrchr(seqdata->seq->seqname, G_DIR_SEPARATOR);
-	if (ptr)
-		seqdata->seqname = g_strdup_printf("%s%s%s", seqdata->seqEntry, ptr + 1, com.pref.ext);
-	else seqdata->seqname = g_strdup_printf("%s%s%s", seqargs->new_seq_prefix, seqargs->seq->seqname, com.pref.ext);
+	seqargs->user = multi_args;
 	set_progress_bar_data(_("StarNet: Processing..."), 0.);
 	start_in_new_thread(generic_sequence_worker, seqargs);
 }
