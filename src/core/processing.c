@@ -616,7 +616,7 @@ int multi_prepare(struct generic_seq_args *args) {
 		multi_args->new_fitseq[i] = args->new_fitseq;
 	}
 
-	args->new_seq_prefix = NULL;
+	args->new_seq_prefix = multi_args->prefixes[multi_args->new_seq_index];
 	args->new_ser = NULL;
 	args->new_fitseq = NULL;
 

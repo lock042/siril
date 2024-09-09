@@ -146,6 +146,8 @@ struct multi_output_data {
 	sequence *seq;
 	int n;
 	char *seqEntry;
+	int new_seq_index; // if a new sequence is to be loaded on completion,
+					   // which one? Defaults to 0 if the struct is made with calloc()
 	gchar **prefixes;
 	struct ser_struct **new_ser;
 	fitseq **new_fitseq;
