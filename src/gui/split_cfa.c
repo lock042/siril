@@ -38,7 +38,6 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 	GtkEntry *entrySplitCFA = GTK_ENTRY(lookup_widget("entrySplitCFA"));
 	gint method = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_split_cfa_method")));
 
-
 	if (gtk_toggle_button_get_active(seq) && sequence_is_loaded()) {
 
 		if (method == 0 || method == 2) {
@@ -53,8 +52,10 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 				case 0:
 					args->n = 4;
 					args->prefixes = calloc(5, sizeof(const char*));
-					if (args->seqEntry && args->seqEntry[0] == '\0')
+					if (!args->seqEntry || (args->seqEntry && args->seqEntry[0] == '\0')) {
+						free(args->seqEntry);
 						args->seqEntry = strdup("CFA");
+					}
 					size_t len = strlen(args->seqEntry);
 					// Strip any trailing '_' in order to insert the frame number
 					if (len > 0 && args->seqEntry[len - 1] == '_') {

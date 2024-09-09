@@ -712,7 +712,7 @@ int multi_save(struct generic_seq_args *args, int out_index, int in_index, fits 
 int multi_finalize(struct generic_seq_args *args) {
 	struct multi_output_data *multi_args = (struct multi_output_data *) args->user;
 	int n = multi_args->n;
-	int retval;
+	int retval = 0;
 	for (int i = 0 ; i < n ; i++) {
 		args->new_ser = multi_args->new_ser[i];
 		args->new_fitseq = multi_args->new_fitseq[i];
