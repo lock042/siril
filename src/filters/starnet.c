@@ -928,7 +928,7 @@ void apply_starnet_to_sequence(struct multi_output_data *multi_args) {
 	seqargs->save_hook = multi_save;
 	seqargs->new_seq_prefix = multi_args->seqEntry;
 	seqargs->finalize_hook = multi_finalize;
-	seqargs->load_new_sequence = TRUE;
+	seqargs->load_new_sequence = (multi_args->new_seq_index < 2);
 	seqargs->user = multi_args;
 	set_progress_bar_data(_("StarNet: Processing..."), 0.);
 	start_in_new_thread(generic_sequence_worker, seqargs);
