@@ -239,8 +239,10 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report) {
 static gchar** parse_ai_versions(const char* version_line) {
 	// Extract the versions string
 	const char* versions_start = strchr(version_line, '[');
+	if (!versions_start)
+		return NULL;
 	const char* versions_end = strchr(versions_start, ']');
-	if (!versions_start || !versions_end || versions_start >= versions_end) {
+	if (!versions_end || versions_start >= versions_end) {
 		return NULL;
 	}
 

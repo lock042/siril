@@ -80,7 +80,8 @@ static double histo_color_b[] = { 0.0, 0.0, 1.0, 0.0 };
 // static float graph_height = 0.f;	// the max value of all bins
 static guint64 clipped[] = { 0, 0 };
 
-static GtkToggleToolButton *toggles[3] = { NULL };
+// The 4th toggle pointer remains NULL, but it makes the logic easier in redraw_histo()
+static GtkToggleToolButton *toggles[MAXVPORT] = { NULL };
 static GtkToggleToolButton *toggleGrid = NULL, *toggleCurve = NULL, *toggleOrig = NULL;
 
 /* the original histogram, used as starting point of each computation */
