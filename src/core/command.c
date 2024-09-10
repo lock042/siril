@@ -6275,7 +6275,7 @@ int process_seq_split_cfa(int nb) {
 	if (args->seqEntry && args->seqEntry[0] == '\0')
 		args->seqEntry = strdup("CFA");
 	for (int i = 0 ; i < 4 ; i++) {
-		args->prefixes[0] = g_strdup_printf("%s%d_", args->seqEntry, i);
+		args->prefixes[i] = g_strdup_printf("%s%d_", args->seqEntry, i);
 	}
 
 	apply_split_cfa_to_sequence(args);
