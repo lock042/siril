@@ -40,6 +40,7 @@
 #include "gui/plot.h"
 #include "gui/image_display.h"
 #include "gui/siril_plot.h"
+#include "gui/utils.h"
 #include "io/sequence.h"
 #include "io/siril_plot.h"
 #include "opencv/opencv.h"
@@ -127,17 +128,10 @@ photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 
 ///*******************************************
 ///	The goal would be to set fwhm_ref to a particular value:
-///	*the fwhm of the variable star in the 1st image of the sequence
-///	*or in the ref image, whether the sequence is registered or not 
+///	This is the value defines for each star in the currently loaded picture.
+///	 It can be the reference image after registration or another one.
 	double fwhm_ref;
-	int strat_bkp = phot_set->ape_strat;	// Back up of the selected photometry strategy
-	if (!com.pref.phot_set.isitdone) {
-		phot_set->ape_strat = FIXED_AP;
-		com.pref.phot_set.dump_fwhmx = psf->fwhmx;
-		fwhm_ref = com.pref.phot_set.dump_fwhmx;
-	} else fwhm_ref = com.pref.phot_set.dump_fwhmx;
-
-
+	fwhm_ref = com.pref.phot_set.dump_fwhmx;
 ///*******************************************
 ///	According to the choosen startegy, computation of the radii:
 	switch (phot_set->ape_strat){
@@ -159,13 +153,13 @@ photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 			appRadius = ap_rad;
 			break;
 	}
-	siril_log_message(_("Aperture: %lf, Inner: %lf Outer: %lf\n"), appRadius, r1, r2);
+	siril_debug_print("Aperture: %lf, Inner: %lf Outer: %lf\n", appRadius, r1, r2);
 
 ///*******************************************
 /// The 3 following lines are the original ones.
 ///	For each selected star of each image, the radii are re-computed
 /// That's what is not satisfying
-/// Just have to uncomment them to retrieve the former bahaviour 
+/// Just have to uncomment them to retrieve the former behaviour 
 ///*******************************************
 
 //	r1 = phot_set->inner;
@@ -283,17 +277,6 @@ photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 		phot->valid = valid;
 	}
 
-	if (!com.pref.phot_set.isitdone) {
-		fwhm_ref = psf->fwhmx;
-//		siril_log_message(_("1-FREEEED!!---fwhmx_ref= %lf\n"), fwhm_ref);
-		com.pref.phot_set.isitdone = TRUE;
-		phot_set->dump_fwhmx = fwhm_ref;
-		phot_set->ape_strat = strat_bkp;
-//		siril_log_message(_("fwhmx= %lf, dump_fwhm= %lf, isitdone= %i\n"), fwhm_ref, phot_set->dump_fwhmx, com.pref.phot_set.isitdone);
-//		siril_log_message(_("OUTPUT--strat BKP= %i\n"), strat_bkp);
-	}
-	siril_log_message(_("fwhmx= %lf, dump_fwhm= %lf, isitdone= %i\n"), fwhm_ref, phot_set->dump_fwhmx, com.pref.phot_set.isitdone);
-//	siril_log_message(_("2-FREEEED!!---fwhmx_ref= %lf, com.pref.phot_set.isitdone= %i\n"), fwhm_ref, com.pref.phot_set.isitdone);
 	return phot;
 }
 
@@ -662,6 +645,36 @@ void free_light_curve_args(struct light_curve_args *args) {
 	return;
 }
 
+
+// Gets the fwhmx of the selected star in the currently loaded image only
+int one_psf(int star_index) {
+	if (!check_ok_if_cfa())
+		return 1;
+	psf_star *result = NULL;
+	int layer = select_vport(gui.cvport);
+
+	if (layer == -1)
+		return 1;
+	if (!(com.selection.h && com.selection.w))
+		return 1;
+
+	struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
+	int ape_strat_bkp = com.pref.phot_set.ape_strat;
+	ps->ape_strat = FIXED_AP;
+	result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, ps, TRUE, com.pref.starfinder_conf.profile, NULL);
+	ps->fwhm_ref[star_index] = result->fwhmx;
+	com.pref.phot_set.fwhm_ref[star_index] = result->fwhmx;
+	siril_debug_print("ICI-result->fwhmx: %lf\n", result->fwhmx);
+	ps->ape_strat = ape_strat_bkp;
+	free(ps);
+	if (!result) 
+		return 0;
+
+//	popup_psf_result(result, &com.selection, &gfit);
+	free_psf(result);
+	return 1;
+}
+
 gpointer light_curve_worker(gpointer arg) {
 	int retval = 0;
 	struct light_curve_args *args = (struct light_curve_args *)arg;
@@ -670,9 +683,24 @@ gpointer light_curve_worker(gpointer arg) {
 		framing = FOLLOW_STAR_FRAME;
 	// someday we should move the area in the seqpsf args, not needed for now
 
-	com.pref.phot_set.isitdone = FALSE;
+
+//	Retrieves in an array, the fwhm of all the stars in the list. O beeing the target star
+	for (int star_index = 0; star_index < args->nb; star_index++) {
+		//Performed over the current image
+		com.selection = args->areas[star_index];
+		if(!one_psf(star_index)) {
+			siril_log_message(_("Failed to analyse the photometry of reference star %d\n"),
+				star_index);
+		}
+		siril_debug_print("LA-com.pref.phot_set.fwhm_ref[%d]: %lf\n", star_index, com.pref.phot_set.fwhm_ref[star_index]);
+		if (args->seq == &com.seq)
+			queue_redraw(REDRAW_OVERLAY);
+	}
+
+
 	for (int star_index = 0; star_index < args->nb; star_index++) {
 		com.selection = args->areas[star_index];
+		com.pref.phot_set.dump_fwhmx = com.pref.phot_set.fwhm_ref[star_index];
 		if (seqpsf(args->seq, args->layer, FALSE, FALSE, framing, FALSE, TRUE)) {
 			if (star_index == 0) {
 				siril_log_message(_("Failed to analyse the variable star photometry\n"));
@@ -682,10 +710,6 @@ gpointer light_curve_worker(gpointer arg) {
 			else siril_log_message(_("Failed to analyse the photometry of reference star %d\n"),
 					star_index);
 		}
-
-		siril_log_message(_("ATTENTION!! show current star (%i) fwhmx : %lf\n"), star_index, (*args->seq->photometry[star_index])->fwhmx);
-		com.pref.phot_set.isitdone = FALSE;
-
 		if (args->seq == &com.seq)
 			queue_redraw(REDRAW_OVERLAY);
 	}
@@ -697,7 +721,7 @@ gpointer light_curve_worker(gpointer arg) {
 	if (!retval && args->display_graph && args->spl_data) {
 		siril_add_idle(create_new_siril_plot_window, args->spl_data);
 	}
-	com.pref.phot_set.isitdone = FALSE;
+
 	free_light_curve_args(args); // this will not free args->spl_data which is free by siril_plot window upon closing
 	siril_add_idle(end_light_curve_worker, NULL);
 	return GINT_TO_POINTER(retval);
