@@ -84,17 +84,16 @@ struct phot_config *phot_set_adjusted_for_image(const fits *fit) {
 	return retval;
 }
 
-void fluxCut_factors (const psf_star *psf, struct phot_config *phot_set, double fwhm_ref, double* in_rad, double* out_rad, double* ap_rad){
+void fluxCut_factors (const psf_star *psf, double fwhm_ref, double* in_rad, double* out_rad, double* ap_rad){
 	double threshold = 0.01 * com.pref.phot_set.flux_cut_factor;
-	double fwhm_m = fwhm_ref;
 	if (psf->profile == PSF_GAUSSIAN) {
-		*ap_rad = fwhm_m *INV_2_SQRT_2_LOG2 * sqrt(-2.0 * log(threshold));
+		*ap_rad = fwhm_ref *INV_2_SQRT_2_LOG2 * sqrt(-2.0 * log(threshold));
 	}
 	if (psf->profile == PSF_MOFFAT_BFREE || psf->profile == PSF_MOFFAT_BFIXED) {
 		double inv_beta = 1. / psf->beta;
 		double const1 = (pow(threshold, -inv_beta) - 1.);
 		double const2 = (pow(2., inv_beta) - 1.);
-		*ap_rad = 0.5 * fwhm_m * sqrt(const1 / const2);
+		*ap_rad = 0.5 * fwhm_ref * sqrt(const1 / const2);
 	}
 	*in_rad = *ap_rad * com.pref.phot_set.flux_inner_factor;
 	*out_rad = *ap_rad * com.pref.phot_set.flux_outer_factor;
@@ -106,7 +105,7 @@ photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 	int height = z->size1;
 	int n_sky = 0, ret;
 	int x, y, x1, y1, x2, y2;
-	double r1 = 0, r2 = 0, r = 0, rmin_sq = 0, appRadius = 0;
+	double r1 = 0.0, r2 = 0.0, r = 0.0, rmin_sq = 0.0, appRadius = 0.0;
 	double apmag = 0.0, mean = 0.0, stdev = 0.0, area = 0.0;
 	gboolean valid = TRUE;
 	photometry *phot;
@@ -147,7 +146,7 @@ photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 			break;
 		case FLUX_CUT:
 			double in_rad, out_rad, ap_rad;
-			fluxCut_factors (psf, phot_set, fwhm_ref, &in_rad, &out_rad, &ap_rad);
+			fluxCut_factors (psf, fwhm_ref, &in_rad, &out_rad, &ap_rad);
 			r1 = in_rad;
 			r2 = out_rad;
 			appRadius = ap_rad;
@@ -520,7 +519,6 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 				++nb_ref;
 			}
 		}
-
 		/* Converting back to magnitude */
 		if (nb_ref == nb_ref_stars) {
 			/* we consider an image to be invalid if all references are not valid,
@@ -548,11 +546,12 @@ int new_light_curve(const char *filename, struct light_curve_args *lcargs) {
 	gsl_stats_minmax (&smallest_snr, &largest_snr, snr_opt, 1, nb_valid_images);
 	median_snr = quickmedian_double(snr_opt, nb_valid_images);
 
-	siril_log_color_message(_("Error bars-- (%d images) median: %.2lfmmag, max: %.2lfmmag, min: %.2lfmmag\n"), "blue",
+	siril_log_color_message(_("Error bars-- (%d images) median: %.2lfmmag, max: %.2lfmmag, min: %.2lfmmag, delta: %.2lf\n"), "blue",
 		nb_valid_images,
-		1000 * median_err,
-		1000 * largest_err,
-		1000 * smallest_err);
+		1000.0 * median_err,
+		1000.0 * largest_err,
+		1000.0 * smallest_err,
+		1000.0 * (largest_err - smallest_err));
 	siril_log_color_message(_("Variable star SNR-- (%d images) median: %.2lfdB, max: %.2lfdB, min: %.2lfdB\n"), "blue",
 		nb_valid_images,
 		median_snr,
@@ -662,8 +661,8 @@ int one_psf(int star_index) {
 	int ape_strat_bkp = com.pref.phot_set.ape_strat;
 	ps->ape_strat = FIXED_AP;
 	result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, ps, TRUE, com.pref.starfinder_conf.profile, NULL);
-	ps->fwhm_ref[star_index] = result->fwhmx;
-	com.pref.phot_set.fwhm_ref[star_index] = result->fwhmx;
+	ps->fwhm_ref[star_index] = max(result->fwhmx, result->fwhmy);
+	com.pref.phot_set.fwhm_ref[star_index] = max(result->fwhmx, result->fwhmy);
 	siril_debug_print("ICI-result->fwhmx: %lf\n", result->fwhmx);
 	ps->ape_strat = ape_strat_bkp;
 	free(ps);
@@ -700,7 +699,7 @@ gpointer light_curve_worker(gpointer arg) {
 
 	for (int star_index = 0; star_index < args->nb; star_index++) {
 		com.selection = args->areas[star_index];
-		com.pref.phot_set.dump_fwhmx = com.pref.phot_set.fwhm_ref[star_index];
+		com.pref.phot_set.dump_fwhmx = com.pref.phot_set.fwhm_ref[star_index];	// Sets the fwhm_ref for the seqpsf process for this particular star
 		if (seqpsf(args->seq, args->layer, FALSE, FALSE, framing, FALSE, TRUE)) {
 			if (star_index == 0) {
 				siril_log_message(_("Failed to analyse the variable star photometry\n"));
@@ -721,7 +720,6 @@ gpointer light_curve_worker(gpointer arg) {
 	if (!retval && args->display_graph && args->spl_data) {
 		siril_add_idle(create_new_siril_plot_window, args->spl_data);
 	}
-
 	free_light_curve_args(args); // this will not free args->spl_data which is free by siril_plot window upon closing
 	siril_add_idle(end_light_curve_worker, NULL);
 	return GINT_TO_POINTER(retval);

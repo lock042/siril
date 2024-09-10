@@ -143,11 +143,7 @@ struct phot_config {
 	double fwhm_ref[20];// temporary value
 
 	gboolean force_radius;	// force the aperture radius value
-	int ape_strat; 	// encodes the aperture strategy to be used
-				// consider this integer in its binary form:
-				// b0 (LSB) sets (or not) the fixed apertures (flux/inner/outer)
-				// b1 sets (or not) the half-FWHM related radii
-				// b2 sets (or not) the Flux cutoff methode
+	int ape_strat; 	// encodes the aperture strategy to be used. See enum aperture_strategy
 	double minval, maxval;	// consider pixels outside this range as invalid for photometry
 				// minval and maxval are stored as int, but adapted to image type
 				// when used, so normalized to 1 for float, hence the double type
