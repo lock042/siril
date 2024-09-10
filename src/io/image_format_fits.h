@@ -38,7 +38,7 @@ int read_opened_fits_partial(sequence *seq, int layer, int index, void *buffer,
 int siril_fits_compress(fits *f);
 int save_opened_fits(fits *f);
 gchar *set_right_extension(const char *name);
-int savefits(const char*, fits*);
+int savefits(const char *name, fits *f);
 int copyfits(fits *from, fits *to, unsigned char oper, int layer);
 void copy_fits_metadata(fits *from, fits *to);
 int copy_fits_from_file(const char *source, const char *destination);

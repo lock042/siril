@@ -193,17 +193,17 @@ int extractGreen_float(fits *in, fits *green, sensor_pattern pattern) {
 
 int extractGreen_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
 	int ret = 1;
-	fits f_Ha = { 0 };
+	fits f_green = { 0 };
 	sensor_pattern pattern = get_bayer_pattern(fit);
 
 	if (fit->type == DATA_USHORT)
-		ret = extractGreen_ushort(fit, &f_Ha, pattern);
+		ret = extractGreen_ushort(fit, &f_green, pattern);
 	else if (fit->type == DATA_FLOAT)
-		ret = extractGreen_float(fit, &f_Ha, pattern);
+		ret = extractGreen_float(fit, &f_green, pattern);
 	else return 1;
 	if (!ret) {
 		clearfits(fit);
-		memcpy(fit, &f_Ha, sizeof(fits));
+		memcpy(fit, &f_green, sizeof(fits));
 	}
 	return ret;
 }
@@ -572,7 +572,7 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 	if (error)
 		return 1;
 	// Scale images to match: either upsample Ha to match OIII, downsample OIII to match Ha
-	// or do nothing. Hardcoded to upscale for now.
+	// or do nothing.
 
 	float factorHa = 2.f, factorOIII = 1.f;
 	switch (scaling) {
