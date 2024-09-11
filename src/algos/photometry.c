@@ -129,7 +129,8 @@ photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 ///	The goal would be to set fwhm_ref to a particular value:
 ///	This is the value defines for each star in the currently loaded picture.
 ///	 It can be the reference image after registration or another one.
-	double fwhm_ref = com.pref.phot_set.dump_fwhmx;
+	if (com.pref.phot_set.dump_fwhmx == 0.0) siril_log_message(_("WARNING: Bad fwhm reference for aperture calculation\n"));
+	double fwhm_ref = com.pref.phot_set.dump_fwhmx == 0.0 ? psf->fwhmx : com.pref.phot_set.dump_fwhmx;	// Workaround for the photometry test in the CI
 	double in_rad = 0.0, out_rad = 0.0, ap_rad = 0.0;
 ///*******************************************
 ///	According to the choosen startegy, computation of the radii:
