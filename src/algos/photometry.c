@@ -151,6 +151,8 @@ photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 			appRadius = ap_rad;
 			break;
 	}
+	siril_debug_print("fwhm_ref: %lf, phot_set->ape_strat: %i \n", fwhm_ref, phot_set->ape_strat);
+	siril_debug_print("phot_set->auto_inner_factor: %lf, phot_set->auto_outer_factor: %lf, phot_set->auto_aperture_factor: %lf \n", phot_set->auto_inner_factor, phot_set->auto_outer_factor, phot_set->auto_aperture_factor);
 	siril_debug_print("Aperture: %lf, Inner: %lf Outer: %lf\n", appRadius, r1, r2);
 
 ///*******************************************
