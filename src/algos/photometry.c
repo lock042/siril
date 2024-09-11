@@ -129,8 +129,7 @@ photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 ///	The goal would be to set fwhm_ref to a particular value:
 ///	This is the value defines for each star in the currently loaded picture.
 ///	 It can be the reference image after registration or another one.
-	if (com.pref.phot_set.dump_fwhmx == 0.0) siril_log_message(_("WARNING: Bad fwhm reference for aperture calculation\n"));
-	double fwhm_ref = com.pref.phot_set.dump_fwhmx == 0.0 ? psf->fwhmx : com.pref.phot_set.dump_fwhmx;	// Workaround for the photometry test in the CI
+	double fwhm_ref = com.pref.phot_set.dump_fwhmx;
 	double in_rad = 0.0, out_rad = 0.0, ap_rad = 0.0;
 ///*******************************************
 ///	According to the choosen startegy, computation of the radii:
@@ -152,21 +151,23 @@ photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 			appRadius = ap_rad;
 			break;
 	}
-	siril_debug_print("fwhm_ref: %lf, phot_set->ape_strat: %i \n", fwhm_ref, phot_set->ape_strat);
-	siril_debug_print("phot_set->auto_inner_factor: %lf, phot_set->auto_outer_factor: %lf, phot_set->auto_aperture_factor: %lf \n", phot_set->auto_inner_factor, phot_set->auto_outer_factor, phot_set->auto_aperture_factor);
-	siril_debug_print("Aperture: %lf, Inner: %lf Outer: %lf\n", appRadius, r1, r2);
 
+	if (com.pref.phot_set.dump_fwhmx == 0.0) {	// Workaround for the photometry test in the CI
+		siril_log_message(_("WARNING: Bad fwhm reference for aperture calculation\n"));
 ///*******************************************
 /// The 3 following lines are the original ones.
 ///	For each selected star of each image, the radii are re-computed
 /// That's what is not satisfying
 /// Just have to uncomment them to retrieve the former behaviour 
 ///*******************************************
+		r1 = phot_set->inner;
+		r2 = phot_set->outer;
+		appRadius = phot_set->force_radius ? phot_set->aperture : 0.5 * psf->fwhmx * phot_set->auto_aperture_factor;
+	}
 
-//	r1 = phot_set->inner;
-//	r2 = phot_set->outer;
-//	appRadius = phot_set->force_radius ? phot_set->aperture : 0.5 * psf->fwhmx * phot_set->auto_aperture_factor;
-
+	siril_debug_print("fwhm_ref: %lf, phot_set->ape_strat: %i \n", fwhm_ref, phot_set->ape_strat);
+	siril_debug_print("phot_set->auto_inner_factor: %lf, phot_set->auto_outer_factor: %lf, phot_set->auto_aperture_factor: %lf \n", phot_set->auto_inner_factor, phot_set->auto_outer_factor, phot_set->auto_aperture_factor);
+	siril_debug_print("Aperture: %lf, Inner: %lf Outer: %lf\n", appRadius, r1, r2);
 	siril_log_message(_("Inner: %.2lf, Outer: %.2lf, Aperture: %.2lf\n"), r1, r2, appRadius);
 
 	if (appRadius >= r1 && !phot_set->force_radius) {
