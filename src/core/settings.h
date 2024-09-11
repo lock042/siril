@@ -141,6 +141,8 @@ struct phot_config {
 	double flux_outer_factor;// factor for automatic outer radius computation from Flux cutoff meth
 	double dump_fwhmx;	// temporary value
 	double fwhm_ref[20];// temporary value
+	double dump_beta;	// temporary value
+	double beta_ref[20];// temporary value
 
 	gboolean force_radius;	// force the aperture radius value
 	int ape_strat; 	// encodes the aperture strategy to be used. See enum aperture_strategy

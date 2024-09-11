@@ -84,13 +84,13 @@ struct phot_config *phot_set_adjusted_for_image(const fits *fit) {
 	return retval;
 }
 
-void fluxCut_factors (const psf_star *psf, double fwhm_ref, double* in_rad, double* out_rad, double* ap_rad){
+void fluxCut_factors (const psf_star *psf, double beta_ref, double fwhm_ref, double* in_rad, double* out_rad, double* ap_rad){
 	double threshold = 0.01 * com.pref.phot_set.flux_cut_factor;
 	if (psf->profile == PSF_GAUSSIAN) {
 		*ap_rad = fwhm_ref *INV_2_SQRT_2_LOG2 * sqrt(-2.0 * log(threshold));
 	}
 	if (psf->profile == PSF_MOFFAT_BFREE || psf->profile == PSF_MOFFAT_BFIXED) {
-		double inv_beta = 1. / psf->beta;
+		double inv_beta = 1. / beta_ref;
 		double const1 = (pow(threshold, -inv_beta) - 1.);
 		double const2 = (pow(2., inv_beta) - 1.);
 		*ap_rad = 0.5 * fwhm_ref * sqrt(const1 / const2);
@@ -130,6 +130,7 @@ photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 ///	This is the value defines for each star in the currently loaded picture.
 ///	 It can be the reference image after registration or another one.
 	double fwhm_ref = com.pref.phot_set.dump_fwhmx;
+	double beta_ref = com.pref.phot_set.dump_beta;
 	double in_rad = 0.0, out_rad = 0.0, ap_rad = 0.0;
 ///*******************************************
 ///	According to the choosen startegy, computation of the radii:
@@ -145,7 +146,7 @@ photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 			appRadius = 0.5 * fwhm_ref * phot_set->auto_aperture_factor;
 			break;
 		case FLUX_CUT:
-			fluxCut_factors (psf, fwhm_ref, &in_rad, &out_rad, &ap_rad);
+			fluxCut_factors (psf, beta_ref, fwhm_ref, &in_rad, &out_rad, &ap_rad);
 			r1 = in_rad;
 			r2 = out_rad;
 			appRadius = ap_rad;
@@ -668,7 +669,9 @@ int one_psf(int star_index) {
 	ps->ape_strat = FIXED_AP;
 	result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, ps, TRUE, com.pref.starfinder_conf.profile, NULL);
 	ps->fwhm_ref[star_index] = max(result->fwhmx, result->fwhmy);
+	ps->beta_ref[star_index] = result->beta;
 	com.pref.phot_set.fwhm_ref[star_index] = max(result->fwhmx, result->fwhmy);
+	com.pref.phot_set.beta_ref[star_index] = result->beta;
 	siril_debug_print("ICI-result->fwhmx: %lf\n", result->fwhmx);
 	ps->ape_strat = ape_strat_bkp;
 	free(ps);
@@ -706,6 +709,7 @@ gpointer light_curve_worker(gpointer arg) {
 	for (int star_index = 0; star_index < args->nb; star_index++) {
 		com.selection = args->areas[star_index];
 		com.pref.phot_set.dump_fwhmx = com.pref.phot_set.fwhm_ref[star_index];	// Sets the fwhm_ref for the seqpsf process for this particular star
+		com.pref.phot_set.dump_beta = com.pref.phot_set.beta_ref[star_index];	// Sets the fwhm_ref for the seqpsf process for this particular star
 		if (seqpsf(args->seq, args->layer, FALSE, FALSE, framing, FALSE, TRUE)) {
 			if (star_index == 0) {
 				siril_log_message(_("Failed to analyse the variable star photometry\n"));
