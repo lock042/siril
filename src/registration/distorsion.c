@@ -406,7 +406,6 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 			break;
 		default:
 			return NULL;
-			break;
 	}
 
 	if (distoparam->index == DISTO_MASTER) {
@@ -504,7 +503,7 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 		if (!found) {
 			free(disto);
 			distoparam->index = DISTO_UNDEF;
-			return NULL;
+			disto = NULL;
 		}
 	}
 	*status = 0;

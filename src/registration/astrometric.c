@@ -153,18 +153,18 @@ int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_ty
 	ra0 = (ra0 < 0) ? ra0 + 360. : ra0;
 	siril_log_message(_("Sequence COG - RA:%7.3f - DEC:%+7.3f\n"), ra0, dec0);
 	int refindex = -1;
-	double mindist = DBL_MAX;
-	for (int i = 0; i < n; i++) {
-		if (!incl[i])
-			continue;
-		dist[i] = compute_coords_distance(RA[i], DEC[i], ra0, dec0);
-		if (dist[i] < mindist) {
-			mindist = dist[i];
-			refindex = i;
-		}
-	}
-	siril_log_message(_("Image closest to center is #%d - RA:%7.3f - DEC:%+7.3f\n"), refindex + 1, RA[refindex], DEC[refindex]);
-	if (framing == FRAMING_CURRENT)
+	// double mindist = DBL_MAX;
+	// for (int i = 0; i < n; i++) {
+	// 	if (!incl[i])
+	// 		continue;
+	// 	dist[i] = compute_coords_distance(RA[i], DEC[i], ra0, dec0);
+	// 	if (dist[i] < mindist) {
+	// 		mindist = dist[i];
+	// 		refindex = i;
+	// 	}
+	// }
+	// siril_log_message(_("Image closest to center is #%d - RA:%7.3f - DEC:%+7.3f\n"), refindex + 1, RA[refindex], DEC[refindex]);
+	// if (framing == FRAMING_CURRENT)
 		refindex = seq->reference_image;
 
 	// Obtaining Camera extrinsic and instrinsic matrices (resp. R and K)
@@ -252,9 +252,10 @@ int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_ty
 	cvGetEye(&Kref);
 	Kref.h00 = fscale;
 	Kref.h11 = fscale;
-	Kref.h02 = Ks[refindex].h02;
-	Kref.h12 = Ks[refindex].h12;
+	// Kref.h02 = Ks[refindex].h02;
+	// Kref.h12 = Ks[refindex].h12;
 	siril_debug_print("Scale: %.3f\n", fscale);
+	print_H(&Kref);
 
 	// We compute the H matrices wrt to ref as Kref * Rrel * Kimg^-1
 	// The K matrices have the focals on the diag and (rx/2, ry/2) for the translation terms
@@ -270,8 +271,8 @@ int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_ty
 		compute_roi(&H, rx, ry, &roi);
 		current_regdata[i].H = H;
 		siril_debug_print("Image %d\n", i + 1);
-		// print_H(Ks + i);
-		// print_H(Rs + i);
+		print_H(Ks + i);
+		print_H(Rs + i);
 		print_H(&H);
 		siril_debug_print("%d,%d,%d,%d,%d\n", i + 1, roi.x, roi.y, roi.w, roi.h);
 	}
