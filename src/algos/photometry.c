@@ -129,8 +129,8 @@ photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 ///	The goal would be to set fwhm_ref to a particular value:
 ///	This is the value defines for each star in the currently loaded picture.
 ///	 It can be the reference image after registration or another one.
-	double fwhm_ref;
-	fwhm_ref = com.pref.phot_set.dump_fwhmx;
+	double fwhm_ref = com.pref.phot_set.dump_fwhmx;
+	double in_rad = 0.0, out_rad = 0.0, ap_rad = 0.0;
 ///*******************************************
 ///	According to the choosen startegy, computation of the radii:
 	switch (phot_set->ape_strat){
@@ -145,7 +145,6 @@ photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 			appRadius = 0.5 * fwhm_ref * phot_set->auto_aperture_factor;
 			break;
 		case FLUX_CUT:
-			double in_rad, out_rad, ap_rad;
 			fluxCut_factors (psf, fwhm_ref, &in_rad, &out_rad, &ap_rad);
 			r1 = in_rad;
 			r2 = out_rad;
@@ -164,6 +163,8 @@ photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 //	r1 = phot_set->inner;
 //	r2 = phot_set->outer;
 //	appRadius = phot_set->force_radius ? phot_set->aperture : 0.5 * psf->fwhmx * phot_set->auto_aperture_factor;
+
+	siril_log_message(_("Inner: %.2lf, Outer: %.2lf, Aperture: %.2lf\n"), r1, r2, appRadius);
 
 	if (appRadius >= r1 && !phot_set->force_radius) {
 		if (verbose) {
