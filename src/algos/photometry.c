@@ -99,6 +99,59 @@ void fluxCut_factors (const psf_star *psf, double beta_ref, double fwhm_ref, dou
 	*out_rad = *ap_rad * com.pref.phot_set.flux_outer_factor;
 }
 
+struct radii_set *radii_strat (struct phot_config *phot_set, const psf_star *psf) {
+	struct radii_set *retval = malloc(sizeof(struct radii_set));
+	if (!retval) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
+	///*******************************************
+///	The goal would be to set fwhm_ref to a particular value:
+///	This is the value defines for each star in the currently loaded picture.
+///	 It can be the reference image after registration or another one.
+	double r11 = 0.0, r21 = 0.0, appRadius1 = 0.0;	// Dump values
+	double fwhm_ref = com.pref.phot_set.dump_fwhmx;
+	double beta_ref = com.pref.phot_set.dump_beta;
+	double in_rad = 0.0, out_rad = 0.0, ap_rad = 0.0;
+///*******************************************
+///	According to the choosen startegy, computation of the radii:
+	switch (phot_set->ape_strat){
+		case FIXED_AP:
+			r11 = phot_set->inner;
+			r21 = phot_set->outer;
+			appRadius1 = phot_set->aperture;
+			break;
+		case FWHM_VAR:	
+			r11 = 0.5 * fwhm_ref * phot_set->auto_inner_factor;
+			r21 = 0.5 * fwhm_ref * phot_set->auto_outer_factor;
+			appRadius1 = 0.5 * fwhm_ref * phot_set->auto_aperture_factor;
+			break;
+		case FLUX_CUT:
+			fluxCut_factors (psf, beta_ref, fwhm_ref, &in_rad, &out_rad, &ap_rad);
+			r11 = in_rad;
+			r21 = out_rad;
+			appRadius1 = ap_rad;
+			break;
+	}
+
+	if (com.pref.phot_set.dump_fwhmx == 0.0) {	// Workaround for the photometry test in the CI and the first pass of the loop (to set initial values)
+		r11 = phot_set->inner;
+		r21 = phot_set->outer;
+		appRadius1 = phot_set->force_radius ? phot_set->aperture : 0.5 * psf->fwhmx * phot_set->auto_aperture_factor;
+	}
+
+	retval->in_Radius = r11;
+	retval->out_Radius = r21;
+	retval->ape_Radius = appRadius1;
+
+//	siril_debug_print("fwhm_ref: %lf, phot_set->ape_strat: %i \n", fwhm_ref, phot_set->ape_strat);
+//	siril_debug_print("phot_set->auto_inner_factor: %lf, phot_set->auto_outer_factor: %lf, phot_set->auto_aperture_factor: %lf \n", phot_set->auto_inner_factor, phot_set->auto_outer_factor, phot_set->auto_aperture_factor);
+//	siril_debug_print("Aperture: %lf, Inner: %lf Outer: %lf\n", appRadius1, r11, r21);
+//	siril_log_message(_("Inner: %.2lf, Outer: %.2lf, Aperture: %.2lf\n"), r11, r21, appRadius1);
+
+	return retval;
+}
+
 photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 		struct phot_config *phot_set, gboolean verbose, psf_error *error) {
 	int width = z->size2;
@@ -124,52 +177,10 @@ photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 		return NULL;
 	}
 
-
-///*******************************************
-///	The goal would be to set fwhm_ref to a particular value:
-///	This is the value defines for each star in the currently loaded picture.
-///	 It can be the reference image after registration or another one.
-	double fwhm_ref = com.pref.phot_set.dump_fwhmx;
-	double beta_ref = com.pref.phot_set.dump_beta;
-	double in_rad = 0.0, out_rad = 0.0, ap_rad = 0.0;
-///*******************************************
-///	According to the choosen startegy, computation of the radii:
-	switch (phot_set->ape_strat){
-		case FIXED_AP:
-			r1 = phot_set->inner;
-			r2 = phot_set->outer;
-			appRadius = phot_set->aperture;
-			break;
-		case FWHM_VAR:	
-			r1 = 0.5 * fwhm_ref * phot_set->auto_inner_factor;
-			r2 = 0.5 * fwhm_ref * phot_set->auto_outer_factor;
-			appRadius = 0.5 * fwhm_ref * phot_set->auto_aperture_factor;
-			break;
-		case FLUX_CUT:
-			fluxCut_factors (psf, beta_ref, fwhm_ref, &in_rad, &out_rad, &ap_rad);
-			r1 = in_rad;
-			r2 = out_rad;
-			appRadius = ap_rad;
-			break;
-	}
-
-	if (com.pref.phot_set.dump_fwhmx == 0.0) {	// Workaround for the photometry test in the CI
-		siril_log_message(_("WARNING: Bad fwhm reference for aperture calculation\n"));
-///*******************************************
-/// The 3 following lines are the original ones.
-///	For each selected star of each image, the radii are re-computed
-/// That's what is not satisfying
-/// Just have to uncomment them to retrieve the former behaviour 
-///*******************************************
-		r1 = phot_set->inner;
-		r2 = phot_set->outer;
-		appRadius = phot_set->force_radius ? phot_set->aperture : 0.5 * psf->fwhmx * phot_set->auto_aperture_factor;
-	}
-
-	siril_debug_print("fwhm_ref: %lf, phot_set->ape_strat: %i \n", fwhm_ref, phot_set->ape_strat);
-	siril_debug_print("phot_set->auto_inner_factor: %lf, phot_set->auto_outer_factor: %lf, phot_set->auto_aperture_factor: %lf \n", phot_set->auto_inner_factor, phot_set->auto_outer_factor, phot_set->auto_aperture_factor);
-	siril_debug_print("Aperture: %lf, Inner: %lf Outer: %lf\n", appRadius, r1, r2);
-	siril_log_message(_("Inner: %.2lf, Outer: %.2lf, Aperture: %.2lf\n"), r1, r2, appRadius);
+	struct radii_set *r_set = radii_strat (phot_set, psf);
+	r1 = r_set->in_Radius;
+	r2 = r_set->out_Radius;
+	appRadius = r_set->ape_Radius;
 
 	if (appRadius >= r1 && !phot_set->force_radius) {
 		if (verbose) {

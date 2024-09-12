@@ -1066,6 +1066,7 @@ static void draw_stars(const draw_data_t* dd) {
 
 	/* quick photometry */
 	if (!com.script && gui.qphot && mouse_status == MOUSE_ACTION_PHOTOMETRY) {
+	//	No mod of the displayed circles for now according to the Aperture Strategy
 		double size = (!com.pref.phot_set.force_radius) ? 0.5 * gui.qphot->fwhmx * com.pref.phot_set.auto_aperture_factor : com.pref.phot_set.aperture;
 		if (size <= 0.0) size = com.pref.phot_set.aperture;
 
@@ -1095,12 +1096,14 @@ static void draw_stars(const draw_data_t* dd) {
 	}
 
 	/* draw seqpsf stars */
+	//	No mod of the displayed circles for now according to the Aperture Strategy
 	if (sequence_is_loaded() && com.seq.current >= 0) {
 		for (i = 0; i < MAX_SEQPSF && com.seq.photometry[i]; i++) {
 			psf_star *the_psf = com.seq.photometry[i][com.seq.current];
 			if (the_psf) {
 				double size = (!com.pref.phot_set.force_radius && the_psf->fwhmx > 0.0) ?
 					0.5 * the_psf->fwhmx * com.pref.phot_set.auto_aperture_factor : com.pref.phot_set.aperture;
+
 				cairo_set_dash(cr, NULL, 0, 0);
 				// make the aperture slightly brighter
 				cairo_set_source_rgba(cr, min(com.seq.photometry_colors[i][0] + 0.2, 1.0),

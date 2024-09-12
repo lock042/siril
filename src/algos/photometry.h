@@ -27,6 +27,9 @@ typedef struct {
 
 struct phot_config *phot_set_adjusted_for_image(const fits *fit);
 
+void fluxCut_factors (const psf_star *psf, double beta_ref, double fwhm_ref, double* in_rad, double* out_rad, double* ap_rad);
+struct radii_set *radii_strat (struct phot_config *phot_set, const psf_star *psf);
+
 photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 		struct phot_config *phot_set, gboolean verbose, psf_error *error);
 
@@ -44,6 +47,12 @@ void print_psf_error_summary(gint *code_sums);
 };*/
 
 struct compstars_arg;
+
+struct radii_set {
+	double ape_Radius;
+	double in_Radius;
+	double out_Radius;
+};
 
 struct light_curve_args {
 	rectangle *areas;	// the first is the variable star's area
