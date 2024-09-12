@@ -116,16 +116,20 @@ graxpert_data* fill_graxpert_data_from_gui(gboolean previewing) {
 	if (p->operation == GRAXPERT_DENOISE) {
 		int n = gtk_combo_box_get_active(combo_graxpert_ai_models_denoise);
 		const gchar **ai_models = get_ai_models(GRAXPERT_DENOISE);
-		int num_models = g_strv_length((gchar**) ai_models);
-		if (n < num_models) {
-			p->ai_version = g_strdup(ai_models[n]);
+		if (ai_models) {
+			int num_models = g_strv_length((gchar**) ai_models);
+			if (n < num_models) {
+				p->ai_version = g_strdup(ai_models[n]);
+			}
 		}
 	} else if (p->operation == GRAXPERT_BG && p->bg_algo == GRAXPERT_BG_AI) {
 		int n = gtk_combo_box_get_active(combo_graxpert_ai_models_bg);
 		const gchar **ai_models = get_ai_models(GRAXPERT_BG);
-		int num_models = g_strv_length((gchar**) ai_models);
-		if (n < num_models) {
-			p->ai_version = g_strdup(ai_models[n]);
+		if (ai_models) {
+			int num_models = g_strv_length((gchar**) ai_models);
+			if (n < num_models) {
+				p->ai_version = g_strdup(ai_models[n]);
+			}
 		}
 	}
 	return p;
