@@ -80,7 +80,8 @@ static double histo_color_b[] = { 0.0, 0.0, 1.0, 0.0 };
 // static float graph_height = 0.f;	// the max value of all bins
 static guint64 clipped[] = { 0, 0 };
 
-static GtkToggleToolButton *toggles[3] = { NULL };
+// The 4th toggle pointer remains NULL, but it makes the logic easier in redraw_histo()
+static GtkToggleToolButton *toggles[MAXVPORT] = { NULL };
 static GtkToggleToolButton *toggleGrid = NULL, *toggleCurve = NULL, *toggleOrig = NULL;
 
 /* the original histogram, used as starting point of each computation */
@@ -130,7 +131,6 @@ static void init_toggles() {
 		do_channel[0] = gtk_toggle_tool_button_get_active(toggles[0]);
 		do_channel[1] = gtk_toggle_tool_button_get_active(toggles[1]);
 		do_channel[2] = gtk_toggle_tool_button_get_active(toggles[2]);
-		toggles[3] = NULL;
 		toggleGrid = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolGrid"));
 		toggleCurve = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolCurve"));
 		toggleOrig = GTK_TOGGLE_TOOL_BUTTON(lookup_widget("histoToolOrig"));
@@ -391,8 +391,6 @@ static void set_histo_toggles_names() {
 		 * with gtk_widget_show and not gtk_widget_show_all */
 		gtk_widget_set_sensitive(GTK_WIDGET(toggles[1]), FALSE);
 		gtk_widget_set_sensitive(GTK_WIDGET(toggles[2]), FALSE);
-		if (toggles[3])
-			gtk_widget_set_visible(GTK_WIDGET(toggles[3]), FALSE);
 
 	} else {
 		gtk_widget_set_tooltip_text(GTK_WIDGET(toggles[0]), _("Red channel"));
@@ -403,10 +401,6 @@ static void set_histo_toggles_names() {
 		gtk_widget_set_sensitive(GTK_WIDGET(toggles[2]), TRUE);
 		gtk_widget_set_visible(GTK_WIDGET(toggles[1]), TRUE);
 		gtk_widget_set_visible(GTK_WIDGET(toggles[2]), TRUE);
-		if (toggles[3]) {
-			gtk_widget_set_visible(GTK_WIDGET(toggles[3]), TRUE);
-			gtk_toggle_tool_button_set_active(toggles[3], TRUE);
-		}
 	}
 }
 

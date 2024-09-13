@@ -11,6 +11,12 @@
   <summary>Astronomical image (pre-)processing program</summary>
   <summary xml:lang="fr_FR">Programme de traitement d'images astronomiques</summary>
   <translation type="gettext">siril</translation>
+  <provides>
+    <id>org.free_astro.siril</id>
+  </provides>
+  <replaces>
+    <id>org.free_astro.siril</id>
+  </replaces>
   <description>
     <p>Siril is an image processing tool specially tailored for noise reduction and improving the signal/noise ratio of an image from multiple captures, as required in astronomy.</p>
     <p xml:lang="ar_DZ">Siril هو برنامج معالجة الصور المصممة خصيصا للحد من الضوضاء وتحسين نسبة الإشارة / الضوضاء صورة من يلتقط متعددة، كما هو مطلوب في علم الفلك</p>
@@ -90,8 +96,31 @@
   <update_contact>cyril_at_free-astro.org</update_contact>
   <content_rating type="oars-1.0"/>
   <releases>
+    <release version="1.2.4" type="stable" date="2024-09-11">
+      <url type="details">https://siril.org/download/1.2.4</url>
+      <description>
+        <p>
+          Siril 1.2.4 is a bug fix release, containing only bug fixes.
+          The most important are:
+        </p>
+        <ul>
+          <li>
+          Fixed CFA statistics
+          </li>
+          <li>
+          Fixed free space disk computation on macOS
+          </li>
+          <li>
+          Fixed CLAHE crash on mono image
+          </li>
+          <li>
+          Fixed GHT and HT not reverting previews from other dialogs
+          </li>
+        </ul>
+      </description>
+    </release>
     <release version="1.2.3" type="stable" date="2024-06-19">
-      <url type="details">https://siril.org/download/1.2.2</url>
+      <url type="details">https://siril.org/download/1.2.3</url>
       <description>
         <p>
           Siril 1.2.3 is a bug fix release due to bugs introduced in 1.2.2
