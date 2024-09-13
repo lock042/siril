@@ -332,7 +332,7 @@ int main(int argc, char *argv[]) {
 	bind_textdomain_codeset(PACKAGE, "UTF-8");
 	textdomain(PACKAGE);
 
-	app = g_application_new("org.free_astro.siril", G_APPLICATION_NON_UNIQUE);
+	app = g_application_new("org.siril.Siril", G_APPLICATION_NON_UNIQUE);
 
 	g_signal_connect(app, "activate", G_CALLBACK(siril_app_activate), NULL);
 	//g_signal_connect(app, "open", G_CALLBACK(siril_app_open), NULL);
