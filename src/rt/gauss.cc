@@ -1199,13 +1199,13 @@ template<class T> void gaussVertical (T** src, T** dst, const int W, const int H
     static const int numcols = 8;
     // Allocate numcols, avoiding use of VLAs
     // Allocate aligned memory for a 2D array
-    std::vector<double, AlignedAllocator<double, 16>> temp2_storage(H * numcols);
+    auto temp2_storage = std::make_unique<std::vector<double, AlignedAllocator<double, 16>>> (H * numcols);
 
     // Create an array of pointers to represent rows
     std::unique_ptr<double*[]> temp2(new double*[H]);
 
     for (int i = 0; i < H; ++i) {
-        temp2[i] = &temp2_storage[i * numcols];
+        temp2[i] = &(*temp2_storage)[i * numcols];
     }
     std::vector<double> temp2Hm1v(numcols), temp2Hv(numcols), temp2Hp1v(numcols);
     double *temp2Hm1 = temp2Hm1v.data(), *temp2H = temp2Hv.data(), *temp2Hp1 = temp2Hp1v.data();
