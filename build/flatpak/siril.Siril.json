@@ -1,10 +1,10 @@
 {
-    "app-id": "org.free_astro.siril",
+    "app-id": "org.siril.Siril",
     "runtime": "org.gnome.Platform",
     "runtime-version": "master",
     "sdk": "org.gnome.Sdk",
     "command": "siril",
-    "rename-icon": "org.free_astro.siril",
+    "rename-icon": "org.siril.Siril",
     "finish-args": [
         "--share=ipc",
         "--share=network",
@@ -26,8 +26,8 @@
             "make-args": ["shared"],
             "cleanup": [
                 "/include",
-                "/lib/*.a",
-                "/lib/*.la",
+                "*.a",
+                "*.la",
                 "/lib/pkgconfig"
             ],
             "sources": [
@@ -135,8 +135,8 @@
             ],
             "cleanup": [
                 "/include",
-                "/lib/*.a",
-                "/lib/*.la",
+                "*.a",
+                "*.la",
                 "/lib/pkgconfig"
             ],
             "sources": [
@@ -164,8 +164,8 @@
                 "/bin",
                 "/include",
                 "/lib/pkgconfig",
-                "/lib/*.a",
-                "/lib/*.la",
+                "*.a",
+                "*.la",
                 "/share/aclocal",
                 "/share/info",
                 "/share/man"
@@ -206,8 +206,8 @@
             "cleanup": [
                 "/bin",
                 "/include",
-                "/lib/*.a",
-                "/lib/*.la",
+                "*.a",
+                "*.la",
                 "/lib/cmake",
                 "/lib/pkgconfig",
                 "/share/info",
@@ -223,7 +223,7 @@
                 "/include",
                 "/lib/cmake",
                 "/lib/pkgconfig",
-                "/lib/*.a",
+                "*.a",
                 "/share/man"
             ],
             "sources": [
