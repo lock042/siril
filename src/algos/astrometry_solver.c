@@ -79,7 +79,7 @@ typedef struct {
 	struct wcsprm *wcslib;
 } solve_results;
 
-static void debug_print_catalog_files(s_star *star_list_A, s_star *star_list_B) {
+static void debug_print_catalog_files(TRANS trans, s_star *star_list_A, s_star *star_list_B) {
 #if ASTROMETRY_DEBUG
 	GFile *file = g_file_new_for_path("ABtars.csv");
 	g_autoptr(GError) error = NULL;
@@ -88,10 +88,21 @@ static void debug_print_catalog_files(s_star *star_list_A, s_star *star_list_B) 
 		siril_debug_print("%s\n", error->message);
 		return;
 	}
-	const gchar *header;
-	header = "xA,yA,magA,indA,xB,yB,magB,indB\n";
+	gchar bufferx[1024] = { 0 }, buffery[1024] = { 0 };
+	// x00, x10, x01, x20, x11, x02, x30, x21, x12, x03, x40, x31, x22, x13, x04, x50, x41, x32, x23, x14, x05
+	g_sprintf(bufferx, "%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f\n", 
+	trans.x00, trans.x10, trans.x01, trans.x20, trans.x11, trans.x02, 
+	trans.x30, trans.x21, trans.x12, trans.x03, trans.x40, trans.x31, trans.x22, trans.x13,
+	trans.x04, trans.x50, trans.x41, trans.x32, trans.x23, trans.x14, trans.x05);
+	g_sprintf(buffery, "%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f\n", 
+	trans.y00, trans.y10, trans.y01, trans.y20, trans.y11, trans.y02, 
+	trans.y30, trans.y21, trans.y12, trans.y03, trans.y40, trans.y31, trans.y22, trans.y13,
+	trans.y04, trans.y50, trans.y41, trans.y32, trans.y23, trans.y14, trans.y05);
+	g_output_stream_write_all(output_stream, bufferx, strlen(bufferx), NULL, NULL,NULL);
+	g_output_stream_write_all(output_stream, buffery, strlen(buffery), NULL, NULL,NULL);
+	const gchar *header = "xA,yA,magA,indA,xB,yB,magB,indB\n";
 	g_output_stream_write_all(output_stream, header, strlen(header), NULL, NULL,NULL);
-	static gchar buffer[256] = { 0 };
+	gchar buffer[256] = { 0 };
 	s_star *sA, *sB;
 	for (sA = star_list_A, sB = star_list_B; ; sA = sA->next, sB = sB->next) {
 		if (!sA) break;
@@ -1426,7 +1437,7 @@ static int match_catalog(psf_star **stars, int nb_stars, siril_catalogue *siril_
 	}
 	if (ret)	// after the break
 		goto clearup;
-	debug_print_catalog_files(star_list_A, star_list_B);
+	debug_print_catalog_files(trans, star_list_A, star_list_B);
 
 	// updating solution to higher order if required
 	if (order > AT_TRANS_LINEAR) {
