@@ -74,7 +74,7 @@ xx/xx/xx
 * Fixed a crash in ROI selection (#1320)
 * Optimised GHT code (~2x speedup) and fixed associated bugs (#1194, #1314, #1319)
 * Fixed handling wide-char characters in filenames on Windows (with cfitsio >= 4.4) (#1324)
-* Fix bug in GHT when only 1 or 2 channels are selected (#1329)
+* Fixed bug in GHT when only 1 or 2 channels are selected (#1329)
 * Improve use of prngs (mt19937 now used throughout in place of rand() etc.) (!689)
 * Update Image processing menu (!700)
 * Refactor networking code, add offline mode and add Gaia archive status indication (!687)
@@ -87,9 +87,12 @@ xx/xx/xx
 * Fixed GHT and HT sharing states for a some GUI elements (#1357)
 * Reads and compares checksum (DATASUM and CHECKSUM) if present in the FITS header (!723)
 * Blocked certain processes when a processing dialog box is open (#1355)
+* Fixed a bug with histogram / GHT widgets updating the image when the preview toggle was off (#1358)
+* Check for and resolve pixel values outside [0 1] before certain operations (!697)
+* Fixed seqpsf for images which write ADU in float (#1322)
 
 siril 1.2.4
-xx/xx/24
+09/11/24
 
 * Fixed CFA statistics (#1342)
 * Fixed calibration command bug disabling cosmetic correction (#1348)
@@ -100,6 +103,10 @@ xx/xx/24
 * Fixed crash when saving image (#1353)
 * Fixed execute button in wavelets not reverting preview (#1362)
 * Fixed CLAHE crash on mono image (#1354)
+* Fixed crash while extracting Green channel on CFA FITSEQ (#1305)
+* Fixed inverted sequences on exporting to SER (#1361)
+* Fixed a bug with histogram hi / mid / lo entry callback behaviour (!735)
+* Fixed free space disk computation on macOS (#1368)
 
 siril 1.2.3
 06/19/24

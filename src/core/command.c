@@ -3056,8 +3056,11 @@ int process_mtf(int nb) {
 	image_cfa_warning_check();
 	if (inverse)
 		apply_linked_pseudoinverse_mtf_to_fits(&gfit, &gfit, params, TRUE);
-	else apply_linked_mtf_to_fits(&gfit, &gfit, params, TRUE);
-
+	else {
+		apply_linked_mtf_to_fits(&gfit, &gfit, params, TRUE);
+		siril_log_message(_("Applying MTF with values %f, %f, %f\n"),
+			params.shadows, params.midtones, params.highlights);
+	}
 	char log[90];
 	sprintf(log, "%s transfer (%.3f, %.4f, %.3f)",
 			inverse ? "Inverse midtones" : "Midtones",
@@ -3230,6 +3233,9 @@ int process_autostretch(int nb) {
 		params.do_green = TRUE;
 		params.do_blue = TRUE;
 		apply_linked_mtf_to_fits(&gfit, &gfit, params, TRUE);
+		siril_log_message(_("Applying MTF with values %f, %f, %f\n"),
+			params.shadows, params.midtones, params.highlights);
+
 	} else {
 		struct mtf_params params[3];
 		find_unlinked_midtones_balance(&gfit, shadows_clipping, target_bg, params);
@@ -11037,6 +11043,41 @@ int process_trixel(int nb) {
 		siril_log_message(_("Unknown parameter %s, aborting.\n"), word[2]);
 		return CMD_ARG_ERROR;
 	}
+	return CMD_OK;
+}
+
+int process_limit(int nb) {
+	if (nb != 2)
+		return CMD_WRONG_N_ARG;
+	if (gfit.type == DATA_USHORT) {
+		siril_log_message(_("16-bit images cannot have out-of-range pixels: nothing to do.\n"));
+		return CMD_OK;
+	}
+
+	double maxval, minval;
+	int retval = quick_minmax(&gfit, &minval, &maxval);
+	if (retval)
+		return CMD_GENERIC_ERROR;
+
+	if (maxval <= 1.0 && minval >= 0.0) {
+		siril_log_message(_("No pixels require clipping. Nothing to do...\n"));
+		return CMD_OK;
+	}
+
+	OverrangeResponse method;
+	if (!g_ascii_strncasecmp(word[1], "-clip", 5)) {
+		method = RESPONSE_CLIP;
+	} else if (!g_ascii_strncasecmp(word[1], "-posrescale", 11)) {
+		method = RESPONSE_RESCALE_CLIPNEG;
+	} else if (!g_ascii_strncasecmp(word[1], "-rescale", 8)) {
+		method = RESPONSE_RESCALE_ALL;
+	} else {
+		siril_log_color_message(_("Error: unknown argument!\n"), "red");
+		return CMD_ARG_ERROR;
+	}
+
+	apply_limits(&gfit, minval, maxval, method);
+	siril_log_message(_("Pixel limits applied successfully.\n"));
 	return CMD_OK;
 }
 

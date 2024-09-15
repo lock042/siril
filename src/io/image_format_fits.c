@@ -525,7 +525,7 @@ static void convert_data_float(int bitpix, const void *from, float *to, size_t n
 	}
 }
 
-static void convert_floats(int bitpix, float *data, size_t nbdata) {
+static void convert_floats(int bitpix, float *data, size_t nbdata, gboolean verbose) {
 	size_t i;
 	switch (bitpix) {
 		case BYTE_IMG:
@@ -533,9 +533,10 @@ static void convert_floats(int bitpix, float *data, size_t nbdata) {
 				data[i] = data[i] * INV_UCHAR_MAX_SINGLE;
 			break;
 		case FLOAT_IMG:
-			siril_log_message(_("Normalizing input data to our float range [0, 1]\n")); // @suppress("No break at end of case")
-			// Fallthrough is deliberate, this handles FITS with floating point data
-			// where MAX is 65565 (e.g. JWST)
+			if (verbose)
+				siril_log_message(_("Normalizing input data to our float range [0, 1]\n")); // @suppress("No break at end of case")
+				// Fallthrough is deliberate, this handles FITS with floating point data
+				// where MAX is 65565 (e.g. JWST)
 		default:
 		case USHORT_IMG:	// siril 0.9 native
 			for (i = 0; i < nbdata; i++)
@@ -721,7 +722,7 @@ int read_fits_with_convert(fits* fit, const char* filename, gboolean force_float
 		if ((fit->bitpix == USHORT_IMG || fit->bitpix == SHORT_IMG
 				// needed for some FLOAT_IMG. 10.0 is probably a good number to represent the limit at which we judge that these are not clip-on pixels.
 				|| fit->bitpix == BYTE_IMG) || fit->keywords.data_max > 10.0) {
-			convert_floats(fit->bitpix, fit->fdata, nbdata);
+			convert_floats(fit->bitpix, fit->fdata, nbdata, TRUE);
 		}
 		fit->bitpix = FLOAT_IMG;
 		fit->orig_bitpix = FLOAT_IMG; // force this, to avoid problems saving the FITS if needed
@@ -802,8 +803,15 @@ int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,
 			if (status) break;
 			int status2 = 0;
 			fits_read_key(fptr, TDOUBLE, "DATAMAX", &data_max, NULL, &status2);
+			if (status2 == KEY_NO_EXIST) {
+				data_max = 0.;
+				for (size_t i = 0; i < nbdata; i += nbdata / 3) { // we check the 3 pixels in diagonal and hope for the best not all will be null...
+					data_max = max(data_max, ((float *)dest)[i]);
+				}
+				status2 = 0;
+			}
 			if (status2 == 0 && data_max > 10.0) { // needed for some FLOAT_IMG
-				convert_floats(bitpix, dest, nbdata);
+				convert_floats(bitpix, dest, nbdata, FALSE);
 			}
 			break;
 		case LONGLONG_IMG:	// 64-bit integer pixels

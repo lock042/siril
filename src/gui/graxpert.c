@@ -116,16 +116,20 @@ graxpert_data* fill_graxpert_data_from_gui(gboolean previewing) {
 	if (p->operation == GRAXPERT_DENOISE) {
 		int n = gtk_combo_box_get_active(combo_graxpert_ai_models_denoise);
 		const gchar **ai_models = get_ai_models(GRAXPERT_DENOISE);
-		int num_models = g_strv_length((gchar**) ai_models);
-		if (n < num_models) {
-			p->ai_version = g_strdup(ai_models[n]);
+		if (ai_models) {
+			int num_models = g_strv_length((gchar**) ai_models);
+			if (n < num_models) {
+				p->ai_version = g_strdup(ai_models[n]);
+			}
 		}
 	} else if (p->operation == GRAXPERT_BG && p->bg_algo == GRAXPERT_BG_AI) {
 		int n = gtk_combo_box_get_active(combo_graxpert_ai_models_bg);
 		const gchar **ai_models = get_ai_models(GRAXPERT_BG);
-		int num_models = g_strv_length((gchar**) ai_models);
-		if (n < num_models) {
-			p->ai_version = g_strdup(ai_models[n]);
+		if (ai_models) {
+			int num_models = g_strv_length((gchar**) ai_models);
+			if (n < num_models) {
+				p->ai_version = g_strdup(ai_models[n]);
+			}
 		}
 	}
 	return p;
@@ -135,7 +139,8 @@ void graxpert_roi_callback() {
 	// ROI not supported for GraXpert background removal
 	gui.roi.operation_supports_roi = !is_bg;
 	gtk_widget_set_visible(GTK_WIDGET(button_graxpert_roipreview), (!is_bg && gui.roi.active));
-	copy_backup_to_gfit();
+	if (is_preview_active())
+		copy_backup_to_gfit();
 	notify_gfit_modified();
 }
 
@@ -171,7 +176,8 @@ void configure_graxpert_dialog_for_roi() {
 		copy_gfit_to_backup();
 	} else {
 		roi_supported(FALSE);
-		siril_preview_hide();
+		if (is_preview_active())
+			siril_preview_hide();
 		remove_roi_callback(graxpert_roi_callback);
 		mouse_status = MOUSE_ACTION_DRAW_SAMPLES;
 	}
@@ -247,7 +253,8 @@ void on_graxpert_dialog_show(GtkWidget *widget, gpointer user_data) {
 
 void on_graxpert_dialog_hide(GtkWidget *widget, gpointer user_data) {
 	roi_supported(FALSE);
-	siril_preview_hide();
+	if (is_preview_active())
+		siril_preview_hide();
 	remove_roi_callback(graxpert_roi_callback);
 	mouse_status = MOUSE_ACTION_SELECT_REG_AREA;
 	free_background_sample_list(com.grad_samples);

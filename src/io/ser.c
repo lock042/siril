@@ -1205,8 +1205,8 @@ static int ser_write_frame_from_fit_internal(struct ser_struct *ser_file, fits *
 	// return bottom-up fits to top-down ser row_order (not if the image is already top-down)
 	if (fit->top_down) {
 		snprintf(fit->keywords.bayer_pattern, FLEN_VALUE, "%s", flip_bayer_pattern(fit->keywords.bayer_pattern));
-		fits_flip_top_to_bottom(fit);
 	}
+	fits_flip_top_to_bottom(fit);
 
 	if (!ser_file || ser_file->file == NULL)
 		return SER_GENERIC_ERROR;
