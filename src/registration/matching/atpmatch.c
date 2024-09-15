@@ -3166,7 +3166,7 @@ TRANS *trans /* O: place solved coefficients into this */
 	 *                                in units of coord system B
 	 */
 	trans->nr = nr;
-	trans->sig = find_percentile(dist2_sorted, nr, ONE_STDEV_PERCENTILE);
+	trans->sig = (nr > 1) ? find_percentile(dist2_sorted, nr, ONE_STDEV_PERCENTILE) : 0.;
 
 	/*
 	 * free up the arrays we allocated
