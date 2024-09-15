@@ -304,6 +304,10 @@
         {
             "name": "libxisf",
             "buildsystem": "cmake",
+            "config-opts": [
+                "-DCMAKE_INSTALL_PREFIX=/app",
+                "-DCMAKE_INSTALL_INCLUDEDIR=/app/include"
+            ],
             "sources": [
                 {
                     "type": "git",
@@ -343,33 +347,32 @@
                 },
                 {
                     "name": "zstd",
+                    "no-autogen": true,
+                    "make-install-args": [
+                        "PREFIX=/app"
+                    ],
                     "sources": [
                         {
                             "type": "archive",
                             "url": "https://github.com/facebook/zstd/releases/download/v1.5.6/zstd-1.5.6.tar.gz",
                             "sha256": "8c29e06cf42aacc1eafc4077ae2ec6c6fcb96a626157e0593d5e82a34fd403c1"
-                        },
-                        {
-                            "type": "shell",
-                            "commands": [ 
-                                 "make"
-                            ]
                         }
                     ]
                 },
                 {
                     "name": "lz4",
+                    "no-autogen": true,
+                    "make-args": [
+                        "BUILD_SHARED=yes"
+                    ],
+                    "make-install-args": [
+                        "PREFIX=/app"
+                    ],
                     "sources": [
                         {
                             "type": "archive",
                             "url": "https://github.com/lz4/lz4/releases/download/v1.10.0/lz4-1.10.0.tar.gz",
                             "sha256": "537512904744b35e232912055ccf8ec66d768639ff3abe5788d90d792ec5f48b"
-                        },
-                        {
-                            "type": "shell",
-                            "commands": [ 
-                                 "make"
-                            ]
                         }
                     ]
                 }
