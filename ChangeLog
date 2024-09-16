@@ -1,3 +1,7 @@
+siril 1.2.5
+xx/xx/xx
+* Fixed crash in gaussVertical() on macOS (issue reported on pixls.us, !742)
+
 siril 1.2.4
 09/11/24
 
