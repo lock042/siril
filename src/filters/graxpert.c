@@ -122,7 +122,6 @@ static GError *spawn_graxpert(gchar **argv, gint columns,
 	return NULL;
 }
 
-
 static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report) {
 	const gchar *progress_key = "Progress: ";
 	gint child_stderr;
@@ -462,14 +461,20 @@ gboolean graxpert_executablecheck(gchar* executable, graxpert_operation operatio
 }
 
 gpointer graxpert_setup_async(gpointer user_data) {
-	graxpert_fetchversion(com.pref.graxpert_path);
-	siril_debug_print("GraXpert version %d.%d.%d found\n", graxpert_version.major_version, graxpert_version.minor_version, graxpert_version.micro_version);
-	fill_graxpert_version_arrays();
-	siril_debug_print("GraXpert AI model arrays populated\n");
-	version_number null_version = { 0 };
-	if (!com.headless && memcmp(&graxpert_version, &null_version, sizeof(version_number))) {
-		initialize_graxpert_widgets_if_needed();
-		populate_graxpert_ai_combos();
+	if (graxpert_fetchversion(com.pref.graxpert_path)) {
+		siril_debug_print("GraXpert version %d.%d.%d found\n", graxpert_version.major_version, graxpert_version.minor_version, graxpert_version.micro_version);
+		fill_graxpert_version_arrays();
+		siril_debug_print("GraXpert AI model arrays populated\n");
+		version_number null_version = { 0 };
+		if (!com.headless && memcmp(&graxpert_version, &null_version, sizeof(version_number))) {
+			initialize_graxpert_widgets_if_needed();
+			populate_graxpert_ai_combos();
+		}
+	} else {
+		g_strfreev(background_ai_models);
+		background_ai_models = NULL;
+		g_strfreev(denoise_ai_models);
+		denoise_ai_models = NULL;
 	}
 	return GINT_TO_POINTER(0);
 }
