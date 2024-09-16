@@ -89,6 +89,7 @@ siril 1.4.0 xx xx, xx
 * Fixed a bug with histogram / GHT widgets updating the image when the preview toggle was off (#1358)
 * Check for and resolve pixel values outside [0 1] before certain operations (!697)
 * Fixed seqpsf for images which write ADU in float (#1322)
+* Added the `pwd` command to print the current working directory (!743)
 
 siril 1.2.4 September 11, 2024
 
