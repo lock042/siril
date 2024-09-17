@@ -91,6 +91,10 @@ siril 1.4.0 xx xx, xx
 * Fixed seqpsf for images which write ADU in float (#1322)
 * Added the `pwd` command to print the current working directory (!743)
 
+siril 1.2.5 xx xx, xxxx
+
+* Fixed crash in gaussVertical() on macOS (issue reported on pixls.us, !742)
+
 siril 1.2.4 September 11, 2024
 
 * Fixed CFA statistics (#1342)
