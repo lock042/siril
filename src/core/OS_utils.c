@@ -86,7 +86,8 @@
  */
 #if OS_OSX
 static gint64 find_space(const gchar *name) {
-	NSURL *fileURL = [[NSURL alloc] initFileURLWithPath:@"/"];
+	NSString *path = [NSString stringWithUTF8String:name];
+	NSURL *fileURL = [[NSURL alloc] initFileURLWithPath:path];
 	NSError *error = nil;
 	NSDictionary *results = [fileURL resourceValuesForKeys:@[NSURLVolumeAvailableCapacityForImportantUsageKey] error:&error];
 

@@ -1,6 +1,7 @@
 siril 1.2.5 xx xx, xxxx
 
 * Fixed crash in gaussVertical() on macOS (issue reported on pixls.us, !742)
+* Fixed free space disk computation on macOS, probably for good (#1368 and #1375)
 
 siril 1.2.4 September 11, 2024
 
