@@ -8,8 +8,8 @@
   <launchable type="desktop-id">org.siril.Siril.desktop</launchable>
   <name>Siril</name>
   <name xml:lang="fr_FR">Siril</name>
-  <summary>Astronomical image (pre-)processing program</summary>
-  <summary xml:lang="fr_FR">Programme de traitement d'images astronomiques</summary>
+  <summary>Astronomical image processor</summary>
+  <summary xml:lang="fr_FR">Traitement d'images astronomiques</summary>
   <translation type="gettext">siril</translation>
   <provides>
     <id>org.free_astro.siril</id>
@@ -17,6 +17,10 @@
   <replaces>
     <id>org.free_astro.siril</id>
   </replaces>
+  <branding>
+    <color type="primary" scheme_preference="light">#faa298</color>
+    <color type="primary" scheme_preference="dark">#7f2c22</color>
+  </branding>
   <description>
     <p>Siril is an image processing tool specially tailored for noise reduction and improving the signal/noise ratio of an image from multiple captures, as required in astronomy.</p>
     <p xml:lang="ar_DZ">Siril هو برنامج معالجة الصور المصممة خصيصا للحد من الضوضاء وتحسين نسبة الإشارة / الضوضاء صورة من يلتقط متعددة، كما هو مطلوب في علم الفلك</p>
