@@ -32,7 +32,7 @@ project('siril',
   meson_version: '>=0.56.0',
   default_options : [
     'c_std=gnu11',
-    'cpp_std=c++14',
+    'cpp_std=c++17',
     'buildtype=debugoptimized',
   ],
 )

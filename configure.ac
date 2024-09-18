@@ -54,7 +54,7 @@ if test "x$remember_set_CFLAGS" = "x"; then
 fi
 
 CFLAGS="-D_FILE_OFFSET_BITS=64 -Werror=unknown-pragmas -Werror=unused-label -fno-common -ftree-vectorize -fno-math-errno $CFLAGS $OPENMP_CFLAGS"
-CXXFLAGS="$CFLAGS -std=c++14"
+CXXFLAGS="$CFLAGS -std=c++17"
 
 if test "x$SIRIL_UNSTABLE" = "xyes"; then
   AC_DEFINE(SIRIL_UNSTABLE, 1,
