@@ -1106,31 +1106,18 @@ static void draw_stars(const draw_data_t* dd) {
 
 			int s = com.pref.phot_set.outer * 1.2;
 			if (the_psf) {
-				double size = (!com.pref.phot_set.force_radius && the_psf->fwhmx > 0.0) ?
-					0.5 * the_psf->fwhmx * com.pref.phot_set.auto_aperture_factor : com.pref.phot_set.aperture;
-// c'est ici dedans que ca merde
+//				double size = (!com.pref.phot_set.force_radius && the_psf->fwhmx > 0.0) ?		//genuine
+//					0.5 * the_psf->fwhmx * com.pref.phot_set.auto_aperture_factor : com.pref.phot_set.aperture;
+
 				int ape_strat_bkp = com.pref.phot_set.ape_strat;
 				phot_set->ape_strat = FIXED_AP;
 				rectangle area = { the_psf->xpos - s, the_psf->ypos - s, s * 2, s * 2 };
-				if (the_psf->xpos - area.w > 0 && the_psf->xpos + area.w < gfit.rx
-						&& the_psf->ypos - area.h > 0 && the_psf->ypos + area.h < gfit.ry) {
-					siril_debug_print("MY2boxselect %lf %lf %lf\n",
-						the_psf->xpos, the_psf->ypos, s);
-					memcpy(&com.selection, &area, sizeof(rectangle));
-//					siril_debug_print("3-Any body here???\n");
-//					process_seq_psf(0);
-//					delete_selected_area();
-				}
-
-				//psf_star *result = psf_get_minimisation(&gfit, select_vport(gui.cvport), &com.selection, TRUE, phot_set, TRUE, com.pref.starfinder_conf.profile, NULL);
-				psf_star *result = psf_get_minimisation(&gfit, select_vport(gui.cvport), &com.selection, TRUE, phot_set, TRUE, com.pref.starfinder_conf.profile, NULL);
+				psf_star *result = psf_get_minimisation(&gfit, select_vport(gui.cvport), &area, TRUE, phot_set, TRUE, com.pref.starfinder_conf.profile, NULL);
 				phot_set->dump_fwhmx = max(result->fwhmx, result->fwhmy);
 				phot_set->dump_beta = result->beta;
-//				com.pref.phot_set.dump_fwhmx = max(result->fwhmx, result->fwhmy);
-//				com.pref.phot_set.dump_beta = result->beta;
+				com.pref.phot_set.dump_fwhmx = max(result->fwhmx, result->fwhmy);
+				com.pref.phot_set.dump_beta = result->beta;
 				phot_set->ape_strat = ape_strat_bkp;
-				siril_debug_print("MYboxselect %d %d %d %d\n",
-					area.x, area.y, area.w, area.h);
 
 				struct radii_set *r_set = NULL;
 				r_set = radii_strat (phot_set, the_psf);
@@ -1143,31 +1130,31 @@ static void draw_stars(const draw_data_t* dd) {
 				if (r1 <= 0.0) r1 = com.pref.phot_set.inner;
 				if (r2 <= 0.0) r2 = com.pref.phot_set.outer;
 
-				siril_debug_print("ImageDisp--Ce qui est appliqué--appRadius = %lf, r1 = %lf, r2 = %lf\n", appRadius, r1, r2);
+				siril_debug_print("ImageDisp--the used radii--appRadius = %lf, r1 = %lf, r2 = %lf\n", appRadius, r1, r2);				
 				cairo_set_dash(cr, NULL, 0, 0);
 				// make the aperture slightly brighter
 				cairo_set_source_rgba(cr, min(com.seq.photometry_colors[i][0] + 0.2, 1.0),
 						min(com.seq.photometry_colors[i][1] + 0.2, 1.0),
 						min(com.seq.photometry_colors[i][2] + 0.2, 1.0), 1.0);
 				cairo_set_line_width(cr, 2.0 / dd->zoom);
-//				cairo_arc(cr, the_psf->xpos, the_psf->ypos, appRadius, 0., 2. * M_PI);	// new
-				cairo_arc(cr, the_psf->xpos, the_psf->ypos, size, 0., 2. * M_PI);	//genuine
+				cairo_arc(cr, the_psf->xpos, the_psf->ypos, appRadius, 0., 2. * M_PI);	// new
+//				cairo_arc(cr, the_psf->xpos, the_psf->ypos, size, 0., 2. * M_PI);	//genuine
 				cairo_stroke(cr);
 
 				cairo_set_source_rgba(cr, com.seq.photometry_colors[i][0],
 						com.seq.photometry_colors[i][1],
 						com.seq.photometry_colors[i][2], 1.0);
-//				cairo_arc(cr, the_psf->xpos, the_psf->ypos, r1, 0., 2. * M_PI);	// New
-				cairo_arc(cr, the_psf->xpos, the_psf->ypos, com.pref.phot_set.inner, 0., 2. * M_PI);	//genuine
+				cairo_arc(cr, the_psf->xpos, the_psf->ypos, r1, 0., 2. * M_PI);	// New
+//				cairo_arc(cr, the_psf->xpos, the_psf->ypos, com.pref.phot_set.inner, 0., 2. * M_PI);	//genuine
 				cairo_stroke(cr);
-				cairo_arc(cr, the_psf->xpos, the_psf->ypos, com.pref.phot_set.outer, 0., 2. * M_PI);	//genuine
-//				cairo_arc(cr, the_psf->xpos, the_psf->ypos, r2, 0., 2. * M_PI);	// New
-				cairo_arc(cr, the_psf->xpos, the_psf->ypos, com.pref.phot_set.outer, 0., 2. * M_PI);	//genuine
+//				cairo_arc(cr, the_psf->xpos, the_psf->ypos, com.pref.phot_set.outer, 0., 2. * M_PI);	//genuine
+				cairo_arc(cr, the_psf->xpos, the_psf->ypos, r2, 0., 2. * M_PI);	// New
+//				cairo_arc(cr, the_psf->xpos, the_psf->ypos, com.pref.phot_set.outer, 0., 2. * M_PI);	//genuine
 				cairo_stroke(cr);
 				cairo_select_font_face(cr, "Purisa", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
 				cairo_set_font_size(cr, 40);
-//				cairo_move_to(cr, the_psf->xpos + r2 + 5, the_psf->ypos);	// New
-				cairo_move_to(cr, the_psf->xpos + com.pref.phot_set.outer + 5, the_psf->ypos);	//genuine
+				cairo_move_to(cr, the_psf->xpos + r2 + 5, the_psf->ypos);	// New
+//				cairo_move_to(cr, the_psf->xpos + com.pref.phot_set.outer + 5, the_psf->ypos);	//genuine
 				if (i == 0) {
 					cairo_show_text(cr, "VV");
 				} else {

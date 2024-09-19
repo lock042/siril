@@ -145,10 +145,6 @@ struct radii_set *radii_strat (struct phot_config *phot_set, const psf_star *psf
 	retval->out_Radius = r21;
 	retval->ape_Radius = appRadius1;
 
-//	siril_debug_print("Photometry--radii_strat--fwhm_ref: %lf, phot_set->ape_strat: %i \n", fwhm_ref, phot_set->ape_strat);
-//	siril_debug_print("Photometry--radii_strat--phot_set->auto_inner_factor: %lf, phot_set->auto_outer_factor: %lf, phot_set->auto_aperture_factor: %lf \n", phot_set->auto_inner_factor, phot_set->auto_outer_factor, phot_set->auto_aperture_factor);
-//	siril_debug_print("Photometry--radii_strat--Aperture: %lf, Inner: %lf Outer: %lf\n\n", appRadius1, r11, r21);
-//	siril_log_message(_("Inner: %.2lf, Outer: %.2lf, Aperture: %.2lf\n"), r11, r21, appRadius1);
 
 	return retval;
 }
@@ -712,16 +708,15 @@ gpointer light_curve_worker(gpointer arg) {
 			siril_log_message(_("Failed to analyse the photometry of reference star %d\n"),
 				star_index);
 		}
-//		siril_debug_print("LA-com.pref.phot_set.fwhm_ref[%d]: %lf\n", star_index, com.pref.phot_set.fwhm_ref[star_index]);
-///		if (args->seq == &com.seq)
-	///		queue_redraw(REDRAW_OVERLAY);
+		if (args->seq == &com.seq)
+			queue_redraw(REDRAW_OVERLAY);
 	}
 
 
 	for (int star_index = 0; star_index < args->nb; star_index++) {
 		com.selection = args->areas[star_index];
 		com.pref.phot_set.dump_fwhmx = com.pref.phot_set.fwhm_ref[star_index];	// Sets the fwhm_ref for the seqpsf process for this particular star
-		com.pref.phot_set.dump_beta = com.pref.phot_set.beta_ref[star_index];	// Sets the fwhm_ref for the seqpsf process for this particular star
+		com.pref.phot_set.dump_beta = com.pref.phot_set.beta_ref[star_index];	// Sets the beta_ref for the seqpsf process for this particular star
 		if (seqpsf(args->seq, args->layer, FALSE, FALSE, framing, FALSE, TRUE)) {
 			if (star_index == 0) {
 				siril_log_message(_("Failed to analyse the variable star photometry\n"));

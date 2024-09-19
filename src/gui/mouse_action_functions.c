@@ -574,38 +574,7 @@ gboolean second_action_click(mouse_data *data) {
 			}
 		} else if (*data->mouse_status == MOUSE_ACTION_PHOTOMETRY) {
 			if (sequence_is_loaded()) {
-//				siril_log_message(_("yooo Another Any body here???\n"));	// Sadly placed!!!
-//				if(!one_psf(0)) {
-//					siril_log_message(_("Failed to analyse the photometry of reference star 0\n"));
-//				}
-
-				int s = com.pref.phot_set.outer * 1.2;
-				
-/*				psf_error error;
-				psf_star *result = NULL;
-				struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
-				int ape_strat_bkp = com.pref.phot_set.ape_strat;
-				ps->ape_strat = FIXED_AP;
-				result = psf_get_minimisation(&gfit, 0, &com.selection, TRUE, ps, TRUE, com.pref.starfinder_conf.profile, NULL);
-				///psf_star *the_psf = psf_get_minimisation(&gfit, select_vport(gui.cvport), &com.selection, TRUE, ps, TRUE, com.pref.starfinder_conf.profile, &error);
-				ps->fwhm_ref[0] = max(result->fwhmx, result->fwhmy);
-				ps->beta_ref[0] = result->beta;
-				com.pref.phot_set.fwhm_ref[0] = max(result->fwhmx, result->fwhmy);
-				com.pref.phot_set.beta_ref[0] = result->beta;
-				ps->ape_strat = ape_strat_bkp;
-
-				//struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
-				//psf_star *the_psf = com.seq.photometry[0][com.seq.current];
-				struct radii_set *r_set = radii_strat (ps, result);	// C'est chelou mon truc
-//				r1 = r_set->in_Radius;
-//				r2 = r_set->out_Radius;
-//				appRadius = r_set->ape_Radius;
-///				int s = r_set->out_Radius * 1.2;
-				free(ps);
-				free_psf(result);
-//				free_psf(the_psf);
-
-*/
+				int s = com.pref.phot_set.outer * 1.2;			
 				rectangle area = { data->zoomed.x - s, data->zoomed.y - s, s * 2, s * 2 };
 				if (data->zoomed.x - area.w > 0 && data->zoomed.x + area.w < gfit.rx
 						&& data->zoomed.y - area.h > 0 && data->zoomed.y + area.h < gfit.ry) {
