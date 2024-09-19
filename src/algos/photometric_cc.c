@@ -143,7 +143,7 @@ static void TempK2rgb(float *r, float *g, float *b, float TempK, cmsHTRANSFORM t
 	*b = rgb[2] / maxval;
 }
 
-static int make_selection_around_a_star(pcc_star star, rectangle *area, fits *fit) {
+int make_selection_around_a_star(pcc_star star, rectangle *area, fits *fit) {
 	/* make a selection around the star, coordinates are in display reference frame */
 	double fx = star.x, fy = star.y;
 	double dx, dy;

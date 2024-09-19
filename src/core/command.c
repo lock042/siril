@@ -10130,6 +10130,8 @@ static conesearch_params* parse_conesearch_args(int nb) {
 				return NULL;
 			}
 			params->outfilename = g_strdup(arg);
+		} else if (!(g_ascii_strcasecmp(word[arg_idx], "-compare"))) {
+			params->compare = TRUE;
 		} else {
 			gchar *end;
 			params->limit_mag = g_ascii_strtod(word[arg_idx], &end);
@@ -10147,6 +10149,11 @@ static conesearch_params* parse_conesearch_args(int nb) {
 		params->cat = (local_cat) ? CAT_LOCAL : CAT_NOMAD;
 		if (params->trixel >= 0 && params->cat == CAT_LOCAL)
 			params->cat = CAT_LOCAL_TRIX;
+	}
+	
+	if (params->compare && !is_star_catalogue(params->cat)) {
+		siril_log_message(_("Cannot use -compare argument with non-star catalogues, ignoring.\n"));
+		params->compare = FALSE;
 	}
 
 	return params;
