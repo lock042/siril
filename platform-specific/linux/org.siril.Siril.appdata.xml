@@ -8,8 +8,8 @@
   <launchable type="desktop-id">org.siril.Siril.desktop</launchable>
   <name>Siril</name>
   <name xml:lang="fr_FR">Siril</name>
-  <summary>Astronomical image (pre-)processing program</summary>
-  <summary xml:lang="fr_FR">Programme de traitement d'images astronomiques</summary>
+  <summary>Astronomical image processor</summary>
+  <summary xml:lang="fr_FR">Traitement d'images astronomiques</summary>
   <translation type="gettext">siril</translation>
   <provides>
     <id>org.free_astro.siril</id>
@@ -17,6 +17,10 @@
   <replaces>
     <id>org.free_astro.siril</id>
   </replaces>
+  <branding>
+    <color type="primary" scheme_preference="dark">#7f2c22</color>
+    <color type="primary" scheme_preference="light">#faa298</color>
+  </branding>
   <description>
     <p>Siril is an image processing tool specially tailored for noise reduction and improving the signal/noise ratio of an image from multiple captures, as required in astronomy.</p>
     <p xml:lang="ar_DZ">Siril هو برنامج معالجة الصور المصممة خصيصا للحد من الضوضاء وتحسين نسبة الإشارة / الضوضاء صورة من يلتقط متعددة، كما هو مطلوب في علم الفلك</p>
@@ -47,7 +51,7 @@
   </description>
   <screenshots>
     <screenshot width="1920" type="default" height="1080">
-      <image>https://free-astro.org/images/0/00/Siril_1.0.0.png</image>
+      <image>https://free-astro.org/files/Screenshots/Siril_1.2_stack.png</image>
       <caption>Siril processing a deep-sky image</caption>
       <caption xml:lang="el_GR">Το Siril επεξεργάζεται εικόνα βαθύ ουρανού</caption>
       <caption xml:lang="es_ES">Siril procesado de una imagen del cielo profundo</caption>
@@ -60,8 +64,8 @@
       <caption xml:lang="zh_CN">Siril深空图像处理</caption>
     </screenshot>
     <screenshot width="1920" height="1080">
-      <image>https://free-astro.org/images/f/f4/Siril_1.0.0_analysis.png</image>
-      <caption>An easy way to analyze your astronomy pictures</caption>
+      <image>https://free-astro.org/files/Screenshots/Siril_1.2_plot.png</image>
+      <caption>An easy way to analyze your sequence of images</caption>
       <caption xml:lang="el_GR">Ένας εύκολος τρόπος για να αναλύσετε τις αστρονομικές σας εικόνες</caption>
       <caption xml:lang="es_ES">Forma fácil de analizar tus imágenes astronómicas</caption>
       <caption xml:lang="fr_FR">Moyen simple d'analyser vos images astronomiques</caption>
@@ -73,8 +77,8 @@
       <caption xml:lang="zh_CN">天文图片分析的神器</caption>
     </screenshot>
     <screenshot width="1920" height="1080">
-      <image>https://free-astro.org/images/e/ee/Siril_1.0.0_Jupiter.png</image>
-      <caption>Siril processing planetary video</caption>
+      <image>https://free-astro.org/files/Screenshots/Siril_1.2_color.png</image>
+      <caption>A powerful viewer</caption>
       <caption xml:lang="el_GR">Το Siril επεξεργάζεται το πλανητικό βίντεο</caption>
       <caption xml:lang="es_ES">Siril procesando un vídeo planetario</caption>
       <caption xml:lang="fr_FR">Siril traitant une vidéo planétaire</caption>
