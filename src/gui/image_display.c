@@ -1097,66 +1097,62 @@ static void draw_stars(const draw_data_t* dd) {
 	}
 
 	/* draw seqpsf stars */
-	//	No mod of the displayed circles for now according to the Aperture Strategy
 	if (sequence_is_loaded() && com.seq.current >= 0) {
 		for (i = 0; i < MAX_SEQPSF && com.seq.photometry[i]; i++) {
 			psf_star *the_psf = com.seq.photometry[i][com.seq.current];
 			struct phot_config *phot_set = NULL;
-			phot_set = phot_set_adjusted_for_image(&gfit);
+			phot_set = phot_set_adjusted_for_image(&gfit);	// Get a copy of the photometry parameters 
 
 			int s = com.pref.phot_set.outer * 1.2;
 			if (the_psf) {
-//				double size = (!com.pref.phot_set.force_radius && the_psf->fwhmx > 0.0) ?		//genuine
-//					0.5 * the_psf->fwhmx * com.pref.phot_set.auto_aperture_factor : com.pref.phot_set.aperture;
-
-				int ape_strat_bkp = com.pref.phot_set.ape_strat;
-				phot_set->ape_strat = FIXED_AP;
+				// ***************************
+				// This code is aimed at retrieving an initial value of FWHM (and beta) for one particular star in the current image
+				// These initial values are used to compute the radii (for each star) that will be used over the whole sequence.
+				int ape_strat_bkp = com.pref.phot_set.ape_strat;	// Backup of the aperture startegy 
+				phot_set->ape_strat = FIXED_AP;	// Set the strategy to "fixed aperture". The current parameters will be used.
 				rectangle area = { the_psf->xpos - s, the_psf->ypos - s, s * 2, s * 2 };
 				psf_star *result = psf_get_minimisation(&gfit, select_vport(gui.cvport), &area, TRUE, phot_set, TRUE, com.pref.starfinder_conf.profile, NULL);
-				phot_set->dump_fwhmx = max(result->fwhmx, result->fwhmy);
-				phot_set->dump_beta = result->beta;
-				com.pref.phot_set.dump_fwhmx = max(result->fwhmx, result->fwhmy);
-				com.pref.phot_set.dump_beta = result->beta;
-				phot_set->ape_strat = ape_strat_bkp;
+				phot_set->dump_fwhmx = max(result->fwhmx, result->fwhmy);	// Get the max FWHM for this particular star with its fit model
+				phot_set->dump_beta = result->beta;	// Get the beta factor. Used later if MOFFAT
+				com.pref.phot_set.dump_fwhmx = max(result->fwhmx, result->fwhmy);	// Set a temp variable in the pref for FWHM
+				com.pref.phot_set.dump_beta = result->beta;	// Set a temp variable in the pref for beta
+				phot_set->ape_strat = ape_strat_bkp;	// Retrieve the original photometry parameters
+				free_psf (result);
+				// ***************************
 
-				struct radii_set *r_set = NULL;
-				r_set = radii_strat (phot_set, the_psf);
-
+				// Set the aperture, inner and outer radii according to the fitting model and the strategy
+				struct radii_set *r_set = radii_strat (phot_set, the_psf);
 				double r1 = 0.0, r2 = 0.0, appRadius = 0.0;
 				r1 = r_set->in_Radius;
 				r2 = r_set->out_Radius;
 				appRadius = r_set->ape_Radius;
+				// Fall back in case of problem (that should not occur)
 				if (appRadius <= 0.0) appRadius = com.pref.phot_set.aperture;
 				if (r1 <= 0.0) r1 = com.pref.phot_set.inner;
 				if (r2 <= 0.0) r2 = com.pref.phot_set.outer;
 
-				siril_debug_print("ImageDisp--the used radii--appRadius = %lf, r1 = %lf, r2 = %lf\n", appRadius, r1, r2);				
+				siril_debug_print("ImageDisp--the used radii--phot_set->dump_fwhmx = %lf, appRadius = %lf, r1 = %lf, r2 = %lf\n", phot_set->dump_fwhmx, appRadius, r1, r2);				
 				cairo_set_dash(cr, NULL, 0, 0);
 				// make the aperture slightly brighter
 				cairo_set_source_rgba(cr, min(com.seq.photometry_colors[i][0] + 0.2, 1.0),
 						min(com.seq.photometry_colors[i][1] + 0.2, 1.0),
 						min(com.seq.photometry_colors[i][2] + 0.2, 1.0), 1.0);
 				cairo_set_line_width(cr, 2.0 / dd->zoom);
-				cairo_arc(cr, the_psf->xpos, the_psf->ypos, appRadius, 0., 2. * M_PI);	// new
-//				cairo_arc(cr, the_psf->xpos, the_psf->ypos, size, 0., 2. * M_PI);	//genuine
+				cairo_arc(cr, the_psf->xpos, the_psf->ypos, appRadius, 0., 2. * M_PI);
 				cairo_stroke(cr);
 
 				cairo_set_source_rgba(cr, com.seq.photometry_colors[i][0],
 						com.seq.photometry_colors[i][1],
 						com.seq.photometry_colors[i][2], 1.0);
-				cairo_arc(cr, the_psf->xpos, the_psf->ypos, r1, 0., 2. * M_PI);	// New
-//				cairo_arc(cr, the_psf->xpos, the_psf->ypos, com.pref.phot_set.inner, 0., 2. * M_PI);	//genuine
+				cairo_arc(cr, the_psf->xpos, the_psf->ypos, r1, 0., 2. * M_PI);
 				cairo_stroke(cr);
-//				cairo_arc(cr, the_psf->xpos, the_psf->ypos, com.pref.phot_set.outer, 0., 2. * M_PI);	//genuine
-				cairo_arc(cr, the_psf->xpos, the_psf->ypos, r2, 0., 2. * M_PI);	// New
-//				cairo_arc(cr, the_psf->xpos, the_psf->ypos, com.pref.phot_set.outer, 0., 2. * M_PI);	//genuine
+				cairo_arc(cr, the_psf->xpos, the_psf->ypos, r2, 0., 2. * M_PI);
 				cairo_stroke(cr);
 				cairo_select_font_face(cr, "Purisa", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
 				cairo_set_font_size(cr, 40);
-				cairo_move_to(cr, the_psf->xpos + r2 + 5, the_psf->ypos);	// New
-//				cairo_move_to(cr, the_psf->xpos + com.pref.phot_set.outer + 5, the_psf->ypos);	//genuine
+				cairo_move_to(cr, the_psf->xpos + r2 + 5, the_psf->ypos);
 				if (i == 0) {
-					cairo_show_text(cr, "VV");
+					cairo_show_text(cr, "V");
 				} else {
 					char tmp[16];
 					sprintf(tmp, "%d", i);

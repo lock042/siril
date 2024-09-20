@@ -108,12 +108,11 @@ struct radii_set *radii_strat (struct phot_config *phot_set, const psf_star *psf
 	///*******************************************
 ///	The goal would be to set fwhm_ref to a particular value:
 ///	This is the value defines for each star in the currently loaded picture.
-///	 It can be the reference image after registration or another one.
+///	It can be the reference image after registration or another one.
 	double r11 = 0.0, r21 = 0.0, appRadius1 = 0.0;	// Dump values
 	double fwhm_ref = com.pref.phot_set.dump_fwhmx;
 	double beta_ref = com.pref.phot_set.dump_beta;
 	double in_rad = 0.0, out_rad = 0.0, ap_rad = 0.0;
-//	siril_debug_print("Photometry--radii_strat--fwhm_ref = %lf, beta_ref=%lf\n", fwhm_ref, beta_ref);
 ///*******************************************
 ///	According to the choosen startegy, computation of the radii:
 	switch (phot_set->ape_strat){
@@ -136,11 +135,13 @@ struct radii_set *radii_strat (struct phot_config *phot_set, const psf_star *psf
 	}
 
 	if (com.pref.phot_set.dump_fwhmx == 0.0) {	// Workaround for the photometry test in the CI and the first pass of the loop (to set initial values)
+		siril_debug_print("Photometry--radii_strat--dump_fwhmx was null\n");
 		r11 = phot_set->inner;
 		r21 = phot_set->outer;
 		appRadius1 = phot_set->force_radius ? phot_set->aperture : 0.5 * psf->fwhmx * phot_set->auto_aperture_factor;
 	}
-
+	siril_debug_print("Photometry--radii_strat--fwhm_ref = %lf, beta_ref = %lf\n", fwhm_ref, beta_ref);
+	siril_debug_print("Photometry--radii_strat--appRadius1 = %lf, r11 = %lf, r21 = %lf\n", appRadius1, r11, r21);
 	retval->in_Radius = r11;
 	retval->out_Radius = r21;
 	retval->ape_Radius = appRadius1;
@@ -174,6 +175,7 @@ photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 		return NULL;
 	}
 
+	// Sets the aperture, inner and outer radii according to the fitting model and the strategy
 	struct radii_set *r_set = radii_strat (phot_set, psf);
 	r1 = r_set->in_Radius;
 	r2 = r_set->out_Radius;
@@ -188,7 +190,7 @@ photometry *getPhotometryData(gsl_matrix* z, const psf_star *psf,
 		return NULL;
 	}
 
-	/* compute the bounding box of the outer radius around the star */
+	/* computes the bounding box of the outer radius around the star */
 	x1 = xc - r2;
 	if (x1 < 1)
 		x1 = 1;
@@ -664,7 +666,6 @@ void free_light_curve_args(struct light_curve_args *args) {
 int one_psf(int star_index) {
 	if (!check_ok_if_cfa())
 		return 1;
-	psf_star *result = NULL;
 	int layer = select_vport(gui.cvport);
 
 	if (layer == -1)
@@ -673,20 +674,18 @@ int one_psf(int star_index) {
 		return 1;
 
 	struct phot_config *ps = phot_set_adjusted_for_image(&gfit);
-		int ape_strat_bkp = com.pref.phot_set.ape_strat;
-		ps->ape_strat = FIXED_AP;
-		result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, ps, TRUE, com.pref.starfinder_conf.profile, NULL);
-		ps->fwhm_ref[star_index] = max(result->fwhmx, result->fwhmy);
-		ps->beta_ref[star_index] = result->beta;
-		com.pref.phot_set.fwhm_ref[star_index] = max(result->fwhmx, result->fwhmy);
-		com.pref.phot_set.beta_ref[star_index] = result->beta;
-		siril_debug_print("IN ONE_PSF--result->fwhmx: %lf\n", result->fwhmx);
-		ps->ape_strat = ape_strat_bkp;
+	int ape_strat_bkp = com.pref.phot_set.ape_strat;
+	ps->ape_strat = FIXED_AP;
+	psf_star *result = psf_get_minimisation(&gfit, layer, &com.selection, TRUE, ps, TRUE, com.pref.starfinder_conf.profile, NULL);
+	ps->fwhm_ref[star_index] = max(result->fwhmx, result->fwhmy);
+	ps->beta_ref[star_index] = result->beta;
+	com.pref.phot_set.fwhm_ref[star_index] = max(result->fwhmx, result->fwhmy);
+	com.pref.phot_set.beta_ref[star_index] = result->beta;
+	siril_debug_print("IN ONE_PSF--result->fwhmx: %lf\n", result->fwhmx);
+	ps->ape_strat = ape_strat_bkp;
 	free(ps);
 	if (!result) 
 		return 0;
-
-//	popup_psf_result(result, &com.selection, &gfit);
 	free_psf(result);
 	return 1;
 }
@@ -700,7 +699,7 @@ gpointer light_curve_worker(gpointer arg) {
 	// someday we should move the area in the seqpsf args, not needed for now
 
 
-//	Retrieves in an array, the fwhm of all the stars in the list. O beeing the target star
+	//	Retrieves in an array, the fwhm of all the stars in the list. O beeing the target star
 	for (int star_index = 0; star_index < args->nb; star_index++) {
 		//Performed over the current image
 		com.selection = args->areas[star_index];
@@ -730,7 +729,7 @@ gpointer light_curve_worker(gpointer arg) {
 			queue_redraw(REDRAW_OVERLAY);
 	}
 	memset(&com.selection, 0, sizeof(rectangle));
-	args->force_rad = com.pref.phot_set.force_radius;	// Retrieve the Aperture state (fixed/dynamic)
+	args->force_rad = com.pref.phot_set.force_radius;	// Retrieves the Aperture state (fixed/dynamic)
 	/* analyse data and create the light curve */
 	if (!retval)
 		retval = new_light_curve("light_curve.dat", args);
