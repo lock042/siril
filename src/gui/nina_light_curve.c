@@ -37,13 +37,55 @@ static GtkWidget *use_comp2 = NULL;
 static GtkWidget *display_curve = NULL;
 static GtkWidget *sep = NULL;
 static GtkWidget *apert = NULL;
+static GtkWidget *inn = NULL;
+static GtkWidget *oute = NULL;
 static GtkWidget *apert_value = NULL;
 static GtkWidget *inner_value = NULL;
 static GtkWidget *outer_value = NULL;
-static double radius_value = 0.;
+static GtkWidget *gai_n_value = NULL;
 const char *radius_label = NULL;
+const char *inner_label = NULL;
+const char *outer_label = NULL;
 
 static void on_nina_lc_response(GtkDialog* self, gint response_id, gpointer user_data);
+
+// Shared function to get the radii and label according to Aperture Strategy
+static void update_values() {
+	if (com.pref.phot_set.ape_strat == FIXED_AP) {
+		radius_label = "Aperture radius (px):";
+		gtk_label_set_text(GTK_LABEL(apert), radius_label);
+		gtk_entry_set_text(GTK_ENTRY(apert_value), g_strdup_printf("%1.1lf", com.pref.phot_set.aperture));
+		inner_label = "Inner radius (px):";
+		gtk_label_set_text(GTK_LABEL(inn), inner_label);
+		gtk_entry_set_text(GTK_ENTRY(inner_value), g_strdup_printf("%1.1lf", com.pref.phot_set.inner));
+		outer_label = "Outer radius (px):";
+		gtk_label_set_text(GTK_LABEL(oute), outer_label);
+		gtk_entry_set_text(GTK_ENTRY(outer_value), g_strdup_printf("%1.1lf", com.pref.phot_set.outer));
+	}
+	else if (com.pref.phot_set.ape_strat == FWHM_VAR) {
+		radius_label = "Aperture/half-FWHM ratio:";
+		gtk_label_set_text(GTK_LABEL(apert), radius_label);
+		gtk_entry_set_text(GTK_ENTRY(apert_value), g_strdup_printf("%1.1lf", com.pref.phot_set.auto_aperture_factor));
+		inner_label = "Inner/half-FWHM ratio:";
+		gtk_label_set_text(GTK_LABEL(inn), inner_label);
+		gtk_entry_set_text(GTK_ENTRY(inner_value), g_strdup_printf("%1.1lf", com.pref.phot_set.auto_inner_factor));
+		outer_label = "Outer/half-FWHM ratio:";
+		gtk_label_set_text(GTK_LABEL(oute), outer_label);
+		gtk_entry_set_text(GTK_ENTRY(outer_value), g_strdup_printf("%1.1lf", com.pref.phot_set.auto_outer_factor));
+	}
+	else if (com.pref.phot_set.ape_strat == FLUX_CUT) {
+		radius_label = "Flux Cut rate (%%):";
+		gtk_label_set_text(GTK_LABEL(apert), radius_label);
+		gtk_entry_set_text(GTK_ENTRY(apert_value), g_strdup_printf("%1.1lf", com.pref.phot_set.flux_cut_factor));
+		inner_label = "Inner/Aperture ratio:";
+		gtk_label_set_text(GTK_LABEL(inn), inner_label);
+		gtk_entry_set_text(GTK_ENTRY(inner_value), g_strdup_printf("%1.3lf", com.pref.phot_set.flux_inner_factor));
+		outer_label = "Outer/Aperture ratio:";
+		gtk_label_set_text(GTK_LABEL(oute), outer_label);
+		gtk_entry_set_text(GTK_ENTRY(outer_value), g_strdup_printf("%1.3lf", com.pref.phot_set.flux_outer_factor));
+	}
+	
+}
 
 static void build_the_dialog() {
 	dialog = gtk_dialog_new_with_buttons(_("Automated light curve"), NULL,
@@ -122,67 +164,83 @@ static void build_the_dialog() {
 	gtk_widget_set_halign(aperture_label, GTK_ALIGN_START);
 
 	// Aperture parameters
-	/* Defines the 3 boxes */
-	GtkWidget *aperture_box, *inner_box, *outer_box;
+	/* Defines the 4 boxes */
+	GtkWidget *aperture_box, *inner_box, *outer_box, *gain_box;
 	aperture_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
 	gtk_box_set_homogeneous(GTK_BOX(aperture_box), TRUE);
 	inner_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
 	gtk_box_set_homogeneous(GTK_BOX(inner_box), TRUE);
 	outer_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
 	gtk_box_set_homogeneous(GTK_BOX(outer_box), TRUE);
+	gain_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+	gtk_box_set_homogeneous(GTK_BOX(gain_box), TRUE);
 
+	apert_value = gtk_entry_new();
+	inner_value = gtk_entry_new();
+	outer_value = gtk_entry_new();
+
+	update_values();	// Retrieve the raddi and labels to be displayed
 	/* Fill the 1st box */
 	/* The label */
-	radius_label = !com.pref.phot_set.force_radius ? "Radius/half-FWHM ratio:" : "Aperture radius (px):";
-	apert = gtk_label_new(radius_label);	// The label depends on the "force_radius" value
+	apert = gtk_label_new(radius_label);	// The label depends on the choosen Aperture Strategy
 	gtk_label_set_line_wrap(GTK_LABEL(apert), TRUE);
 	g_object_set(G_OBJECT(apert), "margin-left", 15, NULL);
 	g_object_set(G_OBJECT(apert), "margin-top", 0, NULL);	
 	gtk_widget_set_halign(apert, GTK_ALIGN_START);
 	gtk_container_add(GTK_CONTAINER(aperture_box), apert);
 	/* The entry */
-	apert_value = gtk_entry_new();
 	gtk_widget_set_sensitive(apert_value, FALSE);
 	g_object_set(G_OBJECT(apert_value), "margin-left", 15, NULL);
 	g_object_set(G_OBJECT(apert_value), "margin-top", 0, NULL);
 	gtk_widget_set_halign(apert_value, GTK_ALIGN_START);
-	radius_value = !com.pref.phot_set.force_radius ? com.pref.phot_set.auto_aperture_factor : com.pref.phot_set.aperture;
-	gtk_entry_set_text(GTK_ENTRY(apert_value), g_strdup_printf("%1.2lf", radius_value));
 	gtk_container_add(GTK_CONTAINER(aperture_box), apert_value);
 
 	/* Fill the 2nd box */
 	/* The label */
-	GtkWidget *inn = gtk_label_new(_("Inner radius of the annulus (px):"));
+	inn = gtk_label_new(_(inner_label));
 	gtk_label_set_line_wrap(GTK_LABEL(inn), TRUE);
 	g_object_set(G_OBJECT(inn), "margin-left", 15, NULL);
 	g_object_set(G_OBJECT(inn), "margin-top", 0, NULL);
 	gtk_widget_set_halign(inn, GTK_ALIGN_START);
 	gtk_container_add(GTK_CONTAINER(inner_box), inn);
 	/* The entry */
-	inner_value = gtk_entry_new();
 	gtk_widget_set_sensitive(inner_value, FALSE);
 	g_object_set(G_OBJECT(inner_value), "margin-left", 15, NULL);
 	g_object_set(G_OBJECT(inner_value), "margin-top", 0, NULL);
 	gtk_widget_set_halign(inner_value, GTK_ALIGN_START);
-	gtk_entry_set_text(GTK_ENTRY(inner_value), g_strdup_printf("%1.2lf", com.pref.phot_set.inner));
 	gtk_container_add(GTK_CONTAINER(inner_box), inner_value);
 
 	/* Fill the 3rd box */
 	/* The label */
-	GtkWidget *oute = gtk_label_new(_("Outer radius of the annulus (px):"));
+	oute = gtk_label_new(_(outer_label));
 	gtk_label_set_line_wrap(GTK_LABEL(oute), TRUE);
 	g_object_set(G_OBJECT(oute), "margin-left", 15, NULL);
 	g_object_set(G_OBJECT(oute), "margin-top", 0, NULL);
 	gtk_widget_set_halign(oute, GTK_ALIGN_START);
 	gtk_container_add(GTK_CONTAINER(outer_box), oute);
 	/* The entry */
-	outer_value = gtk_entry_new();
 	gtk_widget_set_sensitive(outer_value, FALSE);
 	g_object_set(G_OBJECT(outer_value), "margin-left", 15, NULL);
 	g_object_set(G_OBJECT(outer_value), "margin-top", 0, NULL);
 	gtk_widget_set_halign(outer_value, GTK_ALIGN_START);
-	gtk_entry_set_text(GTK_ENTRY(outer_value), g_strdup_printf("%1.2lf", com.pref.phot_set.outer));
 	gtk_container_add(GTK_CONTAINER(outer_box), outer_value);
+
+	/* Fill the 4th box */
+	/* The label */
+	GtkWidget *gai_n = gtk_label_new(_("Gain (e-/ADU):"));
+	gtk_label_set_line_wrap(GTK_LABEL(gai_n), TRUE);
+	g_object_set(G_OBJECT(gai_n), "margin-left", 15, NULL);
+	g_object_set(G_OBJECT(gai_n), "margin-top", 0, NULL);
+	gtk_widget_set_halign(gai_n, GTK_ALIGN_START);
+	gtk_container_add(GTK_CONTAINER(gain_box), gai_n);
+	/* The entry */
+	gai_n_value = gtk_entry_new();
+	gtk_widget_set_sensitive(gai_n_value, FALSE);
+	g_object_set(G_OBJECT(gai_n_value), "margin-left", 15, NULL);
+	g_object_set(G_OBJECT(gai_n_value), "margin-top", 0, NULL);
+	gtk_widget_set_halign(gai_n_value, GTK_ALIGN_START);
+	gtk_entry_set_text(GTK_ENTRY(gai_n_value), g_strdup_printf("%1.4lf", com.pref.phot_set.gain));
+	gtk_container_add(GTK_CONTAINER(gain_box), gai_n_value);
 
 	// Gather the graphical elements //
 	GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
@@ -195,6 +253,7 @@ static void build_the_dialog() {
 	gtk_container_add(GTK_CONTAINER(content_area), aperture_box);
 	gtk_container_add(GTK_CONTAINER(content_area), inner_box);
 	gtk_container_add(GTK_CONTAINER(content_area), outer_box);
+	gtk_container_add(GTK_CONTAINER(content_area), gain_box);
 	gtk_widget_show_all(GTK_WIDGET(content_area));
 }
 
@@ -208,13 +267,9 @@ GtkWidget *get_nina_lc_dialog() {
 static void on_nina_lc_response(GtkDialog* self, gint response_id, gpointer user_data) {
 	siril_debug_print("got response event\n");
 	if (response_id != GTK_RESPONSE_ACCEPT) {
-		radius_label = !com.pref.phot_set.force_radius ? "Radius/half-FWHM ratio:" : "Aperture radius (px):";
-		gtk_label_set_text(GTK_LABEL(apert), radius_label);
-		radius_value = !com.pref.phot_set.force_radius ? com.pref.phot_set.auto_aperture_factor : com.pref.phot_set.aperture;
-		gtk_entry_set_text(GTK_ENTRY(apert_value), g_strdup_printf("%1.2lf", radius_value));
-		gtk_entry_set_text(GTK_ENTRY(inner_value), g_strdup_printf("%1.2lf", com.pref.phot_set.inner));
-		gtk_entry_set_text(GTK_ENTRY(outer_value), g_strdup_printf("%1.2lf", com.pref.phot_set.outer));
+		update_values();	// Retrieve the raddi and labels to be displayed on next LC process
 		gtk_widget_hide(dialog);
+		
 		return;
 	}
 	gchar *nina_file = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(file_chooser));
@@ -255,6 +310,7 @@ static void on_nina_lc_response(GtkDialog* self, gint response_id, gpointer user
 
 	clear_all_photometry_and_plot();
 	init_plot_colors();
+	update_values();	// Retrieve the raddi and labels to be displayed
 
 	struct light_curve_args *args = calloc(1, sizeof(struct light_curve_args));
 	gboolean use_c1 = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(use_comp1));
@@ -275,11 +331,5 @@ static void on_nina_lc_response(GtkDialog* self, gint response_id, gpointer user
 	start_in_new_thread(light_curve_worker, args);
 
 	// Update of the UI
-	radius_label = !com.pref.phot_set.force_radius ? "Radius/half-FWHM ratio:" : "Aperture radius (px):";
-	gtk_label_set_text(GTK_LABEL(apert), radius_label);
-	radius_value = !com.pref.phot_set.force_radius ? com.pref.phot_set.auto_aperture_factor : com.pref.phot_set.aperture;
-	gtk_entry_set_text(GTK_ENTRY(apert_value), g_strdup_printf("%1.2lf", radius_value));
-	gtk_entry_set_text(GTK_ENTRY(inner_value), g_strdup_printf("%1.2lf", com.pref.phot_set.inner));
-	gtk_entry_set_text(GTK_ENTRY(outer_value), g_strdup_printf("%1.2lf", com.pref.phot_set.outer));
-
+	update_values();	// Retrieve the raddi and labels to be displayed next time
 }
