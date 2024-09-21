@@ -48,6 +48,7 @@
 #include "io/siril_git.h"
 
 #include "preferences.h"
+#include "filters/graxpert.h"
 #include "filters/starnet.h"
 
 #ifndef W_OK
@@ -58,6 +59,7 @@ static gchar *sw_dir = NULL;
 static gchar *st_weights = NULL;
 static starnet_version st_version = NIL;
 static gboolean update_custom_gamut = FALSE;
+static gboolean graxpert_changed = FALSE;
 void on_working_gamut_changed(GtkComboBox *combo, gpointer user_data);
 
 static gboolean scripts_updated = FALSE;
@@ -970,6 +972,7 @@ void on_settings_window_show(GtkWidget *widget, gpointer user_data) {
 
 	set_icc_filechooser_directories();
 	update_preferences_from_model();
+	graxpert_changed = FALSE;
 	scripts_updated = FALSE;
 #ifndef HAVE_LIBGIT2
 	hide_git_widgets();
@@ -1025,6 +1028,10 @@ void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
 			refresh_found_objects();
 		save_main_window_state();
 		writeinitfile();
+		if (com.pref.graxpert_path && graxpert_changed) {
+			g_thread_unref(g_thread_new("graxpert_checks", graxpert_setup_async, NULL));
+		}
+		graxpert_changed = FALSE;
 		validate_custom_profiles(); // Validate and load custom ICC profiles
 		if (update_custom_gamut) {
 			update_profiles_after_gamut_change();
@@ -1041,6 +1048,7 @@ void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void on_cancel_settings_button_clicked(GtkButton *button, gpointer user_data) {
+	graxpert_changed = FALSE;
 	update_custom_gamut = FALSE;
 	siril_close_dialog("settings_window");
 }
@@ -1058,6 +1066,10 @@ void on_reset_settings_button_clicked(GtkButton *button, gpointer user_data) {
 
 void on_settings_window_hide(GtkWidget *widget, gpointer user_data) {
 	update_custom_gamut = FALSE;
+}
+
+void on_filechooser_graxpert_file_set(GtkFileChooser *chooser, gpointer user_data) {
+	graxpert_changed = TRUE;
 }
 
 void on_external_preferred_profile_set(GtkFileChooser *chooser, gpointer user_data) {
