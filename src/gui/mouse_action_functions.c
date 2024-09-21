@@ -474,8 +474,7 @@ gboolean main_action_click(mouse_data *data) {
 			case MOUSE_ACTION_GET_COMP_CENTER_COORDINATE:
 				register_release_callback(get_comp_center_coordinate_release, data->event->button);
 				break;
-			case MOUSE_ACTION_PHOTOMETRY:	// c'est ici que ca se joue
-				siril_debug_print("HEEEEEYYYYYY HOOOOOO!!!!!???\n");
+			case MOUSE_ACTION_PHOTOMETRY:
 				s = com.pref.phot_set.outer * 1.2;
 				area.x = data->zoomed.x - s;
 				area.y = data->zoomed.y - s;
@@ -484,19 +483,7 @@ gboolean main_action_click(mouse_data *data) {
 				if (data->zoomed.x - area.w > 0 && data->zoomed.x + area.w < gfit.rx
 						&& data->zoomed.y - area.h > 0 && data->zoomed.y + area.h < gfit.ry) {
 					ps = phot_set_adjusted_for_image(&gfit);
-/*					int ape_strat_bkp = com.pref.phot_set.ape_strat;
-					ps->ape_strat = FIXED_AP;
-					siril_log_message(_("Any body here???\n"));
-					siril_log_message(_("Failed to analyse the photometry of reference star %d\n"),	star_index);
-*/	
-					gui.qphot = psf_get_minimisation(&gfit, select_vport(gui.cvport), &area, TRUE, ps, TRUE, com.pref.starfinder_conf.profile, NULL);
-/*					ps->dump_fwhmx = max(gui.qphot->fwhmx, gui.qphot->fwhmy);
-					ps->dump_beta = gui.qphot->beta;
-					com.pref.phot_set.dump_fwhmx = max(gui.qphot->fwhmx, gui.qphot->fwhmy);
-					com.pref.phot_set.dump_beta = gui.qphot->beta;
-					siril_log_message(_("ICI-gui.qphot->fwhmx: %lf\n"), gui.qphot->fwhmx);
-					ps->ape_strat = ape_strat_bkp;
-*/					
+					gui.qphot = psf_get_minimisation(&gfit, select_vport(gui.cvport), &area, TRUE, ps, TRUE, com.pref.starfinder_conf.profile, NULL);				
 					free(ps);
 					if (gui.qphot) {
 						gui.qphot->xpos = gui.qphot->x0 + area.x;

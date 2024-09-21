@@ -84,7 +84,7 @@ struct phot_config *phot_set_adjusted_for_image(const fits *fit) {
 	return retval;
 }
 
-void fluxCut_factors (const psf_star *psf, double beta_ref, double fwhm_ref, double* in_rad, double* out_rad, double* ap_rad){
+void fluxCut_factors (const psf_star *psf, double beta_ref, double fwhm_ref, double *in_rad, double *out_rad, double *ap_rad){
 	double threshold = 0.01 * com.pref.phot_set.flux_cut_factor;
 	if (psf->profile == PSF_GAUSSIAN) {
 		*ap_rad = fwhm_ref *INV_2_SQRT_2_LOG2 * sqrt(-2.0 * log(threshold));
