@@ -50,7 +50,7 @@
     <p xml:lang="zh-CN">Siril能够自动对齐和手动对齐，叠加和强化多种格式的图片，甚至是图片序列（视频和SER文件）。</p>
   </description>
   <screenshots>
-    <screenshot width="1920" type="default" height="1080">
+    <screenshot width="1852" type="default" height="1114">
       <image>https://free-astro.org/files/Screenshots/Siril_1.2_stack.png</image>
       <caption>Siril processing a deep-sky image</caption>
       <caption xml:lang="el-GR">Το Siril επεξεργάζεται εικόνα βαθύ ουρανού</caption>
@@ -63,7 +63,7 @@
       <caption xml:lang="uk-UA">Siril обробляє зображення об'єктів далекого космосу</caption>
       <caption xml:lang="zh-CN">Siril深空图像处理</caption>
     </screenshot>
-    <screenshot width="1920" height="1080">
+    <screenshot width="1852" height="1114">
       <image>https://free-astro.org/files/Screenshots/Siril_1.2_plot.png</image>
       <caption>An easy way to analyze your sequence of images</caption>
       <caption xml:lang="el-GR">Ένας εύκολος τρόπος για να αναλύσετε τις αστρονομικές σας εικόνες</caption>
@@ -76,18 +76,18 @@
       <caption xml:lang="uk-UA">це простий спосіб проаналізувати власні астрономічні фотографії</caption>
       <caption xml:lang="zh-CN">天文图片分析的神器</caption>
     </screenshot>
-    <screenshot width="1920" height="1080">
+    <screenshot width="1852" height="1114">
       <image>https://free-astro.org/files/Screenshots/Siril_1.2_color.png</image>
       <caption>A powerful viewer</caption>
-      <caption xml:lang="el-GR">Το Siril επεξεργάζεται το πλανητικό βίντεο</caption>
-      <caption xml:lang="es-ES">Siril procesando un vídeo planetario</caption>
-      <caption xml:lang="fr-FR">Siril traitant une vidéo planétaire</caption>
-      <caption xml:lang="it-IT">Siril che elabora un video planetario</caption>
-      <caption xml:lang="nl-BE">Siril, een planetaire video aan het bewerken</caption>
-      <caption xml:lang="pl-PL">Siril przetwarzający wideo planetarne</caption>
-      <caption xml:lang="pt-PT">O Siril processando video planetário</caption>
-      <caption xml:lang="uk-UA">Siril обробляє відео відзнятих планет</caption>
-      <caption xml:lang="zh-CN">Siril行星视频处理</caption>
+      <caption xml:lang="el-GR">Ένας ισχυρός θεατής</caption>
+      <caption xml:lang="es-ES">Un potente visor</caption>
+      <caption xml:lang="fr-FR">Une visionneuse puissante</caption>
+      <caption xml:lang="it-IT">Un visualizzatore potente</caption>
+      <caption xml:lang="nl-BE">Een krachtige viewer</caption>
+      <caption xml:lang="pl-PL">Potężna przeglądarka</caption>
+      <caption xml:lang="pt-PT">Visualizador potente</caption>
+      <caption xml:lang="uk-UA">Потужний перегляд</caption>
+      <caption xml:lang="zh-CN">功能强大的查看器</caption>
    </screenshot>
   </screenshots>
   <url type="homepage">https://www.siril.org</url>
