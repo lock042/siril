@@ -218,12 +218,22 @@ static void on_nina_lc_response(GtkDialog* self, gint response_id, gpointer user
 		return;
 	}
 	gchar *nina_file = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(file_chooser));
-	if (!nina_file){
+	if (!nina_file){	// Any file for processing?
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Choose a comparison stars file"));
 		return;
 	}
-
-	if (!has_wcs(&gfit)) {
+	if (!sequence_is_loaded()) {	// Tests if a valid sequence is loaded
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("No sequence loaded"));
+		return;
+	}
+	gchar *tempname = gtk_file_chooser_get_current_folder(GTK_FILE_CHOOSER(file_chooser));
+	if (g_strcmp0(tempname, com.wd) != 0) {	// Tests if the file is in the CWD
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("The current comparison stars file is not located in the CWD"));
+		gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(file_chooser), com.wd);
+		gtk_file_chooser_unselect_all (GTK_FILE_CHOOSER(file_chooser));
+		return;
+	}
+	if (!has_wcs(&gfit)) {	// Does the current image properly plate solved
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("The currently loaded image must be plate solved"));
 		return;
 	}
