@@ -11158,3 +11158,8 @@ int process_offline(int nb) {
 	set_online_status(FALSE);
 	return CMD_OK;
 }
+
+int process_pwd(int nb) {
+	siril_log_message(_("Current working directory: '%s'\n"), com.wd);
+	return CMD_OK;
+}
