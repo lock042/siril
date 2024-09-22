@@ -28,6 +28,7 @@
 #include "core/processing.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
+#include "algos/siril_wcs.h"
 #include "algos/star_finder.h"
 #include "algos/statistics.h"
 #include "algos/PSF.h"
@@ -662,6 +663,13 @@ int register_star_alignment(struct registration_args *regargs) {
 	}
 	sadata->regargs = regargs;
 	args->user = sadata;
+
+	if (!regargs->no_output) {
+		regargs->wcsref = get_wcs_ref(regargs->seq);
+		if (regargs->wcsref && regargs->undistort && regargs->wcsref->lin.dispre) {
+			remove_dis_from_wcs(regargs->wcsref); // we remove distortions as the output is undistorted
+		}
+	}
 
 	generic_sequence_worker(args);
 
