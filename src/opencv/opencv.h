@@ -55,7 +55,7 @@ double cvCalculRigidTransform(s_star *star_array_img,
 void cvMultH(Homography H1, Homography H2, Homography *Hout);
 void cvInvertH(Homography *Hom);
 void cvApplyFlips(Homography *Hom, int source_ry, int target_ry);
-void cvPrepareDrizzleH(Homography *Hom, double scale, int source_ry, int target_ry);
+void cvPrepareDrizzleH(Homography *Hom, double scale, int source_rx, int source_ry, int target_rx, int target_ry);
 void cvdisplay2ocv(Homography *Hom);
 
 void cvGetMatrixReframe(double x, double y, int w, int h, double angle, Homography *Hom);

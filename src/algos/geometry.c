@@ -372,7 +372,7 @@ int verbose_rotate_fast(fits *image, int angle) {
 	show_time(t_start, t_end);
 	if (has_wcs(image)) {
 		cvApplyFlips(&H, orig_ry, target_ry);
-		reframe_astrometry_data(image, H);
+		reframe_astrometry_data(image, &H);
 		update_wcsdata_from_wcs(image);
 		update_fits_header(image);
 		refresh_annotations(FALSE);
@@ -429,7 +429,7 @@ int verbose_rotate_image(fits *image, rectangle area, double angle, int interpol
 
 	if (has_wcs(image)) {
 		cvApplyFlips(&H, orig_ry, target_ry);
-		reframe_astrometry_data(image, H);
+		reframe_astrometry_data(image, &H);
 		update_wcsdata_from_wcs(image);
 		update_fits_header(image);
 		refresh_annotations(FALSE);
@@ -524,7 +524,7 @@ void mirrorx(fits *fit, gboolean verbose) {
 		cvGetEye(&H);
 		H.h11 = -1.;
 		H.h12 = (double)fit->ry;
-		reframe_astrometry_data(fit, H);
+		reframe_astrometry_data(fit, &H);
 		update_wcsdata_from_wcs(fit);
 		update_fits_header(fit);
 		refresh_annotations(FALSE);
@@ -554,7 +554,7 @@ void mirrory(fits *fit, gboolean verbose) {
 		cvGetEye(&H);
 		H.h00 = -1.;
 		H.h02 = (double)fit->rx;
-		reframe_astrometry_data(fit, H);
+		reframe_astrometry_data(fit, &H);
 		update_wcsdata_from_wcs(fit);
 		update_fits_header(fit);
 		refresh_annotations(FALSE);
@@ -649,7 +649,7 @@ int crop(fits *fit, rectangle *bounds) {
 	invalidate_stats_from_fit(fit);
 	if (wcs) {
 		cvApplyFlips(&H, orig_ry, target_ry);
-		reframe_astrometry_data(fit, H);
+		reframe_astrometry_data(fit, &H);
 		update_wcsdata_from_wcs(fit);
 		update_fits_header(fit);
 		refresh_annotations(FALSE);

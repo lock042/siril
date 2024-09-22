@@ -68,5 +68,6 @@ void update_SIP_keys(struct disprm *dis,
 void wcs_print(wcsprm_t *prm);
 
 void remove_dis_from_wcs(wcsprm_t *prm);
+void create_wcs(double ra0, double dec0, double scale, double framing_angle, int rx, int ry, struct wcsprm *prm);
 
 #endif /* SRC_ALGOS_SIRIL_WCS_H_ */

@@ -479,23 +479,18 @@ unsigned char *cvCalculH(s_star *star_array_img,
 	return ret;
 }
 
-// transform an image using the homography.
-int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homography Hom, float scale, int interpolation, gboolean clamp, disto_data *disto) {
-	Mat in, out;
-	void *bgr = NULL;
-	int target_rx = width, target_ry = height;
-	int source_ry = image->ry;
-
-	if (image_to_Mat(image, &in, &out, &bgr, target_rx, target_ry))
-		return 1;
-
-	Mat H = Mat(3, 3, CV_64FC1);
-	convert_H_to_MatH(&Hom, H);
-
-	if (scale != 1.f) {
+static void cvPrepareH(Mat H, double scale, int source_rx, int source_ry, int target_rx, int target_ry) {
+	if (scale != 1.) {
 		Mat S = Mat::eye(3, 3, CV_64FC1);
 		S.at<double>(0,0) = scale;
 		S.at<double>(1,1) = scale;
+		// the terms below are the corrections to make the scaling about the image center (and not top left)
+		// it's the result of -T2^-1*So*T1
+		// where T1 and T2 are the shifts to the center in original and scaled images 
+		// using opencv convention, so (rx/2-0.5;ry/2-0.5) and (target_rx/2-0.5;target_ry/2-0.5)
+		// and So the scale about top left origin which is simply [s 0 0][0 s 0][0 0 1]
+		S.at<double>(0,2) -= scale *((double)source_rx * 0.5 - 0.5) - target_rx * 0.5 + 0.5;
+		S.at<double>(1,2) -= scale *((double)source_ry * 0.5 - 0.5) - target_ry * 0.5 + 0.5;
 		H = S * H;
 	}
 
@@ -509,6 +504,27 @@ int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homog
 	F2.at<double>(1,2) = target_ry - 1.0;
 
 	H = F2.inv() * H * F1;
+}
+
+void cvPrepareDrizzleH(Homography *Hom, double scale, int source_rx, int source_ry, int target_rx, int target_ry) {
+	Mat H = Mat(3, 3, CV_64FC1);
+	convert_H_to_MatH(Hom, H);
+	cvPrepareH(H, scale, source_rx, source_ry, target_rx, target_ry);
+	convert_MatH_to_H(std::move(H), Hom);
+}
+
+// transform an image using the homography.
+int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homography Hom, float scale, int interpolation, gboolean clamp, disto_data *disto) {
+	Mat in, out;
+	void *bgr = NULL;
+	int target_rx = width, target_ry = height;
+
+	if (image_to_Mat(image, &in, &out, &bgr, target_rx, target_ry))
+		return 1;
+
+	Mat H = Mat(3, 3, CV_64FC1);
+	convert_H_to_MatH(&Hom, H);
+	cvPrepareH(H, scale, image->rx, image->ry, target_rx, target_ry);
 
 	// no distortion case
 	if (!disto) {
@@ -1038,29 +1054,6 @@ void cvApplyFlips(Homography *Hom, int source_ry, int target_ry) {
 	convert_MatH_to_H(std::move(H), Hom);
 }
 
-void cvPrepareDrizzleH(Homography *Hom, double scale, int source_ry, int target_ry) {
-	Mat H = Mat(3, 3, CV_64FC1);
-	convert_H_to_MatH(Hom, H);
-
-	if (scale != 1.) {
-		Mat S = Mat::eye(3, 3, CV_64FC1);
-		S.at<double>(0,0) = scale;
-		S.at<double>(1,1) = scale;
-		H = S * H;
-	}
-
-	/* modify matrix for reverse Y axis */
-	Mat F1 = Mat::eye(3, 3, CV_64FC1);
-	F1.at<double>(1,1) = -1.0;
-	F1.at<double>(1,2) = source_ry - 1.0;
-
-	Mat F2 = Mat::eye(3, 3, CV_64FC1);
-	F2.at<double>(1,1) = -1.0;
-	F2.at<double>(1,2) = target_ry - 1.0;
-
-	H = F2.inv() * H * F1;
-	convert_MatH_to_H(std::move(H), Hom);
-}
 
 // Used to convert a H matrix written in display convention to opencv convention
 void cvdisplay2ocv(Homography *Hom) {

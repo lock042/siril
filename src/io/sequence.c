@@ -2121,6 +2121,26 @@ gboolean sequence_ref_has_wcs(sequence *seq) {
 	return ret;
 }
 
+struct wcsprm *get_wcs_ref(sequence *seq) {
+	if (!seq)
+		return NULL;
+	struct wcsprm *wcsref = NULL;
+	int refimage = sequence_find_refimage(seq);
+	if (check_seq_is_comseq(seq) && seq->current == refimage) { // we are in GUI
+		wcsref = wcs_deepcopy(gfit.keywords.wcslib, NULL);
+	} else { // we are in script or headless, loading the seq has loaded the ref image, we check if it has wcs info
+		fits ref = { 0 };
+		if (seq_read_frame_metadata(seq, refimage, &ref)) {
+			siril_log_message(_("Could not load reference image\n"));
+			return FALSE;
+		}
+		if (has_wcs(&ref))
+			wcsref = wcs_deepcopy(gfit.keywords.wcslib, NULL);
+		clearfits(&ref);
+	}
+	return wcsref;
+}
+
 gboolean sequence_drifts(sequence *seq, int reglayer, int threshold) {
 	if (!seq->regparam || !seq->regparam[reglayer]) {
 		siril_log_message(_("Sequence drift could not be checked as sequence has no regdata on layer %d\n"), reglayer);

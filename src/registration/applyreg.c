@@ -70,11 +70,35 @@ static void update_framing(regframe *framing, sequence *seq, int index) {
 	if (seq->is_variable) {
 		double rx2 = (double)seq->imgparam[index].rx;
 		double ry2 = (double)seq->imgparam[index].ry;
-		framing->pt[1].x = rx2;
-		framing->pt[2].x = rx2;
-		framing->pt[2].y = ry2;
-		framing->pt[3].y = ry2;
+		framing->pt[1].x = rx2 - 1.;
+		framing->pt[2].x = rx2 - 1.;
+		framing->pt[2].y = ry2 - 1.;
+		framing->pt[3].y = ry2 - 1.;
 	}
+}
+
+// This is the equivalent of opencv cv::detail::RotationWarper warpRoi
+void compute_roi(Homography *H, int rx, int ry, framing_roi *roi) {
+	double xmin = DBL_MAX;
+	double xmax = -DBL_MAX;
+	double ymin = DBL_MAX;
+	double ymax = -DBL_MAX;
+	Homography Href = { 0 };
+	cvGetEye(&Href);
+	regframe framing = (regframe){(point){0., 0.}, (point){(double)rx - 1., 0.}, (point){(double)rx - 1., (double)ry - 1.}, (point){0., (double)ry - 1.}};
+	for (int j = 0; j < 4; j++) {
+		cvTransfPoint(&framing.pt[j].x, &framing.pt[j].y, *H,  Href, 1.);
+		if (xmin > framing.pt[j].x) xmin = framing.pt[j].x;
+		if (ymin > framing.pt[j].y) ymin = framing.pt[j].y;
+		if (xmax < framing.pt[j].x) xmax = framing.pt[j].x;
+		if (ymax < framing.pt[j].y) ymax = framing.pt[j].y;
+		siril_debug_print("Point #%d: %3.2f %3.2f\n", j, framing.pt[j].x, framing.pt[j].y);
+	}
+	int x0 = (int)xmin;
+	int y0 = (int)ymin;
+	int w = (int)xmax - (int)xmin + 1;
+	int h = (int)ymax - (int)ymin + 1;
+	*roi = (framing_roi){ x0, y0, w, h };
 }
 
 static gboolean compute_framing(struct registration_args *regargs) {
@@ -92,7 +116,8 @@ static gboolean compute_framing(struct registration_args *regargs) {
 	int x0, y0, rx_0 = rx, ry_0 = ry, n;
 	double xmin, xmax, ymin, ymax, cogx, cogy;
 
-	regframe framing = (regframe){(point){0., 0.}, (point){(double)rx, 0.}, (point){(double)rx, (double)ry}, (point){0., (double)ry}};
+	// corners expressed in opencv conventions
+	regframe framing = (regframe){(point){0., 0.}, (point){(double)rx - 1., 0.}, (point){(double)rx - 1., (double)ry - 1.}, (point){0., (double)ry - 1.}};
 	gboolean retval = TRUE;
 
 	switch (regargs->framing) {
@@ -139,10 +164,10 @@ static gboolean compute_framing(struct registration_args *regargs) {
 					siril_debug_print("Point #%d: %3.2f %3.2f\n", j, current_framing.pt[j].x, current_framing.pt[j].y);
 				}
 			}
-			rx_0 = (int)(ceil(xmax) - floor(xmin)) + 1;
-			ry_0 = (int)(ceil(ymax) - floor(ymin)) + 1;
-			x0 = floor(xmin);
-			y0 = floor(ymin);
+			rx_0 = (int)xmax - (int)xmin + 1;
+			ry_0 = (int)ymax - (int)ymin + 1;
+			x0 = (int)xmin;
+			y0 = (int)ymin;
 			siril_debug_print("new size: %d %d\n", rx_0, ry_0);
 			siril_debug_print("new origin: %d %d\n", x0, y0);
 			Hshift.h02 = (double)x0;
@@ -173,14 +198,14 @@ static gboolean compute_framing(struct registration_args *regargs) {
 				if (xmax > xs[2]) xmax = xs[2];
 				if (ymax > ys[2]) ymax = ys[2];
 			}
-			rx_0 = (int)(floor(xmax) - ceil(xmin)) + 1;
-			ry_0 = (int)(floor(ymax) - ceil(ymin)) + 1;
+			rx_0 = (int)xmax - (int)xmin + 1;
+			ry_0 = (int)ymax - (int)ymin + 1;
 			if (rx_0 < 0 || ry_0 < 0) {
 				siril_log_color_message(_("The intersection of all images is null or negative\n"), "red");
 				retval = FALSE;
 			}
-			x0 = ceil(xmin);
-			y0 = ceil(ymin);
+			x0 = (int)xmin;
+			y0 = (int)ymin;
 			siril_debug_print("new size: %d %d\n", rx_0, ry_0);
 			siril_debug_print("new origin: %d %d\n", x0, y0);
 			Hshift.h02 = (double)x0;
@@ -207,8 +232,8 @@ static gboolean compute_framing(struct registration_args *regargs) {
 
 			cogx /= (double)n;
 			cogy /= (double)n;
-			x0 = (int)(cogx - (double)rx * 0.5);
-			y0 = (int)(cogy - (double)ry * 0.5);
+			x0 = (int)(cogx - (double)rx * 0.5 - 0.5);
+			y0 = (int)(cogy - (double)ry * 0.5 - 0.5);
 			siril_log_message(_("Framing: Shift from reference origin: %d, %d\n"), x0, y0);
 			Hshift.h02 = (double)x0;
 			Hshift.h12 = (double)y0;
@@ -241,12 +266,9 @@ static gboolean compute_framing(struct registration_args *regargs) {
 			return FALSE;
 	}
 	cvMultH(Href, Hshift, &regargs->framingd.Htransf);
-	regargs->framingd.roi_out.w = (int)((float)rx_0 * regargs->output_scale);
-	regargs->framingd.roi_out.h = (int)((float)ry_0 * regargs->output_scale);
-
-	// gchar *downscale = (regargs->output_scale != 1.f) ? g_strdup_printf(_(" (assuming a scaling factor of %.2f)"), regargs->output_scale) : g_strdup("");
-	// siril_log_color_message(_("Output image: %d x %d pixels%s\n"), "salmon", regargs->framingd.roi_out.w, regargs->framingd.roi_out.h, downscale);
-	// g_free(downscale);
+	regargs->framingd.roi_out.w = (regargs->output_scale != 1.f) ? (int)(roundf((float)rx_0 * regargs->output_scale)) : rx_0;
+	regargs->framingd.roi_out.h = (regargs->output_scale != 1.f) ? (int)(roundf((float)ry_0 * regargs->output_scale)) : ry_0;
+	regargs->framingd.Hshift = Hshift;
 
 	return retval;
 }
@@ -267,7 +289,7 @@ static void compute_Hmax(Homography *Himg, Homography *Href, int src_rx_in, int 
 	xmax = -DBL_MAX;
 	ymin = DBL_MAX;
 	ymax = -DBL_MAX;
-	cvGetEye(Href);
+	// cvGetEye(Href);
 	for (int j = 0; j < 4; j++) {
 		cvTransfPoint(&framing.pt[j].x, &framing.pt[j].y, *Himg, *Href, scale);
 		if (xmin > framing.pt[j].x) xmin = framing.pt[j].x;
@@ -276,10 +298,10 @@ static void compute_Hmax(Homography *Himg, Homography *Href, int src_rx_in, int 
 		if (ymax < framing.pt[j].y) ymax = framing.pt[j].y;
 		siril_debug_print("Point #%d: %3.2f %3.2f\n", j, framing.pt[j].x, framing.pt[j].y);
 	}
-	*dst_rx_out = (int)(ceil(xmax) - floor(xmin)) + 1;
-	*dst_ry_out = (int)(ceil(ymax) - floor(ymin)) + 1;
-	Hshift->h02 = (double)floor(xmin);
-	Hshift->h12 = (double)floor(ymin);
+	*dst_rx_out = (int)xmax - (int)xmin + 1;
+	*dst_ry_out = (int)ymax - (int)ymin + 1;
+	Hshift->h02 = round(xmin);
+	Hshift->h12 = round(ymin);
 	cvTransfH(Himg, Href, H);
 	// the shift matrix is at the final scale, while the transformation matrix
 	// is still at the orginal scale (will be upscaled in cvTransformImage)
@@ -365,14 +387,36 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		} else {
 			disto = &regargs->disto[in_index];
 		}
-		if (fit->keywords.wcslib && fit->keywords.wcslib->lin.dispre)
-			remove_dis_from_wcs(fit->keywords.wcslib); // we remove distortions as the output is undistorted
 	}
-	// we need to flip in and out + scale before reframing astrometry
 	if (has_wcs(fit)) {
-		Homography Hastro = H;
-		cvPrepareDrizzleH(&Hastro, scale, fit->ry, dst_ry);
-		reframe_astrometry_data(fit, Hastro);
+		free_wcs(fit); // we remove the current solution in all cases
+		if (regargs->wcsref) { // we will update it only if ref image has a solution
+			fit->keywords.wcslib = wcs_deepcopy(regargs->wcsref, NULL); // we copy the reference astrometry
+			Homography Hscale = { 0 }, Hshift = { 0 };
+			cvGetEye(&Hscale);
+			cvGetEye(&Hshift);
+			if (regargs->output_scale != 1.f) {
+				Hscale.h00 = regargs->output_scale;
+				Hscale.h11 = regargs->output_scale;
+				// the terms below are the corrections to make the scaling about the image center (and not top left)
+				// it's the result of -T2^-1*So*T1
+				// where T1 and T2 are the shifts to the center in original and scaled images 
+				// using siril convention, so (rx/2;ry/2) and (target_rx/2;target_ry/2)
+				// and So the scale about top left origin which is simply [s 0 0][0 s 0][0 0 1]
+				Hscale.h02 -= 0.5 * (regargs->output_scale * (double)fit->rx - dst_rx);
+				Hscale.h12 -= 0.5 * (regargs->output_scale * (double)fit->ry - dst_ry);
+				cvApplyFlips(&Hscale, fit->ry, dst_ry);
+				reframe_wcs(fit->keywords.wcslib, &Hscale);
+			}
+			if (regargs->framing == FRAMING_MAX) {
+				Hshift = Hs;
+				Homography Href = regargs->framingd.Hshift;
+				cvMultH(Href, Hshift, &Hshift);
+				Hshift.h02 *= -1.;
+				Hshift.h12 += dst_ry - (double)fit->ry;
+				reframe_wcs(fit->keywords.wcslib, &Hshift);
+			}
+		}
 	}
 
 	if (regargs->driz) {
@@ -393,7 +437,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		p->pixmap->ry = fit->ry;
 		p->threads = threads;
 
-		map_image_coordinates_h(fit, H, p->pixmap, dst_ry, scale, disto, threads);
+		map_image_coordinates_h(fit, H, p->pixmap, dst_rx, dst_ry, scale, disto, threads);
 		if (!p->pixmap->xmap) {
 			siril_log_color_message(_("Error generating mapping array.\n"), "red");
 			free(p->error);
@@ -797,7 +841,7 @@ int register_apply_reg(struct registration_args *regargs) {
 			return -1;
 		}
 		Homography Href = { 0 };
-		if (compute_Hs_from_astrometry(regargs->seq, regargs->WCSDATA, regargs->framing, regargs->layer, &Href)) {
+		if (compute_Hs_from_astrometry(regargs->seq, regargs->WCSDATA, regargs->framing, regargs->layer, &Href, &regargs->wcsref)) {
 			free(args);
 			return -1;
 		}
@@ -849,10 +893,13 @@ int register_apply_reg(struct registration_args *regargs) {
 	sadata->regargs = regargs;
 	args->user = sadata;
 
+	disto_source index = DISTO_UNDEF;
 	regargs->undistort = layer_has_distortion(regargs->seq, regargs->layer);
+
 	if (regargs->undistort) {
 		regargs->distoparam = regargs->seq->distoparam[regargs->layer];
 		int status = 1;
+		index = regargs->distoparam.index; // to keep track if DISTO_FILES as if no distorsion is effectively present, it wiil be set to UNDEF
 		regargs->disto = init_disto_data(&regargs->distoparam, regargs->seq, regargs->WCSDATA, regargs->driz != NULL, &status);
 		free(regargs->WCSDATA); // init_disto_data has freed each individual wcs, we can now free the array
 		if (status) {
@@ -863,7 +910,27 @@ int register_apply_reg(struct registration_args *regargs) {
 		if (!regargs->disto) {
 			regargs->undistort = DISTO_UNDEF;
 		}
-	} 
+	}
+	if (!regargs->wcsref)
+		regargs->wcsref = get_wcs_ref(regargs->seq);
+	if (regargs->wcsref) {
+		if (regargs->undistort && regargs->wcsref->lin.dispre)
+			remove_dis_from_wcs(regargs->wcsref); // we remove distortions as the output is undistorted
+		if (index == DISTO_FILES && image_is_flipped_from_wcs(regargs->wcsref)) { // we are in astrometric reg, we will need to flip the solution if required
+			Homography H = { 0 };
+			cvGetEye(&H);
+			H.h11 = -1.;
+			H.h12 = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
+			reframe_wcs(regargs->wcsref, &H);
+		}
+		if (regargs->framing == FRAMING_MIN || regargs->framing == FRAMING_COG) {
+			Homography H = regargs->framingd.Hshift;
+			cvInvertH(&H);
+			int orig_ry = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
+			cvApplyFlips(&H, orig_ry, regargs->framingd.roi_out.h);
+			reframe_wcs(regargs->wcsref, &H);
+		}
+	}
 
 	generic_sequence_worker(args);
 

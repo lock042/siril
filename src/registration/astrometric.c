@@ -75,29 +75,6 @@ static void compute_center_cog(double *ra, double *dec, int n, gboolean *incl, d
 	*DEC = atan2(z, sqrt(x * x + y * y)) * RADTODEG;
 }
 
-// This is the equivalent of opencv cv::detail::RotationWarper warpRoi
-static void compute_roi(Homography *H, int rx, int ry, framing_roi *roi) {
-	double xmin = DBL_MAX;
-	double xmax = -DBL_MAX;
-	double ymin = DBL_MAX;
-	double ymax = -DBL_MAX;
-	Homography Href = { 0 };
-	cvGetEye(&Href);
-	regframe framing = (regframe){(point){0., 0.}, (point){(double)rx - 1., 0.}, (point){(double)rx - 1., (double)ry - 1.}, (point){0., (double)ry - 1.}};
-	for (int j = 0; j < 4; j++) {
-		cvTransfPoint(&framing.pt[j].x, &framing.pt[j].y, *H,  Href, 1.);
-		if (xmin > framing.pt[j].x) xmin = framing.pt[j].x;
-		if (ymin > framing.pt[j].y) ymin = framing.pt[j].y;
-		if (xmax < framing.pt[j].x) xmax = framing.pt[j].x;
-		if (ymax < framing.pt[j].y) ymax = framing.pt[j].y;
-		siril_debug_print("Point #%d: %3.2f %3.2f\n", j, framing.pt[j].x, framing.pt[j].y);
-	}
-	int x0 = (int)xmin;
-	int y0 = (int)ymin;
-	int w = (int)xmax - xmin + 1;
-	int h = (int)ymax - ymin + 1;
-	*roi = (framing_roi){ x0, y0, w, h};
-}
 
 static gboolean get_scales_and_framing(struct wcsprm *WCSDATA, Homography *K, double *framing) {
 	K->h00 = -1;
@@ -122,7 +99,7 @@ static gboolean get_scales_and_framing(struct wcsprm *WCSDATA, Homography *K, do
 	return TRUE;
 }
 
-int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_type framing, int layer, Homography *Hout) {
+int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_type framing, int layer, Homography *Hout, struct wcsprm **prmout) {
 	int retval = 0;
 	double ra0 = 0., dec0 = 0.;
 	int n = seq->number;
@@ -152,20 +129,7 @@ int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_ty
 	compute_center_cog(RA, DEC, n, incl, &ra0, &dec0);
 	ra0 = (ra0 < 0) ? ra0 + 360. : ra0;
 	siril_log_message(_("Sequence COG - RA:%7.3f - DEC:%+7.3f\n"), ra0, dec0);
-	int refindex = -1;
-	// double mindist = DBL_MAX;
-	// for (int i = 0; i < n; i++) {
-	// 	if (!incl[i])
-	// 		continue;
-	// 	dist[i] = compute_coords_distance(RA[i], DEC[i], ra0, dec0);
-	// 	if (dist[i] < mindist) {
-	// 		mindist = dist[i];
-	// 		refindex = i;
-	// 	}
-	// }
-	// siril_log_message(_("Image closest to center is #%d - RA:%7.3f - DEC:%+7.3f\n"), refindex + 1, RA[refindex], DEC[refindex]);
-	// if (framing == FRAMING_CURRENT)
-		refindex = seq->reference_image;
+	int refindex = seq->reference_image;
 
 	// Obtaining Camera extrinsic and instrinsic matrices (resp. R and K)
 	// ##################################################################
@@ -252,8 +216,8 @@ int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_ty
 	cvGetEye(&Kref);
 	Kref.h00 = fscale;
 	Kref.h11 = fscale;
-	// Kref.h02 = Ks[refindex].h02;
-	// Kref.h12 = Ks[refindex].h12;
+	Kref.h02 = Ks[refindex].h02;
+	Kref.h12 = Ks[refindex].h12;
 	siril_debug_print("Scale: %.3f\n", fscale);
 	print_H(&Kref);
 
@@ -277,6 +241,15 @@ int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_ty
 		siril_debug_print("%d,%d,%d,%d,%d\n", i + 1, roi.x, roi.y, roi.w, roi.h);
 	}
 	seq->reference_image = refindex;
+
+	if (framing != FRAMING_CURRENT) {
+		*prmout = calloc(1, sizeof(wcsprm_t));
+		double scale = 0.5 * (fabs((WCSDATA + refindex)->cdelt[0])+fabs((WCSDATA + refindex)->cdelt[1]));
+		create_wcs(ra0, dec0, scale, framingref, (seq->is_variable) ? seq->imgparam[refindex].rx : seq->rx, (seq->is_variable) ? seq->imgparam[refindex].rx : seq->ry, *prmout);
+	} else {
+		*prmout = wcs_deepcopy(WCSDATA + refindex, NULL);
+	}
+
 free_all:
 	free(RA);
 	free(DEC);

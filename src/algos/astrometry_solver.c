@@ -235,19 +235,6 @@ SirilWorldCS *get_eqs_from_header(fits *fit) {
 	return NULL;
 }
 
-void update_wcsdata_from_wcs(fits *fit) {
-	double ra0, dec0;
-	center2wcs(fit, &ra0, &dec0);
-	fit->keywords.wcsdata.ra = ra0;
-	fit->keywords.wcsdata.dec = dec0;
-	gchar *ra = siril_world_cs_alpha_format_from_double(ra0, "%02d %02d %.3lf");
-	gchar *dec = siril_world_cs_delta_format_from_double(dec0, "%c%02d %02d %.3lf");
-	g_sprintf(fit->keywords.wcsdata.objctra, "%s", ra);
-	g_sprintf(fit->keywords.wcsdata.objctdec, "%s", dec);
-	g_free(ra);
-	g_free(dec);
-}
-
 static void update_wcsdata_after_ps(struct astrometry_data *args) {
 	if (has_wcsdata(args->fit))
 		reset_wcsdata(args->fit);
@@ -487,7 +474,7 @@ void flip_bottom_up_astrometry_data(fits *fit) {
 	cvGetEye(&H);
 	H.h11 = -1.;
 	H.h12 = (double)fit->ry;
-	reframe_astrometry_data(fit, H);
+	reframe_astrometry_data(fit, &H);
 }
 
 gchar *platesolve_msg(struct astrometry_data *args) {
@@ -775,55 +762,57 @@ static void transform_disto_coeff(struct disprm *dis, Homography *H) {
  * Public functions
  */
 
-
-void reframe_astrometry_data(fits *fit, Homography H) {
+void reframe_wcs(struct wcsprm *wcslib, Homography *H) {
+	if (!wcslib)
+		return;
 	double pc1_1, pc1_2, pc2_1, pc2_2;
 	point refpointout;
-	pc1_1 = H.h00 * fit->keywords.wcslib->pc[0] + H.h01 * fit->keywords.wcslib->pc[1];
-	pc1_2 = H.h10 * fit->keywords.wcslib->pc[0] + H.h11 * fit->keywords.wcslib->pc[1];
-	pc2_1 = H.h00 * fit->keywords.wcslib->pc[2] + H.h01 * fit->keywords.wcslib->pc[3];
-	pc2_2 = H.h10 * fit->keywords.wcslib->pc[2] + H.h11 * fit->keywords.wcslib->pc[3];
+	pc1_1 = H->h00 * wcslib->pc[0] + H->h01 * wcslib->pc[1];
+	pc1_2 = H->h10 * wcslib->pc[0] + H->h11 * wcslib->pc[1];
+	pc2_1 = H->h00 * wcslib->pc[2] + H->h01 * wcslib->pc[3];
+	pc2_2 = H->h10 * wcslib->pc[2] + H->h11 * wcslib->pc[3];
 	// we go back to cd formulation just to separate back again cdelt and pc
 	double cd[2][2], pc[2][2];
-	double scale_2 = fabs(H.h00 * H.h11 - H.h10 * H.h01);
+	double scale_2 = fabs(H->h00 * H->h11 - H->h10 * H->h01);
 	pc[0][0] = pc1_1;
 	pc[0][1] = pc1_2;
 	pc[1][0] = pc2_1;
 	pc[1][1] = pc2_2;
-	fit->keywords.wcslib->cdelt[0] /= scale_2;
-	fit->keywords.wcslib->cdelt[1] /= scale_2;
+	wcslib->cdelt[0] /= scale_2;
+	wcslib->cdelt[1] /= scale_2;
 	// we recombine pc and cdelt, and decompose it
-	wcs_pc_to_cd(pc, fit->keywords.wcslib->cdelt, cd);
-	wcs_decompose_cd(fit->keywords.wcslib, cd);
+	wcs_pc_to_cd(pc, wcslib->cdelt, cd);
+	wcs_decompose_cd(wcslib, cd);
 
 	// we fetch the refpoint in siril convention
-	point refpointin = {fit->keywords.wcslib->crpix[0] - 0.5, fit->keywords.wcslib->crpix[1] - 0.5};
-	cvTransformImageRefPoint(H, refpointin, &refpointout);
+	point refpointin = {wcslib->crpix[0] - 0.5, wcslib->crpix[1] - 0.5};
+	cvTransformImageRefPoint(*H, refpointin, &refpointout);
 	// and convert it back to FITS/WCS convention
-	fit->keywords.wcslib->crpix[0] = refpointout.x + 0.5;
-	fit->keywords.wcslib->crpix[1] = refpointout.y + 0.5;
+	wcslib->crpix[0] = refpointout.x + 0.5;
+	wcslib->crpix[1] = refpointout.y + 0.5;
 
 	// and we update all the wcslib structures
-	if (fit->keywords.wcslib->lin.dispre) {
-		transform_disto_coeff(fit->keywords.wcslib->lin.dispre, &H);
-		struct disprm *dis = fit->keywords.wcslib->lin.dispre;
+	if (wcslib->lin.dispre) {
+		transform_disto_coeff(wcslib->lin.dispre, H);
+		struct disprm *dis = wcslib->lin.dispre;
 		for (int n = 0; n < dis->ndp; n++) { // update the OFFSET keywords to new CRPIX values
 			if (g_str_has_prefix(dis->dp[n].field + 4, "OFFSET.1"))
-				dis->dp[n].value.f = fit->keywords.wcslib->crpix[0];
+				dis->dp[n].value.f = wcslib->crpix[0];
 			else if (g_str_has_prefix(dis->dp[n].field + 4, "OFFSET.2"))
-				dis->dp[n].value.f = fit->keywords.wcslib->crpix[1];
+				dis->dp[n].value.f = wcslib->crpix[1];
 		}
 		dis->flag = 0; // to update the structure
 		disset(dis);
 	}
-	fit->keywords.wcslib->lin.flag = 0; // to update the structure
-	linset(&fit->keywords.wcslib->lin);
-	fit->keywords.wcslib->flag = 0; // to update the structure
-	wcsset(fit->keywords.wcslib);
-	wcs_print(fit->keywords.wcslib);
-	print_updated_wcs(fit->keywords.wcslib);
+	wcslib->lin.flag = 0; // to update the structure
+	linset(&wcslib->lin);
+	wcslib->flag = 0; // to update the structure
+	wcsset(wcslib);
+	wcs_print(wcslib);
+	print_updated_wcs(wcslib);
+}
 
-	// Update the center position in fit->wcsdata //
+void update_wcsdata_from_wcs(fits *fit) {
 	double rac, decc;
 	center2wcs(fit, &rac, &decc);
 	if (rac != -1) {
@@ -836,6 +825,14 @@ void reframe_astrometry_data(fits *fit, Homography H) {
 		g_free(ra);
 		g_free(dec);
 	}
+}
+
+void reframe_astrometry_data(fits *fit, Homography *H) {
+	if (!fit)
+		return;
+	reframe_wcs(fit->keywords.wcslib, H);
+	// Update the center position in fit->wcsdata
+	update_wcsdata_from_wcs(fit);
 }
 
 void wcs_pc_to_cd(double pc[][2], const double cdelt[2], double cd[][2]) {
@@ -2205,7 +2202,7 @@ static int astrometry_finalize_hook(struct generic_seq_args *arg) {
 	}
 	if (aargs->update_reg) {
 		siril_log_color_message(_("Computing astrometric registration...\n"), "green");
-		arg->retval = compute_Hs_from_astrometry(arg->seq, aargs->WCSDATA, FRAMING_COG, aargs->layer, NULL);
+		arg->retval = compute_Hs_from_astrometry(arg->seq, aargs->WCSDATA, FRAMING_COG, aargs->layer, NULL, NULL);
 	}
 	if (!arg->retval)
 		writeseqfile(arg->seq);

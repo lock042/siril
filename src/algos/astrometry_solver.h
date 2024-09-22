@@ -124,7 +124,8 @@ void wcs_pc_to_cd(double pc[][2], const double cdelt[2], double cd[][2]);
 gpointer plate_solver(gpointer p);
 double compute_mag_limit_from_position_and_fov(double ra, double dec, double fov_degrees, int Nstars);
 gboolean confirm_delete_wcs_keywords(fits *fit);
-void reframe_astrometry_data(fits *fit, Homography H);
+void reframe_wcs(struct wcsprm *wcs, Homography *H);
+void reframe_astrometry_data(fits *fit, Homography *H);
 void flip_bottom_up_astrometry_data(fits *fit);
 void update_wcsdata_from_wcs(fits *fit);
 

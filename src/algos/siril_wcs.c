@@ -519,3 +519,37 @@ void remove_dis_from_wcs(wcsprm_t *prm) {
 	prm->flag = 0;
 	wcsset(prm);
 }
+
+void create_wcs(double ra0, double dec0, double scale, double framing_angle, int rx, int ry, struct wcsprm *prm) {
+	// preparing pc matrix
+	double ca, sa;
+	sincos(framing_angle * DEGTORAD, &sa, &ca);
+	double pc[2][2];
+	pc[0][0] = ca;
+	pc[1][1] = ca;
+	pc[0][1] = -sa;
+	pc[1][0] = sa;
+
+	/**** Fill wcslib structure ***/
+	prm->flag = -1;
+	wcsinit(1, 2, prm, 0, 0, 0);
+	prm->equinox = 2000.0;
+	prm->crpix[0] = (double)rx * 0.5 + 0.5;
+	prm->crpix[1] = (double)ry * 0.5 + 0.5;
+	prm->crval[0] = ra0;
+	prm->crval[1] = dec0;
+	prm->cdelt[0] = -scale;
+	prm->cdelt[1] =  scale;
+	prm->lonpole = 180.;
+	wcs_mat2pc(prm, pc);
+
+	const char CTYPE[2][9] = { "RA---TAN", "DEC--TAN" };
+	const char CUNIT[2][4] = { "deg", "deg" };
+	for (int i = 0; i < NAXIS; i++) {
+		strncpy(prm->cunit[i], &CUNIT[i][0], 71); // 72 char fixed buffer, keep 1 for the NULL
+	}
+	for (int i = 0; i < NAXIS; i++) {
+		strncpy(prm->ctype[i], &CTYPE[i][0], 71); // 72 byte buffer, leave 1 byte for the NULL
+	}
+	wcsset(prm);
+}

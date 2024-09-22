@@ -94,6 +94,7 @@ struct star_align_data {
 
 typedef struct {
 	Homography Htransf;
+	Homography Hshift;
 	framing_roi roi_out;
 } framing_data;
 
@@ -140,6 +141,7 @@ struct registration_args {
 	regdata *regparam;		// regparam for the new sequence
 	char *prefix;		// prefix of the created sequence if any
 	gboolean load_new_sequence;	// load the new sequence if success
+	struct wcsprm* wcsref;	// wcslib struct of the reference image, to recompute values for registered images
 	gchar *new_seq_name;
 };
 
@@ -192,10 +194,11 @@ void selection_H_transform(rectangle *selection, Homography Href, Homography Him
 void translation_from_H(Homography H, double *dx, double *dy);
 Homography H_from_translation(double dx, double dy);
 void SetNullH(Homography *H);
+void compute_roi(Homography *H, int rx, int ry, framing_roi *roi);
 
 //astrometry-related functions
 int collect_sequence_astrometry(struct registration_args *regargs);
-int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_type framing, int layer, Homography *Href);
+int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_type framing, int layer, Homography *Hout, struct wcsprm **prmout);
 
 //image shift
 int shift_fit_from_reg(fits *fit, Homography H);
