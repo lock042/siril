@@ -242,12 +242,14 @@ int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_ty
 	}
 	seq->reference_image = refindex;
 
-	if (framing != FRAMING_CURRENT) {
-		*prmout = calloc(1, sizeof(wcsprm_t));
-		double scale = 0.5 * (fabs((WCSDATA + refindex)->cdelt[0])+fabs((WCSDATA + refindex)->cdelt[1]));
-		create_wcs(ra0, dec0, scale, framingref, (seq->is_variable) ? seq->imgparam[refindex].rx : seq->rx, (seq->is_variable) ? seq->imgparam[refindex].rx : seq->ry, *prmout);
-	} else {
-		*prmout = wcs_deepcopy(WCSDATA + refindex, NULL);
+	if (prmout) {
+		if (framing != FRAMING_CURRENT) {
+			*prmout = calloc(1, sizeof(wcsprm_t));
+			double scale = 0.5 * (fabs((WCSDATA + refindex)->cdelt[0])+fabs((WCSDATA + refindex)->cdelt[1]));
+			create_wcs(ra0, dec0, scale, framingref, (seq->is_variable) ? seq->imgparam[refindex].rx : seq->rx, (seq->is_variable) ? seq->imgparam[refindex].rx : seq->ry, *prmout);
+		} else {
+			*prmout = wcs_deepcopy(WCSDATA + refindex, NULL);
+		}
 	}
 
 free_all:
