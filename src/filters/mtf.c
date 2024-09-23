@@ -32,6 +32,8 @@ void apply_linked_mtf_to_fits(fits *from, fits *to, struct mtf_params params, gb
 	const size_t layersize = from->naxes[0] * from->naxes[1];
 	g_assert(from->type == to->type);
 
+	siril_log_message(_("Applying MTF with values %f, %f, %f\n"),
+			params.shadows, params.midtones, params.highlights);
 	if (from->type == DATA_USHORT) {
 		float norm = (float)get_normalized_value(from);
 		float invnorm = 1.0f / norm;
