@@ -175,11 +175,11 @@ deps-debian:
 siril-deb-meson:
   extends: .siril-debian/testing-base
   script:
-    - meson setup --prefix="${INSTALL_PREFIX}" ${BUILD_DIR} -Db_coverage=true -Dcriterion=true
+    - meson setup --prefix="${INSTALL_PREFIX}" ${BUILD_DIR} -Db_coverage=true -Denable-libcurl=yes -Dlibconfig=true -Dcriterion=true
     - ninja -C ${BUILD_DIR} install
     - meson test -C ${BUILD_DIR} -v --no-suite perfs
     - cd ${BUILD_DIR}
-#    - gcovr --xml-pretty --exclude-unreachable-branches --exclude-directories subprojects --exclude-directories  src/tests  --root ../ -o coverage.xml --print-summary
+    - gcovr --xml-pretty --exclude-unreachable-branches --exclude-directories subprojects --exclude-directories  src/tests  --root ../ -o coverage.xml --print-summary
     - cd ..
   artifacts:
     paths:
@@ -241,7 +241,7 @@ siril-win64:
   script:
     - export PATH="`pwd`/.local/bin:$PATH"
     - mkdir _build && cd _build
-    - echo 'crossroad meson --buildtype=release --prefix="${INSTALL_PREFIX}" .. && ninja install && cp -fr $CROSSROAD_PREFIX/ ../${CROSSROAD_OUT}' | crossroad w64 siril --run="-"
+    - echo 'crossroad meson --buildtype=release --prefix="${INSTALL_PREFIX}" -Denable-libcurl=yes -Dlibconfig=true .. && ninja install && cp -fr $CROSSROAD_PREFIX/ ../${CROSSROAD_OUT}' | crossroad w64 siril --run="-"
   needs: ["deps-win64"]
   artifacts:
     name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
@@ -279,7 +279,7 @@ macos:
     CCACHE_DIR: /Users/Shared/work/ccache
     REP_DIR: $CI_PROJECT_DIR
     SIRIL_BUILD: $CI_PIPELINE_IID
-    SM_REPO_REF: ae4e3bb8a65f00450f6dece39292ea079e828388
+    SM_REPO_REF: e4574ea3069f6cd2c55d56111127526e04163a25
     SM_REPO_URL: https://gitlab.com/free-astro/siril_macos.git
     WRK_DIR: $CI_PROJECT_DIR
   script:
@@ -327,7 +327,6 @@ win64:
     # Package ssl certificates
     - mkdir -p ${INSTALL_PREFIX}/etc/ssl
     - cp -fr ${CROSSROAD_OUT}/etc/ssl ${INSTALL_PREFIX}/etc
-    - cp build/windows/crossbuild-gitlab-ci/ssl-certs/* ${INSTALL_PREFIX}/etc/ssl/certs
 
     # Package shared ressources
     - cp -fr ${CROSSROAD_OUT}/share/glib-2.0/ ${INSTALL_PREFIX}/share
@@ -382,7 +381,7 @@ flatpak:
     BUNDLE: "org.siril.Siril.flatpak"
     GIT_SUBMODULE_STRATEGY: recursive
   script:
-    - flatpak-builder --verbose --disable-rofiles-fuse --ccache --repo=repo ${BRANCH:+--default-branch=$BRANCH} flatpak_app ${MANIFEST_PATH}
+    - flatpak-builder --verbose --disable-rofiles-fuse --ccache --repo=repo ${BRANCH:+--default-branch=$BRANCH} flatpak_app ${MANIFEST_PATH} 1>/dev/null
     - flatpak build-bundle repo ${BUNDLE} --runtime-repo=${RUNTIME_REPO} ${APP_ID} ${BRANCH}
   artifacts:
     name: "Flatpak artifacts"
@@ -466,26 +465,4 @@ win64-native-installer:
     - choco install innosetup -y
     - powershell -File .\build\windows\installer\siril-win-installer.ps1 2>&1 > installer.log
   needs: ["win64-native"]
-  allow_failure: true
-
-################################################################################ 
-build-paper:
-  rules:
-    *run_ondemand_schedule_tag
-  stage: distribution
-  image: docker:latest
-  services:
-    - docker:dind
-  artifacts:
-    expire_in: 1 week
-    when: always
-    paths:
-    - paper/paper.pdf
-  before_script:
-    - apk update
-    - apk add --no-cache docker-compose
-  script:
-    - docker run --rm --volume "$CI_PROJECT_DIR/paper:/data" --user "$(id -u):$(id -g)" --env JOURNAL=joss openjournals/inara
-  needs: []
-  dependencies: []
   allow_failure: true
