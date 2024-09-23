@@ -1329,7 +1329,11 @@ gint64 mergecfa_compute_size_hook(struct generic_seq_args *args, int nb_frames) 
 }
 
 int mergecfa_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads) {
-
+	fits metadata = { 0 };
+	if (seq_read_frame_metadata(args->seq, out_index, &metadata)) {
+		siril_log_message(_("Could not load metadata\n"));
+		return 1;
+	}
 	int retval = 0;
 	struct merge_cfa_data *merge_cfa_args = (struct merge_cfa_data*) args->user;
 	char *cfa0_f = calloc(256, sizeof(BYTE));
@@ -1340,7 +1344,7 @@ int mergecfa_image_hook(struct generic_seq_args *args, int out_index, int in_ind
 	fits cfa2 = { 0 };
 	fits cfa3 = { 0 };
 	fits *out = { 0 };
-	cfa0_f = seq_get_image_filename(args->seq, in_index, cfa0_f);
+	cfa0_f = seq_get_image_filename(args->seq, out_index, cfa0_f);
 	size_t len = strlen(merge_cfa_args->seqEntryIn);
 	char *prefix0 = calloc(len + 2, sizeof(BYTE));
 	char *prefix1 = calloc(len + 2, sizeof(BYTE));
@@ -1401,6 +1405,8 @@ int mergecfa_image_hook(struct generic_seq_args *args, int out_index, int in_ind
 		clearfits(out);
 		free(out);
 	}
+	copy_fits_metadata(&metadata, out);
+	clearfits(&metadata);
 CLEANUP_MERGECFA:
 	clearfits(&cfa1);
 	clearfits(&cfa2);
