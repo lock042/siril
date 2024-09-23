@@ -336,15 +336,15 @@ int extractHa_float(fits *in, fits *Ha, sensor_pattern pattern, extraction_scali
 }
 
 int extractHa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit, rectangle *_, int threads) {
-	struct multi_output_data *data = (struct multi_output_data *) args->user;
+	struct simple_extract_data *data = (struct simple_extract_data *) args->user;
 	int ret = 1;
 	fits f_Ha = { 0 };
 	sensor_pattern pattern = get_bayer_pattern(fit);
 
 	if (fit->type == DATA_USHORT)
-		ret = extractHa_ushort(fit, &f_Ha, pattern, *(extraction_scaling*) data->user_data);
+		ret = extractHa_ushort(fit, &f_Ha, pattern, data->scaling);
 	else if (fit->type == DATA_FLOAT)
-		ret = extractHa_float(fit, &f_Ha, pattern, *(extraction_scaling*) data->user_data);
+		ret = extractHa_float(fit, &f_Ha, pattern, data->scaling);
 	else return 1;
 	if (!ret) {
 		clearfits(fit);

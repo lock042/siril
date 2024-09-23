@@ -44,7 +44,7 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 			struct multi_output_data *args = calloc(1, sizeof(struct multi_output_data));
 			set_cursor_waiting(TRUE);
 			args->seq = &com.seq;
-			args->user_data = malloc(sizeof(extraction_scaling));
+			args->user_data = calloc(1, sizeof(extraction_scaling));
 			*(extraction_scaling *)args->user_data = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_haoiii_scaling")));
 			args->seqEntry = strdup(gtk_entry_get_text(entrySplitCFA));
 
