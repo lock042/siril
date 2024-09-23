@@ -605,6 +605,7 @@ static void update_metadata(gboolean do_sum) {
 	f[j] = NULL;
 
 	merge_fits_headers_to_result2(&gfit, f, do_sum);
+	update_fits_header(&gfit);
 	free(f);
 }
 
