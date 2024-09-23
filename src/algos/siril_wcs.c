@@ -523,7 +523,7 @@ void remove_dis_from_wcs(wcsprm_t *prm) {
 void create_wcs(double ra0, double dec0, double scale, double framing_angle, int rx, int ry, struct wcsprm *prm) {
 	// preparing pc matrix
 	double ca, sa;
-	sincos(framing_angle * DEGTORAD, &sa, &ca);
+	sincosd(framing_angle, &sa, &ca);
 	double pc[2][2];
 	pc[0][0] = ca;
 	pc[1][1] = ca;
