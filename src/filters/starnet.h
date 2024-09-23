@@ -2,14 +2,10 @@
 #define SRC_FILTERS_STARNET_H_
 
 #include "core/siril.h"
+#include "core/processing.h"
 
 typedef struct starnet_data {
-	struct ser_struct *new_ser_starless;
-	fitseq *new_fitseq_starless;
-	struct ser_struct *new_ser_starmask;
-	fitseq *new_fitseq_starmask;
 	gboolean force_ser;
-	sequence *seq;
 	fits *starnet_fit;
 	fits *starmask_fit;
 	struct timeval t_start;
@@ -20,9 +16,8 @@ typedef struct starnet_data {
 	gboolean starmask;
 	gboolean follow_on;
 	gboolean too_small;
-	const gchar *seqname;
-	gchar *seqEntry;
 	int imgnumber;
+	struct multi_output_data *multi_args;
 } starnet_data;
 
 typedef struct remixargs {
@@ -32,6 +27,6 @@ typedef struct remixargs {
 
 starnet_version starnet_executablecheck(gchar* executable);
 gpointer do_starnet(gpointer p);
-void apply_starnet_to_sequence(struct starnet_data *seqdata);
+void apply_starnet_to_sequence(struct multi_output_data *multi_args);
 
 #endif /* SRC_FILTERS_STARNET_H_ */

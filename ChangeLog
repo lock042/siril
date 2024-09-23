@@ -91,11 +91,13 @@ xx/xx/xx
 * Check for and resolve pixel values outside [0 1] before certain operations (!697)
 * Fixed seqpsf for images which write ADU in float (#1322)
 * Added the `pwd` command to print the current working directory (!743)
+* Refactor processing of sequence operations that generate multiple output sequences (!739)
 
 siril 1.2.5
 xx/xx/xx
 * Fixed crash in gaussVertical() on macOS (issue reported on pixls.us, !742)
 * Fixed free space disk computation on macOS, probably for good (#1368 and #1375)
+* Fixed crash if the CWD changes after a first successfull Automated light Curve process (#1378 !746)
 
 siril 1.2.4
 09/11/24
