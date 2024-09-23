@@ -90,6 +90,7 @@ siril 1.4.0 xx xx, xx
 * Check for and resolve pixel values outside [0 1] before certain operations (!697)
 * Fixed seqpsf for images which write ADU in float (#1322)
 * Added the `pwd` command to print the current working directory (!743)
+* Refactor processing of sequence operations that generate multiple output sequences (!739)
 
 siril 1.2.5 xx xx, xxxx
 
