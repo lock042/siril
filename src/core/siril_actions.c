@@ -83,6 +83,7 @@ void open_action_activate(GSimpleAction *action, GVariant *parameter, gpointer u
 
 void cwd_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	cwd_btton_clicked();
+	update_MenuItem();
 }
 
 void livestacking_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
