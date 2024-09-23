@@ -34,7 +34,8 @@ void apply_linked_mtf_to_fits(fits *from, fits *to, struct mtf_params params, gb
 #ifdef _OPENMP
 	int threads = min(com.max_thread, 2); // not worth using many threads here
 #endif
-
+	siril_log_message(_("Applying MTF with values %f, %f, %f\n"),
+			params.shadows, params.midtones, params.highlights);
 	if (from->type == DATA_USHORT) {
 		float norm = (float)get_normalized_value(from);
 		float invnorm = 1.0f / norm;
