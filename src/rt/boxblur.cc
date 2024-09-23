@@ -309,11 +309,17 @@ void boxabsblur(float** src, float** dst, int radius, int W, int H, bool multiTh
         std::size_t bufferSize = numCols * (radius + 1);
         int alignment = 64;
         bufferSize = (bufferSize + alignment - 1) & ~(alignment - 1);
+#ifdef OS_OSX
+        float* buffer = NULL;
+        if (posix_memalign(&buffer, alignment, bufferSize * sizeof(float))) {
+            throw std::bad_alloc();
+        }
+#else
         float* buffer = static_cast<float*>(ALIGNED_ALLOC(alignment, bufferSize * sizeof(float)));
-
         if (!buffer) {
             throw std::bad_alloc(); // Handle memory allocation failure
         }
+#endif
 
         auto bufferDeleter = [](float* ptr) { ALIGNED_FREE(ptr); };
         std::unique_ptr<float, decltype(bufferDeleter)> alignedBuffer(buffer, bufferDeleter);
