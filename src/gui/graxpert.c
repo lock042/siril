@@ -35,6 +35,7 @@
 #include "gui/siril_preview.h"
 #include "gui/utils.h"
 #include "io/single_image.h"
+#include "io/sequence.h"
 
 // Statics declarations
 
@@ -291,8 +292,12 @@ void on_button_graxpert_apply_clicked(GtkButton *button, gpointer user_data) {
 		com.grad_samples = NULL;
 	}
 	if (gtk_toggle_button_get_active(graxpert_toggle_apply_to_sequence)) {
-		data->seq = &com.seq;
-		apply_graxpert_to_sequence(data);
+		if (sequence_is_loaded()) {
+			data->seq = &com.seq;
+			apply_graxpert_to_sequence(data);
+		} else {
+			siril_log_color_message(_("Error: no sequence loaded.\n"), "red");
+		}
 	} else {
 		start_in_new_thread(do_graxpert, data);
 	}
