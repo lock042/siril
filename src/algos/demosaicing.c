@@ -1324,6 +1324,25 @@ static int mergecfa_compute_mem_limits(struct generic_seq_args *args, gboolean f
 	return limit;
 }
 
+void update_bayer_pattern_information(fits *fit, sensor_pattern pattern) {
+	switch (pattern) {
+		case BAYER_FILTER_RGGB:;
+			sprintf(fit->keywords.bayer_pattern, "RGGB");
+			break;
+		case BAYER_FILTER_BGGR:;
+			sprintf(fit->keywords.bayer_pattern, "BGGR");
+			break;
+		case BAYER_FILTER_GBRG:;
+			sprintf(fit->keywords.bayer_pattern, "GBRG");
+			break;
+		case BAYER_FILTER_GRBG:;
+			sprintf(fit->keywords.bayer_pattern, "GRBG");
+			break;
+		default:;
+			break;
+	}
+}
+
 gint64 mergecfa_compute_size_hook(struct generic_seq_args *args, int nb_frames) {
 	double ratio = 4.;
 	double fullseqsize = seq_compute_size(args->seq, nb_frames, args->output_type);
@@ -1409,22 +1428,7 @@ int mergecfa_image_hook(struct generic_seq_args *args, int out_index, int in_ind
 	}
 	copy_fits_metadata(&metadata, fit);
 	update_sampling_information(fit, 0.5f);
-	switch (merge_cfa_args->pattern) {
-		case BAYER_FILTER_RGGB:;
-			sprintf(fit->keywords.bayer_pattern, "RGGB");
-			break;
-		case BAYER_FILTER_BGGR:;
-			sprintf(fit->keywords.bayer_pattern, "BGGR");
-			break;
-		case BAYER_FILTER_GBRG:;
-			sprintf(fit->keywords.bayer_pattern, "GBRG");
-			break;
-		case BAYER_FILTER_GRBG:;
-			sprintf(fit->keywords.bayer_pattern, "GRBG");
-			break;
-		default:;
-			break;
-	}
+	update_bayer_pattern_information(fit, merge_cfa_args->pattern);
 	free_wcs(out);
 	clearfits(&metadata);
 

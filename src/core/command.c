@@ -968,22 +968,7 @@ int process_rebayer(int nb){
 	copyfits(out, &gfit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
 	copy_fits_metadata(out, &gfit);
 	update_sampling_information(&gfit, 0.5f);
-	switch (pattern) {
-		case BAYER_FILTER_RGGB:;
-			sprintf(gfit.keywords.bayer_pattern, "RGGB");
-			break;
-		case BAYER_FILTER_BGGR:;
-			sprintf(gfit.keywords.bayer_pattern, "BGGR");
-			break;
-		case BAYER_FILTER_GBRG:;
-			sprintf(gfit.keywords.bayer_pattern, "GBRG");
-			break;
-		case BAYER_FILTER_GRBG:;
-			sprintf(gfit.keywords.bayer_pattern, "GRBG");
-			break;
-		default:;
-			break;
-	}
+	update_bayer_pattern_information(&gfit, pattern);
 	free_wcs(&gfit);
 	update_fits_header(&gfit);
 	clearfits(out);
