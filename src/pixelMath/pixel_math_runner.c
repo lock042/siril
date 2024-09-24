@@ -483,6 +483,7 @@ static void update_metadata(fits *fit, gboolean do_sum) {
 		copy_fits_metadata(var_fit, fit);
 	else
 		merge_fits_headers_to_result2(fit, f, do_sum);
+	update_fits_header(fit);
 	free(f);
 }
 

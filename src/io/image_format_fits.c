@@ -2914,6 +2914,8 @@ void merge_fits_headers_to_result2(fits *result, fits **f, gboolean do_sum) {
 	double expend = f[0]->keywords.expend;
 	int image_count = 1;
 	double exposure = f[0]->keywords.exposure;
+	result->keywords.stackcnt = f[0]->keywords.stackcnt != DEFAULT_UINT_VALUE ? max(1, f[0]->keywords.stackcnt) : 1;
+	result->keywords.livetime = f[0]->keywords.livetime > 0 ? f[0]->keywords.livetime : exposure;
 
 	fits *current;
 	while ((current = f[image_count])) {
@@ -2945,8 +2947,8 @@ void merge_fits_headers_to_result2(fits *result, fits **f, gboolean do_sum) {
 
 		if (do_sum) {
 			// add the exposure times and number of stacked images
-			result->keywords.stackcnt += current->keywords.stackcnt;
-			result->keywords.livetime += current->keywords.livetime;
+			result->keywords.stackcnt += current->keywords.stackcnt != DEFAULT_UINT_VALUE ? max(1, current->keywords.stackcnt) : 1;
+			result->keywords.livetime += current->keywords.livetime > 0 ? current->keywords.livetime : current->keywords.exposure;
 
 			/* to add if one day we keep FITS comments: discrepancies in
 			 * various fields like exposure, instrument, observer,
