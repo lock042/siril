@@ -1338,6 +1338,18 @@ void update_bayer_pattern_information(fits *fit, sensor_pattern pattern) {
 		case BAYER_FILTER_GRBG:;
 			sprintf(fit->keywords.bayer_pattern, "GRBG");
 			break;
+		case XTRANS_FILTER_1:;
+			sprintf(fit->keywords.bayer_pattern, "GGRGGBGGBGGRBRGRBGGGBGGRGGRGGBRBGBRG");
+			break;
+		case XTRANS_FILTER_2:;
+			sprintf(fit->keywords.bayer_pattern, "RBGBRGGGRGGBGGBGGRBRGRBGGGBGGRGGRGGB");
+			break;
+		case XTRANS_FILTER_3:;
+			sprintf(fit->keywords.bayer_pattern, "GRGGBGBGBRGRGRGGBGGBGGRGRGRBGBGBGGRG");
+			break;
+		case XTRANS_FILTER_4:;
+			sprintf(fit->keywords.bayer_pattern, "GBGGRGRGRBGBGBGGRGGRGGBGBGBRGRGRGGBG");
+			break;
 		default:;
 			break;
 	}
