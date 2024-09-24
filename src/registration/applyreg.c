@@ -698,8 +698,8 @@ int register_apply_reg(struct registration_args *regargs) {
 		/* fit will now hold the reference frame */
 		if (seq_read_frame_metadata(regargs->seq, regargs->reference_image, &fit)) {
 			siril_log_message(_("Could not load reference image\n"));
-			args->seq->regparam[0] = NULL;
-			free(args);
+//			args->seq->regparam[0] = NULL;
+//			free(args);
 			return 1;
 		}
 		sensor_pattern pattern;
