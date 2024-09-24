@@ -139,10 +139,10 @@ struct phot_config {
 	double flux_cut_factor;	// flux cutoff rate
 	double flux_inner_factor;// factor for automatic inner radius computation from Flux cutoff meth
 	double flux_outer_factor;// factor for automatic outer radius computation from Flux cutoff meth
-	double dump_fwhmx;	// temporary value
-	double fwhm_ref[20];// temporary value
-	double dump_beta;	// temporary value
-	double beta_ref[20];// temporary value
+	double dump_fwhmx;	// temporary value of fwhm
+	double fwhm_ref[20];// Array of FWHM for the stars of the compstars list. Size should equate MAX_REF_STARS defined in siril.h
+	double dump_beta;	// temporary value of beta
+	double beta_ref[20];// Array of beta for the stars of the compstars list. Size should equate MAX_REF_STARS defined in siril.h
 
 	gboolean force_radius;	// force the aperture radius value
 	int ape_strat; 	// encodes the aperture strategy to be used. See enum aperture_strategy
