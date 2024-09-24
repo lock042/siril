@@ -681,7 +681,8 @@ int one_psf(int star_index) {
 	ps->beta_ref[star_index] = result->beta;
 	com.pref.phot_set.fwhm_ref[star_index] = max(result->fwhmx, result->fwhmy);
 	com.pref.phot_set.beta_ref[star_index] = result->beta;
-	siril_debug_print("IN ONE_PSF--result->fwhmx: %lf\n", result->fwhmx);
+	if (star_index == 0) siril_log_message(_("Initial parameters from current image\n"));
+	siril_log_message(_("Star [%i]:  fwhm_ref(px) = %0.4lf, beta = %0.4lf\n"), star_index, com.pref.phot_set.fwhm_ref[star_index], com.pref.phot_set.beta_ref[star_index]);
 	ps->ape_strat = ape_strat_bkp;
 	free(ps);
 	if (!result) 

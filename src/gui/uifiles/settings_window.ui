@@ -2610,7 +2610,7 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                                 <property name="tooltip-text" translatable="yes">This method sets the aperture, inner and outer radii to a rate of the 1/2-FWHM (which is a radius) of the selected star.
 This 1/2-FWHM value is assumed to be the one of the star in the cuurent displayed picture. So it can be the reference image after registration or another one.
 These radii values will be used only for the selected star over the whole sequence.
-Note: the values 3.4/3.8/4.5 give and equal number of pixels in the aperture and the annulus and are a good starting point.</property>
+Note: the values 3.4/3.8/5.1 give and equal number of pixels in the aperture and the annulus and are a good starting point.</property>
                                 <property name="draw-indicator">True</property>
                                 <signal name="toggled" handler="on_aperture_strategy_radio_toggled" swapped="no"/>
                               </object>
