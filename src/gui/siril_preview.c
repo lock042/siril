@@ -23,6 +23,7 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/icc_profile.h"
+#include "core/OS_utils.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
 #include "core/undo.h"
@@ -101,6 +102,11 @@ int restore_roi() {
 }
 
 void copy_gfit_to_backup() {
+	guint64 gfit_size = gfit.rx * gfit.ry * gfit.naxes[2] * gfit.type == DATA_FLOAT ? 4 : 2;
+	if (!preview_is_active && (get_available_memory() < (gfit_size * 2))) {
+		siril_log_color_message(_("Warning: insufficient memory available to create a preview.\n"), "salmon");
+		return;
+	}
 	if (copyfits(&gfit, &preview_gfit_backup, CP_ALLOC | CP_COPYA | CP_FORMAT, -1)) {
 		siril_debug_print("Image copy error in previews\n");
 		return;
