@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019-2023
 
@@ -124,7 +124,6 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
             <child>
               <object class="GtkCheckButton" id="ls_lbgr">
                 <property name="label" translatable="yes">remove gradient</property>
-                <property name="visible">True</property>
                 <property name="sensitive">False</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">False</property>
@@ -409,5 +408,4 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
       </object>
     </child>
   </object>
-
 </interface>
