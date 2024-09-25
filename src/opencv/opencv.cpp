@@ -489,8 +489,10 @@ static void cvPrepareH(Mat H, double scale, int source_rx, int source_ry, int ta
 		// where T1 and T2 are the shifts to the center in original and scaled images 
 		// using opencv convention, so (rx/2-0.5;ry/2-0.5) and (target_rx/2-0.5;target_ry/2-0.5)
 		// and So the scale about top left origin which is simply [s 0 0][0 s 0][0 0 1]
-		S.at<double>(0,2) -= scale *((double)source_rx * 0.5 - 0.5) - target_rx * 0.5 + 0.5;
-		S.at<double>(1,2) -= scale *((double)source_ry * 0.5 - 0.5) - target_ry * 0.5 + 0.5;
+		// rx/ry are the sizes of the area to be projected, that is dst_rx/scale and dst_ry/scale
+		// We then simplify as 0.5 * (1 - scale)
+		S.at<double>(0,2) -= 0.5 * (1 - scale);
+		S.at<double>(1,2) -= 0.5 * (1 - scale);
 		H = S * H;
 	}
 
