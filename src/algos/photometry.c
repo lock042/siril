@@ -134,7 +134,11 @@ struct radii_set *radii_strat (struct phot_config *phot_set, const psf_star *psf
 			break;
 	}
 
-	if (com.pref.phot_set.dump_fwhmx == 0.0) {	// Workaround for the photometry test in the CI and the first pass of the loop (to set initial values)
+	// Here, the variable dump_fwhm is also used as a key 
+	// -Workaround for the photometry test in the CI
+	// -Allows to get the initial value of the fwhm/beta
+	// -Prevents (for now) the use of this code from non allowed processes: they will keep on using the old code.
+	if (com.pref.phot_set.dump_fwhmx == 0.0) {
 		siril_debug_print("Photometry--radii_strat--dump_fwhmx was null\n");
 		r11 = phot_set->inner;
 		r21 = phot_set->outer;
@@ -730,6 +734,7 @@ gpointer light_curve_worker(gpointer arg) {
 			queue_redraw(REDRAW_OVERLAY);
 	}
 	memset(&com.selection, 0, sizeof(rectangle));
+	com.pref.phot_set.dump_fwhmx = 0.0;	// Reset this variable to avoid any possible disturbance
 	args->force_rad = com.pref.phot_set.force_radius;	// Retrieves the Aperture state (fixed/dynamic)
 	/* analyse data and create the light curve */
 	if (!retval)
