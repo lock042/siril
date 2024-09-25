@@ -664,7 +664,15 @@ int crop_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 		rectangle *_, int threads) {
 	struct crop_sequence_data *c_args = (struct crop_sequence_data*) args->user;
 
-	return crop(fit, &(c_args->area));
+	int ret = crop(fit, &(c_args->area));
+
+	if (!ret) {
+		char log[90];
+		sprintf(log, _("Crop (x=%d, y=%d, w=%d, h=%d)"),
+				c_args->area.x, c_args->area.y, c_args->area.w, c_args->area.h);
+		fit->history = g_slist_append(fit->history, strdup(log));
+	}
+	return ret;
 }
 
 int crop_finalize_hook(struct generic_seq_args *args) {
