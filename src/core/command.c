@@ -3594,37 +3594,58 @@ int process_set_mag(int nb) {
 }
 
 int process_set_photometry(int nb) {
+	gchar *label_m = NULL;
+	double inner = -1.0, outer = -1.0, aperture = -1.0, cvf = -1.0;
+	int min = -65536, max = -1, strat_val = -1;
+	gboolean error = FALSE;
 	if (nb > 0) {
-		double inner = -1.0, outer = -1.0, aperture = -1.0, gain = -1.0, force = -1.0;
-		int min = -65536, max = -1;	//, force = -1;
-		gboolean error = FALSE;
 		for (int i = 1; i < nb; i++) {
-			char *arg = word[i], *end;
+			char *arg = word[i], *end, *value = NULL;
 			if (!word[i])
 				break;
-			if (g_str_has_prefix(arg, "-inner=")) {
-				arg += 7;
-				inner = g_ascii_strtod(arg, &end);
-				if (arg == end) error = TRUE;
-				else if (inner < 1.0) error = TRUE;
-			}
-			else if (g_str_has_prefix(arg, "-outer=")) {
-				arg += 7;
-				outer = g_ascii_strtod(arg, &end);
-				if (arg == end) error = TRUE;
-				else if (outer < 2.0) error = TRUE;
+			if (g_str_has_prefix(arg, "-strategy=")) {
+				arg+=10;
+				if(!g_ascii_strncasecmp(arg, "fix", 3)) {
+					strat_val = FIXED_AP;
+					label_m = g_strdup("[px/px/px] Fixed Apertures");
+					continue;
+				}
+				if(!g_ascii_strncasecmp(arg, "var", 3)) {
+					strat_val = FWHM_VAR;
+					label_m = g_strdup("[half-fwhm/half-fwhm/half-fwhm] FWHM variable");
+					continue;
+				}
+				if(!g_ascii_strncasecmp(arg, "cut", 3)) {
+					strat_val = FLUX_CUT;
+					label_m = g_strdup("[flux-rate/aperture-rate/aperture-rate] Flux cut");
+					continue;
+				}
+				siril_log_message(_("Unknown Aperture strategy %s, aborting.\n"), arg);
+				return CMD_ARG_ERROR;
 			}
 			else if (g_str_has_prefix(arg, "-aperture=")) {
 				arg += 10;
 				aperture = g_ascii_strtod(arg, &end);
 				if (arg == end) error = TRUE;
-				else if (aperture < 1.0) error = TRUE;
+				else if (aperture < 0.01 || aperture > 50) error = TRUE;
 			}
-			else if (g_str_has_prefix(arg, "-gain=")) {
-				arg += 6;
-				gain = g_ascii_strtod(arg, &end);
+			else if (g_str_has_prefix(arg, "-inner=")) {
+				arg += 7;
+				inner = g_ascii_strtod(arg, &end);
 				if (arg == end) error = TRUE;
-				else if (gain <= 0.0) error = TRUE;
+				else if (inner <= aperture || inner > 50) error = TRUE;
+			}
+			else if (g_str_has_prefix(arg, "-outer=")) {
+				arg += 7;
+				outer = g_ascii_strtod(arg, &end);
+				if (arg == end) error = TRUE;
+				else if (outer <= inner || outer > 50) error = TRUE;
+			}
+			else if (g_str_has_prefix(arg, "-cvf=")) {
+				arg += 5;
+				cvf = g_ascii_strtod(arg, &end);
+				if (arg == end) error = TRUE;
+				else if (cvf <= 0.0) error = TRUE;
 			}
 			else if (g_str_has_prefix(arg, "-min_val=")) {
 				arg += 9;
@@ -3638,11 +3659,6 @@ int process_set_photometry(int nb) {
 				if (arg == end) error = TRUE;
 				else if (max == 0 || max > 65535) error = TRUE;
 			}
-			else if (g_str_has_prefix(arg, "-dyn_ratio=")) {
-				arg += 11;
-				force = g_ascii_strtod(arg, &end);
-				if (arg == end) error = TRUE;
-			}
 			else {
 				siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
 				return CMD_ARG_ERROR;
@@ -3653,43 +3669,31 @@ int process_set_photometry(int nb) {
 			siril_log_message(_("Error parsing arguments, aborting.\n"));
 			return CMD_ARG_ERROR;
 		}
-		if (inner > 0) {
-			if (outer > 0) {
-				if (outer > inner) {
-					com.pref.phot_set.inner = inner;
-					com.pref.phot_set.outer = outer;
-				} else {
-					siril_log_message(_("Inner radius value must be less than outer. Please change the value."));
-					error = TRUE;
-				}
-			} else {
-				if (com.pref.phot_set.outer > inner) {
-					com.pref.phot_set.inner = inner;
-				} else {
-					siril_log_message(_("Inner radius value must be less than outer. Please change the value."));
-					error = TRUE;
-				}
-			}
-		}
-		else if (outer > 0) {
-			if (outer > com.pref.phot_set.inner) {
-				com.pref.phot_set.outer = outer;
-			} else {
-					siril_log_message(_("Inner radius value must be less than outer. Please change the value."));
-					error = TRUE;
-				}
-		}
-		if (aperture > 0.0)
-			com.pref.phot_set.aperture = aperture;
-		if (force && force >= 1.0 && force <= 10.0) {
-			com.pref.phot_set.force_radius = FALSE;
-			com.pref.phot_set.auto_aperture_factor = (double)force;
-		} else {
-			com.pref.phot_set.force_radius = TRUE;
+
+		com.pref.phot_set.ape_strat = strat_val;
+		switch (strat_val){
+			case FIXED_AP:
+				com.pref.phot_set.aperture = aperture;
+				com.pref.phot_set.inner = inner;
+				com.pref.phot_set.outer = outer;				
+				com.pref.phot_set.force_radius = TRUE;
+				break;
+			case FWHM_VAR:	
+				com.pref.phot_set.auto_aperture_factor = aperture;
+				com.pref.phot_set.auto_inner_factor = inner;
+				com.pref.phot_set.auto_outer_factor = outer;
+				com.pref.phot_set.force_radius = FALSE;
+				break;
+			case FLUX_CUT:
+				com.pref.phot_set.flux_cut_factor = aperture;
+				com.pref.phot_set.flux_inner_factor = inner;
+				com.pref.phot_set.flux_outer_factor = outer;
+				com.pref.phot_set.force_radius = FALSE;
+				break;
 		}
 
-		if (gain > 0.0)
-			com.pref.phot_set.gain = gain;
+		if (cvf > 0.0)
+			com.pref.phot_set.gain = cvf;
 		if (min >= -65536) {
 			if (max > 0) {
 				if (min < max) {
@@ -3721,15 +3725,12 @@ int process_set_photometry(int nb) {
 			return CMD_ARG_ERROR;
 		}
 	}
-	siril_log_message(_("Local background annulus radius: %.1f to %.1f, %s: %.1f (%s), camera conversion gain: %f e-/ADU, using pixels with values ]%f, %f[\n"),
-			com.pref.phot_set.inner,
-			com.pref.phot_set.outer,
-			com.pref.phot_set.force_radius ? _("aperture") : _("dynamic aperture"),
-			com.pref.phot_set.force_radius ? com.pref.phot_set.aperture : com.pref.phot_set.auto_aperture_factor,
-			com.pref.phot_set.force_radius ? _("forced") : _("times the half-FWHM"),
+	siril_log_message(_("Apertures parameters: aperture= %.1f inner= %.1f, outer= %.1f (%s method)\n"), aperture, inner, outer, label_m);
+	siril_log_message(_("Camera conversion factor: %0.0001f e-/ADU, using pixels with values ]%.1f, %.1f[\n"),
 			com.pref.phot_set.gain,
 			com.pref.phot_set.minval,
 			com.pref.phot_set.maxval);
+	g_free(label_m);		
 	return CMD_OK;
 }
 
