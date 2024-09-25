@@ -900,6 +900,14 @@ void set_all_keywords_default(fits *fit) {
 
 	set_to_default_not_used(fit, keys_hash);
 
+	/* Special cases */
+	if (fit->keywords.stackcnt == DEFAULT_UINT_VALUE) {
+		// DEFAULT_UINT_VALUE doesn't make any sense for a default stack count.
+		// Change it to 1.
+		fit->keywords.stackcnt = 1;
+	}
+	// Add any other special cases here...
+
 	// Free the hash table and unknown keys
 	g_hash_table_destroy(keys_hash);
 	free(keys);

@@ -758,8 +758,8 @@ int initialize_drizzle_params(struct generic_seq_args *args, struct registration
 	/* fit will now hold the reference frame */
 	if (seq_read_frame_metadata(regargs->seq, regargs->reference_image, &fit)) {
 		siril_log_message(_("Could not load reference image\n"));
-		args->seq->regparam[0] = NULL;
-		return 1;
+//		args->seq->regparam[0] = NULL;
+//		return 1;
 	}
 	sensor_pattern pattern;
 	if (args->seq->type == SEQ_SER && args->seq->ser_file ) {

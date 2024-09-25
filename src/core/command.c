@@ -966,6 +966,11 @@ int process_rebayer(int nb){
 	siril_log_message("Bayer pattern produced: 1 layer, %dx%d pixels\n", out->rx, out->ry);
 	close_single_image();
 	copyfits(out, &gfit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+	copy_fits_metadata(out, &gfit);
+	update_sampling_information(&gfit, 0.5f);
+	update_bayer_pattern_information(&gfit, pattern);
+	free_wcs(&gfit);
+	update_fits_header(&gfit);
 	clearfits(out);
 	free(out);
 

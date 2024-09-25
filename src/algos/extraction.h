@@ -13,6 +13,7 @@ struct simple_extract_data {
 	extraction_scaling scaling;
 };
 
+void update_sampling_information(fits *fit, float factor);
 void update_filter_information(fits *fit, char *filter, gboolean append);
 
 int extractHa_ushort(fits *in, fits *Ha, sensor_pattern pattern, extraction_scaling scaling);
