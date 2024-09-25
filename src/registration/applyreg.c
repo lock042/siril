@@ -398,14 +398,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 			if (regargs->output_scale != 1.f) {
 				Hscale.h00 = regargs->output_scale;
 				Hscale.h11 = regargs->output_scale;
-				// the terms below are the corrections to make the scaling about the image center (and not top left)
-				// it's the result of -T2^-1*So*T1
-				// where T1 and T2 are the shifts to the center in original and scaled images 
-				// using siril convention, so (rx/2;ry/2) and (target_rx/2;target_ry/2)
-				// and So the scale about top left origin which is simply [s 0 0][0 s 0][0 0 1]
-				Hscale.h02 -= 0.5 * (regargs->output_scale * (double)fit->rx - dst_rx);
-				Hscale.h12 -= 0.5 * (regargs->output_scale * (double)fit->ry - dst_ry);
-				cvApplyFlips(&Hscale, fit->ry, dst_ry);
+				cvApplyFlips(&Hscale, dst_ry / scale, dst_ry);
 				reframe_wcs(fit->keywords.wcslib, &Hscale);
 			}
 			if (regargs->framing == FRAMING_MAX) {
@@ -927,7 +920,7 @@ int register_apply_reg(struct registration_args *regargs) {
 			Homography H = regargs->framingd.Hshift;
 			cvInvertH(&H);
 			int orig_ry = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
-			cvApplyFlips(&H, orig_ry, regargs->framingd.roi_out.h);
+			cvApplyFlips(&H, orig_ry, regargs->framingd.roi_out.h / regargs->output_scale);
 			reframe_wcs(regargs->wcsref, &H);
 		}
 	}
