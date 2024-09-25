@@ -23,6 +23,7 @@
 #include "core/proto.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
+#include "algos/siril_wcs.h"
 #include "core/command.h"
 #include "algos/demosaicing.h"
 #include "algos/geometry.h"
@@ -39,7 +40,7 @@ const gchar *extract_string = "Extraction";
 
 static int cfa_extract_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer);
 
-static void update_sampling_information(fits *fit, float factor) {
+void update_sampling_information(fits *fit, float factor) {
 	clear_Bayer_information(fit);
 
 	fit->keywords.pixel_size_x *= factor;
@@ -141,6 +142,7 @@ int extractGreen_ushort(fits *in, fits *green, sensor_pattern pattern) {
 	copy_fits_metadata(in, green);
 	update_sampling_information(green, 2.f);
 	update_filter_information(green, "G", TRUE);
+	free_wcs(green);
 	green->history = g_slist_append(green->history, g_strdup_printf(_("%s: extract Green channel\n"), extract_string));
 
 	return 0;
@@ -186,6 +188,7 @@ int extractGreen_float(fits *in, fits *green, sensor_pattern pattern) {
 	copy_fits_metadata(in, green);
 	update_sampling_information(green, 2.f);
 	update_filter_information(green, "G", TRUE);
+	free_wcs(green);
 	green->history = g_slist_append(green->history, g_strdup_printf(_("%s: extract Green channel\n"), extract_string));
 
 	return 0;
@@ -274,6 +277,7 @@ int extractHa_ushort(fits *in, fits *Ha, sensor_pattern pattern, extraction_scal
 
 	/* We update FITS keywords */
 	copy_fits_metadata(in, Ha);
+	free_wcs(Ha); // remve WCS data - even if not scaled, the centre will have moved by half a pixel
 	update_sampling_information(Ha, scaling ? 1.f : 2.f);
 	update_filter_information(Ha, "Ha", TRUE);
 	Ha->history = g_slist_append(Ha->history, g_strdup(_("Ha channel")));
@@ -328,6 +332,7 @@ int extractHa_float(fits *in, fits *Ha, sensor_pattern pattern, extraction_scali
 
 	/* We update FITS keywords */
 	copy_fits_metadata(in, Ha);
+	free_wcs(Ha); // remve WCS data - even if not scaled, the centre will have moved by half a pixel
 	update_sampling_information(Ha, scaling ? 1.f : 2.f);
 	update_filter_information(Ha, "Ha", TRUE);
 	Ha->history = g_slist_append(Ha->history, g_strdup(_("Ha channel")));
@@ -592,11 +597,14 @@ int extractHaOIII_ushort(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern,
 	copy_fits_metadata(in, Ha);
 	update_sampling_information(Ha, factorHa);
 	update_filter_information(Ha, "Ha", TRUE);
+	free_wcs(Ha); // remve WCS data - even if not scaled, the centre will have moved by half a pixel
 	Ha->history = g_slist_append(Ha->history, g_strdup(_("Ha channel\n")));
 
 	copy_fits_metadata(in, OIII);
 	update_sampling_information(OIII, factorOIII);
 	update_filter_information(OIII, "OIII", TRUE);
+	if (scaling != SCALING_OIII_DOWN)
+		free_wcs(OIII); // remve WCS data - not required unless OIII is scaled down, as the OIII center doesn't change
 	OIII->history = g_slist_append(OIII->history, g_strdup(_("OIII channel\n")));
 
 	return 0;
@@ -819,11 +827,14 @@ int extractHaOIII_float(fits *in, fits *Ha, fits *OIII, sensor_pattern pattern, 
 	copy_fits_metadata(in, Ha);
 	update_sampling_information(Ha, factorHa);
 	update_filter_information(Ha, "Ha", TRUE);
+	free_wcs(Ha); // remve WCS data - even if not scaled, the centre will have moved by half a pixel
 	Ha->history = g_slist_append(Ha->history, g_strdup(_("Ha channel\n")));
 
 	copy_fits_metadata(in, OIII);
 	update_sampling_information(OIII, factorOIII);
 	update_filter_information(OIII, "OIII", TRUE);
+	if (scaling != SCALING_OIII_DOWN)
+		free_wcs(OIII); // remve WCS data - not required unless OIII is scaled down, as the OIII center doesn't change
 	OIII->history = g_slist_append(OIII->history, g_strdup(_("OIII channel\n")));
 
 	return 0;
@@ -931,6 +942,24 @@ int split_cfa_ushort(fits *in, fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3) {
 	clear_Bayer_information(cfa2);
 	clear_Bayer_information(cfa3);
 
+	/* Update the sampling information */
+	update_sampling_information(cfa0, 2.f);
+	update_sampling_information(cfa1, 2.f);
+	update_sampling_information(cfa2, 2.f);
+	update_sampling_information(cfa3, 2.f);
+
+	/* Update the filter information */
+	update_filter_information(cfa0, "CFA0", TRUE);
+	update_filter_information(cfa0, "CFA1", TRUE);
+	update_filter_information(cfa0, "CFA2", TRUE);
+	update_filter_information(cfa0, "CFA3", TRUE);
+
+	/* Remove any WCS data */
+	free_wcs(cfa0);
+	free_wcs(cfa1);
+	free_wcs(cfa2);
+	free_wcs(cfa3);
+
 	/* Update history */
 	cfa0->history = g_slist_append(cfa0->history, g_strdup(_("CFA0 Bayer channel\n")));
 	cfa1->history = g_slist_append(cfa1->history, g_strdup(_("CFA1 Bayer channel\n")));
@@ -982,6 +1011,24 @@ int split_cfa_float(fits *in, fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3) {
 	clear_Bayer_information(cfa1);
 	clear_Bayer_information(cfa2);
 	clear_Bayer_information(cfa3);
+
+	/* Update the sampling information */
+	update_sampling_information(cfa0, 2.f);
+	update_sampling_information(cfa1, 2.f);
+	update_sampling_information(cfa2, 2.f);
+	update_sampling_information(cfa3, 2.f);
+
+	/* Update the filter information */
+	update_filter_information(cfa0, "CFA0", TRUE);
+	update_filter_information(cfa0, "CFA1", TRUE);
+	update_filter_information(cfa0, "CFA2", TRUE);
+	update_filter_information(cfa0, "CFA3", TRUE);
+
+	/* Remove any WCS data */
+	free_wcs(cfa0);
+	free_wcs(cfa1);
+	free_wcs(cfa2);
+	free_wcs(cfa3);
 
 	/* Update history */
 	cfa0->history = g_slist_append(cfa0->history, g_strdup(_("CFA0 Bayer channel\n")));

@@ -39,6 +39,8 @@
 #include "io/image_format_fits.h"
 #include "io/conversion.h"
 #include "algos/demosaicing.h"
+#include "algos/extraction.h"
+#include "algos/siril_wcs.h"
 #include "algos/statistics.h"
 
 #define USE_SIRIL_DEBAYER FALSE
@@ -1322,6 +1324,37 @@ static int mergecfa_compute_mem_limits(struct generic_seq_args *args, gboolean f
 	return limit;
 }
 
+void update_bayer_pattern_information(fits *fit, sensor_pattern pattern) {
+	switch (pattern) {
+		case BAYER_FILTER_RGGB:;
+			sprintf(fit->keywords.bayer_pattern, "RGGB");
+			break;
+		case BAYER_FILTER_BGGR:;
+			sprintf(fit->keywords.bayer_pattern, "BGGR");
+			break;
+		case BAYER_FILTER_GBRG:;
+			sprintf(fit->keywords.bayer_pattern, "GBRG");
+			break;
+		case BAYER_FILTER_GRBG:;
+			sprintf(fit->keywords.bayer_pattern, "GRBG");
+			break;
+		case XTRANS_FILTER_1:;
+			sprintf(fit->keywords.bayer_pattern, "GGRGGBGGBGGRBRGRBGGGBGGRGGRGGBRBGBRG");
+			break;
+		case XTRANS_FILTER_2:;
+			sprintf(fit->keywords.bayer_pattern, "RBGBRGGGRGGBGGBGGRBRGRBGGGBGGRGGRGGB");
+			break;
+		case XTRANS_FILTER_3:;
+			sprintf(fit->keywords.bayer_pattern, "GRGGBGBGBRGRGRGGBGGBGGRGRGRBGBGBGGRG");
+			break;
+		case XTRANS_FILTER_4:;
+			sprintf(fit->keywords.bayer_pattern, "GBGGRGRGRBGBGBGGRGGRGGBGBGBRGRGRGGBG");
+			break;
+		default:;
+			break;
+	}
+}
+
 gint64 mergecfa_compute_size_hook(struct generic_seq_args *args, int nb_frames) {
 	double ratio = 4.;
 	double fullseqsize = seq_compute_size(args->seq, nb_frames, args->output_type);
@@ -1329,7 +1362,11 @@ gint64 mergecfa_compute_size_hook(struct generic_seq_args *args, int nb_frames) 
 }
 
 int mergecfa_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads) {
-
+	fits metadata = { 0 };
+	if (seq_read_frame_metadata(args->seq, out_index, &metadata)) {
+		siril_log_message(_("Could not load metadata\n"));
+		return 1;
+	}
 	int retval = 0;
 	struct merge_cfa_data *merge_cfa_args = (struct merge_cfa_data*) args->user;
 	char *cfa0_f = calloc(256, sizeof(BYTE));
@@ -1340,7 +1377,7 @@ int mergecfa_image_hook(struct generic_seq_args *args, int out_index, int in_ind
 	fits cfa2 = { 0 };
 	fits cfa3 = { 0 };
 	fits *out = { 0 };
-	cfa0_f = seq_get_image_filename(args->seq, in_index, cfa0_f);
+	cfa0_f = seq_get_image_filename(args->seq, out_index, cfa0_f);
 	size_t len = strlen(merge_cfa_args->seqEntryIn);
 	char *prefix0 = calloc(len + 2, sizeof(BYTE));
 	char *prefix1 = calloc(len + 2, sizeof(BYTE));
@@ -1401,6 +1438,12 @@ int mergecfa_image_hook(struct generic_seq_args *args, int out_index, int in_ind
 		clearfits(out);
 		free(out);
 	}
+	copy_fits_metadata(&metadata, fit);
+	update_sampling_information(fit, 0.5f);
+	update_bayer_pattern_information(fit, merge_cfa_args->pattern);
+	free_wcs(out);
+	clearfits(&metadata);
+
 CLEANUP_MERGECFA:
 	clearfits(&cfa1);
 	clearfits(&cfa2);

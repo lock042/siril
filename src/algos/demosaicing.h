@@ -29,7 +29,7 @@ struct merge_cfa_data {
 	char *seqEntryOut;
 	sensor_pattern pattern;
 };
-
+void update_bayer_pattern_information(fits *fit, sensor_pattern pattern);
 void apply_mergecfa_to_sequence(struct merge_cfa_data *merge_cfa_args);
 
 void get_debayer_area(const rectangle *area, rectangle *debayer_area,
