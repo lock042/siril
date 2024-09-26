@@ -3598,6 +3598,7 @@ int process_set_mag(int nb) {
 	return CMD_OK;
 }
 
+// set_phot [-strategy={fix|var|cut}] [-aperture=] [-inner=] [-outer=] [-cvf=] [-min_val=] [-max_val=]
 int process_set_photometry(int nb) {
 	gchar *label_m = NULL;
 	double inner = -1.0, outer = -1.0, aperture = -1.0, cvf = -1.0;
@@ -3605,7 +3606,7 @@ int process_set_photometry(int nb) {
 	gboolean error = FALSE;
 	if (nb > 0) {
 		for (int i = 1; i < nb; i++) {
-			char *arg = word[i], *end, *value = NULL;
+			char *arg = word[i], *end;
 			if (!word[i])
 				break;
 			if (g_str_has_prefix(arg, "-strategy=")) {
@@ -3662,7 +3663,7 @@ int process_set_photometry(int nb) {
 				arg += 9;
 				max = g_ascii_strtoull(arg, &end, 10);
 				if (arg == end) error = TRUE;
-				else if (max == 0 || max > 65535) error = TRUE;
+				else if (max <= min || max > 65535)	error = TRUE;
 			}
 			else {
 				siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
