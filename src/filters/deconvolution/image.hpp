@@ -509,6 +509,21 @@ public:
         }
     }
 
+    void flip() {
+#ifdef _OPENMP
+        int available_threads = com.max_thread - omp_get_num_threads();
+#pragma omp parallel for schedule(static) collapse(3) num_threads(available_threads) if (available_threads > 1)
+#endif
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w / 2; x++) {  // Only loop over half the width
+                for (int dd = 0; dd < d; dd++) {
+                    // Swap elements in place between (x, y) and (w-x-1, h-y-1)
+                    std::swap((*this)(x, y, dd), (*this)(w - x - 1, h - y - 1, dd));
+                }
+            }
+        }
+    }
+
     template <typename T2>
     void flip(const img_t<T2>&o) {
         assert(o.similar(*this));
@@ -840,6 +855,7 @@ public:
         }
 #endif
     }
+
     void fft(const img_t<std::complex<float> >& o) {
         static_assert(std::is_same<T, std::complex<float>>::value, "T must be complex float");
         assert(w == o.w);

@@ -71,8 +71,8 @@ namespace deconvolve {
         x.map(img::real(G));
     }
 
-        template <typename T>
-    void rl_deconvolve_fft(img_t<T>& x, const img_t<T>& f, const img_t<T>& K, T lambda, int maxiter, T stopcriterion, int regtype, float stepsize, int stopcriterion_active) {
+    template <typename T>
+    void rl_deconvolve_fft(img_t<T>& x, const img_t<T>& f, img_t<T>& K, T lambda, int maxiter, T stopcriterion, int regtype, float stepsize, int stopcriterion_active) {
         assert(K.w % 2);
         assert(K.h % 2);
         x = f;
@@ -88,10 +88,9 @@ namespace deconvolve {
         // Flip K and generate OTF
         img_t<std::complex<T>> Kflip_otf(f.w, f.h, f.d);
         {
-            img_t<T> Kf(K.w, K.h, K.d);
-            Kf.flip(K);
-            Kflip_otf.padcirc(Kf);
-            Kflip_otf.map(Kflip_otf * std::complex<T>(Kf.d) / Kf.sum());
+            K.flip();
+            Kflip_otf.padcirc(K);
+            Kflip_otf.map(Kflip_otf * std::complex<T>(K.d) / K.sum());
             Kflip_otf.fft(Kflip_otf);
         }
         img_t<std::complex<T>> est(f.w, f.h, f.d);
@@ -99,66 +98,56 @@ namespace deconvolve {
         img_t<std::complex<T>> ratio(f.w, f.h, f.d);
         ratio.map(est);
         float reallambda = 1.f / lambda; // For consistency with other algorithms
-        img_t<T> gxx(f.w, f.h, f.d);
-        img_t<T> gxy(f.w, f.h, f.d);
-        img_t<T> gyy(f.w, f.h, f.d);
         for (int iter = 0 ; iter < maxiter ; iter++) {
             if (!get_thread_run())
                 continue;
             w.map(img::real(est));
             if (regtype == 0 || regtype == 3) {
-                // Calculate TV regularization weighting
-                gxx.gradientx(w); // Use gxx, the name isn't quite appropriate but it
-                                 // saves having to make img_ts within the loop
-                gxx.sanitize(); // Avoid div/0
-                gyy.gradienty(w);
-                gyy.sanitize(); // Avoid div/0
-                w.map(img::hypot(gxx, gyy)); // |grad(w)|
-                gxx.map(gxx / w); // Together these 2 lines make gx, gy hold the
-                gyy.map(gyy / w); // components of grad(est)
-                w.divergence(gxx, gyy); // w now holds div(grad(est) / |grad(est)|)
+                // Calculate TV weighting
+                auto dx = gradientx(w);
+                auto dy = gradienty(w);
+                auto eps = std::numeric_limits<T>::epsilon();
+                auto mag = img::hypot(dx, dy) + eps;
+                w = to_img(divergence((dx / mag), (dy / mag))); // w now holds div(grad(est) / |grad(est)|)
             } else if (regtype == 1 || regtype == 4) {
                 // Calculate Frobenius-Hessian weighting
-                gxx.gradientxx(w);
-                gxx.sanitize(); // Avoid div/0
-                auto gxxsq = gxx * gxx;
-                gxy.gradientxy(w);
-                gxy.sanitize();
-                auto twogxysq = T(2) * (gxy * gxy);
-                gyy.gradientyy(w);
-                gyy.sanitize();
-                auto gyysq = gyy * gyy;
-                auto gsum = gxxsq + (twogxysq + gyysq);
-                w.map(img::pow(gsum, T(0.5)));
+                auto dxx = gradientxx(w);
+                auto dxxsq = dxx * dxx;
+                auto dxy = gradientxy(w);
+                auto twodxysq = T(2) * (dxy * dxy);
+                auto dyy = gradientyy(w);
+                auto dyysq = dyy * dyy;
+                auto dsum = dxxsq + (twodxysq + dyysq);
+                w = to_img(img::sqrt(dsum));
             }
 
             // Richardson-Lucy iteration
             ratio.fft(est);
-            ratio.map(ratio * K_otf); // convolve
+            ratio = to_img(ratio * K_otf); // convolve
             ratio.ifft(ratio); // denominator
             ratio.sanitize();
-            ratio.map(f / ratio); // divide
+            ratio = to_img(f / ratio); // divide
             ratio.fft(ratio);
-            ratio.map(ratio * Kflip_otf); // correlate (convolve with flip)
+            ratio = to_img(ratio * Kflip_otf); // correlate (convolve with flip)
             ratio.ifft(ratio);
-            gxy.map(img::real(est)); // From here on, gxy is used for the stopping criterion
+            auto stopcrit = img::real(est);
             T dt = T(stepsize);
             switch (regtype) {
                 case 5: // 5 and 4 are multiplicative RL with FH and TV reg
-                    est.map(ratio * est); // Basic multiplicative R-L: multiply old estimate by ratio and regularization factor to get new estimate
+                    est = to_img(ratio * est); // Basic multiplicative R-L: multiply old estimate by ratio and regularization factor to get new estimate
                     dt = T(1.);
                     break;
                 case 4:
                 case 3:
-                    est.map(ratio * est * (T(1) / (T(1) - reallambda * w))); // Multiply old estimate by ratio and regularization factor to get new estimate
+                    est = to_img(ratio * est * (T(1) / (T(1) - reallambda * w))); // Multiply old estimate by ratio and regularization factor to get new estimate
                     dt = T(1.);
                     break;
                 case 2:
-                    est.map(est + dt * (T(-1) + ratio)); // Basic additive gradient-descent form, no regularization
+                    est = to_img(est + dt * (T(-1) + ratio)); // Basic additive gradient-descent form, no regularization
                     break;
                 case 1: // FH, additive gradient descent
                 case 0:
-                    est.map(est + dt * (T(-1) + (reallambda * w) + ratio)); // TV, additive gradient-descent form
+                    est = to_img(est + dt * (T(-1) + (reallambda * w) + ratio)); // TV, additive gradient-descent form
                     break;
                 default:
                     break;
@@ -167,8 +156,8 @@ namespace deconvolve {
                 set_progress_bar_data(_("Richardson-Lucy deconvolution..."), (static_cast<float>(iter + 1) / static_cast<float>(maxiter)));
             if (stopcriterion_active == 1) {
                 // Stopping criterion?
-                gxy.map((img::abs(img::real(est) - gxy)) / img::abs(gxy));
-                T stopping = gxy.sum() / gxy.size;
+                auto stopmeasure = (img::abs(img::real(est) - stopcrit) / img::abs(stopcrit));
+                T stopping = (to_img(stopmeasure)).sum() / stopmeasure.size;
                 if (stopping < stopcriterion) {
                     char msg[100];
                     sprintf(msg, "%s %d\n", _("Richardson-Lucy halted early by the stopping criterion after iteration"), iter+1);
@@ -177,7 +166,7 @@ namespace deconvolve {
                 }
             }
         }
-        x.map(img::real(est)); // x needs to be real
+        x = to_img(img::real(est)); // x needs to be real
     }
 
     template <typename T>

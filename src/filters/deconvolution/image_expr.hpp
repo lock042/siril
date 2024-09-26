@@ -369,6 +369,7 @@ namespace img {
     DEFINE_FUNC_1(log1p, std::log1p)
     DEFINE_FUNC_1(exp, std::exp)
     DEFINE_FUNC_1(expm1, std::expm1)
+    DEFINE_FUNC_1(sqrt, std::sqrt)
     DEFINE_FUNC_2(pow, std::pow)
     // Rounding, comparison etc.
     DEFINE_FUNC_1(ceil, std::ceil)
@@ -621,4 +622,246 @@ template <typename E>
 auto reduce_d(const E& e, std::function<typename E::value_type(typename E::value_type, typename E::value_type)> reductor)
 {
     return reduce1_img_expr_t<decltype(to_expr(e))>(to_expr(e), reductor);
+}
+
+template <typename E>
+class gradientx_img_expr_t : public img_expr_t<typename E::value_type> {
+public:
+    using T = typename E::value_type;
+    E e;
+    int size, w, h, d;
+
+    gradientx_img_expr_t(const E& e) : e(e), size(e.size), w(e.w), h(e.h), d(e.d) {}
+
+    T operator[](int i) const {
+        int z = i % d;
+        int xy = i / d;
+        int x = xy % w;
+        int y = xy / w;
+
+        if (x == w - 1) {
+            return T(0);
+        } else {
+            int current_idx = i;
+            int next_idx = z + d * ((x + 1) + w * y);
+            return e[next_idx] - e[current_idx];
+        }
+    }
+
+    template <typename E2>
+    bool similar(const E2& o) const {
+        return e.similar(o);
+    }
+};
+
+// Function to create a gradientx expression
+template <typename E>
+auto gradientx(const E& e) {
+    return gradientx_img_expr_t<decltype(to_expr(e))>(to_expr(e));
+}
+
+template <typename E>
+class gradienty_img_expr_t : public img_expr_t<typename E::value_type> {
+public:
+    using T = typename E::value_type;
+    E e;
+    int size, w, h, d;
+
+    gradienty_img_expr_t(const E& e) : e(e), size(e.size), w(e.w), h(e.h), d(e.d) {}
+
+    T operator[](int i) const {
+        int z = i % d;
+        int xy = i / d;
+        int x = xy % w;
+        int y = xy / w;
+
+        if (y == h - 1) {
+            return T(0);  // Handle the edge case when at the bottom-most row
+        } else {
+            int current_idx = i;
+            int next_idx = z + d * (x + w * (y + 1));  // Move to the next row in the same column
+            return e[next_idx] - e[current_idx];
+        }
+    }
+
+    template <typename E2>
+    bool similar(const E2& o) const {
+        return e.similar(o);
+    }
+};
+
+// Function to create a gradienty expression
+template <typename E>
+auto gradienty(const E& e) {
+    return gradienty_img_expr_t<decltype(to_expr(e))>(to_expr(e));
+}
+
+template <typename GX, typename GY>
+class divergence_img_expr_t : public img_expr_t<typename GX::value_type> {
+public:
+    using T = typename GX::value_type;
+    GX gx;
+    GY gy;
+    int w, h, d;
+
+    divergence_img_expr_t(const GX& gx, const GY& gy)
+        : gx(gx), gy(gy), w(gx.w), h(gx.h), d(gx.d) {}
+
+    // Compute divergence at the index i (flattened)
+    T operator[](int i) const {
+        int z = i % d;
+        int xy = i / d;
+        int x = xy % w;
+        int y = xy / w;
+
+        // Convert 3D coordinates to 1D indices
+        int idx = z + d * (x + w * y);           // Current pixel
+        int idx_xm1 = z + d * ((x - 1) + w * y); // (x-1, y)
+        int idx_ym1 = z + d * (x + w * (y - 1)); // (x, y-1)
+
+        if (x == 0 && y == 0) {
+            return gx[z] + gy[z];  // Top-left corner
+        } else if (x == w - 1 && y == 0) {
+            return -gx[z + d * (w - 2)] + gy[z + d * (w - 1)];  // Top-right corner
+        } else if (x == 0 && y == h - 1) {
+            return gx[z + d * (h - 1)] - gy[z + d * (h - 2)];  // Bottom-left corner
+        } else if (x == w - 1 && y == h - 1) {
+            return -gx[z + d * (w - 2 + w * (h - 1))] - gy[z + d * (w - 1 + w * (h - 2))];  // Bottom-right corner
+        } else if (x == 0) {
+            return gx[idx] + gy[idx] - gy[idx_ym1];  // Left edge
+        } else if (y == 0) {
+            return gx[idx] - gx[idx_xm1] + gy[idx];  // Top edge
+        } else if (x == w - 1) {
+            return -gx[z + d * (w - 2 + w * y)] + gy[idx] - gy[idx_ym1];  // Right edge
+        } else if (y == h - 1) {
+            return gx[idx] - gx[idx_xm1] - gy[z + d * (x + w * (h - 2))];  // Bottom edge
+        } else {
+            return gx[idx] - gx[idx_xm1] + gy[idx] - gy[idx_ym1];  // Interior
+        }
+    }
+
+    template <typename E2>
+    bool similar(const E2& o) const {
+        return gx.similar(o) && gy.similar(o);
+    }
+};
+
+// Function to create a divergence expression
+template <typename GX, typename GY>
+auto divergence(const GX& gx, const GY& gy) {
+    return divergence_img_expr_t<decltype(to_expr(gx)), decltype(to_expr(gy))>(
+        to_expr(gx), to_expr(gy)
+    );
+}
+
+template <typename E>
+class gradientxx_img_expr_t : public img_expr_t<typename E::value_type> {
+public:
+    using T = typename E::value_type;
+    E e;
+    int size, w, h, d;
+
+    gradientxx_img_expr_t(const E& e) : e(e), size(e.size), w(e.w), h(e.h), d(e.d) {}
+
+    T operator[](int i) const {
+        int z = i % d;
+        int xy = i / d;
+        int x = xy % w;
+        int y = xy / w;
+
+        if (x == 0 || x == w - 1) {
+            return T(0);  // Handle boundary cases where no second derivative can be computed
+        } else {
+            int left_idx = z + d * ((x - 1) + w * y);
+            int current_idx = z + d * (x + w * y);
+            int right_idx = z + d * ((x + 1) + w * y);
+            return e[right_idx] - 2 * e[current_idx] + e[left_idx];
+        }
+    }
+
+    template <typename E2>
+    bool similar(const E2& o) const {
+        return e.similar(o);
+    }
+};
+
+// Function to create a gradientxx expression
+template <typename E>
+auto gradientxx(const E& e) {
+    return gradientxx_img_expr_t<decltype(to_expr(e))>(to_expr(e));
+}
+
+template <typename E>
+class gradientyy_img_expr_t : public img_expr_t<typename E::value_type> {
+public:
+    using T = typename E::value_type;
+    E e;
+    int size, w, h, d;
+
+    gradientyy_img_expr_t(const E& e) : e(e), size(e.size), w(e.w), h(e.h), d(e.d) {}
+
+    T operator[](int i) const {
+        int z = i % d;
+        int xy = i / d;
+        int x = xy % w;
+        int y = xy / w;
+
+        if (y == 0 || y == h - 1) {
+            return T(0);  // Handle boundary cases where no second derivative can be computed
+        } else {
+            int top_idx = z + d * (x + w * (y - 1));
+            int current_idx = z + d * (x + w * y);
+            int bottom_idx = z + d * (x + w * (y + 1));
+            return e[bottom_idx] - 2 * e[current_idx] + e[top_idx];
+        }
+    }
+
+    template <typename E2>
+    bool similar(const E2& o) const {
+        return e.similar(o);
+    }
+};
+
+// Function to create a gradientyy expression
+template <typename E>
+auto gradientyy(const E& e) {
+    return gradientyy_img_expr_t<decltype(to_expr(e))>(to_expr(e));
+}
+
+template <typename E>
+class gradientxy_img_expr_t : public img_expr_t<typename E::value_type> {
+public:
+    using T = typename E::value_type;
+    E e;
+    int size, w, h, d;
+
+    gradientxy_img_expr_t(const E& e) : e(e), size(e.size), w(e.w), h(e.h), d(e.d) {}
+
+    T operator[](int i) const {
+        int z = i % d;
+        int xy = i / d;
+        int x = xy % w;
+        int y = xy / w;
+
+        if (x == 0 || x == w - 1 || y == 0 || y == h - 1) {
+            return T(0);  // Handle boundary cases where no second derivative can be computed
+        } else {
+            int top_left_idx = z + d * ((x - 1) + w * (y - 1));
+            int top_right_idx = z + d * ((x + 1) + w * (y - 1));
+            int bottom_left_idx = z + d * ((x - 1) + w * (y + 1));
+            int bottom_right_idx = z + d * ((x + 1) + w * (y + 1));
+            return (e[bottom_right_idx] - e[top_right_idx]) - (e[bottom_left_idx] - e[top_left_idx]);
+        }
+    }
+
+    template <typename E2>
+    bool similar(const E2& o) const {
+        return e.similar(o);
+    }
+};
+
+// Function to create a gradientxy expression
+template <typename E>
+auto gradientxy(const E& e) {
+    return gradientxy_img_expr_t<decltype(to_expr(e))>(to_expr(e));
 }
