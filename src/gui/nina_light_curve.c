@@ -54,35 +54,35 @@ static void update_values() {
 	if (com.pref.phot_set.ape_strat == FIXED_AP) {
 		radius_label = "Aperture radius (px):";
 		gtk_label_set_text(GTK_LABEL(apert), radius_label);
-		gtk_entry_set_text(GTK_ENTRY(apert_value), g_strdup_printf("%1.1lf", com.pref.phot_set.aperture));
+		gtk_entry_set_text(GTK_ENTRY(apert_value), g_strdup_printf("%0.0lf", com.pref.phot_set.aperture));
 		inner_label = "Inner radius (px):";
 		gtk_label_set_text(GTK_LABEL(inn), inner_label);
-		gtk_entry_set_text(GTK_ENTRY(inner_value), g_strdup_printf("%1.1lf", com.pref.phot_set.inner));
+		gtk_entry_set_text(GTK_ENTRY(inner_value), g_strdup_printf("%0.0lf", com.pref.phot_set.inner));
 		outer_label = "Outer radius (px):";
 		gtk_label_set_text(GTK_LABEL(oute), outer_label);
-		gtk_entry_set_text(GTK_ENTRY(outer_value), g_strdup_printf("%1.1lf", com.pref.phot_set.outer));
+		gtk_entry_set_text(GTK_ENTRY(outer_value), g_strdup_printf("%0.0lf", com.pref.phot_set.outer));
 	}
 	else if (com.pref.phot_set.ape_strat == FWHM_VAR) {
 		radius_label = "Aperture/half-FWHM ratio:";
 		gtk_label_set_text(GTK_LABEL(apert), radius_label);
-		gtk_entry_set_text(GTK_ENTRY(apert_value), g_strdup_printf("%1.1lf", com.pref.phot_set.auto_aperture_factor));
+		gtk_entry_set_text(GTK_ENTRY(apert_value), g_strdup_printf("%0.2lf", com.pref.phot_set.auto_aperture_factor));
 		inner_label = "Inner/half-FWHM ratio:";
 		gtk_label_set_text(GTK_LABEL(inn), inner_label);
-		gtk_entry_set_text(GTK_ENTRY(inner_value), g_strdup_printf("%1.1lf", com.pref.phot_set.auto_inner_factor));
+		gtk_entry_set_text(GTK_ENTRY(inner_value), g_strdup_printf("%0.2lf", com.pref.phot_set.auto_inner_factor));
 		outer_label = "Outer/half-FWHM ratio:";
 		gtk_label_set_text(GTK_LABEL(oute), outer_label);
-		gtk_entry_set_text(GTK_ENTRY(outer_value), g_strdup_printf("%1.1lf", com.pref.phot_set.auto_outer_factor));
+		gtk_entry_set_text(GTK_ENTRY(outer_value), g_strdup_printf("%0.2lf", com.pref.phot_set.auto_outer_factor));
 	}
 	else if (com.pref.phot_set.ape_strat == FLUX_CUT) {
 		radius_label = "Flux Cut rate (%%):";
 		gtk_label_set_text(GTK_LABEL(apert), radius_label);
-		gtk_entry_set_text(GTK_ENTRY(apert_value), g_strdup_printf("%1.1lf", com.pref.phot_set.flux_cut_factor));
+		gtk_entry_set_text(GTK_ENTRY(apert_value), g_strdup_printf("%0.1lf", com.pref.phot_set.flux_cut_factor));
 		inner_label = "Inner/Aperture ratio:";
 		gtk_label_set_text(GTK_LABEL(inn), inner_label);
-		gtk_entry_set_text(GTK_ENTRY(inner_value), g_strdup_printf("%1.3lf", com.pref.phot_set.flux_inner_factor));
+		gtk_entry_set_text(GTK_ENTRY(inner_value), g_strdup_printf("%0.2lf", com.pref.phot_set.flux_inner_factor));
 		outer_label = "Outer/Aperture ratio:";
 		gtk_label_set_text(GTK_LABEL(oute), outer_label);
-		gtk_entry_set_text(GTK_ENTRY(outer_value), g_strdup_printf("%1.3lf", com.pref.phot_set.flux_outer_factor));
+		gtk_entry_set_text(GTK_ENTRY(outer_value), g_strdup_printf("%0.2lf", com.pref.phot_set.flux_outer_factor));
 	}
 	
 }

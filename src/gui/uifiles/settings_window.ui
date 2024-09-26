@@ -2735,7 +2735,7 @@ Note: the values 1%/1.7/2.625 give a good starting point as described in AIJ.</p
                                 <property name="input-purpose">number</property>
                                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                 <property name="adjustment">adjfluxcut</property>
-                                <property name="digits">2</property>
+                                <property name="digits">1</property>
                                 <property name="numeric">True</property>
                                 <property name="value">1</property>
                               </object>
@@ -2755,7 +2755,6 @@ Note: the values 1%/1.7/2.625 give a good starting point as described in AIJ.</p
                                 <property name="input-purpose">number</property>
                                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                 <property name="adjustment">adjInner</property>
-                                <property name="digits">2</property>
                                 <property name="numeric">True</property>
                                 <property name="value">20</property>
                               </object>
@@ -2775,7 +2774,6 @@ Note: the values 1%/1.7/2.625 give a good starting point as described in AIJ.</p
                                 <property name="input-purpose">number</property>
                                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                 <property name="adjustment">adjOuter</property>
-                                <property name="digits">2</property>
                                 <property name="numeric">True</property>
                                 <property name="value">30</property>
                               </object>
@@ -2815,7 +2813,6 @@ Note: the values 1%/1.7/2.625 give a good starting point as described in AIJ.</p
                                 <property name="input-purpose">number</property>
                                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                 <property name="adjustment">adjFlux</property>
-                                <property name="digits">2</property>
                                 <property name="numeric">True</property>
                                 <property name="value">20</property>
                               </object>
@@ -2869,16 +2866,14 @@ Note: the values 1%/1.7/2.625 give a good starting point as described in AIJ.</p
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="tooltip-text" translatable="yes">Inner_Radius/Aperture_Radius.
-Default value set to 1.75 times the Aperture Radius.
-Not modifiable by user.</property>
+Good value is 1.75 times the Aperture Radius.</property>
                                 <property name="halign">start</property>
-                                <property name="editable">False</property>
                                 <property name="max-width-chars">7</property>
                                 <property name="text">1.75</property>
                                 <property name="input-purpose">number</property>
                                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                 <property name="adjustment">adjfluIn</property>
-                                <property name="digits">3</property>
+                                <property name="digits">2</property>
                                 <property name="numeric">True</property>
                                 <property name="value">1.75</property>
                               </object>
@@ -2892,16 +2887,15 @@ Not modifiable by user.</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="tooltip-text" translatable="yes">Outer_Radius/Aperture_Radius.
-Default value set to 1.5 times the Inner Radius. (or 2.625 times the aperture).
+Good value is 1.5 times the Inner Radius. (or 2.625 times the aperture).
 Not modifiable by user.</property>
                                 <property name="halign">start</property>
-                                <property name="editable">False</property>
                                 <property name="max-width-chars">7</property>
                                 <property name="text">2.625</property>
                                 <property name="input-purpose">number</property>
                                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                 <property name="adjustment">adjfluOut</property>
-                                <property name="digits">3</property>
+                                <property name="digits">2</property>
                                 <property name="numeric">True</property>
                                 <property name="value">3.25</property>
                               </object>
