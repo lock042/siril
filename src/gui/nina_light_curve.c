@@ -179,7 +179,6 @@ static void build_the_dialog() {
 	inner_value = gtk_entry_new();
 	outer_value = gtk_entry_new();
 
-	update_values();	// Retrieve the raddi and labels to be displayed
 	/* Fill the 1st box */
 	/* The label */
 	apert = gtk_label_new(radius_label);	// The label depends on the choosen Aperture Strategy
@@ -224,6 +223,8 @@ static void build_the_dialog() {
 	g_object_set(G_OBJECT(outer_value), "margin-top", 0, NULL);
 	gtk_widget_set_halign(outer_value, GTK_ALIGN_START);
 	gtk_container_add(GTK_CONTAINER(outer_box), outer_value);
+
+	update_values();	// Retrieve the raddi and labels to be displayed
 
 	/* Fill the 4th box */
 	/* The label */
