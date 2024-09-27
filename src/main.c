@@ -231,7 +231,7 @@ static void global_initialization() {
 #endif
 
 #ifdef _OPENMP
-	omp_set_nested(TRUE);
+	omp_set_max_active_levels(2);
 #endif
 
 }
