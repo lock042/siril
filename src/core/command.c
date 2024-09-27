@@ -2776,7 +2776,7 @@ int process_ls(int nb){
 }
 
 int process_merge(int nb) {
-	int retval = 0, nb_seq = nb - 2;
+	int retval = 0, nb_seq = nb - 2, c = 1;
 	if (!com.wd) {
 		siril_log_message(_("Merge: no working directory set.\n"));
 		set_cursor_waiting(FALSE);
@@ -2846,7 +2846,6 @@ int process_merge(int nb) {
 	switch (seqs[0]->type) {
 		case SEQ_REGULAR:
 			/* First, check for lst files if any */
-			int c = 1;
 			for (GList *l = list; l != NULL; l = l->next, c++) {
 				gchar *lst_file = replace_ext((gchar*) l->data, ".lst");
 				if (!g_file_test(lst_file, G_FILE_TEST_EXISTS)) {
