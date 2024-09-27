@@ -108,7 +108,7 @@ namespace deconvolve {
                 auto dy = gradienty(w);
                 auto eps = std::numeric_limits<T>::epsilon();
                 auto mag = img::hypot(dx, dy) + eps;
-                w = to_img(divergence((dx / mag), (dy / mag))); // w now holds div(grad(est) / |grad(est)|)
+                w.map(divergence((dx / mag), (dy / mag))); // w now holds div(grad(est) / |grad(est)|)
             } else if (regtype == 1 || regtype == 4) {
                 // Calculate Frobenius-Hessian weighting
                 auto dxx = gradientxx(w);
@@ -118,36 +118,36 @@ namespace deconvolve {
                 auto dyy = gradientyy(w);
                 auto dyysq = dyy * dyy;
                 auto dsum = dxxsq + (twodxysq + dyysq);
-                w = to_img(img::sqrt(dsum));
+                w.map(img::sqrt(dsum));
             }
 
             // Richardson-Lucy iteration
             ratio.fft(est);
-            ratio = to_img(ratio * K_otf); // convolve
+            ratio.map(ratio * K_otf); // convolve
             ratio.ifft(ratio); // denominator
             ratio.sanitize();
-            ratio = to_img(f / ratio); // divide
+            ratio.map(f / ratio); // divide
             ratio.fft(ratio);
-            ratio = to_img(ratio * Kflip_otf); // correlate (convolve with flip)
+            ratio.map(ratio * Kflip_otf); // correlate (convolve with flip)
             ratio.ifft(ratio);
             auto stopcrit = img::real(est);
             T dt = T(stepsize);
             switch (regtype) {
                 case 5: // 5 and 4 are multiplicative RL with FH and TV reg
-                    est = to_img(ratio * est); // Basic multiplicative R-L: multiply old estimate by ratio and regularization factor to get new estimate
+                    est.map(ratio * est); // Basic multiplicative R-L: multiply old estimate by ratio and regularization factor to get new estimate
                     dt = T(1.);
                     break;
                 case 4:
                 case 3:
-                    est = to_img(ratio * est * (T(1) / (T(1) - reallambda * w))); // Multiply old estimate by ratio and regularization factor to get new estimate
+                    est.map(ratio * est * (T(1) / (T(1) - reallambda * w))); // Multiply old estimate by ratio and regularization factor to get new estimate
                     dt = T(1.);
                     break;
                 case 2:
-                    est = to_img(est + dt * (T(-1) + ratio)); // Basic additive gradient-descent form, no regularization
+                    est.map(est + dt * (T(-1) + ratio)); // Basic additive gradient-descent form, no regularization
                     break;
                 case 1: // FH, additive gradient descent
                 case 0:
-                    est = to_img(est + dt * (T(-1) + (reallambda * w) + ratio)); // TV, additive gradient-descent form
+                    est.map(est + dt * (T(-1) + (reallambda * w) + ratio)); // TV, additive gradient-descent form
                     break;
                 default:
                     break;
@@ -166,7 +166,7 @@ namespace deconvolve {
                 }
             }
         }
-        x = to_img(img::real(est)); // x needs to be real
+        x.map(img::real(est)); // x needs to be real
     }
 
     template <typename T>
