@@ -395,7 +395,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 			Homography Hscale = { 0 }, Hshift = { 0 };
 			cvGetEye(&Hscale);
 			cvGetEye(&Hshift);
-			if (regargs->output_scale != 1.f) {
+			if (scale != 1.f && regargs->framing != FRAMING_MAX) {
 				Hscale.h00 = regargs->output_scale;
 				Hscale.h11 = regargs->output_scale;
 				cvApplyFlips(&Hscale, dst_ry / scale, dst_ry);
@@ -403,11 +403,19 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 			}
 			if (regargs->framing == FRAMING_MAX) {
 				Hshift = Hs;
+				Hshift.h02 /= scale;
+				Hshift.h12 /= scale;
 				Homography Href = regargs->framingd.Hshift;
 				cvMultH(Href, Hshift, &Hshift);
 				Hshift.h02 *= -1.;
-				Hshift.h12 += dst_ry - (double)fit->ry;
+				Hshift.h12 += (int)(dst_ry / scale)  - (double)fit->ry;
 				reframe_wcs(fit->keywords.wcslib, &Hshift);
+				if (scale != 1.f) {
+					Hscale.h00 = regargs->output_scale;
+					Hscale.h11 = regargs->output_scale;
+					cvApplyFlips(&Hscale, dst_ry / scale, dst_ry);
+					reframe_wcs(fit->keywords.wcslib, &Hscale);
+				}
 			}
 		}
 	}
@@ -916,6 +924,7 @@ int register_apply_reg(struct registration_args *regargs) {
 			H.h12 = (regargs->seq->is_variable) ? regargs->seq->imgparam[regargs->reference_image].ry : regargs->seq->ry;
 			reframe_wcs(regargs->wcsref, &H);
 		}
+		// we can't apply same for max framing as the individual image size is different from regargs->framingd.roi_out.h / scale
 		if (regargs->framing == FRAMING_MIN || regargs->framing == FRAMING_COG) {
 			Homography H = regargs->framingd.Hshift;
 			cvInvertH(&H);
