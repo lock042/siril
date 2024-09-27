@@ -729,8 +729,8 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 	if (copyright) {
 		TIFFSetField(tif, TIFFTAG_COPYRIGHT, copyright);
 	}
-	TIFFSetField(tif, TIFFTAG_MINSAMPLEVALUE, fit->mini);
-	TIFFSetField(tif, TIFFTAG_MAXSAMPLEVALUE, fit->maxi);
+	TIFFSetField(tif, TIFFTAG_MINSAMPLEVALUE, fit->type == DATA_FLOAT ? fit->mini * 65535.f : fit->mini);
+	TIFFSetField(tif, TIFFTAG_MAXSAMPLEVALUE, fit->type == DATA_FLOAT ? fit->maxi * 65535.f : fit->maxi);
 	TIFFSetField(tif, TIFFTAG_SOFTWARE, PACKAGE " v" VERSION);
 
 	gboolean src_is_float = (fit->type == DATA_FLOAT);
