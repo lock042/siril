@@ -2839,35 +2839,6 @@ int process_merge(int nb) {
 		siril_change_dir(dest_dir, NULL);	// they're all relative to this one
 	}
 
-	/* now, sequences are consistents. Let's check if lst files exist.
-	 * If yes, then let's merge them too.
-	 */
-	if (seqs[0]->type == SEQ_REGULAR) {
-		int c = 1;
-		for (GList *l = list; l != NULL; l = l->next, c++) {
-			gchar *lst_file = replace_ext((gchar*) l->data, ".lst");
-			if (!g_file_test(lst_file, G_FILE_TEST_EXISTS)) {
-				g_free(lst_file);
-				continue;
-			}
-
-			gchar *dest_file = g_strdup_printf("%s_%05d.lst", word[nb - 1], c);
-			GFile *source = g_file_new_for_path(lst_file);
-			GFile *destination = g_file_new_for_path(dest_file);
-			g_free(lst_file);
-			g_free(dest_file);
-
-			GError *error = NULL;
-			if (!g_file_copy(source, destination, G_FILE_COPY_OVERWRITE, NULL, NULL, NULL, &error)) {
-				siril_debug_print("Error in the file copy: %s\n", error->message);
-				g_clear_error(&error);
-			}
-
-			g_object_unref(source);
-			g_object_unref(destination);
-		}
-	}
-
 	struct ser_struct out_ser;
 	struct _convert_data *args = NULL;
 	fitseq out_fitseq;
