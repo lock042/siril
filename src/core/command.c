@@ -2776,7 +2776,7 @@ int process_ls(int nb){
 }
 
 int process_merge(int nb) {
-	int retval = 0, nb_seq = nb-2;
+	int retval = 0, nb_seq = nb - 2;
 	if (!com.wd) {
 		siril_log_message(_("Merge: no working directory set.\n"));
 		set_cursor_waiting(FALSE);
@@ -2791,9 +2791,8 @@ int process_merge(int nb) {
 	sequence **seqs = calloc(nb_seq, sizeof(sequence *));
 	GList *list = NULL;
 	for (int i = 0; i < nb_seq; i++) {
-		char *seqpath1 = strdup(word[i + 1]), *seqpath2 = strdup(word[i + 1]);
-		char *dir = g_path_get_dirname(seqpath1);
-		char *seqname = g_path_get_basename(seqpath2);
+		char *dir = g_path_get_dirname(word[i + 1]);
+		char *seqname = g_path_get_basename(word[i + 1]);
 #ifdef _WIN32
 		gchar **token = g_strsplit(dir, "/", -1);
 		g_free(dir);
@@ -2805,14 +2804,14 @@ int process_merge(int nb) {
 		if (!(seqs[i] = load_sequence(seqname, NULL))) {
 			siril_log_message(_("Could not open sequence `%s' for merging\n"), word[i + 1]);
 			retval = 1;
-			free(seqpath1); free(seqpath2);	g_free(seqname); g_free(dir);
+			g_free(seqname); g_free(dir);
 			goto merge_clean_up;
 		}
 		g_free(seqname);
 		if (seq_check_basic_data(seqs[i], FALSE) < 0) {
 			siril_log_message(_("Sequence `%s' is invalid, could not merge\n"), word[i + 1]);
 			retval = 1;
-			free(seqpath1); free(seqpath2); g_free(dir);
+			g_free(dir);
 			goto merge_clean_up;
 		}
 
@@ -2823,7 +2822,7 @@ int process_merge(int nb) {
 					seqs[i]->type != seqs[0]->type)) {
 			siril_log_message(_("All sequences must be the same format for merging. Sequence `%s' is different\n"), word[i + 1]);
 			retval = 1;
-			free(seqpath1); free(seqpath2); g_free(dir);
+			g_free(dir);
 			goto merge_clean_up;
 		}
 
@@ -2836,8 +2835,37 @@ int process_merge(int nb) {
 				list = g_list_append(list, g_build_filename(dir, filename, NULL));
 			}
 		}
-		free(seqpath1); free(seqpath2); g_free(dir);
+		g_free(dir);
 		siril_change_dir(dest_dir, NULL);	// they're all relative to this one
+	}
+
+	/* now, sequences are consistents. Let's check if lst files exist.
+	 * If yes, then let's merge them too.
+	 */
+	if (seqs[0]->type == SEQ_REGULAR) {
+		int c = 1;
+		for (GList *l = list; l != NULL; l = l->next, c++) {
+			gchar *lst_file = replace_ext((gchar*) l->data, ".lst");
+			if (!g_file_test(lst_file, G_FILE_TEST_EXISTS)) {
+				g_free(lst_file);
+				continue;
+			}
+
+			gchar *dest_file = g_strdup_printf("%s_%05d.lst", word[nb - 1], c);
+			GFile *source = g_file_new_for_path(lst_file);
+			GFile *destination = g_file_new_for_path(dest_file);
+			g_free(lst_file);
+			g_free(dest_file);
+
+			GError *error = NULL;
+			if (!g_file_copy(source, destination, G_FILE_COPY_OVERWRITE, NULL, NULL, NULL, &error)) {
+				siril_debug_print("Error in the file copy: %s\n", error->message);
+				g_clear_error(&error);
+			}
+
+			g_object_unref(source);
+			g_object_unref(destination);
+		}
 	}
 
 	struct ser_struct out_ser;
@@ -2846,7 +2874,34 @@ int process_merge(int nb) {
 	char *destroot;
 	switch (seqs[0]->type) {
 		case SEQ_REGULAR:
-			// use the conversion, it makes symbolic links or copies as a fallback
+			/* First, check for lst files if any */
+			int c = 1;
+			for (GList *l = list; l != NULL; l = l->next, c++) {
+				gchar *lst_file = replace_ext((gchar*) l->data, ".lst");
+				if (!g_file_test(lst_file, G_FILE_TEST_EXISTS)) {
+					g_free(lst_file);
+					/* at least one file is missing it is probably safer to stop here */
+					break;
+				}
+
+				gchar *dest_file = g_strdup_printf("%s_%05d.lst", word[nb - 1], c);
+				GFile *source = g_file_new_for_path(lst_file);
+				GFile *destination = g_file_new_for_path(dest_file);
+				g_free(lst_file);
+				g_free(dest_file);
+
+				GError *error = NULL;
+				if (!g_file_copy(source, destination, G_FILE_COPY_OVERWRITE, NULL, NULL, NULL, &error)) {
+					siril_debug_print("Error in the file copy: %s\n", error->message);
+					g_clear_error(&error);
+				}
+
+				g_object_unref(source);
+				g_object_unref(destination);
+			}
+
+			/* then copy the FITS files by using the conversion
+			 * it makes symbolic links or copies as a fallback */
 			destroot = strdup(word[nb - 1]);
 			args = calloc(1, sizeof(struct _convert_data));
 			args->start = 0;
