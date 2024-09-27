@@ -77,8 +77,6 @@ namespace deconvolve {
         assert(K.w % 2);
         assert(K.h % 2);
         x = f;
-        optimization::operators::gradient<T> gradient(f);
-        img_t<T> w(f.w, f.h, f.d);
 
         // Generate OTF of kernel
         img_t<std::complex<T>> K_otf(f.w, f.h, f.d);
@@ -100,6 +98,7 @@ namespace deconvolve {
         for (int iter = 0 ; iter < maxiter ; iter++) {
             if (!get_thread_run())
                 continue;
+            img_t<T> w(f.w, f.h, f.d);
             w.map(img::real(est));
             if (regtype == 0 || regtype == 3) {
                 // Calculate TV weighting
