@@ -24,6 +24,7 @@
 #include "image.hpp"
 #include "vec2.hpp"
 #include "optimization.hpp"
+#include "deconvolution.h"
 #include "fft.hpp"
 #include "utils.hpp"
 #include "core/siril.h"
@@ -72,7 +73,7 @@ namespace deconvolve {
     }
 
     template <typename T>
-    void rl_deconvolve_fft(img_t<T>& x, const img_t<T>& f, img_t<T>& K, T lambda, int maxiter, T stopcriterion, int regtype, float stepsize, int stopcriterion_active) {
+    void rl_deconvolve_fft(img_t<T>& x, const img_t<T>& f, img_t<T>& K, T lambda, int maxiter, T stopcriterion, regtype_t regtype, float stepsize, int stopcriterion_active) {
         assert(K.w % 2);
         assert(K.h % 2);
         x = f;
@@ -95,8 +96,6 @@ namespace deconvolve {
         }
         img_t<std::complex<T>> est(f.w, f.h, f.d);
         est.map(f);
-        img_t<std::complex<T>> ratio(f.w, f.h, f.d);
-        ratio.map(est);
         float reallambda = 1.f / lambda; // For consistency with other algorithms
         for (int iter = 0 ; iter < maxiter ; iter++) {
             if (!get_thread_run())
@@ -111,17 +110,20 @@ namespace deconvolve {
                 w.map(divergence((dx / mag), (dy / mag))); // w now holds div(grad(est) / |grad(est)|)
             } else if (regtype == 1 || regtype == 4) {
                 // Calculate Frobenius-Hessian weighting
-                auto dxx = gradientxx(w);
-                auto dxxsq = dxx * dxx;
-                auto dxy = gradientxy(w);
-                auto twodxysq = T(2) * (dxy * dxy);
-                auto dyy = gradientyy(w);
-                auto dyysq = dyy * dyy;
-                auto dsum = dxxsq + (twodxysq + dyysq);
-                w.map(img::sqrt(dsum));
+                auto gxx = gradientxx(w);
+                auto gxy = gradientxy(w);
+                auto gyy = gradientyy(w);
+                auto xxsq = img::pow(gxx, T(2)); // Avoid div/0
+                auto yysq = img::pow(gyy, T(2));
+                auto sumsq = to_img(xxsq + yysq); // We have to evaluate here or the compiler can't cope
+                                                  // with the complex unevaluated img_expr_t
+                auto sumgrads = img::fma(T(2), img::pow(gxy, T(2)), sumsq);
+                auto weight = img::sqrt(sumgrads);
+                w.map(weight);
+                w.sanitize();
             }
-
             // Richardson-Lucy iteration
+            img_t<std::complex<T>> ratio(f.w, f.h, f.d);
             ratio.fft(est);
             ratio.map(ratio * K_otf); // convolve
             ratio.ifft(ratio); // denominator
@@ -133,21 +135,21 @@ namespace deconvolve {
             auto stopcrit = img::real(est);
             T dt = T(stepsize);
             switch (regtype) {
-                case 5: // 5 and 4 are multiplicative RL with FH and TV reg
+                case REG_NONE_MULT:
                     est.map(ratio * est); // Basic multiplicative R-L: multiply old estimate by ratio and regularization factor to get new estimate
                     dt = T(1.);
                     break;
-                case 4:
-                case 3:
+                case REG_FH_MULT:
+                case REG_TV_MULT:
                     est.map(ratio * est * (T(1) / (T(1) - reallambda * w))); // Multiply old estimate by ratio and regularization factor to get new estimate
                     dt = T(1.);
                     break;
-                case 2:
+                case REG_NONE_GRAD:
                     est.map(est + dt * (T(-1) + ratio)); // Basic additive gradient-descent form, no regularization
                     break;
-                case 1: // FH, additive gradient descent
-                case 0:
-                    est.map(est + dt * (T(-1) + (reallambda * w) + ratio)); // TV, additive gradient-descent form
+                case REG_FH_GRAD:
+                case REG_TV_GRAD:
+                    est.map(est + dt * (T(-1) + (reallambda * w) + ratio));
                     break;
                 default:
                     break;
@@ -170,7 +172,7 @@ namespace deconvolve {
     }
 
     template <typename T>
-    void rl_deconvolve_naive(img_t<T>& x, const img_t<T>& f, const img_t<T>& K, T lambda, int maxiter, T stopcriterion, int regtype, float stepsize, int stopcriterion_active) {
+    void rl_deconvolve_naive(img_t<T>& x, const img_t<T>& f, const img_t<T>& K, T lambda, int maxiter, T stopcriterion, regtype_t regtype, float stepsize, int stopcriterion_active) {
         assert(K.w % 2);
         assert(K.h % 2);
         x = f;
@@ -219,18 +221,18 @@ namespace deconvolve {
             ratio.conv2(ratio, Kf); // convolve by flipped kernel
             T dt = T(stepsize);
             switch (regtype) {
-                case 5: // 5 and 4 are multiplicative RL with FH and TV reg
+                case REG_NONE_MULT: // 5 and 4 are multiplicative RL with FH and TV reg
                     x.map(ratio * x); // Basic multiplicative R-L: multiply old estimate by ratio and regularization factor to get new estimate
                     break;
-                case 4:
-                case 3:
+                case REG_FH_MULT:
+                case REG_TV_MULT:
                     x.map(ratio * x * (T(1) / (T(1) - reallambda * w))); // Multiply old estimate by ratio and regularization factor to get new estimate
                     break;
-                case 2:
+                case REG_NONE_GRAD:
                     x.map(x + dt * (T(-1) + ratio)); // Basic additive gradient-descent form, no regularization
                     break;
-                case 1: // FH, additive gradient descent
-                case 0:
+                case REG_FH_GRAD: // FH, additive gradient descent
+                case REG_TV_GRAD:
                     x.map(x + dt * (T(-1) + (reallambda * w) + ratio)); // TV, additive gradient-descent form
                     break;
                 default:

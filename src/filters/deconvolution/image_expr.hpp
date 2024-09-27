@@ -843,14 +843,15 @@ public:
         int x = xy % w;
         int y = xy / w;
 
-        if (x == 0 || x == w - 1 || y == 0 || y == h - 1) {
-            return T(0);  // Handle boundary cases where no second derivative can be computed
+        // Modify boundary handling to match the function
+        if (x == w - 1 || y == h - 1) {
+            return T(0);  // Handle boundary cases as in the gradientxy function
         } else {
-            int top_left_idx = z + d * ((x - 1) + w * (y - 1));
-            int top_right_idx = z + d * ((x + 1) + w * (y - 1));
-            int bottom_left_idx = z + d * ((x - 1) + w * (y + 1));
+            int top_left_idx = z + d * (x + w * y);
+            int top_right_idx = z + d * ((x + 1) + w * y);
+            int bottom_left_idx = z + d * (x + w * (y + 1));
             int bottom_right_idx = z + d * ((x + 1) + w * (y + 1));
-            return (e[bottom_right_idx] - e[top_right_idx]) - (e[bottom_left_idx] - e[top_left_idx]);
+            return e[bottom_right_idx] - e[top_right_idx] - e[bottom_left_idx] + e[top_left_idx];
         }
     }
 
@@ -864,4 +865,34 @@ public:
 template <typename E>
 auto gradientxy(const E& e) {
     return gradientxy_img_expr_t<decltype(to_expr(e))>(to_expr(e));
+}
+
+template <typename E>
+class sanitize_img_expr_t : public img_expr_t<typename E::value_type> {
+public:
+    using T = typename E::value_type;
+    E e;
+    int size, w, h, d;
+
+    sanitize_img_expr_t(const E& e) : e(e), size(e.size) {}
+
+    T operator[](int i) const {
+        T val = e[i];
+        // Check if the value is NaN or zero and replace it with 1e-9
+        if (val != val || val == T(0)) {
+            return T(1e-9);
+        }
+        return val;
+    }
+
+    template <typename E2>
+    bool similar(const E2& o) const {
+        return e.similar(o);
+    }
+};
+
+// Helper function to create the sanitize_img_expr_t expression
+template <typename E>
+auto sanitize(const E& e) {
+    return sanitize_img_expr_t<decltype(to_expr(e))>(to_expr(e));
 }
