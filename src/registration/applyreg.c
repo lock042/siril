@@ -395,27 +395,24 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 			Homography Hscale = { 0 }, Hshift = { 0 };
 			cvGetEye(&Hscale);
 			cvGetEye(&Hshift);
-			if (scale != 1.f && regargs->framing != FRAMING_MAX) {
-				Hscale.h00 = regargs->output_scale;
-				Hscale.h11 = regargs->output_scale;
-				cvApplyFlips(&Hscale, dst_ry / scale, dst_ry);
-				reframe_wcs(fit->keywords.wcslib, &Hscale);
-			}
 			if (regargs->framing == FRAMING_MAX) {
 				Hshift = Hs;
+				// Hshift is the correction at full scale, we need to de-scale it
 				Hshift.h02 /= scale;
 				Hshift.h12 /= scale;
 				Homography Href = regargs->framingd.Hshift;
 				cvMultH(Href, Hshift, &Hshift);
 				Hshift.h02 *= -1.;
-				Hshift.h12 += (int)(dst_ry / scale)  - (double)fit->ry;
+				// we use (int)(dst_ry / scale) to find the projected area origin size unscaled
+				// we also need to recast fit->ry bec. it's a uint
+				Hshift.h12 += (double)(int)(dst_ry / scale) - (double)fit->ry; 
 				reframe_wcs(fit->keywords.wcslib, &Hshift);
-				if (scale != 1.f) {
-					Hscale.h00 = regargs->output_scale;
-					Hscale.h11 = regargs->output_scale;
-					cvApplyFlips(&Hscale, dst_ry / scale, dst_ry);
-					reframe_wcs(fit->keywords.wcslib, &Hscale);
-				}
+			}
+			if (scale != 1.f) {
+				Hscale.h00 = regargs->output_scale;
+				Hscale.h11 = regargs->output_scale;
+				cvApplyFlips(&Hscale, dst_ry / scale, dst_ry);
+				reframe_wcs(fit->keywords.wcslib, &Hscale);
 			}
 		}
 	}
