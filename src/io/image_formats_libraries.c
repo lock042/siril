@@ -692,8 +692,6 @@ int savetif(const char *name, fits *fit, uint16_t bitspersample,
 	if (copyright) {
 		TIFFSetField(tif, TIFFTAG_COPYRIGHT, copyright);
 	}
-	TIFFSetField(tif, TIFFTAG_MINSAMPLEVALUE, fit->mini);
-	TIFFSetField(tif, TIFFTAG_MAXSAMPLEVALUE, fit->maxi);
 	TIFFSetField(tif, TIFFTAG_SOFTWARE, PACKAGE " v" VERSION);
 
 	if (nsamples == 1) {
