@@ -596,9 +596,15 @@ void asinh_activate(GSimpleAction *action, GVariant *parameter, gpointer user_da
 void epf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("epf_dialog");
 }
+
+void unpurple_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+        siril_open_dialog("unpurple_dialog");
+}
+
 void starnet_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("starnet_dialog");
 }
+
 void deconvolution_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_open_dialog("bdeconv_dialog");
 }

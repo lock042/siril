@@ -73,6 +73,7 @@ const char* ui_files[] = {
 	"/org/siril/ui/starnet_dialog.ui",
 	"/org/siril/ui/stars_list_window.ui",
 	"/org/siril/ui/StatWindow.ui",
+	"/org/siril/ui/unpurple_dialog.ui",
 	"/org/siril/ui/wavelets_dialog.ui",
 // Main application window
 	"/org/siril/ui/siril.ui",
