@@ -803,7 +803,7 @@ int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,
 			if (status) break;
 			int status2 = 0;
 			fits_read_key(fptr, TDOUBLE, "DATAMAX", &data_max, NULL, &status2);
-			if (status2 == KEY_NO_EXIST) {
+			if (status2 == KEY_NO_EXIST && nbdata > 3) {
 				data_max = 0.;
 				for (size_t i = 0; i < nbdata; i += nbdata / 3) { // we check the 3 pixels in diagonal and hope for the best not all will be null...
 					data_max = max(data_max, ((float *)dest)[i]);
