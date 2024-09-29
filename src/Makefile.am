@@ -211,6 +211,8 @@ siril_common_SOURCES = \
 	filters/starnet.h \
 	filters/synthstar.c \
 	filters/synthstar.h \
+	filters/unpurple.c \
+	filters/unpurple.h \
 	filters/wavelets.c \
 	filters/wavelets.h \
 	filters/da3d/DA3D.cpp \
@@ -343,6 +345,8 @@ siril_common_SOURCES = \
 	gui/starnetgui.c \
 	gui/starnetgui.h \
 	gui/statistics_list.c \
+	gui/unpurple.c \
+	gui/unpurple.h \
 	gui/utils.c \
 	gui/utils.h \
 	io/annotation_catalogues.c \

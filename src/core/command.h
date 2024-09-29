@@ -244,6 +244,7 @@ int	process_tilt(int nb);
 int	process_trixel(int nb);
 
 int	process_unclip(int nb);
+int	process_unpurple(int nb);
 int	process_unset_mag(int nb);
 int	process_unset_mag_seq(int nb);
 int	process_unselect(int nb);
