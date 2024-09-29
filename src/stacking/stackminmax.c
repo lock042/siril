@@ -278,6 +278,7 @@ static int stack_addminmax(struct stacking_args *args, gboolean ismax) {
 		siril_debug_print("size: %d %d\n", orig_rx, orig_ry);
 		cvApplyFlips(&Hs, orig_ry, 0);
 		reframe_wcs(result->keywords.wcslib, &Hs);
+		update_wcsdata_from_wcs(result);
 	}
 
 	compute_date_time_keywords(list_date, result);

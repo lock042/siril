@@ -310,6 +310,7 @@ int stack_summing_generic(struct stacking_args *stackargs) {
 		siril_debug_print("size: %d %d\n", orig_rx, orig_ry);
 		cvApplyFlips(&Hs, orig_ry, 0);
 		reframe_wcs(result->keywords.wcslib, &Hs);
+		update_wcsdata_from_wcs(result);
 	}
 	free(ssdata);
 	return args->retval;

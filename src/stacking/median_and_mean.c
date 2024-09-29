@@ -196,6 +196,7 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 			// siril_debug_print("size: %d %d\n", orig_rx, orig_ry);
 			cvApplyFlips(&Hs, orig_ry, naxes[1]);
 			reframe_wcs(fit->keywords.wcslib, &Hs);
+			update_wcsdata_from_wcs(fit);
 		}
 	}
 	else if (args->seq->type == SEQ_SER) {
