@@ -58,6 +58,10 @@ void free_wcs(fits *fit) {
 }
 
 wcsprm_t *wcs_deepcopy(wcsprm_t *wcssrc, int *status) {
+	if (status)
+		*status = 1;
+	if (!wcssrc)
+		return NULL;
 	wcsprm_t *wcsdst = NULL;
 	int axes[2], nsub;
 	nsub = 2;

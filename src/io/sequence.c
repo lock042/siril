@@ -2126,7 +2126,7 @@ struct wcsprm *get_wcs_ref(sequence *seq) {
 		return NULL;
 	struct wcsprm *wcsref = NULL;
 	int refimage = sequence_find_refimage(seq);
-	if (check_seq_is_comseq(seq) && seq->current == refimage) { // we are in GUI
+	if (check_seq_is_comseq(seq) && seq->current == refimage && has_wcs(&gfit)) { // we are in GUI
 		wcsref = wcs_deepcopy(gfit.keywords.wcslib, NULL);
 	} else { // we are in script or headless, loading the seq has loaded the ref image, we check if it has wcs info
 		fits ref = { 0 };
