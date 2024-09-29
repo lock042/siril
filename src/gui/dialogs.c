@@ -29,6 +29,7 @@
 #include "filters/clahe.h"
 #include "filters/median.h"
 #include "filters/saturation.h"
+#include "filters/unpurple.h"
 #include "filters/wavelets.h"
 
 #include "gui/newdeconv.h"
@@ -93,6 +94,7 @@ static const SirilDialogEntry entries[] =
 	{"starnet_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"stars_list_window", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"StatWindow", NULL, INFORMATION_DIALOG, FALSE, NULL},
+	{"unpurple_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_unpurple_cancel},
 	{"wavelets_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_wavelets_cancel}
 };
 

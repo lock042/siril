@@ -83,6 +83,7 @@
 #include "gui/registration_preview.h"
 #include "gui/script_menu.h"
 #include "gui/preferences.h"
+#include "gui/unpurple.h"
 #include "filters/asinh.h"
 #include "filters/banding.h"
 #include "filters/epf.h"
@@ -100,6 +101,7 @@
 #include "filters/scnr.h"
 #include "filters/starnet.h"
 #include "filters/synthstar.h"
+#include "filters/unpurple.h"
 #include "filters/wavelets.h"
 #include "algos/PSF.h"
 #include "algos/astrometry_solver.h"
@@ -1098,6 +1100,53 @@ int process_gauss(int nb){
 
 	char log[90];
 	sprintf(log, "Gaussian filtering, sigma: %.2f", sigma);
+	gfit.history = g_slist_append(gfit.history, strdup(log));
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+}
+
+int process_unpurple(int nb){
+	gchar *end;
+	double mod = 1.f, thresh = 0.f;
+	gboolean withstarmask = FALSE;
+	fits *fit = &gfit;
+	fits starmask = {0};
+
+	// Extract parameters
+	for (int i = 1 ; i < nb ; i++) {
+		gchar *arg = word[i];
+		if (!g_strcmp0(arg, "-starmask")) {
+			withstarmask = TRUE;
+		}
+		else if (g_str_has_prefix(arg, "-mod=")) {
+			gchar *val = arg + 5;
+			mod = g_ascii_strtod(val, &end);
+			if (end == val) {
+				siril_log_color_message(_("Invalid argument %s, aborting.\n"), "red", arg);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-thresh=")) {
+			gchar *val = arg + 8;
+			thresh = g_ascii_strtod(val, &end);
+			if (end == val) {
+				siril_log_color_message(_("Invalid argument %s, aborting.\n"), "red", arg);
+				return CMD_ARG_ERROR;
+			}
+		}
+	}
+
+	if (withstarmask) {
+		generate_binary_starmask(fit, &starmask, thresh);
+	}
+
+	struct unpurpleargs *args = calloc(1, sizeof(struct unpurpleargs));
+	*args = (struct unpurpleargs){.fit = fit, .starmask = &starmask, .withstarmask = withstarmask, .thresh = thresh, .mod_b = mod, .verbose = FALSE};
+
+	//start_in_new_thread(unpurplehandler, args);
+	unpurple_filter(args);
+
+	char log[90];
+	sprintf(log, "Unpurple mod: %.2f, threshold: %.2f, withstarmask: %d", mod, thresh, withstarmask);
 	gfit.history = g_slist_append(gfit.history, strdup(log));
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
