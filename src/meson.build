@@ -120,6 +120,7 @@ src_files = [
   'filters/scnr.c',
   'filters/starnet.c',
   'filters/synthstar.c',
+  'filters/unpurple.c',
   'filters/wavelets.c',
 
   'filters/da3d/DA3D.cpp',
@@ -252,6 +253,7 @@ src_files = [
   'gui/star_finder.c',
   'gui/starnetgui.c',
   'gui/statistics_list.c',
+  'gui/unpurple.c',
   'gui/utils.c',
 
   'pixelMath/pixel_math_runner.c',

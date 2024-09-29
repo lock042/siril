@@ -83,6 +83,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <file compressed="true" preprocess="xml-stripblanks" alias="starnet_dialog.ui">gui/uifiles/starnet_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="stars_list_window.ui">gui/uifiles/stars_list_window.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="StatWindow.ui">gui/uifiles/StatWindow.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="unpurple_dialog.ui">gui/uifiles/unpurple_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="wavelets_dialog.ui">gui/uifiles/wavelets_dialog.ui</file>
 
     <file compressed="true" preprocess="xml-stripblanks">pixmaps/arrow_left.svg</file>

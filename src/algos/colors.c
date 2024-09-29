@@ -375,6 +375,33 @@ void rgb_to_hsv(double r, double g, double b, double *h, double *s, double *v) {
 		*h += 1.0;
 }
 
+void rgb_to_hsvf(float r, float g, float b, float *h, float *s, float *v) {
+	float cmax, cmin, delta;
+
+	cmax = max(r, g);
+	cmax = max(cmax, b);
+	cmin = min(r, g);
+	cmin = min(cmin, b);
+	delta = cmax - cmin;
+	*v = cmax;
+	if (delta == 0.f) {
+		*s = 0.f;
+		*h = 0.f;
+		return;
+	}
+	*s = delta / cmax;
+
+	if (cmax == r)
+		*h = (((g - b) / delta)) / 6.f;
+	else if (cmax == g)
+		*h = (((b - r) / delta) + 2.f) / 6.f;
+	else
+		*h = (((r - g) / delta) + 4.f) / 6.f;
+
+	if (*h < 0.f)
+		*h += 1.f;
+}
+
 void hsv_to_rgb(double h, double s, double v, double *r, double *g, double *b) {
 	double p, q, t, f;
 	int i;
