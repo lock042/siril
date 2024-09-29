@@ -2824,8 +2824,44 @@ int process_ls(int nb){
 	return CMD_OK;
 }
 
+static void copy_lst_files(gchar *filename, gchar *outname, int written_frames) {
+	/* Copy lst files if exist */
+	gchar *lst_file_base = remove_ext_from_filename(filename);
+	gchar *lst_file = NULL;
+	int lst_index = 0;
+	gboolean file_found = FALSE;
+
+	/* Loop to find the correct lst file */
+	do {
+		g_free(lst_file);
+		lst_file = g_strdup_printf("%s%d.lst", lst_file_base, lst_index);
+		if (g_file_test(lst_file, G_FILE_TEST_EXISTS)) {
+			file_found = TRUE;
+		}
+		lst_index++;
+	} while (!file_found && lst_index < USHRT_MAX); // safety limit to avoid infinite loops
+
+	if (file_found) {
+		gchar *dest_file = g_strdup_printf("%s%d.lst", outname, written_frames);
+		GFile *source = g_file_new_for_path(lst_file);
+		GFile *destination = g_file_new_for_path(dest_file);
+
+		GError *error = NULL;
+		if (!g_file_copy(source, destination, G_FILE_COPY_OVERWRITE, NULL, NULL, NULL, &error)) {
+			siril_debug_print("Error in the file copy: %s\n", error->message);
+			g_clear_error(&error);
+		}
+
+		g_object_unref(source);
+		g_object_unref(destination);
+	}
+
+	g_free(lst_file);
+	g_free(lst_file_base);
+}
+
 int process_merge(int nb) {
-	int retval = 0, nb_seq = nb - 2, c = 1;
+	int retval = 0, nb_seq = nb - 2;
 	if (!com.wd) {
 		siril_log_message(_("Merge: no working directory set.\n"));
 		set_cursor_waiting(FALSE);
@@ -2892,6 +2928,7 @@ int process_merge(int nb) {
 	struct _convert_data *args = NULL;
 	fitseq out_fitseq;
 	char *destroot;
+	int c = 1;
 	switch (seqs[0]->type) {
 		case SEQ_REGULAR:
 			/* First, check for lst files if any */
@@ -2967,6 +3004,9 @@ int process_merge(int nb) {
 						ser_close_and_delete_file(&out_ser);
 						goto merge_clean_up;
 					}
+
+					copy_lst_files(seqs[i]->ser_file->filename, word[nb - 1], written_frames);
+
 					written_frames++;
 				}
 			}
@@ -3008,6 +3048,9 @@ int process_merge(int nb) {
 						fitseq_close_and_delete_file(&out_fitseq);
 						goto merge_clean_up;
 					}
+
+					copy_lst_files(seqs[i]->fitseq_file->filename, word[nb - 1], written_frames);
+
 					written_frames++;
 				}
 			}
