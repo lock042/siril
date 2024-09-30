@@ -1,8 +1,7 @@
-#SIRIL test suites
-=====
+# SIRIL test suites
 
-##Prerequisites
--------
+## Prerequisites
+
 * Siril test suites use [criterion](criterion
   https://criterion.readthedocs.io/en/master/intro.html), install it. If your
 distribution does not have any packages, you need to compile it by following
@@ -18,8 +17,8 @@ instruction [here](https://github.com/Snaipe/Criterion.git).
 * Run the tests with:
     meson test -v
 
-##Running tests
-------
+## Running tests
+
 As shown above, the integrated unit test system is available through meson. For
 different settings, see this [meson documentation
 page](https://mesonbuild.com/Unit-tests.html). Tests can be run several times,
@@ -34,7 +33,8 @@ are not unit tests:
   median, but it also contains a performance evaluation between them, so it
 takes more time than a simple unit test.
 
-###Using test script (autotools)
+### Using test script (autotools)
+
 Because on some OS the debugging of tests in meson is not supported, tests
 can also be compiled as a regular executable, with the criterion calls replaced
 by a macro that displays errors.

@@ -1,20 +1,31 @@
-This directory contains tests for siril commands written in python to ease the
-process, using pysiril that connects to siril-cli.
+# Siril Command Tests
 
-The criterion C tests can be used for unit testing, those will be more for
-command testing and non regression checks in important parts of large pieces of
-code.
+This directory contains tests for Siril commands written in Python to simplify the testing process, using [pysiril](https://siril.org/tutorials/pysiril/) to connect to `siril-cli`.
 
-Some lightweight images can be put there too.
+The **Criterion C** tests can be used for unit testing. These tests focus on command testing and regression checks for important parts of large pieces of code.
 
-Files and test function names must start with 'test_'.
+Some lightweight test images can also be placed in this directory.
 
-Install pysiril (see https://siril.org/tutorials/pysiril/), install pytest. To
-run the tests, run the command pytest in this directory.
+### Naming Conventions
 
-TODO:
-* configurable siril-cli path (now works only with autotools)
-* only one siril-cli instance that doesn't use the main config file to not mess
-  with it and use on defaults on every start
-* write many tests
-* add to the CI?
+- Files and test functions must start with `test_`.
+
+### Installation
+
+1. Install `pysiril` by following the instructions [here](https://siril.org/tutorials/pysiril/).
+2. Install `pytest`.
+
+### Running Tests
+
+To run the tests, execute the following command in this directory:
+
+```bash
+pytest
+```
+
+### TODO List
+
+- [ ] Make the `siril-cli` path configurable (currently works only with autotools).
+- [ ] Ensure only one `siril-cli` instance is used, without affecting the main config file, and use default settings on every start.
+- [ ] Write more tests.
+- [ ] Add tests to the CI pipeline.
