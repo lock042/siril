@@ -108,10 +108,15 @@ static char* handle_curl_response(CURL *curl, struct ucontent *content, const gc
 			// Codes >= 400 are error codes
 				if (verbose) {
 					siril_debug_print("Fetch failed with code %ld for URL %s\n", *code, url);
-					char *msg = siril_log_message(_("Server unreachable or unresponsive (HTTP code %ld - for details see https://developer.mozilla.org/en-US/docs/Web/HTTP/Status)\n"), *code);
-					siril_log_color_message(msg, "red");
-					msg[strlen(msg) - 1] = 0;  // remove '\n' at the end
-					set_progress_bar_data(msg, 1.0);
+					siril_log_color_message(_("Server unreachable or unresponsive (HTTP code %ld - for details see https://developer.mozilla.org/en-US/docs/Web/HTTP/Status)\n"), "red", *code);
+					if (content->data) {
+						gchar **lines = g_strsplit(content->data, "\n", 4);
+						for (int i = 0; i < 3 && lines[i] != NULL; i++) {
+							siril_log_message("%s\n", lines[i]);
+						}
+						g_strfreev(lines);
+					}
+					set_progress_bar_data(_("Server unreachable or unresponsive"), 1.0);
 				}
 		}
 	} else {
