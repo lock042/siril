@@ -307,10 +307,10 @@ point closest_point_on_line(point in, point p1, point p2) {
 
 // Add the GtkFileFilter filter_name to the GtkFileChooser widget_name
 // If the widget already obeys the filter then it is not added a second time
-void siril_set_file_filter(const gchar* widget_name, const gchar* filter_name) {
-	GtkFileChooser* chooser = GTK_FILE_CHOOSER(lookup_widget(widget_name));
+void siril_set_file_filter(GtkFileChooser* chooser, const gchar* filter_name, gchar *filter_display_name) {
 	GtkFileFilter* filter = GTK_FILE_FILTER(lookup_gobject(filter_name));
 	GSList* filter_list = gtk_file_chooser_list_filters(chooser);
+	gtk_file_filter_set_name(filter, filter_display_name);
 	GSList* iterator = filter_list;
 	gboolean add_filter = TRUE;
 	while (iterator) {
