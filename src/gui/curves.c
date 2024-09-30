@@ -681,7 +681,7 @@ void toggle_curves_window_visibility() {
 		set_cursor_waiting(FALSE);
 		siril_close_dialog("curves_dialog");
 	} else {
-		reset_cursors_and_values();
+		reset_cursors_and_values(TRUE);
 		copy_gfit_to_backup();
 		setup_curve_dialog();
 
