@@ -94,6 +94,7 @@ siril 1.4.0 xx xx, xx
 * Improved behaviour of image composition ops with regard to making the FITS headers viewable (!747)
 * Added a memory check for the preview image (#778)
 * Implement a new cosmetic filter to remove purple fringing on bright stars (!726)
+* Fix crash in catsearch when object is unknown (#1383)
 
 siril 1.2.5 xx xx, xxxx
 
