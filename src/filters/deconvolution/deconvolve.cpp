@@ -27,6 +27,7 @@
 #include "core/OS_utils.h"
 
 extern "C" int wienerdec(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, unsigned kchans, float sigma, int max_threads) {
+    const int num_copies_required = 8;
     img_t<float>::use_threading(max_threads);
     img_t<float> u;
     for (unsigned c = 0 ; c < nchans ; c++) {
@@ -38,7 +39,7 @@ extern "C" int wienerdec(float *fdata, unsigned rx, unsigned ry, unsigned nchans
         if (max != 0.0f && max != 1.0f)
             f.map(f / max);
         f = utils::add_padding(f, K);
-        f.process_in_slices(u, get_available_memory(), kernelsize, [&K, sigma](img_t<float>& slice) {
+        f.process_in_slices(u, get_available_memory(), num_copies_required, kernelsize, [&K, sigma](img_t<float>& slice) {
             edgetaper(slice, slice, K, 3);
             deconvolve::wiener_deconvolve(slice, slice, K, sigma);
         });
@@ -53,6 +54,7 @@ extern "C" int wienerdec(float *fdata, unsigned rx, unsigned ry, unsigned nchans
 }
 
 extern "C" int fft_richardson_lucy(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, unsigned kchans, float lambda, int maxiter, float stopcriterion, int max_threads, regtype_t regtype, float stepsize, int stopcriterion_active) {
+    const int num_copies_required = 10;
     img_t<float>::use_threading(max_threads);
     img_t<float> u;
     for (unsigned c = 0 ; c < nchans ; c++) {
@@ -66,7 +68,7 @@ extern "C" int fft_richardson_lucy(float *fdata, unsigned rx, unsigned ry, unsig
         if (max != 1.0f)
             f.map(f / max);
         f = utils::add_padding(f, K);
-        f.process_in_slices(u, get_available_memory(), kernelsize, [&K, lambda, maxiter, stopcriterion, regtype, stepsize, stopcriterion_active](img_t<float>& slice) {
+        f.process_in_slices(u, get_available_memory(), num_copies_required, kernelsize, [&K, lambda, maxiter, stopcriterion, regtype, stepsize, stopcriterion_active](img_t<float>& slice) {
             edgetaper(slice, slice, K, 3);
             deconvolve::rl_deconvolve_fft(slice, slice, K, 2.f / lambda, maxiter, stopcriterion, regtype, stepsize, stopcriterion_active);
         });
@@ -82,6 +84,7 @@ extern "C" int fft_richardson_lucy(float *fdata, unsigned rx, unsigned ry, unsig
 }
 
 extern "C" int naive_richardson_lucy(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, unsigned kchans, float lambda, int maxiter, float stopcriterion, int max_threads, regtype_t regtype, float stepsize, int stopcriterion_active) {
+    const int num_copies_required = 7;
     img_t<float>::use_threading(max_threads);
     img_t<float> u;
     for (unsigned c = 0 ; c < nchans ; c++) {
@@ -95,9 +98,10 @@ extern "C" int naive_richardson_lucy(float *fdata, unsigned rx, unsigned ry, uns
         if (max != 1.0f)
             f.map(f / max);
         f = utils::add_padding(f, 2*K.w, 2*K.w);
-        edgetaper(f, f, K, 3);
-
-        deconvolve::rl_deconvolve_naive(u, f, K, 2.f / lambda, maxiter, stopcriterion, regtype, stepsize, stopcriterion_active);
+        f.process_in_slices(u, get_available_memory(), num_copies_required, kernelsize, [&K, lambda, maxiter, stopcriterion, regtype, stepsize, stopcriterion_active](img_t<float>& slice) {
+            edgetaper(slice, slice, K, 3);
+            deconvolve::rl_deconvolve_naive(slice, slice, K, 2.f / lambda, maxiter, stopcriterion, regtype, stepsize, stopcriterion_active);
+        });
 
         u = utils::remove_padding(u, 2*K.w, 2*K.w);
         if (max != 1.0f)
@@ -110,6 +114,7 @@ extern "C" int naive_richardson_lucy(float *fdata, unsigned rx, unsigned ry, uns
 }
 
 extern "C" int split_bregman(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, unsigned kchans, float lambda, int iters, int max_threads) {
+    const int num_copies_required = 17; // TODO: needs optimising!
     img_t<float>::use_threading(max_threads);
     img_t<float> u;
     for (unsigned c = 0 ; c < nchans ; c++) {
@@ -123,9 +128,10 @@ extern "C" int split_bregman(float *fdata, unsigned rx, unsigned ry, unsigned nc
         if (max != 1.0f)
             f.map(f / max);
         f = utils::add_padding(f, K);
-        edgetaper(f, f, K, 3);
-
-        deconvolve::sb_deconvolve(u, f, K, 2.f / lambda, 1.f, 2.f * std::sqrt(2.f), 256.f, iters);
+        f.process_in_slices(u, get_available_memory(), num_copies_required, kernelsize, [&K, lambda, iters](img_t<float>& slice) {
+            edgetaper(slice, slice, K, 3);
+            deconvolve::sb_deconvolve(slice, slice, K, 2.f / lambda, 1.f, 2.f * std::sqrt(2.f), 256.f, iters);
+        });
 
         u = utils::remove_padding(u, K);
         if (max != 1.0f)
