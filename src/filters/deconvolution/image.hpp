@@ -57,6 +57,8 @@ free-astro 2022-2023.
 #include <omp.h>
 #endif
 
+static const std::vector<int> good_sizes = {256, 320, 384, 400, 512, 640, 768, 800, 1024, 1280, 1536, 1600, 1920, 2048, 2560, 3072, 3200, 3840, 4096, 5120, 6144, 6400, 7680, 8192};
+
 extern int sequence_is_running;
 
 template <typename T>
@@ -318,7 +320,6 @@ public:
     // Method 2: Optimum for FFTW3 speed
     SliceSize optimum_fftw3_speed(size_t M, int K) const {
         // FFTW3 performs best with sizes that can be factored as 2^a * 3^b * 5^c * 7^d
-        std::vector<int> good_sizes = {256, 320, 384, 400, 512, 640, 768, 800, 1024};
 
         SliceSize best = {0, 0};
         size_t best_area = 0;
@@ -343,38 +344,51 @@ public:
         return best;
     }
 
+    static int next_good_size(int size) {
+        auto it = std::lower_bound(good_sizes.begin(), good_sizes.end(), size);
+        return (it != good_sizes.end()) ? *it : good_sizes.back();
+    }
+
     // Method 3: Best compromise
     SliceSize best_compromise(size_t M, int K) const {
         SliceSize smallest = smallest_number_of_slices(M, K);
         SliceSize fastest = optimum_fftw3_speed(M, K);
+        SliceSize best;
+        if (static_cast<double>(fastest.width * fastest.height) < 0.8 * smallest.width * smallest.height) {
 
-        // If the fastest size is at least 80% of the largest possible size, use it
-        if (static_cast<double>(fastest.width * fastest.height) >= 0.8 * smallest.width * smallest.height) {
-            return fastest;
-        }
+            // Find a compromise
 
-        // Otherwise, find a compromise
-        std::vector<int> good_sizes = {256, 320, 384, 400, 512, 640, 768, 800, 1024};
+            best = smallest;
+            double best_score = 0;
 
-        SliceSize best = smallest;
-        double best_score = 0;
+            for (int w : good_sizes) {
+                for (int h : good_sizes) {
+                    if (calculate_slice_memory(w, h, K) <= M) {
+                        double size_score = static_cast<double>(w * h) / (smallest.width * smallest.height);
+                        double speed_score = 1.0; // Assume all sizes in good_sizes are equally fast
+                        double score = std::min(size_score, 1.0) * speed_score;
 
-        for (int w : good_sizes) {
-            for (int h : good_sizes) {
-                if (calculate_slice_memory(w, h, K) <= M) {
-                    double size_score = static_cast<double>(w * h) / (smallest.width * smallest.height);
-                    double speed_score = 1.0; // Assume all sizes in good_sizes are equally fast
-                    double score = std::min(size_score, 1.0) * speed_score;
-
-                    if (score > best_score) {
-                        best = {w, h};
-                        best_score = score;
+                        if (score > best_score) {
+                            best = {w, h};
+                            best_score = score;
+                        }
                     }
                 }
             }
+        } else {
+        // If the fastest size is at least 80% of the largest possible size, use it
+            best = fastest;
         }
-
-        return best;
+        if (best.width <= w && best.height <= h) {
+            return best;
+        } else {
+            SliceSize imgsize = {w, h};
+            // Find next-up optimized size, call it nextsize;
+            SliceSize nextsize = {next_good_size(w), next_good_size(h)};
+            best.width = (static_cast<float>(nextsize.width) / imgsize.width < 1.1f) ? nextsize.width : imgsize.width;
+            best.height = (static_cast<float>(nextsize.height) / imgsize.height < 1.1f) ? nextsize.height : imgsize.height;
+            return best;
+        }
     }
 
     // Updated process_in_slices method that uses slice size optimization
@@ -393,8 +407,9 @@ public:
                 slice_size = best_compromise(M, overlap);
                 break;
         }
+        int adjustment = overlap << 1;
         siril_debug_print("Processing in slices (%d x %d)\n", slice_size.width, slice_size.height);
-        process_in_slices(output, slice_size.width, slice_size.height, overlap, process_func);
+        process_in_slices(output, slice_size.width - adjustment, slice_size.height - adjustment, overlap, process_func);
     }
 
     template<typename F>
@@ -468,6 +483,10 @@ public:
             }
         }
     }
+
+// ********************************************************
+// Methods relating to other image processing functionality
+// ********************************************************
 
     // naive convolution
     template <typename T2, typename T3>
