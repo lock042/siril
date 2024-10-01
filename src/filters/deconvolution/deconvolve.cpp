@@ -24,6 +24,7 @@
 #include "deconvolve.hpp"
 #include "utils.hpp"
 #include "edgetaper.hpp"
+#include "core/OS_utils.h"
 
 extern "C" int wienerdec(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, unsigned kchans, float sigma, int max_threads) {
     img_t<float>::use_threading(max_threads);
@@ -34,15 +35,13 @@ extern "C" int wienerdec(float *fdata, unsigned rx, unsigned ry, unsigned nchans
         img_t<float> K(kernelsize, kernelsize, 1, kernel + kc * kernelsize * kernelsize);
         K.map(K / K.sum());
         float max = f.max();
-        if (max == 0.0f)
-            return 1;
-        if (max != 1.0f)
+        if (max != 0.0f && max != 1.0f)
             f.map(f / max);
         f = utils::add_padding(f, K);
-        edgetaper(f, f, K, 3);
-
-        deconvolve::wiener_deconvolve(u, f, K, sigma);
-
+        f.process_in_slices(u, get_available_memory(), kernelsize, [&K, sigma](img_t<float>& slice) {
+            edgetaper(slice, slice, K, 3);
+            deconvolve::wiener_deconvolve(slice, slice, K, sigma);
+        });
         u = utils::remove_padding(u, K);
         if (max != 1.0f)
             u.map(u * max);
@@ -67,9 +66,10 @@ extern "C" int fft_richardson_lucy(float *fdata, unsigned rx, unsigned ry, unsig
         if (max != 1.0f)
             f.map(f / max);
         f = utils::add_padding(f, K);
-        edgetaper(f, f, K, 3);
-
-        deconvolve::rl_deconvolve_fft(u, f, K, 2.f / lambda, maxiter, stopcriterion, regtype, stepsize, stopcriterion_active);
+        f.process_in_slices(u, get_available_memory(), kernelsize, [&K, lambda, maxiter, stopcriterion, regtype, stepsize, stopcriterion_active](img_t<float>& slice) {
+            edgetaper(slice, slice, K, 3);
+            deconvolve::rl_deconvolve_fft(slice, slice, K, 2.f / lambda, maxiter, stopcriterion, regtype, stepsize, stopcriterion_active);
+        });
 
         u = utils::remove_padding(u, K);
         if (max != 1.0f)

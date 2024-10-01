@@ -61,6 +61,13 @@ extern int sequence_is_running;
 
 template <typename T>
 class img_t {
+private:
+        enum class SliceSizeStrategy {
+        SmallestNumber,
+        OptimumFFTW,
+        BestCompromise
+    };
+
 public:
     // Data
     typedef T value_type;
@@ -273,6 +280,193 @@ public:
 #endif
         for (int i = 0; i < n; i++)
             data[i] = o[i];
+    }
+
+// ***********************************************************************
+// Methods relating to automated processing an img_t in overlapping chunks
+// ***********************************************************************
+
+    struct SliceSize {
+        int width;
+        int height;
+    };
+
+    // Helper method to calculate memory required for a slice
+    size_t calculate_slice_memory(int width, int height, int K) const {
+        int padded_width = width + 2 * K;
+        int padded_height = height + 2 * K;
+        return padded_width * padded_height * d * sizeof(T);
+    }
+
+    // Method 1: Smallest number of slices
+    SliceSize smallest_number_of_slices(size_t M, int K) const {
+        int width = w;
+        int height = h;
+
+        // Reduce the slice size until it fits in memory
+        while (calculate_slice_memory(width, height, K) > M) {
+            if (width > height) {
+                width = (width + 1) / 2;
+            } else {
+                height = (height + 1) / 2;
+            }
+        }
+
+        return {width, height};
+    }
+
+    // Method 2: Optimum for FFTW3 speed
+    SliceSize optimum_fftw3_speed(size_t M, int K) const {
+        // FFTW3 performs best with sizes that can be factored as 2^a * 3^b * 5^c * 7^d
+        std::vector<int> good_sizes = {256, 320, 384, 400, 512, 640, 768, 800, 1024};
+
+        SliceSize best = {0, 0};
+        size_t best_area = 0;
+
+        for (int w : good_sizes) {
+            for (int h : good_sizes) {
+                if (calculate_slice_memory(w, h, K) <= M) {
+                    size_t area = static_cast<size_t>(w) * h;
+                    if (area > best_area) {
+                        best = {w, h};
+                        best_area = area;
+                    }
+                }
+            }
+        }
+
+        // If no good size fits, fall back to smallest_number_of_slices
+        if (best.width == 0) {
+            return smallest_number_of_slices(M, K);
+        }
+
+        return best;
+    }
+
+    // Method 3: Best compromise
+    SliceSize best_compromise(size_t M, int K) const {
+        SliceSize smallest = smallest_number_of_slices(M, K);
+        SliceSize fastest = optimum_fftw3_speed(M, K);
+
+        // If the fastest size is at least 80% of the largest possible size, use it
+        if (static_cast<double>(fastest.width * fastest.height) >= 0.8 * smallest.width * smallest.height) {
+            return fastest;
+        }
+
+        // Otherwise, find a compromise
+        std::vector<int> good_sizes = {256, 320, 384, 400, 512, 640, 768, 800, 1024};
+
+        SliceSize best = smallest;
+        double best_score = 0;
+
+        for (int w : good_sizes) {
+            for (int h : good_sizes) {
+                if (calculate_slice_memory(w, h, K) <= M) {
+                    double size_score = static_cast<double>(w * h) / (smallest.width * smallest.height);
+                    double speed_score = 1.0; // Assume all sizes in good_sizes are equally fast
+                    double score = std::min(size_score, 1.0) * speed_score;
+
+                    if (score > best_score) {
+                        best = {w, h};
+                        best_score = score;
+                    }
+                }
+            }
+        }
+
+        return best;
+    }
+
+    // Updated process_in_slices method that uses slice size optimization
+    template<typename F>
+    void process_in_slices(img_t<T>& output, size_t M, int overlap, const F& process_func, SliceSizeStrategy strategy = SliceSizeStrategy::BestCompromise) {
+        SliceSize slice_size;
+        switch (strategy) {
+            case SliceSizeStrategy::SmallestNumber:
+                slice_size = smallest_number_of_slices(M, overlap);
+                break;
+            case SliceSizeStrategy::OptimumFFTW:
+                slice_size = optimum_fftw3_speed(M, overlap);
+                break;
+            case SliceSizeStrategy::BestCompromise:
+            default:
+                slice_size = best_compromise(M, overlap);
+                break;
+        }
+        siril_debug_print("Processing in slices (%d x %d)\n", slice_size.width, slice_size.height);
+        process_in_slices(output, slice_size.width, slice_size.height, overlap, process_func);
+    }
+
+    template<typename F>
+    void process_in_slices(img_t<T>& output, int slice_width, int slice_height, int overlap, const F& process_func) {
+        // Ensure the output image has the same dimensions as the input
+        output.resize(w, h, d);
+
+        // Calculate the number of slices in each dimension
+        int num_slices_x = (w + slice_width - 1) / slice_width;
+        int num_slices_y = (h + slice_height - 1) / slice_height;
+
+        // Temporary image for padded slice
+        img_t<T> padded_slice;
+
+        for (int sy = 0; sy < num_slices_y; ++sy) {
+            for (int sx = 0; sx < num_slices_x; ++sx) {
+                // Calculate slice boundaries
+                int start_x = sx * slice_width;
+                int start_y = sy * slice_height;
+                int end_x = std::min(start_x + slice_width, w);
+                int end_y = std::min(start_y + slice_height, h);
+                int actual_width = end_x - start_x;
+                int actual_height = end_y - start_y;
+
+                // Calculate padding
+                int pad_left = std::min(overlap, start_x);
+                int pad_right = std::min(overlap, w - end_x);
+                int pad_top = std::min(overlap, start_y);
+                int pad_bottom = std::min(overlap, h - end_y);
+
+                // Create padded slice
+                padded_slice.resize(actual_width + pad_left + pad_right,
+                                    actual_height + pad_top + pad_bottom, d);
+
+                // Copy data to padded slice
+#ifdef _OPENMP
+                int available_threads = com.max_thread - omp_get_num_threads();
+#pragma omp parallel for schedule(static) num_threads(available_threads) if (available_threads > 1)
+#endif
+                for (int y = -pad_top; y < actual_height + pad_bottom; ++y) {
+                    for (int x = -pad_left; x < actual_width + pad_right; ++x) {
+                        int src_x = start_x + x;
+                        int src_y = start_y + y;
+
+                        // Handle padding at image borders
+                        if (src_x < 0) src_x = -src_x;
+                        else if (src_x >= w) src_x = 2*w - src_x - 2;
+                        if (src_y < 0) src_y = -src_y;
+                        else if (src_y >= h) src_y = 2*h - src_y - 2;
+
+                        for (int z = 0; z < d; ++z) {
+                            padded_slice(x + pad_left, y + pad_top, z) = (*this)(src_x, src_y, z);
+                        }
+                    }
+                }
+
+                // Process the padded slice
+                process_func(padded_slice);
+
+                // Copy processed data to the output image (only the non-overlapping part)
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static) num_threads(available_threads) if (available_threads > 1)
+#endif
+                for (int y = 0; y < actual_height; ++y) {
+                    for (int x = 0; x < actual_width; ++x) {
+                        for (int z = 0; z < d; ++z) {
+                            output(start_x + x, start_y + y, z) = padded_slice(x + pad_left, y + pad_top, z);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // naive convolution
