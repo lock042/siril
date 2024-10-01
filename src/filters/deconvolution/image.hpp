@@ -375,7 +375,7 @@ public:
             // If the fastest size is at least 80% of the largest possible size, use it
             best = fastest;
         }
-        if (best.width <= w && best.height <= h) {
+/*        if (best.width <= w && best.height <= h) {
             return best;
         } else {
             SliceSize imgsize = {w, h};
@@ -384,7 +384,8 @@ public:
             best.width = (static_cast<float>(nextsize.width) / imgsize.width < 1.1f) ? nextsize.width : imgsize.width;
             best.height = (static_cast<float>(nextsize.height) / imgsize.height < 1.1f) ? nextsize.height : imgsize.height;
             return best;
-        }
+        }*/
+        return (SliceSize) {1024, 1024};
     }
 
     // Updated process_in_slices method that uses slice size optimization

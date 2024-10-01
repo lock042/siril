@@ -102,8 +102,8 @@ namespace deconvolve {
             w.map(img::real(est));
             if (regtype == 0 || regtype == 3) {
                 // Calculate TV weighting
-                auto dx = gradientx(w);
-                auto dy = gradienty(w);
+                auto dx = to_img(gradientx(w));
+                auto dy = to_img(gradienty(w));
                 auto eps = std::numeric_limits<T>::epsilon();
                 auto mag = img::hypot(dx, dy) + eps;
                 w.map(divergence((dx / mag), (dy / mag))); // w now holds div(grad(est) / |grad(est)|)
