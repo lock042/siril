@@ -94,6 +94,7 @@ xx/xx/xx
 * Refactor processing of sequence operations that generate multiple output sequences (!739)
 * Improved behaviour of image composition ops with regard to making the FITS headers viewable (!747)
 * Added a memory check for the preview image (#778)
+* Refactored Deconvolution (again...) to allow for sliced operation to prevent OOM errors (!753)
 
 siril 1.2.5
 xx/xx/xx
