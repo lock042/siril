@@ -443,18 +443,20 @@ void erase_curves_histogram_display(cairo_t *cr, int width, int height) {
 		draw_grid(cr, width, height);
 }
 
-static void reset_cursors_and_values() {
+static void reset_cursors_and_values(gboolean full_reset) {
 	_initialize_clip_text();
 	gtk_adjustment_set_value(curves_adj_zoom, 1.0);
 	gtk_entry_set_text(curves_seq_entry, "curve_");
-	gtk_combo_box_set_active(GTK_COMBO_BOX(curves_interpolation_combo), CUBIC_SPLINE);
 	gtk_toggle_button_set_active(curves_preview_check, TRUE);
 	gtk_toggle_button_set_active(curves_sequence_check, FALSE);
-	gtk_toggle_tool_button_set_active(curves_red_toggle, TRUE);
-	gtk_toggle_tool_button_set_active(curves_green_toggle, TRUE);
-	gtk_toggle_tool_button_set_active(curves_blue_toggle, TRUE);
 	gtk_toggle_tool_button_set_active(curves_grid_toggle, TRUE);
-	gtk_toggle_button_set_active(curves_log_check, com.pref.gui.display_histogram_mode == LOG_DISPLAY ? TRUE : FALSE);
+	if (full_reset) {
+		gtk_toggle_tool_button_set_active(curves_red_toggle, TRUE);
+		gtk_toggle_tool_button_set_active(curves_green_toggle, TRUE);
+		gtk_toggle_tool_button_set_active(curves_blue_toggle, TRUE);
+		gtk_combo_box_set_active(GTK_COMBO_BOX(curves_interpolation_combo), CUBIC_SPLINE);
+		gtk_toggle_button_set_active(curves_log_check, com.pref.gui.display_histogram_mode == LOG_DISPLAY ? TRUE : FALSE);
+	}
 	reset_curve_points();
 	_update_entry_text();
 	update_gfit_curves_histogram_if_needed();
@@ -532,14 +534,13 @@ void on_curves_window_show(GtkWidget *object, gpointer user_data) {
 	closing = FALSE;
 	curves_startup();
 	_initialize_clip_text();
-	reset_cursors_and_values();
+	reset_cursors_and_values(TRUE);
 	compute_histo_for_gfit();
 }
 
 void on_curves_close_button_clicked(GtkButton *button, gpointer user_data) {
 	closing = TRUE;
 	set_cursor_waiting(TRUE);
-	reset_cursors_and_values();
 	curves_close(TRUE);
 	set_cursor_waiting(FALSE);
 	siril_close_dialog("curves_dialog");
@@ -547,7 +548,7 @@ void on_curves_close_button_clicked(GtkButton *button, gpointer user_data) {
 
 void on_curves_reset_button_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
-	reset_cursors_and_values();
+	reset_cursors_and_values(FALSE);
 	curves_close(TRUE);
 	curves_startup();
 	gtk_widget_queue_draw(curves_drawingarea);
@@ -598,7 +599,7 @@ void on_curves_apply_button_clicked(GtkButton *button, gpointer user_data) {
 		clear_display_histogram();
 		// reinit
 		curves_startup();
-		reset_cursors_and_values();
+		reset_cursors_and_values(FALSE);
 		set_cursor("default");
 	}
 }
@@ -637,7 +638,6 @@ void apply_curve_to_sequence(struct curve_data *curve_args) {
 
 void apply_curves_cancel() {
 	set_cursor_waiting(TRUE);
-	reset_cursors_and_values();
 	curves_close(TRUE);
 	set_cursor_waiting(FALSE);
 }
@@ -677,11 +677,11 @@ void toggle_curves_window_visibility() {
 
 	if (gtk_widget_get_visible(curves_dialog)) {
 		set_cursor_waiting(TRUE);
-		reset_cursors_and_values();
 		curves_close(TRUE);
 		set_cursor_waiting(FALSE);
 		siril_close_dialog("curves_dialog");
 	} else {
+		reset_cursors_and_values(TRUE);
 		copy_gfit_to_backup();
 		setup_curve_dialog();
 
