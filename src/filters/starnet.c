@@ -570,6 +570,7 @@ gpointer do_starnet(gpointer p) {
 		if (verbose)
 			siril_log_message(_("StarNet: linear mode. Applying Midtone Transfer Function (MTF) pre-stretch to image.\n"));
 		apply_linked_mtf_to_fits(&workingfit, &workingfit, params, TRUE);
+		siril_log_message(_("Applying MTF with values %f, %f, %f\n"), params.shadows, params.midtones, params.highlights);
 	}
 
 	// Upscale if needed

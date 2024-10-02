@@ -3122,8 +3122,7 @@ int process_mtf(int nb) {
 		apply_linked_pseudoinverse_mtf_to_fits(&gfit, &gfit, params, TRUE);
 	else {
 		apply_linked_mtf_to_fits(&gfit, &gfit, params, TRUE);
-		siril_log_message(_("Applying MTF with values %f, %f, %f\n"),
-			params.shadows, params.midtones, params.highlights);
+		siril_log_message(_("Applying MTF with values %f, %f, %f\n"), params.shadows, params.midtones, params.highlights);
 	}
 	char log[90];
 	sprintf(log, "%s transfer (%.3f, %.4f, %.3f)",
