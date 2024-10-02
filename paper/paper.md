@@ -47,7 +47,7 @@ There are many solutions available for astronomical imaging, but few are open so
 Siril provides a range of features to support astronomical image processing:
 
 - **Image calibration**: Correction of biases, darks, and flats to calibrate astronomical images data.
-- **Image registration and stacking**: Alignment of images taken at different times and their subsequent stacking to increase signal-to-noise ratio. Starting in v1.4, it also incorporates the Hubble Space Telescope drizzle algorithm [@fruchter2002drizzle] for applying WCS (World Coordinate System) and registration data transforms, providing improved detail reconstruction when processing sets of under-sampled images.
+- **Image registration and stacking**: Alignment of images taken at different times and their subsequent stacking to increase signal-to-noise ratio. This version also incorporates the Hubble Space Telescope drizzle algorithm [@fruchter2002drizzle] for applying WCS (World Coordinate System) and registration data transforms, providing improved detail reconstruction when processing sets of under-sampled images.
 - **Advanced image enhancement**: Application of various filters and algorithms to improve image details and reduce noise. For example, the Larson-Sekanina filter is particularly useful for highlighting non-circular structures in images of comets by enhancing radial features and making structures like jets and dust trails more visible [@larson1984coma]. An example of such a filter applied to a comet image is given in \autoref{fig:rgradient}.
 
   ![Application of the Larson Sekanina filter on a comet image to highlight non-circular structures in the image.\label{fig:rgradient}](LS_filter.png)
