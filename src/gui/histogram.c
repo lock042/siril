@@ -855,12 +855,12 @@ static void reset_cursors_and_values(gboolean full_reset) {
 	gtk_toggle_tool_button_set_active(toggleGrid, TRUE);
 	gtk_toggle_tool_button_set_active(toggleCurve, TRUE);
 	gtk_toggle_tool_button_set_active(toggleOrig, BOOL_TRUE);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckLogButton")),
-                                 (com.pref.gui.display_histogram_mode == LOG_DISPLAY ? TRUE : FALSE));
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("checkMTFSeq")), FALSE);
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entryMTFSeq")), "stretch_");
 	on_histoZoom100_clicked(NULL, NULL);
 	if (full_reset) {
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("HistoCheckLogButton")),
+									(com.pref.gui.display_histogram_mode == LOG_DISPLAY ? TRUE : FALSE));
 		for (int i = 0; i < 3; ++i)
 			gtk_toggle_tool_button_set_active(toggles[i], TRUE);
 	}
@@ -1183,7 +1183,6 @@ void on_histogram_window_show(GtkWidget *object, gpointer user_data) {
 void on_button_histo_close_clicked(GtkButton *button, gpointer user_data) {
 	closing = TRUE;
 	set_cursor_waiting(TRUE);
-	reset_cursors_and_values(TRUE);
 	histo_close(TRUE, TRUE);
 	set_cursor_waiting(FALSE);
 	siril_close_dialog("histogram_dialog");
@@ -1191,7 +1190,7 @@ void on_button_histo_close_clicked(GtkButton *button, gpointer user_data) {
 
 void on_button_histo_reset_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
-	reset_cursors_and_values(TRUE);
+	reset_cursors_and_values(FALSE);
 	histo_close(TRUE, TRUE);
 	histo_startup();
 	set_cursor_waiting(FALSE);
@@ -1348,7 +1347,6 @@ void on_button_histo_apply_clicked(GtkButton *button, gpointer user_data) {
 
 void apply_histo_cancel() {
 	set_cursor_waiting(TRUE);
-	reset_cursors_and_values(TRUE);
 	histo_close(TRUE, TRUE);
 	set_cursor_waiting(FALSE);
 }
@@ -1480,11 +1478,11 @@ void toggle_histogram_window_visibility(int _invocation) {
 
 	if (gtk_widget_get_visible(lookup_widget("histogram_dialog"))) {
 		set_cursor_waiting(TRUE);
-		reset_cursors_and_values(TRUE);
 		histo_close(TRUE, TRUE);
 		set_cursor_waiting(FALSE);
 		siril_close_dialog("histogram_dialog");
 	} else {
+		reset_cursors_and_values(TRUE);
 		copy_gfit_to_backup();
 		//Ensure the colour stretch model is initialised at startup
 		_payne_colourstretchmodel = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("combo_payne_colour_stretch_model")));
