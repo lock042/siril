@@ -554,8 +554,18 @@ public:
     void map(const E& o) {
         auto e = to_expr(o);
         assert(e.similar(*this));
+#ifdef _OPENMP
+        int available_threads = com.max_thread - omp_get_num_threads();
+
+#pragma omp parallel num_threads(available_threads)
+{
+#pragma omp for simd schedule(static)
+#endif
         for (int i = 0; i < size; i++)
             (*this)[i] = e[i];
+#ifdef _OPENMP
+}
+#endif
     }
 
     template <typename E>

@@ -414,7 +414,8 @@ public:
     template<typename F>
     void process_in_slices(img_t<T>& output, int slice_width, int slice_height, int overlap, const F& process_func) {
         // Ensure the output image has the same dimensions as the input
-        output.resize(w, h, d);
+        if (output.w != w || output.h != h || output.d != d)
+            output.resize(w, h, d);
 
         // Calculate the number of slices in each dimension
         int num_slices_x = (w + slice_width - 1) / slice_width;
@@ -447,7 +448,7 @@ public:
                 // Copy data to padded slice
 #ifdef _OPENMP
                 int available_threads = com.max_thread - omp_get_num_threads();
-#pragma omp parallel for schedule(static) num_threads(available_threads) if (available_threads > 1)
+#pragma omp parallel for simd schedule(static) num_threads(available_threads) if (available_threads > 1) collapse(2)
 #endif
                 for (int y = -pad_top; y < actual_height + pad_bottom; ++y) {
                     for (int x = -pad_left; x < actual_width + pad_right; ++x) {
@@ -471,7 +472,7 @@ public:
 
                 // Copy processed data to the output image (only the non-overlapping part)
 #ifdef _OPENMP
-#pragma omp parallel for schedule(static) num_threads(available_threads) if (available_threads > 1)
+#pragma omp parallel for simd schedule(static) num_threads(available_threads) if (available_threads > 1) collapse(3)
 #endif
                 for (int y = 0; y < actual_height; ++y) {
                     for (int x = 0; x < actual_width; ++x) {
