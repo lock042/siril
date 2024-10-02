@@ -131,7 +131,11 @@ namespace deconvolve {
             ratio.fft(ratio);
             ratio.map(ratio * Kflip_otf); // correlate (convolve with flip)
             ratio.ifft(ratio);
-            auto stopcrit = img::real(est);
+            img_t<T> stopcrit;
+            if(stopcriterion_active == 1) {
+                stopcrit.resize(f.w, f.h, f.d);
+                stopcrit = to_img(img::real(est));
+            }
             T dt = T(stepsize);
             switch (regtype) {
                 case REG_NONE_MULT:
