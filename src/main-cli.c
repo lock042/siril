@@ -153,7 +153,7 @@ static void global_initialization() {
 	fftwf_init_threads(); // Should really only be called once so do it at startup
 #endif
 #ifdef _OPENMP
-	omp_set_nested(TRUE);
+	omp_set_max_active_levels(2);
 #endif
 
 }

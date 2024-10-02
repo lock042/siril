@@ -97,7 +97,8 @@ static GActionEntry rgb_processing_entries[] = {
 	{ "align-global", align_global_activate },
 	{ "align-kombat", align_kombat_activate },
 	{ "split-channel-processing", split_channel_activate },
-	{ "ccm-processing", ccm_activate }
+	{ "ccm-processing", ccm_activate },
+	{ "unpurple-processing", unpurple_activate }
 };
 
 static GActionEntry any_processing_entries[] = {
@@ -212,6 +213,7 @@ void siril_window_enable_rgb_proc_actions(GtkApplicationWindow *window, gboolean
 		"color-calib-processing",
 		"split-channel-processing",
 		"align-global",
+		"unpurple-processing",
 		NULL,
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), rgb_processing_actions, enable);

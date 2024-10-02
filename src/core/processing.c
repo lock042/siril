@@ -683,11 +683,7 @@ int multi_save(struct generic_seq_args *args, int out_index, int in_index, fits 
 	} else {
 		for (int i = 0 ; i < n ; i++) {
 			char *dest = fit_sequence_get_image_filename_prefixed(args->seq, multi_args->prefixes[i], in_index);
-			if (fit->type == DATA_USHORT) {
-				retval |= savefits(dest, multi_data->images[i]);
-			} else {
-				retval |= savefits(dest, multi_data->images[i]);
-			}
+			retval |= savefits(dest, multi_data->images[i]);
 			free(dest);
 		}
 	}
