@@ -315,8 +315,7 @@ namespace deconvolve {
         img_t<T> ksq(f.w, f.h, f.d);
         ksq.map(img::pow(img::abs(K_otf), T(2)));
 
-        img_t<T> dxdysq(f.w, f.h, f.d);
-        dxdysq.map(img::pow(img::abs(dx_otf), T(2)) + img::pow(img::abs(dy_otf), T(2)));
+        auto dxdysq = (img::pow(img::abs(dx_otf), T(2)) + img::pow(img::abs(dy_otf), T(2)));
 
         T beta = b_0;
         x = f;
@@ -325,8 +324,6 @@ namespace deconvolve {
         while (beta < max_beta) {
             if (!get_thread_run())
                 break;
-            if (sequence_is_running == 0)
-                set_progress_bar_data("Split Bregman deconvolution...", std::min(1.0, sliceprogress + ((beta - b_0) / (max_beta - b_0))/f.total_slices));
             T gamma = beta / lambda;
             auto denom = ksq + gamma * dxdysq;
 
@@ -344,6 +341,8 @@ namespace deconvolve {
                 x.map(img::real(x_ft));
             }
             beta *= b_factor;
+            if (sequence_is_running == 0)
+                set_progress_bar_data("Split Bregman deconvolution...", std::min(1.0, sliceprogress + ((beta - b_0) / (max_beta - b_0))/f.total_slices));
         }
     }
 }
