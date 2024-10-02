@@ -455,8 +455,8 @@ static void reset_cursors_and_values(gboolean full_reset) {
 		gtk_toggle_tool_button_set_active(curves_green_toggle, TRUE);
 		gtk_toggle_tool_button_set_active(curves_blue_toggle, TRUE);
 		gtk_combo_box_set_active(GTK_COMBO_BOX(curves_interpolation_combo), CUBIC_SPLINE);
+		gtk_toggle_button_set_active(curves_log_check, com.pref.gui.display_histogram_mode == LOG_DISPLAY ? TRUE : FALSE);
 	}
-//	gtk_toggle_button_set_active(curves_log_check, com.pref.gui.display_histogram_mode == LOG_DISPLAY ? TRUE : FALSE);
 	reset_curve_points();
 	_update_entry_text();
 	update_gfit_curves_histogram_if_needed();
