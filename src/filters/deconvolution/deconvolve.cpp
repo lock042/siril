@@ -114,7 +114,7 @@ extern "C" int naive_richardson_lucy(float *fdata, unsigned rx, unsigned ry, uns
 }
 
 extern "C" int split_bregman(float *fdata, unsigned rx, unsigned ry, unsigned nchans, float *kernel, int kernelsize, unsigned kchans, float lambda, int iters, int max_threads) {
-    const int num_copies_required = 17; // TODO: needs optimising!
+    const int num_copies_required = 16;
     img_t<float>::use_threading(max_threads);
     img_t<float> u;
     for (unsigned c = 0 ; c < nchans ; c++) {
