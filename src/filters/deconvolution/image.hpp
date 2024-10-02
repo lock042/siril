@@ -377,8 +377,12 @@ public:
             // If the fastest size is at least 80% of the largest possible size, use it
             best = fastest;
         }
-// The following line is handy for testing to force multiple slices
-//        return (SliceSize) {1024, 1024};
+        // If we are constrained by the max slice size preference, adjust the size
+        if (com.pref.max_slice_size > 0 && best.width > com.pref.max_slice_size)
+            best.width = com.pref.max_slice_size;
+        if (com.pref.max_slice_size > 0 && best.height > com.pref.max_slice_size)
+            best.height = com.pref.max_slice_size;
+
         if (best.width <= w && best.height <= h) {
             return best;
         } else {

@@ -5369,7 +5369,7 @@ Configuring a memory amount larger than what is available on your system may res
                         <property name="label-xalign">0</property>
                         <property name="shadow-type">none</property>
                         <child>
-                          <!-- n-columns=2 n-rows=4 -->
+                          <!-- n-columns=2 n-rows=5 -->
                           <object class="GtkGrid">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
@@ -5477,6 +5477,41 @@ This setting is used in Deconvolution, but is ignored by the Fourier Transform f
                               <packing>
                                 <property name="left-attach">1</property>
                                 <property name="top-attach">3</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Maximum slice size for sliced image operations</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">4</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkComboBoxText" id="pref_max_slice_size">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-text" translatable="yes">Sets the maximum slice size for image operations that can use sliced processing. The primary purpose of this is to constrain typical slices to a limited range of sizes in order to utilise a limited range of FFTW3 wisdom more effectively. It is always safe to leave this at the default setting.</property>
+                                <property name="active">0</property>
+                                <items>
+                                  <item translatable="yes">Unlimited</item>
+                                  <item translatable="yes">256</item>
+                                  <item translatable="yes">512</item>
+                                  <item translatable="yes">1024</item>
+                                  <item translatable="yes">2048</item>
+                                  <item translatable="yes">4096</item>
+                                  <item translatable="yes">8192</item>
+                                  <item translatable="yes">16384</item>
+                                  <item translatable="yes">32768</item>
+                                </items>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">4</property>
                               </packing>
                             </child>
                             <child>
