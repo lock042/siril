@@ -300,7 +300,7 @@ public:
         return N * padded_width * padded_height * d * sizeof(T);
     }
 
-    // Updated Method 1: Smallest number of slices
+    // Smallest number of slices
     SliceSize smallest_number_of_slices(size_t M, int K, int N) const {
         int width = w;
         int height = h;
@@ -317,7 +317,7 @@ public:
         return {width, height};
     }
 
-    // Updated Method 2: Optimum for FFTW3 speed
+    // Optimum for FFTW3 speed
     SliceSize optimum_fftw3_speed(size_t M, int K, int N) const {
         SliceSize best = {0, 0};
         size_t best_area = 0;
@@ -347,7 +347,7 @@ public:
         return (it != good_sizes.end()) ? *it : good_sizes.back();
     }
 
-    // Updated Method 3: Best compromise
+    // Best compromise
     SliceSize best_compromise(size_t M, int K, int N) const {
         SliceSize smallest = smallest_number_of_slices(M, K, N);
         SliceSize fastest = optimum_fftw3_speed(M, K, N);
@@ -361,7 +361,8 @@ public:
                 for (int h : good_sizes) {
                     if (calculate_slice_memory(w, h, K, N) <= M) {
                         double size_score = static_cast<double>(w * h) / (smallest.width * smallest.height);
-                        double speed_score = 1.0; // Assume all sizes in good_sizes are equally fast
+                        double speed_score = 1.0; // TODO: assumes all sizes in good_sizes are equally fast.
+                                                  // Some (pure powers of 2) will be better than others.
                         double score = std::min(size_score, 1.0) * speed_score;
 
                         if (score > best_score) {
@@ -387,7 +388,6 @@ public:
         }
     }
 
-    // Updated process_in_slices method that uses slice size optimization
     template<typename F>
     void process_in_slices(size_t M, int N_copies, img_t<T>& output, int overlap, const F& process_func, SliceSizeStrategy strategy = SliceSizeStrategy::BestCompromise) {
         SliceSize slice_size;
