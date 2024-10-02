@@ -538,8 +538,8 @@ int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 		unsigned int MB_per_float_image = MB_per_orig_image * float_multiplier;
 		unsigned int MB_per_float_channel = is_color ? MB_per_float_image / 3 : MB_per_float_image;
 		unsigned int MB_per_orig_channel = is_color ? MB_per_orig_image / 3 : MB_per_float_image;
-		MB_per_float_channel = min(1, MB_per_float_channel);
-		MB_per_orig_channel = min(1, MB_per_orig_channel);
+		MB_per_float_channel = max(1, MB_per_float_channel);
+		MB_per_orig_channel = max(1, MB_per_orig_channel);
 		if (!args->has_output || (!is_scaled && !is_color)) {
 			required = MB_per_orig_image + MB_per_float_channel;
 		}

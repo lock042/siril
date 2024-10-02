@@ -615,98 +615,76 @@ int apply_reg_finalize_hook(struct generic_seq_args *args) {
 	return regargs->new_total == 0;
 }
 
-int apply_drz_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
-	struct star_align_data *sadata = args->user;
-	struct registration_args *regargs = sadata->regargs;
-	struct driz_args_t *driz = regargs->driz;
-	unsigned int MB_per_orig_image, MB_per_scaled_image, MB_avail;
-	int limit = compute_nb_images_fit_memory(args->seq, regargs->output_scale, args->force_float,
-			&MB_per_orig_image, &MB_per_scaled_image, &MB_avail);
-	int is_float = get_data_type(args->seq->bitpix) == DATA_FLOAT;
-	int float_multiplier = (is_float) ? 1 : 2;
-	int is_bayer = driz->is_bayer;
-	MB_per_scaled_image *= is_float ? 1 : 2; // Output is always float
-	if (is_bayer) {
-		MB_per_scaled_image *= 3;
-	}
-	unsigned int MB_per_float_image = MB_per_orig_image * float_multiplier;
-	unsigned int MB_per_float_channel = MB_per_float_image;
-
-	/* The drizzle memory consumption is:
-		* the original image
-		* Two 2 * rx * ry * float arrays for computing mapping
-		* (note this could become double arrays with WCS?)
-		  (the mapping file reallocs one of these so never exceeds that amount)
-		* the weights file (1 * scaled image float data)
-		* the transformed image, including scaling factor if required
-		* the output counts image, the same size as the scaled image
-	*/
-	unsigned int required = MB_per_orig_image + 4 * MB_per_float_channel + 2 * MB_per_scaled_image;
-
-	if (limit > 0) {
-
-		int thread_limit = MB_avail / required;
-		if (thread_limit > com.max_thread)
-			thread_limit = com.max_thread;
-
-		if (for_writer) {
-			/* we allow the already allocated thread_limit images,
-			 * plus how many images can be stored in what remains
-			 * unused by the main processing */
-			limit = thread_limit + (MB_avail - required * thread_limit) / MB_per_scaled_image;
-		} else limit = thread_limit;
-	}
-
-	if (limit == 0) {
-		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
-		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
-
-		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per thread, %s considered available)\n"),
-				"red", args->description, mem_per_thread, mem_available);
-
-		g_free(mem_per_thread);
-		g_free(mem_available);
-	} else {
-#ifdef _OPENMP
-		if (for_writer) {
-			int max_queue_size = com.max_thread * 3;
-			if (limit > max_queue_size)
-				limit = max_queue_size;
-		}
-		siril_debug_print("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
-				required, MB_per_scaled_image, limit, for_writer ? "images" : "threads");
-#else
-		if (!for_writer)
-			limit = 1;
-		else if (limit > 3)
-			limit = 3;
-#endif
-	}
-	return limit;
-}
-
 int apply_reg_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
-	unsigned int MB_per_orig_image, MB_per_scaled_image, MB_avail;
-	int limit = compute_nb_images_fit_memory(args->seq, args->upscale_ratio, args->force_float,
+	unsigned int MB_per_orig_image, MB_per_scaled_image, MB_avail, MB_per_mono_float_orig_image, MB_per_mono_float_scaled_image;
+	struct star_align_data *sadata = args->user;
+	struct registration_args *regargs = sadata->regargs;
+
+	/* The apply reg memory consumption is:
+
+		* the original image
+		* the transformed image, including force_float, scale and x 3 for bayer drizzle if required
+			Note: If drizzle, we should always assume force_float as the output of drizzle is always float (realloc'ed to 16b if set in pref)
+
+		*** Maps ***
+		* For interpolation, if undistortion is included:
+			- two 32b mono images per image for its re-mapping
+		* For drizzle, in all cases:
+			- two 32b mono images per image for its re-mapping
+		Note: the size of the maps depends of the transformation method:
+			- destination size for Interpolation (so mono float upscaled)
+			- source size for Drizzle (so mono float original)
+
+		*** Drizzle specifics ***
+		* the output counts image, the same size as the scaled image
+
+		*** Interpolation specifics ***
+		* If clamping is enabled, one scaled image (the guide) and a 8b copy (the mask)
+
+		*** Others not to be accounted for:
+		- if Drizzle and master flat is specified, because drizzle init loads it 
+			before we compute available memory
+		- If Interpolation and undistorion with pre-computed maps (DISTO_MAP_D2S or DISTO_MAP_S2D), 
+			those two maps are init before this hook
+
+		Note: there are a few approximations:
+		- using seq->rx/seq->ry for original image size while for interpolation, the seq can be variable (not for drizzle though)
+		- assuming the output scaled image is rx*ry*scale^2. This does not work for min or max framing. min is safe, max is not...
+
+	*/
+
+	// using drizzle, we force memory consumption as float
+	gboolean force_float = args->force_float || regargs->driz;
+
+	int limit = compute_nb_images_fit_memory(args->seq, args->upscale_ratio, force_float,
 			&MB_per_orig_image, &MB_per_scaled_image, &MB_avail);
 	int is_float = get_data_type(args->seq->bitpix) == DATA_FLOAT;
 
-	/* The transformation memory consumption is:
-		* the original image
-		* the transformed image, including upscale if required (4x)
-		*/
+	MB_per_mono_float_orig_image = max(1, (unsigned int)(args->seq->rx * args->seq->ry * sizeof(float) / BYTES_IN_A_MB));
+	MB_per_mono_float_scaled_image = max(1, (unsigned int)(args->seq->rx * args->seq->ry * args->upscale_ratio * args->upscale_ratio * sizeof(float) / BYTES_IN_A_MB));
+
+	if (regargs->driz && regargs->driz->is_bayer)
+		MB_per_scaled_image *= 3; // we have a mono in and a color out
+
+	// image in and out
 	unsigned int required = MB_per_orig_image + MB_per_scaled_image;
-	// If interpolation clamping is set, 2x additional Mats of the same format
-	// as the original image are required
-	struct star_align_data *sadata = args->user;
-	struct registration_args *regargs = sadata->regargs;
-	if (regargs->clamp && (regargs->interpolation == OPENCV_CUBIC ||
+
+	// maps
+	if (regargs->driz)
+		required += 2 * MB_per_mono_float_orig_image; // maps
+	else if (regargs->undistort)
+		required += 2 * MB_per_mono_float_scaled_image; // maps if undistortion, otherwise we directly use openCV warpPerspective() which computes maps iteratively on 32x32 chunks
+	
+	// drizzle specifics
+	if (regargs->driz)
+		required += MB_per_scaled_image;
+
+	// interpolation specifics
+	if (!regargs->driz && regargs->clamp && (regargs->interpolation == OPENCV_CUBIC ||
 			regargs->interpolation == OPENCV_LANCZOS4)) {
 		float factor = (is_float) ? 0.25 : 0.5;
-		required += (1 + factor) * MB_per_scaled_image;
+		required += (1 + factor) * MB_per_scaled_image; // we need one scaled image (the guide) and a 8b copy (the mask)
 	}
-	regargs = NULL;
-	sadata = NULL;
 
 	if (limit > 0) {
 
@@ -754,7 +732,6 @@ int apply_reg_compute_mem_limits(struct generic_seq_args *args, gboolean for_wri
 int initialize_drizzle_params(struct generic_seq_args *args, struct registration_args *regargs) {
 	struct driz_args_t *driz = regargs->driz;
 	set_progress_bar_data(_("Initializing drizzle data..."), PROGRESS_PULSATE);
-	args->compute_mem_limits_hook = apply_drz_compute_mem_limits;
 	driz->scale = regargs->output_scale;
 	driz_param_dump(driz); // Print some info to the log
 	/* preparing reference data from reference fit and making sanity checks*/
@@ -763,8 +740,6 @@ int initialize_drizzle_params(struct generic_seq_args *args, struct registration
 	/* fit will now hold the reference frame */
 	if (seq_read_frame_metadata(regargs->seq, regargs->reference_image, &fit)) {
 		siril_log_message(_("Could not load reference image\n"));
-//		args->seq->regparam[0] = NULL;
-//		return 1;
 	}
 	sensor_pattern pattern;
 	if (args->seq->type == SEQ_SER && args->seq->ser_file ) {
@@ -859,17 +834,14 @@ int register_apply_reg(struct registration_args *regargs) {
 		return 0;
 	}
 
-	if (regargs->driz) {
-		if (initialize_drizzle_params(args, regargs)) {
-			free(args);
-			return -1;
-		}
-	} else {
-		args->compute_mem_limits_hook = apply_reg_compute_mem_limits;
+	if (regargs->driz && initialize_drizzle_params(args, regargs)) {
+		free(args);
+		return -1;
 	}
 
 	args->upscale_ratio = regargs->output_scale;
 	args->prepare_hook = apply_reg_prepare_hook;
+	args->compute_mem_limits_hook = apply_reg_compute_mem_limits;
 	args->finalize_hook = apply_reg_finalize_hook;
 	args->filtering_criterion = regargs->filtering_criterion;
 	args->filtering_parameter = regargs->filtering_parameter;
