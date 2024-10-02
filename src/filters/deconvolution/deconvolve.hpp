@@ -35,7 +35,7 @@
 namespace deconvolve {
     template <typename T>
     void wiener_deconvolve(img_t<T>& x, const img_t<T>& f, const img_t<T>& K, T sigma) {
-
+        double sliceprogress = (double) f.slices_complete / f.total_slices;
         // sigma is the noise modelling parameter. This assumes the noise is Gaussian i.e. its power spectrum is
         // constant. To extend this to other noise models, if needed, replace T sigma by const
         // img_t<std::complex<T>> sigma where the img_t contains the 2D noise power spectrum.
@@ -57,17 +57,19 @@ namespace deconvolve {
         // Generate |H^2| = H * complex conjugate of H
         denom.map((img::conj(H) * H) + sigma);
         denom.sanitize(); // Avoid NaNs and zeros in the denominator
-        set_progress_bar_data(_("Wiener deconvolution..."), 0.33);
+        set_progress_bar_data(_("Wiener deconvolution..."), std::min(1.0, (sliceprogress + 0.33 / f.total_slices)));
+        // The std::min() call is used because on completion rounding errors can take the value marginally above 1.0 and cause an assert fail in set_progress_bar_data()
+        // Similarly for other calls to this function
 
         // Take the FFT of the image f, call this G
         G.map(f);
         G.fft(G);
-        set_progress_bar_data(_("Wiener deconvolution..."), 0.66);
+        set_progress_bar_data(_("Wiener deconvolution..."), std::min(1.0, (sliceprogress + 0.67 / f.total_slices)));
 
         // Apply the Wiener filter
         G.map((G * img::conj(H)) / denom);
         G.ifft(G);
-        set_progress_bar_data(_("Wiener deconvolution..."), 1.0);
+        set_progress_bar_data(_("Wiener deconvolution..."), std::min(1.0, (sliceprogress + 1.0 / f.total_slices)));
 
         x.map(img::real(G));
     }
@@ -76,6 +78,7 @@ namespace deconvolve {
     void rl_deconvolve_fft(img_t<T>& x, const img_t<T>& f, img_t<T>& K, T lambda, int maxiter, T stopcriterion, regtype_t regtype, float stepsize, int stopcriterion_active) {
         assert(K.w % 2);
         assert(K.h % 2);
+        double sliceprogress = (double) f.slices_complete / f.total_slices;
         x = f;
 
         // Generate OTF of kernel
@@ -158,7 +161,7 @@ namespace deconvolve {
                     break;
             }
             if (sequence_is_running == 0)
-                set_progress_bar_data(_("Richardson-Lucy deconvolution..."), (static_cast<float>(iter + 1) / static_cast<float>(maxiter)));
+                set_progress_bar_data(_("Richardson-Lucy deconvolution..."), std::min(1.0, sliceprogress + ((static_cast<float>(iter + 1) / static_cast<float>(maxiter))/f.total_slices)));
             if (stopcriterion_active == 1) {
                 // Stopping criterion?
                 auto stopmeasure = (img::abs(img::real(est) - stopcrit) / img::abs(stopcrit));
@@ -178,6 +181,7 @@ namespace deconvolve {
     void rl_deconvolve_naive(img_t<T>& x, const img_t<T>& f, const img_t<T>& K, T lambda, int maxiter, T stopcriterion, regtype_t regtype, float stepsize, int stopcriterion_active) {
         assert(K.w % 2);
         assert(K.h % 2);
+        double sliceprogress = (double) f.slices_complete / f.total_slices;
         x = f;
         img_t<T> w(f.w, f.h, f.d);
         float reallambda = 1.f / lambda; // For consistency with other algorithms
@@ -242,7 +246,7 @@ namespace deconvolve {
                     break;
             }
             if (sequence_is_running == 0)
-                set_progress_bar_data(_("Richardson-Lucy deconvolution..."), (static_cast<float>(iter + 1) / static_cast<float>(maxiter)));
+                set_progress_bar_data(_("Richardson-Lucy deconvolution..."), std::min(1.0, sliceprogress + ((static_cast<float>(iter + 1) / static_cast<float>(maxiter))/f.total_slices)));
             if (stopcriterion_active == 1) {
                 gxy.map((img::abs(x - gxy)) / img::abs(gxy));
                 T stopping = gxy.sum() / gxy.size;
@@ -261,6 +265,7 @@ namespace deconvolve {
                             T lambda, T b_0, T b_factor, T max_beta, const int iters) {
         assert(K.w % 2);
         assert(K.h % 2);
+        double sliceprogress = (double) f.slices_complete / f.total_slices;
         optimization::operators::gradient<T> gradient(f);
         using gradtype = typename decltype(gradient)::out_type;
         img_t<gradtype> w(f.w, f.h, f.d);
@@ -321,7 +326,7 @@ namespace deconvolve {
             if (!get_thread_run())
                 break;
             if (sequence_is_running == 0)
-                set_progress_bar_data("Split Bregman deconvolution...", ((beta - b_0) / (max_beta - b_0)));
+                set_progress_bar_data("Split Bregman deconvolution...", std::min(1.0, sliceprogress + ((beta - b_0) / (max_beta - b_0))/f.total_slices));
             T gamma = beta / lambda;
             auto denom = ksq + gamma * dxdysq;
 
@@ -341,5 +346,4 @@ namespace deconvolve {
             beta *= b_factor;
         }
     }
-
 }

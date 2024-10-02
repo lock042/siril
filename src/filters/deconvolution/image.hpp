@@ -74,6 +74,7 @@ public:
     // Data
     typedef T value_type;
     int size, w, h, d;
+    gint total_slices = 1, slices_complete = 0;
     std::vector<T, fftw_alloc<T>> data;
     fftwf_plan forwardplanf = nullptr;
     fftwf_plan backwardplanf = nullptr;
@@ -376,6 +377,8 @@ public:
             // If the fastest size is at least 80% of the largest possible size, use it
             best = fastest;
         }
+// The following line is handy for testing to force multiple slices
+//        return (SliceSize) {1024, 1024};
         if (best.width <= w && best.height <= h) {
             return best;
         } else {
@@ -419,6 +422,7 @@ public:
 
         // Temporary image for padded slice
         img_t<T> padded_slice;
+        g_atomic_int_set(&padded_slice.total_slices, num_slices_x * num_slices_y);
 
         for (int sy = 0; sy < num_slices_y; ++sy) {
             for (int sx = 0; sx < num_slices_x; ++sx) {
@@ -476,6 +480,7 @@ public:
                         }
                     }
                 }
+                g_atomic_int_add(&padded_slice.slices_complete, 1);
             }
         }
     }
