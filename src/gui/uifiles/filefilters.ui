@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019-2023
 
@@ -32,14 +32,20 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
       <pattern>*</pattern>
     </patterns>
   </object>
-  <object class="GtkFileFilter" id="filefilter1">
+  <object class="GtkFileFilter" id="filefilter_comp">
     <patterns>
       <pattern>*.fit</pattern>
       <pattern>*.fits</pattern>
       <pattern>*.fts</pattern>
       <pattern>*.tif</pattern>
       <pattern>*.tiff</pattern>
-      <pattern>*.fz</pattern>
+      <pattern>*.fit.fz</pattern>
+      <pattern>*.FIT</pattern>
+      <pattern>*.FITS</pattern>
+      <pattern>*.FTS</pattern>
+      <pattern>*.TIF</pattern>
+      <pattern>*.TIFF</pattern>
+      <pattern>*.FIT.FZ</pattern>
     </patterns>
   </object>
   <object class="GtkFileFilter" id="filefilter_fits">
@@ -88,5 +94,4 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
       <pattern>*.icm</pattern>
     </patterns>
   </object>
-
 </interface>

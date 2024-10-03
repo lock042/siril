@@ -626,7 +626,6 @@ void siril_check_updates(gboolean verbose) {
 	args->url = g_strdup(SIRIL_VERSIONS);
 	args->content = NULL;
 	args->verbose = verbose;
-	args->abort_on_fail = FALSE;
 	args->idle_function = end_update_idle;
 
 	set_progress_bar_data(_("Looking for updates..."), PROGRESS_NONE);
@@ -647,7 +646,6 @@ void siril_check_notifications(gboolean verbose) {
 	siril_debug_print("Notification URL: %s\n", args->url);
 	args->content = NULL;
 	args->verbose = verbose;
-	args->abort_on_fail = FALSE;
 	args->idle_function = end_notifier_idle;
 	siril_debug_print("Checking notifications...\n");
 	set_progress_bar_data(_("Looking for notifications..."), PROGRESS_NONE);
