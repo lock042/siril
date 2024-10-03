@@ -500,11 +500,6 @@ static int star_align_finalize_hook(struct generic_seq_args *args) {
 }
 
 int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
-	unsigned int MB_per_orig_image, MB_per_scaled_image, MB_avail;
-	int limit = compute_nb_images_fit_memory(args->seq, args->upscale_ratio, args->force_float,
-			&MB_per_orig_image, &MB_per_scaled_image, &MB_avail);
-	unsigned int required = MB_per_scaled_image;
-	if (limit > 0) {
 		/* The registration memory consumption, n is image size and m channel size.
 		 * First, a threshold is computed for star pixel value, using statistics:
 		 *	O(m), data is duplicated for median computation if
@@ -512,14 +507,32 @@ int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 		 * Then, still in peaker(), image is filtered using Gaussian blur, duplicating
 		 * the reference channel to act as input and output of the filter as float O(m
 		 * as float for RT, current), O(2m as float for openCV).
-		 * Then, the image is rotated and scaled by the generic function if enabled:
-		 * cvTransformImage is O(n) in mem for unscaled, O(nscaled)=O(scale^2*n) for
-		 * monochrome scaled and O(2nscaled)=O(21m) for color scaled
-		 * All this is in addition to the image being already loaded, except for the
-		 * color scaled image.
-		 *
+		 * All this is in addition to the image being already loaded.
+		 * In the special case of CFA image as input, we also have a copy of the 
+		 * orig image so O(n=m) to interpolate non green pixels
+
+		 * Then, we use the same function as apply_reg_compute_mem_limits is used to compute
+		 * consumption for producing the registered images (if not 2-pass)
+
 		 * Since these three operations are in sequence, we need room only for the
 		 * largest.
+		 * 
+		 * Step 1 - statistics:
+		 * 1 original image O(n)
+		 * 1 copy of original image O(n) if CFA
+		 * 1 original image layer O(m)
+
+		 * Step 2 - detection (always larger than step 1):
+		 * 1 original image O(n)
+		 * 1 copy of original image O(n) if CFA
+		 * 1 float original image layer O(m as float)
+
+		 * Step 3 - transformation:
+		 * See apply_reg_compute_mem_consumption()
+		 * Note: Because scale can be between 0.1 and 3, we can't know how this 
+		 * compares to step 2 before actually doing the calc
+
+// TODO: do we keep this?
 		 * rotated color scaled float	mem needed
 		 *       0     0      0     0	O(m as float)
 		 *       1     0      0     0	O(m as float)
@@ -531,54 +544,46 @@ int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 		 *       1     1      1     0	O(8n or 2nscaled)
 		 *       1     1      1     1	O(8n or 2nscaled)
 		 */
-		int is_color = args->seq->nb_layers == 3;
-		int is_float = get_data_type(args->seq->bitpix) == DATA_FLOAT;
-		int is_scaled = args->upscale_ratio != 1.f;
-		unsigned int float_multiplier = is_float ? 1 : 2;
-		unsigned int MB_per_float_image = MB_per_orig_image * float_multiplier;
-		unsigned int MB_per_float_channel = is_color ? MB_per_float_image / 3 : MB_per_float_image;
-		unsigned int MB_per_orig_channel = is_color ? MB_per_orig_image / 3 : MB_per_float_image;
-		MB_per_float_channel = max(1, MB_per_float_channel);
-		MB_per_orig_channel = max(1, MB_per_orig_channel);
-		if (!args->has_output || (!is_scaled && !is_color)) {
-			required = MB_per_orig_image + MB_per_float_channel;
-		}
-		// here args->has_output is TRUE
-		else if (!is_color && is_scaled) {
-			required = MB_per_orig_image + (int)(args->upscale_ratio * args->upscale_ratio * MB_per_orig_channel);
-		}
-		else if (is_color && !is_scaled) {
-			required = 2 * MB_per_orig_image;
-		}
-		else {
-			required = 2 * MB_per_scaled_image;
-		}
 
-		// If interpolation clamping is set, 1 additional Mat of the same format
-		// as the original image are required, plus 1 of the same size but 8U format
-		struct star_align_data *sadata = args->user;
-		struct registration_args *regargs = sadata->regargs;
-		if (regargs->clamp && (regargs->interpolation == OPENCV_CUBIC ||
-				regargs->interpolation == OPENCV_LANCZOS4)) {
-			float factor = (is_float) ? 0.25 : 0.5;
-			required += (1 + factor) * MB_per_scaled_image;
-		} else if (regargs->bayer) { // Allow for the extra copy of the image used for interpolation and star detection
-			// (this is never more than required for clamping and they are not required at the same time so no need to
-			// account for this if clamping is active)
-			required += MB_per_orig_image;
-		}
-		regargs = NULL;
-		sadata = NULL;
+	struct registration_args *regargs = ((struct star_align_data *)args->user)->regargs;
+
+	unsigned int MB_per_orig_image, MB_per_orig_channel_float, MB_per_scaled_image, MB_avail, required_step2 = 0, required_step3 = 0, required = 0;
+	uint64_t memory_per_orig_channel_float, memory_per_orig_image;
+	int limit_step2 = INT16_MAX, limit_step3 = INT16_MAX, limit;
+	gboolean is_float = (get_data_type(args->seq->bitpix) == DATA_FLOAT || args->force_float);
+
+	memory_per_orig_channel_float = (uint64_t) args->seq->rx * args->seq->ry * sizeof(float);
+	memory_per_orig_image = memory_per_orig_channel_float * args->seq->nb_layers * ((is_float) ? 1 : 0.5);
+
+	MB_per_orig_image = max(1, memory_per_orig_image / BYTES_IN_A_MB); // i.e n
+	MB_per_orig_channel_float = max(1, memory_per_orig_channel_float / BYTES_IN_A_MB); // i.e m as float
+
+	required_step2 = MB_per_orig_image + MB_per_orig_channel_float;
+	if (regargs->driz)
+		required_step2 += MB_per_orig_image; // the copy for interpolating nongreen pixels
+
+	if (!regargs->no_output) {// it produces output, we need compute step3 as well
+		limit_step3 = apply_reg_compute_mem_consumption(args, &required_step2, &MB_avail, &MB_per_scaled_image);
+	} else {
+		MB_avail = get_max_memory_in_MB(); // we need to call it
+	}
+	limit_step2 = (int)(required_step2 / MB_avail);
+	
+	limit = min(limit_step2, limit_step3);
+	required = max(required_step2, required_step3);
+
+	if (limit > 0) {
 		int thread_limit = MB_avail / required;
 		if (thread_limit > com.max_thread)
 			thread_limit = com.max_thread;
 
-		if (for_writer) {
+		if (!regargs->no_output && for_writer) {
 			/* we allow the already allocated thread_limit images,
 			 * plus how many images can be stored in what remains
 			 * unused by the main processing */
 			limit = thread_limit + (MB_avail - required * thread_limit) / MB_per_scaled_image;
-		} else limit = thread_limit;
+		} else 
+			limit = thread_limit;
 	}
 
 	if (limit == 0) {
@@ -592,7 +597,7 @@ int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 		g_free(mem_available);
 	} else {
 #ifdef _OPENMP
-		if (for_writer) {
+		if (!regargs->no_output && for_writer) {
 			int max_queue_size = com.max_thread * 3;
 			if (limit > max_queue_size)
 				limit = max_queue_size;
@@ -615,15 +620,14 @@ int register_star_alignment(struct registration_args *regargs) {
 		args->filtering_criterion = seq_filter_included;
 		args->nb_filtered_images = regargs->seq->selnum;
 	}
-	if (regargs->driz) {
-		if (initialize_drizzle_params(args, regargs)) {
-			free(args);
-			return -1;
-		}
-	} else {
-		args->compute_mem_limits_hook = star_align_compute_mem_limits;
-		args->upscale_ratio = regargs->output_scale;
+	if (regargs->driz && initialize_drizzle_params(args, regargs)) {
+		free(args);
+		return -1;
 	}
+
+	args->compute_mem_limits_hook = star_align_compute_mem_limits;
+	args->upscale_ratio = regargs->output_scale;
+
 	if (regargs->undistort) {
 		int status = 1;
 		regargs->disto = init_disto_data(&regargs->distoparam, regargs->seq, NULL, regargs->driz != NULL, &status);

@@ -1089,7 +1089,8 @@ int save_list_as_FITS_table(const char *filename, psf_star **stars, int nbstars,
 
 static int findstar_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
 	unsigned int MB_per_image, MB_avail, required = 0;
-	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_image, NULL, &MB_avail);
+	// using output scale of 0. as this does not produce output image
+	int limit = compute_nb_images_fit_memory(args->seq, 0.0, FALSE, &MB_per_image, NULL, &MB_avail);
 
 	if (limit > 0) {
 		int is_float = get_data_type(args->seq->bitpix) == DATA_FLOAT;
@@ -1104,10 +1105,22 @@ static int findstar_compute_mem_limits(struct generic_seq_args *args, gboolean f
 		// * As the 1-channel fits populated by extract_fits() is DATA_FLOAT no
 		//   memory is required for the Gaussian blur as the in-place RT algorithm is
 		//   used;
+		// * If the sequence is CFA, we also need to make a copy of the input image
+		// to interpolate non green pixels
 		// * Also allow MAX_STARS * sizeof(psf_star) + 1MB margin for gslsolver data;
 		//   and the indexing arrays e.g. smooth_array (ry * sizeof(float*)).
 		int stars_and_overhead = 1 + (int) ceilf(((float) MAX_STARS * (float) sizeof(psf_star)) / (float) BYTES_IN_A_MB);
 		required = MB_per_image + MB_per_float_chan + stars_and_overhead;
+
+		// we need to read the bayer pattern of ref image...
+		fits fit = { 0 };
+		// load ref metadata in fit
+		if (seq_read_frame_metadata(args->seq, sequence_find_refimage(args->seq), &fit))
+			return 0;
+		if (fit.keywords.bayer_pattern[0] != '\0')
+			required += MB_per_image;
+		clearfits(&fit);
+
 		int thread_limit = MB_avail / required;
 		if (thread_limit > com.max_thread)
 				thread_limit = com.max_thread;

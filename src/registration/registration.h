@@ -182,6 +182,7 @@ regdata *registration_get_current_regdata(struct registration_args *regargs);
 int registration_prepare_results(struct generic_seq_args *args);
 void create_output_sequence_for_registration(struct registration_args *args, int refindex);
 int initialize_drizzle_params(struct generic_seq_args *args, struct registration_args *regargs);
+int apply_reg_compute_mem_consumption(struct generic_seq_args *args, unsigned int *total_required_per_image_MB, unsigned int *required_per_dst_image_MB, unsigned int *max_mem_MB);
 
 // image hooks required by more than one reg method
 int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads);

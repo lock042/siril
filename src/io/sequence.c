@@ -2053,7 +2053,6 @@ void free_reference_image() {
 static int compute_nb_images_fit_memory_from_dimensions(int rx, int ry, int nb_layers, data_type type, double factor, gboolean force_float, unsigned int *MB_per_orig_image, unsigned int *MB_per_scaled_image, unsigned int *max_mem_MB) {
 	int max_memory_MB = get_max_memory_in_MB();
 
-	factor = max(factor, 1.0);
 	if (factor > 3.0) {
 		siril_debug_print("Info: image scaling is very large! (> 3.0)\n");
 	}

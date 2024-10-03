@@ -615,7 +615,11 @@ int apply_reg_finalize_hook(struct generic_seq_args *args) {
 	return regargs->new_total == 0;
 }
 
-int apply_reg_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
+/* this function is called by both:
+- apply_reg_compute_mem_limits
+- star_align_compute_mem_limits
+*/
+int apply_reg_compute_mem_consumption(struct generic_seq_args *args, unsigned int *total_required_per_image_MB, unsigned int *required_per_dst_image_MB, unsigned int *max_mem_MB) {
 	unsigned int MB_per_orig_image, MB_per_scaled_image, MB_avail, MB_per_mono_float_orig_image, MB_per_mono_float_scaled_image;
 	struct star_align_data *sadata = args->user;
 	struct registration_args *regargs = sadata->regargs;
@@ -685,6 +689,18 @@ int apply_reg_compute_mem_limits(struct generic_seq_args *args, gboolean for_wri
 		float factor = (is_float) ? 0.25 : 0.5;
 		required += (1 + factor) * MB_per_scaled_image; // we need one scaled image (the guide) and a 8b copy (the mask)
 	}
+
+	// storing the returned values
+	*total_required_per_image_MB = required;
+	*max_mem_MB = MB_avail;
+	*required_per_dst_image_MB = MB_per_scaled_image;
+
+	return limit;
+}
+
+int apply_reg_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
+	unsigned int required = 0, MB_avail = 0, MB_per_scaled_image = 0;
+	int limit = apply_reg_compute_mem_consumption(args, &required, &MB_avail, &MB_per_scaled_image);
 
 	if (limit > 0) {
 
