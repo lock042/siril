@@ -1329,8 +1329,18 @@ gpointer findstar_worker(gpointer p) {
 		selection = &com.selection;
 	gboolean limit_stars = (args->max_stars_fitted > 0);
 	int threads = check_threading(&args->threading);
+	fits *green_fit = NULL;
+	if (args->im.fit->keywords.bayer_pattern[0] != '\0') {
+		green_fit = calloc(1, sizeof(fits));
+		copyfits(args->im.fit, green_fit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+		interpolate_nongreen(green_fit);
+		args->im.fit = green_fit;
+		siril_log_color_message(_("Undebayered CFA image. Detection is done on green pixels only, using interpolation\n"), "salmon");
+	}
 	psf_star **stars = peaker(&args->im, args->layer, &com.pref.starfinder_conf, &nbstars,
 			selection, args->update_GUI, limit_stars, args->max_stars_fitted, com.pref.starfinder_conf.profile, threads);
+	if (green_fit)
+		clearfits(green_fit);
 
 	double fwhm = 0.0;
 	if (stars) {
