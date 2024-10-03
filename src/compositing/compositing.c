@@ -214,13 +214,11 @@ layer *create_layer(int index) {
 	g_signal_connect(ret->color_w, "draw", G_CALLBACK(draw_layer_color), NULL);
 	g_object_ref(G_OBJECT(ret->color_w));	// don't destroy it on removal from grid
 
-	ret->chooser = GTK_FILE_CHOOSER_BUTTON(
-			gtk_file_chooser_button_new(
-				"Select source image", GTK_FILE_CHOOSER_ACTION_OPEN));
+	ret->chooser = GTK_FILE_CHOOSER_BUTTON(gtk_file_chooser_button_new("Select source image", GTK_FILE_CHOOSER_ACTION_OPEN));
 	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(ret->chooser), com.wd);
-	gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(ret->chooser),
-			GTK_FILE_FILTER(gtk_builder_get_object(gui.builder, "filefilter1")));
-			gtk_file_chooser_button_set_width_chars(ret->chooser, 16);
+	siril_set_file_filter(GTK_FILE_CHOOSER(ret->chooser), "filefilter_comp", "FITS and TIFF files");
+
+	gtk_file_chooser_button_set_width_chars(ret->chooser, 16);
 	gtk_file_chooser_set_local_only(GTK_FILE_CHOOSER(ret->chooser), FALSE);
 	g_signal_connect(ret->chooser, "file-set", G_CALLBACK(on_filechooser_file_set), NULL);
 	g_object_ref(G_OBJECT(ret->chooser));	// don't destroy it on removal from grid
@@ -415,7 +413,7 @@ void open_compositing_window() {
 		register_selection_update_callback(update_compositing_registration_interface);
 
 		gtk_builder_connect_signals(gui.builder, NULL);
-		siril_set_file_filter("filechooser_lum", "filefilter1");
+		siril_set_file_filter(GTK_FILE_CHOOSER(lookup_widget("filechooser_lum")), "filefilter_comp", "FITS and TIFF files");
 
 		/* parse the default palette */
 		for (i=0; i<sizeof(list_of_12_color_names)/sizeof(const char*); i++)

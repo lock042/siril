@@ -51,7 +51,7 @@ void execute_idle_and_wait_for_it(gboolean (* idle)(gpointer), gpointer arg);
 int select_vport(int vport);
 gboolean check_ok_if_cfa();
 point closest_point_on_line(point in, point p1, point p2);
-void siril_set_file_filter(const gchar* widget_name, const gchar* filter_name);
+void siril_set_file_filter(GtkFileChooser* chooser, const gchar* filter_name, gchar *filter_display_name);
 const char* get_cfa_from_pattern(sensor_pattern pattern);
 void interpolate_nongreen(fits *fit);
 void apply_limits(fits *fit, double minval, double maxval, OverrangeResponse method);

@@ -906,17 +906,17 @@ static void dump_ui_to_global_var() {
 
 void on_settings_window_show(GtkWidget *widget, gpointer user_data) {
 	siril_debug_print("show preferences window: updating it\n");
-	siril_set_file_filter("localcatalogue_path1", "filter_namedstars");
-	siril_set_file_filter("localcatalogue_path2", "filter_unnamedstars");
-	siril_set_file_filter("localcatalogue_path3", "filter_deepstars");
-	siril_set_file_filter("localcatalogue_path4", "filter_USNO-NOMAD-1e8");
-	siril_set_file_filter("custom_icc_standard_trc", "icc_filter");
-	siril_set_file_filter("custom_gray_icc_matching_trc", "icc_filter");
-	siril_set_file_filter("pref_custom_monitor_profile", "icc_filter");
-	siril_set_file_filter("pref_soft_proofing_profile", "icc_filter");
-	siril_set_file_filter("filechooser_graxpert", "all_files");
-	siril_set_file_filter("filechooser_starnet", "all_files");
-	siril_set_file_filter("filechooser_starnet_weights", "all_files");
+	siril_set_file_filter(GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path1")), "filter_namedstars", "Catalogue");
+	siril_set_file_filter(GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path2")), "filter_unnamedstars", "Catalogue");
+	siril_set_file_filter(GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path3")), "filter_deepstars", "Catalogue");
+	siril_set_file_filter(GTK_FILE_CHOOSER(lookup_widget("localcatalogue_path4")), "filter_USNO-NOMAD-1e8", "Catalogue");
+	siril_set_file_filter(GTK_FILE_CHOOSER(lookup_widget("custom_icc_standard_trc")), "icc_filter", "ICC files");
+	siril_set_file_filter(GTK_FILE_CHOOSER(lookup_widget("custom_gray_icc_matching_trc")), "icc_filter", "ICC files");
+	siril_set_file_filter(GTK_FILE_CHOOSER(lookup_widget("pref_custom_monitor_profile")), "icc_filter", "ICC files");
+	siril_set_file_filter(GTK_FILE_CHOOSER(lookup_widget("pref_soft_proofing_profile")), "icc_filter", "ICC files");
+	siril_set_file_filter(GTK_FILE_CHOOSER(lookup_widget("filechooser_graxpert")), "all_files", "All supported files");
+	siril_set_file_filter(GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet")), "all_files", "All supported files");
+	siril_set_file_filter(GTK_FILE_CHOOSER(lookup_widget("filechooser_starnet_weights")), "all_files", "All supported files");
 	GtkLabel* spcc_path_label = GTK_LABEL(lookup_widget("label_spcc_repo_path"));
 	gtk_label_set_text(spcc_path_label, siril_get_spcc_repo_path());
 
