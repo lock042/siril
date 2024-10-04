@@ -643,6 +643,9 @@ int apply_reg_compute_mem_consumption(struct generic_seq_args *args, unsigned in
 		* the output counts image, the same size as the scaled image
 
 		*** Interpolation specifics ***
+		* If color, the consumption for openCV is trickier:
+		*	if orig > dest (scale < 1.), we have at worst 2 * orig (occurs during fits_to_bgrbgr_xxx) instead of orig + dest
+		*	if dest > orig (scale > 1.), we have at worst 2 * dest - orig (occurs during Mat_to_image) instead of orig + dest
 		* If clamping is enabled, one scaled image (the guide) and a 8b copy (the mask)
 
 		*** Others not to be accounted for:
@@ -652,7 +655,7 @@ int apply_reg_compute_mem_consumption(struct generic_seq_args *args, unsigned in
 			those two maps are init before this hook
 
 		Note: there are a few approximations:
-		- using seq->rx/seq->ry for original image size while for interpolation, the seq can be variable (not for drizzle though)
+		- using seq->rx/seq->ry for original image size while for interpolation, the seq can be variable (not for drizzle though, drizzle is not allowed)
 		- assuming the output scaled image is rx*ry*scale^2. This does not work for min or max framing. min is safe, max is not...
 
 	*/
@@ -684,6 +687,12 @@ int apply_reg_compute_mem_consumption(struct generic_seq_args *args, unsigned in
 		required += MB_per_scaled_image;
 
 	// interpolation specifics
+	if (!regargs->driz && regargs->seq->nb_layers == 3) {
+		if (regargs->output_scale < 1.f)
+			required += MB_per_orig_image - MB_per_scaled_image; // we had orig + dest, now we have 2 * orig
+		else
+			required += MB_per_scaled_image - 2 * MB_per_orig_image; // we had orig + dest, now we have 2 * dest - orig
+	}
 	if (!regargs->driz && regargs->clamp && (regargs->interpolation == OPENCV_CUBIC ||
 			regargs->interpolation == OPENCV_LANCZOS4)) {
 		float factor = (is_float) ? 0.25 : 0.5;
