@@ -644,8 +644,12 @@ int apply_reg_compute_mem_consumption(struct generic_seq_args *args, unsigned in
 
 		*** Interpolation specifics ***
 		* If color, the consumption for openCV is trickier:
-		*	if orig > dest (scale < 1.), we have at worst 2 * orig (occurs during fits_to_bgrbgr_xxx) instead of orig + dest
-		*	if dest > orig (scale > 1.), we have at worst 2 * dest - orig (occurs during Mat_to_image) instead of orig + dest
+		* we have at some point:
+			- 2 * orig (occurs during fits_to_bgrbgr_xxx)
+			- 2 * dest - orig (occurs during Mat_to_image)
+		* We should compare to orig + dest
+			- if orig > dest (scale < 1.), we have at worst 2 * orig instead of orig + dest
+			- if dest > orig (scale > sqrt(2)), we have at worst 2 * dest - orig instead of orig + dest
 		* If clamping is enabled, one scaled image (the guide) and a 8b copy (the mask)
 
 		*** Others not to be accounted for:
@@ -690,7 +694,7 @@ int apply_reg_compute_mem_consumption(struct generic_seq_args *args, unsigned in
 	if (!regargs->driz && regargs->seq->nb_layers == 3) {
 		if (regargs->output_scale < 1.f)
 			required += MB_per_orig_image - MB_per_scaled_image; // we had orig + dest, now we have 2 * orig
-		else
+		else if (regargs->output_scale > (float)SQRT2)
 			required += MB_per_scaled_image - 2 * MB_per_orig_image; // we had orig + dest, now we have 2 * dest - orig
 	}
 	if (!regargs->driz && regargs->clamp && (regargs->interpolation == OPENCV_CUBIC ||
@@ -709,7 +713,7 @@ int apply_reg_compute_mem_consumption(struct generic_seq_args *args, unsigned in
 
 int apply_reg_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
 	unsigned int required = 0, MB_avail = 0, MB_per_scaled_image = 0;
-	int limit = apply_reg_compute_mem_consumption(args, &required, &MB_avail, &MB_per_scaled_image);
+	int limit = apply_reg_compute_mem_consumption(args, &required, &MB_per_scaled_image, &MB_avail);
 
 	if (limit > 0) {
 
@@ -806,6 +810,7 @@ int initialize_drizzle_params(struct generic_seq_args *args, struct registration
 
 int register_apply_reg(struct registration_args *regargs) {
 	struct generic_seq_args *args = create_default_seqargs(regargs->seq);
+	args->force_float = !com.pref.force_16bit && regargs->seq->type != SEQ_SER;
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
 	if (!check_before_applyreg(regargs)) { // checks for input arguments wrong combinations

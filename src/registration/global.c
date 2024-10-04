@@ -559,14 +559,11 @@ int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 	MB_per_orig_channel_float = max(1, memory_per_orig_channel_float / BYTES_IN_A_MB); // i.e m as float
 
 	required_step2 = MB_per_orig_image + MB_per_orig_channel_float;
-	if (regargs->driz)
+
+	if (regargs->driz && regargs->driz->is_bayer)
 		required_step2 += MB_per_orig_image; // the copy for interpolating nongreen pixels
 
-	if (!regargs->no_output) {// it produces output, we need compute step3 as well
-		limit_step3 = apply_reg_compute_mem_consumption(args, &required_step2, &MB_avail, &MB_per_scaled_image);
-	} else {
-		MB_avail = get_max_memory_in_MB(); // we need to call it
-	}
+	limit_step3 = apply_reg_compute_mem_consumption(args, &required_step2, &MB_per_scaled_image, &MB_avail);
 	limit_step2 = (int)(required_step2 / MB_avail);
 	
 	limit = min(limit_step2, limit_step3);
@@ -597,7 +594,7 @@ int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 		g_free(mem_available);
 	} else {
 #ifdef _OPENMP
-		if (!regargs->no_output && for_writer) {
+		if (for_writer) {
 			int max_queue_size = com.max_thread * 3;
 			if (limit > max_queue_size)
 				limit = max_queue_size;
@@ -616,6 +613,7 @@ int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 
 int register_star_alignment(struct registration_args *regargs) {
 	struct generic_seq_args *args = create_default_seqargs(regargs->seq);
+	args->force_float = !com.pref.force_16bit && regargs->seq->type != SEQ_SER;
 	if (regargs->filters.filter_included) {
 		args->filtering_criterion = seq_filter_included;
 		args->nb_filtered_images = regargs->seq->selnum;
