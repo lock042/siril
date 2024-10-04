@@ -2069,7 +2069,7 @@ static int compute_nb_images_fit_memory_from_dimensions(int rx, int ry, int nb_l
 	}
 	unsigned int memory_per_orig_image_MB = memory_per_orig_image / BYTES_IN_A_MB;
 	unsigned int memory_per_scaled_image_MB = memory_per_scaled_image / BYTES_IN_A_MB;
-	if (memory_per_scaled_image_MB == 0)
+	if (memory_per_scaled_image_MB == 0) // in theory we should only do this if factor > 0. But just case we make a division by memory_per_scaled_image_MB... we'll keep this here for now
 		memory_per_scaled_image_MB = 1;
 	if (memory_per_orig_image_MB == 0)
 		memory_per_orig_image_MB = 1;
