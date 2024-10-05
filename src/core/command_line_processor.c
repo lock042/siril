@@ -101,11 +101,13 @@ static const char *cmd_err_to_str(cmd_errors err) {
 	}
 }
 
-void replace_variables_in_line(gchar **line, int *len) {
-	if (!com.variables.vars_active) return;
+gchar* replace_variables_in_word(const gchar *word, gboolean add_quotes) {
+	if (!com.variables.vars_active) return g_strdup(word);
 
 	const gchar *var_sep_str = "%%";
-	gchar *start = strstr(*line, var_sep_str);
+	gchar *result = g_strdup(word);
+	gchar *start = strstr(result, var_sep_str);
+	gboolean contains_string_var = FALSE;
 
 	while (start != NULL) {
 		gchar *end = strstr(start + strlen(var_sep_str), var_sep_str);
@@ -133,55 +135,106 @@ void replace_variables_in_line(gchar **line, int *len) {
 			int index = atoi(var_name + 3);
 			if (index >= 0 && index < MAX_CMD_VARS) {
 				replacement = g_strdup(com.variables.str[index]);
+				contains_string_var = TRUE;
 			}
+		}
+		// Special variables
+		else if (!g_ascii_strcasecmp(var_name, "wd")) {
+			replacement = g_strdup(com.wd);
+			contains_string_var = TRUE;
+		} else if (!g_ascii_strcasecmp(var_name, "filename")) {
+			if (com.uniq->filename)
+				replacement = g_strdup(com.uniq->filename);
+			else
+				replacement = g_strdup(_("unsaved file"));
+			contains_string_var = TRUE;
 		}
 
 		if (replacement) {
-			int new_len = strlen(*line) - var_name_len - 2 * strlen(var_sep_str) + strlen(replacement) + 1;
-			*line = g_realloc(*line, new_len);
-			memmove(start + strlen(replacement), end + strlen(var_sep_str), strlen(end + strlen(var_sep_str)) + 1);
-			memcpy(start, replacement, strlen(replacement));
+			gchar *new_result = g_strdup_printf("%.*s%s%s",
+				(int)(start - result), result, replacement, end + strlen(var_sep_str));
+			g_free(result);
+			result = new_result;
+			start = strstr(result + (start - result) + strlen(replacement), var_sep_str);
 			g_free(replacement);
-			*len = new_len - 1;
+		} else {
+			start = strstr(end + strlen(var_sep_str), var_sep_str);
 		}
-
-		start = strstr(start + strlen(replacement), var_sep_str);
 	}
+
+	// Add quotes if required and the word contains spaces
+	if (add_quotes && contains_string_var && strchr(result, ' ') != NULL) {
+		gchar *quoted = g_strdup_printf("\"%s\"", result);
+		g_free(result);
+		return quoted;
+	}
+
+	return result;
 }
 
 void parse_line(gchar **myline, int *len, int *nb) {
-	// Replace variables in the line if vars_active is TRUE
-	if (com.variables.vars_active) {
-		replace_variables_in_line(myline, len);
-	}
 	int i = 0, wordnb = 0;
-	gchar string_starter = '\0';  // quotes don't split words on spaces
 	word[0] = NULL;
+	gboolean is_setvar_command = FALSE;
 
 	do {
 		while (i < *len && g_ascii_isspace((*myline)[i]))
 			i++;
 		if (i >= *len) break;
-		if ((*myline)[i] == '"' || (*myline)[i] == '\'')
-			string_starter = (*myline)[i++];
-		if (i >= *len || (*myline)[i] == '\0' || (*myline)[i] == '\n' || (*myline)[i] == '\r')
-			break;
-		word[wordnb++] = *myline + i;  // the beginning of the word
-		word[wordnb] = NULL;          // put next word to NULL
-		do {
-			i++;
-			if (i >= *len) break;
-			if (string_starter != '\0' && (*myline)[i] == string_starter) {
-				string_starter = '\0';
-				break;
-			}
-		} while (i < *len && (!g_ascii_isspace((*myline)[i]) || string_starter != '\0')
-				&& (*myline)[i] != '\r' && (*myline)[i] != '\n');
-		if (i >= *len) break;  // the end of the word and line (i == len)
-		(*myline)[i++] = '\0';   // the end of the word
 
-	} while (wordnb < MAX_COMMAND_WORDS - 1);
+		int word_start = i;
+		gboolean in_quotes = FALSE;
+
+		while (i < *len && (in_quotes || !g_ascii_isspace((*myline)[i]))) {
+			if ((*myline)[i] == '"') {
+				in_quotes = !in_quotes;
+			}
+			i++;
+		}
+
+		// Extract the word
+		int word_len = i - word_start;
+		gchar *current_word = g_strndup(*myline + word_start, word_len);
+
+		// Check if this is a setvar command
+		if (wordnb == 0 && strcmp(current_word, "setvar") == 0) {
+			is_setvar_command = TRUE;
+		}
+
+		// For setvar command, don't replace variables in the value (last word)
+		gboolean add_quotes = !is_setvar_command || (is_setvar_command && wordnb < 3);
+		gchar *processed_word = replace_variables_in_word(current_word, add_quotes);
+
+		// For setvar command, remove quotes from the last word
+		if (is_setvar_command && wordnb == 3) {
+			if (processed_word[0] == '"' && processed_word[strlen(processed_word) - 1] == '"') {
+				gchar *unquoted = g_strndup(processed_word + 1, strlen(processed_word) - 2);
+				g_free(processed_word);
+				processed_word = unquoted;
+			}
+		}
+
+		g_free(current_word);
+
+		// Store the processed word
+		word[wordnb++] = processed_word;
+		word[wordnb] = NULL;
+
+	} while (wordnb < MAX_COMMAND_WORDS - 1 && i < *len);
+
 	*nb = wordnb;
+
+	// Reconstruct the line with processed words
+	GString *new_line = g_string_new("");
+	for (int j = 0; j < wordnb; j++) {
+		if (j > 0) g_string_append_c(new_line, ' ');
+		g_string_append(new_line, word[j]);
+	}
+
+	// Update myline and len
+	g_free(*myline);
+	*myline = g_string_free(new_line, FALSE);
+	*len = strlen(*myline);
 }
 
 void remove_trailing_cr(char *str) {

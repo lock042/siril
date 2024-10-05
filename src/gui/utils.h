@@ -31,6 +31,17 @@ typedef enum {
 	OUTPUT_LOGS
 } main_tabs;
 
+typedef enum {
+    VAL_TYPE_INT,
+    VAL_TYPE_FLOAT,
+    VAL_TYPE_STRING
+} var_val_type;
+
+typedef union {
+    int int_val;
+    float float_val;
+    char* string_val;
+} var_value;
 
 GtkWidget* lookup_widget (const gchar *widget_name);
 GObject* lookup_gobject(const gchar *gobject_name);
@@ -55,8 +66,6 @@ const char* get_cfa_from_pattern(sensor_pattern pattern);
 void interpolate_nongreen(fits *fit);
 void apply_limits(fits *fit, double minval, double maxval, OverrangeResponse method);
 gboolean value_check(fits *fit); // checks for pixel values outside [0.0, 1.0]
-int gui_get_int_val(gchar* valname);
-float gui_get_float_val(gchar* valname);
-gchar* gui_get_str_val(gchar* valname);
+var_value get_val(GtkWindow *parent_window, const char *prompt, var_val_type type);
 
 #endif /* SRC_GUI_UTILS_H_ */

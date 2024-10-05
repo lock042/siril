@@ -11199,35 +11199,33 @@ int process_set_var(int nb) {
 		siril_log_color_message(_("Error: variable index out of range, only variables 0-15 of each type are supported.\n"), "red");
 		return CMD_ARG_ERROR;
 	}
+	var_value val = { 0 };
 	if (!g_ascii_strcasecmp(word[1], "int")) {
-		int val;
 		if (use_gui) {
-			val = gui_get_int_val(word[4]);
+			val = get_val(siril_get_active_window(), word[4], VAL_TYPE_INT);
 		} else {
-			val = g_ascii_strtoll(word[3], &end, 10);
+			val.int_val = g_ascii_strtoll(word[3], &end, 10);
 		}
-		com.variables.integer[index] = val;
+		com.variables.integer[index] = val.int_val;
 		siril_log_message(_("Integer variable %d set to %d\n"), index, val);
 	} else if (!g_ascii_strcasecmp(word[1], "float")) {
-		float val;
 		if (use_gui) {
-			val = gui_get_float_val(word[4]);
+			val = get_val(siril_get_active_window(), word[4], VAL_TYPE_FLOAT);
 		} else {
-			val = g_ascii_strtod(word[3], &end);
+			val.float_val = g_ascii_strtod(word[3], &end);
 		}
-		com.variables.fp32[index] = val;
-		siril_log_message(_("Floating point variable %d set to %f\n"), index, val);
+		com.variables.fp32[index] = val.float_val;
+		siril_log_message(_("Floating point variable %d set to %f\n"), index, val.float_val);
 	} else if (!g_ascii_strcasecmp(word[1], "str")) {
-		gchar *val = NULL;
 		if (use_gui) {
-			val = gui_get_str_val(word[4]);
+			val = get_val(siril_get_active_window(), word[4], VAL_TYPE_STRING);
 		} else {
-			val = g_strdup(word[3]);
+			val.string_val = g_strdup(word[3]);
 		}
 		if (com.variables.str[index])
 			g_free(com.variables.str[index]);
-		com.variables.str[index] = val;
-		siril_log_message(_("String variable %d set to %s\n"), index, val);
+		com.variables.str[index] = val.string_val;
+		siril_log_message(_("String variable %d set to %s\n"), index, val.string_val);
 	}
 	return CMD_OK;
 }
