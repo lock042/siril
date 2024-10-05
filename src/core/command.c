@@ -11180,9 +11180,18 @@ int process_variables(int nb) {
 }
 
 int process_set_var(int nb) {
-	if (!word[3] && com.headless) {
-		siril_log_color_message(_("Error: in headless mode the variable value must be provided.\n"), "red");
-		return CMD_ARG_ERROR;
+	gchar *valname = NULL;
+	gboolean use_gui = FALSE;
+	if (!g_ascii_strcasecmp(word[3], "gui")) {
+		if (com.headless) {
+			siril_log_color_message(_("Error: in headless mode the variable value must be provided.\n"), "red");
+			return CMD_ARG_ERROR;
+		}
+		if (!word[4]) {
+			siril_log_color_message(_("Error: variable name must be specified with the gui option.\n"), "red");
+			return CMD_ARG_ERROR;
+		}
+		use_gui = TRUE;
 	}
 	char *end = NULL;
 	size_t index = g_ascii_strtoull(word[2], &end, 10);
@@ -11192,8 +11201,8 @@ int process_set_var(int nb) {
 	}
 	if (!g_ascii_strcasecmp(word[1], "int")) {
 		int val;
-		if (!word[3]) {
-			val = gui_get_int_val();
+		if (use_gui) {
+			val = gui_get_int_val(word[4]);
 		} else {
 			val = g_ascii_strtoll(word[3], &end, 10);
 		}
@@ -11201,8 +11210,8 @@ int process_set_var(int nb) {
 		siril_log_message(_("Integer variable %d set to %d\n"), index, val);
 	} else if (!g_ascii_strcasecmp(word[1], "float")) {
 		float val;
-		if (!word[3]) {
-			val = gui_get_float_val();
+		if (use_gui) {
+			val = gui_get_float_val(word[4]);
 		} else {
 			val = g_ascii_strtod(word[3], &end);
 		}
@@ -11210,8 +11219,8 @@ int process_set_var(int nb) {
 		siril_log_message(_("Floating point variable %d set to %f\n"), index, val);
 	} else if (!g_ascii_strcasecmp(word[1], "str")) {
 		gchar *val = NULL;
-		if (!word[3]) {
-			val = gui_get_str_val();
+		if (use_gui) {
+			val = gui_get_str_val(word[4]);
 		} else {
 			val = g_strdup(word[3]);
 		}

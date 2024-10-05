@@ -586,17 +586,210 @@ gboolean value_check(fits *fit) {
 	return TRUE;
 }
 
-int gui_get_int_val() {
-	// TODO: currently just a placeholder
-	return 0;
+int gui_get_int_val(gchar* valname) {
+    GtkWidget *dialog, *content_area, *entry, *label;
+    GtkDialogFlags flags = GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT;
+    int result = -1;
+
+    // Create the dialog
+	gchar *title = g_strdup_printf(_("Enter %s"), valname);
+    dialog = gtk_dialog_new_with_buttons(title,
+                                         NULL,
+                                         flags,
+                                         ("_OK"),
+                                         GTK_RESPONSE_OK,
+                                         ("_Cancel"),
+                                         GTK_RESPONSE_CANCEL,
+                                         NULL);
+	g_free(title);
+    // Set dialog properties
+    gtk_window_set_resizable(GTK_WINDOW(dialog), FALSE);
+    gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+    gtk_window_set_default_size(GTK_WINDOW(dialog), 300, -1); // Ensure dialog is wide enough
+
+    // Get the content area of the dialog
+    content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+
+    // Create a label and entry for integer input
+    label = gtk_label_new("Please enter an integer:");
+    entry = gtk_entry_new();
+
+	// Add margins to widgets
+    gtk_widget_set_margin_top(GTK_WIDGET(label), 6);
+    gtk_widget_set_margin_bottom(GTK_WIDGET(label), 6);
+    gtk_widget_set_margin_start(GTK_WIDGET(label), 6);
+    gtk_widget_set_margin_end(GTK_WIDGET(label), 6);
+
+    gtk_widget_set_margin_top(GTK_WIDGET(entry), 6);
+    gtk_widget_set_margin_bottom(GTK_WIDGET(entry), 6);
+    gtk_widget_set_margin_start(GTK_WIDGET(entry), 6);
+    gtk_widget_set_margin_end(GTK_WIDGET(entry), 6);
+
+	// Set entry properties to accept only numbers
+    gtk_entry_set_input_purpose(GTK_ENTRY(entry), GTK_INPUT_PURPOSE_NUMBER);
+
+    // Add widgets to the dialog's content area
+    gtk_container_add(GTK_CONTAINER(content_area), label);
+    gtk_container_add(GTK_CONTAINER(content_area), entry);
+
+    // Show all widgets
+    gtk_widget_show_all(dialog);
+
+    // Run the dialog and wait for user response
+    gint response = gtk_dialog_run(GTK_DIALOG(dialog));
+
+    // Handle the response
+    if (response == GTK_RESPONSE_OK) {
+        const gchar *text = gtk_entry_get_text(GTK_ENTRY(entry));
+
+        // Use g_ascii_strtod to check and convert the entered text to a double
+        gchar *endptr = NULL;
+        double value = g_ascii_strtod(text, &endptr);
+
+        // Check if the conversion was valid and the entire string was parsed
+        if (endptr != text && *endptr == '\0') {
+            result = (int)value;  // Convert to integer
+        }
+    }
+
+    // Destroy the dialog after the response is handled
+    gtk_widget_destroy(dialog);
+
+    return result;
 }
 
-float gui_get_float_val() {
-	// TODO: currently just a placeholder
-	return 0.f;
-}
+float gui_get_float_val(gchar *valname) {
+    GtkWidget *dialog, *content_area, *entry, *label;
+    GtkDialogFlags flags = GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT;
+    float result = DEFAULT_FLOAT_VALUE;
 
-gchar *gui_get_str_val() {
-	// TODO: currently just a placeholder
-	return NULL;
+    // Create the dialog
+	gchar *title = g_strdup_printf(_("Enter %s"), valname);
+    dialog = gtk_dialog_new_with_buttons(title,
+                                         NULL,
+                                         flags,
+                                         ("_OK"),
+                                         GTK_RESPONSE_OK,
+                                         ("_Cancel"),
+                                         GTK_RESPONSE_CANCEL,
+                                         NULL);
+	g_free(title);
+
+    // Set dialog properties
+    gtk_window_set_resizable(GTK_WINDOW(dialog), FALSE);
+    gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+    gtk_window_set_default_size(GTK_WINDOW(dialog), 300, -1); // Ensure dialog is wide enough
+
+    // Get the content area of the dialog
+    content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+
+    // Create a label and entry for integer input
+    label = gtk_label_new("Please enter a floating point number:");
+    entry = gtk_entry_new();
+
+	// Add margins to widgets
+    gtk_widget_set_margin_top(GTK_WIDGET(label), 6);
+    gtk_widget_set_margin_bottom(GTK_WIDGET(label), 6);
+    gtk_widget_set_margin_start(GTK_WIDGET(label), 6);
+    gtk_widget_set_margin_end(GTK_WIDGET(label), 6);
+
+    gtk_widget_set_margin_top(GTK_WIDGET(entry), 6);
+    gtk_widget_set_margin_bottom(GTK_WIDGET(entry), 6);
+    gtk_widget_set_margin_start(GTK_WIDGET(entry), 6);
+    gtk_widget_set_margin_end(GTK_WIDGET(entry), 6);
+
+	// Set entry properties to accept only numbers
+    gtk_entry_set_input_purpose(GTK_ENTRY(entry), GTK_INPUT_PURPOSE_NUMBER);
+
+    // Add widgets to the dialog's content area
+    gtk_container_add(GTK_CONTAINER(content_area), label);
+    gtk_container_add(GTK_CONTAINER(content_area), entry);
+
+    // Show all widgets
+    gtk_widget_show_all(dialog);
+
+    // Run the dialog and wait for user response
+    gint response = gtk_dialog_run(GTK_DIALOG(dialog));
+
+    // Handle the response
+    if (response == GTK_RESPONSE_OK) {
+        const gchar *text = gtk_entry_get_text(GTK_ENTRY(entry));
+
+        // Use g_ascii_strtod to check and convert the entered text to a double
+        gchar *endptr = NULL;
+        double value = g_ascii_strtod(text, &endptr);
+
+        // Check if the conversion was valid and the entire string was parsed
+        if (endptr != text && *endptr == '\0') {
+            result = (float)value;  // Convert to integer
+        }
+    }
+
+    // Destroy the dialog after the response is handled
+    gtk_widget_destroy(dialog);
+
+    return result;}
+
+gchar *gui_get_str_val(gchar *valname) {
+    GtkWidget *dialog, *content_area, *entry, *label;
+    GtkDialogFlags flags = GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT;
+    gchar *result = NULL;
+
+    // Create the dialog
+	gchar *title = g_strdup_printf(_("Enter %s"), valname);
+    dialog = gtk_dialog_new_with_buttons(title,
+                                         NULL,
+                                         flags,
+                                         ("_OK"),
+                                         GTK_RESPONSE_OK,
+                                         ("_Cancel"),
+                                         GTK_RESPONSE_CANCEL,
+                                         NULL);
+	g_free(title);
+
+    // Set dialog properties
+    gtk_window_set_resizable(GTK_WINDOW(dialog), FALSE);
+    gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+    gtk_window_set_default_size(GTK_WINDOW(dialog), 300, -1); // Ensure dialog is wide enough
+
+    // Get the content area of the dialog
+    content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+
+    // Create a label and entry for integer input
+    label = gtk_label_new("Please enter a string:");
+    entry = gtk_entry_new();
+
+	// Add margins to widgets
+    gtk_widget_set_margin_top(GTK_WIDGET(label), 6);
+    gtk_widget_set_margin_bottom(GTK_WIDGET(label), 6);
+    gtk_widget_set_margin_start(GTK_WIDGET(label), 6);
+    gtk_widget_set_margin_end(GTK_WIDGET(label), 6);
+
+    gtk_widget_set_margin_top(GTK_WIDGET(entry), 6);
+    gtk_widget_set_margin_bottom(GTK_WIDGET(entry), 6);
+    gtk_widget_set_margin_start(GTK_WIDGET(entry), 6);
+    gtk_widget_set_margin_end(GTK_WIDGET(entry), 6);
+
+    // Set entry properties to accept only numbers
+    gtk_entry_set_input_purpose(GTK_ENTRY(entry), GTK_INPUT_PURPOSE_NUMBER);
+
+    // Add widgets to the dialog's content area
+    gtk_container_add(GTK_CONTAINER(content_area), label);
+    gtk_container_add(GTK_CONTAINER(content_area), entry);
+
+    // Show all widgets
+    gtk_widget_show_all(dialog);
+
+    // Run the dialog and wait for user response
+    gint response = gtk_dialog_run(GTK_DIALOG(dialog));
+
+    // Handle the response
+    if (response == GTK_RESPONSE_OK) {
+        const gchar *text = gtk_entry_get_text(GTK_ENTRY(entry));
+		result = g_strdup(text);
+    }
+
+    // Destroy the dialog after the response is handled
+    gtk_widget_destroy(dialog);
+	return result;
 }
