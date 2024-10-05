@@ -120,6 +120,7 @@ int	process_merge(int nb);
 int	process_mirrorx(int nb);
 int	process_mirrorx_single(int nb);
 int	process_mirrory(int nb);
+int	process_mkdir(int nb);
 int	process_mtf(int nb);
 
 int	process_neg(int nb);

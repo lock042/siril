@@ -133,6 +133,7 @@
 #include "registration/matching/match.h"
 #include "livestacking/livestacking.h"
 #include "pixelMath/pixel_math_runner.h"
+#include "pixelMath/tinyexpr.h"
 #include "git-version.h"
 
 #include "command.h"
@@ -11173,6 +11174,90 @@ int process_pwd(int nb) {
 	return CMD_OK;
 }
 
+// Check if the character is invalid for directory names on various systems
+gboolean contains_invalid_characters(const gchar *dir_name) {
+	// Characters to check based on Windows restrictions and general system limitations
+	// Note that / and \ are allowed in order to create nested directory paths
+	const gchar *invalid_chars = ":*?\"<>|";
+
+	// Iterate through each character in dir_name
+	for (const gchar *p = dir_name; *p != '\0'; ++p) {
+		// Check for invalid characters
+		if (strchr(invalid_chars, *p) != NULL) {
+			return TRUE;
+		}
+
+		// Check for control characters
+		if (iscntrl(*p)) {
+			return TRUE;
+		}
+
+		// Check for combinations of "/ " or "\ "
+		if ((*p == '\\' || *p == '/') && *(p + 1) == ' ') {
+			return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
+
+gboolean is_valid_directory_name(const gchar *dir_name) {
+	// Check if directory name is NULL or empty
+	if (dir_name == NULL || *dir_name == '\0') {
+		siril_log_color_message(_("Directory name is NULL or empty."), "red", dir_name ? dir_name : "NULL");
+		return FALSE;
+	}
+
+	// Check for any invalid characters
+	if (contains_invalid_characters(dir_name)) {
+		siril_log_color_message(_("Directory name %s contains invalid characters.\n"), "red", dir_name);
+		return FALSE;
+	}
+
+	// Check if the name is too long
+	if (strlen(dir_name) >= PATH_MAX) {
+		siril_log_color_message(_("Directory name %s is too long (must be less than %d characters).\n"), "red", dir_name);
+		return FALSE;
+	}
+
+	// Check if the name is a reserved name (Windows specific, but good practice)
+	const gchar *reserved_names[] = {"CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
+									"LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9", NULL};
+
+	for (int i = 0; reserved_names[i] != NULL; ++i) {
+		if (g_ascii_strcasecmp(dir_name, reserved_names[i]) == 0) {
+			siril_log_color_message(_("Directory %s is a reserved name.\n"), "red", dir_name);
+			return FALSE;
+		}
+	}
+
+	// Check for trailing spaces or dots (problematic in Windows)
+	if (g_str_has_suffix(dir_name, " ") || g_str_has_suffix(dir_name, ".")) {
+		siril_log_color_message(_("Directory name %s ends with an illegal character (space or dot).\n"), "red", dir_name);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+int process_mkdir(int nb) {
+	GError *error = NULL;
+
+	// Perform sanity check on the directory name/path
+	if (!is_valid_directory_name(word[1])) {
+		return CMD_ARG_ERROR;  // If it's not valid, don't proceed with directory creation
+	}
+
+	// Use g_mkdir_with_parents to create the directory, including parent directories if necessary
+	if (g_mkdir_with_parents(word[1], 0755) != 0) {
+		siril_log_color_message(_("Failed to create directory '%s': %s\n"), "red", word[1], error ? error->message : N_("Unknown error"));
+		return CMD_GENERIC_ERROR;
+	}
+	siril_log_message(_("Directory %s created.\n"), word[1]);
+	return CMD_OK;
+}
+
 int process_variables(int nb) {
 	siril_log_message(_("Script variables are active for the rest of the current script.\n"));
 	com.variables.vars_active = TRUE;
@@ -11180,7 +11265,6 @@ int process_variables(int nb) {
 }
 
 int process_set_var(int nb) {
-	gchar *valname = NULL;
 	gboolean use_gui = FALSE;
 	if (!g_ascii_strcasecmp(word[3], "gui")) {
 		if (com.headless) {
@@ -11200,22 +11284,31 @@ int process_set_var(int nb) {
 		return CMD_ARG_ERROR;
 	}
 	var_value val = { 0 };
-	if (!g_ascii_strcasecmp(word[1], "int")) {
+	if (!g_ascii_strcasecmp(word[1], "int") || !g_ascii_strcasecmp(word[1], "float")) {
+		double result;
 		if (use_gui) {
-			val = get_val(siril_get_active_window(), word[4], VAL_TYPE_INT);
+			val = get_val(siril_get_active_window(), word[4], !g_ascii_strcasecmp(word[1], "int") ? VAL_TYPE_INT : VAL_TYPE_FLOAT);
+			result = !g_ascii_strcasecmp(word[1], "int") ? (double)val.int_val : val.float_val;
 		} else {
-			val.int_val = g_ascii_strtoll(word[3], &end, 10);
+			// Evaluate the expression using TinyExpr
+			int err;
+			te_expr *expr = te_compile(word[3], NULL, 0, &err);
+			if (expr) {
+				result = te_eval(expr);
+				te_free(expr);
+			} else {
+				siril_log_color_message(_("Error: Invalid expression at position %d\n"), "red", err);
+				return CMD_ARG_ERROR;
+			}
 		}
-		com.variables.integer[index] = val.int_val;
-		siril_log_message(_("Integer variable %d set to %d\n"), index, val);
-	} else if (!g_ascii_strcasecmp(word[1], "float")) {
-		if (use_gui) {
-			val = get_val(siril_get_active_window(), word[4], VAL_TYPE_FLOAT);
+
+		if (!g_ascii_strcasecmp(word[1], "int")) {
+			com.variables.integer[index] = (int)round(result);
+			siril_log_message(_("Integer variable %d set to %d\n"), index, com.variables.integer[index]);
 		} else {
-			val.float_val = g_ascii_strtod(word[3], &end);
+			com.variables.fp32[index] = (float)result;
+			siril_log_message(_("Floating point variable %d set to %f\n"), index, com.variables.fp32[index]);
 		}
-		com.variables.fp32[index] = val.float_val;
-		siril_log_message(_("Floating point variable %d set to %f\n"), index, val.float_val);
 	} else if (!g_ascii_strcasecmp(word[1], "str")) {
 		if (use_gui) {
 			val = get_val(siril_get_active_window(), word[4], VAL_TYPE_STRING);
@@ -11226,6 +11319,9 @@ int process_set_var(int nb) {
 			g_free(com.variables.str[index]);
 		com.variables.str[index] = val.string_val;
 		siril_log_message(_("String variable %d set to %s\n"), index, val.string_val);
+	} else {
+		siril_log_color_message(_("Error: Unknown variable type %s\n"), "red", word[1]);
+		return CMD_ARG_ERROR;
 	}
 	return CMD_OK;
 }

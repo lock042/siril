@@ -119,6 +119,7 @@ static command commands[] = {
 	{"mirrorx", 0, "mirrorx [-bottomup]", process_mirrorx, STR_MIRRORX, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"mirrorx_single", 1, "mirrorx_single image", process_mirrorx_single, STR_MIRRORX_SINGLE, TRUE, REQ_CMD_NONE},
 	{"mirrory", 0, "mirrory", process_mirrory, STR_MIRRORY, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"mkdir", 1, "mkdir dirname",process_mkdir, STR_MKDIR, TRUE, REQ_CMD_NONE},
 	{"modasinh", 1, "modasinh -D= [-LP=] [-SP=] [-HP=] [-clipmode=] [-human | -even | -independent | -sat] [channels]", process_modasinh, STR_MODASINH, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"mtf", 3, "mtf low mid high [channels]", process_mtf, STR_MTF, TRUE, REQ_CMD_SINGLE_IMAGE | REQ_CMD_SEQUENCE},
 

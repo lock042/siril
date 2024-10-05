@@ -205,13 +205,10 @@ void parse_line(gchar **myline, int *len, int *nb) {
 		gboolean add_quotes = !is_setvar_command || (is_setvar_command && wordnb < 3);
 		gchar *processed_word = replace_variables_in_word(current_word, add_quotes);
 
-		// For setvar command, remove quotes from the last word
-		if (is_setvar_command && wordnb == 3) {
-			if (processed_word[0] == '"' && processed_word[strlen(processed_word) - 1] == '"') {
-				gchar *unquoted = g_strndup(processed_word + 1, strlen(processed_word) - 2);
-				g_free(processed_word);
-				processed_word = unquoted;
-			}
+		if (processed_word[0] == '"' && processed_word[strlen(processed_word) - 1] == '"') {
+			gchar *unquoted = g_strndup(processed_word + 1, strlen(processed_word) - 2);
+			g_free(processed_word);
+			processed_word = unquoted;
 		}
 
 		g_free(current_word);
