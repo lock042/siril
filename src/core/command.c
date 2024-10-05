@@ -11172,3 +11172,53 @@ int process_pwd(int nb) {
 	siril_log_message(_("Current working directory: '%s'\n"), com.wd);
 	return CMD_OK;
 }
+
+int process_variables(int nb) {
+	siril_log_message(_("Script variables are active for the rest of the current script.\n"));
+	com.variables.vars_active = TRUE;
+	return CMD_OK;
+}
+
+int process_set_var(int nb) {
+	if (!word[3] && com.headless) {
+		siril_log_color_message(_("Error: in headless mode the variable value must be provided.\n"), "red");
+		return CMD_ARG_ERROR;
+	}
+	char *end = NULL;
+	size_t index = g_ascii_strtoull(word[2], &end, 10);
+	if (index < 0 || index >= MAX_CMD_VARS) {
+		siril_log_color_message(_("Error: variable index out of range, only variables 0-15 of each type are supported.\n"), "red");
+		return CMD_ARG_ERROR;
+	}
+	if (!g_ascii_strcasecmp(word[1], "int")) {
+		int val;
+		if (!word[3]) {
+			val = gui_get_int_val();
+		} else {
+			val = g_ascii_strtoll(word[3], &end, 10);
+		}
+		com.variables.integer[index] = val;
+		siril_log_message(_("Integer variable %d set to %d\n"), index, val);
+	} else if (!g_ascii_strcasecmp(word[1], "float")) {
+		float val;
+		if (!word[3]) {
+			val = gui_get_float_val();
+		} else {
+			val = g_ascii_strtod(word[3], &end);
+		}
+		com.variables.fp32[index] = val;
+		siril_log_message(_("Floating point variable %d set to %f\n"), index, val);
+	} else if (!g_ascii_strcasecmp(word[1], "str")) {
+		gchar *val = NULL;
+		if (!word[3]) {
+			val = gui_get_str_val();
+		} else {
+			val = g_strdup(word[3]);
+		}
+		if (com.variables.str[index])
+			g_free(com.variables.str[index]);
+		com.variables.str[index] = val;
+		siril_log_message(_("String variable %d set to %s\n"), index, val);
+	}
+	return CMD_OK;
+}

@@ -34,7 +34,7 @@ typedef enum {
 	CMD_NOTIFY_GFIT_MODIFIED = 1 << 23
 } cmd_status;
 
-void parse_line(char *myline, int len, int *nb);
+void parse_line(char **myline, int *len, int *nb);
 void remove_trailing_cr(char *str);
 int execute_command(int wordnb);
 int check_requires(gboolean *checked_requires, gboolean is_required);

@@ -228,6 +228,7 @@ int	process_set_mag_seq(int nb);
 int	process_set_mem(int nb);
 int	process_set_photometry(int nb);
 int	process_set_ref(int nb);
+int	process_set_var(int nb);
 int	process_subsky(int nb);
 int	process_spcc(int nb);
 int	process_spcc_list(int nb);
@@ -252,6 +253,7 @@ int	process_unselect(int nb);
 int	process_unsharp(int nb);
 int process_update_key(int nb);
 
+int	process_variables(int nb);
 int	process_visu(int nb);
 
 int	process_wavelet(int nb);

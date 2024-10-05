@@ -585,3 +585,18 @@ gboolean value_check(fits *fit) {
 	}
 	return TRUE;
 }
+
+int gui_get_int_val() {
+	// TODO: currently just a placeholder
+	return 0;
+}
+
+float gui_get_float_val() {
+	// TODO: currently just a placeholder
+	return 0.f;
+}
+
+gchar *gui_get_str_val() {
+	// TODO: currently just a placeholder
+	return NULL;
+}

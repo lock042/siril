@@ -101,31 +101,85 @@ static const char *cmd_err_to_str(cmd_errors err) {
 	}
 }
 
-void parse_line(char *myline, int len, int *nb) {
+void replace_variables_in_line(gchar **line, int *len) {
+	if (!com.variables.vars_active) return;
+
+	const gchar *var_sep_str = "%%";
+	gchar *start = strstr(*line, var_sep_str);
+
+	while (start != NULL) {
+		gchar *end = strstr(start + strlen(var_sep_str), var_sep_str);
+		if (end == NULL) break;
+
+		int var_name_len = end - start - strlen(var_sep_str);
+		if (var_name_len >= MAX_CMD_VAR_NAME_LEN) break;
+
+		gchar var_name[MAX_CMD_VAR_NAME_LEN];
+		strncpy(var_name, start + strlen(var_sep_str), var_name_len);
+		var_name[var_name_len] = '\0';
+
+		gchar *replacement = NULL;
+		if (g_str_has_prefix(var_name, "int")) {
+			int index = atoi(var_name + 3);
+			if (index >= 0 && index < MAX_CMD_VARS) {
+				replacement = g_strdup_printf("%d", com.variables.integer[index]);
+			}
+		} else if (g_str_has_prefix(var_name, "float")) {
+			int index = atoi(var_name + 5);
+			if (index >= 0 && index < MAX_CMD_VARS) {
+				replacement = g_strdup_printf("%f", com.variables.fp32[index]);
+			}
+		} else if (g_str_has_prefix(var_name, "str")) {
+			int index = atoi(var_name + 3);
+			if (index >= 0 && index < MAX_CMD_VARS) {
+				replacement = g_strdup(com.variables.str[index]);
+			}
+		}
+
+		if (replacement) {
+			int new_len = strlen(*line) - var_name_len - 2 * strlen(var_sep_str) + strlen(replacement) + 1;
+			*line = g_realloc(*line, new_len);
+			memmove(start + strlen(replacement), end + strlen(var_sep_str), strlen(end + strlen(var_sep_str)) + 1);
+			memcpy(start, replacement, strlen(replacement));
+			g_free(replacement);
+			*len = new_len - 1;
+		}
+
+		start = strstr(start + strlen(replacement), var_sep_str);
+	}
+}
+
+void parse_line(gchar **myline, int *len, int *nb) {
+	// Replace variables in the line if vars_active is TRUE
+	if (com.variables.vars_active) {
+		replace_variables_in_line(myline, len);
+	}
 	int i = 0, wordnb = 0;
-	char string_starter = '\0';	// quotes don't split words on spaces
+	gchar string_starter = '\0';  // quotes don't split words on spaces
 	word[0] = NULL;
 
 	do {
-		while (i < len && isblank(myline[i]))
+		while (i < *len && g_ascii_isspace((*myline)[i]))
 			i++;
-		if (myline[i] == '"' || myline[i] == '\'')
-			string_starter = myline[i++];
-		if (myline[i] == '\0' || myline[i] == '\n' || myline[i] == '\r')
+		if (i >= *len) break;
+		if ((*myline)[i] == '"' || (*myline)[i] == '\'')
+			string_starter = (*myline)[i++];
+		if (i >= *len || (*myline)[i] == '\0' || (*myline)[i] == '\n' || (*myline)[i] == '\r')
 			break;
-		word[wordnb++] = myline + i;	// the beginning of the word
-		word[wordnb] = NULL;		// put next word to NULL
+		word[wordnb++] = *myline + i;  // the beginning of the word
+		word[wordnb] = NULL;          // put next word to NULL
 		do {
 			i++;
-			if (string_starter != '\0' && myline[i] == string_starter) {
+			if (i >= *len) break;
+			if (string_starter != '\0' && (*myline)[i] == string_starter) {
 				string_starter = '\0';
 				break;
 			}
-		} while (i < len && (!isblank(myline[i]) || string_starter != '\0')
-				&& myline[i] != '\r' && myline[i] != '\n');
-		if (myline[i] == '\0')	// the end of the word and line (i == len)
-			break;
-		myline[i++] = '\0';		// the end of the word
+		} while (i < *len && (!g_ascii_isspace((*myline)[i]) || string_starter != '\0')
+				&& (*myline)[i] != '\r' && (*myline)[i] != '\n');
+		if (i >= *len) break;  // the end of the word and line (i == len)
+		(*myline)[i++] = '\0';   // the end of the word
+
 	} while (wordnb < MAX_COMMAND_WORDS - 1);
 	*nb = wordnb;
 }
@@ -275,6 +329,11 @@ static gboolean end_script(gpointer p) {
 	update_display_fwhm();
 	display_filename();
 	new_selection_zone();
+	for (int i = 0 ; i < MAX_CMD_VARS ; i++) {
+		g_free(com.variables.str[i]);
+		com.variables.str[i] = NULL;
+	}
+	memset(&com.variables, 0, sizeof(com.variables));
 	update_spinCPU(0);
 	set_cursor_waiting(FALSE);
 	return FALSE;
@@ -316,7 +375,7 @@ gpointer execute_script(gpointer p) {
 	int wordnb;
 	int startmem, endmem;
 	struct timeval t_start, t_end;
-
+	com.variables.vars_active = FALSE; // don't do variable replacement unless the variable command is given
 	com.script = TRUE;
 	com.stop_script = FALSE;
 	com.script_thread_exited = FALSE;
@@ -324,8 +383,8 @@ gpointer execute_script(gpointer p) {
 	gettimeofday(&t_start, NULL);
 
 	/* Now we want to save the cwd in order to come back after
-	 * script execution
-	 */
+	* script execution
+	*/
 	gchar *saved_cwd = g_strdup(com.wd);
 	startmem = get_available_memory() / BYTES_IN_A_MB;
 	gsize length = 0;
@@ -335,13 +394,13 @@ gpointer execute_script(gpointer p) {
 		++line;
 		if (com.stop_script) {
 			retval = 1;
-			g_free (buffer);
+			g_free(buffer);
 			break;
 		}
 		/* Displays comments */
 		if (buffer[0] == '#') {
 			siril_log_color_message("%s\n", "blue", buffer);
-			g_free (buffer);
+			g_free(buffer);
 			continue;
 		}
 
@@ -350,18 +409,18 @@ gpointer execute_script(gpointer p) {
 		g_strstrip(buffer);
 
 		if (buffer[0] == '\0') {
-			g_free (buffer);
+			g_free(buffer);
 			continue;
 		}
 
 		display_command_on_status_bar(line, buffer);
-		parse_line(buffer, length, &wordnb);
+		parse_line(&buffer, (int*)&length, &wordnb);
 		if (check_requires(&checked_requires, com.pref.script_check_requires)) {
-			g_free (buffer);
+			g_free(buffer);
 			break;
 		}
 		if (check_command_mode()) {
-			g_free (buffer);
+			g_free(buffer);
 			continue;
 		};
 
@@ -370,19 +429,19 @@ gpointer execute_script(gpointer p) {
 		if (retval && retval != CMD_NO_WAIT) {
 			siril_log_message(_("Error in line %d ('%s'): %s.\n"), line, buffer, cmd_err_to_str(retval));
 			siril_log_message(_("Exiting batch processing.\n"));
-			g_free (buffer);
+			g_free(buffer);
 			break;
 		}
 		if (retval != CMD_NO_WAIT && waiting_for_thread()) {
 			retval = 1;
-			g_free (buffer);
-			break;	// abort script on command failure
+			g_free(buffer);
+			break;  // abort script on command failure
 		}
 		endmem = get_available_memory() / BYTES_IN_A_MB;
 		siril_debug_print("End of command %s, memory difference: %d MB\n", word[0], startmem - endmem);
 		startmem = endmem;
 		memset(word, 0, sizeof word);
-		g_free (buffer);
+		g_free(buffer);
 	}
 	g_object_unref(data_input);
 	g_object_unref(input_stream);
@@ -595,21 +654,21 @@ int processcommand(const char *line) {
 		/* Switch to console tab */
 		control_window_switch_to_tab(OUTPUT_LOGS);
 
-		gchar *myline = strdup(line);
+		gchar *myline = g_strdup(line);
 		int len = strlen(line);
 		if (len > 0)
-			g_print("input command:%s\n", myline);
-		parse_line(myline, len, &wordnb);
+			g_print("input command: %s\n", myline);
+		parse_line(&myline, &len, &wordnb);
 		int ret = execute_command(wordnb);
 		if (ret) {
 			siril_log_color_message(_("Command execution failed: %s.\n"), "red", cmd_err_to_str(ret));
 			if (!com.script && !com.headless && (ret == CMD_WRONG_N_ARG || ret == CMD_ARG_ERROR)) {
 				show_command_help_popup(GTK_ENTRY(lookup_widget("command")));
 			}
-			free(myline);
+			g_free(myline);
 			return 1;
 		}
-		free(myline);
+		g_free(myline);
 	}
 	return 0;
 }

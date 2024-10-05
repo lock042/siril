@@ -91,6 +91,11 @@ typedef unsigned short WORD;	// default type for internal image data
 
 #define CMD_HISTORY_SIZE 50	// size of the command line history
 
+// number of command variables of each type
+#define MAX_CMD_VARS 16
+#define MAX_CMD_VAR_NAME_LEN 16
+#define VAR_SEPARATOR %%
+
 #define ZOOM_MAX	128
 #define ZOOM_MIN	0.03125
 #define ZOOM_IN		1.5
@@ -650,6 +655,13 @@ typedef struct {
 	point center;
 } layer;
 
+typedef struct _cmd_vars {
+	gboolean vars_active; // set by the `variable` command and used by commandline processor to decide whether to look for variables or not
+	int integer[MAX_CMD_VARS];
+	float fp32[MAX_CMD_VARS];
+	gchar* str[MAX_CMD_VARS];
+} cmd_vars;
+
 /* The rendering of the main image is cached. As it can be much larger than the
  * widget in which it's displayed, it can take a lot of time to transform it
  * for rendering. Unfortunately, rendering is requested on each update of a
@@ -823,6 +835,7 @@ struct cominf {
 	GThread *script_thread;		// reads a script and executes its commands
 	gboolean script_thread_exited;	// boolean set by the script thread when it exits
 
+	cmd_vars variables; // a pool of variables (int, float and string) to use in scripts
 	int max_images;			// max number of image threads used for parallel execution
 	int max_thread;			// max total number of threads used for parallel execution
 	int fftw_max_thread;	// max number of threads for FFTW execution
