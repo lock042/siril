@@ -143,7 +143,7 @@ gchar* replace_variables_in_word(const gchar *word, gboolean add_quotes) {
 			replacement = g_strdup(com.wd);
 			contains_string_var = TRUE;
 		} else if (!g_ascii_strcasecmp(var_name, "filename")) {
-			if (com.uniq->filename)
+			if (com.uniq && com.uniq->filename)
 				replacement = g_strdup(com.uniq->filename);
 			else
 				replacement = g_strdup(_("unsaved file"));

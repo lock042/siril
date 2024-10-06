@@ -11325,3 +11325,60 @@ int process_set_var(int nb) {
 	}
 	return CMD_OK;
 }
+
+static gboolean child_finished = FALSE;  // Static flag to signal process completion
+
+// Child watch callback function
+static void child_watch_callback(GPid pid, gint status, gpointer user_data) {
+	if (g_spawn_check_exit_status(status, NULL)) {
+		siril_log_message(_("Child process %s finished successfully.\n"), word[1]);
+	} else {
+		siril_log_color_message(_("Child process %s finished with an error.\n"), "red", word[1]);
+	}
+
+	// Clean up the child process resources
+	g_spawn_close_pid(pid);
+
+	// Set the flag to indicate the process has finished
+	child_finished = TRUE;
+}
+
+int process_exe(int nb) {
+	GPid child_pid;
+	GError *error = NULL;
+	gboolean success;
+	child_finished = FALSE;
+
+	if (nb < 2) {
+		siril_log_color_message(_("Not enough arguments to execute a program.\n"), "red");
+		return CMD_WRONG_N_ARG;
+	}
+
+	// Spawn the child process asynchronously
+	success = g_spawn_async(
+		NULL,         // Working directory (NULL means current directory)
+		word + 1,     // The command to execute (word[1] onwards is the executable and args)
+		NULL,         // No additional environment variables
+		G_SPAWN_DO_NOT_REAP_CHILD, // Flag to not automatically reap child process
+		NULL,         // No additional setup required before execution
+		NULL,         // No user data to pass
+		&child_pid,   // Store the PID of the spawned process
+		&error        // Capture any errors
+	);
+
+	if (!success) {
+		siril_log_color_message(_("Failed to spawn child process: %s\n"), "red", error->message);
+		g_clear_error(&error);
+		return CMD_GENERIC_ERROR;
+	}
+
+	// Add a child watch function to be called when the child process exits
+	g_child_watch_add(child_pid, child_watch_callback, NULL);
+
+	// Enter a loop to wait until the child process finishes
+	while (!child_finished) {
+		g_usleep(100000);  // Sleep for 100ms between checks
+		g_main_context_iteration(NULL, FALSE);  // Process any pending GTK events
+	}
+	return CMD_OK;
+}
