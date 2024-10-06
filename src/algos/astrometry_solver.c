@@ -2037,12 +2037,12 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 		char *units;
 		FWHM_stats(stars, nb_stars, arg->seq->bitpix, &FWHMx, &FWHMy, &units, &B, NULL, 0.);
 		regdata *current_regdata = arg->seq->regparam[aargs_master->layer];
-		current_regdata[o].roundness = FWHMy/FWHMx;
-		current_regdata[o].fwhm = FWHMx;
-		current_regdata[o].weighted_fwhm = FWHMx;
-		current_regdata[o].background_lvl = B;
-		current_regdata[o].number_of_stars = nb_stars;
-		current_regdata[o].H = (Homography){ 0 }; // we will update it in the finalize_hook
+		current_regdata[i].roundness = FWHMy/FWHMx;
+		current_regdata[i].fwhm = FWHMx;
+		current_regdata[i].weighted_fwhm = FWHMx;
+		current_regdata[i].background_lvl = B;
+		current_regdata[i].number_of_stars = nb_stars;
+		current_regdata[i].H = (Homography){ 0 }; // we will update it in the finalize_hook
 	}
 
 	if (!nb_stars) {
@@ -2202,7 +2202,7 @@ static int astrometry_finalize_hook(struct generic_seq_args *arg) {
 	}
 	if (aargs->update_reg) {
 		siril_log_color_message(_("Computing astrometric registration...\n"), "green");
-		arg->retval = compute_Hs_from_astrometry(arg->seq, aargs->WCSDATA, FRAMING_COG, aargs->layer, NULL, NULL);
+		arg->retval = compute_Hs_from_astrometry(arg->seq, aargs->WCSDATA, FRAMING_CURRENT, aargs->layer, NULL, NULL);
 	}
 	if (!arg->retval)
 		writeseqfile(arg->seq);
