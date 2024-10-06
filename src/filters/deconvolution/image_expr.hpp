@@ -634,6 +634,27 @@ auto reduce_d(const E& e, std::function<typename E::value_type(typename E::value
     return reduce1_img_expr_t<decltype(to_expr(e))>(to_expr(e), reductor);
 }
 
+/*
+ * WARNING: Use of the `gradient*_img_expr_t` classes requires careful consideration.
+ *
+ * Unlike many other lazy-evaluated expressions, `gradient*_img_expr_t` performs its
+ * evaluation based on the values of neighboring pixels.
+ * As a result, if any other lazy-evaluated expressions or operations modify the values of
+ * the pixel data in the underlying expression `e` between evaluations, the outcome may be
+ * incorrect or inconsistent.
+ *
+ * To avoid unexpected results, it is crucial to ensure that:
+ * 1. The underlying expression `e` remains constant throughout the evaluation of `gradient*_img_expr_t`.
+ * 2. If chained with other operations, you should be mindful that modifications made
+ *    by these operations might affect the neighboring pixels required by `gradient*_img_expr_t`.
+ * 3. Ensure synchronization or strict evaluation where necessary, especially in complex chains
+ *    of lazy-evaluated operations. Synchronization can be achieved using to_img(my_img_expr);
+ *
+ * In scenarios where pixel data integrity across evaluations is uncertain, it may be safer
+ * to explicitly evaluate `e` before constructing the `gradientx_img_expr_t` to prevent unintended
+ * modifications of neighboring pixels, or to use the img_t gradient* methods.
+ */
+
 template <typename E>
 class gradientx_img_expr_t : public img_expr_t<typename E::value_type> {
 public:
