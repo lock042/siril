@@ -274,7 +274,10 @@ static PyObject *siril_get_filename(PyObject *self, PyObject *args) {
 	} else if (sequence_is_loaded() && com.seq.type == SEQ_REGULAR) {
 		char filename[256];
 		fit_sequence_get_image_filename(&com.seq, com.seq.current, filename, TRUE);
-		return PyUnicode_FromString(filename);
+		gchar* path = g_strdup_printf("%s/%s", com.wd, filename);
+		PyObject* retval = PyUnicode_FromString(path);
+		g_free(path);
+		return retval;
 	} else {
 		// We shouldn't try to handle single-file sequences in this way
 		Py_RETURN_NONE;
