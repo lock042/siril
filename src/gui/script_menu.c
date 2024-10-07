@@ -196,10 +196,10 @@ static int on_run_scripts(GtkMenuItem *menuitem, gpointer user_data) {
 		} else if (extension && g_strcmp0(extension, ".py") == 0) {
 			siril_log_message(_("Starting Python script %s\n"), filename);
             com.script_thread = g_thread_new("python-script", run_python_script_from_file, filename);
+            //TODO: filename should be freed in run_python_script_from_file
 		}
 
 		g_object_unref(file);
-		g_free(filename);
 	}
 
 	gtk_widget_destroy(dialog);
