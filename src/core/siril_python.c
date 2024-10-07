@@ -27,6 +27,8 @@
 #include "gui/script_menu.h"
 #include "core/siril_log.h"
 #include "io/image_format_fits.h"
+#include "io/single_image.h"
+#include "io/sequence.h"
 
 extern PyTypeObject PyFitsType;
 
@@ -251,10 +253,41 @@ static PyObject *siril_log_message_wrapper(PyObject *self, PyObject *args) {
 	Py_RETURN_NONE;
 }
 
+// Function to return com.wd
+static PyObject *siril_get_wd(PyObject *self, PyObject *args) {
+	if (com.wd == NULL) {
+		Py_RETURN_NONE;  // If com.wd is NULL, return None
+	}
+	return PyUnicode_FromString(com.wd);
+}
+
+// Function to return com.wd
+static PyObject *siril_get_filename(PyObject *self, PyObject *args) {
+	if (single_image_is_loaded()) {
+		if (com.uniq == NULL) {
+			return PyUnicode_FromString(_("unsaved_file.fit"));
+		}
+		if (com.uniq->filename == NULL) {
+			return PyUnicode_FromString(_("unsaved_file.fit"));
+		}
+		return PyUnicode_FromString(com.uniq->filename);
+	} else if (sequence_is_loaded() && com.seq.type == SEQ_REGULAR) {
+		char filename[256];
+		fit_sequence_get_image_filename(&com.seq, com.seq.current, filename, TRUE);
+		return PyUnicode_FromString(filename);
+	} else {
+		// We shouldn't try to handle single-file sequences in this way
+		Py_RETURN_NONE;
+	}
+
+}
+
 // Define methods for the module
 static PyMethodDef SirilMethods[] = {
 	{"processcommand", siril_processcommand, METH_VARARGS, "Execute a Siril command"},
 	{"log_message", siril_log_message_wrapper, METH_VARARGS, "Log a message"},
+	{"filename", (PyCFunction)siril_get_filename, METH_NOARGS, "Get the current image filename"},
+	{"wd", (PyCFunction)siril_get_wd, METH_NOARGS, "Get the current working directory"},
 	{NULL, NULL, 0, NULL}  /* Sentinel */
 };
 
