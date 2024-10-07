@@ -176,7 +176,6 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 	if (g_str_has_suffix(script_file, PYSCRIPT_EXT)) {
 		// Run Python script
 		com.script_thread = g_thread_new("python script", run_python_script_from_file, script_file);
-		g_idle_add(script_widgets_idle, NULL);
 	} else if (g_str_has_suffix(script_file, SCRIPT_EXT)) {
 		// Run regular script
 		GFile *file = g_file_new_for_path(script_file);
