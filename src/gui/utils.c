@@ -514,20 +514,19 @@ static GtkWidget* create_overrange_dialog(GtkWindow *parent, const gchar *title,
 
 	// Create and add buttons vertically
 	const char* button_labels[] = {
-		_("Cancel"), _("Clip"), _("Rescale\n(values > 0 only)"), _("Rescale\n(all values)"), _("Proceed")
+		_("Cancel"), _("Clip"), _("Rescale\n(values > 0 only)"), _("Rescale\n(all values)")
 	};
 	const char* button_tooltips[] = {
 		_("Cancel without making any changes"),
 		_("Clip pixel values to the range 0.0 - 1.0"),
 		_("Rescale pixel values to fit the range 0.0 - 1.0, clipping negative pixel values"),
-		_("Rescale pixel values to fit the range 0.0 to 1.0, applying an offset to bring negatve pixel values into range"),
-		_("Ignore the warning and proceed")
+		_("Rescale pixel values to fit the range 0.0 to 1.0, applying an offset to bring negatve pixel values into range")
 	};
 	OverrangeResponse responses[] = {
-		RESPONSE_CANCEL, RESPONSE_CLIP, RESPONSE_RESCALE_CLIPNEG, RESPONSE_RESCALE_ALL, RESPONSE_PROCEED
+		RESPONSE_CANCEL, RESPONSE_CLIP, RESPONSE_RESCALE_CLIPNEG, RESPONSE_RESCALE_ALL
 	};
 
-	for (int i = 0; i < 5; i++) {
+	for (int i = 0; i < G_N_ELEMENTS(responses); i++) {
 		GtkWidget *button = gtk_dialog_add_button(GTK_DIALOG(dialog), button_labels[i], responses[i]);
 		// Get the label widget from the button
 		GtkWidget *label = gtk_bin_get_child(GTK_BIN(button));
@@ -551,7 +550,7 @@ static GtkWidget* create_overrange_dialog(GtkWindow *parent, const gchar *title,
 }
 
 // Function to apply limits based on the chosen method
-void apply_limits(fits *fit, double minval, double maxval, OverrangeResponse method) {
+OverrangeResponse apply_limits(fits *fit, double minval, double maxval, OverrangeResponse method) {
 	switch (method) {
 		case RESPONSE_CLIP:;
 			clip(fit);
@@ -569,14 +568,17 @@ void apply_limits(fits *fit, double minval, double maxval, OverrangeResponse met
 				soper(fit, (1.0 / range), OPER_MUL, TRUE);
 			break;
 		default:
-			// Covers RESPONSE_PROCEED and RESPONSE_CANCEL
-			// (RESPONSE_CANCEL should never happen)
+			// Covers RESPONSE_CANCEL. We have removed the Proceed button
+			// Indeed, we should not use algorithm that are not intended to be used with negative pixels
+			// (default is trigged when the dialog is closed with the cross, we need to initialize method to RESPONSE_CANCEL)
 			// Do nothing, no need to notify gfit modified so just return
-			return;
+			method = RESPONSE_CANCEL;
 	}
 
 	if (fit == &gfit)
 		notify_gfit_modified();
+
+	return method;
 }
 
 gboolean value_check(fits *fit) {
@@ -598,7 +600,9 @@ gboolean value_check(fits *fit) {
 		if (result == RESPONSE_CANCEL)
 			return FALSE;
 
-		apply_limits(fit, minval, maxval, result);
+		result = apply_limits(fit, minval, maxval, result);
+		if (result == RESPONSE_CANCEL)
+			return FALSE;
 	}
 	return TRUE;
 }
