@@ -95,6 +95,32 @@ static int PyFits_init(PyFits *self, PyObject *args, PyObject *kwds) {
 	return 0;
 }
 
+// Function to get pixel data as a buffer
+static PyObject* PyFits_get_pixel_data(PyFits *self, PyObject *Py_UNUSED(ignored)) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, "fit is not initialized");
+        return NULL;
+    }
+
+    Py_buffer view;
+    void *data_ptr;
+    Py_ssize_t buffer_size;
+
+    if (self->fit->type == DATA_FLOAT) {
+        data_ptr = self->fit->fdata;
+        buffer_size = self->fit->naxes[0] * self->fit->naxes[1] * self->fit->naxes[2] * sizeof(float);
+    } else {
+        data_ptr = self->fit->data;
+        buffer_size = self->fit->naxes[0] * self->fit->naxes[1] * self->fit->naxes[2] * sizeof(WORD);
+    }
+
+    if (PyBuffer_FillInfo(&view, NULL, data_ptr, buffer_size, 0, PyBUF_CONTIG) == -1) {
+        return NULL;
+    }
+
+    return PyMemoryView_FromBuffer(&view);
+}
+
 // Method to get rx
 static PyObject *PyFits_get_rx(PyFits *self, void *closure) {
 	if (self->fit == NULL) {
@@ -145,7 +171,8 @@ static PyObject *PyFits_gfit(PyObject *cls, PyObject *args) {
 
 // Define methods for PyFits
 static PyMethodDef PyFits_methods[] = {
-	{"gfit", (PyCFunction)PyFits_gfit, METH_CLASS | METH_NOARGS, "Get the global fit object"},
+	{"get_pixel_data", (PyCFunction)PyFits_get_pixel_data, METH_NOARGS, "Get pixel data as a buffer"},
+	{"gfit", (PyCFunction)PyFits_gfit, METH_CLASS | METH_NOARGS, "Get the global fits object"},
 	{NULL}
 };
 
