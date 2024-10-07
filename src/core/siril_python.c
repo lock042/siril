@@ -80,13 +80,13 @@ static int PyFits_init(PyFits *self, PyObject *args, PyObject *kwds) {
 		// Create a new fits structure
 		self->fit = malloc(sizeof(fits));
 		if (self->fit == NULL) {
-			PyErr_SetString(PyExc_MemoryError, _("Failed to allocate memory for fits"));
+			PyErr_SetString(PyExc_MemoryError, "Failed to allocate memory for fits");
 			return -1;
 		}
 		if (new_fit_image(&self->fit, width, height, nblayer, type) != 0) {
 			free(self->fit);
 			self->fit = NULL;
-			PyErr_SetString(PyExc_RuntimeError, _("Failed to create new fits image"));
+			PyErr_SetString(PyExc_RuntimeError, "Failed to create new fits image");
 			return -1;
 		}
 		self->should_free = 1;  // This fits was dynamically allocated
@@ -98,7 +98,7 @@ static int PyFits_init(PyFits *self, PyObject *args, PyObject *kwds) {
 // Method to get rx
 static PyObject *PyFits_get_rx(PyFits *self, void *closure) {
 	if (self->fit == NULL) {
-		PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+		PyErr_SetString(PyExc_AttributeError, "fit is not initialized");
 		return NULL;
 	}
 	return PyLong_FromUnsignedLong(self->fit->rx);
@@ -107,15 +107,15 @@ static PyObject *PyFits_get_rx(PyFits *self, void *closure) {
 // Method to set rx
 static int PyFits_set_rx(PyFits *self, PyObject *value, void *closure) {
 	if (self->fit == NULL) {
-		PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+		PyErr_SetString(PyExc_AttributeError, "fit is not initialized");
 		return -1;
 	}
 	if (value == NULL) {
-		PyErr_SetString(PyExc_TypeError, _("Cannot delete rx"));
+		PyErr_SetString(PyExc_TypeError, "Cannot delete rx");
 		return -1;
 	}
 	if (!PyLong_Check(value)) {
-		PyErr_SetString(PyExc_TypeError, _("rx must be an integer"));
+		PyErr_SetString(PyExc_TypeError, "rx must be an integer");
 		return -1;
 	}
 	self->fit->rx = PyLong_AsUnsignedLong(value);
@@ -129,7 +129,7 @@ static int PyFits_set_rx(PyFits *self, PyObject *value, void *closure) {
 
 // Define getter and setter for rx
 static PyGetSetDef PyFits_getsetters[] = {
-	{"rx", (getter)PyFits_get_rx, (setter)PyFits_set_rx, _("image width"), NULL},
+	{"rx", (getter)PyFits_get_rx, (setter)PyFits_set_rx, "image width", NULL},
 	{NULL}
 };
 
@@ -145,7 +145,7 @@ static PyObject *PyFits_gfit(PyObject *cls, PyObject *args) {
 
 // Define methods for PyFits
 static PyMethodDef PyFits_methods[] = {
-	{"gfit", (PyCFunction)PyFits_gfit, METH_CLASS | METH_NOARGS, _("Get the global fit object")},
+	{"gfit", (PyCFunction)PyFits_gfit, METH_CLASS | METH_NOARGS, "Get the global fit object"},
 	{NULL}
 };
 
@@ -153,7 +153,7 @@ static PyMethodDef PyFits_methods[] = {
 PyTypeObject PyFitsType = {
 	PyVarObject_HEAD_INIT(NULL, 0)
 	.tp_name = "siril.Fits",
-	.tp_doc = _("Fits object"),
+	.tp_doc = "Fits object",
 	.tp_basicsize = sizeof(PyFits),
 	.tp_itemsize = 0,
 	.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
@@ -167,14 +167,14 @@ PyTypeObject PyFitsType = {
 static PyObject* siril_processcommand(PyObject* self, PyObject* args) {
 	Py_ssize_t num_args = PyTuple_Size(args);
 	if (num_args < 1) {
-		PyErr_SetString(PyExc_TypeError, _("At least one argument is required"));
+		PyErr_SetString(PyExc_TypeError, "At least one argument is required");
 		return NULL;
 	}
 
 	// Process the first argument (command)
 	PyObject* command_obj = PyTuple_GetItem(args, 0);  // Borrowed reference
 	if (!command_obj) {
-		PyErr_SetString(PyExc_TypeError, _("Failed to get the command argument"));
+		PyErr_SetString(PyExc_TypeError, "Failed to get the command argument");
 		return NULL;
 	}
 
@@ -184,7 +184,7 @@ static PyObject* siril_processcommand(PyObject* self, PyObject* args) {
 	} else if (PyBytes_Check(command_obj)) {
 		command = g_strdup(PyBytes_AsString(command_obj));
 	} else {
-		PyErr_SetString(PyExc_TypeError, _("Command must be a string"));
+		PyErr_SetString(PyExc_TypeError, "Command must be a string");
 		return NULL;
 	}
 
@@ -214,7 +214,7 @@ static PyObject* siril_processcommand(PyObject* self, PyObject* args) {
 				g_string_append_printf(full_command, " %s", arg_str);
 				g_free(arg_str);
 			} else {
-				PyErr_SetString(PyExc_ValueError, _("Failed to process argument"));
+				PyErr_SetString(PyExc_ValueError, "Failed to process argument");
 				g_string_free(full_command, TRUE);
 				return NULL;
 			}
@@ -284,10 +284,10 @@ static PyObject *siril_get_filename(PyObject *self, PyObject *args) {
 
 // Define methods for the module
 static PyMethodDef SirilMethods[] = {
-	{"processcommand", siril_processcommand, METH_VARARGS, _("Execute a Siril command")},
-	{"log_message", siril_log_message_wrapper, METH_VARARGS, _("Log a message")},
-	{"filename", (PyCFunction)siril_get_filename, METH_NOARGS, _("Get the current image filename")},
-	{"wd", (PyCFunction)siril_get_wd, METH_NOARGS, _("Get the current working directory")},
+	{"processcommand", siril_processcommand, METH_VARARGS, "Execute a Siril command"},
+	{"log_message", siril_log_message_wrapper, METH_VARARGS, "Log a message"},
+	{"filename", (PyCFunction)siril_get_filename, METH_NOARGS, "Get the current image filename"},
+	{"wd", (PyCFunction)siril_get_wd, METH_NOARGS, "Get the current working directory"},
 	{NULL, NULL, 0, NULL}  /* Sentinel */
 };
 
@@ -342,7 +342,7 @@ gpointer run_python_script_from_file(gpointer p) {
 		retval = PyRun_SimpleFile(fp, script_path);
 		fclose(fp);
 	} else {
-		fprintf(stderr, _("Failed to open script file: %s\n"), script_path);
+		fprintf(stderr, "Failed to open script file: %s\n", script_path);
 	}
 	PyGILState_Release(gstate);  // Release the GIL
 	g_idle_add(script_widgets_idle, NULL);

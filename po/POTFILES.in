@@ -100,7 +100,6 @@ src/core/siril_actions.c
 src/core/siril_language.c
 src/core/siril_log.c
 src/core/siril_networking.c
-src/core/siril_python.c
 src/core/siril_update.c
 src/core/undo.c
 src/core/utils.c
