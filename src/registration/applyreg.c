@@ -927,6 +927,8 @@ int register_apply_reg(struct registration_args *regargs) {
 	if (regargs->wcsref) {
 		if (regargs->undistort && regargs->wcsref->lin.dispre)
 			remove_dis_from_wcs(regargs->wcsref); // we remove distortions as the output is undistorted
+		if (!regargs->undistort && regargs->wcsref->lin.dispre)
+			siril_log_color_message(_("Distortion was found in reference image astrometry but you did not include distortion correction when registering the images\n"), "salmon");
 		if (index == DISTO_FILES && image_is_flipped_from_wcs(regargs->wcsref)) { // we are in astrometric reg, we will need to flip the solution if required
 			Homography H = { 0 };
 			cvGetEye(&H);
@@ -944,7 +946,7 @@ int register_apply_reg(struct registration_args *regargs) {
 		}
 	}
 	if (regargs->seq->distoparam[regargs->layer].index == DISTO_FILE_COMET) {
-		// we fetch the reference date
+		// we fetch the reference date to compute back comet shifts
 		fits ref = { 0 };
 		if (seq_read_frame_metadata(args->seq, regargs->reference_image, &ref)) {
 			siril_log_message(_("Could not load reference image\n"));
