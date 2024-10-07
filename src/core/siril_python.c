@@ -366,7 +366,7 @@ gpointer run_python_script_from_file(gpointer p) {
 	const char *script_path = (const char*) p;
 	PyGILState_STATE gstate;
 	gstate = PyGILState_Ensure();  // Acquire the GIL
-	FILE *fp = fopen(script_path, "r");
+	FILE *fp = g_fopen(script_path, "r");
 	int retval = -1;
 	if (fp) {
 		retval = PyRun_SimpleFile(fp, script_path);
