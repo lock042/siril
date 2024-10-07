@@ -307,6 +307,8 @@ endif
 else
   siril_cpp_flag += '-DHAVE_HTMESH'
 endif
+python3 = import('python').find_installation('python3')
+python_dep = python3.dependency(required : true, embed : true)
 
 ## Optional dependencies
 
@@ -641,7 +643,8 @@ externals_dep = declare_dependency(
     ffms2_dep,
     openmp_dep,
     kplot_dep,
-    ffmpeg
+    ffmpeg,
+    python_dep
   ]
 )
 

@@ -64,6 +64,7 @@
 #include "core/siril_app_dirs.h"
 #include "core/siril_language.h"
 #include "core/siril_networking.h"
+#include "core/siril_python.h"
 #include "core/siril_update.h"
 #include "core/siril_log.h"
 #include "core/OS_utils.h"
@@ -78,6 +79,7 @@
 #include "gui/progress_and_log.h"
 #include "gui/siril_css.h"
 #include "registration/registration.h"
+
 
 /* the global variables of the whole project */
 cominfo com = { 0 };	// the core data struct
@@ -265,7 +267,6 @@ static void siril_app_activate(GApplication *application) {
 #endif
 	siril_initialize_rng();
 	global_initialization();
-
 	/* initialize sequence-related stuff */
 	initialize_sequence(&com.seq, TRUE);
 
@@ -311,6 +312,7 @@ static void siril_app_activate(GApplication *application) {
 	}
 
 	init_num_procs();
+	init_python(); // initialize the python scripting module
 	initialize_profiles_and_transforms(); // color management
 
 #ifdef HAVE_LIBGIT2
@@ -578,6 +580,7 @@ int main(int argc, char *argv[]) {
 		g_printerr("%s\n", help_msg);
 		g_free(help_msg);
 	}
+	finalize_python(); // clean up the python interface
 	pipe_stop();		// close the pipes and their threads
 	g_object_unref(app);
 	return status;

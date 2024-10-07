@@ -88,7 +88,7 @@ GtkAdjustment* lookup_adjustment(const gchar *adjustment_name) {
 
 
 void control_window_switch_to_tab(main_tabs tab) {
-	if (com.script)
+	if (com.script || com.headless)
 		return;
 	GtkNotebook* notebook = GTK_NOTEBOOK(lookup_widget("notebook_center_box"));
 	gtk_notebook_set_current_page(notebook, tab);

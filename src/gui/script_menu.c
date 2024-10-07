@@ -1,22 +1,22 @@
 /*
- * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
- * Reference site is https://siril.org
- *
- * Siril is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Siril is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Siril. If not, see <http://www.gnu.org/licenses/>.
- */
+* This file is part of Siril, an astronomy image processor.
+* Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+* Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+* Reference site is https://siril.org
+*
+* Siril is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* Siril is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with Siril. If not, see <http://www.gnu.org/licenses/>.
+*/
 
 #ifdef _WIN32
 #include <windows.h>
@@ -37,6 +37,7 @@
 #include "core/OS_utils.h"
 #include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
+#include "core/siril_python.h"
 #include "gui/utils.h"
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
@@ -46,7 +47,6 @@
 #define CONFIRM_RUN_SCRIPTS _("You are about to use scripts. Running automatic scripts is something that is easy and generally it provides a nice image. However you have to keep in mind that scripts are not magic; automatic choices are made where human decision would probably be better. Also, every command used in a script is available on the interface with a better parameter control.")
 
 static GtkWidget *menuscript = NULL;
-
 
 static GSList *initialize_script_paths(){
 	GSList *list = NULL;
@@ -131,10 +131,8 @@ static GSList *search_script(const char *path) {
 		return NULL;
 	}
 	while ((file = g_dir_read_name(dir)) != NULL) {
-		if (g_str_has_suffix(file, SCRIPT_EXT)) {
-			gchar *str = (gchar*) remove_ext_from_filename(file);
-
-			list = g_slist_prepend(list, str);
+		if (g_str_has_suffix(file, SCRIPT_EXT) || g_str_has_suffix(file, PYSCRIPT_EXT)) {
+			list = g_slist_prepend(list, g_strdup(file));  // Keep the full filename with extension
 		}
 	}
 	list = g_slist_sort(list, (GCompareFunc) strcompare);
@@ -142,6 +140,7 @@ static GSList *search_script(const char *path) {
 
 	return list;
 }
+
 
 static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 	if (get_thread_run()) {
@@ -166,41 +165,43 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 	/* Switch to console tab */
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
-	gchar *script_file;
-	if (g_str_has_suffix((gchar *) user_data, SCRIPT_EXT)) {
-		script_file= g_strdup_printf("%s", (gchar *) user_data); // remote scripts
+	gchar *script_file = (gchar *)user_data;
 
-	} else {
-		script_file= g_strdup_printf("%s%s", (gchar *) user_data, SCRIPT_EXT); // local scripts
-	}
+	/* Last thing before running the script, disable widgets except for Stop */
+	script_widgets_enable(FALSE);
 
-	GFile *file = g_file_new_for_path(script_file);
-	GError *error = NULL;
-	const GFileInfo *info = g_file_query_info(file, G_FILE_ATTRIBUTE_STANDARD_SIZE,
-			G_FILE_QUERY_INFO_NONE, NULL, &error);
-	if (info) {
-		GInputStream *input_stream = (GInputStream*) g_file_read(file, NULL, &error);
+	/* Run the script */
+	siril_log_message(_("Starting script %s\n"), script_file);
 
-		if (input_stream == NULL) {
-			if (error != NULL) {
-				g_clear_error(&error);
-				siril_log_message(_("File [%s] does not exist\n"), script_file);
+	if (g_str_has_suffix(script_file, PYSCRIPT_EXT)) {
+		// Run Python script
+		com.script_thread = g_thread_new("python script", run_python_script_from_file, script_file);
+		g_idle_add(script_widgets_idle, NULL);
+	} else if (g_str_has_suffix(script_file, SCRIPT_EXT)) {
+		// Run regular script
+		GFile *file = g_file_new_for_path(script_file);
+		GError *error = NULL;
+		const GFileInfo *info = g_file_query_info(file, G_FILE_ATTRIBUTE_STANDARD_SIZE,
+				G_FILE_QUERY_INFO_NONE, NULL, &error);
+		if (info) {
+			GInputStream *input_stream = (GInputStream*) g_file_read(file, NULL, &error);
+
+			if (input_stream == NULL) {
+				if (error != NULL) {
+					g_clear_error(&error);
+					siril_log_message(_("File [%s] does not exist\n"), script_file);
+				}
+				g_object_unref(file);
+				script_widgets_enable(TRUE);
+				return;
 			}
-
-			g_free(script_file);
-			g_object_unref(file);
-			return;
+			com.script_thread = g_thread_new("script", execute_script, input_stream);
 		}
-		/* Last thing before running the script, disable widgets except for Stop */
-		script_widgets_enable(FALSE);
-
-		/* Run the script */
-		siril_log_message(_("Starting script %s\n"), script_file);
-		com.script_thread = g_thread_new("script", execute_script, input_stream);
+		g_object_unref(file);
+	} else {
+		siril_log_message(_("Unknown script type: %s\n"), script_file);
+		script_widgets_enable(TRUE);
 	}
-
-	g_free(script_file);
-	g_object_unref(file);
 }
 
 int initialize_script_menu(gboolean verbose) {
@@ -234,15 +235,23 @@ int initialize_script_menu(gboolean verbose) {
 				/* write an item per script file */
 				GtkWidget *menu_item;
 
-				menu_item = gtk_menu_item_new_with_label(l->data);
+				char* display_name = g_strdup(l->data);
+// We no longer remove extensions for display: now we support 2 types of script it can be useful
+// to know what type a script is, and potentially there could otherwise be ambguity between
+// somescript.ssf and somescript.py
+//                char* extension = strrchr(display_name, '.');
+//                if (extension) *extension = '\0';  // Remove extension for display
+
+				menu_item = gtk_menu_item_new_with_label(display_name);
 				gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
-				gchar *full_path = g_build_filename(s->data, l->data,
-						NULL);
+				gchar *full_path = g_build_filename(s->data, l->data, NULL);
 				g_signal_connect(G_OBJECT(menu_item), "activate",
-						G_CALLBACK(on_script_execution), (gchar * ) full_path);
+						G_CALLBACK(on_script_execution), full_path);
 				if (verbose)
 					siril_log_message(_("Loading script: %s\n"), l->data);
 				gtk_widget_show(menu_item);
+
+				g_free(display_name);
 			}
 			g_slist_free_full(list, g_free);
 		}

@@ -603,7 +603,7 @@ int auto_update_gitscripts(gboolean sync) {
 	}
 	for (i = 0; i < entry_count; i++) {
 		entry = git_index_get_byindex(index, i);
-		if (g_str_has_suffix(entry->path, SCRIPT_EXT) && script_version_check(entry->path)) {
+		if ((g_str_has_suffix(entry->path, SCRIPT_EXT) || g_str_has_suffix(entry->path, PYSCRIPT_EXT)) && script_version_check(entry->path)) {
 			gui.repo_scripts = g_list_prepend(gui.repo_scripts, g_strdup(entry->path));
 #ifdef DEBUG_GITSCRIPTS
 			printf("%s\n", entry->path);
