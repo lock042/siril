@@ -216,85 +216,131 @@ int initialize_script_menu(gboolean verbose) {
 	script_paths = set_list_to_preferences_dialog(com.pref.gui.script_path);
 
 	GtkWidget *menu = gtk_menu_new();
+	GtkWidget *menu_ssf = gtk_menu_new();
+	GtkWidget *menu_py = gtk_menu_new();
+
+	GtkWidget *menu_item_ssf = gtk_menu_item_new_with_label(_("Siril Script Files"));
+	GtkWidget *menu_item_py = gtk_menu_item_new_with_label(_("Python Scripts"));
+	GtkWidget *sep = gtk_separator_menu_item_new();
+	GtkWidget *menu_item_run = gtk_menu_item_new_with_label(_("Run Script Files..."));
+
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item_ssf);
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item_ssf), menu_ssf);
+	gtk_widget_show(menu_item_ssf);
+
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item_py);
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item_py), menu_py);
+	gtk_widget_show(menu_item_py);
+
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), sep);
+	gtk_widget_show(sep);
+
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item_run);
+	gtk_widget_show(menu_item_run);
+
+	gchar *previous_directory_ssf = NULL;
+	gchar *previous_directory_py = NULL;
+	gboolean first_item_ssf = TRUE;
+	gboolean first_item_py = TRUE;
 
 	for (s = script_paths; s; s = s->next) {
 		list = search_script(s->data);
 		if (list) {
-			/* write separator but not for the first one */
-			if (nb_item != 0) {
-				GtkWidget *separator = gtk_separator_menu_item_new();
-				gtk_menu_shell_append(GTK_MENU_SHELL(menu), separator);
-				gtk_widget_show(separator);
-			}
 			if (verbose)
 				siril_log_color_message(_("Searching scripts in: \"%s\"...\n"), "green", s->data);
 
 			for (GSList *l = list; l; l = l->next) {
 				nb_item++;
-				/* write an item per script file */
 				GtkWidget *menu_item;
 
-				char* display_name = g_strdup(l->data);
-// We no longer remove extensions for display: now we support 2 types of script it can be useful
-// to know what type a script is, and potentially there could otherwise be ambguity between
-// somescript.ssf and somescript.py
-//                char* extension = strrchr(display_name, '.');
-//                if (extension) *extension = '\0';  // Remove extension for display
+				gchar *display_name = g_strdup(l->data);
+				gchar *extension = strrchr(display_name, '.');
+				gchar *current_directory = g_path_get_dirname(s->data);
+
+				if (extension && g_strcmp0(extension, ".ssf") == 0) {
+					if (!first_item_ssf && (!previous_directory_ssf || g_strcmp0(current_directory, previous_directory_ssf) != 0)) {
+						GtkWidget *separator = gtk_separator_menu_item_new();
+						gtk_menu_shell_append(GTK_MENU_SHELL(menu_ssf), separator);
+						gtk_widget_show(separator);
+					}
+					first_item_ssf = FALSE;
+					g_free(previous_directory_ssf);
+					previous_directory_ssf = g_strdup(current_directory);
+				} else if (extension && g_strcmp0(extension, ".py") == 0) {
+					if (!first_item_py && (!previous_directory_py || g_strcmp0(current_directory, previous_directory_py) != 0)) {
+						GtkWidget *separator = gtk_separator_menu_item_new();
+						gtk_menu_shell_append(GTK_MENU_SHELL(menu_py), separator);
+						gtk_widget_show(separator);
+					}
+					first_item_py = FALSE;
+					g_free(previous_directory_py);
+					previous_directory_py = g_strdup(current_directory);
+				}
+				g_free(current_directory);
 
 				menu_item = gtk_menu_item_new_with_label(display_name);
-				gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
 				gchar *full_path = g_build_filename(s->data, l->data, NULL);
-				g_signal_connect(G_OBJECT(menu_item), "activate",
-						G_CALLBACK(on_script_execution), full_path);
+
+				if (extension && g_strcmp0(extension, ".ssf") == 0) {
+					gtk_menu_shell_append(GTK_MENU_SHELL(menu_ssf), menu_item);
+				} else if (extension && g_strcmp0(extension, ".py") == 0) {
+					gtk_menu_shell_append(GTK_MENU_SHELL(menu_py), menu_item);
+				}
+				g_signal_connect(G_OBJECT(menu_item), "activate", G_CALLBACK(on_script_execution), full_path);
 				if (verbose)
 					siril_log_message(_("Loading script: %s\n"), l->data);
-				gtk_widget_show(menu_item);
 
+				gtk_widget_show(menu_item);
 				g_free(display_name);
 			}
 			g_slist_free_full(list, g_free);
 		}
 	}
-#ifdef HAVE_LIBGIT2
-	if (com.pref.use_scripts_repository && g_list_length(com.pref.selected_scripts) > 0 ) {
-		GtkWidget *separator = gtk_separator_menu_item_new();
-		gtk_menu_shell_append(GTK_MENU_SHELL(menu), separator);
-		gtk_widget_show(separator);
-		GList *new_list = NULL;
-		for (ss = com.pref.selected_scripts ; ss ; ss = ss->next) {
-			nb_item++;
-			/* check that the selected script is still in the repository */
+	g_free(previous_directory_ssf);
+	g_free(previous_directory_py);
 
+#ifdef HAVE_LIBGIT2
+	if (com.pref.use_scripts_repository && g_list_length(com.pref.selected_scripts) > 0) {
+		GList *new_list = NULL;
+		for (ss = com.pref.selected_scripts; ss; ss = ss->next) {
+			nb_item++;
 			gboolean included = FALSE;
 			GList *iterator;
-			for (iterator = gui.repo_scripts ; iterator ; iterator = iterator->next) {
-				if (g_strrstr((gchar*) ss->data, (gchar*)iterator->data)) {
+			for (iterator = gui.repo_scripts; iterator;
+					iterator = iterator->next) {
+				if (g_strrstr((gchar*) ss->data, (gchar*) iterator->data)) {
 					included = TRUE;
 				}
 			}
 			if (included) {
-				/* write an item per script file */
 				GtkWidget *menu_item;
-				gchar* basename = g_path_get_basename(ss->data);
-				char* basename_no_ext = remove_ext_from_filename(basename);
+				gchar *basename = g_path_get_basename(ss->data);
+				char *basename_no_ext = remove_ext_from_filename(basename);
+				char *extension = strrchr(basename, '.');
 				g_free(basename);
+
 				menu_item = gtk_menu_item_new_with_label(basename_no_ext);
-				gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
-				g_signal_connect(G_OBJECT(menu_item), "activate",
-						G_CALLBACK(on_script_execution), (gchar * ) ss->data);
+				gchar *full_path = g_strdup(ss->data);
+
+				if (extension && g_strcmp0(extension, ".ssf") == 0) {
+					gtk_menu_shell_append(GTK_MENU_SHELL(menu_ssf), menu_item);
+				} else if (extension && g_strcmp0(extension, ".py") == 0) {
+					gtk_menu_shell_append(GTK_MENU_SHELL(menu_py), menu_item);
+				}
+
+				g_signal_connect(G_OBJECT(menu_item), "activate", G_CALLBACK(on_script_execution), full_path);
 				if (verbose)
-					siril_log_message(_("Loading script: %s\n"), basename_no_ext);
+					siril_log_message(_("Loading script from repository: %s\n"), basename_no_ext);
 				free(basename_no_ext);
 				gtk_widget_show(menu_item);
 				new_list = g_list_prepend(new_list, ss->data);
 			} else {
-				// Print this whether verbose or not, as it is likely to be unexpected
 				siril_log_color_message(_("Script %s no longer exists in repository, removing from Scripts menu...\n"), "salmon", ss->data);
 			}
 		}
 		GList *tmp = com.pref.selected_scripts;
 		com.pref.selected_scripts = new_list;
-		g_list_free (g_steal_pointer (&tmp));
+		g_list_free(g_steal_pointer(&tmp));
 	}
 #endif
 	if (!nb_item) {
