@@ -393,9 +393,17 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 		if (regargs->wcsref) { // we will update it only if ref image has a solution
 			fit->keywords.wcslib = wcs_deepcopy(regargs->wcsref, NULL); // we copy the reference astrometry
 			Homography Hscale = { 0 }, Hshift = { 0 };
-			cvGetEye(&Hscale);
-			cvGetEye(&Hshift);
+			if (regargs->distoparam.velocity.x != 0.f || regargs->distoparam.velocity.y != 0.f) {
+				cvGetEye(&Hscale);
+				pointf reg = { 0.f, 0.f };
+				get_comet_shift(regargs->reference_date, fit->keywords.date_obs, regargs->distoparam.velocity, &reg);
+				Hshift.h02 = -reg.x;
+				Hshift.h12 =  reg.y;
+				cvApplyFlips(&Hscale, dst_ry / scale, dst_ry);
+				reframe_wcs(fit->keywords.wcslib, &Hshift);
+			}
 			if (regargs->framing == FRAMING_MAX) {
+				cvGetEye(&Hshift);
 				Hshift = Hs;
 				// Hshift is the correction at full scale, we need to de-scale it
 				Hshift.h02 /= scale;
@@ -409,6 +417,7 @@ int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_in
 				reframe_wcs(fit->keywords.wcslib, &Hshift);
 			}
 			if (scale != 1.f) {
+				cvGetEye(&Hscale);
 				Hscale.h00 = regargs->output_scale;
 				Hscale.h11 = regargs->output_scale;
 				cvApplyFlips(&Hscale, dst_ry / scale, dst_ry);
@@ -813,11 +822,7 @@ int register_apply_reg(struct registration_args *regargs) {
 	args->force_float = !com.pref.force_16bit && regargs->seq->type != SEQ_SER;
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
-	if (!check_before_applyreg(regargs)) { // checks for input arguments wrong combinations
-		free(args);
-		return -1;
-	}
-
+	// we need to update filtering before check_before_applyreg that will check required space
 	if (!regargs->filtering_criterion &&
 			convert_parsed_filter_to_filter(&regargs->filters,
 				regargs->seq, &regargs->filtering_criterion,
@@ -825,6 +830,7 @@ int register_apply_reg(struct registration_args *regargs) {
 		free(args);
 		return -1;
 	}
+
 	// Prepare sequence filtering
 	int nb_frames = compute_nb_filtered_images(regargs->seq,
 			regargs->filtering_criterion, regargs->filtering_parameter);
@@ -833,6 +839,11 @@ int register_apply_reg(struct registration_args *regargs) {
 			regargs->filtering_parameter);
 	siril_log_message(str);
 	g_free(str);
+
+	if (!check_before_applyreg(regargs)) { // checks for input arguments wrong combinations
+		free(args);
+		return -1;
+	}
 
 	// This is an astrometric aligned sequence,
 	// we need to collect the WCS structures and 
@@ -899,7 +910,7 @@ int register_apply_reg(struct registration_args *regargs) {
 	if (regargs->undistort) {
 		regargs->distoparam = regargs->seq->distoparam[regargs->layer];
 		int status = 1;
-		index = regargs->distoparam.index; // to keep track if DISTO_FILES as if no distorsion is effectively present, it wiil be set to UNDEF
+		index = regargs->distoparam.index; // to keep track if DISTO_FILES as if no distorsion is effectively present, it will be set to UNDEF
 		regargs->disto = init_disto_data(&regargs->distoparam, regargs->seq, regargs->WCSDATA, regargs->driz != NULL, &status);
 		free(regargs->WCSDATA); // init_disto_data has freed each individual wcs, we can now free the array
 		if (status) {
@@ -931,6 +942,16 @@ int register_apply_reg(struct registration_args *regargs) {
 			cvApplyFlips(&H, orig_ry, regargs->framingd.roi_out.h / regargs->output_scale);
 			reframe_wcs(regargs->wcsref, &H);
 		}
+	}
+	if (regargs->seq->distoparam[regargs->layer].index == DISTO_FILE_COMET) {
+		// we fetch the reference date
+		fits ref = { 0 };
+		if (seq_read_frame_metadata(args->seq, regargs->reference_image, &ref)) {
+			siril_log_message(_("Could not load reference image\n"));
+			return 1;
+		}
+		regargs->reference_date = g_date_time_ref(ref.keywords.date_obs);
+		clearfits(&ref);
 	}
 
 	generic_sequence_worker(args);

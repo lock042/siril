@@ -196,6 +196,18 @@ typedef struct fwhm_struct psf_star;
 typedef struct photometry_struct photometry;
 typedef struct tilt_struct sensor_tilt;
 
+typedef struct {
+	double x, y;
+} point;
+
+typedef struct {
+	float x, y;
+} pointf;
+
+typedef struct {
+	int x, y;
+} pointi;
+
 /* global structures */
 
 typedef enum {
@@ -301,6 +313,7 @@ typedef enum {
 	DISTO_FILE,  // Distortion from given file
 	DISTO_MASTER, // Distortion from master files
 	DISTO_FILES, // Distortion stored in each file (true only from seq platesolve, even with no distortion, it will be checked upon reloading)
+	DISTO_FILE_COMET // special for cometary alignement, to be detected by apply reg. Enables to 
 } disto_source;
 
 /* image data, exists once for each image */
@@ -345,6 +358,7 @@ typedef struct {
 typedef struct {
 	disto_source index; // disto_source enum
 	gchar *filename; // filename if DISTO_FILE
+	pointf velocity; // shift velocity if DISTO_FILE_COMET
 } disto_params;
 
 /* see explanation about sequence and single image management in io/sequence.c */
@@ -581,18 +595,6 @@ typedef struct _xpsampdata {
 	const double *x;
 	double y[XPSAMPLED_LEN];
 } xpsampled;
-
-typedef struct {
-	double x, y;
-} point;
-
-typedef struct {
-	float x, y;
-} pointf;
-
-typedef struct {
-	int x, y;
-} pointi;
 
 typedef enum {
 	CUT_MONO,

@@ -66,9 +66,7 @@ int get_comet_shift(GDateTime *ref, GDateTime *img, pointf px_per_hour, pointf *
 struct comet_align_data {
 	struct registration_args *regargs;
 	regdata *current_regdata;
-	GDateTime *reference_date;
 	disto_params *distoparam;
-	disto_source orig_index;
 	gboolean flipped;
 };
 
@@ -146,7 +144,7 @@ static int comet_align_prepare_hook(struct generic_seq_args *args) {
 		free(cadata->current_regdata);
 		return 1;
 	}
-	cadata->reference_date = g_date_time_ref(ref.keywords.date_obs);
+	regargs->reference_date = g_date_time_ref(ref.keywords.date_obs);
 
 	// we must copy the disto data from the originating sequence
 	if (layer_has_distortion(args->seq, regargs->layer)) {
@@ -159,22 +157,29 @@ static int comet_align_prepare_hook(struct generic_seq_args *args) {
 		} else {
 		// if registration originates from astrometry, we can't keep it as is
 		// otherwise, registration will be recomputed from wcs at applyreg step (so without the shifts)
-		// instead, we change to DISTO_FILE and use the refimage as distorsion master (if it has distorsion)
+		// instead, we change to DISTO_FILE_COMET and use the refimage as distortion master (if it has distortion)
 			if (ref.keywords.wcslib && ref.keywords.wcslib->lin.dispre != NULL) {
 				char buffer[256];
 				fit_sequence_get_image_filename(args->seq, args->seq->reference_image, buffer, TRUE);
 				cadata->distoparam[regargs->layer].filename = g_strdup(buffer);
 			}
-			cadata->distoparam[regargs->layer].index = DISTO_FILE;
-			cadata->orig_index =  DISTO_FILES; // we need to keep track that origin is astrometry in any case
-			if (image_is_flipped_from_wcs(ref.keywords.wcslib)) { // and if astrometry is flipped
-			
+			if (image_is_flipped_from_wcs(ref.keywords.wcslib)) // and if astrometry is flipped
 				cadata->flipped = TRUE;
-			}
 		}
 	}
-	clearfits(&ref);
+	if (cadata->flipped)
+		regargs->velocity.y *= -1; // we correct the velocity due to the filp from astrometry which will not be applied during applyreg
 
+	if (layer_has_registration(args->seq, regargs->layer)) { // we must keep track to correctly recompute astrometry during applyreg
+		if (!cadata->distoparam) // there was no distorsion in any layer
+			cadata->distoparam = calloc(args->seq->nb_layers, sizeof(disto_params));
+		cadata->distoparam[regargs->layer].index = DISTO_FILE_COMET;
+		cadata->distoparam[regargs->layer].velocity = regargs->velocity;
+		if (cadata->flipped)
+			cadata->distoparam[regargs->layer].velocity.y *= -1;
+	}
+
+	clearfits(&ref);
 	return 0;
 }
 
@@ -183,7 +188,7 @@ static int comet_align_image_hook(struct generic_seq_args *args, int out_index, 
 	struct registration_args *regargs = cadata->regargs;
 
 	pointf reg = { 0.f, 0.f };
-	get_comet_shift(cadata->reference_date, fit->keywords.date_obs, regargs->velocity, &reg);
+	get_comet_shift(regargs->reference_date, fit->keywords.date_obs, regargs->velocity, &reg);
 	if (cadata->current_regdata) {
 		if (guess_transform_from_H(cadata->current_regdata[in_index].H) == NULL_TRANSFORMATION) {
 			siril_log_color_message(_("Image %d has no registration data, removing\n"), "red", in_index + 1);
@@ -194,8 +199,6 @@ static int comet_align_image_hook(struct generic_seq_args *args, int out_index, 
 	} else {
 		cvGetEye(&regargs->regparam[in_index].H); // previous reg does not exist, we set H with identity
 	}
-	if (cadata->orig_index == DISTO_FILES && cadata->flipped)
-		reg.y *= -1; // we correct the velocity due to the filp from astrometry will will not be applied during applyreg
 	cum_shifts(regargs->regparam, in_index, -reg.x, -reg.y); // we left-compose with the additional shift
 
 	regargs->imgparam[in_index].incl = SEQUENCE_DEFAULT_INCLUDE;
@@ -243,9 +246,6 @@ static int comet_align_finalize_hook(struct generic_seq_args *args) {
 		// will be loaded in the idle function if (load_new_sequence)
 		regargs->load_new_sequence = TRUE;
 	}
-
-	if (cadata->reference_date)
-		g_date_time_unref(cadata->reference_date);
 
 	free(cadata);
 	args->user = NULL;

@@ -27,6 +27,7 @@
 #include "gui/registration.h"
 #include "opencv/opencv.h"
 #include "drizzle/cdrizzleutil.h"
+#include "algos/siril_wcs.h"
 
 int get_registration_layer(const sequence *seq) {
 	if (!com.script && seq == &com.seq) {
@@ -260,6 +261,10 @@ gpointer register_thread_func(gpointer p) {
 	if (args->driz) {
 		free(args->driz);
 	}
+	if (args->reference_date)
+		g_date_time_unref(args->reference_date);
+	if (args->wcsref)
+		wcsfree(args->wcsref);
 	if (!siril_add_idle(end_register_idle, args)) {
 		free_sequence(args->seq, TRUE);
 		free(args);

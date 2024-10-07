@@ -117,6 +117,7 @@ struct registration_args {
 	transformation_type type;	// Use affine transform  or homography
 	float percent_moved;		// for KOMBAT algorithm
 	pointf velocity;			// for comet algorithm
+	GDateTime *reference_date; 	// for comet algorithm
 	gboolean two_pass;		// use the two-pass computation to find a good ref image
 	seq_image_filter filtering_criterion; // the filter, (seqapplyreg only)
 	double filtering_parameter;	// and its parameter (seqapplyreg only)
@@ -125,7 +126,7 @@ struct registration_args {
 	disto_source undistort;		// type of undistortion to apply
 	disto_params distoparam;		// type of undistortion to apply
 	disto_data *disto;			// undistortion information
-	struct wcsprm* WCSDATA;		// wcs structs for the whole structure (for seqapplyreg with astrometric solution) 
+	struct wcsprm* WCSDATA;		// wcs structs for the whole sequence (for seqapplyreg with astrometric solution) 
 	struct driz_args_t *driz;	// drizzle-specific data
 	framing_type framing;		// used by seqapplyreg to determine framing
 	framing_data framingd;	// precomputed framing data

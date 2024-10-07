@@ -378,6 +378,9 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 			distoparam->index = DISTO_FILE; // this will be written to the seq file
 			distoparam->filename = wcsname;
 			break;
+		case DISTO_FILE_COMET:
+			if (!distoparam->filename) // if no filename is passed, we can go on, otherwise, we do as DISTO_FILE below
+				break;
 		case DISTO_FILE:;
 			fits fit = { 0 };
 			int statusread = read_fits_metadata_from_path_first_HDU(distoparam->filename, &fit);
@@ -462,7 +465,8 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 		}
 	}
 
-	if (distoparam->index == DISTO_IMAGE || distoparam->index == DISTO_FILE) { // we only have one disto spec, we can init the disto structure
+	// we only have one disto spec, we can init the disto structure
+	if (distoparam->index == DISTO_IMAGE || distoparam->index == DISTO_FILE || (distoparam->index == DISTO_FILE_COMET && distoparam->filename != NULL)) {
 		if (!wcs)
 			return disto;
 		if (!wcs->lin.dispre) {
@@ -507,7 +511,8 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 		}
 	}
 	*status = 0;
-	siril_log_color_message(_("Distortion data is valid and will be used\n"), "green");
+	if (distoparam->index != DISTO_FILE_COMET || distoparam->filename != NULL)
+		siril_log_color_message(_("Distortion data is valid and will be used\n"), "green");
 	return disto;
 }
 
