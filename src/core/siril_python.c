@@ -280,6 +280,16 @@ static PyObject *siril_log_message_wrapper(PyObject *self, PyObject *args) {
 	Py_RETURN_NONE;
 }
 
+static PyObject* py_gui_block(PyObject* self, PyObject* args) {
+	script_widgets_enable(FALSE);  // Disable GUI elements
+	Py_RETURN_NONE;
+}
+
+static PyObject* py_gui_unblock(PyObject* self, PyObject* args) {
+	script_widgets_enable(TRUE);   // Enable GUI elements
+	Py_RETURN_NONE;
+}
+
 // Function to return com.wd
 static PyObject *siril_get_wd(PyObject *self, PyObject *args) {
 	if (com.wd == NULL) {
@@ -314,9 +324,11 @@ static PyObject *siril_get_filename(PyObject *self, PyObject *args) {
 
 // Define methods for the module
 static PyMethodDef SirilMethods[] = {
-	{"processcommand", siril_processcommand, METH_VARARGS, "Execute a Siril command"},
-	{"log_message", siril_log_message_wrapper, METH_VARARGS, "Log a message"},
 	{"filename", (PyCFunction)siril_get_filename, METH_NOARGS, "Get the current image filename"},
+	{"gui_block", py_gui_block, METH_NOARGS, "Block the GUI by disabling script widgets"},
+	{"gui_unblock", py_gui_unblock, METH_NOARGS, "Unblock the GUI by enabling script widgets"},
+	{"log_message", siril_log_message_wrapper, METH_VARARGS, "Log a message"},
+	{"processcommand", siril_processcommand, METH_VARARGS, "Execute a Siril command"},
 	{"wd", (PyCFunction)siril_get_wd, METH_NOARGS, "Get the current working directory"},
 	{NULL, NULL, 0, NULL}  /* Sentinel */
 };
