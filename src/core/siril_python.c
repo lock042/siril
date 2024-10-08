@@ -281,11 +281,21 @@ static PyObject *siril_log_message_wrapper(PyObject *self, PyObject *args) {
 }
 
 static PyObject* py_gui_block(PyObject* self, PyObject* args) {
+	if (!g_main_context_iteration(NULL, FALSE)) {
+		// Main loop is not running, return immediately
+		siril_log_color_message(_("Warning: siril.gui_block() must not be called except from a script's GTK main loop.\n"), "red");
+		Py_RETURN_NONE;
+	}
 	script_widgets_enable(FALSE);  // Disable GUI elements
 	Py_RETURN_NONE;
 }
 
 static PyObject* py_gui_unblock(PyObject* self, PyObject* args) {
+	if (!g_main_context_iteration(NULL, FALSE)) {
+		// Main loop is not running, return immediately
+		siril_log_color_message(_("Warning: siril.gui_unblock() must not be called except from a script's GTK main loop.\n"), "red");
+		Py_RETURN_NONE;
+	}
 	script_widgets_enable(TRUE);   // Enable GUI elements
 	Py_RETURN_NONE;
 }
