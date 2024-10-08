@@ -449,21 +449,27 @@ PyTypeObject PyFitsType = {
 ************************************************/
 
 static PyObject* py_gui_block(PyObject* self, PyObject* args) {
-/*	if (!g_main_context_iteration(NULL, FALSE)) {
+	if (!g_main_context_iteration(NULL, FALSE)) {
 		siril_log_color_message(_("Warning: siril.gui_block() must not be called except from a script's GTK main loop.\n"), "red");
 		Py_RETURN_NONE;
-	}*/
+	}
 	script_widgets_enable(FALSE);  // Disable main control window GUI elements
 	Py_RETURN_NONE;
 }
 
 static PyObject* py_gui_unblock(PyObject* self, PyObject* args) {
-/*	if (!g_main_context_iteration(NULL, FALSE)) {
+	if (!g_main_context_iteration(NULL, FALSE)) {
 		siril_log_color_message(_("Warning: siril.gui_unblock() must not be called except from a script's GTK main loop.\n"), "red");
 		Py_RETURN_NONE;
-	}*/
+	}
 	script_widgets_enable(TRUE);   // Enable main control window GUI elements
 	Py_RETURN_NONE;
+}
+
+static PyObject* PyNotifyGfitModified(PyObject* self, PyObject* args) {
+    // Call the C function
+    notify_gfit_modified();
+    Py_RETURN_NONE;
 }
 
 /*************************************************************
@@ -599,6 +605,7 @@ static PyMethodDef SirilMethods[] = {
 	{"gui_block", py_gui_block, METH_NOARGS, N_("Block the GUI by disabling script widgets")},
 	{"gui_unblock", py_gui_unblock, METH_NOARGS, N_("Unblock the GUI by enabling script widgets")},
 	{"log", siril_log_message_wrapper, METH_VARARGS, N_("Log a message")},
+    {"notify_gfit_modified", (PyCFunction)PyNotifyGfitModified, METH_NOARGS, N_("Notify that the main image has been modified.")},
 	{"cmd", siril_processcommand, METH_VARARGS, N_("Execute a Siril command")},
 	{"wd", (PyCFunction)siril_get_wd, METH_NOARGS, N_("Get the current working directory")},
 	{NULL, NULL, 0, NULL}  /* Sentinel */
@@ -646,7 +653,7 @@ void init_python(void) {
 
 // Function to run a Python script from a file
 gpointer run_python_script_from_file(gpointer p) {
-	char *script_path = (char*) p;
+	const char *script_path = (const char*) p; // must not be freed, it is owned by the list of script menu items
 	PyGILState_STATE gstate;
 	gstate = PyGILState_Ensure();  // Acquire the GIL
 
@@ -697,7 +704,6 @@ gpointer run_python_script_from_file(gpointer p) {
 	}
 
 	PyGILState_Release(gstate);  // Release the GIL
-	g_free(script_path);
 	g_idle_add(script_widgets_idle, NULL);
 	return GINT_TO_POINTER(retval);
 }
