@@ -191,6 +191,32 @@ PyTypeObject PyFitsType = {
 	.tp_getset = PyFits_getsetters,
 };
 
+/*************************************************
+ * Functions providing control over the Siril UI *
+ ************************************************/
+
+static PyObject* py_gui_block(PyObject* self, PyObject* args) {
+	if (!g_main_context_iteration(NULL, FALSE)) {
+		siril_log_color_message(_("Warning: siril.gui_block() must not be called except from a script's GTK main loop.\n"), "red");
+		Py_RETURN_NONE;
+	}
+	script_widgets_enable(FALSE);  // Disable main control window GUI elements
+	Py_RETURN_NONE;
+}
+
+static PyObject* py_gui_unblock(PyObject* self, PyObject* args) {
+	if (!g_main_context_iteration(NULL, FALSE)) {
+		siril_log_color_message(_("Warning: siril.gui_unblock() must not be called except from a script's GTK main loop.\n"), "red");
+		Py_RETURN_NONE;
+	}
+	script_widgets_enable(TRUE);   // Enable main control window GUI elements
+	Py_RETURN_NONE;
+}
+
+/*************************************************************
+ * Functions providing control over Siril command processing *
+ *************************************************************/
+
 static PyObject* siril_processcommand(PyObject* self, PyObject* args) {
 	Py_ssize_t num_args = PyTuple_Size(args);
 	if (num_args < 1) {
@@ -254,7 +280,6 @@ static PyObject* siril_processcommand(PyObject* self, PyObject* args) {
 	return PyLong_FromLong(result);
 }
 
-
 // Method to call siril_log_message
 static PyObject *siril_log_message_wrapper(PyObject *self, PyObject *args) {
 	const char *message;
@@ -280,25 +305,9 @@ static PyObject *siril_log_message_wrapper(PyObject *self, PyObject *args) {
 	Py_RETURN_NONE;
 }
 
-static PyObject* py_gui_block(PyObject* self, PyObject* args) {
-	if (!g_main_context_iteration(NULL, FALSE)) {
-		// Main loop is not running, return immediately
-		siril_log_color_message(_("Warning: siril.gui_block() must not be called except from a script's GTK main loop.\n"), "red");
-		Py_RETURN_NONE;
-	}
-	script_widgets_enable(FALSE);  // Disable GUI elements
-	Py_RETURN_NONE;
-}
-
-static PyObject* py_gui_unblock(PyObject* self, PyObject* args) {
-	if (!g_main_context_iteration(NULL, FALSE)) {
-		// Main loop is not running, return immediately
-		siril_log_color_message(_("Warning: siril.gui_unblock() must not be called except from a script's GTK main loop.\n"), "red");
-		Py_RETURN_NONE;
-	}
-	script_widgets_enable(TRUE);   // Enable GUI elements
-	Py_RETURN_NONE;
-}
+/*****************************************************
+ * Functions providing access to important variables *
+ ****************************************************/
 
 // Function to return com.wd
 static PyObject *siril_get_wd(PyObject *self, PyObject *args) {
@@ -308,7 +317,7 @@ static PyObject *siril_get_wd(PyObject *self, PyObject *args) {
 	return PyUnicode_FromString(com.wd);
 }
 
-// Function to return com.wd
+// Function to return the current image filename
 static PyObject *siril_get_filename(PyObject *self, PyObject *args) {
 	if (single_image_is_loaded()) {
 		if (com.uniq == NULL) {
@@ -329,7 +338,6 @@ static PyObject *siril_get_filename(PyObject *self, PyObject *args) {
 		// We shouldn't try to handle single-file sequences in this way
 		Py_RETURN_NONE;
 	}
-
 }
 
 // Define methods for the module
@@ -337,8 +345,8 @@ static PyMethodDef SirilMethods[] = {
 	{"filename", (PyCFunction)siril_get_filename, METH_NOARGS, "Get the current image filename"},
 	{"gui_block", py_gui_block, METH_NOARGS, "Block the GUI by disabling script widgets"},
 	{"gui_unblock", py_gui_unblock, METH_NOARGS, "Unblock the GUI by enabling script widgets"},
-	{"log_message", siril_log_message_wrapper, METH_VARARGS, "Log a message"},
-	{"processcommand", siril_processcommand, METH_VARARGS, "Execute a Siril command"},
+	{"log", siril_log_message_wrapper, METH_VARARGS, "Log a message"},
+	{"cmd", siril_processcommand, METH_VARARGS, "Execute a Siril command"},
 	{"wd", (PyCFunction)siril_get_wd, METH_NOARGS, "Get the current working directory"},
 	{NULL, NULL, 0, NULL}  /* Sentinel */
 };
@@ -385,18 +393,58 @@ void init_python(void) {
 
 // Function to run a Python script from a file
 gpointer run_python_script_from_file(gpointer p) {
-	const char *script_path = (const char*) p;
+	char *script_path = (char*) p;
 	PyGILState_STATE gstate;
 	gstate = PyGILState_Ensure();  // Acquire the GIL
+
 	FILE *fp = g_fopen(script_path, "r");
 	int retval = -1;
 	if (fp) {
-		retval = PyRun_SimpleFile(fp, script_path);
+		// Create a Python file object from the C file pointer
+		PyObject *py_file = PyFile_FromFd(fileno(fp), script_path, "r", -1, NULL, NULL, NULL, 1);
+		if (py_file != NULL) {
+			// Run the script and catch any exceptions
+			PyObject *main_module = PyImport_AddModule("__main__");
+			PyObject *globals = PyModule_GetDict(main_module);
+			PyObject *result = PyRun_File(fp, script_path, Py_file_input, globals, globals);
+
+			if (result == NULL) {
+				// An exception occurred
+				PyObject *type, *value, *traceback;
+				PyErr_Fetch(&type, &value, &traceback);
+
+				// Convert the error to a string
+				PyObject *str_exc_value = PyObject_Str(value);
+				const char* err_msg = PyUnicode_AsUTF8(str_exc_value);
+
+				// Log the error
+				siril_log_color_message(_("Error in Python script: %s\n"), "red", err_msg);
+
+				Py_XDECREF(str_exc_value);
+				Py_XDECREF(type);
+				Py_XDECREF(value);
+				Py_XDECREF(traceback);
+
+				retval = -1;
+			} else {
+				// Script completed successfully
+				Py_DECREF(result);
+				retval = 0;
+			}
+
+			Py_DECREF(py_file);
+		} else {
+			siril_log_color_message(_("Failed to create Python file object from: %s\n"), "red", script_path);
+			retval = -1;
+		}
 		fclose(fp);
 	} else {
-		fprintf(stderr, "Failed to open script file: %s\n", script_path);
+		siril_log_color_message(_("Failed to open script file: %s\n"), "red", script_path);
+		retval = -1;
 	}
+
 	PyGILState_Release(gstate);  // Release the GIL
+	g_free(script_path);
 	g_idle_add(script_widgets_idle, NULL);
 	return GINT_TO_POINTER(retval);
 }
@@ -407,10 +455,42 @@ gpointer run_python_script_from_mem(gpointer p) {
 	PyGILState_STATE gstate;
 	gstate = PyGILState_Ensure();  // Acquire the GIL
 
-	int retval = PyRun_SimpleString(script_contents);
+	int retval = 0;
+	PyObject *main_module = PyImport_AddModule("__main__");
+	if (main_module == NULL) {
+		siril_log_message(_("Failed to get __main__ module\n"));
+		retval = -1;
+	} else {
+		PyObject *globals = PyModule_GetDict(main_module);
+		PyObject *result = PyRun_String(script_contents, Py_file_input, globals, globals);
+
+		if (result == NULL) {
+			// An exception occurred
+			PyObject *type, *value, *traceback;
+			PyErr_Fetch(&type, &value, &traceback);
+
+			// Convert the error to a string
+			PyObject *str_exc_value = PyObject_Str(value);
+			const char* err_msg = PyUnicode_AsUTF8(str_exc_value);
+
+			// Log the error
+			siril_log_message(_("Error in Python script (memory): %s\n"), err_msg);
+
+			Py_XDECREF(str_exc_value);
+			Py_XDECREF(type);
+			Py_XDECREF(value);
+			Py_XDECREF(traceback);
+
+			retval = -1;
+		} else {
+			// Script completed successfully
+			Py_DECREF(result);
+			retval = 0;
+		}
+	}
+
 	PyGILState_Release(gstate);  // Release the GIL
-	// use case for this not fully defined yet (python scribble pad?)
-	// but probably doesn't need the script_widgets_idle() call
+	// Note: script_widgets_idle() call is omitted as per the original comment
 	return GINT_TO_POINTER(retval);
 }
 
