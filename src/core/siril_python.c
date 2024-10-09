@@ -20,6 +20,7 @@
 
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
+#include <datetime.h>
 #include <structmember.h>
 
 #include "core/siril.h"
@@ -29,6 +30,41 @@
 #include "io/image_format_fits.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
+
+// Helper function to convert GDateTime to PyDateTime
+PyObject* gdatetime_to_pydatetime(GDateTime *gdt) {
+    // Ensure the datetime API is ready to use
+    if (!PyDateTimeAPI) {
+        PyDateTime_IMPORT;
+    }
+
+    if (!gdt) {
+        siril_log_message(_("FITS does not contain a valid DateTime\n"), "red");
+        Py_RETURN_NONE;
+    }
+
+    // Extract fields from GDateTime
+    int year = g_date_time_get_year(gdt);
+    int month = g_date_time_get_month(gdt);
+    int day = g_date_time_get_day_of_month(gdt);
+    int hour = g_date_time_get_hour(gdt);
+    int minute = g_date_time_get_minute(gdt);
+    int second = g_date_time_get_second(gdt);
+    int microsecond = g_date_time_get_microsecond(gdt);
+
+    // Create a PyDateTime object using the Python C API
+    PyObject *py_datetime = PyDateTime_FromDateAndTime(
+        year, month, day, hour, minute, second, microsecond
+    );
+
+    if (!py_datetime) {
+        PyErr_SetString(PyExc_RuntimeError, N_("Failed to create Python datetime object"));
+        return NULL;
+    }
+
+    // Return the new PyDateTime object
+    return py_datetime;
+}
 
 extern PyTypeObject PyFitsType;
 
@@ -41,12 +77,14 @@ extern PyTypeObject PyFitsType;
 typedef struct {
 	PyObject_HEAD
 	fits *fit;
+	int should_free_data;  // Flag to indicate if the data itself should be freed
+	// note: if should_free_data is 0, the struct will not be freed either
 	int should_free;  // Flag to indicate if the fits pointer itself should be freed
 } PyFits;
 
 // Deallocation function for PyFits
 static void PyFits_dealloc(PyFits *self) {
-	if (self->fit != NULL) {
+	if (self->fit != NULL && self->should_free_data) {
 		clearfits(self->fit);  // Always clear the internal structures
 		if (self->should_free) {
 			free(self->fit);  // Only free the pointer if it was dynamically allocated
@@ -61,6 +99,7 @@ static PyObject *PyFits_new(PyTypeObject *type, PyObject *args, PyObject *kwds) 
 	self = (PyFits *)type->tp_alloc(type, 0);
 	if (self != NULL) {
 		self->fit = NULL;
+		self->should_free_data = 0;
 		self->should_free = 0;
 	}
 	return (PyObject *)self;
@@ -78,7 +117,7 @@ static int PyFits_init(PyFits *self, PyObject *args, PyObject *kwds) {
 
 	if (width > 0 && height > 0) {
 		// Create a new fits structure
-		self->fit = malloc(sizeof(fits));
+		self->fit = calloc(1, sizeof(fits));
 		if (self->fit == NULL) {
 			PyErr_SetString(PyExc_MemoryError, _("Failed to allocate memory for fits"));
 			return -1;
@@ -90,6 +129,7 @@ static int PyFits_init(PyFits *self, PyObject *args, PyObject *kwds) {
 			return -1;
 		}
 		self->should_free = 1;  // This fits was dynamically allocated
+		self->should_free_data = 1;  // We generally want to clean up after ourselves (not for gfit though, maybe other exeptions)
 	}
 
 	return 0;
@@ -159,27 +199,6 @@ static PyObject *PyFits_get_top_down(PyFits *self, void *closure) {
 	return PyBool_FromLong(self->fit->top_down ? 1 : 0);
 }
 
-// Method to get row_order (indicates row order of the FITS data)
-static PyObject *PyFits_get_row_order(PyFits *self, void *closure) {
-	if (self->fit == NULL) {
-		PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
-		return NULL;
-	}
-
-	// Assuming fits->keywords.row_order is a string (char*)
-	const char *row_order = self->fit->keywords.row_order;
-
-	// Convert TOP_DOWN and BOTTOM_UP to more Pythonic format
-	if (strcmp(row_order, "TOP-DOWN") == 0) {
-		return PyUnicode_FromString("top_down");
-	} else if (strcmp(row_order, "BOTTOM-UP") == 0) {
-		return PyUnicode_FromString("bottom_up");
-	} else {
-		// If row_order contains some other value, return it as is
-		return PyUnicode_FromString(row_order);
-	}
-}
-
 // Method to get bit depth
 static PyObject *PyFits_get_bitdepth(PyFits *self, void *closure) {
 	if (self->fit == NULL) {
@@ -187,6 +206,545 @@ static PyObject *PyFits_get_bitdepth(PyFits *self, void *closure) {
 		return NULL;
 	}
 	return PyLong_FromUnsignedLong(self->fit->type == DATA_FLOAT ? 32 : 16);
+}
+
+// Method to get bscale
+static PyObject *PyFits_get_bscale(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyFloat_FromDouble(self->fit->keywords.bscale);
+}
+
+// Method to get bzero
+static PyObject *PyFits_get_bzero(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyFloat_FromDouble(self->fit->keywords.bzero);
+}
+
+// Method to get lo
+static PyObject *PyFits_get_lo(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    if (self->fit->type == DATA_USHORT) {
+		return PyLong_FromLong(self->fit->keywords.lo);
+	} else if (self->fit->type == DATA_FLOAT) {
+		return PyLong_FromLong(self->fit->keywords.flo);
+	} else {
+        PyErr_SetString(PyExc_AttributeError, _("unknown fit data type"));
+        return NULL;
+    }
+}
+
+// Method to get hi
+static PyObject *PyFits_get_hi(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    if (self->fit->type == DATA_USHORT) {
+		return PyLong_FromLong(self->fit->keywords.hi);
+	} else if (self->fit->type == DATA_FLOAT) {
+		return PyLong_FromLong(self->fit->keywords.fhi);
+	} else {
+        PyErr_SetString(PyExc_AttributeError, _("unknown fit data type"));
+        return NULL;
+    }
+}
+
+// Method to get program
+static PyObject *PyFits_get_program(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyUnicode_FromString(self->fit->keywords.program);
+}
+
+// Method to get filename
+static PyObject *PyFits_get_filename(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyUnicode_FromString(self->fit->keywords.filename);
+}
+
+// Method to get data_max
+static PyObject *PyFits_get_data_max(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyFloat_FromDouble(self->fit->keywords.data_max);
+}
+
+// Method to get data_min
+static PyObject *PyFits_get_data_min(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyFloat_FromDouble(self->fit->keywords.data_min);
+}
+
+// Method to get pixel_size_x
+static PyObject *PyFits_get_pixel_size_x(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyFloat_FromDouble(self->fit->keywords.pixel_size_x);
+}
+
+// Method to get pixel_size_y
+static PyObject *PyFits_get_pixel_size_y(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyFloat_FromDouble(self->fit->keywords.pixel_size_y);
+}
+
+// Method to get binning_x
+static PyObject *PyFits_get_binning_x(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyLong_FromUnsignedLong(self->fit->keywords.binning_x);
+}
+
+// Method to get binning_y
+static PyObject *PyFits_get_binning_y(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyLong_FromUnsignedLong(self->fit->keywords.binning_y);
+}
+
+// Method to get row_order
+static PyObject *PyFits_get_row_order(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyUnicode_FromString(self->fit->keywords.row_order);
+}
+
+// Method to get date
+static PyObject *PyFits_get_date(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+	// Assuming you have a way to convert GDateTime to Python datetime
+	// You might need to implement this conversion
+	return gdatetime_to_pydatetime(self->fit->keywords.date);
+}
+
+// Method to get date_obs
+static PyObject *PyFits_get_date_obs(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    // Assuming you have a way to convert GDateTime to Python datetime
+    // You might need to implement this conversion
+    return gdatetime_to_pydatetime(self->fit->keywords.date_obs);
+}
+
+// Method to get expstart
+static PyObject *PyFits_get_expstart(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyFloat_FromDouble(self->fit->keywords.expstart);
+}
+
+// Method to get expend
+static PyObject *PyFits_get_expend(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyFloat_FromDouble(self->fit->keywords.expend);
+}
+
+// Method to get filter
+static PyObject *PyFits_get_filter(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyUnicode_FromString(self->fit->keywords.filter);
+}
+
+// Method to get image_type
+static PyObject *PyFits_get_image_type(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyUnicode_FromString(self->fit->keywords.image_type);
+}
+
+// Method to get object
+static PyObject *PyFits_get_object(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyUnicode_FromString(self->fit->keywords.object);
+}
+
+// Method to get instrume
+static PyObject *PyFits_get_instrume(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyUnicode_FromString(self->fit->keywords.instrume);
+}
+
+// Method to get telescop
+static PyObject *PyFits_get_telescop(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyUnicode_FromString(self->fit->keywords.telescop);
+}
+
+// Method to get observer
+static PyObject *PyFits_get_observer(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyUnicode_FromString(self->fit->keywords.observer);
+}
+
+// Method to get centalt
+static PyObject *PyFits_get_centalt(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyFloat_FromDouble(self->fit->keywords.centalt);
+}
+
+// Method to get centaz
+static PyObject *PyFits_get_centaz(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyFloat_FromDouble(self->fit->keywords.centaz);
+}
+
+// Method to get sitelat
+static PyObject *PyFits_get_sitelat(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyFloat_FromDouble(self->fit->keywords.sitelat);
+}
+
+// Method to get sitelong
+static PyObject *PyFits_get_sitelong(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyFloat_FromDouble(self->fit->keywords.sitelong);
+}
+
+// Method to get sitelat_str
+static PyObject *PyFits_get_sitelat_str(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyUnicode_FromString(self->fit->keywords.sitelat_str);
+}
+
+// Method to get sitelong_str
+static PyObject *PyFits_get_sitelong_str(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyUnicode_FromString(self->fit->keywords.sitelong_str);
+}
+
+// Method to get siteelev
+static PyObject *PyFits_get_siteelev(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyFloat_FromDouble(self->fit->keywords.siteelev);
+}
+
+// Method to get bayer_pattern
+static PyObject *PyFits_get_bayer_pattern(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyUnicode_FromString(self->fit->keywords.bayer_pattern);
+}
+
+// Method to get bayer_xoffset
+static PyObject *PyFits_get_bayer_xoffset(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyLong_FromLong(self->fit->keywords.bayer_xoffset);
+}
+
+// Method to get bayer_yoffset
+static PyObject *PyFits_get_bayer_yoffset(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyLong_FromLong(self->fit->keywords.bayer_yoffset);
+}
+
+// Method to get airmass
+static PyObject *PyFits_get_airmass(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyFloat_FromDouble(self->fit->keywords.airmass);
+}
+
+// Method to get focal_length
+static PyObject *PyFits_get_focal_length(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyFloat_FromDouble(self->fit->keywords.focal_length);
+}
+
+// Method to get flength
+static PyObject *PyFits_get_flength(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyFloat_FromDouble(self->fit->keywords.flength);
+}
+
+// Method to get iso_speed
+static PyObject *PyFits_get_iso_speed(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyFloat_FromDouble(self->fit->keywords.iso_speed);
+}
+
+// Method to get exposure
+static PyObject *PyFits_get_exposure(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyFloat_FromDouble(self->fit->keywords.exposure);
+}
+
+// Method to get aperture
+static PyObject *PyFits_get_aperture(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyFloat_FromDouble(self->fit->keywords.aperture);
+}
+
+// Method to get ccd_temp
+static PyObject *PyFits_get_ccd_temp(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyFloat_FromDouble(self->fit->keywords.ccd_temp);
+}
+
+// Method to get set_temp
+static PyObject *PyFits_get_set_temp(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyFloat_FromDouble(self->fit->keywords.set_temp);
+}
+
+// Method to get livetime
+static PyObject *PyFits_get_livetime(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyFloat_FromDouble(self->fit->keywords.livetime);
+}
+
+// Method to get stackcnt
+static PyObject *PyFits_get_stackcnt(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyLong_FromUnsignedLong(self->fit->keywords.stackcnt);
+}
+
+// Method to get cvf
+static PyObject *PyFits_get_cvf(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyFloat_FromDouble(self->fit->keywords.cvf);
+}
+
+// Method to get key_gain
+static PyObject *PyFits_get_key_gain(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyLong_FromLong(self->fit->keywords.key_gain);
+}
+
+// Method to get key_offset
+static PyObject *PyFits_get_key_offset(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyLong_FromLong(self->fit->keywords.key_offset);
+}
+
+// Method to get focname
+static PyObject *PyFits_get_focname(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyUnicode_FromString(self->fit->keywords.focname);
+}
+
+// Method to get focuspos
+static PyObject *PyFits_get_focuspos(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyLong_FromLong(self->fit->keywords.focuspos);
+}
+
+// Method to get focussz
+static PyObject *PyFits_get_focussz(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyLong_FromLong(self->fit->keywords.focussz);
+}
+
+// Method to get foctemp
+static PyObject *PyFits_get_foctemp(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    return PyFloat_FromDouble(self->fit->keywords.foctemp);
+}
+
+// Method to get header
+static PyObject *PyFits_get_header(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    if (self->fit->header == NULL) {
+		Py_RETURN_NONE;
+	}
+    return PyUnicode_FromString(self->fit->header);
+}
+
+// Method to get unknown_keys
+static PyObject *PyFits_get_unknown_keys(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+    if (self->fit->unknown_keys == NULL) {
+		Py_RETURN_NONE;
+	}
+    return PyUnicode_FromString(self->fit->unknown_keys);
+}
+
+// Method to get ICC profile
+static PyObject *PyFits_get_icc_profile(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+
+    cmsBool ret = FALSE;
+    cmsUInt32Number length = 0;
+    void *block = NULL;
+
+    // Check if the ICC profile is available
+    if (!self->fit->icc_profile) {
+        Py_RETURN_NONE;
+    }
+
+    // First call to get the length of the ICC profile
+    ret = cmsSaveProfileToMem(self->fit->icc_profile, NULL, &length);
+    if (!ret || length == 0) {
+        Py_RETURN_NONE;
+    }
+
+    // Allocate memory for the ICC profile buffer
+    block = malloc(length);
+    if (!block) {
+        PyErr_SetString(PyExc_MemoryError, N_("Unable to allocate memory for ICC profile"));
+        return NULL;
+    }
+
+    // Second call to actually save the ICC profile into the buffer
+    ret = cmsSaveProfileToMem(self->fit->icc_profile, block, &length);
+    if (!ret) {
+        free(block);  // Free the allocated buffer on error
+        PyErr_SetString(PyExc_RuntimeError, N_("Failed to save ICC profile to memory"));
+        return NULL;
+    }
+
+    // Create a Python bytes object from the buffer
+    PyObject *py_icc_profile = PyBytes_FromStringAndSize((const char*)block, length);
+
+    // Free the C buffer, since PyBytes_FromStringAndSize copies the data
+    free(block);
+
+    // Return the Python bytes object
+    return py_icc_profile;
 }
 
 // Define getters and setters
@@ -204,6 +762,59 @@ static PyGetSetDef PyFits_getsetters[] = {
 	// These could have setters, but the Siril python module only provides direct read-only access in Siril 1.4
 	// Modification of images must be carried out using Siril commands and the siril.cmd() function
 	{"bitdepth", (getter)PyFits_get_bitdepth,NULL, N_("image bitdepth"), NULL},
+    {"bscale", (getter)PyFits_get_bscale, NULL, N_("bscale value"), NULL},
+    {"bzero", (getter)PyFits_get_bzero, NULL, N_("bzero value"), NULL},
+    {"lo", (getter)PyFits_get_lo, NULL, N_("Lower visualization cutoff (WORD or float as appropriate to the bitdepth)"), NULL},
+    {"hi", (getter)PyFits_get_hi, NULL, N_("Upper visualization cutoff (WORD or float as appropriate to the bitdepth)"), NULL},
+    {"program", (getter)PyFits_get_program, NULL, N_("Software that created this HDU"), NULL},
+    {"filename", (getter)PyFits_get_filename, NULL, N_("Original Filename"), NULL},
+    {"data_max", (getter)PyFits_get_data_max, NULL, N_("Maximum data value"), NULL},
+    {"data_min", (getter)PyFits_get_data_min, NULL, N_("Minimum data value"), NULL},
+    {"pixel_size_x", (getter)PyFits_get_pixel_size_x, NULL, N_("Pixel size in X direction"), NULL},
+    {"pixel_size_y", (getter)PyFits_get_pixel_size_y, NULL, N_("Pixel size in Y direction"), NULL},
+    {"binning_x", (getter)PyFits_get_binning_x, NULL, N_("Binning in X direction"), NULL},
+    {"binning_y", (getter)PyFits_get_binning_y, NULL, N_("Binning in Y direction"), NULL},
+    {"row_order", (getter)PyFits_get_row_order, NULL, N_("Row order"), NULL},
+    {"date", (getter)PyFits_get_date, NULL, N_("Creation date (UTC)"), NULL},
+    {"date_obs", (getter)PyFits_get_date_obs, NULL, N_("Observation date (UTC)"), NULL},
+    {"expstart", (getter)PyFits_get_expstart, NULL, N_("Exposure start time (Julian date)"), NULL},
+    {"expend", (getter)PyFits_get_expend, NULL, N_("Exposure end time (Julian date)"), NULL},
+    {"filter", (getter)PyFits_get_filter, NULL, N_("Filter used"), NULL},
+    {"image_type", (getter)PyFits_get_image_type, NULL, N_("Image type"), NULL},
+    {"object", (getter)PyFits_get_object, NULL, N_("Object name"), NULL},
+    {"instrume", (getter)PyFits_get_instrume, NULL, N_("Instrument name"), NULL},
+    {"telescop", (getter)PyFits_get_telescop, NULL, N_("Telescope name"), NULL},
+    {"observer", (getter)PyFits_get_observer, NULL, N_("Observer name"), NULL},
+    {"centalt", (getter)PyFits_get_centalt, NULL, N_("Center altitude"), NULL},
+    {"centaz", (getter)PyFits_get_centaz, NULL, N_("Center azimuth"), NULL},
+    {"sitelat", (getter)PyFits_get_sitelat, NULL, N_("Site latitude"), NULL},
+    {"sitelong", (getter)PyFits_get_sitelong, NULL, N_("Site longitude"), NULL},
+    {"sitelat_str", (getter)PyFits_get_sitelat_str, NULL, N_("Site latitude (string)"), NULL},
+    {"sitelong_str", (getter)PyFits_get_sitelong_str, NULL, N_("Site longitude (string)"), NULL},
+    {"siteelev", (getter)PyFits_get_siteelev, NULL, N_("Site elevation"), NULL},
+    {"bayer_pattern", (getter)PyFits_get_bayer_pattern, NULL, N_("Bayer pattern"), NULL},
+    {"bayer_xoffset", (getter)PyFits_get_bayer_xoffset, NULL, N_("Bayer X offset"), NULL},
+    {"bayer_yoffset", (getter)PyFits_get_bayer_yoffset, NULL, N_("Bayer Y offset"), NULL},
+    {"airmass", (getter)PyFits_get_airmass, NULL, N_("Relative optical path length through atmosphere"), NULL},
+    {"focal_length", (getter)PyFits_get_focal_length, NULL, N_("Focal length"), NULL},
+    {"flength", (getter)PyFits_get_flength, NULL, N_("Focal length (alternative)"), NULL},
+    {"iso_speed", (getter)PyFits_get_iso_speed, NULL, N_("ISO speed"), NULL},
+    {"exposure", (getter)PyFits_get_exposure, NULL, N_("Exposure time"), NULL},
+    {"aperture", (getter)PyFits_get_aperture, NULL, N_("Aperture"), NULL},
+    {"ccd_temp", (getter)PyFits_get_ccd_temp, NULL, N_("CCD temperature"), NULL},
+    {"set_temp", (getter)PyFits_get_set_temp, NULL, N_("Set temperature"), NULL},
+    {"livetime", (getter)PyFits_get_livetime, NULL, N_("Sum of exposures"), NULL},
+    {"stackcnt", (getter)PyFits_get_stackcnt, NULL, N_("Number of stacked frames"), NULL},
+    {"cvf", (getter)PyFits_get_cvf, NULL, N_("Conversion factor (e-/ADU)"), NULL},
+    {"key_gain", (getter)PyFits_get_key_gain, NULL, N_("Gain value from camera headers"), NULL},
+    {"key_offset", (getter)PyFits_get_key_offset, NULL, N_("Offset value from camera headers"), NULL},
+    {"focname", (getter)PyFits_get_focname, NULL, N_("Focuser name"), NULL},
+    {"focuspos", (getter)PyFits_get_focuspos, NULL, N_("Focuser position"), NULL},
+    {"focussz", (getter)PyFits_get_focussz, NULL, N_("Focuser size"), NULL},
+    {"foctemp", (getter)PyFits_get_foctemp, NULL, N_("Focuser temperature"), NULL},
+    {"header", (getter)PyFits_get_header, NULL, N_("FITS header"), NULL},
+    {"unknown_keys", (getter)PyFits_get_unknown_keys, NULL, N_("Unknown keys"), NULL},
+    {"icc_profile", (getter)PyFits_get_icc_profile, NULL, N_("ICC profile (as PyBytes)"), NULL},
 };
 
 // Method to access gfit
@@ -212,6 +823,7 @@ static PyObject *PyFits_gfit(PyObject *cls, PyObject *args) {
 	if (self != NULL) {
 		self->fit = &gfit;
 		self->should_free = 0;  // gfit is statically allocated, don't free it
+		self->should_free_data = 0;  // never free the data in gfit just because we don't want the view of it from python any more!
 	}
 	return (PyObject *)self;
 }
@@ -597,7 +1209,7 @@ PyMODINIT_FUNC PyInit_siril(void) {
 		return NULL;
 
 	Py_INCREF(&PyFitsType);
-	if (PyModule_AddObject(m, "Fits", (PyObject *) &PyFitsType) < 0) {
+	if (PyModule_AddObject(m, "fits", (PyObject *) &PyFitsType) < 0) {
 		Py_DECREF(&PyFitsType);
 		Py_DECREF(m);
 		return NULL;
