@@ -95,183 +95,6 @@ static int PyFits_init(PyFits *self, PyObject *args, PyObject *kwds) {
 	return 0;
 }
 
-// Typed memoryview getter (returns a memoryview with the correct type, wrapping existing planar data)
-static PyObject* PyFits_get_pixel_data(PyFits *self, PyObject *Py_UNUSED(ignored)) {
-	if (self->fit == NULL) {
-		PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
-		return NULL;
-	}
-
-	void *data_ptr;
-	Py_ssize_t buffer_size;
-	const char *format;
-	int itemsize;
-
-	// Determine data type and size based on fit->type
-	if (self->fit->type == DATA_FLOAT) {
-		data_ptr = self->fit->fdata;
-		itemsize = sizeof(float);
-		format = "f";  // 32-bit float format
-	} else if (self->fit->type == DATA_USHORT) {
-		data_ptr = self->fit->data;
-		itemsize = sizeof(WORD);
-		format = "H";  // 16-bit unsigned int format
-	} else {
-		PyErr_SetString(PyExc_TypeError, _("Unsupported FITS data type"));
-		return NULL;
-	}
-
-	int ndim = self->fit->naxis;
-	Py_ssize_t width = self->fit->naxes[0];
-	Py_ssize_t height = self->fit->naxes[1];
-	Py_ssize_t depth = (ndim > 2) ? self->fit->naxes[2] : 1;
-
-	buffer_size = width * height * depth * itemsize;
-
-	// Allocate memory for shape and strides
-	Py_ssize_t *shape = PyMem_Malloc(ndim * sizeof(Py_ssize_t));
-	Py_ssize_t *strides = PyMem_Malloc(ndim * sizeof(Py_ssize_t));
-	if (shape == NULL || strides == NULL) {
-		PyMem_Free(shape);
-		PyMem_Free(strides);
-		PyErr_NoMemory();
-		return NULL;
-	}
-
-	// Set shape and strides for planar data
-	shape[0] = depth;
-	shape[1] = height;
-	shape[2] = width;
-	strides[0] = height * width * itemsize;  // stride between planes
-	strides[1] = width * itemsize;           // stride between rows
-	strides[2] = itemsize;                   // stride between elements in a row
-
-	// Create a new Py_buffer and fill it with the correct information
-	Py_buffer view;
-	if (PyBuffer_FillInfo(&view, (PyObject*)self, data_ptr, buffer_size, 0, PyBUF_CONTIG) == -1) {
-		PyMem_Free(shape);
-		PyMem_Free(strides);
-		return NULL;
-	}
-
-	// Manually set the format, itemsize, shape, and strides
-	view.format = PyMem_Malloc(strlen(format) + 1);
-	if (view.format == NULL) {
-		PyMem_Free(shape);
-		PyMem_Free(strides);
-		PyErr_NoMemory();
-		return NULL;
-	}
-	strcpy((char *)view.format, format);
-
-	view.itemsize = itemsize;
-	view.ndim = ndim;
-	view.shape = shape;
-	view.strides = strides;
-
-	// Create and return a memoryview wrapping the existing data
-	PyObject *memoryview = PyMemoryView_FromBuffer(&view);
-	if (memoryview == NULL) {
-		PyMem_Free((void *)view.format);
-		PyMem_Free(shape);
-		PyMem_Free(strides);
-	}
-	return memoryview;
-}
-
-static int PyFits_set_pixel_data_typed_with_size(PyFits *self, PyObject *value, int rx, int ry, int nchans) {
-	// Ensure the input is a memoryview object
-	if (!PyMemoryView_Check(value)) {
-		PyErr_SetString(PyExc_TypeError, _("Expected a memoryview object"));
-		return -1;
-	}
-
-	Py_buffer view;
-	if (PyObject_GetBuffer(value, &view, PyBUF_CONTIG_RO) != 0) {
-		return -1;
-	}
-
-	// Validate the input dimensions: rx * ry * nchans
-	Py_ssize_t expected_size = rx * ry * nchans;
-	if (view.len / view.itemsize != expected_size) {
-		PyErr_SetString(PyExc_ValueError, _("Input data size does not match the specified dimensions (rx * ry * nchans)"));
-		PyBuffer_Release(&view);
-		return -1;
-	}
-
-	// Free existing data if it is not NULL
-	if (self->fit->data != NULL) {
-		free(self->fit->data);
-		self->fit->data = NULL;
-	}
-	if (self->fit->fdata != NULL) {
-		free(self->fit->fdata);
-		self->fit->fdata = NULL;
-	}
-
-	// Set the correct type and allocate new memory based on the buffer's item size
-	if (view.itemsize == sizeof(float)) {
-		// 32-bit float data
-		self->fit->type = DATA_FLOAT;
-		self->fit->fdata = (float *)malloc(view.len);
-		if (self->fit->fdata == NULL) {
-			PyErr_SetString(PyExc_MemoryError, _("Failed to allocate memory for FITS float data"));
-			PyBuffer_Release(&view);
-			return -1;
-		}
-		// Copy the data from the memoryview into fit->fdata
-		memcpy(self->fit->fdata, view.buf, view.len);
-	} else if (view.itemsize == sizeof(WORD)) {
-		// 16-bit unsigned integer (WORD) data
-		self->fit->type = DATA_USHORT;
-		self->fit->data = (WORD *)malloc(view.len);
-		if (self->fit->data == NULL) {
-			PyErr_SetString(PyExc_MemoryError, _("Failed to allocate memory for FITS WORD data"));
-			PyBuffer_Release(&view);
-			return -1;
-		}
-		// Copy the data from the memoryview into fit->data
-		memcpy(self->fit->data, view.buf, view.len);
-	} else {
-		PyErr_SetString(PyExc_TypeError, _("Unsupported memoryview type: expected 16-bit or 32-bit"));
-		PyBuffer_Release(&view);
-		return -1;
-	}
-
-	// Update FITS dimensions
-	self->fit->rx = rx;
-	self->fit->ry = ry;
-	self->fit->naxes[0] = rx;
-	self->fit->naxes[1] = ry;
-	self->fit->naxes[2] = nchans;
-	self->fit->naxis = nchans == 1 ? 2 : 3;
-
-	// Release the buffer
-	PyBuffer_Release(&view);
-	return 0;
-}
-
-static int PyFits_set_pixel_data(PyFits *self, PyObject *args, PyObject *kwds) {
-	PyObject *value;
-	int rx = 0, ry = 0, nchans = 0;
-	static char *kwlist[] = {"buffer", "rx", "ry", "nchans", NULL};
-
-	// Parse the arguments: memoryview buffer, rx, ry, nchans
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|iii", kwlist, &value, &rx, &ry, &nchans)) {
-		return -1;
-	}
-
-	// If rx, ry, and nchans are not provided, use the current values
-	if (rx == 0 || ry == 0 || nchans == 0) {
-		rx = self->fit->rx;
-		ry = self->fit->ry;
-		nchans = self->fit->naxes[2];
-	}
-
-	// Call the generalized setter with the determined parameters
-	return PyFits_set_pixel_data_typed_with_size(self, value, rx, ry, nchans);
-}
-
 // Method to get rx
 static PyObject *PyFits_get_rx(PyFits *self, void *closure) {
 	if (self->fit == NULL) {
@@ -366,51 +189,21 @@ static PyObject *PyFits_get_bitdepth(PyFits *self, void *closure) {
 	return PyLong_FromUnsignedLong(self->fit->type == DATA_FLOAT ? 32 : 16);
 }
 
-static int PyFits_set_bitdepth(PyFits *self, PyObject *value, void *closure) {
-	int layers;
-
-	// Ensure the PyFits instance is not NULL
-	if (self->fit == NULL) {
-		PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
-		return -1; // Indicate failure
-	}
-
-	// Parse the input to get the layers (bit depth)
-	if (!PyLong_Check(value)) {
-		PyErr_SetString(PyExc_TypeError, _("Bit depth must be an integer"));
-		return -1; // Indicate failure
-	}
-
-	layers = PyLong_AsLong(value);
-
-	// Call the internal function to change the bit depth
-	int result = fits_change_depth(self->fit, layers);
-
-	// Check the result of the function
-	if (result != 0) {
-		PyErr_SetString(PyExc_RuntimeError, _("Failed to change bit depth"));
-		return -1; // Indicate failure
-	}
-
-	return 0; // Indicate success
-}
-
 // Define getters and setters
 static PyGetSetDef PyFits_getsetters[] = {
 	// rx, ry, nchans have getters only: the fits size should not be changed using these properties
 	{"rx", (getter)PyFits_get_rx, NULL, N_("image width"), NULL},
 	{"ry", (getter)PyFits_get_ry, NULL, N_("image height"), NULL},
 	{"nchans", (getter)PyFits_get_nchans, NULL, N_("image channel depth"), NULL},
-	// these don't have setters either, as they are computed values
+	// These don't have setters either, as they are computed values
 	{"mini", (getter)PyFits_get_mini, NULL, N_("min value across all channels"), NULL},
 	{"maxi", (getter)PyFits_get_maxi, NULL, N_("max value across all channels"), NULL},
 	{"neg_ratio", (getter)PyFits_get_neg_ratio, NULL, N_("ratio of negative to nonnegative pixels"), NULL},
 	{"top_down", (getter)PyFits_get_top_down, NULL, N_("native roworder of the original file format"), NULL},
 	{"roworder", (getter)PyFits_get_row_order, NULL, N_("row order of the sensor that produced the image"), NULL},
-	// these properties have both getters and setters
-	{"data", (getter)PyFits_get_pixel_data, (setter)PyFits_set_pixel_data, N_("Pixel data buffer"), NULL},
-	{"bitdepth", (getter)PyFits_get_bitdepth,(setter)PyFits_set_bitdepth, N_("image bitdepth"), NULL},
-	{NULL}
+	// These could have setters, but the Siril python module only provides direct read-only access in Siril 1.4
+	// Modification of images must be carried out using Siril commands and the siril.cmd() function
+	{"bitdepth", (getter)PyFits_get_bitdepth,NULL, N_("image bitdepth"), NULL},
 };
 
 // Method to access gfit
@@ -423,16 +216,187 @@ static PyObject *PyFits_gfit(PyObject *cls, PyObject *args) {
 	return (PyObject *)self;
 }
 
+// Helper function to check validity of channel index and stats
+static int check_stats(PyFits *self, int n) {
+    if (self->fit == NULL || self->fit->stats == NULL) {
+        PyErr_SetString(PyExc_AttributeError, "FITS data or image statistics not initialized");
+        return 0;
+    }
+    if (n < 0 || n >= self->fit->naxes[2]) {
+        PyErr_SetString(PyExc_IndexError, "Channel index out of range");
+        return 0;
+    }
+    if (self->fit->stats[n] == NULL) {
+        PyErr_SetString(PyExc_AttributeError, "Image statistics not available for this channel");
+        return 0;
+    }
+    return 1;
+}
+
+// Getter for total
+static PyObject* PyFits_get_total(PyFits *self, PyObject *args) {
+    int n;
+    if (!PyArg_ParseTuple(args, "i", &n))
+        return NULL;
+    if (!check_stats(self, n))
+        return NULL;
+    return PyLong_FromLong(self->fit->stats[n]->total);
+}
+
+// Getter for ngoodpix
+static PyObject* PyFits_get_ngoodpix(PyFits *self, PyObject *args) {
+    int n;
+    if (!PyArg_ParseTuple(args, "i", &n))
+        return NULL;
+    if (!check_stats(self, n))
+        return NULL;
+    return PyLong_FromLong(self->fit->stats[n]->ngoodpix);
+}
+
+// Getter for mean
+static PyObject* PyFits_get_mean(PyFits *self, PyObject *args) {
+    int n;
+    if (!PyArg_ParseTuple(args, "i", &n))
+        return NULL;
+    if (!check_stats(self, n))
+        return NULL;
+    return PyFloat_FromDouble(self->fit->stats[n]->mean);
+}
+
+// Getter for median
+static PyObject* PyFits_get_median(PyFits *self, PyObject *args) {
+    int n;
+    if (!PyArg_ParseTuple(args, "i", &n))
+        return NULL;
+    if (!check_stats(self, n))
+        return NULL;
+    return PyFloat_FromDouble(self->fit->stats[n]->median);
+}
+
+// Getter for sigma
+static PyObject* PyFits_get_sigma(PyFits *self, PyObject *args) {
+    int n;
+    if (!PyArg_ParseTuple(args, "i", &n))
+        return NULL;
+    if (!check_stats(self, n))
+        return NULL;
+    return PyFloat_FromDouble(self->fit->stats[n]->sigma);
+}
+
+// Getter for avgDev
+static PyObject* PyFits_get_avgdev(PyFits *self, PyObject *args) {
+    int n;
+    if (!PyArg_ParseTuple(args, "i", &n))
+        return NULL;
+    if (!check_stats(self, n))
+        return NULL;
+    return PyFloat_FromDouble(self->fit->stats[n]->avgDev);
+}
+
+// Getter for mad
+static PyObject* PyFits_get_mad(PyFits *self, PyObject *args) {
+    int n;
+    if (!PyArg_ParseTuple(args, "i", &n))
+        return NULL;
+    if (!check_stats(self, n))
+        return NULL;
+    return PyFloat_FromDouble(self->fit->stats[n]->mad);
+}
+
+// Getter for sqrtbwmv
+static PyObject* PyFits_get_sqrtbwmv(PyFits *self, PyObject *args) {
+    int n;
+    if (!PyArg_ParseTuple(args, "i", &n))
+        return NULL;
+    if (!check_stats(self, n))
+        return NULL;
+    return PyFloat_FromDouble(self->fit->stats[n]->sqrtbwmv);
+}
+
+// Getter for location
+static PyObject* PyFits_get_location(PyFits *self, PyObject *args) {
+    int n;
+    if (!PyArg_ParseTuple(args, "i", &n))
+        return NULL;
+    if (!check_stats(self, n))
+        return NULL;
+    return PyFloat_FromDouble(self->fit->stats[n]->location);
+}
+
+// Getter for scale
+static PyObject* PyFits_get_scale(PyFits *self, PyObject *args) {
+    int n;
+    if (!PyArg_ParseTuple(args, "i", &n))
+        return NULL;
+    if (!check_stats(self, n))
+        return NULL;
+    return PyFloat_FromDouble(self->fit->stats[n]->scale);
+}
+
+// Getter for min
+static PyObject* PyFits_get_min(PyFits *self, PyObject *args) {
+    int n;
+    if (!PyArg_ParseTuple(args, "i", &n))
+        return NULL;
+    if (!check_stats(self, n))
+        return NULL;
+    return PyFloat_FromDouble(self->fit->stats[n]->min);
+}
+
+// Getter for max
+static PyObject* PyFits_get_max(PyFits *self, PyObject *args) {
+    int n;
+    if (!PyArg_ParseTuple(args, "i", &n))
+        return NULL;
+    if (!check_stats(self, n))
+        return NULL;
+    return PyFloat_FromDouble(self->fit->stats[n]->max);
+}
+
+// Getter for normValue
+static PyObject* PyFits_get_normvalue(PyFits *self, PyObject *args) {
+    int n;
+    if (!PyArg_ParseTuple(args, "i", &n))
+        return NULL;
+    if (!check_stats(self, n))
+        return NULL;
+    return PyFloat_FromDouble(self->fit->stats[n]->normValue);
+}
+
+// Getter for bgnoise
+static PyObject* PyFits_get_bgnoise(PyFits *self, PyObject *args) {
+    int n;
+    if (!PyArg_ParseTuple(args, "i", &n))
+        return NULL;
+    if (!check_stats(self, n))
+        return NULL;
+    return PyFloat_FromDouble(self->fit->stats[n]->bgnoise);
+}
+
 // Define methods for PyFits
 static PyMethodDef PyFits_methods[] = {
 	{"gfit", (PyCFunction)PyFits_gfit, METH_CLASS | METH_NOARGS, N_("Get the global fits object")},
+    {"get_total", (PyCFunction)PyFits_get_total, METH_VARARGS, N_("Return the total pixel count for the specified channel.")},
+    {"get_ngoodpix", (PyCFunction)PyFits_get_ngoodpix, METH_VARARGS, N_("Return the number of good pixels for the specified channel.")},
+    {"get_mean", (PyCFunction)PyFits_get_mean, METH_VARARGS, N_("Return the mean pixel value for the specified channel.")},
+    {"get_median", (PyCFunction)PyFits_get_median, METH_VARARGS, N_("Return the median pixel value for the specified channel.")},
+    {"get_sigma", (PyCFunction)PyFits_get_sigma, METH_VARARGS, N_("Return the sigma (standard deviation) for the specified channel.")},
+    {"get_avgdev", (PyCFunction)PyFits_get_avgdev, METH_VARARGS, N_("Return the average deviation for the specified channel.")},
+    {"get_mad", (PyCFunction)PyFits_get_mad, METH_VARARGS, N_("Return the median absolute deviation (MAD) for the specified channel.")},
+    {"get_sqrtbwmv", (PyCFunction)PyFits_get_sqrtbwmv, METH_VARARGS, N_("Return the square root of the biweight midvariance for the specified channel.")},
+    {"get_location", (PyCFunction)PyFits_get_location, METH_VARARGS, N_("Return the location value for the specified channel.")},
+    {"get_scale", (PyCFunction)PyFits_get_scale, METH_VARARGS, N_("Return the scale value for the specified channel.")},
+    {"get_min", (PyCFunction)PyFits_get_min, METH_VARARGS, N_("Return the minimum pixel value for the specified channel.")},
+    {"get_max", (PyCFunction)PyFits_get_max, METH_VARARGS, N_("Return the maximum pixel value for the specified channel.")},
+    {"get_normvalue", (PyCFunction)PyFits_get_normvalue, METH_VARARGS, N_("Return the normalization value for the specified channel.")},
+    {"get_bgnoise", (PyCFunction)PyFits_get_bgnoise, METH_VARARGS, N_("Return the background noise value for the specified channel.")},
 	{NULL}
 };
 
 // Define the PyFits type
 PyTypeObject PyFitsType = {
 	PyVarObject_HEAD_INIT(NULL, 0)
-	.tp_name = "siril.Fits",
+	.tp_name = "siril.fits",
 	.tp_doc = N_("Siril fits object"),
 	.tp_basicsize = sizeof(PyFits),
 	.tp_itemsize = 0,
