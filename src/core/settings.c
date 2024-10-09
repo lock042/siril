@@ -552,11 +552,11 @@ static const char *settings_type_to_string(enum settings_type type) {
 	}
 }
 
-int print_settings_key(const char *group, const char *key, gboolean with_details) {
+gchar* get_settings_key(const char *group, const char *key, gboolean with_details) {
 	struct settings_access *desc = get_key_settings(group, key);
 	if (!desc) {
 		siril_log_message(_("Unknown settings variable %s.%s\n"), group, key);
-		return 1;
+		return NULL;
 	}
 	GString *str = g_string_sized_new(120);
 	g_string_printf(str, "%s.%s = ", desc->group, desc->key);
@@ -596,7 +596,15 @@ int print_settings_key(const char *group, const char *key, gboolean with_details
 		g_string_append_printf(str, ", %s", desc->desc);
 	}
 	gchar *s = g_string_free(str, FALSE);
-	siril_log_message("%s\n", s);
+	return s;
+}
+
+int print_settings_key(const char *group, const char *key, gboolean with_details) {
+	gchar *s = get_settings_key(group, key, with_details);
+	if (s) {
+		siril_log_message("%s\n", s);
+		g_free(s);
+	}
 	return 0;
 }
 

@@ -449,6 +449,7 @@ struct settings_access {
 struct settings_access *get_all_settings();
 struct settings_access *get_key_settings(const char *group, const char *key);
 
+gchar* get_settings_key(const char *group, const char *key, gboolean with_details);
 int print_settings_key(const char *group, const char *key, gboolean with_details);
 int print_all_settings(gboolean with_details);
 
