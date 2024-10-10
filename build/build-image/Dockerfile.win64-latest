@@ -6,7 +6,6 @@ RUN apt-get update -qyy \
         cpio \
         g++-mingw-w64-x86-64-posix \
         gcc-mingw-w64-x86-64-posix \
-        mingw-w64-x86_64-python \
         git \
         intltool \
         libxml2-utils \

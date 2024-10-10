@@ -15,6 +15,8 @@ crossroad install lcms2 \
                   curl \
                   libgit2 \
                   libxisf \
+                  mingw-w64-x86_64-python3 \
+                  mingw-w64-x86_64-pkg-config \
 # need to uninstall crt-git
 # probably same root cause as https://github.com/msys2/MINGW-packages/issues/10837
 # otherwise, it's messing up all the subsequent builds
