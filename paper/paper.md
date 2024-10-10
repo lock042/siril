@@ -32,7 +32,7 @@ bibliography: paper.bib
 
 # Summary
 
-Siril is a powerful open source software package designed for the pre- and post-processing of astronomical images. It is well suited for astrophotography enthusiasts and professional astronomers alike. Siril provides advanced tools for tasks such as image stacking, calibration, registration, and enhancement, enabling users to produce high quality images of celestial objects. The version discussed here is the development branch 1.4, which, while not officially released, is available for testing and includes the latest features and improvements.
+Siril is a powerful open source software package designed for the pre- and post-processing of astronomical images. It is well suited for astrophotography enthusiasts and professional astronomers alike. Siril provides advanced tools for tasks such as image stacking, calibration, registration, and enhancement, enabling users to produce high quality images of celestial objects.
 
 # Statement of Need
 

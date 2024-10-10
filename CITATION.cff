@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 message: "If you use Siril in your work, please cite this software using the following information."
 title: "Siril: An Advanced Tool for Astronomical Image Processing"
-doi: "10.21105/joss.XXXX"
+doi: "10.21105/joss.07242"
 repository-code: "https://gitlab.com/free-astro/siril"
 license: "GPL-3.0-or-later"
 authors:
@@ -21,7 +21,7 @@ authors:
     given-names: "Adrian"
     orcid: "https://orcid.org/0009-0000-7994-0350"
     affiliation: "Independent Researcher, United Kingdom"
-#date-released: "2024-XX-XX"
+date-released: "2024-10-08"
 keywords:
   - "Astronomy"
   - "Image Processing"
