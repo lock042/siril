@@ -37,6 +37,7 @@
 #include "io/image_format_fits.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
+#include "algos/statistics.h"
 
 // Helper function to convert GDateTime to PyDateTime
 PyObject* gdatetime_to_pydatetime(GDateTime *gdt) {
@@ -838,7 +839,7 @@ static PyObject *PyFits_gfit(PyObject *cls, PyObject *args) {
 // Stats are obtained by methods not getters as they take a channel parameter
 
 // Helper function to check validity of channel index and stats
-static int check_stats(PyFits *self, int n) {
+static int check_stats(PyFits *self, int n, int option) {
 	if (self->fit == NULL || self->fit->stats == NULL) {
 		PyErr_SetString(PyExc_AttributeError, "FITS data or image statistics not initialized");
 		return 0;
@@ -848,8 +849,11 @@ static int check_stats(PyFits *self, int n) {
 		return 0;
 	}
 	if (self->fit->stats[n] == NULL) {
-		PyErr_SetString(PyExc_AttributeError, "Image statistics not available for this channel");
-		return 0;
+		statistics(NULL, -1, self->fit, n, NULL, option, MULTI_THREADED);
+		if (self->fit->stats[n] == NULL) {
+			PyErr_SetString(PyExc_AttributeError, "Image statistics computation failed for this channel");
+			return 0;
+		}
 	}
 	return 1;
 }
@@ -859,7 +863,7 @@ static PyObject* PyFits_get_total(PyFits *self, PyObject *args) {
 	int n;
 	if (!PyArg_ParseTuple(args, "i", &n))
 		return NULL;
-	if (!check_stats(self, n))
+	if (!check_stats(self, n, STATS_BASIC))
 		return NULL;
 	return PyLong_FromLong(self->fit->stats[n]->total);
 }
@@ -869,8 +873,10 @@ static PyObject* PyFits_get_ngoodpix(PyFits *self, PyObject *args) {
 	int n;
 	if (!PyArg_ParseTuple(args, "i", &n))
 		return NULL;
-	if (!check_stats(self, n))
+	if (!check_stats(self, n, STATS_MAIN))
 		return NULL;
+	if (self->fit->stats[n]->avgDev == NULL_STATS)
+		statistics(NULL, -1, self->fit, n, NULL, STATS_MAIN, MULTI_THREADED);
 	return PyLong_FromLong(self->fit->stats[n]->ngoodpix);
 }
 
@@ -879,7 +885,7 @@ static PyObject* PyFits_get_mean(PyFits *self, PyObject *args) {
 	int n;
 	if (!PyArg_ParseTuple(args, "i", &n))
 		return NULL;
-	if (!check_stats(self, n))
+	if (!check_stats(self, n, STATS_BASIC))
 		return NULL;
 	return PyFloat_FromDouble(self->fit->stats[n]->mean);
 }
@@ -889,7 +895,7 @@ static PyObject* PyFits_get_median(PyFits *self, PyObject *args) {
 	int n;
 	if (!PyArg_ParseTuple(args, "i", &n))
 		return NULL;
-	if (!check_stats(self, n))
+	if (!check_stats(self, n, STATS_BASIC))
 		return NULL;
 	return PyFloat_FromDouble(self->fit->stats[n]->median);
 }
@@ -899,7 +905,7 @@ static PyObject* PyFits_get_sigma(PyFits *self, PyObject *args) {
 	int n;
 	if (!PyArg_ParseTuple(args, "i", &n))
 		return NULL;
-	if (!check_stats(self, n))
+	if (!check_stats(self, n, STATS_BASIC))
 		return NULL;
 	return PyFloat_FromDouble(self->fit->stats[n]->sigma);
 }
@@ -909,8 +915,11 @@ static PyObject* PyFits_get_avgdev(PyFits *self, PyObject *args) {
 	int n;
 	if (!PyArg_ParseTuple(args, "i", &n))
 		return NULL;
-	if (!check_stats(self, n))
+	if (!check_stats(self, n, STATS_MAIN))
 		return NULL;
+	if (self->fit->stats[n]->avgDev == NULL_STATS)
+		statistics(NULL, -1, self->fit, n, NULL, STATS_MAIN, MULTI_THREADED);
+
 	return PyFloat_FromDouble(self->fit->stats[n]->avgDev);
 }
 
@@ -919,8 +928,10 @@ static PyObject* PyFits_get_mad(PyFits *self, PyObject *args) {
 	int n;
 	if (!PyArg_ParseTuple(args, "i", &n))
 		return NULL;
-	if (!check_stats(self, n))
+	if (!check_stats(self, n, STATS_MAIN))
 		return NULL;
+	if (self->fit->stats[n]->avgDev == NULL_STATS)
+		statistics(NULL, -1, self->fit, n, NULL, STATS_MAIN, MULTI_THREADED);
 	return PyFloat_FromDouble(self->fit->stats[n]->mad);
 }
 
@@ -929,8 +940,10 @@ static PyObject* PyFits_get_sqrtbwmv(PyFits *self, PyObject *args) {
 	int n;
 	if (!PyArg_ParseTuple(args, "i", &n))
 		return NULL;
-	if (!check_stats(self, n))
+	if (!check_stats(self, n, STATS_MAIN))
 		return NULL;
+	if (self->fit->stats[n]->avgDev == NULL_STATS)
+		statistics(NULL, -1, self->fit, n, NULL, STATS_MAIN, MULTI_THREADED);
 	return PyFloat_FromDouble(self->fit->stats[n]->sqrtbwmv);
 }
 
@@ -939,8 +952,10 @@ static PyObject* PyFits_get_location(PyFits *self, PyObject *args) {
 	int n;
 	if (!PyArg_ParseTuple(args, "i", &n))
 		return NULL;
-	if (!check_stats(self, n))
+	if (!check_stats(self, n, STATS_EXTRA))
 		return NULL;
+	if (self->fit->stats[n]->avgDev == NULL_STATS)
+		statistics(NULL, -1, self->fit, n, NULL, STATS_EXTRA, MULTI_THREADED);
 	return PyFloat_FromDouble(self->fit->stats[n]->location);
 }
 
@@ -949,8 +964,10 @@ static PyObject* PyFits_get_scale(PyFits *self, PyObject *args) {
 	int n;
 	if (!PyArg_ParseTuple(args, "i", &n))
 		return NULL;
-	if (!check_stats(self, n))
+	if (!check_stats(self, n, STATS_EXTRA))
 		return NULL;
+	if (self->fit->stats[n]->avgDev == NULL_STATS)
+		statistics(NULL, -1, self->fit, n, NULL, STATS_EXTRA, MULTI_THREADED);
 	return PyFloat_FromDouble(self->fit->stats[n]->scale);
 }
 
@@ -959,7 +976,7 @@ static PyObject* PyFits_get_min(PyFits *self, PyObject *args) {
 	int n;
 	if (!PyArg_ParseTuple(args, "i", &n))
 		return NULL;
-	if (!check_stats(self, n))
+	if (!check_stats(self, n, STATS_BASIC))
 		return NULL;
 	return PyFloat_FromDouble(self->fit->stats[n]->min);
 }
@@ -969,7 +986,7 @@ static PyObject* PyFits_get_max(PyFits *self, PyObject *args) {
 	int n;
 	if (!PyArg_ParseTuple(args, "i", &n))
 		return NULL;
-	if (!check_stats(self, n))
+	if (!check_stats(self, n, STATS_BASIC))
 		return NULL;
 	return PyFloat_FromDouble(self->fit->stats[n]->max);
 }
@@ -979,8 +996,10 @@ static PyObject* PyFits_get_normvalue(PyFits *self, PyObject *args) {
 	int n;
 	if (!PyArg_ParseTuple(args, "i", &n))
 		return NULL;
-	if (!check_stats(self, n))
+	if (!check_stats(self, n, STATS_NORM))
 		return NULL;
+	if (self->fit->stats[n]->avgDev == NULL_STATS)
+		statistics(NULL, -1, self->fit, n, NULL, STATS_NORM, MULTI_THREADED);
 	return PyFloat_FromDouble(self->fit->stats[n]->normValue);
 }
 
@@ -989,7 +1008,7 @@ static PyObject* PyFits_get_bgnoise(PyFits *self, PyObject *args) {
 	int n;
 	if (!PyArg_ParseTuple(args, "i", &n))
 		return NULL;
-	if (!check_stats(self, n))
+	if (!check_stats(self, n, STATS_BASIC))
 		return NULL;
 	return PyFloat_FromDouble(self->fit->stats[n]->bgnoise);
 }
@@ -1274,10 +1293,12 @@ PyMODINIT_FUNC PyInit_siril(void) {
 	return m;
 }
 
-static gboolean check_or_create_python_venv(const char *venv_dir) {
+static gboolean check_or_create_python_venv(const char *venv_dir, gboolean *already_active) {
     const char *current_venv = g_getenv("VIRTUAL_ENV");
+	*already_active = FALSE;
     if (current_venv) {
-        siril_log_message(_("A virtual environment is already active: %s. Using the active virtual environment."), current_venv);
+        siril_log_message(_("A virtual environment is already active: %s. Using the active virtual environment.\n"), current_venv);
+		*already_active = TRUE;
         return TRUE;
     }
 
@@ -1293,6 +1314,7 @@ static gboolean check_or_create_python_venv(const char *venv_dir) {
     g_free(venv_python);
 
     if (venv_exists) {
+        siril_debug_print("A virtual environment already exists: %s.\n", current_venv);
         return TRUE;
     }
 
@@ -1308,7 +1330,7 @@ static gboolean check_or_create_python_venv(const char *venv_dir) {
     #endif
 
     if (!python_path) {
-        siril_log_message(_("Python not found. Cannot create virtual environment."));
+        siril_log_message(_("Python not found. Cannot create virtual environment.\n"));
         return FALSE;
     }
 
@@ -1338,6 +1360,7 @@ static gboolean check_or_create_python_venv(const char *venv_dir) {
         g_free(stderr_output);
         return FALSE;
     }
+	siril_log_message(_("Created Python virtual environment: %s\n"), venv_dir);
 
     g_free(stdout_output);
     g_free(stderr_output);
@@ -1394,21 +1417,19 @@ static gboolean activate_python_venv(const char *venv_dir) {
         PyErr_Print();
     }
 
-    siril_log_message(_("Python virtual environment activated: %s\n"), venv_dir);
+    siril_log_message(_("Activated Python virtual environment: %s\n"), venv_dir);
     return TRUE;
 }
 
 // Function to initialize Python interpreter and load our module
 void init_python(void) {
 	gchar* venv_dir = g_build_filename(g_get_user_data_dir(), "siril", "venv", NULL);
-	if (!check_or_create_python_venv(venv_dir)) {
-		siril_debug_print("Failed to activate Python virtual environment. Continuing in system Python environment.\n");
-	} else {
-		siril_debug_print("Activated python venv\n");
-	}
+	gboolean already_active;
+	gboolean venv_created = check_or_create_python_venv(venv_dir, &already_active);
 	PyImport_AppendInittab("siril", PyInit_siril);
 	Py_Initialize();
-	activate_python_venv(venv_dir);
+	if (venv_created && !already_active)
+		activate_python_venv(venv_dir);
 	g_free(venv_dir);
 	PyImport_ImportModule("siril");
 	PyEval_SaveThread();  // Save the current thread state and release the GIL
