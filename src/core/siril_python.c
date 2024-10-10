@@ -18,12 +18,19 @@
 * along with Siril. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
+
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <datetime.h>
 #include <structmember.h>
 
 #include "core/siril.h"
+#include "core/siril_app_dirs.h"
 #include "core/command_line_processor.h"
 #include "gui/script_menu.h"
 #include "core/siril_log.h"
@@ -1267,10 +1274,142 @@ PyMODINIT_FUNC PyInit_siril(void) {
 	return m;
 }
 
+static gboolean check_or_create_python_venv(const char *venv_dir) {
+    const char *current_venv = g_getenv("VIRTUAL_ENV");
+    if (current_venv) {
+        siril_log_message(_("A virtual environment is already active: %s. Using the active virtual environment."), current_venv);
+        return TRUE;
+    }
+
+    char *venv_python = NULL;
+
+    #ifdef _WIN32
+    venv_python = g_build_filename(venv_dir, "Scripts", "python.exe", NULL);
+    #else
+    venv_python = g_build_filename(venv_dir, "bin", "python", NULL);
+    #endif
+
+    gboolean venv_exists = g_file_test(venv_python, G_FILE_TEST_IS_EXECUTABLE);
+    g_free(venv_python);
+
+    if (venv_exists) {
+        return TRUE;
+    }
+
+    // Create a new venv
+    char *python_path = NULL;
+    #ifdef _WIN32
+    python_path = g_find_program_in_path("python.exe");
+    #else
+    python_path = g_find_program_in_path("python3");
+    if (!python_path) {
+        python_path = g_find_program_in_path("python");
+    }
+    #endif
+
+    if (!python_path) {
+        siril_log_message(_("Python not found. Cannot create virtual environment."));
+        return FALSE;
+    }
+
+    char *argv[] = {python_path, "-m", "venv", (char *)venv_dir, NULL};
+    gchar *stdout_output = NULL, *stderr_output = NULL;
+    GError *error = NULL;
+    gint exit_status;
+
+    gboolean success = g_spawn_sync(
+        NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL,
+        &stdout_output, &stderr_output, &exit_status, &error
+    );
+
+    g_free(python_path);
+
+    if (!success) {
+        siril_log_message(_("Failed to create Python virtual environment: %s"), error->message);
+        g_clear_error(&error);
+        g_free(stdout_output);
+        g_free(stderr_output);
+        return FALSE;
+    }
+
+    if (exit_status != 0) {
+        siril_log_message(_("Python virtual environment creation failed with exit code %d: %s"), exit_status, stderr_output);
+        g_free(stdout_output);
+        g_free(stderr_output);
+        return FALSE;
+    }
+
+    g_free(stdout_output);
+    g_free(stderr_output);
+
+    return TRUE;
+}
+
+static gboolean activate_python_venv(const char *venv_dir) {
+    // Set environment variables to activate the venv
+    g_setenv("VIRTUAL_ENV", venv_dir, TRUE);
+
+    char *new_path = NULL;
+    #ifdef _WIN32
+    char *scripts_dir = g_build_filename(venv_dir, "Scripts", NULL);
+    #else
+    char *scripts_dir = g_build_filename(venv_dir, "bin", NULL);
+    #endif
+
+    const char *old_path = g_getenv("PATH");
+    if (old_path) {
+        new_path = g_strdup_printf("%s%c%s", scripts_dir, G_SEARCHPATH_SEPARATOR, old_path);
+    } else {
+        new_path = g_strdup(scripts_dir);
+    }
+    g_setenv("PATH", new_path, TRUE);
+
+    g_free(scripts_dir);
+    g_free(new_path);
+
+    // Unset PYTHONHOME if it's set
+    g_unsetenv("PYTHONHOME");
+
+    // Update sys.prefix and sys.exec_prefix
+    PyObject *sys_module = PyImport_ImportModule("sys");
+    if (sys_module) {
+        PyObject *py_venv_dir = PyUnicode_DecodeFSDefault(venv_dir);
+        if (py_venv_dir) {
+            PyObject_SetAttrString(sys_module, "prefix", py_venv_dir);
+            PyObject_SetAttrString(sys_module, "exec_prefix", py_venv_dir);
+            Py_DECREF(py_venv_dir);
+        } else {
+            PyErr_Print();
+        }
+        Py_DECREF(sys_module);
+    } else {
+        PyErr_Print();
+    }
+
+    // Update sys.path
+    if (PyRun_SimpleString("import sys; sys.path = [p for p in sys.path if 'site-packages' not in p]") != 0) {
+        PyErr_Print();
+    }
+    if (PyRun_SimpleString("import site; site.main()") != 0) {
+        PyErr_Print();
+    }
+
+    siril_log_message(_("Python virtual environment activated: %s\n"), venv_dir);
+    return TRUE;
+}
+
 // Function to initialize Python interpreter and load our module
 void init_python(void) {
+	gchar* venv_dir = g_build_filename(g_get_user_data_dir(), "siril", "venv", NULL);
+	if (!check_or_create_python_venv(venv_dir)) {
+		siril_debug_print("Failed to activate Python virtual environment. Continuing in system Python environment.\n");
+	} else {
+		siril_debug_print("Activated python venv\n");
+	}
 	PyImport_AppendInittab("siril", PyInit_siril);
 	Py_Initialize();
+	activate_python_venv(venv_dir);
+	g_free(venv_dir);
 	PyImport_ImportModule("siril");
 	PyEval_SaveThread();  // Save the current thread state and release the GIL
 	siril_log_message(_("Python scripting module initialized.\n"));
