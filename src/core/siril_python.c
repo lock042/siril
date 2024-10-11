@@ -27,7 +27,6 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <datetime.h>
-#include <structmember.h>
 
 #include "core/siril.h"
 #include "core/siril_app_dirs.h"
@@ -142,6 +141,101 @@ static int PyFits_init(PyFits *self, PyObject *args, PyObject *kwds) {
 
 	return 0;
 }
+
+static int PyFits_getbuffer(PyObject *obj, Py_buffer *view, int flags) {
+    PyFits *self = (PyFits *)obj;
+    fits *fit = self->fit;
+
+    if (!fit) {
+        PyErr_SetString(PyExc_ValueError, "Fits object is NULL");
+        return -1;
+    }
+
+    // Determine dimensionality
+    int ndim = (fit->naxes[2] > 1) ? 3 : 2;
+    view->ndim = ndim;
+    view->readonly = 0;  // Assume writable for now
+
+    // Allocate memory for shape and strides
+    Py_ssize_t *shape = PyMem_Malloc(ndim * sizeof(Py_ssize_t));
+    Py_ssize_t *strides = PyMem_Malloc(ndim * sizeof(Py_ssize_t));
+
+    if (!shape || !strides) {
+        PyErr_NoMemory();
+        PyMem_Free(shape);
+        PyMem_Free(strides);
+        return -1;
+    }
+
+    // Set shape
+    if (ndim == 3) {
+        shape[0] = fit->naxes[2];
+        shape[1] = fit->naxes[1];
+        shape[2] = fit->naxes[0];
+    } else {  // ndim == 2
+        shape[0] = fit->naxes[1];
+        shape[1] = fit->naxes[0];
+    }
+    view->shape = shape;
+
+    // Set buffer and itemsize based on data type
+    if (fit->type == DATA_USHORT) {
+        view->buf = fit->data;
+        view->itemsize = sizeof(WORD);
+        view->format = "H";  // Unsigned short
+    } else if (fit->type == DATA_FLOAT) {
+        view->buf = fit->fdata;
+        view->itemsize = sizeof(float);
+        view->format = "f";  // Float
+    } else {
+        PyErr_SetString(PyExc_ValueError, "Unsupported data type");
+        PyMem_Free(shape);
+        PyMem_Free(strides);
+        return -1;
+    }
+
+    // Calculate total length
+    view->len = view->itemsize * fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
+
+    // Set strides for row-major order
+    if (ndim == 3) {
+        strides[0] = fit->naxes[1] * fit->naxes[0] * view->itemsize;
+        strides[1] = fit->naxes[0] * view->itemsize;
+        strides[2] = view->itemsize;
+    } else {  // ndim == 2
+        strides[0] = fit->naxes[0] * view->itemsize;
+        strides[1] = view->itemsize;
+    }
+    view->strides = strides;
+
+    view->suboffsets = NULL;
+    view->internal = NULL;
+
+    // Check if writable buffer is requested but data is read-only
+    if ((flags & PyBUF_WRITABLE) && view->readonly) {
+        PyErr_SetString(PyExc_BufferError, "Object is not writable");
+        PyMem_Free(shape);
+        PyMem_Free(strides);
+        return -1;
+    }
+
+    return 0;
+}
+
+static void PyFits_releasebuffer(PyObject *obj, Py_buffer *view) {
+    // Free the shape and strides arrays we allocated in getbuffer
+    PyMem_Free(view->shape);
+    PyMem_Free(view->strides);
+
+    // Clear the Py_buffer struct without freeing the actual data
+	// which is still owned by the PyFits (or by Siril)
+    memset(view, 0, sizeof(Py_buffer));
+}
+
+static PyBufferProcs PyFits_as_buffer = {
+    (getbufferproc)PyFits_getbuffer,
+    (releasebufferproc)PyFits_releasebuffer  // Standard release function
+};
 
 // Method to get rx
 static PyObject *PyFits_get_rx(PyFits *self, void *closure) {
@@ -755,6 +849,35 @@ static PyObject *PyFits_get_icc_profile(PyFits *self, void *closure) {
 	return py_icc_profile;
 }
 
+static PyObject* PyFits_get_history(PyFits *self, void *closure) {
+    if (self->fit == NULL) {
+        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+        return NULL;
+    }
+
+    GSList *history = self->fit->history;
+    PyObject *py_list = PyList_New(0);
+    if (py_list == NULL) {
+        Py_RETURN_NONE; // There is no history. We can return None rather than throwing an exception
+    }
+
+    for (GSList *current = history; current != NULL; current = current->next) {
+        char *history_item = (char *)current->data;
+        PyObject *py_str = PyUnicode_FromString(history_item);
+        if (py_str == NULL) {
+            Py_DECREF(py_list);
+            Py_RETURN_NONE;
+        }
+        if (PyList_Append(py_list, py_str) < 0) {
+            Py_DECREF(py_str);
+            Py_DECREF(py_list);
+            Py_RETURN_NONE;
+        }
+        Py_DECREF(py_str);
+    }
+
+    return py_list;
+}
 // Define getters and setters
 static PyGetSetDef PyFits_getsetters[] = {
 	// rx, ry, nchans have getters only: the fits size should not be changed using these properties
@@ -823,6 +946,7 @@ static PyGetSetDef PyFits_getsetters[] = {
 	{"header", (getter)PyFits_get_header, NULL, N_("FITS header"), NULL},
 	{"unknown_keys", (getter)PyFits_get_unknown_keys, NULL, N_("Unknown keys"), NULL},
 	{"icc_profile", (getter)PyFits_get_icc_profile, NULL, N_("ICC profile (as PyBytes)"), NULL},
+	{"history", (getter)PyFits_get_history, NULL, N_("History (as a list of strings)"), NULL},
 };
 
 // Method to access gfit
@@ -841,17 +965,18 @@ static PyObject *PyFits_gfit(PyObject *cls, PyObject *args) {
 // Helper function to check validity of channel index and stats
 static int check_stats(PyFits *self, int n, int option) {
 	if (self->fit == NULL || self->fit->stats == NULL) {
-		PyErr_SetString(PyExc_AttributeError, "FITS data or image statistics not initialized");
+		PyErr_SetString(PyExc_AttributeError, _("FITS data or image statistics not initialized"));
 		return 0;
 	}
 	if (n < 0 || n >= self->fit->naxes[2]) {
-		PyErr_SetString(PyExc_IndexError, "Channel index out of range");
+		PyErr_SetString(PyExc_IndexError, _("Channel index out of range"));
 		return 0;
 	}
+	// If the stats for the requested channel are unavailable, compute them
 	if (self->fit->stats[n] == NULL) {
 		statistics(NULL, -1, self->fit, n, NULL, option, MULTI_THREADED);
 		if (self->fit->stats[n] == NULL) {
-			PyErr_SetString(PyExc_AttributeError, "Image statistics computation failed for this channel");
+			PyErr_SetString(PyExc_AttributeError, _("Image statistics computation failed for this channel"));
 			return 0;
 		}
 	}
@@ -875,6 +1000,7 @@ static PyObject* PyFits_get_ngoodpix(PyFits *self, PyObject *args) {
 		return NULL;
 	if (!check_stats(self, n, STATS_MAIN))
 		return NULL;
+	// Perhaps stats were available but not computed with a high enough option, so we try recomputing
 	if (self->fit->stats[n]->avgDev == NULL_STATS)
 		statistics(NULL, -1, self->fit, n, NULL, STATS_MAIN, MULTI_THREADED);
 	return PyLong_FromLong(self->fit->stats[n]->ngoodpix);
@@ -1062,7 +1188,7 @@ static PyObject *PyFits_get_config_item(PyFits *self, PyObject *args) {
 // Define methods for PyFits
 static PyMethodDef PyFits_methods[] = {
 	{"get_config_item", (PyCFunction)PyFits_get_config_item, METH_CLASS | METH_VARARGS, N_("Get a config item")},
-	{"gfit", (PyCFunction)PyFits_gfit, METH_CLASS | METH_NOARGS, N_("Get the global fits object")},
+	{"main_image", (PyCFunction)PyFits_gfit, METH_CLASS | METH_NOARGS, N_("Get the Siril main image as a PyFits object")},
 	{"get_total", (PyCFunction)PyFits_get_total, METH_VARARGS, N_("Return the total pixel count for the specified channel.")},
 	{"get_ngoodpix", (PyCFunction)PyFits_get_ngoodpix, METH_VARARGS, N_("Return the number of good pixels for the specified channel.")},
 	{"get_mean", (PyCFunction)PyFits_get_mean, METH_VARARGS, N_("Return the mean pixel value for the specified channel.")},
@@ -1091,6 +1217,7 @@ PyTypeObject PyFitsType = {
 	.tp_new = PyFits_new,
 	.tp_init = (initproc)PyFits_init,
 	.tp_dealloc = (destructor)PyFits_dealloc,
+    .tp_as_buffer = &PyFits_as_buffer,
 	.tp_methods = PyFits_methods,
 	.tp_getset = PyFits_getsetters,
 };
@@ -1118,7 +1245,7 @@ static PyObject* py_gui_unblock(PyObject* self, PyObject* args) {
 }
 
 static PyObject* PyNotifyGfitModified(PyObject* self, PyObject* args) {
-	// Call the C function
+	siril_debug_print("end of gfit operation\n");
 	notify_gfit_modified();
 	Py_RETURN_NONE;
 }
@@ -1253,10 +1380,10 @@ static PyObject *siril_get_filename(PyObject *self, PyObject *args) {
 // Define methods for the module
 static PyMethodDef SirilMethods[] = {
 	{"filename", (PyCFunction)siril_get_filename, METH_NOARGS, N_("Get the current image filename")},
-	{"gui_block", py_gui_block, METH_NOARGS, N_("Block the GUI by disabling script widgets")},
-	{"gui_unblock", py_gui_unblock, METH_NOARGS, N_("Unblock the GUI by enabling script widgets")},
+	{"gui_block", py_gui_block, METH_NOARGS, N_("Block the GUI by disabling widgets except for Stop")},
+	{"gui_unblock", py_gui_unblock, METH_NOARGS, N_("Unblock the GUI by enabling all widgets")},
 	{"log", siril_log_message_wrapper, METH_VARARGS, N_("Log a message")},
-	{"notify_gfit_modified", (PyCFunction)PyNotifyGfitModified, METH_NOARGS, N_("Notify that the main image has been modified.")},
+	{"notify_image_modified", (PyCFunction)PyNotifyGfitModified, METH_NOARGS, N_("Notify that the main image has been modified.")},
 	{"cmd", siril_processcommand, METH_VARARGS, N_("Execute a Siril command")},
 	{"wd", (PyCFunction)siril_get_wd, METH_NOARGS, N_("Get the current working directory")},
 	{NULL, NULL, 0, NULL}  /* Sentinel */
