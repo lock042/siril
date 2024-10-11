@@ -1,0 +1,97 @@
+#ifndef SIRIL_PYTHON_FUNCTIONS_H
+#define SIRIL_PYTHON_FUNCTIONS_H
+
+#include "python/siril_python.h"
+
+void PyFits_dealloc(PyFits *self);
+PyObject *PyFits_new(PyTypeObject *type, PyObject *args, PyObject *kwds);
+int PyFits_init(PyFits *self, PyObject *args, PyObject *kwds);
+PyBufferProcs PyFits_as_buffer;
+PyObject *PyFits_get_rx(PyFits *self, void *closure);
+PyObject *PyFits_get_ry(PyFits *self, void *closure);
+PyObject *PyFits_get_nchans(PyFits *self, void *closure);
+PyObject *PyFits_get_mini(PyFits *self, void *closure);
+PyObject *PyFits_get_neg_ratio(PyFits *self, void *closure);
+PyObject *PyFits_get_maxi(PyFits *self, void *closure);
+PyObject *PyFits_get_top_down(PyFits *self, void *closure);
+PyObject *PyFits_get_bitdepth(PyFits *self, void *closure);
+PyObject *PyFits_get_bscale(PyFits *self, void *closure);
+PyObject *PyFits_get_bzero(PyFits *self, void *closure);
+PyObject *PyFits_get_lo(PyFits *self, void *closure);
+PyObject *PyFits_get_hi(PyFits *self, void *closure);
+PyObject *PyFits_get_program(PyFits *self, void *closure);
+PyObject *PyFits_get_filename(PyFits *self, void *closure);
+PyObject *PyFits_get_data_max(PyFits *self, void *closure);
+PyObject *PyFits_get_data_min(PyFits *self, void *closure);
+PyObject *PyFits_get_pixel_size_x(PyFits *self, void *closure);
+PyObject *PyFits_get_pixel_size_y(PyFits *self, void *closure);
+PyObject *PyFits_get_binning_x(PyFits *self, void *closure);
+PyObject *PyFits_get_binning_y(PyFits *self, void *closure);
+PyObject *PyFits_get_row_order(PyFits *self, void *closure);
+PyObject *PyFits_get_date(PyFits *self, void *closure);
+PyObject *PyFits_get_date_obs(PyFits *self, void *closure);
+PyObject *PyFits_get_expstart(PyFits *self, void *closure);
+PyObject *PyFits_get_expend(PyFits *self, void *closure);
+PyObject *PyFits_get_filter(PyFits *self, void *closure);
+PyObject *PyFits_get_image_type(PyFits *self, void *closure);
+PyObject *PyFits_get_object(PyFits *self, void *closure);
+PyObject *PyFits_get_instrume(PyFits *self, void *closure);
+PyObject *PyFits_get_telescop(PyFits *self, void *closure);
+PyObject *PyFits_get_observer(PyFits *self, void *closure);
+PyObject *PyFits_get_centalt(PyFits *self, void *closure);
+PyObject *PyFits_get_centaz(PyFits *self, void *closure);
+PyObject *PyFits_get_sitelat(PyFits *self, void *closure);
+PyObject *PyFits_get_sitelong(PyFits *self, void *closure);
+PyObject *PyFits_get_sitelat_str(PyFits *self, void *closure);
+PyObject *PyFits_get_sitelong_str(PyFits *self, void *closure);
+PyObject *PyFits_get_siteelev(PyFits *self, void *closure);
+PyObject *PyFits_get_bayer_pattern(PyFits *self, void *closure);
+PyObject *PyFits_get_bayer_xoffset(PyFits *self, void *closure);
+PyObject *PyFits_get_bayer_yoffset(PyFits *self, void *closure);
+PyObject *PyFits_get_airmass(PyFits *self, void *closure);
+PyObject *PyFits_get_focal_length(PyFits *self, void *closure);
+PyObject *PyFits_get_flength(PyFits *self, void *closure);
+PyObject *PyFits_get_iso_speed(PyFits *self, void *closure);
+PyObject *PyFits_get_exposure(PyFits *self, void *closure);
+PyObject *PyFits_get_aperture(PyFits *self, void *closure);
+PyObject *PyFits_get_ccd_temp(PyFits *self, void *closure);
+PyObject *PyFits_get_set_temp(PyFits *self, void *closure);
+PyObject *PyFits_get_livetime(PyFits *self, void *closure);
+PyObject *PyFits_get_stackcnt(PyFits *self, void *closure);
+PyObject *PyFits_get_cvf(PyFits *self, void *closure);
+PyObject *PyFits_get_key_gain(PyFits *self, void *closure);
+PyObject *PyFits_get_key_offset(PyFits *self, void *closure);
+PyObject *PyFits_get_focname(PyFits *self, void *closure);
+PyObject *PyFits_get_focuspos(PyFits *self, void *closure);
+PyObject *PyFits_get_focussz(PyFits *self, void *closure);
+PyObject *PyFits_get_foctemp(PyFits *self, void *closure);
+PyObject *PyFits_get_header(PyFits *self, void *closure);
+PyObject *PyFits_get_unknown_keys(PyFits *self, void *closure);
+PyObject *PyFits_get_icc_profile(PyFits *self, void *closure);
+PyObject* PyFits_get_history(PyFits *self, void *closure);
+PyObject *PyFits_gfit(PyObject *cls, PyObject *args);
+PyObject* PyFits_get_total(PyFits *self, PyObject *args);
+PyObject* PyFits_get_ngoodpix(PyFits *self, PyObject *args);
+PyObject* PyFits_get_mean(PyFits *self, PyObject *args);
+PyObject* PyFits_get_median(PyFits *self, PyObject *args);
+PyObject* PyFits_get_sigma(PyFits *self, PyObject *args);
+PyObject* PyFits_get_avgdev(PyFits *self, PyObject *args);
+PyObject* PyFits_get_mad(PyFits *self, PyObject *args);
+PyObject* PyFits_get_sqrtbwmv(PyFits *self, PyObject *args);
+PyObject* PyFits_get_location(PyFits *self, PyObject *args);
+PyObject* PyFits_get_scale(PyFits *self, PyObject *args);
+PyObject* PyFits_get_min(PyFits *self, PyObject *args);
+PyObject* PyFits_get_max(PyFits *self, PyObject *args);
+PyObject* PyFits_get_normvalue(PyFits *self, PyObject *args);
+PyObject* PyFits_get_bgnoise(PyFits *self, PyObject *args);
+PyObject *PyFits_get_config_item(PyFits *self, PyObject *args);
+
+PyObject* py_gui_block(PyObject* self, PyObject* args);
+PyObject* py_gui_unblock(PyObject* self, PyObject* args);
+PyObject* PyNotifyGfitModified(PyObject* self, PyObject* args);
+PyObject* siril_processcommand(PyObject* self, PyObject* args);
+PyObject *siril_log_message_wrapper(PyObject *self, PyObject *args);
+PyObject *siril_get_wd(PyObject *self, PyObject *args);
+PyObject *siril_get_filename(PyObject *self, PyObject *args);
+
+#endif
