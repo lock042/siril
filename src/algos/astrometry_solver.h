@@ -132,7 +132,7 @@ void update_wcsdata_from_wcs(fits *fit);
 void init_astrometry();
 void reset_astrometry_checks();
 void initialize_ips_dialog();
-
+void free_astrometry_data(struct astrometry_data *args);
 
 void start_sequence_astrometry(sequence *seq, struct astrometry_data *args);
 

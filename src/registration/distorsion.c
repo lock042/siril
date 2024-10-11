@@ -595,6 +595,7 @@ gboolean validate_disto_params(fits *reffit, const gchar *text, disto_source ind
 				*msg2 = g_strdup(_("Distortion master could not be parsed"));
 			return FALSE;
 		}
+		g_free(wcsfilename);
 	}
 	return TRUE;
 }

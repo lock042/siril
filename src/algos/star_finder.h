@@ -68,7 +68,6 @@ int remove_star(int index);
 void sort_stars_by_mag(psf_star **stars, int total);
 psf_star **new_fitted_stars(size_t n);
 void free_fitted_stars(psf_star **stars);
-int count_stars(psf_star **stars);
 void FWHM_stats(psf_star **stars, int nb, int bitpix, float *FWHMx, float *FWHMy, char **units, float *B, float *Acut, double Acutp) ;
 psf_star **filter_stars_by_amplitude(psf_star **stars, float threshold, int *nbfilteredstars);
 float filtered_FWHM_average(psf_star **stars, int nb);

@@ -555,6 +555,8 @@ int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homog
 	xmap = (float *)malloc(target_rx * target_ry *sizeof(float));
 	ymap = (float *)malloc(target_rx * target_ry *sizeof(float));
 	if (!xmap || !ymap) {
+		free(xmap);
+		free(ymap);
 		PRINT_ALLOC_ERR;
 		return 2;
 	}

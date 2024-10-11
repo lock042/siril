@@ -9707,6 +9707,8 @@ int process_platesolve(int nb) {
 	sequence *seq = NULL;
 	platesolve_solver solver = SOLVER_SIRIL;
 	gchar *distofilename = NULL;
+	cmd_errors retval = CMD_OK;
+	struct astrometry_data *args = NULL;
 
 	gboolean local_cat = local_catalogues_available();
 	int next_arg = 1;
@@ -9731,7 +9733,8 @@ int process_platesolve(int nb) {
 		if (!sep) {
 			if (nb == 2) {
 				siril_log_message(_("Could not parse target coordinates\n"));
-				return CMD_ARG_ERROR;
+				retval = CMD_ARG_ERROR;
+				goto clean_and_exit_platesolve;
 			}
 			target_coords = siril_world_cs_new_from_objct_ra_dec(word[next_arg], word[next_arg+1]);
 			next_arg += 2;
@@ -9743,7 +9746,8 @@ int process_platesolve(int nb) {
 		}
 		if (!target_coords) {
 			siril_log_message(_("Could not parse target coordinates\n"));
-			return CMD_ARG_ERROR;
+			retval = CMD_ARG_ERROR;
+			goto clean_and_exit_platesolve;
 		}
 		forced_metadata[FORCED_CENTER] = TRUE;
 	}
@@ -9771,9 +9775,8 @@ int process_platesolve(int nb) {
 			forced_focal = g_ascii_strtod(arg, &end);
 			if (end == arg || forced_focal <= 0.0) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
-				if (target_coords)
-					siril_world_cs_unref(target_coords);
-				return CMD_ARG_ERROR;
+				retval = CMD_ARG_ERROR;
+				goto clean_and_exit_platesolve;
 			}
 			forced_metadata[FORCED_FOCAL] = TRUE;
 		}
@@ -9783,9 +9786,8 @@ int process_platesolve(int nb) {
 			forced_pixsize = g_ascii_strtod(arg, &end);
 			if (end == arg || forced_pixsize <= 0.0) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
-				if (target_coords)
-					siril_world_cs_unref(target_coords);
-				return CMD_ARG_ERROR;
+				retval = CMD_ARG_ERROR;
+				goto clean_and_exit_platesolve;
 			}
 			forced_metadata[FORCED_PIXEL] = TRUE;
 		}
@@ -9796,9 +9798,8 @@ int process_platesolve(int nb) {
 			value = g_ascii_strtod(arg, &end);
 			if (end == arg) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
-				if (target_coords)
-					siril_world_cs_unref(target_coords);
-				return CMD_ARG_ERROR;
+				retval = CMD_ARG_ERROR;
+				goto clean_and_exit_platesolve;
 			}
 			if (arg[0] == '-' || arg[0] == '+')
 				mag_offset = value;
@@ -9810,9 +9811,8 @@ int process_platesolve(int nb) {
 			int value = g_ascii_strtoull(arg, &end, 10);
 			if (end == arg || value < 1 || value > 5) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
-				if (target_coords)
-					siril_world_cs_unref(target_coords);
-				return CMD_ARG_ERROR;
+				retval = CMD_ARG_ERROR;
+				goto clean_and_exit_platesolve;
 			}
 			order = value;
 		}
@@ -9822,9 +9822,8 @@ int process_platesolve(int nb) {
 			searchradius = g_ascii_strtod(arg, &end);
 			if (end == arg || searchradius < 0.0 || searchradius > 30.0) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
-				if (target_coords)
-					siril_world_cs_unref(target_coords);
-				return CMD_ARG_ERROR;
+				retval = CMD_ARG_ERROR;
+				goto clean_and_exit_platesolve;
 			}
 		}
 		else if (g_str_has_prefix(word[next_arg], "-catalog=")) {
@@ -9843,18 +9842,16 @@ int process_platesolve(int nb) {
 				cat = CAT_APASS;
 			else {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
-				if (target_coords)
-					siril_world_cs_unref(target_coords);
-				return CMD_ARG_ERROR;
+				retval = CMD_ARG_ERROR;
+				goto clean_and_exit_platesolve;
 			}
 		}
 		else if (g_str_has_prefix(word[next_arg], "-disto=")) {
 			gchar *arg  = word[next_arg] + 7;
 			if (arg[0] == '\0') {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
-				if (target_coords)
-					siril_world_cs_unref(target_coords);
-				return CMD_ARG_ERROR;
+				retval = CMD_ARG_ERROR;
+				goto clean_and_exit_platesolve;
 			}
 			distofilename = g_strdup(arg);
 		}
@@ -9864,18 +9861,15 @@ int process_platesolve(int nb) {
 			solver = SOLVER_LOCALASNET;
 		} else {
 			siril_log_message(_("Invalid argument %s, aborting.\n"), word[next_arg]);
-			if (target_coords)
-				siril_world_cs_unref(target_coords);
-			return CMD_ARG_ERROR;
+			retval = CMD_ARG_ERROR;
+			goto clean_and_exit_platesolve;
 		}
 		next_arg++;
 	}
 
 	if (!seqps && !force) {
 		siril_log_message(_("Image is already plate solved. Nothing will be done.\n"));
-		if (target_coords)
-			siril_world_cs_unref(target_coords);
-		return CMD_OK;
+		goto clean_and_exit_platesolve; // not an arror, retval is CMD_OK
 	}
 
 	if (local_cat && (cat == CAT_AUTO || (cat != CAT_GAIADR3 && cat != CAT_PPMXL && cat != CAT_APASS))) {
@@ -9894,9 +9888,8 @@ int process_platesolve(int nb) {
 
 	if (solver == SOLVER_LOCALASNET && !asnet_is_available()) {
 		siril_log_color_message(_("The local astrometry.net solver was not found, aborting. Please check the settings.\n"), "red");
-		if (target_coords)
-			siril_world_cs_unref(target_coords);
-		return CMD_GENERIC_ERROR;
+		retval = CMD_GENERIC_ERROR;
+		goto clean_and_exit_platesolve;
 	}
 
 	fits reffit = { 0 };
@@ -9905,7 +9898,8 @@ int process_platesolve(int nb) {
 		int image_to_load = sequence_find_refimage(seq);
 		if (seq_read_frame_metadata(seq, image_to_load, preffit)) {
 			siril_log_message(_("Could not load the reference image of the sequence, aborting.\n"));
-			return CMD_SEQUENCE_NOT_FOUND;
+			retval = CMD_SEQUENCE_NOT_FOUND;
+			goto clean_and_exit_platesolve;
 		}
 	} else
 		preffit = &gfit;
@@ -9924,11 +9918,12 @@ int process_platesolve(int nb) {
 	if (!target_coords) {
 		target_coords = get_eqs_from_header(preffit);
 		if (solver != SOLVER_LOCALASNET && !target_coords) {
-				siril_log_color_message(_("Cannot plate solve, no target coordinates passed and image header doesn't contain any either\n"), "red");
-				if (seqps)
-					clearfits(preffit);
-				return CMD_INVALID_IMAGE;
-			}
+			siril_log_color_message(_("Cannot plate solve, no target coordinates passed and image header doesn't contain any either\n"), "red");
+			if (seqps)
+				clearfits(preffit);
+			retval = CMD_INVALID_IMAGE;
+			goto clean_and_exit_platesolve;
+		}
 		if (target_coords) {
 			siril_log_message(_("Using target coordinate from image header: %f, %f\n"),
 			siril_world_cs_get_alpha(target_coords),
@@ -9947,7 +9942,7 @@ int process_platesolve(int nb) {
 	}
 
 	// we are now ready to fill the structure
-	struct astrometry_data *args = calloc(1, sizeof(struct astrometry_data));
+	args = calloc(1, sizeof(struct astrometry_data));
 
 	if (asnet_blind_res) {
 		if (forced_metadata[FORCED_PIXEL]) {
@@ -9964,12 +9959,10 @@ int process_platesolve(int nb) {
 			args->pixel_size = com.pref.starfinder_conf.pixel_size_x;
 			if (args->pixel_size <= 0.0) {
 				siril_log_color_message(_("Pixel size not found in image or in settings, cannot proceed\n"), "red");
-				if (target_coords)
-					siril_world_cs_unref(target_coords);
 				if (seqps)
 					clearfits(preffit);
-				free(args);
-				return CMD_INVALID_IMAGE;
+				retval = CMD_INVALID_IMAGE;
+				goto clean_and_exit_platesolve;
 			}
 			siril_log_message(_("Using pixel size from preferences: %.2f\n"), args->pixel_size);
 		}
@@ -9991,12 +9984,10 @@ int process_platesolve(int nb) {
 			args->focal_length = com.pref.starfinder_conf.focal_length;
 			if (args->focal_length <= 0.0) {
 				siril_log_color_message(_("Focal length not found in image or in settings, cannot proceed\n"), "red");
-				if (target_coords)
-					siril_world_cs_unref(target_coords);
-				free(args);
 				if (seqps)
 					clearfits(preffit);
-				return CMD_INVALID_IMAGE;
+				retval = CMD_INVALID_IMAGE;
+				goto clean_and_exit_platesolve;
 			}
 			siril_log_message(_("Using focal length from preferences: %.2f\n"), args->focal_length);
 		}
@@ -10089,6 +10080,17 @@ int process_platesolve(int nb) {
 	process_plate_solver_input(args);
 	start_in_new_thread(plate_solver, args);
 	return CMD_OK;
+clean_and_exit_platesolve:
+	if (check_seq_is_comseq(seq))
+		free_sequence(seq, TRUE);
+	if (target_coords)
+		siril_world_cs_unref(target_coords);
+	if (args)
+		free_astrometry_data(args);
+	if (distofilename)
+		g_free(distofilename);
+	return retval;
+
 }
 
 static conesearch_params* parse_conesearch_args(int nb) {
