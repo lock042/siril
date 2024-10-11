@@ -85,6 +85,7 @@
 cominfo com = { 0 };	// the core data struct
 guiinfo gui = { 0 };	// the gui data struct
 fits gfit;	// currently loaded image
+GThread *python_thread = NULL;	// main thread for the python interpreter
 
 static gchar *main_option_directory = NULL;
 static gchar *main_option_script = NULL;
@@ -312,7 +313,7 @@ static void siril_app_activate(GApplication *application) {
 	}
 
 	init_num_procs();
-	init_python(); // initialize the python scripting module
+	g_thread_new("python_thread", init_python, NULL); // initialize the python scripting module
 	initialize_profiles_and_transforms(); // color management
 
 #ifdef HAVE_LIBGIT2

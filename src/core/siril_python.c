@@ -1549,7 +1549,7 @@ static gboolean activate_python_venv(const char *venv_dir) {
 }
 
 // Function to initialize Python interpreter and load our module
-void init_python(void) {
+void *init_python(void *user_data) {
 	gchar* venv_dir = g_build_filename(g_get_user_data_dir(), "siril", "venv", NULL);
 	gboolean already_active;
 	gboolean venv_created = check_or_create_python_venv(venv_dir, &already_active);
@@ -1560,11 +1560,21 @@ void init_python(void) {
 	g_free(venv_dir);
 	PyImport_ImportModule("siril");
 	PyEval_SaveThread();  // Save the current thread state and release the GIL
+	// Update the global thread reference
+	com.python_thread = g_thread_self();
 	siril_log_message(_("Python scripting module initialized.\n"));
+	// Create a GMainContext and GMainLoop for this thread
+	com.python_context = g_main_context_new();
+	com.python_loop = g_main_loop_new(com.python_context, FALSE);
+	// Enter the main loop (this will keep the thread alive and waiting for tasks)
+	g_main_loop_run(com.python_loop);
+	// Finalize Python interpreter when done
+	Py_Finalize();
+	return NULL;
 }
 
 // Function to run a Python script from a file
-gpointer run_python_script_from_file(gpointer p) {
+gboolean run_python_script_from_file(gpointer p) {
 	const char *script_path = (const char*) p; // must not be freed, it is owned by the list of script menu items
 	PyGILState_STATE gstate;
 	gstate = PyGILState_Ensure();  // Acquire the GIL
@@ -1597,40 +1607,39 @@ gpointer run_python_script_from_file(gpointer p) {
 				Py_XDECREF(value);
 				Py_XDECREF(traceback);
 
-				retval = -1;
+				retval = FALSE;
 			} else {
 				// Script completed successfully
 				Py_DECREF(result);
-				retval = 0;
+				retval = FALSE;
 			}
-
 			Py_DECREF(py_file);
 		} else {
 			siril_log_color_message(_("Failed to create Python file object from: %s\n"), "red", script_path);
-			retval = -1;
+			retval = FALSE;
 		}
 		fclose(fp);
 	} else {
 		siril_log_color_message(_("Failed to open script file: %s\n"), "red", script_path);
-		retval = -1;
+		retval = FALSE;
 	}
 
 	PyGILState_Release(gstate);  // Release the GIL
 	g_idle_add(script_widgets_idle, NULL);
-	return GINT_TO_POINTER(retval);
+	return retval;
 }
 
 // Function to run a Python script from memory
-gpointer run_python_script_from_mem(gpointer p) {
+gboolean run_python_script_from_mem(gpointer p) {
 	const char *script_contents = (const char*) p;
 	PyGILState_STATE gstate;
 	gstate = PyGILState_Ensure();  // Acquire the GIL
 
-	int retval = 0;
+	int retval = FALSE;
 	PyObject *main_module = PyImport_AddModule("__main__");
 	if (main_module == NULL) {
 		siril_log_message(_("Failed to get __main__ module\n"));
-		retval = -1;
+		retval = FALSE;
 	} else {
 		PyObject *globals = PyModule_GetDict(main_module);
 		PyObject *result = PyRun_String(script_contents, Py_file_input, globals, globals);
@@ -1652,17 +1661,38 @@ gpointer run_python_script_from_mem(gpointer p) {
 			Py_XDECREF(value);
 			Py_XDECREF(traceback);
 
-			retval = -1;
+			retval = FALSE;
 		} else {
 			// Script completed successfully
 			Py_DECREF(result);
-			retval = 0;
+			retval = FALSE;
 		}
 	}
 
 	PyGILState_Release(gstate);  // Release the GIL
 	// Note: script_widgets_idle() call is omitted as per the original comment
-	return GINT_TO_POINTER(retval);
+	return retval;
+}
+
+// Function to run Python script, delegating to the Python thread if necessary
+void run_python_script_in_thread(const char *script, gboolean from_file) {
+    // Check if we're in the Python thread
+    if (g_thread_self() == com.python_thread) {
+        // We're already in the Python thread, so just run the script directly
+        if (from_file) {
+			run_python_script_from_file((gpointer) script);
+		} else {
+			run_python_script_from_mem((gpointer) script);
+		}
+    } else {
+        // Use g_main_context_invoke() to schedule the script execution
+        // in the Python thread's main loop/context
+		if (from_file) {
+			g_main_context_invoke(com.python_context, run_python_script_from_file, (gpointer) script);
+		} else {
+			g_main_context_invoke(com.python_context, run_python_script_from_mem, (gpointer) script);
+		}
+    }
 }
 
 // Function to finalize Python interpreter
