@@ -342,8 +342,8 @@ gpointer init_python(void *user_data) {
 gboolean run_python_script_from_file(gpointer p) {
 	const char *script_path = (const char*) p; // must not be freed, it is owned by the list of script menu items
 	PyGILState_STATE gstate;
+	com.script = TRUE;
 	gstate = PyGILState_Ensure();  // Acquire the GIL
-
 	FILE *fp = g_fopen(script_path, "r");
 	int retval = -1;
 	if (fp) {
@@ -388,8 +388,9 @@ gboolean run_python_script_from_file(gpointer p) {
 		siril_log_color_message(_("Failed to open script file: %s\n"), "red", script_path);
 		retval = FALSE;
 	}
-
+	PyGC_Collect(); // Force garbage collection, in case the script didn't bother
 	PyGILState_Release(gstate);  // Release the GIL
+	com.script = FALSE;
 	g_idle_add(script_widgets_idle, NULL);
 	return retval;
 }
@@ -399,7 +400,7 @@ gboolean run_python_script_from_mem(gpointer p) {
 	const char *script_contents = (const char*) p;
 	PyGILState_STATE gstate;
 	gstate = PyGILState_Ensure();  // Acquire the GIL
-
+	com.script = TRUE;
 	int retval = FALSE;
 	PyObject *main_module = PyImport_AddModule("__main__");
 	if (main_module == NULL) {
@@ -433,8 +434,9 @@ gboolean run_python_script_from_mem(gpointer p) {
 			retval = FALSE;
 		}
 	}
-
+	PyGC_Collect(); // Force garbage collection, in case the script didn't bother
 	PyGILState_Release(gstate);  // Release the GIL
+	com.script = FALSE;
 	// Note: script_widgets_idle() call is omitted as per the original comment
 	return retval;
 }
