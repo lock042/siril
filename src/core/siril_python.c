@@ -1188,7 +1188,7 @@ static PyObject *PyFits_get_config_item(PyFits *self, PyObject *args) {
 // Define methods for PyFits
 static PyMethodDef PyFits_methods[] = {
 	{"get_config_item", (PyCFunction)PyFits_get_config_item, METH_CLASS | METH_VARARGS, N_("Get a config item")},
-	{"main_image", (PyCFunction)PyFits_gfit, METH_CLASS | METH_NOARGS, N_("Get the Siril main image as a PyFits object")},
+	{"image", (PyCFunction)PyFits_gfit, METH_CLASS | METH_NOARGS, N_("Get the Siril main image as a PyFits object")},
 	{"get_total", (PyCFunction)PyFits_get_total, METH_VARARGS, N_("Return the total pixel count for the specified channel.")},
 	{"get_ngoodpix", (PyCFunction)PyFits_get_ngoodpix, METH_VARARGS, N_("Return the number of good pixels for the specified channel.")},
 	{"get_mean", (PyCFunction)PyFits_get_mean, METH_VARARGS, N_("Return the mean pixel value for the specified channel.")},
@@ -1549,7 +1549,7 @@ static gboolean activate_python_venv(const char *venv_dir) {
 }
 
 // Function to initialize Python interpreter and load our module
-void *init_python(void *user_data) {
+gpointer init_python(void *user_data) {
 	gchar* venv_dir = g_build_filename(g_get_user_data_dir(), "siril", "venv", NULL);
 	gboolean already_active;
 	gboolean venv_created = check_or_create_python_venv(venv_dir, &already_active);
@@ -1675,7 +1675,7 @@ gboolean run_python_script_from_mem(gpointer p) {
 }
 
 // Function to run Python script, delegating to the Python thread if necessary
-void run_python_script_in_thread(const char *script, gboolean from_file) {
+void run_python_script_in_python_thread(const char *script, gboolean from_file) {
     // Check if we're in the Python thread
     if (g_thread_self() == com.python_thread) {
         // We're already in the Python thread, so just run the script directly

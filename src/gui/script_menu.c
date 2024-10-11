@@ -195,8 +195,9 @@ static int on_run_scripts(GtkMenuItem *menuitem, gpointer user_data) {
 			com.script_thread = g_thread_new("script", execute_script, input_stream);
 		} else if (extension && g_strcmp0(extension, ".py") == 0) {
 			siril_log_message(_("Starting Python script %s\n"), filename);
-            com.script_thread = g_thread_new("python-script", run_python_script_from_file, filename);
-            //TODO: filename should be freed in run_python_script_from_file
+//            com.script_thread = g_thread_new("python-script", run_python_script_from_file, filename);
+			run_python_script_in_python_thread(filename, TRUE);
+			//TODO: filename should be freed in run_python_script_from_file
 		}
 
 		g_object_unref(file);
@@ -240,7 +241,8 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 
 	if (g_str_has_suffix(script_file, PYSCRIPT_EXT)) {
 		// Run Python script
-		com.script_thread = g_thread_new("python script", run_python_script_from_file, script_file);
+		run_python_script_in_python_thread(script_file, TRUE);
+//		com.script_thread = g_thread_new("python script", run_python_script_from_file, script_file);
 	} else if (g_str_has_suffix(script_file, SCRIPT_EXT)) {
 		// Run regular script
 		GFile *file = g_file_new_for_path(script_file);
