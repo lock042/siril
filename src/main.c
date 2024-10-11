@@ -64,7 +64,7 @@
 #include "core/siril_app_dirs.h"
 #include "core/siril_language.h"
 #include "core/siril_networking.h"
-#include "core/siril_python.h"
+#include "python/siril_python.h"
 #include "core/siril_update.h"
 #include "core/siril_log.h"
 #include "core/OS_utils.h"

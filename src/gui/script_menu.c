@@ -37,7 +37,7 @@
 #include "core/OS_utils.h"
 #include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
-#include "core/siril_python.h"
+#include "python/siril_python.h"
 #include "gui/utils.h"
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"

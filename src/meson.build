@@ -93,7 +93,6 @@ src_files = [
   'core/siril_language.c',
   'core/siril_log.c',
   'core/siril_networking.c',
-  'core/siril_python.c',
   'core/siril_update.c',
   'core/siril_world_cs.c',
   'core/undo.c',
@@ -199,6 +198,8 @@ src_files = [
   'opencv/guidedfilter.h',
   'opencv/kombat/kombat.cpp',
   'opencv/kombat/kombat.h',
+
+  'python/siril_python.c',
 
   'gui/about_dialog.c',
   'gui/annotate.c',
