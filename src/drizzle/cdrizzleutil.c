@@ -120,7 +120,8 @@ void
 driz_param_dump(struct driz_args_t* p) {
   assert(p);
 
-  siril_log_message(_("Drizzling parameters:\nkernel:         %s\n"), kernel_enum2str(p->kernel));
+  siril_log_message(_("Drizzling parameters:\n"));
+  siril_log_message(_("kernel:         %s\n"), kernel_enum2str(p->kernel));
   siril_log_message(_("pixel_fraction: %f\n"), p->pixel_fraction);
   siril_log_message(_("weight_scale:   %f\n"), p->weight_scale);
   siril_log_message(_("scale:          %f\n"), p->scale);

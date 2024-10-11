@@ -846,7 +846,7 @@ void update_reg_interface(gboolean dont_change_reg_radio) {
 	has_drizzle = has_output && gtk_stack_get_visible_child(interp_drizzle_stack) == GTK_WIDGET(grid_drizzle_controls);
 	/* must enforce drizzle/interp */
 	must_have_drizzle = has_output && gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] != '\0';
-	must_have_interp  = has_output && gfit.naxes[2] == 3;
+	must_have_interp  = has_output && gfit.naxes[2] == 3 && com.seq.type != SEQ_SER; // we can drizzle not-yet-debayered SER when undebayered on-the-fly
 
 
 	/* initialize default */

@@ -46,7 +46,7 @@ static GtkWidget *go_register = NULL;
 static GtkLabel *labelreginfo = NULL;
 static GtkImage *image_3stars[3] = { NULL };
 static GtkWidget *follow = NULL, *onlyshift = NULL;
-static GtkComboBox *reg_all_sel_box = NULL;
+static GtkComboBox *reg_all_sel_box = NULL, *comboboxreglayer = NULL;
 
 struct _3psf {
 	psf_star *stars[3];
@@ -175,7 +175,9 @@ void on_select_star_button_clicked(GtkButton *button, gpointer user_data) {
 		com.stars = calloc(4, sizeof(psf_star *)); // don't use new_psf_star. It is a bit different
 
 	int index;
-	int layer = get_registration_layer(&com.seq);
+	if (!comboboxreglayer)
+		comboboxreglayer = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "comboboxreglayer"));
+	int layer = gtk_combo_box_get_active(comboboxreglayer);
 	if (layer < 0) {
 		fprintf(stderr, "invalid registration layer\n");
 		return;
