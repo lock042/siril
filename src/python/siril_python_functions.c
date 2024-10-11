@@ -1047,6 +1047,13 @@ PyObject* PyFits_get_bgnoise(PyFits *self, PyObject *args) {
 	return PyFloat_FromDouble(self->fit->stats[n]->bgnoise);
 }
 
+/******************
+ ******************
+ **              **
+ ** siril module **
+ **              **
+ *****************/
+
 static PyObject *get_config_item_as_pyobject(char *input) {
 	/* parsing a single variable command */
 	int sep, len = strlen(input);
