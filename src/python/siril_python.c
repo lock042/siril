@@ -165,6 +165,7 @@ static PyGetSetDef PySeq_getsetters[] = {
 };
 
 PyMethodDef PySeq_methods[] = {
+	{"comseq", (PyCFunction)PySeq_comseq, METH_NOARGS, N_("The current sequence loaded in Siril")},
 	{"get_imstats", (PyCFunction)PySeq_get_imstats, METH_VARARGS, N_("Get stats for a specific frame and channel")},
 	{"get_imgdata", (PyCFunction)PySeq_get_imgdata, METH_VARARGS, N_("Get imgparam for a specific frame")},
 	{"get_regdata", (PyCFunction)PySeq_get_regdata, METH_VARARGS, N_("Get regparam for a specific frame and channel")},
@@ -177,12 +178,12 @@ PyTypeObject PySeqType = {
 	.tp_doc = N_("Siril Sequence object"),
 	.tp_basicsize = sizeof(PySeqObject),
 	.tp_itemsize = 0,
-    .tp_traverse = (traverseproc)PySeq_traverse,
-    .tp_clear = (inquiry)PySeq_clear,
-    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,
-    .tp_new = PySeq_new,
-    .tp_init = (initproc)PySeq_init,
-    .tp_dealloc = (destructor)PySeq_dealloc,
+	.tp_traverse = (traverseproc)PySeq_traverse,
+	.tp_clear = (inquiry)PySeq_clear,
+	.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,
+	.tp_new = PySeq_new,
+	.tp_init = (initproc)PySeq_init,
+	.tp_dealloc = (destructor)PySeq_dealloc,
 	.tp_getset = PySeq_getsetters,
 	.tp_methods = PySeq_methods,
 };
@@ -232,8 +233,8 @@ PyTypeObject PyImStatsType = {
 	.tp_doc = N_("Siril ImStats object"),
 	.tp_basicsize = sizeof(PyImStatsObject),
 	.tp_itemsize = 0,
-    .tp_traverse = (traverseproc)PyImStats_traverse,
-    .tp_clear = (inquiry)PyImStats_clear,
+	.tp_traverse = (traverseproc)PyImStats_traverse,
+	.tp_clear = (inquiry)PyImStats_clear,
 	.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,
 	.tp_new = PyType_GenericNew,
 	.tp_getset = PyImStats_getsetters,
@@ -261,9 +262,9 @@ PyTypeObject PyHomographyType = {
 	.tp_basicsize = sizeof(PyHomographyObject),
 	.tp_itemsize = 0,
 	.tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_new = PyHomography_new,
-    .tp_init = (initproc)PyHomography_init,
-    .tp_dealloc = (destructor)PyHomography_dealloc,
+	.tp_new = PyHomography_new,
+	.tp_init = (initproc)PyHomography_init,
+	.tp_dealloc = (destructor)PyHomography_dealloc,
 	.tp_as_buffer = &PyHomography_as_buffer,
 	.tp_getset = PyHomography_getsetters,
 };
@@ -330,9 +331,9 @@ PyTypeObject PyFWHMType = {
 	.tp_basicsize = sizeof(PyFWHMObject),
 	.tp_itemsize = 0,
 	.tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_new = PyFWHM_new,
-    .tp_init = (initproc)PyFWHM_init,
-    .tp_dealloc = (destructor)PyFWHM_dealloc,
+	.tp_new = PyFWHM_new,
+	.tp_init = (initproc)PyFWHM_init,
+	.tp_dealloc = (destructor)PyFWHM_dealloc,
 	.tp_getset = PyFWHM_getsetters,
 };
 

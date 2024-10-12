@@ -27,44 +27,44 @@
 #include "python/siril_python.h"
 
 PyObject *PyFWHM_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
-    PyFWHMObject *self;
-    self = (PyFWHMObject *)type->tp_alloc(type, 0);
-    if (self != NULL) {
-        self->fwhm = NULL;
-        self->should_free = 0;
-    }
-    return (PyObject *)self;
+	PyFWHMObject *self;
+	self = (PyFWHMObject *)type->tp_alloc(type, 0);
+	if (self != NULL) {
+		self->fwhm = NULL;
+		self->should_free = 0;
+	}
+	return (PyObject *)self;
 }
 
 int PyFWHM_init(PyFWHMObject *self, PyObject *args, PyObject *kwds) {
-    self->fwhm = calloc(1, sizeof(struct fwhm_struct));
-    if (self->fwhm == NULL) {
-        PyErr_SetString(PyExc_MemoryError, N_("Failed to allocate memory for fwhm_struct"));
-        return -1;
-    }
-    self->should_free = 1;
-    return 0;
+	self->fwhm = calloc(1, sizeof(struct fwhm_struct));
+	if (self->fwhm == NULL) {
+		PyErr_SetString(PyExc_MemoryError, N_("Failed to allocate memory for fwhm_struct"));
+		return -1;
+	}
+	self->should_free = 1;
+	return 0;
 }
 
 PyObject *PyFWHM_FromExisting(struct fwhm_struct *fwhm) {
-    PyFWHMObject *obj = (PyFWHMObject *)PyFWHM_new(&PyFWHMType, NULL, NULL);
-    if (obj != NULL) {
-        obj->fwhm = fwhm;
-        obj->should_free = 0;  // We don't own this data
-    }
-    return (PyObject *)obj;
+	PyFWHMObject *obj = (PyFWHMObject *)PyFWHM_new(&PyFWHMType, NULL, NULL);
+	if (obj != NULL) {
+		obj->fwhm = fwhm;
+		obj->should_free = 0;  // We don't own this data
+	}
+	return (PyObject *)obj;
 }
 
 void PyFWHM_dealloc(PyFWHMObject *self) {
-    if (self->fwhm != NULL) {
-        if (self->should_free) {
-            free(self->fwhm->star_name);
-            free(self->fwhm->units);
-            // Free any other dynamically allocated members here
-        }
-        free(self->fwhm);
-    }
-    Py_TYPE(self)->tp_free((PyObject *)self);
+	if (self->fwhm != NULL) {
+		if (self->should_free) {
+			free(self->fwhm->star_name);
+			free(self->fwhm->units);
+			// Free any other dynamically allocated members here
+		}
+		free(self->fwhm);
+	}
+	Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
 // PyFWHMType methods and getters

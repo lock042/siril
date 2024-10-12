@@ -25,39 +25,39 @@
 #include "python/siril_python.h"
 
 PyObject *PyHomography_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
-    PyHomographyObject *self;
-    self = (PyHomographyObject *)type->tp_alloc(type, 0);
-    if (self != NULL) {
-        self->homography = NULL;
-        self->should_free = 0;
-    }
-    return (PyObject *)self;
+	PyHomographyObject *self;
+	self = (PyHomographyObject *)type->tp_alloc(type, 0);
+	if (self != NULL) {
+		self->homography = NULL;
+		self->should_free = 0;
+	}
+	return (PyObject *)self;
 }
 
 int PyHomography_init(PyHomographyObject *self, PyObject *args, PyObject *kwds) {
-    self->homography = (Homography *)calloc(1, sizeof(Homography));
-    if (self->homography == NULL) {
-        PyErr_SetString(PyExc_MemoryError, "Failed to allocate memory for Homography");
-        return -1;
-    }
-    self->should_free = 1;
-    return 0;
+	self->homography = (Homography *)calloc(1, sizeof(Homography));
+	if (self->homography == NULL) {
+		PyErr_SetString(PyExc_MemoryError, "Failed to allocate memory for Homography");
+		return -1;
+	}
+	self->should_free = 1;
+	return 0;
 }
 
 void PyHomography_dealloc(PyHomographyObject *self) {
-    if (self->homography != NULL && self->should_free) {
-        free(self->homography);
-    }
-    Py_TYPE(self)->tp_free((PyObject *)self);
+	if (self->homography != NULL && self->should_free) {
+		free(self->homography);
+	}
+	Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
 PyObject *PyHomography_FromExisting(Homography *homography) {
-    PyHomographyObject *obj = (PyHomographyObject *)PyHomography_new(&PyHomographyType, NULL, NULL);
-    if (obj != NULL) {
-        obj->homography = homography;
-        obj->should_free = 0;  // We don't own this data
-    }
-    return (PyObject *)obj;
+	PyHomographyObject *obj = (PyHomographyObject *)PyHomography_new(&PyHomographyType, NULL, NULL);
+	if (obj != NULL) {
+		obj->homography = homography;
+		obj->should_free = 0;  // We don't own this data
+	}
+	return (PyObject *)obj;
 }
 
 static int PyHomography_getbuffer(PyObject *obj, Py_buffer *view, int flags) {

@@ -60,8 +60,8 @@ PyObject *PyRegData_FromExisting(regdata *data, PyObject *seq) {
 	if (obj != NULL) {
 		obj->reg = data;
 		obj->should_free = 0;
-        Py_INCREF(seq);
-        obj->seq = (PySeqObject *)seq;
+		Py_INCREF(seq);
+		obj->seq = (PySeqObject *)seq;
 	}
 	return (PyObject *)obj;
 }
@@ -93,18 +93,18 @@ PyObject* PyRegData_get_number_of_stars(PyRegDataObject *self, void *closure) {
 
 PyObject* PyRegData_get_homography(PyRegDataObject *self, PyObject *Py_UNUSED(args))
 {
-    if (self->reg == NULL) {
-        PyErr_SetString(PyExc_AttributeError, N_("RegData object has no data"));
-        return NULL;
-    }
+	if (self->reg == NULL) {
+		PyErr_SetString(PyExc_AttributeError, N_("RegData object has no data"));
+		return NULL;
+	}
 
-    // Create a new PyHomographyObject using the from_existing method
-    PyObject *homography_obj = PyHomography_FromExisting(&(self->reg->H));
+	// Create a new PyHomographyObject using the from_existing method
+	PyObject *homography_obj = PyHomography_FromExisting(&(self->reg->H));
 
-    if (homography_obj == NULL) {
-        PyErr_SetString(PyExc_RuntimeError, N_("Failed to create Homography object"));
-        return NULL;
-    }
+	if (homography_obj == NULL) {
+		PyErr_SetString(PyExc_RuntimeError, N_("Failed to create Homography object"));
+		return NULL;
+	}
 
-    return homography_obj;
+	return homography_obj;
 }

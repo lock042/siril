@@ -34,8 +34,8 @@ typedef struct {
 	PyObject_HEAD
 	imstats *stats;
 	int should_free;
-    PyObject *parent;  // This can be either PySequenceObject or PyFitsObject
-    char parent_type;  // 'S' for Sequence, 'F' for Fits
+	PyObject *parent;  // This can be either PySequenceObject or PyFitsObject
+	char parent_type;  // 'S' for Sequence, 'F' for Fits
 } PyImStatsObject;
 
 // PyHomographyObject

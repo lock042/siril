@@ -259,5 +259,5 @@ PyObject *siril_get_filename(PyObject *self, PyObject *args) {
 // Property-style getter "continue" for long running scripts to check
 // periodically to see if the user has requested them to stop
 PyObject* siril_get_continue(PyObject* self, PyObject* args) {
- 	return PyBool_FromLong(com.stop_script);
+	return PyBool_FromLong(com.stop_script);
 }

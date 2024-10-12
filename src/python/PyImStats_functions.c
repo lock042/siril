@@ -25,15 +25,15 @@
 #include "python/siril_python.h"
 
 PyObject *PyImStats_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
-    PyImStatsObject *self;
-    self = (PyImStatsObject *)type->tp_alloc(type, 0);
-    if (self != NULL) {
-        self->stats = NULL;
-        self->should_free = 0;
-        self->parent = NULL;
-        self->parent_type = '\0';
-    }
-    return (PyObject *)self;
+	PyImStatsObject *self;
+	self = (PyImStatsObject *)type->tp_alloc(type, 0);
+	if (self != NULL) {
+		self->stats = NULL;
+		self->should_free = 0;
+		self->parent = NULL;
+		self->parent_type = '\0';
+	}
+	return (PyObject *)self;
 }
 
 int PyImStats_init(PyImStatsObject *self, PyObject *args, PyObject *kwds) {
@@ -47,48 +47,48 @@ int PyImStats_init(PyImStatsObject *self, PyObject *args, PyObject *kwds) {
 }
 
 void PyImStats_dealloc(PyImStatsObject *self) {
-    if (self->parent != NULL) {
-        if (self->parent_type == 'S') {
-            PySeqObject *seq = (PySeqObject *)self->parent;
-            seq->ref_count--;
-            if (seq->ref_count == 0) {
-                Py_DECREF(self->parent);
-            }
-        } else if (self->parent_type == 'F') {
-            // Assuming PyFitsObject has a similar ref_count mechanism
-            PyFits *fits = (PyFits *)self->parent;
-            fits->ref_count--;
-            if (fits->ref_count == 0) {
-                Py_DECREF(self->parent);
-            }
-        }
-    }
-    if (self->stats != NULL && self->should_free) {
-        free(self->stats);
-    }
-    Py_TYPE(self)->tp_free((PyObject *)self);
+	if (self->parent != NULL) {
+		if (self->parent_type == 'S') {
+			PySeqObject *seq = (PySeqObject *)self->parent;
+			seq->ref_count--;
+			if (seq->ref_count == 0) {
+				Py_DECREF(self->parent);
+			}
+		} else if (self->parent_type == 'F') {
+			// Assuming PyFitsObject has a similar ref_count mechanism
+			PyFits *fits = (PyFits *)self->parent;
+			fits->ref_count--;
+			if (fits->ref_count == 0) {
+				Py_DECREF(self->parent);
+			}
+		}
+	}
+	if (self->stats != NULL && self->should_free) {
+		free(self->stats);
+	}
+	Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
 PyObject *PyImStats_FromExisting(imstats *stats, PyObject *parent, char parent_type) {
-    PyImStatsObject *obj = (PyImStatsObject *)PyImStats_new(&PyImStatsType, NULL, NULL);
-    if (obj != NULL) {
-        obj->stats = stats;
-        obj->should_free = 0;
-        Py_INCREF(parent);
-        obj->parent = parent;
-        obj->parent_type = parent_type;
-    }
-    return (PyObject *)obj;
+	PyImStatsObject *obj = (PyImStatsObject *)PyImStats_new(&PyImStatsType, NULL, NULL);
+	if (obj != NULL) {
+		obj->stats = stats;
+		obj->should_free = 0;
+		Py_INCREF(parent);
+		obj->parent = parent;
+		obj->parent_type = parent_type;
+	}
+	return (PyObject *)obj;
 }
 
 int PyImStats_traverse(PyImStatsObject *self, visitproc visit, void *arg) {
-    Py_VISIT(self->parent);
-    return 0;
+	Py_VISIT(self->parent);
+	return 0;
 }
 
 int PyImStats_clear(PyImStatsObject *self) {
-    Py_CLEAR(self->parent);
-    return 0;
+	Py_CLEAR(self->parent);
+	return 0;
 }
 
 // PyImStatsType methods and getters

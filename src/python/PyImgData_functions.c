@@ -25,67 +25,67 @@
 #include "python/siril_python.h"
 
 PyObject *PyImgData_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
-    PyImgDataObject *self;
-    self = (PyImgDataObject *)type->tp_alloc(type, 0);
-    if (self != NULL) {
-        self->img = NULL;
-        self->should_free = 0;
-    }
-    return (PyObject *)self;
+	PyImgDataObject *self;
+	self = (PyImgDataObject *)type->tp_alloc(type, 0);
+	if (self != NULL) {
+		self->img = NULL;
+		self->should_free = 0;
+	}
+	return (PyObject *)self;
 }
 
 int PyImgData_init(PyImgDataObject *self, PyObject *args, PyObject *kwds) {
-    self->img = (imgdata *)calloc(1, sizeof(imgdata));
-    if (self->img == NULL) {
-        PyErr_SetString(PyExc_MemoryError, "Failed to allocate memory for imgdata");
-        return -1;
-    }
-    self->should_free = 1;
-    return 0;
+	self->img = (imgdata *)calloc(1, sizeof(imgdata));
+	if (self->img == NULL) {
+		PyErr_SetString(PyExc_MemoryError, "Failed to allocate memory for imgdata");
+		return -1;
+	}
+	self->should_free = 1;
+	return 0;
 }
 
 void PyImgData_dealloc(PyImgDataObject *self) {
-    if (self->img != NULL && self->should_free) {
-        if (self->img->date_obs != NULL) {
-            g_date_time_unref(self->img->date_obs);
-        }
-        free(self->img);
-    }
-    Py_TYPE(self)->tp_free((PyObject *)self);
+	if (self->img != NULL && self->should_free) {
+		if (self->img->date_obs != NULL) {
+			g_date_time_unref(self->img->date_obs);
+		}
+		free(self->img);
+	}
+	Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
 PyObject *PyImgData_FromExisting(imgdata *data, PyObject *seq) {
-    PyImgDataObject *obj = (PyImgDataObject *)PyImgData_new(&PyImgDataType, NULL, NULL);
-    if (obj != NULL) {
-        obj->img = data;
-        obj->should_free = 0;
-        Py_INCREF(seq);
-        obj->seq = (PySeqObject *)seq;
-    }
-    return (PyObject *)obj;
+	PyImgDataObject *obj = (PyImgDataObject *)PyImgData_new(&PyImgDataType, NULL, NULL);
+	if (obj != NULL) {
+		obj->img = data;
+		obj->should_free = 0;
+		Py_INCREF(seq);
+		obj->seq = (PySeqObject *)seq;
+	}
+	return (PyObject *)obj;
 }
 
 PyObject* PyImgData_get_filenum(PyImgDataObject *self, void *closure) {
-    return PyLong_FromLong(self->img->filenum);
+	return PyLong_FromLong(self->img->filenum);
 }
 
 PyObject* PyImgData_get_incl(PyImgDataObject *self, void *closure) {
-    return PyBool_FromLong(self->img->incl);
+	return PyBool_FromLong(self->img->incl);
 }
 
 PyObject* PyImgData_get_date_obs(PyImgDataObject *self, void *closure) {
-    // Assuming you have a function to convert GDateTime to PyDateTime
-    return gdatetime_to_pydatetime(self->img->date_obs);
+	// Assuming you have a function to convert GDateTime to PyDateTime
+	return gdatetime_to_pydatetime(self->img->date_obs);
 }
 
 PyObject* PyImgData_get_airmass(PyImgDataObject *self, void *closure) {
-    return PyFloat_FromDouble(self->img->airmass);
+	return PyFloat_FromDouble(self->img->airmass);
 }
 
 PyObject* PyImgData_get_rx(PyImgDataObject *self, void *closure) {
-    return PyLong_FromLong(self->img->rx);
+	return PyLong_FromLong(self->img->rx);
 }
 
 PyObject* PyImgData_get_ry(PyImgDataObject *self, void *closure) {
-    return PyLong_FromLong(self->img->ry);
+	return PyLong_FromLong(self->img->ry);
 }
