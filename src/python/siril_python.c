@@ -30,6 +30,11 @@
 #include "core/siril.h"
 #include "core/siril_app_dirs.h"
 #include "python/PyFits_functions.h"
+#include "python/PyFWHM_functions.h"
+#include "python/PyHomography_functions.h"
+#include "python/PyImgData_functions.h"
+#include "python/PyImStats_functions.h"
+#include "python/PyRegData_functions.h"
 #include "python/PySeq_functions.h"
 #include "python/siril_python_module_functions.h"
 #include "gui/script_menu.h"
@@ -143,6 +148,156 @@ PyTypeObject PyFitsType = {
 	.tp_getset = PyFits_getsetters,
 };
 
+static PyGetSetDef PySeq_getsetters[] = {
+	{"seqname", (getter)PySeq_get_seqname, NULL, N_("sequence name"), NULL},
+	{"number", (getter)PySeq_get_number, NULL, N_("number of images"), NULL},
+	{"selnum", (getter)PySeq_get_selnum, NULL, N_("number of selected images"), NULL},
+	{"fixed", (getter)PySeq_get_fixed, NULL, N_("fixed length of image index in filename"), NULL},
+	{"nb_layers", (getter)PySeq_get_nb_layers, NULL, N_("number of layers"), NULL},
+	{"rx", (getter)PySeq_get_rx, NULL, N_("image width"), NULL},
+	{"ry", (getter)PySeq_get_ry, NULL, N_("image height"), NULL},
+	{"is_variable", (getter)PySeq_get_is_variable, NULL, N_("sequence has images of different sizes"), NULL},
+	{"bitpix", (getter)PySeq_get_bitpix, NULL, N_("image pixel format"), NULL},
+	{"reference_image", (getter)PySeq_get_reference_image, NULL, N_("reference image for registration"), NULL},
+	{"type", (getter)PySeq_get_type, NULL, N_("sequence type"), NULL},
+	{"current", (getter)PySeq_get_current, NULL, N_("current file number"), NULL},
+	{"needs_saving", (getter)PySeq_get_needs_saving, NULL, N_("sequence needs saving"), NULL},
+	{NULL}
+};
+
+PyMethodDef PySeq_methods[] = {
+    {"get_regdata", (PyCFunction)PySeq_get_regdata, METH_VARARGS, "Get regdata for a specified frame"},
+    {"get_homography", (PyCFunction)PySeq_get_homography, METH_VARARGS, "Get homography for a specified frame"},
+    {"get_imstats", (PyCFunction)PySeq_get_imstats, METH_VARARGS, "Get imstats for a specified frame and channel"},
+    {NULL}  /* Sentinel */
+};
+
+PyTypeObject PySeqType = {
+	PyVarObject_HEAD_INIT(NULL, 0)
+	.tp_name = "siril.Sequence",
+	.tp_doc = N_("Siril Sequence object"),
+	.tp_basicsize = sizeof(PySeqObject),
+	.tp_itemsize = 0,
+	.tp_flags = Py_TPFLAGS_DEFAULT,
+	.tp_new = PyType_GenericNew,
+	.tp_getset = PySeq_getsetters,
+	.tp_methods = PySeq_methods,
+};
+
+static PyGetSetDef PyImgData_getsetters[] = {
+	{"filenum", (getter)PyImgData_get_filenum, NULL, N_("real file index in the sequence"), NULL},
+	{"incl", (getter)PyImgData_get_incl, NULL, N_("included for future processings"), NULL},
+	{"date_obs", (getter)PyImgData_get_date_obs, NULL, N_("date of the observation"), NULL},
+	{"airmass", (getter)PyImgData_get_airmass, NULL, N_("airmass of the image"), NULL},
+	{"rx", (getter)PyImgData_get_rx, NULL, N_("image width"), NULL},
+	{"ry", (getter)PyImgData_get_ry, NULL, N_("image height"), NULL},
+	{NULL}  /* Sentinel */
+};
+
+PyTypeObject PyImgDataType = {
+	PyVarObject_HEAD_INIT(NULL, 0)
+	.tp_name = "siril.imgdata",
+	.tp_doc = N_("Siril ImgData object"),
+	.tp_basicsize = sizeof(PyImgDataObject),
+	.tp_itemsize = 0,
+	.tp_flags = Py_TPFLAGS_DEFAULT,
+	.tp_new = PyType_GenericNew,
+	.tp_getset = PyImgData_getsetters,
+};
+
+PyGetSetDef PyImStats_getsetters[] = {
+    {"total", (getter)PyImStats_get_total, NULL, N_("total number of pixels"), NULL},
+    {"ngoodpix", (getter)PyImStats_get_ngoodpix, NULL, N_("number of non-zero pixels"), NULL},
+    {"mean", (getter)PyImStats_get_mean, NULL, N_("mean value"), NULL},
+    {"median", (getter)PyImStats_get_median, NULL, N_("median value"), NULL},
+    {"sigma", (getter)PyImStats_get_sigma, NULL, N_("sigma value"), NULL},
+    {"avgDev", (getter)PyImStats_get_avgDev, NULL, N_("average deviation"), NULL},
+    {"mad", (getter)PyImStats_get_mad, NULL, N_("median absolute deviation"), NULL},
+    {"sqrtbwmv", (getter)PyImStats_get_sqrtbwmv, NULL, N_("square root of BWMV"), NULL},
+    {"location", (getter)PyImStats_get_location, NULL, N_("location"), NULL},
+    {"scale", (getter)PyImStats_get_scale, NULL, N_("scale"), NULL},
+    {"min", (getter)PyImStats_get_min, NULL, N_("minimum value"), NULL},
+    {"max", (getter)PyImStats_get_max, NULL, N_("maximum value"), NULL},
+    {"normValue", (getter)PyImStats_get_normValue, NULL, N_("normalization value"), NULL},
+    {"bgnoise", (getter)PyImStats_get_bgnoise, NULL, N_("background noise"), NULL},
+    {NULL}  /* Sentinel */
+};
+
+PyTypeObject PyImStatsType = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_name = "siril.imstats",
+    .tp_doc = N_("Siril ImStats object"),
+    .tp_basicsize = sizeof(PyImStatsObject),
+    .tp_itemsize = 0,
+    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_new = PyType_GenericNew,
+    .tp_getset = PyImStats_getsetters,
+};
+
+PyGetSetDef PyRegData_getsetters[] = {
+    {"fwhm", (getter)PyRegData_get_fwhm, NULL, N_("FWHM value"), NULL},
+    {"wfwhm", (getter)PyRegData_get_fwhm, NULL, N_("Weighted FWHM value"), NULL},
+    {"roundness", (getter)PyRegData_get_fwhm, NULL, N_("Roundness value"), NULL},
+    {"quality", (getter)PyRegData_get_fwhm, NULL, N_("Quality value"), NULL},
+    {"bg", (getter)PyRegData_get_fwhm, NULL, N_("Background level"), NULL},
+    {"H", (getter)PyRegData_get_fwhm, NULL, N_("Homography"), NULL},
+    {NULL}
+};
+
+PyMethodDef PyRegData_methods[] = {
+    {"get_homography", (PyCFunction)PyRegData_get_homography, METH_NOARGS, "Get Homography object"},
+    {NULL}
+};
+
+PyTypeObject PyRegDataType = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_name = "siril.regdata",
+    .tp_doc = "Siril RegData object",
+    .tp_basicsize = sizeof(PyRegDataObject),
+    .tp_itemsize = 0,
+    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_new = PyType_GenericNew,
+};
+
+PyGetSetDef PyFWHM_getsetters[] = {
+    {"star_name", (getter)PyFWHM_get_star_name, NULL, N_("starname"), NULL},
+    {"R", (getter)PyFWHM_get_star_name, NULL, N_("optimized box size to enclose sufficient background pixels"), NULL},
+    {"B", (getter)PyFWHM_get_star_name, NULL, N_("average sky background value"), NULL},
+    {"A", (getter)PyFWHM_get_star_name, NULL, N_("amplitude"), NULL},
+    {"x0", (getter)PyFWHM_get_star_name, NULL, N_("x coordinate of the PSF peak"), NULL},
+    {"y0", (getter)PyFWHM_get_star_name, NULL, N_("y coordinate of the PSF peak"), NULL},
+    {"sx", (getter)PyFWHM_get_star_name, NULL, N_("Size of the fitted function on the PSF x-axis"), NULL},
+    {"sy", (getter)PyFWHM_get_star_name, NULL, N_("Size of the fitted function on the PSF y-axis"), NULL},
+    {"fwhmx", (getter)PyFWHM_get_star_name, NULL, N_("FWHM along the PSF's x-axis in pixels"), NULL},
+    {"fwhmy", (getter)PyFWHM_get_star_name, NULL, N_("FWHM along the PSF's y-axis in pixels"), NULL},
+    {"fwhmx_arcsec", (getter)PyFWHM_get_star_name, NULL, N_("FWHM along the PSF x-axis in arcsec"), NULL},
+    {"fwhmy_arcsec", (getter)PyFWHM_get_star_name, NULL, N_("FWHM along the PSF y-axis in arcsec"), NULL},
+    {"angle", (getter)PyFWHM_get_star_name, NULL, N_("rotation angle of the PSF's x, y axes with respect to the image axes"), NULL},
+    {"rmse", (getter)PyFWHM_get_star_name, NULL, N_("RMS error"), NULL},
+    {"sat", (getter)PyFWHM_get_star_name, NULL, N_("level above which a star is considered saturated"), NULL},
+    {"has_saturated", (getter)PyFWHM_get_star_name, NULL, N_("flags if the star is saturated"), NULL},
+    {"beta", (getter)PyFWHM_get_star_name, NULL, N_("Moffat beta parameter"), NULL},
+    {"xpos", (getter)PyFWHM_get_star_name, NULL, N_("x position of the star in the image"), NULL},
+    {"ypos", (getter)PyFWHM_get_star_name, NULL, N_("y position of the star in the image"), NULL},
+    {"mag", (getter)PyFWHM_get_star_name, NULL, N_("Magnitude"), NULL},
+    {"Bmag", (getter)PyFWHM_get_star_name, NULL, N_("Blue filter magnitude"), NULL},
+    {"SNR", (getter)PyFWHM_get_star_name, NULL, N_("Signal to Noise Ratio"), NULL},
+    {"layer", (getter)PyFWHM_get_star_name, NULL, N_("Channel"), NULL},
+    {"ra", (getter)PyFWHM_get_star_name, NULL, N_("Right Ascension"), NULL},
+    {"dec", (getter)PyFWHM_get_star_name, NULL, N_("Declination"), NULL},
+    {NULL}
+};
+
+PyTypeObject PyFWHMType = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_name = "siril.fwhm",
+    .tp_doc = N_("Siril FWHM object"),
+    .tp_basicsize = sizeof(PyFWHMObject),
+    .tp_itemsize = 0,
+    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_new = PyType_GenericNew,
+};
+
 // Define methods for the module
 static PyMethodDef SirilMethods[] = {
 	{"filename", (PyCFunction)siril_get_filename, METH_NOARGS, N_("Get the current image filename")},
@@ -155,63 +310,6 @@ static PyMethodDef SirilMethods[] = {
 	{"wd", (PyCFunction)siril_get_wd, METH_NOARGS, N_("Get the current working directory")},
 	{"should_stop", (PyCFunction)siril_get_continue, METH_NOARGS, N_("Check if the Stop button has been pressed")},
 	{NULL, NULL, 0, NULL}  /* Sentinel */
-};
-
-typedef struct {
-    PyObject_HEAD
-    struct sequ *seq;
-} PySeqObject;
-
-static PyTypeObject PySeqType = {
-    PyVarObject_HEAD_INIT(NULL, 0)
-    .tp_name = "siril.Sequence",
-    .tp_doc = N_("Siril Sequence object"),
-    .tp_basicsize = sizeof(PySeqObject),
-    .tp_itemsize = 0,
-    .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_new = PyType_GenericNew,
-};
-
-static PyGetSetDef PySeq_getsetters[] = {
-    {"seqname", (getter)PySeq_get_seqname, NULL, N_("sequence name"), NULL},
-    {"number", (getter)PySeq_get_number, NULL, N_("number of images"), NULL},
-    {"selnum", (getter)PySeq_get_selnum, NULL, N_("number of selected images"), NULL},
-    {"fixed", (getter)PySeq_get_fixed, NULL, N_("fixed length of image index in filename"), NULL},
-    {"nb_layers", (getter)PySeq_get_nb_layers, NULL, N_("number of layers"), NULL},
-    {"rx", (getter)PySeq_get_rx, NULL, N_("image width"), NULL},
-    {"ry", (getter)PySeq_get_ry, NULL, N_("image height"), NULL},
-    {"is_variable", (getter)PySeq_get_is_variable, NULL, N_("sequence has images of different sizes"), NULL},
-    {"bitpix", (getter)PySeq_get_bitpix, NULL, N_("image pixel format"), NULL},
-    {"reference_image", (getter)PySeq_get_reference_image, NULL, N_("reference image for registration"), NULL},
-    {"type", (getter)PySeq_get_type, NULL, N_("sequence type"), NULL},
-    {"current", (getter)PySeq_get_current, NULL, N_("current file number"), NULL},
-    {"needs_saving", (getter)PySeq_get_needs_saving, NULL, N_("sequence needs saving"), NULL},
-    {NULL}
-};
-
-typedef struct {
-    PyObject_HEAD
-    imgdata *img;
-} PyImgDataObject;
-
-static PyTypeObject PyImgDataType = {
-    PyVarObject_HEAD_INIT(NULL, 0)
-    .tp_name = "siril.ImgData",
-    .tp_doc = "Siril ImgData object",
-    .tp_basicsize = sizeof(PyImgDataObject),
-    .tp_itemsize = 0,
-    .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_new = PyType_GenericNew,
-};
-
-static PyGetSetDef PyImgData_getsetters[] = {
-    {"filenum", (getter)PyImgData_get_filenum, NULL, "real file index in the sequence", NULL},
-    {"incl", (getter)PyImgData_get_incl, NULL, "included for future processings", NULL},
-    {"date_obs", (getter)PyImgData_get_date_obs, NULL, "date of the observation", NULL},
-    {"airmass", (getter)PyImgData_get_airmass, NULL, "airmass of the image", NULL},
-    {"rx", (getter)PyImgData_get_rx, NULL, "image width", NULL},
-    {"ry", (getter)PyImgData_get_ry, NULL, "image height", NULL},
-    {NULL}  /* Sentinel */
 };
 
 // Module definition
@@ -229,6 +327,10 @@ PyMODINIT_FUNC PyInit_siril(void) {
 
 	if (PyType_Ready(&PyFitsType) < 0)
 		return NULL;
+	if (PyType_Ready(&PySeqType) < 0)
+		return NULL;
+	if (PyType_Ready(&PyImgDataType) < 0)
+		return NULL;
 
 	m = PyModule_Create(&sirilmodule);
 	if (m == NULL)
@@ -241,6 +343,19 @@ PyMODINIT_FUNC PyInit_siril(void) {
 		return NULL;
 	}
 
+	Py_INCREF(&PySeqType);
+	if (PyModule_AddObject(m, "seq", (PyObject *)&PySeqType) < 0) {
+		Py_DECREF(&PySeqType);
+		Py_DECREF(m);
+		return NULL;
+	}
+
+	Py_INCREF(&PyImgDataType);
+	if (PyModule_AddObject(m, "imgdata", (PyObject *)&PyImgDataType) < 0) {
+		Py_DECREF(&PyImgDataType);
+		Py_DECREF(m);
+		return NULL;
+	}
 	return m;
 }
 

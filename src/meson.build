@@ -202,8 +202,12 @@ src_files = [
   'python/siril_python.c',
   'python/siril_python_module_functions.c',
   'python/PyFits_functions.c',
-  'python/PySeq_functions.c',
+  'python/PyFWHM_functions.c',
+  'python/PyHomography_functions.c',
   'python/PyImgData_functions.c',
+  'python/PyImStats_functions.c',
+  'python/PyRegData_functions.c',
+  'python/PySeq_functions.c',
 
   'gui/about_dialog.c',
   'gui/annotate.c',

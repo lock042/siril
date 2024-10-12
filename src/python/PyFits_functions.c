@@ -34,7 +34,7 @@
 #include "algos/statistics.h"
 
 // Helper function to convert GDateTime to PyDateTime
-static PyObject* gdatetime_to_pydatetime(GDateTime *gdt) {
+PyObject* gdatetime_to_pydatetime(GDateTime *gdt) {
 	// Ensure the datetime API is ready to use
 	if (!PyDateTimeAPI) {
 		PyDateTime_IMPORT;
@@ -870,6 +870,9 @@ PyObject *PyFits_gfit(PyObject *cls, PyObject *args) {
 }
 
 // Stats are obtained by methods not getters as they take a channel parameter
+// Stats methods are available for PyFits as well as directly for PyImStats
+// because we can be more rigorous here and calculate the stats if they are
+// no yet calculated: the PyImStats methods are more low-level.
 
 // Helper function to check validity of channel index and stats
 static int check_stats(PyFits *self, int n, int option) {
@@ -1046,4 +1049,22 @@ PyObject* PyFits_get_bgnoise(PyFits *self, PyObject *args) {
 	if (!check_stats(self, n, STATS_BASIC))
 		return NULL;
 	return PyFloat_FromDouble(self->fit->stats[n]->bgnoise);
+}
+
+PyObject* PyFits_get_ImStats(PyFits *self, PyObject *args) {
+	int channel;
+	if (!PyArg_ParseTuple(args, "i", &channel))
+		return NULL;
+
+	if (channel < 0 || channel >= self->fit->naxes[2]) {
+		PyErr_SetString(PyExc_IndexError, "Channel index out of range");
+		return NULL;
+	}
+
+	PyImStatsObject *imstats_obj = (PyImStatsObject*)PyObject_New(PyImStatsObject, &PyImStatsType);
+	if (!imstats_obj)
+		return NULL;
+
+	imstats_obj->stats = self->fit->stats[channel];
+	return (PyObject*)imstats_obj;
 }

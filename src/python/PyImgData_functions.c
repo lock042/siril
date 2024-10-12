@@ -34,7 +34,7 @@ PyObject* PyImgData_get_incl(PyImgDataObject *self, void *closure) {
 
 PyObject* PyImgData_get_date_obs(PyImgDataObject *self, void *closure) {
     // Assuming you have a function to convert GDateTime to PyDateTime
-    return PyDateTime_from_GDateTime(self->img->date_obs);
+    return gdatetime_to_pydatetime(self->img->date_obs);
 }
 
 PyObject* PyImgData_get_airmass(PyImgDataObject *self, void *closure) {
@@ -48,4 +48,3 @@ PyObject* PyImgData_get_rx(PyImgDataObject *self, void *closure) {
 PyObject* PyImgData_get_ry(PyImgDataObject *self, void *closure) {
     return PyLong_FromLong(self->img->ry);
 }
-

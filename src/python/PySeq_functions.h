@@ -1,5 +1,5 @@
-#ifndef PYFITS_FUNCTIONS_H
-#define PYFITS_FUNCTIONS_H
+#ifndef PYSEQ_FUNCTIONS_H
+#define PYSEQ_FUNCTIONS_H
 
 #include "python/siril_python.h"
 
@@ -16,5 +16,8 @@ PyObject* PySeq_get_reference_image(PySeqObject *self, void *closure);
 PyObject* PySeq_get_type(PySeqObject *self, void *closure);
 PyObject* PySeq_get_current(PySeqObject *self, void *closure);
 PyObject* PySeq_get_needs_saving(PySeqObject *self, void *closure);
-
+PyObject* PySeq_get_imgdata(PySeqObject *self, PyObject *args);
+PyObject* PySeq_get_regdata(PySeqObject *self, PyObject *args);
+PyObject* PySeq_get_homography(PySeqObject *self, PyObject *args);
+PyObject* PySeq_get_imstats(PySeqObject *self, PyObject *args);
 #endif

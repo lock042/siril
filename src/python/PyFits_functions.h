@@ -85,5 +85,5 @@ PyObject* PyFits_get_max(PyFits *self, PyObject *args);
 PyObject* PyFits_get_normvalue(PyFits *self, PyObject *args);
 PyObject* PyFits_get_bgnoise(PyFits *self, PyObject *args);
 PyObject *PyFits_get_config_item(PyFits *self, PyObject *args);
-
+PyObject* PyFits_get_ImStats(PySeqObject *self, PyObject *args);
 #endif

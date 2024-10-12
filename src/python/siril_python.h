@@ -3,6 +3,7 @@
 
 #include <Python.h>
 
+// Object type definitions
 typedef struct {
 	PyObject_HEAD
 	fits *fit;
@@ -11,10 +12,49 @@ typedef struct {
 	int should_free;  // Flag to indicate if the fits pointer itself should be freed
 } PyFits;
 
-// Object type definitions
+// PyImgDataObject
+typedef struct {
+    PyObject_HEAD
+    imgdata *img;
+} PyImgDataObject;
+
+// PySeqObject
+typedef struct {
+    PyObject_HEAD
+    struct sequ *seq;
+} PySeqObject;
+
+// PyImStatsObject
+typedef struct {
+    PyObject_HEAD
+    imstats *stats;
+} PyImStatsObject;
+
+// PyHomographyObject
+typedef struct {
+    PyObject_HEAD
+    Homography *homography;
+} PyHomographyObject;
+
+// PyRegDataObject
+typedef struct {
+    PyObject_HEAD
+    regdata *reg;
+} PyRegDataObject;
+
+// PyFWHMObject
+typedef struct {
+    PyObject_HEAD
+    struct fwhm_struct *fwhm;
+} PyFWHMObject;
+
 PyTypeObject PyFitsType;
 PyTypeObject PySeqType;
 PyTypeObject PyImgDataType;
+PyTypeObject PyImStatsType;
+PyTypeObject PyHomographyType;
+PyTypeObject PyRegDataType;
+PyTypeObject PyFWHMType;
 
 // Common helper functions
 PyObject* gdatetime_to_pydatetime(GDateTime *gdt);

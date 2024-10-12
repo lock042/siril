@@ -1,5 +1,5 @@
-#ifndef PYFITS_FUNCTIONS_H
-#define PYFITS_FUNCTIONS_H
+#ifndef PYIMGDATA_FUNCTIONS_H
+#define PYIMGDATA_FUNCTIONS_H
 
 #include "python/siril_python.h"
 
