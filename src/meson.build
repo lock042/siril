@@ -203,6 +203,7 @@ src_files = [
   'python/siril_python_module_functions.c',
   'python/PyFits_functions.c',
   'python/PySeq_functions.c',
+  'python/PyImgData_functions.c',
 
   'gui/about_dialog.c',
   'gui/annotate.c',

@@ -157,6 +157,63 @@ static PyMethodDef SirilMethods[] = {
 	{NULL, NULL, 0, NULL}  /* Sentinel */
 };
 
+typedef struct {
+    PyObject_HEAD
+    struct sequ *seq;
+} PySeqObject;
+
+static PyTypeObject PySeqType = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_name = "siril.Sequence",
+    .tp_doc = N_("Siril Sequence object"),
+    .tp_basicsize = sizeof(PySeqObject),
+    .tp_itemsize = 0,
+    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_new = PyType_GenericNew,
+};
+
+static PyGetSetDef PySeq_getsetters[] = {
+    {"seqname", (getter)PySeq_get_seqname, NULL, N_("sequence name"), NULL},
+    {"number", (getter)PySeq_get_number, NULL, N_("number of images"), NULL},
+    {"selnum", (getter)PySeq_get_selnum, NULL, N_("number of selected images"), NULL},
+    {"fixed", (getter)PySeq_get_fixed, NULL, N_("fixed length of image index in filename"), NULL},
+    {"nb_layers", (getter)PySeq_get_nb_layers, NULL, N_("number of layers"), NULL},
+    {"rx", (getter)PySeq_get_rx, NULL, N_("image width"), NULL},
+    {"ry", (getter)PySeq_get_ry, NULL, N_("image height"), NULL},
+    {"is_variable", (getter)PySeq_get_is_variable, NULL, N_("sequence has images of different sizes"), NULL},
+    {"bitpix", (getter)PySeq_get_bitpix, NULL, N_("image pixel format"), NULL},
+    {"reference_image", (getter)PySeq_get_reference_image, NULL, N_("reference image for registration"), NULL},
+    {"type", (getter)PySeq_get_type, NULL, N_("sequence type"), NULL},
+    {"current", (getter)PySeq_get_current, NULL, N_("current file number"), NULL},
+    {"needs_saving", (getter)PySeq_get_needs_saving, NULL, N_("sequence needs saving"), NULL},
+    {NULL}
+};
+
+typedef struct {
+    PyObject_HEAD
+    imgdata *img;
+} PyImgDataObject;
+
+static PyTypeObject PyImgDataType = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_name = "siril.ImgData",
+    .tp_doc = "Siril ImgData object",
+    .tp_basicsize = sizeof(PyImgDataObject),
+    .tp_itemsize = 0,
+    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_new = PyType_GenericNew,
+};
+
+static PyGetSetDef PyImgData_getsetters[] = {
+    {"filenum", (getter)PyImgData_get_filenum, NULL, "real file index in the sequence", NULL},
+    {"incl", (getter)PyImgData_get_incl, NULL, "included for future processings", NULL},
+    {"date_obs", (getter)PyImgData_get_date_obs, NULL, "date of the observation", NULL},
+    {"airmass", (getter)PyImgData_get_airmass, NULL, "airmass of the image", NULL},
+    {"rx", (getter)PyImgData_get_rx, NULL, "image width", NULL},
+    {"ry", (getter)PyImgData_get_ry, NULL, "image height", NULL},
+    {NULL}  /* Sentinel */
+};
+
 // Module definition
 static struct PyModuleDef sirilmodule = {
 	PyModuleDef_HEAD_INIT,
