@@ -816,6 +816,7 @@ struct cominf {
 
 	gboolean headless;		// pure console, no GUI
 	gboolean script;		// script being executed, always TRUE when headless is
+	gboolean python_script;	// python script being executed
 	GThread *thread;		// the thread for processing
 	GMutex mutex;			// a mutex we use for this thread
 	GThread *python_thread;	// the thread for the python interpreter

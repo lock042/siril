@@ -1,5 +1,5 @@
-#ifndef SIRIL_PYTHON_FUNCTIONS_H
-#define SIRIL_PYTHON_FUNCTIONS_H
+#ifndef PYFITS_FUNCTIONS_H
+#define PYFITS_FUNCTIONS_H
 
 #include "python/siril_python.h"
 
@@ -85,13 +85,5 @@ PyObject* PyFits_get_max(PyFits *self, PyObject *args);
 PyObject* PyFits_get_normvalue(PyFits *self, PyObject *args);
 PyObject* PyFits_get_bgnoise(PyFits *self, PyObject *args);
 PyObject *PyFits_get_config_item(PyFits *self, PyObject *args);
-
-PyObject* py_gui_block(PyObject* self, PyObject* args);
-PyObject* py_gui_unblock(PyObject* self, PyObject* args);
-PyObject* PyNotifyGfitModified(PyObject* self, PyObject* args);
-PyObject* siril_processcommand(PyObject* self, PyObject* args);
-PyObject *siril_log_message_wrapper(PyObject *self, PyObject *args);
-PyObject *siril_get_wd(PyObject *self, PyObject *args);
-PyObject *siril_get_filename(PyObject *self, PyObject *args);
 
 #endif

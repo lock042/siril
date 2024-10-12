@@ -29,7 +29,9 @@
 
 #include "core/siril.h"
 #include "core/siril_app_dirs.h"
-#include "python/siril_python_functions.h"
+#include "python/PyFits_functions.h"
+#include "python/PySeq_functions.h"
+#include "python/siril_python_module_functions.h"
 #include "gui/script_menu.h"
 #include "core/siril_log.h"
 
@@ -147,9 +149,11 @@ static PyMethodDef SirilMethods[] = {
 	{"gui_block", py_gui_block, METH_NOARGS, N_("Block the GUI by disabling widgets except for Stop")},
 	{"gui_unblock", py_gui_unblock, METH_NOARGS, N_("Unblock the GUI by enabling all widgets")},
 	{"log", siril_log_message_wrapper, METH_VARARGS, N_("Log a message")},
-	{"notify_image_modified", (PyCFunction)PyNotifyGfitModified, METH_NOARGS, N_("Notify that the main image has been modified.")},
+	{"update_progress", siril_progress_wrapper, METH_VARARGS, N_("Update the progress bar")},
+	{"notify_image_modified", (PyCFunction)siril_notify_gfit_modified, METH_NOARGS, N_("Notify that the main image has been modified.")},
 	{"cmd", siril_processcommand, METH_VARARGS, N_("Execute a Siril command")},
 	{"wd", (PyCFunction)siril_get_wd, METH_NOARGS, N_("Get the current working directory")},
+	{"should_stop", (PyCFunction)siril_get_continue, METH_NOARGS, N_("Check if the Stop button has been pressed")},
 	{NULL, NULL, 0, NULL}  /* Sentinel */
 };
 
@@ -343,6 +347,7 @@ gboolean run_python_script_from_file(gpointer p) {
 	const char *script_path = (const char*) p; // must not be freed, it is owned by the list of script menu items
 	PyGILState_STATE gstate;
 	com.script = TRUE;
+	com.python_script = TRUE;
 	gstate = PyGILState_Ensure();  // Acquire the GIL
 	FILE *fp = g_fopen(script_path, "r");
 	int retval = -1;
@@ -391,6 +396,7 @@ gboolean run_python_script_from_file(gpointer p) {
 	PyGC_Collect(); // Force garbage collection, in case the script didn't bother
 	PyGILState_Release(gstate);  // Release the GIL
 	com.script = FALSE;
+	com.python_script = FALSE;
 	g_idle_add(script_widgets_idle, NULL);
 	return retval;
 }
@@ -401,6 +407,7 @@ gboolean run_python_script_from_mem(gpointer p) {
 	PyGILState_STATE gstate;
 	gstate = PyGILState_Ensure();  // Acquire the GIL
 	com.script = TRUE;
+	com.python_script = TRUE;
 	int retval = FALSE;
 	PyObject *main_module = PyImport_AddModule("__main__");
 	if (main_module == NULL) {
@@ -437,12 +444,14 @@ gboolean run_python_script_from_mem(gpointer p) {
 	PyGC_Collect(); // Force garbage collection, in case the script didn't bother
 	PyGILState_Release(gstate);  // Release the GIL
 	com.script = FALSE;
+	com.python_script = FALSE;
 	// Note: script_widgets_idle() call is omitted as per the original comment
 	return retval;
 }
 
 // Function to run Python script, delegating to the Python thread if necessary
 void run_python_script_in_python_thread(const char *script, gboolean from_file) {
+	com.stop_script = FALSE;
 	// Check if we're in the Python thread
 	if (g_thread_self() == com.python_thread) {
 		// We're already in the Python thread, so just run the script directly

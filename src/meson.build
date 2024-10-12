@@ -200,7 +200,9 @@ src_files = [
   'opencv/kombat/kombat.h',
 
   'python/siril_python.c',
-  'python/siril_python_functions.c',
+  'python/siril_python_module_functions.c',
+  'python/PyFits_functions.c',
+  'python/PySeq_functions.c',
 
   'gui/about_dialog.c',
   'gui/annotate.c',
