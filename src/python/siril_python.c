@@ -165,9 +165,9 @@ static PyGetSetDef PySeq_getsetters[] = {
 };
 
 PyMethodDef PySeq_methods[] = {
-	{"get_regdata", (PyCFunction)PySeq_get_regdata, METH_VARARGS, "Get regdata for a specified frame"},
-	{"get_homography", (PyCFunction)PySeq_get_homography, METH_VARARGS, "Get homography for a specified frame"},
-	{"get_imstats", (PyCFunction)PySeq_get_imstats, METH_VARARGS, "Get imstats for a specified frame and channel"},
+	{"get_imstats", (PyCFunction)PySeq_get_imstats, METH_VARARGS, N_("Get stats for a specific frame and channel")},
+	{"get_imgdata", (PyCFunction)PySeq_get_imgdata, METH_VARARGS, N_("Get imgparam for a specific frame")},
+	{"get_regdata", (PyCFunction)PySeq_get_regdata, METH_VARARGS, N_("Get regparam for a specific frame and channel")},
 	{NULL}  /* Sentinel */
 };
 
@@ -177,8 +177,12 @@ PyTypeObject PySeqType = {
 	.tp_doc = N_("Siril Sequence object"),
 	.tp_basicsize = sizeof(PySeqObject),
 	.tp_itemsize = 0,
-	.tp_flags = Py_TPFLAGS_DEFAULT,
-	.tp_new = PyType_GenericNew,
+    .tp_traverse = (traverseproc)PySeq_traverse,
+    .tp_clear = (inquiry)PySeq_clear,
+    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,
+    .tp_new = PySeq_new,
+    .tp_init = (initproc)PySeq_init,
+    .tp_dealloc = (destructor)PySeq_dealloc,
 	.tp_getset = PySeq_getsetters,
 	.tp_methods = PySeq_methods,
 };
@@ -219,7 +223,7 @@ PyGetSetDef PyImStats_getsetters[] = {
 	{"max", (getter)PyImStats_get_max, NULL, N_("maximum value"), NULL},
 	{"normValue", (getter)PyImStats_get_normValue, NULL, N_("normalization value"), NULL},
 	{"bgnoise", (getter)PyImStats_get_bgnoise, NULL, N_("background noise"), NULL},
-	{NULL}  /* Sentinel */
+	{NULL}
 };
 
 PyTypeObject PyImStatsType = {
@@ -228,7 +232,9 @@ PyTypeObject PyImStatsType = {
 	.tp_doc = N_("Siril ImStats object"),
 	.tp_basicsize = sizeof(PyImStatsObject),
 	.tp_itemsize = 0,
-	.tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_traverse = (traverseproc)PyImStats_traverse,
+    .tp_clear = (inquiry)PyImStats_clear,
+	.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,
 	.tp_new = PyType_GenericNew,
 	.tp_getset = PyImStats_getsetters,
 };
@@ -247,6 +253,7 @@ PyGetSetDef PyHomography_getsetters[] = {
 	{"inliers", (getter)PyHomography_get_Inliers, NULL, N_("inliers"), NULL},
 	{NULL}
 };
+
 PyTypeObject PyHomographyType = {
 	PyVarObject_HEAD_INIT(NULL, 0)
 	.tp_name = "siril.homography",
@@ -254,18 +261,19 @@ PyTypeObject PyHomographyType = {
 	.tp_basicsize = sizeof(PyHomographyObject),
 	.tp_itemsize = 0,
 	.tp_flags = Py_TPFLAGS_DEFAULT,
-	.tp_new = PyType_GenericNew,
+    .tp_new = PyHomography_new,
+    .tp_init = (initproc)PyHomography_init,
+    .tp_dealloc = (destructor)PyHomography_dealloc,
 	.tp_as_buffer = &PyHomography_as_buffer,
 	.tp_getset = PyHomography_getsetters,
 };
 
 PyGetSetDef PyRegData_getsetters[] = {
 	{"fwhm", (getter)PyRegData_get_fwhm, NULL, N_("FWHM value"), NULL},
-	{"wfwhm", (getter)PyRegData_get_fwhm, NULL, N_("Weighted FWHM value"), NULL},
-	{"roundness", (getter)PyRegData_get_fwhm, NULL, N_("Roundness value"), NULL},
-	{"quality", (getter)PyRegData_get_fwhm, NULL, N_("Quality value"), NULL},
-	{"bg", (getter)PyRegData_get_fwhm, NULL, N_("Background level"), NULL},
-	{"H", (getter)PyRegData_get_fwhm, NULL, N_("Homography"), NULL},
+	{"wfwhm", (getter)PyRegData_get_wfwhm, NULL, N_("Weighted FWHM value"), NULL},
+	{"roundness", (getter)PyRegData_get_roundness, NULL, N_("Roundness value"), NULL},
+	{"quality", (getter)PyRegData_get_quality, NULL, N_("Quality value"), NULL},
+	{"bg", (getter)PyRegData_get_bg, NULL, N_("Background level"), NULL},
 	{NULL}
 };
 
@@ -322,7 +330,9 @@ PyTypeObject PyFWHMType = {
 	.tp_basicsize = sizeof(PyFWHMObject),
 	.tp_itemsize = 0,
 	.tp_flags = Py_TPFLAGS_DEFAULT,
-	.tp_new = PyType_GenericNew,
+    .tp_new = PyFWHM_new,
+    .tp_init = (initproc)PyFWHM_init,
+    .tp_dealloc = (destructor)PyFWHM_dealloc,
 	.tp_getset = PyFWHM_getsetters,
 };
 

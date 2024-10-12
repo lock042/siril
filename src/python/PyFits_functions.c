@@ -24,6 +24,7 @@
 
 #include "core/siril.h"
 #include "python/siril_python.h"
+#include "python/PyImStats_functions.h"
 #include "core/command_line_processor.h"
 #include "gui/script_menu.h"
 #include "gui/progress_and_log.h"
@@ -1057,14 +1058,17 @@ PyObject* PyFits_get_ImStats(PyFits *self, PyObject *args) {
 		return NULL;
 
 	if (channel < 0 || channel >= self->fit->naxes[2]) {
-		PyErr_SetString(PyExc_IndexError, "Channel index out of range");
+		PyErr_SetString(PyExc_IndexError, N_("Channel index out of range"));
 		return NULL;
 	}
 
-	PyImStatsObject *imstats_obj = (PyImStatsObject*)PyObject_New(PyImStatsObject, &PyImStatsType);
-	if (!imstats_obj)
-		return NULL;
+	if (!self->fit->stats || !self->fit->stats[channel]) {
+		Py_RETURN_NONE;
+	}
 
-	imstats_obj->stats = self->fit->stats[channel];
-	return (PyObject*)imstats_obj;
+	PyObject *stats = PyImStats_FromExisting(self->fit->stats[channel], (PyObject *)self, 'F');
+	if (stats != NULL) {
+		self->ref_count++;
+	}
+	return stats;
 }

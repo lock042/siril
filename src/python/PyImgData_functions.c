@@ -24,6 +24,47 @@
 #include "core/siril.h"
 #include "python/siril_python.h"
 
+PyObject *PyImgData_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
+    PyImgDataObject *self;
+    self = (PyImgDataObject *)type->tp_alloc(type, 0);
+    if (self != NULL) {
+        self->img = NULL;
+        self->should_free = 0;
+    }
+    return (PyObject *)self;
+}
+
+int PyImgData_init(PyImgDataObject *self, PyObject *args, PyObject *kwds) {
+    self->img = (imgdata *)calloc(1, sizeof(imgdata));
+    if (self->img == NULL) {
+        PyErr_SetString(PyExc_MemoryError, "Failed to allocate memory for imgdata");
+        return -1;
+    }
+    self->should_free = 1;
+    return 0;
+}
+
+void PyImgData_dealloc(PyImgDataObject *self) {
+    if (self->img != NULL && self->should_free) {
+        if (self->img->date_obs != NULL) {
+            g_date_time_unref(self->img->date_obs);
+        }
+        free(self->img);
+    }
+    Py_TYPE(self)->tp_free((PyObject *)self);
+}
+
+PyObject *PyImgData_FromExisting(imgdata *data, PyObject *seq) {
+    PyImgDataObject *obj = (PyImgDataObject *)PyImgData_new(&PyImgDataType, NULL, NULL);
+    if (obj != NULL) {
+        obj->img = data;
+        obj->should_free = 0;
+        Py_INCREF(seq);
+        obj->seq = (PySeqObject *)seq;
+    }
+    return (PyObject *)obj;
+}
+
 PyObject* PyImgData_get_filenum(PyImgDataObject *self, void *closure) {
     return PyLong_FromLong(self->img->filenum);
 }
