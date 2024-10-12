@@ -113,7 +113,6 @@ static PyGetSetDef PyFits_getsetters[] = {
 
 // Define methods for PyFits
 static PyMethodDef PyFits_methods[] = {
-	{"get_config_item", (PyCFunction)PyFits_get_config_item, METH_CLASS | METH_VARARGS, N_("Get a config item")},
 	{"image", (PyCFunction)PyFits_gfit, METH_CLASS | METH_NOARGS, N_("Get the Siril main image as a PyFits object")},
 	{"get_total", (PyCFunction)PyFits_get_total, METH_VARARGS, N_("Return the total pixel count for the specified channel.")},
 	{"get_ngoodpix", (PyCFunction)PyFits_get_ngoodpix, METH_VARARGS, N_("Return the number of good pixels for the specified channel.")},
@@ -166,15 +165,15 @@ static PyGetSetDef PySeq_getsetters[] = {
 };
 
 PyMethodDef PySeq_methods[] = {
-    {"get_regdata", (PyCFunction)PySeq_get_regdata, METH_VARARGS, "Get regdata for a specified frame"},
-    {"get_homography", (PyCFunction)PySeq_get_homography, METH_VARARGS, "Get homography for a specified frame"},
-    {"get_imstats", (PyCFunction)PySeq_get_imstats, METH_VARARGS, "Get imstats for a specified frame and channel"},
-    {NULL}  /* Sentinel */
+	{"get_regdata", (PyCFunction)PySeq_get_regdata, METH_VARARGS, "Get regdata for a specified frame"},
+	{"get_homography", (PyCFunction)PySeq_get_homography, METH_VARARGS, "Get homography for a specified frame"},
+	{"get_imstats", (PyCFunction)PySeq_get_imstats, METH_VARARGS, "Get imstats for a specified frame and channel"},
+	{NULL}  /* Sentinel */
 };
 
 PyTypeObject PySeqType = {
 	PyVarObject_HEAD_INIT(NULL, 0)
-	.tp_name = "siril.Sequence",
+	.tp_name = "siril.seq",
 	.tp_doc = N_("Siril Sequence object"),
 	.tp_basicsize = sizeof(PySeqObject),
 	.tp_itemsize = 0,
@@ -206,101 +205,131 @@ PyTypeObject PyImgDataType = {
 };
 
 PyGetSetDef PyImStats_getsetters[] = {
-    {"total", (getter)PyImStats_get_total, NULL, N_("total number of pixels"), NULL},
-    {"ngoodpix", (getter)PyImStats_get_ngoodpix, NULL, N_("number of non-zero pixels"), NULL},
-    {"mean", (getter)PyImStats_get_mean, NULL, N_("mean value"), NULL},
-    {"median", (getter)PyImStats_get_median, NULL, N_("median value"), NULL},
-    {"sigma", (getter)PyImStats_get_sigma, NULL, N_("sigma value"), NULL},
-    {"avgDev", (getter)PyImStats_get_avgDev, NULL, N_("average deviation"), NULL},
-    {"mad", (getter)PyImStats_get_mad, NULL, N_("median absolute deviation"), NULL},
-    {"sqrtbwmv", (getter)PyImStats_get_sqrtbwmv, NULL, N_("square root of BWMV"), NULL},
-    {"location", (getter)PyImStats_get_location, NULL, N_("location"), NULL},
-    {"scale", (getter)PyImStats_get_scale, NULL, N_("scale"), NULL},
-    {"min", (getter)PyImStats_get_min, NULL, N_("minimum value"), NULL},
-    {"max", (getter)PyImStats_get_max, NULL, N_("maximum value"), NULL},
-    {"normValue", (getter)PyImStats_get_normValue, NULL, N_("normalization value"), NULL},
-    {"bgnoise", (getter)PyImStats_get_bgnoise, NULL, N_("background noise"), NULL},
-    {NULL}  /* Sentinel */
+	{"total", (getter)PyImStats_get_total, NULL, N_("total number of pixels"), NULL},
+	{"ngoodpix", (getter)PyImStats_get_ngoodpix, NULL, N_("number of non-zero pixels"), NULL},
+	{"mean", (getter)PyImStats_get_mean, NULL, N_("mean value"), NULL},
+	{"median", (getter)PyImStats_get_median, NULL, N_("median value"), NULL},
+	{"sigma", (getter)PyImStats_get_sigma, NULL, N_("sigma value"), NULL},
+	{"avgDev", (getter)PyImStats_get_avgDev, NULL, N_("average deviation"), NULL},
+	{"mad", (getter)PyImStats_get_mad, NULL, N_("median absolute deviation"), NULL},
+	{"sqrtbwmv", (getter)PyImStats_get_sqrtbwmv, NULL, N_("square root of BWMV"), NULL},
+	{"location", (getter)PyImStats_get_location, NULL, N_("location"), NULL},
+	{"scale", (getter)PyImStats_get_scale, NULL, N_("scale"), NULL},
+	{"min", (getter)PyImStats_get_min, NULL, N_("minimum value"), NULL},
+	{"max", (getter)PyImStats_get_max, NULL, N_("maximum value"), NULL},
+	{"normValue", (getter)PyImStats_get_normValue, NULL, N_("normalization value"), NULL},
+	{"bgnoise", (getter)PyImStats_get_bgnoise, NULL, N_("background noise"), NULL},
+	{NULL}  /* Sentinel */
 };
 
 PyTypeObject PyImStatsType = {
-    PyVarObject_HEAD_INIT(NULL, 0)
-    .tp_name = "siril.imstats",
-    .tp_doc = N_("Siril ImStats object"),
-    .tp_basicsize = sizeof(PyImStatsObject),
-    .tp_itemsize = 0,
-    .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_new = PyType_GenericNew,
-    .tp_getset = PyImStats_getsetters,
+	PyVarObject_HEAD_INIT(NULL, 0)
+	.tp_name = "siril.imstats",
+	.tp_doc = N_("Siril ImStats object"),
+	.tp_basicsize = sizeof(PyImStatsObject),
+	.tp_itemsize = 0,
+	.tp_flags = Py_TPFLAGS_DEFAULT,
+	.tp_new = PyType_GenericNew,
+	.tp_getset = PyImStats_getsetters,
+};
+
+PyGetSetDef PyHomography_getsetters[] = {
+	{"h00", (getter)PyHomography_get_h00, NULL, N_("h00 value"), NULL},
+	{"h01", (getter)PyHomography_get_h01, NULL, N_("h01 value"), NULL},
+	{"h02", (getter)PyHomography_get_h02, NULL, N_("h02 value"), NULL},
+	{"h10", (getter)PyHomography_get_h10, NULL, N_("h10 value"), NULL},
+	{"h11", (getter)PyHomography_get_h11, NULL, N_("h11 value"), NULL},
+	{"h12", (getter)PyHomography_get_h12, NULL, N_("h12 value"), NULL},
+	{"h20", (getter)PyHomography_get_h20, NULL, N_("h20 value"), NULL},
+	{"h21", (getter)PyHomography_get_h21, NULL, N_("h21 value"), NULL},
+	{"h22", (getter)PyHomography_get_h22, NULL, N_("h22 value"), NULL},
+	{"pair_matched", (getter)PyHomography_get_pair_matched, NULL, N_("pairs matched"), NULL},
+	{"inliers", (getter)PyHomography_get_Inliers, NULL, N_("inliers"), NULL},
+	{NULL}
+};
+PyTypeObject PyHomographyType = {
+	PyVarObject_HEAD_INIT(NULL, 0)
+	.tp_name = "siril.homography",
+	.tp_doc = N_("Siril Homography object"),
+	.tp_basicsize = sizeof(PyHomographyObject),
+	.tp_itemsize = 0,
+	.tp_flags = Py_TPFLAGS_DEFAULT,
+	.tp_new = PyType_GenericNew,
+	.tp_as_buffer = &PyHomography_as_buffer,
+	.tp_getset = PyHomography_getsetters,
 };
 
 PyGetSetDef PyRegData_getsetters[] = {
-    {"fwhm", (getter)PyRegData_get_fwhm, NULL, N_("FWHM value"), NULL},
-    {"wfwhm", (getter)PyRegData_get_fwhm, NULL, N_("Weighted FWHM value"), NULL},
-    {"roundness", (getter)PyRegData_get_fwhm, NULL, N_("Roundness value"), NULL},
-    {"quality", (getter)PyRegData_get_fwhm, NULL, N_("Quality value"), NULL},
-    {"bg", (getter)PyRegData_get_fwhm, NULL, N_("Background level"), NULL},
-    {"H", (getter)PyRegData_get_fwhm, NULL, N_("Homography"), NULL},
-    {NULL}
+	{"fwhm", (getter)PyRegData_get_fwhm, NULL, N_("FWHM value"), NULL},
+	{"wfwhm", (getter)PyRegData_get_fwhm, NULL, N_("Weighted FWHM value"), NULL},
+	{"roundness", (getter)PyRegData_get_fwhm, NULL, N_("Roundness value"), NULL},
+	{"quality", (getter)PyRegData_get_fwhm, NULL, N_("Quality value"), NULL},
+	{"bg", (getter)PyRegData_get_fwhm, NULL, N_("Background level"), NULL},
+	{"H", (getter)PyRegData_get_fwhm, NULL, N_("Homography"), NULL},
+	{NULL}
 };
 
 PyMethodDef PyRegData_methods[] = {
-    {"get_homography", (PyCFunction)PyRegData_get_homography, METH_NOARGS, "Get Homography object"},
-    {NULL}
+	{"get_homography", (PyCFunction)PyRegData_get_homography, METH_NOARGS, "Get Homography object"},
+	{NULL}
 };
 
 PyTypeObject PyRegDataType = {
-    PyVarObject_HEAD_INIT(NULL, 0)
-    .tp_name = "siril.regdata",
-    .tp_doc = "Siril RegData object",
-    .tp_basicsize = sizeof(PyRegDataObject),
-    .tp_itemsize = 0,
-    .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_new = PyType_GenericNew,
+	PyVarObject_HEAD_INIT(NULL, 0)
+	.tp_name = "siril.regdata",
+	.tp_doc = N_("Siril RegData object"),
+	.tp_basicsize = sizeof(PyRegDataObject),
+	.tp_itemsize = 0,
+	.tp_flags = Py_TPFLAGS_DEFAULT,
+	.tp_new = PyType_GenericNew,
+	.tp_getset = PyRegData_getsetters,
+	.tp_methods = PyRegData_methods,
 };
 
 PyGetSetDef PyFWHM_getsetters[] = {
-    {"star_name", (getter)PyFWHM_get_star_name, NULL, N_("starname"), NULL},
-    {"R", (getter)PyFWHM_get_star_name, NULL, N_("optimized box size to enclose sufficient background pixels"), NULL},
-    {"B", (getter)PyFWHM_get_star_name, NULL, N_("average sky background value"), NULL},
-    {"A", (getter)PyFWHM_get_star_name, NULL, N_("amplitude"), NULL},
-    {"x0", (getter)PyFWHM_get_star_name, NULL, N_("x coordinate of the PSF peak"), NULL},
-    {"y0", (getter)PyFWHM_get_star_name, NULL, N_("y coordinate of the PSF peak"), NULL},
-    {"sx", (getter)PyFWHM_get_star_name, NULL, N_("Size of the fitted function on the PSF x-axis"), NULL},
-    {"sy", (getter)PyFWHM_get_star_name, NULL, N_("Size of the fitted function on the PSF y-axis"), NULL},
-    {"fwhmx", (getter)PyFWHM_get_star_name, NULL, N_("FWHM along the PSF's x-axis in pixels"), NULL},
-    {"fwhmy", (getter)PyFWHM_get_star_name, NULL, N_("FWHM along the PSF's y-axis in pixels"), NULL},
-    {"fwhmx_arcsec", (getter)PyFWHM_get_star_name, NULL, N_("FWHM along the PSF x-axis in arcsec"), NULL},
-    {"fwhmy_arcsec", (getter)PyFWHM_get_star_name, NULL, N_("FWHM along the PSF y-axis in arcsec"), NULL},
-    {"angle", (getter)PyFWHM_get_star_name, NULL, N_("rotation angle of the PSF's x, y axes with respect to the image axes"), NULL},
-    {"rmse", (getter)PyFWHM_get_star_name, NULL, N_("RMS error"), NULL},
-    {"sat", (getter)PyFWHM_get_star_name, NULL, N_("level above which a star is considered saturated"), NULL},
-    {"has_saturated", (getter)PyFWHM_get_star_name, NULL, N_("flags if the star is saturated"), NULL},
-    {"beta", (getter)PyFWHM_get_star_name, NULL, N_("Moffat beta parameter"), NULL},
-    {"xpos", (getter)PyFWHM_get_star_name, NULL, N_("x position of the star in the image"), NULL},
-    {"ypos", (getter)PyFWHM_get_star_name, NULL, N_("y position of the star in the image"), NULL},
-    {"mag", (getter)PyFWHM_get_star_name, NULL, N_("Magnitude"), NULL},
-    {"Bmag", (getter)PyFWHM_get_star_name, NULL, N_("Blue filter magnitude"), NULL},
-    {"SNR", (getter)PyFWHM_get_star_name, NULL, N_("Signal to Noise Ratio"), NULL},
-    {"layer", (getter)PyFWHM_get_star_name, NULL, N_("Channel"), NULL},
-    {"ra", (getter)PyFWHM_get_star_name, NULL, N_("Right Ascension"), NULL},
-    {"dec", (getter)PyFWHM_get_star_name, NULL, N_("Declination"), NULL},
-    {NULL}
+	{"star_name", (getter)PyFWHM_get_star_name, NULL, N_("starname"), NULL},
+	{"R", (getter)PyFWHM_get_star_name, NULL, N_("optimized box size to enclose sufficient background pixels"), NULL},
+	{"B", (getter)PyFWHM_get_star_name, NULL, N_("average sky background value"), NULL},
+	{"A", (getter)PyFWHM_get_star_name, NULL, N_("amplitude"), NULL},
+	{"x0", (getter)PyFWHM_get_star_name, NULL, N_("x coordinate of the PSF peak"), NULL},
+	{"y0", (getter)PyFWHM_get_star_name, NULL, N_("y coordinate of the PSF peak"), NULL},
+	{"sx", (getter)PyFWHM_get_star_name, NULL, N_("Size of the fitted function on the PSF x-axis"), NULL},
+	{"sy", (getter)PyFWHM_get_star_name, NULL, N_("Size of the fitted function on the PSF y-axis"), NULL},
+	{"fwhmx", (getter)PyFWHM_get_star_name, NULL, N_("FWHM along the PSF's x-axis in pixels"), NULL},
+	{"fwhmy", (getter)PyFWHM_get_star_name, NULL, N_("FWHM along the PSF's y-axis in pixels"), NULL},
+	{"fwhmx_arcsec", (getter)PyFWHM_get_star_name, NULL, N_("FWHM along the PSF x-axis in arcsec"), NULL},
+	{"fwhmy_arcsec", (getter)PyFWHM_get_star_name, NULL, N_("FWHM along the PSF y-axis in arcsec"), NULL},
+	{"angle", (getter)PyFWHM_get_star_name, NULL, N_("rotation angle of the PSF's x, y axes with respect to the image axes"), NULL},
+	{"rmse", (getter)PyFWHM_get_star_name, NULL, N_("RMS error"), NULL},
+	{"sat", (getter)PyFWHM_get_star_name, NULL, N_("level above which a star is considered saturated"), NULL},
+	{"has_saturated", (getter)PyFWHM_get_star_name, NULL, N_("flags if the star is saturated"), NULL},
+	{"beta", (getter)PyFWHM_get_star_name, NULL, N_("Moffat beta parameter"), NULL},
+	{"xpos", (getter)PyFWHM_get_star_name, NULL, N_("x position of the star in the image"), NULL},
+	{"ypos", (getter)PyFWHM_get_star_name, NULL, N_("y position of the star in the image"), NULL},
+	{"mag", (getter)PyFWHM_get_star_name, NULL, N_("Magnitude"), NULL},
+	{"Bmag", (getter)PyFWHM_get_star_name, NULL, N_("Blue filter magnitude"), NULL},
+	{"SNR", (getter)PyFWHM_get_star_name, NULL, N_("Signal to Noise Ratio"), NULL},
+	{"layer", (getter)PyFWHM_get_star_name, NULL, N_("Channel"), NULL},
+	{"ra", (getter)PyFWHM_get_star_name, NULL, N_("Right Ascension"), NULL},
+	{"dec", (getter)PyFWHM_get_star_name, NULL, N_("Declination"), NULL},
+	{NULL}
 };
 
 PyTypeObject PyFWHMType = {
-    PyVarObject_HEAD_INIT(NULL, 0)
-    .tp_name = "siril.fwhm",
-    .tp_doc = N_("Siril FWHM object"),
-    .tp_basicsize = sizeof(PyFWHMObject),
-    .tp_itemsize = 0,
-    .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_new = PyType_GenericNew,
+	PyVarObject_HEAD_INIT(NULL, 0)
+	.tp_name = "siril.fwhm",
+	.tp_doc = N_("Siril FWHM object"),
+	.tp_basicsize = sizeof(PyFWHMObject),
+	.tp_itemsize = 0,
+	.tp_flags = Py_TPFLAGS_DEFAULT,
+	.tp_new = PyType_GenericNew,
+	.tp_getset = PyFWHM_getsetters,
 };
 
 // Define methods for the module
 static PyMethodDef SirilMethods[] = {
 	{"filename", (PyCFunction)siril_get_filename, METH_NOARGS, N_("Get the current image filename")},
+	{"get_config_item", (PyCFunction)siril_get_config_item, METH_VARARGS, N_("Get a config item")},
 	{"gui_block", py_gui_block, METH_NOARGS, N_("Block the GUI by disabling widgets except for Stop")},
 	{"gui_unblock", py_gui_unblock, METH_NOARGS, N_("Unblock the GUI by enabling all widgets")},
 	{"log", siril_log_message_wrapper, METH_VARARGS, N_("Log a message")},
@@ -331,6 +360,14 @@ PyMODINIT_FUNC PyInit_siril(void) {
 		return NULL;
 	if (PyType_Ready(&PyImgDataType) < 0)
 		return NULL;
+	if (PyType_Ready(&PyImStatsType) < 0)
+		return NULL;
+	if (PyType_Ready(&PyRegDataType) < 0)
+		return NULL;
+	if (PyType_Ready(&PyHomographyType) < 0)
+		return NULL;
+	if (PyType_Ready(&PyFWHMType) < 0)
+		return NULL;
 
 	m = PyModule_Create(&sirilmodule);
 	if (m == NULL)
@@ -356,6 +393,34 @@ PyMODINIT_FUNC PyInit_siril(void) {
 		Py_DECREF(m);
 		return NULL;
 	}
+
+	Py_INCREF(&PyFitsType);
+	if (PyModule_AddObject(m, "fwhm", (PyObject *) &PyFWHMType) < 0) {
+		Py_DECREF(&PyFWHMType);
+		Py_DECREF(m);
+		return NULL;
+	}
+	Py_INCREF(&PyFitsType);
+	if (PyModule_AddObject(m, "imstats", (PyObject *) &PyImStatsType) < 0) {
+		Py_DECREF(&PyImStatsType);
+		Py_DECREF(m);
+		return NULL;
+	}
+	Py_INCREF(&PyFitsType);
+	if (PyModule_AddObject(m, "regdata", (PyObject *) &PyRegDataType) < 0) {
+		Py_DECREF(&PyRegDataType);
+		Py_DECREF(m);
+		return NULL;
+	}
+	Py_INCREF(&PyFitsType);
+	if (PyModule_AddObject(m, "homography", (PyObject *) &PyHomographyType) < 0) {
+		Py_DECREF(&PyHomographyType);
+		Py_DECREF(m);
+		return NULL;
+	}
+
+
+
 	return m;
 }
 

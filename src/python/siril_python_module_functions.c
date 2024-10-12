@@ -57,7 +57,7 @@ static PyObject *get_config_item_as_pyobject(char *input) {
 	return retval;
 }
 
-PyObject *PyFits_get_config_item(PyFits *self, PyObject *args) {
+PyObject *siril_get_config_item(PyObject *self, PyObject *args) {
 	char *input_str;
 
 	// Parse the Python argument as a string
