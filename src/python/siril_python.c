@@ -136,7 +136,7 @@ PyTypeObject PyFitsType = {
 	.tp_new = PyFits_new,
 	.tp_init = (initproc)PyFits_init,
 	.tp_dealloc = (destructor)PyFits_dealloc,
-    .tp_as_buffer = &PyFits_as_buffer,
+	.tp_as_buffer = &PyFits_as_buffer,
 	.tp_methods = PyFits_methods,
 	.tp_getset = PyFits_getsetters,
 };
@@ -155,11 +155,11 @@ static PyMethodDef SirilMethods[] = {
 
 // Module definition
 static struct PyModuleDef sirilmodule = {
-    PyModuleDef_HEAD_INIT,
-    "siril",
-    N_("Siril Python API"),
-    -1,
-    SirilMethods
+	PyModuleDef_HEAD_INIT,
+	"siril",
+	N_("Siril Python API"),
+	-1,
+	SirilMethods
 };
 
 // Module initialization function
@@ -186,131 +186,131 @@ PyMODINIT_FUNC PyInit_siril(void) {
 // Functions to do with initializing and finalizing the interpreter
 
 static gboolean check_or_create_python_venv(const char *venv_dir, gboolean *already_active) {
-    const char *current_venv = g_getenv("VIRTUAL_ENV");
+	const char *current_venv = g_getenv("VIRTUAL_ENV");
 	*already_active = FALSE;
-    if (current_venv) {
-        siril_log_message(_("A virtual environment is already active: %s. Using the active virtual environment.\n"), current_venv);
+	if (current_venv) {
+		siril_log_message(_("A virtual environment is already active: %s. Using the active virtual environment.\n"), current_venv);
 		*already_active = TRUE;
-        return TRUE;
-    }
+		return TRUE;
+	}
 
-    char *venv_python = NULL;
+	char *venv_python = NULL;
 
-    #ifdef _WIN32
-    venv_python = g_build_filename(venv_dir, "Scripts", "python.exe", NULL);
-    #else
-    venv_python = g_build_filename(venv_dir, "bin", "python", NULL);
-    #endif
+	#ifdef _WIN32
+	venv_python = g_build_filename(venv_dir, "Scripts", "python.exe", NULL);
+	#else
+	venv_python = g_build_filename(venv_dir, "bin", "python", NULL);
+	#endif
 
-    gboolean venv_exists = g_file_test(venv_python, G_FILE_TEST_IS_EXECUTABLE);
-    g_free(venv_python);
+	gboolean venv_exists = g_file_test(venv_python, G_FILE_TEST_IS_EXECUTABLE);
+	g_free(venv_python);
 
-    if (venv_exists) {
-        siril_debug_print("A virtual environment already exists: %s.\n", current_venv);
-        return TRUE;
-    }
+	if (venv_exists) {
+		siril_debug_print("A virtual environment already exists: %s.\n", current_venv);
+		return TRUE;
+	}
 
-    // Create a new venv
-    char *python_path = NULL;
-    #ifdef _WIN32
-    python_path = g_find_program_in_path("python.exe");
-    #else
-    python_path = g_find_program_in_path("python3");
-    if (!python_path) {
-        python_path = g_find_program_in_path("python");
-    }
-    #endif
+	// Create a new venv
+	char *python_path = NULL;
+	#ifdef _WIN32
+	python_path = g_find_program_in_path("python.exe");
+	#else
+	python_path = g_find_program_in_path("python3");
+	if (!python_path) {
+		python_path = g_find_program_in_path("python");
+	}
+	#endif
 
-    if (!python_path) {
-        siril_log_message(_("Python not found. Cannot create virtual environment.\n"));
-        return FALSE;
-    }
+	if (!python_path) {
+		siril_log_message(_("Python not found. Cannot create virtual environment.\n"));
+		return FALSE;
+	}
 
-    char *argv[] = {python_path, "-m", "venv", (char *)venv_dir, NULL};
-    gchar *stdout_output = NULL, *stderr_output = NULL;
-    GError *error = NULL;
-    gint exit_status;
+	char *argv[] = {python_path, "-m", "venv", (char *)venv_dir, NULL};
+	gchar *stdout_output = NULL, *stderr_output = NULL;
+	GError *error = NULL;
+	gint exit_status;
 
-    gboolean success = g_spawn_sync(
-        NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL,
-        &stdout_output, &stderr_output, &exit_status, &error
-    );
+	gboolean success = g_spawn_sync(
+		NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL,
+		&stdout_output, &stderr_output, &exit_status, &error
+	);
 
-    g_free(python_path);
+	g_free(python_path);
 
-    if (!success) {
-        siril_log_message(_("Failed to create Python virtual environment: %s"), error->message);
-        g_clear_error(&error);
-        g_free(stdout_output);
-        g_free(stderr_output);
-        return FALSE;
-    }
+	if (!success) {
+		siril_log_message(_("Failed to create Python virtual environment: %s"), error->message);
+		g_clear_error(&error);
+		g_free(stdout_output);
+		g_free(stderr_output);
+		return FALSE;
+	}
 
-    if (exit_status != 0) {
-        siril_log_message(_("Python virtual environment creation failed with exit code %d: %s"), exit_status, stderr_output);
-        g_free(stdout_output);
-        g_free(stderr_output);
-        return FALSE;
-    }
+	if (exit_status != 0) {
+		siril_log_message(_("Python virtual environment creation failed with exit code %d: %s"), exit_status, stderr_output);
+		g_free(stdout_output);
+		g_free(stderr_output);
+		return FALSE;
+	}
 	siril_log_message(_("Created Python virtual environment: %s\n"), venv_dir);
 
-    g_free(stdout_output);
-    g_free(stderr_output);
+	g_free(stdout_output);
+	g_free(stderr_output);
 
-    return TRUE;
+	return TRUE;
 }
 
 static gboolean activate_python_venv(const char *venv_dir) {
-    // Set environment variables to activate the venv
-    g_setenv("VIRTUAL_ENV", venv_dir, TRUE);
+	// Set environment variables to activate the venv
+	g_setenv("VIRTUAL_ENV", venv_dir, TRUE);
 
-    char *new_path = NULL;
-    #ifdef _WIN32
-    char *scripts_dir = g_build_filename(venv_dir, "Scripts", NULL);
-    #else
-    char *scripts_dir = g_build_filename(venv_dir, "bin", NULL);
-    #endif
+	char *new_path = NULL;
+	#ifdef _WIN32
+	char *scripts_dir = g_build_filename(venv_dir, "Scripts", NULL);
+	#else
+	char *scripts_dir = g_build_filename(venv_dir, "bin", NULL);
+	#endif
 
-    const char *old_path = g_getenv("PATH");
-    if (old_path) {
-        new_path = g_strdup_printf("%s%c%s", scripts_dir, G_SEARCHPATH_SEPARATOR, old_path);
-    } else {
-        new_path = g_strdup(scripts_dir);
-    }
-    g_setenv("PATH", new_path, TRUE);
+	const char *old_path = g_getenv("PATH");
+	if (old_path) {
+		new_path = g_strdup_printf("%s%c%s", scripts_dir, G_SEARCHPATH_SEPARATOR, old_path);
+	} else {
+		new_path = g_strdup(scripts_dir);
+	}
+	g_setenv("PATH", new_path, TRUE);
 
-    g_free(scripts_dir);
-    g_free(new_path);
+	g_free(scripts_dir);
+	g_free(new_path);
 
-    // Unset PYTHONHOME if it's set
-    g_unsetenv("PYTHONHOME");
+	// Unset PYTHONHOME if it's set
+	g_unsetenv("PYTHONHOME");
 
-    // Update sys.prefix and sys.exec_prefix
-    PyObject *sys_module = PyImport_ImportModule("sys");
-    if (sys_module) {
-        PyObject *py_venv_dir = PyUnicode_DecodeFSDefault(venv_dir);
-        if (py_venv_dir) {
-            PyObject_SetAttrString(sys_module, "prefix", py_venv_dir);
-            PyObject_SetAttrString(sys_module, "exec_prefix", py_venv_dir);
-            Py_DECREF(py_venv_dir);
-        } else {
-            PyErr_Print();
-        }
-        Py_DECREF(sys_module);
-    } else {
-        PyErr_Print();
-    }
+	// Update sys.prefix and sys.exec_prefix
+	PyObject *sys_module = PyImport_ImportModule("sys");
+	if (sys_module) {
+		PyObject *py_venv_dir = PyUnicode_DecodeFSDefault(venv_dir);
+		if (py_venv_dir) {
+			PyObject_SetAttrString(sys_module, "prefix", py_venv_dir);
+			PyObject_SetAttrString(sys_module, "exec_prefix", py_venv_dir);
+			Py_DECREF(py_venv_dir);
+		} else {
+			PyErr_Print();
+		}
+		Py_DECREF(sys_module);
+	} else {
+		PyErr_Print();
+	}
 
-    // Update sys.path
-    if (PyRun_SimpleString("import sys; sys.path = [p for p in sys.path if 'site-packages' not in p]") != 0) {
-        PyErr_Print();
-    }
-    if (PyRun_SimpleString("import site; site.main()") != 0) {
-        PyErr_Print();
-    }
+	// Update sys.path
+	if (PyRun_SimpleString("import sys; sys.path = [p for p in sys.path if 'site-packages' not in p]") != 0) {
+		PyErr_Print();
+	}
+	if (PyRun_SimpleString("import site; site.main()") != 0) {
+		PyErr_Print();
+	}
 
-    siril_log_message(_("Activated Python virtual environment: %s\n"), venv_dir);
-    return TRUE;
+	siril_log_message(_("Activated Python virtual environment: %s\n"), venv_dir);
+	return TRUE;
 }
 
 // Function to initialize Python interpreter and load our module
@@ -443,23 +443,23 @@ gboolean run_python_script_from_mem(gpointer p) {
 
 // Function to run Python script, delegating to the Python thread if necessary
 void run_python_script_in_python_thread(const char *script, gboolean from_file) {
-    // Check if we're in the Python thread
-    if (g_thread_self() == com.python_thread) {
-        // We're already in the Python thread, so just run the script directly
-        if (from_file) {
+	// Check if we're in the Python thread
+	if (g_thread_self() == com.python_thread) {
+		// We're already in the Python thread, so just run the script directly
+		if (from_file) {
 			run_python_script_from_file((gpointer) script);
 		} else {
 			run_python_script_from_mem((gpointer) script);
 		}
-    } else {
-        // Use g_main_context_invoke() to schedule the script execution
-        // in the Python thread's main loop/context
+	} else {
+		// Use g_main_context_invoke() to schedule the script execution
+		// in the Python thread's main loop/context
 		if (from_file) {
 			g_main_context_invoke(com.python_context, run_python_script_from_file, (gpointer) script);
 		} else {
 			g_main_context_invoke(com.python_context, run_python_script_from_mem, (gpointer) script);
 		}
-    }
+	}
 }
 
 // Function to finalize Python interpreter

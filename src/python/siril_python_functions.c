@@ -121,98 +121,98 @@ int PyFits_init(PyFits *self, PyObject *args, PyObject *kwds) {
 }
 
 static int PyFits_getbuffer(PyObject *obj, Py_buffer *view, int flags) {
-    PyFits *self = (PyFits *)obj;
-    fits *fit = self->fit;
+	PyFits *self = (PyFits *)obj;
+	fits *fit = self->fit;
 
-    if (!fit) {
-        PyErr_SetString(PyExc_ValueError, "Fits object is NULL");
-        return -1;
-    }
+	if (!fit) {
+		PyErr_SetString(PyExc_ValueError, "Fits object is NULL");
+		return -1;
+	}
 
-    // Determine dimensionality
-    int ndim = (fit->naxes[2] > 1) ? 3 : 2;
-    view->ndim = ndim;
-    view->readonly = 0;  // Assume writable for now
+	// Determine dimensionality
+	int ndim = (fit->naxes[2] > 1) ? 3 : 2;
+	view->ndim = ndim;
+	view->readonly = 0;  // Assume writable for now
 
-    // Allocate memory for shape and strides
-    Py_ssize_t *shape = PyMem_Malloc(ndim * sizeof(Py_ssize_t));
-    Py_ssize_t *strides = PyMem_Malloc(ndim * sizeof(Py_ssize_t));
+	// Allocate memory for shape and strides
+	Py_ssize_t *shape = PyMem_Malloc(ndim * sizeof(Py_ssize_t));
+	Py_ssize_t *strides = PyMem_Malloc(ndim * sizeof(Py_ssize_t));
 
-    if (!shape || !strides) {
-        PyErr_NoMemory();
-        PyMem_Free(shape);
-        PyMem_Free(strides);
-        return -1;
-    }
+	if (!shape || !strides) {
+		PyErr_NoMemory();
+		PyMem_Free(shape);
+		PyMem_Free(strides);
+		return -1;
+	}
 
-    // Set shape
-    if (ndim == 3) {
-        shape[0] = fit->naxes[2];
-        shape[1] = fit->naxes[1];
-        shape[2] = fit->naxes[0];
-    } else {  // ndim == 2
-        shape[0] = fit->naxes[1];
-        shape[1] = fit->naxes[0];
-    }
-    view->shape = shape;
+	// Set shape
+	if (ndim == 3) {
+		shape[0] = fit->naxes[2];
+		shape[1] = fit->naxes[1];
+		shape[2] = fit->naxes[0];
+	} else {  // ndim == 2
+		shape[0] = fit->naxes[1];
+		shape[1] = fit->naxes[0];
+	}
+	view->shape = shape;
 
-    // Set buffer and itemsize based on data type
-    if (fit->type == DATA_USHORT) {
-        view->buf = fit->data;
-        view->itemsize = sizeof(WORD);
-        view->format = "H";  // Unsigned short
-    } else if (fit->type == DATA_FLOAT) {
-        view->buf = fit->fdata;
-        view->itemsize = sizeof(float);
-        view->format = "f";  // Float
-    } else {
-        PyErr_SetString(PyExc_ValueError, "Unsupported data type");
-        PyMem_Free(shape);
-        PyMem_Free(strides);
-        return -1;
-    }
+	// Set buffer and itemsize based on data type
+	if (fit->type == DATA_USHORT) {
+		view->buf = fit->data;
+		view->itemsize = sizeof(WORD);
+		view->format = "H";  // Unsigned short
+	} else if (fit->type == DATA_FLOAT) {
+		view->buf = fit->fdata;
+		view->itemsize = sizeof(float);
+		view->format = "f";  // Float
+	} else {
+		PyErr_SetString(PyExc_ValueError, "Unsupported data type");
+		PyMem_Free(shape);
+		PyMem_Free(strides);
+		return -1;
+	}
 
-    // Calculate total length
-    view->len = view->itemsize * fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
+	// Calculate total length
+	view->len = view->itemsize * fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
 
-    // Set strides for row-major order
-    if (ndim == 3) {
-        strides[0] = fit->naxes[1] * fit->naxes[0] * view->itemsize;
-        strides[1] = fit->naxes[0] * view->itemsize;
-        strides[2] = view->itemsize;
-    } else {  // ndim == 2
-        strides[0] = fit->naxes[0] * view->itemsize;
-        strides[1] = view->itemsize;
-    }
-    view->strides = strides;
+	// Set strides for row-major order
+	if (ndim == 3) {
+		strides[0] = fit->naxes[1] * fit->naxes[0] * view->itemsize;
+		strides[1] = fit->naxes[0] * view->itemsize;
+		strides[2] = view->itemsize;
+	} else {  // ndim == 2
+		strides[0] = fit->naxes[0] * view->itemsize;
+		strides[1] = view->itemsize;
+	}
+	view->strides = strides;
 
-    view->suboffsets = NULL;
-    view->internal = NULL;
+	view->suboffsets = NULL;
+	view->internal = NULL;
 
-    // Check if writable buffer is requested but data is read-only
-    if ((flags & PyBUF_WRITABLE) && view->readonly) {
-        PyErr_SetString(PyExc_BufferError, "Object is not writable");
-        PyMem_Free(shape);
-        PyMem_Free(strides);
-        return -1;
-    }
+	// Check if writable buffer is requested but data is read-only
+	if ((flags & PyBUF_WRITABLE) && view->readonly) {
+		PyErr_SetString(PyExc_BufferError, "Object is not writable");
+		PyMem_Free(shape);
+		PyMem_Free(strides);
+		return -1;
+	}
 
-    return 0;
+	return 0;
 }
 
 static void PyFits_releasebuffer(PyObject *obj, Py_buffer *view) {
-    // Free the shape and strides arrays we allocated in getbuffer
-    PyMem_Free(view->shape);
-    PyMem_Free(view->strides);
+	// Free the shape and strides arrays we allocated in getbuffer
+	PyMem_Free(view->shape);
+	PyMem_Free(view->strides);
 
-    // Clear the Py_buffer struct without freeing the actual data
+	// Clear the Py_buffer struct without freeing the actual data
 	// which is still owned by the PyFits (or by Siril)
-    memset(view, 0, sizeof(Py_buffer));
+	memset(view, 0, sizeof(Py_buffer));
 }
 
 PyBufferProcs PyFits_as_buffer = {
-    (getbufferproc)PyFits_getbuffer,
-    (releasebufferproc)PyFits_releasebuffer  // Standard release function
+	(getbufferproc)PyFits_getbuffer,
+	(releasebufferproc)PyFits_releasebuffer  // Standard release function
 };
 
 // Method to get rx
@@ -828,33 +828,33 @@ PyObject *PyFits_get_icc_profile(PyFits *self, void *closure) {
 }
 
 PyObject* PyFits_get_history(PyFits *self, void *closure) {
-    if (self->fit == NULL) {
-        PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
-        return NULL;
-    }
+	if (self->fit == NULL) {
+		PyErr_SetString(PyExc_AttributeError, _("fit is not initialized"));
+		return NULL;
+	}
 
-    GSList *history = self->fit->history;
-    PyObject *py_list = PyList_New(0);
-    if (py_list == NULL) {
-        Py_RETURN_NONE; // There is no history. We can return None rather than throwing an exception
-    }
+	GSList *history = self->fit->history;
+	PyObject *py_list = PyList_New(0);
+	if (py_list == NULL) {
+		Py_RETURN_NONE; // There is no history. We can return None rather than throwing an exception
+	}
 
-    for (GSList *current = history; current != NULL; current = current->next) {
-        char *history_item = (char *)current->data;
-        PyObject *py_str = PyUnicode_FromString(history_item);
-        if (py_str == NULL) {
-            Py_DECREF(py_list);
-            Py_RETURN_NONE;
-        }
-        if (PyList_Append(py_list, py_str) < 0) {
-            Py_DECREF(py_str);
-            Py_DECREF(py_list);
-            Py_RETURN_NONE;
-        }
-        Py_DECREF(py_str);
-    }
+	for (GSList *current = history; current != NULL; current = current->next) {
+		char *history_item = (char *)current->data;
+		PyObject *py_str = PyUnicode_FromString(history_item);
+		if (py_str == NULL) {
+			Py_DECREF(py_list);
+			Py_RETURN_NONE;
+		}
+		if (PyList_Append(py_list, py_str) < 0) {
+			Py_DECREF(py_str);
+			Py_DECREF(py_list);
+			Py_RETURN_NONE;
+		}
+		Py_DECREF(py_str);
+	}
 
-    return py_list;
+	return py_list;
 }
 
 // Method to access gfit
@@ -1048,11 +1048,12 @@ PyObject* PyFits_get_bgnoise(PyFits *self, PyObject *args) {
 }
 
 /******************
- ******************
- **              **
- ** siril module **
- **              **
- *****************/
+******************
+**              **
+** siril module **
+**              **
+******************
+*****************/
 
 static PyObject *get_config_item_as_pyobject(char *input) {
 	/* parsing a single variable command */
