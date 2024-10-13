@@ -785,7 +785,7 @@ void on_distomaster_save_button_clicked(GtkButton *button, gpointer user_data) {
 		gtk_entry_set_text(distomaster_entry, file);
 		gtk_editable_set_position(GTK_EDITABLE(distomaster_entry), -1);
 		g_free(file);
-		gtk_toggle_button_set_active(masterbutton,TRUE);
+		gtk_toggle_button_set_active(masterbutton, TRUE);
 	}
 	siril_widget_destroy(widgetdialog);
 	g_free(filename);

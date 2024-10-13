@@ -691,27 +691,27 @@ void update_preferences_from_model() {
 
 	/* tab Pre-processing */
 	if (pref->prepro.bias_lib) {
-		gtk_entry_set_text(GTK_ENTRY(lookup_widget("biaslib_entry")),pref->prepro.bias_lib);
+		gtk_entry_set_text(GTK_ENTRY(lookup_widget("biaslib_entry")), pref->prepro.bias_lib);
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_bias")), pref->prepro.use_bias_lib);
 	}
 
 	if (pref->prepro.dark_lib) {
-		gtk_entry_set_text(GTK_ENTRY(lookup_widget("darklib_entry")),pref->prepro.dark_lib);
+		gtk_entry_set_text(GTK_ENTRY(lookup_widget("darklib_entry")), pref->prepro.dark_lib);
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_dark")), pref->prepro.use_dark_lib);
 	}
 
 	if (pref->prepro.flat_lib) {
-		gtk_entry_set_text(GTK_ENTRY(lookup_widget("flatlib_entry")),pref->prepro.flat_lib);
+		gtk_entry_set_text(GTK_ENTRY(lookup_widget("flatlib_entry")), pref->prepro.flat_lib);
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_flat")), pref->prepro.use_flat_lib);
 	}
 
 	if (pref->prepro.disto_lib) {
-		gtk_entry_set_text(GTK_ENTRY(lookup_widget("distolib_entry")),pref->prepro.disto_lib);
+		gtk_entry_set_text(GTK_ENTRY(lookup_widget("distolib_entry")), pref->prepro.disto_lib);
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_disto")), pref->prepro.use_disto_lib);
 	}
 
 	if (pref->prepro.stack_default) {
-		gtk_entry_set_text(GTK_ENTRY(lookup_widget("stack_default_entry")),pref->prepro.stack_default);
+		gtk_entry_set_text(GTK_ENTRY(lookup_widget("stack_default_entry")), pref->prepro.stack_default);
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_stack")), pref->prepro.use_stack_default);
 	} else {
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_stack")), FALSE);
