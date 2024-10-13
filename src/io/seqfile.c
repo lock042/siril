@@ -164,6 +164,7 @@ sequence * readseqfile(const char *name){
 						seq->regparam = calloc(seq->nb_layers, sizeof(regdata*));
 						if (ser_is_cfa(seq->ser_file))
 							seq->regparam_bkp = calloc(3, sizeof(regdata*));
+						seq->distoparam = calloc(seq->nb_layers, sizeof(disto_params));
 					}
 				} else if (line[1] >= '0' && line[1] <= '9') {
 					/* in the future, wavelength and name of each layer will be added here */
@@ -222,7 +223,44 @@ sequence * readseqfile(const char *name){
 				}
 				++i;
 				break;
-
+			case 'D': // Distortion data - from version 5 onwards
+				current_layer = line[1] - '0';
+				if (current_layer < 0 || current_layer > seq->nb_layers) {
+					fprintf(stderr, "readseqfile: sequence file bad distortion layer: %s\n", line);
+					goto error;
+				}
+				int index;
+				char buf0[256], buf1[256], buf2[256];
+				nb_tokens = sscanf(line + 3, "%d %s %s %s\n",
+							&index,
+							buf0, buf1, buf2);
+				if (nb_tokens < 1 || nb_tokens > 4) {
+					fprintf(stderr, "readseqfile: sequence file bad distortion param: %s\n", line);
+					goto error;
+				}
+				if (!seq->distoparam)
+					seq->distoparam = calloc(seq->nb_layers, sizeof(disto_params));
+				seq->distoparam[current_layer].index = index;
+				if (index == DISTO_FILE || index == DISTO_MASTER) {
+					if (nb_tokens == 1) {
+						fprintf(stderr, "readseqfile: sequence file bad distortion param: %s\n", line);
+						goto error;
+					}
+					seq->distoparam[current_layer].filename = g_strdup(buf0);
+				}
+				if (index == DISTO_FILE_COMET) {
+					if (nb_tokens < 3) {
+						fprintf(stderr, "readseqfile: sequence file bad distortion param: %s\n", line);
+						goto error;
+					}
+					seq->distoparam[current_layer].velocity.x = (float)g_strtod(buf0, NULL);
+					seq->distoparam[current_layer].velocity.y = (float)g_strtod(buf1, NULL);
+					if (nb_tokens > 3) {
+						seq->distoparam[current_layer].filename = g_strdup(buf2);
+					}
+				}
+				++i;
+				break;
 			case 'R':
 				/* registration info */
 				if (line[1] == '*') {
@@ -283,6 +321,8 @@ sequence * readseqfile(const char *name){
 						seq->regparam_bkp[current_layer] = regparam;
 					else seq->regparam[current_layer] = regparam;
 				}
+				if (!seq->distoparam)
+					seq->distoparam = calloc(seq->nb_layers, sizeof(disto_params));
 				if (i >= seq->number) {
 					fprintf(stderr, "\nreadseqfile: out of array bounds in reg info!\n\n");
 					goto error;
@@ -630,7 +670,32 @@ int writeseqfile(sequence *seq){
 
 	for (layer = 0; layer < seq->nb_layers; layer++) {
 		if (seq->regparam && seq->regparam[layer]) {
-			for (i=0; i < seq->number; ++i) {
+			if (layer_has_distortion(seq, layer)) {
+				if (seq->distoparam[layer].index == DISTO_FILE)
+					fprintf(seqfile, "D%c %d %s\n",
+					seq->cfa_opened_monochrome ? '*' : '0' + layer,
+					DISTO_FILE,
+					seq->distoparam[layer].filename);
+				else if (seq->distoparam[layer].index == DISTO_FILES)
+					fprintf(seqfile, "D%c %d\n",
+					seq->cfa_opened_monochrome ? '*' : '0' + layer,
+					DISTO_FILES);
+				else if (seq->distoparam[layer].index == DISTO_MASTER) {
+					fprintf(seqfile, "D%c %d %s\n",
+					seq->cfa_opened_monochrome ? '*' : '0' + layer,
+					DISTO_MASTER,
+					seq->distoparam[layer].filename);
+				}
+				else if (seq->distoparam[layer].index == DISTO_FILE_COMET) {
+					fprintf(seqfile, "D%c %d %.3f %.3f %s\n",
+					seq->cfa_opened_monochrome ? '*' : '0' + layer,
+					DISTO_FILE_COMET,
+					seq->distoparam[layer].velocity.x,
+					seq->distoparam[layer].velocity.y,
+					seq->distoparam[layer].filename ? seq->distoparam[layer].filename : "");
+				}
+			}
+			for (i = 0; i < seq->number; ++i) {
 				fprintf(seqfile, "R%c %g %g %g %g %g %d H %g %g %g %g %g %g %g %g %g\n",
 						seq->cfa_opened_monochrome ? '*' : '0' + layer,
 						seq->regparam[layer][i].fwhm,

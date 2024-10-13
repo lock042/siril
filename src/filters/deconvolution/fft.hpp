@@ -68,12 +68,12 @@ struct plan_t<float> {
     plan_type plan_forward = nullptr;
     plan_type plan_backward = nullptr;
 
-    plan_t<float>(plan_t<float>&& p) {
+    plan_t(plan_t<float>&& p) {
         std::swap(plan_forward, p.plan_forward);
         std::swap(plan_backward, p.plan_backward);
     }
 
-    plan_t<float>(dim_t dim, int flags) {
+    plan_t(dim_t dim, int flags) {
         img_t<std::complex<float>> img(dim.w, dim.h, dim.d);
         auto out = reinterpret_cast<value_type*>(&img[0]);
 #ifdef _OPENMP
@@ -87,7 +87,7 @@ struct plan_t<float> {
         }
     }
 
-    ~plan_t<float>() {
+    ~plan_t() {
         return; // don't free the plan...
     }
 

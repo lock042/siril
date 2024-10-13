@@ -354,13 +354,7 @@ void astrometry_activate(GSimpleAction *action, GVariant *parameter,gpointer use
 }
 
 void dyn_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	int confirm = TRUE;
-	if (gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] != '\0') {
-		confirm = siril_confirm_dialog(_("Undebayered CFA image loaded"),
-				_("The star detection functions in the Dynamic PSF dialog may produce results for this CFA image but will not perform optimally and star parameters may be inaccurate. Are you sure you wish to proceed?"), _("Proceed"));
-	}
-	if (confirm)
-		siril_open_dialog("stars_list_window");
+	siril_open_dialog("stars_list_window");
 }
 
 void pick_star_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {

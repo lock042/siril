@@ -3053,7 +3053,7 @@ TRANS *trans /* O: place solved coefficients into this */
 					sigma, halt_sigma);
 #endif
 			is_ok = 1;
-			break;
+			// break;
 		}
 
 		/*
@@ -3114,7 +3114,7 @@ TRANS *trans /* O: place solved coefficients into this */
 			printf("   SUCCESS  nb = 0, no more pairs to discard \n");
 #endif
 			is_ok = 1;
-			break;
+			// break;
 		}
 
 		if (nr < required_pairs) {
@@ -3147,7 +3147,8 @@ TRANS *trans /* O: place solved coefficients into this */
 #endif
 
 		iters_so_far++;
-
+		if (is_ok)
+			break;
 	}
 
 	if (iters_so_far == max_iterations) {
@@ -3165,7 +3166,7 @@ TRANS *trans /* O: place solved coefficients into this */
 	 *                                in units of coord system B
 	 */
 	trans->nr = nr;
-	trans->sig = find_percentile(dist2_sorted, nr, ONE_STDEV_PERCENTILE);
+	trans->sig = (nr > 1) ? find_percentile(dist2_sorted, nr, ONE_STDEV_PERCENTILE) : 0.;
 
 	/*
 	 * free up the arrays we allocated
