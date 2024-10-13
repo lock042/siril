@@ -1974,8 +1974,7 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 			}
 			arg->seq->regparam[args->layer] = current_regdata;
 		} else {
-			siril_log_message(
-					_("Recomputing already existing registration for this layer\n"));
+			siril_log_message(_("Recomputing already existing registration for this layer\n"));
 			/* we reset all values as we may register different images */
 			memset(arg->seq->regparam[args->layer], 0, arg->seq->number * sizeof(regdata));
 		}
