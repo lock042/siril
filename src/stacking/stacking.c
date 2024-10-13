@@ -1293,6 +1293,7 @@ void compute_max_framing(struct stacking_args *args, int output_size[2], int off
 		xmax = (xmax < regdat[image_index].H.h02 * scale + rx) ? regdat[image_index].H.h02 * scale + rx : xmax;
 		ymax = (ymax < regdat[image_index].H.h12 * scale + ry) ? regdat[image_index].H.h12 * scale + ry : ymax;
 	}
+	// using same formulas as in applyreg::compute_roi
 	output_size[0] = (int)xmax - (int)xmin + 1;
 	output_size[1] = (int)ymax - (int)ymin + 1;
 	offset[0] = (int)xmin;

@@ -168,6 +168,7 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 
 		gboolean update_wcs = TRUE;
 		if (args->maximize_framing) {
+			// using same formulas as in applyreg::compute_roi
 			naxes[0] = (int)xmax - (int)xmin + 1;
 			naxes[1] = (int)ymax - (int)ymin + 1;
 			args->offset[0] =  (int)xmin;

@@ -1302,9 +1302,9 @@ void free_sequence(sequence *seq, gboolean free_seq_too) {
 		}
 		free(seq->regparam);
 	}
-	// if (seq->distoparam) {
-	// 	g_free(seq->distoparam->filename);
-	// }
+	if (seq->distoparam) {
+		g_free(seq->distoparam->filename);
+	}
 	// free stats
 	if (seq->nb_layers > 0 && seq->stats) {
 		for (layer = 0; layer < seq->nb_layers; layer++) {

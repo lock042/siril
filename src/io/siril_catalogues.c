@@ -1267,7 +1267,7 @@ gpointer conesearch_worker(gpointer p) {
 			// assuming monochrome
 			psf_error error = PSF_NO_ERR;
 			// psf_get_minimisation flips y, so area has to be in display coordinates
-			int layer = (args->fit->naxes[2] == 3) ? 1 : 0;
+			int layer = (args->fit->naxes[2] == 3) ? GLAYER : RLAYER;
 			psf_star *star = psf_get_minimisation(args->fit, layer, &area, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, &error);
 			if (star && !error) {
 				// area is in display coordinates, star is in local top-down coordinates from this

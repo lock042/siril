@@ -92,8 +92,7 @@ gboolean seq_has_any_distortion(const sequence *seq) {
 regdata *registration_get_current_regdata(struct registration_args *regargs) {
 	regdata *current_regdata;
 	if (regargs->seq->regparam[regargs->layer]) {
-		siril_log_message(
-				_("Recomputing already existing registration for this layer\n"));
+		siril_log_message(_("Recomputing already existing registration for this layer\n"));
 		current_regdata = regargs->seq->regparam[regargs->layer];
 		/* we reset all values as we may register different images */
 		memset(current_regdata, 0, regargs->seq->number * sizeof(regdata));
@@ -114,8 +113,7 @@ void create_output_sequence_for_registration(struct registration_args *args, int
 
 	/* we are not interested in the whole path */
 	gchar *seqname = g_path_get_basename(args->seq->seqname);
-	char *rseqname = malloc(
-			strlen(args->prefix) + strlen(seqname) + 5);
+	char *rseqname = malloc(strlen(args->prefix) + strlen(seqname) + 5);
 	sprintf(rseqname, "%s%s.seq", args->prefix, seqname);
 	g_unlink(rseqname);	// remove previous to overwrite
 	args->new_seq_name = remove_ext_from_filename(rseqname);
