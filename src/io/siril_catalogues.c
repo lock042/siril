@@ -33,6 +33,7 @@
 #include "algos/PSF.h"
 #include "algos/search_objects.h"
 #include "algos/siril_wcs.h"
+#include "algos/photometric_cc.h"
 #include "io/annotation_catalogues.h"
 #include "algos/astrometry_solver.h"
 #include "algos/comparison_stars.h"
@@ -42,6 +43,7 @@
 #include "gui/image_display.h"
 #include "gui/PSF_list.h"
 #include "gui/utils.h"
+#include "gui/siril_plot.h"
 
 static void free_conesearch_params(conesearch_params *params);
 static void free_conesearch_args(conesearch_args *args);
@@ -1073,6 +1075,7 @@ int execute_conesearch(conesearch_params *params) {
 	args->display_log = (params->display_log == BOOL_NOT_SET) ? display_names_for_catalogue(params->cat) : (gboolean) params->display_log;
 	args->display_tag = (params->display_tag == BOOL_NOT_SET) ? display_names_for_catalogue(params->cat) : (gboolean) params->display_tag;
 	args->outfilename = g_strdup(params->outfilename);
+	args->compare = params->compare;
 	free_conesearch_params(params);
 	if (check_conesearch_args(args)) { // can't fail for now
 		free_conesearch_args(args);
@@ -1150,12 +1153,18 @@ gpointer conesearch_worker(gpointer p) {
 	conesearch_args *args = (conesearch_args *)p;
 	siril_catalogue *siril_cat = args->siril_cat;
 	siril_catalogue *temp_cat = NULL;
+	double *dx = NULL, *dy = NULL, *dxf = NULL, *dyf = NULL;
+	siril_plot_data *spl_data = NULL;
 	int retval = 1;
 	double stardiam = 0.;
 	gboolean hide_display_tag = FALSE;
 	if (!siril_cat) {
 		siril_debug_print("no query passed");
 		goto exit_conesearch;
+	}
+	if (args->compare && !args->has_GUI) {
+		args->compare = FALSE;
+		siril_debug_print("Compare available only with GUI\n");
 	}
 
 	// launching the query
@@ -1180,7 +1189,7 @@ gpointer conesearch_worker(gpointer p) {
 	int nb_stars = siril_cat->nbitems;
 	if (siril_cat->cat_index != CAT_SHOW)
 		sort_cat_items_by_mag(siril_cat);
-	int j = 0;
+	int j = 0, k = 0;
 	// preparing the annotation temp catalog if has_GUI
 	if (args->has_GUI || args->outfilename) {
 		temp_cat = calloc(1, sizeof(siril_catalogue));
@@ -1192,6 +1201,10 @@ gpointer conesearch_worker(gpointer p) {
 		if (!args->display_tag && has_field(siril_cat, NAME))
 			hide_display_tag = TRUE;
 		temp_cat->cat_items = calloc(siril_cat->nbincluded, sizeof(cat_item));
+	}
+	if (args->compare) {
+		dx = calloc(nb_stars, sizeof(double));
+		dy = calloc(nb_stars, sizeof(double));
 	}
 	for (int i = 0; i < nb_stars; i++) {
 		if (!siril_cat->cat_items[i].included || (siril_cat->limitmag && siril_cat->cat_items[i].mag > siril_cat->limitmag))
@@ -1240,6 +1253,34 @@ gpointer conesearch_worker(gpointer p) {
 			g_free(ra);
 			g_free(dec);
 		}
+		if (args->compare) {
+			double scale = 1800. * (fabs(args->fit->keywords.wcslib->cdelt[0]) + fabs(args->fit->keywords.wcslib->cdelt[1]));
+			// we copy the projected pos
+			double x = siril_cat->cat_items[i].x;
+			double y = siril_cat->cat_items[i].y;
+			rectangle area = { 0 };
+			pcc_star tmp = { .x = x, .y = y };
+			if (make_selection_around_a_star(tmp, &area, args->fit)) {
+				siril_debug_print("star %d is outside image or too close to border\n", i);
+				continue;
+			}
+			// assuming monochrome
+			psf_error error = PSF_NO_ERR;
+			// psf_get_minimisation flips y, so area has to be in display coordinates
+			int layer = (args->fit->naxes[2] == 3) ? GLAYER : RLAYER;
+			psf_star *star = psf_get_minimisation(args->fit, layer, &area, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, &error);
+			if (star && !error) {
+				// area is in display coordinates, star is in local top-down coordinates from this
+				dx[k] = area.x + star->x0;
+				dy[k] = area.y + area.h - star->y0;
+				display_to_siril(dx[k], dy[k], &dx[k], &dy[k], args->fit->ry);
+				// printf("dx: %.3f, dy:%3f\n", dx[k] - x, dy[k] - y);
+				dx[k] = scale * (dx[k] - x);
+				dy[k] = scale * (dy[k] - y);
+				free_psf(star);
+				k++;
+			}
+		}
 		j++;
 	}
 	siril_log_message("%d objects found%s in the image (mag limit %.2f)\n", j,
@@ -1248,7 +1289,7 @@ gpointer conesearch_worker(gpointer p) {
 		retval = -1;
 		goto exit_conesearch;
 	}
-	if (args->has_GUI)  { // only for GUI
+	if (args->has_GUI || args->outfilename) {
 		//re-allocating to the correct size as some may have been discarded by mag
 		cat_item *final_items = realloc(temp_cat->cat_items, j * sizeof(cat_item));
 		if (!final_items) {
@@ -1259,9 +1300,34 @@ gpointer conesearch_worker(gpointer p) {
 		temp_cat->cat_items = final_items;
 		temp_cat->nbitems = j;
 	}
+	if (args->compare && k > 0) {
+		dxf = realloc(dx, k * sizeof(double));
+		dyf = realloc(dy, k * sizeof(double));
+		if (!dxf || !dyf) {
+			PRINT_ALLOC_ERR;
+			retval = 1;
+			goto exit_conesearch;
+		}
+	} else {
+		args->compare = FALSE;
+		free(dx);
+		free(dy);
+	}
 	if (args->outfilename) {
 		if (siril_catalog_write_to_file(temp_cat, args->outfilename))
 			siril_log_message(_("List saved to %s\n"), args->outfilename);
+	}
+	if (args->has_GUI && args->compare) {
+		spl_data = malloc(sizeof(siril_plot_data));
+		init_siril_plot_data(spl_data);
+		siril_plot_set_title(spl_data, "Detected vs astrometric position");
+		siril_plot_set_xlabel(spl_data, "dx [\"]");
+		siril_plot_set_ylabel(spl_data, "dy [\"]");
+		siril_plot_add_xydata(spl_data, NULL, k, dxf, dyf, NULL, NULL);
+		siril_plot_set_savename(spl_data, "diffpos");
+		siril_plot_set_nth_plot_type(spl_data, 1, KPLOT_POINTS);
+		free(dxf);
+		free(dyf);
 	}
 	retval = 0;
 exit_conesearch:;
@@ -1272,6 +1338,7 @@ exit_conesearch:;
 	}
 	free_conesearch_args(args);
 	if (go_idle) {
+		siril_add_idle(create_new_siril_plot_window, spl_data);
 		siril_add_idle(end_conesearch, temp_cat);
 	} else {
 		end_generic(NULL);

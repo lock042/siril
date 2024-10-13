@@ -204,31 +204,31 @@ interpolate_point(struct driz_param_t *par, float xin, float yin,
  * H: the Homography matrix to map between the two images
  */
 
-int map_image_coordinates_h(fits *fit, Homography H, imgmap_t *p, int target_ry, float scale, disto_data *disto, int threads) {
-	int rx, source_ry;
+int map_image_coordinates_h(fits *fit, Homography H, imgmap_t *p, int target_rx, int target_ry, float scale, disto_data *disto, int threads) {
+	int source_rx, source_ry;
 	int index = 0;
-	rx = fit->rx;
+	source_rx = fit->rx;
 	source_ry = fit->ry;
 	/* Doing the calculations manually rather than using
 	 * cvTransformImageRefPoint() achieves a speedup of 2 orders of
 	 * magnitude! */
-	cvPrepareDrizzleH(&H, scale, source_ry, target_ry);
+	cvPrepareDrizzleH(&H, scale, source_rx, source_ry, target_rx, target_ry);
 	float Harr[9] = { (float) H.h00, (float) H.h01, (float) H.h02,
 		(float) H.h10, (float) H.h11, (float) H.h12,
 		(float) H.h20, (float) H.h21, (float) H.h22 };
 
-	p->xmap = malloc(rx * source_ry * 2 * sizeof(float));
+	p->xmap = malloc(source_rx * source_ry * 2 * sizeof(float));
 	if (!p->xmap)
 		return 1;
-	p->ymap = p->xmap + (rx * source_ry);
+	p->ymap = p->xmap + (source_rx * source_ry);
 
     if (disto) {
         if (disto->dtype == DISTO_S2D) { // no mapping, we need to create the distortion map
             disto->xmap = p->xmap;
             disto->ymap = p->ymap;
-            init_disto_map(rx, source_ry, disto);
+            init_disto_map(source_rx, source_ry, disto);
         } else if (disto->dtype == DISTO_MAP_S2D) { // mapping exists, we just copy
-            size_t sz = rx * source_ry;
+            size_t sz = source_rx * source_ry;
             memcpy(p->xmap, disto->xmap, sz * sizeof(float));
             memcpy(p->ymap, disto->ymap, sz * sizeof(float));
         } else {
@@ -236,7 +236,7 @@ int map_image_coordinates_h(fits *fit, Homography H, imgmap_t *p, int target_ry,
             return 1;
         }
         for (int y = 0; y < source_ry; y++) {
-            for (int x = 0; x < rx; x++) {
+            for (int x = 0; x < source_rx; x++) {
                 float x0 = p->xmap[index];
                 float y0 = p->ymap[index];
                 float z = 1. / (x0 * Harr[6] + y0 * Harr[7] + Harr[8]);
@@ -254,7 +254,7 @@ int map_image_coordinates_h(fits *fit, Homography H, imgmap_t *p, int target_ry,
 		float y1 = y0 * Harr[7] + Harr[8];
 		float y2 = y0 * Harr[1] + Harr[2];
 		float y3 = y0 * Harr[4] + Harr[5];
-		for (int x = 0; x < rx; x++) {
+		for (int x = 0; x < source_rx; x++) {
 			float x0 = (float) x;
 			float z = 1. / (x0 * Harr[6] + y1);
 			p->xmap[index] = (x0 * Harr[0] + y2) * z;

@@ -1517,8 +1517,8 @@ void initialize_all_GUI(gchar *supported_files) {
 	gui.view[GREEN_VPORT].drawarea= lookup_widget("drawingareag");
 	gui.view[BLUE_VPORT].drawarea = lookup_widget("drawingareab");
 	gui.view[RGB_VPORT].drawarea  = lookup_widget("drawingareargb");
-	gui.preview_area[0] = lookup_widget("drawingarea_preview1");
-	gui.preview_area[1] = lookup_widget("drawingarea_preview2");
+	gui.preview_area[0] = lookup_widget("drawingarea_reg_manual_preview1");
+	gui.preview_area[1] = lookup_widget("drawingarea_reg_manual_preview2");
 	memset(&gui.roi, 0, sizeof(roi_t)); // Clear the ROI
 	initialize_image_display();
 	init_mouse();
