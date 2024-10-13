@@ -564,7 +564,7 @@ int star_align_compute_mem_limits(struct generic_seq_args *args, gboolean for_wr
 		required_step2 += MB_per_orig_image; // the copy for interpolating nongreen pixels
 
 	limit_step3 = apply_reg_compute_mem_consumption(args, &required_step2, &MB_per_scaled_image, &MB_avail);
-	limit_step2 = (int)(required_step2 / MB_avail);
+	limit_step2 = (int)(MB_avail / required_step2);
 	
 	limit = min(limit_step2, limit_step3);
 	required = max(required_step2, required_step3);

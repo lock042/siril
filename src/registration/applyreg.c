@@ -667,7 +667,7 @@ int apply_reg_compute_mem_consumption(struct generic_seq_args *args, unsigned in
 		- If Interpolation and undistorion with pre-computed maps (DISTO_MAP_D2S or DISTO_MAP_S2D), 
 			those two maps are init before this hook
 
-		Note: there are a few approximations:
+		TODO: there are a few approximations:
 		- using seq->rx/seq->ry for original image size while for interpolation, the seq can be variable (not for drizzle though, drizzle is not allowed)
 		- assuming the output scaled image is rx*ry*scale^2. This does not work for min or max framing. min is safe, max is not...
 
@@ -717,6 +717,7 @@ int apply_reg_compute_mem_consumption(struct generic_seq_args *args, unsigned in
 	*max_mem_MB = MB_avail;
 	*required_per_dst_image_MB = MB_per_scaled_image;
 
+	limit = (int)(MB_avail / required);
 	return limit;
 }
 
