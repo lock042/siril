@@ -337,6 +337,91 @@ PyTypeObject PyFWHMType = {
 	.tp_getset = PyFWHM_getsetters,
 };
 
+// Function to strip control characters
+char* strip_control_chars(const char* input) {
+    static char cleaned_output[4096];  // Adjust the size as needed
+    int j = 0;
+    for (int i = 0; input[i] != '\0' && j < sizeof(cleaned_output) - 1; i++) {
+        // Skip the backspace (\x08) and the preceding character it removes
+        if (input[i] == '\x08' && j > 0) {
+            j--;  // Backtrack one character
+        } else {
+            cleaned_output[j++] = input[i];
+        }
+    }
+    cleaned_output[j] = '\0';
+    return cleaned_output;
+}
+
+// Python method for write(), which logs output after stripping control chars
+static PyObject* py_log_write(PyObject* self, PyObject* args) {
+    const char* text;
+    if (!PyArg_ParseTuple(args, "s", &text)) {
+        return NULL;
+    }
+
+    // Strip control characters and log the cleaned text
+    const char* cleaned_text = strip_control_chars(text);
+    siril_log_message(cleaned_text);
+
+    // Return None
+    Py_RETURN_NONE;
+}
+
+// Define the methods of the custom Python object
+static PyMethodDef LogMethods[] = {
+    {"write", py_log_write, METH_VARARGS, "Log output to custom logger"},
+    {NULL, NULL, 0, NULL}  // Sentinel
+};
+
+// Define the Python type for the log object
+static PyTypeObject PyLog_Type = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_name = "Log",
+    .tp_basicsize = sizeof(PyObject),
+    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_methods = LogMethods,
+};
+
+// Python function to disable the pager
+static void disable_pager() {
+    PyObject* pydoc = PyImport_ImportModule("pydoc");
+    if (pydoc) {
+        // Replace pydoc.pager with a no-op lambda function
+        PyObject* pager_function = PyRun_String("lambda text: print(text)", Py_eval_input, PyDict_New(), PyDict_New());
+        if (pager_function) {
+            PyObject_SetAttrString(pydoc, "pager", pager_function);
+            Py_DECREF(pager_function);  // Decrease reference count after use
+        }
+        Py_DECREF(pydoc);  // Decrease reference count for the pydoc module
+    }
+}
+
+// Initialize the custom log object and disable the pydoc pager
+void init_custom_logger() {
+    PyObject* log_obj;
+
+    // Initialize the custom log type
+    if (PyType_Ready(&PyLog_Type) < 0) return;
+
+    // Create an instance of the log object
+    log_obj = PyObject_New(PyObject, &PyLog_Type);
+    if (!log_obj) return;
+
+    // Redirect sys.stdout to the custom logger
+    PySys_SetObject("stdout", log_obj);
+    PySys_SetObject("stderr", log_obj);  // Optionally redirect stderr too
+
+    // Disable the pydoc pager to prevent blocking
+    PyRun_SimpleString(
+        "import pydoc\n"
+        "pydoc.pager = lambda text: print(text)\n"
+    );
+
+    // Decrease the reference count of log_obj to avoid memory leaks
+    Py_DECREF(log_obj);
+}
+
 // Define methods for the module
 static PyMethodDef SirilMethods[] = {
 	{"filename", (PyCFunction)siril_get_filename, METH_NOARGS, N_("Get the current image filename")},
@@ -572,6 +657,8 @@ gpointer init_python(void *user_data) {
 	gboolean venv_created = check_or_create_python_venv(venv_dir, &already_active);
 	PyImport_AppendInittab("siril", PyInit_siril);
 	Py_Initialize();
+	init_custom_logger();
+	disable_pager();
 	if (venv_created && !already_active)
 		activate_python_venv(venv_dir);
 	g_free(venv_dir);

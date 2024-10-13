@@ -272,7 +272,7 @@ PyObject *PySeq_get_imstats(PySeqObject *self, PyObject *args) {
 
 // Method to access gfit
 PyObject *PySeq_comseq(PyObject *cls, PyObject *args) {
-	PyFits *self = (PySeq *)PySeqType.tp_alloc(&PySeqType, 0);
+	PySeqObject *self = (PySeqObject *)PySeqType.tp_alloc(&PySeqType, 0);
 	if (self != NULL) {
 		self->seq = &com.seq;
 		self->should_free = 0;  // com.seq is statically allocated, don't free it
