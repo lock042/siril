@@ -167,7 +167,7 @@ void initialize_ips_dialog() {
 	on_GtkButton_IPS_metadata_clicked(NULL, NULL);	// fill it automatically
 	// sequence related controls
 	gboolean isseq = sequence_is_loaded() && com.seq.current != RESULT_IMAGE;
-	gboolean hasreg = isseq && layer_has_usable_registration(&com.seq, (gfit.naxes[2] == 1) ? 0 : GLAYER);
+	gboolean hasreg = isseq && layer_has_usable_registration(&com.seq, (gfit.naxes[2] == 1) ? RLAYER : GLAYER);
 	gtk_widget_set_visible(GTK_WIDGET(flipbutton), !isseq);
 	gtk_expander_set_expanded(sequenceexp, isseq);
 	gtk_widget_set_visible(GTK_WIDGET(sequenceexp), isseq);
@@ -817,7 +817,7 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 		args->update_reg = gtk_toggle_button_get_active(checkbutton_IPS_useforreg);
 		args->sfargs = calloc(1, sizeof(struct starfinder_data));
 		args->sfargs->im.from_seq = &com.seq;
-		args->sfargs->layer = (gfit.naxes[2] == 1) ? 0 : 1;
+		args->sfargs->layer = (gfit.naxes[2] == 1) ? RLAYER : GLAYER;
 		args->sfargs->keep_stars = TRUE;
 		args->sfargs->save_to_file = com.selection.w == 0 || com.selection.h == 0; // TODO make this a pref
 		args->sfargs->max_stars_fitted = BRIGHTEST_STARS;

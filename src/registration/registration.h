@@ -7,8 +7,6 @@
 #include "algos/star_finder.h"
 #include "registration/distorsion.h"
 
-#define NUMBER_OF_METHODS 7
-
 struct registration_args;
 typedef int (*registration_function)(struct registration_args *);
 
@@ -30,7 +28,8 @@ typedef enum {
 	REG_KOMBAT,
 	REG_COMET,
 	REG_APPLY,
-	REG_2PASS
+	REG_2PASS,
+	NUMBER_OF_METHODS
 } regmethod_index;
 
 typedef enum {
