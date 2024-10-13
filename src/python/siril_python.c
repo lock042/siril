@@ -337,18 +337,39 @@ PyTypeObject PyFWHMType = {
 	.tp_getset = PyFWHM_getsetters,
 };
 
-// Function to strip control characters
+
+// Function to strip control characters and "--More--" lines
 char* strip_control_chars(const char* input) {
-    static char cleaned_output[4096];  // Adjust the size as needed
-    int j = 0;
-    for (int i = 0; input[i] != '\0' && j < sizeof(cleaned_output) - 1; i++) {
-        // Skip the backspace (\x08) and the preceding character it removes
+    size_t input_len = strlen(input);
+    char* cleaned_output = malloc(input_len + 1);  // Allocate memory
+    if (!cleaned_output) return NULL;  // Check for allocation failure
+
+    size_t j = 0;
+    int skip_line = 0;
+
+    for (size_t i = 0; i < input_len; i++) {
+        if (skip_line) {
+            if (input[i] == '\n') {
+                skip_line = 0;
+            }
+            continue;
+        }
+
+        // Check for "--More--" at the start of a line
+        if (i == 0 || input[i-1] == '\n') {
+            if (strncmp(input + i, "--More--", 8) == 0) {
+                skip_line = 1;
+                continue;
+            }
+        }
+
         if (input[i] == '\x08' && j > 0) {
-            j--;  // Backtrack one character
-        } else {
+            j--;  // Backtrack one character for backspace
+        } else if (input[i] >= 32 || input[i] == '\n' || input[i] == '\t') {
             cleaned_output[j++] = input[i];
         }
     }
+
     cleaned_output[j] = '\0';
     return cleaned_output;
 }
@@ -359,19 +380,24 @@ static PyObject* py_log_write(PyObject* self, PyObject* args) {
     if (!PyArg_ParseTuple(args, "s", &text)) {
         return NULL;
     }
+    char* cleaned_text = strip_control_chars(text);
+    if (cleaned_text) {
+        siril_log_message(cleaned_text);
+        free(cleaned_text);  // Free the allocated memory
+    }
+    Py_RETURN_NONE;
+}
 
-    // Strip control characters and log the cleaned text
-    const char* cleaned_text = strip_control_chars(text);
-    siril_log_message(cleaned_text);
-
-    // Return None
+// Python method for flush(), which does nothing but is required
+static PyObject* py_log_flush(PyObject* self, PyObject* args) {
     Py_RETURN_NONE;
 }
 
 // Define the methods of the custom Python object
 static PyMethodDef LogMethods[] = {
     {"write", py_log_write, METH_VARARGS, "Log output to custom logger"},
-    {NULL, NULL, 0, NULL}  // Sentinel
+    {"flush", py_log_flush, METH_NOARGS, "Flush (no-op)"},
+    {NULL, NULL, 0, NULL} // Sentinel
 };
 
 // Define the Python type for the log object
@@ -383,42 +409,38 @@ static PyTypeObject PyLog_Type = {
     .tp_methods = LogMethods,
 };
 
-// Python function to disable the pager
-static void disable_pager() {
-    PyObject* pydoc = PyImport_ImportModule("pydoc");
-    if (pydoc) {
-        // Replace pydoc.pager with a no-op lambda function
-        PyObject* pager_function = PyRun_String("lambda text: print(text)", Py_eval_input, PyDict_New(), PyDict_New());
-        if (pager_function) {
-            PyObject_SetAttrString(pydoc, "pager", pager_function);
-            Py_DECREF(pager_function);  // Decrease reference count after use
-        }
-        Py_DECREF(pydoc);  // Decrease reference count for the pydoc module
-    }
+// Function to set up custom pager with simulated input
+static void setup_custom_pager() {
+    PyRun_SimpleString(
+        "import sys, pydoc\n"
+        "class SimulatedInputPager:\n"
+        "    def __init__(self, write_func):\n"
+        "        self.write_func = write_func\n"
+        "    def __call__(self, text):\n"
+        "        lines = text.split('\\n')\n"
+        "        for i, line in enumerate(lines):\n"
+        "            self.write_func(line + '\\n')\n"
+        "            if (i + 1) % 23 == 0:  # Simulate pressing space every 23 lines\n"
+        "                self.write_func('--More--\\n')\n"
+        "        self.write_func('\\n')  # Final newline\n"
+        "pydoc.pager = SimulatedInputPager(sys.stdout.write)\n"
+    );
 }
 
-// Initialize the custom log object and disable the pydoc pager
+// Initialize the custom log object and set up the environment
 void init_custom_logger() {
-    PyObject* log_obj;
-
-    // Initialize the custom log type
     if (PyType_Ready(&PyLog_Type) < 0) return;
 
-    // Create an instance of the log object
-    log_obj = PyObject_New(PyObject, &PyLog_Type);
+    PyObject* log_obj = PyObject_New(PyObject, &PyLog_Type);
     if (!log_obj) return;
 
-    // Redirect sys.stdout to the custom logger
+    // Redirect sys.stdout and sys.stderr to the custom logger
     PySys_SetObject("stdout", log_obj);
-    PySys_SetObject("stderr", log_obj);  // Optionally redirect stderr too
+    PySys_SetObject("stderr", log_obj);
 
-    // Disable the pydoc pager to prevent blocking
-    PyRun_SimpleString(
-        "import pydoc\n"
-        "pydoc.pager = lambda text: print(text)\n"
-    );
+    // Set up custom pager
+    setup_custom_pager();
 
-    // Decrease the reference count of log_obj to avoid memory leaks
     Py_DECREF(log_obj);
 }
 
@@ -658,7 +680,6 @@ gpointer init_python(void *user_data) {
 	PyImport_AppendInittab("siril", PyInit_siril);
 	Py_Initialize();
 	init_custom_logger();
-	disable_pager();
 	if (venv_created && !already_active)
 		activate_python_venv(venv_dir);
 	g_free(venv_dir);
