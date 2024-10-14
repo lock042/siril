@@ -340,108 +340,108 @@ PyTypeObject PyFWHMType = {
 
 // Function to strip control characters and "--More--" lines
 char* strip_control_chars(const char* input) {
-    size_t input_len = strlen(input);
-    char* cleaned_output = malloc(input_len + 1);  // Allocate memory
-    if (!cleaned_output) return NULL;  // Check for allocation failure
+	size_t input_len = strlen(input);
+	char* cleaned_output = malloc(input_len + 1);  // Allocate memory
+	if (!cleaned_output) return NULL;  // Check for allocation failure
 
-    size_t j = 0;
-    int skip_line = 0;
+	size_t j = 0;
+	int skip_line = 0;
 
-    for (size_t i = 0; i < input_len; i++) {
-        if (skip_line) {
-            if (input[i] == '\n') {
-                skip_line = 0;
-            }
-            continue;
-        }
+	for (size_t i = 0; i < input_len; i++) {
+		if (skip_line) {
+			if (input[i] == '\n') {
+				skip_line = 0;
+			}
+			continue;
+		}
 
-        // Check for "--More--" at the start of a line
-        if (i == 0 || input[i-1] == '\n') {
-            if (strncmp(input + i, "--More--", 8) == 0) {
-                skip_line = 1;
-                continue;
-            }
-        }
+		// Check for "--More--" at the start of a line
+		if (i == 0 || input[i-1] == '\n') {
+			if (strncmp(input + i, "--More--", 8) == 0) {
+				skip_line = 1;
+				continue;
+			}
+		}
 
-        if (input[i] == '\x08' && j > 0) {
-            j--;  // Backtrack one character for backspace
-        } else if (input[i] >= 32 || input[i] == '\n' || input[i] == '\t') {
-            cleaned_output[j++] = input[i];
-        }
-    }
+		if (input[i] == '\x08' && j > 0) {
+			j--;  // Backtrack one character for backspace
+		} else if (input[i] >= 32 || input[i] == '\n' || input[i] == '\t') {
+			cleaned_output[j++] = input[i];
+		}
+	}
 
-    cleaned_output[j] = '\0';
-    return cleaned_output;
+	cleaned_output[j] = '\0';
+	return cleaned_output;
 }
 
 // Python method for write(), which logs output after stripping control chars
 static PyObject* py_log_write(PyObject* self, PyObject* args) {
-    const char* text;
-    if (!PyArg_ParseTuple(args, "s", &text)) {
-        return NULL;
-    }
-    char* cleaned_text = strip_control_chars(text);
-    if (cleaned_text) {
-        siril_log_message(cleaned_text);
-        free(cleaned_text);  // Free the allocated memory
-    }
-    Py_RETURN_NONE;
+	const char* text;
+	if (!PyArg_ParseTuple(args, "s", &text)) {
+		return NULL;
+	}
+	char* cleaned_text = strip_control_chars(text);
+	if (cleaned_text) {
+		siril_log_message(cleaned_text);
+		free(cleaned_text);  // Free the allocated memory
+	}
+	Py_RETURN_NONE;
 }
 
 // Python method for flush(), which does nothing but is required
 static PyObject* py_log_flush(PyObject* self, PyObject* args) {
-    Py_RETURN_NONE;
+	Py_RETURN_NONE;
 }
 
 // Define the methods of the custom Python object
 static PyMethodDef LogMethods[] = {
-    {"write", py_log_write, METH_VARARGS, "Log output to custom logger"},
-    {"flush", py_log_flush, METH_NOARGS, "Flush (no-op)"},
-    {NULL, NULL, 0, NULL} // Sentinel
+	{"write", py_log_write, METH_VARARGS, "Log output to custom logger"},
+	{"flush", py_log_flush, METH_NOARGS, "Flush (no-op)"},
+	{NULL, NULL, 0, NULL} // Sentinel
 };
 
 // Define the Python type for the log object
 static PyTypeObject PyLog_Type = {
-    PyVarObject_HEAD_INIT(NULL, 0)
-    .tp_name = "Log",
-    .tp_basicsize = sizeof(PyObject),
-    .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_methods = LogMethods,
+	PyVarObject_HEAD_INIT(NULL, 0)
+	.tp_name = "Log",
+	.tp_basicsize = sizeof(PyObject),
+	.tp_flags = Py_TPFLAGS_DEFAULT,
+	.tp_methods = LogMethods,
 };
 
 // Function to set up custom pager with simulated input
 static void setup_custom_pager() {
-    PyRun_SimpleString(
-        "import sys, pydoc\n"
-        "class SimulatedInputPager:\n"
-        "    def __init__(self, write_func):\n"
-        "        self.write_func = write_func\n"
-        "    def __call__(self, text):\n"
-        "        lines = text.split('\\n')\n"
-        "        for i, line in enumerate(lines):\n"
-        "            self.write_func(line + '\\n')\n"
-        "            if (i + 1) % 23 == 0:  # Simulate pressing space every 23 lines\n"
-        "                self.write_func('--More--\\n')\n"
-        "        self.write_func('\\n')  # Final newline\n"
-        "pydoc.pager = SimulatedInputPager(sys.stdout.write)\n"
-    );
+	PyRun_SimpleString(
+		"import sys, pydoc\n"
+		"class SimulatedInputPager:\n"
+		"    def __init__(self, write_func):\n"
+		"        self.write_func = write_func\n"
+		"    def __call__(self, text):\n"
+		"        lines = text.split('\\n')\n"
+		"        for i, line in enumerate(lines):\n"
+		"            self.write_func(line + '\\n')\n"
+		"            if (i + 1) % 23 == 0:  # Simulate pressing space every 23 lines\n"
+		"                self.write_func('--More--\\n')\n"
+		"        self.write_func('\\n')  # Final newline\n"
+		"pydoc.pager = SimulatedInputPager(sys.stdout.write)\n"
+	);
 }
 
 // Initialize the custom log object and set up the environment
 void init_custom_logger() {
-    if (PyType_Ready(&PyLog_Type) < 0) return;
+	if (PyType_Ready(&PyLog_Type) < 0) return;
 
-    PyObject* log_obj = PyObject_New(PyObject, &PyLog_Type);
-    if (!log_obj) return;
+	PyObject* log_obj = PyObject_New(PyObject, &PyLog_Type);
+	if (!log_obj) return;
 
-    // Redirect sys.stdout and sys.stderr to the custom logger
-    PySys_SetObject("stdout", log_obj);
-    PySys_SetObject("stderr", log_obj);
+	// Redirect sys.stdout and sys.stderr to the custom logger
+	PySys_SetObject("stdout", log_obj);
+	PySys_SetObject("stderr", log_obj);
 
-    // Set up custom pager
-    setup_custom_pager();
+	// Set up custom pager
+	setup_custom_pager();
 
-    Py_DECREF(log_obj);
+	Py_DECREF(log_obj);
 }
 
 // Define methods for the module
@@ -536,131 +536,118 @@ PyMODINIT_FUNC PyInit_siril(void) {
 		Py_DECREF(m);
 		return NULL;
 	}
+
+
+
 	return m;
 }
 
 // Functions to do with initializing and finalizing the interpreter
 
 static gboolean check_or_create_python_venv(const char *venv_dir, gboolean *already_active) {
-    const char *current_venv = g_getenv("VIRTUAL_ENV");
-    *already_active = FALSE;
-    if (current_venv) {
-        siril_log_message(_("A virtual environment is already active: %s. Using the active virtual environment.\n"), current_venv);
-        *already_active = TRUE;
-        return TRUE;
-    }
+	const char *current_venv = g_getenv("VIRTUAL_ENV");
+	*already_active = FALSE;
+	if (current_venv) {
+		siril_log_message(_("A virtual environment is already active: %s. Using the active virtual environment\n"), current_venv);
+		*already_active = TRUE;
+		return TRUE;
+	}
 
-    char *venv_python = NULL;
-    #ifdef _WIN32
-    venv_python = g_build_filename(venv_dir, "bin", "python.exe", NULL);
-    #else
-    venv_python = g_build_filename(venv_dir, "bin", "python", NULL);
-    #endif
-    gboolean venv_exists = g_file_test(venv_python, G_FILE_TEST_IS_EXECUTABLE);
-    g_free(venv_python);
-    if (venv_exists) {
-        siril_debug_print("A virtual environment already exists: %s.\n", venv_dir);
-        return TRUE;
-    }
+	char *venv_python = NULL;
+	#ifdef _WIN32
+	venv_python = g_build_filename(venv_dir, "bin", "python.exe", NULL);
+	#else
+	venv_python = g_build_filename(venv_dir, "bin", "python", NULL);
+	#endif
+	gboolean venv_exists = g_file_test(venv_python, G_FILE_TEST_IS_EXECUTABLE);
+	g_free(venv_python);
+	if (venv_exists) {
+		siril_debug_print("A virtual environment already exists: %s\n", venv_dir);
+		return TRUE;
+	}
 
-    // Import venv module
-    PyObject *venv_module = PyImport_ImportModule("venv");
-    if (!venv_module) {
-        siril_log_message(_("Failed to import venv module.\n"));
-        PyErr_Clear();
-        return FALSE;
-    }
+	// Import venv module
+	PyObject *venv_module = PyImport_ImportModule("venv");
+	if (!venv_module) {
+		siril_log_message(_("Failed to import venv module.\n"));
+		PyErr_Clear();
+		return FALSE;
+	}
 
-    // Get the create function
-    PyObject *create_func = PyObject_GetAttrString(venv_module, "create");
-    if (!create_func) {
-        siril_log_message(_("Failed to get create function from venv module.\n"));
-        Py_DECREF(venv_module);
-        PyErr_Clear();
-        return FALSE;
-    }
+	// Get the create function
+	PyObject *create_func = PyObject_GetAttrString(venv_module, "create");
+	if (!create_func) {
+		siril_log_message(_("Failed to get create function from venv module\n"));
+		Py_DECREF(venv_module);
+		PyErr_Clear();
+		return FALSE;
+	}
 
-    // Create arguments for the create function
-    PyObject *args = PyTuple_Pack(1, PyUnicode_FromString(venv_dir));
-    PyObject *kwargs = PyDict_New();
-    PyDict_SetItemString(kwargs, "with_pip", Py_True);
+	// Create arguments for the create function
+	PyObject *args = PyTuple_Pack(1, PyUnicode_FromString(venv_dir));
+	PyObject *kwargs = PyDict_New();
+	PyDict_SetItemString(kwargs, "with_pip", Py_True);
 
-    // Call the create function
-    PyObject *result = PyObject_Call(create_func, args, kwargs);
+	// Call the create function
+	PyObject *result = PyObject_Call(create_func, args, kwargs);
 
-    // Clean up
-    Py_DECREF(args);
-    Py_DECREF(kwargs);
-    Py_DECREF(create_func);
-    Py_DECREF(venv_module);
+	// Clean up
+	Py_DECREF(args);
+	Py_DECREF(kwargs);
+	Py_DECREF(create_func);
+	Py_DECREF(venv_module);
 
-    if (!result) {
-        PyObject *error_type, *error_value, *error_traceback;
-        PyErr_Fetch(&error_type, &error_value, &error_traceback);
-        PyObject *error_str = PyObject_Str(error_value);
-        const char *error_message = PyUnicode_AsUTF8(error_str);
-        siril_log_message(_("Failed to create Python virtual environment: %s\n"), error_message);
-        Py_DECREF(error_str);
-        Py_XDECREF(error_type);
-        Py_XDECREF(error_value);
-        Py_XDECREF(error_traceback);
-        PyErr_Clear();
-        return FALSE;
-    }
+	if (!result) {
+		PyObject *error_type, *error_value, *error_traceback;
+		PyErr_Fetch(&error_type, &error_value, &error_traceback);
+		PyObject *error_str = PyObject_Str(error_value);
+		const char *error_message = PyUnicode_AsUTF8(error_str);
+		siril_log_message(_("Failed to create Python virtual environment: %s\n"), error_message);
+		Py_DECREF(error_str);
+		Py_XDECREF(error_type);
+		Py_XDECREF(error_value);
+		Py_XDECREF(error_traceback);
+		PyErr_Clear();
+		return FALSE;
+	}
 
-    Py_DECREF(result);
+	Py_DECREF(result);
 
-    siril_log_message(_("Created Python virtual environment: %s\n"), venv_dir);
-    return TRUE;
+	siril_log_message(_("Created Python virtual environment: %s\n"), venv_dir);
+	return TRUE;
 }
 
+// calls the activate script of venv folder
 static gboolean activate_python_venv(const char *venv_dir) {
-	// Set environment variables to activate the venv
-	g_setenv("VIRTUAL_ENV", venv_dir, TRUE);
+	gchar *bashpath = NULL;
+	gchar *activate_loc =
+#ifdef _WIN32
+	g_strdup_printf("%s/bin/activate.bat", venv_dir);
+	char *argv[] = {"cmd.exe",
+#else
+	g_strdup_printf("%s/bin/activate", venv_dir);
+	bashpath = g_find_program_in_path("bash");
+	char *argv[] = {bashpath, "source",
+#endif
+	activate_loc, NULL};
 
-	char *new_path = NULL;
-	#ifdef _WIN32
-	char *scripts_dir = g_build_filename(venv_dir, "Scripts", NULL);
-	#else
-	char *scripts_dir = g_build_filename(venv_dir, "bin", NULL);
-	#endif
+	gchar *stdout_output = NULL, *stderr_output = NULL;
+	GError *error = NULL;
+	gint exit_status;
 
-	const char *old_path = g_getenv("PATH");
-	if (old_path) {
-		new_path = g_strdup_printf("%s%c%s", scripts_dir, G_SEARCHPATH_SEPARATOR, old_path);
-	} else {
-		new_path = g_strdup(scripts_dir);
-	}
-	g_setenv("PATH", new_path, TRUE);
+	gboolean success = g_spawn_sync(
+		NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL,
+		&stdout_output, &stderr_output, &exit_status, &error);
 
-	g_free(scripts_dir);
-	g_free(new_path);
+	g_free(bashpath);
+	g_free(activate_loc);
 
-	// Unset PYTHONHOME if it's set
-	g_unsetenv("PYTHONHOME");
-
-	// Update sys.prefix and sys.exec_prefix
-	PyObject *sys_module = PyImport_ImportModule("sys");
-	if (sys_module) {
-		PyObject *py_venv_dir = PyUnicode_DecodeFSDefault(venv_dir);
-		if (py_venv_dir) {
-			PyObject_SetAttrString(sys_module, "prefix", py_venv_dir);
-			PyObject_SetAttrString(sys_module, "exec_prefix", py_venv_dir);
-			Py_DECREF(py_venv_dir);
-		} else {
-			PyErr_Print();
-		}
-		Py_DECREF(sys_module);
-	} else {
-		PyErr_Print();
-	}
-
-	// Update sys.path
-	if (PyRun_SimpleString("import sys; sys.path = [p for p in sys.path if 'site-packages' not in p]") != 0) {
-		PyErr_Print();
-	}
-	if (PyRun_SimpleString("import site; site.main()") != 0) {
-		PyErr_Print();
+	if (!success) {
+		siril_log_message(_("Failed to activate Python virtual environment: %s\n"), error->message);
+		g_clear_error(&error);
+		g_free(stdout_output);
+		g_free(stderr_output);
+		return FALSE;
 	}
 
 	siril_log_message(_("Activated Python virtual environment: %s\n"), venv_dir);
@@ -671,9 +658,9 @@ static gboolean activate_python_venv(const char *venv_dir) {
 gpointer init_python(void *user_data) {
 	gchar* venv_dir = g_build_filename(g_get_user_data_dir(), "siril", "venv", NULL);
 	gboolean already_active;
+	gboolean venv_created = check_or_create_python_venv(venv_dir, &already_active);
 	PyImport_AppendInittab("siril", PyInit_siril);
 	Py_Initialize();
-	gboolean venv_created = check_or_create_python_venv(venv_dir, &already_active);
 	init_custom_logger();
 	if (venv_created && !already_active)
 		activate_python_venv(venv_dir);

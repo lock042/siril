@@ -23,6 +23,8 @@
 #  include <config.h>
 #endif
 
+// #define DEBUG_MAIN
+
 #include <gsl/gsl_errno.h>
 #include <gtk/gtk.h>
 #include <stdio.h>
@@ -159,7 +161,9 @@ void load_ui_files() {
 					"cannot render GUI.\n Exiting.\n"), ui_files[0]);
 		exit(EXIT_FAILURE);
 	}
+#ifdef DEBUG_MAIN
 	siril_debug_print("Successfully loaded '%s'\n", ui_files[0]);
+#endif
 
 	uint32_t i = 1;
 	while (*ui_files[i]) {
@@ -174,7 +178,9 @@ void load_ui_files() {
 			g_clear_error(&err);
 			exit(EXIT_FAILURE);
 		}
+#ifdef DEBUG_MAIN
 		siril_debug_print("Successfully loaded '%s'\n", ui_files[i]);
+#endif
 		i++;
 	}
 }
