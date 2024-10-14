@@ -8063,7 +8063,7 @@ int process_seq_applyreg(int nb) {
 			preffit = &gfit;
 		if (preffit->naxes[2] == 1 && preffit->keywords.bayer_pattern[0] != '\0') {
 			sensor_pattern pattern = get_bayer_pattern(preffit);
-			if (pattern >= BAYER_FILTER_MIN && pattern <= BAYER_FILTER_MAX) {
+			if (pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
 				siril_log_color_message(_("Cannot use drizzle on non-bayer sensors, aborting.\n"), "red");
 				clearfits(preffit);
 				goto terminate_register_on_error;
