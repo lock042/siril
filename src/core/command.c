@@ -9896,6 +9896,7 @@ int process_platesolve(int nb) {
 	fits *preffit = &reffit;
 	if (seqps) {
 		int image_to_load = sequence_find_refimage(seq);
+		seq->reference_image = sequence_find_refimage(seq);
 		if (seq_read_frame_metadata(seq, image_to_load, preffit)) {
 			siril_log_message(_("Could not load the reference image of the sequence, aborting.\n"));
 			retval = CMD_SEQUENCE_NOT_FOUND;
