@@ -212,7 +212,7 @@ PyMethodDef PySeq_methods[] = {
 	{"imstats", (PyCFunction)PySeq_get_imstats, METH_VARARGS, N_("Get stats for a specific frame and channel")},
 	{"imgdata", (PyCFunction)PySeq_get_imgdata, METH_VARARGS, N_("Get imgparam for a specific frame")},
 	{"regdata", (PyCFunction)PySeq_get_regdata, METH_VARARGS, N_("Get regparam for a specific frame and channel")},
-	{"frame", (PyCFunction)PySeq_get_fits, METH_VARARGS, N_("Get the specified frame as a PyFits object")},
+	{"frame", (PyCFunction)PySeq_get_fits, METH_VARARGS, N_("Get the frame number specified by the parameter as a PyFits object")},
 	{NULL}  /* Sentinel */
 };
 
