@@ -82,8 +82,7 @@ int register_shift_dft(struct registration_args *args) {
 		nb_frames = (float) args->seq->number;
 
 	if (args->seq->regparam[args->layer]) {
-		siril_log_message(
-				_("Recomputing already existing registration for this layer\n"));
+		siril_log_message(_("Recomputing already existing registration for this layer\n"));
 		current_regdata = args->seq->regparam[args->layer];
 		/* we reset all values as we may register different images */
 		memset(current_regdata, 0, args->seq->number * sizeof(regdata));

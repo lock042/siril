@@ -28,6 +28,13 @@ typedef enum {
 	REG_PAGE_MISC
 } reg_notebook_page;
 
+// 3 stars GUI
+void reset_3stars();
+int _3stars_get_number_selected_stars();
+gboolean _3stars_check_selection();
+
+// General GUI
+int get_registration_layer_from_GUI(const sequence *seq);
 void update_reg_interface(gboolean dont_change_reg_radio);
 gboolean end_register_idle(gpointer p);
 void initialize_registration_methods();

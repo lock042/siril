@@ -414,6 +414,8 @@ siril_common_SOURCES = \
 	registration/matching/degtorad.h \
 	registration/matching/apply_match.c \
 	registration/astrometric.c \
+	registration/distorsion.c \
+	registration/distorsion.h \
 	registration/registration.c \
 	registration/registration.h \
 	registration/shift_methods.c \

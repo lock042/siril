@@ -911,7 +911,7 @@ It depends on the acquistion software used to create the FITS.</property>
                                 <property name="halign">start</property>
                                 <property name="valign">center</property>
                                 <property name="width-chars">9</property>
-                                <property name="text">8,00</property>
+                                <property name="text">8.00</property>
                                 <property name="input-purpose">number</property>
                                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                 <property name="adjustment">adj_comp_fits_quantization</property>
@@ -1013,7 +1013,7 @@ It depends on the acquistion software used to create the FITS.</property>
                                 <property name="halign">start</property>
                                 <property name="valign">center</property>
                                 <property name="width-chars">9</property>
-                                <property name="text">4,00</property>
+                                <property name="text">4.00</property>
                                 <property name="input-purpose">number</property>
                                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                 <property name="adjustment">adj_comp_fits_hcompress_scale</property>
@@ -1954,7 +1954,7 @@ On Windows, you must point to the location of cygwin_ansvr folder only if not in
                         <property name="label-xalign">0</property>
                         <property name="shadow-type">none</property>
                         <child>
-                          <!-- n-columns=4 n-rows=3 -->
+                          <!-- n-columns=4 n-rows=4 -->
                           <object class="GtkGrid">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
@@ -2145,6 +2145,67 @@ On Windows, you must point to the location of cygwin_ansvr folder only if not in
                                 <property name="top-attach">2</property>
                               </packing>
                             </child>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Master-distortion:</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">3</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkEntry" id="distolib_entry">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="hexpand">True</property>
+                                <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">1</property>
+                                <property name="top-attach">3</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkButton" id="distolibfile_button">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">False</property>
+                                <property name="tooltip-text" translatable="yes">Choose a master-distortion that can be used as generic master-distortion by clicking on the button "Use it as default".</property>
+                                <property name="halign">start</property>
+                                <property name="use-underline">True</property>
+                                <signal name="clicked" handler="on_distolibfile_button_clicked" swapped="no"/>
+                                <child>
+                                  <object class="GtkImage">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="icon-name">document-open-symbolic</property>
+                                  </object>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="left-attach">2</property>
+                                <property name="top-attach">3</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkCheckButton" id="check_button_pref_disto">
+                                <property name="label" translatable="yes">Use it as default</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">False</property>
+                                <property name="tooltip-text" translatable="yes">Use the chosen master as default file in the Astrometry dialog</property>
+                                <property name="halign">start</property>
+                                <property name="draw-indicator">True</property>
+                              </object>
+                              <packing>
+                                <property name="left-attach">3</property>
+                                <property name="top-attach">3</property>
+                              </packing>
+                            </child>
                           </object>
                         </child>
                         <child type="label">
@@ -2153,7 +2214,7 @@ On Windows, you must point to the location of cygwin_ansvr folder only if not in
                             <property name="can-focus">False</property>
                             <property name="margin-top">10</property>
                             <property name="margin-bottom">10</property>
-                            <property name="label" translatable="yes">Dark/Bias/Flat Libraries</property>
+                            <property name="label" translatable="yes">Dark/Bias/Flat/Distortion Libraries</property>
                             <property name="single-line-mode">True</property>
                             <attributes>
                               <attribute name="weight" value="bold"/>
@@ -3060,7 +3121,7 @@ Not modifiable by user.</property>
                                 <property name="tooltip-text" translatable="yes">A/D converter gain in electrons per ADU. Default value is 2.300.</property>
                                 <property name="halign">start</property>
                                 <property name="max-width-chars">7</property>
-                                <property name="text">2,3000</property>
+                                <property name="text">2.3000</property>
                                 <property name="input-purpose">number</property>
                                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                 <property name="adjustment">adjGain</property>
@@ -5387,7 +5448,7 @@ Configuring a memory amount larger than what is available on your system may res
                                 <property name="halign">start</property>
                                 <property name="valign">center</property>
                                 <property name="width-chars">5</property>
-                                <property name="text">0,90</property>
+                                <property name="text">0.90</property>
                                 <property name="input-purpose">number</property>
                                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                 <property name="adjustment">adj_mem_ratio</property>
@@ -5407,7 +5468,7 @@ Configuring a memory amount larger than what is available on your system may res
                                 <property name="can-focus">True</property>
                                 <property name="halign">start</property>
                                 <property name="width-chars">5</property>
-                                <property name="text">4,00</property>
+                                <property name="text">4.00</property>
                                 <property name="input-purpose">number</property>
                                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                 <property name="adjustment">adj_mem_amount</property>
