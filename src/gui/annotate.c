@@ -30,6 +30,7 @@
 #include "gui/dialogs.h"
 #include "gui/image_display.h"
 #include "gui/progress_and_log.h"
+#include "gui/message_dialog.h"
 #include "gui/utils.h"
 #include "io/local_catalogues.h"
 #include "io/siril_catalogues.h"
@@ -195,7 +196,7 @@ void on_annotate_save_as_button_clicked(GtkButton *button, gpointer user_data) {
 	dialog = GTK_FILE_CHOOSER(widgetdialog);
 	gtk_file_chooser_set_current_folder(dialog, com.wd);
 	gtk_file_chooser_set_select_multiple(dialog, FALSE);
-	gtk_file_chooser_set_do_overwrite_confirmation(dialog, TRUE);
+	gtk_file_chooser_set_do_overwrite_confirmation(dialog, FALSE); // the overwrite is checked when applied!
 	gtk_file_chooser_set_current_name(dialog, filename);
 	gtk_file_chooser_set_local_only(dialog, FALSE);
 	set_filter(dialog);
@@ -215,7 +216,6 @@ void on_show_button_clicked(GtkButton *button, gpointer user_data) {
 	SirilWidget *widgetdialog;
 	GtkFileChooser *dialog = NULL;
 	gint res;
-
 
 	widgetdialog = siril_file_chooser_open(annotate_dialog, GTK_FILE_CHOOSER_ACTION_OPEN);
 	dialog = GTK_FILE_CHOOSER(widgetdialog);
@@ -339,6 +339,23 @@ void on_annotate_apply_clicked(GtkButton *button, gpointer user_data) {
 			set_cursor_waiting(FALSE);
 			return;
 		}
+		if (g_file_test(params_cone->outfilename, G_FILE_TEST_EXISTS)) {
+			gchar *basename = g_path_get_basename(params_cone->outfilename);
+			gchar *dir_path = g_path_get_dirname(params_cone->outfilename);
+			gchar *last_dir = g_path_get_basename(dir_path);
+
+			gchar *title = g_strdup_printf("A file named \"%s\" already exists. Do you want to replace it?", basename);
+			gchar *txt = g_strdup_printf("The file already exists in \"%s\". Replacing it will overwrite its contents.", last_dir);
+
+			if (!siril_confirm_dialog(N_(title), N_(txt), _("Replace"))) {
+				set_cursor_waiting(FALSE);
+				g_free(basename); g_free(dir_path); g_free(last_dir); g_free(title); g_free(txt);
+				return;
+			}
+			g_free(basename); g_free(dir_path); g_free(last_dir); g_free(title); g_free(txt);
+
+		}
+
 		execute_conesearch(params_cone);
 		break;
 	case SHOW_PAGE:
