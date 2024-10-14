@@ -536,87 +536,82 @@ PyMODINIT_FUNC PyInit_siril(void) {
 		Py_DECREF(m);
 		return NULL;
 	}
-
-
-
 	return m;
 }
 
 // Functions to do with initializing and finalizing the interpreter
 
 static gboolean check_or_create_python_venv(const char *venv_dir, gboolean *already_active) {
-	const char *current_venv = g_getenv("VIRTUAL_ENV");
-	*already_active = FALSE;
-	if (current_venv) {
-		siril_log_message(_("A virtual environment is already active: %s. Using the active virtual environment.\n"), current_venv);
-		*already_active = TRUE;
-		return TRUE;
-	}
+    const char *current_venv = g_getenv("VIRTUAL_ENV");
+    *already_active = FALSE;
+    if (current_venv) {
+        siril_log_message(_("A virtual environment is already active: %s. Using the active virtual environment.\n"), current_venv);
+        *already_active = TRUE;
+        return TRUE;
+    }
 
-	char *venv_python = NULL;
+    char *venv_python = NULL;
+    #ifdef _WIN32
+    venv_python = g_build_filename(venv_dir, "bin", "python.exe", NULL);
+    #else
+    venv_python = g_build_filename(venv_dir, "bin", "python", NULL);
+    #endif
+    gboolean venv_exists = g_file_test(venv_python, G_FILE_TEST_IS_EXECUTABLE);
+    g_free(venv_python);
+    if (venv_exists) {
+        siril_debug_print("A virtual environment already exists: %s.\n", venv_dir);
+        return TRUE;
+    }
 
-	#ifdef _WIN32
-	venv_python = g_build_filename(venv_dir, "Scripts", "python.exe", NULL);
-	#else
-	venv_python = g_build_filename(venv_dir, "bin", "python", NULL);
-	#endif
+    // Import venv module
+    PyObject *venv_module = PyImport_ImportModule("venv");
+    if (!venv_module) {
+        siril_log_message(_("Failed to import venv module.\n"));
+        PyErr_Clear();
+        return FALSE;
+    }
 
-	gboolean venv_exists = g_file_test(venv_python, G_FILE_TEST_IS_EXECUTABLE);
-	g_free(venv_python);
+    // Get the create function
+    PyObject *create_func = PyObject_GetAttrString(venv_module, "create");
+    if (!create_func) {
+        siril_log_message(_("Failed to get create function from venv module.\n"));
+        Py_DECREF(venv_module);
+        PyErr_Clear();
+        return FALSE;
+    }
 
-	if (venv_exists) {
-		siril_debug_print("A virtual environment already exists: %s.\n", current_venv);
-		return TRUE;
-	}
+    // Create arguments for the create function
+    PyObject *args = PyTuple_Pack(1, PyUnicode_FromString(venv_dir));
+    PyObject *kwargs = PyDict_New();
+    PyDict_SetItemString(kwargs, "with_pip", Py_True);
 
-	// Create a new venv
-	char *python_path = NULL;
-	#ifdef _WIN32
-	python_path = g_find_program_in_path("python.exe");
-	#else
-	python_path = g_find_program_in_path("python3");
-	if (!python_path) {
-		python_path = g_find_program_in_path("python");
-	}
-	#endif
+    // Call the create function
+    PyObject *result = PyObject_Call(create_func, args, kwargs);
 
-	if (!python_path) {
-		siril_log_message(_("Python not found. Cannot create virtual environment.\n"));
-		return FALSE;
-	}
+    // Clean up
+    Py_DECREF(args);
+    Py_DECREF(kwargs);
+    Py_DECREF(create_func);
+    Py_DECREF(venv_module);
 
-	char *argv[] = {python_path, "-m", "venv", (char *)venv_dir, NULL};
-	gchar *stdout_output = NULL, *stderr_output = NULL;
-	GError *error = NULL;
-	gint exit_status;
+    if (!result) {
+        PyObject *error_type, *error_value, *error_traceback;
+        PyErr_Fetch(&error_type, &error_value, &error_traceback);
+        PyObject *error_str = PyObject_Str(error_value);
+        const char *error_message = PyUnicode_AsUTF8(error_str);
+        siril_log_message(_("Failed to create Python virtual environment: %s\n"), error_message);
+        Py_DECREF(error_str);
+        Py_XDECREF(error_type);
+        Py_XDECREF(error_value);
+        Py_XDECREF(error_traceback);
+        PyErr_Clear();
+        return FALSE;
+    }
 
-	gboolean success = g_spawn_sync(
-		NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL,
-		&stdout_output, &stderr_output, &exit_status, &error
-	);
+    Py_DECREF(result);
 
-	g_free(python_path);
-
-	if (!success) {
-		siril_log_message(_("Failed to create Python virtual environment: %s"), error->message);
-		g_clear_error(&error);
-		g_free(stdout_output);
-		g_free(stderr_output);
-		return FALSE;
-	}
-
-	if (exit_status != 0) {
-		siril_log_message(_("Python virtual environment creation failed with exit code %d: %s"), exit_status, stderr_output);
-		g_free(stdout_output);
-		g_free(stderr_output);
-		return FALSE;
-	}
-	siril_log_message(_("Created Python virtual environment: %s\n"), venv_dir);
-
-	g_free(stdout_output);
-	g_free(stderr_output);
-
-	return TRUE;
+    siril_log_message(_("Created Python virtual environment: %s\n"), venv_dir);
+    return TRUE;
 }
 
 static gboolean activate_python_venv(const char *venv_dir) {
@@ -676,9 +671,9 @@ static gboolean activate_python_venv(const char *venv_dir) {
 gpointer init_python(void *user_data) {
 	gchar* venv_dir = g_build_filename(g_get_user_data_dir(), "siril", "venv", NULL);
 	gboolean already_active;
-	gboolean venv_created = check_or_create_python_venv(venv_dir, &already_active);
 	PyImport_AppendInittab("siril", PyInit_siril);
 	Py_Initialize();
+	gboolean venv_created = check_or_create_python_venv(venv_dir, &already_active);
 	init_custom_logger();
 	if (venv_created && !already_active)
 		activate_python_venv(venv_dir);
