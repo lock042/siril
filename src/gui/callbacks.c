@@ -653,15 +653,16 @@ void update_MenuItem() {
 	/* some toolbar buttons */
 	gtk_widget_set_sensitive(lookup_widget("toolbarbox"), any_image_is_loaded);
 
-	gboolean enable_button = any_image_is_loaded && has_wcs(&gfit);
+	gboolean wcs_ok = any_image_is_loaded && has_wcs(&gfit);
 	GAction *action_annotate = g_action_map_lookup_action(G_ACTION_MAP(app_win), "annotate-object");
 	GAction *action_grid = g_action_map_lookup_action(G_ACTION_MAP(app_win), "wcs-grid");
 
 	/* any image with wcs information is needed */
-	siril_window_enable_wcs_proc_actions(app_win, enable_button);
+	siril_window_enable_wcs_proc_actions(app_win, wcs_ok);
+	siril_window_enable_wcs_disto_proc_actions(app_win, wcs_ok && gfit.keywords.wcslib->lin.dispre);
 
 	/* untoggle if disabled */
-	if (!enable_button) {
+	if (!wcs_ok) {
 		GVariant *state = g_action_get_state(action_annotate);
 		if (g_variant_get_boolean(g_action_get_state(action_annotate))) {
 			g_action_change_state(action_annotate, g_variant_new_boolean(FALSE));
