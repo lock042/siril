@@ -11,5 +11,6 @@ PyObject* siril_notify_gfit_modified(PyObject* self, PyObject* args);
 PyObject* siril_processcommand(PyObject* self, PyObject* args);
 PyObject* siril_progress_wrapper(PyObject* self, PyObject* args);
 PyObject* siril_get_wd(PyObject *self, PyObject *args);
+PyObject* siril_pipinstall(PyObject* self, PyObject* args);
 
 #endif

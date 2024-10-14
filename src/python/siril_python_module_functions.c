@@ -261,3 +261,55 @@ PyObject *siril_get_filename(PyObject *self, PyObject *args) {
 PyObject* siril_get_continue(PyObject* self, PyObject* args) {
 	return PyBool_FromLong(com.stop_script);
 }
+
+PyObject* siril_pipinstall(PyObject* self, PyObject* args) {
+	const char* module_name;
+	if (!PyArg_ParseTuple(args, "s", &module_name)) {
+		return NULL;
+	}
+
+	// Import pip
+	PyObject* pip_module = PyImport_ImportModule("pip");
+	if (pip_module == NULL) {
+		PyErr_SetString(PyExc_ImportError, "Failed to import pip. Make sure it's installed in the virtual environment.");
+		return NULL;
+	}
+
+	// Prepare arguments for pip install
+	PyObject* pip_args = Py_BuildValue("[sss]", "install", "--upgrade", module_name);
+	if (pip_args == NULL) {
+		Py_DECREF(pip_module);
+		return NULL;
+	}
+
+	// Get pip.main function
+	PyObject* pip_main = PyObject_GetAttrString(pip_module, "main");
+	if (pip_main == NULL) {
+		Py_DECREF(pip_module);
+		Py_DECREF(pip_args);
+		PyErr_SetString(PyExc_AttributeError, "Failed to get pip.main function.");
+		return NULL;
+	}
+
+	// Call pip.main(["install", "--upgrade", module_name])
+	PyObject* result = PyObject_CallFunctionObjArgs(pip_main, pip_args, NULL);
+
+	// Clean up
+	Py_DECREF(pip_module);
+	Py_DECREF(pip_main);
+	Py_DECREF(pip_args);
+
+	if (result == NULL) {
+		return NULL;  // Python exception already set
+	}
+
+	int exit_code = PyLong_AsLong(result);
+	Py_DECREF(result);
+
+	if (exit_code != 0) {
+		PyErr_Format(PyExc_RuntimeError, "pip install failed with exit code %d", exit_code);
+		return NULL;
+	}
+
+	Py_RETURN_NONE;
+}

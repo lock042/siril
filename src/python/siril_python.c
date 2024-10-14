@@ -455,6 +455,7 @@ static PyMethodDef SirilMethods[] = {
 	{"notify_image_modified", (PyCFunction)siril_notify_gfit_modified, METH_NOARGS, N_("Notify that the main image has been modified.")},
 	{"cmd", siril_processcommand, METH_VARARGS, N_("Execute a Siril command")},
 	{"wd", (PyCFunction)siril_get_wd, METH_NOARGS, N_("Get the current working directory")},
+	{"pipinstall", (PyCFunction)siril_pipinstall, METH_VARARGS, N_("Install a module using pip")},
 	{"should_stop", (PyCFunction)siril_get_continue, METH_NOARGS, N_("Check if the Stop button has been pressed")},
 	{NULL, NULL, 0, NULL}  /* Sentinel */
 };
