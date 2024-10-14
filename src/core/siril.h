@@ -315,10 +315,11 @@ typedef enum {
 	DISTO_FILE_COMET // special for cometary alignement, to be detected by apply reg. Enables to 
 } disto_source;
 
+/* this structure describes the apertures strategies available*/
 typedef enum {
-	FIXED_AP,
-	FWHM_VAR,
-	FLUX_CUT
+	FIXED_AP, // The 3 radii have fixed values
+	FWHM_VAR, // The 3 radii have values depending on the FWHM
+	FLUX_CUT // The aperture radius depends on the flux decrease level, the 2 others depend on the aperture
 } aperture_strategy;
 
 /* image data, exists once for each image */
