@@ -1144,5 +1144,7 @@ PyObject* PyFits_set_as_gfit(PyFits* self, PyObject* Py_UNUSED(ignored)) {
 	self->should_free = FALSE;
 	self->should_free_data = FALSE;
 
+	notify_gfit_modified();
+
 	Py_RETURN_NONE;  // Return None to indicate success
 }
