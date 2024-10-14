@@ -27,6 +27,8 @@
 #include "python/PyImStats_functions.h"
 #include "python/PyRegData_functions.h"
 
+#include "io/sequence.h"
+
 PyObject *PySeq_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
 	PySeqObject *self;
 	self = (PySeqObject *)type->tp_alloc(type, 0);
@@ -51,27 +53,7 @@ int PySeq_init(PySeqObject *self, PyObject *args, PyObject *kwds) {
 
 void PySeq_dealloc(PySeqObject *self) {
 	if (self->seq != NULL && self->should_free) {
-		free(self->seq->seqname);
-		free(self->seq->imgparam);
-		if (self->seq->regparam) {
-			for (int i = 0; i < self->seq->nb_layers; i++) {
-				free(self->seq->regparam[i]);
-			}
-			free(self->seq->regparam);
-		}
-		if (self->seq->stats) {
-			for (int i = 0; i < self->seq->number; i++) {
-				if (self->seq->stats[i]) {
-					for (int j = 0; j < self->seq->nb_layers; j++) {
-						free(self->seq->stats[i][j]);
-					}
-					free(self->seq->stats[i]);
-				}
-			}
-			free(self->seq->stats);
-		}
-		// Free other dynamically allocated members here
-		free(self->seq);
+		free_sequence(self->seq, TRUE);
 	}
 	Py_TYPE(self)->tp_free((PyObject *)self);
 }
@@ -209,69 +191,165 @@ PyObject* PySeq_get_needs_saving(PySeqObject *self, void *closure) {
 // Method to get imgdata for a specified frame in the sequence
 PyObject *PySeq_get_imgdata(PySeqObject *self, PyObject *args) {
 	int frame;
-	if (!PyArg_ParseTuple(args, "i", &frame))
-		return NULL;
-
+	// Parse the frame argument
+	if (!PyArg_ParseTuple(args, "i", &frame)) {
+		return NULL; // Return NULL if the frame is not passed correctly
+	}
+	// Bounds checking: Ensure 0 < frame <= self->seq->number
 	if (frame < 0 || frame >= self->seq->number) {
-		PyErr_SetString(PyExc_IndexError, "Frame index out of range");
+		PyErr_SetString(PyExc_IndexError, _("Frame index out of range"));
 		return NULL;
 	}
-
-	if (!self->seq->imgparam) {
-		Py_RETURN_NONE;
+	// Create a new PyImgDataObject
+	PyImgDataObject *py_imgdata = (PyImgDataObject *)PyObject_New(PyImgDataObject, &PyImgDataType);
+	if (py_imgdata == NULL) {
+		return PyErr_NoMemory(); // Return memory error if allocation fails
 	}
-
-	PyObject *imgdata = PyImgData_FromExisting(&self->seq->imgparam[frame], (PyObject *)self);
-	if (imgdata != NULL) {
-		self->ref_count++;
+	if (self->seq->imgparam == NULL) {
+		PyErr_SetString(PyExc_IndexError, _("imgdata unallocated"));
+		return NULL;
 	}
-	return imgdata;
+	// Copy the imgparam data from the selected frame
+	py_imgdata->img = (imgdata *)calloc(1, sizeof(imgdata));
+	if (py_imgdata->img == NULL) {
+		Py_DECREF(py_imgdata);
+		return PyErr_NoMemory(); // Return memory error if the allocation fails
+	}
+	// Perform the copy from self->seq->imgparam[frame] to the new PyImgDataObject
+	memcpy(py_imgdata->img, &(self->seq->imgparam[frame]), sizeof(imgdata));
+	// Set additional fields (if necessary)
+	py_imgdata->should_free = 1;  // The object owns the img copy and should free it later
+	py_imgdata->seq = NULL;    // No parent is set for this object
+	// Return the new PyImgDataObject
+	return (PyObject *)py_imgdata;
 }
 
-PyObject* PySeq_get_regdata(PySeqObject *self, PyObject *args) {
+PyObject *PySeq_get_regdata(PySeqObject *self, PyObject *args) {
 	int frame, channel;
-	if (!PyArg_ParseTuple(args, "ii", &frame, &channel))
+	// Parse the frame and channel arguments
+	if (!PyArg_ParseTuple(args, "ii", &frame, &channel)) {
+		return NULL; // Return NULL if frame and channel are not passed correctly
+	}
+	// Bounds checking: Ensure 0 <= frame < self->seq->number and 0 <= channel < self->seq->nb_layers
+	if (frame < 0 || frame >= self->seq->number) {
+		PyErr_SetString(PyExc_IndexError, _("Frame index out of range"));
 		return NULL;
-
-	if (frame < 0 || frame >= self->seq->number || channel < 0 || channel >= self->seq->nb_layers) {
-		PyErr_SetString(PyExc_IndexError, "Frame or channel index out of range");
+	}
+	if (channel < 0 || channel >= self->seq->nb_layers) {
+		PyErr_SetString(PyExc_IndexError, _("Channel index out of range"));
 		return NULL;
 	}
-
-	if (!self->seq->regparam || !self->seq->regparam[channel]) {
-		Py_RETURN_NONE;
+	if (self->seq->regparam == NULL || self->seq->regparam[frame] == NULL) {
+		PyErr_SetString(PyExc_IndexError, _("regdata unallocated"));
+		return NULL;
 	}
-
-	PyObject *regdata = PyRegData_FromExisting(&self->seq->regparam[channel][frame], (PyObject *)self);
-	if (regdata != NULL) {
-		self->ref_count++;
+	// Create a new PyRegDataObject
+	PyRegDataObject *py_regdata = (PyRegDataObject *)PyObject_New(PyRegDataObject, &PyRegDataType);
+	if (py_regdata == NULL) {
+		return PyErr_NoMemory(); // Return memory error if allocation fails
 	}
-	return regdata;
+	// Copy the regparam data from the selected frame and channel
+	py_regdata->reg = (regdata *)calloc(1, sizeof(regdata));
+	if (py_regdata->reg == NULL) {
+		Py_DECREF(py_regdata);
+		return PyErr_NoMemory(); // Return memory error if the allocation fails
+	}
+	// Perform the copy from self->seq->regparam[frame][channel] to the new PyRegDataObject
+	memcpy(py_regdata->reg, &(self->seq->regparam[frame][channel]), sizeof(regdata));
+	// don't copy fwhm_data, it's only used during registration and not saved
+
+	// Set additional fields (if necessary)
+	py_regdata->should_free = 1;  // The object owns the reg copy and should free it later
+	py_regdata->seq = NULL;    // No parent is set for this object
+	py_regdata->ref_count = 1; // initialize the refcount at 1
+	// Return the new PyRegDataObject
+	return (PyObject *)py_regdata;
 }
 
 PyObject *PySeq_get_imstats(PySeqObject *self, PyObject *args) {
 	int frame, channel;
-	if (!PyArg_ParseTuple(args, "ii", &frame, &channel))
+	// Parse the frame and channel arguments
+	if (!PyArg_ParseTuple(args, "ii", &frame, &channel)) {
+		return NULL; // Return NULL if frame and channel are not passed correctly
+	}
+	// Bounds checking: Ensure 0 <= frame < self->seq->number and 0 <= channel < self->seq->nb_layers
+	if (frame < 0 || frame >= self->seq->number) {
+		PyErr_SetString(PyExc_IndexError, _("Frame index out of range"));
 		return NULL;
-
-	if (frame < 0 || frame >= self->seq->number || channel < 0 || channel >= self->seq->nb_layers) {
-		PyErr_SetString(PyExc_IndexError, N_("Frame or channel index out of range"));
+	}
+	if (channel < 0 || channel >= self->seq->nb_layers) {
+		PyErr_SetString(PyExc_IndexError, _("Channel index out of range"));
 		return NULL;
 	}
-
-	if (!self->seq->stats || !self->seq->stats[frame] || !self->seq->stats[frame][channel]) {
-		Py_RETURN_NONE;
+	// Check if stats exist for the given frame and channel
+	if (self->seq->stats == NULL || self->seq->stats[frame] == NULL || self->seq->stats[frame][channel] == NULL) {
+		PyErr_SetString(PyExc_ValueError, _("No stats available for the requested frame and channel"));
+		return NULL;
 	}
-
-	PyObject *stats = PyImStats_FromExisting(self->seq->stats[frame][channel], (PyObject *)self, 'S');
-	if (stats != NULL) {
-		self->ref_count++;
+	// Create a new PyImStatsObject
+	PyImStatsObject *py_imstats = (PyImStatsObject *)PyObject_New(PyImStatsObject, &PyImStatsType);
+	if (py_imstats == NULL) {
+		return PyErr_NoMemory(); // Return memory error if allocation fails
 	}
-	return stats;
+	// Copy the imstats from the selected frame and channel
+	py_imstats->stats = (imstats *)malloc(sizeof(imstats));
+	if (py_imstats->stats == NULL) {
+		Py_DECREF(py_imstats);
+		return PyErr_NoMemory(); // Return memory error if the allocation fails
+	}
+	// Perform the copy from self->seq->stats[frame][channel] to the new PyImStatsObject
+	memcpy(py_imstats->stats, self->seq->stats[frame][channel], sizeof(imstats));
+	// Set additional fields (if necessary)
+	py_imstats->should_free = 1;  // The object owns the stats copy and should free it later
+	py_imstats->parent = NULL;    // No parent is set for this object
+	py_imstats->parent_type = '\0';  // No parent type, so set to null character
+	// Return the new PyImStatsObject
+	return (PyObject *)py_imstats;
 }
 
-// Method to access gfit
+PyObject *PySeq_get_fits(PySeqObject *self, PyObject *args) {
+	int n;
+	// Parse the 'n' argument (the frame index)
+	if (!PyArg_ParseTuple(args, "i", &n)) {
+		return NULL; // Return NULL if 'n' is not passed correctly
+	}
+	// Bounds checking: Ensure 0 <= n < self->seq->nb_frames
+	if (n < 0 || n >= self->seq->number) {
+		PyErr_SetString(PyExc_IndexError, "Frame index out of range");
+		return NULL;
+	}
+	// Create a new PyFits object
+	PyFits *py_fits = (PyFits *)PyObject_New(PyFits, &PyFitsType);
+	if (py_fits == NULL) {
+		return PyErr_NoMemory(); // Return memory error if allocation fails
+	}
+	// Set additional fields for the PyFits object
+	py_fits->should_free_data = 1; // The object owns the fits data and should free it later
+	py_fits->should_free = 1;      // The PyFits object is responsible for freeing the fits structure
+	// Allocate memory for the fits structure
+	py_fits->fit = (fits *)calloc(1, sizeof(fits));
+	if (py_fits->fit == NULL) {
+		Py_DECREF(py_fits); // Free the allocated PyFits object
+		return PyErr_NoMemory(); // Return memory error if allocation fails
+	}
+	// Call seq_read_frame() to read the frame data
+	int result = seq_read_frame(self->seq, n, py_fits->fit, !com.pref.force_16bit, -1);
+	if (result != 0) {
+		Py_DECREF(py_fits);  // Free the allocated PyFits object
+		PyErr_SetString(PyExc_RuntimeError, "Failed to read frame data");
+		return NULL;
+	}
+	// Return the newly created PyFits object
+	return (PyObject *)py_fits;
+}
+
+// Method to access com.seq
 PyObject *PySeq_comseq(PyObject *cls, PyObject *args) {
+	if (!sequence_is_loaded()) {
+		PyErr_SetString(PyExc_ValueError, _("Main sequence is not loaded"));
+		return NULL;
+	}
+
 	PySeqObject *self = (PySeqObject *)PySeqType.tp_alloc(&PySeqType, 0);
 	if (self != NULL) {
 		self->seq = &com.seq;

@@ -47,9 +47,6 @@ int PyRegData_init(PyRegDataObject *self, PyObject *args, PyObject *kwds) {
 
 void PyRegData_dealloc(PyRegDataObject *self) {
 	if (self->reg != NULL && self->should_free) {
-		if (self->reg->fwhm_data != NULL) {
-			free(self->reg->fwhm_data);
-		}
 		free(self->reg);
 	}
 	Py_TYPE(self)->tp_free((PyObject *)self);

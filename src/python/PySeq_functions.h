@@ -27,5 +27,6 @@ PyObject* PySeq_get_imgdata(PySeqObject *self, PyObject *args);
 PyObject* PySeq_get_regdata(PySeqObject *self, PyObject *args);
 PyObject* PySeq_get_homography(PySeqObject *self, PyObject *args);
 PyObject* PySeq_get_imstats(PySeqObject *self, PyObject *args);
+PyObject *PySeq_get_fits(PySeqObject *self, PyObject *args);
 PyObject *PySeq_comseq(PyObject *cls, PyObject *args);
 #endif

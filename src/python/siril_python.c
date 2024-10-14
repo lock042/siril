@@ -26,6 +26,7 @@
 
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
+#include <datetime.h>
 
 #include "core/siril.h"
 #include "core/siril_app_dirs.h"
@@ -39,6 +40,43 @@
 #include "python/siril_python_module_functions.h"
 #include "gui/script_menu.h"
 #include "core/siril_log.h"
+
+// Helper functions
+
+// Helper function to convert GDateTime to PyDateTime
+PyObject* gdatetime_to_pydatetime(GDateTime *gdt) {
+	// Ensure the datetime API is ready to use
+	if (!PyDateTimeAPI) {
+		PyDateTime_IMPORT;
+	}
+
+	if (!gdt) {
+		siril_log_message(_("FITS does not contain a valid DateTime\n"), "red");
+		Py_RETURN_NONE;
+	}
+
+	// Extract fields from GDateTime
+	int year = g_date_time_get_year(gdt);
+	int month = g_date_time_get_month(gdt);
+	int day = g_date_time_get_day_of_month(gdt);
+	int hour = g_date_time_get_hour(gdt);
+	int minute = g_date_time_get_minute(gdt);
+	int second = g_date_time_get_second(gdt);
+	int microsecond = g_date_time_get_microsecond(gdt);
+
+	// Create a PyDateTime object using the Python C API
+	PyObject *py_datetime = PyDateTime_FromDateAndTime(
+		year, month, day, hour, minute, second, microsecond
+	);
+
+	if (!py_datetime) {
+		PyErr_SetString(PyExc_RuntimeError, N_("Failed to create Python datetime object"));
+		return NULL;
+	}
+
+	// Return the new PyDateTime object
+	return py_datetime;
+}
 
 // Define getters and setters
 static PyGetSetDef PyFits_getsetters[] = {
@@ -113,24 +151,25 @@ static PyGetSetDef PyFits_getsetters[] = {
 
 // Define methods for PyFits
 static PyMethodDef PyFits_methods[] = {
-	{"image", (PyCFunction)PyFits_gfit, METH_CLASS | METH_NOARGS, N_("Get the Siril main image as a PyFits object")},
-	{"get_total", (PyCFunction)PyFits_get_total, METH_VARARGS, N_("Return the total pixel count for the specified channel.")},
-	{"get_ngoodpix", (PyCFunction)PyFits_get_ngoodpix, METH_VARARGS, N_("Return the number of good pixels for the specified channel.")},
-	{"get_mean", (PyCFunction)PyFits_get_mean, METH_VARARGS, N_("Return the mean pixel value for the specified channel.")},
-	{"get_median", (PyCFunction)PyFits_get_median, METH_VARARGS, N_("Return the median pixel value for the specified channel.")},
-	{"get_sigma", (PyCFunction)PyFits_get_sigma, METH_VARARGS, N_("Return the sigma (standard deviation) for the specified channel.")},
-	{"get_avgdev", (PyCFunction)PyFits_get_avgdev, METH_VARARGS, N_("Return the average deviation for the specified channel.")},
-	{"get_mad", (PyCFunction)PyFits_get_mad, METH_VARARGS, N_("Return the median absolute deviation (MAD) for the specified channel.")},
-	{"get_sqrtbwmv", (PyCFunction)PyFits_get_sqrtbwmv, METH_VARARGS, N_("Return the square root of the biweight midvariance for the specified channel.")},
-	{"get_location", (PyCFunction)PyFits_get_location, METH_VARARGS, N_("Return the location value for the specified channel.")},
-	{"get_scale", (PyCFunction)PyFits_get_scale, METH_VARARGS, N_("Return the scale value for the specified channel.")},
-	{"get_min", (PyCFunction)PyFits_get_min, METH_VARARGS, N_("Return the minimum pixel value for the specified channel.")},
-	{"get_max", (PyCFunction)PyFits_get_max, METH_VARARGS, N_("Return the maximum pixel value for the specified channel.")},
-	{"get_normvalue", (PyCFunction)PyFits_get_normvalue, METH_VARARGS, N_("Return the normalization value for the specified channel.")},
-	{"get_bgnoise", (PyCFunction)PyFits_get_bgnoise, METH_VARARGS, N_("Return the background noise value for the specified channel.")},
+	{"current", (PyCFunction)PyFits_gfit, METH_CLASS | METH_NOARGS, N_("Get the current Siril image as a PyFits object")},
+	{"total", (PyCFunction)PyFits_get_total, METH_VARARGS, N_("Return the total pixel count for the specified channel.")},
+	{"ngoodpix", (PyCFunction)PyFits_get_ngoodpix, METH_VARARGS, N_("Return the number of good pixels for the specified channel.")},
+	{"mean", (PyCFunction)PyFits_get_mean, METH_VARARGS, N_("Return the mean pixel value for the specified channel.")},
+	{"median", (PyCFunction)PyFits_get_median, METH_VARARGS, N_("Return the median pixel value for the specified channel.")},
+	{"sigma", (PyCFunction)PyFits_get_sigma, METH_VARARGS, N_("Return the sigma (standard deviation) for the specified channel.")},
+	{"avgdev", (PyCFunction)PyFits_get_avgdev, METH_VARARGS, N_("Return the average deviation for the specified channel.")},
+	{"mad", (PyCFunction)PyFits_get_mad, METH_VARARGS, N_("Return the median absolute deviation (MAD) for the specified channel.")},
+	{"sqrtbwmv", (PyCFunction)PyFits_get_sqrtbwmv, METH_VARARGS, N_("Return the square root of the biweight midvariance for the specified channel.")},
+	{"location", (PyCFunction)PyFits_get_location, METH_VARARGS, N_("Return the location value for the specified channel.")},
+	{"scale", (PyCFunction)PyFits_get_scale, METH_VARARGS, N_("Return the scale value for the specified channel.")},
+	{"min", (PyCFunction)PyFits_get_min, METH_VARARGS, N_("Return the minimum pixel value for the specified channel.")},
+	{"max", (PyCFunction)PyFits_get_max, METH_VARARGS, N_("Return the maximum pixel value for the specified channel.")},
+	{"normvalue", (PyCFunction)PyFits_get_normvalue, METH_VARARGS, N_("Return the normalization value for the specified channel.")},
+	{"bgnoise", (PyCFunction)PyFits_get_bgnoise, METH_VARARGS, N_("Return the background noise value for the specified channel.")},
+    {"stats", (PyCFunction)PyFits_stats, METH_VARARGS, N_("Returns a copy of the statistics for a given channel in the FITS image as a PyImStats object.")},
     {"open", (PyCFunction)PyFits_open, METH_VARARGS | METH_CLASS, N_("Open a FITS file and load it into the PyFits object")},
 	{"move_to_siril_image", (PyCFunction)PyFits_move_to_gfit, METH_VARARGS | METH_KEYWORDS,
-     N_("Move the FITS data to the main siril image. Takes an optional argument return_new: if return_new is True, returns a new PyFits object pointing to the main Siril image.")},
+     N_("Move the FITS data to the main Siril image. Takes an optional argument return_new: if return_new is True, returns a new PyFits object pointing to the main Siril image.")},
     {"save", (PyCFunction)PyFits_save, METH_VARARGS, N_("Save the current PyFits object to a FITS file")},
 	{NULL}
 };
@@ -169,10 +208,11 @@ static PyGetSetDef PySeq_getsetters[] = {
 };
 
 PyMethodDef PySeq_methods[] = {
-	{"comseq", (PyCFunction)PySeq_comseq, METH_NOARGS, N_("The current sequence loaded in Siril")},
-	{"get_imstats", (PyCFunction)PySeq_get_imstats, METH_VARARGS, N_("Get stats for a specific frame and channel")},
-	{"get_imgdata", (PyCFunction)PySeq_get_imgdata, METH_VARARGS, N_("Get imgparam for a specific frame")},
-	{"get_regdata", (PyCFunction)PySeq_get_regdata, METH_VARARGS, N_("Get regparam for a specific frame and channel")},
+	{"current", (PyCFunction)PySeq_comseq, METH_CLASS | METH_NOARGS, N_("The current sequence loaded in Siril")},
+	{"imstats", (PyCFunction)PySeq_get_imstats, METH_VARARGS, N_("Get stats for a specific frame and channel")},
+	{"imgdata", (PyCFunction)PySeq_get_imgdata, METH_VARARGS, N_("Get imgparam for a specific frame")},
+	{"regdata", (PyCFunction)PySeq_get_regdata, METH_VARARGS, N_("Get regparam for a specific frame and channel")},
+	{"frame", (PyCFunction)PySeq_get_fits, METH_VARARGS, N_("Get the specified frame as a PyFits object")},
 	{NULL}  /* Sentinel */
 };
 
@@ -194,7 +234,7 @@ PyTypeObject PySeqType = {
 
 static PyGetSetDef PyImgData_getsetters[] = {
 	{"filenum", (getter)PyImgData_get_filenum, NULL, N_("real file index in the sequence"), NULL},
-	{"incl", (getter)PyImgData_get_incl, NULL, N_("included for future processings"), NULL},
+	{"incl", (getter)PyImgData_get_incl, NULL, N_("indicator whether or not the frame is included for future processings"), NULL},
 	{"date_obs", (getter)PyImgData_get_date_obs, NULL, N_("date of the observation"), NULL},
 	{"airmass", (getter)PyImgData_get_airmass, NULL, N_("airmass of the image"), NULL},
 	{"rx", (getter)PyImgData_get_rx, NULL, N_("image width"), NULL},

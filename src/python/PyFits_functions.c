@@ -20,7 +20,6 @@
 
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
-#include <datetime.h>
 
 #include "core/siril.h"
 #include "core/proto.h"
@@ -35,41 +34,6 @@
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "algos/statistics.h"
-
-// Helper function to convert GDateTime to PyDateTime
-PyObject* gdatetime_to_pydatetime(GDateTime *gdt) {
-	// Ensure the datetime API is ready to use
-	if (!PyDateTimeAPI) {
-		PyDateTime_IMPORT;
-	}
-
-	if (!gdt) {
-		siril_log_message(_("FITS does not contain a valid DateTime\n"), "red");
-		Py_RETURN_NONE;
-	}
-
-	// Extract fields from GDateTime
-	int year = g_date_time_get_year(gdt);
-	int month = g_date_time_get_month(gdt);
-	int day = g_date_time_get_day_of_month(gdt);
-	int hour = g_date_time_get_hour(gdt);
-	int minute = g_date_time_get_minute(gdt);
-	int second = g_date_time_get_second(gdt);
-	int microsecond = g_date_time_get_microsecond(gdt);
-
-	// Create a PyDateTime object using the Python C API
-	PyObject *py_datetime = PyDateTime_FromDateAndTime(
-		year, month, day, hour, minute, second, microsecond
-	);
-
-	if (!py_datetime) {
-		PyErr_SetString(PyExc_RuntimeError, N_("Failed to create Python datetime object"));
-		return NULL;
-	}
-
-	// Return the new PyDateTime object
-	return py_datetime;
-}
 
 // Deallocation function for PyFits
 void PyFits_dealloc(PyFits *self) {
@@ -129,28 +93,23 @@ int PyFits_init(PyFits *self, PyObject *args, PyObject *kwds) {
 static int PyFits_getbuffer(PyObject *obj, Py_buffer *view, int flags) {
 	PyFits *self = (PyFits *)obj;
 	fits *fit = self->fit;
-
 	if (!fit) {
 		PyErr_SetString(PyExc_ValueError, "Fits object is NULL");
 		return -1;
 	}
-
 	// Determine dimensionality
 	int ndim = (fit->naxes[2] > 1) ? 3 : 2;
 	view->ndim = ndim;
 	view->readonly = 0;  // Assume writable for now
-
 	// Allocate memory for shape and strides
 	Py_ssize_t *shape = PyMem_Malloc(ndim * sizeof(Py_ssize_t));
 	Py_ssize_t *strides = PyMem_Malloc(ndim * sizeof(Py_ssize_t));
-
 	if (!shape || !strides) {
 		PyErr_NoMemory();
 		PyMem_Free(shape);
 		PyMem_Free(strides);
 		return -1;
 	}
-
 	// Set shape
 	if (ndim == 3) {
 		shape[0] = fit->naxes[2];
@@ -161,7 +120,6 @@ static int PyFits_getbuffer(PyObject *obj, Py_buffer *view, int flags) {
 		shape[1] = fit->naxes[0];
 	}
 	view->shape = shape;
-
 	// Set buffer and itemsize based on data type
 	if (fit->type == DATA_USHORT) {
 		view->buf = fit->data;
@@ -177,10 +135,8 @@ static int PyFits_getbuffer(PyObject *obj, Py_buffer *view, int flags) {
 		PyMem_Free(strides);
 		return -1;
 	}
-
 	// Calculate total length
 	view->len = view->itemsize * fit->naxes[0] * fit->naxes[1] * fit->naxes[2];
-
 	// Set strides for row-major order
 	if (ndim == 3) {
 		strides[0] = fit->naxes[1] * fit->naxes[0] * view->itemsize;
@@ -191,10 +147,8 @@ static int PyFits_getbuffer(PyObject *obj, Py_buffer *view, int flags) {
 		strides[1] = view->itemsize;
 	}
 	view->strides = strides;
-
 	view->suboffsets = NULL;
 	view->internal = NULL;
-
 	// Check if writable buffer is requested but data is read-only
 	if ((flags & PyBUF_WRITABLE) && view->readonly) {
 		PyErr_SetString(PyExc_BufferError, "Object is not writable");
@@ -202,7 +156,6 @@ static int PyFits_getbuffer(PyObject *obj, Py_buffer *view, int flags) {
 		PyMem_Free(strides);
 		return -1;
 	}
-
 	return 0;
 }
 
@@ -1056,25 +1009,41 @@ PyObject* PyFits_get_bgnoise(PyFits *self, PyObject *args) {
 	return PyFloat_FromDouble(self->fit->stats[n]->bgnoise);
 }
 
-PyObject* PyFits_get_ImStats(PyFits *self, PyObject *args) {
+PyObject *PyFits_stats(PyFits *self, PyObject *args) {
 	int channel;
-	if (!PyArg_ParseTuple(args, "i", &channel))
-		return NULL;
-
+	if (!PyArg_ParseTuple(args, "i", &channel)) {
+		return NULL; // If the channel is not passed correctly, return NULL
+	}
+	// Check that the channel is within bounds
 	if (channel < 0 || channel >= self->fit->naxes[2]) {
-		PyErr_SetString(PyExc_IndexError, N_("Channel index out of range"));
+		PyErr_SetString(PyExc_IndexError, "Channel index out of range");
 		return NULL;
 	}
-
-	if (!self->fit->stats || !self->fit->stats[channel]) {
-		Py_RETURN_NONE;
+	// Check if stats are available for this FITS object
+	if (self->fit->stats == NULL || self->fit->stats[channel] == NULL) {
+		PyErr_SetString(PyExc_ValueError, "No stats available for the requested channel");
+		return NULL;
 	}
-
-	PyObject *stats = PyImStats_FromExisting(self->fit->stats[channel], (PyObject *)self, 'F');
-	if (stats != NULL) {
-		self->ref_count++;
+	// Create a new PyImStatsObject
+	PyImStatsObject *py_imstats = (PyImStatsObject *)PyObject_New(PyImStatsObject, &PyImStatsType);
+	if (py_imstats == NULL) {
+		return PyErr_NoMemory(); // Return memory error if allocation fails
 	}
-	return stats;
+	if (!check_stats(self, channel, STATS_MAIN)) // check using STATS_MAIN to populate most of the stats fields
+		return NULL;
+	// Copy the stats from the selected channel
+	py_imstats->stats = (imstats *)malloc(sizeof(imstats));
+	if (py_imstats->stats == NULL) {
+		Py_DECREF(py_imstats);
+		return PyErr_NoMemory();
+	}
+	memcpy(py_imstats->stats, self->fit->stats[channel], sizeof(imstats));
+	// Set the necessary fields in the PyImStatsObject
+	py_imstats->should_free = 1;  // The object owns the stats copy and should free it later
+	py_imstats->parent = NULL;    // No parent is set for this object
+	py_imstats->parent_type = '\0';  // No parent type, so set to null character
+	// Return the new PyImStatsObject
+	return (PyObject *)py_imstats;
 }
 
 // Class method for PyFits: open a FITS file

@@ -84,7 +84,7 @@ PyObject* PyFits_get_min(PyFits *self, PyObject *args);
 PyObject* PyFits_get_max(PyFits *self, PyObject *args);
 PyObject* PyFits_get_normvalue(PyFits *self, PyObject *args);
 PyObject* PyFits_get_bgnoise(PyFits *self, PyObject *args);
-PyObject* PyFits_get_ImStats(PySeqObject *self, PyObject *args);
+PyObject* PyFits_stats(PySeqObject *self, PyObject *args);
 PyObject* PyFits_open(PyFits* self, PyObject* args);
 PyObject* PyFits_save(PyFits* self, PyObject* args);
 PyObject* PyFits_move_to_gfit(PyFits* self, PyObject* args, PyObject* kwds);
