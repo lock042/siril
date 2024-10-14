@@ -194,8 +194,8 @@ void clear_previews() {
 		}
 	}
 
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("togglebutton2")), FALSE);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("togglebutton3")), FALSE);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_reg_manual1")), FALSE);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("toggle_reg_manual2")), FALSE);
 }
 
 void set_preview_area(int preview_area, int centerX, int centerY) {
@@ -243,7 +243,7 @@ void on_toggle_preview_toggled(GtkToggleButton *toggle, gpointer user_data) {
 		static GtkToggleButton *preview1 = NULL;
 
 		if (preview1 == NULL)
-			preview1 = GTK_TOGGLE_BUTTON(lookup_widget("togglebutton2"));
+			preview1 = GTK_TOGGLE_BUTTON(lookup_widget("toggle_reg_manual1"));
 		if (gtk_toggle_button_get_active(toggle)) {
 			if (toggle == preview1)
 				mouse_status = MOUSE_ACTION_SELECT_PREVIEW1;

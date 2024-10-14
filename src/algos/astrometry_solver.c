@@ -54,6 +54,7 @@
 #include "io/sequence.h"
 #include "io/siril_catalogues.h"
 #include "io/local_catalogues.h"
+#include "io/path_parse.h"
 #include "opencv/opencv.h"
 #include "registration/registration.h"
 #include "registration/matching/match.h"
@@ -78,7 +79,7 @@ typedef struct {
 	struct wcsprm *wcslib;
 } solve_results;
 
-static void debug_print_catalog_files(s_star *star_list_A, s_star *star_list_B) {
+static void debug_print_catalog_files(TRANS *trans, s_star *star_list_A, s_star *star_list_B) {
 #if ASTROMETRY_DEBUG
 	GFile *file = g_file_new_for_path("ABtars.csv");
 	g_autoptr(GError) error = NULL;
@@ -87,10 +88,21 @@ static void debug_print_catalog_files(s_star *star_list_A, s_star *star_list_B) 
 		siril_debug_print("%s\n", error->message);
 		return;
 	}
-	const gchar *header;
-	header = "xA,yA,magA,indA,xB,yB,magB,indB\n";
+	gchar bufferx[1024] = { 0 }, buffery[1024] = { 0 };
+	// x00, x10, x01, x20, x11, x02, x30, x21, x12, x03, x40, x31, x22, x13, x04, x50, x41, x32, x23, x14, x05
+	g_sprintf(bufferx, "%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f\n", 
+	trans.x00, trans->x10, trans->x01, trans->x20, trans->x11, trans->x02, 
+	trans->x30, trans->x21, trans->x12, trans->x03, trans->x40, trans->x31, trans->x22, trans->x13,
+	trans->x04, trans->x50, trans->x41, trans->x32, trans->x23, trans->x14, trans->x05);
+	g_sprintf(buffery, "%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f\n", 
+	trans->y00, trans->y10, trans->y01, trans->y20, trans->y11, trans->y02, 
+	trans->y30, trans->y21, trans->y12, trans->y03, trans->y40, trans->y31, trans->y22, trans->y13,
+	trans->y04, trans->y50, trans->y41, trans->y32, trans->y23, trans->y14, trans->y05);
+	g_output_stream_write_all(output_stream, bufferx, strlen(bufferx), NULL, NULL,NULL);
+	g_output_stream_write_all(output_stream, buffery, strlen(buffery), NULL, NULL,NULL);
+	const gchar *header = "xA,yA,magA,indA,xB,yB,magB,indB\n";
 	g_output_stream_write_all(output_stream, header, strlen(header), NULL, NULL,NULL);
-	static gchar buffer[256] = { 0 };
+	gchar buffer[256] = { 0 };
 	s_star *sA, *sB;
 	for (sA = star_list_A, sB = star_list_B; ; sA = sA->next, sB = sB->next) {
 		if (!sA) break;
@@ -118,6 +130,7 @@ static struct astrometry_data *copy_astrometry_args(struct astrometry_data *args
 	}
 	ret->fit = NULL;
 	ret->filename = NULL;
+	ret->distofilename = NULL;
 	return ret;
 }
 
@@ -222,28 +235,16 @@ SirilWorldCS *get_eqs_from_header(fits *fit) {
 	return NULL;
 }
 
-static void update_wcsdata_from_wcs(struct astrometry_data *args) {
+static void update_wcsdata_after_ps(struct astrometry_data *args) {
 	if (has_wcsdata(args->fit))
 		reset_wcsdata(args->fit);
-	double ra0, dec0;
+	args->fit->keywords.wcsdata.pltsolvd = TRUE;
 	if (args->solver == SOLVER_LOCALASNET) {
-		center2wcs(args->fit, &ra0, &dec0); // asnet sometimes does not return solution at center despite the center flag
 		snprintf(args->fit->keywords.wcsdata.pltsolvd_comment, FLEN_COMMENT, "Solved by Astrometry.net (%s)", asnet_version);
 	} else {
-		ra0 = args->fit->keywords.wcslib->crval[0];
-		dec0 = args->fit->keywords.wcslib->crval[1];
 		g_snprintf(args->fit->keywords.wcsdata.pltsolvd_comment, FLEN_COMMENT, "Siril internal solver");
 	}
-	args->fit->keywords.wcsdata.ra = ra0;
-	args->fit->keywords.wcsdata.dec = dec0;
-	args->fit->keywords.wcsdata.pltsolvd = TRUE;
-	gchar *ra = siril_world_cs_alpha_format_from_double(ra0, "%02d %02d %.3lf");
-	gchar *dec = siril_world_cs_delta_format_from_double(dec0, "%c%02d %02d %.3lf");
-	g_sprintf(args->fit->keywords.wcsdata.objctra, "%s", ra);
-	g_sprintf(args->fit->keywords.wcsdata.objctdec, "%s", dec);
-	g_free(ra);
-	g_free(dec);
-
+	update_wcsdata_from_wcs(args->fit);
 }
 
 static gboolean check_affine_TRANS_sanity(TRANS *trans) {
@@ -468,12 +469,12 @@ static int add_disto_to_wcslib(struct wcsprm *wcslib, TRANS *trans, int rx, int 
 	return 0;
 }
 
-static void flip_bottom_up_astrometry_data(fits *fit) {
+void flip_bottom_up_astrometry_data(fits *fit) {
 	Homography H = { 0 };
 	cvGetEye(&H);
 	H.h11 = -1.;
 	H.h12 = (double)fit->ry;
-	reframe_astrometry_data(fit, H);
+	reframe_astrometry_data(fit, &H);
 }
 
 gchar *platesolve_msg(struct astrometry_data *args) {
@@ -761,52 +762,57 @@ static void transform_disto_coeff(struct disprm *dis, Homography *H) {
  * Public functions
  */
 
-
-void reframe_astrometry_data(fits *fit, Homography H) {
+void reframe_wcs(struct wcsprm *wcslib, Homography *H) {
+	if (!wcslib)
+		return;
 	double pc1_1, pc1_2, pc2_1, pc2_2;
 	point refpointout;
-	pc1_1 = H.h00 * fit->keywords.wcslib->pc[0] + H.h01 * fit->keywords.wcslib->pc[1];
-	pc1_2 = H.h10 * fit->keywords.wcslib->pc[0] + H.h11 * fit->keywords.wcslib->pc[1];
-	pc2_1 = H.h00 * fit->keywords.wcslib->pc[2] + H.h01 * fit->keywords.wcslib->pc[3];
-	pc2_2 = H.h10 * fit->keywords.wcslib->pc[2] + H.h11 * fit->keywords.wcslib->pc[3];
+	pc1_1 = H->h00 * wcslib->pc[0] + H->h01 * wcslib->pc[1];
+	pc1_2 = H->h10 * wcslib->pc[0] + H->h11 * wcslib->pc[1];
+	pc2_1 = H->h00 * wcslib->pc[2] + H->h01 * wcslib->pc[3];
+	pc2_2 = H->h10 * wcslib->pc[2] + H->h11 * wcslib->pc[3];
 	// we go back to cd formulation just to separate back again cdelt and pc
 	double cd[2][2], pc[2][2];
+	double scale_2 = fabs(H->h00 * H->h11 - H->h10 * H->h01);
 	pc[0][0] = pc1_1;
 	pc[0][1] = pc1_2;
 	pc[1][0] = pc2_1;
 	pc[1][1] = pc2_2;
+	wcslib->cdelt[0] /= scale_2;
+	wcslib->cdelt[1] /= scale_2;
 	// we recombine pc and cdelt, and decompose it
-	wcs_pc_to_cd(pc, fit->keywords.wcslib->cdelt, cd);
-	wcs_decompose_cd(fit->keywords.wcslib, cd);
+	wcs_pc_to_cd(pc, wcslib->cdelt, cd);
+	wcs_decompose_cd(wcslib, cd);
 
 	// we fetch the refpoint in siril convention
-	point refpointin = {fit->keywords.wcslib->crpix[0] - 0.5, fit->keywords.wcslib->crpix[1] - 0.5};
-	cvTransformImageRefPoint(H, refpointin, &refpointout);
+	point refpointin = {wcslib->crpix[0] - 0.5, wcslib->crpix[1] - 0.5};
+	cvTransformImageRefPoint(*H, refpointin, &refpointout);
 	// and convert it back to FITS/WCS convention
-	fit->keywords.wcslib->crpix[0] = refpointout.x + 0.5;
-	fit->keywords.wcslib->crpix[1] = refpointout.y + 0.5;
+	wcslib->crpix[0] = refpointout.x + 0.5;
+	wcslib->crpix[1] = refpointout.y + 0.5;
 
 	// and we update all the wcslib structures
-	if (fit->keywords.wcslib->lin.dispre) {
-		transform_disto_coeff(fit->keywords.wcslib->lin.dispre, &H);
-		struct disprm *dis = fit->keywords.wcslib->lin.dispre;
+	if (wcslib->lin.dispre) {
+		transform_disto_coeff(wcslib->lin.dispre, H);
+		struct disprm *dis = wcslib->lin.dispre;
 		for (int n = 0; n < dis->ndp; n++) { // update the OFFSET keywords to new CRPIX values
 			if (g_str_has_prefix(dis->dp[n].field + 4, "OFFSET.1"))
-				dis->dp[n].value.f = fit->keywords.wcslib->crpix[0];
+				dis->dp[n].value.f = wcslib->crpix[0];
 			else if (g_str_has_prefix(dis->dp[n].field + 4, "OFFSET.2"))
-				dis->dp[n].value.f = fit->keywords.wcslib->crpix[1];
+				dis->dp[n].value.f = wcslib->crpix[1];
 		}
 		dis->flag = 0; // to update the structure
 		disset(dis);
 	}
-	fit->keywords.wcslib->lin.flag = 0; // to update the structure
-	linset(&fit->keywords.wcslib->lin);
-	fit->keywords.wcslib->flag = 0; // to update the structure
-	wcsset(fit->keywords.wcslib);
-	wcs_print(fit->keywords.wcslib);
-	print_updated_wcs(fit->keywords.wcslib);
+	wcslib->lin.flag = 0; // to update the structure
+	linset(&wcslib->lin);
+	wcslib->flag = 0; // to update the structure
+	wcsset(wcslib);
+	wcs_print(wcslib);
+	print_updated_wcs(wcslib);
+}
 
-	// Update the center position in fit->wcsdata //
+void update_wcsdata_from_wcs(fits *fit) {
 	double rac, decc;
 	center2wcs(fit, &rac, &decc);
 	if (rac != -1) {
@@ -819,6 +825,14 @@ void reframe_astrometry_data(fits *fit, Homography H) {
 		g_free(ra);
 		g_free(dec);
 	}
+}
+
+void reframe_astrometry_data(fits *fit, Homography *H) {
+	if (!fit)
+		return;
+	reframe_wcs(fit->keywords.wcslib, H);
+	// Update the center position in fit->wcsdata
+	update_wcsdata_from_wcs(fit);
 }
 
 void wcs_pc_to_cd(double pc[][2], const double cdelt[2], double cd[][2]) {
@@ -1002,7 +1016,7 @@ gpointer plate_solver(gpointer p) {
 		wcsfree(args->fit->keywords.wcslib);
 	args->fit->keywords.wcslib = solution.wcslib;
 	print_updated_wcs(args->fit->keywords.wcslib);
-	update_wcsdata_from_wcs(args);
+	update_wcsdata_after_ps(args);
 	if (args->verbose)
 		print_platesolving_results_from_wcs(args);
 	double resolution = get_wcs_image_resolution(args->fit) * 3600.0;
@@ -1022,12 +1036,34 @@ gpointer plate_solver(gpointer p) {
 		siril_log_message(_("Saved focal length %.2f and pixel size %.2f as default values\n"), focal_length, args->pixel_size);
 	}
 
+	/* 5.a Save distortion master
+		We need to do it before flipping
+	*/
+	if (args->distofilename) {
+		if (args->fit->keywords.wcslib->lin.dispre) {
+			int mstatus = 0;
+			gchar *mastername = path_parse(args->fit, args->distofilename, PATHPARSE_MODE_WRITE, &mstatus);
+			if (mstatus) {
+				siril_log_color_message(_("Could not save distortion master file, skipping\n"), "salmon");
+			}
+			if (!mstatus && save_wcs_fits(args->fit, mastername)) {
+				siril_log_color_message(_("Could not save distortion master file, skipping\n"), "salmon");
+			}
+			g_free(mastername);
+		} else {
+			siril_log_color_message(_("Solution has no distortion\n"), "salmon");
+			siril_log_color_message(_("Could not save distortion master file, skipping\n"), "salmon");
+		}
+		g_free(args->distofilename);
+	}
+
 	/* 5. Flip image if needed */
 	if (args->flip_image && image_is_flipped_from_wcs(args->fit->keywords.wcslib)) {
 		if (args->verbose)
 			siril_log_color_message(_("Flipping image and updating astrometry data.\n"), "salmon");
 		fits_flip_top_to_bottom(args->fit);
 		flip_bottom_up_astrometry_data(args->fit);
+		update_wcsdata_after_ps(args);
 		args->image_flipped = TRUE;
 	}
 
@@ -1398,7 +1434,7 @@ static int match_catalog(psf_star **stars, int nb_stars, siril_catalogue *siril_
 	}
 	if (ret)	// after the break
 		goto clearup;
-	debug_print_catalog_files(star_list_A, star_list_B);
+	debug_print_catalog_files(&trans, star_list_A, star_list_B);
 
 	// updating solution to higher order if required
 	if (order > AT_TRANS_LINEAR) {
@@ -1920,24 +1956,31 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 		return 1;
 	args->fit = &fit;
 	process_plate_solver_input(args); // compute required data to get the catalog
-	if (!args->ref_stars) {
+	if (args->solver == SOLVER_SIRIL && !args->ref_stars) {
 		siril_log_color_message(_("Error: no reference stars available\n"), "red");
 		return 1;
 	}
 	args->layer = fit.naxes[2] == 1 ? 0 : 1;
-	regdata *current_regdata;
-	// if no registration data present, we will store the stats stored by the peaker and add identity matrices
-	if (!arg->seq->regparam[args->layer]) {
-		current_regdata = (regdata*)calloc(arg->seq->number, sizeof(regdata));
-		if (current_regdata == NULL) {
-			PRINT_ALLOC_ERR;
-			return 1;
-		}
-		arg->seq->regparam[args->layer] = current_regdata;
-		args->update_reg = TRUE;
-	}
-	clearfits(&fit);
+	args->sfargs->layer = fit.naxes[2] == 1 ? 0 : 1;
 	args->fit = NULL;
+	clearfits(&fit);
+	// prepare for astrometric registration
+	if (args->update_reg) {
+		if (!arg->seq->regparam[args->layer]) {
+			regdata *current_regdata = calloc(arg->seq->number, sizeof(regdata));
+			if (current_regdata == NULL) {
+				PRINT_ALLOC_ERR;
+				return 1;
+			}
+			arg->seq->regparam[args->layer] = current_regdata;
+		} else {
+			siril_log_message(_("Recomputing already existing registration for this layer\n"));
+			/* we reset all values as we may register different images */
+			memset(arg->seq->regparam[args->layer], 0, arg->seq->number * sizeof(regdata));
+		}
+		args->WCSDATA = calloc(arg->seq->number, sizeof(struct wcsprm));
+		arg->seq->distoparam[args->layer].index = DISTO_FILES;
+	}
 	if (arg->has_output)
 		seq_prepare_hook(arg);
 	else if (arg->seq->type == SEQ_FITSEQ) {
@@ -1970,16 +2013,65 @@ static int astrometry_prepare_hook(struct generic_seq_args *arg) {
 
 static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fits *fit, rectangle *area, int threads) {
 	struct astrometry_data *aargs_master = (struct astrometry_data *)arg->user;
-	if (!aargs_master->force && has_wcs(fit)) {
+	if (!aargs_master->force && has_wcs(fit) && !aargs_master->update_reg) { // if we need to store regdata, we still need to detect stars
 		g_atomic_int_inc(&aargs_master->seqskipped);
 		g_atomic_int_inc(&aargs_master->seqprogress);
 		siril_log_color_message(_("Image %d already platesolved, skipping\n"), "salmon", i + 1);
 		return 0;
 	}
+
+	// we detect stars first (using aargs_master)
+	int nb_stars = 0;
+	psf_star **stars = NULL;
+
+	struct starfinder_data *sf_data = findstar_image_worker(aargs_master->sfargs, -1, i, fit, area, threads);
+	if (sf_data) {
+		stars = *sf_data->stars;
+		nb_stars = *sf_data->nb_stars;
+		free(sf_data);
+	}
+
+	if (aargs_master->update_reg && nb_stars) {
+		float FWHMx, FWHMy, B;
+		char *units;
+		FWHM_stats(stars, nb_stars, arg->seq->bitpix, &FWHMx, &FWHMy, &units, &B, NULL, 0.);
+		regdata *current_regdata = arg->seq->regparam[aargs_master->layer];
+		current_regdata[i].roundness = FWHMy/FWHMx;
+		current_regdata[i].fwhm = FWHMx;
+		current_regdata[i].weighted_fwhm = FWHMx;
+		current_regdata[i].background_lvl = B;
+		current_regdata[i].number_of_stars = nb_stars;
+		current_regdata[i].H = (Homography){ 0 }; // we will update it in the finalize_hook
+	}
+
+	if (!nb_stars) {
+		siril_log_color_message(_("Image %d: no stars found\n"), "red", i + 1);
+		arg->seq->imgparam[o].incl = FALSE;
+		return 1;
+	}
+
+	if (!aargs_master->force && has_wcs(fit)) { // we have filled the regparam and allow to skip, we skip now
+		int status = 0;
+		struct wcsprm *wcs = wcs_deepcopy(fit->keywords.wcslib, &status);
+		if (status) {
+			siril_log_color_message(_("Could not copy WCS data, skipping image %d\n"), "salmon", i + 1);
+		} else {
+			memcpy(aargs_master->WCSDATA + i, wcs, sizeof(*wcs));
+			g_atomic_int_inc(&aargs_master->seqskipped);
+			siril_log_color_message(_("Image %d already platesolved, skipping\n"), "salmon", i + 1);
+		}
+		free_fitted_stars(stars);
+		g_atomic_int_inc(&aargs_master->seqprogress);
+		return status;
+	}
+
+	// We prepare to platesolve and collect the catalog inputs
 	struct astrometry_data *aargs = copy_astrometry_args(aargs_master);
 	if (!aargs)
 		return 1;
 	aargs->fit = fit;
+	aargs->manual = TRUE;
+	aargs->stars = stars;
 
 	char root[256];
 	if (!fit_sequence_get_image_filename(arg->seq, i, root, FALSE)) {
@@ -2000,7 +2092,7 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 				aargs->ref_stars->center_dec = siril_world_cs_get_delta(target_coords);
 			}
 		}
-		if (!aargs->cat_center) {
+		if (aargs->solver == SOLVER_SIRIL && !aargs->cat_center) { // we need a cat_center for Siril
 			siril_debug_print("Could not set cat_center, skipping\n");
 			siril_catalog_free(aargs->ref_stars);
 			free(aargs);
@@ -2037,38 +2129,11 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 	}
 	if (aargs->solver == SOLVER_LOCALASNET)
 		aargs->filename = g_strdup(root);	// for localasnet
+	
+	if (i == arg->seq->reference_image) { // we want to save master distortion only once for ref image
+		aargs->distofilename = g_strdup(aargs_master->distofilename);
+	}
 	process_plate_solver_input(aargs);
-
-	int nb_stars;
-	int detection_layer = fit->naxes[2] == 1 ? 0 : 1;
-	image im = { .fit = fit, .from_seq = NULL, .index_in_seq = -1 };
-
-	aargs->stars = peaker(&im, detection_layer, &com.pref.starfinder_conf, &nb_stars,
-				NULL, FALSE, TRUE,
-				BRIGHTEST_STARS, com.pref.starfinder_conf.profile, threads);
-	aargs->manual = TRUE;
-	// siril_log_message(_("FWHMx:%*.2f %s\n"), 12, FWHMx, units);
-	// siril_log_message(_("FWHMy:%*.2f %s\n"), 12, FWHMy, units);
-	if (aargs->update_reg && nb_stars) {
-		float FWHMx, FWHMy, B;
-		char *units;
-		FWHM_stats(aargs->stars, nb_stars, arg->seq->bitpix, &FWHMx, &FWHMy, &units, &B, NULL, 0.);
-		regdata *current_regdata = arg->seq->regparam[aargs->layer];
-		current_regdata[o].roundness = FWHMy/FWHMx;
-		current_regdata[o].fwhm = FWHMx;
-		current_regdata[o].weighted_fwhm = FWHMx;
-		current_regdata[o].background_lvl = B;
-		current_regdata[o].number_of_stars = nb_stars;
-		Homography H = { 0 };
-		cvGetEye(&H);
-		current_regdata[o].H = H;
-	}
-	if (!nb_stars) {
-		siril_log_color_message(_("Image %s did not solve\n"), "red", root);
-		arg->seq->imgparam[o].incl = FALSE;
-		free(aargs);
-		return 1;
-	}
 
 	int retval = GPOINTER_TO_INT(plate_solver(aargs));
 
@@ -2090,6 +2155,7 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 			} else {
 				siril_log_color_message(_("Image %s platesolved but could not be saved\n"), "red", root);
 				free(aargs);
+				g_atomic_int_inc(&aargs_master->seqprogress);
 				return 1;
 			}
 		} else if (arg->seq->type == SEQ_FITSEQ) { // case SEQ_FITSEQ, fit already holds its fptr, we just update
@@ -2098,8 +2164,16 @@ static int astrometry_image_hook(struct generic_seq_args *arg, int o, int i, fit
 			siril_log_color_message(_("Image %d platesolved and updated\n"), "salmon", i + 1);
 		}
 	}
-	if (!retval)
-		g_atomic_int_inc(&aargs_master->seqprogress);
+	if (!retval && aargs_master->update_reg) {
+		int status = 0;
+		struct wcsprm *wcs = wcs_deepcopy(fit->keywords.wcslib, &status);
+		if (status) {
+			siril_log_color_message(_("Could not copy WCS data, skipping image %d\n"), "salmon", i + 1);
+		} else {
+			memcpy(aargs_master->WCSDATA + i, wcs, sizeof(*wcs));
+		}
+	}
+	g_atomic_int_inc(&aargs_master->seqprogress);
 	return retval;
 }
 
@@ -2125,6 +2199,10 @@ static int astrometry_finalize_hook(struct generic_seq_args *arg) {
 		arg->seq->fitseq_file->filename = filename; // we may need to reopen in the idle so we save it here
 		arg->seq->fitseq_file->hdu_index = NULL;
 	}
+	if (aargs->update_reg) {
+		siril_log_color_message(_("Computing astrometric registration...\n"), "green");
+		arg->retval = compute_Hs_from_astrometry(arg->seq, aargs->WCSDATA, FRAMING_CURRENT, aargs->layer, NULL, NULL);
+	}
 	if (!arg->retval)
 		writeseqfile(arg->seq);
 finish:
@@ -2132,11 +2210,27 @@ finish:
 		siril_world_cs_unref(aargs->cat_center);
 	if (aargs->ref_stars)
 		siril_catalog_free(aargs->ref_stars);
+	if (aargs->distofilename)
+		g_free(aargs->distofilename);
 	free(aargs);
 	if (com.child_is_running == EXT_ASNET && g_unlink("stop"))
 		siril_debug_print("g_unlink() failed\n");
 	com.child_is_running = EXT_NONE;
 	return retval;
+}
+
+void free_astrometry_data(struct astrometry_data *args) {
+	if (!args)
+		return;
+	if (args->cat_center)
+		siril_world_cs_unref(args->cat_center);
+	if (args->stars)
+		free_fitted_stars(args->stars);
+	if (args->filename)
+		g_free(args->filename);
+	if (args->distofilename)
+		g_free(args->distofilename);
+	free(args);
 }
 
 gboolean end_platesolve_sequence(gpointer p) {

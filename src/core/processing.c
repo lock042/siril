@@ -206,6 +206,8 @@ gpointer generic_sequence_worker(gpointer p) {
 		nb_subthreads = threads_per_image[thread_id];
 #endif
 
+		gboolean read_image = args->image_read_hook ? args->image_read_hook(args, input_idx) : TRUE;
+
 		fits *fit = calloc(1, sizeof(fits));
 		if (!fit) {
 			PRINT_ALLOC_ERR;
@@ -232,9 +234,9 @@ gpointer generic_sequence_worker(gpointer p) {
 			 */
 			gboolean has_crossed = enforce_area_in_image(&area, args->seq, input_idx) && args->regdata_for_partial;
 
-			if (has_crossed || seq_read_frame_part(args->seq, args->layer_for_partial,
+			if (has_crossed || (read_image && seq_read_frame_part(args->seq, args->layer_for_partial,
 						input_idx, fit, &area,
-						args->get_photometry_data_for_partial, thread_id))
+						args->get_photometry_data_for_partial, thread_id)))
 			{
 				if (args->stop_on_error)
 					abort = 1;
@@ -251,7 +253,7 @@ gpointer generic_sequence_worker(gpointer p) {
 			  savefits(tmpfn, fit);*/
 		} else {
 			// image is read bottom-up here, while it's top-down for partial images
-			if (seq_read_frame(args->seq, input_idx, fit, args->force_float, thread_id)) {
+			if (read_image && seq_read_frame(args->seq, input_idx, fit, args->force_float, thread_id)) {
 				abort = 1;
 				clearfits(fit);
 				free(fit);
@@ -260,7 +262,7 @@ gpointer generic_sequence_worker(gpointer p) {
 			// TODO: for seqwriter, we need to notify the failed frame
 		}
 		// checking nb layers consistency, not for partial image
-		if (!args->partial_image && (fit->naxes[2] != args->seq->nb_layers)) {
+		if (read_image && !args->partial_image && (fit->naxes[2] != args->seq->nb_layers)) {
 			siril_log_color_message(_("Image #%d: number of layers (%d) is not consistent with sequence (%d), aborting\n"),
 						"red", input_idx + 1, fit->naxes[2], args->seq->nb_layers);
 			abort = 1;
@@ -268,7 +270,7 @@ gpointer generic_sequence_worker(gpointer p) {
 			free(fit);
 			continue;
 		}
-		if (args->image_hook(args, frame, input_idx, fit, &area, nb_subthreads)) {
+		if (read_image && args->image_hook(args, frame, input_idx, fit, &area, nb_subthreads)) {
 			if (args->stop_on_error)
 				abort = 1;
 			else {

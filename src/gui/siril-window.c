@@ -60,6 +60,7 @@ static GActionEntry image_entries[] = {
 	{ "evaluate-noise", noise_activate },
 	{ "ccd-inspector", ccd_inspector_activate },
 	{ "show-tilt", show_tilt_activate, NULL, "false", show_tilt_state },
+	{ "show-disto", show_disto_activate, NULL, "false", show_disto_state },
 	{ "astrometry", astrometry_activate },
 	{ "photometry", photometry_activate, NULL, "false", photometry_state },
 	{ "cut", cut_activate },
@@ -196,6 +197,14 @@ void siril_window_enable_wcs_proc_actions(GtkApplicationWindow *window, gboolean
 		NULL,
 	};
 	_siril_window_enable_action_group(G_ACTION_MAP(window), wcs_processing_actions, enable);
+}
+
+void siril_window_enable_wcs_disto_proc_actions(GtkApplicationWindow *window, gboolean enable) {
+	static const gchar *wcs_disto_processing_actions[] = {
+		"show-disto",
+		NULL,
+	};
+	_siril_window_enable_action_group(G_ACTION_MAP(window), wcs_disto_processing_actions, enable);
 }
 
 void siril_window_autostretch_actions(GtkApplicationWindow *window, gboolean enable) {

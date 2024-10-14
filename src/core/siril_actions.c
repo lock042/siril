@@ -354,13 +354,7 @@ void astrometry_activate(GSimpleAction *action, GVariant *parameter,gpointer use
 }
 
 void dyn_psf_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	int confirm = TRUE;
-	if (gfit.naxes[2] == 1 && gfit.keywords.bayer_pattern[0] != '\0') {
-		confirm = siril_confirm_dialog(_("Undebayered CFA image loaded"),
-				_("The star detection functions in the Dynamic PSF dialog may produce results for this CFA image but will not perform optimally and star parameters may be inaccurate. Are you sure you wish to proceed?"), _("Proceed"));
-	}
-	if (confirm)
-		siril_open_dialog("stars_list_window");
+	siril_open_dialog("stars_list_window");
 }
 
 void pick_star_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -517,6 +511,28 @@ void show_tilt_state(GSimpleAction *action, GVariant *state, gpointer user_data)
 		redraw(REDRAW_OVERLAY);
 	}
 	g_simple_action_set_state(action, state);
+	set_cursor_waiting(FALSE);
+}
+
+void show_disto_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	GVariant *state;
+
+	state = g_action_get_state(G_ACTION(action));
+	g_action_change_state(G_ACTION(action), g_variant_new_boolean(!g_variant_get_boolean(state)));
+	g_variant_unref(state);
+}
+
+void show_disto_state(GSimpleAction *action, GVariant *state, gpointer user_data) {
+	if (!has_wcs(&gfit) || !gfit.keywords.wcslib->lin.dispre) {
+		siril_log_color_message(_("This command only works on plate solved images with distortions included\n"), "red");
+		return;
+	}
+	set_cursor_waiting(TRUE);
+
+	gui.show_wcs_disto = g_variant_get_boolean(state);
+	redraw(REDRAW_OVERLAY);
+	g_simple_action_set_state(action, state);
+
 	set_cursor_waiting(FALSE);
 }
 
