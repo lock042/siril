@@ -97,6 +97,8 @@ xx/xx/xx
 * Implement a new cosmetic filter to remove purple fringing on bright stars (!726)
 * Fix crash in catsearch when object is unknown (#1383)
 * Refactored Deconvolution (again...) to allow for sliced operation to prevent OOM errors (!753)
+* Refactored registration processes and GUI (#1285)
+* Added master distortion files (!686)
 
 siril 1.2.5
 xx/xx/xx

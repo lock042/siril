@@ -1534,6 +1534,16 @@ void replace_spaces_from_str(gchar *s, gchar c) {
 	} while((*s++ = *d++));
 }
 
+void replace_char_from_str(gchar *s, gchar in, gchar out) {
+	gchar *d = s;
+	while (*d) {
+		if (*d == in) {
+			*d = out;
+		}
+		d++;
+	}
+}
+
 /**
  * Recomposes a string from words, with a space between each.
  * @param words a NULL-terminated array of words
@@ -1957,13 +1967,21 @@ const gchar* find_first_nonnumeric(const gchar *string) {
     return NULL;
 }
 
-/* useful for debugging, checking when an image buffer changes or differs between runs */
-/*uint32_t djb33_hash(const char* s, size_t len) {
-    uint32_t h = 5381;
-    while (len--) {
-        // h = 33 * h ^ s[i];
-        h += (h << 5);
-        h ^= *s++;
-    }
-    return h;
-}*/
+int count_pattern_occurence(const gchar *string, const gchar *pattern) {
+	GRegex *regex;
+	GMatchInfo *match_info;
+	int count = 0;
+
+	regex = g_regex_new(pattern, G_REGEX_RAW, 0, NULL);
+	g_regex_match(regex, string, 0, &match_info);
+	
+	// Loop through the matches
+	while (g_match_info_matches(match_info)) {
+		count++;
+		g_match_info_next(match_info, NULL);
+	}
+
+	g_match_info_free(match_info);
+	g_regex_unref(regex);
+	return count;
+}

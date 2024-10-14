@@ -88,4 +88,6 @@ int associate_header_to_memfile(const char *header, fitsfile *fptr);
 int fits_parse_header_str(fits *fit, const char *header);
 int fits_swap_image_data(fits *a, fits *b);
 
+int save_wcs_fits(fits *f, const gchar *filename);
+
 #endif

@@ -43,6 +43,7 @@ void set_GUI_MEM(guint64 used, const gchar *label);
 void set_GUI_DiskSpace(gint64 mem, const gchar *label);
 void set_suggested(GtkWidget *widget);
 void unset_suggested(GtkWidget *widget);
+void set_switcher_buttons_colors(GList *list, int n);
 
 void widget_set_class(GtkWidget *entry, const char *class_to_add, const char *class_to_remove);
 

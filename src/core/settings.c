@@ -103,6 +103,8 @@ preferences pref_init = {
 		.use_dark_lib = FALSE,
 		.flat_lib = NULL,
 		.use_flat_lib = FALSE,
+		.disto_lib = NULL,
+		.use_disto_lib = FALSE,
 		.stack_default = NULL,
 		.use_stack_default = TRUE,
 	},
@@ -435,6 +437,8 @@ struct settings_access all_settings[] = {
 	{ "gui_prepro", "use_dark_lib", STYPE_BOOL, N_("use default master dark"), &com.pref.prepro.use_dark_lib },
 	{ "gui_prepro", "flat_lib", STYPE_STR, N_("default master flat"), &com.pref.prepro.flat_lib },
 	{ "gui_prepro", "use_flat_lib", STYPE_BOOL, N_("use default master flat"), &com.pref.prepro.use_flat_lib },
+	{ "gui_prepro", "disto_lib", STYPE_STR, N_("default distortion master"), &com.pref.prepro.disto_lib },
+	{ "gui_prepro", "use_disto_lib", STYPE_BOOL, N_("use default master distortion"), &com.pref.prepro.use_disto_lib },
 	{ "gui_prepro", "stack_default", STYPE_STR, N_("default stack name"), &com.pref.prepro.stack_default },
 	{ "gui_prepro", "use_stack_default", STYPE_BOOL, N_("use preferred stack name"), &com.pref.prepro.use_stack_default },
 

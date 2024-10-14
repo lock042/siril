@@ -32,7 +32,7 @@
 
 
 // Use this flag to print wcslib related verbose - not for production
-#define DEBUG_WCS 0
+// #define DEBUG_WCS
 
 gboolean has_wcs(fits *fit) {
 	return fit->keywords.wcslib != NULL;
@@ -58,6 +58,10 @@ void free_wcs(fits *fit) {
 }
 
 wcsprm_t *wcs_deepcopy(wcsprm_t *wcssrc, int *status) {
+	if (status)
+		*status = 1;
+	if (!wcssrc)
+		return NULL;
 	wcsprm_t *wcsdst = NULL;
 	int axes[2], nsub;
 	nsub = 2;
@@ -66,19 +70,22 @@ wcsprm_t *wcs_deepcopy(wcsprm_t *wcssrc, int *status) {
 	wcsdst = calloc(1, sizeof(wcsprm_t));
 	if (!wcsdst) {
 		PRINT_ALLOC_ERR;
-		*status = WCSERR_MEMORY;
+		if (status)
+			*status = WCSERR_MEMORY;
 		return NULL;
 	}
 	wcsdst->flag = -1;
 	int statuscpy = wcssub(1, wcssrc, &nsub, axes, wcsdst);
 	if (statuscpy) {
-		*status = statuscpy;
+		if (status)
+			*status = statuscpy;
 		wcsfree(wcsdst);
 		return NULL;
 	}
 	wcsdst->flag = 0;
 	wcsset(wcsdst);
-	*status = 0;
+	if (status)
+		*status = 0;
 	return wcsdst;
 }
 
@@ -87,7 +94,7 @@ wcsprm_t *load_WCS_from_hdr(char *header, int nkeyrec) {
 	wcsprm_t *data = NULL, *wcs = NULL;
 	int nreject, nwcs;
 	int ctrl = 0;
-#if DEBUG_WCS
+#ifdef DEBUG_WCS
 	ctrl = 2; // writes rejected WCS cards
 #endif
 	/** There was a bug with wcspih that it is not really thread-safe for wcslib version < 7.5.
@@ -119,15 +126,15 @@ wcsprm_t *load_WCS_from_hdr(char *header, int nkeyrec) {
 						wcs_mat2cd(wcs, cd);
 						wcs->flag = 0;
 						wcsset(wcs);
-						siril_debug_print("contains PC\n");
+						// siril_debug_print("contains PC\n");
 					} else { // contained some keywords but not enough to define at least a linear projection
 						siril_debug_print("wcs did not contain enough info\n");
 						free(wcs);
 						wcs = NULL;
 						break;
 					}
-					siril_debug_print("at header readout\n");
-					wcs_print(wcs);
+					// siril_debug_print("at header readout\n");
+					// wcs_print(wcs);
 					break;
 				} else {
 					siril_debug_print("wcssub error %d: %s.\n", status, wcs_errmsg[status]);
@@ -292,6 +299,25 @@ void center2wcs(fits *fit, double *r, double *d) {
 	*d = world[1];
 }
 
+/* get image center celestial coordinates - lower level from wcs and image width/height */
+void center2wcs2(struct wcsprm *wcs, int width, int height, double *r, double *d) {
+	*r = -1.0;
+	*d = -1.0;
+	int status, stat[NWCSFIX];
+	double imgcrd[NWCSFIX], phi, pixcrd[NWCSFIX], theta, world[NWCSFIX];
+
+	// In WCS convention, origin of the grid is at (-0.5, -0.5) wrt siril grid
+	pixcrd[0] = (double)(width) * 0.5 + 0.5;
+	pixcrd[1] = (double)(height) * 0.5 + 0.5;
+
+	status = wcsp2s(wcs, 1, 2, pixcrd, imgcrd, &phi, &theta, world, stat);
+	if (status != 0)
+		return;
+
+	*r = world[0];
+	*d = world[1];
+}
+
 void wcs_pc2mat(wcsprm_t *prm, double pc[NAXIS][NAXIS]) {
 	if (!prm || !prm->pc)
 		return;
@@ -442,7 +468,7 @@ void update_SIP_keys(struct disprm *dis,
 }
 
 void wcs_print(wcsprm_t *prm) {
-#if DEBUG_WCS
+#ifdef DEBUG_WCS
 	printf("CRPIX\n");
 	int c = 0;
 	for (int i = 0; i < NAXIS; i++) {
@@ -490,4 +516,45 @@ void wcs_print(wcsprm_t *prm) {
 		}
 	}
 #endif
+}
+
+void remove_dis_from_wcs(wcsprm_t *prm) {
+	disfree(prm->lin.dispre);
+	prm->lin.dispre = NULL;
+	prm->flag = 0;
+	wcsset(prm);
+}
+
+void create_wcs(double ra0, double dec0, double scale, double framing_angle, int rx, int ry, struct wcsprm *prm) {
+	// preparing pc matrix
+	double ca, sa;
+	sincosd(framing_angle, &sa, &ca);
+	double pc[2][2];
+	pc[0][0] = ca;
+	pc[1][1] = ca;
+	pc[0][1] = -sa;
+	pc[1][0] = sa;
+
+	/**** Fill wcslib structure ***/
+	prm->flag = -1;
+	wcsinit(1, 2, prm, 0, 0, 0);
+	prm->equinox = 2000.0;
+	prm->crpix[0] = (double)rx * 0.5 + 0.5;
+	prm->crpix[1] = (double)ry * 0.5 + 0.5;
+	prm->crval[0] = ra0;
+	prm->crval[1] = dec0;
+	prm->cdelt[0] = -scale;
+	prm->cdelt[1] =  scale;
+	prm->lonpole = 180.;
+	wcs_mat2pc(prm, pc);
+
+	const char CTYPE[2][9] = { "RA---TAN", "DEC--TAN" };
+	const char CUNIT[2][4] = { "deg", "deg" };
+	for (int i = 0; i < NAXIS; i++) {
+		strncpy(prm->cunit[i], &CUNIT[i][0], 71); // 72 char fixed buffer, keep 1 for the NULL
+	}
+	for (int i = 0; i < NAXIS; i++) {
+		strncpy(prm->ctype[i], &CTYPE[i][0], 71); // 72 byte buffer, leave 1 byte for the NULL
+	}
+	wcsset(prm);
 }

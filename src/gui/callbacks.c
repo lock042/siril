@@ -653,15 +653,16 @@ void update_MenuItem() {
 	/* some toolbar buttons */
 	gtk_widget_set_sensitive(lookup_widget("toolbarbox"), any_image_is_loaded);
 
-	gboolean enable_button = any_image_is_loaded && has_wcs(&gfit);
+	gboolean wcs_ok = any_image_is_loaded && has_wcs(&gfit);
 	GAction *action_annotate = g_action_map_lookup_action(G_ACTION_MAP(app_win), "annotate-object");
 	GAction *action_grid = g_action_map_lookup_action(G_ACTION_MAP(app_win), "wcs-grid");
 
 	/* any image with wcs information is needed */
-	siril_window_enable_wcs_proc_actions(app_win, enable_button);
+	siril_window_enable_wcs_proc_actions(app_win, wcs_ok);
+	siril_window_enable_wcs_disto_proc_actions(app_win, wcs_ok && gfit.keywords.wcslib->lin.dispre);
 
 	/* untoggle if disabled */
-	if (!enable_button) {
+	if (!wcs_ok) {
 		GVariant *state = g_action_get_state(action_annotate);
 		if (g_variant_get_boolean(g_action_get_state(action_annotate))) {
 			g_action_change_state(action_annotate, g_variant_new_boolean(FALSE));
@@ -1517,8 +1518,8 @@ void initialize_all_GUI(gchar *supported_files) {
 	gui.view[GREEN_VPORT].drawarea= lookup_widget("drawingareag");
 	gui.view[BLUE_VPORT].drawarea = lookup_widget("drawingareab");
 	gui.view[RGB_VPORT].drawarea  = lookup_widget("drawingareargb");
-	gui.preview_area[0] = lookup_widget("drawingarea_preview1");
-	gui.preview_area[1] = lookup_widget("drawingarea_preview2");
+	gui.preview_area[0] = lookup_widget("drawingarea_reg_manual_preview1");
+	gui.preview_area[1] = lookup_widget("drawingarea_reg_manual_preview2");
 	memset(&gui.roi, 0, sizeof(roi_t)); // Clear the ROI
 	initialize_image_display();
 	init_mouse();

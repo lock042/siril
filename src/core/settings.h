@@ -255,6 +255,8 @@ struct prepro_config {
 	gboolean use_dark_lib;
 	gchar *flat_lib;
 	gboolean use_flat_lib;
+	gchar *disto_lib;
+	gboolean use_disto_lib;
 	gchar *stack_default;
 	gboolean use_stack_default;
 };

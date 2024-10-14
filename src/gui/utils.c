@@ -211,6 +211,23 @@ void unset_suggested(GtkWidget *widget) {
 			GTK_STYLE_CLASS_SUGGESTED_ACTION);
 }
 
+// sets the nth button of a container highlighted (useful for stack switchers)
+// the Glist can be populated with gtk_container_get_children()
+void set_switcher_buttons_colors(GList *list, int n) {
+	GList *l = list;
+	int i = 0;
+	while (l != NULL) {
+		GtkWidget *button = (GtkWidget *)l->data;
+		if (i == n) {
+			set_suggested(button);
+		} else {
+			unset_suggested(button);
+		}
+		l = l->next;
+		i++;
+	}
+}
+
 /* Managing GUI calls *
  * We try to separate core concerns from GUI (GTK+) concerns to keep the core
  * code efficient and clean, and avoid calling GTK+ functions in threads other

@@ -50,7 +50,7 @@ Siril provides a range of features to support astronomical image processing:
 - **Image registration and stacking**: Alignment of images taken at different times and their subsequent stacking to increase signal-to-noise ratio. This version also incorporates the Hubble Space Telescope drizzle algorithm [@fruchter2002drizzle] for applying WCS (World Coordinate System) and registration data transforms, providing improved detail reconstruction when processing sets of under-sampled images.
 - **Advanced image enhancement**: Application of various filters and algorithms to improve image details and reduce noise. For example, the Larson-Sekanina filter is particularly useful for highlighting non-circular structures in images of comets by enhancing radial features and making structures like jets and dust trails more visible [@larson1984coma]. An example of such a filter applied to a comet image is given in \autoref{fig:rgradient}.
 
-  ![Application of the Larson Sekanina filter on a comet image to highlight non-circular structures in the image.\label{fig:rgradient}](LS_filter.png)
+  ![Application of the Larson-Sekanina filter on a comet image to highlight non-circular structures in the image.\label{fig:rgradient}](LS_filter.png)
   
 - **Astrometry**: Precise measurement and analysis of the positions and movements of celestial objects within the images. Siril includes functionalities for astrometric calibration, allowing users to find an astrometric solution and match observed star and solar system object positions with reference catalogs. It uses the WCS (World Coordinate System) features from FITS file keywords [@wcsI; @wcsII; @wcsIV].
 - **Spectro photometric calibration**: Accurate calibration of image photometry using the latest version of the Gaia catalog [@refgaia] for recovering the true colors of astronomical objects in the images.
@@ -63,16 +63,11 @@ These are just a selection of the many features Siril offers. The number of func
 
 The FreeAstro ecosystem encompasses various projects and repositories that support and extend the functionality of Siril. FreeAstro, [hosted on GitLab](https://gitlab.com/free-astro), serves as the umbrella organization for all projects related to Siril, fostering a collaborative environment for development, documentation, and community engagement.
 
-- [siril-web](https://gitlab.com/free-astro/siril-web): The official website for Siril[^1], built using the open source static site generator Hugo and hosted by pixls.us[^2], which also hosts forums for open source image processing software. This site provides users with access to the latest news, updates, and resources related to Siril.
-- [siril-doc](https://gitlab.com/free-astro/siril-doc): The documentation repository, hosted by ReadTheDocs. This repository contains comprehensive user manuals, guides, and reference materials to assist users in effectively utilizing Siril's features. There are two branches available: one for the stable version[^3] and one for the development version[^4].
+- [siril-web](https://gitlab.com/free-astro/siril-web): The [official website](https://siril.org) for Siril, built using the open source static site generator Hugo and hosted by [pixls.us](https://pixls.us), which also hosts forums for open source image processing software. This site provides users with access to the latest news, updates, and resources related to Siril.
+- [siril-doc](https://gitlab.com/free-astro/siril-doc): The documentation repository, hosted by ReadTheDocs. This repository contains comprehensive user manuals, guides, and reference materials to assist users in effectively utilizing Siril's features. There are two branches available: one for the [stable version](https://siril.readthedocs.io/en/stable) and one for the [development version](https://siril.readthedocs.io/en/latest).
 - [siril-localized-doc](https://gitlab.com/free-astro/siril-localized-doc): Dedicated to the translation of Siril's documentation. This repository leverages Weblate, a translation platform, to support multiple languages and ensure that documentation is accessible to a global audience.
 - [siril-spcc-database](https://gitlab.com/free-astro/siril-spcc-database): This repository stores data related to the Spectro Photometric Color Calibration (SPCC) tool. It includes JSON files detailing OSC/monochrome sensors and filters available on the market. The primary goal of this database is to collect extensive data and promote collaboration within the astronomy community.
 - [siril-scripts](https://gitlab.com/free-astro/siril-scripts): A repository where users can share and contribute scripts that extend the functionality of Siril. These user-contributed scripts are integrated into Siril, providing additional tools and capabilities for the community.
-
-[^1]: https://siril.org
-[^2]: https://pixls.us
-[^3]: https://siril.rtfd.io
-[^4]: https://siril.readthedocs.io/en/latest
 
 # Acknowledgements
 

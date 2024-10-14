@@ -163,6 +163,7 @@ guint g_string_replace(GString *string, const gchar *find, const gchar *replace,
 #endif
 char *str_replace(char *orig, const char *rep, char *with);
 void replace_spaces_from_str(gchar *s, char c);
+void replace_char_from_str(gchar *s, gchar in, gchar out);
 gchar *build_string_from_words(char **words);
 void append_elements_to_array(char **array, char **elements);
 const gchar *get_com_ext(gboolean fz);
@@ -179,6 +180,7 @@ void copy_filename(const char *filename, char *truncated_filename, size_t max_le
 gboolean is_string_numeric(const gchar *str);
 const gchar* find_first_numeric(const gchar *string);
 const gchar* find_first_nonnumeric(const gchar *string);
+int count_pattern_occurence(const gchar *string, const gchar *pattern);
 /****************** quantize.h ***************/
 int siril_fits_img_stats_ushort(WORD *array, long nx, long ny, int nullcheck,
 		WORD nullvalue, long *ngoodpix, WORD *minvalue, WORD *maxvalue,

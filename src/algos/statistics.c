@@ -890,7 +890,7 @@ static int stat_finalize_hook(struct generic_seq_args *args) {
 
 static int stat_compute_mem_limit(struct generic_seq_args *args, gboolean for_writer) {
 	unsigned int MB_per_image, MB_avail, required;
-	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_image, NULL, &MB_avail);
+	int limit = compute_nb_images_fit_memory(args->seq, 0.0, FALSE, &MB_per_image, NULL, &MB_avail); // no output - output_scale is set to 0.
 
 	int is_color = args->seq->nb_layers == 3;
 	required = is_color ? MB_per_image * 4 / 3 : MB_per_image * 2;

@@ -142,7 +142,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="halign">end</property>
                     <property name="hexpand">True</property>
                     <property name="width-chars">5</property>
-                    <property name="text">3,00</property>
+                    <property name="text">3.00</property>
                     <property name="input-purpose">number</property>
                     <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                     <property name="adjustment">adjSigCosmeCold</property>
@@ -208,7 +208,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="halign">end</property>
                     <property name="hexpand">True</property>
                     <property name="width-chars">5</property>
-                    <property name="text">3,00</property>
+                    <property name="text">3.00</property>
                     <property name="input-purpose">number</property>
                     <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                     <property name="adjustment">adjSigCosmeHot</property>
