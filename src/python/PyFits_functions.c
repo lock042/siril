@@ -1072,3 +1072,77 @@ PyObject* PyFits_get_ImStats(PyFits *self, PyObject *args) {
 	}
 	return stats;
 }
+
+PyObject* PyFits_open(PyFits* self, PyObject* args) {
+	const char* filename;
+	gboolean is_sequence = FALSE;
+
+	// Parse the input arguments from Python (expecting a single filename argument)
+	if (!PyArg_ParseTuple(args, "s", &filename)) {
+		return NULL;  // Handle argument parsing failure
+	}
+
+	// Call the function to read a single image into self->fit
+	if (!read_single_image(filename, self->fit, NULL, FALSE, &is_sequence, FALSE, !com.pref.force_16bit)) {
+		PyErr_SetString(PyExc_IOError, N_("Failed to open FITS file"));
+		return NULL;
+	}
+
+	// If successful, return None (equivalent to returning None in Python)
+	Py_RETURN_NONE;
+}
+
+PyObject* PyFits_save(PyFits* self, PyObject* args) {
+	const char* filename;
+
+	// Parse the input arguments from Python (expecting a single filename argument)
+	if (!PyArg_ParseTuple(args, "s", &filename)) {
+		return NULL;  // Handle argument parsing failure
+	}
+
+	// Call the function to save the current FITS object
+	if (!savefits(filename, self->fit)) {
+		PyErr_SetString(PyExc_IOError, N_("Failed to save FITS file"));
+		return NULL;
+	}
+
+	// If successful, return None (equivalent to returning None in Python)
+	Py_RETURN_NONE;
+}
+
+PyObject* PyFits_set_as_gfit(PyFits* self, PyObject* Py_UNUSED(ignored)) {
+	// Perhaps this is already a representation of gfit
+	if (self->fit == &gfit)
+		Py_RETURN_NONE;
+
+	if (get_thread_run()) {
+		PyErr_SetString(PyExc_RuntimeError, _("Cannot open another file while the processing thread is still operating on the current one!\n"));
+		return NULL;
+	}
+
+	// Close everything
+	close_sequence(FALSE);	// closing a sequence if loaded
+	close_single_image();	// close the previous image and free resources
+
+	// Copy the fits data and metadata
+	if (!copyfits(self->fit, &gfit, CP_COPYA, -1)) {
+		PyErr_SetString(PyExc_RuntimeError, _("Failed to copy FITS data with copyfits()"));
+		return NULL;
+	}
+	copy_fits_metadata(self->fit, &gfit);
+
+	// Clear up existing data in the PyFits
+	if (self->should_free_data) {
+		clearfits(self->fit);
+	}
+	if (self->should_free) {
+		free(self->fit);
+	}
+
+	// Set self->fit = &gfit and set both self->should_free and self->should_free_data to FALSE
+	self->fit = &gfit;
+	self->should_free = FALSE;
+	self->should_free_data = FALSE;
+
+	Py_RETURN_NONE;  // Return None to indicate success
+}
