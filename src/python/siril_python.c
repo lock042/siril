@@ -128,8 +128,9 @@ static PyMethodDef PyFits_methods[] = {
 	{"get_max", (PyCFunction)PyFits_get_max, METH_VARARGS, N_("Return the maximum pixel value for the specified channel.")},
 	{"get_normvalue", (PyCFunction)PyFits_get_normvalue, METH_VARARGS, N_("Return the normalization value for the specified channel.")},
 	{"get_bgnoise", (PyCFunction)PyFits_get_bgnoise, METH_VARARGS, N_("Return the background noise value for the specified channel.")},
-    {"open", (PyCFunction)PyFits_open, METH_VARARGS, N_("Open a FITS file and load it into the PyFits object")},
-    {"set_active", (PyCFunction)PyFits_set_as_gfit, METH_NOARGS, N_("Set the current PyFits object as the active Siril image. Caution: if an image is already open in Siril it will be closed!")},
+    {"open", (PyCFunction)PyFits_open, METH_VARARGS | METH_CLASS, N_("Open a FITS file and load it into the PyFits object")},
+	{"move_to_siril_image", (PyCFunction)PyFits_move_to_gfit, METH_VARARGS | METH_KEYWORDS,
+     N_("Move the FITS data to the main siril image. Takes an optional argument return_new: if return_new is True, returns a new PyFits object pointing to the main Siril image.")},
     {"save", (PyCFunction)PyFits_save, METH_VARARGS, N_("Save the current PyFits object to a FITS file")},
 	{NULL}
 };

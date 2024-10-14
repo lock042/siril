@@ -23,11 +23,13 @@
 #include <datetime.h>
 
 #include "core/siril.h"
+#include "core/proto.h"
 #include "python/siril_python.h"
 #include "python/PyImStats_functions.h"
 #include "core/command_line_processor.h"
 #include "gui/script_menu.h"
 #include "gui/progress_and_log.h"
+#include "gui/utils.h"
 #include "core/siril_log.h"
 #include "io/image_format_fits.h"
 #include "io/single_image.h"
@@ -77,6 +79,7 @@ void PyFits_dealloc(PyFits *self) {
 			free(self->fit);  // Only free the pointer if it was dynamically allocated
 		}
 	}
+	g_free(self->filename);
 	Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
@@ -86,8 +89,9 @@ PyObject *PyFits_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
 	self = (PyFits *)type->tp_alloc(type, 0);
 	if (self != NULL) {
 		self->fit = NULL;
-		self->should_free_data = 0;
-		self->should_free = 0;
+		self->filename = NULL; // only used when loading a PyFits from a file
+		self->should_free_data = 1; // default to owning the data
+		self->should_free = 1; // default to dynamically allocated
 	}
 	return (PyObject *)self;
 }
@@ -1073,22 +1077,60 @@ PyObject* PyFits_get_ImStats(PyFits *self, PyObject *args) {
 	return stats;
 }
 
-PyObject* PyFits_open(PyFits* self, PyObject* args) {
+// Class method for PyFits: open a FITS file
+PyObject* PyFits_open(PyObject *cls, PyObject *args) {
 	const char* filename;
 	gboolean is_sequence = FALSE;
+	PyFits *self = NULL;
 
 	// Parse the input arguments from Python (expecting a single filename argument)
 	if (!PyArg_ParseTuple(args, "s", &filename)) {
 		return NULL;  // Handle argument parsing failure
 	}
 
+	// If cls is a type object, we are called as a class method and should create a new PyFits object
+	if (PyType_Check(cls)) {
+		self = (PyFits *)((PyTypeObject *)cls)->tp_alloc((PyTypeObject *)cls, 0);
+		if (self == NULL) {
+			PyErr_SetString(PyExc_MemoryError, N_("Failed to allocate memory for PyFits object"));
+			return NULL;
+		}
+		self->fit = NULL;
+		self->should_free_data = 0;
+		self->should_free = 0;
+	} else {
+		// If called as an instance method, cls is actually the self object
+		self = (PyFits *)cls;
+		if (self->should_free_data) {
+			clearfits(self->fit);
+		} else if (self->fit != NULL) {
+			PyErr_SetString(PyExc_IOError, N_("Cannot open an image into this PyFits object as it does not own its data"));
+			return NULL;
+		}
+	}
+
+	// Allocate memory for a new fits structure
+	self->fit = calloc(1, sizeof(fits));
+	if (self->fit == NULL) {
+		PyErr_SetString(PyExc_MemoryError, N_("Failed to allocate memory for fits"));
+		return NULL;
+	}
+	self->should_free_data = 1;
+
 	// Call the function to read a single image into self->fit
-	if (!read_single_image(filename, self->fit, NULL, FALSE, &is_sequence, FALSE, !com.pref.force_16bit)) {
+	if (read_single_image(filename, self->fit, NULL, FALSE, &is_sequence, FALSE, !com.pref.force_16bit)) {
 		PyErr_SetString(PyExc_IOError, N_("Failed to open FITS file"));
 		return NULL;
 	}
 
-	// If successful, return None (equivalent to returning None in Python)
+	self->filename = g_strdup(filename);
+
+	// If called as a class method, return the new object
+	if (PyType_Check(cls)) {
+		return (PyObject *)self;
+	}
+
+	// If called as an instance method, return None
 	Py_RETURN_NONE;
 }
 
@@ -1101,7 +1143,7 @@ PyObject* PyFits_save(PyFits* self, PyObject* args) {
 	}
 
 	// Call the function to save the current FITS object
-	if (!savefits(filename, self->fit)) {
+	if (savefits(filename, self->fit)) {
 		PyErr_SetString(PyExc_IOError, N_("Failed to save FITS file"));
 		return NULL;
 	}
@@ -1110,41 +1152,80 @@ PyObject* PyFits_save(PyFits* self, PyObject* args) {
 	Py_RETURN_NONE;
 }
 
-PyObject* PyFits_set_as_gfit(PyFits* self, PyObject* Py_UNUSED(ignored)) {
-	// Perhaps this is already a representation of gfit
-	if (self->fit == &gfit)
-		Py_RETURN_NONE;
+PyObject* PyFits_move_to_gfit(PyFits* self, PyObject* args, PyObject* kwds) {
+	static char* kwlist[] = {"return_new", NULL};
+	int return_new = 0;  // Default to False
 
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "|p", kwlist, &return_new))
+		return NULL;
+
+	// Check if we're already representing gfit
+	if (self->fit == &gfit) {
+		if (return_new) {
+			Py_INCREF(self);
+			return (PyObject*)self;
+		}
+		Py_DECREF(self);
+		Py_RETURN_NONE;
+	}
+
+	// Check we aren't already messing about with gfit
 	if (get_thread_run()) {
 		PyErr_SetString(PyExc_RuntimeError, _("Cannot open another file while the processing thread is still operating on the current one!\n"));
 		return NULL;
 	}
 
 	// Close everything
-	close_sequence(FALSE);	// closing a sequence if loaded
-	close_single_image();	// close the previous image and free resources
+	close_sequence(FALSE);  // closing a sequence if loaded
+	close_single_image();   // close the previous image and free resources
 
 	// Copy the fits data and metadata
-	if (!copyfits(self->fit, &gfit, CP_COPYA, -1)) {
+	if (copyfits(self->fit, &gfit, CP_ALLOC | CP_FORMAT | CP_COPYA, -1)) {
 		PyErr_SetString(PyExc_RuntimeError, _("Failed to copy FITS data with copyfits()"));
 		return NULL;
 	}
 	copy_fits_metadata(self->fit, &gfit);
 
-	// Clear up existing data in the PyFits
-	if (self->should_free_data) {
-		clearfits(self->fit);
-	}
-	if (self->should_free) {
-		free(self->fit);
-	}
+	// Do all the necessary things to open the image from gfit
+	siril_debug_print("Loading image OK, now displaying\n");
 
-	// Set self->fit = &gfit and set both self->should_free and self->should_free_data to FALSE
-	self->fit = &gfit;
-	self->should_free = FALSE;
-	self->should_free_data = FALSE;
+	// Now initializing com struct
+	com.seq.current = UNRELATED_IMAGE;
+	gchar *realname = self->filename ? g_strdup(self->filename) : g_strdup(_("unsaved file.fit"));
+	create_uniq_from_gfit(realname, get_type_from_filename(realname) == TYPEFITS);
+	com.uniq->filename = strdup(realname);
+	g_free(realname);
+
+	if (!com.headless) {
+		execute_idle_and_wait_for_it(end_open_single_image, NULL);
+	}
 
 	notify_gfit_modified();
 
-	Py_RETURN_NONE;  // Return None to indicate success
+	if (return_new) {
+		// Create a new PyFits object
+		PyFits* new_pyfits = (PyFits*)PyObject_CallObject((PyObject*)&PyFitsType, NULL);
+		if (!new_pyfits) {
+			return NULL;  // Error creating new PyFits object
+		}
+
+		// Set up the new PyFits object
+		new_pyfits->fit = &gfit;
+		new_pyfits->should_free_data = 0;
+		new_pyfits->should_free = 0;
+		if (self->filename) {
+			new_pyfits->filename = strdup(self->filename);
+			if (!new_pyfits->filename) {
+				Py_DECREF(new_pyfits);
+				return PyErr_NoMemory();
+			}
+		} else {
+			new_pyfits->filename = NULL;
+		}
+
+		return (PyObject*)new_pyfits;
+	}
+
+	Py_DECREF(self);
+	Py_RETURN_NONE;
 }

@@ -126,7 +126,7 @@ static void free_image_data_gui() {
 	/* this function frees resources used in the GUI, some of these resources
 	 * need to be handled in the GTK+ main thread, so we use an idle function
 	 * to deal with them */
-	if (com.script)
+	if (com.script || com.python_script)
 		execute_idle_and_wait_for_it(free_image_data_idle, NULL);
 	else free_image_data_idle(NULL);
 	siril_debug_print("free_image_data_gui() called\n");
@@ -245,7 +245,7 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 	return retval;
 }
 
-static gboolean end_open_single_image(gpointer arg) {
+gboolean end_open_single_image(gpointer arg) {
 	com.icc.srgb_hint = FALSE;
 	open_single_image_from_gfit();
 	return FALSE;

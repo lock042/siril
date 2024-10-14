@@ -7,6 +7,7 @@
 typedef struct {
 	PyObject_HEAD
 	fits *fit;
+	gchar* filename;
 	int should_free_data;  // Flag to indicate if the data itself should be freed
 	// note: if should_free_data is 0, the struct will not be freed either
 	int should_free;  // Flag to indicate if the fits pointer itself should be freed
