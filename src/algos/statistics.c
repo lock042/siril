@@ -890,7 +890,7 @@ static int stat_finalize_hook(struct generic_seq_args *args) {
 
 static int stat_compute_mem_limit(struct generic_seq_args *args, gboolean for_writer) {
 	unsigned int MB_per_image, MB_avail, required;
-	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_image, NULL, &MB_avail);
+	int limit = compute_nb_images_fit_memory(args->seq, 0.0, FALSE, &MB_per_image, NULL, &MB_avail); // no output - output_scale is set to 0.
 
 	int is_color = args->seq->nb_layers == 3;
 	required = is_color ? MB_per_image * 4 / 3 : MB_per_image * 2;
@@ -1200,4 +1200,26 @@ double robust_median_w(fits *fit, rectangle *area, int chan, float lower, float 
 	free(filtered_data);
 
 	return retval;
+}
+
+// Function to quickly compute min and max values
+int quick_minmax(fits *fit, double *minval, double *maxval) {
+    imstats *stats[3] = { NULL };
+    int retval = compute_all_channels_statistics_single_image(fit, STATS_MINMAX, MULTI_THREADED, stats);
+
+    if (retval) {
+        siril_log_color_message(_("Error: statistics computation failed. Unable to check for out-of-range values.\n"), "red");
+    } else {
+        if (fit->naxes[2] == 1) {
+            *maxval = stats[0]->max;
+            *minval = stats[0]->min;
+        } else {
+            *maxval = max(max(stats[RLAYER]->max, stats[GLAYER]->max), stats[BLAYER]->max);
+            *minval = min(min(stats[RLAYER]->min, stats[GLAYER]->min), stats[BLAYER]->min);
+        }
+        for (int i = 0; i < fit->naxes[2]; i++) {
+            free_stats(stats[i]);
+        }
+    }
+    return retval;
 }

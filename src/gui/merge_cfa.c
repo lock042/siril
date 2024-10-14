@@ -21,6 +21,8 @@
 #include "core/siril.h"
 #include "core/command.h"
 #include "algos/demosaicing.h"
+#include "algos/extraction.h"
+#include "algos/siril_wcs.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
 #include "io/image_format_fits.h"
@@ -51,7 +53,7 @@ void reset_controls() {
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("merge_cfa_pattern")), 0);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("merge_cfa_seqapply")), FALSE);
 	gtk_widget_set_visible(GTK_WIDGET(lookup_widget("merge_cfa_seq_controls")), FALSE);
-	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entryMergeCFAin")), "CFA_");
+	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entryMergeCFAin")), "CFA");
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("entryMergeCFAout")), "mCFA_");
 }
 
@@ -145,7 +147,7 @@ void apply_to_seq() {
 	struct merge_cfa_data *args = calloc(1, sizeof(struct merge_cfa_data));
 	args->seqEntryIn = gtk_entry_get_text(entryMergeCFAin);
 	if (args->seqEntryIn && args->seqEntryIn[0] == '\0')
-		args->seqEntryIn = "CFA_";
+		args->seqEntryIn = "CFA";
 	args->seqEntryOut = strdup(gtk_entry_get_text(entryMergeCFAout));
 	if (args->seqEntryOut && args->seqEntryOut[0] == '\0')
 		args->seqEntryOut = "mCFA_";
@@ -189,6 +191,12 @@ void apply_to_img() {
 			siril_log_message("Bayer pattern produced: 1 layer, %dx%d pixels\n", out->rx, out->ry);
 			close_single_image();
 			copyfits(out, &gfit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+			copy_fits_metadata(out, &gfit);
+			update_sampling_information(&gfit, 0.5f);
+			update_bayer_pattern_information(&gfit, pattern);
+
+			free_wcs(&gfit);
+			update_fits_header(&gfit);
 			clearfits(out);
 			free(out);
 			clear_stars_list(TRUE);

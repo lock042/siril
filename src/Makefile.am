@@ -184,6 +184,8 @@ siril_common_SOURCES = \
 	filters/clahe.h \
 	filters/cosmetic_correction.c \
 	filters/cosmetic_correction.h \
+	filters/curve_transform.c \
+	filters/curve_transform.h \
 	filters/deconvolution.c \
 	filters/epf.c \
 	filters/epf.h \
@@ -209,6 +211,8 @@ siril_common_SOURCES = \
 	filters/starnet.h \
 	filters/synthstar.c \
 	filters/synthstar.h \
+	filters/unpurple.c \
+	filters/unpurple.h \
 	filters/wavelets.c \
 	filters/wavelets.h \
 	filters/da3d/DA3D.cpp \
@@ -263,6 +267,8 @@ siril_common_SOURCES = \
 	gui/conversion.h \
 	gui/colors.c \
 	gui/colors.h \
+	gui/curves.c \
+	gui/curves.h \
 	gui/cut.c \
 	gui/dialog_preview.c \
 	gui/dialog_preview.h \
@@ -339,6 +345,8 @@ siril_common_SOURCES = \
 	gui/starnetgui.c \
 	gui/starnetgui.h \
 	gui/statistics_list.c \
+	gui/unpurple.c \
+	gui/unpurple.h \
 	gui/utils.c \
 	gui/utils.h \
 	io/annotation_catalogues.c \
@@ -406,6 +414,8 @@ siril_common_SOURCES = \
 	registration/matching/degtorad.h \
 	registration/matching/apply_match.c \
 	registration/astrometric.c \
+	registration/distorsion.c \
+	registration/distorsion.h \
 	registration/registration.c \
 	registration/registration.h \
 	registration/shift_methods.c \

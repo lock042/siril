@@ -34,10 +34,6 @@ void apply_linked_mtf_to_fits(fits *from, fits *to, struct mtf_params params, gb
 #ifdef _OPENMP
 	int threads = min(com.max_thread, 2); // not worth using many threads here
 #endif
-
-	siril_log_message(_("Applying MTF with values %f, %f, %f\n"),
-			params.shadows, params.midtones, params.highlights);
-
 	if (from->type == DATA_USHORT) {
 		float norm = (float)get_normalized_value(from);
 		float invnorm = 1.0f / norm;
@@ -205,8 +201,8 @@ int find_linked_midtones_balance(fits *fit, float shadows_clipping, float target
 		c0 /= (float) nb_channels;
 		if (c0 < 0.f) c0 = 0.f;
 		float m2 = m / (float) nb_channels - c0;
-		result->midtones = MTF(m2, target_bg, 0.f, 1.f);
 		result->shadows = c0;
+		result->midtones = MTF(m2, target_bg, 0.f, 1.f);
 		result->highlights = 1.0f;
 
 		siril_debug_print("autostretch: (%f, %f, %f)\n",

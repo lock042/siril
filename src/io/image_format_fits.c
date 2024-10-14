@@ -525,7 +525,7 @@ static void convert_data_float(int bitpix, const void *from, float *to, size_t n
 	}
 }
 
-static void convert_floats(int bitpix, float *data, size_t nbdata) {
+static void convert_floats(int bitpix, float *data, size_t nbdata, gboolean verbose) {
 	size_t i;
 	switch (bitpix) {
 		case BYTE_IMG:
@@ -533,9 +533,10 @@ static void convert_floats(int bitpix, float *data, size_t nbdata) {
 				data[i] = data[i] * INV_UCHAR_MAX_SINGLE;
 			break;
 		case FLOAT_IMG:
-			siril_log_message(_("Normalizing input data to our float range [0, 1]\n")); // @suppress("No break at end of case")
-			// Fallthrough is deliberate, this handles FITS with floating point data
-			// where MAX is 65565 (e.g. JWST)
+			if (verbose)
+				siril_log_message(_("Normalizing input data to our float range [0, 1]\n")); // @suppress("No break at end of case")
+				// Fallthrough is deliberate, this handles FITS with floating point data
+				// where MAX is 65565 (e.g. JWST)
 		default:
 		case USHORT_IMG:	// siril 0.9 native
 			for (i = 0; i < nbdata; i++)
@@ -721,7 +722,7 @@ int read_fits_with_convert(fits* fit, const char* filename, gboolean force_float
 		if ((fit->bitpix == USHORT_IMG || fit->bitpix == SHORT_IMG
 				// needed for some FLOAT_IMG. 10.0 is probably a good number to represent the limit at which we judge that these are not clip-on pixels.
 				|| fit->bitpix == BYTE_IMG) || fit->keywords.data_max > 10.0) {
-			convert_floats(fit->bitpix, fit->fdata, nbdata);
+			convert_floats(fit->bitpix, fit->fdata, nbdata, TRUE);
 		}
 		fit->bitpix = FLOAT_IMG;
 		fit->orig_bitpix = FLOAT_IMG; // force this, to avoid problems saving the FITS if needed
@@ -802,8 +803,15 @@ int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,
 			if (status) break;
 			int status2 = 0;
 			fits_read_key(fptr, TDOUBLE, "DATAMAX", &data_max, NULL, &status2);
+			if (status2 == KEY_NO_EXIST && nbdata > 3) {
+				data_max = 0.;
+				for (size_t i = 0; i < nbdata; i += nbdata / 3) { // we check the 3 pixels in diagonal and hope for the best not all will be null...
+					data_max = max(data_max, ((float *)dest)[i]);
+				}
+				status2 = 0;
+			}
 			if (status2 == 0 && data_max > 10.0) { // needed for some FLOAT_IMG
-				convert_floats(bitpix, dest, nbdata);
+				convert_floats(bitpix, dest, nbdata, FALSE);
 			}
 			break;
 		case LONGLONG_IMG:	// 64-bit integer pixels
@@ -815,6 +823,17 @@ int internal_read_partial_fits(fitsfile *fptr, unsigned int ry,
 }
 
 int siril_fits_create_diskfile(fitsfile **fptr, const char *filename, int *status) {
+	*status = 0;
+	gchar *dirname = g_path_get_dirname(filename);
+	GDir *dir = g_dir_open(dirname, 0, NULL);
+	if (!dir && g_mkdir_with_parents(dirname, 0755) < 0) {
+		siril_log_color_message(_("Cannot create output folder: %s\n"), "red", dirname);
+		*status = 1;
+		g_free(dirname);
+		return *status;
+	}
+	g_dir_close(dir);
+	g_free(dirname);
 	fits_create_diskfile(fptr, filename, status);
 	return *status;
 }
@@ -1054,7 +1073,7 @@ int read_icc_profile_from_fits(fits *fit) {
 	char extname[FLEN_VALUE], comment[FLEN_COMMENT];
 	int ihdu, nhdus, hdutype, orig_hdu = 1;
 	fits_get_hdu_num(fit->fptr, &orig_hdu);
-	siril_debug_print("Original HDU before looking for ICC profile: %d\n", orig_hdu);
+	// siril_debug_print("Original HDU before looking for ICC profile: %d\n", orig_hdu);
 	if (fit->icc_profile)
 		cmsCloseProfile(fit->icc_profile);
 	fit->icc_profile = NULL;
@@ -2906,6 +2925,8 @@ void merge_fits_headers_to_result2(fits *result, fits **f, gboolean do_sum) {
 	double expend = f[0]->keywords.expend;
 	int image_count = 1;
 	double exposure = f[0]->keywords.exposure;
+	result->keywords.stackcnt = f[0]->keywords.stackcnt != DEFAULT_UINT_VALUE ? max(1, f[0]->keywords.stackcnt) : 1;
+	result->keywords.livetime = f[0]->keywords.livetime > 0 ? f[0]->keywords.livetime : exposure;
 
 	fits *current;
 	while ((current = f[image_count])) {
@@ -2937,8 +2958,8 @@ void merge_fits_headers_to_result2(fits *result, fits **f, gboolean do_sum) {
 
 		if (do_sum) {
 			// add the exposure times and number of stacked images
-			result->keywords.stackcnt += current->keywords.stackcnt;
-			result->keywords.livetime += current->keywords.livetime;
+			result->keywords.stackcnt += current->keywords.stackcnt != DEFAULT_UINT_VALUE ? max(1, current->keywords.stackcnt) : 1;
+			result->keywords.livetime += current->keywords.livetime > 0 ? current->keywords.livetime : current->keywords.exposure;
 
 			/* to add if one day we keep FITS comments: discrepancies in
 			 * various fields like exposure, instrument, observer,
@@ -3056,8 +3077,7 @@ gboolean keyword_is_protected(char *card) {
 	char keyname[9];
 	strncpy(keyname, card, 8);
 	keyname[8] = '\0';
-	if ((g_strcmp0(keyname, "PROGRAM ") == 0)
-			|| (g_strcmp0(keyname, "DATE    ") == 0)) {
+	if (g_strcmp0(keyname, "DATE    ") == 0) {
 		return TRUE;
 	}
 	return (fits_get_keyclass(card) == TYP_STRUC_KEY || fits_get_keyclass(card) == TYP_CMPRS_KEY || fits_get_keyclass(card) == TYP_SCAL_KEY);
@@ -3274,6 +3294,54 @@ int fits_parse_header_str(fits *fit, const char *header){
 	clearfits(&tmpfit);
 	free(memptr);
 
+	return status;
+}
+
+int save_wcs_fits(fits *f, const gchar *name) {
+	int status;
+
+	if (!name)
+		return 1;
+
+	if (g_unlink(name))
+		siril_debug_print("g_unlink() failed\n");
+	
+
+	status = 0;
+	if (siril_fits_create_diskfile(&(f->fptr), name, &status)) {
+		report_fits_error(status);
+		return 1;
+	}
+	// Prepare the minimal header
+	fits_write_key(f->fptr, TLOGICAL, "SIMPLE", &(int){1}, "conforms to FITS standard", &status);
+	fits_write_key(f->fptr, TINT, "BITPIX", &(int){8}, "ASCII or bytes array", &status);
+	fits_write_key(f->fptr, TINT, "NAXIS", &(int){0}, "Minimal header", &status);
+	fits_write_key(f->fptr, TLOGICAL, "EXTEND", &(int){1}, "There may be FITS ext", &status);
+	fits_write_key(f->fptr, TINT, "WCSAXES", &(int){2}, NULL, &status);
+	fits_write_key(f->fptr, TINT, "IMAGEW", &f->rx, "Image width in pixels", &status);
+	fits_write_key(f->fptr, TINT, "IMAGEH", &f->ry, "Image height in pixels", &status);
+	if (f->keywords.date_obs) {
+		gchar *formatted_date = date_time_to_FITS_date(f->keywords.date_obs);
+		fits_update_key(f->fptr, TSTRING, "DATE-OBS", formatted_date, "YYYY-MM-DDThh:mm:ss observation start, UT", &status);
+		g_free(formatted_date);
+	}
+
+	// Write the WCS data
+	if (save_wcs_keywords(f)) {
+		report_fits_error(status);
+		fits_close_file(f->fptr, &status);
+		f->fptr = NULL;
+		return 1;
+	}
+
+	status = 0;
+	fits_close_file(f->fptr, &status);
+	if (!status) {
+		siril_log_message(_("Saving WCS file %s\n"), name);
+	} else {
+		report_fits_error(status);
+	}
+	f->fptr = NULL;
 	return status;
 }
 

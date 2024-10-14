@@ -33,9 +33,11 @@
 #include "gui/progress_and_log.h"
 #include "algos/sorting.h"
 #include "algos/statistics.h"
+#include "algos/siril_wcs.h"
 #include "stacking/stacking.h"
 #include "stacking/siril_fit_linear.h"
 #include "registration/registration.h"
+#include "opencv/opencv.h"
 
 static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean);
 
@@ -164,11 +166,13 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 			naxes[2] = 1;
 		g_assert(naxes[2] <= 3);
 
+		gboolean update_wcs = TRUE;
 		if (args->maximize_framing) {
-			naxes[0] = (int)(ceil(xmax) - floor(xmin));
-			naxes[1] = (int)(ceil(ymax) - floor(ymin));
-			args->offset[0] = floor(xmin);
-			args->offset[1] = -floor(ymin);
+			// using same formulas as in applyreg::compute_roi
+			naxes[0] = (int)xmax - (int)xmin + 1;
+			naxes[1] = (int)ymax - (int)ymin + 1;
+			args->offset[0] =  (int)xmin;
+			args->offset[1] = -(int)ymin;
 			siril_debug_print("new size: %ld %ld\n", naxes[0], naxes[1]);
 			siril_debug_print("new origin: %d %d\n", args->offset[0], args->offset[1]);
 		} else if (layer_has_registration(args->seq, args->reglayer)) {
@@ -176,6 +180,23 @@ int stack_open_all_files(struct stacking_args *args, int *bitpix, int *naxis, lo
 			translation_from_H(args->seq->regparam[args->reglayer][args->ref_image].H, &dx, &dy);
 			args->offset[0] = (int)dx;
 			args->offset[1] = (int)dy;
+		} else {
+			update_wcs = FALSE;
+		}
+		if (update_wcs && has_wcs(fit)) {
+			Homography Hs = { 0 };
+			cvGetEye(&Hs);
+			double dx, dy;
+			translation_from_H(args->seq->regparam[args->reglayer][args->ref_image].H, &dx, &dy);
+			// siril_debug_print("ref shift: %d %d\n", (int)dx, (int)dy);
+			// siril_debug_print("crpix: %.1f %.1f\n", fit->keywords.wcslib->crpix[0], fit->keywords.wcslib->crpix[1]);
+			Hs.h02 = dx - args->offset[0];
+			Hs.h12 = args->offset[1] - dy;
+			// int orig_rx = (args->seq->is_variable) ? args->seq->imgparam[args->seq->reference_image].rx : args->seq->rx;
+			int orig_ry = (args->seq->is_variable) ? args->seq->imgparam[args->seq->reference_image].ry : args->seq->ry;
+			// siril_debug_print("size: %d %d\n", orig_rx, orig_ry);
+			cvApplyFlips(&Hs, orig_ry, naxes[1]);
+			reframe_wcs(fit->keywords.wcslib, &Hs);
 		}
 	}
 	else if (args->seq->type == SEQ_SER) {
@@ -1537,6 +1558,9 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 		norm_to_0_1_range(&fit);
 	compute_date_time_keywords(list_date, &fit);
 	memcpy(&args->result, &fit, sizeof(fits));
+	if (has_wcs(&args->result)) {
+		update_wcsdata_from_wcs(&args->result);
+	}
 
 free_and_close:
 	fprintf(stdout, "free and close (%d)\n", retval);

@@ -358,6 +358,12 @@ void siril_crop() {
 	}
 	clear_stars_list(TRUE);
 	crop(&gfit, &com.selection);
+
+	char log[90];
+	sprintf(log, _("Crop (x=%d, y=%d, w=%d, h=%d)"), com.selection.x,
+			com.selection.y, com.selection.w, com.selection.h);
+	gfit.history = g_slist_append(gfit.history, strdup(log));
+
 	delete_selected_area();
 	reset_display_offset();
 	update_zoom_label();

@@ -175,7 +175,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                                 <property name="halign">end</property>
                                 <property name="hexpand">True</property>
                                 <property name="width-chars">6</property>
-                                <property name="text">0,50</property>
+                                <property name="text">0.50</property>
                                 <property name="input-purpose">digits</property>
                                 <property name="input-hints">GTK_INPUT_HINT_NO_EMOJI | GTK_INPUT_HINT_NONE</property>
                                 <property name="adjustment">adj_background_smoothing</property>

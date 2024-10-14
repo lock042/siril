@@ -35,6 +35,7 @@ void hsl_to_rgbf(float h, float s, float l, float *r, float *g, float *b);
 void rgbw_to_hslw(uint16_t r, uint16_t g, uint16_t b, uint16_t *h, uint16_t *s, uint16_t *l);
 void hslw_to_rgbw(uint16_t h, uint16_t s, uint16_t l, uint16_t *r, uint16_t *g, uint16_t *b);
 void rgb_to_hsv(double, double, double, double *, double *, double *);
+void rgb_to_hsvf(float, float, float, float *, float *, float *);
 void hsv_to_rgb(double, double, double, double *, double *, double *);
 void rgb_to_xyz(double, double, double, double *, double *, double *);
 void rgb_to_xyzf(float r, float g, float b, float *x, float *y, float *z);

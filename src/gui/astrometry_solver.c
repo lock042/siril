@@ -22,6 +22,7 @@
 #include <gtk/gtk.h>
 #include "algos/astrometry_solver.h"
 #include "algos/siril_wcs.h"
+#include "registration/registration.h"
 #include "io/annotation_catalogues.h"
 #include "algos/search_objects.h"
 #include "core/processing.h"
@@ -48,26 +49,32 @@ enum {
 };
 
 // caching all UI elements
+static GtkBox *IPSbox_seq_info = NULL;
 static GtkToggleButton *flipbutton = NULL, *automagbutton = NULL, *DEC_S = NULL,
 	*manualbutton = NULL, *downsamplebutton = NULL, *autocropbutton = NULL, *autocatbutton = NULL,
 	*nonearbutton = NULL, *blindposbutton = NULL, *blindresbutton = NULL,
 	*seqsolvebutton = NULL, *seqnocache = NULL, *seqskipsolved = NULL,
-	*sequseheadercoords = NULL, *sequseheaderpixel = NULL, *sequseheaderfocal = NULL;
+	*sequseheadercoords = NULL, *sequseheaderpixel = NULL, *sequseheaderfocal = NULL,
+	*checkbutton_IPS_useforreg = NULL, *masterbutton = NULL;
+static GtkButton *distomaster_save_button = NULL;
 static GtkSpinButton *magspin = NULL, *RA_h = NULL, *RA_m = NULL, *DEC_d = NULL, *DEC_m = NULL, *radiusspin = NULL;
 static GtkComboBox *catalogbox = NULL, *orderbox = NULL, *solverbox = NULL, *serverbox = NULL;
 static GtkLabel *cataloglabel = NULL, *radiuslabel = NULL;
 static GtkEntry *focalentry = NULL, *pixelentry = NULL, *resolutionentry = NULL,
-	*RA_s = NULL, *DEC_s = NULL, *searchentry = NULL;
+	*RA_s = NULL, *DEC_s = NULL, *searchentry = NULL, *distomaster_entry = NULL;
 static GtkListStore *list_IPS = NULL;
 static GtkTreeSelection *selection = NULL;
 static GtkTreeView *treeviewIPS = NULL;
 static GtkExpander *cataloguesexp = NULL, *stardetectionexp = NULL, *sequenceexp = NULL;
+static GtkWindow *astrometry_dialog = NULL;
 static gboolean have_local_cat = FALSE, radius_set = FALSE, order_set = FALSE, have_asnet = FALSE,
 				has_coords = FALSE, has_pixel = FALSE, has_focal = FALSE; // those bools tell if the metadata was present in the header of gfit
 
 void on_comboastro_catalog_changed(GtkComboBox *combo, gpointer user_data);
 void on_comboastro_solver_changed(GtkComboBox *combo, gpointer user_data);
+void on_comboastro_order_changed(GtkComboBox *combo, gpointer user_data);
 void on_GtkCheckButton_solveseq_toggled(GtkToggleButton *button, gpointer user);
+static int get_order();
 extern struct sky_object platedObject[RESOLVER_NUMBER];
 
 static void unselect_all_items();
@@ -104,6 +111,9 @@ static void load_all_ips_statics() {
 		sequseheadercoords = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_IPS_sequseheadercoords"));
 		sequseheaderpixel = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_IPS_sequseheaderpixel"));
 		sequseheaderfocal = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_IPS_sequseheaderfocal"));
+		checkbutton_IPS_useforreg = GTK_TOGGLE_BUTTON(lookup_widget("checkbutton_IPS_useforreg"));
+		masterbutton = GTK_TOGGLE_BUTTON(lookup_widget("master_ips_button"));
+		distomaster_save_button = GTK_BUTTON(lookup_widget("distomaster_save_button"));
 		// combos
 		catalogbox = GTK_COMBO_BOX(lookup_widget("ComboBoxIPSCatalog"));
 		orderbox = GTK_COMBO_BOX(lookup_widget("ComboBoxIPS_order"));
@@ -126,6 +136,7 @@ static void load_all_ips_statics() {
 		RA_s = GTK_ENTRY(lookup_widget("GtkEntryIPS_RA_s"));
 		DEC_s = GTK_ENTRY(lookup_widget("GtkEntryIPS_Dec_s"));
 		searchentry = GTK_ENTRY(lookup_widget("GtkSearchIPS"));
+		distomaster_entry = GTK_ENTRY(lookup_widget("distomaster_entry"));
 		// list store
 		list_IPS = GTK_LIST_STORE(gtk_builder_get_object(gui.builder,"liststoreIPS"));
 		// selection
@@ -136,6 +147,10 @@ static void load_all_ips_statics() {
 		cataloguesexp = GTK_EXPANDER(lookup_widget("labelIPSCatalogParameters"));
 		stardetectionexp = GTK_EXPANDER(lookup_widget("Frame_IPS_star_detection"));
 		sequenceexp = GTK_EXPANDER(lookup_widget("Frame_IPS_sequence"));
+		// box
+		IPSbox_seq_info = GTK_BOX(lookup_widget("IPSbox_seq_info"));
+		//window
+		astrometry_dialog = GTK_WINDOW(gtk_builder_get_object(gui.builder, "astrometry_dialog"));
 	}
 }
 
@@ -152,11 +167,12 @@ void initialize_ips_dialog() {
 	on_GtkButton_IPS_metadata_clicked(NULL, NULL);	// fill it automatically
 	// sequence related controls
 	gboolean isseq = sequence_is_loaded() && com.seq.current != RESULT_IMAGE;
+	gboolean hasreg = isseq && layer_has_usable_registration(&com.seq, (gfit.naxes[2] == 1) ? RLAYER : GLAYER);
 	gtk_widget_set_visible(GTK_WIDGET(flipbutton), !isseq);
 	gtk_expander_set_expanded(sequenceexp, isseq);
 	gtk_widget_set_visible(GTK_WIDGET(sequenceexp), isseq);
 	gtk_widget_set_visible(GTK_WIDGET(stardetectionexp), !isseq);
-	gtk_toggle_button_set_active(seqsolvebutton, isseq);
+	gtk_toggle_button_set_active(seqsolvebutton, isseq && !hasreg);
 	on_GtkCheckButton_solveseq_toggled(NULL, NULL);
 	if (isseq) {
 		gtk_toggle_button_set_active(sequseheadercoords, has_coords);
@@ -166,6 +182,8 @@ void initialize_ips_dialog() {
 		gtk_widget_set_sensitive(GTK_WIDGET(sequseheaderpixel), has_pixel);
 		gtk_widget_set_sensitive(GTK_WIDGET(sequseheaderfocal), has_focal);
 	}
+	gtk_toggle_button_set_active(nonearbutton, isseq);
+	on_comboastro_order_changed(NULL, NULL);
 	// solver-related controls
 	on_comboastro_catalog_changed(NULL, NULL);
 }
@@ -286,6 +304,10 @@ static gboolean is_downsample_activated() {
 
 static gboolean is_autocrop_activated() {
 	return gtk_toggle_button_get_active(autocropbutton);
+}
+
+static gboolean is_save_disto_activated() {
+	return gtk_widget_get_sensitive(GTK_WIDGET(masterbutton)) && gtk_toggle_button_get_active(masterbutton) && strlen(gtk_entry_get_text(distomaster_entry)) > 0;
 }
 
 static void update_pixel_size() {
@@ -698,11 +720,8 @@ void on_GtkCheckButton_solveseq_toggled(GtkToggleButton *button, gpointer user) 
 		gboolean uselocal = use_local_catalogue();
 		shownocache = (!uselocal) && (has_coords || has_pixel || has_focal);
 	}
+	gtk_widget_set_visible(GTK_WIDGET(IPSbox_seq_info), solveseq);
 	gtk_widget_set_visible(GTK_WIDGET(seqnocache), solveseq && shownocache);
-	gtk_widget_set_visible(GTK_WIDGET(seqskipsolved), solveseq);
-	gtk_widget_set_visible(GTK_WIDGET(sequseheadercoords), solveseq);
-	gtk_widget_set_visible(GTK_WIDGET(sequseheaderpixel), solveseq);
-	gtk_widget_set_visible(GTK_WIDGET(sequseheaderfocal), solveseq);
 }
 
 void on_GtkCheckButton_nonear_toggled(GtkToggleButton *button, gpointer user) {
@@ -723,10 +742,53 @@ void on_togglecoords_changed(GtkToggleButton *button, gpointer user) {
 	has_coords = FALSE;
 }
 
-
-
 void on_GtkCheckButton_blindpos_toggled(GtkToggleButton *button, gpointer user) {
 	gtk_widget_set_sensitive(GTK_WIDGET(radiusspin), !gtk_toggle_button_get_active(blindposbutton));
+}
+
+static void set_filter(GtkFileChooser *dialog) {
+	GtkFileFilter *f = gtk_file_filter_new();
+	gtk_file_filter_set_name(f, _("wcs files (*.wcs)"));
+	gtk_file_filter_add_pattern(f, "*.wcs");
+	gtk_file_chooser_add_filter(dialog, f);
+	gtk_file_chooser_set_filter(dialog, f);
+}
+
+void on_distomaster_save_button_clicked(GtkButton *button, gpointer user_data) {
+	SirilWidget *widgetdialog = NULL;
+	GtkFileChooser *dialog = NULL;
+	gint res = 0;
+	gchar *filename = NULL;
+
+	if (sequence_is_loaded()) {
+		filename = g_strdup_printf("%s.wcs", com.seq.seqname);
+	} else {
+		gchar *basename = g_path_get_basename(com.uniq->filename);
+		char *root = remove_ext_from_filename(basename);
+		filename = g_strdup_printf("%s.wcs", root);
+		g_free(basename);
+		free(root);
+	}
+
+	widgetdialog = siril_file_chooser_save(astrometry_dialog, GTK_FILE_CHOOSER_ACTION_SAVE);
+	dialog = GTK_FILE_CHOOSER(widgetdialog);
+	gtk_file_chooser_set_current_folder(dialog, com.wd);
+	gtk_file_chooser_set_select_multiple(dialog, FALSE);
+	gtk_file_chooser_set_do_overwrite_confirmation(dialog, TRUE);
+	gtk_file_chooser_set_current_name(dialog, filename);
+	gtk_file_chooser_set_local_only(dialog, FALSE);
+	set_filter(dialog);
+
+	res = siril_dialog_run(widgetdialog);
+	if (res == GTK_RESPONSE_ACCEPT) {
+		gchar *file = siril_file_chooser_get_filename(dialog);
+		gtk_entry_set_text(distomaster_entry, file);
+		gtk_editable_set_position(GTK_EDITABLE(distomaster_entry), -1);
+		g_free(file);
+		gtk_toggle_button_set_active(masterbutton, TRUE);
+	}
+	siril_widget_destroy(widgetdialog);
+	g_free(filename);
 }
 
 void open_astrometry_dialog() {
@@ -748,15 +810,24 @@ int fill_plate_solver_structure_from_GUI(struct astrometry_data *args) {
 		args->fit = &gfit;
 		args->manual = is_detection_manual();
 		args->verbose = TRUE;
-		args->flip_image = flip_image_after_ps() && !sequence_is_loaded();
+		args->flip_image = flip_image_after_ps() && (!sequence_is_loaded() || com.seq.current == RESULT_IMAGE);
 		args->numthreads = com.max_thread;
 	} else {
 		args->force = !gtk_toggle_button_get_active(seqskipsolved);
+		args->update_reg = gtk_toggle_button_get_active(checkbutton_IPS_useforreg);
+		args->sfargs = calloc(1, sizeof(struct starfinder_data));
+		args->sfargs->im.from_seq = &com.seq;
+		args->sfargs->layer = (gfit.naxes[2] == 1) ? RLAYER : GLAYER;
+		args->sfargs->keep_stars = TRUE;
+		args->sfargs->save_to_file = com.selection.w == 0 || com.selection.h == 0; // TODO make this a pref
+		args->sfargs->max_stars_fitted = BRIGHTEST_STARS;
 	}
 	args->downsample = is_downsample_activated();
 	args->trans_order = get_order();
 	args->pixel_size = get_pixel();
 	args->focal_length = get_focal();
+	if (is_save_disto_activated())
+		args->distofilename = g_strdup(gtk_entry_get_text(distomaster_entry));
 	SirilWorldCS *catalog_center = get_center_of_catalog();
 	gboolean no_coords = siril_world_cs_get_alpha(catalog_center) == 0.0 &&
 			siril_world_cs_get_delta(catalog_center) == 0.0;
@@ -853,6 +924,16 @@ void on_comboastro_catalog_changed(GtkComboBox *combo, gpointer user_data) {
 		gtk_label_set_text(cataloglabel, _("(online catalogue)"));
 	else gtk_label_set_text(cataloglabel, _("(local catalogue)"));
 	on_comboastro_solver_changed(NULL, NULL);
+}
+
+void on_comboastro_order_changed(GtkComboBox *combo, gpointer user_data) {
+	gboolean enable = get_order() > 1;
+	gtk_widget_set_sensitive(GTK_WIDGET(masterbutton), enable);
+	gtk_widget_set_sensitive(GTK_WIDGET(distomaster_entry), enable);
+	gtk_widget_set_sensitive(GTK_WIDGET(distomaster_save_button), enable);
+	if (com.pref.prepro.use_disto_lib && com.pref.prepro.disto_lib && com.pref.prepro.disto_lib[0] != '\0') {
+		gtk_entry_set_text(distomaster_entry, com.pref.prepro.disto_lib);
+	}
 }
 
 void on_comboastro_solver_changed(GtkComboBox *combo, gpointer user_data) {

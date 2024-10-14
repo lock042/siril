@@ -483,6 +483,7 @@ static void update_metadata(fits *fit, gboolean do_sum) {
 		copy_fits_metadata(var_fit, fit);
 	else
 		merge_fits_headers_to_result2(fit, f, do_sum);
+	update_fits_header(fit);
 	free(f);
 }
 
@@ -1076,23 +1077,6 @@ static void add_image_to_variable_list(const gchar *path, const gchar *var, gcha
 
 }
 
-static void gtk_filter_add(GtkFileChooser *file_chooser, const gchar *title,
-		const gchar *pattern) {
-	gchar **patterns;
-	gint i;
-
-	GtkFileFilter *f = gtk_file_filter_new();
-	gtk_file_filter_set_name(f, title);
-	/* get the patterns */
-	patterns = g_strsplit(pattern, ";", -1);
-	for (i = 0; patterns[i] != NULL; i++)
-		gtk_file_filter_add_pattern(f, patterns[i]);
-	/* free the patterns */
-	g_strfreev(patterns);
-	gtk_file_chooser_add_filter(file_chooser, f);
-	gtk_file_chooser_set_filter(file_chooser, f);
-}
-
 static int search_for_free_index() {
 	int i;
 	for (i = 0; i < MAX_IMAGES; i++) {
@@ -1123,7 +1107,7 @@ static void select_image(int nb) {
 	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), com.wd);
 	gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER(dialog), TRUE);
 	gtk_file_chooser_set_local_only(GTK_FILE_CHOOSER(dialog), FALSE);
-	gtk_filter_add(GTK_FILE_CHOOSER(dialog), _("FITS Files (*.fit, *.fits, *.fts, *.fit.fz, *.fits.fz, *.fts.fz)"), FITS_EXTENSIONS);
+	gtk_filter_add(GTK_FILE_CHOOSER(dialog), _("FITS Files (*.fit, *.fits, *.fts, *.fit.fz, *.fits.fz, *.fts.fz)"), FITS_EXTENSIONS, gui.file_ext_filter == TYPEFITS);
 	siril_file_chooser_add_preview(GTK_FILE_CHOOSER(dialog), preview);
 
 	res = gtk_dialog_run(GTK_DIALOG(dialog));

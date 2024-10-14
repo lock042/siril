@@ -32,6 +32,7 @@
 #include "core/siril_log.h"
 #include "core/sequence_filtering.h"
 #include "core/OS_utils.h"
+#include "filters/graxpert.h" // for set_graxpert_aborted()
 #include "gui/utils.h"
 #include "gui/progress_and_log.h"
 #include "gui/script_menu.h"
@@ -205,6 +206,8 @@ gpointer generic_sequence_worker(gpointer p) {
 		nb_subthreads = threads_per_image[thread_id];
 #endif
 
+		gboolean read_image = args->image_read_hook ? args->image_read_hook(args, input_idx) : TRUE;
+
 		fits *fit = calloc(1, sizeof(fits));
 		if (!fit) {
 			PRINT_ALLOC_ERR;
@@ -231,9 +234,9 @@ gpointer generic_sequence_worker(gpointer p) {
 			 */
 			gboolean has_crossed = enforce_area_in_image(&area, args->seq, input_idx) && args->regdata_for_partial;
 
-			if (has_crossed || seq_read_frame_part(args->seq, args->layer_for_partial,
+			if (has_crossed || (read_image && seq_read_frame_part(args->seq, args->layer_for_partial,
 						input_idx, fit, &area,
-						args->get_photometry_data_for_partial, thread_id))
+						args->get_photometry_data_for_partial, thread_id)))
 			{
 				if (args->stop_on_error)
 					abort = 1;
@@ -250,7 +253,7 @@ gpointer generic_sequence_worker(gpointer p) {
 			  savefits(tmpfn, fit);*/
 		} else {
 			// image is read bottom-up here, while it's top-down for partial images
-			if (seq_read_frame(args->seq, input_idx, fit, args->force_float, thread_id)) {
+			if (read_image && seq_read_frame(args->seq, input_idx, fit, args->force_float, thread_id)) {
 				abort = 1;
 				clearfits(fit);
 				free(fit);
@@ -259,7 +262,7 @@ gpointer generic_sequence_worker(gpointer p) {
 			// TODO: for seqwriter, we need to notify the failed frame
 		}
 		// checking nb layers consistency, not for partial image
-		if (!args->partial_image && (fit->naxes[2] != args->seq->nb_layers)) {
+		if (read_image && !args->partial_image && (fit->naxes[2] != args->seq->nb_layers)) {
 			siril_log_color_message(_("Image #%d: number of layers (%d) is not consistent with sequence (%d), aborting\n"),
 						"red", input_idx + 1, fit->naxes[2], args->seq->nb_layers);
 			abort = 1;
@@ -267,7 +270,7 @@ gpointer generic_sequence_worker(gpointer p) {
 			free(fit);
 			continue;
 		}
-		if (args->image_hook(args, frame, input_idx, fit, &area, nb_subthreads)) {
+		if (read_image && args->image_hook(args, frame, input_idx, fit, &area, nb_subthreads)) {
 			if (args->stop_on_error)
 				abort = 1;
 			else {
@@ -596,6 +599,134 @@ int generic_save(struct generic_seq_args *args, int out_index, int in_index, fit
 	}
 }
 
+/* Functions for use in sequence operations that can generate multiple sequences
+ * of output images
+ */
+int multi_prepare(struct generic_seq_args *args) {
+	struct multi_output_data *multi_args = (struct multi_output_data *) args->user;
+	int n = max(multi_args->n, 1);
+	multi_args->n = n; // Deal with cases where multi_args->n has not been set after calloc
+	multi_args->new_ser = calloc(n, sizeof(char*));
+	multi_args->new_fitseq = calloc(n, sizeof(char*));
+	// we call the generic prepare n times with different prefixes
+	for (int i = 0 ; i < n ; i++) {
+		args->new_seq_prefix = multi_args->prefixes[i];
+		if (seq_prepare_hook(args))
+			return 1;
+		// but we copy the result between each call
+		multi_args->new_ser[i] = args->new_ser;
+		multi_args->new_fitseq[i] = args->new_fitseq;
+	}
+
+	args->new_seq_prefix = multi_args->prefixes[multi_args->new_seq_index];
+	args->new_ser = NULL;
+	args->new_fitseq = NULL;
+
+	seqwriter_set_number_of_outputs(n);
+	return 0;
+}
+
+int multi_save(struct generic_seq_args *args, int out_index, int in_index, fits *fit) {
+	struct multi_output_data *multi_args = (struct multi_output_data *) args->user;
+	struct _multi_split *multi_data = NULL;
+	// images are passed from the image_hook to the save in a list, because
+	// there are n, which is unsupported by the generic arguments
+#ifdef _OPENMP
+	omp_set_lock(&args->lock);
+#endif
+	GList *list = multi_args->processed_images;
+	while (list) {
+		if (((struct _multi_split *)list->data)->index == out_index) {
+			multi_data = list->data;
+			break;
+		}
+		list = g_list_next(multi_args->processed_images);
+	}
+	if (multi_data)
+		multi_args->processed_images = g_list_remove(multi_args->processed_images, multi_data);
+#ifdef _OPENMP
+	omp_unset_lock(&args->lock);
+#endif
+	if (!multi_data) {
+		siril_log_color_message(_("Image %d not found for writing\n"), "red", in_index);
+		return 1;
+	}
+	int n = multi_args->n;
+	siril_debug_print("Multiple (%d) images to be saved (%d)\n", n, out_index);
+	for (int i = 0 ; i < n ; i++) {
+		if (multi_data->images[i]->naxes[0] == 0) {
+			siril_debug_print("empty data\n");
+			return 1;
+		}
+	}
+
+	int retval = 0;
+
+	if (args->force_ser_output || args->seq->type == SEQ_SER) {
+		for (int i = 0 ; i < n ; i++) {
+			retval |= ser_write_frame_from_fit(multi_args->new_ser[i], multi_data->images[i], out_index);
+		}
+		// the two fits are freed by the writing thread
+		if (!retval) {
+			/* special case because it's not done in the generic */
+			clearfits(fit);
+			free(fit);
+		}
+	} else if (args->force_fitseq_output || args->seq->type == SEQ_FITSEQ) {
+		for (int i = 0 ; i < n ; i++) {
+			retval |= fitseq_write_image(multi_args->new_fitseq[i], multi_data->images[i], out_index);
+		}
+		// the two fits are freed by the writing thread
+		if (!retval) {
+			/* special case because it's not done in the generic */
+			clearfits(fit);
+			free(fit);
+		}
+	} else {
+		for (int i = 0 ; i < n ; i++) {
+			char *dest = fit_sequence_get_image_filename_prefixed(args->seq, multi_args->prefixes[i], in_index);
+			retval |= savefits(dest, multi_data->images[i]);
+			free(dest);
+		}
+	}
+	gboolean tally_fitseq = FALSE, tally_ser = FALSE;
+	for (int i = 0 ; i < n ; i++) {
+		if (multi_args->new_fitseq[i])
+			tally_fitseq = TRUE;
+		if (multi_args->new_ser[i])
+			tally_ser = TRUE;
+	}
+	if (!tally_ser && !tally_fitseq) { // detect if there is a seqwriter
+		for (int i = 0 ; i < n ; i++) {
+			clearfits(multi_data->images[i]);
+			free(multi_data->images[i]);
+		}
+	}
+	free(multi_data->images);
+	free(multi_data);
+	return retval;
+}
+
+int multi_finalize(struct generic_seq_args *args) {
+	struct multi_output_data *multi_args = (struct multi_output_data *) args->user;
+	int n = multi_args->n;
+	int retval = 0;
+	for (int i = 0 ; i < n ; i++) {
+		args->new_ser = multi_args->new_ser[i];
+		args->new_fitseq = multi_args->new_fitseq[i];
+		retval |= seq_finalize_hook(args);
+		multi_args->new_ser[i] = NULL;
+		multi_args->new_fitseq[i] = NULL;
+	}
+	seqwriter_set_number_of_outputs(1);
+	free(multi_args->prefixes);
+	free(multi_args->new_ser);
+	free(multi_args->new_fitseq);
+	free(multi_args->user_data);
+	free(multi_args);
+	return retval;
+}
+
 /*****************************************************************************
  *      P R O C E S S I N G      T H R E A D      M A N A G E M E N T        *
  ****************************************************************************/
@@ -759,6 +890,8 @@ void kill_child_process(gboolean onexit) {
 void on_processes_button_cancel_clicked(GtkButton *button, gpointer user_data) {
 	if (com.thread != NULL)
 		siril_log_color_message(_("Process aborted by user\n"), "red");
+	if (com.child_is_running == EXT_GRAXPERT)
+		set_graxpert_aborted(TRUE);
 	kill_child_process(FALSE);
 	com.stop_script = TRUE;
 	stop_processing_thread();

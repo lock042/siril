@@ -120,6 +120,13 @@ typedef GtkWidget SirilWidget;
 #endif
 
 typedef enum {
+	RESPONSE_CANCEL = 1,
+	RESPONSE_CLIP,
+	RESPONSE_RESCALE_CLIPNEG,
+	RESPONSE_RESCALE_ALL
+} OverrangeResponse;
+
+typedef enum {
 	TYPEUNDEF = (1 << 1),
 	TYPEFITS = (1 << 2),
 	TYPETIFF = (1 << 3),
@@ -187,6 +194,18 @@ typedef struct historic_struct historic;
 typedef struct fwhm_struct psf_star;
 typedef struct photometry_struct photometry;
 typedef struct tilt_struct sensor_tilt;
+
+typedef struct {
+	double x, y;
+} point;
+
+typedef struct {
+	float x, y;
+} pointf;
+
+typedef struct {
+	int x, y;
+} pointi;
 
 /* global structures */
 
@@ -287,6 +306,15 @@ typedef enum {
 	SCALING_OIII_DOWN
 } extraction_scaling;
 
+typedef enum {
+	DISTO_UNDEF, // No distortion
+	DISTO_IMAGE, // Distortion from current image
+	DISTO_FILE,  // Distortion from given file
+	DISTO_MASTER, // Distortion from master files
+	DISTO_FILES, // Distortion stored in each file (true only from seq platesolve, even with no distortion, it will be checked upon reloading)
+	DISTO_FILE_COMET // special for cometary alignement, to be detected by apply reg. Enables to 
+} disto_source;
+
 /* image data, exists once for each image */
 typedef struct {
 	int filenum;		/* real file index in the sequence, i.e. for mars9.fit = 9 */
@@ -322,9 +350,15 @@ typedef struct {
 	double quality;
 	float background_lvl;
 	int number_of_stars;
-
 	Homography H;
 } regdata;
+
+// to be stored in the seq file
+typedef struct {
+	disto_source index; // disto_source enum
+	gchar *filename; // filename if DISTO_FILE
+	pointf velocity; // shift velocity if DISTO_FILE_COMET
+} disto_params;
 
 /* see explanation about sequence and single image management in io/sequence.c */
 
@@ -346,6 +380,7 @@ struct sequ {
 	 * and use everything that was in the seqfile, so we back them up here */
 	regdata **regparam_bkp;	// *regparam[3], null if nothing to back up
 	imstats ***stats_bkp;	// statistics of the images for 3 layers, may be null too
+	disto_params *distoparam;	// the distortion parameters used for the registration if any, one per layer
 
 	/* beg and end are used prior to imgparam allocation, hence their usefulness */
 	int beg;		// imgparam[0]->filenum
@@ -559,18 +594,6 @@ typedef struct _xpsampdata {
 	const double *x;
 	double y[XPSAMPLED_LEN];
 } xpsampled;
-
-typedef struct {
-	double x, y;
-} point;
-
-typedef struct {
-	float x, y;
-} pointf;
-
-typedef struct {
-	int x, y;
-} pointi;
 
 typedef enum {
 	CUT_MONO,

@@ -83,6 +83,7 @@
 #include "gui/registration_preview.h"
 #include "gui/script_menu.h"
 #include "gui/preferences.h"
+#include "gui/unpurple.h"
 #include "filters/asinh.h"
 #include "filters/banding.h"
 #include "filters/epf.h"
@@ -100,6 +101,7 @@
 #include "filters/scnr.h"
 #include "filters/starnet.h"
 #include "filters/synthstar.h"
+#include "filters/unpurple.h"
 #include "filters/wavelets.h"
 #include "algos/PSF.h"
 #include "algos/astrometry_solver.h"
@@ -591,7 +593,6 @@ int process_starnet(int nb){
 	}
 	starnet_data *starnet_args = calloc(1, sizeof(starnet_data));
 	starnet_args->linear = FALSE;
-	starnet_args->seq = NULL;
 	starnet_args->customstride = FALSE;
 	starnet_args->upscale = FALSE;
 	starnet_args->starmask = TRUE;
@@ -664,6 +665,9 @@ int process_seq_starnet(int nb){
 		free_sequence(seq, TRUE);
 		seq = &com.seq;
 	}
+	struct multi_output_data *multi_args = calloc(1, sizeof(struct multi_output_data));
+	if (!multi_args)
+		return CMD_ALLOC_ERROR;
 	starnet_data *starnet_args = calloc(1, sizeof(starnet_data));
 	if (!starnet_args)
 		return CMD_ALLOC_ERROR;
@@ -673,10 +677,11 @@ int process_seq_starnet(int nb){
 	starnet_args->starmask = TRUE;
 	starnet_args->follow_on = FALSE;
 	gboolean error = FALSE;
-	starnet_args->seq = seq;
-	if (!starnet_args->seq) {
+	multi_args->seq = seq;
+	if (!multi_args->seq) {
 		siril_log_message(_("Error: cannot open sequence\n"));
 		free(starnet_args);
+		free(multi_args);
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
 
@@ -699,8 +704,8 @@ int process_seq_starnet(int nb){
 			if (arg == end) error = TRUE;
 			else if ((stride < 2.0) || (stride > 512) || (stride % 2)) {
 				siril_log_message(_("Error in stride parameter: must be a positive even integer, max 512, aborting.\n"));
-				if (!check_seq_is_comseq(starnet_args->seq))
-					free_sequence(starnet_args->seq, TRUE);
+				if (!check_seq_is_comseq(multi_args->seq))
+					free_sequence(multi_args->seq, TRUE);
 				free(starnet_args);
 				return CMD_ARG_ERROR;
 			}
@@ -711,22 +716,29 @@ int process_seq_starnet(int nb){
 		}
 		else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), arg);
-				if (!check_seq_is_comseq(starnet_args->seq))
-					free_sequence(starnet_args->seq, TRUE);
+				if (!check_seq_is_comseq(multi_args->seq))
+					free_sequence(multi_args->seq, TRUE);
 				free(starnet_args);
 			return CMD_ARG_ERROR;
 		}
 		if (error) {
 			siril_log_message(_("Error parsing arguments, aborting.\n"));
-			if (!check_seq_is_comseq(starnet_args->seq))
-				free_sequence(starnet_args->seq, TRUE);
+			if (!check_seq_is_comseq(multi_args->seq))
+				free_sequence(multi_args->seq, TRUE);
 			free(starnet_args);
 			return CMD_ARG_ERROR;
 		}
 	}
-	sequence_cfa_warning_check(starnet_args->seq);
+	multi_args->n = starnet_args->starmask ? 2 : 1;
+	multi_args->prefixes = calloc(multi_args->n, sizeof(char*));
+	multi_args->prefixes[0] = g_strdup("starless_");
+	if (starnet_args->starmask) {
+		multi_args->prefixes[1] = g_strdup("starmask_");
+	}
+
+	sequence_cfa_warning_check(multi_args->seq);
 	set_cursor_waiting(TRUE);
-	apply_starnet_to_sequence(starnet_args);
+	apply_starnet_to_sequence(multi_args);
 
 #else
 	siril_log_message(_("starnet command unavailable as Siril has not been compiled with libtiff.\n"));
@@ -956,6 +968,11 @@ int process_rebayer(int nb){
 	siril_log_message("Bayer pattern produced: 1 layer, %dx%d pixels\n", out->rx, out->ry);
 	close_single_image();
 	copyfits(out, &gfit, CP_ALLOC | CP_COPYA | CP_FORMAT, -1);
+	copy_fits_metadata(out, &gfit);
+	update_sampling_information(&gfit, 0.5f);
+	update_bayer_pattern_information(&gfit, pattern);
+	free_wcs(&gfit);
+	update_fits_header(&gfit);
 	clearfits(out);
 	free(out);
 
@@ -1083,6 +1100,53 @@ int process_gauss(int nb){
 
 	char log[90];
 	sprintf(log, "Gaussian filtering, sigma: %.2f", sigma);
+	gfit.history = g_slist_append(gfit.history, strdup(log));
+	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
+}
+
+int process_unpurple(int nb){
+	gchar *end;
+	double mod = 1.f, thresh = 0.f;
+	gboolean withstarmask = FALSE;
+	fits *fit = &gfit;
+	fits starmask = {0};
+
+	// Extract parameters
+	for (int i = 1 ; i < nb ; i++) {
+		gchar *arg = word[i];
+		if (!g_strcmp0(arg, "-starmask")) {
+			withstarmask = TRUE;
+		}
+		else if (g_str_has_prefix(arg, "-mod=")) {
+			gchar *val = arg + 5;
+			mod = g_ascii_strtod(val, &end);
+			if (end == val) {
+				siril_log_color_message(_("Invalid argument %s, aborting.\n"), "red", arg);
+				return CMD_ARG_ERROR;
+			}
+		}
+		else if (g_str_has_prefix(arg, "-thresh=")) {
+			gchar *val = arg + 8;
+			thresh = g_ascii_strtod(val, &end);
+			if (end == val) {
+				siril_log_color_message(_("Invalid argument %s, aborting.\n"), "red", arg);
+				return CMD_ARG_ERROR;
+			}
+		}
+	}
+
+	if (withstarmask) {
+		generate_binary_starmask(fit, &starmask, thresh);
+	}
+
+	struct unpurpleargs *args = calloc(1, sizeof(struct unpurpleargs));
+	*args = (struct unpurpleargs){.fit = fit, .starmask = &starmask, .withstarmask = withstarmask, .thresh = thresh, .mod_b = mod, .verbose = FALSE};
+
+	//start_in_new_thread(unpurplehandler, args);
+	unpurple_filter(args);
+
+	char log[90];
+	sprintf(log, "Unpurple mod: %.2f, threshold: %.2f, withstarmask: %d", mod, thresh, withstarmask);
 	gfit.history = g_slist_append(gfit.history, strdup(log));
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
@@ -3056,8 +3120,10 @@ int process_mtf(int nb) {
 	image_cfa_warning_check();
 	if (inverse)
 		apply_linked_pseudoinverse_mtf_to_fits(&gfit, &gfit, params, TRUE);
-	else apply_linked_mtf_to_fits(&gfit, &gfit, params, TRUE);
-
+	else {
+		apply_linked_mtf_to_fits(&gfit, &gfit, params, TRUE);
+		siril_log_message(_("Applying MTF with values %f, %f, %f\n"), params.shadows, params.midtones, params.highlights);
+	}
 	char log[90];
 	sprintf(log, "%s transfer (%.3f, %.4f, %.3f)",
 			inverse ? "Inverse midtones" : "Midtones",
@@ -3230,6 +3296,9 @@ int process_autostretch(int nb) {
 		params.do_green = TRUE;
 		params.do_blue = TRUE;
 		apply_linked_mtf_to_fits(&gfit, &gfit, params, TRUE);
+		siril_log_message(_("Applying MTF with values %f, %f, %f\n"),
+			params.shadows, params.midtones, params.highlights);
+
 	} else {
 		struct mtf_params params[3];
 		find_unlinked_midtones_balance(&gfit, shadows_clipping, target_bg, params);
@@ -6218,11 +6287,12 @@ int process_seq_split_cfa(int nb) {
 		return CMD_FOR_CFA_IMAGE;
 	}
 
-	struct split_cfa_data *args = calloc(1, sizeof(struct split_cfa_data));
+	struct multi_output_data *args = calloc(1, sizeof(struct multi_output_data));
 
 	args->seq = seq;
-	args->fit = &gfit;
-	args->seqEntry = strdup("CFA_"); // propose to default to "CFA" for consistency of output names with single image split_cfa
+	args->seqEntry = strdup("CFA"); // propose to default to "CFA" for consistency of output names with single image split_cfa
+	args->n = 4;
+	args->prefixes = calloc(5, sizeof(const char*));
 
 	int startoptargs = 2;
 	if (nb > startoptargs) {
@@ -6236,9 +6306,11 @@ int process_seq_split_cfa(int nb) {
 						if (!check_seq_is_comseq(seq))
 							free_sequence(seq, TRUE);
 						free(args->seqEntry);
+						free(args->prefixes);
 						free(args);
 						return CMD_ARG_ERROR;
 					}
+					free(args->seqEntry);
 					args->seqEntry = strdup(value);
 				}
 			}
@@ -6247,10 +6319,16 @@ int process_seq_split_cfa(int nb) {
 				if (!check_seq_is_comseq(seq))
 					free_sequence(seq, TRUE);
 				free(args->seqEntry);
+				free(args->prefixes);
 				free(args);
 				return CMD_ARG_ERROR;
 			}
 		}
+	}
+	if (args->seqEntry && args->seqEntry[0] == '\0')
+		args->seqEntry = strdup("CFA");
+	for (int i = 0 ; i < 4 ; i++) {
+		args->prefixes[i] = g_strdup_printf("%s%d_", args->seqEntry, i);
 	}
 
 	apply_split_cfa_to_sequence(args);
@@ -6347,7 +6425,7 @@ int process_seq_extractHa(int nb) {
 		return CMD_FOR_CFA_IMAGE;
 	}
 
-	struct split_cfa_data *args = calloc(1, sizeof(struct split_cfa_data));
+	struct simple_extract_data *args = calloc(1, sizeof(struct simple_extract_data));
 
 	args->seq = seq;
 	args->seqEntry = strdup("Ha_");
@@ -6399,7 +6477,7 @@ int process_seq_extractGreen(int nb) {
 		return CMD_FOR_CFA_IMAGE;
 	}
 
-	struct split_cfa_data *args = calloc(1, sizeof(struct split_cfa_data));
+	struct simple_extract_data *args = calloc(1, sizeof(struct simple_extract_data));
 
 	args->seq = seq;
 	args->seqEntry = strdup("Green_");
@@ -6448,8 +6526,13 @@ int process_seq_extractHaOIII(int nb) {
 		return CMD_FOR_CFA_IMAGE;
 	}
 
-	struct split_cfa_data *args = calloc(1, sizeof(struct split_cfa_data));
-	args->scaling = SCALING_NONE;
+	struct multi_output_data *args = calloc(1, sizeof(struct multi_output_data));
+	args->user_data = malloc(sizeof(extraction_scaling));
+	*(extraction_scaling *) args->user_data = (extraction_scaling) SCALING_NONE;
+	args->seq = seq;
+	args->seqEntry = strdup("CFA"); // propose to default to "CFA" for consistency of output names with single image split_cfa
+	args->n = 2;
+	args->prefixes = calloc(3, sizeof(const char*));
 
 	if (word[2]) {
 		if (g_str_has_prefix(word[2], "-resample=")) {
@@ -6462,14 +6545,14 @@ int process_seq_extractHaOIII(int nb) {
 				free(args);
 				return CMD_ARG_ERROR;
 			} else if (!strcmp(value, "ha")) {
-				args->scaling = SCALING_HA_UP;
+				*(extraction_scaling*) args->user_data = SCALING_HA_UP;
 			} else if (!strcmp(value, "oiii")) {
-				args->scaling = SCALING_OIII_DOWN;
+				*(extraction_scaling*) args->user_data = SCALING_OIII_DOWN;
 			}
 		}
 	}
-
-	args->seq = seq;
+	args->prefixes[0] = g_strdup("Ha_");
+	args->prefixes[1] = g_strdup("Oiii_");
 
 	apply_extractHaOIII_to_sequence(args);
 
@@ -7186,9 +7269,10 @@ int process_convert(int nb) {
 }
 
 int process_register(int nb) {
-	struct registration_args *reg_args = NULL;
+	struct registration_args *regargs = NULL;
 	struct registration_method *method = NULL;
-	char *msg;
+	char *msg = NULL;
+	gboolean drizzle = FALSE;
 
 	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq) {
@@ -7199,38 +7283,43 @@ int process_register(int nb) {
 		seq = &com.seq;
 	}
 
-	reg_args = calloc(1, sizeof(struct registration_args));
+	regargs = calloc(1, sizeof(struct registration_args));
 
 	/* filling the arguments for registration */
-	reg_args->seq = seq;
-	reg_args->reference_image = sequence_find_refimage(seq);
-	reg_args->follow_star = FALSE;
-	reg_args->matchSelection = FALSE;
-	reg_args->no_output = FALSE;
-	reg_args->x2upscale = FALSE;
-	reg_args->prefix = strdup("r_");
-	reg_args->min_pairs = 10; // 10 is good enough to ensure good matching
-	reg_args->max_stars_candidates = MAX_STARS_FITTED;
-	reg_args->type = HOMOGRAPHY_TRANSFORMATION;
-	reg_args->layer = (reg_args->seq->nb_layers == 3) ? 1 : 0;
-	reg_args->interpolation = OPENCV_LANCZOS4;
-	reg_args->clamp = TRUE;
+	regargs->seq = seq;
+	regargs->reference_image = sequence_find_refimage(seq);
+	regargs->follow_star = FALSE;
+	regargs->matchSelection = FALSE;
+	regargs->no_output = FALSE;
+	regargs->output_scale = 1.f;
+	regargs->prefix = strdup("r_");
+	regargs->min_pairs = 10; // 10 is good enough to ensure good matching
+	regargs->max_stars_candidates = MAX_STARS_FITTED;
+	regargs->type = HOMOGRAPHY_TRANSFORMATION;
+	regargs->layer = (regargs->seq->nb_layers == 3) ? 1 : 0;
+	regargs->interpolation = OPENCV_LANCZOS4;
+	regargs->clamp = TRUE;
+	regargs->undistort = DISTO_UNDEF;
+
+	struct driz_args_t *driz = calloc(1, sizeof(struct driz_args_t));
+	// Default values for the driz_args_t
+	driz->use_flats = FALSE;
+	driz->scale = 1.f;
+	driz->kernel = kernel_square;
+	driz->weight_scale = 1.f;
+	driz->pixel_fraction = 1.f;
 
 	/* check for options */
 	for (int i = 2; i < nb; i++) {
-		if (!strcmp(word[i], "-upscale")) {
-			reg_args->x2upscale = TRUE;
-		} else if (!strcmp(word[i], "-noout")) {
-			reg_args->no_output = TRUE;
+		if (!strcmp(word[i], "-2pass")) {
+			regargs->two_pass = TRUE;
+			regargs->no_output = TRUE;
 		} else if (!strcmp(word[i], "-noclamp")) {
-			reg_args->clamp = FALSE;
-		} else if (!strcmp(word[i], "-2pass")) {
-			reg_args->two_pass = TRUE;
-			reg_args->no_output = TRUE;
+			regargs->clamp = FALSE;
 		} else if (!strcmp(word[i], "-nostarlist")) {
-			reg_args->no_starlist = TRUE;
+			regargs->no_starlist = TRUE;
 		} else if (!strcmp(word[i], "-selected")) {
-			reg_args->filters.filter_included = TRUE;
+			regargs->filters.filter_included = TRUE;
 		} else if (g_str_has_prefix(word[i], "-transf=")) {
 			char *current = word[i], *value;
 			value = current + 8;
@@ -7240,7 +7329,7 @@ int process_register(int nb) {
 			}
 			if(!g_ascii_strncasecmp(value, "shift", 5)) {
 #ifdef HAVE_CV44
-				reg_args->type = SHIFT_TRANSFORMATION;
+				regargs->type = SHIFT_TRANSFORMATION;
 				continue;
 #else
 				siril_log_color_message(_("Shift-only registration is only possible with OpenCV 4.4\n"), "red");
@@ -7248,21 +7337,21 @@ int process_register(int nb) {
 #endif
 			}
 			if(!g_ascii_strncasecmp(value, "similarity", 10)) {
-				reg_args->type = SIMILARITY_TRANSFORMATION;
+				regargs->type = SIMILARITY_TRANSFORMATION;
 				continue;
 			}
 			if(!g_ascii_strncasecmp(value, "affine", 6)) {
-				reg_args->type = AFFINE_TRANSFORMATION;
+				regargs->type = AFFINE_TRANSFORMATION;
 				continue;
 			}
 			if(!g_ascii_strncasecmp(value, "homography", 10)) {
-				reg_args->type = HOMOGRAPHY_TRANSFORMATION;
+				regargs->type = HOMOGRAPHY_TRANSFORMATION;
 				continue;
 			}
 			siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
 			goto terminate_register_on_error;
 		} else if (g_str_has_prefix(word[i], "-layer=")) {
-			if (reg_args->seq->nb_layers == 1) {  // handling mono case
+			if (regargs->seq->nb_layers == 1) {  // handling mono case
 				siril_log_message(_("This sequence is mono, ignoring layer number.\n"));
 				continue;
 			}
@@ -7275,7 +7364,7 @@ int process_register(int nb) {
 				if (end == value) break;
 				else continue;
 			}
-			reg_args->layer = layer;
+			regargs->layer = layer;
 		} else if (g_str_has_prefix(word[i], "-prefix=")) {
 			char *current = word[i], *value;
 			value = current + 8;
@@ -7283,7 +7372,7 @@ int process_register(int nb) {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
 				goto terminate_register_on_error;
 			}
-			reg_args->prefix = strdup(value);
+			regargs->prefix = strdup(value);
 		} else if (g_str_has_prefix(word[i], "-minpairs=")) {
 			char *current = word[i], *value;
 			value = current + 10;
@@ -7294,12 +7383,12 @@ int process_register(int nb) {
 			gchar *end;
 			int min_pairs = g_ascii_strtoull(value, &end, 10);
 			if (end == value || min_pairs < 4) { // using absolute min_pairs required by homography
-				gchar *str = g_strdup_printf(_("%d smaller than minimum allowable star pairs: %d, aborting.\n"), min_pairs, reg_args->min_pairs);
+				gchar *str = g_strdup_printf(_("%d smaller than minimum allowable star pairs: %d, aborting.\n"), min_pairs, regargs->min_pairs);
 				siril_log_message(str);
 				g_free(str);
 				goto terminate_register_on_error;
 			}
-			reg_args->min_pairs = min_pairs;
+			regargs->min_pairs = min_pairs;
 		} else if (g_str_has_prefix(word[i], "-maxstars=")) {
 			char *current = word[i], *value;
 			value = current + 10;
@@ -7314,7 +7403,7 @@ int process_register(int nb) {
 				siril_log_message(_("Max number of stars %s not allowed. Should be between %d and %d.\n"), value, MIN_STARS_FITTED, MAX_STARS_FITTED);
 				goto terminate_register_on_error;
 			}
-			reg_args->max_stars_candidates = max_stars;
+			regargs->max_stars_candidates = max_stars;
 		} else if (g_str_has_prefix(word[i], "-interp=")) {
 			char *current = word[i], *value;
 			value = current + 8;
@@ -7323,41 +7412,214 @@ int process_register(int nb) {
 				goto terminate_register_on_error;
 			}
 			if(!g_ascii_strncasecmp(value, "nearest", 7) || !g_ascii_strncasecmp(value, "ne", 2)) {
-				reg_args->interpolation = OPENCV_NEAREST;
+				regargs->interpolation = OPENCV_NEAREST;
 				continue;
 			}
 			if(!g_ascii_strncasecmp(value, "cubic", 5) || !g_ascii_strncasecmp(value, "cu", 2)) {
-				reg_args->interpolation = OPENCV_CUBIC;
+				regargs->interpolation = OPENCV_CUBIC;
 				continue;
 			}
 			if(!g_ascii_strncasecmp(value, "lanczos4", 8) || !g_ascii_strncasecmp(value, "la", 2)) {
-				reg_args->interpolation = OPENCV_LANCZOS4;
+				regargs->interpolation = OPENCV_LANCZOS4;
 				continue;
 			}
 			if(!g_ascii_strncasecmp(value, "linear", 6) || !g_ascii_strncasecmp(value, "li", 2)) {
-				reg_args->interpolation = OPENCV_LINEAR;
+				regargs->interpolation = OPENCV_LINEAR;
 				continue;
 			}
 			if(!g_ascii_strncasecmp(value, "none", 4) || !g_ascii_strncasecmp(value, "no", 2)) {
-				reg_args->interpolation = OPENCV_NONE;
+				regargs->interpolation = OPENCV_NONE;
 				continue;
 			}
 			if(!g_ascii_strncasecmp(value, "area", 4) || !g_ascii_strncasecmp(value, "ar", 2)) {
-				reg_args->interpolation = OPENCV_AREA;
+				regargs->interpolation = OPENCV_AREA;
 				continue;
 			}
 			siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
 			goto terminate_register_on_error;
-		}
-		else {
+		} else if (g_str_has_prefix(word[i], "-disto=")) {
+			char *current = word[i], *value;
+			value = current + 7;
+			gchar *filename = NULL;
+			if (value[0] == '\0') {
+				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+				goto terminate_register_on_error;
+			}
+			if (!g_ascii_strncasecmp(value, "image", 5)) {
+				regargs->undistort = DISTO_IMAGE;
+			} else if (!g_ascii_strncasecmp(value, "file", 4)) {
+				regargs->undistort = DISTO_FILE;
+				if (i + 1 >= nb) {
+					siril_log_message(_("Missing argument to %s, aborting.\n"), current);
+					goto terminate_register_on_error;
+				}
+				filename = word[i + 1];
+			} else if (!g_ascii_strncasecmp(value, "master", 6)) {
+				regargs->undistort = DISTO_MASTER;
+			} else {
+				siril_log_message(_("Unknown distortion type %s, aborting.\n"), value);
+				goto terminate_register_on_error;
+			}
+			// we now check the distortion params are ok
+			fits reffit = { 0 };
+			fits *preffit = &reffit;
+			if (!check_seq_is_comseq(seq)) { // processing an image from the current sequence
+				int image_to_load = sequence_find_refimage(seq);
+				if (seq_read_frame_metadata(seq, image_to_load, preffit)) {
+					siril_log_message(_("Could not load the reference image of the sequence, aborting.\n"));
+					goto terminate_register_on_error;
+				}
+			} else
+				preffit = &gfit;
+			gchar *msgdisto = NULL;
+			gboolean disto_valid = validate_disto_params(preffit, filename, regargs->undistort, &msgdisto, NULL);
+			if (preffit != &gfit)
+				clearfits(preffit);
+			if (!disto_valid) {
+				siril_log_color_message("%s\n", "red", msgdisto);
+				g_free(msgdisto);
+				goto terminate_register_on_error;
+			} else if(regargs->undistort == DISTO_FILE) {
+				i++; // we have consumed one more argument for the filename
+			}
+			regargs->distoparam.index = regargs->undistort;
+			if (filename) {
+				regargs->distoparam.filename = g_strdup(filename);
+			}
+		} else if (!strcmp(word[i], "-drizzle")) {
+			if (regargs->seq->nb_layers != 1) {  // handling mono case
+				siril_log_message(_("This sequence is not mono / CFA, cannot drizzle.\n"));
+				goto terminate_register_on_error;
+			}
+			drizzle = TRUE;
+		// Drizzle options
+		} else if (g_str_has_prefix(word[i], "-scale=")) {
+			char *arg = word[i] + 7;
+			gchar *end;
+			double value;
+			value = g_ascii_strtod(arg, &end);
+			if (end == arg || value < 0.1 || value > 3.) {
+				siril_log_color_message(_("Invalid argument to %s, aborting.\n"), "red", word[i]);
+				goto terminate_register_on_error;
+			}
+			regargs->output_scale = (float)value;
+			driz->scale = (float)value;
+		} else if (g_str_has_prefix(word[i], "-pixfrac=")) {
+			char *arg = word[i] + 9;
+			gchar *end;
+			double value;
+			value = g_ascii_strtod(arg, &end);
+			if (end == arg) {
+				siril_log_color_message(_("Invalid argument to %s, aborting.\n"), "red", word[i]);
+				goto terminate_register_on_error;
+			}
+			driz->pixel_fraction = (float) value;
+		} else if (g_str_has_prefix(word[i], "-kernel=")) {
+			char *arg = word[i] + 8;
+			if (!g_ascii_strncasecmp(arg, "point", 5))
+				driz->kernel = kernel_point;
+			else if (!g_ascii_strncasecmp(arg, "turbo", 5))
+				driz->kernel = kernel_turbo;
+			else if (!g_ascii_strncasecmp(arg, "square", 6))
+				driz->kernel = kernel_square;
+			else if (!g_ascii_strncasecmp(arg, "gaussian", 8))
+				driz->kernel = kernel_gaussian;
+			else if (!g_ascii_strncasecmp(arg, "lanczos2", 8))
+				driz->kernel = kernel_lanczos2;
+			else if (!g_ascii_strncasecmp(arg, "lanczos3", 8))
+				driz->kernel = kernel_lanczos3;
+			else {
+				siril_log_color_message(_("Invalid argument to %s, aborting.\n"), "red", word[i]);
+				goto terminate_register_on_error;
+			}
+		} else if (g_str_has_prefix(word[i], "-flat=")) {
+			if (driz->flat) {
+				siril_log_color_message(_("Error: flat image already set. Aborting.\n"), "red");
+				goto terminate_register_on_error;
+			}
+			if (seq->is_variable) {
+				siril_log_color_message(_("Error: flat image cannot work with variable sized sequence.\n"), "red");
+				goto terminate_register_on_error;
+			}
+			char *flat_filename = word[i] + 6;
+			fits reffit = { 0 };
+			gchar *error = NULL;
+			int status;
+			if (seq_read_frame_metadata(seq, regargs->reference_image, &reffit)) {
+				siril_log_color_message(_("NOT USING FLAT: Could not load reference image\n"), "red");
+				clearfits(&reffit);
+				goto terminate_register_on_error;
+			}
+			gchar *expression = path_parse(&reffit, flat_filename, PATHPARSE_MODE_READ, &status);
+			clearfits(&reffit);
+			if (status) {
+				error = _("NOT USING FLAT: could not parse the expression");
+				goto terminate_register_on_error;
+			} else {
+				if (expression[0] == '\0') {
+					siril_log_message(_("Error: no master flat specified in the preprocessing tab.\n"));
+					goto terminate_register_on_error;
+				} else {
+					driz->flat = calloc(1, sizeof(fits));
+					if (!readfits(expression, driz->flat, NULL, TRUE)) {
+						if (driz->flat->naxes[2] != seq->nb_layers) {
+							error = _("NOT USING FLAT: number of channels is different");
+						} else if (driz->flat->naxes[0] != seq->rx ||
+								driz->flat->naxes[1] != seq->ry) {
+							error = _("NOT USING FLAT: image dimensions are different");
+						} else {
+							// no need to deal with bitdepth conversion as readfits has already forced conversion to float
+							siril_log_message(_("Master flat read for use as initial pixel weight\n"));
+						}
+
+					} else error = _("NOT USING FLAT: cannot open the file");
+					if (error) {
+						goto terminate_register_on_error;
+					}
+				}
+			}
+		} else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
 			goto terminate_register_on_error;
 		}
 	}
 
+	if (drizzle) {
+		if (seq->is_variable) {
+			siril_log_color_message(_("Cannot drizzle sequences with images of different sizes, aborting.\n"), "red");
+			goto terminate_register_on_error;
+		}
+		regargs->driz = driz;
+		// we now check the drizzle params are ok
+		fits reffit = { 0 };
+		fits *preffit = &reffit;
+		if (!check_seq_is_comseq(seq)) { // processing an image from the current sequence
+			int image_to_load = sequence_find_refimage(seq);
+			if (seq_read_frame_metadata(seq, image_to_load, preffit)) {
+				siril_log_color_message(_("Could not load the reference image of the sequence, aborting.\n"), "red");
+				goto terminate_register_on_error;
+			}
+		} else
+			preffit = &gfit;
+		if (preffit->naxes[2] == 1 && preffit->keywords.bayer_pattern[0] != '\0') {
+			sensor_pattern pattern = get_bayer_pattern(preffit);
+			if (pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
+				siril_log_color_message(_("Cannot use drizzle on non-bayer sensors, aborting.\n"), "red");
+				clearfits(preffit);
+				goto terminate_register_on_error;
+			}
+			driz->is_bayer = TRUE;
+		}
+		if (preffit != &gfit)
+			clearfits(preffit);
+	} else {
+		free(driz);
+		driz = NULL;
+	}
+
 	/* getting the selected registration method */
 	method = malloc(sizeof(struct registration_method));
-	if (reg_args->two_pass) {
+	if (regargs->two_pass) {
 		method->name = _("Two-Pass Global Star Alignment (deep-sky)");
 		method->method_ptr = &register_multi_step_global;
 	} else {
@@ -7366,30 +7628,26 @@ int process_register(int nb) {
 	}
 	method->sel = REQUIRES_NO_SELECTION;
 	method->type = REGTYPE_DEEPSKY;
-	reg_args->func = method->method_ptr;
-
-	if (reg_args->no_starlist && !reg_args->two_pass)
-		siril_log_message(_("The -nostarlist option has an effect only when -2pass is used, ignoring\n"));
+	regargs->func = method->method_ptr;
 
 	// testing free space
-	if (!reg_args->no_output) {
-		int nb_frames = reg_args->filters.filter_included ? reg_args->seq->selnum : reg_args->seq->number;
-		int64_t size = seq_compute_size(reg_args->seq, nb_frames, get_data_type(seq->bitpix));
-		if (reg_args->x2upscale)
-			size *= 4;
+	if (!regargs->no_output) {
+		int nb_frames = regargs->filters.filter_included ? regargs->seq->selnum : regargs->seq->number;
+		int64_t size = seq_compute_size(regargs->seq, nb_frames, get_data_type(seq->bitpix));
+		if (regargs->output_scale != 1.f)
+			size = (int64_t)(regargs->output_scale * regargs->output_scale * (float)size);
 		if (test_available_space(size)) {
 			siril_log_color_message(_("Not enough space to save the output images, aborting\n"), "red");
 			goto terminate_register_on_error;
 		}
-	} else if (reg_args->x2upscale) {
-		siril_log_color_message(_("Upscaling a sequence with -noout or -2pass has no effect, ignoring\n"), "red");
-		reg_args->x2upscale = FALSE;
+	} else if (regargs->output_scale != 1.f) {
+		siril_log_color_message(_("Scaling a sequence with -2pass has no effect, ignoring\n"), "salmon");
 	}
 
 
-	if (reg_args->interpolation == OPENCV_NONE && !(reg_args->type == SHIFT_TRANSFORMATION)) {
+	if (regargs->interpolation == OPENCV_NONE && !(regargs->type == SHIFT_TRANSFORMATION)) {
 #ifdef HAVE_CV44
-		reg_args->type = SHIFT_TRANSFORMATION;
+		regargs->type = SHIFT_TRANSFORMATION;
 		siril_log_color_message(_("Forcing the registration transformation to shift, which is the only transformation compatible with no interpolation\n"), "salmon");
 
 #else
@@ -7398,36 +7656,39 @@ int process_register(int nb) {
 #endif
 	}
 
-	if (reg_args->interpolation == OPENCV_NONE && (reg_args->x2upscale || reg_args->seq->is_variable)) {
-		siril_log_color_message(_("When interpolation is set to None, the images must be of same size and no upscaling can be applied. Aborting\n"), "red");
+	if (regargs->interpolation == OPENCV_NONE && (regargs->output_scale != 1.f || regargs->seq->is_variable)) {
+		siril_log_color_message(_("When interpolation is set to None, the images must be of same size and no scaling can be applied. Aborting\n"), "red");
 		goto terminate_register_on_error;
 	}
 
-	get_the_registration_area(reg_args, method);	// sets selection
-	reg_args->run_in_thread = TRUE;
-	reg_args->load_new_sequence = FALSE;	// don't load it for command line execution
+	get_the_registration_area(regargs, method);	// sets selection
+	regargs->run_in_thread = TRUE;
+	regargs->load_new_sequence = FALSE;	// don't load it for command line execution
 
 	msg = siril_log_color_message(_("Registration: processing using method: %s\n"), "green", method->name);
 	free(method);
 	msg[strlen(msg) - 1] = '\0';
 
-	if (reg_args->interpolation == OPENCV_AREA ||
-			reg_args->interpolation == OPENCV_LINEAR ||
-			reg_args->interpolation == OPENCV_NEAREST ||
-			reg_args->interpolation == OPENCV_NONE ||
-			reg_args->no_output)
-		reg_args->clamp = FALSE;
-	if (reg_args->clamp && !reg_args->no_output)
+	if (regargs->interpolation == OPENCV_AREA ||
+			regargs->interpolation == OPENCV_LINEAR ||
+			regargs->interpolation == OPENCV_NEAREST ||
+			regargs->interpolation == OPENCV_NONE ||
+			regargs->no_output || drizzle)
+		regargs->clamp = FALSE;
+	if (regargs->clamp)
 		siril_log_message(_("Interpolation clamping active\n"));
 
 	set_progress_bar_data(msg, PROGRESS_RESET);
 
-	start_in_new_thread(register_thread_func, reg_args);
+	start_in_new_thread(register_thread_func, regargs);
 	return CMD_OK;
 
 terminate_register_on_error:
-	free(reg_args);
-	free_sequence(seq, TRUE);
+	free(regargs);
+	if (!check_seq_is_comseq(seq)) {
+		free_sequence(seq, TRUE);
+	}
+	free(driz);
 	free(method);
 	return CMD_ARG_ERROR;
 }
@@ -7555,14 +7816,14 @@ static int parse_filter_args(char *current, struct seq_filter_config *arg) {
 }
 
 int process_seq_applyreg(int nb) {
-	struct registration_args *reg_args = NULL;
+	struct registration_args *regargs = NULL;
 	gboolean drizzle = FALSE;
 
 	sequence *seq = load_sequence(word[1], NULL);
 	if (!seq)
 		return CMD_SEQUENCE_NOT_FOUND;
 
-	reg_args = calloc(1, sizeof(struct registration_args));
+	regargs = calloc(1, sizeof(struct registration_args));
 	struct driz_args_t *driz = calloc(1, sizeof(struct driz_args_t));
 	// Default values for the driz_args_t
 	driz->use_flats = FALSE;
@@ -7587,23 +7848,21 @@ int process_seq_applyreg(int nb) {
 	}
 
 	/* filling the arguments for registration */
-	reg_args->func = &register_apply_reg;
-	reg_args->seq = seq;
-	reg_args->reference_image = sequence_find_refimage(seq);
-	reg_args->no_output = FALSE;
-	reg_args->x2upscale = FALSE;
-	reg_args->prefix = strdup("r_");
-	reg_args->layer = layer;
-	reg_args->interpolation = OPENCV_LANCZOS4;
-	reg_args->clamp = TRUE;
-	reg_args->framing = FRAMING_CURRENT;
+	regargs->func = &register_apply_reg;
+	regargs->seq = seq;
+	regargs->reference_image = sequence_find_refimage(seq);
+	regargs->no_output = FALSE;
+	regargs->prefix = strdup("r_");
+	regargs->layer = layer;
+	regargs->interpolation = OPENCV_LANCZOS4;
+	regargs->clamp = TRUE;
+	regargs->framing = FRAMING_CURRENT;
+	regargs->output_scale = 1.f;
 
 	/* check for options */
 	for (int i = 2; i < nb; i++) {
-		if (!strcmp(word[i], "-upscale")) {
-			reg_args->x2upscale = TRUE;
-		} else if (!strcmp(word[i], "-drizzle")) {
-			if (reg_args->seq->nb_layers != 1) {  // handling mono case
+		if (!strcmp(word[i], "-drizzle")) {
+			if (regargs->seq->nb_layers != 1) {  // handling mono case
 				siril_log_message(_("This sequence is not mono / CFA, cannot drizzle.\n"));
 				goto terminate_register_on_error;
 			}
@@ -7614,11 +7873,12 @@ int process_seq_applyreg(int nb) {
 			gchar *end;
 			double value;
 			value = g_ascii_strtod(arg, &end);
-			if (end == arg) {
+			if (end == arg || value < 0.1 || value > 3.) {
 				siril_log_color_message(_("Invalid argument to %s, aborting.\n"), "red", word[i]);
 				goto terminate_register_on_error;
 			}
-			driz->scale = (float) value;
+			regargs->output_scale = (float)value;
+			driz->scale = (float)value;
 		} else if (g_str_has_prefix(word[i], "-pixfrac=")) {
 			char *arg = word[i] + 9;
 			gchar *end;
@@ -7660,18 +7920,23 @@ int process_seq_applyreg(int nb) {
 			fits reffit = { 0 };
 			gchar *error = NULL;
 			int status;
+			if (seq_read_frame_metadata(seq, seq->reference_image, &reffit)) {
+				siril_log_color_message(_("NOT USING FLAT: Could not load reference image\n"), "red");
+				clearfits(&reffit);
+				goto terminate_register_on_error;
+			}
 			gchar *expression = path_parse(&reffit, flat_filename, PATHPARSE_MODE_READ, &status);
+			clearfits(&reffit);
 			if (status) {
 				error = _("NOT USING FLAT: could not parse the expression");
-				driz->use_flats = FALSE;
+				goto terminate_register_on_error;
 			} else {
-				free(expression);
-				if (flat_filename[0] == '\0') {
+				if (expression[0] == '\0') {
 					siril_log_message(_("Error: no master flat specified in the preprocessing tab.\n"));
 					goto terminate_register_on_error;
 				} else {
 					driz->flat = calloc(1, sizeof(fits));
-					if (!readfits(flat_filename, driz->flat, NULL, TRUE)) {
+					if (!readfits(expression, driz->flat, NULL, TRUE)) {
 						if (driz->flat->naxes[2] != seq->nb_layers) {
 							error = _("NOT USING FLAT: number of channels is different");
 						} else if (driz->flat->naxes[0] != seq->rx ||
@@ -7696,9 +7961,9 @@ int process_seq_applyreg(int nb) {
 				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
 				goto terminate_register_on_error;
 			}
-			reg_args->prefix = strdup(value);
+			regargs->prefix = strdup(value);
 		} else if (!strcmp(word[i], "-noclamp")) {
-			reg_args->clamp = FALSE;
+			regargs->clamp = FALSE;
 		} else if (g_str_has_prefix(word[i], "-interp=")) {
 			char *current = word[i], *value;
 			value = current + 8;
@@ -7707,27 +7972,27 @@ int process_seq_applyreg(int nb) {
 				goto terminate_register_on_error;
 			}
 			if(!g_ascii_strncasecmp(value, "nearest", 7) || !g_ascii_strncasecmp(value, "ne", 2)) {
-				reg_args->interpolation = OPENCV_NEAREST;
+				regargs->interpolation = OPENCV_NEAREST;
 				continue;
 			}
 			if(!g_ascii_strncasecmp(value, "cubic", 5) || !g_ascii_strncasecmp(value, "cu", 2)) {
-				reg_args->interpolation = OPENCV_CUBIC;
+				regargs->interpolation = OPENCV_CUBIC;
 				continue;
 			}
 			if(!g_ascii_strncasecmp(value, "lanczos4", 8) || !g_ascii_strncasecmp(value, "la", 2)) {
-				reg_args->interpolation = OPENCV_LANCZOS4;
+				regargs->interpolation = OPENCV_LANCZOS4;
 				continue;
 			}
 			if(!g_ascii_strncasecmp(value, "linear", 6) || !g_ascii_strncasecmp(value, "li", 2)) {
-				reg_args->interpolation = OPENCV_LINEAR;
+				regargs->interpolation = OPENCV_LINEAR;
 				continue;
 			}
 			if(!g_ascii_strncasecmp(value, "none", 4) || !g_ascii_strncasecmp(value, "no", 2)) {
-				reg_args->interpolation = OPENCV_NONE;
+				regargs->interpolation = OPENCV_NONE;
 				continue;
 			}
 			if(!g_ascii_strncasecmp(value, "area", 4) || !g_ascii_strncasecmp(value, "ar", 2)) {
-				reg_args->interpolation = OPENCV_AREA;
+				regargs->interpolation = OPENCV_AREA;
 				continue;
 			}
 			siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
@@ -7740,25 +8005,25 @@ int process_seq_applyreg(int nb) {
 				goto terminate_register_on_error;
 			}
 			if(!g_ascii_strncasecmp(value, "current", 7)) {
-				reg_args->framing = FRAMING_CURRENT;
+				regargs->framing = FRAMING_CURRENT;
 				continue;
 			}
 			if(!g_ascii_strncasecmp(value, "min", 3)) {
-				reg_args->framing = FRAMING_MIN;
+				regargs->framing = FRAMING_MIN;
 				continue;
 			}
 			if(!g_ascii_strncasecmp(value, "max", 3)) {
-				reg_args->framing = FRAMING_MAX;
+				regargs->framing = FRAMING_MAX;
 				continue;
 			}
 			if(!g_ascii_strncasecmp(value, "cog", 3)) {
-				reg_args->framing = FRAMING_COG;
+				regargs->framing = FRAMING_COG;
 				continue;
 			}
 			siril_log_message(_("Unknown framing type %s, aborting.\n"), value);
 			goto terminate_register_on_error;
 		} else if (g_str_has_prefix(word[i], "-layer=")) {
-			if (reg_args->seq->nb_layers == 1) {  // handling mono case
+			if (regargs->seq->nb_layers == 1) {  // handling mono case
 				siril_log_message(_("This sequence is mono, ignoring layer number.\n"));
 				continue;
 			}
@@ -7774,8 +8039,8 @@ int process_seq_applyreg(int nb) {
 				siril_log_color_message(_("Registration data does not exist for layer #%d, will use layer #%d instead.\n"), "red", layer2, layer);
 				continue;
 			}
-			reg_args->layer = layer2;
-		} else if (parse_filter_args(word[i], &reg_args->filters)) {
+			regargs->layer = layer2;
+		} else if (parse_filter_args(word[i], &regargs->filters)) {
 			;
 		} else {
 			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
@@ -7784,201 +8049,55 @@ int process_seq_applyreg(int nb) {
 	}
 
 	if (drizzle) {
-		reg_args->driz = driz;
-		if (reg_args->x2upscale) {
-			siril_log_message(_("-upscale is not compatible with -drizzle, choose one or the other.\n"));
-			goto terminate_register_on_error;
+		regargs->driz = driz;
+		// we now check the distortion params are ok
+		fits reffit = { 0 };
+		fits *preffit = &reffit;
+		if (!check_seq_is_comseq(seq)) { // processing an image from the current sequence
+			int image_to_load = sequence_find_refimage(seq);
+			if (seq_read_frame_metadata(seq, image_to_load, preffit)) {
+				siril_log_color_message(_("Could not load the reference image of the sequence, aborting.\n"), "red");
+				goto terminate_register_on_error;
+			}
+		} else
+			preffit = &gfit;
+		if (preffit->naxes[2] == 1 && preffit->keywords.bayer_pattern[0] != '\0') {
+			sensor_pattern pattern = get_bayer_pattern(preffit);
+			if (pattern >= BAYER_FILTER_MIN && pattern <= BAYER_FILTER_MAX) {
+				siril_log_color_message(_("Cannot use drizzle on non-bayer sensors, aborting.\n"), "red");
+				clearfits(preffit);
+				goto terminate_register_on_error;
+			}
+			driz->is_bayer = TRUE;
 		}
+		clearfits(preffit);
 	} else {
 		free(driz);
 		driz = NULL;
 	}
 	// sanity checks are done in register_apply_reg
 
-	reg_args->run_in_thread = TRUE;
-	reg_args->load_new_sequence = FALSE;	// don't load it for command line execution
+	regargs->run_in_thread = TRUE;
+	regargs->load_new_sequence = FALSE;	// don't load it for command line execution
 
-	if (reg_args->interpolation == OPENCV_AREA || reg_args->interpolation == OPENCV_LINEAR || reg_args->interpolation == OPENCV_NEAREST || reg_args->interpolation == OPENCV_NONE)
-		reg_args->clamp = FALSE;
-	if (reg_args->clamp && !reg_args->no_output && !drizzle)
+	if (regargs->interpolation == OPENCV_AREA || regargs->interpolation == OPENCV_LINEAR || regargs->interpolation == OPENCV_NEAREST || regargs->interpolation == OPENCV_NONE)
+		regargs->clamp = FALSE;
+	if (regargs->clamp && !drizzle)
 		siril_log_message(_("Interpolation clamping active\n"));
 
 	set_progress_bar_data(_("Registration: Applying existing data"), PROGRESS_RESET);
 
-	start_in_new_thread(register_thread_func, reg_args);
+	start_in_new_thread(register_thread_func, regargs);
 	return CMD_OK;
 
 terminate_register_on_error:
 	free(driz);
 	if (!check_seq_is_comseq(seq))
 		free_sequence(seq, TRUE);
-	free(reg_args->prefix);
-	free(reg_args->new_seq_name);
-	free(reg_args);
+	free(regargs->prefix);
+	free(regargs->new_seq_name);
+	free(regargs);
 	return CMD_ARG_ERROR;
-}
-
-int process_seq_applyastrometry(int nb) {
-	struct registration_args *reg_args = NULL;
-	int retval = CMD_GENERIC_ERROR;
-
-	sequence *seq = load_sequence(word[1], NULL);
-	if (!seq)
-		return CMD_SEQUENCE_NOT_FOUND;
-
-	reg_args = calloc(1, sizeof(struct registration_args));
-
-	// check that registration exists for one layer at least
-	int layer = -1;
-	if (seq->regparam) {
-		for (int i = 0; i < seq->nb_layers; i++) {
-			if (seq->regparam[i]) {
-				layer = i;
-				break;
-			}
-		}
-	}
-	if (layer == -1) {
-		siril_log_color_message(_("No registration data exists for this sequence, aborting\n"), "red");
-		goto terminate_register_on_error;
-	}
-	fits reffit = { 0 };
-	int image_to_load = sequence_find_refimage(seq);
-	if (seq_read_frame_metadata(seq, image_to_load, &reffit)) {
-		siril_log_message(_("Could not load the reference image of the sequence, aborting.\n"));
-		retval = CMD_INVALID_IMAGE;
-		goto terminate_register_on_error;
-	}
-	if (!has_wcs(&reffit)) {
-		siril_log_color_message(_("This command only works on plate solved images\n"), "red");
-		retval = CMD_FOR_PLATE_SOLVED;
-		clearfits(&reffit);
-		goto terminate_register_on_error;
-	}
-	clearfits(&reffit);
-
-	/* filling the arguments for registration */
-	reg_args->func = &register_astrometric;
-	reg_args->seq = seq;
-	reg_args->reference_image = sequence_find_refimage(seq);
-	reg_args->no_output = FALSE;
-	reg_args->x2upscale = FALSE;
-	reg_args->prefix = strdup("r_");
-	reg_args->layer = layer;
-	reg_args->interpolation = OPENCV_LANCZOS4;
-	reg_args->clamp = TRUE;
-	reg_args->framing = FRAMING_CURRENT;
-	reg_args->undistort = TRUE;
-	reg_args->astrometric_scale = 1.f;
-
-	/* check for options */
-	for (int i = 2; i < nb; i++) {
-		if (g_str_has_prefix(word[i], "-prefix=")) {
-			char *current = word[i], *value;
-			value = current + 8;
-			if (value[0] == '\0') {
-				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-				goto terminate_register_on_error;
-			}
-			reg_args->prefix = strdup(value);
-		} else if (!strcmp(word[i], "-noclamp")) {
-			reg_args->clamp = FALSE;
-		} else if (!strcmp(word[i], "-noundistort")) {
-			reg_args->undistort = FALSE;
-		} else if (g_str_has_prefix(word[i], "-interp=")) {
-			char *current = word[i], *value;
-			value = current + 8;
-			if (value[0] == '\0') {
-				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-				goto terminate_register_on_error;
-			}
-			if(!g_ascii_strncasecmp(value, "nearest", 7) || !g_ascii_strncasecmp(value, "ne", 2)) {
-				reg_args->interpolation = OPENCV_NEAREST;
-				continue;
-			}
-			if(!g_ascii_strncasecmp(value, "cubic", 5) || !g_ascii_strncasecmp(value, "cu", 2)) {
-				reg_args->interpolation = OPENCV_CUBIC;
-				continue;
-			}
-			if(!g_ascii_strncasecmp(value, "lanczos4", 8) || !g_ascii_strncasecmp(value, "la", 2)) {
-				reg_args->interpolation = OPENCV_LANCZOS4;
-				continue;
-			}
-			if(!g_ascii_strncasecmp(value, "linear", 6) || !g_ascii_strncasecmp(value, "li", 2)) {
-				reg_args->interpolation = OPENCV_LINEAR;
-				continue;
-			}
-			if(!g_ascii_strncasecmp(value, "area", 4) || !g_ascii_strncasecmp(value, "ar", 2)) {
-				reg_args->interpolation = OPENCV_AREA;
-				continue;
-			}
-			siril_log_message(_("Unknown transformation type %s, aborting.\n"), value);
-			retval = CMD_ARG_ERROR;
-			goto terminate_register_on_error;
-		} else if (g_str_has_prefix(word[i], "-framing=")) {
-			char *current = word[i], *value;
-			value = current + 9;
-			if (value[0] == '\0') {
-				siril_log_message(_("Missing argument to %s, aborting.\n"), current);
-				goto terminate_register_on_error;
-			}
-			if(!g_ascii_strncasecmp(value, "current", 7)) {
-				reg_args->framing = FRAMING_CURRENT;
-				continue;
-			}
-			if(!g_ascii_strncasecmp(value, "min", 3)) {
-				reg_args->framing = FRAMING_MIN;
-				continue;
-			}
-			if(!g_ascii_strncasecmp(value, "max", 3)) {
-				reg_args->framing = FRAMING_MAX;
-				continue;
-			}
-			if(!g_ascii_strncasecmp(value, "cog", 3)) {
-				reg_args->framing = FRAMING_COG;
-				continue;
-			}
-			siril_log_message(_("Unknown framing type %s, aborting.\n"), value);
-			goto terminate_register_on_error;
-		} else if (g_str_has_prefix(word[i], "-scale=")) {
-			char *arg = word[i] + 7;
-			gchar *end;
-			float scale = (float)g_ascii_strtod(arg, &end);
-			if (scale < 0.1f || scale > 2.f) {
-				siril_log_message(_("Scaling factor should be between 0.1 and 2, aborting.\n"));
-				retval = CMD_ARG_ERROR;
-				goto terminate_register_on_error;
-			}
-			reg_args->astrometric_scale = g_ascii_strtod(arg, &end);
-		} else if (parse_filter_args(word[i], &reg_args->filters)) {
-			;
-		} else {
-			siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
-			goto terminate_register_on_error;
-		}
-	}
-
-	// sanity checks are done in register_apply_reg
-
-	reg_args->run_in_thread = TRUE;
-	reg_args->load_new_sequence = FALSE;	// don't load it for command line execution
-
-	if (reg_args->interpolation == OPENCV_AREA || reg_args->interpolation == OPENCV_LINEAR || reg_args->interpolation == OPENCV_NEAREST || reg_args->interpolation == OPENCV_NONE)
-		reg_args->clamp = FALSE;
-	if (reg_args->clamp)
-		siril_log_message(_("Interpolation clamping active\n"));
-
-	set_progress_bar_data(_("Registration: Applying existing astrometric data"), PROGRESS_RESET);
-
-	start_in_new_thread(register_thread_func, reg_args);
-	return CMD_OK;
-
-terminate_register_on_error:
-	if (!check_seq_is_comseq(seq))
-		free_sequence(seq, TRUE);
-	free(reg_args->new_seq_name);
-	free(reg_args);
-	return retval;
 }
 
 // parse normalization and filters from the stack command line, starting at word `first'
@@ -9577,7 +9696,7 @@ int process_spcc(int nb) {
 // used for platesolve and seqplatesolve commands
 int process_platesolve(int nb) {
 	gboolean noflip = FALSE, force = FALSE, downsample = FALSE, autocrop = TRUE, nocache = FALSE,
-		asnet_blind_pos = FALSE, asnet_blind_res = FALSE;
+		asnet_blind_pos = FALSE, asnet_blind_res = FALSE, noreg = FALSE;
 	gboolean forced_metadata[3] = { 0 }; // used for sequences in the image hook, for center, pixel and focal
 	SirilWorldCS *target_coords = NULL;
 	double forced_focal = -1.0, forced_pixsize = -1.0;
@@ -9587,6 +9706,9 @@ int process_platesolve(int nb) {
 	gboolean seqps = word[0][0] == 's';
 	sequence *seq = NULL;
 	platesolve_solver solver = SOLVER_SIRIL;
+	gchar *distofilename = NULL;
+	cmd_errors retval = CMD_OK;
+	struct astrometry_data *args = NULL;
 
 	gboolean local_cat = local_catalogues_available();
 	int next_arg = 1;
@@ -9611,7 +9733,8 @@ int process_platesolve(int nb) {
 		if (!sep) {
 			if (nb == 2) {
 				siril_log_message(_("Could not parse target coordinates\n"));
-				return CMD_ARG_ERROR;
+				retval = CMD_ARG_ERROR;
+				goto clean_and_exit_platesolve;
 			}
 			target_coords = siril_world_cs_new_from_objct_ra_dec(word[next_arg], word[next_arg+1]);
 			next_arg += 2;
@@ -9623,7 +9746,8 @@ int process_platesolve(int nb) {
 		}
 		if (!target_coords) {
 			siril_log_message(_("Could not parse target coordinates\n"));
-			return CMD_ARG_ERROR;
+			retval = CMD_ARG_ERROR;
+			goto clean_and_exit_platesolve;
 		}
 		forced_metadata[FORCED_CENTER] = TRUE;
 	}
@@ -9639,6 +9763,8 @@ int process_platesolve(int nb) {
 			downsample = TRUE;
 		else if (!strcmp(word[next_arg], "-nocache"))
 			nocache = TRUE;
+		else if (!strcmp(word[next_arg], "-noreg"))
+			noreg = TRUE;
 		else if (!strcmp(word[next_arg], "-blindpos"))
 			asnet_blind_pos = TRUE;
 		else if (!strcmp(word[next_arg], "-blindres"))
@@ -9649,9 +9775,8 @@ int process_platesolve(int nb) {
 			forced_focal = g_ascii_strtod(arg, &end);
 			if (end == arg || forced_focal <= 0.0) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
-				if (target_coords)
-					siril_world_cs_unref(target_coords);
-				return CMD_ARG_ERROR;
+				retval = CMD_ARG_ERROR;
+				goto clean_and_exit_platesolve;
 			}
 			forced_metadata[FORCED_FOCAL] = TRUE;
 		}
@@ -9661,9 +9786,8 @@ int process_platesolve(int nb) {
 			forced_pixsize = g_ascii_strtod(arg, &end);
 			if (end == arg || forced_pixsize <= 0.0) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
-				if (target_coords)
-					siril_world_cs_unref(target_coords);
-				return CMD_ARG_ERROR;
+				retval = CMD_ARG_ERROR;
+				goto clean_and_exit_platesolve;
 			}
 			forced_metadata[FORCED_PIXEL] = TRUE;
 		}
@@ -9674,9 +9798,8 @@ int process_platesolve(int nb) {
 			value = g_ascii_strtod(arg, &end);
 			if (end == arg) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
-				if (target_coords)
-					siril_world_cs_unref(target_coords);
-				return CMD_ARG_ERROR;
+				retval = CMD_ARG_ERROR;
+				goto clean_and_exit_platesolve;
 			}
 			if (arg[0] == '-' || arg[0] == '+')
 				mag_offset = value;
@@ -9688,9 +9811,8 @@ int process_platesolve(int nb) {
 			int value = g_ascii_strtoull(arg, &end, 10);
 			if (end == arg || value < 1 || value > 5) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
-				if (target_coords)
-					siril_world_cs_unref(target_coords);
-				return CMD_ARG_ERROR;
+				retval = CMD_ARG_ERROR;
+				goto clean_and_exit_platesolve;
 			}
 			order = value;
 		}
@@ -9700,9 +9822,8 @@ int process_platesolve(int nb) {
 			searchradius = g_ascii_strtod(arg, &end);
 			if (end == arg || searchradius < 0.0 || searchradius > 30.0) {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
-				if (target_coords)
-					siril_world_cs_unref(target_coords);
-				return CMD_ARG_ERROR;
+				retval = CMD_ARG_ERROR;
+				goto clean_and_exit_platesolve;
 			}
 		}
 		else if (g_str_has_prefix(word[next_arg], "-catalog=")) {
@@ -9721,10 +9842,18 @@ int process_platesolve(int nb) {
 				cat = CAT_APASS;
 			else {
 				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
-				if (target_coords)
-					siril_world_cs_unref(target_coords);
-				return CMD_ARG_ERROR;
+				retval = CMD_ARG_ERROR;
+				goto clean_and_exit_platesolve;
 			}
+		}
+		else if (g_str_has_prefix(word[next_arg], "-disto=")) {
+			gchar *arg  = word[next_arg] + 7;
+			if (arg[0] == '\0') {
+				siril_log_message(_("Invalid argument to %s, aborting.\n"), word[next_arg]);
+				retval = CMD_ARG_ERROR;
+				goto clean_and_exit_platesolve;
+			}
+			distofilename = g_strdup(arg);
 		}
 		else if (!g_ascii_strcasecmp(word[next_arg], "-localasnet")) {
 			if (cat != CAT_AUTO)
@@ -9732,18 +9861,15 @@ int process_platesolve(int nb) {
 			solver = SOLVER_LOCALASNET;
 		} else {
 			siril_log_message(_("Invalid argument %s, aborting.\n"), word[next_arg]);
-			if (target_coords)
-				siril_world_cs_unref(target_coords);
-			return CMD_ARG_ERROR;
+			retval = CMD_ARG_ERROR;
+			goto clean_and_exit_platesolve;
 		}
 		next_arg++;
 	}
 
 	if (!seqps && !force) {
 		siril_log_message(_("Image is already plate solved. Nothing will be done.\n"));
-		if (target_coords)
-			siril_world_cs_unref(target_coords);
-		return CMD_OK;
+		goto clean_and_exit_platesolve; // not an arror, retval is CMD_OK
 	}
 
 	if (local_cat && (cat == CAT_AUTO || (cat != CAT_GAIADR3 && cat != CAT_PPMXL && cat != CAT_APASS))) {
@@ -9762,9 +9888,8 @@ int process_platesolve(int nb) {
 
 	if (solver == SOLVER_LOCALASNET && !asnet_is_available()) {
 		siril_log_color_message(_("The local astrometry.net solver was not found, aborting. Please check the settings.\n"), "red");
-		if (target_coords)
-			siril_world_cs_unref(target_coords);
-		return CMD_GENERIC_ERROR;
+		retval = CMD_GENERIC_ERROR;
+		goto clean_and_exit_platesolve;
 	}
 
 	fits reffit = { 0 };
@@ -9773,7 +9898,8 @@ int process_platesolve(int nb) {
 		int image_to_load = sequence_find_refimage(seq);
 		if (seq_read_frame_metadata(seq, image_to_load, preffit)) {
 			siril_log_message(_("Could not load the reference image of the sequence, aborting.\n"));
-			return CMD_SEQUENCE_NOT_FOUND;
+			retval = CMD_SEQUENCE_NOT_FOUND;
+			goto clean_and_exit_platesolve;
 		}
 	} else
 		preffit = &gfit;
@@ -9792,11 +9918,12 @@ int process_platesolve(int nb) {
 	if (!target_coords) {
 		target_coords = get_eqs_from_header(preffit);
 		if (solver != SOLVER_LOCALASNET && !target_coords) {
-				siril_log_color_message(_("Cannot plate solve, no target coordinates passed and image header doesn't contain any either\n"), "red");
-				if (seqps)
-					clearfits(preffit);
-				return CMD_INVALID_IMAGE;
-			}
+			siril_log_color_message(_("Cannot plate solve, no target coordinates passed and image header doesn't contain any either\n"), "red");
+			if (seqps)
+				clearfits(preffit);
+			retval = CMD_INVALID_IMAGE;
+			goto clean_and_exit_platesolve;
+		}
 		if (target_coords) {
 			siril_log_message(_("Using target coordinate from image header: %f, %f\n"),
 			siril_world_cs_get_alpha(target_coords),
@@ -9815,7 +9942,7 @@ int process_platesolve(int nb) {
 	}
 
 	// we are now ready to fill the structure
-	struct astrometry_data *args = calloc(1, sizeof(struct astrometry_data));
+	args = calloc(1, sizeof(struct astrometry_data));
 
 	if (asnet_blind_res) {
 		if (forced_metadata[FORCED_PIXEL]) {
@@ -9832,12 +9959,10 @@ int process_platesolve(int nb) {
 			args->pixel_size = com.pref.starfinder_conf.pixel_size_x;
 			if (args->pixel_size <= 0.0) {
 				siril_log_color_message(_("Pixel size not found in image or in settings, cannot proceed\n"), "red");
-				if (target_coords)
-					siril_world_cs_unref(target_coords);
 				if (seqps)
 					clearfits(preffit);
-				free(args);
-				return CMD_INVALID_IMAGE;
+				retval = CMD_INVALID_IMAGE;
+				goto clean_and_exit_platesolve;
 			}
 			siril_log_message(_("Using pixel size from preferences: %.2f\n"), args->pixel_size);
 		}
@@ -9859,12 +9984,10 @@ int process_platesolve(int nb) {
 			args->focal_length = com.pref.starfinder_conf.focal_length;
 			if (args->focal_length <= 0.0) {
 				siril_log_color_message(_("Focal length not found in image or in settings, cannot proceed\n"), "red");
-				if (target_coords)
-					siril_world_cs_unref(target_coords);
-				free(args);
 				if (seqps)
 					clearfits(preffit);
-				return CMD_INVALID_IMAGE;
+				retval = CMD_INVALID_IMAGE;
+				goto clean_and_exit_platesolve;
 			}
 			siril_log_message(_("Using focal length from preferences: %.2f\n"), args->focal_length);
 		}
@@ -9895,11 +10018,17 @@ int process_platesolve(int nb) {
 	args->downsample = downsample;
 	args->autocrop = autocrop && solver == SOLVER_SIRIL && cat != CAT_LOCAL; // we don't crop fov when using local catalogues or asnet
 	args->nocache = nocache || solver == SOLVER_LOCALASNET || cat == CAT_LOCAL;
-	if (!searchradius && solver == SOLVER_LOCALASNET && !asnet_blind_pos) { // we solve each image individually when using local catalogues or asnet
+	if (!searchradius && solver == SOLVER_LOCALASNET && !asnet_blind_pos) {
 		args->searchradius = com.pref.astrometry.radius_degrees;
 		siril_log_color_message(_("Cannot force null radius for localasnet if not blind solving, using default instead\n"), "red");
+	} else {
+		args->searchradius = searchradius;
+	}
+	if (distofilename) {
+		args->distofilename = distofilename;
 	}
 	args->force = force;
+	args->update_reg = !noreg;
 	memcpy(&args->forced_metadata, forced_metadata, 3 * sizeof(gboolean));
 	if (seqps || sequence_is_loaded()) { // we are platesolving an image from a sequence or a sequence, we can't allow to flip (may be registered)
 		noflip = TRUE;
@@ -9927,6 +10056,12 @@ int process_platesolve(int nb) {
 
 	// sequence
 	if (seqps) {
+		args->sfargs = calloc(1, sizeof(struct starfinder_data));
+		args->sfargs->im.from_seq = seq;
+		args->sfargs->layer = -1;
+		args->sfargs->keep_stars = TRUE;
+		args->sfargs->save_to_file = TRUE; // TODO make this a pref
+		args->sfargs->max_stars_fitted = BRIGHTEST_STARS;
 		start_sequence_astrometry(seq, args);
 		return CMD_OK;
 	}
@@ -9945,6 +10080,17 @@ int process_platesolve(int nb) {
 	process_plate_solver_input(args);
 	start_in_new_thread(plate_solver, args);
 	return CMD_OK;
+clean_and_exit_platesolve:
+	if (check_seq_is_comseq(seq))
+		free_sequence(seq, TRUE);
+	if (target_coords)
+		siril_world_cs_unref(target_coords);
+	if (args)
+		free_astrometry_data(args);
+	if (distofilename)
+		g_free(distofilename);
+	return retval;
+
 }
 
 static conesearch_params* parse_conesearch_args(int nb) {
@@ -10063,6 +10209,8 @@ static conesearch_params* parse_conesearch_args(int nb) {
 				return NULL;
 			}
 			params->outfilename = g_strdup(arg);
+		} else if (!(g_ascii_strcasecmp(word[arg_idx], "-compare"))) {
+			params->compare = TRUE;
 		} else {
 			gchar *end;
 			params->limit_mag = g_ascii_strtod(word[arg_idx], &end);
@@ -10080,6 +10228,11 @@ static conesearch_params* parse_conesearch_args(int nb) {
 		params->cat = (local_cat) ? CAT_LOCAL : CAT_NOMAD;
 		if (params->trixel >= 0 && params->cat == CAT_LOCAL)
 			params->cat = CAT_LOCAL_TRIX;
+	}
+	
+	if (params->compare && !is_star_catalogue(params->cat)) {
+		siril_log_message(_("Cannot use -compare argument with non-star catalogues, ignoring.\n"));
+		params->compare = FALSE;
 	}
 
 	return params;
@@ -10630,6 +10783,10 @@ static graxpert_data *fill_graxpert_data_from_cmdline(int nb, sequence *seq, gra
 		else if (!g_ascii_strncasecmp(arg, "-keep_bg", 8)) {
 			data->keep_bg = TRUE;
 		}
+		else if (!g_ascii_strncasecmp(arg, "-ai_version=", 12)) {
+			arg += 12;
+			data->ai_version = g_strdup(arg);
+		}
 		else {
 			if (operation == GRAXPERT_BG) {
 				if (g_str_has_prefix(arg, "-algo=")) {
@@ -10756,6 +10913,13 @@ static graxpert_data *fill_graxpert_data_from_cmdline(int nb, sequence *seq, gra
 		data->bg_tol_option = -2.0;
 	else if (data->bg_tol_option > 6.0)
 		data->bg_tol_option = 6.0;
+	if (data->operation == GRAXPERT_DENOISE || data->bg_algo == GRAXPERT_BG_AI) {
+		if (!check_graxpert_version(data->ai_version, data->operation)) {
+			siril_log_color_message(_("Error: the requested AI model version is unavailable. Available versions are:\n"), "red");
+			ai_versions_to_log(operation);
+			goto GRAX_ARG_ERROR;
+		}
+	}
 
 	return data;
 
@@ -11029,6 +11193,41 @@ int process_trixel(int nb) {
 	return CMD_OK;
 }
 
+int process_limit(int nb) {
+	if (nb != 2)
+		return CMD_WRONG_N_ARG;
+	if (gfit.type == DATA_USHORT) {
+		siril_log_message(_("16-bit images cannot have out-of-range pixels: nothing to do.\n"));
+		return CMD_OK;
+	}
+
+	double maxval, minval;
+	int retval = quick_minmax(&gfit, &minval, &maxval);
+	if (retval)
+		return CMD_GENERIC_ERROR;
+
+	if (maxval <= 1.0 && minval >= 0.0) {
+		siril_log_message(_("No pixels require clipping. Nothing to do...\n"));
+		return CMD_OK;
+	}
+
+	OverrangeResponse method;
+	if (!g_ascii_strncasecmp(word[1], "-clip", 5)) {
+		method = RESPONSE_CLIP;
+	} else if (!g_ascii_strncasecmp(word[1], "-posrescale", 11)) {
+		method = RESPONSE_RESCALE_CLIPNEG;
+	} else if (!g_ascii_strncasecmp(word[1], "-rescale", 8)) {
+		method = RESPONSE_RESCALE_ALL;
+	} else {
+		siril_log_color_message(_("Error: unknown argument!\n"), "red");
+		return CMD_ARG_ERROR;
+	}
+
+	apply_limits(&gfit, minval, maxval, method);
+	siril_log_message(_("Pixel limits applied successfully.\n"));
+	return CMD_OK;
+}
+
 int process_online(int nb) {
 	set_online_status(TRUE);
 	return CMD_OK;
@@ -11036,5 +11235,10 @@ int process_online(int nb) {
 
 int process_offline(int nb) {
 	set_online_status(FALSE);
+	return CMD_OK;
+}
+
+int process_pwd(int nb) {
+	siril_log_message(_("Current working directory: '%s'\n"), com.wd);
 	return CMD_OK;
 }

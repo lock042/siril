@@ -74,7 +74,7 @@ xx/xx/xx
 * Fixed a crash in ROI selection (#1320)
 * Optimised GHT code (~2x speedup) and fixed associated bugs (#1194, #1314, #1319)
 * Fixed handling wide-char characters in filenames on Windows (with cfitsio >= 4.4) (#1324)
-* Fix bug in GHT when only 1 or 2 channels are selected (#1329)
+* Fixed bug in GHT when only 1 or 2 channels are selected (#1329)
 * Improve use of prngs (mt19937 now used throughout in place of rand() etc.) (!689)
 * Update Image processing menu (!700)
 * Refactor networking code, add offline mode and add Gaia archive status indication (!687)
@@ -87,9 +87,28 @@ xx/xx/xx
 * Fixed GHT and HT sharing states for a some GUI elements (#1357)
 * Reads and compares checksum (DATASUM and CHECKSUM) if present in the FITS header (!723)
 * Blocked certain processes when a processing dialog box is open (#1355)
+* Fixed a bug with histogram / GHT widgets updating the image when the preview toggle was off (#1358)
+* Check for and resolve pixel values outside [0 1] before certain operations (!697)
+* Fixed seqpsf for images which write ADU in float (#1322)
+* Added the `pwd` command to print the current working directory (!743)
+* Refactor processing of sequence operations that generate multiple output sequences (!739)
+* Improved behaviour of image composition ops with regard to making the FITS headers viewable (!747)
+* Added a memory check for the preview image (#778)
+* Implement a new cosmetic filter to remove purple fringing on bright stars (!726)
+* Fix crash in catsearch when object is unknown (#1383)
+* Refactored registration processes and GUI (#1285)
+* Added master distortion files (!686)
+
+siril 1.2.5
+xx/xx/xx
+* Fixed crash in gaussVertical() on macOS (issue reported on pixls.us, !742)
+* Fixed free space disk computation on macOS, probably for good (#1368 and #1375)
+* Fixed crash if the CWD changes after a first successfull Automated light Curve process (#1378 !746)
+* Fixed bug in TIFF files that have TIFFTAG_MINSAMPLEVALUE and TIFFTAG_MAXSAMPLEVALUE set to 0 by removing these tags (#1381)
+* Added HISTORY after seqcrop and GUI crop (#1142)
 
 siril 1.2.4
-xx/xx/24
+09/11/24
 
 * Fixed CFA statistics (#1342)
 * Fixed calibration command bug disabling cosmetic correction (#1348)
@@ -100,6 +119,10 @@ xx/xx/24
 * Fixed crash when saving image (#1353)
 * Fixed execute button in wavelets not reverting preview (#1362)
 * Fixed CLAHE crash on mono image (#1354)
+* Fixed crash while extracting Green channel on CFA FITSEQ (#1305)
+* Fixed inverted sequences on exporting to SER (#1361)
+* Fixed a bug with histogram hi / mid / lo entry callback behaviour (!735)
+* Fixed free space disk computation on macOS (#1368)
 
 siril 1.2.3
 06/19/24

@@ -23,7 +23,7 @@ ninja -C ${BUILDDIR} -j$(nproc)
 DESTDIR=$PWD/${BUILDDIR}/appdir ninja -C ${BUILDDIR} -j$(nproc) install; find ${BUILDDIR}/appdir/
 cd ${BUILDDIR}
 cp ../AppRun appdir/AppRun ; chmod +x appdir/AppRun
-cp ./appdir/usr/share/icons/hicolor/scalable/apps/org.free_astro.siril.svg ./appdir/org.free_astro.siril.svg
+cp ./appdir/usr/share/icons/hicolor/scalable/apps/org.siril.Siril.svg ./appdir/org.siril.Siril.svg
 
 cd appdir/
 
@@ -86,7 +86,7 @@ for so in $(find \
     linuxdeployqtargs+=("-executable=$(readlink -f "$so")")
 done
 
-./linuxdeployqt-continuous-x86_64.AppImage --appimage-extract-and-run appdir/usr/share/applications/org.free_astro.siril.desktop \
+./linuxdeployqt-continuous-x86_64.AppImage --appimage-extract-and-run appdir/usr/share/applications/org.siril.Siril.desktop \
   -appimage -unsupported-bundle-everything \
   "${linuxdeployqtargs[@]}"
 

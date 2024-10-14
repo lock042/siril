@@ -214,13 +214,11 @@ layer *create_layer(int index) {
 	g_signal_connect(ret->color_w, "draw", G_CALLBACK(draw_layer_color), NULL);
 	g_object_ref(G_OBJECT(ret->color_w));	// don't destroy it on removal from grid
 
-	ret->chooser = GTK_FILE_CHOOSER_BUTTON(
-			gtk_file_chooser_button_new(
-				"Select source image", GTK_FILE_CHOOSER_ACTION_OPEN));
+	ret->chooser = GTK_FILE_CHOOSER_BUTTON(gtk_file_chooser_button_new("Select source image", GTK_FILE_CHOOSER_ACTION_OPEN));
 	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(ret->chooser), com.wd);
-	gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(ret->chooser),
-			GTK_FILE_FILTER(gtk_builder_get_object(gui.builder, "filefilter1")));
-			gtk_file_chooser_button_set_width_chars(ret->chooser, 16);
+	siril_set_file_filter(GTK_FILE_CHOOSER(ret->chooser), "filefilter_comp", "FITS and TIFF files");
+
+	gtk_file_chooser_button_set_width_chars(ret->chooser, 16);
 	gtk_file_chooser_set_local_only(GTK_FILE_CHOOSER(ret->chooser), FALSE);
 	g_signal_connect(ret->chooser, "file-set", G_CALLBACK(on_filechooser_file_set), NULL);
 	g_object_ref(G_OBJECT(ret->chooser));	// don't destroy it on removal from grid
@@ -415,7 +413,7 @@ void open_compositing_window() {
 		register_selection_update_callback(update_compositing_registration_interface);
 
 		gtk_builder_connect_signals(gui.builder, NULL);
-		siril_set_file_filter("filechooser_lum", "filefilter1");
+		siril_set_file_filter(GTK_FILE_CHOOSER(lookup_widget("filechooser_lum")), "filefilter_comp", "FITS and TIFF files");
 
 		/* parse the default palette */
 		for (i=0; i<sizeof(list_of_12_color_names)/sizeof(const char*); i++)
@@ -605,6 +603,7 @@ static void update_metadata(gboolean do_sum) {
 	f[j] = NULL;
 
 	merge_fits_headers_to_result2(&gfit, f, do_sum);
+	update_fits_header(&gfit);
 	free(f);
 }
 
@@ -896,6 +895,7 @@ void on_button_align_clicked(GtkButton *button, gpointer user_data) {
 	regargs.max_stars_candidates = MAX_STARS_FITTED;
 	regargs.run_in_thread = FALSE;
 	regargs.interpolation = OPENCV_LANCZOS4;
+	regargs.output_scale = 1.f;
 	regargs.clamp = TRUE;
 	regargs.framing = framing;
 	regargs.percent_moved = 0.50f; // Only needed for KOMBAT
@@ -1923,22 +1923,12 @@ int manual_align_image_hook(struct generic_seq_args *args, int out_index, int in
 		args->seq->imgparam[in_index].incl = FALSE;
 		return 1;
 	}
-	if (!regargs->no_output) {
-		regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
-		regargs->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
-		regargs->imgparam[out_index].rx = sadata->ref.x;
-		regargs->imgparam[out_index].ry = sadata->ref.y;
-		cvGetEye(&regargs->regparam[out_index].H);
+	regargs->imgparam[out_index].filenum = args->seq->imgparam[in_index].filenum;
+	regargs->imgparam[out_index].incl = SEQUENCE_DEFAULT_INCLUDE;
+	regargs->imgparam[out_index].rx = sadata->ref.x;
+	regargs->imgparam[out_index].ry = sadata->ref.y;
+	cvGetEye(&regargs->regparam[out_index].H);
 
-		if (regargs->x2upscale) {
-			fit->keywords.pixel_size_x /= 2;
-			fit->keywords.pixel_size_y /= 2;
-		}
-	} else {
-		// TODO: check if H matrix needs to include a flip or not based on fit->top_down
-		// seems like not but this could backfire at some point
-		args->seq->imgparam[in_index].incl = SEQUENCE_DEFAULT_INCLUDE;
-	}
 	sadata->success[out_index] = 1;
 	return 0;
 }
@@ -2021,9 +2011,9 @@ int register_manual(struct registration_args *regargs) {
 	args->finalize_hook = manual_align_finalize_hook;
 	args->stop_on_error = FALSE;
 	args->description = _("Manual registration");
-	args->has_output = !regargs->no_output;
+	args->has_output = TRUE;
 	args->output_type = get_data_type(args->seq->bitpix);
-	args->upscale_ratio = regargs->x2upscale ? 2.0 : 1.0;
+	args->upscale_ratio = 1.0;
 	args->new_seq_prefix = regargs->prefix;
 	args->load_new_sequence = !regargs->no_output;
 	args->already_in_a_thread = TRUE;

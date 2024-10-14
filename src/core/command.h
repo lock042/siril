@@ -108,6 +108,7 @@ int	process_imoper(int nb);
 int	process_inspector(int nb);
 
 int	process_light_curve(int nb);
+int	process_limit(int nb);
 int	process_link(int nb);
 int	process_linear_match(int nb);
 int	process_load(int nb);
@@ -142,6 +143,7 @@ int	process_platesolve(int nb);
 int	process_pm(int nb);
 int	process_profile(int nb);
 int	process_psf(int nb);
+int	process_pwd(int nb);
 
 int	process_rebayer(int nb);
 int	process_register(int nb);
@@ -182,7 +184,6 @@ int	process_scnr(int nb);
 int	process_search_fct(int nb);
 int	process_select(int nb);
 int	process_seq_applyreg(int nb);
-int	process_seq_applyastrometry(int nb);
 int	process_seq_clean(int nb);
 int	process_seq_cosme(int nb);
 int	process_seq_crop(int nb);
@@ -243,6 +244,7 @@ int	process_tilt(int nb);
 int	process_trixel(int nb);
 
 int	process_unclip(int nb);
+int	process_unpurple(int nb);
 int	process_unset_mag(int nb);
 int	process_unset_mag_seq(int nb);
 int	process_unselect(int nb);

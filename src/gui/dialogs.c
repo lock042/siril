@@ -29,6 +29,7 @@
 #include "filters/clahe.h"
 #include "filters/median.h"
 #include "filters/saturation.h"
+#include "filters/unpurple.h"
 #include "filters/wavelets.h"
 
 #include "gui/newdeconv.h"
@@ -93,6 +94,7 @@ static const SirilDialogEntry entries[] =
 	{"starnet_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"stars_list_window", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"StatWindow", NULL, INFORMATION_DIALOG, FALSE, NULL},
+	{"unpurple_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_unpurple_cancel},
 	{"wavelets_dialog", NULL, IMAGE_PROCESSING_DIALOG, TRUE, apply_wavelets_cancel}
 };
 
@@ -191,6 +193,24 @@ gboolean is_a_dialog_opened() {
 }
 
 /************ file chooser ************/
+
+void gtk_filter_add(GtkFileChooser *file_chooser, const gchar *title,
+		const gchar *pattern, gboolean set_default) {
+	gchar **patterns;
+	gint i;
+
+	GtkFileFilter *f = gtk_file_filter_new();
+	gtk_file_filter_set_name(f, title);
+	/* get the patterns */
+	patterns = g_strsplit(pattern, ";", -1);
+	for (i = 0; patterns[i] != NULL; i++)
+		gtk_file_filter_add_pattern(f, patterns[i]);
+	/* free the patterns */
+	g_strfreev(patterns);
+	gtk_file_chooser_add_filter(file_chooser, f);
+	if (set_default)
+		gtk_file_chooser_set_filter(file_chooser, f);
+}
 
 SirilWidget *siril_file_chooser_open(GtkWindow *parent, GtkFileChooserAction action) {
 	gchar *title;

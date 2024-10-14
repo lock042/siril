@@ -231,7 +231,7 @@ static void global_initialization() {
 #endif
 
 #ifdef _OPENMP
-	omp_set_nested(TRUE);
+	omp_set_max_active_levels(2);
 #endif
 
 }
@@ -247,7 +247,7 @@ static void siril_app_startup(GApplication *application) {
 
 	g_set_application_name(PACKAGE_NAME);
 	gtk_window_set_default_icon_name("siril");
-	g_application_set_resource_base_path(application, "/org/free_astro/siril/pixmaps/");
+	g_application_set_resource_base_path(application, "/org/siril/Siril/pixmaps/");
 
 	g_action_map_add_action_entries(G_ACTION_MAP(application), app_entries,
 			G_N_ELEMENTS(app_entries), application);
@@ -548,7 +548,7 @@ int main(int argc, char *argv[]) {
 	bind_textdomain_codeset(PACKAGE, "UTF-8");
 	textdomain(PACKAGE);
 
-	app = gtk_application_new("org.free_astro.siril", G_APPLICATION_HANDLES_OPEN | G_APPLICATION_NON_UNIQUE);
+	app = gtk_application_new("org.siril.Siril", G_APPLICATION_HANDLES_OPEN | G_APPLICATION_NON_UNIQUE);
 
 	g_signal_connect(app, "startup", G_CALLBACK(siril_app_startup), NULL);
 	g_signal_connect(app, "activate", G_CALLBACK(siril_app_activate), NULL);

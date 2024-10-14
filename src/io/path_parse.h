@@ -25,6 +25,8 @@
 // negative errors are warnings
 typedef enum {
 	// warning for wilcard read mode
+	PATHPARSE_ERR_WILDCARD_SYNTAX_NOFAIL = -12,
+	PATHPARSE_ERR_HITS_ALL_NEWER = -11,
 	PATHPARSE_ERR_MORE_THAN_ONE_HIT = -10,
 	// warnings for write_nofail mode (exact opposite of errors betw 1 and 10)
 	PATHPARSE_ERR_HEADER_NULL_NOFAIL = -1,
@@ -51,6 +53,7 @@ typedef enum {
 	// errors for read mode with wildcards
 	PATHPARSE_ERR_NO_HIT_FOUND = 10,
 	PATHPARSE_ERR_NO_DIR = 11,
+	PATHPARSE_ERR_WILDCARD_SYNTAX = 12,
 	// internal errors
 	PATHPARSE_ERR_WRONG_CALL = 20,
 	PATHPARSE_ERR_TMPFIT = 21
@@ -64,5 +67,6 @@ typedef enum {
 
 gchar *path_parse(fits *fit, const gchar *expression, pathparse_mode mode, int *status);
 gchar *update_header_and_parse(fits *fit, gchar *expression, pathparse_mode mode, gboolean createdir, int *status);
+pathparse_errors read_key_from_header_text(gchar **headers, gchar *key, double *numvalue, gchar *strvalue);
 
 #endif /* SRC_IO_PATH_PARSE_H_ */

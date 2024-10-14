@@ -43,6 +43,7 @@ void set_GUI_MEM(guint64 used, const gchar *label);
 void set_GUI_DiskSpace(gint64 mem, const gchar *label);
 void set_suggested(GtkWidget *widget);
 void unset_suggested(GtkWidget *widget);
+void set_switcher_buttons_colors(GList *list, int n);
 
 void widget_set_class(GtkWidget *entry, const char *class_to_add, const char *class_to_remove);
 
@@ -50,8 +51,10 @@ void execute_idle_and_wait_for_it(gboolean (* idle)(gpointer), gpointer arg);
 int select_vport(int vport);
 gboolean check_ok_if_cfa();
 point closest_point_on_line(point in, point p1, point p2);
-void siril_set_file_filter(const gchar* widget_name, const gchar* filter_name);
+void siril_set_file_filter(GtkFileChooser* chooser, const gchar* filter_name, gchar *filter_display_name);
 const char* get_cfa_from_pattern(sensor_pattern pattern);
 void interpolate_nongreen(fits *fit);
+OverrangeResponse apply_limits(fits *fit, double minval, double maxval, OverrangeResponse method);
+gboolean value_check(fits *fit); // checks for pixel values outside [0.0, 1.0]
 
 #endif /* SRC_GUI_UTILS_H_ */

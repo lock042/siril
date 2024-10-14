@@ -4,9 +4,8 @@
 #include "core/siril.h"
 #include "algos/PSF.h"
 #include "core/processing.h"
-
-#define NUMBER_OF_METHODS 8
-#define MAX_DISTO_SIZE 7 // need to duplicate MAX_SIP_SIZE here because of circular refs with opencv
+#include "algos/star_finder.h"
+#include "registration/distorsion.h"
 
 struct registration_args;
 typedef int (*registration_function)(struct registration_args *);
@@ -20,6 +19,18 @@ typedef enum {
 typedef enum {
 	REGTYPE_DEEPSKY, REGTYPE_PLANETARY, REGTYPE_APPLY
 } registration_type;
+
+typedef enum {
+	REG_UNDEF = -1,
+	REG_GLOBAL,
+	REG_3STARS,
+	REG_DFT,
+	REG_KOMBAT,
+	REG_COMET,
+	REG_APPLY,
+	REG_2PASS,
+	NUMBER_OF_METHODS
+} regmethod_index;
 
 typedef enum {
 	PLANETARY_FULLDISK, PLANETARY_SURFACE
@@ -66,48 +77,25 @@ typedef enum {
 /* same as rectangle but avoids conflicts with rectangle defined in opencv namespace */
 typedef struct {
 	int x, y, w, h;
-} astrometric_roi;
+} framing_roi;
 
-typedef enum {
-	DISTO_NONE, // none defined
-	DISTO_D2S,  // computed for each image dst->src (regular interpolation)
-	DISTO_S2D,  // computed for each image src->dst (drizzle interpolation)
-	DISTO_MAP_D2S,  // computed from the ref image dst->src (regular interpolation)
-	DISTO_MAP_S2D  // computed from the ref image dst->src (drizzle interpolation)
-} disto_type;
-
-typedef struct {
-	disto_type dtype;
-	double A[MAX_DISTO_SIZE][MAX_DISTO_SIZE];
-	double B[MAX_DISTO_SIZE][MAX_DISTO_SIZE];
-	double AP[MAX_DISTO_SIZE][MAX_DISTO_SIZE];
-	double BP[MAX_DISTO_SIZE][MAX_DISTO_SIZE];
-	int order;
-	double xref, yref;
-	float *xmap, *ymap;
-} disto_data;
-
-struct astrometric_args{
-	int nb;
-	int refindex;
-	Homography *Rs;
-	Homography *Ks;
-	disto_data *disto;
-	float scale;
-	astrometric_roi roi;
-};
 
 /**** star alignment (global and 3-star) registration ****/
 
 struct star_align_data {
 	struct registration_args *regargs;
 	regdata *current_regdata;
-	struct astrometric_args *astargs;
 	psf_star **refstars;
 	int fitted_stars;
 	BYTE *success;
 	point ref;
 };
+
+typedef struct {
+	Homography Htransf;
+	Homography Hshift;
+	framing_roi roi_out;
+} framing_data;
 
 /* arguments passed to registration functions */
 struct registration_args {
@@ -122,19 +110,29 @@ struct registration_args {
 	gboolean follow_star;		// follow star position between frames
 	gboolean matchSelection;	// Match stars found in the seleciton of reference image
 	rectangle selection;		// the selection rectangle
-	gboolean x2upscale;		// apply an x2 upscale for pseudo drizzle
-	gboolean cumul;			// cumul reg data with previous one
+	struct starfinder_data *sfargs;		// star finder configuration for global/2pass
 	int min_pairs;			// Minimum number of star pairs for success
 	int max_stars_candidates;	// Max candidates after psf fitting for global reg
 	transformation_type type;	// Use affine transform  or homography
 	float percent_moved;		// for KOMBAT algorithm
+	pointf velocity;			// for comet algorithm
+	GDateTime *reference_date; 	// for comet algorithm
 	gboolean two_pass;		// use the two-pass computation to find a good ref image
 	seq_image_filter filtering_criterion; // the filter, (seqapplyreg only)
 	double filtering_parameter;	// and its parameter (seqapplyreg only)
 	gboolean no_starlist;		// disable star list creation (2pass only)
-	float astrometric_scale;		// scaling factor (for mosaic only)
-	gboolean undistort;		// apply undistorsion with SIP data
+	float output_scale;		// scaling factor
+	disto_source undistort;		// type of undistortion to apply
+	disto_params distoparam;		// type of undistortion to apply
+	disto_data *disto;			// undistortion information
+	struct wcsprm* WCSDATA;		// wcs structs for the whole sequence (for seqapplyreg with astrometric solution) 
 	struct driz_args_t *driz;	// drizzle-specific data
+	framing_type framing;		// used by seqapplyreg to determine framing
+	framing_data framingd;	// precomputed framing data
+
+	opencv_interpolation interpolation; // type of rotation interpolation
+	gboolean clamp;				// should Bicubic and Lanczos4 interpolation be clamped?
+	double clamping_factor;		// used to set amount of interpolation clamping
 
 	/* data for generated sequence, for star alignment/mosaic registration */
 	gboolean no_output;		// write transformation to .seq
@@ -143,72 +141,70 @@ struct registration_args {
 	regdata *regparam;		// regparam for the new sequence
 	char *prefix;		// prefix of the created sequence if any
 	gboolean load_new_sequence;	// load the new sequence if success
+	struct wcsprm* wcsref;	// wcslib struct of the reference image, to recompute values for registered images
 	gchar *new_seq_name;
-	opencv_interpolation interpolation; // type of rotation interpolation
-	framing_type framing;		// used by seqapplyreg to determine framing
-	gboolean clamp;				// should Bicubic and Lanczos4 interpolation be clamped?
-	double clamping_factor;		// used to set amount of interpolation clamping
 };
-
-// static struct registration_method *reg_methods[NUMBER_OF_METHODS + 1];
 
 struct registration_method *new_reg_method(const char *name, registration_function f,
 		selection_type s, registration_type t); // for compositing
-struct registration_method * get_selected_registration_method();
-int register_shift_dft(struct registration_args *args);
+int register_shift_dft(struct registration_args *args); // REG_DFT
 int register_shift_fwhm(struct registration_args *args);
-int register_star_alignment(struct registration_args *args);
-int register_multi_step_global(struct registration_args *regargs);
-int register_comet(struct registration_args *regargs);
-int register_3stars(struct registration_args *regargs);
-int register_apply_reg(struct registration_args *regargs);
-int register_kombat(struct registration_args *args);
+int register_star_alignment(struct registration_args *args); // REG_GLOBAL
+int register_multi_step_global(struct registration_args *regargs); // REG_2PASS
+int register_comet(struct registration_args *regargs); // REG_COMET
+int register_3stars(struct registration_args *regargs); // REG_3STARS
+int register_apply_reg(struct registration_args *regargs); // REG_APPLY
+int register_kombat(struct registration_args *args); // REG_KOMBAT
 int register_manual(struct registration_args *regargs); // defined in compositing/compositing.c
-int register_astrometric(struct registration_args *regargs);
 
-void reset_3stars();
-int _3stars_check_registration_ready();
-gboolean _3stars_check_selection();
+// comet specific calcs
+pointf compute_velocity(GDateTime *t1, GDateTime *t2, point d1, point d2);
+int get_comet_shift(GDateTime *ref, GDateTime *img, pointf px_per_hour, pointf *reg);
 
-pointf get_velocity();
-void update_reg_interface(gboolean dont_change_reg_radio);
 void compute_fitting_selection(rectangle *area, int hsteps, int vsteps, int preserve_square);
-void get_the_registration_area(struct registration_args *reg_args, const struct registration_method *method); // for compositing
+void get_the_registration_area(struct registration_args *regargs, const struct registration_method *method); // for compositing
 gpointer register_thread_func(gpointer p);
 
-/** getter */
+// getters - checkers
 int get_registration_layer(const sequence *seq);
 int seq_has_any_regdata(const sequence *seq); // same as get_registration_layer but does not rely on GUI for com.seq
-
-regdata *apply_reg_get_current_regdata(struct registration_args *regargs);
-regdata *star_align_get_current_regdata(struct registration_args *regargs);
-int star_align_prepare_results(struct generic_seq_args *args);
-int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads);
-int star_align_finalize_hook(struct generic_seq_args *args);
-int star_match_and_checks(psf_star **ref_stars, psf_star **stars, int nb_ref_stars, int nb_stars, struct registration_args *regargs, int filenum, Homography *H);
-
-const char *describe_transformation_type(transformation_type type);
-
-void selection_H_transform(rectangle *selection, Homography Href, Homography Himg);
+gboolean seq_has_any_distortion(const sequence *seq);
 void guess_transform_from_seq(sequence *seq, int layer,
 		transformation_type *min, transformation_type *max, gboolean excludenull);
 transformation_type guess_transform_from_H(Homography H);
-gboolean check_before_applyreg(struct registration_args *regargs);
 gboolean layer_has_registration(const sequence *seq, int layer);
 gboolean layer_has_usable_registration(sequence *seq, int layer);
+gboolean layer_has_distortion(const sequence *seq, int layer);
 int get_first_selected(sequence *seq);
-regdata *apply_reg_get_current_regdata(struct registration_args *regargs);
 
+// preparation required by more than one reg method
+regdata *registration_get_current_regdata(struct registration_args *regargs);
+int registration_prepare_results(struct generic_seq_args *args);
+void create_output_sequence_for_registration(struct registration_args *args, int refindex);
+int initialize_drizzle_params(struct generic_seq_args *args, struct registration_args *regargs);
+int apply_reg_compute_mem_consumption(struct generic_seq_args *args, unsigned int *total_required_per_image_MB, unsigned int *required_per_dst_image_MB, unsigned int *max_mem_MB);
+
+// image hooks required by more than one reg method
+int star_align_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads);
+int apply_reg_image_hook(struct generic_seq_args *args, int out_index, int in_index, fits *fit, rectangle *_, int threads);
+
+const char *describe_transformation_type(transformation_type type);
+
+// Homography-related functions
+void selection_H_transform(rectangle *selection, Homography Href, Homography Himg);
 void translation_from_H(Homography H, double *dx, double *dy);
 Homography H_from_translation(double dx, double dy);
 void SetNullH(Homography *H);
+void compute_roi(Homography *H, int rx, int ry, framing_roi *roi);
+
+//astrometry-related functions
+int collect_sequence_astrometry(struct registration_args *regargs);
+int compute_Hs_from_astrometry(sequence *seq, struct wcsprm *WCSDATA, framing_type framing, int layer, Homography *Hout, struct wcsprm **prmout);
+
+//image shift
 int shift_fit_from_reg(fits *fit, Homography H);
-void compute_Hmax(Homography *Himg, Homography *Href, int src_rx_in, int src_ry_in, double scale, Homography *H, Homography *Hshift, int *dst_rx_out, int *dst_ry_out);
 
 int minidx(const float *arr, const gboolean *mask, int nb, float *val);
-void get_reg_sequence_filtering_from_gui(seq_image_filter *filtering_criterion,
-		double *filtering_parameter, int update_adjustment);
 
-void free_astrometric_args(struct astrometric_args *astargs);
-
+gboolean check_before_applyreg(struct registration_args *regargs);
 #endif
