@@ -24,6 +24,10 @@
 
 #include "core/siril.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 gboolean is_space_disk_available(const gchar *disk);
 gboolean update_displayed_memory();
 int test_available_space(gint64 req_size);
@@ -47,5 +51,9 @@ char* siril_real_path(const char *source);
 #endif
 
 gboolean allow_to_open_files(int nb_frames, int *nb_allowed_file);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SRC_CORE_OS_UTILS_H_ */
