@@ -20,6 +20,6 @@
 #ifndef SRC_GUI_KEYWORDS_TREE_H_
 #define SRC_GUI_KEYWORDS_TREE_H_
 
-void refresh_keywords_dialog();
+gboolean refresh_keywords_dialog(gpointer user_data);
 
 #endif /* SRC_GUI_KEYWORDS_TREE_H_ */

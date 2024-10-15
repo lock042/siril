@@ -123,7 +123,8 @@ static void fillSeqAviExport() {
 
 static sequence *check_seq_one_file(const char* name, gboolean check_for_fitseq);
 
-void populate_seqcombo(const gchar *realname) {
+gboolean populate_seqcombo(gpointer user_data) {
+	const gchar *realname = (const gchar*) user_data;
 	control_window_switch_to_tab(IMAGE_SEQ);
 	GtkComboBoxText *combo_box_text = GTK_COMBO_BOX_TEXT(lookup_widget("sequence_list_combobox"));
 	gtk_combo_box_text_remove_all(combo_box_text);
@@ -133,6 +134,7 @@ void populate_seqcombo(const gchar *realname) {
 	gtk_combo_box_set_active(GTK_COMBO_BOX(combo_box_text), 0);
 	g_signal_handlers_unblock_by_func(GTK_COMBO_BOX(combo_box_text), on_seqproc_entry_changed, NULL);
 	g_free(rname);
+	return FALSE;
 }
 
 /* normalizes sequence name
@@ -162,9 +164,7 @@ int read_single_sequence(char *realname, image_type imagetype) {
 	gchar *dirname = g_path_get_dirname(realname);
 	if (!siril_change_dir(dirname, NULL)) {
 		writeinitfile();
-		if (!com.script) {
-			set_GUI_CWD();
-		}
+		gui_function(set_GUI_CWD, NULL);
 	}
 	g_free(dirname);
 
@@ -202,7 +202,7 @@ int read_single_sequence(char *realname, image_type imagetype) {
 	gchar *fname = g_path_get_basename(name);
 	if (!set_seq(fname) && !com.script) {
 		/* if it loads, make it selected and only element in the list of sequences */
-		populate_seqcombo(realname);
+		gui_function(populate_seqcombo, realname);
 	}
 	else retval = 1;
 	g_free(fname);
@@ -507,19 +507,20 @@ static void free_cbbt_layers() {
 }
 
 /* load a sequence and initializes everything that relates */
-int set_seq(const char *name){
+gboolean set_seq(gpointer user_data){
+	const char *name = (const char*) user_data;
 	sequence *seq = NULL;
 	char *basename;
 
 	if ((seq = readseqfile(name)) == NULL) {
 		fprintf(stderr, "could not load sequence %s\n", name);
-		return 1;
+		return TRUE;
 	}
 	free_image_data();
 	close_sequence(TRUE);
 
 #ifdef HAVE_FFMS2
-	int convert = 0;
+	int convert = (int)((com.headless));
 	if (!com.headless) {
 		if (seq->type == SEQ_AVI) {
 			convert = siril_confirm_dialog(_("Deprecated sequence"),
@@ -527,25 +528,29 @@ int set_seq(const char *name){
 							" We strongly encourage you to convert this sequence into a SER file."
 							" SER file format is a simple image sequence format, similar to uncompressed films."), _("Convert to SER"));
 		}
+	} else {
+		siril_log_color_message(_("Warning: deprecated sequence. Film sequences are now deprecated "
+			"in Siril: some features are disabled and others may crash. Continuing, but "
+							"we strongly encourage you to convert this sequence into a SER file."
+							"SER file format is a simple image sequence format, similar to uncompressed films.\n"), "salmon");
 	}
-
 	if (convert) {
 		close_sequence(FALSE);
 		convert_single_film_to_ser(seq);
-		return 0;
+		return FALSE;
 	}
 #endif
 	int retval = seq_check_basic_data(seq, TRUE);
 	if (retval == -1) {
 		free_sequence(seq, TRUE);
-		return 1;
+		return TRUE;
 	}
 	if (retval == 0) {
 		int image_to_load = sequence_find_refimage(seq);
 		if (seq_read_frame(seq, image_to_load, &gfit, FALSE, -1)) {
 			fprintf(stderr, "could not load first image from sequence\n");
 			free_sequence(seq, TRUE);
-			return 1;
+			return TRUE;
 		}
 		seq->current = image_to_load;
 	}
@@ -589,7 +594,7 @@ int set_seq(const char *name){
 		fillSeqAviExport();	// fill GtkEntry of export box
 
 		/* update menus */
-		update_MenuItem();
+		update_MenuItem(NULL);
 		/* update parameters in GUI */
 		set_GUI_CAMERA();
 
@@ -601,13 +606,14 @@ int set_seq(const char *name){
 		drawPlot();
 	}
 	free(seq);
-	return 0;
+	return FALSE;
 }
 
 /* Load image number index from the sequence and display it.
  * if load_it is true, dest is assumed to be gfit
  * TODO: cut that method in two, with an internal func taking a filename and a fits
  */
+// This function is OK to have GUI calls in it as it is only ever called from GUI functions
 int seq_load_image(sequence *seq, int index, gboolean load_it) {
 	gboolean do_refresh_annotations = com.found_object != NULL;
 	if (!single_image_is_loaded())

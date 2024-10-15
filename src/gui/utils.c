@@ -86,12 +86,17 @@ GtkAdjustment* lookup_adjustment(const gchar *adjustment_name) {
 	return GTK_ADJUSTMENT(gtk_builder_get_object(gui.builder, adjustment_name));
 }
 
+static gboolean switch_tab(gpointer user_data) {
+	mains_tab* tab = (mains_tab*) user_data;
+	GtkNotebook* notebook = GTK_NOTEBOOK(lookup_widget("notebook_center_box"));
+	gtk_notebook_set_current_page(notebook, tab);
+	return FALSE;
+}
 
 void control_window_switch_to_tab(main_tabs tab) {
 	if (com.script || com.headless)
 		return;
-	GtkNotebook* notebook = GTK_NOTEBOOK(lookup_widget("notebook_center_box"));
-	gtk_notebook_set_current_page(notebook, tab);
+	gui_function(switch_tab, &tab);
 }
 
 /**
@@ -605,4 +610,24 @@ gboolean value_check(fits *fit) {
 			return FALSE;
 	}
 	return TRUE;
+}
+
+static gboolean is_in_gtk_main_thread(void) {
+    return g_main_context_is_owner(gtk_main_get_context());
+}
+
+guint gui_function(GSourceFunc idle_function, gpointer data) {
+	if (com.headless) {
+		return 0;
+	} else if (com.script) {
+		// we need to know the operation is complete before moving on
+		execute_idle_and_wait_for_it(idle_function, data);
+	} else if (is_in_gtk_main_thread()) {
+		// it is safe to call the function directly
+		idle_function(data);
+	} else {
+		// we aren't in the GTK main thread or a script, so we add an idle
+		siril_add_idle(idle_function, data);
+	}
+	return 0;
 }

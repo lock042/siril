@@ -431,7 +431,7 @@ gpointer run_nlbayes_on_fit(gpointer p) {
 	if (msg3) free(msg3);
 
 	siril_log_message("%s\n", log_msg);
-	if (!args->previewing && !com.script)
+	if (!args->previewing && !(com.script || com.python_script))
 		undo_save_state(&gfit, "%s", log_msg);
 	if (args->suppress_artefacts)
 		siril_log_message(_("Colour artefact suppression active.\n"));
@@ -899,21 +899,6 @@ int process_savepnm(int nb){
 	return retval;
 }
 
-static gboolean merge_cfa_idle(gpointer arg) {
-	initialize_display_mode();
-	update_zoom_label();
-	display_filename();
-	set_precision_switch();
-	sliders_mode_set_state(gui.sliders);
-	init_layers_hi_and_lo_values(MIPSLOHI);
-	set_cutoff_sliders_max_values();
-	set_cutoff_sliders_values();
-	set_display_mode();
-	redraw(REMAP_ALL);
-	sequence_list_change_current();
-	return FALSE;
-}
-
 static char *normalize_rebayerfilename(char *filename_buffer, const char*input, long int maxpath)
 {
 	strncpy(filename_buffer, input, maxpath);
@@ -982,8 +967,7 @@ int process_rebayer(int nb){
 		com.uniq->comment = strdup(_("Bayer pattern merge"));
 
 	if (!com.script) {
-		open_single_image_from_gfit();
-		siril_add_idle(merge_cfa_idle, NULL);
+		gui_function(open_single_image_from_gfit, NULL);
 	}
 	set_cursor_waiting(FALSE);
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
@@ -1889,7 +1873,7 @@ int process_update_key(int nb) {
 
 		updateFITSKeyword(&gfit, key, NULL, value, comment, TRUE, FALSE);
 	}
-	if (!com.script) refresh_keywords_dialog();
+	gui_function(refresh_keywords_dialog, NULL);
 
 	g_free(key);
 	g_free(value);
@@ -2134,8 +2118,8 @@ int process_cd(int nb) {
 				g_free(com.pref.wd);
 			com.pref.wd = g_strdup(com.wd);
 			writeinitfile();
-			set_GUI_CWD();
 		}
+		gui_function(set_GUI_CWD, NULL);
 	}
 	else {   /* chdir failed */
 	/*
@@ -3433,7 +3417,7 @@ int process_resample(int nb) {
 			", clamped" : "");
 	gfit.history = g_slist_append(gfit.history, strdup(log));
 
-	if (!com.script) update_MenuItem();
+	gui_function(update_MenuItem, NULL);
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
@@ -4279,7 +4263,7 @@ int process_seq_tilt(int nb) {
 	// through GUI, in case the specified sequence is not the loaded sequence
 	// load it before running
 	if (!com.script && seq != &com.seq) {
-		set_seq(word[1]);
+		gui_function(set_seq, word[1]);
 		free_sequence(seq, TRUE);
 		seq = &com.seq;
 		draw_polygon = TRUE;
@@ -4421,7 +4405,7 @@ int process_seq_psf(int nb) {
 			return CMD_SEQUENCE_NOT_FOUND;
 		}
 		if (!com.script && seq != &com.seq) {
-			set_seq(word[1]);
+			gui_function(set_seq, word[1]);
 			free_sequence(seq, TRUE);
 			seq = &com.seq;
 		}
@@ -5164,7 +5148,7 @@ cmd_errors parse_findstar(struct starfinder_data *args, int start, int nb) {
 
 int process_findstar(int nb) {
 	int layer;
-	if (!com.script) {
+	if (!(com.script || (com.python_script && !com.headless))) {
 		layer = select_vport(gui.cvport);
 	} else {
 		layer = (gfit.naxes[2] > 1) ? GLAYER : RLAYER;
@@ -5216,7 +5200,7 @@ int process_seq_findstar(int nb) {
 
 	struct starfinder_data *args = calloc(1, sizeof(struct starfinder_data));
 	int layer;
-	if (!com.script && check_seq_is_comseq(seq)) { // we use vport only if seq is com.seq
+	if (!(com.script || (com.python_script && !com.headless)) && check_seq_is_comseq(seq)) { // we use vport only if seq is com.seq
 		layer = select_vport(gui.cvport);
 	} else {
 		layer = (seq->nb_layers > 1) ? GLAYER : RLAYER;
@@ -5456,14 +5440,17 @@ int process_cdg(int nb) {
 	return CMD_GENERIC_ERROR;
 }
 
-int process_clear(int nb) {
-	if (com.script) return CMD_OK;
+static gboolean clear_log_buffer(gpointer user_data) {
 	GtkTextView *text = GTK_TEXT_VIEW(lookup_widget("output"));
 	GtkTextBuffer *tbuf = gtk_text_view_get_buffer(text);
 	GtkTextIter start_iter, end_iter;
 	gtk_text_buffer_get_start_iter(tbuf, &start_iter);
 	gtk_text_buffer_get_end_iter(tbuf, &end_iter);
 	gtk_text_buffer_delete(tbuf, &start_iter, &end_iter);
+}
+
+int process_clear(int nb) {
+	gui_function(clear_log_buffer, NULL);
 	return CMD_OK;
 }
 
@@ -9068,8 +9055,8 @@ int process_set_cpu(int nb){
 	g_free(str);
 
 	com.max_thread = proc_out;
-	if (!com.script)
-		update_spinCPU(0);
+	int unlimited = 0;
+	gui_function(update_spinCPU, &unlimited);
 
 	return CMD_OK;
 }
@@ -9180,6 +9167,8 @@ int process_capabilities(int nb) {
 }
 
 int process_exit(int nb) {
+	// This GTK function is OK to call regardless of thread, as it will quit the GTK main loop
+	// and hand control back to main.c and the application will terminate.
 	gtk_main_quit();
 	return CMD_OK;
 }
@@ -10229,7 +10218,7 @@ static conesearch_params* parse_conesearch_args(int nb) {
 		if (params->trixel >= 0 && params->cat == CAT_LOCAL)
 			params->cat = CAT_LOCAL_TRIX;
 	}
-	
+
 	if (params->compare && !is_star_catalogue(params->cat)) {
 		siril_log_message(_("Cannot use -compare argument with non-star catalogues, ignoring.\n"));
 		params->compare = FALSE;
@@ -11025,7 +11014,7 @@ int process_icc_assign(int nb) {
 	}
 	refresh_icc_transforms();
 	if (!com.headless)
-		notify_gfit_modified();
+		gui_function(notify_gfit_modified, NULL);
 
 	return CMD_OK;
 }
@@ -11091,11 +11080,11 @@ int process_icc_convert_to(int nb) {
 	}
 	refresh_icc_transforms();
 	if (!com.headless) {
-		close_tab();
-		init_right_tab();
+		gui_function(close_tab, NULL);
+		gui_function(init_right_tab, NULL);
 	}
 	if (!com.headless)
-		notify_gfit_modified();
+		gui_function(notify_gfit_modified, NULL);
 	return CMD_OK;
 }
 
@@ -11104,7 +11093,7 @@ int process_icc_remove(int nb) {
 	siril_colorspace_transform(&gfit, NULL);
 	refresh_icc_transforms();
 	if (!com.headless)
-		notify_gfit_modified();
+		gui_function(notify_gfit_modified, NULL);
 
 	return CMD_OK;
 }

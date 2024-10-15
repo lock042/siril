@@ -795,7 +795,7 @@ gpointer median_filter(gpointer p) {
 	lock_roi_mutex();
 	struct median_filter_data *args = (struct median_filter_data *)p;
 	copy_backup_to_gfit();
-	if (!com.script && !args->previewing)
+	if (!(com.script || com.python_script) && !args->previewing)
 		undo_save_state(&gfit, _("Median Filter (filter=%dx%d px)"),
 			args->ksize, args->ksize);
 	if (args->fit->type == DATA_USHORT)
@@ -804,7 +804,7 @@ gpointer median_filter(gpointer p) {
 		return median_filter_float(p);
 	unlock_roi_mutex();
 	siril_add_idle(end_median_filter, args);
-	if (com.script && (args->fit == &gfit))
-		notify_gfit_modified();
+	if (args->fit == &gfit)
+		gui_function(notify_gfit_modified, NULL);
 	return GINT_TO_POINTER(1);
 }

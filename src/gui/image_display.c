@@ -1880,7 +1880,7 @@ static void invalidate_image_render_cache(int vport) {
 	//siril_debug_print("###\t\t\tcache surface invalidated\t\t\t###\n");
 }
 
-void adjust_vport_size_to_image() {
+static void adjust_vport_size_to_image() {
 	if (com.script) return;
 	double zoom = get_zoom_val();
 	if (zoom <= 0.0) return;

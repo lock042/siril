@@ -184,7 +184,7 @@ void unregister_selection_update_callback(const selection_update_callback f) {
 }
 
 // send the events
-void new_selection_zone() {
+gboolean new_selection_zone(gpointer user_data) {
 	int i;
 	siril_debug_print("selection: %d,%d,\t%dx%d\n", com.selection.x,
 			com.selection.y, com.selection.w, com.selection.h);
@@ -193,6 +193,7 @@ void new_selection_zone() {
 			_registered_selection_callbacks[i]();
 	}
 	redraw(REDRAW_OVERLAY);
+	return FALSE;
 }
 
 void delete_selected_area() {

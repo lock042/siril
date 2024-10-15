@@ -12,11 +12,11 @@ typedef struct deconvolution_sequence_data {
 } deconvolution_sequence_data;
 
 void reset_conv_args(estk_data* args);
-void reset_conv_controls();
+gboolean reset_conv_controls(gpointer user_data);
 void reset_conv_controls_and_args();
 void reset_conv_kernel();
-void set_kernel_size_in_gui();
-void DrawPSF();
+gboolean set_kernel_size_in_gui(gpointer user_data);
+gboolean DrawPSF(gpointer user_data);
 void calculate_parameters();
 orientation_t get_imageorientation();
 

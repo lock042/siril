@@ -681,7 +681,7 @@ void on_export_keywords_button_clicked(GtkButton *button, gpointer user_data) {
 	save_key_to_clipboard();
 }
 
-void refresh_keywords_dialog() {
+gboolean refresh_keywords_dialog(gpointer user_data) {
 	init_dialog();
 	gboolean is_a_single_image_loaded = single_image_is_loaded() &&
 			(!sequence_is_loaded() || (sequence_is_loaded() &&

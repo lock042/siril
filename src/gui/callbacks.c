@@ -154,9 +154,9 @@ void handle_owner_change(GtkClipboard *clipboard, GdkEvent *event, gpointer data
 
 }
 
-void launch_clipboard_survey() {
+gboolean launch_clipboard_survey(gpointer user_data) {
 	if (com.script)
-		return;
+		return FALSE;
 	GtkClipboard *clipboard = NULL;
 
 	/* Get the clipboard object */
@@ -164,6 +164,7 @@ void launch_clipboard_survey() {
 
 	/* To launch the Handle*/
 	g_signal_connect(clipboard, "owner-change", G_CALLBACK(handle_owner_change), NULL);
+	return FALSE;
 }
 
 void on_press_seq_field() {
@@ -640,7 +641,7 @@ void set_icon_entry(GtkEntry *entry, gchar *string) {
 	}
 }
 
-void update_MenuItem() {
+gboolean update_MenuItem(gpointer user_data) {
 	GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
 	gboolean is_a_single_image_loaded;	/* An image is loaded. Not a sequence or only the result of stacking process */
 	gboolean is_a_singleRGB_image_loaded;	/* A RGB image is loaded. Not a sequence or only the result of stacking process */
@@ -732,7 +733,8 @@ void update_MenuItem() {
 
 	/* keywords list */
 	if (gtk_widget_is_visible(lookup_widget("keywords_dialog")))
-		refresh_keywords_dialog();
+		refresh_keywords_dialog(NULL);
+	return FALSE
 }
 
 void sliders_mode_set_state(sliders_mode sliders) {
@@ -1055,7 +1057,7 @@ void on_precision_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_da
 	set_precision_switch();
 }
 
-void set_precision_switch() {
+gboolean set_precision_switch(gpointer user_data) {
 	if (!com.script) {
 		GtkLabel *label = GTK_LABEL(lookup_widget("precision_button_name"));
 		GtkCheckMenuItem *float_button = GTK_CHECK_MENU_ITEM(lookup_widget("32bits_item"));
@@ -1067,6 +1069,7 @@ void set_precision_switch() {
 		gtk_check_menu_item_set_active(ushort_button, gfit.type == DATA_USHORT);
 		g_signal_handlers_unblock_by_func(float_button,	on_precision_item_toggled, NULL);
 	}
+	return FALSE;
 }
 
 /* updates the combo box of registration layers to reflect data availability */
@@ -1248,7 +1251,7 @@ void set_output_filename_to_sequence_name() {
 	g_free(msg);
 }
 
-void close_tab() {
+gboolean close_tab(gpointer user_data) {
 	GtkNotebook* Color_Layers = GTK_NOTEBOOK(lookup_widget("notebook1"));
 	GtkWidget* page;
 
@@ -1271,6 +1274,7 @@ void close_tab() {
 		page = gtk_notebook_get_nth_page(Color_Layers, RGB_VPORT);
 		gtk_widget_show(page);
 	}
+	return FALSE;
 }
 
 void activate_tab(int vport) {
@@ -1283,7 +1287,8 @@ void init_right_tab() {
 	activate_tab(isrgb(&gfit) ? RGB_VPORT : RED_VPORT);
 }
 
-void update_spinCPU(int max) {
+gboolean update_spinCPU(gpointer user_data) {
+	int *max = (int*) user_data;
 	static GtkSpinButton *spin_cpu = NULL;
 
 	if (spin_cpu == NULL) {
@@ -1835,7 +1840,7 @@ static rectangle get_window_position(GtkWindow *window) {
 	return rec;
 }
 
-void save_main_window_state() {
+gboolean save_main_window_state(gpointer user_data) {
 	if (!com.script && com.pref.gui.remember_windows) {
 		static GtkWindow *main_w = NULL;
 
@@ -1844,9 +1849,10 @@ void save_main_window_state() {
 		com.pref.gui.main_w_pos = get_window_position(main_w);
 		com.pref.gui.is_maximized = gtk_window_is_maximized(main_w);
 	}
+	return FALSE;
 }
 
-void load_main_window_state() {
+gboolean load_main_window_state(gpointer user_data) {
 	if (!com.script && com.pref.gui.remember_windows) {
 		GtkWidget *win = lookup_widget("control_window");
 		GdkRectangle workarea = { 0 };
@@ -1883,6 +1889,7 @@ void load_main_window_state() {
 			gtk_image_set_from_icon_name(image, "pan-start-symbolic", GTK_ICON_SIZE_BUTTON);
 		}
 	}
+	return FALSE;
 }
 
 void gtk_main_quit() {

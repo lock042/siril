@@ -415,7 +415,8 @@ gpointer execute_script(gpointer p) {
 	return GINT_TO_POINTER(retval);
 }
 
-static void show_command_help_popup(GtkEntry *entry) {
+static gboolean show_command_help_popup(gpointer user_data) {
+	GtkEntry *entry = (GtkEntry*) user_data;
 	gchar *helper = NULL;
 
 	const gchar *text = gtk_entry_get_text(entry);
@@ -478,6 +479,7 @@ static void show_command_help_popup(GtkEntry *entry) {
 	gtk_widget_show(popover);
 #endif
 	g_free(helper);
+	return FALSE;
 }
 
 /* handler for the single-line console */
@@ -604,7 +606,7 @@ int processcommand(const char *line) {
 		if (ret) {
 			siril_log_color_message(_("Command execution failed: %s.\n"), "red", cmd_err_to_str(ret));
 			if (!com.script && !com.headless && (ret == CMD_WRONG_N_ARG || ret == CMD_ARG_ERROR)) {
-				show_command_help_popup(GTK_ENTRY(lookup_widget("command")));
+				gui_function(show_command_help_popup, GTK_ENTRY(lookup_widget("command")));
 			}
 			free(myline);
 			return 1;

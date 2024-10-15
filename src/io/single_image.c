@@ -122,13 +122,15 @@ static gboolean free_image_data_idle(gpointer p) {
 	return FALSE;
 }
 
-static void free_image_data_gui() {
+static gboolean free_image_data_gui(gpointer user_data) {
 	/* this function frees resources used in the GUI, some of these resources
 	 * need to be handled in the GTK+ main thread, so we use an idle function
 	 * to deal with them */
-	if (com.script || com.python_script)
-		execute_idle_and_wait_for_it(free_image_data_idle, NULL);
-	else free_image_data_idle(NULL);
+//	if (com.script || com.python_script)
+//		execute_idle_and_wait_for_it(free_image_data_idle, NULL);
+//	else free_image_data_idle(NULL);
+	free_image_data_idle(NULL); // No need to handle this separately for com.script
+	// as this function is now called with gui_function()
 	siril_debug_print("free_image_data_gui() called\n");
 
 	/* free display image data */
@@ -154,6 +156,7 @@ static void free_image_data_gui() {
 	}
 	clear_previews();
 	free_reference_image();
+	return FALSE;
 }
 
 /* frees resources when changing sequence or closing a single image */
@@ -177,8 +180,7 @@ void free_image_data() {
 		com.uniq = NULL;
 	}
 
-	if (!com.headless)
-		free_image_data_gui();
+	gui_function(free_image_data_gui, NULL);
 
 	clearfits(&gfit);
 }
@@ -304,28 +306,18 @@ int open_single_image(const char* filename) {
 		/* Now initializing com struct */
 		com.seq.current = UNRELATED_IMAGE;
 		create_uniq_from_gfit(realname, get_type_from_filename(realname) == TYPEFITS);
-		if (!com.headless) {
-			/* we don't need to use siril_add_idle here, because this idle
-			 * function needs to be called for load to work properly and
-			 * display the GUI for the loaded image. The image being loaded in
-			 * gfit, not displaying it may cause some inconsistencies,
-			 * possibly reported as a crash (see #770)
-			 */
-			if (com.script)
-				execute_idle_and_wait_for_it(end_open_single_image, NULL);
-			else end_open_single_image(NULL);
+		gui_function(end_open_single_image, NULL);
 		}
 	} else {
 		free(realname);
 	}
-	if (!com.script)
-		reset_cut_gui_filedependent();
+	gui_function(reset_cut_gui_filedependent, NULL);
 	check_gfit_profile_identical_to_monitor();
 	return retval;
 }
 
 /* updates the GUI to reflect the opening of a single image, found in gfit and com.uniq */
-void open_single_image_from_gfit() {
+gboolean open_single_image_from_gfit(gpointer user_data) {
 	siril_debug_print("open_single_image_from_gfit()\n");
 	/* now initializing everything
 	 * code based on seq_load_image or set_seq (sequence.c) */
@@ -355,6 +347,7 @@ void open_single_image_from_gfit() {
 
 	update_gfit_histogram_if_needed();
 	redraw(REMAP_ALL);
+	return FALSE;
 }
 
 /* searches the image for minimum and maximum pixel value, on each layer
