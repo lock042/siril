@@ -798,7 +798,7 @@ gpointer median_filter(gpointer p) {
 	if (!com.script && !args->previewing)
 		undo_save_state(&gfit, _("Median Filter (filter=%dx%d px)"),
 			args->ksize, args->ksize);
-	gboolean retval = GINT_TO_POINTER(1);
+	gpointer retval = GINT_TO_POINTER(1);
 	if (args->fit->type == DATA_USHORT)
 		retval = median_filter_ushort(p);
 	if (args->fit->type == DATA_FLOAT)
