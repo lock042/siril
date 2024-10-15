@@ -99,8 +99,6 @@ xx/xx/xx
 * Refactored Deconvolution (again...) to allow for sliced operation to prevent OOM errors (!753)
 * Refactored registration processes and GUI (#1285)
 * Added master distortion files (!686)
-* Preview dialogs no longer need to close for undo / redo (#1389)
-* Fix hang following median filter (#1394)
 
 siril 1.2.5
 xx/xx/xx
