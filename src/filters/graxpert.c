@@ -710,7 +710,7 @@ static gboolean end_graxpert(gpointer p) {
 	open_graxpert_result((graxpert_data *) p);
 	free_graxpert_data((graxpert_data *) p);
 	notify_gfit_modified();
-	launch_clipboard_survey();
+	gui_function(launch_clipboard_survey, NULL);
 	return end_generic(NULL);
 }
 

@@ -976,7 +976,7 @@ void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
 		refresh_star_list();		// To update star list with new preferences
 		if (com.found_object)
 			refresh_found_objects();
-		save_main_window_state();
+		save_main_window_state(NULL);
 		writeinitfile();
 		if (com.pref.graxpert_path && graxpert_changed) {
 			g_thread_unref(g_thread_new("graxpert_checks", graxpert_setup_async, NULL));

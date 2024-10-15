@@ -88,9 +88,9 @@ static gboolean free_image_data_idle(gpointer p) {
 	update_zoom_label();
 	update_display_fwhm();
 	adjust_sellabel();
-	update_MenuItem();
+	gui_function(update_MenuItem, NULL);
 	reset_3stars();
-	close_tab();	// close Green and Blue tabs
+	gui_function(close_tab, NULL);	// close Green and Blue tabs
 	free_cut_args(&gui.cut);
 	initialize_cut_struct(&gui.cut);
 
@@ -249,7 +249,7 @@ int read_single_image(const char *filename, fits *dest, char **realname_out,
 
 gboolean end_open_single_image(gpointer arg) {
 	com.icc.srgb_hint = FALSE;
-	open_single_image_from_gfit();
+	gui_function(open_single_image_from_gfit, NULL);
 	return FALSE;
 }
 
@@ -307,7 +307,6 @@ int open_single_image(const char* filename) {
 		com.seq.current = UNRELATED_IMAGE;
 		create_uniq_from_gfit(realname, get_type_from_filename(realname) == TYPEFITS);
 		gui_function(end_open_single_image, NULL);
-		}
 	} else {
 		free(realname);
 	}
@@ -318,7 +317,7 @@ int open_single_image(const char* filename) {
 
 /* updates the GUI to reflect the opening of a single image, found in gfit and com.uniq */
 gboolean open_single_image_from_gfit(gpointer user_data) {
-	siril_debug_print("open_single_image_from_gfit()\n");
+	siril_debug_print("gui_function(open_single_image_from_gfit, NULL)\n");
 	/* now initializing everything
 	 * code based on seq_load_image or set_seq (sequence.c) */
 
@@ -337,13 +336,13 @@ gboolean open_single_image_from_gfit(gpointer user_data) {
 	adjust_sellabel();
 
 	display_filename();	// display filename in gray window
-	set_precision_switch(); // set precision on screen
+	gui_function(set_precision_switch, NULL); // set precision on screen
 
 	/* update menus */
-	update_MenuItem();
+	gui_function(update_MenuItem, NULL);
 
-	close_tab();
-	init_right_tab();
+	gui_function(close_tab, NULL);
+	gui_function(init_right_tab, NULL);
 
 	update_gfit_histogram_if_needed();
 	redraw(REMAP_ALL);
@@ -406,18 +405,6 @@ int single_image_is_loaded() {
 
 /**************** updating the single image *******************/
 
-/* was level_adjust, to call when gfit changed and need min/max to be recomputed. */
-/* deprecated, use notify_gfit_modified() instead */
-void adjust_cutoff_from_updated_gfit() {
-	invalidate_stats_from_fit(&gfit);
-	invalidate_gfit_histogram();
-	if (!com.script) {
-		update_gfit_histogram_if_needed();
-		init_layers_hi_and_lo_values(gui.sliders);
-		set_cutoff_sliders_values();
-	}
-}
-
 /* generic idle function for end of operation on gfit */
 static gboolean end_gfit_operation() {
 	// this function should not contain anything required by the execution
@@ -429,7 +416,7 @@ static gboolean end_gfit_operation() {
 	update_gfit_histogram_if_needed();
 
 	/* update bit depth selector */
-	set_precision_switch();
+	gui_function(set_precision_switch, NULL);
 
 	/* update display of gfit name (useful if it changes) */
 	adjust_sellabel();
@@ -440,7 +427,7 @@ static gboolean end_gfit_operation() {
 	set_cutoff_sliders_values();
 
 	redraw(REMAP_ALL);	// queues a redraw if !com.script
-	redraw_previews();	// queues redraws if !com.script
+	gui_function(redraw_previews, NULL);	// queues redraws if !com.script
 
 	set_cursor_waiting(FALSE); // called from current thread if !com.script, idle else
 	return FALSE;
@@ -453,5 +440,5 @@ void notify_gfit_modified() {
 	invalidate_stats_from_fit(&gfit);
 	invalidate_gfit_histogram();
 
-	siril_add_idle(end_gfit_operation, NULL);
+	gui_function(end_gfit_operation, NULL);
 }

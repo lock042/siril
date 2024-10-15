@@ -1974,7 +1974,7 @@ int count_pattern_occurence(const gchar *string, const gchar *pattern) {
 
 	regex = g_regex_new(pattern, G_REGEX_RAW, 0, NULL);
 	g_regex_match(regex, string, 0, &match_info);
-	
+
 	// Loop through the matches
 	while (g_match_info_matches(match_info)) {
 		count++;
@@ -1984,4 +1984,24 @@ int count_pattern_occurence(const gchar *string, const gchar *pattern) {
 	g_match_info_free(match_info);
 	g_regex_unref(regex);
 	return count;
+}
+
+static gboolean is_in_gtk_main_thread(void) {
+    return g_main_context_is_owner(g_main_context_default());
+}
+
+guint gui_function(GSourceFunc idle_function, gpointer data) {
+	if (com.headless) {
+		return 0;
+	} else if (com.script) {
+		// we need to know the operation is complete before moving on
+		execute_idle_and_wait_for_it(idle_function, data);
+	} else if (is_in_gtk_main_thread()) {
+		// it is safe to call the function directly
+		idle_function(data);
+	} else {
+		// we aren't in the GTK main thread or a script, so we add an idle
+		siril_add_idle(idle_function, data);
+	}
+	return 0;
 }

@@ -199,7 +199,7 @@ int process_load(int nb){
 	expand_home_in_filename(filename, maxpath);
 
 	int retval = open_single_image(filename);
-	launch_clipboard_survey();
+	gui_function(launch_clipboard_survey, NULL);
 	return retval;
 }
 
@@ -328,7 +328,7 @@ int process_save(int nb){
 		retval = savefits(savename, &gfit);
 		set_cursor_waiting(FALSE);
 	}
-	set_precision_switch();
+	gui_function(set_precision_switch, NULL);
 
 	g_free(filename);
 	g_free(savename);
@@ -374,9 +374,9 @@ static gboolean end_denoise(gpointer p) {
 		copy_gfit_to_backup();
 		populate_roi();
 	}
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
 	free(args);
 	return FALSE;
@@ -1030,7 +1030,7 @@ int process_fdiv(int nb){
 	siril_fdiv(&gfit, &fit, norm, TRUE);
 
 	clearfits(&fit);
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
@@ -1050,7 +1050,7 @@ int process_fmul(int nb){
 		gfit.keywords.lo = (WORD)(gfit.mini * USHRT_MAX_SINGLE);
 		set_cutoff_sliders_max_values();
 	}
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
@@ -1288,7 +1288,7 @@ int process_getref(int nb) {
 
 	if (!seq->imgparam[ref_image].incl)
 		siril_log_message(_("Warning: this image is excluded from the sequence main processing list\n"));
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	return CMD_OK;
 }
 
@@ -2164,7 +2164,7 @@ int process_wrecons(int nb) {
 		else return CMD_GENERIC_ERROR;
 		g_free(dir[i]);
 	}
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
@@ -2541,7 +2541,7 @@ int process_wavelet(int nb) {
 
 int process_log(int nb){
 	loglut(&gfit);
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
@@ -2569,7 +2569,7 @@ int process_linear_match(int nb) {
 		image_cfa_warning_check();
 		set_cursor_waiting(TRUE);
 		apply_linear_to_fits(&gfit, a, b);
-		adjust_cutoff_from_updated_gfit();
+		notify_gfit_modified();
 		retval |= CMD_NOTIFY_GFIT_MODIFIED;
 	}
 	clearfits(&ref);
@@ -3525,7 +3525,7 @@ int process_rotate(int nb) {
 	// the new selection will match the current image
 	if (has_selection) {
 		com.selection = (rectangle){ 0, 0, gfit.rx, gfit.ry };
-		new_selection_zone();
+		gui_function(new_selection_zone, NULL);
 	}
 	update_zoom_label();
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
@@ -5032,7 +5032,7 @@ int process_new(int nb){
 
 	com.seq.current = UNRELATED_IMAGE;
 	create_uniq_from_gfit(strdup(_("new empty image")), FALSE);
-	open_single_image_from_gfit();
+	gui_function(open_single_image_from_gfit, NULL);
 	return CMD_OK;
 }
 
@@ -5313,7 +5313,7 @@ int process_findhot(int nb){
 
 int process_fix_xtrans(int nb) {
 	fix_xtrans_ac(&gfit);
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
@@ -5346,7 +5346,7 @@ int process_cosme(int nb) {
 		siril_log_color_message(_("There were some errors, please check your input file.\n"), "salmon");
 
 	invalidate_stats_from_fit(&gfit);
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
@@ -5447,6 +5447,7 @@ static gboolean clear_log_buffer(gpointer user_data) {
 	gtk_text_buffer_get_start_iter(tbuf, &start_iter);
 	gtk_text_buffer_get_end_iter(tbuf, &end_iter);
 	gtk_text_buffer_delete(tbuf, &start_iter, &end_iter);
+	return FALSE;
 }
 
 int process_clear(int nb) {
@@ -5456,9 +5457,9 @@ int process_clear(int nb) {
 
 int process_clearstar(int nb){
 	clear_stars_list(TRUE);
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	redraw(REDRAW_OVERLAY);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	return CMD_OK;
 }
 
@@ -5515,7 +5516,7 @@ int process_offset(int nb) {
 		return CMD_ARG_ERROR;
 	}
 	off(&gfit, (float)level);
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
@@ -9280,7 +9281,7 @@ int process_boxselect(int nb){
 	com.selection.h = h;
 	siril_log_message(_("Current selection [x, y, w, h]: %d %d %d %d\n"), x, y, w, h);
 	if (!com.script)
-		new_selection_zone();
+		gui_function(new_selection_zone, NULL);
 	return CMD_OK;
 }
 
@@ -11014,7 +11015,7 @@ int process_icc_assign(int nb) {
 	}
 	refresh_icc_transforms();
 	if (!com.headless)
-		gui_function(notify_gfit_modified, NULL);
+		notify_gfit_modified();
 
 	return CMD_OK;
 }
@@ -11084,7 +11085,7 @@ int process_icc_convert_to(int nb) {
 		gui_function(init_right_tab, NULL);
 	}
 	if (!com.headless)
-		gui_function(notify_gfit_modified, NULL);
+		notify_gfit_modified();
 	return CMD_OK;
 }
 
@@ -11093,7 +11094,7 @@ int process_icc_remove(int nb) {
 	siril_colorspace_transform(&gfit, NULL);
 	refresh_icc_transforms();
 	if (!com.headless)
-		gui_function(notify_gfit_modified, NULL);
+		notify_gfit_modified();
 
 	return CMD_OK;
 }

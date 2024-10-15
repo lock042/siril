@@ -384,7 +384,7 @@ static void siril_app_activate(GApplication *application) {
 		/* Passing GApplication to the control center */
 		gtk_window_set_application(GTK_WINDOW(GTK_APPLICATION_WINDOW(lookup_widget("control_window"))), GTK_APPLICATION(application));
 		/* Load state of the main windows (position and maximized) */
-		load_main_window_state();
+		gui_function(load_main_window_state, NULL);
 #if defined(HAVE_LIBCURL)
 		curl_global_init(CURL_GLOBAL_ALL);
 		/* Check for update */
@@ -426,7 +426,7 @@ static void siril_app_open(GApplication *application, GFile **files, gint n_file
 					set_seq(path);
 					if (!com.script) {
 						populate_seqcombo(path);
-						set_GUI_CWD();
+						gui_function(set_GUI_CWD, NULL);
 					}
 				}
 				g_free(sequence_dir);
@@ -439,7 +439,7 @@ static void siril_app_open(GApplication *application, GFile **files, gint n_file
 				g_free(image_dir);
 			}
 			if (!com.script)
-				set_GUI_CWD();
+				gui_function(set_GUI_CWD, NULL);
 			open_single_image(path);
 		}
 		g_free(path);

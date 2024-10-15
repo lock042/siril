@@ -723,7 +723,6 @@ gpointer init_python(void *user_data) {
 gboolean run_python_script_from_file(gpointer p) {
 	const char *script_path = (const char*) p; // must not be freed, it is owned by the list of script menu items
 	PyGILState_STATE gstate;
-	com.script = TRUE;
 	com.python_script = TRUE;
 	gstate = PyGILState_Ensure();  // Acquire the GIL
 	FILE *fp = g_fopen(script_path, "r");
@@ -772,7 +771,6 @@ gboolean run_python_script_from_file(gpointer p) {
 	}
 	PyGC_Collect(); // Force garbage collection, in case the script didn't bother
 	PyGILState_Release(gstate);  // Release the GIL
-	com.script = FALSE;
 	com.python_script = FALSE;
 	g_idle_add(script_widgets_idle, NULL);
 	return retval;

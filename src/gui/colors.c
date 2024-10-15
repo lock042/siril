@@ -154,7 +154,7 @@ void on_button_bkg_neutralization_clicked(GtkButton *button, gpointer user_data)
 
 	update_gfit_histogram_if_needed();
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
 }
 
@@ -283,7 +283,7 @@ void on_calibration_apply_button_clicked(GtkButton *button, gpointer user_data) 
 	delete_selected_area();
 
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	update_gfit_histogram_if_needed();
 	set_cursor_waiting(FALSE);
 }
@@ -316,7 +316,7 @@ void negative_processing() {
 	invalidate_gfit_histogram();
 	update_gfit_histogram_if_needed();
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
 }
 /**********************************************************************/

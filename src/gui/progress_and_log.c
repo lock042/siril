@@ -362,5 +362,4 @@ void set_cursor(const gchar* cursor_name) {
 	arg->cursor_name = cursor_name;
 
 	gui_function(idle_set_cursor, arg);
-	else idle_set_cursor(arg);
 }

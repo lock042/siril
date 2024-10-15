@@ -56,7 +56,7 @@ static gboolean end_rgradient_filter(gpointer p) {
 	struct rgradient_filter_data *args = (struct rgradient_filter_data *) p;
 	stop_processing_thread();
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
 
 	free(args);

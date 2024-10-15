@@ -87,7 +87,7 @@ void on_drawingarea_drag_data_received(GtkWidget *widget,
 								com.pref.wd = g_strdup(com.wd);
 								if (!com.script) {
 									populate_seqcombo(filename);
-									set_GUI_CWD();
+									gui_function(set_GUI_CWD, NULL);
 								}
 							}
 							g_free(sequence_dir);

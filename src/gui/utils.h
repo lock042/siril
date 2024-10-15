@@ -56,5 +56,4 @@ const char* get_cfa_from_pattern(sensor_pattern pattern);
 void interpolate_nongreen(fits *fit);
 OverrangeResponse apply_limits(fits *fit, double minval, double maxval, OverrangeResponse method);
 gboolean value_check(fits *fit); // checks for pixel values outside [0.0, 1.0]
-
 #endif /* SRC_GUI_UTILS_H_ */

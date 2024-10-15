@@ -33,7 +33,7 @@ static void set_selection_ratio(double ratio) {
 	gui.ratio = ratio;
 	enforce_ratio_and_clamp();
 	update_display_selection();
-	new_selection_zone();
+	gui_function(new_selection_zone, NULL);
 	redraw(REDRAW_OVERLAY);
 }
 

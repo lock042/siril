@@ -500,7 +500,7 @@ void on_display_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data
 
 	if (single_image_is_loaded() || sequence_is_loaded()) {
 		redraw(REMAP_ALL);
-		redraw_previews();
+		gui_function(redraw_previews, NULL);
 	}
 }
 
@@ -516,7 +516,7 @@ void on_autohd_item_toggled(GtkCheckMenuItem *menuitem, gpointer user_data) {
 			siril_log_message(_("The AutoStretch display mode will use a 16 bit LUT\n"));
 		}
 		redraw(REMAP_ALL);
-		redraw_previews();
+		gui_function(redraw_previews, NULL);
 	}
 }
 
@@ -532,7 +532,7 @@ void on_button_apply_hd_bitdepth_clicked(GtkSpinButton *button, gpointer user_da
 		if (gui.rendering_mode == STF_DISPLAY && gui.use_hd_remap && gfit.type == DATA_FLOAT) {
 			allocate_hd_remap_indices();
 			redraw(REMAP_ALL);
-			redraw_previews();
+			gui_function(redraw_previews, NULL);
 		}
 //		set_cursor_waiting(FALSE);
 	}
@@ -586,7 +586,7 @@ void set_unlink_channels(gboolean unlinked) {
 	siril_debug_print("channels unlinked: %d\n", unlinked);
 	gui.unlink_channels = unlinked;
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 }
 
 /* fill the label indicating how many images are selected in the gray and
@@ -734,7 +734,7 @@ gboolean update_MenuItem(gpointer user_data) {
 	/* keywords list */
 	if (gtk_widget_is_visible(lookup_widget("keywords_dialog")))
 		refresh_keywords_dialog(NULL);
-	return FALSE
+	return FALSE;
 }
 
 void sliders_mode_set_state(sliders_mode sliders) {
@@ -1054,7 +1054,7 @@ void on_precision_item_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_da
 			redraw(REMAP_ALL);
 		}
 	}
-	set_precision_switch();
+	gui_function(set_precision_switch, NULL);
 }
 
 gboolean set_precision_switch(gpointer user_data) {
@@ -1283,12 +1283,14 @@ void activate_tab(int vport) {
 		gtk_notebook_set_current_page(notebook, vport);
 	// com.cvport is set in the event handler for changed page
 }
-void init_right_tab() {
+
+gboolean init_right_tab(gpointer user_data) {
 	activate_tab(isrgb(&gfit) ? RGB_VPORT : RED_VPORT);
+	return FALSE;
 }
 
 gboolean update_spinCPU(gpointer user_data) {
-	int *max = (int*) user_data;
+	int max = *(int*) user_data;
 	static GtkSpinButton *spin_cpu = NULL;
 
 	if (spin_cpu == NULL) {
@@ -1298,6 +1300,7 @@ gboolean update_spinCPU(gpointer user_data) {
 		gtk_spin_button_set_range (spin_cpu, 1, (gdouble) max);
 	}
 	gtk_spin_button_set_value (spin_cpu, (gdouble) com.max_thread);
+	return FALSE;
 }
 
 /*****************************************************************************
@@ -1375,9 +1378,9 @@ static void init_GUI_from_settings() {
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("demosaicingButton")), com.pref.debayer.open_debayer);
 }
 
-void set_GUI_CWD() {
+gboolean set_GUI_CWD(gpointer user_data) {
 	if (!com.wd)
-		return;
+		return FALSE;
 	GtkHeaderBar *bar = GTK_HEADER_BAR(lookup_widget("headerbar"));
 
 	gchar *str = g_strdup_printf("Siril-%s", VERSION);
@@ -1388,6 +1391,7 @@ void set_GUI_CWD() {
 
 	g_free(str);
 	g_free(truncated_wd);
+	return FALSE;
 }
 
 static void initialize_preprocessing() {
@@ -1471,13 +1475,13 @@ static GtkTargetEntry drop_types[] = {
 
 static gboolean on_control_window_configure_event(GtkWidget *widget, GdkEvent *event,
 		gpointer user_data) {
-	save_main_window_state();
+	gui_function(save_main_window_state, NULL);
 	return FALSE;
 }
 
 static gboolean on_control_window_window_state_event(GtkWidget *widget, GdkEvent *event,
 		gpointer user_data) {
-	save_main_window_state();
+	gui_function(save_main_window_state, NULL);
 	return FALSE;
 }
 
@@ -1553,7 +1557,7 @@ void initialize_all_GUI(gchar *supported_files) {
 	siril_window_map_actions(GTK_APPLICATION_WINDOW(lookup_widget("seqlist_dialog")));
 
 	/* initialize menu gui */
-	update_MenuItem();
+	gui_function(update_MenuItem, NULL);
 	initialize_script_menu(TRUE);
 
 	/* initialize command processor */
@@ -1606,13 +1610,13 @@ void initialize_all_GUI(gchar *supported_files) {
 
 	siril_drag_single_image_set_dest();
 
-	set_GUI_CWD();
+	gui_function(set_GUI_CWD, NULL);
 	siril_log_message(_("Default FITS extension is set to %s\n"), com.pref.ext);
 
 	set_initial_display_mode((display_mode) com.pref.gui.default_rendering_mode);
 	set_initial_histogram_display_mode(com.pref.gui.display_histogram_mode);
 
-	update_spinCPU(com.max_thread);
+	update_spinCPU(&com.max_thread);
 
 	fill_astrometry_catalogue(com.pref.gui.catalog);
 	init_GUI_from_settings();
@@ -1708,7 +1712,7 @@ gboolean on_minscale_release(GtkWidget *widget, GdkEvent *event,
 		sliders_mode_set_state(gui.sliders);
 	}
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	return FALSE;
 }
 
@@ -1719,7 +1723,7 @@ gboolean on_maxscale_release(GtkWidget *widget, GdkEvent *event,
 		sliders_mode_set_state(gui.sliders);
 	}
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	return FALSE;
 }
 
@@ -1727,7 +1731,7 @@ gboolean on_maxscale_release(GtkWidget *widget, GdkEvent *event,
 void on_checkcut_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 	gui.cut_over = gtk_toggle_button_get_active(togglebutton);
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 }
 /* gamut check was toggled. */
 void on_gamutcheck_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
@@ -1739,7 +1743,7 @@ void on_gamutcheck_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
 		unlock_display_transform();
 	}
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 }
 
 void on_cosmEnabledCheck_toggled(GtkToggleButton *button, gpointer user_data) {
@@ -1927,7 +1931,7 @@ void on_radiobutton_minmax_toggled(GtkToggleButton *togglebutton,
 		set_cutoff_sliders_values();
 		if (gui.hi != oldhi || gui.lo != oldlo) {
 			redraw(REMAP_ALL);
-			redraw_previews();
+			gui_function(redraw_previews, NULL);
 		}
 	}
 }
@@ -1941,7 +1945,7 @@ void on_radiobutton_hilo_toggled(GtkToggleButton *togglebutton,
 		set_cutoff_sliders_values();
 		if (gui.hi != oldhi || gui.lo != oldlo) {
 			redraw(REMAP_ALL);
-			redraw_previews();
+			gui_function(redraw_previews, NULL);
 		}
 	}
 }
@@ -1977,7 +1981,7 @@ void setup_stretch_sliders() {
 	if (changed) {
 		set_cutoff_sliders_values();
 		redraw(REMAP_ALL);
-		redraw_previews();
+		gui_function(redraw_previews, NULL);
 	}
 }
 
@@ -1996,7 +2000,7 @@ void on_max_entry_changed(GtkEditable *editable, gpointer user_data) {
 		set_cutoff_sliders_values();
 
 		redraw(REMAP_ALL);
-		redraw_previews();
+		gui_function(redraw_previews, NULL);
 	}
 }
 
@@ -2045,7 +2049,7 @@ void on_min_entry_changed(GtkEditable *editable, gpointer user_data) {
 		set_cutoff_sliders_values();
 
 		redraw(REMAP_ALL);
-		redraw_previews();
+		gui_function(redraw_previews, NULL);
 	}
 }
 
@@ -2075,7 +2079,7 @@ void on_seqproc_entry_changed(GtkComboBox *widget, gpointer user_data) {
 		g_free(msg);
 	}
 	g_free(name);
-	launch_clipboard_survey();
+	gui_function(launch_clipboard_survey, NULL);
 }
 
 /* signal handler for the gray window layer change */

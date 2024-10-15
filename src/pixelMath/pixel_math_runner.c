@@ -332,7 +332,7 @@ static gboolean end_pixel_math_operation(gpointer p) {
 		icc_auto_assign(&gfit, ICC_ASSIGN_ON_COMPOSITION);
 		com.seq.current = UNRELATED_IMAGE;
 		create_uniq_from_gfit(strdup(_("Pixel Math result")), FALSE);
-		open_single_image_from_gfit();
+		gui_function(open_single_image_from_gfit, NULL);
 	}
 	else clearfits(args->fit);
 

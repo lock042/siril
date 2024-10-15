@@ -88,7 +88,8 @@ static gboolean reset_cut_gui(gpointer user_data) {
 	gtk_toggle_button_set_active(plot_spectro_bg, FALSE);
 	GtkEntry *title = (GtkEntry*) lookup_widget("cut_title");
 	gtk_entry_set_text(title, "Intensity Profile");
-	reset_cut_gui_filedependent()NULL;
+	reset_cut_gui_filedependent(NULL);
+	return FALSE;
 }
 
 void initialize_cut_struct(cut_struct *arg) {

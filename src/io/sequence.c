@@ -583,7 +583,7 @@ gboolean set_seq(gpointer user_data){
 		/* initialize image-related runtime data */
 		set_display_mode();		// display the display mode in the combo box
 		display_filename();		// display filename in gray window
-		set_precision_switch(); // set precision on screen
+		gui_function(set_precision_switch, NULL); // set precision on screen
 		adjust_refimage(seq->current);	// check or uncheck reference image checkbox
 		update_prepro_interface(seq->type == SEQ_REGULAR || seq->type == SEQ_FITSEQ); // enable or not the preprobutton
 		update_reg_interface(FALSE);	// change the registration prereq message
@@ -599,8 +599,8 @@ gboolean set_seq(gpointer user_data){
 		set_GUI_CAMERA();
 
 		/* redraw and display image */
-		close_tab();	//close Green and Blue Tab if a 1-layer sequence is loaded
-		init_right_tab();
+		gui_function(close_tab, NULL);	//close Green and Blue Tab if a 1-layer sequence is loaded
+		gui_function(init_right_tab, NULL);
 
 		redraw(REMAP_ALL);
 		drawPlot();
@@ -651,9 +651,9 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 		if (seq->is_variable)
 			clear_previews();
 		else
-			redraw_previews();		// redraw registration preview areas
+			gui_function(redraw_previews, NULL);		// redraw registration preview areas
 		display_filename();		// display filename in gray window
-		set_precision_switch(); // set precision on screen
+		gui_function(set_precision_switch, NULL); // set precision on screen
 		adjust_reginfo();		// change registration displayed/editable values
 		update_display_fwhm();
 		update_gfit_histogram_if_needed();
@@ -661,7 +661,7 @@ int seq_load_image(sequence *seq, int index, gboolean load_it) {
 		reset_3stars();
 	}
 
-	update_MenuItem();		// initialize menu gui
+	gui_function(update_MenuItem, NULL);		// initialize menu gui
 	set_GUI_CAMERA();		// update image information
 	sequence_list_change_current();
 	adjust_refimage(index);	// check or uncheck reference image checkbox

@@ -199,7 +199,7 @@ gboolean new_selection_zone(gpointer user_data) {
 void delete_selected_area() {
 	memset(&com.selection, 0, sizeof(rectangle));
 	if (!com.script)
-		new_selection_zone();
+		gui_function(new_selection_zone, NULL);
 	if (gui.roi.active && com.pref.gui.roi_mode == ROI_AUTO)
 		on_clear_roi();
 }
@@ -395,7 +395,7 @@ gboolean on_drawingarea_button_release_event(GtkWidget *widget,
 
 		button_release.function(&data);
 		clear_release_callback();
-		update_MenuItem();
+		gui_function(update_MenuItem, NULL);
 	}
 	return FALSE;
 }

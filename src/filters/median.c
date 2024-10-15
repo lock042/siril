@@ -265,9 +265,9 @@ static gboolean end_median_filter(gpointer p) {
 		populate_roi();
 	}
 	stop_processing_thread();
-	adjust_cutoff_from_updated_gfit();
+	notify_gfit_modified();
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	set_cursor_waiting(FALSE);
 	free(args);
 	return FALSE;
@@ -805,6 +805,6 @@ gpointer median_filter(gpointer p) {
 	unlock_roi_mutex();
 	siril_add_idle(end_median_filter, args);
 	if (args->fit == &gfit)
-		gui_function(notify_gfit_modified, NULL);
+		notify_gfit_modified();
 	return GINT_TO_POINTER(1);
 }

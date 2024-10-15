@@ -373,7 +373,7 @@ static void opendial(int whichdial) {
 					g_free(com.pref.wd);
 				com.pref.wd = g_strdup(com.wd);
 				writeinitfile();
-				set_GUI_CWD();
+				gui_function(set_GUI_CWD, NULL);
 			} else {
 				siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), err);
 			}

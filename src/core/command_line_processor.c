@@ -266,15 +266,15 @@ static void clear_status_bar() {
 static gboolean end_script(gpointer p) {
 	/* GTK+ code is ignored during scripts, this is a good place to redraw everything */
 	clear_status_bar();
-	set_GUI_CWD();
-	update_MenuItem();
-	adjust_cutoff_from_updated_gfit();
+	gui_function(set_GUI_CWD, NULL);
+	gui_function(update_MenuItem, NULL);
+	notify_gfit_modified();
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	update_zoom_label();
 	update_display_fwhm();
 	display_filename();
-	new_selection_zone();
+	gui_function(new_selection_zone, NULL);
 	update_spinCPU(0);
 	set_cursor_waiting(FALSE);
 	return FALSE;
@@ -800,7 +800,7 @@ void on_command_activate(GtkEntry *entry, gpointer user_data) {
 	history_add_line(strdup(text));
 	if (!(processcommand(text))) {
 		gtk_entry_set_text(entry, "");
-		set_precision_switch();
+		gui_function(set_precision_switch, NULL);
 	}
 }
 

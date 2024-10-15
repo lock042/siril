@@ -309,7 +309,7 @@ int visu(fits *fit, int low, int high) {
 	gui.hi = high;
 	set_cutoff_sliders_values();
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 	return 0;
 }
 

@@ -105,8 +105,9 @@ static gboolean cm_worker(gpointer user_data) {
 
 void color_manage(fits *fit, gboolean active) {
 	fit->color_managed = active;
+	struct cm_struct data = { fit, active };
 	if (fit == &gfit && !com.script) {
-		gui_function(cm_worker, cm_data);
+		gui_function(cm_worker, &data);
 	}
 }
 
@@ -556,7 +557,7 @@ void on_proofing_profile_clear_clicked(GtkButton* button, gpointer user_data) {
 	gtk_widget_set_sensitive((GtkWidget*) togglebutton, FALSE);
 	refresh_icc_transforms();
 	redraw(REMAP_ALL);
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 }
 
 void on_custom_monitor_profile_active_toggled(GtkToggleButton *button, gpointer user_data) {

@@ -216,7 +216,7 @@ static int listFITSKeywords(fits *fit, gboolean editable) {
 }
 
 void on_keywords_dialog_show(GtkWidget *dialog, gpointer user_data) {
-	refresh_keywords_dialog();
+	gui_function(refresh_keywords_dialog, NULL);
 }
 
 static void remove_selected_keys () {
@@ -631,7 +631,7 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 				}
 			} else {
 				updateFITSKeyword(&gfit, key, NULL, value, comment, TRUE, FALSE);
-				refresh_keywords_dialog();
+				gui_function(refresh_keywords_dialog, NULL);
 				scroll_to_end();
 			}
 		}
@@ -689,6 +689,7 @@ gboolean refresh_keywords_dialog(gpointer user_data) {
 	listFITSKeywords(&gfit, is_a_single_image_loaded);
 	if (gfit.header)
 		show_header_text(gfit.header);
+	return FALSE;
 }
 
 void on_notebook_keywords_switch_page (GtkNotebook* self, GtkWidget* page, guint page_num, gpointer user_data) {

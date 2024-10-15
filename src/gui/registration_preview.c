@@ -270,7 +270,7 @@ void on_toggle_preview_toggled(GtkToggleButton *toggle, gpointer user_data) {
 }
 
 void on_checkbutton_displayref_toggled(GtkToggleButton *togglebutton, gpointer user_data) {
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 }
 
 /* display registration data (shift{x|y} for now) in the manual adjustments */
@@ -342,7 +342,7 @@ void on_spinbut_shift_value_change(GtkSpinButton *spinbutton, gpointer user_data
 	writeseqfile(&com.seq);
 	update_seqlist(current_layer);
 	fill_sequence_list(&com.seq, current_layer, FALSE);	// update list with new regparam
-	redraw_previews();
+	gui_function(redraw_previews, NULL);
 }
 
 /* enables or disables the "display reference" checkbox in registration preview */
