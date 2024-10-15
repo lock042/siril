@@ -781,8 +781,6 @@ gboolean run_python_script_from_mem(gpointer p) {
 	const char *script_contents = (const char*) p;
 	PyGILState_STATE gstate;
 	gstate = PyGILState_Ensure();  // Acquire the GIL
-	com.script = TRUE;
-	com.python_script = TRUE;
 	int retval = FALSE;
 	PyObject *main_module = PyImport_AddModule("__main__");
 	if (main_module == NULL) {
@@ -790,7 +788,9 @@ gboolean run_python_script_from_mem(gpointer p) {
 		retval = FALSE;
 	} else {
 		PyObject *globals = PyModule_GetDict(main_module);
+		com.python_script = TRUE;
 		PyObject *result = PyRun_String(script_contents, Py_file_input, globals, globals);
+		com.python_script = FALSE;
 
 		if (result == NULL) {
 			// An exception occurred
@@ -818,8 +818,6 @@ gboolean run_python_script_from_mem(gpointer p) {
 	}
 	PyGC_Collect(); // Force garbage collection, in case the script didn't bother
 	PyGILState_Release(gstate);  // Release the GIL
-	com.script = FALSE;
-	com.python_script = FALSE;
 	// Note: script_widgets_idle() call is omitted as per the original comment
 	return retval;
 }

@@ -126,11 +126,12 @@ static gboolean free_image_data_gui(gpointer user_data) {
 	/* this function frees resources used in the GUI, some of these resources
 	 * need to be handled in the GTK+ main thread, so we use an idle function
 	 * to deal with them */
-//	if (com.script || com.python_script)
-//		execute_idle_and_wait_for_it(free_image_data_idle, NULL);
-//	else free_image_data_idle(NULL);
-	free_image_data_idle(NULL); // No need to handle this separately for com.script
-	// as this function is now called with gui_function()
+	if (com.script)
+		execute_idle_and_wait_for_it(free_image_data_idle, NULL);
+	else if (com.python_script)
+		siril_add_idle(free_image_data_idle, NULL);
+	else
+		free_image_data_idle(NULL);
 	siril_debug_print("free_image_data_gui() called\n");
 
 	/* free display image data */
@@ -306,7 +307,7 @@ int open_single_image(const char* filename) {
 		/* Now initializing com struct */
 		com.seq.current = UNRELATED_IMAGE;
 		create_uniq_from_gfit(realname, get_type_from_filename(realname) == TYPEFITS);
-		gui_function(end_open_single_image, NULL);
+		execute_idle_and_wait_for_it(end_open_single_image, NULL);
 	} else {
 		free(realname);
 	}
