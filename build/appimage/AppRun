@@ -22,7 +22,7 @@ fi
 export PATH="${HERE}/usr/bin:${PATH}"
 # Set Python-related environment variables
 export PYTHONHOME="${HERE}/usr"
-export PYTHONPATH="${HERE}/usr/lib/python3.12:${HERE}/usr/lib/python3.12/site-packages:${PYTHONPATH}"
+export PYTHONPATH="${HERE}/usr/lib/python3:${HERE}/usr/lib/python3/site-packages:${PYTHONPATH}"
 ############################################################################################
 # Run experimental bundle that bundles everything if a private ld-linux-x86-64.so.2 is there
 ############################################################################################

@@ -53,8 +53,8 @@ if [ -d usr/share/glib-2.0/schemas/ ] ; then
   ( cd usr/share/glib-2.0/schemas/ ; glib-compile-schemas . )
 fi
 
-# Install Python 3.12 and pip
-apt_bundle python3.12 python3-pip
+# Install Python3 and pip
+apt_bundle python3 python3-pip
 # Create symlinks for python3 and pip3
 ln -s python3.12 usr/bin/python3
 ln -s pip3.12 usr/bin/pip3
@@ -74,8 +74,8 @@ for so in $(find \
     linuxdeployqtargs+=("-executable=$(readlink -f "$so")")
 done
 # Add Python to the AppImage
-linuxdeployqtargs+=("-executable=appdir/usr/bin/python3.12")
-linuxdeployqtargs+=("-executable=appdir/usr/bin/pip3.12")
+linuxdeployqtargs+=("-executable=appdir/usr/bin/python3")
+linuxdeployqtargs+=("-executable=appdir/usr/bin/pip3")
 ./linuxdeployqt-continuous-x86_64.AppImage --appimage-extract-and-run appdir/usr/share/applications/org.siril.Siril.desktop \
   -appimage -unsupported-bundle-everything \
   "${linuxdeployqtargs[@]}"
