@@ -407,6 +407,7 @@ struct pref_struct {
 	struct comp_config comp;
 	struct spcc_favourites spcc;
 	fftw_params fftw_conf;
+	int max_slice_size; // Used when processing img_t in slices to limit the wisdom required
 	icc_params icc;
 	GList *selected_scripts;
 	gboolean use_scripts_repository;
