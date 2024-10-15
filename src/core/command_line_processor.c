@@ -556,7 +556,7 @@ static gboolean on_command_key_press_event(GtkWidget *widget, GdkEventKey *event
 	return (handled == 1);
 }
 
-int processcommand(const char *line) {
+int processcommand(const char *line, gboolean wait_for_completion) {
 	int wordnb = 0;
 	GError *error = NULL;
 
@@ -605,11 +605,14 @@ int processcommand(const char *line) {
 		int ret = execute_command(wordnb);
 		if (ret) {
 			siril_log_color_message(_("Command execution failed: %s.\n"), "red", cmd_err_to_str(ret));
-			if (!com.script && !com.headless && (ret == CMD_WRONG_N_ARG || ret == CMD_ARG_ERROR)) {
+			if (!(com.script || com.python_script) && !com.headless && (ret == CMD_WRONG_N_ARG || ret == CMD_ARG_ERROR)) {
 				gui_function(show_command_help_popup, GTK_ENTRY(lookup_widget("command")));
 			}
 			free(myline);
 			return 1;
+		}
+		if (wait_for_completion) {
+			waiting_for_thread();
 		}
 		free(myline);
 	}
@@ -798,7 +801,7 @@ static void history_add_line(char *line) {
 void on_command_activate(GtkEntry *entry, gpointer user_data) {
 	const gchar *text = gtk_entry_get_text(entry);
 	history_add_line(strdup(text));
-	if (!(processcommand(text))) {
+	if (!(processcommand(text, FALSE))) {
 		gtk_entry_set_text(entry, "");
 		gui_function(set_precision_switch, NULL);
 	}

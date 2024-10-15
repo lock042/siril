@@ -214,8 +214,9 @@ PyObject* siril_processcommand(PyObject* self, PyObject* args) {
 			}
 		}
 	}
-
-	int result = processcommand(full_command->str);
+	siril_debug_print("starting command\n");
+	int result = processcommand(full_command->str, TRUE);
+	siril_debug_print("ended command\n");
 	g_string_free(full_command, TRUE);
 
 	return PyLong_FromLong(result);
