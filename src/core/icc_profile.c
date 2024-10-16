@@ -106,8 +106,8 @@ static gboolean cm_worker(gpointer user_data) {
 void color_manage(fits *fit, gboolean active) {
 	fit->color_managed = active;
 	struct cm_struct data = { fit, active };
-	if (fit == &gfit && !com.script) {
-		gui_function(cm_worker, &data);
+	if (fit == &gfit && !(com.script || com.python_script)) {
+		cm_worker(&data);
 	}
 }
 

@@ -1993,9 +1993,6 @@ static gboolean is_in_gtk_main_thread(void) {
 guint gui_function(GSourceFunc idle_function, gpointer data) {
 	if (com.headless) {
 		return 0;
-	} else if (com.script) {
-		// we need to know the operation is complete before moving on
-		execute_idle_and_wait_for_it(idle_function, data);
 	} else if (is_in_gtk_main_thread()) {
 		// it is safe to call the function directly
 		idle_function(data);

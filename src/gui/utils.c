@@ -95,7 +95,7 @@ static gboolean switch_tab(gpointer user_data) {
 }
 
 void control_window_switch_to_tab(main_tabs tab) {
-	if (com.script || com.headless)
+	if (com.script || com.python_script || com.headless)
 		return;
 	gui_function(switch_tab, &tab);
 }

@@ -767,7 +767,7 @@ failure: // failure before the eval loop
 		free(args->fit);
 		free(args);
 	}
-	else if (com.script)
+	else if (com.script || com.python_script)
 		execute_idle_and_wait_for_it(end_pixel_math_operation, args);
 	else
 		siril_add_idle(end_pixel_math_operation, args);
