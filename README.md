@@ -19,7 +19,7 @@ Contributors are welcome. Programming language is C, with parts in C++.
 Main development is done with most recent versions of libraries.
 
 If you use Siril in your work, please cite this software using the following information:
-C. Richard et al., Journal of Open Source Software, 2024, DOI:
+C. Richard et al., Journal of Open Source Software, 2024, 9(102), 7242. DOI:
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.07242/status.svg)](https://doi.org/10.21105/joss.07242).
 
 ## Requirements
