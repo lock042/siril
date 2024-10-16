@@ -40,11 +40,12 @@ GtkDialog *python_dialog = NULL;
 GtkLabel *script_label = NULL;
 GtkWidget *code_view = NULL;
 GtkSourceBuffer *sourcebuffer = NULL;
+GtkScrolledWindow *scrolled_window = NULL;
 
 void add_code_view(GtkBuilder *builder) {
 	GtkSourceLanguageManager *language_manager = NULL;
 	GtkSourceLanguage *language = NULL;
-	GtkScrolledWindow *scrolled_window = GTK_SCROLLED_WINDOW(gtk_builder_get_object(builder, "python_scrolled_window"));
+
 
 	// Create a new GtkSourceView
 	code_view = gtk_source_view_new();
@@ -98,8 +99,16 @@ void python_scratchpad_init_statics() {
 		button_python_pad_execute = GTK_BUTTON(gtk_builder_get_object(gui.builder, "button_python_pad_execute"));
 		// GtkDialog
 		python_dialog = GTK_DIALOG(gtk_builder_get_object(gui.builder, "python_dialog"));
+		// GtkSCrolledWindow
+		scrolled_window = GTK_SCROLLED_WINDOW(gtk_builder_get_object(gui.builder, "python_scrolled_window"));
 		// GtkLabel
-		script_label = GTK_LABEL(gtk_builder_get_object(gui.builder, "script_label"));
+		script_label = GTK_LABEL(gtk_label_new("unsaved"));
+		gtk_widget_show(GTK_WIDGET(script_label));
+		GtkWidget *parent = lookup_widget("python_pad_box");
+		if (parent) {
+			gtk_box_pack_start(GTK_BOX(parent), GTK_WIDGET(script_label), TRUE, TRUE, 0);
+			gtk_box_reorder_child(GTK_BOX(parent), GTK_WIDGET(scrolled_window), 1);
+		}
 		add_code_view(gui.builder);
 	}
 }
@@ -309,12 +318,15 @@ void on_button_python_pad_execute_clicked(GtkWidget *widget, gpointer user_data)
 }
 
 void on_button_python_pad_clear_clicked(GtkWidget *widget, gpointer user_data) {
+    g_print("script_label pointer: %p\n", (void*)script_label);  // Check if it's NULL
 	// Get the start and end iterators
 	GtkTextIter start, end;
 	gtk_text_buffer_get_bounds(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
 	if (siril_confirm_dialog(_("Are you sure?"), _("This will clear the entry buffer. You will not be able to recover any contents."), _("Proceed"))) {
 		gtk_text_buffer_delete(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
+		g_print("Setting label to 'unsaved'\n");
 		gtk_label_set_text(script_label, _("unsaved"));
+		g_print("Label text is now: %s\n", gtk_label_get_text(script_label));
 		gtk_widget_queue_draw(GTK_WIDGET(python_dialog));
 	}
 }
