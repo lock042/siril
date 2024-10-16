@@ -1,25 +1,26 @@
 /*
- * This file is part of Siril, an astronomy image processor.
- * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
- * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
- * Reference site is https://siril.org
- *
- * Siril is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Siril is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Siril. If not, see <http://www.gnu.org/licenses/>.
- */
+* This file is part of Siril, an astronomy image processor.
+* Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+* Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+* Reference site is https://siril.org
+*
+* Siril is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* Siril is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with Siril. If not, see <http://www.gnu.org/licenses/>.
+*/
 
 #include "core/siril.h"
 #include "core/command.h"
+#include "core/command_line_processor.h" // for load_sequence - TODO: move this to sequence.c
 #include "algos/demosaicing.h"
 #include "algos/extraction.h"
 #include "algos/siril_wcs.h"
@@ -136,6 +137,70 @@ void on_merge_cfa_filechooser_CFA3_file_set(GtkFileChooser *filechooser, gpointe
 	}
 }
 
+
+#include <glib.h>
+#include <stdio.h>
+
+gchar* replace_string_number(const gchar* input, const gchar* string, guint n) {
+	gchar* result;
+	GRegex* regex;
+	gchar* pattern;
+	gchar* replacement;
+
+	// Escape the string to handle special regex characters
+	gchar* escaped_string = g_regex_escape_string(string, -1);
+
+	// Create a regex pattern to match string followed by any number
+	pattern = g_strdup_printf("%s(\\d+)", escaped_string);
+	regex = g_regex_new(pattern, 0, 0, NULL);
+
+	// Create the replacement string
+	replacement = g_strdup_printf("%s%u", string, n);
+
+	// Replace the first occurrence of "stringm" with "stringn"
+	result = g_regex_replace(regex, input, -1, 0, replacement, 0, NULL);
+
+	// Clean up
+	g_regex_unref(regex);
+	g_free(pattern);
+	g_free(replacement);
+	g_free(escaped_string);
+
+	return result;
+}
+
+#include <glib.h>
+#include <stdio.h>
+
+gint find_substring_number(const gchar* input, const gchar* substring) {
+	GRegex* regex;
+	GMatchInfo* match_info;
+	gint result = -1;
+	gchar* pattern;
+
+	// Escape the substring to handle special regex characters
+	gchar* escaped_substring = g_regex_escape_string(substring, -1);
+
+	// Create a regex pattern to match substring followed by a digit
+	pattern = g_strdup_printf("%s(\\d)", escaped_substring);
+	regex = g_regex_new(pattern, 0, 0, NULL);
+
+	if (g_regex_match(regex, input, 0, &match_info)) {
+		gchar* match_string = g_match_info_fetch(match_info, 1);
+		if (match_string) {
+			result = g_ascii_strtoll(match_string, NULL, 10);
+			g_free(match_string);
+		}
+	}
+
+	g_match_info_free(match_info);
+	g_regex_unref(regex);
+	g_free(pattern);
+	g_free(escaped_substring);
+
+	return result;
+}
+
 void apply_to_seq() {
 	if (com.seq.type == SEQ_SER) {
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: sequence is SER"),
@@ -144,17 +209,110 @@ void apply_to_seq() {
 	}
 	GtkEntry *entryMergeCFAin = GTK_ENTRY(lookup_widget("entryMergeCFAin"));
 	GtkEntry *entryMergeCFAout = GTK_ENTRY(lookup_widget("entryMergeCFAout"));
+	const gchar *seqmarker = gtk_entry_get_text(entryMergeCFAin);
+	int comseqnumber = find_substring_number(com.seq.seqname, seqmarker);
+	if (comseqnumber == -1) {
+		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error"), _("Error: input sequence CFA marker not found"));
+		return;
+	} else {
+		siril_log_message(_("Identified the loaded sequence as CFA%d\n"), comseqnumber);
+	}
+	gchar *seqname0 = replace_string_number(com.seq.seqname, seqmarker, 0);
+	gchar *seqname1 = replace_string_number(com.seq.seqname, seqmarker, 1);
+	gchar *seqname2 = replace_string_number(com.seq.seqname, seqmarker, 2);
+	gchar *seqname3 = replace_string_number(com.seq.seqname, seqmarker, 3);
+
 	struct merge_cfa_data *args = calloc(1, sizeof(struct merge_cfa_data));
-	args->seqEntryIn = gtk_entry_get_text(entryMergeCFAin);
-	if (args->seqEntryIn && args->seqEntryIn[0] == '\0')
-		args->seqEntryIn = "CFA";
 	args->seqEntryOut = strdup(gtk_entry_get_text(entryMergeCFAout));
 	if (args->seqEntryOut && args->seqEntryOut[0] == '\0')
 		args->seqEntryOut = "mCFA_";
 	GtkComboBox *combo_pattern = GTK_COMBO_BOX(lookup_widget("merge_cfa_pattern"));
 	gint p = gtk_combo_box_get_active(combo_pattern);
 	args->pattern = (sensor_pattern) p;
-	args->seq = &com.seq;
+	sequence *seq0 = NULL, *seq1 = NULL, *seq2 = NULL, *seq3 = NULL;
+	if (comseqnumber != 0) {
+		seq0 = load_sequence(seqname0, NULL);
+		if (!seq0)
+			return;
+		if (seq0->nb_layers > 1) {
+			free_sequence(seq0, TRUE);
+			seq0 = NULL;
+			siril_message_dialog( GTK_MESSAGE_ERROR, _("Error"), _("Error: sequence has more than one channel, this is for mono (CFA subchannel) sequences"));
+			return;
+		}
+	} else {
+		seq0 = &com.seq;
+	}
+	if (comseqnumber != 1) {
+		seq1 = load_sequence(seqname1, NULL);
+		if (!seq1)
+			return;
+		if (seq1->nb_layers > 1) {
+			free_sequence(seq1, TRUE);
+			seq1 = NULL;
+			siril_message_dialog( GTK_MESSAGE_ERROR, _("Error"), _("Error: sequence has more than one channel, this is for mono (CFA subchannel) sequences"));
+			return;
+		}
+	} else {
+		seq1 = &com.seq;
+	}
+	if (comseqnumber != 2) {
+		seq2 = load_sequence(seqname2, NULL);
+		if (!seq2)
+			return;
+		if (seq2->nb_layers > 1) {
+			free_sequence(seq2, TRUE);
+			seq2 = NULL;
+			siril_message_dialog( GTK_MESSAGE_ERROR, _("Error"), _("Error: sequence has more than one channel, this is for mono (CFA subchannel) sequences"));
+			return;
+		}
+	} else {
+		seq2 = &com.seq;
+	}
+	if (comseqnumber != 3) {
+		seq3 = load_sequence(seqname3, NULL);
+		if (!seq3)
+			return;
+		if (seq3->nb_layers > 1) {
+			free_sequence(seq3, TRUE);
+			seq3 = NULL;
+			siril_message_dialog( GTK_MESSAGE_ERROR, _("Error"), _("Error: sequence has more than one channel, this is for mono (CFA subchannel) sequences"));
+		return;
+			return;
+		}
+	} else {
+		seq3 = &com.seq;
+	}
+	if (seq0 == NULL || seq1 == NULL || seq2 == NULL || seq3 == NULL) {
+		if (!check_seq_is_comseq(seq0))
+			free_sequence(seq0, TRUE);
+		if (!check_seq_is_comseq(seq1))
+			free_sequence(seq1, TRUE);
+		if (!check_seq_is_comseq(seq3))
+			free_sequence(seq2, TRUE);
+		if (!check_seq_is_comseq(seq3))
+			free_sequence(seq3, TRUE);
+		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error"), _("Error: not all sequences loaded correctly"));
+		return;
+	}
+
+	if ((seq0->rx != seq1->rx || seq0->rx != seq2->rx || seq0->rx != seq3->rx) ||
+	(seq0->ry != seq1->ry || seq0->ry != seq2->ry || seq0->ry != seq3->ry) ||
+	(seq0->nb_layers != seq1->nb_layers || seq0->nb_layers != seq2->nb_layers || seq0->nb_layers != seq3->nb_layers) ||
+	(seq0->bitpix != seq1->bitpix || seq0->bitpix != seq2->bitpix || seq0->bitpix != seq3->bitpix) ||
+	(seq0->number != seq1->number || seq0->number != seq2->number || seq0->number != seq3->number)) {
+		siril_log_color_message(_("Error: sequences don't match (dimensions, bitdepth, number of images must all be the same)\n"), "red");
+		if (!check_seq_is_comseq(seq0))
+			free_sequence(seq0, TRUE);
+		free_sequence(seq0, TRUE);
+		free_sequence(seq1, TRUE);
+		free_sequence(seq2, TRUE);
+		return;
+	}
+	args->seq0 = seq0;
+	args->seq1 = seq1;
+	args->seq2 = seq2;
+	args->seq3 = seq3;
 
 	apply_mergecfa_to_sequence(args);
 	control_window_switch_to_tab(OUTPUT_LOGS);
