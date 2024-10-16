@@ -30,6 +30,78 @@
 #include "gui/dialogs.h"
 #include "gui/utils.h"
 
+#include <gtksourceview/gtksource.h>
+
+// Statics declarations
+
+GtkButton *button_python_pad_close = NULL, *button_python_pad_clear = NULL, *button_python_pad_open = NULL, *button_python_pad_save = NULL, *button_python_pad_execute = NULL;
+GtkDialog *python_dialog = NULL;
+GtkLabel *script_label = NULL;
+GtkWidget *code_view = NULL;
+GtkSourceBuffer *sourcebuffer = NULL;
+
+void add_code_view(GtkBuilder *builder) {
+	GtkSourceLanguageManager *language_manager = NULL;
+	GtkSourceLanguage *language = NULL;
+	GtkScrolledWindow *scrolled_window = GTK_SCROLLED_WINDOW(gtk_builder_get_object(builder, "python_scrolled_window"));
+
+	// Create a new GtkSourceView
+	code_view = gtk_source_view_new();
+	gtk_source_view_set_show_line_numbers(GTK_SOURCE_VIEW(code_view), TRUE);
+	gtk_widget_set_vexpand(code_view, TRUE);
+	gtk_widget_set_hexpand(code_view, TRUE);
+
+	// Create a new GtkSourceBuffer
+	sourcebuffer = gtk_source_buffer_new(NULL);
+	gtk_text_view_set_buffer(GTK_TEXT_VIEW(code_view), GTK_TEXT_BUFFER(sourcebuffer));
+
+	// Set additional properties for GtkSourceView
+	gtk_text_view_set_monospace(GTK_TEXT_VIEW(code_view), TRUE);
+	gtk_source_view_set_auto_indent(GTK_SOURCE_VIEW(code_view), TRUE);
+	gtk_source_view_set_insert_spaces_instead_of_tabs(GTK_SOURCE_VIEW(code_view), TRUE);
+	gtk_source_view_set_indent_on_tab(GTK_SOURCE_VIEW(code_view), TRUE);
+
+	// Get the GtkSourceLanguageManager and set the Python language
+	language_manager = gtk_source_language_manager_get_default();
+	language = gtk_source_language_manager_get_language(language_manager, "python");
+	if (language == NULL) {
+		siril_debug_print("Could not find Python language definition\n");
+	} else {
+		gtk_source_buffer_set_language(sourcebuffer, language);
+		siril_debug_print("Set buffer language to Python\n");
+	}
+
+	// Enable syntax highlighting
+	gtk_source_buffer_set_highlight_syntax(sourcebuffer, TRUE);
+
+	// Add the GtkSourceView to the GtkScrolledWindow
+	gtk_container_add(GTK_CONTAINER(scrolled_window), code_view);
+
+	// Ensure the GtkSourceView is visible and expanded
+	gtk_widget_set_visible(GTK_WIDGET(code_view), TRUE);
+	gtk_widget_set_visible(GTK_WIDGET(scrolled_window), TRUE);
+
+	// Show all widgets in the dialog
+	gtk_widget_show_all(GTK_WIDGET(python_dialog));
+}
+
+// Statics init
+void python_scratchpad_init_statics() {
+	if (python_dialog == NULL) {
+		// GtkButton
+		button_python_pad_close = GTK_BUTTON(gtk_builder_get_object(gui.builder, "button_python_pad_close"));
+		button_python_pad_clear = GTK_BUTTON(gtk_builder_get_object(gui.builder, "button_python_pad_clear"));
+		button_python_pad_open = GTK_BUTTON(gtk_builder_get_object(gui.builder, "button_python_pad_open"));
+		button_python_pad_save = GTK_BUTTON(gtk_builder_get_object(gui.builder, "button_python_pad_save"));
+		button_python_pad_execute = GTK_BUTTON(gtk_builder_get_object(gui.builder, "button_python_pad_execute"));
+		// GtkDialog
+		python_dialog = GTK_DIALOG(gtk_builder_get_object(gui.builder, "python_dialog"));
+		// GtkLabel
+		script_label = GTK_LABEL(gtk_builder_get_object(gui.builder, "script_label"));
+		add_code_view(gui.builder);
+	}
+}
+
 int on_open_pythonpad(GtkMenuItem *menuitem, gpointer user_data) {
 	siril_open_dialog("python_dialog");
 	return 0;
@@ -127,9 +199,8 @@ void on_button_python_pad_open_clicked(GtkWidget *widget, gpointer user_data) {
 			return;
 		}
 		gsize length;
-		GtkTextBuffer *buffer = GTK_TEXT_BUFFER(lookup_widget("python_textbuffer"));
 		gchar *text = read_stream_into_gchar(input_stream, &length, &error);
-		gtk_text_buffer_set_text(buffer, text, -1);
+		gtk_text_buffer_set_text(GTK_TEXT_BUFFER(sourcebuffer), text, -1);
 		g_input_stream_close(input_stream, NULL, NULL);
 		g_object_unref(input_stream);
 		g_free(text);
@@ -137,16 +208,18 @@ void on_button_python_pad_open_clicked(GtkWidget *widget, gpointer user_data) {
 	}
 }
 
-void on_button_python_pad_save_clicked(GtkWidget *widget, gpointer user_data) {
-	// Get the text buffer from the widget
-	GtkTextBuffer *buffer = GTK_TEXT_BUFFER(lookup_widget("python_textbuffer"));
+void on_python_dialog_show(GtkWidget *widget, gpointer user_data) {
+	if (!python_dialog)
+		python_scratchpad_init_statics();
+}
 
+void on_button_python_pad_save_clicked(GtkWidget *widget, gpointer user_data) {
 	// Get the start and end iterators
 	GtkTextIter start, end;
-	gtk_text_buffer_get_bounds(buffer, &start, &end);
+	gtk_text_buffer_get_bounds(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
 
 	// Get the text between start and end iterators
-	char *text = gtk_text_buffer_get_text(buffer, &start, &end, FALSE);
+	char *text = gtk_text_buffer_get_text(GTK_TEXT_BUFFER(sourcebuffer), &start, &end, FALSE);
 
 	// Create a file chooser dialog for saving
 	GtkWidget *dialog = gtk_file_chooser_dialog_new(_("Save Python Script"),
@@ -216,21 +289,18 @@ void on_button_python_pad_save_clicked(GtkWidget *widget, gpointer user_data) {
 	gtk_widget_destroy(dialog);
 }
 
-
 void on_button_python_pad_execute_clicked(GtkWidget *widget, gpointer user_data) {
-	GtkTextBuffer *buffer = GTK_TEXT_BUFFER(lookup_gobject("python_textbuffer"));
 	// Get the start and end iterators
 	GtkTextIter start, end;
-	gtk_text_buffer_get_bounds(buffer, &start, &end);
+	gtk_text_buffer_get_bounds(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
 	// Get the text
-	char *text = gtk_text_buffer_get_text(buffer, &start, &end, FALSE);
+	char *text = gtk_text_buffer_get_text(GTK_TEXT_BUFFER(sourcebuffer), &start, &end, FALSE);
 	run_python_script_in_python_thread(text, FALSE);
 }
 
 void on_button_python_pad_clear_clicked(GtkWidget *widget, gpointer user_data) {
-	GtkTextBuffer *buffer = GTK_TEXT_BUFFER(lookup_widget("python_textbuffer"));
 	// Get the start and end iterators
 	GtkTextIter start, end;
-	gtk_text_buffer_get_bounds(buffer, &start, &end);
-	gtk_text_buffer_delete(buffer, &start, &end);
+	gtk_text_buffer_get_bounds(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
+	gtk_text_buffer_delete(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
 }
