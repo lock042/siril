@@ -802,7 +802,7 @@ gboolean run_python_script_from_mem(gpointer p) {
 			const char* err_msg = PyUnicode_AsUTF8(str_exc_value);
 
 			// Log the error
-			siril_log_message(_("Error in Python script (memory): %s\n"), err_msg);
+			siril_log_message(_("Error in Python script: %s\n"), err_msg);
 
 			Py_XDECREF(str_exc_value);
 			Py_XDECREF(type);

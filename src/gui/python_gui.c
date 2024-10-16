@@ -40,6 +40,103 @@ void on_python_pad_close_clicked(GtkWidget *widget, gpointer user_data) {
 	siril_close_dialog("python_dialog");
 }
 
+static gchar* read_stream_into_gchar(GInputStream* stream, gsize* length, GError** error) {
+	// TODO: is there already a Siril function that does this?
+	gsize buffer_size = 4096;  // Initial buffer size, you can adjust this.
+	gsize total_bytes_read = 0;
+	gssize bytes_read;
+	gchar* buffer = g_malloc(buffer_size);  // Allocate an initial buffer
+
+	if (!buffer) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
+
+	while ((bytes_read = g_input_stream_read(stream, buffer + total_bytes_read, buffer_size - total_bytes_read, NULL, error)) > 0) {
+		total_bytes_read += bytes_read;
+
+		if (total_bytes_read == buffer_size) {
+			// Expand buffer size if necessary
+			buffer_size *= 2;
+			buffer = g_realloc(buffer, buffer_size);
+
+			if (!buffer) {
+				PRINT_ALLOC_ERR;
+				return NULL;
+			}
+		}
+	}
+
+	if (bytes_read == -1) {
+		// Handle read error
+		g_free(buffer);
+		return NULL;
+	}
+
+	// Null-terminate the result and resize buffer to exact length
+	buffer = g_realloc(buffer, total_bytes_read + 1);
+	buffer[total_bytes_read] = '\0';
+
+	if (length) {
+		*length = total_bytes_read;  // Set the length if requested
+	}
+
+	return buffer;
+}
+
+void on_button_python_pad_open_clicked(GtkWidget *widget, gpointer user_data) {
+	// Create a file chooser dialog for saving
+	GtkWidget *dialog = gtk_file_chooser_dialog_new(_("Save Python Script"),
+			GTK_WINDOW(lookup_widget("control_window")),
+			GTK_FILE_CHOOSER_ACTION_SAVE,
+			_("_Cancel"), GTK_RESPONSE_CANCEL,
+			_("_Save"), GTK_RESPONSE_ACCEPT,
+			NULL);
+
+	// Set up a filter for .py files
+	GtkFileFilter *filter = gtk_file_filter_new();
+	gtk_file_filter_add_pattern(filter, "*.py");
+	gtk_file_filter_set_name(filter, _("Python Files (*.py)"));
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+
+	// Show the dialog and capture the response
+	gint res = gtk_dialog_run(GTK_DIALOG(dialog));
+	if (res == GTK_RESPONSE_ACCEPT) {
+		char *filename;
+		GtkFileChooser *chooser = GTK_FILE_CHOOSER(dialog);
+		filename = gtk_file_chooser_get_filename(chooser);
+
+		/* Expand home directory in filename */
+		expand_home_in_filename(filename, 256);
+
+		/* Switch to console tab */
+		control_window_switch_to_tab(OUTPUT_LOGS);
+
+		GFile *file = g_file_new_for_path(filename);
+		GError *error = NULL;
+		GInputStream *input_stream = (GInputStream*) g_file_read(file, NULL, &error);
+
+		if (input_stream == NULL) {
+			if (error != NULL) {
+				g_clear_error(&error);
+				siril_log_message(_("File [%s] does not exist\n"), filename);
+			}
+			g_object_unref(file);
+			g_free(filename);
+			gtk_widget_destroy(dialog);
+			return;
+		}
+		gsize length;
+		GtkTextBuffer *buffer = GTK_TEXT_BUFFER(lookup_widget("python_textbuffer"));
+		gchar *text = read_stream_into_gchar(input_stream, &length, &error);
+		gtk_text_buffer_set_text(buffer, text, -1);
+		g_input_stream_close(input_stream, NULL, NULL);
+		g_object_unref(input_stream);
+		g_free(text);
+		gtk_widget_destroy(dialog);
+	}
+}
+
 void on_button_python_pad_save_clicked(GtkWidget *widget, gpointer user_data) {
 	// Get the text buffer from the widget
 	GtkTextBuffer *buffer = GTK_TEXT_BUFFER(lookup_widget("python_textbuffer"));
