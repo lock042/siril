@@ -43,8 +43,8 @@
             "sources": [
                 {
                     "type": "archive",
-                    "url": "https://www.python.org/ftp/python/3.11.3/Python-3.11.3.tar.xz",
-                    "sha256": "8a5db99c961a7ecf27c75956189c9602c968761bd48e4a11cc69b874bf6e81a2"
+                    "url": "https://www.python.org/ftp/python/3.12.7/Python-3.12.7.tar.xz",
+                    "sha256": "24887b92e2afd4a2ac602419ad4b596372f67ac9b077190f459aba390faf5550"
                 }
             ]
         },
