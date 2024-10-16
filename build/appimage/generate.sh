@@ -57,10 +57,10 @@ fi
 apt_bundle python3 python3-pip
 
 # Ensure Python3 binary exists before creating symlink
-if [ -f usr/bin/python3.12 ]; then
-    ln -s python3.12 usr/bin/python3
+if [ -f usr/bin/python3.9 ]; then
+    ln -s python3.9 usr/bin/python3
 else
-    echo "Error: Python3.12 binary not found in usr/bin"
+    echo "Error: Python3.9 binary not found in usr/bin"
     exit 1
 fi
 
