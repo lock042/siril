@@ -56,10 +56,7 @@ fi
 # Install Python3 and pip
 apt_bundle python3 python3-pip
 # Create symlinks for python3 and pip3
-rm /usr/bin/python3
 ln -s python3.12 usr/bin/python3
-rm /usr/bin/pip3
-ln -s pip3.12 usr/bin/pip3
 # Ensure pip is up to date
 ./usr/bin/python3 -m pip install --upgrade pip
 
