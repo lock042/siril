@@ -26,9 +26,12 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_log.h"
+#include "core/processing.h"
+#include "core/command_line_processor.h"
 #include "python/siril_python.h"
 #include "gui/dialogs.h"
 #include "gui/message_dialog.h"
+#include "gui/script_menu.h"
 #include "gui/utils.h"
 
 #include <gtksourceview/gtksource.h>
@@ -41,12 +44,18 @@ GtkLabel *script_label = NULL;
 GtkWidget *code_view = NULL;
 GtkSourceBuffer *sourcebuffer = NULL;
 GtkScrolledWindow *scrolled_window = NULL;
+GtkComboBox *combo_language = NULL;
+GtkSourceLanguageManager *language_manager = NULL;
+GtkSourceLanguage *language = NULL;
+
+enum {
+	LANG_PYTHON,
+	LANG_SSF
+};
+
+static gint active_language = LANG_PYTHON;
 
 void add_code_view(GtkBuilder *builder) {
-	GtkSourceLanguageManager *language_manager = NULL;
-	GtkSourceLanguage *language = NULL;
-
-
 	// Create a new GtkSourceView
 	code_view = gtk_source_view_new();
 	gtk_source_view_set_show_line_numbers(GTK_SOURCE_VIEW(code_view), TRUE);
@@ -91,6 +100,8 @@ void add_code_view(GtkBuilder *builder) {
 // Statics init
 void python_scratchpad_init_statics() {
 	if (python_dialog == NULL) {
+		// GtkComboBox
+		combo_language = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "python_pad_language"));
 		// GtkButton
 		button_python_pad_close = GTK_BUTTON(gtk_builder_get_object(gui.builder, "button_python_pad_close"));
 		button_python_pad_clear = GTK_BUTTON(gtk_builder_get_object(gui.builder, "button_python_pad_clear"));
@@ -115,6 +126,7 @@ void python_scratchpad_init_statics() {
 
 int on_open_pythonpad(GtkMenuItem *menuitem, gpointer user_data) {
 	siril_open_dialog("python_dialog");
+	gtk_combo_box_set_active(combo_language, active_language);
 	gtk_widget_grab_focus(code_view);
 	return 0;
 }
@@ -123,9 +135,24 @@ void on_python_pad_close_clicked(GtkWidget *widget, gpointer user_data) {
 	siril_close_dialog("python_dialog");
 }
 
+void on_python_pad_language_changed(GtkComboBox *combo, gpointer user_data) {
+	active_language = gtk_combo_box_get_active(combo);
+	if (active_language == LANG_PYTHON) {
+		language = gtk_source_language_manager_get_language(language_manager, "python");
+	} else {
+		language = gtk_source_language_manager_get_language(language_manager, "bash"); // in the absence of a proper SSF definition, this will do
+	}
+	if (language == NULL) {
+		siril_debug_print("Could not find  language definition\n");
+	} else {
+		gtk_source_buffer_set_language(sourcebuffer, language);
+		siril_debug_print("Set buffer languages\n");
+	}
+}
+
 static gchar* read_stream_into_gchar(GInputStream* stream, gsize* length, GError** error) {
 	// TODO: is there already a Siril function that does this?
-	gsize buffer_size = 4096;  // Initial buffer size, you can adjust this.
+	gsize buffer_size = 4096;  // Initial buffer size
 	gsize total_bytes_read = 0;
 	gssize bytes_read;
 	gchar* buffer = g_malloc(buffer_size);  // Allocate an initial buffer
@@ -169,7 +196,7 @@ static gchar* read_stream_into_gchar(GInputStream* stream, gsize* length, GError
 
 void on_button_python_pad_open_clicked(GtkWidget *widget, gpointer user_data) {
 	// Create a file chooser dialog for saving
-	GtkWidget *dialog = gtk_file_chooser_dialog_new(_("Save Python Script"),
+	GtkWidget *dialog = gtk_file_chooser_dialog_new(_("Open Script"),
 			GTK_WINDOW(lookup_widget("control_window")),
 			GTK_FILE_CHOOSER_ACTION_SAVE,
 			_("_Cancel"), GTK_RESPONSE_CANCEL,
@@ -179,7 +206,8 @@ void on_button_python_pad_open_clicked(GtkWidget *widget, gpointer user_data) {
 	// Set up a filter for .py files
 	GtkFileFilter *filter = gtk_file_filter_new();
 	gtk_file_filter_add_pattern(filter, "*.py");
-	gtk_file_filter_set_name(filter, _("Python Files (*.py)"));
+	gtk_file_filter_add_pattern(filter, "*.ssf");
+	gtk_file_filter_set_name(filter, _("Script Files (*.py, *.ssf)"));
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 
 	// Show the dialog and capture the response
@@ -218,6 +246,11 @@ void on_button_python_pad_open_clicked(GtkWidget *widget, gpointer user_data) {
 		} else {
 			gtk_label_set_text(script_label, _("unsaved"));
 		}
+		if (!strcmp(get_filename_ext(filename), "py")) {
+			gtk_combo_box_set_active(combo_language, LANG_PYTHON);
+		} else if (strcmp(get_filename_ext(filename), "py")) {
+			gtk_combo_box_set_active(combo_language, LANG_SSF);
+		}
 		gtk_widget_queue_draw(GTK_WIDGET(python_dialog));
 		g_object_unref(input_stream);
 		g_free(text);
@@ -249,7 +282,8 @@ void on_button_python_pad_save_clicked(GtkWidget *widget, gpointer user_data) {
 	// Set up a filter for .py files
 	GtkFileFilter *filter = gtk_file_filter_new();
 	gtk_file_filter_add_pattern(filter, "*.py");
-	gtk_file_filter_set_name(filter, _("Python Files (*.py)"));
+	gtk_file_filter_add_pattern(filter, "*.ssf");
+	gtk_file_filter_set_name(filter, _("Script Files (*.py, *.ssf)"));
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 
 	// Show the dialog and capture the response
@@ -314,7 +348,34 @@ void on_button_python_pad_execute_clicked(GtkWidget *widget, gpointer user_data)
 	gtk_text_buffer_get_bounds(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
 	// Get the text
 	char *text = gtk_text_buffer_get_text(GTK_TEXT_BUFFER(sourcebuffer), &start, &end, FALSE);
-	run_python_script_in_python_thread(text, FALSE);
+	switch (active_language) {
+		case LANG_PYTHON:
+			run_python_script_in_python_thread(text, FALSE);
+			break;
+		case LANG_SSF:
+			GInputStream *input_stream = g_memory_input_stream_new_from_data(text, strlen(text), NULL);
+			if (get_thread_run()) {
+				PRINT_ANOTHER_THREAD_RUNNING;
+				return;
+			}
+
+			if (com.script_thread)
+				g_thread_join(com.script_thread);
+
+			/* Switch to console tab */
+			control_window_switch_to_tab(OUTPUT_LOGS);
+			/* Last thing before running the script, disable widgets except for Stop */
+			script_widgets_enable(FALSE);
+
+			/* Run the script */
+			siril_log_message(_("Starting script\n"));
+			com.script_thread = g_thread_new("script", execute_script, input_stream);
+			break;
+		default:
+			siril_debug_print("Error: unknown script language\n");
+			break;
+	}
+	// TODO: Neither case properly cleans up text yet
 }
 
 void on_button_python_pad_clear_clicked(GtkWidget *widget, gpointer user_data) {

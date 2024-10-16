@@ -389,7 +389,7 @@ gpointer execute_script(gpointer p) {
 
 	if (!com.headless) {
 		com.script = FALSE;
-		siril_add_idle(end_script, NULL);
+		gui_function(end_script, NULL);
 	}
 
 	/* Now we want to restore the saved cwd */
