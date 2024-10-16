@@ -202,11 +202,13 @@ gint find_substring_number(const gchar* input, const gchar* substring) {
 }
 
 void apply_to_seq() {
-	if (com.seq.type == SEQ_SER) {
+	// This should work with SER now as it uses generic sequence functions
+	// to get the FITS. TODO: remove this commented code if nobody complains before 1.4.0-beta
+/*	if (com.seq.type == SEQ_SER) {
 		siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: sequence is SER"),
 				_("Only FITS format is supported for CFA merging"));
 		return;
-	}
+	}*/
 	GtkEntry *entryMergeCFAin = GTK_ENTRY(lookup_widget("entryMergeCFAin"));
 	GtkEntry *entryMergeCFAout = GTK_ENTRY(lookup_widget("entryMergeCFAout"));
 	const gchar *seqmarker = gtk_entry_get_text(entryMergeCFAin);

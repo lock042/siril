@@ -1373,41 +1373,17 @@ int mergecfa_image_hook(struct generic_seq_args *args, int out_index, int in_ind
 	fits cfa2 = { 0 };
 	fits cfa3 = { 0 };
 	fits *out = { 0 };
-	char *cfa1_f = calloc(256, sizeof(char));
-	char *cfa2_f = calloc(256, sizeof(char));
-	char *cfa3_f = calloc(256, sizeof(char));
-	// Don't need cfa0_f as cfa0 is already in fit
-	cfa1_f = seq_get_image_filename(merge_cfa_args->seq1, out_index, cfa1_f);
-	cfa2_f = seq_get_image_filename(merge_cfa_args->seq2, out_index, cfa2_f);
-	cfa3_f = seq_get_image_filename(merge_cfa_args->seq3, out_index, cfa3_f);
-
-	if (cfa1_f == NULL) {
-		retval = 1;
-		siril_log_message(_("Image %d: error identifying CFA1 filename\n"), args->seq->current);
-		goto CLEANUP_MERGECFA;
-	}
-	if (cfa2_f == NULL) {
-		retval = 1;
-		siril_log_message(_("Image %d: error identifying CFA2 filename\n"), args->seq->current);
-		goto CLEANUP_MERGECFA;
-	}
-	if (cfa3_f == NULL) {
-		retval = 1;
-		siril_log_message(_("Image %d: error identifying CFA3 filename\n"), args->seq->current);
-		goto CLEANUP_MERGECFA;
-	}
-
-	retval = readfits(cfa1_f, &cfa1, NULL, FALSE);
+	retval = seq_read_frame(merge_cfa_args->seq1, out_index, &cfa1, args->seq->bitpix == 16, -1);
 	if(retval != 0) {
 		siril_log_message(_("Image %d: error opening CFA1 file\n"), args->seq->current);
 		goto CLEANUP_MERGECFA;
 	}
-	retval = readfits(cfa2_f, &cfa2, NULL, FALSE);
+	retval = seq_read_frame(merge_cfa_args->seq2, out_index, &cfa2, args->seq->bitpix == 16, -1);
 	if(retval != 0) {
 		siril_log_message(_("Image %d: error opening CFA2 file\n"), args->seq->current);
 		goto CLEANUP_MERGECFA;
 	}
-	retval = readfits(cfa3_f, &cfa3, NULL, FALSE);
+	retval = seq_read_frame(merge_cfa_args->seq3, out_index, &cfa3, args->seq->bitpix == 16, -1);
 	if(retval != 0) {
 		siril_log_message(_("Image %d: error opening CFA3 file\n"), args->seq->current);
 		goto CLEANUP_MERGECFA;
@@ -1429,9 +1405,6 @@ CLEANUP_MERGECFA:
 	clearfits(&cfa1);
 	clearfits(&cfa2);
 	clearfits(&cfa3);
-	free(cfa1_f);
-	free(cfa2_f);
-	free(cfa3_f);
 
 	return retval;
 }
@@ -1439,6 +1412,22 @@ CLEANUP_MERGECFA:
 int mergecfa_finalize_hook(struct generic_seq_args *args) {
 	struct merge_cfa_data *data = (struct merge_cfa_data *) args->user;
 	int retval = seq_finalize_hook(args);
+	if (data->seq0 != args->seq && !check_seq_is_comseq(data->seq0)) {
+		free_sequence(data->seq0, TRUE);
+		data->seq0 = NULL;
+	}
+	if (data->seq1 != args->seq && !check_seq_is_comseq(data->seq1)) {
+		free_sequence(data->seq1, TRUE);
+		data->seq1 = NULL;
+	}
+	if (data->seq2 != args->seq && !check_seq_is_comseq(data->seq2)) {
+		free_sequence(data->seq2, TRUE);
+		data->seq2 = NULL;
+	}
+	if (data->seq3 != args->seq && !check_seq_is_comseq(data->seq3)) {
+		free_sequence(data->seq3, TRUE);
+		data->seq3 = NULL;
+	}
 	free(data);
 	return retval;
 }
