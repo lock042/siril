@@ -55,8 +55,23 @@ fi
 
 # Install Python3 and pip
 apt_bundle python3 python3-pip
-# Create symlinks for python3 and pip3
-ln -s python3.12 usr/bin/python3
+
+# Ensure Python3 binary exists before creating symlink
+if [ -f usr/bin/python3.12 ]; then
+    ln -s python3.12 usr/bin/python3
+else
+    echo "Error: Python3.12 binary not found in usr/bin"
+    exit 1
+fi
+
+# Create symlink for pip3 if necessary
+if [ -f usr/bin/pip3 ]; then
+    ln -s pip3 usr/bin/pip
+else
+    echo "Error: pip3 binary not found in usr/bin"
+    exit 1
+fi
+
 # Ensure pip is up to date
 ./usr/bin/python3 -m pip install --upgrade pip
 
@@ -72,7 +87,7 @@ for so in $(find \
     -name \*.so); do
     linuxdeployqtargs+=("-executable=$(readlink -f "$so")")
 done
-# Add Python to the AppImage
+# Add Python to the AppImage using linuxdeploy
 linuxdeployqtargs+=("-executable=appdir/usr/bin/python3")
 linuxdeployqtargs+=("-executable=appdir/usr/bin/pip3")
 ./linuxdeployqt-continuous-x86_64.AppImage --appimage-extract-and-run appdir/usr/share/applications/org.siril.Siril.desktop \
