@@ -67,6 +67,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
     <file compressed="true" preprocess="xml-stripblanks" alias="merge_cfa_dialog.ui">gui/uifiles/merge_cfa_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="mouse_actions.ui">gui/uifiles/mouse_actions.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="pixelmath.ui">gui/uifiles/pixelmath.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks" alias="python_scratchpad.ui">gui/uifiles/python_scratchpad.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="resample_dialog.ui">gui/uifiles/resample_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="rgradient_dialog.ui">gui/uifiles/rgradient_dialog.ui</file>
     <file compressed="true" preprocess="xml-stripblanks" alias="rotation_dialog.ui">gui/uifiles/rotation_dialog.ui</file>
