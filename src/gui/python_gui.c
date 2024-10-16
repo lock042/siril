@@ -28,6 +28,7 @@
 #include "core/siril_log.h"
 #include "python/siril_python.h"
 #include "gui/dialogs.h"
+#include "gui/message_dialog.h"
 #include "gui/utils.h"
 
 #include <gtksourceview/gtksource.h>
@@ -57,6 +58,7 @@ void add_code_view(GtkBuilder *builder) {
 
 	// Set additional properties for GtkSourceView
 	gtk_text_view_set_monospace(GTK_TEXT_VIEW(code_view), TRUE);
+	gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(code_view), GTK_WRAP_WORD_CHAR);
 	gtk_source_view_set_auto_indent(GTK_SOURCE_VIEW(code_view), TRUE);
 	gtk_source_view_set_insert_spaces_instead_of_tabs(GTK_SOURCE_VIEW(code_view), TRUE);
 	gtk_source_view_set_indent_on_tab(GTK_SOURCE_VIEW(code_view), TRUE);
@@ -104,9 +106,9 @@ void python_scratchpad_init_statics() {
 
 int on_open_pythonpad(GtkMenuItem *menuitem, gpointer user_data) {
 	siril_open_dialog("python_dialog");
+	gtk_widget_grab_focus(code_view);
 	return 0;
 }
-
 
 void on_python_pad_close_clicked(GtkWidget *widget, gpointer user_data) {
 	siril_close_dialog("python_dialog");
@@ -202,6 +204,12 @@ void on_button_python_pad_open_clicked(GtkWidget *widget, gpointer user_data) {
 		gchar *text = read_stream_into_gchar(input_stream, &length, &error);
 		gtk_text_buffer_set_text(GTK_TEXT_BUFFER(sourcebuffer), text, -1);
 		g_input_stream_close(input_stream, NULL, NULL);
+		if (length > 0) {
+			gtk_label_set_text(script_label, filename);
+		} else {
+			gtk_label_set_text(script_label, _("unsaved"));
+		}
+		gtk_widget_queue_draw(GTK_WIDGET(python_dialog));
 		g_object_unref(input_stream);
 		g_free(text);
 		gtk_widget_destroy(dialog);
@@ -275,6 +283,8 @@ void on_button_python_pad_save_clicked(GtkWidget *widget, gpointer user_data) {
 			g_clear_error(&error);
 		} else {
 			siril_log_message(_("Successfully saved file [%s]\n"), filename);
+			gtk_label_set_text(script_label, filename);
+			gtk_widget_queue_draw(GTK_WIDGET(python_dialog));
 		}
 
 		// Clean up and release resources
@@ -302,5 +312,9 @@ void on_button_python_pad_clear_clicked(GtkWidget *widget, gpointer user_data) {
 	// Get the start and end iterators
 	GtkTextIter start, end;
 	gtk_text_buffer_get_bounds(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
-	gtk_text_buffer_delete(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
+	if (siril_confirm_dialog(_("Are you sure?"), _("This will clear the entry buffer. You will not be able to recover any contents."), _("Proceed"))) {
+		gtk_text_buffer_delete(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
+		gtk_label_set_text(script_label, _("unsaved"));
+		gtk_widget_queue_draw(GTK_WIDGET(python_dialog));
+	}
 }
