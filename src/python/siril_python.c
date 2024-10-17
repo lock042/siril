@@ -26,6 +26,7 @@
 
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
+#include <wchar.h>
 #include <datetime.h>
 
 #include "core/siril.h"
@@ -581,130 +582,190 @@ PyMODINIT_FUNC PyInit_siril(void) {
 		Py_DECREF(m);
 		return NULL;
 	}
-
-
-
 	return m;
 }
 
 // Functions to do with initializing and finalizing the interpreter
 
-static gboolean check_or_create_python_venv(const char *venv_dir, gboolean *already_active) {
-	const char *current_venv = g_getenv("VIRTUAL_ENV");
-	*already_active = FALSE;
-	if (current_venv) {
-		siril_log_message(_("A virtual environment is already active: %s. Using the active virtual environment\n"), current_venv);
-		*already_active = TRUE;
-		return TRUE;
-	}
+// Helper function to check if venv exists and is properly configured
+static int check_venv(const char* venv_path) {
+    char pip_path[1024];
+    snprintf(pip_path, sizeof(pip_path), "%s/bin/pip", venv_path);
 
-	char *venv_python = NULL;
-	#ifdef _WIN32
-	venv_python = g_build_filename(venv_dir, "bin", "python.exe", NULL);
-	#else
-	venv_python = g_build_filename(venv_dir, "bin", "python", NULL);
-	#endif
-	gboolean venv_exists = g_file_test(venv_python, G_FILE_TEST_IS_EXECUTABLE);
-	g_free(venv_python);
-	if (venv_exists) {
-		siril_debug_print("A virtual environment already exists: %s\n", venv_dir);
-		return TRUE;
-	}
-
-	// Create a new venv
-	char *python_path = NULL;
-	#ifdef _WIN32
-	python_path = g_find_program_in_path("python.exe");
-	#else
-	python_path = g_find_program_in_path("python3");
-	if (!python_path) {
-		python_path = g_find_program_in_path("python");
-	}
-	#endif
-
-	if (!python_path) {
-		siril_log_message(_("Python not found. Cannot create virtual environment.\n"));
-		return FALSE;
-	}
-
-	char *argv[] = {python_path, "-m", "venv", (char *)venv_dir, NULL};
-	gchar *stdout_output = NULL, *stderr_output = NULL;
-	GError *error = NULL;
-	gint exit_status;
-
-	gboolean success = g_spawn_sync(
-		NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL,
-		&stdout_output, &stderr_output, &exit_status, &error
-	);
-
-	g_free(python_path);
-
-	if (!success) {
-		siril_log_message(_("Failed to create Python virtual environment: %s"), error->message);
-		g_clear_error(&error);
-		g_free(stdout_output);
-		g_free(stderr_output);
-		return FALSE;
-	}
-
-	if (exit_status != 0) {
-		siril_log_message(_("Python virtual environment creation failed with exit code %d: %s"), exit_status, stderr_output);
-		g_free(stdout_output);
-		g_free(stderr_output);
-		return FALSE;
-	}
-	siril_log_message(_("Created Python virtual environment: %s\n"), venv_dir);
-
-	g_free(stdout_output);
-	g_free(stderr_output);
-
-	return TRUE;
+    FILE* f = fopen(pip_path, "r");
+    if (f) {
+        fclose(f);
+        return 1;
+    }
+    return 0;
 }
 
-// calls the activate script of venv folder
-static gboolean activate_python_venv(const char *venv_dir) {
-	gchar *bashpath = NULL;
-	gchar *activate_loc = g_strdup_printf("%s/bin/activate", venv_dir);
-	bashpath = g_find_program_in_path("bash");
-	char *argv[] = {bashpath, "source", activate_loc, NULL};
+// Helper function to create and configure venv
+static int setup_venv(PyConfig* config, const char* venv_path) {
+    PyStatus status = Py_InitializeFromConfig(config);
+    if (PyStatus_Exception(status)) {
+        return 0;
+    }
 
-	gchar *stdout_output = NULL, *stderr_output = NULL;
-	GError *error = NULL;
-	gint exit_status;
+    // Import venv and create a new environment
+    PyRun_SimpleString("import venv\n"
+                      "import sys\n"
+                      "import os\n"
+                      "\n"
+                      "def setup_venv(path):\n"
+                      "    builder = venv.EnvBuilder(\n"
+                      "        system_site_packages=False,\n"
+                      "        clear=True,\n"
+                      "        with_pip=True,\n"
+                      "        upgrade_deps=True\n"
+                      "    )\n"
+                      "    builder.create(path)\n"
+                      "\n"
+                      "    # Ensure pip is up to date\n"
+                      "    pip_path = os.path.join(path, 'bin', 'pip')\n"
+                      "    if os.path.exists(pip_path):\n"
+                      "        os.system(f'{pip_path} install --upgrade pip setuptools wheel')\n"
+                      "\n"
+                      "venv_path = sys.argv[1] if len(sys.argv) > 1 else None\n"
+                      "if venv_path:\n"
+                      "    setup_venv(venv_path)\n");
 
-	gboolean success = g_spawn_sync(
-		NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL,
-		&stdout_output, &stderr_output, &exit_status, &error);
-
-	g_free(bashpath);
-	g_free(activate_loc);
-
-	if (!success) {
-		siril_log_message(_("Failed to activate Python virtual environment: %s\n"), error->message);
-		g_clear_error(&error);
-		g_free(stdout_output);
-		g_free(stderr_output);
-		return FALSE;
-	}
-
-	siril_log_message(_("Activated Python virtual environment: %s\n"), venv_dir);
-	return TRUE;
+    // Clean up the temporary Python instance
+    Py_Finalize();
+    return 1;
 }
 
 // Function to initialize Python interpreter and load our module
 gpointer init_python(void *user_data) {
-	gchar* venv_dir = g_build_filename(g_get_user_data_dir(), "siril", "venv", NULL);
-	gboolean already_active;
-	gboolean venv_created = check_or_create_python_venv(venv_dir, &already_active);
+	// Set up venv
+	gchar* venv_path = g_build_filename(g_get_user_data_dir(), "siril", "venv", NULL);
+    PyStatus status;
+
+    // Check if venv exists and is properly configured
+    if (!check_venv(venv_path)) {
+        printf("Virtual environment not found or incomplete. Setting up...\n");
+
+        // Set up initial config for venv creation
+        PyConfig config_setup;
+        PyConfig_InitPythonConfig(&config_setup);
+
+        // Minimal configuration for venv setup
+        config_setup.isolated = 0;  // Temporarily disable isolation for setup
+        config_setup.use_environment = 1;
+        config_setup.site_import = 1;
+
+        // Configure argv for the venv setup script
+        wchar_t venv_path_w[1024];
+        mbstowcs(venv_path_w, venv_path, 1024);
+
+        wchar_t* setup_argv[] = {
+            L"python",
+            venv_path_w
+        };
+        config_setup.argv.length = 2;
+        config_setup.argv.items = setup_argv;
+
+        if (!setup_venv(&config_setup, venv_path)) {
+            fprintf(stderr, "Failed to create virtual environment\n");
+            PyConfig_Clear(&config_setup);
+            return NULL;
+        }
+
+        PyConfig_Clear(&config_setup);
+    }
+
+    // Convert venv path to wide string
+    wchar_t venv_path_w[1024];
+    mbstowcs(venv_path_w, venv_path, 1024);
+
+    // First, set PYTHONHOME environment variable
+    // This ensures Python can find its core modules during early initialization
+    char pythonhome[1024];
+    snprintf(pythonhome, sizeof(pythonhome), "PYTHONHOME=%s", venv_path);
+    putenv(pythonhome);
+
+    PyPreConfig preconfig;
+    PyConfig config;
+
+    PyPreConfig_InitPythonConfig(&preconfig);
+    preconfig.isolated = 1;
+    preconfig.use_environment = 1;  // Changed to 1 to use PYTHONHOME
+    preconfig.configure_locale = 1;
+
+    status = Py_PreInitialize(&preconfig);
+    if (PyStatus_Exception(status)) {
+        goto exception;
+    }
+
+    PyConfig_InitPythonConfig(&config);
+
+    // Basic isolation settings
+    config.isolated = 1;
+    config.use_environment = 1;  // Changed to 1 to use PYTHONHOME
+    config.parse_argv = 0;
+    config.safe_path = 1;
+    config.user_site_directory = 0;
+    config.write_bytecode = 0;
+    config.site_import = 1;
+
+    config.stdio_encoding = L"utf-8";
+    config.stdio_errors = L"surrogateescape";
+
+    // Set program name (important for initialization)
+    status = PyConfig_SetString(&config, &config.program_name, venv_path_w);
+    if (PyStatus_Exception(status)) {
+        goto exception;
+    }
+
+    // Set executable to python in venv
+    wchar_t executable_path[1024];
+    swprintf(executable_path, 1024, L"%ls/bin/python", venv_path_w);
+    status = PyConfig_SetString(&config, &config.executable, executable_path);
+    if (PyStatus_Exception(status)) {
+        goto exception;
+    }
+
+    // Let Python configure its own paths based on these settings
+    status = PyConfig_Read(&config);
+    if (PyStatus_Exception(status)) {
+        goto exception;
+    }
+
 	PyImport_AppendInittab("siril", PyInit_siril);
-	Py_Initialize();
-	init_custom_logger();
-	if (venv_created && !already_active &&!activate_python_venv(venv_dir)) {
-		siril_log_message(_("Python scripting module not initialized.\n"));
-		return NULL;
-	}
-	g_free(venv_dir);
+
+    // Initialize Python with our configuration
+    status = Py_InitializeFromConfig(&config);
+    if (PyStatus_Exception(status)) {
+        goto exception;
+    }
+
+    init_custom_logger();
 	PyImport_ImportModule("siril");
+
+    // Test the environment
+    PyRun_SimpleString(
+        "import sys\n"
+        "import os\n"
+        "print('Python version:', sys.version)\n"
+        "print('Executable:', sys.executable)\n"
+        "print('Prefix:', sys.prefix)\n"
+        "print('Base Prefix:', sys.base_prefix)\n"
+        "print('Python Path:', sys.path)\n"
+        "\n"
+        "try:\n"
+        "    import encodings\n"
+        "    print('Successfully imported encodings module')\n"
+        "except ImportError as e:\n"
+        "    print('Failed to import encodings:', e)\n"
+        "\n"
+        "try:\n"
+        "    import pip\n"
+        "    print('Pip version:', pip.__version__)\n"
+        "except ImportError as e:\n"
+        "    print('Warning: Could not import pip:', e)\n"
+    );
+
+	g_free(venv_path);
 	PyEval_SaveThread();  // Save the current thread state and release the GIL
 	// Update the global thread reference
 	com.python_thread = g_thread_self();
@@ -716,6 +777,14 @@ gpointer init_python(void *user_data) {
 	g_main_loop_run(com.python_loop);
 	// Finalize Python interpreter when done
 	Py_Finalize();
+	return NULL;
+
+exception:
+
+    if (PyStatus_Exception(status)) {
+        Py_ExitStatusException(status);
+    }
+    PyConfig_Clear(&config);
 	return NULL;
 }
 
