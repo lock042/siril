@@ -467,8 +467,8 @@ gpointer graxpert_setup_async(gpointer user_data) {
 		siril_debug_print("GraXpert AI model arrays populated\n");
 		version_number null_version = { 0 };
 		if (!com.headless && memcmp(&graxpert_version, &null_version, sizeof(version_number))) {
-			initialize_graxpert_widgets_if_needed();
-			populate_graxpert_ai_combos();
+			gboolean populate_ai_combos = TRUE;
+			initialize_graxpert_widgets_if_needed(&populate_ai_combos);
 		}
 	} else {
 		g_strfreev(background_ai_models);

@@ -28,6 +28,7 @@
 #include "filters/graxpert.h"
 #include "gui/callbacks.h"
 #include "gui/dialogs.h"
+#include "gui/graxpert.h"
 #include "gui/image_display.h"
 #include "gui/image_interactions.h"
 #include "gui/message_dialog.h"
@@ -51,7 +52,8 @@ static GtkWidget *graxpert_ai_settings = NULL, *graxpert_classical_settings = NU
 static gboolean is_bg = TRUE;
 static graxpert_operation previous_operation = GRAXPERT_BG;
 
-void initialize_graxpert_widgets_if_needed() {
+gboolean initialize_graxpert_widgets_if_needed(gpointer user_data) {
+	gboolean populate_ai_combos = *(gboolean*) user_data;
 	if (button_graxpert_cancel == NULL) {
 		// GtkButton
 		button_graxpert_cancel = GTK_BUTTON(gtk_builder_get_object(gui.builder, "button_graxpert_cancel"));
@@ -92,8 +94,11 @@ void initialize_graxpert_widgets_if_needed() {
 		graxpert_spline_settings = GTK_WIDGET(gtk_builder_get_object(gui.builder, "graxpert_spline_settings"));
 		ai_model_settings_bg = GTK_WIDGET(gtk_builder_get_object(gui.builder, "ai_model_settings_bg"));
 		ai_model_settings_denoise = GTK_WIDGET(gtk_builder_get_object(gui.builder, "ai_model_settings_denoise"));
-
 	}
+	if (populate_ai_combos) {
+		populate_graxpert_ai_combos(NULL);
+	}
+	return FALSE;
 }
 
 graxpert_data* fill_graxpert_data_from_gui(gboolean previewing) {
@@ -214,13 +219,14 @@ static void populate_combo_box(GtkComboBoxText *combo, const gchar **models) {
 	gtk_combo_box_set_active(GTK_COMBO_BOX(combo), i);  // i is now the index of "latest"
 }
 
-void populate_graxpert_ai_combos() {
+gboolean populate_graxpert_ai_combos(gpointer user_data) {
 	const gchar** ai_models_bg = get_ai_models(GRAXPERT_BG);
 	if (combo_graxpert_ai_models_bg && ai_models_bg)
 		populate_combo_box(GTK_COMBO_BOX_TEXT(combo_graxpert_ai_models_bg), ai_models_bg);
 	const gchar** ai_models_denoise = get_ai_models(GRAXPERT_DENOISE);
 	if (combo_graxpert_ai_models_denoise && ai_models_denoise)
 		populate_combo_box(GTK_COMBO_BOX_TEXT(combo_graxpert_ai_models_denoise), get_ai_models(GRAXPERT_DENOISE));
+	return FALSE;
 }
 
 static void set_widgets() {
@@ -246,7 +252,8 @@ static void set_widgets() {
 
 void on_graxpert_dialog_show(GtkWidget *widget, gpointer user_data) {
 	mouse_status = MOUSE_ACTION_DRAW_SAMPLES;
-	initialize_graxpert_widgets_if_needed();
+	gboolean update_ai_combos = FALSE;
+	initialize_graxpert_widgets_if_needed(&update_ai_combos);
 	set_widgets();
 	confirm_availability();
 	clear_backup();

@@ -146,7 +146,7 @@ void on_python_pad_language_changed(GtkComboBox *combo, gpointer user_data) {
 		siril_debug_print("Could not find  language definition\n");
 	} else {
 		gtk_source_buffer_set_language(sourcebuffer, language);
-		siril_debug_print("Set buffer languages\n");
+		siril_debug_print("Set buffer language\n");
 	}
 }
 

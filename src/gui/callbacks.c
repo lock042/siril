@@ -1516,10 +1516,6 @@ gboolean on_main_panel_button_release_event(GtkWidget *widget,
 }
 
 void initialize_all_GUI(gchar *supported_files) {
-	/* GraXpert checks, if required */
-	g_thread_unref(g_thread_new("graxpert_checks", graxpert_setup_async, NULL));
-	/* populate SPCC combos in a thread */
-	g_thread_unref(g_thread_new("spcc_combos", populate_spcc_combos_async, NULL));
 	/* pre-check the Gaia archive status */
 	check_gaia_archive_status();
 	/* initializing internal structures with widgets (drawing areas) */
@@ -1663,6 +1659,10 @@ void initialize_all_GUI(gchar *supported_files) {
 	g_signal_connect(lookup_widget("control_window"), "configure-event", G_CALLBACK(on_control_window_configure_event), NULL);
 	g_signal_connect(lookup_widget("control_window"), "window-state-event", G_CALLBACK(on_control_window_window_state_event), NULL);
 	g_signal_connect(lookup_widget("main_panel"), "notify::position", G_CALLBACK(pane_notify_position_cb), NULL );
+	/* populate SPCC combos in a thread */
+	g_thread_unref(g_thread_new("spcc_combos", populate_spcc_combos_async, NULL));
+	/* GraXpert checks, if required */
+	g_thread_unref(g_thread_new("graxpert_checks", graxpert_setup_async, NULL));
 }
 
 /*****************************************************************************
