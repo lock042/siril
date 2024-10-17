@@ -2153,4 +2153,6 @@ void add_image_and_label_to_cairo(cairo_t *cr, int vport) {
 	draw_annotates(&dd);
 	/* analysis */
 	draw_analysis(&dd);
+	/* distortions */
+	draw_wcs_disto(&dd);
 }

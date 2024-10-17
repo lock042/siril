@@ -28,6 +28,9 @@ affiliations:
     index: 3
 date: 29 July 2024
 bibliography: paper.bib
+# breaks long URLs
+header-includes:
+  - \def\UrlBigBreaks{\do\/\do-\do:}
 ---
 
 # Summary

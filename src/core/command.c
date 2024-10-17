@@ -8051,7 +8051,7 @@ int process_seq_applyreg(int nb) {
 			preffit = &gfit;
 		if (preffit->naxes[2] == 1 && preffit->keywords.bayer_pattern[0] != '\0') {
 			sensor_pattern pattern = get_bayer_pattern(preffit);
-			if (pattern >= BAYER_FILTER_MIN && pattern <= BAYER_FILTER_MAX) {
+			if (pattern < BAYER_FILTER_MIN || pattern > BAYER_FILTER_MAX) {
 				siril_log_color_message(_("Cannot use drizzle on non-bayer sensors, aborting.\n"), "red");
 				clearfits(preffit);
 				goto terminate_register_on_error;
@@ -9886,6 +9886,7 @@ int process_platesolve(int nb) {
 	fits *preffit = &reffit;
 	if (seqps) {
 		int image_to_load = sequence_find_refimage(seq);
+		seq->reference_image = sequence_find_refimage(seq);
 		if (seq_read_frame_metadata(seq, image_to_load, preffit)) {
 			siril_log_message(_("Could not load the reference image of the sequence, aborting.\n"));
 			retval = CMD_SEQUENCE_NOT_FOUND;
