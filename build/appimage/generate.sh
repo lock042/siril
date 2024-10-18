@@ -52,7 +52,7 @@ sed -i -e 's|/usr|/xxx|g' lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
 apt_bundle librsvg2-common libgdk-pixbuf2.0-0 heif-gdk-pixbuf heif-thumbnailer
 
 # Bundle python dependencies
-apt_bundle libpython3-stdlib python3 python3.9 python3.9-minimal python3.9-venv
+apt_bundle libpython3.9-stdlib libpython3-stdlib libpython3.9-minimal libpython3-minimal python3 python3.9 python3.9-minimal python3.9-venv python3.9-full
 
 # Copy and configure GDK pixbuf loaders
 cp /usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders/* usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders/
