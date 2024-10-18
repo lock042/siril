@@ -247,6 +247,7 @@ src_files = [
   'gui/preferences.c',
   'gui/progress_and_log.c',
   'gui/PSF_list.c',
+  'gui/python_gui.c',
   'gui/registration.c',
   'gui/registration_preview.c',
   'gui/remixer.c',

@@ -81,6 +81,7 @@ static const SirilDialogEntry entries[] =
 	{"mouse_actions_dialog", NULL, INFORMATION_DIALOG, FALSE, NULL},
 	{"nina_light_curve", get_nina_lc_dialog, OTHER_DIALOG, FALSE, NULL},
 	{"pixel_math_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
+	{"python_dialog", NULL, OTHER_DIALOG, FALSE, NULL},
 	{"resample_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"rgradient_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},
 	{"rotation_dialog", NULL, IMAGE_PROCESSING_DIALOG, FALSE, NULL},

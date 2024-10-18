@@ -309,6 +309,7 @@ else
 endif
 python3 = import('python').find_installation('python3')
 python_dep = python3.dependency(required : true, embed : true)
+gtksourceview_dep = dependency('gtksourceview-3.0')
 
 ## Optional dependencies
 
@@ -644,7 +645,8 @@ externals_dep = declare_dependency(
     openmp_dep,
     kplot_dep,
     ffmpeg,
-    python_dep
+    python_dep,
+    gtksourceview_dep
   ]
 )
 

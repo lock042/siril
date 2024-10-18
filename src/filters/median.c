@@ -804,7 +804,7 @@ gpointer median_filter(gpointer p) {
 	if (args->fit->type == DATA_FLOAT)
 		retval = median_filter_float(p);
 	unlock_roi_mutex();
-	if (com.script && (args->fit == &gfit))
+	if (args->fit == &gfit)
 		notify_gfit_modified();
 	return GINT_TO_POINTER(retval);
 }

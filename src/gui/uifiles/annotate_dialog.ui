@@ -460,7 +460,7 @@ You can also choose an alternate online catalog:
                           </packing>
                         </child>
                         <child>
-                          <!-- n-columns=3 n-rows=3 -->
+                          <!-- n-columns=3 n-rows=4 -->
                           <object class="GtkGrid">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
@@ -557,6 +557,20 @@ You can also choose an alternate online catalog:
                               <packing>
                                 <property name="left-attach">2</property>
                                 <property name="top-attach">2</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkButton" id="show_button_get_coords">
+                                <property name="label" translatable="yes">Get coordinates from selection</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">True</property>
+                                <signal name="clicked" handler="on_show_button_get_coords_clicked" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">3</property>
+                                <property name="width">3</property>
                               </packing>
                             </child>
                             <child>

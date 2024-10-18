@@ -14,6 +14,7 @@ RUN apt-get update -qyy \
         libcfitsio-dev \
         libfftw3-dev \
         libgsl-dev \
+        libgtksourceview-3.0-dev \
         libopencv-dev \
         librsvg2-dev \
         libraw-dev \

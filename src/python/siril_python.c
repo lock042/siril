@@ -111,7 +111,7 @@ static PyGetSetDef PyFits_getsetters[] = {
 	{"expstart", (getter)PyFits_get_expstart, NULL, N_("Exposure start time (Julian date)"), NULL},
 	{"expend", (getter)PyFits_get_expend, NULL, N_("Exposure end time (Julian date)"), NULL},
 	{"filter", (getter)PyFits_get_filter, NULL, N_("Filter used"), NULL},
-	{"image_type", (getter)PyFits_get_image_type, NULL, N_("Image type"), NULL},
+	{"type", (getter)PyFits_get_image_type, NULL, N_("Image datatype"), NULL},
 	{"object", (getter)PyFits_get_object, NULL, N_("Object name"), NULL},
 	{"instrume", (getter)PyFits_get_instrume, NULL, N_("Instrument name"), NULL},
 	{"telescop", (getter)PyFits_get_telescop, NULL, N_("Telescope name"), NULL},
@@ -168,8 +168,8 @@ static PyMethodDef PyFits_methods[] = {
 	{"bgnoise", (PyCFunction)PyFits_get_bgnoise, METH_VARARGS, N_("Return the background noise value for the specified channel.")},
     {"stats", (PyCFunction)PyFits_stats, METH_VARARGS, N_("Returns a copy of the statistics for a given channel in the FITS image as a PyImStats object.")},
     {"open", (PyCFunction)PyFits_open, METH_VARARGS | METH_CLASS, N_("Open a FITS file and load it into the PyFits object")},
-	{"move_to_siril_image", (PyCFunction)PyFits_move_to_gfit, METH_VARARGS | METH_KEYWORDS,
-     N_("Move the FITS data to the main Siril image. Takes an optional argument return_new: if return_new is True, returns a new PyFits object pointing to the main Siril image.")},
+	{"set_as_current", (PyCFunction)PyFits_move_to_gfit, METH_VARARGS | METH_KEYWORDS,
+     N_("Move the PyFits data to the main Siril image. Takes an optional argument return_new: if return_new is True, returns a new PyFits object pointing to the main Siril image.")},
     {"save", (PyCFunction)PyFits_save, METH_VARARGS, N_("Save the current PyFits object to a FITS file")},
 	{NULL}
 };
@@ -802,7 +802,7 @@ gboolean run_python_script_from_mem(gpointer p) {
 			const char* err_msg = PyUnicode_AsUTF8(str_exc_value);
 
 			// Log the error
-			siril_log_message(_("Error in Python script (memory): %s\n"), err_msg);
+			siril_log_message(_("Error in Python script: %s\n"), err_msg);
 
 			Py_XDECREF(str_exc_value);
 			Py_XDECREF(type);

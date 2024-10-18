@@ -41,6 +41,7 @@
 #include "gui/utils.h"
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
+#include "gui/python_gui.h"
 #include "algos/sorting.h"
 #include "script_menu.h"
 
@@ -298,6 +299,8 @@ int initialize_script_menu(gboolean verbose) {
 	GtkWidget *sep = gtk_separator_menu_item_new();
 	GtkWidget *menu_item_run = gtk_menu_item_new_with_label(_("Run Script Files..."));
 	g_signal_connect(G_OBJECT(menu_item_run), "activate", G_CALLBACK(on_run_scripts), NULL);
+	GtkWidget *menu_item_pythonpad = gtk_menu_item_new_with_label(_("Script Editor..."));
+	g_signal_connect(G_OBJECT(menu_item_pythonpad), "activate", G_CALLBACK(on_open_pythonpad), NULL);
 
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item_ssf);
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item_ssf), menu_ssf);
@@ -312,6 +315,9 @@ int initialize_script_menu(gboolean verbose) {
 
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item_run);
 	gtk_widget_show(menu_item_run);
+
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item_pythonpad);
+	gtk_widget_show(menu_item_pythonpad);
 
 	gchar *previous_directory_ssf = NULL;
 	gchar *previous_directory_py = NULL;
