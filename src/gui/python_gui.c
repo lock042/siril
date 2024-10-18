@@ -349,10 +349,10 @@ void on_button_python_pad_execute_clicked(GtkWidget *widget, gpointer user_data)
 	// Get the text
 	char *text = gtk_text_buffer_get_text(GTK_TEXT_BUFFER(sourcebuffer), &start, &end, FALSE);
 	switch (active_language) {
-		case LANG_PYTHON:
+		case LANG_PYTHON:;
 			run_python_script_in_python_thread(text, FALSE);
 			break;
-		case LANG_SSF:
+		case LANG_SSF:;
 			GInputStream *input_stream = g_memory_input_stream_new_from_data(text, strlen(text), NULL);
 			if (get_thread_run()) {
 				PRINT_ANOTHER_THREAD_RUNNING;
