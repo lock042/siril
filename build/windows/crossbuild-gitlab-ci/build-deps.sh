@@ -4,7 +4,6 @@ mkdir _deps && cd _deps
 
 crossroad install lcms2 \
                   gtk3 \
-                  libgtksourceview-3.0 \
                   fftw \
                   libjxl \
                   exiv2 \
@@ -16,6 +15,7 @@ crossroad install lcms2 \
                   curl \
                   libgit2 \
                   libxisf \
+                  libgtksourceview-3.0-dev \
                   mingw-w64-x86_64-python3.12 \
                   mingw-w64-x86_64-pkg-config \
 # need to uninstall crt-git
