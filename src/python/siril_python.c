@@ -703,7 +703,7 @@ gpointer init_python(void *user_data) {
     config.isolated = 1;
     config.use_environment = 1;  // Changed to 1 to use PYTHONHOME
     config.parse_argv = 0;
-    config.safe_path = 1;
+//    config.safe_path = 1; // commented out as not available in Python-3.9 (appimage)
     config.user_site_directory = 0;
     config.write_bytecode = 0;
     config.site_import = 1;
