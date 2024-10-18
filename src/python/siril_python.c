@@ -636,10 +636,101 @@ static int setup_venv(PyConfig* config, const char* venv_path) {
 }
 
 // Function to initialize Python interpreter and load our module
+// Helper function to check if we're running in an AppImage
+static gboolean is_appimage() {
+    return getenv("APPDIR") != NULL;
+}
+
+// Helper function to get Python home directory
+static gchar* get_python_home() {
+    const char* appdir = getenv("APPDIR");
+    if (appdir) {
+        // Running in AppImage - use bundled Python
+        return g_build_filename(appdir, "usr", NULL);
+    } else {
+        // Standard installation - use system Python
+        return g_strdup("/usr");
+    }
+}
+
+// Function to initialize Python interpreter and load our module
 gpointer init_python(void *user_data) {
-	// Set up venv
-	gchar* venv_path = g_build_filename(g_get_user_data_dir(), "siril", "venv", NULL);
+    // Set up venv
+    gchar* venv_path = g_build_filename(g_get_user_data_dir(), "siril", "venv", NULL);
     PyStatus status;
+
+    // Get Python home path based on environment
+    gchar* python_home = get_python_home();
+
+    // Set PYTHONHOME if we're in an AppImage
+    // (In standard installation, we let Python use its default paths)
+    if (is_appimage()) {
+        char pythonhome_env[1024];
+        snprintf(pythonhome_env, sizeof(pythonhome_env), "PYTHONHOME=%s", python_home);
+        putenv(pythonhome_env);
+
+        // In AppImage, also set PYTHONPATH to ensure correct library discovery
+        char pythonpath_env[2048];
+        snprintf(pythonpath_env, sizeof(pythonpath_env),
+                "PYTHONPATH=%s/lib/python3.9:%s/lib/python3.9/site-packages",
+                python_home, python_home);
+        putenv(pythonpath_env);
+    }
+
+    PyPreConfig preconfig;
+    PyConfig config;
+
+    PyPreConfig_InitPythonConfig(&preconfig);
+    preconfig.isolated = is_appimage() ? 0 : 1;  // Only use system paths in AppImage
+    preconfig.use_environment = 1;
+    preconfig.configure_locale = 1;
+
+    status = Py_PreInitialize(&preconfig);
+    if (PyStatus_Exception(status)) {
+        g_free(python_home);
+        g_free(venv_path);
+        goto exception;
+    }
+
+    PyConfig_InitPythonConfig(&config);
+
+    // Adjust isolation based on environment
+    config.isolated = is_appimage() ? 0 : 1;
+    config.use_environment = 1;
+    config.parse_argv = 0;
+    config.user_site_directory = 0;
+    config.write_bytecode = 0;
+    config.site_import = 1;
+
+    config.stdio_encoding = L"utf-8";
+    config.stdio_errors = L"surrogateescape";
+
+    // Set up program name and executable
+    char python_executable[1024];
+    snprintf(python_executable, sizeof(python_executable),
+             "%s/bin/python3.9", python_home);
+
+    wchar_t *program_name = Py_DecodeLocale(python_executable, NULL);
+    if (program_name) {
+        status = PyConfig_SetString(&config, &config.program_name, program_name);
+        PyMem_RawFree(program_name);
+        if (PyStatus_Exception(status)) {
+            g_free(python_home);
+            g_free(venv_path);
+            goto exception;
+        }
+    }
+
+    wchar_t *executable = Py_DecodeLocale(python_executable, NULL);
+    if (executable) {
+        status = PyConfig_SetString(&config, &config.executable, executable);
+        PyMem_RawFree(executable);
+        if (PyStatus_Exception(status)) {
+            g_free(python_home);
+            g_free(venv_path);
+            goto exception;
+        }
+    }
 
     // Check if venv exists and is properly configured
     if (!check_venv(venv_path)) {
@@ -649,8 +740,8 @@ gpointer init_python(void *user_data) {
         PyConfig config_setup;
         PyConfig_InitPythonConfig(&config_setup);
 
-        // Minimal configuration for venv setup
-        config_setup.isolated = 0;  // Temporarily disable isolation for setup
+        // Configure venv setup based on environment
+        config_setup.isolated = 0;
         config_setup.use_environment = 1;
         config_setup.site_import = 1;
 
@@ -668,79 +759,34 @@ gpointer init_python(void *user_data) {
         if (!setup_venv(&config_setup, venv_path)) {
             fprintf(stderr, "Failed to create virtual environment\n");
             PyConfig_Clear(&config_setup);
+            g_free(python_home);
+            g_free(venv_path);
             return NULL;
         }
 
-        PyConfig_Clear(&config_setup);
-    }
-
-    // Convert venv path to wide string
-    wchar_t venv_path_w[1024];
-    mbstowcs(venv_path_w, venv_path, 1024);
-
-    // First, set PYTHONHOME environment variable
-    // This ensures Python can find its core modules during early initialization
-    char pythonhome[1024];
-    snprintf(pythonhome, sizeof(pythonhome), "PYTHONHOME=%s", venv_path);
-    putenv(pythonhome);
-
-    PyPreConfig preconfig;
-    PyConfig config;
-
-    PyPreConfig_InitPythonConfig(&preconfig);
-    preconfig.isolated = 1;
-    preconfig.use_environment = 1;  // Changed to 1 to use PYTHONHOME
-    preconfig.configure_locale = 1;
-
-    status = Py_PreInitialize(&preconfig);
-    if (PyStatus_Exception(status)) {
-        goto exception;
-    }
-
-    PyConfig_InitPythonConfig(&config);
-
-    // Basic isolation settings
-    config.isolated = 1;
-    config.use_environment = 1;  // Changed to 1 to use PYTHONHOME
-    config.parse_argv = 0;
-//    config.safe_path = 1; // commented out as not available in Python-3.9 (appimage)
-    config.user_site_directory = 0;
-    config.write_bytecode = 0;
-    config.site_import = 1;
-
-    config.stdio_encoding = L"utf-8";
-    config.stdio_errors = L"surrogateescape";
-
-    // Set program name (important for initialization)
-    status = PyConfig_SetString(&config, &config.program_name, venv_path_w);
-    if (PyStatus_Exception(status)) {
-        goto exception;
-    }
-
-    // Set executable to python in venv
-    wchar_t executable_path[1024];
-    swprintf(executable_path, 1024, L"%ls/bin/python", venv_path_w);
-    status = PyConfig_SetString(&config, &config.executable, executable_path);
-    if (PyStatus_Exception(status)) {
-        goto exception;
+//        PyConfig_Clear(&config_setup);
     }
 
     // Let Python configure its own paths based on these settings
     status = PyConfig_Read(&config);
     if (PyStatus_Exception(status)) {
+        g_free(python_home);
+        g_free(venv_path);
         goto exception;
     }
 
-	PyImport_AppendInittab("siril", PyInit_siril);
+    PyImport_AppendInittab("siril", PyInit_siril);
 
     // Initialize Python with our configuration
     status = Py_InitializeFromConfig(&config);
     if (PyStatus_Exception(status)) {
+        g_free(python_home);
+        g_free(venv_path);
         goto exception;
     }
 
     init_custom_logger();
-	PyImport_ImportModule("siril");
+    PyImport_ImportModule("siril");
 
     // Test the environment
     PyRun_SimpleString(
@@ -765,27 +811,27 @@ gpointer init_python(void *user_data) {
         "    print('Warning: Could not import pip:', e)\n"
     );
 
-	g_free(venv_path);
-	PyEval_SaveThread();  // Save the current thread state and release the GIL
-	// Update the global thread reference
-	com.python_thread = g_thread_self();
-	siril_log_message(_("Python scripting module initialized.\n"));
-	// Create a GMainContext and GMainLoop for this thread
-	com.python_context = g_main_context_new();
-	com.python_loop = g_main_loop_new(com.python_context, FALSE);
-	// Enter the main loop (this will keep the thread alive and waiting for tasks)
-	g_main_loop_run(com.python_loop);
-	// Finalize Python interpreter when done
-	Py_Finalize();
-	return NULL;
+    g_free(python_home);
+    g_free(venv_path);
+    PyEval_SaveThread();  // Save the current thread state and release the GIL
+    // Update the global thread reference
+    com.python_thread = g_thread_self();
+    siril_log_message(_("Python scripting module initialized.\n"));
+    // Create a GMainContext and GMainLoop for this thread
+    com.python_context = g_main_context_new();
+    com.python_loop = g_main_loop_new(com.python_context, FALSE);
+    // Enter the main loop
+    g_main_loop_run(com.python_loop);
+    // Finalize Python interpreter when done
+    Py_Finalize();
+    return NULL;
 
 exception:
-
     if (PyStatus_Exception(status)) {
         Py_ExitStatusException(status);
     }
     PyConfig_Clear(&config);
-	return NULL;
+    return NULL;
 }
 
 // Function to run a Python script from a file

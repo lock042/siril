@@ -51,13 +51,42 @@ sed -i -e 's|/usr|/xxx|g' lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
 # Bundle GTK dependencies
 apt_bundle librsvg2-common libgdk-pixbuf2.0-0 heif-gdk-pixbuf heif-thumbnailer
 
-# Bundle python dependencies
+# Bundle Python and its dependencies
 apt_bundle libpython3.9-stdlib libpython3-stdlib libpython3.9-minimal python3 python3.9 python3.9-minimal python3.9-venv python3.9-full
 
-# Copy and configure GDK pixbuf loaders
-cp /usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders/* usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders/
-cp /usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders.cache usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/
-sed -i -e 's|/usr/lib/x86_64-linux-gnu/gdk-pixbuf-.*/.*/loaders/||g' usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders.cache
+# Set up Python environment structure
+PYTHON_VERSION="3.9"
+mkdir -p usr/lib/python${PYTHON_VERSION}
+mkdir -p usr/lib/python${PYTHON_VERSION}/site-packages
+
+# Copy Python standard library
+cp -r /usr/lib/python${PYTHON_VERSION}/* usr/lib/python${PYTHON_VERSION}/
+# Copy Python binary and shared libraries
+cp -P /usr/lib/x86_64-linux-gnu/libpython${PYTHON_VERSION}*.so* usr/lib/x86_64-linux-gnu/
+
+# Create Python configuration files
+cat > usr/lib/python${PYTHON_VERSION}/_sysconfigdata.py << EOF
+build_time_vars = {
+    'PYTHONPATH': '$APPDIR/usr/lib/python${PYTHON_VERSION}',
+    'prefix': '$APPDIR/usr',
+    'exec_prefix': '$APPDIR/usr',
+    'LIBDIR': '$APPDIR/usr/lib',
+}
+EOF
+
+# Create a wrapper script to set Python environment variables
+cat > usr/bin/python${PYTHON_VERSION}.sh << EOF
+#!/bin/bash
+export PYTHONHOME="\$APPDIR/usr"
+export PYTHONPATH="\$APPDIR/usr/lib/python${PYTHON_VERSION}:\$APPDIR/usr/lib/python${PYTHON_VERSION}/site-packages"
+export LD_LIBRARY_PATH="\$APPDIR/usr/lib:\$APPDIR/usr/lib/x86_64-linux-gnu:\$LD_LIBRARY_PATH"
+exec "\$APPDIR/usr/bin/python${PYTHON_VERSION}" "\$@"
+EOF
+chmod +x usr/bin/python${PYTHON_VERSION}.sh
+
+# Modify AppRun to set Python environment
+sed -i '2i export PYTHONHOME="$APPDIR/usr"' AppRun
+sed -i '3i export PYTHONPATH="$APPDIR/usr/lib/python'${PYTHON_VERSION}':$APPDIR/usr/lib/python'${PYTHON_VERSION}'/site-packages"' AppRun
 
 # Bundle font configuration
 mkdir -p etc/fonts/
@@ -82,18 +111,11 @@ cd -
 wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
 chmod a+x linuxdeployqt-continuous-x86_64.AppImage
 
-# Prepare arguments for bundling GDK pixbuf loaders
-linuxdeployqtargs=()
-for so in $(find \
-    appdir/usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders \
-    -name \*.so); do
-    linuxdeployqtargs+=("-executable=$(readlink -f "$so")")
-done
-
 # Generate the final AppImage
 ./linuxdeployqt-continuous-x86_64.AppImage --appimage-extract-and-run appdir/usr/share/applications/org.siril.Siril.desktop \
   -appimage -unsupported-bundle-everything \
-  "${linuxdeployqtargs[@]}"
+  -executable=$(readlink -f "appdir/usr/bin/python${PYTHON_VERSION}") \
+  -executable=$(readlink -f "appdir/usr/bin/python${PYTHON_VERSION}.sh")
 
 # Move the generated AppImage to parent directory
 mv Siril*.AppImage* ../
