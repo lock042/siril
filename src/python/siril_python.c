@@ -645,7 +645,7 @@ static int setup_venv(const char* python_home, const char* venv_path) {
     // Basic configuration for venv setup
     config_setup.isolated = 0;
     config_setup.use_environment = 1;
-    config_setup.site_import = 1;
+    config_setup.site_import = 0;
 
     // Set program name and executable
     char python_executable[1024];
