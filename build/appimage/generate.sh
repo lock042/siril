@@ -1,105 +1,77 @@
 #!/bin/bash
-########################################################################
-# Install build-time and run-time dependencies
-########################################################################
-export DEBIAN_FRONTEND=noninteractive
-########################################################################
-# Build Siril and install to appdir/
-########################################################################
-BUILDDIR=build/appimage/build
-PREFIX=/usr
-meson ${BUILDDIR} \
-    --prefix=${PREFIX} \
-    --buildtype=release \
-    -Drelocatable-bundle=yes
-ninja -C ${BUILDDIR} -j$(nproc)
-DESTDIR=$PWD/${BUILDDIR}/appdir ninja -C ${BUILDDIR} -j$(nproc) install; find ${BUILDDIR}/appdir/
-cd ${BUILDDIR}
-cp ../AppRun appdir/AppRun ; chmod +x appdir/AppRun
-cp ./appdir/usr/share/icons/hicolor/scalable/apps/org.siril.Siril.svg ./appdir/org.siril.Siril.svg
-cd appdir/
-########################################################################
-# Bundle everything
-# to allow the AppImage to run on older systems as well
-########################################################################
-apt_bundle() {
-    apt-get download "$@"
-    find *.deb -exec dpkg-deb -x {} . \;
-    find *.deb -delete
-}
-# Bundle all of glibc; this should eventually be done by linuxdeployqt
-apt update
-apt_bundle libc6
+set -e
 
-# Add Python and essential packages
-apt_bundle python3-minimal python3-pip python3-wheel python3-setuptools
-# apt_bundle python3-numpy python3-scipy python3-astropy
+# Create application root directory
+APP_DIR="MyApp.AppDir"
+mkdir -p "$APP_DIR"
+cd "$APP_DIR"
 
-# Make absolutely sure it will not load stuff from /lib or /usr
-sed -i -e 's|/usr|/xxx|g' lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+# Create directory structure
+mkdir -p usr/bin
+mkdir -p usr/lib
+mkdir -p usr/lib/python3.10
+mkdir -p usr/lib/python3.10/site-packages
 
-# Bundle Gdk pixbuf loaders without which the bundled Gtk does not work;
-# this should eventually be done by linuxdeployqt
-apt_bundle librsvg2-common libgdk-pixbuf2.0-0 heif-gdk-pixbuf heif-thumbnailer
-cp /usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders/* usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders/
-cp /usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders.cache usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/
-sed -i -e 's|/usr/lib/x86_64-linux-gnu/gdk-pixbuf-.*/.*/loaders/||g' usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders.cache
+# Copy Python executable and libraries
+PYTHON_VERSION="3.10"  # Adjust this to match your Python version
+cp /usr/bin/python${PYTHON_VERSION} usr/bin/
+cp /usr/bin/python3 usr/bin/
+cp /usr/bin/python usr/bin/
 
-# Bundle Python standard library and dist-packages
-mkdir -p usr/lib/python3/
-cp -r /usr/lib/python3/* usr/lib/python3/
-mkdir -p usr/lib/python3/dist-packages/
-cp -r /usr/lib/python3/dist-packages/* usr/lib/python3/dist-packages/
+# Copy Python standard library
+cp -r /usr/lib/python${PYTHON_VERSION}/* usr/lib/python${PYTHON_VERSION}/
 
-# Fix Python paths in scripts
-find usr/bin -type f -exec sed -i -e "s|/usr/bin/python3|/xxx/bin/python3|g" {} \;
+# Copy required shared libraries
+ldd usr/bin/python${PYTHON_VERSION} | grep "=> /" | awk '{print $3}' | xargs -I '{}' cp -v '{}' usr/lib/
 
-# Bundle fontconfig settings
-mkdir -p etc/fonts/
-cp /etc/fonts/fonts.conf etc/fonts/
+# Copy additional Python dependencies
+cp -r /usr/lib/python3/dist-packages usr/lib/python${PYTHON_VERSION}/
+cp -r /usr/lib/python${PYTHON_VERSION}/site-packages/* usr/lib/python${PYTHON_VERSION}/site-packages/ || true
 
-# Bundle ssl certificates
-mkdir -p etc/ssl/
-cp -rf /etc/ssl/* etc/ssl/
+# Copy your AppRun script
+cat > AppRun << 'EOL'
+#!/bin/bash
+HERE="$(dirname "$(readlink -f "${0}")")"
 
-# Compile GLib schemas if the subdirectory is present in the AppImage
-# AppRun has to export GSETTINGS_SCHEMA_DIR for this to work
-apt_bundle gnome-settings-daemon-common
-mkdir -p usr/share/glib-2.0/schemas/
-cp /usr/share/glib-2.0/schemas/*.gschema.xml usr/share/glib-2.0/schemas/
-if [ -d usr/share/glib-2.0/schemas/ ] ; then
-  ( cd usr/share/glib-2.0/schemas/ ; glib-compile-schemas . )
+# Set up Python environment
+export PYTHONHOME="${HERE}/usr"
+export PYTHONPATH="${HERE}/usr/lib/python3.10:${HERE}/usr/lib/python3.10/site-packages:${PYTHONPATH}"
+export PYTHONDONTWRITEBYTECODE=1
+export LD_LIBRARY_PATH="${HERE}/usr/lib:${LD_LIBRARY_PATH}"
+
+# Set up other environment variables
+export PATH="${HERE}/usr/bin:${PATH}"
+export XDG_DATA_DIRS="${HERE}/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+
+# Execute the main application
+if [ ! -z "$1" ] && [ -e "$HERE/usr/bin/$1" ] ; then
+    MAIN="$HERE/usr/bin/$1"
+    shift
+else
+    MAIN="$HERE/usr/bin/python3"  # Default to python3 if no specific command
 fi
 
-# Create Python symlinks
-ln -sf python3 usr/bin/python
-for f in usr/bin/python3.*; do
-    if [ -f "$f" ]; then
-        ln -sf python3 "$f"
-    fi
-done
+exec "$MAIN" "$@"
+EOL
 
-cd -
-########################################################################
-# Generate AppImage
-########################################################################
-wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
-chmod a+x linuxdeployqt-continuous-x86_64.AppImage
-linuxdeployqtargs=()
-for so in $(find \
-    appdir/usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders \
-    -name \*.so); do
-    linuxdeployqtargs+=("-executable=$(readlink -f "$so")")
-done
+chmod +x AppRun
 
-# Add Python shared libraries to deployment
-for so in $(find \
-    appdir/usr/lib/python3* \
-    -name \*.so); do
-    linuxdeployqtargs+=("-executable=$(readlink -f "$so")")
-done
+# Create .desktop file
+cat > MyApp.desktop << 'EOL'
+[Desktop Entry]
+Name=MyApp
+Exec=python3
+Icon=python
+Type=Application
+Categories=Development;
+EOL
 
-./linuxdeployqt-continuous-x86_64.AppImage --appimage-extract-and-run appdir/usr/share/applications/org.siril.Siril.desktop \
-  -appimage -unsupported-bundle-everything \
-  "${linuxdeployqtargs[@]}"
-mv Siril*.AppImage* ../
+# Copy Python icon
+cp /usr/share/pixmaps/python3.xpm python.xpm
+
+# Fix permissions
+chmod +x AppRun
+chmod +x usr/bin/*
+
+echo "AppDir structure created. Now you can create the AppImage using appimagetool:"
+echo "appimagetool MyApp.AppDir MyApp-x86_64.AppImage"
