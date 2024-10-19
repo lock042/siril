@@ -94,7 +94,7 @@ static int PyFits_getbuffer(PyObject *obj, Py_buffer *view, int flags) {
 	PyFits *self = (PyFits *)obj;
 	fits *fit = self->fit;
 	if (!fit) {
-		PyErr_SetString(PyExc_ValueError, "Fits object is NULL");
+		PyErr_SetString(PyExc_ValueError, _("Fits object is NULL"));
 		return -1;
 	}
 	// Determine dimensionality
@@ -130,7 +130,7 @@ static int PyFits_getbuffer(PyObject *obj, Py_buffer *view, int flags) {
 		view->itemsize = sizeof(float);
 		view->format = "f";  // Float
 	} else {
-		PyErr_SetString(PyExc_ValueError, "Unsupported data type");
+		PyErr_SetString(PyExc_ValueError, _("Unsupported data type"));
 		PyMem_Free(shape);
 		PyMem_Free(strides);
 		return -1;
@@ -151,7 +151,7 @@ static int PyFits_getbuffer(PyObject *obj, Py_buffer *view, int flags) {
 	view->internal = NULL;
 	// Check if writable buffer is requested but data is read-only
 	if ((flags & PyBUF_WRITABLE) && view->readonly) {
-		PyErr_SetString(PyExc_BufferError, "Object is not writable");
+		PyErr_SetString(PyExc_BufferError, _("Object is not writable"));
 		PyMem_Free(shape);
 		PyMem_Free(strides);
 		return -1;
