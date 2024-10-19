@@ -57,7 +57,7 @@ cp /usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders.cache usr/lib/x86_64-linux-g
 sed -i -e 's|/usr/lib/x86_64-linux-gnu/gdk-pixbuf-.*/.*/loaders/||g' usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders.cache
 
 # Bundle Python and its dependencies
-apt_bundle libpython3.9-stdlib libpython3-stdlib libpython3.9-minimal python3 python3.9 python3.9-minimal python3.9-venv python3.9-full
+apt_bundle libpython3.9-stdlib libpython3-stdlib libpython3.9-minimal python3 python3.9 python3.9-minimal python3.9-venv python3.9-full python3-pip
 
 # Set up Python environment structure
 PYTHON_VERSION="3.9"
