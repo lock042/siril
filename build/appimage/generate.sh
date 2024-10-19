@@ -5,6 +5,10 @@
 # Set non-interactive mode for apt to prevent prompts during installation
 export DEBIAN_FRONTEND=noninteractive
 
+# Python version and download URL
+PYTHON_VERSION="3.9.18"  # Specify the exact version
+PYTHON_SRC_URL="https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz"
+
 # Section 2: Build Configuration and Installation
 ########################################################################
 BUILDDIR=build/appimage/build
@@ -56,23 +60,40 @@ cp /usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders/* usr/lib/x86_64-linux-gnu/g
 cp /usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders.cache usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/
 sed -i -e 's|/usr/lib/x86_64-linux-gnu/gdk-pixbuf-.*/.*/loaders/||g' usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders.cache
 
-# Bundle Python and its dependencies
-apt_bundle libpython3.9-stdlib libpython3-stdlib libpython3.9-minimal python3 python3.9 python3.9-minimal python3.9-venv python3.9-full python3-setuptools python3-urllib3 python3-packaging python3-six python3-certifi python3-chardet python3-idna python3-wheel python3-dev python3-pip
+# Install build dependencies for Python
+apt_bundle build-essential libssl-dev zlib1g-dev \
+    libbz2-dev libreadline-dev libsqlite3-dev curl \
+    libncursesw5-dev xz-utils tk-dev libxml2-dev \
+    libxmlsec1-dev libffi-dev liblzma-dev
 
-# Set up Python environment structure
-PYTHON_VERSION="3.9"
-mkdir -p usr/lib/python${PYTHON_VERSION}
-mkdir -p usr/lib/python${PYTHON_VERSION}/site-packages
+# Download and compile Python from source
+mkdir -p python_build
+cd python_build
+wget $PYTHON_SRC_URL
+tar xzf Python-${PYTHON_VERSION}.tgz
+cd Python-${PYTHON_VERSION}
 
-# Copy Python standard library
-cp -r /usr/lib/python${PYTHON_VERSION}/* usr/lib/python${PYTHON_VERSION}/
-# Copy Python binary and shared libraries
-cp -P /usr/lib/x86_64-linux-gnu/libpython${PYTHON_VERSION}*.so* usr/lib/x86_64-linux-gnu/
+# Configure Python build with optimization and pip support
+./configure --prefix=/usr \
+    --enable-optimizations \
+    --with-ensurepip=install \
+    --enable-shared \
+    LDFLAGS="-Wl,-rpath='\$\$ORIGIN/../lib'"
+
+# Compile Python (using all available cores)
+make -j$(nproc)
+
+# Install Python to the AppDir
+make install DESTDIR=$PWD/../..
+
+cd ../..
+rm -rf python_build
 
 # Create Python configuration files
-cat > usr/lib/python${PYTHON_VERSION}/_sysconfigdata.py << EOF
+PYTHON_SHORT_VERSION=$(echo $PYTHON_VERSION | cut -d. -f1-2)
+cat > usr/lib/python${PYTHON_SHORT_VERSION}/_sysconfigdata.py << EOF
 build_time_vars = {
-    'PYTHONPATH': '$APPDIR/usr/lib/python${PYTHON_VERSION}',
+    'PYTHONPATH': '$APPDIR/usr/lib/python${PYTHON_SHORT_VERSION}',
     'prefix': '$APPDIR/usr',
     'exec_prefix': '$APPDIR/usr',
     'LIBDIR': '$APPDIR/usr/lib',
@@ -80,18 +101,18 @@ build_time_vars = {
 EOF
 
 # Create a wrapper script to set Python environment variables
-cat > usr/bin/python${PYTHON_VERSION}.sh << EOF
+cat > usr/bin/python${PYTHON_SHORT_VERSION}.sh << EOF
 #!/bin/bash
 export PYTHONHOME="\$APPDIR/usr"
-export PYTHONPATH="\$APPDIR/usr/lib/python${PYTHON_VERSION}:\$APPDIR/usr/lib/python${PYTHON_VERSION}/site-packages"
+export PYTHONPATH="\$APPDIR/usr/lib/python${PYTHON_SHORT_VERSION}:\$APPDIR/usr/lib/python${PYTHON_SHORT_VERSION}/site-packages"
 export LD_LIBRARY_PATH="\$APPDIR/usr/lib:\$APPDIR/usr/lib/x86_64-linux-gnu:\$LD_LIBRARY_PATH"
-exec "\$APPDIR/usr/bin/python${PYTHON_VERSION}" "\$@"
+exec "\$APPDIR/usr/bin/python${PYTHON_SHORT_VERSION}" "\$@"
 EOF
-chmod +x usr/bin/python${PYTHON_VERSION}.sh
+chmod +x usr/bin/python${PYTHON_SHORT_VERSION}.sh
 
 # Modify AppRun to set Python environment
 sed -i '2i export PYTHONHOME="$APPDIR/usr"' AppRun
-sed -i '3i export PYTHONPATH="$APPDIR/usr/lib/python'${PYTHON_VERSION}':$APPDIR/usr/lib/python'${PYTHON_VERSION}'/site-packages"' AppRun
+sed -i '3i export PYTHONPATH="$APPDIR/usr/lib/python'${PYTHON_SHORT_VERSION}':$APPDIR/usr/lib/python'${PYTHON_SHORT_VERSION}'/site-packages"' AppRun
 
 # Bundle font configuration
 mkdir -p etc/fonts/
@@ -128,8 +149,8 @@ done
 ./linuxdeployqt-continuous-x86_64.AppImage --appimage-extract-and-run appdir/usr/share/applications/org.siril.Siril.desktop \
   -appimage -unsupported-bundle-everything \
   "${linuxdeployqtargs[@]}" \
-  -executable=$(readlink -f "appdir/usr/bin/python${PYTHON_VERSION}") \
-  -executable=$(readlink -f "appdir/usr/bin/python${PYTHON_VERSION}.sh")
+  -executable=$(readlink -f "appdir/usr/bin/python${PYTHON_SHORT_VERSION}") \
+  -executable=$(readlink -f "appdir/usr/bin/python${PYTHON_SHORT_VERSION}.sh")
 
 # Move the generated AppImage to parent directory
 mv Siril*.AppImage* ../
