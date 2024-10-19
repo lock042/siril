@@ -250,10 +250,11 @@ static void set_widgets() {
 	redraw(REDRAW_OVERLAY);
 }
 
+static const gboolean dont_update_ai_combos = FALSE;
+
 void on_graxpert_dialog_show(GtkWidget *widget, gpointer user_data) {
 	mouse_status = MOUSE_ACTION_DRAW_SAMPLES;
-	gboolean update_ai_combos = FALSE;
-	initialize_graxpert_widgets_if_needed(&update_ai_combos);
+	initialize_graxpert_widgets_if_needed(&dont_update_ai_combos);
 	set_widgets();
 	confirm_availability();
 	clear_backup();

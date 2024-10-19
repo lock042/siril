@@ -460,6 +460,8 @@ gboolean graxpert_executablecheck(gchar* executable, graxpert_operation operatio
 	}
 }
 
+static const gboolean populate_ai_combos = TRUE;
+
 gpointer graxpert_setup_async(gpointer user_data) {
 	if (graxpert_fetchversion(com.pref.graxpert_path)) {
 		siril_debug_print("GraXpert version %d.%d.%d found\n", graxpert_version.major_version, graxpert_version.minor_version, graxpert_version.micro_version);
@@ -468,7 +470,6 @@ gpointer graxpert_setup_async(gpointer user_data) {
 		version_number null_version = { 0 };
 		if (!com.headless && memcmp(&graxpert_version, &null_version, sizeof(version_number))) {
 			// initialize widgets in the GTK thread
-			gboolean populate_ai_combos = TRUE;
 			siril_add_idle(initialize_graxpert_widgets_if_needed, &populate_ai_combos);
 		}
 	} else {
