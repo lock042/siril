@@ -127,7 +127,7 @@ done
 # Generate the final AppImage
 ./linuxdeployqt-continuous-x86_64.AppImage --appimage-extract-and-run appdir/usr/share/applications/org.siril.Siril.desktop \
   -appimage -unsupported-bundle-everything \
-  "${linuxdeployqtargs[@]}"
+  "${linuxdeployqtargs[@]}" \
   -executable=$(readlink -f "appdir/usr/bin/python${PYTHON_VERSION}") \
   -executable=$(readlink -f "appdir/usr/bin/python${PYTHON_VERSION}.sh")
 
