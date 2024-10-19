@@ -51,6 +51,11 @@ sed -i -e 's|/usr|/xxx|g' lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
 # Bundle GTK dependencies
 apt_bundle librsvg2-common libgdk-pixbuf2.0-0 heif-gdk-pixbuf heif-thumbnailer
 
+# Copy and configure GDK pixbuf loaders
+cp /usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders/* usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders/
+cp /usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders.cache usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/
+sed -i -e 's|/usr/lib/x86_64-linux-gnu/gdk-pixbuf-.*/.*/loaders/||g' usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders.cache
+
 # Bundle Python and its dependencies
 apt_bundle libpython3.9-stdlib libpython3-stdlib libpython3.9-minimal python3 python3.9 python3.9-minimal python3.9-venv python3.9-full
 
@@ -111,9 +116,18 @@ cd -
 wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
 chmod a+x linuxdeployqt-continuous-x86_64.AppImage
 
+# Prepare arguments for bundling GDK pixbuf loaders
+linuxdeployqtargs=()
+for so in $(find \
+    appdir/usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders \
+    -name \*.so); do
+    linuxdeployqtargs+=("-executable=$(readlink -f "$so")")
+done
+
 # Generate the final AppImage
 ./linuxdeployqt-continuous-x86_64.AppImage --appimage-extract-and-run appdir/usr/share/applications/org.siril.Siril.desktop \
   -appimage -unsupported-bundle-everything \
+  "${linuxdeployqtargs[@]}"
   -executable=$(readlink -f "appdir/usr/bin/python${PYTHON_VERSION}") \
   -executable=$(readlink -f "appdir/usr/bin/python${PYTHON_VERSION}.sh")
 
