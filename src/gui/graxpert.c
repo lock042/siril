@@ -53,7 +53,7 @@ static gboolean is_bg = TRUE;
 static graxpert_operation previous_operation = GRAXPERT_BG;
 
 gboolean initialize_graxpert_widgets_if_needed(gpointer user_data) {
-	gboolean populate_ai_combos = *(gboolean*) user_data;
+	int populate_ai_combos = GPOINTER_TO_INT(user_data);
 	if (button_graxpert_cancel == NULL) {
 		// GtkButton
 		button_graxpert_cancel = GTK_BUTTON(gtk_builder_get_object(gui.builder, "button_graxpert_cancel"));
@@ -252,8 +252,7 @@ static void set_widgets() {
 
 void on_graxpert_dialog_show(GtkWidget *widget, gpointer user_data) {
 	mouse_status = MOUSE_ACTION_DRAW_SAMPLES;
-	gboolean update_ai_combos = FALSE;
-	initialize_graxpert_widgets_if_needed(&update_ai_combos);
+	initialize_graxpert_widgets_if_needed(GINT_TO_POINTER(0));
 	set_widgets();
 	confirm_availability();
 	clear_backup();
