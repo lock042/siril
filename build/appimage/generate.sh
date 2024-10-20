@@ -32,9 +32,33 @@ ninja -C ${BUILDDIR} -j$(nproc)
 # Install to AppDir
 DESTDIR="$PWD/$APPDIR" ninja -C ${BUILDDIR} -j$(nproc) install
 
-# Setup AppImage structure
-cp ../AppRun "$APPDIR/AppRun"
+# Create and setup AppRun script
+cat > "$APPDIR/AppRun" << 'EOF'
+#!/bin/bash
+
+# Find the AppDir
+HERE="$(dirname "$(readlink -f "${0}")")"
+APPDIR="${HERE}"
+
+# Export path
+export PATH="${APPDIR}/usr/bin:${PATH}"
+export LD_LIBRARY_PATH="${APPDIR}/usr/lib:${APPDIR}/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}"
+
+# Add any additional environment variables here
+export XDG_DATA_DIRS="${APPDIR}/usr/share:${XDG_DATA_DIRS}"
+export GDK_PIXBUF_MODULE_FILE="${APPDIR}/usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/2.10.0/loaders.cache"
+export GDK_PIXBUF_MODULEDIR="${APPDIR}/usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/2.10.0/loaders"
+
+# Python environment will be added here by sed commands later
+# PYTHON ENV MARKER - DO NOT REMOVE THIS LINE
+
+# Execute the application
+exec "${APPDIR}/usr/bin/siril" "$@"
+EOF
+
 chmod +x "$APPDIR/AppRun"
+
+# Copy icon
 cp "$APPDIR/usr/share/icons/hicolor/scalable/apps/org.siril.Siril.svg" "$APPDIR/org.siril.Siril.svg"
 
 # Section 3: Python Installation
