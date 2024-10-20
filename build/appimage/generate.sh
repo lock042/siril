@@ -5,21 +5,23 @@
 set -e  # Exit on error
 export DEBIAN_FRONTEND=noninteractive
 
+# Store base directory
+BASE_DIR="$PWD"
+BUILDDIR="$BASE_DIR/build/appimage/build"
+APPDIR="$BUILDDIR/appdir"
+PREFIX="/usr"
+
 # Python version and download URL
 PYTHON_VERSION="3.9.18"
 PYTHON_SRC_URL="https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz"
 PYTHON_SHORT_VERSION=$(echo $PYTHON_VERSION | cut -d. -f1-2)
 
-# Section 2: Build Configuration
-########################################################################
-BUILDDIR="build/appimage/build"
-APPDIR="$BUILDDIR/appdir"
-PREFIX="/usr"
-
 # Ensure clean build directory
 rm -rf "$APPDIR"
 mkdir -p "$APPDIR"
 
+# Section 2: Build Configuration
+########################################################################
 # Configure build with meson
 meson ${BUILDDIR} \
     --prefix=${PREFIX} \
@@ -30,7 +32,7 @@ meson ${BUILDDIR} \
 ninja -C ${BUILDDIR} -j$(nproc)
 
 # Install to AppDir
-DESTDIR="$PWD/$APPDIR" ninja -C ${BUILDDIR} -j$(nproc) install
+DESTDIR="$APPDIR" ninja -C ${BUILDDIR} -j$(nproc) install
 
 # Create and setup AppRun script
 cat > "$APPDIR/AppRun" << 'EOF'
@@ -64,7 +66,7 @@ cp "$APPDIR/usr/share/icons/hicolor/scalable/apps/org.siril.Siril.svg" "$APPDIR/
 # Section 3: Python Installation
 ########################################################################
 # Create Python build directory
-PYTHON_BUILD_DIR="$APPDIR/python_build"
+PYTHON_BUILD_DIR="$BUILDDIR/python_build"
 mkdir -p "$PYTHON_BUILD_DIR"
 cd "$PYTHON_BUILD_DIR"
 
@@ -87,13 +89,13 @@ make -j$(nproc)
 # Install Python directly to AppDir
 make install DESTDIR="$APPDIR"
 
-# Clean up Python build
-cd "$APPDIR"
-rm -rf python_build
+# Return to base directory and clean up Python build
+cd "$BASE_DIR"
+rm -rf "$PYTHON_BUILD_DIR"
 
 # Create Python configuration
-mkdir -p "usr/lib/python${PYTHON_SHORT_VERSION}"
-cat > "usr/lib/python${PYTHON_SHORT_VERSION}/_sysconfigdata.py" << EOF
+mkdir -p "$APPDIR/usr/lib/python${PYTHON_SHORT_VERSION}"
+cat > "$APPDIR/usr/lib/python${PYTHON_SHORT_VERSION}/_sysconfigdata.py" << EOF
 build_time_vars = {
     'PYTHONPATH': '\$APPDIR/usr/lib/python${PYTHON_SHORT_VERSION}',
     'prefix': '\$APPDIR/usr',
@@ -103,42 +105,42 @@ build_time_vars = {
 EOF
 
 # Create Python wrapper script
-mkdir -p usr/bin
-cat > "usr/bin/python${PYTHON_SHORT_VERSION}.sh" << EOF
+mkdir -p "$APPDIR/usr/bin"
+cat > "$APPDIR/usr/bin/python${PYTHON_SHORT_VERSION}.sh" << EOF
 #!/bin/bash
 export PYTHONHOME="\$APPDIR/usr"
 export PYTHONPATH="\$APPDIR/usr/lib/python${PYTHON_SHORT_VERSION}:\$APPDIR/usr/lib/python${PYTHON_SHORT_VERSION}/site-packages"
 export LD_LIBRARY_PATH="\$APPDIR/usr/lib:\$APPDIR/usr/lib/x86_64-linux-gnu:\$LD_LIBRARY_PATH"
 exec "\$APPDIR/usr/bin/python${PYTHON_SHORT_VERSION}" "\$@"
 EOF
-chmod +x "usr/bin/python${PYTHON_SHORT_VERSION}.sh"
+chmod +x "$APPDIR/usr/bin/python${PYTHON_SHORT_VERSION}.sh"
 
-# Configure AppRun with Python environment
-sed -i "2i export PYTHONHOME=\"\$APPDIR/usr\"" AppRun
-sed -i "3i export PYTHONPATH=\"\$APPDIR/usr/lib/python${PYTHON_SHORT_VERSION}:\$APPDIR/usr/lib/python${PYTHON_SHORT_VERSION}/site-packages\"" AppRun
+# Add Python environment to AppRun
+sed -i "/# PYTHON ENV MARKER/a export PYTHONPATH=\"\$APPDIR/usr/lib/python${PYTHON_SHORT_VERSION}:\$APPDIR/usr/lib/python${PYTHON_SHORT_VERSION}/site-packages\"" "$APPDIR/AppRun"
+sed -i "/# PYTHON ENV MARKER/a export PYTHONHOME=\"\$APPDIR/usr\"" "$APPDIR/AppRun"
 
 # Section 4: System Configuration Files
 ########################################################################
 # Bundle font configuration
-mkdir -p etc/fonts/
-cp /etc/fonts/fonts.conf etc/fonts/
+mkdir -p "$APPDIR/etc/fonts/"
+cp /etc/fonts/fonts.conf "$APPDIR/etc/fonts/"
 
 # Bundle SSL certificates
-mkdir -p etc/ssl/
-cp -rf /etc/ssl/certs etc/ssl/
-cp -rf /etc/ssl/openssl.cnf etc/ssl/
-mkdir -p etc/ssl/private
+mkdir -p "$APPDIR/etc/ssl/"
+cp -rf /etc/ssl/certs "$APPDIR/etc/ssl/"
+cp -rf /etc/ssl/openssl.cnf "$APPDIR/etc/ssl/"
+mkdir -p "$APPDIR/etc/ssl/private"
 
 # Section 5: GLib Schema Configuration
 ########################################################################
 # Install schema files
-mkdir -p usr/share/glib-2.0/schemas/
-cp -f /usr/share/glib-2.0/schemas/*.xml usr/share/glib-2.0/schemas/ || true
+mkdir -p "$APPDIR/usr/share/glib-2.0/schemas/"
+cp -f /usr/share/glib-2.0/schemas/*.xml "$APPDIR/usr/share/glib-2.0/schemas/" || true
 
 # Compile schemas (with error handling)
-if [ -d usr/share/glib-2.0/schemas/ ]; then
+if [ -d "$APPDIR/usr/share/glib-2.0/schemas/" ]; then
     # First, ensure all required enum files are present
-    for schema in usr/share/glib-2.0/schemas/*.xml; do
+    for schema in "$APPDIR/usr/share/glib-2.0/schemas/"*.xml; do
         if [ -f "$schema" ]; then
             # Check if schema references missing enums and remove if so
             if grep -q "enum id='org.gnome.desktop.GDesktop" "$schema"; then
@@ -148,7 +150,7 @@ if [ -d usr/share/glib-2.0/schemas/ ]; then
     done
 
     # Now compile the remaining schemas
-    (cd usr/share/glib-2.0/schemas/ && glib-compile-schemas .)
+    (cd "$APPDIR/usr/share/glib-2.0/schemas/" && glib-compile-schemas .)
 fi
 
 # Section 6: AppImage Generation
@@ -163,14 +165,14 @@ chmod a+x linuxdeployqt-continuous-x86_64.AppImage
 linuxdeployqtargs=()
 while IFS= read -r -d '' so; do
     linuxdeployqtargs+=("-executable=$(readlink -f "$so")")
-done < <(find appdir/usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders -name "*.so" -print0)
+done < <(find "$APPDIR/usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders" -name "*.so" -print0)
 
 # Generate AppImage
-./linuxdeployqt-continuous-x86_64.AppImage --appimage-extract-and-run appdir/usr/share/applications/org.siril.Siril.desktop \
+./linuxdeployqt-continuous-x86_64.AppImage --appimage-extract-and-run "$APPDIR/usr/share/applications/org.siril.Siril.desktop" \
     -appimage -unsupported-bundle-everything \
     "${linuxdeployqtargs[@]}" \
-    -executable="$(readlink -f "appdir/usr/bin/python${PYTHON_SHORT_VERSION}")" \
-    -executable="$(readlink -f "appdir/usr/bin/python${PYTHON_SHORT_VERSION}.sh")"
+    -executable="$(readlink -f "$APPDIR/usr/bin/python${PYTHON_SHORT_VERSION}")" \
+    -executable="$(readlink -f "$APPDIR/usr/bin/python${PYTHON_SHORT_VERSION}.sh")"
 
 # Move AppImage to parent directory
 mv Siril*.AppImage* ../
