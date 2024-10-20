@@ -13,6 +13,7 @@ mingw-w64-x86_64-ninja \
 mingw-w64-x86_64-fftw \
 mingw-w64-x86_64-exiv2 \
 mingw-w64-x86_64-gtk3 \
+mingw-w64-x86_64-gtksourceview4 \
 mingw-w64-x86_64-gsl \
 mingw-w64-x86_64-opencv \
 mingw-w64-x86_64-libheif \

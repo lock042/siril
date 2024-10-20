@@ -4,7 +4,7 @@ mkdir _deps && cd _deps
 
 crossroad install lcms2 \
                   gtk3 \
-                  libgtksourceview-3.0 \
+                  libgtksourceview-4 \
                   fftw \
                   libjxl \
                   exiv2 \

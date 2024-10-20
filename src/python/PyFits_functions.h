@@ -87,6 +87,7 @@ PyObject* PyFits_get_bgnoise(PyFits *self, PyObject *args);
 PyObject* PyFits_stats(PySeqObject *self, PyObject *args);
 PyObject* PyFits_open(PyFits* self, PyObject* args);
 PyObject* PyFits_save(PyFits* self, PyObject* args);
+PyObject* PyFits_copy(PyObject *cls, PyObject *args);
 PyObject* PyFits_move_to_gfit(PyFits* self, PyObject* args, PyObject* kwds);
 
 #endif

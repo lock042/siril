@@ -166,11 +166,12 @@ static PyMethodDef PyFits_methods[] = {
 	{"max", (PyCFunction)PyFits_get_max, METH_VARARGS, N_("Return the maximum pixel value for the specified channel.")},
 	{"normvalue", (PyCFunction)PyFits_get_normvalue, METH_VARARGS, N_("Return the normalization value for the specified channel.")},
 	{"bgnoise", (PyCFunction)PyFits_get_bgnoise, METH_VARARGS, N_("Return the background noise value for the specified channel.")},
-    {"stats", (PyCFunction)PyFits_stats, METH_VARARGS, N_("Returns a copy of the statistics for a given channel in the FITS image as a PyImStats object.")},
-    {"open", (PyCFunction)PyFits_open, METH_VARARGS | METH_CLASS, N_("Open a FITS file and load it into the PyFits object")},
+	{"stats", (PyCFunction)PyFits_stats, METH_VARARGS, N_("Returns a copy of the statistics for a given channel in the FITS image as a PyImStats object.")},
+	{"open", (PyCFunction)PyFits_open, METH_VARARGS | METH_CLASS, N_("Open a FITS file and load it into the PyFits object")},
+	{"copy", (PyCFunction)PyFits_copy, METH_VARARGS | METH_CLASS, N_("Create a new PyFits object that is a copy of another. The PyFits to be copied is provided as the argument.")},
 	{"set_as_current", (PyCFunction)PyFits_move_to_gfit, METH_VARARGS | METH_KEYWORDS,
-     N_("Move the PyFits data to the main Siril image. Takes an optional argument return_new: if return_new is True, returns a new PyFits object pointing to the main Siril image.")},
-    {"save", (PyCFunction)PyFits_save, METH_VARARGS, N_("Save the current PyFits object to a FITS file")},
+	N_("Move the PyFits data to the main Siril image. Takes an optional argument return_new: if return_new is True, returns a new PyFits object pointing to the main Siril image.")},
+	{"save", (PyCFunction)PyFits_save, METH_VARARGS, N_("Save the current PyFits object to a FITS file")},
 	{NULL}
 };
 

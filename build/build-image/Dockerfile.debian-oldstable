@@ -15,7 +15,7 @@ RUN sed -i 's/oldstable\/updates/oldstable-security\/updates/' /etc/apt/sources.
         libcfitsio-dev \
         libfftw3-dev \
         libgsl-dev \
-        libgtksourceview-3.0-dev \
+        libgtksourceview-4-dev \
         librsvg2-dev \
         libffms2-dev \
         libtiff-dev \
