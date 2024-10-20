@@ -177,7 +177,6 @@ fi
 # Create AppImage with minimal deployment options (since we know this works)
 "$LINUXDEPLOY" \
     "$DESKTOP_FILE" \
-    -verbose=3 \
     -appimage \
     -bundle-non-qt-libs || {
         echo "AppImage creation failed"
