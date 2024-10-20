@@ -158,29 +158,31 @@ fi
 ########################################################################
 cd "$BUILDDIR"
 
-# Function to check for missing libraries
-check_dependencies() {
-    local binary="$1"
-    echo "Checking dependencies for: $binary"
-    ldd "$binary" | grep "not found" || true
-}
-
-# Function to copy system libraries
-copy_system_library() {
-    local lib="$1"
-    if [ -f "$lib" ]; then
-        local dest_dir="$APPDIR/usr/lib"
-        mkdir -p "$dest_dir"
-        cp -L "$lib" "$dest_dir/"
-        echo "Copied system library: $lib"
-    else
-        echo "Warning: System library not found: $lib"
+# Function to verify AppImage tool
+verify_appimage_tool() {
+    local tool="$1"
+    echo "Verifying AppImage tool: $tool"
+    if ! "$tool" --version; then
+        echo "Failed to run AppImage tool"
+        # Try extracting if direct execution fails
+        "$tool" --appimage-extract
+        LINUXDEPLOY_DIR="squashfs-root"
+        if [ -d "$LINUXDEPLOY_DIR" ]; then
+            echo "Using extracted AppImage tool"
+            LINUXDEPLOY="$PWD/$LINUXDEPLOY_DIR/AppRun"
+            return 0
+        fi
+        return 1
     fi
 }
 
 # Download linuxdeployqt
 wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
 chmod a+x linuxdeployqt-continuous-x86_64.AppImage
+
+# Verify and potentially extract linuxdeployqt
+LINUXDEPLOY="./linuxdeployqt-continuous-x86_64.AppImage"
+verify_appimage_tool "$LINUXDEPLOY"
 
 # Verify desktop file exists and is valid
 DESKTOP_FILE="$APPDIR/usr/share/applications/org.siril.Siril.desktop"
@@ -189,79 +191,75 @@ if [ ! -f "$DESKTOP_FILE" ]; then
     exit 1
 fi
 
-# Check desktop file contents
-echo "Desktop file contents:"
-cat "$DESKTOP_FILE"
-
-# Check main binary dependencies
-SIRIL_BIN="$APPDIR/usr/bin/siril"
-echo "Checking siril binary dependencies:"
-check_dependencies "$SIRIL_BIN"
-
-# Ensure correct permissions
-chmod +x "$APPDIR/AppRun"
-chmod +x "$SIRIL_BIN"
-
-# Create required directories
-mkdir -p "$APPDIR/usr/lib"
-mkdir -p "$APPDIR/usr/lib/x86_64-linux-gnu"
-
-# Copy common system libraries that might be needed
-for lib in /lib/x86_64-linux-gnu/libglib-2.0.so* \
-           /lib/x86_64-linux-gnu/libgobject-2.0.so* \
-           /lib/x86_64-linux-gnu/libgio-2.0.so* \
-           /lib/x86_64-linux-gnu/libgmodule-2.0.so* \
-           /lib/x86_64-linux-gnu/libpthread.so* \
-           /lib/x86_64-linux-gnu/libdl.so* \
-           /lib/x86_64-linux-gnu/libz.so*; do
-    copy_system_library "$lib"
+# Ensure all executables exist and are actually executable
+for bin in "$APPDIR/usr/bin/siril" "$APPDIR/usr/bin/python${PYTHON_SHORT_VERSION}" "$APPDIR/usr/bin/python${PYTHON_SHORT_VERSION}.sh"; do
+    if [ ! -x "$bin" ]; then
+        echo "ERROR: $bin is not executable"
+        ls -l "$bin"
+        chmod +x "$bin"
+    fi
 done
 
-# Prepare GDK pixbuf loader arguments
-linuxdeployqtargs=()
-while IFS= read -r -d '' so; do
-    if [ -f "$so" ]; then
-        linuxdeployqtargs+=("-executable=$(readlink -f "$so")")
-        # Check dependencies for each loader
-        check_dependencies "$so"
-    fi
-done < <(find "$APPDIR/usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders" -name "*.so" -print0 2>/dev/null || true)
+# Verify AppDir structure
+echo "AppDir structure before linuxdeployqt:"
+find "$APPDIR" -type f -exec file {} \;
 
-# Add library directories to LD_LIBRARY_PATH
-export LD_LIBRARY_PATH="$APPDIR/usr/lib:$APPDIR/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
+# Create log directory
+mkdir -p "$BUILDDIR/logs"
 
-# Print environment for debugging
-echo "Current environment:"
-env | sort
+# Try AppImage creation with different options
+(
+    # First attempt: Basic deployment
+    "$LINUXDEPLOY" \
+        "$DESKTOP_FILE" \
+        -verbose=3 \
+        -appimage \
+        -unsupported-bundle-everything \
+        -executable="$(readlink -f "$APPDIR/usr/bin/python${PYTHON_SHORT_VERSION}")" \
+        -executable="$(readlink -f "$APPDIR/usr/bin/python${PYTHON_SHORT_VERSION}.sh")" \
+        -bundle-non-qt-libs \
+        2>"$BUILDDIR/logs/linuxdeployqt.log" || {
 
-# Create destination directory for AppImage
-mkdir -p "$BASE_DIR/dist"
+        # Second attempt: With additional options
+        echo "First attempt failed, trying with additional options..."
+        "$LINUXDEPLOY" \
+            "$DESKTOP_FILE" \
+            -verbose=3 \
+            -appimage \
+            -unsupported-bundle-everything \
+            -executable="$(readlink -f "$APPDIR/usr/bin/python${PYTHON_SHORT_VERSION}")" \
+            -executable="$(readlink -f "$APPDIR/usr/bin/python${PYTHON_SHORT_VERSION}.sh")" \
+            -bundle-non-qt-libs \
+            -no-translations \
+            -no-plugins \
+            2>"$BUILDDIR/logs/linuxdeployqt_attempt2.log" || {
 
-# Generate AppImage with maximum verbosity
-./linuxdeployqt-continuous-x86_64.AppImage --appimage-extract-and-run \
-    "$DESKTOP_FILE" \
-    -verbose=3 \
-    -appimage \
-    -unsupported-bundle-everything \
-    "${linuxdeployqtargs[@]}" \
-    -executable="$(readlink -f "$APPDIR/usr/bin/python${PYTHON_SHORT_VERSION}")" \
-    -executable="$(readlink -f "$APPDIR/usr/bin/python${PYTHON_SHORT_VERSION}.sh")" \
-    -bundle-non-qt-libs \
-    -copy-copyright-files \
-    -extra-plugins=platforms/,imageformats/ \
-    -updateinformation="guess" || {
-        echo "linuxdeployqt failed with exit code $?"
-        echo "AppDir contents:"
-        ls -laR "$APPDIR"
-        echo "Missing libraries in main binary:"
-        check_dependencies "$SIRIL_BIN"
-        exit 1
-    }
+            # Third attempt: Minimal deployment
+            echo "Second attempt failed, trying minimal deployment..."
+            "$LINUXDEPLOY" \
+                "$DESKTOP_FILE" \
+                -verbose=3 \
+                -appimage \
+                -bundle-non-qt-libs \
+                2>"$BUILDDIR/logs/linuxdeployqt_attempt3.log" || {
+                    echo "All attempts failed. Collecting diagnostic information..."
+                    echo "=== Last 50 lines of first attempt log ==="
+                    tail -n 50 "$BUILDDIR/logs/linuxdeployqt.log"
+                    echo "=== Last 50 lines of second attempt log ==="
+                    tail -n 50 "$BUILDDIR/logs/linuxdeployqt_attempt2.log"
+                    echo "=== Last 50 lines of third attempt log ==="
+                    tail -n 50 "$BUILDDIR/logs/linuxdeployqt_attempt3.log"
+                    echo "=== AppDir final structure ==="
+                    find "$APPDIR" -type f -exec file {} \;
+                    exit 1
+                }
+            }
+        }
+)
 
-# Move AppImage to dist directory
+# If we get here, one of the attempts succeeded
+echo "AppImage creation completed successfully"
 mv Siril*.AppImage* "$BASE_DIR/dist/" || {
     echo "Failed to move AppImage to dist directory"
     exit 1
 }
-
-echo "AppImage creation completed successfully"
