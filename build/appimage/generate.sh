@@ -163,6 +163,14 @@ cd "$BUILDDIR"
 wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
 chmod a+x linuxdeployqt-continuous-x86_64.AppImage
 
+# Prepare pixbuf loaders for deployment
+linuxdeployqtargs=()
+for so in $(find \
+    appdir/usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders \
+    -name \*.so); do
+    linuxdeployqtargs+=("-executable=$(readlink -f "$so")")
+done
+
 # Extract AppImage tool
 ./linuxdeployqt-continuous-x86_64.AppImage --appimage-extract
 LINUXDEPLOY="$PWD/squashfs-root/AppRun"
@@ -178,7 +186,8 @@ fi
 "$LINUXDEPLOY" \
     "$DESKTOP_FILE" \
     -appimage \
-    -bundle-non-qt-libs || {
+    -unsupported-bundle-everything \
+    "${linuxdeployqtargs[@]}" || {
         echo "AppImage creation failed"
         exit 1
     }
