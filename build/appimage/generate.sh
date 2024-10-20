@@ -2,168 +2,121 @@
 
 # Section 1: Environment Setup
 ########################################################################
-set -e  # Exit on error
-set -x  # Print commands for debugging
+# Set non-interactive mode for apt to prevent prompts during installation
 export DEBIAN_FRONTEND=noninteractive
 
-# Store base directory
-BASE_DIR="$PWD"
-BUILDDIR="$BASE_DIR/build/appimage/build"
-APPDIR="$BUILDDIR/appdir"
-PREFIX="/usr"
-
-# Python version and download URL
-PYTHON_VERSION="3.9.18"
-PYTHON_SRC_URL="https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz"
-PYTHON_SHORT_VERSION=$(echo $PYTHON_VERSION | cut -d. -f1-2)
-
-# Ensure clean build directory
-rm -rf "$APPDIR"
-mkdir -p "$APPDIR"
-
-# Section 2: Build Configuration
+# Section 2: Build Configuration and Installation
 ########################################################################
+BUILDDIR=build/appimage/build
+PREFIX=/usr
+
 # Configure build with meson
 meson ${BUILDDIR} \
     --prefix=${PREFIX} \
     --buildtype=release \
-    -Drelocatable-bundle=yes
+    -Drelocatable-bundle=yes   # Enable relocatable binaries for AppImage
 
-# Build using ninja
+# Build using ninja with parallel jobs
 ninja -C ${BUILDDIR} -j$(nproc)
 
-# Install to AppDir
-DESTDIR="$APPDIR" ninja -C ${BUILDDIR} -j$(nproc) install
+# Install to temporary AppDir
+DESTDIR=$PWD/${BUILDDIR}/appdir ninja -C ${BUILDDIR} -j$(nproc) install
+find ${BUILDDIR}/appdir/   # List all installed files
 
-# Create and setup AppRun script
-cat > "$APPDIR/AppRun" << 'EOF'
-#!/bin/bash
+# Change to build directory and setup AppImage structure
+cd ${BUILDDIR}
+cp ../AppRun appdir/AppRun
+chmod +x appdir/AppRun    # Make AppRun executable
+cp ./appdir/usr/share/icons/hicolor/scalable/apps/org.siril.Siril.svg ./appdir/org.siril.Siril.svg
 
-# Find the AppDir
-HERE="$(dirname "$(readlink -f "${0}")")"
-APPDIR="${HERE}"
-
-# Export path
-export PATH="${APPDIR}/usr/bin:${PATH}"
-export LD_LIBRARY_PATH="${APPDIR}/usr/lib:${APPDIR}/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}"
-
-# Add any additional environment variables here
-export XDG_DATA_DIRS="${APPDIR}/usr/share:${XDG_DATA_DIRS}"
-export GDK_PIXBUF_MODULE_FILE="${APPDIR}/usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/2.10.0/loaders.cache"
-export GDK_PIXBUF_MODULEDIR="${APPDIR}/usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/2.10.0/loaders"
-
-# Python environment will be added here by sed commands later
-# PYTHON ENV MARKER - DO NOT REMOVE THIS LINE
-
-# Execute the application
-exec "${APPDIR}/usr/bin/siril" "$@"
-EOF
-
-chmod +x "$APPDIR/AppRun"
-
-# Copy icon
-cp "$APPDIR/usr/share/icons/hicolor/scalable/apps/org.siril.Siril.svg" "$APPDIR/org.siril.Siril.svg"
-
-# Section 3: Python Installation
+# Section 3: Dependencies Bundling
 ########################################################################
-# Create Python build directory
-PYTHON_BUILD_DIR="$BUILDDIR/python_build"
-mkdir -p "$PYTHON_BUILD_DIR"
-cd "$PYTHON_BUILD_DIR"
+cd appdir/
 
-# Download and extract Python
-wget "$PYTHON_SRC_URL"
-tar xzf "Python-${PYTHON_VERSION}.tgz"
-cd "Python-${PYTHON_VERSION}"
+# Helper function to download and extract debian packages
+apt_bundle() {
+    apt-get download "$@"              # Download packages
+    find *.deb -exec dpkg-deb -x {} . \;   # Extract contents
+    find *.deb -delete                # Clean up .deb files
+}
 
-# Configure Python
-./configure \
-    --prefix=/usr \
-    --enable-optimizations \
-    --with-ensurepip=install \
-    --enable-shared \
-    LDFLAGS="-Wl,-rpath='\$\$ORIGIN/../lib'"
+# Update package lists
+apt update
 
-# Build Python
-make -j$(nproc)
+# Bundle core system libraries
+apt_bundle libc6
+# Modify library path to prevent loading from system
+sed -i -e 's|/usr|/xxx|g' lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
 
-# Install Python directly to AppDir
-make install DESTDIR="$APPDIR"
+# Bundle GTK dependencies
+apt_bundle librsvg2-common libgdk-pixbuf2.0-0 heif-gdk-pixbuf heif-thumbnailer
 
-# Return to base directory and clean up Python build
-cd "$BASE_DIR"
-rm -rf "$PYTHON_BUILD_DIR"
+# Copy and configure GDK pixbuf loaders
+cp /usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders/* usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders/
+cp /usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders.cache usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/
+sed -i -e 's|/usr/lib/x86_64-linux-gnu/gdk-pixbuf-.*/.*/loaders/||g' usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders.cache
 
-# Create Python configuration
-mkdir -p "$APPDIR/usr/lib/python${PYTHON_SHORT_VERSION}"
-cat > "$APPDIR/usr/lib/python${PYTHON_SHORT_VERSION}/_sysconfigdata.py" << EOF
+# Bundle Python and its dependencies
+apt_bundle libpython3.9-stdlib libpython3-stdlib libpython3.9-minimal python3 python3.9 python3.9-minimal python3.9-venv python3.9-full python3-setuptools python3-urllib3 python3-packaging python3-six python3-certifi python3-chardet python3-idna python3-wheel python3-dev python3-pip
+
+# Set up Python environment structure
+PYTHON_VERSION="3.9"
+mkdir -p usr/lib/python${PYTHON_VERSION}
+mkdir -p usr/lib/python${PYTHON_VERSION}/site-packages
+
+# Copy Python standard library
+cp -r /usr/lib/python${PYTHON_VERSION}/* usr/lib/python${PYTHON_VERSION}/
+# Copy Python binary and shared libraries
+cp -P /usr/lib/x86_64-linux-gnu/libpython${PYTHON_VERSION}*.so* usr/lib/x86_64-linux-gnu/
+
+# Create Python configuration files
+cat > usr/lib/python${PYTHON_VERSION}/_sysconfigdata.py << EOF
 build_time_vars = {
-    'PYTHONPATH': '\$APPDIR/usr/lib/python${PYTHON_SHORT_VERSION}',
-    'prefix': '\$APPDIR/usr',
-    'exec_prefix': '\$APPDIR/usr',
-    'LIBDIR': '\$APPDIR/usr/lib',
+    'PYTHONPATH': '$APPDIR/usr/lib/python${PYTHON_VERSION}',
+    'prefix': '$APPDIR/usr',
+    'exec_prefix': '$APPDIR/usr',
+    'LIBDIR': '$APPDIR/usr/lib',
 }
 EOF
 
-# Create Python wrapper script
-mkdir -p "$APPDIR/usr/bin"
-cat > "$APPDIR/usr/bin/python${PYTHON_SHORT_VERSION}.sh" << EOF
+# Create a wrapper script to set Python environment variables
+cat > usr/bin/python${PYTHON_VERSION}.sh << EOF
 #!/bin/bash
 export PYTHONHOME="\$APPDIR/usr"
-export PYTHONPATH="\$APPDIR/usr/lib/python${PYTHON_SHORT_VERSION}:\$APPDIR/usr/lib/python${PYTHON_SHORT_VERSION}/site-packages"
+export PYTHONPATH="\$APPDIR/usr/lib/python${PYTHON_VERSION}:\$APPDIR/usr/lib/python${PYTHON_VERSION}/site-packages"
 export LD_LIBRARY_PATH="\$APPDIR/usr/lib:\$APPDIR/usr/lib/x86_64-linux-gnu:\$LD_LIBRARY_PATH"
-exec "\$APPDIR/usr/bin/python${PYTHON_SHORT_VERSION}" "\$@"
+exec "\$APPDIR/usr/bin/python${PYTHON_VERSION}" "\$@"
 EOF
-chmod +x "$APPDIR/usr/bin/python${PYTHON_SHORT_VERSION}.sh"
+chmod +x usr/bin/python${PYTHON_VERSION}.sh
 
-# Add Python environment to AppRun
-sed -i "/# PYTHON ENV MARKER/a export PYTHONPATH=\"\$APPDIR/usr/lib/python${PYTHON_SHORT_VERSION}:\$APPDIR/usr/lib/python${PYTHON_SHORT_VERSION}/site-packages\"" "$APPDIR/AppRun"
-sed -i "/# PYTHON ENV MARKER/a export PYTHONHOME=\"\$APPDIR/usr\"" "$APPDIR/AppRun"
+# Modify AppRun to set Python environment
+sed -i '2i export PYTHONHOME="$APPDIR/usr"' AppRun
+sed -i '3i export PYTHONPATH="$APPDIR/usr/lib/python'${PYTHON_VERSION}':$APPDIR/usr/lib/python'${PYTHON_VERSION}'/site-packages"' AppRun
 
-# Section 4: System Configuration Files
-########################################################################
 # Bundle font configuration
-mkdir -p "$APPDIR/etc/fonts/"
-cp /etc/fonts/fonts.conf "$APPDIR/etc/fonts/"
+mkdir -p etc/fonts/
+cp /etc/fonts/fonts.conf etc/fonts/
 
 # Bundle SSL certificates
-mkdir -p "$APPDIR/etc/ssl/"
-cp -rf /etc/ssl/certs "$APPDIR/etc/ssl/"
-cp -rf /etc/ssl/openssl.cnf "$APPDIR/etc/ssl/"
-mkdir -p "$APPDIR/etc/ssl/private"
+mkdir -p etc/ssl/
+cp -rf /etc/ssl/* etc/ssl/
 
-# Section 5: GLib Schema Configuration
-########################################################################
-# Install schema files
-mkdir -p "$APPDIR/usr/share/glib-2.0/schemas/"
-cp -f /usr/share/glib-2.0/schemas/*.xml "$APPDIR/usr/share/glib-2.0/schemas/" || true
-
-# Compile schemas (with error handling)
-if [ -d "$APPDIR/usr/share/glib-2.0/schemas/" ]; then
-    # First, ensure all required enum files are present
-    for schema in "$APPDIR/usr/share/glib-2.0/schemas/"*.xml; do
-        if [ -f "$schema" ]; then
-            # Check if schema references missing enums and remove if so
-            if grep -q "enum id='org.gnome.desktop.GDesktop" "$schema"; then
-                rm "$schema"
-            fi
-        fi
-    done
-
-    # Now compile the remaining schemas
-    (cd "$APPDIR/usr/share/glib-2.0/schemas/" && glib-compile-schemas .)
+# Setup and compile GLib schemas
+apt_bundle gnome-settings-daemon-common
+mkdir -p usr/share/glib-2.0/schemas/
+cp /usr/share/glib-2.0/schemas/*.gschema.xml usr/share/glib-2.0/schemas/
+if [ -d usr/share/glib-2.0/schemas/ ] ; then
+  ( cd usr/share/glib-2.0/schemas/ ; glib-compile-schemas . )
 fi
+cd -
 
-
-# Section 6: AppImage Generation
+# Section 4: AppImage Generation
 ########################################################################
-cd "$BUILDDIR"
-
-# Download linuxdeployqt
+# Download linuxdeployqt tool
 wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
 chmod a+x linuxdeployqt-continuous-x86_64.AppImage
 
-# Prepare pixbuf loaders for deployment
+# Prepare arguments for bundling GDK pixbuf loaders
 linuxdeployqtargs=()
 for so in $(find \
     appdir/usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders \
@@ -171,66 +124,12 @@ for so in $(find \
     linuxdeployqtargs+=("-executable=$(readlink -f "$so")")
 done
 
-# Extract AppImage tool
-./linuxdeployqt-continuous-x86_64.AppImage --appimage-extract
-LINUXDEPLOY="$PWD/squashfs-root/AppRun"
+# Generate the final AppImage
+./linuxdeployqt-continuous-x86_64.AppImage --appimage-extract-and-run appdir/usr/share/applications/org.siril.Siril.desktop \
+  -appimage -unsupported-bundle-everything \
+  "${linuxdeployqtargs[@]}" \
+  -executable=$(readlink -f "appdir/usr/bin/python${PYTHON_VERSION}") \
+  -executable=$(readlink -f "appdir/usr/bin/python${PYTHON_VERSION}.sh")
 
-# Verify desktop file exists and is valid
-DESKTOP_FILE="$APPDIR/usr/share/applications/org.siril.Siril.desktop"
-if [ ! -f "$DESKTOP_FILE" ]; then
-    echo "ERROR: Desktop file not found: $DESKTOP_FILE"
-    exit 1
-fi
-
-# Create AppImage with minimal deployment options (since we know this works)
-"$LINUXDEPLOY" \
-    "$DESKTOP_FILE" \
-    -appimage \
-    -unsupported-bundle-everything \
-    "${linuxdeployqtargs[@]}" || {
-        echo "AppImage creation failed"
-        exit 1
-    }
-
-# Section 7: AppImage Finalization
-########################################################################
-# Create the artifacts directory where CI expects to find the files
-mkdir -p "$BASE_DIR/build/appimage"
-
-# Find the generated AppImage files
-APPIMAGE_FILES=(Siril*.AppImage*)
-if [ ${#APPIMAGE_FILES[@]} -eq 0 ]; then
-    echo "ERROR: No AppImage files found"
-    ls -la
-    exit 1
-fi
-
-# Move each AppImage file individually
-for file in "${APPIMAGE_FILES[@]}"; do
-    if [ -f "$file" ]; then
-        echo "Moving $file to $BASE_DIR/build/appimage/"
-        cp "$file" "$BASE_DIR/build/appimage/" || {
-            echo "Failed to copy $file to artifacts directory"
-            exit 1
-        }
-        # Verify the copy succeeded before removing the original
-        if [ -f "$BASE_DIR/build/appimage/$(basename "$file")" ]; then
-            rm "$file"
-        else
-            echo "ERROR: Failed to verify copied file: $BASE_DIR/build/appimage/$(basename "$file")"
-            exit 1
-        fi
-    else
-        echo "WARNING: AppImage file not found: $file"
-    fi
-done
-
-# Verify the files were moved successfully
-if [ "$(ls -A "$BASE_DIR/build/appimage/")" ]; then
-    echo "AppImage files successfully moved to artifacts directory:"
-    ls -la "$BASE_DIR/build/appimage/"
-    echo "AppImage creation and deployment completed successfully"
-else
-    echo "ERROR: No files found in artifacts directory after move operation"
-    exit 1
-fi
+# Move the generated AppImage to parent directory
+mv Siril*.AppImage* ../

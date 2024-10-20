@@ -33,7 +33,6 @@ export PATH="${HERE}/usr/bin:${PATH}"
 
 PLATFORM=x86_64-linux-gnu
 
-
 # Glib/Gtk environment
 export GCONV_PATH="$HERE/usr/lib/x86_64-linux-gnu/gconv"
 export FONTCONFIG_FILE="$HERE/etc/fonts/fonts.conf"
