@@ -1016,12 +1016,12 @@ PyObject *PyFits_stats(PyFits *self, PyObject *args) {
 	}
 	// Check that the channel is within bounds
 	if (channel < 0 || channel >= self->fit->naxes[2]) {
-		PyErr_SetString(PyExc_IndexError, "Channel index out of range");
+		PyErr_SetString(PyExc_IndexError, _("Channel index out of range"));
 		return NULL;
 	}
 	// Check if stats are available for this FITS object
 	if (self->fit->stats == NULL || self->fit->stats[channel] == NULL) {
-		PyErr_SetString(PyExc_ValueError, "No stats available for the requested channel");
+		PyErr_SetString(PyExc_ValueError, _("No stats available for the requested channel"));
 		return NULL;
 	}
 	// Create a new PyImStatsObject
@@ -1062,7 +1062,7 @@ PyObject* PyFits_open(PyObject *cls, PyObject *args) {
 	if (PyType_Check(cls)) {
 		new_obj = PyFits_new((PyTypeObject *)cls, NULL, NULL);
 		if (new_obj == NULL) {
-			PyErr_SetString(PyExc_MemoryError, N_("Failed to allocate memory for PyFits object"));
+			PyErr_SetString(PyExc_MemoryError, _("Failed to allocate memory for PyFits object"));
 			return NULL;
 		}
 		self = (PyFits *)new_obj;
@@ -1072,7 +1072,7 @@ PyObject* PyFits_open(PyObject *cls, PyObject *args) {
 		if (self->should_free_data) {
 			clearfits(self->fit);  // Clear the existing FITS data if the object owns its data
 		} else if (self->fit != NULL) {
-			PyErr_SetString(PyExc_IOError, N_("Cannot open an image into this PyFits object as it does not own its data"));
+			PyErr_SetString(PyExc_IOError, _("Cannot open an image into this PyFits object as it does not own its data"));
 			return NULL;
 		}
 	}
@@ -1080,7 +1080,7 @@ PyObject* PyFits_open(PyObject *cls, PyObject *args) {
 	// Allocate memory for a new fits structure
 	self->fit = calloc(1, sizeof(fits));
 	if (self->fit == NULL) {
-		PyErr_SetString(PyExc_MemoryError, N_("Failed to allocate memory for fits"));
+		PyErr_SetString(PyExc_MemoryError, _("Failed to allocate memory for fits"));
 		Py_DECREF(new_obj);  // Clean up if the allocation fails
 		return NULL;
 	}
@@ -1088,7 +1088,7 @@ PyObject* PyFits_open(PyObject *cls, PyObject *args) {
 
 	// Call the function to read a single image into self->fit
 	if (read_single_image(filename, self->fit, NULL, FALSE, &is_sequence, FALSE, !com.pref.force_16bit)) {
-		PyErr_SetString(PyExc_IOError, N_("Failed to open FITS file"));
+		PyErr_SetString(PyExc_IOError, _("Failed to open FITS file"));
 		Py_DECREF(new_obj);  // Clean up if reading the image fails
 		return NULL;
 	}
@@ -1116,7 +1116,7 @@ PyObject* PyFits_save(PyFits* self, PyObject* args) {
 
 	// Call the function to save the current FITS object
 	if (savefits(filename, self->fit)) {
-		PyErr_SetString(PyExc_IOError, N_("Failed to save FITS file"));
+		PyErr_SetString(PyExc_IOError, _("Failed to save FITS file"));
 		return NULL;
 	}
 
@@ -1125,27 +1125,42 @@ PyObject* PyFits_save(PyFits* self, PyObject* args) {
 }
 
 // Class method for PyFits: copy one FITS object to another
+// Class method for PyFits: copy one FITS object to another
 PyObject* PyFits_copy(PyObject *cls, PyObject *args) {
 	PyFits *source = NULL;
 	PyFits *dest = NULL;
-	PyObject *dest_obj = NULL;
 
 	// Parse the input arguments from Python (expecting a single PyFits object)
 	if (!PyArg_ParseTuple(args, "O!", &PyFitsType, &source)) {
 		return NULL;  // Handle argument parsing failure
 	}
 
-	// Use PyFits_new to create a new PyFits object for dest
-	dest_obj = PyFits_new((PyTypeObject *)cls, NULL, NULL);
-	if (dest_obj == NULL) {
-		PyErr_SetString(PyExc_MemoryError, N_("Failed to create PyFits object"));
+	// Check if cls is a type object (i.e., called as a class method)
+	if (PyType_Check(cls)) {
+		// Create a new PyFits object
+		dest = (PyFits *)((PyTypeObject *)cls)->tp_alloc((PyTypeObject *)cls, 0);
+		if (dest == NULL) {
+			PyErr_SetString(PyExc_MemoryError, _("Failed to allocate memory for PyFits object"));
+			return NULL;
+		}
+		dest->should_free = 1;
+		// Allocate memory for a new fits structure in dest
+		dest->fit = calloc(1, sizeof(fits));
+		if (dest->fit == NULL) {
+			PyErr_SetString(PyExc_MemoryError, _("Failed to allocate memory for fits"));
+			Py_DECREF(dest);  // Cleanup if allocation failed
+			return NULL;
+		}
+		dest->should_free_data = 1;
+	} else {
+		// If called as an instance method, raise an error since it should be called as a class method
+		PyErr_SetString(PyExc_TypeError, _("PyFits.copy() should be called as a class method"));
 		return NULL;
 	}
-	dest = (PyFits *)dest_obj;
 
-	// Copy the FITS data and metadata from source to dest
+	// Copy the fits data and metadata from source to dest
 	if (copyfits(source->fit, dest->fit, CP_ALLOC | CP_FORMAT | CP_COPYA, -1)) {
-		PyErr_SetString(PyExc_RuntimeError, N_("Failed to copy FITS data with copyfits()"));
+		PyErr_SetString(PyExc_RuntimeError, _("Failed to copy FITS data with copyfits()"));
 		Py_DECREF(dest);  // Cleanup if copying failed
 		return NULL;
 	}
