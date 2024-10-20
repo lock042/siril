@@ -468,8 +468,7 @@ gpointer graxpert_setup_async(gpointer user_data) {
 		version_number null_version = { 0 };
 		if (!com.headless && memcmp(&graxpert_version, &null_version, sizeof(version_number))) {
 			// initialize widgets in the GTK thread
-			gboolean populate_ai_combos = TRUE;
-			siril_add_idle(initialize_graxpert_widgets_if_needed, &populate_ai_combos);
+			siril_add_idle(initialize_graxpert_widgets_if_needed, GINT_TO_POINTER(1));
 		}
 	} else {
 		g_strfreev(background_ai_models);
