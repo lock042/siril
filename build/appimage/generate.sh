@@ -158,6 +158,26 @@ fi
 ########################################################################
 cd "$BUILDDIR"
 
+# Function to check for missing libraries
+check_dependencies() {
+    local binary="$1"
+    echo "Checking dependencies for: $binary"
+    ldd "$binary" | grep "not found" || true
+}
+
+# Function to copy system libraries
+copy_system_library() {
+    local lib="$1"
+    if [ -f "$lib" ]; then
+        local dest_dir="$APPDIR/usr/lib"
+        mkdir -p "$dest_dir"
+        cp -L "$lib" "$dest_dir/"
+        echo "Copied system library: $lib"
+    else
+        echo "Warning: System library not found: $lib"
+    fi
+}
+
 # Download linuxdeployqt
 wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
 chmod a+x linuxdeployqt-continuous-x86_64.AppImage
@@ -169,16 +189,32 @@ if [ ! -f "$DESKTOP_FILE" ]; then
     exit 1
 fi
 
-# Ensure all required executables exist
-SIRIL_BIN="$APPDIR/usr/bin/siril"
-PYTHON_BIN="$APPDIR/usr/bin/python${PYTHON_SHORT_VERSION}"
-PYTHON_WRAPPER="$APPDIR/usr/bin/python${PYTHON_SHORT_VERSION}.sh"
+# Check desktop file contents
+echo "Desktop file contents:"
+cat "$DESKTOP_FILE"
 
-for bin in "$SIRIL_BIN" "$PYTHON_BIN" "$PYTHON_WRAPPER"; do
-    if [ ! -x "$bin" ]; then
-        echo "ERROR: Required executable not found or not executable: $bin"
-        exit 1
-    fi
+# Check main binary dependencies
+SIRIL_BIN="$APPDIR/usr/bin/siril"
+echo "Checking siril binary dependencies:"
+check_dependencies "$SIRIL_BIN"
+
+# Ensure correct permissions
+chmod +x "$APPDIR/AppRun"
+chmod +x "$SIRIL_BIN"
+
+# Create required directories
+mkdir -p "$APPDIR/usr/lib"
+mkdir -p "$APPDIR/usr/lib/x86_64-linux-gnu"
+
+# Copy common system libraries that might be needed
+for lib in /lib/x86_64-linux-gnu/libglib-2.0.so* \
+           /lib/x86_64-linux-gnu/libgobject-2.0.so* \
+           /lib/x86_64-linux-gnu/libgio-2.0.so* \
+           /lib/x86_64-linux-gnu/libgmodule-2.0.so* \
+           /lib/x86_64-linux-gnu/libpthread.so* \
+           /lib/x86_64-linux-gnu/libdl.so* \
+           /lib/x86_64-linux-gnu/libz.so*; do
+    copy_system_library "$lib"
 done
 
 # Prepare GDK pixbuf loader arguments
@@ -186,30 +222,39 @@ linuxdeployqtargs=()
 while IFS= read -r -d '' so; do
     if [ -f "$so" ]; then
         linuxdeployqtargs+=("-executable=$(readlink -f "$so")")
+        # Check dependencies for each loader
+        check_dependencies "$so"
     fi
 done < <(find "$APPDIR/usr/lib/x86_64-linux-gnu/gdk-pixbuf-*/*/loaders" -name "*.so" -print0 2>/dev/null || true)
 
 # Add library directories to LD_LIBRARY_PATH
 export LD_LIBRARY_PATH="$APPDIR/usr/lib:$APPDIR/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
 
+# Print environment for debugging
+echo "Current environment:"
+env | sort
+
 # Create destination directory for AppImage
 mkdir -p "$BASE_DIR/dist"
 
-# Generate AppImage with verbose output
+# Generate AppImage with maximum verbosity
 ./linuxdeployqt-continuous-x86_64.AppImage --appimage-extract-and-run \
     "$DESKTOP_FILE" \
-    -verbose=2 \
+    -verbose=3 \
     -appimage \
     -unsupported-bundle-everything \
     "${linuxdeployqtargs[@]}" \
-    -executable="$(readlink -f "$PYTHON_BIN")" \
-    -executable="$(readlink -f "$PYTHON_WRAPPER")" \
+    -executable="$(readlink -f "$APPDIR/usr/bin/python${PYTHON_SHORT_VERSION}")" \
+    -executable="$(readlink -f "$APPDIR/usr/bin/python${PYTHON_SHORT_VERSION}.sh")" \
     -bundle-non-qt-libs \
+    -copy-copyright-files \
+    -extra-plugins=platforms/,imageformats/ \
     -updateinformation="guess" || {
         echo "linuxdeployqt failed with exit code $?"
-        # Print contents of AppDir for debugging
         echo "AppDir contents:"
-        ls -la "$APPDIR"
+        ls -laR "$APPDIR"
+        echo "Missing libraries in main binary:"
+        check_dependencies "$SIRIL_BIN"
         exit 1
     }
 
