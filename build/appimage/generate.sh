@@ -210,7 +210,7 @@ for file in "${APPIMAGE_FILES[@]}"; do
         else
             echo "ERROR: Failed to verify copied file: $BASE_DIR/dist/$(basename "$file")"
             exit 1
-        }
+        fi
     else
         echo "WARNING: AppImage file not found: $file"
     fi
