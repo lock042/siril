@@ -617,9 +617,34 @@ static gchar* get_python_home() {
     }
 }
 
+// Helper function to get Python version string
+static gchar* get_python_version() {
+    FILE *fp;
+    char version[64] = {0};
+
+    // Try to get Python version from the system
+    fp = popen("python3 -c \"import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')\"", "r");
+    if (fp == NULL) {
+        return g_strdup("3"); // Fallback to just major version if detection fails
+    }
+
+    if (fgets(version, sizeof(version), fp) != NULL) {
+        // Remove newline if present
+        char *newline = strchr(version, '\n');
+        if (newline) *newline = '\0';
+        pclose(fp);
+        return g_strdup(version);
+    }
+
+    pclose(fp);
+    return g_strdup("3"); // Fallback
+}
+
 // Helper function to set Python environment variables
 static void set_python_env(const char* python_home) {
     if (is_appimage()) {
+        gchar* python_version = get_python_version();
+
         // Set PYTHONHOME
         char pythonhome_env[1024];
         snprintf(pythonhome_env, sizeof(pythonhome_env), "PYTHONHOME=%s", python_home);
@@ -628,9 +653,11 @@ static void set_python_env(const char* python_home) {
         // Set PYTHONPATH
         char pythonpath_env[2048];
         snprintf(pythonpath_env, sizeof(pythonpath_env),
-                "PYTHONPATH=%s/lib/python3.9:%s/lib/python3.9/site-packages",
-                python_home, python_home);
+                "PYTHONPATH=%s/lib/python%s:%s/lib/python%s/site-packages",
+                python_home, python_version, python_home, python_version);
         putenv(strdup(pythonpath_env));
+
+        g_free(python_version);
     }
 }
 
@@ -645,12 +672,14 @@ static int setup_venv(const char* python_home, const char* venv_path) {
     // Basic configuration for venv setup
     config_setup.isolated = 0;
     config_setup.use_environment = 1;
-    config_setup.site_import = 0;
+    config_setup.site_import = 1;
 
     // Set program name and executable
+    gchar* python_version = get_python_version();
     char python_executable[1024];
     snprintf(python_executable, sizeof(python_executable),
-             "%s/bin/python3.9", python_home);
+             "%s/bin/python%s", python_home, python_version);
+    g_free(python_version);
 
     wchar_t *program_name = Py_DecodeLocale(python_executable, NULL);
     if (program_name) {
@@ -677,7 +706,7 @@ static int setup_venv(const char* python_home, const char* venv_path) {
     // Initialize Python and create venv
     PyStatus status = Py_InitializeFromConfig(&config_setup);
     if (PyStatus_Exception(status)) {
-//        PyConfig_Clear(&config_setup);
+        PyConfig_Clear(&config_setup);
         return 0;
     }
 
@@ -764,9 +793,11 @@ gpointer init_python(void *user_data) {
     config.stdio_errors = L"surrogateescape";
 
     // Set up program name and executable
+    gchar* python_version = get_python_version();
     char python_executable[1024];
     snprintf(python_executable, sizeof(python_executable),
-             "%s/bin/python3.9", python_home);
+             "%s/bin/python%s", python_home, python_version);
+    g_free(python_version);
 
     wchar_t *program_name = Py_DecodeLocale(python_executable, NULL);
     if (program_name) {
@@ -848,7 +879,7 @@ exception:
     if (PyStatus_Exception(status)) {
         Py_ExitStatusException(status);
     }
-//    PyConfig_Clear(&config);
+    PyConfig_Clear(&config);
     return NULL;
 }
 
