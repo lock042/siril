@@ -26,4 +26,5 @@ python3 build/windows/dll_link.py ${W64_OUT}/bin/gdk-pixbuf-thumbnailer.exe ${W6
 python3 build/windows/dll_link.py ${W64_OUT}/bin/gspawn-win64-helper.exe ${W64_OUT}/ ${INSTALL_PREFIX}
 python3 build/windows/dll_link.py ${W64_OUT}/bin/gspawn-win64-helper-console.exe ${W64_OUT}/ ${INSTALL_PREFIX}
 python3 build/windows/dll_link.py ${W64_OUT}/bin/glib-compile-schemas.exe ${W64_OUT}/ ${INSTALL_PREFIX}
-python3 build/windows/dll_link.py ${W64_OUT}/lib/gdk-pixbuf-2.0/2.10.0/loaders/libpixbufloader-svg.dll ${W64_OUT}/ ${INSTALL_PREFIX}
+python3 build/windows/dll_link.py ${W64_OUT}/lib/gdk-pixbuf-2.0/2.10.0/loaders/pixbufloader_svg.dll ${W64_OUT}/ ${INSTALL_PREFIX}
+./${INSTALL_PREFIX}/bin/gdk-pixbuf-query-loaders.exe --update-cache
