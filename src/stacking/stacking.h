@@ -78,6 +78,7 @@ struct stacking_args {
 	gboolean force_norm;		/* TRUE = force normalization */
 	gboolean output_norm;		/* normalize final image to the [0, 1] range */
 	gboolean use_32bit_output;	/* output to 32 bit float */
+	int blend_dist;			/* blend pix. number of pixels up to which the mask is smoothened */
 	int reglayer;			/* layer used for registration data */
 	gboolean equalizeRGB;		/* enable RGB equalization through normalization */
 	gboolean maximize_framing;	/* maximize the framing instead of conforming to ref image size*/
@@ -119,6 +120,7 @@ struct stacking_configuration {
 	gboolean output_norm;
 	gboolean equalizeRGB;
 	gboolean lite_norm;
+	float blend_strength;  // 0 nothing is done, 1, mask is smoothened up to half the imwage smallest dim
 	normalization norm;
 	int number_of_loaded_sequences;
 	struct seq_filter_config filters;
@@ -186,7 +188,9 @@ int stack_compute_parallel_blocks(struct _image_block **blocksptr, long max_numb
 struct _data_block {
 	void *tmp;	// the actual single buffer for all others below
 	void **pix;	// buffer for a block on all images
+	float **mask; // buffer for the mask on all images
 	void *stack;	// the reordered stack for one pixel in all images
+	float *mstack;	// the unordered mask data for one pixel in all images
 	int *rejected;	// 0 if pixel ok, 1 or -1 if rejected
 	void *o_stack;	// original unordered stack
 	void *w_stack;	// stack for the winsorized rejection

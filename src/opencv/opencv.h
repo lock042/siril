@@ -33,6 +33,8 @@ unsigned char *cvCalculH(s_star *star_array_img,
 
 int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homography Hom, float scale, int interpolation, gboolean clamp, disto_data *disto);
 
+void cvSimpleBlendMask(int rx, int ry, uint8_t *maskin, float *maskout, int pix);
+
 int cvUnsharpFilter(fits* image, double sigma, double amount);
 
 int cvBilateralFilter(fits* image, double d, double sigma_col, double sigma_spatial);

@@ -583,6 +583,13 @@ int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homog
 	return Mat_to_image(image, &in, &out, bgr, width, height);
 }
 
+void cvSimpleBlendMask(int rx, int ry, uint8_t *maskin, float *maskout, int pix) {
+	Mat _maskin = Mat(ry, rx, CV_8U, maskin);
+	Mat _maskout = Mat(ry, rx, CV_32F, maskout);
+	distanceTransform(_maskin, _maskout, DIST_L2, 3, CV_32F);
+	// threshold(_maskout, _maskout, (double)pix, (double)pix, THRESH_BINARY);
+	// _maskout = _maskout / (float)pix; // remormalizing to [0, 1]
+}
 
 
 int cvUnsharpFilter(fits* image, double sigma, double amount) {
