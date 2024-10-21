@@ -20,6 +20,7 @@ mingw-w64-x86_64-ffms2 \
 mingw-w64-x86_64-cfitsio \
 mingw-w64-x86_64-libgit2-winhttp \
 mingw-w64-x86_64-libxisf \
+mingw-w64-x86_64-librsvg \
 
 # Build LibRaw from github
 mkdir _deps && cd _deps
