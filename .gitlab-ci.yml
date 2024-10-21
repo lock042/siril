@@ -347,7 +347,6 @@ win64:
     # Package lib
 #    - mkdir ${INSTALL_PREFIX}/lib/
     - cp -fr ${CROSSROAD_OUT}/lib/gdk-pixbuf-2.0 ${INSTALL_PREFIX}/lib/
-    - cp build/windows/loaders.cache ${INSTALL_PREFIX}/lib/gdk-pixbuf-2.0/2.10.0/
     - glib-compile-schemas --targetdir=${INSTALL_PREFIX}/share/glib-2.0/schemas ${CROSSROAD_OUT}/share/glib-2.0/schemas
 
     # Package dll with a Python script using objdump
@@ -359,7 +358,9 @@ win64:
     - python3 build/windows/dll_link.py ${CROSSROAD_OUT}/bin/gspawn-win64-helper.exe ${CROSSROAD_OUT}/ ${INSTALL_PREFIX}
     - python3 build/windows/dll_link.py ${CROSSROAD_OUT}/bin/gspawn-win64-helper-console.exe ${CROSSROAD_OUT}/ ${INSTALL_PREFIX}
     - python3 build/windows/dll_link.py ${CROSSROAD_OUT}/bin/glib-compile-schemas.exe ${CROSSROAD_OUT}/ ${INSTALL_PREFIX}
-    - python3 build/windows/dll_link.py ${CROSSROAD_OUT}/lib/gdk-pixbuf-2.0/2.10.0/loaders/libpixbufloader-svg.dll ${CROSSROAD_OUT}/ ${INSTALL_PREFIX}
+    - python3 build/windows/dll_link.py ${CROSSROAD_OUT}/lib/gdk-pixbuf-2.0/2.10.0/loaders/pixbufloader_svg.dll ${CROSSROAD_OUT}/ ${INSTALL_PREFIX}
+    - cd ${INSTALL_PREFIX}/bin
+    - ./gdk-pixbuf-query-loaders.exe --update-cache
 
   needs: ["siril-win64"]
   artifacts:
