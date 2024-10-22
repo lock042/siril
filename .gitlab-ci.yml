@@ -359,8 +359,6 @@ win64:
     - python3 build/windows/dll_link.py ${CROSSROAD_OUT}/bin/gspawn-win64-helper-console.exe ${CROSSROAD_OUT}/ ${INSTALL_PREFIX}
     - python3 build/windows/dll_link.py ${CROSSROAD_OUT}/bin/glib-compile-schemas.exe ${CROSSROAD_OUT}/ ${INSTALL_PREFIX}
     - python3 build/windows/dll_link.py ${CROSSROAD_OUT}/lib/gdk-pixbuf-2.0/2.10.0/loaders/pixbufloader_svg.dll ${CROSSROAD_OUT}/ ${INSTALL_PREFIX}
-    - cd ${INSTALL_PREFIX}/bin
-    - ./gdk-pixbuf-query-loaders.exe --update-cache
 
   needs: ["siril-win64"]
   artifacts:
