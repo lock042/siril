@@ -29,8 +29,8 @@
 
 // Structure to hold process information
 typedef struct {
-    GPid pid;
-    guint watch_source_id;
+	GPid pid;
+	guint watch_source_id;
 } ProcessInfo;
 
 // Global list of active shared memory allocations
@@ -106,74 +106,74 @@ gboolean cleanup_shm_by_name(const char *shm_name) {
 
 // Cleanup handler
 static void cleanup_all_shm(GPid pid, gint status, gpointer user_data) {
-    g_mutex_lock(&shm_list_mutex);
+	g_mutex_lock(&shm_list_mutex);
 
-    if (active_shm_list) {
-        g_warning("Cleaning up %d shared memory allocations at Python exit, these should have been cleaned before", g_list_length(active_shm_list));
-        g_list_foreach(active_shm_list, (GFunc)free_shm_allocation, NULL);
-        g_list_free(active_shm_list);
-        active_shm_list = NULL;
-    }
+	if (active_shm_list) {
+		g_warning("Cleaning up %d shared memory allocations at Python exit, these should have been cleaned before", g_list_length(active_shm_list));
+		g_list_foreach(active_shm_list, (GFunc)free_shm_allocation, NULL);
+		g_list_free(active_shm_list);
+		active_shm_list = NULL;
+	}
 
-    g_mutex_unlock(&shm_list_mutex);
+	g_mutex_unlock(&shm_list_mutex);
 
-    // Remove the watch source
-    if (python_process && python_process->watch_source_id > 0) {
-        g_source_remove(python_process->watch_source_id);
-        python_process->watch_source_id = 0;
-    }
+	// Remove the watch source
+	if (python_process && python_process->watch_source_id > 0) {
+		g_source_remove(python_process->watch_source_id);
+		python_process->watch_source_id = 0;
+	}
 }
 
 // Add cleanup function for program exit
 static void cleanup_python_process(void) {
-    if (python_process) {
-        if (python_process->pid > 0) {
-            // Try to terminate gracefully first
-            kill(python_process->pid, SIGTERM);
+	if (python_process) {
+		if (python_process->pid > 0) {
+			// Try to terminate gracefully first
+			kill(python_process->pid, SIGTERM);
 
-            // Give it a short time to clean up
-            struct timespec ts = { .tv_sec = 0, .tv_nsec = 500000000 }; // 500ms
-            nanosleep(&ts, NULL);
+			// Give it a short time to clean up
+			struct timespec ts = { .tv_sec = 0, .tv_nsec = 500000000 }; // 500ms
+			nanosleep(&ts, NULL);
 
-            // Force kill if still running
-            if (kill(python_process->pid, 0) == 0) {
-                kill(python_process->pid, SIGKILL);
-            }
-        }
+			// Force kill if still running
+			if (kill(python_process->pid, 0) == 0) {
+				kill(python_process->pid, SIGKILL);
+			}
+		}
 
-        if (python_process->watch_source_id > 0) {
-            g_source_remove(python_process->watch_source_id);
-        }
+		if (python_process->watch_source_id > 0) {
+			g_source_remove(python_process->watch_source_id);
+		}
 
-        g_free(python_process);
-        python_process = NULL;
-    }
+		g_free(python_process);
+		python_process = NULL;
+	}
 
-    // Clean up any remaining shared memory
-    cleanup_all_shm(0, 0, NULL);
+	// Clean up any remaining shared memory
+	cleanup_all_shm(0, 0, NULL);
 }
 
 // New function to initialize process monitoring
 static void init_process_monitoring(GPid pid) {
-    if (python_process) {
-        // Clean up existing process info if any
-        if (python_process->watch_source_id > 0) {
-            g_source_remove(python_process->watch_source_id);
-        }
-        g_free(python_process);
-    }
+	if (python_process) {
+		// Clean up existing process info if any
+		if (python_process->watch_source_id > 0) {
+			g_source_remove(python_process->watch_source_id);
+		}
+		g_free(python_process);
+	}
 
-    python_process = g_new0(ProcessInfo, 1);
-    python_process->pid = pid;
+	python_process = g_new0(ProcessInfo, 1);
+	python_process->pid = pid;
 
-    // Set up process monitoring with full flags
-    python_process->watch_source_id = g_child_watch_add_full(
-        G_PRIORITY_DEFAULT,
-        pid,
-        cleanup_all_shm,
-        NULL,
-        NULL  // No need for destroy notify
-    );
+	// Set up process monitoring with full flags
+	python_process->watch_source_id = g_child_watch_add_full(
+		G_PRIORITY_DEFAULT,
+		pid,
+		cleanup_all_shm,
+		NULL,
+		NULL  // No need for destroy notify
+	);
 }
 
 static gboolean handle_new_connection(GIOChannel* source, GIOCondition condition, gpointer data) {
@@ -553,221 +553,221 @@ static void cleanup_shared_memory_win32(win_shm_handle_t* handle) {
 // Handle a request for pixel data. We record the allocated SHM
 // but leave clearup for another command
 gboolean handle_pixeldata_request(Connection *conn) {
-    if (!single_image_is_loaded()) {
-        const char* error_msg = "Failed to retrieve pixel data - no image loaded";
-        return send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
-    }
+	if (!single_image_is_loaded()) {
+		const char* error_msg = "Failed to retrieve pixel data - no image loaded";
+		return send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
 
-    // Calculate total size of pixel data
-    size_t total_bytes;
-    if (gfit.type == DATA_FLOAT) {
-        total_bytes = gfit.rx * gfit.ry * gfit.naxes[2] * sizeof(float);
-    } else {
-        total_bytes = gfit.rx * gfit.ry * gfit.naxes[2] * sizeof(WORD);
-    }
+	// Calculate total size of pixel data
+	size_t total_bytes;
+	if (gfit.type == DATA_FLOAT) {
+		total_bytes = gfit.rx * gfit.ry * gfit.naxes[2] * sizeof(float);
+	} else {
+		total_bytes = gfit.rx * gfit.ry * gfit.naxes[2] * sizeof(WORD);
+	}
 
-    // Generate unique name for shared memory
-    char shm_name[256];
+	// Generate unique name for shared memory
+	char shm_name[256];
 #ifdef _WIN32
-    snprintf(shm_name, sizeof(shm_name), "siril_shm_%lu_%lu",
-            (unsigned long)GetCurrentProcessId(),
-            (unsigned long)time(NULL));
+	snprintf(shm_name, sizeof(shm_name), "siril_shm_%lu_%lu",
+			(unsigned long)GetCurrentProcessId(),
+			(unsigned long)time(NULL));
 #else
-    snprintf(shm_name, sizeof(shm_name), "/siril_shm_%d_%lu",
-            getpid(), (unsigned long)time(NULL));
+	snprintf(shm_name, sizeof(shm_name), "/siril_shm_%d_%lu",
+			getpid(), (unsigned long)time(NULL));
 #endif
 
-    void* shm_ptr = NULL;
+	void* shm_ptr = NULL;
 #ifdef _WIN32
-    win_shm_handle_t win_handle = {NULL, NULL};
-    if (!create_shared_memory_win32(shm_name, total_bytes, &win_handle)) {
-        return FALSE;
-    }
-    shm_ptr = win_handle.ptr;
+	win_shm_handle_t win_handle = {NULL, NULL};
+	if (!create_shared_memory_win32(shm_name, total_bytes, &win_handle)) {
+		return FALSE;
+	}
+	shm_ptr = win_handle.ptr;
 #else
-    int fd = shm_open(shm_name, O_CREAT | O_RDWR, 0600);
-    if (fd == -1) {
-        g_warning("Failed to create shared memory: %s", strerror(errno));
-        return FALSE;
-    }
-    if (ftruncate(fd, total_bytes) == -1) {
-        g_warning("Failed to set shared memory size: %s", strerror(errno));
-        close(fd);
-        shm_unlink(shm_name);
-        return FALSE;
-    }
-    shm_ptr = mmap(NULL, total_bytes, PROT_READ | PROT_WRITE,
-                   MAP_SHARED, fd, 0);
-    if (shm_ptr == MAP_FAILED) {
-        g_warning("Failed to map shared memory: %s", strerror(errno));
-        close(fd);
-        shm_unlink(shm_name);
-        return FALSE;
-    }
+	int fd = shm_open(shm_name, O_CREAT | O_RDWR, 0600);
+	if (fd == -1) {
+		g_warning("Failed to create shared memory: %s", strerror(errno));
+		return FALSE;
+	}
+	if (ftruncate(fd, total_bytes) == -1) {
+		g_warning("Failed to set shared memory size: %s", strerror(errno));
+		close(fd);
+		shm_unlink(shm_name);
+		return FALSE;
+	}
+	shm_ptr = mmap(NULL, total_bytes, PROT_READ | PROT_WRITE,
+				MAP_SHARED, fd, 0);
+	if (shm_ptr == MAP_FAILED) {
+		g_warning("Failed to map shared memory: %s", strerror(errno));
+		close(fd);
+		shm_unlink(shm_name);
+		return FALSE;
+	}
 #endif
 
-    // Copy data to shared memory
-    if (gfit.type == DATA_FLOAT) {
-        memcpy(shm_ptr, gfit.fdata, total_bytes);
-    } else {
-        memcpy(shm_ptr, gfit.data, total_bytes);
-    }
+	// Copy data to shared memory
+	if (gfit.type == DATA_FLOAT) {
+		memcpy(shm_ptr, gfit.fdata, total_bytes);
+	} else {
+		memcpy(shm_ptr, gfit.data, total_bytes);
+	}
 
-    // Track this allocation
+	// Track this allocation
 #ifdef _WIN32
-    track_shm_allocation(shm_name, shm_ptr, total_bytes, &win_handle);
+	track_shm_allocation(shm_name, shm_ptr, total_bytes, &win_handle);
 #else
-    track_shm_allocation(shm_name, shm_ptr, total_bytes, fd);
+	track_shm_allocation(shm_name, shm_ptr, total_bytes, fd);
 #endif
 
-    // Prepare shared memory info structure
-    shared_memory_info_t info = {
-        .size = total_bytes,
-        .data_type = (gfit.type == DATA_FLOAT) ? 1 : 0,
-        .width = gfit.rx,
-        .height = gfit.ry,
-        .channels = gfit.naxes[2]
-    };
-    strncpy(info.shm_name, shm_name, sizeof(info.shm_name) - 1);
+	// Prepare shared memory info structure
+	shared_memory_info_t info = {
+		.size = total_bytes,
+		.data_type = (gfit.type == DATA_FLOAT) ? 1 : 0,
+		.width = gfit.rx,
+		.height = gfit.ry,
+		.channels = gfit.naxes[2]
+	};
+	strncpy(info.shm_name, shm_name, sizeof(info.shm_name) - 1);
 
-    // Send shared memory info to Python
-    return send_response(conn->channel, STATUS_OK, (const char*)&info, sizeof(info));
+	// Send shared memory info to Python
+	return send_response(conn->channel, STATUS_OK, (const char*)&info, sizeof(info));
 }
 
 void execute_python_script_async(gchar* script_name, gboolean from_file) {
-    if (!com.python_conn) {
-        siril_log_color_message(_("Error: python IO channel not available.\n"), "red");
-        return;
-    }
+	if (!com.python_conn) {
+		siril_log_color_message(_("Error: python IO channel not available.\n"), "red");
+		return;
+	}
 
-    // Initialize mutex if not already done
-    static gsize initialization_done = 0;
-    if (g_once_init_enter(&initialization_done)) {
-        g_mutex_init(&shm_list_mutex);
-        // Register cleanup handler for program exit
-        atexit(cleanup_python_process);
-        g_once_init_leave(&initialization_done, 1);
-    }
+	// Initialize mutex if not already done
+	static gsize initialization_done = 0;
+	if (g_once_init_enter(&initialization_done)) {
+		g_mutex_init(&shm_list_mutex);
+		// Register cleanup handler for program exit
+		atexit(cleanup_python_process);
+		g_once_init_leave(&initialization_done, 1);
+	}
 
-    // Prepare environment
-    gchar** env = g_get_environ();
-    // Retrieve the current PYTHONPATH from the environment
-    const gchar* current_pythonpath = g_environ_getenv(env, "PYTHONPATH");
+	// Prepare environment
+	gchar** env = g_get_environ();
+	// Retrieve the current PYTHONPATH from the environment
+	const gchar* current_pythonpath = g_environ_getenv(env, "PYTHONPATH");
 
-    // If PYTHONPATH exists, append the new module directory; otherwise, just set it
+	// If PYTHONPATH exists, append the new module directory; otherwise, just set it
 	gchar* module_dir = NULL; // replace with somewhere we can put the module
-    gchar* new_pythonpath = NULL;
-    if (current_pythonpath != NULL) {
-        new_pythonpath = g_strconcat(current_pythonpath, G_SEARCHPATH_SEPARATOR_S, module_dir, NULL);
-    } else {
-        new_pythonpath = g_strdup(module_dir);  // Just use the new module dir if PYTHONPATH is not set
-    }
+	gchar* new_pythonpath = NULL;
+	if (current_pythonpath != NULL) {
+		new_pythonpath = g_strconcat(current_pythonpath, G_SEARCHPATH_SEPARATOR_S, module_dir, NULL);
+	} else {
+		new_pythonpath = g_strdup(module_dir);  // Just use the new module dir if PYTHONPATH is not set
+	}
 
-    // Set the new PYTHONPATH in the environment
-    env = g_environ_setenv(env, "PYTHONPATH", new_pythonpath, TRUE);
+	// Set the new PYTHONPATH in the environment
+	env = g_environ_setenv(env, "PYTHONPATH", new_pythonpath, TRUE);
 
-    // Free the new PYTHONPATH string (env now has a copy of it)
-    g_free(new_pythonpath);
+	// Free the new PYTHONPATH string (env now has a copy of it)
+	g_free(new_pythonpath);
 
-    // Add or update MY_SOCKET environment variable
+	// Add or update MY_SOCKET environment variable
 #ifdef _WIN32
-    env = g_environ_setenv(env, "MY_PIPE", PIPE_NAME, TRUE);
+	env = g_environ_setenv(env, "MY_PIPE", PIPE_NAME, TRUE);
 #define PYTHON_EXE "python3.exe"
 #else
-    env = g_environ_setenv(env, "MY_SOCKET", com.python_conn->server_path, TRUE);
+	env = g_environ_setenv(env, "MY_SOCKET", com.python_conn->server_path, TRUE);
 #define PYTHON_EXE "python3"
 #endif
 
-    // Prepare arguments
-    gchar* python_argv[4];
-    if (from_file) {
-        python_argv[0] = PYTHON_EXE;
-        python_argv[1] = script_name;
-        python_argv[2] = NULL;
-    } else {
-        python_argv[0] = PYTHON_EXE;
-        python_argv[1] = "-c";
-        python_argv[2] = script_name;
-        python_argv[3] = NULL;
-    }
+	// Prepare arguments
+	gchar* python_argv[4];
+	if (from_file) {
+		python_argv[0] = PYTHON_EXE;
+		python_argv[1] = script_name;
+		python_argv[2] = NULL;
+	} else {
+		python_argv[0] = PYTHON_EXE;
+		python_argv[1] = "-c";
+		python_argv[2] = script_name;
+		python_argv[3] = NULL;
+	}
 
-    GError* error = NULL;
-    GPid pid;
-    gint stdout_fd, stderr_fd;
-    gchar* working_dir = g_strdup(com.wd);
+	GError* error = NULL;
+	GPid pid;
+	gint stdout_fd, stderr_fd;
+	gchar* working_dir = g_strdup(com.wd);
 
-    // Spawn process with DO_NOT_REAP_CHILD flag
-    gboolean success = g_spawn_async_with_pipes(
-        working_dir,
-        python_argv,
-        env,
-        G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
-        NULL,
-        NULL,
-        &pid,
-        NULL,
-        &stdout_fd,
-        &stderr_fd,
-        &error
-    );
+	// Spawn process with DO_NOT_REAP_CHILD flag
+	gboolean success = g_spawn_async_with_pipes(
+		working_dir,
+		python_argv,
+		env,
+		G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
+		NULL,
+		NULL,
+		&pid,
+		NULL,
+		&stdout_fd,
+		&stderr_fd,
+		&error
+	);
 
-    if (!success) {
-        g_error("Failed to execute Python script asynchronously: %s", error->message);
-        g_error_free(error);
-        g_free(working_dir);
-        return;
-    }
+	if (!success) {
+		g_error("Failed to execute Python script asynchronously: %s", error->message);
+		g_error_free(error);
+		g_free(working_dir);
+		return;
+	}
 
-    // Set up process monitoring
-    init_process_monitoring(pid);
+	// Set up process monitoring
+	init_process_monitoring(pid);
 
-    // Set up stdout monitoring
-    GIOChannel *stdout_channel = g_io_channel_unix_new(stdout_fd);
-    g_io_channel_set_encoding(stdout_channel, NULL, NULL);
-    g_io_channel_set_flags(stdout_channel, G_IO_FLAG_NONBLOCK, NULL);
-    setup_io_channel(stdout_channel, "stdout");
+	// Set up stdout monitoring
+	GIOChannel *stdout_channel = g_io_channel_unix_new(stdout_fd);
+	g_io_channel_set_encoding(stdout_channel, NULL, NULL);
+	g_io_channel_set_flags(stdout_channel, G_IO_FLAG_NONBLOCK, NULL);
+	setup_io_channel(stdout_channel, "stdout");
 
-    // Set up stderr monitoring
-    GIOChannel *stderr_channel = g_io_channel_unix_new(stderr_fd);
-    g_io_channel_set_encoding(stderr_channel, NULL, NULL);
-    g_io_channel_set_flags(stderr_channel, G_IO_FLAG_NONBLOCK, NULL);
-    setup_io_channel(stderr_channel, "stderr");
+	// Set up stderr monitoring
+	GIOChannel *stderr_channel = g_io_channel_unix_new(stderr_fd);
+	g_io_channel_set_encoding(stderr_channel, NULL, NULL);
+	g_io_channel_set_flags(stderr_channel, G_IO_FLAG_NONBLOCK, NULL);
+	setup_io_channel(stderr_channel, "stderr");
 
-    siril_log_message(_("Python script launched asynchronously with PID %d\n"), pid);
+	siril_log_message(_("Python script launched asynchronously with PID %d\n"), pid);
 
-    g_free(working_dir);
+	g_free(working_dir);
 }
 
 // Helper function to set up I/O channels
 static void setup_io_channel(GIOChannel *channel, const char *name) {
-    g_io_add_watch(channel, G_IO_IN | G_IO_HUP, io_watch_callback, (gpointer)name);
-    g_io_channel_unref(channel);  // Remove our reference, watch keeps its own
+	g_io_add_watch(channel, G_IO_IN | G_IO_HUP, io_watch_callback, (gpointer)name);
+	g_io_channel_unref(channel);  // Remove our reference, watch keeps its own
 }
 
 // Callback for I/O channel monitoring
 static gboolean io_watch_callback(GIOChannel *channel, GIOCondition condition, gpointer data) {
-    const char *name = (const char *)data;
-    gchar *buffer = NULL;
-    gsize bytes_read;
-    GIOStatus status;
+	const char *name = (const char *)data;
+	gchar *buffer = NULL;
+	gsize bytes_read;
+	GIOStatus status;
 
-    if (condition & G_IO_HUP) {
-        return FALSE;  // Remove source
-    }
+	if (condition & G_IO_HUP) {
+		return FALSE;  // Remove source
+	}
 
-    if (condition & G_IO_IN) {
-        status = g_io_channel_read_line(channel, &buffer, &bytes_read, NULL, NULL);
-        if (status == G_IO_STATUS_NORMAL) {
-            if (strcmp(name, "stderr") == 0) {
-                siril_log_color_message(buffer, "red");
-            } else {
-                siril_log_message("%s", buffer);
-            }
-            g_free(buffer);
-        }
-    }
+	if (condition & G_IO_IN) {
+		status = g_io_channel_read_line(channel, &buffer, &bytes_read, NULL, NULL);
+		if (status == G_IO_STATUS_NORMAL) {
+			if (strcmp(name, "stderr") == 0) {
+				siril_log_color_message(buffer, "red");
+			} else {
+				siril_log_message("%s", buffer);
+			}
+			g_free(buffer);
+		}
+	}
 
-    return TRUE;  // Keep source
+	return TRUE;  // Keep source
 }
 
 /**
