@@ -66,7 +66,6 @@
 #include "core/siril_app_dirs.h"
 #include "core/siril_language.h"
 #include "core/siril_networking.h"
-#include "python/siril_python.h"
 #include "io/siril_pythonmodule.h"
 #include "core/siril_update.h"
 #include "core/siril_log.h"
@@ -589,7 +588,7 @@ int main(int argc, char *argv[]) {
 		g_printerr("%s\n", help_msg);
 		g_free(help_msg);
 	}
-	finalize_python(); // clean up the python interface
+	release_python_channel(); // clean up the python interface
 	pipe_stop();		// close the pipes and their threads
 	g_object_unref(app);
 	return status;

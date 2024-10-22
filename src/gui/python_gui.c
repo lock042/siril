@@ -28,7 +28,6 @@
 #include "core/siril_log.h"
 #include "core/processing.h"
 #include "core/command_line_processor.h"
-#include "python/siril_python.h"
 #include "gui/dialogs.h"
 #include "gui/message_dialog.h"
 #include "gui/script_menu.h"

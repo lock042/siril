@@ -19,7 +19,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 	// Verify we have complete message
 	if (length < sizeof(CommandHeader) + payload_length) {
-		g_warning("Received incomplete command payload, length = %lu; payload_length = %lu; CommandHeader = %lu, expected length = %lu", length, payload_length, sizeof(CommandHeader), sizeof(CommandHeader) + payload_length);
+		g_warning("Received incomplete command payload");
 		return;
 	}
 
