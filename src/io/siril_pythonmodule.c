@@ -650,15 +650,33 @@ void execute_python_script_async(gchar* script_name, gboolean from_file) {
     }
 
     // Prepare environment
-    gchar* python_env;
+    gchar** env = g_get_environ();
+    // Retrieve the current PYTHONPATH from the environment
+    const gchar* current_pythonpath = g_environ_getenv(env, "PYTHONPATH");
+
+    // If PYTHONPATH exists, append the new module directory; otherwise, just set it
+	gchar* module_dir = NULL; // replace with somewhere we can put the module
+    gchar* new_pythonpath = NULL;
+    if (current_pythonpath != NULL) {
+        new_pythonpath = g_strconcat(current_pythonpath, G_SEARCHPATH_SEPARATOR_S, module_dir, NULL);
+    } else {
+        new_pythonpath = g_strdup(module_dir);  // Just use the new module dir if PYTHONPATH is not set
+    }
+
+    // Set the new PYTHONPATH in the environment
+    env = g_environ_setenv(env, "PYTHONPATH", new_pythonpath, TRUE);
+
+    // Free the new PYTHONPATH string (env now has a copy of it)
+    g_free(new_pythonpath);
+
+    // Add or update MY_SOCKET environment variable
 #ifdef _WIN32
-    python_env = g_strdup_printf("MY_PIPE=%s", PIPE_NAME);
+    env = g_environ_setenv(env, "MY_PIPE", PIPE_NAME, TRUE);
 #define PYTHON_EXE "python3.exe"
 #else
-    python_env = g_strdup_printf("MY_SOCKET=%s", com.python_conn->server_path);
+    env = g_environ_setenv(env, "MY_SOCKET", com.python_conn->server_path, TRUE);
 #define PYTHON_EXE "python3"
 #endif
-    gchar* env[] = { python_env, NULL };
 
     // Prepare arguments
     gchar* python_argv[4];
@@ -696,7 +714,6 @@ void execute_python_script_async(gchar* script_name, gboolean from_file) {
     if (!success) {
         g_error("Failed to execute Python script asynchronously: %s", error->message);
         g_error_free(error);
-        g_free(python_env);
         g_free(working_dir);
         return;
     }
@@ -718,7 +735,6 @@ void execute_python_script_async(gchar* script_name, gboolean from_file) {
 
     siril_log_message(_("Python script launched asynchronously with PID %d\n"), pid);
 
-    g_free(python_env);
     g_free(working_dir);
 }
 
