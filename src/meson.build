@@ -185,6 +185,8 @@ src_files = [
   'io/siril_catalogues.c',
   'io/siril_git.c',
   'io/siril_plot.c',
+  'io/siril_pythoncommands.c',
+  'io/siril_pythonmodule.c',
   'io/SirilXISFReader.cpp',
   'io/SirilJpegXLWrapper.cpp',
   'io/spcc_json.c',

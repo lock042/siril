@@ -47,6 +47,7 @@
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
+#include "io/siril_pythonmodule.h"
 #include "annotations_pref.h"
 #include "registration/registration.h"
 #include "stacking/stacking.h"

@@ -33,6 +33,7 @@
 #include "gui/message_dialog.h"
 #include "gui/script_menu.h"
 #include "gui/utils.h"
+#include "io/siril_pythonmodule.h"
 
 #include <gtksourceview/gtksource.h>
 
@@ -350,7 +351,7 @@ void on_button_python_pad_execute_clicked(GtkWidget *widget, gpointer user_data)
 	char *text = gtk_text_buffer_get_text(GTK_TEXT_BUFFER(sourcebuffer), &start, &end, FALSE);
 	switch (active_language) {
 		case LANG_PYTHON:;
-			run_python_script_in_python_thread(text, FALSE);
+			execute_python_script_async(text, FALSE);
 			break;
 		case LANG_SSF:;
 			GInputStream *input_stream = g_memory_input_stream_new_from_data(text, strlen(text), NULL);

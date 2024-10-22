@@ -312,8 +312,23 @@ typedef enum {
 	DISTO_FILE,  // Distortion from given file
 	DISTO_MASTER, // Distortion from master files
 	DISTO_FILES, // Distortion stored in each file (true only from seq platesolve, even with no distortion, it will be checked upon reloading)
-	DISTO_FILE_COMET // special for cometary alignement, to be detected by apply reg. Enables to 
+	DISTO_FILE_COMET // special for cometary alignement, to be detected by apply reg. Enables to
 } disto_source;
+
+typedef struct _Connection{
+    gboolean is_posix;
+    GIOChannel* channel;
+#ifdef _WIN32
+    HANDLE pipe_handle;
+#else
+    int socket_fd;
+    int server_fd;
+	gchar* server_path;
+    GIOChannel* server_channel;  // Added to store server channel
+    void (*client_connected_callback)(struct _Connection*);  // Callback for when client connects
+#endif
+} Connection;
+
 
 /* image data, exists once for each image */
 typedef struct {
@@ -832,6 +847,7 @@ struct cominf {
 	gboolean headless;		// pure console, no GUI
 	gboolean script;		// script being executed, always TRUE when headless is
 	gboolean python_script;	// python script being executed
+	Connection* python_conn;
 	GThread *thread;		// the thread for processing
 	GMutex mutex;			// a mutex we use for this thread
 	GThread *python_thread;	// the thread for the python interpreter

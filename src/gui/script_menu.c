@@ -37,6 +37,7 @@
 #include "core/OS_utils.h"
 #include "core/siril_app_dirs.h"
 #include "core/siril_log.h"
+#include "io/siril_pythonmodule.h"
 #include "python/siril_python.h"
 #include "gui/utils.h"
 #include "gui/message_dialog.h"
@@ -208,7 +209,7 @@ static int on_run_scripts(GtkMenuItem *menuitem, gpointer user_data) {
 			com.script_thread = g_thread_new("script", execute_script, input_stream);
 		} else if (extension && g_strcmp0(extension, ".py") == 0) {
 			siril_log_message(_("Starting Python script %s\n"), filename);
-			run_python_script_in_python_thread(filename, TRUE);
+			execute_python_script_async(filename, TRUE);
 			//TODO: filename should be freed in run_python_script_from_file
 		}
 		g_object_unref(file);
@@ -250,7 +251,7 @@ static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 
 	if (g_str_has_suffix(script_file, PYSCRIPT_EXT)) {
 		// Run Python script
-		run_python_script_in_python_thread(script_file, TRUE);
+		execute_python_script_async(script_file, TRUE);
 	} else if (g_str_has_suffix(script_file, SCRIPT_EXT)) {
 		// Run regular script
 		GFile *file = g_file_new_for_path(script_file);
