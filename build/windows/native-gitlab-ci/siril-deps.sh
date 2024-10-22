@@ -23,3 +23,12 @@ mingw-w64-x86_64-libxisf \
 mingw-w64-x86_64-librsvg \
 mingw-w64-x86_64-libraw \
 
+# # Build LibRaw from github
+# mkdir _deps && cd _deps
+# git clone --depth 1 https://github.com/LibRaw/LibRaw.git
+# cd LibRaw
+# autoreconf -fi && \
+# ./configure --disable-examples --disable-static && \
+# make install -j$(nproc) || exit 1
+# cd ..
+
