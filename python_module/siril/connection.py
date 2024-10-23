@@ -2,12 +2,14 @@ import os
 import sys
 import struct
 import socket
-import mmap
 import ctypes
+import time
+import mmap
 from pathlib import Path
 from enum import IntEnum
 from typing import Tuple, Optional
 import numpy as np
+from .shm import SharedMemoryWrapper
 from .exceptions import SirilError, ConnectionError, CommandError, DataError, NoImageError
 
 class _Command(IntEnum):
@@ -19,6 +21,7 @@ class _Command(IntEnum):
     LOG_MESSAGE = 6
     GET_WORKING_DIRECTORY = 7
     GET_FILENAME = 8
+    SET_PIXELDATA = 9
     ERROR = 0xFF
 
 class SharedMemoryInfo(ctypes.Structure):
@@ -356,9 +359,14 @@ class SirilInterface:
             print(f"Error unpacking image dimensions: {e}", file=sys.stderr)
             return None
 
-    def get_pixel_data(self) -> Optional[np.ndarray]:
+    def get_pixel_data(self, shape: Optional[list[int]] = None) -> Optional[np.ndarray]:
         """
         Retrieve the pixel data using shared memory.
+
+        Args:
+            shape: Optional list of [x, y, w, h] specifying the region to retrieve.
+                If provided, gets data for just that region.
+                If None, gets data for the entire image.
 
         Returns:
             numpy.ndarray: The image data as a numpy array
@@ -366,12 +374,28 @@ class SirilInterface:
         Raises:
             NoImageError: If no image is currently loaded
             RuntimeError: For other errors during pixel data retrieval
-            ValueError: If the received data format is invalid
+            ValueError: If the received data format is invalid or shape is invalid
         """
         shm = None
         try:
+            # Validate shape if provided
+            if shape is not None:
+                if len(shape) != 4:
+                    raise ValueError("Shape must be a list of [x, y, w, h]")
+                if any(not isinstance(v, int) for v in shape):
+                    raise ValueError("All shape values must be integers")
+                if any(v < 1 for v in shape):
+                    raise ValueError("All shape values must be non-negative")
+
+                # Pack shape data for the command
+                shape_data = struct.pack('!IIII', *shape)
+                command = _Command.GET_PIXELDATA_REGION
+            else:
+                shape_data = None
+                command = _Command.GET_PIXELDATA
+
             # Request shared memory setup
-            status, response = self._send_command(_Command.GET_PIXELDATA)
+            status, response = self._send_command(command, shape_data)
 
             # Handle error responses
             if status == _Command.ERROR:
@@ -462,6 +486,97 @@ class SirilInterface:
                 try:
                     shm.close()
                 except BufferError:
+                    pass
+
+    def set_pixel_data(self, image_data: np.ndarray) -> bool:
+        """
+        Send image data to Siril using shared memory.
+
+        Args:
+            image_data: numpy.ndarray containing the image data.
+                    Must be 2D (single channel) or 3D (multi-channel) array
+                    with dtype either np.float32 or np.uint16.
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        shm = None
+        try:
+            # Validate input array
+            if not isinstance(image_data, np.ndarray):
+                raise ValueError("Image data must be a numpy array")
+
+            if image_data.ndim not in (2, 3):
+                raise ValueError("Image must be 2D or 3D array")
+
+            if image_data.dtype not in (np.float32, np.uint16):
+                raise ValueError("Image data must be float32 or uint16")
+
+            # Get dimensions
+            if image_data.ndim == 2:
+                height, width = image_data.shape
+                channels = 1
+                image_data = image_data.reshape(height, width, 1)
+            else:
+                height, width, channels = image_data.shape
+
+            if channels > 3:
+                raise ValueError("Image cannot have more than 3 channels")
+
+            if any(dim <= 0 for dim in (width, height)):
+                raise ValueError(f"Invalid image dimensions: {width}x{height}")
+
+            # Calculate total size
+            element_size = 4 if image_data.dtype == np.float32 else 2
+            total_bytes = width * height * channels * element_size
+
+            # Generate unique name for shared memory
+            timestamp = int(time.time() * 1000)  # Millisecond precision
+            shm_name = f"siril_shm_{os.getpid()}_{timestamp}"
+            if sys.platform == 'win32':
+                shm_name = shm_name[1:]  # Remove leading slash on Windows
+
+            # Create shared memory using our wrapper
+            try:
+                shm = SharedMemoryWrapper(shm_name, total_bytes)
+            except Exception as e:
+                raise RuntimeError(f"Failed to create shared memory: {e}")
+
+            # Copy data to shared memory
+            try:
+                buffer = memoryview(shm.buf).cast('B')
+                shared_array = np.frombuffer(buffer, dtype=image_data.dtype).reshape(image_data.shape)
+                np.copyto(shared_array, image_data)
+            except Exception as e:
+                raise RuntimeError(f"Failed to copy data to shared memory: {e}")
+
+            # Pack the image info structure
+            info = struct.pack(
+                '!IIIIQ256s',
+                width,
+                height,
+                channels,
+                1 if image_data.dtype == np.float32 else 0,
+                total_bytes,
+                shm_name.encode('utf-8').ljust(256, b'\x00')
+            )
+
+            # Send command using the existing execute_command method
+            if not self.execute_command(_Command.SET_PIXELDATA, info):
+                raise RuntimeError("Failed to send pixel data command")
+
+            return True
+
+        except Exception as e:
+            print(f"Error sending pixel data: {e}", file=sys.stderr)
+            return False
+
+        finally:
+            if shm is not None:
+                try:
+                    shm.close()
+                    shm.unlink()
+                except:
                     pass
 
     def get_wd(self) -> Optional[str]:

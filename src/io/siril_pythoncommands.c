@@ -58,11 +58,22 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		}
 
 		case CMD_GET_PIXELDATA: {
-				success = handle_pixeldata_request(conn);
-				break;
+			rectangle region = {0, 0, gfit.rx, gfit.ry};
+			success = handle_pixeldata_request(conn, region);
+			break;
 		}
 
 		case CMD_GET_PIXELDATA_REGION: {
+			if (payload_length == 16) {
+				rectangle region_BE = *(rectangle*) payload;
+				rectangle region = {GUINT32_FROM_BE(region_BE.x),
+									GUINT32_FROM_BE(region_BE.y),
+									GUINT32_FROM_BE(region_BE.w),
+									GUINT32_FROM_BE(region_BE.h)};
+				success = handle_pixeldata_request(conn, region);
+			} else {
+				g_warning("Unexpected payload length %u received for GET_PIXELDATA_REGION", payload_length);
+			}
 			break;
 		}
 
@@ -124,6 +135,17 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				// Handle error retrieving the working directory
 				const char* error_msg = "Image not loaded";
 				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+			}
+			break;
+		}
+
+		case CMD_SET_PIXELDATA: {
+			if (payload_length != sizeof(incoming_image_info_t)) {
+				g_warning("Invalid payload length for SET_PIXELDATA: %u", payload_length);
+				const char* error_msg = "Invalid payload length";
+				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+			} else {
+				success = handle_set_pixeldata_request(conn, payload, payload_length);
 			}
 			break;
 		}

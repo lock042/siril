@@ -552,18 +552,20 @@ static void cleanup_shared_memory_win32(win_shm_handle_t* handle) {
 
 // Handle a request for pixel data. We record the allocated SHM
 // but leave clearup for another command
-gboolean handle_pixeldata_request(Connection *conn) {
+gboolean handle_pixeldata_request(Connection *conn, rectangle region) {
 	if (!single_image_is_loaded()) {
 		const char* error_msg = "Failed to retrieve pixel data - no image loaded";
 		return send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
 	}
 
 	// Calculate total size of pixel data
-	size_t total_bytes;
+	size_t total_bytes, row_bytes;
 	if (gfit.type == DATA_FLOAT) {
-		total_bytes = gfit.rx * gfit.ry * gfit.naxes[2] * sizeof(float);
+		row_bytes = region.w * sizeof(float);
+		total_bytes = row_bytes * gfit.naxes[2] * region.h;
 	} else {
-		total_bytes = gfit.rx * gfit.ry * gfit.naxes[2] * sizeof(WORD);
+		row_bytes = region.w * sizeof(WORD);
+		total_bytes = row_bytes * gfit.naxes[2] * region.h;
 	}
 
 	// Generate unique name for shared memory
@@ -606,11 +608,23 @@ gboolean handle_pixeldata_request(Connection *conn) {
 	}
 #endif
 
-	// Copy data to shared memory
+	// Copy data from gfit to shared memory
+	size_t index = 0;
+	int top = region.y + region.h;
 	if (gfit.type == DATA_FLOAT) {
-		memcpy(shm_ptr, gfit.fdata, total_bytes);
+		for (int chan = 0 ; chan < gfit.naxes[2] ; chan++) {
+			for (int i = region.y ; i < top ; i++) {
+				memcpy((char*)shm_ptr + index, gfit.fpdata[chan] + (i * gfit.rx + region.x), region.w * sizeof(float));
+				index += row_bytes;
+			}
+		}
 	} else {
-		memcpy(shm_ptr, gfit.data, total_bytes);
+		for (int chan = 0 ; chan < gfit.naxes[2] ; chan++) {
+			for (int i = region.y ; i < top ; i++) {
+				memcpy((char*)shm_ptr + index, gfit.fpdata[chan] + (i * gfit.rx + region.x), region.w * sizeof(WORD));
+				index += row_bytes;
+			}
+		}
 	}
 
 	// Track this allocation
@@ -624,14 +638,137 @@ gboolean handle_pixeldata_request(Connection *conn) {
 	shared_memory_info_t info = {
 		.size = total_bytes,
 		.data_type = (gfit.type == DATA_FLOAT) ? 1 : 0,
-		.width = gfit.rx,
-		.height = gfit.ry,
+		.width = region.w,
+		.height = region.h,
 		.channels = gfit.naxes[2]
 	};
 	strncpy(info.shm_name, shm_name, sizeof(info.shm_name) - 1);
 
 	// Send shared memory info to Python
 	return send_response(conn->channel, STATUS_OK, (const char*)&info, sizeof(info));
+}
+
+gboolean handle_set_pixeldata_request(Connection *conn, const char* payload, size_t payload_length) {
+	if (!single_image_is_loaded()) {
+		const char* error_msg = "No image loaded: set_pixel_data() can only be used to update a loaded image, not to create a new one";
+		return send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+
+	if (payload_length != sizeof(incoming_image_info_t)) {
+		const char* error_msg = "Invalid image info size";
+		return send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+
+	incoming_image_info_t* info = (incoming_image_info_t*)payload;
+	info->width = GUINT32_FROM_BE(info->width);
+	info->height = GUINT32_FROM_BE(info->height);
+	info->channels = GUINT32_FROM_BE(info->channels);
+	info->size = GUINT64_FROM_BE(info->size);
+	info->data_type = GUINT32_FROM_BE(info->data_type);
+	// Validate image dimensions and format
+	if (info->width == 0 || info->height == 0 || info->channels == 0 ||
+		info->channels > 3 || info->size == 0) {
+		const char* error_msg = g_strdup_printf("Invalid image dimensions or format: w = %u, h = %u, c = %u, size = %lu", info->width, info->height, info->channels, info->size);
+		return send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+
+	// Open shared memory
+	void* shm_ptr = NULL;
+	#ifdef _WIN32
+		win_shm_handle_t win_handle = {NULL, NULL};
+		HANDLE mapping = OpenFileMapping(FILE_MAP_READ, FALSE, info->shm_name);
+		if (mapping == NULL) {
+			const char* error_msg = "Failed to open shared memory mapping";
+			return send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+		}
+		shm_ptr = MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, info->size);
+		if (shm_ptr == NULL) {
+			CloseHandle(mapping);
+			const char* error_msg = "Failed to map shared memory view";
+			return send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+		}
+		win_handle.mapping = mapping;
+		win_handle.ptr = shm_ptr;
+	#else
+		int fd = shm_open(info->shm_name, O_RDONLY, 0);
+		if (fd == -1) {
+			const char* error_msg = "Failed to open shared memory";
+			return send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+		}
+		shm_ptr = mmap(NULL, info->size, PROT_READ, MAP_SHARED, fd, 0);
+		if (shm_ptr == MAP_FAILED) {
+			close(fd);
+			const char* error_msg = "Failed to map shared memory";
+			return send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+		}
+	#endif
+
+	// Allocate new image buffer
+	gfit.type = DATA_UNSUPPORTED; // prevents a potential crash in on_drawingarea_motion_notify_event while we are messing with gfit
+	free(gfit.data);
+	free(gfit.fdata);
+	gfit.pdata[2] = gfit.pdata[1] = gfit.pdata[0] = gfit.data = NULL;
+	gfit.fpdata[2] = gfit.fpdata[1] = gfit.fpdata[0] = gfit.fdata = NULL;
+	gboolean alloc_err = FALSE;
+	if (info->data_type == 0) {
+		gfit.pdata[2] = gfit.pdata[1] = gfit.pdata[0] = gfit.data = calloc(info->width * info->height * info->channels, sizeof(WORD));
+		if (!gfit.data) {
+			alloc_err = TRUE;
+		} else {
+			for (int i = 0 ; i < info->channels ; i++) {
+				gfit.pdata[i] = gfit.data + i * info->width * info->height;
+			}
+		}
+	} else {
+		gfit.fpdata[2] = gfit.fpdata[1] = gfit.fpdata[0] = gfit.fdata = calloc(info->width * info->height * info->channels, sizeof(float));
+		if (!gfit.fdata) {
+			alloc_err = TRUE;
+		} else {
+			for (int i = 0 ; i < info->channels ; i++) {
+				gfit.fpdata[i] = gfit.fdata + i * info->width * info->height;
+			}
+		}
+	}
+	if (alloc_err) {
+		#ifdef _WIN32
+			UnmapViewOfFile(shm_ptr);
+			CloseHandle(win_handle.mapping);
+		#else
+			munmap(shm_ptr, info->size);
+			close(fd);
+		#endif
+		const char* error_msg = "Failed to allocate image buffer";
+		return send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+
+	// Copy data from shared memory to gfit
+	size_t total_bytes = info->width * info->height * info->channels * (info->data_type == 1 ? sizeof(float) : sizeof(WORD));
+
+	if (info->data_type == 1) {  // float data
+		memcpy(gfit.fdata, (char*) shm_ptr, total_bytes);
+	} else {  // WORD data
+		memcpy(gfit.data, (char*) shm_ptr, total_bytes);
+	}
+
+	// Update gfit metadata
+	gfit.type = info->data_type ? DATA_FLOAT : DATA_USHORT;
+	gfit.rx = gfit.naxes[0] = info->width;
+	gfit.ry = gfit.naxes[1] = info->height;
+	gfit.naxes[2] = info->channels;
+
+	notify_gfit_modified();
+
+	// Cleanup shared memory
+	#ifdef _WIN32
+		UnmapViewOfFile(shm_ptr);
+		CloseHandle(win_handle.mapping);
+	#else
+		munmap(shm_ptr, info->size);
+		close(fd);
+		shm_unlink(info->shm_name);  // Remove shared memory object
+	#endif
+
+	return send_response(conn->channel, STATUS_OK, NULL, 0);
 }
 
 void execute_python_script_async(gchar* script_name, gboolean from_file) {

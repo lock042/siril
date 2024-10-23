@@ -5,7 +5,7 @@ import numpy as np
 from enum import IntEnum
 
 class DataType(IntEnum):
-    """Mimics the data_type enum from C"""
+    """Mimics the Siril data_type enum"""
     BYTE_IMG = 8
     SHORT_IMG = 16
     USHORT_IMG = 16
@@ -15,7 +15,7 @@ class DataType(IntEnum):
 
 @dataclass
 class ImageStats:
-    """Python equivalent of imstats structure"""
+    """Python equivalent of Siril imstats structure"""
     total: int = 0           # number of pixels
     ngoodpix: int = 0        # number of non-zero pixels
     mean: float = 0.0

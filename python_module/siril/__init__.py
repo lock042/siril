@@ -13,13 +13,12 @@ from .models import (
     FFit,
 )
 
+from .shm import SharedMemoryWrapper
+
 from .exceptions import SirilError, ConnectionError, CommandError, DataError
 
 __version__ = "0.1.0"
 __all__ = [
-#    'get_image_info',
-#    'get_region',
-#    'find_stars',
     'SirilInterface',
     'DataType',
     'ImageStats',
@@ -29,4 +28,5 @@ __all__ = [
     'ConnectionError',
     'CommandError',
     'DataError',
+    'SharedMemoryWrapper'
 ]
