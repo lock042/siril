@@ -7,6 +7,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         "numpy>=1.20.0",
+        "pywin32>=300; platform_system=='Windows'"
     ],
     author="Team free-astro",
     author_email="your.email@example.com",
@@ -25,5 +26,5 @@ setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
     ],
-    python_requires=">=3.7",
+    python_requires=">=3.9",
 )

@@ -285,6 +285,7 @@ class SirilInterface:
 
         except Exception as e:
             raise CommandError(f"Error sending command: {e}")
+
 # execute_command and request_data are not intended to be used directly in scripts
 # They are used to implement more user-friendly commands (see below)
 
