@@ -552,6 +552,8 @@ static void cleanup_shared_memory_win32(win_shm_handle_t* handle) {
 
 // Handle a request for pixel data. We record the allocated SHM
 // but leave clearup for another command
+// TODO: this works but consider if it's overcomplicated, we could just delete
+// the shm from python...
 gboolean handle_pixeldata_request(Connection *conn, rectangle region) {
 	if (!single_image_is_loaded()) {
 		const char* error_msg = "Failed to retrieve pixel data - no image loaded";
