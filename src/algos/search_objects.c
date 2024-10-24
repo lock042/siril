@@ -463,7 +463,7 @@ char *search_in_online_catalogs(sky_object_query_args *args) {
 		g_string_append_printf(string_url, "&-observer=%s", formatted_site);
 		siril_log_message(_("Searching for solar system object %s on observation date %s\n"),
 				name, formatted_date);
-		if (args->fit->keywords.sitelat <-90. || args->fit->keywords.sitelong < 0.0) {
+		if (args->fit->keywords.sitelat == DEFAULT_FLOAT_VALUE || args->fit->keywords.sitelong == DEFAULT_FLOAT_VALUE) {
 			siril_log_color_message(_("No topocentric data available. Set to geocentric, positions may be inaccurate\n"), "salmon");
 		} else {
 			double elev = (args->fit->keywords.siteelev < DEFAULT_DOUBLE_VALUE + 1.) ? 0. : args->fit->keywords.siteelev;

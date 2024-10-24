@@ -499,6 +499,30 @@ static void insert_text_handler(GtkEntry *entry, const gchar *text, gint length,
 	g_free(result);
 }
 
+static void insert_text_handler_key(GtkEntry *entry, const gchar *text, gint length,
+		gint *position, gpointer data) {
+	GtkEditable *editable = GTK_EDITABLE(entry);
+
+	GString *filtered_text = g_string_new(NULL);
+	for (gint i = 0; i < length; i++) {
+		// Append only characters that are not spaces
+		if (!g_unichar_isspace(g_utf8_get_char(text + i))) {
+			g_string_append_c(filtered_text, text[i]);
+		}
+	}
+
+	gchar *result = replace_wide_char(filtered_text->str);
+
+	g_signal_handlers_block_by_func(G_OBJECT(editable), G_CALLBACK(insert_text_handler_key), data);
+	gtk_editable_insert_text(editable, result, strlen(result), position);
+	g_signal_handlers_unblock_by_func(G_OBJECT(editable), G_CALLBACK(insert_text_handler_key), data);
+
+	g_signal_stop_emission_by_name(G_OBJECT(editable), "insert_text");
+
+	g_free(result);
+	g_string_free(filtered_text, TRUE);
+}
+
 static void on_entry_activate(GtkEntry *entry, gpointer user_data) {
 	GtkWidget *add_button = GTK_WIDGET(user_data);
 	gtk_button_clicked(GTK_BUTTON(add_button));
@@ -519,6 +543,24 @@ static void scroll_to_end() {
 
 		gtk_tree_path_free(path);
 	}
+}
+
+static gboolean has_space(const gchar *str) {
+	if (str == NULL) {
+		return FALSE;
+	}
+
+	const gchar *p = str;
+
+	while (*p) {
+		gunichar c = g_utf8_get_char(p);
+		if (g_unichar_isspace(c)) {
+			return TRUE;
+		}
+		p = g_utf8_next_char(p);
+	}
+
+	return FALSE;
 }
 
 void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
@@ -598,7 +640,7 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 	g_signal_connect(entry_comment, "activate", G_CALLBACK(on_entry_activate), add_button);
 
 	// Connect the insert-text signal of each entry
-	g_signal_connect(entry_name, "insert-text", G_CALLBACK(insert_text_handler), add_button);
+	g_signal_connect(entry_name, "insert-text", G_CALLBACK(insert_text_handler_key), add_button);
 	g_signal_connect(entry_value, "insert-text", G_CALLBACK(insert_text_handler), add_button);
 	g_signal_connect(entry_comment, "insert-text", G_CALLBACK(insert_text_handler), add_button);
 
@@ -615,11 +657,20 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 		if (g_strcmp0(comment, "") == 0) comment = NULL;
 
 		if (comment || value || key) {
+			char valstring[FLEN_VALUE];
+			int status = 0;
+
+			if (has_space(value)) {
+				ffs2c(value, valstring, &status);
+			} else {
+				strcpy(valstring, value);
+			}
+
 			if (sequence_is_loaded()) {
 				struct keywords_data *kargs = calloc(1, sizeof(struct keywords_data));
 
 				kargs->FITS_key = g_strdup(key);
-				kargs->value = g_strdup(value);
+				kargs->value = g_strdup(valstring);
 				kargs->comment = g_strdup(comment);
 
 				if (siril_confirm_dialog(_("Operation on the sequence"),
@@ -630,7 +681,7 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 					free(kargs);
 				}
 			} else {
-				updateFITSKeyword(&gfit, key, NULL, value, comment, TRUE, FALSE);
+				updateFITSKeyword(&gfit, key, NULL, valstring, comment, TRUE, FALSE);
 				gui_function(refresh_keywords_dialog, NULL);
 				scroll_to_end();
 			}
