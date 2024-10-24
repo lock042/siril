@@ -51,7 +51,7 @@ static rectangle get_bkg_selection();
 void on_combophoto_catalog_changed(GtkComboBox *combo, gpointer user_data);
 static void set_bg_sigma(struct photometric_cc_data *args);
 static int set_spcc_args(struct photometric_cc_data *args);
-void populate_spcc_combos();
+gboolean populate_spcc_combos(gpointer user_data);
 void on_spcc_toggle_nb_toggled(GtkToggleButton *button, gpointer user_data);
 void on_spcc_sensor_switch_state_set(GtkSwitch *widget, gboolean state, gpointer user_data);
 static GMutex combos_filling = { 0 };
@@ -619,28 +619,31 @@ void fill_combo_from_glist(gchar *comboname, GList *list, int channel, const gch
     }
 }
 
-void populate_spcc_combos() {
+gboolean populate_spcc_combos(gpointer user_data) {
 	// Initialize filters if required
-	if (!spcc_filters_initialized) {
-		spcc_filters_initialized = TRUE;
-		load_all_spcc_metadata();
-		fill_combo_from_glist("combo_spcc_filters_osc", com.spcc_data.osc_filters, -1, com.pref.spcc.oscfilterpref);
-		fill_combo_from_glist("combo_spcc_filters_r", com.spcc_data.mono_filters[RLAYER], RLAYER, com.pref.spcc.redpref);
-		fill_combo_from_glist("combo_spcc_filters_g", com.spcc_data.mono_filters[GLAYER], GLAYER, com.pref.spcc.greenpref);
-		fill_combo_from_glist("combo_spcc_filters_b", com.spcc_data.mono_filters[BLAYER], BLAYER, com.pref.spcc.bluepref);
-		fill_combo_from_glist("combo_spcc_filters_lpf", com.spcc_data.osc_lpf, -1, com.pref.spcc.lpfpref);
-		fill_combo_from_glist("combo_spcc_sensors_mono", com.spcc_data.mono_sensors, -1, com.pref.spcc.monosensorpref);
-		fill_combo_from_glist("combo_spcc_sensors_osc", com.spcc_data.osc_sensors, -1, com.pref.spcc.oscsensorpref);
-		fill_combo_from_glist("combo_spcc_whitepoint", com.spcc_data.wb_ref, -1, "Average Spiral Galaxy");
-		GtkSwitch *switch_widget = GTK_SWITCH(lookup_widget("spcc_sensor_switch"));
-		gtk_switch_set_active(switch_widget, com.pref.spcc.is_mono);
-	}
+	fill_combo_from_glist("combo_spcc_filters_osc", com.spcc_data.osc_filters, -1, com.pref.spcc.oscfilterpref);
+	fill_combo_from_glist("combo_spcc_filters_r", com.spcc_data.mono_filters[RLAYER], RLAYER, com.pref.spcc.redpref);
+	fill_combo_from_glist("combo_spcc_filters_g", com.spcc_data.mono_filters[GLAYER], GLAYER, com.pref.spcc.greenpref);
+	fill_combo_from_glist("combo_spcc_filters_b", com.spcc_data.mono_filters[BLAYER], BLAYER, com.pref.spcc.bluepref);
+	fill_combo_from_glist("combo_spcc_filters_lpf", com.spcc_data.osc_lpf, -1, com.pref.spcc.lpfpref);
+	fill_combo_from_glist("combo_spcc_sensors_mono", com.spcc_data.mono_sensors, -1, com.pref.spcc.monosensorpref);
+	fill_combo_from_glist("combo_spcc_sensors_osc", com.spcc_data.osc_sensors, -1, com.pref.spcc.oscsensorpref);
+	fill_combo_from_glist("combo_spcc_whitepoint", com.spcc_data.wb_ref, -1, "Average Spiral Galaxy");
+	GtkSwitch *switch_widget = GTK_SWITCH(lookup_widget("spcc_sensor_switch"));
+	gtk_switch_set_active(switch_widget, com.pref.spcc.is_mono);
+	return FALSE;
 }
 
 gpointer populate_spcc_combos_async(gpointer user_data) {
 	g_mutex_lock(&combos_filling);
-	populate_spcc_combos();
+	if (!spcc_filters_initialized) {
+		// do most of the slow file reading in this thread, separate to GTK thread
+		load_all_spcc_metadata();
+		spcc_filters_initialized = TRUE;
+	}
 	g_mutex_unlock(&combos_filling);
+	// update combos back in the GTK thread
+	siril_add_idle(populate_spcc_combos, NULL);
 	return GINT_TO_POINTER(0);
 }
 

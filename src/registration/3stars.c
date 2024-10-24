@@ -305,7 +305,7 @@ static int _3stars_seqpsf(struct registration_args *regargs) {
 	}
 	args->seq = regargs->seq;
 	args->partial_image = TRUE;
-	args->layer_for_partial = get_registration_layer(&com.seq);
+	args->layer_for_partial = (spsfargs->framing == REGISTERED_FRAME) ? get_registration_layer(&com.seq) : gtk_combo_box_get_active(comboboxreglayer);
 	args->regdata_for_partial = spsfargs->framing == REGISTERED_FRAME;
 	args->get_photometry_data_for_partial = FALSE;
 	args->image_hook = seqpsf_image_hook;

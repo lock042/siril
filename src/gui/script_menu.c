@@ -101,12 +101,24 @@ static void clear_gtk_list() {
 }
 
 void script_widgets_enable(gboolean status) {
-	GtkWidget *notebook_center_box = lookup_widget("notebook_center_box");
+//	GtkWidget *notebook_center_box = lookup_widget("notebook_center_box");
+	GtkWidget *tab1 = lookup_widget("conversion_tab");
+	GtkWidget *tab2 = lookup_widget("sequence_tab");
+	GtkWidget *tab3 = lookup_widget("calibration_tab");
+	GtkWidget *tab4 = lookup_widget("registration_tab");
+	GtkWidget *tab5 = lookup_widget("plot_tab");
+	GtkWidget *tab6 = lookup_widget("stacking_tab");
 	GtkWidget *command = lookup_widget("command");
 	GtkWidget *notebook1 = lookup_widget("notebook1");
 	GtkWidget *headerbar = lookup_widget("headerbar");
 	GtkWidget *toolbarbox = lookup_widget("toolbarbox");
-	gtk_widget_set_sensitive(notebook_center_box, status);
+//	gtk_widget_set_sensitive(notebook_center_box, status);
+	gtk_widget_set_sensitive(tab1, status);
+	gtk_widget_set_sensitive(tab2, status);
+	gtk_widget_set_sensitive(tab3, status);
+	gtk_widget_set_sensitive(tab4, status);
+	gtk_widget_set_sensitive(tab5, status);
+	gtk_widget_set_sensitive(tab6, status);
 	gtk_widget_set_sensitive(command, status);
 	gtk_widget_set_sensitive(notebook1, status);
 	gtk_widget_set_sensitive(headerbar, status);
