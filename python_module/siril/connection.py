@@ -11,6 +11,12 @@ from typing import Tuple, Optional
 import numpy as np
 from .shm import SharedMemoryWrapper
 from .exceptions import SirilError, ConnectionError, CommandError, DataError, NoImageError
+if os.name == 'nt':
+    import win32pipe
+    import win32file
+    import win32event
+    import pywintypes
+    import winerror
 
 class _Command(IntEnum):
     GET_DIMENSIONS = 1
@@ -59,72 +65,157 @@ class SirilInterface:
         """
         try:
             if os.name == 'nt':
-                # Windows-specific connection logic
                 print(f"Connecting to Windows pipe: {self.pipe_path}")
-                # Example: open named pipe for reading/writing (Windows)
+                try:
+                    self.pipe_handle = win32file.CreateFile(
+                        self.pipe_path,
+                        win32file.GENERIC_READ | win32file.GENERIC_WRITE,
+                        0,  # No sharing
+                        None,  # Default security
+                        win32file.OPEN_EXISTING,
+                        win32file.FILE_FLAG_OVERLAPPED,  # Use overlapped I/O
+                        None
+                    )
+                    # Create event for overlapped I/O
+                    self.overlap_read = pywintypes.OVERLAPPED()
+                    self.overlap_read.hEvent = win32event.CreateEvent(None, True, False, None)
+                    self.overlap_write = pywintypes.OVERLAPPED()
+                    self.overlap_write.hEvent = win32event.CreateEvent(None, True, False, None)
+                    return True
+                except pywintypes.error as e:
+                    if e.winerror == winerror.ERROR_PIPE_BUSY:
+                        raise ConnectionError("Pipe is busy")
+                    raise ConnectionError(f"Failed to connect to pipe: {e}")
             else:
-                # POSIX-specific connection logic using the socket
                 self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                self.sock.connect(self.socket_path)
+                return True
 
-                self.sock.connect(self.socket_path)  # Connect to the UNIX socket
-
-            # Action on successful connection
-            return True
-
-        except socket.error as e:
+        except Exception as e:
             raise ConnectionError(f"Failed to connect: {e}")
 
     def close_connection(self):
         """
         Closes the established socket or pipe connection.
         """
-        if os.name != 'nt':
+        if os.name == 'nt':
+            if hasattr(self, 'pipe_handle'):
+                # Close the pipe handle
+                win32file.CloseHandle(self.pipe_handle)
+                # Close the event handles
+                if hasattr(self, 'overlap_read'):
+                    win32event.CloseHandle(self.overlap_read.hEvent)
+                if hasattr(self, 'overlap_write'):
+                    win32event.CloseHandle(self.overlap_write.hEvent)
+                return True
+            else:
+                raise SirilError("No pipe connection to close")
+        else:
             if hasattr(self, 'sock'):
                 self.sock.close()
                 return True
             else:
                 raise SirilError("No socket connection to close")
-        # Add similar logic for Windows pipes if necessary
 
     def _recv_exact(self, n: int, timeout: float = 3.0) -> Optional[bytes]:
         """
-        Helper method to receive exactly n bytes from the socket.
-        Args:
-            n: Number of bytes to receive
-            timeout: Timeout in seconds
-        Returns:
-            Received bytes or None if error/incomplete
-        Raises:
-            ConnectionError: If there's an error during receive or timeout
+        Helper method to receive exactly n bytes from the socket or pipe.
         """
         if n < 0:
             raise ValueError("Cannot receive negative number of bytes")
 
-        # Set timeout for this operation
-        original_timeout = self.sock.gettimeout()
-        self.sock.settimeout(timeout)
+        if os.name == 'nt':
+            try:
+                data = bytearray()
+                timeout_ms = int(timeout * 1000)
 
-        try:
-            data = bytearray()
-            while len(data) < n:
-                try:
-                    packet = self.sock.recv(n - len(data))
-                    if not packet:  # Connection closed
-                        raise ConnectionError("Connection closed during data transfer")
-                    data.extend(packet)
-                except socket.timeout:
-                    raise ConnectionError("Timeout while receiving data")
-                except Exception as e:
-                    raise ConnectionError(f"Error receiving data: {e}")
-            return bytes(data)
-        finally:
-            # Restore original timeout
-            self.sock.settimeout(original_timeout)
+                while len(data) < n:
+                    # Calculate remaining bytes to read
+                    to_read = n - len(data)
+
+                    # Prepare buffer for reading
+                    buf = win32file.AllocateReadBuffer(to_read)
+
+                    # Start overlapped read
+                    win32file.ReadFile(self.pipe_handle, buf, self.overlap_read)
+
+                    # Wait for completion or timeout
+                    rc = win32event.WaitForSingleObject(self.overlap_read.hEvent, timeout_ms)
+
+                    if rc == win32event.WAIT_TIMEOUT:
+                        # Cancel the I/O operation
+                        win32file.CancelIo(self.pipe_handle)
+                        raise ConnectionError("Timeout while receiving data")
+
+                    if rc != win32event.WAIT_OBJECT_0:
+                        raise ConnectionError("Error waiting for pipe read completion")
+
+                    # Get results of the operation
+                    err, bytes_read = win32file.GetOverlappedResult(self.pipe_handle, self.overlap_read, False)
+                    if bytes_read == 0:
+                        raise ConnectionError("Pipe closed during read")
+
+                    # Extend our data buffer
+                    data.extend(buf[:bytes_read])
+
+                return bytes(data)
+
+            except pywintypes.error as e:
+                raise ConnectionError(f"Windows pipe error during receive: {e}")
+
+        else:
+            # Existing socket implementation
+            original_timeout = self.sock.gettimeout()
+            self.sock.settimeout(timeout)
+
+            try:
+                data = bytearray()
+                while len(data) < n:
+                    try:
+                        packet = self.sock.recv(n - len(data))
+                        if not packet:
+                            raise ConnectionError("Connection closed during data transfer")
+                        data.extend(packet)
+                    except socket.timeout:
+                        raise ConnectionError("Timeout while receiving data")
+                    except Exception as e:
+                        raise ConnectionError(f"Error receiving data: {e}")
+                return bytes(data)
+            finally:
+                self.sock.settimeout(original_timeout)
 
     def _map_shared_memory(self, name: str, size: int) -> mmap.mmap:
         """Create or open a shared memory mapping"""
         if os.name == 'nt':
-            return mmap.mmap(-1, size, name)
+            try:
+                # Create a file mapping
+                mapping_handle = win32file.CreateFileMapping(
+                    win32file.INVALID_HANDLE_VALUE,  # Use paging file
+                    None,  # Default security
+                    win32file.PAGE_READWRITE,  # Read/write access
+                    0,  # Maximum size (high-order DWORD)
+                    size,  # Maximum size (low-order DWORD)
+                    name  # Mapping name
+                )
+
+                try:
+                    # Create a memory map view
+                    map_view = win32file.MapViewOfFile(
+                        mapping_handle,
+                        win32file.FILE_MAP_READ | win32file.FILE_MAP_WRITE,
+                        0,  # Offset high
+                        0,  # Offset low
+                        size
+                    )
+
+                    # Create mmap object from the handle
+                    return mmap.mmap(-1, size, name)
+
+                finally:
+                    win32file.CloseHandle(mapping_handle)
+
+            except pywintypes.error as e:
+                raise RuntimeError(f"Failed to create shared memory mapping: {e}")
         else:
             fd = os.open(f"/dev/shm/{name}", os.O_RDONLY)
             try:
@@ -135,41 +226,55 @@ class SirilInterface:
     def _send_command(self, command: _Command, data: Optional[bytes] = None) -> Tuple[Optional[int], Optional[bytes]]:
         """
         Send a command to Siril and receive the response.
-
-        Args:
-            command: The command to send (from _Command enum)
-            data: Optional payload data to send with the command
-
-        Returns:
-            Tuple containing:
-            - Status code (int or None if error)
-            - Response data (bytes or None if error)
         """
         try:
-            # Prepare the command packet
-            # Format: [Command (1 byte)][Data Length (4 bytes)][Data (variable)]
             data_length = len(data) if data else 0
-            header = struct.pack('!BI', command, data_length)  # Network byte order (big-endian)
+            header = struct.pack('!BI', command, data_length)
 
             if os.name == 'nt':
-                # Windows named pipe implementation
-                raise NotImplementedError("Windows pipe sending not yet implemented")
-            else:
-                # Send header
-                self.sock.sendall(header)
+                try:
+                    # Send header
+                    err, bytes_written = win32file.WriteFile(self.pipe_handle, header, self.overlap_write)
+                    rc = win32event.WaitForSingleObject(self.overlap_write.hEvent, 3000)  # 3 second timeout
+                    if rc != win32event.WAIT_OBJECT_0:
+                        raise ConnectionError("Timeout or error while sending header")
 
-                # Send data if present
+                    # Send data if present
+                    if data and data_length > 0:
+                        err, bytes_written = win32file.WriteFile(self.pipe_handle, data, self.overlap_write)
+                        rc = win32event.WaitForSingleObject(self.overlap_write.hEvent, 3000)
+                        if rc != win32event.WAIT_OBJECT_0:
+                            raise ConnectionError("Timeout or error while sending data")
+
+                    # Receive response header
+                    response_header = self._recv_exact(5)  # 1 byte status + 4 bytes length
+                    if not response_header:
+                        return None, None
+
+                    status, response_length = struct.unpack('!BI', response_header)
+
+                    # Receive response data if any
+                    response_data = None
+                    if response_length > 0:
+                        response_data = self._recv_exact(response_length)
+                        if not response_data:
+                            return None, None
+
+                    return status, response_data
+
+                except pywintypes.error as e:
+                    raise CommandError(f"Windows pipe error during command: {e}")
+            else:
+                # Existing socket implementation
+                self.sock.sendall(header)
                 if data and data_length > 0:
                     self.sock.sendall(data)
 
-                # Receive response
-                # First get the response header (status code and length)
-                response_header = self._recv_exact(5)  # 1 byte status + 4 bytes length
+                response_header = self._recv_exact(5)
                 if not response_header:
                     return None, None
 
                 status, response_length = struct.unpack('!BI', response_header)
-                # Then get the response data if any
                 response_data = None
                 if response_length > 0:
                     response_data = self._recv_exact(response_length)
@@ -180,7 +285,6 @@ class SirilInterface:
 
         except Exception as e:
             raise CommandError(f"Error sending command: {e}")
-
 # execute_command and request_data are not intended to be used directly in scripts
 # They are used to implement more user-friendly commands (see below)
 

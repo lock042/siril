@@ -621,7 +621,7 @@ gboolean handle_pixeldata_request(Connection *conn, rectangle region) {
 	} else {
 		for (int chan = 0 ; chan < gfit.naxes[2] ; chan++) {
 			for (int i = region.y ; i < top ; i++) {
-				memcpy((char*)shm_ptr + index, gfit.fpdata[chan] + (i * gfit.rx + region.x), region.w * sizeof(WORD));
+				memcpy((char*)shm_ptr + index, gfit.pdata[chan] + (i * gfit.rx + region.x), region.w * sizeof(WORD));
 				index += row_bytes;
 			}
 		}
