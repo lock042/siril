@@ -1881,13 +1881,18 @@ int process_update_key(int nb) {
 
 	/* without options */
 	} else {
+		char valstring[FLEN_VALUE];
+
 		key = replace_wide_char(word[1]);
 		CHECK_KEY_LENGTH(key);
 		value = replace_wide_char(word[2]);
+
+		process_keyword_string_value(value, valstring, string_has_space(value));
+
 		if (nb == 4)
 			comment = replace_wide_char(word[3]);
 
-		updateFITSKeyword(&gfit, key, NULL, value, comment, TRUE, FALSE);
+		updateFITSKeyword(&gfit, key, NULL, valstring, comment, TRUE, FALSE);
 	}
 	if (!com.script) refresh_keywords_dialog();
 
