@@ -2205,31 +2205,31 @@ void clean_sequence(sequence *seq, gboolean cleanreg, gboolean cleanstat, gboole
 	writeseqfile(seq);
 }
 
-// returns TRUE if star_filename is more recent than image (for FITS) or
-// sequence (for FITSEQ or SER)
-gboolean check_starfile_date(sequence *seq, int index, gchar *star_filename) {
-	if (!g_file_test(star_filename, G_FILE_TEST_EXISTS))
+// returns TRUE if cache_filename is more recent than image (for FITS) or
+// sequence (for FITSEQ or SER). This is used for mask files (*.msk) and star files (*.lst)
+gboolean check_cachefile_date(sequence *seq, int index, const gchar *cache_filename) {
+	if (!g_file_test(cache_filename, G_FILE_TEST_EXISTS))
 		return FALSE;
 
-	struct stat imgfileInfo, starfileInfo;
-	// if sequence is FITS, we check individual img file date vs starfile date
+	struct stat imgfileInfo, cachefileInfo;
+	// if sequence is FITS, we check individual img file date vs cachefile date
 	if (seq->type == SEQ_REGULAR) {
 		char img_filename[256];
 		if (!fit_sequence_get_image_filename(seq, index, img_filename, TRUE) ||
 				!g_file_test(img_filename, G_FILE_TEST_EXISTS) ||
 				stat(img_filename, &imgfileInfo) ||
-				stat(star_filename, &starfileInfo))
+				stat(cache_filename, &cachefileInfo))
 			return FALSE;
-		if (starfileInfo.st_ctime < imgfileInfo.st_ctime)
-			siril_debug_print("%s is older than %s, detecting again\n", star_filename, img_filename);
-		return (starfileInfo.st_ctime >= imgfileInfo.st_ctime);
+		if (cachefileInfo.st_ctime < imgfileInfo.st_ctime)
+			siril_debug_print("%s is older than %s\n", cache_filename, img_filename);
+		return (cachefileInfo.st_ctime >= imgfileInfo.st_ctime);
 	}
-	// else, we check the sequence date vs starfile date
+	// else, we check the sequence date vs cachefile date
 	gchar *seqname;
 	if (seq->type == SEQ_SER)
 		seqname = seq->ser_file->filename;
 	else seqname = seq->fitseq_file->filename;
-	if (stat(seqname, &imgfileInfo) || stat(star_filename, &starfileInfo))
+	if (stat(seqname, &imgfileInfo) || stat(cache_filename, &cachefileInfo))
 		return FALSE;
-	return (starfileInfo.st_ctime >= imgfileInfo.st_ctime);
+	return (cachefileInfo.st_ctime >= imgfileInfo.st_ctime);
 }

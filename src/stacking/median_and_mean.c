@@ -36,6 +36,7 @@
 #include "algos/siril_wcs.h"
 #include "stacking/stacking.h"
 #include "stacking/siril_fit_linear.h"
+#include "stacking/blending.h"
 #include "registration/registration.h"
 #include "opencv/opencv.h"
 
@@ -1150,7 +1151,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	guint64 irej[3][2] = {{0,0}, {0,0}, {0,0}};
 	regdata *layerparam = NULL;
 
-	args->blend_dist = 0; // TODO: remove this, for debug purposes only
+	args->blend_dist = 100; // TODO: remove this, for debug purposes only
 	gboolean masking = (args->blend_dist > 0);
 
 	int nb_frames = args->nb_images_to_stack; // number of frames actually used
@@ -1219,6 +1220,11 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 				goto free_and_close;
 			}
 		}
+	}
+
+	/* prepare the downscaled 8b masks if masking is allowed */
+	if (masking && (retval = compute_masks(args))) {
+		goto free_and_close;
 	}
 
 	/* manage threads */

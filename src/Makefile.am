@@ -419,6 +419,8 @@ siril_common_SOURCES = \
 	registration/registration.c \
 	registration/registration.h \
 	registration/shift_methods.c \
+	stacking/blending.c \
+	stacking/blending.h \
 	stacking/median_and_mean.c \
 	stacking/rejection_float.c \
 	stacking/normalization.c \

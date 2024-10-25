@@ -272,6 +272,7 @@ src_files = [
   'registration/applyreg.c',
   'registration/shift_methods.c',
 
+  'stacking/blending.c',
   'stacking/median_and_mean.c',
   'stacking/normalization.c',
   'stacking/rejection_float.c',

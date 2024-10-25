@@ -3345,6 +3345,43 @@ int save_wcs_fits(fits *f, const gchar *name) {
 	return status;
 }
 
+int save_mask_fits(int rx, int ry, BYTE *buffer, const gchar *name) {
+	int status;
+	fitsfile *fptr;
+	long orig[2] = { 1L, 1L};
+	long naxes[2] = { rx, ry };
+
+	if (!name)
+		return 1;
+
+	if (g_unlink(name))
+		siril_debug_print("g_unlink() failed\n");
+
+	status = 0;
+	if (siril_fits_create_diskfile(&fptr, name, &status)) {
+		report_fits_error(status);
+		return 1;
+	}
+
+	if (fits_create_img(fptr, BYTE_IMG, 2, naxes, &status)) {
+		report_fits_error(status);
+		return 1;
+	}
+
+	if (fits_write_pix(fptr, TBYTE, orig, (size_t)(rx * ry), buffer, &status)) {
+		report_fits_error(status);
+		return 1;
+	}
+
+	fits_close_file(fptr, &status);
+	if (!status) {
+		siril_log_message(_("Saving mask file %s\n"), name);
+	} else {
+		report_fits_error(status);
+	}
+	return status;
+}
+
 // Swaps all image-data related elements of two FITS (the data pointers themselves,
 // also dimensions and statistics, but not the header, keywords or fptr).
 

@@ -1,0 +1,144 @@
+/*
+ * This file is part of Siril, an astronomy image processor.
+ * Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+ * Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+ * Reference site is https://siril.org
+ *
+ * Siril is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Siril is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Siril. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#include "core/siril.h"
+#include "core/proto.h"
+#include "core/siril_log.h"
+#include "io/sequence.h"
+#include "opencv/opencv.h"
+
+#include "stacking/stacking.h"
+
+#define MASK_SCALE 0.1
+
+static gchar *create_mask_filename(sequence *seq, int index) {
+	char root[256];
+	if (!fit_sequence_get_image_filename(seq, index, root, FALSE)) {
+		return NULL;
+	}
+	const gchar *mask_filename = g_strdup_printf("%s.msk", root);
+	gchar *maskpath = g_build_path(G_DIR_SEPARATOR_S, com.wd, "masks", mask_filename, NULL);
+	return maskpath;
+}
+
+// check if we need to create the mask or if it already exists
+static gboolean compute_mask_read_hook(struct generic_seq_args *args, int i) {
+	const gchar *mask_filename = create_mask_filename(args->seq, i);
+	if (!mask_filename) {
+		return TRUE;
+	}
+	if (!g_file_test(mask_filename, G_FILE_TEST_EXISTS)) { // mask file does not exist, we need to read and create the file
+		return TRUE;
+	}
+	if (check_cachefile_date(args->seq, i, mask_filename)) { // the mask exists and is more recent than the img, we don't need to read again
+		siril_log_message(_("Mask for image %d already exists, skipping\n"), i + 1);
+		return FALSE;
+	}
+	return TRUE;
+}
+
+static int compute_mask_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
+	//TODO: calc the real limit
+	return com.max_thread;
+
+}
+
+// this will create a downscaled 8b mask and save it directly
+static int compute_mask_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
+		rectangle *_, int threads) {
+	size_t nbpix = fit->naxes[0] * fit->naxes[1];
+	int layer = (fit->naxes[2] == 3) ? GLAYER : RLAYER;
+	BYTE *buffer8in = calloc(nbpix, sizeof(BYTE));
+	BYTE *buffer8out = NULL;
+
+	if (!buffer8in) {
+		PRINT_ALLOC_ERR;
+		siril_debug_print("failed to allocate mask buffer\n");
+		return 1;
+	}
+	// we convert the ref layer to 0 or 255 vals
+	if (fit->type == DATA_FLOAT) {
+		for (size_t i = 0; i < nbpix; i++) {
+			if (fit->fpdata[layer][i] != 0.)
+				buffer8in[i] = UCHAR_MAX;
+		}
+	} else if (fit->type == DATA_USHORT){
+		for (size_t i = 0; i < nbpix; i++) {
+			if (fit->pdata[layer][i] == 0.)
+				buffer8in[i] = UCHAR_MAX;
+		}
+	} else {
+		siril_debug_print("wrong data type\n");
+		free(buffer8in);
+		return 1;
+	}
+	// we downscale the buffer
+	int rx = fit->naxes[0];
+	int ry = fit->naxes[1];
+	// the mask out size is the scaled input plus a black border of one pixel (see cvDownscaleMask)
+	int out_rx = (int)(rx * MASK_SCALE) + 2;
+	int out_ry = (int)(ry * MASK_SCALE) + 2;
+	buffer8out = calloc((size_t)(out_rx * out_ry), sizeof(BYTE));
+	if (!buffer8out) {
+		PRINT_ALLOC_ERR;
+		siril_debug_print("failed to allocate mask downscaled buffer\n");
+		free(buffer8in);
+		return 1;
+	}
+	cvDownscaleMask(rx, ry, out_rx, out_ry, buffer8in, buffer8out);
+
+	const gchar *mask_filename = create_mask_filename(args->seq, i);
+	if (!mask_filename) {
+		siril_debug_print("failed to create the mask filename");
+		free(buffer8in);
+		free(buffer8out);
+		return 1;
+	}
+
+	if (save_mask_fits(out_rx, out_ry, buffer8out, mask_filename)) {
+		siril_log_color_message(_("Failed to save mask for image %d\n"), "red", i + 1);
+		free(buffer8in);
+		free(buffer8out);
+		return 1;
+	}
+	free(buffer8in);
+	free(buffer8out);
+	return 0;
+}
+
+int compute_masks(struct stacking_args *args) {
+	struct generic_seq_args *arg = create_default_seqargs(args->seq);
+	arg->compute_mem_limits_hook = compute_mask_compute_mem_limits;
+	arg->image_read_hook = compute_mask_read_hook;
+	arg->filtering_criterion = args->filtering_criterion;
+	arg->filtering_parameter = args->filtering_parameter;
+	arg->nb_filtered_images = args->seq->selnum;
+	arg->image_hook = compute_mask_image_hook;
+	arg->description = _("Compute blending masks");
+	arg->has_output = FALSE;
+	arg->already_in_a_thread = TRUE;
+	arg->stop_on_error = TRUE;
+
+	int retval = GPOINTER_TO_INT(generic_sequence_worker(arg));
+
+	return retval;
+}
+
+
