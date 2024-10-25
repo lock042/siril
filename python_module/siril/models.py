@@ -604,17 +604,6 @@ class FFit:
             return self.data
         return self.data[:, :, channel]
 
-    def set_channel(self, channel: int, data: np.ndarray):
-        """Set a specific channel of the data"""
-        if self.data is None:
-            raise ValueError("No data allocated")
-        if self.naxis == 2:
-            if channel != 0:
-                raise ValueError("Cannot set channel > 0 for 2D data")
-            self.data[:] = data
-        else:
-            self.data[:, :, channel] = data
-
     def update_stats(self):
         """Update image statistics for all channels"""
         if self.data is None:

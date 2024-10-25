@@ -5,12 +5,15 @@ import socket
 import ctypes
 import time
 import mmap
+from datetime import datetime
+import calendar
 from pathlib import Path
 from enum import IntEnum
 from typing import Tuple, Optional
 import numpy as np
 from .shm import SharedMemoryWrapper
 from .exceptions import SirilError, ConnectionError, CommandError, DataError, NoImageError
+from .models import ImageStats, FKeywords, FFit
 if os.name == 'nt':
     import win32pipe
     import win32file
@@ -28,6 +31,10 @@ class _Command(IntEnum):
     GET_WORKING_DIRECTORY = 7
     GET_FILENAME = 8
     SET_PIXELDATA = 9
+    GET_IMAGE_STATS = 10
+    UPDATE_PROGRESS = 11
+    GET_KEYWORDS = 12
+    GET_IMAGE = 13
     ERROR = 0xFF
 
 class SharedMemoryInfo(ctypes.Structure):
@@ -356,6 +363,51 @@ class SirilInterface:
         except Exception as e:
             print(f"Error sending log message: {e}", file=sys.stderr)
             return False
+
+    def update_progress(self, message: str, progress: float) -> bool:
+        """
+        Send a progress update to Siril with a message and completion percentage.
+
+        Args:
+            message: Status message to display
+            progress: Progress value between 0.0 and 1.0
+
+        Returns:
+            bool: True if the progress update was successfully sent, False otherwise
+        """
+        try:
+            # Validate progress value
+            if not 0.0 <= progress <= 1.0:
+                print("Progress value must be between 0.0 and 1.0", file=sys.stderr)
+                return False
+
+            # Convert string to UTF-8 bytes
+            message_bytes = message.encode('utf-8')
+
+            # Create payload: network-order float followed by string
+            # '!f' for network byte order 32-bit float
+            float_bytes = struct.pack('!f', progress)
+
+            # Combine float and string bytes
+            payload = float_bytes + message_bytes
+
+            return self.execute_command(_Command.UPDATE_PROGRESS, payload)
+
+        except Exception as e:
+            print(f"Error sending progress update: {e}", file=sys.stderr)
+            return False
+
+    def reset_progress(self) -> bool:
+        """
+        Send a progress update to Siril resetting the progress bar.
+
+        Args:
+            none
+
+        Returns:
+            bool: True if the progress update was successfully sent, False otherwise
+        """
+        return self.update_progress("", 0.0)
 
     def cmd(self, *args: str) -> bool:
         """
@@ -722,4 +774,299 @@ class SirilInterface:
             return wd
         except UnicodeDecodeError as e:
             print(f"Error decoding loaded image filename: {e}", file=sys.stderr)
+            return None
+
+    def get_image_stats(self, channel: int) -> Optional[ImageStats]:
+        """
+        Request image statistics from Siril for a specific channel.
+
+        Args:
+            channel: Integer specifying which channel to get statistics for (typically 0, 1, or 2)
+
+        Returns:
+            ImageStats object containing the statistics, or None if an error occurred
+        """
+        # Convert channel number to network byte order bytes
+        channel_payload = struct.pack('!I', channel)  # '!I' for network byte order uint32_t
+
+        # Request data with the channel number as payload
+        response = self.request_data(_Command.GET_IMAGE_STATS, payload=channel_payload)
+        if response is None:
+            return None
+
+        try:
+            # Define the format string for unpacking the C struct
+            # '!' for network byte order (big-endian)
+            # 'q' for long (total, ngoodpix) - using 64-bit integers to match gint64
+            # 'd' for double (all floating point values)
+            # We don't include the gint *nbrefs as it's not needed in Python
+            format_string = '!2q12d'  # '!' ensures network byte order
+
+            # Calculate expected size
+            expected_size = struct.calcsize(format_string)
+
+            # Verify we got the expected amount of data
+            if len(response) != expected_size:
+                print(f"Received data size {len(response)} doesn't match expected size {expected_size}",
+                    file=sys.stderr)
+                return None
+
+            # Unpack the binary data
+            values = struct.unpack(format_string, response)
+
+            # Create and return an ImageStats object with the unpacked values
+            return ImageStats(
+                total=values[0],
+                ngoodpix=values[1],
+                mean=values[2],
+                median=values[3],
+                sigma=values[4],
+                avgDev=values[5],
+                mad=values[6],
+                sqrtbwmv=values[7],
+                location=values[8],
+                scale=values[9],
+                min=values[10],
+                max=values[11],
+                normValue=values[12],
+                bgnoise=values[13]
+            )
+
+        except struct.error as e:
+            print(f"Error unpacking image statistics data: {e}", file=sys.stderr)
+            return None
+
+    def get_keywords(self) -> Optional[FKeywords]:
+        """
+        Request FITS keywords data from Siril.
+
+        Returns:
+            FKeywords object containing the FITS keywords, or None if an error occurred
+        """
+        response = self.request_data(_Command.GET_KEYWORDS)
+        if response is None:
+            return None
+
+        try:
+            # Constants matching C implementation
+            FLEN_VALUE = 71  # Standard FITS keyword length
+
+            # Build format string for struct unpacking
+            # Network byte order for all values
+            format_parts = [
+                f'{FLEN_VALUE}s',  # program
+                f'{FLEN_VALUE}s',  # filename
+                f'{FLEN_VALUE}s',  # row_order
+                f'{FLEN_VALUE}s',  # filter
+                f'{FLEN_VALUE}s',  # image_type
+                f'{FLEN_VALUE}s',  # object
+                f'{FLEN_VALUE}s',  # instrume
+                f'{FLEN_VALUE}s',  # telescop
+                f'{FLEN_VALUE}s',  # observer
+                f'{FLEN_VALUE}s',  # sitelat_str
+                f'{FLEN_VALUE}s',  # sitelong_str
+                f'{FLEN_VALUE}s',  # bayer_pattern
+                f'{FLEN_VALUE}s',  # focname
+                'd',  # bscale
+                'd',  # bzero
+                'Q',  # lo padded to 64bit
+                'Q',  # hi padded to 64bit
+                'd',  # flo padded to 64bit
+                'd',  # fhi padded to 64bit
+                'd',  # data_max
+                'd',  # data_min
+                'd',  # pixel_size_x
+                'd',  # pixel_size_y
+                'Q',  # binning_x (padded to uint64_t)
+                'Q',  # binning_y (padded to uint64_t)
+                'd',  # expstart
+                'd',  # expend
+                'd',  # centalt
+                'd',  # centaz
+                'd',  # sitelat
+                'd',  # sitelong
+                'd',  # siteelev
+                'q',  # bayer_xoffset
+                'q',  # bayer_yoffset
+                'd',  # airmass
+                'd',  # focal_length
+                'd',  # flength
+                'd',  # iso_speed
+                'd',  # exposure
+                'd',  # aperture
+                'd',  # ccd_temp
+                'd',  # set_temp
+                'd',  # livetime
+                'Q',  # stackcnt
+                'd',  # cvf
+                'q',  # key_gain
+                'q',  # key_offset
+                'q',  # focuspos
+                'q',  # focussz
+                'd',  # foctemp
+                'q',  # date (int64 unix timestamp)
+                'q'  # date_obs (int64 unix timestamp)
+            ]
+
+            format_string = '!' + ''.join(format_parts)
+
+            # Verify data size
+            expected_size = struct.calcsize(format_string)
+            if len(response) != expected_size:
+                print(f"Received data size {len(response)} doesn't match expected size {expected_size}",
+                    file=sys.stderr)
+                return None
+
+            # Unpack the binary data
+            values = struct.unpack(format_string, response)
+
+            # Helper function to decode and strip null-terminated strings
+            def decode_string(s: bytes) -> str:
+                return s.decode('utf-8').rstrip('\x00')
+
+            # Helper function to convert timestamp to datetime
+            def timestamp_to_datetime(timestamp: int) -> Optional[datetime]:
+                return datetime.fromtimestamp(timestamp) if timestamp != 0 else None
+
+            # Create FKeywords object
+            return FKeywords(
+                program=decode_string(values[0]),
+                filename=decode_string(values[1]),
+                row_order=decode_string(values[2]),
+                filter=decode_string(values[3]),
+                image_type=decode_string(values[4]),
+                object=decode_string(values[5]),
+                instrume=decode_string(values[6]),
+                telescop=decode_string(values[7]),
+                observer=decode_string(values[8]),
+                sitelat_str=decode_string(values[9]),
+                sitelong_str=decode_string(values[10]),
+                bayer_pattern=decode_string(values[11]),
+                focname=decode_string(values[12]),
+                bscale=values[13],
+                bzero=values[14],
+                lo=values[15],
+                hi=values[16],
+                flo=values[17],
+                fhi=values[18],
+                data_max=values[19],
+                data_min=values[20],
+                pixel_size_x=values[21],
+                pixel_size_y=values[22],
+                binning_x=values[23],
+                binning_y=values[24],
+                expstart=values[25],
+                expend=values[26],
+                centalt=values[27],
+                centaz=values[28],
+                sitelat=values[29],
+                sitelong=values[30],
+                siteelev=values[31],
+                bayer_xoffset=values[32],
+                bayer_yoffset=values[33],
+                airmass=values[34],
+                focal_length=values[35],
+                flength=values[36],
+                iso_speed=values[37],
+                exposure=values[38],
+                aperture=values[39],
+                ccd_temp=values[40],
+                set_temp=values[41],
+                livetime=values[42],
+                stackcnt=values[43],
+                cvf=values[44],
+                key_gain=values[45],
+                key_offset=values[46],
+                focuspos=values[47],
+                focussz=values[48],
+                foctemp=values[49],
+                date=timestamp_to_datetime(values[50]),
+                date_obs=timestamp_to_datetime(values[51])
+            )
+
+        except struct.error as e:
+            print(f"Error unpacking FITS keywords data: {e}", file=sys.stderr)
+            return None
+        except Exception as e:
+            print(f"Error processing FITS keywords data: {e}", file=sys.stderr)
+            return None
+
+    def get_image(self) -> Optional[FFit]:
+        """
+        Request a copy of the current image open in Siril.
+
+        Args:
+            none
+
+        Returns:
+            FFit object containing the image pixel data, statistics and metadata, or None
+            if an error occurred
+        """
+
+        # Request data with the channel number as payload
+        response = self.request_data(_Command.GET_IMAGE)
+        if response is None:
+            return None
+
+        try:
+            shape = self.get_shape()
+            # Build format string for struct unpacking
+            # Network byte order for all values
+            format_parts = [
+                'q',  # bitpix padded to 64bit
+                'q',  # orig_bitpix padded to 64bit
+                'Q',  # gboolean checksum padded to 64bit
+                'd',  # mini
+                'd',  # maxi
+                'd',  # neg_ratio padded to 64bit
+                'Q',  # data_type (padded to uint64_t)
+                'Q',  # gboolean top_down (padded to uint64_t)
+                'Q',  # gboolean focalkey (padded to uint64_t)
+                'Q',  # gboolean pixelkey (padded to uint64_t)
+                'Q',  # gboolean color_managed (padded to uint64_t)
+            ]
+
+            format_string = '!' + ''.join(format_parts)
+
+            # Verify data size
+            expected_size = struct.calcsize(format_string)
+            if len(response) != expected_size:
+                print(f"Received data size {len(response)} doesn't match expected size {expected_size}",
+                    file=sys.stderr)
+                return None
+
+            # Unpack the binary data
+            values = struct.unpack(format_string, response)
+
+            # Helper function to decode and strip null-terminated strings
+            def decode_string(s: bytes) -> str:
+                return s.decode('utf-8').rstrip('\x00')
+
+            # Create FFit object
+            return FFit(
+                _naxes = (shape[1], shape[0], shape[2]),
+                naxis = 2 if shape[2] == 1 else 3,
+                bitpix=values[0],
+                checksum=True if values[1] else False,
+                mini=values[2],
+                maxi=values[3],
+                neg_ratio=values[4],
+                top_down=True if values[6] else False,
+                focalkey=True if values[7] else False,
+                pixelkey=True if values[8] else False,
+                color_managed=True if values[9] else False,
+                _data = self.get_pixel_data(),
+                stats = (
+                    self.get_image_stats(0),
+                    self.get_image_stats(1) if shape[2] > 1 else None,
+                    self.get_image_stats(2) if shape[2] > 1 else None
+                ),
+                keywords = self.get_keywords()
+            )
+
+        except struct.error as e:
+            print(f"Error unpacking FITS metadata: {e}", file=sys.stderr)
+            return None
+        except Exception as e:
+            print(f"Error processing FITS metadata: {e}", file=sys.stderr)
             return None
