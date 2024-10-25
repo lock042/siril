@@ -6010,6 +6010,9 @@ int process_split(int nb){
 	}
 
 	copy_fits_metadata(&gfit, args->fit);
+
+	args->fit->keywords.bayer_pattern[0] = '\0'; // Mark this as no longer having a Bayer pattern
+
 	start_in_new_thread(extract_channels, args);
 	return CMD_OK;
 }
