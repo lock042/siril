@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import List, Optional, Tuple, Union
+from typing import Optional, Tuple, Union
 import numpy as np
 from enum import IntEnum
 
@@ -509,7 +509,7 @@ class FFit:
     focalkey: bool = False
     pixelkey: bool = False
 
-    history: List[str] = field(default_factory=list)
+    history: list[str] = field(default_factory=list)
 
     color_managed: bool = False
     _icc_profile: Optional[bytes] = None

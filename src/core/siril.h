@@ -316,16 +316,17 @@ typedef enum {
 } disto_source;
 
 typedef struct _Connection{
-    gboolean is_posix;
-    GIOChannel* channel;
+	gboolean is_posix;
+	GIOChannel* channel;
 #ifdef _WIN32
-    HANDLE pipe_handle;
+#include "Windows.h"
+	HANDLE pipe_handle;
 #else
-    int socket_fd;
-    int server_fd;
+	int socket_fd;
+	int server_fd;
 	gchar* server_path;
-    GIOChannel* server_channel;  // Added to store server channel
-    void (*client_connected_callback)(struct _Connection*);  // Callback for when client connects
+	GIOChannel* server_channel;  // Added to store server channel
+	void (*client_connected_callback)(struct _Connection*);  // Callback for when client connects
 #endif
 } Connection;
 

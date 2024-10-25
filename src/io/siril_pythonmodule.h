@@ -4,6 +4,8 @@
 // Status codes for command responses
 typedef enum {
 	STATUS_OK = 0,
+	STATUS_NONE = 1, // for "allowed to fail" commands e.g. those that may
+			// legitimately return no data
 	STATUS_ERROR = 0xFF
 } StatusCode;
 
@@ -12,7 +14,7 @@ typedef enum {
 	CMD_GET_DIMENSIONS = 1,
 	CMD_GET_PIXELDATA = 2,
 	CMD_GET_PIXELDATA_REGION = 3,
-	CMD_NOTIFY_PROGRESS = 4,
+	CMD_RELEASE_SHM = 4,
 	CMD_SEND_COMMAND = 5,
 	CMD_LOG_MESSAGE = 6,
 	CMD_GET_WORKING_DIRECTORY = 7,
@@ -22,6 +24,10 @@ typedef enum {
 	CMD_UPDATE_PROGRESS = 11,
 	CMD_GET_KEYWORDS = 12,
 	CMD_GET_IMAGE = 13,
+	CMD_GET_ICC_PROFILE = 14,
+	CMD_GET_FITS_HEADER = 15,
+	CMD_GET_FITS_HISTORY = 16,
+	CMD_GET_FITS_UNKNOWN_KEYS = 17,
 	CMD_ERROR = 0xFF
 } CommandType;
 
@@ -75,5 +81,6 @@ void execute_python_script_async(gchar* script_name, gboolean from_file);
 gboolean send_response(GIOChannel* channel, uint8_t status, const void* data, uint32_t length);
 gboolean handle_pixeldata_request(Connection *conn, rectangle region);
 gboolean handle_set_pixeldata_request(Connection *conn, const char* payload, size_t payload_length);
+gboolean handle_rawdata_request(Connection *conn, void* data, size_t total_bytes);
 gboolean cleanup_shm_by_name(const char *shm_name);
 #endif

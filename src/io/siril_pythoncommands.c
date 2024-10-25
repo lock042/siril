@@ -1,10 +1,130 @@
 #include "core/siril.h"
 #include "algos/statistics.h"
 #include "core/command_line_processor.h"
+#include "core/icc_profile.h"
 #include "core/siril_log.h"
 #include "gui/progress_and_log.h"
 #include "io/single_image.h"
 #include "io/siril_pythonmodule.h"
+#include "siril_pythonmodule.h"
+
+static int keywords_to_py(fits *fit, unsigned char *ptr) {
+	if (!fit || !ptr)
+		return 1;
+
+	// Helper macros
+	#define COPY_STRING(str) \
+		{ \
+			memset(ptr, 0, FLEN_VALUE); \
+			strncpy((char*)ptr, str, FLEN_VALUE - 1); \
+			ptr += FLEN_VALUE; \
+		}
+
+	#define COPY_BE(val, type) \
+		{ \
+			union { type v; uint64_t i; } conv; \
+			conv.v = val; \
+			uint64_t be = GUINT64_TO_BE(conv.i); \
+			memcpy(ptr, &be, sizeof(type)); \
+			ptr += sizeof(type); \
+		}
+
+	// Convert GDateTime to Unix timestamp
+	int64_t date_ts = fit->keywords.date ? g_date_time_to_unix(fit->keywords.date) : 0;
+	int64_t date_obs_ts = fit->keywords.date_obs ? g_date_time_to_unix(fit->keywords.date_obs) : 0;
+
+	// Copy string fields
+	COPY_STRING(fit->keywords.program);
+	COPY_STRING(fit->keywords.filename);
+	COPY_STRING(fit->keywords.row_order);
+	COPY_STRING(fit->keywords.filter);
+	COPY_STRING(fit->keywords.image_type);
+	COPY_STRING(fit->keywords.object);
+	COPY_STRING(fit->keywords.instrume);
+	COPY_STRING(fit->keywords.telescop);
+	COPY_STRING(fit->keywords.observer);
+	COPY_STRING(fit->keywords.sitelat_str);
+	COPY_STRING(fit->keywords.sitelong_str);
+	COPY_STRING(fit->keywords.bayer_pattern);
+	COPY_STRING(fit->keywords.focname);
+
+	// Copy numeric values with proper byte order conversion. All
+	// types shorter than 64bit are converted to 64bit types before
+	// endianness conversion and transmission, to simplify the data
+	COPY_BE(fit->keywords.bscale, double);
+	COPY_BE(fit->keywords.bzero, double);
+	COPY_BE((uint64_t) fit->keywords.lo, uint64_t);
+	COPY_BE((uint64_t) fit->keywords.hi, uint64_t);
+	COPY_BE((double) fit->keywords.flo, double);
+	COPY_BE((double) fit->keywords.fhi, double);
+	COPY_BE(fit->keywords.data_max, double);
+	COPY_BE(fit->keywords.data_min, double);
+	COPY_BE(fit->keywords.pixel_size_x, double);
+	COPY_BE(fit->keywords.pixel_size_y, double);
+	COPY_BE((uint64_t) fit->keywords.binning_x, uint64_t);
+	COPY_BE((uint64_t) fit->keywords.binning_y, uint64_t);
+	COPY_BE(fit->keywords.expstart, double);
+	COPY_BE(fit->keywords.expend, double);
+	COPY_BE(fit->keywords.centalt, double);
+	COPY_BE(fit->keywords.centaz, double);
+	COPY_BE(fit->keywords.sitelat, double);
+	COPY_BE(fit->keywords.sitelong, double);
+	COPY_BE(fit->keywords.siteelev, double);
+	COPY_BE((int64_t) fit->keywords.bayer_xoffset, int64_t);
+	COPY_BE((int64_t) fit->keywords.bayer_yoffset, int64_t);
+	COPY_BE(fit->keywords.airmass, double);
+	COPY_BE(fit->keywords.focal_length, double);
+	COPY_BE(fit->keywords.flength, double);
+	COPY_BE(fit->keywords.iso_speed, double);
+	COPY_BE(fit->keywords.exposure, double);
+	COPY_BE(fit->keywords.aperture, double);
+	COPY_BE(fit->keywords.ccd_temp, double);
+	COPY_BE(fit->keywords.set_temp, double);
+	COPY_BE(fit->keywords.livetime, double);
+	COPY_BE((uint64_t) fit->keywords.stackcnt, uint64_t);
+	COPY_BE(fit->keywords.cvf, double);
+	COPY_BE((int64_t) fit->keywords.key_gain, int64_t);
+	COPY_BE((int64_t) fit->keywords.key_offset, int64_t);
+	COPY_BE((int64_t) fit->keywords.focuspos, int64_t);
+	COPY_BE((int64_t) fit->keywords.focussz, int64_t);
+	COPY_BE(fit->keywords.foctemp, double);
+	COPY_BE(date_ts, int64_t);
+	COPY_BE(date_obs_ts, int64_t);
+
+	#undef COPY_STRING
+	#undef COPY_BE
+	return 0;
+}
+
+static int fits_to_py(fits *fit, unsigned char *ptr) {
+	// Helper macro
+	#define COPY_BE(val, type) \
+		{ \
+			union { type v; uint64_t i; } conv; \
+			conv.v = val; \
+			uint64_t be = GUINT64_TO_BE(conv.i); \
+			memcpy(ptr, &be, sizeof(type)); \
+			ptr += sizeof(type); \
+		}
+
+	// Copy numeric values with proper byte order conversion. All
+	// types shorter than 64bit are converted to 64bit types before
+	// endianness conversion and transmission, to simplify the data
+	COPY_BE((int64_t) fit->bitpix, int64_t);
+	COPY_BE((int64_t) fit->orig_bitpix, int64_t);
+	COPY_BE((uint64_t) fit->checksum, uint64_t);
+	COPY_BE(fit->mini, double);
+	COPY_BE(fit->maxi, double);
+	COPY_BE((double) fit->neg_ratio, double);
+	COPY_BE((uint64_t) fit->type, uint64_t);
+	COPY_BE((uint64_t) fit->top_down, uint64_t);
+	COPY_BE((uint64_t) fit->focalkey, uint64_t);
+	COPY_BE((uint64_t) fit->pixelkey, uint64_t);
+	COPY_BE((uint64_t) fit->color_managed, uint64_t);
+
+	#undef COPY_BE
+	return 0;
+}
 
 /**
 * Process the received connection data
@@ -79,7 +199,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			break;
 		}
 
-		case CMD_NOTIFY_PROGRESS: {
+		case CMD_RELEASE_SHM: {
 			// Clean up the specified shared memory
 			if (payload_length == 256) {
 				success = cleanup_shm_by_name(payload);
@@ -286,90 +406,13 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			size_t total_size = strings_size + numeric_size;
 			unsigned char *response_buffer = g_malloc0(total_size);
 			unsigned char *ptr = response_buffer;
-
-			// Copy string fields with fixed length
-			#define COPY_STRING(str) \
-				{ \
-					memset(ptr, 0, FLEN_VALUE); \
-					strncpy((char*)ptr, str, FLEN_VALUE - 1); \
-					ptr += FLEN_VALUE; \
-				}
-
-			COPY_STRING(gfit.keywords.program);
-			COPY_STRING(gfit.keywords.filename);
-			COPY_STRING(gfit.keywords.row_order);
-			COPY_STRING(gfit.keywords.filter);
-			COPY_STRING(gfit.keywords.image_type);
-			COPY_STRING(gfit.keywords.object);
-			COPY_STRING(gfit.keywords.instrume);
-			COPY_STRING(gfit.keywords.telescop);
-			COPY_STRING(gfit.keywords.observer);
-			COPY_STRING(gfit.keywords.sitelat_str);
-			COPY_STRING(gfit.keywords.sitelong_str);
-			COPY_STRING(gfit.keywords.bayer_pattern);
-			COPY_STRING(gfit.keywords.focname);
-
-			// Helper macro for network byte order conversion of different types
-			#define COPY_BE(val, type) \
-				{ \
-					union { type v; uint64_t i; } conv; \
-					conv.v = val; \
-					uint64_t be = GUINT64_TO_BE(conv.i); \
-					memcpy(ptr, &be, sizeof(type)); \
-					ptr += sizeof(type); \
-				}
-
-			// Copy numeric values with proper byte order conversion. All
-			// types shorter than 64bit are converted to 64bit types before
-			// endianness conversion and transmission, to simplify the data
-			COPY_BE(gfit.keywords.bscale, double);
-			COPY_BE(gfit.keywords.bzero, double);
-			COPY_BE((uint64_t) gfit.keywords.lo, uint64_t);
-			COPY_BE((uint64_t) gfit.keywords.hi, uint64_t);
-			COPY_BE((double) gfit.keywords.flo, double);
-			COPY_BE((double) gfit.keywords.fhi, double);
-			COPY_BE(gfit.keywords.data_max, double);
-			COPY_BE(gfit.keywords.data_min, double);
-			COPY_BE(gfit.keywords.pixel_size_x, double);
-			COPY_BE(gfit.keywords.pixel_size_y, double);
-			COPY_BE((uint64_t) gfit.keywords.binning_x, uint64_t);
-			COPY_BE((uint64_t) gfit.keywords.binning_y, uint64_t);
-			COPY_BE(gfit.keywords.expstart, double);
-			COPY_BE(gfit.keywords.expend, double);
-			COPY_BE(gfit.keywords.centalt, double);
-			COPY_BE(gfit.keywords.centaz, double);
-			COPY_BE(gfit.keywords.sitelat, double);
-			COPY_BE(gfit.keywords.sitelong, double);
-			COPY_BE(gfit.keywords.siteelev, double);
-			COPY_BE((int64_t) gfit.keywords.bayer_xoffset, int64_t);
-			COPY_BE((int64_t) gfit.keywords.bayer_yoffset, int64_t);
-			COPY_BE(gfit.keywords.airmass, double);
-			COPY_BE(gfit.keywords.focal_length, double);
-			COPY_BE(gfit.keywords.flength, double);
-			COPY_BE(gfit.keywords.iso_speed, double);
-			COPY_BE(gfit.keywords.exposure, double);
-			COPY_BE(gfit.keywords.aperture, double);
-			COPY_BE(gfit.keywords.ccd_temp, double);
-			COPY_BE(gfit.keywords.set_temp, double);
-			COPY_BE(gfit.keywords.livetime, double);
-			COPY_BE((uint64_t) gfit.keywords.stackcnt, uint64_t);
-			COPY_BE(gfit.keywords.cvf, double);
-			COPY_BE((int64_t) gfit.keywords.key_gain, int64_t);
-			COPY_BE((int64_t) gfit.keywords.key_offset, int64_t);
-			COPY_BE((int64_t) gfit.keywords.focuspos, int64_t);
-			COPY_BE((int64_t) gfit.keywords.focussz, int64_t);
-			COPY_BE(gfit.keywords.foctemp, double);
-
-			// Convert GDateTime to Unix timestamp
-			int64_t date_ts = gfit.keywords.date ? g_date_time_to_unix(gfit.keywords.date) : 0;
-			int64_t date_obs_ts = gfit.keywords.date_obs ? g_date_time_to_unix(gfit.keywords.date_obs) : 0;
-			COPY_BE(date_ts, int64_t);
-			COPY_BE(date_obs_ts, int64_t);
-
-			#undef COPY_STRING
-			#undef COPY_BE
-
-			success = send_response(conn->channel, STATUS_OK, response_buffer, total_size);
+			if (keywords_to_py(&gfit, ptr)) {
+				const char* error_message = "Memory allocation error";
+				success = send_response(conn->channel, STATUS_ERROR, error_message, strlen(error_message));
+				break;
+			} else {
+				success = send_response(conn->channel, STATUS_OK, response_buffer, total_size);
+			}
 			g_free(response_buffer);
 			break;
 		}
@@ -387,35 +430,101 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			unsigned char *response_buffer = g_malloc0(total_size);
 			unsigned char *ptr = response_buffer;
 
-			// Helper macro for network byte order conversion of different types
-			#define COPY_BE(val, type) \
-				{ \
-					union { type v; uint64_t i; } conv; \
-					conv.v = val; \
-					uint64_t be = GUINT64_TO_BE(conv.i); \
-					memcpy(ptr, &be, sizeof(type)); \
-					ptr += sizeof(type); \
-				}
-
-			// Copy numeric values with proper byte order conversion. All
-			// types shorter than 64bit are converted to 64bit types before
-			// endianness conversion and transmission, to simplify the data
-			COPY_BE((int64_t) gfit.bitpix, int64_t);
-			COPY_BE((int64_t) gfit.orig_bitpix, int64_t);
-			COPY_BE((uint64_t) gfit.checksum, uint64_t);
-			COPY_BE(gfit.mini, double);
-			COPY_BE(gfit.maxi, double);
-			COPY_BE((double) gfit.neg_ratio, double);
-			COPY_BE((uint64_t) gfit.type, uint64_t);
-			COPY_BE((uint64_t) gfit.top_down, uint64_t);
-			COPY_BE((uint64_t) gfit.focalkey, uint64_t);
-			COPY_BE((uint64_t) gfit.pixelkey, uint64_t);
-			COPY_BE((uint64_t) gfit.color_managed, uint64_t);
-
-			#undef COPY_BE
-
-			success = send_response(conn->channel, STATUS_OK, response_buffer, total_size);
+			if (fits_to_py(&gfit, ptr)) {
+				const char* error_message = "Memory allocation error";
+				success = send_response(conn->channel, STATUS_ERROR, error_message, strlen(error_message));
+				break;
+			} else {
+				success = send_response(conn->channel, STATUS_OK, response_buffer, total_size);
+			}
 			g_free(response_buffer);
+			break;
+		}
+
+		case CMD_GET_ICC_PROFILE: {
+			if (!single_image_is_loaded()) {
+				const char* error_msg = "No image loaded";
+				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			if (gfit.icc_profile == NULL) {
+				const char* error_msg = "Image has no ICC profile";
+				success = send_response(conn->channel, STATUS_NONE, error_msg, strlen(error_msg));
+				break;
+			}
+			// Prepare data
+			guint32 profile_size;
+			unsigned char* profile_data = get_icc_profile_data(gfit.icc_profile, &profile_size);
+
+			success = handle_rawdata_request(conn, profile_data, profile_size);
+			break;
+		}
+
+		case CMD_GET_FITS_HEADER: {
+			if (!single_image_is_loaded()) {
+				const char* error_msg = "No image loaded";
+				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			fits *fit = &gfit;
+			if (fit->header == NULL) {
+				const char* error_msg = "Image has no FITS header";
+				success = send_response(conn->channel, STATUS_NONE, error_msg, strlen(error_msg));
+				break;
+			}
+			// Prepare data
+			guint32 length = strlen(fit->header) + 1;
+
+			success = handle_rawdata_request(conn, fit->header, length);
+			break;
+		}
+
+		case CMD_GET_FITS_HISTORY: {
+			if (!single_image_is_loaded()) {
+				const char* error_msg = "No image loaded";
+				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			fits *fit = &gfit;
+			if (fit->history == NULL) {
+				const char* error_msg = "Image has no history entries";
+				success = send_response(conn->channel, STATUS_NONE, error_msg, strlen(error_msg));
+				break;
+			}
+			// Prepare data
+			size_t total_length = 0;
+			for (GSList *item = fit->history; item != NULL; item = item->next) {
+				gchar *str = (gchar *)item->data;
+				total_length += strlen(str) + 1;  // +1 to account for the null terminator
+			}
+			gchar *buffer = malloc(total_length * sizeof(char));
+			gchar *ptr = buffer;
+			for (GSList *item = fit->history; item != NULL; item = item->next) {
+				gchar *str = (gchar *)item->data;
+				size_t len = strlen(str) + 1;
+				memcpy(ptr, str, len * sizeof(char));
+				ptr += len;
+			}
+			success = handle_rawdata_request(conn, buffer, total_length * sizeof(char));
+			break;
+		}
+
+		case CMD_GET_FITS_UNKNOWN_KEYS: {
+			if (!single_image_is_loaded()) {
+				const char* error_msg = "No image loaded";
+				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			fits *fit = &gfit;
+			if (fit->unknown_keys == NULL) {
+				const char* error_msg = "Image has no unknown keys";
+				success = send_response(conn->channel, STATUS_NONE, error_msg, strlen(error_msg));
+				break;
+			}
+			// Prepare data
+			guint32 length = strlen(fit->unknown_keys) + 1;
+
+			success = handle_rawdata_request(conn, fit->unknown_keys, length * sizeof(char));
 			break;
 		}
 

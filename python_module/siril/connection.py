@@ -21,11 +21,16 @@ if os.name == 'nt':
     import pywintypes
     import winerror
 
+class _Status(IntEnum):
+    OK = 0
+    NONE = 1
+    ERROR = 0xFF
+
 class _Command(IntEnum):
     GET_DIMENSIONS = 1
     GET_PIXELDATA = 2
     GET_PIXELDATA_REGION = 3
-    NOTIFY_PROGRESS = 4
+    RELEASE_SHM = 4
     SEND_COMMAND = 5
     LOG_MESSAGE = 6
     GET_WORKING_DIRECTORY = 7
@@ -35,6 +40,10 @@ class _Command(IntEnum):
     UPDATE_PROGRESS = 11
     GET_KEYWORDS = 12
     GET_IMAGE = 13
+    GET_ICC_PROFILE = 14
+    GET_FITS_HEADER = 15
+    GET_FITS_HISTORY = 16
+    GET_FITS_UNKNOWN_KEYS = 17
     ERROR = 0xFF
 
 class SharedMemoryInfo(ctypes.Structure):
@@ -312,7 +321,11 @@ class SirilInterface:
         if status is None:
             return False
 
-        if status == _Command.ERROR:
+        if status == _Status.NONE:
+            # This indicates "allowed failure" - no data to return but not an error
+            return None
+
+        if status == _Status.ERROR:
             error_msg = response.decode('utf-8') if response else "Unknown error"
             print(f"Command failed: {error_msg}", file=sys.stderr)
             return False
@@ -333,6 +346,13 @@ class SirilInterface:
             Requested data or None if error
         """
         status, response = self._send_command(command, payload)
+
+        if status is None:
+            return None
+
+        if status == _Status.NONE:
+            # This indicates "allowed failure" - no data to return but not an error
+            return None
 
         if status is None or status == _Command.ERROR:
             error_msg = response.decode('utf-8') if response else "Unknown error"
@@ -625,7 +645,7 @@ class SirilInterface:
                 shm_name = shm_info.shm_name[:256].ljust(256, b'\x00')
 
                 # Pack the header and payload
-                cmd_header = struct.pack('!BL', _Command.NOTIFY_PROGRESS, 256)  # 'B' for the command and 'L' for length
+                cmd_header = struct.pack('!BL', _Command.RELEASE_SHM, 256)  # 'B' for the command and 'L' for length
                 self.sock.sendall(cmd_header + shm_name)
             except socket.error as e:
                 raise RuntimeError(f"Failed to send completion notification: {e}")
@@ -736,6 +756,340 @@ class SirilInterface:
                 except:
                     pass
 
+    def get_icc_profile(self) -> Optional[bytes]:
+        """
+        Retrieve the ICC profile of the current Siril image using shared memory.
+
+        Args:
+            none.
+
+        Returns:
+            bytes: The image ICC profile as a byte array, or None if the current
+            image has no ICC profile.
+
+        Raises:
+            NoImageError: If no image is currently loaded
+            RuntimeError: For other errors during  data retrieval
+            ValueError: If the received data format is invalid or shape is invalid
+        """
+        shm = None
+        try:
+            # Request shared memory setup
+            status, response = self._send_command(_Command.GET_ICC_PROFILE)
+
+            # Handle error responses
+            if status == _Status.ERROR:
+                if response:
+                    error_msg = response.decode('utf-8', errors='replace')
+                    if "no image loaded" in error_msg.lower():
+                        raise NoImageError("No image is currently loaded in Siril")
+                    else:
+                        raise RuntimeError(f"Server error: {error_msg}")
+                else:
+                    raise RuntimeError("Failed to initiate shared memory transfer: Empty response")
+
+            if not response:
+                raise RuntimeError("Failed to initiate shared memory transfer: No data received")
+
+            if len(response) < 25: # No payload
+                return None
+
+            try:
+                # Parse the shared memory information
+                shm_info = SharedMemoryInfo.from_buffer_copy(response)
+            except (AttributeError, BufferError, ValueError) as e:
+                raise ValueError(f"Invalid shared memory information received: {e}")
+
+            # Map the shared memory
+            try:
+                shm = self._map_shared_memory(
+                    shm_info.shm_name.decode('utf-8'),
+                    shm_info.size
+                )
+            except (OSError, ValueError) as e:
+                raise RuntimeError(f"Failed to map shared memory: {e}")
+
+            try:
+                result = bytes(memoryview(shm).cast('B'))
+            except (BufferError, ValueError, TypeError) as e:
+                raise RuntimeError(f"Failed to create bytes from shared memory: {e}")
+
+            # Notify C side to clean up shared memory
+            try:
+                # Ensure that shm_info.shm_name is exactly 256 bytes (trimmed or padded with null bytes)
+                shm_name = shm_info.shm_name[:256].ljust(256, b'\x00')
+
+                # Pack the header and payload
+                cmd_header = struct.pack('!BL', _Command.RELEASE_SHM, 256)  # 'B' for the command and 'L' for length
+                self.sock.sendall(cmd_header + shm_name)
+            except socket.error as e:
+                raise RuntimeError(f"Failed to send completion notification: {e}")
+
+            return result
+
+        except NoImageError:
+            # Re-raise NoImageError without wrapping
+            raise
+        except Exception as e:
+            # Wrap all other exceptions with context
+            raise RuntimeError(f"Error retrieving ICC data: {e}") from e
+        finally:
+            if shm is not None:
+                try:
+                    shm.close()
+                except BufferError:
+                    pass
+
+    def get_fits_header(self) -> Optional[str]:
+        """
+        Retrieve the full FITS header of the current Siril image using shared memory.
+
+        Args:
+            none.
+
+        Returns:
+            bytes: The image FITS header as a string.
+
+        Raises:
+            NoImageError: If no image is currently loaded
+            RuntimeError: For other errors during  data retrieval
+            ValueError: If the received data format is invalid or shape is invalid
+        """
+        shm = None
+        try:
+            # Request shared memory setup
+            status, response = self._send_command(_Command.GET_FITS_HEADER)
+
+            # Handle error responses
+            if status == _Status.ERROR:
+                if response:
+                    error_msg = response.decode('utf-8', errors='replace')
+                    if "no image loaded" in error_msg.lower():
+                        raise NoImageError("No image is currently loaded in Siril")
+                    else:
+                        raise RuntimeError(f"Server error: {error_msg}")
+                else:
+                    raise RuntimeError("Failed to initiate shared memory transfer: Empty response")
+
+            if not response:
+                raise RuntimeError("Failed to initiate shared memory transfer: No data received")
+
+            if len(response) < 25: # No payload
+                return None
+
+            try:
+                # Parse the shared memory information
+                shm_info = SharedMemoryInfo.from_buffer_copy(response)
+            except (AttributeError, BufferError, ValueError) as e:
+                raise ValueError(f"Invalid shared memory information received: {e}")
+
+            # Map the shared memory
+            try:
+                shm = self._map_shared_memory(
+                    shm_info.shm_name.decode('utf-8'),
+                    shm_info.size
+                )
+            except (OSError, ValueError) as e:
+                raise RuntimeError(f"Failed to map shared memory: {e}")
+
+            try:
+                result = memoryview(shm).tobytes().decode('utf-8')
+            except (BufferError, ValueError, TypeError) as e:
+                raise RuntimeError(f"Failed to create string from shared memory: {e}")
+
+            # Notify C side to clean up shared memory
+            try:
+                # Ensure that shm_info.shm_name is exactly 256 bytes (trimmed or padded with null bytes)
+                shm_name = shm_info.shm_name[:256].ljust(256, b'\x00')
+
+                # Pack the header and payload
+                cmd_header = struct.pack('!BL', _Command.RELEASE_SHM, 256)  # 'B' for the command and 'L' for length
+                self.sock.sendall(cmd_header + shm_name)
+            except socket.error as e:
+                raise RuntimeError(f"Failed to send completion notification: {e}")
+
+            return result
+
+        except NoImageError:
+            # Re-raise NoImageError without wrapping
+            raise
+        except Exception as e:
+            # Wrap all other exceptions with context
+            raise RuntimeError(f"Error retrieving FITS header: {e}") from e
+        finally:
+            if shm is not None:
+                try:
+                    shm.close()
+                except BufferError:
+                    pass
+
+    def get_unknown_keys(self) -> Optional[str]:
+        """
+        Retrieve unknown keys in the FITS header of the current Siril image using shared memory.
+
+        Args:
+            none.
+
+        Returns:
+            string: The unknown keys in the FITS header as a string.
+
+        Raises:
+            NoImageError: If no image is currently loaded
+            RuntimeError: For other errors during  data retrieval
+            ValueError: If the received data format is invalid or shape is invalid
+        """
+        shm = None
+        try:
+            # Request shared memory setup
+            status, response = self._send_command(_Command.GET_FITS_UNKNOWN_KEYS)
+
+            # Handle error responses
+            if status == _Status.ERROR:
+                if response:
+                    error_msg = response.decode('utf-8', errors='replace')
+                    if "no image loaded" in error_msg.lower():
+                        raise NoImageError("No image is currently loaded in Siril")
+                    else:
+                        raise RuntimeError(f"Server error: {error_msg}")
+                else:
+                    raise RuntimeError("Failed to initiate shared memory transfer: Empty response")
+
+            if not response:
+                raise RuntimeError("Failed to initiate shared memory transfer: No data received")
+
+            if len(response) < 25: # No payload
+                return None
+
+            try:
+                # Parse the shared memory information
+                shm_info = SharedMemoryInfo.from_buffer_copy(response)
+            except (AttributeError, BufferError, ValueError) as e:
+                raise ValueError(f"Invalid shared memory information received: {e}")
+
+            # Map the shared memory
+            try:
+                shm = self._map_shared_memory(
+                    shm_info.shm_name.decode('utf-8'),
+                    shm_info.size
+                )
+            except (OSError, ValueError) as e:
+                raise RuntimeError(f"Failed to map shared memory: {e}")
+
+            try:
+                result = memoryview(shm).tobytes().decode('utf-8')
+            except (BufferError, ValueError, TypeError) as e:
+                raise RuntimeError(f"Failed to create string from shared memory: {e}")
+
+            # Notify C side to clean up shared memory
+            try:
+                # Ensure that shm_info.shm_name is exactly 256 bytes (trimmed or padded with null bytes)
+                shm_name = shm_info.shm_name[:256].ljust(256, b'\x00')
+
+                # Pack the header and payload
+                cmd_header = struct.pack('!BL', _Command.RELEASE_SHM, 256)  # 'B' for the command and 'L' for length
+                self.sock.sendall(cmd_header + shm_name)
+            except socket.error as e:
+                raise RuntimeError(f"Failed to send completion notification: {e}")
+
+            return result
+
+        except NoImageError:
+            # Re-raise NoImageError without wrapping
+            raise
+        except Exception as e:
+            # Wrap all other exceptions with context
+            raise RuntimeError(f"Error retrieving FITS unknown keys: {e}") from e
+        finally:
+            if shm is not None:
+                try:
+                    shm.close()
+                except BufferError:
+                    pass
+
+    def get_history(self) -> Optional[list[str]]:
+        """
+        Retrieve history entries in the FITS header of the current Siril image using shared memory.
+
+        Args:
+            none.
+
+        Returns:
+            list: The history entries in the FITS header as a list of strings.
+
+        Raises:
+            NoImageError: If no image is currently loaded
+            RuntimeError: For other errors during  data retrieval
+            ValueError: If the received data format is invalid or shape is invalid
+        """
+        shm = None
+        try:
+            # Request shared memory setup
+            status, response = self._send_command(_Command.GET_FITS_HISTORY)
+
+            # Handle error responses
+            if status == _Status.ERROR:
+                if response:
+                    error_msg = response.decode('utf-8', errors='replace')
+                    if "no image loaded" in error_msg.lower():
+                        raise NoImageError("No image is currently loaded in Siril")
+                    else:
+                        raise RuntimeError(f"Server error: {error_msg}")
+                else:
+                    raise RuntimeError("Failed to initiate shared memory transfer: Empty response")
+
+            if not response:
+                raise RuntimeError("Failed to initiate shared memory transfer: No data received")
+
+            if len(response) < 25: # No payload
+                return None
+
+            try:
+                # Parse the shared memory information
+                shm_info = SharedMemoryInfo.from_buffer_copy(response)
+            except (AttributeError, BufferError, ValueError) as e:
+                raise ValueError(f"Invalid shared memory information received: {e}")
+
+            # Map the shared memory
+            try:
+                shm = self._map_shared_memory(
+                    shm_info.shm_name.decode('utf-8'),
+                    shm_info.size
+                )
+            except (OSError, ValueError) as e:
+                raise RuntimeError(f"Failed to map shared memory: {e}")
+
+            try:
+                string_data = memoryview(shm).shm.tobytes().decode('utf-8', errors='ignore')
+                string_list = string_data.split('\x00')
+            except (BufferError, ValueError, TypeError) as e:
+                raise RuntimeError(f"Failed to create string from shared memory: {e}")
+
+            # Notify C side to clean up shared memory
+            try:
+                # Ensure that shm_info.shm_name is exactly 256 bytes (trimmed or padded with null bytes)
+                shm_name = shm_info.shm_name[:256].ljust(256, b'\x00')
+
+                # Pack the header and payload
+                cmd_header = struct.pack('!BL', _Command.RELEASE_SHM, 256)  # 'B' for the command and 'L' for length
+                self.sock.sendall(cmd_header + shm_name)
+            except socket.error as e:
+                raise RuntimeError(f"Failed to send completion notification: {e}")
+
+            return [s for s in string_list if s]
+
+        except NoImageError:
+            # Re-raise NoImageError without wrapping
+            raise
+        except Exception as e:
+            # Wrap all other exceptions with context
+            raise RuntimeError(f"Error retrieving FITS unknown keys: {e}") from e
+        finally:
+            if shm is not None:
+                try:
+                    shm.close()
+                except BufferError:
+                    pass
+
     def get_wd(self) -> Optional[str]:
         """
         Request the working directory from Siril.
@@ -807,7 +1161,7 @@ class SirilInterface:
 
             # Verify we got the expected amount of data
             if len(response) != expected_size:
-                print(f"Received data size {len(response)} doesn't match expected size {expected_size}",
+                print(f"Received stats data size {len(response)} doesn't match expected size {expected_size}",
                     file=sys.stderr)
                 return None
 
@@ -913,7 +1267,7 @@ class SirilInterface:
             # Verify data size
             expected_size = struct.calcsize(format_string)
             if len(response) != expected_size:
-                print(f"Received data size {len(response)} doesn't match expected size {expected_size}",
+                print(f"Received keyword data size {len(response)} doesn't match expected size {expected_size}",
                     file=sys.stderr)
                 return None
 
@@ -991,7 +1345,7 @@ class SirilInterface:
             print(f"Error processing FITS keywords data: {e}", file=sys.stderr)
             return None
 
-    def get_image(self) -> Optional[FFit]:
+    def get_image(self, get_pixels: Optional[bool] = True) -> Optional[FFit]:
         """
         Request a copy of the current image open in Siril.
 
@@ -1031,7 +1385,7 @@ class SirilInterface:
             # Verify data size
             expected_size = struct.calcsize(format_string)
             if len(response) != expected_size:
-                print(f"Received data size {len(response)} doesn't match expected size {expected_size}",
+                print(f"Received image data size {len(response)} doesn't match expected size {expected_size}",
                     file=sys.stderr)
                 return None
 
@@ -1055,13 +1409,17 @@ class SirilInterface:
                 focalkey=True if values[7] else False,
                 pixelkey=True if values[8] else False,
                 color_managed=True if values[9] else False,
-                _data = self.get_pixel_data(),
+                _data = self.get_pixel_data() if get_pixels == True else None,
                 stats = (
                     self.get_image_stats(0),
                     self.get_image_stats(1) if shape[2] > 1 else None,
                     self.get_image_stats(2) if shape[2] > 1 else None
                 ),
-                keywords = self.get_keywords()
+                keywords = self.get_keywords(),
+                _icc_profile = self.get_icc_profile(),
+                header = self.get_fits_header(),
+                #unknown_keys= self.get_unknown_keys(),
+                history = self.get_history()
             )
 
         except struct.error as e:

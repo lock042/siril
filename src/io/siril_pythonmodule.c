@@ -550,10 +550,58 @@ static void cleanup_shared_memory_win32(win_shm_handle_t* handle) {
 }
 #endif
 
+gboolean siril_allocate_shm(void** shm_ptr_ptr,
+							char* shm_name_ptr,
+							size_t total_bytes,
+#ifdef _WIN32
+							win_shm_handle_t* win_handle) {
+#else
+							int *fd) {
+#endif
+	void *shm_ptr = NULL;
+
+#ifdef _WIN32
+	snprintf(shm_name, sizeof(shm_name), "siril_shm_%lu_%lu",
+			(unsigned long)GetCurrentProcessId(),
+			(unsigned long)time(NULL));
+#else
+	snprintf(shm_name_ptr, 256, "/siril_shm_%d_%lu",
+			getpid(), (unsigned long)time(NULL));
+#endif
+
+#ifdef _WIN32
+	*win_handle = {NULL, NULL};
+	if (!create_shared_memory_win32(shm_name, total_bytes, *win_handle)) {
+		return FALSE;
+	}
+	shm_ptr = win_handle->ptr;
+#else
+	*fd = shm_open(shm_name_ptr, O_CREAT | O_RDWR, 0600);
+	if (*fd == -1) {
+		g_warning("Failed to create shared memory: %s", strerror(errno));
+		return FALSE;
+	}
+	if (ftruncate(*fd, total_bytes) == -1) {
+		g_warning("Failed to set shared memory size: %s", strerror(errno));
+		close(*fd);
+		shm_unlink(shm_name_ptr);
+		return FALSE;
+	}
+	shm_ptr = mmap(NULL, total_bytes, PROT_READ | PROT_WRITE,
+				MAP_SHARED, *fd, 0);
+	if (shm_ptr == MAP_FAILED) {
+		g_warning("Failed to map shared memory: %s", strerror(errno));
+		close(*fd);
+		shm_unlink(shm_name_ptr);
+		return FALSE;
+	}
+#endif
+	*shm_ptr_ptr = shm_ptr;
+	return TRUE;
+}
+
 // Handle a request for pixel data. We record the allocated SHM
 // but leave clearup for another command
-// TODO: this works but consider if it's overcomplicated, we could just delete
-// the shm from python...
 gboolean handle_pixeldata_request(Connection *conn, rectangle region) {
 	if (!single_image_is_loaded()) {
 		const char* error_msg = "Failed to retrieve pixel data - no image loaded";
@@ -570,44 +618,18 @@ gboolean handle_pixeldata_request(Connection *conn, rectangle region) {
 		total_bytes = row_bytes * gfit.naxes[2] * region.h;
 	}
 
-	// Generate unique name for shared memory
-	char shm_name[256];
-#ifdef _WIN32
-	snprintf(shm_name, sizeof(shm_name), "siril_shm_%lu_%lu",
-			(unsigned long)GetCurrentProcessId(),
-			(unsigned long)time(NULL));
-#else
-	snprintf(shm_name, sizeof(shm_name), "/siril_shm_%d_%lu",
-			getpid(), (unsigned long)time(NULL));
-#endif
-
+	// Generate unique name for shared memory and allocate it
 	void* shm_ptr = NULL;
+	char shm_name[256];
+	char *shm_name_ptr = shm_name;
 #ifdef _WIN32
-	win_shm_handle_t win_handle = {NULL, NULL};
-	if (!create_shared_memory_win32(shm_name, total_bytes, &win_handle)) {
+	win_shm_handle_t win_handle;
+	if (!siril_allocate_shm(shm_ptr, &shm_name, total_bytes, &win_handle))
 		return FALSE;
-	}
-	shm_ptr = win_handle.ptr;
 #else
-	int fd = shm_open(shm_name, O_CREAT | O_RDWR, 0600);
-	if (fd == -1) {
-		g_warning("Failed to create shared memory: %s", strerror(errno));
+	int fd;
+	if (!siril_allocate_shm(&shm_ptr, shm_name_ptr, total_bytes, &fd))
 		return FALSE;
-	}
-	if (ftruncate(fd, total_bytes) == -1) {
-		g_warning("Failed to set shared memory size: %s", strerror(errno));
-		close(fd);
-		shm_unlink(shm_name);
-		return FALSE;
-	}
-	shm_ptr = mmap(NULL, total_bytes, PROT_READ | PROT_WRITE,
-				MAP_SHARED, fd, 0);
-	if (shm_ptr == MAP_FAILED) {
-		g_warning("Failed to map shared memory: %s", strerror(errno));
-		close(fd);
-		shm_unlink(shm_name);
-		return FALSE;
-	}
 #endif
 
 	// Copy data from gfit to shared memory
@@ -643,6 +665,52 @@ gboolean handle_pixeldata_request(Connection *conn, rectangle region) {
 		.width = region.w,
 		.height = region.h,
 		.channels = gfit.naxes[2]
+	};
+	strncpy(info.shm_name, shm_name, sizeof(info.shm_name) - 1);
+
+	// Send shared memory info to Python
+	return send_response(conn->channel, STATUS_OK, (const char*)&info, sizeof(info));
+}
+
+gboolean handle_rawdata_request(Connection *conn, void* data, size_t total_bytes) {
+	if (data == NULL || total_bytes == 0) {
+		const char* error_msg = "Incorrect memory region specification";
+		return send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+
+	// Generate unique name for shared memory and allocate it
+	void* shm_ptr = NULL;
+	char shm_name[256];
+	char *shm_name_ptr = shm_name;
+#ifdef _WIN32
+	win_shm_handle_t win_handle;
+	if (!siril_allocate_shm(shm_ptr, &shm_name, total_bytes, &win_handle))
+		return FALSE;
+#else
+	int fd;
+	if (!siril_allocate_shm(&shm_ptr, shm_name_ptr, total_bytes, &fd))
+		return FALSE;
+#endif
+
+	// Copy data from gfit to shared memory
+	memcpy((char*)shm_ptr, (char*) data, total_bytes);
+
+	// Track this allocation
+#ifdef _WIN32
+	track_shm_allocation(shm_name, shm_ptr, total_bytes, &win_handle);
+#else
+	track_shm_allocation(shm_name, shm_ptr, total_bytes, fd);
+#endif
+
+	// Prepare shared memory info structure
+	// We only care about the size and shm_name, but it's easier to use the same
+	// struct as for handle_pixeldata_request
+	shared_memory_info_t info = {
+		.size = total_bytes,
+		.data_type = 0,
+		.width = 0,
+		.height = 0,
+		.channels = 0
 	};
 	strncpy(info.shm_name, shm_name, sizeof(info.shm_name) - 1);
 
