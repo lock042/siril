@@ -234,6 +234,37 @@ void on_show_button_clicked(GtkButton *button, gpointer user_data) {
 	siril_widget_destroy(widgetdialog);
 }
 
+void on_show_button_get_coords_clicked(GtkButton *button, gpointer user_data) {
+	if (has_wcs(&gfit) && (com.selection.h && com.selection.w)) {
+		psf_star *result = psf_get_minimisation(&gfit, select_vport(gui.cvport), &com.selection, FALSE, NULL, FALSE, com.pref.starfinder_conf.profile, NULL);
+		if (result) {
+			double world_x, world_y;
+			gchar *ra, *dec;
+
+			result->xpos = result->x0 + com.selection.x;
+			if (gfit.top_down)
+				result->ypos = result->y0 + com.selection.y;
+			else
+				result->ypos = com.selection.y + com.selection.h - result->y0;
+
+			pix2wcs(&gfit, result->xpos, (double) gfit.ry - result->ypos - 1.0, &world_x, &world_y);
+			if (world_x >= 0.0 && !isnan(world_x) && !isnan(world_y)) {
+				SirilWorldCS *world_cs = siril_world_cs_new_from_a_d(world_x, world_y);
+				if (world_cs) {
+					ra = siril_world_cs_alpha_format(world_cs, "%02d %02d %.3lf");
+					dec = siril_world_cs_delta_format(world_cs, "%c%02d %02d %.3lf");
+
+					gtk_entry_set_text(GTK_ENTRY(lookup_widget("show_ra_entry")), ra);
+					gtk_entry_set_text(GTK_ENTRY(lookup_widget("show_dec_entry")), dec);
+
+					g_free(ra), g_free(dec);
+					siril_world_cs_unref(world_cs);
+				}
+			}
+		}
+	}
+}
+
 static int collect_single_coords_and_name(double *ra, double *dec, gchar **name) {
 	const gchar *ra_str = gtk_entry_get_text(show_ra_entry);
 	const gchar *dec_str = gtk_entry_get_text(show_dec_entry);
@@ -339,7 +370,7 @@ void on_annotate_apply_clicked(GtkButton *button, gpointer user_data) {
 			set_cursor_waiting(FALSE);
 			return;
 		}
-		if (g_file_test(params_cone->outfilename, G_FILE_TEST_EXISTS)) {
+		if (params_cone->outfilename && g_file_test(params_cone->outfilename, G_FILE_TEST_EXISTS)) {
 			gchar *basename = g_path_get_basename(params_cone->outfilename);
 			gchar *dir_path = g_path_get_dirname(params_cone->outfilename);
 			gchar *last_dir = g_path_get_basename(dir_path);
