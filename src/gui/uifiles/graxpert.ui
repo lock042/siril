@@ -51,7 +51,7 @@
   </object>
   <object class="GtkDialog" id="graxpert_dialog">
     <property name="can-focus">False</property>
-    <property name="title" translatable="yes">Siril GraXpert interface</property>
+    <property name="title" translatable="yes">Siril GraXpert Interface</property>
     <property name="resizable">False</property>
     <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="siril_widget_hide_on_delete" swapped="no"/>
@@ -127,56 +127,17 @@
             <property name="margin-end">6</property>
             <property name="orientation">vertical</property>
             <child>
-              <object class="GtkFrame">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="label-xalign">0</property>
-                <property name="shadow-type">none</property>
-                <child>
-                  <object class="GtkComboBoxText" id="combo_graxpert_operation">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="tooltip-text" translatable="yes">Select whether to use GraXpert for background removal or denoising.</property>
-                    <property name="margin-start">12</property>
-                    <property name="margin-top">5</property>
-                    <property name="active">0</property>
-                    <items>
-                      <item translatable="yes">Background Extraction</item>
-                      <item translatable="yes">Denoising</item>
-                    </items>
-                    <signal name="changed" handler="on_combo_graxpert_operation_changed" swapped="no"/>
-                  </object>
-                </child>
-                <child type="label">
-                  <object class="GtkLabel">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="label" translatable="yes">GraXpert Operation</property>
-                    <attributes>
-                      <attribute name="weight" value="bold"/>
-                    </attributes>
-                  </object>
-                </child>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkExpander" id="graxpert_bg_settings">
+              <object class="GtkNotebook" id="notebook_graxpert_operation">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
-                <property name="expanded">True</property>
                 <child>
                   <!-- n-columns=4 n-rows=8 -->
                   <object class="GtkGrid" id="graxpert_bg_options">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
+                    <property name="margin-top">6</property>
                     <property name="row-spacing">6</property>
                     <property name="column-spacing">6</property>
-                    <property name="column-homogeneous">True</property>
                     <child>
                       <object class="GtkLabel">
                         <property name="visible">True</property>
@@ -215,7 +176,6 @@
                         <property name="can-focus">False</property>
                         <property name="row-spacing">6</property>
                         <property name="column-spacing">6</property>
-                        <property name="column-homogeneous">True</property>
                         <child>
                           <object class="GtkLabel">
                             <property name="visible">True</property>
@@ -281,7 +241,7 @@
                           <packing>
                             <property name="left-attach">0</property>
                             <property name="top-attach">1</property>
-                            <property name="width">2</property>
+                            <property name="width">4</property>
                           </packing>
                         </child>
                         <child>
@@ -337,114 +297,10 @@
                             <property name="top-attach">2</property>
                           </packing>
                         </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
                         <property name="top-attach">3</property>
-                        <property name="width">4</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <!-- n-columns=4 n-rows=1 -->
-                      <object class="GtkGrid" id="graxpert_rbf_settings">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="row-spacing">6</property>
-                        <property name="column-spacing">6</property>
-                        <property name="column-homogeneous">True</property>
-                        <child>
-                          <object class="GtkLabel">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="halign">start</property>
-                            <property name="label" translatable="yes">RBF Kernel</property>
-                          </object>
-                          <packing>
-                            <property name="left-attach">0</property>
-                            <property name="top-attach">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkComboBoxText" id="combo_graxpert_kernel">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="tooltip-text" translatable="yes">Set the RBF kernel type</property>
-                            <property name="active">0</property>
-                            <items>
-                              <item translatable="yes">Thin plate</item>
-                              <item translatable="yes">Quintic</item>
-                              <item translatable="yes">Cubic</item>
-                              <item translatable="yes">Linear</item>
-                            </items>
-                          </object>
-                          <packing>
-                            <property name="left-attach">1</property>
-                            <property name="top-attach">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="left-attach">0</property>
-                        <property name="top-attach">4</property>
-                        <property name="width">4</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <!-- n-columns=4 n-rows=1 -->
-                      <object class="GtkGrid" id="graxpert_spline_settings">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="row-spacing">6</property>
-                        <property name="column-spacing">6</property>
-                        <property name="column-homogeneous">True</property>
-                        <child>
-                          <object class="GtkLabel">
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="halign">start</property>
-                            <property name="label" translatable="yes">Spline Order</property>
-                          </object>
-                          <packing>
-                            <property name="left-attach">0</property>
-                            <property name="top-attach">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkSpinButton" id="graxpert_spin_spline_order">
-                            <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <property name="tooltip-text" translatable="yes">Set the spline order used for the spline background removal algorithm</property>
-                            <property name="text" translatable="yes">3</property>
-                            <property name="adjustment">adj_graxpert_spline_order</property>
-                            <property name="value">3</property>
-                          </object>
-                          <packing>
-                            <property name="left-attach">1</property>
-                            <property name="top-attach">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="left-attach">0</property>
-                        <property name="top-attach">5</property>
                         <property name="width">4</property>
                       </packing>
                     </child>
@@ -513,7 +369,6 @@
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="spacing">6</property>
-                        <property name="homogeneous">True</property>
                         <child>
                           <object class="GtkLabel">
                             <property name="visible">True</property>
@@ -532,6 +387,7 @@
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="tooltip-text" translatable="yes">Set the AI model version for use with GraXpert background extraction. Defaults to latest.</property>
+                            <property name="hexpand">True</property>
                             <items>
                               <item translatable="yes">latest</item>
                             </items>
@@ -574,6 +430,7 @@
                       <packing>
                         <property name="left-attach">1</property>
                         <property name="top-attach">1</property>
+                        <property name="width">3</property>
                       </packing>
                     </child>
                     <child>
@@ -586,52 +443,113 @@
                       <packing>
                         <property name="left-attach">0</property>
                         <property name="top-attach">2</property>
-                        <property name="width">2</property>
+                        <property name="width">4</property>
                       </packing>
                     </child>
                     <child>
-                      <placeholder/>
+                      <object class="GtkBox" id="graxpert_rbf_settings">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="spacing">5</property>
+                        <property name="homogeneous">True</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">RBF Kernel</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkComboBoxText" id="combo_graxpert_kernel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Set the RBF kernel type</property>
+                            <property name="active">0</property>
+                            <items>
+                              <item translatable="yes">Thin plate</item>
+                              <item translatable="yes">Quintic</item>
+                              <item translatable="yes">Cubic</item>
+                              <item translatable="yes">Linear</item>
+                            </items>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">4</property>
+                        <property name="width">4</property>
+                      </packing>
                     </child>
                     <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
-                    </child>
-                    <child>
-                      <placeholder/>
+                      <object class="GtkBox" id="graxpert_spline_settings">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="spacing">5</property>
+                        <property name="homogeneous">True</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Spline Order</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="graxpert_spin_spline_order">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="tooltip-text" translatable="yes">Set the spline order used for the spline background removal algorithm</property>
+                            <property name="text" translatable="yes">3</property>
+                            <property name="adjustment">adj_graxpert_spline_order</property>
+                            <property name="value">3</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">5</property>
+                        <property name="width">4</property>
+                      </packing>
                     </child>
                   </object>
                 </child>
-                <child type="label">
+                <child type="tab">
                   <object class="GtkLabel">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="label" translatable="yes">Background Extraction</property>
-                    <attributes>
-                      <attribute name="weight" value="bold"/>
-                    </attributes>
                   </object>
+                  <packing>
+                    <property name="tab-fill">False</property>
+                  </packing>
                 </child>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="padding">6</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkExpander" id="graxpert_denoise_settings">
-                <property name="name">graxpert-denoising-settings</property>
-                <property name="visible">True</property>
-                <property name="sensitive">False</property>
-                <property name="can-focus">True</property>
                 <child>
                   <!-- n-columns=2 n-rows=3 -->
                   <object class="GtkGrid">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
+                    <property name="margin-top">6</property>
                     <property name="row-spacing">6</property>
                     <property name="column-spacing">6</property>
                     <property name="column-homogeneous">True</property>
@@ -652,7 +570,7 @@
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="tooltip-text" translatable="yes">Configure GraXpert denoising strength</property>
-                        <property name="text" translatable="yes">0.50</property>
+                        <property name="text" translatable="yes">0,80</property>
                         <property name="adjustment">adj_graxpert_denoise_strength</property>
                         <property name="digits">2</property>
                         <property name="value">0.80</property>
@@ -667,7 +585,6 @@
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="adjustment">adj_graxpert_denoise_strength</property>
-                        <property name="round-digits">1</property>
                         <property name="draw-value">False</property>
                       </object>
                       <packing>
@@ -681,7 +598,6 @@
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="spacing">6</property>
-                        <property name="homogeneous">True</property>
                         <child>
                           <object class="GtkLabel">
                             <property name="visible">True</property>
@@ -718,23 +634,75 @@
                       </packing>
                     </child>
                   </object>
+                  <packing>
+                    <property name="position">1</property>
+                  </packing>
                 </child>
-                <child type="label">
+                <child type="tab">
                   <object class="GtkLabel">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="label" translatable="yes">Denoising</property>
-                    <attributes>
-                      <attribute name="weight" value="bold"/>
-                    </attributes>
                   </object>
+                  <packing>
+                    <property name="position">1</property>
+                    <property name="tab-fill">False</property>
+                  </packing>
+                </child>
+                <child>
+                  <!-- n-columns=3 n-rows=3 -->
+                  <object class="GtkGrid">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="margin-top">6</property>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                    <child>
+                      <placeholder/>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="position">2</property>
+                  </packing>
+                </child>
+                <child type="tab">
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">Deconvolution</property>
+                  </object>
+                  <packing>
+                    <property name="position">2</property>
+                    <property name="tab-fill">False</property>
+                  </packing>
                 </child>
               </object>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="padding">6</property>
-                <property name="position">2</property>
+                <property name="position">0</property>
               </packing>
             </child>
             <child>
@@ -760,7 +728,6 @@
                             <property name="can-focus">False</property>
                             <property name="row-spacing">6</property>
                             <property name="column-spacing">6</property>
-                            <property name="column-homogeneous">True</property>
                             <child>
                               <object class="GtkCheckButton" id="toggle_graxpert_gpu">
                                 <property name="label" translatable="yes">Use GPU</property>
@@ -848,6 +815,7 @@
                   <object class="GtkLabel">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
+                    <property name="margin-bottom">6</property>
                     <property name="label" translatable="yes">General Settings</property>
                     <attributes>
                       <attribute name="weight" value="bold"/>
@@ -859,7 +827,7 @@
                 <property name="expand">False</property>
                 <property name="fill">True</property>
                 <property name="padding">6</property>
-                <property name="position">4</property>
+                <property name="position">2</property>
               </packing>
             </child>
           </object>
