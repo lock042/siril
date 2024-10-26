@@ -682,6 +682,14 @@ void on_check_button_pref_bias_toggled(GtkToggleButton *togglebutton, gpointer u
 //static gboolean from_prefs_init = FALSE;	// NOT USED, SHOULD BE DELETED
 
 void on_reset_aperture_button_clicked(GtkButton *button, gpointer user_data) {
+//	phot_config *photo_ini = &com.
+	struct phot_config *retval = malloc(sizeof(struct phot_config));
+	if (!retval) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
+	memcpy(retval, &com.pref.phot_set, sizeof(struct phot_config));
+
 	static GtkSpinButton *spin_fix_aper = NULL, *spin_fix_inner = NULL, *spin_fix_outer = NULL,
 			*spin_var_aper = NULL, *spin_var_inner = NULL, *spin_var_outer = NULL,
 			*spin_flu_cutoff = NULL, *spin_flu_inner = NULL, *spin_flu_outer = NULL;

@@ -129,23 +129,26 @@ struct astrometry_config {
 
 /* This structure is used for storing all parameters used in photometry module */
 struct phot_config {
-	double gain;		// A/D converter gain in electrons per ADU
 	double aperture;	// flux aperture
 	double inner;		// Inner radius of the annulus used to measure local background.
 	double outer;		// Outer radius of the annulus used to measure local background.
+
+	double auto_aperture_factor;	// ratio between the aperture and the half-FWHM, used with the dynamic aperture option
 	double auto_inner_factor;// factor for automatic inner radius computation from FWHM
 	double auto_outer_factor;// factor for automatic outer radius computation from FWHM
-	double auto_aperture_factor;	// ratio between the aperture and the half-FWHM, used with the dynamic aperture option
+	
 	double flux_cut_factor;	// flux cutoff rate
 	double flux_inner_factor;// factor for automatic inner radius computation from Flux cutoff meth
 	double flux_outer_factor;// factor for automatic outer radius computation from Flux cutoff meth
+	gboolean force_radius;	// force the aperture radius value
+	int ape_strat; 	// encodes the aperture strategy to be used. See enum aperture_strategy
+
 	double dump_fwhmx;	// temporary value of fwhm
 	double fwhm_ref[20];// Array of FWHM for the stars of the compstars list. Size should equate MAX_REF_STARS defined in siril.h
 	double dump_beta;	// temporary value of beta
 	double beta_ref[20];// Array of beta for the stars of the compstars list. Size should equate MAX_REF_STARS defined in siril.h
 
-	gboolean force_radius;	// force the aperture radius value
-	int ape_strat; 	// encodes the aperture strategy to be used. See enum aperture_strategy
+	double gain;		// A/D converter gain in electrons per ADU
 	double minval, maxval;	// consider pixels outside this range as invalid for photometry
 				// minval and maxval are stored as int, but adapted to image type
 				// when used, so normalized to 1 for float, hence the double type
