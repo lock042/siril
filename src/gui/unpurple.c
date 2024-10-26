@@ -47,7 +47,7 @@ static gboolean is_roi = FALSE;
 int generate_binary_starmask(fits *fit, fits *starmask, double threshold) {
         gboolean stars_needs_freeing = FALSE;
         psf_star **stars = NULL;
-        int channel = 1; 
+        int channel = 1;
 
         int nb_stars = starcount(com.stars);
         int dimx = fit->naxes[0];
@@ -74,7 +74,7 @@ int generate_binary_starmask(fits *fit, fits *starmask, double threshold) {
 		siril_log_color_message(_("No stars detected in the image.\n"), "red");
 		return -1;
 	}
-	
+
 	siril_log_message(_("Creating binary star mask for %d stars...\n"), nb_stars);
 	new_fit_image(&starmask, dimx, dimy, 1, DATA_USHORT);
 
@@ -157,6 +157,7 @@ static int unpurple_update_preview() {
 
 void unpurple_change_between_roi_and_image() {
 	// If we are showing the preview, update it after the ROI change.
+	gui.roi.operation_supports_roi = TRUE;
 	roi_supported(TRUE);
 	update_image *param = malloc(sizeof(update_image));
 	param->update_preview_fn = unpurple_update_preview;
@@ -165,9 +166,9 @@ void unpurple_change_between_roi_and_image() {
 }
 
 static void unpurple_startup() {
-	copy_gfit_to_backup();
 	add_roi_callback(unpurple_change_between_roi_and_image);
 	roi_supported(TRUE);
+	copy_gfit_to_backup();
 }
 
 static void unpurple_close(gboolean revert) {
