@@ -3345,7 +3345,8 @@ int save_wcs_fits(fits *f, const gchar *name) {
 	return status;
 }
 
-int save_mask_fits(int rx, int ry, BYTE *buffer, const gchar *name) {
+// writes an 32b bit distance mask to disk
+int save_mask_fits(int rx, int ry, float *buffer, const gchar *name) {
 	int status;
 	fitsfile *fptr;
 	long orig[2] = { 1L, 1L};
@@ -3363,12 +3364,12 @@ int save_mask_fits(int rx, int ry, BYTE *buffer, const gchar *name) {
 		return 1;
 	}
 
-	if (fits_create_img(fptr, BYTE_IMG, 2, naxes, &status)) {
+	if (fits_create_img(fptr, FLOAT_IMG, 2, naxes, &status)) {
 		report_fits_error(status);
 		return 1;
 	}
 
-	if (fits_write_pix(fptr, TBYTE, orig, (size_t)(rx * ry), buffer, &status)) {
+	if (fits_write_pix(fptr, TFLOAT, orig, (size_t)(rx * ry), buffer, &status)) {
 		report_fits_error(status);
 		return 1;
 	}
@@ -3376,6 +3377,63 @@ int save_mask_fits(int rx, int ry, BYTE *buffer, const gchar *name) {
 	fits_close_file(fptr, &status);
 	if (!status) {
 		siril_log_message(_("Saving mask file %s\n"), name);
+	} else {
+		report_fits_error(status);
+	}
+	return status;
+}
+
+// read an area form a 32b mask
+// we have this dedicated function to avoid the automatic rescaling
+// and dealing with all the types and headers
+int read_mask_fits_area(const gchar *name, rectangle *area, int ry, float *mask) {
+	int status = 0;
+	fitsfile *fptr;
+	int naxis = 2;
+	long fpixel[2], lpixel[2], inc[2] = { 1L, 1L };
+	long naxes[2] = { 1L, 1L};
+
+	// /* fpixel is first pixel, lpixel is last pixel, starts with value 1 */
+	// fpixel[0] = area->x + 1;        // in siril, it starts with 0
+	// fpixel[1] = area->y + 1;
+	// lpixel[0] = area->x + area->w;
+	// lpixel[1] = area->y + area->h;
+
+	fpixel[0] = area->x + 1;        // in siril, it starts with 0
+	fpixel[1] = ry - area->y - area->h + 1;
+	lpixel[0] = area->x + area->w;  // with w and h at least 1, we're ok
+	lpixel[1] = ry - area->y;
+
+	if (!name)
+		return 1;
+	fits_open_file(&fptr, name, READONLY, &status);
+	if (status) {
+		report_fits_error(status);
+		return 1;
+	}
+	fits_get_img_size(fptr, naxis, naxes, &status);
+	if (status) {
+		report_fits_error(status);
+		return 1;
+	}
+	if (naxes[0] < area->w) {
+		siril_debug_print("area too wide\n");
+		fits_close_file(fptr, NULL);
+		return 1;
+	}
+	if (naxes[1] < area->h) {
+		siril_debug_print("area too high\n");
+		fits_close_file(fptr, NULL);
+		return 1;
+	}
+	fits_read_subset(fptr, TFLOAT, fpixel, lpixel, inc, NULL, mask,	NULL, &status);
+	if (status) {
+		report_fits_error(status);
+		return 1;
+	}
+	fits_close_file(fptr, &status);
+	if (!status) {
+		siril_debug_print("Read mask file %s\n", name);
 	} else {
 		report_fits_error(status);
 	}

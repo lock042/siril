@@ -28,7 +28,20 @@
 
 #define MASK_SCALE 0.1
 
-static gchar *create_mask_filename(sequence *seq, int index) {
+double get_mask_scale() {
+	return MASK_SCALE;
+}
+
+void compute_downscaled_mask_size(int rx, int ry, int *rx_out, int *ry_out, double *fx, double *fy) {
+	*rx_out = (int)(rx * MASK_SCALE);
+	*ry_out = (int)(ry * MASK_SCALE);
+	if (fx)
+		*fx = (double)(*rx_out) / (double)rx;
+	if (fy)
+		*fy = (double)(*ry_out) / (double)ry;
+}
+
+gchar *get_mask_filename(sequence *seq, int index) {
 	char root[256];
 	if (!fit_sequence_get_image_filename(seq, index, root, FALSE)) {
 		return NULL;
@@ -40,7 +53,7 @@ static gchar *create_mask_filename(sequence *seq, int index) {
 
 // check if we need to create the mask or if it already exists
 static gboolean compute_mask_read_hook(struct generic_seq_args *args, int i) {
-	const gchar *mask_filename = create_mask_filename(args->seq, i);
+	const gchar *mask_filename = get_mask_filename(args->seq, i);
 	if (!mask_filename) {
 		return TRUE;
 	}
@@ -60,17 +73,18 @@ static int compute_mask_compute_mem_limits(struct generic_seq_args *args, gboole
 
 }
 
-// this will create a downscaled 8b mask and save it directly
+// this will create a downscaled 32b distance mask and save it directly (not using the save hook)
 static int compute_mask_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 		rectangle *_, int threads) {
 	size_t nbpix = fit->naxes[0] * fit->naxes[1];
 	int layer = (fit->naxes[2] == 3) ? GLAYER : RLAYER;
-	BYTE *buffer8in = calloc(nbpix, sizeof(BYTE));
-	BYTE *buffer8out = NULL;
+	uint8_t *buffer8in = calloc(nbpix, sizeof(uint8_t));
+	float *buffer32out = NULL;
 
 	if (!buffer8in) {
 		PRINT_ALLOC_ERR;
 		siril_debug_print("failed to allocate mask buffer\n");
+		free(buffer8in);
 		return 1;
 	}
 	// we convert the ref layer to 0 or 255 vals
@@ -92,34 +106,33 @@ static int compute_mask_image_hook(struct generic_seq_args *args, int o, int i, 
 	// we downscale the buffer
 	int rx = fit->naxes[0];
 	int ry = fit->naxes[1];
-	// the mask out size is the scaled input plus a black border of one pixel (see cvDownscaleMask)
-	int out_rx = (int)(rx * MASK_SCALE) + 2;
-	int out_ry = (int)(ry * MASK_SCALE) + 2;
-	buffer8out = calloc((size_t)(out_rx * out_ry), sizeof(BYTE));
-	if (!buffer8out) {
+	int rx_out = 0, ry_out = 0;
+	compute_downscaled_mask_size(rx, ry, &rx_out, &ry_out, NULL, NULL);
+	buffer32out = calloc((size_t)(rx_out * ry_out), sizeof(float));
+	if (!buffer32out) {
 		PRINT_ALLOC_ERR;
 		siril_debug_print("failed to allocate mask downscaled buffer\n");
 		free(buffer8in);
 		return 1;
 	}
-	cvDownscaleMask(rx, ry, out_rx, out_ry, buffer8in, buffer8out);
+	cvDownscaleBlendMask(rx, ry, rx_out, ry_out, buffer8in, buffer32out);
 
-	const gchar *mask_filename = create_mask_filename(args->seq, i);
+	//we save the mask
+	const gchar *mask_filename = get_mask_filename(args->seq, i);
 	if (!mask_filename) {
 		siril_debug_print("failed to create the mask filename");
 		free(buffer8in);
-		free(buffer8out);
+		free(buffer32out);
 		return 1;
 	}
-
-	if (save_mask_fits(out_rx, out_ry, buffer8out, mask_filename)) {
+	if (save_mask_fits(rx_out, ry_out, buffer32out, mask_filename)) {
 		siril_log_color_message(_("Failed to save mask for image %d\n"), "red", i + 1);
 		free(buffer8in);
-		free(buffer8out);
+		free(buffer32out);
 		return 1;
 	}
 	free(buffer8in);
-	free(buffer8out);
+	free(buffer32out);
 	return 0;
 }
 

@@ -123,7 +123,8 @@ static gpointer export_sequence(gpointer ptr) {
 	norm_coeff coeff = { 0 };
 
 	int reglayer = get_registration_layer(args->seq);
-	siril_log_message(_("Using registration information from layer %d to export sequence\n"), reglayer);
+	if (reglayer >= 0)
+		siril_log_message(_("Using registration information from layer %d to export sequence\n"), reglayer);
 	if (args->crop) {
 		in_width  = args->crop_area.w;
 		in_height = args->crop_area.h;

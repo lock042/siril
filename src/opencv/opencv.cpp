@@ -583,24 +583,30 @@ int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homog
 	return Mat_to_image(image, &in, &out, bgr, width, height);
 }
 
-void cvSimpleBlendMask(int rx, int ry, uint8_t *maskin, float *maskout, int pix) {
+void cvDownscaleBlendMask(int rx, int ry, int out_rx, int out_ry, uint8_t *maskin, float *maskout) {
 	Mat _maskin = Mat(ry, rx, CV_8U, maskin);
-	Mat _maskout = Mat(ry, rx, CV_32F, maskout);
-	distanceTransform(_maskin, _maskout, DIST_L2, 3, CV_32F);
-}
-
-void cvDownscaleMask(int rx, int ry, int out_rx, int out_ry, uint8_t *maskin, uint8_t *maskout) {
-	Mat _maskin = Mat(ry, rx, CV_8U, maskin);
-	Mat _maskout = Mat(out_ry, out_rx, CV_8U, maskout);
+	Mat _maskindown = Mat(out_ry + 2, out_rx + 2, CV_8U);
+	Mat _maskoutdown32 = Mat(out_ry + 2, out_rx + 2, CV_32F, Scalar(0.));
+	Mat _maskout = Mat(out_ry, out_rx, CV_32F, maskout);
 	// we leave a border of one pixel black to make sure the distance transform
 	// will later count distance from this border (if the initial mask was entirely white for instance)
-	int dst_rx = out_rx - 2;
-	int dst_ry = out_ry - 2;
 	// we get a handle to the inner part of the maskout (without the border)
-	Mat _maskoutroi = _maskout(Rect(1, 1, dst_rx, dst_ry));
-	// and we resize
-	resize(_maskin, _maskoutroi, _maskoutroi.size(), 0, 0, INTER_LINEAR);
+	Mat _maskindownroi = _maskindown(Rect(1, 1, out_rx, out_ry));
+	// we resize
+	resize(_maskin, _maskindownroi, _maskindownroi.size(), 0, 0, INTER_LINEAR);
+	// we compute the distances, it returns a 32b array
+	distanceTransform(_maskindown, _maskoutdown32, DIST_L2, 3, CV_32F);
+	Mat _maskoutdownroi = _maskoutdown32(Rect(1, 1, out_rx, out_ry));
+	_maskoutdownroi.copyTo(_maskout);
 }
+
+void cvUpscaleBlendMask(int rx, int ry, int out_rx, int out_ry, float *maskin, float *maskout) {
+	Mat _maskin = Mat(ry, rx, CV_32F, maskin);
+	Mat _maskout = Mat(out_ry, out_rx, CV_32F, maskout);
+	resize(_maskin, _maskout, _maskout.size(), 0, 0, INTER_LINEAR);
+	flip(_maskout, _maskout, 0);
+}
+
 
 
 int cvUnsharpFilter(fits* image, double sigma, double amount) {

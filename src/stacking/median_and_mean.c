@@ -431,6 +431,8 @@ static int stack_read_block_data(struct stacking_args *args,
 				/* we are reading outside an image, fill with
 				 * zeros and attempt to read lines that fit */
 				memset(data->pix[frame], 0, my_block->height * naxes[0] * ielem_size);
+				if (masking)
+					memset(data->mask[frame], 0, my_block->height * naxes[0] * sizeof(float));
 			}
 		}
 
@@ -455,26 +457,44 @@ static int stack_read_block_data(struct stacking_args *args,
 				rearrange_block_data(buffer, itype, naxes[0], area.h, rx);
 			}
 		}
-		if (masking) {// we need to compute the mask
-			size_t block_nb_pix = naxes[0] * my_block->height;
-			void *buffer;
-			uint8_t *bufferm = calloc(block_nb_pix, sizeof(uint8_t));
-			if (itype == DATA_FLOAT)
-				buffer = ((float*)data->pix[frame]);
-			else
-				buffer = ((WORD *)data->pix[frame]);
-			for (size_t i = 0; i < block_nb_pix; i++) {
-				if ((itype == DATA_FLOAT && *(float *)buffer != 0.f) || (itype == DATA_USHORT && *(WORD *)buffer == 0))
-					bufferm[i] = 255;
-				buffer += ielem_size;
+		
+		if (masking && (args->reglayer < 0 || readdata)) {// we need to compute the correct mask area
+			// We load the whole scaled 8b mask (a pity but otherwise cv::distance does not compute the correct distances)
+			// Hopefully the aggressive downsizing makes it not too bad in terms of perf
+			// Another path to explore could be to write temporarily the float masks in the ./masks folder
+			// with the distance and thresholding (and ramping) applied and read the relevant area for each band here
+			// We could prepare them during the prepare_hook and dispose of them in the finalize_hook
+			// but that would be another I/O operation on larger files
+			// Remember we can't save the 8b masks with distances com
+			const gchar *maskfile = get_mask_filename(args->seq, args->image_indices[frame]);
+			float *mask_scaled;
+			int scaled_rx = 0, scaled_ry = 0;
+			double fx = 0., fy = 0.;
+			int rx = (args->seq->is_variable) ? args->seq->imgparam[image_index].rx : args->seq->rx;
+			int ry = (args->seq->is_variable) ? args->seq->imgparam[image_index].ry : args->seq->ry;
+			compute_downscaled_mask_size(rx, ry, &scaled_rx, &scaled_ry, &fx, &fy);
+			rectangle maskscaled_area = { 0, (int)(fy * area.y), scaled_rx, (int)(fy * area.h)};
+			mask_scaled = malloc((size_t)(maskscaled_area.h * maskscaled_area.w * sizeof(float)));
+			if (read_mask_fits_area(maskfile, &maskscaled_area, scaled_ry, mask_scaled)) {
+				free(mask_scaled);
+#ifdef _OPENMP
+				int tid = omp_get_thread_num();
+				if (tid == 0)
+#endif
+					siril_log_color_message(_("Error reading one of the maks areas\n"), "red");
+				return ST_SEQUENCE_ERROR;
 			}
-			// we have set the maskbuffer to [0 || 255] values, now we compute the smoothing and set data->mask[frame]
-			cvSimpleBlendMask(naxes[0], my_block->height, bufferm, data->mask[frame], args->blend_dist);
-			free(bufferm);
+			float *mbuffer = data->mask[frame] + offset;
+			cvUpscaleBlendMask(maskscaled_area.w, maskscaled_area.h, rx, area.h, mask_scaled, mbuffer);
+			if (args->maximize_framing) {
+				rearrange_block_data(mbuffer, DATA_FLOAT, naxes[0], area.h, rx);
+			}
 			float distf = (float)args->blend_dist;
 			float invdistf = 1.f / distf;
+			size_t block_nb_pix = my_block->height * naxes[0];
 			for (size_t i = 0; i < block_nb_pix; i++) {
-				data->mask[frame][i] = min(data->mask[frame][i], distf) * invdistf;
+				if (data->mask[frame][i])
+					data->mask[frame][i] = min(data->mask[frame][i], distf) * invdistf;
 			}
 		}
 	}
@@ -1151,7 +1171,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	guint64 irej[3][2] = {{0,0}, {0,0}, {0,0}};
 	regdata *layerparam = NULL;
 
-	args->blend_dist = 100; // TODO: remove this, for debug purposes only
+	args->blend_dist = 500; // TODO: remove this, for debug purposes only
 	gboolean masking = (args->blend_dist > 0);
 
 	int nb_frames = args->nb_images_to_stack; // number of frames actually used
