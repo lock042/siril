@@ -175,6 +175,16 @@ static void update_prepro_preferences() {
 		com.pref.prepro.use_flat_lib = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_flat")));
 	}
 
+	if (com.pref.prepro.disto_lib) {
+		g_free(com.pref.prepro.disto_lib);
+		com.pref.prepro.disto_lib = NULL;
+	}
+	const gchar *distoentry = gtk_entry_get_text(GTK_ENTRY(lookup_widget("distolib_entry")));
+	if (distoentry) {
+		com.pref.prepro.disto_lib = g_strdup(distoentry);
+		com.pref.prepro.use_disto_lib = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_disto")));
+	}
+
 	if (com.pref.prepro.stack_default) {
 		g_free(com.pref.prepro.stack_default);
 		com.pref.prepro.stack_default = NULL;
@@ -359,6 +369,8 @@ static void update_performances_preferences() {
 	com.pref.fftw_conf.strategy = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_fftw_plan_strategy")));
 	com.pref.fftw_conf.multithreaded = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_fftw_multithreaded")));
 	com.pref.fftw_conf.fft_cutoff = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("pref_conv_min_fft")));
+	int max_slice_size = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_max_slice_size")));
+	com.pref.max_slice_size = max_slice_size == 0 ? -1 : 1 << (max_slice_size + 7);
 	int bitdepth = (int) gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_hd_bitdepth")));
 	com.pref.hd_bitdepth = bitdepth;
 }
@@ -681,22 +693,27 @@ void update_preferences_from_model() {
 
 	/* tab Pre-processing */
 	if (pref->prepro.bias_lib) {
-		gtk_entry_set_text(GTK_ENTRY(lookup_widget("biaslib_entry")),pref->prepro.bias_lib);
+		gtk_entry_set_text(GTK_ENTRY(lookup_widget("biaslib_entry")), pref->prepro.bias_lib);
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_bias")), pref->prepro.use_bias_lib);
 	}
 
 	if (pref->prepro.dark_lib) {
-		gtk_entry_set_text(GTK_ENTRY(lookup_widget("darklib_entry")),pref->prepro.dark_lib);
+		gtk_entry_set_text(GTK_ENTRY(lookup_widget("darklib_entry")), pref->prepro.dark_lib);
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_dark")), pref->prepro.use_dark_lib);
 	}
 
 	if (pref->prepro.flat_lib) {
-		gtk_entry_set_text(GTK_ENTRY(lookup_widget("flatlib_entry")),pref->prepro.flat_lib);
+		gtk_entry_set_text(GTK_ENTRY(lookup_widget("flatlib_entry")), pref->prepro.flat_lib);
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_flat")), pref->prepro.use_flat_lib);
 	}
 
+	if (pref->prepro.disto_lib) {
+		gtk_entry_set_text(GTK_ENTRY(lookup_widget("distolib_entry")), pref->prepro.disto_lib);
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_disto")), pref->prepro.use_disto_lib);
+	}
+
 	if (pref->prepro.stack_default) {
-		gtk_entry_set_text(GTK_ENTRY(lookup_widget("stack_default_entry")),pref->prepro.stack_default);
+		gtk_entry_set_text(GTK_ENTRY(lookup_widget("stack_default_entry")), pref->prepro.stack_default);
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_stack")), pref->prepro.use_stack_default);
 	} else {
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("check_button_pref_stack")), FALSE);
@@ -834,6 +851,15 @@ void update_preferences_from_model() {
 	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_fftw_plan_strategy")), pref->fftw_conf.strategy);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_fftw_multithreaded")), pref->fftw_conf.multithreaded);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(lookup_widget("pref_conv_min_fft")), pref->fftw_conf.fft_cutoff);
+	int n = pref->max_slice_size, max_slice_size = 0;
+	// Shift n to the right until it becomes 1
+	if (n > 0) {
+		while (n > 1) {
+			n >>= 1;
+			max_slice_size++;
+		}
+	}
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_max_slice_size")), pref->max_slice_size <= 0 ? 0 : max_slice_size - 7);
 
 	/* tab Miscellaneous */
 	initialize_path_directory(pref->swap_dir);

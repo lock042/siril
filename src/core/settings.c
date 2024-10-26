@@ -103,6 +103,8 @@ preferences pref_init = {
 		.use_dark_lib = FALSE,
 		.flat_lib = NULL,
 		.use_flat_lib = FALSE,
+		.disto_lib = NULL,
+		.use_disto_lib = FALSE,
 		.stack_default = NULL,
 		.use_stack_default = TRUE,
 	},
@@ -218,6 +220,7 @@ preferences pref_init = {
 		.wisdom_file = NULL,
 		.fft_cutoff = 15,
 	},
+	.max_slice_size = -1,
 	.fits_save_icc = TRUE,
 	.icc = {
 		.rendering_intent = INTENT_RELATIVE_COLORIMETRIC,
@@ -356,6 +359,7 @@ struct settings_access all_settings[] = {
 	{ "core", "fftw_conv_fft_cutoff", STYPE_INT, N_("Convolution minimum kernel size to use FFTW"), &com.pref.fftw_conf.fft_cutoff },
 	{ "core", "fftwf_strategy", STYPE_INT, N_("FFTW planning strategy"), &com.pref.fftw_conf.strategy },
 	{ "core", "fftw_multithreaded", STYPE_BOOL, N_("multithreaded FFTW"), &com.pref.fftw_conf.multithreaded },
+	{ "core", "max_slice_size", STYPE_INT, N_("Maximum slice size for automated slice processing"), &com.pref.max_slice_size, { .range_int = { 256, 32768 } } },
 
 	{ "starfinder", "focal_length", STYPE_DOUBLE, N_("focal length in mm for radius adjustment"), &com.pref.starfinder_conf.focal_length, { .range_double = { 0., 999999. } } },
 	{ "starfinder", "pixel_size", STYPE_DOUBLE, N_("pixel size in µm for radius adjustment"), &com.pref.starfinder_conf.pixel_size_x, { .range_double = { 0., 99. } } },
@@ -433,6 +437,8 @@ struct settings_access all_settings[] = {
 	{ "gui_prepro", "use_dark_lib", STYPE_BOOL, N_("use default master dark"), &com.pref.prepro.use_dark_lib },
 	{ "gui_prepro", "flat_lib", STYPE_STR, N_("default master flat"), &com.pref.prepro.flat_lib },
 	{ "gui_prepro", "use_flat_lib", STYPE_BOOL, N_("use default master flat"), &com.pref.prepro.use_flat_lib },
+	{ "gui_prepro", "disto_lib", STYPE_STR, N_("default distortion master"), &com.pref.prepro.disto_lib },
+	{ "gui_prepro", "use_disto_lib", STYPE_BOOL, N_("use default master distortion"), &com.pref.prepro.use_disto_lib },
 	{ "gui_prepro", "stack_default", STYPE_STR, N_("default stack name"), &com.pref.prepro.stack_default },
 	{ "gui_prepro", "use_stack_default", STYPE_BOOL, N_("use preferred stack name"), &com.pref.prepro.use_stack_default },
 

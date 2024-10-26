@@ -279,7 +279,7 @@
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="tooltip-text" translatable="yes">The power to which each result pixel will be raised.</property>
-                        <property name="text">1,000</property>
+                        <property name="text">1.000</property>
                         <property name="adjustment">adj_ccm_power</property>
                         <property name="digits">3</property>
                         <property name="value">1</property>

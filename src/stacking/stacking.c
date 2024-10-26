@@ -1293,10 +1293,11 @@ void compute_max_framing(struct stacking_args *args, int output_size[2], int off
 		xmax = (xmax < regdat[image_index].H.h02 * scale + rx) ? regdat[image_index].H.h02 * scale + rx : xmax;
 		ymax = (ymax < regdat[image_index].H.h12 * scale + ry) ? regdat[image_index].H.h12 * scale + ry : ymax;
 	}
-	output_size[0] = (int)(ceil(xmax) - floor(xmin));
-	output_size[1] = (int)(ceil(ymax) - floor(ymin));
-	offset[0] = floor(xmin);
-	offset[1] = -ceil(ymax); // the stack is done with origin at bottom left but the shifts are computed from top right
+	// using same formulas as in applyreg::compute_roi
+	output_size[0] = (int)xmax - (int)xmin + 1;
+	output_size[1] = (int)ymax - (int)ymin + 1;
+	offset[0] = (int)xmin;
+	offset[1] = -(int)ymax; // the stack is done with origin at bottom left but the shifts are computed from top right
 	siril_debug_print("new size: %d %d\n", output_size[0], output_size[1]);
 	siril_debug_print("new origin: %d %d\n", offset[0], offset[1]);
 }

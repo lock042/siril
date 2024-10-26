@@ -1795,10 +1795,15 @@ static void draw_regframe(const draw_data_t* dd) {
 	cairo_t *cr = dd->cr;
 	double size = 10. / dd->zoom;
 	cairo_set_dash(cr, NULL, 0, 0);
+	gboolean has_disto = seq_has_any_distortion(&com.seq);
 	if (max <= SHIFT_TRANSFORMATION)
 		cairo_set_source_rgb(cr, 0.0, 0.5, 1.0);
-	else
-		cairo_set_source_rgb(cr, 1., 0., 0.);
+	else {
+		if (has_disto)
+			cairo_set_source_rgb(cr, 0., 1., 0.5);
+		else
+			cairo_set_source_rgb(cr, 1., 0., 0.);
+	}
 
 	cairo_set_line_width(cr, 2.0 / dd->zoom);
 	// reference origin
@@ -2148,4 +2153,6 @@ void add_image_and_label_to_cairo(cairo_t *cr, int vport) {
 	draw_annotates(&dd);
 	/* analysis */
 	draw_analysis(&dd);
+	/* distortions */
+	draw_wcs_disto(&dd);
 }

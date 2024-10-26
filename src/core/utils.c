@@ -1363,6 +1363,30 @@ void remove_spaces_from_str(gchar *s) {
 }
 
 /**
+ * Checks if the given UTF-8 encoded string contains any whitespace characters.
+ * @param str The UTF-8 encoded string to check.
+ * @return TRUE if the string contains at least one whitespace character; FALSE otherwise.
+ */
+gboolean string_has_space(const gchar *str) {
+	if (str == NULL) {
+		return FALSE;
+	}
+
+	const gchar *p = str;
+
+	while (*p) {
+		gunichar c = g_utf8_get_char(p);
+		if (g_unichar_isspace(c)) {
+			return TRUE;
+		}
+		p = g_utf8_next_char(p);
+	}
+
+	return FALSE;
+}
+
+
+/**
  * Removing trailing carriage return and newline characters in-place
  * @param the string that will be modified, allocation unchanged
  */
@@ -1532,6 +1556,16 @@ void replace_spaces_from_str(gchar *s, gchar c) {
 			--d;
 		}
 	} while((*s++ = *d++));
+}
+
+void replace_char_from_str(gchar *s, gchar in, gchar out) {
+	gchar *d = s;
+	while (*d) {
+		if (*d == in) {
+			*d = out;
+		}
+		d++;
+	}
 }
 
 /**
@@ -1957,13 +1991,21 @@ const gchar* find_first_nonnumeric(const gchar *string) {
     return NULL;
 }
 
-/* useful for debugging, checking when an image buffer changes or differs between runs */
-/*uint32_t djb33_hash(const char* s, size_t len) {
-    uint32_t h = 5381;
-    while (len--) {
-        // h = 33 * h ^ s[i];
-        h += (h << 5);
-        h ^= *s++;
-    }
-    return h;
-}*/
+int count_pattern_occurence(const gchar *string, const gchar *pattern) {
+	GRegex *regex;
+	GMatchInfo *match_info;
+	int count = 0;
+
+	regex = g_regex_new(pattern, G_REGEX_RAW, 0, NULL);
+	g_regex_match(regex, string, 0, &match_info);
+	
+	// Loop through the matches
+	while (g_match_info_matches(match_info)) {
+		count++;
+		g_match_info_next(match_info, NULL);
+	}
+
+	g_match_info_free(match_info);
+	g_regex_unref(regex);
+	return count;
+}

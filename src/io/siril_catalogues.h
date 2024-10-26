@@ -172,6 +172,7 @@ typedef struct {
 	//gboolean add_to_user; // if true, the objects are added to the user DSO catalogue (not SSO due to imprecision of obscode)
 	gboolean has_GUI; // true if we will need to refresh the display
 	gchar *outfilename; // the name of the outputfile
+	gboolean compare;
 } conesearch_args;
 
 typedef struct {
@@ -184,6 +185,7 @@ typedef struct {
 	gboolean default_obscode_used;
 	int trixel;
 	gchar *outfilename;
+	gboolean compare;
 } conesearch_params;
 
 typedef struct {

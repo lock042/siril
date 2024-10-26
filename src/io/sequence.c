@@ -487,6 +487,7 @@ int seq_check_basic_data(sequence *seq, gboolean load_ref_into_gfit) {
 				clearfits(fit);
 				return 1;
 			}
+			seq->distoparam = calloc(seq->nb_layers, sizeof(disto_params));
 		}
 		seq->needs_saving = TRUE;
 
@@ -1301,6 +1302,9 @@ void free_sequence(sequence *seq, gboolean free_seq_too) {
 		}
 		free(seq->regparam);
 	}
+	if (seq->distoparam) {
+		g_free(seq->distoparam->filename);
+	}
 	// free stats
 	if (seq->nb_layers > 0 && seq->stats) {
 		for (layer = 0; layer < seq->nb_layers; layer++) {
@@ -1540,6 +1544,7 @@ void check_or_allocate_regparam(sequence *seq, int layer) {
 	assert(layer < seq->nb_layers);
 	if (!seq->regparam && seq->nb_layers > 0) {
 		seq->regparam = calloc(seq->nb_layers, sizeof(regdata*));
+		seq->distoparam = calloc(seq->nb_layers, sizeof(disto_params));
 	}
 	if (seq->regparam && !seq->regparam[layer] && seq->number > 0) {
 		seq->regparam[layer] = calloc(seq->number, sizeof(regdata));
@@ -1556,11 +1561,15 @@ void set_shifts(sequence *seq, int frame, int layer, double shiftx, double shift
 				data_is_top_down ? -shifty : shifty);
 	}
 }
-/* cum shift values for registration data of a sequence, depending on its type and sign */
-void cum_shifts(sequence *seq, int frame, int layer, double shiftx, double shifty, gboolean data_is_top_down) {
-	if (seq->regparam[layer]) {
-		seq->regparam[layer][frame].H = H_from_translation(shiftx + seq->regparam[layer][frame].H.h02,
-				(data_is_top_down ? -shifty : shifty) - seq->regparam[layer][frame].H.h12);
+
+void cum_shifts(regdata *regparam, int frame, double shiftx, double shifty) {
+	if (regparam) {
+		Homography Hshift = { 0 }, res = { 0 };
+		cvGetEye(&Hshift);
+		Hshift.h02 = shiftx;
+		Hshift.h12 = shifty;
+		cvMultH(Hshift, regparam[frame].H, &res);
+		regparam[frame].H = res;
 	}
 }
 
@@ -2044,7 +2053,6 @@ void free_reference_image() {
 static int compute_nb_images_fit_memory_from_dimensions(int rx, int ry, int nb_layers, data_type type, double factor, gboolean force_float, unsigned int *MB_per_orig_image, unsigned int *MB_per_scaled_image, unsigned int *max_mem_MB) {
 	int max_memory_MB = get_max_memory_in_MB();
 
-	factor = max(factor, 1.0);
 	if (factor > 3.0) {
 		siril_debug_print("Info: image scaling is very large! (> 3.0)\n");
 	}
@@ -2061,7 +2069,7 @@ static int compute_nb_images_fit_memory_from_dimensions(int rx, int ry, int nb_l
 	}
 	unsigned int memory_per_orig_image_MB = memory_per_orig_image / BYTES_IN_A_MB;
 	unsigned int memory_per_scaled_image_MB = memory_per_scaled_image / BYTES_IN_A_MB;
-	if (memory_per_scaled_image_MB == 0)
+	if (memory_per_scaled_image_MB == 0) // in theory we should only do this if factor > 0. But just case we make a division by memory_per_scaled_image_MB... we'll keep this here for now
 		memory_per_scaled_image_MB = 1;
 	if (memory_per_orig_image_MB == 0)
 		memory_per_orig_image_MB = 1;
@@ -2112,6 +2120,26 @@ gboolean sequence_ref_has_wcs(sequence *seq) {
 	return ret;
 }
 
+struct wcsprm *get_wcs_ref(sequence *seq) {
+	if (!seq)
+		return NULL;
+	struct wcsprm *wcsref = NULL;
+	int refimage = sequence_find_refimage(seq);
+	if (check_seq_is_comseq(seq) && seq->current == refimage && has_wcs(&gfit)) { // we are in GUI
+		wcsref = wcs_deepcopy(gfit.keywords.wcslib, NULL);
+	} else { // we are in GUI with another image loaded or we are in script or headless, loading the seq has loaded the ref image, we check if it has wcs info
+		fits ref = { 0 };
+		if (seq_read_frame_metadata(seq, refimage, &ref)) {
+			siril_log_message(_("Could not load reference image\n"));
+			return FALSE;
+		}
+		if (has_wcs(&ref))
+			wcsref = wcs_deepcopy(ref.keywords.wcslib, NULL);
+		clearfits(&ref);
+	}
+	return wcsref;
+}
+
 gboolean sequence_drifts(sequence *seq, int reglayer, int threshold) {
 	if (!seq->regparam || !seq->regparam[reglayer]) {
 		siril_log_message(_("Sequence drift could not be checked as sequence has no regdata on layer %d\n"), reglayer);
@@ -2143,7 +2171,7 @@ void clean_sequence(sequence *seq, gboolean cleanreg, gboolean cleanstat, gboole
 				siril_log_message(_("Registration data cleared for layer %d\n"), i);
 			}
 		}
-		remove_prefixed_star_files(seq, "");
+		// remove_prefixed_star_files(seq, "");
 	}
 	if (cleanreg && seq->regparam_bkp) {
 		for (int i = 0; i < seq->nb_layers; i++) {

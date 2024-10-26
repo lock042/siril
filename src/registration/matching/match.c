@@ -416,8 +416,9 @@ int new_star_match(psf_star **s1, psf_star **s2, int n1, int n2, int nobj_overri
 			/** */
 			return (SH_GENERIC_ERROR);
 		}
-
+#ifdef DEBUG
 		print_H(Hom);
+#endif
 		*H = *Hom;
 	} else {
 		*t = *trans;
