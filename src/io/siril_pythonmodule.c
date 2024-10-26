@@ -602,7 +602,7 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 
 // Handle a request for pixel data. We record the allocated SHM
 // but leave clearup for another command
-gboolean handle_pixeldata_request(Connection *conn, rectangle region) {
+gboolean handle_pixeldata_request(Connection *conn, fits *fit, rectangle region) {
 	if (!single_image_is_loaded()) {
 		const char* error_msg = "Failed to retrieve pixel data - no image loaded";
 		return send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
@@ -610,12 +610,12 @@ gboolean handle_pixeldata_request(Connection *conn, rectangle region) {
 
 	// Calculate total size of pixel data
 	size_t total_bytes, row_bytes;
-	if (gfit.type == DATA_FLOAT) {
+	if (fit->type == DATA_FLOAT) {
 		row_bytes = region.w * sizeof(float);
-		total_bytes = row_bytes * gfit.naxes[2] * region.h;
+		total_bytes = row_bytes * fit->naxes[2] * region.h;
 	} else {
 		row_bytes = region.w * sizeof(WORD);
-		total_bytes = row_bytes * gfit.naxes[2] * region.h;
+		total_bytes = row_bytes * fit->naxes[2] * region.h;
 	}
 
 	// Generate unique name for shared memory and allocate it
@@ -635,17 +635,17 @@ gboolean handle_pixeldata_request(Connection *conn, rectangle region) {
 	// Copy data from gfit to shared memory
 	size_t index = 0;
 	int top = region.y + region.h;
-	if (gfit.type == DATA_FLOAT) {
-		for (int chan = 0 ; chan < gfit.naxes[2] ; chan++) {
+	if (fit->type == DATA_FLOAT) {
+		for (int chan = 0 ; chan < fit->naxes[2] ; chan++) {
 			for (int i = region.y ; i < top ; i++) {
-				memcpy((char*)shm_ptr + index, gfit.fpdata[chan] + (i * gfit.rx + region.x), region.w * sizeof(float));
+				memcpy((char*)shm_ptr + index, fit->fpdata[chan] + (i * fit->rx + region.x), region.w * sizeof(float));
 				index += row_bytes;
 			}
 		}
 	} else {
-		for (int chan = 0 ; chan < gfit.naxes[2] ; chan++) {
+		for (int chan = 0 ; chan < fit->naxes[2] ; chan++) {
 			for (int i = region.y ; i < top ; i++) {
-				memcpy((char*)shm_ptr + index, gfit.pdata[chan] + (i * gfit.rx + region.x), region.w * sizeof(WORD));
+				memcpy((char*)shm_ptr + index, fit->pdata[chan] + (i * fit->rx + region.x), region.w * sizeof(WORD));
 				index += row_bytes;
 			}
 		}
@@ -661,10 +661,10 @@ gboolean handle_pixeldata_request(Connection *conn, rectangle region) {
 	// Prepare shared memory info structure
 	shared_memory_info_t info = {
 		.size = total_bytes,
-		.data_type = (gfit.type == DATA_FLOAT) ? 1 : 0,
+		.data_type = (fit->type == DATA_FLOAT) ? 1 : 0,
 		.width = region.w,
 		.height = region.h,
-		.channels = gfit.naxes[2]
+		.channels = fit->naxes[2]
 	};
 	strncpy(info.shm_name, shm_name, sizeof(info.shm_name) - 1);
 
@@ -718,7 +718,7 @@ gboolean handle_rawdata_request(Connection *conn, void* data, size_t total_bytes
 	return send_response(conn->channel, STATUS_OK, (const char*)&info, sizeof(info));
 }
 
-gboolean handle_set_pixeldata_request(Connection *conn, const char* payload, size_t payload_length) {
+gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* payload, size_t payload_length) {
 	if (!single_image_is_loaded()) {
 		const char* error_msg = "No image loaded: set_pixel_data() can only be used to update a loaded image, not to create a new one";
 		return send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
@@ -774,28 +774,28 @@ gboolean handle_set_pixeldata_request(Connection *conn, const char* payload, siz
 	#endif
 
 	// Allocate new image buffer
-	gfit.type = DATA_UNSUPPORTED; // prevents a potential crash in on_drawingarea_motion_notify_event while we are messing with gfit
-	free(gfit.data);
-	free(gfit.fdata);
-	gfit.pdata[2] = gfit.pdata[1] = gfit.pdata[0] = gfit.data = NULL;
-	gfit.fpdata[2] = gfit.fpdata[1] = gfit.fpdata[0] = gfit.fdata = NULL;
+	fit->type = DATA_UNSUPPORTED; // prevents a potential crash in on_drawingarea_motion_notify_event while we are messing with gfit
+	free(fit->data);
+	free(fit->fdata);
+	fit->pdata[2] = fit->pdata[1] = fit->pdata[0] = fit->data = NULL;
+	fit->fpdata[2] = fit->fpdata[1] = fit->fpdata[0] = fit->fdata = NULL;
 	gboolean alloc_err = FALSE;
 	if (info->data_type == 0) {
-		gfit.pdata[2] = gfit.pdata[1] = gfit.pdata[0] = gfit.data = calloc(info->width * info->height * info->channels, sizeof(WORD));
-		if (!gfit.data) {
+		fit->pdata[2] = fit->pdata[1] = fit->pdata[0] = fit->data = calloc(info->width * info->height * info->channels, sizeof(WORD));
+		if (!fit->data) {
 			alloc_err = TRUE;
 		} else {
 			for (int i = 0 ; i < info->channels ; i++) {
-				gfit.pdata[i] = gfit.data + i * info->width * info->height;
+				fit->pdata[i] = fit->data + i * info->width * info->height;
 			}
 		}
 	} else {
-		gfit.fpdata[2] = gfit.fpdata[1] = gfit.fpdata[0] = gfit.fdata = calloc(info->width * info->height * info->channels, sizeof(float));
-		if (!gfit.fdata) {
+		fit->fpdata[2] = fit->fpdata[1] = fit->fpdata[0] = fit->fdata = calloc(info->width * info->height * info->channels, sizeof(float));
+		if (!fit->fdata) {
 			alloc_err = TRUE;
 		} else {
 			for (int i = 0 ; i < info->channels ; i++) {
-				gfit.fpdata[i] = gfit.fdata + i * info->width * info->height;
+				fit->fpdata[i] = fit->fdata + i * info->width * info->height;
 			}
 		}
 	}
@@ -815,16 +815,16 @@ gboolean handle_set_pixeldata_request(Connection *conn, const char* payload, siz
 	size_t total_bytes = info->width * info->height * info->channels * (info->data_type == 1 ? sizeof(float) : sizeof(WORD));
 
 	if (info->data_type == 1) {  // float data
-		memcpy(gfit.fdata, (char*) shm_ptr, total_bytes);
+		memcpy(fit->fdata, (char*) shm_ptr, total_bytes);
 	} else {  // WORD data
-		memcpy(gfit.data, (char*) shm_ptr, total_bytes);
+		memcpy(fit->data, (char*) shm_ptr, total_bytes);
 	}
 
 	// Update gfit metadata
-	gfit.type = info->data_type ? DATA_FLOAT : DATA_USHORT;
-	gfit.rx = gfit.naxes[0] = info->width;
-	gfit.ry = gfit.naxes[1] = info->height;
-	gfit.naxes[2] = info->channels;
+	fit->type = info->data_type ? DATA_FLOAT : DATA_USHORT;
+	fit->rx = fit->naxes[0] = info->width;
+	fit->ry = fit->naxes[1] = info->height;
+	fit->naxes[2] = info->channels;
 
 	notify_gfit_modified();
 

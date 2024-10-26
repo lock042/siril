@@ -11,23 +11,31 @@ typedef enum {
 
 // Command definitions matching Python side
 typedef enum {
+	CMD_SEND_COMMAND = 5,
+	CMD_LOG_MESSAGE = 6,
+	CMD_UPDATE_PROGRESS = 11,
+	CMD_GET_WORKING_DIRECTORY = 7,
+	CMD_GET_FILENAME = 8,
 	CMD_GET_DIMENSIONS = 1,
 	CMD_GET_PIXELDATA = 2,
 	CMD_GET_PIXELDATA_REGION = 3,
 	CMD_RELEASE_SHM = 4,
-	CMD_SEND_COMMAND = 5,
-	CMD_LOG_MESSAGE = 6,
-	CMD_GET_WORKING_DIRECTORY = 7,
-	CMD_GET_FILENAME = 8,
 	CMD_SET_PIXELDATA = 9,
 	CMD_GET_IMAGE_STATS = 10,
-	CMD_UPDATE_PROGRESS = 11,
 	CMD_GET_KEYWORDS = 12,
-	CMD_GET_IMAGE = 13,
 	CMD_GET_ICC_PROFILE = 14,
 	CMD_GET_FITS_HEADER = 15,
 	CMD_GET_FITS_HISTORY = 16,
 	CMD_GET_FITS_UNKNOWN_KEYS = 17,
+	CMD_GET_IMAGE = 13,
+	CMD_GET_SEQ_STATS = 19,
+	CMD_GET_PSFSTAR = 26,
+	CMD_GET_SEQ_REGDATA = 20,
+	CMD_GET_SEQ_IMGDATA = 21,
+	CMD_GET_SEQ_PIXELDATA = 23,
+	CMD_GET_SEQ_IMAGE = 22,
+	CMD_GET_SEQ = 18,
+
 	CMD_ERROR = 0xFF
 } CommandType;
 
@@ -79,8 +87,8 @@ gpointer open_python_channel(gpointer user_data);
 int release_python_channel();
 void execute_python_script_async(gchar* script_name, gboolean from_file);
 gboolean send_response(GIOChannel* channel, uint8_t status, const void* data, uint32_t length);
-gboolean handle_pixeldata_request(Connection *conn, rectangle region);
-gboolean handle_set_pixeldata_request(Connection *conn, const char* payload, size_t payload_length);
+gboolean handle_pixeldata_request(Connection *conn, fits *fit, rectangle region);
+gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* payload, size_t payload_length);
 gboolean handle_rawdata_request(Connection *conn, void* data, size_t total_bytes);
 gboolean cleanup_shm_by_name(const char *shm_name);
 #endif

@@ -94,7 +94,7 @@ class FKeywords:
     binning_y: int = 1
     row_order: str = ""
 
-    # DateTime fields
+    # Date / time fields
     date: Optional[datetime] = None
     date_obs: Optional[datetime] = None
     expstart: float = 0.0
@@ -318,10 +318,10 @@ class FKeywords:
         self.fhi = value
 
     def set_program(self, value: str) -> None:
-        self.program = value
+        self.program = value[:70]
 
     def set_filename(self, value: str) -> None:
-        self.filename = value
+        self.filename = value[:70]
 
     def set_data_max(self, value: float) -> None:
         self.data_max = value
@@ -354,7 +354,7 @@ class FKeywords:
             raise ValueError("binning_y must be greater than or equal to 1")
 
     def set_row_order(self, value: str) -> None:
-        self.row_order = value
+        self.row_order = value[:70]
 
     def set_date(self, value: Optional[datetime]) -> None:
         self.date = value
@@ -369,22 +369,22 @@ class FKeywords:
         self.expend = value
 
     def set_filter(self, value: str) -> None:
-        self.filter = value
+        self.filter = value[:70]
 
     def set_image_type(self, value: str) -> None:
-        self.image_type = value
+        self.image_type = value[:70]
 
     def set_object(self, value: str) -> None:
-        self.object = value
+        self.object = value[:70]
 
     def set_instrume(self, value: str) -> None:
-        self.instrume = value
+        self.instrume = value[:70]
 
     def set_telescop(self, value: str) -> None:
-        self.telescop = value
+        self.telescop = value[:70]
 
     def set_observer(self, value: str) -> None:
-        self.observer = value
+        self.observer = value[:70]
 
     def set_centalt(self, value: float) -> None:
         if value <= 90:
@@ -411,16 +411,16 @@ class FKeywords:
             raise ValueError("sitelong must be between 0 and 360 degrees (exclusive)")
 
     def set_sitelat_str(self, value: str) -> None:
-        self.sitelat_str = value
+        self.sitelat_str = value[:70]
 
     def set_sitelong_str(self, value: str) -> None:
-        self.sitelong_str = value
+        self.sitelong_str = value[:70]
 
     def set_siteelev(self, value: float) -> None:
         self.siteelev = value
 
     def set_bayer_pattern(self, value: str) -> None:
-        self.bayer_pattern = value
+        self.bayer_pattern = value[:70]
 
     def set_bayer_xoffset(self, value: int) -> None:
         self.bayer_xoffset = value
@@ -471,7 +471,7 @@ class FKeywords:
         self.key_offset = value
 
     def set_focname(self, value: str) -> None:
-        self.focname = value
+        self.focname = value[:70]
 
     def set_focuspos(self, value: int) -> None:
         self.focuspos = value
@@ -628,3 +628,145 @@ class FFit:
             stats.avgDev = float(np.mean(deviations))
 
             self.stats[i] = stats
+
+@dataclass
+class Homography:
+    """Python equivalent of Siril Homography structure"""
+    h00: float = 0.0
+    h01: float = 0.0
+    h02: float = 0.0
+    h10: float = 0.0
+    h11: float = 0.0
+    h12: float = 0.0
+    h20: float = 0.0
+    h21: float = 0.0
+    h22: float = 0.0
+    pair_matched: int = 0
+    Inliers: int = 0
+
+class StarProfile(Enum):
+    """Placeholder for starprofile enum"""
+    # Note: Add actual values based on Siril's starprofile definition
+    GAUSSIAN = auto()
+    MOFFAT = auto()
+    MOFFAT_FIXED = auto()
+
+@dataclass
+class PSFStar:
+    """Python equivalent of Siril fwhm_struct structure"""
+    star_name: Optional[str] = None
+    B: float = 0.0              # average sky background value
+    A: float = 0.0              # amplitude
+    x0: float = 0.0            # coordinates of the peak
+    y0: float = 0.0
+    sx: float = 0.0            # Size of the fitted function on the x and y axis in PSF coordinates
+    sy: float = 0.0
+    fwhmx: float = 0.0         # FWHM in x and y axis
+    fwhmy: float = 0.0
+    fwhmx_arcsec: float = 0.0  # FWHM in x and y axis in arc second
+    fwhmy_arcsec: float = 0.0
+    angle: float = 0.0         # angle of the axis x,y with respect to the image's
+    rmse: float = 0.0          # RMSE of the minimization
+    sat: float = 0.0           # Level above which pixels have satured
+    R: int = 0                 # Optimized box size to enclose sufficient pixels in the background
+    has_saturated: bool = False
+
+    # Moffat parameters
+    beta: float = 0.0          # Moffat equation beta parameter
+    profile: StarProfile = StarProfile.GAUSSIAN  # Whether profile is Gaussian or Moffat
+
+    xpos: float = 0.0          # position of the star in the image
+    ypos: float = 0.0
+
+    # photometry data
+    mag: float = 0.0           # (V)magnitude, approximate or accurate
+    Bmag: float = 0.0          # B magnitude
+    s_mag: float = 999.99      # error on the (V)magnitude
+    s_Bmag: float = 999.99     # error on the B magnitude
+    SNR: float = 0.0           # SNR of the star
+    BV: float = 0.0            # only used to pass data in photometric color calibration
+
+    # uncertainties
+    B_err: float = 0.0
+    A_err: float = 0.0
+    x_err: float = 0.0
+    y_err: float = 0.0
+    sx_err: float = 0.0
+    sy_err: float = 0.0
+    ang_err: float = 0.0
+    beta_err: float = 0.0
+
+    layer: int = 0
+    units: Optional[str] = None
+    ra: float = 0.0            # Right Ascension
+    dec: float = 0.0           # Declination
+
+@dataclass
+class RegData:
+    """Python equivalent of Siril regdata structure"""
+    fwhm: float = 0.0                    # copy of fwhm->fwhmx, used as quality indicator
+    weighted_fwhm: float = 0.0           # used to exclude spurious images
+    roundness: float = 0.0               # fwhm->fwhmy / fwhm->fwhmx, 0 when uninit, ]0, 1] when set
+    quality: float = 0.0
+    background_lvl: float = 0.0
+    number_of_stars: int = 0
+    H: Homography = Homography()
+
+@dataclass
+class ImgData:
+    """Python equivalent of Siril imgdata structure"""
+    filenum: int = 0              # real file index in the sequence
+    incl: bool = False           # selected in the sequence
+    date_obs: Optional[datetime] = None  # date of the observation
+    airmass: float = 0.0         # airmass of the image
+    rx: int = 0
+    ry: int = 0
+
+@dataclass
+class Sequence:
+    """Python equivalent of Siril sequ structure"""
+    seqname: str = ""                    # name of the sequence
+    number: int = 0                      # number of images in the sequence
+    selnum: int = 0                      # number of selected images
+    fixed: int = 0                       # fixed length of image index in filename
+    nb_layers: int = -1                  # number of layers embedded in each image file
+    rx: int = 0                          # first image width
+    ry: int = 0                          # first image height
+    is_variable: bool = False            # sequence has images of different sizes
+    bitpix: int = 0                      # image pixel format, from fits
+    reference_image: int = 0             # reference image for registration
+    imgparam: List[ImgData] = None       # a structure for each image of the sequence
+    regparam: List[List[RegData]] = None # registration parameters for each layer
+    stats: List[List[List[ImageStats]]] = None  # statistics of the images for each layer
+    beg: int = 0                         # imgparam[0]->filenum
+    end: int = 0                         # imgparam[number-1]->filenum
+    exposure: float = 0.0                # exposure of frames
+    fz: bool = False
+    type: SequenceType = None
+    cfa_opened_monochrome: bool = False  # CFA SER opened in monochrome mode
+    current: int = 0                     # file number currently loaded
+    photometry: List[List[PSFStar]] = None  # psf for multiple stars
+    reference_star: int = 0              # reference star for apparent magnitude
+    reference_mag: float = 0.0           # reference magnitude for reference star
+    photometry_colors: List[List[float]] = None  # colors for each photometry curve
+
+    def __post_init__(self):
+        """Initialize lists that were set to None by default"""
+        if self.imgparam is None:
+            self.imgparam = []
+        if self.regparam is None:
+            self.regparam = []
+        if self.stats is None:
+            self.stats = []
+        if self.previewX is None:
+            self.previewX = [-1] * 2  # PREVIEW_NB = 2
+        if self.previewY is None:
+            self.previewY = [-1] * 2
+        if self.previewW is None:
+            self.previewW = [0] * 2
+        if self.previewH is None:
+            self.previewH = [0] * 2
+        if self.photometry is None:
+            self.photometry = []
+        if self.photometry_colors is None:
+            self.photometry_colors = [[0.0, 0.0, 0.0] for _ in range(20)]  # MAX_SEQPSF = 20

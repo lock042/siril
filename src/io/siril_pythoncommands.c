@@ -1,38 +1,39 @@
 #include "core/siril.h"
+#include "algos/PSF.h"
 #include "algos/statistics.h"
 #include "core/command_line_processor.h"
 #include "core/icc_profile.h"
 #include "core/siril_log.h"
 #include "gui/progress_and_log.h"
 #include "io/single_image.h"
+#include "io/sequence.h"
+#include "io/image_format_fits.h"
 #include "io/siril_pythonmodule.h"
 #include "siril_pythonmodule.h"
+
+// Helper macros
+#define COPY_STRING(str) \
+	{ \
+		memset(ptr, 0, FLEN_VALUE); \
+		strncpy((char*)ptr, str, FLEN_VALUE - 1); \
+		ptr += FLEN_VALUE; \
+	}
+
+#define COPY_BE(val, type) \
+	{ \
+		union { type v; uint64_t i; } conv; \
+		conv.v = val; \
+		uint64_t be = GUINT64_TO_BE(conv.i); \
+		memcpy(ptr, &be, sizeof(type)); \
+		ptr += sizeof(type); \
+	}
 
 static int keywords_to_py(fits *fit, unsigned char *ptr) {
 	if (!fit || !ptr)
 		return 1;
-
-	// Helper macros
-	#define COPY_STRING(str) \
-		{ \
-			memset(ptr, 0, FLEN_VALUE); \
-			strncpy((char*)ptr, str, FLEN_VALUE - 1); \
-			ptr += FLEN_VALUE; \
-		}
-
-	#define COPY_BE(val, type) \
-		{ \
-			union { type v; uint64_t i; } conv; \
-			conv.v = val; \
-			uint64_t be = GUINT64_TO_BE(conv.i); \
-			memcpy(ptr, &be, sizeof(type)); \
-			ptr += sizeof(type); \
-		}
-
 	// Convert GDateTime to Unix timestamp
 	int64_t date_ts = fit->keywords.date ? g_date_time_to_unix(fit->keywords.date) : 0;
 	int64_t date_obs_ts = fit->keywords.date_obs ? g_date_time_to_unix(fit->keywords.date_obs) : 0;
-
 	// Copy string fields
 	COPY_STRING(fit->keywords.program);
 	COPY_STRING(fit->keywords.filename);
@@ -90,23 +91,12 @@ static int keywords_to_py(fits *fit, unsigned char *ptr) {
 	COPY_BE(fit->keywords.foctemp, double);
 	COPY_BE(date_ts, int64_t);
 	COPY_BE(date_obs_ts, int64_t);
-
-	#undef COPY_STRING
-	#undef COPY_BE
 	return 0;
 }
 
 static int fits_to_py(fits *fit, unsigned char *ptr) {
-	// Helper macro
-	#define COPY_BE(val, type) \
-		{ \
-			union { type v; uint64_t i; } conv; \
-			conv.v = val; \
-			uint64_t be = GUINT64_TO_BE(conv.i); \
-			memcpy(ptr, &be, sizeof(type)); \
-			ptr += sizeof(type); \
-		}
-
+	if (!fit || !ptr)
+		return 1;
 	// Copy numeric values with proper byte order conversion. All
 	// types shorter than 64bit are converted to 64bit types before
 	// endianness conversion and transmission, to simplify the data
@@ -121,8 +111,141 @@ static int fits_to_py(fits *fit, unsigned char *ptr) {
 	COPY_BE((uint64_t) fit->focalkey, uint64_t);
 	COPY_BE((uint64_t) fit->pixelkey, uint64_t);
 	COPY_BE((uint64_t) fit->color_managed, uint64_t);
+	return 0;
+}
 
-	#undef COPY_BE
+static int homography_to_py(const Homography* H, unsigned char *ptr) {
+	if (!H || !ptr)
+		return 1;
+	COPY_BE((double) H->h00, double);
+	COPY_BE((double) H->h01, double);
+	COPY_BE((double) H->h02, double);
+	COPY_BE((double) H->h10, double);
+	COPY_BE((double) H->h11, double);
+	COPY_BE((double) H->h12, double);
+	COPY_BE((double) H->h20, double);
+	COPY_BE((double) H->h21, double);
+	COPY_BE((double) H->h22, double);
+	COPY_BE((int64_t) H->pair_matched, int64_t);
+	COPY_BE((int64_t) H->Inliers, int64_t);
+	return 0;
+}
+
+static int regdata_to_py(const regdata *regparam, unsigned char *ptr) {
+	if (!regparam || !ptr)
+		return 1;
+	COPY_BE((double) regparam->fwhm, double);
+	COPY_BE((double) regparam->weighted_fwhm, double);
+	COPY_BE((double) regparam->roundness, double);
+	COPY_BE(regparam->quality, double);
+	COPY_BE((double) regparam->background_lvl, double);
+	COPY_BE((int64_t) regparam->number_of_stars, int64_t);
+	homography_to_py(&regparam->H, ptr);
+	return 0;
+}
+
+static int imgdata_to_py(const imgdata *imgparam, unsigned char* ptr) {
+	if (!imgparam || !ptr)
+		return 1;
+	int64_t date_obs_ts = imgparam->date_obs ? g_date_time_to_unix(imgparam->date_obs) : 0;
+	COPY_BE((int64_t) imgparam->filenum, int64_t);
+	COPY_BE((int64_t) imgparam->incl, int64_t);
+	COPY_BE((int64_t) date_obs_ts, int64_t);
+	COPY_BE((double) imgparam->airmass, double);
+	COPY_BE((int64_t) imgparam->rx, int64_t);
+	COPY_BE((int64_t) imgparam->ry, int64_t);
+	return 0;
+}
+
+static int psfstar_to_py(const psf_star *data, unsigned char* ptr) {
+	if (!data || !ptr)
+		return 1;
+	COPY_STRING(data->star_name);
+	COPY_BE(data->B, double);
+	COPY_BE(data->A, double);
+	COPY_BE(data->x0, double);
+	COPY_BE(data->y0, double);
+	COPY_BE(data->sx, double);
+	COPY_BE(data->sy, double);
+	COPY_BE(data->fwhmx, double);
+	COPY_BE(data->fwhmy, double);
+	COPY_BE(data->fwhmx_arcsec, double);
+	COPY_BE(data->fwhmy_arcsec, double);
+	COPY_BE(data->angle, double);
+	COPY_BE(data->rmse, double);
+	COPY_BE(data->sat, double);
+	COPY_BE((int64_t) data->R, int64_t);
+	COPY_BE((int64_t) data->has_saturated, int64_t);
+	COPY_BE(data->beta, double);
+	COPY_BE((int64_t) data->profile, int64_t);
+	COPY_BE(data->xpos, double);
+	COPY_BE(data->ypos, double);
+	COPY_BE(data->mag, double);
+	COPY_BE(data->Bmag, double);
+	COPY_BE(data->s_mag, double);
+	COPY_BE(data->s_Bmag, double);
+	COPY_BE(data->SNR, double);
+	// photometry *phot not currently passed to python
+	// gboolean phot_is_valid not currently passed to python
+	COPY_BE(data->BV, double);
+	COPY_BE(data->B_err, double);
+	COPY_BE(data->A_err, double);
+	COPY_BE(data->x_err, double);
+	COPY_BE(data->y_err, double);
+	COPY_BE(data->sx_err, double);
+	COPY_BE(data->sy_err, double);
+	COPY_BE(data->ang_err, double);
+	COPY_BE(data->beta_err, double);
+	COPY_BE((int64_t) data->layer, int64_t);
+	COPY_STRING(data->units);
+	COPY_BE(data->ra, double);
+	COPY_BE(data->dec, double);
+	return 0;
+}
+
+static int seq_to_py(const sequence *seq, unsigned char* ptr) {
+	if (!seq || !ptr)
+		return 1;
+	COPY_STRING(seq->seqname);
+	COPY_BE((int64_t) seq->number, int64_t);
+	COPY_BE((int64_t) seq->selnum, int64_t);
+	COPY_BE((int64_t) seq->fixed, int64_t);
+	COPY_BE((int64_t) seq->nb_layers, int64_t);
+	COPY_BE((uint64_t) seq->rx, uint64_t);
+	COPY_BE((uint64_t) seq->ry, uint64_t);
+	COPY_BE((uint64_t) seq->is_variable, uint64_t);
+	COPY_BE((int64_t) seq->bitpix, int64_t);
+	COPY_BE((int64_t) seq->reference_image, int64_t);
+	COPY_BE((int64_t) seq->beg, int64_t);
+	COPY_BE((int64_t) seq->end, int64_t);
+	COPY_BE(seq->exposure, double);
+	COPY_BE((uint64_t) seq->fz, uint64_t);
+	COPY_BE((int64_t) seq->type, int64_t);
+	COPY_BE((uint64_t) seq->cfa_opened_monochrome, uint64_t);
+	COPY_BE((int64_t) seq->current, int64_t);
+	// Registration preview coords are not passed to python
+	// The dirty and invalid reg flags are not passed to python
+	// The photometry data is not currently passed to python
+	return 0;
+}
+
+static int imstats_to_py(const imstats *stats, unsigned char* ptr) {
+	if (!stats || !ptr)
+		return 1;
+	COPY_BE(stats->total, int64_t);
+	COPY_BE(stats->ngoodpix, int64_t);
+	COPY_BE(stats->mean, double);
+	COPY_BE(stats->median, double);
+	COPY_BE(stats->sigma, double);
+	COPY_BE(stats->avgDev, double);
+	COPY_BE(stats->mad, double);
+	COPY_BE(stats->sqrtbwmv, double);
+	COPY_BE(stats->location, double);
+	COPY_BE(stats->scale, double);
+	COPY_BE(stats->min, double);
+	COPY_BE(stats->max, double);
+	COPY_BE(stats->normValue, double);
+	COPY_BE(stats->bgnoise, double);
 	return 0;
 }
 
@@ -181,7 +304,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 		case CMD_GET_PIXELDATA: {
 			rectangle region = {0, 0, gfit.rx, gfit.ry};
-			success = handle_pixeldata_request(conn, region);
+			success = handle_pixeldata_request(conn, &gfit, region);
 			break;
 		}
 
@@ -192,7 +315,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 									GUINT32_FROM_BE(region_BE.y),
 									GUINT32_FROM_BE(region_BE.w),
 									GUINT32_FROM_BE(region_BE.h)};
-				success = handle_pixeldata_request(conn, region);
+				success = handle_pixeldata_request(conn, &gfit, region);
 			} else {
 				g_warning("Unexpected payload length %u received for GET_PIXELDATA_REGION", payload_length);
 			}
@@ -267,7 +390,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				const char* error_msg = "Invalid payload length";
 				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
-				success = handle_set_pixeldata_request(conn, payload, payload_length);
+				success = handle_set_pixeldata_request(conn, &gfit, payload, payload_length);
 			}
 			break;
 		}
@@ -291,66 +414,38 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				break;
 			}
 
+			fits *fit = &gfit;
+
 			imstats **statsarray = NULL;
 			// (Re)compute image stats if they are not all computed already
-			if (!gfit.stats[channel] || gfit.stats[channel]->location == NULL_STATS) {
-				statsarray = calloc(3, sizeof(imstats*));
-				if (compute_all_channels_statistics_single_image(&gfit, STATS_EXTRA,
-		MULTI_THREADED, statsarray)) {
+			if (!fit->stats[channel] || fit->stats[channel]->location == NULL_STATS) {
+				statsarray = calloc(fit->naxes[2], sizeof(imstats*));
+				if (compute_all_channels_statistics_single_image(fit, STATS_EXTRA, MULTI_THREADED, statsarray)) {
 					const char* error_msg = "Unable to compute image statistics";
 					success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
 					break;
 				} else {
 					// Replace the stats in gfit with the new calculation
-					full_stats_invalidation_from_fit(&gfit);
-					gfit.stats = statsarray;
+					full_stats_invalidation_from_fit(fit);
+					fit->stats = statsarray;
 				}
 			}
 
-			imstats *stats = gfit.stats[channel];
 			// Prepare response buffer with correct byte order
 			// Size is 2 longs (16 bytes) + 12 doubles (96 bytes) = 112 bytes
-			unsigned char response_buffer[112];
+			size_t total_size = 14 * sizeof(double);
+			unsigned char *response_buffer = g_malloc0(total_size);
 			unsigned char *ptr = response_buffer;
 
-			// Convert and copy integer values (64-bit)
-			int64_t total_BE = GINT64_TO_BE(stats->total);
-			int64_t ngoodpix_BE = GINT64_TO_BE(stats->ngoodpix);
-			memcpy(ptr, &total_BE, sizeof(int64_t));
-			ptr += sizeof(int64_t);
-			memcpy(ptr, &ngoodpix_BE, sizeof(int64_t));
-			ptr += sizeof(int64_t);
-
-			// Convert and copy double values ensuring big-endian byte order
-			double values[] = {
-				stats->mean, stats->median, stats->sigma, stats->avgDev,
-				stats->mad, stats->sqrtbwmv, stats->location, stats->scale,
-				stats->min, stats->max, stats->normValue, stats->bgnoise
-			};
-
-			for (int i = 0; i < 12; i++) {
-				// Convert double to big-endian
-				union {
-					double d;
-					unsigned char bytes[8];
-				} convert;
-				convert.d = values[i];
-
-				// Swap bytes if on little-endian system
-				#if G_BYTE_ORDER == G_LITTLE_ENDIAN
-					for (int j = 0; j < 4; j++) {
-						unsigned char temp = convert.bytes[j];
-						convert.bytes[j] = convert.bytes[7-j];
-						convert.bytes[7-j] = temp;
-					}
-				#endif
-
-				memcpy(ptr, convert.bytes, sizeof(double));
-				ptr += sizeof(double);
+			imstats *stats = fit->stats[channel];
+			if (imstats_to_py(stats, ptr)) {
+				const char* error_message = "Memory allocation error";
+				success = send_response(conn->channel, STATUS_ERROR, error_message, strlen(error_message));
+				break;
+			} else {
+				success = send_response(conn->channel, STATUS_OK, response_buffer, total_size);
 			}
-
-			// Send the statistics data
-			success = send_response(conn->channel, STATUS_OK, response_buffer, sizeof(response_buffer));
+			g_free(response_buffer);
 			break;
 		}
 
@@ -407,6 +502,210 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			unsigned char *response_buffer = g_malloc0(total_size);
 			unsigned char *ptr = response_buffer;
 			if (keywords_to_py(&gfit, ptr)) {
+				const char* error_message = "Memory allocation error";
+				success = send_response(conn->channel, STATUS_ERROR, error_message, strlen(error_message));
+				break;
+			} else {
+				success = send_response(conn->channel, STATUS_OK, response_buffer, total_size);
+			}
+			g_free(response_buffer);
+			break;
+		}
+
+		case CMD_GET_SEQ_REGDATA: {
+			if (!sequence_is_loaded()) {
+				const char* error_msg = "No sequence loaded";
+				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			int index, chan;
+			if (payload_length == 8) {
+				index = GUINT32_FROM_BE(*(int*) payload);
+				chan = GUINT32_FROM_BE(*((int*) payload + 1));
+			}
+			if (payload_length != 8 || index < 0 || index > com.seq.number || chan < 0 || chan > com.seq.nb_layers) {
+				const char* error_msg = "Incorrect command arguments";
+				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+
+			// Calculate size needed for response
+			size_t total_size = 6 * sizeof(double) + sizeof(Homography);
+			unsigned char *response_buffer = g_malloc0(total_size);
+			unsigned char *ptr = response_buffer;
+
+			regdata *regparam = &com.seq.regparam[index][chan];
+			if (regdata_to_py(regparam, ptr)) {
+				const char* error_message = "Memory allocation error";
+				success = send_response(conn->channel, STATUS_ERROR, error_message, strlen(error_message));
+				break;
+			} else {
+				success = send_response(conn->channel, STATUS_OK, response_buffer, total_size);
+			}
+			g_free(response_buffer);
+			break;
+		}
+
+		case CMD_GET_SEQ_IMGDATA: {
+			if (!sequence_is_loaded()) {
+				const char* error_msg = "No sequence loaded";
+				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			int index;
+			if (payload_length == 4) {
+				index = GUINT32_FROM_BE(*(int*) payload);
+			}
+			if (payload_length != 4 || index < 0 || index > com.seq.number) {
+				const char* error_msg = "Incorrect command argument";
+				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+
+			// Calculate size needed for response
+			size_t total_size = 6 * sizeof(double);
+			unsigned char *response_buffer = g_malloc0(total_size);
+			unsigned char *ptr = response_buffer;
+
+			imgdata *imgparam = &com.seq.imgparam[index];
+			if (imgdata_to_py(imgparam, ptr)) {
+				const char* error_message = "Memory allocation error";
+				success = send_response(conn->channel, STATUS_ERROR, error_message, strlen(error_message));
+				break;
+			} else {
+				success = send_response(conn->channel, STATUS_OK, response_buffer, total_size);
+			}
+			g_free(response_buffer);
+			break;
+		}
+
+		case CMD_GET_SEQ_PIXELDATA: {
+			if (!sequence_is_loaded()) {
+				const char* error_msg = "No sequence loaded";
+				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			int index;
+			if (payload_length == 4) {
+				index = GUINT32_FROM_BE(*(int*) payload);
+			}
+			if (payload_length != 4 || index < 0 || index > com.seq.number) {
+				const char* error_msg = "Incorrect command argument";
+				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			fits *fit = calloc(1, sizeof(fits));
+			if (seq_read_frame(&com.seq, index, fit, FALSE, MULTI_THREADED)) {
+				free(fit);
+				const char* error_msg = "Failed to read sequence frame";
+				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			rectangle region = {0, 0, fit->rx, fit->ry};
+			success = handle_pixeldata_request(conn, fit, region);
+			clearfits(fit);
+			free(fit);
+			break;
+		}
+
+		case CMD_GET_SEQ_IMAGE: {
+			if (!sequence_is_loaded()) {
+				const char* error_msg = "No sequence loaded";
+				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			int index;
+			if (payload_length == 4) {
+				index = GUINT32_FROM_BE(*(int*) payload);
+			}
+			if (payload_length != 4 || index < 0 || index > com.seq.number) {
+				const char* error_msg = "Incorrect command argument";
+				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			fits *fit = calloc(1, sizeof(fits));
+			if (seq_read_frame_metadata(&com.seq, index, fit)) {
+				free(fit);
+				const char* error_msg = "Failed to read frame metadata";
+				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+
+			// Calculate size needed for the response
+			size_t total_size = sizeof(uint64_t) * 11; // 11 vars packed to 64-bit
+
+			unsigned char *response_buffer = g_malloc0(total_size);
+			unsigned char *ptr = response_buffer;
+
+			int ret = fits_to_py(fit, ptr);
+			clearfits(fit);
+			free(fit);
+			if (ret) {
+				const char* error_message = "Memory allocation error";
+				success = send_response(conn->channel, STATUS_ERROR, error_message, strlen(error_message));
+				break;
+			} else {
+				success = send_response(conn->channel, STATUS_OK, response_buffer, total_size);
+			}
+			g_free(response_buffer);
+			break;
+		}
+
+		case CMD_GET_SEQ: {
+			if (!sequence_is_loaded()) {
+				const char* error_msg = "No sequence loaded";
+				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			// Calculate size needed for the response
+			size_t total_size = strlen(com.seq.seqname) + 1 +
+								sizeof(uint64_t) * 16;
+			unsigned char *response_buffer = g_malloc0(total_size);
+			unsigned char *ptr = response_buffer;
+
+			if (seq_to_py(&com.seq, ptr)) {
+				const char* error_message = "Memory allocation error";
+				success = send_response(conn->channel, STATUS_ERROR, error_message, strlen(error_message));
+				break;
+			} else {
+				success = send_response(conn->channel, STATUS_OK, response_buffer, total_size);
+			}
+			g_free(response_buffer);
+			break;
+		}
+
+		case CMD_GET_PSFSTAR: {
+			if (!com.stars) {
+				const char* error_msg = "No stars list available";
+				success = send_response(conn->channel, STATUS_NONE, error_msg, strlen(error_msg));
+				break;
+			}
+			int index;
+			if (payload_length == 4) {
+				index = GUINT32_FROM_BE(*(int*) payload);
+			}
+			// Count the number of stars in com.stars
+			int nb_in_com_stars = 0;
+			while (com.stars[nb_in_com_stars])
+				nb_in_com_stars++;
+
+			if (payload_length != 4 || index < 0 || index >= nb_in_com_stars) {
+				const char* error_msg = "Incorrect command argument";
+				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+
+			psf_star *psf = com.stars[index];
+
+			// Calculate size needed for the response
+			size_t total_size = sizeof(uint64_t) * 36 + // 36 variables packed to 64-bit
+								strlen(psf->star_name) + 1 +
+								strlen(psf->units) + 1;
+
+			unsigned char *response_buffer = g_malloc0(total_size);
+			unsigned char *ptr = response_buffer;
+
+			if (psfstar_to_py(psf, ptr)) {
 				const char* error_message = "Memory allocation error";
 				success = send_response(conn->channel, STATUS_ERROR, error_message, strlen(error_message));
 				break;
