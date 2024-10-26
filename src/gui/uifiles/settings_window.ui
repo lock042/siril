@@ -2966,7 +2966,26 @@ Not modifiable by user.</property>
                               </packing>
                             </child>
                             <child>
-                              <placeholder/>
+                              <object class="GtkButton" id="reset_apert_button1">
+                                <property name="width-request">128</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">True</property>
+                                <property name="tooltip-text" translatable="yes">Resets the apertures parameters to defaults for the current selected method.</property>
+                                <property name="halign">start</property>
+                                <signal name="clicked" handler="on_reset_aperture_button_clicked" swapped="no"/>
+                                <child>
+                                  <object class="GtkImage">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="icon-name">view-refresh</property>
+                                  </object>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="left-attach">0</property>
+                                <property name="top-attach">0</property>
+                              </packing>
                             </child>
                             <child>
                               <placeholder/>
