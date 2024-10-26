@@ -679,8 +679,6 @@ void on_check_button_pref_bias_toggled(GtkToggleButton *togglebutton, gpointer u
 	}
 }
 
-//static gboolean from_prefs_init = FALSE;	// NOT USED, SHOULD BE DELETED
-
 void on_reset_aperture_button_clicked(GtkButton *button, gpointer user_data) {
 	static GtkSpinButton *spin_fix_aper = NULL, *spin_fix_inner = NULL, *spin_fix_outer = NULL,
 			*spin_var_aper = NULL, *spin_var_inner = NULL, *spin_var_outer = NULL,
@@ -695,31 +693,22 @@ void on_reset_aperture_button_clicked(GtkButton *button, gpointer user_data) {
 	spin_flu_inner = GTK_SPIN_BUTTON(lookup_widget("spinRadFluxIn"));
 	spin_flu_outer = GTK_SPIN_BUTTON(lookup_widget("spinRadFluxOut"));
 
-	gtk_spin_button_set_value(spin_fix_aper, com.pref.phot_set.aperture);
-	gtk_spin_button_set_value(spin_fix_inner, com.pref.phot_set.inner);
-	gtk_spin_button_set_value(spin_fix_outer, com.pref.phot_set.outer);
-	gtk_spin_button_set_value(spin_var_aper, com.pref.phot_set.auto_aperture_factor);
-	gtk_spin_button_set_value(spin_var_inner, com.pref.phot_set.auto_inner_factor);
-	gtk_spin_button_set_value(spin_var_outer, com.pref.phot_set.auto_outer_factor);
-	gtk_spin_button_set_value(spin_flu_cutoff, com.pref.phot_set.flux_cut_factor);
-	gtk_spin_button_set_value(spin_flu_inner, com.pref.phot_set.flux_inner_factor);
-	gtk_spin_button_set_value(spin_flu_outer, com.pref.phot_set.flux_outer_factor);
-
+	init_aperture_default();
 	switch (com.pref.phot_set.ape_strat) {
 		case FIXED_AP: {
-			gtk_spin_button_set_value(spin_fix_aper, 10.0);
-			gtk_spin_button_set_value(spin_fix_inner, 20.0);
-			gtk_spin_button_set_value(spin_fix_outer, 30.0);
+			gtk_spin_button_set_value(spin_fix_aper, com.pref.phot_set.aperture);
+			gtk_spin_button_set_value(spin_fix_inner, com.pref.phot_set.inner);
+			gtk_spin_button_set_value(spin_fix_outer, com.pref.phot_set.outer);
 		}
 		case FWHM_VAR: {
-			gtk_spin_button_set_value(spin_var_aper, 3.4);
-			gtk_spin_button_set_value(spin_var_inner, 3.8);
-			gtk_spin_button_set_value(spin_var_outer, 5.1);
+			gtk_spin_button_set_value(spin_var_aper, com.pref.phot_set.auto_aperture_factor);
+			gtk_spin_button_set_value(spin_var_inner, com.pref.phot_set.auto_inner_factor);
+			gtk_spin_button_set_value(spin_var_outer, com.pref.phot_set.auto_outer_factor);
 		}
 		case FLUX_CUT: {
-			gtk_spin_button_set_value(spin_flu_cutoff, 1.0);
-			gtk_spin_button_set_value(spin_flu_inner, 1.75);
-			gtk_spin_button_set_value(spin_flu_outer, 2.625);
+			gtk_spin_button_set_value(spin_flu_cutoff, com.pref.phot_set.flux_cut_factor);
+			gtk_spin_button_set_value(spin_flu_inner, com.pref.phot_set.flux_inner_factor);
+			gtk_spin_button_set_value(spin_flu_outer, com.pref.phot_set.flux_outer_factor);
 		}
 	}
 }

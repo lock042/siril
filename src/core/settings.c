@@ -327,6 +327,26 @@ void update_gain_from_gfit() {
 		com.pref.phot_set.gain = gfit.keywords.cvf;
 }
 
+void init_aperture_default(){	// use of the pre-stated values
+	switch (com.pref.phot_set.ape_strat) {
+		case FIXED_AP: {
+			com.pref.phot_set.aperture = pref_init.phot_set.aperture;
+			com.pref.phot_set.inner = pref_init.phot_set.inner;
+			com.pref.phot_set.outer = pref_init.phot_set.outer;
+		}
+		case FWHM_VAR: {
+			com.pref.phot_set.auto_aperture_factor = pref_init.phot_set.auto_aperture_factor;
+			com.pref.phot_set.auto_inner_factor = pref_init.phot_set.auto_inner_factor;
+			com.pref.phot_set.auto_outer_factor = pref_init.phot_set.auto_outer_factor;
+		}
+		case FLUX_CUT: {
+			com.pref.phot_set.flux_cut_factor = pref_init.phot_set.flux_cut_factor;
+			com.pref.phot_set.flux_inner_factor = pref_init.phot_set.flux_inner_factor;
+			com.pref.phot_set.flux_outer_factor = pref_init.phot_set.flux_outer_factor;
+		}
+	}
+}
+
 struct settings_access all_settings[] = {
 	{ "core", "wd", STYPE_STRDIR, N_("current working directory"), &com.pref.wd },
 	{ "core", "extension", STYPE_STR, N_("FITS file extension"), &com.pref.ext },
