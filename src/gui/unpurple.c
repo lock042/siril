@@ -45,8 +45,6 @@ static fits starmask = {0};
 static gboolean is_roi = FALSE;
 
 int generate_binary_starmask(fits *fit, fits *starmask, double threshold) {
-        struct timeval t_start, t_end;
-        gettimeofday(&t_start, NULL);
         gboolean stars_needs_freeing = FALSE;
         psf_star **stars = NULL;
         int channel = 1; 
@@ -125,9 +123,6 @@ int generate_binary_starmask(fits *fit, fits *starmask, double threshold) {
 	if (stars_needs_freeing)
 		free_psf_starstarstar(stars);
 
-	gettimeofday(&t_end, NULL);
-	show_time_msg(t_start, t_end, _("Unpurple execution time"));
-
 	return 0;
 }
 
@@ -153,9 +148,9 @@ static int unpurple_update_preview() {
 	}
 
 	struct unpurpleargs *args = calloc(1, sizeof(struct unpurpleargs));
-	*args = (struct unpurpleargs){.fit = fit, .starmask = &starmask, .withstarmask = withstarmask, .thresh = thresh, .mod_b = mod_b, .verbose = FALSE};
+	*args = (struct unpurpleargs){.fit = fit, .starmask = &starmask, .withstarmask = withstarmask, .thresh = thresh, .mod_b = mod_b, .verbose = FALSE, .for_final = FALSE};
 	set_cursor_waiting(TRUE);
-	unpurple_filter(args);
+	start_in_new_thread(unpurple_filter, args);
 	notify_gfit_modified();
 	return 0;
 }
@@ -207,10 +202,10 @@ static int unpurple_process_all() {
 	}
 
 	struct unpurpleargs *args = calloc(1, sizeof(struct unpurpleargs));
-	*args = (struct unpurpleargs){.fit = fit, .starmask = &starmask, .withstarmask = withstarmask, .thresh = thresh, .mod_b = mod_b, .verbose = FALSE};
-	unpurplehandler(args);
-	populate_roi();
-	notify_gfit_modified();
+	*args = (struct unpurpleargs){.fit = fit, .starmask = &starmask, .withstarmask = withstarmask, .thresh = thresh, .mod_b = mod_b, .verbose = FALSE, .for_final = TRUE};
+
+	start_in_new_thread(unpurple_filter, args);
+
 	return 0;
 }
 
