@@ -235,8 +235,6 @@ static void set_widgets() {
 	gtk_widget_set_visible(graxpert_samples_controls, algorithm != GRAXPERT_BG_AI);
 	gtk_widget_set_visible(graxpert_rbf_settings, algorithm == GRAXPERT_BG_RBF ||  algorithm == GRAXPERT_BG_KRIGING);
 	gtk_widget_set_visible(graxpert_spline_settings, algorithm == GRAXPERT_BG_SPLINE);
-	gtk_widget_set_visible(ai_model_settings_bg, operation == GRAXPERT_BG && algorithm == GRAXPERT_BG_AI);
-	gtk_widget_set_visible(ai_model_settings_denoise, operation == GRAXPERT_DENOISE);
 	is_bg = (operation == GRAXPERT_BG);
 	gtk_widget_set_visible(GTK_WIDGET(button_graxpert_roipreview), (!is_bg && gui.roi.active));
 	configure_graxpert_dialog_for_roi();
