@@ -743,7 +743,7 @@ gpointer do_graxpert (gpointer p) {
 				text = g_strdup_printf(_("GraXpert denoising, strength %.3f"), args->denoise_strength);
 				break;
 			case GRAXPERT_DECONV:
-				text = g_strdup_printf(_("GraXpert deconv, strength %.3f blur psf %3.f"), args->deconv_strength, args->deconv_blur_psf_size);
+				text = g_strdup_printf(_("GraXpert deconv, strength %.3f, psf size %.3f"), args->deconv_strength, args->deconv_blur_psf_size);
 				break;
 			default:
 				text = g_strdup(_("GraXpert operations using GUI"));

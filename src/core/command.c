@@ -10902,7 +10902,7 @@ static graxpert_data *fill_graxpert_data_from_cmdline(int nb, sequence *seq, gra
 					goto GRAX_ARG_ERROR;
 				}
 			}
-			else { // deconvolution
+			else { // operation must be GRAXPERT_DECONV because of the earlier check
 				if (g_str_has_prefix(arg, "-strength=")) {
 					arg += 10;
 					data->deconv_strength = g_ascii_strtod(arg, &end);
