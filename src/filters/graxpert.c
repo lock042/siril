@@ -730,11 +730,11 @@ static gboolean end_graxpert(gpointer p) {
 gpointer do_graxpert (gpointer p) {
 	lock_roi_mutex();
 	set_graxpert_aborted(FALSE);
+	gchar *text = NULL;
 	graxpert_data *args = (graxpert_data *) p;
 	if (args->fit == &gfit)
 		copy_backup_to_gfit();
 	if (!args->previewing && !com.script) {
-		gchar *text = NULL;
 		switch (args->operation) {
 			case GRAXPERT_BG:
 				text = g_strdup_printf(_("GraXpert BG extraction, smoothness %.3f"), args->bg_smoothing);
@@ -748,8 +748,6 @@ gpointer do_graxpert (gpointer p) {
 			default:
 				text = g_strdup(_("GraXpert operations using GUI"));
 		}
-		undo_save_state(&gfit, text);
-		g_free(text);
 	}
 	char *my_argv[64] = { 0 };
 	gchar *filename = NULL, *path = NULL, *outpath = NULL;
@@ -900,6 +898,10 @@ gpointer do_graxpert (gpointer p) {
 ERROR_OR_FINISHED:
 	g_free(outpath);
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+	if (!retval && text) {
+		undo_save_state(&gfit, text);
+		g_free(text);
+	}
 	if (!args->seq && !com.script)
 		siril_add_idle(end_graxpert, args); // this loads the result
 	else
