@@ -699,17 +699,22 @@ void on_reset_aperture_button_clicked(GtkButton *button, gpointer user_data) {
 			gtk_spin_button_set_value(spin_fix_aper, com.pref.phot_set.aperture);
 			gtk_spin_button_set_value(spin_fix_inner, com.pref.phot_set.inner);
 			gtk_spin_button_set_value(spin_fix_outer, com.pref.phot_set.outer);
+			break;
 		}
 		case FWHM_VAR: {
 			gtk_spin_button_set_value(spin_var_aper, com.pref.phot_set.auto_aperture_factor);
 			gtk_spin_button_set_value(spin_var_inner, com.pref.phot_set.auto_inner_factor);
 			gtk_spin_button_set_value(spin_var_outer, com.pref.phot_set.auto_outer_factor);
+			break;
 		}
 		case FLUX_CUT: {
 			gtk_spin_button_set_value(spin_flu_cutoff, com.pref.phot_set.flux_cut_factor);
 			gtk_spin_button_set_value(spin_flu_inner, com.pref.phot_set.flux_inner_factor);
 			gtk_spin_button_set_value(spin_flu_outer, com.pref.phot_set.flux_outer_factor);
+			break;
 		}
+		default:
+			break;
 	}
 }
 
