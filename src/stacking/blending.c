@@ -27,9 +27,26 @@
 #include "stacking/stacking.h"
 
 #define MASK_SCALE 0.1
+#define RAMP_PACE 1000
 
-double get_mask_scale() {
-	return MASK_SCALE;
+static float *ramp_array = NULL;
+
+void init_ramp() {
+	if (ramp_array)
+		return;
+	int nbpoints = RAMP_PACE + 1;
+	ramp_array = malloc(nbpoints * sizeof(float));
+	float norm = 1.f / (float)RAMP_PACE;
+	for (int i = 0; i < nbpoints; i++) {
+		float r = (float)i * norm;
+		ramp_array[i] = r * r * r * (6.f * r * r - 15.f * r + 10.f);
+	}
+	siril_debug_print("ramp array initialized\n");
+}
+
+float get_ramped_value(float val) {
+	int index = (int)(val * RAMP_PACE);
+	return ramp_array[index];
 }
 
 void compute_downscaled_mask_size(int rx, int ry, int *rx_out, int *ry_out, double *fx, double *fy) {

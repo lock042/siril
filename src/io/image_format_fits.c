@@ -3393,12 +3393,6 @@ int read_mask_fits_area(const gchar *name, rectangle *area, int ry, float *mask)
 	long fpixel[2], lpixel[2], inc[2] = { 1L, 1L };
 	long naxes[2] = { 1L, 1L};
 
-	// /* fpixel is first pixel, lpixel is last pixel, starts with value 1 */
-	// fpixel[0] = area->x + 1;        // in siril, it starts with 0
-	// fpixel[1] = area->y + 1;
-	// lpixel[0] = area->x + area->w;
-	// lpixel[1] = area->y + area->h;
-
 	fpixel[0] = area->x + 1;        // in siril, it starts with 0
 	fpixel[1] = ry - area->y - area->h + 1;
 	lpixel[0] = area->x + area->w;  // with w and h at least 1, we're ok

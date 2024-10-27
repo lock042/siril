@@ -459,13 +459,11 @@ static int stack_read_block_data(struct stacking_args *args,
 		}
 		
 		if (masking && (args->reglayer < 0 || readdata)) {// we need to compute the correct mask area
-			// We load the whole scaled 8b mask (a pity but otherwise cv::distance does not compute the correct distances)
-			// Hopefully the aggressive downsizing makes it not too bad in terms of perf
-			// Another path to explore could be to write temporarily the float masks in the ./masks folder
-			// with the distance and thresholding (and ramping) applied and read the relevant area for each band here
-			// We could prepare them during the prepare_hook and dispose of them in the finalize_hook
-			// but that would be another I/O operation on larger files
-			// Remember we can't save the 8b masks with distances com
+			// We load the corresponding downscaled portion of the mask file (distances to black are already included)
+			// Upcsale it to the mask buffer
+			// Re-arrange it if required (as for the image block) for maximize_framing
+			// Normalize it to 1. (all values > blend_dist -> 1., values < blend_dist -> val/blend_dist)
+			// And finaly apply the ramping function which has been precomputed on  RAMP_PACE + 1 points
 			const gchar *maskfile = get_mask_filename(args->seq, args->image_indices[frame]);
 			float *mask_scaled;
 			int scaled_rx = 0, scaled_ry = 0;
@@ -474,6 +472,8 @@ static int stack_read_block_data(struct stacking_args *args,
 			int ry = (args->seq->is_variable) ? args->seq->imgparam[image_index].ry : args->seq->ry;
 			compute_downscaled_mask_size(rx, ry, &scaled_rx, &scaled_ry, &fx, &fy);
 			rectangle maskscaled_area = { 0, (int)(fy * area.y), scaled_rx, (int)(fy * area.h)};
+			if (area.h == 0 || area.w == 0 || maskscaled_area.w == 0 || maskscaled_area.h == 0)
+				continue;
 			mask_scaled = malloc((size_t)(maskscaled_area.h * maskscaled_area.w * sizeof(float)));
 			if (read_mask_fits_area(maskfile, &maskscaled_area, scaled_ry, mask_scaled)) {
 				free(mask_scaled);
@@ -486,20 +486,21 @@ static int stack_read_block_data(struct stacking_args *args,
 			}
 			float *mbuffer = data->mask[frame] + offset;
 			cvUpscaleBlendMask(maskscaled_area.w, maskscaled_area.h, rx, area.h, mask_scaled, mbuffer);
+			free(mask_scaled);
 			if (args->maximize_framing) {
 				rearrange_block_data(mbuffer, DATA_FLOAT, naxes[0], area.h, rx);
 			}
 			float distf = (float)args->blend_dist;
 			float invdistf = 1.f / distf;
 			size_t block_nb_pix = my_block->height * naxes[0];
+			// we normalize and apply the ramping function for all values above 0.
 			for (size_t i = 0; i < block_nb_pix; i++) {
-				if (data->mask[frame][i])
-					data->mask[frame][i] = min(data->mask[frame][i], distf) * invdistf;
+				if (data->mask[frame][i]) {
+					data->mask[frame][i] = (data->mask[frame][i] > distf) ? 1.f : get_ramped_value(data->mask[frame][i] * invdistf);
+				}
 			}
 		}
 	}
-
-
 	return ST_OK;
 }
 
@@ -1173,6 +1174,8 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 
 	args->blend_dist = 500; // TODO: remove this, for debug purposes only
 	gboolean masking = (args->blend_dist > 0);
+	if (masking)
+		init_ramp(); // we cache the values of the masks ramping function
 
 	int nb_frames = args->nb_images_to_stack; // number of frames actually used
 	naxes[0] = naxes[1] = 0; naxes[2] = 1;

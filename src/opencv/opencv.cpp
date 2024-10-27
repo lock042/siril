@@ -604,7 +604,7 @@ void cvUpscaleBlendMask(int rx, int ry, int out_rx, int out_ry, float *maskin, f
 	Mat _maskin = Mat(ry, rx, CV_32F, maskin);
 	Mat _maskout = Mat(out_ry, out_rx, CV_32F, maskout);
 	resize(_maskin, _maskout, _maskout.size(), 0, 0, INTER_LINEAR);
-	flip(_maskout, _maskout, 0);
+	flip(_maskout, _maskout, 0);  // don't know why we need to flip but does not work without
 }
 
 
