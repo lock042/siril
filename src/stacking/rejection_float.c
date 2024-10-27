@@ -300,7 +300,7 @@ int apply_rejection_float(struct _data_block *data, int nb_frames,
 			return kept;
 		}
 		max_outliers -= removed;
-		struct outliers *out = malloc(max_outliers * sizeof(struct outliers));
+		struct ESD_outliers *out = malloc(max_outliers * sizeof(struct ESD_outliers));
 
 		memcpy(w_stack, stack, N * sizeof(float));
 		memset(rejected, 0, N * sizeof(int));

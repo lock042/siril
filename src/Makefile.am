@@ -341,6 +341,8 @@ siril_common_SOURCES = \
 	gui/siril-window.c \
 	gui/siril-window.h \
 	gui/split_cfa.c \
+	gui/stacking.c \
+	gui/stacking.h \
 	gui/star_finder.c \
 	gui/starnetgui.c \
 	gui/starnetgui.h \

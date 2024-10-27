@@ -38,7 +38,7 @@
 
 #define TMP_UPSCALED_PREFIX "tmp_upscaled_"
 
-void remove_tmp_drizzle_files(struct stacking_args *args) {
+void remove_tmp_upscaled_files(struct stacking_args *args) {
 	int i;
 	if (!args->upscale_at_stacking)
 		return;
@@ -152,7 +152,7 @@ int upscale_sequence(struct stacking_args *stackargs) {
 	}
 	args->max_parallel_images = nb_threads;
 
-	remove_tmp_drizzle_files(stackargs);
+	remove_tmp_upscaled_files(stackargs);
 
 	generic_sequence_worker(args);
 

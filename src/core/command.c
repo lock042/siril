@@ -79,6 +79,7 @@
 #include "gui/newdeconv.h"
 #include "gui/sequence_list.h"
 #include "gui/siril_preview.h"
+#include "gui/stacking.h"
 #include "gui/registration.h"
 #include "gui/registration_preview.h"
 #include "gui/script_menu.h"
@@ -8231,6 +8232,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 	siril_log_message(_("Stacking sequence %s\n"), seq->seqname);
 
 	struct stacking_args args = { 0 };
+	init_stacking_args(&args);
 	args.seq = seq;
 	args.ref_image = sequence_find_refimage(seq);
 	// the three below: used only if method is average w/ rejection
@@ -8244,15 +8246,11 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 		args.type_of_rejection = NO_REJEC;
 		siril_log_message(_("Not using rejection for stacking\n"));
 	}
-	args.coeff.offset = NULL;
-	args.coeff.mul = NULL;
-	args.coeff.scale = NULL;
 	if (!arg->force_no_norm &&
 			(arg->method == stack_median || arg->method == stack_mean_with_rejection))
 		args.normalize = arg->norm;
 	else args.normalize = NO_NORM;
 	args.method = arg->method;
-	args.force_norm = FALSE;
 	args.output_norm = arg->output_norm;
 	args.equalizeRGB = arg->equalizeRGB;
 	args.lite_norm = arg->lite_norm;
@@ -8668,7 +8666,7 @@ failure:
 /* calibrate sequencename [-bias=filename|value] [-dark=filename] [-flat=filename] [-cc=dark [siglo sighi] || -cc=bpm bpmfile] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt[=exp]] [-prefix=] [-fitseq]
  * calibrate_single filename [-bias=filename|value] [-dark=filename] [-flat=filename] [-cc=dark [siglo sighi] || -cc=bpm bpmfile] [-cfa] [-debayer] [-fix_xtrans] [-equalize_cfa] [-opt] [-prefix=]
  */
-struct preprocessing_data *parse_preprocess_args(int nb, sequence *seq) {
+struct preprocessing_data *parse_calibrate_args(int nb, sequence *seq) {
 	int retvalue = 0;
 	struct preprocessing_data *args = calloc(1, sizeof(struct preprocessing_data));
 	fits reffit = { 0 };
@@ -8935,7 +8933,7 @@ int process_calibrate(int nb) {
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
 
-	struct preprocessing_data *args = parse_preprocess_args(nb, seq);
+	struct preprocessing_data *args = parse_calibrate_args(nb, seq);
 	if (!args) {
 		free_sequence(seq, TRUE);
 		return CMD_ARG_ERROR;
@@ -8955,7 +8953,7 @@ int process_calibrate_single(int nb) {
 	if (word[1][0] == '\0')
 		return CMD_ARG_ERROR;
 
-	struct preprocessing_data *args = parse_preprocess_args(nb, NULL);
+	struct preprocessing_data *args = parse_calibrate_args(nb, NULL);
 	if (!args)
 		return CMD_ARG_ERROR;
 

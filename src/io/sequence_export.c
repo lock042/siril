@@ -32,6 +32,7 @@
 #include "gui/callbacks.h"
 #include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
+#include "gui/stacking.h"
 #include "io/image_format_fits.h"
 #include "io/Astro-TIFF.h"
 #ifdef HAVE_FFMS2

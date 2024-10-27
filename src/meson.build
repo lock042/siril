@@ -250,6 +250,7 @@ src_files = [
   'gui/siril_plot.c',
   'gui/siril-window.c',
   'gui/split_cfa.c',
+  'gui/stacking.c',
   'gui/star_finder.c',
   'gui/starnetgui.c',
   'gui/statistics_list.c',

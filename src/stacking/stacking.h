@@ -7,10 +7,7 @@
 //#define STACK_DEBUG
 
 /* the stacking method */
-struct stacking_args;
 typedef int (*stack_method)(struct stacking_args *args);
-
-typedef struct normalization_coeff norm_coeff;
 
 enum {
 	ST_ALLOC_ERROR = -10,
@@ -48,14 +45,14 @@ typedef enum {
 	NBSTACK_WEIGHT
 } weighingType;
 
-struct normalization_coeff {
+typedef struct {
 	double *offset;
 	double *mul;
 	double *scale;
 	double *poffset[3];
 	double *pmul[3];
 	double *pscale[3];
-};
+} norm_coeff;
 
 /* Warning: editing this will require changing the long initializer in stacking.c */
 struct stacking_args {
@@ -120,7 +117,7 @@ struct stacking_configuration {
 	gboolean output_norm;
 	gboolean equalizeRGB;
 	gboolean lite_norm;
-	float blend_strength;  // 0 nothing is done, 1, mask is smoothened up to half the imwage smallest dim
+	float blend_strength;  // 0 nothing is done, 1, mask is smoothened up to half the image smallest dim
 	normalization norm;
 	int number_of_loaded_sequences;
 	struct seq_filter_config filters;
@@ -137,52 +134,7 @@ typedef struct {
 	gdouble exposure;
 } DateEvent;
 
-
-/*
- * ESD test statistic data.
- */
-struct outliers {
-	float x;
-	int i;
-	int out;
-};
-
-
-void initialize_stacking_methods();
-gboolean evaluate_stacking_should_output_32bits(const stack_method method,
-		sequence *seq, int nb_img_to_stack, gchar **err);
-
-int stack_median(struct stacking_args *args);
-int stack_mean_with_rejection(struct stacking_args *args);
-int stack_addmax(struct stacking_args *args);
-int stack_addmin(struct stacking_args *args);
-gboolean stack_regdata_is_valid(struct stacking_args *args);
-void main_stack(struct stacking_args *args);
-void clean_end_stacking(struct stacking_args *args);
-
-void get_sequence_filtering_from_gui(seq_image_filter *filtering_criterion,
-		double *filtering_parameter);
-void update_stack_interface(gboolean dont_change_stack_type);
-
-void describe_stack_for_history(struct stacking_args *args, GSList **hist, gboolean for_rejmap, gboolean low_rejmap);
-
-	/* normalization functions, normalize.c */
-
-int do_normalization(struct stacking_args *args);
-int *compute_thread_distribution(int nb_workers, int max);
-
-
-	/* median and mean functions */
-
-int check_G_values(float Gs, float Gc);
-void confirm_outliers(struct outliers *out, int N, double median, int *rejected, int rej[2]);
-
-struct _image_block {
-	long channel, start_row, end_row, height; // long matches naxes type
-};
-
-int stack_compute_parallel_blocks(struct _image_block **blocksptr, long max_number_of_rows,
-		const long naxes[3], int nb_threads, long *largest_block_height, int *nb_blocks);
+/* median and mean structures */
 
 /* pool of memory blocks for parallel processing */
 struct _data_block {
@@ -198,17 +150,38 @@ struct _data_block {
 	int layer;	// to identify layer for normalization
 };
 
+struct _image_block {
+	long channel, start_row, end_row, height; // long matches naxes type
+};
+
+struct ESD_outliers {
+	float x;
+	int i;
+	int out;
+};
+
+/* functions declarations */
+
+/* main stacking functions, stacking.c */
+
+gboolean evaluate_stacking_should_output_32bits(const stack_method method,
+		sequence *seq, int nb_img_to_stack, gchar **err);
+
+int stack_median(struct stacking_args *args);
+int stack_mean_with_rejection(struct stacking_args *args);
+int stack_addmax(struct stacking_args *args);
+int stack_addmin(struct stacking_args *args);
+void main_stack(struct stacking_args *args);
+void clean_end_stacking(struct stacking_args *args);
+gpointer stack_function_handler(gpointer p);
+
+void stacking_args_deep_copy(struct stacking_args *from, struct stacking_args *to);
+void stacking_args_deep_free(struct stacking_args *args);
+void init_stacking_args(struct stacking_args *args);
 int find_refimage_in_indices(const int *indices, int nb, int ref);
 
-	/* up-scaling functions */
-
-int upscale_sequence(struct stacking_args *args);
-void remove_tmp_drizzle_files(struct stacking_args *args);
-
-
-	/* rejection_float.c */
-
-int apply_rejection_float(struct _data_block *data, int nb_frames, struct stacking_args *args, int crej[2]);
+void _show_summary(struct stacking_args *args);
+void describe_stack_for_history(struct stacking_args *args, GSList **hist, gboolean for_rejmap, gboolean low_rejmap);
 
 	/* keeping metadata */
 void free_list_date(gpointer data);
@@ -217,5 +190,27 @@ void compute_date_time_keywords(GList *list_date, fits *fit);
 
 	/* compute max framing (used by sum, min and max) */
 void compute_max_framing(struct stacking_args *args, int output_size[2], int offset[2]);
+
+/* normalization functions, normalize.c */
+
+int do_normalization(struct stacking_args *args);
+int *compute_thread_distribution(int nb_workers, int max);
+
+
+/* median and mean functions */
+
+int check_G_values(float Gs, float Gc);
+void confirm_outliers(struct ESD_outliers *out, int N, double median, int *rejected, int rej[2]);
+int stack_compute_parallel_blocks(struct _image_block **blocksptr, long max_number_of_rows,
+		const long naxes[3], int nb_threads, long *largest_block_height, int *nb_blocks);
+
+/* up-scaling functions */
+
+int upscale_sequence(struct stacking_args *args);
+void remove_tmp_upscaled_files(struct stacking_args *args);
+
+/* rejection_float.c */
+
+int apply_rejection_float(struct _data_block *data, int nb_frames, struct stacking_args *args, int crej[2]);
 
 #endif

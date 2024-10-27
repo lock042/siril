@@ -67,6 +67,7 @@
 #include "gui/sequence_list.h"
 #include "gui/preferences.h"
 #include "gui/registration_preview.h"
+#include "gui/stacking.h"
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
 #include "algos/quality.h"

@@ -642,7 +642,7 @@ int check_G_values(float Gs, float Gc) {
 	return (Gs > Gc);
 }
 
-void confirm_outliers(struct outliers *out, int N, double median, int *rejected, int rej[2]) {
+void confirm_outliers(struct ESD_outliers *out, int N, double median, int *rejected, int rej[2]) {
 	int i = N - 1;
 
 	while (i > 1 && !out[i].out) {
@@ -866,7 +866,7 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 				return kept;
 			}
 			max_outliers -= removed;
-			struct outliers *out = malloc(max_outliers * sizeof(struct outliers));
+			struct ESD_outliers *out = malloc(max_outliers * sizeof(struct ESD_outliers));
 
 			memcpy(w_stack, stack, N * sizeof(WORD));
 			memset(rejected, 0, N * sizeof(int));
