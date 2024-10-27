@@ -58,6 +58,7 @@ static gboolean verbose = TRUE;
 static version_number graxpert_version = { 0 };
 static gchar **background_ai_models = NULL;
 static gchar **denoise_ai_models = NULL;
+static gchar **deconv_ai_models = NULL;
 static gboolean graxpert_aborted = FALSE;
 
 void set_graxpert_aborted(gboolean state) {
@@ -65,7 +66,7 @@ void set_graxpert_aborted(gboolean state) {
 }
 
 const gchar** get_ai_models(graxpert_operation operation) {
-    return (const gchar**) (operation == GRAXPERT_DENOISE ? denoise_ai_models : background_ai_models);
+    return (const gchar**) (operation == GRAXPERT_DENOISE ? denoise_ai_models : (operation == GRAXPERT_DECONV ? deconv_ai_models : background_ai_models));
 }
 
 static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
@@ -351,6 +352,7 @@ gchar** ai_version_check(gchar* executable, graxpert_operation operation) {
 void fill_graxpert_version_arrays() {
 	background_ai_models = ai_version_check(com.pref.graxpert_path, GRAXPERT_BG);
 	denoise_ai_models = ai_version_check(com.pref.graxpert_path, GRAXPERT_DENOISE);
+	deconv_ai_models = ai_version_check(com.pref.graxpert_path, GRAXPERT_DECONV);
 }
 
 gboolean check_graxpert_version(const gchar *version, graxpert_operation operation) {
@@ -361,6 +363,13 @@ gboolean check_graxpert_version(const gchar *version, graxpert_operation operati
 			return FALSE;
 		for (int i = 0 ; denoise_ai_models[i] != NULL ; i++) {
 			if (!strcmp(version, denoise_ai_models[i]))
+				return TRUE;
+		}
+	} else if (operation == GRAXPERT_DECONV) {
+		if (deconv_ai_models == NULL)
+			return FALSE;
+		for (int i = 0 ; deconv_ai_models[i] != NULL ; i++) {
+			if (!strcmp(version, deconv_ai_models[i]))
 				return TRUE;
 		}
 	} else {
@@ -480,7 +489,7 @@ gpointer graxpert_setup_async(gpointer user_data) {
 }
 
 void ai_versions_to_log(graxpert_operation operation) {
-	gchar** array = operation == GRAXPERT_DENOISE ? denoise_ai_models : background_ai_models;
+	gchar** array = operation == GRAXPERT_DENOISE ? denoise_ai_models : (operation == GRAXPERT_DECONV ? deconv_ai_models : background_ai_models);
 	if (!array) {
 		siril_log_message(_("None!\n"));
 	} else {
@@ -568,21 +577,23 @@ gboolean save_graxpert_config(graxpert_data *args) {
 	}
 
 	json_builder_set_member_name(builder, "corr_type");
-	json_builder_add_string_value(builder, args->bg_mode == GRAXPERT_SUBTRACTION ? "Subtraction" :
-	"Division");
+	json_builder_add_string_value(builder, args->bg_mode == GRAXPERT_SUBTRACTION ? "Subtraction" : "Division");
 
 	json_builder_set_member_name(builder, "RBF_kernel");
-	json_builder_add_string_value(builder, args->kernel == GRAXPERT_THIN_PLATE ? "thin_plate" :
-	args->kernel == GRAXPERT_QUINTIC ? "quintic" :
-	args->kernel == GRAXPERT_CUBIC ? "cubic" :
-	"linear");
+	json_builder_add_string_value(builder, args->kernel == GRAXPERT_THIN_PLATE ? "thin_plate" : args->kernel == GRAXPERT_QUINTIC ? "quintic" :
+		args->kernel == GRAXPERT_CUBIC ? "cubic" : "linear");
 
 	json_builder_set_member_name(builder, "denoise_strength");
 	json_builder_add_double_value(builder, args->denoise_strength);
 
+	json_builder_set_member_name(builder, "deconvolution_strength");
+	json_builder_add_double_value(builder, args->deconv_strength);
+
+	json_builder_set_member_name(builder, "deconvolution_psfsize");
+	json_builder_add_double_value(builder, args->deconv_blur_psf_size);
+
 	json_builder_set_member_name(builder, "saveas_option");
-	json_builder_add_string_value(builder,
-		args->fit->type == DATA_FLOAT ? "32 bit Fits" : "16 bit Fits");
+	json_builder_add_string_value(builder, args->fit->type == DATA_FLOAT ? "32 bit Fits" : "16 bit Fits");
 
 	json_builder_end_object(builder);
 
@@ -618,6 +629,8 @@ graxpert_data *new_graxpert_data() {
 	p->spline_order = 3;
 	p->bg_tol_option = 2;
 	p->denoise_strength = 0.8;
+	p->deconv_strength = 0.5;
+	p->deconv_blur_psf_size = 0.3;
 	p->use_gpu = TRUE;
 	p->ai_batch_size = 4;
 	p->bg_pts_option = 15;
@@ -729,6 +742,9 @@ gpointer do_graxpert (gpointer p) {
 			case GRAXPERT_DENOISE:
 				text = g_strdup_printf(_("GraXpert denoising, strength %.3f"), args->denoise_strength);
 				break;
+			case GRAXPERT_DECONV:
+				text = g_strdup_printf(_("GraXpert deconv, strength %.3f blur psf %3.f"), args->deconv_strength, args->deconv_blur_psf_size);
+				break;
 			default:
 				text = g_strdup(_("GraXpert operations using GUI"));
 		}
@@ -824,6 +840,22 @@ gpointer do_graxpert (gpointer p) {
 		my_argv[nb++] = g_strdup(args->use_gpu ? "true" : "false");
 		my_argv[nb++] = g_strdup("-strength");
 		my_argv[nb++] = g_strdup_printf("%.2f", args->denoise_strength);
+		if (args->ai_version != NULL) {
+			my_argv[nb++] = g_strdup("-ai_version");
+			my_argv[nb++] = g_strdup(args->ai_version);
+		}
+	} else if (args->operation == GRAXPERT_DECONV) {
+		my_argv[nb++] = g_strdup("-cli");
+		my_argv[nb++] = g_strdup("-cmd");
+		my_argv[nb++] = g_strdup("deconv-obj");
+		my_argv[nb++] = g_strdup_printf("-output");
+		my_argv[nb++] = g_strdup_printf("%s", outpath);
+		my_argv[nb++] = g_strdup("-gpu");
+		my_argv[nb++] = g_strdup(args->use_gpu ? "true" : "false");
+		my_argv[nb++] = g_strdup("-strength");
+		my_argv[nb++] = g_strdup_printf("%.2f", args->deconv_strength);
+		my_argv[nb++] = g_strdup("-psfsize");
+		my_argv[nb++] = g_strdup_printf("%.2f", args->deconv_blur_psf_size);
 		if (args->ai_version != NULL) {
 			my_argv[nb++] = g_strdup("-ai_version");
 			my_argv[nb++] = g_strdup(args->ai_version);

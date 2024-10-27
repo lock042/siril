@@ -10888,12 +10888,34 @@ static graxpert_data *fill_graxpert_data_from_cmdline(int nb, sequence *seq, gra
 					goto GRAX_ARG_ERROR;
 				}
 			}
-			else { // operation must be GRAXPERT_DENOISE because of the earlier check
+			else if (operation == GRAXPERT_DENOISE) {
 				if (g_str_has_prefix(arg, "-strength=")) {
 					arg += 10;
 					data->denoise_strength = g_ascii_strtod(arg, &end);
 					if (arg == end) {
 						siril_log_message(_("Error: no strength value specified\n"));
+						goto GRAX_ARG_ERROR;
+					}
+				}
+				else {
+					siril_log_color_message(_("Error: unknown argument!\n"), "red");
+					goto GRAX_ARG_ERROR;
+				}
+			}
+			else { // deconvolution
+				if (g_str_has_prefix(arg, "-strength=")) {
+					arg += 10;
+					data->deconv_strength = g_ascii_strtod(arg, &end);
+					if (arg == end) {
+						siril_log_message(_("Error: no strength value specified\n"));
+						goto GRAX_ARG_ERROR;
+					}
+				}
+				else if (g_str_has_prefix(arg, "-psfsize=")) {
+					arg += 9;
+					data->deconv_blur_psf_size = g_ascii_strtod(arg, &end);
+					if (arg == end) {
+						siril_log_message(_("Error: no psf size value specified\n"));
 						goto GRAX_ARG_ERROR;
 					}
 				}
@@ -10914,6 +10936,10 @@ static graxpert_data *fill_graxpert_data_from_cmdline(int nb, sequence *seq, gra
 		data->denoise_strength = 0.0;
 	else if (data->denoise_strength > 1.0)
 		data->denoise_strength = 1.0;
+	else if (data->deconv_strength > 1.0)
+		data->deconv_strength = 1.0;
+	else if (data->deconv_blur_psf_size > 1.0)
+		data->deconv_blur_psf_size = 1.0;
 	if (data->bg_tol_option < -2.0)
 		data->bg_tol_option = -2.0;
 	else if (data->bg_tol_option > 6.0)
