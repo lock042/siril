@@ -94,6 +94,7 @@ int	process_gauss(int nb);
 int	process_getref(int nb);
 int	process_graxpert_bg(int nb);
 int	process_graxpert_denoise(int nb);
+int	process_graxpert_deconv(int nb);
 int	process_grey_flat(int nb);
 
 int	process_help(int nb);

@@ -233,7 +233,7 @@
                           <object class="GtkSpinButton" id="graxpert_spin_bgtol">
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
-                            <property name="tooltip-text" translatable="yes">Set the background tolerance: the allowed range is -2.0 to +6.0. Higer values are more tolerant of strong background gradients; lower values are better at rejecting background samples in areas representing real neblosity</property>
+                            <property name="tooltip-text" translatable="yes">Set the background tolerance: the allowed range is -2.0 to +6.0. Higer values are more tolerant of strong background gradients; lower values are better at rejecting background samples in areas representing real neblosity.</property>
                             <property name="text" translatable="yes">2,00</property>
                             <property name="adjustment">adj_graxpert_bg_tol</property>
                             <property name="digits">2</property>
@@ -273,7 +273,7 @@
                           <object class="GtkSpinButton" id="graxpert_spin_nb_samples">
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
-                            <property name="tooltip-text" translatable="yes">Set the number of samples per row in the sampling grid</property>
+                            <property name="tooltip-text" translatable="yes">Set the number of samples per row in the sampling grid.</property>
                             <property name="text" translatable="yes">15</property>
                             <property name="adjustment">adj_graxpert_nb_samples</property>
                             <property name="value">15</property>
@@ -435,7 +435,7 @@
                       <object class="GtkSpinButton" id="spin_graxpert_smoothing">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
-                        <property name="tooltip-text" translatable="yes">Set the level of smoothing to be applied by GraXpert, between 0.0 and 1.0</property>
+                        <property name="tooltip-text" translatable="yes">Set the level of smoothing to be applied by GraXpert, between 0.0 and 1.0.</property>
                         <property name="text" translatable="yes">0,50</property>
                         <property name="adjustment">adj_graxpert_bgextract_smoothing</property>
                         <property name="digits">2</property>
@@ -528,7 +528,7 @@
                           <object class="GtkSpinButton" id="graxpert_spin_spline_order">
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
-                            <property name="tooltip-text" translatable="yes">Set the spline order used for the spline background removal algorithm</property>
+                            <property name="tooltip-text" translatable="yes">Set the spline order used for the spline background removal algorithm.</property>
                             <property name="text" translatable="yes">3</property>
                             <property name="adjustment">adj_graxpert_spline_order</property>
                             <property name="value">3</property>
@@ -587,7 +587,7 @@
                           <object class="GtkSpinButton" id="spin_graxpert_strength">
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
-                            <property name="tooltip-text" translatable="yes">Configure GraXpert denoising strength</property>
+                            <property name="tooltip-text" translatable="yes">Configure GraXpert denoising strength.</property>
                             <property name="text" translatable="yes">0,80</property>
                             <property name="adjustment">adj_graxpert_denoise_strength</property>
                             <property name="digits">2</property>
@@ -721,7 +721,7 @@
                                       <object class="GtkSpinButton" id="spin_deconv_graxpert_strength">
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
-                                        <property name="tooltip-text" translatable="yes">Configure GraXpert denoising strength</property>
+                                        <property name="tooltip-text" translatable="yes">Configure GraXpert deconvolution strength.</property>
                                         <property name="text" translatable="yes">0.50</property>
                                         <property name="adjustment">adj_graxpert_deconv_strength</property>
                                         <property name="digits">2</property>
@@ -775,7 +775,7 @@
                                       <object class="GtkSpinButton" id="spin_deconv_graxpert_psf">
                                         <property name="visible">True</property>
                                         <property name="can-focus">True</property>
-                                        <property name="tooltip-text" translatable="yes">Configure GraXpert denoising strength</property>
+                                        <property name="tooltip-text" translatable="yes">Configure GraXpert deconvolution PSF size.</property>
                                         <property name="text" translatable="yes">0.30</property>
                                         <property name="adjustment">adj_graxpert_deconv_psf</property>
                                         <property name="digits">2</property>
@@ -946,7 +946,7 @@
                               <object class="GtkSpinButton">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
-                                <property name="tooltip-text" translatable="yes">Set the number of image tiles which GraXpert will denoise in parallel. Be careful: increasing this value might result in out-of-memory errors. Valid Range: 1 - 32, default: "4"</property>
+                                <property name="tooltip-text" translatable="yes">Set the number of image tiles which GraXpert will denoise in parallel. Be careful: increasing this value might result in out-of-memory errors. Valid Range: 1 - 32, default: "4".</property>
                                 <property name="text" translatable="yes">4</property>
                                 <property name="adjustment">adj_graxpert_ai_batch</property>
                                 <property name="value">4</property>

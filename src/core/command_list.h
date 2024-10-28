@@ -76,6 +76,7 @@ static command commands[] = {
 	{"ght", 1, "ght -D= [-B=] [-LP=] [-SP=] [-HP=] [-clipmode=] [-human | -even | -independent | -sat] [channels]", process_ght, STR_GHT, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"graxpert_bg", 1, "graxpert_bg [-algo=] [-mode=] [-kernel=] [-ai_batch_size=] [-pts_per_row=] [-splineorder=] [-samplesize=] [-smoothing=] [-bgtol=] [ { -gpu | -cpu } ] [-ai_version=] [-keep_bg]", process_graxpert_bg, STR_GRAXPERT_BG, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"graxpert_denoise", 1, "graxpert_denoise [-strength=] [ { -gpu | -cpu } [-ai_version=] ]", process_graxpert_denoise, STR_GRAXPERT_DENOISE, TRUE, REQ_CMD_SINGLE_IMAGE},
+	{"graxpert_deconv", 1, "graxpert_deconv [-strength=] [-psfsize=] [ { -gpu | -cpu } [-ai_version=] ]", process_graxpert_deconv, STR_GRAXPERT_DECONV, TRUE, REQ_CMD_SINGLE_IMAGE},
 	{"grey_flat", 0, "grey_flat", process_grey_flat, STR_GREY_FLAT, TRUE, REQ_CMD_SINGLE_IMAGE},
 
 	{"help", 0, "help [command]", process_help, STR_HELP, TRUE, REQ_CMD_NONE},
