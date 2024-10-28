@@ -217,7 +217,7 @@
 #define STR_UNSELECT N_("Allows easy mass unselection of images in the sequence <b>sequencename</b> (from <b>from</b> to <b>to</b> included). See SELECT")
 #define STR_UNSETMAG N_("Resets the magnitude calibration to 0. See SETMAG")
 #define STR_UNSHARP N_("Applies an unsharp mask, actually a Gaussian filtered image  with sigma <b>sigma</b> and a blend with the parameter <b>amount</b> used as such: out = in * (1 + amount) + filtered * (-amount).\n\nSee also GAUSS, the same without blending")
-#define STR_UPDATE_KEY N_("Updates FITS keyword. Please note that the validity of <b>value</b> is not checked. This verification is the responsibility of the user. It is also possible to delete a key with the -delete option in front of the name of the key to be deleted, or to modify the key with the -modify option. The latter must be followed by the key to be modified and the new key name. Finally, the -comment option, followed by text, adds a comment to the FITS header. Please note that any text containing spaces must be enclosed in double quotation marks")
+#define STR_UPDATE_KEY N_("Updates FITS keyword. Please note that the validity of <b>value</b> is not checked. This verification is the responsibility of the user. It is also possible to delete a key with the <b>-delete</b> option in front of the name of the key to be deleted, or to modify the key with the <b>-modify</b> option. The latter must be followed by the key to be modified and the new key name. Finally, the <b>-comment</b> option, followed by text, adds a comment to the FITS header. Please note that any text containing spaces must be enclosed in double quotation marks")
 
 #define STR_VISU N_("Displays the loaded image with <b>low</b> and <b>high</b> as the low and high threshold, GUI only")
 
