@@ -12222,8 +12222,22 @@ int process_seq_graxpert_denoise(int nb) {
 		siril_log_color_message(_("Error: unable to load sequence\n"), "red");
 		return CMD_SEQUENCE_NOT_FOUND;
 	}
-	graxpert_data *data = fill_graxpert_data_from_cmdline(nb, seq,
-			GRAXPERT_DENOISE);
+	graxpert_data *data = fill_graxpert_data_from_cmdline(nb, seq, GRAXPERT_DENOISE);
+	if (!data) {
+		free_sequence(seq, TRUE);
+		return CMD_ARG_ERROR;
+	}
+	apply_graxpert_to_sequence(data);
+	return CMD_OK;
+}
+
+int process_seq_graxpert_deconv(int nb) {
+	sequence *seq = load_sequence(word[1], NULL);
+	if (!seq) {
+		siril_log_color_message(_("Error: unable to load sequence\n"), "red");
+		return CMD_SEQUENCE_NOT_FOUND;
+	}
+	graxpert_data *data = fill_graxpert_data_from_cmdline(nb, seq, GRAXPERT_DECONV);
 	if (!data) {
 		free_sequence(seq, TRUE);
 		return CMD_ARG_ERROR;

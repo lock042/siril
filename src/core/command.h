@@ -196,6 +196,7 @@ int	process_seq_fixbanding(int nb);
 int	process_seq_ght(int nb);
 int	process_seq_graxpert_bg(int nb);
 int	process_seq_graxpert_denoise(int nb);
+int	process_seq_graxpert_deconv(int nb);
 int	process_seq_header(int nb);
 int	process_seq_invght(int nb);
 int	process_seq_invmodasinh(int nb);
