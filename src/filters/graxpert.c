@@ -123,7 +123,7 @@ static GError *spawn_graxpert(gchar **argv, gint columns,
 	return NULL;
 }
 
-static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report) {
+static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report, gboolean is_sequence) {
 	const gchar *progress_key = "Progress: ";
 	gint child_stderr;
 	GPid child_pid;
@@ -136,7 +136,7 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report) {
 	}
 	fprintf(stdout, "\n");
 	// g_spawn handles wchar so not need to convert
-	set_progress_bar_data(_("Starting GraXpert..."), 0.0);
+	if (!is_sequence) set_progress_bar_data(_("Starting GraXpert..."), 0.0);
 	error = spawn_graxpert(argv, 200, &child_pid, NULL, NULL,
 			&child_stderr);
 
@@ -181,9 +181,9 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report) {
 		if (arg)
 			value = g_ascii_strtod(arg + strlen(progress_key), NULL);
 		if (value > 0.0 && value == value && verbose) {
-			set_progress_bar_data(_("Running GraXpert"), value / 100.0);
+			if (!is_sequence) set_progress_bar_data(_("Running GraXpert"), value / 100.0);
 		} else if ( ((errmsg = g_strstr_len(buffer, -1, "ERROR")) && !graxpert_aborted) ) {
-			set_progress_bar_data(_("GraXpert reported an error"), max(value, 0.0) / 100);
+			if (!is_sequence) set_progress_bar_data(_("GraXpert reported an error"), max(value, 0.0) / 100);
 			if (strlen(errmsg) > 9) {
 				errmsg += 9;
 				const gchar* color = g_strstr_len(buffer, -1, "Warning") ? "salmon" : "red";
@@ -191,7 +191,7 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report) {
 			}
 			retval = 1;
 		} else if (g_strrstr(buffer, "Finished") || g_strrstr(buffer, "finished")) {
-			set_progress_bar_data(_("Done."), 1.0);
+			if (!is_sequence) set_progress_bar_data(_("Done."), 1.0);
 			retval = 0;
 #ifdef GRAXPERT_DEBUG
 			if (verbose)
@@ -220,8 +220,8 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report) {
 	com.childpid = 0;			// For other OSes, PID of a child process
 #endif
 	if (graxpert_no_exit_report && retval == -1) {
-		siril_log_message(_("GraXpert GUI finished.\n"));
-		set_progress_bar_data(_("Done."), 1.0);
+		if (!is_sequence) siril_log_message(_("GraXpert GUI finished.\n"));
+		if (!is_sequence) set_progress_bar_data(_("Done."), 1.0);
 		retval = 0; // No "Finished" log message is printed when closing the GUI, so we assume success
 	}
 #ifdef GRAXPERT_DEBUG
@@ -878,7 +878,7 @@ gpointer do_graxpert (gpointer p) {
 	// Execute GraXpert
 	struct timeval t_start, t_end;
 	gettimeofday(&t_start, NULL);
-	retval = exec_prog_graxpert(my_argv, graxpert_no_exit_report);
+	retval = exec_prog_graxpert(my_argv, graxpert_no_exit_report, args->seq != NULL);
 	gettimeofday(&t_end, NULL);
 	if (verbose)
 		show_time(t_start, t_end);
@@ -897,7 +897,7 @@ gpointer do_graxpert (gpointer p) {
 
 ERROR_OR_FINISHED:
 	g_free(outpath);
-	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+	if (args->seq != NULL) set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 	if (!retval && text) {
 		undo_save_state(&gfit, text);
 		g_free(text);
@@ -964,6 +964,8 @@ void apply_graxpert_to_sequence(graxpert_data *args) {
 		seqargs->new_seq_prefix = strdup("gxbg_");
 	else if (args->operation == GRAXPERT_DENOISE)
 		seqargs->new_seq_prefix = strdup("gxnr_");
+	else if (args->operation == GRAXPERT_DECONV)
+		seqargs->new_seq_prefix = strdup("gxdec_");
 	else  {
 		free_graxpert_data(args);
 		free(seqargs);
