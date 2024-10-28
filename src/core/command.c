@@ -1859,7 +1859,7 @@ int process_update_key(int nb) {
 
 	/* manage options */
 	if (word[1][0] == '-') {
-		if (!g_strcmp0(word[1], "-remove") && word[2]) {
+		if (!g_strcmp0(word[1], "-delete") && word[2]) {
 			key = replace_wide_char(word[2]);
 			CHECK_KEY_LENGTH(key);
 			updateFITSKeyword(&gfit, key, NULL, NULL, NULL, TRUE, FALSE);
