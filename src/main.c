@@ -319,7 +319,15 @@ static void siril_app_activate(GApplication *application) {
 	}
 
 	init_num_procs();
-	g_thread_new("python_thread", open_python_channel, NULL);
+
+	initialize_python_communication(
+	#ifdef _WIN32
+		"\\\\.\\pipe\\siril"
+	#else
+		"/tmp/siril.sock"
+	#endif
+	);
+
 	initialize_profiles_and_transforms(); // color management
 
 #ifdef HAVE_LIBGIT2
@@ -587,7 +595,7 @@ int main(int argc, char *argv[]) {
 		g_printerr("%s\n", help_msg);
 		g_free(help_msg);
 	}
-	release_python_channel(); // clean up the python interface
+	shutdown_python_communication();
 	pipe_stop();		// close the pipes and their threads
 	g_object_unref(app);
 	return status;

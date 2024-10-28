@@ -12,42 +12,68 @@
 #include "siril_pythonmodule.h"
 
 // Helper macros
+#define COPY_FLEN_STRING(str) \
+	{ \
+		size_t len = FLEN_VALUE; \
+		if ((ptr + len) - start_ptr > maxlen) { \
+			fprintf(stderr, "Error: Exceeded max length for COPY_FLEN_STRING at %s\n", #str); \
+			return 1; \
+		} \
+		memset(ptr, 0, len); \
+		strncpy((char*)ptr, str, len - 1); \
+		ptr += len; \
+	}
+
 #define COPY_STRING(str) \
 	{ \
-		memset(ptr, 0, FLEN_VALUE); \
-		strncpy((char*)ptr, str, FLEN_VALUE - 1); \
-		ptr += FLEN_VALUE; \
+		size_t len = strlen(str); \
+		if ((ptr + len) - start_ptr > maxlen) { \
+			fprintf(stderr, "Error: Exceeded max length for COPY_STRING at %s\n", #str); \
+			return 1; \
+		} \
+		memset(ptr, 0, len); \
+		strncpy((char*)ptr, str, len - 1); \
+		ptr += len; \
 	}
 
 #define COPY_BE(val, type) \
 	{ \
+		size_t len = sizeof(type); \
+		if ((ptr + len) - start_ptr > maxlen) { \
+			fprintf(stderr, "Error: Exceeded max length for COPY_BE at %s\n", #val); \
+			return 1; \
+		} \
 		union { type v; uint64_t i; } conv; \
 		conv.v = val; \
 		uint64_t be = GUINT64_TO_BE(conv.i); \
-		memcpy(ptr, &be, sizeof(type)); \
-		ptr += sizeof(type); \
+		memcpy(ptr, &be, len); \
+		ptr += len; \
 	}
 
-static int keywords_to_py(fits *fit, unsigned char *ptr) {
+
+static int keywords_to_py(fits *fit, unsigned char *ptr, size_t maxlen) {
 	if (!fit || !ptr)
 		return 1;
+
+	unsigned char *start_ptr = ptr;
+
 	// Convert GDateTime to Unix timestamp
 	int64_t date_ts = fit->keywords.date ? g_date_time_to_unix(fit->keywords.date) : 0;
 	int64_t date_obs_ts = fit->keywords.date_obs ? g_date_time_to_unix(fit->keywords.date_obs) : 0;
 	// Copy string fields
-	COPY_STRING(fit->keywords.program);
-	COPY_STRING(fit->keywords.filename);
-	COPY_STRING(fit->keywords.row_order);
-	COPY_STRING(fit->keywords.filter);
-	COPY_STRING(fit->keywords.image_type);
-	COPY_STRING(fit->keywords.object);
-	COPY_STRING(fit->keywords.instrume);
-	COPY_STRING(fit->keywords.telescop);
-	COPY_STRING(fit->keywords.observer);
-	COPY_STRING(fit->keywords.sitelat_str);
-	COPY_STRING(fit->keywords.sitelong_str);
-	COPY_STRING(fit->keywords.bayer_pattern);
-	COPY_STRING(fit->keywords.focname);
+	COPY_FLEN_STRING(fit->keywords.program);
+	COPY_FLEN_STRING(fit->keywords.filename);
+	COPY_FLEN_STRING(fit->keywords.row_order);
+	COPY_FLEN_STRING(fit->keywords.filter);
+	COPY_FLEN_STRING(fit->keywords.image_type);
+	COPY_FLEN_STRING(fit->keywords.object);
+	COPY_FLEN_STRING(fit->keywords.instrume);
+	COPY_FLEN_STRING(fit->keywords.telescop);
+	COPY_FLEN_STRING(fit->keywords.observer);
+	COPY_FLEN_STRING(fit->keywords.sitelat_str);
+	COPY_FLEN_STRING(fit->keywords.sitelong_str);
+	COPY_FLEN_STRING(fit->keywords.bayer_pattern);
+	COPY_FLEN_STRING(fit->keywords.focname);
 
 	// Copy numeric values with proper byte order conversion. All
 	// types shorter than 64bit are converted to 64bit types before
@@ -94,9 +120,12 @@ static int keywords_to_py(fits *fit, unsigned char *ptr) {
 	return 0;
 }
 
-static int fits_to_py(fits *fit, unsigned char *ptr) {
+static int fits_to_py(fits *fit, unsigned char *ptr, size_t maxlen) {
 	if (!fit || !ptr)
 		return 1;
+
+	unsigned char *start_ptr = ptr;
+
 	// Copy numeric values with proper byte order conversion. All
 	// types shorter than 64bit are converted to 64bit types before
 	// endianness conversion and transmission, to simplify the data
@@ -114,9 +143,12 @@ static int fits_to_py(fits *fit, unsigned char *ptr) {
 	return 0;
 }
 
-static int homography_to_py(const Homography* H, unsigned char *ptr) {
+static int homography_to_py(const Homography* H, unsigned char *ptr, size_t maxlen) {
 	if (!H || !ptr)
 		return 1;
+
+	unsigned char *start_ptr = ptr;
+
 	COPY_BE((double) H->h00, double);
 	COPY_BE((double) H->h01, double);
 	COPY_BE((double) H->h02, double);
@@ -131,22 +163,28 @@ static int homography_to_py(const Homography* H, unsigned char *ptr) {
 	return 0;
 }
 
-static int regdata_to_py(const regdata *regparam, unsigned char *ptr) {
+static int regdata_to_py(const regdata *regparam, unsigned char *ptr, size_t maxlen) {
 	if (!regparam || !ptr)
 		return 1;
+
+	unsigned char *start_ptr = ptr;
+
 	COPY_BE((double) regparam->fwhm, double);
 	COPY_BE((double) regparam->weighted_fwhm, double);
 	COPY_BE((double) regparam->roundness, double);
 	COPY_BE(regparam->quality, double);
 	COPY_BE((double) regparam->background_lvl, double);
 	COPY_BE((int64_t) regparam->number_of_stars, int64_t);
-	homography_to_py(&regparam->H, ptr);
+	homography_to_py(&regparam->H, ptr, 11 * sizeof(double));
 	return 0;
 }
 
-static int imgdata_to_py(const imgdata *imgparam, unsigned char* ptr) {
+static int imgdata_to_py(const imgdata *imgparam, unsigned char* ptr, size_t maxlen) {
 	if (!imgparam || !ptr)
 		return 1;
+
+	unsigned char *start_ptr = ptr;
+
 	int64_t date_obs_ts = imgparam->date_obs ? g_date_time_to_unix(imgparam->date_obs) : 0;
 	COPY_BE((int64_t) imgparam->filenum, int64_t);
 	COPY_BE((int64_t) imgparam->incl, int64_t);
@@ -157,9 +195,12 @@ static int imgdata_to_py(const imgdata *imgparam, unsigned char* ptr) {
 	return 0;
 }
 
-static int psfstar_to_py(const psf_star *data, unsigned char* ptr) {
+static int psfstar_to_py(const psf_star *data, unsigned char* ptr, size_t maxlen) {
 	if (!data || !ptr)
 		return 1;
+
+	unsigned char *start_ptr = ptr;
+
 	COPY_STRING(data->star_name);
 	COPY_BE(data->B, double);
 	COPY_BE(data->A, double);
@@ -203,10 +244,12 @@ static int psfstar_to_py(const psf_star *data, unsigned char* ptr) {
 	return 0;
 }
 
-static int seq_to_py(const sequence *seq, unsigned char* ptr) {
+static int seq_to_py(const sequence *seq, unsigned char* ptr, size_t maxlen) {
 	if (!seq || !ptr)
 		return 1;
-	COPY_STRING(seq->seqname);
+
+	unsigned char *start_ptr = ptr;
+
 	COPY_BE((int64_t) seq->number, int64_t);
 	COPY_BE((int64_t) seq->selnum, int64_t);
 	COPY_BE((int64_t) seq->fixed, int64_t);
@@ -223,15 +266,19 @@ static int seq_to_py(const sequence *seq, unsigned char* ptr) {
 	COPY_BE((int64_t) seq->type, int64_t);
 	COPY_BE((uint64_t) seq->cfa_opened_monochrome, uint64_t);
 	COPY_BE((int64_t) seq->current, int64_t);
+	COPY_STRING(seq->seqname);
 	// Registration preview coords are not passed to python
 	// The dirty and invalid reg flags are not passed to python
 	// The photometry data is not currently passed to python
 	return 0;
 }
 
-static int imstats_to_py(const imstats *stats, unsigned char* ptr) {
+static int imstats_to_py(const imstats *stats, unsigned char* ptr, size_t maxlen) {
 	if (!stats || !ptr)
 		return 1;
+
+	unsigned char *start_ptr = ptr;
+
 	COPY_BE(stats->total, int64_t);
 	COPY_BE(stats->ngoodpix, int64_t);
 	COPY_BE(stats->mean, double);
@@ -293,11 +340,11 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				memcpy(response_data + 8, &channels_BE, sizeof(uint32_t)); // Final 4 bytes: channels
 
 				// Send success response with dimensions
-				success = send_response(conn->channel, STATUS_OK, response_data, sizeof(response_data));
+				success = send_response(conn, STATUS_OK, response_data, sizeof(response_data));
 			} else {
 				// Handle error retrieving dimensions
 				const char* error_msg = "Failed to retrieve image dimensions - no image loaded";
-				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			}
 			break;
 		}
@@ -322,7 +369,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			break;
 		}
 
-		case CMD_RELEASE_SHM: {
+/*		case CMD_RELEASE_SHM: {
 			// Clean up the specified shared memory
 			if (payload_length == 256) {
 				success = cleanup_shm_by_name(payload);
@@ -334,7 +381,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 			break;
 		}
-
+*/
 		case CMD_SEND_COMMAND: {
 			// Ensure null-terminated string for command
 			char* cmd = g_strndup(payload, payload_length);
@@ -343,7 +390,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 			// Send response based on command execution
 			uint8_t status = (retval == CMD_OK) ? STATUS_OK : STATUS_ERROR;
-			success = send_response(conn->channel, status, NULL, 0);
+			success = send_response(conn, status, NULL, 0);
 			break;
 		}
 
@@ -354,7 +401,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			g_free(log_msg);
 
 			// Send success response
-			success = send_response(conn->channel, STATUS_OK, NULL, 0);
+			success = send_response(conn, STATUS_OK, NULL, 0);
 			break;
 		}
 
@@ -362,11 +409,11 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			// Ensure the working directory is available
 			if (com.wd && strlen(com.wd) > 0) {
 				// Send success response with the working directory string
-				success = send_response(conn->channel, STATUS_OK, com.wd, strlen(com.wd));
+				success = send_response(conn, STATUS_OK, com.wd, strlen(com.wd));
 			} else {
 				// Handle error retrieving the working directory
 				const char* error_msg = "Working directory not set";
-				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			}
 			break;
 		}
@@ -375,11 +422,11 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			// Ensure the image filename is available
 			if (single_image_is_loaded() && com.uniq && strlen(com.uniq->filename) > 0) {
 				// Send success response with the working directory string
-				success = send_response(conn->channel, STATUS_OK, com.uniq->filename, strlen(com.uniq->filename));
+				success = send_response(conn, STATUS_OK, com.uniq->filename, strlen(com.uniq->filename));
 			} else {
 				// Handle error retrieving the working directory
 				const char* error_msg = "Image not loaded";
-				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			}
 			break;
 		}
@@ -388,7 +435,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (payload_length != sizeof(incoming_image_info_t)) {
 				g_warning("Invalid payload length for SET_PIXELDATA: %u", payload_length);
 				const char* error_msg = "Invalid payload length";
-				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
 				success = handle_set_pixeldata_request(conn, &gfit, payload, payload_length);
 			}
@@ -399,7 +446,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (payload_length != sizeof(uint32_t)) {
 				g_warning("Invalid payload length for GET_IMAGE_STATS: %u", payload_length);
 				const char* error_msg = "Invalid payload length";
-				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
 
@@ -407,10 +454,17 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			uint32_t channel_BE = *(uint32_t*)payload;
 			uint32_t channel = GUINT32_FROM_BE(channel_BE);
 
-			// Check if image is loaded and channel is valid
-			if (!single_image_is_loaded() || channel >= gfit.naxes[2]) {
-				const char* error_msg = "No image loaded or invalid channel";
-				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+			// Check an image is loaded
+			if (!single_image_is_loaded()) {
+				const char* error_msg = "No image loaded";
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+
+			// Check if channel is valid
+			if (channel < 0 || channel >= gfit.naxes[2]) {
+				const char* error_msg = "Invalid channel";
+				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
 			}
 
@@ -422,7 +476,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				statsarray = calloc(fit->naxes[2], sizeof(imstats*));
 				if (compute_all_channels_statistics_single_image(fit, STATS_EXTRA, MULTI_THREADED, statsarray)) {
 					const char* error_msg = "Unable to compute image statistics";
-					success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 					break;
 				} else {
 					// Replace the stats in gfit with the new calculation
@@ -438,12 +492,12 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			unsigned char *ptr = response_buffer;
 
 			imstats *stats = fit->stats[channel];
-			if (imstats_to_py(stats, ptr)) {
+			if (imstats_to_py(stats, ptr, total_size)) {
 				const char* error_message = "Memory allocation error";
-				success = send_response(conn->channel, STATUS_ERROR, error_message, strlen(error_message));
+				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
 				break;
 			} else {
-				success = send_response(conn->channel, STATUS_OK, response_buffer, total_size);
+				success = send_response(conn, STATUS_OK, response_buffer, total_size);
 			}
 			g_free(response_buffer);
 			break;
@@ -453,7 +507,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (payload_length < sizeof(float)) {
 				g_warning("Invalid payload length for UPDATE_PROGRESS: %u", payload_length);
 				const char* error_msg = "Invalid payload length";
-				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
 
@@ -483,14 +537,14 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			g_free(progress_msg);
 
 			// Send success response
-			success = send_response(conn->channel, STATUS_OK, NULL, 0);
+			success = send_response(conn, STATUS_OK, NULL, 0);
 			break;
 		}
 
 		case CMD_GET_KEYWORDS: {
 			if (!single_image_is_loaded()) {
 				const char* error_msg = "No image loaded";
-				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
 
@@ -501,12 +555,12 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			size_t total_size = strings_size + numeric_size;
 			unsigned char *response_buffer = g_malloc0(total_size);
 			unsigned char *ptr = response_buffer;
-			if (keywords_to_py(&gfit, ptr)) {
+			if (keywords_to_py(&gfit, ptr, total_size)) {
 				const char* error_message = "Memory allocation error";
-				success = send_response(conn->channel, STATUS_ERROR, error_message, strlen(error_message));
+				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
 				break;
 			} else {
-				success = send_response(conn->channel, STATUS_OK, response_buffer, total_size);
+				success = send_response(conn, STATUS_OK, response_buffer, total_size);
 			}
 			g_free(response_buffer);
 			break;
@@ -515,7 +569,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		case CMD_GET_SEQ_REGDATA: {
 			if (!sequence_is_loaded()) {
 				const char* error_msg = "No sequence loaded";
-				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
 			int index, chan;
@@ -525,22 +579,69 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 			if (payload_length != 8 || index < 0 || index >= com.seq.number || chan < 0 || chan > com.seq.nb_layers) {
 				const char* error_msg = "Incorrect command arguments";
-				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
 
 			// Calculate size needed for response
-			size_t total_size = 6 * sizeof(double) + sizeof(Homography);
-			unsigned char *response_buffer = g_malloc0(total_size);
+			size_t total_size = 6 * sizeof(double) + 11 * sizeof(double);
+				// The representation of Homography is 11 x 64-bit vars
+			unsigned char *response_buffer = g_try_malloc0(total_size);
+			if (!response_buffer) {
+				const char* error_msg = "Memory allocation failed";
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
 			unsigned char *ptr = response_buffer;
 
 			regdata *regparam = &com.seq.regparam[index][chan];
-			if (regdata_to_py(regparam, ptr)) {
+			if (regdata_to_py(regparam, ptr, total_size)) {
 				const char* error_message = "No regdata available";
-				success = send_response(conn->channel, STATUS_NONE, error_message, strlen(error_message));
+				success = send_response(conn, STATUS_NONE, error_message, strlen(error_message));
 				break;
 			} else {
-				success = send_response(conn->channel, STATUS_OK, response_buffer, total_size);
+				success = send_response(conn, STATUS_OK, response_buffer, total_size);
+			}
+			g_free(response_buffer);
+			break;
+		}
+
+		case CMD_GET_SEQ_STATS: {
+			if (!sequence_is_loaded()) {
+				const char* error_msg = "No sequence loaded";
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			int index, chan;
+			if (payload_length == 8) {
+				index = GUINT32_FROM_BE(*(int*) payload);
+				chan = GUINT32_FROM_BE(*((int*) payload + 1));
+			}
+			if (payload_length != 8 || index < 0 || index >= com.seq.number || chan < 0 || chan > com.seq.nb_layers) {
+				const char* error_msg = "Incorrect command arguments";
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+
+			// Calculate size needed for response
+			size_t total_size = 14 * sizeof(double);
+			unsigned char *response_buffer = g_malloc0(total_size);
+			unsigned char *ptr = response_buffer;
+
+			imstats *stats = com.seq.stats[chan][index];
+
+			if (!com.seq.stats[chan][index]) {
+				const char* error_message = "No stats for this channel for this frame";
+				success = send_response(conn, STATUS_NONE, error_message, strlen(error_message));
+				break;
+			}
+
+			if (imstats_to_py(stats, ptr, total_size)) {
+				const char* error_message = "Memory allocation error";
+				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
+				break;
+			} else {
+				success = send_response(conn, STATUS_OK, response_buffer, total_size);
 			}
 			g_free(response_buffer);
 			break;
@@ -549,7 +650,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		case CMD_GET_SEQ_IMGDATA: {
 			if (!sequence_is_loaded()) {
 				const char* error_msg = "No sequence loaded";
-				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
 			int index;
@@ -558,7 +659,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 			if (payload_length != 4 || index < 0 || index >= com.seq.number) {
 				const char* error_msg = "Incorrect command argument";
-				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
 
@@ -568,12 +669,12 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			unsigned char *ptr = response_buffer;
 
 			imgdata *imgparam = &com.seq.imgparam[index];
-			if (imgdata_to_py(imgparam, ptr)) {
+			if (imgdata_to_py(imgparam, ptr, total_size)) {
 				const char* error_message = "Memory allocation error";
-				success = send_response(conn->channel, STATUS_ERROR, error_message, strlen(error_message));
+				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
 				break;
 			} else {
-				success = send_response(conn->channel, STATUS_OK, response_buffer, total_size);
+				success = send_response(conn, STATUS_OK, response_buffer, total_size);
 			}
 			g_free(response_buffer);
 			break;
@@ -582,7 +683,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		case CMD_GET_SEQ_PIXELDATA: {
 			if (!sequence_is_loaded()) {
 				const char* error_msg = "No sequence loaded";
-				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
 			int index;
@@ -591,14 +692,14 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 			if (payload_length != 4 || index < 0 || index >= com.seq.number) {
 				const char* error_msg = "Incorrect command argument";
-				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
 			fits *fit = calloc(1, sizeof(fits));
 			if (seq_read_frame(&com.seq, index, fit, FALSE, MULTI_THREADED)) {
 				free(fit);
 				const char* error_msg = "Failed to read sequence frame";
-				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
 			rectangle region = {0, 0, fit->rx, fit->ry};
@@ -611,7 +712,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		case CMD_GET_SEQ_IMAGE: {
 			if (!sequence_is_loaded()) {
 				const char* error_msg = "No sequence loaded";
-				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
 			int index;
@@ -620,14 +721,14 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 			if (payload_length != 4 || index < 0 || index >= com.seq.number) {
 				const char* error_msg = "Incorrect command argument";
-				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
 			fits *fit = calloc(1, sizeof(fits));
 			if (seq_read_frame_metadata(&com.seq, index, fit)) {
 				free(fit);
 				const char* error_msg = "Failed to read frame metadata";
-				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
 
@@ -637,15 +738,15 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			unsigned char *response_buffer = g_malloc0(total_size);
 			unsigned char *ptr = response_buffer;
 
-			int ret = fits_to_py(fit, ptr);
+			int ret = fits_to_py(fit, ptr, total_size);
 			clearfits(fit);
 			free(fit);
 			if (ret) {
 				const char* error_message = "Memory allocation error";
-				success = send_response(conn->channel, STATUS_ERROR, error_message, strlen(error_message));
+				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
 				break;
 			} else {
-				success = send_response(conn->channel, STATUS_OK, response_buffer, total_size);
+				success = send_response(conn, STATUS_OK, response_buffer, total_size);
 			}
 			g_free(response_buffer);
 			break;
@@ -654,21 +755,22 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		case CMD_GET_SEQ: {
 			if (!sequence_is_loaded()) {
 				const char* error_msg = "No sequence loaded";
-				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
 			// Calculate size needed for the response
-			size_t total_size = strlen(com.seq.seqname) +
-								sizeof(uint64_t) * 16;
+			size_t stringsize = strlen(com.seq.seqname) + 1;
+			size_t varsize = sizeof(uint64_t) * 16;
+			size_t total_size = varsize + stringsize;
 			unsigned char *response_buffer = g_malloc0(total_size);
 			unsigned char *ptr = response_buffer;
 
-			if (seq_to_py(&com.seq, ptr)) {
+			if (seq_to_py(&com.seq, ptr, total_size)) {
 				const char* error_message = "Memory allocation error";
-				success = send_response(conn->channel, STATUS_ERROR, error_message, strlen(error_message));
+				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
 				break;
 			} else {
-				success = send_response(conn->channel, STATUS_OK, response_buffer, total_size);
+				success = send_response(conn, STATUS_OK, response_buffer, total_size);
 			}
 			g_free(response_buffer);
 			break;
@@ -677,7 +779,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		case CMD_GET_PSFSTAR: {
 			if (!com.stars) {
 				const char* error_msg = "No stars list available";
-				success = send_response(conn->channel, STATUS_NONE, error_msg, strlen(error_msg));
+				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
 			}
 			int index;
@@ -691,7 +793,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 			if (payload_length != 4 || index < 0 || index >= nb_in_com_stars) {
 				const char* error_msg = "Incorrect command argument";
-				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
 
@@ -705,12 +807,12 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			unsigned char *response_buffer = g_malloc0(total_size);
 			unsigned char *ptr = response_buffer;
 
-			if (psfstar_to_py(psf, ptr)) {
+			if (psfstar_to_py(psf, ptr, total_size)) {
 				const char* error_message = "Memory allocation error";
-				success = send_response(conn->channel, STATUS_ERROR, error_message, strlen(error_message));
+				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
 				break;
 			} else {
-				success = send_response(conn->channel, STATUS_OK, response_buffer, total_size);
+				success = send_response(conn, STATUS_OK, response_buffer, total_size);
 			}
 			g_free(response_buffer);
 			break;
@@ -719,7 +821,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		case CMD_GET_IMAGE: {
 			if (!single_image_is_loaded()) {
 				const char* error_msg = "No image loaded";
-				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
 
@@ -729,12 +831,12 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			unsigned char *response_buffer = g_malloc0(total_size);
 			unsigned char *ptr = response_buffer;
 
-			if (fits_to_py(&gfit, ptr)) {
+			if (fits_to_py(&gfit, ptr, total_size)) {
 				const char* error_message = "Memory allocation error";
-				success = send_response(conn->channel, STATUS_ERROR, error_message, strlen(error_message));
+				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
 				break;
 			} else {
-				success = send_response(conn->channel, STATUS_OK, response_buffer, total_size);
+				success = send_response(conn, STATUS_OK, response_buffer, total_size);
 			}
 			g_free(response_buffer);
 			break;
@@ -743,12 +845,12 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		case CMD_GET_ICC_PROFILE: {
 			if (!single_image_is_loaded()) {
 				const char* error_msg = "No image loaded";
-				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
 			if (gfit.icc_profile == NULL) {
 				const char* error_msg = "Image has no ICC profile";
-				success = send_response(conn->channel, STATUS_NONE, error_msg, strlen(error_msg));
+				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
 			}
 			// Prepare data
@@ -762,13 +864,13 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		case CMD_GET_FITS_HEADER: {
 			if (!single_image_is_loaded()) {
 				const char* error_msg = "No image loaded";
-				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
 			fits *fit = &gfit;
 			if (fit->header == NULL) {
 				const char* error_msg = "Image has no FITS header";
-				success = send_response(conn->channel, STATUS_NONE, error_msg, strlen(error_msg));
+				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
 			}
 			// Prepare data
@@ -781,13 +883,13 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		case CMD_GET_FITS_HISTORY: {
 			if (!single_image_is_loaded()) {
 				const char* error_msg = "No image loaded";
-				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
 			fits *fit = &gfit;
 			if (fit->history == NULL) {
 				const char* error_msg = "Image has no history entries";
-				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
 			}
 			// Prepare data
@@ -811,13 +913,13 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		case CMD_GET_FITS_UNKNOWN_KEYS: {
 			if (!single_image_is_loaded()) {
 				const char* error_msg = "No image loaded";
-				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
 			fits *fit = &gfit;
-			if (fit->unknown_keys == NULL) {
+			if (fit->unknown_keys == NULL || fit->unknown_keys[0] == '\0') {
 				const char* error_msg = "Image has no unknown keys";
-				success = send_response(conn->channel, STATUS_NONE, error_msg, strlen(error_msg));
+				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
 			}
 			// Prepare data
@@ -830,7 +932,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		default:
 			g_warning("Unknown command: %d", header->command);
 			const char* error_msg = "Unknown command";
-			send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+			send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			break;
 	}
 

@@ -81,13 +81,39 @@ typedef struct {
     char shm_name[256];
 } incoming_image_info_t;
 
+typedef struct _Connection {
+    gboolean is_connected;
+    gboolean should_stop;
+    GMutex mutex;
+    GCond condition;
+#ifdef _WIN32
+    HANDLE pipe_handle;
+#else
+    int server_fd;
+    int client_fd;
+    gchar *socket_path;
+#endif
+    void (*client_connected_callback)(gpointer);
+    void (*client_disconnected_callback)(gpointer);
+    gpointer user_data;
+} Connection;
+
+typedef struct {
+    Connection *python_conn;
+    GThread *worker_thread;
+} CommunicationState;
+
 // Public functions
-gpointer open_python_channel(gpointer user_data);
-int release_python_channel();
+//gpointer open_python_channel(gpointer user_data);
+//int release_python_channel();
 void execute_python_script_async(gchar* script_name, gboolean from_file);
-gboolean send_response(GIOChannel* channel, uint8_t status, const void* data, uint32_t length);
+gboolean send_response(Connection *conn, uint8_t status, const void* data, uint32_t length);
 gboolean handle_pixeldata_request(Connection *conn, fits *fit, rectangle region);
 gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* payload, size_t payload_length);
 gboolean handle_rawdata_request(Connection *conn, void* data, size_t total_bytes);
-gboolean cleanup_shm_by_name(const char *shm_name);
+//gboolean cleanup_shm_by_name(const char *shm_name);
+
+gboolean initialize_python_communication(const gchar *connection_path);
+void shutdown_python_communication(void);
+
 #endif

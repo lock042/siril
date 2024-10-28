@@ -13,7 +13,7 @@ from typing import Tuple, Optional
 import numpy as np
 from .shm import SharedMemoryWrapper
 from .exceptions import SirilError, ConnectionError, CommandError, DataError, NoImageError
-from .models import DataType, ImageStats, FKeywords, FFit, Homography, StarProfile, PSFStar, RegData, ImgData, Sequence
+from .models import DataType, ImageStats, FKeywords, FFit, Homography, StarProfile, PSFStar, RegData, ImgData, Sequence, SequenceType
 if os.name == 'nt':
     import win32pipe
     import win32file
@@ -35,7 +35,7 @@ class _Command(IntEnum):
     GET_DIMENSIONS = 6
     GET_PIXELDATA = 7
     GET_PIXELDATA_REGION = 8
-    RELEASE_SHM = 9
+#    RELEASE_SHM = 9
     SET_PIXELDATA = 10
     GET_IMAGE_STATS = 11
     GET_KEYWORDS = 12
@@ -207,44 +207,24 @@ class SirilInterface:
             finally:
                 self.sock.settimeout(original_timeout)
 
-    def _map_shared_memory(self, name: str, size: int) -> mmap.mmap:
-        """Create or open a shared memory mapping"""
-        if os.name == 'nt':
-            try:
-                # Create a file mapping
-                mapping_handle = win32file.CreateFileMapping(
-                    win32file.INVALID_HANDLE_VALUE,  # Use paging file
-                    None,  # Default security
-                    win32file.PAGE_READWRITE,  # Read/write access
-                    0,  # Maximum size (high-order DWORD)
-                    size,  # Maximum size (low-order DWORD)
-                    name  # Mapping name
-                )
+    def _map_shared_memory(self, name: str, size: int) -> SharedMemoryWrapper:
+        """
+        Create or open a shared memory mapping using SharedMemoryWrapper.
 
-                try:
-                    # Create a memory map view
-                    map_view = win32file.MapViewOfFile(
-                        mapping_handle,
-                        win32file.FILE_MAP_READ | win32file.FILE_MAP_WRITE,
-                        0,  # Offset high
-                        0,  # Offset low
-                        size
-                    )
+        Args:
+            name: Name of the shared memory segment
+            size: Size of the shared memory segment in bytes
 
-                    # Create mmap object from the handle
-                    return mmap.mmap(-1, size, name)
+        Returns:
+            SharedMemoryWrapper: A wrapper object for the shared memory segment
 
-                finally:
-                    win32file.CloseHandle(mapping_handle)
-
-            except pywintypes.error as e:
-                raise RuntimeError(f"Failed to create shared memory mapping: {e}")
-        else:
-            fd = os.open(f"/dev/shm/{name}", os.O_RDONLY)
-            try:
-                return mmap.mmap(fd, size, mmap.MAP_SHARED, mmap.PROT_READ)
-            finally:
-                os.close(fd)
+        Raises:
+            RuntimeError: If the shared memory mapping fails
+        """
+        try:
+            return SharedMemoryWrapper(name=name, size=size)
+        except Exception as e:
+            raise RuntimeError(f"Failed to create shared memory mapping: {e}")
 
     def _send_command(self, command: _Command, data: Optional[bytes] = None) -> Tuple[Optional[int], Optional[bytes]]:
         """
@@ -621,7 +601,7 @@ class SirilInterface:
             # Create numpy array from shared memory
             dtype = np.float32 if shm_info.data_type == 1 else np.uint16
             try:
-                buffer = memoryview(shm).cast('B')
+                buffer = memoryview(shm.buf).cast('B')  # Use shm.buf instead of shm directly
                 arr = np.frombuffer(buffer, dtype=dtype)
             except (BufferError, ValueError, TypeError) as e:
                 raise RuntimeError(f"Failed to create array from shared memory: {e}")
@@ -647,17 +627,6 @@ class SirilInterface:
             # Make a copy of the data since we'll be releasing the shared memory
             result = np.copy(arr)
 
-            # Notify C side to clean up shared memory
-            try:
-                # Ensure that shm_info.shm_name is exactly 256 bytes (trimmed or padded with null bytes)
-                shm_name = shm_info.shm_name[:256].ljust(256, b'\x00')
-
-                # Pack the header and payload
-                cmd_header = struct.pack('!BL', _Command.RELEASE_SHM, 256)  # 'B' for the command and 'L' for length
-                self.sock.sendall(cmd_header + shm_name)
-            except socket.error as e:
-                raise RuntimeError(f"Failed to send completion notification: {e}")
-
             return result
 
         except NoImageError:
@@ -667,10 +636,12 @@ class SirilInterface:
             # Wrap all other exceptions with context
             raise RuntimeError(f"Error retrieving pixel data: {e}") from e
         finally:
+            # Clean up shared memory using the wrapper's methods
             if shm is not None:
                 try:
-                    shm.close()
-                except BufferError:
+                    shm.close()  # First close the memory mapping
+                    shm.unlink()  # Then unlink/remove the shared memory segment
+                except Exception:
                     pass
 
     def set_pixel_data(self, image_data: np.ndarray) -> bool:
@@ -818,20 +789,9 @@ class SirilInterface:
                 raise RuntimeError(f"Failed to map shared memory: {e}")
 
             try:
-                result = bytes(memoryview(shm).cast('B'))
+                result = bytes(memoryview(shm.buf).cast('B'))
             except (BufferError, ValueError, TypeError) as e:
                 raise RuntimeError(f"Failed to create bytes from shared memory: {e}")
-
-            # Notify C side to clean up shared memory
-            try:
-                # Ensure that shm_info.shm_name is exactly 256 bytes (trimmed or padded with null bytes)
-                shm_name = shm_info.shm_name[:256].ljust(256, b'\x00')
-
-                # Pack the header and payload
-                cmd_header = struct.pack('!BL', _Command.RELEASE_SHM, 256)  # 'B' for the command and 'L' for length
-                self.sock.sendall(cmd_header + shm_name)
-            except socket.error as e:
-                raise RuntimeError(f"Failed to send completion notification: {e}")
 
             return result
 
@@ -845,6 +805,7 @@ class SirilInterface:
             if shm is not None:
                 try:
                     shm.close()
+                    shm.unlink()
                 except BufferError:
                     pass
 
@@ -902,21 +863,10 @@ class SirilInterface:
 
             try:
                 # Read entire buffer at once using memoryview
-                buffer = memoryview(shm).cast('B')
+                buffer = memoryview(shm.buf).cast('B')
                 result = buffer.tobytes().decode('utf-8', errors='ignore')
             except (BufferError, ValueError, TypeError) as e:
                 raise RuntimeError(f"Failed to create string from shared memory: {e}")
-
-            # Notify C side to clean up shared memory
-            try:
-                # Ensure that shm_info.shm_name is exactly 256 bytes (trimmed or padded with null bytes)
-                shm_name = shm_info.shm_name[:256].ljust(256, b'\x00')
-
-                # Pack the header and payload
-                cmd_header = struct.pack('!BL', _Command.RELEASE_SHM, 256)  # 'B' for the command and 'L' for length
-                self.sock.sendall(cmd_header + shm_name)
-            except socket.error as e:
-                raise RuntimeError(f"Failed to send completion notification: {e}")
 
             return result
 
@@ -930,6 +880,7 @@ class SirilInterface:
             if shm is not None:
                 try:
                     shm.close()
+                    shm.unlink()
                 except BufferError:
                     pass
 
@@ -989,21 +940,10 @@ class SirilInterface:
 
             try:
                 # Read entire buffer at once using memoryview
-                buffer = memoryview(shm).cast('B')
+                buffer = memoryview(shm.buf).cast('B')
                 result = buffer.tobytes().decode('utf-8', errors='ignore')
             except (BufferError, ValueError, TypeError) as e:
                 raise RuntimeError(f"Failed to create string from shared memory: {e}")
-
-            # Notify C side to clean up shared memory
-            try:
-                # Ensure that shm_info.shm_name is exactly 256 bytes (trimmed or padded with null bytes)
-                shm_name = shm_info.shm_name[:256].ljust(256, b'\x00')
-
-                # Pack the header and payload
-                cmd_header = struct.pack('!BL', _Command.RELEASE_SHM, 256)  # 'B' for the command and 'L' for length
-                self.sock.sendall(cmd_header + shm_name)
-            except socket.error as e:
-                raise RuntimeError(f"Failed to send completion notification: {e}")
 
             return result
 
@@ -1017,6 +957,7 @@ class SirilInterface:
             if shm is not None:
                 try:
                     shm.close()
+                    shm.unlink()
                 except BufferError:
                     pass
 
@@ -1074,21 +1015,11 @@ class SirilInterface:
 
             try:
                 # Read entire buffer at once using memoryview
-                buffer = memoryview(shm).cast('B')
+                buffer = memoryview(shm.buf).cast('B')
                 string_data = buffer.tobytes().decode('utf-8', errors='ignore')
                 string_list = string_data.split('\x00')
             except (BufferError, ValueError, TypeError) as e:
                 raise RuntimeError(f"Failed to create string from shared memory: {e}")
-
-            # Notify C side to clean up shared memory
-            try:
-                # Ensure that shm_info.shm_name is exactly 256 bytes (trimmed or padded with null bytes)
-                shm_name = shm_info.shm_name[:256].ljust(256, b'\x00')
-                # Pack the header and payload
-                cmd_header = struct.pack('!BL', _Command.RELEASE_SHM, 256)  # 'B' for the command and 'L' for length
-                self.sock.sendall(cmd_header + shm_name)
-            except socket.error as e:
-                raise RuntimeError(f"Failed to send completion notification: {e}")
 
             return [s for s in string_list if s]
 
@@ -1102,6 +1033,7 @@ class SirilInterface:
             if shm is not None:
                 try:
                     shm.close()
+                    shm.unlink()
                 except BufferError:
                     pass
 
@@ -1160,6 +1092,7 @@ class SirilInterface:
 
         # Request data with the channel number as payload
         response = self.request_data(_Command.GET_IMAGE_STATS, payload=channel_payload)
+
         if response is None:
             return None
 
@@ -1261,6 +1194,7 @@ class SirilInterface:
 
         # Request data with the channel number as payload
         response = self.request_data(_Command.GET_SEQ_STATS, payload=data_payload)
+
         if response is None:
             return None
         try:
@@ -1333,13 +1267,13 @@ class SirilInterface:
             return None
 
         try:
-            null_pos = response.find(b'\0')
-            string_data = response[:null_pos].decode('utf-8')
-            format_start = null_pos + 1
-
             format_string = '!4q3Q4qdQqQq'
+            fixed_length = struct.calcsize(format_string)
 
-            values = struct.unpack(format_string, response)
+            values = struct.unpack(format_string, response[:fixed_length])
+            # Extract remaining bytes for the null-terminated string
+            remaining_data = response[fixed_length:]
+            seqname_string = remaining_data.decode('utf-8')
 
             number = values[0]
             nb_layers = values[3]
@@ -1356,7 +1290,6 @@ class SirilInterface:
                           for frame in range(number)]
 
             return Sequence (
-                seqname = string_data,
                 number = values[0],
                 selnum = values[1],
                 fixed = values[2],
@@ -1366,19 +1299,20 @@ class SirilInterface:
                 is_variable = bool(values[6]),
                 bitpix = values[7],
                 reference_image = values[8],
-                # imgparam = imgparam_list,
-                # regdata = regdata_list,
-                # stats = stats_list,
+                imgparam = imgparam_list,
+                regparam = regdata_list,
+                stats = stats_list,
                 beg = values[9],
                 end = values[10],
                 exposure = values[11],
                 fz = bool(values[12]),
                 type = SequenceType(values[13]),
                 cfa_opened_monochrome = bool(values[14]),
-                current = values[15]
+                current = values[15],
+                seqname = seqname_string
             )
         except struct.error as e:
-            print(f"Error unpacking frame image data: {e}", file=sys.stderr)
+            print(f"Error unpacking sequence data: {e}", file=sys.stderr)
             return None
 
     def get_keywords(self) -> Optional[FKeywords]:

@@ -8,6 +8,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <errno.h>
 #include <sys/mman.h>
 #include <fcntl.h>
 #endif
@@ -24,319 +25,18 @@
 #include "io/siril_pythonmodule.h"
 
 #define BUFFER_SIZE 65536
+#define MAX_RETRIES 3
 #define PIPE_NAME "\\\\.\\pipe\\mypipe"
 #define SOCKET_PORT 12345
 
-// Structure to hold process information
-typedef struct {
-	GPid pid;
-	guint watch_source_id;
-} ProcessInfo;
+static CommunicationState commstate = {0};
 
-// Global list of active shared memory allocations
-static GMutex shm_list_mutex;
-static GList *active_shm_list = NULL;
+// Forward declarations
+static void cleanup_connection(Connection *conn);
+static gboolean wait_for_client(Connection *conn);
+static gboolean handle_client_communication(Connection *conn);
 
-// Global process info
-static ProcessInfo *python_process = NULL;
-
-// Function declarations
-static void setup_io_channel(GIOChannel *channel, const char *name);
-static gboolean io_watch_callback(GIOChannel *channel, GIOCondition condition, gpointer data);
-
-// Add new shared memory allocation to tracking list
-static void track_shm_allocation(const char *shm_name, void *shm_ptr, size_t size,
-#ifdef _WIN32
-							win_shm_handle_t *win_handle
-#else
-							int fd
-#endif
-) {
-	shm_allocation_t *alloc = g_new(shm_allocation_t, 1);
-	alloc->shm_name = g_strdup(shm_name);
-	alloc->shm_ptr = shm_ptr;
-	alloc->size = size;
-#ifdef _WIN32
-	alloc->win_handle = *win_handle;
-#else
-	alloc->fd = fd;
-#endif
-
-	g_mutex_lock(&shm_list_mutex);
-	active_shm_list = g_list_append(active_shm_list, alloc);
-	g_mutex_unlock(&shm_list_mutex);
-}
-
-// Free a specific shared memory allocation
-static void free_shm_allocation(shm_allocation_t *alloc) {
-	if (!alloc) return;
-
-#ifdef _WIN32
-	cleanup_shared_memory_win32(&alloc->win_handle);
-#else
-	munmap(alloc->shm_ptr, alloc->size);
-	close(alloc->fd);
-	shm_unlink(alloc->shm_name);
-#endif
-
-	g_free(alloc->shm_name);
-	g_free(alloc);
-}
-
-// Find and remove a shared memory allocation by name
-gboolean cleanup_shm_by_name(const char *shm_name) {
-	gboolean found = FALSE;
-
-	g_mutex_lock(&shm_list_mutex);
-	GList *link = active_shm_list;
-	while (link) {
-		shm_allocation_t *alloc = link->data;
-		if (strcmp(alloc->shm_name, shm_name) == 0) {
-			free_shm_allocation(alloc);
-			active_shm_list = g_list_delete_link(active_shm_list, link);
-			found = TRUE;
-			break;
-		}
-		link = link->next;
-	}
-	g_mutex_unlock(&shm_list_mutex);
-
-	return found;
-}
-
-// Cleanup handler
-static void cleanup_all_shm(GPid pid, gint status, gpointer user_data) {
-	g_mutex_lock(&shm_list_mutex);
-
-	if (active_shm_list) {
-		g_warning("Cleaning up %d shared memory allocations at Python exit, these should have been cleaned before", g_list_length(active_shm_list));
-		g_list_foreach(active_shm_list, (GFunc)free_shm_allocation, NULL);
-		g_list_free(active_shm_list);
-		active_shm_list = NULL;
-	}
-
-	g_mutex_unlock(&shm_list_mutex);
-
-	// Remove the watch source
-	if (python_process && python_process->watch_source_id > 0) {
-		g_source_remove(python_process->watch_source_id);
-		python_process->watch_source_id = 0;
-	}
-}
-
-// Add cleanup function for program exit
-static void cleanup_python_process(void) {
-	if (python_process) {
-		if (python_process->pid > 0) {
-			// Try to terminate gracefully first
-			kill(python_process->pid, SIGTERM);
-
-			// Give it a short time to clean up
-			struct timespec ts = { .tv_sec = 0, .tv_nsec = 500000000 }; // 500ms
-			nanosleep(&ts, NULL);
-
-			// Force kill if still running
-			if (kill(python_process->pid, 0) == 0) {
-				kill(python_process->pid, SIGKILL);
-			}
-		}
-
-		if (python_process->watch_source_id > 0) {
-			g_source_remove(python_process->watch_source_id);
-		}
-
-		g_free(python_process);
-		python_process = NULL;
-	}
-
-	// Clean up any remaining shared memory
-	cleanup_all_shm(0, 0, NULL);
-}
-
-// New function to initialize process monitoring
-static void init_process_monitoring(GPid pid) {
-	if (python_process) {
-		// Clean up existing process info if any
-		if (python_process->watch_source_id > 0) {
-			g_source_remove(python_process->watch_source_id);
-		}
-		g_free(python_process);
-	}
-
-	python_process = g_new0(ProcessInfo, 1);
-	python_process->pid = pid;
-
-	// Set up process monitoring with full flags
-	python_process->watch_source_id = g_child_watch_add_full(
-		G_PRIORITY_DEFAULT,
-		pid,
-		cleanup_all_shm,
-		NULL,
-		NULL  // No need for destroy notify
-	);
-}
-
-static gboolean handle_new_connection(GIOChannel* source, GIOCondition condition, gpointer data) {
-	Connection* conn = (Connection*)data;
-
-	if (condition & G_IO_IN) {
-		int client_fd = accept(conn->server_fd, NULL, NULL);
-		if (client_fd == -1) {
-			g_warning("Failed to accept connection: %s", g_strerror(errno));
-			return TRUE;  // Keep the source
-		}
-
-		// Close any existing client connection
-		if (conn->channel) {
-			g_io_channel_unref(conn->channel);
-		}
-		if (conn->socket_fd > 0) {
-			close(conn->socket_fd);
-		}
-
-		// Set up the new client connection
-		conn->socket_fd = client_fd;
-		conn->channel = g_io_channel_unix_new(client_fd);
-
-		// Set channel encoding to NULL for binary data
-		GError *error = NULL;
-		g_io_channel_set_encoding(conn->channel, NULL, &error);
-		if (error) {
-			g_warning("Failed to set channel encoding: %s", error->message);
-			g_error_free(error);
-		}
-
-		// Set non-blocking mode
-		g_io_channel_set_flags(conn->channel, G_IO_FLAG_NONBLOCK, &error);
-		if (error) {
-			g_warning("Failed to set non-blocking mode: %s", error->message);
-			g_error_free(error);
-		}
-
-		// Notify that client has connected and channel is ready
-		if (conn->client_connected_callback) {
-			conn->client_connected_callback(conn);
-		}
-	}
-
-	return TRUE;  // Return TRUE to keep the source
-}
-
-Connection* create_connection(void (*client_connected_callback)(Connection*)) {
-	Connection* conn = g_new0(Connection, 1);
-#ifdef _WIN32
-	// Windows: Create a named pipe
-	conn->pipe_handle = CreateNamedPipe(
-		PIPE_NAME,
-		PIPE_ACCESS_DUPLEX,
-		PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT,
-		1,
-		BUFFER_SIZE,
-		BUFFER_SIZE,
-		0,
-		NULL
-	);
-	if (conn->pipe_handle == INVALID_HANDLE_VALUE) {
-		g_error("Failed to create pipe");
-		g_free(conn);
-		return NULL;
-	}
-	conn->is_posix = FALSE;
-	conn->channel = g_io_channel_win32_new_fd((int)conn->pipe_handle);
-#else
-	// POSIX: Create a socket
-	int server_fd = socket(AF_UNIX, SOCK_STREAM, 0);
-	if (server_fd == -1) {
-		g_error("Failed to create socket");
-		g_free(conn);
-		return NULL;
-	}
-
-	struct sockaddr_un address;
-	address.sun_family = AF_UNIX;
-	strcpy(address.sun_path, "/tmp/siril.sock");  // Or whatever path you're using
-
-	// Remove existing socket file if it exists
-	unlink(address.sun_path);
-
-	if (bind(server_fd, (struct sockaddr*)&address, sizeof(address)) < 0) {
-		g_error("Failed to bind socket");
-		close(server_fd);
-		g_free(conn);
-		return NULL;
-	}
-	if (listen(server_fd, 1) < 0) {
-		g_error("Failed to listen on socket");
-		close(server_fd);
-		g_free(conn);
-		return NULL;
-	}
-
-	conn->is_posix = TRUE;
-	conn->server_path = g_strdup(address.sun_path);
-	conn->server_fd = server_fd;
-	conn->client_connected_callback = client_connected_callback;
-
-	// Use the python MainContext
-	GSource *source = g_io_create_watch(g_io_channel_unix_new(server_fd), G_IO_IN);
-	g_source_set_callback(source, (GSourceFunc)handle_new_connection, conn, NULL);
-	g_source_attach(source, com.python_context);
-	g_source_unref(source);
-#endif
-	return conn;
-}
-
-/**
-* Cleanup function
-*/
-void free_connection(Connection* conn) {
-	if (!conn) return;
-
-	if (conn->channel) {
-		g_io_channel_unref(conn->channel);
-	}
-
-#ifdef _WIN32
-	if (conn->pipe_handle != INVALID_HANDLE_VALUE) {
-		CloseHandle(conn->pipe_handle);
-	}
-#else
-	if (conn->socket_fd > 0) {
-		close(conn->socket_fd);
-	}
-	if (conn->server_fd > 0) {
-		close(conn->server_fd);
-	}
-	if (conn->server_channel) {
-		g_io_channel_unref(conn->server_channel);
-	}
-#endif
-
-	g_free(conn);
-}
-
-typedef struct {
-	GIOChannel *channel;
-	gboolean ready;
-} ChannelData;
-
-// Callback for when data is available on the channel
-static gboolean channel_read_ready(GIOChannel *source, GIOCondition condition, gpointer data) {
-	ChannelData *ch_data = (ChannelData *)data;
-
-	if (condition & G_IO_IN) {
-		// Data is ready to read
-		ch_data->ready = TRUE;
-		return FALSE; // Stop the watch
-	} else if (condition & (G_IO_HUP | G_IO_ERR | G_IO_NVAL)) {
-		// Handle errors or hangups
-		ch_data->ready = FALSE;
-		return FALSE; // Stop the watch
-	}
-
-	return TRUE; // Continue watching
-}
-
+/*
 gboolean receive_data_with_timeout(GIOChannel *channel, void *buffer, size_t *buffer_size, guint timeout_ms) {
 	GError *error = NULL;
 	gsize bytes_read = 0;
@@ -399,112 +99,7 @@ gboolean receive_data_with_timeout(GIOChannel *channel, void *buffer, size_t *bu
 	g_main_loop_unref(loop);
 	return TRUE;
 }
-
-/**
-* Helper function to send a response back through the channel
 */
-gboolean send_response(GIOChannel* channel, uint8_t status, const void* data, uint32_t length) {
-	GError* error = NULL;
-	gsize bytes_written = 0;
-	ResponseHeader header = {
-		.status = status,
-		.length = GUINT32_TO_BE(length)  // Convert to network byte order
-	};
-
-	// Send header
-	GIOStatus header_status = g_io_channel_write_chars(channel, (gchar*)&header,
-													sizeof(header), &bytes_written, &error);
-	if (header_status != G_IO_STATUS_NORMAL) {
-		if (error) {
-			g_warning("Error sending response header: %s", error->message);
-			g_error_free(error);
-		}
-		return FALSE;
-	}
-
-	// Send data if present
-	if (data && length > 0) {
-		GIOStatus data_status = g_io_channel_write_chars(channel, data, length,
-														&bytes_written, &error);
-		if (data_status != G_IO_STATUS_NORMAL) {
-			if (error) {
-				g_warning("Error sending response data: %s", error->message);
-				g_error_free(error);
-			}
-			return FALSE;
-		}
-	}
-
-	// Flush the channel
-	g_io_channel_flush(channel, &error);
-	return TRUE;
-}
-
-static void cleanup_io_loop(void);
-/**
-* Function to poll the IOChannel and read data in chunks.
-* Returns FALSE if the connection is closed and the watch should be removed.
-*/
-gboolean poll_io_channel(GIOChannel* channel, GIOCondition condition, gpointer user_data) {
-	Connection* conn = (Connection*)user_data;
-	GError* error = NULL;
-	gsize bytes_read = 0;
-	gchar buffer[BUFFER_SIZE];
-
-	// Check for hangup or error conditions first
-	if (condition & (G_IO_HUP | G_IO_ERR)) {
-		siril_debug_print("Python client disconnected\n");
-		goto cleanup_connection;
-	}
-
-	// Handle normal read condition
-	if (condition & G_IO_IN) {
-		GIOStatus status = g_io_channel_read_chars(channel, buffer, BUFFER_SIZE, &bytes_read, &error);
-
-		switch (status) {
-			case G_IO_STATUS_NORMAL:
-				if (bytes_read > 0) {
-					process_connection(conn, buffer, bytes_read);
-				}
-				break;
-
-			case G_IO_STATUS_EOF:
-				siril_debug_print("Python client closed connection\n");
-				// Clean up and prepare for next connection
-				goto cleanup_connection;
-
-			case G_IO_STATUS_ERROR:
-				if (error) {
-					g_warning("Error reading from channel: %s", error->message);
-					g_error_free(error);
-				}
-				return FALSE;  // Remove this watch
-
-			case G_IO_STATUS_AGAIN:
-				// Nothing to read right now, try again later
-				break;
-		}
-	}
-
-	return TRUE;  // Keep watching if we haven't returned FALSE above
-
-cleanup_connection:
-		// Clean up the current connection
-		if (!conn->is_cleaned_up) {
-			conn->is_cleaned_up = TRUE;
-			if (conn->channel) {
-				g_io_channel_unref(conn->channel);
-				conn->channel = NULL;
-			}
-			if (conn->socket_fd > 0) {
-				close(conn->socket_fd);
-				conn->socket_fd = 0;
-			}
-			cleanup_io_loop();
-		}
-		// Return FALSE to remove this watch
-		return FALSE;
-}
 
 #ifdef _WIN32
 // Windows-specific shared memory handling
@@ -552,6 +147,54 @@ static void cleanup_shared_memory_win32(win_shm_handle_t* handle) {
 	}
 }
 #endif
+
+gboolean send_response(Connection* conn, uint8_t status, const void* data, uint32_t length) {
+    ResponseHeader header = {
+        .status = status,
+        .length = GUINT32_TO_BE(length)  // Convert to network byte order
+    };
+
+#ifdef _WIN32
+    DWORD bytes_written = 0;
+
+    // Send header
+    if (!WriteFile(conn->pipe_handle, &header, sizeof(header), &bytes_written, NULL) ||
+        bytes_written != sizeof(header)) {
+        g_warning("Failed to send response header: %lu", GetLastError());
+        return FALSE;
+    }
+
+    // Send data if present
+    if (data && length > 0) {
+        if (!WriteFile(conn->pipe_handle, data, length, &bytes_written, NULL) ||
+            bytes_written != length) {
+            g_warning("Failed to send response data: %lu", GetLastError());
+            return FALSE;
+        }
+    }
+
+#else
+    ssize_t bytes_written;
+
+    // Send header
+    bytes_written = write(conn->client_fd, &header, sizeof(header));
+    if (bytes_written != sizeof(header)) {
+        g_warning("Failed to send response header: %s", g_strerror(errno));
+        return FALSE;
+    }
+
+    // Send data if present
+    if (data && length > 0) {
+        bytes_written = write(conn->client_fd, data, length);
+        if (bytes_written != length) {
+            g_warning("Failed to send response data: %s", g_strerror(errno));
+            return FALSE;
+        }
+    }
+#endif
+
+    return TRUE;
+}
 
 gboolean siril_allocate_shm(void** shm_ptr_ptr,
 							char* shm_name_ptr,
@@ -608,7 +251,7 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 gboolean handle_pixeldata_request(Connection *conn, fits *fit, rectangle region) {
 	if (!single_image_is_loaded()) {
 		const char* error_msg = "Failed to retrieve pixel data - no image loaded";
-		return send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 	}
 
 	// Calculate total size of pixel data
@@ -654,12 +297,14 @@ gboolean handle_pixeldata_request(Connection *conn, fits *fit, rectangle region)
 		}
 	}
 
+/*
 	// Track this allocation
 #ifdef _WIN32
 	track_shm_allocation(shm_name, shm_ptr, total_bytes, &win_handle);
 #else
 	track_shm_allocation(shm_name, shm_ptr, total_bytes, fd);
 #endif
+*/
 
 	// Prepare shared memory info structure
 	shared_memory_info_t info = {
@@ -672,13 +317,13 @@ gboolean handle_pixeldata_request(Connection *conn, fits *fit, rectangle region)
 	strncpy(info.shm_name, shm_name, sizeof(info.shm_name) - 1);
 
 	// Send shared memory info to Python
-	return send_response(conn->channel, STATUS_OK, (const char*)&info, sizeof(info));
+	return send_response(conn, STATUS_OK, (const char*)&info, sizeof(info));
 }
 
 gboolean handle_rawdata_request(Connection *conn, void* data, size_t total_bytes) {
 	if (data == NULL || total_bytes == 0) {
 		const char* error_msg = "Incorrect memory region specification";
-		return send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 	}
 
 	// Generate unique name for shared memory and allocate it
@@ -698,12 +343,14 @@ gboolean handle_rawdata_request(Connection *conn, void* data, size_t total_bytes
 	// Copy data from gfit to shared memory
 	memcpy((char*)shm_ptr, (char*) data, total_bytes);
 
+/*
 	// Track this allocation
 #ifdef _WIN32
 	track_shm_allocation(shm_name, shm_ptr, total_bytes, &win_handle);
 #else
 	track_shm_allocation(shm_name, shm_ptr, total_bytes, fd);
 #endif
+*/
 
 	// Prepare shared memory info structure
 	// We only care about the size and shm_name, but it's easier to use the same
@@ -718,18 +365,18 @@ gboolean handle_rawdata_request(Connection *conn, void* data, size_t total_bytes
 	strncpy(info.shm_name, shm_name, sizeof(info.shm_name) - 1);
 
 	// Send shared memory info to Python
-	return send_response(conn->channel, STATUS_OK, (const char*)&info, sizeof(info));
+	return send_response(conn, STATUS_OK, (const char*)&info, sizeof(info));
 }
 
 gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* payload, size_t payload_length) {
 	if (!single_image_is_loaded()) {
 		const char* error_msg = "No image loaded: set_pixel_data() can only be used to update a loaded image, not to create a new one";
-		return send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 	}
 
 	if (payload_length != sizeof(incoming_image_info_t)) {
 		const char* error_msg = "Invalid image info size";
-		return send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 	}
 
 	incoming_image_info_t* info = (incoming_image_info_t*)payload;
@@ -742,7 +389,7 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 	if (info->width == 0 || info->height == 0 || info->channels == 0 ||
 		info->channels > 3 || info->size == 0) {
 		const char* error_msg = g_strdup_printf("Invalid image dimensions or format: w = %u, h = %u, c = %u, size = %lu", info->width, info->height, info->channels, info->size);
-		return send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 	}
 
 	// Open shared memory
@@ -752,13 +399,13 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 		HANDLE mapping = OpenFileMapping(FILE_MAP_READ, FALSE, info->shm_name);
 		if (mapping == NULL) {
 			const char* error_msg = "Failed to open shared memory mapping";
-			return send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+			return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 		}
 		shm_ptr = MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, info->size);
 		if (shm_ptr == NULL) {
 			CloseHandle(mapping);
 			const char* error_msg = "Failed to map shared memory view";
-			return send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+			return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 		}
 		win_handle.mapping = mapping;
 		win_handle.ptr = shm_ptr;
@@ -766,13 +413,13 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 		int fd = shm_open(info->shm_name, O_RDONLY, 0);
 		if (fd == -1) {
 			const char* error_msg = "Failed to open shared memory";
-			return send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+			return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 		}
 		shm_ptr = mmap(NULL, info->size, PROT_READ, MAP_SHARED, fd, 0);
 		if (shm_ptr == MAP_FAILED) {
 			close(fd);
 			const char* error_msg = "Failed to map shared memory";
-			return send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+			return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 		}
 	#endif
 
@@ -811,7 +458,7 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 			close(fd);
 		#endif
 		const char* error_msg = "Failed to allocate image buffer";
-		return send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 	}
 
 	// Copy data from shared memory to gfit
@@ -841,217 +488,382 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 		shm_unlink(info->shm_name);  // Remove shared memory object
 	#endif
 
-	return send_response(conn->channel, STATUS_OK, NULL, 0);
-}
-
-void execute_python_script_async(gchar* script_name, gboolean from_file) {
-	if (!com.python_conn) {
-		siril_log_color_message(_("Error: python IO channel not available.\n"), "red");
-		return;
-	}
-
-	// Initialize mutex if not already done
-	static gsize initialization_done = 0;
-	if (g_once_init_enter(&initialization_done)) {
-		g_mutex_init(&shm_list_mutex);
-		// Register cleanup handler for program exit
-		atexit(cleanup_python_process);
-		g_once_init_leave(&initialization_done, 1);
-	}
-
-	// Prepare environment
-	gchar** env = g_get_environ();
-	// Retrieve the current PYTHONPATH from the environment
-	const gchar* current_pythonpath = g_environ_getenv(env, "PYTHONPATH");
-
-	// If PYTHONPATH exists, append the new module directory; otherwise, just set it
-	gchar* module_dir = NULL; // replace with somewhere we can put the module
-	gchar* new_pythonpath = NULL;
-	if (current_pythonpath != NULL) {
-		new_pythonpath = g_strconcat(current_pythonpath, G_SEARCHPATH_SEPARATOR_S, module_dir, NULL);
-	} else {
-		new_pythonpath = g_strdup(module_dir);  // Just use the new module dir if PYTHONPATH is not set
-	}
-
-	// Set the new PYTHONPATH in the environment
-	env = g_environ_setenv(env, "PYTHONPATH", new_pythonpath, TRUE);
-
-	// Free the new PYTHONPATH string (env now has a copy of it)
-	g_free(new_pythonpath);
-
-	// Add or update MY_SOCKET environment variable
-#ifdef _WIN32
-	env = g_environ_setenv(env, "MY_PIPE", PIPE_NAME, TRUE);
-#define PYTHON_EXE "python3.exe"
-#else
-	env = g_environ_setenv(env, "MY_SOCKET", com.python_conn->server_path, TRUE);
-#define PYTHON_EXE "python3"
-#endif
-
-	// Prepare arguments
-	gchar* python_argv[4];
-	if (from_file) {
-		python_argv[0] = PYTHON_EXE;
-		python_argv[1] = script_name;
-		python_argv[2] = NULL;
-	} else {
-		python_argv[0] = PYTHON_EXE;
-		python_argv[1] = "-c";
-		python_argv[2] = script_name;
-		python_argv[3] = NULL;
-	}
-
-	GError* error = NULL;
-	GPid pid;
-	gint stdout_fd, stderr_fd;
-	gchar* working_dir = g_strdup(com.wd);
-
-	// Spawn process with DO_NOT_REAP_CHILD flag
-	gboolean success = g_spawn_async_with_pipes(
-		working_dir,
-		python_argv,
-		env,
-		G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
-		NULL,
-		NULL,
-		&pid,
-		NULL,
-		&stdout_fd,
-		&stderr_fd,
-		&error
-	);
-
-	if (!success) {
-		g_error("Failed to execute Python script asynchronously: %s", error->message);
-		g_error_free(error);
-		g_free(working_dir);
-		return;
-	}
-
-	// Set up process monitoring
-	init_process_monitoring(pid);
-
-	// Set up stdout monitoring
-	GIOChannel *stdout_channel = g_io_channel_unix_new(stdout_fd);
-	g_io_channel_set_encoding(stdout_channel, NULL, NULL);
-	g_io_channel_set_flags(stdout_channel, G_IO_FLAG_NONBLOCK, NULL);
-	setup_io_channel(stdout_channel, "stdout");
-
-	// Set up stderr monitoring
-	GIOChannel *stderr_channel = g_io_channel_unix_new(stderr_fd);
-	g_io_channel_set_encoding(stderr_channel, NULL, NULL);
-	g_io_channel_set_flags(stderr_channel, G_IO_FLAG_NONBLOCK, NULL);
-	setup_io_channel(stderr_channel, "stderr");
-
-	siril_log_message(_("Python script launched asynchronously with PID %d\n"), pid);
-
-	g_free(working_dir);
-}
-
-// Helper function to set up I/O channels
-static void setup_io_channel(GIOChannel *channel, const char *name) {
-	g_io_add_watch(channel, G_IO_IN | G_IO_HUP, io_watch_callback, (gpointer)name);
-	g_io_channel_unref(channel);  // Remove our reference, watch keeps its own
-}
-
-// Callback for I/O channel monitoring
-static gboolean io_watch_callback(GIOChannel *channel, GIOCondition condition, gpointer data) {
-	const char *name = (const char *)data;
-	gchar *buffer = NULL;
-	gsize bytes_read;
-	GIOStatus status;
-
-	if (condition & G_IO_HUP) {
-		return FALSE;  // Remove source
-	}
-
-	if (condition & G_IO_IN) {
-		status = g_io_channel_read_line(channel, &buffer, &bytes_read, NULL, NULL);
-		if (status == G_IO_STATUS_NORMAL) {
-			if (strcmp(name, "stderr") == 0) {
-				siril_log_color_message(buffer, "red");
-			} else {
-				siril_log_message("%s", buffer);
-			}
-			g_free(buffer);
-		}
-	}
-
-	return TRUE;  // Keep source
+	return send_response(conn, STATUS_OK, NULL, 0);
 }
 
 /**
-* Main entry point.
-*/
-// Global variables for the IO context and loop
-static GMainContext* io_context = NULL;
-static GMainLoop* io_loop = NULL;
+ * Helper function to monitor process output
+ */
+static gpointer monitor_pipe(gpointer data) {
+    GIOChannel* channel = data;
+    gchar buffer[4096];
+    gsize bytes_read;
+    GError* error = NULL;
 
-// Modified callback function that sets up the channel watch
-static void on_python_client_connected(Connection* conn) {
-	GSource* source = NULL;
+    while (G_IO_STATUS_NORMAL == g_io_channel_read_chars(channel,
+                                                        buffer,
+                                                        sizeof(buffer) - 1,
+                                                        &bytes_read,
+                                                        &error)) {
+        if (bytes_read > 0) {
+            buffer[bytes_read] = '\0';
+            g_print("%s", buffer);  // Or use your logging function
+        }
+    }
 
-	// Ensure IO loop is initialized
-	if (!io_context) {
-		io_context = g_main_context_new();
-		io_loop = g_main_loop_new(io_context, FALSE);
+    if (error) {
+        g_warning("Error reading from pipe: %s", error->message);
+        g_error_free(error);
+    }
 
-		// Start the loop in a separate thread
-		g_thread_new("io-loop", (GThreadFunc)g_main_loop_run, io_loop);
-	}
-
-	// Create an IO watch source
-	source = g_io_create_watch(conn->channel, G_IO_IN | G_IO_ERR | G_IO_HUP);
-
-	// Set the callback for the source
-	g_source_set_callback(source, (GSourceFunc)poll_io_channel, conn, NULL);
-
-	// Attach the source to our custom context
-	g_source_attach(source, io_context);
-
-	// We can unref the source now as the context holds a reference
-	g_source_unref(source);
-
-	siril_debug_print("Python IO channel opened\n");
+    g_io_channel_unref(channel);
+    return NULL;
 }
 
-// Cleanup function to be called when shutting down
-static void cleanup_io_loop(void) {
-	if (io_loop) {
-		g_main_loop_quit(io_loop);
-		g_main_loop_unref(io_loop);
-		io_loop = NULL;
-	}
+void execute_python_script_async(gchar* script_name, gboolean from_file) {
+    if (!commstate.python_conn) {
+        siril_log_color_message(_("Error: Python connection not available.\n"), "red");
+        return;
+    }
 
-	if (io_context) {
-		g_main_context_unref(io_context);
-		io_context = NULL;
-	}
+    // Prepare environment
+    gchar** env = g_get_environ();
+    const gchar* current_pythonpath = g_environ_getenv(env, "PYTHONPATH");
+
+    // Set up module directory path
+    gchar* module_dir = NULL; // replace with your module directory
+    gchar* new_pythonpath = NULL;
+
+    if (current_pythonpath != NULL) {
+        new_pythonpath = g_strconcat(current_pythonpath,
+                                   G_SEARCHPATH_SEPARATOR_S,
+                                   module_dir,
+                                   NULL);
+    } else {
+        new_pythonpath = g_strdup(module_dir);
+    }
+
+    env = g_environ_setenv(env, "PYTHONPATH", new_pythonpath, TRUE);
+    g_free(new_pythonpath);
+
+    // Set up connection information in environment
+#ifdef _WIN32
+    const gchar* pipe_name = "\\\\.\\pipe\\siril";  // Or your chosen pipe name
+    env = g_environ_setenv(env, "MY_PIPE", pipe_name, TRUE);
+#define PYTHON_EXE "python3.exe"
+#else
+    env = g_environ_setenv(env, "MY_SOCKET", commstate.python_conn->socket_path, TRUE);
+#define PYTHON_EXE "python3"
+#endif
+
+    // Prepare command arguments
+    gchar* python_argv[4];
+    if (from_file) {
+        python_argv[0] = PYTHON_EXE;
+        python_argv[1] = script_name;
+        python_argv[2] = NULL;
+    } else {
+        python_argv[0] = PYTHON_EXE;
+        python_argv[1] = "-c";
+        python_argv[2] = script_name;
+        python_argv[3] = NULL;
+    }
+
+    // Set up process spawn
+    GError* error = NULL;
+    GPid pid;
+    gint stdout_fd, stderr_fd;
+    gchar* working_dir = g_strdup(com.wd);
+
+    gboolean success = g_spawn_async_with_pipes(
+        working_dir,
+        python_argv,
+        env,
+        G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
+        NULL,
+        NULL,
+        &pid,
+        NULL,
+        &stdout_fd,
+        &stderr_fd,
+        &error
+    );
+
+    g_strfreev(env);  // Free environment array
+
+    if (!success) {
+        siril_log_color_message(_("Failed to execute Python script: %s\n"), "red", error->message);
+        g_error_free(error);
+        g_free(working_dir);
+        return;
+    }
+
+    // Set up output monitoring using threads instead of IO channels
+    GIOChannel* stdout_channel = g_io_channel_unix_new(stdout_fd);
+    g_io_channel_set_encoding(stdout_channel, NULL, NULL);
+    GThread* stdout_thread = g_thread_new("stdout-monitor",
+                                        monitor_pipe,
+                                        stdout_channel);
+    g_thread_unref(stdout_thread);
+
+    GIOChannel* stderr_channel = g_io_channel_unix_new(stderr_fd);
+    g_io_channel_set_encoding(stderr_channel, NULL, NULL);
+    GThread* stderr_thread = g_thread_new("stderr-monitor",
+                                        monitor_pipe,
+                                        stderr_channel);
+    g_thread_unref(stderr_thread);
+
+    // Set up child process monitoring
+    g_child_watch_add(pid, (GChildWatchFunc)g_spawn_close_pid, NULL);
+
+    siril_log_message(_("Python script launched asynchronously with PID %d\n"), pid);
+    g_free(working_dir);
 }
 
-// Initialize the Python context and loop
-gpointer open_python_channel(gpointer user_data) {
-	// Create the python context
-	com.python_context = g_main_context_new();
-	com.python_loop = g_main_loop_new(com.python_context, FALSE);
-	// Create the connection (pipe or socket)
-	com.python_conn = create_connection(on_python_client_connected);
-	if (!com.python_conn) {
-		return GINT_TO_POINTER(1);
-	}
-	g_main_loop_run(com.python_loop);
+#ifdef _WIN32
+static Connection* create_connection(const gchar *pipe_name) {
+    Connection *conn = g_new0(Connection, 1);
+    g_mutex_init(&conn->mutex);
+    g_cond_init(&conn->condition);
 
-	return GINT_TO_POINTER(0);
+    conn->pipe_handle = CreateNamedPipe(
+        pipe_name,
+        PIPE_ACCESS_DUPLEX,
+        PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT,
+        1,
+        BUFFER_SIZE,
+        BUFFER_SIZE,
+        0,
+        NULL
+    );
+
+    if (conn->pipe_handle == INVALID_HANDLE_VALUE) {
+        g_warning("Failed to create pipe: %lu", GetLastError());
+        g_free(conn);
+        return NULL;
+    }
+
+    return conn;
 }
 
-int release_python_channel() {
-	if (com.python_conn) {
-		if (com.python_conn->channel) {
-			g_io_channel_shutdown(com.python_conn->channel, TRUE, NULL);
-			g_io_channel_unref(com.python_conn->channel);
-		}
-		free_connection(com.python_conn);
-		com.python_conn = NULL;
-	}
-	return 0;
+static gboolean wait_for_client(Connection *conn) {
+    g_mutex_lock(&conn->mutex);
+    conn->is_connected = FALSE;
+    g_mutex_unlock(&conn->mutex);
+
+    BOOL result = ConnectNamedPipe(conn->pipe_handle, NULL);
+    if (!result && GetLastError() != ERROR_PIPE_CONNECTED) {
+        g_warning("Failed to connect to client: %lu", GetLastError());
+        return FALSE;
+    }
+
+    g_mutex_lock(&conn->mutex);
+    conn->is_connected = TRUE;
+    if (conn->client_connected_callback) {
+        conn->client_connected_callback(conn->user_data);
+    }
+    g_mutex_unlock(&conn->mutex);
+
+    return TRUE;
+}
+
+#else  // POSIX implementation
+
+static Connection* create_connection(const gchar *socket_path) {
+    Connection *conn = g_new0(Connection, 1);
+    g_mutex_init(&conn->mutex);
+    g_cond_init(&conn->condition);
+
+    conn->server_fd = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (conn->server_fd == -1) {
+        g_warning("Failed to create socket: %s", g_strerror(errno));
+        g_free(conn);
+        return NULL;
+    }
+
+    struct sockaddr_un addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.sun_family = AF_UNIX;
+    strncpy(addr.sun_path, socket_path, sizeof(addr.sun_path) - 1);
+
+    unlink(socket_path);  // Remove existing socket file if it exists
+
+    if (bind(conn->server_fd, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
+        g_warning("Failed to bind socket: %s", g_strerror(errno));
+        close(conn->server_fd);
+        g_free(conn);
+        return NULL;
+    }
+
+    if (listen(conn->server_fd, 1) == -1) {
+        g_warning("Failed to listen on socket: %s", g_strerror(errno));
+        close(conn->server_fd);
+        unlink(socket_path);
+        g_free(conn);
+        return NULL;
+    }
+
+    conn->socket_path = g_strdup(socket_path);
+    return conn;
+}
+
+static gboolean wait_for_client(Connection *conn) {
+    g_mutex_lock(&conn->mutex);
+    conn->is_connected = FALSE;
+    g_mutex_unlock(&conn->mutex);
+
+    conn->client_fd = accept(conn->server_fd, NULL, NULL);
+    if (conn->client_fd == -1) {
+        g_warning("Failed to accept connection: %s", g_strerror(errno));
+        return FALSE;
+    }
+
+    g_mutex_lock(&conn->mutex);
+    conn->is_connected = TRUE;
+    if (conn->client_connected_callback) {
+        conn->client_connected_callback(conn->user_data);
+    }
+    g_mutex_unlock(&conn->mutex);
+
+    return TRUE;
+}
+
+#endif  // _WIN32
+
+// Status codes
+//#define STATUS_OK    0
+//#define STATUS_ERROR 1
+
+/**
+ * Updated handle_client_communication function with message processing
+ */
+static gboolean handle_client_communication(Connection *conn) {
+    gchar buffer[BUFFER_SIZE];
+
+#ifdef _WIN32
+    DWORD bytes_read = 0;
+
+    while (!conn->should_stop) {
+        if (!ReadFile(conn->pipe_handle, buffer, BUFFER_SIZE, &bytes_read, NULL) ||
+            bytes_read == 0) {
+            g_mutex_lock(&conn->mutex);
+            conn->is_connected = FALSE;
+            if (conn->client_disconnected_callback) {
+                conn->client_disconnected_callback(conn->user_data);
+            }
+            g_mutex_unlock(&conn->mutex);
+
+            DisconnectNamedPipe(conn->pipe_handle);
+            return TRUE;
+        }
+
+        process_connection(conn, buffer, bytes_read);
+    }
+
+#else
+    gssize bytes_read;
+
+    while (!conn->should_stop) {
+        bytes_read = read(conn->client_fd, buffer, BUFFER_SIZE);
+
+        if (bytes_read <= 0) {
+            if (bytes_read < 0) {
+                g_warning("Error reading from socket: %s", g_strerror(errno));
+            }
+
+            g_mutex_lock(&conn->mutex);
+            conn->is_connected = FALSE;
+            if (conn->client_disconnected_callback) {
+                conn->client_disconnected_callback(conn->user_data);
+            }
+            g_mutex_unlock(&conn->mutex);
+
+            close(conn->client_fd);
+            conn->client_fd = -1;
+            return TRUE;
+        }
+        process_connection(conn, buffer, bytes_read);
+    }
+#endif
+
+    return !conn->should_stop;
+}
+
+static void cleanup_connection(Connection *conn) {
+    if (!conn) return;
+
+    g_mutex_lock(&conn->mutex);
+    conn->should_stop = TRUE;
+    conn->is_connected = FALSE;
+    g_mutex_unlock(&conn->mutex);
+
+#ifdef _WIN32
+    if (conn->pipe_handle != INVALID_HANDLE_VALUE) {
+        CloseHandle(conn->pipe_handle);
+    }
+#else
+    if (conn->client_fd > 0) {
+        close(conn->client_fd);
+    }
+    if (conn->server_fd > 0) {
+        close(conn->server_fd);
+    }
+    if (conn->socket_path) {
+        unlink(conn->socket_path);
+        g_free(conn->socket_path);
+    }
+#endif
+
+    g_mutex_clear(&conn->mutex);
+    g_cond_clear(&conn->condition);
+    g_free(conn);
+}
+
+static gpointer connection_worker(gpointer data) {
+    Connection *conn = (Connection*)data;
+	siril_log_message(_("Python communication initialized...\n"));
+    while (!conn->should_stop) {
+        if (wait_for_client(conn)) {
+            handle_client_communication(conn);
+        } else {
+            // Wait before retrying
+            g_usleep(1000000);  // 1 second
+        }
+    }
+	siril_log_message(_("Python communication worker finished...\n"));
+    return NULL;
+}
+
+gboolean initialize_python_communication(const gchar *connection_path) {
+    if (commstate.python_conn) {
+        g_warning("Python communication already initialized");
+        return FALSE;
+    }
+
+#ifdef _WIN32
+    commstate.python_conn = create_connection(connection_path);
+#else
+    commstate.python_conn = create_connection(connection_path);
+#endif
+
+    if (!commstate.python_conn) {
+        return FALSE;
+    }
+
+    // Create worker thread for handling connections
+    commstate.worker_thread = g_thread_new("python-comm", connection_worker, commstate.python_conn);
+
+    return TRUE;
+}
+
+void shutdown_python_communication(void) {
+    if (commstate.python_conn) {
+        cleanup_connection(commstate.python_conn);
+        commstate.python_conn = NULL;
+    }
+
+    if (commstate.worker_thread) {
+        g_thread_join(commstate.worker_thread);
+        commstate.worker_thread = NULL;
+    }
 }

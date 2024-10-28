@@ -317,22 +317,8 @@ typedef enum {
 	DISTO_FILE_COMET // special for cometary alignement, to be detected by apply reg. Enables to
 } disto_source;
 
-typedef struct _Connection{
-	gboolean is_posix;
-	gboolean is_cleaned_up;
-	GIOChannel* channel;
-#ifdef _WIN32
-#include "Windows.h"
-	HANDLE pipe_handle;
-#else
-	int socket_fd;
-	int server_fd;
-	gchar* server_path;
-	GIOChannel* server_channel;  // Added to store server channel
-	void (*client_connected_callback)(struct _Connection*);  // Callback for when client connects
-#endif
-} Connection;
-
+// defined in src/io/pythonmodule.h
+typedef struct _Connection Connection;
 
 /* image data, exists once for each image */
 typedef struct {

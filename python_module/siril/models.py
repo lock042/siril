@@ -766,15 +766,3 @@ class Sequence:
             self.regparam = []
         if self.stats is None:
             self.stats = []
-        if self.previewX is None:
-            self.previewX = [-1] * 2  # PREVIEW_NB = 2
-        if self.previewY is None:
-            self.previewY = [-1] * 2
-        if self.previewW is None:
-            self.previewW = [0] * 2
-        if self.previewH is None:
-            self.previewH = [0] * 2
-        if self.photometry is None:
-            self.photometry = []
-        if self.photometry_colors is None:
-            self.photometry_colors = [[0.0, 0.0, 0.0] for _ in range(20)]  # MAX_SEQPSF = 20
