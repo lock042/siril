@@ -261,7 +261,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 	// Get command header
 	CommandHeader* header = (CommandHeader*)buffer;
 	uint32_t payload_length = GUINT32_FROM_BE(header->length);  // Convert from network byte order
-
+	if (payload_length == -1) payload_length = 0;
 	// Verify we have complete message
 	if (length < sizeof(CommandHeader) + payload_length) {
 		g_warning("Received incomplete command payload");
@@ -523,7 +523,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				index = GUINT32_FROM_BE(*(int*) payload);
 				chan = GUINT32_FROM_BE(*((int*) payload + 1));
 			}
-			if (payload_length != 8 || index < 0 || index > com.seq.number || chan < 0 || chan > com.seq.nb_layers) {
+			if (payload_length != 8 || index < 0 || index >= com.seq.number || chan < 0 || chan > com.seq.nb_layers) {
 				const char* error_msg = "Incorrect command arguments";
 				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -536,8 +536,8 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 			regdata *regparam = &com.seq.regparam[index][chan];
 			if (regdata_to_py(regparam, ptr)) {
-				const char* error_message = "Memory allocation error";
-				success = send_response(conn->channel, STATUS_ERROR, error_message, strlen(error_message));
+				const char* error_message = "No regdata available";
+				success = send_response(conn->channel, STATUS_NONE, error_message, strlen(error_message));
 				break;
 			} else {
 				success = send_response(conn->channel, STATUS_OK, response_buffer, total_size);
@@ -556,7 +556,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (payload_length == 4) {
 				index = GUINT32_FROM_BE(*(int*) payload);
 			}
-			if (payload_length != 4 || index < 0 || index > com.seq.number) {
+			if (payload_length != 4 || index < 0 || index >= com.seq.number) {
 				const char* error_msg = "Incorrect command argument";
 				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -589,7 +589,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (payload_length == 4) {
 				index = GUINT32_FROM_BE(*(int*) payload);
 			}
-			if (payload_length != 4 || index < 0 || index > com.seq.number) {
+			if (payload_length != 4 || index < 0 || index >= com.seq.number) {
 				const char* error_msg = "Incorrect command argument";
 				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -618,7 +618,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (payload_length == 4) {
 				index = GUINT32_FROM_BE(*(int*) payload);
 			}
-			if (payload_length != 4 || index < 0 || index > com.seq.number) {
+			if (payload_length != 4 || index < 0 || index >= com.seq.number) {
 				const char* error_msg = "Incorrect command argument";
 				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
@@ -658,7 +658,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				break;
 			}
 			// Calculate size needed for the response
-			size_t total_size = strlen(com.seq.seqname) + 1 +
+			size_t total_size = strlen(com.seq.seqname) +
 								sizeof(uint64_t) * 16;
 			unsigned char *response_buffer = g_malloc0(total_size);
 			unsigned char *ptr = response_buffer;
@@ -773,7 +773,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 			// Prepare data
 			guint32 length = strlen(fit->header) + 1;
-
+			printf("Header length: %u\n", length);
 			success = handle_rawdata_request(conn, fit->header, length);
 			break;
 		}
@@ -787,7 +787,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			fits *fit = &gfit;
 			if (fit->history == NULL) {
 				const char* error_msg = "Image has no history entries";
-				success = send_response(conn->channel, STATUS_NONE, error_msg, strlen(error_msg));
+				success = send_response(conn->channel, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
 			// Prepare data

@@ -490,15 +490,18 @@ gboolean poll_io_channel(GIOChannel* channel, GIOCondition condition, gpointer u
 
 cleanup_connection:
 		// Clean up the current connection
-		if (conn->channel) {
-			g_io_channel_unref(conn->channel);
-			conn->channel = NULL;
+		if (!conn->is_cleaned_up) {
+			conn->is_cleaned_up = TRUE;
+			if (conn->channel) {
+				g_io_channel_unref(conn->channel);
+				conn->channel = NULL;
+			}
+			if (conn->socket_fd > 0) {
+				close(conn->socket_fd);
+				conn->socket_fd = 0;
+			}
+			cleanup_io_loop();
 		}
-		if (conn->socket_fd > 0) {
-			close(conn->socket_fd);
-			conn->socket_fd = 0;
-		}
-		cleanup_io_loop();
 		// Return FALSE to remove this watch
 		return FALSE;
 }

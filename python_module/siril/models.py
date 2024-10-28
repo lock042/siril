@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple, Union, List
 import numpy as np
 from enum import IntEnum
 
@@ -644,12 +644,19 @@ class Homography:
     pair_matched: int = 0
     Inliers: int = 0
 
-class StarProfile(Enum):
-    """Placeholder for starprofile enum"""
-    # Note: Add actual values based on Siril's starprofile definition
-    GAUSSIAN = auto()
-    MOFFAT = auto()
-    MOFFAT_FIXED = auto()
+class StarProfile(IntEnum):
+    """The StarProfile enum matches the starprofile enum in the Siril C code"""
+    GAUSSIAN = 0
+    MOFFAT = 1
+    MOFFAT_FIXED = 2
+
+class SequenceType(IntEnum):
+    """The SequenceType enum matches the sequence_type enum in the Siril C code"""
+    SEQ_REGULAR = 0
+    SEQ_SER = 1
+    SEQ_FITSEQ = 2
+    SEQ_AVI = 3
+    SEQ_INTERNAL = 4
 
 @dataclass
 class PSFStar:
@@ -710,7 +717,7 @@ class RegData:
     quality: float = 0.0
     background_lvl: float = 0.0
     number_of_stars: int = 0
-    H: Homography = Homography()
+    H: Homography = field(default_factory=Homography)
 
 @dataclass
 class ImgData:
@@ -737,7 +744,7 @@ class Sequence:
     reference_image: int = 0             # reference image for registration
     imgparam: List[ImgData] = None       # a structure for each image of the sequence
     regparam: List[List[RegData]] = None # registration parameters for each layer
-    stats: List[List[List[ImageStats]]] = None  # statistics of the images for each layer
+    stats: List[List[ImageStats]] = None  # statistics of the images for each layer
     beg: int = 0                         # imgparam[0]->filenum
     end: int = 0                         # imgparam[number-1]->filenum
     exposure: float = 0.0                # exposure of frames
@@ -745,10 +752,11 @@ class Sequence:
     type: SequenceType = None
     cfa_opened_monochrome: bool = False  # CFA SER opened in monochrome mode
     current: int = 0                     # file number currently loaded
-    photometry: List[List[PSFStar]] = None  # psf for multiple stars
-    reference_star: int = 0              # reference star for apparent magnitude
-    reference_mag: float = 0.0           # reference magnitude for reference star
-    photometry_colors: List[List[float]] = None  # colors for each photometry curve
+    # Thefollowing fields are not currently implemented:
+    # photometry: List[List[PSFStar]] = None  # psf for multiple stars
+    # reference_star: int = 0              # reference star for apparent magnitude
+    # reference_mag: float = 0.0           # reference magnitude for reference star
+    # photometry_colors: List[List[float]] = None  # colors for each photometry curve
 
     def __post_init__(self):
         """Initialize lists that were set to None by default"""

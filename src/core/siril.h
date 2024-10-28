@@ -273,11 +273,13 @@ typedef enum {
 
 
 typedef enum {
-	SEQ_REGULAR, SEQ_SER, SEQ_FITSEQ,
+	SEQ_REGULAR = 0,
+	SEQ_SER = 1,
+	SEQ_FITSEQ = 2,
 #ifdef HAVE_FFMS2
-	SEQ_AVI,
+	SEQ_AVI = 3,
 #endif
-	SEQ_INTERNAL
+	SEQ_INTERNAL = 4
 } sequence_type;
 
 typedef enum {
@@ -317,6 +319,7 @@ typedef enum {
 
 typedef struct _Connection{
 	gboolean is_posix;
+	gboolean is_cleaned_up;
 	GIOChannel* channel;
 #ifdef _WIN32
 #include "Windows.h"

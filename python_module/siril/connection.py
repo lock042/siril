@@ -13,7 +13,7 @@ from typing import Tuple, Optional
 import numpy as np
 from .shm import SharedMemoryWrapper
 from .exceptions import SirilError, ConnectionError, CommandError, DataError, NoImageError
-from .models import ImageStats, FKeywords, FFit
+from .models import DataType, ImageStats, FKeywords, FFit, Homography, StarProfile, PSFStar, RegData, ImgData, Sequence
 if os.name == 'nt':
     import win32pipe
     import win32file
@@ -27,23 +27,30 @@ class _Status(IntEnum):
     ERROR = 0xFF
 
 class _Command(IntEnum):
-    GET_DIMENSIONS = 1
-    GET_PIXELDATA = 2
-    GET_PIXELDATA_REGION = 3
-    RELEASE_SHM = 4
-    SEND_COMMAND = 5
-    LOG_MESSAGE = 6
-    GET_WORKING_DIRECTORY = 7
-    GET_FILENAME = 8
-    SET_PIXELDATA = 9
-    GET_IMAGE_STATS = 10
-    UPDATE_PROGRESS = 11
+    SEND_COMMAND = 1
+    LOG_MESSAGE = 2
+    UPDATE_PROGRESS = 3
+    GET_WORKING_DIRECTORY = 4
+    GET_FILENAME = 5
+    GET_DIMENSIONS = 6
+    GET_PIXELDATA = 7
+    GET_PIXELDATA_REGION = 8
+    RELEASE_SHM = 9
+    SET_PIXELDATA = 10
+    GET_IMAGE_STATS = 11
     GET_KEYWORDS = 12
-    GET_IMAGE = 13
-    GET_ICC_PROFILE = 14
-    GET_FITS_HEADER = 15
-    GET_FITS_HISTORY = 16
-    GET_FITS_UNKNOWN_KEYS = 17
+    GET_ICC_PROFILE = 13
+    GET_FITS_HEADER = 14
+    GET_FITS_HISTORY = 15
+    GET_FITS_UNKNOWN_KEYS = 16
+    GET_IMAGE = 17
+    GET_PSFSTAR = 18
+    GET_SEQ_STATS = 19
+    GET_SEQ_REGDATA = 20
+    GET_SEQ_IMGDATA = 21
+    GET_SEQ_PIXELDATA = 22
+    GET_SEQ_IMAGE = 23
+    GET_SEQ = 24
     ERROR = 0xFF
 
 class SharedMemoryInfo(ctypes.Structure):
@@ -133,7 +140,7 @@ class SirilInterface:
             else:
                 raise SirilError("No socket connection to close")
 
-    def _recv_exact(self, n: int, timeout: float = 3.0) -> Optional[bytes]:
+    def _recv_exact(self, n: int, timeout: float = 5.0) -> Optional[bytes]:
         """
         Helper method to receive exactly n bytes from the socket or pipe.
         """
@@ -244,8 +251,8 @@ class SirilInterface:
         Send a command to Siril and receive the response.
         """
         try:
-            data_length = len(data) if data else 0
-            header = struct.pack('!BI', command, data_length)
+            data_length = len(data) if data else -1
+            header = struct.pack('!Bi', command, data_length)
 
             if os.name == 'nt':
                 try:
@@ -365,7 +372,8 @@ class SirilInterface:
 
     def log(self, my_string: str) -> bool:
         """
-        Send a log message to Siril.
+        Send a log message to Siril. The maximum message length is 1023 bytes:
+        longer messages will be truncated.
 
         Args:
             my_string: The message to log
@@ -893,7 +901,9 @@ class SirilInterface:
                 raise RuntimeError(f"Failed to map shared memory: {e}")
 
             try:
-                result = memoryview(shm).tobytes().decode('utf-8')
+                # Read entire buffer at once using memoryview
+                buffer = memoryview(shm).cast('B')
+                result = buffer.tobytes().decode('utf-8', errors='ignore')
             except (BufferError, ValueError, TypeError) as e:
                 raise RuntimeError(f"Failed to create string from shared memory: {e}")
 
@@ -954,9 +964,11 @@ class SirilInterface:
                 else:
                     raise RuntimeError("Failed to initiate shared memory transfer: Empty response")
 
+            if status == _Status.NONE:
+                return None
+
             if not response:
                 raise RuntimeError("Failed to initiate shared memory transfer: No data received")
-
             if len(response) < 25: # No payload
                 return None
 
@@ -976,7 +988,9 @@ class SirilInterface:
                 raise RuntimeError(f"Failed to map shared memory: {e}")
 
             try:
-                result = memoryview(shm).tobytes().decode('utf-8')
+                # Read entire buffer at once using memoryview
+                buffer = memoryview(shm).cast('B')
+                result = buffer.tobytes().decode('utf-8', errors='ignore')
             except (BufferError, ValueError, TypeError) as e:
                 raise RuntimeError(f"Failed to create string from shared memory: {e}")
 
@@ -1009,16 +1023,13 @@ class SirilInterface:
     def get_history(self) -> Optional[list[str]]:
         """
         Retrieve history entries in the FITS header of the current Siril image using shared memory.
-
         Args:
             none.
-
         Returns:
             list: The history entries in the FITS header as a list of strings.
-
         Raises:
             NoImageError: If no image is currently loaded
-            RuntimeError: For other errors during  data retrieval
+            RuntimeError: For other errors during data retrieval
             ValueError: If the received data format is invalid or shape is invalid
         """
         shm = None
@@ -1037,10 +1048,13 @@ class SirilInterface:
                 else:
                     raise RuntimeError("Failed to initiate shared memory transfer: Empty response")
 
+            if status == _Status.NONE:
+                return None
+
             if not response:
                 raise RuntimeError("Failed to initiate shared memory transfer: No data received")
 
-            if len(response) < 25: # No payload
+            if len(response) < 29:  # No payload
                 return None
 
             try:
@@ -1059,7 +1073,9 @@ class SirilInterface:
                 raise RuntimeError(f"Failed to map shared memory: {e}")
 
             try:
-                string_data = memoryview(shm).shm.tobytes().decode('utf-8', errors='ignore')
+                # Read entire buffer at once using memoryview
+                buffer = memoryview(shm).cast('B')
+                string_data = buffer.tobytes().decode('utf-8', errors='ignore')
                 string_list = string_data.split('\x00')
             except (BufferError, ValueError, TypeError) as e:
                 raise RuntimeError(f"Failed to create string from shared memory: {e}")
@@ -1068,7 +1084,6 @@ class SirilInterface:
             try:
                 # Ensure that shm_info.shm_name is exactly 256 bytes (trimmed or padded with null bytes)
                 shm_name = shm_info.shm_name[:256].ljust(256, b'\x00')
-
                 # Pack the header and payload
                 cmd_header = struct.pack('!BL', _Command.RELEASE_SHM, 256)  # 'B' for the command and 'L' for length
                 self.sock.sendall(cmd_header + shm_name)
@@ -1082,7 +1097,7 @@ class SirilInterface:
             raise
         except Exception as e:
             # Wrap all other exceptions with context
-            raise RuntimeError(f"Error retrieving FITS unknown keys: {e}") from e
+            raise RuntimeError(f"Error retrieving FITS history: {e}") from e
         finally:
             if shm is not None:
                 try:
@@ -1188,6 +1203,182 @@ class SirilInterface:
 
         except struct.error as e:
             print(f"Error unpacking image statistics data: {e}", file=sys.stderr)
+            return None
+
+    def get_seq_regdata(self, frame: int, channel: int) -> Optional[RegData]:
+        """
+        Request sequence frame registration data from Siril.
+
+        Returns:
+            RegData object containing the registration data, or None if an error occurred
+        """
+        data_payload = struct.pack('!II', frame, channel)  # '!I' for network byte order uint32_t
+
+        # Request data with the channel number as payload
+        response = self.request_data(_Command.GET_SEQ_REGDATA, payload=data_payload)
+
+        if response is None:
+            return None
+
+        try:
+            format_string = '!5dQ9d2Q'
+
+            values = struct.unpack(format_string, response)
+
+            return RegData (
+                fwhm = values[0],
+                weighted_fwhm = values[1],
+                roundness = values[2],
+                quality = values[3],
+                background_lvl = values[4],
+                number_of_stars = values[5],
+                H = Homography (
+                    h00=values[6],
+                    h01=values[7],
+                    h02=values[8],
+                    h10=values[9],
+                    h11=values[10],
+                    h12=values[11],
+                    h20=values[12],
+                    h21=values[13],
+                    h22=values[14],
+                    pair_matched=values[15],
+                    Inliers=values[16]
+                )
+            )
+        except struct.error as e:
+            print(f"Error unpacking frame registration data: {e}", file=sys.stderr)
+            return None
+
+    def get_seq_imstats(self, frame: int, channel: int) -> Optional[RegData]:
+        """
+        Request sequence frame registration data from Siril.
+
+        Returns:
+            RegData object containing the registration data, or None if an error occurred
+        """
+        data_payload = struct.pack('!II', frame, channel)  # '!I' for network byte order uint32_t
+
+        # Request data with the channel number as payload
+        response = self.request_data(_Command.GET_SEQ_STATS, payload=data_payload)
+        if response is None:
+            return None
+        try:
+            format_string = '!2q12d'
+
+            values = struct.unpack(format_string, response)
+
+            return ImageStats (
+                total = values[0],
+                ngoodpix = values[1],
+                mean = values[2],
+                median = values[3],
+                sigma = values[4],
+                avgDev = values[5],
+                mad = values[6],
+                sqrtbwmv = values[7],
+                location = values[8],
+                scale = values[9],
+                min = values[10],
+                max = values[11],
+                normValue = values[12],
+                bgnoise = values[13]
+            )
+        except struct.error as e:
+            print(f"Error unpacking frame statistics: {e}", file=sys.stderr)
+            return None
+
+    def get_seq_imgdata(self, frame: int) -> Optional[ImgData]:
+        """
+        Request sequence frame registration data from Siril.
+
+        Returns:
+            RegData object containing the registration data, or None if an error occurred
+        """
+        data_payload = struct.pack('!I', frame)  # '!I' for network byte order uint32_t
+
+        # Request data with the channel number as payload
+        response = self.request_data(_Command.GET_SEQ_IMGDATA, payload=data_payload)
+        if response is None:
+            return None
+        try:
+            format_string = '!3qd2q'
+
+            values = struct.unpack(format_string, response)
+
+            return ImgData (
+                filenum = values[0],
+                incl = values[1],
+                date_obs = datetime.fromtimestamp(values[2]) if values[2] != 0 else None,
+                airmass = values[3],
+                rx = values[4],
+                ry = values[5]
+            )
+        except struct.error as e:
+            print(f"Error unpacking frame image data: {e}", file=sys.stderr)
+            return None
+
+    def get_seq(self) -> Optional[ImgData]:
+        """
+        Request metadata for the current sequence loaded in Siril.
+
+        Returns:
+            Sequence object containing the current sequence metadata, or None
+            if an error occurred
+        """
+        # Request data with the channel number as payload
+        response = self.request_data(_Command.GET_SEQ)
+
+        if response is None:
+            return None
+
+        try:
+            null_pos = response.find(b'\0')
+            string_data = response[:null_pos].decode('utf-8')
+            format_start = null_pos + 1
+
+            format_string = '!4q3Q4qdQqQq'
+
+            values = struct.unpack(format_string, response)
+
+            number = values[0]
+            nb_layers = values[3]
+
+            imgparam_list = [self.get_seq_imgdata(frame)
+                             for frame in range(number)]
+
+            regdata_list = [[self.get_seq_regdata(frame, channel)
+                             for channel in range(nb_layers)]
+                            for frame in range(number)]
+
+            stats_list = [[self.get_seq_imstats(frame, channel)
+                           for channel in range(nb_layers)]
+                          for frame in range(number)]
+
+            return Sequence (
+                seqname = string_data,
+                number = values[0],
+                selnum = values[1],
+                fixed = values[2],
+                nb_layers = values[3],
+                rx = values[4],
+                ry = values[5],
+                is_variable = bool(values[6]),
+                bitpix = values[7],
+                reference_image = values[8],
+                # imgparam = imgparam_list,
+                # regdata = regdata_list,
+                # stats = stats_list,
+                beg = values[9],
+                end = values[10],
+                exposure = values[11],
+                fz = bool(values[12]),
+                type = SequenceType(values[13]),
+                cfa_opened_monochrome = bool(values[14]),
+                current = values[15]
+            )
+        except struct.error as e:
+            print(f"Error unpacking frame image data: {e}", file=sys.stderr)
             return None
 
     def get_keywords(self) -> Optional[FKeywords]:
@@ -1397,6 +1588,21 @@ class SirilInterface:
                 return s.decode('utf-8').rstrip('\x00')
 
             # Create FFit object
+            try:
+                img_header = self.get_fits_header()
+            except Exception as e:
+                img_header = ""
+
+            try:
+                img_unknown_keys = self.get_unknown_keys()
+            except Exception as e:
+                img_unknown_keys = ""
+
+            try:
+                img_history = self.get_history()
+            except Exception as e:
+                img_history = []
+
             return FFit(
                 _naxes = (shape[1], shape[0], shape[2]),
                 naxis = 2 if shape[2] == 1 else 3,
@@ -1417,9 +1623,9 @@ class SirilInterface:
                 ),
                 keywords = self.get_keywords(),
                 _icc_profile = self.get_icc_profile(),
-                header = self.get_fits_header(),
-                #unknown_keys= self.get_unknown_keys(),
-                history = self.get_history()
+                header = img_header,
+                unknown_keys = img_unknown_keys,
+                history = img_history
             )
 
         except struct.error as e:

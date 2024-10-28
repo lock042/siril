@@ -320,7 +320,6 @@ static void siril_app_activate(GApplication *application) {
 
 	init_num_procs();
 	g_thread_new("python_thread", open_python_channel, NULL);
-	//	g_thread_new("python_thread", init_python, NULL); // initialize the python scripting module
 	initialize_profiles_and_transforms(); // color management
 
 #ifdef HAVE_LIBGIT2
