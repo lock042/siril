@@ -95,8 +95,8 @@ static void start_stacking() {
 	static GtkEntry *output_file = NULL;
 	static GtkToggleButton *overwrite = NULL, *force_norm = NULL, *max_framing = NULL,
 					*fast_norm = NULL, *rejmaps = NULL, *merge_rejmaps = NULL, *upscale_at_stacking = NULL;
-	static GtkSpinButton *sigSpin[2] = {NULL, NULL};
-	static GtkWidget *norm_to_max = NULL, *RGB_equal = NULL;
+	static GtkSpinButton *sigSpin[2] = {NULL, NULL}, *blend_dist = NULL;
+	static GtkWidget *norm_to_max = NULL, *RGB_equal = NULL, *blend_frame = NULL;;
 
 	if (method_combo == NULL) {
 		method_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "comboboxstack_methods"));
@@ -115,6 +115,8 @@ static void start_stacking() {
 		rejmaps = GTK_TOGGLE_BUTTON(lookup_widget("rejmaps_checkbutton"));
 		merge_rejmaps = GTK_TOGGLE_BUTTON(lookup_widget("merge_rejmaps_checkbutton"));
 		upscale_at_stacking = GTK_TOGGLE_BUTTON(lookup_widget("check_upscale_at_stacking"));
+		blend_dist = GTK_SPIN_BUTTON(lookup_widget("spin_stack_blend_dist"));
+		blend_frame = lookup_widget("stack_blend_frame");
 	}
 
 	if (get_thread_run()) {
@@ -143,6 +145,7 @@ static void start_stacking() {
 	stackparam.apply_nbstack_weights = weighing_is_enabled && (gtk_combo_box_get_active(weighing_combo) == NBSTACK_WEIGHT) && (gtk_combo_box_get_active(norm_combo) != NO_NORM);
 	stackparam.equalizeRGB = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(RGB_equal)) && gtk_widget_is_visible(RGB_equal)  && (gtk_combo_box_get_active(norm_combo) != NO_NORM);
 	stackparam.lite_norm = gtk_toggle_button_get_active(fast_norm);
+	stackparam.blend_dist = (int)gtk_spin_button_get_value(blend_dist) * gtk_widget_get_visible(blend_frame);
 
 	stackparam.use_32bit_output = evaluate_stacking_should_output_32bits(stackparam.method,
 			&com.seq, stackparam.nb_images_to_stack, &error);
@@ -586,9 +589,10 @@ static void update_filter_label() {
 void update_stack_interface(gboolean dont_change_stack_type) {
 	static GtkWidget *go_stack = NULL, *widgetnormalize = NULL, *force_norm =
 			NULL, *output_norm = NULL, *RGB_equal = NULL, *fast_norm = NULL, *max_framing = NULL,
-			*upscale_at_stacking = NULL;
+			*upscale_at_stacking = NULL, *blend_frame = NULL;
 	static GtkComboBox *method_combo = NULL, *filter_combo = NULL;
 	static GtkLabel *result_label = NULL;
+	static GtkExpander *stack_expander_method = NULL, *stack_expander_output = NULL;
 	gchar *labelbuffer;
 
 	if(!go_stack) {
@@ -603,9 +607,16 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 		RGB_equal = lookup_widget("check_RGBequal");
 		max_framing = lookup_widget("check_maximize_framing");
 		upscale_at_stacking = lookup_widget("check_upscale_at_stacking");
+		blend_frame = lookup_widget("stack_blend_frame");
+		stack_expander_method = GTK_EXPANDER(lookup_widget("stack_expander_method"));
+		stack_expander_output = GTK_EXPANDER(lookup_widget("stack_expander_output"));
 	}
-	if (!sequence_is_loaded()) {
-		gtk_widget_set_sensitive(go_stack, FALSE);
+	gboolean seqloaded = sequence_is_loaded();
+	gtk_widget_set_sensitive(GTK_WIDGET(stack_expander_method), seqloaded);
+	gtk_expander_set_expanded(stack_expander_method, seqloaded);
+	gtk_widget_set_sensitive(GTK_WIDGET(stack_expander_output), seqloaded);
+	gtk_expander_set_expanded(stack_expander_output, seqloaded);
+	if (!seqloaded) {
 		return;
 	}
 	stackparam.seq = &com.seq;
@@ -653,6 +664,7 @@ void update_stack_interface(gboolean dont_change_stack_type) {
 			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(max_framing), must_reframe);
 		}
 	}
+	gtk_widget_set_visible(blend_frame, stack_method == STACK_MEAN);
 
 	if (com.seq.reference_image == -1)
 		com.seq.reference_image = sequence_find_refimage(&com.seq);

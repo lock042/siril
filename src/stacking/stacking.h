@@ -117,7 +117,7 @@ struct stacking_configuration {
 	gboolean output_norm;
 	gboolean equalizeRGB;
 	gboolean lite_norm;
-	float blend_strength;  // 0 nothing is done, 1, mask is smoothened up to half the image smallest dim
+	int blend_dist;  // number of pixels feathered for blend mask
 	normalization norm;
 	int number_of_loaded_sequences;
 	struct seq_filter_config filters;

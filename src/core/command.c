@@ -8172,6 +8172,19 @@ static int parse_stack_command_line(struct stacking_configuration *arg, int firs
 				else if (!strcmp(value, "mulscale"))
 					arg->norm = MULTIPLICATIVE_SCALING;
 			}
+		} else if (g_str_has_prefix(current, "-blend=")) {
+			if (!med_options_allowed) {
+				siril_log_message(_("Blending option is not allowed in this context, ignoring.\n"));
+			} else {
+				gchar *end;
+				value = current + 7;
+				int dist = g_ascii_strtoull(value, &end, 10);
+				if (end == value || dist < 0 || dist > 1000) {
+					siril_log_message(_("Bleding distance must be between 0 and 1000 pixels, got %d, ignoring.\n"), value);
+					dist = 0;
+				}
+				arg->blend_dist = dist;
+			}
 		} else if (!strcmp(current, "-rgb_equal")) {
 			if (!med_options_allowed) {
 				siril_log_message(_("RGB equalization is allowed only with average stacking, ignoring.\n"));
@@ -8259,6 +8272,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 	args.apply_nbstack_weights = arg->apply_nbstack_weights;
 	args.apply_wfwhm_weights = arg->apply_wfwhm_weights;
 	args.apply_nbstars_weights = arg->apply_nbstars_weights;
+	args.blend_dist = arg->blend_dist;
 
 	// manage registration data
 	if (!test_regdata_is_valid_and_shift(args.seq, args.reglayer)) {

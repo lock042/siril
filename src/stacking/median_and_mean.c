@@ -481,7 +481,7 @@ static int stack_read_block_data(struct stacking_args *args,
 				int tid = omp_get_thread_num();
 				if (tid == 0)
 #endif
-					siril_log_color_message(_("Error reading one of the maks areas\n"), "red");
+					siril_log_color_message(_("Error reading one of the masks areas\n"), "red");
 				return ST_SEQUENCE_ERROR;
 			}
 			float *mbuffer = data->mask[frame] + offset;
@@ -1172,7 +1172,6 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	guint64 irej[3][2] = {{0,0}, {0,0}, {0,0}};
 	regdata *layerparam = NULL;
 
-	args->blend_dist = 500; // TODO: remove this, for debug purposes only
 	gboolean masking = (args->blend_dist > 0);
 	if (masking)
 		init_ramp(); // we cache the values of the masks ramping function

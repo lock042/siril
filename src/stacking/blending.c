@@ -153,6 +153,12 @@ static int compute_mask_image_hook(struct generic_seq_args *args, int o, int i, 
 	return 0;
 }
 
+gboolean end_compute_masks(gpointer p) {
+	struct generic_seq_args *args = (struct generic_seq_args *) p;
+	free(args);
+	return FALSE;
+}
+
 int compute_masks(struct stacking_args *args) {
 	struct generic_seq_args *arg = create_default_seqargs(args->seq);
 	arg->compute_mem_limits_hook = compute_mask_compute_mem_limits;
