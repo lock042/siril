@@ -897,7 +897,7 @@ gpointer do_graxpert (gpointer p) {
 
 ERROR_OR_FINISHED:
 	g_free(outpath);
-	if (args->seq != NULL) set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
 	if (!retval && text) {
 		undo_save_state(&gfit, text);
 		g_free(text);
