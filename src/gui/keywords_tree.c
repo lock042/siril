@@ -39,56 +39,6 @@ static GtkNotebook *key_notebook = NULL;
 static GtkTreeSelection *key_selection = NULL;
 static GtkWidget *key_export_button = NULL;
 
-static int ffs2c(const char *instr, /* I - null terminated input string  */
-char *outstr, /* O - null terminated quoted output string */
-const int *status) /* IO - error status */
-/*
- convert an input string to a quoted string. Leading spaces
- are significant.  FITS string keyword values must be at least
- 8 chars long so pad out string with spaces if necessary.
- Example:   km/s ==> 'km/s    '
- Single quote characters in the input string will be replace by
- two single quote characters. e.g., o'brian ==> 'o''brian'
- */
-{
-	size_t len, ii, jj;
-
-	if (*status > 0) /* inherit input status value if > 0 */
-		return (*status);
-
-	if (!instr) /* a null input pointer?? */
-	{
-		strcpy(outstr, "''"); /* a null FITS string */
-		return (*status);
-	}
-
-	outstr[0] = '\''; /* start output string with a quote */
-
-	len = strlen(instr);
-	if (len > 68)
-		len = 68; /* limit input string to 68 chars */
-
-	for (ii = 0, jj = 1; ii < len && jj < 69; ii++, jj++) {
-		outstr[jj] = instr[ii]; /* copy each char from input to output */
-		if (instr[ii] == '\'') {
-			jj++;
-			outstr[jj] = '\''; /* duplicate any apostrophies in the input */
-		}
-	}
-
-	for (; jj < 9; jj++) /* pad string so it is at least 8 chars long */
-		outstr[jj] = ' ';
-
-	if (jj == 70) /* only occurs if the last char of string was a quote */
-		outstr[69] = '\0';
-	else {
-		outstr[jj] = '\''; /* append closing quote character */
-		outstr[jj + 1] = '\0'; /* terminate the string */
-	}
-
-	return (*status);
-}
-
 
 enum {
 	COLUMN_KEY,		// string
@@ -337,13 +287,8 @@ void on_val_edited(GtkCellRendererText *renderer, char *path, char *new_val, gpo
 	gtk_tree_model_get(model, &iter, COLUMN_KEY, &FITS_key, COLUMN_VALUE, &original_val, COLUMN_COMMENT, &FITS_comment, COLUMN_DTYPE, &dtype, COLUMN_PROTECTED, &protected, -1);
 	if (!protected) {
 		char valstring[FLEN_VALUE];
-		int status = 0;
 		/* update FITS key */
-		if (dtype == 'C' && (new_val[0] != '\'' || new_val[strlen(new_val) - 1] != '\'')) {
-			ffs2c(new_val, valstring, &status);
-		} else {
-			strcpy(valstring, new_val);
-		}
+		process_keyword_string_value(new_val, valstring, dtype == 'C' && (new_val[0] != '\'' || new_val[strlen(new_val) - 1] != '\''));
 		if (g_strcmp0(original_val, valstring)) {
 			if (!updateFITSKeyword(&gfit, FITS_key, NULL, valstring, FITS_comment, TRUE, FALSE)) {
 				gtk_list_store_set(key_liststore, &iter, COLUMN_VALUE, valstring, -1);
@@ -545,24 +490,6 @@ static void scroll_to_end() {
 	}
 }
 
-static gboolean has_space(const gchar *str) {
-	if (str == NULL) {
-		return FALSE;
-	}
-
-	const gchar *p = str;
-
-	while (*p) {
-		gunichar c = g_utf8_get_char(p);
-		if (g_unichar_isspace(c)) {
-			return TRUE;
-		}
-		p = g_utf8_next_char(p);
-	}
-
-	return FALSE;
-}
-
 void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 	GtkWidget *dialog;
 	GtkWidget *content_area;
@@ -658,13 +585,7 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 
 		if (comment || value || key) {
 			char valstring[FLEN_VALUE];
-			int status = 0;
-
-			if (has_space(value)) {
-				ffs2c(value, valstring, &status);
-			} else {
-				strcpy(valstring, value);
-			}
+			process_keyword_string_value(value, valstring, string_has_space(value));
 
 			if (sequence_is_loaded()) {
 				struct keywords_data *kargs = calloc(1, sizeof(struct keywords_data));

@@ -1126,12 +1126,8 @@ int process_unpurple(int nb){
 	struct unpurpleargs *args = calloc(1, sizeof(struct unpurpleargs));
 	*args = (struct unpurpleargs){.fit = fit, .starmask = &starmask, .withstarmask = withstarmask, .thresh = thresh, .mod_b = mod, .verbose = FALSE};
 
-	//start_in_new_thread(unpurplehandler, args);
-	unpurple_filter(args);
+	start_in_new_thread(unpurple_filter, args);
 
-	char log[90];
-	sprintf(log, "Unpurple mod: %.2f, threshold: %.2f, withstarmask: %d", mod, thresh, withstarmask);
-	gfit.history = g_slist_append(gfit.history, strdup(log));
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
 
@@ -1847,7 +1843,7 @@ int process_update_key(int nb) {
 
 	/* manage options */
 	if (word[1][0] == '-') {
-		if (!g_strcmp0(word[1], "-remove") && word[2]) {
+		if (!g_strcmp0(word[1], "-delete") && word[2]) {
 			key = replace_wide_char(word[2]);
 			CHECK_KEY_LENGTH(key);
 			updateFITSKeyword(&gfit, key, NULL, NULL, NULL, TRUE, FALSE);
@@ -1865,13 +1861,18 @@ int process_update_key(int nb) {
 
 	/* without options */
 	} else {
+		char valstring[FLEN_VALUE];
+
 		key = replace_wide_char(word[1]);
 		CHECK_KEY_LENGTH(key);
 		value = replace_wide_char(word[2]);
+
+		process_keyword_string_value(value, valstring, string_has_space(value));
+
 		if (nb == 4)
 			comment = replace_wide_char(word[3]);
 
-		updateFITSKeyword(&gfit, key, NULL, value, comment, TRUE, FALSE);
+		updateFITSKeyword(&gfit, key, NULL, valstring, comment, TRUE, FALSE);
 	}
 	gui_function(refresh_keywords_dialog, NULL);
 
@@ -5993,6 +5994,9 @@ int process_split(int nb){
 	}
 
 	copy_fits_metadata(&gfit, args->fit);
+
+	args->fit->keywords.bayer_pattern[0] = '\0'; // Mark this as no longer having a Bayer pattern
+
 	start_in_new_thread(extract_channels, args);
 	return CMD_OK;
 }

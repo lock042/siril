@@ -3083,6 +3083,66 @@ gboolean keyword_is_protected(char *card) {
 	return (fits_get_keyclass(card) == TYP_STRUC_KEY || fits_get_keyclass(card) == TYP_CMPRS_KEY || fits_get_keyclass(card) == TYP_SCAL_KEY);
 }
 
+static int ffs2c(const char *instr, /* I - null terminated input string  */
+char *outstr, /* O - null terminated quoted output string */
+const int *status) /* IO - error status */
+/*
+ convert an input string to a quoted string. Leading spaces
+ are significant.  FITS string keyword values must be at least
+ 8 chars long so pad out string with spaces if necessary.
+ Example:   km/s ==> 'km/s    '
+ Single quote characters in the input string will be replace by
+ two single quote characters. e.g., o'brian ==> 'o''brian'
+ */
+{
+	size_t len, ii, jj;
+
+	if (*status > 0) /* inherit input status value if > 0 */
+		return (*status);
+
+	if (!instr) /* a null input pointer?? */
+	{
+		strcpy(outstr, "''"); /* a null FITS string */
+		return (*status);
+	}
+
+	outstr[0] = '\''; /* start output string with a quote */
+
+	len = strlen(instr);
+	if (len > 68)
+		len = 68; /* limit input string to 68 chars */
+
+	for (ii = 0, jj = 1; ii < len && jj < 69; ii++, jj++) {
+		outstr[jj] = instr[ii]; /* copy each char from input to output */
+		if (instr[ii] == '\'') {
+			jj++;
+			outstr[jj] = '\''; /* duplicate any apostrophies in the input */
+		}
+	}
+
+	for (; jj < 9; jj++) /* pad string so it is at least 8 chars long */
+		outstr[jj] = ' ';
+
+	if (jj == 70) /* only occurs if the last char of string was a quote */
+		outstr[69] = '\0';
+	else {
+		outstr[jj] = '\''; /* append closing quote character */
+		outstr[jj + 1] = '\0'; /* terminate the string */
+	}
+
+	return (*status);
+}
+
+void process_keyword_string_value(const char *input, char *output, gboolean condition) {
+	int status = 0;
+
+	if (condition) {
+		ffs2c(input, output, &status);
+	} else {
+		strcpy(output, input);
+	}
+}
+
 int updateFITSKeyword(fits *fit, const gchar *key, const gchar *newkey, const gchar *value, const gchar *comment, gboolean verbose, gboolean isfitseq) {
 	char card[FLEN_CARD] = { 0 }, newcard[FLEN_CARD] = { 0 };
 	char oldvalue[FLEN_VALUE] = { 0 }, oldcomment[FLEN_COMMENT] = { 0 };

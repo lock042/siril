@@ -841,8 +841,6 @@ struct cominf {
 	GThread *thread;		// the thread for processing
 	GMutex mutex;			// a mutex we use for this thread
 	GThread *python_thread;	// the thread for the python interpreter
-	GMainLoop *python_loop;	// the main loop for the python thread
-	GMainContext *python_context; // the main context for the python thread
 	gboolean run_thread;		// the main thread loop condition
 	gboolean stop_script;		// abort script execution, not just a command
 	GThread *script_thread;		// reads a script and executes its commands

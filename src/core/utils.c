@@ -1363,6 +1363,30 @@ void remove_spaces_from_str(gchar *s) {
 }
 
 /**
+ * Checks if the given UTF-8 encoded string contains any whitespace characters.
+ * @param str The UTF-8 encoded string to check.
+ * @return TRUE if the string contains at least one whitespace character; FALSE otherwise.
+ */
+gboolean string_has_space(const gchar *str) {
+	if (str == NULL) {
+		return FALSE;
+	}
+
+	const gchar *p = str;
+
+	while (*p) {
+		gunichar c = g_utf8_get_char(p);
+		if (g_unichar_isspace(c)) {
+			return TRUE;
+		}
+		p = g_utf8_next_char(p);
+	}
+
+	return FALSE;
+}
+
+
+/**
  * Removing trailing carriage return and newline characters in-place
  * @param the string that will be modified, allocation unchanged
  */
