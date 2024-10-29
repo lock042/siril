@@ -298,7 +298,7 @@ gchar** ai_version_check(gchar* executable, graxpert_operation operation) {
 		int nb = 0;
 		test_argv[nb++] = executable;
 		test_argv[nb++] = "-cmd";
-		gchar *versionarg = g_strdup(operation == GRAXPERT_DENOISE ? "denoising" : "background-extraction");
+		gchar *versionarg = g_strdup(operation == GRAXPERT_DENOISE ? "denoising" : (operation == GRAXPERT_DECONV ? "deconvolution" : "background-extraction"));
 		test_argv[nb++] = versionarg;
 		test_argv[nb++] = "--help";
 		// g_spawn handles wchar so not need to convert
