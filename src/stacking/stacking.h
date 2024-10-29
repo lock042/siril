@@ -75,7 +75,7 @@ struct stacking_args {
 	gboolean force_norm;		/* TRUE = force normalization */
 	gboolean output_norm;		/* normalize final image to the [0, 1] range */
 	gboolean use_32bit_output;	/* output to 32 bit float */
-	int blend_dist;			/* blend pix. number of pixels up to which the mask is smoothened */
+	int feather_dist;			/* blend pix. number of pixels up to which the mask is smoothened */
 	int reglayer;			/* layer used for registration data */
 	gboolean equalizeRGB;		/* enable RGB equalization through normalization */
 	gboolean maximize_framing;	/* maximize the framing instead of conforming to ref image size*/
@@ -117,7 +117,7 @@ struct stacking_configuration {
 	gboolean output_norm;
 	gboolean equalizeRGB;
 	gboolean lite_norm;
-	int blend_dist;  // number of pixels feathered for blend mask
+	int feather_dist;  // number of pixels feathered for blend mask
 	normalization norm;
 	int number_of_loaded_sequences;
 	struct seq_filter_config filters;

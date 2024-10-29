@@ -370,7 +370,7 @@ static int stack_read_block_data(struct stacking_args *args,
 	int ielem_size = itype == DATA_FLOAT ? sizeof(float) : sizeof(WORD);
 	/* store the layer info to retrieve normalization coeffs*/
 	data->layer = (int)my_block->channel;
-	gboolean masking = (args->blend_dist > 0);
+	gboolean masking = (args->feather_dist > 0);
 	/* Read the block from all images, store them in pix[image] */
 	for (int frame = 0; frame < args->nb_images_to_stack; ++frame) {
 		gboolean clear = FALSE, readdata = TRUE;
@@ -462,7 +462,7 @@ static int stack_read_block_data(struct stacking_args *args,
 			// We load the corresponding downscaled portion of the mask file (distances to black are already included)
 			// Upcsale it to the mask buffer
 			// Re-arrange it if required (as for the image block) for maximize_framing
-			// Normalize it to 1. (all values > blend_dist -> 1., values < blend_dist -> val/blend_dist)
+			// Normalize it to 1. (all values > feather_dist -> 1., values < feather_dist -> val/feather_dist)
 			// And finaly apply the ramping function which has been precomputed on  RAMP_PACE + 1 points
 			const gchar *maskfile = get_mask_filename(args->seq, args->image_indices[frame]);
 			float *mask_scaled;
@@ -490,7 +490,7 @@ static int stack_read_block_data(struct stacking_args *args,
 			if (args->maximize_framing) {
 				rearrange_block_data(mbuffer, DATA_FLOAT, naxes[0], area.h, rx);
 			}
-			float distf = (float)args->blend_dist;
+			float distf = (float)args->feather_dist;
 			float invdistf = 1.f / distf;
 			size_t block_nb_pix = my_block->height * naxes[0];
 			// we normalize and apply the ramping function for all values above 0.
@@ -904,7 +904,7 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 static double mean_and_reject(struct stacking_args *args, struct _data_block *data,
 		int stack_size, data_type itype, int rej[2]) {
 	double mean;
-	gboolean masking = (args->blend_dist > 0);
+	gboolean masking = (args->feather_dist > 0);
 	gboolean weighting = args->apply_noise_weights || args->apply_nbstack_weights || args->apply_wfwhm_weights || args->apply_nbstars_weights;
 	int layer = data->layer;
 	if (itype == DATA_USHORT) {
@@ -1172,7 +1172,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 	guint64 irej[3][2] = {{0,0}, {0,0}, {0,0}};
 	regdata *layerparam = NULL;
 
-	gboolean masking = (args->blend_dist > 0);
+	gboolean masking = (args->feather_dist > 0);
 	if (masking)
 		init_ramp(); // we cache the values of the masks ramping function
 

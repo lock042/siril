@@ -246,7 +246,7 @@ static command commands[] = {
 	{"stack", 1, "stack seqfilename\n"
 			"stack seqfilename { sum | min | max } [filtering] [-output_norm] [-out=filename] [-maximize] [-upscale]\n"
 			"stack seqfilename { med | median } [-nonorm, -norm=] [filtering] [-fastnorm] [-rgb_equal] [-output_norm] [-out=filename]\n"
-			"stack seqfilename { rej | mean } [rejection type] [sigma_low sigma_high]  [-rejmap[s]] [-nonorm, -norm=] [filtering] [-fastnorm] [ -weight_from_noise | -weight_from_nbstack | -weight_from_wfwhm | -weight_from_nbstars ] [-rgb_equal] [-output_norm] [-out=filename] [-maximize] [-upscale] [-blend=]", process_stackone, STR_STACK, TRUE, REQ_CMD_NONE},
+			"stack seqfilename { rej | mean } [rejection type] [sigma_low sigma_high]  [-rejmap[s]] [-nonorm, -norm=] [filtering] [-fastnorm] [ -weight_from_noise | -weight_from_nbstack | -weight_from_wfwhm | -weight_from_nbstars ] [-rgb_equal] [-output_norm] [-out=filename] [-maximize] [-upscale] [-feather=]", process_stackone, STR_STACK, TRUE, REQ_CMD_NONE},
 	{"stackall", 0, "stackall\n"
 			"stackall { sum | min | max } [filtering] [-maximize] [-upscale]\n"
 			"stackall { med | median } [-nonorm, norm=] [-filter-incl[uded]]\n"

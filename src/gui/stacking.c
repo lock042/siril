@@ -95,7 +95,7 @@ static void start_stacking() {
 	static GtkEntry *output_file = NULL;
 	static GtkToggleButton *overwrite = NULL, *force_norm = NULL, *max_framing = NULL,
 					*fast_norm = NULL, *rejmaps = NULL, *merge_rejmaps = NULL, *upscale_at_stacking = NULL;
-	static GtkSpinButton *sigSpin[2] = {NULL, NULL}, *blend_dist = NULL;
+	static GtkSpinButton *sigSpin[2] = {NULL, NULL}, *feather_dist = NULL;
 	static GtkWidget *norm_to_max = NULL, *RGB_equal = NULL, *blend_frame = NULL;;
 
 	if (method_combo == NULL) {
@@ -115,7 +115,7 @@ static void start_stacking() {
 		rejmaps = GTK_TOGGLE_BUTTON(lookup_widget("rejmaps_checkbutton"));
 		merge_rejmaps = GTK_TOGGLE_BUTTON(lookup_widget("merge_rejmaps_checkbutton"));
 		upscale_at_stacking = GTK_TOGGLE_BUTTON(lookup_widget("check_upscale_at_stacking"));
-		blend_dist = GTK_SPIN_BUTTON(lookup_widget("spin_stack_blend_dist"));
+		feather_dist = GTK_SPIN_BUTTON(lookup_widget("spin_stack_feather_dist"));
 		blend_frame = lookup_widget("stack_blend_frame");
 	}
 
@@ -145,7 +145,7 @@ static void start_stacking() {
 	stackparam.apply_nbstack_weights = weighing_is_enabled && (gtk_combo_box_get_active(weighing_combo) == NBSTACK_WEIGHT) && (gtk_combo_box_get_active(norm_combo) != NO_NORM);
 	stackparam.equalizeRGB = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(RGB_equal)) && gtk_widget_is_visible(RGB_equal)  && (gtk_combo_box_get_active(norm_combo) != NO_NORM);
 	stackparam.lite_norm = gtk_toggle_button_get_active(fast_norm);
-	stackparam.blend_dist = (int)gtk_spin_button_get_value(blend_dist) * gtk_widget_get_visible(blend_frame);
+	stackparam.feather_dist = (int)gtk_spin_button_get_value(feather_dist) * gtk_widget_get_visible(blend_frame);
 
 	stackparam.use_32bit_output = evaluate_stacking_should_output_32bits(stackparam.method,
 			&com.seq, stackparam.nb_images_to_stack, &error);
