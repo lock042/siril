@@ -60,6 +60,14 @@ typedef struct {
     char shm_name[256];
 } shared_memory_info_t;
 
+#ifdef _WIN32
+// Windows-specific shared memory handling
+typedef struct win_shm_handle{
+	void* mapping;
+	void* ptr;
+} win_shm_handle_t;
+#endif
+
 // Structure to track shared memory allocations
 typedef struct {
     char *shm_name;
@@ -87,7 +95,7 @@ typedef struct _Connection {
     GMutex mutex;
     GCond condition;
 #ifdef _WIN32
-    HANDLE pipe_handle;
+    void *pipe_handle;
 #else
     int server_fd;
     int client_fd;

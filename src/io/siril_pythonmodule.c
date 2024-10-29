@@ -45,11 +45,7 @@ static gboolean wait_for_client(Connection *conn);
 static gboolean handle_client_communication(Connection *conn);
 
 #ifdef _WIN32
-// Windows-specific shared memory handling
-typedef struct {
-	HANDLE mapping;
-	void* ptr;
-} win_shm_handle_t;
+
 
 static gboolean create_shared_memory_win32(const char* name, size_t size, win_shm_handle_t* handle) {
 	handle->mapping = CreateFileMapping(
@@ -130,32 +126,34 @@ gboolean send_response(Connection* conn, uint8_t status, const void* data, uint3
 	return TRUE;
 }
 
+#ifdef _WIN32
 gboolean siril_allocate_shm(void** shm_ptr_ptr,
 							char* shm_name_ptr,
 							size_t total_bytes,
-#ifdef _WIN32
-							win_shm_handle_t* win_handle) {
-#else
-							int *fd) {
-#endif
+							win_shm_handle_t *win_handle) {
 	void *shm_ptr = NULL;
-
-#ifdef _WIN32
-	snprintf(shm_name, sizeof(shm_name), "siril_shm_%lu_%lu",
-			(unsigned long)GetCurrentProcessId(),
-			(unsigned long)time(NULL));
-#else
-	snprintf(shm_name_ptr, 256, "/siril_shm_%d_%lu",
-			getpid(), (unsigned long)time(NULL));
-#endif
-
-#ifdef _WIN32
-	*win_handle = {NULL, NULL};
-	if (!create_shared_memory_win32(shm_name, total_bytes, *win_handle)) {
+	snprintf(shm_name_ptr, sizeof(shm_name_ptr), "siril_shm_%lu_%lu",
+		(unsigned long)GetCurrentProcessId(),
+		(unsigned long)time(NULL));
+	*win_handle = (win_shm_handle_t){ NULL, NULL };
+	if (!create_shared_memory_win32(shm_name_ptr, total_bytes, win_handle)) {
 		return FALSE;
 	}
 	shm_ptr = win_handle->ptr;
+	*shm_ptr_ptr = shm_ptr;
+	return TRUE;
+}
 #else
+
+gboolean siril_allocate_shm(void** shm_ptr_ptr,
+							char* shm_name_ptr,
+							size_t total_bytes,
+							int *fd) {
+
+	void *shm_ptr = NULL;
+	snprintf(shm_name_ptr, 256, "/siril_shm_%d_%lu",
+			getpid(), (unsigned long)time(NULL));
+
 	*fd = shm_open(shm_name_ptr, O_CREAT | O_RDWR, 0600);
 	if (*fd == -1) {
 		g_warning("Failed to create shared memory: %s", strerror(errno));
@@ -175,10 +173,10 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 		shm_unlink(shm_name_ptr);
 		return FALSE;
 	}
-#endif
 	*shm_ptr_ptr = shm_ptr;
 	return TRUE;
 }
+#endif
 
 // Handle a request for pixel data. We record the allocated SHM
 // but leave clearup for another command
@@ -204,7 +202,7 @@ gboolean handle_pixeldata_request(Connection *conn, fits *fit, rectangle region)
 	char *shm_name_ptr = shm_name;
 #ifdef _WIN32
 	win_shm_handle_t win_handle;
-	if (!siril_allocate_shm(shm_ptr, &shm_name, total_bytes, &win_handle))
+	if (!siril_allocate_shm(shm_ptr, shm_name, total_bytes, &win_handle))
 		return FALSE;
 #else
 	int fd;
@@ -266,7 +264,7 @@ gboolean handle_rawdata_request(Connection *conn, void* data, size_t total_bytes
 	char *shm_name_ptr = shm_name;
 #ifdef _WIN32
 	win_shm_handle_t win_handle;
-	if (!siril_allocate_shm(shm_ptr, &shm_name, total_bytes, &win_handle))
+	if (!siril_allocate_shm(shm_ptr, shm_name, total_bytes, &win_handle))
 		return FALSE;
 #else
 	int fd;
