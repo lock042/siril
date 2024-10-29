@@ -1,8 +1,10 @@
 #include <glib.h>
-#include <glib-unix.h>
+#include <gio/gio.h>
 #ifdef _WIN32
 #include <windows.h>
+#include <gio/gwin32inputstream.h>
 #else
+#include <gio/gunixinputstream.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <netinet/in.h>
@@ -12,18 +14,10 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #endif
-
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
 #include <time.h>
-
-#include <gio/gio.h>
-#ifdef _WIN32
-#include <gio/gwin32inputstream.h>
-#else
-#include <gio/gunixinputstream.h>
-#endif
 
 #include "core/siril.h"
 #include "core/siril_log.h"
