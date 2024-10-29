@@ -167,7 +167,7 @@ int compute_masks(struct stacking_args *args) {
 	arg->filtering_parameter = args->filtering_parameter;
 	arg->nb_filtered_images = args->seq->selnum;
 	arg->image_hook = compute_mask_image_hook;
-	arg->description = _("Compute blending masks");
+	arg->description = _("Compute feathering masks");
 	arg->has_output = FALSE;
 	arg->already_in_a_thread = TRUE;
 	arg->stop_on_error = TRUE;
