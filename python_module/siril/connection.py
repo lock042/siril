@@ -9,7 +9,7 @@ from datetime import datetime
 import calendar
 from pathlib import Path
 from enum import IntEnum
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 import numpy as np
 from .shm import SharedMemoryWrapper
 from .exceptions import SirilError, ConnectionError, CommandError, DataError, NoImageError
@@ -1568,3 +1568,88 @@ class SirilInterface:
         except Exception as e:
             print(f"Error processing FITS metadata: {e}", file=sys.stderr)
             return None
+
+    def get_stars(self) -> List[PSFStar]:
+        """
+        Request PSF star data from Siril, iterating through all available stars.
+        Returns:
+            List of PSFStar objects containing the star data.
+        """
+        stars = []
+        index = 0
+
+        while True:
+            # Pack the index as network byte order uint32_t
+            data_payload = struct.pack('!I', index)
+
+            # Request data for this star
+            response = self.request_data(_Command.GET_PSFSTAR, payload=data_payload)
+
+            # If we get None back, we've reached the end of the stars
+            if response is None:
+                break
+
+            try:
+                format_string = '!13d2qdq16dqdd'  # Define the format string based on PSFStar structure
+                fixed_size = struct.calcsize(format_string)
+                values = struct.unpack(format_string, response[:fixed_size])
+                # Find the units and star_name strings and unpack them too
+                remaining_data = response[fixed_size:]
+                # Find the first null-terminated string (units_string)
+                units_string, remainder = remaining_data.split(b'\x00', 1)
+                units_string = units_string.decode('utf-8')
+                starname_string, _ = remainder.split(b'\x00', 1)
+                starname_string = starname_string.decode('utf-8')
+
+                star = PSFStar(
+                    B = values[0],
+                    A = values[1],
+                    x0 = values[1],
+                    y0 = values[1],
+                    sx = values[1],
+                    sy = values[1],
+                    fwhmx = values[1],
+                    fwhmy = values[1],
+                    fwhmx_arcsec = values[1],
+                    fwhmy_arcsec = values[1],
+                    angle = values[1],
+                    rmse = values[1],
+                    sat = values[1],
+                    R = values[1],
+                    has_saturated = values[1],
+                    beta = values[1],
+                    profile = values[1],
+                    xpos = values[1],
+                    ypos = values[1],
+                    mag = values[1],
+                    Bmag = values[1],
+                    s_mag = values[1],
+                    s_Bmag = values[1],
+                    SNR = values[1],
+                    BV = values[1],
+                    B_err = values[1],
+                    A_err = values[1],
+                    x_err = values[1],
+                    y_err = values[1],
+                    sx_err = values[1],
+                    sy_err = values[1],
+                    ang_err = values[1],
+                    beta_err = values[1],
+                    layer = values[1],
+                    ra = values[1],
+                    dec = values[1],
+                    units = units_string if units_string != "None" else None,
+                    star_name = starname_string if starname_string != "None" else None
+                )
+
+                # Add the star to our list
+                stars.append(star)
+
+            except struct.error as e:
+                print(f"Error unpacking star data for index {index}: {e}", file=sys.stderr)
+                break
+
+            # Move to next star
+            index += 1
+
+        return stars

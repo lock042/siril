@@ -26,7 +26,7 @@
 
 #define COPY_STRING(str) \
 	{ \
-		size_t len = strlen(str); \
+		size_t len = strlen(str) + 1; \
 		if ((ptr + len) - start_ptr > maxlen) { \
 			fprintf(stderr, "Error: Exceeded max length for COPY_STRING at %s\n", #str); \
 			return 1; \
@@ -195,13 +195,12 @@ static int imgdata_to_py(const imgdata *imgparam, unsigned char* ptr, size_t max
 	return 0;
 }
 
-static int psfstar_to_py(const psf_star *data, unsigned char* ptr, size_t maxlen) {
+static int psfstar_to_py(const psf_star *data, unsigned char* ptr, const gchar *units, const gchar *starname, size_t maxlen) {
 	if (!data || !ptr)
 		return 1;
 
 	unsigned char *start_ptr = ptr;
 
-	COPY_STRING(data->star_name);
 	COPY_BE(data->B, double);
 	COPY_BE(data->A, double);
 	COPY_BE(data->x0, double);
@@ -238,9 +237,10 @@ static int psfstar_to_py(const psf_star *data, unsigned char* ptr, size_t maxlen
 	COPY_BE(data->ang_err, double);
 	COPY_BE(data->beta_err, double);
 	COPY_BE((int64_t) data->layer, int64_t);
-	COPY_STRING(data->units);
 	COPY_BE(data->ra, double);
 	COPY_BE(data->dec, double);
+	COPY_STRING(units);
+	COPY_STRING(starname);
 	return 0;
 }
 
@@ -470,19 +470,12 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 			fits *fit = &gfit;
 
-			imstats **statsarray = NULL;
-			// (Re)compute image stats if they are not all computed already
-			if (!fit->stats[channel] || fit->stats[channel]->location == NULL_STATS) {
-				statsarray = calloc(fit->naxes[2], sizeof(imstats*));
-				if (compute_all_channels_statistics_single_image(fit, STATS_EXTRA, MULTI_THREADED, statsarray)) {
-					const char* error_msg = "Unable to compute image statistics";
-					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
-					break;
-				} else {
-					// Replace the stats in gfit with the new calculation
-					full_stats_invalidation_from_fit(fit);
-					fit->stats = statsarray;
-				}
+			// If there are no stats available we return NONE, the script can use
+			// cmd("stat") to generate them if required
+			if (!fit->stats || !fit->stats[channel]) {
+				const char* error_message = "No stats";
+				success = send_response(conn, STATUS_NONE, error_message, strlen(error_message));
+				break;
 			}
 
 			// Prepare response buffer with correct byte order
@@ -791,23 +784,45 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			while (com.stars[nb_in_com_stars])
 				nb_in_com_stars++;
 
-			if (payload_length != 4 || index < 0 || index >= nb_in_com_stars) {
+			if (payload_length != 4 || index < 0) {
 				const char* error_msg = "Incorrect command argument";
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
 
+			if (index >= nb_in_com_stars) { // returning NONE isn't treated as an error, it means
+				// we can iterate CMD_CET_PSFSTAR until NONE is returned
+				const char* error_msg = "No star with this index";
+				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+				break;
+			}
 			psf_star *psf = com.stars[index];
 
 			// Calculate size needed for the response
-			size_t total_size = sizeof(uint64_t) * 36 + // 36 variables packed to 64-bit
-								strlen(psf->star_name) + 1 +
-								strlen(psf->units) + 1;
+			size_t total_size = sizeof(uint64_t) * 36; // 36 variables packed to 64-bit
+			gchar *units = NULL, *starname = NULL;
+			if (psf->star_name) {
+				total_size += strlen(psf->star_name) + 1;
+				starname = g_strdup(psf->star_name);
+			} else {
+				starname = g_strdup("None");
+				total_size += strlen(starname) + 1; // star_name may be NULL
+			}
+			if (psf->units) {
+				total_size += strlen(psf->units) + 1;
+				units = g_strdup(psf->units);
+			} else {
+				units = g_strdup("None");
+				total_size += strlen(units) + 1;
+			}
 
 			unsigned char *response_buffer = g_malloc0(total_size);
 			unsigned char *ptr = response_buffer;
 
-			if (psfstar_to_py(psf, ptr, total_size)) {
+			int ret = psfstar_to_py(psf, ptr, units, starname, total_size);
+			g_free(units);
+			g_free(starname);
+			if (ret) {
 				const char* error_message = "Memory allocation error";
 				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
 				break;
