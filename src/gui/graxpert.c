@@ -125,7 +125,7 @@ graxpert_data* fill_graxpert_data_from_gui(gboolean previewing) {
 		const gchar **ai_models = get_ai_models(GRAXPERT_DENOISE);
 		if (ai_models) {
 			int num_models = g_strv_length((gchar**) ai_models);
-			if (n < num_models) {
+			if (n >= 0 && n < num_models) {
 				p->ai_version = g_strdup(ai_models[n]);
 			}
 		}
@@ -134,7 +134,7 @@ graxpert_data* fill_graxpert_data_from_gui(gboolean previewing) {
 		const gchar **ai_models = get_ai_models(GRAXPERT_BG);
 		if (ai_models) {
 			int num_models = g_strv_length((gchar**) ai_models);
-			if (n < num_models) {
+			if (n >= 0 && n < num_models) {
 				p->ai_version = g_strdup(ai_models[n]);
 			}
 		}
@@ -143,7 +143,7 @@ graxpert_data* fill_graxpert_data_from_gui(gboolean previewing) {
 		const gchar **ai_models = get_ai_models(GRAXPERT_DECONV);
 		if (ai_models) {
 			int num_models = g_strv_length((gchar**) ai_models);
-			if (n < num_models) {
+			if (n >= 0 && n < num_models) {
 				p->ai_version = g_strdup(ai_models[n]);
 			}
 		}
