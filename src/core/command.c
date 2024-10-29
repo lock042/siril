@@ -2090,9 +2090,17 @@ int process_seq_update_key(int nb) {
 		}
 		/* without options */
 	} else {
+		char valstring[FLEN_VALUE];
+
 		args->FITS_key = replace_wide_char(word[2]);
 		CHECK_KEY_LENGTH_SEQ(args->FITS_key, seq, args);
+
 		args->value = replace_wide_char(word[3]);
+		process_keyword_string_value(args->value, valstring, string_has_space(args->value));
+
+		g_free(args->value);
+		args->value = g_strdup(valstring);
+
 		if (nb == 5)
 			args->comment = replace_wide_char(word[4]);
 	}
