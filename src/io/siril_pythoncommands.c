@@ -195,7 +195,7 @@ static int imgdata_to_py(const imgdata *imgparam, unsigned char* ptr, size_t max
 	return 0;
 }
 
-static int psfstar_to_py(const psf_star *data, unsigned char* ptr, const gchar *units, const gchar *starname, size_t maxlen) {
+static int psfstar_to_py(const psf_star *data, unsigned char* ptr, size_t maxlen) {
 	if (!data || !ptr)
 		return 1;
 
@@ -239,8 +239,6 @@ static int psfstar_to_py(const psf_star *data, unsigned char* ptr, const gchar *
 	COPY_BE((int64_t) data->layer, int64_t);
 	COPY_BE(data->ra, double);
 	COPY_BE(data->dec, double);
-	COPY_STRING(units);
-	COPY_STRING(starname);
 	return 0;
 }
 
@@ -369,19 +367,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			break;
 		}
 
-/*		case CMD_RELEASE_SHM: {
-			// Clean up the specified shared memory
-			if (payload_length == 256) {
-				success = cleanup_shm_by_name(payload);
-				if (!success) {
-					g_warning("Failed to find or clean up shared memory: %s", payload);
-				}
-			} else {
-				g_warning("Invalid shared memory name length: %u", payload_length);
-			}
-			break;
-		}
-*/
 		case CMD_SEND_COMMAND: {
 			// Ensure null-terminated string for command
 			char* cmd = g_strndup(payload, payload_length);
@@ -769,67 +754,54 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			break;
 		}
 
-		case CMD_GET_PSFSTAR: {
-			if (!com.stars) {
+		case CMD_GET_PSFSTARS: {
+			if (!com.stars || !com.stars[0]) {
 				const char* error_msg = "No stars list available";
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
 			}
-			int index;
-			if (payload_length == 4) {
-				index = GUINT32_FROM_BE(*(int*) payload);
-			}
+
 			// Count the number of stars in com.stars
 			int nb_in_com_stars = 0;
 			while (com.stars[nb_in_com_stars])
 				nb_in_com_stars++;
 
-			if (payload_length != 4 || index < 0) {
-				const char* error_msg = "Incorrect command argument";
+			const size_t psf_star_size = 36 * sizeof(double);
+			const size_t total_size = nb_in_com_stars * psf_star_size;
+
+			unsigned char* allstars = g_malloc0(total_size);
+			if (!allstars) {
+				const char* error_msg = "Memory allocation failed";
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
 
-			if (index >= nb_in_com_stars) { // returning NONE isn't treated as an error, it means
-				// we can iterate CMD_CET_PSFSTAR until NONE is returned
-				const char* error_msg = "No star with this index";
-				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
-				break;
-			}
-			psf_star *psf = com.stars[index];
+			gboolean error_occurred = FALSE;
+			for (int i = 0; i < nb_in_com_stars; i++) {
+				psf_star *psf = com.stars[i];
+				if (!psf) {
+					error_occurred = TRUE;
+					const char* error_msg = "Unexpected null star entry";
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					break;
+				}
 
-			// Calculate size needed for the response
-			size_t total_size = sizeof(uint64_t) * 36; // 36 variables packed to 64-bit
-			gchar *units = NULL, *starname = NULL;
-			if (psf->star_name) {
-				total_size += strlen(psf->star_name) + 1;
-				starname = g_strdup(psf->star_name);
-			} else {
-				starname = g_strdup("None");
-				total_size += strlen(starname) + 1; // star_name may be NULL
-			}
-			if (psf->units) {
-				total_size += strlen(psf->units) + 1;
-				units = g_strdup(psf->units);
-			} else {
-				units = g_strdup("None");
-				total_size += strlen(units) + 1;
+				// Calculate the correct offset for this star's data
+				unsigned char* ptr = allstars + (i * psf_star_size);
+
+				if (psfstar_to_py(psf, ptr, psf_star_size)) {
+					error_occurred = TRUE;
+					const char* error_msg = "Memory allocation error";
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					break;
+				}
 			}
 
-			unsigned char *response_buffer = g_malloc0(total_size);
-			unsigned char *ptr = response_buffer;
-
-			int ret = psfstar_to_py(psf, ptr, units, starname, total_size);
-			g_free(units);
-			g_free(starname);
-			if (ret) {
-				const char* error_message = "Memory allocation error";
-				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
-				break;
-			} else {
-				success = send_response(conn, STATUS_OK, response_buffer, total_size);
+			if (!error_occurred) {
+				success = handle_rawdata_request(conn, allstars, total_size);
 			}
-			g_free(response_buffer);
+
+			g_free(allstars);
 			break;
 		}
 

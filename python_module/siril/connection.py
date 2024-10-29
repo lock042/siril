@@ -44,7 +44,7 @@ class _Command(IntEnum):
     GET_FITS_HISTORY = 15
     GET_FITS_UNKNOWN_KEYS = 16
     GET_IMAGE = 17
-    GET_PSFSTAR = 18
+    GET_PSFSTARS = 18
     GET_SEQ_STATS = 19
     GET_SEQ_REGDATA = 20
     GET_SEQ_IMGDATA = 21
@@ -232,6 +232,10 @@ class SirilInterface:
         """
         try:
             data_length = len(data) if data else -1
+
+            if data_length > 65529:
+                raise RuntimeError("Command data too long. Maximum command data 65529 bytes")
+
             header = struct.pack('!Bi', command, data_length)
 
             if os.name == 'nt':
@@ -352,7 +356,7 @@ class SirilInterface:
 
     def log(self, my_string: str) -> bool:
         """
-        Send a log message to Siril. The maximum message length is 1023 bytes:
+        Send a log message to Siril. The maximum message length is 1022 bytes:
         longer messages will be truncated.
 
         Args:
@@ -363,9 +367,9 @@ class SirilInterface:
         """
         try:
             # Append a newline character to the string
-            my_string += '\n'  # Add newline character
+            truncated_string = my_string[:1021] + '\n'
             # Convert string to bytes using UTF-8 encoding
-            message_bytes = my_string.encode('utf-8')
+            message_bytes = truncated_string.encode('utf-8')
             return self.execute_command(_Command.LOG_MESSAGE, message_bytes)
 
         except Exception as e:
@@ -1576,80 +1580,102 @@ class SirilInterface:
             List of PSFStar objects containing the star data.
         """
         stars = []
-        index = 0
+        shm = None
 
-        while True:
-            # Pack the index as network byte order uint32_t
-            data_payload = struct.pack('!I', index)
+        try:
+            # Request shared memory setup
+            status, response = self._send_command(_Command.GET_PSFSTARS)
 
-            # Request data for this star
-            response = self.request_data(_Command.GET_PSFSTAR, payload=data_payload)
+            # Handle error responses
+            if status == _Status.ERROR:
+                if response:
+                    error_msg = response.decode('utf-8', errors='replace')
+                    if "no image loaded" in error_msg.lower():
+                        raise NoImageError("No image is currently loaded in Siril")
+                    else:
+                        raise RuntimeError(f"Server error: {error_msg}")
+                else:
+                    raise RuntimeError("Failed to initiate shared memory transfer: Empty response")
 
-            # If we get None back, we've reached the end of the stars
-            if response is None:
-                break
+            if status == _Status.NONE:
+                return None
+
+            if not response:
+                raise RuntimeError("Failed to initiate shared memory transfer: No data received")
 
             try:
-                format_string = '!13d2qdq16dqdd'  # Define the format string based on PSFStar structure
-                fixed_size = struct.calcsize(format_string)
-                values = struct.unpack(format_string, response[:fixed_size])
-                # Find the units and star_name strings and unpack them too
-                remaining_data = response[fixed_size:]
-                # Find the first null-terminated string (units_string)
-                units_string, remainder = remaining_data.split(b'\x00', 1)
-                units_string = units_string.decode('utf-8')
-                starname_string, _ = remainder.split(b'\x00', 1)
-                starname_string = starname_string.decode('utf-8')
+                # Parse the shared memory information
+                shm_info = SharedMemoryInfo.from_buffer_copy(response)
+            except (AttributeError, BufferError, ValueError) as e:
+                raise ValueError(f"Invalid shared memory information received: {e}")
 
-                star = PSFStar(
-                    B = values[0],
-                    A = values[1],
-                    x0 = values[1],
-                    y0 = values[1],
-                    sx = values[1],
-                    sy = values[1],
-                    fwhmx = values[1],
-                    fwhmy = values[1],
-                    fwhmx_arcsec = values[1],
-                    fwhmy_arcsec = values[1],
-                    angle = values[1],
-                    rmse = values[1],
-                    sat = values[1],
-                    R = values[1],
-                    has_saturated = values[1],
-                    beta = values[1],
-                    profile = values[1],
-                    xpos = values[1],
-                    ypos = values[1],
-                    mag = values[1],
-                    Bmag = values[1],
-                    s_mag = values[1],
-                    s_Bmag = values[1],
-                    SNR = values[1],
-                    BV = values[1],
-                    B_err = values[1],
-                    A_err = values[1],
-                    x_err = values[1],
-                    y_err = values[1],
-                    sx_err = values[1],
-                    sy_err = values[1],
-                    ang_err = values[1],
-                    beta_err = values[1],
-                    layer = values[1],
-                    ra = values[1],
-                    dec = values[1],
-                    units = units_string if units_string != "None" else None,
-                    star_name = starname_string if starname_string != "None" else None
+            # Map the shared memory
+            try:
+                shm = self._map_shared_memory(
+                    shm_info.shm_name.decode('utf-8'),
+                    shm_info.size
                 )
+            except (OSError, ValueError) as e:
+                raise RuntimeError(f"Failed to map shared memory: {e}")
 
-                # Add the star to our list
-                stars.append(star)
+            format_string = '!13d2qdq16dqdd'  # Define the format string based on PSFStar structure
+            fixed_size = struct.calcsize(format_string)
 
-            except struct.error as e:
-                print(f"Error unpacking star data for index {index}: {e}", file=sys.stderr)
-                break
+            # Read entire buffer at once using memoryview
+            buffer = memoryview(shm.buf).cast('B')
 
-            # Move to next star
-            index += 1
+            # Validate buffer size
+            if len(buffer) % fixed_size != 0:
+                raise ValueError(f"Buffer size {len(buffer)} is not a multiple of struct size {fixed_size}")
 
-        return stars
+            num_stars = len(buffer) // fixed_size
+
+            # Sanity check for number of stars
+            if num_stars <= 0:  # adjust max limit as needed
+                raise ValueError(f"Invalid number of stars: {num_stars}")
+
+            if num_stars > 200000: # to match the #define MAX_STARS
+                num_stars = 200000
+                self.log("Limiting stars to max 200000")
+
+            for i in range(num_stars):
+                # Calculate start and end positions for each struct
+                start = i * fixed_size
+                end = start + fixed_size
+
+                try:
+                    # Extract the bytes for this struct and unpack
+                    values = struct.unpack(format_string, buffer[start:end].tobytes())
+
+                    star = PSFStar(
+                        B=values[0], A=values[1], x0=values[2], y0=values[3],
+                        sx=values[4], sy=values[5], fwhmx=values[6], fwhmy=values[7],
+                        fwhmx_arcsec=values[8], fwhmy_arcsec=values[9], angle=values[10],
+                        rmse=values[11], sat=values[12], R=values[13],
+                        has_saturated=bool(values[14]), beta=values[15],
+                        profile=values[16], xpos=values[17], ypos=values[18],
+                        mag=values[19], Bmag=values[20], s_mag=values[21],
+                        s_Bmag=values[22], SNR=values[23], BV=values[24],
+                        B_err=values[25], A_err=values[26], x_err=values[27],
+                        y_err=values[28], sx_err=values[29], sy_err=values[30],
+                        ang_err=values[31], beta_err=values[32], layer=values[33],
+                        ra=values[34], dec=values[35]
+                    )
+                    stars.append(star)
+
+                except struct.error as e:
+                    print(f"Error unpacking star data for index {i}: {e}", file=sys.stderr)
+                    break
+
+            return stars
+
+        except Exception as e:
+            raise RuntimeError(f"Error processing star data: {e}")
+
+        finally:
+            if shm is not None:
+                try:
+                    shm.close()
+                    shm.unlink()
+                except Exception as e:
+                    print(f"Error closing shared memory: {e}", file=sys.stderr)
