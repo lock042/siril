@@ -489,16 +489,18 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				break;
 			}
 
-			// Extract the progress value (first 4 bytes)
-			float progress_BE;
-			memcpy(&progress_BE, payload, sizeof(float));
-
-			// Convert from network byte order
+			// Use a union to safely handle the byte-order conversion
 			union {
 				float f;
 				uint32_t i;
+				unsigned char bytes[sizeof(float)];
 			} progress_convert;
-			progress_convert.i = GUINT32_FROM_BE(*(uint32_t*)&progress_BE);
+
+			// Copy the bytes from payload
+			memcpy(progress_convert.bytes, payload, sizeof(float));
+
+			// Convert from network byte order to host byte order
+			progress_convert.i = GUINT32_FROM_BE(progress_convert.i);
 			float progress = progress_convert.f;
 
 			// Get the message string (remaining bytes)

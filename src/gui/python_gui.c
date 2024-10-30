@@ -237,7 +237,7 @@ void on_button_python_pad_open_clicked(GtkWidget *widget, gpointer user_data) {
 			gtk_widget_destroy(dialog);
 			return;
 		}
-		gsize length;
+		gsize length = 0;
 		gchar *text = read_stream_into_gchar(input_stream, &length, &error);
 		gtk_text_buffer_set_text(GTK_TEXT_BUFFER(sourcebuffer), text, -1);
 		g_input_stream_close(input_stream, NULL, NULL);
