@@ -414,9 +414,8 @@
             ],
             "sources": [
                 {
-                    "type": "git",
-                    "url": "https://gitlab.com/free-astro/siril.git",
-                    "branch": "master"
+                    "type": "dir",
+                    "path": "../.."
                 }
             ]
         }

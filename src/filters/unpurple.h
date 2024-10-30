@@ -30,10 +30,11 @@ struct unpurpleargs {
 	double thresh;
 	gboolean withstarmask;
 	gboolean verbose;
+	gboolean for_final;
 };
 
 gpointer unpurplehandler(gpointer args);
-int unpurple_filter(struct unpurpleargs *args);
+gpointer unpurple_filter(gpointer p);
 void apply_unpurple_cancel();
 
 #endif /* SRC_GUI_ASINH_H_ */

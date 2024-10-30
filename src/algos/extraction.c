@@ -959,9 +959,16 @@ int split_cfa_ushort(fits *in, fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3) {
 
 	/* Update the filter information */
 	update_filter_information(cfa0, "CFA0", TRUE);
-	update_filter_information(cfa0, "CFA1", TRUE);
-	update_filter_information(cfa0, "CFA2", TRUE);
-	update_filter_information(cfa0, "CFA3", TRUE);
+	update_filter_information(cfa1, "CFA1", TRUE);
+	update_filter_information(cfa2, "CFA2", TRUE);
+	update_filter_information(cfa3, "CFA3", TRUE);
+
+	/* Remove Bayer pattern information */
+	cfa0->keywords.bayer_pattern[0] = '\0';
+	cfa1->keywords.bayer_pattern[0] = '\0';
+	cfa2->keywords.bayer_pattern[0] = '\0';
+	cfa3->keywords.bayer_pattern[0] = '\0';
+
 
 	/* Remove any WCS data */
 	free_wcs(cfa0);
@@ -1029,9 +1036,15 @@ int split_cfa_float(fits *in, fits *cfa0, fits *cfa1, fits *cfa2, fits *cfa3) {
 
 	/* Update the filter information */
 	update_filter_information(cfa0, "CFA0", TRUE);
-	update_filter_information(cfa0, "CFA1", TRUE);
-	update_filter_information(cfa0, "CFA2", TRUE);
-	update_filter_information(cfa0, "CFA3", TRUE);
+	update_filter_information(cfa1, "CFA1", TRUE);
+	update_filter_information(cfa2, "CFA2", TRUE);
+	update_filter_information(cfa3, "CFA3", TRUE);
+
+	/* Remove Bayer pattern information */
+	cfa0->keywords.bayer_pattern[0] = '\0';
+	cfa1->keywords.bayer_pattern[0] = '\0';
+	cfa2->keywords.bayer_pattern[0] = '\0';
+	cfa3->keywords.bayer_pattern[0] = '\0';
 
 	/* Remove any WCS data */
 	free_wcs(cfa0);
