@@ -1398,7 +1398,6 @@ int mergecfa_image_hook(struct generic_seq_args *args, int out_index, int in_ind
 	copy_fits_metadata(&metadata, fit);
 	update_sampling_information(fit, 0.5f);
 	update_bayer_pattern_information(fit, merge_cfa_args->pattern);
-	free_wcs(out);
 	clearfits(&metadata);
 
 CLEANUP_MERGECFA:

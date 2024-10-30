@@ -50,7 +50,7 @@ void reset_wcsdata(fits *fit) {
 
 
 void free_wcs(fits *fit) {
-	if (fit && fit->keywords.wcslib) {
+	if (fit->keywords.wcslib) {
 		if (!wcsfree(fit->keywords.wcslib))
 			free(fit->keywords.wcslib);
 		fit->keywords.wcslib = NULL;

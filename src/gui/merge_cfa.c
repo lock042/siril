@@ -137,10 +137,6 @@ void on_merge_cfa_filechooser_CFA3_file_set(GtkFileChooser *filechooser, gpointe
 	}
 }
 
-
-#include <glib.h>
-#include <stdio.h>
-
 gchar* replace_string_number(const gchar* input, const gchar* string, guint n) {
 	gchar* result;
 	GRegex* regex;
@@ -168,9 +164,6 @@ gchar* replace_string_number(const gchar* input, const gchar* string, guint n) {
 
 	return result;
 }
-
-#include <glib.h>
-#include <stdio.h>
 
 gint find_substring_number(const gchar* input, const gchar* substring) {
 	GRegex* regex;
@@ -306,9 +299,12 @@ void apply_to_seq() {
 		siril_log_color_message(_("Error: sequences don't match (dimensions, bitdepth, number of images must all be the same)\n"), "red");
 		if (!check_seq_is_comseq(seq0))
 			free_sequence(seq0, TRUE);
-		free_sequence(seq0, TRUE);
-		free_sequence(seq1, TRUE);
-		free_sequence(seq2, TRUE);
+		if (!check_seq_is_comseq(seq1))
+			free_sequence(seq1, TRUE);
+		if (!check_seq_is_comseq(seq3))
+			free_sequence(seq2, TRUE);
+		if (!check_seq_is_comseq(seq3))
+			free_sequence(seq3, TRUE);
 		return;
 	}
 	args->seq0 = seq0;
