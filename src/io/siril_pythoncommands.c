@@ -294,6 +294,83 @@ static int imstats_to_py(const imstats *stats, unsigned char* ptr, size_t maxlen
 	return 0;
 }
 
+static gboolean get_config_value(const char* group, const char* key, config_type_t* type, void** value, size_t* value_size) {
+	if (!group || !key || !type || !value || !value_size)
+		return FALSE;
+
+	// Get the value using the existing settings function
+	const struct settings_access *desc = get_key_settings(group, key);
+	if (!desc)
+		return FALSE;
+
+	// Example type determination based on key pattern or group
+	// You'll need to adjust this logic based on your actual configuration system
+	if (desc->type == STYPE_BOOL) {
+		uint32_t* bool_val = g_malloc(sizeof(uint32_t));
+		*bool_val = GUINT32_TO_BE(*(uint32_t*) desc->data);
+		*type = CONFIG_TYPE_BOOL;
+		*value = bool_val;
+		*value_size = sizeof(uint32_t);
+	}
+	else if (desc->type == STYPE_INT) {
+		gint32* int_val = g_malloc(sizeof(gint32));
+		*int_val = GINT32_TO_BE(*(int*) desc->data);
+		*type = CONFIG_TYPE_INT;
+		*value = int_val;
+		*value_size = sizeof(gint32);
+	}
+	else if (desc->type == STYPE_DOUBLE) {
+		// Represented in network byte order
+		size_t maxlen = sizeof(double);
+		double* double_val = g_malloc(maxlen);
+		unsigned char *ptr = (unsigned char*) double_val;
+		unsigned char *start_ptr = ptr;
+		COPY_BE(*(double*) desc->data, double);
+		*type = CONFIG_TYPE_DOUBLE;
+		*value = double_val;
+		*value_size = sizeof(double);
+	}
+	else if (desc->type == STYPE_STR || desc->type == STYPE_STRDIR) {
+		*type = CONFIG_TYPE_STR;
+		*value = g_strdup(*(gchar**) desc->data);
+		*value_size = strlen((gchar*) *value) + 1;
+	}
+	else if (desc->type == STYPE_STRLIST) {
+		GSList *list = *((GSList**)desc->data);
+		GSList *iter = list;
+		size_t total_size = 0;
+		while (iter) {
+			g_strstrip((gchar*) iter->data); // Remove whitespace
+			total_size += strlen((gchar*) iter->data) + 1;
+			iter = iter->next;
+		}
+		total_size += 1; // Final null terminator
+
+		char* list_val = g_malloc(total_size);
+		char* ptr = list_val;
+		iter = list;
+		while (iter) {
+			size_t len = strlen((gchar*) iter->data) + 1;
+			memcpy(ptr, (gchar*) iter->data, len);
+			ptr += len;
+			iter = iter->next;
+		}
+		*ptr = '\0';
+
+		*type = CONFIG_TYPE_STRLIST;
+		*value = list_val;
+		*value_size = total_size;
+	}
+	else {
+		// Unknown type, report an error
+		*type = CONFIG_TYPE_STR;
+		*value = g_strdup(_("Unknown config type"));
+		*value_size = strlen(*value) + 1;
+	}
+
+	return TRUE;
+}
+
 typedef struct {
     char shm_name[256];
 } finished_shm_payload_t;
@@ -934,6 +1011,50 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			guint32 length = strlen(fit->unknown_keys) + 1;
 
 			success = handle_rawdata_request(conn, fit->unknown_keys, length * sizeof(char));
+			break;
+		}
+
+		case CMD_GET_CONFIG: {
+			if (payload_length < 2) {  // Need at least two null-terminated strings
+				const char* error_msg = "Group and key must be provided";
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+
+			// Extract group and key from payload
+			const char* group = (const char*)payload;
+			size_t group_len = strlen(group);
+			if (group_len >= payload_length - 1) {
+				const char* error_msg = "Malformed group/key data";
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			const char* key = (const char*)payload + group_len + 1;
+
+			config_type_t type;
+			void* value;
+			size_t value_size;
+
+			if (!get_config_value(group, key, &type, &value, &value_size)) {
+				const char* error_msg = "Configuration key not found";
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+
+			// Allocate response buffer: 1 byte for type + value size
+			size_t total_size = 1 + value_size;
+			unsigned char* response_buffer = g_malloc(total_size);
+
+			// Write type and value
+			response_buffer[0] = (unsigned char)type;
+			memcpy(response_buffer + 1, value, value_size);
+
+			// Send response
+			success = send_response(conn, STATUS_OK, response_buffer, total_size);
+
+			// Clean up
+			g_free(value);
+			g_free(response_buffer);
 			break;
 		}
 

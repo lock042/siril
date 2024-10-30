@@ -36,8 +36,19 @@ typedef enum {
 	CMD_GET_SEQ_PIXELDATA = 22,
 	CMD_GET_SEQ_IMAGE = 23,
 	CMD_GET_SEQ = 24,
+	CMD_GET_CONFIG = 25,
 	CMD_ERROR = 0xFF
 } CommandType;
+
+// Config types matching python side
+typedef enum {
+    CONFIG_TYPE_BOOL = 0,
+    CONFIG_TYPE_INT = 1,
+    CONFIG_TYPE_DOUBLE = 2,
+    CONFIG_TYPE_STR = 3,
+    CONFIG_TYPE_STRDIR = 4,
+    CONFIG_TYPE_STRLIST = 5
+} config_type_t;
 
 // Command header structure
 typedef struct {

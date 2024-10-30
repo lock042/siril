@@ -9,7 +9,7 @@ from datetime import datetime
 import calendar
 from pathlib import Path
 from enum import IntEnum
-from typing import Tuple, Optional, List
+from typing import Tuple, Optional, List, Union
 import numpy as np
 from .shm import SharedMemoryWrapper
 from .exceptions import SirilError, ConnectionError, CommandError, DataError, NoImageError
@@ -51,7 +51,16 @@ class _Command(IntEnum):
     GET_SEQ_PIXELDATA = 22
     GET_SEQ_IMAGE = 23
     GET_SEQ = 24
+    GET_CONFIG = 25
     ERROR = 0xFF
+
+class ConfigType(IntEnum):
+    BOOL = 0
+    INT = 1
+    DOUBLE = 2
+    STR = 3
+    STRDIR = 4
+    STRLIST = 5
 
 class SharedMemoryInfo(ctypes.Structure):
     """Structure matching the C-side shared memory info"""
@@ -1241,7 +1250,7 @@ class SirilInterface:
         Request sequence frame registration data from Siril.
 
         Returns:
-            RegData object containing the registration data, or None if an error occurred
+            ImgData object containing the image data, or None if an error occurred
         """
         data_payload = struct.pack('!I', frame)  # '!I' for network byte order uint32_t
 
@@ -1689,3 +1698,52 @@ class SirilInterface:
                     shm.unlink()
                 except Exception as e:
                     print(f"Error closing shared memory: {e}", file=sys.stderr)
+
+    def get_config(self, group: str, key: str) -> Optional[Union[bool, int, float, str, List[str]]]:
+        """
+        Request a configuration value from Siril.
+
+        Args:
+            group: Configuration group name
+            key: Configuration key name within the group
+
+        Returns:
+            The configuration value with appropriate Python type, or None if an error occurred
+        """
+        try:
+            # Encode both group and key with null terminator
+            group_bytes = group.encode('utf-8') + b'\0'
+            key_bytes = key.encode('utf-8') + b'\0'
+            payload = group_bytes + key_bytes
+
+            # Request the config value
+            response = self.request_data(_Command.GET_CONFIG, payload=payload)
+            if response is None:
+                return None
+
+            # First byte should be the type
+            config_type = ConfigType(response[0])
+            value_data = response[1:]
+
+            # Parse based on type
+            if config_type == ConfigType.BOOL:
+                return bool(struct.unpack('!I', value_data)[0])
+            elif config_type == ConfigType.INT:
+                return struct.unpack('!i', value_data)[0]
+            elif config_type == ConfigType.DOUBLE:
+                return struct.unpack('!d', value_data)[0]
+            elif config_type in (ConfigType.STR, ConfigType.STRDIR):
+                # Assume null-terminated string
+                string_value = value_data.split(b'\0')[0].decode('utf-8')
+                return string_value
+            elif config_type == ConfigType.STRLIST:
+                # Split on null bytes and decode each string
+                strings = value_data.split(b'\0')
+                # Remove empty strings at the end
+                while strings and not strings[-1]:
+                    strings.pop()
+                return [s.decode('utf-8') for s in strings]
+
+        except Exception as e:
+            print(f"Error getting config value: {e}", file=sys.stderr)
+            return None
