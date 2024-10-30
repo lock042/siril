@@ -20,7 +20,8 @@
 			return 1; \
 		} \
 		memset(ptr, 0, len); \
-		strncpy((char*)ptr, str, len - 1); \
+		memcpy((char*)ptr, str, len - 1); \
+		((char*)ptr)[len - 1] = '\0';     /* Explicitly set null terminator */ \
 		ptr += len; \
 	}
 
@@ -31,8 +32,7 @@
 			fprintf(stderr, "Error: Exceeded max length for COPY_STRING at %s\n", #str); \
 			return 1; \
 		} \
-		memset(ptr, 0, len); \
-		strncpy((char*)ptr, str, len - 1); \
+		memcpy((char*)ptr, str, len);     /* Copy including null terminator */ \
 		ptr += len; \
 	}
 

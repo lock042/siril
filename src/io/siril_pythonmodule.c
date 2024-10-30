@@ -246,7 +246,8 @@ gboolean handle_pixeldata_request(Connection *conn, fits *fit, rectangle region)
 		.height = region.h,
 		.channels = fit->naxes[2]
 	};
-	strncpy(info.shm_name, shm_name, sizeof(info.shm_name) - 1);
+	memset(info.shm_name, 0, sizeof(info.shm_name));  // Clear the buffer first
+	memcpy(info.shm_name, shm_name, strlen(shm_name)); // Safe copy with implicit null termination
 
 	// Send shared memory info to Python
 	return send_response(conn, STATUS_OK, (const char*)&info, sizeof(info));
@@ -294,7 +295,8 @@ gboolean handle_rawdata_request(Connection *conn, void* data, size_t total_bytes
 		.height = 0,
 		.channels = 0
 	};
-	strncpy(info.shm_name, shm_name, sizeof(info.shm_name) - 1);
+	memset(info.shm_name, 0, sizeof(info.shm_name));  // Clear the buffer first
+	memcpy(info.shm_name, shm_name, strlen(shm_name)); // Safe copy with implicit null termination
 
 	// Send shared memory info to Python
 	return send_response(conn, STATUS_OK, (const char*)&info, sizeof(info));
@@ -320,7 +322,7 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 	// Validate image dimensions and format
 	if (info->width == 0 || info->height == 0 || info->channels == 0 ||
 		info->channels > 3 || info->size == 0) {
-		const char* error_msg = g_strdup_printf("Invalid image dimensions or format: w = %u, h = %u, c = %u, size = %lu", info->width, info->height, info->channels, info->size);
+		gchar* error_msg = g_strdup_printf("Invalid image dimensions or format: w = %u, h = %u, c = %u, size = %lu", info->width, info->height, info->channels, info->size);
 		int retval = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 	g_free(error_msg);
 	return retval;
