@@ -1,8 +1,6 @@
 siril 1.4.0
 xx/xx/xx
 
----
-
 **New features:**
 * Added support for unknown keywords with path parsing (#1333)
 * Added support for JPEG XL image format
