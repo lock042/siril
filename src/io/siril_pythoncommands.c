@@ -294,6 +294,10 @@ static int imstats_to_py(const imstats *stats, unsigned char* ptr, size_t maxlen
 	return 0;
 }
 
+typedef struct {
+    char shm_name[256];
+} finished_shm_payload_t;
+
 /**
 * Process the received connection data
 */
@@ -363,6 +367,19 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = handle_pixeldata_request(conn, &gfit, region);
 			} else {
 				g_warning("Unexpected payload length %u received for GET_PIXELDATA_REGION", payload_length);
+			}
+			break;
+		}
+
+		case CMD_RELEASE_SHM: {
+			if (payload_length >= sizeof(finished_shm_payload_t)) {
+				finished_shm_payload_t* finished_payload = (finished_shm_payload_t*)payload;
+				cleanup_shm_allocation(finished_payload->shm_name);
+				// Send acknowledgment
+				success = send_response(conn, STATUS_OK, NULL, 0);
+			} else {
+				const char* error_msg = "Invalid FINISHED_WITH_SHM payload";
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			}
 			break;
 		}

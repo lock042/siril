@@ -35,7 +35,7 @@ class _Command(IntEnum):
     GET_DIMENSIONS = 6
     GET_PIXELDATA = 7
     GET_PIXELDATA_REGION = 8
-#    RELEASE_SHM = 9
+    RELEASE_SHM = 9
     SET_PIXELDATA = 10
     GET_IMAGE_STATS = 11
     GET_KEYWORDS = 12
@@ -643,8 +643,14 @@ class SirilInterface:
             # Clean up shared memory using the wrapper's methods
             if shm is not None:
                 try:
+                    # Signal that Python is done with the shared memory and wait for C to finish
+                    finish_info = struct.pack('256s', shm_name.encode('utf-8'))
+                    if not self.execute_command(_Command.RELEASE_SHM, finish_info):
+                        raise RuntimeError("Failed to cleanup shared memory")
+
                     shm.close()  # First close the memory mapping
                     shm.unlink()  # Then unlink/remove the shared memory segment
+
                 except Exception:
                     pass
 
@@ -808,6 +814,10 @@ class SirilInterface:
         finally:
             if shm is not None:
                 try:
+                    # Signal that Python is done with the shared memory and wait for C to finish
+                    finish_info = struct.pack('256s', shm_name.encode('utf-8'))
+                    if not self.execute_command(_Command.RELEASE_SHM, finish_info):
+                        raise RuntimeError("Failed to cleanup shared memory")
                     shm.close()
                     shm.unlink()
                 except BufferError:

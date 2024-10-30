@@ -2,6 +2,7 @@
 #define SRC_IO_SIRIL_PYTHONMODULE_H
 
 // Status codes for command responses
+#include <sys/cdefs.h>
 typedef enum {
 	STATUS_OK = 0,
 	STATUS_NONE = 1, // for "allowed to fail" commands e.g. those that may
@@ -19,7 +20,7 @@ typedef enum {
 	CMD_GET_DIMENSIONS = 6,
 	CMD_GET_PIXELDATA = 7,
 	CMD_GET_PIXELDATA_REGION = 8,
-//	CMD_RELEASE_SHM = 9,
+	CMD_RELEASE_SHM = 9,
 	CMD_SET_PIXELDATA = 10,
 	CMD_GET_IMAGE_STATS = 11,
 	CMD_GET_KEYWORDS = 12,
@@ -70,11 +71,11 @@ typedef struct win_shm_handle{
 
 // Structure to track shared memory allocations
 typedef struct {
-    char *shm_name;
-    void *shm_ptr;
+    char shm_name[256];
+    void* shm_ptr;
     size_t size;
 #ifdef _WIN32
-    win_shm_handle_t win_handle;
+    win_shm_handle_t handle;
 #else
     int fd;
 #endif
@@ -118,9 +119,8 @@ void execute_python_script_async(gchar* script_name, gboolean from_file);
 gboolean send_response(Connection *conn, uint8_t status, const void* data, uint32_t length);
 gboolean handle_pixeldata_request(Connection *conn, fits *fit, rectangle region);
 gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* payload, size_t payload_length);
+void cleanup_shm_allocation(const char* shm_name);
 gboolean handle_rawdata_request(Connection *conn, void* data, size_t total_bytes);
-//gboolean cleanup_shm_by_name(const char *shm_name);
-
 gboolean initialize_python_communication(const gchar *connection_path);
 void shutdown_python_communication(void);
 

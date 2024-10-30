@@ -37,7 +37,11 @@
 #define PIPE_NAME "\\\\.\\pipe\\mypipe"
 #define SOCKET_PORT 12345
 
+// Statics
 static CommunicationState commstate = {0};
+static GSList* g_shm_allocations = NULL;
+static GMutex g_shm_mutex;
+static gboolean g_shm_initialized = FALSE;
 
 // Forward declarations
 static void cleanup_connection(Connection *conn);
@@ -45,8 +49,6 @@ static gboolean wait_for_client(Connection *conn);
 static gboolean handle_client_communication(Connection *conn);
 
 #ifdef _WIN32
-
-
 static gboolean create_shared_memory_win32(const char* name, size_t size, win_shm_handle_t* handle) {
 	handle->mapping = CreateFileMapping(
 		INVALID_HANDLE_VALUE,    // Use paging file
@@ -178,6 +180,111 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 }
 #endif
 
+// Initialize tracking system
+static void init_shm_tracking(void) {
+    if (!g_shm_initialized) {
+        g_mutex_init(&g_shm_mutex);
+        g_shm_initialized = TRUE;
+    }
+}
+
+// Track new allocation
+#ifdef _WIN32
+static void track_shm_allocation(const char* shm_name, void* shm_ptr, size_t size, win_shm_handle_t* handle) {
+#else
+static void track_shm_allocation(const char* shm_name, void* shm_ptr, size_t size, int fd) {
+#endif
+	if (!g_shm_initialized) init_shm_tracking();
+
+	// Using g_new0 and copying 255 chars ensures the last byte is 0
+	shm_allocation_t* allocation = g_new0(shm_allocation_t, 1);
+	memcpy(allocation->shm_name, shm_name, 255);
+
+	allocation->shm_ptr = shm_ptr;
+	allocation->size = size;
+#ifdef _WIN32
+    allocation->handle = *handle;
+#else
+    allocation->fd = fd;
+#endif
+    g_mutex_lock(&g_shm_mutex);
+    g_shm_allocations = g_slist_append(g_shm_allocations, allocation);
+    g_mutex_unlock(&g_shm_mutex);
+}
+
+// Helper function to match allocation by name
+static gint find_allocation_by_name(gconstpointer a, gconstpointer b) {
+    const shm_allocation_t* allocation = a;
+    const char* name = b;
+    return strcmp(allocation->shm_name, name);
+}
+
+// Cleanup allocation
+void cleanup_shm_allocation(const char* shm_name) {
+    if (!g_shm_initialized) return;
+
+    g_mutex_lock(&g_shm_mutex);
+
+    GSList* link = g_slist_find_custom(g_shm_allocations, shm_name, find_allocation_by_name);
+    if (link) {
+        shm_allocation_t* allocation = link->data;
+
+        // Unmap memory
+        munmap(allocation->shm_ptr, allocation->size);
+
+#ifdef _WIN32
+        CloseHandle(allocation->handle);
+#else
+        // Close file descriptor and then unlink shared memory
+        close(allocation->fd);
+        shm_unlink(allocation->shm_name);
+#endif
+
+        // Remove from list and free allocation structure
+        g_shm_allocations = g_slist_remove(g_shm_allocations, allocation);
+        g_free(allocation);
+    }
+
+    g_mutex_unlock(&g_shm_mutex);
+}
+
+// Cleanup all allocations (useful for shutdown)
+static void cleanup_all_shm_allocations(void) {
+    if (!g_shm_initialized) return;
+
+    g_mutex_lock(&g_shm_mutex);
+
+    GSList* current = g_shm_allocations;
+    while (current) {
+        shm_allocation_t* allocation = current->data;
+
+        munmap(allocation->shm_ptr, allocation->size);
+
+#ifdef _WIN32
+        CloseHandle(allocation->handle);
+#else
+        close(allocation->fd);
+        shm_unlink(allocation->shm_name);
+#endif
+
+        g_free(allocation);
+        current = current->next;
+    }
+
+    g_slist_free(g_shm_allocations);
+    g_shm_allocations = NULL;
+
+    g_mutex_unlock(&g_shm_mutex);
+}
+
+void cleanup_shm_resources(void) {
+    cleanup_all_shm_allocations();
+    if (g_shm_initialized) {
+        g_mutex_clear(&g_shm_mutex);
+        g_shm_initialized = FALSE;
+    }
+}
+
 // Handle a request for pixel data. We record the allocated SHM
 // but leave clearup for another command
 gboolean handle_pixeldata_request(Connection *conn, fits *fit, rectangle region) {
@@ -229,14 +336,15 @@ gboolean handle_pixeldata_request(Connection *conn, fits *fit, rectangle region)
 		}
 	}
 
-/*
 	// Track this allocation
+	// Both sides have to munmap, close and unlink the shm for it to be deallocated entirely.
+	// We can't do this immmediately as we don't know when the python side has opened it, so we
+	// track it and wait for a CMD_RELEASE_SHM with the shm_name to release
 #ifdef _WIN32
 	track_shm_allocation(shm_name, shm_ptr, total_bytes, &win_handle);
 #else
 	track_shm_allocation(shm_name, shm_ptr, total_bytes, fd);
 #endif
-*/
 
 	// Prepare shared memory info structure
 	shared_memory_info_t info = {
@@ -276,14 +384,12 @@ gboolean handle_rawdata_request(Connection *conn, void* data, size_t total_bytes
 	// Copy data from gfit to shared memory
 	memcpy((char*)shm_ptr, (char*) data, total_bytes);
 
-/*
 	// Track this allocation
 #ifdef _WIN32
 	track_shm_allocation(shm_name, shm_ptr, total_bytes, &win_handle);
 #else
 	track_shm_allocation(shm_name, shm_ptr, total_bytes, fd);
 #endif
-*/
 
 	// Prepare shared memory info structure
 	// We only care about the size and shm_name, but it's easier to use the same
@@ -424,6 +530,9 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 		shm_unlink(info->shm_name);  // Remove shared memory object
 	#endif
 
+	// In all cases we have now finished with the shm and closed and unlinked it.
+	// On receipt of the response, python will also close and unlink the shm in its
+	// finally: block.
 	return send_response(conn, STATUS_OK, NULL, 0);
 }
 
@@ -455,12 +564,29 @@ static gpointer monitor_stream_stderr(GDataInputStream *data_input) {
 	return NULL;
 }
 
+static void cleanup_child_process(GPid pid, gint status, gpointer user_data) {
+	// Log the Python process exit status if needed
+	if (WIFEXITED(status)) {
+		siril_debug_print("Python process (PID: %d) exited with status %d",
+				pid, WEXITSTATUS(status));
+	} else if (WIFSIGNALED(status)) {
+		siril_log_color_message(_("Python process (PID: %d) terminated by signal %d"), "salmon",
+				pid, WTERMSIG(status));
+	}
+
+	// Clean up shared memory resources
+	cleanup_shm_resources();
+
+	// Close the process handle
+	g_spawn_close_pid(pid);
+}
+
 void execute_python_script_async(gchar* script_name, gboolean from_file) {
 	if (!commstate.python_conn) {
 		siril_log_color_message(_("Error: Python connection not available.\n"), "red");
 		return;
 	}
-
+	init_shm_tracking();
 	// Prepare environment
 	gchar** env = g_get_environ();
 	const gchar* current_pythonpath = g_environ_getenv(env, "PYTHONPATH");
@@ -533,8 +659,8 @@ void execute_python_script_async(gchar* script_name, gboolean from_file) {
 		return;
 	}
 
-	// Set up child process monitoring
-	g_child_watch_add(child_pid, (GChildWatchFunc)g_spawn_close_pid, NULL);
+	// Set up child process monitoring: the callback will clean up any overlooked shm resources
+	g_child_watch_add(child_pid, (GChildWatchFunc)cleanup_child_process, NULL);
 
 	// Create input streams for stdout and stderr
 	GInputStream *stdout_stream = NULL;
