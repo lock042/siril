@@ -321,7 +321,9 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 	if (info->width == 0 || info->height == 0 || info->channels == 0 ||
 		info->channels > 3 || info->size == 0) {
 		const char* error_msg = g_strdup_printf("Invalid image dimensions or format: w = %u, h = %u, c = %u, size = %lu", info->width, info->height, info->channels, info->size);
-		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		int retval = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	g_free(error_msg);
+	return retval;
 	}
 
 	// Open shared memory
@@ -362,7 +364,7 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 	fit->pdata[2] = fit->pdata[1] = fit->pdata[0] = fit->data = NULL;
 	fit->fpdata[2] = fit->fpdata[1] = fit->fpdata[0] = fit->fdata = NULL;
 	gboolean alloc_err = FALSE;
-	if (info->data_type == 0) {
+	if (info->data_type == 0) { // WORD data
 		fit->pdata[2] = fit->pdata[1] = fit->pdata[0] = fit->data = calloc(info->width * info->height * info->channels, sizeof(WORD));
 		if (!fit->data) {
 			alloc_err = TRUE;
@@ -371,7 +373,7 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 				fit->pdata[i] = fit->data + i * info->width * info->height;
 			}
 		}
-	} else {
+	} else { // FLOAT data
 		fit->fpdata[2] = fit->fpdata[1] = fit->fpdata[0] = fit->fdata = calloc(info->width * info->height * info->channels, sizeof(float));
 		if (!fit->fdata) {
 			alloc_err = TRUE;
@@ -396,10 +398,10 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 	// Copy data from shared memory to gfit
 	size_t total_bytes = info->width * info->height * info->channels * (info->data_type == 1 ? sizeof(float) : sizeof(WORD));
 
-	if (info->data_type == 1) {  // float data
-		memcpy(fit->fdata, (char*) shm_ptr, total_bytes);
-	} else {  // WORD data
+	if (info->data_type == 0) {  // WORD data
 		memcpy(fit->data, (char*) shm_ptr, total_bytes);
+	} else {  // float data
+		memcpy(fit->fdata, (char*) shm_ptr, total_bytes);
 	}
 
 	// Update gfit metadata

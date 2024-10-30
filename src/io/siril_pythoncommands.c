@@ -447,7 +447,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 
 			// Check if channel is valid
-			if (channel < 0 || channel >= gfit.naxes[2]) {
+			if (channel >= gfit.naxes[2]) {
 				const char* error_msg = "Invalid channel";
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 				break;
@@ -609,6 +609,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			imstats *stats = com.seq.stats[chan][index];
 
 			if (!com.seq.stats[chan][index]) {
+				g_free(response_buffer);
 				const char* error_message = "No stats for this channel for this frame";
 				success = send_response(conn, STATUS_NONE, error_message, strlen(error_message));
 				break;
@@ -894,6 +895,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				ptr += len;
 			}
 			success = handle_rawdata_request(conn, buffer, total_length * sizeof(char));
+			g_free(buffer);
 			break;
 		}
 
@@ -919,7 +921,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		default:
 			g_warning("Unknown command: %d", header->command);
 			const char* error_msg = "Unknown command";
-			send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			break;
 	}
 
