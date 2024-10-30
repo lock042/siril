@@ -324,10 +324,15 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 		info->channels > 3 || info->size == 0) {
 		gchar* error_msg = g_strdup_printf("Invalid image dimensions or format: w = %u, h = %u, c = %u, size = %lu", info->width, info->height, info->channels, info->size);
 		int retval = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
-	g_free(error_msg);
-	return retval;
+		g_free(error_msg);
+		return retval;
 	}
 
+	if (info->size >= get_available_memory() / 2) {
+		const char* error_msg = "Excessive SHM allocation demand");
+		int retval = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+		return retval;
+	}
 	// Open shared memory
 	void* shm_ptr = NULL;
 	#ifdef _WIN32
