@@ -2833,7 +2833,7 @@ int process_ls(int nb){
 	return CMD_OK;
 }
 
-static void copy_lst_files(gchar *filename, gchar *outname, int written_frames) {
+static void copy_lst_file(gchar *filename, gchar *outname, int written_frames) {
 	/* Copy lst files if exist */
 	gchar *lst_file_base = remove_ext_from_filename(filename);
 	gchar *lst_file = NULL;
@@ -3014,7 +3014,7 @@ int process_merge(int nb) {
 						goto merge_clean_up;
 					}
 
-					copy_lst_files(seqs[i]->ser_file->filename, word[nb - 1], written_frames);
+					copy_lst_file(seqs[i]->ser_file->filename, word[nb - 1], written_frames);
 
 					written_frames++;
 				}
@@ -3058,7 +3058,7 @@ int process_merge(int nb) {
 						goto merge_clean_up;
 					}
 
-					copy_lst_files(seqs[i]->fitseq_file->filename, word[nb - 1], written_frames);
+					copy_lst_file(seqs[i]->fitseq_file->filename, word[nb - 1], written_frames);
 
 					written_frames++;
 				}
