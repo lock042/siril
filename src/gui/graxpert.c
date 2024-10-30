@@ -329,3 +329,7 @@ void on_graxpert_spin_sample_size_value_changed(GtkSpinButton *button, gpointer 
 	gtk_spin_button_set_value(button, sample_size);
 	g_signal_handlers_unblock_by_func(button, on_graxpert_spin_sample_size_value_changed, NULL);
 }
+
+void on_graxpert_deconv_switch_state_set(GtkSwitch *widget, gboolean state, gpointer user_data) {
+	gtk_label_set_text((GtkLabel *) user_data, state ? _("Stellar") : _("Objects"));
+}
