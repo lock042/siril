@@ -698,6 +698,7 @@
                                 <property name="visible">True</property>
                                 <property name="sensitive">False</property>
                                 <property name="can-focus">True</property>
+                                <property name="tooltip-text" translatable="yes">Toggles between stellar and object deconvolution modes. If this item is unsensitive out, your version of GraXpert is not compatible.</property>
                                 <property name="halign">start</property>
                                 <property name="valign">start</property>
                                 <signal name="state-set" handler="on_graxpert_deconv_switch_state_set" object="graxpert_deconv_label_switch" swapped="no"/>
