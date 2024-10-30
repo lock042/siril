@@ -462,9 +462,13 @@ gboolean graxpert_executablecheck(gchar* executable, graxpert_operation operatio
 	}
 
 	if (compare_version(graxpert_version, (version_number) {.major_version = 3, .minor_version = 0, .micro_version = 0}) < 0) {
-		siril_log_color_message(_("Error: GraXpert version is too old. You have version %d.%d.%d; at least version 3.0.0 is required.\n"), "red", graxpert_version.major_version, graxpert_version.minor_version, graxpert_version.micro_version);
+		siril_log_color_message(_("Error: GraXpert version is too old. You have version %d.%d.%d; at least version 3.0.0 is required.\n"), "red",
+				graxpert_version.major_version, graxpert_version.minor_version, graxpert_version.micro_version);
 		return FALSE;
 	} else {
+		if (compare_version(graxpert_version, (version_number) {.major_version = 3, .minor_version = 2, .micro_version = 14}) < 0 && operation == GRAXPERT_DECONV) {
+			return FALSE;
+		}
 		return TRUE;
 	}
 }

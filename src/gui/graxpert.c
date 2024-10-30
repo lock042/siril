@@ -213,7 +213,8 @@ static void confirm_availability(guint page_num) {
 		gtk_label_set_text(graxpert_available, txt);
 		g_free(txt);
 	} else {
-		gtk_label_set_text(graxpert_available, _("No suitable version of GraXpert is available. Configure the executable in Preferences -> Miscellaneous."));
+		gtk_label_set_markup(graxpert_available, _("<span foreground=\"red\">No suitable version of GraXpert is available.\n"
+				"Configure the executable in Preferences -> Miscellaneous.</span>"));
 	}
 }
 
