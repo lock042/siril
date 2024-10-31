@@ -1500,7 +1500,7 @@ class SirilInterface:
                      "Args:\n"
                      "    get_pixels: optional bool specifying whether to get "
                      "pixel data as a NumPy array, or only the image metadata. Defaults "
-                     "to True"\n\n"
+                     "to True\n\n"
 
                      "Returns:\n"
                      "    FFit object containing the image metadata and (optionally) "
