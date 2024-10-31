@@ -60,6 +60,7 @@ xx/xx/xx
 * Refactored registration processes and GUI (#1285)
 * Improved use of prngs (mt19937 now used throughout in place of rand() etc.) (!689)
 * Refactored networking code, add offline mode and add Gaia archive status indication (!687)
+* Improved the usability of merging CFA sequences (!759)
 
 **GUI improvements:**
 * Split up the monolithic glade UI file (!550)
@@ -91,7 +92,6 @@ xx/xx/xx
 * If directory does not exist during script execution, CMD_DIR_NOT_FOUND is returned (!628)
 * Refactored processing of sequence operations that generate multiple output sequences (!739)
 * Added a memory check for the preview image (#778)
-
 
 siril 1.2.5
 xx/xx/xx

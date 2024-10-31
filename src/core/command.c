@@ -6853,76 +6853,133 @@ int process_seq_split_cfa(int nb) {
 }
 
 int process_seq_merge_cfa(int nb) {
-	sequence *seq = load_sequence(word[1], NULL);
-	if (!seq)
+	sequence *seq0 = load_sequence(word[1], NULL);
+	if (!seq0)
 		return CMD_SEQUENCE_NOT_FOUND;
-
-	if (seq->nb_layers > 1) {
-		if (!check_seq_is_comseq(seq))
-			free_sequence(seq, TRUE);
+	if (seq0->nb_layers > 1) {
+		if (!check_seq_is_comseq(seq0))
+			free_sequence(seq0, TRUE);
 		return CMD_FOR_CFA_IMAGE;
 	}
 
-	struct merge_cfa_data *args = calloc(1, sizeof(struct merge_cfa_data));
-	if (!args)
-		return CMD_ALLOC_ERROR;
+	sequence *seq1 = load_sequence(word[2], NULL);
+	if (!seq1)
+		return CMD_SEQUENCE_NOT_FOUND;
+	if (seq1->nb_layers > 1) {
+		if (!check_seq_is_comseq(seq0)) {
+			free_sequence(seq0, TRUE);
+		}
+		free_sequence(seq1, TRUE);
+		return CMD_FOR_CFA_IMAGE;
+	}
 
-	if (!strcmp(word[2], "RGGB")) {
+	sequence *seq2 = load_sequence(word[3], NULL);
+	if (!seq2)
+		return CMD_SEQUENCE_NOT_FOUND;
+	if (seq2->nb_layers > 1) {
+		if (!check_seq_is_comseq(seq0)) {
+			free_sequence(seq0, TRUE);
+		}
+		free_sequence(seq1, TRUE);
+		free_sequence(seq2, TRUE);
+		return CMD_FOR_CFA_IMAGE;
+	}
+
+	sequence *seq3 = load_sequence(word[4], NULL);
+	if (!seq3)
+		return CMD_SEQUENCE_NOT_FOUND;
+
+	if (seq3->nb_layers > 1) {
+		if (!check_seq_is_comseq(seq0)) {
+			free_sequence(seq0, TRUE);
+		}
+		free_sequence(seq1, TRUE);
+		free_sequence(seq2, TRUE);
+		free_sequence(seq3, TRUE);
+		return CMD_FOR_CFA_IMAGE;
+	}
+	if (seq3->nb_layers > 1) {
+		if (!check_seq_is_comseq(seq3))
+			free_sequence(seq3, TRUE);
+		return CMD_FOR_CFA_IMAGE;
+	}
+
+	if ((seq0->rx != seq1->rx || seq0->rx != seq2->rx || seq0->rx != seq3->rx) ||
+	(seq0->ry != seq1->ry || seq0->ry != seq2->ry || seq0->ry != seq3->ry) ||
+	(seq0->nb_layers != seq1->nb_layers || seq0->nb_layers != seq2->nb_layers || seq0->nb_layers != seq3->nb_layers) ||
+	(seq0->bitpix != seq1->bitpix || seq0->bitpix != seq2->bitpix || seq0->bitpix != seq3->bitpix) ||
+	(seq0->number != seq1->number || seq0->number != seq2->number || seq0->number != seq3->number)) {
+		siril_log_color_message(_("Error: sequences don't match (dimensions, bitdepth, number of images must all be the same)\n"), "red");
+		if (!check_seq_is_comseq(seq0))
+			free_sequence(seq0, TRUE);
+		free_sequence(seq0, TRUE);
+		free_sequence(seq1, TRUE);
+		free_sequence(seq2, TRUE);
+		return CMD_GENERIC_ERROR;
+	}
+
+	struct merge_cfa_data *args = calloc(1, sizeof(struct merge_cfa_data));
+	if(!args) {
+		if (!check_seq_is_comseq(seq0))
+			free_sequence(seq0, TRUE);
+		free_sequence(seq0, TRUE);
+		free_sequence(seq1, TRUE);
+		free_sequence(seq2, TRUE);
+		return CMD_ALLOC_ERROR;
+	}
+	args->seq0 = seq0;
+	args->seq1 = seq1;
+	args->seq2 = seq2;
+	args->seq3 = seq3;
+
+	if (!strcmp(word[5], "RGGB")) {
 		args->pattern = BAYER_FILTER_RGGB;
-	} else if (!strcmp(word[2], "BGGR")) {
+	} else if (!strcmp(word[5], "BGGR")) {
 		args->pattern = BAYER_FILTER_BGGR;
-	} else if (!strcmp(word[2], "GBRG")) {
+	} else if (!strcmp(word[5], "GBRG")) {
 		args->pattern = BAYER_FILTER_GBRG;
-	} else if (!strcmp(word[2], "GRBG")) {
+	} else if (!strcmp(word[5], "GRBG")) {
 		args->pattern = BAYER_FILTER_GRBG;
 	} else {
 		siril_log_color_message(_("Invalid Bayer matrix specified!\n"), "red");
-		if (!check_seq_is_comseq(seq))
-			free_sequence(seq, TRUE);
+		if (!check_seq_is_comseq(seq0))
+			free_sequence(seq0, TRUE);
+		free_sequence(seq1, TRUE);
+		free_sequence(seq2, TRUE);
+		free_sequence(seq3, TRUE);
 		free(args);
 		return CMD_ARG_ERROR;
 	}
 	siril_log_message(_("Reconstructing %s Bayer matrix.\n"), word[2]);
-	args->seq = seq;
-	args->seqEntryIn = strdup("CFA_"); // propose to default to "CFA" for consistency of output names with single image split_cfa
 	args->seqEntryOut = strdup("mCFA_");
 
-	int startoptargs = 3;
+	int startoptargs = 6;
 	if (nb > startoptargs) {
 		for (int i = startoptargs; i < nb; i++) {
 			if (word[i]) {
-				if (g_str_has_prefix(word[i], "-inprefix=")) {
+				if (g_str_has_prefix(word[i], "-outprefix=")) {
 					char *current = word[i], *value;
 					value = current + 8;
 					if (value[0] == '\0') {
-						siril_log_message(
-								_("Missing argument to %s, aborting.\n"),
-								word[i]);
-						free(args);
-						if (!check_seq_is_comseq(seq))
-							free_sequence(seq, TRUE);
-						return CMD_ARG_ERROR;
-					}
-					args->seqEntryIn = strdup(value);
-				} else if (g_str_has_prefix(word[i], "-outprefix=")) {
-					char *current = word[i], *value;
-					value = current + 8;
-					if (value[0] == '\0') {
-						siril_log_message(
-								_("Missing argument to %s, aborting.\n"),
-								word[i]);
-						if (!check_seq_is_comseq(seq))
-							free_sequence(seq, TRUE);
+						siril_log_message(_("Missing argument to %s, aborting.\n"), word[i]);
+						if (!check_seq_is_comseq(seq0))
+							free_sequence(seq0, TRUE);
+						free_sequence(seq1, TRUE);
+						free_sequence(seq2, TRUE);
+						free_sequence(seq3, TRUE);
 						free(args);
 						return CMD_ARG_ERROR;
 					}
 					args->seqEntryOut = strdup(value);
 				}
-			} else {
-				siril_log_message(_("Unknown parameter %s, aborting.\n"),
-						word[i]);
-				if (!check_seq_is_comseq(seq))
-					free_sequence(seq, TRUE);
+			}
+			else {
+				siril_log_message(_("Unknown parameter %s, aborting.\n"), word[i]);
+				if (!check_seq_is_comseq(seq0))
+					free_sequence(seq0, TRUE);
+				free_sequence(seq1, TRUE);
+				free_sequence(seq2, TRUE);
+				free_sequence(seq3, TRUE);
 				free(args);
 				return CMD_ARG_ERROR;
 			}
