@@ -566,8 +566,16 @@ static gpointer monitor_stream_stderr(GDataInputStream *data_input) {
 
 static void cleanup_child_process(GPid pid, gint status, gpointer user_data) {
 	// Log the Python process exit status if needed
+#ifdef G_OS_WIN32
+	if (status == 0) {
+		siril_debug_print("Python process (PID: %d) exited normally\n", pid);
+	} else {
+		siril_log_color_message(_("Python process (PID: %d) exited with status %d\n"), "salmon",
+			pid, status);
+	}
+#else
 	if (WIFEXITED(status)) {
-		if (status == 0)
+		if (WEXITSTATUS(status) == 0)
 			siril_debug_print("Python process (PID: %d) exited normally\n", pid);
 		else
 			siril_log_color_message(_("Python process (PID: %d) exited with status %d\n"), "salmon",
@@ -576,6 +584,7 @@ static void cleanup_child_process(GPid pid, gint status, gpointer user_data) {
 		siril_log_color_message(_("Python process (PID: %d) terminated by signal %d\n"), "salmon",
 				pid, WTERMSIG(status));
 	}
+#endif
 
 	// Clean up shared memory resources
 	cleanup_shm_resources();
