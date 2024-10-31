@@ -1369,64 +1369,21 @@ int mergecfa_image_hook(struct generic_seq_args *args, int out_index, int in_ind
 	}
 	int retval = 0;
 	struct merge_cfa_data *merge_cfa_args = (struct merge_cfa_data*) args->user;
-	char *cfa0_f = calloc(256, sizeof(BYTE));
-	char *cfa1_f = NULL;
-	char *cfa2_f = NULL;
-	char *cfa3_f = NULL;
 	fits cfa1 = { 0 };
 	fits cfa2 = { 0 };
 	fits cfa3 = { 0 };
 	fits *out = { 0 };
-	cfa0_f = seq_get_image_filename(args->seq, out_index, cfa0_f);
-	size_t len = strlen(merge_cfa_args->seqEntryIn);
-	char *prefix0 = calloc(len + 2, sizeof(BYTE));
-	char *prefix1 = calloc(len + 2, sizeof(BYTE));
-	char *prefix2 = calloc(len + 2, sizeof(BYTE));
-	char *prefix3 = calloc(len + 2, sizeof(BYTE));
-	int m = snprintf(NULL, 0, "%s", merge_cfa_args->seqEntryIn);
-	strncpy(prefix0, merge_cfa_args->seqEntryIn, m);
-	strncpy(prefix1, prefix0, m);
-	strncpy(prefix2, prefix0, m);
-	strncpy(prefix3, prefix0, m);
-	strcat(prefix0, "0");
-	strcat(prefix1, "1");
-	strcat(prefix2, "2");
-	strcat(prefix3, "3");
-	cfa1_f = str_replace(cfa0_f, prefix0, prefix1);
-	cfa2_f = str_replace(cfa0_f, prefix0, prefix2);
-	cfa3_f = str_replace(cfa0_f, prefix0, prefix3);
-	if (cfa0_f) free(cfa0_f);
-	free(prefix0);
-	free(prefix1);
-	free(prefix2);
-	free(prefix3);
-	if (cfa1_f == NULL) {
-		retval = 1;
-		siril_log_message(_("Image %d: error identifying CFA1 filename\n"), args->seq->current);
-		goto CLEANUP_MERGECFA;
-	}
-	if (cfa2_f == NULL) {
-		retval = 1;
-		siril_log_message(_("Image %d: error identifying CFA2 filename\n"), args->seq->current);
-		goto CLEANUP_MERGECFA;
-	}
-	if (cfa3_f == NULL) {
-		retval = 1;
-		siril_log_message(_("Image %d: error identifying CFA3 filename\n"), args->seq->current);
-		goto CLEANUP_MERGECFA;
-	}
-
-	retval = readfits(cfa1_f, &cfa1, NULL, FALSE);
+	retval = seq_read_frame(merge_cfa_args->seq1, out_index, &cfa1, args->seq->bitpix == 16, -1);
 	if(retval != 0) {
 		siril_log_message(_("Image %d: error opening CFA1 file\n"), args->seq->current);
 		goto CLEANUP_MERGECFA;
 	}
-	retval = readfits(cfa2_f, &cfa2, NULL, FALSE);
+	retval = seq_read_frame(merge_cfa_args->seq2, out_index, &cfa2, args->seq->bitpix == 16, -1);
 	if(retval != 0) {
 		siril_log_message(_("Image %d: error opening CFA2 file\n"), args->seq->current);
 		goto CLEANUP_MERGECFA;
 	}
-	retval = readfits(cfa3_f, &cfa3, NULL, FALSE);
+	retval = seq_read_frame(merge_cfa_args->seq3, out_index, &cfa3, args->seq->bitpix == 16, -1);
 	if(retval != 0) {
 		siril_log_message(_("Image %d: error opening CFA3 file\n"), args->seq->current);
 		goto CLEANUP_MERGECFA;
@@ -1441,16 +1398,12 @@ int mergecfa_image_hook(struct generic_seq_args *args, int out_index, int in_ind
 	copy_fits_metadata(&metadata, fit);
 	update_sampling_information(fit, 0.5f);
 	update_bayer_pattern_information(fit, merge_cfa_args->pattern);
-	free_wcs(out);
 	clearfits(&metadata);
 
 CLEANUP_MERGECFA:
 	clearfits(&cfa1);
 	clearfits(&cfa2);
 	clearfits(&cfa3);
-	if (cfa1_f) { free(cfa1_f); }
-	if (cfa2_f) { free(cfa2_f); }
-	if (cfa3_f) { free(cfa3_f); }
 
 	return retval;
 }
@@ -1458,16 +1411,31 @@ CLEANUP_MERGECFA:
 int mergecfa_finalize_hook(struct generic_seq_args *args) {
 	struct merge_cfa_data *data = (struct merge_cfa_data *) args->user;
 	int retval = seq_finalize_hook(args);
-	free((char*) data->seqEntryIn);
+	if (data->seq0 != args->seq && !check_seq_is_comseq(data->seq0)) {
+		free_sequence(data->seq0, TRUE);
+		data->seq0 = NULL;
+	}
+	if (data->seq1 != args->seq && !check_seq_is_comseq(data->seq1)) {
+		free_sequence(data->seq1, TRUE);
+		data->seq1 = NULL;
+	}
+	if (data->seq2 != args->seq && !check_seq_is_comseq(data->seq2)) {
+		free_sequence(data->seq2, TRUE);
+		data->seq2 = NULL;
+	}
+	if (data->seq3 != args->seq && !check_seq_is_comseq(data->seq3)) {
+		free_sequence(data->seq3, TRUE);
+		data->seq3 = NULL;
+	}
 	free(data);
 	return retval;
 }
 
 void apply_mergecfa_to_sequence(struct merge_cfa_data *merge_cfa_args) {
-	struct generic_seq_args *args = create_default_seqargs(merge_cfa_args->seq);
-	args->seq = merge_cfa_args->seq;
+	struct generic_seq_args *args = create_default_seqargs(merge_cfa_args->seq0);
+	args->seq = merge_cfa_args->seq0;
 	args->filtering_criterion = seq_filter_included;
-	args->nb_filtered_images = merge_cfa_args->seq->selnum;
+	args->nb_filtered_images = merge_cfa_args->seq0->selnum;
 	args->compute_mem_limits_hook = mergecfa_compute_mem_limits;
 	args->compute_size_hook = mergecfa_compute_size_hook;
 	args->prepare_hook = seq_prepare_hook;
