@@ -5,9 +5,11 @@ import struct
 from typing import Optional
 import tempfile
 import mmap
+from .translations import _, N_
 
 class SharedMemoryWrapper:
-    """Wrapper class to handle shared memory creation and cleanup across platforms."""
+    __doc__ = N_("Wrapper class to handle shared memory creation and cleanup across platforms. "
+                 "This is an internal class and is not intended for use by script authors")
     def __init__(self, name: str, size: int):
         self.name = name
         self.size = size

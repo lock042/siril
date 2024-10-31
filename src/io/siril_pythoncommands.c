@@ -380,7 +380,7 @@ typedef struct {
 */
 void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 	if (length < sizeof(CommandHeader)) {
-		siril_log_color_message(_("Received incomplete command header"), "red");
+		siril_log_color_message(_("Received incomplete command header\n"), "red");
 		return;
 	}
 
@@ -390,7 +390,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 	if (payload_length == -1) payload_length = 0;
 	// Verify we have complete message
 	if (length < sizeof(CommandHeader) + payload_length) {
-		siril_log_color_message(_("Received incomplete command payload"), "red");
+		siril_log_color_message(_("Received incomplete command payload\n"), "red");
 		return;
 	}
 

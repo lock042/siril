@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Optional, Tuple, Union, List
 import numpy as np
 from enum import IntEnum
+from .translations import _, N_
 
 class DataType(IntEnum):
     """Mimics the Siril data_type enum"""
@@ -15,9 +16,11 @@ class DataType(IntEnum):
 
 @dataclass
 class ImageStats:
-    """Python equivalent of Siril imstats structure"""
-    total: int = 0           # number of pixels
-    ngoodpix: int = 0        # number of non-zero pixels
+
+    __doc__ = N_("Python equivalent of Siril imstats structure")
+
+    total: int = 0
+    ngoodpix: int = 0
     mean: float = 0.0
     median: float = 0.0
     sigma: float = 0.0
@@ -76,7 +79,7 @@ class ImageStats:
 
 @dataclass
 class FKeywords:
-    """Python equivalent of fkeywords structure"""
+    __doc__ = N_("Python equivalent of fkeywords structure")
     # FITS file data
     bscale: float = 1.0
     bzero: float = 0.0
@@ -333,25 +336,25 @@ class FKeywords:
         if value > 0:
             self.pixel_size_x = value
         else:
-            raise ValueError("pixel_size_x must be greater than 0")
+            raise ValueError(_("pixel_size_x must be greater than 0"))
 
     def set_pixel_size_y(self, value: float) -> None:
         if value > 0:
             self.pixel_size_y = value
         else:
-            raise ValueError("pixel_size_y must be greater than 0")
+            raise ValueError(_("pixel_size_y must be greater than 0"))
 
     def set_binning_x(self, value: int) -> None:
         if value >= 1:
             self.binning_x = value
         else:
-            raise ValueError("binning_x must be greater than or equal to 1")
+            raise ValueError(_("binning_x must be greater than or equal to 1"))
 
     def set_binning_y(self, value: int) -> None:
         if value >= 1:
             self.binning_y = value
         else:
-            raise ValueError("binning_y must be greater than or equal to 1")
+            raise ValueError(_("binning_y must be greater than or equal to 1"))
 
     def set_row_order(self, value: str) -> None:
         self.row_order = value[:70]
@@ -390,25 +393,25 @@ class FKeywords:
         if value <= 90:
             self.centalt = value
         else:
-            raise ValueError("centalt must be less than or equal to 90 degrees")
+            raise ValueError(_("centalt must be less than or equal to 90 degrees"))
 
     def set_centaz(self, value: float) -> None:
         if 0 <= value < 360:
             self.centaz = value
         else:
-            raise ValueError("centaz must be between 0 and 360 degrees (exclusive)")
+            raise ValueError(_("centaz must be between 0 and 360 degrees (exclusive)"))
 
     def set_sitelat(self, value: float) -> None:
         if -90 <= value <= 90:
             self.sitelat = value
         else:
-            raise ValueError("sitelat must be between -90 and 90 degrees")
+            raise ValueError(_("sitelat must be between -90 and 90 degrees"))
 
     def set_sitelong(self, value: float) -> None:
         if 0 <= value < 360:
             self.sitelong = value
         else:
-            raise ValueError("sitelong must be between 0 and 360 degrees (exclusive)")
+            raise ValueError(_("sitelong must be between 0 and 360 degrees (exclusive)"))
 
     def set_sitelat_str(self, value: str) -> None:
         self.sitelat_str = value[:70]
@@ -432,7 +435,7 @@ class FKeywords:
         if value >= 1:
             self.airmass = value
         else:
-            raise ValueError("airmass must be greater than or equal to 1")
+            raise ValueError(_("airmass must be greater than or equal to 1"))
 
     def set_focal_length(self, value: float) -> None:
         self.focal_length = value
@@ -484,7 +487,7 @@ class FKeywords:
 
 @dataclass
 class FFit:
-    """Python equivalent of ffit structure with automated dimension handling"""
+    __doc__ = N_("Python equivalent of ffit structure with automated dimension handling")
     bitpix: int = 0
     orig_bitpix: int = 0
     naxis: int = 0
@@ -535,10 +538,10 @@ class FFit:
                 self._naxes = (shape[1], shape[0], 1)  # width, height, channels
             elif len(shape) == 3:
                 if shape[2] not in (1, 3):
-                    raise ValueError("Third dimension must be 1 or 3")
+                    raise ValueError(_("Third dimension must be 1 or 3"))
                 self._naxes = (shape[1], shape[0], shape[2])  # width, height, channels
             else:
-                raise ValueError("Data must be 2D or 3D")
+                raise ValueError(_("Data must be 2D or 3D"))
             self._update_naxis()
         self._data = value
 
@@ -597,17 +600,17 @@ class FFit:
     def get_channel(self, channel: int) -> np.ndarray:
         """Get a specific channel of the data"""
         if self.data is None:
-            raise ValueError("No data allocated")
+            raise ValueError(_("No data allocated"))
         if self.naxis == 2:
             if channel != 0:
-                raise ValueError("Cannot get channel > 0 for 2D data")
+                raise ValueError(_("Cannot get channel > 0 for 2D data"))
             return self.data
         return self.data[:, :, channel]
 
     def update_stats(self):
         """Update image statistics for all channels"""
         if self.data is None:
-            raise ValueError("No data allocated")
+            raise ValueError(_("No data allocated"))
 
         for i in range(self.naxes[2]):
             channel_data = self.get_channel(i)
@@ -631,7 +634,7 @@ class FFit:
 
 @dataclass
 class Homography:
-    """Python equivalent of Siril Homography structure"""
+    __doc__ = N_("Python equivalent of Siril Homography structure")
     h00: float = 0.0
     h01: float = 0.0
     h02: float = 0.0
@@ -660,7 +663,7 @@ class SequenceType(IntEnum):
 
 @dataclass
 class PSFStar:
-    """Python equivalent of Siril fwhm_struct structure"""
+    __doc__ = N_("Python equivalent of Siril fwhm_struct structure")
     star_name: Optional[str] = None
     B: float = 0.0              # average sky background value
     A: float = 0.0              # amplitude
@@ -710,7 +713,7 @@ class PSFStar:
 
 @dataclass
 class RegData:
-    """Python equivalent of Siril regdata structure"""
+    __doc__ = N_("Python equivalent of Siril regdata structure")
     fwhm: float = 0.0                    # copy of fwhm->fwhmx, used as quality indicator
     weighted_fwhm: float = 0.0           # used to exclude spurious images
     roundness: float = 0.0               # fwhm->fwhmy / fwhm->fwhmx, 0 when uninit, ]0, 1] when set
@@ -721,7 +724,7 @@ class RegData:
 
 @dataclass
 class ImgData:
-    """Python equivalent of Siril imgdata structure"""
+    __doc__ = N_("Python equivalent of Siril imgdata structure")
     filenum: int = 0              # real file index in the sequence
     incl: bool = False           # selected in the sequence
     date_obs: Optional[datetime] = None  # date of the observation
@@ -731,7 +734,7 @@ class ImgData:
 
 @dataclass
 class Sequence:
-    """Python equivalent of Siril sequ structure"""
+    __doc__ = N_("Python equivalent of Siril sequ structure")
     seqname: str = ""                    # name of the sequence
     number: int = 0                      # number of images in the sequence
     selnum: int = 0                      # number of selected images
