@@ -59,7 +59,7 @@ static gboolean create_shared_memory_win32(const char* name, size_t size, win_sh
 		name);                   // Name of mapping object
 
 	if (handle->mapping == NULL) {
-		g_warning("Failed to create file mapping: %lu", GetLastError());
+		siril_debug_print("Failed to create file mapping: %lu\n", GetLastError());
 		return FALSE;
 	}
 
@@ -72,7 +72,7 @@ static gboolean create_shared_memory_win32(const char* name, size_t size, win_sh
 
 	if (handle->ptr == NULL) {
 		CloseHandle(handle->mapping);
-		g_warning("Failed to map view of file: %lu", GetLastError());
+		siril_debug_print("Failed to map view of file: %lu\n", GetLastError());
 		return FALSE;
 	}
 
@@ -92,7 +92,7 @@ gboolean send_response(Connection* conn, uint8_t status, const void* data, uint3
 	// Send header
 	if (!WriteFile(conn->pipe_handle, &header, sizeof(header), &bytes_written, NULL) ||
 		bytes_written != sizeof(header)) {
-		g_warning("Failed to send response header: %lu", GetLastError());
+		siril_debug_print("Failed to send response header: %lu\n", GetLastError());
 		return FALSE;
 	}
 
@@ -100,7 +100,7 @@ gboolean send_response(Connection* conn, uint8_t status, const void* data, uint3
 	if (data && length > 0) {
 		if (!WriteFile(conn->pipe_handle, data, length, &bytes_written, NULL) ||
 			bytes_written != length) {
-			g_warning("Failed to send response data: %lu", GetLastError());
+			siril_debug_print("Failed to send response data: %lu\n", GetLastError());
 			return FALSE;
 		}
 	}
@@ -111,7 +111,7 @@ gboolean send_response(Connection* conn, uint8_t status, const void* data, uint3
 	// Send header
 	bytes_written = write(conn->client_fd, &header, sizeof(header));
 	if (bytes_written != sizeof(header)) {
-		g_warning("Failed to send response header: %s", g_strerror(errno));
+		siril_debug_print("Failed to send response header: %s\n", g_strerror(errno));
 		return FALSE;
 	}
 
@@ -119,7 +119,7 @@ gboolean send_response(Connection* conn, uint8_t status, const void* data, uint3
 	if (data && length > 0) {
 		bytes_written = write(conn->client_fd, data, length);
 		if (bytes_written != length) {
-			g_warning("Failed to send response data: %s", g_strerror(errno));
+			siril_debug_print("Failed to send response data: %s\n", g_strerror(errno));
 			return FALSE;
 		}
 	}
@@ -158,11 +158,11 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 
 	*fd = shm_open(shm_name_ptr, O_CREAT | O_RDWR, 0600);
 	if (*fd == -1) {
-		g_warning("Failed to create shared memory: %s", strerror(errno));
+		siril_debug_print("Failed to create shared memory: %s\n", strerror(errno));
 		return FALSE;
 	}
 	if (ftruncate(*fd, total_bytes) == -1) {
-		g_warning("Failed to set shared memory size: %s", strerror(errno));
+		siril_debug_print("Failed to set shared memory size: %s\n", strerror(errno));
 		close(*fd);
 		shm_unlink(shm_name_ptr);
 		return FALSE;
@@ -170,7 +170,7 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 	shm_ptr = mmap(NULL, total_bytes, PROT_READ | PROT_WRITE,
 				MAP_SHARED, *fd, 0);
 	if (shm_ptr == MAP_FAILED) {
-		g_warning("Failed to map shared memory: %s", strerror(errno));
+		siril_debug_print("Failed to map shared memory: %s\n", strerror(errno));
 		close(*fd);
 		shm_unlink(shm_name_ptr);
 		return FALSE;
@@ -289,7 +289,7 @@ void cleanup_shm_resources(void) {
 // but leave clearup for another command
 gboolean handle_pixeldata_request(Connection *conn, fits *fit, rectangle region) {
 	if (!single_image_is_loaded()) {
-		const char* error_msg = "Failed to retrieve pixel data - no image loaded";
+		const char* error_msg = _("Failed to retrieve pixel data - no image loaded");
 		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 	}
 
@@ -363,7 +363,7 @@ gboolean handle_pixeldata_request(Connection *conn, fits *fit, rectangle region)
 
 gboolean handle_rawdata_request(Connection *conn, void* data, size_t total_bytes) {
 	if (data == NULL || total_bytes == 0) {
-		const char* error_msg = "Incorrect memory region specification";
+		const char* error_msg = _("Incorrect memory region specification");
 		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 	}
 
@@ -410,12 +410,12 @@ gboolean handle_rawdata_request(Connection *conn, void* data, size_t total_bytes
 
 gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* payload, size_t payload_length) {
 	if (!single_image_is_loaded()) {
-		const char* error_msg = "No image loaded: set_pixel_data() can only be used to update a loaded image, not to create a new one";
+		const char* error_msg = _("No image loaded: set_pixel_data() can only be used to update a loaded image, not to create a new one");
 		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 	}
 
 	if (payload_length != sizeof(incoming_image_info_t)) {
-		const char* error_msg = "Invalid image info size";
+		const char* error_msg = _("Invalid image info size");
 		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 	}
 
@@ -428,7 +428,7 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 	// Validate image dimensions and format
 	if (info->width == 0 || info->height == 0 || info->channels == 0 ||
 		info->channels > 3 || info->size == 0) {
-		gchar* error_msg = g_strdup_printf("Invalid image dimensions or format: w = %u, h = %u, c = %u, size = %lu", info->width, info->height, info->channels, info->size);
+		gchar* error_msg = g_strdup_printf(_("Invalid image dimensions or format: w = %u, h = %u, c = %u, size = %lu"), info->width, info->height, info->channels, info->size);
 		int retval = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 	g_free(error_msg);
 	return retval;
@@ -454,13 +454,13 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 	#else
 		int fd = shm_open(info->shm_name, O_RDONLY, 0);
 		if (fd == -1) {
-			const char* error_msg = "Failed to open shared memory";
+			const char* error_msg = _("Failed to open shared memory");
 			return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 		}
 		shm_ptr = mmap(NULL, info->size, PROT_READ, MAP_SHARED, fd, 0);
 		if (shm_ptr == MAP_FAILED) {
 			close(fd);
-			const char* error_msg = "Failed to map shared memory";
+			const char* error_msg = _("Failed to map shared memory");
 			return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 		}
 	#endif
@@ -499,7 +499,7 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 			munmap(shm_ptr, info->size);
 			close(fd);
 		#endif
-		const char* error_msg = "Failed to allocate image buffer";
+		const char* error_msg = _("Failed to allocate image buffer");
 		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 	}
 
@@ -567,10 +567,13 @@ static gpointer monitor_stream_stderr(GDataInputStream *data_input) {
 static void cleanup_child_process(GPid pid, gint status, gpointer user_data) {
 	// Log the Python process exit status if needed
 	if (WIFEXITED(status)) {
-		siril_debug_print("Python process (PID: %d) exited with status %d",
+		if (status == 0)
+			siril_debug_print("Python process (PID: %d) exited normally\n", pid);
+		else
+			siril_log_color_message(_("Python process (PID: %d) exited with status %d\n"), "salmon",
 				pid, WEXITSTATUS(status));
 	} else if (WIFSIGNALED(status)) {
-		siril_log_color_message(_("Python process (PID: %d) terminated by signal %d"), "salmon",
+		siril_log_color_message(_("Python process (PID: %d) terminated by signal %d\n"), "salmon",
 				pid, WTERMSIG(status));
 	}
 
@@ -690,7 +693,7 @@ void execute_python_script_async(gchar* script_name, gboolean from_file) {
 	g_thread_unref(stdout_thread);
 	g_thread_unref(stderr_thread);
 
-	siril_log_message(_("Python script launched asynchronously with PID %d\n"), child_pid);
+	siril_debug_print("Python script launched asynchronously with PID %d\n", child_pid);
 	g_free(working_dir);
 }
 
@@ -712,7 +715,7 @@ static Connection* create_connection(const gchar *pipe_name) {
 	);
 
 	if (conn->pipe_handle == INVALID_HANDLE_VALUE) {
-		g_warning("Failed to create pipe: %lu", GetLastError());
+		siril_debug_print("Failed to create pipe: %lu\n", GetLastError());
 		g_free(conn);
 		return NULL;
 	}
@@ -727,7 +730,7 @@ static gboolean wait_for_client(Connection *conn) {
 
 	BOOL result = ConnectNamedPipe(conn->pipe_handle, NULL);
 	if (!result && GetLastError() != ERROR_PIPE_CONNECTED) {
-		g_warning("Failed to connect to client: %lu", GetLastError());
+		siril_debug_print("Failed to connect to client: %lu\n", GetLastError());
 		return FALSE;
 	}
 
@@ -750,7 +753,7 @@ static Connection* create_connection(const gchar *socket_path) {
 
 	conn->server_fd = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (conn->server_fd == -1) {
-		g_warning("Failed to create socket: %s", g_strerror(errno));
+		siril_debug_print("Failed to create socket: %s\n", g_strerror(errno));
 		g_free(conn);
 		return NULL;
 	}
@@ -763,14 +766,14 @@ static Connection* create_connection(const gchar *socket_path) {
 	unlink(socket_path);  // Remove existing socket file if it exists
 
 	if (bind(conn->server_fd, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
-		g_warning("Failed to bind socket: %s", g_strerror(errno));
+		siril_debug_print("Failed to bind socket: %s\n", g_strerror(errno));
 		close(conn->server_fd);
 		g_free(conn);
 		return NULL;
 	}
 
 	if (listen(conn->server_fd, 1) == -1) {
-		g_warning("Failed to listen on socket: %s", g_strerror(errno));
+		siril_debug_print("Failed to listen on socket: %s\n", g_strerror(errno));
 		close(conn->server_fd);
 		unlink(socket_path);
 		g_free(conn);
@@ -788,7 +791,7 @@ static gboolean wait_for_client(Connection *conn) {
 
 	conn->client_fd = accept(conn->server_fd, NULL, NULL);
 	if (conn->client_fd == -1) {
-		g_warning("Failed to accept connection: %s", g_strerror(errno));
+		siril_debug_print("Failed to accept connection: %s\n", g_strerror(errno));
 		return FALSE;
 	}
 
@@ -838,7 +841,7 @@ static gboolean handle_client_communication(Connection *conn) {
 
 		if (bytes_read <= 0) {
 			if (bytes_read < 0) {
-				g_warning("Error reading from socket: %s", g_strerror(errno));
+				siril_debug_print("Error reading from socket: %s\n", g_strerror(errno));
 			}
 
 			g_mutex_lock(&conn->mutex);
@@ -906,7 +909,7 @@ static gpointer connection_worker(gpointer data) {
 
 gboolean initialize_python_communication(const gchar *connection_path) {
 	if (commstate.python_conn) {
-		g_warning("Python communication already initialized");
+		siril_debug_print("Python communication already initialized\n");
 		return FALSE;
 	}
 
