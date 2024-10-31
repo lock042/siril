@@ -653,7 +653,7 @@ class SirilInterface:
             if shm is not None:
                 try:
                     # Signal that Python is done with the shared memory and wait for C to finish
-                    finish_info = struct.pack('256s', shm_name.encode('utf-8'))
+                    finish_info = struct.pack('256s', shm_info.shm_name)
                     if not self.execute_command(_Command.RELEASE_SHM, finish_info):
                         raise RuntimeError("Failed to cleanup shared memory")
 
@@ -824,7 +824,7 @@ class SirilInterface:
             if shm is not None:
                 try:
                     # Signal that Python is done with the shared memory and wait for C to finish
-                    finish_info = struct.pack('256s', shm_name.encode('utf-8'))
+                    finish_info = struct.pack('256s', shm_info.shm_name)
                     if not self.execute_command(_Command.RELEASE_SHM, finish_info):
                         raise RuntimeError("Failed to cleanup shared memory")
                     shm.close()

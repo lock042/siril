@@ -875,6 +875,12 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 			gboolean error_occurred = FALSE;
 			for (int i = 0; i < nb_in_com_stars; i++) {
+				if(!com.stars) {
+					const char* error_msg = _("Stars array was cleared mid-process");
+					error_occurred = TRUE;
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					break;
+				}
 				psf_star *psf = com.stars[i];
 				if (!psf) {
 					error_occurred = TRUE;
