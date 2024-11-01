@@ -230,7 +230,7 @@ void cleanup_shm_allocation(const char* shm_name) {
 		shm_allocation_t* allocation = link->data;
 #ifdef _WIN32
 		UnmapViewOfFile(allocation->shm_ptr);
-		CloseHandle(allocation->handle);
+		CloseHandle(allocation->handle.mapping);
 #else
 		munmap(allocation->shm_ptr, allocation->size);
 		close(allocation->fd);
@@ -251,7 +251,7 @@ static void cleanup_all_shm_allocations(void) {
 		shm_allocation_t* allocation = current->data;
 #ifdef _WIN32
 		UnmapViewOfFile(allocation->shm_ptr);
-		CloseHandle(allocation->handle);
+		CloseHandle(allocation->handle.mapping);
 #else
 		munmap(allocation->shm_ptr, allocation->size);
 		close(allocation->fd);
@@ -294,12 +294,12 @@ gboolean handle_pixeldata_request(Connection *conn, fits *fit, rectangle region)
 	// Generate unique name for shared memory and allocate it
 	void* shm_ptr = NULL;
 	char shm_name[256];
-	char *shm_name_ptr = shm_name;
 #ifdef _WIN32
 	win_shm_handle_t win_handle;
 	if (!siril_allocate_shm(shm_ptr, shm_name, total_bytes, &win_handle))
 		return FALSE;
 #else
+	char *shm_name_ptr = shm_name;
 	int fd;
 	if (!siril_allocate_shm(&shm_ptr, shm_name_ptr, total_bytes, &fd))
 		return FALSE;
@@ -358,12 +358,12 @@ gboolean handle_rawdata_request(Connection *conn, void* data, size_t total_bytes
 	// Generate unique name for shared memory and allocate it
 	void* shm_ptr = NULL;
 	char shm_name[256];
-	char *shm_name_ptr = shm_name;
 #ifdef _WIN32
 	win_shm_handle_t win_handle;
 	if (!siril_allocate_shm(shm_ptr, shm_name, total_bytes, &win_handle))
 		return FALSE;
 #else
+	char *shm_name_ptr = shm_name;
 	int fd;
 	if (!siril_allocate_shm(&shm_ptr, shm_name_ptr, total_bytes, &fd))
 		return FALSE;
@@ -416,7 +416,7 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 	// Validate image dimensions and format
 	if (info->width == 0 || info->height == 0 || info->channels == 0 ||
 		info->channels > 3 || info->size == 0) {
-		gchar* error_msg = g_strdup_printf(_("Invalid image dimensions or format: w = %u, h = %u, c = %u, size = %lu"), info->width, info->height, info->channels, info->size);
+		gchar* error_msg = g_strdup_printf(_("Invalid image dimensions or format: w = %u, h = %u, c = %u, size = %" G_GUINT64_FORMAT), info->width, info->height, info->channels, info->size);
 		int retval = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 	g_free(error_msg);
 	return retval;
