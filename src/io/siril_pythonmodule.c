@@ -182,10 +182,10 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 
 // Initialize tracking system
 static void init_shm_tracking(void) {
-    if (!g_shm_initialized) {
-        g_mutex_init(&g_shm_mutex);
-        g_shm_initialized = TRUE;
-    }
+	if (!g_shm_initialized) {
+		g_mutex_init(&g_shm_mutex);
+		g_shm_initialized = TRUE;
+	}
 }
 
 // Track new allocation
@@ -203,86 +203,74 @@ static void track_shm_allocation(const char* shm_name, void* shm_ptr, size_t siz
 	allocation->shm_ptr = shm_ptr;
 	allocation->size = size;
 #ifdef _WIN32
-    allocation->handle = *handle;
+	allocation->handle = *handle;
 #else
-    allocation->fd = fd;
+	allocation->fd = fd;
 #endif
-    g_mutex_lock(&g_shm_mutex);
-    g_shm_allocations = g_slist_append(g_shm_allocations, allocation);
-    g_mutex_unlock(&g_shm_mutex);
+	g_mutex_lock(&g_shm_mutex);
+	g_shm_allocations = g_slist_append(g_shm_allocations, allocation);
+	g_mutex_unlock(&g_shm_mutex);
 }
 
 // Helper function to match allocation by name
 static gint find_allocation_by_name(gconstpointer a, gconstpointer b) {
-    const shm_allocation_t* allocation = a;
-    const char* name = b;
-    return strcmp(allocation->shm_name, name);
+	const shm_allocation_t* allocation = a;
+	const char* name = b;
+	return strcmp(allocation->shm_name, name);
 }
 
 // Cleanup allocation
 void cleanup_shm_allocation(const char* shm_name) {
-    if (!g_shm_initialized) return;
+	if (!g_shm_initialized) return;
 
-    g_mutex_lock(&g_shm_mutex);
+	g_mutex_lock(&g_shm_mutex);
 
-    GSList* link = g_slist_find_custom(g_shm_allocations, shm_name, find_allocation_by_name);
-    if (link) {
-        shm_allocation_t* allocation = link->data;
-
-        // Unmap memory
-        munmap(allocation->shm_ptr, allocation->size);
-
+	GSList* link = g_slist_find_custom(g_shm_allocations, shm_name, find_allocation_by_name);
+	if (link) {
+		shm_allocation_t* allocation = link->data;
 #ifdef _WIN32
-        CloseHandle(allocation->handle);
+		UnmapViewOfFile(allocation->shm_ptr);
+		CloseHandle(allocation->handle);
 #else
-        // Close file descriptor and then unlink shared memory
-        close(allocation->fd);
-        shm_unlink(allocation->shm_name);
+		munmap(allocation->shm_ptr, allocation->size);
+		close(allocation->fd);
+		shm_unlink(allocation->shm_name);
 #endif
+		g_shm_allocations = g_slist_remove(g_shm_allocations, allocation);
+		g_free(allocation);
+	}
 
-        // Remove from list and free allocation structure
-        g_shm_allocations = g_slist_remove(g_shm_allocations, allocation);
-        g_free(allocation);
-    }
-
-    g_mutex_unlock(&g_shm_mutex);
+	g_mutex_unlock(&g_shm_mutex);
 }
 
-// Cleanup all allocations (useful for shutdown)
 static void cleanup_all_shm_allocations(void) {
-    if (!g_shm_initialized) return;
-
-    g_mutex_lock(&g_shm_mutex);
-
-    GSList* current = g_shm_allocations;
-    while (current) {
-        shm_allocation_t* allocation = current->data;
-
-        munmap(allocation->shm_ptr, allocation->size);
-
+	if (!g_shm_initialized) return;
+	g_mutex_lock(&g_shm_mutex);
+	GSList* current = g_shm_allocations;
+	while (current) {
+		shm_allocation_t* allocation = current->data;
 #ifdef _WIN32
-        CloseHandle(allocation->handle);
+		UnmapViewOfFile(allocation->shm_ptr);
+		CloseHandle(allocation->handle);
 #else
-        close(allocation->fd);
-        shm_unlink(allocation->shm_name);
+		munmap(allocation->shm_ptr, allocation->size);
+		close(allocation->fd);
+		shm_unlink(allocation->shm_name);
 #endif
-
-        g_free(allocation);
-        current = current->next;
-    }
-
-    g_slist_free(g_shm_allocations);
-    g_shm_allocations = NULL;
-
-    g_mutex_unlock(&g_shm_mutex);
+		g_free(allocation);
+		current = current->next;
+	}
+	g_slist_free(g_shm_allocations);
+	g_shm_allocations = NULL;
+	g_mutex_unlock(&g_shm_mutex);
 }
 
 void cleanup_shm_resources(void) {
-    cleanup_all_shm_allocations();
-    if (g_shm_initialized) {
-        g_mutex_clear(&g_shm_mutex);
-        g_shm_initialized = FALSE;
-    }
+	cleanup_all_shm_allocations();
+	if (g_shm_initialized) {
+		g_mutex_clear(&g_shm_mutex);
+		g_shm_initialized = FALSE;
+	}
 }
 
 // Handle a request for pixel data. We record the allocated SHM
