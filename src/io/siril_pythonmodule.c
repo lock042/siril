@@ -296,7 +296,7 @@ gboolean handle_pixeldata_request(Connection *conn, fits *fit, rectangle region)
 	char shm_name[256];
 #ifdef _WIN32
 	win_shm_handle_t win_handle;
-	if (!siril_allocate_shm(shm_ptr, shm_name, total_bytes, &win_handle))
+	if (!siril_allocate_shm(&shm_ptr, shm_name, total_bytes, &win_handle))
 		return FALSE;
 #else
 	char *shm_name_ptr = shm_name;
@@ -304,6 +304,12 @@ gboolean handle_pixeldata_request(Connection *conn, fits *fit, rectangle region)
 	if (!siril_allocate_shm(&shm_ptr, shm_name_ptr, total_bytes, &fd))
 		return FALSE;
 #endif
+
+	// null check before memcpy
+	if (shm_ptr == NULL) {
+		const char* error_msg = _("Failed to allocate shared memory");
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
 
 	// Copy data from gfit to shared memory
 	size_t index = 0;
@@ -359,18 +365,23 @@ gboolean handle_rawdata_request(Connection *conn, void* data, size_t total_bytes
 	void* shm_ptr = NULL;
 	char shm_name[256];
 #ifdef _WIN32
-	win_shm_handle_t win_handle;
-	if (!siril_allocate_shm(shm_ptr, shm_name, total_bytes, &win_handle))
+	win_shm_handle_t win_handle = { NULL, NULL };
+	if (!siril_allocate_shm(&shm_ptr, shm_name, total_bytes, &win_handle))
 		return FALSE;
 #else
-	char *shm_name_ptr = shm_name;
 	int fd;
-	if (!siril_allocate_shm(&shm_ptr, shm_name_ptr, total_bytes, &fd))
+	if (!siril_allocate_shm(&shm_ptr, shm_name, total_bytes, &fd))
 		return FALSE;
 #endif
 
-	// Copy data from gfit to shared memory
-	memcpy((char*)shm_ptr, (char*) data, total_bytes);
+	// null check before memcpy
+	if (shm_ptr == NULL) {
+		const char* error_msg = _("Failed to allocate shared memory");
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
+
+	// Copy data to shared memory
+	memcpy(shm_ptr, data, total_bytes);
 
 	// Track this allocation
 #ifdef _WIN32
@@ -380,8 +391,6 @@ gboolean handle_rawdata_request(Connection *conn, void* data, size_t total_bytes
 #endif
 
 	// Prepare shared memory info structure
-	// We only care about the size and shm_name, but it's easier to use the same
-	// struct as for handle_pixeldata_request
 	shared_memory_info_t info = {
 		.size = total_bytes,
 		.data_type = 0,
@@ -389,8 +398,8 @@ gboolean handle_rawdata_request(Connection *conn, void* data, size_t total_bytes
 		.height = 0,
 		.channels = 0
 	};
-	memset(info.shm_name, 0, sizeof(info.shm_name));  // Clear the buffer first
-	memcpy(info.shm_name, shm_name, strlen(shm_name)); // Safe copy with implicit null termination
+	memset(info.shm_name, 0, sizeof(info.shm_name));
+	memcpy(info.shm_name, shm_name, strlen(shm_name));
 
 	// Send shared memory info to Python
 	return send_response(conn, STATUS_OK, (const char*)&info, sizeof(info));
