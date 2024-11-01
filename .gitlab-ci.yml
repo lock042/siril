@@ -231,7 +231,7 @@ win64-native:
     # SDW = Siril Deps Windows, https://gitlab.com/free-astro/siril_windows
     SDW_VERSION: 27
     SDW_NAME: siril28
-    SDW_RELEASE_URL: $CI_API_V4_URL/projects/46863172/packages/generic/windows/r$SDW_VERSION/$SDW_NAME.7z
+    SDW_RELEASE_URL: $CI_API_V4_URL/projects/47854290/packages/generic/windows/r$SDW_VERSION/$SDW_NAME.7z
     W64_OUT: "/c/$SDW_NAME/mingw64" #used in siril-package.sh
   tags:
     - saas-windows-medium-amd64
