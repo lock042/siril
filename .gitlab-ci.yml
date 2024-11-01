@@ -246,8 +246,8 @@ win64-native:
     - wget.exe --quiet --no-check-certificate $SDW_RELEASE_URL
     - 7z x -oC:/ "$Env:SDW_NAME.7z"
   script:
-    - . "C:/$Env:IDW_NAME/msys2_shell.cmd" -defterm -no-start -mingw64 -here -c "bash -x ./build/windows/native-gitlab-ci/siril-build.sh"
-    - . "C:/$Env:IDW_NAME/msys2_shell.cmd" -defterm -no-start -mingw64 -here -c "bash -x ./build/windows/native-gitlab-ci/siril-package.sh"
+    - . "C:/$Env:SDW_NAME/msys2_shell.cmd" -defterm -no-start -mingw64 -here -c "bash -x ./build/windows/native-gitlab-ci/siril-build.sh"
+    - . "C:/$Env:SDW_NAME/msys2_shell.cmd" -defterm -no-start -mingw64 -here -c "bash -x ./build/windows/native-gitlab-ci/siril-package.sh"
 
 flatpak:
   rules:
