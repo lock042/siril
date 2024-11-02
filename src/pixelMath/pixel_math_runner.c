@@ -1048,6 +1048,16 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 		width = gfit.rx;
 		height = gfit.ry;
 		channel = gfit.naxes[2];
+		if (nb_rows > 0) {
+			if ((channel != var_fit[0].naxes[2] ||
+										width != var_fit[0].naxes[0] ||
+										height != var_fit[0].naxes[1])) {
+				siril_message_dialog(GTK_MESSAGE_ERROR, _("Images have different size"),
+						_("The image currently displayed must be the same size as the other images loaded into PixelMath."));
+				retval = 1;
+				goto free_expressions;
+			}
+		}
 	}
 
 	if (!nb_rows && !args->has_gfit) {
