@@ -42,6 +42,8 @@
 #include "tinyexpr.h"
 #include "pixel_math_runner.h"
 
+#define T_CURRENT "gfit"
+
 static const gchar *variables[] = {
 		"I1",
 		"I2",
@@ -522,7 +524,7 @@ static gchar* parse_image_functions(gpointer p, int idx, int c) {
 		double w = 0.0, h = 0.0;
 		imstats *stats = NULL;
 
-		if (g_strcmp0(param, "gfit") == 0) {
+		if (g_strcmp0(param, T_CURRENT) == 0) {
 			stats = statistics(NULL, -1, &gfit, c, NULL, STATS_MAIN, MULTI_THREADED);
 			if (!stats) return expression;
 
@@ -538,6 +540,8 @@ static gchar* parse_image_functions(gpointer p, int idx, int c) {
 
 			w = (double) gfit.rx;
 			h = (double) gfit.ry;
+
+			free_stats(stats);
 		} else {
 			for (int j = 0; j < nb_images; j++) {
 				if (g_strcmp0(param, image[j]) == 0) {
@@ -556,6 +560,8 @@ static gchar* parse_image_functions(gpointer p, int idx, int c) {
 
 					w = (double) var_fit[j].rx;
 					h = (double) var_fit[j].ry;
+
+					free_stats(stats);
 				}
 			}
 		}
@@ -655,7 +661,7 @@ gpointer apply_pixel_math_operation(gpointer p) {
 			vars[i].type = 0;
 		}
 		if (args->has_gfit && args->from_ui) {
-			vars[nb_rows].name = g_strdup("gfit");
+			vars[nb_rows].name = g_strdup(T_CURRENT);
 			vars[nb_rows].address = &x[nb_rows];
 			vars[nb_rows].context = NULL;
 			vars[nb_rows].type = 0;
@@ -918,7 +924,7 @@ static void replace_t_with_gfit(struct pixel_math_data *args) {
         (args->expression3 && g_strstr_len(args->expression3, -1, "$T") != NULL)) {
 
         const gchar *pattern = "\\$T";
-        const gchar *replacement = "gfit";
+        const gchar *replacement = T_CURRENT;
 
         args->has_gfit = TRUE;
 
