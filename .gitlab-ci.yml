@@ -228,6 +228,7 @@ win64-native:
     key: "cache-windows"
     paths:
       - ccache
+      - DLLcache
     when: always
   variables:
     CCACHE_DIR: $CI_PROJECT_DIR/ccache
