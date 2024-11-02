@@ -636,14 +636,15 @@ gpointer apply_pixel_math_operation(gpointer p) {
 		args->expression3 = parse_image_functions(args, 3, RLAYER);
 	}
 
-
 #ifdef _OPENMP
 #pragma omp parallel num_threads(com.max_thread) firstprivate(n1,n2,n3)
 #endif
 	{
 		// we build the expressions in parallel because tr_eval() is not thread-safe
-		te_variable *vars = malloc(nb_rows * sizeof(te_variable));
-		double *x = malloc(nb_rows * sizeof(double));
+		int k = 0;
+		if (args->has_gfit && args->from_ui) k = 1;
+		te_variable *vars = malloc((nb_rows + k) * sizeof(te_variable));
+		double *x = malloc((nb_rows + k) * sizeof(double));
 		if (!vars || !x) {
 			failed = TRUE;
 			goto failure;
@@ -654,8 +655,14 @@ gpointer apply_pixel_math_operation(gpointer p) {
 			vars[i].context = NULL;
 			vars[i].type = 0;
 		}
+		if (args->has_gfit && args->from_ui) {
+			vars[nb_rows].name = g_strdup("gfit");
+			vars[nb_rows].address = &x[nb_rows];
+			vars[nb_rows].context = NULL;
+			vars[nb_rows].type = 0;
+		}
 		int err = 0;
-		n1 = te_compile(args->expression1, vars, nb_rows, &err);
+		n1 = te_compile(args->expression1, vars, nb_rows + k, &err);
 		if (!n1) {
 #ifdef _OPENMP
 			if (omp_get_thread_num() == 0)
@@ -666,7 +673,7 @@ gpointer apply_pixel_math_operation(gpointer p) {
 		}
 
 		if (args->expression2) {
-			n2 = te_compile(args->expression2, vars, nb_rows, &err);
+			n2 = te_compile(args->expression2, vars, nb_rows + k, &err);
 			if (!n2) {
 #ifdef _OPENMP
 				if (omp_get_thread_num() == 0)
@@ -676,7 +683,7 @@ gpointer apply_pixel_math_operation(gpointer p) {
 				goto failure;
 			}
 
-			n3 = te_compile(args->expression3, vars, nb_rows, &err);
+			n3 = te_compile(args->expression3, vars, nb_rows + k, &err);
 			if (!n3) {
 #ifdef _OPENMP
 				if (omp_get_thread_num() == 0)
@@ -695,6 +702,9 @@ gpointer apply_pixel_math_operation(gpointer p) {
 			 * already been done. */
 			for (int i = 0; i < nb_rows; i++) {
 				x[i] = var_fit[i].fdata[px];
+			}
+			if (args->has_gfit && args->from_ui) {
+				x[nb_rows] = gfit.fdata[px];
 			}
 
 			if (!args->single_rgb) { // in that case var_fit[0].naxes[2] == 1, but we built RGB
@@ -902,6 +912,36 @@ void free_pm_var(int nb) {
 	}
 }
 
+static void replace_t_with_gfit(struct pixel_math_data *args) {
+    if ((g_strstr_len(args->expression1, -1, "$T") != NULL) ||
+        (g_strstr_len(args->expression2, -1, "$T") != NULL) ||
+        (g_strstr_len(args->expression3, -1, "$T") != NULL)) {
+
+        const gchar *pattern = "\\$T";
+        const gchar *replacement = "gfit";
+
+        args->has_gfit = TRUE;
+
+        if (args->expression1 != NULL) {
+            gchar *new_expression1 = g_regex_replace(g_regex_new(pattern, 0, 0, NULL), args->expression1, -1, 0, replacement, 0, NULL);
+            g_free(args->expression1);
+            args->expression1 = new_expression1;
+        }
+
+        if (args->expression2 != NULL) {
+            gchar *new_expression2 = g_regex_replace(g_regex_new(pattern, 0, 0, NULL), args->expression2, -1, 0, replacement, 0, NULL);
+            g_free(args->expression2);
+            args->expression2 = new_expression2;
+        }
+
+        if (args->expression3 != NULL) {
+            gchar *new_expression3 = g_regex_replace(g_regex_new(pattern, 0, 0, NULL),  args->expression3, -1, 0, replacement, 0, NULL);
+            g_free(args->expression3);
+            args->expression3 = new_expression3;
+        }
+    }
+}
+
 static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *expression3) {
 	int nb_rows = 0;
 
@@ -960,19 +1000,7 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 		nb_rows++;
 	}
 
-	if (!nb_rows) {
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("No images loaded"), _("You must load images first."));
-		retval = 1;
-		goto free_expressions;
-	}
-
 	channel = single_rgb ? channel : 3;
-
-	fits *fit = NULL;
-	if (new_fit_image(&fit, width, height, channel, DATA_FLOAT)) {
-		retval = 1;
-		goto free_expressions;
-	}
 
 	struct pixel_math_data *args = malloc(sizeof(struct pixel_math_data));
 
@@ -997,15 +1025,37 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 	args->do_sum = do_sum;
 	args->min = min;
 	args->max = max;
-	args->fit = fit;
 	args->nb_rows = nb_rows;
 	args->ret = 0;
 	args->from_ui = TRUE;
+	args->has_gfit = FALSE;
 
 	args->varname = malloc(nb_rows * sizeof(gchar *));
 	for (int i = 0; i < nb_rows; i++) {
 		args->varname[i] = g_strdup(get_pixel_math_var_name(i));
 	}
+
+	replace_t_with_gfit(args);
+
+	fits *fit = NULL;
+	if (args->has_gfit) { // in the case where no images are loaded, at least gfit must be laded
+		width = gfit.rx;
+		height = gfit.ry;
+		channel = gfit.naxes[2];
+	}
+
+	if (!nb_rows && !args->has_gfit) {
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("No images loaded"), _("You must load images first."));
+		retval = 1;
+		goto free_expressions;
+	}
+
+	if (new_fit_image(&fit, width, height, channel, DATA_FLOAT)) {
+		retval = 1;
+		goto free_expressions;
+	}
+
+	args->fit = fit;
 
 	start_in_new_thread(apply_pixel_math_operation, args);
 
