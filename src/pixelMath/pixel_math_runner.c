@@ -487,14 +487,14 @@ static void update_metadata(fits *fit, gboolean do_sum) {
 	free(f);
 }
 
-static gchar *parse_image_functions(gpointer p, int idx, int c) {
-	struct pixel_math_data *args = (struct pixel_math_data *)p;
+static gchar* parse_image_functions(gpointer p, int idx, int c) {
+	struct pixel_math_data *args = (struct pixel_math_data*) p;
 
 	gchar *expression;
 	gchar **image = args->varname;
 	int nb_images = args->nb_rows;
-	switch(idx) {
-	default:
+
+	switch (idx) {
 	case 1:
 		expression = args->expression1;
 		break;
@@ -504,113 +504,112 @@ static gchar *parse_image_functions(gpointer p, int idx, int c) {
 	case 3:
 		expression = args->expression3;
 		break;
+	default:
+		return NULL;
 	}
-	if (!expression) return expression;
-	for (int i = 0; i < MAX_IMAGE_FUNCTIONS; i++) {
-		/* First we need to find each occurrences of functions
-		 * Then if args->varname[i] is inside function parameters
-		 * Then apply statistics on args->varname[i]
-		 * Then transform it to numerical expression
-		 */
-		const gchar *function = image_functions[i].name;
-		int len = strlen(function);
-		int total_len = strlen(expression);
+	if (!expression)
+		return expression;
 
-		for (int pos = 0; pos < total_len - len; pos++) {
-			// Match word at current position
-			int found = 1;
-			for (int j = 0; j < len; j++) {
-				// If word is not matched
-				if (expression[pos + j] != function[j]) {
-					found = 0;
-					break;
-				}
-			}
+	GRegex *regex = g_regex_new("(\\w+)\\((\\w+)\\)", 0, 0, NULL);
+	GMatchInfo *match_info;
 
-			// If word have been found then print found message
-			if (found == 1) {
-				if (expression[pos + len] == '(') {
-					for (int j = 0; j < nb_images; j++) {
-						int len2 = strlen(image[j]);
-						if (expression[pos + len + len2 + 1] == ')') {
-							// possible match
-							gchar *str = malloc(len2 + 1);
-							g_strlcpy(str, expression + pos + len + 1, len2 + 1);
-							if (!g_strcmp0(str, image[j])) {
-								gchar *replace = NULL;
-								double median = 0.0, mean = 0.0, min = 0.0,
-										max = 0.0, noise = 0.0, adev = 0.0,
-										bwmv = 0.0, mad = 0.0, sdev = 0.0;
-								double w = 0.0, h = 0.0;
-								imstats *stats = statistics(NULL, -1, &var_fit[j], c, NULL, STATS_MAIN, MULTI_THREADED);
-								if (!stats) return expression;
+	g_regex_match(regex, expression, 0, &match_info);
+	while (g_match_info_matches(match_info)) {
+		gchar *function = g_match_info_fetch(match_info, 1);
+		gchar *param = g_match_info_fetch(match_info, 2);
 
-								median = stats->median;
-								mean = stats->mean;
-								min = stats->min;
-								max = stats->max;
-								noise = stats->bgnoise;
-								adev = stats->avgDev;
-								bwmv = stats->sqrtbwmv * stats->sqrtbwmv;
-								mad = stats->mad;
-								sdev = stats->sigma;
+		double median = 0.0, mean = 0.0, min = 0.0, max = 0.0, noise = 0.0, adev = 0.0, bwmv = 0.0, mad = 0.0, sdev = 0.0;
+		double w = 0.0, h = 0.0;
+		imstats *stats = NULL;
 
-								w = (double) var_fit[j].rx;
-								h = (double) var_fit[j].ry;
+		if (g_strcmp0(param, "gfit") == 0) {
+			stats = statistics(NULL, -1, &gfit, c, NULL, STATS_MAIN, MULTI_THREADED);
+			if (!stats) return expression;
 
-								free_stats(stats);
+			median = stats->median;
+			mean = stats->mean;
+			min = stats->min;
+			max = stats->max;
+			noise = stats->bgnoise;
+			adev = stats->avgDev;
+			bwmv = stats->sqrtbwmv * stats->sqrtbwmv;
+			mad = stats->mad;
+			sdev = stats->sigma;
 
-								if (!g_strcmp0(function, "mean")) {
-									replace = g_strdup_printf("%g", mean);
-								} else if ((!g_strcmp0(function, "med") || !(g_strcmp0(function, "median")))) {
-									replace = g_strdup_printf("%g", median);
-								} else if (!g_strcmp0(function, "min")) {
-									replace = g_strdup_printf("%g", min);
-								} else if (!g_strcmp0(function, "max")) {
-									replace = g_strdup_printf("%g", max);
-								} else if (!g_strcmp0(function, "noise")) {
-									replace = g_strdup_printf("%g", noise);
-								} else if (!g_strcmp0(function, "adev")) {
-									replace = g_strdup_printf("%g", adev);
-								} else if (!g_strcmp0(function, "bwmv")) {
-									replace = g_strdup_printf("%g", bwmv);
-								} else if ((!g_strcmp0(function, "mad") || !(g_strcmp0(function, "mdev")))) {
-									replace = g_strdup_printf("%g", mad);
-								} else if (!g_strcmp0(function, "sdev")) {
-									replace = g_strdup_printf("%g", sdev);
-								} else if ((!g_strcmp0(function, "width") || !(g_strcmp0(function, "w")))) {
-									replace = g_strdup_printf("%g", w);
-								} else if ((!g_strcmp0(function, "height") || !(g_strcmp0(function, "h")))) {
-									replace = g_strdup_printf("%g", h);
-								}
-								if (replace) {
-									GString *string = g_string_new(expression);
-									g_string_erase(string, pos, len + len2 + 2);
-									g_string_insert(string, pos, replace);
-									g_free(expression);
-									expression = g_string_free(string, FALSE);
-									total_len = strlen(expression);
-									pos = pos + strlen(replace);
-									g_free(replace);
-									siril_debug_print("Expression%d: %s\n", c, expression);
-								}
-							}
-							free(str);
-						}
-					}
+			w = (double) gfit.rx;
+			h = (double) gfit.ry;
+		} else {
+			for (int j = 0; j < nb_images; j++) {
+				if (g_strcmp0(param, image[j]) == 0) {
+					stats = statistics(NULL, -1, &var_fit[j], c, NULL, STATS_MAIN, MULTI_THREADED);
+					if (!stats) return expression;
+
+					median = stats->median;
+					mean = stats->mean;
+					min = stats->min;
+					max = stats->max;
+					noise = stats->bgnoise;
+					adev = stats->avgDev;
+					bwmv = stats->sqrtbwmv * stats->sqrtbwmv;
+					mad = stats->mad;
+					sdev = stats->sigma;
+
+					w = (double) var_fit[j].rx;
+					h = (double) var_fit[j].ry;
 				}
 			}
 		}
+
+		gchar *replace = NULL;
+		if (!g_strcmp0(function, "mean")) {
+			replace = g_strdup_printf("%g", mean);
+		} else if (!g_strcmp0(function, "med") || !g_strcmp0(function, "median")) {
+			replace = g_strdup_printf("%g", median);
+		} else if (!g_strcmp0(function, "min")) {
+			replace = g_strdup_printf("%g", min);
+		} else if (!g_strcmp0(function, "max")) {
+			replace = g_strdup_printf("%g", max);
+		} else if (!g_strcmp0(function, "noise")) {
+			replace = g_strdup_printf("%g", noise);
+		} else if (!g_strcmp0(function, "adev")) {
+			replace = g_strdup_printf("%g", adev);
+		} else if (!g_strcmp0(function, "bwmv")) {
+			replace = g_strdup_printf("%g", bwmv);
+		} else if (!g_strcmp0(function, "mad") || !g_strcmp0(function, "mdev")) {
+			replace = g_strdup_printf("%g", mad);
+		} else if (!g_strcmp0(function, "sdev")) {
+			replace = g_strdup_printf("%g", sdev);
+		} else if (!g_strcmp0(function, "width") || !g_strcmp0(function, "w")) {
+			replace = g_strdup_printf("%g", w);
+		} else if (!g_strcmp0(function, "height") || !g_strcmp0(function, "h")) {
+			replace = g_strdup_printf("%g", h);
+		}
+
+		if (replace) {
+			expression = g_regex_replace_literal(regex, expression, -1, 0, replace, G_REGEX_MATCH_DEFAULT, NULL);
+			g_free(replace);
+			siril_debug_print("Expression%d: %s\n", c, expression);
+		}
+
+		g_free(function);
+		g_free(param);
+		g_match_info_next(match_info, NULL);
 	}
+
+	g_match_info_free(match_info);
+	g_regex_unref(regex);
+
 	for (int j = 0; j < nb_images; j++) {
-		const gchar *test =  g_strrstr(expression, image[j]);
+		const gchar *test = g_strrstr(expression, image[j]);
 		if (test) {
 			var_fit_mask[j] = TRUE;
 			siril_debug_print("found image name %s in the expression %s\n", image[j], expression);
 		}
 	}
+
 	return expression;
 }
+
 gpointer apply_pixel_math_operation(gpointer p) {
 	struct pixel_math_data *args = (struct pixel_math_data *)p;
 
@@ -837,41 +836,36 @@ static guint siril_string_replace_parameter(GString *string, const gchar *find,
 
 static int parse_parameters(gchar **expression1, gchar **expression2, gchar **expression3) {
 	GtkEntry *entry_param = GTK_ENTRY(lookup_widget("pixel_math_entry_param"));
+	gchar *entry_text = g_strdup(gtk_entry_get_text(entry_param));
 
-	char *entry_text = g_strdup(gtk_entry_get_text(entry_param));
+	if (entry_text == NULL)
+		return 0;
 
-	if (entry_text == NULL) return 0;
-	/* first we remove spaces */
+	/* Remove spaces */
 	remove_spaces_from_str(entry_text);
 
-	/* all parameters are comma separated expressions */
-	gchar **token = g_strsplit(entry_text, ",", -1);
-	int nargs = g_strv_length(token);
+	/* Define the regex pattern for key=value pairs */
+	const gchar *pattern = "(\\w+)=([\\w.]+)";
+	GRegex *regex = g_regex_new(pattern, 0, 0, NULL);
+	GMatchInfo *match_info;
 
-	/* now we parse equality */
-	for (int i = 0; i < nargs; i++) {
-		gchar **expr = g_strsplit(token[i], "=", -1);
-		int n = g_strv_length(expr);
-		/* we want something like "expr[0]=expr[1]"
-		 * so we need two tokens */
-		if (n != 2) {
-			g_strfreev(token);
-			g_strfreev(expr);
-			g_free(entry_text);
-			return -1;
-		}
+	/* Iterate over each match of the regex */
+	g_regex_match(regex, entry_text, 0, &match_info);
+	while (g_match_info_matches(match_info)) {
+		gchar *key = g_match_info_fetch(match_info, 1);
+		gchar *value = g_match_info_fetch(match_info, 2);
 
-		/* We copy original char* in a string structure */
+		/* Create GString versions of the expressions */
 		GString *string1 = g_string_new(*expression1);
 		GString *string2 = g_string_new(*expression2);
 		GString *string3 = g_string_new(*expression3);
 
-		/* we replace old expression by new ones */
-		siril_string_replace_parameter(string1, expr[0], expr[1]);
-		siril_string_replace_parameter(string2, expr[0], expr[1]);
-		siril_string_replace_parameter(string3, expr[0], expr[1]);
+		/* Replace the parameters */
+		siril_string_replace_parameter(string1, key, value);
+		siril_string_replace_parameter(string2, key, value);
+		siril_string_replace_parameter(string3, key, value);
 
-		/* copy string into char */
+		/* Free old expressions and update with new ones */
 		g_free(*expression1);
 		g_free(*expression2);
 		g_free(*expression3);
@@ -880,10 +874,16 @@ static int parse_parameters(gchar **expression1, gchar **expression2, gchar **ex
 		*expression2 = g_string_free(string2, FALSE);
 		*expression3 = g_string_free(string3, FALSE);
 
-		g_strfreev(expr);
+		/* Free memory */
+		g_free(key);
+		g_free(value);
+
+		g_match_info_next(match_info, NULL);
 	}
 
-	g_strfreev(token);
+	/* Cleanup */
+	g_match_info_free(match_info);
+	g_regex_unref(regex);
 	g_free(entry_text);
 
 	return 0;
@@ -913,9 +913,9 @@ void free_pm_var(int nb) {
 }
 
 static void replace_t_with_gfit(struct pixel_math_data *args) {
-    if ((g_strstr_len(args->expression1, -1, "$T") != NULL) ||
-        (g_strstr_len(args->expression2, -1, "$T") != NULL) ||
-        (g_strstr_len(args->expression3, -1, "$T") != NULL)) {
+    if ((args->expression1 && g_strstr_len(args->expression1, -1, "$T") != NULL) ||
+        (args->expression2 && g_strstr_len(args->expression2, -1, "$T") != NULL) ||
+        (args->expression3 && g_strstr_len(args->expression3, -1, "$T") != NULL)) {
 
         const gchar *pattern = "\\$T";
         const gchar *replacement = "gfit";
