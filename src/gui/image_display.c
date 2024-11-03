@@ -624,7 +624,7 @@ static int make_index_for_current_display(int vport) {
 			index[i] = UCHAR_MAX;
 		}
 	}
-	if (gfit.color_managed && gui.icc.same_primaries && gui.rendering_mode != STF_DISPLAY)
+	if (gfit.color_managed && gui.icc.same_primaries && gui.icc.proofing_transform && gui.rendering_mode != STF_DISPLAY)
 		display_index_transform(index, vport);
 
 	last_pente = slope;

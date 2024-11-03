@@ -903,6 +903,7 @@ static gpointer extract_channels_ushort(gpointer p) {
 				}
 			}
 			args->fit->history = g_slist_append(args->fit->history, g_strdup_printf("%s %d", histstring, i));
+			args->fit->keywords.bayer_pattern[0] = '\0'; // Mark this as no longer having a Bayer pattern
 			save1fits16(args->channel[i], args->fit, i);
 			update_filter_information(args->fit, fitfilter, FALSE); //reinstate original filter name
 		}
@@ -1049,6 +1050,7 @@ static gpointer extract_channels_float(gpointer p) {
 				}
 			}
 			args->fit->history = g_slist_append(args->fit->history, g_strdup_printf("%s %d", histstring, i));
+			args->fit->keywords.bayer_pattern[0] = '\0'; // Mark this as no longer having a Bayer pattern
 			save1fits32(args->channel[i], args->fit, i);
 			update_filter_information(args->fit, fitfilter, FALSE); //reinstate original filter name
 		}
