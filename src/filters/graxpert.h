@@ -4,6 +4,7 @@
 typedef enum {
 	GRAXPERT_BG,
 	GRAXPERT_DENOISE,
+	GRAXPERT_DECONV,
 	GRAXPERT_GUI
 } graxpert_operation;
 
@@ -49,6 +50,8 @@ typedef struct _graxpert_data {
 	double bg_tol_option; // BGE sample tolerance
 	gboolean keep_bg;
 	double denoise_strength;
+	double deconv_strength;
+	double deconv_blur_psf_size;
 	gboolean use_gpu;
 	int ai_batch_size;
 	int bg_pts_option; // points per row
