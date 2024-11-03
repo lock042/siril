@@ -58,6 +58,7 @@ static gboolean verbose = TRUE;
 static version_number graxpert_version = { 0 };
 static gchar **background_ai_models = NULL;
 static gchar **denoise_ai_models = NULL;
+static gchar **deconv_ai_models = NULL;
 static gboolean graxpert_aborted = FALSE;
 
 void set_graxpert_aborted(gboolean state) {
@@ -65,7 +66,7 @@ void set_graxpert_aborted(gboolean state) {
 }
 
 const gchar** get_ai_models(graxpert_operation operation) {
-    return (const gchar**) (operation == GRAXPERT_DENOISE ? denoise_ai_models : background_ai_models);
+    return (const gchar**) (operation == GRAXPERT_DENOISE ? denoise_ai_models : (operation == GRAXPERT_DECONV ? deconv_ai_models : background_ai_models));
 }
 
 static void child_watch_cb(GPid pid, gint status, gpointer user_data) {
@@ -122,7 +123,7 @@ static GError *spawn_graxpert(gchar **argv, gint columns,
 	return NULL;
 }
 
-static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report) {
+static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report, gboolean is_sequence) {
 	const gchar *progress_key = "Progress: ";
 	gint child_stderr;
 	GPid child_pid;
@@ -135,7 +136,7 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report) {
 	}
 	fprintf(stdout, "\n");
 	// g_spawn handles wchar so not need to convert
-	set_progress_bar_data(_("Starting GraXpert..."), 0.0);
+	if (!is_sequence) set_progress_bar_data(_("Starting GraXpert..."), 0.0);
 	error = spawn_graxpert(argv, 200, &child_pid, NULL, NULL,
 			&child_stderr);
 
@@ -180,9 +181,9 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report) {
 		if (arg)
 			value = g_ascii_strtod(arg + strlen(progress_key), NULL);
 		if (value > 0.0 && value == value && verbose) {
-			set_progress_bar_data(_("Running GraXpert"), value / 100.0);
+			if (!is_sequence) set_progress_bar_data(_("Running GraXpert"), value / 100.0);
 		} else if ( ((errmsg = g_strstr_len(buffer, -1, "ERROR")) && !graxpert_aborted) ) {
-			set_progress_bar_data(_("GraXpert reported an error"), max(value, 0.0) / 100);
+			if (!is_sequence) set_progress_bar_data(_("GraXpert reported an error"), max(value, 0.0) / 100);
 			if (strlen(errmsg) > 9) {
 				errmsg += 9;
 				const gchar* color = g_strstr_len(buffer, -1, "Warning") ? "salmon" : "red";
@@ -190,7 +191,7 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report) {
 			}
 			retval = 1;
 		} else if (g_strrstr(buffer, "Finished") || g_strrstr(buffer, "finished")) {
-			set_progress_bar_data(_("Done."), 1.0);
+			if (!is_sequence) set_progress_bar_data(_("Done."), 1.0);
 			retval = 0;
 #ifdef GRAXPERT_DEBUG
 			if (verbose)
@@ -219,8 +220,8 @@ static int exec_prog_graxpert(char **argv, gboolean graxpert_no_exit_report) {
 	com.childpid = 0;			// For other OSes, PID of a child process
 #endif
 	if (graxpert_no_exit_report && retval == -1) {
-		siril_log_message(_("GraXpert GUI finished.\n"));
-		set_progress_bar_data(_("Done."), 1.0);
+		if (!is_sequence) siril_log_message(_("GraXpert GUI finished.\n"));
+		if (!is_sequence) set_progress_bar_data(_("Done."), 1.0);
 		retval = 0; // No "Finished" log message is printed when closing the GUI, so we assume success
 	}
 #ifdef GRAXPERT_DEBUG
@@ -297,7 +298,7 @@ gchar** ai_version_check(gchar* executable, graxpert_operation operation) {
 		int nb = 0;
 		test_argv[nb++] = executable;
 		test_argv[nb++] = "-cmd";
-		gchar *versionarg = g_strdup(operation == GRAXPERT_DENOISE ? "denoising" : "background-extraction");
+		gchar *versionarg = g_strdup(operation == GRAXPERT_DENOISE ? "denoising" : (operation == GRAXPERT_DECONV ? "deconvolution" : "background-extraction"));
 		test_argv[nb++] = versionarg;
 		test_argv[nb++] = "--help";
 		// g_spawn handles wchar so not need to convert
@@ -351,6 +352,7 @@ gchar** ai_version_check(gchar* executable, graxpert_operation operation) {
 void fill_graxpert_version_arrays() {
 	background_ai_models = ai_version_check(com.pref.graxpert_path, GRAXPERT_BG);
 	denoise_ai_models = ai_version_check(com.pref.graxpert_path, GRAXPERT_DENOISE);
+	deconv_ai_models = ai_version_check(com.pref.graxpert_path, GRAXPERT_DECONV);
 }
 
 gboolean check_graxpert_version(const gchar *version, graxpert_operation operation) {
@@ -361,6 +363,13 @@ gboolean check_graxpert_version(const gchar *version, graxpert_operation operati
 			return FALSE;
 		for (int i = 0 ; denoise_ai_models[i] != NULL ; i++) {
 			if (!strcmp(version, denoise_ai_models[i]))
+				return TRUE;
+		}
+	} else if (operation == GRAXPERT_DECONV) {
+		if (deconv_ai_models == NULL)
+			return FALSE;
+		for (int i = 0 ; deconv_ai_models[i] != NULL ; i++) {
+			if (!strcmp(version, deconv_ai_models[i]))
 				return TRUE;
 		}
 	} else {
@@ -453,9 +462,13 @@ gboolean graxpert_executablecheck(gchar* executable, graxpert_operation operatio
 	}
 
 	if (compare_version(graxpert_version, (version_number) {.major_version = 3, .minor_version = 0, .micro_version = 0}) < 0) {
-		siril_log_color_message(_("Error: GraXpert version is too old. You have version %d.%d.%d; at least version 3.0.0 is required.\n"), "red", graxpert_version.major_version, graxpert_version.minor_version, graxpert_version.micro_version);
+		siril_log_color_message(_("Error: GraXpert version is too old. You have version %d.%d.%d; at least version 3.0.0 is required.\n"), "red",
+				graxpert_version.major_version, graxpert_version.minor_version, graxpert_version.micro_version);
 		return FALSE;
 	} else {
+		if (compare_version(graxpert_version, (version_number) {.major_version = 3, .minor_version = 2, .micro_version = 14}) < 0 && operation == GRAXPERT_DECONV) {
+			return FALSE;
+		}
 		return TRUE;
 	}
 }
@@ -480,7 +493,7 @@ gpointer graxpert_setup_async(gpointer user_data) {
 }
 
 void ai_versions_to_log(graxpert_operation operation) {
-	gchar** array = operation == GRAXPERT_DENOISE ? denoise_ai_models : background_ai_models;
+	gchar** array = operation == GRAXPERT_DENOISE ? denoise_ai_models : (operation == GRAXPERT_DECONV ? deconv_ai_models : background_ai_models);
 	if (!array) {
 		siril_log_message(_("None!\n"));
 	} else {
@@ -568,21 +581,23 @@ gboolean save_graxpert_config(graxpert_data *args) {
 	}
 
 	json_builder_set_member_name(builder, "corr_type");
-	json_builder_add_string_value(builder, args->bg_mode == GRAXPERT_SUBTRACTION ? "Subtraction" :
-	"Division");
+	json_builder_add_string_value(builder, args->bg_mode == GRAXPERT_SUBTRACTION ? "Subtraction" : "Division");
 
 	json_builder_set_member_name(builder, "RBF_kernel");
-	json_builder_add_string_value(builder, args->kernel == GRAXPERT_THIN_PLATE ? "thin_plate" :
-	args->kernel == GRAXPERT_QUINTIC ? "quintic" :
-	args->kernel == GRAXPERT_CUBIC ? "cubic" :
-	"linear");
+	json_builder_add_string_value(builder, args->kernel == GRAXPERT_THIN_PLATE ? "thin_plate" : args->kernel == GRAXPERT_QUINTIC ? "quintic" :
+		args->kernel == GRAXPERT_CUBIC ? "cubic" : "linear");
 
 	json_builder_set_member_name(builder, "denoise_strength");
 	json_builder_add_double_value(builder, args->denoise_strength);
 
+	json_builder_set_member_name(builder, "deconvolution_strength");
+	json_builder_add_double_value(builder, args->deconv_strength);
+
+	json_builder_set_member_name(builder, "deconvolution_psfsize");
+	json_builder_add_double_value(builder, args->deconv_blur_psf_size);
+
 	json_builder_set_member_name(builder, "saveas_option");
-	json_builder_add_string_value(builder,
-		args->fit->type == DATA_FLOAT ? "32 bit Fits" : "16 bit Fits");
+	json_builder_add_string_value(builder, args->fit->type == DATA_FLOAT ? "32 bit Fits" : "16 bit Fits");
 
 	json_builder_end_object(builder);
 
@@ -618,6 +633,8 @@ graxpert_data *new_graxpert_data() {
 	p->spline_order = 3;
 	p->bg_tol_option = 2;
 	p->denoise_strength = 0.8;
+	p->deconv_strength = 0.5;
+	p->deconv_blur_psf_size = 0.3;
 	p->use_gpu = TRUE;
 	p->ai_batch_size = 4;
 	p->bg_pts_option = 15;
@@ -717,11 +734,11 @@ static gboolean end_graxpert(gpointer p) {
 gpointer do_graxpert (gpointer p) {
 	lock_roi_mutex();
 	set_graxpert_aborted(FALSE);
+	gchar *text = NULL;
 	graxpert_data *args = (graxpert_data *) p;
 	if (args->fit == &gfit)
 		copy_backup_to_gfit();
 	if (!args->previewing && !com.script) {
-		gchar *text = NULL;
 		switch (args->operation) {
 			case GRAXPERT_BG:
 				text = g_strdup_printf(_("GraXpert BG extraction, smoothness %.3f"), args->bg_smoothing);
@@ -729,11 +746,12 @@ gpointer do_graxpert (gpointer p) {
 			case GRAXPERT_DENOISE:
 				text = g_strdup_printf(_("GraXpert denoising, strength %.3f"), args->denoise_strength);
 				break;
+			case GRAXPERT_DECONV:
+				text = g_strdup_printf(_("GraXpert deconv, strength %.3f, psf size %.3f"), args->deconv_strength, args->deconv_blur_psf_size);
+				break;
 			default:
 				text = g_strdup(_("GraXpert operations using GUI"));
 		}
-		undo_save_state(&gfit, text);
-		g_free(text);
 	}
 	char *my_argv[64] = { 0 };
 	gchar *filename = NULL, *path = NULL, *outpath = NULL;
@@ -828,6 +846,22 @@ gpointer do_graxpert (gpointer p) {
 			my_argv[nb++] = g_strdup("-ai_version");
 			my_argv[nb++] = g_strdup(args->ai_version);
 		}
+	} else if (args->operation == GRAXPERT_DECONV) {
+		my_argv[nb++] = g_strdup("-cli");
+		my_argv[nb++] = g_strdup("-cmd");
+		my_argv[nb++] = g_strdup("deconv-obj");
+		my_argv[nb++] = g_strdup_printf("-output");
+		my_argv[nb++] = g_strdup_printf("%s", outpath);
+		my_argv[nb++] = g_strdup("-gpu");
+		my_argv[nb++] = g_strdup(args->use_gpu ? "true" : "false");
+		my_argv[nb++] = g_strdup("-strength");
+		my_argv[nb++] = g_strdup_printf("%.2f", args->deconv_strength);
+		my_argv[nb++] = g_strdup("-psfsize");
+		my_argv[nb++] = g_strdup_printf("%.2f", args->deconv_blur_psf_size);
+		if (args->ai_version != NULL) {
+			my_argv[nb++] = g_strdup("-ai_version");
+			my_argv[nb++] = g_strdup(args->ai_version);
+		}
 	} else if (args->operation == GRAXPERT_GUI) {
 		siril_log_message(_("GraXpert GUI will open with the current image. When you have finished, save the "
 							"image and return to Siril.\nYou will need to check and re-assign the ICC profile "
@@ -848,7 +882,7 @@ gpointer do_graxpert (gpointer p) {
 	// Execute GraXpert
 	struct timeval t_start, t_end;
 	gettimeofday(&t_start, NULL);
-	retval = exec_prog_graxpert(my_argv, graxpert_no_exit_report);
+	retval = exec_prog_graxpert(my_argv, graxpert_no_exit_report, args->seq != NULL);
 	gettimeofday(&t_end, NULL);
 	if (verbose)
 		show_time(t_start, t_end);
@@ -868,6 +902,10 @@ gpointer do_graxpert (gpointer p) {
 ERROR_OR_FINISHED:
 	g_free(outpath);
 	set_progress_bar_data(PROGRESS_TEXT_RESET, PROGRESS_RESET);
+	if (!retval && text) {
+		undo_save_state(&gfit, text);
+		g_free(text);
+	}
 	if (!args->seq && !com.script)
 		siril_add_idle(end_graxpert, args); // this loads the result
 	else
@@ -930,6 +968,8 @@ void apply_graxpert_to_sequence(graxpert_data *args) {
 		seqargs->new_seq_prefix = strdup("gxbg_");
 	else if (args->operation == GRAXPERT_DENOISE)
 		seqargs->new_seq_prefix = strdup("gxnr_");
+	else if (args->operation == GRAXPERT_DECONV)
+		seqargs->new_seq_prefix = strdup("gxdec_");
 	else  {
 		free_graxpert_data(args);
 		free(seqargs);
