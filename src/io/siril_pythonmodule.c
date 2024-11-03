@@ -1008,88 +1008,95 @@ static gchar* find_venv_python_exe(const gchar *venv_path) {
 }
 
 static PythonVenvInfo* prepare_venv_environment(const gchar *venv_path) {
-    PythonVenvInfo *info = g_new0(PythonVenvInfo, 1);
-    info->venv_path = g_strdup(venv_path);
-    info->env_vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+	PythonVenvInfo *info = g_new0(PythonVenvInfo, 1);
+	info->venv_path = g_strdup(venv_path);
+	info->env_vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
 
-    // Copy current environment
-    gchar **current_env = g_get_environ();
-    for (gchar **env = current_env; env && *env; env++) {
-        gchar **parts = g_strsplit(*env, "=", 2);
-        if (parts && parts[0] && parts[1]) {
-            g_hash_table_insert(info->env_vars, g_strdup(parts[0]), g_strdup(parts[1]));
-        }
-        g_strfreev(parts);
-    }
-    g_strfreev(current_env);
+	// Copy current environment
+	gchar **current_env = g_get_environ();
+	for (gchar **env = current_env; env && *env; env++) {
+		gchar **parts = g_strsplit(*env, "=", 2);
+		if (parts && parts[0] && parts[1]) {
+			g_hash_table_insert(info->env_vars, g_strdup(parts[0]), g_strdup(parts[1]));
+		}
+		g_strfreev(parts);
+	}
+	g_strfreev(current_env);
 
-    // Get Python version
-    info->python_version = get_venv_python_version(venv_path);
-    if (!info->python_version) {
-        g_warning("Failed to determine Python version");
-        goto cleanup;
-    }
+	// Get Python version
+	info->python_version = get_venv_python_version(venv_path);
+	if (!info->python_version) {
+		g_warning("Failed to determine Python version");
+		goto cleanup;
+	}
 
-    // Set VIRTUAL_ENV
-    g_hash_table_insert(info->env_vars, g_strdup("VIRTUAL_ENV"), g_strdup(venv_path));
+	// Set VIRTUAL_ENV
+	g_hash_table_insert(info->env_vars, g_strdup("VIRTUAL_ENV"), g_strdup(venv_path));
 
-    // Update PATH
-    gchar *bin_dir = find_venv_bin_dir(venv_path);
-    if (!bin_dir) {
-        g_warning("Failed to locate virtual environment binary directory");
-        goto cleanup;
-    }
-    gchar *old_path = g_hash_table_lookup(info->env_vars, "PATH");
-    gchar *new_path = old_path ?
-        g_strjoin(G_SEARCHPATH_SEPARATOR_S, bin_dir, old_path, NULL) :
-        g_strdup(bin_dir);
-    g_hash_table_insert(info->env_vars, g_strdup("PATH"), new_path);
-    g_free(bin_dir);
+	// Update PATH
+	gchar *bin_dir = find_venv_bin_dir(venv_path);
+	if (!bin_dir) {
+		g_warning("Failed to locate virtual environment binary directory");
+		goto cleanup;
+	}
+	gchar *old_path = g_hash_table_lookup(info->env_vars, "PATH");
+	gchar *new_path = old_path ?
+		g_strjoin(G_SEARCHPATH_SEPARATOR_S, bin_dir, old_path, NULL) :
+		g_strdup(bin_dir);
+	g_hash_table_insert(info->env_vars, g_strdup("PATH"), new_path);
+	g_free(bin_dir);
 
-    // Create pth file to add system site-packages
-    gchar *venv_site_packages;
+	// Create pth file to add system site-packages
+	gchar *venv_site_packages;
 #ifdef _WIN32
-    venv_site_packages = g_build_filename(venv_path, "Lib", "site-packages", NULL);
+	venv_site_packages = g_build_filename(venv_path, "Lib", "site-packages", NULL);
 #else
-    venv_site_packages = g_build_filename(venv_path, "lib",
-        g_strdup_printf("python%s", info->python_version), "site-packages", NULL);
+	venv_site_packages = g_build_filename(venv_path, "lib",
+		g_strdup_printf("python%s", info->python_version), "site-packages", NULL);
 #endif
 
-    // Create a .pth file to add system site-packages
-    gchar *pth_file_path = g_build_filename(venv_site_packages, "system-site-packages.pth", NULL);
+/*
+* Commented out for now as allowing access to site packages can cause dependency hell (e.g. where
+* the siril module may pull in numpy as a dependency (it will fetch the latest 2.x version) but this
+* will clash with the current Ubuntu dpkg of astropy which is built against numpy 1.x
+*
+* It's probably safest to provide a wrapper to pip to simplify installtion of packages into the
+* venv directly from the script editor (e.g. "import siril ; siril.pkginstall('astropy')")
+*
+	// Create a .pth file to add system site-packages
+	gchar *pth_file_path = g_build_filename(venv_site_packages, "system-site-packages.pth", NULL);
 #ifdef _WIN32
-    gchar *sys_site_packages = g_build_filename(g_getenv("SYSTEMDRIVE"), "Python",
-        g_strdup_printf("Python%s", info->python_version), "Lib", "site-packages", NULL);
+	gchar *sys_site_packages = g_build_filename(g_getenv("SYSTEMDRIVE"), "Python", "Python3", "Lib", "site-packages", NULL);
 #else
-    gchar *sys_site_packages = g_build_filename("/usr", "lib", "python3", "dist-packages", NULL);
+	gchar *sys_site_packages = g_build_filename("/usr", "lib", "python3", "dist-packages", NULL);
 #endif
+*/
+	GError *error = NULL;
+	g_file_set_contents(pth_file_path, sys_site_packages, -1, &error);
+	if (error) {
+		g_warning("Failed to create .pth file: %s", error->message);
+		g_error_free(error);
+	}
 
-    GError *error = NULL;
-    g_file_set_contents(pth_file_path, sys_site_packages, -1, &error);
-    if (error) {
-        g_warning("Failed to create .pth file: %s", error->message);
-        g_error_free(error);
-    }
+	g_free(pth_file_path);
+	g_free(venv_site_packages);
+	g_free(sys_site_packages);
 
-    g_free(pth_file_path);
-    g_free(venv_site_packages);
-    g_free(sys_site_packages);
+	// Remove PYTHONPATH and PYTHONHOME to allow natural path discovery
+	g_hash_table_remove(info->env_vars, "PYTHONPATH");
+	g_hash_table_remove(info->env_vars, "PYTHONHOME");
 
-    // Remove PYTHONPATH and PYTHONHOME to allow natural path discovery
-    g_hash_table_remove(info->env_vars, "PYTHONPATH");
-    g_hash_table_remove(info->env_vars, "PYTHONHOME");
-
-    return info;
+	return info;
 
 cleanup:
-    if (info) {
-        g_free(info->venv_path);
-        g_free(info->python_version);
-        if (info->env_vars)
-            g_hash_table_destroy(info->env_vars);
-        g_free(info);
-    }
-    return NULL;
+	if (info) {
+		g_free(info->venv_path);
+		g_free(info->python_version);
+		if (info->env_vars)
+			g_hash_table_destroy(info->env_vars);
+		g_free(info);
+	}
+	return NULL;
 }
 
 static gboolean check_or_create_venv(const gchar *project_path, GError **error) {
