@@ -4410,8 +4410,10 @@ int process_pm(int nb) {
 
     // Check if a replacement was made to set some flags and check if an image is really laoded
 	if (g_strcmp0(expression, cleaned_expression) != 0) {
-		if (!single_image_is_loaded())
+		if (!single_image_is_loaded()) {
+			g_free(cleaned_expression);
 			return CMD_ARG_ERROR;
+		}
 		has_gfit = TRUE;
 	}
 
@@ -4448,11 +4450,15 @@ int process_pm(int nb) {
 					min = g_ascii_strtod(word[i + 1], &end);
 					if (end == word[i + 1] || min < 0 || min > 1) {
 						siril_log_message(_("Rescale can only be done in the [0, 1] range.\n"));
+						g_free(expression);
+						g_free(cleaned_expression);
 						return CMD_ARG_ERROR;
 					}
 					max = g_ascii_strtod(word[i + 2], &end);
 					if (end == word[i + 2] || max < 0 || max > 1) {
 						siril_log_message(_("Rescale can only be done in the [0, 1] range.\n"));
+						g_free(expression);
+						g_free(cleaned_expression);
 						return CMD_ARG_ERROR;
 					}
 				} else {
@@ -4513,6 +4519,8 @@ int process_pm(int nb) {
 		if (args->varname && load_pm_var(args->varname[j], j, &w, &h, &c)) {
 			if (j > 0)
 				free_pm_var(j - 1);
+			g_free(expression);
+			g_free(cleaned_expression);
 			free(args->varname);
 			free(args);
 			return CMD_INVALID_IMAGE;
@@ -4526,6 +4534,8 @@ int process_pm(int nb) {
 			if (w != width || height != h || channel != c) {
 				siril_log_message(_("Image must have same dimension\n"));
 				free_pm_var(args->nb_rows);
+				g_free(expression);
+				g_free(cleaned_expression);
 				free(args->varname);
 				free(args);
 				return CMD_INVALID_IMAGE;
@@ -4538,6 +4548,8 @@ int process_pm(int nb) {
 		if (gfit.rx != width || height != gfit.ry || channel != gfit.naxes[2]) {
 			siril_log_message(_("Image must have same dimension\n"));
 			free_pm_var(args->nb_rows);
+			g_free(expression);
+			g_free(cleaned_expression);
 			free(args->varname);
 			free(args);
 			return CMD_INVALID_IMAGE;
