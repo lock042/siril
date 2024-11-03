@@ -3986,7 +3986,7 @@ int process_set_photometry(int nb) {
 				arg += 7;
 				inner = g_ascii_strtod(arg, &end);
 				if (arg == end) error = TRUE;
-				else if (inner <= aperture || inner > 50) error = TRUE;
+				else if (inner > 50) error = TRUE;
 			}
 			else if (g_str_has_prefix(arg, "-outer=")) {
 				arg += 7;
@@ -4085,7 +4085,7 @@ int process_set_photometry(int nb) {
 		}
 	}
 	siril_log_message(_("Apertures parameters: aperture= %.1f inner= %.2f, outer= %.2f (%s method)\n"), aperture, inner, outer, label_m);
-	siril_log_message(_("Camera conversion factor: %0.0001f e-/ADU, using pixels with values ]%.1f, %.1f[\n"),
+	siril_log_message(_("Camera conversion factor: %.4f e-/ADU, using pixels with values ]%.1f, %.1f[\n"),
 			com.pref.phot_set.gain,
 			com.pref.phot_set.minval,
 			com.pref.phot_set.maxval);
