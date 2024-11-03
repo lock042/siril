@@ -941,21 +941,6 @@ int process_savepnm(int nb) {
 	return retval;
 }
 
-static gboolean merge_cfa_idle(gpointer arg) {
-	initialize_display_mode();
-	update_zoom_label();
-	display_filename();
-	set_precision_switch();
-	sliders_mode_set_state(gui.sliders);
-	init_layers_hi_and_lo_values(MIPSLOHI);
-	set_cutoff_sliders_max_values();
-	set_cutoff_sliders_values();
-	set_display_mode();
-	redraw(REMAP_ALL);
-	sequence_list_change_current();
-	return FALSE;
-}
-
 static char* normalize_rebayerfilename(char *filename_buffer, const char *input, long int maxpath) {
 	strncpy(filename_buffer, input, maxpath);
 	filename_buffer[maxpath - 1] = '\0';
