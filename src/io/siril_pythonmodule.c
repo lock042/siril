@@ -17,6 +17,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
+#include <limits.h>
 #include <time.h>
 
 #include "core/siril.h"
@@ -590,31 +591,66 @@ static void cleanup_child_process(GPid pid, gint status, gpointer user_data) {
 	g_spawn_close_pid(pid);
 }
 
+// Function to get Python version from venv (could be called during venv activation)
+gchar* get_venv_python_version(const gchar* venv_path) {
+	gchar* python_path;
+#ifdef _WIN32
+	python_path = g_build_filename(venv_path, "Scripts", "python.exe", NULL);
+#else
+	python_path = g_build_filename(venv_path, "bin", "python3", NULL);
+#endif
+
+	gchar* argv[] = { python_path, "-c", "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')", NULL };
+	gchar* output = NULL;
+	gint status;
+
+	g_spawn_sync(NULL, argv, NULL, G_SPAWN_SEARCH_PATH,
+				NULL, NULL, &output, NULL, &status, NULL);
+
+	g_free(python_path);
+
+	if (output) {
+		g_strchomp(output);  // Remove trailing newline
+		return output;
+	}
+	return NULL;
+}
+
 void execute_python_script_async(gchar* script_name, gboolean from_file) {
 	if (!commstate.python_conn) {
 		siril_log_color_message(_("Error: Python connection not available.\n"), "red");
 		return;
 	}
 	init_shm_tracking();
-	// Prepare environment
+
+	// Get base environment
 	gchar** env = g_get_environ();
-	const gchar* current_pythonpath = g_environ_getenv(env, "PYTHONPATH");
 
-	// Set up module directory path
-	gchar* module_dir = NULL; // replace with your module directory
-	gchar* new_pythonpath = NULL;
-
-	if (current_pythonpath != NULL) {
-		new_pythonpath = g_strconcat(current_pythonpath,
-								G_SEARCHPATH_SEPARATOR_S,
-								module_dir,
-								NULL);
-	} else {
-		new_pythonpath = g_strdup(module_dir);
+	// Handle virtual environment if active
+	const gchar* venv_path = g_getenv("VIRTUAL_ENV");
+	if (venv_path != NULL) {
+		// Get the specific Python version for the site-packages path
+		gchar* python_version = get_venv_python_version(venv_path);
+		if (python_version) {
+			gchar* site_packages = NULL;
+#ifdef _WIN32
+			site_packages = g_build_filename(venv_path, "Lib", "site-packages", NULL);
+#else
+			site_packages = g_build_filename(venv_path, "lib", g_strdup_printf("python%s", python_version), "site-packages", NULL);
+#endif
+			// Update PYTHONPATH to include site-packages
+			const gchar* current_pythonpath = g_environ_getenv(env, "PYTHONPATH");
+			if (current_pythonpath != NULL) {
+				gchar* new_pythonpath = g_strjoin(G_SEARCHPATH_SEPARATOR_S, site_packages, current_pythonpath, NULL);
+				env = g_environ_setenv(env, "PYTHONPATH", new_pythonpath, TRUE);
+				g_free(new_pythonpath);
+			} else {
+				env = g_environ_setenv(env, "PYTHONPATH", site_packages, TRUE);
+			}
+			g_free(site_packages);
+			g_free(python_version);
+		}
 	}
-
-	env = g_environ_setenv(env, "PYTHONPATH", new_pythonpath, TRUE);
-	g_free(new_pythonpath);
 
 	// Set up connection information in environment
 #ifdef _WIN32
@@ -913,6 +949,263 @@ static gpointer connection_worker(gpointer data) {
 	return NULL;
 }
 
+typedef struct {
+	gchar *venv_path;
+	gchar *python_version;
+	GHashTable *env_vars;
+} PythonVenvInfo;
+
+static gchar* find_venv_bin_dir(const gchar *venv_path) {
+	gchar *bin_dir = NULL;
+
+#ifdef _WIN32
+	// Try Scripts directory first
+	bin_dir = g_build_filename(venv_path, "Scripts", NULL);
+	if (!g_file_test(bin_dir, G_FILE_TEST_EXISTS)) {
+		g_free(bin_dir);
+		// Try bin directory as fallback
+		bin_dir = g_build_filename(venv_path, "bin", NULL);
+		if (!g_file_test(bin_dir, G_FILE_TEST_EXISTS)) {
+			g_free(bin_dir);
+			return NULL;
+		}
+	}
+#else
+	bin_dir = g_build_filename(venv_path, "bin", NULL);
+	if (!g_file_test(bin_dir, G_FILE_TEST_EXISTS)) {
+		g_free(bin_dir);
+		return NULL;
+	}
+#endif
+
+	return bin_dir;
+}
+
+static gchar* find_venv_python_exe(const gchar *venv_path) {
+	gchar *python_exe = NULL;
+
+#ifdef _WIN32
+	// Try Scripts directory first
+	python_exe = g_build_filename(venv_path, "Scripts", "python.exe", NULL);
+	if (!g_file_test(python_exe, G_FILE_TEST_EXISTS)) {
+		g_free(python_exe);
+		// Try bin directory as fallback
+		python_exe = g_build_filename(venv_path, "bin", "python.exe", NULL);
+		if (!g_file_test(python_exe, G_FILE_TEST_EXISTS)) {
+			g_free(python_exe);
+			return NULL;
+		}
+	}
+#else
+	python_exe = g_build_filename(venv_path, "bin", "python3", NULL);
+	if (!g_file_test(python_exe, G_FILE_TEST_EXISTS)) {
+		g_free(python_exe);
+		return NULL;
+	}
+#endif
+
+	return python_exe;
+}
+
+static PythonVenvInfo* prepare_venv_environment(const gchar *venv_path) {
+    PythonVenvInfo *info = g_new0(PythonVenvInfo, 1);
+    info->venv_path = g_strdup(venv_path);
+    info->env_vars = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+
+    // Copy current environment
+    gchar **current_env = g_get_environ();
+    for (gchar **env = current_env; env && *env; env++) {
+        gchar **parts = g_strsplit(*env, "=", 2);
+        if (parts && parts[0] && parts[1]) {
+            g_hash_table_insert(info->env_vars, g_strdup(parts[0]), g_strdup(parts[1]));
+        }
+        g_strfreev(parts);
+    }
+    g_strfreev(current_env);
+
+    // Get Python version
+    info->python_version = get_venv_python_version(venv_path);
+    if (!info->python_version) {
+        g_warning("Failed to determine Python version");
+        goto cleanup;
+    }
+
+    // Set VIRTUAL_ENV
+    g_hash_table_insert(info->env_vars, g_strdup("VIRTUAL_ENV"), g_strdup(venv_path));
+
+    // Update PATH
+    gchar *bin_dir = find_venv_bin_dir(venv_path);
+    if (!bin_dir) {
+        g_warning("Failed to locate virtual environment binary directory");
+        goto cleanup;
+    }
+    gchar *old_path = g_hash_table_lookup(info->env_vars, "PATH");
+    gchar *new_path = old_path ?
+        g_strjoin(G_SEARCHPATH_SEPARATOR_S, bin_dir, old_path, NULL) :
+        g_strdup(bin_dir);
+    g_hash_table_insert(info->env_vars, g_strdup("PATH"), new_path);
+    g_free(bin_dir);
+
+    // Create pth file to add system site-packages
+    gchar *venv_site_packages;
+#ifdef _WIN32
+    venv_site_packages = g_build_filename(venv_path, "Lib", "site-packages", NULL);
+#else
+    venv_site_packages = g_build_filename(venv_path, "lib",
+        g_strdup_printf("python%s", info->python_version), "site-packages", NULL);
+#endif
+
+    // Create a .pth file to add system site-packages
+    gchar *pth_file_path = g_build_filename(venv_site_packages, "system-site-packages.pth", NULL);
+#ifdef _WIN32
+    gchar *sys_site_packages = g_build_filename(g_getenv("SYSTEMDRIVE"), "Python",
+        g_strdup_printf("Python%s", info->python_version), "Lib", "site-packages", NULL);
+#else
+    gchar *sys_site_packages = g_build_filename("/usr", "lib", "python3", "dist-packages", NULL);
+#endif
+
+    GError *error = NULL;
+    g_file_set_contents(pth_file_path, sys_site_packages, -1, &error);
+    if (error) {
+        g_warning("Failed to create .pth file: %s", error->message);
+        g_error_free(error);
+    }
+
+    g_free(pth_file_path);
+    g_free(venv_site_packages);
+    g_free(sys_site_packages);
+
+    // Remove PYTHONPATH and PYTHONHOME to allow natural path discovery
+    g_hash_table_remove(info->env_vars, "PYTHONPATH");
+    g_hash_table_remove(info->env_vars, "PYTHONHOME");
+
+    return info;
+
+cleanup:
+    if (info) {
+        g_free(info->venv_path);
+        g_free(info->python_version);
+        if (info->env_vars)
+            g_hash_table_destroy(info->env_vars);
+        g_free(info);
+    }
+    return NULL;
+}
+
+static gboolean check_or_create_venv(const gchar *project_path, GError **error) {
+	gchar *venv_path = g_build_filename(project_path, "venv", NULL);
+	gchar *python_exe = find_venv_python_exe(venv_path);
+	gboolean success = FALSE;
+	GError *local_error = NULL;
+
+	// Check if venv exists
+	if (!python_exe) {
+		gchar *python_cmd;
+#ifdef _WIN32
+		python_cmd = g_strdup("python");
+#else
+		python_cmd = g_strdup("python3");
+#endif
+
+		gchar **argv = g_new0(gchar*, 5);
+		argv[0] = python_cmd;
+		argv[1] = g_strdup("-m");
+		argv[2] = g_strdup("venv");
+		argv[3] = g_strdup(venv_path);
+		argv[4] = NULL;
+
+		gint exit_status;
+		if (!g_spawn_sync(NULL, argv, NULL,
+						G_SPAWN_SEARCH_PATH,
+						NULL, NULL,
+						NULL, NULL,
+						&exit_status, &local_error)) {
+			g_propagate_error(error, local_error);
+			success = FALSE;
+			goto cleanup;
+		}
+
+		success = (exit_status == 0);
+		if (!success) {
+			g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+					"Failed to create virtual environment (exit status: %d)", exit_status);
+			goto cleanup;
+		}
+
+cleanup:
+		g_strfreev(argv);
+	} else {
+		success = TRUE;
+		g_free(python_exe);
+	}
+
+	g_free(venv_path);
+	return success;
+}
+
+gboolean initialize_python_communication(const gchar *connection_path) {
+	if (commstate.python_conn) {
+		siril_debug_print("Python communication already initialized\n");
+		return FALSE;
+	}
+
+	GError *error = NULL;
+	gchar* project_path = g_build_filename(g_get_user_data_dir(), "siril", NULL);
+
+	// Check/create venv
+	if (!check_or_create_venv(project_path, &error)) {
+		g_warning("Failed to initialize Python virtual environment: %s",
+				error ? error->message : "Unknown error");
+		g_clear_error(&error);
+		g_free(project_path);
+		return FALSE;
+	}
+
+	// Prepare venv environment
+	gchar *venv_path = g_build_filename(project_path, "venv", NULL);
+	PythonVenvInfo *venv_info = prepare_venv_environment(venv_path);
+	if (!venv_info) {
+		g_warning("Failed to prepare virtual environment");
+		g_free(venv_path);
+		g_free(project_path);
+		return FALSE;
+	}
+
+	// Set up environment for connection
+	GHashTableIter iter;
+	gpointer key, value;
+	g_hash_table_iter_init(&iter, venv_info->env_vars);
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		g_setenv((const gchar*)key, (const gchar*)value, TRUE);
+	}
+
+	// Create connection
+	commstate.python_conn = create_connection(connection_path);
+	if (!commstate.python_conn) {
+		g_warning("Failed to create Python connection");
+		goto cleanup;
+	}
+
+	// Create worker thread
+	commstate.worker_thread = g_thread_new("python-comm",
+										connection_worker,
+										commstate.python_conn);
+
+	// Clean up
+	cleanup:
+	if (venv_info) {
+		g_free(venv_info->venv_path);
+		g_free(venv_info->python_version);
+		g_hash_table_destroy(venv_info->env_vars);
+		g_free(venv_info);
+	}
+	g_free(venv_path);
+	g_free(project_path);
+
+	return commstate.python_conn != NULL;
+}
+
+/*
 gboolean initialize_python_communication(const gchar *connection_path) {
 	if (commstate.python_conn) {
 		siril_debug_print("Python communication already initialized\n");
@@ -934,7 +1227,7 @@ gboolean initialize_python_communication(const gchar *connection_path) {
 
 	return TRUE;
 }
-
+*/
 void shutdown_python_communication(void) {
 	if (commstate.python_conn) {
 		cleanup_connection(commstate.python_conn);
