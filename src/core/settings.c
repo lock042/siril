@@ -327,29 +327,8 @@ void update_gain_from_gfit() {
 		com.pref.phot_set.gain = gfit.keywords.cvf;
 }
 
-void init_aperture_default(){	// use of the pre-stated values
-	switch (com.pref.phot_set.ape_strat) {
-		case FIXED_AP: {
-			com.pref.phot_set.aperture = pref_init.phot_set.aperture;
-			com.pref.phot_set.inner = pref_init.phot_set.inner;
-			com.pref.phot_set.outer = pref_init.phot_set.outer;
-			break;
-		}
-		case FWHM_VAR: {
-			com.pref.phot_set.auto_aperture_factor = pref_init.phot_set.auto_aperture_factor;
-			com.pref.phot_set.auto_inner_factor = pref_init.phot_set.auto_inner_factor;
-			com.pref.phot_set.auto_outer_factor = pref_init.phot_set.auto_outer_factor;
-			break;
-		}
-		case FLUX_CUT: {
-			com.pref.phot_set.flux_cut_factor = pref_init.phot_set.flux_cut_factor;
-			com.pref.phot_set.flux_inner_factor = pref_init.phot_set.flux_inner_factor;
-			com.pref.phot_set.flux_outer_factor = pref_init.phot_set.flux_outer_factor;
-			break;
-		}
-		default:
-			break;
-	}
+preferences get_init_values(){
+	return pref_init;
 }
 
 struct settings_access all_settings[] = {

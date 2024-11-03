@@ -469,7 +469,7 @@ int print_all_settings(gboolean with_details);
 
 void free_preferences(preferences *pref);	// TODO check if they're used
 void initialize_default_settings();
-void init_aperture_default();
+preferences get_init_values();
 void set_wisdom_file();
 
 void update_gain_from_gfit();
