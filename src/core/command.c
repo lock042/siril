@@ -4402,21 +4402,40 @@ int process_pm(int nb) {
 	float min = -1.f;
 	float max = -1.f;
 	gboolean do_sum = TRUE;
+	gboolean has_gfit = FALSE;
 
-	cur = expression;
+	// first replace $T with "gfit"
+    GRegex *regex = g_regex_new("\\$T(?![A-Za-z0-9_])", 0, 0, NULL);
+    gchar *cleaned_expression = g_regex_replace(regex, expression, -1, 0, "gfit", 0, NULL);
+
+    // Check if a replacement was made to set some flags and check if an image is really laoded
+	if (g_strcmp0(expression, cleaned_expression) != 0) {
+		if (!single_image_is_loaded())
+			return CMD_ARG_ERROR;
+		has_gfit = TRUE;
+	}
+
+    g_free(expression);
+
+    /* cleaned_expression is the expression we need to keep to work on it
+     * Let's free it at the end
+     */
+    expression = g_strdup(cleaned_expression);
+
+    /* as $T has already be changed, the number of tokens '$' must be even
+     * Let's count them
+     */
+    cur = expression;
 	while ((next = strchr(cur, '$')) != NULL) {
 		cur = next + 1;
 		count++;
 	}
 
-	if (count == 0) {
-		siril_log_message(
-				_(
-						"You need to add at least one image as variable. Use $ tokens to surround the file names .\n"));
+	if (count == 0 && !has_gfit) {
+		siril_log_message(_("You need to add at least a loaded image or one image as variable. Use $ tokens to surround the file names .\n"));
 		return CMD_ARG_ERROR;
 	} else if (count % 2 != 0) {
-		siril_log_message(
-				_("There is an unmatched $. Please check the expression.\n"));
+		siril_log_message(_("There is an unmatched $. Please check the expression.\n"));
 		return CMD_ARG_ERROR;
 	}
 
@@ -4428,16 +4447,12 @@ int process_pm(int nb) {
 					gchar *end;
 					min = g_ascii_strtod(word[i + 1], &end);
 					if (end == word[i + 1] || min < 0 || min > 1) {
-						siril_log_message(
-								_(
-										"Rescale can only be done in the [0, 1] range.\n"));
+						siril_log_message(_("Rescale can only be done in the [0, 1] range.\n"));
 						return CMD_ARG_ERROR;
 					}
 					max = g_ascii_strtod(word[i + 2], &end);
 					if (end == word[i + 2] || max < 0 || max > 1) {
-						siril_log_message(
-								_(
-										"Rescale can only be done in the [0, 1] range.\n"));
+						siril_log_message(_("Rescale can only be done in the [0, 1] range.\n"));
 						return CMD_ARG_ERROR;
 					}
 				} else {
@@ -4518,14 +4533,29 @@ int process_pm(int nb) {
 		}
 	}
 
-	/* remove tokens */
-	g_free(expression);
-	expression = g_shell_unquote(word[1], NULL);
+	/* gfit image MUST have same size of the others */
+	if (has_gfit && width != -1) {
+		if (gfit.rx != width || height != gfit.ry || channel != gfit.naxes[2]) {
+			siril_log_message(_("Image must have same dimension\n"));
+			free_pm_var(args->nb_rows);
+			free(args->varname);
+			free(args);
+			return CMD_INVALID_IMAGE;
+		}
+	}
 
-	// Now need to replace the original variable names between the $ signs in expression with
-	// the new generic variable names.
-	// This ensures the variable names in the expression passed to pm match the variable names
-	// that are stored in args->varname
+	/* OK. Now all prerequisites are ok. Let's remove the tokens
+	 * cleaned_expression can be freed right after its last used
+	 */
+	g_free(expression);
+	expression = g_shell_unquote(cleaned_expression, NULL);
+	g_free(cleaned_expression);
+
+	/* We must now replace the original variable names between the $ signs in the expression with
+	 * the new generic variable names.
+	 * This ensures that the variable names in the expression passed to pm match the variable names
+	 * stored in args->varname
+	 */
 	gchar **chunks = g_strsplit(expression, "$", count + 1);
 	for (int i = 0, j = 1; i < count / 2; i++) {
 		int idx = 0;
@@ -4546,10 +4576,11 @@ int process_pm(int nb) {
 	expression = g_strjoinv(NULL, chunks);
 	g_strfreev(chunks);
 
-	// Rewrite the variable names to var_1, var_2 etc. now the files are loaded.
-	// This avoids conflicts where characters are permitted in filenames but cannot
-	// be used in pixelmath variable names.
-	// We will amend the expression to match below.
+	/* Rewrite the variable names to var_1, var_2 etc. now the files are loaded.
+	 * This avoids conflicts where characters are permitted in filenames but cannot
+	 * be used in pixelmath variable names.
+	 * We will amend the expression to match below.
+	 */
 	for (int j = 0; j < args->nb_rows; j++) {
 		g_free(args->varname[j]);
 		args->varname[j] = g_strdup_printf("var_%d", j + 1);
@@ -4573,6 +4604,7 @@ int process_pm(int nb) {
 	args->ret = 0;
 	args->from_ui = FALSE;
 	args->do_sum = do_sum;
+	args->has_gfit = has_gfit;
 	if (min >= 0.f) {
 		args->rescale = TRUE;
 		args->min = min;

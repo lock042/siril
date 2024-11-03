@@ -647,7 +647,7 @@ gpointer apply_pixel_math_operation(gpointer p) {
 	{
 		// we build the expressions in parallel because tr_eval() is not thread-safe
 		int k = 0;
-		if (args->has_gfit && args->from_ui) k = 1;
+		if (args->has_gfit) k = 1;
 		te_variable *vars = malloc((nb_rows + k) * sizeof(te_variable));
 		double *x = malloc((nb_rows + k) * sizeof(double));
 		if (!vars || !x) {
@@ -660,7 +660,7 @@ gpointer apply_pixel_math_operation(gpointer p) {
 			vars[i].context = NULL;
 			vars[i].type = 0;
 		}
-		if (args->has_gfit && args->from_ui) {
+		if (args->has_gfit) {
 			vars[nb_rows].name = g_strdup(T_CURRENT);
 			vars[nb_rows].address = &x[nb_rows];
 			vars[nb_rows].context = NULL;
@@ -708,7 +708,7 @@ gpointer apply_pixel_math_operation(gpointer p) {
 			for (int i = 0; i < nb_rows; i++) {
 				x[i] = var_fit[i].fdata[px];
 			}
-			if (args->has_gfit && args->from_ui) {
+			if (args->has_gfit) {
 				x[nb_rows] = gfit.fdata[px];
 			}
 
@@ -1049,9 +1049,8 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 		height = gfit.ry;
 		channel = gfit.naxes[2];
 		if (nb_rows > 0) {
-			if ((channel != var_fit[0].naxes[2] ||
-										width != var_fit[0].naxes[0] ||
-										height != var_fit[0].naxes[1])) {
+			if ((width != var_fit[0].naxes[0] ||
+				height != var_fit[0].naxes[1])) {
 				siril_message_dialog(GTK_MESSAGE_ERROR, _("Images have different size"),
 						_("The image currently displayed must be the same size as the other images loaded into PixelMath."));
 				retval = 1;
