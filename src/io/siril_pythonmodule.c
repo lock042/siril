@@ -22,6 +22,7 @@
 
 #include "core/siril.h"
 #include "core/siril_log.h"
+#include "core/siril_app_dirs.h"
 #include "io/single_image.h"
 #include "io/siril_pythoncommands.h"
 #include "io/siril_pythonmodule.h"
@@ -38,6 +39,7 @@
 #define PIPE_NAME "\\\\.\\pipe\\mypipe"
 #define SOCKET_PORT 12345
 
+#define MODULE_DIR "python_module"
 // Statics
 static CommunicationState commstate = {0};
 static GSList* g_shm_allocations = NULL;
@@ -1007,6 +1009,163 @@ static gchar* find_venv_python_exe(const gchar *venv_path) {
 	return python_exe;
 }
 
+int install_module_with_pip(const gchar *venv_path, const gchar *module_path, const gchar* python_version) {
+	if (!venv_path || !module_path) {
+		g_warning("Invalid parameters: venv_path and module_path must not be NULL");
+		return -1;
+	}
+
+	// Create a temporary directory
+	gchar *temp_dir = NULL;
+	GError *tmp_error = NULL;
+	temp_dir = g_dir_make_tmp("siril_module_XXXXXX", &tmp_error);
+	if (!temp_dir) {
+		g_warning("Failed to create temporary directory: %s", tmp_error->message);
+		g_error_free(tmp_error);
+		return -1;
+	}
+
+	// Copy the module to the temporary directory
+	gchar *temp_module_path = g_build_filename(temp_dir, "python_module", NULL);
+	GError *copy_error = NULL;
+	if (!g_file_test(module_path, G_FILE_TEST_IS_DIR)) {
+		g_warning("Source module path is not a directory: %s", module_path);
+		g_free(temp_dir);
+		g_free(temp_module_path);
+		return -1;
+	}
+
+	// Copy the directory recursively
+	gchar *argv[] = {
+		"cp",
+		"-r",
+		(gchar *)module_path,
+		temp_module_path,
+		NULL
+	};
+
+	gint copy_status;
+	if (!g_spawn_sync(NULL, argv, NULL, G_SPAWN_SEARCH_PATH,
+					NULL, NULL, NULL, NULL, &copy_status, &copy_error)) {
+		g_warning("Failed to copy module: %s", copy_error->message);
+		g_error_free(copy_error);
+		g_remove(temp_dir);
+		g_free(temp_dir);
+		g_free(temp_module_path);
+		return -1;
+	}
+
+	// Get the correct bin directory for the platform
+	gchar *bin_dir = find_venv_bin_dir(venv_path);
+	if (!bin_dir) {
+		g_warning("Could not locate venv bin directory");
+		g_remove(temp_dir);
+		g_free(temp_dir);
+		g_free(temp_module_path);
+		return -1;
+	}
+
+	// Determine pip executable name based on platform
+	const gchar *pip_exe_name;
+	#ifdef G_OS_WIN32
+		pip_exe_name = "pip.exe";
+	#else
+		pip_exe_name = "pip";
+	#endif
+
+	// Construct path to pip executable
+	gchar *pip_path = g_build_filename(bin_dir, pip_exe_name, NULL);
+	g_free(bin_dir);
+
+	if (!g_file_test(pip_path, G_FILE_TEST_EXISTS)) {
+		g_warning("pip not found at expected location: %s", pip_path);
+		g_free(pip_path);
+		g_free(temp_dir);
+		g_free(temp_module_path);
+		return -1;
+	}
+
+	gchar* pythonstring = g_strdup_printf("python%s", python_version);
+	gchar* target_path = g_build_filename(venv_path, "lib", pythonstring, "site-packages", NULL);
+
+	// Build the pip install command
+	gchar *command = g_strdup_printf("%s install -t %s --upgrade -e %s",
+								pip_path,
+								target_path,
+								temp_module_path);
+
+	g_free(pythonstring);
+	g_free(target_path);
+	g_free(pip_path);
+
+	GError *error = NULL;
+	gchar *stdout_str = NULL;
+	gchar *stderr_str = NULL;
+	gint exit_status = 0;
+
+	// Execute the pip command
+	gboolean success = g_spawn_command_line_sync(
+		command,
+		&stdout_str,
+		&stderr_str,
+		&exit_status,
+		&error
+	);
+
+	siril_debug_print("pip stdout: %s\n", stdout_str);
+	siril_debug_print("pip stderr: %s\n", stderr_str);
+	g_free(command);
+
+/*	// Clean up temporary directory
+	gchar *rm_argv[] = {
+		"rm",
+		"-rf",
+		temp_dir,
+		NULL
+	};
+
+	GError *rm_error = NULL;
+	gint rm_status;
+	if (!g_spawn_sync(NULL, rm_argv, NULL, G_SPAWN_SEARCH_PATH,
+					NULL, NULL, NULL, NULL, &rm_status, &rm_error)) {
+		g_warning("Failed to clean up temporary directory: %s", rm_error->message);
+		g_error_free(rm_error);
+		// Continue with error handling as this is not fatal
+	}
+
+	g_free(temp_dir);
+	g_free(temp_module_path);
+*/
+	if (!success) {
+		g_warning("Failed to execute pip: %s", error->message);
+		g_error_free(error);
+		g_free(stdout_str);
+		g_free(stderr_str);
+		return -1;
+	}
+
+	// Check pip execution results
+	if (exit_status != 0) {
+		g_warning("pip install failed with status %d", exit_status);
+		if (stdout_str && *stdout_str) g_warning("stdout: %s", stdout_str);
+		if (stderr_str && *stderr_str) g_warning("stderr: %s", stderr_str);
+		g_free(stdout_str);
+		g_free(stderr_str);
+		return -1;
+	}
+
+	// Log success details if verbose output is desired
+	if (stdout_str && *stdout_str) {
+		g_debug("pip install output: %s", stdout_str);
+	}
+
+	// Clean up
+	g_free(stdout_str);
+	g_free(stderr_str);
+
+	return 0;
+}
+
 static PythonVenvInfo* prepare_venv_environment(const gchar *venv_path) {
 	PythonVenvInfo *info = g_new0(PythonVenvInfo, 1);
 	info->venv_path = g_strdup(venv_path);
@@ -1046,45 +1205,20 @@ static PythonVenvInfo* prepare_venv_environment(const gchar *venv_path) {
 	g_hash_table_insert(info->env_vars, g_strdup("PATH"), new_path);
 	g_free(bin_dir);
 
-	// Create pth file to add system site-packages
-	gchar *venv_site_packages;
-#ifdef _WIN32
-	venv_site_packages = g_build_filename(venv_path, "Lib", "site-packages", NULL);
-#else
-	venv_site_packages = g_build_filename(venv_path, "lib",
-		g_strdup_printf("python%s", info->python_version), "site-packages", NULL);
-#endif
-
-/*
-* Commented out for now as allowing access to site packages can cause dependency hell (e.g. where
-* the siril module may pull in numpy as a dependency (it will fetch the latest 2.x version) but this
-* will clash with the current Ubuntu dpkg of astropy which is built against numpy 1.x
-*
-* It's probably safest to provide a wrapper to pip to simplify installtion of packages into the
-* venv directly from the script editor (e.g. "import siril ; siril.pkginstall('astropy')")
-*
-	// Create a .pth file to add system site-packages
-	gchar *pth_file_path = g_build_filename(venv_site_packages, "system-site-packages.pth", NULL);
-#ifdef _WIN32
-	gchar *sys_site_packages = g_build_filename(g_getenv("SYSTEMDRIVE"), "Python", "Python3", "Lib", "site-packages", NULL);
-#else
-	gchar *sys_site_packages = g_build_filename("/usr", "lib", "python3", "dist-packages", NULL);
-#endif
-*/
-	GError *error = NULL;
-	g_file_set_contents(pth_file_path, sys_site_packages, -1, &error);
-	if (error) {
-		g_warning("Failed to create .pth file: %s", error->message);
-		g_error_free(error);
-	}
-
-	g_free(pth_file_path);
-	g_free(venv_site_packages);
-	g_free(sys_site_packages);
-
 	// Remove PYTHONPATH and PYTHONHOME to allow natural path discovery
 	g_hash_table_remove(info->env_vars, "PYTHONPATH");
 	g_hash_table_remove(info->env_vars, "PYTHONHOME");
+
+	// Check the siril python module is the latest version and install or
+	// update it using the venv pip if not.
+	siril_log_message(_("Checking the python module is up-to-date...\n"));
+	gchar *module_path = g_build_filename(siril_get_system_data_dir(), MODULE_DIR, NULL);
+	if (install_module_with_pip(venv_path, module_path, info->python_version))
+		siril_log_color_message(_("Warning: unable to install or update the "
+					"Siril python module.\n"), "salmon");
+	else
+		siril_log_message(_("Python module is up-to-date\n"));
+	g_free(module_path);
 
 	return info;
 
@@ -1212,29 +1346,6 @@ gboolean initialize_python_communication(const gchar *connection_path) {
 	return commstate.python_conn != NULL;
 }
 
-/*
-gboolean initialize_python_communication(const gchar *connection_path) {
-	if (commstate.python_conn) {
-		siril_debug_print("Python communication already initialized\n");
-		return FALSE;
-	}
-
-#ifdef _WIN32
-	commstate.python_conn = create_connection(connection_path);
-#else
-	commstate.python_conn = create_connection(connection_path);
-#endif
-
-	if (!commstate.python_conn) {
-		return FALSE;
-	}
-
-	// Create worker thread for handling connections
-	commstate.worker_thread = g_thread_new("python-comm", connection_worker, commstate.python_conn);
-
-	return TRUE;
-}
-*/
 void shutdown_python_communication(void) {
 	if (commstate.python_conn) {
 		cleanup_connection(commstate.python_conn);

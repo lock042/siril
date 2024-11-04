@@ -659,6 +659,7 @@ subdir('src')
 subdir('pixmaps')
 subdir('data')
 subdir('po')
+subdir('python_module')
 subdir('scripts')
 subdir('3rdparty_licenses')
 
