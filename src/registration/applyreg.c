@@ -823,7 +823,33 @@ int register_apply_reg(struct registration_args *regargs) {
 	args->force_float = !com.pref.force_16bit && regargs->seq->type != SEQ_SER;
 	control_window_switch_to_tab(OUTPUT_LOGS);
 
-	// we need to update filtering before check_before_applyreg that will check required space
+	if (!check_before_applyreg(regargs)) { // checks for input arguments wrong combinations
+		free(args);
+		return -1;
+	}
+
+	// If this is an astrometric aligned sequence,
+	// we need to collect the WCS structures and 
+	// recompute the homographies based on selected frames
+	// We will also unselected unsolved images before recomputing the filters
+	regargs->undistort = (layer_has_distortion(regargs->seq, regargs->layer)) ? regargs->seq->distoparam[regargs->layer].index : DISTO_UNDEF;
+	if (regargs->undistort == DISTO_FILES) {
+		regargs->WCSDATA = calloc(regargs->seq->number, sizeof(struct wcsprm));
+		if (collect_sequence_astrometry(regargs)) {
+			free(args);
+			return -1;
+		}
+		Homography Href = { 0 };
+		if (compute_Hs_from_astrometry(regargs->seq, regargs->WCSDATA, regargs->framing, regargs->layer, &Href, &regargs->wcsref)) {
+			free(args);
+			return -1;
+		}
+		regargs->framingd.Htransf = Href;
+	} else {
+		regargs->framingd.Htransf = regargs->seq->regparam[regargs->layer][regargs->reference_image].H;
+	}
+
+	// we need to update filtering before check_applyreg_output that will check required space
 	if (!regargs->filtering_criterion &&
 			convert_parsed_filter_to_filter(&regargs->filters,
 				regargs->seq, &regargs->filtering_criterion,
@@ -840,30 +866,6 @@ int register_apply_reg(struct registration_args *regargs) {
 			regargs->filtering_parameter);
 	siril_log_message(str);
 	g_free(str);
-
-	if (!check_before_applyreg(regargs)) { // checks for input arguments wrong combinations
-		free(args);
-		return -1;
-	}
-
-	// This is an astrometric aligned sequence,
-	// we need to collect the WCS structures and 
-	// recompute the homographies based on selected frames
-	if (regargs->undistort == DISTO_FILES) {
-		regargs->WCSDATA = calloc(regargs->seq->number, sizeof(struct wcsprm));
-		if (collect_sequence_astrometry(regargs)) {
-			free(args);
-			return -1;
-		}
-		Homography Href = { 0 };
-		if (compute_Hs_from_astrometry(regargs->seq, regargs->WCSDATA, regargs->framing, regargs->layer, &Href, &regargs->wcsref)) {
-			free(args);
-			return -1;
-		}
-		regargs->framingd.Htransf = Href;
-	} else {
-		regargs->framingd.Htransf = regargs->seq->regparam[regargs->layer][regargs->reference_image].H;
-	}
 
 	// We can now compute the framing and check the output size
 	if (!check_applyreg_output(regargs)) {
@@ -906,7 +908,6 @@ int register_apply_reg(struct registration_args *regargs) {
 	args->user = sadata;
 
 	disto_source index = DISTO_UNDEF;
-	regargs->undistort = layer_has_distortion(regargs->seq, regargs->layer);
 
 	if (regargs->undistort) {
 		regargs->distoparam = regargs->seq->distoparam[regargs->layer];

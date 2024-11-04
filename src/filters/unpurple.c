@@ -33,21 +33,21 @@
 #include "algos/colors.h"
 #include "filters/unpurple.h"
 
-static gboolean end_unpurple(gpointer p) {
-	stop_processing_thread();
-	notify_gfit_modified();
-	return FALSE;
-}
+//static gboolean end_unpurple(gpointer p) {
+//	stop_processing_thread();
+//	notify_gfit_modified();
+//	return FALSE;
+//}
 
-gpointer unpurplehandler(gpointer args) {
-	lock_roi_mutex();
-	struct unpurpleargs *p = (struct unpurpleargs *)args;
-	int retval = unpurple_filter(p);
-	unlock_roi_mutex();
-	if (!com.script)
-		siril_add_idle(end_unpurple, NULL);
-	return GINT_TO_POINTER(retval);
-}
+//gpointer unpurplehandler(gpointer args) {
+//	lock_roi_mutex();
+//	struct unpurpleargs *p = (struct unpurpleargs *)args;
+//	int retval = unpurple_filter(p);
+//	unlock_roi_mutex();
+//	if (!com.script)
+//		siril_add_idle(end_unpurple, NULL);
+//	return GINT_TO_POINTER(retval);
+//}
 
 // TODO: Perhaps we still need a better purple detector?
 static gboolean is_purple(float red, float green, float blue) {
@@ -58,7 +58,9 @@ static gboolean is_purple(float red, float green, float blue) {
 }
 
 //TODO improve this filter!
-int unpurple_filter(struct unpurpleargs *args) {
+gpointer unpurple_filter(gpointer p) {
+	struct unpurpleargs *args = (struct unpurpleargs*) p;
+
 	fits *fit = args->fit;
 	fits *starmask = args->starmask;
 	double mod_b = args->mod_b;
@@ -120,9 +122,13 @@ int unpurple_filter(struct unpurpleargs *args) {
 		gettimeofday(&t_end, NULL);
 		show_time(t_start, t_end);
 	}
+
 	char log[90];
-	sprintf(log, "CA filtering, mod_b: %.2f", mod_b);
+	sprintf(log, "Unpurple mod: %.2f, threshold: %.2f, withstarmask: %d", mod_b, thresh, withstarmask);
 	gfit.history = g_slist_append(gfit.history, strdup(log));
+	if (args->for_final)
+		populate_roi();
+	notify_gfit_modified();
 	free(args);
-	return 0;
+	return GINT_TO_POINTER(0);
 }

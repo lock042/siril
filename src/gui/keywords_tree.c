@@ -39,56 +39,6 @@ static GtkNotebook *key_notebook = NULL;
 static GtkTreeSelection *key_selection = NULL;
 static GtkWidget *key_export_button = NULL;
 
-static int ffs2c(const char *instr, /* I - null terminated input string  */
-char *outstr, /* O - null terminated quoted output string */
-const int *status) /* IO - error status */
-/*
- convert an input string to a quoted string. Leading spaces
- are significant.  FITS string keyword values must be at least
- 8 chars long so pad out string with spaces if necessary.
- Example:   km/s ==> 'km/s    '
- Single quote characters in the input string will be replace by
- two single quote characters. e.g., o'brian ==> 'o''brian'
- */
-{
-	size_t len, ii, jj;
-
-	if (*status > 0) /* inherit input status value if > 0 */
-		return (*status);
-
-	if (!instr) /* a null input pointer?? */
-	{
-		strcpy(outstr, "''"); /* a null FITS string */
-		return (*status);
-	}
-
-	outstr[0] = '\''; /* start output string with a quote */
-
-	len = strlen(instr);
-	if (len > 68)
-		len = 68; /* limit input string to 68 chars */
-
-	for (ii = 0, jj = 1; ii < len && jj < 69; ii++, jj++) {
-		outstr[jj] = instr[ii]; /* copy each char from input to output */
-		if (instr[ii] == '\'') {
-			jj++;
-			outstr[jj] = '\''; /* duplicate any apostrophies in the input */
-		}
-	}
-
-	for (; jj < 9; jj++) /* pad string so it is at least 8 chars long */
-		outstr[jj] = ' ';
-
-	if (jj == 70) /* only occurs if the last char of string was a quote */
-		outstr[69] = '\0';
-	else {
-		outstr[jj] = '\''; /* append closing quote character */
-		outstr[jj + 1] = '\0'; /* terminate the string */
-	}
-
-	return (*status);
-}
-
 
 enum {
 	COLUMN_KEY,		// string
@@ -337,13 +287,8 @@ void on_val_edited(GtkCellRendererText *renderer, char *path, char *new_val, gpo
 	gtk_tree_model_get(model, &iter, COLUMN_KEY, &FITS_key, COLUMN_VALUE, &original_val, COLUMN_COMMENT, &FITS_comment, COLUMN_DTYPE, &dtype, COLUMN_PROTECTED, &protected, -1);
 	if (!protected) {
 		char valstring[FLEN_VALUE];
-		int status = 0;
 		/* update FITS key */
-		if (dtype == 'C' && (new_val[0] != '\'' || new_val[strlen(new_val) - 1] != '\'')) {
-			ffs2c(new_val, valstring, &status);
-		} else {
-			strcpy(valstring, new_val);
-		}
+		process_keyword_string_value(new_val, valstring, dtype == 'C' && (new_val[0] != '\'' || new_val[strlen(new_val) - 1] != '\''));
 		if (g_strcmp0(original_val, valstring)) {
 			if (!updateFITSKeyword(&gfit, FITS_key, NULL, valstring, FITS_comment, TRUE, FALSE)) {
 				gtk_list_store_set(key_liststore, &iter, COLUMN_VALUE, valstring, -1);
@@ -499,6 +444,30 @@ static void insert_text_handler(GtkEntry *entry, const gchar *text, gint length,
 	g_free(result);
 }
 
+static void insert_text_handler_key(GtkEntry *entry, const gchar *text, gint length,
+		gint *position, gpointer data) {
+	GtkEditable *editable = GTK_EDITABLE(entry);
+
+	GString *filtered_text = g_string_new(NULL);
+	for (gint i = 0; i < length; i++) {
+		// Append only characters that are not spaces
+		if (!g_unichar_isspace(g_utf8_get_char(text + i))) {
+			g_string_append_c(filtered_text, text[i]);
+		}
+	}
+
+	gchar *result = replace_wide_char(filtered_text->str);
+
+	g_signal_handlers_block_by_func(G_OBJECT(editable), G_CALLBACK(insert_text_handler_key), data);
+	gtk_editable_insert_text(editable, result, strlen(result), position);
+	g_signal_handlers_unblock_by_func(G_OBJECT(editable), G_CALLBACK(insert_text_handler_key), data);
+
+	g_signal_stop_emission_by_name(G_OBJECT(editable), "insert_text");
+
+	g_free(result);
+	g_string_free(filtered_text, TRUE);
+}
+
 static void on_entry_activate(GtkEntry *entry, gpointer user_data) {
 	GtkWidget *add_button = GTK_WIDGET(user_data);
 	gtk_button_clicked(GTK_BUTTON(add_button));
@@ -598,7 +567,7 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 	g_signal_connect(entry_comment, "activate", G_CALLBACK(on_entry_activate), add_button);
 
 	// Connect the insert-text signal of each entry
-	g_signal_connect(entry_name, "insert-text", G_CALLBACK(insert_text_handler), add_button);
+	g_signal_connect(entry_name, "insert-text", G_CALLBACK(insert_text_handler_key), add_button);
 	g_signal_connect(entry_value, "insert-text", G_CALLBACK(insert_text_handler), add_button);
 	g_signal_connect(entry_comment, "insert-text", G_CALLBACK(insert_text_handler), add_button);
 
@@ -615,11 +584,14 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 		if (g_strcmp0(comment, "") == 0) comment = NULL;
 
 		if (comment || value || key) {
+			char valstring[FLEN_VALUE];
+			process_keyword_string_value(value, valstring, string_has_space(value));
+
 			if (sequence_is_loaded()) {
 				struct keywords_data *kargs = calloc(1, sizeof(struct keywords_data));
 
 				kargs->FITS_key = g_strdup(key);
-				kargs->value = g_strdup(value);
+				kargs->value = g_strdup(valstring);
 				kargs->comment = g_strdup(comment);
 
 				if (siril_confirm_dialog(_("Operation on the sequence"),
@@ -630,7 +602,7 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 					free(kargs);
 				}
 			} else {
-				updateFITSKeyword(&gfit, key, NULL, value, comment, TRUE, FALSE);
+				updateFITSKeyword(&gfit, key, NULL, valstring, comment, TRUE, FALSE);
 				refresh_keywords_dialog();
 				scroll_to_end();
 			}
