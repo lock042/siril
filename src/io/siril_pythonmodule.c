@@ -1116,7 +1116,7 @@ int install_module_with_pip(const gchar *venv_path, const gchar *module_path, co
 	siril_debug_print("pip stderr: %s\n", stderr_str);
 	g_free(command);
 
-/*	// Clean up temporary directory
+	// Clean up temporary directory
 	gchar *rm_argv[] = {
 		"rm",
 		"-rf",
@@ -1135,7 +1135,7 @@ int install_module_with_pip(const gchar *venv_path, const gchar *module_path, co
 
 	g_free(temp_dir);
 	g_free(temp_module_path);
-*/
+
 	if (!success) {
 		g_warning("Failed to execute pip: %s", error->message);
 		g_error_free(error);
