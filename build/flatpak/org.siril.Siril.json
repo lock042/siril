@@ -15,7 +15,7 @@
         "--talk-name=org.gtk.vfs.*",
         "--filesystem=xdg-run/gvfs",
         "--filesystem=xdg-run/gvfsd",
-        "--share=network"
+        "--unset-env=LD_PRELOAD"
     ],
     "modules": [
         {
