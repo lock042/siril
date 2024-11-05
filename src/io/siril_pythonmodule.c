@@ -984,7 +984,7 @@ static gchar* find_venv_bin_dir(const gchar *venv_path) {
 	return bin_dir;
 }
 
-static gchar* find_venv_python_exe(const gchar *venv_path) {
+static gchar* find_venv_python_exe(const gchar *venv_path, const gboolean verbose) {
 	gchar *python_exe = NULL;
 
 #ifdef _WIN32
@@ -995,6 +995,7 @@ static gchar* find_venv_python_exe(const gchar *venv_path) {
 		// Try bin directory as fallback
 		python_exe = g_build_filename(venv_path, "bin", "python.exe", NULL);
 		if (!g_file_test(python_exe, G_FILE_TEST_EXISTS)) {
+			if (verbose) siril_debug_print("Error: python executable not found in the venv\n");
 			g_free(python_exe);
 			return NULL;
 		}
@@ -1002,6 +1003,7 @@ static gchar* find_venv_python_exe(const gchar *venv_path) {
 #else
 	python_exe = g_build_filename(venv_path, "bin", "python3", NULL);
 	if (!g_file_test(python_exe, G_FILE_TEST_EXISTS)) {
+		if (verbose) siril_debug_print("Error: python executable not found in the venv\n");
 		g_free(python_exe);
 		return NULL;
 	}
@@ -1069,6 +1071,9 @@ static version_number get_module_version(const gchar* filename, GError** error) 
 }
 
 static version_number get_installed_module_version(gchar* cmd, GError **error) {
+	// This function *MUST NOT* free cmd: treat it as a const, except that
+	// g_spawn_sync() doesn't like it if it's actually declared const in the
+	// function signature.
 	version_number ver = { 0 };
 	gchar *stdout_data = NULL;
 	gchar *stderr_data = NULL;
@@ -1094,7 +1099,6 @@ static version_number get_installed_module_version(gchar* cmd, GError **error) {
 				"Failed to execute pip: %s",
 				spawn_error ? spawn_error->message : "Unknown error");
 		g_clear_error(&spawn_error);
-		g_free(cmd);
 		return ver;
 	}
 
@@ -1107,7 +1111,6 @@ static version_number get_installed_module_version(gchar* cmd, GError **error) {
 				stderr_data ? stderr_data : "Unknown error");
 		g_free(stdout_data);
 		g_free(stderr_data);
-		g_free(cmd);
 		return ver;
 	}
 
@@ -1119,7 +1122,6 @@ static version_number get_installed_module_version(gchar* cmd, GError **error) {
 	if (regex == NULL) {
 		g_free(stdout_data);
 		g_free(stderr_data);
-		g_free(cmd);
 		return ver;
 	}
 
@@ -1146,7 +1148,6 @@ static version_number get_installed_module_version(gchar* cmd, GError **error) {
 	g_free(stdout_data);
 	g_free(stderr_data);
 	g_free(version);
-	g_free(cmd);
 
 	return ver;
 }
@@ -1266,8 +1267,8 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 	g_return_val_if_fail(module_path != NULL, FALSE);
 	g_return_val_if_fail(user_module_path != NULL, FALSE);
 	g_return_val_if_fail(venv_path != NULL, FALSE);
-	gchar *python_path = find_venv_python_exe(venv_path);
-
+	gchar *python_path = find_venv_python_exe(venv_path, TRUE);
+	g_return_val_if_fail(python_path != NULL, FALSE);
 	gboolean needs_install = FALSE;
 	gchar* module_setup_path = NULL;
 
@@ -1314,7 +1315,7 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 
 	if (needs_install) {
 		siril_log_message(_("Installing python module...\n"));
-		// Create temp directory and copy module
+		// Create user-owned directory and copy module
 		if (!g_file_test(user_module_path, G_FILE_TEST_EXISTS)) {
 			if (g_mkdir_with_parents(user_module_path, 0755) != 0) {
 				g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
@@ -1428,7 +1429,7 @@ cleanup:
 
 static gboolean check_or_create_venv(const gchar *project_path, GError **error) {
 	gchar *venv_path = g_build_filename(project_path, "venv", NULL);
-	gchar *python_exe = find_venv_python_exe(venv_path);
+	gchar *python_exe = find_venv_python_exe(venv_path, FALSE);
 	gboolean success = FALSE;
 	GError *local_error = NULL;
 
