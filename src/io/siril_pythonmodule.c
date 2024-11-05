@@ -22,6 +22,7 @@
 
 #include "core/siril.h"
 #include "core/siril_log.h"
+#include "core/siril_update.h"
 #include "core/siril_app_dirs.h"
 #include "io/single_image.h"
 #include "io/siril_pythoncommands.h"
@@ -1009,161 +1010,348 @@ static gchar* find_venv_python_exe(const gchar *venv_path) {
 	return python_exe;
 }
 
-int install_module_with_pip(const gchar *venv_path, const gchar *module_path, const gchar* python_version) {
-	if (!venv_path || !module_path) {
-		g_warning("Invalid parameters: venv_path and module_path must not be NULL");
-		return -1;
+static gchar* get_setup_path(const gchar* module_dir) {
+	return g_build_filename(module_dir, "setup.py", NULL);
+}
+
+static version_number get_module_version(const gchar* filename, GError** error) {
+	gchar* content = NULL;
+	gsize length;
+	gchar* version = NULL;
+	version_number ver = { 0 };
+	gboolean is_metadata;
+
+	// Check if this is a METADATA file
+	is_metadata = g_str_has_suffix(filename, "METADATA");
+
+	// Read the entire file content
+	if (!g_file_get_contents(filename, &content, &length, error)) {
+		return ver;
 	}
 
-	// Create a temporary directory
-	gchar *temp_dir = NULL;
-	GError *tmp_error = NULL;
-	temp_dir = g_dir_make_tmp("siril_module_XXXXXX", &tmp_error);
-	if (!temp_dir) {
-		g_warning("Failed to create temporary directory: %s", tmp_error->message);
-		g_error_free(tmp_error);
-		return -1;
+	// Create appropriate pattern based on file type
+	const gchar* pattern = is_metadata ?
+		"^Version:\\s*([^\\s]+)" :          // METADATA pattern
+		"\\bversion\\s*=\\s*[\"']([^\"']+)[\"']"; // setup.py pattern
+
+	GRegex* regex = g_regex_new(pattern,
+							is_metadata ? 0 : G_REGEX_MULTILINE,
+							0,
+							error);
+	if (regex == NULL) {
+		g_free(content);
+		return ver;
 	}
 
-	// Copy the module to the temporary directory
-	gchar *temp_module_path = g_build_filename(temp_dir, "python_module", NULL);
-	GError *copy_error = NULL;
-	if (!g_file_test(module_path, G_FILE_TEST_IS_DIR)) {
-		g_warning("Source module path is not a directory: %s", module_path);
-		g_free(temp_dir);
-		g_free(temp_module_path);
-		return -1;
+	// Try to find the version match
+	GMatchInfo* match_info;
+	if (g_regex_match(regex, content, 0, &match_info)) {
+		version = g_match_info_fetch(match_info, 1);
+	} else {
+		g_set_error(error,
+				G_FILE_ERROR,
+				G_FILE_ERROR_FAILED,
+				"Version number not found in %s",
+				is_metadata ? "METADATA" : "setup.py");
 	}
 
-	// Copy the directory recursively
-	gchar *argv[] = {
-		"cp",
-		"-r",
-		(gchar *)module_path,
-		temp_module_path,
-		NULL
-	};
-
-	gint copy_status;
-	if (!g_spawn_sync(NULL, argv, NULL, G_SPAWN_SEARCH_PATH,
-					NULL, NULL, NULL, NULL, &copy_status, &copy_error)) {
-		g_warning("Failed to copy module: %s", copy_error->message);
-		g_error_free(copy_error);
-		g_remove(temp_dir);
-		g_free(temp_dir);
-		g_free(temp_module_path);
-		return -1;
-	}
-
-	// Get the correct bin directory for the platform
-	gchar *bin_dir = find_venv_bin_dir(venv_path);
-	if (!bin_dir) {
-		g_warning("Could not locate venv bin directory");
-		g_remove(temp_dir);
-		g_free(temp_dir);
-		g_free(temp_module_path);
-		return -1;
-	}
-
-	// Determine pip executable name based on platform
-	const gchar *pip_exe_name;
-	#ifdef G_OS_WIN32
-		pip_exe_name = "pip.exe";
-	#else
-		pip_exe_name = "pip";
-	#endif
-
-	// Construct path to pip executable
-	gchar *pip_path = g_build_filename(bin_dir, pip_exe_name, NULL);
-	g_free(bin_dir);
-
-	if (!g_file_test(pip_path, G_FILE_TEST_EXISTS)) {
-		g_warning("pip not found at expected location: %s", pip_path);
-		g_free(pip_path);
-		g_free(temp_dir);
-		g_free(temp_module_path);
-		return -1;
-	}
-
-	gchar* pythonstring = g_strdup_printf("python%s", python_version);
-	gchar* target_path = g_build_filename(venv_path, "lib", pythonstring, "site-packages", NULL);
-
-	// Build the pip install command
-	gchar *command = g_strdup_printf("%s install -t %s --upgrade -e %s",
-								pip_path,
-								target_path,
-								temp_module_path);
-
-	g_free(pythonstring);
-	g_free(target_path);
-	g_free(pip_path);
-
-	GError *error = NULL;
-	gchar *stdout_str = NULL;
-	gchar *stderr_str = NULL;
-	gint exit_status = 0;
-
-	// Execute the pip command
-	gboolean success = g_spawn_command_line_sync(
-		command,
-		&stdout_str,
-		&stderr_str,
-		&exit_status,
-		&error
-	);
-
-	siril_debug_print("pip stdout: %s\n", stdout_str);
-	siril_debug_print("pip stderr: %s\n", stderr_str);
-	g_free(command);
-
-/*	// Clean up temporary directory
-	gchar *rm_argv[] = {
-		"rm",
-		"-rf",
-		temp_dir,
-		NULL
-	};
-
-	GError *rm_error = NULL;
-	gint rm_status;
-	if (!g_spawn_sync(NULL, rm_argv, NULL, G_SPAWN_SEARCH_PATH,
-					NULL, NULL, NULL, NULL, &rm_status, &rm_error)) {
-		g_warning("Failed to clean up temporary directory: %s", rm_error->message);
-		g_error_free(rm_error);
-		// Continue with error handling as this is not fatal
-	}
-
-	g_free(temp_dir);
-	g_free(temp_module_path);
-*/
-	if (!success) {
-		g_warning("Failed to execute pip: %s", error->message);
-		g_error_free(error);
-		g_free(stdout_str);
-		g_free(stderr_str);
-		return -1;
-	}
-
-	// Check pip execution results
-	if (exit_status != 0) {
-		g_warning("pip install failed with status %d", exit_status);
-		if (stdout_str && *stdout_str) g_warning("stdout: %s", stdout_str);
-		if (stderr_str && *stderr_str) g_warning("stderr: %s", stderr_str);
-		g_free(stdout_str);
-		g_free(stderr_str);
-		return -1;
-	}
-
-	// Log success details if verbose output is desired
-	if (stdout_str && *stdout_str) {
-		g_debug("pip install output: %s", stdout_str);
+	if (version) {
+		ver = get_version_number_from_string(version);
 	}
 
 	// Clean up
-	g_free(stdout_str);
-	g_free(stderr_str);
+	g_match_info_free(match_info);
+	g_regex_unref(regex);
+	g_free(content);
+	g_free(version);
 
-	return 0;
+	return ver;
+}
+
+static version_number get_installed_module_version(gchar* cmd, GError **error) {
+	version_number ver = { 0 };
+	gchar *stdout_data = NULL;
+	gchar *stderr_data = NULL;
+	gint exit_status;
+
+	gchar *argv[] = { cmd, "show", "siril", NULL };
+
+	// Execute pip show command
+	GError *spawn_error = NULL;
+	if (!g_spawn_sync(NULL,  // Working directory (NULL = current)
+					argv,
+					NULL,  // Environment variables (NULL = inherit)
+					G_SPAWN_SEARCH_PATH,
+					NULL,  // Child setup function
+					NULL,  // User data for child setup
+					&stdout_data,
+					&stderr_data,
+					&exit_status,
+					&spawn_error)) {
+		g_set_error(error,
+				G_FILE_ERROR,
+				G_FILE_ERROR_FAILED,
+				"Failed to execute pip: %s",
+				spawn_error ? spawn_error->message : "Unknown error");
+		g_clear_error(&spawn_error);
+		g_free(cmd);
+		return ver;
+	}
+
+	// Check if pip command was successful
+	if (exit_status != 0) {
+		g_set_error(error,
+				G_FILE_ERROR,
+				G_FILE_ERROR_FAILED,
+				"pip command failed: %s",
+				stderr_data ? stderr_data : "Unknown error");
+		g_free(stdout_data);
+		g_free(stderr_data);
+		g_free(cmd);
+		return ver;
+	}
+
+	// Create regex pattern for version
+	GRegex *regex = g_regex_new("^Version:\\s*([^\\s]+)",
+							G_REGEX_MULTILINE,
+							0,
+							error);
+	if (regex == NULL) {
+		g_free(stdout_data);
+		g_free(stderr_data);
+		g_free(cmd);
+		return ver;
+	}
+
+	// Try to find the version match
+	GMatchInfo *match_info;
+	gchar *version = NULL;
+
+	if (g_regex_match(regex, stdout_data, 0, &match_info)) {
+		version = g_match_info_fetch(match_info, 1);
+	} else {
+		g_set_error(error,
+				G_FILE_ERROR,
+				G_FILE_ERROR_FAILED,
+				"Version number not found in pip output");
+	}
+
+	if (version) {
+		ver = get_version_number_from_string(version);
+	}
+
+	// Clean up
+	g_match_info_free(match_info);
+	g_regex_unref(regex);
+	g_free(stdout_data);
+	g_free(stderr_data);
+	g_free(version);
+	g_free(cmd);
+
+	return ver;
+}
+
+gboolean copy_directory_recursive(const gchar *src_dir, const gchar *dest_dir, GError **error) {
+	g_return_val_if_fail(src_dir != NULL && dest_dir != NULL, FALSE);
+
+	GDir *dir = g_dir_open(src_dir, 0, error);
+	if (!dir) {
+		return FALSE;
+	}
+
+	GFile *src_file = g_file_new_for_path(src_dir);
+	GFile *dest_file = g_file_new_for_path(dest_dir);
+	gboolean success = TRUE;
+
+	// Create destination directory if it doesn't exist
+	if (!g_file_make_directory_with_parents(dest_file, NULL, error)) {
+		if (!g_error_matches(*error, G_IO_ERROR, G_IO_ERROR_EXISTS)) {
+			success = FALSE;
+			goto cleanup_files;
+		}
+		g_clear_error(error);  // Clear the "already exists" error
+	}
+
+	const gchar *filename;
+	while ((filename = g_dir_read_name(dir)) != NULL && success) {
+		gchar *src_path = g_build_filename(src_dir, filename, NULL);
+		gchar *dest_path = g_build_filename(dest_dir, filename, NULL);
+		GFile *src_child = g_file_new_for_path(src_path);
+		GFile *dest_child = g_file_new_for_path(dest_path);
+
+		GFileType file_type = g_file_query_file_type(src_child,
+													G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS,
+													NULL);
+
+		if (file_type == G_FILE_TYPE_DIRECTORY) {
+			// Recursively copy subdirectory
+			success = copy_directory_recursive(src_path, dest_path, error);
+		} else if (file_type == G_FILE_TYPE_REGULAR) {
+			// Copy file
+			GFileCopyFlags flags = G_FILE_COPY_OVERWRITE |
+								G_FILE_COPY_NOFOLLOW_SYMLINKS |
+								G_FILE_COPY_ALL_METADATA;
+
+			success = g_file_copy(src_child, dest_child, flags,
+								NULL, NULL, NULL, error);
+		}
+
+		g_object_unref(src_child);
+		g_object_unref(dest_child);
+		g_free(src_path);
+		g_free(dest_path);
+
+		if (!success) {
+			break;
+		}
+	}
+
+cleanup_files:
+	g_object_unref(src_file);
+	g_object_unref(dest_file);
+	g_dir_close(dir);
+
+	return success;
+}
+
+gboolean delete_directory(const gchar *dir_path, GError **error) {
+	GDir *dir;
+	const gchar *name;
+	gchar *full_path;
+	GFile *file;
+	gboolean success = TRUE;
+
+	dir = g_dir_open(dir_path, 0, error);
+	if (!dir) {
+		return FALSE;
+	}
+
+	while ((name = g_dir_read_name(dir))) {
+		full_path = g_build_filename(dir_path, name, NULL);
+
+		if (g_file_test(full_path, G_FILE_TEST_IS_DIR)) {
+			if (!delete_directory(full_path, error)) {
+				success = FALSE;
+				break;
+			}
+		} else {
+			file = g_file_new_for_path(full_path);
+			if (!g_file_delete(file, NULL, error)) {
+				g_object_unref(file);
+				success = FALSE;
+				break;
+			}
+			g_object_unref(file);
+		}
+
+		g_free(full_path);
+	}
+
+	g_dir_close(dir);
+
+	if (success) {
+		file = g_file_new_for_path(dir_path);
+		if (!g_file_delete(file, NULL, error)) {
+			g_object_unref(file);
+			return FALSE;
+		}
+		g_object_unref(file);
+	}
+
+	return success;
+}
+
+gboolean install_module_with_pip(const gchar* module_path, const gchar* user_module_path,
+							const gchar* venv_path, GError** error) {
+	g_return_val_if_fail(module_path != NULL, FALSE);
+	g_return_val_if_fail(user_module_path != NULL, FALSE);
+	g_return_val_if_fail(venv_path != NULL, FALSE);
+	gchar *python_path = find_venv_python_exe(venv_path);
+
+	gboolean needs_install = FALSE;
+	gchar* module_setup_path = NULL;
+
+	// Check if temp module directory exists
+	if (!g_file_test(user_module_path, G_FILE_TEST_EXISTS)) {
+		needs_install = TRUE;
+	} else {
+		// Compare versions if temp directory exists
+		module_setup_path = get_setup_path(module_path);
+
+		GError* ver_error = NULL;
+
+		gchar* pip_cmd = g_build_filename(venv_path, "bin", "pip3", NULL);
+		version_number user_version = get_installed_module_version(pip_cmd, &ver_error);
+
+		if (ver_error) { // May just mean it's not installed: anyway we will try
+			g_clear_error(&ver_error);
+			needs_install = TRUE;
+			// user_version is {0} so the version check will require us to install it
+		}
+		siril_debug_print("User version: %d.%d.%d\n", user_version.major_version, user_version.minor_version, user_version.micro_version);
+		version_number module_version = get_module_version(module_setup_path, &ver_error);
+
+		if (ver_error) {
+			g_propagate_error(error, ver_error);
+			g_free(module_setup_path);
+			return FALSE;
+		}
+		siril_debug_print("System version: %d.%d.%d\n", module_version.major_version, module_version.minor_version, module_version.micro_version);
+
+		// Check if module version is higher than temp version
+		if (compare_version(module_version, user_version) > 0) {
+			// Delete existing temp directory before new installation
+			GError* del_error = NULL;
+			if (!delete_directory(user_module_path, &del_error)) {
+				g_propagate_error(error, del_error);
+				g_free(module_setup_path);
+				return FALSE;
+			}
+			needs_install = TRUE;
+		}
+	}
+
+	g_free(module_setup_path);
+
+	if (needs_install) {
+		siril_log_message(_("Installing python module...\n"));
+		// Create temp directory and copy module
+		if (!g_file_test(user_module_path, G_FILE_TEST_EXISTS)) {
+			if (g_mkdir_with_parents(user_module_path, 0755) != 0) {
+				g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+						"Failed to create directory: %s", user_module_path);
+				return FALSE;
+			}
+		}
+
+		GError* copy_error = NULL;
+		if (!copy_directory_recursive(module_path, user_module_path, &copy_error)) {
+			g_propagate_error(error, copy_error);
+			return FALSE;
+		}
+
+		// Install with pip
+		gchar* pip_command = g_strdup_printf("%s -m pip install -e %s", python_path, user_module_path);
+
+		gint exit_status;
+		GError* spawn_error = NULL;
+		if (!g_spawn_command_line_sync(pip_command, NULL, NULL, &exit_status, &spawn_error)) {
+			g_free(pip_command);
+			g_propagate_error(error, spawn_error);
+			return FALSE;
+		}
+
+		if (exit_status != 0) {
+			g_free(pip_command);
+			g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
+					"Pip installation failed with exit status: %d", exit_status);
+			return FALSE;
+		}
+
+		g_free(pip_command);
+	}
+
+	return TRUE;
 }
 
 static PythonVenvInfo* prepare_venv_environment(const gchar *venv_path) {
@@ -1213,11 +1401,17 @@ static PythonVenvInfo* prepare_venv_environment(const gchar *venv_path) {
 	// update it using the venv pip if not.
 	siril_log_message(_("Checking the python module is up-to-date...\n"));
 	gchar *module_path = g_build_filename(siril_get_system_data_dir(), MODULE_DIR, NULL);
-	if (install_module_with_pip(venv_path, module_path, info->python_version))
+	gchar *user_module_path = g_build_filename(g_get_user_data_dir(), "siril", ".python_module", NULL);
+	GError *install_error = NULL;
+	if (!install_module_with_pip(module_path, user_module_path, venv_path, &install_error)) {
 		siril_log_color_message(_("Warning: unable to install or update the "
 					"Siril python module.\n"), "salmon");
-	else
+		g_warning("Failed to install Python module: %s",
+				install_error ? install_error->message : "Unknown error");
+		g_error_free(install_error);
+	} else {
 		siril_log_message(_("Python module is up-to-date\n"));
+	}
 	g_free(module_path);
 
 	return info;

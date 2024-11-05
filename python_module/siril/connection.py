@@ -92,6 +92,45 @@ class SharedMemoryInfo(ctypes.Structure):
         ("shm_name", ctypes.c_char * 256)
     ]
 
+import importlib
+import subprocess
+import sys
+from typing import Optional, Any
+
+def import_or_install(module_name: str, package_name: Optional[str] = None) -> Any:
+
+    __doc__ = N_("Attempts to import a module, installing it via pip if not found.\n\n"
+
+                 "Args:\n"
+                 "    module_name (str): Name of the module to import\n"
+                 "    package_name (str, optional): Name of the package to "
+                 "install if different from module_name\n\n"
+
+                 "Returns:\n"
+                 "    module: The imported module object\n\n"
+
+                 "Raises:\n"
+                 "    ImportError: If module cannot be imported even after installation "
+                 "attempt\n"
+                 "    subprocess.CalledProcessError: If pip installation fails")
+
+    try:
+        return importlib.import_module(module_name)
+    except ImportError:
+        package = package_name or module_name
+
+        try:
+            subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to install {package}. Error: {e}")
+            raise
+
+        try:
+            return importlib.import_module(module_name)
+        except ImportError as e:
+            print(f"Module {module_name} still couldn't be imported after installation.")
+            raise ImportError(f"Failed to import {module_name} even after installation attempt: {e}")
+
 class SirilInterface:
 
     __doc__ = N_("SirilInterface is the main class providing an interface to a running "

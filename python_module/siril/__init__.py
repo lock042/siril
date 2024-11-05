@@ -6,7 +6,7 @@ from .translations import _, N_
 
 # TYPE_CHECKING is False at runtime but True during type checking.
 if TYPE_CHECKING:
-    from .connection import SirilInterface
+    from .connection import SirilInterface, import_or_install
     from .models import (
         DataType,
         ImageStats,
@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     )
 
 # Runtime imports
-from .connection import SirilInterface
+from .connection import SirilInterface, import_or_install
 from .models import (
     DataType,
     ImageStats,
@@ -61,6 +61,7 @@ __copyright__ = "(c) Team free-astro 2024"
 
 # Define public API
 __all__ = [
+    'import_or_install',
     'SirilInterface',
     'DataType',
     'ImageStats',
