@@ -279,7 +279,7 @@ macos:
     CCACHE_DIR: /Users/Shared/work/ccache
     REP_DIR: $CI_PROJECT_DIR
     SIRIL_BUILD: $CI_PIPELINE_IID
-    SM_REPO_REF: ae4e3bb8a65f00450f6dece39292ea079e828388
+    SM_REPO_REF: 87be2d6e8dd536849f7da0fa47e79bb1e2effa7f
     SM_REPO_URL: https://gitlab.com/free-astro/siril_macos.git
     WRK_DIR: $CI_PROJECT_DIR
   script:
@@ -464,7 +464,7 @@ win64-native-installer:
   needs: ["win64-native"]
   allow_failure: true
 
-################################################################################ 
+################################################################################
 build-paper:
   rules:
     *run_ondemand_schedule_tag
