@@ -190,7 +190,7 @@ class SirilInterface:
         except Exception as e:
             raise ConnectionError(_("Failed to connect: {}").format(e))
 
-    def close_connection(self):
+    def disconnect(self):
 
         __doc__ = N_("Closes the established socket or pipe connection.")
 

@@ -34,49 +34,6 @@ class ImageStats:
     normValue: float = 0.0
     bgnoise: float = 0.0
 
-    # Getters
-    def get_total(self) -> int:
-        return self.total
-
-    def get_ngoodpix(self) -> int:
-        return self.ngoodpix
-
-    def get_mean(self) -> float:
-        return self.mean
-
-    def get_median(self) -> float:
-        return self.median
-
-    def get_sigma(self) -> float:
-        return self.sigma
-
-    def get_avgDev(self) -> float:
-        return self.avgDev
-
-    def get_mad(self) -> float:
-        return self.mad
-
-    def get_sqrtbwmv(self) -> float:
-        return self.sqrtbwmv
-
-    def get_location(self) -> float:
-        return self.location
-
-    def get_scale(self) -> float:
-        return self.scale
-
-    def get_min(self) -> float:
-        return self.min
-
-    def get_max(self) -> float:
-        return self.max
-
-    def get_normValue(self) -> float:
-        return self.normValue
-
-    def get_bgnoise(self) -> float:
-        return self.bgnoise
-
 @dataclass
 class FKeywords:
     __doc__ = N_("Python equivalent of fkeywords structure")
@@ -143,163 +100,6 @@ class FKeywords:
     focuspos: int = 0
     focussz: int = 0
     foctemp: float = 0.0
-
-    # Getters
-    def get_bscale(self) -> float:
-        return self.bscale
-
-    def get_bzero(self) -> float:
-        return self.bzero
-
-    def get_lo(self) -> int:
-        return self.lo
-
-    def get_hi(self) -> int:
-        return self.hi
-
-    def get_flo(self) -> float:
-        return self.flo
-
-    def get_fhi(self) -> float:
-        return self.fhi
-
-    def get_program(self) -> str:
-        return self.program
-
-    def get_filename(self) -> str:
-        return self.filename
-
-    def get_data_max(self) -> float:
-        return self.data_max
-
-    def get_data_min(self) -> float:
-        return self.data_min
-
-    def get_pixel_size_x(self) -> float:
-        return self.pixel_size_x
-
-    def get_pixel_size_y(self) -> float:
-        return self.pixel_size_y
-
-    def get_binning_x(self) -> int:
-        return self.binning_x
-
-    def get_binning_y(self) -> int:
-        return self.binning_y
-
-    def get_row_order(self) -> str:
-        return self.row_order
-
-    def get_date(self) -> Optional[datetime]:
-        return self.date
-
-    def get_date_obs(self) -> Optional[datetime]:
-        return self.date_obs
-
-    def get_expstart(self) -> float:
-        return self.expstart
-
-    def get_expend(self) -> float:
-        return self.expend
-
-    def get_filter(self) -> str:
-        return self.filter
-
-    def get_image_type(self) -> str:
-        return self.image_type
-
-    def get_object(self) -> str:
-        return self.object
-
-    def get_instrume(self) -> str:
-        return self.instrume
-
-    def get_telescop(self) -> str:
-        return self.telescop
-
-    def get_observer(self) -> str:
-        return self.observer
-
-    def get_centalt(self) -> float:
-        return self.centalt
-
-    def get_centaz(self) -> float:
-        return self.centaz
-
-    def get_sitelat(self) -> float:
-        return self.sitelat
-
-    def get_sitelong(self) -> float:
-        return self.sitelong
-
-    def get_sitelat_str(self) -> str:
-        return self.sitelat_str
-
-    def get_sitelong_str(self) -> str:
-        return self.sitelong_str
-
-    def get_siteelev(self) -> float:
-        return self.siteelev
-
-    def get_bayer_pattern(self) -> str:
-        return self.bayer_pattern
-
-    def get_bayer_xoffset(self) -> int:
-        return self.bayer_xoffset
-
-    def get_bayer_yoffset(self) -> int:
-        return self.bayer_yoffset
-
-    def get_airmass(self) -> float:
-        return self.airmass
-
-    def get_focal_length(self) -> float:
-        return self.focal_length
-
-    def get_flength(self) -> float:
-        return self.flength
-
-    def get_iso_speed(self) -> float:
-        return self.iso_speed
-
-    def get_exposure(self) -> float:
-        return self.exposure
-
-    def get_aperture(self) -> float:
-        return self.aperture
-
-    def get_ccd_temp(self) -> float:
-        return self.ccd_temp
-
-    def get_set_temp(self) -> float:
-        return self.set_temp
-
-    def get_livetime(self) -> float:
-        return self.livetime
-
-    def get_stackcnt(self) -> int:
-        return self.stackcnt
-
-    def get_cvf(self) -> float:
-        return self.cvf
-
-    def get_key_gain(self) -> int:
-        return self.key_gain
-
-    def get_key_offset(self) -> int:
-        return self.key_offset
-
-    def get_focname(self) -> str:
-        return self.focname
-
-    def get_focuspos(self) -> int:
-        return self.focuspos
-
-    def get_focussz(self) -> int:
-        return self.focussz
-
-    def get_foctemp(self) -> float:
-        return self.foctemp
 
     # Setters
     def set_bscale(self, value: float) -> None:
@@ -555,12 +355,12 @@ class FFit:
         return self._naxes
 
     @property
-    def rx(self) -> int:
+    def width(self) -> int:
         """Get image width"""
         return self._naxes[0]
 
     @property
-    def ry(self) -> int:
+    def height(self) -> int:
         """Get image height"""
         return self._naxes[1]
 
