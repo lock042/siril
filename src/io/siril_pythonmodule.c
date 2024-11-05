@@ -1074,7 +1074,7 @@ static version_number get_installed_module_version(gchar* cmd, GError **error) {
 	gchar *stderr_data = NULL;
 	gint exit_status;
 
-	gchar *argv[] = { cmd, "show", "siril", NULL };
+	gchar *argv[] = { cmd, "-m", "pip", "show", "siril", NULL };
 
 	// Execute pip show command
 	GError *spawn_error = NULL;
@@ -1280,8 +1280,7 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 
 		GError* ver_error = NULL;
 
-		gchar* pip_cmd = g_build_filename(venv_path, "bin", "pip3", NULL);
-		version_number user_version = get_installed_module_version(pip_cmd, &ver_error);
+		version_number user_version = get_installed_module_version(python_path, &ver_error);
 
 		if (ver_error) { // May just mean it's not installed: anyway we will try
 			g_clear_error(&ver_error);
