@@ -103,186 +103,284 @@ class FKeywords:
 
     # Setters
     def set_bscale(self, value: float) -> None:
+        __doc__ = N_("Set FITS BSCALE value. This keyword shall be used, "
+            "along with the BZERO keyword, when the array pixel values are "
+            "not the true physical values, to transform the primary data "
+            "array values to the true physical values they represent, using "
+            "the equation: physical_value = BZERO + BSCALE * array_value.\n"
+            "The value field shall contain a floating point number "
+            "representing the coefficient of the linear term in the scaling "
+            "equation, the ratio of physical value to array value at zero "
+            "offset. The default value for this keyword is 1.0.")
         self.bscale = value
 
     def set_bzero(self, value: float) -> None:
+        __doc__ = N_("Sets FITS BZERO value. This keyword shall be used, "
+            "along with the BSCALE keyword, when the array pixel values are "
+            "not the true physical values, to transform the primary data "
+            "array values to the true values using the equation: "
+            "physical_value = BZERO + BSCALE * array_value. The value field "
+            "shall contain a floating point number representing the physical "
+            "value corresponding to an array value of zero.  The default value "
+            "for this keyword is 0.0.")
         self.bzero = value
 
     def set_lo(self, value: int) -> None:
+        __doc__ = N_("Sets lo value. This is the lower visualization cutoff.")
         self.lo = value
 
     def set_hi(self, value: int) -> None:
+        __doc__ = N_("Sets hi value. This is the upper visualization cutoff.")
         self.hi = value
 
     def set_flo(self, value: float) -> None:
+        __doc__ = N_("Sets floating point lo value. This is the lower "
+            "visualization cutoff.")
         self.flo = value
 
     def set_fhi(self, value: float) -> None:
+        __doc__ = N_("Sets floating point hi value. This is the lower "
+            "visualization cutoff.")
         self.fhi = value
 
     def set_program(self, value: str) -> None:
+        __doc__ = N_("Sets the PROGRAM keyword.")
         self.program = value[:70]
 
     def set_filename(self, value: str) -> None:
+        __doc__ = N_("Sets the FILENAME keyword.")
         self.filename = value[:70]
 
     def set_data_max(self, value: float) -> None:
+        __doc__ = N_("Sets data_max. This is used to check if 32b float is "
+            "in the [0, 1] range; it should not normally need to be adjusted "
+            "from python scripts, as it is an indicator of the value range of "
+            "the data in a saved FITS.")
         self.data_max = value
 
     def set_data_min(self, value: float) -> None:
+        __doc__ = N_("Sets data_min. This is used to check if 32b float is "
+            "in the [0, 1] range; it should not normally need to be adjusted "
+            "from python scripts, as it is an indicator of the value range of "
+            "the data in a saved FITS.")
         self.data_min = value
 
     def set_pixel_size_x(self, value: float) -> None:
+        __doc__ = N_("Sets the pixel size in the x dimension. This is normally "
+            "set by the capture software.")
         if value > 0:
             self.pixel_size_x = value
         else:
             raise ValueError(_("pixel_size_x must be greater than 0"))
 
     def set_pixel_size_y(self, value: float) -> None:
+        __doc__ = N_("Sets the pixel size in the y dimension. This is normally "
+            "set by the capture software.")
         if value > 0:
             self.pixel_size_y = value
         else:
             raise ValueError(_("pixel_size_y must be greater than 0"))
 
     def set_binning_x(self, value: int) -> None:
+        __doc__ = N_("Sets the binning in the x dimension. This is normally "
+            "set by the capture software.")
         if value >= 1:
             self.binning_x = value
         else:
             raise ValueError(_("binning_x must be greater than or equal to 1"))
 
     def set_binning_y(self, value: int) -> None:
+        __doc__ = N_("Sets the binning in the y dimension. This is normally "
+            "set by the capture software.")
         if value >= 1:
             self.binning_y = value
         else:
             raise ValueError(_("binning_y must be greater than or equal to 1"))
 
     def set_row_order(self, value: str) -> None:
+        __doc__ = N_("Sets the ROWORDER keyword. This sets the row order in "
+            "which the sensor indicates rows and should be either 'TOP-DOWN' "
+            "or 'BOTTOM-UP'")
         self.row_order = value[:70]
 
     def set_date(self, value: Optional[datetime]) -> None:
+        __doc__ = N("Sets the FITS DATE keyword, which represents the date on "
+            "which the HDU was created.")
         self.date = value
 
     def set_date_obs(self, value: Optional[datetime]) -> None:
+        __doc__ = N("Sets the FITS DATE-OBS keyword, which represents the date "
+            "on which the observation was made.")
         self.date_obs = value
 
     def set_expstart(self, value: float) -> None:
+        __doc__ = N_("Sets the start of the exposure as a Julian date.")
         self.expstart = value
 
     def set_expend(self, value: float) -> None:
+        __doc__ = N_("Sets the end of the exposure as a Julian date.")
         self.expend = value
 
     def set_filter(self, value: str) -> None:
+        __doc__ = N_("Sets the FITS FILTER keyword. Will be truncated "
+            "to 70 characters according to the FITS standard.")
         self.filter = value[:70]
 
     def set_image_type(self, value: str) -> None:
+        __doc__ = N_("Sets the FITS IMAGETYP keyword. Will be truncated "
+            "to 70 characters according to the FITS standard.")
         self.image_type = value[:70]
 
     def set_object(self, value: str) -> None:
+        __doc__ = N_("Sets the FITS OBJECT keyword. Will be truncated "
+            "to 70 characters according to the FITS standard.")
         self.object = value[:70]
 
     def set_instrume(self, value: str) -> None:
+        __doc__ = N_("Sets the FITS INSTRUME keyword. Will be truncated "
+            "to 70 characters according to the FITS standard.")
         self.instrume = value[:70]
 
     def set_telescop(self, value: str) -> None:
+        __doc__ = N_("Sets the FITS TELESCOP keyword. Will be truncated "
+            "to 70 characters according to the FITS standard.")
         self.telescop = value[:70]
 
     def set_observer(self, value: str) -> None:
+        __doc__ = N_("Sets the FITS OBSERVER keyword. Will be truncated "
+            "to 70 characters according to the FITS standard.")
         self.observer = value[:70]
 
     def set_centalt(self, value: float) -> None:
+        __doc__ = N_("Sets the centre altitude of the image.")
         if value <= 90:
             self.centalt = value
         else:
             raise ValueError(_("centalt must be less than or equal to 90 degrees"))
 
     def set_centaz(self, value: float) -> None:
+        __doc__ = N_("Sets the centre azimuth of the image.")
         if 0 <= value < 360:
             self.centaz = value
         else:
             raise ValueError(_("centaz must be between 0 and 360 degrees (exclusive)"))
 
     def set_sitelat(self, value: float) -> None:
+        __doc__ = N_("Sets the site latitude.")
         if -90 <= value <= 90:
             self.sitelat = value
         else:
             raise ValueError(_("sitelat must be between -90 and 90 degrees"))
 
     def set_sitelong(self, value: float) -> None:
+        __doc__ = N_("Sets the site longitude of the image.")
         if 0 <= value < 360:
             self.sitelong = value
         else:
             raise ValueError(_("sitelong must be between 0 and 360 degrees (exclusive)"))
 
     def set_sitelat_str(self, value: str) -> None:
+        __doc__ = N_("Sets the site latitude of the image as a string.")
         self.sitelat_str = value[:70]
 
     def set_sitelong_str(self, value: str) -> None:
+        __doc__ = N_("Sets the site longitude of the image as a string.")
         self.sitelong_str = value[:70]
 
     def set_siteelev(self, value: float) -> None:
+        __doc__ = N_("Sets the site elevation of the image.")
         self.siteelev = value
 
     def set_bayer_pattern(self, value: str) -> None:
+        __doc__ = N_("Sets the image CFA pattern. This may be a Bayer pattern "
+            "or X-TRANS pattern. Normally this is set by the capture software.")
         self.bayer_pattern = value[:70]
 
     def set_bayer_xoffset(self, value: int) -> None:
+        __doc__ = N_("Sets the image Bayer x offset.")
         self.bayer_xoffset = value
 
     def set_bayer_yoffset(self, value: int) -> None:
+        __doc__ = N_("Sets the image Bayer y offset.")
         self.bayer_yoffset = value
 
     def set_airmass(self, value: float) -> None:
+        __doc__ = N_("Sets the airmass as a floating point value.")
         if value >= 1:
             self.airmass = value
         else:
             raise ValueError(_("airmass must be greater than or equal to 1"))
 
     def set_focal_length(self, value: float) -> None:
+        __doc__ = N_("Sets the focal length as a floating point value.")
         self.focal_length = value
 
     def set_flength(self, value: float) -> None:
+        __doc__ = N_("Sets the flength as a floating point value.")
         self.flength = value
 
     def set_iso_speed(self, value: float) -> None:
+        __doc__ = N_("Sets the ISO speed as a floating point value.")
         self.iso_speed = value
 
     def set_exposure(self, value: float) -> None:
+        __doc__ = N_("Sets the exposure time as a floating point value.")
         self.exposure = value
 
     def set_aperture(self, value: float) -> None:
+        __doc__ = N_("Sets the aperture as a floating point value.")
         self.aperture = value
 
     def set_ccd_temp(self, value: float) -> None:
+        __doc__ = N_("Sets the CCD temperature as a floating point value.")
         self.ccd_temp = value
 
     def set_set_temp(self, value: float) -> None:
+        __doc__ = N_("Sets the CCD set temperature as a floating point value.")
         self.set_temp = value
 
     def set_livetime(self, value: float) -> None:
+        __doc__ = N_("Sets the sum of the exposure times (s) as a floating "
+            "point value. Only relevant to stacked images.")
         self.livetime = value
 
     def set_stackcnt(self, value: int) -> None:
+        __doc__ = N_("Sets the count of images in a stack. Only relevant to "
+            "stacked images.")
         self.stackcnt = value
 
     def set_cvf(self, value: float) -> None:
+        __doc__ = N_("Sets the conversion factor (e-/ADU).")
         self.cvf = value
 
     def set_key_gain(self, value: int) -> None:
+        __doc__ = N_("Sets the gain value read in camera headers. Normally "
+            "this is set by capture software.")
         self.key_gain = value
 
     def set_key_offset(self, value: int) -> None:
+        __doc__ = N_("Sets the offset value read in camera headers. Normally "
+            "this is set by capture software.")
         self.key_offset = value
 
     def set_focname(self, value: str) -> None:
+        __doc__ = N_("Sets the focuser name. Will be truncated "
+            "to 70 characters according to the FITS standard.")
         self.focname = value[:70]
 
     def set_focuspos(self, value: int) -> None:
+        __doc__ = N_("Sets the focus position. Normally this is set by "
+            "capture software.")
         self.focuspos = value
 
     def set_focussz(self, value: int) -> None:
+        __doc__ = N_("Sets the focuser step size. Normally this is set by "
+            "capture software.")
         self.focussz = value
 
     def set_foctemp(self, value: float) -> None:
+        __doc__ = N_("Sets the focuser temperature. Normally this is set by "
+            "capture software.")
         self.foctemp = value
 
 @dataclass
@@ -326,11 +424,19 @@ class FFit:
 
     @property
     def data(self) -> Optional[np.ndarray]:
-        """Get the data array"""
+        __doc__ = N_("Get the pixel data of the current image loaded in Siril "
+            "as a numpy array")
         return self._data
 
     @data.setter
     def data(self, value: Optional[np.ndarray]):
+        __doc__ = N_("Set the pixel data of the current image loaded in Siril "
+            "to the provided numpy array.\n\n"
+            "Args:\n"
+            "    numpy.ndarray: numpy array representing the pixel data. This must "
+            "be in either uint16 or float32 planar format\n\n"
+            "Raises:\n"
+            "    ValueError: if the array shape is incompatible")
         """Set the data array and update dimensions"""
         if value is not None:
             shape = value.shape
@@ -346,47 +452,57 @@ class FFit:
         self._data = value
 
     def _update_naxis(self):
-        """Update naxis based on naxes value"""
+        __doc__ = N_("Update naxis based on naxes value")
         self.naxis = 3 if self._naxes[2] == 3 else 2
 
     @property
     def naxes(self) -> Tuple[int, int, int]:
-        """Get the naxes tuple"""
+        __doc__ = N_("Get the naxes tuple")
         return self._naxes
 
     @property
     def width(self) -> int:
-        """Get image width"""
+        __doc__ = N_("Get image width")
         return self._naxes[0]
 
     @property
     def height(self) -> int:
-        """Get image height"""
+        __doc__ = N_("Get image height")
         return self._naxes[1]
 
     @property
+    def channels(self) -> int:
+        __doc__ = N_("Get image channels")
+        return self._naxes[2]
+
+    @property
     def icc_profile(self) -> Optional[bytes]:
-        """Get the ICC profile"""
+        __doc__ = N_("Get the ICC profile as raw bytes data. This "
+            "may be converted for use by modules such as pillow "
+            "which can handle ICC profiles")
         return self._icc_profile
 
     @icc_profile.setter
     def icc_profile(self, value: Optional[bytes]):
-        """Set ICC profile and update color_managed flag"""
+        __doc__ = N_("Set ICC profile and update color_managed flag. "
+            "Note this only updates the python FFit structure: the "
+            "API does not currently support setting the ICC profile "
+            "of the currently loaded FITS image.")
         self._icc_profile = value
         self.color_managed = value is not None
 
     @property
     def dtype(self) -> np.dtype:
-        """Get the numpy dtype based on the current type"""
+        __doc__ = N_("Get the numpy dtype based on the current type")
         return np.uint16 if self.type == DataType.USHORT_IMG else np.float32
 
     def allocate_data(self):
-        """Allocate memory for image data with appropriate type"""
+        __doc__ = N_("Allocate memory for image data with appropriate type")
         shape = (self.ry, self.rx) if self.naxis == 2 else (self.ry, self.rx, self.naxes[2])
         self.data = np.zeros(shape, dtype=self.dtype)
 
     def ensure_data_type(self):
-        """Ensure data is in the correct type with proper scaling"""
+        __doc__ = N_("Ensure data is in the correct type with proper scaling")
         if self.data is not None and self.data.dtype != self.dtype:
             if self.type == DataType.FLOAT_IMG and self.data.dtype == np.uint16:
                 # Convert from USHORT (0-65535) to FLOAT (0.0-1.0)
@@ -398,7 +514,9 @@ class FFit:
                 raise ValueError(f"Unsupported type conversion from {self.data.dtype} to {self.dtype}")
 
     def get_channel(self, channel: int) -> np.ndarray:
-        """Get a specific channel of the data"""
+        __doc__ = N_("Get a specific channel of the pixel data. Note that this does "
+            "not pull pixel data directly from the image loaded in Siril: that must "
+            "previously have been obtained using get_pixel_data() or get_image()")
         if self.data is None:
             raise ValueError(_("No data allocated"))
         if self.naxis == 2:
@@ -408,7 +526,10 @@ class FFit:
         return self.data[:, :, channel]
 
     def update_stats(self):
-        """Update image statistics for all channels"""
+        __doc__ = N_("Update image statistics for all channels. Note that this only "
+            "updates the statistics based on the numpy array representing pixel data "
+            "in the python FFit object, it does not update the statistics of the "
+            "image in Siril.")
         if self.data is None:
             raise ValueError(_("No data allocated"))
 
