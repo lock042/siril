@@ -488,6 +488,8 @@ gpointer graxpert_setup_async(gpointer user_data) {
 		background_ai_models = NULL;
 		g_strfreev(denoise_ai_models);
 		denoise_ai_models = NULL;
+		g_strfreev(deconv_ai_models);
+		deconv_ai_models = NULL;
 	}
 	return GINT_TO_POINTER(0);
 }
