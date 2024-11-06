@@ -545,7 +545,7 @@ class SirilInterface:
             print(f"Error unpacking image dimensions: {e}", file=sys.stderr)
             return None
 
-    def get_pixel_data(self, shape: Optional[list[int]] = None) -> Optional[np.ndarray]:
+    def get_pixeldata(self, shape: Optional[list[int]] = None) -> Optional[np.ndarray]:
 
         __doc__ = N_("Retrieve the pixel data using shared memory.\n\n"
 
@@ -671,7 +671,7 @@ class SirilInterface:
                 except Exception:
                     pass
 
-    def set_pixel_data(self, image_data: np.ndarray) -> bool:
+    def set_pixeldata(self, image_data: np.ndarray) -> bool:
 
         __doc__ = N_("Send image data to Siril using shared memory.\n\n"
 
