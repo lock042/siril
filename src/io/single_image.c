@@ -109,6 +109,7 @@ static gboolean free_image_data_idle(gpointer p) {
 	com.grad_samples = NULL;
 	cleanup_annotation_catalogues(TRUE);
 	reset_display_offset();
+	reset_menu_toggle_button();
 	reset_zoom_default();
 	free(gui.qphot);
 	gui.qphot = NULL;

@@ -298,13 +298,12 @@ gchar** ai_version_check(gchar* executable, graxpert_operation operation) {
 		int nb = 0;
 		test_argv[nb++] = executable;
 		test_argv[nb++] = "-cmd";
-		gchar *versionarg = g_strdup(operation == GRAXPERT_DENOISE ? "denoising" : (operation == GRAXPERT_DECONV ? "deconvolution" : "background-extraction"));
+		gchar *versionarg = g_strdup(operation == GRAXPERT_DENOISE ? "denoising" : (operation == GRAXPERT_DECONV ? "deconv-obj" : "background-extraction"));
 		test_argv[nb++] = versionarg;
 		test_argv[nb++] = "--help";
 		// g_spawn handles wchar so not need to convert
 		GPid child_pid;
-		error = spawn_graxpert(test_argv, 200, &child_pid, NULL, NULL,
-				&child_stderr);
+		error = spawn_graxpert(test_argv, 200, &child_pid, NULL, NULL, &child_stderr);
 
 		if (error != NULL) {
 			siril_log_color_message(_("Spawning GraXpert failed during available AI model versions check: %s\n"), "red", error->message);
