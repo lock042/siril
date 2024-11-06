@@ -209,6 +209,23 @@ void reset_display_offset() {
 	gui.display_offset.y = 0;
 }
 
+void reset_menu_toggle_button() {
+	GtkApplicationWindow *app_win = GTK_APPLICATION_WINDOW(lookup_widget("control_window"));
+	GAction *action_tilt = g_action_map_lookup_action(G_ACTION_MAP(app_win), "show-tilt");
+	GAction *action_disto = g_action_map_lookup_action(G_ACTION_MAP(app_win), "show-disto");
+
+	GVariant *state = g_action_get_state(action_tilt);
+	if (g_variant_get_boolean(g_action_get_state(action_tilt))) {
+		g_action_change_state(action_tilt, g_variant_new_boolean(FALSE));
+	}
+	g_variant_unref(state);
+	state = g_action_get_state(action_disto);
+	if (g_variant_get_boolean(g_action_get_state(action_disto))) {
+		g_action_change_state(action_disto, g_variant_new_boolean(FALSE));
+	}
+	g_variant_unref(state);
+}
+
 void reset_zoom_default() {
 	gui.zoom_value = ZOOM_DEFAULT;
 	if (gui.zoom_value == ZOOM_FIT && !com.script) {
