@@ -152,12 +152,11 @@ siril_cpp_flag += ['-DHAVE_CONFIG_H', '-fcommon', '-fno-math-errno', '-D_FILE_OF
 
 if platform_linux
   siril_link_arg += ['-rdynamic']
-  #siril_link_arg += '-lrt'
+  siril_link_arg += '-lrt' # for shm_open()
 elif platform_bsd
   siril_link_arg += '-Wl,--no-as-needed' # workaround for https://gitlab.com/free-astro/siril/-/issues/614 (Bug#251206)
   siril_link_arg += '-rdynamic'
   siril_link_arg += '-lexecinfo'
-  #siril_link_arg += '-lrt'
 elif platform_windows
   #TODO: Do Meson provide more elegant way?
   siril_link_arg += '-Wl,--export-all-symbols'
@@ -169,7 +168,6 @@ elif platform_windows
 elif platform_osx
   # on OSX ObjC and C sources are mixed so adding objc to the linkflags
   siril_link_arg += ['-Wl,-framework,Foundation', '-Wl,-framework,AppKit', '-Wl,-framework,Security', '-ObjC']
-  #siril_link_arg += '-lrt'
   add_project_arguments('-ObjC', language: [ 'c'])
   add_project_link_arguments(siril_link_arg, language: [ 'c', 'cpp' ])
 else
