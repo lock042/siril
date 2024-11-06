@@ -243,13 +243,16 @@ gboolean populate_graxpert_ai_combos(gpointer user_data) {
 	const gchar** ai_models_denoise = get_ai_models(GRAXPERT_DENOISE);
 	if (combo_graxpert_ai_models_denoise && ai_models_denoise)
 		populate_combo_box(GTK_COMBO_BOX_TEXT(combo_graxpert_ai_models_denoise), get_ai_models(GRAXPERT_DENOISE));
+	const gchar** ai_models_deconv = get_ai_models(GRAXPERT_DECONV);
+	if (combo_graxpert_ai_models_deconv && ai_models_deconv)
+		populate_combo_box(GTK_COMBO_BOX_TEXT(combo_graxpert_ai_models_deconv), get_ai_models(GRAXPERT_DECONV));
 	return FALSE;
 }
 
 static void set_widgets() {
 	graxpert_operation operation = (graxpert_operation) gtk_notebook_get_current_page(notebook_graxpert_operation);
 	graxpert_bg_algo algorithm = gtk_combo_box_get_active(combo_graxpert_algorithm);
-	gtk_widget_set_visible(graxpert_ai_settings, algorithm == GRAXPERT_BG_AI || operation == GRAXPERT_DENOISE);
+	gtk_widget_set_visible(graxpert_ai_settings, algorithm == GRAXPERT_BG_AI || operation == GRAXPERT_DENOISE || operation == GRAXPERT_DECONV);
 	gtk_widget_set_visible(graxpert_classical_settings, algorithm != GRAXPERT_BG_AI);
 	gtk_widget_set_visible(graxpert_samples_controls, algorithm != GRAXPERT_BG_AI);
 	gtk_widget_set_visible(graxpert_rbf_settings, algorithm == GRAXPERT_BG_RBF ||  algorithm == GRAXPERT_BG_KRIGING);
