@@ -719,6 +719,8 @@ void refresh_icc_transforms() {
 
 // Returns the full ICC profile data
 unsigned char* get_icc_profile_data(cmsHPROFILE profile, guint32 *len) {
+	if (!profile)
+		return NULL;
 	unsigned char* block = NULL;
 	cmsUInt32Number length;
 	cmsBool ret = cmsSaveProfileToMem(profile, NULL, &length);
