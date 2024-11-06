@@ -1070,10 +1070,8 @@ static version_number get_module_version(const gchar* filename, GError** error) 
 	return ver;
 }
 
-static version_number get_installed_module_version(gchar* cmd, GError **error) {
-	// This function *MUST NOT* free cmd: treat it as a const, except that
-	// g_spawn_sync() doesn't like it if it's actually declared const in the
-	// function signature.
+static version_number get_installed_module_version(const gchar* python_path, GError **error) {
+	gchar *cmd = g_strdup(python_path);
 	version_number ver = { 0 };
 	gchar *stdout_data = NULL;
 	gchar *stderr_data = NULL;
@@ -1099,6 +1097,7 @@ static version_number get_installed_module_version(gchar* cmd, GError **error) {
 				"Failed to execute pip: %s",
 				spawn_error ? spawn_error->message : "Unknown error");
 		g_clear_error(&spawn_error);
+		g_free(cmd);
 		return ver;
 	}
 
@@ -1111,6 +1110,7 @@ static version_number get_installed_module_version(gchar* cmd, GError **error) {
 				stderr_data ? stderr_data : "Unknown error");
 		g_free(stdout_data);
 		g_free(stderr_data);
+		g_free(cmd);
 		return ver;
 	}
 
@@ -1122,6 +1122,7 @@ static version_number get_installed_module_version(gchar* cmd, GError **error) {
 	if (regex == NULL) {
 		g_free(stdout_data);
 		g_free(stderr_data);
+		g_free(cmd);
 		return ver;
 	}
 
@@ -1147,6 +1148,7 @@ static version_number get_installed_module_version(gchar* cmd, GError **error) {
 	g_regex_unref(regex);
 	g_free(stdout_data);
 	g_free(stderr_data);
+	g_free(cmd);
 	g_free(version);
 
 	return ver;
@@ -1268,6 +1270,7 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 	g_return_val_if_fail(user_module_path != NULL, FALSE);
 	g_return_val_if_fail(venv_path != NULL, FALSE);
 	gchar *python_path = find_venv_python_exe(venv_path, TRUE);
+	siril_debug_print("Python path: %s\n", python_path);
 	g_return_val_if_fail(python_path != NULL, FALSE);
 	gboolean needs_install = FALSE;
 	gchar* module_setup_path = NULL;
@@ -1284,6 +1287,7 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 		version_number user_version = get_installed_module_version(python_path, &ver_error);
 
 		if (ver_error) { // May just mean it's not installed: anyway we will try
+			siril_debug_print("Module version check message (non-fatal error): %s\n", ver_error->message);
 			g_clear_error(&ver_error);
 			needs_install = TRUE;
 			// user_version is {0} so the version check will require us to install it
@@ -1437,7 +1441,7 @@ static gboolean check_or_create_venv(const gchar *project_path, GError **error) 
 	if (!python_exe) {
 		gchar *python_cmd;
 #ifdef _WIN32
-		python_cmd = g_strdup("python");
+		python_cmd = g_strdup("py.exe");
 #else
 		python_cmd = g_strdup("python3");
 #endif
