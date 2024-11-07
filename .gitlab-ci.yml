@@ -270,27 +270,49 @@ macos:
       variables:
         SDKROOT: /opt/sdks/MacOSX11.3.sdk
     - if: $ARCHITECTURE == "x86_64"
+      when: manual
+      allow_failure: true
       variables:
-        MACOSX_DEPLOYMENT_TARGET: "10.13"
+        SDKROOT: /opt/sdks/MacOSX10.15.6.sdk
   tags:
     - macos
     - ${ARCHITECTURE}
   variables:
-    RELEASE_ARCHIVE: jhb-0.52_$ARCHITECTURE.dmg
-    RELEASE_TAG: r17
-    RELEASE_URLS: $CI_API_V4_URL/projects/40985653/packages/generic/dependencies/$RELEASE_TAG/$RELEASE_ARCHIVE
+    CCACHE_DIR: /Users/Shared/work/ccache
     REP_DIR: $CI_PROJECT_DIR
     SIRIL_BUILD: $CI_PIPELINE_IID
-    WRK_DIR: /Users/Shared/work
+    SM_REPO_REF: e4574ea3069f6cd2c55d56111127526e04163a25
+    SM_REPO_URL: https://gitlab.com/free-astro/siril_macos.git
+    WRK_DIR: $CI_PROJECT_DIR
   script:
+    # Clone the repo containing all the build scripts.
     - |
-      git clone https://gitlab.com/free-astro/siril_macos.git
-      git -C siril_macos checkout $RELEASE_TAG
-      git -C siril_macos submodule update --init --recursive
-    - siril_macos/jhb/usr/bin/archive install_dmg
-    - siril_macos/build_siril.sh
+      git clone $SM_REPO_URL sm
+      git -C sm checkout $SM_REPO_REF
+      git -C sm submodule update --recursive --init
+    # Build the dependencies and then Siril. Dependencies are uploaded to the
+    # package registry so they don't have to be rebuilt every time if there
+    # haven't been any changes. Changes to dependencies are detected by
+    # checksumming all the files and using that checksum as a version number.
+    - |
+      echo $CI_PROJECT_DIR > sm/ci_project_dir.txt
+      SM_SHA=$(LANG=C find -s sm -type f -not -wholename '*.git/*' -exec cat {} \+ | shasum | awk '{ print $1 }')
+      VER_DIR=$(sm/jhb/usr/bin/config get VER_DIR)
+      PACKAGE_URL=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/macos-deps/${SM_SHA}/$(basename $VER_DIR)_${ARCHITECTURE}.dmg
+      if ! curl -H "JOB-TOKEN: $CI_JOB_TOKEN" -fLO $PACKAGE_URL; then
+        export FORCE_BUILD_FROM_SOURCE=true
+        sm/build_toolset.sh
+        sm/jhb/usr/bin/jhb run rustup self uninstall -y || true
+        sm/jhb/usr/bin/archive remove_nonessentials
+        sm/jhb/usr/bin/archive create_dmg
+        curl --fail-with-body -H "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file $(basename $PACKAGE_URL) $PACKAGE_URL
+        rm -rf ${VER_DIR:?}
+        unset FORCE_BUILD_FROM_SOURCE
+      fi
+    - sm/jhb/usr/bin/archive install_dmg
+    - sm/build_siril.sh
   after_script:
-    - siril_macos/jhb/usr/bin/archive uninstall_dmg
+    - sm/jhb/usr/bin/archive uninstall_dmg
   needs: []
   artifacts:
     name: "${CI_JOB_NAME}-${CI_COMMIT_REF_NAME}"
