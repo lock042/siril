@@ -1292,7 +1292,7 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 		version_number user_version = get_installed_module_version(python_path, &ver_error);
 
 		if (ver_error) { // May just mean it's not installed: anyway we will try
-			siril_debug_print("Module version check message (non-fatal error): %s\n", ver_error->message);
+			siril_debug_print("Module version check error (harmless): %s\n", ver_error->message);
 			g_clear_error(&ver_error);
 			needs_install = TRUE;
 			// user_version is {0} so the version check will require us to install it
@@ -1463,7 +1463,7 @@ static gboolean check_or_create_venv(const gchar *project_path, GError **error) 
 						NULL, NULL,
 						NULL, NULL,
 						&exit_status, &local_error)) {
-			siril_debug_print("Error in venv creation command: %s\n", local_error->message);
+			siril_log_color_message_(("Error in venv creation command: %s\n"), "red", local_error->message);
 			g_propagate_error(error, local_error);
 			success = FALSE;
 			goto cleanup;
