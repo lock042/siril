@@ -34,11 +34,30 @@ bindir = 'bin'
 # Functions
 
 # Main function
-def main(binary, srcdir, destdir, debug):
+def main(binary, srcdir, destdir, debug = False, listfile = None):
     sys.stdout.write("{} (INFO): searching for dependencies of {} in {}\n".format(
         os.path.basename(__file__), binary, srcdir))
-    find_dependencies(binary, srcdir)
-    if args.debug:
+    global dlls, sys_dlls
+    if listfile is not None:
+        listfile = os.path.abspath(listfile)
+        if os.path.isfile(listfile):
+            print("DLLs listed {:s} will be copied". format(listfile))
+            with open(listfile, 'r') as f:
+                dll_list = [l.strip() for l in f.readlines()]
+                dlls = set(dll_list)
+        else:
+            print("DLLs list will be saved to {:s}".format(listfile))
+            find_dependencies(binary, srcdir)
+            installed_dlls = dlls - sys_dlls
+            dlldir = os.path.split(listfile)[0]
+            if not os.path.isdir(dlldir):
+                os.makedirs(dlldir, exist_ok=True)
+            with open(listfile, 'w') as f:
+                f.writelines(d + "\n" for d in list(installed_dlls))
+    else:
+        print('Running find_dependencies')
+        find_dependencies(binary, srcdir)
+    if debug:
         print("Running in debug mode (no DLL moved)")
         if len(dlls) > 0:
             sys.stdout.write("Needed DLLs:\n\t- ")
@@ -122,9 +141,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--debug', dest='debug',
                         action='store_true', default=False)
-    parser.add_argument('bin')
-    parser.add_argument('src')
-    parser.add_argument('dest')
+    parser.add_argument("--list", "-l", dest = 'listfile', type = str, help="path to list file. If file does not exist it is created, else, it is used to collect the packages", default = None)
+    parser.add_argument('binary')
+    parser.add_argument('srcdir')
+    parser.add_argument('destdir')
     args = parser.parse_args(sys.argv[1:])
 
-    main(args.bin, args.src, args.dest, args.debug)
+    main(**vars(args))
