@@ -1335,7 +1335,8 @@ int process_epf(int nb) {
 					.sigma_col = sigma_col, .sigma_space = sigma_space, .mod =
 							mod, .filter = filter, .guide_needs_freeing =
 							guide_needs_freeing, .verbose = TRUE };
-	start_in_new_thread(epfhandler, args);
+
+	start_in_new_thread(edge_preserving_filter, args);
 
 	return CMD_OK;
 }

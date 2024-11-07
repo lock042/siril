@@ -33,21 +33,13 @@
 #include "filters/epf.h"
 
 gboolean end_epf(gpointer p) {
+	struct epfargs *args = (struct epfargs*) p;
 	set_cursor_waiting(FALSE);
 	stop_processing_thread();
 	notify_gfit_modified();
-	return FALSE;
-}
 
-gpointer epfhandler (gpointer args) {
-	lock_roi_mutex();
-	struct epfargs *p = (struct epfargs*) args;
-	set_cursor_waiting(TRUE);
-	int retval = edge_preserving_filter(p);
-	unlock_roi_mutex();
-	if (!com.script)
-		siril_add_idle(end_epf, NULL);
-	return GINT_TO_POINTER(retval);
+	free(args);
+	return FALSE;
 }
 
 int match_guide_to_roi(fits *guide, fits *guide_roi) {
@@ -95,7 +87,9 @@ int match_guide_to_roi(fits *guide, fits *guide_roi) {
 	return retval;
 }
 
-int edge_preserving_filter(struct epfargs *args) {
+gpointer edge_preserving_filter(gpointer p) {
+	struct epfargs *args = (struct epfargs *) p;
+
 	fits *fit = args->fit;
 	fits *guide = args->guidefit;
 	double d = args->d;
@@ -107,7 +101,7 @@ int edge_preserving_filter(struct epfargs *args) {
 
 	struct timeval t_start, t_end;
 	if (sigma_col <= 0.0 || (sigma_space <= 0.0 && filter_type == EP_BILATERAL))
-		return 1;
+		return GINT_TO_POINTER(1);
 	if (verbose) {
 		siril_log_color_message(_("Bilateral filter: processing...\n"), "green");
 		gettimeofday(&t_start, NULL);
@@ -204,6 +198,7 @@ int edge_preserving_filter(struct epfargs *args) {
 	gfit.history = g_slist_append(gfit.history, strdup(log));
 	if (args->guide_needs_freeing)
 		free(args->guidefit);
-	free(args);
-	return 0;
+
+	siril_add_idle(end_epf, NULL);
+	return GINT_TO_POINTER(0);
 }

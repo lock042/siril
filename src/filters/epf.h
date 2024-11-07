@@ -19,7 +19,7 @@ struct epfargs {
 };
 
 gpointer epfhandler(gpointer args);
-int edge_preserving_filter(struct epfargs *args);
+gpointer edge_preserving_filter(gpointer p);
 void epf_change_between_roi_and_image();
 void apply_epf_cancel();
 
