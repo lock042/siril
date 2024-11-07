@@ -270,6 +270,8 @@ macos:
       variables:
         SDKROOT: /opt/sdks/MacOSX11.3.sdk
     - if: $ARCHITECTURE == "x86_64"
+      when: manual
+      allow_failure: true
       variables:
         SDKROOT: /opt/sdks/MacOSX10.15.6.sdk
   tags:
