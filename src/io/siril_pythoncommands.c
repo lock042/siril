@@ -567,7 +567,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (imstats_to_py(stats, ptr, total_size)) {
 				const char* error_message = _("Memory allocation error");
 				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
-				break;
 			} else {
 				success = send_response(conn, STATUS_OK, response_buffer, total_size);
 			}
@@ -632,7 +631,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (keywords_to_py(&gfit, ptr, total_size)) {
 				const char* error_message = _("Memory allocation error");
 				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
-				break;
 			} else {
 				success = send_response(conn, STATUS_OK, response_buffer, total_size);
 			}
@@ -672,7 +670,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (regdata_to_py(regparam, ptr, total_size)) {
 				const char* error_message = _("No regdata available");
 				success = send_response(conn, STATUS_NONE, error_message, strlen(error_message));
-				break;
 			} else {
 				success = send_response(conn, STATUS_OK, response_buffer, total_size);
 			}
@@ -714,7 +711,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (imstats_to_py(stats, ptr, total_size)) {
 				const char* error_message = _("Memory allocation error");
 				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
-				break;
 			} else {
 				success = send_response(conn, STATUS_OK, response_buffer, total_size);
 			}
@@ -747,7 +743,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (imgdata_to_py(imgparam, ptr, total_size)) {
 				const char* error_message = _("Memory allocation error");
 				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
-				break;
 			} else {
 				success = send_response(conn, STATUS_OK, response_buffer, total_size);
 			}
@@ -819,7 +814,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (ret) {
 				const char* error_message = _("Memory allocation error");
 				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
-				break;
 			} else {
 				success = send_response(conn, STATUS_OK, response_buffer, total_size);
 			}
@@ -843,7 +837,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (seq_to_py(&com.seq, ptr, total_size)) {
 				const char* error_message = _("Memory allocation error");
 				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
-				break;
 			} else {
 				success = send_response(conn, STATUS_OK, response_buffer, total_size);
 			}
@@ -924,7 +917,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (fits_to_py(&gfit, ptr, total_size)) {
 				const char* error_message = _("Memory allocation error");
 				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
-				break;
 			} else {
 				success = send_response(conn, STATUS_OK, response_buffer, total_size);
 			}
@@ -965,7 +957,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 			// Prepare data
 			guint32 length = strlen(fit->header) + 1;
-			printf("Header length: %u\n", length);
+			siril_debug_print("Header length: %u\n", length);
 			success = handle_rawdata_request(conn, fit->header, length);
 			break;
 		}

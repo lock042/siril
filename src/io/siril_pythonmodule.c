@@ -40,6 +40,12 @@
 #define PIPE_NAME "\\\\.\\pipe\\mypipe"
 #define SOCKET_PORT 12345
 
+#ifdef _WIN32
+#define PYTHON_EXE "py.exe"
+#else
+#define PYTHON_EXE "python3"
+#endif
+
 #define MODULE_DIR "python_module"
 // Statics
 static CommunicationState commstate = {0};
@@ -659,10 +665,8 @@ void execute_python_script_async(gchar* script_name, gboolean from_file) {
 #ifdef _WIN32
 	const gchar* pipe_name = "\\\\.\\pipe\\siril";
 	env = g_environ_setenv(env, "MY_PIPE", pipe_name, TRUE);
-#define PYTHON_EXE "python3.exe"
 #else
 	env = g_environ_setenv(env, "MY_SOCKET", commstate.python_conn->socket_path, TRUE);
-#define PYTHON_EXE "python3"
 #endif
 
 	// Prepare command arguments
@@ -882,7 +886,8 @@ static gboolean handle_client_communication(Connection *conn) {
 	gssize bytes_read;
 
 	while (!conn->should_stop) {
-		bytes_read = read(conn->client_fd, buffer, BUFFER_SIZE);
+		bytes_read = read(conn->client_fd, buffer, BUFFER_SIZE - 1);
+		buffer[BUFFER_SIZE - 1] = '\0'; // Explicitly NULL terminate the buffer for safety
 
 		if (bytes_read <= 0) {
 			if (bytes_read < 0) {
@@ -1421,13 +1426,13 @@ static PythonVenvInfo* prepare_venv_environment(const gchar *venv_path) {
 	return info;
 
 cleanup:
-	if (info) {
-		g_free(info->venv_path);
-		g_free(info->python_version);
-		if (info->env_vars)
-			g_hash_table_destroy(info->env_vars);
-		g_free(info);
-	}
+	// No need to NULL check info, it can't be NULL here as it is never freed before
+	// and if the g_new0 alloc fails the program will abort.
+	g_free(info->venv_path);
+	g_free(info->python_version);
+	if (info->env_vars)
+		g_hash_table_destroy(info->env_vars);
+	g_free(info);
 	return NULL;
 }
 
@@ -1439,15 +1444,8 @@ static gboolean check_or_create_venv(const gchar *project_path, GError **error) 
 
 	// Check if venv exists
 	if (!python_exe) {
-		gchar *python_cmd;
-#ifdef _WIN32
-		python_cmd = g_strdup("py.exe");
-#else
-		python_cmd = g_strdup("python3");
-#endif
-
 		gchar **argv = g_new0(gchar*, 5);
-		argv[0] = python_cmd;
+		argv[0] = g_strdup(PYTHON_EXE);
 		argv[1] = g_strdup("-m");
 		argv[2] = g_strdup("venv");
 		argv[3] = g_strdup(venv_path);
