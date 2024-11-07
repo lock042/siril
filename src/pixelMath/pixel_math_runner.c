@@ -592,7 +592,12 @@ static gchar* parse_image_functions(gpointer p, int idx, int c) {
 		}
 
 		if (replace) {
-			expression = g_regex_replace_literal(regex, expression, -1, 0, replace, G_REGEX_MATCH_DEFAULT, NULL);
+#if GLIB_CHECK_VERSION(2, 74, 0)
+	expression = g_regex_replace_literal(regex, expression, -1, 0, replace, G_REGEX_MATCH_DEFAULT, NULL);
+#else
+	// Use an alternative flag or no flag if G_REGEX_MATCH_DEFAULT is not available
+	expression = g_regex_replace_literal(regex, expression, -1, 0, replace, 0, NULL);
+#endif
 			g_free(replace);
 			siril_debug_print("Expression%d: %s\n", c, expression);
 		}
