@@ -1438,25 +1438,32 @@ cleanup:
 
 static gboolean check_or_create_venv(const gchar *project_path, GError **error) {
 	gchar *venv_path = g_build_filename(project_path, "venv", NULL);
+	siril_debug_print("venv path: %s\n", venv_path);
 	gchar *python_exe = find_venv_python_exe(venv_path, FALSE);
+	if (python_exe) {
+		siril_debug_print("Found python executable in venv: %s\n", python_exe);
+	} else {
+		siril_debug_print("Did not find python executable in venv. Recreating the venv...\n");
+	}
 	gboolean success = FALSE;
 	GError *local_error = NULL;
 
 	// Check if venv exists
 	if (!python_exe) {
 		gchar **argv = g_new0(gchar*, 5);
-		argv[0] = g_strdup(PYTHON_EXE);
+		argv[0] = g_find_program_in_path(PYTHON_EXE);
 		argv[1] = g_strdup("-m");
 		argv[2] = g_strdup("venv");
 		argv[3] = g_strdup(venv_path);
 		argv[4] = NULL;
-
+		siril_debug_print("Trying venv creation command: %s %s %s %s\n", argv[0], argv[1], argv[2], argv[3]);
 		gint exit_status;
 		if (!g_spawn_sync(NULL, argv, NULL,
 						G_SPAWN_SEARCH_PATH,
 						NULL, NULL,
 						NULL, NULL,
 						&exit_status, &local_error)) {
+			siril_debug_print("Error in venv creation command: %s\n", local_error->message);
 			g_propagate_error(error, local_error);
 			success = FALSE;
 			goto cleanup;
