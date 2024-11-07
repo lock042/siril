@@ -1463,7 +1463,7 @@ static gboolean check_or_create_venv(const gchar *project_path, GError **error) 
 						NULL, NULL,
 						NULL, NULL,
 						&exit_status, &local_error)) {
-			siril_log_color_message_(("Error in venv creation command: %s\n"), "red", local_error->message);
+			siril_log_color_message(_("Error in venv creation command: %s\n"), "red", local_error->message);
 			g_propagate_error(error, local_error);
 			success = FALSE;
 			goto cleanup;

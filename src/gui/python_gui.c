@@ -47,6 +47,8 @@ GtkScrolledWindow *scrolled_window = NULL;
 GtkComboBox *combo_language = NULL;
 GtkSourceLanguageManager *language_manager = NULL;
 GtkSourceLanguage *language = NULL;
+GtkSourceStyleSchemeManager *stylemanager = NULL;
+GtkSourceStyleScheme *scheme = NULL;
 
 enum {
 	LANG_PYTHON,
@@ -54,6 +56,20 @@ enum {
 };
 
 static gint active_language = LANG_PYTHON;
+
+void set_code_view_theme() {
+	// Set the style scheme based on whether the Siril theme is light or dark
+	// The core "Classic" and "Oblivion" themes are used: these should always be available
+	stylemanager = gtk_source_style_scheme_manager_get_default();
+	scheme = gtk_source_style_scheme_manager_get_scheme(stylemanager,
+										com.pref.gui.combo_theme == 0 ? "oblivion" : "classic");
+	if (scheme)
+		gtk_source_buffer_set_style_scheme(sourcebuffer, scheme);
+}
+
+gboolean code_view_exists() {
+	return (code_view != NULL);
+}
 
 void add_code_view(GtkBuilder *builder) {
 	// Create a new GtkSourceView
@@ -72,6 +88,10 @@ void add_code_view(GtkBuilder *builder) {
 	gtk_source_view_set_auto_indent(GTK_SOURCE_VIEW(code_view), TRUE);
 	gtk_source_view_set_insert_spaces_instead_of_tabs(GTK_SOURCE_VIEW(code_view), TRUE);
 	gtk_source_view_set_indent_on_tab(GTK_SOURCE_VIEW(code_view), TRUE);
+
+	// Set the GtkSourceView style depending on whether the Siril light or dark
+	// theme is set.
+	set_code_view_theme();
 
 	// Get the GtkSourceLanguageManager and set the Python language
 	language_manager = gtk_source_language_manager_get_default();

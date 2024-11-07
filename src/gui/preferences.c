@@ -39,6 +39,7 @@
 #include "gui/dialogs.h"
 #include "gui/PSF_list.h"
 #include "gui/photometric_cc.h"
+#include "gui/python_gui.h"
 #include "gui/registration.h"
 #include "gui/siril_intro.h"
 #include "gui/fix_xtrans_af.h"
@@ -1006,6 +1007,10 @@ void on_apply_settings_button_clicked(GtkButton *button, gpointer user_data) {
 		siril_close_dialog("settings_window");
 		update_reg_interface(TRUE); // To update UI with new preferences
 	}
+	// Update the GtkSourceView theme, if the widget has been created, in case
+	// the Siril theme has been changed
+	if (code_view_exists())
+		set_code_view_theme();
 }
 
 void on_cancel_settings_button_clicked(GtkButton *button, gpointer user_data) {
