@@ -21,12 +21,14 @@
 #include <time.h>
 
 #include "core/siril.h"
+#include "core/processing.h"
 #include "core/siril_log.h"
 #include "core/siril_update.h"
 #include "core/siril_app_dirs.h"
 #include "io/single_image.h"
 #include "io/siril_pythoncommands.h"
 #include "io/siril_pythonmodule.h"
+#include "gui/script_menu.h"
 
 // 65k buffer is enough for any object except pixel data and things
 // that could be an arbitrary length. For pixel data, FITS header,
@@ -598,6 +600,9 @@ static void cleanup_child_process(GPid pid, gint status, gpointer user_data) {
 
 	// Close the process handle
 	g_spawn_close_pid(pid);
+
+	// Re-enable widgets
+	script_widgets_idle(NULL);
 }
 
 // Function to get Python version from venv (could be called during venv activation)
