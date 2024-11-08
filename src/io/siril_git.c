@@ -194,7 +194,7 @@ static int reset_repository(const gchar *local_path) {
 	git_repository *repo = NULL;
 	int error = git_repository_open(&repo, local_path);
 	if (error != 0) {
-		siril_log_color_message(_("Error performing hard reset. You may need to delete the local git repository and allow Siril to re-clone it.\n"), "red");
+		siril_log_color_message(_("git_repository_open: Error performing hard reset. You may need to delete the local git repository and allow Siril to re-clone it.\n"), "red");
 		git_repository_free(repo);
 		git_libgit2_shutdown();
 		return -1;
@@ -205,7 +205,7 @@ static int reset_repository(const gchar *local_path) {
 	error = 0;
 	error = git_revparse_single(&target_commit, repo, "FETCH_HEAD");
 	if (error != 0) {
-		siril_log_color_message(_("Error performing hard reset. You may need to delete the local git repository and allow Siril to re-clone it.\n"), "red");
+		siril_log_color_message(_("git_revparse_single: Error performing hard reset. You may need to delete the local git repository and allow Siril to re-clone it.\n"), "red");
 		git_repository_free(repo);
 		git_libgit2_shutdown();
 		return -1;
@@ -214,7 +214,7 @@ static int reset_repository(const gchar *local_path) {
 	// Perform the reset
 	error = git_reset(repo, target_commit, GIT_RESET_HARD, NULL);
 	if (error != 0) {
-		siril_log_color_message(_("Error performing hard reset. You may need to delete the local git repository and allow Siril to re-clone it.\n"), "red");
+		siril_log_color_message(_("git_reset: Error performing hard reset. You may need to delete the local git repository and allow Siril to re-clone it.\n"), "red");
 		git_object_free(target_commit);
 		git_repository_free(repo);
 		git_libgit2_shutdown();
@@ -565,7 +565,7 @@ int auto_update_gitscripts(gboolean sync) {
 		git_object *target_commit = NULL;
 		error = git_revparse_single(&target_commit, repo, "FETCH_HEAD");
 		if (error != 0) {
-			siril_log_color_message(_("Error performing hard reset. If the problem persists you may need to delete the local git repository and allow Siril to re-clone it.\n"), "red");
+			siril_log_color_message(_("git_revparse_single: Error performing hard reset. If the problem persists you may need to delete the local git repository and allow Siril to re-clone it.\n"), "red");
 			gui.script_repo_available = FALSE;
 			git_remote_free(remote);
 			git_repository_free(repo);
@@ -577,7 +577,7 @@ int auto_update_gitscripts(gboolean sync) {
 		error = git_reset(repo, target_commit, GIT_RESET_HARD, NULL);
 		git_object_free(target_commit);
 		if (error != 0) {
-			siril_log_color_message(_("Error performing hard reset. If the problem persists you may need to delete the local git repository and allow Siril to re-clone it.\n"), "red");
+			siril_log_color_message(_("git_reset: Error performing hard reset. If the problem persists you may need to delete the local git repository and allow Siril to re-clone it.\n"), "red");
 			git_remote_free(remote);
 			git_repository_free(repo);
 			git_libgit2_shutdown();
@@ -702,7 +702,7 @@ int auto_update_gitspcc(gboolean sync) {
 		git_object *target_commit = NULL;
 		error = git_revparse_single(&target_commit, repo, "FETCH_HEAD");
 		if (error != 0) {
-			siril_log_color_message(_("Error performing hard reset. If the problem persists you may need to delete the local git repository and allow Siril to re-clone it.\n"), "red");
+			siril_log_color_message(_("git_revparse_single: Error performing hard reset. If the problem persists you may need to delete the local git repository and allow Siril to re-clone it.\n"), "red");
 			gui.spcc_repo_available = FALSE;
 			git_remote_free(remote);
 			git_repository_free(repo);
@@ -714,7 +714,7 @@ int auto_update_gitspcc(gboolean sync) {
 		error = git_reset(repo, target_commit, GIT_RESET_HARD, NULL);
 		git_object_free(target_commit);
 		if (error != 0) {
-			siril_log_color_message(_("Error performing hard reset. If the problem persists you may need to delete the local git repository and allow Siril to re-clone it.\n"), "red");
+			siril_log_color_message(_("git_reset: Error performing hard reset. If the problem persists you may need to delete the local git repository and allow Siril to re-clone it.\n"), "red");
 			git_remote_free(remote);
 			git_repository_free(repo);
 			git_libgit2_shutdown();
