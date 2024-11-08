@@ -1345,7 +1345,12 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 		}
 
 		// Install with pip
+#ifdef _WIN32
+		gchar* pip_command = g_strdup_printf("'%s' -m pip install -e '%s'", python_path, user_module_path);
+#else
 		gchar* pip_command = g_strdup_printf("%s -m pip install -e %s", python_path, user_module_path);
+#endif
+		siril_debug_print("%s\n", pip_command);
 
 		gint exit_status;
 		GError* spawn_error = NULL;
