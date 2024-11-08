@@ -477,10 +477,9 @@ static void initialize_data(gpointer p) {
 	args->checksum = gtk_toggle_button_get_active(checksum);
 }
 
-static gchar *tmp_filename = NULL;
-
 static long calculate_jpeg_size(struct savedial_data *args) {
 	char const *tmp_dir = g_get_tmp_dir();
+	gchar *tmp_filename;
 	gchar *tmp_filename_template = (com.uniq->filename != NULL) ? g_path_get_basename(com.uniq->filename) : g_strdup(_("preview"));
 /* Due to a Windows behavior and Mingw temp file name,
  * we escapes the special characters by inserting a '\' before them */
@@ -517,6 +516,7 @@ static long calculate_jpeg_size(struct savedial_data *args) {
 		g_warning("Unable to get file size for '%s': %s", tmp_filename, g_strerror(errno));
 	}
 	g_free(tmp_filename);
+	g_unlink(tmp_filename);
 	return (long) file_size;
 }
 
@@ -553,43 +553,7 @@ static gpointer mini_save_dialog(gpointer p) {
 			break;
 #ifdef HAVE_LIBJPEG
 		case TYPEJPG:;
-			gboolean success = FALSE;
-			if (tmp_filename && g_file_test(tmp_filename, G_FILE_TEST_EXISTS)) {
-				GError *error = NULL;
-				// Check filename has correct extension
-				char *filename = strdup(args->filename);
-				if (!g_str_has_suffix(filename, ".jpg") && (!g_str_has_suffix(filename, ".jpeg"))) {
-					filename = str_append(&filename, ".jpg");
-				}
-				if (g_file_test(filename, G_FILE_TEST_EXISTS) && g_unlink(filename)) {
-					siril_debug_print("Failed to remove existing file");
-				}
-				// Attempt to move the file
-				GFile *move_from = g_file_new_for_path(tmp_filename);
-				GFile *move_to = g_file_new_for_path(filename);
-				success = g_file_move(move_from,
-											move_to,
-											G_FILE_COPY_NONE,
-											NULL,
-											NULL,
-											NULL,
-											&error);
-				g_object_unref(move_from);
-				g_object_unref(move_to);
-				if (success) {
-					siril_log_message(_("Saving JPG: file %s, quality=%d%%, %ld layer(s), %ux%u pixels\n"),
-						filename, args->quality, gfit.naxes[2], gfit.rx, gfit.ry);
-				} else {
-					siril_debug_print("Error moving file: %s\n", error->message);
-				}
-				free(filename);
-				// Reset the static tmp filename to NULL
-				g_free(tmp_filename);
-				tmp_filename = NULL;
-			}
-			if (!success) { // if there was no tmp file or if moving it didn't work, save normally
-				args->retval = savejpg(args->filename, &gfit, args->quality, TRUE);
-			}
+			args->retval = savejpg(args->filename, &gfit, args->quality, TRUE);
 			break;
 #endif
 #ifdef HAVE_LIBJXL
@@ -671,21 +635,15 @@ void on_savetxt_changed(GtkEditable *editable, gpointer user_data) {
 	gtk_widget_set_sensitive(button, (*name != '\0'));
 }
 
-void on_savepopup_hide(GtkWidget *widget, gpointer user_data) {
-	if (tmp_filename && g_unlink(tmp_filename))
-		siril_debug_print("Error removing temporary file\n");
-	g_free(tmp_filename);
-	tmp_filename = NULL;
-}
-
 void on_size_estimate_toggle_toggled(GtkToggleButton *button, gpointer user_data) {
 	struct savedial_data *args = calloc(1, sizeof(struct savedial_data));
 	if (!args) {
 		PRINT_ALLOC_ERR;
 		return;
 	}
-	if (gtk_toggle_button_get_active(button)) {
-		initialize_data(args);
+	initialize_data(args);
+
+	if (!get_thread_run() && gtk_toggle_button_get_active(button)) {
 		if (!get_thread_run()) {
 			start_in_new_thread(calculate_jpeg_size_thread, args);
 			return;
@@ -693,11 +651,7 @@ void on_size_estimate_toggle_toggled(GtkToggleButton *button, gpointer user_data
 	}
 	// Clear preview size
 	gtk_entry_set_text(GTK_ENTRY(lookup_widget("size_estimate_entry")), "");
-	// Remove temporary file and free and reset tmp_filename to NULL
-	if (tmp_filename && g_unlink(tmp_filename))
-		siril_debug_print("Error removing temporary file\n");
-	g_free(tmp_filename);
-	tmp_filename = NULL;
+
 	g_free(args->description);
 	g_free(args->copyright);
 	free (args);
