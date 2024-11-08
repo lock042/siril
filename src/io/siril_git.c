@@ -152,14 +152,14 @@ static char *get_commit_from_oid(git_repository *repo, git_oid *oid_to_find) {
 	if (git_reference_iterator_new(&ref_iterator, repo) == 0) {
 		git_reference *ref = NULL;
 		while (git_reference_next(&ref, ref_iterator) == 0) {
-		if (git_reference_type(ref) == GIT_REFERENCE_DIRECT) {
-			const git_oid *target_oid = git_reference_target(ref);
-			if (git_oid_equal(target_oid, git_commit_id(commit))) {
-				retval = strdup(git_reference_name(ref));
-				break;
+			if (git_reference_type(ref) == GIT_REFERENCE_DIRECT) {
+				const git_oid *target_oid = git_reference_target(ref);
+				if (git_oid_equal(target_oid, git_commit_id(commit))) {
+					retval = strdup(git_reference_name(ref));
+					break;
+				}
 			}
-		}
-		git_reference_free(ref);
+			git_reference_free(ref);
 		}
 		git_reference_iterator_free(ref_iterator);
 	}
@@ -215,21 +215,21 @@ static int remove_git_locks(const git_repository *repo) {
 }
 
 static int siril_repository_open(git_repository **out, const gchar *path) {
-int retval = git_repository_open(out, path);
-if (!retval) {
-	// Remove any existing lock files
-	// We don't care about the state of the repo because we're about to hard
-	// reset it
-	int error = remove_git_locks(*out);
-	if (error != 0) {
-		siril_log_color_message(
-			_("Error removing Git lock files. You may need to delete the local "
-				"git repository and allow Siril to re-clone it.\n"),
-			"red");
-		return -1;
+	int retval = git_repository_open(out, path);
+	if (!retval) {
+		// Remove any existing lock files
+		// We don't care about the state of the repo because we're about to hard
+		// reset it
+		int error = remove_git_locks(*out);
+		if (error != 0) {
+			siril_log_color_message(
+				_("Error removing Git lock files. You may need to delete the local "
+					"git repository and allow Siril to re-clone it.\n"),
+				"red");
+			return -1;
+		}
 	}
-}
-return retval;
+	return retval;
 }
 
 int reset_repository(const gchar *local_path) {
@@ -339,21 +339,21 @@ static gboolean script_version_check(const gchar *filename) {
 														&error)) && !error) {
 		gchar *ver = find_str_before_comment(buffer, "requires", "#");
 		if (ver) {
-		gchar **versions = g_strsplit(ver, " ", 2);
-		version_number required_version =
-			get_version_number_from_string(versions[1]);
-		version_number expired_version = {0};
-		int new_enough = compare_version(current_version, required_version);
-		int too_new = -1;
-		if (versions[2]) {
-			expired_version = get_version_number_from_string(versions[2]);
-			too_new = compare_version(current_version, expired_version);
-		}
-		retval = ((new_enough >= 0) && (too_new < 0));
-		g_strfreev(versions);
-		g_free(buffer);
-		buffer = NULL;
-		break;
+			gchar **versions = g_strsplit(ver, " ", 2);
+			version_number required_version =
+				get_version_number_from_string(versions[1]);
+			version_number expired_version = {0};
+			int new_enough = compare_version(current_version, required_version);
+			int too_new = -1;
+			if (versions[2]) {
+				expired_version = get_version_number_from_string(versions[2]);
+				too_new = compare_version(current_version, expired_version);
+			}
+			retval = ((new_enough >= 0) && (too_new < 0));
+			g_strfreev(versions);
+			g_free(buffer);
+			buffer = NULL;
+			break;
 		}
 		g_free(buffer);
 	}
@@ -393,12 +393,12 @@ static int analyse(git_repository *repo, GString **git_pending_commit_buffer) {
 		git_repository_state_cleanup(repo);
 		state = git_repository_state(repo);
 		if (state != GIT_REPOSITORY_STATE_NONE) {
-		siril_log_color_message(_("libgit2: repository failed to clean up "
-									"properly. Cannot continue.\n"),
-								"red");
-		free((char **)opts.heads);
-		free(opts.annotated);
-		return 1;
+			siril_log_color_message(_("libgit2: repository failed to clean up "
+								"properly. Cannot continue.\n"),
+									"red");
+			free((char **)opts.heads);
+			free(opts.annotated);
+			return 1;
 		}
 	}
 
@@ -421,8 +421,7 @@ static int analyse(git_repository *repo, GString **git_pending_commit_buffer) {
 		return -1;
 	}
 
-	if ((analysis & GIT_MERGE_ANALYSIS_FASTFORWARD) ||
-		(analysis & GIT_MERGE_ANALYSIS_UP_TO_DATE)) {
+	if ((analysis & GIT_MERGE_ANALYSIS_FASTFORWARD) || (analysis & GIT_MERGE_ANALYSIS_UP_TO_DATE)) {
 		can_fastforward = TRUE;
 	} else {
 		can_fastforward = FALSE;
@@ -483,28 +482,28 @@ static int analyse(git_repository *repo, GString **git_pending_commit_buffer) {
 		// Check if the current commit is the HEAD. If not, we print the commit
 		// message. If so, we break and don't show any further messages.
 		if (git_oid_equal(git_commit_id(head_commit), git_commit_id(commit))) {
-		found_head_ancestor = TRUE;
-		break;
+			found_head_ancestor = TRUE;
+			break;
 		}
 
 		// We have not yet reached the HEAD so we print the commit message.
 		commit_msg = git_commit_message(commit);
 		if (!*git_pending_commit_buffer) {
-		gchar *buf = g_strdup_printf(_("Commit message: %s\n"), commit_msg);
-		*git_pending_commit_buffer = g_string_new(buf);
-		g_free(buf);
+			gchar *buf = g_strdup_printf(_("Commit message: %s\n"), commit_msg);
+			*git_pending_commit_buffer = g_string_new(buf);
+			g_free(buf);
 		} else {
-		g_string_append_printf(*git_pending_commit_buffer,
-								_("Commit message: %s\n"), commit_msg);
+		g	_string_append_printf(*git_pending_commit_buffer,
+									_("Commit message: %s\n"), commit_msg);
 		}
 
 		if (git_commit_parentcount(commit) > 0) {
-		parent_oid = *git_commit_parent_id(commit, 0);
-		if (git_commit_lookup(&parent_commit, repo, &parent_oid) != 0) {
-			break;
-		}
+			parent_oid = *git_commit_parent_id(commit, 0);
+			if (git_commit_lookup(&parent_commit, repo, &parent_oid) != 0) {
+				break;
+			}
 		} else {
-		break;
+			break;
 		}
 
 		git_commit_free(commit);
@@ -554,26 +553,26 @@ int auto_update_gitscripts(gboolean sync) {
 		siril_log_color_message(_("Cannot open repository: %s\n"), "salmon",
 								e->message);
 		if (is_online()) {
-		siril_log_message(_("Attempting to clone from remote source...\n"));
-		// Perform the clone operation
-		error = git_clone(&repo, SCRIPT_REPOSITORY_URL, local_path, &clone_opts);
+			siril_log_message(_("Attempting to clone from remote source...\n"));
+			// Perform the clone operation
+			error = git_clone(&repo, SCRIPT_REPOSITORY_URL, local_path, &clone_opts);
 
-		if (error != 0) {
-			e = giterr_last();
-			siril_log_color_message(_("Error cloning repository: %s\n"), "red",
-									e->message);
+			if (error != 0) {
+				e = giterr_last();
+				siril_log_color_message(_("Error cloning repository: %s\n"), "red",
+										e->message);
+				gui.script_repo_available = FALSE;
+				git_libgit2_shutdown();
+				return 1;
+			} else {
+				siril_log_message(_("Repository cloned successfully!\n"));
+			}
+		} else {
+			siril_log_message(_("Siril is in offline mode. Will not attempt to clone "
+								"remote repository.\n"));
 			gui.script_repo_available = FALSE;
 			git_libgit2_shutdown();
 			return 1;
-		} else {
-			siril_log_message(_("Repository cloned successfully!\n"));
-		}
-		} else {
-		siril_log_message(_("Siril is in offline mode. Will not attempt to clone "
-							"remote repository.\n"));
-		gui.script_repo_available = FALSE;
-		git_libgit2_shutdown();
-		return 1;
 		}
 	} else {
 		siril_debug_print("Local scripts repository opened successfully!\n");
@@ -673,12 +672,12 @@ int auto_update_gitscripts(gboolean sync) {
 	for (i = 0; i < entry_count; i++) {
 		entry = git_index_get_byindex(index, i);
 		if (g_str_has_suffix(entry->path, SCRIPT_EXT) &&
-			script_version_check(entry->path)) {
-		gui.repo_scripts =
-			g_list_prepend(gui.repo_scripts, g_strdup(entry->path));
-	#ifdef DEBUG_GITSCRIPTS
-		printf("%s\n", entry->path);
-	#endif
+						script_version_check(entry->path)) {
+			gui.repo_scripts =
+				g_list_prepend(gui.repo_scripts, g_strdup(entry->path));
+#ifdef DEBUG_GITSCRIPTS
+			printf("%s\n", entry->path);
+#endif
 		}
 	}
 
@@ -721,13 +720,13 @@ int auto_update_gitspcc(gboolean sync) {
 
 		if (error != 0) {
 		e = giterr_last();
-		siril_log_color_message(_("Error cloning repository: %s\n"), "red",
-								e->message);
-		gui.spcc_repo_available = FALSE;
-		git_libgit2_shutdown();
-		return 1;
+			siril_log_color_message(_("Error cloning repository: %s\n"), "red",
+									e->message);
+			gui.spcc_repo_available = FALSE;
+			git_libgit2_shutdown();
+			return 1;
 		} else {
-		siril_log_message(_("Repository cloned successfully!\n"));
+			siril_log_message(_("Repository cloned successfully!\n"));
 		}
 	} else {
 		siril_debug_print("Local SPCC database repository opened successfully!\n");
@@ -780,29 +779,29 @@ int auto_update_gitspcc(gboolean sync) {
 		git_object *target_commit = NULL;
 		error = git_revparse_single(&target_commit, repo, "FETCH_HEAD");
 		if (error != 0) {
-		siril_log_color_message(_("Error performing hard reset. If the problem "
-									"persists you may need to delete the local git "
-									"repository and allow Siril to re-clone it.\n"),
-								"red");
-		gui.spcc_repo_available = FALSE;
-		git_remote_free(remote);
-		git_repository_free(repo);
-		git_libgit2_shutdown();
-		return -1;
+			siril_log_color_message(_("Error performing hard reset. If the problem "
+										"persists you may need to delete the local git "
+										"repository and allow Siril to re-clone it.\n"),
+									"red");
+			gui.spcc_repo_available = FALSE;
+			git_remote_free(remote);
+			git_repository_free(repo);
+			git_libgit2_shutdown();
+			return -1;
 		}
 
 		// Perform the reset
 		error = git_reset(repo, target_commit, GIT_RESET_HARD, NULL);
 		git_object_free(target_commit);
 		if (error != 0) {
-		siril_log_color_message(_("Error performing hard reset. If the problem "
-							"persists you may need to delete the local git "
-							"repository and allow Siril to re-clone it.\n"),
-								"red");
-		git_remote_free(remote);
-		git_repository_free(repo);
-		git_libgit2_shutdown();
-		return -1;
+			siril_log_color_message(_("Error performing hard reset. If the problem "
+								"persists you may need to delete the local git "
+								"repository and allow Siril to re-clone it.\n"),
+									"red");
+			git_remote_free(remote);
+			git_repository_free(repo);
+			git_libgit2_shutdown();
+			return -1;
 		}
 		siril_log_color_message(
 			_("Local SPCC database repository is up-to-date!\n"), "green");
