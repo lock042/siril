@@ -41,103 +41,100 @@
 #ifdef HAVE_LIBGIT2
 #include <git2.h>
 
-const gchar *SCRIPT_REPOSITORY_URL =
-    "https://gitlab.com/free-astro/siril-scripts";
-const gchar *SPCC_REPOSITORY_URL =
-    "https://gitlab.com/free-astro/siril-spcc-database";
+const gchar *SCRIPT_REPOSITORY_URL = "https://gitlab.com/free-astro/siril-scripts";
+const gchar *SPCC_REPOSITORY_URL = "https://gitlab.com/free-astro/siril-spcc-database";
 
 static void *xrealloc(void *oldp, size_t newsz) {
-  void *p = realloc(oldp, newsz);
-  if (p == NULL) {
-    PRINT_ALLOC_ERR;
-    // exit(1);
-  }
-  return p;
+	void *p = realloc(oldp, newsz);
+	if (p == NULL) {
+		PRINT_ALLOC_ERR;
+		// exit(1);
+	}
+	return p;
 }
 
 enum {
-  FORMAT_DEFAULT = 0,
-  FORMAT_LONG = 1,
-  FORMAT_SHORT = 2,
-  FORMAT_PORCELAIN = 3
+	FORMAT_DEFAULT = 0,
+	FORMAT_LONG = 1,
+	FORMAT_SHORT = 2,
+	FORMAT_PORCELAIN = 3
 };
 
 struct merge_options {
-  const char **heads;
-  size_t heads_count;
+	const char **heads;
+	size_t heads_count;
 
-  git_annotated_commit **annotated;
-  size_t annotated_count;
+	git_annotated_commit **annotated;
+	size_t annotated_count;
 };
 
 static void merge_options_init(struct merge_options *opts) {
-  memset(opts, 0, sizeof(*opts));
+	memset(opts, 0, sizeof(*opts));
 
-  opts->heads = NULL;
-  opts->heads_count = 0;
-  opts->annotated = NULL;
-  opts->annotated_count = 0;
+	opts->heads = NULL;
+	opts->heads_count = 0;
+	opts->annotated = NULL;
+	opts->annotated_count = 0;
 }
 
 static void opts_add_refish(struct merge_options *opts, const char *refish) {
-  size_t sz;
+	size_t sz;
+	assert(opts != NULL);
 
-  assert(opts != NULL);
-
-  sz = ++opts->heads_count * sizeof(opts->heads[0]);
-  opts->heads = xrealloc((void *)opts->heads, sz);
-  opts->heads[opts->heads_count - 1] = refish;
+	sz = ++opts->heads_count * sizeof(opts->heads[0]);
+	opts->heads = xrealloc((void *)opts->heads, sz);
+	opts->heads[opts->heads_count - 1] = refish;
 }
 
 static int resolve_refish(git_annotated_commit **commit, git_repository *repo,
                           const char *refish) {
-  git_reference *ref;
-  git_object *obj;
-  int err = 0;
+	git_reference *ref;
+	git_object *obj;
+	int err = 0;
 
-  assert(commit != NULL);
+	assert(commit != NULL);
 
-  err = git_reference_dwim(&ref, repo, refish);
-  if (err == GIT_OK) {
-    git_annotated_commit_from_ref(commit, repo, ref);
-    git_reference_free(ref);
-    return 0;
-  }
+	err = git_reference_dwim(&ref, repo, refish);
+	if (err == GIT_OK) {
+		git_annotated_commit_from_ref(commit, repo, ref);
+		git_reference_free(ref);
+		return 0;
+	}
 
-  err = git_revparse_single(&obj, repo, refish);
-  if (err == GIT_OK) {
-    err = git_annotated_commit_lookup(commit, repo, git_object_id(obj));
-    git_object_free(obj);
-  }
+	err = git_revparse_single(&obj, repo, refish);
+	if (err == GIT_OK) {
+		err = git_annotated_commit_lookup(commit, repo, git_object_id(obj));
+		git_object_free(obj);
+	}
 
-  return err;
+	return err;
 }
 
 static int resolve_heads(git_repository *repo, struct merge_options *opts) {
-  git_annotated_commit **annotated =
-      calloc(opts->heads_count, sizeof(git_annotated_commit *));
-  size_t annotated_count = 0, i;
+	git_annotated_commit **annotated =
+		calloc(opts->heads_count, sizeof(git_annotated_commit *));
+	size_t annotated_count = 0, i;
 
-  for (i = 0; i < opts->heads_count; i++) {
-    int err =
-        resolve_refish(&annotated[annotated_count++], repo, opts->heads[i]);
-    if (err != 0) {
-      siril_debug_print("libgit2: failed to resolve refish %s: %s\n",
-                        opts->heads[i], git_error_last()->message);
-      annotated_count--;
-      continue;
-    }
-  }
+	for (i = 0; i < opts->heads_count; i++) {
+		int err =
+			resolve_refish(&annotated[annotated_count++], repo, opts->heads[i]);
+		if (err != 0) {
+		siril_debug_print("libgit2: failed to resolve refish %s: %s\n",
+							opts->heads[i], git_error_last()->message);
+		annotated_count--;
+		continue;
+		}
+	}
 
-  if (annotated_count != opts->heads_count) {
-    siril_log_color_message(_("libgit2: unable to parse some refish\n"), "red");
-    free(annotated);
-    return -1;
-  }
+	if (annotated_count != opts->heads_count) {
+		siril_log_color_message(_("libgit2: unable to parse some refish\n"), "red");
+		free(annotated);
+		return -1;
+	}
 
-  opts->annotated = annotated;
-  opts->annotated_count = annotated_count;
-  return 0;
+	opts->annotated = annotated;
+	opts->annotated_count = annotated_count;
+	return 0;
 }
 
 static char *get_commit_from_oid(git_repository *repo, git_oid *oid_to_find) {
@@ -799,8 +796,8 @@ int auto_update_gitspcc(gboolean sync) {
 		git_object_free(target_commit);
 		if (error != 0) {
 		siril_log_color_message(_("Error performing hard reset. If the problem "
-									"persists you may need to delete the local git "
-									"repository and allow Siril to re-clone it.\n"),
+							"persists you may need to delete the local git "
+							"repository and allow Siril to re-clone it.\n"),
 								"red");
 		git_remote_free(remote);
 		git_repository_free(repo);
