@@ -434,7 +434,7 @@ static gboolean test_for_viewer_mode() {
 	return confirm;
 }
 
-static gboolean initialize_data(gpointer p) {
+static void initialize_data(gpointer p) {
 	struct savedial_data *args = (struct savedial_data *) p;
 
 	GtkToggleButton *fits_8 = GTK_TOGGLE_BUTTON(lookup_widget("radiobutton_save_fit8"));
@@ -475,8 +475,6 @@ static gboolean initialize_data(gpointer p) {
 
 	args->update_hilo = gtk_toggle_button_get_active(update_hilo);
 	args->checksum = gtk_toggle_button_get_active(checksum);
-
-	return test_for_viewer_mode();
 }
 
 static gchar *tmp_filename = NULL;
@@ -687,7 +685,8 @@ void on_size_estimate_toggle_toggled(GtkToggleButton *button, gpointer user_data
 		return;
 	}
 	if (gtk_toggle_button_get_active(button)) {
-		if (initialize_data(args) && !get_thread_run()) {
+		initialize_data(args);
+		if (!get_thread_run()) {
 			start_in_new_thread(calculate_jpeg_size_thread, args);
 			return;
 		}
@@ -711,12 +710,7 @@ void on_quality_spinbutton_value_changed(GtkSpinButton *button, gpointer user_da
 			PRINT_ALLOC_ERR;
 			return;
 		}
-		if (!initialize_data(args)) {
-			g_free(args->description);
-			g_free(args->copyright);
-			free (args);
-			return;
-		}
+		initialize_data(args);
 		if (!get_thread_run()) {
 			start_in_new_thread(calculate_jpeg_size_thread, args);
 		} else {
@@ -732,7 +726,8 @@ void on_button_savepopup_clicked(GtkButton *button, gpointer user_data) {
 	struct savedial_data *args = calloc(1, sizeof(struct savedial_data));
 
 	set_cursor_waiting(TRUE);
-	if (initialize_data(args)) {
+	initialize_data(args);
+	if (test_for_viewer_mode(args)) {
 		start_in_new_thread(mini_save_dialog, args);
 	} else {
 		g_free(args->copyright);
@@ -746,7 +741,8 @@ void on_savetxt_activate(GtkEntry *entry, gpointer user_data) {
 	struct savedial_data *args = calloc(1, sizeof(struct savedial_data));
 
 	set_cursor_waiting(TRUE);
-	if (initialize_data(args)) {
+	initialize_data(args);
+	if (test_for_viewer_mode(args)) {
 		start_in_new_thread(mini_save_dialog, args);
 	} else {
 		g_free(args->copyright);
@@ -770,7 +766,8 @@ void on_header_save_as_button_clicked() {
 				struct savedial_data *args = calloc(1, sizeof(struct savedial_data));
 
 				set_cursor_waiting(TRUE);
-				if (initialize_data(args)) {
+				initialize_data(args);
+				if (test_for_viewer_mode(args)) {
 					start_in_new_thread(mini_save_dialog, args);
 				} else {
 					g_free(args->copyright);
