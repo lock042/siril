@@ -388,7 +388,7 @@ static void draw_curve(cairo_t *cr, int width, int height) {
 
 	if (algorithm == LINEAR) {
 		GList *iter;
-		point *p;
+		point *p = NULL;
 		for (iter = curve_points; iter != NULL; iter = iter->next) {
 			p = (point *) iter->data;
 			if (iter == curve_points) {
@@ -396,7 +396,7 @@ static void draw_curve(cairo_t *cr, int width, int height) {
 			}
 			cairo_line_to(cr, p->x * width, height - (p->y * height));
 		}
-		cairo_line_to(cr, width, height - (p->y * height));
+		if (p) cairo_line_to(cr, width, height - (p->y * height));
 	} else if (algorithm == CUBIC_SPLINE) {
 		cubic_spline_data cspline_data;
 		cubic_spline_fit(curve_points, &cspline_data);

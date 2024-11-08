@@ -12042,9 +12042,10 @@ static graxpert_data* fill_graxpert_data_from_cmdline(int nb, sequence *seq,
 		data->operation = GRAXPERT_BG;
 	} else if (operation == GRAXPERT_DENOISE) {
 		data->operation = GRAXPERT_DENOISE;
+	} else if (operation == GRAXPERT_DECONV) {
+		data->operation = GRAXPERT_DECONV;
 	} else {
-		siril_log_color_message(_("Error: unknown GraXpert operation!\n"),
-				"red");
+		siril_log_color_message(_("Error: unknown GraXpert operation!\n"), "red");
 		free_graxpert_data(data);
 		return NULL;
 	}
@@ -12074,10 +12075,7 @@ static graxpert_data* fill_graxpert_data_from_cmdline(int nb, sequence *seq,
 					} else if (!g_ascii_strncasecmp(arg, "spline", 6)) {
 						data->bg_algo = GRAXPERT_BG_SPLINE;
 					} else {
-						siril_log_color_message(
-								_(
-										"Error: unknown background extraction algorithm!\n"),
-								"red");
+						siril_log_color_message(_("Error: unknown background extraction algorithm!\n"), "red");
 						goto GRAX_ARG_ERROR;
 					}
 				} else if (g_str_has_prefix(arg, "-mode=")) {
@@ -12211,19 +12209,16 @@ static graxpert_data* fill_graxpert_data_from_cmdline(int nb, sequence *seq,
 		data->denoise_strength = 1.0;
 	else if (data->deconv_strength > 1.0)
 		data->deconv_strength = 1.0;
-	else if (data->deconv_blur_psf_size > 1.0)
-		data->deconv_blur_psf_size = 1.0;
+	else if (data->deconv_blur_psf_size > 14.0)
+		data->deconv_blur_psf_size = 14.0;
 	if (data->bg_tol_option < -2.0)
 		data->bg_tol_option = -2.0;
 	else if (data->bg_tol_option > 6.0)
 		data->bg_tol_option = 6.0;
-	if (data->operation == GRAXPERT_DENOISE
+	if (data->operation == GRAXPERT_DENOISE || data->operation == GRAXPERT_DECONV
 			|| data->bg_algo == GRAXPERT_BG_AI) {
 		if (!check_graxpert_version(data->ai_version, data->operation)) {
-			siril_log_color_message(
-					_(
-							"Error: the requested AI model version is unavailable. Available versions are:\n"),
-					"red");
+			siril_log_color_message(_("Error: the requested AI model version is unavailable. Available versions are:\n"),"red");
 			ai_versions_to_log(operation);
 			goto GRAX_ARG_ERROR;
 		}
