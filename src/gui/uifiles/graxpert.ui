@@ -23,8 +23,8 @@
     <property name="page-increment">0.10</property>
   </object>
   <object class="GtkAdjustment" id="adj_graxpert_deconv_psf">
-    <property name="upper">1</property>
-    <property name="value">0.29999999999999999</property>
+    <property name="upper">14</property>
+    <property name="value">5</property>
     <property name="step-increment">0.01</property>
     <property name="page-increment">0.10</property>
   </object>
@@ -792,7 +792,7 @@
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="halign">start</property>
-                                <property name="label" translatable="yes">Blur PSF Size</property>
+                                <property name="label" translatable="yes">Image FWHM (in pixels)</property>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -804,11 +804,11 @@
                               <object class="GtkSpinButton" id="spin_deconv_graxpert_psf">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
-                                <property name="tooltip-text" translatable="yes">Configure GraXpert deconvolution PSF size.</property>
+                                <property name="tooltip-text" translatable="yes">Configure GraXpert deconvolution Image FWHM (in pixels).</property>
                                 <property name="text" translatable="yes">0,30</property>
                                 <property name="adjustment">adj_graxpert_deconv_psf</property>
                                 <property name="digits">2</property>
-                                <property name="value">0.29999999999999999</property>
+                                <property name="value">5</property>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
