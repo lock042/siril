@@ -609,9 +609,9 @@ static void cleanup_child_process(GPid pid, gint status, gpointer user_data) {
 gchar* get_venv_python_version(const gchar* venv_path) {
 	gchar* python_path;
 #ifdef _WIN32
-	python_path = g_build_filename(venv_path, "Scripts", "python.exe", NULL);
+	python_path = g_build_filename(venv_path, "Scripts", PYTHON_EXE, NULL);
 #else
-	python_path = g_build_filename(venv_path, "bin", "python3", NULL);
+	python_path = g_build_filename(venv_path, "bin", PYTHON_EXE, NULL);
 #endif
 
 	gchar* argv[] = { python_path, "-c", "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')", NULL };
@@ -999,11 +999,11 @@ static gchar* find_venv_python_exe(const gchar *venv_path, const gboolean verbos
 
 #ifdef _WIN32
 	// Try Scripts directory first
-	python_exe = g_build_filename(venv_path, "Scripts", "python.exe", NULL);
+	python_exe = g_build_filename(venv_path, "Scripts", PYTHON_EXE, NULL);
 	if (!g_file_test(python_exe, G_FILE_TEST_EXISTS)) {
 		g_free(python_exe);
 		// Try bin directory as fallback
-		python_exe = g_build_filename(venv_path, "bin", "python.exe", NULL);
+		python_exe = g_build_filename(venv_path, "bin", PYTHON_EXE, NULL);
 		if (!g_file_test(python_exe, G_FILE_TEST_EXISTS)) {
 			if (verbose) siril_debug_print("Error: python executable not found in the venv\n");
 			g_free(python_exe);
@@ -1011,7 +1011,7 @@ static gchar* find_venv_python_exe(const gchar *venv_path, const gboolean verbos
 		}
 	}
 #else
-	python_exe = g_build_filename(venv_path, "bin", "python3", NULL);
+	python_exe = g_build_filename(venv_path, "bin", PYTHON_EXE, NULL);
 	if (!g_file_test(python_exe, G_FILE_TEST_EXISTS)) {
 		if (verbose) siril_debug_print("Error: python executable not found in the venv\n");
 		g_free(python_exe);

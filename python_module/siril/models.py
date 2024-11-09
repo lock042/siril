@@ -18,7 +18,6 @@ class DataType(IntEnum):
 
 @dataclass
 class ImageStats:
-
     """
     Python equivalent of Siril imstats structure
     """
@@ -40,7 +39,6 @@ class ImageStats:
 
 @dataclass
 class FKeywords:
-
     """
     Python equivalent of fkeywords structure
     """
@@ -133,7 +131,8 @@ class FKeywords:
         physical_value = BZERO + BSCALE * array_value. The value field
         shall contain a floating point number representing the physical
         value corresponding to an array value of zero.  The default value
-        for this keyword is 0.0."""
+        for this keyword is 0.0.
+        """
         self.bzero = value
 
     def set_lo(self, value: int) -> None:
@@ -438,13 +437,14 @@ class FFit:
 
     @property
     def data(self) -> Optional[np.ndarray]:
-        """Get the pixel data of the current image loaded in Siril
-        as a numpy array"""
+        """
+        Get the pixel data of the current image loaded in Siril
+        as a numpy array
+        """
         return self._data
 
     @data.setter
     def data(self, value: Optional[np.ndarray]):
-
         """
         Set the pixel data of the current image loaded in Siril
         to the provided numpy array.
@@ -496,17 +496,19 @@ class FFit:
 
     @property
     def icc_profile(self) -> Optional[bytes]:
-        """Get the ICC profile as raw bytes data. This
-        may be converted for use by modules such as pillow
-        which can handle ICC profiles"""
+        """
+        Get the ICC profile as raw bytes data. This may be converted
+        for use by modules such as pillow which can handle ICC profiles.
+        """
         return self._icc_profile
 
     @icc_profile.setter
     def icc_profile(self, value: Optional[bytes]):
-        """Set ICC profile and update color_managed flag.
-        Note this only updates the python FFit structure: the
-        API does not currently support setting the ICC profile
-        of the currently loaded FITS image."""
+        """
+        Set ICC profile and update color_managed flag. Note this only
+        updates the python FFit structure: the API does not currently
+        support setting the ICC profile of the currently loaded FITS image.
+        """
         self._icc_profile = value
         self.color_managed = value is not None
 
@@ -533,9 +535,11 @@ class FFit:
                 raise ValueError(f"Unsupported type conversion from {self.data.dtype} to {self.dtype}")
 
     def get_channel(self, channel: int) -> np.ndarray:
-        """Get a specific channel of the pixel data. Note that this does
+        """
+        Get a specific channel of the pixel data. Note that this does
         not pull pixel data directly from the image loaded in Siril: that must
-        previously have been obtained using get_pixel_data() or get_image()"""
+        previously have been obtained using get_pixel_data() or get_image()
+        """
         if self.data is None:
             raise ValueError(_("No data allocated"))
         if self.naxis == 2:
@@ -545,10 +549,12 @@ class FFit:
         return self.data[:, :, channel]
 
     def update_stats(self):
-        """Update image statistics for all channels. Note that this only
+        """
+        Update image statistics for all channels. Note that this only
         updates the statistics based on the numpy array representing pixel data
         in the python FFit object, it does not update the statistics of the
-        image in Siril."""
+        image in Siril.
+        """
         if self.data is None:
             raise ValueError(_("No data allocated"))
 
