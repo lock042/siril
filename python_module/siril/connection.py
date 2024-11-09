@@ -1,18 +1,20 @@
 import os
 import sys
+import time
+import mmap
 import struct
 import socket
 import ctypes
-import time
-import mmap
-from datetime import datetime
 import calendar
+import importlib
+import subprocess
+import numpy as np
 from pathlib import Path
 from enum import IntEnum
-from typing import Tuple, Optional, List, Union
-import numpy as np
 from .translations import _
+from datetime import datetime
 from .shm import SharedMemoryWrapper
+from typing import Tuple, Optional, List, Union, Any
 from .exceptions import SirilError, ConnectionError, CommandError, DataError, NoImageError
 from .models import DataType, ImageStats, FKeywords, FFit, Homography, StarProfile, PSFStar, RegData, ImgData, Sequence, SequenceType
 
@@ -92,13 +94,7 @@ class SharedMemoryInfo(ctypes.Structure):
         ("shm_name", ctypes.c_char * 256)
     ]
 
-import importlib
-import subprocess
-import sys
-from typing import Optional, Any
-
 def import_or_install(module_name: str, package_name: Optional[str] = None) -> Any:
-
     """
     Attempts to import a module, installing it via pip if not found.
 
@@ -134,7 +130,6 @@ def import_or_install(module_name: str, package_name: Optional[str] = None) -> A
             raise ImportError(f"Failed to import {module_name} even after installation attempt: {e}")
 
 class SirilInterface:
-
     """
     SirilInterface is the main class providing an interface to a running
     Siril instance and access to methods to interact with it through
@@ -142,7 +137,6 @@ class SirilInterface:
     """
 
     def __init__(self):
-
         """
         Initialize the SirilInterface, automatically determining the
         correct pipe or socket path based on the environment variable and
@@ -160,7 +154,6 @@ class SirilInterface:
             self.event_pipe_path = self.socket_path  # Assuming event socket is the same path
 
     def connect(self):
-
         """
         Establish a connection to Siril based on the pipe or
         socket path. Returns True if the connection is successful, otherwise
@@ -199,7 +192,6 @@ class SirilInterface:
             raise ConnectionError(_("Failed to connect: {}").format(e))
 
     def disconnect(self):
-
         """
         Closes the established socket or pipe connection.
         """
@@ -442,15 +434,16 @@ class SirilInterface:
     # Specific commands follow below here
 
     def log(self, my_string: str) -> bool:
-
-        """Send a log message to Siril. The maximum message length is
+        """
+        Send a log message to Siril. The maximum message length is
         1022 bytes: longer messages will be truncated.
 
         Args:
             my_string: The message to log
 
         Returns:
-            bool: True if the message was successfully logged, False otherwise"""
+            bool: True if the message was successfully logged, False otherwise
+        """
 
         try:
             # Append a newline character to the string
@@ -464,15 +457,16 @@ class SirilInterface:
             return False
 
     def update_progress(self, message: str, progress: float) -> bool:
-
-        """Send a progress update to Siril with a message and completion percentage.
+        """
+        Send a progress update to Siril with a message and completion percentage.
 
         Args:
             message: Status message to display
             progress: Progress value between 0.0 and 1.0
 
         Returns:
-            bool: True if the progress update was successfully sent, False otherwise"""
+            bool: True if the progress update was successfully sent, False otherwise
+        """
 
         try:
             # Validate progress value
@@ -497,20 +491,21 @@ class SirilInterface:
             return False
 
     def reset_progress(self) -> bool:
-
-        """Send a progress update to Siril resetting the progress bar.
+        """
+        Send a progress update to Siril resetting the progress bar.
 
         Args:
             none
 
         Returns:
-            bool: True if the progress update was successfully sent, False otherwise"""
+            bool: True if the progress update was successfully sent, False otherwise
+        """
 
         return self.update_progress("", 0.0)
 
     def cmd(self, *args: str) -> bool:
-
-        """Send a command to Siril by combining multiple arguments into a single string.
+        """
+        Send a command to Siril by combining multiple arguments into a single string.
 
         Args:
             *args: Variable number of string arguments to be combined into a command
@@ -519,7 +514,8 @@ class SirilInterface:
             bool: True if the command was successfully executed, False otherwise
 
         Example:
-            siril.cmd("ght", "-D=0.5", "-b=2.0")"""
+            siril.cmd("ght", "-D=0.5", "-b=2.0")
+        """
 
         try:
             # Join arguments with spaces between them
@@ -536,11 +532,13 @@ class SirilInterface:
 
     def get_shape(self) -> Optional[Tuple[int, int, int]]:
 
-        """Request the shape of the image from Siril.
+        """
+        Request the shape of the image from Siril.
 
         Returns:
             A tuple (height, width, channels) representing the shape of the image,
-            or None if an error occurred."""
+            or None if an error occurred.
+        """
 
         response = self.request_data(_Command.GET_DIMENSIONS)
 
@@ -684,7 +682,6 @@ class SirilInterface:
                     pass
 
     def set_pixeldata(self, image_data: np.ndarray) -> bool:
-
         """
         Send image data to Siril using shared memory.
 
@@ -777,7 +774,6 @@ class SirilInterface:
                     pass
 
     def get_icc_profile(self) -> Optional[bytes]:
-
         """
         Retrieve the ICC profile of the current Siril image using shared memory.
 
@@ -857,7 +853,6 @@ class SirilInterface:
                     pass
 
     def get_fits_header(self) -> Optional[str]:
-
         """
         Retrieve the full FITS header of the current Siril image using
         shared memory.
@@ -939,7 +934,6 @@ class SirilInterface:
                     pass
 
     def get_unknown_keys(self) -> Optional[str]:
-
         """
         Retrieve the unknown key in a FITS header of the current Siril
         image using shared memory.
@@ -954,7 +948,7 @@ class SirilInterface:
             NoImageError: If no image is currently loaded
             RuntimeError: For other errors during  data retrieval
             ValueError: If the received data format is invalid or shape is invalid
-    """
+        """
 
         shm = None
         try:
@@ -1023,7 +1017,6 @@ class SirilInterface:
                     pass
 
     def get_history(self) -> Optional[list[str]]:
-
         """
         Retrieve history entries in the FITS header of the current
         Siril image using shared memory.
@@ -1109,7 +1102,6 @@ class SirilInterface:
                     pass
 
     def get_wd(self) -> Optional[str]:
-
         """
         Request the working directory from Siril.
 
@@ -1131,11 +1123,12 @@ class SirilInterface:
             return None
 
     def get_filename(self) -> Optional[str]:
+        """
+        Request the filename of the loaded image from Siril.
 
-        __doc__ - N_("Request the filename of the loaded image from Siril.\n\n"
-
-                     "Returns:\n"
-                     "    The filename as a string, or None if an error occurred.")
+        Returns:
+            The filename as a string, or None if an error occurred.
+        """
 
         response = self.request_data(_Command.GET_FILENAME)
 
@@ -1151,7 +1144,6 @@ class SirilInterface:
             return None
 
     def get_image_stats(self, channel: int) -> Optional[ImageStats]:
-
         """
         Request image statistics from Siril for a specific channel.
 
@@ -1216,7 +1208,6 @@ class SirilInterface:
             return None
 
     def get_seq_regdata(self, frame: int, channel: int) -> Optional[RegData]:
-
         """
         Request sequence frame registration data from Siril.
 
@@ -1269,7 +1260,6 @@ class SirilInterface:
             return None
 
     def get_seq_imstats(self, frame: int, channel: int) -> Optional[ImageStats]:
-
         """
         Request sequence frame statistics from Siril.
 
@@ -1316,7 +1306,6 @@ class SirilInterface:
             return None
 
     def get_seq_imgdata(self, frame: int) -> Optional[ImgData]:
-
         """
         Request sequence frame metadata from Siril.
         Args:
@@ -1351,7 +1340,6 @@ class SirilInterface:
             return None
 
     def get_seq(self) -> Optional[ImgData]:
-
         """
         Request metadata for the current sequence loaded in Siril.
 
@@ -1416,7 +1404,6 @@ class SirilInterface:
             return None
 
     def get_keywords(self) -> Optional[FKeywords]:
-
         """
         Request FITS keywords data from Siril.
 
@@ -1573,7 +1560,6 @@ class SirilInterface:
             return None
 
     def get_image(self, get_pixels: Optional[bool] = True) -> Optional[FFit]:
-
         """
         Request a copy of the current image open in Siril.
 
@@ -1675,7 +1661,6 @@ class SirilInterface:
             return None
 
     def get_stars(self) -> List[PSFStar]:
-
         """
         Request star model PSF data from Siril.
 
@@ -1793,7 +1778,6 @@ class SirilInterface:
                     print(f"Error closing shared memory: {e}", file=sys.stderr)
 
     def get_config(self, group: str, key: str) -> Optional[Union[bool, int, float, str, List[str]]]:
-
         """
         Request a configuration value from Siril.
 

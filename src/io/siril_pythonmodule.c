@@ -1308,6 +1308,7 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 		if (ver_error) {
 			g_propagate_error(error, ver_error);
 			g_free(module_setup_path);
+			g_free(python_path);
 			return FALSE;
 		}
 		siril_debug_print("System version: %d.%d.%d\n", module_version.major_version, module_version.minor_version, module_version.micro_version);
@@ -1319,6 +1320,7 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 			if (!delete_directory(user_module_path, &del_error)) {
 				g_propagate_error(error, del_error);
 				g_free(module_setup_path);
+				g_free(python_path);
 				return FALSE;
 			}
 			needs_install = TRUE;
@@ -1334,6 +1336,7 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 			if (g_mkdir_with_parents(user_module_path, 0755) != 0) {
 				g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
 						"Failed to create directory: %s", user_module_path);
+				g_free(python_path);
 				return FALSE;
 			}
 		}
@@ -1341,35 +1344,48 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 		GError* copy_error = NULL;
 		if (!copy_directory_recursive(module_path, user_module_path, &copy_error)) {
 			g_propagate_error(error, copy_error);
+			g_free(python_path);
 			return FALSE;
 		}
-
+		gchar *arg_module_path = g_strdup(user_module_path);
 		// Install with pip
-#ifdef _WIN32
-		gchar* pip_command = g_strdup_printf("'%s' -m pip install -e '%s'", python_path, user_module_path);
-#else
-		gchar* pip_command = g_strdup_printf("%s -m pip install -e %s", python_path, user_module_path);
-#endif
-		siril_debug_print("%s\n", pip_command);
+		gchar *argv[] = {
+			python_path,
+			"-m",
+			"pip",
+			"install",
+			arg_module_path,
+			NULL  // Array must be NULL-terminated
+		};
 
 		gint exit_status;
-		GError* spawn_error = NULL;
-		if (!g_spawn_command_line_sync(pip_command, NULL, NULL, &exit_status, &spawn_error)) {
-			g_free(pip_command);
+		GError *spawn_error = NULL;
+
+		if (!g_spawn_sync(
+				NULL,           // working_directory (NULL = inherit current)
+				argv,           // argument vector
+				NULL,           // inherit parent's environment
+				G_SPAWN_DEFAULT, // flags
+				NULL,           // child_setup function
+				NULL,           // user_data for child_setup
+				NULL,           // standard_output
+				NULL,           // standard_error
+				&exit_status,   // exit status
+				&spawn_error    // error
+			)) {
 			g_propagate_error(error, spawn_error);
+			g_free(arg_module_path);
+			g_free(python_path);
 			return FALSE;
 		}
-
+		g_free(arg_module_path);
+		g_free(python_path);
 		if (exit_status != 0) {
-			g_free(pip_command);
 			g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
 					"Pip installation failed with exit status: %d", exit_status);
 			return FALSE;
 		}
-
-		g_free(pip_command);
 	}
-
 	return TRUE;
 }
 
