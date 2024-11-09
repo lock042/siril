@@ -490,11 +490,13 @@ int generate_synthstars(fits *fit) {
 			assert(lum >= 0.0f);
 			float xoff = (float) stars[n]->xpos - (int) stars[n]->xpos;
 			float yoff = (float) stars[n]->ypos - (int) stars[n]->ypos;
-			int size = (int) 20 * max(stars[n]->fwhmx, stars[n]->fwhmy); // This is big enough that even under extreme stretching the synthesized psf tails off smoothly
+			int size = (int) 5 * max(stars[n]->fwhmx, stars[n]->fwhmy); // This is big enough that even under extreme stretching the synthesized psf tails off smoothly
+			if (!gaussian)
+				size *= 10 / stars[n]->beta; // Increase the PSF size markedly for low beta stars
 			if (!(size % 2))
 				size++;
 			if (size > 1024) // protect against excessive memory allocations due to bad parameters;
-							 // 50px should be more than enough for the fwhm of even a very saturated star
+							 // 100px should be more than enough for the fwhm of even a very saturated star
 				continue;
 			float minfwhm = min(stars[n]->fwhmx, stars[n]->fwhmy);
 
@@ -729,10 +731,14 @@ int reprofile_saturated_stars(fits *fit) {
 				int size = 5.f * max(stars[n]->fwhmx, stars[n]->fwhmy); // This is big enough that it should cover the saturated parts of the star
 				if (!(size % 2))
 					size++;
+				if (size > 1024)
+					size = 1024; // Protection against bad star params
 				float ratio = stars[n]->fwhmx / stars[n]->fwhmy;
 				float angle = (float) stars[n]->angle;
 
 				float *psfL = (float*) calloc(size * size, sizeof(float));
+				if (!psfL)
+					continue;
 				makegaussian(psfL, size, stars[n]->fwhmx, (lum - bg), xoff, yoff, ratio, angle);
 
 				// Replace the part of the profile above the sat threshold
