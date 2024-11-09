@@ -35,8 +35,6 @@
 #include "io/siril_git.h"
 #include <assert.h>
 #include <inttypes.h>
-#include <locale.h>
-#include <threads.h>
 
 // #define DEBUG_GITSCRIPTS
 
