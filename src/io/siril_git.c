@@ -493,7 +493,7 @@ static int analyse(git_repository *repo, GString **git_pending_commit_buffer) {
 			*git_pending_commit_buffer = g_string_new(buf);
 			g_free(buf);
 		} else {
-		g	_string_append_printf(*git_pending_commit_buffer,
+		g_string_append_printf(*git_pending_commit_buffer,
 									_("Commit message: %s\n"), commit_msg);
 		}
 
