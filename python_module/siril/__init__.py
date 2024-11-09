@@ -2,7 +2,7 @@
 from typing import TYPE_CHECKING
 
 # Import translation functions first
-from .translations import _, N_
+from .translations import _
 
 # TYPE_CHECKING is False at runtime but True during type checking.
 if TYPE_CHECKING:
@@ -80,6 +80,5 @@ __all__ = [
     'DataError',
     'NoImageError',
     'SharedMemoryWrapper',
-    '_',
-    'N_'
+    '_'
 ]

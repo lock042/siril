@@ -11,7 +11,7 @@ from pathlib import Path
 from enum import IntEnum
 from typing import Tuple, Optional, List, Union
 import numpy as np
-from .translations import _, N_
+from .translations import _
 from .shm import SharedMemoryWrapper
 from .exceptions import SirilError, ConnectionError, CommandError, DataError, NoImageError
 from .models import DataType, ImageStats, FKeywords, FFit, Homography, StarProfile, PSFStar, RegData, ImgData, Sequence, SequenceType
@@ -23,27 +23,23 @@ if os.name == 'nt':
     import pywintypes
     import winerror
 
-# Developer-facing strings such as enums are not given translatable
-# doctext as they are not intended for end users. All user-facing
-# doctext strings should be made translatable.
-# "debug" strings should be handled using print() and directed to
-# stderr, so that they can be presented to the Siril log using the
-# configurable stderr handler (which defaults to disabled but is
-# intended as a debugging aid)
-
 class _Status(IntEnum):
-    """ Returns the status of a command. NONE is for commands that
+    """
+    Returns the status of a command. NONE is for commands that
     may legitimately fail to return data but which should not be
     regarded as an error, instead this triggers the command processor
-    to return the special python value None"""
+    to return the special python value None
+    """
 
     OK = 0
     NONE = 1
     ERROR = 0xFF
 
 class _Command(IntEnum):
-    """ Enumerates the commands. This enum MUST match the one in
-    siril_pythonmodule.h"""
+    """
+    Enumerates the commands. This enum MUST match the one in
+    siril_pythonmodule.h
+    """
     SEND_COMMAND = 1
     LOG_MESSAGE = 2
     UPDATE_PROGRESS = 3
@@ -72,8 +68,10 @@ class _Command(IntEnum):
     ERROR = 0xFF
 
 class ConfigType(IntEnum):
-    """Enumerates config variable types for use with the
-    get_config() method"""
+    """
+    Enumerates config variable types for use with the
+    get_config() method
+    """
     BOOL = 0
     INT = 1
     DOUBLE = 2
@@ -82,7 +80,9 @@ class ConfigType(IntEnum):
     STRLIST = 5
 
 class SharedMemoryInfo(ctypes.Structure):
-    """Structure matching the C-side shared memory info"""
+    """
+    Structure matching the C-side shared memory info
+    """
     _fields_ = [
         ("size", ctypes.c_size_t),
         ("data_type", ctypes.c_int),  # 0 for WORD, 1 for float
@@ -99,20 +99,22 @@ from typing import Optional, Any
 
 def import_or_install(module_name: str, package_name: Optional[str] = None) -> Any:
 
-    __doc__ = N_("Attempts to import a module, installing it via pip if not found.\n\n"
+    """
+    Attempts to import a module, installing it via pip if not found.
 
-                 "Args:\n"
-                 "    module_name (str): Name of the module to import\n"
-                 "    package_name (str, optional): Name of the package to "
-                 "install if different from module_name\n\n"
+    Args:
+        module_name (str): Name of the module to import
+        package_name (str, optional): Name of the package to
+    install if different from module_name
 
-                 "Returns:\n"
-                 "    module: The imported module object\n\n"
+    Returns:
+        module: The imported module object
 
-                 "Raises:\n"
-                 "    ImportError: If module cannot be imported even after installation "
-                 "attempt\n"
-                 "    subprocess.CalledProcessError: If pip installation fails")
+    Raises:
+        ImportError: If module cannot be imported even after installation
+    attempt
+        subprocess.CalledProcessError: If pip installation fails
+    """
 
     try:
         return importlib.import_module(module_name)
@@ -133,15 +135,19 @@ def import_or_install(module_name: str, package_name: Optional[str] = None) -> A
 
 class SirilInterface:
 
-    __doc__ = N_("SirilInterface is the main class providing an interface to a running "
-                 "Siril instance and access to methods to interact with it through "
-                 "Siril's inbuilt command system and accessing image and sequence data")
+    """
+    SirilInterface is the main class providing an interface to a running
+    Siril instance and access to methods to interact with it through
+    Siril's inbuilt command system and accessing image and sequence data.
+    """
 
     def __init__(self):
 
-        __doc__ = N_("Initialize the SirilInterface, automatically determining the "
-            "correct pipe or socket path based on the environment variable and "
-            "operating system.")
+        """
+        Initialize the SirilInterface, automatically determining the
+        correct pipe or socket path based on the environment variable and
+        operating system.
+        """
         if os.name == 'nt':  # Windows
             self.pipe_path = os.getenv('MY_PIPE')
             if not self.pipe_path:
@@ -155,9 +161,11 @@ class SirilInterface:
 
     def connect(self):
 
-        __doc__ = N_("Establish a connection to Siril based on the pipe or "
-            "socket path. Returns True if the connection is successful, otherwise "
-            "False.")
+        """
+        Establish a connection to Siril based on the pipe or
+        socket path. Returns True if the connection is successful, otherwise
+        False.
+        """
 
         try:
             if os.name == 'nt':
@@ -192,7 +200,9 @@ class SirilInterface:
 
     def disconnect(self):
 
-        __doc__ = N_("Closes the established socket or pipe connection.")
+        """
+        Closes the established socket or pipe connection.
+        """
 
         if os.name == 'nt':
             if hasattr(self, 'pipe_handle'):
@@ -433,14 +443,14 @@ class SirilInterface:
 
     def log(self, my_string: str) -> bool:
 
-        __doc__ = N_("Send a log message to Siril. The maximum message length is "
-                     "1022 bytes: longer messages will be truncated.\n\n"
+        """Send a log message to Siril. The maximum message length is
+        1022 bytes: longer messages will be truncated.
 
-                     "Args:\n"
-                     "    my_string: The message to log\n\n"
+        Args:
+            my_string: The message to log
 
-                     "Returns:\n"
-                     "    bool: True if the message was successfully logged, False otherwise")
+        Returns:
+            bool: True if the message was successfully logged, False otherwise"""
 
         try:
             # Append a newline character to the string
@@ -455,14 +465,14 @@ class SirilInterface:
 
     def update_progress(self, message: str, progress: float) -> bool:
 
-        __doc__ = N_("Send a progress update to Siril with a message and completion percentage.\n\n"
+        """Send a progress update to Siril with a message and completion percentage.
 
-                     "Args:\n"
-                     "    message: Status message to display\n"
-                     "    progress: Progress value between 0.0 and 1.0\n\n"
+        Args:
+            message: Status message to display
+            progress: Progress value between 0.0 and 1.0
 
-                     "Returns:\n"
-                     "    bool: True if the progress update was successfully sent, False otherwise")
+        Returns:
+            bool: True if the progress update was successfully sent, False otherwise"""
 
         try:
             # Validate progress value
@@ -488,28 +498,28 @@ class SirilInterface:
 
     def reset_progress(self) -> bool:
 
-        __doc__ = N_("Send a progress update to Siril resetting the progress bar.\n\n"
+        """Send a progress update to Siril resetting the progress bar.
 
-                     "Args:\n"
-                     "    none\n\n"
+        Args:
+            none
 
-                     "Returns:\n"
-                     "    bool: True if the progress update was successfully sent, False otherwise")
+        Returns:
+            bool: True if the progress update was successfully sent, False otherwise"""
 
         return self.update_progress("", 0.0)
 
     def cmd(self, *args: str) -> bool:
 
-        __doc__ = N_("Send a command to Siril by combining multiple arguments into a single string.\n\n"
+        """Send a command to Siril by combining multiple arguments into a single string.
 
-                     "Args:\n"
-                     "    *args: Variable number of string arguments to be combined into a command\n\n"
+        Args:
+            *args: Variable number of string arguments to be combined into a command
 
-                     "Returns:\n"
-                     "    bool: True if the command was successfully executed, False otherwise\n\n"
+        Returns:
+            bool: True if the command was successfully executed, False otherwise
 
-                     "Example:\n"
-                     "    siril.cmd(\"ght\", \"-D=0.5\", \"-b=2.0\")")
+        Example:
+            siril.cmd("ght", "-D=0.5", "-b=2.0")"""
 
         try:
             # Join arguments with spaces between them
@@ -526,11 +536,11 @@ class SirilInterface:
 
     def get_shape(self) -> Optional[Tuple[int, int, int]]:
 
-        __doc__ = N_("Request the shape of the image from Siril.\n\n"
+        """Request the shape of the image from Siril.
 
-                     "Returns:\n"
-                     "    A tuple (height, width, channels) representing the shape of the image,"
-                     "    or None if an error occurred.")
+        Returns:
+            A tuple (height, width, channels) representing the shape of the image,
+            or None if an error occurred."""
 
         response = self.request_data(_Command.GET_DIMENSIONS)
 
@@ -547,31 +557,33 @@ class SirilInterface:
 
     def get_pixeldata(self, shape: Optional[list[int]] = None) -> Optional[np.ndarray]:
 
-        __doc__ = N_("Retrieve the pixel data using shared memory.\n\n"
+        """
+        Retrieve the pixel data using shared memory.
 
-                      "Args:\n"
-                      "    shape: Optional list of [x, y, w, h] specifying the region to retrieve.\n"
-                      "        If provided, gets data for just that region.\n"
-                      "        If None, gets data for the entire image.\n\n"
+        Args:
+            shape: Optional list of [x, y, w, h] specifying the region to retrieve.
+                If provided, gets data for just that region.
+                If None, gets data for the entire image.
 
-                      "Returns:\n"
-                      "    numpy.ndarray: The image data as a numpy array\n\n"
+        Returns:
+            numpy.ndarray: The image data as a numpy array
 
-                      "Raises:\n"
-                      "    NoImageError: If no image is currently loaded\n"
-                      "    RuntimeError: For other errors during pixel data retrieval\n"
-                      "    ValueError: If the received data format is invalid or shape is invalid")
+        Raises:
+            NoImageError: If no image is currently loaded
+            RuntimeError: For other errors during pixel data retrieval
+            ValueError: If the received data format is invalid or shape is invalid
+        """
 
         shm = None
         try:
             # Validate shape if provided
             if shape is not None:
                 if len(shape) != 4:
-                    raise ValueError("Shape must be a list of [x, y, w, h]")
+                    raise ValueError(_("Shape must be a list of [x, y, w, h]"))
                 if any(not isinstance(v, int) for v in shape):
-                    raise ValueError("All shape values must be integers")
+                    raise ValueError(_("All shape values must be integers"))
                 if any(v < 1 for v in shape):
-                    raise ValueError("All shape values must be non-negative")
+                    raise ValueError(_("All shape values must be non-negative"))
 
                 # Pack shape data for the command
                 shape_data = struct.pack('!IIII', *shape)
@@ -588,14 +600,14 @@ class SirilInterface:
                 if response:
                     error_msg = response.decode('utf-8', errors='replace')
                     if "no image loaded" in error_msg.lower():
-                        raise NoImageError("No image is currently loaded in Siril")
+                        raise NoImageError(_("No image is currently loaded in Siril"))
                     else:
                         raise RuntimeError(_("Server error: {}").formt(error_msg))
                 else:
-                    raise RuntimeError("Failed to initiate shared memory transfer: Empty response")
+                    raise RuntimeError(_("Failed to initiate shared memory transfer: Empty response"))
 
             if not response:
-                raise RuntimeError("Failed to initiate shared memory transfer: No data received")
+                raise RuntimeError(_("Failed to initiate shared memory transfer: No data received"))
 
             try:
                 # Parse the shared memory information
@@ -673,15 +685,17 @@ class SirilInterface:
 
     def set_pixeldata(self, image_data: np.ndarray) -> bool:
 
-        __doc__ = N_("Send image data to Siril using shared memory.\n\n"
+        """
+        Send image data to Siril using shared memory.
 
-                     "Args:\n"
-                     "    image_data: numpy.ndarray containing the image data.\n"
-                     "    Must be 2D (single channel) or 3D (multi-channel) array\n"
-                     "    with dtype either np.float32 or np.uint16.\n\n"
+        Args:
+            image_data: numpy.ndarray containing the image data.
+            Must be 2D (single channel) or 3D (multi-channel) array
+            with dtype either np.float32 or np.uint16.
 
-                     "Returns:\n"
-                     "    bool: True if successful, False otherwise")
+        Returns:
+            bool: True if successful, False otherwise
+        """
 
         shm = None
         try:
@@ -746,7 +760,7 @@ class SirilInterface:
 
             # Send command using the existing execute_command method
             if not self.execute_command(_Command.SET_PIXELDATA, info):
-                raise RuntimeError("Failed to send pixel data command")
+                raise RuntimeError(_("Failed to send pixel data command"))
 
             return True
 
@@ -764,19 +778,21 @@ class SirilInterface:
 
     def get_icc_profile(self) -> Optional[bytes]:
 
-        __doc__ = N_("Retrieve the ICC profile of the current Siril image using shared memory.\n\n"
+        """
+        Retrieve the ICC profile of the current Siril image using shared memory.
 
-                     "Args:\n"
-                     "none.\n\n"
+        Args:
+        none.
 
-                     "Returns:\n"
-                     "    bytes: The image ICC profile as a byte array, or None if the current "
-                     "    image has no ICC profile.\n\n"
+        Returns:
+            bytes: The image ICC profile as a byte array, or None if the current
+            image has no ICC profile.
 
-                     "Raises:\n"
-                     "    NoImageError: If no image is currently loaded\n"
-                     "    RuntimeError: For other errors during  data retrieval\n"
-                     "    ValueError: If the received data format is invalid or shape is invalid")
+        Raises:
+            NoImageError: If no image is currently loaded
+            RuntimeError: For other errors during  data retrieval
+            ValueError: If the received data format is invalid or shape is invalid
+        """
 
         shm = None
         try:
@@ -792,10 +808,10 @@ class SirilInterface:
                     else:
                         raise RuntimeError(_("Server error: {}").format(error_msg))
                 else:
-                    raise RuntimeError("Failed to initiate shared memory transfer: Empty response")
+                    raise RuntimeError(_("Failed to initiate shared memory transfer: Empty response"))
 
             if not response:
-                raise RuntimeError("Failed to initiate shared memory transfer: No data received")
+                raise RuntimeError(_("Failed to initiate shared memory transfer: No data received"))
 
             if len(response) < 25: # No payload
                 return None
@@ -842,19 +858,21 @@ class SirilInterface:
 
     def get_fits_header(self) -> Optional[str]:
 
-        __doc__ = N_("Retrieve the full FITS header of the current Siril image using "
-                      "shared memory.\n\n"
+        """
+        Retrieve the full FITS header of the current Siril image using
+        shared memory.
 
-                      "Args:\n"
-                      "    none.\n\n"
+        Args:
+            none.
 
-                      "Returns:\n"
-                      "    bytes: The image FITS header as a string.\n\n"
+        Returns:
+            bytes: The image FITS header as a string.
 
-                      "Raises:\n"
-                      "    NoImageError: If no image is currently loaded\n"
-                      "    RuntimeError: For other errors during  data retrieval\n"
-                      "    ValueError: If the received data format is invalid or shape is invalid")
+        Raises:
+            NoImageError: If no image is currently loaded
+            RuntimeError: For other errors during  data retrieval
+            ValueError: If the received data format is invalid or shape is invalid
+        """
 
         shm = None
         try:
@@ -866,7 +884,7 @@ class SirilInterface:
                 if response:
                     error_msg = response.decode('utf-8', errors='replace')
                     if "no image loaded" in error_msg.lower():
-                        raise NoImageError("No image is currently loaded in Siril")
+                        raise NoImageError(_("No image is currently loaded in Siril"))
                     else:
                         raise RuntimeError(_("Server error: {}").format(error_msg))
                 else:
@@ -922,19 +940,21 @@ class SirilInterface:
 
     def get_unknown_keys(self) -> Optional[str]:
 
-        __doc__ = N_("Retrieve the unknown key in a FITS header of the current Siril "
-                      "image using shared memory.\n\n"
+        """
+        Retrieve the unknown key in a FITS header of the current Siril
+        image using shared memory.
 
-                      "Args:\n"
-                      "    none.\n\n"
+        Args:
+            none.
 
-                      "Returns:\n"
-                      "    bytes: The unknown keys as a string.\n\n"
+        Returns:
+            bytes: The unknown keys as a string.
 
-                      "Raises:\n"
-                      "    NoImageError: If no image is currently loaded\n"
-                      "    RuntimeError: For other errors during  data retrieval\n"
-                      "    ValueError: If the received data format is invalid or shape is invalid")
+        Raises:
+            NoImageError: If no image is currently loaded
+            RuntimeError: For other errors during  data retrieval
+            ValueError: If the received data format is invalid or shape is invalid
+    """
 
         shm = None
         try:
@@ -946,7 +966,7 @@ class SirilInterface:
                 if response:
                     error_msg = response.decode('utf-8', errors='replace')
                     if "no image loaded" in error_msg.lower():
-                        raise NoImageError("No image is currently loaded in Siril")
+                        raise NoImageError(_("No image is currently loaded in Siril"))
                     else:
                         raise RuntimeError(_("Server error: {}").format(error_msg))
                 else:
@@ -1004,17 +1024,21 @@ class SirilInterface:
 
     def get_history(self) -> Optional[list[str]]:
 
-        __doc__ = N_("Retrieve history entries in the FITS header of the current "
-                     "Siril image using shared memory.\n\n"
+        """
+        Retrieve history entries in the FITS header of the current
+        Siril image using shared memory.
 
-                     "Args:\n"
-                     "    none.\n\n"
-                     "Returns:\n"
-                     "    list: The history entries in the FITS header as a list of strings.\n\n"
-                     "Raises:\n"
-                     "    NoImageError: If no image is currently loaded\n"
-                     "    RuntimeError: For other errors during data retrieval\n"
-                     "    ValueError: If the received data format is invalid or shape is invalid")
+        Args:
+            none.
+
+        Returns:
+            list: The history entries in the FITS header as a list of strings.
+
+        Raises:
+            NoImageError: If no image is currently loaded
+            RuntimeError: For other errors during data retrieval
+            ValueError: If the received data format is invalid or shape is invalid
+        """
 
         shm = None
         try:
@@ -1026,17 +1050,17 @@ class SirilInterface:
                 if response:
                     error_msg = response.decode('utf-8', errors='replace')
                     if "no image loaded" in error_msg.lower():
-                        raise NoImageError("No image is currently loaded in Siril")
+                        raise NoImageError(_("No image is currently loaded in Siril"))
                     else:
                         raise RuntimeError(_("Server error: {}").format(error_msg))
                 else:
-                    raise RuntimeError("Failed to initiate shared memory transfer: Empty response")
+                    raise RuntimeError(_("Failed to initiate shared memory transfer: Empty response"))
 
             if status == _Status.NONE:
                 return None
 
             if not response:
-                raise RuntimeError("Failed to initiate shared memory transfer: No data received")
+                raise RuntimeError(_("Failed to initiate shared memory transfer: No data received"))
 
             if len(response) < 29:  # No payload
                 return None
@@ -1086,10 +1110,12 @@ class SirilInterface:
 
     def get_wd(self) -> Optional[str]:
 
-        __doc__ - N_("Request the working directory from Siril.\n\n"
+        """
+        Request the working directory from Siril.
 
-                     "Returns:\n"
-                     "    The working directory as a string, or None if an error occurred.")
+        Returns:
+            The working directory as a string, or None if an error occurred.
+        """
 
         response = self.request_data(_Command.GET_WORKING_DIRECTORY)
 
@@ -1126,15 +1152,17 @@ class SirilInterface:
 
     def get_image_stats(self, channel: int) -> Optional[ImageStats]:
 
-        __doc__ = N_("Request image statistics from Siril for a specific channel.\n\n"
+        """
+        Request image statistics from Siril for a specific channel.
 
-                     "Args:\n"
-                     "    channel: Integer specifying which channel to get statistics "
-                     "    for (typically 0, 1, or 2)\n\n"
+        Args:
+            channel: Integer specifying which channel to get statistics
+            for (typically 0, 1, or 2)
 
-                     "Returns:\n"
-                     "ImageStats object containing the statistics, or None if an "
-                     "error occurred")
+        Returns:
+        ImageStats object containing the statistics, or None if an
+        error occurred
+        """
 
         # Convert channel number to network byte order bytes
         channel_payload = struct.pack('!I', channel)  # '!I' for network byte order uint32_t
@@ -1189,15 +1217,18 @@ class SirilInterface:
 
     def get_seq_regdata(self, frame: int, channel: int) -> Optional[RegData]:
 
-        __doc__ = N_("Request sequence frame registration data from Siril.\n\n"
+        """
+        Request sequence frame registration data from Siril.
 
-                     "Args:\n"
-                     "    frame: Integer specifying which frame in the sequence to get registration "
-                     "data for (between 0 and Sequence.number)\n"
-                     "    channel: Integer specifying which channel to get registration data "
-                     "for (typically 0, 1, or 2)\n\n"
-                     "Returns:\n"
-                     "    RegData object containing the registration data, or None if an error occurred")
+        Args:
+            frame: Integer specifying which frame in the sequence to get registration
+        data for (between 0 and Sequence.number)
+            channel: Integer specifying which channel to get registration data
+        for (typically 0, 1, or 2)
+
+        Returns:
+            RegData object containing the registration data, or None if an error occurred
+        """
 
         data_payload = struct.pack('!II', frame, channel)  # '!I' for network byte order uint32_t
 
@@ -1239,15 +1270,18 @@ class SirilInterface:
 
     def get_seq_imstats(self, frame: int, channel: int) -> Optional[ImageStats]:
 
-        __doc__ = N_("Request sequence frame statistics from Siril.\n\n"
-                     "Args:\n"
-                     "    frame: Integer specifying which frame in the sequence to get statistcs "
-                     "data for (between 0 and Sequence.number)\n"
-                     "    channel: Integer specifying which channel to get statistics "
-                     "for (typically 0, 1, or 2)\n\n"
+        """
+        Request sequence frame statistics from Siril.
 
-                     "Returns:\n"
-                     "    ImageStats object containing the statistics, or None if an error occurred")
+        Args:
+            frame: Integer specifying which frame in the sequence to get statistcs
+        data for (between 0 and Sequence.number)
+            channel: Integer specifying which channel to get statistics
+        for (typically 0, 1, or 2)
+
+        Returns:
+            ImageStats object containing the statistics, or None if an error occurred
+        """
 
         data_payload = struct.pack('!II', frame, channel)  # '!I' for network byte order uint32_t
 
@@ -1283,13 +1317,15 @@ class SirilInterface:
 
     def get_seq_imgdata(self, frame: int) -> Optional[ImgData]:
 
-        __doc__ = N_("Request sequence frame metadata from Siril.\n\n"
-                     "Args:\n"
-                     "    frame: Integer specifying which frame in the sequence to get image "
-                     "metadata for (between 0 and Sequence.number)\n"
+        """
+        Request sequence frame metadata from Siril.
+        Args:
+            frame: Integer specifying which frame in the sequence to get image
+        metadata for (between 0 and Sequence.number)
 
-                     "Returns:\n"
-                     "    ImgData object containing the frame metadata, or None if an error occurred")
+        Returns:
+            ImgData object containing the frame metadata, or None if an error occurred
+        """
 
         data_payload = struct.pack('!I', frame)  # '!I' for network byte order uint32_t
 
@@ -1316,11 +1352,13 @@ class SirilInterface:
 
     def get_seq(self) -> Optional[ImgData]:
 
-        __doc__ = N_("Request metadata for the current sequence loaded in Siril.\n\n"
+        """
+        Request metadata for the current sequence loaded in Siril.
 
-                      "Returns:\n"
-                      "    Sequence object containing the current sequence metadata, or None "
-                      "if an error occurred")
+        Returns:
+            Sequence object containing the current sequence metadata, or None
+        if an error occurred
+        """
 
         # Request data with the channel number as payload
         response = self.request_data(_Command.GET_SEQ)
@@ -1379,10 +1417,12 @@ class SirilInterface:
 
     def get_keywords(self) -> Optional[FKeywords]:
 
-        __doc__ = N_("Request FITS keywords data from Siril.\n\n"
+        """
+        Request FITS keywords data from Siril.
 
-                     "Returns:\n"
-                     "    FKeywords object containing the FITS keywords, or None if an error occurred")
+        Returns:
+            FKeywords object containing the FITS keywords, or None if an error occurred
+        """
 
         response = self.request_data(_Command.GET_KEYWORDS)
         if response is None:
@@ -1534,16 +1574,18 @@ class SirilInterface:
 
     def get_image(self, get_pixels: Optional[bool] = True) -> Optional[FFit]:
 
-        __doc__ = N_("Request a copy of the current image open in Siril.\n\n"
+        """
+        Request a copy of the current image open in Siril.
 
-                     "Args:\n"
-                     "    get_pixels: optional bool specifying whether to get "
-                     "pixel data as a NumPy array, or only the image metadata. Defaults "
-                     "to True\n\n"
+        Args:
+            get_pixels: optional bool specifying whether to get
+        pixel data as a NumPy array, or only the image metadata. Defaults
+        to True
 
-                     "Returns:\n"
-                     "    FFit object containing the image metadata and (optionally) "
-                     "pixel data, or None if an error occurred")
+        Returns:
+            FFit object containing the image metadata and (optionally)
+        pixel data, or None if an error occurred
+        """
 
         # Request data with the channel number as payload
         response = self.request_data(_Command.GET_IMAGE)
@@ -1634,15 +1676,19 @@ class SirilInterface:
 
     def get_stars(self) -> List[PSFStar]:
 
-        __doc__ = N_("Request star model PSF data from Siril.\n\n"
-                     "Returns:\n"
-                     "    List of PSFStar objects containing the star data, or None if "
-                     "no stars have been detected. (The \"findstar\" command should "
-                     "be run first to detect stars in the image.)\n\n"
-                     "Raises:\n"
-                      "    NoImageError: If no image is currently loaded\n"
-                      "    RuntimeError: For other errors during  data retrieval\n"
-                      "    ValueError: If the received data format is invalid")
+        """
+        Request star model PSF data from Siril.
+
+        Returns:
+            List of PSFStar objects containing the star data, or None if
+        no stars have been detected. (The "findstar" command should
+        be run first to detect stars in the image.)
+
+        Raises:
+            NoImageError: If no image is currently loaded
+            RuntimeError: For other errors during  data retrieval
+            ValueError: If the received data format is invalid
+        """
 
         stars = []
         shm = None
@@ -1656,11 +1702,11 @@ class SirilInterface:
                 if response:
                     error_msg = response.decode('utf-8', errors='replace')
                     if "no image loaded" in error_msg.lower():
-                        raise NoImageError("No image is currently loaded in Siril")
+                        raise NoImageError(_("No image is currently loaded in Siril"))
                     else:
                         raise RuntimeError(_("Server error: {}").format(error_msg))
                 else:
-                    raise RuntimeError("Failed to initiate shared memory transfer: Empty response")
+                    raise RuntimeError(_("Failed to initiate shared memory transfer: Empty response"))
 
             if status == _Status.NONE:
                 return None
@@ -1748,20 +1794,22 @@ class SirilInterface:
 
     def get_config(self, group: str, key: str) -> Optional[Union[bool, int, float, str, List[str]]]:
 
-        __doc__ = N_("Request a configuration value from Siril.\n\n"
+        """
+        Request a configuration value from Siril.
 
-                     "Args:\n"
-                     "    group: Configuration group name\n"
-                     "    key: Configuration key name within the group\n"
-                     "(Available values for group and key can be determined using "
-                     "the \"get -A\" command)\n\n"
+        Args:
+            group: Configuration group name
+            key: Configuration key name within the group
+        (Available values for group and key can be determined using
+        the \"get -A\" command)
 
-                     "Returns:\n"
-                     "    The configuration value with appropriate Python type, or None if an "
-                     "error occurred\n\n"
+        Returns:
+            The configuration value with appropriate Python type, or None if an
+        error occurred
 
-                     "Raises:\n"
-                     "    RuntimeError if an error occurred getting the requested config value")
+        Raises:
+            RuntimeError if an error occurred getting the requested config value
+        """
 
         try:
             # Encode both group and key with null terminator
