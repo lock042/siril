@@ -3,6 +3,7 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <gio/gwin32inputstream.h>
+#include "core/OS_utils.h"
 #else
 #include <gio/gunixinputstream.h>
 #include <sys/socket.h>
@@ -43,7 +44,7 @@
 #define SOCKET_PORT 12345
 
 #ifdef _WIN32
-#define PYTHON_EXE "py.exe"
+#define PYTHON_EXE "python.exe"
 #else
 #define PYTHON_EXE "python3"
 #endif
@@ -1457,11 +1458,36 @@ static gboolean check_or_create_venv(const gchar *project_path, GError **error) 
 	}
 	gboolean success = FALSE;
 	GError *local_error = NULL;
+	gchar *sys_python_exe = NULL;
 
 	// Check if venv exists
 	if (!python_exe) {
+
+#ifdef _WIN32
+		gchar *bundle_python_exe = NULL;
+		sys_python_exe = find_executable_in_path(PYTHON_EXE, NULL); // we want to find system python not mingw64 python
+		if (sys_python_exe)
+			printf("Python found in system: %s\n", sys_python_exe);
+		else {
+			const gchar *sirilrootpath = get_siril_bundle_path();
+			bundle_python_exe = find_executable_in_path(PYTHON_EXE, sirilrootpath);
+			printf("Python found in bundle: %s\n", bundle_python_exe);
+		}
+		if (!sys_python_exe && !bundle_python_exe) {
+			siril_log_color_message(_("No python installation found in the system or in the bundle, aborting\n"), "red");
+			success = FALSE;
+			goto cleanup;
+		}
+		if (!sys_python_exe) {
+			sys_python_exe = g_strdup(bundle_python_exe);
+			g_free(bundle_python_exe);
+		}
+#else
+		sys_python_exe = g_find_program_in_path(PYTHON_EXE);
+#endif
+
 		gchar **argv = g_new0(gchar*, 5);
-		argv[0] = g_find_program_in_path(PYTHON_EXE);
+		argv[0] = sys_python_exe;
 		argv[1] = g_strdup("-m");
 		argv[2] = g_strdup("venv");
 		argv[3] = g_strdup(venv_path);
