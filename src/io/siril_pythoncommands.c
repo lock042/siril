@@ -2,6 +2,7 @@
 #include "algos/PSF.h"
 #include "algos/statistics.h"
 #include "core/command_line_processor.h"
+#include "core/siril_app_dirs.h"
 #include "core/icc_profile.h"
 #include "core/siril_log.h"
 #include "gui/progress_and_log.h"
@@ -468,8 +469,12 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			g_free(cmd);
 
 			// Send response based on command execution
-			uint8_t status = (retval == CMD_OK) ? STATUS_OK : STATUS_ERROR;
-			success = send_response(conn, status, NULL, 0);
+			if (retval == CMD_OK) {
+				success = send_response(conn, STATUS_OK, NULL, 0);
+			} else {
+				const char* error_msg = _("Siril command error"));
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			}
 			break;
 		}
 
@@ -492,6 +497,20 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			} else {
 				// Handle error retrieving the working directory
 				const char* error_msg = _("Working directory not set");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			}
+			break;
+		}
+
+		case CMD_GET_USERCONFIG_DIR: {
+				const char *configdir = siril_get_config_dir();
+			// Ensure the config directory is available
+			if (configdir && strlen(configdir) > 0) {
+				// Send success response with the working directory string
+				success = send_response(conn, STATUS_OK, configdir, strlen(configdir));
+			} else {
+				// Handle error retrieving the working directory
+				const char* error_msg = _("Error: user config directory not set");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			}
 			break;

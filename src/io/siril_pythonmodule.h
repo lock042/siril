@@ -37,6 +37,7 @@ typedef enum {
 	CMD_GET_SEQ_IMAGE = 23,
 	CMD_GET_SEQ = 24,
 	CMD_GET_CONFIG = 25,
+	CMD_GET_USERCONFIG_DIR = 26,
 	CMD_ERROR = 0xFF
 } CommandType;
 

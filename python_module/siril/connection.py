@@ -67,6 +67,7 @@ class _Command(IntEnum):
     GET_SEQ_IMAGE = 23
     GET_SEQ = 24
     GET_CONFIG = 25
+    GET_USERCONFIGDIR = 26
     ERROR = 0xFF
 
 class ConfigType(IntEnum):
@@ -1121,6 +1122,28 @@ class SirilInterface:
         except UnicodeDecodeError as e:
             print("Error decoding working directory: {e}", file=sys.stderr)
             return None
+
+    def get_configdir(self) -> Optional[str]:
+        """
+        Request the user config directory used by Siril.
+
+        Returns:
+            The user config directory as a string, or None if an error occurred.
+        """
+
+        response = self.request_data(_Command.GET_USERCONFIGDIR)
+
+        if response is None:
+            return None
+
+        try:
+            # Assuming the response is a null-terminated UTF-8 encoded string
+            wd = response.decode('utf-8').rstrip('\x00')
+            return wd
+        except UnicodeDecodeError as e:
+            print("Error decoding user config directory: {e}", file=sys.stderr)
+            return None
+
 
     def get_filename(self) -> Optional[str]:
         """
