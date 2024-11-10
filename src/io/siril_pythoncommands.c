@@ -472,7 +472,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			if (retval == CMD_OK) {
 				success = send_response(conn, STATUS_OK, NULL, 0);
 			} else {
-				const char* error_msg = _("Siril command error"));
+				const char* error_msg = _("Siril command error");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			}
 			break;
