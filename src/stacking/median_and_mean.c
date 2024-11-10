@@ -685,7 +685,7 @@ static int apply_rejection_ushort(struct _data_block *data, int nb_frames, struc
 	/* Preventing problems
 	   0: should not happen but just in case.
 	   1 or 2: no need to reject */
-	if (kept <= 2) {
+	if (kept <= 1) {
 		return kept;
 	}
 	removed = N - kept;
@@ -986,15 +986,12 @@ static double mean_and_reject(struct stacking_args *args, struct _data_block *da
 						} else {
 							sum += val * data->mstack[frame];
 							norm += data->mstack[frame];
-							// sum += data->mstack[frame];
 						}
 					}
 				}
 				if (norm == 0.0)
 					mean = sum / (double)kept_pixels;
 				else mean = sum / norm;
-				// for (int frame = 0; frame < stack_size; ++frame)
-				// 	sum += (double)data->mstack[frame];
 			} else {
 				double sum = 0.0;
 				for (int frame = 0; frame < kept_pixels; ++frame) {

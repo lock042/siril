@@ -94,9 +94,9 @@ static void start_stacking() {
 	static GtkComboBox *method_combo = NULL, *rejec_combo = NULL, *norm_combo = NULL, *weighing_combo;
 	static GtkEntry *output_file = NULL;
 	static GtkToggleButton *overwrite = NULL, *force_norm = NULL, *max_framing = NULL,
-					*fast_norm = NULL, *rejmaps = NULL, *merge_rejmaps = NULL, *upscale_at_stacking = NULL;
+					*fast_norm = NULL, *rejmaps = NULL, *merge_rejmaps = NULL, *upscale_at_stacking = NULL, *overlap_norm = NULL;
 	static GtkSpinButton *sigSpin[2] = {NULL, NULL}, *feather_dist = NULL;
-	static GtkWidget *norm_to_max = NULL, *RGB_equal = NULL, *blend_frame = NULL;;
+	static GtkWidget *norm_to_max = NULL, *RGB_equal = NULL, *blend_frame = NULL;
 
 	if (method_combo == NULL) {
 		method_combo = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "comboboxstack_methods"));
@@ -117,6 +117,7 @@ static void start_stacking() {
 		upscale_at_stacking = GTK_TOGGLE_BUTTON(lookup_widget("check_upscale_at_stacking"));
 		feather_dist = GTK_SPIN_BUTTON(lookup_widget("spin_stack_feather_dist"));
 		blend_frame = lookup_widget("stack_blend_frame");
+		overlap_norm = GTK_TOGGLE_BUTTON(lookup_widget("check_norm_overlap"));
 	}
 
 	if (get_thread_run()) {
@@ -146,6 +147,7 @@ static void start_stacking() {
 	stackparam.equalizeRGB = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(RGB_equal)) && gtk_widget_is_visible(RGB_equal)  && (gtk_combo_box_get_active(norm_combo) != NO_NORM);
 	stackparam.lite_norm = gtk_toggle_button_get_active(fast_norm);
 	stackparam.feather_dist = (int)gtk_spin_button_get_value(feather_dist) * gtk_widget_get_visible(blend_frame);
+	stackparam.overlap_norm = gtk_toggle_button_get_active(overlap_norm) * gtk_widget_get_visible(blend_frame);
 
 	stackparam.use_32bit_output = evaluate_stacking_should_output_32bits(stackparam.method,
 			&com.seq, stackparam.nb_images_to_stack, &error);

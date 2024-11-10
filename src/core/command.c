@@ -8931,6 +8931,12 @@ static int parse_stack_command_line(struct stacking_configuration *arg,
 			} else {
 				arg->output_norm = TRUE;
 			}
+		} else if (!strcmp(current, "-overlap_norm")) {  // TODO: need other checks
+			if (!med_options_allowed) {
+				siril_log_message(_("Overlap normalization is allowed only with mean stacking, ignoring.\n"));
+			} else {
+				arg->overlap_norm = TRUE;
+			}
 		} else if (!strcmp(current, "-weight_from_noise")) {
 			if (!rej_options_allowed) {
 				siril_log_message(
@@ -9019,7 +9025,7 @@ static int parse_stack_command_line(struct stacking_configuration *arg,
 				value = current + 9;
 				int dist = g_ascii_strtoull(value, &end, 10);
 				if (end == value || dist < 0 || dist > 2000) {
-					siril_log_message(_("Bleding distance must be between 0 and 2000 pixels, got %d, ignoring.\n"), value);
+					siril_log_message(_("Blending distance must be between 0 and 2000 pixels, got %d, ignoring.\n"), value);
 					dist = 0;
 				}
 				arg->feather_dist = dist;
@@ -9126,6 +9132,7 @@ static int stack_one_seq(struct stacking_configuration *arg) {
 	args.apply_wfwhm_weights = arg->apply_wfwhm_weights;
 	args.apply_nbstars_weights = arg->apply_nbstars_weights;
 	args.feather_dist = arg->feather_dist;
+	args.overlap_norm = arg->overlap_norm;
 
 	// manage registration data
 	if (!test_regdata_is_valid_and_shift(args.seq, args.reglayer)) {

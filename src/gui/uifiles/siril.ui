@@ -8579,11 +8579,12 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <property name="bottom-padding">5</property>
                                                             <property name="left-padding">12</property>
                                                             <child>
-                                                            <!-- n-columns=3 n-rows=1 -->
+                                                            <!-- n-columns=3 n-rows=2 -->
                                                             <object class="GtkGrid">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="halign">start</property>
+                                                            <property name="row-spacing">10</property>
                                                             <property name="column-spacing">10</property>
                                                             <child>
                                                             <object class="GtkLabel">
@@ -8628,6 +8629,23 @@ The &lt;b&gt;Generalized Extreme Studentized Deviate Test&lt;/b&gt; algorithm [3
                                                             <packing>
                                                             <property name="left-attach">2</property>
                                                             <property name="top-attach">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkCheckButton" id="check_norm_overlap">
+                                                            <property name="label" translatable="yes">Normalization on overlaps</property>
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">True</property>
+                                                            <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">By default, Siril computes the normalisation coefficients from each image. Ticking this box computes them on overlapping regions instead.</property>
+                                                            <property name="halign">start</property>
+                                                            <property name="valign">center</property>
+                                                            <property name="draw-indicator">True</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="left-attach">0</property>
+                                                            <property name="top-attach">1</property>
+                                                            <property name="width">3</property>
                                                             </packing>
                                                             </child>
                                                             </object>

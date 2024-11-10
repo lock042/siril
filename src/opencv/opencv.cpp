@@ -585,7 +585,7 @@ int cvTransformImage(fits *image, unsigned int width, unsigned int height, Homog
 
 void cvDownscaleBlendMask(int rx, int ry, int out_rx, int out_ry, uint8_t *maskin, float *maskout) {
 	Mat _maskin = Mat(ry, rx, CV_8U, maskin);
-	Mat _maskindown = Mat(out_ry + 2, out_rx + 2, CV_8U);
+	Mat _maskindown = Mat(out_ry + 2, out_rx + 2, CV_8U, Scalar(0));
 	Mat _maskoutdown32 = Mat(out_ry + 2, out_rx + 2, CV_32F, Scalar(0.));
 	Mat _maskout = Mat(out_ry, out_rx, CV_32F, maskout);
 	// we leave a border of one pixel black to make sure the distance transform

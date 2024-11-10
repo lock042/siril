@@ -125,7 +125,7 @@ int apply_rejection_float(struct _data_block *data, int nb_frames,
 	/* Preventing problems
 	   0: should not happen but just in case.
 	   1 or 2: no need to reject */
-	if (kept <= 2) { 
+	if (kept <= 1) { 
 		return kept;
 	}
 	removed = N - kept;
