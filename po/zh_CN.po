@@ -11175,7 +11175,7 @@ msgstr "与初始值相比为 %.2f 角分\n"
 #: src/algos/astrometry_solver.c:839
 #, c-format
 msgid "Fetched %d stars from %s catalogue\n"
-msgstr "从 %s 星表中获取 %d 颗恒星\n"
+msgstr "%d 颗恒星已从星表 %s 中获取\n"
 
 #: src/algos/astrometry_solver.c:865
 #, c-format
