@@ -206,7 +206,7 @@ int process_load(int nb) {
 
 	int retval = open_single_image(filename);
 	gui_function(launch_clipboard_survey, NULL);
-	return retval;
+	return (retval == 0) ? CMD_OK : CMD_FILE_NOT_FOUND;
 }
 
 int process_dumpheader(int nb) {

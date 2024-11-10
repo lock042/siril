@@ -547,12 +547,23 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 
 // Monitor stdout stream
 static gpointer monitor_stream_stdout(GDataInputStream *data_input) {
+	// Set stream to unbuffered mode by accessing the base stream correctly
+	g_object_set(g_filter_input_stream_get_base_stream(G_FILTER_INPUT_STREAM(data_input)),
+				"buffer-size", 0,
+				NULL);
+
 	gsize length = 0;
 	gchar *buffer;
+	GError *error = NULL;
 
-	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length, NULL, NULL))) {
+	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length, NULL, &error))) {
 		siril_log_message("%s\n", buffer);
 		g_free(buffer);
+	}
+
+	if (error) {
+		siril_log_color_message(_("Error reading stdout: %s\n"), "red", error->message);
+		g_error_free(error);
 	}
 
 	g_object_unref(data_input);
@@ -561,12 +572,23 @@ static gpointer monitor_stream_stdout(GDataInputStream *data_input) {
 
 // Monitor stderr stream
 static gpointer monitor_stream_stderr(GDataInputStream *data_input) {
+	// Set stream to unbuffered mode by accessing the base stream correctly
+	g_object_set(g_filter_input_stream_get_base_stream(G_FILTER_INPUT_STREAM(data_input)),
+				"buffer-size", 0,
+				NULL);
+
 	gsize length = 0;
 	gchar *buffer;
+	GError *error = NULL;
 
-	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length, NULL, NULL))) {
+	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length, NULL, &error))) {
 		siril_log_color_message("%s\n", "red", buffer);
 		g_free(buffer);
+	}
+
+	if (error) {
+		siril_log_color_message(_("Error reading stderr: %s\n"), "red", error->message);
+		g_error_free(error);
 	}
 
 	g_object_unref(data_input);
@@ -674,30 +696,38 @@ void execute_python_script_async(gchar* script_name, gboolean from_file) {
 	env = g_environ_setenv(env, "MY_SOCKET", commstate.python_conn->socket_path, TRUE);
 #endif
 
-	// Prepare command arguments
-	gchar* python_argv[4];
+	// Prepare command arguments with Python unbuffered mode
+	gchar* python_argv[5];
 	if (from_file) {
 		python_argv[0] = PYTHON_EXE;
-		python_argv[1] = script_name;
-		python_argv[2] = NULL;
-	} else {
-		python_argv[0] = PYTHON_EXE;
-		python_argv[1] = "-c";
+		python_argv[1] = "-u";  // Set unbuffered mode
 		python_argv[2] = script_name;
 		python_argv[3] = NULL;
+	} else {
+		python_argv[0] = PYTHON_EXE;
+		python_argv[1] = "-u";  // Set unbuffered mode
+		python_argv[2] = "-c";
+		python_argv[3] = script_name;
+		python_argv[4] = NULL;
 	}
 
-	// Set up process spawn
+	// Set PYTHONUNBUFFERED in environment
+	env = g_environ_setenv(env, "PYTHONUNBUFFERED", "1", TRUE);
+
+	// Set up process spawn with pipe flags
 	GError* error = NULL;
 	GPid child_pid;
 	gint stdout_fd, stderr_fd;
 	gchar* working_dir = g_strdup(com.wd);
 
+	GSpawnFlags spawn_flags = G_SPAWN_SEARCH_PATH |
+							G_SPAWN_DO_NOT_REAP_CHILD;
+
 	gboolean success = g_spawn_async_with_pipes(
 		working_dir,
 		python_argv,
 		env,
-		G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
+		spawn_flags,
 		NULL,
 		NULL,
 		&child_pid,
@@ -719,7 +749,7 @@ void execute_python_script_async(gchar* script_name, gboolean from_file) {
 	// Set up child process monitoring: the callback will clean up any overlooked shm resources
 	g_child_watch_add(child_pid, (GChildWatchFunc)cleanup_child_process, NULL);
 
-	// Create input streams for stdout and stderr
+	// Create input streams with appropriate flags
 	GInputStream *stdout_stream = NULL;
 	GInputStream *stderr_stream = NULL;
 
@@ -727,13 +757,17 @@ void execute_python_script_async(gchar* script_name, gboolean from_file) {
 	stdout_stream = g_win32_input_stream_new((HANDLE)_get_osfhandle(stdout_fd), FALSE);
 	stderr_stream = g_win32_input_stream_new((HANDLE)_get_osfhandle(stderr_fd), FALSE);
 #else
-	stdout_stream = g_unix_input_stream_new(stdout_fd, FALSE);
-	stderr_stream = g_unix_input_stream_new(stderr_fd, FALSE);
+	stdout_stream = g_unix_input_stream_new(stdout_fd, TRUE);  // Take ownership of FD
+	stderr_stream = g_unix_input_stream_new(stderr_fd, TRUE);
 #endif
 
-	// Create data input streams
+	// Create unbuffered data input streams
 	GDataInputStream *stdout_data = g_data_input_stream_new(stdout_stream);
 	GDataInputStream *stderr_data = g_data_input_stream_new(stderr_stream);
+
+	// Set smaller buffer size for more responsive output
+	g_object_set(stdout_data, "buffer-size", 1024, NULL);
+	g_object_set(stderr_data, "buffer-size", 1024, NULL);
 
 	// Start monitoring threads
 	GThread *stdout_thread = g_thread_new("stdout-monitor",
@@ -743,7 +777,9 @@ void execute_python_script_async(gchar* script_name, gboolean from_file) {
 		(GThreadFunc)monitor_stream_stderr,
 		g_object_ref(stderr_data));
 
-	// Clean up thread references
+	// Clean up references
+	g_object_unref(stdout_stream);
+	g_object_unref(stderr_stream);
 	g_thread_unref(stdout_thread);
 	g_thread_unref(stderr_thread);
 
