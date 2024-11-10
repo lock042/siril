@@ -650,7 +650,7 @@ class SirilInterface:
             # Reshape the array according to the image dimensions
             try:
                 if shm_info.channels > 1:
-                    arr = arr.reshape((shm_info.height, shm_info.width, shm_info.channels))
+                    arr = arr.reshape((shm_info.channels, shm_info.height, shm_info.width))
                 else:
                     arr = arr.reshape((shm_info.height, shm_info.width))
             except ValueError as e:
@@ -713,7 +713,7 @@ class SirilInterface:
                 channels = 1
                 image_data = image_data.reshape(height, width, 1)
             else:
-                height, width, channels = image_data.shape
+                channels, height, width = image_data.shape
 
             if channels > 3:
                 raise ValueError(_("Image cannot have more than 3 channels"))
