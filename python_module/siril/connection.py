@@ -9,11 +9,13 @@ import calendar
 import importlib
 import subprocess
 import numpy as np
+import pkg_resources
 from pathlib import Path
 from enum import IntEnum
 from .translations import _
 from datetime import datetime
 from .shm import SharedMemoryWrapper
+from packaging import version, requirements
 from typing import Tuple, Optional, List, Union, Any
 from .exceptions import SirilError, ConnectionError, CommandError, DataError, NoImageError
 from .models import DataType, ImageStats, FKeywords, FFit, Homography, StarProfile, PSFStar, RegData, ImgData, Sequence, SequenceType
@@ -97,37 +99,79 @@ class SharedMemoryInfo(ctypes.Structure):
         ("shm_name", ctypes.c_char * 256)
     ]
 
-def import_or_install(module_name: str, package_name: Optional[str] = None) -> Any:
+def import_or_install(module_name: str, version_constraint: Optional[str] = None, package_name: Optional[str] = None) -> Any:
     """
-    Attempts to import a module, installing it via pip if not found.
+    Attempts to import a module, installing it via pip if not found or if version constraint not met.
 
     Args:
         module_name (str): Name of the module to import
-        package_name (str, optional): Name of the package to
-    install if different from module_name
+        version_constraint (str, optional): Version constraint string (e.g. ">=1.5", "==2.0")
+        package_name (str, optional): Name of the package to install if different from module_name
 
     Returns:
         module: The imported module object
 
     Raises:
-        ImportError: If module cannot be imported even after installation
-    attempt
+        ImportError: If module cannot be imported even after installation attempt
         subprocess.CalledProcessError: If pip installation fails
+        pkg_resources.VersionConflict: If installed version doesn't meet constraints
     """
+    package = package_name or module_name
 
-    try:
-        return importlib.import_module(module_name)
-    except ImportError:
-        package = package_name or module_name
+    def check_version_constraint() -> bool:
+        """Check if installed package meets version constraint."""
+        if not version_constraint:
+            return True
 
         try:
-            subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+            installed_pkg = pkg_resources.working_set.by_key[package.lower()]
+            installed_version = installed_pkg.version
+            # Create a requirement object from the constraint
+            req_string = f"{package}{version_constraint}"
+            requirement = requirements.Requirement(req_string)
+
+            return version.parse(installed_version) in requirement.specifier
+        except (pkg_resources.DistributionNotFound, KeyError):
+            return False
+
+    def install_package():
+        """Install the package with exact version constraint."""
+        install_target = f"{package}{version_constraint}" if version_constraint else package
+        try:
+            subprocess.check_call([
+                sys.executable, "-m", "pip", "install",
+                install_target
+            ])
         except subprocess.CalledProcessError as e:
-            print(f"Failed to install {package}. Error: {e}")
+            print(f"Failed to install {install_target}. Error: {e}")
             raise
 
+    # Try importing first
+    try:
+        module = importlib.import_module(module_name)
+        # Check version constraint if specified
+        if not check_version_constraint():
+            print(f"Installed version of {package} doesn't meet constraint {version_constraint}. Installing correct version...")
+            install_package()
+            # Reload the module to get the new version
+            if module_name in sys.modules:
+                importlib.reload(sys.modules[module_name])
+            module = importlib.import_module(module_name)
+        return module
+
+    except ImportError:
+        # Module not found, attempt installation
+        print(f"Module {module_name} not found. Attempting installation...")
+        install_package()
+
         try:
-            return importlib.import_module(module_name)
+            module = importlib.import_module(module_name)
+            # Verify version constraint after installation
+            if not check_version_constraint():
+                raise pkg_resources.VersionConflict(
+                    f"Installed version of {package} doesn't meet constraint {version_constraint}"
+                )
+            return module
         except ImportError as e:
             print(f"Module {module_name} still couldn't be imported after installation.")
             raise ImportError(f"Failed to import {module_name} even after installation attempt: {e}")
