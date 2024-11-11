@@ -626,11 +626,11 @@ void init_stacking_args(struct stacking_args *args) {
 	args->reglayer = -1;
 	args->equalizeRGB = FALSE;
 	args->maximize_framing = FALSE;
-	args->offset[2] = (int){ 0 };
+	memset(args->offset, 0, 2 * sizeof(int));
 	args->upscale_at_stacking = FALSE;
 
 	args->type_of_rejection = NO_REJEC;
-	args->sig[2] = (float){ 0.f };
+	memset(args->sig, 0, 2 * sizeof(float));
 	args->critical_value = NULL;
 	args->create_rejmaps = FALSE;
 	args->merge_lowhigh_rejmaps = FALSE;

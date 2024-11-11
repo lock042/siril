@@ -276,7 +276,7 @@ static int compute_normalization(struct stacking_args *args) {
 	return retval;
 }
 
-static void solve_overlap_coeffs(int nb_frames, int *index, int index_ref, int **Nij, double **Mij, gboolean additive, double *coeffs) {
+static void solve_overlap_coeffs(int nb_frames, int *index, int index_ref, size_t **Nij, double **Mij, gboolean additive, double *coeffs) {
 	int c = 0;
 	int N = nb_frames - 1;
 	double *A = calloc(N * N, sizeof(double));
@@ -290,7 +290,7 @@ static void solve_overlap_coeffs(int nb_frames, int *index, int index_ref, int *
 			if (ii == ij) {
 				for (int k = 0; k < nb_frames; k++) {
 					if (k != ii)
-						A[c] += (additive) ? Nij[ii][k]:
+						A[c] += (additive) ? Nij[ii][k] :
 											 Nij[ii][k] * Mij[ii][k] * Mij[ii][k];
 				}
 			} else {
@@ -387,6 +387,8 @@ static int _compute_estimators_for_images(struct stacking_args *args, int i, int
 			siril_log_color_message(_("Could not read overlap data between image %d and %d\n"), "red", i + 1, j + 1);
 			clearfits(&fiti);
 			clearfits(&fitj);
+			free(datai);
+			free(dataj);
 			return -1;
 		}
 		for (size_t k = 0; k < nbdata; k++) {
@@ -400,8 +402,8 @@ static int _compute_estimators_for_images(struct stacking_args *args, int i, int
 		stats[n]->Nij = Nij;
 		stats[n]->mij = (float)histogram_median_float(datai, Nij, SINGLE_THREADED);
 		stats[n]->mji = (float)histogram_median_float(dataj, Nij, SINGLE_THREADED);
-		stats[n]->sij = (float)siril_stats_float_mad(datai, Nij, stats[n]->mij, SINGLE_THREADED, NULL);
-		stats[n]->sji = (float)siril_stats_float_mad(dataj, Nij, stats[n]->mji, SINGLE_THREADED, NULL);
+		// stats[n]->sij = (float)siril_stats_float_mad(datai, Nij, stats[n]->mij, SINGLE_THREADED, NULL);
+		// stats[n]->sji = (float)siril_stats_float_mad(dataj, Nij, stats[n]->mji, SINGLE_THREADED, NULL);
 		clearfits(&fiti);
 		clearfits(&fitj);
 	}
@@ -411,7 +413,7 @@ static int _compute_estimators_for_images(struct stacking_args *args, int i, int
 }
 
 static int compute_normalization_overlaps(struct stacking_args *args) {
-	int index_ref = -1, retval = 0, cur_nb = 0;
+	int index_ref = -1, retval = 0, cur_nb = 0, c = 0;
 	norm_coeff *coeff = &args->coeff;
 	int nb_layers = args->seq->nb_layers;
 	int nb_frames = args->nb_images_to_stack;
@@ -424,15 +426,15 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 
 	double ***Mij = malloc(nb_layers * sizeof(double **));
 	double ***Sij = malloc(nb_layers * sizeof(double **));
-	int ***Nij = malloc(nb_frames * sizeof(int **));
+	size_t ***Nij = malloc(nb_frames * sizeof(size_t **));
 	for (int n = 0; n < 3; n++) {
 		Mij[n] = malloc(nb_frames * sizeof(double *));
 		Sij[n] = malloc(nb_frames * sizeof(double *));
-		Nij[n] = malloc(nb_frames * sizeof(int *));
+		Nij[n] = malloc(nb_frames * sizeof(size_t *));
 		for (int i = 0; i < nb_frames; i++) {
 			Mij[n][i] = calloc(nb_frames , sizeof(double));
 			Sij[n][i] = calloc(nb_frames , sizeof(double));
-			Nij[n][i] = calloc(nb_frames , sizeof(int));
+			Nij[n][i] = calloc(nb_frames , sizeof(size_t));
 		}
 	}
 	int *index = malloc((nb_frames - 1) * sizeof(int));
@@ -452,23 +454,21 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 	}
 
 	const char *error_msg = (_("Normalization failed."));
-
 	// check memory first
-	int nb_threads = normalization_get_max_number_of_threads(args->seq);
-	if (nb_threads <= 0) {
-		set_progress_bar_data(error_msg, PROGRESS_NONE);
-		return ST_GENERIC_ERROR;
-	}
-	if (nb_threads > args->nb_images_to_stack)
-		nb_threads = args->nb_images_to_stack;
-	int *threads_per_thread = compute_thread_distribution(nb_threads, com.max_thread);
+	// int nb_threads = normalization_get_max_number_of_threads(args->seq);
+	// if (nb_threads <= 0) {
+	// 	set_progress_bar_data(error_msg, PROGRESS_NONE);
+	// 	return ST_GENERIC_ERROR;
+	// }
+	// if (nb_threads > args->nb_images_to_stack)
+	// 	nb_threads = args->nb_images_to_stack;
+	// int *threads_per_thread = compute_thread_distribution(nb_threads, com.max_thread);
 
 	set_progress_bar_data(NULL, 1.0 / (double)N);
 
 // #ifdef _OPENMP
 // #pragma omp parallel for num_threads(nb_threads) schedule(guided) if (args->seq->type == SEQ_SER || ((args->seq->type == SEQ_REGULAR || args->seq->type == SEQ_FITSEQ) && fits_is_reentrant()))
 // #endif
-	int c = 0;
 	for (int i = 0; i < nb_frames; ++i) {
 		if (i != index_ref)
 			index[c++] = i; // getting the filtered indexes of nonref images
@@ -486,8 +486,8 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 // 			thread_id = omp_get_thread_num();
 // 			threads = threads_per_thread[thread_id];
 // #endif
-				overlap_stats_t *stats = calloc(nb_layers, sizeof(overlap_stats_t));
-				if (_compute_estimators_for_images(args, ii, ij, &stats, threads, thread_id)) {
+				overlap_stats_t *ostats = calloc(nb_layers, sizeof(overlap_stats_t));
+				if (_compute_estimators_for_images(args, ii, ij, &ostats, threads, thread_id)) {
 					siril_log_color_message(_("%s Check image %d first.\n"), "red",
 							error_msg, args->image_indices[i] + 1);
 					set_progress_bar_data(error_msg, PROGRESS_NONE);
@@ -495,16 +495,16 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 					continue;
 				}
 				for (int n = 0; n < nb_layers; n++) {
-					Mij[n][i][j] = stats[n].mij;
-					Mij[n][j][i] = stats[n].mji;
-					Sij[n][i][j] = stats[n].sij;
-					Sij[n][j][i] = stats[n].sji;
-					Nij[n][i][j] = stats[n].Nij;
-					Nij[n][j][i] = stats[n].Nij;
+					Mij[n][i][j] = ostats[n].mij;
+					Mij[n][j][i] = ostats[n].mji;
+					Sij[n][i][j] = ostats[n].sij;
+					Sij[n][j][i] = ostats[n].sji;
+					Nij[n][i][j] = ostats[n].Nij;
+					Nij[n][j][i] = ostats[n].Nij;
 				}
 				g_atomic_int_inc(&cur_nb);	// only used for progress bar
 				set_progress_bar_data(NULL, cur_nb / (double)N);
-				free(stats);
+				free(ostats);
 			}
 		}
 	}
@@ -581,9 +581,24 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 		}
 	}
 
-	free(threads_per_thread);
+	// free(threads_per_thread);
 	if (!retval)
 		compute_factors_from_estimators(args, index_ref);
+
+	for (int n = 0; n < 3; n++) {
+		for (int i = 0; i < nb_frames; i++) {
+			free(Mij[n][i]);
+			free(Sij[n][i]);
+			free(Nij[n][i]);
+		}
+		free(Mij[n]);
+		free(Sij[n]);
+		free(Nij[n]);
+	}
+	free(Mij);
+	free(Sij);
+	free(Nij);
+	free(index);
 
 	set_progress_bar_data(NULL, PROGRESS_DONE);
 	return retval;
