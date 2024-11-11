@@ -10624,7 +10624,7 @@ msgstr "Konnte Referenzbild nicht laden\n"
 #: src/algos/star_finder.c:1303
 #, c-format
 msgid "Found %d %s profile stars in %s, channel #%d (FWHM %f)\n"
-msgstr "%d %s Profilsterne in %s, Kanal #%d (FWHN %f) gefunden\n"
+msgstr "%d %s Profilsterne in %s, Kanal #%d (FWHm %f) gefunden\n"
 
 #: src/algos/star_finder.c:1305
 msgid "selection"
