@@ -29,6 +29,7 @@ void clearfits(fits*);
 void clearfits_header(fits*);
 int readfits_partial(const char *filename, int layer, fits *fit,
 		const rectangle *area, gboolean read_date);
+int readfits_partial_all_layers(const char *filename, fits *fit, const rectangle *area);
 int read_fits_metadata(fits *fit);
 int read_fits_metadata_from_path(const char *filename, fits *fit);
 int read_fits_metadata_from_path_first_HDU(const char *filename, fits *fit);
@@ -63,7 +64,6 @@ int extract_fits(fits *from, fits *to, int channel, gboolean to_float);
 void keep_only_first_channel(fits *fit);
 void fit_debayer_buffer(fits *fit, void *newbuf);
 
-void keep_first_channel_from_fits(fits *fit);
 GdkPixbuf* get_thumbnail_from_fits(char *filename, gchar **descr);
 
 // internal read of FITS file, for FITS images and FITS sequences

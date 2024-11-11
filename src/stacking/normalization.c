@@ -5,6 +5,7 @@
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
 #include "algos/statistics.h"
+#include "algos/statistics_float.h"
 #include "algos/sorting.h"
 #include "registration/registration.h"
 #include "stacking.h"
@@ -337,15 +338,10 @@ static void solve_overlap_coeffs(int nb_frames, int *index, int index_ref, size_
 	gsl_vector_free(x);
 }
 
-static int _compute_estimators_for_images(struct stacking_args *args, int i, int j, overlap_stats_t **stats,
-		threading_type threading, int image_thread_id) {
-	int nb_layers = args->seq->nb_layers;
-	g_assert(nb_layers <= 3);
-	g_assert(threading > 0);
-	rectangle areai = { 0 };
-	rectangle areaj = { 0 };
-
-	siril_debug_print("computing stats for overlap between image %d and image %d, lite: %d\n", i + 1, j + 1, args->lite_norm);
+// Computes the overlap areas on 2 images with regdata
+// areai and areaj can be NULL if not required (to compute only overlap size for instance)
+// returns the number of pixels in the common area
+static size_t compute_overlap(struct stacking_args *args, int i, int j, rectangle *areai, rectangle *areaj) {
 	sequence *seq = args->seq;
 	double dxi = 0., dyi = 0., dxj = 0., dyj = 0.;
 	int dx = 0, dy = 0;
@@ -366,8 +362,33 @@ static int _compute_estimators_for_images(struct stacking_args *args, int i, int
 	int x_brj = min(rxj, -dx + rxi);
 	int y_brj = min(ryj, -dy + ryi);
 	if (x_tli < x_bri && y_tli < y_bri) {
-		areai = (rectangle) { x_tli, y_tli, x_bri - x_tli, y_bri - y_tli };
-		areaj = (rectangle) { x_tlj, y_tlj, x_brj - x_tlj, y_brj - y_tlj };
+		if (areai)
+			*areai = (rectangle) { x_tli, y_tli, x_bri - x_tli, y_bri - y_tli };
+		if (areaj)
+			*areaj = (rectangle) { x_tlj, y_tlj, x_brj - x_tlj, y_brj - y_tlj };
+		return areai->w * areai->h;
+	}
+	return 0;
+}
+
+static int _compute_estimators_for_images(struct stacking_args *args, int i, int j, overlap_stats_t *stats,
+		threading_type threading, int image_thread_id) {
+	int nb_layers = args->seq->nb_layers;
+	g_assert(nb_layers <= 3);
+	g_assert(threading > 0);
+	rectangle areai = { 0 };
+	rectangle areaj = { 0 };
+	size_t Nij = 0;
+	float invnorm = 1. / USHRT_MAX;
+	fits fiti = { 0 };
+	fits fitj = { 0 };
+	char file_i[256], file_j[256];
+	sequence *seq = args->seq;
+
+	siril_debug_print("computing stats for overlap between image %d and image %d, lite: %d\n", i + 1, j + 1, args->lite_norm);
+	size_t nbdata = compute_overlap(args, i, j, &areai, &areaj);
+
+	if (nbdata > 0) {
 		siril_debug_print("image %d: boxselect %d %d %d %d\n", i + 1, areai.x, areai.y, areai.w, areai.h);
 		siril_debug_print("image %d: boxselect %d %d %d %d\n", j + 1, areaj.x, areaj.y, areaj.w, areaj.h);
 	} else {
@@ -375,23 +396,21 @@ static int _compute_estimators_for_images(struct stacking_args *args, int i, int
 		return 0; // no overlap
 	}
 
-	size_t nbdata = areai.w * areai.h;
 	float *datai = malloc(nbdata * sizeof(float));
 	float *dataj = malloc(nbdata * sizeof(float));
-	size_t Nij = 0;
-	float invnorm = 1. / USHRT_MAX;
+	fit_sequence_get_image_filename(seq, i, file_i, TRUE);
+	fit_sequence_get_image_filename(seq, j, file_j, TRUE);
+	if (readfits_partial_all_layers(file_i, &fiti, &areai) ||
+		readfits_partial_all_layers(file_j, &fitj, &areaj)) {
+		siril_log_color_message(_("Could not read overlap data between image %d and %d\n"), "red", i + 1, j + 1);
+		clearfits(&fiti);
+		clearfits(&fitj);
+		free(datai);
+		free(dataj);
+		return -1;
+	}
 	for (int n = 0; n < nb_layers; n++) {
-		fits fiti = { 0 };
-		fits fitj = { 0 };
-		if (seq_read_frame_part(seq, n, i, &fiti, &areai, FALSE, image_thread_id) ||
-			seq_read_frame_part(seq, n, j, &fitj, &areaj, FALSE, image_thread_id)) {
-			siril_log_color_message(_("Could not read overlap data between image %d and %d\n"), "red", i + 1, j + 1);
-			clearfits(&fiti);
-			clearfits(&fitj);
-			free(datai);
-			free(dataj);
-			return -1;
-		}
+		Nij = 0;
 		for (size_t k = 0; k < nbdata; k++) {
 			if (fiti.type == DATA_FLOAT) {
 				if (!fiti.fpdata[n][k] || !fitj.fpdata[n][k])
@@ -407,16 +426,25 @@ static int _compute_estimators_for_images(struct stacking_args *args, int i, int
 			Nij++;
 		}
 		siril_debug_print("%lu pixels for image %d and %d on layer %d\n", Nij, i + 1, j + 1, n);
-		stats[n]->Nij = Nij;
-		stats[n]->mij = (float)histogram_median_float(datai, Nij, SINGLE_THREADED);
-		stats[n]->mji = (float)histogram_median_float(dataj, Nij, SINGLE_THREADED);
-		stats[n]->sij = (float)siril_stats_float_mad(datai, Nij, stats[n]->mij, SINGLE_THREADED, NULL);
-		stats[n]->sji = (float)siril_stats_float_mad(dataj, Nij, stats[n]->mji, SINGLE_THREADED, NULL);
-		clearfits(&fiti);
-		clearfits(&fitj);
+		stats[n].Nij = Nij;
+		stats[n].mij = (float)histogram_median_float(datai, Nij, SINGLE_THREADED);
+		stats[n].mji = (float)histogram_median_float(dataj, Nij, SINGLE_THREADED);
+		stats[n].sij = (float)siril_stats_float_mad(datai, Nij, stats[n].mij, SINGLE_THREADED, NULL);
+		stats[n].sji = (float)siril_stats_float_mad(dataj, Nij, stats[n].mji, SINGLE_THREADED, NULL);
+		if (!args->lite_norm) {
+			double li = 0., lj = 0., si = 1., sj = 1.;
+			IKSSlite(datai, Nij, stats[n].mij, stats[n].sij, &li, &si, SINGLE_THREADED);
+			IKSSlite(dataj, Nij, stats[n].mji, stats[n].sji, &lj, &sj, SINGLE_THREADED);
+			stats[n].mij = (float)li;
+			stats[n].mji = (float)lj;
+			stats[n].sij = (float)si;
+			stats[n].sji = (float)sj;
+		}
 	}
 	free(datai);
 	free(dataj);
+	clearfits(&fiti);
+	clearfits(&fitj);
 	return ST_OK;
 }
 
@@ -472,7 +500,7 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 	// 	nb_threads = args->nb_images_to_stack;
 	// int *threads_per_thread = compute_thread_distribution(nb_threads, com.max_thread);
 
-	set_progress_bar_data(NULL, 1.0 / (double)N);
+	set_progress_bar_data(NULL, 0.);
 
 // #ifdef _OPENMP
 // #pragma omp parallel for num_threads(nb_threads) schedule(guided) if (args->seq->type == SEQ_SER || ((args->seq->type == SEQ_REGULAR || args->seq->type == SEQ_FITSEQ) && fits_is_reentrant()))
@@ -495,7 +523,7 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 // 			threads = threads_per_thread[thread_id];
 // #endif
 				overlap_stats_t *ostats = calloc(nb_layers, sizeof(overlap_stats_t));
-				if (_compute_estimators_for_images(args, ii, ij, &ostats, threads, thread_id)) {
+				if (_compute_estimators_for_images(args, ii, ij, ostats, threads, thread_id)) {
 					siril_log_color_message(_("%s Check image %d first.\n"), "red",
 							error_msg, args->image_indices[i] + 1);
 					set_progress_bar_data(error_msg, PROGRESS_NONE);
@@ -575,7 +603,7 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 		for (int n = 0; n < nb_layers; n++) {
 			solve_overlap_coeffs(nb_frames, index, index_ref, Nij[n], Sij[n], FALSE, coeffs);
 			for (int i = 0; i < N; i ++) {
-				coeff->pscale[n][index[i]] = 1. / coeffs[i];
+				coeff->pscale[n][index[i]] = 1./ coeffs[i];
 			}
 		}
 	}
@@ -584,7 +612,7 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 		for (int n = 0; n < nb_layers; n++) {
 			solve_overlap_coeffs(nb_frames, index, index_ref, Nij[n], Mij[n], FALSE, coeffs);
 			for (int i = 0; i < N; i ++) {
-				coeff->pscale[n][index[i]] = 1. / coeffs[i];
+				coeff->pmul[n][index[i]] = 1. / coeffs[i];
 			}
 		}
 	}
