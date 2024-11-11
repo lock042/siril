@@ -82,11 +82,6 @@ static gboolean left_loaded = FALSE;
 static gboolean right_loaded = FALSE;
 static gboolean remix_log_scale = FALSE;
 
-static cmsHTRANSFORM *to_lab = NULL;
-static cmsHTRANSFORM *from_lab = NULL;
-static cmsHPROFILE *linrgb_profile = NULL;
-static cmsHPROFILE *lab_profile = NULL;
-
 ////////////////////////////////////////////
 // Remixer histogram functionality        //
 // Some callouts to histogram.h           //
@@ -533,67 +528,71 @@ int remixer() {
 	} else {
 		switch (gfit.type) {
 			case DATA_FLOAT:
+				if (left_loaded && !right_loaded) {
+					memcpy(gfit.data, fit_left_calc.data, npixels * 3 * sizeof(float));
+				} else if (right_loaded && !left_loaded) {
+					memcpy(gfit.data, fit_right_calc.data, npixels * 3 * sizeof(float));
+				} else {
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
-				for (size_t i = 0 ; i < npixels ; i++) {
-					float inl[3] = { 0.f }, inr[3] = { 0.f }, labl[3], labr[3], labo[3], rgbo[3];
-					if (left_loaded) {
+					for (size_t i = 0 ; i < npixels ; i++) {
+						float inl[3] = { 0.f }, inr[3] = { 0.f }, yuvl[3], yuvr[3], yuvo[3], rgbo[3];
 						inl[0] = fit_left_calc.fpdata[0][i];
 						inl[1] = fit_left_calc.fpdata[1][i];
 						inl[2] = fit_left_calc.fpdata[2][i];
-					}
-					if (right_loaded) {
 						inr[0] = fit_right_calc.fpdata[0][i];
 						inr[1] = fit_right_calc.fpdata[1][i];
 						inr[2] = fit_right_calc.fpdata[2][i];
+
+						rgb_to_yuvf(inl[0], inl[1], inl[2], &yuvl[0], &yuvl[1], &yuvl[2]);
+						rgb_to_yuvf(inr[0], inr[1], inr[2], &yuvr[0], &yuvr[1], &yuvr[2]);
+
+						float divisor = (yuvl[0] + yuvr[0] == 0.f) ? 1.f : yuvl[0] + yuvr[0];
+						yuvo[0] = yuvl[0] + yuvr[0] - yuvl[0] * yuvr[0];
+						yuvo[1] = (yuvl[0] * yuvl[1] + yuvr[0] * yuvr[1]) / divisor;
+						yuvo[2] = (yuvl[0] * yuvl[2] + yuvr[0] * yuvr[2]) / divisor;
+
+						yuv_to_rgbf(yuvo[0], yuvo[1], yuvo[2], &rgbo[0], &rgbo[1], &rgbo[2]);
+
+						gfit.fpdata[0][i] = rgbo[0];
+						gfit.fpdata[1][i] = rgbo[1];
+						gfit.fpdata[2][i] = rgbo[2];
 					}
-					// TODO: This is inefficient, it is threaded but fails to make use of SIMD
-					cmsDoTransform(to_lab, inl, labl, 1);
-					cmsDoTransform(to_lab, inr, labr, 1);
-
-					float divisor = (labl[0] + labr[0] == 0.f) ? 1.f : labl[0] + labr[0];
-					labo[0] = labl[0] + labr[0] - labl[0] * labr[0] * 0.01f;
-					labo[1] = (labl[0] * labl[1] + labr[0] * labr[1]) / divisor;
-					labo[2] = (labl[0] * labl[2] + labr[0] * labr[2]) / divisor;
-
-					cmsDoTransform(from_lab, labo, rgbo, 1);
-
-					gfit.fpdata[0][i] = rgbo[0];
-					gfit.fpdata[1][i] = rgbo[1];
-					gfit.fpdata[2][i] = rgbo[2];
 				}
 				break;
 			case DATA_USHORT:
+				if (left_loaded && !right_loaded) {
+					memcpy(gfit.data, fit_left_calc.data, npixels * 3 * sizeof(WORD));
+				} else if (right_loaded && !left_loaded) {
+					memcpy(gfit.data, fit_right_calc.data, npixels * 3 * sizeof(WORD));
+				} else {
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
-				for (size_t i = 0 ; i < npixels ; i++) {
-					float inl[3] = { 0.f }, inr[3] = { 0.f }, labl[3], labr[3], labo[3], rgbo[3];
-					if (left_loaded) {
+					for (size_t i = 0 ; i < npixels ; i++) {
+						float inl[3] = { 0.f }, inr[3] = { 0.f }, yuvl[3], yuvr[3], yuvo[3], rgbo[3];
 						inl[0] = fit_left_calc.pdata[0][i] * invnorm;
 						inl[1] = fit_left_calc.pdata[1][i] * invnorm;
 						inl[2] = fit_left_calc.pdata[2][i] * invnorm;
-					}
-					if (right_loaded) {
 						inr[0] = fit_right_calc.pdata[0][i] * invnorm;
 						inr[1] = fit_right_calc.pdata[1][i] * invnorm;
 						inr[2] = fit_right_calc.pdata[2][i] * invnorm;
+
+						rgb_to_yuvf(inl[0], inl[1], inl[2], &yuvl[0], &yuvl[1], &yuvl[2]);
+						rgb_to_yuvf(inr[0], inr[1], inr[2], &yuvr[0], &yuvr[1], &yuvr[2]);
+
+						float divisor = (yuvl[0] + yuvr[0] == 0.f) ? 1.f : yuvl[0] + yuvr[0];
+						yuvo[0] = yuvl[0] + yuvr[0] - yuvl[0] * yuvr[0];
+						yuvo[1] = (yuvl[0] * yuvl[1] + yuvr[0] * yuvr[1]) / divisor;
+						yuvo[2] = (yuvl[0] * yuvl[2] + yuvr[0] * yuvr[2]) / divisor;
+
+						yuv_to_rgbf(yuvo[0], yuvo[1], yuvo[2], &rgbo[0], &rgbo[1], &rgbo[2]);
+
+						gfit.pdata[0][i] = roundf_to_WORD(rgbo[0] * norm);
+						gfit.pdata[1][i] = roundf_to_WORD(rgbo[1] * norm);
+						gfit.pdata[2][i] = roundf_to_WORD(rgbo[2] * norm);
 					}
-
-					cmsDoTransform(to_lab, inl, labl, 1);
-					cmsDoTransform(to_lab, inr, labr, 1);
-
-					float divisor = (labl[0] + labr[0] == 0.f) ? 1.f : labl[0] + labr[0];
-					labo[0] = labl[0] + labr[0] - labl[0] * labr[0] * 0.01f;
-					labo[1] = (labl[0] * labl[1] + labr[0] * labr[1]) / divisor;
-					labo[2] = (labl[0] * labl[2] + labr[0] * labr[2]) / divisor;
-
-					cmsDoTransform(from_lab, labo, rgbo, 1);
-
-					gfit.pdata[0][i] = roundf_to_WORD(rgbo[0] * norm);
-					gfit.pdata[1][i] = roundf_to_WORD(rgbo[1] * norm);
-					gfit.pdata[2][i] = roundf_to_WORD(rgbo[2] * norm);
 				}
 				break;
 			default:
@@ -708,27 +707,6 @@ void apply_remix_cancel() {
 	set_cursor_waiting(FALSE);
 }
 
-void initialize_remixer_transforms(fits* fit) {
-	cmsColorSpaceSignature sig, ref_sig;
-	cmsUInt32Number src_type, dest_type;
-	if (!linrgb_profile) {
-		linrgb_profile = fit->naxes[2] == 1 ? gray_linear() : rec2020_linear();
-	}
-	sig = cmsGetColorSpace(linrgb_profile);
-	if(!lab_profile) {
-		lab_profile = cmsCreateLab4Profile(NULL);
-	}
-	ref_sig = cmsGetColorSpace(lab_profile);
-	src_type = get_planar_formatter_type(sig, fit->type, FALSE);
-	dest_type = get_planar_formatter_type(ref_sig, fit->type, FALSE);
-	if (to_lab)
-		cmsDeleteTransform(to_lab);
-	to_lab = cmsCreateTransformTHR(com.icc.context_single, linrgb_profile, src_type, lab_profile, dest_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
-	if (from_lab)
-		cmsDeleteTransform(from_lab);
-	from_lab = cmsCreateTransformTHR(com.icc.context_single, lab_profile, dest_type, linrgb_profile, src_type, com.pref.icc.processing_intent, com.icc.rendering_flags);
-}
-
 /*** callbacks **/
 
 void on_dialog_star_remix_show(GtkWidget *widget, gpointer user_data) {
@@ -750,14 +728,7 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 	if (gtk_widget_get_visible(lookup_widget("dialog_star_remix"))) {
 		set_cursor_waiting(TRUE);
 		reset_controls_and_values();
-		if (to_lab) {
-			cmsDeleteTransform(to_lab);
-			to_lab = NULL;
-		}
-		if (from_lab) {
-			cmsDeleteTransform(from_lab);
-			from_lab = NULL;
-		}
+
 		remixer_close();
 		set_cursor_waiting(FALSE);
 		siril_close_dialog("dialog_star_remix");
@@ -790,7 +761,6 @@ int toggle_remixer_window_visibility(int _invocation, fits* _fit_left, fits* _fi
 			copyfits(&fit_right, &fit_right_calc, (CP_ALLOC | CP_INIT | CP_FORMAT), 0);
 			right_loaded = TRUE; // Mark RHS image as loaded
 			right_changed = TRUE; // Force update on initial draw
-			initialize_remixer_transforms(&fit_left);
 			merge_fits_headers_to_result(&gfit, FALSE, &fit_left, &fit_right, NULL);
 			// Avoid doubling STACKCNT and LIVETIME as we are merging starless and star parts of a single image
 			gfit.keywords.stackcnt = fit_left.keywords.stackcnt;
@@ -1138,10 +1108,6 @@ void on_remix_filechooser_left_file_set(GtkFileChooser *filechooser, gpointer us
 		right_loaded = FALSE;
 		return;
 	}
-	if(fit_left.type == DATA_FLOAT && com.pref.force_16bit) {
-		const size_t ndata = fit_left.naxes[0] * fit_left.naxes[1] * fit_left.naxes[2];
-		fit_replace_buffer(&fit_left, float_buffer_to_ushort(fit_left.fdata, ndata), DATA_USHORT);
-	}
 	if (right_loaded) {
 		if(!check_images_match(&fit_left, &fit_right)) {
 			siril_message_dialog( GTK_MESSAGE_ERROR, _("Error: images do not match"),
@@ -1190,7 +1156,6 @@ void on_remix_filechooser_left_file_set(GtkFileChooser *filechooser, gpointer us
 		}
 	} else {
 		check_profile_correct(&fit_left);
-		initialize_remixer_transforms(&fit_left);
 		close_single_image();
 		close_sequence(FALSE);
 		clearfits(&gfit);
@@ -1231,10 +1196,6 @@ void on_remix_filechooser_right_file_set(GtkFileChooser *filechooser, gpointer u
 		gtk_file_chooser_unselect_all(filechooser);
 		right_loaded = FALSE;
 		return;
-	}
-	if(fit_right.type == DATA_FLOAT && com.pref.force_16bit) {
-		const size_t ndata = fit_right.naxes[0] * fit_right.naxes[1] * fit_right.naxes[2];
-		fit_replace_buffer(&fit_right, float_buffer_to_ushort(fit_right.fdata, ndata), DATA_USHORT);
 	}
 	if (left_loaded) {
 		if(!check_images_match(&fit_left, &fit_right)) {
@@ -1288,7 +1249,6 @@ void on_remix_filechooser_right_file_set(GtkFileChooser *filechooser, gpointer u
 		}
 	} else {
 		check_profile_correct(&fit_right);
-		initialize_remixer_transforms(&fit_right);
 		close_single_image();
 		close_sequence(FALSE);
 		clearfits(&gfit);
