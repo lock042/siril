@@ -283,19 +283,19 @@ static void solve_overlap_coeffs(int nb_frames, int *index, int index_ref, size_
 	double *B = calloc(N, sizeof(double));
 	for (int i = 0; i < N; i ++) {
 		int ii = index[i];
-		B[i] = (additive) ? Nij[ii][index_ref] * (Mij[index_ref][ii] - Mij[ii][index_ref]) :
-							Nij[ii][index_ref] * Mij[index_ref][ii] * Mij[ii][index_ref];
+		B[i] = (additive) ? (double)Nij[ii][index_ref] * (Mij[index_ref][ii] - Mij[ii][index_ref]) :
+							(double)Nij[ii][index_ref] * Mij[index_ref][ii] * Mij[ii][index_ref];
 		for (int j = 0; j < N; j ++) {
 			int ij = index[j];
 			if (ii == ij) {
 				for (int k = 0; k < nb_frames; k++) {
 					if (k != ii)
-						A[c] += (additive) ? Nij[ii][k] :
-											 Nij[ii][k] * Mij[ii][k] * Mij[ii][k];
+						A[c] += (additive) ? (double)Nij[ii][k] :
+											 (double)Nij[ii][k] * Mij[ii][k] * Mij[ii][k];
 				}
 			} else {
-				A[c] = (additive) ? -Nij[ii][ij] :
-									-Nij[ii][ij] * Mij[ii][ij] * Mij[ij][ii];
+				A[c] = (additive) ? -(double)Nij[ii][ij] :
+									-(double)Nij[ii][ij] * Mij[ii][ij] * Mij[ij][ii];
 				if (additive)
 					B[i] += Nij[ii][ij] * (Mij[ij][ii] - Mij[ii][ij]);
 			}
@@ -379,6 +379,7 @@ static int _compute_estimators_for_images(struct stacking_args *args, int i, int
 	float *datai = malloc(nbdata * sizeof(float));
 	float *dataj = malloc(nbdata * sizeof(float));
 	size_t Nij = 0;
+	float invnorm = 1. / USHRT_MAX;
 	for (int n = 0; n < nb_layers; n++) {
 		fits fiti = { 0 };
 		fits fitj = { 0 };
@@ -392,18 +393,25 @@ static int _compute_estimators_for_images(struct stacking_args *args, int i, int
 			return -1;
 		}
 		for (size_t k = 0; k < nbdata; k++) {
-			if (!fiti.fpdata[n][k] || !fitj.fpdata[n][k])
-				continue;
-			datai[Nij] = fiti.fpdata[n][k];
-			dataj[Nij] = fitj.fpdata[n][k];
+			if (fiti.type == DATA_FLOAT) {
+				if (!fiti.fpdata[n][k] || !fitj.fpdata[n][k])
+					continue;
+				datai[Nij] = fiti.fpdata[n][k];
+				dataj[Nij] = fitj.fpdata[n][k];
+			} else if (fiti.type == DATA_USHORT) {
+				if (!fiti.pdata[n][k] || !fitj.pdata[n][k])
+					continue;
+				datai[Nij] = (float)fiti.pdata[n][k] * invnorm;
+				dataj[Nij] = (float)fitj.pdata[n][k] * invnorm;
+			}
 			Nij++;
 		}
 		siril_debug_print("%lu pixels for image %d and %d on layer %d\n", Nij, i + 1, j + 1, n);
 		stats[n]->Nij = Nij;
 		stats[n]->mij = (float)histogram_median_float(datai, Nij, SINGLE_THREADED);
 		stats[n]->mji = (float)histogram_median_float(dataj, Nij, SINGLE_THREADED);
-		// stats[n]->sij = (float)siril_stats_float_mad(datai, Nij, stats[n]->mij, SINGLE_THREADED, NULL);
-		// stats[n]->sji = (float)siril_stats_float_mad(dataj, Nij, stats[n]->mji, SINGLE_THREADED, NULL);
+		stats[n]->sij = (float)siril_stats_float_mad(datai, Nij, stats[n]->mij, SINGLE_THREADED, NULL);
+		stats[n]->sji = (float)siril_stats_float_mad(dataj, Nij, stats[n]->mji, SINGLE_THREADED, NULL);
 		clearfits(&fiti);
 		clearfits(&fitj);
 	}
@@ -427,14 +435,14 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 	double ***Mij = malloc(nb_layers * sizeof(double **));
 	double ***Sij = malloc(nb_layers * sizeof(double **));
 	size_t ***Nij = malloc(nb_frames * sizeof(size_t **));
-	for (int n = 0; n < 3; n++) {
+	for (int n = 0; n < nb_layers; n++) {
 		Mij[n] = malloc(nb_frames * sizeof(double *));
 		Sij[n] = malloc(nb_frames * sizeof(double *));
 		Nij[n] = malloc(nb_frames * sizeof(size_t *));
 		for (int i = 0; i < nb_frames; i++) {
-			Mij[n][i] = calloc(nb_frames , sizeof(double));
-			Sij[n][i] = calloc(nb_frames , sizeof(double));
-			Nij[n][i] = calloc(nb_frames , sizeof(size_t));
+			Mij[n][i] = calloc(nb_frames, sizeof(double));
+			Sij[n][i] = calloc(nb_frames, sizeof(double));
+			Nij[n][i] = calloc(nb_frames, sizeof(size_t));
 		}
 	}
 	int *index = malloc((nb_frames - 1) * sizeof(int));
@@ -585,7 +593,7 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 	if (!retval)
 		compute_factors_from_estimators(args, index_ref);
 
-	for (int n = 0; n < 3; n++) {
+	for (int n = 0; n < nb_layers; n++) {
 		for (int i = 0; i < nb_frames; i++) {
 			free(Mij[n][i]);
 			free(Sij[n][i]);
