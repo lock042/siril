@@ -478,6 +478,18 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			break;
 		}
 
+		case CMD_GET_IS_IMAGE_LOADED: {
+			int32_t loaded = GINT32_TO_BE((int32_t) single_image_is_loaded());
+			success = send_response(conn, STATUS_OK, &loaded, sizeof(int));
+			break;
+		}
+
+		case CMD_GET_IS_SEQUENCE_LOADED: {
+			int32_t loaded = GINT32_TO_BE((int32_t) sequence_is_loaded());
+			success = send_response(conn, STATUS_OK, &loaded, sizeof(int));
+			break;
+		}
+
 		case CMD_LOG_MESSAGE: {
 			// Ensure null-terminated string for log message
 			char* log_msg = g_strndup(payload, payload_length);

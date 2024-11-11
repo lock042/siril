@@ -68,6 +68,8 @@ class _Command(IntEnum):
     GET_SEQ = 24
     GET_CONFIG = 25
     GET_USERCONFIGDIR = 26
+    GET_IS_IMAGE_LOADED = 27
+    GET_IS_SEQUENCE_LOADED = 28
     ERROR = 0xFF
 
 class ConfigType(IntEnum):
@@ -1144,6 +1146,37 @@ class SirilInterface:
             print("Error decoding user config directory: {e}", file=sys.stderr)
             return None
 
+    def is_image_loaded(self) -> Optional[bool]:
+        """
+        Check if a single image is loaded in Siril.
+
+        Returns:
+            bool: True if a single image is loaded, False if a single image is
+        not loaded, or None if an error occurred.
+        """
+        response = self.request_data(_Command.GET_IS_IMAGE_LOADED)
+
+        if response is None:
+            return None
+
+        image_loaded = struct.unpack('!i', response)[0] != 0
+        return image_loaded
+
+    def is_sequence_loaded(self) -> Optional[bool]:
+        """
+        Check if a sequence is loaded in Siril.
+
+        Returns:
+            bool: True if a sequence is loaded, False if a sequence is not loaded,
+        or None if an error occurred.
+        """
+        response = self.request_data(_Command.GET_IS_SEQUENCE_LOADED)
+
+        if response is None:
+            return None
+
+        sequence_loaded = struct.unpack('!i', response)[0] != 0
+        return sequence_loaded
 
     def get_filename(self) -> Optional[str]:
         """
