@@ -5,6 +5,7 @@
 #include <gio/gwin32inputstream.h>
 #else
 #include <gio/gunixinputstream.h>
+#include <glib-unix.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <netinet/in.h>
@@ -93,50 +94,79 @@ static gboolean create_shared_memory_win32(const char* name, size_t size, win_sh
 #endif
 
 gboolean send_response(Connection* conn, uint8_t status, const void* data, uint32_t length) {
+	// Add a small delay to ensure receiver is ready
+	g_usleep(2000); // 2ms delay - adjust based on testing
+
 	ResponseHeader header = {
 		.status = status,
-		.length = GUINT32_TO_BE(length)  // Convert to network byte order
+		.length = GUINT32_TO_BE(length)
 	};
 
 #ifdef _WIN32
 	DWORD bytes_written = 0;
+	int retry_count = 3; // Maximum number of retries
 
-	// Send header
-	if (!WriteFile(conn->pipe_handle, &header, sizeof(header), &bytes_written, NULL) ||
-		bytes_written != sizeof(header)) {
-		siril_debug_print("Failed to send response header: %lu\n", GetLastError());
-		return FALSE;
-	}
-
-	// Send data if present
-	if (data && length > 0) {
-		if (!WriteFile(conn->pipe_handle, data, length, &bytes_written, NULL) ||
-			bytes_written != length) {
-			siril_debug_print("Failed to send response data: %lu\n", GetLastError());
+	while (retry_count > 0) {
+		// Send header
+		if (!WriteFile(conn->pipe_handle, &header, sizeof(header), &bytes_written, NULL) ||
+			bytes_written != sizeof(header)) {
+			if (retry_count > 1) {
+				g_usleep(2000); // Wait 2ms before retry
+				retry_count--;
+				continue;
+			}
+			siril_debug_print("Failed to send response header: %lu\n", GetLastError());
 			return FALSE;
 		}
-	}
 
+		// Send data if present
+		if (data && length > 0) {
+			if (!WriteFile(conn->pipe_handle, data, length, &bytes_written, NULL) ||
+				bytes_written != length) {
+				if (retry_count > 1) {
+					g_usleep(2000);
+					retry_count--;
+					continue;
+				}
+				siril_debug_print("Failed to send response data: %lu\n", GetLastError());
+				return FALSE;
+			}
+		}
+		break; // Success, exit the retry loop
+	}
 #else
 	ssize_t bytes_written;
+	int retry_count = 3;
 
-	// Send header
-	bytes_written = write(conn->client_fd, &header, sizeof(header));
-	if (bytes_written != sizeof(header)) {
-		siril_debug_print("Failed to send response header: %s\n", g_strerror(errno));
-		return FALSE;
-	}
-
-	// Send data if present
-	if (data && length > 0) {
-		bytes_written = write(conn->client_fd, data, length);
-		if (bytes_written != length) {
-			siril_debug_print("Failed to send response data: %s\n", g_strerror(errno));
+	while (retry_count > 0) {
+		// Send header
+		bytes_written = write(conn->client_fd, &header, sizeof(header));
+		if (bytes_written != sizeof(header)) {
+			if (retry_count > 1 && errno == EAGAIN) {
+				g_usleep(2000);
+				retry_count--;
+				continue;
+			}
+			siril_debug_print("Failed to send response header: %s\n", g_strerror(errno));
 			return FALSE;
 		}
+
+		// Send data if present
+		if (data && length > 0) {
+			bytes_written = write(conn->client_fd, data, length);
+			if (bytes_written != length) {
+				if (retry_count > 1 && errno == EAGAIN) {
+					g_usleep(2000);
+					retry_count--;
+					continue;
+				}
+				siril_debug_print("Failed to send response data: %s\n", g_strerror(errno));
+				return FALSE;
+			}
+		}
+		break; // Success, exit the retry loop
 	}
 #endif
-
 	return TRUE;
 }
 
@@ -547,10 +577,6 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 
 // Monitor stdout stream
 static gpointer monitor_stream_stdout(GDataInputStream *data_input) {
-	// Set stream to unbuffered mode by accessing the base stream correctly
-	g_object_set(g_filter_input_stream_get_base_stream(G_FILTER_INPUT_STREAM(data_input)),
-				"buffer-size", 0,
-				NULL);
 
 	gsize length = 0;
 	gchar *buffer;
@@ -572,10 +598,6 @@ static gpointer monitor_stream_stdout(GDataInputStream *data_input) {
 
 // Monitor stderr stream
 static gpointer monitor_stream_stderr(GDataInputStream *data_input) {
-	// Set stream to unbuffered mode by accessing the base stream correctly
-	g_object_set(g_filter_input_stream_get_base_stream(G_FILTER_INPUT_STREAM(data_input)),
-				"buffer-size", 0,
-				NULL);
 
 	gsize length = 0;
 	gchar *buffer;
@@ -754,11 +776,43 @@ void execute_python_script_async(gchar* script_name, gboolean from_file) {
 	GInputStream *stderr_stream = NULL;
 
 #ifdef _WIN32
-	stdout_stream = g_win32_input_stream_new((HANDLE)_get_osfhandle(stdout_fd), FALSE);
-	stderr_stream = g_win32_input_stream_new((HANDLE)_get_osfhandle(stderr_fd), FALSE);
+	// TODO: confirm if this behaviour is correct on Windows (suggestion is that
+	// it could potentially cause data loss or unexpected behaviour owing to
+	// differences in behaviour between unix pipes and Windows ones
+	HANDLE pipe_handle = (HANDLE)_get_osfhandle(stdout_fd);
+	DWORD pipe_mode = PIPE_NOWAIT;
+
+	if (!SetNamedPipeHandleState(pipe_handle,
+								&pipe_mode,    // Set PIPE_NOWAIT
+								NULL,          // don't change maximum bytes
+								NULL))         // don't change maximum time
+	{
+		// Handle error
+		DWORD error = GetLastError();
+		g_warning("SetNamedPipeHandleState failed with error %lu", error);
+	}
+
+	stdout_stream = g_win32_input_stream_new(pipe_handle, FALSE);
+
+	HANDLE pipe_handle2 = (HANDLE)_get_osfhandle(stderr_fd);
+	DWORD pipe_mode2 = PIPE_NOWAIT;
+
+	if (!SetNamedPipeHandleState(pipe_handle2,
+								&pipe_mode2,    // Set PIPE_NOWAIT
+								NULL,          // don't change maximum bytes
+								NULL))         // don't change maximum time
+	{
+		// Handle error - you might want to use g_set_error with your GError
+		DWORD error = GetLastError();
+		g_warning("SetNamedPipeHandleState failed with error %lu", error);
+	}
+
+	stderr_stream = g_win32_input_stream_new(pipe_handle2, FALSE);
 #else
-	stdout_stream = g_unix_input_stream_new(stdout_fd, TRUE);  // Take ownership of FD
+	stdout_stream = g_unix_input_stream_new(stdout_fd, TRUE);
+	g_unix_set_fd_nonblocking(stdout_fd, TRUE, &error);
 	stderr_stream = g_unix_input_stream_new(stderr_fd, TRUE);
+	g_unix_set_fd_nonblocking(stderr_fd, TRUE, &error);
 #endif
 
 	// Create unbuffered data input streams
