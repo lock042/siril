@@ -3,10 +3,11 @@ from setuptools import setup, find_packages
 
 setup(
     name="siril",
-    version="0.1.21",
+    version="0.1.27",
     packages=find_packages(),
     install_requires=[
         "numpy>=1.20.0",
+        "packaging>=21.0",
         "pywin32>=300; platform_system=='Windows'"
     ],
     author="Team free-astro",

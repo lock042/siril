@@ -9,11 +9,11 @@ import calendar
 import importlib
 import subprocess
 import numpy as np
-import pkg_resources
 from pathlib import Path
 from enum import IntEnum
 from .translations import _
 from datetime import datetime
+from importlib import metadata
 from .shm import SharedMemoryWrapper
 from packaging import version, requirements
 from typing import Tuple, Optional, List, Union, Any
@@ -114,7 +114,7 @@ def import_or_install(module_name: str, version_constraint: Optional[str] = None
     Raises:
         ImportError: If module cannot be imported even after installation attempt
         subprocess.CalledProcessError: If pip installation fails
-        pkg_resources.VersionConflict: If installed version doesn't meet constraints
+        requirements.InvalidRequirement: If version constraint is invalid
     """
     package = package_name or module_name
 
@@ -124,14 +124,12 @@ def import_or_install(module_name: str, version_constraint: Optional[str] = None
             return True
 
         try:
-            installed_pkg = pkg_resources.working_set.by_key[package.lower()]
-            installed_version = installed_pkg.version
-            # Create a requirement object from the constraint
+            # Using importlib.metadata to get package version
+            installed_version = metadata.version(package)
             req_string = f"{package}{version_constraint}"
             requirement = requirements.Requirement(req_string)
-
             return version.parse(installed_version) in requirement.specifier
-        except (pkg_resources.DistributionNotFound, KeyError):
+        except metadata.PackageNotFoundError:
             return False
 
     def install_package():
@@ -168,13 +166,56 @@ def import_or_install(module_name: str, version_constraint: Optional[str] = None
             module = importlib.import_module(module_name)
             # Verify version constraint after installation
             if not check_version_constraint():
-                raise pkg_resources.VersionConflict(
+                raise requirements.InvalidRequirement(
                     f"Installed version of {package} doesn't meet constraint {version_constraint}"
                 )
             return module
         except ImportError as e:
             print(f"Module {module_name} still couldn't be imported after installation.")
             raise ImportError(f"Failed to import {module_name} even after installation attempt: {e}")
+
+def ensure_installed(package_name: str, version_constraint: Optional[str] = None):
+    """
+    Ensures that the specified package with the given version constraint is installed.
+    Installs the package if it is missing or if the version constraint is not met.
+
+    Args:
+        package_name (str): Name of the package to ensure is installed.
+        version_constraint (str, optional): Version constraint string (e.g. ">=1.5", "==2.0").
+
+    Raises:
+        subprocess.CalledProcessError: If pip installation fails.
+        requirements.InvalidRequirement: If version constraint is invalid.
+    """
+
+    def check_version_constraint() -> bool:
+        """Check if any version is installed (if no constraint) or if it meets the version constraint."""
+        try:
+            installed_version = metadata.version(package_name)
+            if version_constraint:
+                req_string = f"{package_name}{version_constraint}"
+                requirement = requirements.Requirement(req_string)
+                return version.parse(installed_version) in requirement.specifier
+            return True  # Any version is acceptable if no version constraint is provided
+        except metadata.PackageNotFoundError:
+            return False
+
+    def install_package():
+        """Install the package with exact version constraint."""
+        install_target = f"{package_name}{version_constraint}" if version_constraint else package_name
+        try:
+            subprocess.check_call([sys.executable, "-m", "pip", "install", install_target])
+            print(f"Successfully installed {install_target}.")
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to install {install_target}. Error: {e}")
+            raise
+
+    # Check if package meets version requirements or is installed
+    if not check_version_constraint():
+        print(f"{package_name} not found or doesn't meet version constraint {version_constraint}. Installing...")
+        install_package()
+    else:
+        print(f"{package_name} already installed and meets the version constraint {version_constraint}.")
 
 class SirilInterface:
     """
@@ -331,26 +372,6 @@ class SirilInterface:
 
         raise ConnectionError(_("Failed after {} retries. Last error: {}").format(retries, last_error))
 
-    def _map_shared_memory(self, name: str, size: int) -> SharedMemoryWrapper:
-        """
-        Create or open a shared memory mapping using SharedMemoryWrapper.
-        Not for end-user use.
-
-        Args:
-            name: Name of the shared memory segment
-            size: Size of the shared memory segment in bytes
-
-        Returns:
-            SharedMemoryWrapper: A wrapper object for the shared memory segment
-
-        Raises:
-            RuntimeError: If the shared memory mapping fails
-        """
-        try:
-            return SharedMemoryWrapper(name=name, size=size)
-        except Exception as e:
-            raise RuntimeError(_("Failed to create shared memory mapping: {}").format(e))
-
     def _send_command(self, command: _Command, data: Optional[bytes] = None) -> Tuple[Optional[int], Optional[bytes]]:
         """
         Send a command to Siril and receive the response.
@@ -418,6 +439,26 @@ class SirilInterface:
 
         except Exception as e:
             raise CommandError(_("Error sending command: {}").format(e))
+
+    def _map_shared_memory(self, name: str, size: int) -> SharedMemoryWrapper:
+        """
+        Create or open a shared memory mapping using SharedMemoryWrapper.
+        Not for end-user use.
+
+        Args:
+            name: Name of the shared memory segment
+            size: Size of the shared memory segment in bytes
+
+        Returns:
+            SharedMemoryWrapper: A wrapper object for the shared memory segment
+
+        Raises:
+            RuntimeError: If the shared memory mapping fails
+        """
+        try:
+            return SharedMemoryWrapper(name=name, size=size)
+        except Exception as e:
+            raise RuntimeError(_("Failed to create shared memory mapping: {}").format(e))
 
 # execute_command and request_data are not intended to be used directly in scripts
 # They are used to implement more user-friendly commands (see below)

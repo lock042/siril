@@ -1573,7 +1573,7 @@ static gboolean check_or_create_venv(const gchar *project_path, GError **error) 
 		argv[3] = g_strdup("--system-site-packages");
 		argv[4] = g_strdup(venv_path);
 		argv[5] = NULL;
-		siril_debug_print("Trying venv creation command: %s %s %s %s %s\n", argv[0], argv[1], argv[2], argv[3], argv[4]);
+		siril_debug_print("Trying venv creation command: %s %s %s %s %s %s\n", argv[0], argv[1], argv[2], argv[3], argv[4], argv[5]);
 		gint exit_status;
 		if (!g_spawn_sync(NULL, argv, NULL,
 						G_SPAWN_SEARCH_PATH,
