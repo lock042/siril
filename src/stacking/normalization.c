@@ -138,6 +138,9 @@ static void compute_factors_from_estimators(struct stacking_args *args, int ref_
 		mul0[layer] = pmul[layer][ref_index];
 		scale0[layer] = pscale[layer][ref_index];
 	}
+#ifdef DEBUG_NORM
+	siril_debug_print("Normalization coeeficients\n");
+#endif
 	int reflayer;
 	for (int layer = 0; layer < nb_layers; ++layer) {
 		reflayer = (args->equalizeRGB) ? args->reglayer : layer;
@@ -158,7 +161,7 @@ static void compute_factors_from_estimators(struct stacking_args *args, int ref_
 					break;
 			}
 #ifdef DEBUG_NORM
-			siril_debug_print("%2d %d %.5f %5f %.5f\n", args->image_indices[i] + 1, layer, poffset[layer][i], pscale[layer][i], pmul[layer][i]);
+			siril_debug_print("%2d %d %+.5f %5f %.5f\n", args->image_indices[i] + 1, layer, poffset[layer][i], pscale[layer][i], pmul[layer][i]);
 #endif
 		}
 	}
@@ -425,20 +428,24 @@ static int _compute_estimators_for_images(struct stacking_args *args, int i, int
 			}
 			Nij++;
 		}
-		siril_debug_print("%lu pixels for image %d and %d on layer %d\n", Nij, i + 1, j + 1, n);
-		stats[n].Nij = Nij;
-		stats[n].mij = (float)histogram_median_float(datai, Nij, SINGLE_THREADED);
-		stats[n].mji = (float)histogram_median_float(dataj, Nij, SINGLE_THREADED);
-		stats[n].sij = (float)siril_stats_float_mad(datai, Nij, stats[n].mij, SINGLE_THREADED, NULL);
-		stats[n].sji = (float)siril_stats_float_mad(dataj, Nij, stats[n].mji, SINGLE_THREADED, NULL);
-		if (!args->lite_norm) {
-			double li = 0., lj = 0., si = 1., sj = 1.;
-			IKSSlite(datai, Nij, stats[n].mij, stats[n].sij, &li, &si, SINGLE_THREADED);
-			IKSSlite(dataj, Nij, stats[n].mji, stats[n].sji, &lj, &sj, SINGLE_THREADED);
-			stats[n].mij = (float)li;
-			stats[n].mji = (float)lj;
-			stats[n].sij = (float)si;
-			stats[n].sji = (float)sj;
+		if (Nij > 3) { // we want at least 3 pixels with non-zero data to ompute stats
+			siril_debug_print("%lu pixels for image %d and %d on layer %d\n", Nij, i + 1, j + 1, n);
+			stats[n].Nij = Nij;
+			stats[n].mij = (float)histogram_median_float(datai, Nij, SINGLE_THREADED);
+			stats[n].mji = (float)histogram_median_float(dataj, Nij, SINGLE_THREADED);
+			stats[n].sij = (float)siril_stats_float_mad(datai, Nij, stats[n].mij, SINGLE_THREADED, NULL);
+			stats[n].sji = (float)siril_stats_float_mad(dataj, Nij, stats[n].mji, SINGLE_THREADED, NULL);
+			if (!args->lite_norm) {
+				double li = 0., lj = 0., si = 1., sj = 1.;
+				IKSSlite(datai, Nij, stats[n].mij, stats[n].sij, &li, &si, SINGLE_THREADED);
+				IKSSlite(dataj, Nij, stats[n].mji, stats[n].sji, &lj, &sj, SINGLE_THREADED);
+				stats[n].mij = (float)li;
+				stats[n].mji = (float)lj;
+				stats[n].sij = (float)si;
+				stats[n].sji = (float)sj;
+			}
+		} else {
+			siril_debug_print("No overlap data between image %d and %d on layer %d\n", i + 1, j + 1, n);
 		}
 	}
 	free(datai);
@@ -454,9 +461,26 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 	int nb_layers = args->seq->nb_layers;
 	int nb_frames = args->nb_images_to_stack;
 	int N = nb_frames * (nb_frames - 1) / 2;
+	imstats *refstats[3] = { NULL };
 
 	if (args->normalize == NO_NORM || !args->maximize_framing)	// should never happen here
 		return 0;
+
+	// first, find the index of the ref image in the filtered image list
+	// and compute its statistics
+	index_ref = find_refimage_in_indices(args->image_indices,
+			args->nb_images_to_stack, args->ref_image);
+	if (index_ref == -1) {
+		siril_log_color_message(_("The reference image is not in the selected set of images. "
+				"Please choose another reference image.\n"), "red");
+		return ST_GENERIC_ERROR;
+	}
+
+	if (compute_all_channels_statistics_seqimage(args->seq, index_ref, NULL, (args->lite_norm) ? STATS_LITENORM : STATS_NORM, SINGLE_THREADED, -1, refstats)) {
+		siril_log_color_message(_("Could not compute statistics of reference image"), "red");
+		retval = 1;
+		return ST_GENERIC_ERROR;
+	}
 
 	init_coeffs(args);
 
@@ -475,19 +499,9 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 	}
 	int *index = malloc((nb_frames - 1) * sizeof(int));
 
-	char *tmpmsg = siril_log_message(_("Computing overlaps normalization...\n"));
+	char *tmpmsg = siril_log_message(_("Computing normalization on overlaps...\n"));
 	tmpmsg[strlen(tmpmsg) - 1] = '\0';
 	set_progress_bar_data(tmpmsg, PROGRESS_RESET);
-
-	// first, find the index of the ref image in the filtered image list
-	index_ref = find_refimage_in_indices(args->image_indices,
-			args->nb_images_to_stack, args->ref_image);
-	if (index_ref == -1) {
-		siril_log_color_message(_("The reference image is not in the selected set of images. "
-				"Please choose another reference image.\n"), "red");
-		free(Mij);
-		return ST_GENERIC_ERROR;
-	}
 
 	const char *error_msg = (_("Normalization failed."));
 	// check memory first
@@ -593,27 +607,33 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 	if (args->normalize == ADDITIVE || args->normalize == ADDITIVE_SCALING) {
 		for (int n = 0; n < nb_layers; n++) {
 			solve_overlap_coeffs(nb_frames, index, index_ref, Nij[n], Mij[n], TRUE, coeffs);
+			float refval = (args->lite_norm) ? refstats[n]->median :  refstats[n]->location;
 			for (int i = 0; i < N; i ++) {
-				coeff->poffset[n][index[i]] = -coeffs[i];
+				coeff->poffset[n][index[i]] = refval - coeffs[i];
 			}
+			coeff->poffset[n][index_ref] = refval;
 		}
 	}
 
 	if (args->normalize == MULTIPLICATIVE_SCALING || args->normalize == ADDITIVE_SCALING) {
 		for (int n = 0; n < nb_layers; n++) {
 			solve_overlap_coeffs(nb_frames, index, index_ref, Nij[n], Sij[n], FALSE, coeffs);
+			float refval = (args->lite_norm) ? refstats[n]->mad :  refstats[n]->scale;
 			for (int i = 0; i < N; i ++) {
-				coeff->pscale[n][index[i]] = 1./ coeffs[i];
+				coeff->pscale[n][index[i]] = refval / coeffs[i];
 			}
+			coeff->pscale[n][index_ref] = refval;
 		}
 	}
 
 	if (args->normalize == MULTIPLICATIVE) {
 		for (int n = 0; n < nb_layers; n++) {
 			solve_overlap_coeffs(nb_frames, index, index_ref, Nij[n], Mij[n], FALSE, coeffs);
+			float refval = (args->lite_norm) ? refstats[n]->median :  refstats[n]->location;
 			for (int i = 0; i < N; i ++) {
-				coeff->pmul[n][index[i]] = 1. / coeffs[i];
+				coeff->pmul[n][index[i]] = refval / coeffs[i];
 			}
+			coeff->pmul[n][index_ref] = refval;
 		}
 	}
 
