@@ -6,6 +6,7 @@ import struct
 import socket
 import ctypes
 import calendar
+import threading
 import importlib
 import subprocess
 import numpy as np
@@ -230,16 +231,22 @@ class SirilInterface:
         correct pipe or socket path based on the environment variable and
         operating system.
         """
-        if os.name == 'nt':  # Windows
+        if os.name == 'nt':
             self.pipe_path = os.getenv('MY_PIPE')
             if not self.pipe_path:
                 raise ConnectionError(_("Environment variable MY_PIPE not set"))
-            self.event_pipe_path = self.pipe_path  # Assuming event pipe is the same path
-        else:  # POSIX (Linux/macOS)
+            self.event_pipe_path = self.pipe_path
+        else:
             self.socket_path = os.getenv('MY_SOCKET')
             if not self.socket_path:
                 raise ConnectionError(_("Environment variable MY_SOCKET not set"))
-            self.event_pipe_path = self.socket_path  # Assuming event socket is the same path
+            self.event_pipe_path = self.socket_path
+
+        # Add synchronization lock
+        if os.name == 'nt':
+            self.command_lock = win32event.CreateMutex(None, False, None)
+        else:
+            self.command_lock = threading.Lock()
 
     def connect(self):
         """
@@ -374,40 +381,44 @@ class SirilInterface:
 
     def _send_command(self, command: _Command, data: Optional[bytes] = None) -> Tuple[Optional[int], Optional[bytes]]:
         """
-        Send a command to Siril and receive the response.
-        Not for end-user use.
+        Send a command to Siril and receive the response with proper synchronization.
         """
         try:
             data_length = len(data) if data else -1
-
             if data_length > 65529:
                 raise RuntimeError(_("Command data too long. Maximum command data 65529 bytes"))
 
-            header = struct.pack('!Bi', command, data_length)
-
+            # Acquire lock before sending command
             if os.name == 'nt':
-                try:
-                    # Send header
+                win32event.WaitForSingleObject(self.command_lock, win32event.INFINITE)
+            else:
+                self.command_lock.acquire()
+
+            try:
+                # Pack command and length into fixed-size header
+                header = struct.pack('!Bi', command, data_length)
+
+                if os.name == 'nt':
+                    # Send header atomically
                     err, bytes_written = win32file.WriteFile(self.pipe_handle, header, self.overlap_write)
-                    rc = win32event.WaitForSingleObject(self.overlap_write.hEvent, 3000)  # 3 second timeout
+                    rc = win32event.WaitForSingleObject(self.overlap_write.hEvent, 3000)
                     if rc != win32event.WAIT_OBJECT_0:
-                        raise ConnectionError(_("Timeout or error while sending header"))
+                        raise ConnectionError(_("Timeout while sending header"))
 
                     # Send data if present
                     if data and data_length > 0:
                         err, bytes_written = win32file.WriteFile(self.pipe_handle, data, self.overlap_write)
                         rc = win32event.WaitForSingleObject(self.overlap_write.hEvent, 3000)
                         if rc != win32event.WAIT_OBJECT_0:
-                            raise ConnectionError(_("Timeout or error while sending data"))
+                            raise ConnectionError(_("Timeout while sending data"))
 
-                    # Receive response header
-                    response_header = self._recv_exact(5)  # 1 byte status + 4 bytes length
+                    # Wait for and receive complete response
+                    response_header = self._recv_exact(5)  # Fixed size header: 1 byte status + 4 bytes length
                     if not response_header:
                         return None, None
 
                     status, response_length = struct.unpack('!BI', response_header)
 
-                    # Receive response data if any
                     response_data = None
                     if response_length > 0:
                         response_data = self._recv_exact(response_length)
@@ -416,26 +427,35 @@ class SirilInterface:
 
                     return status, response_data
 
-                except pywintypes.error as e:
-                    raise CommandError(_("Windows pipe error during command: {}").format(e))
-            else:
-                # Existing socket implementation
-                self.sock.sendall(header)
-                if data and data_length > 0:
-                    self.sock.sendall(data)
+                else:
+                    # Socket implementation with atomic writes
+                    msg = header
+                    if data and data_length > 0:
+                        msg += data
 
-                response_header = self._recv_exact(5)
-                if not response_header:
-                    return None, None
+                    # Send everything in one call to prevent fragmentation
+                    self.sock.sendall(msg)
 
-                status, response_length = struct.unpack('!BI', response_header)
-                response_data = None
-                if response_length > 0:
-                    response_data = self._recv_exact(response_length)
-                    if not response_data:
+                    # Receive response atomically
+                    response_header = self._recv_exact(5)
+                    if not response_header:
                         return None, None
 
-                return status, response_data
+                    status, response_length = struct.unpack('!BI', response_header)
+                    response_data = None
+                    if response_length > 0:
+                        response_data = self._recv_exact(response_length)
+                        if not response_data:
+                            return None, None
+
+                    return status, response_data
+
+            finally:
+                # Always release the lock
+                if os.name == 'nt':
+                    win32event.ReleaseMutex(self.command_lock)
+                else:
+                    self.command_lock.release()
 
         except Exception as e:
             raise CommandError(_("Error sending command: {}").format(e))
