@@ -161,7 +161,7 @@ static void compute_factors_from_estimators(struct stacking_args *args, int ref_
 					break;
 			}
 #ifdef DEBUG_NORM
-			siril_debug_print("%2d %d %+.5f %5f %.5f\n", args->image_indices[i] + 1, layer, poffset[layer][i], pscale[layer][i], pmul[layer][i]);
+			siril_debug_print("%2d %d %+8.5f %5f %.5f\n", args->image_indices[i] + 1, layer, poffset[layer][i], pscale[layer][i], pmul[layer][i]);
 #endif
 		}
 	}
@@ -477,6 +477,14 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 	}
 
 	if (compute_all_channels_statistics_seqimage(args->seq, index_ref, NULL, (args->lite_norm) ? STATS_LITENORM : STATS_NORM, SINGLE_THREADED, -1, refstats)) {
+#ifdef DEBUG_NORM
+		for (int n = 0; n < nb_layers; n++) {
+			if (args->lite_norm)
+				siril_debug_print("Reference %.6f %.6f\n", refstats[n]->median, refstats[n]->mad);
+			else
+				siril_debug_print("Reference %.6f %.6f\n", refstats[n]->location, refstats[n]->scale);
+		}
+#endif
 		siril_log_color_message(_("Could not compute statistics of reference image"), "red");
 		retval = 1;
 		return ST_GENERIC_ERROR;
@@ -607,7 +615,7 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 	if (args->normalize == ADDITIVE || args->normalize == ADDITIVE_SCALING) {
 		for (int n = 0; n < nb_layers; n++) {
 			solve_overlap_coeffs(nb_frames, index, index_ref, Nij[n], Mij[n], TRUE, coeffs);
-			float refval = (args->lite_norm) ? refstats[n]->median :  refstats[n]->location;
+			float refval = (args->lite_norm) ? refstats[n]->median : refstats[n]->location;
 			for (int i = 0; i < N; i ++) {
 				coeff->poffset[n][index[i]] = refval - coeffs[i];
 			}
@@ -618,7 +626,7 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 	if (args->normalize == MULTIPLICATIVE_SCALING || args->normalize == ADDITIVE_SCALING) {
 		for (int n = 0; n < nb_layers; n++) {
 			solve_overlap_coeffs(nb_frames, index, index_ref, Nij[n], Sij[n], FALSE, coeffs);
-			float refval = (args->lite_norm) ? refstats[n]->mad :  refstats[n]->scale;
+			float refval = (args->lite_norm) ? refstats[n]->mad : refstats[n]->scale;
 			for (int i = 0; i < N; i ++) {
 				coeff->pscale[n][index[i]] = refval / coeffs[i];
 			}
@@ -629,7 +637,7 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 	if (args->normalize == MULTIPLICATIVE) {
 		for (int n = 0; n < nb_layers; n++) {
 			solve_overlap_coeffs(nb_frames, index, index_ref, Nij[n], Mij[n], FALSE, coeffs);
-			float refval = (args->lite_norm) ? refstats[n]->median :  refstats[n]->location;
+			float refval = (args->lite_norm) ? refstats[n]->median : refstats[n]->location;
 			for (int i = 0; i < N; i ++) {
 				coeff->pmul[n][index[i]] = refval / coeffs[i];
 			}
