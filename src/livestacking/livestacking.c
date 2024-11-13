@@ -489,6 +489,17 @@ static int start_global_registration(sequence *seq) {
 	regargs.interpolation = REGISTRATION_INTERPOLATION;
 	regargs.type = reg_type;
 	regargs.max_stars_candidates = 200;
+	cvGetEye(&regargs.framingd.Htransf);
+	cvGetEye(&regargs.framingd.Hshift);
+	regargs.framingd.roi_out = (framing_roi){ 0, 0, seq->rx, seq->ry};
+
+	// preparing detection params
+	regargs.sfargs = calloc(1, sizeof(struct starfinder_data));
+	regargs.sfargs->im.from_seq = regargs.seq;
+	regargs.sfargs->layer = regargs.layer;
+	regargs.sfargs->keep_stars = TRUE;
+	regargs.sfargs->save_to_file = FALSE;
+	regargs.sfargs->max_stars_fitted = regargs.max_stars_candidates;
 
 	struct generic_seq_args *args = create_default_seqargs(seq);
 	if (regargs.filters.filter_included) {

@@ -298,13 +298,12 @@ gchar** ai_version_check(gchar* executable, graxpert_operation operation) {
 		int nb = 0;
 		test_argv[nb++] = executable;
 		test_argv[nb++] = "-cmd";
-		gchar *versionarg = g_strdup(operation == GRAXPERT_DENOISE ? "denoising" : (operation == GRAXPERT_DECONV ? "deconvolution" : "background-extraction"));
+		gchar *versionarg = g_strdup(operation == GRAXPERT_DENOISE ? "denoising" : (operation == GRAXPERT_DECONV ? "deconv-obj" : "background-extraction"));
 		test_argv[nb++] = versionarg;
 		test_argv[nb++] = "--help";
 		// g_spawn handles wchar so not need to convert
 		GPid child_pid;
-		error = spawn_graxpert(test_argv, 200, &child_pid, NULL, NULL,
-				&child_stderr);
+		error = spawn_graxpert(test_argv, 200, &child_pid, NULL, NULL, &child_stderr);
 
 		if (error != NULL) {
 			siril_log_color_message(_("Spawning GraXpert failed during available AI model versions check: %s\n"), "red", error->message);
@@ -466,7 +465,7 @@ gboolean graxpert_executablecheck(gchar* executable, graxpert_operation operatio
 				graxpert_version.major_version, graxpert_version.minor_version, graxpert_version.micro_version);
 		return FALSE;
 	} else {
-		if (compare_version(graxpert_version, (version_number) {.major_version = 3, .minor_version = 2, .micro_version = 14}) < 0 && operation == GRAXPERT_DECONV) {
+		if (compare_version(graxpert_version, (version_number) {.major_version = 3, .minor_version = 1, .micro_version = 0}) < 0 && operation == GRAXPERT_DECONV) {
 			return FALSE;
 		}
 		return TRUE;
@@ -488,6 +487,8 @@ gpointer graxpert_setup_async(gpointer user_data) {
 		background_ai_models = NULL;
 		g_strfreev(denoise_ai_models);
 		denoise_ai_models = NULL;
+		g_strfreev(deconv_ai_models);
+		deconv_ai_models = NULL;
 	}
 	return GINT_TO_POINTER(0);
 }
