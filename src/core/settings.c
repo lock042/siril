@@ -220,7 +220,7 @@ preferences pref_init = {
 		.wisdom_file = NULL,
 		.fft_cutoff = 15,
 	},
-	.max_slice_size = -1,
+	.max_slice_size = 32769,
 	.fits_save_icc = TRUE,
 	.icc = {
 		.rendering_intent = INTENT_RELATIVE_COLORIMETRIC,
@@ -359,7 +359,7 @@ struct settings_access all_settings[] = {
 	{ "core", "fftw_conv_fft_cutoff", STYPE_INT, N_("Convolution minimum kernel size to use FFTW"), &com.pref.fftw_conf.fft_cutoff },
 	{ "core", "fftwf_strategy", STYPE_INT, N_("FFTW planning strategy"), &com.pref.fftw_conf.strategy },
 	{ "core", "fftw_multithreaded", STYPE_BOOL, N_("multithreaded FFTW"), &com.pref.fftw_conf.multithreaded },
-	{ "core", "max_slice_size", STYPE_INT, N_("Maximum slice size for automated slice processing"), &com.pref.max_slice_size, { .range_int = { 256, 32768 } } },
+	{ "core", "max_slice_size", STYPE_INT, N_("Maximum slice size for automated slice processing"), &com.pref.max_slice_size, { .range_int = { 512, 32769 } } },
 
 	{ "starfinder", "focal_length", STYPE_DOUBLE, N_("focal length in mm for radius adjustment"), &com.pref.starfinder_conf.focal_length, { .range_double = { 0., 999999. } } },
 	{ "starfinder", "pixel_size", STYPE_DOUBLE, N_("pixel size in µm for radius adjustment"), &com.pref.starfinder_conf.pixel_size_x, { .range_double = { 0., 99. } } },
