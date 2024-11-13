@@ -319,15 +319,7 @@ static void siril_app_activate(GApplication *application) {
 	}
 
 	init_num_procs();
-
-	initialize_python_communication(
-	#ifdef _WIN32
-		"\\\\.\\pipe\\siril"
-	#else
-		"/tmp/siril.sock"
-	#endif
-	);
-
+	initialize_python_communication();
 	initialize_profiles_and_transforms(); // color management
 
 #ifdef HAVE_LIBGIT2

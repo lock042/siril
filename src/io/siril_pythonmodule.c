@@ -51,10 +51,6 @@
 
 #define MODULE_DIR "python_module"
 // Statics
-static CommunicationState commstate = {0};
-static GSList* g_shm_allocations = NULL;
-static GMutex g_shm_mutex;
-static gboolean g_shm_initialized = FALSE;
 
 // Forward declarations
 static void cleanup_connection(Connection *conn);
@@ -223,20 +219,20 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 #endif
 
 // Initialize tracking system
-static void init_shm_tracking(void) {
-	if (!g_shm_initialized) {
-		g_mutex_init(&g_shm_mutex);
-		g_shm_initialized = TRUE;
+static void init_shm_tracking(Connection *conn) {
+	if (!conn->g_shm_initialized) {
+		g_mutex_init(&conn->g_shm_mutex);
+		conn->g_shm_initialized = TRUE;
 	}
 }
 
 // Track new allocation
 #ifdef _WIN32
-static void track_shm_allocation(const char* shm_name, void* shm_ptr, size_t size, win_shm_handle_t* handle) {
+static void track_shm_allocation(Connection *conn, const char* shm_name, void* shm_ptr, size_t size, win_shm_handle_t* handle) {
 #else
-static void track_shm_allocation(const char* shm_name, void* shm_ptr, size_t size, int fd) {
+static void track_shm_allocation(Connection *conn, const char* shm_name, void* shm_ptr, size_t size, int fd) {
 #endif
-	if (!g_shm_initialized) init_shm_tracking();
+	if (!conn->g_shm_initialized) init_shm_tracking(conn);
 
 	// Using g_new0 and copying 255 chars ensures the last byte is 0
 	shm_allocation_t* allocation = g_new0(shm_allocation_t, 1);
@@ -249,9 +245,9 @@ static void track_shm_allocation(const char* shm_name, void* shm_ptr, size_t siz
 #else
 	allocation->fd = fd;
 #endif
-	g_mutex_lock(&g_shm_mutex);
-	g_shm_allocations = g_slist_append(g_shm_allocations, allocation);
-	g_mutex_unlock(&g_shm_mutex);
+	g_mutex_lock(&conn->g_shm_mutex);
+	conn->g_shm_allocations = g_slist_append(conn->g_shm_allocations, allocation);
+	g_mutex_unlock(&conn->g_shm_mutex);
 }
 
 // Helper function to match allocation by name
@@ -262,12 +258,12 @@ static gint find_allocation_by_name(gconstpointer a, gconstpointer b) {
 }
 
 // Cleanup allocation
-void cleanup_shm_allocation(const char* shm_name) {
-	if (!g_shm_initialized) return;
+void cleanup_shm_allocation(Connection *conn, const char* shm_name) {
+	if (!conn->g_shm_initialized) return;
 
-	g_mutex_lock(&g_shm_mutex);
+	g_mutex_lock(&conn->g_shm_mutex);
 
-	GSList* link = g_slist_find_custom(g_shm_allocations, shm_name, find_allocation_by_name);
+	GSList* link = g_slist_find_custom(conn->g_shm_allocations, shm_name, find_allocation_by_name);
 	if (link) {
 		shm_allocation_t* allocation = link->data;
 #ifdef _WIN32
@@ -278,17 +274,17 @@ void cleanup_shm_allocation(const char* shm_name) {
 		close(allocation->fd);
 		shm_unlink(allocation->shm_name);
 #endif
-		g_shm_allocations = g_slist_remove(g_shm_allocations, allocation);
+		conn->g_shm_allocations = g_slist_remove(conn->g_shm_allocations, allocation);
 		g_free(allocation);
 	}
 
-	g_mutex_unlock(&g_shm_mutex);
+	g_mutex_unlock(&conn->g_shm_mutex);
 }
 
-static void cleanup_all_shm_allocations(void) {
-	if (!g_shm_initialized) return;
-	g_mutex_lock(&g_shm_mutex);
-	GSList* current = g_shm_allocations;
+static void cleanup_all_shm_allocations(Connection *conn) {
+	if (!conn->g_shm_initialized) return;
+	g_mutex_lock(&conn->g_shm_mutex);
+	GSList* current = conn->g_shm_allocations;
 	while (current) {
 		shm_allocation_t* allocation = current->data;
 #ifdef _WIN32
@@ -302,16 +298,16 @@ static void cleanup_all_shm_allocations(void) {
 		g_free(allocation);
 		current = current->next;
 	}
-	g_slist_free(g_shm_allocations);
-	g_shm_allocations = NULL;
-	g_mutex_unlock(&g_shm_mutex);
+	g_slist_free(conn->g_shm_allocations);
+	conn->g_shm_allocations = NULL;
+	g_mutex_unlock(&conn->g_shm_mutex);
 }
 
-void cleanup_shm_resources(void) {
-	cleanup_all_shm_allocations();
-	if (g_shm_initialized) {
-		g_mutex_clear(&g_shm_mutex);
-		g_shm_initialized = FALSE;
+void cleanup_shm_resources(Connection *conn) {
+	cleanup_all_shm_allocations(conn);
+	if (conn->g_shm_initialized) {
+		g_mutex_clear(&conn->g_shm_mutex);
+		conn->g_shm_initialized = FALSE;
 	}
 }
 
@@ -377,9 +373,9 @@ gboolean handle_pixeldata_request(Connection *conn, fits *fit, rectangle region)
 	// We can't do this immmediately as we don't know when the python side has opened it, so we
 	// track it and wait for a CMD_RELEASE_SHM with the shm_name to release
 #ifdef _WIN32
-	track_shm_allocation(shm_name, shm_ptr, total_bytes, &win_handle);
+	track_shm_allocation(conn, shm_name, shm_ptr, total_bytes, &win_handle);
 #else
-	track_shm_allocation(shm_name, shm_ptr, total_bytes, fd);
+	track_shm_allocation(conn, shm_name, shm_ptr, total_bytes, fd);
 #endif
 
 	// Prepare shared memory info structure
@@ -427,9 +423,9 @@ gboolean handle_rawdata_request(Connection *conn, void* data, size_t total_bytes
 
 	// Track this allocation
 #ifdef _WIN32
-	track_shm_allocation(shm_name, shm_ptr, total_bytes, &win_handle);
+	track_shm_allocation(conn, shm_name, shm_ptr, total_bytes, &win_handle);
 #else
-	track_shm_allocation(shm_name, shm_ptr, total_bytes, fd);
+	track_shm_allocation(conn, shm_name, shm_ptr, total_bytes, fd);
 #endif
 
 	// Prepare shared memory info structure
@@ -618,6 +614,7 @@ static gpointer monitor_stream_stderr(GDataInputStream *data_input) {
 }
 
 static void cleanup_child_process(GPid pid, gint status, gpointer user_data) {
+	Connection *conn = (Connection*) user_data;
 	// Log the Python process exit status if needed
 #ifdef G_OS_WIN32
 	if (status == 0) {
@@ -640,7 +637,7 @@ static void cleanup_child_process(GPid pid, gint status, gpointer user_data) {
 #endif
 
 	// Clean up shared memory resources
-	cleanup_shm_resources();
+	cleanup_shm_resources(conn);
 
 	// Close the process handle
 	g_spawn_close_pid(pid);
@@ -672,173 +669,6 @@ gchar* get_venv_python_version(const gchar* venv_path) {
 		return output;
 	}
 	return NULL;
-}
-
-void execute_python_script_async(gchar* script_name, gboolean from_file) {
-	if (!commstate.python_conn) {
-		siril_log_color_message(_("Error: Python connection not available.\n"), "red");
-		return;
-	}
-	init_shm_tracking();
-
-	// Get base environment
-	gchar** env = g_get_environ();
-
-	// Handle virtual environment if active
-	const gchar* venv_path = g_getenv("VIRTUAL_ENV");
-	if (venv_path != NULL) {
-		// Get the specific Python version for the site-packages path
-		gchar* python_version = get_venv_python_version(venv_path);
-		if (python_version) {
-			gchar* site_packages = NULL;
-#ifdef _WIN32
-			site_packages = g_build_filename(venv_path, "Lib", "site-packages", NULL);
-#else
-			site_packages = g_build_filename(venv_path, "lib", g_strdup_printf("python%s", python_version), "site-packages", NULL);
-#endif
-			// Update PYTHONPATH to include site-packages
-			const gchar* current_pythonpath = g_environ_getenv(env, "PYTHONPATH");
-			if (current_pythonpath != NULL) {
-				gchar* new_pythonpath = g_strjoin(G_SEARCHPATH_SEPARATOR_S, site_packages, current_pythonpath, NULL);
-				env = g_environ_setenv(env, "PYTHONPATH", new_pythonpath, TRUE);
-				g_free(new_pythonpath);
-			} else {
-				env = g_environ_setenv(env, "PYTHONPATH", site_packages, TRUE);
-			}
-			g_free(site_packages);
-			g_free(python_version);
-		}
-	}
-
-	// Set up connection information in environment
-#ifdef _WIN32
-	const gchar* pipe_name = "\\\\.\\pipe\\siril";
-	env = g_environ_setenv(env, "MY_PIPE", pipe_name, TRUE);
-#else
-	env = g_environ_setenv(env, "MY_SOCKET", commstate.python_conn->socket_path, TRUE);
-#endif
-
-	// Prepare command arguments with Python unbuffered mode
-	gchar* python_argv[5];
-	if (from_file) {
-		python_argv[0] = PYTHON_EXE;
-		python_argv[1] = "-u";  // Set unbuffered mode
-		python_argv[2] = script_name;
-		python_argv[3] = NULL;
-	} else {
-		python_argv[0] = PYTHON_EXE;
-		python_argv[1] = "-u";  // Set unbuffered mode
-		python_argv[2] = "-c";
-		python_argv[3] = script_name;
-		python_argv[4] = NULL;
-	}
-
-	// Set PYTHONUNBUFFERED in environment
-	env = g_environ_setenv(env, "PYTHONUNBUFFERED", "1", TRUE);
-
-	// Set up process spawn with pipe flags
-	GError* error = NULL;
-	GPid child_pid;
-	gint stdout_fd, stderr_fd;
-	gchar* working_dir = g_strdup(com.wd);
-
-	GSpawnFlags spawn_flags = G_SPAWN_SEARCH_PATH |
-							G_SPAWN_DO_NOT_REAP_CHILD;
-
-	gboolean success = g_spawn_async_with_pipes(
-		working_dir,
-		python_argv,
-		env,
-		spawn_flags,
-		NULL,
-		NULL,
-		&child_pid,
-		NULL,
-		&stdout_fd,
-		&stderr_fd,
-		&error
-	);
-
-	g_strfreev(env);
-
-	if (!success) {
-		siril_log_color_message(_("Failed to execute Python script: %s\n"), "red", error->message);
-		g_error_free(error);
-		g_free(working_dir);
-		return;
-	}
-
-	// Set up child process monitoring: the callback will clean up any overlooked shm resources
-	g_child_watch_add(child_pid, (GChildWatchFunc)cleanup_child_process, NULL);
-
-	// Create input streams with appropriate flags
-	GInputStream *stdout_stream = NULL;
-	GInputStream *stderr_stream = NULL;
-
-#ifdef _WIN32
-	// TODO: confirm if this behaviour is correct on Windows (suggestion is that
-	// it could potentially cause data loss or unexpected behaviour owing to
-	// differences in behaviour between unix pipes and Windows ones
-	HANDLE pipe_handle = (HANDLE)_get_osfhandle(stdout_fd);
-	DWORD pipe_mode = PIPE_NOWAIT;
-
-	if (!SetNamedPipeHandleState(pipe_handle,
-								&pipe_mode,    // Set PIPE_NOWAIT
-								NULL,          // don't change maximum bytes
-								NULL))         // don't change maximum time
-	{
-		// Handle error
-		DWORD error = GetLastError();
-		g_warning("SetNamedPipeHandleState failed with error %lu", error);
-	}
-
-	stdout_stream = g_win32_input_stream_new(pipe_handle, FALSE);
-
-	HANDLE pipe_handle2 = (HANDLE)_get_osfhandle(stderr_fd);
-	DWORD pipe_mode2 = PIPE_NOWAIT;
-
-	if (!SetNamedPipeHandleState(pipe_handle2,
-								&pipe_mode2,    // Set PIPE_NOWAIT
-								NULL,          // don't change maximum bytes
-								NULL))         // don't change maximum time
-	{
-		// Handle error - you might want to use g_set_error with your GError
-		DWORD error = GetLastError();
-		g_warning("SetNamedPipeHandleState failed with error %lu", error);
-	}
-
-	stderr_stream = g_win32_input_stream_new(pipe_handle2, FALSE);
-#else
-	stdout_stream = g_unix_input_stream_new(stdout_fd, TRUE);
-	g_unix_set_fd_nonblocking(stdout_fd, TRUE, &error);
-	stderr_stream = g_unix_input_stream_new(stderr_fd, TRUE);
-	g_unix_set_fd_nonblocking(stderr_fd, TRUE, &error);
-#endif
-
-	// Create unbuffered data input streams
-	GDataInputStream *stdout_data = g_data_input_stream_new(stdout_stream);
-	GDataInputStream *stderr_data = g_data_input_stream_new(stderr_stream);
-
-	// Set smaller buffer size for more responsive output
-	g_object_set(stdout_data, "buffer-size", 1024, NULL);
-	g_object_set(stderr_data, "buffer-size", 1024, NULL);
-
-	// Start monitoring threads
-	GThread *stdout_thread = g_thread_new("stdout-monitor",
-		(GThreadFunc)monitor_stream_stdout,
-		g_object_ref(stdout_data));
-	GThread *stderr_thread = g_thread_new("stderr-monitor",
-		(GThreadFunc)monitor_stream_stderr,
-		g_object_ref(stderr_data));
-
-	// Clean up references
-	g_object_unref(stdout_stream);
-	g_object_unref(stderr_stream);
-	g_thread_unref(stdout_thread);
-	g_thread_unref(stderr_thread);
-
-	siril_debug_print("Python script launched asynchronously with PID %d\n", child_pid);
-	g_free(working_dir);
 }
 
 #ifdef _WIN32
@@ -1604,12 +1434,11 @@ cleanup:
 	return success;
 }
 
-gboolean initialize_python_communication(const gchar *connection_path) {
-	if (commstate.python_conn) {
-		siril_debug_print("Python communication already initialized\n");
-		return FALSE;
-	}
-
+/*
+ * Ensures that the venv is created and valid, and that the siril python module
+ * is correctly installed in it along with its dependencies
+ */
+gboolean initialize_python_communication() {
 	GError *error = NULL;
 	gchar* project_path = g_build_filename(g_get_user_data_dir(), "siril", NULL);
 
@@ -1640,20 +1469,7 @@ gboolean initialize_python_communication(const gchar *connection_path) {
 		g_setenv((const gchar*)key, (const gchar*)value, TRUE);
 	}
 
-	// Create connection
-	commstate.python_conn = create_connection(connection_path);
-	if (!commstate.python_conn) {
-		g_warning("Failed to create Python connection");
-		goto cleanup;
-	}
-
-	// Create worker thread
-	commstate.worker_thread = g_thread_new("python-comm",
-										connection_worker,
-										commstate.python_conn);
-
 	// Clean up
-	cleanup:
 	if (venv_info) {
 		g_free(venv_info->venv_path);
 		g_free(venv_info->python_version);
@@ -1662,18 +1478,207 @@ gboolean initialize_python_communication(const gchar *connection_path) {
 	}
 	g_free(venv_path);
 	g_free(project_path);
-
-	return commstate.python_conn != NULL;
+	return TRUE;
 }
 
-void shutdown_python_communication(void) {
-	if (commstate.python_conn) {
-		cleanup_connection(commstate.python_conn);
-		commstate.python_conn = NULL;
+void shutdown_python_communication(CommunicationState *commstate) {
+	if (commstate->python_conn) {
+		cleanup_connection(commstate->python_conn);
+		commstate->python_conn = NULL;
 	}
 
-	if (commstate.worker_thread) {
-		g_thread_join(commstate.worker_thread);
-		commstate.worker_thread = NULL;
+	if (commstate->worker_thread) {
+		g_thread_join(commstate->worker_thread);
+		commstate->worker_thread = NULL;
 	}
+}
+
+void execute_python_script_async(gchar* script_name, gboolean from_file) {
+
+	// Generate a unique connection path for the pipe or socket for this script
+	gchar *connection_path = NULL;
+	gchar *uuid = g_uuid_string_random();
+	#ifdef _WIN32
+	connection_path = g_strdup_printf("\\\\.\\pipe\\%s", uuid);
+	#else
+	connection_path = g_strdup_printf("/tmp/%s.sock", uuid);
+	#endif
+
+	// Create connection
+	CommunicationState commstate = {0};
+	commstate.python_conn = create_connection(connection_path);
+	if (!commstate.python_conn) {
+		siril_log_color_message(_("Error: failed to create Python connection"), "red");
+		g_free(uuid);
+		g_free(connection_path);
+		return;
+	}
+
+	// Create worker thread
+	commstate.worker_thread = g_thread_new("python-comm",
+										connection_worker,
+										commstate.python_conn);
+
+	if (!commstate.python_conn) {
+		siril_log_color_message(_("Error: Python connection not available.\n"), "red");
+		return;
+	}
+	init_shm_tracking(commstate.python_conn);
+
+	// Get base environment
+	gchar** env = g_get_environ();
+
+	// Handle virtual environment if active
+	const gchar* venv_path = g_getenv("VIRTUAL_ENV");
+	if (venv_path != NULL) {
+		// Get the specific Python version for the site-packages path
+		gchar* python_version = get_venv_python_version(venv_path);
+		if (python_version) {
+			gchar* site_packages = NULL;
+#ifdef _WIN32
+			site_packages = g_build_filename(venv_path, "Lib", "site-packages", NULL);
+#else
+			site_packages = g_build_filename(venv_path, "lib", g_strdup_printf("python%s", python_version), "site-packages", NULL);
+#endif
+			// Update PYTHONPATH to include site-packages
+			const gchar* current_pythonpath = g_environ_getenv(env, "PYTHONPATH");
+			if (current_pythonpath != NULL) {
+				gchar* new_pythonpath = g_strjoin(G_SEARCHPATH_SEPARATOR_S, site_packages, current_pythonpath, NULL);
+				env = g_environ_setenv(env, "PYTHONPATH", new_pythonpath, TRUE);
+				g_free(new_pythonpath);
+			} else {
+				env = g_environ_setenv(env, "PYTHONPATH", site_packages, TRUE);
+			}
+			g_free(site_packages);
+			g_free(python_version);
+		}
+	}
+
+	// Set up connection information in environment
+#ifdef _WIN32
+	env = g_environ_setenv(env, "MY_PIPE", connection_path, TRUE);
+#else
+	env = g_environ_setenv(env, "MY_SOCKET", commstate.python_conn->socket_path, TRUE);
+#endif
+	// Set PYTHONUNBUFFERED in environment
+	env = g_environ_setenv(env, "PYTHONUNBUFFERED", "1", TRUE);
+
+	// Prepare command arguments with Python unbuffered mode
+	gchar* python_argv[5];
+	if (from_file) {
+		python_argv[0] = PYTHON_EXE;
+		python_argv[1] = "-u";  // Set unbuffered mode
+		python_argv[2] = script_name;
+		python_argv[3] = NULL;
+	} else {
+		python_argv[0] = PYTHON_EXE;
+		python_argv[1] = "-u";  // Set unbuffered mode
+		python_argv[2] = "-c";
+		python_argv[3] = script_name;
+		python_argv[4] = NULL;
+	}
+
+	// Set up process spawn with pipe flags
+	GError* error = NULL;
+	GPid child_pid;
+	gint stdout_fd, stderr_fd;
+	gchar* working_dir = g_strdup(com.wd);
+
+	GSpawnFlags spawn_flags = G_SPAWN_SEARCH_PATH |
+							G_SPAWN_DO_NOT_REAP_CHILD;
+
+	gboolean success = g_spawn_async_with_pipes(
+		working_dir,
+		python_argv,
+		env,
+		spawn_flags,
+		NULL,
+		NULL,
+		&child_pid,
+		NULL,
+		&stdout_fd,
+		&stderr_fd,
+		&error
+	);
+
+	g_strfreev(env);
+
+	if (!success) {
+		siril_log_color_message(_("Failed to execute Python script: %s\n"), "red", error->message);
+		g_error_free(error);
+		g_free(working_dir);
+		return;
+	}
+
+	// Set up child process monitoring: the callback will clean up any overlooked shm resources
+	g_child_watch_add(child_pid, (GChildWatchFunc)cleanup_child_process, commstate.python_conn);
+
+	// Create input streams with appropriate flags
+	GInputStream *stdout_stream = NULL;
+	GInputStream *stderr_stream = NULL;
+
+#ifdef _WIN32
+	// TODO: confirm if this behaviour is correct on Windows (suggestion is that
+	// it could potentially cause data loss or unexpected behaviour owing to
+	// differences in behaviour between unix pipes and Windows ones
+	HANDLE pipe_handle = (HANDLE)_get_osfhandle(stdout_fd);
+	DWORD pipe_mode = PIPE_NOWAIT;
+
+	if (!SetNamedPipeHandleState(pipe_handle,
+								&pipe_mode,    // Set PIPE_NOWAIT
+								NULL,          // don't change maximum bytes
+								NULL))         // don't change maximum time
+	{
+		// Handle error
+		DWORD error = GetLastError();
+		g_warning("SetNamedPipeHandleState failed with error %lu", error);
+	}
+
+	stdout_stream = g_win32_input_stream_new(pipe_handle, FALSE);
+
+	HANDLE pipe_handle2 = (HANDLE)_get_osfhandle(stderr_fd);
+	DWORD pipe_mode2 = PIPE_NOWAIT;
+
+	if (!SetNamedPipeHandleState(pipe_handle2,
+								&pipe_mode2,    // Set PIPE_NOWAIT
+								NULL,          // don't change maximum bytes
+								NULL))         // don't change maximum time
+	{
+		// Handle error - you might want to use g_set_error with your GError
+		DWORD error = GetLastError();
+		g_warning("SetNamedPipeHandleState failed with error %lu", error);
+	}
+
+	stderr_stream = g_win32_input_stream_new(pipe_handle2, FALSE);
+#else
+	stdout_stream = g_unix_input_stream_new(stdout_fd, TRUE);
+	g_unix_set_fd_nonblocking(stdout_fd, TRUE, &error);
+	stderr_stream = g_unix_input_stream_new(stderr_fd, TRUE);
+	g_unix_set_fd_nonblocking(stderr_fd, TRUE, &error);
+#endif
+
+	// Create unbuffered data input streams
+	GDataInputStream *stdout_data = g_data_input_stream_new(stdout_stream);
+	GDataInputStream *stderr_data = g_data_input_stream_new(stderr_stream);
+
+	// Set smaller buffer size for more responsive output
+	g_object_set(stdout_data, "buffer-size", 1024, NULL);
+	g_object_set(stderr_data, "buffer-size", 1024, NULL);
+
+	// Start monitoring threads
+	GThread *stdout_thread = g_thread_new("stdout-monitor",
+		(GThreadFunc)monitor_stream_stdout,
+		g_object_ref(stdout_data));
+	GThread *stderr_thread = g_thread_new("stderr-monitor",
+		(GThreadFunc)monitor_stream_stderr,
+		g_object_ref(stderr_data));
+
+	// Clean up references
+	g_object_unref(stdout_stream);
+	g_object_unref(stderr_stream);
+	g_thread_unref(stdout_thread);
+	g_thread_unref(stderr_thread);
+
+	siril_debug_print("Python script launched asynchronously with PID %d\n", child_pid);
+	g_free(working_dir);
 }
