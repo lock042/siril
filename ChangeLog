@@ -61,6 +61,7 @@ xx/xx/xx
 * Improved use of prngs (mt19937 now used throughout in place of rand() etc.) (!689)
 * Refactored networking code, add offline mode and add Gaia archive status indication (!687)
 * Improved the usability of merging CFA sequences (!759)
+* Allowed the token $T to be used in PixelMath (!768)
 
 **GUI improvements:**
 * Split up the monolithic glade UI file (!550)
