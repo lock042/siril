@@ -364,7 +364,6 @@ int main(int argc, char *argv[]) {
 	app = gtk_application_new("org.siril.Siril", G_APPLICATION_FLAGS_NONE | G_APPLICATION_NON_UNIQUE);
 #endif
 	g_signal_connect(app, "activate", G_CALLBACK(siril_app_activate), NULL);
-	//g_signal_connect(app, "open", G_CALLBACK(siril_app_open), NULL);
 
 	g_application_set_option_context_summary(G_APPLICATION(app), _("Siril - A free astronomical image processing software."));
 	g_application_add_main_option_entries(G_APPLICATION(app), main_option);
