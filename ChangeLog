@@ -62,6 +62,7 @@ xx/xx/xx
 * Refactored networking code, add offline mode and add Gaia archive status indication (!687)
 * Improved the usability of merging CFA sequences (!759)
 * Allowed the token $T to be used in PixelMath (!768)
+* Make PixelMath follows bit depth preferences (#1100)
 
 **GUI improvements:**
 * Split up the monolithic glade UI file (!550)
