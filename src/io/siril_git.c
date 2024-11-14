@@ -769,8 +769,9 @@ int auto_update_gitspcc(gboolean sync) {
 		siril_log_color_message(_("Local SPCC database repository is up-to-date!\n"), "green");
 	}
 
-	// We don't do anything else post-sync as the repository is not actually used
-	// until a user initiates SPCC
+	// In case this has run very slowly in the async startup update, repopulate the SPCC combos
+	// to ensure they are up to date with any changes
+	populate_spcc_combos_async(NULL);
 
 	// Cleanup
 	cleanup:
@@ -781,7 +782,52 @@ int auto_update_gitspcc(gboolean sync) {
 	return retval;
 }
 
-int preview_scripts_update(GString **git_pending_commit_buffer) {
+typedef struct {
+	int (*func)(gboolean);  // Function pointer to the update function
+	gboolean sync;          // Sync parameter to pass to the function
+} ThreadData;
+
+// Thread function that will be executed
+static gpointer thread_func(gpointer user_data) {
+	ThreadData *data = (ThreadData *)user_data;
+	int result = data->func(data->sync);
+	g_free(data);
+	return GINT_TO_POINTER(result);
+}
+
+// Wrapper function that runs the specified function in a thread
+static void run_update_in_thread(int (*update_func)(gboolean), gboolean sync, GError **error) {
+	ThreadData *data = g_new(ThreadData, 1);
+	data->func = update_func;
+	data->sync = sync;
+
+	GThread *thread = g_thread_try_new("update_thread", thread_func, data, error);
+	g_thread_unref(thread);
+}
+
+void async_update_git_repositories() {
+	GError *error = NULL;
+	if (com.pref.use_scripts_repository) {
+		run_update_in_thread(auto_update_gitscripts, com.pref.auto_script_update, &error);
+		if (error) {
+			siril_log_color_message(_("Error spawning thread to update scripts repository: %s\n"), "red", error->message);
+			g_error_free(error);
+		}
+	} else {
+		siril_log_message(_("Online scripts repository not enabled. Not fetching or updating siril-scripts...\n"));
+	}
+	if (com.pref.spcc.use_spcc_repository) {
+		run_update_in_thread(auto_update_gitspcc, com.pref.spcc.auto_spcc_update, &error);
+		if (error) {
+			siril_log_color_message(_("Error spawning thread to update SPCC repository: %s\n"), "red", error->message);
+			g_error_free(error);
+		}
+	} else {
+		siril_log_message(_("Online scripts repository not enabled. Not fetching or updating siril-spcc...\n"));
+	}
+}
+
+int preview_scripts_update(GString** git_pending_commit_buffer) {
 	// Initialize libgit2
 	git_libgit2_init();
 
