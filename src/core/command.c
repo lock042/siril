@@ -6677,7 +6677,7 @@ int process_seq_extractHaOIII(int nb) {
 		}
 	}
 	args->prefixes[0] = g_strdup("Ha_");
-	args->prefixes[1] = g_strdup("Oiii_");
+	args->prefixes[1] = g_strdup("OIII_");
 
 	apply_extractHaOIII_to_sequence(args);
 
