@@ -1407,8 +1407,7 @@ static gboolean check_or_create_venv(const gchar *project_path, GError **error) 
 		if (!sys_python_exe) {
 			const gchar *sirilrootpath = get_siril_bundle_path();
 			printf("Siril bundle path: %s\n", sirilrootpath);
-			const gchar *bundle_python_path = g_build_filename(G_DIR_SEPARATOR_S, sirilrootpath, "python", NULL);
-			bundle_python_exe = find_executable_in_path(PYTHON_EXE, bundle_python_path);
+			bundle_python_exe = g_build_filename(G_DIR_SEPARATOR_S, sirilrootpath, "python", PYTHON_EXE, NULL);
 			if (g_file_test(bundle_python_exe, G_FILE_TEST_IS_EXECUTABLE))
 				printf("Python found in bundle: %s\n", bundle_python_exe);
 		}
