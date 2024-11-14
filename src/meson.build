@@ -216,6 +216,7 @@ src_files = [
   'gui/documentation.c',
   'gui/epf.c',
   'gui/fix_xtrans_af.c',
+  'gui/git_gui.c',
   'gui/graxpert.c',
   'gui/histogram.c',
   'gui/keywords_tree.c',

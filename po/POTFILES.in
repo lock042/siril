@@ -134,6 +134,7 @@ src/gui/cut.c
 src/gui/colors.c
 src/gui/dialog_preview.c
 src/gui/documentation.c
+src/gui/git_gui.c
 src/gui/graxpert.c
 src/gui/histogram.c
 src/gui/icc_profile.c
