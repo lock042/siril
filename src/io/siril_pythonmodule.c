@@ -1443,7 +1443,7 @@ gboolean python_venv_idle(gpointer user_data) {
  * Ensures that the venv is created and valid, and that the siril python module
  * is correctly installed in it along with its dependencies
  */
-static gboolean initialize_python_venv(gpointer user_data) {
+static gpointer initialize_python_venv(gpointer user_data) {
 	GError *error = NULL;
 	gchar* project_path = g_build_filename(g_get_user_data_dir(), "siril", NULL);
 
@@ -1453,7 +1453,7 @@ static gboolean initialize_python_venv(gpointer user_data) {
 				error ? error->message : "Unknown error");
 		g_clear_error(&error);
 		g_free(project_path);
-		return FALSE;
+		return GINT_TO_POINTER(1);
 	}
 
 	// Prepare venv environment
@@ -1463,7 +1463,7 @@ static gboolean initialize_python_venv(gpointer user_data) {
 		g_warning("Failed to prepare virtual environment");
 		g_free(venv_path);
 		g_free(project_path);
-		return FALSE;
+		return GINT_TO_POINTER(1);
 	}
 
 	// Set up environment for connection
@@ -1484,7 +1484,7 @@ static gboolean initialize_python_venv(gpointer user_data) {
 	g_free(venv_path);
 	g_free(project_path);
 	siril_add_idle(python_venv_idle, NULL);
-	return TRUE;
+	return GINT_TO_POINTER(0);
 }
 
 void initialize_python_venv_in_thread() {
