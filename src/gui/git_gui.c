@@ -92,8 +92,7 @@ static gboolean fill_script_repo_list_idle(gpointer p) {
 	GtkSortType order;
 	// store sorted state of list_store, disable sorting, disconnect from the
 	// view, fill, reconnect and re-apply sort
-	gtk_tree_sortable_get_sort_column_id(GTK_TREE_SORTABLE(list_store),
-										&sort_column_id, &order);
+	gtk_tree_sortable_get_sort_column_id(GTK_TREE_SORTABLE(list_store), &sort_column_id, &order);
 	gtk_tree_sortable_set_sort_column_id(
 		GTK_TREE_SORTABLE(list_store), GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID,
 		GTK_SORT_ASCENDING);
@@ -108,8 +107,7 @@ static gboolean fill_script_repo_list_idle(gpointer p) {
 								: "Processing";
 		gchar *scriptname = g_path_get_basename((gchar *)iterator->data);
 		gchar *scriptpath =
-			g_build_path(G_DIR_SEPARATOR_S, siril_get_scripts_repo_path(),
-						(gchar *)iterator->data, NULL);
+			g_build_path(G_DIR_SEPARATOR_S, siril_get_scripts_repo_path(), (gchar *)iterator->data, NULL);
 	#ifdef DEBUG_GITSCRIPTS
 		printf("%s\n", scriptpath);
 	#endif
@@ -132,8 +130,7 @@ static gboolean fill_script_repo_list_idle(gpointer p) {
 		}
 	}
 	gtk_tree_view_set_model(tview, GTK_TREE_MODEL(list_store));
-	gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(list_store),
-										sort_column_id, order);
+	gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(list_store), sort_column_id, order);
 	return FALSE;
 }
 
@@ -171,8 +168,7 @@ void on_treeview2_row_activated(GtkTreeView *treeview, GtkTreePath *path,
 			g_error_free(error);
 			siril_open_dialog("script_contents_dialog");
 		} else {
-			gchar *msg = g_strdup_printf(_("Error loading script contents: %s\n"),
-										error->message);
+			gchar *msg = g_strdup_printf(_("Error loading script contents: %s\n"), error->message);
 			siril_log_color_message(msg, "red");
 			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), msg);
 			g_free(msg);
@@ -193,8 +189,7 @@ void on_manual_script_sync_button_clicked(GtkButton *button,
 
 	switch (preview_scripts_update(&git_pending_commit_buffer)) {
 	case 1:
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"),
-							_("Error getting the list of unmerged changes"));
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Error getting the list of unmerged changes"));
 		return;
 	case 2:
 		// Merge cannot be fast forwarded
@@ -228,8 +223,7 @@ void on_manual_script_sync_button_clicked(GtkButton *button,
 				_("Read and confirm the pending changes to be synced"),
 				_("Confirm"), git_pending_commit_buffer->str)) {
 		if (reset_scripts_repository()) {
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Manual Update"),
-								_("Error! Script database failed to update."));
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("Manual Update"), _("Error! Script database failed to update."));
 		}
 		fill_script_repo_list(FALSE);
 		} else {
@@ -239,8 +233,7 @@ void on_manual_script_sync_button_clicked(GtkButton *button,
 		}
 		g_string_free(git_pending_commit_buffer, TRUE);
 	} else {
-		siril_message_dialog(GTK_MESSAGE_INFO, _("Manual Update"),
-							_("The script repository is up to date."));
+		siril_message_dialog(GTK_MESSAGE_INFO, _("Manual Update"), _("The script repository is up to date."));
 	}
 	fill_script_repo_list(TRUE);
 	set_cursor_waiting(FALSE);
@@ -253,8 +246,7 @@ void on_manual_spcc_sync_button_clicked(GtkButton *button, gpointer user_data) {
 
 	switch (preview_spcc_update(&git_pending_commit_buffer)) {
 	case 1:
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"),
-							_("Error getting the list of unmerged changes"));
+		siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), _("Error getting the list of unmerged changes"));
 		return;
 	case 2:
 		// Merge cannot be fast forwarded
@@ -283,23 +275,18 @@ void on_manual_spcc_sync_button_clicked(GtkButton *button, gpointer user_data) {
 		break;
 	}
 	if (git_pending_commit_buffer != NULL) {
-		if (siril_confirm_data_dialog(
-				GTK_MESSAGE_QUESTION, _("Manual Update"),
+		if (siril_confirm_data_dialog(GTK_MESSAGE_QUESTION, _("Manual Update"),
 				_("Read and confirm the pending changes to be synced"),
 				_("Confirm"), git_pending_commit_buffer->str)) {
 		if (reset_spcc_repository()) {
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Manual Update"),
-								_("Error! SPCC database failed to update."));
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("Manual Update"), _("Error! SPCC database failed to update."));
 		}
 		} else {
-		siril_message_dialog(
-			GTK_MESSAGE_INFO, _("Manual Update"),
-			_("Update cancelled. Updates have not been applied."));
+		siril_message_dialog(GTK_MESSAGE_INFO, _("Manual Update"), _("Update cancelled. Updates have not been applied."));
 		}
 		g_string_free(git_pending_commit_buffer, TRUE);
 	} else {
-		siril_message_dialog(GTK_MESSAGE_INFO, _("Manual Update"),
-							_("The SPCC database repository is up to date."));
+		siril_message_dialog(GTK_MESSAGE_INFO, _("Manual Update"), _("The SPCC database repository is up to date."));
 	}
 	if (!com.headless) {
 		reset_spcc_filters();
@@ -315,8 +302,7 @@ void on_manual_spcc_sync_button_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(FALSE);
 }
 
-void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer,
-                                   gchar *char_path, gpointer user_data) {
+void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer, gchar *char_path, gpointer user_data) {
 	gboolean val;
 	GtkTreeIter iter;
 	GtkTreePath *path;
@@ -353,8 +339,7 @@ void on_script_list_active_toggled(GtkCellRendererToggle *cell_renderer,
 }
 
 void on_disable_gitscripts() {
-	GtkTreeModel *model =
-		gtk_tree_view_get_model(GTK_TREE_VIEW(lookup_widget("treeview2")));
+	GtkTreeModel *model = gtk_tree_view_get_model(GTK_TREE_VIEW(lookup_widget("treeview2")));
 	GtkListStore *liststore = GTK_LIST_STORE(model);
 	com.pref.use_scripts_repository = FALSE;
 	gtk_list_store_clear(liststore);
@@ -367,21 +352,15 @@ void on_disable_gitscripts() {
 	refresh_script_menu(TRUE);
 }
 
-void on_pref_use_gitscripts_toggled(GtkToggleButton *button,
-                                    gpointer user_data) {
+void on_pref_use_gitscripts_toggled(GtkToggleButton *button, gpointer user_data) {
 	if (gtk_toggle_button_get_active(button)) {
 		com.pref.use_scripts_repository = TRUE;
 		auto_update_gitscripts(FALSE);
 		fill_script_repo_list(FALSE);
 	}
-	gtk_widget_set_sensitive(lookup_widget("pref_script_automatic_updates"),
-							com.pref.use_scripts_repository);
-	gtk_widget_set_sensitive(
-		lookup_widget("manual_script_sync_button"),
-		(com.pref.use_scripts_repository && gui.script_repo_available));
-	gtk_widget_set_sensitive(
-		lookup_widget("treeview2"),
-		(com.pref.use_scripts_repository && gui.script_repo_available));
+	gtk_widget_set_sensitive(lookup_widget("pref_script_automatic_updates"), com.pref.use_scripts_repository);
+	gtk_widget_set_sensitive(lookup_widget("manual_script_sync_button"), (com.pref.use_scripts_repository && gui.script_repo_available));
+	gtk_widget_set_sensitive(lookup_widget("treeview2"), (com.pref.use_scripts_repository && gui.script_repo_available));
 }
 
 void on_spcc_repo_enable_toggled(GtkToggleButton *button, gpointer user_data) {
@@ -389,11 +368,8 @@ void on_spcc_repo_enable_toggled(GtkToggleButton *button, gpointer user_data) {
 		com.pref.spcc.use_spcc_repository = TRUE;
 		auto_update_gitspcc(FALSE);
 	}
-	gtk_widget_set_sensitive(lookup_widget("pref_script_automatic_updates"),
-							com.pref.spcc.use_spcc_repository);
-	gtk_widget_set_sensitive(
-		lookup_widget("spcc_repo_manual_sync"),
-		(com.pref.spcc.use_spcc_repository && gui.spcc_repo_available));
+	gtk_widget_set_sensitive(lookup_widget("pref_script_automatic_updates"), com.pref.spcc.use_spcc_repository);
+	gtk_widget_set_sensitive(lookup_widget("spcc_repo_manual_sync"), (com.pref.spcc.use_spcc_repository && gui.spcc_repo_available));
 }
 #else
 

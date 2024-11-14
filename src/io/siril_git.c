@@ -119,8 +119,7 @@ static int resolve_heads(git_repository *repo, struct merge_options *opts) {
 		int err =
 			resolve_refish(&annotated[annotated_count++], repo, opts->heads[i]);
 		if (err != 0) {
-		siril_debug_print("libgit2: failed to resolve refish %s: %s\n",
-							opts->heads[i], git_error_last()->message);
+		siril_debug_print("libgit2: failed to resolve refish %s: %s\n", opts->heads[i], git_error_last()->message);
 		annotated_count--;
 		continue;
 		}
@@ -169,8 +168,7 @@ static int fetchhead_cb(const char *ref_name, const char *remote_url,
                         const git_oid *oid, unsigned int is_merge,
                         void *payload) {
 	if (is_merge) {
-		siril_debug_print("reference: '%s' is the reference we should merge\n",
-						ref_name);
+		siril_debug_print("reference: '%s' is the reference we should merge\n", ref_name);
 		git_oid_cpy((git_oid *)payload, oid);
 	}
 	return 0;
@@ -223,8 +221,7 @@ static int siril_repository_open(git_repository **out, const gchar *path) {
 		if (error != 0) {
 			siril_log_color_message(
 				_("Error removing Git lock files. You may need to delete the local "
-					"git repository and allow Siril to re-clone it.\n"),
-				"red");
+					"git repository and allow Siril to re-clone it.\n"), "red");
 			return -1;
 		}
 	}
@@ -241,8 +238,7 @@ int reset_repository(const gchar *local_path) {
 	if (error != 0) {
 		siril_log_color_message(
 			_("Error performing hard reset. You may need to delete the local git "
-			"repository and allow Siril to re-clone it.\n"),
-			"red");
+			"repository and allow Siril to re-clone it.\n"), "red");
 		git_repository_free(repo);
 		git_libgit2_shutdown();
 		return -1;
@@ -266,8 +262,7 @@ int reset_repository(const gchar *local_path) {
 	if (error != 0) {
 		siril_log_color_message(
 			_("Error performing hard reset. You may need to delete the local git "
-			"repository and allow Siril to re-clone it.\n"),
-			"red");
+			"repository and allow Siril to re-clone it.\n"), "red");
 		git_object_free(target_commit);
 		git_repository_free(repo);
 		git_libgit2_shutdown();
@@ -291,8 +286,7 @@ static int lg2_fetch(git_repository *repo) {
 
 	if (git_remote_lookup(&remote, repo, remote_name)) {
 		if (git_remote_create_anonymous(&remote, repo, remote_name)) {
-		siril_log_message(_("Unable to create anonymous remote for the repository. Check your "
-				"connectivity and try again.\n"));
+		siril_log_message(_("Unable to create anonymous remote for the repository. Check your connectivity and try again.\n"));
 		goto on_error;
 		}
 	}
@@ -381,14 +375,11 @@ static int analyse(git_repository *repo, GString **git_pending_commit_buffer) {
 	opts_add_refish(&opts, head_to_merge);
 	state = git_repository_state(repo);
 	if (state != GIT_REPOSITORY_STATE_NONE) {
-		siril_log_color_message(
-			_("libgit2: repository is in unexpected state %d. Cleaning up...\n"),
-			"salmon", state);
+		siril_log_color_message(_("libgit2: repository is in unexpected state %d. Cleaning up...\n"), "salmon", state);
 		git_repository_state_cleanup(repo);
 		state = git_repository_state(repo);
 		if (state != GIT_REPOSITORY_STATE_NONE) {
-			siril_log_color_message(_("libgit2: repository failed to clean up "
-								"properly. Cannot continue.\n"), "red");
+			siril_log_color_message(_("libgit2: repository failed to clean up properly. Cannot continue.\n"), "red");
 			free((char **)opts.heads);
 			free(opts.annotated);
 			return 1;
@@ -402,15 +393,12 @@ static int analyse(git_repository *repo, GString **git_pending_commit_buffer) {
 		return 1;
 	}
 
-	error = git_merge_analysis(&analysis, &preference, repo,
-								(const git_annotated_commit **)opts.annotated,
-								opts.annotated_count);
+	error = git_merge_analysis(&analysis, &preference, repo, (const git_annotated_commit **)opts.annotated, opts.annotated_count);
 
 	// If the merge cannot be fast-forwarded, warn the user that local changes
 	// will be lost if they proceed.
 	if (error < 0) {
-		siril_debug_print("Error carrying out merge analysis: %s\n",
-						giterr_last()->message);
+		siril_debug_print("Error carrying out merge analysis: %s\n", giterr_last()->message);
 		return -1;
 	}
 
@@ -435,8 +423,7 @@ static int analyse(git_repository *repo, GString **git_pending_commit_buffer) {
 	git_reference *head_ref = NULL;
 	error = git_repository_head(&head_ref, repo);
 	if (error != 0) {
-		siril_debug_print("Error getting HEAD reference: %s\n",
-						git_error_last()->message);
+		siril_debug_print("Error getting HEAD reference: %s\n", git_error_last()->message);
 		goto on_error;
 	}
 
@@ -444,8 +431,7 @@ static int analyse(git_repository *repo, GString **git_pending_commit_buffer) {
 	git_commit *head_commit = NULL;
 	error = git_commit_lookup(&head_commit, repo, git_reference_target(head_ref));
 	if (error != 0) {
-		siril_debug_print("Error looking up HEAD commit: %s\n",
-						git_error_last()->message);
+		siril_debug_print("Error looking up HEAD commit: %s\n", git_error_last()->message);
 		git_reference_free(head_ref);
 		goto on_error;
 	}
@@ -542,8 +528,7 @@ int auto_update_gitscripts(gboolean sync) {
 
 	if (error != 0) {
 		const git_error *e = giterr_last();
-		siril_log_color_message(_("Cannot open repository: %s\n"), "salmon",
-								e->message);
+		siril_log_color_message(_("Cannot open repository: %s\n"), "salmon", e->message);
 		if (is_online()) {
 			siril_log_message(_("Attempting to clone from remote source...\n"));
 			// Perform the clone operation
@@ -551,8 +536,7 @@ int auto_update_gitscripts(gboolean sync) {
 
 			if (error != 0) {
 				e = giterr_last();
-				siril_log_color_message(_("Error cloning repository: %s\n"), "red",
-										e->message);
+				siril_log_color_message(_("Error cloning repository: %s\n"), "red", e->message);
 				gui.script_repo_available = FALSE;
 				git_libgit2_shutdown();
 				return 1;
@@ -586,8 +570,7 @@ int auto_update_gitscripts(gboolean sync) {
 		siril_debug_print("Remote URL: %s\n", remote_url);
 	} else {
 		siril_log_color_message(
-			_("Error: cannot identify local repository's configured remote.\n"),
-			"red");
+			_("Error: cannot identify local repository's configured remote.\n"), "red");
 		git_remote_free(remote);
 		git_repository_free(repo);
 		git_libgit2_shutdown();
@@ -659,10 +642,8 @@ int auto_update_gitscripts(gboolean sync) {
 	}
 	for (i = 0; i < entry_count; i++) {
 		entry = git_index_get_byindex(index, i);
-		if (g_str_has_suffix(entry->path, SCRIPT_EXT) &&
-						script_version_check(entry->path)) {
-			gui.repo_scripts =
-				g_list_prepend(gui.repo_scripts, g_strdup(entry->path));
+		if (g_str_has_suffix(entry->path, SCRIPT_EXT) && script_version_check(entry->path)) {
+			gui.repo_scripts = g_list_prepend(gui.repo_scripts, g_strdup(entry->path));
 #ifdef DEBUG_GITSCRIPTS
 			printf("%s\n", entry->path);
 #endif
@@ -700,15 +681,13 @@ int auto_update_gitspcc(gboolean sync) {
 
 	if (error != 0) {
 		const git_error *e = giterr_last();
-		siril_log_color_message(_("Cannot open repository: %s\nAttempting to clone "
-				"from remote source...\n"), "salmon", e->message);
+		siril_log_color_message(_("Cannot open repository: %s\nAttempting to clone from remote source...\n"), "salmon", e->message);
 		// Perform the clone operation
 		error = git_clone(&repo, SPCC_REPOSITORY_URL, local_path, &clone_opts);
 
 		if (error != 0) {
 		e = giterr_last();
-			siril_log_color_message(_("Error cloning repository: %s\n"), "red",
-									e->message);
+			siril_log_color_message(_("Error cloning repository: %s\n"), "red", e->message);
 			gui.spcc_repo_available = FALSE;
 			git_libgit2_shutdown();
 			return 1;
@@ -735,8 +714,7 @@ int auto_update_gitspcc(gboolean sync) {
 		siril_debug_print("Remote URL: %s\n", remote_url);
 	} else {
 		siril_log_color_message(
-			_("Error: cannot identify local repository's configured remote.\n"),
-			"red");
+			_("Error: cannot identify local repository's configured remote.\n"), "red");
 		git_remote_free(remote);
 		git_repository_free(repo);
 		git_libgit2_shutdown();
@@ -788,8 +766,7 @@ int auto_update_gitspcc(gboolean sync) {
 			git_libgit2_shutdown();
 			return -1;
 		}
-		siril_log_color_message(
-			_("Local SPCC database repository is up-to-date!\n"), "green");
+		siril_log_color_message(_("Local SPCC database repository is up-to-date!\n"), "green");
 	}
 
 	// We don't do anything else post-sync as the repository is not actually used
@@ -815,8 +792,7 @@ int preview_scripts_update(GString **git_pending_commit_buffer) {
 	int error = siril_repository_open(&repo, local_path);
 	if (error < 0) {
 		siril_debug_print("Error opening repository: %s\n", giterr_last()->message);
-		siril_log_color_message(
-			_("Error: unable to open local scripts repository.\n"), "red");
+		siril_log_color_message(_("Error: unable to open local scripts repository.\n"), "red");
 		gui.script_repo_available = FALSE;
 		return 1;
 	}
@@ -841,8 +817,7 @@ int preview_spcc_update(GString **git_pending_commit_buffer) {
 	int error = siril_repository_open(&repo, local_path);
 	if (error < 0) {
 		siril_debug_print("Error opening repository: %s\n", giterr_last()->message);
-		siril_log_color_message(
-			_("Error: unable to open local spcc-database repository.\n"), "red");
+		siril_log_color_message(_("Error: unable to open local spcc-database repository.\n"), "red");
 		gui.spcc_repo_available = FALSE;
 		return 1;
 	}
