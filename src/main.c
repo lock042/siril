@@ -540,7 +540,11 @@ int main(int argc, char *argv[]) {
 	bind_textdomain_codeset(PACKAGE, "UTF-8");
 	textdomain(PACKAGE);
 
-	app = gtk_application_new("org.siril.Siril", G_APPLICATION_HANDLES_OPEN | G_APPLICATION_NON_UNIQUE);
+#if GLIB_CHECK_VERSION(2,74,0)
+	app = gtk_application_new("org.siril.Siril", G_APPLICATION_DEFAULT_FLAGS | G_APPLICATION_NON_UNIQUE);
+#else
+	app = gtk_application_new("org.siril.Siril", G_APPLICATION_FLAGS_NONE | G_APPLICATION_NON_UNIQUE);
+#endif
 
 	g_signal_connect(app, "startup", G_CALLBACK(siril_app_startup), NULL);
 	g_signal_connect(app, "activate", G_CALLBACK(siril_app_activate), NULL);
