@@ -206,7 +206,7 @@ int process_load(int nb) {
 
 	int retval = open_single_image(filename);
 	gui_function(launch_clipboard_survey, NULL);
-	return retval;
+	return (retval == 0) ? CMD_OK : CMD_FILE_NOT_FOUND;
 }
 
 int process_dumpheader(int nb) {
@@ -12183,8 +12183,8 @@ static graxpert_data* fill_graxpert_data_from_cmdline(int nb, sequence *seq,
 		data->denoise_strength = 1.0;
 	else if (data->deconv_strength > 1.0)
 		data->deconv_strength = 1.0;
-	else if (data->deconv_blur_psf_size > 1.0)
-		data->deconv_blur_psf_size = 1.0;
+	else if (data->deconv_blur_psf_size > 14.0)
+		data->deconv_blur_psf_size = 14.0;
 	if (data->bg_tol_option < -2.0)
 		data->bg_tol_option = -2.0;
 	else if (data->bg_tol_option > 6.0)

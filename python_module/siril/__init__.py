@@ -2,7 +2,7 @@
 from typing import TYPE_CHECKING
 
 # Import translation functions first
-from .translations import _, N_
+from .translations import _
 
 # TYPE_CHECKING is False at runtime but True during type checking.
 if TYPE_CHECKING:
@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     )
 
 # Runtime imports
-from .connection import SirilInterface, import_or_install
+from .connection import SirilInterface, import_or_install, ensure_installed
 from .models import (
     DataType,
     ImageStats,
@@ -62,6 +62,7 @@ __copyright__ = "(c) Team free-astro 2024"
 # Define public API
 __all__ = [
     'import_or_install',
+    'ensure_installed',
     'SirilInterface',
     'DataType',
     'ImageStats',
@@ -80,6 +81,5 @@ __all__ = [
     'DataError',
     'NoImageError',
     'SharedMemoryWrapper',
-    '_',
-    'N_'
+    '_'
 ]

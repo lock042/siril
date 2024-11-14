@@ -5,11 +5,13 @@ import struct
 from typing import Optional
 import tempfile
 import mmap
-from .translations import _, N_
+from .translations import _
 
 class SharedMemoryWrapper:
-    __doc__ = N_("Wrapper class to handle shared memory creation and cleanup across platforms. "
-                 "This is an internal class and is not intended for use by script authors")
+    """
+    Wrapper class to handle shared memory creation and cleanup across platforms.
+    This is an internal class and is not intended for use by script authors
+    """
     def __init__(self, name: str, size: int):
         self.name = name
         self.size = size
@@ -23,8 +25,10 @@ class SharedMemoryWrapper:
             self._create_unix()
 
     def _create_windows(self):
-        """Create shared memory (Windows version). Not intended as a function for use
-        directly in scripts: this is an internal method."""
+        """
+        Create shared memory (Windows version). Not intended as a function for use
+        directly in scripts: this is an internal method.
+        """
         try:
             self._shm = SharedMemory(name=self.name, create=True, size=self.size)
         except FileExistsError:
@@ -36,8 +40,10 @@ class SharedMemoryWrapper:
                 raise RuntimeError(f"Failed to create shared memory on Windows: {e}")
 
     def _create_unix(self):
-        """Create shared memory (POSIX version). Not intended as a function for use
-        directly in scripts: this is an internal method."""
+        """
+        Create shared memory (POSIX version). Not intended as a function for use
+        directly in scripts: this is an internal method.
+        """
         try:
             # Create a temporary file as fallback
             fd = os.open(f"/dev/shm/{self.name}", os.O_CREAT | os.O_RDWR, 0o600)

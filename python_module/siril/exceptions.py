@@ -1,4 +1,4 @@
-from .translations import _, N_
+from .translations import _
 
 class SirilError(Exception):
     """
@@ -12,39 +12,39 @@ class SirilError(Exception):
         super().__init__(self.message)
 
 class ConnectionError(SirilError):
-    __doc__ = N_("Raised when there are problems connecting to or "
-                 "communicating with Siril.\n"
-                 "This includes cases like:\n"
-                 "- Siril not running\n"
-                 "- Socket connection failures\n"
-                 "- Communication protocol errors\n"
-                 "- Unexpected disconnections")
+    """Raised when there are problems connecting to or
+    communicating with Siril.
+    This includes cases like:
+    - Siril not running
+    - Socket connection failures
+    - Communication protocol errors
+    - Unexpected disconnections"""
 
     def __init__(self, message: str = _("Failed to connect to Siril")):
         super().__init__(message)
 
 class CommandError(SirilError):
-    __doc__ = N_("Raised when a Siril command fails to execute properly.\n"
-                 "This includes cases like:\n"
-                 "- Invalid command parameters\n"
-                 "- Command execution failures\n"
-                 "- Unexpected command responses\n"
-                 "- Command timeout\n")
+    """Raised when a Siril command fails to execute properly.
+    This includes cases like:
+    - Invalid command parameters
+    - Command execution failures
+    - Unexpected command responses
+    - Command timeout"""
     def __init__(self, message: str = _("Command execution failed")):
         super().__init__(message)
 
 class DataError(SirilError):
-    __doc__ = N_("Raised when there are problems with data handling.\n"
-                 "This includes cases like:\n"
-                 "- Invalid image data\n"
-                 "- Data conversion errors\n"
-                 "- Memory allocation failures\n"
-                 "- Buffer overflows")
+    """Raised when there are problems with data handling.
+    This includes cases like:
+    - Invalid image data\n"
+    - Data conversion errors
+    - Memory allocation failures
+    - Buffer overflows"""
     def __init__(self, message: str = _("Error handling data")):
         super().__init__(message)
 
 class NoImageError(SirilError):
-    __doc__ = N_("Raised when a method requires an image to be loaded "
-                 " but no image is loaded.\n")
+    """Raised when a method requires an image to be loaded
+    but no image is loaded."""
     def __init__(self, message: str = _("No Siril image loaded")):
         super().__init__(message)

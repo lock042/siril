@@ -3,10 +3,11 @@ from setuptools import setup, find_packages
 
 setup(
     name="siril",
-    version="0.1.0",
+    version="0.1.27",
     packages=find_packages(),
     install_requires=[
         "numpy>=1.20.0",
+        "packaging>=21.0",
         "pywin32>=300; platform_system=='Windows'"
     ],
     author="Team free-astro",
@@ -24,6 +25,7 @@ setup(
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
     ],
     python_requires=">=3.9",
 )

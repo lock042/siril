@@ -387,6 +387,10 @@ static void update_misc_preferences() {
 	com.pref.starnet_exe = gtk_file_chooser_get_filename(starnet_exe);
 	com.pref.starnet_weights = gtk_file_chooser_get_filename(starnet_weights);
 	com.pref.graxpert_path = gtk_file_chooser_get_filename(graxpert_exe);
+#ifdef OS_OSX
+	if (g_str_has_suffix(com.pref.graxpert_path, ".app"))
+		str_append(&com.pref.graxpert_path, "/Contents/MacOS/GraXpert");
+#endif
 
 	com.pref.gui.silent_quit = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskQuit")));
 	com.pref.gui.silent_linear = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskSave")));
@@ -428,6 +432,17 @@ void initialize_path_directory(const gchar *path) {
 
 void initialize_graxpert_executable(gchar *path) {
 	GtkFileChooser *graxpert_exe = GTK_FILE_CHOOSER(lookup_widget("filechooser_graxpert"));
+#ifdef OS_OSX
+	const gchar *suffix = "/Contents/MacOS/GraXpert";
+	if (path && g_str_has_suffix(path, suffix)) {
+		gsize len = strlen(path) - strlen(suffix);
+		gchar *new_path = g_strndup(path, len);
+		gtk_file_chooser_set_filename(graxpert_exe, new_path);
+		g_free(new_path);
+		return;
+	}
+#endif
+
 	if (path && path[0] != '\0') {
 		gtk_file_chooser_set_filename (graxpert_exe, path);
 	}

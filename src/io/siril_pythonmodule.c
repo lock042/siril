@@ -6,6 +6,7 @@
 #include "core/OS_utils.h"
 #else
 #include <gio/gunixinputstream.h>
+#include <glib-unix.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <netinet/in.h>
@@ -51,10 +52,6 @@
 
 #define MODULE_DIR "python_module"
 // Statics
-static CommunicationState commstate = {0};
-static GSList* g_shm_allocations = NULL;
-static GMutex g_shm_mutex;
-static gboolean g_shm_initialized = FALSE;
 
 // Forward declarations
 static void cleanup_connection(Connection *conn);
@@ -94,50 +91,79 @@ static gboolean create_shared_memory_win32(const char* name, size_t size, win_sh
 #endif
 
 gboolean send_response(Connection* conn, uint8_t status, const void* data, uint32_t length) {
+	// Add a small delay to ensure receiver is ready
+	g_usleep(2000); // 2ms delay - adjust based on testing
+
 	ResponseHeader header = {
 		.status = status,
-		.length = GUINT32_TO_BE(length)  // Convert to network byte order
+		.length = GUINT32_TO_BE(length)
 	};
 
 #ifdef _WIN32
 	DWORD bytes_written = 0;
+	int retry_count = 3; // Maximum number of retries
 
-	// Send header
-	if (!WriteFile(conn->pipe_handle, &header, sizeof(header), &bytes_written, NULL) ||
-		bytes_written != sizeof(header)) {
-		siril_debug_print("Failed to send response header: %lu\n", GetLastError());
-		return FALSE;
-	}
-
-	// Send data if present
-	if (data && length > 0) {
-		if (!WriteFile(conn->pipe_handle, data, length, &bytes_written, NULL) ||
-			bytes_written != length) {
-			siril_debug_print("Failed to send response data: %lu\n", GetLastError());
+	while (retry_count > 0) {
+		// Send header
+		if (!WriteFile(conn->pipe_handle, &header, sizeof(header), &bytes_written, NULL) ||
+			bytes_written != sizeof(header)) {
+			if (retry_count > 1) {
+				g_usleep(2000); // Wait 2ms before retry
+				retry_count--;
+				continue;
+			}
+			siril_debug_print("Failed to send response header: %lu\n", GetLastError());
 			return FALSE;
 		}
-	}
 
+		// Send data if present
+		if (data && length > 0) {
+			if (!WriteFile(conn->pipe_handle, data, length, &bytes_written, NULL) ||
+				bytes_written != length) {
+				if (retry_count > 1) {
+					g_usleep(2000);
+					retry_count--;
+					continue;
+				}
+				siril_debug_print("Failed to send response data: %lu\n", GetLastError());
+				return FALSE;
+			}
+		}
+		break; // Success, exit the retry loop
+	}
 #else
 	ssize_t bytes_written;
+	int retry_count = 3;
 
-	// Send header
-	bytes_written = write(conn->client_fd, &header, sizeof(header));
-	if (bytes_written != sizeof(header)) {
-		siril_debug_print("Failed to send response header: %s\n", g_strerror(errno));
-		return FALSE;
-	}
-
-	// Send data if present
-	if (data && length > 0) {
-		bytes_written = write(conn->client_fd, data, length);
-		if (bytes_written != length) {
-			siril_debug_print("Failed to send response data: %s\n", g_strerror(errno));
+	while (retry_count > 0) {
+		// Send header
+		bytes_written = write(conn->client_fd, &header, sizeof(header));
+		if (bytes_written != sizeof(header)) {
+			if (retry_count > 1 && errno == EAGAIN) {
+				g_usleep(2000);
+				retry_count--;
+				continue;
+			}
+			siril_debug_print("Failed to send response header: %s\n", g_strerror(errno));
 			return FALSE;
 		}
+
+		// Send data if present
+		if (data && length > 0) {
+			bytes_written = write(conn->client_fd, data, length);
+			if (bytes_written != length) {
+				if (retry_count > 1 && errno == EAGAIN) {
+					g_usleep(2000);
+					retry_count--;
+					continue;
+				}
+				siril_debug_print("Failed to send response data: %s\n", g_strerror(errno));
+				return FALSE;
+			}
+		}
+		break; // Success, exit the retry loop
 	}
 #endif
-
 	return TRUE;
 }
 
@@ -194,20 +220,20 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 #endif
 
 // Initialize tracking system
-static void init_shm_tracking(void) {
-	if (!g_shm_initialized) {
-		g_mutex_init(&g_shm_mutex);
-		g_shm_initialized = TRUE;
+static void init_shm_tracking(Connection *conn) {
+	if (!conn->g_shm_initialized) {
+		g_mutex_init(&conn->g_shm_mutex);
+		conn->g_shm_initialized = TRUE;
 	}
 }
 
 // Track new allocation
 #ifdef _WIN32
-static void track_shm_allocation(const char* shm_name, void* shm_ptr, size_t size, win_shm_handle_t* handle) {
+static void track_shm_allocation(Connection *conn, const char* shm_name, void* shm_ptr, size_t size, win_shm_handle_t* handle) {
 #else
-static void track_shm_allocation(const char* shm_name, void* shm_ptr, size_t size, int fd) {
+static void track_shm_allocation(Connection *conn, const char* shm_name, void* shm_ptr, size_t size, int fd) {
 #endif
-	if (!g_shm_initialized) init_shm_tracking();
+	if (!conn->g_shm_initialized) init_shm_tracking(conn);
 
 	// Using g_new0 and copying 255 chars ensures the last byte is 0
 	shm_allocation_t* allocation = g_new0(shm_allocation_t, 1);
@@ -220,9 +246,9 @@ static void track_shm_allocation(const char* shm_name, void* shm_ptr, size_t siz
 #else
 	allocation->fd = fd;
 #endif
-	g_mutex_lock(&g_shm_mutex);
-	g_shm_allocations = g_slist_append(g_shm_allocations, allocation);
-	g_mutex_unlock(&g_shm_mutex);
+	g_mutex_lock(&conn->g_shm_mutex);
+	conn->g_shm_allocations = g_slist_append(conn->g_shm_allocations, allocation);
+	g_mutex_unlock(&conn->g_shm_mutex);
 }
 
 // Helper function to match allocation by name
@@ -233,12 +259,12 @@ static gint find_allocation_by_name(gconstpointer a, gconstpointer b) {
 }
 
 // Cleanup allocation
-void cleanup_shm_allocation(const char* shm_name) {
-	if (!g_shm_initialized) return;
+void cleanup_shm_allocation(Connection *conn, const char* shm_name) {
+	if (!conn->g_shm_initialized) return;
 
-	g_mutex_lock(&g_shm_mutex);
+	g_mutex_lock(&conn->g_shm_mutex);
 
-	GSList* link = g_slist_find_custom(g_shm_allocations, shm_name, find_allocation_by_name);
+	GSList* link = g_slist_find_custom(conn->g_shm_allocations, shm_name, find_allocation_by_name);
 	if (link) {
 		shm_allocation_t* allocation = link->data;
 #ifdef _WIN32
@@ -249,17 +275,17 @@ void cleanup_shm_allocation(const char* shm_name) {
 		close(allocation->fd);
 		shm_unlink(allocation->shm_name);
 #endif
-		g_shm_allocations = g_slist_remove(g_shm_allocations, allocation);
+		conn->g_shm_allocations = g_slist_remove(conn->g_shm_allocations, allocation);
 		g_free(allocation);
 	}
 
-	g_mutex_unlock(&g_shm_mutex);
+	g_mutex_unlock(&conn->g_shm_mutex);
 }
 
-static void cleanup_all_shm_allocations(void) {
-	if (!g_shm_initialized) return;
-	g_mutex_lock(&g_shm_mutex);
-	GSList* current = g_shm_allocations;
+static void cleanup_all_shm_allocations(Connection *conn) {
+	if (!conn->g_shm_initialized) return;
+	g_mutex_lock(&conn->g_shm_mutex);
+	GSList* current = conn->g_shm_allocations;
 	while (current) {
 		shm_allocation_t* allocation = current->data;
 #ifdef _WIN32
@@ -273,16 +299,16 @@ static void cleanup_all_shm_allocations(void) {
 		g_free(allocation);
 		current = current->next;
 	}
-	g_slist_free(g_shm_allocations);
-	g_shm_allocations = NULL;
-	g_mutex_unlock(&g_shm_mutex);
+	g_slist_free(conn->g_shm_allocations);
+	conn->g_shm_allocations = NULL;
+	g_mutex_unlock(&conn->g_shm_mutex);
 }
 
-void cleanup_shm_resources(void) {
-	cleanup_all_shm_allocations();
-	if (g_shm_initialized) {
-		g_mutex_clear(&g_shm_mutex);
-		g_shm_initialized = FALSE;
+void cleanup_shm_resources(Connection *conn) {
+	cleanup_all_shm_allocations(conn);
+	if (conn->g_shm_initialized) {
+		g_mutex_clear(&conn->g_shm_mutex);
+		conn->g_shm_initialized = FALSE;
 	}
 }
 
@@ -348,9 +374,9 @@ gboolean handle_pixeldata_request(Connection *conn, fits *fit, rectangle region)
 	// We can't do this immmediately as we don't know when the python side has opened it, so we
 	// track it and wait for a CMD_RELEASE_SHM with the shm_name to release
 #ifdef _WIN32
-	track_shm_allocation(shm_name, shm_ptr, total_bytes, &win_handle);
+	track_shm_allocation(conn, shm_name, shm_ptr, total_bytes, &win_handle);
 #else
-	track_shm_allocation(shm_name, shm_ptr, total_bytes, fd);
+	track_shm_allocation(conn, shm_name, shm_ptr, total_bytes, fd);
 #endif
 
 	// Prepare shared memory info structure
@@ -398,9 +424,9 @@ gboolean handle_rawdata_request(Connection *conn, void* data, size_t total_bytes
 
 	// Track this allocation
 #ifdef _WIN32
-	track_shm_allocation(shm_name, shm_ptr, total_bytes, &win_handle);
+	track_shm_allocation(conn, shm_name, shm_ptr, total_bytes, &win_handle);
 #else
-	track_shm_allocation(shm_name, shm_ptr, total_bytes, fd);
+	track_shm_allocation(conn, shm_name, shm_ptr, total_bytes, fd);
 #endif
 
 	// Prepare shared memory info structure
@@ -548,12 +574,19 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 
 // Monitor stdout stream
 static gpointer monitor_stream_stdout(GDataInputStream *data_input) {
+
 	gsize length = 0;
 	gchar *buffer;
+	GError *error = NULL;
 
-	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length, NULL, NULL))) {
+	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length, NULL, &error))) {
 		siril_log_message("%s\n", buffer);
 		g_free(buffer);
+	}
+
+	if (error) {
+		siril_log_color_message(_("Error reading stdout: %s\n"), "red", error->message);
+		g_error_free(error);
 	}
 
 	g_object_unref(data_input);
@@ -562,12 +595,19 @@ static gpointer monitor_stream_stdout(GDataInputStream *data_input) {
 
 // Monitor stderr stream
 static gpointer monitor_stream_stderr(GDataInputStream *data_input) {
+
 	gsize length = 0;
 	gchar *buffer;
+	GError *error = NULL;
 
-	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length, NULL, NULL))) {
+	while ((buffer = g_data_input_stream_read_line_utf8(data_input, &length, NULL, &error))) {
 		siril_log_color_message("%s\n", "red", buffer);
 		g_free(buffer);
+	}
+
+	if (error) {
+		siril_log_color_message(_("Error reading stderr: %s\n"), "red", error->message);
+		g_error_free(error);
 	}
 
 	g_object_unref(data_input);
@@ -575,6 +615,7 @@ static gpointer monitor_stream_stderr(GDataInputStream *data_input) {
 }
 
 static void cleanup_child_process(GPid pid, gint status, gpointer user_data) {
+	Connection *conn = (Connection*) user_data;
 	// Log the Python process exit status if needed
 #ifdef G_OS_WIN32
 	if (status == 0) {
@@ -597,7 +638,7 @@ static void cleanup_child_process(GPid pid, gint status, gpointer user_data) {
 #endif
 
 	// Clean up shared memory resources
-	cleanup_shm_resources();
+	cleanup_shm_resources(conn);
 
 	// Close the process handle
 	g_spawn_close_pid(pid);
@@ -610,9 +651,9 @@ static void cleanup_child_process(GPid pid, gint status, gpointer user_data) {
 gchar* get_venv_python_version(const gchar* venv_path) {
 	gchar* python_path;
 #ifdef _WIN32
-	python_path = g_build_filename(venv_path, "Scripts", "python.exe", NULL);
+	python_path = g_build_filename(venv_path, "Scripts", PYTHON_EXE, NULL);
 #else
-	python_path = g_build_filename(venv_path, "bin", "python3", NULL);
+	python_path = g_build_filename(venv_path, "bin", PYTHON_EXE, NULL);
 #endif
 
 	gchar* argv[] = { python_path, "-c", "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')", NULL };
@@ -629,127 +670,6 @@ gchar* get_venv_python_version(const gchar* venv_path) {
 		return output;
 	}
 	return NULL;
-}
-
-void execute_python_script_async(gchar* script_name, gboolean from_file) {
-	if (!commstate.python_conn) {
-		siril_log_color_message(_("Error: Python connection not available.\n"), "red");
-		return;
-	}
-	init_shm_tracking();
-
-	// Get base environment
-	gchar** env = g_get_environ();
-
-	// Handle virtual environment if active
-	const gchar* venv_path = g_getenv("VIRTUAL_ENV");
-	if (venv_path != NULL) {
-		// Get the specific Python version for the site-packages path
-		gchar* python_version = get_venv_python_version(venv_path);
-		if (python_version) {
-			gchar* site_packages = NULL;
-#ifdef _WIN32
-			site_packages = g_build_filename(venv_path, "Lib", "site-packages", NULL);
-#else
-			site_packages = g_build_filename(venv_path, "lib", g_strdup_printf("python%s", python_version), "site-packages", NULL);
-#endif
-			// Update PYTHONPATH to include site-packages
-			const gchar* current_pythonpath = g_environ_getenv(env, "PYTHONPATH");
-			if (current_pythonpath != NULL) {
-				gchar* new_pythonpath = g_strjoin(G_SEARCHPATH_SEPARATOR_S, site_packages, current_pythonpath, NULL);
-				env = g_environ_setenv(env, "PYTHONPATH", new_pythonpath, TRUE);
-				g_free(new_pythonpath);
-			} else {
-				env = g_environ_setenv(env, "PYTHONPATH", site_packages, TRUE);
-			}
-			g_free(site_packages);
-			g_free(python_version);
-		}
-	}
-
-	// Set up connection information in environment
-#ifdef _WIN32
-	const gchar* pipe_name = "\\\\.\\pipe\\siril";
-	env = g_environ_setenv(env, "MY_PIPE", pipe_name, TRUE);
-#else
-	env = g_environ_setenv(env, "MY_SOCKET", commstate.python_conn->socket_path, TRUE);
-#endif
-
-	// Prepare command arguments
-	gchar* python_argv[4];
-	if (from_file) {
-		python_argv[0] = PYTHON_EXE;
-		python_argv[1] = script_name;
-		python_argv[2] = NULL;
-	} else {
-		python_argv[0] = PYTHON_EXE;
-		python_argv[1] = "-c";
-		python_argv[2] = script_name;
-		python_argv[3] = NULL;
-	}
-
-	// Set up process spawn
-	GError* error = NULL;
-	GPid child_pid;
-	gint stdout_fd, stderr_fd;
-	gchar* working_dir = g_strdup(com.wd);
-
-	gboolean success = g_spawn_async_with_pipes(
-		working_dir,
-		python_argv,
-		env,
-		G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
-		NULL,
-		NULL,
-		&child_pid,
-		NULL,
-		&stdout_fd,
-		&stderr_fd,
-		&error
-	);
-
-	g_strfreev(env);
-
-	if (!success) {
-		siril_log_color_message(_("Failed to execute Python script: %s\n"), "red", error->message);
-		g_error_free(error);
-		g_free(working_dir);
-		return;
-	}
-
-	// Set up child process monitoring: the callback will clean up any overlooked shm resources
-	g_child_watch_add(child_pid, (GChildWatchFunc)cleanup_child_process, NULL);
-
-	// Create input streams for stdout and stderr
-	GInputStream *stdout_stream = NULL;
-	GInputStream *stderr_stream = NULL;
-
-#ifdef _WIN32
-	stdout_stream = g_win32_input_stream_new((HANDLE)_get_osfhandle(stdout_fd), FALSE);
-	stderr_stream = g_win32_input_stream_new((HANDLE)_get_osfhandle(stderr_fd), FALSE);
-#else
-	stdout_stream = g_unix_input_stream_new(stdout_fd, FALSE);
-	stderr_stream = g_unix_input_stream_new(stderr_fd, FALSE);
-#endif
-
-	// Create data input streams
-	GDataInputStream *stdout_data = g_data_input_stream_new(stdout_stream);
-	GDataInputStream *stderr_data = g_data_input_stream_new(stderr_stream);
-
-	// Start monitoring threads
-	GThread *stdout_thread = g_thread_new("stdout-monitor",
-		(GThreadFunc)monitor_stream_stdout,
-		g_object_ref(stdout_data));
-	GThread *stderr_thread = g_thread_new("stderr-monitor",
-		(GThreadFunc)monitor_stream_stderr,
-		g_object_ref(stderr_data));
-
-	// Clean up thread references
-	g_thread_unref(stdout_thread);
-	g_thread_unref(stderr_thread);
-
-	siril_debug_print("Python script launched asynchronously with PID %d\n", child_pid);
-	g_free(working_dir);
 }
 
 #ifdef _WIN32
@@ -1000,11 +920,11 @@ static gchar* find_venv_python_exe(const gchar *venv_path, const gboolean verbos
 
 #ifdef _WIN32
 	// Try Scripts directory first
-	python_exe = g_build_filename(venv_path, "Scripts", "python.exe", NULL);
+	python_exe = g_build_filename(venv_path, "Scripts", PYTHON_EXE, NULL);
 	if (!g_file_test(python_exe, G_FILE_TEST_EXISTS)) {
 		g_free(python_exe);
 		// Try bin directory as fallback
-		python_exe = g_build_filename(venv_path, "bin", "python.exe", NULL);
+		python_exe = g_build_filename(venv_path, "bin", PYTHON_EXE, NULL);
 		if (!g_file_test(python_exe, G_FILE_TEST_EXISTS)) {
 			if (verbose) siril_debug_print("Error: python executable not found in the venv\n");
 			g_free(python_exe);
@@ -1012,7 +932,7 @@ static gchar* find_venv_python_exe(const gchar *venv_path, const gboolean verbos
 		}
 	}
 #else
-	python_exe = g_build_filename(venv_path, "bin", "python3", NULL);
+	python_exe = g_build_filename(venv_path, "bin", PYTHON_EXE, NULL);
 	if (!g_file_test(python_exe, G_FILE_TEST_EXISTS)) {
 		if (verbose) siril_debug_print("Error: python executable not found in the venv\n");
 		g_free(python_exe);
@@ -1309,6 +1229,7 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 		if (ver_error) {
 			g_propagate_error(error, ver_error);
 			g_free(module_setup_path);
+			g_free(python_path);
 			return FALSE;
 		}
 		siril_debug_print("System version: %d.%d.%d\n", module_version.major_version, module_version.minor_version, module_version.micro_version);
@@ -1320,6 +1241,7 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 			if (!delete_directory(user_module_path, &del_error)) {
 				g_propagate_error(error, del_error);
 				g_free(module_setup_path);
+				g_free(python_path);
 				return FALSE;
 			}
 			needs_install = TRUE;
@@ -1335,6 +1257,7 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 			if (g_mkdir_with_parents(user_module_path, 0755) != 0) {
 				g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
 						"Failed to create directory: %s", user_module_path);
+				g_free(python_path);
 				return FALSE;
 			}
 		}
@@ -1342,35 +1265,48 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 		GError* copy_error = NULL;
 		if (!copy_directory_recursive(module_path, user_module_path, &copy_error)) {
 			g_propagate_error(error, copy_error);
+			g_free(python_path);
 			return FALSE;
 		}
-
+		gchar *arg_module_path = g_strdup(user_module_path);
 		// Install with pip
-#ifdef _WIN32
-		gchar* pip_command = g_strdup_printf("'%s' -m pip install -e '%s'", python_path, user_module_path);
-#else
-		gchar* pip_command = g_strdup_printf("%s -m pip install -e %s", python_path, user_module_path);
-#endif
-		siril_debug_print("%s\n", pip_command);
+		gchar *argv[] = {
+			python_path,
+			"-m",
+			"pip",
+			"install",
+			arg_module_path,
+			NULL  // Array must be NULL-terminated
+		};
 
 		gint exit_status;
-		GError* spawn_error = NULL;
-		if (!g_spawn_command_line_sync(pip_command, NULL, NULL, &exit_status, &spawn_error)) {
-			g_free(pip_command);
+		GError *spawn_error = NULL;
+
+		if (!g_spawn_sync(
+				NULL,           // working_directory (NULL = inherit current)
+				argv,           // argument vector
+				NULL,           // inherit parent's environment
+				G_SPAWN_DEFAULT, // flags
+				NULL,           // child_setup function
+				NULL,           // user_data for child_setup
+				NULL,           // standard_output
+				NULL,           // standard_error
+				&exit_status,   // exit status
+				&spawn_error    // error
+			)) {
 			g_propagate_error(error, spawn_error);
+			g_free(arg_module_path);
+			g_free(python_path);
 			return FALSE;
 		}
-
+		g_free(arg_module_path);
+		g_free(python_path);
 		if (exit_status != 0) {
-			g_free(pip_command);
 			g_set_error(error, G_FILE_ERROR, G_FILE_ERROR_FAILED,
 					"Pip installation failed with exit status: %d", exit_status);
 			return FALSE;
 		}
-
-		g_free(pip_command);
 	}
-
 	return TRUE;
 }
 
@@ -1486,13 +1422,14 @@ static gboolean check_or_create_venv(const gchar *project_path, GError **error) 
 		sys_python_exe = g_find_program_in_path(PYTHON_EXE);
 #endif
 
-		gchar **argv = g_new0(gchar*, 5);
+		gchar **argv = g_new0(gchar*, 6);
 		argv[0] = sys_python_exe;
 		argv[1] = g_strdup("-m");
 		argv[2] = g_strdup("venv");
-		argv[3] = g_strdup(venv_path);
-		argv[4] = NULL;
-		siril_debug_print("Trying venv creation command: %s %s %s %s\n", argv[0], argv[1], argv[2], argv[3]);
+		argv[3] = g_strdup("--system-site-packages");
+		argv[4] = g_strdup(venv_path);
+		argv[5] = NULL;
+		siril_debug_print("Trying venv creation command: %s %s %s %s %s %s\n", argv[0], argv[1], argv[2], argv[3], argv[4], argv[5]);
 		gint exit_status;
 		if (!g_spawn_sync(NULL, argv, NULL,
 						G_SPAWN_SEARCH_PATH,
@@ -1523,12 +1460,11 @@ cleanup:
 	return success;
 }
 
-gboolean initialize_python_communication(const gchar *connection_path) {
-	if (commstate.python_conn) {
-		siril_debug_print("Python communication already initialized\n");
-		return FALSE;
-	}
-
+/*
+ * Ensures that the venv is created and valid, and that the siril python module
+ * is correctly installed in it along with its dependencies
+ */
+gboolean initialize_python_communication() {
 	GError *error = NULL;
 	gchar* project_path = g_build_filename(g_get_user_data_dir(), "siril", NULL);
 
@@ -1559,20 +1495,7 @@ gboolean initialize_python_communication(const gchar *connection_path) {
 		g_setenv((const gchar*)key, (const gchar*)value, TRUE);
 	}
 
-	// Create connection
-	commstate.python_conn = create_connection(connection_path);
-	if (!commstate.python_conn) {
-		g_warning("Failed to create Python connection");
-		goto cleanup;
-	}
-
-	// Create worker thread
-	commstate.worker_thread = g_thread_new("python-comm",
-										connection_worker,
-										commstate.python_conn);
-
 	// Clean up
-	cleanup:
 	if (venv_info) {
 		g_free(venv_info->venv_path);
 		g_free(venv_info->python_version);
@@ -1581,18 +1504,207 @@ gboolean initialize_python_communication(const gchar *connection_path) {
 	}
 	g_free(venv_path);
 	g_free(project_path);
-
-	return commstate.python_conn != NULL;
+	return TRUE;
 }
 
-void shutdown_python_communication(void) {
-	if (commstate.python_conn) {
-		cleanup_connection(commstate.python_conn);
-		commstate.python_conn = NULL;
+void shutdown_python_communication(CommunicationState *commstate) {
+	if (commstate->python_conn) {
+		cleanup_connection(commstate->python_conn);
+		commstate->python_conn = NULL;
 	}
 
-	if (commstate.worker_thread) {
-		g_thread_join(commstate.worker_thread);
-		commstate.worker_thread = NULL;
+	if (commstate->worker_thread) {
+		g_thread_join(commstate->worker_thread);
+		commstate->worker_thread = NULL;
 	}
+}
+
+void execute_python_script_async(gchar* script_name, gboolean from_file) {
+
+	// Generate a unique connection path for the pipe or socket for this script
+	gchar *connection_path = NULL;
+	gchar *uuid = g_uuid_string_random();
+	#ifdef _WIN32
+	connection_path = g_strdup_printf("\\\\.\\pipe\\%s", uuid);
+	#else
+	connection_path = g_strdup_printf("/tmp/%s.sock", uuid);
+	#endif
+
+	// Create connection
+	CommunicationState commstate = {0};
+	commstate.python_conn = create_connection(connection_path);
+	if (!commstate.python_conn) {
+		siril_log_color_message(_("Error: failed to create Python connection"), "red");
+		g_free(uuid);
+		g_free(connection_path);
+		return;
+	}
+
+	// Create worker thread
+	commstate.worker_thread = g_thread_new("python-comm",
+										connection_worker,
+										commstate.python_conn);
+
+	if (!commstate.python_conn) {
+		siril_log_color_message(_("Error: Python connection not available.\n"), "red");
+		return;
+	}
+	init_shm_tracking(commstate.python_conn);
+
+	// Get base environment
+	gchar** env = g_get_environ();
+
+	// Handle virtual environment if active
+	const gchar* venv_path = g_getenv("VIRTUAL_ENV");
+	if (venv_path != NULL) {
+		// Get the specific Python version for the site-packages path
+		gchar* python_version = get_venv_python_version(venv_path);
+		if (python_version) {
+			gchar* site_packages = NULL;
+#ifdef _WIN32
+			site_packages = g_build_filename(venv_path, "Lib", "site-packages", NULL);
+#else
+			site_packages = g_build_filename(venv_path, "lib", g_strdup_printf("python%s", python_version), "site-packages", NULL);
+#endif
+			// Update PYTHONPATH to include site-packages
+			const gchar* current_pythonpath = g_environ_getenv(env, "PYTHONPATH");
+			if (current_pythonpath != NULL) {
+				gchar* new_pythonpath = g_strjoin(G_SEARCHPATH_SEPARATOR_S, site_packages, current_pythonpath, NULL);
+				env = g_environ_setenv(env, "PYTHONPATH", new_pythonpath, TRUE);
+				g_free(new_pythonpath);
+			} else {
+				env = g_environ_setenv(env, "PYTHONPATH", site_packages, TRUE);
+			}
+			g_free(site_packages);
+			g_free(python_version);
+		}
+	}
+
+	// Set up connection information in environment
+#ifdef _WIN32
+	env = g_environ_setenv(env, "MY_PIPE", connection_path, TRUE);
+#else
+	env = g_environ_setenv(env, "MY_SOCKET", commstate.python_conn->socket_path, TRUE);
+#endif
+	// Set PYTHONUNBUFFERED in environment
+	env = g_environ_setenv(env, "PYTHONUNBUFFERED", "1", TRUE);
+
+	// Prepare command arguments with Python unbuffered mode
+	gchar* python_argv[5];
+	if (from_file) {
+		python_argv[0] = PYTHON_EXE;
+		python_argv[1] = "-u";  // Set unbuffered mode
+		python_argv[2] = script_name;
+		python_argv[3] = NULL;
+	} else {
+		python_argv[0] = PYTHON_EXE;
+		python_argv[1] = "-u";  // Set unbuffered mode
+		python_argv[2] = "-c";
+		python_argv[3] = script_name;
+		python_argv[4] = NULL;
+	}
+
+	// Set up process spawn with pipe flags
+	GError* error = NULL;
+	GPid child_pid;
+	gint stdout_fd, stderr_fd;
+	gchar* working_dir = g_strdup(com.wd);
+
+	GSpawnFlags spawn_flags = G_SPAWN_SEARCH_PATH |
+							G_SPAWN_DO_NOT_REAP_CHILD;
+
+	gboolean success = g_spawn_async_with_pipes(
+		working_dir,
+		python_argv,
+		env,
+		spawn_flags,
+		NULL,
+		NULL,
+		&child_pid,
+		NULL,
+		&stdout_fd,
+		&stderr_fd,
+		&error
+	);
+
+	g_strfreev(env);
+
+	if (!success) {
+		siril_log_color_message(_("Failed to execute Python script: %s\n"), "red", error->message);
+		g_error_free(error);
+		g_free(working_dir);
+		return;
+	}
+
+	// Set up child process monitoring: the callback will clean up any overlooked shm resources
+	g_child_watch_add(child_pid, (GChildWatchFunc)cleanup_child_process, commstate.python_conn);
+
+	// Create input streams with appropriate flags
+	GInputStream *stdout_stream = NULL;
+	GInputStream *stderr_stream = NULL;
+
+#ifdef _WIN32
+	// TODO: confirm if this behaviour is correct on Windows (suggestion is that
+	// it could potentially cause data loss or unexpected behaviour owing to
+	// differences in behaviour between unix pipes and Windows ones
+	HANDLE pipe_handle = (HANDLE)_get_osfhandle(stdout_fd);
+	DWORD pipe_mode = PIPE_NOWAIT;
+
+	if (!SetNamedPipeHandleState(pipe_handle,
+								&pipe_mode,    // Set PIPE_NOWAIT
+								NULL,          // don't change maximum bytes
+								NULL))         // don't change maximum time
+	{
+		// Handle error
+		DWORD error = GetLastError();
+		g_warning("SetNamedPipeHandleState failed with error %lu", error);
+	}
+
+	stdout_stream = g_win32_input_stream_new(pipe_handle, FALSE);
+
+	HANDLE pipe_handle2 = (HANDLE)_get_osfhandle(stderr_fd);
+	DWORD pipe_mode2 = PIPE_NOWAIT;
+
+	if (!SetNamedPipeHandleState(pipe_handle2,
+								&pipe_mode2,    // Set PIPE_NOWAIT
+								NULL,          // don't change maximum bytes
+								NULL))         // don't change maximum time
+	{
+		// Handle error - you might want to use g_set_error with your GError
+		DWORD error = GetLastError();
+		g_warning("SetNamedPipeHandleState failed with error %lu", error);
+	}
+
+	stderr_stream = g_win32_input_stream_new(pipe_handle2, FALSE);
+#else
+	stdout_stream = g_unix_input_stream_new(stdout_fd, TRUE);
+	g_unix_set_fd_nonblocking(stdout_fd, TRUE, &error);
+	stderr_stream = g_unix_input_stream_new(stderr_fd, TRUE);
+	g_unix_set_fd_nonblocking(stderr_fd, TRUE, &error);
+#endif
+
+	// Create unbuffered data input streams
+	GDataInputStream *stdout_data = g_data_input_stream_new(stdout_stream);
+	GDataInputStream *stderr_data = g_data_input_stream_new(stderr_stream);
+
+	// Set smaller buffer size for more responsive output
+	g_object_set(stdout_data, "buffer-size", 1024, NULL);
+	g_object_set(stderr_data, "buffer-size", 1024, NULL);
+
+	// Start monitoring threads
+	GThread *stdout_thread = g_thread_new("stdout-monitor",
+		(GThreadFunc)monitor_stream_stdout,
+		g_object_ref(stdout_data));
+	GThread *stderr_thread = g_thread_new("stderr-monitor",
+		(GThreadFunc)monitor_stream_stderr,
+		g_object_ref(stderr_data));
+
+	// Clean up references
+	g_object_unref(stdout_stream);
+	g_object_unref(stderr_stream);
+	g_thread_unref(stdout_thread);
+	g_thread_unref(stderr_thread);
+
+	siril_debug_print("Python script launched asynchronously with PID %d\n", child_pid);
+	g_free(working_dir);
 }

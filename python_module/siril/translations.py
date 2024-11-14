@@ -1,40 +1,41 @@
-# siril/translations.py
-from typing import Callable
+import os
 import gettext
 import locale
-from pathlib import Path
+from functools import wraps
+from typing import Callable, Type, TypeVar
+import inspect
 
-# Initialize with default implementations
-_: Callable[[str], str] = gettext.gettext
-N_: Callable[[str], str] = gettext.gettext
+T = TypeVar('T')
 
-def setup_i18n(domain: str = 'siril', localedir: str | None = None) -> None:
+def setup_translations(domain: str = 'siril', localedir: str = 'locale') -> Callable:
     """
-    Initialize internationalization for the package.
-    Args:
-        domain: Translation domain name
-        localedir: Directory containing translation files. If None,
-                  defaults to the 'locale' directory in the package root.
+    Set up translations for the module based on the system locale.
     """
-    if localedir is None:
-        localedir = Path(__file__).parent.parent / 'locale'
+    if not os.path.exists(localedir):
+        os.makedirs(localedir)
+
+    gettext.bindtextdomain(domain, localedir)
+    gettext.textdomain(domain)
+
     try:
-        # Try to use system locale
-        locale_str = locale.getdefaultlocale()[0]
-        if locale_str:
-            locale.setlocale(locale.LC_ALL, f"{locale_str}.UTF-8")
-    except (locale.Error, TypeError):
-        # Fall back to environment variable or default
         locale.setlocale(locale.LC_ALL, '')
+    except locale.Error:
+        pass
 
-    translation = gettext.translation(domain, localedir=localedir, fallback=True)
-    translation.install()
+    lang, encoding = locale.getdefaultlocale()
 
-    # Update the global translation functions
-    global _
-    global N_
-    _ = translation.gettext
-    N_ = gettext.gettext
+    try:
+        locale.setlocale(locale.LC_ALL, lang)
+        return gettext.gettext
+    except locale.Error:
+        try:
+            locale.setlocale(locale.LC_ALL, lang.split('_')[0])
+            return gettext.gettext
+        except locale.Error:
+            return gettext.gettext
 
-# Initialize translations when module is imported
-setup_i18n()
+# Initialize the translation function
+_ = setup_translations()
+
+# Export these symbols
+__all__ = ['_', 'setup_translations']

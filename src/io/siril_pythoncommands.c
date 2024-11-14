@@ -2,6 +2,7 @@
 #include "algos/PSF.h"
 #include "algos/statistics.h"
 #include "core/command_line_processor.h"
+#include "core/siril_app_dirs.h"
 #include "core/icc_profile.h"
 #include "core/siril_log.h"
 #include "gui/progress_and_log.h"
@@ -390,7 +391,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 	if (payload_length == -1) payload_length = 0;
 	// Verify we have complete message
 	if (length < sizeof(CommandHeader) + payload_length) {
-		siril_log_color_message(_("Received incomplete command payload\n"), "red");
+		siril_log_color_message(_("Received incomplete command payload: length = %u, expected %u\n"), "red", length, payload_length);
 		return;
 	}
 
@@ -451,7 +452,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		case CMD_RELEASE_SHM: {
 			if (payload_length >= sizeof(finished_shm_payload_t)) {
 				finished_shm_payload_t* finished_payload = (finished_shm_payload_t*)payload;
-				cleanup_shm_allocation(finished_payload->shm_name);
+				cleanup_shm_allocation(conn, finished_payload->shm_name);
 				// Send acknowledgment
 				success = send_response(conn, STATUS_OK, NULL, 0);
 			} else {
@@ -468,8 +469,24 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			g_free(cmd);
 
 			// Send response based on command execution
-			uint8_t status = (retval == CMD_OK) ? STATUS_OK : STATUS_ERROR;
-			success = send_response(conn, status, NULL, 0);
+			if (retval == CMD_OK) {
+				success = send_response(conn, STATUS_OK, NULL, 0);
+			} else {
+				const char* error_msg = _("Siril command error");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			}
+			break;
+		}
+
+		case CMD_GET_IS_IMAGE_LOADED: {
+			int32_t loaded = GINT32_TO_BE((int32_t) single_image_is_loaded());
+			success = send_response(conn, STATUS_OK, &loaded, sizeof(int));
+			break;
+		}
+
+		case CMD_GET_IS_SEQUENCE_LOADED: {
+			int32_t loaded = GINT32_TO_BE((int32_t) sequence_is_loaded());
+			success = send_response(conn, STATUS_OK, &loaded, sizeof(int));
 			break;
 		}
 
@@ -492,6 +509,20 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			} else {
 				// Handle error retrieving the working directory
 				const char* error_msg = _("Working directory not set");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			}
+			break;
+		}
+
+		case CMD_GET_USERCONFIG_DIR: {
+				const char *configdir = siril_get_config_dir();
+			// Ensure the config directory is available
+			if (configdir && strlen(configdir) > 0) {
+				// Send success response with the working directory string
+				success = send_response(conn, STATUS_OK, configdir, strlen(configdir));
+			} else {
+				// Handle error retrieving the working directory
+				const char* error_msg = _("Error: user config directory not set");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			}
 			break;
