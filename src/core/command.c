@@ -4256,7 +4256,7 @@ int process_pm(int nb) {
 	remove_spaces_from_str(expression);
 
 	fits *fit = NULL;
-	if (new_fit_image(&fit, width, height, channel, DATA_FLOAT)) {
+	if (new_fit_image(&fit, width, height, channel, com.pref.force_16bit ? DATA_USHORT : DATA_FLOAT)) {
 		free_pm_var(args->nb_rows);
 		free(args->varname);
 		free(args);
