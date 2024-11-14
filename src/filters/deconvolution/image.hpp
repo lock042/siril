@@ -377,10 +377,14 @@ public:
             // If the fastest size is at least 80% of the largest possible size, use it
             best = fastest;
         }
-        // If we are constrained by the max slice size preference, adjust the size
-        if (com.pref.max_slice_size > 0 && best.width > com.pref.max_slice_size)
+        // If we are constrained by the max slice size preference, adjust the size.
+        // The permitted range of the preference is 512-32768: smaller than 512 should be completely unnecessary for
+        // any system and results in inefficiency owing to the overlaps and 32768 is a currently reasonable maximum
+        // based on the number of copies of a 32768 x 32768 image required for deconvolution taking up nearly half a
+        // TB of RAM, which almost no users will have.
+        if (com.pref.max_slice_size > 511 && com.pref.max_slice_size < 32769 && best.width > com.pref.max_slice_size)
             best.width = com.pref.max_slice_size;
-        if (com.pref.max_slice_size > 0 && best.height > com.pref.max_slice_size)
+        if (com.pref.max_slice_size > 511 && com.pref.max_slice_size < 32769 && best.height > com.pref.max_slice_size)
             best.height = com.pref.max_slice_size;
 
         if (best.width <= w && best.height <= h) {

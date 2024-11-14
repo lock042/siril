@@ -140,7 +140,7 @@ gboolean handle_pixeldata_request(Connection *conn, fits *fit, rectangle region)
 gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* payload, size_t payload_length);
 void cleanup_shm_allocation(Connection *conn, const char* shm_name);
 gboolean handle_rawdata_request(Connection *conn, void* data, size_t total_bytes);
-gboolean initialize_python_communication();
-void shutdown_python_communication();
+void initialize_python_venv_in_thread();
+void shutdown_python_communication(CommunicationState *commstate);
 
 #endif

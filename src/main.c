@@ -87,7 +87,6 @@
 cominfo com = { 0 };	// the core data struct
 guiinfo gui = { 0 };	// the gui data struct
 fits gfit;	// currently loaded image
-GThread *python_thread = NULL;	// main thread for the python interpreter
 
 static gchar *main_option_directory = NULL;
 static gchar *main_option_script = NULL;
@@ -319,19 +318,12 @@ static void siril_app_activate(GApplication *application) {
 	}
 
 	init_num_procs();
-	initialize_python_communication();
+	initialize_python_venv_in_thread();
 	initialize_profiles_and_transforms(); // color management
 
 #ifdef HAVE_LIBGIT2
 	if (is_online()) {
-		if (com.pref.use_scripts_repository)
-			auto_update_gitscripts(com.pref.auto_script_update);
-		else
-			siril_log_message(_("Online scripts repository not enabled. Not fetching or updating siril-scripts...\n"));
-		if (com.pref.spcc.use_spcc_repository)
-			auto_update_gitspcc(com.pref.spcc.auto_spcc_update);
-		else
-			siril_log_message(_("Online SPCC-database repository not enabled. Not fetching or updating siril-spcc-database...\n"));
+		async_update_git_repositories();
 	} else {
 		siril_log_message(_("Siril started in offline mode. Will not attempt to update siril-scripts or siril-spcc-database...\n"));
 	}
@@ -586,7 +578,6 @@ int main(int argc, char *argv[]) {
 		g_printerr("%s\n", help_msg);
 		g_free(help_msg);
 	}
-	shutdown_python_communication();
 	pipe_stop();		// close the pipes and their threads
 	g_object_unref(app);
 	return status;
