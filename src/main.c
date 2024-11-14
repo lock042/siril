@@ -315,14 +315,7 @@ static void siril_app_activate(GApplication *application) {
 
 #ifdef HAVE_LIBGIT2
 	if (is_online()) {
-		if (com.pref.use_scripts_repository)
-			auto_update_gitscripts(com.pref.auto_script_update);
-		else
-			siril_log_message(_("Online scripts repository not enabled. Not fetching or updating siril-scripts...\n"));
-		if (com.pref.spcc.use_spcc_repository)
-			auto_update_gitspcc(com.pref.spcc.auto_spcc_update);
-		else
-			siril_log_message(_("Online SPCC-database repository not enabled. Not fetching or updating siril-spcc-database...\n"));
+		async_update_git_repositories();
 	} else {
 		siril_log_message(_("Siril started in offline mode. Will not attempt to update siril-scripts or siril-spcc-database...\n"));
 	}
