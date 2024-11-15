@@ -48,6 +48,8 @@ GInputStream *siril_input_stream_from_stdin();
 gchar *get_special_folder(int csidl);
 int ReconnectIO(int OpenNewConsole);
 char* siril_real_path(const char *source);
+gchar *get_siril_bundle_path();
+gchar *find_executable_in_path(const char *exe_name, const char *path);
 #endif
 
 gboolean allow_to_open_files(int nb_frames, int *nb_allowed_file);
