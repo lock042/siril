@@ -310,74 +310,74 @@ class SirilInterface:
             else:
                 raise SirilError(_("No socket connection to close"))
 
-    def _recv_exact(self, n: int, timeout: float = 5.0, retries: int = 3) -> Optional[bytes]:
+    def _recv_exact(self, n: int, timeout: float = 5.0) -> Optional[bytes]:
         """
         Helper method to receive exactly n bytes from the socket or pipe.
-        Includes retry mechanism for handling potential race conditions.
         Not for end-user use.
         """
         if n < 0:
             raise ValueError(_("Cannot receive negative number of bytes"))
 
-        last_error = None
-        for attempt in range(retries):
+        if os.name == 'nt':
+            # Pipe implementation
             try:
-                if os.name == 'nt':
+                data = bytearray()
+                timeout_ms = int(timeout * 1000)
+
+                while len(data) < n:
+                    # Calculate remaining bytes to read
+                    to_read = n - len(data)
+
+                    # Prepare buffer for reading
+                    buf = win32file.AllocateReadBuffer(to_read)
+
+                    # Start overlapped read
+                    win32file.ReadFile(self.pipe_handle, buf, self.overlap_read)
+
+                    # Wait for completion or timeout
+                    rc = win32event.WaitForSingleObject(self.overlap_read.hEvent, timeout_ms)
+
+                    if rc == win32event.WAIT_TIMEOUT:
+                        # Cancel the I/O operation
+                        win32file.CancelIo(self.pipe_handle)
+                        raise ConnectionError(_("Timeout while receiving data"))
+
+                    if rc != win32event.WAIT_OBJECT_0:
+                        raise ConnectionError(_("Error waiting for pipe read completion"))
+
+                    # Get results of the operation
+                    err, bytes_read = win32file.GetOverlappedResult(self.pipe_handle, self.overlap_read, False)
+                    if bytes_read == 0:
+                        raise ConnectionError(_("Pipe closed during read"))
+
+                    # Extend our data buffer
+                    data.extend(buf[:bytes_read])
+
+                return bytes(data)
+
+            except pywintypes.error as e:
+                raise ConnectionError(_("Windows pipe error during receive: {}").format(e))
+
+        else:
+            # Socket implementation
+            original_timeout = self.sock.gettimeout()
+            self.sock.settimeout(timeout)
+
+            try:
+                data = bytearray()
+                while len(data) < n:
                     try:
-                        data = bytearray()
-                        timeout_ms = int((timeout / retries) * 2000)  # Shorter timeout per attempt
-                        while len(data) < n:
-                            to_read = n - len(data)
-                            buf = win32file.AllocateReadBuffer(to_read)
-                            win32file.ReadFile(self.pipe_handle, buf, self.overlap_read)
-
-                            rc = win32event.WaitForSingleObject(self.overlap_read.hEvent, timeout_ms)
-                            if rc == win32event.WAIT_TIMEOUT:
-                                win32file.CancelIo(self.pipe_handle)
-                                raise ConnectionError(_("Timeout while receiving data"))
-                            if rc != win32event.WAIT_OBJECT_0:
-                                raise ConnectionError(_("Error waiting for pipe read completion"))
-
-                            err, bytes_read = win32file.GetOverlappedResult(self.pipe_handle, self.overlap_read, False)
-                            if bytes_read == 0:
-                                raise ConnectionError(_("Pipe closed during read"))
-                            data.extend(buf[:bytes_read])
-                        return bytes(data)
-
-                    except pywintypes.error as e:
-                        last_error = e
-                        if attempt < retries - 1:
-                            time.sleep(0.002)  # 2ms delay before retry
-                            continue
-                        raise ConnectionError(_("Windows pipe error during receive: {}").format(e))
-                else:
-                    # Socket implementation with retries
-                    original_timeout = self.sock.gettimeout()
-                    self.sock.settimeout(timeout / retries)  # Shorter timeout per attempt
-                    try:
-                        data = bytearray()
-                        while len(data) < n:
-                            try:
-                                packet = self.sock.recv(n - len(data))
-                                if not packet:
-                                    raise ConnectionError(_("Connection closed during data transfer"))
-                                data.extend(packet)
-                            except socket.timeout:
-                                raise ConnectionError(_("Timeout while receiving data"))
-                            except Exception as e:
-                                raise ConnectionError(_("Error receiving data: {}").format(e))
-                        return bytes(data)
-                    finally:
-                        self.sock.settimeout(original_timeout)
-
-            except ConnectionError as e:
-                last_error = e
-                if attempt < retries - 1:
-                    time.sleep(0.002)  # 2ms delay before retry
-                    continue
-                raise
-
-        raise ConnectionError(_("Failed after {} retries. Last error: {}").format(retries, last_error))
+                        packet = self.sock.recv(n - len(data))
+                        if not packet:
+                            raise ConnectionError(_("Connection closed during data transfer"))
+                        data.extend(packet)
+                    except socket.timeout:
+                        raise ConnectionError(_("Timeout while receiving data"))
+                    except Exception as e:
+                        raise ConnectionError(_("Error receiving data: {}").format(e))
+                return bytes(data)
+            finally:
+                self.sock.settimeout(original_timeout)
 
     def _send_command(self, command: _Command, data: Optional[bytes] = None) -> Tuple[Optional[int], Optional[bytes]]:
         """
