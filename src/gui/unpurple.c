@@ -138,7 +138,6 @@ static int unpurple_update_preview() {
 
 	// We need to create a star mask if one doesn't already exist
 	// and we need to recreate it if we change roi
-	// TODO: Do we need to detect case where ROI directly changes to another ROI?
 	if (withstarmask) {
 		if (starmask.naxis == 0 || gui.roi.active != is_roi || old_thresh != thresh) {
 			is_roi = gui.roi.active;
@@ -150,8 +149,8 @@ static int unpurple_update_preview() {
 	struct unpurpleargs *args = calloc(1, sizeof(struct unpurpleargs));
 	*args = (struct unpurpleargs){.fit = fit, .starmask = &starmask, .withstarmask = withstarmask, .thresh = thresh, .mod_b = mod_b, .verbose = FALSE, .for_final = FALSE};
 	set_cursor_waiting(TRUE);
+	// we call the unpurple_filter directly here because update_preview already handles the ROI mutex lock
 	start_in_new_thread(unpurple_filter, args);
-	notify_gfit_modified();
 	return 0;
 }
 
@@ -205,7 +204,8 @@ static int unpurple_process_all() {
 	struct unpurpleargs *args = calloc(1, sizeof(struct unpurpleargs));
 	*args = (struct unpurpleargs){.fit = fit, .starmask = &starmask, .withstarmask = withstarmask, .thresh = thresh, .mod_b = mod_b, .verbose = FALSE, .for_final = TRUE};
 
-	start_in_new_thread(unpurple_filter, args);
+	// We call the unpurple handler here because we don't have update_preview to handle the ROI mutex for us
+	start_in_new_thread(unpurple_handler, args);
 
 	return 0;
 }
