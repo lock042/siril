@@ -1582,15 +1582,17 @@ void execute_python_script_async(gchar* script_name, gboolean from_file) {
 	// Set PYTHONUNBUFFERED in environment
 	env = g_environ_setenv(env, "PYTHONUNBUFFERED", "1", TRUE);
 
+	gchar *python_path = find_venv_python_exe(venv_path, TRUE);
+
 	// Prepare command arguments with Python unbuffered mode
 	gchar* python_argv[5];
 	if (from_file) {
-		python_argv[0] = PYTHON_EXE;
+		python_argv[0] = python_path;
 		python_argv[1] = "-u";  // Set unbuffered mode
 		python_argv[2] = script_name;
 		python_argv[3] = NULL;
 	} else {
-		python_argv[0] = PYTHON_EXE;
+		python_argv[0] = python_path;
 		python_argv[1] = "-u";  // Set unbuffered mode
 		python_argv[2] = "-c";
 		python_argv[3] = script_name;
@@ -1621,6 +1623,7 @@ void execute_python_script_async(gchar* script_name, gboolean from_file) {
 	);
 
 	g_strfreev(env);
+	g_free(python_path);
 
 	if (!success) {
 		siril_log_color_message(_("Failed to execute Python script: %s\n"), "red", error->message);
