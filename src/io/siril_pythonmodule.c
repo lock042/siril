@@ -1581,9 +1581,9 @@ void execute_python_script_async(gchar* script_name, gboolean from_file) {
 #endif
 	// Set PYTHONUNBUFFERED in environment
 	env = g_environ_setenv(env, "PYTHONUNBUFFERED", "1", TRUE);
-
+	siril_log_message("venv_path: %s\n", venv_path);
 	gchar *python_path = find_venv_python_exe(venv_path, TRUE);
-
+	siril_log_message("python_path: %s\n", python_path);
 	// Prepare command arguments with Python unbuffered mode
 	gchar* python_argv[5];
 	if (from_file) {
