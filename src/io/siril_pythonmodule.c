@@ -92,7 +92,7 @@ static gboolean create_shared_memory_win32(const char* name, size_t size, win_sh
 
 gboolean send_response(Connection* conn, uint8_t status, const void* data, uint32_t length) {
 	// Add a small delay to ensure receiver is ready
-	g_usleep(2000); // 2ms delay - adjust based on testing
+	g_usleep(1000); // 2ms delay - adjust based on testing
 
 	ResponseHeader header = {
 		.status = status,
@@ -1469,11 +1469,16 @@ cleanup:
 	return success;
 }
 
+gboolean python_venv_idle(gpointer user_data) {
+	// TODO: placeholder idle function in case we need somewhere to activate widgets etc.
+	return FALSE;
+}
+
 /*
  * Ensures that the venv is created and valid, and that the siril python module
  * is correctly installed in it along with its dependencies
  */
-gboolean initialize_python_communication() {
+static gpointer initialize_python_venv(gpointer user_data) {
 	GError *error = NULL;
 	gchar* project_path = g_build_filename(g_get_user_data_dir(), "siril", NULL);
 
@@ -1483,7 +1488,7 @@ gboolean initialize_python_communication() {
 				error ? error->message : "Unknown error");
 		g_clear_error(&error);
 		g_free(project_path);
-		return FALSE;
+		return GINT_TO_POINTER(1);
 	}
 
 	// Prepare venv environment
@@ -1493,7 +1498,7 @@ gboolean initialize_python_communication() {
 		g_warning("Failed to prepare virtual environment");
 		g_free(venv_path);
 		g_free(project_path);
-		return FALSE;
+		return GINT_TO_POINTER(1);
 	}
 
 	// Set up environment for connection
@@ -1513,7 +1518,14 @@ gboolean initialize_python_communication() {
 	}
 	g_free(venv_path);
 	g_free(project_path);
-	return TRUE;
+	siril_add_idle(python_venv_idle, NULL);
+	return GINT_TO_POINTER(0);
+}
+
+void initialize_python_venv_in_thread() {
+	GError *error = NULL;
+	GThread *thread = g_thread_try_new("initialize python venv", initialize_python_venv, NULL, &error);
+	g_thread_unref(thread);
 }
 
 void shutdown_python_communication(CommunicationState *commstate) {

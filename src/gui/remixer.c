@@ -529,9 +529,9 @@ int remixer() {
 		switch (gfit.type) {
 			case DATA_FLOAT:
 				if (left_loaded && !right_loaded) {
-					memcpy(gfit.data, fit_left_calc.data, npixels * 3 * sizeof(float));
+					memcpy(gfit.fdata, fit_left_calc.fdata, npixels * 3 * sizeof(float));
 				} else if (right_loaded && !left_loaded) {
-					memcpy(gfit.data, fit_right_calc.data, npixels * 3 * sizeof(float));
+					memcpy(gfit.fdata, fit_right_calc.fdata, npixels * 3 * sizeof(float));
 				} else {
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)

@@ -5560,7 +5560,6 @@ This setting is used in Deconvolution, but is ignored by the Fourier Transform f
                                 <property name="active">0</property>
                                 <items>
                                   <item translatable="yes">Unlimited</item>
-                                  <item translatable="yes">256</item>
                                   <item translatable="yes">512</item>
                                   <item translatable="yes">1024</item>
                                   <item translatable="yes">2048</item>
