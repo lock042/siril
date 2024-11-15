@@ -1581,49 +1581,55 @@ void execute_python_script_async(gchar* script_name, gboolean from_file) {
 #endif
 	// Set PYTHONUNBUFFERED in environment
 	env = g_environ_setenv(env, "PYTHONUNBUFFERED", "1", TRUE);
-	siril_log_message("venv_path: %s\n", venv_path);
+//	siril_debug_print("venv_path: %s\n", venv_path);
 	gchar *python_path = find_venv_python_exe(venv_path, TRUE);
-	siril_log_message("python_path: %s\n", python_path);
-	// Prepare command arguments with Python unbuffered mode
-	gchar* python_argv[5];
-	if (from_file) {
-		python_argv[0] = python_path;
-		python_argv[1] = "-u";  // Set unbuffered mode
-		python_argv[2] = script_name;
-		python_argv[3] = NULL;
-	} else {
-		python_argv[0] = python_path;
-		python_argv[1] = "-u";  // Set unbuffered mode
-		python_argv[2] = "-c";
-		python_argv[3] = script_name;
-		python_argv[4] = NULL;
-	}
-
-	// Set up process spawn with pipe flags
+//	siril_debug_print("python_path: %s\n", python_path);
+	gboolean success = FALSE;
+	gchar *working_dir = NULL;
 	GError* error = NULL;
 	GPid child_pid;
 	gint stdout_fd, stderr_fd;
-	gchar* working_dir = g_strdup(com.wd);
+	if (!python_path) {
+		siril_log_color_message(_("Error finding venv python path, unable to spawn python.\n"), "red");
+	} else {
+		// Prepare command arguments with Python unbuffered mode
+		gchar* python_argv[5];
+		if (from_file) {
+			python_argv[0] = python_path;
+			python_argv[1] = "-u";  // Set unbuffered mode
+			python_argv[2] = script_name;
+			python_argv[3] = NULL;
+		} else {
+			python_argv[0] = python_path;
+			python_argv[1] = "-u";  // Set unbuffered mode
+			python_argv[2] = "-c";
+			python_argv[3] = script_name;
+			python_argv[4] = NULL;
+		}
 
-	GSpawnFlags spawn_flags = G_SPAWN_SEARCH_PATH |
-							G_SPAWN_DO_NOT_REAP_CHILD;
+		// Set up process spawn with pipe flags
+		working_dir = g_strdup(com.wd);
 
-	gboolean success = g_spawn_async_with_pipes(
-		working_dir,
-		python_argv,
-		env,
-		spawn_flags,
-		NULL,
-		NULL,
-		&child_pid,
-		NULL,
-		&stdout_fd,
-		&stderr_fd,
-		&error
-	);
+		GSpawnFlags spawn_flags = G_SPAWN_SEARCH_PATH |
+								G_SPAWN_DO_NOT_REAP_CHILD;
 
-	g_strfreev(env);
-	g_free(python_path);
+		success = g_spawn_async_with_pipes(
+			working_dir,
+			python_argv,
+			env,
+			spawn_flags,
+			NULL,
+			NULL,
+			&child_pid,
+			NULL,
+			&stdout_fd,
+			&stderr_fd,
+			&error
+		);
+
+		g_strfreev(env);
+		g_free(python_path);
+	}
 
 	if (!success) {
 		siril_log_color_message(_("Failed to execute Python script: %s\n"), "red", error->message);
