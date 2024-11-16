@@ -86,35 +86,35 @@
  */
 #if OS_OSX
 static gint64 find_space(const gchar *name) {
-    NSString *path = [NSString stringWithUTF8String:name];
-    NSFileManager *fileManager = [NSFileManager defaultManager];
+	NSString *path = [NSString stringWithUTF8String:name];
+	NSFileManager *fileManager = [NSFileManager defaultManager];
 
-    // Vérification des permissions de lecture
-    if (![fileManager isReadableFileAtPath:path]) {
-    	siril_log_message("Error: No read permission for path %s\n", name);
-        return -1;
-    }
+	if (![fileManager isReadableFileAtPath:path]) {
+		siril_log_message("Error: No read permission for path %s\n", name);
+		return -1;
+	}
 
-    NSURL *fileURL = [[NSURL alloc] initFileURLWithPath:path];
-    NSError *error = nil;
-    NSDictionary *results = [fileURL resourceValuesForKeys:@[NSURLVolumeAvailableCapacityForImportantUsageKey] error:&error];
+	NSURL *fileURL = [[NSURL alloc] initFileURLWithPath:path];
+	NSError *error = nil;
+	NSDictionary *results = [fileURL resourceValuesForKeys:@[NSURLVolumeAvailableCapacityForImportantUsageKey] error:&error];
 
-    if (!results) {
-        if (error) {
-        	siril_log_message("Error retrieving file resource values: %s\n", [[error localizedDescription] UTF8String]);
-        } else {
-        	siril_log_message("Unknown error occurred.\n");
-        }
-        return -1;
-    }
+	if (!results) {
+		if (error) {
+			siril_log_message("Error retrieving file resource values: %s\n", [[error localizedDescription] UTF8String]);
+		} else {
+			siril_log_message("Unknown error occurred.\n");
+		}
+		return -1;
+	}
 
-    NSNumber *freeSpace = results[NSURLVolumeAvailableCapacityForImportantUsageKey];
-    if (freeSpace) {
-        return (gint64)[freeSpace longLongValue];
-    } else {
-        siril_log_message("Error: freeSpace is nil.\n");
-        return -1;
-    }
+	NSNumber *freeSpace = results[NSURLVolumeAvailableCapacityForImportantUsageKey];
+	if (freeSpace) {
+		siril_log_message("Available free space: %lld bytes\n", [freeSpace longLongValue]);
+		return (gint64)[freeSpace longLongValue];
+	} else {
+		siril_log_message("Error: freeSpace is nil.\n");
+		return -1;
+	}
 }
 #elif HAVE_SYS_STATVFS_H
 static gint64 find_space(const gchar *name) {
