@@ -51,7 +51,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <float.h>
 
 static const float VERTEX_ATOL = 1.0e-12;
-static const float APPROX_ZERO = 1.0e3 * DBL_MIN;
+static const float APPROX_ZERO = 1000 * FLT_MIN;
 static const float MAX_INV_ERR = 0.03;
 
 /** ---------------------------------------------------------------------------
