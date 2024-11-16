@@ -107,7 +107,7 @@ static gint64 find_space(const gchar *name) {
 		return -1;
 	}
 
-	NSNumber *freeSpace = results[NSURLVolumeAvailableCapacityForImportantUsageKey];
+	NSNumber *freeSpace = results[NSURLVolumeAvailableCapacityKey];
 	if (freeSpace) {
 		siril_log_message("Available free space: %lld bytes\n", [freeSpace longLongValue]);
 		return (gint64)[freeSpace longLongValue];
