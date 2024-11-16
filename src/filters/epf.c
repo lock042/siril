@@ -50,6 +50,15 @@ gpointer epfhandler (gpointer args) {
 	return GINT_TO_POINTER(retval);
 }
 
+gpointer epf_filter (gpointer args) {
+	struct epfargs *p = (struct epfargs*) args;
+	set_cursor_waiting(TRUE);
+	int retval = edge_preserving_filter(p);
+	if (!com.script)
+		siril_add_idle(end_epf, NULL);
+	return GINT_TO_POINTER(retval);
+}
+
 int match_guide_to_roi(fits *guide, fits *guide_roi) {
 	int retval = 0;
 	if (!gui.roi.active)

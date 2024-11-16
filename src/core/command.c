@@ -1125,7 +1125,7 @@ int process_unpurple(int nb){
 	struct unpurpleargs *args = calloc(1, sizeof(struct unpurpleargs));
 	*args = (struct unpurpleargs){.fit = fit, .starmask = &starmask, .withstarmask = withstarmask, .thresh = thresh, .mod_b = mod, .verbose = FALSE};
 
-	start_in_new_thread(unpurple_filter, args);
+	start_in_new_thread(unpurple_handler, args);
 
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
@@ -1255,6 +1255,8 @@ int process_epf(int nb) {
 							.filter = filter,
 							.guide_needs_freeing = guide_needs_freeing,
 							.verbose = TRUE };
+
+	// We call epfhandler here as we need to take care of the ROI mutex lock
 	start_in_new_thread(epfhandler, args);
 
 	return CMD_OK;
