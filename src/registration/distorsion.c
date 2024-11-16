@@ -412,6 +412,10 @@ disto_data *init_disto_data(disto_params *distoparam, sequence *seq, struct wcsp
 	}
 
 	if (distoparam->index == DISTO_MASTER) {
+		if (!com.pref.prepro.disto_lib) {
+			siril_log_color_message(_("Sequence file points to master distorsion file but its specification but it is empty in the preferences\n"), "red");
+			return NULL;
+		}
 		fits fit  = { 0 };
 		disto = calloc(seq->number, sizeof(disto_data));
 		gboolean found = FALSE;
