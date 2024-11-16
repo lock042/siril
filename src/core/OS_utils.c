@@ -96,7 +96,7 @@ static gint64 find_space(const gchar *name) {
 
 	NSURL *fileURL = [[NSURL alloc] initFileURLWithPath:path];
 	NSError *error = nil;
-	NSDictionary *results = [fileURL resourceValuesForKeys:@[NSURLVolumeAvailableCapacityForImportantUsageKey] error:&error];
+	NSDictionary *results = [fileURL resourceValuesForKeys:@[NSURLVolumeAvailableCapacityKey] error:&error];
 
 	if (!results) {
 		if (error) {
