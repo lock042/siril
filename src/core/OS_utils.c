@@ -89,13 +89,13 @@ static gint64 find_space(const gchar *name) {
 	NSString *path = [NSString stringWithUTF8String:name];
 	NSURL *fileURL = [[NSURL alloc] initFileURLWithPath:path];
 	NSError *error = nil;
-	NSDictionary *results = [fileURL resourceValuesForKeys:@[NSURLVolumeAvailableCapacityForImportantUsageKey] error:&error];
+	NSDictionary *results = [fileURL resourceValuesForKeys:@[NSURLVolumeAvailableCapacityKey] error:&error];
 
 	if (!results) {
 		return -1;
 	}
 
-	NSNumber *freeSpace = results[NSURLVolumeAvailableCapacityForImportantUsageKey];
+	NSNumber *freeSpace = results[NSURLVolumeAvailableCapacityKey];
 	if (freeSpace) {
 		return (gint64)[freeSpace longLongValue];
 	} else {
