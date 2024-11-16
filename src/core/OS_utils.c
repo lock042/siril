@@ -86,21 +86,59 @@
  */
 #if OS_OSX
 static gint64 find_space(const gchar *name) {
-	NSString *path = [NSString stringWithUTF8String:name];
-	NSURL *fileURL = [[NSURL alloc] initFileURLWithPath:path];
-	NSError *error = nil;
-	NSDictionary *results = [fileURL resourceValuesForKeys:@[NSURLVolumeAvailableCapacityKey] error:&error];
+	gint64 result = -1;
+	@autoreleasepool
+	{
+		NSString *path = [NSString stringWithUTF8String:name];
+		if (!path) {
+			return result;
+		}
 
-	if (!results) {
-		return -1;
+		NSURL *fileURL = [[NSURL alloc] initFileURLWithPath:path];
+		NSError *error = nil;
+
+		// First get filesystem type
+		NSDictionary *fsInfo = [fileURL resourceValuesForKeys:@[NSURLVolumeLocalizedFormatDescriptionKey]
+		error:&error];
+		if (!fsInfo) {
+			NSLog(@"Error getting filesystem info: %@", error);
+			return result;
+		}
+
+		NSString *fsType = fsInfo[NSURLVolumeLocalizedFormatDescriptionKey];
+
+		// For APFS or HFS+, we can use the important usage key
+		if ([fsType containsString:@"APFS"] || [fsType containsString:@"HFS"]) {
+			NSDictionary *results = [fileURL resourceValuesForKeys:@[NSURLVolumeAvailableCapacityForImportantUsageKey]
+			error:&error];
+			if (!results) {
+				NSLog(@"Error getting space info: %@", error);
+			} else if (results) {
+				NSNumber *freeSpace = results[NSURLVolumeAvailableCapacityForImportantUsageKey];
+				if (freeSpace) {
+					result = (gint64)[freeSpace longLongValue];
+				}
+			}
+		} else {
+			// For other filesystems (FAT32, etc.), fall back to basic capacity
+			NSDictionary *results = [fileURL resourceValuesForKeys:@[NSURLVolumeAvailableCapacityKey]
+			error:&error];
+			if (!results) {
+				NSLog(@"Error getting space info: %@", error);
+			} else if (results) {
+				NSNumber *freeSpace = results[NSURLVolumeAvailableCapacityKey];
+				if (freeSpace) {
+				result = (gint64)[freeSpace longLongValue];
+			}
+		}
 	}
 
-	NSNumber *freeSpace = results[NSURLVolumeAvailableCapacityKey];
-	if (freeSpace) {
-		return (gint64)[freeSpace longLongValue];
-	} else {
-		return -1;
+	#if !__has_feature(objc_arc)
+	[fileURL release];
+	#endif
 	}
+
+	return result;
 }
 #elif HAVE_SYS_STATVFS_H
 static gint64 find_space(const gchar *name) {
