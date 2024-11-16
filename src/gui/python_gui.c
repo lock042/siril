@@ -376,6 +376,7 @@ void on_button_python_pad_execute_clicked(GtkWidget *widget, gpointer user_data)
 			GInputStream *input_stream = g_memory_input_stream_new_from_data(text, strlen(text), NULL);
 			if (get_thread_run()) {
 				PRINT_ANOTHER_THREAD_RUNNING;
+				g_object_unref(input_stream);
 				return;
 			}
 

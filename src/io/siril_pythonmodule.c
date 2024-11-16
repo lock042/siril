@@ -23,6 +23,7 @@
 #include <time.h>
 
 #include "core/siril.h"
+#include "core/OS_utils.h"
 #include "core/processing.h"
 #include "core/siril_log.h"
 #include "core/siril_update.h"
@@ -438,8 +439,14 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 		info->channels > 3 || info->size == 0) {
 		gchar* error_msg = g_strdup_printf(_("Invalid image dimensions or format: w = %u, h = %u, c = %u, size = %" G_GUINT64_FORMAT), info->width, info->height, info->channels, info->size);
 		int retval = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
-	g_free(error_msg);
-	return retval;
+		g_free(error_msg);
+		return retval;
+	}
+	// Compute and sanitize ncpixels
+	size_t ncpixels = info->width * info->height * info->channels;
+	if (ncpixels * (info->data_type == 0 ? sizeof(WORD) : sizeof(float)) > get_available_memory() / 2) {
+		const char* error_msg = _("Error: image dimensions exceed available memory");
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 	}
 
 	// Open shared memory
@@ -481,7 +488,7 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 	fit->fpdata[2] = fit->fpdata[1] = fit->fpdata[0] = fit->fdata = NULL;
 	gboolean alloc_err = FALSE;
 	if (info->data_type == 0) { // WORD data
-		fit->pdata[2] = fit->pdata[1] = fit->pdata[0] = fit->data = calloc(info->width * info->height * info->channels, sizeof(WORD));
+		fit->pdata[2] = fit->pdata[1] = fit->pdata[0] = fit->data = calloc(ncpixels, sizeof(WORD));
 		if (!fit->data) {
 			alloc_err = TRUE;
 		} else {
@@ -490,7 +497,7 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 			}
 		}
 	} else { // FLOAT data
-		fit->fpdata[2] = fit->fpdata[1] = fit->fpdata[0] = fit->fdata = calloc(info->width * info->height * info->channels, sizeof(float));
+		fit->fpdata[2] = fit->fpdata[1] = fit->fpdata[0] = fit->fdata = calloc(ncpixels, sizeof(float));
 		if (!fit->fdata) {
 			alloc_err = TRUE;
 		} else {
@@ -512,7 +519,7 @@ gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* p
 	}
 
 	// Copy data from shared memory to gfit
-	size_t total_bytes = info->width * info->height * info->channels * (info->data_type == 1 ? sizeof(float) : sizeof(WORD));
+	size_t total_bytes = ncpixels * (info->data_type == 1 ? sizeof(float) : sizeof(WORD));
 
 	if (info->data_type == 0) {  // WORD data
 		memcpy(fit->data, (char*) shm_ptr, total_bytes);
@@ -1478,7 +1485,8 @@ static gpointer initialize_python_venv(gpointer user_data) {
 	gpointer key, value;
 	g_hash_table_iter_init(&iter, venv_info->env_vars);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
-		g_setenv((const gchar*)key, (const gchar*)value, TRUE);
+		if (g_setenv((const gchar*)key, (const gchar*)value, TRUE))
+			siril_debug_print("Error in g_setenv: key = %s, value = %s\n", (const gchar*) key, (const gchar*) value);
 	}
 
 	// Clean up
@@ -1631,7 +1639,7 @@ void execute_python_script_async(gchar* script_name, gboolean from_file) {
 		g_free(python_path);
 	}
 
-	if (!success) {
+	if (!success && error) {
 		siril_log_color_message(_("Failed to execute Python script: %s\n"), "red", error->message);
 		g_error_free(error);
 		g_free(working_dir);
