@@ -251,9 +251,12 @@ class SirilInterface:
 
     def connect(self):
         """
-        Establish a connection to Siril based on the pipe or
-        socket path. Returns True if the connection is successful, otherwise
-        False.
+        Establish a connection to Siril based on the pipe or socket path.
+
+        Returns: True if the connection is successful, otherwise False.
+
+        Raises: ConnectionError: if a connection error occurred then
+            ConnectionError is raised.
         """
 
         try:
@@ -290,6 +293,11 @@ class SirilInterface:
     def disconnect(self):
         """
         Closes the established socket or pipe connection.
+
+        Returns: True if the connection is closed successfully.
+
+        Raises: ConnectionError: if the connection cannot be closed because the
+            pipe / socket cannot be found.
         """
 
         if os.name == 'nt':
@@ -680,7 +688,9 @@ class SirilInterface:
 
         Raises:
             NoImageError: If no image is currently loaded
+
             RuntimeError: For other errors during pixel data retrieval
+
             ValueError: If the received data format is invalid or shape is invalid
         """
 
@@ -898,7 +908,9 @@ class SirilInterface:
 
         Raises:
             NoImageError: If no image is currently loaded
+
             RuntimeError: For other errors during  data retrieval
+
             ValueError: If the received data format is invalid or shape is invalid
         """
 
@@ -977,7 +989,9 @@ class SirilInterface:
 
         Raises:
             NoImageError: If no image is currently loaded
+
             RuntimeError: For other errors during  data retrieval
+
             ValueError: If the received data format is invalid or shape is invalid
         """
 
@@ -1058,7 +1072,9 @@ class SirilInterface:
 
         Raises:
             NoImageError: If no image is currently loaded
+
             RuntimeError: For other errors during  data retrieval
+
             ValueError: If the received data format is invalid or shape is invalid
         """
 
@@ -1141,7 +1157,9 @@ class SirilInterface:
 
         Raises:
             NoImageError: If no image is currently loaded
+
             RuntimeError: For other errors during data retrieval
+
             ValueError: If the received data format is invalid or shape is invalid
         """
 
@@ -1836,7 +1854,9 @@ class SirilInterface:
 
         Raises:
             NoImageError: If no image is currently loaded
+
             RuntimeError: For other errors during  data retrieval
+
             ValueError: If the received data format is invalid
         """
 

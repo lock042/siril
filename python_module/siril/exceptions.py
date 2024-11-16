@@ -15,9 +15,13 @@ class ConnectionError(SirilError):
     """Raised when there are problems connecting to or
     communicating with Siril.
     This includes cases like:
+
     - Siril not running
+
     - Socket connection failures
+
     - Communication protocol errors
+
     - Unexpected disconnections"""
 
     def __init__(self, message: str = _("Failed to connect to Siril")):
@@ -26,9 +30,13 @@ class ConnectionError(SirilError):
 class CommandError(SirilError):
     """Raised when a Siril command fails to execute properly.
     This includes cases like:
+
     - Invalid command parameters
+
     - Command execution failures
+
     - Unexpected command responses
+
     - Command timeout"""
     def __init__(self, message: str = _("Command execution failed")):
         super().__init__(message)
@@ -36,9 +44,13 @@ class CommandError(SirilError):
 class DataError(SirilError):
     """Raised when there are problems with data handling.
     This includes cases like:
-    - Invalid image data\n"
+
+    - Invalid image data
+
     - Data conversion errors
+
     - Memory allocation failures
+
     - Buffer overflows"""
     def __init__(self, message: str = _("Error handling data")):
         super().__init__(message)
