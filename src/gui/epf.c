@@ -66,9 +66,8 @@ static int epf_update_preview() {
 								.sigma_space = epf_sigma_spatial_value, .mod = mod, .filter = filter_type,
 								.guide_needs_freeing = guide_needs_freeing, .verbose = FALSE };
 	set_cursor_waiting(TRUE);
-	edge_preserving_filter(args);
-	set_cursor_waiting(FALSE);
-	notify_gfit_modified();
+	// We call epf_filter here as update_preview already handles the ROI mutex lock
+	start_in_new_thread(epf_filter, args);
 	return 0;
 }
 
@@ -130,7 +129,8 @@ static int epf_process_all() {
 	*args = (struct epfargs) {	.fit = fit, .guidefit = guide, .d = epf_d_value, .sigma_col = epf_sigma_col_value,
 								.sigma_space = epf_sigma_spatial_value, .mod = mod, .filter = filter_type,
 								.guide_needs_freeing = guide_needs_freeing, .verbose = FALSE };
-	epfhandler(args);
+	// We call epfhandler here as we need to take care of the ROI mutex lock
+	start_in_new_thread(epfhandler, args);
 	populate_roi();
 	notify_gfit_modified();
 	return 0;

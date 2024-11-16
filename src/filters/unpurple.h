@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Siril. If not, see <http://www.gnu.org/licenses/>.
  */
- 
+
 #ifndef SRC_FILTERS_CA_H_
 #define SRC_FILTERS_CA_H_
 
@@ -33,8 +33,9 @@ struct unpurpleargs {
 	gboolean for_final;
 };
 
-gpointer unpurplehandler(gpointer args);
+gpointer unpurple_handler(gpointer args);
 gpointer unpurple_filter(gpointer p);
+gpointer unpurple(gpointer p);
 void apply_unpurple_cancel();
 
 #endif /* SRC_GUI_ASINH_H_ */
