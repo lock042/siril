@@ -34,6 +34,7 @@ class _Status(IntEnum):
     may legitimately fail to return data but which should not be
     regarded as an error, instead this triggers the command processor
     to return the special python value None
+    Internal class.
     """
 
     OK = 0
@@ -43,7 +44,7 @@ class _Status(IntEnum):
 class _Command(IntEnum):
     """
     Enumerates the commands. This enum MUST match the one in
-    siril_pythonmodule.h
+    siril_pythonmodule.h. Internal class.
     """
     SEND_COMMAND = 1
     LOG_MESSAGE = 2
@@ -78,7 +79,7 @@ class _Command(IntEnum):
 class ConfigType(IntEnum):
     """
     Enumerates config variable types for use with the
-    get_config() method
+    get_config() method. Internal class.
     """
     BOOL = 0
     INT = 1
@@ -89,7 +90,7 @@ class ConfigType(IntEnum):
 
 class SharedMemoryInfo(ctypes.Structure):
     """
-    Structure matching the C-side shared memory info
+    Structure matching the C-side shared memory info. Internal class.
     """
     _fields_ = [
         ("size", ctypes.c_size_t),
@@ -229,7 +230,7 @@ class SirilInterface:
         """
         Initialize the SirilInterface, automatically determining the
         correct pipe or socket path based on the environment variable and
-        operating system.
+        operating system. Internal method.
         """
         if os.name == 'nt':
             self.pipe_path = os.getenv('MY_PIPE')
@@ -313,7 +314,7 @@ class SirilInterface:
     def _recv_exact(self, n: int, timeout: float = 5.0) -> Optional[bytes]:
         """
         Helper method to receive exactly n bytes from the socket or pipe.
-        Not for end-user use.
+        Internal method, not for end-user use.
         """
         if n < 0:
             raise ValueError(_("Cannot receive negative number of bytes"))
@@ -382,6 +383,7 @@ class SirilInterface:
     def _send_command(self, command: _Command, data: Optional[bytes] = None) -> Tuple[Optional[int], Optional[bytes]]:
         """
         Send a command to Siril and receive the response with proper synchronization.
+        Internal method, not for end-user use.
         """
         try:
             data_length = len(data) if data else -1
@@ -463,7 +465,7 @@ class SirilInterface:
     def _map_shared_memory(self, name: str, size: int) -> SharedMemoryWrapper:
         """
         Create or open a shared memory mapping using SharedMemoryWrapper.
-        Not for end-user use.
+        Internal method, not for end-user use.
 
         Args:
             name: Name of the shared memory segment
@@ -486,7 +488,7 @@ class SirilInterface:
     def execute_command(self, command: _Command, payload: Optional[bytes] = None) -> bool:
         """
         High-level method to execute a command and handle the response.
-        Not for end-user use.
+        Internal method, not for end-user use.
 
         Args:
             command: The command to execute
@@ -515,7 +517,8 @@ class SirilInterface:
         """
         High-level method to request small-volume data from Siril. The
         payload limit is 63336 bytes. For commands expected to return
-        larger volumes of data, SHM should be used. Not for end-user use.
+        larger volumes of data, SHM should be used.
+        Internal method, not for end-user use.
 
         Args:
             command: The data request command

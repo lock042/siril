@@ -7,7 +7,9 @@ from .translations import _
 
 class DataType(IntEnum):
     """
-    Mimics the Siril data_type enum
+    Mimics the Siril data_type enum. Note that although Siril can
+    handle opening FITS files of any data type, internally it processes
+    images only as float32 or uint16.
     """
     BYTE_IMG = 8
     SHORT_IMG = 16
@@ -397,7 +399,7 @@ class FKeywords:
 @dataclass
 class FFit:
     """
-    Python equivalent of ffit structure with automated dimension handling
+    Python equivalent of Siril ffit (FITS) structure with automated dimension handling
     """
     bitpix: int = 0
     orig_bitpix: int = 0
