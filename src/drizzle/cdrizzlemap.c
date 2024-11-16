@@ -51,7 +51,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <float.h>
 
 static const float VERTEX_ATOL = 1.0e-12;
-static const float APPROX_ZERO = 1.0e3 * DBL_MIN;
+static const float APPROX_ZERO = 1000 * FLT_MIN;
 static const float MAX_INV_ERR = 0.03;
 
 /** ---------------------------------------------------------------------------
@@ -444,13 +444,21 @@ area(struct vertex a, struct vertex b) {
     return (a.x * b.y - a.y * b.x);
 }
 
+static inline int
+is_point_on_line(const struct vertex pt, const struct vertex v_,
+                 const struct vertex v, float epsilon) {
+    float result = area(v, pt) - area(v_, pt) - area(v, v_);
+    return (fabs(result) <= epsilon);
+}
+
 // tests whether a point is in a half-plane of the vector going from
 // vertex v_ to vertex v (including the case of the point lying on the
 // vector (v_, v)). Specifically, it tests (v - v_) x (pt - v_) > 0:
 static inline int
 is_point_strictly_in_hp(const struct vertex pt, const struct vertex v_,
-                        const struct vertex v) {
-    return ((area(v, pt) - area(v_, pt) - area(v, v_)) > 0.0);
+                        const struct vertex v, float epsilon) {
+    float result = area(v, pt) - area(v_, pt) - area(v, v_);
+    return (result > epsilon);
 }
 
 /**
@@ -584,80 +592,119 @@ orient_ccw(struct polygon *p) {
  */
 int
 clip_polygon_to_window(struct polygon *p, struct polygon *wnd,
-                       struct polygon *cp) {
+                      struct polygon *cp) {
     int k, j;
     int v1_inside, v2_inside;
     struct polygon p1, p2, *ppin, *ppout, *tpp;
     struct vertex *pv, *pv_, *wv, *wv_, dp, dw, vi;
     float d, app_, aww_;
+    const float EPSILON = 1e-10;
 
+    // Check minimum vertex counts
     if ((p->npv < 3) || (wnd->npv < 3)) {
         return 1;
     }
 
+    // Ensure polygons are oriented counter-clockwise
     orient_ccw(p);
     orient_ccw(wnd);
 
+    // Initialize working polygons
     p1 = *p;
-
     ppin = &p2;
     ppout = &p1;
 
+    // Start with last vertex of window
     wv_ = (struct vertex *)(wnd->v + (wnd->npv - 1));
     wv = (struct vertex *)wnd->v;
 
+    // Process each edge of the window
     for (k = 0; k < wnd->npv; k++) {
+        // Calculate window edge vector
         dw.x = wv->x - wv_->x;
         dw.y = wv->y - wv_->y;
 
-        // use output from previous iteration as input for the current
+        // Swap input and output polygons
         tpp = ppin;
         ppin = ppout;
         ppout = tpp;
         ppout->npv = 0;
 
+        // Start with last vertex of input polygon
         pv_ = (struct vertex *)(ppin->v + (ppin->npv - 1));
         pv = (struct vertex *)ppin->v;
 
+        // Process each edge of the input polygon
         for (j = 0; j < ppin->npv; j++) {
+            // Calculate polygon edge vector
             dp.x = pv->x - pv_->x;
             dp.y = pv->y - pv_->y;
 
-            v1_inside = is_point_strictly_in_hp(*wv_, *wv, *pv_);
-            v2_inside = is_point_strictly_in_hp(*wv_, *wv, *pv);
+            // Check if either point lies exactly on the window edge
+            int v1_on_line = is_point_on_line(*pv_, *wv_, *wv, EPSILON);
+            int v2_on_line = is_point_on_line(*pv, *wv_, *wv, EPSILON);
 
-            if (v2_inside != v1_inside) {
-                // compute intersection point:
-                // https://en.wikipedia.org/wiki/Line–line_intersection
-                d = area(dp, dw);  // d != 0 because (v2_inside != v1_inside)
-                app_ = area(*pv, *pv_);
-                aww_ = area(*wv, *wv_);
-                vi.x = (app_ * dw.x - aww_ * dp.x) / d;
-                vi.y = (app_ * dw.y - aww_ * dp.y) / d;
+            if (!v1_on_line && !v2_on_line) {
+                // Normal case - neither point on window edge
+                v1_inside = is_point_strictly_in_hp(*wv_, *wv, *pv_, EPSILON);
+                v2_inside = is_point_strictly_in_hp(*wv_, *wv, *pv, EPSILON);
 
-                append_vertex(ppout, vi);
-                if (v2_inside) {
-                    // outside to inside:
+                if (v2_inside != v1_inside) {
+                    // Points are on opposite sides - calculate intersection
+                    d = area(dp, dw);
+                    app_ = area(*pv, *pv_);
+                    aww_ = area(*wv, *wv_);
+                    vi.x = (app_ * dw.x - aww_ * dp.x) / d;
+                    vi.y = (app_ * dw.y - aww_ * dp.y) / d;
+                    append_vertex(ppout, vi);
+
+                    if (v2_inside) {
+                        // If second point is inside, include it
+                        append_vertex(ppout, *pv);
+                    }
+                } else if (v1_inside) {
+                    // Both points inside, include second point
                     append_vertex(ppout, *pv);
                 }
-            } else if (v1_inside) {
-                // both edge vertices are inside
-                append_vertex(ppout, *pv);
-            }
-            // nothing to do when both edge vertices are outside
+                // Both points outside - nothing to add
+            } else {
+                // Edge case - at least one point on window edge
+                v1_inside = is_point_strictly_in_hp(*wv_, *wv, *pv_, EPSILON);
+                v2_inside = is_point_strictly_in_hp(*wv_, *wv, *pv, EPSILON);
 
-            // advance polygon edge:
+                // Point on the line is considered an intersection point
+                if (v1_on_line) {
+                    append_vertex(ppout, *pv_);
+                    if (v2_inside) {
+                        // If second point is inside, include it
+                        append_vertex(ppout, *pv);
+                    }
+                } else if (v2_on_line) {
+                    if (v1_inside) {
+                        // If first point is inside, include it
+                        append_vertex(ppout, *pv_);
+                    }
+                    append_vertex(ppout, *pv);
+                }
+            }
+
+            // Move to next edge
             pv_ = pv;
             pv = pv + 1;
         }
 
-        // advance window edge:
+        // Move to next window edge
         wv_ = wv;
         wv = wv + 1;
     }
 
+    // Ensure output polygon is counter-clockwise
     orient_ccw(ppout);
+
+    // Remove any redundant vertices
     simplify_polygon(ppout);
+
+    // Copy result to output polygon
     *cp = *ppout;
 
     return 0;
