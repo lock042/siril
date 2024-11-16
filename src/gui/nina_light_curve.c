@@ -63,13 +63,13 @@ static void update_values() {
 		gtk_entry_set_text(GTK_ENTRY(outer_value), g_strdup_printf("%0.0lf", com.pref.phot_set.outer));
 	}
 	else if (com.pref.phot_set.ape_strat == FWHM_VAR) {
-		radius_label = "Aperture/half-FWHM ratio:";
+		radius_label = "Aperture/HWHM ratio:";
 		gtk_label_set_text(GTK_LABEL(apert), radius_label);
 		gtk_entry_set_text(GTK_ENTRY(apert_value), g_strdup_printf("%0.2lf", com.pref.phot_set.auto_aperture_factor));
-		inner_label = "Inner/half-FWHM ratio:";
+		inner_label = "Inner/HWHM ratio:";
 		gtk_label_set_text(GTK_LABEL(inn), inner_label);
 		gtk_entry_set_text(GTK_ENTRY(inner_value), g_strdup_printf("%0.2lf", com.pref.phot_set.auto_inner_factor));
-		outer_label = "Outer/half-FWHM ratio:";
+		outer_label = "Outer/HWHM ratio:";
 		gtk_label_set_text(GTK_LABEL(oute), outer_label);
 		gtk_entry_set_text(GTK_ENTRY(outer_value), g_strdup_printf("%0.2lf", com.pref.phot_set.auto_outer_factor));
 	}

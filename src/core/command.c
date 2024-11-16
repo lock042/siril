@@ -3675,7 +3675,7 @@ int process_set_photometry(int nb) {
 				}
 				if(!g_ascii_strncasecmp(arg, "var", 3)) {
 					strat_val = FWHM_VAR;
-					label_m = g_strdup("[half-fwhm/half-fwhm/half-fwhm] FWHM variable");
+					label_m = g_strdup("[HWHM/HWHM/HWHM] HWHM variable");
 					continue;
 				}
 				if(!g_ascii_strncasecmp(arg, "cut", 3)) {

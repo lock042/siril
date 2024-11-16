@@ -133,7 +133,7 @@ struct phot_config {
 	double inner;		// Inner radius of the annulus used to measure local background.
 	double outer;		// Outer radius of the annulus used to measure local background.
 
-	double auto_aperture_factor;	// ratio between the aperture and the half-FWHM, used with the dynamic aperture option
+	double auto_aperture_factor;	// ratio between the aperture and the HWHM, used with the dynamic aperture option
 	double auto_inner_factor;// factor for automatic inner radius computation from FWHM
 	double auto_outer_factor;// factor for automatic outer radius computation from FWHM
 	

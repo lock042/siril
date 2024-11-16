@@ -385,7 +385,7 @@ struct settings_access all_settings[] = {
 	{ "photometry", "inner", STYPE_DOUBLE, N_("inner radius for background annulus"), &com.pref.phot_set.inner, { .range_double = { 2., 100. } } },
 	{ "photometry", "outer", STYPE_DOUBLE, N_("outer radius for background annulus"), &com.pref.phot_set.outer, { .range_double = { 3., 200. } } },
 	{ "photometry", "force_radius", STYPE_BOOL, N_("force flux aperture value"), &com.pref.phot_set.force_radius },
-	{ "photometry", "auto_aperture_factor", STYPE_DOUBLE, N_("Radius/halfFWHM ratio"), &com.pref.phot_set.auto_aperture_factor, { .range_double = { 1., 10. } }  },
+	{ "photometry", "auto_aperture_factor", STYPE_DOUBLE, N_("Radius/HWHM ratio"), &com.pref.phot_set.auto_aperture_factor, { .range_double = { 1., 10. } }  },
 	{ "photometry", "auto_inner_factor", STYPE_DOUBLE, N_("factor for inner radius automatic computation"), &com.pref.phot_set.auto_inner_factor, { .range_double = { 2.0, 20.0 } } },
 	{ "photometry", "auto_outer_factor", STYPE_DOUBLE, N_("factor for outer radius automatic computation"), &com.pref.phot_set.auto_outer_factor, { .range_double = { 2.0, 20.0 } } },
 	{ "photometry", "flux_cut_factor", STYPE_DOUBLE, N_("Flux cutoff ratio"), &com.pref.phot_set.flux_cut_factor, { .range_double = { 0.1, 50. } }  },

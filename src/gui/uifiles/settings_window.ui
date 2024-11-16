@@ -2664,12 +2664,12 @@ If sequence name does not have the suffix "_", it is automatically added</proper
                             <property name="column-homogeneous">True</property>
                             <child>
                               <object class="GtkCheckButton" id="ape_strat_rat">
-                                <property name="label" translatable="yes">Ratio of half-FWHM</property>
+                                <property name="label" translatable="yes">Ratio of HWHM</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">False</property>
-                                <property name="tooltip-text" translatable="yes">This method sets the aperture, inner and outer radii to a rate of the 1/2-FWHM (which is a radius) of the selected star.
-This 1/2-FWHM value is assumed to be the one of the star in the cuurent displayed picture. So it can be the reference image after registration or another one.
+                                <property name="tooltip-text" translatable="yes">This method sets the aperture, inner and outer radii to a rate of the HWHM (which is a radius) of the selected star.
+This HWHM value is assumed to be the one of the star in the curent displayed picture. So it can be the reference image after registration or another one.
 These radii values will be used only for the selected star over the whole sequence.
 Note: the values 3.4/3.8/5.1 give and equal number of pixels in the aperture and the annulus and are a good starting point.</property>
                                 <property name="draw-indicator">True</property>
@@ -2767,7 +2767,7 @@ Note: the values 1%/1.7/2.625 give a good starting point as described in AIJ.</p
                               <object class="GtkLabel">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="label" translatable="yes">(1/2FWHM rate)</property>
+                                <property name="label" translatable="yes">(HWHM rate)</property>
                               </object>
                               <packing>
                                 <property name="left-attach">1</property>
@@ -2847,7 +2847,7 @@ Note: the values 1%/1.7/2.625 give a good starting point as described in AIJ.</p
                               <object class="GtkSpinButton" id="spinRadRatioAp">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
-                                <property name="tooltip-text" translatable="yes">Aperture Radius/half-FWHM ratio.</property>
+                                <property name="tooltip-text" translatable="yes">Aperture Radius/HWHM ratio.</property>
                                 <property name="halign">start</property>
                                 <property name="max-width-chars">7</property>
                                 <property name="text">3.4</property>
@@ -2886,7 +2886,7 @@ Note: the values 1%/1.7/2.625 give a good starting point as described in AIJ.</p
                               <object class="GtkSpinButton" id="spinRadRatioI">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
-                                <property name="tooltip-text" translatable="yes">Inner Radius/half-FWHM ratio</property>
+                                <property name="tooltip-text" translatable="yes">Inner Radius/HWHM ratio</property>
                                 <property name="halign">start</property>
                                 <property name="max-width-chars">7</property>
                                 <property name="text">3.8</property>
@@ -2906,7 +2906,7 @@ Note: the values 1%/1.7/2.625 give a good starting point as described in AIJ.</p
                               <object class="GtkSpinButton" id="spinRadRatioOut">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
-                                <property name="tooltip-text" translatable="yes">Outer Radius/half-FWHM ratio</property>
+                                <property name="tooltip-text" translatable="yes">Outer Radius/HWHM ratio</property>
                                 <property name="halign">start</property>
                                 <property name="max-width-chars">7</property>
                                 <property name="text">4.5</property>
