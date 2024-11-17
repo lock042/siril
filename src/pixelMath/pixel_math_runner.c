@@ -719,20 +719,20 @@ gpointer apply_pixel_math_operation(gpointer p) {
 				}
 
 				if (!args->single_rgb) { // in that case var_fit[0].naxes[2] == 1, but we built RGB
-					fit->pdata[RLAYER][px] = (float) te_eval(n1) * USHRT_MAX_SINGLE;
-					fit->pdata[GLAYER][px] = (float) te_eval(n2) * USHRT_MAX_SINGLE;
-					fit->pdata[BLAYER][px] = (float) te_eval(n3) * USHRT_MAX_SINGLE;
+					fit->pdata[RLAYER][px] =  roundf_to_WORD((float) te_eval(n1) * USHRT_MAX_SINGLE);
+					fit->pdata[GLAYER][px] =  roundf_to_WORD((float) te_eval(n2) * USHRT_MAX_SINGLE);
+					fit->pdata[BLAYER][px] =  roundf_to_WORD((float) te_eval(n3) * USHRT_MAX_SINGLE);
 
 					/* may not be used but (only if rescale) at least it is computed */
 					maximum = max(maximum, max(fit->pdata[RLAYER][px], max(fit->pdata[GLAYER][px], fit->pdata[BLAYER][px])));
 					minimum = min(minimum, min(fit->pdata[RLAYER][px], min(fit->pdata[GLAYER][px], fit->pdata[BLAYER][px])));
 				} else {
 					if (px < (var_fit[0].naxes[0] * var_fit[0].naxes[1])) {
-						fit->data[px] = (float) te_eval(n1) * USHRT_MAX_SINGLE;
+						fit->data[px] =  roundf_to_WORD((float) te_eval(n1) * USHRT_MAX_SINGLE);
 					} else if (px < 2 * (var_fit[0].naxes[0] * var_fit[0].naxes[1])) {
-						fit->data[px] = (float) te_eval(n2) * USHRT_MAX_SINGLE;
+						fit->data[px] =  roundf_to_WORD((float) te_eval(n2) * USHRT_MAX_SINGLE);
 					} else {
-						fit->data[px] = (float) te_eval(n3) * USHRT_MAX_SINGLE;
+						fit->data[px] =  roundf_to_WORD((float) te_eval(n3) * USHRT_MAX_SINGLE);
 					}
 
 					/* may not be used but (only if rescale) at least it is computed */
@@ -798,7 +798,7 @@ failure: // failure before the eval loop
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
 			for (int i = 0; i < fit->rx * fit->ry * fit->naxes[2]; i++) {
-				fit->data[i] = (((args->max - args->min) * (fit->data[i] - minimum)) / (maximum - minimum)) + args->min;
+				fit->data[i] = roundf_to_WORD((float)(args->max - args->min) * (float)(fit->data[i] - minimum) / (float)(maximum - minimum) + args->min);
 			}
 		} else {
 #ifdef _OPENMP
