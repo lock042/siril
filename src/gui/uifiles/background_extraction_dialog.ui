@@ -451,7 +451,9 @@ Dither is an intentionally applied form of noise used to randomize quantization 
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">True</property>
-                        <property name="tooltip-text" translatable="yes">Click here to generate the automatically defined samples.</property>
+                        <property name="tooltip-text" translatable="yes">Click here to generate the automatically defined samples.
+
+When processing a sequence the samples shown are only for guidance to see the effect of setting samples_per_line and grid tolerance on sample placement: samples will automatically be created for each frame in the sequence.</property>
                         <property name="halign">center</property>
                         <property name="valign">center</property>
                         <signal name="clicked" handler="on_background_generate_clicked" swapped="no"/>

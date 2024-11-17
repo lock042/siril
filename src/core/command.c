@@ -5874,17 +5874,21 @@ int process_subsky(int nb) {
 	if (is_sequence) {
 		args->seq = seq;
 		args->seqEntry = prefix ? prefix : strdup("bkg_");
-		sequence_cfa_warning_check(seq);
-
 		apply_background_extraction_to_sequence(args);
 	} else {
 		args->seq = NULL;
 		args->seqEntry = NULL;
 		args->fit = &gfit;
-		image_cfa_warning_check();
+
+		// Check if the image has a Bayer CFA pattern
+		gboolean is_cfa = (!strncmp(gfit.keywords.bayer_pattern, "RGGB", 4) ||
+						  !strncmp(gfit.keywords.bayer_pattern, "BGGR", 4) ||
+						  !strncmp(gfit.keywords.bayer_pattern, "GBRG", 4) ||
+						  !strncmp(gfit.keywords.bayer_pattern, "GRBG", 4));
 
 		if (!generate_background_samples(samples, tolerance)) {
-			start_in_new_thread(remove_gradient_from_image, args);
+			start_in_new_thread(is_cfa ? remove_gradient_from_cfa_image :
+								remove_gradient_from_image, args);
 		} else {
 			siril_log_color_message(_("Error generating background samples\n"), "red");
 			free(args);

@@ -164,7 +164,13 @@ void on_bkg_compute_bkg_clicked(GtkButton *button, gpointer user_data) {
 	args->dither = use_dither;
 	args->fit = &gfit;
 
-	start_in_new_thread(remove_gradient_from_image, args);
+	// Check if the image has a Bayer CFA pattern
+	gboolean is_cfa = (!strncmp(gfit.keywords.bayer_pattern, "RGGB", 4) ||
+					  !strncmp(gfit.keywords.bayer_pattern, "BGGR", 4) ||
+					  !strncmp(gfit.keywords.bayer_pattern, "GBRG", 4) ||
+					  !strncmp(gfit.keywords.bayer_pattern, "GRBG", 4));
+	start_in_new_thread(is_cfa ? remove_gradient_from_cfa_image :
+						remove_gradient_from_image, args);
 }
 
 void on_background_ok_button_clicked(GtkButton *button, gpointer user_data) {
