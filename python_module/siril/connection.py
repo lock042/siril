@@ -476,7 +476,7 @@ class SirilInterface:
         Internal method, not for end-user use.
 
         Args:
-            name: Name of the shared memory segment
+            name: Name of the shared memory segment,
             size: Size of the shared memory segment in bytes
 
         Returns:
@@ -499,7 +499,7 @@ class SirilInterface:
         Internal method, not for end-user use.
 
         Args:
-            command: The command to execute
+            command: The command to execute,
             payload: Optional command payload
 
         Returns:
@@ -529,7 +529,7 @@ class SirilInterface:
         Internal method, not for end-user use.
 
         Args:
-            command: The data request command
+            command: The data request command,
             payload: Optional request parameters
 
         Returns:
@@ -581,7 +581,7 @@ class SirilInterface:
         Send a progress update to Siril with a message and completion percentage.
 
         Args:
-            message: Status message to display
+            message: Status message to display,
             progress: Progress value between 0.0 and 1.0
 
         Returns:
@@ -687,10 +687,8 @@ class SirilInterface:
             numpy.ndarray: The image data as a numpy array
 
         Raises:
-            NoImageError: If no image is currently loaded
-
-            RuntimeError: For other errors during pixel data retrieval
-
+            NoImageError: If no image is currently loaded,
+            RuntimeError: For other errors during pixel data retrieval,
             ValueError: If the received data format is invalid or shape is invalid
         """
 
@@ -907,10 +905,8 @@ class SirilInterface:
             image has no ICC profile.
 
         Raises:
-            NoImageError: If no image is currently loaded
-
-            RuntimeError: For other errors during  data retrieval
-
+            NoImageError: If no image is currently loaded,
+            RuntimeError: For other errors during  data retrieval,
             ValueError: If the received data format is invalid or shape is invalid
         """
 
@@ -988,10 +984,8 @@ class SirilInterface:
             bytes: The image FITS header as a string.
 
         Raises:
-            NoImageError: If no image is currently loaded
-
-            RuntimeError: For other errors during  data retrieval
-
+            NoImageError: If no image is currently loaded,
+            RuntimeError: For other errors during  data retrieval,
             ValueError: If the received data format is invalid or shape is invalid
         """
 
@@ -1071,10 +1065,8 @@ class SirilInterface:
             bytes: The unknown keys as a string.
 
         Raises:
-            NoImageError: If no image is currently loaded
-
-            RuntimeError: For other errors during  data retrieval
-
+            NoImageError: If no image is currently loaded,
+            RuntimeError: For other errors during  data retrieval,
             ValueError: If the received data format is invalid or shape is invalid
         """
 
@@ -1156,10 +1148,8 @@ class SirilInterface:
             list: The history entries in the FITS header as a list of strings.
 
         Raises:
-            NoImageError: If no image is currently loaded
-
-            RuntimeError: For other errors during data retrieval
-
+            NoImageError: If no image is currently loaded,
+            RuntimeError: For other errors during data retrieval,
             ValueError: If the received data format is invalid or shape is invalid
         """
 
@@ -1335,8 +1325,7 @@ class SirilInterface:
             for (typically 0, 1, or 2)
 
         Returns:
-        ImageStats object containing the statistics, or None if an
-        error occurred
+        ImageStats object containing the statistics, or None if an error occurred
         """
 
         # Convert channel number to network byte order bytes
@@ -1396,7 +1385,7 @@ class SirilInterface:
 
         Args:
             frame: Integer specifying which frame in the sequence to get registration
-        data for (between 0 and Sequence.number)
+        data for (between 0 and Sequence.number),
             channel: Integer specifying which channel to get registration data
         for (typically 0, 1, or 2)
 
@@ -1448,7 +1437,7 @@ class SirilInterface:
 
         Args:
             frame: Integer specifying which frame in the sequence to get statistcs
-        data for (between 0 and Sequence.number)
+        data for (between 0 and Sequence.number),
             channel: Integer specifying which channel to get statistics
         for (typically 0, 1, or 2)
 
@@ -1747,7 +1736,7 @@ class SirilInterface:
         Request a copy of the current image open in Siril.
 
         Args:
-            get_pixels: optional bool specifying whether to get
+            with_pixels: optional bool specifying whether to get
         pixel data as a NumPy array, or only the image metadata. Defaults
         to True
 
@@ -1823,7 +1812,7 @@ class SirilInterface:
                 focalkey=True if values[7] else False,
                 pixelkey=True if values[8] else False,
                 color_managed=True if values[9] else False,
-                _data = self.get_pixel_data() if get_pixels == True else None,
+                _data = self.get_pixel_data() if with_pixels == True else None,
                 stats = (
                     self.get_image_stats(0),
                     self.get_image_stats(1) if shape[2] > 1 else None,
@@ -1853,10 +1842,8 @@ class SirilInterface:
         be run first to detect stars in the image.)
 
         Raises:
-            NoImageError: If no image is currently loaded
-
-            RuntimeError: For other errors during  data retrieval
-
+            NoImageError: If no image is currently loaded,
+            RuntimeError: For other errors during  data retrieval,
             ValueError: If the received data format is invalid
         """
 
@@ -1967,7 +1954,7 @@ class SirilInterface:
         Request a configuration value from Siril.
 
         Args:
-            group: Configuration group name
+            group: Configuration group name,
             key: Configuration key name within the group
         (Available values for group and key can be determined using
         the \"get -A\" command)
