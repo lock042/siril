@@ -19,12 +19,6 @@
 
 #define DEBUG_NORM
 
-typedef struct {
-	size_t Nij;
-	float mij, mji;
-	float sij, sji;
-} overlap_stats_t;
-
 static int compute_normalization(struct stacking_args *args);
 static int compute_normalization_overlaps(struct stacking_args *args);
 
@@ -341,6 +335,65 @@ static void solve_overlap_coeffs(int nb_frames, int *index, int index_ref, size_
 	gsl_vector_free(x);
 }
 
+void free_ostats(overlap_stats_t **ostats, int nb_layers) {
+	for (int n = 0; n < nb_layers; n++) {
+		free(ostats[n]);
+	}
+	free(ostats);
+}
+
+overlap_stats_t **alloc_ostats(int nb_layers, int nb_frames) {
+	g_assert(nb_layers > 0);
+	int Npairs = nb_frames * (nb_frames - 1) / 2;
+	overlap_stats_t **seq_ostats = calloc(nb_layers, sizeof(overlap_stats_t **));
+	if (!seq_ostats) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
+	for (int n = 0; n < nb_layers; n++) {
+		seq_ostats[n] = calloc(Npairs, sizeof(overlap_stats_t));
+		if (!seq_ostats[n]) {
+			PRINT_ALLOC_ERR;
+			free_ostats(seq_ostats, nb_layers);
+		}
+		for (int j = 0; j < Npairs; j++) {
+			seq_ostats[n][j].i = -1;
+			seq_ostats[n][j].j = -1;
+			seq_ostats[n][j].Nij = 0;
+			seq_ostats[n][j].locij = NULL_STATS;
+			seq_ostats[n][j].locji= NULL_STATS;
+			seq_ostats[n][j].scaij = NULL_STATS;
+			seq_ostats[n][j].scaji = NULL_STATS;
+			seq_ostats[n][j].medij = NULL_STATS;
+			seq_ostats[n][j].medji = NULL_STATS;
+			seq_ostats[n][j].madij = NULL_STATS;
+			seq_ostats[n][j].madji = NULL_STATS;
+			seq_ostats[n][j].areai = (rectangle){ 0, 0, 0, 0 };
+			seq_ostats[n][j].areaj = (rectangle){ 0, 0, 0, 0 };
+		}
+	}
+	return seq_ostats;
+}
+
+// returns the index in a list of (i,j) zero-based
+// with i incremented first, then j (j > i to avoid permutations)
+// with i in [0...N-1] and j in [i+1...N-1]
+// Say for N = 4
+// +---+---+------+
+// | i | j | ijth |
+// +---+---+------+
+// | 0 | 1 |    0 |
+// | 0 | 2 |    1 |
+// | 0 | 3 |    2 |
+// | 1 | 2 |    3 |
+// | 1 | 3 |    4 |
+// | 2 | 3 |    5 |
+// +---+---+------+
+int get_ijth_pair_index(int N, int i, int j) {
+	return i * (2 * N - i -1) / 2 + j - i - 1;
+}
+
+
 // Computes the overlap areas on 2 images with regdata
 // areai and areaj can be NULL if not required (to compute only overlap size for instance)
 // returns the number of pixels in the common area
@@ -374,8 +427,7 @@ static size_t compute_overlap(struct stacking_args *args, int i, int j, rectangl
 	return 0;
 }
 
-static int _compute_estimators_for_images(struct stacking_args *args, int i, int j, overlap_stats_t *stats,
-		threading_type threading, int image_thread_id) {
+static int _compute_estimators_for_images(struct stacking_args *args, int i, int j, threading_type threading, int image_thread_id) {
 	int nb_layers = args->seq->nb_layers;
 	g_assert(nb_layers <= 3);
 	g_assert(threading > 0);
@@ -387,16 +439,71 @@ static int _compute_estimators_for_images(struct stacking_args *args, int i, int
 	fits fitj = { 0 };
 	char file_i[256], file_j[256];
 	sequence *seq = args->seq;
+	size_t nbdata = 0;
+	gboolean was_cached = FALSE;
 
-	siril_debug_print("computing stats for overlap between image %d and image %d, lite: %d\n", i + 1, j + 1, args->lite_norm);
-	size_t nbdata = compute_overlap(args, i, j, &areai, &areaj);
+	int ijth = get_ijth_pair_index(seq->number, i, j);
+	if (seq->ostats[args->reglayer][ijth].i == i && seq->ostats[args->reglayer][ijth].j == j) { // we have some overlap data for this pair
+		nbdata = seq->ostats[args->reglayer][ijth].areai.w * seq->ostats[args->reglayer][ijth].areai.h;
+		areai = seq->ostats[args->reglayer][ijth].areai;
+		areaj = seq->ostats[args->reglayer][ijth].areaj;
+		was_cached = TRUE;
+	} else {
+		siril_debug_print("computing stats for overlap between image %d and image %d, lite: %d\n", i + 1, j + 1, args->lite_norm);
+		nbdata = compute_overlap(args, i, j, &areai, &areaj);
+		// we cache it for all layers
+		// Normally, we should have regdata for only one layer, but what if we have for more (can't see that happening but better be safe)
+		// In that case, we will assume that the differences in overlaps should be minimal (1or 2 lines) and that
+		// the first ever cached overlap stats are valid irrespective of the regdata which created them
+		for (int n = 0; n < nb_layers; n++) {
+			seq->ostats[n][ijth].i = i;
+			seq->ostats[n][ijth].j = j;
+			if (nbdata > 0) {
+				seq->ostats[n][ijth].areai = areai;
+				seq->ostats[n][ijth].areaj = areaj;
+			}
+		}
+	}
 
 	if (nbdata > 0) {
 		siril_debug_print("image %d: boxselect %d %d %d %d\n", i + 1, areai.x, areai.y, areai.w, areai.h);
 		siril_debug_print("image %d: boxselect %d %d %d %d\n", j + 1, areaj.x, areaj.y, areaj.w, areaj.h);
 	} else {
 		siril_debug_print("No overlap between image %d and %d\n", i + 1, j + 1);
-		return 0; // no overlap
+		return ST_OK; // no overlap
+	}
+
+	// we'll now determine if we need to compute anything, and if yes, which data
+	// we'll check on each layer even though some cases are obvious
+	// For instance, with litenorm, we should have data on all 3 layers if we have reached this step
+	gboolean needs_recalc_lite[3] = { 0 };
+	gboolean needs_recalc_detailed[3] = { 0 };
+	gboolean needs_recalc = FALSE;
+	if (was_cached) {
+		for (int n = 0; n < nb_layers; n++) {
+			needs_recalc_lite[n] = 	seq->ostats[n][ijth].Nij > 0 && ( // we can have nbdata > 0 and actual non-black pixels common pixels null
+									seq->ostats[n][ijth].madij == NULL_STATS || 
+									seq->ostats[n][ijth].medij == NULL_STATS || 
+									seq->ostats[n][ijth].madji == NULL_STATS || 
+									seq->ostats[n][ijth].medji == NULL_STATS);
+			needs_recalc_detailed[n] = !args->lite_norm && seq->ostats[n][ijth].Nij > 0 && (
+									seq->ostats[n][ijth].locij == NULL_STATS || 
+									seq->ostats[n][ijth].scaij == NULL_STATS || 
+									seq->ostats[n][ijth].locji == NULL_STATS || 
+									seq->ostats[n][ijth].scaji == NULL_STATS );
+			needs_recalc |= needs_recalc_lite[n] || needs_recalc_detailed[n];
+		}
+	} else {
+		needs_recalc = TRUE;
+		for (int n = 0; n < nb_layers; n++) {
+			needs_recalc_lite[n] = TRUE;
+			needs_recalc_detailed[n] = (!args->lite_norm);
+		}
+	}
+
+	if (!needs_recalc) {
+		siril_debug_print("Data for %d and %d were cached, re-using\n");
+		return ST_OK;
 	}
 
 	float *datai = malloc(nbdata * sizeof(float));
@@ -414,6 +521,8 @@ static int _compute_estimators_for_images(struct stacking_args *args, int i, int
 	}
 	for (int n = 0; n < nb_layers; n++) {
 		Nij = 0;
+		if (!needs_recalc_lite[n] && !needs_recalc_detailed[n])
+			continue;
 		for (size_t k = 0; k < nbdata; k++) {
 			if (fiti.type == DATA_FLOAT) {
 				if (!fiti.fpdata[n][k] || !fitj.fpdata[n][k])
@@ -428,21 +537,28 @@ static int _compute_estimators_for_images(struct stacking_args *args, int i, int
 			}
 			Nij++;
 		}
-		if (Nij > 3) { // we want at least 3 pixels with non-zero data to ompute stats
-			siril_debug_print("%lu pixels for image %d and %d on layer %d\n", Nij, i + 1, j + 1, n);
-			stats[n].Nij = Nij;
-			stats[n].mij = (float)histogram_median_float(datai, Nij, SINGLE_THREADED);
-			stats[n].mji = (float)histogram_median_float(dataj, Nij, SINGLE_THREADED);
-			stats[n].sij = (float)siril_stats_float_mad(datai, Nij, stats[n].mij, SINGLE_THREADED, NULL);
-			stats[n].sji = (float)siril_stats_float_mad(dataj, Nij, stats[n].mji, SINGLE_THREADED, NULL);
-			if (!args->lite_norm) {
+		if (Nij > 3) { // we want at least 3 pixels with non-zero data to compute stats
+			seq->ostats[n][ijth].Nij = Nij;
+			if (needs_recalc_lite[n]) {
+				siril_debug_print("%lu pixels for images %d and %d on layer %d\n", Nij, i + 1, j + 1, n);
+				seq->ostats[n][ijth].medij = (float)histogram_median_float(datai, Nij, SINGLE_THREADED);
+				seq->ostats[n][ijth].medji = (float)histogram_median_float(dataj, Nij, SINGLE_THREADED);
+				seq->ostats[n][ijth].madij = (float)siril_stats_float_mad(datai, Nij, seq->ostats[n][ijth].medij, SINGLE_THREADED, NULL);
+				seq->ostats[n][ijth].madji = (float)siril_stats_float_mad(dataj, Nij, seq->ostats[n][ijth].medji, SINGLE_THREADED, NULL);
+			} else {
+				siril_debug_print("Lite overlap stats for images %d and %d on layer %d read from cache\n", i + 1, j + 1, n);
+			}
+			if (needs_recalc_detailed[n]) {
 				double li = 0., lj = 0., si = 1., sj = 1.;
-				IKSSlite(datai, Nij, stats[n].mij, stats[n].sij, &li, &si, SINGLE_THREADED);
-				IKSSlite(dataj, Nij, stats[n].mji, stats[n].sji, &lj, &sj, SINGLE_THREADED);
-				stats[n].mij = (float)li;
-				stats[n].mji = (float)lj;
-				stats[n].sij = (float)si;
-				stats[n].sji = (float)sj;
+				IKSSlite(datai, Nij, seq->ostats[n][ijth].medij, seq->ostats[n][ijth].madij, &li, &si, SINGLE_THREADED);
+				IKSSlite(dataj, Nij, seq->ostats[n][ijth].medji, seq->ostats[n][ijth].madji, &lj, &sj, SINGLE_THREADED);
+				seq->ostats[n][ijth].locij = (float)li;
+				seq->ostats[n][ijth].locji = (float)lj;
+				seq->ostats[n][ijth].scaij = (float)si;
+				seq->ostats[n][ijth].scaji = (float)sj;
+			}  else {
+				siril_debug_print("Detailed overlap stats for images %d and %d on layer %d read from cache\n", i + 1, j + 1, n);
+				siril_debug_print("Should not happen\n");
 			}
 		} else {
 			siril_debug_print("No overlap data between image %d and %d on layer %d\n", i + 1, j + 1, n);
@@ -460,7 +576,8 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 	norm_coeff *coeff = &args->coeff;
 	int nb_layers = args->seq->nb_layers;
 	int nb_frames = args->nb_images_to_stack;
-	int N = nb_frames * (nb_frames - 1) / 2;
+	int Npairs = nb_frames * (nb_frames - 1) / 2;
+	int N = nb_frames - 1;
 	imstats *refstats[3] = { NULL };
 
 	if (args->normalize == NO_NORM || !args->maximize_framing)	// should never happen here
@@ -491,7 +608,11 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 	}
 
 	init_coeffs(args);
-
+	// if the overlap stats have never been cached, we allocate there for all 
+	// the images of the sequence (without filtering)
+	if (!args->seq->ostats)
+		args->seq->ostats = alloc_ostats(nb_layers, args->seq->number);
+	
 	double ***Mij = malloc(nb_layers * sizeof(double **));
 	double ***Sij = malloc(nb_layers * sizeof(double **));
 	size_t ***Nij = malloc(nb_frames * sizeof(size_t **));
@@ -544,8 +665,8 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 // 			thread_id = omp_get_thread_num();
 // 			threads = threads_per_thread[thread_id];
 // #endif
-				overlap_stats_t *ostats = calloc(nb_layers, sizeof(overlap_stats_t));
-				if (_compute_estimators_for_images(args, ii, ij, ostats, threads, thread_id)) {
+				int ijth = get_ijth_pair_index(args->seq->number, ii, ij);
+				if (_compute_estimators_for_images(args, ii, ij, threads, thread_id)) {
 					siril_log_color_message(_("%s Check image %d first.\n"), "red",
 							error_msg, args->image_indices[i] + 1);
 					set_progress_bar_data(error_msg, PROGRESS_NONE);
@@ -553,16 +674,25 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 					continue;
 				}
 				for (int n = 0; n < nb_layers; n++) {
-					Mij[n][i][j] = ostats[n].mij;
-					Mij[n][j][i] = ostats[n].mji;
-					Sij[n][i][j] = ostats[n].sij;
-					Sij[n][j][i] = ostats[n].sji;
-					Nij[n][i][j] = ostats[n].Nij;
-					Nij[n][j][i] = ostats[n].Nij;
+					if (args->seq->ostats[n][ijth].Nij == 0)
+						continue;
+					if (args->lite_norm) {
+						Mij[n][i][j] = args->seq->ostats[n][ijth].medij;
+						Mij[n][j][i] = args->seq->ostats[n][ijth].medji;
+						Sij[n][i][j] = args->seq->ostats[n][ijth].madij;
+						Sij[n][j][i] = args->seq->ostats[n][ijth].madji;
+					} else {
+						Mij[n][i][j] = args->seq->ostats[n][ijth].locij;
+						Mij[n][j][i] = args->seq->ostats[n][ijth].locji;
+						Sij[n][i][j] = args->seq->ostats[n][ijth].scaij;
+						Sij[n][j][i] = args->seq->ostats[n][ijth].scaji;
+					}
+
+					Nij[n][i][j] = args->seq->ostats[n][ijth].Nij;
+					Nij[n][j][i] = args->seq->ostats[n][ijth].Nij;
 				}
 				g_atomic_int_inc(&cur_nb);	// only used for progress bar
-				set_progress_bar_data(NULL, cur_nb / (double)N);
-				free(ostats);
+				set_progress_bar_data(NULL, cur_nb / (double)Npairs);
 			}
 		}
 	}
@@ -609,7 +739,6 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 	}
 #endif
 
-	N = nb_frames - 1;
 	double *coeffs = malloc(N * sizeof(double));
 
 	if (args->normalize == ADDITIVE || args->normalize == ADDITIVE_SCALING) {
@@ -646,8 +775,9 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 	}
 
 	// free(threads_per_thread);
-	if (!retval)
+	if (!retval) {
 		compute_factors_from_estimators(args, index_ref);
+	}
 
 	for (int n = 0; n < nb_layers; n++) {
 		for (int i = 0; i < nb_frames; i++) {

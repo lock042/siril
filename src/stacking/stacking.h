@@ -193,10 +193,13 @@ void compute_date_time_keywords(GList *list_date, fits *fit);
 	/* compute max framing (used by sum, min and max) */
 void compute_max_framing(struct stacking_args *args, int output_size[2], int offset[2]);
 
-/* normalization functions, normalize.c */
+/* normalization functions, normalization.c */
 
 int do_normalization(struct stacking_args *args);
 int *compute_thread_distribution(int nb_workers, int max);
+void free_ostats(overlap_stats_t **ostats, int nb_layers);
+overlap_stats_t **alloc_ostats(int nb_layers, int nb_frames);
+int get_ijth_pair_index(int N, int i, int j);
 
 
 /* median and mean functions */
