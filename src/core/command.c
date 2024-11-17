@@ -62,7 +62,6 @@
 #include "io/single_image.h"
 #include "io/siril_catalogues.h"
 #include "io/local_catalogues.h"
-#include "io/remote_catalogues.h"
 #include "io/FITS_symlink.h"
 #include "io/fits_keywords.h"
 #include "drizzle/cdrizzleutil.h"
@@ -82,7 +81,6 @@
 #include "gui/registration.h"
 #include "gui/registration_preview.h"
 #include "gui/script_menu.h"
-#include "gui/preferences.h"
 #include "gui/unpurple.h"
 #include "filters/asinh.h"
 #include "filters/banding.h"
@@ -124,19 +122,15 @@
 #include "algos/geometry.h"
 #include "algos/photometric_cc.h"
 #include "algos/fix_xtrans_af.h"
-#include "io/annotation_catalogues.h"
 #include "algos/comparison_stars.h"
-#include "opencv/opencv.h"
 #include "stacking/stacking.h"
 #include "stacking/sum.h"
 #include "registration/registration.h"
-#include "registration/matching/match.h"
 #include "livestacking/livestacking.h"
 #include "pixelMath/pixel_math_runner.h"
 #include "git-version.h"
 
 #include "command.h"
-#include "command_def.h"
 #include "command_list.h"
 #include "command_line_processor.h"
 
@@ -9143,7 +9137,8 @@ int process_set_compress(int nb) {
 			}
 			hscale = g_ascii_strtod(word[4], NULL);
 			comp = g_strdup_printf("hcompress (scale factor = %.2lf) ", hscale);
-		}*/ else {
+		}*/
+		else {
 //			siril_log_message(_("Wrong type of compression. Choices are rice, gzip1, gzip2 or hcompress\n"));
 			siril_log_message(_("Wrong type of compression. Choices are rice, gzip1, gzip2\n"));
 			return CMD_ARG_ERROR;

@@ -27,21 +27,11 @@
 #include "core/proto.h"
 #include "core/icc_profile.h"
 #include "core/processing.h"
-#include "core/command.h"
 #include "core/siril_log.h"
-#include "gui/utils.h"
-#include "gui/progress_and_log.h"
-#include "gui/message_dialog.h"
-#include "gui/dialogs.h"
 #include "io/sequence.h"
-#include "io/fits_sequence.h"
-#include "io/seqwriter.h"
 #include "io/image_format_fits.h"
-#include "io/conversion.h"
 #include "algos/demosaicing.h"
 #include "algos/extraction.h"
-#include "algos/siril_wcs.h"
-#include "algos/statistics.h"
 
 #define USE_SIRIL_DEBAYER FALSE
 

@@ -33,11 +33,9 @@
 #include "algos/demosaicing.h"
 #include "algos/extraction.h"
 #include "core/processing.h"
-#include "core/OS_utils.h"
 #include "core/siril_log.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
-#include "algos/geometry.h"
 #include "algos/sorting.h"
 #include "algos/statistics.h"
 #include "gui/message_dialog.h"
@@ -882,35 +880,33 @@ gpointer remove_gradient_from_image(gpointer p) {
 	return GINT_TO_POINTER(0);
 }
 
-static GSList* rescale_sample_list_for_cfa(GSList *original_list) {
+static GSList* rescale_sample_list_for_cfa(GSList *original_list, fits *fit) {
 	GSList *new_list = NULL;
 	GSList *current = original_list;
+	int nx = fit->rx;
+	int ny = fit->ry;
+	int radius = SAMPLE_SIZE / 2;
 
+	float *image = convert_fits_to_luminance(fit, MULTI_THREADED);	// upside down
+	if (!image) {
+		PRINT_ALLOC_ERR;
+		return NULL;
+	}
 	// Traverse the original list in reverse order because g_slist_prepend is more efficient
 	while (current != NULL) {
 		background_sample *original_sample = (background_sample *)current->data;
-		background_sample *new_sample = malloc(sizeof(background_sample));
-
-		if (new_sample == NULL) {
-			// Handle memory allocation failure
-			// First, free what we've allocated so far
-			g_slist_free_full(new_list, free);
-			return NULL;
-		}
-
-		// Copy all fields from original sample
-		memcpy(new_sample, original_sample, sizeof(background_sample));
-
-		// Scale the position coordinates
-		new_sample->position.x = original_sample->position.x / 2.0; // Halve the x pos
-		new_sample->position.y = original_sample->position.y / 2.0; // Halve the y pos
-		new_sample->size = (original_sample->size + 1) / 2; // Halve the size, rounding up
+		int x = min(nx - 1 - radius, max(radius, round_to_int((float) original_sample->position.x / 2.f)));
+		int y = min(ny - 1 - radius, max(radius, round_to_int((float) original_sample->position.y / 2.f)));
+		// Generate a new sample at half the original coordinates
+		background_sample *new_sample = get_sample(image, x, y, nx, ny);
 
 		// Add the new sample to the new list
 		new_list = g_slist_prepend(new_list, new_sample);
 
 		current = current->next;
 	}
+
+	free(image);
 
 	// Reverse the list to maintain the original order
 	new_list = g_slist_reverse(new_list);
@@ -945,8 +941,8 @@ gpointer remove_gradient_from_cfa_image(gpointer p) {
 	}
 
 	// Split the FITS into the 4 subchannels
-	int ret;
-		if (gfit.type == DATA_USHORT) {
+	int ret = 1;
+	if (gfit.type == DATA_USHORT) {
 		ret = split_cfa_ushort(&gfit, cfachans[0], cfachans[1], cfachans[2], cfachans[3]);
 	}
 	else if (gfit.type == DATA_FLOAT) {
@@ -962,15 +958,15 @@ gpointer remove_gradient_from_cfa_image(gpointer p) {
 		return GINT_TO_POINTER(1);
 	}
 
-	GSList *samples = rescale_sample_list_for_cfa(com.grad_samples);
-
-	if (!samples) {
-		siril_log_color_message(_("Failed to adapt background samples for CFA image\n"), "red");
-		return GINT_TO_POINTER(1);
-	}
-
 	for (int i = 0; i < 4; i++) {
 		fits *subchannel = cfachans[i];
+
+		GSList *samples = rescale_sample_list_for_cfa(com.grad_samples, subchannel);
+
+		if (!samples) {
+			siril_log_color_message(_("Failed to adapt background samples for CFA image\n"), "red");
+			return GINT_TO_POINTER(1);
+		}
 
 		double *background = (double*)malloc(subchannel->naxes[0] * subchannel->naxes[1] * sizeof(double));
 		if (!background) {
@@ -978,9 +974,6 @@ gpointer remove_gradient_from_cfa_image(gpointer p) {
 			siril_log_message(_("Out of memory - aborting"));
 			return GINT_TO_POINTER(1);
 		}
-
-		// Update sample stats per subchannel
-		update_median_samples(samples, subchannel);
 
 		const size_t n = subchannel->naxes[0] * subchannel->naxes[1];
 		double *image = malloc(n * sizeof(double));
@@ -991,14 +984,14 @@ gpointer remove_gradient_from_cfa_image(gpointer p) {
 			return GINT_TO_POINTER(1);
 		}
 
-		double background_mean = get_background_mean(samples, subchannel->naxes[2]);
+		double background_mean = get_background_mean(samples, 1);
 		/* compute background */
 		gboolean interpolation_worked = TRUE;
 		if (args->interpolation_method == BACKGROUND_INTER_POLY) {
-			interpolation_worked = computeBackground_Polynom(com.grad_samples, background, 0,
+			interpolation_worked = computeBackground_Polynom(samples, background, 0,
 					subchannel->rx, subchannel->ry, args->degree, &error);
 		} else {
-			interpolation_worked = computeBackground_RBF(com.grad_samples, background, 0,
+			interpolation_worked = computeBackground_RBF(samples, background, 0,
 					subchannel->rx, subchannel->ry, args->smoothing, &error, args->threads);
 		}
 
@@ -1025,12 +1018,13 @@ gpointer remove_gradient_from_cfa_image(gpointer p) {
 		convert_img_to_fits(image, subchannel, 0);
 		free(image);
 		free(background);
+		free_background_sample_list(samples);
+
 	}
 	fits *out = merge_cfa(cfachans[0], cfachans[1], cfachans[2], cfachans[3], pattern);
 	fits_swap_image_data(out, &gfit); // Efficiently move the merged pixeldata from out to gfit
 	clearfits(out);
 	free(out);
-	free_background_sample_list(samples);
 	siril_log_message(_("Background with %s interpolation computed.\n"),
 			(args->interpolation_method == BACKGROUND_INTER_POLY) ? "polynomial" : "RBF");
 	gettimeofday(&t_end, NULL);
@@ -1155,8 +1149,8 @@ static int bgcfa_image_hook(struct generic_seq_args *args, int o, int i, fits *f
 	}
 
 	// Split the FITS into the 4 subchannels
-	int ret;
-		if (fit->type == DATA_USHORT) {
+	int ret = 1;
+	if (fit->type == DATA_USHORT) {
 		ret = split_cfa_ushort(fit, cfachans[0], cfachans[1], cfachans[2], cfachans[3]);
 	}
 	else if (fit->type == DATA_FLOAT) {

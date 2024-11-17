@@ -20,14 +20,11 @@
 
 #include "core/siril.h"
 #include "core/undo.h"
-#include "core/siril_log.h"
 #include "algos/background_extraction.h"
-#include "algos/statistics.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
 #include "gui/utils.h"
-#include "gui/callbacks.h"
 #include "gui/image_display.h"
 #include "gui/image_interactions.h"
 #include "gui/progress_and_log.h"
@@ -142,11 +139,6 @@ void on_bkg_compute_bkg_clicked(GtkButton *button, gpointer user_data) {
 	}
 	set_cursor_waiting(TRUE);
 	copy_backup_to_gfit();
-
-	if (!check_ok_if_cfa()) {
-		set_cursor_waiting(FALSE);
-		return;
-	}
 
 	background_correction correction = get_correction_type();
 	poly_order degree = get_poly_order();
