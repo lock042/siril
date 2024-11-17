@@ -34,6 +34,7 @@ struct background_data {
 	gboolean from_ui;
 	sequence *seq;
 	char *seqEntry;
+	gboolean is_cfa;
 };
 
 typedef struct sample {

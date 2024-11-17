@@ -308,3 +308,12 @@ gboolean on_bkg_show_original_enter_notify_event(GtkWidget *widget, GdkEvent *ev
 	gtk_widget_set_state_flags(widget, new_state, TRUE);
 	return TRUE;
 }
+
+void on_checkBkgSeq_toggled(GtkToggleButton *button, gpointer user_data) {
+	GtkWidget *ok = lookup_widget("background_ok_button");
+	if (gtk_toggle_button_get_active(button)) {
+		gtk_widget_set_sensitive(ok, TRUE);
+	} else {
+		gtk_widget_set_sensitive(ok, (com.grad_samples != NULL) && background_computed);
+	}
+}

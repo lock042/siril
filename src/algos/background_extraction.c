@@ -30,6 +30,8 @@
 #include "core/siril.h"
 #include "core/proto.h"
 #include "algos/siril_random.h"
+#include "algos/demosaicing.h"
+#include "algos/extraction.h"
 #include "core/processing.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
@@ -948,8 +950,145 @@ static int background_image_hook(struct generic_seq_args *args, int o, int i, fi
 	return 0;
 }
 
+/*******************************************************************************************
+ * In the case of Bayer CFA images, we can consider the image as 4 interleaved sub-images: *
+ * we split the image into these 4 sub-images and apply background removal to each         *
+ * independently. We allow for different gradients in each sub-image as this may           *
+ * realistically model a frequency dependence of the observed gradient, for example        *
+ * moonlight.                                                                              *
+ * On completion of gradient removal from each sub-image the sub-images are reassembled    *
+ * ready for drizzle.                                                                      *
+ ******************************************************************************************/
+
+static int bgcfa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
+		rectangle *_, int threads) {
+	struct background_data *b_args = (struct background_data*) args->user;
+	if (b_args->interpolation_method == BACKGROUND_INTER_RBF) {
+		siril_log_color_message(_("Warning: RBF background removal is not recommended for CFA images. Only linear background removal is recommended.\n"), "salmon");
+	} else if (b_args->degree > 1) {
+		siril_log_color_message(_("Warning: polynomial background removal order > 1 is not recommended for CFA images. Only linear background removal is recommended.\n"), "salmon");
+	}
+	// Obtain CFA pattern as a sensor_pattern
+	fits metadata = { 0 };
+	seq_read_frame_metadata(args->seq, i, &metadata);
+	sensor_pattern pattern;
+	if (!strncmp(metadata.keywords.bayer_pattern, "RGGB", 4)) {
+		pattern = BAYER_FILTER_RGGB;
+	} else if (!strncmp(metadata.keywords.bayer_pattern, "BGGR", 4)) {
+		pattern = BAYER_FILTER_BGGR;
+	} else if (!strncmp(metadata.keywords.bayer_pattern, "GBRG", 4)) {
+		pattern = BAYER_FILTER_GBRG;
+	} else if (!strncmp(metadata.keywords.bayer_pattern, "GRBG", 4)) {
+		pattern = BAYER_FILTER_GBRG;
+	} else {
+		siril_log_color_message(_("Error: unsupported CFA pattern for this operation.\n"), "red");
+		return 1;
+	}
+
+	// Allocate an array of fits* and the fits objects themselves. These will hold the subchannels
+	fits** cfachans = calloc(4, sizeof(fits*));
+	for (int i = 0 ; i < 4 ; i++) {
+		cfachans[i] = calloc(1, sizeof(fits));
+	}
+
+	// Split the FITS into the 4 subchannels
+	int ret;
+		if (fit->type == DATA_USHORT) {
+		ret = split_cfa_ushort(fit, cfachans[0], cfachans[1], cfachans[2], cfachans[3]);
+	}
+	else if (fit->type == DATA_FLOAT) {
+		ret = split_cfa_float(fit, cfachans[0], cfachans[1], cfachans[2], cfachans[3]);
+	}
+	if (ret) {
+		siril_log_color_message(_("Error splitting into CFA subcannels, aborting...\n"), "red");
+		for (int i = 0 ; i < 4 ; i++) {
+			clearfits(cfachans[i]);
+			free(cfachans[i]);
+		}
+		free(cfachans);
+		return 1;
+	}
+
+	// Clear the original fit image data, we will put the result back into it later
+	free(fit->data);
+	free(fit->fdata);
+	fit->data = fit->pdata[0] = fit->pdata[1] = fit->pdata[2] = NULL;
+	fit->fdata = fit->fpdata[0] = fit->fpdata[1] = fit->fpdata[2] = NULL;
+
+
+	// Carry out background removal on each subchannel in turn
+	for (int i = 0 ; i < 4 ; i++) {
+		fits *subchannel = cfachans[i];
+		double *background = (double*)malloc(subchannel->naxes[0] * subchannel->naxes[1] * sizeof(double));
+		if (!background) {
+			PRINT_ALLOC_ERR;
+			siril_log_message(_("Out of memory - aborting"));
+			return 1;
+		}
+
+		const char *err;
+		GSList *samples = generate_samples(subchannel, b_args->nb_of_samples, b_args->tolerance, SAMPLE_SIZE, &err, (threading_type)threads);
+		if (!samples) {
+			siril_log_color_message(_("Failed to generate background samples for image %d: %s\n"), "red", i, _(err));
+			free(background);
+			return 1;
+		}
+
+		/* If RGB we need to update all local median, not only the first one */
+		if (subchannel->naxes[2] > 1) {
+			samples = update_median_samples(samples, subchannel);
+		}
+
+		const size_t n = subchannel->naxes[0] * subchannel->naxes[1];
+		double *image = malloc(n * sizeof(double));
+		if (!image) {
+			free(background);
+			free_background_sample_list(samples);
+			PRINT_ALLOC_ERR;
+			return 1;
+		}
+
+		double background_mean = get_background_mean(samples, subchannel->naxes[2]);
+		for (int channel = 0; channel < subchannel->naxes[2]; channel++) {
+			/* compute background */
+			gboolean interpolation_worked = TRUE;
+			gchar *error = NULL;
+			if (b_args->interpolation_method == BACKGROUND_INTER_POLY){
+				interpolation_worked = computeBackground_Polynom(samples, background, channel, subchannel->rx, subchannel->ry, b_args->degree, &error);
+			} else {
+				interpolation_worked = computeBackground_RBF(samples, background, channel, subchannel->rx, subchannel->ry, b_args->smoothing, &error, threads);
+			}
+
+			if (!interpolation_worked) {
+				if (error) {
+					siril_log_message(error);
+				}
+				free(image);
+				free(background);
+				free_background_sample_list(samples);
+				return 1;
+			}
+			/* remove background */
+			convert_fits_to_img(subchannel, image, channel, b_args->dither);
+			remove_gradient(image, background, background_mean, subchannel->naxes[0] * subchannel->naxes[1], b_args->correction, (threading_type)threads);
+			convert_img_to_fits(image, subchannel, channel);
+		}
+		/* free memory */
+		free(image);
+		free(background);
+		free_background_sample_list(samples);
+	}
+	fits *out = merge_cfa(cfachans[0], cfachans[1], cfachans[2], cfachans[3], pattern);
+	fits_swap_image_data(out, fit); // Efficiently move the merged pixeldata from out to fit
+	clearfits(out);
+	free(out);
+	return 0;
+}
+
 static int background_mem_limits_hook(struct generic_seq_args *args, gboolean for_writer) {
+	struct background_data *background_args = (struct background_data *) args->user;
 	unsigned int MB_per_image, MB_avail;
+
 	int limit = compute_nb_images_fit_memory(args->seq, 1.0, FALSE, &MB_per_image, NULL, &MB_avail);
 	unsigned int required = MB_per_image;
 	if (limit > 0) {
@@ -964,12 +1103,17 @@ static int background_mem_limits_hook(struct generic_seq_args *args, gboolean fo
 		 * remove_gradient_from_image allocates the image            to rx * ry * sizeof(double)
 		 *
 		 * so at maximum, ignoring the samples, we need 2 times the double channel size.
+		 *
+		 * If we are dealing with a CFA image we need one additional copy of the original image
+		 * to account for the 4 FITS created to hold working copies of the subchannels.
 		 */
 		uint64_t double_channel_size = args->seq->rx * args->seq->ry * sizeof(double);
 		unsigned int double_channel_size_MB = double_channel_size / BYTES_IN_A_MB;
 		if (double_channel_size_MB == 0)
 			double_channel_size_MB = 1;
 		required = MB_per_image + double_channel_size_MB * 2;
+		if (background_args->is_cfa)
+			required += MB_per_image;
 		int thread_limit = MB_avail / required;
 		if (thread_limit > com.max_thread)
 			thread_limit = com.max_thread;
@@ -1018,13 +1162,22 @@ int bg_extract_finalize_hook(struct generic_seq_args *args) {
 }
 
 void apply_background_extraction_to_sequence(struct background_data *background_args) {
+	fits metadata = { 0 };
 	struct generic_seq_args *args = create_default_seqargs(background_args->seq);
+	if (seq_read_frame_metadata(background_args->seq, sequence_find_refimage(background_args->seq), &metadata)) {
+		siril_log_color_message(_("Error reading reference metadata.\n"), "red");
+		return;
+	}
+	background_args->is_cfa =	(!strncmp(metadata.keywords.bayer_pattern, "RGGB", 4) ||
+								 !strncmp(metadata.keywords.bayer_pattern, "BGGR", 4) ||
+								 !strncmp(metadata.keywords.bayer_pattern, "GBRG", 4) ||
+								 !strncmp(metadata.keywords.bayer_pattern, "GRBG", 4));
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = background_args->seq->selnum;
 	args->compute_mem_limits_hook = background_mem_limits_hook;
 	args->prepare_hook = seq_prepare_hook;
 	args->finalize_hook = bg_extract_finalize_hook;
-	args->image_hook = background_image_hook;
+	args->image_hook = background_args->is_cfa ? bgcfa_image_hook : background_image_hook;
 	args->stop_on_error = FALSE;
 	args->description = _("Background Extraction");
 	args->has_output = TRUE;
