@@ -370,7 +370,7 @@ static void update_performances_preferences() {
 	com.pref.fftw_conf.multithreaded = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_fftw_multithreaded")));
 	com.pref.fftw_conf.fft_cutoff = gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("pref_conv_min_fft")));
 	int max_slice_size = gtk_combo_box_get_active(GTK_COMBO_BOX(lookup_widget("pref_max_slice_size")));
-	com.pref.max_slice_size = max_slice_size == 0 ? -1 : 1 << (max_slice_size + 7);
+	com.pref.max_slice_size = max_slice_size == 0 ? 32769 : 1 << (max_slice_size + 8);
 	int bitdepth = (int) gtk_spin_button_get_value(GTK_SPIN_BUTTON(lookup_widget("spin_hd_bitdepth")));
 	com.pref.hd_bitdepth = bitdepth;
 }
@@ -874,7 +874,7 @@ void update_preferences_from_model() {
 			max_slice_size++;
 		}
 	}
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_max_slice_size")), pref->max_slice_size <= 0 ? 0 : max_slice_size - 7);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lookup_widget("pref_max_slice_size")), pref->max_slice_size > 32768 || pref->max_slice_size <= 0 ? 0 : max_slice_size - 8);
 
 	/* tab Miscellaneous */
 	initialize_path_directory(pref->swap_dir);
