@@ -4258,7 +4258,7 @@ int process_pm(int nb) {
 	remove_spaces_from_str(expression);
 
 	fits *fit = NULL;
-	if (new_fit_image(&fit, width, height, channel, DATA_FLOAT)) {
+	if (new_fit_image(&fit, width, height, channel, com.pref.force_16bit ? DATA_USHORT : DATA_FLOAT)) {
 		free_pm_var(args->nb_rows);
 		free(args->varname);
 		free(args);
@@ -6679,7 +6679,7 @@ int process_seq_extractHaOIII(int nb) {
 		}
 	}
 	args->prefixes[0] = g_strdup("Ha_");
-	args->prefixes[1] = g_strdup("Oiii_");
+	args->prefixes[1] = g_strdup("OIII_");
 
 	apply_extractHaOIII_to_sequence(args);
 

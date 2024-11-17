@@ -70,7 +70,7 @@ void on_split_cfa_apply_clicked(GtkButton *button, gpointer user_data) {
 					args->n = 2;
 					args->prefixes = calloc(3, sizeof(const char*));
 					args->prefixes[0] = g_strdup("Ha_");
-					args->prefixes[1] = g_strdup("Oiii_");
+					args->prefixes[1] = g_strdup("OIII_");
 					apply_extractHaOIII_to_sequence(args);
 					break;
 			}
