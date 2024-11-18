@@ -1091,7 +1091,7 @@ int split_cfa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 #ifdef _OPENMP
 		omp_unset_lock(&args->lock);
 #endif
-		siril_debug_print("%s: processed imaages added to the save list (%d)\n", args->description, o);
+		siril_debug_print("%s: processed images added to the save list (%d)\n", args->description, o);
 	}
 	return ret;
 }
