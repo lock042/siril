@@ -7,6 +7,7 @@ siril 1.2.5
 * Added HISTORY after seqcrop and GUI crop (#1142)
 * Removed support for macOS High Sierra 10.13 and Mojave 10.14 (!745)
 * Better handling of Siril opening when double-clicking on an image, under macOS (#1308, #1428 and #1140)
+* Fixed potential crash in synthstar (issue reported via facebook)
 
 siril 1.2.4
 09/11/24
