@@ -9,7 +9,7 @@ class DataType(IntEnum):
     """
     Mimics the Siril data_type enum. Note that although Siril can
     handle opening FITS files of any data type, internally it processes
-    images only as float32 or uint16.
+    images only as USHORT_IMG (uint16) or FLOAT_IMG (float32).
     """
     BYTE_IMG = 8
     SHORT_IMG = 16
@@ -21,7 +21,8 @@ class DataType(IntEnum):
 @dataclass
 class ImageStats:
     """
-    Python equivalent of Siril imstats structure
+    Python equivalent of Siril imstats structure. Contains statistics for
+    a particular channel of a Siril image.
     """
 
     total: int = 0
@@ -42,7 +43,8 @@ class ImageStats:
 @dataclass
 class FKeywords:
     """
-    Python equivalent of fkeywords structure
+    Python equivalent of Siril fkeywords structure. Contains the FITS
+    header keyword values converted to suitable datatypes.
     """
 
     # FITS file data
@@ -142,17 +144,21 @@ class FKeywords:
         self.lo = value
 
     def set_hi(self, value: int) -> None:
-        """Sets hi value. This is the upper visualization cutoff."""
+        """
+        Sets hi value. This is the upper visualization cutoff.
+        """
         self.hi = value
 
     def set_flo(self, value: float) -> None:
-        """Sets floating point lo value. This is the lower
-        visualization cutoff."""
+        """
+        Sets floating point lo value. This is the lower visualization cutoff.
+        """
         self.flo = value
 
     def set_fhi(self, value: float) -> None:
-        """Sets floating point hi value. This is the lower
-        visualization cutoff."""
+        """
+        Sets floating point hi value. This is the lower visualization cutoff.
+        """
         self.fhi = value
 
     def set_program(self, value: str) -> None:
@@ -168,62 +174,79 @@ class FKeywords:
         Sets data_max. This is used to check if 32b float is
         in the [0, 1] range; it should not normally need to be adjusted
         from python scripts, as it is an indicator of the value range of
-        the data in a saved FITS."""
+        the data in a saved FITS.
+        """
         self.data_max = value
 
     def set_data_min(self, value: float) -> None:
-        """Sets data_min. This is used to check if 32b float is
+        """
+        Sets data_min. This is used to check if 32b float is
         in the [0, 1] range; it should not normally need to be adjusted
         from python scripts, as it is an indicator of the value range of
-        the data in a saved FITS."""
+        the data in a saved FITS.
+        """
         self.data_min = value
 
     def set_pixel_size_x(self, value: float) -> None:
-        """Sets the pixel size in the x dimension. This is normally
-        set by the capture software."""
+        """
+        Sets the pixel size in the x dimension. This is normally
+        set by the capture software.
+        """
         if value > 0:
             self.pixel_size_x = value
         else:
             raise ValueError(_("pixel_size_x must be greater than 0"))
 
     def set_pixel_size_y(self, value: float) -> None:
-        """Sets the pixel size in the y dimension. This is normally
-        set by the capture software."""
+        """
+        Sets the pixel size in the y dimension. This is normally
+        set by the capture software.
+        """
         if value > 0:
             self.pixel_size_y = value
         else:
             raise ValueError(_("pixel_size_y must be greater than 0"))
 
     def set_binning_x(self, value: int) -> None:
-        """Sets the binning in the x dimension. This is normally
-        set by the capture software."""
+        """
+        Sets the binning in the x dimension. This is normally
+        set by the capture software.
+        """
         if value >= 1:
             self.binning_x = value
         else:
             raise ValueError(_("binning_x must be greater than or equal to 1"))
 
     def set_binning_y(self, value: int) -> None:
-        """Sets the binning in the y dimension. This is normally
-        set by the capture software."""
+        """
+        Sets the binning in the y dimension. This is normally
+        set by the capture software.
+        """
         if value >= 1:
             self.binning_y = value
         else:
             raise ValueError(_("binning_y must be greater than or equal to 1"))
 
     def set_row_order(self, value: str) -> None:
-        """Sets the ROWORDER keyword. This sets the row order in
+        """
+        Sets the ROWORDER keyword. This sets the row order in
         which the sensor indicates rows and should be either 'TOP-DOWN'
-        or 'BOTTOM-UP'"""
+        or 'BOTTOM-UP'
+        """
         self.row_order = value[:70]
 
     def set_date(self, value: Optional[datetime]) -> None:
-        """Sets the FITS DATE keyword, which represents the date on
-        which the HDU was created."""
+        """
+        Sets the FITS DATE keyword, which represents the date on
+        which the HDU was created.
+        """
         self.date = value
 
     def set_date_obs(self, value: Optional[datetime]) -> None:
-        """Sets the FITS DATE-OBS keyword, which represents the date
-        on which the observation was made."""
+        """
+        Sets the FITS DATE-OBS keyword, which represents the date
+        on which the observation was made.
+        """
         self.date_obs = value
 
     def set_expstart(self, value: float) -> None:
@@ -235,33 +258,45 @@ class FKeywords:
         self.expend = value
 
     def set_filter(self, value: str) -> None:
-        """Sets the FITS FILTER keyword. Will be truncated
-        to 70 characters according to the FITS standard."""
+        """
+        Sets the FITS FILTER keyword. Will be truncated
+        to 70 characters according to the FITS standard.
+        """
         self.filter = value[:70]
 
     def set_image_type(self, value: str) -> None:
-        """Sets the FITS IMAGETYP keyword. Will be truncated
-        to 70 characters according to the FITS standard."""
+        """
+        Sets the FITS IMAGETYP keyword. Will be truncated
+        to 70 characters according to the FITS standard.
+        """
         self.image_type = value[:70]
 
     def set_object(self, value: str) -> None:
-        """Sets the FITS OBJECT keyword. Will be truncated
-        to 70 characters according to the FITS standard."""
+        """
+        Sets the FITS OBJECT keyword. Will be truncated
+        to 70 characters according to the FITS standard.
+        """
         self.object = value[:70]
 
     def set_instrume(self, value: str) -> None:
-        """Sets the FITS INSTRUME keyword. Will be truncated "
-        to 70 characters according to the FITS standard."""
+        """
+        Sets the FITS INSTRUME keyword. Will be truncated "
+        to 70 characters according to the FITS standard.
+        """
         self.instrume = value[:70]
 
     def set_telescop(self, value: str) -> None:
-        """Sets the FITS TELESCOP keyword. Will be truncated
-        to 70 characters according to the FITS standard."""
+        """
+        Sets the FITS TELESCOP keyword. Will be truncated
+        to 70 characters according to the FITS standard.
+        """
         self.telescop = value[:70]
 
     def set_observer(self, value: str) -> None:
-        """Sets the FITS OBSERVER keyword. Will be truncated
-        to 70 characters according to the FITS standard."""
+        """
+        Sets the FITS OBSERVER keyword. Will be truncated
+        to 70 characters according to the FITS standard.
+        """
         self.observer = value[:70]
 
     def set_centalt(self, value: float) -> None:
@@ -305,8 +340,10 @@ class FKeywords:
         self.siteelev = value
 
     def set_bayer_pattern(self, value: str) -> None:
-        """Sets the image CFA pattern. This may be a Bayer pattern
-        or X-TRANS pattern. Normally this is set by the capture software."""
+        """
+        Sets the image CFA pattern. This may be a Bayer pattern
+        or X-TRANS pattern. Normally this is set by the capture software.
+        """
         self.bayer_pattern = value[:70]
 
     def set_bayer_xoffset(self, value: int) -> None:
@@ -353,13 +390,17 @@ class FKeywords:
         self.set_temp = value
 
     def set_livetime(self, value: float) -> None:
-        """Sets the sum of the exposure times (s) as a floating
-        point value. Only relevant to stacked images."""
+        """
+        Sets the sum of the exposure times (s) as a floating
+        point value. Only relevant to stacked images.
+        """
         self.livetime = value
 
     def set_stackcnt(self, value: int) -> None:
-        """Sets the count of images in a stack. Only relevant to
-        stacked images."""
+        """
+        Sets the count of images in a stack. Only relevant to
+        stacked images.
+        """
         self.stackcnt = value
 
     def set_cvf(self, value: float) -> None:
@@ -367,18 +408,24 @@ class FKeywords:
         self.cvf = value
 
     def set_key_gain(self, value: int) -> None:
-        """Sets the gain value read in camera headers. Normally
-        this is set by capture software."""
+        """
+        Sets the gain value read in camera headers. Normally
+        this is set by capture software.
+        """
         self.key_gain = value
 
     def set_key_offset(self, value: int) -> None:
-        """Sets the offset value read in camera headers. Normally
-        this is set by capture software."""
+        """
+        Sets the offset value read in camera headers. Normally
+        this is set by capture software.
+        """
         self.key_offset = value
 
     def set_focname(self, value: str) -> None:
-        """Sets the focuser name. Will be truncated
-        to 70 characters according to the FITS standard."""
+        """
+        Sets the focuser name. Will be truncated
+        to 70 characters according to the FITS standard.
+        """
         self.focname = value[:70]
 
     def set_focuspos(self, value: int) -> None:
@@ -399,7 +446,8 @@ class FKeywords:
 @dataclass
 class FFit:
     """
-    Python equivalent of Siril ffit (FITS) structure with automated dimension handling
+    Python equivalent of Siril ffit (FITS) structure, holding image
+    pixel data and metadata.
     """
     bitpix: int = 0
     orig_bitpix: int = 0
@@ -441,20 +489,20 @@ class FFit:
     def data(self) -> Optional[np.ndarray]:
         """
         Get the pixel data of the current image loaded in Siril
-        as a numpy array
+        as a NumPy array
         """
         return self._data
 
     @data.setter
     def set_data(self, value: Optional[np.ndarray]):
         """
-        Set the pixel data of the FFit to the provided numpy array. Note: this
+        Set the pixel data of the FFit to the provided NumPy array. Note: this
         does not update the image loaded in Siril - ``SirilInterface.set_pixeldata()``
         must be used to achieve this.
 
         Args:
-            numpy.ndarray: numpy array representing the pixel data. This must
-        be in either uint16 or float32 planar format
+            numpy.ndarray: NumPy array representing the pixel data. This must
+                           be in either uint16 or float32 planar format
 
         Raises:
             ValueError: if the array shape is incompatible
@@ -517,7 +565,7 @@ class FFit:
 
     @property
     def dtype(self) -> np.dtype:
-        """Get the numpy dtype based on the current type"""
+        """Get the NumPy dtype based on the current type"""
         return np.uint16 if self.type == DataType.USHORT_IMG else np.float32
 
     def allocate_data(self):
@@ -554,7 +602,7 @@ class FFit:
     def update_stats(self):
         """
         Update image statistics for all channels. Note that this only
-        updates the statistics based on the numpy array representing pixel data
+        updates the statistics based on the NumPy array representing pixel data
         in the python FFit object, it does not update the statistics of the
         image in Siril.
         """
@@ -583,7 +631,11 @@ class FFit:
 
 @dataclass
 class Homography:
-    """Python equivalent of Siril Homography structure"""
+    """
+    Python equivalent of the Siril Homography structure. Contains coefficients
+    for the Homography matrix that maps a sequence frame onto the reference
+    frame.
+    """
     h00: float = 0.0
     h01: float = 0.0
     h02: float = 0.0
@@ -597,13 +649,18 @@ class Homography:
     Inliers: int = 0
 
 class StarProfile(IntEnum):
-    """The StarProfile enum matches the starprofile enum in the Siril C code"""
+    """
+    Python equivalent of the Siril starprofile enum. Used to identify the type
+    of fit used to model a star in the image. Note that MOFFAT_FIXED is currently
+    not used in Siril, but is reserved for future use for Moffat stars modelled
+    with a fixed beta parameter
+    """
     GAUSSIAN = 0
     MOFFAT = 1
     MOFFAT_FIXED = 2
 
 class SequenceType(IntEnum):
-    """The SequenceType enum matches the sequence_type enum in the Siril C code"""
+    """Python equivalent of the Siril sequence_type enum"""
     SEQ_REGULAR = 0
     SEQ_SER = 1
     SEQ_FITSEQ = 2
@@ -612,8 +669,14 @@ class SequenceType(IntEnum):
 
 @dataclass
 class PSFStar:
-    """Python equivalent of Siril fwhm_struct structure"""
-    star_name: Optional[str] = None
+    """
+    Python equivalent of the Siril fwhm_struct structure. Contains
+    data on a modelled fit to a star identified in the image.
+    """
+    star_name: Optional[str] = field(
+        default=None,
+        metadata={"doc": "Name or identifier of the star"}
+    )
     B: float = 0.0              # average sky background value
     A: float = 0.0              # amplitude
     x0: float = 0.0            # coordinates of the peak
