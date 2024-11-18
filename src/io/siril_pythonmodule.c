@@ -1485,7 +1485,7 @@ static gpointer initialize_python_venv(gpointer user_data) {
 	gpointer key, value;
 	g_hash_table_iter_init(&iter, venv_info->env_vars);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
-		if (g_setenv((const gchar*)key, (const gchar*)value, TRUE))
+		if (!g_setenv((const gchar*)key, (const gchar*)value, TRUE))
 			siril_debug_print("Error in g_setenv: key = %s, value = %s\n", (const gchar*) key, (const gchar*) value);
 	}
 
