@@ -60,11 +60,14 @@ cd ../process
 # Calibrate Light Frames
 calibrate light -dark=../masters/dark_stacked -flat=../masters/pp_flat_stacked -cc=dark -cfa -equalize_cfa
 
+# Remove Linear Gradients
+seqsubsky pp_light 1
+
 # Align lights with Drizzle
-register pp_light -drizzle -scale=1.0 -pixfrac=1.0 -kernel=square -flat=../masters/pp_flat_stacked
+register bkg_pp_light -drizzle -scale=1.0 -pixfrac=1.0 -kernel=square -flat=../masters/pp_flat_stacked
 
 # Stack calibrated lights to result.fit
-stack r_pp_light rej 3 3 -norm=addscale -output_norm -rgb_equal -out=result
+stack r_bkg_pp_light rej 3 3 -norm=addscale -output_norm -rgb_equal -out=result
 
 # and flipping if required
 load result
