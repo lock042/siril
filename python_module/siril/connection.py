@@ -253,10 +253,11 @@ class SirilInterface:
         """
         Establish a connection to Siril based on the pipe or socket path.
 
-        Returns: True if the connection is successful, otherwise False.
+        Returns:
+            True if the connection is successful, otherwise False.
 
-        Raises: ConnectionError: if a connection error occurred then
-            ConnectionError is raised.
+        Raises:
+            ConnectionError: if a connection error occurred
         """
 
         try:
@@ -294,10 +295,12 @@ class SirilInterface:
         """
         Closes the established socket or pipe connection.
 
-        Returns: True if the connection is closed successfully.
+        Returns:
+            True if the connection is closed successfully.
 
-        Raises: ConnectionError: if the connection cannot be closed because the
-            pipe / socket cannot be found.
+        Raises:
+            ConnectionError: if the connection cannot be closed because the
+                pipe / socket cannot be found.
         """
 
         if os.name == 'nt':
@@ -1322,7 +1325,7 @@ class SirilInterface:
 
         Args:
             channel: Integer specifying which channel to get statistics
-            for (typically 0, 1, or 2)
+                for (typically 0, 1, or 2)
 
         Returns:
         ImageStats object containing the statistics, or None if an error occurred
@@ -1385,9 +1388,9 @@ class SirilInterface:
 
         Args:
             frame: Integer specifying which frame in the sequence to get registration
-        data for (between 0 and Sequence.number),
+                data for (between 0 and Sequence.number),
             channel: Integer specifying which channel to get registration data
-        for (typically 0, 1, or 2)
+                for (typically 0, 1, or 2)
 
         Returns:
             RegData object containing the registration data, or None if an error occurred
@@ -1436,10 +1439,10 @@ class SirilInterface:
         Request sequence frame statistics from Siril.
 
         Args:
-            frame: Integer specifying which frame in the sequence to get statistcs
-        data for (between 0 and Sequence.number),
+            frame: Integer specifying which frame in the sequence to get statistics
+                data for (between 0 and Sequence.number)
             channel: Integer specifying which channel to get statistics
-        for (typically 0, 1, or 2)
+                for (typically 0, 1, or 2)
 
         Returns:
             ImageStats object containing the statistics, or None if an error occurred
@@ -1480,9 +1483,10 @@ class SirilInterface:
     def get_seq_imgdata(self, frame: int) -> Optional[ImgData]:
         """
         Request sequence frame metadata from Siril.
+
         Args:
             frame: Integer specifying which frame in the sequence to get image
-        metadata for (between 0 and Sequence.number)
+                metadata for (between 0 and Sequence.number)
 
         Returns:
             ImgData object containing the frame metadata, or None if an error occurred
@@ -1964,7 +1968,7 @@ class SirilInterface:
         error occurred
 
         Raises:
-            RuntimeError if an error occurred getting the requested config value
+            RuntimeError: if an error occurred getting the requested config value
         """
 
         try:
