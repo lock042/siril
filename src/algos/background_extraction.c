@@ -1025,7 +1025,7 @@ gpointer remove_gradient_from_cfa_image(gpointer p) {
 	fits_swap_image_data(out, &gfit); // Efficiently move the merged pixeldata from out to gfit
 	clearfits(out);
 	free(out);
-	siril_log_message(_("Background with %s interpolation computed.\n"),
+	siril_log_message(_("Background with %s interpolation computed for CFA image.\n"),
 			(args->interpolation_method == BACKGROUND_INTER_POLY) ? "polynomial" : "RBF");
 	gettimeofday(&t_end, NULL);
 	show_time(t_start, t_end);
@@ -1317,10 +1317,10 @@ void apply_background_extraction_to_sequence(struct background_data *background_
 		siril_log_color_message(_("Error reading reference metadata.\n"), "red");
 		return;
 	}
-	background_args->is_cfa =	(!strncmp(metadata.keywords.bayer_pattern, "RGGB", 4) ||
-								 !strncmp(metadata.keywords.bayer_pattern, "BGGR", 4) ||
-								 !strncmp(metadata.keywords.bayer_pattern, "GBRG", 4) ||
-								 !strncmp(metadata.keywords.bayer_pattern, "GRBG", 4));
+	background_args->is_cfa = (!strncmp(metadata.keywords.bayer_pattern, "RGGB", 4) ||
+							!strncmp(metadata.keywords.bayer_pattern, "BGGR", 4) ||
+							!strncmp(metadata.keywords.bayer_pattern, "GBRG", 4) ||
+							!strncmp(metadata.keywords.bayer_pattern, "GRBG", 4));
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = background_args->seq->selnum;
 	args->compute_mem_limits_hook = background_mem_limits_hook;
@@ -1353,4 +1353,3 @@ gdouble background_sample_get_size(background_sample *sample) {
 point background_sample_get_position(background_sample *sample) {
 	return sample->position;
 }
-
