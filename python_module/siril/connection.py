@@ -34,7 +34,7 @@ class _Status(IntEnum):
     may legitimately fail to return data but which should not be
     regarded as an error, instead this triggers the command processor
     to return the special python value None
-    Internal class.
+    Internal class: this is not intended for use in scripts.
     """
 
     OK = 0
@@ -44,7 +44,8 @@ class _Status(IntEnum):
 class _Command(IntEnum):
     """
     Enumerates the commands. This enum MUST match the one in
-    siril_pythonmodule.h. Internal class.
+    siril_pythonmodule.h. Internal class: this is not intended for
+    use in scripts.
     """
     SEND_COMMAND = 1
     LOG_MESSAGE = 2
@@ -79,7 +80,8 @@ class _Command(IntEnum):
 class ConfigType(IntEnum):
     """
     Enumerates config variable types for use with the
-    get_config() method. Internal class.
+    ``get_config()`` method. Internal class: this is not intended
+    for use in scripts.
     """
     BOOL = 0
     INT = 1
@@ -90,7 +92,8 @@ class ConfigType(IntEnum):
 
 class SharedMemoryInfo(ctypes.Structure):
     """
-    Structure matching the C-side shared memory info. Internal class.
+    Structure matching the C-side shared memory info. Internal class:
+    this is not intended for use in scripts.
     """
     _fields_ = [
         ("size", ctypes.c_size_t),
@@ -179,7 +182,8 @@ def import_or_install(module_name: str, version_constraint: Optional[str] = None
 def ensure_installed(package_name: str, version_constraint: Optional[str] = None):
     """
     Ensures that the specified package with the given version constraint is installed.
-    Installs the package if it is missing or if the version constraint is not met.
+    Installs the package if it is missing or if the version constraint is not met. Does
+    not attempt to install the module post installation.
 
     Args:
         package_name (str): Name of the package to ensure is installed.
@@ -300,7 +304,7 @@ class SirilInterface:
 
         Raises:
             ConnectionError: if the connection cannot be closed because the
-                pipe / socket cannot be found.
+                             pipe / socket cannot be found.
         """
 
         if os.name == 'nt':
