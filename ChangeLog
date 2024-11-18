@@ -97,7 +97,7 @@ xx/xx/xx
 * Removed Windows cross-build CI and improved performance of native CI (!767)
 
 siril 1.2.5
-xx/xx/xx
+11/22/24
 * Fixed crash in gaussVertical() on macOS (issue reported on pixls.us, !742)
 * Fixed free space disk computation on macOS, probably for good (#1368 and #1375 and #1422)
 * Fixed crash if the CWD changes after a first successfull Automated light Curve process (#1378 !746)
