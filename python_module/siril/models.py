@@ -446,10 +446,10 @@ class FFit:
         return self._data
 
     @data.setter
-    def data(self, value: Optional[np.ndarray]):
+    def set_data(self, value: Optional[np.ndarray]):
         """
         Set the pixel data of the FFit to the provided numpy array. Note: this
-        does not update the image loaded in Siril - SirilInterface.set_pixeldata()
+        does not update the image loaded in Siril - ``SirilInterface.set_pixeldata()``
         must be used to achieve this.
 
         Args:
@@ -506,7 +506,7 @@ class FFit:
         return self._icc_profile
 
     @icc_profile.setter
-    def icc_profile(self, value: Optional[bytes]):
+    def set_icc_profile(self, value: Optional[bytes]):
         """
         Set ICC profile and update color_managed flag. Note this only
         updates the python FFit structure: the API does not currently
