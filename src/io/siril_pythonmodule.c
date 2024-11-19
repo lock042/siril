@@ -103,26 +103,37 @@ gboolean send_response(Connection* conn, uint8_t status, const void* data, uint3
 		.status = status,
 		.length = GUINT32_TO_BE(length)  // Convert to network byte order
 	};
-
+	printf("send_response status: %c length: %u\n", status, length);
+	if (!data)
+		printf("send_response: data is NULL (ie length should be 0");
 #ifdef _WIN32
-	DWORD bytes_written = 0;
+    DWORD bytes_written = 0;
+    
+    // Allocate a single buffer with header and data
+    size_t total_size = sizeof(header) + (data && length > 0 ? length : 0);
+    void* combined_buffer = malloc(total_size);
+    if (!combined_buffer) {
+        siril_log_message("Memory allocation failed for combined write\n");
+        return FALSE;
+    }
 
-	// Send header
-	if (!WriteFile(conn->pipe_handle, &header, sizeof(header), &bytes_written, NULL) ||
-		bytes_written != sizeof(header)) {
-		siril_log_message("Failed to send response header: %lu\n", GetLastError());
-		return FALSE;
-	}
+    // Copy header to the start of the buffer
+    memcpy(combined_buffer, &header, sizeof(header));
 
-	// Send data if present
-	if (data && length > 0) {
-		if (!WriteFile(conn->pipe_handle, data, length, &bytes_written, NULL) ||
-			bytes_written != length) {
-			siril_debug_print("Failed to send response data: %lu\n", GetLastError());
-			return FALSE;
-		}
-	}
+    // Copy data after the header if present
+    if (data && length > 0) {
+        memcpy((char*)combined_buffer + sizeof(header), data, length);
+    }
 
+    // Single WriteFile call for atomic transfer
+    if (!WriteFile(conn->pipe_handle, combined_buffer, total_size, &bytes_written, NULL) ||
+        bytes_written != total_size) {
+        siril_log_message("Failed to send response: %lu\n", GetLastError());
+        free(combined_buffer);
+        return FALSE;
+    }
+
+    free(combined_buffer);
 #else
 	ssize_t bytes_written;
 
@@ -142,7 +153,7 @@ gboolean send_response(Connection* conn, uint8_t status, const void* data, uint3
 		}
 	}
 #endif
-
+	printf("send_response: response sent\n")
 	return TRUE;
 }
 
