@@ -28,8 +28,12 @@ class ConnectionError(SirilError):
         super().__init__(message)
 
 class CommandError(SirilError):
-    """Raised when a Siril command fails to execute properly.
-    This includes cases like:
+    """
+    Raised when a command sent to Siril fails to execute properly.
+    (Note: 'command' in this case refers to internal commands sent
+    from the python module to the Siril python handler, not Siril
+    commands of the type that might be entered in the Siril command
+    entry.) This includes cases like:
 
     - Invalid command parameters
 
@@ -37,12 +41,14 @@ class CommandError(SirilError):
 
     - Unexpected command responses
 
-    - Command timeout"""
+    - Command timeout
+    """
     def __init__(self, message: str = _("Command execution failed")):
         super().__init__(message)
 
 class DataError(SirilError):
-    """Raised when there are problems with data handling.
+    """
+    Raised when there are problems with data handling.
     This includes cases like:
 
     - Invalid image data
@@ -51,12 +57,23 @@ class DataError(SirilError):
 
     - Memory allocation failures
 
-    - Buffer overflows"""
+    - Buffer overflows
+    """
     def __init__(self, message: str = _("Error handling data")):
         super().__init__(message)
 
 class NoImageError(SirilError):
-    """Raised when a method requires an image to be loaded
-    but no image is loaded."""
+    """
+    Raised when a method requires an image to be loaded
+    but no image is loaded.
+    """
     def __init__(self, message: str = _("No Siril image loaded")):
+        super().__init__(message)
+
+class NoSequenceError(SirilError):
+    """
+    Raised when a method requires a sequence to be loaded
+    but no sequence is loaded.
+    """
+    def __init__(self, message: str = _("No Siril sequence loaded")):
         super().__init__(message)

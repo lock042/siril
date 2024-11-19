@@ -26,7 +26,8 @@ if TYPE_CHECKING:
         ConnectionError,
         CommandError,
         DataError,
-        NoImageError
+        NoImageError,
+        NoSequenceError
     )
 
 # Runtime imports
@@ -50,7 +51,8 @@ from .exceptions import (
     ConnectionError,
     CommandError,
     DataError,
-    NoImageError
+    NoImageError,
+    NoSequenceError
 )
 
 # Package metadata
@@ -80,6 +82,7 @@ __all__ = [
     'CommandError',
     'DataError',
     'NoImageError',
+    'NoSequenceError',
     'SharedMemoryWrapper',
     '_'
 ]

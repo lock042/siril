@@ -18,7 +18,7 @@ from importlib import metadata
 from .shm import SharedMemoryWrapper
 from packaging import version, requirements
 from typing import Tuple, Optional, List, Union, Any
-from .exceptions import SirilError, ConnectionError, CommandError, DataError, NoImageError
+from .exceptions import SirilError, ConnectionError, CommandError, DataError, NoImageError, NoSequenceError
 from .models import DataType, ImageStats, FKeywords, FFit, Homography, StarProfile, PSFStar, RegData, ImgData, Sequence, SequenceType
 
 if os.name == 'nt':
