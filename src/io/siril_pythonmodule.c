@@ -103,7 +103,7 @@ gboolean send_response(Connection* conn, uint8_t status, const void* data, uint3
 	// Send header
 	if (!WriteFile(conn->pipe_handle, &header, sizeof(header), &bytes_written, NULL) ||
 		bytes_written != sizeof(header)) {
-		siril_debug_print("Failed to send response header: %lu\n", GetLastError());
+		siril_log_message("Failed to send response header: %lu\n", GetLastError());
 		return FALSE;
 	}
 
