@@ -29,15 +29,19 @@ class SharedMemoryWrapper:
         Create shared memory (Windows version). Not intended as a function for use
         directly in scripts: this is an internal method.
         """
+
         try:
+            # First try to create
             self._shm = SharedMemory(name=self.name, create=True, size=self.size)
         except FileExistsError:
-            # If it exists, try to remove it and create again
+            # If it exists, try to open the existing segment instead
             try:
-                SharedMemory(name=self.name).unlink()
-                self._shm = SharedMemory(name=self.name, create=True, size=self.size)
+                self._shm = SharedMemory(name=self.name, create=False)
+                # Verify size matches expected size
+                if self._shm.buf.nbytes != self.size:
+                    raise ValueError(f"Existing shared memory size {self._shm.buf.nbytes} does not match expected {self.size}")
             except Exception as e:
-                raise RuntimeError(f"Failed to create shared memory on Windows: {e}")
+                raise RuntimeError(f"Failed to open existing shared memory: {e}")
 
     def _create_unix(self):
         """
