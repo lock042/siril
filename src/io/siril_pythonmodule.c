@@ -130,14 +130,14 @@ static gboolean create_shared_memory_win32(const char* name, size_t size, size_t
         name);                   // Name of mapping object
 
     if (handle->mapping == NULL) {
-        siril_debug_print("Failed to create file mapping: %lu\n", GetLastError());
+        printf("Failed to create file mapping: %lu\n", GetLastError());
         return FALSE;
     }
 
     *actual_size = GetFileSize(handle->mapping, NULL);
 	printf("actual size from GetFileSize: %lu\n", *actual_size);
     if (*actual_size == INVALID_FILE_SIZE) {
-        siril_debug_print("Failed to get actual file mapping size: %lu\n", GetLastError());
+        printf("Failed to get actual file mapping size: %lu\n", GetLastError());
         CloseHandle(handle->mapping);
         return FALSE;
     }
@@ -151,7 +151,7 @@ static gboolean create_shared_memory_win32(const char* name, size_t size, size_t
 
     if (handle->ptr == NULL) {
         CloseHandle(handle->mapping);
-        siril_debug_print("Failed to map view of file: %lu\n", GetLastError());
+        printf("Failed to map view of file: %lu\n", GetLastError());
         return FALSE;
     }
 
