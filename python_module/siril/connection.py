@@ -401,7 +401,7 @@ class SirilInterface:
         Internal method, not for direct use in scripts.
         """
         try:
-            data_length = len(data) if data else -1
+            data_length = len(data) if data else 0
             if data_length > 65529:
                 raise RuntimeError(_("Command data too long. Maximum command data 65529 bytes"))
 

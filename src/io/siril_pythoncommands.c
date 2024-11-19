@@ -387,8 +387,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 	// Get command header
 	CommandHeader* header = (CommandHeader*)buffer;
-	uint32_t payload_length = GUINT32_FROM_BE(header->length);  // Convert from network byte order
-	if (payload_length == -1) payload_length = 0;
+	int32_t payload_length = GINT32_FROM_BE(header->length);  // Convert from network byte order
 	// Verify we have complete message
 	if (length < sizeof(CommandHeader) + payload_length) {
 		siril_log_color_message(_("Received incomplete command payload: length = %u, expected %u\n"), "red", length, payload_length);
