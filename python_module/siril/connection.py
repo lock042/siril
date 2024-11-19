@@ -396,10 +396,6 @@ class SirilInterface:
                 self.sock.settimeout(original_timeout)
 
     def _send_command(self, command: _Command, data: Optional[bytes] = None) -> Tuple[Optional[int], Optional[bytes]]:
-        """
-        Send a command to Siril and receive the response with proper synchronization.
-        Internal method, not for direct use in scripts.
-        """
         try:
             data_length = len(data) if data else 0
             if data_length > 65529:
@@ -416,18 +412,23 @@ class SirilInterface:
                 header = struct.pack('!Bi', command, data_length)
 
                 if os.name == 'nt':
-                    # Send header atomically
-                    err, bytes_written = win32file.WriteFile(self.pipe_handle, header, self.overlap_write)
-                    rc = win32event.WaitForSingleObject(self.overlap_write.hEvent, 3000)
-                    if rc != win32event.WAIT_OBJECT_0:
-                        raise ConnectionError(_("Timeout while sending header"))
+                    # Create new OVERLAPPED structure for each write operation
+                    write_overlapped = pywintypes.OVERLAPPED()
+                    write_overlapped.hEvent = win32event.CreateEvent(None, True, False, None)
 
-                    # Send data if present
+                    # Combine header and data into single buffer for atomic write
+                    complete_message = header
                     if data and data_length > 0:
-                        err, bytes_written = win32file.WriteFile(self.pipe_handle, data, self.overlap_write)
-                        rc = win32event.WaitForSingleObject(self.overlap_write.hEvent, 3000)
-                        if rc != win32event.WAIT_OBJECT_0:
-                            raise ConnectionError(_("Timeout while sending data"))
+                        complete_message += data
+
+                    # Send everything in one write operation
+                    err, bytes_written = win32file.WriteFile(self.pipe_handle, complete_message, write_overlapped)
+                    rc = win32event.WaitForSingleObject(write_overlapped.hEvent, 3000)
+                    if rc != win32event.WAIT_OBJECT_0:
+                        raise ConnectionError(_("Timeout while sending message"))
+
+                    # Clean up event handle
+                    win32api.CloseHandle(write_overlapped.hEvent)
 
                     # Wait for and receive complete response
                     response_header = self._recv_exact(5)  # Fixed size header: 1 byte status + 4 bytes length
@@ -445,15 +446,13 @@ class SirilInterface:
                     return status, response_data
 
                 else:
-                    # Socket implementation with atomic writes
+                    # Socket implementation remains unchanged
                     msg = header
                     if data and data_length > 0:
                         msg += data
 
-                    # Send everything in one call to prevent fragmentation
                     self.sock.sendall(msg)
 
-                    # Receive response atomically
                     response_header = self._recv_exact(5)
                     if not response_header:
                         return None, None
