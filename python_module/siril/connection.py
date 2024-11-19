@@ -34,7 +34,7 @@ class _Status(IntEnum):
     may legitimately fail to return data but which should not be
     regarded as an error, instead this triggers the command processor
     to return the special python value None
-    Internal class.
+    Internal class: this is not intended for use in scripts.
     """
 
     OK = 0
@@ -44,7 +44,8 @@ class _Status(IntEnum):
 class _Command(IntEnum):
     """
     Enumerates the commands. This enum MUST match the one in
-    siril_pythonmodule.h. Internal class.
+    siril_pythonmodule.h. Internal class: this is not intended for
+    use in scripts.
     """
     SEND_COMMAND = 1
     LOG_MESSAGE = 2
@@ -79,7 +80,8 @@ class _Command(IntEnum):
 class ConfigType(IntEnum):
     """
     Enumerates config variable types for use with the
-    get_config() method. Internal class.
+    ``get_config()`` method. Internal class: this is not intended
+    for use in scripts.
     """
     BOOL = 0
     INT = 1
@@ -90,7 +92,8 @@ class ConfigType(IntEnum):
 
 class SharedMemoryInfo(ctypes.Structure):
     """
-    Structure matching the C-side shared memory info. Internal class.
+    Structure matching the C-side shared memory info. Internal class:
+    this is not intended for use in scripts.
     """
     _fields_ = [
         ("size", ctypes.c_size_t),
@@ -179,7 +182,8 @@ def import_or_install(module_name: str, version_constraint: Optional[str] = None
 def ensure_installed(package_name: str, version_constraint: Optional[str] = None):
     """
     Ensures that the specified package with the given version constraint is installed.
-    Installs the package if it is missing or if the version constraint is not met.
+    Installs the package if it is missing or if the version constraint is not met. Does
+    not attempt to install the module post installation.
 
     Args:
         package_name (str): Name of the package to ensure is installed.
@@ -253,10 +257,11 @@ class SirilInterface:
         """
         Establish a connection to Siril based on the pipe or socket path.
 
-        Returns: True if the connection is successful, otherwise False.
+        Returns:
+            True if the connection is successful, otherwise False.
 
-        Raises: ConnectionError: if a connection error occurred then
-            ConnectionError is raised.
+        Raises:
+            ConnectionError: if a connection error occurred
         """
 
         try:
@@ -294,10 +299,12 @@ class SirilInterface:
         """
         Closes the established socket or pipe connection.
 
-        Returns: True if the connection is closed successfully.
+        Returns:
+            True if the connection is closed successfully.
 
-        Raises: ConnectionError: if the connection cannot be closed because the
-            pipe / socket cannot be found.
+        Raises:
+            ConnectionError: if the connection cannot be closed because the
+                             pipe / socket cannot be found.
         """
 
         if os.name == 'nt':
@@ -322,7 +329,7 @@ class SirilInterface:
     def _recv_exact(self, n: int, timeout: float = 5.0) -> Optional[bytes]:
         """
         Helper method to receive exactly n bytes from the socket or pipe.
-        Internal method, not for end-user use.
+        Internal method, not for direct use in scripts.
         """
         if n < 0:
             raise ValueError(_("Cannot receive negative number of bytes"))
@@ -391,7 +398,7 @@ class SirilInterface:
     def _send_command(self, command: _Command, data: Optional[bytes] = None) -> Tuple[Optional[int], Optional[bytes]]:
         """
         Send a command to Siril and receive the response with proper synchronization.
-        Internal method, not for end-user use.
+        Internal method, not for direct use in scripts.
         """
         try:
             data_length = len(data) if data else -1
@@ -473,7 +480,7 @@ class SirilInterface:
     def _map_shared_memory(self, name: str, size: int) -> SharedMemoryWrapper:
         """
         Create or open a shared memory mapping using SharedMemoryWrapper.
-        Internal method, not for end-user use.
+        Internal method, not for direct use in scripts.
 
         Args:
             name: Name of the shared memory segment,
@@ -526,7 +533,7 @@ class SirilInterface:
         High-level method to request small-volume data from Siril. The
         payload limit is 63336 bytes. For commands expected to return
         larger volumes of data, SHM should be used.
-        Internal method, not for end-user use.
+        Internal method, not for direct use in scripts.
 
         Args:
             command: The data request command,
@@ -582,7 +589,7 @@ class SirilInterface:
 
         Args:
             message: Status message to display,
-            progress: Progress value between 0.0 and 1.0
+            progress: Progress value in the range 0.0 to 1.0
 
         Returns:
             bool: True if the progress update was successfully sent, False otherwise
@@ -612,7 +619,7 @@ class SirilInterface:
 
     def reset_progress(self) -> bool:
         """
-        Send a progress update to Siril resetting the progress bar.
+        Resets the Siril progress bar.
 
         Args:
             none
@@ -625,7 +632,9 @@ class SirilInterface:
 
     def cmd(self, *args: str) -> bool:
         """
-        Send a command to Siril by combining multiple arguments into a single string.
+        Send a command to Siril to be executed. The range of available commands can
+        be found by checking the online documentation. The command and its arguments
+        are provided as a list of strings.
 
         Args:
             *args: Variable number of string arguments to be combined into a command
@@ -676,12 +685,12 @@ class SirilInterface:
     def get_pixeldata(self, shape: Optional[list[int]] = None) -> Optional[np.ndarray]:
 
         """
-        Retrieve the pixel data using shared memory.
+        Retrieves the pixel data from the image currently loaded in Siril.
 
         Args:
             shape: Optional list of [x, y, w, h] specifying the region to retrieve.
-                If provided, gets data for just that region.
-                If None, gets data for the entire image.
+                   If provided, gets pixeldata for just that region.
+                   If None, gets pixeldata for the entire image.
 
         Returns:
             numpy.ndarray: The image data as a numpy array
@@ -807,8 +816,8 @@ class SirilInterface:
 
         Args:
             image_data: numpy.ndarray containing the image data.
-            Must be 2D (single channel) or 3D (multi-channel) array
-            with dtype either np.float32 or np.uint16.
+                        Must be 2D (single channel) or 3D (multi-channel) array
+                        with dtype either np.float32 or np.uint16.
 
         Returns:
             bool: True if successful, False otherwise
@@ -902,12 +911,12 @@ class SirilInterface:
 
         Returns:
             bytes: The image ICC profile as a byte array, or None if the current
-            image has no ICC profile.
+                   image has no ICC profile.
 
         Raises:
             NoImageError: If no image is currently loaded,
             RuntimeError: For other errors during  data retrieval,
-            ValueError: If the received data format is invalid or shape is invalid
+            ValueError: If the shared memory data is invalid
         """
 
         shm = None
@@ -974,8 +983,7 @@ class SirilInterface:
 
     def get_fits_header(self) -> Optional[str]:
         """
-        Retrieve the full FITS header of the current Siril image using
-        shared memory.
+        Retrieve the full FITS header of the current image loaded in Siril.
 
         Args:
             none.
@@ -1055,7 +1063,7 @@ class SirilInterface:
 
     def get_unknown_keys(self) -> Optional[str]:
         """
-        Retrieve the unknown key in a FITS header of the current Siril
+        Retrieve the unknown key in a FITS header of the current loaded Siril
         image using shared memory.
 
         Args:
@@ -1138,7 +1146,7 @@ class SirilInterface:
 
     def get_history(self) -> Optional[list[str]]:
         """
-        Retrieve history entries in the FITS header of the current
+        Retrieve history entries in the FITS header of the current loaded
         Siril image using shared memory.
 
         Args:
@@ -1223,10 +1231,10 @@ class SirilInterface:
 
     def get_wd(self) -> Optional[str]:
         """
-        Request the working directory from Siril.
+        Request the current working directory from Siril.
 
         Returns:
-            The working directory as a string, or None if an error occurred.
+            The current working directory as a string, or None if an error occurred.
         """
 
         response = self.request_data(_Command.GET_WORKING_DIRECTORY)
@@ -1269,7 +1277,7 @@ class SirilInterface:
 
         Returns:
             bool: True if a single image is loaded, False if a single image is
-        not loaded, or None if an error occurred.
+                  not loaded, or None if an error occurred.
         """
         response = self.request_data(_Command.GET_IS_IMAGE_LOADED)
 
@@ -1285,7 +1293,7 @@ class SirilInterface:
 
         Returns:
             bool: True if a sequence is loaded, False if a sequence is not loaded,
-        or None if an error occurred.
+                  or None if an error occurred.
         """
         response = self.request_data(_Command.GET_IS_SEQUENCE_LOADED)
 
@@ -1322,10 +1330,10 @@ class SirilInterface:
 
         Args:
             channel: Integer specifying which channel to get statistics
-            for (typically 0, 1, or 2)
+                     for (typically 0, 1, or 2)
 
         Returns:
-        ImageStats object containing the statistics, or None if an error occurred
+            ImageStats object containing the statistics, or None if an error occurred
         """
 
         # Convert channel number to network byte order bytes
@@ -1385,9 +1393,9 @@ class SirilInterface:
 
         Args:
             frame: Integer specifying which frame in the sequence to get registration
-        data for (between 0 and Sequence.number),
+                   data for (between 0 and Sequence.number),
             channel: Integer specifying which channel to get registration data
-        for (typically 0, 1, or 2)
+                     for (typically 0, 1, or 2)
 
         Returns:
             RegData object containing the registration data, or None if an error occurred
@@ -1436,10 +1444,10 @@ class SirilInterface:
         Request sequence frame statistics from Siril.
 
         Args:
-            frame: Integer specifying which frame in the sequence to get statistcs
-        data for (between 0 and Sequence.number),
+            frame: Integer specifying which frame in the sequence to get statistics
+                   data for (between 0 and Sequence.number)
             channel: Integer specifying which channel to get statistics
-        for (typically 0, 1, or 2)
+                     for (typically 0, 1, or 2)
 
         Returns:
             ImageStats object containing the statistics, or None if an error occurred
@@ -1480,9 +1488,10 @@ class SirilInterface:
     def get_seq_imgdata(self, frame: int) -> Optional[ImgData]:
         """
         Request sequence frame metadata from Siril.
+
         Args:
             frame: Integer specifying which frame in the sequence to get image
-        metadata for (between 0 and Sequence.number)
+                   metadata for (between 0 and Sequence.number)
 
         Returns:
             ImgData object containing the frame metadata, or None if an error occurred
@@ -1517,7 +1526,7 @@ class SirilInterface:
 
         Returns:
             Sequence object containing the current sequence metadata, or None
-        if an error occurred
+            if an error occurred
         """
 
         # Request data with the channel number as payload
@@ -1577,7 +1586,7 @@ class SirilInterface:
 
     def get_keywords(self) -> Optional[FKeywords]:
         """
-        Request FITS keywords data from Siril.
+        Request FITS keywords data from Siril as a FKeywords object.
 
         Returns:
             FKeywords object containing the FITS keywords, or None if an error occurred
@@ -1736,13 +1745,12 @@ class SirilInterface:
         Request a copy of the current image open in Siril.
 
         Args:
-            with_pixels: optional bool specifying whether to get
-        pixel data as a NumPy array, or only the image metadata. Defaults
-        to True
+            with_pixels: optional bool specifying whether to get pixel data as a
+                         NumPy array, or only the image metadata. Defaults to True
 
         Returns:
             FFit object containing the image metadata and (optionally)
-        pixel data, or None if an error occurred
+            pixel data, or None if an error occurred
         """
 
         # Request data with the channel number as payload
@@ -1838,8 +1846,8 @@ class SirilInterface:
 
         Returns:
             List of PSFStar objects containing the star data, or None if
-        no stars have been detected. (The "findstar" command should
-        be run first to detect stars in the image.)
+            no stars have been detected. (The "findstar" command should
+            be run first to detect stars in the image.)
 
         Raises:
             NoImageError: If no image is currently loaded,
@@ -1956,15 +1964,15 @@ class SirilInterface:
         Args:
             group: Configuration group name,
             key: Configuration key name within the group
-        (Available values for group and key can be determined using
-        the \"get -A\" command)
+                 (Available values for group and key can be determined using
+                 the "get -A" command)
 
         Returns:
             The configuration value with appropriate Python type, or None if an
-        error occurred
+            error occurred
 
         Raises:
-            RuntimeError if an error occurred getting the requested config value
+            RuntimeError: if an error occurred getting the requested config value
         """
 
         try:
