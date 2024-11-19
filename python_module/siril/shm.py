@@ -38,7 +38,9 @@ class SharedMemoryWrapper:
             try:
                 self._shm = SharedMemory(name=self.name, create=False)
                 # Verify size matches expected size
-                if self._shm.buf.nbytes != self.size:
+                if self._shm.buf.nbytes < self.size:
+                    # Check that the actual buffer size is at least as big as expected
+                    # (it may be bigger owing to rounding up to the next page boundary)
                     raise ValueError(f"Existing shared memory size {self._shm.buf.nbytes} does not match expected {self.size}")
             except Exception as e:
                 raise RuntimeError(f"Failed to open existing shared memory: {e}")
