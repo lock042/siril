@@ -954,7 +954,7 @@ class SirilInterface:
 
             if len(response) < 25: # No payload
                 return None
-
+            print(response)
             try:
                 # Parse the shared memory information
                 shm_info = SharedMemoryInfo.from_buffer_copy(response)

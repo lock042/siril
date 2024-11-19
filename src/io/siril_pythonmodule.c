@@ -347,13 +347,17 @@ gboolean handle_pixeldata_request(Connection *conn, fits *fit, rectangle region)
 	char shm_name[256];
 #ifdef _WIN32
 	win_shm_handle_t win_handle;
-	if (!siril_allocate_shm(&shm_ptr, shm_name, &total_bytes, &win_handle))
-		return FALSE;
+	if (!siril_allocate_shm(&shm_ptr, shm_name, &total_bytes, &win_handle)) {
+		const char* error_msg = _("Failed to allocate shared memory");
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
 #else
 	char *shm_name_ptr = shm_name;
 	int fd;
-	if (!siril_allocate_shm(&shm_ptr, shm_name_ptr, &total_bytes, &fd))
-		return FALSE;
+	if (!siril_allocate_shm(&shm_ptr, shm_name_ptr, &total_bytes, &fd)) {
+		const char* error_msg = _("Failed to allocate shared memory");
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
 #endif
 
 	// null check before memcpy
@@ -417,12 +421,16 @@ gboolean handle_rawdata_request(Connection *conn, void* data, size_t total_bytes
 	char shm_name[256];
 #ifdef _WIN32
 	win_shm_handle_t win_handle = { NULL, NULL };
-	if (!siril_allocate_shm(&shm_ptr, shm_name, &total_bytes, &win_handle))
-		return FALSE;
+	if (!siril_allocate_shm(&shm_ptr, shm_name, &total_bytes, &win_handle)) {
+		const char* error_msg = _("Failed to allocate shared memory");
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
 #else
 	int fd;
-	if (!siril_allocate_shm(&shm_ptr, shm_name, &total_bytes, &fd))
-		return FALSE;
+	if (!siril_allocate_shm(&shm_ptr, shm_name, &total_bytes, &fd)) {
+		const char* error_msg = _("Failed to allocate shared memory");
+		return send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+	}
 #endif
 
 	// null check before memcpy
