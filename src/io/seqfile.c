@@ -55,7 +55,9 @@
  * version 5:
  * 	- removed upscale at stacking (U card) 1.3.4
  *  - added D* cards containing distortion and astrometry information 1.3.4  - see enum disto_source
- *  - added overlap statistics in the O* cards
+ *  - added overlap statistics in the O* cards:
+ *  	=> ON i j areai.x areai.y areaj.x areaj.y areai.w areai.h Nij medij medji madij madji locij locji scaij scji
+ * 		=> with N the layer number and i,j the ith and jth images of the sequence
  */
 #define CURRENT_SEQFILE_VERSION 5	// to increment on format change
 

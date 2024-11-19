@@ -449,6 +449,7 @@ static int _compute_estimators_for_images(struct stacking_args *args, int i, int
 		areaj = seq->ostats[args->reglayer][ijth].areaj;
 		was_cached = TRUE;
 	} else {
+		args->seq->needs_saving = TRUE;
 		siril_debug_print("computing stats for overlap between image %d and image %d, lite: %d\n", i + 1, j + 1, args->lite_norm);
 		nbdata = compute_overlap(args, i, j, &areai, &areaj);
 		// we cache it for all layers
@@ -505,7 +506,7 @@ static int _compute_estimators_for_images(struct stacking_args *args, int i, int
 		siril_debug_print("Data for %d and %d were cached, re-using\n");
 		return ST_OK;
 	}
-
+	args->seq->needs_saving = TRUE;
 	float *datai = malloc(nbdata * sizeof(float));
 	float *dataj = malloc(nbdata * sizeof(float));
 	fit_sequence_get_image_filename(seq, i, file_i, TRUE);
@@ -583,6 +584,12 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 	if (args->normalize == NO_NORM || !args->maximize_framing)	// should never happen here
 		return 0;
 
+	if (args->force_norm) { /* We empty the cache if needed (force to recompute) */
+		free_ostats(args->seq->ostats, args->seq->nb_layers);
+		args->seq->ostats = NULL;
+		args->seq->needs_saving = TRUE;
+	}
+
 	// first, find the index of the ref image in the filtered image list
 	// and compute its statistics
 	index_ref = find_refimage_in_indices(args->image_indices,
@@ -608,10 +615,12 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 	}
 
 	init_coeffs(args);
-	// if the overlap stats have never been cached, we allocate there for all 
+	// if the overlap stats have never been cached or have been cleared, we allocate there for all 
 	// the images of the sequence (without filtering)
-	if (!args->seq->ostats)
+	if (!args->seq->ostats) {
 		args->seq->ostats = alloc_ostats(nb_layers, args->seq->number);
+		args->seq->needs_saving = TRUE;
+	}
 	
 	double ***Mij = malloc(nb_layers * sizeof(double **));
 	double ***Sij = malloc(nb_layers * sizeof(double **));
