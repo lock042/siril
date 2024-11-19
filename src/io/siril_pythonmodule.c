@@ -120,13 +120,13 @@ gboolean send_response(Connection* conn, uint8_t status, const void* data, uint3
 
 #ifdef _WIN32
 static gboolean create_shared_memory_win32(const char* name, size_t size, size_t *actual_size, win_shm_handle_t* handle) {
-	printf("create_shared_memory_win32 size request: %lu\n", size);
+    printf("create_shared_memory_win32 size request: %lu\n", size);
     handle->mapping = CreateFileMapping(
         INVALID_HANDLE_VALUE,    // Use paging file
         NULL,                    // Default security
         PAGE_READWRITE,          // Read/write access
-        0,                       // Maximum object size (high-order DWORD)
-        size,                    // Maximum object size (low-order DWORD)
+        (DWORD)(size >> 32),     // High-order DWORD of size
+        (DWORD)(size & 0xFFFFFFFF), // Low-order DWORD of size
         name);                   // Name of mapping object
 
     if (handle->mapping == NULL) {
@@ -134,20 +134,25 @@ static gboolean create_shared_memory_win32(const char* name, size_t size, size_t
         return FALSE;
     }
 
-    *actual_size = GetFileSize(handle->mapping, NULL);
-	printf("actual size from GetFileSize: %lu\n", *actual_size);
-    if (*actual_size == INVALID_FILE_SIZE) {
+    DWORD high_size = 0;
+    DWORD low_size = GetFileSize(handle->mapping, &high_size);
+    
+    if (low_size == INVALID_FILE_SIZE && GetLastError() != NO_ERROR) {
         printf("Failed to get actual file mapping size: %lu\n", GetLastError());
         CloseHandle(handle->mapping);
         return FALSE;
     }
+
+    // Combine high and low parts for 64-bit size
+    *actual_size = ((size_t)high_size << 32) | low_size;
+    printf("actual size from GetFileSize: %lu\n", *actual_size);
 
     handle->ptr = MapViewOfFile(
         handle->mapping,         // Handle to mapping object
         FILE_MAP_ALL_ACCESS,     // Read/write permission
         0,                       // Offset high
         0,                       // Offset low
-        *actual_size);            // Number of bytes to map
+        *actual_size);           // Number of bytes to map
 
     if (handle->ptr == NULL) {
         CloseHandle(handle->mapping);
@@ -157,7 +162,6 @@ static gboolean create_shared_memory_win32(const char* name, size_t size, size_t
 
     return TRUE;
 }
-
 gboolean siril_allocate_shm(void** shm_ptr_ptr,
 							char* shm_name_ptr,
 							size_t *total_bytes,
