@@ -412,38 +412,50 @@ class SirilInterface:
                 header = struct.pack('!Bi', command, data_length)
 
                 if os.name == 'nt':
-                    # Create new OVERLAPPED structure for each write operation
-                    write_overlapped = pywintypes.OVERLAPPED()
-                    write_overlapped.hEvent = win32event.CreateEvent(None, True, False, None)
+                    # Create event for this write operation
+                    event_handle = win32event.CreateEvent(None, True, False, None)
+                    if not event_handle:
+                        raise ConnectionError(_("Failed to create event for write operation"))
 
-                    # Combine header and data into single buffer for atomic write
-                    complete_message = header
-                    if data and data_length > 0:
-                        complete_message += data
+                    try:
+                        # Create OVERLAPPED structure for this write
+                        write_overlapped = pywintypes.OVERLAPPED()
+                        write_overlapped.hEvent = event_handle
 
-                    # Send everything in one write operation
-                    err, bytes_written = win32file.WriteFile(self.pipe_handle, complete_message, write_overlapped)
-                    rc = win32event.WaitForSingleObject(write_overlapped.hEvent, 3000)
-                    if rc != win32event.WAIT_OBJECT_0:
-                        raise ConnectionError(_("Timeout while sending message"))
+                        # Combine header and data into single buffer for atomic write
+                        complete_message = header
+                        if data and data_length > 0:
+                            complete_message += data
 
-                    # Clean up event handle
-                    win32api.CloseHandle(write_overlapped.hEvent)
+                        # Send everything in one write operation
+                        err, bytes_written = win32file.WriteFile(self.pipe_handle, complete_message, write_overlapped)
+                        rc = win32event.WaitForSingleObject(event_handle, 3000)
+                        if rc != win32event.WAIT_OBJECT_0:
+                            raise ConnectionError(_("Timeout while sending message"))
 
-                    # Wait for and receive complete response
-                    response_header = self._recv_exact(5)  # Fixed size header: 1 byte status + 4 bytes length
-                    if not response_header:
-                        return None, None
+                        # Ensure all bytes were written
+                        bytes_transferred = win32file.GetOverlappedResult(self.pipe_handle, write_overlapped, True)
+                        if bytes_transferred != len(complete_message):
+                            raise ConnectionError(_("Incomplete write operation"))
 
-                    status, response_length = struct.unpack('!BI', response_header)
-
-                    response_data = None
-                    if response_length > 0:
-                        response_data = self._recv_exact(response_length)
-                        if not response_data:
+                        # Wait for and receive complete response
+                        response_header = self._recv_exact(5)  # Fixed size header: 1 byte status + 4 bytes length
+                        if not response_header:
                             return None, None
 
-                    return status, response_data
+                        status, response_length = struct.unpack('!BI', response_header)
+
+                        response_data = None
+                        if response_length > 0:
+                            response_data = self._recv_exact(response_length)
+                            if not response_data:
+                                return None, None
+
+                        return status, response_data
+
+                    finally:
+                        # Clean up event handle
+                        win32event.CloseHandle(event_handle)
 
                 else:
                     # Socket implementation remains unchanged
