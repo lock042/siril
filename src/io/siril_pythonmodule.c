@@ -135,6 +135,7 @@ static gboolean create_shared_memory_win32(const char* name, size_t size, size_t
     }
 
     *actual_size = GetFileSize(handle->mapping, NULL);
+	printf("actual size from GetFileSize: %lu\n", *actual_size);
     if (*actual_size == INVALID_FILE_SIZE) {
         siril_debug_print("Failed to get actual file mapping size: %lu\n", GetLastError());
         CloseHandle(handle->mapping);
@@ -186,6 +187,7 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
                             int *fd) {
 
     void *shm_ptr = NULL;
+	printf("shm: %lu bytes requested\n", total_bytes);
 	size_t actual_bytes;
     snprintf(shm_name_ptr, 256, "/siril_shm_%d_%lu",
             getpid(), (unsigned long)time(NULL));
