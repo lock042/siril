@@ -163,7 +163,7 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 							size_t *total_bytes,
 							win_shm_handle_t *win_handle) {
 	void *shm_ptr = NULL;
-	printf("shm: %lu bytes requested\n", total_bytes);
+	printf("shm: %lu bytes requested\n", *total_bytes);
 	snprintf(shm_name_ptr, sizeof(shm_name_ptr), "siril_shm_%lu_%lu",
 		(unsigned long)GetCurrentProcessId(),
 		(unsigned long)time(NULL));
