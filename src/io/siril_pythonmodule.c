@@ -60,34 +60,41 @@ static gboolean wait_for_client(Connection *conn);
 static gboolean handle_client_communication(Connection *conn);
 
 #ifdef _WIN32
-static gboolean create_shared_memory_win32(const char* name, size_t size, win_shm_handle_t* handle) {
-	handle->mapping = CreateFileMapping(
-		INVALID_HANDLE_VALUE,    // Use paging file
-		NULL,                    // Default security
-		PAGE_READWRITE,          // Read/write access
-		0,                       // Maximum object size (high-order DWORD)
-		size,                    // Maximum object size (low-order DWORD)
-		name);                   // Name of mapping object
+static gboolean create_shared_memory_win32(const char* name, size_t size, size_t *actual_size, win_shm_handle_t* handle) {
+    handle->mapping = CreateFileMapping(
+        INVALID_HANDLE_VALUE,    // Use paging file
+        NULL,                    // Default security
+        PAGE_READWRITE,          // Read/write access
+        0,                       // Maximum object size (high-order DWORD)
+        size,                    // Maximum object size (low-order DWORD)
+        name);                   // Name of mapping object
 
-	if (handle->mapping == NULL) {
-		siril_debug_print("Failed to create file mapping: %lu\n", GetLastError());
-		return FALSE;
-	}
+    if (handle->mapping == NULL) {
+        siril_debug_print("Failed to create file mapping: %lu\n", GetLastError());
+        return FALSE;
+    }
 
-	handle->ptr = MapViewOfFile(
-		handle->mapping,         // Handle to mapping object
-		FILE_MAP_ALL_ACCESS,     // Read/write permission
-		0,                       // Offset high
-		0,                       // Offset low
-		size);                   // Number of bytes to map
+    *actual_size = GetFileSize(handle->mapping, NULL);
+    if (*actual_size == INVALID_FILE_SIZE) {
+        siril_debug_print("Failed to get actual file mapping size: %lu\n", GetLastError());
+        CloseHandle(handle->mapping);
+        return FALSE;
+    }
 
-	if (handle->ptr == NULL) {
-		CloseHandle(handle->mapping);
-		siril_debug_print("Failed to map view of file: %lu\n", GetLastError());
-		return FALSE;
-	}
+    handle->ptr = MapViewOfFile(
+        handle->mapping,         // Handle to mapping object
+        FILE_MAP_ALL_ACCESS,     // Read/write permission
+        0,                       // Offset high
+        0,                       // Offset low
+        *actual_size);            // Number of bytes to map
 
-	return TRUE;
+    if (handle->ptr == NULL) {
+        CloseHandle(handle->mapping);
+        siril_debug_print("Failed to map view of file: %lu\n", GetLastError());
+        return 0;
+    }
+
+    return TRUE;
 }
 #endif
 
@@ -143,16 +150,18 @@ gboolean send_response(Connection* conn, uint8_t status, const void* data, uint3
 #ifdef _WIN32
 gboolean siril_allocate_shm(void** shm_ptr_ptr,
 							char* shm_name_ptr,
-							size_t total_bytes,
+							size_t *total_bytes,
 							win_shm_handle_t *win_handle) {
 	void *shm_ptr = NULL;
 	snprintf(shm_name_ptr, sizeof(shm_name_ptr), "siril_shm_%lu_%lu",
 		(unsigned long)GetCurrentProcessId(),
 		(unsigned long)time(NULL));
 	*win_handle = (win_shm_handle_t){ NULL, NULL };
-	if (!create_shared_memory_win32(shm_name_ptr, total_bytes, win_handle)) {
+	size_t actual_bytes;
+	if (!create_shared_memory_win32(shm_name_ptr, *total_bytes, &actual_bytes, win_handle)) {
 		return FALSE;
 	}
+	*total_bytes = actual_bytes;
 	shm_ptr = win_handle->ptr;
 	*shm_ptr_ptr = shm_ptr;
 	return TRUE;
@@ -160,35 +169,53 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 #else
 
 gboolean siril_allocate_shm(void** shm_ptr_ptr,
-							char* shm_name_ptr,
-							size_t total_bytes,
-							int *fd) {
+                            char* shm_name_ptr,
+                            size_t *total_bytes,
+                            int *fd) {
 
-	void *shm_ptr = NULL;
-	snprintf(shm_name_ptr, 256, "/siril_shm_%d_%lu",
-			getpid(), (unsigned long)time(NULL));
+    void *shm_ptr = NULL;
+	size_t actual_bytes;
+    snprintf(shm_name_ptr, 256, "/siril_shm_%d_%lu",
+            getpid(), (unsigned long)time(NULL));
 
-	*fd = shm_open(shm_name_ptr, O_CREAT | O_RDWR, 0600);
-	if (*fd == -1) {
-		siril_debug_print("Failed to create shared memory: %s\n", strerror(errno));
-		return FALSE;
-	}
-	if (ftruncate(*fd, total_bytes) == -1) {
-		siril_debug_print("Failed to set shared memory size: %s\n", strerror(errno));
-		close(*fd);
-		shm_unlink(shm_name_ptr);
-		return FALSE;
-	}
-	shm_ptr = mmap(NULL, total_bytes, PROT_READ | PROT_WRITE,
-				MAP_SHARED, *fd, 0);
-	if (shm_ptr == MAP_FAILED) {
-		siril_debug_print("Failed to map shared memory: %s\n", strerror(errno));
-		close(*fd);
-		shm_unlink(shm_name_ptr);
-		return FALSE;
-	}
-	*shm_ptr_ptr = shm_ptr;
-	return TRUE;
+    *fd = shm_open(shm_name_ptr, O_CREAT | O_RDWR, 0600);
+    if (*fd == -1) {
+        siril_debug_print("Failed to create shared memory: %s\n", strerror(errno));
+        return FALSE;
+    }
+
+    // First map to get actual allocation size
+    shm_ptr = mmap(NULL, *total_bytes, PROT_READ | PROT_WRITE,
+                MAP_SHARED, *fd, 0);
+    if (shm_ptr == MAP_FAILED) {
+        siril_debug_print("Failed to map shared memory: %s\n", strerror(errno));
+        close(*fd);
+        shm_unlink(shm_name_ptr);
+        return FALSE;
+    }
+
+    // Get the actual file size after mapping
+    struct stat st;
+    if (fstat(*fd, &st) == -1) {
+        siril_debug_print("Failed to get shared memory size: %s\n", strerror(errno));
+        munmap(shm_ptr, *total_bytes);
+        close(*fd);
+        shm_unlink(shm_name_ptr);
+        return FALSE;
+    }
+    actual_bytes = st.st_size;
+
+    // Truncate to ensure exact size
+    if (ftruncate(*fd, *actual_bytes) == -1) {
+        siril_debug_print("Failed to set shared memory size: %s\n", strerror(errno));
+        munmap(shm_ptr, *total_bytes);
+        close(*fd);
+        shm_unlink(shm_name_ptr);
+        return FALSE;
+    }
+	*total_bytes = actual_bytes;
+    *shm_ptr_ptr = shm_ptr;
+    return TRUE;
 }
 #endif
 
@@ -308,12 +335,12 @@ gboolean handle_pixeldata_request(Connection *conn, fits *fit, rectangle region)
 	char shm_name[256];
 #ifdef _WIN32
 	win_shm_handle_t win_handle;
-	if (!siril_allocate_shm(&shm_ptr, shm_name, total_bytes, &win_handle))
+	if (!siril_allocate_shm(&shm_ptr, shm_name, &total_bytes, &win_handle))
 		return FALSE;
 #else
 	char *shm_name_ptr = shm_name;
 	int fd;
-	if (!siril_allocate_shm(&shm_ptr, shm_name_ptr, total_bytes, &fd))
+	if (!siril_allocate_shm(&shm_ptr, shm_name_ptr, &total_bytes, &fd))
 		return FALSE;
 #endif
 
@@ -378,11 +405,11 @@ gboolean handle_rawdata_request(Connection *conn, void* data, size_t total_bytes
 	char shm_name[256];
 #ifdef _WIN32
 	win_shm_handle_t win_handle = { NULL, NULL };
-	if (!siril_allocate_shm(&shm_ptr, shm_name, total_bytes, &win_handle))
+	if (!siril_allocate_shm(&shm_ptr, shm_name, &total_bytes, &win_handle))
 		return FALSE;
 #else
 	int fd;
-	if (!siril_allocate_shm(&shm_ptr, shm_name, total_bytes, &fd))
+	if (!siril_allocate_shm(&shm_ptr, shm_name, &total_bytes, &fd))
 		return FALSE;
 #endif
 
