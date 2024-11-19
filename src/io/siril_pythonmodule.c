@@ -91,7 +91,7 @@ static gboolean create_shared_memory_win32(const char* name, size_t size, size_t
     if (handle->ptr == NULL) {
         CloseHandle(handle->mapping);
         siril_debug_print("Failed to map view of file: %lu\n", GetLastError());
-        return 0;
+        return FALSE;
     }
 
     return TRUE;
@@ -164,14 +164,17 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 							size_t *total_bytes,
 							win_shm_handle_t *win_handle) {
 	void *shm_ptr = NULL;
+	printf("shm: %llu bytes requested\n", total_bytes);
 	snprintf(shm_name_ptr, sizeof(shm_name_ptr), "siril_shm_%lu_%lu",
 		(unsigned long)GetCurrentProcessId(),
 		(unsigned long)time(NULL));
 	*win_handle = (win_shm_handle_t){ NULL, NULL };
 	size_t actual_bytes;
 	if (!create_shared_memory_win32(shm_name_ptr, *total_bytes, &actual_bytes, win_handle)) {
+		printf("Error in create_shared_memory_win32\n");
 		return FALSE;
 	}
+	printf("shm: %llu bytes created\n", actual_bytes);
 	*total_bytes = actual_bytes;
 	shm_ptr = win_handle->ptr;
 	*shm_ptr_ptr = shm_ptr;
