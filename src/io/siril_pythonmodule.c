@@ -153,7 +153,7 @@ gboolean send_response(Connection* conn, uint8_t status, const void* data, uint3
 		}
 	}
 #endif
-	printf("send_response: response sent\n")
+	printf("send_response: response sent\n");
 	return TRUE;
 }
 
