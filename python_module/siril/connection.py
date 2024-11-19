@@ -362,7 +362,7 @@ class SirilInterface:
                         raise ConnectionError(_("Error waiting for pipe read completion"))
 
                     # Get results of the operation
-                    err, bytes_read = win32file.GetOverlappedResult(self.pipe_handle, self.overlap_read, False)
+                    bytes_read = win32file.GetOverlappedResult(self.pipe_handle, self.overlap_read, False)
                     if bytes_read == 0:
                         raise ConnectionError(_("Pipe closed during read"))
 
@@ -1740,7 +1740,7 @@ class SirilInterface:
             print(f"Error processing FITS keywords data: {e}", file=sys.stderr)
             return None
 
-    def get_image(self, get_pixels: Optional[bool] = True) -> Optional[FFit]:
+    def get_image(self, with_pixels: Optional[bool] = True) -> Optional[FFit]:
         """
         Request a copy of the current image open in Siril.
 
@@ -1820,7 +1820,7 @@ class SirilInterface:
                 focalkey=True if values[7] else False,
                 pixelkey=True if values[8] else False,
                 color_managed=True if values[9] else False,
-                _data = self.get_pixel_data() if with_pixels == True else None,
+                _data = self.get_pixeldata() if with_pixels == True else None,
                 stats = (
                     self.get_image_stats(0),
                     self.get_image_stats(1) if shape[2] > 1 else None,

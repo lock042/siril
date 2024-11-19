@@ -1,5 +1,6 @@
 # siril/__init__.py - Package initialization
 from typing import TYPE_CHECKING
+import importlib
 
 # Import translation functions first
 from .translations import _
@@ -55,11 +56,16 @@ from .exceptions import (
     NoSequenceError
 )
 
-# Package metadata
-__version__ = "0.1.0"
-__author__ = "Team free-astro"
-__license__ = "GPLv3+"
-__copyright__ = "(c) Team free-astro 2024"
+try: # import from the packaging specification
+    from importlib.metadata import metadata
+    meta = metadata("siril")
+    __version__ = meta.get("version", "unknown")
+    __author__ = meta.get("author", "unknown")
+    __license__ = meta.get("license", "unknown")
+except Exception:
+    pass
+
+__copyright__ = " (c) Team free-astro 2024" # not a standard metadata
 
 # Define public API
 __all__ = [
