@@ -313,9 +313,9 @@ class SirilInterface:
                 win32file.CloseHandle(self.pipe_handle)
                 # Close the event handles
                 if hasattr(self, 'overlap_read'):
-                    win32event.CloseHandle(self.overlap_read.hEvent)
+                    win32file.CloseHandle(self.overlap_read.hEvent)
                 if hasattr(self, 'overlap_write'):
-                    win32event.CloseHandle(self.overlap_write.hEvent)
+                    win32file.CloseHandle(self.overlap_write.hEvent)
                 return True
             else:
                 raise SirilError(_("No pipe connection to close"))
@@ -456,7 +456,7 @@ class SirilInterface:
 
                     finally:
                         # Clean up event handle
-                        win32event.CloseHandle(event_handle)
+                        win32file.CloseHandle(event_handle)
 
                 else:
                     # Socket implementation remains unchanged
