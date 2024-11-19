@@ -59,45 +59,6 @@ static void cleanup_connection(Connection *conn);
 static gboolean wait_for_client(Connection *conn);
 static gboolean handle_client_communication(Connection *conn);
 
-#ifdef _WIN32
-static gboolean create_shared_memory_win32(const char* name, size_t size, size_t *actual_size, win_shm_handle_t* handle) {
-    handle->mapping = CreateFileMapping(
-        INVALID_HANDLE_VALUE,    // Use paging file
-        NULL,                    // Default security
-        PAGE_READWRITE,          // Read/write access
-        0,                       // Maximum object size (high-order DWORD)
-        size,                    // Maximum object size (low-order DWORD)
-        name);                   // Name of mapping object
-
-    if (handle->mapping == NULL) {
-        siril_debug_print("Failed to create file mapping: %lu\n", GetLastError());
-        return FALSE;
-    }
-
-    *actual_size = GetFileSize(handle->mapping, NULL);
-    if (*actual_size == INVALID_FILE_SIZE) {
-        siril_debug_print("Failed to get actual file mapping size: %lu\n", GetLastError());
-        CloseHandle(handle->mapping);
-        return FALSE;
-    }
-
-    handle->ptr = MapViewOfFile(
-        handle->mapping,         // Handle to mapping object
-        FILE_MAP_ALL_ACCESS,     // Read/write permission
-        0,                       // Offset high
-        0,                       // Offset low
-        *actual_size);            // Number of bytes to map
-
-    if (handle->ptr == NULL) {
-        CloseHandle(handle->mapping);
-        siril_debug_print("Failed to map view of file: %lu\n", GetLastError());
-        return FALSE;
-    }
-
-    return TRUE;
-}
-#endif
-
 gboolean send_response(Connection* conn, uint8_t status, const void* data, uint32_t length) {
 	ResponseHeader header = {
 		.status = status,
@@ -157,14 +118,51 @@ gboolean send_response(Connection* conn, uint8_t status, const void* data, uint3
 	return TRUE;
 }
 
-
 #ifdef _WIN32
+static gboolean create_shared_memory_win32(const char* name, size_t size, size_t *actual_size, win_shm_handle_t* handle) {
+	printf("create_shared_memory_win32 size request: %lu\n", size);
+    handle->mapping = CreateFileMapping(
+        INVALID_HANDLE_VALUE,    // Use paging file
+        NULL,                    // Default security
+        PAGE_READWRITE,          // Read/write access
+        0,                       // Maximum object size (high-order DWORD)
+        size,                    // Maximum object size (low-order DWORD)
+        name);                   // Name of mapping object
+
+    if (handle->mapping == NULL) {
+        siril_debug_print("Failed to create file mapping: %lu\n", GetLastError());
+        return FALSE;
+    }
+
+    *actual_size = GetFileSize(handle->mapping, NULL);
+    if (*actual_size == INVALID_FILE_SIZE) {
+        siril_debug_print("Failed to get actual file mapping size: %lu\n", GetLastError());
+        CloseHandle(handle->mapping);
+        return FALSE;
+    }
+
+    handle->ptr = MapViewOfFile(
+        handle->mapping,         // Handle to mapping object
+        FILE_MAP_ALL_ACCESS,     // Read/write permission
+        0,                       // Offset high
+        0,                       // Offset low
+        *actual_size);            // Number of bytes to map
+
+    if (handle->ptr == NULL) {
+        CloseHandle(handle->mapping);
+        siril_debug_print("Failed to map view of file: %lu\n", GetLastError());
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
 gboolean siril_allocate_shm(void** shm_ptr_ptr,
 							char* shm_name_ptr,
 							size_t *total_bytes,
 							win_shm_handle_t *win_handle) {
 	void *shm_ptr = NULL;
-	printf("shm: %llu bytes requested\n", total_bytes);
+	printf("shm: %lu bytes requested\n", total_bytes);
 	snprintf(shm_name_ptr, sizeof(shm_name_ptr), "siril_shm_%lu_%lu",
 		(unsigned long)GetCurrentProcessId(),
 		(unsigned long)time(NULL));
@@ -174,7 +172,7 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 		printf("Error in create_shared_memory_win32\n");
 		return FALSE;
 	}
-	printf("shm: %llu bytes created\n", actual_bytes);
+	printf("shm: %lu bytes created\n", actual_bytes);
 	*total_bytes = actual_bytes;
 	shm_ptr = win_handle->ptr;
 	*shm_ptr_ptr = shm_ptr;
