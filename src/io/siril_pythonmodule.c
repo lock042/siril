@@ -206,7 +206,7 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
     actual_bytes = st.st_size;
 
     // Truncate to ensure exact size
-    if (ftruncate(*fd, *actual_bytes) == -1) {
+    if (ftruncate(*fd, actual_bytes) == -1) {
         siril_debug_print("Failed to set shared memory size: %s\n", strerror(errno));
         munmap(shm_ptr, *total_bytes);
         close(*fd);
