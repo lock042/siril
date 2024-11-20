@@ -512,10 +512,10 @@ class SirilInterface:
         except Exception as e:
             raise RuntimeError(_("Failed to create shared memory mapping: {}").format(e))
 
-# execute_command and request_data are not intended to be used directly in scripts
+# _execute_command and request_data are not intended to be used directly in scripts
 # They are used to implement more user-friendly commands (see below)
 
-    def execute_command(self, command: _Command, payload: Optional[bytes] = None) -> bool:
+    def _execute_command(self, command: _Command, payload: Optional[bytes] = None) -> bool:
         """
         High-level method to execute a command and handle the response.
         Internal method, not for end-user use.
@@ -592,7 +592,7 @@ class SirilInterface:
             truncated_string = my_string[:1021] + '\n'
             # Convert string to bytes using UTF-8 encoding
             message_bytes = truncated_string.encode('utf-8')
-            return self.execute_command(_Command.LOG_MESSAGE, message_bytes)
+            return self._execute_command(_Command.LOG_MESSAGE, message_bytes)
 
         except Exception as e:
             print(f"Error sending log message: {e}", file=sys.stderr)
@@ -626,7 +626,7 @@ class SirilInterface:
             # Combine float and string bytes
             payload = float_bytes + message_bytes
 
-            return self.execute_command(_Command.UPDATE_PROGRESS, payload)
+            return self._execute_command(_Command.UPDATE_PROGRESS, payload)
 
         except Exception as e:
             print(f"Error sending progress update: {e}", file=sys.stderr)
@@ -668,7 +668,7 @@ class SirilInterface:
             # Convert to bytes for transmission
             command_bytes = command_string.encode('utf-8')
 
-            return self.execute_command(_Command.SEND_COMMAND, command_bytes)
+            return self._execute_command(_Command.SEND_COMMAND, command_bytes)
 
         except Exception as e:
             print(f"Error sending command: {e}", file=sys.stderr)
@@ -816,7 +816,7 @@ class SirilInterface:
                 try:
                     # Signal that Python is done with the shared memory and wait for C to finish
                     finish_info = struct.pack('256s', shm_info.shm_name)
-                    if not self.execute_command(_Command.RELEASE_SHM, finish_info):
+                    if not self._execute_command(_Command.RELEASE_SHM, finish_info):
                         raise RuntimeError(_("Failed to cleanup shared memory"))
 
                     shm.close()  # First close the memory mapping
@@ -902,8 +902,8 @@ class SirilInterface:
                 shm_name.encode('utf-8').ljust(256, b'\x00')
             )
 
-            # Send command using the existing execute_command method
-            if not self.execute_command(_Command.SET_PIXELDATA, info):
+            # Send command using the existing _execute_command method
+            if not self._execute_command(_Command.SET_PIXELDATA, info):
                 raise RuntimeError(_("Failed to send pixel data command"))
 
             return True
@@ -993,7 +993,7 @@ class SirilInterface:
                 try:
                     # Signal that Python is done with the shared memory and wait for C to finish
                     finish_info = struct.pack('256s', shm_info.shm_name)
-                    if not self.execute_command(_Command.RELEASE_SHM, finish_info):
+                    if not self._execute_command(_Command.RELEASE_SHM, finish_info):
                         raise RuntimeError(_("Failed to cleanup shared memory"))
                     shm.close()
                     shm.unlink()
@@ -1073,7 +1073,7 @@ class SirilInterface:
                 try:
                     # Signal that Python is done with the shared memory and wait for C to finish
                     finish_info = struct.pack('256s', shm_info.shm_name)
-                    if not self.execute_command(_Command.RELEASE_SHM, finish_info):
+                    if not self._execute_command(_Command.RELEASE_SHM, finish_info):
                         raise RuntimeError(_("Failed to cleanup shared memory"))
                     shm.close()
                     shm.unlink()
@@ -1156,7 +1156,7 @@ class SirilInterface:
                 try:
                     # Signal that Python is done with the shared memory and wait for C to finish
                     finish_info = struct.pack('256s', shm_info.shm_name)
-                    if not self.execute_command(_Command.RELEASE_SHM, finish_info):
+                    if not self._execute_command(_Command.RELEASE_SHM, finish_info):
                         raise RuntimeError(_("Failed to cleanup shared memory"))
                     shm.close()
                     shm.unlink()
@@ -1241,7 +1241,7 @@ class SirilInterface:
                 try:
                     # Signal that Python is done with the shared memory and wait for C to finish
                     finish_info = struct.pack('256s', shm_info.shm_name)
-                    if not self.execute_command(_Command.RELEASE_SHM, finish_info):
+                    if not self._execute_command(_Command.RELEASE_SHM, finish_info):
                         raise RuntimeError(_("Failed to cleanup shared memory"))
                     shm.close()
                     shm.unlink()
