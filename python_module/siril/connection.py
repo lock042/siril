@@ -83,7 +83,7 @@ class _Command(IntEnum):
     GET_IS_SEQUENCE_LOADED = 28
     ERROR = 0xFF
 
-class ConfigType(IntEnum):
+class _ConfigType(IntEnum):
     """
     Enumerates config variable types for use with the
     ``get_config()`` method. Internal class: this is not intended
@@ -2006,21 +2006,21 @@ class SirilInterface:
                 return None
 
             # First byte should be the type
-            config_type = ConfigType(response[0])
+            config_type = _ConfigType(response[0])
             value_data = response[1:]
 
             # Parse based on type
-            if config_type == ConfigType.BOOL:
+            if config_type == _ConfigType.BOOL:
                 return bool(struct.unpack('!I', value_data)[0])
-            elif config_type == ConfigType.INT:
+            elif config_type == _ConfigType.INT:
                 return struct.unpack('!i', value_data)[0]
-            elif config_type == ConfigType.DOUBLE:
+            elif config_type == _ConfigType.DOUBLE:
                 return struct.unpack('!d', value_data)[0]
-            elif config_type in (ConfigType.STR, ConfigType.STRDIR):
+            elif config_type in (_ConfigType.STR, _ConfigType.STRDIR):
                 # Assume null-terminated string
                 string_value = value_data.split(b'\0')[0].decode('utf-8')
                 return string_value
-            elif config_type == ConfigType.STRLIST:
+            elif config_type == _ConfigType.STRLIST:
                 # Split on null bytes and decode each string
                 strings = value_data.split(b'\0')
                 # Remove empty strings at the end
