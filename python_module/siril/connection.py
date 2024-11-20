@@ -1,5 +1,6 @@
 import os
 import sys
+import copy
 import time
 import mmap
 import struct
@@ -772,12 +773,10 @@ class SirilInterface:
             except (OSError, ValueError) as e:
                 raise RuntimeError(_("Failed to map shared memory: {}").format(e))
 
-            print(f"SHM size: {shm_info.size}")
+            buffer = bytearray(shm.buf)[:shm_info.size]
             # Create numpy array from shared memory
             dtype = np.float32 if shm_info.data_type == 1 else np.uint16
             try:
-                buffer = memoryview(shm.buf).cast('B')  # Use shm.buf instead of shm directly
-                buffer = buffer[:shm_info.size]
                 arr = np.frombuffer(buffer, dtype=dtype)
             except (BufferError, ValueError, TypeError) as e:
                 raise RuntimeError(_("Failed to create array from shared memory: {}").format(e))
@@ -973,8 +972,8 @@ class SirilInterface:
                 raise RuntimeError(_("Failed to map shared memory: {}").format(e))
 
             try:
-                result = bytes(memoryview(shm.buf).cast('B'))
-                result = result[:shm_info.size]
+                buffer = bytearray(shm.buf)[:shm_info.size]
+                result = bytes(buffer)
             except (BufferError, ValueError, TypeError) as e:
                 raise RuntimeError(_("Failed to create bytes from shared memory: {}").format(e))
 
@@ -1053,9 +1052,8 @@ class SirilInterface:
 
             try:
                 # Read entire buffer at once using memoryview
-                buffer = memoryview(shm.buf).cast('B')
-                buffer = buffer[:shm_info.size]
-                result = buffer.tobytes().decode('utf-8', errors='ignore')
+                buffer = bytearray(shm.buf)[:shm_info.size]
+                result = buffer.decode('utf-8', errors='ignore')
             except (BufferError, ValueError, TypeError) as e:
                 raise RuntimeError(_("Failed to create string from shared memory: {}").format(e))
 
@@ -1137,9 +1135,8 @@ class SirilInterface:
 
             try:
                 # Read entire buffer at once using memoryview
-                buffer = memoryview(shm.buf).cast('B')
-                buffer = buffer[:shm_info.size]
-                result = buffer.tobytes().decode('utf-8', errors='ignore')
+                buffer = bytearray(shm.buf)[:shm_info.size]
+                result = buffer.decode('utf-8', errors='ignore')
             except (BufferError, ValueError, TypeError) as e:
                 raise RuntimeError(_("Failed to create string from shared memory: {}").format(e))
 
@@ -1222,9 +1219,8 @@ class SirilInterface:
 
             try:
                 # Read entire buffer at once using memoryview
-                buffer = memoryview(shm.buf).cast('B')
-                buffer = buffer[:shm_info.size]
-                string_data = buffer.tobytes().decode('utf-8', errors='ignore')
+                buffer = bytearray(shm.buf)[:shm_info.size]
+                string_data = buffer.decode('utf-8', errors='ignore')
                 string_list = string_data.split('\x00')
             except (BufferError, ValueError, TypeError) as e:
                 raise RuntimeError(_("Failed to create string from shared memory: {}").format(e))
