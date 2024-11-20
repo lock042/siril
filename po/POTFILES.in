@@ -155,6 +155,7 @@ src/gui/plot.c
 src/gui/preferences.c
 src/gui/progress_and_log.c
 src/gui/PSF_list.c
+src/gui/python_gui.c
 src/gui/registration.c
 src/gui/registration_preview.c
 src/gui/remixer.c
