@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Copyright 2012-2021 Free-astro team -->
+<!-- Copyright 2012-2024 Free-astro team -->
 <component type="desktop">
   <id>org.siril.Siril</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0+</project_license>
-  <developer_name>Free-astro Team</developer_name>
+  <developer id="org.siril">
+    <name>Free-astro Team</name>
+  </developer>
   <launchable type="desktop-id">org.siril.Siril.desktop</launchable>
   <name>Siril</name>
   <name xml:lang="fr-FR">Siril</name>
@@ -97,6 +99,32 @@
   <update_contact>cyril_at_free-astro.org</update_contact>
   <content_rating type="oars-1.0"/>
   <releases>
+    <release version="1.2.5" type="stable" date="2024-11-22">
+      <url type="details">https://siril.org/download/1.2.5</url>
+      <description>
+        <p>
+          Siril 1.2.5 is a bug fix release, containing only bug fixes.
+          The most important are:
+        </p>
+        <ul>
+          <li>
+          Fixed crash if the CWD changes after a first successfull Automated light Curve process
+          </li>
+          <li>
+          Fixed bug in TIFF files that have TIFFTAG_MINSAMPLEVALUE and TIFFTAG_MAXSAMPLEVALUE set to 0 by removing these tags
+          </li>
+          <li>
+          Added HISTORY after seqcrop and GUI crop
+          </li>
+          <li>
+          Fixed potential crash in synthstar
+          </li>
+          <li>
+          Fixed several macOS UI bugs and again the free space disk computation
+          </li>
+        </ul>
+      </description>
+    </release>
     <release version="1.2.4" type="stable" date="2024-09-11">
       <url type="details">https://siril.org/download/1.2.4</url>
       <description>
