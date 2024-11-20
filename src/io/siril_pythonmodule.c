@@ -94,7 +94,7 @@ gboolean send_response(Connection* conn, uint8_t status, const void* data, uint3
 
     free(combined_buffer);
 #else
-	size_t bytes_written;
+	ssize_t bytes_written;
 
 	// Send header
 	bytes_written = write(conn->client_fd, &header, sizeof(header));
