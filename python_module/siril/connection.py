@@ -769,10 +769,10 @@ class SirilInterface:
                     shm_info.shm_name.decode('utf-8'),
                     shm_info.size
                 )
-            print(f"SHM size: {shm_info.size}")
             except (OSError, ValueError) as e:
                 raise RuntimeError(_("Failed to map shared memory: {}").format(e))
 
+            print(f"SHM size: {shm_info.size}")
             # Create numpy array from shared memory
             dtype = np.float32 if shm_info.data_type == 1 else np.uint16
             try:
