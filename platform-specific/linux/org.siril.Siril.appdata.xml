@@ -117,6 +117,9 @@
           Added HISTORY after seqcrop and GUI crop
           </li>
           <li>
+          Fixed potential crash in synthstar
+          </li>
+          <li>
           Fixed several macOS UI bugs and again the free space disk computation
           </li>
         </ul>
