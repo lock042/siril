@@ -64,10 +64,12 @@ gboolean send_response(Connection* conn, uint8_t status, const void* data, uint3
 		.status = status,
 		.length = GUINT32_TO_BE(length)  // Convert to network byte order
 	};
+	printf("send_response status: %c length: %u\n", status, length);
 	if (!data)
+		printf("send_response: data is NULL (ie length should be 0");
 #ifdef _WIN32
     DWORD bytes_written = 0;
-
+    
     // Allocate a single buffer with header and data
     size_t total_size = sizeof(header) + (data && length > 0 ? length : 0);
     void* combined_buffer = malloc(total_size);
@@ -112,11 +114,13 @@ gboolean send_response(Connection* conn, uint8_t status, const void* data, uint3
 		}
 	}
 #endif
+	printf("send_response: response sent\n");
 	return TRUE;
 }
 
 #ifdef _WIN32
 static gboolean create_shared_memory_win32(const char* name, size_t size, win_shm_handle_t* handle) {
+    printf("create_shared_memory_win32 size request: %lu\n", size);
     handle->mapping = CreateFileMapping(
         INVALID_HANDLE_VALUE,    // Use paging file
         NULL,                    // Default security
@@ -150,12 +154,14 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
 							size_t total_bytes,
 							win_shm_handle_t *win_handle) {
 	void *shm_ptr = NULL;
+	printf("shm: %lu bytes requested\n", total_bytes);
 	snprintf(shm_name_ptr, sizeof(shm_name_ptr), "siril_shm_%lu_%lu",
 		(unsigned long)GetCurrentProcessId(),
 		(unsigned long)time(NULL));
 	*win_handle = (win_shm_handle_t){ NULL, NULL };
 	size_t actual_bytes;
 	if (!create_shared_memory_win32(shm_name_ptr, total_bytes, win_handle)) {
+		printf("Error in create_shared_memory_win32\n");
 		return FALSE;
 	}
 	shm_ptr = win_handle->ptr;
@@ -170,6 +176,7 @@ gboolean siril_allocate_shm(void** shm_ptr_ptr,
                             int *fd) {
 
     void *shm_ptr = NULL;
+	printf("shm: %lu bytes requested\n", total_bytes);
     snprintf(shm_name_ptr, 256, "/siril_shm_%d_%lu",
             getpid(), (unsigned long)time(NULL));
 
