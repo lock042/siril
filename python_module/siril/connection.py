@@ -512,7 +512,7 @@ class SirilInterface:
         except Exception as e:
             raise RuntimeError(_("Failed to create shared memory mapping: {}").format(e))
 
-# _execute_command and request_data are not intended to be used directly in scripts
+# _execute_command and _request_data are not intended to be used directly in scripts
 # They are used to implement more user-friendly commands (see below)
 
     def _execute_command(self, command: _Command, payload: Optional[bytes] = None) -> bool:
@@ -543,7 +543,7 @@ class SirilInterface:
 
         return True
 
-    def request_data(self, command: _Command, payload: Optional[bytes] = None) -> Optional[bytes]:
+    def _request_data(self, command: _Command, payload: Optional[bytes] = None) -> Optional[bytes]:
         """
         High-level method to request small-volume data from Siril. The
         payload limit is 63336 bytes. For commands expected to return
@@ -684,7 +684,7 @@ class SirilInterface:
             or None if an error occurred.
         """
 
-        response = self.request_data(_Command.GET_DIMENSIONS)
+        response = self._request_data(_Command.GET_DIMENSIONS)
 
         if response is None:
             return None
@@ -1256,7 +1256,7 @@ class SirilInterface:
             The current working directory as a string, or None if an error occurred.
         """
 
-        response = self.request_data(_Command.GET_WORKING_DIRECTORY)
+        response = self._request_data(_Command.GET_WORKING_DIRECTORY)
 
         if response is None:
             return None
@@ -1277,7 +1277,7 @@ class SirilInterface:
             The user config directory as a string, or None if an error occurred.
         """
 
-        response = self.request_data(_Command.GET_USERCONFIGDIR)
+        response = self._request_data(_Command.GET_USERCONFIGDIR)
 
         if response is None:
             return None
@@ -1298,7 +1298,7 @@ class SirilInterface:
             bool: True if a single image is loaded, False if a single image is
                   not loaded, or None if an error occurred.
         """
-        response = self.request_data(_Command.GET_IS_IMAGE_LOADED)
+        response = self._request_data(_Command.GET_IS_IMAGE_LOADED)
 
         if response is None:
             return None
@@ -1314,7 +1314,7 @@ class SirilInterface:
             bool: True if a sequence is loaded, False if a sequence is not loaded,
                   or None if an error occurred.
         """
-        response = self.request_data(_Command.GET_IS_SEQUENCE_LOADED)
+        response = self._request_data(_Command.GET_IS_SEQUENCE_LOADED)
 
         if response is None:
             return None
@@ -1330,7 +1330,7 @@ class SirilInterface:
             The filename as a string, or None if an error occurred.
         """
 
-        response = self.request_data(_Command.GET_FILENAME)
+        response = self._request_data(_Command.GET_FILENAME)
 
         if response is None:
             return None
@@ -1359,7 +1359,7 @@ class SirilInterface:
         channel_payload = struct.pack('!I', channel)  # '!I' for network byte order uint32_t
 
         # Request data with the channel number as payload
-        response = self.request_data(_Command.GET_IMAGE_STATS, payload=channel_payload)
+        response = self._request_data(_Command.GET_IMAGE_STATS, payload=channel_payload)
 
         if response is None:
             return None
@@ -1423,7 +1423,7 @@ class SirilInterface:
         data_payload = struct.pack('!II', frame, channel)  # '!I' for network byte order uint32_t
 
         # Request data with the channel number as payload
-        response = self.request_data(_Command.GET_SEQ_REGDATA, payload=data_payload)
+        response = self._request_data(_Command.GET_SEQ_REGDATA, payload=data_payload)
 
         if response is None:
             return None
@@ -1475,7 +1475,7 @@ class SirilInterface:
         data_payload = struct.pack('!II', frame, channel)  # '!I' for network byte order uint32_t
 
         # Request data with the channel number as payload
-        response = self.request_data(_Command.GET_SEQ_STATS, payload=data_payload)
+        response = self._request_data(_Command.GET_SEQ_STATS, payload=data_payload)
 
         if response is None:
             return None
@@ -1519,7 +1519,7 @@ class SirilInterface:
         data_payload = struct.pack('!I', frame)  # '!I' for network byte order uint32_t
 
         # Request data with the channel number as payload
-        response = self.request_data(_Command.GET_SEQ_IMGDATA, payload=data_payload)
+        response = self._request_data(_Command.GET_SEQ_IMGDATA, payload=data_payload)
         if response is None:
             return None
         try:
@@ -1549,7 +1549,7 @@ class SirilInterface:
         """
 
         # Request data with the channel number as payload
-        response = self.request_data(_Command.GET_SEQ)
+        response = self._request_data(_Command.GET_SEQ)
 
         if response is None:
             return None
@@ -1611,7 +1611,7 @@ class SirilInterface:
             FKeywords object containing the FITS keywords, or None if an error occurred
         """
 
-        response = self.request_data(_Command.GET_KEYWORDS)
+        response = self._request_data(_Command.GET_KEYWORDS)
         if response is None:
             return None
 
@@ -1773,7 +1773,7 @@ class SirilInterface:
         """
 
         # Request data with the channel number as payload
-        response = self.request_data(_Command.GET_IMAGE)
+        response = self._request_data(_Command.GET_IMAGE)
         if response is None:
             return None
 
@@ -2001,7 +2001,7 @@ class SirilInterface:
             payload = group_bytes + key_bytes
 
             # Request the config value
-            response = self.request_data(_Command.GET_CONFIG, payload=payload)
+            response = self._request_data(_Command.GET_CONFIG, payload=payload)
             if response is None:
                 return None
 
