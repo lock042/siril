@@ -397,8 +397,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 	if (length < sizeof(CommandHeader) + payload_length) {
 		siril_log_color_message(_("Received incomplete command payload: length = %u, expected %u\n"), "red", length, payload_length);
 		return;
-	} else {
-		siril_log_message(_("Received command payload length = %u\n"), length);
 	}
 	// Get payload
 	const char* payload = buffer + sizeof(CommandHeader);
