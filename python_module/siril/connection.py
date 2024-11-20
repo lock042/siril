@@ -406,7 +406,6 @@ class SirilInterface:
             data_length = len(data) if data else 0
             if data_length > 65529:
                 raise RuntimeError(_("Command data too long. Maximum command data 65529 bytes"))
-            print(f"Length of shape data in _send_command: {data_length}") # Debug
             # Acquire lock before sending command
             if os.name == 'nt':
                 win32event.WaitForSingleObject(self.command_lock, win32event.INFINITE)
@@ -448,13 +447,11 @@ class SirilInterface:
                         response_header = self._recv_exact(5)  # Fixed size header: 1 byte status + 4 bytes length
                         if not response_header:
                             return None, None
-                        print(f"Response header received, len: {len(response_header)}")
                         status, response_length = struct.unpack('!BI', response_header)
 
                         response_data = None
                         if response_length > 0:
                             response_data = self._recv_exact(response_length)
-                            print(f"Response data received, len: {len(response_data)}")
                             if not response_data:
                                 return None, None
 
