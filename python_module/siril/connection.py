@@ -777,6 +777,7 @@ class SirilInterface:
             dtype = np.float32 if shm_info.data_type == 1 else np.uint16
             try:
                 buffer = memoryview(shm.buf).cast('B')  # Use shm.buf instead of shm directly
+                buffer = buffer[:shm_info.size]
                 arr = np.frombuffer(buffer, dtype=dtype)
             except (BufferError, ValueError, TypeError) as e:
                 raise RuntimeError(_("Failed to create array from shared memory: {}").format(e))
