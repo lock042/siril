@@ -883,6 +883,9 @@ class SirilInterface:
                 buffer = memoryview(shm.buf).cast('B')
                 shared_array = np.frombuffer(buffer, dtype=image_data.dtype).reshape(image_data.shape)
                 np.copyto(shared_array, image_data)
+                # Delete transient objects used to structure copy
+                del buffer
+                del shared_array
             except Exception as e:
                 raise RuntimeError(_("Failed to copy data to shared memory: {}").format(e))
 
