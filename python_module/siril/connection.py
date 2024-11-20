@@ -733,8 +733,6 @@ class SirilInterface:
                 command = _Command.GET_PIXELDATA
 
             # Request shared memory setup
-            print(f"Length of shape data sent by get_pixeldata: {len(shape_data)}") # Debug
-
             status, response = self._send_command(command, shape_data)
 
             # Handle error responses
