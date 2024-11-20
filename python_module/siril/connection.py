@@ -769,6 +769,7 @@ class SirilInterface:
                     shm_info.shm_name.decode('utf-8'),
                     shm_info.size
                 )
+            print(f"SHM size: {shm_info.size}")
             except (OSError, ValueError) as e:
                 raise RuntimeError(_("Failed to map shared memory: {}").format(e))
 
@@ -782,7 +783,7 @@ class SirilInterface:
 
             # Validate array size matches expected dimensions
             expected_size = shm_info.width * shm_info.height * shm_info.channels
-            if arr.size != expected_size:
+            if arr.size < expected_size:
                 raise ValueError(
                     f"Data size mismatch: got {arr.size} elements, "
                     f"expected {expected_size} for dimensions "
@@ -972,6 +973,7 @@ class SirilInterface:
 
             try:
                 result = bytes(memoryview(shm.buf).cast('B'))
+                result = result[:shm_info.size]
             except (BufferError, ValueError, TypeError) as e:
                 raise RuntimeError(_("Failed to create bytes from shared memory: {}").format(e))
 
@@ -1051,6 +1053,7 @@ class SirilInterface:
             try:
                 # Read entire buffer at once using memoryview
                 buffer = memoryview(shm.buf).cast('B')
+                buffer = buffer[:shm_info.size]
                 result = buffer.tobytes().decode('utf-8', errors='ignore')
             except (BufferError, ValueError, TypeError) as e:
                 raise RuntimeError(_("Failed to create string from shared memory: {}").format(e))
@@ -1134,6 +1137,7 @@ class SirilInterface:
             try:
                 # Read entire buffer at once using memoryview
                 buffer = memoryview(shm.buf).cast('B')
+                buffer = buffer[:shm_info.size]
                 result = buffer.tobytes().decode('utf-8', errors='ignore')
             except (BufferError, ValueError, TypeError) as e:
                 raise RuntimeError(_("Failed to create string from shared memory: {}").format(e))
@@ -1218,6 +1222,7 @@ class SirilInterface:
             try:
                 # Read entire buffer at once using memoryview
                 buffer = memoryview(shm.buf).cast('B')
+                buffer = buffer[:shm_info.size]
                 string_data = buffer.tobytes().decode('utf-8', errors='ignore')
                 string_list = string_data.split('\x00')
             except (BufferError, ValueError, TypeError) as e:
