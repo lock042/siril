@@ -10,6 +10,8 @@
 #include "core/siril_app_dirs.h"
 #include "core/icc_profile.h"
 #include "core/siril_log.h"
+#include "core/proto.h"
+#include "gui/image_interactions.h"
 #include "gui/progress_and_log.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
@@ -458,6 +460,30 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			}
 			break;
+		}
+
+		case CMD_SET_SELECTION: {
+			gboolean result = single_image_is_loaded();
+			if (result) {
+				if (payload_length == 16) {
+					rectangle region_BE = *(rectangle*) payload;
+					rectangle selection = {GUINT32_FROM_BE(region_BE.x),
+										GUINT32_FROM_BE(region_BE.y),
+										GUINT32_FROM_BE(region_BE.w),
+										GUINT32_FROM_BE(region_BE.h)};
+					if (selection.x < 0 || selection.x + selection.w > gfit.rx - 1 ||
+						selection.y < 0 || selection.y + selection.h > gfit.ry - 1) {
+							const char* error_msg = _("Failed to set selection - selection exceeds image bounds");
+							success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					}
+					memcpy(&com.selection, &selection, sizeof(rectangle));
+					gui_function(new_selection_zone, NULL);
+				}
+			} else {
+				// Handle error retrieving dimensions
+				const char* error_msg = _("Failed to set selection - no image loaded");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			}
 		}
 
 		case CMD_GET_PIXELDATA: {

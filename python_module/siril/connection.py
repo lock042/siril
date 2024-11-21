@@ -82,6 +82,7 @@ class _Command(IntEnum):
     GET_IS_IMAGE_LOADED = 27
     GET_IS_SEQUENCE_LOADED = 28
     GET_SELECTION = 29
+    SET_SELECTION = 30
     ERROR = 0xFF
 
 class _ConfigType(IntEnum):
@@ -673,6 +674,27 @@ class SirilInterface:
 
         except Exception as e:
             print(f"Error sending command: {e}", file=sys.stderr)
+            return False
+
+    def set_selection(self, x: int, y: int, w: int, h: int) -> bool:
+        """
+        Set the image selection in Siril using the provided coordinates and dimensions.
+
+        Args:
+            x: X-coordinate of the selection's top-left corner
+            y: Y-coordinate of the selection's top-left corner
+            w: Width of the selection
+            h: Height of the selection
+
+        Returns:
+            bool: True if the selection was successfully set, False otherwise
+        """
+        try:
+            # Pack the coordinates and dimensions into bytes using network byte order (!)
+            payload = struct.pack('!IIII', x, y, w, h)
+            return self._execute_command(_Command.SET_SELECTION, payload)
+        except Exception as e:
+            print(f"Error setting selection: {e}", file=sys.stderr)
             return False
 
     def get_selection(self) -> Optional[Tuple[int, int, int, int]]:
