@@ -244,7 +244,7 @@ static void opendial(int whichdial) {
 	case OD_OFFSETLIB:
 		widgetdialog = siril_file_chooser_open(control_window, GTK_FILE_CHOOSER_ACTION_OPEN);
 		dialog = GTK_FILE_CHOOSER(widgetdialog);
-		gtk_file_chooser_set_current_folder(dialog, com.wd);
+		gtk_file_chooser_set_uri(dialog, com.wd);
 		gtk_file_chooser_set_local_only(dialog, FALSE);
 		if (whichdial == OD_FLATLIB) {
 			if (com.pref.prepro.flat_lib != NULL) {
@@ -272,14 +272,14 @@ static void opendial(int whichdial) {
 	case OD_CWD:
 		widgetdialog = siril_file_chooser_open(control_window, GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER);
 		dialog = GTK_FILE_CHOOSER(widgetdialog);
-		gtk_file_chooser_set_current_folder(dialog, com.wd);
+		gtk_file_chooser_set_uri(dialog, com.wd);
 		gtk_file_chooser_set_local_only(dialog, FALSE);
 		gtk_file_chooser_set_select_multiple(dialog, FALSE);
 		break;
 	case OD_OPEN:
 		widgetdialog = siril_file_chooser_open(control_window, GTK_FILE_CHOOSER_ACTION_OPEN);
 		dialog = GTK_FILE_CHOOSER(widgetdialog);
-		gtk_file_chooser_set_current_folder(dialog, com.wd);
+		gtk_file_chooser_set_uri(dialog, com.wd);
 		gtk_file_chooser_set_local_only(dialog, FALSE);
 		gtk_file_chooser_set_select_multiple(dialog, FALSE);
 		set_filters_dialog(dialog, whichdial);
@@ -289,7 +289,7 @@ static void opendial(int whichdial) {
 	case OD_CONVERT:
 		widgetdialog = siril_file_chooser_add(control_window, GTK_FILE_CHOOSER_ACTION_OPEN);
 		dialog = GTK_FILE_CHOOSER(widgetdialog);
-		gtk_file_chooser_set_current_folder(dialog, com.wd);
+		gtk_file_chooser_set_uri(dialog, com.wd);
 		gtk_file_chooser_set_local_only(dialog, FALSE);
 		gtk_file_chooser_set_select_multiple(dialog, TRUE);
 		set_filters_dialog(dialog, whichdial);
@@ -297,7 +297,7 @@ static void opendial(int whichdial) {
 	case OD_BADPIXEL:
 		widgetdialog = siril_file_chooser_add(control_window, GTK_FILE_CHOOSER_ACTION_OPEN);
 		dialog = GTK_FILE_CHOOSER(widgetdialog);
-		gtk_file_chooser_set_current_folder(dialog, com.wd);
+		gtk_file_chooser_set_uri(dialog, com.wd);
 		gtk_file_chooser_set_local_only(dialog, FALSE);
 		gtk_file_chooser_set_select_multiple(dialog, FALSE);
 		set_single_filter_dialog(dialog, _("Cosmetic correction file (*.lst)"), "*.lst;*.LST");
