@@ -435,7 +435,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		case CMD_GET_PIXELDATA: {
 			rectangle region = {0, 0, gfit.rx, gfit.ry};
 			success = handle_pixeldata_request(conn, &gfit, region);
-			siril_log_message("Pixeldata request handled\n");
 			break;
 		}
 
@@ -992,7 +991,6 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			}
 			// Prepare data
 			guint32 length = strlen(fit->header) + 1;
-			siril_debug_print("Header length: %u\n", length);
 			success = handle_rawdata_request(conn, fit->header, length);
 			break;
 		}

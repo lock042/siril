@@ -871,7 +871,7 @@ static void cleanup_connection(Connection *conn) {
 
 static gpointer connection_worker(gpointer data) {
 	Connection *conn = (Connection*)data;
-	siril_log_message(_("Python communication initialized...\n"));
+	siril_debug_print("Python communication initialized...\n");
 	while (!conn->should_stop) {
 		if (wait_for_client(conn)) {
 			handle_client_communication(conn);
