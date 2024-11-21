@@ -405,8 +405,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 	// Process commands
 	switch (header->command) {
 		case CMD_GET_DIMENSIONS: {
-			// Assuming you have a function to get the current image dimensions
-			gboolean result = single_image_is_loaded(); // Implement this function
+			gboolean result = single_image_is_loaded();
 
 			if (result) {
 				// Prepare the response data: width (gfit.rx), height (gfit.ry), and channels (gfit.naxes[2])
@@ -421,6 +420,35 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				memcpy(response_data, &width_BE, sizeof(uint32_t));      // First 4 bytes: width
 				memcpy(response_data + 4, &height_BE, sizeof(uint32_t)); // Next 4 bytes: height
 				memcpy(response_data + 8, &channels_BE, sizeof(uint32_t)); // Final 4 bytes: channels
+
+				// Send success response with dimensions
+				success = send_response(conn, STATUS_OK, response_data, sizeof(response_data));
+			} else {
+				// Handle error retrieving dimensions
+				const char* error_msg = _("Failed to retrieve image dimensions - no image loaded");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			}
+			break;
+		}
+
+		case CMD_GET_SELECTION: {
+			gboolean result = single_image_is_loaded();
+
+			if (result) {
+				// Prepare the response data: width (gfit.rx), height (gfit.ry), and channels (gfit.naxes[2])
+				uint8_t response_data[16]; // 4 x 4 bytes for x,y, w, h
+
+				// Convert the integers to BE format for consistency across the UNIX socket
+				uint32_t x_BE = GUINT32_TO_BE(com.selection.x);
+				uint32_t y_BE = GUINT32_TO_BE(com.selection.y);
+				uint32_t w_BE = GUINT32_TO_BE(com.selection.w);
+				uint32_t h_BE = GUINT32_TO_BE(com.selection.h);
+
+				// Copy the packed data into the response buffer
+				memcpy(response_data, &x_BE, sizeof(uint32_t));
+				memcpy(response_data + 4, &y_BE, sizeof(uint32_t));
+				memcpy(response_data + 8, &w_BE, sizeof(uint32_t));
+				memcpy(response_data + 12, &h_BE, sizeof(uint32_t));
 
 				// Send success response with dimensions
 				success = send_response(conn, STATUS_OK, response_data, sizeof(response_data));

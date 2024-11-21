@@ -81,6 +81,7 @@ class _Command(IntEnum):
     GET_USERCONFIGDIR = 26
     GET_IS_IMAGE_LOADED = 27
     GET_IS_SEQUENCE_LOADED = 28
+    GET_SELECTION = 29
     ERROR = 0xFF
 
 class _ConfigType(IntEnum):
@@ -673,6 +674,29 @@ class SirilInterface:
         except Exception as e:
             print(f"Error sending command: {e}", file=sys.stderr)
             return False
+
+    def get_selection(self) -> Optional[Tuple[int, int, int, int]]:
+
+        """
+        Request the image selection from Siril.
+
+        Returns:
+            A tuple (height, width, channels) representing the current selection,
+            or None if an error occurred.
+        """
+
+        response = self._request_data(_Command.GET_SELECTION)
+
+        if response is None:
+            return None
+
+        try:
+            # Assuming the response is in the format: x (4 bytes), y (4 bytes), w (4 bytes), h (4 bytes)
+            x, y, w, h = struct.unpack('!IIII', response)
+            return x, y, w, h  # Returning as (x, y, w, h)
+        except struct.error as e:
+            print(f"Error unpacking image selection: {e}", file=sys.stderr)
+            return None
 
     def get_shape(self) -> Optional[Tuple[int, int, int]]:
 
