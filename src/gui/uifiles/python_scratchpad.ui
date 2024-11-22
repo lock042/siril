@@ -114,9 +114,9 @@
                             <property name="can-focus">False</property>
                             <property name="tooltip-text" translatable="yes">Run the script</property>
                             <property name="action-name">editor.execute</property>
-                            <property name="label" translatable="yes">_Run</property>
+                            <property name="label" translatable="yes">Run</property>
                             <property name="use-underline">True</property>
-                            <accelerator key="r" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                            <accelerator key="F5" signal="activate"/>
                           </object>
                         </child>
                         <child>
@@ -206,13 +206,13 @@
                           </object>
                         </child>
                         <child>
-                          <object class="GtkCheckMenuItem" id="editor_higlightcurrentline">
+                          <object class="GtkCheckMenuItem" id="editor_highlightcurrentline">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="tooltip-text" translatable="yes">Highlight the current line in the editor</property>
                             <property name="label" translatable="yes">Highlight current line</property>
                             <property name="active">True</property>
-                            <signal name="toggled" handler="on_editor_higlightcurrentline_toggled" swapped="no"/>
+                            <signal name="toggled" handler="on_editor_highlightcurrentline_toggled" swapped="no"/>
                           </object>
                         </child>
                         <child>
@@ -223,6 +223,16 @@
                             <property name="label" translatable="yes">Enable auto-indentation</property>
                             <property name="active">True</property>
                             <signal name="toggled" handler="on_editor_autoindent_toggled" swapped="no"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckMenuItem" id="editor_indentontab">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">When a block of lines is selected, tab increases the indent level</property>
+                            <property name="label" translatable="yes">Indent on tab</property>
+                            <property name="active">True</property>
+                            <signal name="toggled" handler="on_editor_indentontab_toggled" swapped="no"/>
                           </object>
                         </child>
                         <child>

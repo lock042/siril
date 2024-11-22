@@ -509,3 +509,43 @@ void on_action_python_doc(GSimpleAction *action, GVariant *parameter, gpointer u
 void on_action_command_doc(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	siril_get_documentation("Commands.html");
 }
+
+void on_editor_syntax_toggled(GtkCheckMenuItem *item, gpointer user_data) {
+	gtk_source_buffer_set_highlight_syntax(sourcebuffer, gtk_check_menu_item_get_active(item));
+}
+
+void on_editor_bracketmatch_toggled(GtkCheckMenuItem *item, gpointer user_data) {
+	gtk_source_buffer_set_highlight_matching_brackets(sourcebuffer, gtk_check_menu_item_get_active(item));
+}
+
+void on_editor_rmargin_toggled(GtkCheckMenuItem *item, gpointer user_data) {
+	gtk_source_view_set_show_right_margin(code_view, gtk_check_menu_item_get_active(item));
+}
+
+void on_editor_linenums_toggled(GtkCheckMenuItem *item, gpointer user_data) {
+	gtk_source_view_set_show_line_numbers(code_view, gtk_check_menu_item_get_active(item));
+}
+
+void on_editor_linemarks_toggled(GtkCheckMenuItem *item, gpointer user_data) {
+	gtk_source_view_set_show_line_marks(code_view, gtk_check_menu_item_get_active(item));
+}
+
+void on_editor_highlightcurrentline_toggled(GtkCheckMenuItem *item, gpointer user_data) {
+	gtk_source_view_set_highlight_current_line(code_view, gtk_check_menu_item_get_active(item));
+}
+
+void on_editor_autoindent_toggled(GtkCheckMenuItem *item, gpointer user_data) {
+	gtk_source_view_set_auto_indent(code_view, gtk_check_menu_item_get_active(item));
+}
+
+void on_editor_indentontab_toggled(GtkCheckMenuItem *item, gpointer user_data) {
+	gtk_source_view_set_indent_on_tab(code_view, gtk_check_menu_item_get_active(item));
+}
+
+void on_editor_smartbs_toggled(GtkCheckMenuItem *item, gpointer user_data) {
+	gtk_source_view_set_smart_backspace(code_view, gtk_check_menu_item_get_active(item));
+}
+
+void on_editor_smarthomeend_toggled(GtkCheckMenuItem *item, gpointer user_data) {
+	gtk_source_view_set_smart_home_end(code_view, gtk_check_menu_item_get_active(item));
+}
