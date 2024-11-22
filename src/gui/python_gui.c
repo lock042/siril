@@ -195,7 +195,7 @@ static void update_title(GFile *file) {
 		if (suffix != NULL) {
 			if (g_ascii_strcasecmp(suffix, ".py") == 0) {
 				gtk_check_menu_item_set_active(radio_py, TRUE);
-			} else if (g_ascii_strcmp(suffix, ".ssf") == 0) {
+			} else if (g_ascii_strcasecmp(suffix, ".ssf") == 0) {
 				gtk_check_menu_item_set_active(radio_ssf, TRUE);
 			}
 		}
