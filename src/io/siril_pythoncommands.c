@@ -12,6 +12,7 @@
 #include "core/icc_profile.h"
 #include "core/siril_log.h"
 #include "core/proto.h"
+#include "core/undo.h"
 #include "gui/callbacks.h"
 #include "gui/image_interactions.h"
 #include "gui/progress_and_log.h"
@@ -709,6 +710,28 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 
 			// Send success response
 			success = send_response(conn, STATUS_OK, NULL, 0);
+			break;
+		}
+
+		case CMD_UNDO_SAVE_STATE: {
+			if (single_image_is_loaded()) {
+				if (com.headless) {
+					const char* error_msg = _("Undo not supported in headless mode");
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					break;
+				}
+				// Ensure null-terminated string for undo message
+				char* log_msg = g_strndup(payload, payload_length);
+				undo_save_state(&gfit, log_msg);
+				g_free(log_msg);
+
+				// Send success response
+				success = send_response(conn, STATUS_OK, NULL, 0);
+			} else {
+				// Handle error
+				const char* error_msg = _("Image not loaded");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			}
 			break;
 		}
 

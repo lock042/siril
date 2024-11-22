@@ -87,6 +87,7 @@ class _Command(IntEnum):
     GET_STAR_IN_SELECTION = 32
     GET_STATS_FOR_SELECTION = 33
     PIX2WCS = 34
+    UNDO_SAVE_STATE = 35
     ERROR = 0xFF
 
 class _ConfigType(IntEnum):
@@ -602,6 +603,28 @@ class SirilInterface:
 
         except Exception as e:
             print(f"Error sending log message: {e}", file=sys.stderr)
+            return False
+
+    def undo_save_state(self, my_string: str) -> bool:
+        """
+        Saves an undo state. The maximum message length is 70 bytes: longer
+        messages will be truncated.
+
+        Args:
+            my_string: The message to log in FITS HISTORY
+
+        Returns:
+            bool: True if the message was successfully logged, False otherwise
+        """
+
+        try:
+            # Append a newline character to the string
+            # Convert string to bytes using UTF-8 encoding
+            message_bytes = my_string.encode('utf-8')
+            return self._execute_command(_Command.UNDO_SAVE_STATE, message_bytes)
+
+        except Exception as e:
+            print(f"Error saving undo state: {e}", file=sys.stderr)
             return False
 
     def update_progress(self, message: str, progress: float) -> bool:
