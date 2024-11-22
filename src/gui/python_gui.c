@@ -71,6 +71,7 @@ void on_action_file_close(GSimpleAction *action, GVariant *parameter, gpointer u
 void on_action_select_language(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_action_python_doc(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_action_command_doc(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void set_language();
 
 static GActionEntry editor_actions[] = {
 	{ "open", on_action_file_open, NULL, NULL, NULL },
@@ -98,7 +99,7 @@ gboolean code_view_exists() {
 }
 
 // Add this function to initialize the actions
-static void setup_editor_actions(GtkApplicationWindow *window) {
+static void setup_editor_actions(GtkWindow *window) {
 	GSimpleActionGroup *action_group;
 	action_group = g_simple_action_group_new();
 
@@ -179,6 +180,8 @@ void python_scratchpad_init_statics() {
 		script_label = GTK_LABEL(gtk_builder_get_object(gui.builder, "script_editor_label"));
 		gtk_widget_show(GTK_WIDGET(script_label));
 		add_code_view(gui.builder);
+		gtk_window_set_transient_for(GTK_WINDOW(editor_window), GTK_WINDOW(gtk_builder_get_object(gui.builder, "control_window")));
+
 	}
 }
 
@@ -187,6 +190,20 @@ static void update_title(GFile *file) {
 	if (file) {
 		char *basename = g_file_get_basename(file);
 		gtk_label_set_text(script_label, basename);
+
+		char *suffix = strrchr(basename, '.');
+		if (suffix != NULL) {
+			if (strcmp(suffix, ".py") == 0) {
+//				active_language = LANG_PYTHON;
+//				set_language();
+				gtk_check_menu_item_set_active(radio_py, TRUE);
+			} else if (strcmp(suffix, ".ssf") == 0) {
+//				active_language = LANG_SSF;
+//				set_language();
+				gtk_check_menu_item_set_active(radio_ssf, TRUE);
+			}
+		}
+
 		g_free(basename);
 	} else {
 		gtk_label_set_text(script_label, _(""));
@@ -372,7 +389,7 @@ int on_open_pythonpad(GtkMenuItem *menuitem, gpointer user_data) {
 	if (!editor_window) {
 		python_scratchpad_init_statics();
 	}
-	setup_editor_actions(GTK_APPLICATION_WINDOW(editor_window));
+	setup_editor_actions(editor_window);
 
 	// If the window isn't visible, let's position it relative to the main window
 	if (!gtk_widget_get_visible(GTK_WIDGET(editor_window))) {
@@ -388,9 +405,8 @@ int on_open_pythonpad(GtkMenuItem *menuitem, gpointer user_data) {
 
 	gtk_label_set_text(language_label, active_language == LANG_PYTHON ? _("Python Script") : _("Siril Script File"));
 
-	gtk_window_set_keep_above(editor_window, FALSE);
-
 	// Show the window and bring it to front
+
 	gtk_window_present_with_time(editor_window, GDK_CURRENT_TIME);
 
 	// Set the correct check menu item active
@@ -422,13 +438,11 @@ gboolean on_main_window_state_changed(GtkWidget *widget,
 	return FALSE;
 }
 
-void on_language_set(GtkRadioMenuItem *item, gpointer user_data) {
-	if (gtk_check_menu_item_get_active(radio_py)) {
-		active_language = LANG_PYTHON;
+void set_language() {
+	if (active_language == LANG_PYTHON) {
 		language = gtk_source_language_manager_get_language(language_manager, "python");
 		gtk_label_set_text(language_label, _("Python Script"));
-	} else {
-		active_language = LANG_SSF;
+	} else if (active_language == LANG_SSF) {
 		language = gtk_source_language_manager_get_language(language_manager, "sh");
 		gtk_label_set_text(language_label, _("Siril Script File"));
 	}
@@ -436,20 +450,16 @@ void on_language_set(GtkRadioMenuItem *item, gpointer user_data) {
 		siril_debug_print("Could not find language definition\n");
 	} else {
 		gtk_source_buffer_set_language(sourcebuffer, language);
-		gtk_source_view_set_show_line_marks(GTK_SOURCE_VIEW(code_view), TRUE);
-		// Create mark attributes for folding
-		GtkSourceMarkAttributes *fold_attributes = gtk_source_mark_attributes_new();
-		// Customize fold mark appearance
-		GdkRGBA color;
-		gdk_rgba_parse(&color, "#0000FF");  // Blue color for fold markers
-		gtk_source_mark_attributes_set_background(fold_attributes, &color);
-		gtk_source_view_set_mark_attributes(GTK_SOURCE_VIEW(code_view),
-											"fold",      // Category name
-											fold_attributes,  // Attributes object
-											1);          // Priority
-		// Release references
-		g_object_unref(fold_attributes);
 	}
+}
+
+void on_language_set(GtkRadioMenuItem *item, gpointer user_data) {
+	if (gtk_check_menu_item_get_active(radio_py)) {
+		active_language = LANG_PYTHON;
+	} else {
+		active_language = LANG_SSF;
+	}
+	set_language();
 }
 
 void setup_python_editor_window() {
