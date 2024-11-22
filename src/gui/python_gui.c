@@ -193,13 +193,9 @@ static void update_title(GFile *file) {
 
 		char *suffix = strrchr(basename, '.');
 		if (suffix != NULL) {
-			if (strcmp(suffix, ".py") == 0) {
-//				active_language = LANG_PYTHON;
-//				set_language();
+			if (g_ascii_strcasecmp(suffix, ".py") == 0) {
 				gtk_check_menu_item_set_active(radio_py, TRUE);
-			} else if (strcmp(suffix, ".ssf") == 0) {
-//				active_language = LANG_SSF;
-//				set_language();
+			} else if (g_ascii_strcmp(suffix, ".ssf") == 0) {
 				gtk_check_menu_item_set_active(radio_ssf, TRUE);
 			}
 		}
