@@ -454,7 +454,7 @@ static int _compute_estimators_for_images(struct stacking_args *args, int i, int
 		nbdata = compute_overlap(args, i, j, &areai, &areaj);
 		// we cache it for all layers
 		// Normally, we should have regdata for only one layer, but what if we have for more (can't see that happening but better be safe)
-		// In that case, we will assume that the differences in overlaps should be minimal (1or 2 lines) and that
+		// In that case, we will assume that the differences in overlaps should be minimal (1 or 2 lines) and that
 		// the first ever cached overlap stats are valid irrespective of the regdata which created them
 		for (int n = 0; n < nb_layers; n++) {
 			seq->ostats[n][ijth].i = i;
@@ -482,7 +482,7 @@ static int _compute_estimators_for_images(struct stacking_args *args, int i, int
 	gboolean needs_recalc = FALSE;
 	if (was_cached) {
 		for (int n = 0; n < nb_layers; n++) {
-			needs_recalc_lite[n] = 	seq->ostats[n][ijth].Nij > 0 && ( // we can have nbdata > 0 and actual non-black pixels common pixels null
+			needs_recalc_lite[n] = 	seq->ostats[n][ijth].Nij > 0 && (
 									seq->ostats[n][ijth].madij == NULL_STATS || 
 									seq->ostats[n][ijth].medij == NULL_STATS || 
 									seq->ostats[n][ijth].madji == NULL_STATS || 
@@ -503,7 +503,7 @@ static int _compute_estimators_for_images(struct stacking_args *args, int i, int
 	}
 
 	if (!needs_recalc) {
-		siril_debug_print("Data for %d and %d were cached, re-using\n");
+		siril_debug_print("Data for %d and %d were cached, re-using\n", i + 1, j + 1);
 		return ST_OK;
 	}
 	args->seq->needs_saving = TRUE;
@@ -579,7 +579,7 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 	int nb_frames = args->nb_images_to_stack;
 	int Npairs = nb_frames * (nb_frames - 1) / 2;
 	int N = nb_frames - 1;
-	imstats *refstats[3] = { NULL };
+	// imstats *refstats[3] = { NULL };
 
 	if (args->normalize == NO_NORM || !args->maximize_framing)	// should never happen here
 		return 0;
@@ -600,19 +600,21 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 		return ST_GENERIC_ERROR;
 	}
 
-	if (compute_all_channels_statistics_seqimage(args->seq, index_ref, NULL, (args->lite_norm) ? STATS_LITENORM : STATS_NORM, SINGLE_THREADED, -1, refstats)) {
-#ifdef DEBUG_NORM
-		for (int n = 0; n < nb_layers; n++) {
-			if (args->lite_norm)
-				siril_debug_print("Reference %.6f %.6f\n", refstats[n]->median, refstats[n]->mad);
-			else
-				siril_debug_print("Reference %.6f %.6f\n", refstats[n]->location, refstats[n]->scale);
-		}
-#endif
-		siril_log_color_message(_("Could not compute statistics of reference image"), "red");
-		retval = 1;
-		return ST_GENERIC_ERROR;
-	}
+//TODO: check if we can still equalize RGB
+
+// 	if (compute_all_channels_statistics_seqimage(args->seq, index_ref, NULL, (args->lite_norm) ? STATS_LITENORM : STATS_NORM, SINGLE_THREADED, -1, refstats)) {
+// #ifdef DEBUG_NORM
+// 		for (int n = 0; n < nb_layers; n++) {
+// 			if (args->lite_norm)
+// 				siril_debug_print("Reference %.6f %.6f\n", refstats[n]->median, refstats[n]->mad);
+// 			else
+// 				siril_debug_print("Reference %.6f %.6f\n", refstats[n]->location, refstats[n]->scale);
+// 		}
+// #endif
+// 		siril_log_color_message(_("Could not compute statistics of reference image"), "red");
+// 		retval = 1;
+// 		return ST_GENERIC_ERROR;
+// 	}
 
 	init_coeffs(args);
 	// if the overlap stats have never been cached or have been cleared, we allocate there for all 
@@ -750,43 +752,40 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 
 	double *coeffs = malloc(N * sizeof(double));
 
-	if (args->normalize == ADDITIVE || args->normalize == ADDITIVE_SCALING) {
-		for (int n = 0; n < nb_layers; n++) {
-			solve_overlap_coeffs(nb_frames, index, index_ref, Nij[n], Mij[n], TRUE, coeffs);
-			float refval = (args->lite_norm) ? refstats[n]->median : refstats[n]->location;
-			for (int i = 0; i < N; i ++) {
-				coeff->poffset[n][index[i]] = refval - coeffs[i];
-			}
-			coeff->poffset[n][index_ref] = refval;
-		}
-	}
-
 	if (args->normalize == MULTIPLICATIVE_SCALING || args->normalize == ADDITIVE_SCALING) {
 		for (int n = 0; n < nb_layers; n++) {
 			solve_overlap_coeffs(nb_frames, index, index_ref, Nij[n], Sij[n], FALSE, coeffs);
-			float refval = (args->lite_norm) ? refstats[n]->mad : refstats[n]->scale;
-			for (int i = 0; i < N; i ++) {
-				coeff->pscale[n][index[i]] = refval / coeffs[i];
+			for (int i = 0; i < N; i ++) { // we set the coeffs for nb_frames - 1, the ref has already been init
+				coeff->pscale[n][index[i]] = coeffs[i];
 			}
-			coeff->pscale[n][index_ref] = refval;
+			// we re-normalize the Mij matrix by the scales found at this step
+			for (int ii = 0; ii < nb_frames; ii++) {
+				for (int jj = 0; jj < nb_frames; jj++) {
+					Mij[n][ii][jj] *= coeff->pscale[n][ii];
+				}
+			}
+		}
+	}
+
+	if (args->normalize == ADDITIVE || args->normalize == ADDITIVE_SCALING) {
+		for (int n = 0; n < nb_layers; n++) { 
+			solve_overlap_coeffs(nb_frames, index, index_ref, Nij[n], Mij[n], TRUE, coeffs);
+			for (int i = 0; i < N; i ++) { // we set the coeffs for nb_frames - 1, the ref has already been init
+				coeff->poffset[n][index[i]] = -coeffs[i];
+			}
 		}
 	}
 
 	if (args->normalize == MULTIPLICATIVE) {
 		for (int n = 0; n < nb_layers; n++) {
 			solve_overlap_coeffs(nb_frames, index, index_ref, Nij[n], Mij[n], FALSE, coeffs);
-			float refval = (args->lite_norm) ? refstats[n]->median : refstats[n]->location;
 			for (int i = 0; i < N; i ++) {
-				coeff->pmul[n][index[i]] = refval / coeffs[i];
+				coeff->pmul[n][index[i]] = coeffs[i];
 			}
-			coeff->pmul[n][index_ref] = refval;
 		}
 	}
 
 	// free(threads_per_thread);
-	if (!retval) {
-		compute_factors_from_estimators(args, index_ref);
-	}
 
 	for (int n = 0; n < nb_layers; n++) {
 		for (int i = 0; i < nb_frames; i++) {
