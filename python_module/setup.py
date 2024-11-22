@@ -7,7 +7,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="siril",
-    version="0.1.57",
+    version="0.1.58",
     packages=find_packages(),
     install_requires=[
         "numpy>=1.20.0",
@@ -15,7 +15,7 @@ setup(
         "pywin32>=300; platform_system=='Windows'"
     ],
     author="Team free-astro",
-    license="GPLv3+",
+    license="SPDX-License-Identifier: GPL-3.0-or-later",
     description="Python interface for Siril astronomical image processing",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",

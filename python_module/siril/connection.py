@@ -87,7 +87,8 @@ class _Command(IntEnum):
     GET_STAR_IN_SELECTION = 32
     GET_STATS_FOR_SELECTION = 33
     PIX2WCS = 34
-    UNDO_SAVE_STATE = 35
+    WCS2PIX = 35
+    UNDO_SAVE_STATE = 36
     ERROR = 0xFF
 
 class _ConfigType(IntEnum):
@@ -1028,6 +1029,70 @@ class SirilInterface:
         try:
             shape_data = struct.pack('!2d', x, y)
             status, response = self._send_command(_Command.PIX2WCS, shape_data)
+            # Handle error responses
+            if status == _Status.ERROR:
+                if response:
+                    error_msg = response.decode('utf-8', errors='replace')
+                    if "no image loaded" in error_msg.lower():
+                        raise NoImageError(_("No image is currently loaded in Siril"))
+                    else:
+                        if "not plate solved" in error_msg.lower():
+                            raise ValueError(_("Siril image is not plate solved"))
+                        else:
+                            raise RuntimeError(_("Server error: {}").format(error_msg))
+                else:
+                    raise RuntimeError(_("Failed to transfer coordinates: Empty response"))
+
+            if status == _Status.NONE:
+                return None
+
+            if not response:
+                raise RuntimeError(_("Failed to transfer coordinates: No data received"))
+            try:
+                # Define the format string for unpacking the C struct
+                # '!' for network byte order (big-endian)
+                # 'd' for double (all floating point values)
+                format_string = '!2d'  # '!' ensures network byte order
+
+                # Calculate expected size
+                expected_size = struct.calcsize(format_string)
+
+                # Verify we got the expected amount of data
+                if len(response) != expected_size:
+                    print(f"Received data size {len(response)} doesn't match expected size {expected_size}",
+                        file=sys.stderr)
+                    return None
+
+                # Unpack the binary data
+                values = struct.unpack(format_string, response)
+            except struct.error as e:
+                print(f"Error unpacking data: {e}", file=sys.stderr)
+                raise RuntimeError(_("Error processing data: {}").format(e))
+            return values;
+        except Exception as e:
+            raise RuntimeError(_("Failed to transfer stats data: error occurred"))
+
+    def radec2pix(self, ra: float, dec: float) -> Optional[Tuple[float, float]]:
+        """
+        Converts a pair of RA,dec coordinates into image pixel coordinates using the
+        WCS of the image loaded in Siril. This requires that an image is loaded in
+        Siril and that it has been platesolved (i.e. it has a WCS solution).
+
+        Args:
+            ra: float: provides the RA coordinate to be converted
+            dec: float: provides the dec coordinate to be converted
+
+        Returns:
+            Tuple[float, float]: [x, y] as a Tuple of two floats.
+
+        Raises:
+            NoImageError: If no image is currently loaded,
+            RuntimeError: For other errors during pixel data retrieval,
+            ValueError: If the received data format is invalid or no WCS is found
+        """
+        try:
+            shape_data = struct.pack('!2d', ra, dec)
+            status, response = self._send_command(_Command.WCS2PIX, shape_data)
             # Handle error responses
             if status == _Status.ERROR:
                 if response:

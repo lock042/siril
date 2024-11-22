@@ -1356,6 +1356,42 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			break;
 		}
 
+		case CMD_WCS2PIX: {
+			gboolean result = single_image_is_loaded();
+			if (result) {
+				if (!has_wcs(&gfit)) {
+					// Handle no WCS error
+					const char* error_msg = _("Siril image is not plate solved");
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					break;
+				}
+				if (payload_length == 16) {
+					double *DblPtrBE = (double*) payload;
+					double ra_BE = DblPtrBE[0];
+					double dec_BE = DblPtrBE[1];
+					double ra, dec;
+					FROM_BE_INTO(ra, ra_BE, double);
+					FROM_BE_INTO(dec, dec_BE, double);
+					double x, y, x_BE, y_BE;
+					wcs2pix(&gfit, ra, dec, &x, &y);
+					TO_BE_INTO(x_BE, x, double);
+					TO_BE_INTO(y_BE, y, double);
+					unsigned char* payload = g_malloc0(2 * sizeof(double));
+					DblPtrBE = (double*) payload;
+					DblPtrBE[0] = x_BE;
+					DblPtrBE[1] = y_BE;
+					success = send_response(conn, STATUS_OK, payload, 2 * sizeof(double));
+					g_free(payload);
+					break;
+				}
+			} else {
+				// Handle error retrieving dimensions
+				const char* error_msg = _("Failed to set selection - no image loaded");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			}
+			break;
+		}
+
 		default:
 			siril_debug_print("Unknown command: %d\n", header->command);
 			const char* error_msg = _("Unknown command");
