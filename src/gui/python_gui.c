@@ -54,7 +54,6 @@ static GtkSourceLanguageManager *language_manager = NULL;
 static GtkSourceLanguage *language = NULL;
 static GtkSourceStyleSchemeManager *stylemanager = NULL;
 static GtkSourceStyleScheme *scheme = NULL;
-static GtkSourceFile *source_file = NULL;
 static GFile *current_file = NULL;
 static GtkWindow *editor_window = NULL;
 static GtkWindow *main_window = NULL;
@@ -68,6 +67,7 @@ void on_action_file_save(GSimpleAction *action, GVariant *parameter, gpointer us
 void on_action_file_save_as(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_action_file_execute(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_action_file_new(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void on_action_file_close(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_action_select_language(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_action_python_doc(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_action_command_doc(GSimpleAction *action, GVariant *parameter, gpointer user_data);
@@ -77,6 +77,7 @@ static GActionEntry editor_actions[] = {
 	{ "save", on_action_file_save, NULL, NULL, NULL },
 	{ "save_as", on_action_file_save_as, NULL, NULL, NULL },
 	{ "new", on_action_file_new, NULL, NULL, NULL },
+	{ "close", on_action_file_close, NULL, NULL, NULL },
 	{ "execute", on_action_file_execute, NULL, NULL, NULL },
 	{ "python_doc", on_action_python_doc, NULL, NULL, NULL },
 	{ "command_doc", on_action_command_doc, NULL, NULL, NULL }
@@ -184,22 +185,13 @@ void python_scratchpad_init_statics() {
 // File handling
 static void update_title(GFile *file) {
 	if (file) {
-		char *basename = g_file_get_basename(current_file);
+		char *basename = g_file_get_basename(file);
 		gtk_label_set_text(script_label, basename);
 		g_free(basename);
 	} else {
 		gtk_label_set_text(script_label, _(""));
 	}
 	gtk_widget_queue_draw(GTK_WIDGET(editor_window));
-}
-
-static void handle_file_load_save_error(const GError *error, const char *operation) {
-	if (error) {
-		char *message = g_strdup_printf(_("Error during %s: %s"), operation, error->message);
-		siril_message_dialog(GTK_MESSAGE_ERROR, _("File Operation Error"), message);
-		g_free(message);
-		siril_log_message(_("File operation failed: %s\n"), error->message);
-	}
 }
 
 void load_file_complete(GObject *loader, GAsyncResult *result, gpointer user_data) {
@@ -268,17 +260,32 @@ void on_action_file_new(GSimpleAction *action, GVariant *parameter, gpointer use
 	GtkTextIter start, end;
 	gtk_text_buffer_get_bounds(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
 	if (siril_confirm_dialog(_("Are you sure?"), _("This will clear the entry buffer. You will not be able to recover any contents."), _("Proceed"))) {
-		g_object_unref(current_file);
+		if (G_IS_OBJECT(current_file))
+			g_object_unref(current_file);
 		current_file = NULL;
 		gtk_text_buffer_delete(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
-		g_print("Setting label to 'unsaved'\n");
-		gtk_label_set_text(script_label, _("unsaved"));
-		g_print("Label text is now: %s\n", gtk_label_get_text(script_label));
+		gtk_label_set_text(script_label, "");
 		gtk_widget_queue_draw(GTK_WIDGET(editor_window));
-	}}
+	}
+}
+
+void on_action_file_close(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	gint char_count = gtk_text_buffer_get_char_count(GTK_TEXT_BUFFER(sourcebuffer));
+	gboolean is_empty = (char_count == 0);
+	if (!is_empty) {
+		on_action_file_new(action, parameter, user_data);
+	} else {
+		if (G_IS_OBJECT(current_file))
+			g_object_unref(current_file);
+		current_file = NULL;
+		gtk_label_set_text(script_label, "");
+	}
+	gtk_widget_hide(GTK_WIDGET(editor_window));
+}
 
 void on_action_file_open(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	g_object_unref(current_file);
+	if (G_IS_OBJECT(current_file))
+		g_object_unref(current_file);
 	current_file = NULL;
 	GtkWidget *dialog = gtk_file_chooser_dialog_new(_("Open Script"),
 			GTK_WINDOW(lookup_widget("control_window")),
@@ -305,7 +312,6 @@ void on_action_file_open(GSimpleAction *action, GVariant *parameter, gpointer us
 
 	gtk_widget_destroy(dialog);
 	gtk_window_present(editor_window);
-
 }
 
 void on_action_file_save_as(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -327,7 +333,7 @@ void on_action_file_save_as(GSimpleAction *action, GVariant *parameter, gpointer
 	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 
 	// If there's a current file, set it as the default
-	if (current_file) {
+	if (G_IS_OBJECT(current_file)) {
 		gtk_file_chooser_set_file(GTK_FILE_CHOOSER(dialog), current_file, NULL);
 	}
 
@@ -337,7 +343,7 @@ void on_action_file_save_as(GSimpleAction *action, GVariant *parameter, gpointer
 		control_window_switch_to_tab(OUTPUT_LOGS);
 
 		// Update current_file with the newly selected file
-		if (current_file)
+		if (G_IS_OBJECT(current_file))
 			g_object_unref(current_file);
 		current_file = g_object_ref(file);
 		update_title(current_file);
@@ -360,18 +366,6 @@ void on_action_file_save(GSimpleAction *action, GVariant *parameter, gpointer us
 	// We have a current file, just save directly to it
 	control_window_switch_to_tab(OUTPUT_LOGS);
 	save_file(current_file);
-}
-
-// Cleanup code for when the editor is destroyed
-static void cleanup_source_file() {
-	if (source_file) {
-		g_object_unref(source_file);
-		source_file = NULL;
-	}
-	if (current_file) {
-		g_object_unref(current_file);
-		current_file = NULL;
-	}
 }
 
 int on_open_pythonpad(GtkMenuItem *menuitem, gpointer user_data) {
@@ -469,50 +463,6 @@ void setup_python_editor_window() {
 	// Optional: Make editor window minimize when main window minimizes
 	g_signal_connect(main_window, "window-state-event",
 					G_CALLBACK(on_main_window_state_changed), editor_window);
-}
-
-static gchar* read_stream_into_gchar(GInputStream* stream, gsize* length, GError** error) {
-	// TODO: is there already a Siril function that does this?
-	gsize buffer_size = 4096;  // Initial buffer size
-	gsize total_bytes_read = 0;
-	gssize bytes_read;
-	gchar* buffer = g_malloc(buffer_size);  // Allocate an initial buffer
-
-	if (!buffer) {
-		PRINT_ALLOC_ERR;
-		return NULL;
-	}
-
-	while ((bytes_read = g_input_stream_read(stream, buffer + total_bytes_read, buffer_size - total_bytes_read, NULL, error)) > 0) {
-		total_bytes_read += bytes_read;
-
-		if (total_bytes_read == buffer_size) {
-			// Expand buffer size if necessary
-			buffer_size *= 2;
-			buffer = g_realloc(buffer, buffer_size);
-
-			if (!buffer) {
-				PRINT_ALLOC_ERR;
-				return NULL;
-			}
-		}
-	}
-
-	if (bytes_read == -1) {
-		// Handle read error
-		g_free(buffer);
-		return NULL;
-	}
-
-	// Null-terminate the result and resize buffer to exact length
-	buffer = g_realloc(buffer, total_bytes_read + 1);
-	buffer[total_bytes_read] = '\0';
-
-	if (length) {
-		*length = total_bytes_read;  // Set the length if requested
-	}
-
-	return buffer;
 }
 
 void on_action_file_execute(GSimpleAction *action, GVariant *parameter, gpointer user_data) {

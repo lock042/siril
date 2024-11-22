@@ -82,6 +82,7 @@
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="tooltip-text" translatable="yes">Close the script editor</property>
+                            <property name="action-name">editor.close</property>
                             <property name="label" translatable="yes">Close</property>
                           </object>
                         </child>
@@ -145,12 +146,21 @@
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <child>
+                          <object class="GtkCheckMenuItem" id="editor_syntax">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Enable syntax highlighting</property>
+                            <property name="label" translatable="yes">Highlight syntax</property>
+                            <property name="active">True</property>
+                            <signal name="toggled" handler="on_editor_syntax_toggled" swapped="no"/>
+                          </object>
+                        </child>
+                        <child>
                           <object class="GtkCheckMenuItem" id="editor_rmargin">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="tooltip-text" translatable="yes">Enable right margin indicator</property>
-                            <property name="action-name">editor.rmargin</property>
-                            <property name="label" translatable="yes">Right margin indicator</property>
+                            <property name="label" translatable="yes">Enable right margin indicator</property>
                             <property name="active">True</property>
                             <signal name="toggled" handler="on_editor_rmargin_toggled" swapped="no"/>
                           </object>
@@ -159,9 +169,8 @@
                           <object class="GtkCheckMenuItem" id="editor_bracketmatch">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="tooltip-text" translatable="yes">Enable bracket matching</property>
-                            <property name="action-name">editor.brackets</property>
-                            <property name="label" translatable="yes">Bracket matching</property>
+                            <property name="tooltip-text" translatable="yes">When enabled, positioning the cursor on a bracket will show the matching bracket</property>
+                            <property name="label" translatable="yes">Enable bracket matching</property>
                             <property name="active">True</property>
                             <signal name="toggled" handler="on_editor_bracketmatch_toggled" swapped="no"/>
                           </object>
@@ -170,22 +179,60 @@
                           <object class="GtkCheckMenuItem" id="editor_linenums">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="tooltip-text" translatable="yes">Enable line numbers</property>
-                            <property name="action-name">editor.linenum</property>
+                            <property name="tooltip-text" translatable="yes">Enable line numbers in the left margin</property>
                             <property name="label" translatable="yes">Show line numbers</property>
                             <property name="active">True</property>
                             <signal name="toggled" handler="on_editor_linenums_toggled" swapped="no"/>
                           </object>
                         </child>
                         <child>
-                          <object class="GtkCheckMenuItem" id="editor_syntax">
+                          <object class="GtkCheckMenuItem" id="editor_linemarks">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="tooltip-text" translatable="yes">Enable syntax highlighting</property>
-                            <property name="action-name">editor.linenum</property>
-                            <property name="label" translatable="yes">Highlight syntax</property>
+                            <property name="tooltip-text" translatable="yes">Show line markers in the left margin</property>
+                            <property name="label" translatable="yes">Enable line markers</property>
                             <property name="active">True</property>
-                            <signal name="toggled" handler="on_editor_syntax_toggled" swapped="no"/>
+                            <signal name="toggled" handler="on_editor_linemarks_toggled" swapped="no"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckMenuItem" id="editor_higlightcurrentline">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Highlight the current line in the editor</property>
+                            <property name="label" translatable="yes">Highlight current line</property>
+                            <property name="active">True</property>
+                            <signal name="toggled" handler="on_editor_higlightcurrentline_toggled" swapped="no"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckMenuItem" id="editor_autoindent">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Enable auto-indentation</property>
+                            <property name="label" translatable="yes">Enable auto-indentation</property>
+                            <property name="active">True</property>
+                            <signal name="toggled" handler="on_editor_autoindent_toggled" swapped="no"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckMenuItem" id="editor_smartbs">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Enable smart backspace</property>
+                            <property name="label" translatable="yes">Enable smart backspace</property>
+                            <property name="active">True</property>
+                            <signal name="toggled" handler="on_editor_smartbs_toggled" swapped="no"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckMenuItem" id="editor_smarthomeend">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">When Smart Home / End is enabled the Home and End keys will go to the first and last non-whitespace character on the line respectively</property>
+                            <property name="label" translatable="yes">Smart Home / End</property>
+                            <property name="active">True</property>
+                            <signal name="toggled" handler="on_editor_smarthomeend_toggled" swapped="no"/>
                           </object>
                         </child>
                       </object>
@@ -252,7 +299,6 @@
                   <object class="GtkLabel" id="script_language_label">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="label" translatable="yes">label</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
