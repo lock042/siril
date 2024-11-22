@@ -584,7 +584,7 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 		if (g_strcmp0(comment, "") == 0) comment = NULL;
 
 		if (comment || value || key) {
-			char valstring[FLEN_VALUE];
+			char valstring[FLEN_VALUE] = { 0 };
 			process_keyword_string_value(value, valstring, string_has_space(value));
 
 			if (sequence_is_loaded()) {
