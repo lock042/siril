@@ -20,6 +20,6 @@
 #ifndef SRC_GUI_DOCUMENTATION_H_
 #define SRC_GUI_DOCUMENTATION_H_
 
-void siril_get_documentation();
+void siril_get_documentation(const gchar *page_path);
 
 #endif /* SRC_GUI_DOCUMENTATION_H_ */

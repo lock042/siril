@@ -152,7 +152,7 @@ void updates_action_activate(GSimpleAction *action, GVariant *parameter, gpointe
 }
 
 void doc_action_activate(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	siril_get_documentation();
+	siril_get_documentation(NULL);
 }
 
 static gboolean is_extended = FALSE;

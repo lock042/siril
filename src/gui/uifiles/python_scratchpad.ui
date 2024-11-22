@@ -1,130 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0 
-
-Copyright (C) The free-astro development team, 2019-2023
-
-This file is part of Siril.
-
-Siril is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-Siril is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Siril.  If not, see <http://www.gnu.org/licenses/>.
-
--->
+<!-- Generated with glade 3.40.0 -->
 <interface>
   <requires lib="gtk+" version="3.22"/>
+  <requires lib="gtksourceview" version="4.0"/>
   <!-- interface-local-resource-path ../.. -->
   <!-- interface-css-provider-path siril.css -->
   <!-- interface-license-type gplv3 -->
   <!-- interface-name Siril -->
   <!-- interface-description Tool for astronomy image processing -->
   <!-- interface-copyright The free-astro development team, 2023 -->
-  <object class="GtkDialog" id="python_dialog">
+  <object class="GtkApplicationWindow" id="python_window">
     <property name="can-focus">False</property>
     <property name="title" translatable="yes">Script Editor</property>
     <property name="default-width">800</property>
     <property name="default-height">600</property>
-    <property name="type-hint">dialog</property>
     <signal name="delete-event" handler="siril_widget_hide_on_delete" swapped="no"/>
-    <signal name="show" handler="on_python_dialog_show" swapped="no"/>
-    <child internal-child="vbox">
+    <child>
       <object class="GtkBox">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
         <property name="orientation">vertical</property>
         <property name="spacing">2</property>
-        <child internal-child="action_area">
-          <object class="GtkButtonBox">
-            <property name="can-focus">False</property>
-            <property name="layout-style">end</property>
-            <child>
-              <object class="GtkButton" id="button_python_pad_close">
-                <property name="label" translatable="yes">Close</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-                <signal name="clicked" handler="on_python_pad_close_clicked" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="button_python_pad_clear">
-                <property name="label" translatable="yes">Clear</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-                <signal name="clicked" handler="on_button_python_pad_clear_clicked" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="button_python_pad_open">
-                <property name="label" translatable="yes">Open</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-                <signal name="clicked" handler="on_button_python_pad_open_clicked" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">2</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="button_python_pad_save">
-                <property name="label" translatable="yes">Save</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-                <signal name="clicked" handler="on_button_python_pad_save_clicked" swapped="no"/>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">3</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="button_python_pad_execute">
-                <property name="label" translatable="yes">Execute</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-                <signal name="clicked" handler="on_button_python_pad_execute_clicked" swapped="no"/>
-                <style>
-                  <class name="suggested-action"/>
-                </style>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">4</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">False</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
         <child>
           <object class="GtkBox" id="python_pad_box">
             <property name="visible">True</property>
@@ -150,6 +46,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="tooltip-text" translatable="yes">Clear the current script</property>
+                            <property name="action-name">editor.new</property>
                             <property name="label" translatable="yes">New</property>
                           </object>
                         </child>
@@ -158,6 +55,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="tooltip-text" translatable="yes">Open a script from a file</property>
+                            <property name="action-name">editor.open</property>
                             <property name="label" translatable="yes">Open</property>
                           </object>
                         </child>
@@ -166,6 +64,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="tooltip-text" translatable="yes">Save the current script</property>
+                            <property name="action-name">editor.save</property>
                             <property name="label" translatable="yes">Save</property>
                           </object>
                         </child>
@@ -174,6 +73,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="tooltip-text" translatable="yes">Save the current script (choose filename)</property>
+                            <property name="action-name">editor.save_as</property>
                             <property name="label" translatable="yes">Save As</property>
                           </object>
                         </child>
@@ -193,46 +93,41 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                   <object class="GtkMenuItem">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="label" translatable="yes">_Edit</property>
+                    <property name="label" translatable="yes">_Script</property>
                     <property name="use-underline">True</property>
                     <child type="submenu">
                       <object class="GtkMenu">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <child>
-                          <object class="GtkImageMenuItem">
-                            <property name="label">gtk-cut</property>
+                          <object class="GtkMenuItem">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="use-underline">True</property>
-                            <property name="use-stock">True</property>
+                            <property name="tooltip-text" translatable="yes">Execute the script</property>
+                            <property name="action-name">editor.execute</property>
+                            <property name="label" translatable="yes">Execute</property>
                           </object>
                         </child>
                         <child>
-                          <object class="GtkImageMenuItem">
-                            <property name="label">gtk-copy</property>
+                          <object class="GtkRadioMenuItem" id="radio_py">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="use-underline">True</property>
-                            <property name="use-stock">True</property>
+                            <property name="tooltip-text" translatable="yes">Set scripting language to Python. Ensure you have the correct scripting language set before executing a script from the editor.</property>
+                            <property name="label" translatable="yes">Python scripts</property>
+                            <property name="active">True</property>
+                            <property name="draw-as-radio">True</property>
+                            <signal name="toggled" handler="on_language_set" swapped="no"/>
                           </object>
                         </child>
                         <child>
-                          <object class="GtkImageMenuItem">
-                            <property name="label">gtk-paste</property>
+                          <object class="GtkRadioMenuItem" id="radio_ssf">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="use-underline">True</property>
-                            <property name="use-stock">True</property>
-                          </object>
-                        </child>
-                        <child>
-                          <object class="GtkImageMenuItem">
-                            <property name="label">gtk-delete</property>
-                            <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="use-underline">True</property>
-                            <property name="use-stock">True</property>
+                            <property name="tooltip-text" translatable="yes">Set scripting language to Siril Script File. Ensure you have the correct scripting language set before executing a script from the editor.</property>
+                            <property name="label" translatable="yes">Siril Script Files</property>
+                            <property name="draw-as-radio">True</property>
+                            <property name="group">radio_py</property>
+                            <signal name="group-changed" handler="on_language_set" swapped="no"/>
                           </object>
                         </child>
                       </object>
@@ -245,6 +140,56 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                     <property name="can-focus">False</property>
                     <property name="label" translatable="yes">_View</property>
                     <property name="use-underline">True</property>
+                    <child type="submenu">
+                      <object class="GtkMenu">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <child>
+                          <object class="GtkCheckMenuItem" id="editor_rmargin">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Enable right margin indicator</property>
+                            <property name="action-name">editor.rmargin</property>
+                            <property name="label" translatable="yes">Right margin indicator</property>
+                            <property name="active">True</property>
+                            <signal name="toggled" handler="on_editor_rmargin_toggled" swapped="no"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckMenuItem" id="editor_bracketmatch">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Enable bracket matching</property>
+                            <property name="action-name">editor.brackets</property>
+                            <property name="label" translatable="yes">Bracket matching</property>
+                            <property name="active">True</property>
+                            <signal name="toggled" handler="on_editor_bracketmatch_toggled" swapped="no"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckMenuItem" id="editor_linenums">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Enable line numbers</property>
+                            <property name="action-name">editor.linenum</property>
+                            <property name="label" translatable="yes">Show line numbers</property>
+                            <property name="active">True</property>
+                            <signal name="toggled" handler="on_editor_linenums_toggled" swapped="no"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckMenuItem" id="editor_syntax">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Enable syntax highlighting</property>
+                            <property name="action-name">editor.linenum</property>
+                            <property name="label" translatable="yes">Highlight syntax</property>
+                            <property name="active">True</property>
+                            <signal name="toggled" handler="on_editor_syntax_toggled" swapped="no"/>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
                   </object>
                 </child>
                 <child>
@@ -262,6 +207,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="tooltip-text" translatable="yes">Close the script editor</property>
+                            <property name="action-name">editor.python_doc</property>
                             <property name="label" translatable="yes">Python API reference</property>
                           </object>
                         </child>
@@ -270,6 +216,7 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="tooltip-text" translatable="yes">Close the script editor</property>
+                            <property name="action-name">editor.command_doc</property>
                             <property name="label" translatable="yes">Siril Command Reference</property>
                           </object>
                         </child>
@@ -285,16 +232,33 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
               </packing>
             </child>
             <child>
-              <object class="GtkScrolledWindow" id="python_scrolled_window">
+              <object class="GtkBox">
                 <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="shadow-type">in</property>
-                <property name="min-content-width">400</property>
-                <property name="min-content-height">600</property>
-                <property name="propagate-natural-width">True</property>
-                <property name="propagate-natural-height">True</property>
+                <property name="can-focus">False</property>
+                <property name="spacing">6</property>
+                <property name="homogeneous">True</property>
                 <child>
-                  <placeholder/>
+                  <object class="GtkLabel" id="script_editor_label">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="script_language_label">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">label</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
                 </child>
               </object>
               <packing>
@@ -304,27 +268,43 @@ along with Siril.  If not, see <http://www.gnu.org/licenses/>.
               </packing>
             </child>
             <child>
-              <object class="GtkComboBoxText" id="python_pad_language">
+              <object class="GtkScrolledWindow" id="python_scrolled_window">
                 <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="active">0</property>
-                <items>
-                  <item translatable="yes">Python</item>
-                  <item translatable="yes">Siril Script File</item>
-                </items>
-                <signal name="changed" handler="on_python_pad_language_changed" swapped="no"/>
+                <property name="can-focus">True</property>
+                <property name="shadow-type">in</property>
+                <property name="min-content-width">400</property>
+                <property name="min-content-height">600</property>
+                <property name="propagate-natural-width">True</property>
+                <property name="propagate-natural-height">True</property>
+                <child>
+                  <object class="GtkSourceView" id="code_view">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="left-margin">2</property>
+                    <property name="right-margin">2</property>
+                    <property name="monospace">True</property>
+                    <property name="show-line-numbers">True</property>
+                    <property name="show-line-marks">True</property>
+                    <property name="tab-width">4</property>
+                    <property name="auto-indent">True</property>
+                    <property name="show-right-margin">True</property>
+                    <property name="smart-home-end">always</property>
+                    <property name="highlight-current-line">True</property>
+                    <property name="smart-backspace">True</property>
+                  </object>
+                </child>
               </object>
               <packing>
-                <property name="expand">False</property>
+                <property name="expand">True</property>
                 <property name="fill">True</property>
                 <property name="position">2</property>
               </packing>
             </child>
           </object>
           <packing>
-            <property name="expand">False</property>
+            <property name="expand">True</property>
             <property name="fill">True</property>
-            <property name="position">1</property>
+            <property name="position">0</property>
           </packing>
         </child>
       </object>
