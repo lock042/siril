@@ -5,6 +5,7 @@
 
 #include "core/siril.h"
 #include "algos/PSF.h"
+#include "algos/siril_wcs.h"
 #include "algos/statistics.h"
 #include "core/command_line_processor.h"
 #include "core/siril_app_dirs.h"
@@ -60,6 +61,23 @@
 		ptr += len; \
 	}
 
+#define FROM_BE_INTO(dest, val, type) \
+do { \
+	union { type v; uint64_t i; } conv; \
+	memcpy(&conv.i, &val, sizeof(type)); \
+	conv.i = GUINT64_FROM_BE(conv.i); \
+	(dest) = conv.v; \
+} while(0)
+
+#define TO_BE_INTO(dest, val, type) \
+	do { \
+		union { type v; uint64_t i; } conv; \
+		conv.v = val; \
+		conv.i = GUINT64_TO_BE(conv.i); \
+		union { type v; uint64_t i; } result; \
+		result.i = conv.i; \
+		(dest) = result.v; \
+	} while(0)
 
 static int keywords_to_py(fits *fit, unsigned char *ptr, size_t maxlen) {
 	if (!fit || !ptr)
@@ -1276,6 +1294,42 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			// Clean up
 			g_free(value);
 			g_free(response_buffer);
+			break;
+		}
+
+		case CMD_PIX2WCS: {
+			gboolean result = single_image_is_loaded();
+			if (result) {
+				if (!has_wcs(&gfit)) {
+					// Handle no WCS error
+					const char* error_msg = _("Siril image is not plate solved");
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					break;
+				}
+				if (payload_length == 16) {
+					double *DblPtrBE = (double*) payload;
+					double x_BE = DblPtrBE[0];
+					double y_BE = DblPtrBE[1];
+					double x, y;
+					FROM_BE_INTO(x, x_BE, double);
+					FROM_BE_INTO(y, y_BE, double);
+					double ra, dec, ra_BE, dec_BE;
+					pix2wcs(&gfit, x, y, &ra, &dec);
+					TO_BE_INTO(ra_BE, ra, double);
+					TO_BE_INTO(dec_BE, dec, double);
+					unsigned char* payload = g_malloc0(2 * sizeof(double));
+					DblPtrBE = (double*) payload;
+					DblPtrBE[0] = ra_BE;
+					DblPtrBE[1] = dec_BE;
+					success = send_response(conn, STATUS_OK, payload, 2 * sizeof(double));
+					g_free(payload);
+					break;
+				}
+			} else {
+				// Handle error retrieving dimensions
+				const char* error_msg = _("Failed to set selection - no image loaded");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			}
 			break;
 		}
 
