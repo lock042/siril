@@ -583,7 +583,7 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 		if (g_strcmp0(value, "") == 0) value = NULL;
 		if (g_strcmp0(comment, "") == 0) comment = NULL;
 
-		if (comment || value || key) {
+		if (comment || (value && key)) {
 			char valstring[FLEN_VALUE] = { 0 };
 			process_keyword_string_value(value, valstring, string_has_space(value));
 
@@ -591,7 +591,7 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 				struct keywords_data *kargs = calloc(1, sizeof(struct keywords_data));
 
 				kargs->FITS_key = g_strdup(key);
-				kargs->value = g_strdup(valstring);
+				kargs->value = valstring[0] == '\0' ? NULL : g_strdup(valstring);
 				kargs->comment = g_strdup(comment);
 
 				if (siril_confirm_dialog(_("Operation on the sequence"),
@@ -602,7 +602,7 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 					free(kargs);
 				}
 			} else {
-				updateFITSKeyword(&gfit, key, NULL, valstring, comment, TRUE, FALSE);
+				updateFITSKeyword(&gfit, key, NULL, valstring[0] == '\0' ? NULL : valstring, comment, TRUE, FALSE);
 				refresh_keywords_dialog();
 				scroll_to_end();
 			}
