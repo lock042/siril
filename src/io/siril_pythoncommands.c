@@ -11,8 +11,10 @@
 #include "core/icc_profile.h"
 #include "core/siril_log.h"
 #include "core/proto.h"
+#include "gui/callbacks.h"
 #include "gui/image_interactions.h"
 #include "gui/progress_and_log.h"
+#include "gui/utils.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
 #include "io/image_format_fits.h"
@@ -462,6 +464,29 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			break;
 		}
 
+		case CMD_GET_ACTIVE_VPORT: {
+			gboolean result = single_image_is_loaded();
+
+			if (result) {
+				// Prepare the response data: width (gfit.rx), height (gfit.ry), and channels (gfit.naxes[2])
+				uint8_t response_data[4]; // 4 bytes for int
+
+				// Convert the integers to BE format for consistency across the UNIX socket
+				uint32_t vport_BE = GUINT32_TO_BE(gui.cvport);
+
+				// Copy the packed data into the response buffer
+				memcpy(response_data, &vport_BE, sizeof(uint32_t));
+
+				// Send success response with dimensions
+				success = send_response(conn, STATUS_OK, response_data, sizeof(response_data));
+			} else {
+				// Handle error retrieving dimensions
+				const char* error_msg = _("Failed to retrieve current vport - no image loaded");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			}
+			break;
+		}
+
 		case CMD_SET_SELECTION: {
 			gboolean result = single_image_is_loaded();
 			if (result) {
@@ -484,11 +509,122 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				const char* error_msg = _("Failed to set selection - no image loaded");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			}
+			break;
 		}
 
 		case CMD_GET_PIXELDATA: {
 			rectangle region = {0, 0, gfit.rx, gfit.ry};
 			success = handle_pixeldata_request(conn, &gfit, region);
+			break;
+		}
+
+		case CMD_GET_STAR_IN_SELECTION: {
+			gboolean error_occurred = FALSE;
+			int layer = 0;
+			rectangle selection;
+			memcpy(&selection, &com.selection, sizeof(rectangle));
+			if (payload_length == 16 || payload_length == 20) {
+				rectangle region_BE = *(rectangle*) payload;
+				selection = (rectangle) {GUINT32_FROM_BE(region_BE.x),
+									GUINT32_FROM_BE(region_BE.y),
+									GUINT32_FROM_BE(region_BE.w),
+									GUINT32_FROM_BE(region_BE.h)};
+			} else {
+				memcpy(&selection, &com.selection, sizeof(rectangle));
+			}
+			if (payload_length == 20) {
+				layer = GUINT32_FROM_BE(*((int*) payload + 4));
+			} else {
+				layer = com.headless ? 0 : match_drawing_area_widget(gui.view[select_vport(gui.cvport)].drawarea, FALSE);
+			}
+			if (selection.x < 0 || selection.x + selection.w > gfit.rx - 1 ||
+				selection.w < 5 || selection.w > 300 ||
+				selection.h < 5 || selection.h > 300 ||
+				selection.y < 0 || selection.y + selection.h > gfit.ry - 1) {
+					const char* error_msg = _("Invalid selection");
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					break;
+				}
+			if (layer < 0 || layer >= gfit.naxes[2]) {
+					const char* error_msg = _("Invalid channel");
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					break;
+			}
+			starprofile profile = com.pref.starfinder_conf.profile;
+			psf_star *psf = psf_get_minimisation(&gfit, layer, &selection, FALSE, NULL, TRUE, profile, NULL);
+			if (!psf) {
+				error_occurred = TRUE;
+				const char* error_msg = _("Failed to find a star");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			const size_t psf_star_size = 36 * sizeof(double);
+			unsigned char* star = g_malloc0(psf_star_size);
+			unsigned char* ptr = star;
+			if (psfstar_to_py(psf, ptr, psf_star_size)) {
+				error_occurred = TRUE;
+				const char* error_msg = _("Memory allocation error");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+			if(!error_occurred) {
+				success = send_response(conn, STATUS_OK, star, psf_star_size);
+			}
+			g_free(star);
+			break;
+		}
+
+		case CMD_GET_STATS_FOR_SELECTION: {
+			int layer = 0;
+			rectangle selection = { 0 };
+			if (payload_length == 16 || payload_length == 20) {
+				rectangle region_BE = *(rectangle*) payload;
+				selection = (rectangle) {GUINT32_FROM_BE(region_BE.x),
+									GUINT32_FROM_BE(region_BE.y),
+									GUINT32_FROM_BE(region_BE.w),
+									GUINT32_FROM_BE(region_BE.h)};
+			} else {
+				memcpy(&selection, &com.selection, sizeof(rectangle));
+			}
+			if (payload_length == 20) {
+				layer = GUINT32_FROM_BE(*((int*) payload + 4));
+			} else {
+				layer = com.headless ? 0 : match_drawing_area_widget(gui.view[select_vport(gui.cvport)].drawarea, FALSE);
+			}
+			// Check an image is loaded
+			if (!single_image_is_loaded()) {
+				const char* error_msg = _("No image loaded");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+				break;
+			}
+
+			// Check if channel is valid
+			if (layer >= gfit.naxes[2]) {
+				const char* error_msg = _("Invalid channel");
+				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+				break;
+			}
+			// Check selection is valid
+			if (selection.x < 0 || selection.x + selection.w > gfit.rx - 1 ||
+				selection.w * selection.h < 3 ||
+				selection.y < 0 || selection.y + selection.h > gfit.ry - 1) {
+					const char* error_msg = _("Invalid selection");
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					break;
+			}
+			// Compute stats
+			imstats *stats = statistics(NULL, -1, &gfit, layer, &selection, STATS_MAIN, MULTI_THREADED);
+
+			const size_t total_size = 14 * sizeof(double);
+			unsigned char* response_buffer = g_malloc0(total_size);
+			unsigned char* ptr = response_buffer;
+			if (imstats_to_py(stats, ptr, total_size)) {
+				const char* error_message = _("Memory allocation error");
+				success = send_response(conn, STATUS_ERROR, error_message, strlen(error_message));
+			} else {
+				success = send_response(conn, STATUS_OK, response_buffer, total_size);
+			}
+			g_free(response_buffer);
 			break;
 		}
 

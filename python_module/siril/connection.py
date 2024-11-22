@@ -83,6 +83,9 @@ class _Command(IntEnum):
     GET_IS_SEQUENCE_LOADED = 28
     GET_SELECTION = 29
     SET_SELECTION = 30
+    GET_ACTIVE_VPORT = 31
+    GET_STAR_IN_SELECTION = 32
+    GET_STATS_FOR_SELECTION = 33
     ERROR = 0xFF
 
 class _ConfigType(IntEnum):
@@ -720,6 +723,33 @@ class SirilInterface:
             print(f"Error unpacking image selection: {e}", file=sys.stderr)
             return None
 
+    def get_active_vport(self) -> Optional[int]:
+
+        """
+        Request the active viewport from Siril.
+
+        Returns:
+            An int representing the active vport:
+                0 = Red (or Mono)
+                1 = Green
+                2 = Blue
+                3 = RGB
+            or None if an error occurred.
+        """
+
+        response = self._request_data(_Command.GET_ACTIVE_VPORT)
+
+        if response is None:
+            return None
+
+        try:
+            # Assuming the response is in the format: !I
+            vport = struct.unpack('!I', response)[0]
+            return vport
+        except struct.error as e:
+            print(f"Error unpacking data: {e}", file=sys.stderr)
+            return None
+
     def get_shape(self) -> Optional[Tuple[int, int, int]]:
 
         """
@@ -742,6 +772,217 @@ class SirilInterface:
         except struct.error as e:
             print(f"Error unpacking image dimensions: {e}", file=sys.stderr)
             return None
+
+    def get_star_in_selection(self, shape: Optional[list[int]] = None, \
+        channel: Optional[int] = None)-> Optional[PSFStar]:
+
+        """
+        Retrieves a PSFStar star model from the current selection in Siril.
+
+        Args:
+            shape: Optional list of [x, y, w, h] specifying the selection to
+                   retrieve from.
+                   If provided, looks for a star in the specified selection
+                   If None, looks for a star in the selection already made in
+                   Siril, if one is made.
+            channel: Optional int specifying the channel to retrieve from.
+                     If provided 0 = Red / Mono, 1 = Green, 2 = Blue. If the
+                     channel is omitted the current viewport will be used if
+                     in GUI mode, or if not in GUI mode the method will fall back
+                     to channel 0
+
+        Returns:
+            PSFStar: the PSFStar object representing the star model.
+
+        Raises:
+            NoImageError: If no image is currently loaded,
+            RuntimeError: For other errors during data retrieval,
+            ValueError: If the received data format is invalid or no selection can
+                        be determined
+        """
+
+        try:
+            # Validate shape if provided
+            if shape is not None:
+                if len(shape) != 4:
+                    raise ValueError(_("Shape must be a list of [x, y, w, h]"))
+                if any(not isinstance(v, int) for v in shape):
+                    raise ValueError(_("All shape values must be integers"))
+                if any(v < 0 for v in shape):
+                    raise ValueError(_("All shape values must be non-negative"))
+
+                # Pack shape data for the command
+                if len(shape) == 4:
+                    if channel == None:
+                        shape_data = struct.pack('!IIII', *shape)
+                    else:
+                        shape_data = struct.pack('!IIIII', *shape, channel)
+            else:
+                shape_data = None
+
+            status, response = self._send_command(_Command.GET_STAR_IN_SELECTION, shape_data)
+
+            # Handle error responses
+            if status == _Status.ERROR:
+                if response:
+                    error_msg = response.decode('utf-8', errors='replace')
+                    if "no image loaded" in error_msg.lower():
+                        raise NoImageError(_("No image is currently loaded in Siril"))
+                    else:
+                        if "invalid selection" in error_msg.lower():
+                            raise ValueError(_("No selection is currently made in Siril"))
+                        else:
+                            raise RuntimeError(_("Server error: {}").format(error_msg))
+                else:
+                    raise RuntimeError(_("Failed to transfer star data: Empty response"))
+
+            if status == _Status.NONE:
+                return None
+
+            if not response:
+                raise RuntimeError(_("Failed to transfer star data: No data received"))
+
+            format_string = '!13d2qdq16dqdd'  # Define the format string based on PSFStar structure
+            fixed_size = struct.calcsize(format_string)
+
+            # Extract the bytes for this struct and unpack
+            values = struct.unpack(format_string, response)
+
+            try:
+                star = PSFStar(
+                    B=values[0], A=values[1], x0=values[2], y0=values[3],
+                    sx=values[4], sy=values[5], fwhmx=values[6], fwhmy=values[7],
+                    fwhmx_arcsec=values[8], fwhmy_arcsec=values[9], angle=values[10],
+                    rmse=values[11], sat=values[12], R=values[13],
+                    has_saturated=bool(values[14]), beta=values[15],
+                    profile=values[16], xpos=values[17], ypos=values[18],
+                    mag=values[19], Bmag=values[20], s_mag=values[21],
+                    s_Bmag=values[22], SNR=values[23], BV=values[24],
+                    B_err=values[25], A_err=values[26], x_err=values[27],
+                    y_err=values[28], sx_err=values[29], sy_err=values[30],
+                    ang_err=values[31], beta_err=values[32], layer=values[33],
+                    ra=values[34], dec=values[35]
+                )
+            except struct.error as e:
+                print(f"Error unpacking star data: {e}", file=sys.stderr)
+                raise RuntimeError(_("Error processing star data: {}").format(e))
+
+            return star
+
+        except Exception as e:
+            raise RuntimeError(_("Error processing star data: {}").format(e))
+
+    def get_stats_for_selection(self, shape: Optional[list[int]] = None, \
+        channel: Optional[int] = None) -> Optional[PSFStar]:
+
+        """
+        Retrieves statistics for the current selection in Siril.
+
+        Args:
+            shape: Optional list of [x, y, w, h] specifying the selection to
+                   retrieve from.
+                   If provided, looks for a star in the specified selection
+                   If None, looks for a star in the selection already made in Siril,
+                   if one is made.
+            channel: Optional int specifying the channel to retrieve from.
+                     If provided 0 = Red / Mono, 1 = Green, 2 = Blue. If the
+                     channel is omitted the current viewport will be used if
+                     in GUI mode, or if not in GUI mode the method will fall back
+                     to channel 0
+
+        Returns:
+            ImageStats: the ImageStats object representing the selection statistics.
+
+        Raises:
+            NoImageError: If no image is currently loaded,
+            RuntimeError: For other errors during data retrieval,
+            ValueError: If the received data format is invalid or no selection can
+                        be determined
+        """
+
+        try:
+            # Validate shape if provided
+            if shape is not None:
+                if len(shape) != 4:
+                    raise ValueError(_("Shape must be a list of [x, y, w, h]"))
+                if any(not isinstance(v, int) for v in shape):
+                    raise ValueError(_("All shape values must be integers"))
+                if any(v < 0 for v in shape):
+                    raise ValueError(_("All shape values must be non-negative"))
+
+                # Pack shape data for the command
+                if len(shape) == 4:
+                    if channel == None:
+                        shape_data = struct.pack('!IIII', *shape)
+                    else:
+                        shape_data = struct.pack('!IIIII', *shape, channel)
+            else:
+                shape_data = None
+
+            status, response = self._send_command(_Command.GET_STATS_FOR_SELECTION, shape_data)
+
+            # Handle error responses
+            if status == _Status.ERROR:
+                if response:
+                    error_msg = response.decode('utf-8', errors='replace')
+                    if "no image loaded" in error_msg.lower():
+                        raise NoImageError(_("No image is currently loaded in Siril"))
+                    else:
+                        if "invalid selection" in error_msg.lower():
+                            raise ValueError(_("No selection is currently made in Siril"))
+                        else:
+                            raise RuntimeError(_("Server error: {}").format(error_msg))
+                else:
+                    raise RuntimeError(_("Failed to transfer stats data: Empty response"))
+
+            if status == _Status.NONE:
+                return None
+
+            if not response:
+                raise RuntimeError(_("Failed to transfer stats data: No data received"))
+            try:
+                # Define the format string for unpacking the C struct
+                # '!' for network byte order (big-endian)
+                # 'q' for long (total, ngoodpix) - using 64-bit integers to match gint64
+                # 'd' for double (all floating point values)
+                # We don't include the gint *nbrefs as it's not needed in Python
+                format_string = '!2q12d'  # '!' ensures network byte order
+
+                # Calculate expected size
+                expected_size = struct.calcsize(format_string)
+
+                # Verify we got the expected amount of data
+                if len(response) != expected_size:
+                    print(f"Received stats data size {len(response)} doesn't match expected size {expected_size}",
+                        file=sys.stderr)
+                    return None
+
+                # Unpack the binary data
+                values = struct.unpack(format_string, response)
+
+            except struct.error as e:
+                print(f"Error unpacking star data: {e}", file=sys.stderr)
+                raise RuntimeError(_("Error processing star data: {}").format(e))
+            # Create and return an ImageStats object with the unpacked values
+            return ImageStats(
+                total=values[0],
+                ngoodpix=values[1],
+                mean=values[2],
+                median=values[3],
+                sigma=values[4],
+                avgDev=values[5],
+                mad=values[6],
+                sqrtbwmv=values[7],
+                location=values[8],
+                scale=values[9],
+                min=values[10],
+                max=values[11],
+                normValue=values[12],
+                bgnoise=values[13]
+            )
+
+        except struct.error as e:
+            raise RuntimeError(_("Failed to transfer stats data: error occurred"))
 
     def get_pixeldata(self, shape: Optional[list[int]] = None) -> Optional[np.ndarray]:
 
