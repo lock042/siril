@@ -1,22 +1,7 @@
-/*
-* This file is part of Siril, an astronomy image processor.
-* Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
-* Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
-* Reference site is https://siril.org
-*
-* Siril is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* Siril is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Siril. If not, see <http://www.gnu.org/licenses/>.
-*/
+// Copyright (C) 2005-2011 Francois Meyer (dulle at free.fr)
+// Copyright (C) 2012-2024 team free-astro (see more in AUTHORS file)
+// Reference site is https://siril.org
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <string.h>
 #include <math.h>
@@ -60,6 +45,7 @@ static GtkWindow *main_window = NULL;
 static GtkCheckMenuItem *radio_py = NULL;
 static GtkCheckMenuItem *radio_ssf = NULL;
 static gint active_language = LANG_PYTHON;
+static gboolean buffer_modified = FALSE;
 
 // Forward declarations
 void on_action_file_open(GSimpleAction *action, GVariant *parameter, gpointer user_data);
@@ -71,6 +57,7 @@ void on_action_file_close(GSimpleAction *action, GVariant *parameter, gpointer u
 void on_action_select_language(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_action_python_doc(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_action_command_doc(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+static void on_buffer_modified_changed(GtkTextBuffer *buffer, gpointer user_data);
 void set_language();
 
 static GActionEntry editor_actions[] = {
@@ -181,11 +168,34 @@ void python_scratchpad_init_statics() {
 		gtk_widget_show(GTK_WIDGET(script_label));
 		add_code_view(gui.builder);
 		gtk_window_set_transient_for(GTK_WINDOW(editor_window), GTK_WINDOW(gtk_builder_get_object(gui.builder, "control_window")));
+		g_signal_connect(sourcebuffer, "modified-changed",
+						G_CALLBACK(on_buffer_modified_changed), NULL);
 
+		// Initialize with "unsaved" if no file is loaded
+		if (!current_file) {
+			gtk_label_set_text(script_label, "unsaved");
+		}
 	}
 }
 
-// File handling
+static void update_title_with_modification() {
+	const gchar *current_text = gtk_label_get_text(script_label);
+	if (!current_text || !*current_text) return;
+
+	// If the title already ends with *, don't add another
+	if (g_str_has_suffix(current_text, "*")) {
+		if (!buffer_modified) {
+			gchar *base_name = g_strndup(current_text, strlen(current_text) - 1);
+			gtk_label_set_text(script_label, base_name);
+			g_free(base_name);
+		}
+	} else if (buffer_modified) {
+		gchar *new_title = g_strdup_printf("%s*", current_text);
+		gtk_label_set_text(script_label, new_title);
+		g_free(new_title);
+	}
+}
+
 static void update_title(GFile *file) {
 	if (file) {
 		char *basename = g_file_get_basename(file);
@@ -202,10 +212,14 @@ static void update_title(GFile *file) {
 
 		g_free(basename);
 	} else {
-		gtk_label_set_text(script_label, _(""));
+		gtk_label_set_text(script_label, "unsaved");
 	}
+	buffer_modified = FALSE;
+	gtk_text_buffer_set_modified(GTK_TEXT_BUFFER(sourcebuffer), FALSE);
 	gtk_widget_queue_draw(GTK_WIDGET(editor_window));
 }
+
+// File handling
 
 void load_file_complete(GObject *loader, GAsyncResult *result, gpointer user_data) {
 	GError *error = NULL;
@@ -263,9 +277,10 @@ void save_file(GFile *file) {
 								NULL,  // No progress notify
 								save_file_complete,
 								NULL); // No user data
+	buffer_modified = FALSE;
+	gtk_text_buffer_set_modified(GTK_TEXT_BUFFER(sourcebuffer), FALSE);
 	update_title(file);
 	g_object_unref(source_file);
-	// saver will be unreferenced in the callback
 }
 
 void on_action_file_new(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -277,7 +292,9 @@ void on_action_file_new(GSimpleAction *action, GVariant *parameter, gpointer use
 			g_object_unref(current_file);
 		current_file = NULL;
 		gtk_text_buffer_delete(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
-		gtk_label_set_text(script_label, "");
+		buffer_modified = FALSE;
+		gtk_text_buffer_set_modified(GTK_TEXT_BUFFER(sourcebuffer), FALSE);
+		gtk_label_set_text(script_label, "unsaved");
 		gtk_widget_queue_draw(GTK_WIDGET(editor_window));
 	}
 }
@@ -506,6 +523,11 @@ void on_action_file_execute(GSimpleAction *action, GVariant *parameter, gpointer
 			break;
 	}
 	// TODO: Neither case properly cleans up text yet
+}
+
+static void on_buffer_modified_changed(GtkTextBuffer *buffer, gpointer user_data) {
+	buffer_modified = gtk_text_buffer_get_modified(buffer);
+	update_title_with_modification();
 }
 
 void on_action_python_doc(GSimpleAction *action, GVariant *parameter, gpointer user_data) {

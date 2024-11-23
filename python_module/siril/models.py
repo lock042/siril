@@ -584,7 +584,7 @@ class FFit:
 
         Args:
             target_type: Optional type to convert to. Can be either DataType or np.dtype.
-                        If None, uses self.type
+                         If None, uses self.type
 
         Raises:
             ValueError: if the conversion is between data types that are not
