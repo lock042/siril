@@ -96,10 +96,3 @@ __all__ = [
     'SharedMemoryWrapper',
     '_'
 ]
-
-if sys.platform == "win32":
-    s = SirilInterface()
-    s.connect()
-    bundlepath = s._get_bundle_path()
-    os.add_dll_directory(os.path.join(bundlepath, 'bin'))
-    s.disconnect()
