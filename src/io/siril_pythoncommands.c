@@ -1398,11 +1398,9 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 #ifdef _WIN32
 			gchar *path = get_siril_bundle_path();
 			if (path) {
-				gchar *full_path = g_build_path(path, "bin", NULL);
 				// Send success response with the working directory string
-				success = send_response(conn, STATUS_OK, full_path, strlen(full_path));
+				success = send_response(conn, STATUS_OK, path, strlen(path));
 				g_free(path);
-				g_free(full_path);
 			} else {
 				// Handle error retrieving the working directory
 				const char* error_msg = _("Failed to retrieve bundle path");
