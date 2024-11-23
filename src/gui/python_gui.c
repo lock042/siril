@@ -287,7 +287,7 @@ void on_action_file_new(GSimpleAction *action, GVariant *parameter, gpointer use
 	// Get the start and end iterators
 	GtkTextIter start, end;
 	gtk_text_buffer_get_bounds(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
-	if (siril_confirm_dialog(_("Are you sure?"), _("This will clear the entry buffer. You will not be able to recover any contents."), _("Proceed"))) {
+	if (!buffer_modified || siril_confirm_dialog(_("Are you sure?"), _("This will clear the entry buffer. You will not be able to recover any contents."), _("Proceed"))) {
 		if (G_IS_OBJECT(current_file))
 			g_object_unref(current_file);
 		current_file = NULL;
