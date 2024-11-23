@@ -590,8 +590,13 @@ class SirilInterface:
         to ensure that the correct DLL paths are preconfigured on Windows:
         it is not for use by scriptwriters.
 
+        **It is an error to call this method on non-Windows OSes**
+
         Returns:
-            The Siril bundle path as a string, or None if an error occurred.
+            The Siril bundle path as a string.
+
+        Raises:
+            All exceptions are raised to the caller.
         """
     def get_bundle_path(self):
         response = self._request_data(_Command.GET_BUNDLE_PATH)
