@@ -26,3 +26,5 @@ python3 build/windows/dll_link.py ${W64_OUT}/bin/gspawn-win64-helper.exe ${W64_O
 python3 build/windows/dll_link.py ${W64_OUT}/bin/gspawn-win64-helper-console.exe ${W64_OUT}/ ${INSTALL_PREFIX} -l ${CI_PROJECT_DIR}/DLLcache/DLLlist_${SDW_NAME}_gspawn-win64-helper-console.txt
 python3 build/windows/dll_link.py ${W64_OUT}/bin/glib-compile-schemas.exe ${W64_OUT}/ ${INSTALL_PREFIX} -l ${CI_PROJECT_DIR}/DLLcache/DLLlist_${SDW_NAME}_glib-compile-schemas.txt
 python3 build/windows/dll_link.py ${W64_OUT}/lib/gdk-pixbuf-2.0/2.10.0/loaders/pixbufloader_svg.dll ${W64_OUT}/ ${INSTALL_PREFIX} -l ${CI_PROJECT_DIR}/DLLcache/DLLlist_${SDW_NAME}_pixbufloader_svg.txt
+# Package dll required by pyGobject (for python siril support of gi)
+cp -fr ${W64_OUT}/bin/libgirepository-1.0-1.dll ${INSTALL_PREFIX}/bin/
