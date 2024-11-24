@@ -79,13 +79,18 @@ def set_parent_window(self):
         parent_gtk_window = Gtk.Window.get_toplevel(parent_nswindow)
         dialog.set_transient_for(parent_gtk_window)
 
-    else:
+    else if display.get_name == "x11":
         # Unix/Linux
         # Convert string to integer
         xid = int(parent_window_id)
         # Get GDK window from XID
         parent = Gir.GdkX11.X11Window.foreign_new_for_display(display, xid)
-
+    else if display.get_name == "wayland":
+        import GdkWayland
+        # Retrieve wl_surface handle from environment variable
+        wl_surface_handle = os.getenv("WL_SURFACE_HANDLE") if wl_surface_handle: # Convert string to pointer
+        wl_surface_pointer = int(wl_surface_handle, 16)
+        parent = Gir.GdkWayland.WaylandWindow.foreign_new_for_display(GdkWayland.Display.get_default(), wl_surface_pointer)
     if parent:
         # Set the parent window directly
         dialog_window.set_transient_for(parent)
