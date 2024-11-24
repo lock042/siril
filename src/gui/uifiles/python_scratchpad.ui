@@ -102,6 +102,70 @@
                   <object class="GtkMenuItem">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">_Edit</property>
+                    <property name="use-underline">True</property>
+                    <child type="submenu">
+                      <object class="GtkMenu">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <child>
+                          <object class="GtkMenuItem">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Undo</property>
+                            <property name="action-name">editor.undo</property>
+                            <property name="label" translatable="yes">Undo</property>
+                            <accelerator key="z" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkMenuItem">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Redo</property>
+                            <property name="action-name">editor.redo</property>
+                            <property name="label" translatable="yes">Redo</property>
+                            <accelerator key="y" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkMenuItem">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Cut</property>
+                            <property name="action-name">editor.cut</property>
+                            <property name="label" translatable="yes">Cut</property>
+                            <accelerator key="x" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkMenuItem">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Copy</property>
+                            <property name="action-name">editor.copy</property>
+                            <property name="label" translatable="yes">Copy</property>
+                            <accelerator key="c" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkMenuItem">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Paste</property>
+                            <property name="action-name">editor.paste</property>
+                            <property name="label" translatable="yes">Paste</property>
+                            <accelerator key="v" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkMenuItem">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
                     <property name="label" translatable="yes">_Script</property>
                     <property name="use-underline">True</property>
                     <child type="submenu">
@@ -149,7 +213,7 @@
                   <object class="GtkMenuItem">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="label" translatable="yes">_View</property>
+                    <property name="label" translatable="yes">_Preferences</property>
                     <property name="use-underline">True</property>
                     <child type="submenu">
                       <object class="GtkMenu">
@@ -173,6 +237,15 @@
                             <property name="label" translatable="yes">Enable right margin indicator</property>
                             <property name="active">True</property>
                             <signal name="toggled" handler="on_editor_rmargin_toggled" swapped="no"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkMenuItem">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Run the script</property>
+                            <property name="action-name">editor.set_rmarginpos</property>
+                            <property name="label" translatable="yes">Set right margin position</property>
                           </object>
                         </child>
                         <child>
@@ -200,7 +273,7 @@
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="tooltip-text" translatable="yes">Show line markers in the left margin</property>
-                            <property name="label" translatable="yes">Enable line markers</property>
+                            <property name="label" translatable="yes">Show line markers</property>
                             <property name="active">True</property>
                             <signal name="toggled" handler="on_editor_linemarks_toggled" swapped="no"/>
                           </object>
@@ -308,6 +381,7 @@
                   <object class="GtkLabel" id="script_editor_label">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
+                    <property name="tooltip-text" translatable="yes">Filename</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -319,6 +393,7 @@
                   <object class="GtkLabel" id="script_language_label">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
+                    <property name="tooltip-text" translatable="yes">Script type</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>

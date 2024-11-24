@@ -44,6 +44,17 @@ static GtkWindow *editor_window = NULL;
 static GtkWindow *main_window = NULL;
 static GtkCheckMenuItem *radio_py = NULL;
 static GtkCheckMenuItem *radio_ssf = NULL;
+static GtkCheckMenuItem *syncheck = NULL;
+static GtkCheckMenuItem *bracketcheck = NULL;
+static GtkCheckMenuItem *rmargincheck = NULL;
+static GtkCheckMenuItem *linenumcheck = NULL;
+static GtkCheckMenuItem *linemarkcheck = NULL;
+static GtkCheckMenuItem *currentlinecheck = NULL;
+static GtkCheckMenuItem *autoindentcheck = NULL;
+static GtkCheckMenuItem *indenttabcheck = NULL;
+static GtkCheckMenuItem *smartbscheck = NULL;
+static GtkCheckMenuItem *homeendcheck = NULL;
+
 static gint active_language = LANG_PYTHON;
 static gboolean buffer_modified = FALSE;
 
@@ -57,6 +68,12 @@ void on_action_file_close(GSimpleAction *action, GVariant *parameter, gpointer u
 void on_action_select_language(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_action_python_doc(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_action_command_doc(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void on_set_rmarginpos(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void on_undo(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void on_redo(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void on_cut(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void on_copy(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void on_paste(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 static void on_buffer_modified_changed(GtkTextBuffer *buffer, gpointer user_data);
 void set_language();
 
@@ -68,7 +85,13 @@ static GActionEntry editor_actions[] = {
 	{ "close", on_action_file_close, NULL, NULL, NULL },
 	{ "execute", on_action_file_execute, NULL, NULL, NULL },
 	{ "python_doc", on_action_python_doc, NULL, NULL, NULL },
-	{ "command_doc", on_action_command_doc, NULL, NULL, NULL }
+	{ "command_doc", on_action_command_doc, NULL, NULL, NULL },
+	{ "set_rmarginpos", on_set_rmarginpos, NULL, NULL, NULL },
+	{ "undo", on_undo, NULL, NULL, NULL },
+	{ "redo", on_redo, NULL, NULL, NULL },
+	{ "cut", on_cut, NULL, NULL, NULL },
+	{ "copy", on_copy, NULL, NULL, NULL },
+	{ "paste", on_paste, NULL, NULL, NULL }
 };
 
 void set_code_view_theme() {
@@ -152,6 +175,16 @@ void python_scratchpad_init_statics() {
 		// GtkCheckMenuItem
 		radio_py = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "radio_py"));
 		radio_ssf = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "radio_ssf"));
+		syncheck = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "editor_syntax"));
+		bracketcheck = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "editor_bracketmatch"));
+		rmargincheck = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "editor_rmargin"));
+		linenumcheck = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "editor_linenums"));
+		linemarkcheck = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "editor_linemarks"));
+		currentlinecheck = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "editor_highlightcurrentline"));
+		autoindentcheck = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "editor_autoindent"));
+		indenttabcheck = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "editor_indentontab"));
+		smartbscheck = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "editor_smartbs"));
+		homeendcheck = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "editor_smarthomeend"));
 		// GtkComboBox
 		combo_language = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "python_pad_language"));
 		// GtkButton
@@ -220,7 +253,6 @@ static void update_title(GFile *file) {
 }
 
 // File handling
-
 void load_file_complete(GObject *loader, GAsyncResult *result, gpointer user_data) {
 	GError *error = NULL;
 	if (!gtk_source_file_loader_load_finish(GTK_SOURCE_FILE_LOADER(loader), result, &error)) {
@@ -291,9 +323,11 @@ void on_action_file_new(GSimpleAction *action, GVariant *parameter, gpointer use
 		if (G_IS_OBJECT(current_file))
 			g_object_unref(current_file);
 		current_file = NULL;
+		gtk_source_buffer_begin_not_undoable_action(sourcebuffer);
 		gtk_text_buffer_delete(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
 		buffer_modified = FALSE;
 		gtk_text_buffer_set_modified(GTK_TEXT_BUFFER(sourcebuffer), FALSE);
+		gtk_source_buffer_end_not_undoable_action(sourcebuffer);
 		gtk_label_set_text(script_label, "unsaved");
 		gtk_widget_queue_draw(GTK_WIDGET(editor_window));
 	}
@@ -419,17 +453,126 @@ int on_open_pythonpad(GtkMenuItem *menuitem, gpointer user_data) {
 	gtk_label_set_text(language_label, active_language == LANG_PYTHON ? _("Python Script") : _("Siril Script File"));
 
 	// Show the window and bring it to front
-
 	gtk_window_present_with_time(editor_window, GDK_CURRENT_TIME);
 
 	// Set the correct check menu item active
 	gtk_check_menu_item_set_active(radio_py, active_language == LANG_PYTHON);
 	gtk_check_menu_item_set_active(radio_ssf, active_language == LANG_SSF);
 
+	// Set the right margin position
+	gtk_source_view_set_right_margin_position(code_view, com.pref.gui.editor_cfg.rmargin_pos);
+
 	// Focus the SourceView
 	gtk_widget_grab_focus(GTK_WIDGET(code_view));
 
+	// Initialize the View menu based on com.pref.gui.editor_cfg
+	gtk_check_menu_item_set_active(syncheck, com.pref.gui.editor_cfg.highlight_syntax);
+	gtk_check_menu_item_set_active(bracketcheck, com.pref.gui.editor_cfg.highlight_bracketmatch);
+	gtk_check_menu_item_set_active(rmargincheck, com.pref.gui.editor_cfg.rmargin);
+	gtk_check_menu_item_set_active(linenumcheck, com.pref.gui.editor_cfg.show_linenums);
+	gtk_check_menu_item_set_active(linemarkcheck, com.pref.gui.editor_cfg.show_linemarks);
+	gtk_check_menu_item_set_active(currentlinecheck, com.pref.gui.editor_cfg.highlight_currentline);
+	gtk_check_menu_item_set_active(autoindentcheck, com.pref.gui.editor_cfg.autoindent);
+	gtk_check_menu_item_set_active(indenttabcheck, com.pref.gui.editor_cfg.indentontab);
+	gtk_check_menu_item_set_active(smartbscheck, com.pref.gui.editor_cfg.smartbs);
+	gtk_check_menu_item_set_active(homeendcheck, com.pref.gui.editor_cfg.smarthomeend);
+
 	return 0;
+}
+
+void on_undo(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (gtk_source_buffer_can_undo(sourcebuffer)) {
+		gtk_source_buffer_undo(sourcebuffer);
+	}
+}
+
+void on_redo(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (gtk_source_buffer_can_redo(sourcebuffer)) {
+		gtk_source_buffer_redo(sourcebuffer);
+	}
+}
+
+void on_cut(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	GtkClipboard *clipboard = gtk_widget_get_clipboard(GTK_WIDGET(code_view), GDK_SELECTION_CLIPBOARD);
+	gtk_text_buffer_cut_clipboard(GTK_TEXT_BUFFER(sourcebuffer),
+								clipboard, gtk_text_view_get_editable(GTK_TEXT_VIEW(code_view)));
+}
+
+void on_copy(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	GtkClipboard *clipboard = gtk_widget_get_clipboard(GTK_WIDGET(code_view), GDK_SELECTION_CLIPBOARD);
+	gtk_text_buffer_copy_clipboard(GTK_TEXT_BUFFER(sourcebuffer), clipboard);
+}
+
+void on_paste(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	GtkClipboard *clipboard = gtk_widget_get_clipboard(GTK_WIDGET(code_view), GDK_SELECTION_CLIPBOARD);
+	gtk_text_buffer_paste_clipboard(GTK_TEXT_BUFFER(sourcebuffer),
+								clipboard, NULL, gtk_text_view_get_editable(GTK_TEXT_VIEW(code_view)));
+}
+
+void on_set_rmarginpos(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	GtkWidget *dialog = gtk_dialog_new_with_buttons(
+		_("Right Margin Position"),
+		NULL,  // parent window could be passed via user_data if needed
+		GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+		_("Close"),
+		GTK_RESPONSE_CLOSE,
+		_("Apply"),
+		GTK_RESPONSE_APPLY,
+		NULL
+	);
+
+	// Set up keyboard shortcuts
+	GtkWidget *button_close = gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_CLOSE);
+	GtkWidget *button_apply = gtk_dialog_get_widget_for_response(GTK_DIALOG(dialog), GTK_RESPONSE_APPLY);
+
+	// Add suggested-action style to Apply button
+	gtk_style_context_add_class(gtk_widget_get_style_context(button_apply), "suggested-action");
+
+	gtk_widget_add_accelerator(button_close, "clicked", gtk_accel_group_new(),
+							GDK_KEY_Escape, 0, GTK_ACCEL_VISIBLE);
+	gtk_widget_add_accelerator(button_apply, "clicked", gtk_accel_group_new(),
+							GDK_KEY_Return, 0, GTK_ACCEL_VISIBLE);
+	gtk_widget_add_accelerator(button_apply, "clicked", gtk_accel_group_new(),
+							GDK_KEY_KP_Enter, 0, GTK_ACCEL_VISIBLE);
+
+	// Create a horizontal box with spacing
+	GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+	gtk_container_set_border_width(GTK_CONTAINER(hbox), 12);
+
+	// Create and add the label
+	GtkWidget *label = gtk_label_new_with_mnemonic(_("Right _margin position"));
+	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 0);
+
+	// Create a spin button
+	gint current_pos = gtk_source_view_get_right_margin_position(code_view);
+	GtkWidget *spin = gtk_spin_button_new_with_range(20, 200, 1);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spin), current_pos);
+
+	// Connect the label to the spin button for keyboard navigation
+	gtk_label_set_mnemonic_widget(GTK_LABEL(label), spin);
+
+	// Add spin button to the box
+	gtk_box_pack_start(GTK_BOX(hbox), spin, TRUE, TRUE, 0);
+
+	// Connect to the spin button's activate signal (Enter key)
+	g_signal_connect_swapped(spin, "activate",
+						G_CALLBACK(gtk_button_clicked),
+						button_apply);
+
+	// Add the box to the dialog's content area
+	GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+	gtk_container_add(GTK_CONTAINER(content_area), hbox);
+	gtk_widget_show_all(hbox);
+
+	// Run the dialog and handle response
+	gint response = gtk_dialog_run(GTK_DIALOG(dialog));
+	if (response == GTK_RESPONSE_APPLY) {
+		com.pref.gui.editor_cfg.rmargin_pos = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(spin));
+		gtk_source_view_set_right_margin_position(code_view, com.pref.gui.editor_cfg.rmargin_pos);
+		gtk_widget_queue_draw(GTK_WIDGET(editor_window));
+	}
+
+	gtk_widget_destroy(dialog);
 }
 
 // Handler for main window state changes
@@ -539,41 +682,61 @@ void on_action_command_doc(GSimpleAction *action, GVariant *parameter, gpointer 
 }
 
 void on_editor_syntax_toggled(GtkCheckMenuItem *item, gpointer user_data) {
-	gtk_source_buffer_set_highlight_syntax(sourcebuffer, gtk_check_menu_item_get_active(item));
+	gboolean status = gtk_check_menu_item_get_active(item);
+	gtk_source_buffer_set_highlight_syntax(sourcebuffer, status);
+	com.pref.gui.editor_cfg.highlight_syntax = status;
 }
 
 void on_editor_bracketmatch_toggled(GtkCheckMenuItem *item, gpointer user_data) {
-	gtk_source_buffer_set_highlight_matching_brackets(sourcebuffer, gtk_check_menu_item_get_active(item));
+	gboolean status = gtk_check_menu_item_get_active(item);
+	gtk_source_buffer_set_highlight_matching_brackets(sourcebuffer, status);
+	com.pref.gui.editor_cfg.highlight_bracketmatch = status;
 }
 
 void on_editor_rmargin_toggled(GtkCheckMenuItem *item, gpointer user_data) {
-	gtk_source_view_set_show_right_margin(code_view, gtk_check_menu_item_get_active(item));
+	gboolean status = gtk_check_menu_item_get_active(item);
+	gtk_source_view_set_show_right_margin(code_view, status);
+	com.pref.gui.editor_cfg.rmargin = status;
 }
 
 void on_editor_linenums_toggled(GtkCheckMenuItem *item, gpointer user_data) {
-	gtk_source_view_set_show_line_numbers(code_view, gtk_check_menu_item_get_active(item));
+	gboolean status = gtk_check_menu_item_get_active(item);
+	gtk_source_view_set_show_line_numbers(code_view, status);
+	com.pref.gui.editor_cfg.show_linenums = status;
 }
 
 void on_editor_linemarks_toggled(GtkCheckMenuItem *item, gpointer user_data) {
-	gtk_source_view_set_show_line_marks(code_view, gtk_check_menu_item_get_active(item));
+	gboolean status = gtk_check_menu_item_get_active(item);
+	gtk_source_view_set_show_line_marks(code_view, status);
+	com.pref.gui.editor_cfg.show_linemarks = status;
 }
 
 void on_editor_highlightcurrentline_toggled(GtkCheckMenuItem *item, gpointer user_data) {
-	gtk_source_view_set_highlight_current_line(code_view, gtk_check_menu_item_get_active(item));
+	gboolean status = gtk_check_menu_item_get_active(item);
+	gtk_source_view_set_highlight_current_line(code_view, status);
+	com.pref.gui.editor_cfg.highlight_currentline = status;
 }
 
 void on_editor_autoindent_toggled(GtkCheckMenuItem *item, gpointer user_data) {
-	gtk_source_view_set_auto_indent(code_view, gtk_check_menu_item_get_active(item));
+	gboolean status = gtk_check_menu_item_get_active(item);
+	gtk_source_view_set_auto_indent(code_view, status);
+	com.pref.gui.editor_cfg.autoindent = status;
 }
 
 void on_editor_indentontab_toggled(GtkCheckMenuItem *item, gpointer user_data) {
-	gtk_source_view_set_indent_on_tab(code_view, gtk_check_menu_item_get_active(item));
+	gboolean status = gtk_check_menu_item_get_active(item);
+	gtk_source_view_set_indent_on_tab(code_view, status);
+	com.pref.gui.editor_cfg.indentontab = status;
 }
 
 void on_editor_smartbs_toggled(GtkCheckMenuItem *item, gpointer user_data) {
-	gtk_source_view_set_smart_backspace(code_view, gtk_check_menu_item_get_active(item));
+	gboolean status = gtk_check_menu_item_get_active(item);
+	gtk_source_view_set_smart_backspace(code_view, status);
+	com.pref.gui.editor_cfg.smartbs = status;
 }
 
 void on_editor_smarthomeend_toggled(GtkCheckMenuItem *item, gpointer user_data) {
-	gtk_source_view_set_smart_home_end(code_view, gtk_check_menu_item_get_active(item));
+	gboolean status = gtk_check_menu_item_get_active(item);
+	gtk_source_view_set_smart_home_end(code_view, status);
+	com.pref.gui.editor_cfg.smarthomeend = status;
 }
