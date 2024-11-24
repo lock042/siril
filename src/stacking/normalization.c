@@ -17,7 +17,7 @@
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_permutation.h>
 
-#define DEBUG_NORM
+// #define DEBUG_NORM
 
 static int compute_normalization(struct stacking_args *args);
 static int compute_normalization_overlaps(struct stacking_args *args);
@@ -427,10 +427,9 @@ static size_t compute_overlap(struct stacking_args *args, int i, int j, rectangl
 	return 0;
 }
 
-static int _compute_estimators_for_images(struct stacking_args *args, int i, int j, threading_type threading, int image_thread_id) {
+static int _compute_estimators_for_images(struct stacking_args *args, int i, int j) {
 	int nb_layers = args->seq->nb_layers;
 	g_assert(nb_layers <= 3);
-	g_assert(threading > 0);
 	rectangle areai = { 0 };
 	rectangle areaj = { 0 };
 	size_t Nij = 0;
@@ -482,12 +481,11 @@ static int _compute_estimators_for_images(struct stacking_args *args, int i, int
 	gboolean needs_recalc = FALSE;
 	if (was_cached) {
 		for (int n = 0; n < nb_layers; n++) {
-			needs_recalc_lite[n] = 	seq->ostats[n][ijth].Nij > 0 && (
-									seq->ostats[n][ijth].madij == NULL_STATS || 
+			needs_recalc_lite[n] =	seq->ostats[n][ijth].madij == NULL_STATS || 
 									seq->ostats[n][ijth].medij == NULL_STATS || 
 									seq->ostats[n][ijth].madji == NULL_STATS || 
-									seq->ostats[n][ijth].medji == NULL_STATS);
-			needs_recalc_detailed[n] = !args->lite_norm && seq->ostats[n][ijth].Nij > 0 && (
+									seq->ostats[n][ijth].medji == NULL_STATS;
+			needs_recalc_detailed[n] = !args->lite_norm && (
 									seq->ostats[n][ijth].locij == NULL_STATS || 
 									seq->ostats[n][ijth].scaij == NULL_STATS || 
 									seq->ostats[n][ijth].locji == NULL_STATS || 
@@ -572,6 +570,71 @@ static int _compute_estimators_for_images(struct stacking_args *args, int i, int
 	return ST_OK;
 }
 
+static int normalization_overlap_get_max_number_of_threads(struct stacking_args *args) {
+	int max_memory_MB = get_max_memory_in_MB();
+	int nb_frames = args->nb_images_to_stack;
+	int nb_layers = args->seq->nb_layers;
+	sequence *seq = args->seq;
+	/* The overlap normalization memory consumption assumes:
+		- n is max overlap size accross all pairs of images
+		- m in the number of layers
+		We need:
+		- 2 * overlap parial image stored (so 2.n.m) when we read the images
+		- 2 * data copies as floats (so 2.n as float) that are re-used for all layers
+		- 1 * data additional copy to compute MAD (not 2 because the calcs are 
+		sequential and memory freed in between calls)
+	*/
+	size_t nbdatamax = 0;
+	for (int i = 0; i < nb_frames; ++i) {
+		int ii = args->image_indices[i];
+		for (int j = i + 1; j < nb_frames; ++j) {
+			int ij = args->image_indices[j];
+			int ijth = get_ijth_pair_index(seq->number, ii, ij);
+			size_t nbdata = 0;
+			if (seq->ostats[args->reglayer][ijth].i == ii && seq->ostats[args->reglayer][ijth].j == ij) { // we have some overlap data for this pair
+				nbdata = seq->ostats[args->reglayer][ijth].areai.w * seq->ostats[args->reglayer][ijth].areai.h;
+			} else {
+				args->seq->needs_saving = TRUE;
+				rectangle areai, areaj;
+				siril_debug_print("computing stats for overlap between image %d and image %d, lite: %d\n", ii + 1, ij + 1, args->lite_norm);
+				nbdata = compute_overlap(args, ii, ij, &areai, &areaj);
+				// we cache it for all layers
+				// Normally, we should have regdata for only one layer, but what if we have for more (can't see that happening but better be safe)
+				// In that case, we will assume that the differences in overlaps should be minimal (1 or 2 lines) and that
+				// the first ever cached overlap stats are valid irrespective of the regdata which created them
+				for (int n = 0; n < nb_layers; n++) {
+					seq->ostats[n][ijth].i = ii;
+					seq->ostats[n][ijth].j = ij;
+					if (nbdata > 0) {
+						seq->ostats[n][ijth].areai = areai;
+						seq->ostats[n][ijth].areaj = areaj;
+					}
+				}
+			}
+			if (nbdata > nbdatamax)
+				nbdatamax = nbdata;
+		}
+	}
+	size_t memory_per_pair = 2 * seq->nb_layers * nbdatamax * (get_data_type(seq->bitpix) == DATA_FLOAT ? sizeof(float) : sizeof(WORD)); // we size memory consumption with the largest possible overlap
+	size_t memory_per_stats = 2 * nbdatamax * sizeof(float);
+	unsigned int memory_per_pair_MB = ( memory_per_pair + memory_per_stats) / BYTES_IN_A_MB;
+	if (memory_per_pair_MB == 0)
+		memory_per_pair_MB = 1;
+
+	fprintf(stdout, "Memory per pair: %u MB. Max memory: %d MB\n", memory_per_pair_MB, max_memory_MB);
+
+	if (memory_per_pair_MB > max_memory_MB) {
+		siril_log_color_message(_("Your system does not have enough memory to normalize images overlaps for stacking operation (%d MB free for %d MB required)\n"), "red", max_memory_MB, memory_per_pair_MB);
+		return 0;
+	}
+
+	int nb_threads = max_memory_MB / memory_per_pair_MB;
+	if (nb_threads > com.max_thread)
+		nb_threads = com.max_thread;
+	siril_log_message(_("With the current memory and thread (%d) limits, up to %d thread(s) can be used for sequence overlaps normalization\n"), com.max_thread, nb_threads);
+	return nb_threads;
+}
+
 static int compute_normalization_overlaps(struct stacking_args *args) {
 	int index_ref = -1, retval = 0, cur_nb = 0, c = 0;
 	norm_coeff *coeff = &args->coeff;
@@ -645,20 +708,19 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 
 	const char *error_msg = (_("Normalization failed."));
 	// check memory first
-	// int nb_threads = normalization_get_max_number_of_threads(args->seq);
-	// if (nb_threads <= 0) {
-	// 	set_progress_bar_data(error_msg, PROGRESS_NONE);
-	// 	return ST_GENERIC_ERROR;
-	// }
-	// if (nb_threads > args->nb_images_to_stack)
-	// 	nb_threads = args->nb_images_to_stack;
-	// int *threads_per_thread = compute_thread_distribution(nb_threads, com.max_thread);
+	int nb_threads = normalization_overlap_get_max_number_of_threads(args);
+	if (nb_threads <= 0) {
+		set_progress_bar_data(error_msg, PROGRESS_NONE);
+		return ST_GENERIC_ERROR;
+	}
+	if (nb_threads > args->nb_images_to_stack)
+		nb_threads = args->nb_images_to_stack;
 
 	set_progress_bar_data(NULL, 0.);
 
-// #ifdef _OPENMP
-// #pragma omp parallel for num_threads(nb_threads) schedule(guided) if (args->seq->type == SEQ_SER || ((args->seq->type == SEQ_REGULAR || args->seq->type == SEQ_FITSEQ) && fits_is_reentrant()))
-// #endif
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(nb_threads) schedule(guided) if (args->seq->type == SEQ_SER || ((args->seq->type == SEQ_REGULAR || args->seq->type == SEQ_FITSEQ) && fits_is_reentrant()))
+#endif
 	for (int i = 0; i < nb_frames; ++i) {
 		if (i != index_ref)
 			index[c++] = i; // getting the filtered indexes of nonref images
@@ -670,14 +732,8 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 					continue;
 				}
 				int ij = args->image_indices[j];
-				int thread_id = -1;
-				threading_type threads = SINGLE_THREADED;
-// #ifdef _OPENMP
-// 			thread_id = omp_get_thread_num();
-// 			threads = threads_per_thread[thread_id];
-// #endif
 				int ijth = get_ijth_pair_index(args->seq->number, ii, ij);
-				if (_compute_estimators_for_images(args, ii, ij, threads, thread_id)) {
+				if (_compute_estimators_for_images(args, ii, ij)) {
 					siril_log_color_message(_("%s Check image %d first.\n"), "red",
 							error_msg, args->image_indices[i] + 1);
 					set_progress_bar_data(error_msg, PROGRESS_NONE);
@@ -785,8 +841,6 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 		}
 	}
 
-	// free(threads_per_thread);
-
 	for (int n = 0; n < nb_layers; n++) {
 		for (int i = 0; i < nb_frames; i++) {
 			free(Mij[n][i]);
@@ -801,6 +855,7 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 	free(Sij);
 	free(Nij);
 	free(index);
+	free(coeffs);
 
 	set_progress_bar_data(NULL, PROGRESS_DONE);
 	return retval;

@@ -1717,7 +1717,8 @@ int read_opened_fits_partial(sequence *seq, int layer, int index, void *buffer,
 	if (area->x < 0 || area->y < 0 || area->x >= rx || area->y >= ry
 			|| area->w <= 0 || area->h <= 0 || area->x + area->w > rx
 			|| area->y + area->h > ry) {
-		fprintf(stderr, "partial read from FITS file has been requested outside image bounds or with invalid size\n");
+		fprintf(stderr, "partial read from FITS file has been requested outside image bounds or with invalid size (%d: %d %d %d %d)\n", index + 1,
+					area->x, area->y, area->w, area->h);
 		return 1;
 	}
 

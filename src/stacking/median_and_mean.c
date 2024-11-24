@@ -450,7 +450,8 @@ static int stack_read_block_data(struct stacking_args *args,
 				int tid = omp_get_thread_num();
 				if (tid == 0)
 #endif
-					siril_log_color_message(_("Error reading one of the image areas\n"), "red");
+					siril_log_color_message(_("Error reading one of the image areas (%d: %d %d %d %d)\n"), "red", args->image_indices[frame] + 1,
+					area.x, area.y, area.w, area.h);
 				return ST_SEQUENCE_ERROR;
 			}
 			if (args->maximize_framing) {
