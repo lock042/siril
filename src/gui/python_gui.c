@@ -8,6 +8,8 @@
 #include <stdint.h>
 #include <assert.h>
 
+#include <gtksourceview/gtksource.h>
+
 #include "core/siril.h"
 #include "core/proto.h"
 #include "core/siril_log.h"
@@ -20,7 +22,7 @@
 #include "gui/utils.h"
 #include "io/siril_pythonmodule.h"
 
-#include <gtksourceview/gtksource.h>
+#include "python_gui.h"
 
 // Statics declarations
 enum {
@@ -31,6 +33,7 @@ enum {
 static GtkButton *button_python_pad_close = NULL, *button_python_pad_clear = NULL, *button_python_pad_open = NULL, *button_python_pad_save = NULL, *button_python_pad_execute = NULL;
 static GtkLabel *language_label = NULL;
 static GtkLabel *script_label = NULL;
+static GtkLabel *find_label = NULL;
 static GtkSourceView *code_view = NULL;
 static GtkSourceBuffer *sourcebuffer = NULL;
 static GtkScrolledWindow *scrolled_window = NULL;
@@ -54,6 +57,11 @@ static GtkCheckMenuItem *autoindentcheck = NULL;
 static GtkCheckMenuItem *indenttabcheck = NULL;
 static GtkCheckMenuItem *smartbscheck = NULL;
 static GtkCheckMenuItem *homeendcheck = NULL;
+GtkRevealer *find_revealer = NULL;
+GtkEntry *find_entry = NULL;
+GtkWidget *find_overlay = NULL;
+static GtkButton *go_up_button = NULL;
+static GtkButton *go_down_button = NULL;
 
 static gint active_language = LANG_PYTHON;
 static gboolean buffer_modified = FALSE;
@@ -74,6 +82,7 @@ void on_redo(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_cut(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_copy(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_paste(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+void on_find(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 static void on_buffer_modified_changed(GtkTextBuffer *buffer, gpointer user_data);
 void set_language();
 
@@ -91,7 +100,8 @@ static GActionEntry editor_actions[] = {
 	{ "redo", on_redo, NULL, NULL, NULL },
 	{ "cut", on_cut, NULL, NULL, NULL },
 	{ "copy", on_copy, NULL, NULL, NULL },
-	{ "paste", on_paste, NULL, NULL, NULL }
+	{ "paste", on_paste, NULL, NULL, NULL },
+	{ "find", on_find, NULL, NULL, NULL }
 };
 
 void set_code_view_theme() {
@@ -163,6 +173,256 @@ void add_code_view(GtkBuilder *builder) {
 	gtk_source_buffer_set_highlight_syntax(sourcebuffer, TRUE);
 }
 
+/** Code for the find feature ***/
+
+static void setup_find_overlay() {
+	// Create a new overlay
+	GtkWidget *new_overlay = gtk_overlay_new();
+	gtk_widget_show(new_overlay);
+
+	// Replace scrolled window with overlay in its parent
+	GtkWidget *scrolled_parent = gtk_widget_get_parent(GTK_WIDGET(scrolled_window));
+	g_object_ref(scrolled_window);
+	gtk_container_remove(GTK_CONTAINER(scrolled_parent), GTK_WIDGET(scrolled_window));
+	gtk_container_add(GTK_CONTAINER(scrolled_parent), new_overlay);
+
+	// Add scrolled window to overlay
+	gtk_container_add(GTK_CONTAINER(new_overlay), GTK_WIDGET(scrolled_window));
+	g_object_unref(scrolled_window);
+
+	// Move find_overlay to new overlay
+	g_object_ref(find_overlay);
+	gtk_overlay_add_overlay(GTK_OVERLAY(new_overlay), GTK_WIDGET(find_overlay));
+	g_object_unref(find_overlay);
+
+	// Configure find_overlay position
+	gtk_widget_set_halign(GTK_WIDGET(find_overlay), GTK_ALIGN_END);
+	gtk_widget_set_valign(GTK_WIDGET(find_overlay), GTK_ALIGN_START);
+	gtk_widget_set_margin_top(GTK_WIDGET(find_overlay), 6);
+	gtk_widget_set_margin_end(GTK_WIDGET(find_overlay), 6);
+
+	gtk_revealer_set_transition_type(find_revealer, GTK_REVEALER_TRANSITION_TYPE_SLIDE_DOWN);
+	gtk_revealer_set_reveal_child(find_revealer, FALSE);
+}
+
+void toggle_find_overlay(gboolean show) {
+	gtk_revealer_set_reveal_child(find_revealer, show);
+
+	if (show) {
+		gtk_widget_grab_focus(GTK_WIDGET(find_entry));
+	}
+}
+
+void hide_find_box() {
+	gtk_revealer_set_transition_type(find_revealer, GTK_REVEALER_TRANSITION_TYPE_SLIDE_DOWN);
+	gtk_revealer_set_reveal_child(find_revealer, FALSE);
+}
+
+gboolean on_find_entry_focus_out_event(GtkWidget *widget, gpointer user_data) {
+	hide_find_box();
+	return FALSE;
+}
+
+
+void on_find_entry_activate(GtkEntry *entry, gpointer user_data) {
+	hide_find_box();
+}
+
+/**
+ * Clear any existing search highlighting
+ */
+static void clear_search_highlighting(SearchData *search_data) {
+    if (!search_data || !search_data->buffer || !search_data->search_tag)
+        return;
+
+    GtkTextBuffer *buffer = GTK_TEXT_BUFFER(search_data->buffer);
+    GtkTextIter start, end;
+
+    gtk_text_buffer_get_bounds(buffer, &start, &end);
+    gtk_text_buffer_remove_tag(buffer, search_data->search_tag, &start, &end);
+}
+
+static void update_search_info(SearchData *search_data) {
+	if (!search_data || !search_data->info_label)
+		return;
+
+	if (search_data->total_matches > 0) {
+		gchar *info_text = g_strdup_printf("%d/%d", search_data->current_match, search_data->total_matches);
+		gtk_label_set_text(search_data->info_label, info_text);
+		g_free(info_text);
+	} else {
+		gtk_label_set_text(search_data->info_label, "0/0");
+	}
+}
+
+static void free_match_position(MatchPosition *pos) {
+	if (pos) {
+		if (pos->start_mark)
+			gtk_text_buffer_delete_mark(gtk_text_mark_get_buffer(pos->start_mark), pos->start_mark);
+		if (pos->end_mark)
+			gtk_text_buffer_delete_mark(gtk_text_mark_get_buffer(pos->end_mark), pos->end_mark);
+		g_free(pos);
+	}
+}
+
+static void clear_match_positions(SearchData *search_data) {
+	if (search_data->match_positions) {
+		g_slist_free_full(search_data->match_positions, (GDestroyNotify) free_match_position);
+		search_data->match_positions = NULL;
+	}
+}
+
+static void goto_match(SearchData *search_data, gint match_number) {
+	if (!search_data || match_number < 1 || match_number > search_data->total_matches)
+		return;
+
+	GSList *link = g_slist_nth(search_data->match_positions, match_number - 1);
+	if (!link) return;
+
+	MatchPosition *pos = link->data;
+	GtkTextIter start_iter, end_iter;
+
+	// Get iters from marks
+	gtk_text_buffer_get_iter_at_mark(search_data->buffer, &start_iter, pos->start_mark);
+	gtk_text_buffer_get_iter_at_mark(search_data->buffer, &end_iter, pos->end_mark);
+
+	// Select the text
+	gtk_text_buffer_select_range(search_data->buffer, &start_iter, &end_iter);
+
+	// Scroll to the match
+	gtk_text_view_scroll_to_iter(GTK_TEXT_VIEW(search_data->source_view), &start_iter, 0.0, TRUE, 0.5, 0.5);
+
+	// Update current match number
+	search_data->current_match = match_number;
+	update_search_info(search_data);
+}
+
+
+static gboolean perform_search(SearchData *search_data) {
+	if (!search_data || !search_data->search_entry || !search_data->buffer)
+		return FALSE;
+
+	const gchar *search_text = gtk_entry_get_text(search_data->search_entry);
+	GtkTextIter iter;
+	gboolean found = FALSE;
+
+	// Clear previous highlighting and positions
+	clear_search_highlighting(search_data);
+	clear_match_positions(search_data);
+
+	search_data->total_matches = 0;
+	search_data->current_match = 0;
+
+	if (!search_text || strlen(search_text) == 0) {
+		update_search_info(search_data);
+		return FALSE;
+	}
+
+	// Get buffer bounds
+	gtk_text_buffer_get_start_iter(search_data->buffer, &iter);
+
+	// Search and highlight all occurrences
+	while (gtk_text_iter_forward_search(&iter, search_text,
+			GTK_TEXT_SEARCH_CASE_INSENSITIVE, &search_data->current_match_start,
+			&search_data->current_match_end,
+			NULL)) {
+		search_data->total_matches++;
+
+		// Store match position
+		MatchPosition *pos = g_new0(MatchPosition, 1);
+		pos->start_mark = gtk_text_buffer_create_mark(search_data->buffer, NULL, &search_data->current_match_start, TRUE);
+		pos->end_mark = gtk_text_buffer_create_mark(search_data->buffer, NULL, &search_data->current_match_end, FALSE);
+		search_data->match_positions = g_slist_append(search_data->match_positions, pos);
+
+		// Apply highlighting
+		gtk_text_buffer_apply_tag(search_data->buffer, search_data->search_tag,
+				&search_data->current_match_start,
+				&search_data->current_match_end);
+
+		// Move iterator to end of match
+		iter = search_data->current_match_end;
+		found = TRUE;
+	}
+
+	if (found) {
+		// Select first match
+		search_data->current_match = 1;
+		goto_match(search_data, 1);
+	}
+
+	update_search_info(search_data);
+	return found;
+}
+
+void on_next_match(GtkButton *button, SearchData *search_data) {
+	if (!search_data || search_data->total_matches == 0)
+		return;
+
+	gint next_match = search_data->current_match + 1;
+	if (next_match > search_data->total_matches)
+		next_match = 1;
+
+	goto_match(search_data, next_match);
+}
+
+void on_previous_match(GtkButton *button, SearchData *search_data) {
+	if (!search_data || search_data->total_matches == 0)
+		return;
+
+	gint prev_match = search_data->current_match - 1;
+	if (prev_match < 1)
+		prev_match = search_data->total_matches;
+
+	goto_match(search_data, prev_match);
+}
+
+void on_find_entry_changed(GtkEntry *entry, SearchData *search_data) {
+    perform_search(search_data);
+}
+
+void setup_search(GtkSourceView *source_view, GtkEntry *search_entry) {
+	if (!source_view || !search_entry)
+		return;
+
+	// First, check if we already have search data
+	SearchData *search_data = g_object_get_data(G_OBJECT(source_view), "search-data");
+
+	if (search_data) {
+		// Update existing search data
+		search_data->search_entry = search_entry;
+		return;
+	}
+
+	// Create new search data only if it doesn't exist
+	search_data = g_new0(SearchData, 1);
+	search_data->source_view = source_view;
+	search_data->buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(source_view));
+	search_data->search_entry = search_entry;
+	search_data->info_label = find_label;
+
+	// Get the tag table
+	GtkTextTagTable *tag_table = gtk_text_buffer_get_tag_table(search_data->buffer);
+
+	// Check if the tag already exists
+	search_data->search_tag = gtk_text_tag_table_lookup(tag_table, "search_match");
+
+	// Create the tag only if it doesn't exist
+	if (search_data->search_tag == NULL) {
+		search_data->search_tag = gtk_text_buffer_create_tag(
+				search_data->buffer, "search_match", "background", "yellow",
+				"foreground", "black",
+				NULL);
+	}
+
+	g_signal_connect(search_entry, "changed", G_CALLBACK(on_find_entry_changed), search_data);
+	g_signal_connect(go_down_button, "clicked", G_CALLBACK(on_next_match), search_data);
+	g_signal_connect(go_up_button, "clicked", G_CALLBACK(on_previous_match), search_data);
+
+	// Store the search data
+	g_object_set_data_full(G_OBJECT(source_view), "search-data", search_data, g_free);
+}
+
+
 // Statics init
 void python_scratchpad_init_statics() {
 	if (editor_window == NULL) {
@@ -199,10 +459,21 @@ void python_scratchpad_init_statics() {
 		language_label = GTK_LABEL(gtk_builder_get_object(gui.builder, "script_language_label"));
 		script_label = GTK_LABEL(gtk_builder_get_object(gui.builder, "script_editor_label"));
 		gtk_widget_show(GTK_WIDGET(script_label));
+		// Findbox
+		find_revealer = GTK_REVEALER(gtk_builder_get_object(gui.builder, "find_revealer"));
+		find_entry = GTK_ENTRY(lookup_widget("find_entry"));
+		find_overlay = GTK_WIDGET(gtk_builder_get_object(gui.builder, "find_overlay"));
+		find_label = GTK_LABEL(gtk_builder_get_object(gui.builder, "find_label"));
+		go_up_button = GTK_BUTTON(gtk_builder_get_object(gui.builder, "go_up_button"));
+		go_down_button = GTK_BUTTON(gtk_builder_get_object(gui.builder, "go_down_button"));
+
 		add_code_view(gui.builder);
 		gtk_window_set_transient_for(GTK_WINDOW(editor_window), GTK_WINDOW(gtk_builder_get_object(gui.builder, "control_window")));
-		g_signal_connect(sourcebuffer, "modified-changed",
-						G_CALLBACK(on_buffer_modified_changed), NULL);
+		g_signal_connect(sourcebuffer, "modified-changed", G_CALLBACK(on_buffer_modified_changed), NULL);
+
+		/* initialize find box */
+		setup_find_overlay();
+		setup_search(code_view, find_entry);
 
 		// Initialize with "unsaved" if no file is loaded
 		if (!current_file) {
@@ -509,6 +780,11 @@ void on_paste(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 								clipboard, NULL, gtk_text_view_get_editable(GTK_TEXT_VIEW(code_view)));
 }
 
+void on_find(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	toggle_find_overlay(TRUE);
+}
+
+
 void on_set_rmarginpos(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	GtkWidget *dialog = gtk_dialog_new_with_buttons(
 		_("Right Margin Position"),
@@ -528,12 +804,9 @@ void on_set_rmarginpos(GSimpleAction *action, GVariant *parameter, gpointer user
 	// Add suggested-action style to Apply button
 	gtk_style_context_add_class(gtk_widget_get_style_context(button_apply), "suggested-action");
 
-	gtk_widget_add_accelerator(button_close, "clicked", gtk_accel_group_new(),
-							GDK_KEY_Escape, 0, GTK_ACCEL_VISIBLE);
-	gtk_widget_add_accelerator(button_apply, "clicked", gtk_accel_group_new(),
-							GDK_KEY_Return, 0, GTK_ACCEL_VISIBLE);
-	gtk_widget_add_accelerator(button_apply, "clicked", gtk_accel_group_new(),
-							GDK_KEY_KP_Enter, 0, GTK_ACCEL_VISIBLE);
+	gtk_widget_add_accelerator(button_close, "clicked", gtk_accel_group_new(), GDK_KEY_Escape, 0, GTK_ACCEL_VISIBLE);
+	gtk_widget_add_accelerator(button_apply, "clicked", gtk_accel_group_new(), GDK_KEY_Return, 0, GTK_ACCEL_VISIBLE);
+	gtk_widget_add_accelerator(button_apply, "clicked", gtk_accel_group_new(), GDK_KEY_KP_Enter, 0, GTK_ACCEL_VISIBLE);
 
 	// Create a horizontal box with spacing
 	GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
@@ -555,9 +828,7 @@ void on_set_rmarginpos(GSimpleAction *action, GVariant *parameter, gpointer user
 	gtk_box_pack_start(GTK_BOX(hbox), spin, TRUE, TRUE, 0);
 
 	// Connect to the spin button's activate signal (Enter key)
-	g_signal_connect_swapped(spin, "activate",
-						G_CALLBACK(gtk_button_clicked),
-						button_apply);
+	g_signal_connect_swapped(spin, "activate", G_CALLBACK(gtk_button_clicked), button_apply);
 
 	// Add the box to the dialog's content area
 	GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
@@ -576,9 +847,7 @@ void on_set_rmarginpos(GSimpleAction *action, GVariant *parameter, gpointer user
 }
 
 // Handler for main window state changes
-gboolean on_main_window_state_changed(GtkWidget *widget,
-									GdkEventWindowState *event,
-									gpointer user_data) {
+gboolean on_main_window_state_changed(GtkWidget *widget, GdkEventWindowState *event, gpointer user_data) {
 	GtkWindow *editor_window = GTK_WINDOW(user_data);
 
 	if (event->changed_mask & GDK_WINDOW_STATE_ICONIFIED) {
@@ -623,12 +892,10 @@ void setup_python_editor_window() {
 	GtkWindow *main_window = GTK_WINDOW(lookup_widget("control_window"));
 
 	// Make the editor window hide instead of destroy when closed
-	g_signal_connect(editor_window, "delete-event",
-					G_CALLBACK(gtk_widget_hide_on_delete), NULL);
+	g_signal_connect(editor_window, "delete-event", G_CALLBACK(gtk_widget_hide_on_delete), NULL);
 
 	// Optional: Make editor window minimize when main window minimizes
-	g_signal_connect(main_window, "window-state-event",
-					G_CALLBACK(on_main_window_state_changed), editor_window);
+	g_signal_connect(main_window, "window-state-event", G_CALLBACK(on_main_window_state_changed), editor_window);
 }
 
 void on_action_file_execute(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
