@@ -39,9 +39,6 @@
 #ifdef GDK_WINDOWING_WIN32
 #include <gdk/gdkwin32.h>
 #endif
-#ifdef GDK_WINDOWING_QUARTZ
-#include <gdk/gdkquartz.h>
-#endif
 #ifdef GDK_WINDOWING_WAYLAND
 #include <gdk/gdkwayland.h>
 #endif
@@ -661,12 +658,15 @@ gchar* get_control_window_id() {
 	}
 #endif
 
-	// macOS handling
+	// MacOS handling
 #ifdef GDK_WINDOWING_QUARTZ
-	if (GDK_IS_QUARTZ_DISPLAY(display)) {
-		NSWindow* nswindow = gdk_quartz_window_get_nswindow(gdk_window);
-		parent_window_id = g_strdup_printf("%p", (void*)nswindow);
-	}
+    if (GDK_IS_QUARTZ_DISPLAY(display)) {
+        // Get the native window handle instead of using Quartz-specific API
+        GdkNativeWindow native = gdk_window_get_native_window(gdk_window);
+        if (native) {
+            parent_window_id = g_strdup_printf("%p", (void*)native);
+        }
+    }
 #endif
 
 	// Wayland handling
