@@ -3,6 +3,11 @@
 # Reference site is https://siril.org
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import sys
+if sys.platform == "darwin"
+    import objc
+    from Cocoa import NSAppplication, NSWindow
+
 def check_gi_requirements(version: float = None):
    """
    Check if gi (GObject Introspection) and optionally specific GTK/GDK versions are available.
@@ -69,7 +74,13 @@ def set_parent_window(self):
         hwnd = int(parent_window_id, 16)
         # Get GDK window from HWND
         parent = Gir.GdkWin32.Window.foreign_new_for_display(display, hwnd)
-    else:  # Unix/Linux
+    else if sys.platform == 'darwin':
+        parent_nswindow = objc.objc_object(long(parent_window_id))
+        parent_gtk_window = Gtk.Window.get_toplevel(parent_nswindow)
+        dialog.set_transient_for(parent_gtk_window)
+
+    else:
+        # Unix/Linux
         # Convert string to integer
         xid = int(parent_window_id)
         # Get GDK window from XID

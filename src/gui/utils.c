@@ -35,12 +35,13 @@
 // Headers required to get the control_window ID
 #ifdef GDK_WINDOWING_X11
 #include <gdk/gdkx.h>
-#endif
-#ifdef GDK_WINDOWING_WIN32
+#elif defined(GDK_WINDOWING_WIN32)
 #include <gdk/gdkwin32.h>
-#endif
-#ifdef GDK_WINDOWING_WAYLAND
+#elif defined(GDK_WINDOWING_WAYLAND)
 #include <gdk/gdkwayland.h>
+#elif defined(GDK_WINDOWING_MACOS)
+#include <gdk/gdkquartz.h>
+#include <objc/objc-runtime.h> // For Objective-C runtime functions
 #endif
 
 struct _label_data {
@@ -624,6 +625,8 @@ gboolean value_check(fits *fit) {
 	return TRUE;
 }
 
+
+
 gchar* get_control_window_id() {
 	GtkWidget *window = lookup_widget("control_window");
 	if (!window) {
@@ -648,36 +651,36 @@ gchar* get_control_window_id() {
 		HWND hwnd = gdk_win32_window_get_handle(gdk_window);
 		parent_window_id = g_strdup_printf("%p", (void*)hwnd);
 	}
-#endif
-
-	// X11 handling
-#ifdef GDK_WINDOWING_X11
+#elif defined(GDK_WINDOWING_X11)
 	if (GDK_IS_X11_DISPLAY(display)) {
 		Window xid = gdk_x11_window_get_xid(gdk_window);
 		parent_window_id = g_strdup_printf("%lu", (unsigned long)xid);
 	}
-#endif
-
-	// MacOS handling
-#ifdef GDK_WINDOWING_QUARTZ
-    if (GDK_IS_QUARTZ_DISPLAY(display)) {
-        // Get the native window handle instead of using Quartz-specific API
-        GdkNativeWindow native = gdk_window_get_native_window(gdk_window);
-        if (native) {
-            parent_window_id = g_strdup_printf("%p", (void*)native);
-        }
-    }
-#endif
-
-	// Wayland handling
-#ifdef GDK_WINDOWING_WAYLAND
+#elif defined(GDK_WINDOWING_MACOS)
+	if (GDK_IS_QUARTZ_WINDOW(gdk_window)) {
+		// Get the NSWindow pointer from the GDK Quartz window
+		gpointer nswindow = gdk_quartz_window_get_nswindow(gdk_window);
+		if (nswindow) {
+			parent_window_id = g_strdup_printf("%p", nswindow);
+		} else {
+			g_printerr("Failed to get NSWindow.\n");
+		}
+	} else {
+		g_printerr("Not a Quartz (MacOS) window.\n");
+	}
+#elif defined(GDK_WINDOWING_WAYLAND)
 	if (GDK_IS_WAYLAND_DISPLAY(display)) {
 		// Wayland doesn't use traditional window IDs
 		// Instead, we'll use the surface pointer as an identifier
 		struct wl_surface* surface = gdk_wayland_window_get_wl_surface(gdk_window);
-		parent_window_id = g_strdup_printf("wayland:%p", (void*)surface);
+		if (surface) {
+			parent_window_id = g_strdup_printf("wayland:%p", (void*)surface);
+		}
 	}
+#else
+	g_printerr("Unsupported GDK backend.\n");
 #endif
+
 
 	return parent_window_id;
 }
