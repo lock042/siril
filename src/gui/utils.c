@@ -32,6 +32,20 @@
 #include "core/siril_log.h"
 #include "message_dialog.h"
 
+// Headers required to get the control_window ID
+#ifdef GDK_WINDOWING_X11
+#include <gdk/gdkx.h>
+#endif
+#ifdef GDK_WINDOWING_WIN32
+#include <gdk/gdkwin32.h>
+#endif
+#ifdef GDK_WINDOWING_QUARTZ
+#include <gdk/gdkquartz.h>
+#endif
+#ifdef GDK_WINDOWING_WAYLAND
+#include <gdk/gdkwayland.h>
+#endif
+
 struct _label_data {
 	const char *label_name;
 	char *text;
@@ -611,4 +625,59 @@ gboolean value_check(fits *fit) {
 			return FALSE;
 	}
 	return TRUE;
+}
+
+gchar* get_control_window_id() {
+	GtkWidget *window = lookup_widget("control_window");
+	if (!window) {
+		return NULL;
+	}
+
+	GdkWindow* gdk_window = gtk_widget_get_window(GTK_WIDGET(window));
+	if (!gdk_window) {
+		return NULL;
+	}
+
+	GdkDisplay* display = gdk_window_get_display(gdk_window);
+	if (!display) {
+		return NULL;
+	}
+
+	gchar* parent_window_id = NULL;
+
+	// Windows handling
+#ifdef GDK_WINDOWING_WIN32
+	if (GDK_IS_WIN32_DISPLAY(display)) {
+		HWND hwnd = gdk_win32_window_get_handle(gdk_window);
+		parent_window_id = g_strdup_printf("%p", (void*)hwnd);
+	}
+#endif
+
+	// X11 handling
+#ifdef GDK_WINDOWING_X11
+	if (GDK_IS_X11_DISPLAY(display)) {
+		Window xid = gdk_x11_window_get_xid(gdk_window);
+		parent_window_id = g_strdup_printf("%lu", (unsigned long)xid);
+	}
+#endif
+
+	// macOS handling
+#ifdef GDK_WINDOWING_QUARTZ
+	if (GDK_IS_QUARTZ_DISPLAY(display)) {
+		NSWindow* nswindow = gdk_quartz_window_get_nswindow(gdk_window);
+		parent_window_id = g_strdup_printf("%p", (void*)nswindow);
+	}
+#endif
+
+	// Wayland handling
+#ifdef GDK_WINDOWING_WAYLAND
+	if (GDK_IS_WAYLAND_DISPLAY(display)) {
+		// Wayland doesn't use traditional window IDs
+		// Instead, we'll use the surface pointer as an identifier
+		struct wl_surface* surface = gdk_wayland_window_get_wl_surface(gdk_window);
+		parent_window_id = g_strdup_printf("wayland:%p", (void*)surface);
+	}
+#endif
+
+	return parent_window_id;
 }
