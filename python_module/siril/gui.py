@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import sys
-if sys.platform == "darwin"
+if sys.platform == "darwin":
     import objc
     from Cocoa import NSAppplication, NSWindow
 
@@ -68,29 +68,38 @@ def set_parent_window(self):
         self.realize()
         dialog_window = self.get_window()
 
+    parent = None
+
     display = Gir.Gdk.Display.get_default()
+    print(display.get_name())
+
     if os.name == 'nt':  # Windows
         # Convert hex string to integer
         hwnd = int(parent_window_id, 16)
         # Get GDK window from HWND
         parent = Gir.GdkWin32.Window.foreign_new_for_display(display, hwnd)
-    else if sys.platform == 'darwin':
+    elif sys.platform == 'darwin':
         parent_nswindow = objc.objc_object(long(parent_window_id))
         parent_gtk_window = Gtk.Window.get_toplevel(parent_nswindow)
         dialog.set_transient_for(parent_gtk_window)
-
-    else if display.get_name == "x11":
-        # Unix/Linux
-        # Convert string to integer
-        xid = int(parent_window_id)
-        # Get GDK window from XID
-        parent = Gir.GdkX11.X11Window.foreign_new_for_display(display, xid)
-    else if display.get_name == "wayland":
+    elif display.get_name() == "wayland":
         import GdkWayland
         # Retrieve wl_surface handle from environment variable
-        wl_surface_handle = os.getenv("WL_SURFACE_HANDLE") if wl_surface_handle: # Convert string to pointer
-        wl_surface_pointer = int(wl_surface_handle, 16)
-        parent = Gir.GdkWayland.WaylandWindow.foreign_new_for_display(GdkWayland.Display.get_default(), wl_surface_pointer)
+        wl_surface_handle = os.getenv("WL_SURFACE_HANDLE")
+        if wl_surface_handle: # Convert string to pointer
+            wl_surface_pointer = int(wl_surface_handle, 16)
+            parent = Gir.GdkWayland.WaylandWindow.foreign_new_for_display(GdkWayland.Display.get_default(), wl_surface_pointer)
+    else:
+        # We will try X11, but in case there is some unknown case
+        # we will use try/except to allow it to fail and continue
+        try:
+            # Convert string to integer
+            xid = int(parent_window_id)
+            # Get GDK window from XID
+            parent = Gir.GdkX11.X11Window.foreign_new_for_display(display, xid)
+        except Exception as e:
+            print(f"Failed to set parent window: {e}")
+
     if parent:
         # Set the parent window directly
         dialog_window.set_transient_for(parent)
