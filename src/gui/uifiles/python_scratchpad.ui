@@ -472,6 +472,24 @@
                             <signal name="toggled" handler="on_editor_smarthomeend_toggled" swapped="no"/>
                           </object>
                         </child>
+                        <child>
+                          <object class="GtkCheckMenuItem" id="editor_showspaces">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Show space and tab characters in the editor view</property>
+                            <property name="label" translatable="yes">Show spaces and tabs</property>
+                            <signal name="toggled" handler="on_editor_showspaces_toggled" swapped="no"/>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkCheckMenuItem" id="editor_shownewlines">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Show newline characters in the editor view</property>
+                            <property name="label" translatable="yes">Show newlines</property>
+                            <signal name="toggled" handler="on_editor_shownewlines_toggled" swapped="no"/>
+                          </object>
+                        </child>
                       </object>
                     </child>
                   </object>

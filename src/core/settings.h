@@ -192,6 +192,8 @@ struct editor_config {
 	gboolean indentontab;
 	gboolean smartbs;
 	gboolean smarthomeend;
+	gboolean showspaces;
+	gboolean shownewlines;
 };
 
 typedef enum {

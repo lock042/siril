@@ -170,7 +170,9 @@ preferences pref_init = {
 			.autoindent = TRUE,
 			.indentontab = TRUE,
 			.smartbs = TRUE,
-			.smarthomeend = TRUE
+			.smarthomeend = TRUE,
+			.showspaces = FALSE,
+			.shownewlines = FALSE
 		}
 	},
 	.debayer = {
@@ -547,6 +549,8 @@ struct settings_access all_settings[] = {
 	{ "script_editor", "indentontab", STYPE_BOOL, N_("indent selected blocks of lines in the script editor using the tab key"), &com.pref.gui.editor_cfg.indentontab },
 	{ "script_editor", "smartbs", STYPE_BOOL, N_("Smart Backspace behaviour in the script editor"), &com.pref.gui.editor_cfg.smartbs },
 	{ "script_editor", "smarthomeend", STYPE_BOOL, N_("Smart Home / End behaviour in the script editor"), &com.pref.gui.editor_cfg.smarthomeend },
+	{ "script_editor", "showspaces", STYPE_BOOL, N_("Show visible space and tab characters in the script editor"), &com.pref.gui.editor_cfg.showspaces },
+	{ "script_editor", "shownewlines", STYPE_BOOL, N_("Show visible newline characters in the script editor"), &com.pref.gui.editor_cfg.shownewlines },
 
 	{ NULL, NULL, STYPE_BOOL, NULL, NULL }
 };

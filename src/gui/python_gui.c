@@ -57,6 +57,10 @@ static GtkCheckMenuItem *autoindentcheck = NULL;
 static GtkCheckMenuItem *indenttabcheck = NULL;
 static GtkCheckMenuItem *smartbscheck = NULL;
 static GtkCheckMenuItem *homeendcheck = NULL;
+static GtkCheckMenuItem *showspaces = NULL;
+static GtkCheckMenuItem *shownewlines = NULL;
+static GtkSourceSpaceDrawer* space_drawer = NULL;
+
 GtkRevealer *find_revealer = NULL;
 GtkEntry *find_entry = NULL;
 GtkWidget *find_overlay = NULL;
@@ -171,6 +175,21 @@ void add_code_view(GtkBuilder *builder) {
 
 	// Enable syntax highlighting
 	gtk_source_buffer_set_highlight_syntax(sourcebuffer, TRUE);
+
+	// Get the space drawer
+	space_drawer = gtk_source_view_get_space_drawer(code_view);
+
+	// Configure which types of spaces to show
+	GtkSourceSpaceTypeFlags space_types = 0;
+
+	GtkSourceSpaceLocationFlags space_locations = GTK_SOURCE_SPACE_LOCATION_ALL;
+
+	// Enable space drawing with marks
+	gtk_source_space_drawer_set_types_for_locations(space_drawer,
+												space_locations,
+												space_types);
+
+	gtk_source_space_drawer_set_enable_matrix(space_drawer, TRUE);
 }
 
 /** Code for the find feature ***/
@@ -298,7 +317,6 @@ static void goto_match(SearchData *search_data, gint match_number) {
 	update_search_info(search_data);
 }
 
-
 static gboolean perform_search(SearchData *search_data) {
 	if (!search_data || !search_data->search_entry || !search_data->buffer)
 		return FALSE;
@@ -423,7 +441,6 @@ void setup_search(GtkSourceView *source_view, GtkEntry *search_entry) {
 	g_object_set_data_full(G_OBJECT(source_view), "search-data", search_data, g_free);
 }
 
-
 // Statics init
 void python_scratchpad_init_statics() {
 	if (editor_window == NULL) {
@@ -446,6 +463,8 @@ void python_scratchpad_init_statics() {
 		indenttabcheck = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "editor_indentontab"));
 		smartbscheck = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "editor_smartbs"));
 		homeendcheck = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "editor_smarthomeend"));
+		showspaces = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "editor_showspaces"));
+		shownewlines = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "editor_shownewlines"));
 		// GtkComboBox
 		combo_language = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "python_pad_language"));
 		// GtkButton
@@ -796,6 +815,8 @@ int on_open_pythonpad(GtkMenuItem *menuitem, gpointer user_data) {
 	gtk_check_menu_item_set_active(indenttabcheck, com.pref.gui.editor_cfg.indentontab);
 	gtk_check_menu_item_set_active(smartbscheck, com.pref.gui.editor_cfg.smartbs);
 	gtk_check_menu_item_set_active(homeendcheck, com.pref.gui.editor_cfg.smarthomeend);
+	gtk_check_menu_item_set_active(showspaces, com.pref.gui.editor_cfg.showspaces);
+	gtk_check_menu_item_set_active(shownewlines, com.pref.gui.editor_cfg.shownewlines);
 
 	return 0;
 }
@@ -832,7 +853,6 @@ void on_paste(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 void on_find(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	toggle_find_overlay(TRUE);
 }
-
 
 void on_set_rmarginpos(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	GtkWidget *dialog = gtk_dialog_new_with_buttons(
@@ -1055,4 +1075,37 @@ void on_editor_smarthomeend_toggled(GtkCheckMenuItem *item, gpointer user_data) 
 	gboolean status = gtk_check_menu_item_get_active(item);
 	gtk_source_view_set_smart_home_end(code_view, status);
 	com.pref.gui.editor_cfg.smarthomeend = status;
+}
+
+void on_editor_showspaces_toggled(GtkCheckMenuItem *item, gpointer user_data) {
+	GtkSourceSpaceLocationFlags space_locations = GTK_SOURCE_SPACE_LOCATION_ALL;
+	GtkSourceSpaceTypeFlags spaces_and_tabs = GTK_SOURCE_SPACE_TYPE_SPACE | GTK_SOURCE_SPACE_TYPE_TAB;
+	GtkSourceSpaceLocationFlags space_types = gtk_source_space_drawer_get_types_for_locations(space_drawer, space_locations);
+	gboolean status = gtk_check_menu_item_get_active(item);
+	if (status)
+		space_types = space_types | spaces_and_tabs;
+	else
+		space_types = space_types & ~spaces_and_tabs;
+
+	gtk_source_space_drawer_set_types_for_locations(space_drawer,
+												space_locations,
+												space_types);
+	gtk_widget_queue_draw(GTK_WIDGET(editor_window));
+	com.pref.gui.editor_cfg.showspaces = status;
+}
+
+void on_editor_shownewlines_toggled(GtkCheckMenuItem *item, gpointer user_data) {
+	GtkSourceSpaceLocationFlags space_locations = GTK_SOURCE_SPACE_LOCATION_ALL;
+	GtkSourceSpaceLocationFlags space_types = gtk_source_space_drawer_get_types_for_locations(space_drawer, space_locations);
+	gboolean status = gtk_check_menu_item_get_active(item);
+	if (status)
+		space_types = space_types | GTK_SOURCE_SPACE_TYPE_NEWLINE;
+	else
+		space_types = space_types & ~GTK_SOURCE_SPACE_TYPE_NEWLINE;
+
+	gtk_source_space_drawer_set_types_for_locations(space_drawer,
+												space_locations,
+												space_types);
+	gtk_widget_queue_draw(GTK_WIDGET(editor_window));
+	com.pref.gui.editor_cfg.shownewlines = status;
 }
