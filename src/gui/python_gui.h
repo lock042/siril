@@ -17,8 +17,8 @@ typedef struct {
 } SearchData;
 
 typedef struct {
-    GtkTextMark *start_mark;
-    GtkTextMark *end_mark;
+	GtkTextMark *start_mark;
+	GtkTextMark *end_mark;
 } MatchPosition;
 
 
