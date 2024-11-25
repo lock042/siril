@@ -188,6 +188,7 @@ static void setup_find_overlay() {
 
 	// Add scrolled window to overlay
 	gtk_container_add(GTK_CONTAINER(new_overlay), GTK_WIDGET(scrolled_window));
+	gtk_widget_set_vexpand(GTK_WIDGET(scrolled_window), TRUE);
 	g_object_unref(scrolled_window);
 
 	// Move find_overlay to new overlay
