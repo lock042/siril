@@ -158,6 +158,22 @@ preferences pref_init = {
 		.mouse_cfg = {
 			.mouse_actions_array = NULL,
 			.scroll_actions_array = NULL
+		},
+		.editor_cfg = {
+			.highlight_syntax = TRUE,
+			.highlight_bracketmatch = TRUE,
+			.rmargin = TRUE,
+			.rmargin_pos = 80,
+			.show_linenums = TRUE,
+			.show_linemarks = FALSE,
+			.highlight_currentline = TRUE,
+			.autoindent = TRUE,
+			.indentontab = TRUE,
+			.smartbs = TRUE,
+			.smarthomeend = TRUE,
+			.showspaces = FALSE,
+			.shownewlines = FALSE,
+			.minimap = FALSE
 		}
 	},
 	.debayer = {
@@ -522,6 +538,21 @@ struct settings_access all_settings[] = {
 	{ "gui_astrometry", "cat_user_sso", STYPE_BOOL, N_("show user SSO objects in annotations"), &com.pref.gui.catalog[7] },
 
 	{ "gui_pixelmath", "pm_presets", STYPE_STRLIST, N_("list of pixel math presets"), &com.pref.gui.pm_presets },
+
+	{ "script_editor", "highlight_syntax", STYPE_BOOL, N_("highlight syntax in the script editor"), &com.pref.gui.editor_cfg.highlight_syntax },
+	{ "script_editor", "highlight_bracketmatch", STYPE_BOOL, N_("highlight matching brackets in the script editor"), &com.pref.gui.editor_cfg.highlight_bracketmatch },
+	{ "script_editor", "rmargin", STYPE_BOOL, N_("show the right margin in the script editor"), &com.pref.gui.editor_cfg.rmargin },
+	{ "script_editor", "rmargin_pos", STYPE_INT, N_("position of the right margin in the script editor"), &com.pref.gui.editor_cfg.rmargin_pos },
+	{ "script_editor", "show_linenums", STYPE_BOOL, N_("show line numbers in the script editor"), &com.pref.gui.editor_cfg.show_linenums },
+	{ "script_editor", "show_linemarks", STYPE_BOOL, N_("show line marks in the script editor"), &com.pref.gui.editor_cfg.show_linemarks },
+	{ "script_editor", "highlight_currentline", STYPE_BOOL, N_("highlight the current line in the script editor"), &com.pref.gui.editor_cfg.highlight_currentline },
+	{ "script_editor", "autoindent", STYPE_BOOL, N_("automatically indent new lines"), &com.pref.gui.editor_cfg.autoindent },
+	{ "script_editor", "indentontab", STYPE_BOOL, N_("indent selected blocks of lines in the script editor using the tab key"), &com.pref.gui.editor_cfg.indentontab },
+	{ "script_editor", "smartbs", STYPE_BOOL, N_("Smart Backspace behaviour in the script editor"), &com.pref.gui.editor_cfg.smartbs },
+	{ "script_editor", "smarthomeend", STYPE_BOOL, N_("Smart Home / End behaviour in the script editor"), &com.pref.gui.editor_cfg.smarthomeend },
+	{ "script_editor", "showspaces", STYPE_BOOL, N_("Show visible space and tab characters in the script editor"), &com.pref.gui.editor_cfg.showspaces },
+	{ "script_editor", "shownewlines", STYPE_BOOL, N_("Show visible newline characters in the script editor"), &com.pref.gui.editor_cfg.shownewlines },
+	{ "script_editor", "minimap", STYPE_BOOL, N_("Show a minimap in the script editor"), &com.pref.gui.editor_cfg.minimap },
 
 	{ NULL, NULL, STYPE_BOOL, NULL, NULL }
 };

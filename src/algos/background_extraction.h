@@ -34,6 +34,7 @@ struct background_data {
 	gboolean from_ui;
 	sequence *seq;
 	char *seqEntry;
+	gboolean is_cfa;
 };
 
 typedef struct sample {
@@ -52,6 +53,7 @@ GSList* add_background_sample(GSList *list, fits *fit, point pt);
 GSList* remove_background_sample(GSList *orig, fits *fit, point pt);
 int generate_background_samples(int nb_of_samples, double tolerance);
 gpointer remove_gradient_from_image(gpointer p);
+gpointer remove_gradient_from_cfa_image(gpointer p);
 void apply_background_extraction_to_sequence(struct background_data *background_args);
 
 gboolean background_sample_is_valid(background_sample *sample);

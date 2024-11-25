@@ -369,17 +369,15 @@ gpointer on_set_roi() {
 }
 
 gpointer on_clear_roi() {
-	if (gui.roi.active) {
-		g_mutex_lock(&roi_mutex); // Wait until any thread previews are finished
-		cancel_pending_update();
-		copy_backup_to_gfit();
-		clearfits(&gui.roi.fit);
-		memset(&gui.roi, 0, sizeof(roi_t));
-		// Call any callbacks that need calling
-		call_roi_callbacks();
-		queue_redraw(REDRAW_OVERLAY);
-		g_mutex_unlock(&roi_mutex);
-	}
+	g_mutex_lock(&roi_mutex); // Wait until any thread previews are finished
+	cancel_pending_update();
+	copy_backup_to_gfit();
+	clearfits(&gui.roi.fit);
+	memset(&gui.roi, 0, sizeof(roi_t));
+	redraw(REDRAW_OVERLAY);
+	// Call any callbacks that need calling
+	call_roi_callbacks();
+	g_mutex_unlock(&roi_mutex);
 	return GINT_TO_POINTER(0);
 }
 

@@ -89,6 +89,7 @@ class _Command(IntEnum):
     PIX2WCS = 34
     WCS2PIX = 35
     UNDO_SAVE_STATE = 36
+    GET_BUNDLE_PATH = 37
     ERROR = 0xFF
 
 class _ConfigType(IntEnum):
@@ -582,6 +583,29 @@ class SirilInterface:
         return response
 
     # Specific commands follow below here
+
+    def _get_bundle_path(self) ->Optional[str]:
+        """
+        Request the bundle path directory. This is an internal method used
+        to ensure that the correct DLL paths are preconfigured on Windows:
+        it is not for use by scriptwriters.
+
+        **It is an error to call this method on non-Windows OSes**
+
+        Returns:
+            The Siril bundle path as a string.
+
+        Raises:
+            All exceptions are raised to the caller.
+        """
+    def get_bundle_path(self):
+        response = self._request_data(_Command.GET_BUNDLE_PATH)
+        if response is None:
+            raise RuntimeError("Failed to get bundle path - received null response")
+
+        # Let the decode raise UnicodeDecodeError if it fails
+        # Let the rstrip operation pass through any string operation errors
+        return response.decode('utf-8').rstrip('\x00')
 
     def log(self, my_string: str) -> bool:
         """

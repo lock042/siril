@@ -573,41 +573,50 @@ void on_add_keyword_button_clicked(GtkButton *button, gpointer user_data) {
 
 	gtk_widget_show_all(dialog);
 
-	gint result = gtk_dialog_run(GTK_DIALOG(dialog));
-	if (result == GTK_RESPONSE_OK) {
-		const gchar *key = gtk_entry_get_text(GTK_ENTRY(entry_name));
-		const gchar *value = gtk_entry_get_text(GTK_ENTRY(entry_value));
-		const gchar *comment = gtk_entry_get_text(GTK_ENTRY(entry_comment));
+	gint result;
+	do {
+		result = gtk_dialog_run(GTK_DIALOG(dialog));
+		if (result == GTK_RESPONSE_OK) {
+			const gchar *key = gtk_entry_get_text(GTK_ENTRY(entry_name));
+			const gchar *value = gtk_entry_get_text(GTK_ENTRY(entry_value));
+			const gchar *comment = gtk_entry_get_text(GTK_ENTRY(entry_comment));
 
-		if (g_strcmp0(key, "") == 0) key = NULL;
-		if (g_strcmp0(value, "") == 0) value = NULL;
-		if (g_strcmp0(comment, "") == 0) comment = NULL;
+			if (g_strcmp0(key, "") == 0) key = NULL;
+			if (g_strcmp0(value, "") == 0) value = NULL;
+			if (g_strcmp0(comment, "") == 0) comment = NULL;
 
-		if (comment || value || key) {
-			char valstring[FLEN_VALUE];
-			process_keyword_string_value(value, valstring, string_has_space(value));
+			if (comment || (value && key)) {
+				char valstring[FLEN_VALUE] = { 0 };
+				process_keyword_string_value(value, valstring, string_has_space(value));
 
-			if (sequence_is_loaded()) {
-				struct keywords_data *kargs = calloc(1, sizeof(struct keywords_data));
+				if (sequence_is_loaded()) {
+					struct keywords_data *kargs = calloc(1, sizeof(struct keywords_data));
 
-				kargs->FITS_key = g_strdup(key);
-				kargs->value = g_strdup(valstring);
-				kargs->comment = g_strdup(comment);
+					kargs->FITS_key = g_strdup(key);
+					kargs->value = valstring[0] == '\0' ? NULL : g_strdup(valstring);
+					kargs->comment = g_strdup(comment);
 
-				if (siril_confirm_dialog(_("Operation on the sequence"),
-						_("These keywords will be added / modified in each image of "
-								"the entire sequence. Are you sure?”"), _("Proceed"))) {
-					start_sequence_keywords(&com.seq, kargs);
+					if (siril_confirm_dialog(_("Operation on the sequence"),
+							_("These keywords will be added / modified in each image of "
+							  "the entire sequence. Are you sure?"), _("Proceed"))) {
+						start_sequence_keywords(&com.seq, kargs);
+						break;
+					} else {
+						free(kargs);
+						continue;
+					}
 				} else {
-					free(kargs);
+					updateFITSKeyword(&gfit, key, NULL, valstring[0] == '\0' ? NULL : valstring, comment, TRUE, FALSE);
+					gui_function(refresh_keywords_dialog, NULL);
+					scroll_to_end();
+					break;
 				}
-			} else {
-				updateFITSKeyword(&gfit, key, NULL, valstring, comment, TRUE, FALSE);
-				gui_function(refresh_keywords_dialog, NULL);
-				scroll_to_end();
 			}
+		} else {
+			break;
 		}
-	}
+	} while (TRUE);
+
 	gtk_widget_destroy(dialog);
 }
 

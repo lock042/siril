@@ -13,6 +13,7 @@
 #include "core/siril_log.h"
 #include "core/proto.h"
 #include "core/undo.h"
+#include "core/OS_utils.h"
 #include "gui/callbacks.h"
 #include "gui/image_interactions.h"
 #include "gui/progress_and_log.h"
@@ -1389,6 +1390,27 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				const char* error_msg = _("Failed to set selection - no image loaded");
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			}
+			break;
+		}
+
+		case CMD_GET_BUNDLE_PATH: {
+			// Return the value of get_siril_bundle_path()
+#ifdef _WIN32
+			gchar *path = get_siril_bundle_path();
+			if (path) {
+				// Send success response with the working directory string
+				success = send_response(conn, STATUS_OK, path, strlen(path));
+				g_free(path);
+			} else {
+				// Handle error retrieving the working directory
+				const char* error_msg = _("Failed to retrieve bundle path");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			}
+#else
+			// Handle error: OS is not Windows
+			const char* error_msg = _("_get_bundle_path() only applicable on Windows");
+			success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+#endif
 			break;
 		}
 

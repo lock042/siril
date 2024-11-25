@@ -37,6 +37,7 @@
 #include "io/siril_pythoncommands.h"
 #include "io/siril_pythonmodule.h"
 #include "gui/script_menu.h"
+#include "gui/utils.h"
 
 // 65k buffer is enough for any object except pixel data and things
 // that could be an arbitrary length. For pixel data, FITS header,
@@ -1507,6 +1508,7 @@ static gpointer initialize_python_venv(gpointer user_data) {
 	gpointer key, value;
 	g_hash_table_iter_init(&iter, venv_info->env_vars);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		// TODO: investigate some cases of errors being printed on Windows (key = "", value = C:=C:\{some path})
 		if (!g_setenv((const gchar*)key, (const gchar*)value, TRUE))
 			siril_debug_print("Error in g_setenv: key = %s, value = %s\n", (const gchar*) key, (const gchar*) value);
 	}

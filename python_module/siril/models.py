@@ -578,17 +578,47 @@ class FFit:
         shape = (self.ry, self.rx) if self.naxis == 2 else (self.ry, self.rx, self.naxes[2])
         self.data = np.zeros(shape, dtype=self.dtype)
 
-    def ensure_data_type(self):
-        """Ensure data is in the correct type with proper scaling"""
-        if self.data is not None and self.data.dtype != self.dtype:
-            if self.type == DataType.FLOAT_IMG and self.data.dtype == np.uint16:
-                # Convert from USHORT (0-65535) to FLOAT (0.0-1.0)
-                self._data = self.data.astype(np.float32) / 65535.0
-            elif self.type == DataType.USHORT_IMG and self.data.dtype == np.float32:
-                # Convert from FLOAT (0.0-1.0) to USHORT (0-65535)
-                self._data = (self.data * 65535.0).clip(0, 65535).astype(np.uint16)
-            else:
-                raise ValueError(f"Unsupported type conversion from {self.data.dtype} to {self.dtype}")
+    def ensure_data_type(self, target_type=None):
+        """
+        Ensure data is in the correct type with proper scaling
+
+        Args:
+            target_type: Optional type to convert to. Can be either DataType or np.dtype.
+                         If None, uses self.type
+
+        Raises:
+            ValueError: if the conversion is between data types that are not
+                        internally used by Siril for calculation
+        """
+        if self.data is None:
+            return
+
+        # Handle input type and determine target dtype
+        if target_type is None:
+            type_to_use = self.type
+            dtype_to_use = np.float32 if type_to_use is DataType.FLOAT_IMG else np.uint16
+        elif target_type in (np.float32, np.uint16):
+            dtype_to_use = target_type
+            type_to_use = DataType.FLOAT_IMG if dtype_to_use == np.float32 else DataType.USHORT_IMG
+        elif isinstance(target_type, np.dtype):
+            raise ValueError(f"Unsupported type conversion from {self.data.dtype} to {dtype_to_use}")
+        else:  # Assume DataType
+            type_to_use = target_type
+            dtype_to_use = np.float32 if type_to_use is DataType.FLOAT_IMG else np.uint16
+
+        if self.data.dtype == dtype_to_use:
+            return
+
+        if dtype_to_use == np.float32 and self.data.dtype == np.uint16:
+            # Convert from USHORT (0-65535) to FLOAT (0.0-1.0)
+            self._data = self.data.astype(np.float32) / 65535.0
+            self.type = DataType.FLOAT_IMG
+        elif dtype_to_use == np.uint16 and self.data.dtype == np.float32:
+            # Convert from FLOAT (0.0-1.0) to USHORT (0-65535)
+            self._data = (self.data * 65535.0).clip(0, 65535).astype(np.uint16)
+            self.type = DataType.USHORT_IMG
+        else:
+            raise ValueError(f"Unsupported type conversion from {self.data.dtype} to {dtype_to_use}")
 
     def get_channel(self, channel: int) -> np.ndarray:
         """

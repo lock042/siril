@@ -466,6 +466,7 @@ void on_open_recent_action_item_activated(GtkRecentChooser *chooser,
 		g_warning("Could not convert uri \"%s\" to a local path: %s", uri,
 				error->message);
 		g_clear_error(&error);
+		g_free(uri);
 		return;
 	}
 

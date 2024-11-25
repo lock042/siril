@@ -180,6 +180,23 @@ struct comp_config {
 	double fits_hcompress_scale;	// scale factor for Hcompress compression
 };
 
+struct editor_config {
+	gboolean highlight_syntax;
+	gboolean highlight_bracketmatch;
+	gboolean rmargin;
+	int rmargin_pos;
+	gboolean show_linenums;
+	gboolean show_linemarks;
+	gboolean highlight_currentline;
+	gboolean autoindent;
+	gboolean indentontab;
+	gboolean smartbs;
+	gboolean smarthomeend;
+	gboolean showspaces;
+	gboolean shownewlines;
+	gboolean minimap;
+};
+
 typedef enum {
 	ROI_MANUAL,
 	ROI_AUTO
@@ -240,6 +257,7 @@ struct gui_config {
 	configurable_colors config_colors; // This used to configure some colors in Siril
 	mmb_action_t mmb_action; // Defines middle mouse button double click behaviour
 	struct mouse_config mouse_cfg; // String representation of mouse & scroll actions
+	struct editor_config editor_cfg; // Configuration for the script editor
 };
 
 // TODO: is any of the following used for something else than providing the default GUI value?

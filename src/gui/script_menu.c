@@ -154,69 +154,6 @@ static GSList *search_script(const char *path) {
 	return list;
 }
 
-static int on_run_scripts(GtkMenuItem *menuitem, gpointer user_data) {
-	if (get_thread_run()
-			|| (get_script_thread_run() && !com.script_thread_exited)) {
-		PRINT_ANOTHER_THREAD_RUNNING;
-		return 1;
-	}
-	if (get_script_thread_run())
-		wait_for_script_thread();
-
-	GtkWidget *dialog = gtk_file_chooser_dialog_new(_("Select Script File"),
-			GTK_WINDOW(lookup_widget("control_window")),
-			GTK_FILE_CHOOSER_ACTION_OPEN, _("_Cancel"), GTK_RESPONSE_CANCEL,
-			_("_Open"), GTK_RESPONSE_ACCEPT,
-			NULL);
-
-	GtkFileFilter *filter = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter, "*.ssf");
-	gtk_file_filter_add_pattern(filter, "*.py");
-	gtk_file_filter_set_name(filter, _("Script Files (*.ssf, *.py)"));
-	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
-
-	gint res = gtk_dialog_run(GTK_DIALOG(dialog));
-	if (res == GTK_RESPONSE_ACCEPT) {
-		char *filename;
-		GtkFileChooser *chooser = GTK_FILE_CHOOSER(dialog);
-		filename = gtk_file_chooser_get_filename(chooser);
-
-		/* Expand home directory in filename */
-		expand_home_in_filename(filename, 256);
-
-		/* Switch to console tab */
-		control_window_switch_to_tab(OUTPUT_LOGS);
-
-		GFile *file = g_file_new_for_path(filename);
-		GError *error = NULL;
-		GInputStream *input_stream = (GInputStream*) g_file_read(file, NULL, &error);
-
-		if (input_stream == NULL) {
-			if (error != NULL) {
-				g_clear_error(&error);
-				siril_log_message(_("File [%s] does not exist\n"), filename);
-			}
-			g_object_unref(file);
-			g_free(filename);
-			gtk_widget_destroy(dialog);
-			return 1;
-		}
-
-		char *extension = strrchr(filename, '.');
-		if (extension && g_strcmp0(extension, ".ssf") == 0) {
-			siril_log_message(_("Starting SSF script %s\n"), filename);
-			com.script_thread = g_thread_new("script", execute_script, input_stream);
-		} else if (extension && g_strcmp0(extension, ".py") == 0) {
-			siril_log_message(_("Starting Python script %s\n"), filename);
-			execute_python_script_async(filename, TRUE);
-			//TODO: filename should be freed in run_python_script_from_file
-		}
-		g_object_unref(file);
-	}
-	gtk_widget_destroy(dialog);
-	return 0;
-}
-
 static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 	if (get_thread_run()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
@@ -297,8 +234,6 @@ int initialize_script_menu(gboolean verbose) {
 	GtkWidget *menu_item_ssf = gtk_menu_item_new_with_label(_("Siril Script Files"));
 	GtkWidget *menu_item_py = gtk_menu_item_new_with_label(_("Python Scripts"));
 	GtkWidget *sep = gtk_separator_menu_item_new();
-	GtkWidget *menu_item_run = gtk_menu_item_new_with_label(_("Run Script Files..."));
-	g_signal_connect(G_OBJECT(menu_item_run), "activate", G_CALLBACK(on_run_scripts), NULL);
 	GtkWidget *menu_item_pythonpad = gtk_menu_item_new_with_label(_("Script Editor..."));
 	g_signal_connect(G_OBJECT(menu_item_pythonpad), "activate", G_CALLBACK(on_open_pythonpad), NULL);
 
@@ -312,9 +247,6 @@ int initialize_script_menu(gboolean verbose) {
 
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), sep);
 	gtk_widget_show(sep);
-
-	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item_run);
-	gtk_widget_show(menu_item_run);
 
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item_pythonpad);
 	gtk_widget_show(menu_item_pythonpad);
