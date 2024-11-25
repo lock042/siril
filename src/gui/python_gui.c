@@ -32,7 +32,6 @@ enum {
 
 static GtkButton *button_python_pad_close = NULL, *button_python_pad_clear = NULL, *button_python_pad_open = NULL, *button_python_pad_save = NULL, *button_python_pad_execute = NULL;
 static GtkLabel *language_label = NULL;
-static GtkLabel *script_label = NULL;
 static GtkLabel *find_label = NULL;
 static GtkSourceView *code_view = NULL;
 static GtkSourceBuffer *sourcebuffer = NULL;
@@ -77,7 +76,6 @@ void on_action_file_save_as(GSimpleAction *action, GVariant *parameter, gpointer
 void on_action_file_execute(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_action_file_new(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_action_file_close(GSimpleAction *action, GVariant *parameter, gpointer user_data);
-void on_action_select_language(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_action_python_doc(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_action_command_doc(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_set_rmarginpos(GSimpleAction *action, GVariant *parameter, gpointer user_data);
@@ -477,8 +475,6 @@ void python_scratchpad_init_statics() {
 		scrolled_window = GTK_SCROLLED_WINDOW(gtk_builder_get_object(gui.builder, "python_scrolled_window"));
 		// GtkLabel
 		language_label = GTK_LABEL(gtk_builder_get_object(gui.builder, "script_language_label"));
-		script_label = GTK_LABEL(gtk_builder_get_object(gui.builder, "script_editor_label"));
-		gtk_widget_show(GTK_WIDGET(script_label));
 		// Findbox
 		find_revealer = GTK_REVEALER(gtk_builder_get_object(gui.builder, "find_revealer"));
 		find_entry = GTK_ENTRY(lookup_widget("find_entry"));
@@ -497,25 +493,25 @@ void python_scratchpad_init_statics() {
 
 		// Initialize with "unsaved" if no file is loaded
 		if (!current_file) {
-			gtk_label_set_text(script_label, "unsaved");
+			gtk_window_set_title(GTK_WINDOW(editor_window), "unsaved");
 		}
 	}
 }
 
 static void update_title_with_modification() {
-	const gchar *current_text = gtk_label_get_text(script_label);
+	const gchar *current_text = gtk_window_get_title(GTK_WINDOW(editor_window));
 	if (!current_text || !*current_text) return;
 
 	// If the title already ends with *, don't add another
 	if (g_str_has_suffix(current_text, "*")) {
 		if (!buffer_modified) {
 			gchar *base_name = g_strndup(current_text, strlen(current_text) - 1);
-			gtk_label_set_text(script_label, base_name);
+			gtk_window_set_title(GTK_WINDOW(editor_window), base_name);
 			g_free(base_name);
 		}
 	} else if (buffer_modified) {
 		gchar *new_title = g_strdup_printf("%s*", current_text);
-		gtk_label_set_text(script_label, new_title);
+		gtk_window_set_title(GTK_WINDOW(editor_window), new_title);
 		g_free(new_title);
 	}
 }
@@ -523,7 +519,8 @@ static void update_title_with_modification() {
 static void update_title(GFile *file) {
 	if (file) {
 		char *basename = g_file_get_basename(file);
-		gtk_label_set_text(script_label, basename);
+		gtk_window_set_title(GTK_WINDOW(editor_window), basename);
+
 
 		char *suffix = strrchr(basename, '.');
 		if (suffix != NULL) {
@@ -536,7 +533,7 @@ static void update_title(GFile *file) {
 
 		g_free(basename);
 	} else {
-		gtk_label_set_text(script_label, "unsaved");
+		gtk_window_set_title(GTK_WINDOW(editor_window), "unsaved");
 	}
 	buffer_modified = FALSE;
 	gtk_text_buffer_set_modified(GTK_TEXT_BUFFER(sourcebuffer), FALSE);
@@ -548,7 +545,7 @@ void load_file_complete(GObject *loader, GAsyncResult *result, gpointer user_dat
 	GError *error = NULL;
 	if (!gtk_source_file_loader_load_finish(GTK_SOURCE_FILE_LOADER(loader), result, &error)) {
 		g_printerr("Error loading file: %s\n", error->message);
-		gtk_label_set_text(script_label, _(""));
+		gtk_window_set_title(GTK_WINDOW(editor_window), "");
 		g_error_free(error);
 	}
 	g_object_unref(loader);
@@ -619,7 +616,7 @@ void on_action_file_new(GSimpleAction *action, GVariant *parameter, gpointer use
 		buffer_modified = FALSE;
 		gtk_text_buffer_set_modified(GTK_TEXT_BUFFER(sourcebuffer), FALSE);
 		gtk_source_buffer_end_not_undoable_action(sourcebuffer);
-		gtk_label_set_text(script_label, "unsaved");
+		gtk_window_set_title(GTK_WINDOW(editor_window), "unsaved");
 		gtk_widget_queue_draw(GTK_WIDGET(editor_window));
 	}
 }
@@ -633,7 +630,7 @@ void on_action_file_close(GSimpleAction *action, GVariant *parameter, gpointer u
 		if (G_IS_OBJECT(current_file))
 			g_object_unref(current_file);
 		current_file = NULL;
-		gtk_label_set_text(script_label, "");
+		gtk_window_set_title(GTK_WINDOW(editor_window), "");
 	}
 	gtk_widget_hide(GTK_WIDGET(editor_window));
 }
