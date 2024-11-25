@@ -22,7 +22,6 @@
 
 #include "core/proto.h"
 #include "core/siril_log.h"
-#include "gui/utils.h"
 #include "gui/image_display.h"
 #include "gui/registration.h"
 #include "opencv/opencv.h"
