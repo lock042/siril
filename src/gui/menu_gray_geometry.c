@@ -351,9 +351,11 @@ void siril_crop() {
 			com.selection.x, com.selection.y, com.selection.w,
 			com.selection.h);
 	if (is_preview_active()) {
-		siril_message_dialog(GTK_MESSAGE_INFO, _("A live preview session is active"),
-				_("It is impossible to crop the image when a filter with preview session is active. "
-						"Please consider to close the filter dialog first."));
+		siril_message_dialog(GTK_MESSAGE_INFO, _("Image backup is active"),
+				_("It is impossible to crop the image when the image backup is active. "
+				"This occurs when a filter has a live preview active or when a filter with "
+				"on-demand ROI preview is open. Please close the filter dialog before "
+				"cropping."));
 		return;
 	}
 	clear_stars_list(TRUE);
