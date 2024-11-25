@@ -35,7 +35,7 @@
 // Headers required to get the control_window ID
 #if defined(_WIN32)
 #include <gdk/gdkwin32.h>
-#elif defined(OS_OSX)
+#elif defined(__APPLE__)
 #include <gdk/gdkquartz.h>
 #include <objc/objc-runtime.h> // For Objective-C runtime functions
 #else
@@ -653,7 +653,7 @@ gchar* get_control_window_id() {
 		HWND hwnd = gdk_win32_window_get_handle(gdk_window);
 		parent_window_id = g_strdup_printf("%p", (void*)hwnd);
 	}
-#elif defined(GDK_WINDOWING_MACOS)
+#elif defined(GDK_WINDOWING_QUARTZ)
 	if (GDK_IS_QUARTZ_WINDOW(gdk_window)) {
 		// Get the NSWindow pointer from the GDK Quartz window
 		gpointer nswindow = gdk_quartz_window_get_nswindow(gdk_window);
