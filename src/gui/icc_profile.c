@@ -311,19 +311,24 @@ void on_icc_assign_clicked(GtkButton* button, gpointer* user_data) {
 	// We save the undo state as dealing with gfit
 	undo_save_state(&gfit, _("Color profile assignment"));
 
+	cmsUInt32Number target_colorspace = cmsGetColorSpace(target);
+	cmsUInt32Number target_colorspace_channels = cmsChannelsOf(target_colorspace);
+
 	// Handle initial assignment of an ICC profile
 	if (!gfit.color_managed || !gfit.icc_profile) {
 		if (gfit.icc_profile) {
 			cmsCloseProfile(gfit.icc_profile);
 			gfit.icc_profile = NULL;
 		}
+		if (target_colorspace_channels > gfit.naxes[2]) {
+			siril_message_dialog(GTK_MESSAGE_ERROR, _("Color space has incorrect channels"), _("Mismatch in number of channels between the current image and the ICC profile. You cannot assign a RGB ICC profile to a mono image."));
+			return;
+		}
 		goto FINISH;
 	}
 
 	cmsUInt32Number gfit_colorspace = cmsGetColorSpace(gfit.icc_profile);
 	cmsUInt32Number gfit_colorspace_channels = cmsChannelsOf(gfit_colorspace);
-	cmsUInt32Number target_colorspace = cmsGetColorSpace(target);
-	cmsUInt32Number target_colorspace_channels = cmsChannelsOf(target_colorspace);
 
 	if (target_colorspace != cmsSigGrayData && target_colorspace != cmsSigRgbData) {
 		siril_message_dialog(GTK_MESSAGE_ERROR, _("Color space not supported"), _("Siril only supports representing the image in Gray or RGB color spaces at present. You cannot assign or convert to non-RGB color profiles"));
