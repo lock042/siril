@@ -155,20 +155,6 @@ void add_code_view(GtkBuilder *builder) {
 		siril_debug_print("Could not find Python language definition\n");
 	} else {
 		gtk_source_buffer_set_language(sourcebuffer, language);
-		gtk_source_view_set_show_line_marks(GTK_SOURCE_VIEW(code_view), TRUE);
-		// Create mark attributes for folding
-		GtkSourceMarkAttributes *fold_attributes = gtk_source_mark_attributes_new();
-		// Customize fold mark appearance
-		GdkRGBA color;
-		gdk_rgba_parse(&color, "#0000FF");  // Blue color for fold markers
-		gtk_source_mark_attributes_set_background(fold_attributes, &color);
-		gtk_source_view_set_mark_attributes(GTK_SOURCE_VIEW(code_view),
-											"fold",      // Category name
-											fold_attributes,  // Attributes object
-											1);          // Priority
-		// Release references
-		g_object_unref(fold_attributes);
-		siril_debug_print("Set buffer language to python3\n");
 	}
 
 	// Enable syntax highlighting
