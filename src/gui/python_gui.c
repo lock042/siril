@@ -650,6 +650,51 @@ void on_action_file_open(GSimpleAction *action, GVariant *parameter, gpointer us
 	gtk_window_present(editor_window);
 }
 
+void on_scratchpad_recent_menu_activated(GtkRecentChooser *chooser, gpointer user_data) {
+	gchar *uri;
+	GFile *file;
+	GError *error = NULL;
+
+	uri = gtk_recent_chooser_get_current_uri(chooser);
+	if (!uri) {
+		g_warning("Failed to get URI from recent chooser");
+		return;
+	}
+
+	file = g_file_new_for_uri(uri);
+	if (!file) {
+		g_warning("Failed to create GFile from URI: %s", uri);
+		g_free(uri);
+		return;
+	}
+
+	if (!g_file_query_exists(file, NULL)) {
+		GtkWidget *dialog;
+		GtkRecentManager *manager;
+
+		manager = gtk_recent_manager_get_default();
+
+		gtk_recent_manager_remove_item(manager, uri, &error);
+		if (error != NULL) {
+			g_warning("Failed to remove recent item: %s", error->message);
+			g_error_free(error);
+		}
+
+		dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, "The file '%s' no longer exists.", uri);
+		gtk_dialog_run(GTK_DIALOG(dialog));
+		gtk_widget_destroy(dialog);
+
+		g_object_unref(file);
+		g_free(uri);
+		return;
+	}
+
+	load_file(file);
+
+	g_object_unref(file);
+	g_free(uri);
+}
+
 void on_action_file_save_as(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 	GtkWidget *dialog = gtk_file_chooser_dialog_new(_("Save Script As"),
 			GTK_WINDOW(lookup_widget("control_window")),
