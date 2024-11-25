@@ -194,6 +194,7 @@ struct editor_config {
 	gboolean smarthomeend;
 	gboolean showspaces;
 	gboolean shownewlines;
+	gboolean minimap;
 };
 
 typedef enum {

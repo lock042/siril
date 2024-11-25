@@ -490,6 +490,15 @@
                             <signal name="toggled" handler="on_editor_shownewlines_toggled" swapped="no"/>
                           </object>
                         </child>
+                        <child>
+                          <object class="GtkCheckMenuItem" id="editor_minimap">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="tooltip-text" translatable="yes">Show minimap in the editor view</property>
+                            <property name="label" translatable="yes">Show minimap</property>
+                            <signal name="toggled" handler="on_editor_minimap_toggled" swapped="no"/>
+                          </object>
+                        </child>
                       </object>
                     </child>
                   </object>
@@ -546,30 +555,41 @@
               </packing>
             </child>
             <child>
-              <object class="GtkScrolledWindow" id="python_scrolled_window">
+              <object class="GtkBox" id="codeviewbox">
                 <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="shadow-type">in</property>
-                <property name="min-content-width">400</property>
-                <property name="min-content-height">600</property>
-                <property name="propagate-natural-width">True</property>
-                <property name="propagate-natural-height">True</property>
+                <property name="can-focus">False</property>
                 <child>
-                  <object class="GtkSourceView" id="code_view">
+                  <object class="GtkScrolledWindow" id="python_scrolled_window">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
-                    <property name="left-margin">2</property>
-                    <property name="right-margin">2</property>
-                    <property name="monospace">True</property>
-                    <property name="show-line-numbers">True</property>
-                    <property name="show-line-marks">True</property>
-                    <property name="tab-width">4</property>
-                    <property name="auto-indent">True</property>
-                    <property name="show-right-margin">True</property>
-                    <property name="smart-home-end">always</property>
-                    <property name="highlight-current-line">True</property>
-                    <property name="smart-backspace">True</property>
+                    <property name="shadow-type">in</property>
+                    <property name="min-content-width">400</property>
+                    <property name="min-content-height">600</property>
+                    <property name="propagate-natural-width">True</property>
+                    <property name="propagate-natural-height">True</property>
+                    <child>
+                      <object class="GtkSourceView" id="code_view">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="left-margin">2</property>
+                        <property name="right-margin">2</property>
+                        <property name="monospace">True</property>
+                        <property name="show-line-numbers">True</property>
+                        <property name="show-line-marks">True</property>
+                        <property name="tab-width">4</property>
+                        <property name="auto-indent">True</property>
+                        <property name="show-right-margin">True</property>
+                        <property name="smart-home-end">always</property>
+                        <property name="highlight-current-line">True</property>
+                        <property name="smart-backspace">True</property>
+                      </object>
+                    </child>
                   </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
                 </child>
               </object>
               <packing>

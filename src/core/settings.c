@@ -172,7 +172,8 @@ preferences pref_init = {
 			.smartbs = TRUE,
 			.smarthomeend = TRUE,
 			.showspaces = FALSE,
-			.shownewlines = FALSE
+			.shownewlines = FALSE,
+			.minimap = FALSE
 		}
 	},
 	.debayer = {
@@ -551,6 +552,7 @@ struct settings_access all_settings[] = {
 	{ "script_editor", "smarthomeend", STYPE_BOOL, N_("Smart Home / End behaviour in the script editor"), &com.pref.gui.editor_cfg.smarthomeend },
 	{ "script_editor", "showspaces", STYPE_BOOL, N_("Show visible space and tab characters in the script editor"), &com.pref.gui.editor_cfg.showspaces },
 	{ "script_editor", "shownewlines", STYPE_BOOL, N_("Show visible newline characters in the script editor"), &com.pref.gui.editor_cfg.shownewlines },
+	{ "script_editor", "minimap", STYPE_BOOL, N_("Show a minimap in the script editor"), &com.pref.gui.editor_cfg.minimap },
 
 	{ NULL, NULL, STYPE_BOOL, NULL, NULL }
 };

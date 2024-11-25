@@ -35,6 +35,7 @@ static GtkLabel *language_label = NULL;
 static GtkLabel *find_label = NULL;
 static GtkSourceView *code_view = NULL;
 static GtkSourceBuffer *sourcebuffer = NULL;
+static GtkSourceMap *map = NULL;
 static GtkScrolledWindow *scrolled_window = NULL;
 static GtkComboBox *combo_language = NULL;
 static GtkSourceLanguageManager *language_manager = NULL;
@@ -58,7 +59,9 @@ static GtkCheckMenuItem *smartbscheck = NULL;
 static GtkCheckMenuItem *homeendcheck = NULL;
 static GtkCheckMenuItem *showspaces = NULL;
 static GtkCheckMenuItem *shownewlines = NULL;
+static GtkCheckMenuItem *minimap = NULL;
 static GtkSourceSpaceDrawer* space_drawer = NULL;
+static GtkBox *codeviewbox = NULL;
 
 GtkRevealer *find_revealer = NULL;
 GtkEntry *find_entry = NULL;
@@ -143,6 +146,25 @@ void add_code_view(GtkBuilder *builder) {
 	// Create a new GtkSourceBuffer (glade doesn't handle this properly)
 	sourcebuffer = gtk_source_buffer_new(NULL);
 	gtk_text_view_set_buffer(GTK_TEXT_VIEW(code_view), GTK_TEXT_BUFFER(sourcebuffer));
+	/* initialize minimap */
+	map = GTK_SOURCE_MAP(gtk_source_map_new());
+
+ // Apply CSS to force font size to 1
+
+	GtkCssProvider* provider = gtk_css_provider_new();
+	gtk_css_provider_load_from_data(provider,
+		"* { font-size: 1px; }",
+		-1, NULL);
+	gtk_style_context_add_provider(
+		gtk_widget_get_style_context(GTK_WIDGET(map)),
+		GTK_STYLE_PROVIDER(provider),
+		GTK_STYLE_PROVIDER_PRIORITY_USER
+	);
+	g_object_unref(provider);
+
+	gtk_widget_show(GTK_WIDGET(map));
+	gtk_source_map_set_view(map, code_view);
+	gtk_box_pack_start(GTK_BOX(codeviewbox), GTK_WIDGET(map), FALSE, FALSE, 0);
 
 	// Set the GtkSourceView style depending on whether the Siril light or dark
 	// theme is set.
@@ -449,6 +471,7 @@ void python_scratchpad_init_statics() {
 		homeendcheck = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "editor_smarthomeend"));
 		showspaces = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "editor_showspaces"));
 		shownewlines = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "editor_shownewlines"));
+		minimap = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "editor_minimap"));
 		// GtkComboBox
 		combo_language = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "python_pad_language"));
 		// GtkButton
@@ -468,7 +491,8 @@ void python_scratchpad_init_statics() {
 		find_label = GTK_LABEL(gtk_builder_get_object(gui.builder, "find_label"));
 		go_up_button = GTK_BUTTON(gtk_builder_get_object(gui.builder, "go_up_button"));
 		go_down_button = GTK_BUTTON(gtk_builder_get_object(gui.builder, "go_down_button"));
-
+		// Box
+		codeviewbox = GTK_BOX(gtk_builder_get_object(gui.builder, "codeviewbox"));
 		add_code_view(gui.builder);
 		gtk_window_set_transient_for(GTK_WINDOW(editor_window), GTK_WINDOW(gtk_builder_get_object(gui.builder, "control_window")));
 		g_signal_connect(sourcebuffer, "modified-changed", G_CALLBACK(on_buffer_modified_changed), NULL);
@@ -800,6 +824,8 @@ int on_open_pythonpad(GtkMenuItem *menuitem, gpointer user_data) {
 	gtk_check_menu_item_set_active(homeendcheck, com.pref.gui.editor_cfg.smarthomeend);
 	gtk_check_menu_item_set_active(showspaces, com.pref.gui.editor_cfg.showspaces);
 	gtk_check_menu_item_set_active(shownewlines, com.pref.gui.editor_cfg.shownewlines);
+	gtk_check_menu_item_set_active(minimap, com.pref.gui.editor_cfg.minimap);
+	gtk_widget_set_visible(GTK_WIDGET(map), com.pref.gui.editor_cfg.minimap);
 
 	return 0;
 }
@@ -1091,4 +1117,10 @@ void on_editor_shownewlines_toggled(GtkCheckMenuItem *item, gpointer user_data) 
 												space_types);
 	gtk_widget_queue_draw(GTK_WIDGET(editor_window));
 	com.pref.gui.editor_cfg.shownewlines = status;
+}
+
+void on_editor_minimap_toggled(GtkCheckMenuItem *item, gpointer user_data) {
+	gboolean status = gtk_check_menu_item_get_active(item);
+	gtk_widget_set_visible(GTK_WIDGET(map), status);
+	com.pref.gui.editor_cfg.minimap = status;
 }
