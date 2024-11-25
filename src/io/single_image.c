@@ -78,7 +78,7 @@ void close_single_image() {
 
 static gboolean free_image_data_idle(gpointer p) {
 	siril_debug_print("free_image_data_gui_idle() called\n");
-	disable_iso12646_conditions(TRUE, TRUE, FALSE);
+	disable_iso12646_conditions(TRUE, FALSE, FALSE);
 	//reset_compositing_module();
 	delete_selected_area();
 	reset_plot(); // clear existing plot if any

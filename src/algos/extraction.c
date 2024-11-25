@@ -24,7 +24,6 @@
 #include "core/processing.h"
 #include "core/siril_log.h"
 #include "algos/siril_wcs.h"
-#include "core/command.h"
 #include "algos/demosaicing.h"
 #include "algos/geometry.h"
 #include "io/image_format_fits.h"
