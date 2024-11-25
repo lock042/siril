@@ -255,28 +255,6 @@ void on_find_entry_activate(GtkEntry *entry, gpointer user_data) {
 	hide_find_box();
 }
 
-gboolean on_find_entry_key_press_event(GtkWidget *widget, GdkEventKey *event, gpointer data) {
-	if (event->keyval == GDK_KEY_Escape) {
-		hide_find_box();
-		return TRUE;
-	}
-	return FALSE;
-}
-
-/**
- * Clear any existing search highlighting
- */
-static void clear_search_highlighting(SearchData *search_data) {
-    if (!search_data || !search_data->buffer || !search_data->search_tag)
-        return;
-
-    GtkTextBuffer *buffer = GTK_TEXT_BUFFER(search_data->buffer);
-    GtkTextIter start, end;
-
-    gtk_text_buffer_get_bounds(buffer, &start, &end);
-    gtk_text_buffer_remove_tag(buffer, search_data->search_tag, &start, &end);
-}
-
 static void update_search_info(SearchData *search_data) {
 	if (!search_data || !search_data->info_label)
 		return;
@@ -287,23 +265,6 @@ static void update_search_info(SearchData *search_data) {
 		g_free(info_text);
 	} else {
 		gtk_label_set_text(search_data->info_label, "0/0");
-	}
-}
-
-static void free_match_position(MatchPosition *pos) {
-	if (pos) {
-		if (pos->start_mark)
-			gtk_text_buffer_delete_mark(gtk_text_mark_get_buffer(pos->start_mark), pos->start_mark);
-		if (pos->end_mark)
-			gtk_text_buffer_delete_mark(gtk_text_mark_get_buffer(pos->end_mark), pos->end_mark);
-		g_free(pos);
-	}
-}
-
-static void clear_match_positions(SearchData *search_data) {
-	if (search_data->match_positions) {
-		g_slist_free_full(search_data->match_positions, (GDestroyNotify) free_match_position);
-		search_data->match_positions = NULL;
 	}
 }
 
@@ -330,6 +291,85 @@ static void goto_match(SearchData *search_data, gint match_number) {
 	// Update current match number
 	search_data->current_match = match_number;
 	update_search_info(search_data);
+}
+
+static void forward_search(SearchData *search_data) {
+	if (!search_data || search_data->total_matches == 0)
+		return;
+
+	gint next_match = search_data->current_match + 1;
+	if (next_match > search_data->total_matches)
+		next_match = 1;
+
+	goto_match(search_data, next_match);
+}
+
+static void backward_search(SearchData *search_data) {
+	if (!search_data || search_data->total_matches == 0)
+		return;
+
+	gint prev_match = search_data->current_match - 1;
+	if (prev_match < 1)
+		prev_match = search_data->total_matches;
+
+	goto_match(search_data, prev_match);
+}
+
+gboolean on_find_entry_key_press_event(GtkWidget *widget, GdkEventKey *event, gpointer data) {
+	SearchData *search_data = (SearchData *)data;
+	/* Close window */
+	if (event->keyval == GDK_KEY_Tab || event->keyval == GDK_KEY_Escape) {
+		hide_find_box();
+		gtk_widget_grab_focus(GTK_WIDGET(code_view));
+
+		return TRUE;
+	}
+
+	/* select previous matching iter */
+	if (event->keyval == GDK_KEY_Up || event->keyval == GDK_KEY_KP_Up) {
+		backward_search(search_data);
+		return TRUE;
+	}
+
+	/* select next matching iter */
+	if (event->keyval == GDK_KEY_Down || event->keyval == GDK_KEY_KP_Down) {
+		forward_search(search_data);
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+
+/**
+ * Clear any existing search highlighting
+ */
+static void clear_search_highlighting(SearchData *search_data) {
+    if (!search_data || !search_data->buffer || !search_data->search_tag)
+        return;
+
+    GtkTextBuffer *buffer = GTK_TEXT_BUFFER(search_data->buffer);
+    GtkTextIter start, end;
+
+    gtk_text_buffer_get_bounds(buffer, &start, &end);
+    gtk_text_buffer_remove_tag(buffer, search_data->search_tag, &start, &end);
+}
+
+static void free_match_position(MatchPosition *pos) {
+	if (pos) {
+		if (pos->start_mark)
+			gtk_text_buffer_delete_mark(gtk_text_mark_get_buffer(pos->start_mark), pos->start_mark);
+		if (pos->end_mark)
+			gtk_text_buffer_delete_mark(gtk_text_mark_get_buffer(pos->end_mark), pos->end_mark);
+		g_free(pos);
+	}
+}
+
+static void clear_match_positions(SearchData *search_data) {
+	if (search_data->match_positions) {
+		g_slist_free_full(search_data->match_positions, (GDestroyNotify) free_match_position);
+		search_data->match_positions = NULL;
+	}
 }
 
 static gboolean perform_search(SearchData *search_data) {
@@ -389,25 +429,11 @@ static gboolean perform_search(SearchData *search_data) {
 }
 
 void on_next_match(GtkButton *button, SearchData *search_data) {
-	if (!search_data || search_data->total_matches == 0)
-		return;
-
-	gint next_match = search_data->current_match + 1;
-	if (next_match > search_data->total_matches)
-		next_match = 1;
-
-	goto_match(search_data, next_match);
+	forward_search(search_data);
 }
 
 void on_previous_match(GtkButton *button, SearchData *search_data) {
-	if (!search_data || search_data->total_matches == 0)
-		return;
-
-	gint prev_match = search_data->current_match - 1;
-	if (prev_match < 1)
-		prev_match = search_data->total_matches;
-
-	goto_match(search_data, prev_match);
+	backward_search(search_data);
 }
 
 void on_find_entry_changed(GtkEntry *entry, SearchData *search_data) {
@@ -449,6 +475,7 @@ void setup_search(GtkSourceView *source_view, GtkEntry *search_entry) {
 	}
 
 	g_signal_connect(search_entry, "changed", G_CALLBACK(on_find_entry_changed), search_data);
+	g_signal_connect(search_entry, "key-press-event", G_CALLBACK(on_find_entry_key_press_event), search_data);
 	g_signal_connect(go_down_button, "clicked", G_CALLBACK(on_next_match), search_data);
 	g_signal_connect(go_up_button, "clicked", G_CALLBACK(on_previous_match), search_data);
 
