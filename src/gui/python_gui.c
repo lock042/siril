@@ -254,6 +254,14 @@ void on_find_entry_activate(GtkEntry *entry, gpointer user_data) {
 	hide_find_box();
 }
 
+gboolean on_find_entry_key_press_event(GtkWidget *widget, GdkEventKey *event, gpointer data) {
+	if (event->keyval == GDK_KEY_Escape) {
+		hide_find_box();
+		return TRUE;
+	}
+	return FALSE;
+}
+
 /**
  * Clear any existing search highlighting
  */

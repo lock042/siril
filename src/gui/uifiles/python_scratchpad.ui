@@ -33,11 +33,13 @@
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="has-focus">True</property>
+                    <property name="events">GDK_KEY_PRESS_MASK | GDK_STRUCTURE_MASK</property>
                     <property name="primary-icon-name">edit-find-symbolic</property>
                     <property name="primary-icon-activatable">False</property>
                     <property name="primary-icon-sensitive">False</property>
                     <signal name="activate" handler="on_find_entry_activate" swapped="no"/>
                     <signal name="focus-out-event" handler="on_find_entry_focus_out_event" swapped="no"/>
+                    <signal name="key-press-event" handler="on_find_entry_key_press_event" swapped="no"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
