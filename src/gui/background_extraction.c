@@ -20,14 +20,11 @@
 
 #include "core/siril.h"
 #include "core/undo.h"
-#include "core/siril_log.h"
 #include "algos/background_extraction.h"
-#include "algos/statistics.h"
 #include "io/image_format_fits.h"
 #include "io/sequence.h"
 #include "io/single_image.h"
 #include "gui/utils.h"
-#include "gui/callbacks.h"
 #include "gui/image_display.h"
 #include "gui/image_interactions.h"
 #include "gui/progress_and_log.h"
@@ -143,11 +140,6 @@ void on_bkg_compute_bkg_clicked(GtkButton *button, gpointer user_data) {
 	set_cursor_waiting(TRUE);
 	copy_backup_to_gfit();
 
-	if (!check_ok_if_cfa()) {
-		set_cursor_waiting(FALSE);
-		return;
-	}
-
 	background_correction correction = get_correction_type();
 	poly_order degree = get_poly_order();
 	gboolean use_dither = is_dither_checked();
@@ -164,7 +156,13 @@ void on_bkg_compute_bkg_clicked(GtkButton *button, gpointer user_data) {
 	args->dither = use_dither;
 	args->fit = &gfit;
 
-	start_in_new_thread(remove_gradient_from_image, args);
+	// Check if the image has a Bayer CFA pattern
+	gboolean is_cfa = (!strncmp(gfit.keywords.bayer_pattern, "RGGB", 4) ||
+					  !strncmp(gfit.keywords.bayer_pattern, "BGGR", 4) ||
+					  !strncmp(gfit.keywords.bayer_pattern, "GBRG", 4) ||
+					  !strncmp(gfit.keywords.bayer_pattern, "GRBG", 4));
+	start_in_new_thread(is_cfa ? remove_gradient_from_cfa_image :
+						remove_gradient_from_image, args);
 }
 
 void on_background_ok_button_clicked(GtkButton *button, gpointer user_data) {
@@ -307,4 +305,13 @@ gboolean on_bkg_show_original_enter_notify_event(GtkWidget *widget, GdkEvent *ev
 	}
 	gtk_widget_set_state_flags(widget, new_state, TRUE);
 	return TRUE;
+}
+
+void on_checkBkgSeq_toggled(GtkToggleButton *button, gpointer user_data) {
+	GtkWidget *ok = lookup_widget("background_ok_button");
+	if (gtk_toggle_button_get_active(button)) {
+		gtk_widget_set_sensitive(ok, TRUE);
+	} else {
+		gtk_widget_set_sensitive(ok, (com.grad_samples != NULL) && background_computed);
+	}
 }

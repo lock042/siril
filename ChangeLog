@@ -63,6 +63,7 @@ xx/xx/xx
 * Improved the usability of merging CFA sequences (!759)
 * Allowed the token $T to be used in PixelMath (!768)
 * Make PixelMath follows bit depth preferences (#1100)
+* Allow background removal from CFA images / sequences, for better integration into drizzle workflow (!777)
 
 **GUI improvements:**
 * Split up the monolithic glade UI file (!550)
