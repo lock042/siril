@@ -605,6 +605,15 @@ typedef enum {
 	CUT_COLOR
 } cut_mode;
 
+typedef struct {
+	guint major_version;
+	guint minor_version;
+	guint micro_version;
+	guint patched_version;
+	gboolean beta_version;
+	gboolean rc_version;
+} version_number;
+
 typedef struct cut_struct {
 	point cut_start;			// point marking start of cut line
 	point cut_end;			// point dragged while selecting the cut line
@@ -877,6 +886,7 @@ struct cominf {
 	unsigned kernelsize;		// Holds size of kernel (kernel is square kernelsize * kernelsize)
 	unsigned kernelchannels;	// Holds number of channels for the kernel
 	struct common_icc icc;		// Holds common ICC color profile data
+	version_number python_version; // Holds the python version number
 #ifdef _WIN32
 	void* childhandle;		// For Windows, handle of a child process
 #else

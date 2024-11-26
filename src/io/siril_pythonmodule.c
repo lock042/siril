@@ -1237,8 +1237,9 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 		siril_debug_print("System version: %d.%d.%d\n", module_version.major_version, module_version.minor_version, module_version.micro_version);
 
 		// Check if module version is higher than temp version
-		if (compare_version(module_version, user_version) > 0) {
+		if (compare_version(module_version, user_version)) {
 			// Delete existing temp directory before new installation
+			// TODO: can we just pip remove the existing module without yeeting the whole venv?
 			GError* del_error = NULL;
 			if (!delete_directory(user_module_path, &del_error)) {
 				g_propagate_error(error, del_error);
@@ -1248,6 +1249,7 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 			}
 			needs_install = TRUE;
 		}
+		memcpy(&com.python_version, &module_version, sizeof(version_number));
 	}
 
 	g_free(module_setup_path);
@@ -1546,6 +1548,12 @@ void shutdown_python_communication(CommunicationState *commstate) {
 
 void execute_python_script_async(gchar* script_name, gboolean from_file) {
 
+	version_number none = { 0 };
+	if (!memcmp(&none, &com.python_version, sizeof(version_number))) {
+		siril_log_color_message(_("Error: python not ready yet.\n"), "red");
+		return;
+	}
+
 	// Generate a unique connection path for the pipe or socket for this script
 	gchar *connection_path = NULL;
 	gchar *uuid = g_uuid_string_random();
@@ -1559,7 +1567,7 @@ void execute_python_script_async(gchar* script_name, gboolean from_file) {
 	CommunicationState commstate = {0};
 	commstate.python_conn = create_connection(connection_path);
 	if (!commstate.python_conn) {
-		siril_log_color_message(_("Error: failed to create Python connection"), "red");
+		siril_log_color_message(_("Error: failed to create Python connection.\n"), "red");
 		g_free(uuid);
 		g_free(connection_path);
 		return;
