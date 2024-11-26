@@ -654,34 +654,36 @@ void on_action_file_close(GSimpleAction *action, GVariant *parameter, gpointer u
 }
 
 void on_action_file_open(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (G_IS_OBJECT(current_file))
-		g_object_unref(current_file);
-	current_file = NULL;
-	GtkWidget *dialog = gtk_file_chooser_dialog_new(_("Open Script"),
-			GTK_WINDOW(lookup_widget("control_window")),
-			GTK_FILE_CHOOSER_ACTION_OPEN,
-			_("_Cancel"), GTK_RESPONSE_CANCEL,
-			_("_Open"), GTK_RESPONSE_ACCEPT,
-			NULL);
+	if (!buffer_modified || siril_confirm_dialog(_("Are you sure?"), _("This will clear the entry buffer. You will not be able to recover any contents."), _("Proceed"))) {
+		if (G_IS_OBJECT(current_file))
+			g_object_unref(current_file);
+		current_file = NULL;
+		GtkWidget *dialog = gtk_file_chooser_dialog_new(_("Open Script"),
+				GTK_WINDOW(lookup_widget("control_window")),
+				GTK_FILE_CHOOSER_ACTION_OPEN,
+				_("_Cancel"), GTK_RESPONSE_CANCEL,
+				_("_Open"), GTK_RESPONSE_ACCEPT,
+				NULL);
 
-	GtkFileFilter *filter = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter, "*.py");
-	gtk_file_filter_add_pattern(filter, "*.ssf");
-	gtk_file_filter_set_name(filter, _("Script Files (*.py, *.ssf)"));
-	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+		GtkFileFilter *filter = gtk_file_filter_new();
+		gtk_file_filter_add_pattern(filter, "*.py");
+		gtk_file_filter_add_pattern(filter, "*.ssf");
+		gtk_file_filter_set_name(filter, _("Script Files (*.py, *.ssf)"));
+		gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 
-	gint res = gtk_dialog_run(GTK_DIALOG(dialog));
-	if (res == GTK_RESPONSE_ACCEPT) {
-		GFile *file = gtk_file_chooser_get_file(GTK_FILE_CHOOSER(dialog));
-		control_window_switch_to_tab(OUTPUT_LOGS);
-		load_file(file);
-		current_file = g_object_ref(file);
-		update_title(current_file);
-		g_object_unref(file);
+		gint res = gtk_dialog_run(GTK_DIALOG(dialog));
+		if (res == GTK_RESPONSE_ACCEPT) {
+			GFile *file = gtk_file_chooser_get_file(GTK_FILE_CHOOSER(dialog));
+			control_window_switch_to_tab(OUTPUT_LOGS);
+			load_file(file);
+			current_file = g_object_ref(file);
+			update_title(current_file);
+			g_object_unref(file);
+		}
+
+		gtk_widget_destroy(dialog);
+		gtk_window_present(editor_window);
 	}
-
-	gtk_widget_destroy(dialog);
-	gtk_window_present(editor_window);
 }
 
 void on_scratchpad_recent_menu_activated(GtkRecentChooser *chooser, gpointer user_data) {

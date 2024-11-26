@@ -20,7 +20,7 @@ from pathlib import Path
 from enum import IntEnum
 from .translations import _
 from datetime import datetime
-from importlib import metadata
+from importlib import metadata, util
 from .shm import SharedMemoryWrapper
 from packaging import version, requirements
 from typing import Tuple, Optional, List, Union, Any
@@ -119,124 +119,118 @@ class SharedMemoryInfo(ctypes.Structure):
         ("shm_name", ctypes.c_char * 256)
     ]
 
-def import_or_install(module_name: str, version_constraint: Optional[str] = None, package_name: Optional[str] = None) -> Any:
+def ensure_installed(*packages: Union[str, List[str]],
+                     version_constraints: Optional[Union[str, List[str]]] = None) -> bool:
     """
-    Attempts to import a module, installing it via pip if not found or if version constraint not met.
+    Ensures that the specified package(s) are installed and meet optional version constraints.
 
     Args:
-        module_name (str): Name of the module to import
-        version_constraint (str, optional): Version constraint string (e.g. ">=1.5", "==2.0")
-        package_name (str, optional): Name of the package to install if different from module_name
+        *packages (str or List[str]): Name(s) of the package(s) to ensure are installed.
+        version_constraints (str or List[str], optional): Version constraint string(s)
+            (e.g. ">=1.5", "==2.0"). Can be a single constraint or a list matching packages.
 
     Returns:
-        module: The imported module object
+        bool: True if all packages are successfully installed or already meet constraints.
 
     Raises:
-        ImportError: If module cannot be imported even after installation attempt
-        subprocess.CalledProcessError: If pip installation fails
-        requirements.InvalidRequirement: If version constraint is invalid
+        RuntimeError: If package installation fails.
     """
-    package = package_name or module_name
+    # Normalize inputs to lists
+    if isinstance(packages[0], list):
+        packages = packages[0]
 
-    def check_version_constraint() -> bool:
-        """Check if installed package meets version constraint."""
-        if not version_constraint:
-            return True
+    # Handle version constraints
+    if version_constraints is None:
+        version_constraints = [None] * len(packages)
+    elif isinstance(version_constraints, str):
+        version_constraints = [version_constraints] * len(packages)
 
-        try:
-            # Using importlib.metadata to get package version
-            installed_version = metadata.version(package)
-            req_string = f"{package}{version_constraint}"
-            requirement = requirements.Requirement(req_string)
-            return version.parse(installed_version) in requirement.specifier
-        except metadata.PackageNotFoundError:
-            return False
+    # Ensure length consistency
+    if len(version_constraints) != len(packages):
+        raise ValueError("Number of packages must match number of version constraints")
 
-    def install_package():
-        """Install the package with exact version constraint."""
-        install_target = f"{package}{version_constraint}" if version_constraint else package
-        try:
-            subprocess.check_call([
-                sys.executable, "-m", "pip", "install",
-                install_target
-            ])
-        except subprocess.CalledProcessError as e:
-            print(f"Failed to install {install_target}. Error: {e}")
-            raise
+    # Track installation results
+    all_installed = True
 
-    # Try importing first
-    try:
-        module = importlib.import_module(module_name)
-        # Check version constraint if specified
-        if not check_version_constraint():
-            print(f"Installed version of {package} doesn't meet constraint {version_constraint}. Installing correct version...")
-            install_package()
-            # Reload the module to get the new version
-            if module_name in sys.modules:
-                importlib.reload(sys.modules[module_name])
-            module = importlib.import_module(module_name)
-        return module
-
-    except ImportError:
-        # Module not found, attempt installation
-        print(f"Module {module_name} not found. Attempting installation...")
-        install_package()
+    for package, constraint in zip(packages, version_constraints):
+        # Special handling for core/builtin modules
+        if util.find_spec(package) is not None:
+            continue
 
         try:
-            module = importlib.import_module(module_name)
-            # Verify version constraint after installation
-            if not check_version_constraint():
-                raise requirements.InvalidRequirement(
-                    f"Installed version of {package} doesn't meet constraint {version_constraint}"
-                )
-            return module
-        except ImportError as e:
-            print(f"Module {module_name} still couldn't be imported after installation.")
-            raise ImportError(f"Failed to import {module_name} even after installation attempt: {e}")
+            # Check if package is installed and meets version constraint
+            if _check_package_installed(package, constraint):
+                print(f"{package} {'is' if constraint is None else f'meets version {constraint}'}")
+                continue
 
-def ensure_installed(package_name: str, version_constraint: Optional[str] = None):
+            # Attempt installation
+            _install_package(package, constraint)
+
+        except Exception as e:
+            all_installed = False
+            print(f"Error processing {package}: {e}")
+            raise RuntimeError(f"Failed to install or verify package {package}") from e
+
+    return all_installed
+
+def _check_package_installed(package_name: str, version_constraint: Optional[str] = None) -> bool:
     """
-    Ensures that the specified package with the given version constraint is installed.
-    Installs the package if it is missing or if the version constraint is not met. Does
-    not attempt to install the module post installation.
+    Check if a package is installed and meets version constraint.
 
     Args:
-        package_name (str): Name of the package to ensure is installed.
-        version_constraint (str, optional): Version constraint string (e.g. ">=1.5", "==2.0").
+        package_name (str): Name of the package to check.
+        version_constraint (str, optional): Version constraint to validate.
+
+    Returns:
+        bool: True if package is installed and meets version constraint.
+    """
+    try:
+        # Check package existence
+        installed_version = metadata.version(package_name)
+
+        # If no version constraint, any version is fine
+        if version_constraint is None:
+            return True
+
+        # Validate version constraint
+        try:
+            from packaging import version
+            from packaging.requirements import Requirement
+
+            req_string = f"{package_name}{version_constraint}"
+            requirement = Requirement(req_string)
+            return version.parse(installed_version) in requirement.specifier
+
+        except ImportError:
+            # Fallback if packaging is not available
+            print("Warning: packaging library not found. Skipping precise version check.")
+            return True
+
+    except metadata.PackageNotFoundError:
+        return False
+
+def _install_package(package_name: str, version_constraint: Optional[str] = None):
+    """
+    Install a package with optional version constraint.
+
+    Args:
+        package_name (str): Name of the package to install.
+        version_constraint (str, optional): Version constraint for installation.
 
     Raises:
         subprocess.CalledProcessError: If pip installation fails.
-        requirements.InvalidRequirement: If version constraint is invalid.
     """
+    # Construct installation target
+    install_target = f"{package_name}{version_constraint}" if version_constraint else package_name
 
-    def check_version_constraint() -> bool:
-        """Check if any version is installed (if no constraint) or if it meets the version constraint."""
-        try:
-            installed_version = metadata.version(package_name)
-            if version_constraint:
-                req_string = f"{package_name}{version_constraint}"
-                requirement = requirements.Requirement(req_string)
-                return version.parse(installed_version) in requirement.specifier
-            return True  # Any version is acceptable if no version constraint is provided
-        except metadata.PackageNotFoundError:
-            return False
-
-    def install_package():
-        """Install the package with exact version constraint."""
-        install_target = f"{package_name}{version_constraint}" if version_constraint else package_name
-        try:
-            subprocess.check_call([sys.executable, "-m", "pip", "install", install_target])
-            print(f"Successfully installed {install_target}.")
-        except subprocess.CalledProcessError as e:
-            print(f"Failed to install {install_target}. Error: {e}")
-            raise
-
-    # Check if package meets version requirements or is installed
-    if not check_version_constraint():
-        print(f"{package_name} not found or doesn't meet version constraint {version_constraint}. Installing...")
-        install_package()
-    else:
-        print(f"{package_name} already installed and meets the version constraint {version_constraint}.")
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", install_target],
+                               stdout=subprocess.DEVNULL,
+                               stderr=subprocess.DEVNULL)
+        print(f"Successfully installed {install_target}")
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to install {install_target}")
+        raise
 
 class SirilInterface:
     """

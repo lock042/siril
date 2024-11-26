@@ -579,7 +579,9 @@
                         <property name="show-line-numbers">True</property>
                         <property name="show-line-marks">True</property>
                         <property name="tab-width">4</property>
+                        <property name="indent-width">4</property>
                         <property name="auto-indent">True</property>
+                        <property name="insert-spaces-instead-of-tabs">True</property>
                         <property name="show-right-margin">True</property>
                         <property name="smart-home-end">always</property>
                         <property name="highlight-current-line">True</property>
