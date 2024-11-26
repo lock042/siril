@@ -1237,15 +1237,45 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 		siril_debug_print("System version: %d.%d.%d\n", module_version.major_version, module_version.minor_version, module_version.micro_version);
 
 		// Check if module version is higher than temp version
-		if (compare_version(module_version, user_version)) {
-			// Delete existing temp directory before new installation
-			// TODO: can we just pip remove the existing module without yeeting the whole venv?
-			GError* del_error = NULL;
-			if (!delete_directory(user_module_path, &del_error)) {
-				g_propagate_error(error, del_error);
-				g_free(module_setup_path);
-				g_free(python_path);
-				return FALSE;
+		if (compare_version(module_version, user_version) > 0) {
+			needs_install = TRUE;
+		} else if (compare_version(module_version, user_version) < 0) {
+			// Downgrading: perhaps we havebeen trying a development branch of Siril
+			// and are reverting to a stable branch or something. Attempt to uninstall
+			// then reinstall: if not, we get drastic and yeet the entire venv then
+			// rebuild it from scratch to force the downgrade
+			gint uninstall_status;
+			GError *uninstall_error = NULL;
+			gchar *argv[] = {
+				python_path,
+				"-m",
+				"pip",
+				"uninstall",
+				"-y",
+				"siril",
+				NULL  // Array must be NULL-terminated
+			};
+			if (!g_spawn_sync(
+					NULL,           // working_directory (NULL = inherit current)
+					argv,           // argument vector
+					NULL,           // inherit parent's environment
+					G_SPAWN_DEFAULT, // flags
+					NULL,           // child_setup function
+					NULL,           // user_data for child_setup
+					NULL,           // standard_output
+					NULL,           // standard_error
+					&uninstall_status,   // exit status
+					&uninstall_error    // error
+				)) {
+				g_propagate_error(error, uninstall_error);
+				GError* del_error = NULL;
+				// Fallback, try to delete the entire venv and start again
+				if (!delete_directory(user_module_path, &del_error)) {
+					g_propagate_error(error, del_error);
+					g_free(module_setup_path);
+					g_free(python_path);
+					return FALSE;
+				}
 			}
 			needs_install = TRUE;
 		}
