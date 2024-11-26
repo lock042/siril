@@ -881,9 +881,27 @@ void on_redo(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 }
 
 void on_cut(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	GtkTextBuffer *buffer = GTK_TEXT_BUFFER(sourcebuffer);
 	GtkClipboard *clipboard = gtk_widget_get_clipboard(GTK_WIDGET(code_view), GDK_SELECTION_CLIPBOARD);
-	gtk_text_buffer_cut_clipboard(GTK_TEXT_BUFFER(sourcebuffer),
-								clipboard, gtk_text_view_get_editable(GTK_TEXT_VIEW(code_view)));
+	GtkTextIter start, end;
+
+	// Check if there's a selection
+	if (!gtk_text_buffer_get_selection_bounds(buffer, &start, &end)) {
+		// No selection, so select the entire line
+		gtk_text_buffer_get_iter_at_mark(buffer, &start, gtk_text_buffer_get_insert(buffer));
+		gtk_text_iter_set_line_offset(&start, 0);
+
+		gtk_text_buffer_get_iter_at_mark(buffer, &end, gtk_text_buffer_get_insert(buffer));
+		gtk_text_iter_forward_to_line_end(&end);
+		// Move end to the start of the next line to include the newline
+		if (!gtk_text_iter_is_end(&end)) {
+			gtk_text_iter_forward_line(&end);
+		}
+		gtk_text_buffer_select_range(buffer, &start, &end);
+	}
+
+	// Cut the selected text (either the original selection or the entire line)
+	gtk_text_buffer_cut_clipboard(buffer, clipboard, gtk_text_view_get_editable(GTK_TEXT_VIEW(code_view)));
 }
 
 void on_copy(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
