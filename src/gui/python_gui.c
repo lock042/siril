@@ -910,12 +910,12 @@ void on_copy(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 }
 
 void on_paste(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-    if (gtk_revealer_get_reveal_child(GTK_REVEALER(find_revealer))) {
-        gtk_editable_paste_clipboard(GTK_EDITABLE(find_entry));
-    } else {
-        GtkClipboard *clipboard = gtk_widget_get_clipboard(GTK_WIDGET(code_view), GDK_SELECTION_CLIPBOARD);
-        gtk_text_buffer_paste_clipboard(GTK_TEXT_BUFFER(sourcebuffer), clipboard, NULL, gtk_text_view_get_editable(GTK_TEXT_VIEW(code_view)));
-    }
+	if (gtk_revealer_get_reveal_child(GTK_REVEALER(find_revealer))) {
+		gtk_editable_paste_clipboard(GTK_EDITABLE(find_entry));
+	} else {
+		GtkClipboard *clipboard = gtk_widget_get_clipboard(GTK_WIDGET(code_view), GDK_SELECTION_CLIPBOARD);
+		gtk_text_buffer_paste_clipboard(GTK_TEXT_BUFFER(sourcebuffer), clipboard, NULL, gtk_text_view_get_editable(GTK_TEXT_VIEW(code_view)));
+	}
 }
 
 void on_find(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
