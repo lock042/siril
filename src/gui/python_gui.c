@@ -264,6 +264,12 @@ static void update_search_info(SearchData *search_data) {
 		gtk_label_set_text(search_data->info_label, info_text);
 		g_free(info_text);
 	} else {
+		const char *text = gtk_entry_get_text(GTK_ENTRY(search_data->search_entry));
+		if (text != NULL && text[0] != '\0') {
+			GtkStyleContext *context;
+			context = gtk_widget_get_style_context(GTK_WIDGET(find_entry));
+			gtk_style_context_add_class(context, "search_empty");
+		}
 		gtk_label_set_text(search_data->info_label, "0/0");
 	}
 }
@@ -379,10 +385,14 @@ static gboolean perform_search(SearchData *search_data) {
 	const gchar *search_text = gtk_entry_get_text(search_data->search_entry);
 	GtkTextIter iter;
 	gboolean found = FALSE;
+	GtkStyleContext *context;
+	context = gtk_widget_get_style_context(GTK_WIDGET(find_entry));
+	gtk_style_context_remove_class(context, "search_empty");
 
 	// Clear previous highlighting and positions
 	clear_search_highlighting(search_data);
 	clear_match_positions(search_data);
+
 
 	search_data->total_matches = 0;
 	search_data->current_match = 0;
@@ -423,7 +433,6 @@ static gboolean perform_search(SearchData *search_data) {
 		search_data->current_match = 1;
 		goto_match(search_data, 1);
 	}
-
 	update_search_info(search_data);
 	return found;
 }
