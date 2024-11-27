@@ -254,7 +254,7 @@ def check_module_version(requires=None):
         satisfies the version specifier, otherwise False
 
     Raises:
-        ValueError if requires is an invalid version specifier.
+        ValueError: if requires is an invalid version specifier.
     """
     import siril # required in order to have access to the namespace
 
@@ -811,10 +811,10 @@ class SirilInterface:
 
         Returns:
             An int representing the active vport:
-                0 = Red (or Mono)
-                1 = Green
-                2 = Blue
-                3 = RGB
+            0 = Red (or Mono),
+            1 = Green,
+            2 = Blue,
+            3 = RGB,
             or None if an error occurred.
         """
 
@@ -1424,7 +1424,7 @@ class SirilInterface:
 
         Returns:
             bytes: The image ICC profile as a byte array, or None if the current
-                   image has no ICC profile.
+            image has no ICC profile.
 
         Raises:
             NoImageError: If no image is currently loaded,
@@ -1790,7 +1790,7 @@ class SirilInterface:
 
         Returns:
             bool: True if a single image is loaded, False if a single image is
-                  not loaded, or None if an error occurred.
+            not loaded, or None if an error occurred.
         """
         response = self._request_data(_Command.GET_IS_IMAGE_LOADED)
 
@@ -1806,7 +1806,7 @@ class SirilInterface:
 
         Returns:
             bool: True if a sequence is loaded, False if a sequence is not loaded,
-                  or None if an error occurred.
+            or None if an error occurred.
         """
         response = self._request_data(_Command.GET_IS_SEQUENCE_LOADED)
 

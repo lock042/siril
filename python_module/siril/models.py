@@ -498,6 +498,10 @@ class FFit:
         """
         return self._data
 
+    def _update_naxis(self):
+        """Update naxis based on naxes value"""
+        self.naxis = 3 if self._naxes[2] == 3 else 2
+
     @data.setter
     def set_data(self, value: Optional[np.ndarray]):
         """
@@ -525,10 +529,6 @@ class FFit:
                 raise ValueError(_("Data must be 2D or 3D"))
             self._update_naxis()
         self._data = value
-
-    def _update_naxis(self):
-        """Update naxis based on naxes value"""
-        self.naxis = 3 if self._naxes[2] == 3 else 2
 
     @property
     def naxes(self) -> Tuple[int, int, int]:
@@ -558,6 +558,11 @@ class FFit:
         """
         return self._icc_profile
 
+    @property
+    def dtype(self) -> np.dtype:
+        """Get the NumPy dtype based on the current type"""
+        return np.uint16 if self.type == DataType.USHORT_IMG else np.float32
+
     @icc_profile.setter
     def set_icc_profile(self, value: Optional[bytes]):
         """
@@ -567,11 +572,6 @@ class FFit:
         """
         self._icc_profile = value
         self.color_managed = value is not None
-
-    @property
-    def dtype(self) -> np.dtype:
-        """Get the NumPy dtype based on the current type"""
-        return np.uint16 if self.type == DataType.USHORT_IMG else np.float32
 
     def allocate_data(self):
         """Allocate memory for image data with appropriate type"""
