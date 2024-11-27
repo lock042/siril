@@ -125,7 +125,7 @@ int copy_backup_to_gfit() {
 	if (!gfit.data && !gfit.fdata)
 		retval = 1;
 	else {
-		if (copyfits(&preview_gfit_backup, &gfit, CP_ALLOC | CP_COPYA, -1)) {
+		if (copyfits(&preview_gfit_backup, &gfit, CP_COPYA, -1)) {
 			siril_debug_print("Image copy error in previews\n");
 			retval = 1;
 		} else if (!com.script) {
