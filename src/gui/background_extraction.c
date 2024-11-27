@@ -157,7 +157,7 @@ void on_bkg_compute_bkg_clicked(GtkButton *button, gpointer user_data) {
 	args->fit = &gfit;
 
 	// Check if the image has a Bayer CFA pattern
-	gboolean is_cfa = (!strncmp(gfit.keywords.bayer_pattern, "RGGB", 4) ||
+	gboolean is_cfa = gfit.naxes[2] == 1 && (!strncmp(gfit.keywords.bayer_pattern, "RGGB", 4) ||
 					  !strncmp(gfit.keywords.bayer_pattern, "BGGR", 4) ||
 					  !strncmp(gfit.keywords.bayer_pattern, "GBRG", 4) ||
 					  !strncmp(gfit.keywords.bayer_pattern, "GRBG", 4));
