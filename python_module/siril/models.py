@@ -128,24 +128,39 @@ class FKeywords:
 
     @property
     def program(self) -> str:
+        """
+        Gets the PROGRAM keyword.
+        """
         return self._program
 
     @program.setter
     def program(self, value: str) -> None:
-        """Sets the PROGRAM keyword."""
+        """
+        Sets the PROGRAM keyword.
+        """
         self._program = value[:70]
 
     @property
     def filename(self) -> str:
+        """
+        Gets the FILENAME keyword.
+        """
         return self._filename
 
     @filename.setter
     def filename(self, value: str) -> None:
-        """Sets the FILENAME keyword."""
+        """
+        Sets the FILENAME keyword.
+        """
         self._filename = value[:70]
 
     @property
     def row_order(self) -> str:
+        """
+        Gets the ROWORDER keyword. This sets the row order in
+        which the sensor indicates rows and should be either 'TOP-DOWN'
+        or 'BOTTOM-UP'
+        """
         return self._row_order
 
     @row_order.setter
@@ -159,6 +174,10 @@ class FKeywords:
 
     @property
     def date(self) -> Optional[datetime]:
+        """
+        Gets the FITS DATE keyword, which represents the date on
+        which the HDU was created.
+        """
         return self._date
 
     @date.setter
@@ -171,6 +190,10 @@ class FKeywords:
 
     @property
     def date_obs(self) -> Optional[datetime]:
+        """
+        Gets the FITS DATE-OBS keyword, which represents the date
+        on which the observation was made.
+        """
         return self._date_obs
 
     @date_obs.setter
@@ -183,6 +206,10 @@ class FKeywords:
 
     @property
     def filter(self) -> str:
+        """
+        Gets the FITS FILTER keyword. Will be truncated
+        to 70 characters according to the FITS standard.
+        """
         return self._filter
 
     @filter.setter
@@ -195,6 +222,10 @@ class FKeywords:
 
     @property
     def image_type(self) -> str:
+        """
+        Gets the FITS IMAGETYP keyword. Will be truncated
+        to 70 characters according to the FITS standard.
+        """
         return self._image_type
 
     @image_type.setter
@@ -207,6 +238,10 @@ class FKeywords:
 
     @property
     def object(self) -> str:
+        """
+        Gets the FITS OBJECT keyword. Will be truncated
+        to 70 characters according to the FITS standard.
+        """
         return self._object
 
     @object.setter
@@ -219,6 +254,10 @@ class FKeywords:
 
     @property
     def instrume(self) -> str:
+        """
+        Gets the FITS INSTRUME keyword. Will be truncated "
+        to 70 characters according to the FITS standard.
+        """
         return self._instrume
 
     @instrume.setter
@@ -231,6 +270,10 @@ class FKeywords:
 
     @property
     def telescop(self) -> str:
+        """
+        Gets the FITS TELESCOP keyword. Will be truncated
+        to 70 characters according to the FITS standard.
+        """
         return self._telescop
 
     @telescop.setter
@@ -243,6 +286,10 @@ class FKeywords:
 
     @property
     def observer(self) -> str:
+        """
+        Gets the FITS OBSERVER keyword. Will be truncated
+        to 70 characters according to the FITS standard.
+        """
         return self._observer
 
     @observer.setter
@@ -255,10 +302,15 @@ class FKeywords:
 
     @property
     def centalt(self) -> float:
+        """
+        Gets the centre altitude of the image.
+        """
         return self._centalt
 
     def set_centalt(self, value: float) -> None:
-        """Sets the centre altitude of the image."""
+        """
+        Sets the centre altitude of the image.
+        """
         if value <= 90:
             self._centalt = value
         else:
@@ -266,10 +318,15 @@ class FKeywords:
 
     @property
     def centaz(self) -> float:
+        """
+        Gets the centre azimuth of the image.
+        """
         return self._centaz
 
     def set_centaz(self, value: float) -> None:
-        """Sets the centre azimuth of the image."""
+        """
+        Sets the centre azimuth of the image.
+        """
         if 0 <= value < 360:
             self._centaz = value
         else:
@@ -277,10 +334,15 @@ class FKeywords:
 
     @property
     def sitelat(self) -> float:
+        """
+        Gets the site latitude.
+        """
         return self._sitelat
 
     def set_sitelat(self, value: float) -> None:
-        """Sets the site latitude."""
+        """
+        Sets the site latitude.
+        """
         if -90 <= value <= 90:
             self._sitelat = value
         else:
@@ -288,6 +350,7 @@ class FKeywords:
 
     @property
     def sitelong(self) -> float:
+        """Gets the site longitude of the image."""
         return self._sitelong
 
     def set_sitelong(self, value: float) -> None:
@@ -299,6 +362,7 @@ class FKeywords:
 
     @property
     def sitelat_str(self) -> str:
+        """Gets the site latitude of the image as a string."""
         return self._sitelat_str
 
     @sitelat_str.setter
@@ -308,6 +372,7 @@ class FKeywords:
 
     @property
     def sitelong_str(self) -> str:
+        """Gets the site longitude of the image as a string."""
         return self._sitelong_str
 
     @sitelong_str.setter
@@ -317,6 +382,10 @@ class FKeywords:
 
     @property
     def bayer_pattern(self) -> str:
+        """
+        Gets the image CFA pattern. This may be a Bayer pattern
+        or X-TRANS pattern. Normally this is set by the capture software.
+        """
         return self._bayer_pattern
 
     @bayer_pattern.setter
@@ -336,6 +405,10 @@ class FKeywords:
 
     @property
     def focname(self) -> str:
+        """
+        Gets the focuser name. Will be truncated
+        to 70 characters according to the FITS standard.
+        """
         return self._focname
 
     @focname.setter
