@@ -23,6 +23,7 @@ from datetime import datetime
 from importlib import metadata, util
 from .shm import SharedMemoryWrapper
 from packaging import version, requirements
+from packaging.specifiers import SpecifierSet
 from typing import Tuple, Optional, List, Union, Any
 from .exceptions import SirilError, ConnectionError, CommandError, DataError, NoImageError, NoSequenceError
 from .models import DataType, ImageStats, FKeywords, FFit, Homography, StarProfile, PSFStar, RegData, ImgData, Sequence, SequenceType
@@ -231,6 +232,42 @@ def _install_package(package_name: str, version_constraint: Optional[str] = None
     except subprocess.CalledProcessError as e:
         print(f"Failed to install {install_target}")
         raise
+
+def check_module_version(requires=None):
+    """
+    Check the version of the Siril module is sufficient to support the
+    script. This is not mandatory if you are only using classes,
+    methods etc. that are provided in the initial public release, but
+    if you rely on methods that are noted int he API documentation as
+    having been added at a particular version of the module then you
+    must check the running siril module supports your script by
+    calling this function.
+
+    Args:
+        requires (str): A version format specifier string following the
+                        same format used by pip, i.e. it may contain
+                        '==1.2', '!=3.4', '>5.6', '>=7.8', or a
+                        combination such as '>=1.2,<3.4'
+
+    Returns:
+        True if requires = None or if the available siril module version
+        satisfies the version specifier, otherwise False
+
+    Raises:
+        ValueError if requires is an invalid version specifier.
+    """
+    import siril # required in order to have access to the namespace
+
+    if requires is None:
+        return True  # No version requirement
+
+    try:
+        # Create a SpecifierSet from the `requires` string
+        specifiers = SpecifierSet(requires)
+        # Check if siril.__version__ satisfies the specifiers
+        return version.parse(siril.__version__) in specifiers
+    except (version.InvalidVersion, ValueError):
+        raise ValueError(f"Invalid version specifier: {requires}")
 
 class SirilInterface:
     """
