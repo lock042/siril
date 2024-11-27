@@ -117,7 +117,8 @@ class FKeywords:
     foctemp: float = 0.0
 
     # Setters
-    def set_bscale(self, value: float) -> None:
+    @bscale.setter
+    def bscale(self, value: float) -> None:
         """
         Set FITS BSCALE value. This keyword shall be used,
         along with the BZERO keyword, when the array pixel values are
@@ -131,7 +132,8 @@ class FKeywords:
         """
         self.bscale = value
 
-    def set_bzero(self, value: float) -> None:
+    @bzero.setter
+    def bzero(self, value: float) -> None:
         """
         Sets FITS BZERO value. This keyword shall be used,
         along with the BSCALE keyword, when the array pixel values are
@@ -144,37 +146,44 @@ class FKeywords:
         """
         self.bzero = value
 
-    def set_lo(self, value: int) -> None:
+    @lo.setter
+    def lo(self, value: int) -> None:
         """Sets lo value. This is the lower visualization cutoff."""
         self.lo = value
 
-    def set_hi(self, value: int) -> None:
+    @hi.setter
+    def hi(self, value: int) -> None:
         """
         Sets hi value. This is the upper visualization cutoff.
         """
         self.hi = value
 
-    def set_flo(self, value: float) -> None:
+    @flo.setter
+    def flo(self, value: float) -> None:
         """
         Sets floating point lo value. This is the lower visualization cutoff.
         """
         self.flo = value
 
-    def set_fhi(self, value: float) -> None:
+    @fhi.setter
+    def fhi(self, value: float) -> None:
         """
         Sets floating point hi value. This is the lower visualization cutoff.
         """
         self.fhi = value
 
-    def set_program(self, value: str) -> None:
+    @program.setter
+    def program(self, value: str) -> None:
         """Sets the PROGRAM keyword."""
         self.program = value[:70]
 
-    def set_filename(self, value: str) -> None:
+    @filename.setter
+    def filename(self, value: str) -> None:
         """Sets the FILENAME keyword."""
         self.filename = value[:70]
 
-    def set_data_max(self, value: float) -> None:
+    @data_max.setter
+    def data_max(self, value: float) -> None:
         """
         Sets data_max. This is used to check if 32b float is
         in the [0, 1] range; it should not normally need to be adjusted
@@ -183,7 +192,8 @@ class FKeywords:
         """
         self.data_max = value
 
-    def set_data_min(self, value: float) -> None:
+    @data_min.setter
+    def data_min(self, value: float) -> None:
         """
         Sets data_min. This is used to check if 32b float is
         in the [0, 1] range; it should not normally need to be adjusted
@@ -192,7 +202,8 @@ class FKeywords:
         """
         self.data_min = value
 
-    def set_pixel_size_x(self, value: float) -> None:
+    @pixel_size_x.setter
+    def pixel_size_x(self, value: float) -> None:
         """
         Sets the pixel size in the x dimension. This is normally
         set by the capture software.
@@ -202,7 +213,8 @@ class FKeywords:
         else:
             raise ValueError(_("pixel_size_x must be greater than 0"))
 
-    def set_pixel_size_y(self, value: float) -> None:
+    @pixel_size_y.setter
+    def pixel_size_y(self, value: float) -> None:
         """
         Sets the pixel size in the y dimension. This is normally
         set by the capture software.
@@ -212,7 +224,8 @@ class FKeywords:
         else:
             raise ValueError(_("pixel_size_y must be greater than 0"))
 
-    def set_binning_x(self, value: int) -> None:
+    @binning_x.setter
+    def binning_x(self, value: int) -> None:
         """
         Sets the binning in the x dimension. This is normally
         set by the capture software.
@@ -222,7 +235,8 @@ class FKeywords:
         else:
             raise ValueError(_("binning_x must be greater than or equal to 1"))
 
-    def set_binning_y(self, value: int) -> None:
+    @binning_y.setter
+    def binning_y(self, value: int) -> None:
         """
         Sets the binning in the y dimension. This is normally
         set by the capture software.
@@ -232,7 +246,8 @@ class FKeywords:
         else:
             raise ValueError(_("binning_y must be greater than or equal to 1"))
 
-    def set_row_order(self, value: str) -> None:
+    @row_order.setter
+    def row_order(self, value: str) -> None:
         """
         Sets the ROWORDER keyword. This sets the row order in
         which the sensor indicates rows and should be either 'TOP-DOWN'
@@ -240,49 +255,57 @@ class FKeywords:
         """
         self.row_order = value[:70]
 
-    def set_date(self, value: Optional[datetime]) -> None:
+    @date.setter
+    def date(self, value: Optional[datetime]) -> None:
         """
         Sets the FITS DATE keyword, which represents the date on
         which the HDU was created.
         """
         self.date = value
 
-    def set_date_obs(self, value: Optional[datetime]) -> None:
+    @date_obs.setter
+    def date_obs(self, value: Optional[datetime]) -> None:
         """
         Sets the FITS DATE-OBS keyword, which represents the date
         on which the observation was made.
         """
         self.date_obs = value
 
-    def set_expstart(self, value: float) -> None:
+    @expstart.setter
+    def expstart(self, value: float) -> None:
         """Sets the start of the exposure as a Julian date."""
         self.expstart = value
 
-    def set_expend(self, value: float) -> None:
+    @expend.setter
+    def expend(self, value: float) -> None:
         """Sets the end of the exposure as a Julian date."""
         self.expend = value
 
-    def set_filter(self, value: str) -> None:
+    @filter.setter
+    def filter(self, value: str) -> None:
         """
         Sets the FITS FILTER keyword. Will be truncated
         to 70 characters according to the FITS standard.
         """
         self.filter = value[:70]
 
-    def set_image_type(self, value: str) -> None:
+    @image_type.setter
+    def image_type(self, value: str) -> None:
         """
         Sets the FITS IMAGETYP keyword. Will be truncated
         to 70 characters according to the FITS standard.
         """
         self.image_type = value[:70]
 
-    def set_object(self, value: str) -> None:
+    @object.setter
+    def object(self, value: str) -> None:
         """
         Sets the FITS OBJECT keyword. Will be truncated
         to 70 characters according to the FITS standard.
         """
         self.object = value[:70]
 
+    @instrume.setter
     def set_instrume(self, value: str) -> None:
         """
         Sets the FITS INSTRUME keyword. Will be truncated "
@@ -290,20 +313,23 @@ class FKeywords:
         """
         self.instrume = value[:70]
 
-    def set_telescop(self, value: str) -> None:
+    @telescop.setter
+    def telescop(self, value: str) -> None:
         """
         Sets the FITS TELESCOP keyword. Will be truncated
         to 70 characters according to the FITS standard.
         """
         self.telescop = value[:70]
 
-    def set_observer(self, value: str) -> None:
+    @observer.setter
+    def observer(self, value: str) -> None:
         """
         Sets the FITS OBSERVER keyword. Will be truncated
         to 70 characters according to the FITS standard.
         """
         self.observer = value[:70]
 
+    @centalt.setter
     def set_centalt(self, value: float) -> None:
         """Sets the centre altitude of the image."""
         if value <= 90:
@@ -311,139 +337,165 @@ class FKeywords:
         else:
             raise ValueError(_("centalt must be less than or equal to 90 degrees"))
 
-    def set_centaz(self, value: float) -> None:
+    @centaz.setter
+    def centaz(self, value: float) -> None:
         """Sets the centre azimuth of the image."""
         if 0 <= value < 360:
             self.centaz = value
         else:
             raise ValueError(_("centaz must be between 0 and 360 degrees (exclusive)"))
 
-    def set_sitelat(self, value: float) -> None:
+    @sitelat.setter
+    def sitelat(self, value: float) -> None:
         """Sets the site latitude."""
         if -90 <= value <= 90:
             self.sitelat = value
         else:
             raise ValueError(_("sitelat must be between -90 and 90 degrees"))
 
-    def set_sitelong(self, value: float) -> None:
+    @sitelong.setter
+    def sitelong(self, value: float) -> None:
         """Sets the site longitude of the image."""
         if 0 <= value < 360:
             self.sitelong = value
         else:
             raise ValueError(_("sitelong must be between 0 and 360 degrees (exclusive)"))
 
-    def set_sitelat_str(self, value: str) -> None:
+    @sitelat_str.setter
+    def sitelat_str(self, value: str) -> None:
         """Sets the site latitude of the image as a string."""
         self.sitelat_str = value[:70]
 
-    def set_sitelong_str(self, value: str) -> None:
+    @sitelong_str.setter
+    def sitelong_str(self, value: str) -> None:
         """Sets the site longitude of the image as a string."""
         self.sitelong_str = value[:70]
 
-    def set_siteelev(self, value: float) -> None:
+    @siteelev.setter
+    def siteelev(self, value: float) -> None:
         """Sets the site elevation of the image."""
         self.siteelev = value
 
-    def set_bayer_pattern(self, value: str) -> None:
+    @bayer_pattern.setter
+    def bayer_pattern(self, value: str) -> None:
         """
         Sets the image CFA pattern. This may be a Bayer pattern
         or X-TRANS pattern. Normally this is set by the capture software.
         """
         self.bayer_pattern = value[:70]
 
-    def set_bayer_xoffset(self, value: int) -> None:
+    @bayer_xoffset.setter
+    def bayer_xoffset(self, value: int) -> None:
         """Sets the image Bayer x offset."""
         self.bayer_xoffset = value
 
-    def set_bayer_yoffset(self, value: int) -> None:
+    @bayer_yoffset.setter
+    def bayer_yoffset(self, value: int) -> None:
         """Sets the image Bayer y offset."""
         self.bayer_yoffset = value
 
-    def set_airmass(self, value: float) -> None:
+    @airmass.setter
+    def airmass(self, value: float) -> None:
         """Sets the airmass as a floating point value."""
         if value >= 1:
             self.airmass = value
         else:
             raise ValueError(_("airmass must be greater than or equal to 1"))
 
-    def set_focal_length(self, value: float) -> None:
+    @focal_length.setter
+    def focal_length(self, value: float) -> None:
         """Sets the focal length as a floating point value."""
         self.focal_length = value
 
-    def set_flength(self, value: float) -> None:
+    @flength.setter
+    def flength(self, value: float) -> None:
         """Sets the flength as a floating point value."""
         self.flength = value
 
-    def set_iso_speed(self, value: float) -> None:
+    @iso_speed.setter
+    def iso_speed(self, value: float) -> None:
         """Sets the ISO speed as a floating point value."""
         self.iso_speed = value
 
-    def set_exposure(self, value: float) -> None:
+    @exposure.setter
+    def exposure(self, value: float) -> None:
         """Sets the exposure time as a floating point value."""
         self.exposure = value
 
-    def set_aperture(self, value: float) -> None:
+    @aperture.setter
+    def aperture(self, value: float) -> None:
         """Sets the aperture as a floating point value."""
         self.aperture = value
 
-    def set_ccd_temp(self, value: float) -> None:
+    @ccd_temp.setter
+    def ccd_temp(self, value: float) -> None:
         """Sets the CCD temperature as a floating point value."""
         self.ccd_temp = value
 
-    def set_set_temp(self, value: float) -> None:
+    @set_temp.setter
+    def set_temp(self, value: float) -> None:
         """Sets the CCD set temperature as a floating point value."""
         self.set_temp = value
 
-    def set_livetime(self, value: float) -> None:
+    @livetime.setter
+    def livetime(self, value: float) -> None:
         """
         Sets the sum of the exposure times (s) as a floating
         point value. Only relevant to stacked images.
         """
         self.livetime = value
 
-    def set_stackcnt(self, value: int) -> None:
+    @stackcnt.setter
+    def stackcnt(self, value: int) -> None:
         """
         Sets the count of images in a stack. Only relevant to
         stacked images.
         """
         self.stackcnt = value
 
-    def set_cvf(self, value: float) -> None:
+    @cvf.setter
+    def cvf(self, value: float) -> None:
         """Sets the conversion factor (e-/ADU)."""
         self.cvf = value
 
-    def set_key_gain(self, value: int) -> None:
+    @key_gain.setter
+    def key_gain(self, value: int) -> None:
         """
         Sets the gain value read in camera headers. Normally
         this is set by capture software.
         """
         self.key_gain = value
 
-    def set_key_offset(self, value: int) -> None:
+    @key_offset.setter
+    def key_offset(self, value: int) -> None:
         """
         Sets the offset value read in camera headers. Normally
         this is set by capture software.
         """
         self.key_offset = value
 
-    def set_focname(self, value: str) -> None:
+    @focname.setter
+    def focname(self, value: str) -> None:
         """
         Sets the focuser name. Will be truncated
         to 70 characters according to the FITS standard.
         """
         self.focname = value[:70]
 
-    def set_focuspos(self, value: int) -> None:
+    @focuspos.setter
+    def focuspos(self, value: int) -> None:
         """Sets the focus position. Normally this is set by
         capture software."""
         self.focuspos = value
 
-    def set_focussz(self, value: int) -> None:
+    @focussz.setter
+    def focussz(self, value: int) -> None:
         """Sets the focuser step size. Normally this is set by
         capture software."""
         self.focussz = value
 
-    def set_foctemp(self, value: float) -> None:
+    @foctemp.setter
+    def foctemp(self, value: float) -> None:
         """Sets the focuser temperature. Normally this is set by
         capture software."""
         self.foctemp = value
@@ -498,12 +550,8 @@ class FFit:
         """
         return self._data
 
-    def _update_naxis(self):
-        """Update naxis based on naxes value"""
-        self.naxis = 3 if self._naxes[2] == 3 else 2
-
     @data.setter
-    def set_data(self, value: Optional[np.ndarray]):
+    def data(self, value: Optional[np.ndarray]):
         """
         Set the pixel data of the FFit to the provided NumPy array. Note: this
         does not update the image loaded in Siril - ``SirilInterface.set_pixeldata()``
@@ -529,6 +577,10 @@ class FFit:
                 raise ValueError(_("Data must be 2D or 3D"))
             self._update_naxis()
         self._data = value
+
+    def _update_naxis(self):
+        """Update naxis based on naxes value"""
+        self.naxis = 3 if self._naxes[2] == 3 else 2
 
     @property
     def naxes(self) -> Tuple[int, int, int]:
@@ -558,13 +610,8 @@ class FFit:
         """
         return self._icc_profile
 
-    @property
-    def dtype(self) -> np.dtype:
-        """Get the NumPy dtype based on the current type"""
-        return np.uint16 if self.type == DataType.USHORT_IMG else np.float32
-
     @icc_profile.setter
-    def set_icc_profile(self, value: Optional[bytes]):
+    def icc_profile(self, value: Optional[bytes]):
         """
         Set ICC profile and update color_managed flag. Note this only
         updates the python FFit structure: the API does not currently
@@ -573,8 +620,17 @@ class FFit:
         self._icc_profile = value
         self.color_managed = value is not None
 
+    @property
+    def dtype(self) -> np.dtype:
+        """Get the NumPy dtype based on the current type"""
+        return np.uint16 if self.type == DataType.USHORT_IMG else np.float32
+
     def allocate_data(self):
-        """Allocate memory for image data with appropriate type"""
+        """
+        Allocate memory for image data with appropriate type. self.rx, self.ry,
+        self.naxis, self.naxes and self.dtype must be set before calling this
+        method.
+        """
         shape = (self.ry, self.rx) if self.naxis == 2 else (self.ry, self.rx, self.naxes[2])
         self.data = np.zeros(shape, dtype=self.dtype)
 
