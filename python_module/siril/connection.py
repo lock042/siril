@@ -2192,19 +2192,19 @@ class SirilInterface:
 
             # Create FKeywords object
             return FKeywords(
-                program=decode_string(values[0]),
-                filename=decode_string(values[1]),
-                row_order=decode_string(values[2]),
-                filter=decode_string(values[3]),
-                image_type=decode_string(values[4]),
-                object=decode_string(values[5]),
-                instrume=decode_string(values[6]),
-                telescop=decode_string(values[7]),
-                observer=decode_string(values[8]),
-                sitelat_str=decode_string(values[9]),
-                sitelong_str=decode_string(values[10]),
-                bayer_pattern=decode_string(values[11]),
-                focname=decode_string(values[12]),
+                _program=decode_string(values[0]),
+                _filename=decode_string(values[1]),
+                _row_order=decode_string(values[2]),
+                _filter=decode_string(values[3]),
+                _image_type=decode_string(values[4]),
+                _object=decode_string(values[5]),
+                _instrume=decode_string(values[6]),
+                _telescop=decode_string(values[7]),
+                _observer=decode_string(values[8]),
+                _sitelat_str=decode_string(values[9]),
+                _sitelong_str=decode_string(values[10]),
+                _bayer_pattern=decode_string(values[11]),
+                _focname=decode_string(values[12]),
                 bscale=values[13],
                 bzero=values[14],
                 lo=values[15],
@@ -2219,10 +2219,10 @@ class SirilInterface:
                 binning_y=values[24],
                 expstart=values[25],
                 expend=values[26],
-                centalt=values[27],
-                centaz=values[28],
-                sitelat=values[29],
-                sitelong=values[30],
+                _centalt=values[27],
+                _centaz=values[28],
+                _sitelat=values[29],
+                _sitelong=values[30],
                 siteelev=values[31],
                 bayer_xoffset=values[32],
                 bayer_yoffset=values[33],
@@ -2242,8 +2242,8 @@ class SirilInterface:
                 focuspos=values[47],
                 focussz=values[48],
                 foctemp=values[49],
-                date=timestamp_to_datetime(values[50]),
-                date_obs=timestamp_to_datetime(values[51])
+                _date=timestamp_to_datetime(values[50]),
+                _date_obs=timestamp_to_datetime(values[51])
             )
 
         except struct.error as e:
