@@ -629,8 +629,9 @@ class SirilInterface:
         Raises:
             All exceptions are raised to the caller.
         """
-    def get_bundle_path(self):
+
         response = self._request_data(_Command.GET_BUNDLE_PATH)
+
         if response is None:
             raise RuntimeError("Failed to get bundle path - received null response")
 
