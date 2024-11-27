@@ -30,20 +30,20 @@ class ImageStats:
     a particular channel of a Siril image.
     """
 
-    total: int = 0
-    ngoodpix: int = 0
-    mean: float = 0.0
-    median: float = 0.0
-    sigma: float = 0.0
-    avgDev: float = 0.0
-    mad: float = 0.0
-    sqrtbwmv: float = 0.0
-    location: float = 0.0
-    scale: float = 0.0
-    min: float = 0.0
-    max: float = 0.0
-    normValue: float = 0.0
-    bgnoise: float = 0.0
+    total: int = 0  #: total number of pixels
+    ngoodpix: int = 0   #: number of non-zero pixels
+    mean: float = 0.0   #: mean value of pixels
+    median: float = 0.0 #: median value of pixels
+    sigma: float = 0.0  #: standard deviation of pixels
+    avgDev: float = 0.0 #: average deviation of pixels
+    mad: float = 0.0    #: mean average deviation of pixels
+    sqrtbwmv: float = 0.0   #: square root of the biweight midvariance of pixel values
+    location: float = 0.0   #: location of pixel values
+    scale: float = 0.0  #: scale value of the pixels
+    min: float = 0.0    #: minimum pixel value
+    max: float = 0.0    #: maximum pixel value
+    normValue: float = 0.0  #: norm value of the pixels
+    bgnoise: float = 0.0    #: RMS background noise
 
 from dataclasses import dataclass
 from typing import Optional
@@ -60,10 +60,10 @@ class FKeywords:
     # FITS file data
     bscale: float = 1.0
     bzero: float = 0.0
-    lo: int = 0
-    hi: int = 0
-    flo: float = 0.0
-    fhi: float = 0.0
+    lo: int = 0 #: MIPS-LO key in FITS file, "Lower visualization cutoff"
+    hi: int = 0 #: MIPS-HI key in FITS file, "Upper visualization cutoff"
+    flo: float = 0.0 #: MIPS-LO key in FITS file, "Lower visualization cutoff (float)"
+    fhi: float = 0.0  #: MIPS-Hi key in FITS file, "Upper visualization cutoff (float)"
 
     # Private string attributes with corresponding properties
     _program: str = ""
@@ -85,37 +85,37 @@ class FKeywords:
     _date_obs: Optional[datetime] = None
 
     # Remaining attributes
-    data_max: float = 0.0
-    data_min: float = 0.0
-    pixel_size_x: float = 0.0
-    pixel_size_y: float = 0.0
-    binning_x: int = 1
-    binning_y: int = 1
+    data_max: float = 0.0 #: used to check if 32b float is in the [0, 1] range
+    data_min: float = 0.0  #: used to check if 32b float is in the [0, 1] range
+    pixel_size_x: float = 0.0 #: XPIXSZ FITS header card as a float
+    pixel_size_y: float = 0.0 #: YPIXSZ FITS header card as a float
+    binning_x: int = 1 #: XBINNING FITS header card as an int
+    binning_y: int = 1 #: YBINNING FITS header card as an int
 
-    expstart: float = 0.0
-    expend: float = 0.0
+    expstart: float = 0.0 #: Exposure start as a Julian date
+    expend: float = 0.0 #: Exposure end as a Julian date
 
     # Camera settings
-    bayer_xoffset: int = 0
-    bayer_yoffset: int = 0
+    bayer_xoffset: int = 0 #: X offset of the Bayer pattern
+    bayer_yoffset: int = 0 #: Y offset of the Bayer pattern
     _airmass: float = 1.0
-    focal_length: float = 0.0
+    focal_length: float = 0.0 #: focal length
     flength: float = 0.0
-    iso_speed: float = 0.0
-    exposure: float = 0.0
-    aperture: float = 0.0
-    ccd_temp: float = 0.0
-    set_temp: float = 0.0
-    livetime: float = 0.0
-    stackcnt: int = 0
-    cvf: float = 0.0
-    key_gain: int = 0
-    key_offset: int = 0
+    iso_speed: float = 0.0 #: ISO speed value as a float
+    exposure: float = 0.0 #: Exposure time as a float (s)
+    aperture: float = 0.0 #: Aperture value as a float
+    ccd_temp: float = 0.0 #: CCD temperature as a float
+    set_temp: float = 0.0 #: CCD set temperature as a float
+    livetime: float = 0.0 #: Sum of exposure times (s)
+    stackcnt: int = 0 #: Number of stacked frames
+    cvf: float = 0.0 #: Conversion factor (e- / ADU)
+    key_gain: int = 0 #: Gain factor read in camera
+    key_offset: int = 0 #: Offset value read in camera
 
     # Focuser data
-    focuspos: int = 0
+    focuspos: int = 0 #: Focuser position
     focussz: int = 0
-    foctemp: float = 0.0
+    foctemp: float = 0.0 #: Focuser temperature
 
     # Position data
     _centalt: float = 0.0
@@ -701,72 +701,72 @@ class PSFStar:
         default=None,
         metadata={"doc": "Name or identifier of the star"}
     )
-    B: float = 0.0              # average sky background value
-    A: float = 0.0              # amplitude
-    x0: float = 0.0            # coordinates of the peak
+    B: float = 0.0              #: average sky background value
+    A: float = 0.0              #: amplitude
+    x0: float = 0.0            #: coordinates of the peak
     y0: float = 0.0
-    sx: float = 0.0            # Size of the fitted function on the x and y axis in PSF coordinates
+    sx: float = 0.0            #: Size of the fitted function on the x and y axis in PSF coordinates
     sy: float = 0.0
-    fwhmx: float = 0.0         # FWHM in x and y axis
+    fwhmx: float = 0.0         #: FWHM in x and y axis
     fwhmy: float = 0.0
-    fwhmx_arcsec: float = 0.0  # FWHM in x and y axis in arc second
+    fwhmx_arcsec: float = 0.0  #: FWHM in x and y axis in arc second
     fwhmy_arcsec: float = 0.0
-    angle: float = 0.0         # angle of the axis x,y with respect to the image's
-    rmse: float = 0.0          # RMSE of the minimization
-    sat: float = 0.0           # Level above which pixels have satured
-    R: int = 0                 # Optimized box size to enclose sufficient pixels in the background
+    angle: float = 0.0         #: angle of the axis x,y with respect to the image's
+    rmse: float = 0.0          #: RMSE of the minimization
+    sat: float = 0.0           #: Level above which pixels have satured
+    R: int = 0                 #: Optimized box size to enclose sufficient pixels in the background
     has_saturated: bool = False
 
     # Moffat parameters
-    beta: float = 0.0          # Moffat equation beta parameter
+    beta: float = 0.0          #: Moffat equation beta parameter
     profile: StarProfile = StarProfile.GAUSSIAN  # Whether profile is Gaussian or Moffat
 
-    xpos: float = 0.0          # position of the star in the image
+    xpos: float = 0.0          #: position of the star in the image
     ypos: float = 0.0
 
     # photometry data
-    mag: float = 0.0           # (V)magnitude, approximate or accurate
-    Bmag: float = 0.0          # B magnitude
-    s_mag: float = 999.99      # error on the (V)magnitude
-    s_Bmag: float = 999.99     # error on the B magnitude
-    SNR: float = 0.0           # SNR of the star
-    BV: float = 0.0            # only used to pass data in photometric color calibration
+    mag: float = 0.0           #: (V)magnitude, approximate or accurate
+    Bmag: float = 0.0          #: B magnitude
+    s_mag: float = 999.99      #: error on the (V)magnitude
+    s_Bmag: float = 999.99     #: error on the B magnitude
+    SNR: float = 0.0           #: SNR of the star
+    BV: float = 0.0            #: only used to pass data in photometric color calibration
 
     # uncertainties
-    B_err: float = 0.0
-    A_err: float = 0.0
-    x_err: float = 0.0
-    y_err: float = 0.0
-    sx_err: float = 0.0
-    sy_err: float = 0.0
-    ang_err: float = 0.0
-    beta_err: float = 0.0
+    B_err: float = 0.0 #: error in B
+    A_err: float = 0.0 #: error in A
+    x_err: float = 0.0 #: error in x
+    y_err: float = 0.0 #: error in y
+    sx_err: float = 0.0 #: error in sx
+    sy_err: float = 0.0 #: error in sy
+    ang_err: float = 0.0 #: error in angle
+    beta_err: float = 0.0 #: error in beta
 
-    layer: int = 0
+    layer: int = 0  #: image channel on which the star modelling was carried out
     units: Optional[str] = None
-    ra: float = 0.0            # Right Ascension
-    dec: float = 0.0           # Declination
+    ra: float = 0.0            #: Right Ascension
+    dec: float = 0.0           #: Declination
 
 @dataclass
 class RegData:
     """Python equivalent of Siril regdata structure"""
-    fwhm: float = 0.0                    # copy of fwhm->fwhmx, used as quality indicator
-    weighted_fwhm: float = 0.0           # used to exclude spurious images
-    roundness: float = 0.0               # fwhm->fwhmy / fwhm->fwhmx, 0 when uninit, ]0, 1] when set
-    quality: float = 0.0
-    background_lvl: float = 0.0
-    number_of_stars: int = 0
+    fwhm: float = 0.0                    #: copy of fwhm->fwhmx, used as quality indicator
+    weighted_fwhm: float = 0.0           #: used to exclude spurious images
+    roundness: float = 0.0               #: fwhm->fwhmy / fwhm->fwhmx, 0 when uninit, ]0, 1] when set
+    quality: float = 0.0                 #: measure of image quality
+    background_lvl: float = 0.0          #: background level
+    number_of_stars: int = 0             #: number of stars detected in the image
     H: Homography = field(default_factory=Homography)
 
 @dataclass
 class ImgData:
     """Python equivalent of Siril imgdata structure"""
-    filenum: int = 0              # real file index in the sequence
-    incl: bool = False           # selected in the sequence
-    _date_obs: Optional[datetime] = None  # date of the observation
-    _airmass: float = 0.0         # airmass of the image
-    rx: int = 0
-    ry: int = 0
+    filenum: int = 0              #: real file index in the sequence
+    incl: bool = False           #: selected in the sequence
+    _date_obs: Optional[datetime] = None  #: date of the observation
+    _airmass: float = 0.0         #: airmass of the image
+    rx: int = 0                 #: width
+    ry: int = 0                 #: height
 
     @property
     def airmass(self) -> float:
@@ -803,26 +803,26 @@ class ImgData:
 @dataclass
 class Sequence:
     """Python equivalent of Siril sequ structure"""
-    seqname: str = ""                    # name of the sequence
-    number: int = 0                      # number of images in the sequence
-    selnum: int = 0                      # number of selected images
-    fixed: int = 0                       # fixed length of image index in filename
-    nb_layers: int = -1                  # number of layers embedded in each image file
-    rx: int = 0                          # first image width
-    ry: int = 0                          # first image height
-    is_variable: bool = False            # sequence has images of different sizes
-    bitpix: int = 0                      # image pixel format, from fits
-    reference_image: int = 0             # reference image for registration
-    imgparam: List[ImgData] = None       # a structure for each image of the sequence
-    regparam: List[List[RegData]] = None # registration parameters for each layer
-    stats: List[List[ImageStats]] = None  # statistics of the images for each layer
-    beg: int = 0                         # imgparam[0]->filenum
-    end: int = 0                         # imgparam[number-1]->filenum
-    exposure: float = 0.0                # exposure of frames
+    seqname: str = ""                    #: name of the sequence
+    number: int = 0                      #: number of images in the sequence
+    selnum: int = 0                      #: number of selected images
+    fixed: int = 0                       #: fixed length of image index in filename
+    nb_layers: int = -1                  #: number of layers embedded in each image file
+    rx: int = 0                          #: first image width
+    ry: int = 0                          #: first image height
+    is_variable: bool = False            #: sequence has images of different sizes
+    bitpix: int = 0                      #: image pixel format, from fits
+    reference_image: int = 0             #: reference image for registration
+    imgparam: List[ImgData] = None       #: a structure for each image of the sequence
+    regparam: List[List[RegData]] = None #: registration parameters for each layer
+    stats: List[List[ImageStats]] = None #: statistics of the images for each layer
+    beg: int = 0                         #: imgparam[0]->filenum
+    end: int = 0                         #: imgparam[number-1]->filenum
+    exposure: float = 0.0                #: exposure of frames
     fz: bool = False
     type: SequenceType = None
-    cfa_opened_monochrome: bool = False  # CFA SER opened in monochrome mode
-    current: int = 0                     # file number currently loaded
+    cfa_opened_monochrome: bool = False  #: CFA SER opened in monochrome mode
+    current: int = 0                     #: file number currently loaded
     # The following fields are not currently implemented:
     # photometry: List[List[PSFStar]] = None  # psf for multiple stars
     # reference_star: int = 0              # reference star for apparent magnitude
