@@ -106,7 +106,7 @@ class _ConfigType(IntEnum):
     STRDIR = 4
     STRLIST = 5
 
-class SharedMemoryInfo(ctypes.Structure):
+class _SharedMemoryInfo(ctypes.Structure):
     """
     Structure matching the C-side shared memory info. Internal class:
     this is not intended for use in scripts.
@@ -1247,7 +1247,7 @@ class SirilInterface:
 
             try:
                 # Parse the shared memory information
-                shm_info = SharedMemoryInfo.from_buffer_copy(response)
+                shm_info = _SharedMemoryInfo.from_buffer_copy(response)
             except (AttributeError, BufferError, ValueError) as e:
                 raise ValueError(_("Invalid shared memory information received: {}").format(e))
 
@@ -1454,7 +1454,7 @@ class SirilInterface:
                 return None
             try:
                 # Parse the shared memory information
-                shm_info = SharedMemoryInfo.from_buffer_copy(response)
+                shm_info = _SharedMemoryInfo.from_buffer_copy(response)
             except (AttributeError, BufferError, ValueError) as e:
                 raise ValueError(_("Invalid shared memory information received: {}").format(e))
 
@@ -1533,7 +1533,7 @@ class SirilInterface:
 
             try:
                 # Parse the shared memory information
-                shm_info = SharedMemoryInfo.from_buffer_copy(response)
+                shm_info = _SharedMemoryInfo.from_buffer_copy(response)
             except (AttributeError, BufferError, ValueError) as e:
                 raise ValueError(_("Invalid shared memory information received: {}").format(e))
 
@@ -1616,7 +1616,7 @@ class SirilInterface:
 
             try:
                 # Parse the shared memory information
-                shm_info = SharedMemoryInfo.from_buffer_copy(response)
+                shm_info = _SharedMemoryInfo.from_buffer_copy(response)
             except (AttributeError, BufferError, ValueError) as e:
                 raise ValueError(_("Invalid shared memory information received: {}").format(e))
 
@@ -1700,7 +1700,7 @@ class SirilInterface:
 
             try:
                 # Parse the shared memory information
-                shm_info = SharedMemoryInfo.from_buffer_copy(response)
+                shm_info = _SharedMemoryInfo.from_buffer_copy(response)
             except (AttributeError, BufferError, ValueError) as e:
                 raise ValueError(_("Invalid shared memory information received: {}").format(e))
 
@@ -2393,7 +2393,7 @@ class SirilInterface:
 
             try:
                 # Parse the shared memory information
-                shm_info = SharedMemoryInfo.from_buffer_copy(response)
+                shm_info = _SharedMemoryInfo.from_buffer_copy(response)
             except (AttributeError, BufferError, ValueError) as e:
                 raise ValueError(_("Invalid shared memory information received: {}").format(e))
 
