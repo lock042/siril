@@ -473,9 +473,9 @@ static gboolean pyscript_version_check(const gchar *filename) {
 	gchar *buffer = NULL;
 	gsize length = 0;
 	gchar *scriptpath = g_build_path(G_DIR_SEPARATOR_S, siril_get_scripts_repo_path(), filename, NULL);
-	gboolean retval = FALSE;
+	gboolean retval = TRUE; // default to TRUE - if check_module_version() is not called there are no version requirements
 	#ifdef DEBUG_GITSCRIPTS
-	printf("checking script version requirements: %s\n", scriptpath);
+	printf("checking python script version requirements: %s\n", scriptpath);
 	#endif
 	file = g_file_new_for_path(scriptpath);
 	stream = (GInputStream *)g_file_read(file, NULL, &error);
