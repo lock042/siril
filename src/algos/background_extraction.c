@@ -1317,7 +1317,7 @@ void apply_background_extraction_to_sequence(struct background_data *background_
 		siril_log_color_message(_("Error reading reference metadata.\n"), "red");
 		return;
 	}
-	background_args->is_cfa = (!strncmp(metadata.keywords.bayer_pattern, "RGGB", 4) ||
+	background_args->is_cfa = background_args->seq->nb_layers == 1 && (!strncmp(metadata.keywords.bayer_pattern, "RGGB", 4) ||
 							!strncmp(metadata.keywords.bayer_pattern, "BGGR", 4) ||
 							!strncmp(metadata.keywords.bayer_pattern, "GBRG", 4) ||
 							!strncmp(metadata.keywords.bayer_pattern, "GRBG", 4));
