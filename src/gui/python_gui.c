@@ -709,7 +709,7 @@ void on_action_file_close(GSimpleAction *action, GVariant *parameter, gpointer u
 }
 
 void on_action_file_open(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (!buffer_modified || siril_confirm_dialog(_("Are you sure?"), _("This will clear the entry buffer. You will not be able to recover any contents."), _("Proceed"))) {
+	if (!buffer_modified || siril_confirm_dialog(_("Are you sure?"), _("This will replace the entry buffer. You will not be able to recover any contents."), _("Proceed"))) {
 		if (G_IS_OBJECT(current_file))
 			g_object_unref(current_file);
 		current_file = NULL;
@@ -780,11 +780,11 @@ void on_scratchpad_recent_menu_activated(GtkRecentChooser *chooser, gpointer use
 		return;
 	}
 
-	load_file(file);
-
-	current_file = g_object_ref(file);
-	update_title(current_file);
-
+	if (!buffer_modified || siril_confirm_dialog(_("Are you sure?"), _("This will replace the entry buffer. You will not be able to recover any contents."), _("Proceed"))) {
+		load_file(file);
+		current_file = g_object_ref(file);
+		update_title(current_file);
+	}
 	g_object_unref(file);
 	g_free(uri);
 }
