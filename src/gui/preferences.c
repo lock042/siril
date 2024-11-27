@@ -227,7 +227,7 @@ static void update_scripts_preferences() {
 	if (com.pref.gui.script_path)
 		g_slist_free_full(g_steal_pointer(&com.pref.gui.script_path), g_free);
 	com.pref.gui.script_path = get_list_from_preferences_dialog();
-	com.pref.gui.warn_script_run = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")));
+	com.pref.gui.warn_scripts_run = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")));
 	com.pref.script_check_requires = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("script_check_version")));
 #ifdef HAVE_LIBGIT2
 	com.pref.use_scripts_repository = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_use_gitscripts")));
@@ -850,7 +850,7 @@ void update_preferences_from_model() {
 
 	/* tab Scripts */
 	pref->gui.script_path = set_list_to_preferences_dialog(pref->gui.script_path);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")), pref->gui.warn_script_run);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("miscAskScript")), pref->gui.warn_scripts_run);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("script_check_version")), pref->script_check_requires);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_use_gitscripts")), pref->use_scripts_repository);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget("pref_script_automatic_updates")), pref->auto_script_update);

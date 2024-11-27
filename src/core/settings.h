@@ -230,7 +230,8 @@ struct gui_config {
 	gboolean icon_symbolic;	// icon style
 
 	GSList *script_path;	// script path directories
-	gboolean warn_script_run; // show the notice when starting a script
+	gboolean warn_scripts_run; // show the notice when starting a script
+							// updated with new warning wording to force redisplay
 
 	gboolean show_thumbnails; // show thumbnails in open dialog box
 	gint thumbnail_size;

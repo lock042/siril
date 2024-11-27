@@ -45,7 +45,7 @@
 #include "algos/sorting.h"
 #include "script_menu.h"
 
-#define CONFIRM_RUN_SCRIPTS _("You are about to use scripts. Running automatic scripts is something that is easy and generally it provides a nice image. However you have to keep in mind that scripts are not magic; automatic choices are made where human decision would probably be better. Also, every command used in a script is available on the interface with a better parameter control.")
+#define CONFIRM_RUN_SCRIPTS _("You are about to use scripts. Note that scripts execute code with your current user privileges. While Siril Script Files can only execute Siril commands and a very small number of specific external programs, Python scripts are considerably more powerful and execute code not written by the Siril team. Ensure you obtain scripts from a reputable source.")
 
 static GtkWidget *menuscript = NULL;
 
@@ -154,22 +154,28 @@ static GSList *search_script(const char *path) {
 	return list;
 }
 
+gboolean accept_script_warning_dialog() {
+	if (com.pref.gui.warn_scripts_run) {
+		gboolean dont_show_again;
+		gboolean confirm = siril_confirm_dialog_and_remember(_("Please read me before using scripts"),
+				CONFIRM_RUN_SCRIPTS, _("Run Script"), &dont_show_again);
+		if (!confirm)
+			return FALSE;
+
+		com.pref.gui.warn_scripts_run = !dont_show_again;
+		writeinitfile();
+	}
+	return TRUE;
+}
+
 static void on_script_execution(GtkMenuItem *menuitem, gpointer user_data) {
 	if (get_thread_run()) {
 		PRINT_ANOTHER_THREAD_RUNNING;
 		return;
 	}
 
-	if (com.pref.gui.warn_script_run) {
-		gboolean dont_show_again;
-		gboolean confirm = siril_confirm_dialog_and_remember(_("Please read me before using scripts"),
-				CONFIRM_RUN_SCRIPTS, _("Run Script"), &dont_show_again);
-		if (!confirm)
-			return;
-
-		com.pref.gui.warn_script_run = !dont_show_again;
-		writeinitfile();
-	}
+	if (!accept_script_warning_dialog())
+		return;
 
 	if (com.script_thread)
 		g_thread_join(com.script_thread);

@@ -21,6 +21,7 @@
 #include "gui/script_menu.h"
 #include "gui/utils.h"
 #include "io/siril_pythonmodule.h"
+#include "script_menu.h"
 
 #include "python_gui.h"
 
@@ -680,12 +681,29 @@ void on_action_file_close(GSimpleAction *action, GVariant *parameter, gpointer u
 	gint char_count = gtk_text_buffer_get_char_count(GTK_TEXT_BUFFER(sourcebuffer));
 	gboolean is_empty = (char_count == 0);
 	if (!is_empty) {
-		on_action_file_new(action, parameter, user_data);
+		GtkTextIter start, end;
+		gtk_text_buffer_get_bounds(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
+		if (!buffer_modified || siril_confirm_dialog(_("Are you sure?"), _("This will clear the entry buffer. You will not be able to recover any contents."), _("Proceed"))) {
+			if (G_IS_OBJECT(current_file))
+				g_object_unref(current_file);
+			current_file = NULL;
+			gtk_source_buffer_begin_not_undoable_action(sourcebuffer);
+			gtk_text_buffer_delete(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
+			buffer_modified = FALSE;
+			gtk_text_buffer_set_modified(GTK_TEXT_BUFFER(sourcebuffer), FALSE);
+			gtk_source_buffer_end_not_undoable_action(sourcebuffer);
+			gtk_window_set_title(GTK_WINDOW(editor_window), "unsaved");
+			gtk_widget_queue_draw(GTK_WIDGET(editor_window));
+			gtk_widget_hide(GTK_WIDGET(editor_window));
+			return;
+		} else {
+			return;
+		}
 	} else {
 		if (G_IS_OBJECT(current_file))
 			g_object_unref(current_file);
 		current_file = NULL;
-		gtk_window_set_title(GTK_WINDOW(editor_window), "");
+		gtk_window_set_title(GTK_WINDOW(editor_window), "unsaved");
 	}
 	gtk_widget_hide(GTK_WIDGET(editor_window));
 }
@@ -1045,6 +1063,9 @@ void setup_python_editor_window() {
 }
 
 void on_action_file_execute(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (!accept_script_warning_dialog())
+		return;
+
 	// Get the start and end iterators
 	GtkTextIter start, end;
 	gtk_text_buffer_get_bounds(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
