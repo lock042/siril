@@ -98,7 +98,7 @@ class FKeywords:
     # Camera settings
     bayer_xoffset: int = 0
     bayer_yoffset: int = 0
-    airmass: float = 1.0
+    _airmass: float = 1.0
     focal_length: float = 0.0
     flength: float = 0.0
     iso_speed: float = 0.0
@@ -303,13 +303,13 @@ class FKeywords:
     @property
     def centalt(self) -> float:
         """
-        Gets the centre altitude of the image.
+        Gets the centre altitude of the image as a float.
         """
         return self._centalt
 
     def set_centalt(self, value: float) -> None:
         """
-        Sets the centre altitude of the image.
+        Sets the centre altitude of the image as a float.
         """
         if value <= 90:
             self._centalt = value
@@ -319,13 +319,13 @@ class FKeywords:
     @property
     def centaz(self) -> float:
         """
-        Gets the centre azimuth of the image.
+        Gets the centre azimuth of the image as a float.
         """
         return self._centaz
 
     def set_centaz(self, value: float) -> None:
         """
-        Sets the centre azimuth of the image.
+        Sets the centre azimuth of the image as a float.
         """
         if 0 <= value < 360:
             self._centaz = value
@@ -335,13 +335,13 @@ class FKeywords:
     @property
     def sitelat(self) -> float:
         """
-        Gets the site latitude.
+        Gets the site latitude keyword value as a float.
         """
         return self._sitelat
 
     def set_sitelat(self, value: float) -> None:
         """
-        Sets the site latitude.
+        Sets the site latitude keyword value as a float.
         """
         if -90 <= value <= 90:
             self._sitelat = value
@@ -350,11 +350,15 @@ class FKeywords:
 
     @property
     def sitelong(self) -> float:
-        """Gets the site longitude of the image."""
+        """
+        Gets the site longitude keyword value as a float.
+        """
         return self._sitelong
 
     def set_sitelong(self, value: float) -> None:
-        """Sets the site longitude of the image."""
+        """
+        Sets the site longitude keyword value as a float.
+        """
         if 0 <= value < 360:
             self._sitelong = value
         else:
@@ -362,22 +366,26 @@ class FKeywords:
 
     @property
     def sitelat_str(self) -> str:
-        """Gets the site latitude of the image as a string."""
+        """
+        Gets the site latitude keyword value of the image as a string.
+        """
         return self._sitelat_str
 
     @sitelat_str.setter
     def sitelat_str(self, value: str) -> None:
-        """Sets the site latitude of the image as a string."""
+        """
+        Sets the site latitude keyword value of the image as a string.
+        """
         self._sitelat_str = value[:70]
 
     @property
     def sitelong_str(self) -> str:
-        """Gets the site longitude of the image as a string."""
+        """Gets the site longitude keyword value of the image as a string."""
         return self._sitelong_str
 
     @sitelong_str.setter
     def sitelong_str(self, value: str) -> None:
-        """Sets the site longitude of the image as a string."""
+        """Sets the site longitude keyword value of the image as a string."""
         self._sitelong_str = value[:70]
 
     @property
@@ -396,10 +404,16 @@ class FKeywords:
         """
         self._bayer_pattern = value[:70]
 
+    @property
+    def airmass(self) -> float:
+        """Gets the airmass keyword value as a floating point value."""
+        return self._airmass
+
+    @airmass.setter
     def set_airmass(self, value: float) -> None:
-        """Sets the airmass as a floating point value."""
+        """Sets the airmass keyword value as a floating point value."""
         if value >= 1:
-            self.airmass = value
+            self._airmass = value
         else:
             raise ValueError(_("airmass must be greater than or equal to 1"))
 
@@ -749,10 +763,42 @@ class ImgData:
     """Python equivalent of Siril imgdata structure"""
     filenum: int = 0              # real file index in the sequence
     incl: bool = False           # selected in the sequence
-    date_obs: Optional[datetime] = None  # date of the observation
-    airmass: float = 0.0         # airmass of the image
+    _date_obs: Optional[datetime] = None  # date of the observation
+    _airmass: float = 0.0         # airmass of the image
     rx: int = 0
     ry: int = 0
+
+    @property
+    def airmass(self) -> float:
+        """Get the airmass value of the Siril imgdata structure"""
+        return self._airmass
+
+    @airmass.setter
+    def set_airmass(self, value: float) -> None:
+        """
+        Get the airmass value of the Siril imgdata structure
+        The value of airmass must be >= 1.0
+        """
+        if value >= 1:
+            self._airmass = value
+        else:
+            raise ValueError(_("airmass must be greater than or equal to 1"))
+
+    @property
+    def date_obs(self) -> Optional[datetime]:
+        """
+        Gets the FITS DATE-OBS keyword, which represents the date
+        on which the observation was made.
+        """
+        return self._date_obs
+
+    @date_obs.setter
+    def date_obs(self, value: Optional[datetime]) -> None:
+        """
+        Sets the FITS DATE-OBS keyword, which represents the date
+        on which the observation was made.
+        """
+        self._date_obs = value
 
 @dataclass
 class Sequence:

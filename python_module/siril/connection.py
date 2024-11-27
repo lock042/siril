@@ -2024,8 +2024,8 @@ class SirilInterface:
             return ImgData (
                 filenum = values[0],
                 incl = values[1],
-                date_obs = datetime.fromtimestamp(values[2]) if values[2] != 0 else None,
-                airmass = values[3],
+                _date_obs = datetime.fromtimestamp(values[2]) if values[2] != 0 else None,
+                _airmass = values[3],
                 rx = values[4],
                 ry = values[5]
             )
@@ -2226,7 +2226,7 @@ class SirilInterface:
                 siteelev=values[31],
                 bayer_xoffset=values[32],
                 bayer_yoffset=values[33],
-                airmass=values[34],
+                _airmass=values[34],
                 focal_length=values[35],
                 flength=values[36],
                 iso_speed=values[37],
