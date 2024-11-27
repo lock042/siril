@@ -165,7 +165,7 @@ void add_code_view(GtkBuilder *builder) {
 
 	gtk_widget_show(GTK_WIDGET(map));
 	gtk_source_map_set_view(map, code_view);
-	gtk_box_pack_start(GTK_BOX(codeviewbox), GTK_WIDGET(map), FALSE, FALSE, 0);
+	gtk_box_pack_end(GTK_BOX(codeviewbox), GTK_WIDGET(map), FALSE, FALSE, 0);
 
 	// Set the GtkSourceView style depending on whether the Siril light or dark
 	// theme is set.
