@@ -130,3 +130,28 @@ def match_theme_to_siril(themed_tk, s):
             raise RuntimeError("No valid theme-setting method found")
     except Exception as e:
         raise RuntimeError(f"Failed to set theme: {e}")
+
+def standard_style():
+    """
+    Provide a standardised ttk style to allow consistent visual appearance
+    between different Siril python scripts.
+
+    Args:
+        none
+
+    Raises:
+        RuntimeError: If the style creation or configuration fails
+    """
+    try:
+        style = ttk.Style()
+        # Configure style
+        style.configure("TFrame", padding=5)
+        style.configure("TButton", padding=5)
+        style.configure("TCheckbutton", padding=2)
+        style.configure("TLabel", padding=2)
+        style.configure("Header.TLabel", font=("Helvetica", 12, "bold"))
+        style.configure("Value.TLabel", font=("Helvetica", 9))
+        return style
+
+    except Exception as e:
+        raise RuntimeError(f"Failed to configure style: {e}")
