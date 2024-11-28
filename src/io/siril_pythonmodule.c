@@ -1413,6 +1413,16 @@ cleanup:
 }
 
 static gboolean check_or_create_venv(const gchar *project_path, GError **error) {
+	// Check we aren't in a msys2 environment
+	gchar **env = g_get_environ();
+	const gchar *msys = g_environ_getenv(env, "MSYSTEM");
+	if (msys) {
+		siril_log_color_message(_("Error: msys2 environment detected. Siril python support cannot work with msys2 python.\n"), "red");
+		g_strfreev(env);
+		return FALSE;
+	}
+	g_strfreev(env);
+
 	gchar *venv_path = g_build_filename(project_path, "venv", NULL);
 	siril_debug_print("venv path: %s\n", venv_path);
 	gchar *python_exe = find_venv_python_exe(venv_path, FALSE);
@@ -1535,7 +1545,6 @@ static gpointer initialize_python_venv(gpointer user_data) {
 	gpointer key, value;
 	g_hash_table_iter_init(&iter, venv_info->env_vars);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
-		// TODO: investigate some cases of errors being printed on Windows (key = "", value = C:=C:\{some path})
 		if (!g_setenv((const gchar*)key, (const gchar*)value, TRUE))
 			siril_debug_print("Error in g_setenv: key = %s, value = %s\n", (const gchar*) key, (const gchar*) value);
 	}
