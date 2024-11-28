@@ -1206,19 +1206,22 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 	siril_debug_print("Python path: %s\n", python_path);
 	g_return_val_if_fail(python_path != NULL, FALSE);
 	gboolean needs_install = FALSE;
-	gchar* module_setup_path = NULL;
+	gchar* module_setup_path = get_setup_path(module_path);
+	GError* modver_error = NULL;
+	version_number module_version = get_module_version(module_setup_path, &modver_error);
+	if (modver_error) {
+		g_propagate_error(error, modver_error);
+		g_free(module_setup_path);
+		g_free(python_path);
+		return FALSE;
+	}
 
 	// Check if temp module directory exists
 	if (!g_file_test(user_module_path, G_FILE_TEST_EXISTS)) {
 		needs_install = TRUE;
 	} else {
-		// Compare versions if temp directory exists
-		module_setup_path = get_setup_path(module_path);
-
 		GError* ver_error = NULL;
-
 		version_number user_version = get_installed_module_version(python_path, &ver_error);
-
 		if (ver_error) { // May just mean it's not installed: anyway we will try
 			siril_debug_print("Module version check error (harmless): %s\n", ver_error->message);
 			g_clear_error(&ver_error);
@@ -1226,25 +1229,48 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 			// user_version is {0} so the version check will require us to install it
 		}
 		siril_debug_print("User version: %d.%d.%d\n", user_version.major_version, user_version.minor_version, user_version.micro_version);
-		version_number module_version = get_module_version(module_setup_path, &ver_error);
-
-		if (ver_error) {
-			g_propagate_error(error, ver_error);
-			g_free(module_setup_path);
-			g_free(python_path);
-			return FALSE;
-		}
 		siril_debug_print("System version: %d.%d.%d\n", module_version.major_version, module_version.minor_version, module_version.micro_version);
 
 		// Check if module version is higher than temp version
 		if (compare_version(module_version, user_version) > 0) {
-			// Delete existing temp directory before new installation
-			GError* del_error = NULL;
-			if (!delete_directory(user_module_path, &del_error)) {
-				g_propagate_error(error, del_error);
-				g_free(module_setup_path);
-				g_free(python_path);
-				return FALSE;
+			needs_install = TRUE;
+		} else if (compare_version(module_version, user_version) < 0) {
+			// Downgrading: perhaps we havebeen trying a development branch of Siril
+			// and are reverting to a stable branch or something. Attempt to uninstall
+			// then reinstall: if not, we get drastic and yeet the entire venv then
+			// rebuild it from scratch to force the downgrade
+			gint uninstall_status;
+			GError *uninstall_error = NULL;
+			gchar *argv[] = {
+				python_path,
+				"-m",
+				"pip",
+				"uninstall",
+				"-y",
+				"siril",
+				NULL  // Array must be NULL-terminated
+			};
+			if (!g_spawn_sync(
+					NULL,           // working_directory (NULL = inherit current)
+					argv,           // argument vector
+					NULL,           // inherit parent's environment
+					G_SPAWN_DEFAULT, // flags
+					NULL,           // child_setup function
+					NULL,           // user_data for child_setup
+					NULL,           // standard_output
+					NULL,           // standard_error
+					&uninstall_status,   // exit status
+					&uninstall_error    // error
+				)) {
+				g_propagate_error(error, uninstall_error);
+				GError* del_error = NULL;
+				// Fallback, try to delete the entire venv and start again
+				if (!delete_directory(user_module_path, &del_error)) {
+					g_propagate_error(error, del_error);
+					g_free(module_setup_path);
+					g_free(python_path);
+					return FALSE;
+				}
 			}
 			needs_install = TRUE;
 		}
@@ -1309,6 +1335,7 @@ gboolean install_module_with_pip(const gchar* module_path, const gchar* user_mod
 			return FALSE;
 		}
 	}
+	memcpy(&com.python_version, &module_version, sizeof(version_number));
 	return TRUE;
 }
 
@@ -1546,6 +1573,12 @@ void shutdown_python_communication(CommunicationState *commstate) {
 
 void execute_python_script_async(gchar* script_name, gboolean from_file) {
 
+	version_number none = { 0 };
+	if (!memcmp(&none, &com.python_version, sizeof(version_number))) {
+		siril_log_color_message(_("Error: python not ready yet.\n"), "red");
+		return;
+	}
+
 	// Generate a unique connection path for the pipe or socket for this script
 	gchar *connection_path = NULL;
 	gchar *uuid = g_uuid_string_random();
@@ -1559,7 +1592,7 @@ void execute_python_script_async(gchar* script_name, gboolean from_file) {
 	CommunicationState commstate = {0};
 	commstate.python_conn = create_connection(connection_path);
 	if (!commstate.python_conn) {
-		siril_log_color_message(_("Error: failed to create Python connection"), "red");
+		siril_log_color_message(_("Error: failed to create Python connection.\n"), "red");
 		g_free(uuid);
 		g_free(connection_path);
 		return;
@@ -1659,9 +1692,10 @@ void execute_python_script_async(gchar* script_name, gboolean from_file) {
 			&error
 		);
 
-		g_strfreev(env);
 		g_free(python_path);
 	}
+
+	g_strfreev(env);
 
 	if (!success && error) {
 		siril_log_color_message(_("Failed to execute Python script: %s\n"), "red", error->message);

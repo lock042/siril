@@ -21,6 +21,7 @@
 #include "gui/script_menu.h"
 #include "gui/utils.h"
 #include "io/siril_pythonmodule.h"
+#include "script_menu.h"
 
 #include "python_gui.h"
 
@@ -164,7 +165,7 @@ void add_code_view(GtkBuilder *builder) {
 
 	gtk_widget_show(GTK_WIDGET(map));
 	gtk_source_map_set_view(map, code_view);
-	gtk_box_pack_start(GTK_BOX(codeviewbox), GTK_WIDGET(map), FALSE, FALSE, 0);
+	gtk_box_pack_end(GTK_BOX(codeviewbox), GTK_WIDGET(map), FALSE, FALSE, 0);
 
 	// Set the GtkSourceView style depending on whether the Siril light or dark
 	// theme is set.
@@ -220,7 +221,6 @@ static void setup_find_overlay() {
 	// Move find_overlay to new overlay
 	g_object_ref(find_overlay);
 	gtk_overlay_add_overlay(GTK_OVERLAY(new_overlay), GTK_WIDGET(find_overlay));
-	g_object_unref(find_overlay);
 
 	// Configure find_overlay position
 	gtk_widget_set_halign(GTK_WIDGET(find_overlay), GTK_ALIGN_END);
@@ -230,6 +230,8 @@ static void setup_find_overlay() {
 
 	gtk_revealer_set_transition_type(find_revealer, GTK_REVEALER_TRANSITION_TYPE_SLIDE_DOWN);
 	gtk_revealer_set_reveal_child(find_revealer, FALSE);
+
+	g_object_unref(find_overlay);
 }
 
 void toggle_find_overlay(gboolean show) {
@@ -264,6 +266,12 @@ static void update_search_info(SearchData *search_data) {
 		gtk_label_set_text(search_data->info_label, info_text);
 		g_free(info_text);
 	} else {
+		const char *text = gtk_entry_get_text(GTK_ENTRY(search_data->search_entry));
+		if (text != NULL && text[0] != '\0') {
+			GtkStyleContext *context;
+			context = gtk_widget_get_style_context(GTK_WIDGET(find_entry));
+			gtk_style_context_add_class(context, "search_empty");
+		}
 		gtk_label_set_text(search_data->info_label, "0/0");
 	}
 }
@@ -379,10 +387,14 @@ static gboolean perform_search(SearchData *search_data) {
 	const gchar *search_text = gtk_entry_get_text(search_data->search_entry);
 	GtkTextIter iter;
 	gboolean found = FALSE;
+	GtkStyleContext *context;
+	context = gtk_widget_get_style_context(GTK_WIDGET(find_entry));
+	gtk_style_context_remove_class(context, "search_empty");
 
 	// Clear previous highlighting and positions
 	clear_search_highlighting(search_data);
 	clear_match_positions(search_data);
+
 
 	search_data->total_matches = 0;
 	search_data->current_match = 0;
@@ -423,7 +435,6 @@ static gboolean perform_search(SearchData *search_data) {
 		search_data->current_match = 1;
 		goto_match(search_data, 1);
 	}
-
 	update_search_info(search_data);
 	return found;
 }
@@ -671,45 +682,64 @@ void on_action_file_close(GSimpleAction *action, GVariant *parameter, gpointer u
 	gint char_count = gtk_text_buffer_get_char_count(GTK_TEXT_BUFFER(sourcebuffer));
 	gboolean is_empty = (char_count == 0);
 	if (!is_empty) {
-		on_action_file_new(action, parameter, user_data);
+		GtkTextIter start, end;
+		gtk_text_buffer_get_bounds(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
+		if (!buffer_modified || siril_confirm_dialog(_("Are you sure?"), _("This will clear the entry buffer. You will not be able to recover any contents."), _("Proceed"))) {
+			if (G_IS_OBJECT(current_file))
+				g_object_unref(current_file);
+			current_file = NULL;
+			gtk_source_buffer_begin_not_undoable_action(sourcebuffer);
+			gtk_text_buffer_delete(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
+			buffer_modified = FALSE;
+			gtk_text_buffer_set_modified(GTK_TEXT_BUFFER(sourcebuffer), FALSE);
+			gtk_source_buffer_end_not_undoable_action(sourcebuffer);
+			gtk_window_set_title(GTK_WINDOW(editor_window), "unsaved");
+			gtk_widget_queue_draw(GTK_WIDGET(editor_window));
+			gtk_widget_hide(GTK_WIDGET(editor_window));
+			return;
+		} else {
+			return;
+		}
 	} else {
 		if (G_IS_OBJECT(current_file))
 			g_object_unref(current_file);
 		current_file = NULL;
-		gtk_window_set_title(GTK_WINDOW(editor_window), "");
+		gtk_window_set_title(GTK_WINDOW(editor_window), "unsaved");
 	}
 	gtk_widget_hide(GTK_WIDGET(editor_window));
 }
 
 void on_action_file_open(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	if (G_IS_OBJECT(current_file))
-		g_object_unref(current_file);
-	current_file = NULL;
-	GtkWidget *dialog = gtk_file_chooser_dialog_new(_("Open Script"),
-			GTK_WINDOW(lookup_widget("control_window")),
-			GTK_FILE_CHOOSER_ACTION_OPEN,
-			_("_Cancel"), GTK_RESPONSE_CANCEL,
-			_("_Open"), GTK_RESPONSE_ACCEPT,
-			NULL);
+	if (!buffer_modified || siril_confirm_dialog(_("Are you sure?"), _("This will replace the entry buffer. You will not be able to recover any contents."), _("Proceed"))) {
+		if (G_IS_OBJECT(current_file))
+			g_object_unref(current_file);
+		current_file = NULL;
+		GtkWidget *dialog = gtk_file_chooser_dialog_new(_("Open Script"),
+				GTK_WINDOW(lookup_widget("control_window")),
+				GTK_FILE_CHOOSER_ACTION_OPEN,
+				_("_Cancel"), GTK_RESPONSE_CANCEL,
+				_("_Open"), GTK_RESPONSE_ACCEPT,
+				NULL);
 
-	GtkFileFilter *filter = gtk_file_filter_new();
-	gtk_file_filter_add_pattern(filter, "*.py");
-	gtk_file_filter_add_pattern(filter, "*.ssf");
-	gtk_file_filter_set_name(filter, _("Script Files (*.py, *.ssf)"));
-	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+		GtkFileFilter *filter = gtk_file_filter_new();
+		gtk_file_filter_add_pattern(filter, "*.py");
+		gtk_file_filter_add_pattern(filter, "*.ssf");
+		gtk_file_filter_set_name(filter, _("Script Files (*.py, *.ssf)"));
+		gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 
-	gint res = gtk_dialog_run(GTK_DIALOG(dialog));
-	if (res == GTK_RESPONSE_ACCEPT) {
-		GFile *file = gtk_file_chooser_get_file(GTK_FILE_CHOOSER(dialog));
-		control_window_switch_to_tab(OUTPUT_LOGS);
-		load_file(file);
-		current_file = g_object_ref(file);
-		update_title(current_file);
-		g_object_unref(file);
+		gint res = gtk_dialog_run(GTK_DIALOG(dialog));
+		if (res == GTK_RESPONSE_ACCEPT) {
+			GFile *file = gtk_file_chooser_get_file(GTK_FILE_CHOOSER(dialog));
+			control_window_switch_to_tab(OUTPUT_LOGS);
+			load_file(file);
+			current_file = g_object_ref(file);
+			update_title(current_file);
+			g_object_unref(file);
+		}
+
+		gtk_widget_destroy(dialog);
+		gtk_window_present(editor_window);
 	}
-
-	gtk_widget_destroy(dialog);
-	gtk_window_present(editor_window);
 }
 
 void on_scratchpad_recent_menu_activated(GtkRecentChooser *chooser, gpointer user_data) {
@@ -751,11 +781,11 @@ void on_scratchpad_recent_menu_activated(GtkRecentChooser *chooser, gpointer use
 		return;
 	}
 
-	load_file(file);
-
-	current_file = g_object_ref(file);
-	update_title(current_file);
-
+	if (!buffer_modified || siril_confirm_dialog(_("Are you sure?"), _("This will replace the entry buffer. You will not be able to recover any contents."), _("Proceed"))) {
+		load_file(file);
+		current_file = g_object_ref(file);
+		update_title(current_file);
+	}
 	g_object_unref(file);
 	g_free(uri);
 }
@@ -879,9 +909,27 @@ void on_redo(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 }
 
 void on_cut(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	GtkTextBuffer *buffer = GTK_TEXT_BUFFER(sourcebuffer);
 	GtkClipboard *clipboard = gtk_widget_get_clipboard(GTK_WIDGET(code_view), GDK_SELECTION_CLIPBOARD);
-	gtk_text_buffer_cut_clipboard(GTK_TEXT_BUFFER(sourcebuffer),
-								clipboard, gtk_text_view_get_editable(GTK_TEXT_VIEW(code_view)));
+	GtkTextIter start, end;
+
+	// Check if there's a selection
+	if (!gtk_text_buffer_get_selection_bounds(buffer, &start, &end)) {
+		// No selection, so select the entire line
+		gtk_text_buffer_get_iter_at_mark(buffer, &start, gtk_text_buffer_get_insert(buffer));
+		gtk_text_iter_set_line_offset(&start, 0);
+
+		gtk_text_buffer_get_iter_at_mark(buffer, &end, gtk_text_buffer_get_insert(buffer));
+		gtk_text_iter_forward_to_line_end(&end);
+		// Move end to the start of the next line to include the newline
+		if (!gtk_text_iter_is_end(&end)) {
+			gtk_text_iter_forward_line(&end);
+		}
+		gtk_text_buffer_select_range(buffer, &start, &end);
+	}
+
+	// Cut the selected text (either the original selection or the entire line)
+	gtk_text_buffer_cut_clipboard(buffer, clipboard, gtk_text_view_get_editable(GTK_TEXT_VIEW(code_view)));
 }
 
 void on_copy(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -890,9 +938,12 @@ void on_copy(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
 }
 
 void on_paste(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	GtkClipboard *clipboard = gtk_widget_get_clipboard(GTK_WIDGET(code_view), GDK_SELECTION_CLIPBOARD);
-	gtk_text_buffer_paste_clipboard(GTK_TEXT_BUFFER(sourcebuffer),
-								clipboard, NULL, gtk_text_view_get_editable(GTK_TEXT_VIEW(code_view)));
+	if (gtk_revealer_get_reveal_child(GTK_REVEALER(find_revealer))) {
+		gtk_editable_paste_clipboard(GTK_EDITABLE(find_entry));
+	} else {
+		GtkClipboard *clipboard = gtk_widget_get_clipboard(GTK_WIDGET(code_view), GDK_SELECTION_CLIPBOARD);
+		gtk_text_buffer_paste_clipboard(GTK_TEXT_BUFFER(sourcebuffer), clipboard, NULL, gtk_text_view_get_editable(GTK_TEXT_VIEW(code_view)));
+	}
 }
 
 void on_find(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
@@ -1013,6 +1064,9 @@ void setup_python_editor_window() {
 }
 
 void on_action_file_execute(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+	if (!accept_script_warning_dialog())
+		return;
+
 	// Get the start and end iterators
 	GtkTextIter start, end;
 	gtk_text_buffer_get_bounds(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);

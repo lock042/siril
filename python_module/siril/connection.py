@@ -20,9 +20,10 @@ from pathlib import Path
 from enum import IntEnum
 from .translations import _
 from datetime import datetime
-from importlib import metadata
+from importlib import metadata, util
 from .shm import SharedMemoryWrapper
 from packaging import version, requirements
+from packaging.specifiers import SpecifierSet
 from typing import Tuple, Optional, List, Union, Any
 from .exceptions import SirilError, ConnectionError, CommandError, DataError, NoImageError, NoSequenceError
 from .models import DataType, ImageStats, FKeywords, FFit, Homography, StarProfile, PSFStar, RegData, ImgData, Sequence, SequenceType
@@ -90,6 +91,7 @@ class _Command(IntEnum):
     WCS2PIX = 35
     UNDO_SAVE_STATE = 36
     GET_BUNDLE_PATH = 37
+    ERROR_MESSAGEBOX = 38
     ERROR = 0xFF
 
 class _ConfigType(IntEnum):
@@ -105,7 +107,7 @@ class _ConfigType(IntEnum):
     STRDIR = 4
     STRLIST = 5
 
-class SharedMemoryInfo(ctypes.Structure):
+class _SharedMemoryInfo(ctypes.Structure):
     """
     Structure matching the C-side shared memory info. Internal class:
     this is not intended for use in scripts.
@@ -119,124 +121,154 @@ class SharedMemoryInfo(ctypes.Structure):
         ("shm_name", ctypes.c_char * 256)
     ]
 
-def import_or_install(module_name: str, version_constraint: Optional[str] = None, package_name: Optional[str] = None) -> Any:
+def ensure_installed(*packages: Union[str, List[str]],
+                     version_constraints: Optional[Union[str, List[str]]] = None) -> bool:
     """
-    Attempts to import a module, installing it via pip if not found or if version constraint not met.
+    Ensures that the specified package(s) are installed and meet optional version constraints.
 
     Args:
-        module_name (str): Name of the module to import
-        version_constraint (str, optional): Version constraint string (e.g. ">=1.5", "==2.0")
-        package_name (str, optional): Name of the package to install if different from module_name
+        *packages (str or List[str]): Name(s) of the package(s) to ensure are installed.
+        version_constraints (str or List[str], optional): Version constraint string(s)
+            (e.g. ">=1.5", "==2.0"). Can be a single constraint or a list matching packages.
 
     Returns:
-        module: The imported module object
+        bool: True if all packages are successfully installed or already meet constraints.
 
     Raises:
-        ImportError: If module cannot be imported even after installation attempt
-        subprocess.CalledProcessError: If pip installation fails
-        requirements.InvalidRequirement: If version constraint is invalid
+        RuntimeError: If package installation fails.
     """
-    package = package_name or module_name
+    # Normalize inputs to lists
+    if isinstance(packages[0], list):
+        packages = packages[0]
 
-    def check_version_constraint() -> bool:
-        """Check if installed package meets version constraint."""
-        if not version_constraint:
-            return True
+    # Handle version constraints
+    if version_constraints is None:
+        version_constraints = [None] * len(packages)
+    elif isinstance(version_constraints, str):
+        version_constraints = [version_constraints] * len(packages)
 
-        try:
-            # Using importlib.metadata to get package version
-            installed_version = metadata.version(package)
-            req_string = f"{package}{version_constraint}"
-            requirement = requirements.Requirement(req_string)
-            return version.parse(installed_version) in requirement.specifier
-        except metadata.PackageNotFoundError:
-            return False
+    # Ensure length consistency
+    if len(version_constraints) != len(packages):
+        raise ValueError("Number of packages must match number of version constraints")
 
-    def install_package():
-        """Install the package with exact version constraint."""
-        install_target = f"{package}{version_constraint}" if version_constraint else package
-        try:
-            subprocess.check_call([
-                sys.executable, "-m", "pip", "install",
-                install_target
-            ])
-        except subprocess.CalledProcessError as e:
-            print(f"Failed to install {install_target}. Error: {e}")
-            raise
+    # Track installation results
+    all_installed = True
 
-    # Try importing first
-    try:
-        module = importlib.import_module(module_name)
-        # Check version constraint if specified
-        if not check_version_constraint():
-            print(f"Installed version of {package} doesn't meet constraint {version_constraint}. Installing correct version...")
-            install_package()
-            # Reload the module to get the new version
-            if module_name in sys.modules:
-                importlib.reload(sys.modules[module_name])
-            module = importlib.import_module(module_name)
-        return module
-
-    except ImportError:
-        # Module not found, attempt installation
-        print(f"Module {module_name} not found. Attempting installation...")
-        install_package()
+    for package, constraint in zip(packages, version_constraints):
+        # Special handling for core/builtin modules
+        if util.find_spec(package) is not None:
+            continue
 
         try:
-            module = importlib.import_module(module_name)
-            # Verify version constraint after installation
-            if not check_version_constraint():
-                raise requirements.InvalidRequirement(
-                    f"Installed version of {package} doesn't meet constraint {version_constraint}"
-                )
-            return module
-        except ImportError as e:
-            print(f"Module {module_name} still couldn't be imported after installation.")
-            raise ImportError(f"Failed to import {module_name} even after installation attempt: {e}")
+            # Check if package is installed and meets version constraint
+            if _check_package_installed(package, constraint):
+                print(f"{package} {'is' if constraint is None else f'meets version {constraint}'}")
+                continue
 
-def ensure_installed(package_name: str, version_constraint: Optional[str] = None):
+            # Attempt installation
+            _install_package(package, constraint)
+
+        except Exception as e:
+            all_installed = False
+            print(f"Error processing {package}: {e}")
+            raise RuntimeError(f"Failed to install or verify package {package}") from e
+
+    return all_installed
+
+def _check_package_installed(package_name: str, version_constraint: Optional[str] = None) -> bool:
     """
-    Ensures that the specified package with the given version constraint is installed.
-    Installs the package if it is missing or if the version constraint is not met. Does
-    not attempt to install the module post installation.
+    Check if a package is installed and meets version constraint.
 
     Args:
-        package_name (str): Name of the package to ensure is installed.
-        version_constraint (str, optional): Version constraint string (e.g. ">=1.5", "==2.0").
+        package_name (str): Name of the package to check.
+        version_constraint (str, optional): Version constraint to validate.
+
+    Returns:
+        bool: True if package is installed and meets version constraint.
+    """
+    try:
+        # Check package existence
+        installed_version = metadata.version(package_name)
+
+        # If no version constraint, any version is fine
+        if version_constraint is None:
+            return True
+
+        # Validate version constraint
+        try:
+            from packaging import version
+            from packaging.requirements import Requirement
+
+            req_string = f"{package_name}{version_constraint}"
+            requirement = Requirement(req_string)
+            return version.parse(installed_version) in requirement.specifier
+
+        except ImportError:
+            # Fallback if packaging is not available
+            print("Warning: packaging library not found. Skipping precise version check.")
+            return True
+
+    except metadata.PackageNotFoundError:
+        return False
+
+def _install_package(package_name: str, version_constraint: Optional[str] = None):
+    """
+    Install a package with optional version constraint.
+
+    Args:
+        package_name (str): Name of the package to install.
+        version_constraint (str, optional): Version constraint for installation.
 
     Raises:
         subprocess.CalledProcessError: If pip installation fails.
-        requirements.InvalidRequirement: If version constraint is invalid.
     """
+    # Construct installation target
+    install_target = f"{package_name}{version_constraint}" if version_constraint else package_name
 
-    def check_version_constraint() -> bool:
-        """Check if any version is installed (if no constraint) or if it meets the version constraint."""
-        try:
-            installed_version = metadata.version(package_name)
-            if version_constraint:
-                req_string = f"{package_name}{version_constraint}"
-                requirement = requirements.Requirement(req_string)
-                return version.parse(installed_version) in requirement.specifier
-            return True  # Any version is acceptable if no version constraint is provided
-        except metadata.PackageNotFoundError:
-            return False
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", install_target],
+                               stdout=subprocess.DEVNULL,
+                               stderr=subprocess.DEVNULL)
+        print(f"Successfully installed {install_target}")
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to install {install_target}")
+        raise
 
-    def install_package():
-        """Install the package with exact version constraint."""
-        install_target = f"{package_name}{version_constraint}" if version_constraint else package_name
-        try:
-            subprocess.check_call([sys.executable, "-m", "pip", "install", install_target])
-            print(f"Successfully installed {install_target}.")
-        except subprocess.CalledProcessError as e:
-            print(f"Failed to install {install_target}. Error: {e}")
-            raise
+def check_module_version(requires=None):
+    """
+    Check the version of the Siril module is sufficient to support the
+    script. This is not mandatory if you are only using classes,
+    methods etc. that are provided in the initial public release, but
+    if you rely on methods that are noted int he API documentation as
+    having been added at a particular version of the module then you
+    must check the running siril module supports your script by
+    calling this function.
 
-    # Check if package meets version requirements or is installed
-    if not check_version_constraint():
-        print(f"{package_name} not found or doesn't meet version constraint {version_constraint}. Installing...")
-        install_package()
-    else:
-        print(f"{package_name} already installed and meets the version constraint {version_constraint}.")
+    Args:
+        requires (str): A version format specifier string following the
+                        same format used by pip, i.e. it may contain
+                        '==1.2', '!=3.4', '>5.6', '>=7.8', or a
+                        combination such as '>=1.2,<3.4'
+
+    Returns:
+        True if requires = None or if the available siril module version
+        satisfies the version specifier, otherwise False
+
+    Raises:
+        ValueError: if requires is an invalid version specifier.
+    """
+    import siril # required in order to have access to the namespace
+
+    if requires is None:
+        return True  # No version requirement
+
+    try:
+        # Create a SpecifierSet from the `requires` string
+        specifiers = SpecifierSet(requires)
+        # Check if siril.__version__ satisfies the specifiers
+        return version.parse(siril.__version__) in specifiers
+    except (version.InvalidVersion, ValueError):
+        raise ValueError(f"Invalid version specifier: {requires}")
 
 class SirilInterface:
     """
@@ -341,10 +373,14 @@ class SirilInterface:
             else:
                 raise SirilError(_("No socket connection to close"))
 
-    def _recv_exact(self, n: int, timeout: float = 5.0) -> Optional[bytes]:
+    def _recv_exact(self, n: int, timeout: Optional[float] = 5.0) -> Optional[bytes]:
         """
         Helper method to receive exactly n bytes from the socket or pipe.
         Internal method, not for direct use in scripts.
+
+        Args:
+            n: Number of bytes to receive
+            timeout: Timeout in seconds. None for indefinite timeout.
         """
         if n < 0:
             raise ValueError(_("Cannot receive negative number of bytes"))
@@ -353,7 +389,8 @@ class SirilInterface:
             # Pipe implementation
             try:
                 data = bytearray()
-                timeout_ms = int(timeout * 1000)
+                # Convert None timeout to effectively infinite wait
+                timeout_ms = int(timeout * 1000) if timeout is not None else win32event.INFINITE
 
                 while len(data) < n:
                     # Calculate remaining bytes to read
@@ -368,7 +405,7 @@ class SirilInterface:
                     # Wait for completion or timeout
                     rc = win32event.WaitForSingleObject(self.overlap_read.hEvent, timeout_ms)
 
-                    if rc == win32event.WAIT_TIMEOUT:
+                    if timeout is not None and rc == win32event.WAIT_TIMEOUT:
                         # Cancel the I/O operation
                         win32file.CancelIo(self.pipe_handle)
                         raise ConnectionError(_("Timeout while receiving data"))
@@ -392,6 +429,7 @@ class SirilInterface:
         else:
             # Socket implementation
             original_timeout = self.sock.gettimeout()
+            # Set to None if timeout is None, otherwise to the specified timeout
             self.sock.settimeout(timeout)
 
             try:
@@ -410,11 +448,20 @@ class SirilInterface:
             finally:
                 self.sock.settimeout(original_timeout)
 
-    def _send_command(self, command: _Command, data: Optional[bytes] = None) -> Tuple[Optional[int], Optional[bytes]]:
+    def _send_command(self, command: _Command, data: Optional[bytes] = None, timeout: Optional[float] = 5.0) -> Tuple[Optional[int], Optional[bytes]]:
+        """
+        Send a command and receive response with optional timeout.
+
+        Args:
+            command: Command to send
+            data: Optional data payload
+            timeout: Timeout for receive operations. None for indefinite timeout.
+        """
         try:
             data_length = len(data) if data else 0
             if data_length > 65529:
                 raise RuntimeError(_("Command data too long. Maximum command data 65529 bytes"))
+
             # Acquire lock before sending command
             if os.name == 'nt':
                 win32event.WaitForSingleObject(self.command_lock, win32event.INFINITE)
@@ -453,14 +500,14 @@ class SirilInterface:
                             raise ConnectionError(_("Incomplete write operation"))
 
                         # Wait for and receive complete response
-                        response_header = self._recv_exact(5)  # Fixed size header: 1 byte status + 4 bytes length
+                        response_header = self._recv_exact(5, timeout)  # Pass timeout
                         if not response_header:
                             return None, None
                         status, response_length = struct.unpack('!BI', response_header)
 
                         response_data = None
                         if response_length > 0:
-                            response_data = self._recv_exact(response_length)
+                            response_data = self._recv_exact(response_length, timeout)  # Pass timeout
                             if not response_data:
                                 return None, None
 
@@ -471,21 +518,21 @@ class SirilInterface:
                         win32file.CloseHandle(event_handle)
 
                 else:
-                    # Socket implementation remains unchanged
+                    # Socket implementation
                     msg = header
                     if data and data_length > 0:
                         msg += data
 
                     self.sock.sendall(msg)
 
-                    response_header = self._recv_exact(5)
+                    response_header = self._recv_exact(5, timeout)  # Pass timeout
                     if not response_header:
                         return None, None
 
                     status, response_length = struct.unpack('!BI', response_header)
                     response_data = None
                     if response_length > 0:
-                        response_data = self._recv_exact(response_length)
+                        response_data = self._recv_exact(response_length, timeout)  # Pass timeout
                         if not response_data:
                             return None, None
 
@@ -500,6 +547,66 @@ class SirilInterface:
 
         except Exception as e:
             raise CommandError(_("Error sending command: {}").format(e))
+
+    def _execute_command(self, command: _Command, payload: Optional[bytes] = None, timeout: Optional[float] = 5.0) -> bool:
+        """
+        High-level method to execute a command and handle the response.
+        Internal method, not for end-user use.
+
+        Args:
+            command: The command to execute
+            payload: Optional command payload
+            timeout: Timeout for command execution. None for indefinite timeout.
+
+        Returns:
+            True if command was successful, False otherwise
+        """
+        status, response = self._send_command(command, payload, timeout)
+
+        if status is None:
+            return False
+
+        if status == _Status.NONE:
+            # This indicates "allowed failure" - no data to return but not an error
+            return None
+
+        if status == _Status.ERROR:
+            error_msg = response.decode('utf-8') if response else _("Unknown error")
+            print(f"Command failed: {error_msg}", file=sys.stderr)
+            return False
+
+        return True
+
+    def _request_data(self, command: _Command, payload: Optional[bytes] = None, timeout: Optional[float] = 5.0) -> Optional[bytes]:
+        """
+        High-level method to request small-volume data from Siril. The
+        payload limit is 63336 bytes. For commands expected to return
+        larger volumes of data, SHM should be used.
+        Internal method, not for direct use in scripts.
+
+        Args:
+            command: The data request command
+            payload: Optional request parameters
+            timeout: Timeout for data request. None for indefinite timeout.
+
+        Returns:
+            Requested data or None if error
+        """
+        status, response = self._send_command(command, payload, timeout)
+
+        if status is None:
+            return None
+
+        if status == _Status.NONE:
+            # This indicates "allowed failure" - no data to return but not an error
+            return None
+
+        if status is None or status == _Command.ERROR:
+            error_msg = response.decode('utf-8') if response else _("Unknown error")
+            print(f"Data request failed: {error_msg}", file=sys.stderr)
+            return None
+
+        return response
 
     def _map_shared_memory(self, name: str, size: int) -> SharedMemoryWrapper:
         """
@@ -521,69 +628,6 @@ class SirilInterface:
         except Exception as e:
             raise RuntimeError(_("Failed to create shared memory mapping: {}").format(e))
 
-# _execute_command and _request_data are not intended to be used directly in scripts
-# They are used to implement more user-friendly commands (see below)
-
-    def _execute_command(self, command: _Command, payload: Optional[bytes] = None) -> bool:
-        """
-        High-level method to execute a command and handle the response.
-        Internal method, not for end-user use.
-
-        Args:
-            command: The command to execute,
-            payload: Optional command payload
-
-        Returns:
-            True if command was successful, False otherwise
-        """
-        status, response = self._send_command(command, payload)
-
-        if status is None:
-            return False
-
-        if status == _Status.NONE:
-            # This indicates "allowed failure" - no data to return but not an error
-            return None
-
-        if status == _Status.ERROR:
-            error_msg = response.decode('utf-8') if response else _("Unknown error")
-            print(f"Command failed: {error_msg}", file=sys.stderr)
-            return False
-
-        return True
-
-    def _request_data(self, command: _Command, payload: Optional[bytes] = None) -> Optional[bytes]:
-        """
-        High-level method to request small-volume data from Siril. The
-        payload limit is 63336 bytes. For commands expected to return
-        larger volumes of data, SHM should be used.
-        Internal method, not for direct use in scripts.
-
-        Args:
-            command: The data request command,
-            payload: Optional request parameters
-
-        Returns:
-            Requested data or None if error
-        """
-        status, response = self._send_command(command, payload)
-
-        if status is None:
-            return None
-
-        if status == _Status.NONE:
-            # This indicates "allowed failure" - no data to return but not an error
-            return None
-
-        if status is None or status == _Command.ERROR:
-            error_msg = response.decode('utf-8') if response else _("Unknown error")
-            print(f"Data request failed: {error_msg}", file=sys.stderr)
-            return None
-
-        return response
-
-    # Specific commands follow below here
-
     def _get_bundle_path(self) ->Optional[str]:
         """
         Request the bundle path directory. This is an internal method used
@@ -598,8 +642,9 @@ class SirilInterface:
         Raises:
             All exceptions are raised to the caller.
         """
-    def get_bundle_path(self):
+
         response = self._request_data(_Command.GET_BUNDLE_PATH)
+
         if response is None:
             raise RuntimeError("Failed to get bundle path - received null response")
 
@@ -625,6 +670,36 @@ class SirilInterface:
             # Convert string to bytes using UTF-8 encoding
             message_bytes = truncated_string.encode('utf-8')
             return self._execute_command(_Command.LOG_MESSAGE, message_bytes)
+
+        except Exception as e:
+            print(f"Error sending log message: {e}", file=sys.stderr)
+            return False
+
+    def error_messagebox(self, my_string: str, modal: Optional[bool] = False) -> bool:
+        """
+        Send an error message to Siril. The maximum message length is
+        1022 bytes: longer messages will be truncated (but this is more than
+        enough for an error message box). Note that the error message box is
+        not modal by default: this is intended for displaying an error message
+        more prominently than using the Siril log prior to quitting the
+        application.
+
+        Args:
+            my_string: The message to display in the error message box
+            modal: Sets whether or not the message box should be modal and
+                   wait for completion or non-modal and allow the script to
+                   continue execution.
+
+        Returns:
+            bool: True if the error was successfully displayed, False otherwise
+        """
+
+        try:
+            # Append a newline character to the string
+            truncated_string = my_string[:1021] + '\n'
+            # Convert string to bytes using UTF-8 encoding
+            message_bytes = truncated_string.encode('utf-8')
+            return self._execute_command(_Command.ERROR_MESSAGEBOX, message_bytes, timeout = None if modal else 5.0)
 
         except Exception as e:
             print(f"Error sending log message: {e}", file=sys.stderr)
@@ -779,10 +854,10 @@ class SirilInterface:
 
         Returns:
             An int representing the active vport:
-                0 = Red (or Mono)
-                1 = Green
-                2 = Blue
-                3 = RGB
+            0 = Red (or Mono),
+            1 = Green,
+            2 = Blue,
+            3 = RGB,
             or None if an error occurred.
         """
 
@@ -1216,7 +1291,7 @@ class SirilInterface:
 
             try:
                 # Parse the shared memory information
-                shm_info = SharedMemoryInfo.from_buffer_copy(response)
+                shm_info = _SharedMemoryInfo.from_buffer_copy(response)
             except (AttributeError, BufferError, ValueError) as e:
                 raise ValueError(_("Invalid shared memory information received: {}").format(e))
 
@@ -1392,7 +1467,7 @@ class SirilInterface:
 
         Returns:
             bytes: The image ICC profile as a byte array, or None if the current
-                   image has no ICC profile.
+            image has no ICC profile.
 
         Raises:
             NoImageError: If no image is currently loaded,
@@ -1423,7 +1498,7 @@ class SirilInterface:
                 return None
             try:
                 # Parse the shared memory information
-                shm_info = SharedMemoryInfo.from_buffer_copy(response)
+                shm_info = _SharedMemoryInfo.from_buffer_copy(response)
             except (AttributeError, BufferError, ValueError) as e:
                 raise ValueError(_("Invalid shared memory information received: {}").format(e))
 
@@ -1502,7 +1577,7 @@ class SirilInterface:
 
             try:
                 # Parse the shared memory information
-                shm_info = SharedMemoryInfo.from_buffer_copy(response)
+                shm_info = _SharedMemoryInfo.from_buffer_copy(response)
             except (AttributeError, BufferError, ValueError) as e:
                 raise ValueError(_("Invalid shared memory information received: {}").format(e))
 
@@ -1585,7 +1660,7 @@ class SirilInterface:
 
             try:
                 # Parse the shared memory information
-                shm_info = SharedMemoryInfo.from_buffer_copy(response)
+                shm_info = _SharedMemoryInfo.from_buffer_copy(response)
             except (AttributeError, BufferError, ValueError) as e:
                 raise ValueError(_("Invalid shared memory information received: {}").format(e))
 
@@ -1669,7 +1744,7 @@ class SirilInterface:
 
             try:
                 # Parse the shared memory information
-                shm_info = SharedMemoryInfo.from_buffer_copy(response)
+                shm_info = _SharedMemoryInfo.from_buffer_copy(response)
             except (AttributeError, BufferError, ValueError) as e:
                 raise ValueError(_("Invalid shared memory information received: {}").format(e))
 
@@ -1758,7 +1833,7 @@ class SirilInterface:
 
         Returns:
             bool: True if a single image is loaded, False if a single image is
-                  not loaded, or None if an error occurred.
+            not loaded, or None if an error occurred.
         """
         response = self._request_data(_Command.GET_IS_IMAGE_LOADED)
 
@@ -1774,7 +1849,7 @@ class SirilInterface:
 
         Returns:
             bool: True if a sequence is loaded, False if a sequence is not loaded,
-                  or None if an error occurred.
+            or None if an error occurred.
         """
         response = self._request_data(_Command.GET_IS_SEQUENCE_LOADED)
 
@@ -1992,8 +2067,8 @@ class SirilInterface:
             return ImgData (
                 filenum = values[0],
                 incl = values[1],
-                date_obs = datetime.fromtimestamp(values[2]) if values[2] != 0 else None,
-                airmass = values[3],
+                _date_obs = datetime.fromtimestamp(values[2]) if values[2] != 0 else None,
+                _airmass = values[3],
                 rx = values[4],
                 ry = values[5]
             )
@@ -2160,19 +2235,19 @@ class SirilInterface:
 
             # Create FKeywords object
             return FKeywords(
-                program=decode_string(values[0]),
-                filename=decode_string(values[1]),
-                row_order=decode_string(values[2]),
-                filter=decode_string(values[3]),
-                image_type=decode_string(values[4]),
-                object=decode_string(values[5]),
-                instrume=decode_string(values[6]),
-                telescop=decode_string(values[7]),
-                observer=decode_string(values[8]),
-                sitelat_str=decode_string(values[9]),
-                sitelong_str=decode_string(values[10]),
-                bayer_pattern=decode_string(values[11]),
-                focname=decode_string(values[12]),
+                _program=decode_string(values[0]),
+                _filename=decode_string(values[1]),
+                _row_order=decode_string(values[2]),
+                _filter=decode_string(values[3]),
+                _image_type=decode_string(values[4]),
+                _object=decode_string(values[5]),
+                _instrume=decode_string(values[6]),
+                _telescop=decode_string(values[7]),
+                _observer=decode_string(values[8]),
+                _sitelat_str=decode_string(values[9]),
+                _sitelong_str=decode_string(values[10]),
+                _bayer_pattern=decode_string(values[11]),
+                _focname=decode_string(values[12]),
                 bscale=values[13],
                 bzero=values[14],
                 lo=values[15],
@@ -2187,14 +2262,14 @@ class SirilInterface:
                 binning_y=values[24],
                 expstart=values[25],
                 expend=values[26],
-                centalt=values[27],
-                centaz=values[28],
-                sitelat=values[29],
-                sitelong=values[30],
+                _centalt=values[27],
+                _centaz=values[28],
+                _sitelat=values[29],
+                _sitelong=values[30],
                 siteelev=values[31],
                 bayer_xoffset=values[32],
                 bayer_yoffset=values[33],
-                airmass=values[34],
+                _airmass=values[34],
                 focal_length=values[35],
                 flength=values[36],
                 iso_speed=values[37],
@@ -2210,8 +2285,8 @@ class SirilInterface:
                 focuspos=values[47],
                 focussz=values[48],
                 foctemp=values[49],
-                date=timestamp_to_datetime(values[50]),
-                date_obs=timestamp_to_datetime(values[51])
+                _date=timestamp_to_datetime(values[50]),
+                _date_obs=timestamp_to_datetime(values[51])
             )
 
         except struct.error as e:
@@ -2362,7 +2437,7 @@ class SirilInterface:
 
             try:
                 # Parse the shared memory information
-                shm_info = SharedMemoryInfo.from_buffer_copy(response)
+                shm_info = _SharedMemoryInfo.from_buffer_copy(response)
             except (AttributeError, BufferError, ValueError) as e:
                 raise ValueError(_("Invalid shared memory information received: {}").format(e))
 
