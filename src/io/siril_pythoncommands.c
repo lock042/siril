@@ -17,6 +17,7 @@
 #include "gui/callbacks.h"
 #include "gui/image_interactions.h"
 #include "gui/progress_and_log.h"
+#include "gui/message_dialog.h"
 #include "gui/utils.h"
 #include "io/single_image.h"
 #include "io/sequence.h"
@@ -714,6 +715,17 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			// Ensure null-terminated string for log message
 			char* log_msg = g_strndup(payload, payload_length);
 			siril_log_message(log_msg);
+			g_free(log_msg);
+
+			// Send success response
+			success = send_response(conn, STATUS_OK, NULL, 0);
+			break;
+		}
+
+		case CMD_ERROR_MESSAGEBOX: {
+			// Ensure null-terminated string for log message
+			char* log_msg = g_strndup(payload, payload_length);
+			queue_error_message_dialog(_("Error"), log_msg);
 			g_free(log_msg);
 
 			// Send success response

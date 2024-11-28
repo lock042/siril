@@ -91,6 +91,7 @@ class _Command(IntEnum):
     WCS2PIX = 35
     UNDO_SAVE_STATE = 36
     GET_BUNDLE_PATH = 37
+    ERROR_MESSAGEBOX = 38
     ERROR = 0xFF
 
 class _ConfigType(IntEnum):
@@ -657,6 +658,33 @@ class SirilInterface:
             # Convert string to bytes using UTF-8 encoding
             message_bytes = truncated_string.encode('utf-8')
             return self._execute_command(_Command.LOG_MESSAGE, message_bytes)
+
+        except Exception as e:
+            print(f"Error sending log message: {e}", file=sys.stderr)
+            return False
+
+    def error_messagebox(self, my_string: str) -> bool:
+        """
+        Send an error message to Siril. The maximum message length is
+        1022 bytes: longer messages will be truncated (but this is more than
+        enough for an error message box). Note that the error message box is
+        not modal: this is intended for displaying an error message more
+        prominently than using the Siril log prior to quitting the
+        application.
+
+        Args:
+            my_string: The message to display in the error message box
+
+        Returns:
+            bool: True if the error was successfully displayed, False otherwise
+        """
+
+        try:
+            # Append a newline character to the string
+            truncated_string = my_string[:1021] + '\n'
+            # Convert string to bytes using UTF-8 encoding
+            message_bytes = truncated_string.encode('utf-8')
+            return self._execute_command(_Command.ERROR_MESSAGEBOX, message_bytes)
 
         except Exception as e:
             print(f"Error sending log message: {e}", file=sys.stderr)

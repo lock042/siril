@@ -49,6 +49,7 @@ typedef enum {
 	CMD_WCS2PIX = 35,
 	CMD_UNDO_SAVE_STATE = 36,
 	CMD_GET_BUNDLE_PATH = 37,
+	CMD_ERROR_MESSAGEBOX = 38,
 	CMD_ERROR = 0xFF
 } CommandType;
 
