@@ -27,6 +27,7 @@
 
 #include <gsl/gsl_errno.h>
 #include <gtk/gtk.h>
+#include <gtksourceview/gtksource.h>
 #include <stdio.h>
 #include <string.h>
 #include <locale.h>
@@ -259,6 +260,8 @@ static void siril_app_startup(GApplication *application) {
 
 	g_action_map_add_action_entries(G_ACTION_MAP(application), app_entries,
 			G_N_ELEMENTS(app_entries), application);
+	// Initialize GtkSource
+	gtk_source_init();
 }
 
 static void siril_app_activate(GApplication *application) {

@@ -725,7 +725,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		case CMD_ERROR_MESSAGEBOX: {
 			// Ensure null-terminated string for log message
 			char* log_msg = g_strndup(payload, payload_length);
-			siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), log_msg);
+			queue_error_message_dialog(_("Error"), log_msg);
 			g_free(log_msg);
 
 			// Send success response
