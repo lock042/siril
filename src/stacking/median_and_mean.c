@@ -403,7 +403,7 @@ static int stack_read_block_data(struct stacking_args *args,
 #ifdef STACK_DEBUG
 				fprintf(stdout, "shifty for image %d: %d\n", args->image_indices[frame], shifty);
 #endif
-				if (area.y + area.h + shifty < 0 || area.y + shifty >= ry) {
+				if (area.y + area.h + shifty <= 0 || area.y + shifty >= ry) {
 					// entirely outside image below or above: all black pixels
 					clear = TRUE; readdata = FALSE;
 				} else if (area.y + shifty < 0) {
@@ -421,6 +421,9 @@ static int stack_read_block_data(struct stacking_args *args,
 					area.h += ry - (area.y + area.h);
 				} else {
 					area.y += shifty;
+				}
+				if (area.h <= 0) { // as a last safety net
+					clear = TRUE; readdata = FALSE;
 				}
 			}
 #ifdef STACK_DEBUG
@@ -446,10 +449,6 @@ static int stack_read_block_data(struct stacking_args *args,
 			int retval = seq_opened_read_region(args->seq, my_block->channel,
 					args->image_indices[frame], buffer, &area, thread_id);
 			if (retval) {
-#ifdef _OPENMP
-				int tid = omp_get_thread_num();
-				if (tid == 0)
-#endif
 					siril_log_color_message(_("Error reading one of the image areas (%d: %d %d %d %d)\n"), "red", args->image_indices[frame] + 1,
 					area.x, area.y, area.w, area.h);
 				return ST_SEQUENCE_ERROR;
