@@ -221,7 +221,6 @@ static void setup_find_overlay() {
 	// Move find_overlay to new overlay
 	g_object_ref(find_overlay);
 	gtk_overlay_add_overlay(GTK_OVERLAY(new_overlay), GTK_WIDGET(find_overlay));
-	g_object_unref(find_overlay);
 
 	// Configure find_overlay position
 	gtk_widget_set_halign(GTK_WIDGET(find_overlay), GTK_ALIGN_END);
@@ -231,6 +230,8 @@ static void setup_find_overlay() {
 
 	gtk_revealer_set_transition_type(find_revealer, GTK_REVEALER_TRANSITION_TYPE_SLIDE_DOWN);
 	gtk_revealer_set_reveal_child(find_revealer, FALSE);
+
+	g_object_unref(find_overlay);
 }
 
 void toggle_find_overlay(gboolean show) {
