@@ -1412,17 +1412,82 @@ cleanup:
 	return NULL;
 }
 
+#ifdef _WIN32
+static gboolean convert_msys2_path() {
+	GError *error = NULL;
+	gchar *output = NULL;
+	gint exit_status;
+
+	// Spawn cygpath to convert Windows PATH
+	if (!g_spawn_command_line_sync("cygpath -u \"$(cmd //c echo %PATH%)\"",
+								&output,
+								NULL,
+								&exit_status,
+								&error)) {
+		g_printerr("Failed to spawn cygpath: %s\n", error->message);
+		g_clear_error(&error);
+		return FALSE;
+	}
+
+	// Check for non-zero exit status
+	if (exit_status != 0) {
+		g_printerr("Cygpath command failed with status %d\n", exit_status);
+		g_free(output);
+		return FALSE;
+	}
+
+	// Remove trailing newline
+	g_strstrip(output);
+
+	// Split the path into tokens
+	gchar **tokens = g_strsplit(output, ";", -1);
+
+	// Create a new string builder for filtered path
+	GString *filtered_path = g_string_new(NULL);
+
+	// Filter out msys-related paths
+	for (int i = 0; tokens[i] != NULL; i++) {
+		// Skip tokens containing 'msys' or 'usr/bin'
+		if (strstr(tokens[i], "msys") == NULL && strstr(tokens[i], "usr/bin") == NULL) {
+			// Add non-empty, filtered tokens
+			if (filtered_path->len > 0) {
+				g_string_append_c(filtered_path, ';');
+			}
+			g_string_append(filtered_path, tokens[i]);
+		}
+	}
+
+	// Get current environment
+	gchar **environ = g_get_environ();
+
+	// Set the new PATH environment variable
+	environ = g_environ_setenv(environ, "PATH", filtered_path->str, TRUE);
+
+	// Print the filtered path for verification
+	g_print("Filtered msys2 PATH: %s\n", filtered_path->str);
+
+	// Clean up
+	g_string_free(filtered_path, TRUE);
+	g_strfreev(tokens);
+	g_free(output);
+	g_strfreev(environ);
+	return TRUE;
+}
+#endif
+
 static gboolean check_or_create_venv(const gchar *project_path, GError **error) {
-	// Check we aren't in a msys2 environment
+#ifdef _WIN32
+	// Check if we are in a msys2 environment
 	gchar **env = g_get_environ();
 	const gchar *msys = g_environ_getenv(env, "MSYSTEM");
 	if (msys) {
-		siril_log_color_message(_("Error: msys2 environment detected. Siril python support cannot work with msys2 python.\n"), "red");
-		g_strfreev(env);
-		return FALSE;
+		if (!convert_msys2_path()) {
+			siril_log_color_message(_("Error: msys2 environment detected: failed to re-establish native Windows path. Python script integration is unavailable.\n"));
+			g_strfreev(env);
+			return FALSE;
 	}
 	g_strfreev(env);
-
+#endif
 	gchar *venv_path = g_build_filename(project_path, "venv", NULL);
 	siril_debug_print("venv path: %s\n", venv_path);
 	gchar *python_exe = find_venv_python_exe(venv_path, FALSE);
