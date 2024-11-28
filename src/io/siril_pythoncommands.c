@@ -603,6 +603,12 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 									GUINT32_FROM_BE(region_BE.y),
 									GUINT32_FROM_BE(region_BE.w),
 									GUINT32_FROM_BE(region_BE.h)};
+				if (selection.x < 0 || selection.x + selection.w > gfit.rx - 1 ||
+					selection.y < 0 || selection.y  + selection.h > gfit.ry - 1) {
+					const char* error_msg = _("Invalid region: selection breaches image dimensions");
+					success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+					break;
+				}
 			} else {
 				memcpy(&selection, &com.selection, sizeof(rectangle));
 			}
@@ -644,6 +650,7 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			} else {
 				success = send_response(conn, STATUS_OK, response_buffer, total_size);
 			}
+			free_stats(stats);
 			g_free(response_buffer);
 			break;
 		}

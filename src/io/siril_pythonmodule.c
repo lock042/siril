@@ -1692,9 +1692,10 @@ void execute_python_script_async(gchar* script_name, gboolean from_file) {
 			&error
 		);
 
-		g_strfreev(env);
 		g_free(python_path);
 	}
+
+	g_strfreev(env);
 
 	if (!success && error) {
 		siril_log_color_message(_("Failed to execute Python script: %s\n"), "red", error->message);

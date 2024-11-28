@@ -491,12 +491,12 @@ static gboolean pyscript_version_check(const gchar *filename) {
 		if (g_regex_match(regex, buffer, 0, &match_info)) {
 			retval = check_module_version_constraint(buffer, match_info);
 			matched = TRUE;
-			break;
 		}
 		g_match_info_free(match_info);
 		g_regex_unref(regex);
-		if (matched) break;
 		g_free(buffer);
+		if (matched)
+			break;
 	}
 	ERROR_OR_COMPLETE:
 	g_input_stream_close(stream, NULL, &error);
