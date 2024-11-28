@@ -8,16 +8,16 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-11-28 14:34+0100\n"
-"PO-Revision-Date: 2024-06-14 12:34+0000\n"
+"PO-Revision-Date: 2024-11-28 15:47+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
-"Language-Team: French <https://weblate.pixls.us/projects/siril/siril-"
-"application/fr/>\n"
+"Language-Team: French <https://weblate.siril.org/projects/siril/software/"
+"siril/fr/>\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 5.4.2\n"
+"X-Generator: Weblate 5.8.4\n"
 
 #: src/gui/uifiles/aavso_dialog.ui:7
 msgid "AAVSO parameters"
@@ -16101,6 +16101,9 @@ msgid ""
 "Statistics cannot be made on CFA images with a selection smaller than a 2x2 "
 "square, aborting\n"
 msgstr ""
+"Il n'est pas possible d'effectuer des statistiques sur les images CFA avec "
+"une sélection plus petite qu'un carré de 2x2, ce qui entraîne l'interruption "
+"de l'opération.\n"
 
 #: src/core/command.c:6713
 #, c-format
@@ -16108,13 +16111,13 @@ msgid "Statistics computation failed for channel %d (all nil?).\n"
 msgstr "Le calcul des statistiques a échoué pour le canal %d (tout nul ?).\n"
 
 #: src/core/command.c:6734
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "%s layer: Mean: %0.6f, Median: %0.1f, Sigma: %0.6f, Min: %0.1f, Max: %0.1f, "
 "bgnoise: %0.6f\n"
 msgstr ""
-"Canal %s : Moyenne : %0.1f, Médiane : %0.1f, Sigma : %0.1f, Min : %0.1f, "
-"Max : %0.1f, bgnoise : %0.1f\n"
+"Canal %s : Moyenne : %0.6f, Médiane : %0.1f, Sigma : %0.6f, Min : %0.1f, Max "
+": %0.1f, bgnoise : %0.6f\n"
 
 #: src/core/command.c:6739
 #, c-format
@@ -26722,6 +26725,8 @@ msgstr "Choisir un fichier d'étoiles de comparaison"
 #: src/gui/nina_light_curve.c:232
 msgid "The current comparison stars file is not located in the CWD"
 msgstr ""
+"Le fichier d'étoiles de comparaison actuel ne se trouve pas dans le dossier "
+"de travail"
 
 #: src/gui/nina_light_curve.c:241
 msgid "The currently loaded image must be plate solved"
