@@ -722,10 +722,14 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 			break;
 		}
 
-		case CMD_ERROR_MESSAGEBOX: {
+		case CMD_ERROR_MESSAGEBOX: // fallthrough intentional
+		case CMD_ERROR_MESSAGEBOX_MODAL: {
 			// Ensure null-terminated string for log message
 			char* log_msg = g_strndup(payload, payload_length);
-			queue_error_message_dialog(_("Error"), log_msg);
+			if (header->command == CMD_ERROR_MESSAGEBOX)
+				queue_error_message_dialog(_("Error"), log_msg);
+			else
+				siril_message_dialog(GTK_MESSAGE_ERROR, _("Error"), log_msg);
 			g_free(log_msg);
 
 			// Send success response

@@ -87,6 +87,7 @@ class _Command(IntEnum):
     UNDO_SAVE_STATE = 36
     GET_BUNDLE_PATH = 37
     ERROR_MESSAGEBOX = 38
+    ERROR_MESSAGEBOX_MODAL = 39
     ERROR = 0xFF
 
 class _ConfigType(IntEnum):
@@ -694,7 +695,10 @@ class SirilInterface:
             truncated_string = my_string[:1021] + '\n'
             # Convert string to bytes using UTF-8 encoding
             message_bytes = truncated_string.encode('utf-8')
-            return self._execute_command(_Command.ERROR_MESSAGEBOX, message_bytes, timeout = None if modal else 5.0)
+            if modal:
+                return self._execute_command(_Command.ERROR_MESSAGEBOX, message_bytes)
+            else:
+                return self._execute_command(_Command.ERROR_MESSAGEBOX_MODAL, message_bytes, timeout = None)
 
         except Exception as e:
             print(f"Error sending log message: {e}", file=sys.stderr)
