@@ -62,7 +62,6 @@
 #include "io/single_image.h"
 #include "io/siril_catalogues.h"
 #include "io/local_catalogues.h"
-#include "io/remote_catalogues.h"
 #include "io/FITS_symlink.h"
 #include "io/fits_keywords.h"
 #include "drizzle/cdrizzleutil.h"
@@ -83,7 +82,6 @@
 #include "gui/registration.h"
 #include "gui/registration_preview.h"
 #include "gui/script_menu.h"
-#include "gui/preferences.h"
 #include "gui/unpurple.h"
 #include "filters/asinh.h"
 #include "filters/banding.h"
@@ -125,19 +123,15 @@
 #include "algos/geometry.h"
 #include "algos/photometric_cc.h"
 #include "algos/fix_xtrans_af.h"
-#include "io/annotation_catalogues.h"
 #include "algos/comparison_stars.h"
-#include "opencv/opencv.h"
 #include "stacking/stacking.h"
 #include "stacking/sum.h"
 #include "registration/registration.h"
-#include "registration/matching/match.h"
 #include "livestacking/livestacking.h"
 #include "pixelMath/pixel_math_runner.h"
 #include "git-version.h"
 
 #include "command.h"
-#include "command_def.h"
 #include "command_list.h"
 #include "command_line_processor.h"
 
@@ -1143,7 +1137,7 @@ int process_unpurple(int nb){
 	struct unpurpleargs *args = calloc(1, sizeof(struct unpurpleargs));
 	*args = (struct unpurpleargs){.fit = fit, .starmask = &starmask, .withstarmask = withstarmask, .thresh = thresh, .mod_b = mod, .verbose = FALSE};
 
-	start_in_new_thread(unpurple_filter, args);
+	start_in_new_thread(unpurple_handler, args);
 
 	return CMD_OK | CMD_NOTIFY_GFIT_MODIFIED;
 }
@@ -1273,6 +1267,8 @@ int process_epf(int nb) {
 							.filter = filter,
 							.guide_needs_freeing = guide_needs_freeing,
 							.verbose = TRUE };
+
+	// We call epfhandler here as we need to take care of the ROI mutex lock
 	start_in_new_thread(epfhandler, args);
 
 	return CMD_OK;
@@ -4257,7 +4253,7 @@ int process_pm(int nb) {
 	remove_spaces_from_str(expression);
 
 	fits *fit = NULL;
-	if (new_fit_image(&fit, width, height, channel, DATA_FLOAT)) {
+	if (new_fit_image(&fit, width, height, channel, com.pref.force_16bit ? DATA_USHORT : DATA_FLOAT)) {
 		free_pm_var(args->nb_rows);
 		free(args->varname);
 		free(args);
@@ -5873,17 +5869,21 @@ int process_subsky(int nb) {
 	if (is_sequence) {
 		args->seq = seq;
 		args->seqEntry = prefix ? prefix : strdup("bkg_");
-		sequence_cfa_warning_check(seq);
-
 		apply_background_extraction_to_sequence(args);
 	} else {
 		args->seq = NULL;
 		args->seqEntry = NULL;
 		args->fit = &gfit;
-		image_cfa_warning_check();
+
+		// Check if the image has a Bayer CFA pattern
+		gboolean is_cfa = gfit.naxes[2] == 1 && (!strncmp(gfit.keywords.bayer_pattern, "RGGB", 4) ||
+						  !strncmp(gfit.keywords.bayer_pattern, "BGGR", 4) ||
+						  !strncmp(gfit.keywords.bayer_pattern, "GBRG", 4) ||
+						  !strncmp(gfit.keywords.bayer_pattern, "GRBG", 4));
 
 		if (!generate_background_samples(samples, tolerance)) {
-			start_in_new_thread(remove_gradient_from_image, args);
+			start_in_new_thread(is_cfa ? remove_gradient_from_cfa_image :
+								remove_gradient_from_image, args);
 		} else {
 			siril_log_color_message(_("Error generating background samples\n"), "red");
 			free(args);
@@ -6678,7 +6678,7 @@ int process_seq_extractHaOIII(int nb) {
 		}
 	}
 	args->prefixes[0] = g_strdup("Ha_");
-	args->prefixes[1] = g_strdup("Oiii_");
+	args->prefixes[1] = g_strdup("OIII_");
 
 	apply_extractHaOIII_to_sequence(args);
 
@@ -9130,49 +9130,48 @@ int process_set_compress(int nb) {
 	double q = 16.0, hscale= 4.0;
 
 	if (compress) {
-		if (!word[2] || !word[3] || (!g_str_has_prefix(word[2], "-type="))) {
-			siril_log_message(_("Please specify the type of compression and quantization value.\n"));
-			return CMD_ARG_ERROR;
-		}
 		gchar *comp = NULL;
-		if (!g_ascii_strncasecmp(word[2] + 6, "rice", 4)) {
-			method = RICE_COMP;
-			comp = g_strdup("rice");
-		} else if (!g_ascii_strncasecmp(word[2] + 6, "gzip1", 5)) {
-			method = GZIP1_COMP;
-			comp = g_strdup("GZIP1");
-		} else if (!g_ascii_strncasecmp(word[2] + 6, "gzip2", 5)) {
-			method = GZIP2_COMP;
-			comp = g_strdup("GZIP2");
-		}
-		// hcompress with mode 2 is not working in cfitsio
-		// see https://gitlab.com/free-astro/siril/-/issues/696#note_932398268
-		/*else if (!g_ascii_strncasecmp(word[2] + 6, "hcompress", 9)) {
-			method = HCOMPRESS_COMP;
-			if (!word[4]) {
-				siril_log_message(_("Please specify the value of hcompress scale factor.\n"));
-				g_free(comp);
-				return CMD_GENERIC_ERROR;
+		if (!word[2] || !word[3] || (!g_str_has_prefix(word[2], "-type="))) {
+			// take values from pref if arguments are missing
+			method = com.pref.comp.fits_method;
+			q = com.pref.comp.fits_quantization;
+			comp = method == RICE_COMP ? g_strdup("rice") : (method == GZIP1_COMP ? g_strdup("GZIP1") : g_strdup("GZIP2"));
+		} else {
+			if (!g_ascii_strncasecmp(word[2] + 6, "rice", 4)) {
+				method = RICE_COMP;
+				comp = g_strdup("rice");
+			} else if (!g_ascii_strncasecmp(word[2] + 6, "gzip1", 5)) {
+				method = GZIP1_COMP;
+				comp = g_strdup("GZIP1");
+			} else if (!g_ascii_strncasecmp(word[2] + 6, "gzip2", 5)) {
+				method = GZIP2_COMP;
+				comp = g_strdup("GZIP2");
 			}
-			hscale = g_ascii_strtod(word[4], NULL);
-			comp = g_strdup_printf("hcompress (scale factor = %.2lf) ", hscale);
-		}*/ else {
-//			siril_log_message(_("Wrong type of compression. Choices are rice, gzip1, gzip2 or hcompress\n"));
-			siril_log_message(_("Wrong type of compression. Choices are rice, gzip1, gzip2\n"));
-			return CMD_ARG_ERROR;
-		}
-		if (!word[3]) {
-			siril_log_message(_("Please specify the value of quantization.\n"));
-			g_free(comp);
-			return CMD_ARG_ERROR;
-		}
-		gchar *end;
-		q = g_ascii_strtod(word[3], &end);
-		if (end == word[3] || (q == 0.0 && (method == RICE_COMP || method == HCOMPRESS_COMP))) {
-			siril_log_message(_("Quantization can only be equal to 0 for GZIP1 and GZIP2 algorithms.\n"));
-			g_free(comp);
+			// hcompress with mode 2 is not working in cfitsio
+			// see https://gitlab.com/free-astro/siril/-/issues/696#note_932398268
+			/*else if (!g_ascii_strncasecmp(word[2] + 6, "hcompress", 9)) {
+				method = HCOMPRESS_COMP;
+				if (!word[4]) {
+					siril_log_message(_("Please specify the value of hcompress scale factor.\n"));
+					g_free(comp);
+					return CMD_GENERIC_ERROR;
+				}
+				hscale = g_ascii_strtod(word[4], NULL);
+				comp = g_strdup_printf("hcompress (scale factor = %.2lf) ", hscale);
+			}*/ else {
+	//			siril_log_message(_("Wrong type of compression. Choices are rice, gzip1, gzip2 or hcompress\n"));
+				siril_log_message(_("Wrong type of compression. Choices are rice, gzip1, gzip2\n"));
+				return CMD_ARG_ERROR;
+			}
 
-			return CMD_ARG_ERROR;
+			gchar *end;
+			q = g_ascii_strtod(word[3], &end);
+			if (end == word[3] || (q == 0.0 && (method == RICE_COMP || method == HCOMPRESS_COMP))) {
+				siril_log_message(_("Quantization can only be equal to 0 for GZIP1 and GZIP2 algorithms.\n"));
+				g_free(comp);
+
+				return CMD_ARG_ERROR;
+			}
 		}
 		siril_log_message(_("Compression enabled with the %s algorithm and a quantization value of %.2lf\n"), comp, q);
 		g_free(comp);
@@ -10374,7 +10373,7 @@ static conesearch_params* parse_conesearch_args(int nb) {
 		if (params->trixel >= 0 && params->cat == CAT_LOCAL)
 			params->cat = CAT_LOCAL_TRIX;
 	}
-	
+
 	if (params->compare && !is_star_catalogue(params->cat)) {
 		siril_log_message(_("Cannot use -compare argument with non-star catalogues, ignoring.\n"));
 		params->compare = FALSE;

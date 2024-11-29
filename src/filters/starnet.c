@@ -84,6 +84,11 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 	g_autoptr(GError) error = NULL;
 	int retval = -1;
 
+	int index = 0;
+	while (argv[index]) {
+		fprintf(stdout, "%s ", argv[index++]);
+	}
+	fprintf(stdout, "\n");
 	// g_spawn handles wchar so not need to convert
 	g_spawn_async_with_pipes(NULL, argv, NULL,
 			G_SPAWN_SEARCH_PATH |

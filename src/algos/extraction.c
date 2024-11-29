@@ -24,7 +24,6 @@
 #include "core/processing.h"
 #include "core/siril_log.h"
 #include "algos/siril_wcs.h"
-#include "core/command.h"
 #include "algos/demosaicing.h"
 #include "algos/geometry.h"
 #include "io/image_format_fits.h"
@@ -220,6 +219,7 @@ void apply_extractGreen_to_sequence(struct simple_extract_data *extract_args) {
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = extract_args->seq->selnum;
 	args->compute_mem_limits_hook = cfa_extract_compute_mem_limits;
+	args->prepare_hook = seq_prepare_hook;
 	args->image_hook = extractGreen_image_hook;
 	args->description = _("Extract Green");
 	args->has_output = TRUE;
@@ -369,6 +369,7 @@ void apply_extractHa_to_sequence(struct simple_extract_data *extract_args) {
 	args->filtering_criterion = seq_filter_included;
 	args->nb_filtered_images = extract_args->seq->selnum;
 	args->compute_mem_limits_hook = cfa_extract_compute_mem_limits;
+	args->prepare_hook = seq_prepare_hook;
 	args->image_hook = extractHa_image_hook;
 	args->description = _("Extract Ha");
 	args->has_output = TRUE;
@@ -1089,7 +1090,7 @@ int split_cfa_image_hook(struct generic_seq_args *args, int o, int i, fits *fit,
 #ifdef _OPENMP
 		omp_unset_lock(&args->lock);
 #endif
-		siril_debug_print("%s: processed imaages added to the save list (%d)\n", args->description, o);
+		siril_debug_print("%s: processed images added to the save list (%d)\n", args->description, o);
 	}
 	return ret;
 }

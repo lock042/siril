@@ -132,6 +132,7 @@ static gboolean siril_update_get_highest(JsonParser *parser,
 				if (json_object_has_member(build, "build-id"))
 					build_id = json_object_get_string_member (build, "build-id");
 				if (g_strcmp0(build_id, "org.siril.Siril") == 0
+						|| g_strcmp0(build_id, "org.free_astro.siril") == 0 // only for new naming transition
 						|| g_strcmp0(platform, "source") == 0) {
 					/* Release date is the build date if any set,
 					 * otherwise the main version release date.

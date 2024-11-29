@@ -3249,6 +3249,7 @@ const int *status) /* IO - error status */
 
 void process_keyword_string_value(const char *input, char *output, gboolean condition) {
 	int status = 0;
+	if (!input || !output) return;
 
 	if (condition) {
 		ffs2c(input, output, &status);

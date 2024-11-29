@@ -393,10 +393,10 @@ static void siril_app_activate(GApplication *application) {
 	g_free(supported_files);
 }
 
-static void siril_app_open(GApplication *application, GFile **files, gint n_files,
-		const gchar *hint) {
-
+static void siril_app_open(GApplication *application, GFile **files, gint n_files, const gchar *hint) {
+#if !defined(OS_OSX)
 	g_application_activate(application);
+#endif
 
 	if (n_files > 0) {
 		gchar *path = g_file_get_path(files[0]);
@@ -417,7 +417,8 @@ static void siril_app_open(GApplication *application, GFile **files, gint n_file
 			}
 		} else {
 			image_type type = get_type_from_filename(path);
-			if (!main_option_directory && type != TYPEAVI && type != TYPESER && type != TYPEUNDEF) {
+			if (!main_option_directory && type != TYPEAVI && type != TYPESER
+					&& type != TYPEUNDEF) {
 				gchar *image_dir = g_path_get_dirname(path);
 				siril_change_dir(image_dir, NULL);
 				g_free(image_dir);
@@ -540,7 +541,11 @@ int main(int argc, char *argv[]) {
 	bind_textdomain_codeset(PACKAGE, "UTF-8");
 	textdomain(PACKAGE);
 
-	app = gtk_application_new("org.siril.Siril", G_APPLICATION_HANDLES_OPEN | G_APPLICATION_NON_UNIQUE);
+#if GLIB_CHECK_VERSION(2,74,0)
+	app = gtk_application_new("org.siril.Siril", G_APPLICATION_DEFAULT_FLAGS | G_APPLICATION_HANDLES_OPEN | G_APPLICATION_NON_UNIQUE);
+#else
+	app = gtk_application_new("org.siril.Siril", G_APPLICATION_FLAGS_NONE | G_APPLICATION_HANDLES_OPEN | G_APPLICATION_NON_UNIQUE);
+#endif
 
 	g_signal_connect(app, "startup", G_CALLBACK(siril_app_startup), NULL);
 	g_signal_connect(app, "activate", G_CALLBACK(siril_app_activate), NULL);

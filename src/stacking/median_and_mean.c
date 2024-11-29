@@ -477,11 +477,8 @@ static int stack_read_block_data(struct stacking_args *args,
 			mask_scaled = malloc((size_t)(maskscaled_area.h * maskscaled_area.w * sizeof(float)));
 			if (read_mask_fits_area(maskfile, &maskscaled_area, scaled_ry, mask_scaled)) {
 				free(mask_scaled);
-#ifdef _OPENMP
-				int tid = omp_get_thread_num();
-				if (tid == 0)
-#endif
-					siril_log_color_message(_("Error reading one of the masks areas\n"), "red");
+				siril_log_color_message(_("Error reading one of the masks areas (%d: %d %d %d %d)\n"), "red", args->image_indices[frame] + 1,
+				maskscaled_area.x, maskscaled_area.y, maskscaled_area.w, maskscaled_area.h);
 				return ST_SEQUENCE_ERROR;
 			}
 			float *mbuffer = data->mask[frame] + offset;

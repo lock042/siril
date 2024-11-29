@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.40.0
+<!-- Generated with glade 3.40.0 
 
 Copyright (C) The free-astro development team, 2019-2023
 
@@ -451,7 +451,9 @@ Dither is an intentionally applied form of noise used to randomize quantization 
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">True</property>
-                        <property name="tooltip-text" translatable="yes">Click here to generate the automatically defined samples.</property>
+                        <property name="tooltip-text" translatable="yes">Click here to generate the automatically defined samples.
+
+When processing a sequence the samples shown are only for guidance to see the effect of setting samples_per_line and grid tolerance on sample placement: samples will automatically be created for each frame in the sequence.</property>
                         <property name="halign">center</property>
                         <property name="valign">center</property>
                         <signal name="clicked" handler="on_background_generate_clicked" swapped="no"/>
@@ -609,6 +611,7 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
                 <property name="receives-default">False</property>
                 <property name="tooltip-text" translatable="yes">If a sequence is loaded and this is activated, perform the processing on all images of the sequence instead of only the loaded image.</property>
                 <property name="draw-indicator">True</property>
+                <signal name="toggled" handler="on_checkBkgSeq_toggled" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -654,5 +657,4 @@ Division: it is mainly used to correct multiplicative phenomena, such as vignett
       </object>
     </child>
   </object>
-
 </interface>

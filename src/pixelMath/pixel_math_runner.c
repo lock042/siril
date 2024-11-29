@@ -593,10 +593,10 @@ static gchar* parse_image_functions(gpointer p, int idx, int c) {
 
 		if (replace) {
 #if GLIB_CHECK_VERSION(2, 74, 0)
-	expression = g_regex_replace_literal(regex, expression, -1, 0, replace, G_REGEX_MATCH_DEFAULT, NULL);
+			expression = g_regex_replace_literal(regex, expression, -1, 0, replace, G_REGEX_MATCH_DEFAULT, NULL);
 #else
-	// Use an alternative flag or no flag if G_REGEX_MATCH_DEFAULT is not available
-	expression = g_regex_replace_literal(regex, expression, -1, 0, replace, 0, NULL);
+			// Use an alternative flag or no flag if G_REGEX_MATCH_DEFAULT is not available
+			expression = g_regex_replace_literal(regex, expression, -1, 0, replace, 0, NULL);
 #endif
 			g_free(replace);
 			siril_debug_print("Expression%d: %s\n", c, expression);
@@ -703,40 +703,80 @@ gpointer apply_pixel_math_operation(gpointer p) {
 				goto failure;
 			}
 		}
+		if (com.pref.force_16bit) {
 #ifdef _OPENMP
 #pragma omp for schedule(static) reduction(max:maximum) reduction(min:minimum)
 #endif
-		for (size_t px = 0; px < var_fit[0].naxes[0] * var_fit[0].naxes[1] * var_fit[0].naxes[2]; px++) {
-			/* The variables can be changed here, and eval can be called as many
-			 * times as you like. This is fairly efficient because the parsing has
-			 * already been done. */
-			for (int i = 0; i < nb_rows; i++) {
-				x[i] = var_fit[i].fdata[px];
-			}
-			if (args->has_gfit) {
-				x[nb_rows] = gfit.fdata[px];
-			}
-
-			if (!args->single_rgb) { // in that case var_fit[0].naxes[2] == 1, but we built RGB
-				fit->fpdata[RLAYER][px] = (float) te_eval(n1);
-				fit->fpdata[GLAYER][px] = (float) te_eval(n2);
-				fit->fpdata[BLAYER][px] = (float) te_eval(n3);
-
-				/* may not be used but (only if rescale) at least it is computed */
-				maximum = max(maximum, max(fit->fpdata[RLAYER][px], max(fit->fpdata[GLAYER][px], fit->fpdata[BLAYER][px])));
-				minimum = min(minimum, min(fit->fpdata[RLAYER][px], min(fit->fpdata[GLAYER][px], fit->fpdata[BLAYER][px])));
-			} else {
-				if (px < (var_fit[0].naxes[0] * var_fit[0].naxes[1])) {
-					fit->fdata[px] = (float) te_eval(n1);
-				} else if (px < 2 * (var_fit[0].naxes[0] * var_fit[0].naxes[1])) {
-					fit->fdata[px] = (float) te_eval(n2);
-				} else {
-					fit->fdata[px] = (float) te_eval(n3);
+			for (size_t px = 0; px < var_fit[0].naxes[0] * var_fit[0].naxes[1] * var_fit[0].naxes[2]; px++) {
+				/* The variables can be changed here, and eval can be called as many
+				 * times as you like. This is fairly efficient because the parsing has
+				 * already been done. */
+				for (int i = 0; i < nb_rows; i++) {
+					x[i] = (double) var_fit[i].fdata[px];
+				}
+				if (args->has_gfit) {
+					x[nb_rows] = (double) gfit.fdata[px];
 				}
 
-				/* may not be used but (only if rescale) at least it is computed */
-				maximum = max(maximum, fit->fdata[px]);
-				minimum = min(minimum, fit->fdata[px]);
+				if (!args->single_rgb) { // in that case var_fit[0].naxes[2] == 1, but we built RGB
+					fit->pdata[RLAYER][px] =  roundf_to_WORD((float) te_eval(n1) * USHRT_MAX_SINGLE);
+					fit->pdata[GLAYER][px] =  roundf_to_WORD((float) te_eval(n2) * USHRT_MAX_SINGLE);
+					fit->pdata[BLAYER][px] =  roundf_to_WORD((float) te_eval(n3) * USHRT_MAX_SINGLE);
+
+					/* may not be used but (only if rescale) at least it is computed */
+					maximum = max(maximum, max(fit->pdata[RLAYER][px], max(fit->pdata[GLAYER][px], fit->pdata[BLAYER][px])));
+					minimum = min(minimum, min(fit->pdata[RLAYER][px], min(fit->pdata[GLAYER][px], fit->pdata[BLAYER][px])));
+				} else {
+					if (px < (var_fit[0].naxes[0] * var_fit[0].naxes[1])) {
+						fit->data[px] =  roundf_to_WORD((float) te_eval(n1) * USHRT_MAX_SINGLE);
+					} else if (px < 2 * (var_fit[0].naxes[0] * var_fit[0].naxes[1])) {
+						fit->data[px] =  roundf_to_WORD((float) te_eval(n2) * USHRT_MAX_SINGLE);
+					} else {
+						fit->data[px] =  roundf_to_WORD((float) te_eval(n3) * USHRT_MAX_SINGLE);
+					}
+
+					/* may not be used but (only if rescale) at least it is computed */
+					maximum = max(maximum, fit->data[px]);
+					minimum = min(minimum, fit->data[px]);
+				}
+			}
+
+		} else {
+#ifdef _OPENMP
+#pragma omp for schedule(static) reduction(max:maximum) reduction(min:minimum)
+#endif
+			for (size_t px = 0; px < var_fit[0].naxes[0] * var_fit[0].naxes[1] * var_fit[0].naxes[2]; px++) {
+				/* The variables can be changed here, and eval can be called as many
+				 * times as you like. This is fairly efficient because the parsing has
+				 * already been done. */
+				for (int i = 0; i < nb_rows; i++) {
+					x[i] = var_fit[i].fdata[px];
+				}
+				if (args->has_gfit) {
+					x[nb_rows] = gfit.fdata[px];
+				}
+
+				if (!args->single_rgb) { // in that case var_fit[0].naxes[2] == 1, but we built RGB
+					fit->fpdata[RLAYER][px] = (float) te_eval(n1);
+					fit->fpdata[GLAYER][px] = (float) te_eval(n2);
+					fit->fpdata[BLAYER][px] = (float) te_eval(n3);
+
+					/* may not be used but (only if rescale) at least it is computed */
+					maximum = max(maximum, max(fit->fpdata[RLAYER][px], max(fit->fpdata[GLAYER][px], fit->fpdata[BLAYER][px])));
+					minimum = min(minimum, min(fit->fpdata[RLAYER][px], min(fit->fpdata[GLAYER][px], fit->fpdata[BLAYER][px])));
+				} else {
+					if (px < (var_fit[0].naxes[0] * var_fit[0].naxes[1])) {
+						fit->fdata[px] = (float) te_eval(n1);
+					} else if (px < 2 * (var_fit[0].naxes[0] * var_fit[0].naxes[1])) {
+						fit->fdata[px] = (float) te_eval(n2);
+					} else {
+						fit->fdata[px] = (float) te_eval(n3);
+					}
+
+					/* may not be used but (only if rescale) at least it is computed */
+					maximum = max(maximum, fit->fdata[px]);
+					minimum = min(minimum, fit->fdata[px]);
+				}
 			}
 		}
 
@@ -751,11 +791,22 @@ failure: // failure before the eval loop
 	} // end of parallel block
 
 	if (args->rescale) {
+		if (com.pref.force_16bit) {
+			args->min *= USHRT_MAX_SINGLE;
+			args->max *= USHRT_MAX_SINGLE;
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(com.max_thread) schedule(static)
 #endif
-		for (int i = 0; i < fit->rx * fit->ry * fit->naxes[2]; i++) {
-			fit->fdata[i] = (((args->max - args->min) * (fit->fdata[i] - minimum)) / (maximum - minimum)) + args->min;
+			for (int i = 0; i < fit->rx * fit->ry * fit->naxes[2]; i++) {
+				fit->data[i] = roundf_to_WORD((float)(args->max - args->min) * (float)(fit->data[i] - minimum) / (float)(maximum - minimum) + args->min);
+			}
+		} else {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(com.max_thread) schedule(static)
+#endif
+			for (int i = 0; i < fit->rx * fit->ry * fit->naxes[2]; i++) {
+				fit->fdata[i] = (((args->max - args->min) * (fit->fdata[i] - minimum)) / (maximum - minimum)) + args->min;
+			}
 		}
 	}
 
@@ -1070,7 +1121,7 @@ static int pixel_math_evaluate(gchar *expression1, gchar *expression2, gchar *ex
 		goto free_expressions;
 	}
 
-	if (new_fit_image(&fit, width, height, channel, DATA_FLOAT)) {
+	if (new_fit_image(&fit, width, height, channel, com.pref.force_16bit ? DATA_USHORT : DATA_FLOAT)) {
 		retval = 1;
 		goto free_expressions;
 	}

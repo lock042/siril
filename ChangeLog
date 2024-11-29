@@ -62,6 +62,8 @@ xx/xx/xx
 * Refactored networking code, add offline mode and add Gaia archive status indication (!687)
 * Improved the usability of merging CFA sequences (!759)
 * Allowed the token $T to be used in PixelMath (!768)
+* Make PixelMath follows bit depth preferences (#1100)
+* Allow background removal from CFA images / sequences, for better integration into drizzle workflow (!777)
 
 **GUI improvements:**
 * Split up the monolithic glade UI file (!550)
@@ -96,12 +98,14 @@ xx/xx/xx
 * Removed Windows cross-build CI and improved performance of native CI (!767)
 
 siril 1.2.5
-xx/xx/xx
+11/22/24
 * Fixed crash in gaussVertical() on macOS (issue reported on pixls.us, !742)
 * Fixed free space disk computation on macOS, probably for good (#1368 and #1375 and #1422)
 * Fixed crash if the CWD changes after a first successfull Automated light Curve process (#1378 !746)
 * Fixed bug in TIFF files that have TIFFTAG_MINSAMPLEVALUE and TIFFTAG_MAXSAMPLEVALUE set to 0 by removing these tags (#1381)
 * Added HISTORY after seqcrop and GUI crop (#1142)
+* Better handling of Siril opening when double-clicking on an image, under macOS (#1308, #1428 and #1140)
+* Fixed potential crash in synthstar (issue reported via facebook)
 
 siril 1.2.4
 09/11/24
