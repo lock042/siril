@@ -1413,15 +1413,6 @@ cleanup:
 }
 
 static gboolean check_or_create_venv(const gchar *project_path, GError **error) {
-	// Check we aren't in a msys2 environment
-	gchar **env = g_get_environ();
-	const gchar *msys = g_environ_getenv(env, "MSYSTEM");
-	if (msys) {
-		siril_log_color_message(_("Error: msys2 environment detected. Siril python support cannot work with msys2 python.\n"), "red");
-		g_strfreev(env);
-		return FALSE;
-	}
-	g_strfreev(env);
 
 	gchar *venv_path = g_build_filename(project_path, "venv", NULL);
 	siril_debug_print("venv path: %s\n", venv_path);
@@ -1431,6 +1422,21 @@ static gboolean check_or_create_venv(const gchar *project_path, GError **error) 
 	} else {
 		siril_debug_print("Did not find python executable in venv. Recreating the venv...\n");
 	}
+
+#ifdef _WIN32
+	// Check we aren't in a msys2 environment for the first init
+	gchar **env = g_get_environ();
+	const gchar *msys = g_environ_getenv(env, "MSYSTEM");
+	g_strfreev(env);
+	if (msys) {
+		siril_log_color_message(_("Error: msys2 environment detected. Siril Python support cannot be correctly initialized.\n"), "red");
+		siril_log_color_message(_("To complete the process, first make sure you have a Python installation (>=3.9) on your computer.\n"), "red");
+		siril_log_color_message(_("Locate siril.exe (usually located in C:\\msys64\\mingw64\\bin) and start it from there.\n"), "red");
+		siril_log_color_message(_("Next time you need to start siril, you can go back to starting it from msys2 terminal.\n"), "red");
+		return FALSE;
+	}
+#endif
+
 	gboolean success = FALSE;
 	GError *local_error = NULL;
 	gchar *sys_python_exe = NULL;
