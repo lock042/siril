@@ -5,7 +5,7 @@
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional, Tuple, Union, List
+from typing import Optional, Tuple, List
 import numpy as np
 from enum import IntEnum
 from .translations import _

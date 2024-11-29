@@ -2,8 +2,7 @@ import os
 import gettext
 import locale
 from functools import wraps
-from typing import Callable, Type, TypeVar
-import inspect
+from typing import Callable, TypeVar
 
 T = TypeVar('T')
 

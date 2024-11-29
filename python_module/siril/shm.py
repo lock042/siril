@@ -6,9 +6,6 @@
 from multiprocessing.shared_memory import SharedMemory
 import os
 import sys
-import struct
-from typing import Optional
-import tempfile
 import mmap
 from .translations import _
 

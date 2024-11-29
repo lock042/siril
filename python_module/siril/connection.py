@@ -5,28 +5,23 @@
 
 import os
 import sys
-import copy
 import time
-import mmap
 import struct
 import socket
 import ctypes
-import calendar
 import threading
-import importlib
 import subprocess
 import numpy as np
-from pathlib import Path
 from enum import IntEnum
 from .translations import _
 from datetime import datetime
 from importlib import metadata, util
 from .shm import SharedMemoryWrapper
-from packaging import version, requirements
+from packaging import version
 from packaging.specifiers import SpecifierSet
 from typing import Tuple, Optional, List, Union, Any
-from .exceptions import SirilError, ConnectionError, CommandError, DataError, NoImageError, NoSequenceError
-from .models import DataType, ImageStats, FKeywords, FFit, Homography, StarProfile, PSFStar, RegData, ImgData, Sequence, SequenceType
+from .exceptions import SirilError, ConnectionError, CommandError, NoImageError
+from .models import ImageStats, FKeywords, FFit, Homography, PSFStar, RegData, ImgData, Sequence, SequenceType
 
 if os.name == 'nt':
     import win32pipe
