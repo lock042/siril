@@ -1482,9 +1482,10 @@ static gboolean check_or_create_venv(const gchar *project_path, GError **error) 
 	const gchar *msys = g_environ_getenv(env, "MSYSTEM");
 	if (msys) {
 		if (!convert_msys2_path()) {
-			siril_log_color_message(_("Error: msys2 environment detected: failed to re-establish native Windows path. Python script integration is unavailable.\n"));
+			siril_log_color_message(_("Error: msys2 environment detected: failed to re-establish native Windows path. Python script integration is unavailable.\n"), "red");
 			g_strfreev(env);
 			return FALSE;
+		}
 	}
 	g_strfreev(env);
 #endif
