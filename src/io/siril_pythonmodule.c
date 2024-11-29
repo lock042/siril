@@ -1458,10 +1458,10 @@ static gboolean convert_msys2_path() {
 	}
 
 	// Get current environment
-	gchar **environ = g_get_environ();
+	gchar **env = g_get_environ();
 
 	// Set the new PATH environment variable
-	environ = g_environ_setenv(environ, "PATH", filtered_path->str, TRUE);
+	env = g_environ_setenv(environ, "PATH", filtered_path->str, TRUE);
 
 	// Print the filtered path for verification
 	g_print("Filtered msys2 PATH: %s\n", filtered_path->str);
@@ -1470,7 +1470,7 @@ static gboolean convert_msys2_path() {
 	g_string_free(filtered_path, TRUE);
 	g_strfreev(tokens);
 	g_free(output);
-	g_strfreev(environ);
+	g_strfreev(env);
 	return TRUE;
 }
 #endif
