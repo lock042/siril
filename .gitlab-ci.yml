@@ -242,7 +242,7 @@ win64-native:
     SDW_NAME: siril$SDW_VERSION
     SDW_RELEASE_URL: $CI_API_V4_URL/projects/47854290/packages/generic/windows/r$SDW_VERSION/$SDW_NAME.7z
     # SPW = Siril Python Windows, https://gitlab.com/free-astro/siril-windows-python
-    SPW_VERSION: 15
+    SPW_VERSION: 19
     SPW_NAME: siril-python$SPW_VERSION
     SPW_RELEASE_URL: $CI_API_V4_URL/projects/64372315/packages/generic/windows-python/r$SPW_VERSION/$SPW_NAME.7z
     W64_OUT: "/c/$SDW_NAME/mingw64" #used in siril-package.sh
