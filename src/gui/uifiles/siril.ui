@@ -2301,10 +2301,6 @@ Star selection can be manually fine-tuned using the Dynamic PSF tool.</property>
     </child>
   </object>
   <object class="GtkRecentFilter" id="recentfilter">
-    <mime-types>
-      <mime-type>image/fits</mime-type>
-      <mime-type>video/ser</mime-type>
-    </mime-types>
     <patterns>
       <pattern>*.fit</pattern>
       <pattern>*.fts</pattern>
