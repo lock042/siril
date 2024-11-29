@@ -90,6 +90,8 @@ void on_copy(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_paste(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 void on_find(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 static void on_buffer_modified_changed(GtkTextBuffer *buffer, gpointer user_data);
+static void populate_recent_files_menu(GtkWidget *recent_menu);
+void on_scratchpad_recent_menu_activated(GtkWidget *menu_item, gpointer user_data);
 void set_language();
 
 static GActionEntry editor_actions[] = {
@@ -494,6 +496,107 @@ void setup_search(GtkSourceView *source_view, GtkEntry *search_entry) {
 	g_object_set_data_full(G_OBJECT(source_view), "search-data", search_data, g_free);
 }
 
+// Function to filter recent files based on file extensions
+static gint filter_recent_files(const GtkRecentFilterInfo *filter_info, gpointer user_data) {
+	if (filter_info == NULL || filter_info->uri == NULL) {
+		return FALSE;
+	}
+
+	gchar *filename = g_filename_from_uri(filter_info->uri, NULL, NULL);
+	if (filename == NULL) {
+		return FALSE;
+	}
+
+	gchar *lowercase_filename = g_ascii_strdown(filename, -1);
+	gboolean is_valid_extension =
+	g_str_has_suffix(lowercase_filename, ".ssf") ||
+	g_str_has_suffix(lowercase_filename, ".py");
+
+	g_free(lowercase_filename);
+	g_free(filename);
+
+	return is_valid_extension;
+}
+
+static void populate_recent_files_menu(GtkWidget *parent_menu) {
+	GtkRecentManager *recent_manager = gtk_recent_manager_get_default();
+
+	if (!GTK_IS_MENU_ITEM(parent_menu)) {
+		g_warning("Invalid menu widget passed to populate_recent_files_menu");
+		return;
+	}
+
+	GtkWidget *menu = gtk_menu_item_get_submenu(GTK_MENU_ITEM(parent_menu));
+
+	if (menu == NULL) {
+		menu = gtk_menu_new();
+		gtk_menu_item_set_submenu(GTK_MENU_ITEM(parent_menu), menu);
+	}
+
+	gtk_container_foreach(GTK_CONTAINER(menu), (GtkCallback) gtk_widget_destroy, NULL);
+
+	GtkRecentFilter *filter = gtk_recent_filter_new();
+	gtk_recent_filter_add_custom(filter,
+			GTK_RECENT_FILTER_URI | GTK_RECENT_FILTER_MIME_TYPE,
+			filter_recent_files,
+			NULL,
+			NULL);
+
+	GList *recent_items = gtk_recent_manager_get_items(recent_manager);
+	int item_count = 0;
+
+	for (GList *l = recent_items; l != NULL && item_count < 10; l = l->next) {
+		GtkRecentInfo *info = (GtkRecentInfo*) l->data;
+
+		GtkRecentFilterInfo filter_info = { 0 };
+		filter_info.uri = gtk_recent_info_get_uri(info);
+		filter_info.mime_type = gtk_recent_info_get_mime_type(info);
+
+		if (filter_recent_files(&filter_info, NULL)) {
+			const gchar *display_name = gtk_recent_info_get_display_name(info);
+			const gchar *uri = gtk_recent_info_get_uri(info);
+			gchar *basename = g_path_get_basename(uri);
+
+			if (display_name == NULL) {
+				display_name = basename;
+			}
+
+			GtkWidget *menu_item = gtk_menu_item_new_with_label(display_name);
+
+			g_object_set_data_full(G_OBJECT(menu_item), "file_path", g_strdup(uri), (GDestroyNotify) g_free);
+
+			g_signal_connect(menu_item, "activate", G_CALLBACK(on_scratchpad_recent_menu_activated), NULL);
+
+			gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
+			gtk_widget_show(menu_item);
+
+			item_count++;
+
+			g_free(basename);
+		}
+
+		gtk_recent_info_unref(info);
+	}
+
+	g_list_free(recent_items);
+
+	g_object_unref(filter);
+}
+
+static void setup_recent_files_menu() {
+	GtkWidget *recent_menu_item = GTK_WIDGET(gtk_builder_get_object(gui.builder, "scratchpad_recentmenu"));
+
+	if (recent_menu_item) {
+		GtkWidget *submenu = gtk_menu_new();
+
+		gtk_menu_item_set_submenu(GTK_MENU_ITEM(recent_menu_item), submenu);
+
+		populate_recent_files_menu(recent_menu_item);
+	} else {
+		g_warning("Could not find scratchpad_recentmenu");
+	}
+}
+
 // Statics init
 void python_scratchpad_init_statics() {
 	if (editor_window == NULL) {
@@ -531,6 +634,8 @@ void python_scratchpad_init_statics() {
 		scrolled_window = GTK_SCROLLED_WINDOW(gtk_builder_get_object(gui.builder, "python_scrolled_window"));
 		// GtkLabel
 		language_label = GTK_LABEL(gtk_builder_get_object(gui.builder, "script_language_label"));
+		// Recent files
+		setup_recent_files_menu();
 		// Findbox
 		find_revealer = GTK_REVEALER(gtk_builder_get_object(gui.builder, "find_revealer"));
 		find_entry = GTK_ENTRY(lookup_widget("find_entry"));
@@ -742,21 +847,19 @@ void on_action_file_open(GSimpleAction *action, GVariant *parameter, gpointer us
 	}
 }
 
-void on_scratchpad_recent_menu_activated(GtkRecentChooser *chooser, gpointer user_data) {
-	gchar *uri;
+void on_scratchpad_recent_menu_activated(GtkWidget *menu_item, gpointer user_data) {
+	const gchar *uri = g_object_get_data(G_OBJECT(menu_item), "file_path");
 	GFile *file;
 	GError *error = NULL;
 
-	uri = gtk_recent_chooser_get_current_uri(chooser);
 	if (!uri) {
-		g_warning("Failed to get URI from recent chooser");
+		g_warning("Failed to get URI from menu item");
 		return;
 	}
 
 	file = g_file_new_for_uri(uri);
 	if (!file) {
 		g_warning("Failed to create GFile from URI: %s", uri);
-		g_free(uri);
 		return;
 	}
 
@@ -777,7 +880,6 @@ void on_scratchpad_recent_menu_activated(GtkRecentChooser *chooser, gpointer use
 		gtk_widget_destroy(dialog);
 
 		g_object_unref(file);
-		g_free(uri);
 		return;
 	}
 
@@ -786,8 +888,8 @@ void on_scratchpad_recent_menu_activated(GtkRecentChooser *chooser, gpointer use
 		current_file = g_object_ref(file);
 		update_title(current_file);
 	}
+
 	g_object_unref(file);
-	g_free(uri);
 }
 
 void on_action_file_save_as(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
