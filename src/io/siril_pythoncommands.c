@@ -82,6 +82,8 @@ do { \
 		(dest) = result.v; \
 	} while(0)
 
+#define BOOL_FROM_BYTE(x) ((x) ? TRUE : FALSE)
+
 static int keywords_to_py(fits *fit, unsigned char *ptr, size_t maxlen) {
 	if (!fit || !ptr)
 		return 1;
@@ -400,6 +402,86 @@ static gboolean get_config_value(const char* group, const char* key, config_type
 	}
 
 	return TRUE;
+}
+
+siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size) {
+	size_t offset = 0;
+
+	// Allocate the main plot data structure
+	siril_plot_data* plot_data = malloc(sizeof(siril_plot_data));
+	init_siril_plot_data(plot_data);
+	// We don't need to use the siril_plot_set_X functions here as we
+	// know the plot_data is newly allocated and initialized
+
+	// Unpack title (null-terminated string)
+	plot_data->title = g_strdup((const char*)buffer + offset);
+	offset += strlen(plot_data->title) + 1;
+
+	// Unpack x and y axis labels
+	plot_data->xlabel = g_strdup((const char*)buffer + offset);
+	offset += strlen(plot_data->xlabel) + 1;
+
+	plot_data->ylabel = g_strdup((const char*)buffer + offset);
+	offset += strlen(plot_data->ylabel) + 1;
+
+	// Unpack savename
+	plot_data->savename = g_strdup((const char*)buffer + offset);
+	offset += strlen(plot_data->savename) + 1;
+
+	// Unpack show_legend (as a single byte)
+	plot_data->show_legend = BOOL_FROM_BYTE(buffer[offset]);
+	offset += sizeof(uint8_t);
+
+	// Unpack number of series (network byte-order)
+	uint32_t num_series;
+	memcpy(&num_series, buffer + offset, sizeof(uint32_t));
+	num_series = GUINT32_FROM_BE(num_series);
+	offset += sizeof(uint32_t);
+
+	// Unpack series data
+	for (uint32_t series_idx = 0; series_idx < num_series; series_idx++) {
+		// Read series label
+		char* series_label = g_strdup((const char*)buffer + offset);
+		offset += strlen(series_label) + 1;
+
+		// Read number of points (network byte-order)
+		uint32_t num_points;
+		memcpy(&num_points, buffer + offset, sizeof(uint32_t));
+		num_points = GUINT32_FROM_BE(num_points);
+		offset += sizeof(uint32_t);
+
+		// Create a new splxydata structure
+		double *xdata = malloc(num_points * sizeof(double));
+		double *ydata = malloc(num_points * sizeof(double));
+
+		// Read coordinates (network byte-order)
+		for (uint32_t point_idx = 0; point_idx < num_points; point_idx++) {
+			double x, y, x_BE, y_BE;
+
+			// Read raw bytes for x
+			memcpy(&x_BE, buffer + offset, sizeof(double));
+			offset += sizeof(double);
+			FROM_BE_INTO(x, x_BE, double);
+			xdata[point_idx] = x;
+
+			// Read raw bytes for x
+			memcpy(&y_BE, buffer + offset, sizeof(double));
+			offset += sizeof(double);
+			FROM_BE_INTO(y, y_BE, double);
+			ydata[point_idx] = y;
+		}
+
+		// Add to plot list (assuming simple xy plot)
+		siril_plot_add_xydata(plot_data, series_label, num_points, xdata, ydata, NULL, NULL);
+		g_free(series_label);
+		free(xdata);
+		free(ydata);
+	}
+
+	// Set some default values (you might want to adjust these)
+	plot_data->plottype = KPLOT_LINES;  // Default plot type
+
+	return plot_data;
 }
 
 typedef struct {
@@ -806,6 +888,19 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 			} else {
 				success = handle_set_pixeldata_request(conn, &gfit, payload, payload_length);
+			}
+			break;
+		}
+
+		case CMD_PLOT: {
+			if (payload_length != sizeof(incoming_image_info_t)) {
+				siril_debug_print("Invalid payload length for PLOT: %u\n", payload_length);
+				const char* error_msg = _("Invalid payload length");
+				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
+			} else {
+				incoming_image_info_t* info = (incoming_image_info_t*)payload;
+				info->size = GUINT64_FROM_BE(info->size);
+				success = handle_plot_request(conn, info);
 			}
 			break;
 		}

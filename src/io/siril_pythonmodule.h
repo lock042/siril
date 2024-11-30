@@ -3,6 +3,9 @@
 
 // Status codes for command responses
 #include <sys/cdefs.h>
+// siril_plot_data
+#include "io/siril_plot.h"
+
 typedef enum {
 	STATUS_OK = 0,
 	STATUS_NONE = 1, // for "allowed to fail" commands e.g. those that may
@@ -51,6 +54,7 @@ typedef enum {
 	CMD_GET_BUNDLE_PATH = 37,
 	CMD_ERROR_MESSAGEBOX = 38,
 	CMD_ERROR_MESSAGEBOX_MODAL = 39,
+	CMD_PLOT = 40,
 	CMD_ERROR = 0xFF
 } CommandType;
 
@@ -149,6 +153,8 @@ void execute_python_script_async(gchar* script_name, gboolean from_file);
 gboolean send_response(Connection *conn, uint8_t status, const void* data, uint32_t length);
 gboolean handle_pixeldata_request(Connection *conn, fits *fit, rectangle region);
 gboolean handle_set_pixeldata_request(Connection *conn, fits *fit, const char* payload, size_t payload_length);
+siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size);
+gboolean handle_plot_request(Connection* conn, const incoming_image_info_t* info);
 void cleanup_shm_allocation(Connection *conn, const char* shm_name);
 gboolean handle_rawdata_request(Connection *conn, void* data, size_t total_bytes);
 void initialize_python_venv_in_thread();
