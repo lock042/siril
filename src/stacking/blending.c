@@ -85,9 +85,58 @@ static gboolean compute_mask_read_hook(struct generic_seq_args *args, int i) {
 }
 
 static int compute_mask_compute_mem_limits(struct generic_seq_args *args, gboolean for_writer) {
-	//TODO: calc the real limit
-	return com.max_thread;
+	unsigned int MB_per_orig_image, MB_per_copies, MB_avail;
+	int limit = compute_nb_images_fit_memory(args->seq, 1., FALSE,
+			&MB_per_orig_image, NULL, &MB_avail);
 
+	/* The mask creation memory consumption is:
+		* the original image of size O(w*h*m), with w/h the dimensions and m the number of layers
+		* a 8b copy of one layer O(w*h as 8b) to feed opencv
+		* a 32b copy of one layer at mask scale s, O(w*h*s^2 as 32b) out from opencv and saved
+		* Internally in opencv, we also use (see opencv::cvDownscaleBlendMask):
+		* a 8b copy of one layer at mask scale s, O((s*w+2)(s*h+2) as 8b)
+		* a 32b copy of one layer at mask scale s, O((s*w+2)(s*h+2) as 32b)
+	*/
+
+	int seqrx = 0, seqry = 0, maskrx = 0, maskry = 0;
+	size_t imgsize = get_max_seq_dimension(args->seq, &seqrx, &seqrx);
+	compute_downscaled_mask_size(seqrx, seqry, &maskrx, &maskry, NULL, NULL);
+	size_t memory_per_8b_orig_image = imgsize * sizeof(uint8_t);
+	size_t memory_per_scaled_image = maskrx * maskry * sizeof(float);
+	size_t memory_per_scaled_image_8b_opencv = (maskrx + 2) * (maskry + 2) * sizeof(uint8_t);
+	size_t memory_per_scaled_image_32b_opencv = (maskrx + 2) * (maskry + 2) * sizeof(float);
+	MB_per_copies = (memory_per_8b_orig_image + 
+						memory_per_scaled_image + 
+						memory_per_scaled_image_8b_opencv + 
+						memory_per_scaled_image_32b_opencv) / 
+						BYTES_IN_A_MB;
+
+	unsigned int required = MB_per_orig_image + MB_per_copies;
+	limit = MB_avail / required;
+
+	if (limit > 0) {
+		int thread_limit = MB_avail / required;
+		if (thread_limit > com.max_thread) {
+			thread_limit = com.max_thread;
+		} else limit = thread_limit;
+	}
+
+	if (limit == 0) {
+		gchar *mem_per_thread = g_format_size_full(required * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+		gchar *mem_available = g_format_size_full(MB_avail * BYTES_IN_A_MB, G_FORMAT_SIZE_IEC_UNITS);
+		siril_log_color_message(_("%s: not enough memory to do this operation (%s required per thread, %s considered available)\n"),
+				"red", args->description, mem_per_thread, mem_available);
+		g_free(mem_per_thread);
+		g_free(mem_available);
+	} else {
+#ifdef _OPENMP
+		siril_debug_print("Memory required per thread: %u MB, per image: %u MB, limiting to %d %s\n",
+				required, required, limit, for_writer ? "images" : "threads");
+#else
+		limit = 1;
+#endif
+	}
+	return limit;
 }
 
 // this will create a downscaled 32b distance mask and save it directly (not using the save hook)
@@ -161,6 +210,7 @@ gboolean end_compute_masks(gpointer p) {
 
 int compute_masks(struct stacking_args *args) {
 	struct generic_seq_args *arg = create_default_seqargs(args->seq);
+	arg->force_float = FALSE;
 	arg->compute_mem_limits_hook = compute_mask_compute_mem_limits;
 	arg->image_read_hook = compute_mask_read_hook;
 	arg->filtering_criterion = args->filtering_criterion;

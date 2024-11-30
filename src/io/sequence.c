@@ -2084,10 +2084,33 @@ static int compute_nb_images_fit_memory_from_dimensions(int rx, int ry, int nb_l
 	return max_memory_MB / memory_per_scaled_image_MB;
 }
 
+size_t get_max_seq_dimension(sequence *seq, int *rx, int *ry) {
+	*rx = seq->rx;
+	*ry = seq->ry;
+	size_t maxdim = 0;
+	if (!seq->is_variable || !seq->imgparam)
+		return seq->rx * seq->ry;
+	for (int i = 0; i < seq->number; i++) {
+		if (!seq->imgparam[i].incl)
+			continue;
+		size_t dim = seq->imgparam[i].rx * seq->imgparam[i].ry;
+		if (dim > maxdim) {
+			maxdim = dim;
+			*rx = seq->imgparam[i].rx;
+			*ry = seq->imgparam[i].ry;
+		}
+	}
+	return maxdim;
+}
+
 /* returns the number of images of the sequence that can fit into memory based
- * on the configured memory ratio */
+ * on the configured memory ratio 
+ * If the sequence is of variable size, we use the size of the largest image
+*/
 int compute_nb_images_fit_memory(sequence *seq, double factor, gboolean force_float, unsigned int *MB_per_orig_image, unsigned int *MB_per_scaled_image, unsigned int *max_mem_MB) {
-	return compute_nb_images_fit_memory_from_dimensions(seq->rx, seq->ry, seq->nb_layers, get_data_type(seq->bitpix), factor, force_float, MB_per_orig_image, MB_per_scaled_image, max_mem_MB);
+	int rx = 0, ry = 0;
+	size_t maxdim = get_max_seq_dimension(seq, &rx, &ry);
+	return compute_nb_images_fit_memory_from_dimensions(rx, ry, seq->nb_layers, get_data_type(seq->bitpix), factor, force_float, MB_per_orig_image, MB_per_scaled_image, max_mem_MB);
 }
 
 /* returns the number of images of the sequence that can fit into memory based
