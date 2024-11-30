@@ -458,12 +458,13 @@ static int stack_read_block_data(struct stacking_args *args,
 			}
 		}
 		
-		if (masking && (args->reglayer < 0 || readdata)) {// we need to compute the correct mask area
+		if (masking && (args->reglayer < 0 || readdata)) {
+			// we need to compute the correct mask area
 			// We load the corresponding downscaled portion of the mask file (distances to black are already included)
 			// Upcsale it to the mask buffer
 			// Re-arrange it if required (as for the image block) for maximize_framing
 			// Normalize it to 1. (all values > feather_dist -> 1., values < feather_dist -> val/feather_dist)
-			// And finaly apply the ramping function which has been precomputed on  RAMP_PACE + 1 points
+			// And finally apply the ramping function which has been precomputed on  RAMP_PACE + 1 points
 			const gchar *maskfile = get_mask_filename(args->seq, args->image_indices[frame]);
 			float *mask_scaled;
 			int scaled_rx = 0, scaled_ry = 0;
