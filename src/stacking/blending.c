@@ -90,7 +90,7 @@ static int compute_mask_compute_mem_limits(struct generic_seq_args *args, gboole
 			&MB_per_orig_image, NULL, &MB_avail);
 
 	/* The mask creation memory consumption is:
-		* the original image of size O(w*h*m), with w/h the dimensions and m the number of layers
+		* the original image of size O(w*h*l), with w/h the dimensions and l the number of layers
 		* a 8b copy of one layer O(w*h as 8b) to feed opencv
 		* a 32b copy of one layer at mask scale s, O(w*h*s^2 as 32b) out from opencv and saved
 		* Internally in opencv, we also use (see opencv::cvDownscaleBlendMask):
