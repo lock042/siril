@@ -97,7 +97,8 @@ class PlotData:
         datamax: List [xmax, ymax] forcing the top right coordinate to show.
                  If omitted, the range is set to the data range.
     """
-        def __init__(
+
+    def __init__(
         self,
         title: Optional[str] = "Data Plot",
         xlabel: Optional[str] = "X",
