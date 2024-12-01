@@ -20,6 +20,7 @@ from .shm import SharedMemoryWrapper
 from packaging import version
 from packaging.specifiers import SpecifierSet
 from typing import Tuple, Optional, List, Union, Any
+from .plot import PlotType, SeriesData, PlotData, PlotSerializer
 from .exceptions import SirilError, ConnectionError, CommandError, NoImageError
 from .models import ImageStats, FKeywords, FFit, Homography, PSFStar, RegData, ImgData, Sequence, SequenceType
 
@@ -42,15 +43,6 @@ class _Status(IntEnum):
     OK = 0
     NONE = 1
     ERROR = 0xFF
-
-class PlotType(IntEnum):
-    POINTS = 0
-    MARKS = 1
-    HYPHENS = 2
-    LINES = 3
-    LINESPOINTS = 4
-    LINESMARKS = 5
-    LINESHYPHENS= 6
 
 class _Command(IntEnum):
     """
@@ -1372,111 +1364,16 @@ class SirilInterface:
                 except Exception:
                     pass
 
-    def _serialize_plot_data(self,
-        series_data: List[Tuple[str, Union[List[float], np.ndarray], Union[List[float], np.ndarray], Optional[PlotType]]],
-        title: Optional[str],
-        xlabel: Optional[str],
-        ylabel: Optional[str],
-        savename: Optional[str],
-        show_legend: Optional[bool]
-    ) -> Optional[Tuple[bytes, int]]:
-        """
-        Serialize plot data for shared memory transfer using network byte order.
-
-        Args:
-            series_data: List of tuples (label, x_coords, y_coords,
-                         optional plot_type)
-                         where x_coords and y_coords are numpy arrays or
-                         lists of floats, and plot_type is a PlotType enum
-            title: Plot title (null-terminated string)
-            xlabel: X-axis label (null-terminated string)
-            ylabel: Y-axis label (null-terminated string)
-            savename: Save filename (null-terminated string)
-            show_legend: Boolean indicating whether to show legend
-
-        Returns: Bytes object containing serialized data
-
-        """
-        # Encode strings as null-terminated UTF-8 byte strings
-        def encode_null_string(s):
-            return s.encode('utf-8') + b'\x00'
-
-        serialized = b''
-        serialized += encode_null_string(title)
-        serialized += encode_null_string(xlabel)
-        serialized += encode_null_string(ylabel)
-        serialized += encode_null_string(savename)
-
-        # Fix: Pack the boolean using network byte order
-        serialized += struct.pack('!?', show_legend)
-        serialized += struct.pack('!I', len(series_data))
-
-        for series in series_data:
-            # Unpack the series tuple with defaults
-            label = series[0]
-            x_coords = series[1]
-            y_coords = series[2]
-            plot_type = series[3] if len(series) > 3 else PlotType.LINES
-            # Convert to numpy arrays to ensure consistent handling
-            x_coords = np.asarray(x_coords, dtype=np.float32)
-            y_coords = np.asarray(y_coords, dtype=np.float32)
-            assert len(x_coords) == len(y_coords), _("x and y coordinates must have same length")
-            serialized += encode_null_string(label)
-            serialized += struct.pack('!I', len(x_coords))
-            serialized += struct.pack('!I', plot_type.value)
-
-            for x, y in zip(x_coords, y_coords):
-                serialized += struct.pack('!dd', x, y)
-
-        # Return the serialized data and its total length
-        return serialized, len(serialized)
-
-    def xy_plot(self,
-        series_data: List[Tuple[str, Union[List[float], np.ndarray], Union[List[float], np.ndarray], Optional[PlotType]]],
-        title: Optional[str] = "Data Plot",
-        xlabel: Optional[str] = "X",
-        ylabel: Optional[str] = "Y",
-        savename: Optional[str] = "plot",
-        show_legend: Optional[bool] = True
-    ):
+    def xy_plot(self, plot_data: PlotData):
         """
         Serialize plot data and send via shared memory.
 
         Args:
-            series_data: List of tuples (label, x_coords, y_coords,
-                         optional plot_type)
-                         where x_coords and y_coords are numpy arrays or
-                         lists of floats, and plot_type is a PlotType enum
-            title: Plot title
-            xlabel: X-axis label
-            ylabel: Y-axis label
-            savename: Save filename
-            show_legend: Boolean indicating whether to show legend
-
-        Example: Using lists of floats with default series titles
-                # Series data using lists of floats
-                series_data_lists = [
-                    ([1.0, 2.0, 3.0], [4.0, 5.0, 6.0]),  # Default title will be used
-                    ("Custom Series", [4.0, 5.0, 6.0], [7.0, 8.0, 9.0])  # Custom title
-                ]
-
-                # Serialize using lists
-                siril.xy_plot(series_data_lists, title="My Plot")
+            plot_metadata: PlotMetadata object containing plot configuration
         """
-        # Modify the input to ensure each series has a title
-        processed_series_data = []
-        for series in series_data:
-            if len(series) == 2:  # No title provided
-                processed_series_data.append(("Data Series", series[0], series[1]))
-            elif len(series) == 3:  # Title already provided
-                processed_series_data.append(series)
-            else:
-                raise ValueError("Each series must be a tuple of (x_coords, y_coords) or (title, x_coords, y_coords)")
-
         try:
-            serialized_data, total_bytes = self._serialize_plot_data(
-                processed_series_data, title, xlabel, ylabel, savename, show_legend
-            )
+            serialized_data, total_bytes = PlotSerializer._serialize_plot_data(plot_data)
+
             # Generate unique shared memory name
             timestamp = int(time.time() * 1000)  # Millisecond precision
             shm_name = f"siril_plot_shm_{os.getpid()}_{timestamp}"
@@ -1486,7 +1383,6 @@ class SirilInterface:
                 shm_name = shm_name[1:]  # Remove leading slash
 
             # Create shared memory
-            total_bytes = len(serialized_data)
             shm = None
             try:
                 shm = SharedMemoryWrapper(shm_name, total_bytes)
@@ -1529,6 +1425,7 @@ class SirilInterface:
                     shm.unlink()
                 except:
                     pass
+
 
     def set_pixeldata(self, image_data: np.ndarray) -> bool:
         """

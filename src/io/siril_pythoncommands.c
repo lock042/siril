@@ -444,6 +444,11 @@ siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size) {
 		char* series_label = g_strdup((const char*)buffer + offset);
 		offset += strlen(series_label) + 1;
 
+		// Unpack with_errors (as a single byte)
+		// This indicates if there are errorbar series or not
+		gboolean with_errors = BOOL_FROM_BYTE(buffer[offset]);
+		offset += sizeof(uint8_t);
+
 		// Read number of points (network byte-order)
 		uint32_t num_points;
 		memcpy(&num_points, buffer + offset, sizeof(uint32_t));
@@ -456,13 +461,14 @@ siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size) {
 		plot_type = GUINT32_FROM_BE(plot_type);
 		offset += sizeof(uint32_t);
 
-		// Create a new splxydata structure
+		// Create a new dataseries and add it to plot_data
 		double *xdata = malloc(num_points * sizeof(double));
 		double *ydata = malloc(num_points * sizeof(double));
-
+		double *nerror = with_errors ? malloc(num_points * sizeof(double)) : NULL;
+		double *perror = with_errors ? malloc(num_points * sizeof(double)) : NULL;
 		// Read coordinates (network byte-order)
 		for (uint32_t point_idx = 0; point_idx < num_points; point_idx++) {
-			double x, y, x_BE, y_BE;
+			double x, y, x_BE, y_BE, ne, pe, ne_BE, pe_BE;
 
 			// Read raw bytes for x
 			memcpy(&x_BE, buffer + offset, sizeof(double));
@@ -470,19 +476,36 @@ siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size) {
 			FROM_BE_INTO(x, x_BE, double);
 			xdata[point_idx] = x;
 
-			// Read raw bytes for x
+			// Read raw bytes for y
 			memcpy(&y_BE, buffer + offset, sizeof(double));
 			offset += sizeof(double);
 			FROM_BE_INTO(y, y_BE, double);
 			ydata[point_idx] = y;
+
+			if (with_errors) {
+				// Read raw bytes for negative error
+				memcpy(&ne_BE, buffer + offset, sizeof(double));
+				offset += sizeof(double);
+				FROM_BE_INTO(ne, ne_BE, double);
+				nerror[point_idx] = ne;
+
+				// Read raw bytes for positive error
+				memcpy(&pe_BE, buffer + offset, sizeof(double));
+				offset += sizeof(double);
+				FROM_BE_INTO(pe, pe_BE, double);
+				perror[point_idx] = pe;
+			}
+
 		}
 
 		// Add to plot list (assuming simple xy plot)
-		siril_plot_add_xydata(plot_data, series_label, num_points, xdata, ydata, NULL, NULL);
+		siril_plot_add_xydata(plot_data, series_label, num_points, xdata, ydata, perror, nerror);
 		siril_plot_set_nth_plot_type(plot_data, series_idx+1, (enum kplottype) plot_type);
 		g_free(series_label);
 		free(xdata);
 		free(ydata);
+		free(nerror);
+		free(perror);
 	}
 
 	plot_data->plottype = KPLOT_LINES;  // Default plot type
