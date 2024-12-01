@@ -37,7 +37,7 @@ class SeriesData:
             x_coords: X-coordinates of the data series
             y_coords: Y-coordinates of the data series
             label: Label for the series (optional)
-            plot_type: Type of plot for this series (default: LINES)
+            plot_type: Type of plot for this series (optional, default is LINES)
             m_error: Y-axis negative error for error bars (optional)
             p_error: Y-axis positive error for error bars (optional)
         """
@@ -70,7 +70,9 @@ class PlotData:
         xlabel: Optional[str] = "X",
         ylabel: Optional[str] = "Y",
         savename: Optional[str] = "plot",
-        show_legend: Optional[bool] = True
+        show_legend: Optional[bool] = True,
+        datamin: Optional[List[float]] = None,
+        datamax: Optional[List[float]] = None
     ):
         """
         Metadata container for plot configuration.
@@ -79,8 +81,10 @@ class PlotData:
             title: Plot title
             xlabel: X-axis label
             ylabel: Y-axis label
-            savename: Save filename
-            show_legend: Boolean indicating whether to show legend
+            savename: Save filename (extension is added automatically)
+            show_legend: bool indicating whether to show legend
+            datamin: List [xmin, ymin] forcing the bottom left coordinate to show
+            datamax: List [xmax, ymax] forcing the top right coordinate to show
         """
         self.title = title
         self.xlabel = xlabel
@@ -88,6 +92,25 @@ class PlotData:
         self.savename = savename
         self.show_legend = show_legend
         self.series_data: List[SeriesData] = []
+        self.datamin = datamin
+        self.datamax = datamax
+
+        # Validate datamin and datamax
+        if self.datamin is not None:
+            if not isinstance(self.datamin, list):
+                raise TypeError("datamin must be a list of 2 numeric values (integers or floats)")
+            if len(self.datamin) != 2:
+                raise ValueError("datamin must contain exactly 2 numeric values (integers or floats)")
+            if not all(isinstance(x, (int, float)) for x in self.datamin):
+                raise TypeError("datamin must contain only numeric values (integers or floats)")
+
+        if self.datamax is not None:
+            if not isinstance(self.datamax, list):
+                raise TypeError("datamax must be a list of 2 numeric values (integers or floats)")
+            if len(self.datamax) != 2:
+                raise ValueError("datamax must contain exactly 2 numeric values (integers or floats)")
+            if not all(isinstance(x, (int, float)) for x in self.datamax):
+                raise TypeError("datamax must contain only numeric values (integers or floats)")
 
     def add_series(
         self,
@@ -101,7 +124,8 @@ class PlotData:
         """
         Add a new series to the plot metadata.
 
-        Returns the created SeriesData object for further manipulation if needed.
+        Returns:
+            SeriesData: the created SeriesData object for further manipulation if needed.
         """
         series = SeriesData(
             x_coords,
@@ -117,6 +141,8 @@ class PlotData:
     def add_series_obj(self, series: SeriesData) -> None:
         """
         Add a pre-created SeriesData object to the plot metadata.
+
+        Returns: None
         """
         self.series_data.append(series)
 
@@ -125,9 +151,12 @@ class PlotSerializer:
     def _serialize_plot_data(Plot_data: PlotData) -> Tuple[bytes, int]:
         """
         Serialize plot data for shared memory transfer using network byte order.
+
         Args:
             Plot_data: PlotData object containing plot configuration
-        Returns: Tuple of serialized bytes and total length
+
+        Returns:
+            Tuple of serialized bytes and total length
         """
         def encode_null_string(s):
             return s.encode('utf-8') + b'\x00'
@@ -141,6 +170,16 @@ class PlotSerializer:
         # Pack boolean and number of series
         serialized += struct.pack('!?', Plot_data.show_legend)
         serialized += struct.pack('!I', len(Plot_data.series_data))
+
+        # If datamin is set, serialize it
+        serialized += struct.pack('!?', Plot_data.datamin is not None)
+        if Plot_data.datamin is not None:
+            serialized += struct.pack('!dd', Plot_data.datamin[0], Plot_data.datamin[1])
+
+        # If datamax is set, serialize it
+        serialized += struct.pack('!?', Plot_data.datamax is not None)
+        if Plot_data.datamax is not None:
+            serialized += struct.pack('!dd', Plot_data.datamax[0], Plot_data.datamax[1])
 
         for series in Plot_data.series_data:
             with_errors = series.m_error is not None or series.p_error is not None

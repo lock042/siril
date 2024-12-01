@@ -438,6 +438,34 @@ siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size) {
 	num_series = GUINT32_FROM_BE(num_series);
 	offset += sizeof(uint32_t);
 
+	gboolean datamin_set = BOOL_FROM_BYTE(buffer[offset]);
+	offset += sizeof(uint8_t);
+	if (datamin_set) {
+		point datamin;
+		double x_BE, y_BE;
+		memcpy(&x_BE, buffer + offset, sizeof(double));
+		offset += sizeof(double);
+		FROM_BE_INTO(datamin.x, x_BE, double);
+		memcpy(&y_BE, buffer + offset, sizeof(double));
+		offset += sizeof(double);
+		FROM_BE_INTO(datamin.y, y_BE, double);
+		memcpy(&plot_data->datamin, &datamin, sizeof(point));
+	}
+
+	gboolean datamax_set = BOOL_FROM_BYTE(buffer[offset]);
+	offset += sizeof(uint8_t);
+	if (datamax_set) {
+		point datamax;
+		double x_BE, y_BE;
+		memcpy(&x_BE, buffer + offset, sizeof(double));
+		offset += sizeof(double);
+		FROM_BE_INTO(datamax.x, x_BE, double);
+		memcpy(&y_BE, buffer + offset, sizeof(double));
+		offset += sizeof(double);
+		FROM_BE_INTO(datamax.y, y_BE, double);
+		memcpy(&plot_data->datamax, &datamax, sizeof(point));
+	}
+
 	// Unpack series data
 	for (uint32_t series_idx = 0; series_idx < num_series; series_idx++) {
 		// Read series label
