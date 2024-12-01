@@ -577,9 +577,9 @@ static int normalization_overlap_get_max_number_of_threads(struct stacking_args 
 	sequence *seq = args->seq;
 	/* The overlap normalization memory consumption assumes:
 		- n is max overlap size accross all pairs of images
-		- m in the number of layers
+		- l in the number of layers
 		We need:
-		- 2 * overlap parial image stored (so 2.n.m) when we read the images
+		- 2 * overlap parial image stored (so 2.n.l) when we read the images
 		- 2 * data copies as floats (so 2.n as float) that are re-used for all layers
 		- 1 * data additional copy to compute MAD (not 2 because the calcs are 
 		sequential and memory freed in between calls)
@@ -763,6 +763,8 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 			}
 		}
 	}
+	if (!retval)
+		goto cleanup;
 
 #ifdef DEBUG_NORM
 	for (int n = 0; n < nb_layers; n++) {
@@ -841,6 +843,7 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 		}
 	}
 
+cleanup:
 	for (int n = 0; n < nb_layers; n++) {
 		for (int i = 0; i < nb_frames; i++) {
 			free(Mij[n][i]);
