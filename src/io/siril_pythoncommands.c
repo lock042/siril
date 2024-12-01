@@ -450,6 +450,12 @@ siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size) {
 		num_points = GUINT32_FROM_BE(num_points);
 		offset += sizeof(uint32_t);
 
+		// Read plot type (network byte-order)
+		uint32_t plot_type;
+		memcpy(&plot_type, buffer + offset, sizeof(uint32_t));
+		plot_type = GUINT32_FROM_BE(plot_type);
+		offset += sizeof(uint32_t);
+
 		// Create a new splxydata structure
 		double *xdata = malloc(num_points * sizeof(double));
 		double *ydata = malloc(num_points * sizeof(double));
@@ -473,12 +479,12 @@ siril_plot_data* unpack_plot_data(const uint8_t* buffer, size_t buffer_size) {
 
 		// Add to plot list (assuming simple xy plot)
 		siril_plot_add_xydata(plot_data, series_label, num_points, xdata, ydata, NULL, NULL);
+		siril_plot_set_nth_plot_type(plot_data, series_idx+1, (enum kplottype) plot_type);
 		g_free(series_label);
 		free(xdata);
 		free(ydata);
 	}
 
-	// Set some default values (you might want to adjust these)
 	plot_data->plottype = KPLOT_LINES;  // Default plot type
 
 	return plot_data;

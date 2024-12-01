@@ -43,6 +43,15 @@ class _Status(IntEnum):
     NONE = 1
     ERROR = 0xFF
 
+class PlotType(IntEnum):
+    POINTS = 0
+    MARKS = 1
+    HYPHENS = 2
+    LINES = 3
+    LINESPOINTS = 4
+    LINESMARKS = 5
+    LINESHYPHENS= 6
+
 class _Command(IntEnum):
     """
     Enumerates the commands. This enum MUST match the one in
@@ -1364,7 +1373,7 @@ class SirilInterface:
                     pass
 
     def _serialize_plot_data(self,
-        series_data: List[Tuple[str, Union[List[float], np.ndarray], Union[List[float], np.ndarray]]],
+        series_data: List[Tuple[str, Union[List[float], np.ndarray], Union[List[float], np.ndarray], Optional[PlotType]]],
         title: Optional[str],
         xlabel: Optional[str],
         ylabel: Optional[str],
@@ -1375,8 +1384,10 @@ class SirilInterface:
         Serialize plot data for shared memory transfer using network byte order.
 
         Args:
-            series_data: List of tuples (label, x_coords, y_coords)
-                        where x_coords and y_coords are numpy arrays or lists of floats
+            series_data: List of tuples (label, x_coords, y_coords,
+                         optional plot_type)
+                         where x_coords and y_coords are numpy arrays or
+                         lists of floats, and plot_type is a PlotType enum
             title: Plot title (null-terminated string)
             xlabel: X-axis label (null-terminated string)
             ylabel: Y-axis label (null-terminated string)
@@ -1400,13 +1411,19 @@ class SirilInterface:
         serialized += struct.pack('!?', show_legend)
         serialized += struct.pack('!I', len(series_data))
 
-        for label, x_coords, y_coords in series_data:
+        for series in series_data:
+            # Unpack the series tuple with defaults
+            label = series[0]
+            x_coords = series[1]
+            y_coords = series[2]
+            plot_type = series[3] if len(series) > 3 else PlotType.LINES
             # Convert to numpy arrays to ensure consistent handling
             x_coords = np.asarray(x_coords, dtype=np.float32)
             y_coords = np.asarray(y_coords, dtype=np.float32)
             assert len(x_coords) == len(y_coords), _("x and y coordinates must have same length")
             serialized += encode_null_string(label)
             serialized += struct.pack('!I', len(x_coords))
+            serialized += struct.pack('!I', plot_type.value)
 
             for x, y in zip(x_coords, y_coords):
                 serialized += struct.pack('!dd', x, y)
@@ -1415,7 +1432,7 @@ class SirilInterface:
         return serialized, len(serialized)
 
     def xy_plot(self,
-        series_data: List[Tuple[str, Union[List[float], np.ndarray], Union[List[float], np.ndarray]]],
+        series_data: List[Tuple[str, Union[List[float], np.ndarray], Union[List[float], np.ndarray], Optional[PlotType]]],
         title: Optional[str] = "Data Plot",
         xlabel: Optional[str] = "X",
         ylabel: Optional[str] = "Y",
@@ -1426,8 +1443,10 @@ class SirilInterface:
         Serialize plot data and send via shared memory.
 
         Args:
-            series_data: List of tuples (label, x_coords, y_coords)
-                        where x_coords and y_coords are numpy arrays or lists of floats
+            series_data: List of tuples (label, x_coords, y_coords,
+                         optional plot_type)
+                         where x_coords and y_coords are numpy arrays or
+                         lists of floats, and plot_type is a PlotType enum
             title: Plot title
             xlabel: X-axis label
             ylabel: Y-axis label
