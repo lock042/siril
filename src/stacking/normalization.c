@@ -764,7 +764,7 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 			}
 		}
 	}
-	if (!retval)
+	if (retval)
 		goto cleanup;
 
 #ifdef DEBUG_NORM
