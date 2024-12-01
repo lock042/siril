@@ -2109,7 +2109,7 @@ size_t get_max_seq_dimension(sequence *seq, int *rx, int *ry) {
 */
 int compute_nb_images_fit_memory(sequence *seq, double factor, gboolean force_float, unsigned int *MB_per_orig_image, unsigned int *MB_per_scaled_image, unsigned int *max_mem_MB) {
 	int rx = 0, ry = 0;
-	size_t maxdim = get_max_seq_dimension(seq, &rx, &ry);
+	get_max_seq_dimension(seq, &rx, &ry);
 	return compute_nb_images_fit_memory_from_dimensions(rx, ry, seq->nb_layers, get_data_type(seq->bitpix), factor, force_float, MB_per_orig_image, MB_per_scaled_image, max_mem_MB);
 }
 

@@ -588,6 +588,13 @@ void cvDownscaleBlendMask(int rx, int ry, int out_rx, int out_ry, uint8_t *maski
 	Mat _maskindown = Mat(out_ry + 2, out_rx + 2, CV_8U, Scalar(0));
 	Mat _maskoutdown32 = Mat(out_ry + 2, out_rx + 2, CV_32F, Scalar(0.));
 	Mat _maskout = Mat(out_ry, out_rx, CV_32F, maskout);
+	int morph_size = 3;
+	// first we dilate and erode to make sure we fill holes left by drizzling if any
+	Mat element = getStructuringElement(MORPH_RECT,
+ 										Size(2 * morph_size + 1, 2 * morph_size + 1 ),
+										Point(morph_size, morph_size));
+  	dilate(_maskin, _maskin, element);
+	erode(_maskin, _maskin, element);
 	// we leave a border of one pixel black to make sure the distance transform
 	// will later count distance from this border (if the initial mask was entirely white for instance)
 	// we get a handle to the inner part of the maskout (without the border)

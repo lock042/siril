@@ -161,7 +161,7 @@ static int compute_mask_image_hook(struct generic_seq_args *args, int o, int i, 
 		}
 	} else if (fit->type == DATA_USHORT){
 		for (size_t i = 0; i < nbpix; i++) {
-			if (fit->pdata[layer][i] == 0.)
+			if (fit->pdata[layer][i] > 0)
 				buffer8in[i] = UCHAR_MAX;
 		}
 	} else {
