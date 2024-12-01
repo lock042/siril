@@ -1351,7 +1351,7 @@ static int stack_mean_or_median(struct stacking_args *args, gboolean is_mean) {
 			}
 		}
 		if (is_mean) {
-			size_t offset = mask_offset + mask_offset;
+			size_t offset = stack_offset + mask_offset;
 			data_pool[i].rejected = (int*)((char*)data_pool[i].tmp + offset);
 			data_pool[i].o_stack = (void*)((char*)data_pool[i].rejected + sizeof(int) * nb_frames);
 
