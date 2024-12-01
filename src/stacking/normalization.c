@@ -642,6 +642,7 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 	int nb_frames = args->nb_images_to_stack;
 	int Npairs = nb_frames * (nb_frames - 1) / 2;
 	int N = nb_frames - 1;
+	double *coeffs = NULL;
 	// imstats *refstats[3] = { NULL };
 
 	if (args->normalize == NO_NORM || !args->maximize_framing)	// should never happen here
@@ -808,7 +809,7 @@ static int compute_normalization_overlaps(struct stacking_args *args) {
 	}
 #endif
 
-	double *coeffs = malloc(N * sizeof(double));
+	coeffs = malloc(N * sizeof(double));
 
 	if (args->normalize == MULTIPLICATIVE_SCALING || args->normalize == ADDITIVE_SCALING) {
 		for (int n = 0; n < nb_layers; n++) {
