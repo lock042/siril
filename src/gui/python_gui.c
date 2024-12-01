@@ -1109,7 +1109,7 @@ static void on_buffer_modified_changed(GtkTextBuffer *buffer, gpointer user_data
 }
 
 void on_action_python_doc(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
-	siril_get_documentation("scripts/api.html");
+	siril_get_documentation("Python-API.html");
 }
 
 void on_action_command_doc(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
