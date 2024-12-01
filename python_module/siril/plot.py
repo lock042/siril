@@ -21,13 +21,30 @@ class PlotType(IntEnum):
     LINESHYPHENS= 6
 
 class SeriesData:
+    """
+    Represents a single data series for plotting.
+
+    Members:
+        x_coords: Either a List[float] or a np.ndarray containing the values
+                  for the x coordinates for this series
+        y_coords: Either a List[float] or a np.ndarray containing the values
+                  for the y coordinates for this series
+        label: A str containing a label for the series (shown in the plot
+               legend)
+        plot_type: a PlotType setting the type of marks to use
+        n_error: Either a List[float] or a np.ndarray containing values for
+                 the y-axis negative errors for this series
+        p_error: Either a List[float] or a np.ndarray containing values for
+                 the y-axis positive errors for this series
+    """
+
     def __init__(
         self,
         x_coords: Union[List[float], np.ndarray],
         y_coords: Union[List[float], np.ndarray],
         label: Optional[str] = None,
         plot_type: Optional[PlotType] = PlotType.LINES,
-        m_error: Optional[Union[List[float], np.ndarray]] = None,
+        n_error: Optional[Union[List[float], np.ndarray]] = None,
         p_error: Optional[Union[List[float], np.ndarray]] = None
     ):
         """
@@ -38,7 +55,7 @@ class SeriesData:
             y_coords: Y-coordinates of the data series
             label: Label for the series (optional)
             plot_type: Type of plot for this series (optional, default is LINES)
-            m_error: Y-axis negative error for error bars (optional)
+            n_error: Y-axis negative error for error bars (optional)
             p_error: Y-axis positive error for error bars (optional)
         """
         # Convert inputs to numpy arrays
@@ -54,17 +71,33 @@ class SeriesData:
         self.plot_type = plot_type
 
         # Handle error bars
-        self.m_error = np.asarray(m_error, dtype=np.float32) if m_error is not None else None
+        self.n_error = np.asarray(n_error, dtype=np.float32) if n_error is not None else None
         self.p_error = np.asarray(p_error, dtype=np.float32) if p_error is not None else None
 
         # Validate error bar lengths if provided
-        if self.m_error is not None and len(self.m_error) != len(self.y_coords):
-            raise ValueError("m_error must have the same length as y_coords")
+        if self.n_error is not None and len(self.n_error) != len(self.y_coords):
+            raise ValueError("n_error must have the same length as y_coords")
         if self.p_error is not None and len(self.p_error) != len(self.y_coords):
             raise ValueError("p_error must have the same length as y_coords")
 
 class PlotData:
-    def __init__(
+    """
+    Metadata container for plot configuration. The actual series data are
+    held in SeriesData objects and can be added using the Class methods
+    add_series or add_series_obj after initialization of the PlotData.
+
+    Members:
+        title: Plot title
+        xlabel: X-axis label
+        ylabel: Y-axis label
+        savename: Save filename (extension is added automatically)
+        show_legend: bool indicating whether to show legend
+        datamin: List [xmin, ymin] forcing the bottom left coordinate to show.
+                 If omitted, the range is set to the data range.
+        datamax: List [xmax, ymax] forcing the top right coordinate to show.
+                 If omitted, the range is set to the data range.
+    """
+        def __init__(
         self,
         title: Optional[str] = "Data Plot",
         xlabel: Optional[str] = "X",
@@ -118,7 +151,7 @@ class PlotData:
         y_coords: Union[List[float], np.ndarray],
         label: Optional[str] = None,
         plot_type: Optional[PlotType] = PlotType.LINES,
-        m_error: Optional[Union[List[float], np.ndarray]] = None,
+        n_error: Optional[Union[List[float], np.ndarray]] = None,
         p_error: Optional[Union[List[float], np.ndarray]] = None
     ) -> SeriesData:
         """
@@ -132,7 +165,7 @@ class PlotData:
             y_coords,
             label,
             plot_type,
-            m_error,
+            n_error,
             p_error
         )
         self.series_data.append(series)
@@ -182,7 +215,7 @@ class PlotSerializer:
             serialized += struct.pack('!dd', Plot_data.datamax[0], Plot_data.datamax[1])
 
         for series in Plot_data.series_data:
-            with_errors = series.m_error is not None or series.p_error is not None
+            with_errors = series.n_error is not None or series.p_error is not None
             serialized += encode_null_string(series.label)
             serialized += struct.pack('!?', with_errors)
             serialized += struct.pack('!I', len(series.x_coords))
@@ -195,8 +228,8 @@ class PlotSerializer:
 
                 if with_errors:
                     # Serialize negative error (if exists, otherwise 0)
-                    if series.m_error is not None and i < len(series.m_error):
-                        serialized += struct.pack('!d', series.m_error[i])
+                    if series.n_error is not None and i < len(series.n_error):
+                        serialized += struct.pack('!d', series.n_error[i])
                     else:
                         serialized += struct.pack('!d', 0.0)
 
