@@ -26,16 +26,21 @@ class SeriesData:
 
     Members:
         x_coords: Either a List[float] or a np.ndarray containing the values
-                  for the x coordinates for this series
+        for the x coordinates for this series
+
         y_coords: Either a List[float] or a np.ndarray containing the values
-                  for the y coordinates for this series
+        for the y coordinates for this series
+
         label: A str containing a label for the series (shown in the plot
-               legend)
+        legend)
+
         plot_type: a PlotType setting the type of marks to use
+
         n_error: Either a List[float] or a np.ndarray containing values for
-                 the y-axis negative errors for this series
+        the y-axis negative errors for this series
+
         p_error: Either a List[float] or a np.ndarray containing values for
-                 the y-axis positive errors for this series
+        the y-axis positive errors for this series
     """
 
     def __init__(
@@ -88,14 +93,20 @@ class PlotData:
 
     Members:
         title: Plot title
+
         xlabel: X-axis label
+
         ylabel: Y-axis label
+
         savename: Save filename (extension is added automatically)
+
         show_legend: bool indicating whether to show legend
+
         datamin: List [xmin, ymin] forcing the bottom left coordinate to show.
-                 If omitted, the range is set to the data range.
+        If omitted, the range is set to the data range.
+
         datamax: List [xmax, ymax] forcing the top right coordinate to show.
-                 If omitted, the range is set to the data range.
+        If omitted, the range is set to the data range.
     """
 
     def __init__(
