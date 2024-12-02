@@ -1074,7 +1074,7 @@ void on_action_file_execute(GSimpleAction *action, GVariant *parameter, gpointer
 	char *text = gtk_text_buffer_get_text(GTK_TEXT_BUFFER(sourcebuffer), &start, &end, FALSE);
 	switch (active_language) {
 		case LANG_PYTHON:;
-			execute_python_script_async(text, FALSE);
+			execute_python_script_async(text, FALSE, NULL);
 			break;
 		case LANG_SSF:;
 			GInputStream *input_stream = g_memory_input_stream_new_from_data(text, strlen(text), NULL);

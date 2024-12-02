@@ -46,6 +46,7 @@
 #include "core/icc_profile.h"
 #include "core/arithm.h"
 #include "core/initfile.h"
+#include "core/siril_app_dirs.h"
 #include "core/preprocess.h"
 #include "core/processing.h"
 #include "core/sequence_filtering.h"
@@ -64,6 +65,7 @@
 #include "io/local_catalogues.h"
 #include "io/FITS_symlink.h"
 #include "io/fits_keywords.h"
+#include "io/siril_pythonmodule.h"
 #include "drizzle/cdrizzleutil.h"
 #include "gui/utils.h"
 #include "gui/callbacks.h"
@@ -11410,4 +11412,43 @@ int process_offline(int nb) {
 int process_pwd(int nb) {
 	siril_log_message(_("Current working directory: '%s'\n"), com.wd);
 	return CMD_OK;
+}
+
+int process_pyscript(int nb) {
+	gchar *script_name = NULL;
+	GStatBuf statbuf;
+	if (g_stat(word[1], &statbuf) == 0) {
+		// full path provided (or at least we can find it directly)
+		script_name = g_strdup(word[1]);
+	} else {
+		// Search for the file in the user's set script directories and the scripts repository
+		GSList *path = com.pref.gui.script_path;
+		while (path) {
+			siril_debug_print("Searching script path: %s\n", (gchar*) path->data);
+			script_name = find_file_in_directory(word[1], (gchar*) path->data);
+			if (script_name) // found it!
+				break;
+			path = path->next;
+		}
+		if (!script_name) {
+			// If we still haven't found it, iterate over the siril-scripts local repository
+			script_name = find_file_recursively(word[1], siril_get_scripts_repo_path());
+		}
+	}
+
+	if (script_name) {
+		gchar** argv_script = NULL;
+		if (nb > 1) {
+			// Treat additional arguments as arguments to be passed to the script
+			argv_script = calloc(nb, sizeof(gchar*));
+			for (int i = 2 ; i <= nb ; i++) {
+				argv_script[i-2] = g_strdup(word[i]);
+			}
+		}
+		execute_python_script_async(script_name, TRUE, argv_script);
+		g_strfreev(argv_script);
+		return CMD_OK;
+	} else {
+		return CMD_FILE_NOT_FOUND;
+	}
 }
