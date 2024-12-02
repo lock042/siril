@@ -1571,7 +1571,8 @@ cleanup:
 }
 
 gboolean python_venv_idle(gpointer user_data) {
-	// TODO: placeholder idle function in case we need somewhere to activate widgets etc.
+	g_thread_unref(com.python_init_thread);
+	com.python_init_thread = NULL;
 	return FALSE;
 }
 
@@ -1620,14 +1621,17 @@ static gpointer initialize_python_venv(gpointer user_data) {
 	}
 	g_free(venv_path);
 	g_free(project_path);
-	siril_add_idle(python_venv_idle, NULL);
+	if (!com.headless)
+		gdk_threads_add_idle(python_venv_idle, NULL);
+	else
+		python_venv_idle(NULL);
 	return GINT_TO_POINTER(0);
 }
 
 void initialize_python_venv_in_thread() {
 	GError *error = NULL;
-	GThread *thread = g_thread_try_new("initialize python venv", initialize_python_venv, NULL, &error);
-	g_thread_unref(thread);
+	com.python_init_thread = g_thread_try_new("initialize python venv", initialize_python_venv, NULL, &error);
+	// We clean up the thread in python_venv_idle
 }
 
 void shutdown_python_communication(CommunicationState *commstate) {
@@ -1643,11 +1647,14 @@ void shutdown_python_communication(CommunicationState *commstate) {
 }
 
 void execute_python_script_async(gchar* script_name, gboolean from_file, gchar** argv_script) {
-
 	version_number none = { 0 };
-	if (!memcmp(&none, &com.python_version, sizeof(version_number))) {
-		siril_log_color_message(_("Error: python not ready yet.\n"), "red");
-		return;
+	if (compare_version(none, com.python_version) >= 0) {
+		if (com.python_init_thread) {
+			g_thread_join(com.python_init_thread); // wait for python initialization to start
+		} else {
+			siril_log_color_message(_("Error: python not ready yet.\n"), "red");
+			return;
+		}
 	}
 
 	// Generate a unique connection path for the pipe or socket for this script

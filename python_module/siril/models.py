@@ -498,7 +498,7 @@ class FFit:
         if value is not None:
             shape = value.shape
             if len(shape) == 2:
-                self._naxes = (1, shape[1], shape[0])  # width, height, channels
+                self._naxes = (shape[2], shape[1], 1)  # width, height, 1 channel
             elif len(shape) == 3:
                 if shape[2] not in (1, 3):
                     raise ValueError(_("Third dimension must be 1 or 3"))
@@ -557,11 +557,11 @@ class FFit:
 
     def allocate_data(self):
         """
-        Allocate memory for image data with appropriate type. self.rx, self.ry,
+        Allocate memory for image data with appropriate type. self.width, self.height,
         self.naxis, self.naxes and self.dtype must be set before calling this
         method.
         """
-        shape = (self.ry, self.rx) if self.naxis == 2 else (self.ry, self.rx, self.naxes[2])
+        shape = (self.height, self.width) if self.naxis == 2 else (self.channels, self.height, self.width)
         self.data = np.zeros(shape, dtype=self.dtype)
 
     def ensure_data_type(self, target_type=None):
@@ -618,7 +618,7 @@ class FFit:
             if channel != 0:
                 raise ValueError(_("Cannot get channel > 0 for 2D data"))
             return self.data
-        return self.data[channel, :, :]
+        return self.data[channel,...]
 
     def update_stats(self):
         """

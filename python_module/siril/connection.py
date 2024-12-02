@@ -893,7 +893,7 @@ class SirilInterface:
         try:
             # Assuming the response is in the format: width (4 bytes), height (4 bytes), nb_channels (4 bytes)
             width, height, channels = struct.unpack('!III', response)
-            return height, width, channels  # Returning as (height, width, channels)
+            return channels, height, width  # Returning as (channels, height, width)
         except struct.error as e:
             print(f"Error unpacking image dimensions: {e}", file=sys.stderr)
             return None
