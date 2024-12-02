@@ -1642,7 +1642,7 @@ void shutdown_python_communication(CommunicationState *commstate) {
 	}
 }
 
-void execute_python_script_async(gchar* script_name, gboolean from_file) {
+void execute_python_script_async(gchar* script_name, gboolean from_file, gchar** argv_script) {
 
 	version_number none = { 0 };
 	if (!memcmp(&none, &com.python_version, sizeof(version_number))) {
@@ -1717,9 +1717,7 @@ void execute_python_script_async(gchar* script_name, gboolean from_file) {
 #endif
 	// Set PYTHONUNBUFFERED in environment
 	env = g_environ_setenv(env, "PYTHONUNBUFFERED", "1", TRUE);
-//	siril_debug_print("venv_path: %s\n", venv_path);
 	gchar *python_path = find_venv_python_exe(venv_path, TRUE);
-//	siril_debug_print("python_path: %s\n", python_path);
 	gboolean success = FALSE;
 	gchar *working_dir = NULL;
 	GError* error = NULL;
@@ -1728,30 +1726,37 @@ void execute_python_script_async(gchar* script_name, gboolean from_file) {
 	if (!python_path) {
 		siril_log_color_message(_("Error finding venv python path, unable to spawn python.\n"), "red");
 	} else {
-		// Prepare command arguments with Python unbuffered mode
-		gchar* python_argv[5];
+		// Basic argv to spawn python to run the script
+		GPtrArray* python_argv = g_ptr_array_new();
+		g_ptr_array_add(python_argv, python_path);
+		g_ptr_array_add(python_argv, "-u");  // Set unbuffered mode
+
 		if (from_file) {
-			python_argv[0] = python_path;
-			python_argv[1] = "-u";  // Set unbuffered mode
-			python_argv[2] = script_name;
-			python_argv[3] = NULL;
+			g_ptr_array_add(python_argv, script_name);
 		} else {
-			python_argv[0] = python_path;
-			python_argv[1] = "-u";  // Set unbuffered mode
-			python_argv[2] = "-c";
-			python_argv[3] = script_name;
-			python_argv[4] = NULL;
+			g_ptr_array_add(python_argv, "-c");
+			g_ptr_array_add(python_argv, script_name);
 		}
 
-		// Set up process spawn with pipe flags
-		working_dir = g_strdup(com.wd);
+		// Add delimiter and script arguments if script arguments are provided
+		if (argv_script != NULL) {
+			g_ptr_array_add(python_argv, "--");
 
-		GSpawnFlags spawn_flags = G_SPAWN_SEARCH_PATH |
-								G_SPAWN_DO_NOT_REAP_CHILD;
+			// Add all script arguments
+			for (int i = 0; argv_script[i] != NULL; i++) {
+				g_ptr_array_add(python_argv, argv_script[i]);
+			}
+		}
+
+		// Null-terminate the array
+		g_ptr_array_add(python_argv, NULL);
+
+		// Use the GPtrArray for spawning
+		GSpawnFlags spawn_flags = G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD;
 
 		success = g_spawn_async_with_pipes(
 			working_dir,
-			python_argv,
+			(gchar**)python_argv->pdata,
 			env,
 			spawn_flags,
 			NULL,
@@ -1763,6 +1768,8 @@ void execute_python_script_async(gchar* script_name, gboolean from_file) {
 			&error
 		);
 
+		// Free the GPtrArray (but not its contents - the caller must free argv_script)
+		g_ptr_array_free(python_argv, FALSE);
 		g_free(python_path);
 	}
 

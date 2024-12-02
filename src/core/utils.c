@@ -2026,3 +2026,75 @@ guint gui_function(GSourceFunc idle_function, gpointer data) {
 	}
 	return 0;
 }
+
+gchar *find_file_in_directory(gchar *basename, const gchar *path) {
+	gchar *full_path;
+	GStatBuf stat_buf;
+
+	// Validate input
+	if (!basename || !path) {
+		return NULL;
+	}
+
+	// Build the full path
+	full_path = g_build_filename(path, basename, NULL);
+
+	// Check if file exists and is a regular file
+	if (g_stat(full_path, &stat_buf) == 0 &&
+		S_ISREG(stat_buf.st_mode)) {
+		return full_path;
+	}
+
+	// Clean up and return NULL if file not found
+	g_free(full_path);
+	return NULL;
+}
+
+gchar *find_file_recursively(gchar *basename, const gchar *top_path) {
+	GDir *dir;
+	const gchar *filename;
+	gchar *full_path, *file_result = NULL;
+
+	// First, check the current directory
+	file_result = find_file_in_directory(basename, top_path);
+	if (file_result) {
+		return file_result;
+	}
+
+	// Open the directory
+	dir = g_dir_open(top_path, 0, NULL);
+	if (!dir) {
+		return NULL;
+	}
+
+	// Iterate through directory entries
+	while ((filename = g_dir_read_name(dir)) != NULL) {
+		// Construct full path
+		full_path = g_build_filename(top_path, filename, NULL);
+
+		// Check if it's a directory
+		if (g_file_test(full_path, G_FILE_TEST_IS_DIR)) {
+			// Ignore . and .. directories
+			if (g_strcmp0(filename, ".") != 0 && g_strcmp0(filename, "..") != 0) {
+				// Recursively search this subdirectory
+				file_result = find_file_recursively(basename, full_path);
+
+				// If file found, free the full path and return
+				g_free(full_path);
+
+				if (file_result) {
+					g_dir_close(dir);
+					return file_result;
+				}
+			}
+		}
+
+		g_free(full_path);
+	}
+
+	// Close the directory
+	g_dir_close(dir);
+
+	// File not found in this directory tree
+	return NULL;
+}

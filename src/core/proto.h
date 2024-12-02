@@ -183,6 +183,8 @@ const gchar* find_first_numeric(const gchar *string);
 const gchar* find_first_nonnumeric(const gchar *string);
 int count_pattern_occurence(const gchar *string, const gchar *pattern);
 guint gui_function(GSourceFunc idle_function, gpointer data);
+gchar *find_file_in_directory(gchar *basename, const gchar *path);
+gchar *find_file_recursively(gchar *basename, const gchar *top_path);
 
 /****************** quantize.h ***************/
 int siril_fits_img_stats_ushort(WORD *array, long nx, long ny, int nullcheck,
