@@ -6,23 +6,33 @@ from typing import Callable, TypeVar
 
 T = TypeVar('T')
 
-def setup_translations(domain: str = 'siril', localedir: str = 'locale') -> Callable:
+def setup_translations(domain: str = 'siril', localedir: str = None) -> Callable:
     """
     Set up translations for the module based on the system locale.
     """
-    if not os.path.exists(localedir):
-        os.makedirs(localedir)
+    # If no localedir is specified, find the module's parent directory
+    if localedir is None:
+        try:
+            current_module_dir = os.path.dirname(os.path.abspath(__file__))
+            localedir = os.path.join(os.path.dirname(current_module_dir), 'locale')
+        except Exception:
+            # Fallback to module root if locale directory can't be found
+            localedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+    # Bind the text domain to the locale directory
     gettext.bindtextdomain(domain, localedir)
     gettext.textdomain(domain)
 
+    # Try to set locale, with graceful error handling
     try:
         locale.setlocale(locale.LC_ALL, '')
     except locale.Error:
         pass
 
+    # Get default locale
     lang, encoding = locale.getdefaultlocale()
 
+    # Try to set locale with progressive fallback
     try:
         locale.setlocale(locale.LC_ALL, lang)
         return gettext.gettext
