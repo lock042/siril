@@ -2429,7 +2429,7 @@ class SirilInterface:
                 img_history = []
 
             return FFit(
-                _naxes = (shape[1], shape[0], shape[2]),
+                _naxes = (shape[2], shape[1], shape[0]),
                 naxis = 2 if shape[2] == 1 else 3,
                 bitpix=values[0],
                 checksum=True if values[1] else False,
@@ -2441,11 +2441,11 @@ class SirilInterface:
                 pixelkey=True if values[8] else False,
                 color_managed=True if values[9] else False,
                 _data = self.get_pixeldata() if with_pixels == True else None,
-                stats = (
+                stats=[
                     self.get_image_stats(0),
                     self.get_image_stats(1) if shape[2] > 1 else None,
-                    self.get_image_stats(2) if shape[2] > 1 else None
-                ),
+                    self.get_image_stats(2) if shape[2] > 1 else None,
+                ],
                 keywords = self.get_keywords(),
                 _icc_profile = self.get_icc_profile(),
                 header = img_header,

@@ -450,8 +450,7 @@ class FFit:
     header: Optional[str] = None
     unknown_keys: Optional[str] = None
 
-    stats: Tuple[Optional[ImageStats], Optional[ImageStats], Optional[ImageStats]] = \
-        (None, None, None)
+    stats: List[Optional[ImageStats]] = field(default_factory=lambda: [ImageStats() for _ in range(3)])
     mini: float = 0.0
     maxi: float = 0.0
     neg_ratio: float = 0.0
@@ -472,8 +471,6 @@ class FFit:
         """Initialize after creation"""
         if self.history is None:
             self.history = []
-        if all(stat is None for stat in self.stats):
-            self.stats = tuple(ImageStats() for _ in range(3))
 
     @property
     def data(self) -> Optional[np.ndarray]:
@@ -501,11 +498,11 @@ class FFit:
         if value is not None:
             shape = value.shape
             if len(shape) == 2:
-                self._naxes = (shape[1], shape[0], 1)  # width, height, channels
+                self._naxes = (1, shape[1], shape[0])  # width, height, channels
             elif len(shape) == 3:
                 if shape[2] not in (1, 3):
                     raise ValueError(_("Third dimension must be 1 or 3"))
-                self._naxes = (shape[1], shape[0], shape[2])  # width, height, channels
+                self._naxes = (shape[2], shape[1], shape[0])  # width, height, channels
             else:
                 raise ValueError(_("Data must be 2D or 3D"))
             self._update_naxis()
@@ -621,7 +618,7 @@ class FFit:
             if channel != 0:
                 raise ValueError(_("Cannot get channel > 0 for 2D data"))
             return self.data
-        return self.data[:, :, channel]
+        return self.data[channel, :, :]
 
     def update_stats(self):
         """
