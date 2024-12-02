@@ -1740,8 +1740,6 @@ void execute_python_script_async(gchar* script_name, gboolean from_file, gchar**
 
 		// Add delimiter and script arguments if script arguments are provided
 		if (argv_script != NULL) {
-			g_ptr_array_add(python_argv, "--");
-
 			// Add all script arguments
 			for (int i = 0; argv_script[i] != NULL; i++) {
 				g_ptr_array_add(python_argv, argv_script[i]);
