@@ -32,18 +32,18 @@ class ImageStats:
 
     total: int = 0  #: total number of pixels
     ngoodpix: int = 0   #: number of non-zero pixels
-    mean: np.float32 = 0.0   #: mean value of pixels
-    median: np.float32 = 0.0 #: median value of pixels
-    sigma: np.float32 = 0.0  #: standard deviation of pixels
-    avgDev: np.float32 = 0.0 #: average deviation of pixels
-    mad: np.float32 = 0.0    #: mean average deviation of pixels
-    sqrtbwmv: np.float32 = 0.0   #: square root of the biweight midvariance of pixel values
-    location: np.float32 = 0.0   #: location of pixel values
-    scale: np.float32 = 0.0  #: scale value of the pixels
-    min: np.float32 = 0.0    #: minimum pixel value
-    max: np.float32 = 0.0    #: maximum pixel value
-    normValue: np.float32 = 0.0  #: norm value of the pixels
-    bgnoise: np.float32 = 0.0    #: RMS background noise
+    mean: float = 0.0   #: mean value of pixels
+    median: float = 0.0 #: median value of pixels
+    sigma: float = 0.0  #: standard deviation of pixels
+    avgDev: float = 0.0 #: average deviation of pixels
+    mad: float = 0.0    #: mean average deviation of pixels
+    sqrtbwmv: float = 0.0   #: square root of the biweight midvariance of pixel values
+    location: float = 0.0   #: location of pixel values
+    scale: float = 0.0  #: scale value of the pixels
+    min: float = 0.0    #: minimum pixel value
+    max: float = 0.0    #: maximum pixel value
+    normValue: float = 0.0  #: norm value of the pixels
+    bgnoise: float = 0.0    #: RMS background noise
 
 @dataclass
 class FKeywords:
@@ -57,8 +57,8 @@ class FKeywords:
     bzero: float = 0.0
     lo: int = 0 #: MIPS-LO key in FITS file, "Lower visualization cutoff"
     hi: int = 0 #: MIPS-HI key in FITS file, "Upper visualization cutoff"
-    flo: float = 0.0 #: MIPS-LO key in FITS file, "Lower visualization cutoff (float)"
-    fhi: float = 0.0  #: MIPS-Hi key in FITS file, "Upper visualization cutoff (float)"
+    flo: np.float32 = 0.0 #: MIPS-LO key in FITS file, "Lower visualization cutoff (float)"
+    fhi: np.float32 = 0.0  #: MIPS-Hi key in FITS file, "Upper visualization cutoff (float)"
 
     # Private string attributes with corresponding properties
     _program: str = ""
@@ -446,8 +446,8 @@ class FFit:
     unknown_keys: Optional[str] = None
 
     stats: List[Optional[ImageStats]] = field(default_factory=lambda: [ImageStats() for _ in range(3)])
-    mini: np.float32 = 0.0
-    maxi: np.float32 = 0.0
+    mini: float = 0.0
+    maxi: float = 0.0
     neg_ratio: np.float32 = 0.0
 
     type: DataType = DataType.FLOAT_IMG
@@ -634,16 +634,16 @@ class FFit:
             stats.ngoodpix = np.count_nonzero(channel_data)
             # For the remaining stats we exclude pixels that are exactly 0
             nonzero = channel_data[channel_data != 0]
-            stats.mean = np.float32(np.mean(nonzero))
-            stats.median = np.float32(np.median(nonzero))
-            stats.sigma = np.float32(np.std(nonzero))
-            stats.min = np.float32(np.min(nonzero))
-            stats.max = np.float32(np.max(nonzero))
+            stats.mean = np.mean(nonzero)
+            stats.median = np.median(nonzero)
+            stats.sigma = np.std(nonzero)
+            stats.min = np.min(nonzero)
+            stats.max = np.max(nonzero)
 
             # More complex statistics
             deviations = np.abs(nonzero - stats.median)
-            stats.mad = np.float32(np.median(deviations))
-            stats.avgDev = np.float32(np.mean(deviations))
+            stats.mad = np.median(deviations)
+            stats.avgDev = np.mean(deviations)
 
             self.stats[i] = stats
 
@@ -724,7 +724,7 @@ class PSFStar:
     s_mag: float = 999.99      #: error on the (V)magnitude
     s_Bmag: float = 999.99     #: error on the B magnitude
     SNR: float = 0.0           #: SNR of the star
-    BV: float = 0.0            #: only used to pass data in photometric color calibration
+    BV: v = 0.0            #: only used to pass data in photometric color calibration
 
     # uncertainties
     B_err: float = 0.0 #: error in B
@@ -745,10 +745,10 @@ class PSFStar:
 class RegData:
     """Python equivalent of Siril regdata structure"""
     fwhm: float = 0.0                    #: copy of fwhm->fwhmx, used as quality indicator
-    weighted_fwhm: float = 0.0           #: used to exclude spurious images
-    roundness: float = 0.0               #: fwhm->fwhmy / fwhm->fwhmx, 0 when uninit, ]0, 1] when set
+    weighted_fwhm: np.float32 = 0.0           #: used to exclude spurious images
+    roundness: np.float32 = 0.0               #: fwhm->fwhmy / fwhm->fwhmx, 0 when uninit, ]0, 1] when set
     quality: float = 0.0                 #: measure of image quality
-    background_lvl: float = 0.0          #: background level
+    background_lvl: np.float32 = 0.0          #: background level
     number_of_stars: int = 0             #: number of stars detected in the image
     H: Homography = field(default_factory=Homography)
 

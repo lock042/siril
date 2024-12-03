@@ -718,6 +718,16 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 				success = send_response(conn, STATUS_ERROR, error_msg, strlen(error_msg));
 				break;
 			}
+			// Set xpos and ypos as these are not set by minimisation
+			psf->xpos = selection.x + psf->x0;
+			psf->ypos = selection.y + selection.h - psf->y0;
+			// Set RA and dec if there is a plate solution
+			if (gfit.keywords.wcslib) {
+				double fx, fy;
+				display_to_siril(psf->xpos, psf->ypos, &fx, &fy, gfit.ry);
+				pix2wcs2(gfit.keywords.wcslib, fx, fy, &psf->ra, &psf->dec);
+				// ra and dec = -1 is the error code
+			}
 			const size_t psf_star_size = 36 * sizeof(double);
 			unsigned char* star = g_malloc0(psf_star_size);
 			unsigned char* ptr = star;
