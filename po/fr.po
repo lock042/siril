@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: siril 0.9\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-11-28 14:34+0100\n"
-"PO-Revision-Date: 2024-11-28 15:47+0000\n"
+"PO-Revision-Date: 2024-12-03 11:56+0000\n"
 "Last-Translator: Cyril Richard <cyril.richard42@gmail.com>\n"
 "Language-Team: French <https://weblate.siril.org/projects/siril/software/"
 "siril/fr/>\n"
@@ -166,9 +166,8 @@ msgstr ""
 "CCD.  Si vous utilisez une caméra CMOS, veuillez l'indiquer comme CCD."
 
 #: src/gui/uifiles/aavso_dialog.ui:275
-#, fuzzy
 msgid "Comparison star: "
-msgstr "Étoile de comparaison : "
+msgstr "Étoile de comparaison : "
 
 #: src/gui/uifiles/aavso_dialog.ui:286
 msgid "The number of the comparison star."
@@ -274,7 +273,7 @@ msgstr "Effacer"
 
 #: src/gui/uifiles/annotate_dialog.ui:34
 msgid "Clear all current annotations."
-msgstr ""
+msgstr "Efface toutes les annotations en cours."
 
 #: src/gui/uifiles/annotate_dialog.ui:51
 #: src/gui/uifiles/astrometry_dialog.ui:117
@@ -284,14 +283,12 @@ msgid "Close the window."
 msgstr "Fermer la fenêtre."
 
 #: src/gui/uifiles/annotate_dialog.ui:67
-#, fuzzy
 msgid "Apply requested annotation."
-msgstr "Appliquer l'alignement"
+msgstr "Appliquer l'annotation demandée."
 
 #: src/gui/uifiles/annotate_dialog.ui:110
-#, fuzzy
 msgid "Catalogue: "
-msgstr "Catalogue"
+msgstr "Catalogue : "
 
 #: src/gui/uifiles/annotate_dialog.ui:121
 msgid ""
@@ -379,6 +376,9 @@ msgid ""
 "For stars catalogues containing photometric data, stars with no B-V "
 "information will be kept; they can be excluded by check this option."
 msgstr ""
+"Pour les catalogues d'étoiles contenant des données photométriques, les "
+"étoiles sans information B-V seront conservées ; elles peuvent être exclues "
+"en cochant cette option."
 
 #: src/gui/uifiles/annotate_dialog.ui:174
 #: src/gui/uifiles/annotate_dialog.ui:426
