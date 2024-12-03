@@ -487,6 +487,10 @@ else
   conf_data.set_quoted('SIRIL_BUILD_PLATFORM_FAMILY', 'other')
 endif
 
+if get_option('flatpak-id') != ''
+  conf_data.set_quoted('FLATPAK_ID', get_option('flatpak-id'))
+endif
+
 # Check for available headers
 foreach header : [
     { 'm': 'HAVE_EXECINFO_H',     'v': 'execinfo.h' },

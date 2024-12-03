@@ -86,6 +86,15 @@ if criterion_dep.found()
 
      test('ser_test', ser_exec)
 
+     siril_spawn_test_exec = executable('siril_spawn_test',
+                                        'siril_spawn_test.c',
+                                        dependencies : [siril_dep, criterion_dep],
+                                        link_args : siril_link_arg,
+                                        c_args : siril_c_flag,
+                                        cpp_args : siril_cpp_flag)
+
+     test('siril_spawn_test', siril_spawn_test_exec)
+
      # Performance testing
      sorting_perf_exec = executable('sorting_perf',
                                    'measure_sorting.c',

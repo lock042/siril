@@ -11,6 +11,8 @@
         "--socket=fallback-x11",
         "--socket=wayland",
         "--filesystem=host",
+        /* For spawning OS-native processes */
+        "--talk-name=org.freedesktop.Flatpak",
         /* Needed for gvfs to work */
         "--talk-name=org.gtk.vfs.*",
         "--filesystem=xdg-run/gvfs",
@@ -405,7 +407,8 @@
             "name": "siril",
             "buildsystem": "meson",
             "config-opts": [
-                "--buildtype=release"
+                "--buildtype=release",
+                "-Dflatpak-id=${FLATPAK_ID}"
             ],
             "post-install": [
                 "sed -i s/text-x-seq/${FLATPAK_ID}.text-x-seq/ ${FLATPAK_DEST}/share/mime/packages/siril.xml",

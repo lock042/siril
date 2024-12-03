@@ -89,3 +89,9 @@ option('criterion',
  value : false,
  description: 'build with criterion support'
 )
+
+option('flatpak-id',
+ type : 'string',
+ value : '',
+ description : 'set by flatpak-builder if building a flatpak'
+)
