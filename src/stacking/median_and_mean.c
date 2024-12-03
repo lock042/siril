@@ -1146,9 +1146,9 @@ static long stack_get_max_number_of_rows(long naxes[3], data_type type, int nb_i
 
 	siril_log_message(_("Using %d MB memory maximum for stacking\n"), max_memory);
 	// for each datablock, we store the pixel values
-	// if masking, we also need to store all the masks in float + 1 mask in 8b to conpute the smoothing (this mask is freed for every frame)
+	// if masking, we also need to store all the masks in float + 1 mask in 32b to conpute the smoothing (this mask is freed for every frame)
 	guint64 number_of_rows = (guint64)max_memory * BYTES_IN_A_MB /
-		(nb_images_to_stack * naxes[0] * (elem_size + mask_elem_size) + (masking) * naxes[0] * sizeof(uint8_t));
+		(nb_images_to_stack * naxes[0] * (elem_size + mask_elem_size) + (masking) * naxes[0] * sizeof(float));
 	// this is how many rows we can load in parallel from all images of the
 	// sequence and be under the limit defined in config in megabytes.
 	if (total_nb_rows < number_of_rows)
