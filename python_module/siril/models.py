@@ -32,18 +32,18 @@ class ImageStats:
 
     total: int = 0  #: total number of pixels
     ngoodpix: int = 0   #: number of non-zero pixels
-    mean: float = 0.0   #: mean value of pixels
-    median: float = 0.0 #: median value of pixels
-    sigma: float = 0.0  #: standard deviation of pixels
-    avgDev: float = 0.0 #: average deviation of pixels
-    mad: float = 0.0    #: mean average deviation of pixels
-    sqrtbwmv: float = 0.0   #: square root of the biweight midvariance of pixel values
-    location: float = 0.0   #: location of pixel values
-    scale: float = 0.0  #: scale value of the pixels
-    min: float = 0.0    #: minimum pixel value
-    max: float = 0.0    #: maximum pixel value
-    normValue: float = 0.0  #: norm value of the pixels
-    bgnoise: float = 0.0    #: RMS background noise
+    mean: np.float32 = 0.0   #: mean value of pixels
+    median: np.float32 = 0.0 #: median value of pixels
+    sigma: np.float32 = 0.0  #: standard deviation of pixels
+    avgDev: np.float32 = 0.0 #: average deviation of pixels
+    mad: np.float32 = 0.0    #: mean average deviation of pixels
+    sqrtbwmv: np.float32 = 0.0   #: square root of the biweight midvariance of pixel values
+    location: np.float32 = 0.0   #: location of pixel values
+    scale: np.float32 = 0.0  #: scale value of the pixels
+    min: np.float32 = 0.0    #: minimum pixel value
+    max: np.float32 = 0.0    #: maximum pixel value
+    normValue: np.float32 = 0.0  #: norm value of the pixels
+    bgnoise: np.float32 = 0.0    #: RMS background noise
 
 from dataclasses import dataclass
 from typing import Optional
@@ -451,9 +451,9 @@ class FFit:
     unknown_keys: Optional[str] = None
 
     stats: List[Optional[ImageStats]] = field(default_factory=lambda: [ImageStats() for _ in range(3)])
-    mini: float = 0.0
-    maxi: float = 0.0
-    neg_ratio: float = 0.0
+    mini: np.float32 = 0.0
+    maxi: np.float32 = 0.0
+    neg_ratio: np.float32 = 0.0
 
     type: DataType = DataType.FLOAT_IMG
     _data: Optional[np.ndarray] = None
@@ -618,7 +618,7 @@ class FFit:
             if channel != 0:
                 raise ValueError(_("Cannot get channel > 0 for 2D data"))
             return self.data
-        return self.data[channel,...]
+        return self.data[channel, ...]
 
     def update_stats(self):
         """
@@ -637,16 +637,18 @@ class FFit:
             # Update basic statistics
             stats.total = channel_data.size
             stats.ngoodpix = np.count_nonzero(channel_data)
-            stats.mean = float(np.mean(channel_data))
-            stats.median = float(np.median(channel_data))
-            stats.sigma = float(np.std(channel_data))
-            stats.min = float(np.min(channel_data))
-            stats.max = float(np.max(channel_data))
+            # For the remaining stats we exclude pixels that are exactly 0
+            nonzero = channel_data[channel_data != 0]
+            stats.mean = np.float32(np.mean(nonzero))
+            stats.median = np.float32(np.median(nonzero))
+            stats.sigma = np.float32(np.std(nonzero))
+            stats.min = np.float32(np.min(nonzero))
+            stats.max = np.float32(np.max(nonzero))
 
             # More complex statistics
-            deviations = np.abs(channel_data - stats.median)
-            stats.mad = float(np.median(deviations))
-            stats.avgDev = float(np.mean(deviations))
+            deviations = np.abs(nonzero - stats.median)
+            stats.mad = np.float32(np.median(deviations))
+            stats.avgDev = np.float32(np.mean(deviations))
 
             self.stats[i] = stats
 

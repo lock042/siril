@@ -1092,18 +1092,18 @@ class SirilInterface:
             return ImageStats(
                 total=values[0],
                 ngoodpix=values[1],
-                mean=values[2],
-                median=values[3],
-                sigma=values[4],
-                avgDev=values[5],
-                mad=values[6],
-                sqrtbwmv=values[7],
-                location=values[8],
-                scale=values[9],
-                min=values[10],
-                max=values[11],
-                normValue=values[12],
-                bgnoise=values[13]
+                mean=np.float32(values[2]),
+                median=np.float32(values[3]),
+                sigma=np.float32(values[4]),
+                avgDev=np.float32(values[5]),
+                mad=np.float32(values[6]),
+                sqrtbwmv=np.float32(values[7]),
+                location=np.float32(values[8]),
+                scale=np.float32(values[9]),
+                min=np.float32(values[10]),
+                max=np.float32(values[11]),
+                normValue=np.float32(values[12]),
+                bgnoise=np.float32(values[13])
             )
         except Exception as e:
             raise RuntimeError(_("Failed to transfer stats data: error occurred"))
@@ -1989,18 +1989,18 @@ class SirilInterface:
             return ImageStats(
                 total=values[0],
                 ngoodpix=values[1],
-                mean=values[2],
-                median=values[3],
-                sigma=values[4],
-                avgDev=values[5],
-                mad=values[6],
-                sqrtbwmv=values[7],
-                location=values[8],
-                scale=values[9],
-                min=values[10],
-                max=values[11],
-                normValue=values[12],
-                bgnoise=values[13]
+                mean=np.float32(values[2]),
+                median=np.float32(values[3]),
+                sigma=np.float32(values[4]),
+                avgDev=np.float32(values[5]),
+                mad=np.float32(values[6]),
+                sqrtbwmv=np.float32(values[7]),
+                location=np.float32(values[8]),
+                scale=np.float32(values[9]),
+                min=np.float32(values[10]),
+                max=np.float32(values[11]),
+                normValue=np.float32(values[12]),
+                bgnoise=np.float32(values[13])
             )
 
         except struct.error as e:
