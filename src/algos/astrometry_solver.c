@@ -40,6 +40,7 @@
 #include "core/OS_utils.h"
 #include "core/siril_date.h"
 #include "core/siril_log.h"
+#include "core/siril_spawn.h"
 #include "core/undo.h"
 #include "algos/PSF.h"
 #include "algos/star_finder.h"
@@ -1503,20 +1504,60 @@ clearup:
 
 /*********************** finding asnet bash first **********************/
 
-// Retrieves and caches asnet_version
-static void get_asnet_version(gchar *path) {
-	gchar* bin[3];
-	gchar* child_stdout = NULL;
-	bin[0] = path;
-	bin[1] = "--version";
-	bin[2] = NULL;
+// Retrieves and caches asnet_version. Returns true if asnet works
+static gboolean get_asnet_version(gchar* exe_name) {
+	g_autofree gchar* child_stdout = NULL;
+	g_autofree gchar* child_stderr = NULL;
 	g_autoptr(GError) error = NULL;
-	g_spawn_sync(NULL, bin, NULL, G_SPAWN_SEARCH_PATH | G_SPAWN_STDERR_TO_DEV_NULL, NULL, NULL, &child_stdout, NULL, NULL, &error);
+
+	gint child_exit = 127;
+#ifdef _WIN32
+	gchar* argv[] = {
+		exe_name,
+		"-l",
+		"-c",
+		"solve-field --version",
+		NULL
+	};
+#else
+	gchar* argv[] = {
+		exe_name,
+		"--version",
+		NULL
+	};
+#endif
+
+	siril_spawn_host_sync(
+		NULL,
+		argv,
+		NULL,
+		G_SPAWN_SEARCH_PATH,
+		NULL,
+		NULL,
+		&child_stdout,
+		&child_stderr,
+		&child_exit,
+		&error
+	);
+
 	if (error) {
-		// This will happen on Windows, for users using ansvr but having set the path to cygwin_ansvr in the prefs (instead of leaving blank)
-		// We'll not make this over complicated and fallback assuming this is the only case
-		siril_debug_print("%s\n",error->message);
-		asnet_version = g_strdup("ansvr");
+		// Can't start asnet
+		printf("%s\n",error->message);
+		return FALSE;
+	} else if (!siril_spawn_check_wait_status(child_exit, &error)) {
+		// Abnormal termination
+		if (error && error->domain == G_SPAWN_EXIT_ERROR && error->code == child_exit && child_stderr) {
+			// this case happens when version is unknown, like for ansvr (returns an error code).
+			// Posterior versions (>ansvr but <0.88) do not necessarily throw an error code, hence why <0.88 is defined here and below
+			// Or they do, but we can't test every single version between 0.24 and 0.87...
+			printf("%s\n", error->message);
+			gchar *test_unknown_option = g_strstr_len(child_stderr, -1, "unknown option");
+			if (test_unknown_option) {
+				asnet_version = g_strdup("<0.88");
+			} else
+				return FALSE;
+		} else
+			return FALSE;
 	} else {
 		gchar** chunks = g_strsplit(child_stdout, "\n", 2);
 		if (strlen(chunks[1]) == 0) { // if the second chunk is void, it means there was only one line which contains the version
@@ -1526,8 +1567,8 @@ static void get_asnet_version(gchar *path) {
 		}
 		g_strfreev(chunks);
 	}
-	g_free(child_stdout);
-	siril_debug_print("Running asnet version %s\n", asnet_version);
+	siril_log_message(_("Running asnet version %s\n"), asnet_version);
+	return TRUE;
 }
 
 void reset_asnet_version() {
@@ -1538,95 +1579,61 @@ void reset_asnet_version() {
 }
 
 #ifdef _WIN32
-static gchar *siril_get_asnet_bash() {
+static gchar *siril_get_asnet_bash(gboolean *path_in_pref) {
+	*path_in_pref = FALSE;
 	// searching user-defined path if any
 	if (com.pref.asnet_dir && com.pref.asnet_dir[0] != '\0') {
-		gchar *testdir = g_build_filename(com.pref.asnet_dir, "bin", NULL);
-		// only testing for dir existence, which will catch most path defintion errors
-		// this is lighter than testing for existence of bash.exe with G_FILE_TEST_IS_EXECUTABLE flag
-		if (!g_file_test(testdir, G_FILE_TEST_IS_DIR)) {
-			siril_log_color_message(_("cygwin/bin was not found at %s - ignoring\n"), "red", testdir);
-			g_free(testdir);
-		} else {
-			siril_debug_print("cygwin/bin found at %s\n", testdir);
-			g_free(testdir);
-			gchar *versionpath = g_build_filename(com.pref.asnet_dir, "bin", "solve-field", NULL);
-			if (!asnet_version)
-				get_asnet_version(versionpath);
-			g_free(versionpath);
-			return g_build_filename(com.pref.asnet_dir, NULL);
-		}
+		*path_in_pref = TRUE;
+		return g_build_filename(com.pref.asnet_dir, "bin", "bash", NULL);
 	}
-	// searching default location %localappdata%/cygwin_ansvr
 	const gchar *localappdata = g_get_user_data_dir();
-	gchar *testdir = g_build_filename(localappdata, "cygwin_ansvr", "bin", NULL);
-	if (g_file_test(testdir, G_FILE_TEST_IS_DIR)) {
-		siril_debug_print("cygwin/bin found at %s\n", testdir);
-		g_free(testdir);
-		if (!asnet_version) {
-			asnet_version = g_strdup("ansvr");
-			siril_debug_print("Running asnet version %s\n", asnet_version);
-		}
-		return g_build_filename(localappdata, "cygwin_ansvr", NULL);
+	return  g_build_filename(localappdata, "cygwin_ansvr", "bin", "bash", NULL);
+}
+
+static gchar *siril_get_asnet_shell() {
+	// searching user-defined path if any
+	if (com.pref.asnet_dir && com.pref.asnet_dir[0] != '\0') {
+		return g_strdup(com.pref.asnet_dir);
 	}
-	siril_log_color_message(_("cygwin/bin was not found at %s - ignoring\n"), "red", testdir);
-	g_free(testdir);
-	return NULL;
-}
-
-gboolean asnet_is_available() {
-	gchar *path = siril_get_asnet_bash();
-	gboolean retval = path != NULL;
-	g_free(path);
-	return retval;
-}
-
-#else
-static gboolean solvefield_is_in_path = FALSE;
-static gchar *siril_get_asnet_bin() {
-	if (solvefield_is_in_path)
-		return g_strdup("solve-field");
-	if (!com.pref.asnet_dir || com.pref.asnet_dir[0] == '\0')
-		return NULL;
-	return g_build_filename(com.pref.asnet_dir, "solve-field", NULL);
+	const gchar *localappdata = g_get_user_data_dir();
+	return  g_build_filename(localappdata, "cygwin_ansvr", NULL);
 }
 
 /* returns true if the command solve-field is available */
 gboolean asnet_is_available() {
-	const char *str = "solve-field -h > /dev/null 2>&1";
-	int retval = system(str);
-	if (WIFEXITED(retval) && (0 == WEXITSTATUS(retval))) {
-		solvefield_is_in_path = TRUE;
-		siril_debug_print("solve-field found in PATH\n");
-		if (!asnet_version)
-			get_asnet_version("solve-field");
-		return TRUE;
+	gboolean path_in_pref = FALSE;
+	g_autofree gchar* bash_path = siril_get_asnet_bash(&path_in_pref);
+	gboolean success = get_asnet_version(bash_path);
+	if (!success && path_in_pref) {
+		siril_log_color_message(_("Astrometry.net path (%s) incorrectly set in preferences\n"), "red", com.pref.asnet_dir);
 	}
-	siril_debug_print("solve-field not found in PATH\n");
-	gchar *bin = siril_get_asnet_bin();
-	if (!bin) return FALSE;
-	gboolean is_available = g_file_test(bin, G_FILE_TEST_EXISTS);
-	if (!asnet_version)
-		get_asnet_version(bin);
-	g_free(bin);
-	return is_available;
+	return success;
+}
+
+#else
+
+static gchar *siril_get_asnet_bin() {
+	if (com.pref.asnet_dir && com.pref.asnet_dir[0] != '\0') {
+		return g_build_filename(com.pref.asnet_dir, "solve-field", NULL);
+	}
+
+	return g_strdup("solve-field");
+}
+
+/* returns true if the command solve-field is available */
+gboolean asnet_is_available() {
+	g_autofree gchar* exe_path = siril_get_asnet_bin();
+	return get_asnet_version(exe_path);
 }
 #endif
 
 static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrometry_data *args, solve_results *solution) {
-#ifdef _WIN32
-	gchar *asnet_shell = siril_get_asnet_bash();
-	if (!asnet_shell) {
-		return SOLVE_ASNET_PROC;
-	}
-#else
 	if (!args->asnet_checked) {
 		if (!asnet_is_available()) {
 			siril_log_color_message(_("solve-field was not found, set its path in the preferences\n"), "red");
 			return SOLVE_ASNET_PROC;
 		}
 	}
-#endif
 
 	gchar *table_filename = replace_ext(args->filename, ".xyls");
 #ifdef _WIN32
@@ -1649,6 +1656,8 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 #ifndef _WIN32
 	gchar *asnet_path = siril_get_asnet_bin();
 	g_assert(asnet_path);
+#else
+	gchar *asnet_shell = siril_get_asnet_shell();
 #endif
 
 	char *sfargs[50] = {
@@ -1756,7 +1765,7 @@ static int local_asnet_platesolve(psf_star **stars, int nb_stars, struct astrome
 	gint child_stdout;
 	g_autoptr(GError) error = NULL;
 
-	g_spawn_async_with_pipes(NULL, sfargs, NULL,
+	siril_spawn_host_async_with_pipes(NULL, sfargs, NULL,
 			G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_SEARCH_PATH,
 			NULL, NULL, NULL, NULL, &child_stdout, NULL, &error);
 	if (error != NULL) {
@@ -2199,7 +2208,7 @@ static int astrometry_finalize_hook(struct generic_seq_args *arg) {
 		arg->seq->fitseq_file->filename = filename; // we may need to reopen in the idle so we save it here
 		arg->seq->fitseq_file->hdu_index = NULL;
 	}
-	if (aargs->update_reg) {
+	if (aargs->update_reg && !arg->retval) {
 		siril_log_color_message(_("Computing astrometric registration...\n"), "green");
 		arg->retval = compute_Hs_from_astrometry(arg->seq, aargs->WCSDATA, FRAMING_CURRENT, aargs->layer, NULL, NULL);
 	}
