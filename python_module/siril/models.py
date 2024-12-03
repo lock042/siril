@@ -45,11 +45,6 @@ class ImageStats:
     normValue: np.float32 = 0.0  #: norm value of the pixels
     bgnoise: np.float32 = 0.0    #: RMS background noise
 
-from dataclasses import dataclass
-from typing import Optional
-from datetime import datetime
-from gettext import gettext as _
-
 @dataclass
 class FKeywords:
     """
