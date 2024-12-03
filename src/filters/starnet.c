@@ -41,6 +41,7 @@
 #include "core/processing.h"
 #include "core/OS_utils.h"
 #include "core/siril_log.h"
+#include "core/siril_spawn.h"
 #include "algos/colors.h"
 #include "algos/extraction.h"
 #include "algos/geometry.h"
@@ -90,7 +91,7 @@ static int exec_prog_starnet(char **argv, starnet_version version) {
 	}
 	fprintf(stdout, "\n");
 	// g_spawn handles wchar so not need to convert
-	g_spawn_async_with_pipes(NULL, argv, NULL,
+	siril_spawn_host_async_with_pipes(NULL, argv, NULL,
 			G_SPAWN_SEARCH_PATH |
 			G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_STDERR_TO_DEV_NULL | G_SPAWN_DO_NOT_REAP_CHILD,
 			NULL, NULL, &child_pid, NULL, &child_stdout,
@@ -214,7 +215,7 @@ starnet_version starnet_executablecheck(gchar* executable) {
 	gchar *versionarg = g_strdup("--version");
 	test_argv[nb++] = versionarg;
 	// g_spawn handles wchar so not need to convert
-	g_spawn_async_with_pipes(NULL, test_argv, NULL,
+	siril_spawn_host_async_with_pipes(NULL, test_argv, NULL,
 			G_SPAWN_SEARCH_PATH |
 			G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_STDERR_TO_DEV_NULL,
 			NULL, NULL, NULL, NULL, &child_stdout,
