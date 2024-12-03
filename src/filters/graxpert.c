@@ -40,6 +40,7 @@
 #include "core/OS_utils.h"
 #include "core/siril_update.h"
 #include "core/siril_log.h"
+#include "core/siril_spawn.h"
 #include "gui/progress_and_log.h"
 #include "gui/callbacks.h"
 #include "gui/siril_preview.h"
@@ -99,7 +100,7 @@ static GError *spawn_graxpert(gchar **argv, gint columns,
 	env = g_environ_setenv(env, "ANSICON_COLUMNS", columns_str, TRUE);
 	#endif
 
-	gboolean spawn_result = g_spawn_async_with_pipes(
+	gboolean spawn_result = siril_spawn_host_async_with_pipes(
 		NULL,           // working directory
 		argv,           // argument vector
 		env,            // environment
