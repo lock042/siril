@@ -61,8 +61,11 @@ static GtkCheckMenuItem *homeendcheck = NULL;
 static GtkCheckMenuItem *showspaces = NULL;
 static GtkCheckMenuItem *shownewlines = NULL;
 static GtkCheckMenuItem *minimap = NULL;
+static GtkCheckMenuItem *useargs = NULL;
 static GtkSourceSpaceDrawer* space_drawer = NULL;
 static GtkBox *codeviewbox = NULL;
+static GtkBox *args_box = NULL;
+static GtkEntry *args_entry = NULL;
 
 GtkRevealer *find_revealer = NULL;
 GtkEntry *find_entry = NULL;
@@ -519,6 +522,7 @@ void python_scratchpad_init_statics() {
 		showspaces = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "editor_showspaces"));
 		shownewlines = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "editor_shownewlines"));
 		minimap = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "editor_minimap"));
+		useargs = GTK_CHECK_MENU_ITEM(gtk_builder_get_object(gui.builder, "editor_useargs"));
 		// GtkComboBox
 		combo_language = GTK_COMBO_BOX(gtk_builder_get_object(gui.builder, "python_pad_language"));
 		// GtkButton
@@ -540,6 +544,11 @@ void python_scratchpad_init_statics() {
 		go_down_button = GTK_BUTTON(gtk_builder_get_object(gui.builder, "go_down_button"));
 		// Box
 		codeviewbox = GTK_BOX(gtk_builder_get_object(gui.builder, "codeviewbox"));
+		args_box = GTK_BOX(gtk_builder_get_object(gui.builder, "editor_args_box"));
+		// GtkEntry
+		args_entry = GTK_ENTRY(gtk_builder_get_object(gui.builder, "editor_args_entry"));
+
+		// GtkSourceView setup
 		add_code_view(gui.builder);
 		gtk_window_set_transient_for(GTK_WINDOW(editor_window), GTK_WINDOW(gtk_builder_get_object(gui.builder, "control_window")));
 		g_signal_connect(sourcebuffer, "modified-changed", G_CALLBACK(on_buffer_modified_changed), NULL);
@@ -892,7 +901,7 @@ int on_open_pythonpad(GtkMenuItem *menuitem, gpointer user_data) {
 	gtk_check_menu_item_set_active(shownewlines, com.pref.gui.editor_cfg.shownewlines);
 	gtk_check_menu_item_set_active(minimap, com.pref.gui.editor_cfg.minimap);
 	gtk_widget_set_visible(GTK_WIDGET(map), com.pref.gui.editor_cfg.minimap);
-
+	gtk_widget_set_visible(GTK_WIDGET(args_box), FALSE);
 	return 0;
 }
 
@@ -1072,9 +1081,17 @@ void on_action_file_execute(GSimpleAction *action, GVariant *parameter, gpointer
 	gtk_text_buffer_get_bounds(GTK_TEXT_BUFFER(sourcebuffer), &start, &end);
 	// Get the text
 	char *text = gtk_text_buffer_get_text(GTK_TEXT_BUFFER(sourcebuffer), &start, &end, FALSE);
+
+	// Add args if we need to
+	gchar** script_args = NULL;
+	if (gtk_check_menu_item_get_active(useargs)) {
+		const gchar *args_string = gtk_entry_get_text(args_entry);
+		script_args = g_strsplit(args_string, " ", -1);
+	}
 	switch (active_language) {
 		case LANG_PYTHON:;
-			execute_python_script_async(text, FALSE, NULL);
+			execute_python_script_async(text, FALSE, script_args);
+			g_strfreev(script_args);
 			break;
 		case LANG_SSF:;
 			GInputStream *input_stream = g_memory_input_stream_new_from_data(text, strlen(text), NULL);
@@ -1213,4 +1230,14 @@ void on_editor_minimap_toggled(GtkCheckMenuItem *item, gpointer user_data) {
 	gboolean status = gtk_check_menu_item_get_active(item);
 	gtk_widget_set_visible(GTK_WIDGET(map), status);
 	com.pref.gui.editor_cfg.minimap = status;
+}
+
+void on_editor_useargs_toggled(GtkCheckMenuItem *item, gpointer user_data) {
+	gtk_widget_set_visible(GTK_WIDGET(args_box), gtk_check_menu_item_get_active(item));
+}
+
+void on_editor_args_clear_clicked(GtkButton *button, gpointer user_data) {
+	GtkEntryBuffer *buffer = gtk_entry_get_buffer(args_entry);
+	gtk_entry_buffer_set_text(buffer, "", 0);
+	gtk_widget_grab_focus(GTK_WIDGET(args_entry));
 }

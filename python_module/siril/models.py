@@ -724,7 +724,7 @@ class PSFStar:
     s_mag: float = 999.99      #: error on the (V)magnitude
     s_Bmag: float = 999.99     #: error on the B magnitude
     SNR: float = 0.0           #: SNR of the star
-    BV: v = 0.0            #: only used to pass data in photometric color calibration
+    BV: float = 0.0            #: only used to pass data in photometric color calibration
 
     # uncertainties
     B_err: float = 0.0 #: error in B
