@@ -86,6 +86,7 @@ xx/xx/xx
 * Checked for and resolve pixel values outside [0 1] before certain operations (!697)
 * Fixed seqpsf for images which write ADU in float (#1322)
 * Fixed crash in catsearch when object is unknown (#1383)
+* Fixed local astrometry.net solver non-functional on flatpak (#1392)
 
 **Misc:**
 * Removed glib-networking as a dependency (#1157)
