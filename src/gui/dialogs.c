@@ -40,6 +40,7 @@
 #include "compstars.h"
 
 static gboolean dialog_is_opened = FALSE;
+static gboolean processing_dialog_is_opened = FALSE;
 
 static const SirilDialogEntry entries[] =
 {
@@ -139,6 +140,14 @@ void siril_open_dialog(gchar *id) {
 	SirilDialogEntry entry = get_entry_by_id(id);
 	GtkWindow *win = GTK_WINDOW(get_widget_by_id(id));
 
+	// We cannot open the dialog if a python script claims the thread, to prevent conflict over
+	// updating gfit
+	if (entry.type == IMAGE_PROCESSING_DIALOG && com.python_claims_thread) {
+		queue_error_message_dialog(_("Error"), _("Error: cannot open an image processing dialog while a Python script claims the processing thread. "
+									"Wait for the Python script to finish processing first."));
+		return;
+	}
+
 	if (entry.type != INFORMATION_DIALOG) {
 		for (int i = 0; i < G_N_ELEMENTS(entries); i++) {
 			GtkWidget *w = get_widget_by_index(i);
@@ -165,11 +174,16 @@ void siril_open_dialog(gchar *id) {
 	gtk_window_set_transient_for(win, GTK_WINDOW(lookup_widget("control_window")));
 	gtk_window_present_with_time(win, GDK_CURRENT_TIME);
 	dialog_is_opened = TRUE;
+	if (entry.type == IMAGE_PROCESSING_DIALOG)
+		processing_dialog_is_opened = TRUE;
 }
 
 void siril_close_dialog(gchar *id) {
 	gtk_widget_hide(get_widget_by_id(id));
 	dialog_is_opened = FALSE;
+	SirilDialogEntry entry = get_entry_by_id(id);
+	if (entry.type == IMAGE_PROCESSING_DIALOG)
+		processing_dialog_is_opened = FALSE;
 }
 
 void siril_close_preview_dialogs() {
@@ -190,6 +204,10 @@ gboolean siril_widget_hide_on_delete(GtkWidget *widget) {
 
 gboolean is_a_dialog_opened() {
 	return dialog_is_opened;
+}
+
+gboolean is_an_image_processing_dialog_opened() {
+	return processing_dialog_is_opened;
 }
 
 /************ file chooser ************/

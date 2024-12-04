@@ -709,7 +709,8 @@ class SirilInterface:
                     "processing task to finish."))
                 return False
             else:
-                print(_("Error trying to claim the processing thread."))
+                print(_("Error trying to claim the processing thread. Thread is "
+                    "in use or an image processing dialog is open."))
                 return False
 
         except Exception as e:

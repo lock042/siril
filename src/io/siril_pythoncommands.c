@@ -1600,15 +1600,23 @@ void process_connection(Connection* conn, const gchar* buffer, gsize length) {
 		}
 
 		case CMD_CLAIM_THREAD: {
-			gboolean ret = claim_thread_for_python();
-			if (!ret) {
+			int ret = claim_thread_for_python();
+			if (ret == 1) {
 				// Unable to claim the thread
-				const char* error_msg = _("Unable to claim the processing thread");
+				const char* error_msg = _("Thread is busy");
 				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
-			} else {
+			} else if (ret == 2) {
+				// Unable to claim the thread
+				const char* error_msg = _("Image processing dialog is open");
+				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
+			} else  if (ret == 0) {
 				// Thread claimed, we can safely do gfit processing tasks
 				conn->thread_claimed = TRUE;
 				success = send_response(conn, STATUS_OK, NULL, 0);
+			} else {
+				// Unable to claim the thread
+				const char* error_msg = _("Unknown error");
+				success = send_response(conn, STATUS_NONE, error_msg, strlen(error_msg));
 			}
 			break;
 		}

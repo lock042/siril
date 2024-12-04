@@ -35,6 +35,8 @@
 #include "core/OS_utils.h"
 #include "filters/graxpert.h" // for set_graxpert_aborted()
 #include "gui/utils.h"
+#include "gui/dialogs.h"
+#include "gui/message_dialog.h"
 #include "gui/progress_and_log.h"
 #include "gui/script_menu.h"
 #include "io/sequence.h"
@@ -783,17 +785,24 @@ gpointer waiting_for_thread() {
 	return retval;
 }
 
-gboolean claim_thread_for_python() {
+int claim_thread_for_python() {
 	g_mutex_lock(&com.mutex);
 	if (com.thread || com.run_thread || com.python_claims_thread) {
-		fprintf(stderr, "The processing thread is busy, stop it first.\n");
+		fprintf(stderr, "The processing thread is busy. It must stop before Python can claim "
+					"the processing thread.\n");
 		g_mutex_unlock(&com.mutex);
-		return FALSE;
+		return 1;
+	}
+	if (is_an_image_processing_dialog_opened()) {
+		fprintf(stderr, "A Siril image processing dialog is open. It must be closed before "
+					"Python can claim the processing thread.\n");
+		g_mutex_unlock(&com.mutex);
+		return 2;
 	}
 	com.python_claims_thread = TRUE;
 	g_mutex_unlock(&com.mutex);
 	set_cursor_waiting(TRUE);
-	return TRUE;
+	return 0;
 }
 
 void python_releases_thread() {
