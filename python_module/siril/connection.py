@@ -703,9 +703,9 @@ class SirilInterface:
         Returns:
             bool: True if the processing thread is claimed successfully, or
 
-                  False if the thread is in use or if an error occured. In either case
-                  processing cannot continue, though the script can wait and allow the
-                  user to try again once the thread is free.
+            False if the thread is in use or if an error occured. In either case
+            processing cannot continue, though the script can wait and allow the
+            user to try again once the thread is free.
         """
         try:
             retval = self._execute_command(_Command.CLAIM_THREAD, None)
