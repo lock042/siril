@@ -837,7 +837,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="tooltip-text" translatable="yes">Observer's height (altitude) above sea level.</property>
-                                <property name="text" translatable="yes">10.0</property>
+                                <property name="text">10.0</property>
                                 <property name="adjustment">adjustment_spcc_height</property>
                                 <property name="digits">1</property>
                                 <property name="value">10</property>
@@ -864,7 +864,7 @@ Common wavelengths: S II - 672 nm; Ha - 656.46 nm; O III - 500 nm; Hb - 486.1 nm
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="tooltip-text" translatable="yes">Atmospheric pressure in hPa. If the "sea level" check box is checked this is taken to be sea level pressure, otherwise it is taken to be local pressure at the observer's height.</property>
-                                <property name="text" translatable="yes">1013.00</property>
+                                <property name="text">1013.00</property>
                                 <property name="adjustment">adjustment_spcc_pressure</property>
                                 <property name="digits">2</property>
                                 <property name="value">1013</property>
