@@ -800,6 +800,7 @@ void python_releases_thread() {
 	g_mutex_lock(&com.mutex);
 	com.python_claims_thread = FALSE;
 	g_mutex_unlock(&com.mutex);
+	set_cursor_waiting(FALSE);
 	return;
 }
 
