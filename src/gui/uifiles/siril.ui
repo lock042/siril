@@ -9190,8 +9190,7 @@ WARNING: This option should not be checked for master stacking.</property>
                                                             <property name="label" translatable="yes">Maximize framing</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">If you check this button, the final image size will be enlarged to fit all the selected frames of the sequence.
-                                                            </property>
+                                                            <property name="tooltip-text" translatable="yes">If you check this button, the final image size will be enlarged to fit all the selected frames of the sequence.</property>
                                                             <property name="halign">start</property>
                                                             <property name="draw-indicator">True</property>
                                                             <signal name="toggled" handler="on_check_maximize_framing_toggled" swapped="no"/>
@@ -9206,8 +9205,7 @@ WARNING: This option should not be checked for master stacking.</property>
                                                             <property name="label" translatable="yes">Interpolation upscaling x2</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">If you check this button, the final image size will be upscaled by a factor of 2. This can be faster than real drizzle images obtained during registration but will not produced images as sharp.
-                                                            </property>
+                                                            <property name="tooltip-text" translatable="yes">If you check this button, the final image size will be upscaled by a factor of 2. This can be faster than real drizzle images obtained during registration but will not produced images as sharp.</property>
                                                             <property name="halign">start</property>
                                                             <property name="draw-indicator">True</property>
                                                           </object>
